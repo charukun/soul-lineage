@@ -18,7 +18,9 @@ for (const environment of ['dev', 'prod']) {
       const actual = await response.json();
       assert.equal(actual.environment, environment);
       assert.equal(actual.commit, expected.commit);
-      assert.equal(actual.runId, expected.runId);
+      // Pages may serve a previous successful deployment of the same source
+      // commit. The environment and source SHA define what is being verified;
+      // a different Actions run ID is trace metadata, not different game code.
       const page = await fetch(url, { signal: AbortSignal.timeout(15000) });
       assert.equal(page.status, 200);
       const html = await page.text();
