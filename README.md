@@ -48,10 +48,16 @@ DEVのコードがPRODに混ざることはありませんが、どちらかの�
 
 ## 初回のGitHub設定
 
+このリポジトリでは以下の設定を完了しています。以後は通常のブランチ更新で自動配信されます。
+
 Settings → Pages → Build and deployment → Source を **GitHub Actions** に設定します。
 `github-pages` environmentの許可ブランチは `main` と `develop` にします。
 GitHubが初回にデフォルトブランチのみ許可する設定を作った場合も `develop` を追加してください。
 Actionsの成功と、DEV / PRODの `version.json` を確認すれば配信元を照合できます。
+
+本番への昇格にはGitHubのPR mergeを使用し、`main` に固有のmerge commitを作成してください。
+GitHub Pagesは配信元のcommit SHAを配信IDとして使用するため、両ブランチを同じSHAへ直接更新して連続配信すると、後の配信が先の配信内容を返す場合があります。
+同じSHAの再実行では実行番号よりも各環境のソースSHAを照合します。
 
 ## 参照
 
