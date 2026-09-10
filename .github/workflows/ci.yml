@@ -8,8 +8,38 @@ concurrency:
   group: ci-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
-  build:
-    name: Validate and build
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.plan.outputs.apps }}
+      has_apps: ${{ steps.plan.outputs.has_apps }}
+      packages: ${{ steps.plan.outputs.packages }}
+      has_packages: ${{ steps.plan.outputs.has_packages }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Resolve changed apps and transitive consumers
+        id: plan
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/affected.mjs "$BASE_SHA" "$HEAD_SHA"
+      - name: Verify impact analysis and deployment isolation
+        if: steps.plan.outputs.infrastructure == 'true'
+        run: npm test
+  apps:
+    needs: plan
+    if: needs.plan.outputs.has_apps == 'true'
+    name: Build (${{ matrix.app }})
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.plan.outputs.apps) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -23,5 +53,42 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - run: npm run check
-      - run: npm run build
+      - run: npm run check -- ${{ matrix.app }}
+      - run: npm run test:app -- ${{ matrix.app }}
+      - run: npm run build --workspace @soul/${{ matrix.app }}
+  packages:
+    needs: plan
+    if: needs.plan.outputs.has_packages == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Verify changed shared packages (including packages without consumers)
+        env:
+          PACKAGES: ${{ needs.plan.outputs.packages }}
+        run: |
+          node --input-type=module <<'JS'
+          import { execFileSync } from 'node:child_process';
+          for (const name of JSON.parse(process.env.PACKAGES)) {
+            execFileSync('node', ['scripts/check.mjs', name], { stdio: 'inherit' });
+            execFileSync('node', ['scripts/test-app.mjs', name], { stdio: 'inherit' });
+          }
+          JS
+  build:
+    name: Validate and build
+    if: always()
+    needs: [plan, apps, packages]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Required CI gate (including documentation-only PRs)
+        env:
+          PLAN: ${{ needs.plan.result }}
+          APPS: ${{ needs.apps.result }}
+          PACKAGES: ${{ needs.packages.result }}
+        run: test "$PLAN" = success && { test "$APPS" = success || test "$APPS" = skipped; } && { test "$PACKAGES" = success || test "$PACKAGES" = skipped; }

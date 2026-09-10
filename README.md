@@ -1,66 +1,74 @@
-# 魂の系譜 — Soul Lineage
+# 輪廻転焦 — 3ゲーム共通開発基盤
 
-WebGL2 / Three.jsのゲーム開発用リポジトリ。初期段階は白い空のシーンです。
+`charukun/soul-lineage` は「輪廻転焦」（旧名：魂の系譜）・村ハウジングゲーム・魔王軍ゲームのmonorepoです。今回の3画面は共通家具を描画する開発用の雛形です。ゲーム本体・クロスプレイサーバー・ストアSDKは含みません。
 
-| 環境 | URL | ソース |
-| --- | --- | --- |
-| DEV | https://charukun.github.io/soul-lineage/dev/ | `develop` |
-| PROD | https://charukun.github.io/soul-lineage/prod/ | `main` |
+| ゲーム | ソース | DEV URL | 将来のProductionパス |
+| --- | --- | --- | --- |
+| 輪廻転焦 | `apps/rinne` | https://charukun.github.io/soul-lineage/dev/rinne/ | `/prod/rinne/` |
+| 村ハウジングゲーム | `apps/village` | https://charukun.github.io/soul-lineage/dev/village/ | `/prod/village/` |
+| 魔王軍ゲーム | `apps/demon` | https://charukun.github.io/soul-lineage/dev/demon/ | `/prod/demon/` |
 
-ログイン不要で閲覧できます。リポジトリもPublicです。
-各URLの `version.json` に環境名・実際のソースcommit SHA・ビルド日時・Actions run IDを自動出力します。
-画面上にバージョン文字列は表示しません。ブラウザのタブ名でDEV/PRODを区別できます。
+既存 `/dev/` は輪廻転焦へ転送します。現在の `/prod/` はmainの既存実装を維持します。mainへ各appを昇格すると、対応するProductionパスを自動検出します。URLは公開・ログイン不要です。
 
-## 開発
+## 開発・独立build
 
-Node.js 24とnpmを使用します。
+Node.js 24 / npm 11、npm workspacesと既存のViteを使用します。
 
 ```sh
 npm ci
-npm run dev
-```
-
-```sh
+npm run dev:rinne       # :5173
+npm run dev:village     # :5174
+npm run dev:demon       # :5175
+npm run build:rinne     # dist/rinne/index.html
+npm run build:village   # dist/village/index.html
+npm run build:demon     # dist/demon/index.html
+npm run build          # すべて（共有package単独のbuildは不要）
 npm run check
-APP_ENV=dev npm run build
-npm run preview
+npm test
+npm run test:app -- rinne
+npm run affected -- origin/develop HEAD
 ```
 
-`src/main.js` がゲームの開始点です。現時点ではThree.jsの白いシーンを初期描画し、ウィンドウサイズ変更時のみ再描画します。オブジェクト・ゲームUI・ゲームルールはまだありません。
-相対baseでビルドするため、GLBやテクスチャなどの追加時にもURL先頭の `/` をハードコードせず、`import.meta.env.BASE_URL` かモジュール相対URLを使用してください。
+各 `dist/<app>/` は相対URLで完結する静的成果物です。別ホスト・CDNにもそのまま配信できます。`version.json` のapp・environment・commit・inputHashで実際のbuild元を照合できます。変更のないアプリでは元のbuild SHAを保持します。
+
+## 共有packages
+
+| Package | 責務 |
+| --- | --- |
+| `characters` / `animations` | 安定したIDによる共通キャラクター・モーション登録口 |
+| `assets` | 家具・建物の定義と共通画像。3アプリが同じ紋章SVGとベンチ定義を利用 |
+| `world` | 共通村データ、schema/revision・Asset参照の検証、独立したコピーの取得 |
+| `audio` | 共通音声catalogの登録口 |
+| `rendering` | WebGL / Three.js表示Adapter。ゲームルールを持たない |
+| `network` | PlatformのHTTPポートに依存する通信クライアント |
+| `shared-ui` | Web向け表示・スタイルのみ |
+| `game-data` | 共通content/protocol/save versionとPlatform非依存の保存形式 |
+| `platform` / `platform-web` | Platformの契約とWeb実装。詳細は[Platform方針](docs/PLATFORMS.md) |
+
+ゲーム本体は `apps/<app>/src/app.js` または `src/game/` に置き、Platform APIを直接呼びません。`src/main.js` は各Platformの起動・表示を接続する場所です。アプリ間の直接importとpackageからappへの依存をcheckで禁止します。
+
+共通村の正本は `packages/world/data/villages/foundation.json`。メートル・右手系Y-up・安定したentity ID / asset ID / schemaVersion / revisionを使用します。配信する初期world templateと、ユーザーが変更した保存データを分離してください。共有packageは同一データ参照を提供しますが、サーバー間同期や共有ユーザー状態を自動的に実装するものではありません。
 
 ## CI/CD
 
-- `develop` / `main` 向けPR: 構文確認・依存関係の固定インストール・ビルド・生成物検証。
-- `develop` / `main` へのpush: 最新 `develop` をDEV、最新 `main` をPRODとしてビルドし、自動配信。
-- 手動再配信: Actions → Deploy DEV and PROD → Run workflow（mainまたはdevelop）。
-- PRODのソース更新は `develop` から `main` へのPRをレビューしてmergeする。
-- 配信後にログインなしのHTTPで両ページ・JS/CSS・version.jsonのSHAを検証する。
-- GitHub Actionsの組み込みトークンとOIDCを利用。追加サービスや長期APIキーは不要。
+- PR: app変更は該当app、package変更は推移的に依存するappと変更packageを検証。未使用packageは自身のみ。lockfile・基盤変更は全app。文書のみはbuild不要でも必須CI Gateを成功させます。
+- develop/main更新: 直列化した後に両ブランチの最新HEADを取得。前回公開manifestと各appの入力hashを比較し、変更appのみinstall/check/test/buildします。
+- 変更のないappは公開済み成果物をSHA-256検証して再利用。すべて不変なら公開も省略。初回やmanifest未作成の場合は各環境を一度buildします。
+- Pagesの既存設定・OIDC・Actions tokenを再利用。追加サービス・APIキー不要です。
+- GitHub Pagesはサイト単位で入れ替わるため、最後のupload/deployは全URLを含む単一snapshotです。変更のないappを再buildせず、前回内容をそのまま含めます。
+- 取得・build・検証失敗時は配信せず、直前の公開内容を維持します。配信後は公開HTTPで各入口、JS/CSS/SVG、SHAを検証します。
+- Productionはmainに含まれるコードのみ。mainの旧構成にも対応し、DEVからProductionへの自動昇格は行いません。
+- 両ブランチのdeploy workflowを同じ内容に保ちます。実行coordinatorは最新developから読みますが、Productionのbuildコマンドとソースはmainから実行します。
 
-GitHub Pagesは1リポジトリにつき1サイトのため、DEV/PRODは同じホストの別パスです。
-1回の配信では両ブランチを別々にビルドし、1つの成果物にまとめて公開します。
-DEVのコードがPRODに混ざることはありませんが、どちらかのビルドが失敗すると両方の更新を止め、直前の公開内容を維持します。
-同時配信は直列化し、待機後に最新のブランチを取得することで古いpushによる巻き戻しを防ぎます。
+詳細: [CI/CD運用](docs/MONOREPO.md)。[GitHub Pages公式Workflow](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)、[npm workspaces](https://docs.npmjs.com/cli/v11/using-npm/workspaces/)、[Vite相対base](https://vite.dev/config/shared-options#base)。
 
-現在は静的フロントエンドのみです。API・DB・保存・ログインを追加する段階で環境別のバックエンドを用意してください。
-同一オリジンなので、将来localStorageなどを利用するときは環境別にキーを分ける必要があります。
+## ゲームの追加
 
-## 初回のGitHub設定
+```sh
+npm run app:add -- fourth "新しいゲーム"
+npm install --package-lock-only
+npm ci
+npm run build --workspace @soul/fourth
+```
 
-このリポジトリでは以下の設定を完了しています。以後は通常のブランチ更新で自動配信されます。
-
-Settings → Pages → Build and deployment → Source を **GitHub Actions** に設定します。
-`github-pages` environmentの許可ブランチは `main` と `develop` にします。
-GitHubが初回にデフォルトブランチのみ許可する設定を作った場合も `develop` を追加してください。
-Actionsの成功と、DEV / PRODの `version.json` を確認すれば配信元を照合できます。
-
-本番への昇格にはGitHubのPR mergeを使用し、`main` に固有のmerge commitを作成してください。
-GitHub Pagesは配信元のcommit SHAを配信IDとして使用するため、両ブランチを同じSHAへ直接更新して連続配信すると、後の配信が先の配信内容を返す場合があります。
-同じSHAの再実行では実行番号よりも各環境のソースSHAを照合します。
-
-## 参照
-
-- [GitHub PagesのカスタムWorkflow](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
-- [Viteの静的配信](https://vite.dev/guide/static-deploy.html)
-- [Three.js](https://threejs.org/)
+テンプレートは稼働ゲームから独立した `templates/app/`。workspaceを追加すれば影響判定とDEV公開先 `/dev/fourth/` は自動認識します。共通packageの利用は各appのpackage.jsonへ明示します。

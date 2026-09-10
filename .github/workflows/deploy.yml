@@ -5,9 +5,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-# A Pages site is replaced as a unit. Serialize the full snapshot and deploy.
-# Checkout the latest branch heads after entering this group so queued runs
-# cannot restore an older event SHA over a newer deployment.
+# GitHub Pages replaces one site atomically. Serialize the latest complete snapshot.
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -15,7 +13,7 @@ jobs:
   publish:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     permissions:
       contents: read
       pages: write
@@ -24,13 +22,13 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout DEV source
+      - name: Checkout latest DEV and deployment coordinator
         uses: actions/checkout@v6
         with:
           ref: develop
           path: sources/dev
           persist-credentials: false
-      - name: Checkout PROD source
+      - name: Checkout latest PROD source
         uses: actions/checkout@v6
         with:
           ref: main
@@ -43,55 +41,23 @@ jobs:
           cache-dependency-path: |
             sources/dev/package-lock.json
             sources/prod/package-lock.json
-      - name: Build DEV from develop
-        working-directory: sources/dev
+      - name: Plan, build affected apps, retain unchanged published outputs
+        id: assemble
         env:
-          APP_ENV: dev
-          APP_BRANCH: develop
-        run: |
-          npm ci
-          npm run check
-          npm run build
-      - name: Build PROD from main
-        working-directory: sources/prod
-        env:
-          APP_ENV: prod
-          APP_BRANCH: main
-        run: |
-          npm ci
-          npm run check
-          npm run build
-      - name: Assemble both environments
-        run: |
-          mkdir -p _site/dev _site/prod
-          cp -a sources/dev/dist/. _site/dev/
-          cp -a sources/prod/dist/. _site/prod/
-          touch _site/.nojekyll
-          cat > _site/index.html <<'HTML'
-          <!doctype html><html lang="ja"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=prod/"><title>魂の系譜</title></head><body></body></html>
-          HTML
+          SITE_URL: https://charukun.github.io/soul-lineage/
+        run: node sources/dev/scripts/deploy.mjs sources/dev sources/prod _site "$SITE_URL"
       - uses: actions/configure-pages@v5
+        if: steps.assemble.outputs.changed == 'true'
       - uses: actions/upload-pages-artifact@v4
+        if: steps.assemble.outputs.changed == 'true'
         with:
           path: _site
-      - name: Deploy both environments
+      - name: Publish changed snapshot
         id: deployment
+        if: steps.assemble.outputs.changed == 'true'
         uses: actions/deploy-pages@v4
-      - name: Verify public pages, assets and source commits
+      - name: Verify public app URLs, assets and source commits
+        if: steps.assemble.outputs.changed == 'true'
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
-        run: node sources/prod/scripts/verify-live.mjs "$SITE_URL" _site
-      - name: Record environment URLs and versions
-        env:
-          SITE_URL: ${{ steps.deployment.outputs.page_url }}
-        run: |
-          node --input-type=module <<'JS'
-          import { readFileSync, appendFileSync } from 'node:fs';
-          const base = process.env.SITE_URL.replace(/\/?$/, '/');
-          let report = '| Environment | URL | Source branch | Commit |\n| --- | --- | --- | --- |\n';
-          for (const env of ['dev', 'prod']) {
-            const info = JSON.parse(readFileSync(`_site/${env}/version.json`, 'utf8'));
-            report += `| ${env.toUpperCase()} | ${base}${env}/ | ${info.branch} | ${info.commit} |\n`;
-          }
-          appendFileSync(process.env.GITHUB_STEP_SUMMARY, report);
-          JS
+        run: node sources/dev/scripts/verify-live.mjs "$SITE_URL" _site

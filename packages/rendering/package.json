@@ -1,0 +1,13 @@
+{
+  "name": "@soul/rendering",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "dependencies": {
+    "three": "0.186.0",
+    "@soul/assets": "*"
+  }
+}

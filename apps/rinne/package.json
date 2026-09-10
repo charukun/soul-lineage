@@ -1,0 +1,20 @@
+{
+  "name": "@soul/rinne",
+  "displayName": "輪廻転焦",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173 --strictPort",
+    "build": "vite build && node ../../scripts/verify-build.mjs ../../dist/rinne rinne",
+    "preview": "vite preview --host 0.0.0.0 --port 5273 --strictPort"
+  },
+  "dependencies": {
+    "@soul/assets": "*",
+    "@soul/world": "*",
+    "@soul/rendering": "*",
+    "@soul/shared-ui": "*",
+    "@soul/game-data": "*",
+    "@soul/platform-web": "*"
+  }
+}
