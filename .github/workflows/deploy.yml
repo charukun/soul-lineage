@@ -61,3 +61,16 @@ jobs:
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
         run: node sources/dev/scripts/verify-live.mjs "$SITE_URL" _site
+      - name: Verify changed public apps in real Chromium / WebGL2
+        if: steps.assemble.outputs.changed == 'true'
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: node sources/dev/scripts/verify-browser.mjs "$SITE_URL" _site .deploy-state/changed.json
+      - name: Keep browser screenshots and test results
+        if: always() && steps.assemble.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-browser-verification
+          path: sources/dev/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
