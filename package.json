@@ -1,15 +1,25 @@
 {
   "name": "soul-lineage",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "engines": { "node": ">=24 <25" },
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "check": "node --check src/main.js && node --check vite.config.js && node --check scripts/verify-build.mjs && node --check scripts/verify-live.mjs",
-    "build": "vite build && node scripts/verify-build.mjs",
-    "preview": "vite preview --host 0.0.0.0"
+    "dev": "npm run dev --workspace @soul/rinne",
+    "dev:rinne": "npm run dev --workspace @soul/rinne",
+    "dev:village": "npm run dev --workspace @soul/village",
+    "dev:demon": "npm run dev --workspace @soul/demon",
+    "check": "node scripts/check.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:app": "node scripts/test-app.mjs",
+    "build": "npm run build --workspaces --if-present",
+    "build:rinne": "npm run build --workspace @soul/rinne",
+    "build:village": "npm run build --workspace @soul/village",
+    "build:demon": "npm run build --workspace @soul/demon",
+    "affected": "node scripts/affected.mjs",
+    "preview": "npm run preview --workspace @soul/rinne",
+    "app:add": "node scripts/add-app.mjs"
   },
-  "dependencies": { "three": "0.186.0" },
   "devDependencies": { "vite": "8.2.2" }
 }

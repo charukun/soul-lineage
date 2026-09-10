@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "village.foundation.v1",
+  "revision": 1,
+  "name": "はじまりの村",
+  "units": "metres",
+  "coordinateSystem": "right-handed-y-up",
+  "entities": [
+    {
+      "id": "bench.square.01",
+      "assetId": "furniture.bench.oak.v1",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ]
+    }
+  ]
+}
