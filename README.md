@@ -56,7 +56,8 @@ npm run affected -- origin/develop HEAD
 - 変更のないappは公開済み成果物をSHA-256検証して再利用。すべて不変なら公開も省略。初回やmanifest未作成の場合は各環境を一度buildします。
 - Pagesの既存設定・OIDC・Actions tokenを再利用。追加サービス・APIキー不要です。
 - GitHub Pagesはサイト単位で入れ替わるため、最後のupload/deployは全URLを含む単一snapshotです。変更のないappを再buildせず、前回内容をそのまま含めます。
-- 取得・build・検証失敗時は配信せず、直前の公開内容を維持します。配信後は公開HTTPで各入口、JS/CSS/SVG、SHAを検証します。
+- 配信前の取得・build・検証失敗時は配信せず、直前の公開内容を維持します。配信後は公開HTTPで各入口、JS/CSS/SVG、SHAを検証します。
+- 配信後は変更appだけを実Chromiumで開き、WebGL2起動・表示・共有Asset・commitを検証します。結果と画面をActions Artifactに保存します。CIの描画はSwiftShaderを使うため、実機性能の測定ではありません。
 - Productionはmainに含まれるコードのみ。mainの旧構成にも対応し、DEVからProductionへの自動昇格は行いません。
 - 両ブランチのdeploy workflowを同じ内容に保ちます。実行coordinatorは最新developから読みますが、Productionのbuildコマンドとソースはmainから実行します。
 
