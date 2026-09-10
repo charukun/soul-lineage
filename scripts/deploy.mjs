@@ -87,6 +87,8 @@ async function main() {
   await writeFile(resolve(output, 'index.html'), '<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=prod/"><title>輪廻転焦</title></head><body><a href="prod/">輪廻転焦</a></body></html>');
   await writeFile(resolve(output, '.nojekyll'), '');
   await writeFile(resolve(output, 'deployment-manifest.json'), JSON.stringify({ schemaVersion: 1, entries }, null, 2));
+  await mkdir('.deploy-state', { recursive: true });
+  await writeFile('.deploy-state/changed.json', JSON.stringify(changed.map(entry => entry.path)));
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,
     '| App | Action | URL | Built source |\n| --- | --- | --- | --- |\n' + entries.map(e => `| ${e.path} | ${changed.some(c => c.path === e.path) ? 'build' : 'retain'} | ${new URL(e.path + '/', base)} | ${e.version.commit} |\n`).join(''));
 }

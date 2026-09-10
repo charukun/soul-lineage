@@ -32,5 +32,8 @@ Pages全体が1単位のため、どれかのappのbuild/restoreが失敗すれ�
 - `npm run build:<app>`: 独立build、index/JS/CSS/共通SVG/version検証。
 - 配信後HTTP gate: 各公開入口、JS/CSS/SVGの内容、各appのcommit/inputHash検証。
 - 実ブラウザ: 各DEV URLでcanvasのrenderer=ready、world/asset ID、画像表示、console errorsを確認。
+- 公開後のChromium gateは変更appだけを対象に1ブラウザworkerで実行。公開snapshotの実commitと照合し、HTTP成功だけで起動成功と判断しません。WebGL2を無効にした環境や初期化失敗を成功扱いするfallbackは設けません。スクリーンショットはActionsのpublic-browser-verification artifactに14日保持します。
 
 3アプリの起動確認は基盤の検証です。将来追加するゲーム本体・ネイティブ実機の性能/認定テストの代わりにはなりません。
+
+公開後のHTTP/browser gateが失敗した場合はActionsが失敗を報告します。公開そのものは既に行われているため、正常commitへの復旧PRが必要です。
