@@ -3,6 +3,18 @@ import { createQuaterniusRetargeter } from '@soul/rendering/quaternius-retarget'
 import { createReviewEffects } from '@soul/rendering/review-effects';
 import { SHINO_REVIEW, REVIEW_ASSET_REVISION } from '@soul/assets/review-catalog';
 export const reviewPresets = Object.freeze([{id:SHINO_REVIEW.id,label:'Shino / Quaternius 実素材',modelUrl:SHINO_REVIEW.publicPath}]);
+const KAYKIT_COMMIT='672074b73ba276876a19e8816ecdc5241817ab47';
+const KAYKIT_ROOT=`https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/${KAYKIT_COMMIT}/addons/kaykit_character_pack_adventures/Assets/gltf/`;
+export const reviewWeapons=Object.freeze([
+  {id:'greatsword',label:'大剣',file:'sword_2handed.gltf'},
+  {id:'sword',label:'片手剣',file:'sword_1handed.gltf'},
+  {id:'axe',label:'片手斧',file:'axe_1handed.gltf'},
+  {id:'greataxe',label:'両手斧',file:'axe_2handed.gltf'},
+  {id:'dagger',label:'短剣',file:'dagger.gltf'},
+  {id:'crossbow',label:'クロスボウ',file:'crossbow_2handed.gltf'},
+  {id:'staff',label:'杖',file:'staff.gltf'},
+  {id:'wand',label:'ワンド',file:'wand.gltf'},
+]);
 export function disposeLoaded(root) {
   const geometries = new Set(), materials = new Set(), textures = new Set(), skeletons = new Set();
   root?.traverse(node => {
@@ -38,7 +50,8 @@ export async function installReviewExtensions({scene}) {
   const rootUrl = new URL('./',location.href), assetUrl = new URL('./asset-review/',rootUrl);
   return {
     async loadPreset({signal,onProgress}) {
-      const loader = new GLTFLoader(); let character, library, sword, effects, retarget;
+      const loader = new GLTFLoader(); let character, library, effects, retarget;
+      const weapons=new Map();
       try {
         const manifestResponse = await fetch(new URL(`manifest.json?v=${REVIEW_ASSET_REVISION}`,assetUrl),{signal,cache:'no-cache'});
         if (!manifestResponse.ok) throw new Error(`Asset manifest HTTP ${manifestResponse.status}`);
@@ -51,17 +64,27 @@ export async function installReviewExtensions({scene}) {
         const motionBytes = await loadBytes(new URL(`AnimationLibrary.glb?v=${row.sha256}`,assetUrl),{signal,expectedSize:row.size,sha256:row.sha256,onProgress:(n,total) => onProgress(`モーション ${Math.round(n/total*100)}%`)});
         library = await loader.parseAsync(motionBytes,assetUrl.href); signal.throwIfAborted();
         onProgress('骨格を照合中'); retarget = await createQuaterniusRetargeter(library,character);
-        sword = await loader.loadAsync(new URL('./weapon/sword_2handed.gltf',assetUrl).href); signal.throwIfAborted();
         effects = await createReviewEffects(scene,assetUrl); signal.throwIfAborted();
-        const socket = new THREE.Group(); socket.name = 'KayKitGreatswordReviewSocket'; socket.add(sword.scene); retarget.bones.rightHand.add(socket);
-        socket.visible = false; sword.scene.scale.setScalar(.5);
-        const impact = new THREE.Vector3(), ground = new THREE.Vector3();
+        const socket = new THREE.Group(); socket.name = 'KayKitWeaponReviewSocket'; retarget.bones.rightHand.add(socket);
+        async function selectWeapon(id='greatsword'){
+          if(!reviewWeapons.some(row=>row.id===id))id='greatsword';
+          for(const root of weapons.values())root.visible=false;
+          if(!weapons.has(id)){
+            const spec=reviewWeapons.find(row=>row.id===id);
+            const gltf=await loader.loadAsync(KAYKIT_ROOT+spec.file); signal.throwIfAborted();
+            gltf.scene.name=`KayKit:${id}`;gltf.scene.scale.setScalar(.5);socket.add(gltf.scene);weapons.set(id,gltf.scene);
+          }
+          weapons.get(id).visible=true;return id;
+        }
+        await selectWeapon('greatsword');socket.visible=false;
+        const impact = new THREE.Vector3(), ground = new THREE.Vector3();let activeWeapon='greatsword';
         const own = {
-          root:character.scene, clipNames:retarget.clipNames, bones:retarget.bones,
+          root:character.scene, clipNames:retarget.clipNames, bones:retarget.bones, weapons:reviewWeapons,
           label:`${SHINO_REVIEW.id} / ${SHINO_REVIEW.sha256.slice(0,12)}`,
           provenance:manifest, getClip:(name,options) => retarget.getClip(name,options),
-          setWeapon({enabled=false,scale=.5,x=0,y=0,z=0}) {
-            socket.visible = enabled; sword.scene.scale.setScalar(Math.max(.1,Math.min(1,scale)));
+          async setWeapon({enabled=false,id='greatsword',scale=.5,x=0,y=0,z=0}) {
+            if(id!==activeWeapon)activeWeapon=await selectWeapon(id);
+            socket.visible = enabled; const selected=weapons.get(activeWeapon);if(selected)selected.scale.setScalar(Math.max(.1,Math.min(1,scale)));
             socket.rotation.set(x*Math.PI/180,y*Math.PI/180,z*Math.PI/180);
           },
           sampleEffects(age) {
@@ -69,10 +92,10 @@ export async function installReviewExtensions({scene}) {
             const left = retarget.bones.leftFoot.getWorldPosition(ground), right = retarget.bones.rightFoot.getWorldPosition(new THREE.Vector3());
             ground.copy(left).add(right).multiplyScalar(.5); effects.sample(age,impact,ground);
           },
-          dispose() { effects.dispose(); retarget.dispose(); disposeLoaded(character.scene); disposeLoaded(library.scene); },
+          dispose() { effects.dispose(); retarget.dispose(); for(const root of weapons.values())disposeLoaded(root); disposeLoaded(character.scene); disposeLoaded(library.scene); },
         };
         return own;
-      } catch (error) { effects?.dispose(); retarget?.dispose(); disposeLoaded(character?.scene); disposeLoaded(library?.scene); if (sword && !sword.scene.parent) disposeLoaded(sword.scene); throw error; }
+      } catch (error) { effects?.dispose(); retarget?.dispose(); for(const root of weapons.values())disposeLoaded(root); disposeLoaded(character?.scene); disposeLoaded(library?.scene); throw error; }
     },
   };
 }
