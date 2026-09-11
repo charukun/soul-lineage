@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111827"><meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex,nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<title>Session Desk — 作業の入口</title>
+<link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="manifest" href="./manifest.webmanifest"><link rel="stylesheet" href="./style.css">
+<script src="./core.js" defer></script><script src="./app.js" defer></script>
+</head>
+<body>
+<div id="lockscreen" class="lockscreen">
+  <section class="lock-card">
+    <div class="brandmark" aria-hidden="true">▤</div><p class="eyebrow">YOUR WORK, ONE PLACE</p>
+    <h1>Session Desk</h1><p class="lock-intro">いま何を、どこで。<br>作業の入口を、ひとつに。</p>
+    <form id="unlock-form"><label id="pass-label" for="passphrase">この端末の保存用パスフレーズ</label><input id="passphrase" type="password" minlength="8" maxlength="128" autocomplete="new-password" required placeholder="8文字以上"><p id="unlock-note" class="small">会話・依頼文は暗号化してこのブラウザに保存します。ChatGPTのパスワードは入力しないでください。</p><button id="unlock-submit" class="primary wide" type="submit">はじめる</button></form>
+    <p id="unlock-error" class="error" role="alert"></p>
+    <p class="privacy-note">外部AIへの送信なし · API課金なし<br>既存ChatGPTアカウントの全件取得・自動送信は未接続です。</p>
+    <button id="restore-locked" class="link-btn" type="button">暗号化バックアップから復元</button>
+  </section>
+</div>
+<div id="shell" hidden>
+<header class="topbar"><a class="brand" href="./"><span class="brand-icon" aria-hidden="true">▤</span> Session Desk</a><button id="settings-btn" class="icon-btn" aria-label="設定を開く">⚙</button></header>
+<main>
+  <section class="hero"><p class="eyebrow">WORKSPACE</p><h1>作業を、見渡す。</h1><p id="date-line" class="muted"></p></section>
+  <aside class="coverage"><span class="coverage-dot" aria-hidden="true"></span><div><strong>ChatGPTアカウント：未接続</strong><p>表示は登録・取り込み分のみ。全件数と現在の稼働状態は取得できていません。</p></div><button id="coverage-btn" class="text-btn">詳細</button></aside>
+  <section class="metrics" aria-label="登録分の状態"><button class="metric" data-stat="all"><span>登録セッション</span><strong id="count-all">0</strong><small>アカウント全件数ではありません</small></button><button class="metric" data-stat="running"><span>作業中の最終報告</span><strong id="count-running">0</strong><small>現在の稼働は未確認</small></button><button class="metric attention" data-stat="attention"><span>確認が必要</span><strong id="count-attention">0</strong><small>未確認・返答待ち・更新なし</small></button></section>
+  <section id="sessions-panel" class="panel" aria-label="セッション一覧">
+    <div class="section-heading"><div><h2>セッション</h2><p id="session-subtitle" class="muted small">所属と最終報告を整理</p></div><button id="add-session" class="secondary">＋ 登録</button></div>
+    <div class="filters"><label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="タイトル・Projectを検索" aria-label="セッションを検索"></label><select id="project-filter" aria-label="Projectで絞り込み"><option value="">すべてのProject</option></select><select id="status-filter" aria-label="状態で絞り込み"><option value="all">すべての状態</option><option value="attention">確認が必要</option><option value="running">作業中の最終報告</option><option value="unknown">未確認</option><option value="ready">PR準備完了</option><option value="completed">完了との報告</option></select></div>
+    <label class="checkbox-line"><input id="show-archived" type="checkbox">アーカイブも表示</label><div id="session-list"></div><div id="list-pagination"></div>
+  </section>
+  <section id="tasks-panel" class="panel" hidden aria-label="依頼一覧"><div class="section-heading"><div><h2>依頼</h2><p class="muted small">下書きと、送信済みの自己申告</p></div><button id="new-task" class="secondary">＋ 依頼</button></div><div class="info-box">ここでの保存は<strong>実行開始ではありません</strong>。依頼文をコピーし、対象のChatGPTで送信してください。</div><div id="task-list"></div></section>
+  <section id="github-panel" class="panel" hidden aria-label="GitHubの進捗"><div class="section-heading"><div><h2>GitHubの進捗</h2><p id="repo-label" class="muted small"></p></div><button id="github-refresh" class="secondary">更新</button></div><div class="info-box">PR・CIの実績です。ChatGPTのセッション数・稼働状態とは別に表示します。</div><p id="github-status" class="small muted" role="status"></p><div id="github-summary"></div><div id="github-prs"></div><div id="github-runs"></div></section>
+  <footer class="page-footer">端末内・暗号化保存 / 同期なし / 自動実行なし<br><span id="saved-status">保存済み</span></footer>
+</main>
+<nav class="bottom-nav" aria-label="メインメニュー"><button data-tab="sessions" class="selected" aria-current="page"><span aria-hidden="true">▤</span>セッション</button><button data-tab="tasks"><span aria-hidden="true">＋</span>依頼</button><button data-tab="github"><span aria-hidden="true">⌘</span>GitHub</button></nav>
+</div>
+<dialog id="sheet"><div class="sheet-head"><h2 id="sheet-title"></h2><button id="close-sheet" class="icon-btn" aria-label="閉じる">×</button></div><div id="sheet-body"></div></dialog>
+<div id="toast" role="status" aria-live="polite" hidden></div><input id="import-file" type="file" accept=".json,.zip,application/json,application/zip" hidden><input id="restore-file" type="file" accept=".json,application/json" hidden>
+<noscript>この画面の利用にはJavaScriptが必要です。</noscript>
+</body></html>
