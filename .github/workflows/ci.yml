@@ -93,35 +93,40 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  browser-repair-state:
-    name: Record browser repair state
+  browser-repair-dispatch:
+    name: Dispatch browser repair state
     needs: [build, browser]
     if: >-
-      always() && github.event_name == 'pull_request' &&
-      needs.build.result == 'success' &&
+      always() && github.event_name == 'pull_request' && needs.build.result == 'success' &&
       (needs.browser.result == 'success' || needs.browser.result == 'failure') &&
       github.event.pull_request.base.ref == 'develop' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      issues: write
-      pull-requests: write
+      actions: write
+      pull-requests: read
     steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: false
-      - name: Create/update machine-readable repair ticket
+      - uses: actions/github-script@v8
         env:
-          GH_TOKEN: ${{ github.token }}
-          REPAIR_SCOPE: pr
-          REPAIR_CONCLUSION: ${{ needs.browser.result }}
-          REPAIR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          REPAIR_PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPAIR_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          REPAIR_ARTIFACT: pr-browser-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
-        run: node scripts/browser-repair-ticket.mjs
+          CONCLUSION: ${{ needs.browser.result }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          ARTIFACT: pr-browser-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo,
+              workflow_id: 'deploy.yml',
+              ref: context.payload.pull_request.head.ref,
+              inputs: {
+                repair_scope: 'pr',
+                repair_conclusion: process.env.CONCLUSION,
+                repair_head_sha: process.env.HEAD_SHA,
+                repair_pr_number: process.env.PR_NUMBER,
+                repair_run_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                repair_artifact: process.env.ARTIFACT
+              }
+            });
 
   integration-request:
     name: Request Integration
