@@ -43,6 +43,7 @@ try {
     onProgress(value, text) { progress.value = value; message.textContent = text; },
   });
   await import('./mura-experience.js');
+  await import('./mura-rotation-fix.js');
   document.title = document.title.replace(/^星継ぎの庭/, 'MURAAAAAAA');
   clearTimeout(watchdog);
   finished = true;
