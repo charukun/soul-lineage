@@ -18,7 +18,7 @@ export async function verifyReviewBrowser(output,{publicUrl=process.env.REVIEW_P
     if(!chrome&&!existsSync(chromium.executablePath()))execFileSync('npx',['playwright','install','chromium'],{stdio:'inherit',timeout:120000});
     browser=await chromium.launch({headless:true,...(chrome?{executablePath:chrome}:{}),args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
     const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
-    page.on('pageerror',error=>report.errors.push(error.message));
+    page.on('pageerror',error=>report.errors.push(error.stack||error.message));
     await page.goto(base,{waitUntil:'domcontentloaded'});
     await page.waitForFunction(()=>window.__reviewLab?.snapshot().loaded||document.querySelector('#review-status').dataset.kind==='error',null,{timeout:90000});
     assert.equal(await page.locator('#review-status').getAttribute('data-kind'),'','Initial load failed: '+await page.locator('#review-status').textContent());
