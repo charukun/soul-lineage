@@ -1,5 +1,6 @@
 // Keep this bootstrap independent of large modules so download/initialization
 // errors remain visible and retryable rather than stranding the loading screen.
+document.title = `星継ぎの庭${__BUILD_INFO__.environment === 'prod' ? '' : ` | ${__BUILD_INFO__.environment.toUpperCase()}`}`;
 const canvas = document.querySelector('#game');
 const loading = document.querySelector('#loading');
 const progress = document.querySelector('#progress');
