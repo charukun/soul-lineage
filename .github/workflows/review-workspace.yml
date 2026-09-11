@@ -1,0 +1,41 @@
+name: Review isolated verification workspace
+on:
+  push:
+    branches: [work/lab-mobile-tidebreak-verify]
+permissions:
+  contents: read
+jobs:
+  workspace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          path: source
+      - uses: actions/checkout@v6
+        with:
+          ref: bef949dc59c4e70a64e3a73749d68ca90c5a3db0
+          persist-credentials: false
+          path: baseline
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Prepare local-only verification inputs
+        working-directory: source
+        run: |
+          npm ci
+          npm run build:review
+          rm -rf .git
+          mkdir -p ../native-baseline
+          cp -a ../baseline/apps/rinne/public/simulator ../native-baseline/
+          cp ../baseline/AGENTS.md ../native-baseline/AGENTS.md
+          tar -czf ../review-workspace.tgz --exclude='./.github' .
+          tar -czf ../native-baseline.tgz -C ../native-baseline .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: review-offline-workspace
+          path: |
+            review-workspace.tgz
+            native-baseline.tgz
+          retention-days: 1
