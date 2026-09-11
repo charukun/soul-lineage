@@ -15,7 +15,7 @@ jobs:
           path: source
       - uses: actions/checkout@v6
         with:
-          ref: bef949dc59c4e70a64e3a73749d68ca90c5a3db0
+          ref: develop
           persist-credentials: false
           path: baseline
       - uses: actions/setup-node@v6
@@ -30,6 +30,7 @@ jobs:
           mkdir -p ../native-baseline
           cp -a ../baseline/apps/rinne/public/simulator ../native-baseline/
           cp ../baseline/AGENTS.md ../native-baseline/AGENTS.md
+          git -C ../baseline rev-parse HEAD > ../native-baseline/COMMIT
           tar -czf ../review-workspace.tgz --exclude='./.github' .
           tar -czf ../native-baseline.tgz -C ../native-baseline .
       - uses: actions/upload-artifact@v4
