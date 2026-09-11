@@ -13,6 +13,16 @@
 7. Codespacesはpush経路の代替であり、merge先やPR運用を変えない。PRはdevelop向け、merge・DEV公開は既存Integrationへ引き継ぐ。
 8. main / Productionは変更しない。
 
+## 書き込み経路の確認順（停止しないための必須ルール）
+
+CLIの `git push` が認証エラーになっても、Repositoryへの書き込み権限がないとは判断しません。実装WORKは、PR作成前に次の順で利用可能な経路を確認します。
+
+1. 接続済みのGitHub連携（branch・commit・PRを直接作成できる経路）を確認し、利用可能ならこれを使う。
+2. 通常の `git push` 認証済み経路を試す。
+3. 大きなファイル、Base64/payload上限、または通常git認証の問題で上記が使えない場合だけ、同じbranchをCodespacesで開いて通常git pushを使う。
+
+一つの経路が失敗しただけで、作業を「認証待ち」「手動対応待ち」として止めない。利用可能な次の正規経路へ切り替え、実装・検証済みのbranchと差分を維持したままReady PRまで進める。
+
 ## Codespacesでの最短手順
 
 ```sh
