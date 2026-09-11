@@ -1,11 +1,14 @@
 // Keep this bootstrap independent of large modules so download/initialization
 // errors remain visible and retryable rather than stranding the loading screen.
+import {installMusicLibrary} from '@soul/shared-ui/music';
+
 const canvas = document.querySelector('#game');
 const loading = document.querySelector('#loading');
 const progress = document.querySelector('#progress');
 const message = document.querySelector('#loadText');
 const retry = document.querySelector('#retry');
 const recover = document.querySelector('#recover');
+const disposeMusic=installMusicLibrary({game:'village',environment:__BUILD_INFO__.environment,defaultTrack:'v01',autoStart:true});
 let finished = false;
 const watchdog = setTimeout(() => {
   if (finished) return;
@@ -39,6 +42,7 @@ try {
   await boot({
     onProgress(value, text) { progress.value = value; message.textContent = text; },
   });
+  await import('./mura-experience.js');
   document.title = document.title.replace(/^星継ぎの庭/, 'MURAAAAAAA');
   clearTimeout(watchdog);
   finished = true;
@@ -48,8 +52,7 @@ try {
   console.error(error);
   reportError(error);
 }
-if (import.meta.hot) import.meta.hot.accept(() => location.reload());
-
-import {installMusicLibrary} from '@soul/shared-ui/music';
-const disposeMusic=installMusicLibrary({game:'village',environment:__BUILD_INFO__.environment,defaultTrack:'v01',autoStart:true});
-if(import.meta.hot)import.meta.hot.dispose(disposeMusic);
+if (import.meta.hot) {
+  import.meta.hot.accept(() => location.reload());
+  import.meta.hot.dispose(disposeMusic);
+}
