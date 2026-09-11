@@ -1,6 +1,6 @@
 # 暗い喰らいCry — DEV統合
 
-入力は `Kurai_Night_Hunt_v2_Source.zip`。開始時およびPR準備時の実装正本は develop `6e8c1dc669feba109fa1ee7b3fa026152921b38f`。この時点の輪廻転焦・村は共通家具を表示する雛形であり、Tidebreak本編・ハウジングエディター・認証・実対戦サービスはdevelopにありませんでした。別WORKの未commitファイルを正本として取り込みません。
+入力は `Kurai_Night_Hunt_v2_Source.zip`。開始時の実装正本は develop `6e8c1dc669feba109fa1ee7b3fa026152921b38f`。この時点の輪廻転焦・村は共通家具を表示する雛形であり、Tidebreak本編・ハウジングエディター・認証・実対戦サービスはdevelopにありませんでした。別WORKの未commitファイルを正本として取り込みません。後続の運用基盤変更 `ab33196` へ追従し、最新の高速PR/最終Integrationフローを保持しました。
 
 ## 実装済み
 
@@ -45,6 +45,6 @@
 
 `npm run check`、`npm test`、`npm run test:app -- demon`、3アプリのbuildを実施。魔物と依存packageの58テスト、配信分離8テスト。
 
-PRのdemon build後と公開DEVの両方で同じChromium/WebGL2テストを実行します。起動・build SHA・実描画・縦幅・入村記録・タップ非移動・スワイプ移動・二重タブ拒否・再読込後の中断記録を確認します。CIのGPUはSwiftShaderであり、Pixel Fold実機の性能保証ではありません。
+このPRの候補版はChromium/WebGL2で検証済みです。続いて最新運用に従い、最終Integrationの公開DEVで同じ実ゲーム検証を実行します。今後の通常PRへ重いブラウザ検証を再導入しません。起動・build SHA・実描画・縦幅・入村記録・タップ非移動・スワイプ移動・二重タブ拒否・再読込後の中断記録を確認します。CIのGPUはSwiftShaderであり、Pixel Fold実機の性能保証ではありません。候補版で見つかった画面切替時の負の経過時間による移動停止は、時計リセットと経過時間の下限処理で修正し、再検証が成功しています。
 
 `SOURCE_INTEGRATION.md` と `SOURCE_ASSETS.md` は添付元の記録です。このファイルの実装状況を優先してください。main・Productionのゲームソースは変更しません。
