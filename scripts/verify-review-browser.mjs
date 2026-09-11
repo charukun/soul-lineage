@@ -41,9 +41,8 @@ export async function verifyReviewBrowser(output,{publicUrl=process.env.REVIEW_P
     const sharedWalk='共有VRMA / Walk / 歩行';await page.waitForFunction(value=>[...document.querySelector('#clip').options].some(o=>o.value===value),sharedWalk,{timeout:90000});await page.selectOption('#clip',sharedWalk);await page.click('#skill-fire');
     await page.waitForFunction(()=>[...document.querySelector('#clip').options].some(o=>o.value==='外部 / Walk_Loop'),null,{timeout:120000});
     await page.selectOption('#clip','外部 / Walk_Loop');await page.click('#skill-fire');
-    await page.selectOption('#weapon-select','dagger');await page.waitForTimeout(1200);assert.equal(await page.locator('#weapon-select').inputValue(),'dagger');
+    assert.equal(await page.locator('#weapon-toggle').isChecked(),false,'Weapon assets stay opt-in during motion review');
     await page.screenshot({path:resolve(evidence,'shino-mobile.png')});
-    await openTab('advanced');await page.locator('#trigger-overlay').evaluate(node=>node.click());await page.screenshot({path:resolve(evidence,'weapon-vfx-candidate.png')});
     await page.setViewportSize({width:1280,height:800});await openTab('simple');await page.screenshot({path:resolve(evidence,'shino-desktop.png')});
     const manifest=await (await page.request.get(base+'asset-review/manifest.json')).json();if(expectedCommit)assert.equal(manifest.buildCommit,expectedCommit,'The asset manifest must match the requested commit');
     report.final=await snapshot();delete report.final.pose;report.loadedAnimations=report.final.animations?.length||0;delete report.final.animations;
