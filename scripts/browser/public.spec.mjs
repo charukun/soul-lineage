@@ -50,6 +50,14 @@ for (const target of targets) {
       await page.mouse.move(270, 510, { steps: 8 });
       await page.waitForTimeout(600);
       const moved = await page.evaluate(() => window.__NIGHT_HUNT__.snapshot());
+      console.log('Demon input diagnostics', JSON.stringify({
+        started: { mode:started.mode, paused:started.paused, player:started.player, time:started.time },
+        moved: { mode:moved.mode, paused:moved.paused, player:moved.player, input:moved.input, time:moved.time },
+        screen:await page.evaluate(() => ({ hidden:document.hidden, target:document.elementFromPoint(270,510)?.outerHTML, notice:document.querySelector('#boot-detail').textContent })),
+        errors,
+      }));
+      expect(errors).toEqual([]);
+      expect(moved.input.amount).toBeGreaterThan(0);
       expect(moved.player.x).toBeGreaterThan(started.player.x);
       await page.mouse.up();
       await expect.poll(() => page.evaluate(() => window.__NIGHT_HUNT__.snapshot().input.amount)).toBe(0);
