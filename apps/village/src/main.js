@@ -48,5 +48,5 @@ try {
 if (import.meta.hot) import.meta.hot.accept(() => location.reload());
 
 import {installMusicLibrary} from '@soul/shared-ui/music';
-const disposeMusic=installMusicLibrary({game:'village',environment:__BUILD_INFO__.environment});
+const disposeMusic=installMusicLibrary({game:'village',environment:__BUILD_INFO__.environment,defaultTrack:'v01',autoStart:true});
 if(import.meta.hot)import.meta.hot.dispose(disposeMusic);
