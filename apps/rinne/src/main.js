@@ -1,3 +1,4 @@
+if(new URL(location.href).searchParams.has('villageHostLab'))location.replace(new URL('./village-rehearsal.html'+location.search,location.href));
 import {sharedEmblemUrl} from '@soul/assets';
 import { mountTitle } from './title/controller.js';
 // Build information is injected by the existing monorepo Vite plugin. A standalone

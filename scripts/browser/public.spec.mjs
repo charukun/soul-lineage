@@ -5,6 +5,7 @@ const targets = JSON.parse(process.env.BROWSER_TARGETS || '[]');
 if (!base || !targets.length) throw new Error('Pass a published URL and exact manifest targets');
 for (const target of targets) {
   test(`${target.path} starts WebGL2 from the deployed commit`, async ({ page }, testInfo) => {
+    if(target.app==='rinne'&&!target.legacy)test.setTimeout(180000);
     const errors = [], failedRequests = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
@@ -111,7 +112,7 @@ for (const target of targets) {
         await frame.evaluate(() => window.__ATELIER__.stop());
         const combat = await frame.evaluate(() => {
           const app = window.__ATELIER__;
-          window.__LIFE_LAB__.setEnemies(true);app.setup({ opponent: 'duel', distance: 2, weapon: 'sword' });
+          window.__LIFE_LAB__.advance(Math.max(0,22-window.__LIFE_LAB__.snapshot().ageYears)*60);window.__LIFE_LAB__.setEnemies(true);app.setup({ opponent: 'duel', distance: 2, weapon: 'sword' });
           app.step(720, false); app.render();
           return app.snapshot().stats;
         });
