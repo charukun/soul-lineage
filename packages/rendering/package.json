@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.js",
-    "./master-character": "./src/master-character.js"
+    "./master-character": "./src/master-character.js",
+    "./master-character-production": "./src/master-character-production.js"
   },
   "dependencies": {
     "three": "0.186.0",

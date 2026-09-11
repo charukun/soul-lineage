@@ -1,102 +1,281 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { createCharacter, appearanceForCharacter, auditShinoDocument, crowdPlan, PoseSchedule } from '@soul/characters';
-import { createMasterCharacterPool, shinoHumanoidFromGLTF } from '@soul/rendering/master-character';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { appearanceForCharacter, auditShinoDocument, crowdPlan, PoseSchedule, GENES, YEAR_MS } from '@soul/characters';
+import { createShinoProductionPool, shinoProductionRigFromGLTF } from '@soul/rendering/master-character-production';
+import { reviewSettings, createReviewCohort, editReviewCharacter, serializeReviewSession, deserializeReviewSession,
+  reviewGlbDocument, MAX_MODEL_BYTES, MAX_SESSION_BYTES } from './character-review-state.js';
+
 const el = id => document.getElementById(id);
-const renderer = new THREE.WebGLRenderer({canvas: el('stage'), antialias: true, powerPreference: 'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.2;
-const scene = new THREE.Scene(); scene.background = new THREE.Color('#1e3036'); scene.fog = new THREE.Fog('#1e3036', 30, 65);
-const camera = new THREE.PerspectiveCamera(38, 1, .1, 120);
-scene.add(new THREE.HemisphereLight('#fff6df', '#557481', 2.4));
-const sun = new THREE.DirectionalLight('#ffdeb0', 3); sun.position.set(-5, 9, 8); scene.add(sun);
-const fill = new THREE.DirectionalLight('#8cd6ec', 2); fill.position.set(8, 5, -8); scene.add(fill);
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(150, 150), new THREE.MeshStandardMaterial({color:'#2f4549', roughness:1}));
-ground.rotation.x = -Math.PI / 2; ground.position.y = -.005; scene.add(ground);
-let template = null, pool = null, actors = [], schedules = new Map(), records = [], loading = false, loadAgain = null;
-let warmup = 120, frames = [], last = performance.now(), elapsed = 0, failure = null;
-const review = { ready: false, errors: [], sample: null, measure: null, pool: null, actors: [], version: THREE.REVISION };
-// Review-only diagnostics, never a gameplay or production global.
+const review = { ready: false, errors: [], actors: [], records: [], pool: null, version: THREE.REVISION, sample: null, measure: null };
 window.masterCharacterReview = review;
-function error(e) { failure = String(e.message || e); review.errors.push(failure); el('status').textContent = `エラー: ${failure}`; el('retry').disabled = !loadAgain; }
-window.addEventListener('unhandledrejection', e => error(e.reason));
-window.addEventListener('error', e => { review.ready = false; error(e.error || e.message); });
-renderer.debug.onShaderError = () => { throw Error('Shader compilation failed; see browser console'); };
-function resize() { const c = el('stage'); renderer.setSize(c.clientWidth, c.clientHeight, false); camera.aspect = c.clientWidth / Math.max(1, c.clientHeight); camera.updateProjectionMatrix(); }
-new ResizeObserver(resize).observe(el('stage'));
-function resetMeasure() { warmup = 120; frames = []; }
-function rebuild() {
-  if (!pool) return;
-  actors.forEach(a => pool.despawn(a.id)); actors = []; schedules = new Map(); records = [];
-  const count = Number(el('count').value), age = Number(el('age').value), mixed = el('ages').value === 'mixed';
-  for (let i = 0; i < count; i++) {
-    const outfit = el('outfit').value === 'mixed' ? ['original','moss','ember'][i % 3] : el('outfit').value;
-    const record = createCharacter({id:`review.${i}`, seed:1000 + i, ageMs:(mixed ? [0,7,22,55,85][i%5] : age) * 60000, outfitId:`shino.uniform.${outfit}.v1`});
-    // Include endpoints in the visual regression grid.
-    if (count === 30 && i < 2) for (const gene of ['height','build']) record.genome[gene] = [i * 65535, i * 65535];
-    const a = pool.spawn(record.id); scene.add(a.root, a.attachments);
-    a.root.position.set(count === 1 ? 0 : (i%6-2.5)*2.25, 0, count === 1 ? 0 : (Math.floor(i/6)-2)*2.5);
-    a.sample(appearanceForCharacter(record)); actors.push(a); records.push(record); schedules.set(a.id, new PoseSchedule());
-  }
-  camera.position.set(count === 1 ? 2.8 : 13, count === 1 ? 1.6 : 11, count === 1 ? 4.5 : 20);
-  camera.lookAt(0, count === 1 ? 1 : .7, 0); resetMeasure(); review.actors = actors; review.records = records;
+const status = (message, isError = false) => { el('status').textContent = message; el('status').dataset.error = String(isError); };
+const report = error => { const message = String(error?.message ?? error); review.errors.push(message); if (review.errors.length > 100) review.errors.shift(); status(`エラー: ${message}`, true); };
+const download = (blob, name) => {
+  const url = URL.createObjectURL(blob), link = document.createElement('a'); link.href = url; link.download = name;
+  document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+function disposeTemplate(root) {
+  if (!root) return;
+  const geometry = new Set(), materials = new Set(), textures = new Set(), skeletons = new Set(), images = new Set();
+  root.traverse(node => {
+    if (!node.isMesh) return; geometry.add(node.geometry); if (node.skeleton) skeletons.add(node.skeleton);
+    for (const material of Array.isArray(node.material) ? node.material : [node.material]) if (material) {
+      materials.add(material); for (const value of Object.values(material)) if (value?.isTexture) { textures.add(value); if (value.image?.close) images.add(value.image); }
+    }
+  });
+  geometry.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); textures.forEach(t => t.dispose());
+  skeletons.forEach(s => s.dispose()); images.forEach(i => i.close());
 }
-function disposeTemplate() {
-  if (!template) return;
-  const geometries = new Set(), materials = new Set(), textures = new Set();
-  template.traverse(n => { if (!n.isMesh) return; geometries.add(n.geometry); (Array.isArray(n.material) ? n.material : [n.material]).forEach(m => {materials.add(m);Object.values(m).forEach(v => {if(v?.isTexture) textures.add(v);});}); });
-  geometries.forEach(g=>g.dispose()); materials.forEach(m=>m.dispose()); textures.forEach(t=>t.dispose()); template = null;
-}
-async function load(getBytes) {
-  if (loading) return;
-  loading = true; failure = null; review.ready = false; loadAgain = getBytes; el('retry').disabled = true;
-  el('status').textContent = 'モデル取得・ハッシュと利用条件を確認中…'; el('progress').value = .1;
+async function defaultBytes() {
+  const response = await fetch(new URL('./simulator/assets/SHINO_review.vrm', location.href), { signal: AbortSignal.timeout(60000) });
+  if (!response.ok) throw new Error(`モデル取得 HTTP ${response.status}`);
+  if (Number(response.headers.get('content-length')) > MAX_MODEL_BYTES) throw new Error('モデルが大きすぎます');
+  if (!response.body) return response.arrayBuffer();
+  const reader = response.body.getReader(), chunks = []; let length = 0;
   try {
-    const bytes = await getBytes();
-    if (bytes.byteLength > 128*1024*1024 || bytes.byteLength < 20) throw Error('モデルサイズが不正です');
-    const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(x=>x.toString(16).padStart(2,'0')).join('');
-    const view = new DataView(bytes);
-    if (view.getUint32(0,true)!==0x46546c67 || view.getUint32(4,true)!==2 || view.getUint32(8,true)!==bytes.byteLength || view.getUint32(16,true)!==0x4e4f534a) throw Error('GLB形式が不正です');
-    const json = JSON.parse(new TextDecoder().decode(new Uint8Array(bytes,20,view.getUint32(12,true))));
-    const audit = auditShinoDocument(json,hash); if (!audit.approved) throw Error(`モデル監査不合格: ${audit.errors.join(', ')}`);
-    el('status').textContent = 'モデル読込・GPU準備中…'; el('progress').value = .4;
-    const gltf = await new GLTFLoader().parseAsync(bytes,'');
-    const humanoid = await shinoHumanoidFromGLTF(gltf);
-    const nextPool = createMasterCharacterPool({template:gltf.scene,humanoid});
-    pool?.dispose(); disposeTemplate(); pool = nextPool; template = gltf.scene; review.pool = pool; review.audit = audit;
-    rebuild(); el('progress').value = .8; renderer.compile(scene,camera); renderer.render(scene,camera);
-    if (failure) throw Error(failure);
-    review.ready = true; el('progress').value = 1; el('status').textContent = '監査済みモデルを表示中。30体の個体差・加齢・共有状態を確認できます。';
-  } catch(e) { error(e); } finally { loading = false; el('retry').disabled = false; }
+    for (;;) { const { done, value } = await reader.read(); if (done) break; length += value.byteLength;
+      if (length > MAX_MODEL_BYTES) throw new Error('モデルが大きすぎます'); chunks.push(value); }
+  } catch (error) { await reader.cancel().catch(() => {}); throw error; } finally { reader.releaseLock(); }
+  const bytes = new Uint8Array(length); let offset = 0; for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return bytes.buffer;
 }
-el('file').addEventListener('change', () => { const file = el('file').files[0]; if (file) { if(file.size>128*1024*1024)error(Error('ファイルが大きすぎます')); else load(()=>file.arrayBuffer()); } });
-el('retry').addEventListener('click',()=>{if(loadAgain)load(loadAgain);});
-for (const id of ['count','age','ages','outfit']) el(id).addEventListener('change',()=>{el('age-label').value=`${el('age').value}歳`;rebuild();});
-el('measure').onclick=resetMeasure;
-const axis = new THREE.Vector3(0,0,1), pitch = new THREE.Vector3(1,0,0), q = new THREE.Quaternion();
-function pose(b,t) {
-  // Explicit review pose. Real gameplay clips are supplied by the existing animation system.
-  b.leftUpperArm.quaternion.multiply(q.setFromAxisAngle(axis,-1.25)); b.rightUpperArm.quaternion.multiply(q.setFromAxisAngle(axis,1.25));
-  b.leftLowerArm.quaternion.multiply(q.setFromAxisAngle(pitch,-.15)); b.rightLowerArm.quaternion.multiply(q.setFromAxisAngle(pitch,-.15));
-  b.spine.quaternion.multiply(q.setFromAxisAngle(axis,Math.sin(t*1.4)*.016));
+
+function start() {
+  const canvas = el('stage'), renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5)); renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.2;
+  renderer.debug.onShaderError = () => { throw new Error('モデルのシェーダーをコンパイルできませんでした'); };
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(38, 1, .01, 120);
+  const orbit = new OrbitControls(camera, canvas); orbit.enableDamping = true; orbit.minDistance = .18; orbit.maxDistance = 45;
+  orbit.maxPolarAngle = Math.PI * .49; orbit.target.set(0, 1, 0);
+  scene.add(new THREE.HemisphereLight('#fff6df', '#557481', 2.4));
+  const sun = new THREE.DirectionalLight('#ffdeb0', 3); sun.position.set(-5, 9, 8); scene.add(sun);
+  const fill = new THREE.DirectionalLight('#8cd6ec', 2); fill.position.set(8, 5, -8); scene.add(fill);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(140, 140), new THREE.MeshStandardMaterial({ color: '#2f4549', roughness: 1 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = -.008; scene.add(ground);
+  const marker = new THREE.Mesh(new THREE.RingGeometry(.48, .51, 48), new THREE.MeshBasicMaterial({ color: '#dcc493', side: THREE.DoubleSide }));
+  marker.rotation.x = -Math.PI / 2; marker.position.y = .004; scene.add(marker);
+  let settings = reviewSettings(), records = createReviewCohort(settings), actors = [], schedules = [], appearances = [];
+  let pool = null, template = null, loading = false, retry = defaultBytes, alive = true, frameId = 0;
+  let elapsed = 0, last = performance.now(), warmup = 60, frames = [], lastMetrics = 0, physicsActors = 0, drawnActors = 0;
+  const events = new AbortController(), on = (target, type, handler) => target.addEventListener(type, handler, { signal: events.signal });
+  const guard = handler => event => { try { handler(event); } catch (error) { report(error); syncUI(); } };
+  function resetMeasure() { warmup = 60; frames = []; lastMetrics = 0; }
+  function measure() {
+    const sorted = [...frames].sort((a, b) => a - b), percentile = q => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))] ?? null;
+    return { three: THREE.REVISION, sampleCount: frames.length, medianMs: percentile(.5), p95Ms: percentile(.95),
+      fps: frames.length ? 1000 * frames.length / frames.reduce((a, b) => a + b, 0) : null,
+      info: { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures },
+      pool: pool?.stats() ?? null, drawnActors, physicsActors, physicsMode: settings.springs, hardwareAcceptance: 'not-measured' };
+  }
+  review.measure = measure;
+  function syncUI() {
+    const mapping = { seed: 'seed', count: 'count', age: 'age', ages: 'ages', outfit: 'outfit', ancestry: 'ancestry', view: 'view',
+      motion: 'motion', expression: 'expression', expressionMode: 'expression-mode', expressionWeight: 'expression-weight', springs: 'springs', background: 'background' };
+    if (![...el('count').options].some(o => Number(o.value) === settings.count)) el('count').add(new Option(`${settings.count}体`, String(settings.count)));
+    for (const [key, id] of Object.entries(mapping)) el(id).value = String(settings[key]);
+    for (const key of ['blink', 'rotate']) el(key).checked = settings[key];
+    for (const option of el('count').options) option.disabled = Number(option.value) > records.length;
+    el('age-label').value = `${settings.age}歳`; el('expression-label').value = `${Math.round(settings.expressionWeight * 100)}%`;
+    el('pause').textContent = settings.paused ? '再生' : '一時停止'; el('pause').setAttribute('aria-pressed', String(settings.paused));
+    el('selected').replaceChildren(...records.slice(0, settings.count).map((r, i) => new Option(`${String(i + 1).padStart(2, '0')} · ${r.ageMs / YEAR_MS}歳`, String(i))));
+    el('selected').value = String(settings.selected);
+    const record = records[settings.selected];
+    for (const gene of GENES) el(`gene-${gene}`).value = String((record.genome[gene][0] + record.genome[gene][1]) / 131070);
+    el('identity').textContent = `${record.id}\nseed ${record.seed} / revision ${record.revision}\n${record.ageMs / YEAR_MS}歳 / ${record.lifeState}\n${record.outfitId}\n親: ${record.parents.join(', ') || 'なし'}`;
+    el('subject').textContent = `個体 ${settings.selected + 1} / ${settings.count} · ${record.ageMs / YEAR_MS}歳`;
+    review.settings = { ...settings }; review.records = records;
+  }
+  function background() {
+    const color = { slate: '#1e3036', white: '#ffffff', black: '#000000' }[settings.background];
+    scene.background = new THREE.Color(color); ground.material.color.set(settings.background === 'slate' ? '#2f4549' : color);
+  }
+  function arrange() {
+    const columns = Math.ceil(Math.sqrt(settings.count)), rows = Math.ceil(settings.count / columns);
+    actors.forEach((actor, i) => {
+      actor.setVisible(settings.view === 'crowd' || i === settings.selected);
+      actor.root.position.set(settings.view === 'single' ? 0 : (i % columns - (columns - 1) / 2) * 2.1, 0,
+        settings.view === 'single' ? 0 : (Math.floor(i / columns) - (rows - 1) / 2) * 2.3);
+      actor.root.rotation.y = settings.rotate ? elapsed * .22 : 0; actor.resetSecondary();
+    });
+    updateMarker();
+  }
+  function updateMarker() {
+    const actor = actors[settings.selected]; marker.visible = Boolean(actor?.root.visible);
+    if (actor) { marker.position.x = actor.root.position.x; marker.position.z = actor.root.position.z; }
+  }
+  function aim(preset = 'overview') {
+    const actor = actors[settings.selected]; if (!actor) return;
+    let target, distance;
+    if (preset === 'overview' && settings.view === 'crowd' && settings.count > 1) {
+      target = new THREE.Vector3(0, .85, 0); distance = Math.max(6, Math.ceil(Math.sqrt(settings.count)) * 3.0 / Math.min(1, camera.aspect));
+      distance = Math.min(42, distance); camera.position.set(distance * .25, distance * .55, distance); orbit.target.copy(target);
+    } else {
+      const look = appearances[settings.selected], height = look.adultHeightMetres * look.scale * look.height;
+      actor.root.updateWorldMatrix(true, true);
+      target = preset === 'face' ? actor.bones.head.getWorldPosition(new THREE.Vector3()) : actor.root.position.clone().add(new THREE.Vector3(0, height * .52, 0));
+      distance = preset === 'face' ? Math.max(.36, height * .5) : height * 1.65 / Math.min(1, camera.aspect);
+      const sign = preset === 'back' ? -1 : 1;
+      camera.position.copy(target).add(new THREE.Vector3(preset === 'side' ? distance : 0, preset === 'face' ? 0 : height * .08, preset === 'side' ? 0 : sign * distance));
+      orbit.target.copy(target);
+    }
+    camera.lookAt(orbit.target); orbit.update(); resetMeasure();
+  }
+  function resize() {
+    const width = Math.max(1, canvas.clientWidth), height = Math.max(1, canvas.clientHeight);
+    renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix(); resetMeasure();
+  }
+  const observer = new ResizeObserver(resize); observer.observe(canvas); resize();
+  const axis = new THREE.Vector3(0, 0, 1), pitch = new THREE.Vector3(1, 0, 0), quaternion = new THREE.Quaternion();
+  function pose(bones, t) {
+    bones.leftUpperArm.quaternion.multiply(quaternion.setFromAxisAngle(axis, -1.25));
+    bones.rightUpperArm.quaternion.multiply(quaternion.setFromAxisAngle(axis, 1.25));
+    for (const side of ['left', 'right']) bones[`${side}LowerArm`].quaternion.multiply(quaternion.setFromAxisAngle(pitch, -.15));
+    bones.spine.quaternion.multiply(quaternion.setFromAxisAngle(axis, Math.sin(t * 1.4) * .016));
+    if (settings.motion === 'walk') {
+      const stride = Math.sin(t * 4) * .4;
+      bones.leftUpperLeg.quaternion.multiply(quaternion.setFromAxisAngle(pitch, stride));
+      bones.rightUpperLeg.quaternion.multiply(quaternion.setFromAxisAngle(pitch, -stride));
+      bones.leftLowerLeg.quaternion.multiply(quaternion.setFromAxisAngle(pitch, Math.max(0, -stride) * 1.4));
+      bones.rightLowerLeg.quaternion.multiply(quaternion.setFromAxisAngle(pitch, Math.max(0, stride) * 1.4));
+    }
+  }
+  function applyExpressions(actor, i) {
+    const names = actor.expressionNames, weights = {}, category = /^(blink|look|aa$|ih$|ou$|ee$|oh$)/;
+    let name = settings.expression;
+    if (settings.expressionMode === 'mixed') { const emotions = names.filter(n => !category.test(n) && n !== 'neutral'); name = emotions.length ? emotions[i % emotions.length] : ''; }
+    if (name && names.includes(name) && (settings.expressionMode !== 'selected' || i === settings.selected)) weights[name] = settings.expressionWeight;
+    if (settings.blink && names.includes('blink')) {
+      const phase = (elapsed + i * .37) % (3.1 + i % 3 * .27), blink = phase < .2 ? Math.sin(Math.PI * phase / .2) : 0;
+      weights.blink = Math.max(weights.blink ?? 0, blink);
+    }
+    actor.setExpressions(weights);
+  }
+  function refreshLooks() {
+    appearances = records.slice(0, settings.count).map(appearanceForCharacter);
+    actors.forEach((actor, i) => { actor.sample(appearances[i], elapsed + i * .19, settings.motion === 'rest' ? null : pose); applyExpressions(actor, i); });
+    syncUI(); resetMeasure();
+  }
+  function rebuild() {
+    if (!pool) { syncUI(); return; }
+    actors.forEach(actor => pool.despawn(actor.id)); actors = []; schedules = [];
+    for (const record of records.slice(0, settings.count)) { const actor = pool.spawn(record.id); scene.add(actor.root, actor.attachments); actors.push(actor); schedules.push(new PoseSchedule()); }
+    review.actors = actors; refreshLooks(); arrange(); aim();
+  }
+  function update(patch, action = 'looks') {
+    const next = reviewSettings({ ...settings, ...patch });
+    if (next.count > records.length) throw new Error('個体数が足りません。「生成」で新しい30個体を作成してください');
+    settings = next;
+    if (action === 'rebuild') rebuild(); else if (action === 'arrange') { arrange(); aim(); syncUI(); }
+    else refreshLooks();
+    background();
+  }
+  async function load(getBytes) {
+    if (loading || !alive) return; loading = true; retry = getBytes; review.ready = false; el('retry').disabled = true; el('progress').value = .1;
+    status('モデル取得・ハッシュと利用条件を確認中…'); let nextTemplate = null, nextPool = null, installed = false;
+    try {
+      const bytes = await getBytes(); if (!alive) return;
+      const json = reviewGlbDocument(bytes), hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(x => x.toString(16).padStart(2, '0')).join('');
+      const audit = auditShinoDocument(json, hash); if (!audit.approved) throw new Error(`モデル監査不合格: ${audit.errors.join(', ')}`);
+      status('モデル・表情・揺れ物の準備中…'); el('progress').value = .4;
+      const gltf = await new GLTFLoader().parseAsync(bytes, ''); nextTemplate = gltf.scene;
+      const rig = await shinoProductionRigFromGLTF(gltf); if (!alive) return;
+      nextPool = createShinoProductionPool({ template: nextTemplate, rig });
+      // Check every required actor before replacing a working pool.
+      const preflight = records.slice(0, settings.count).map(record => nextPool.spawn(record.id)); preflight.forEach(a => nextPool.despawn(a.id));
+      pool?.dispose(); disposeTemplate(template); actors = []; pool = nextPool; template = nextTemplate; nextPool = null; nextTemplate = null;
+      installed = true; review.pool = pool; review.audit = audit; const capabilities = pool.diagnostics(); review.capabilities = capabilities;
+      el('expression').replaceChildren(new Option('ニュートラル', ''), ...capabilities.expressionNames.map(name => new Option(name, name)));
+      if (!capabilities.expressionNames.includes(settings.expression)) settings.expression = '';
+      el('capabilities').textContent = `SHA-256 ${hash}\n表情 ${capabilities.expressionNames.length}種\n揺れ ${capabilities.springChains}チェーン / ${capabilities.springJoints}関節\n${capabilities.warnings.join('\n') || 'PBR・モーフ・標準球/カプセル衝突の範囲で表示'}`;
+      rebuild(); el('progress').value = .8; renderer.compile(scene, camera); renderer.render(scene, camera);
+      review.ready = true; el('progress').value = 1; status('監査済みモデルを表示中。個体差・表情・揺れ・共有状態を検査できます。');
+    } catch (error) { review.ready = !installed && Boolean(pool); retry = defaultBytes; report(error); }
+    finally { nextPool?.dispose(); disposeTemplate(nextTemplate); loading = false; el('retry').disabled = !alive; }
+  }
+  for (const id of ['view', 'count']) on(el(id), 'change', guard(() => update({ [id]: id === 'count' ? Number(el(id).value) : el(id).value }, id === 'count' ? 'rebuild' : 'arrange')));
+  function regenerate() { settings = reviewSettings({ ...settings, seed: Number(el('seed').value) }); records = createReviewCohort(settings); rebuild(); }
+  on(el('regenerate'), 'click', guard(regenerate));
+  on(el('next-seed'), 'click', guard(() => { el('seed').value = String((settings.seed + 30) >>> 0); regenerate(); }));
+  on(el('ancestry'), 'change', guard(() => { settings = reviewSettings({ ...settings, ancestry: el('ancestry').value }); regenerate(); }));
+  function ageOrOutfit(id) {
+    const patch = id === 'age' ? { age: Number(el('age').value), ages: 'fixed' } : { [id]: el(id).value };
+    settings = reviewSettings({ ...settings, ...patch });
+    // Age/dye edits preserve individual genomes. Regenerate is the only cohort reset.
+    const target = createReviewCohort(settings);
+    records = records.map((record, i) => editReviewCharacter(record, id === 'outfit' ? { outfit: target[i].outfitId.split('.')[2] } : { age: target[i].ageMs / YEAR_MS }));
+    refreshLooks();
+  }
+  for (const id of ['age', 'ages', 'outfit']) on(el(id), id === 'age' ? 'input' : 'change', guard(() => ageOrOutfit(id)));
+  function select(index) { update({ selected: (index + settings.count) % settings.count }, 'arrange'); }
+  on(el('selected'), 'change', guard(() => select(Number(el('selected').value))));
+  on(el('previous'), 'click', guard(() => select(settings.selected - 1))); on(el('next'), 'click', guard(() => select(settings.selected + 1)));
+  for (const [id, key] of Object.entries({ motion: 'motion', expression: 'expression', 'expression-mode': 'expressionMode', springs: 'springs', background: 'background' }))
+    on(el(id), 'change', guard(() => update({ [key]: el(id).value })));
+  on(el('expression-weight'), 'input', guard(() => update({ expressionWeight: Number(el('expression-weight').value) })));
+  for (const id of ['blink', 'rotate']) on(el(id), 'change', guard(() => update({ [id]: el(id).checked }, id === 'rotate' ? 'arrange' : 'looks')));
+  on(el('pause'), 'click', guard(() => { update({ paused: !settings.paused }); last = performance.now(); }));
+  for (const gene of GENES) on(el(`gene-${gene}`), 'input', guard(() => {
+    records[settings.selected] = editReviewCharacter(records[settings.selected], { [gene]: Number(el(`gene-${gene}`).value) }); refreshLooks();
+  }));
+  for (const button of document.querySelectorAll('[data-camera]')) on(button, 'click', guard(() => aim(button.dataset.camera)));
+  on(el('measure'), 'click', resetMeasure);
+  on(el('retry'), 'click', () => { void load(retry); });
+  on(el('file'), 'change', () => { const file = el('file').files[0]; if (!file) return;
+    if (file.size > MAX_MODEL_BYTES) report(new Error('モデルが大きすぎます')); else void load(() => file.arrayBuffer()); el('file').value = ''; });
+  on(el('export'), 'click', guard(() => download(new Blob([serializeReviewSession({ settings, records, note: el('note').value, metrics: measure() })], { type: 'application/json' }), `shino-review-${settings.seed}.json`)));
+  let importSequence = 0;
+  on(el('session-file'), 'change', async () => {
+    const file = el('session-file').files[0], sequence = ++importSequence; if (!file) return;
+    try {
+      if (file.size > MAX_SESSION_BYTES) throw new Error('検査データが大きすぎます');
+      const next = deserializeReviewSession(await file.text()); if (!alive || sequence !== importSequence) return;
+      if (pool && next.settings.expression && !pool.diagnostics().expressionNames.includes(next.settings.expression)) throw new Error('このモデルに存在しない表情です');
+      settings = next.settings; records = next.records; el('note').value = next.note; elapsed = 0; rebuild(); background();
+      status('検査データを読み込みました。保存時の性能値は合格証明として引き継ぎません。');
+    } catch (error) { report(error); } finally { el('session-file').value = ''; }
+  });
+  on(el('capture'), 'click', guard(() => {
+    if (!review.ready) throw new Error('モデル読込後に保存してください'); renderer.render(scene, camera);
+    canvas.toBlob(blob => { if (blob) download(blob, `shino-${settings.seed}-${settings.selected + 1}.png`); else report(new Error('画像を作成できませんでした')); }, 'image/png');
+  }));
+  function suspend() { last = performance.now(); resetMeasure(); actors.forEach(a => a.resetSecondary()); }
+  on(document, 'visibilitychange', suspend);
+  on(canvas, 'webglcontextlost', event => { event.preventDefault(); review.ready = false; report(new Error('GPU接続が失われました。復旧後に再試行してください')); });
+  on(canvas, 'webglcontextrestored', () => { void load(retry); });
+  function frame(now) {
+    if (!alive) return; frameId = requestAnimationFrame(frame);
+    const actual = (now - last) / 1000; last = now;
+    if (document.hidden || !review.ready) return;
+    try {
+      const dt = Math.min(.1, Math.max(0, actual)); if (!settings.paused) elapsed += dt; orbit.update(); physicsActors = 0; drawnActors = 0;
+      const plan = new Map(crowdPlan(actors.map((a, i) => ({ id: a.id, visible: a.root.visible, important: i === settings.selected, distance: a.root.position.distanceTo(camera.position) }))).map(p => [p.id, p]));
+      actors.forEach((actor, i) => {
+        const policy = plan.get(actor.id); if (actor.root.visible) drawnActors++;
+        if (!settings.paused) {
+          if (schedules[i].advance(dt, policy.animationHz) !== null) actor.sample(appearances[i], elapsed + i * .19, settings.motion === 'rest' ? null : pose);
+          if (settings.rotate) actor.root.rotation.y = elapsed * .22;
+          if (policy.visible) applyExpressions(actor, i);
+        }
+        const enabled = policy.visible && (settings.springs === 'all' || settings.springs === 'auto' && policy.springBones);
+        if (enabled && actor.secondaryJointCount) physicsActors++;
+        if (!settings.paused) actor.updateSecondary(dt, enabled);
+      });
+      renderer.render(scene, camera);
+      if (!settings.paused && Number.isFinite(actual) && actual > 0) { if (warmup > 0) warmup--; else { frames.push(actual * 1000); if (frames.length > 600) frames.shift(); } }
+      if (now - lastMetrics > 500) {
+        lastMetrics = now; const m = measure();
+        el('metrics').textContent = `${m.drawnActors}体表示 / Pool ${m.pool.active}体\n共有Geometry ${m.pool.geometries} / Texture ${m.pool.textures}\n揺れ更新 ${settings.paused ? '停止中' : `${m.physicsActors}体`} (${settings.springs})\nDraw calls ${m.info.calls} / ${m.info.triangles.toLocaleString()} triangles\n${m.fps?.toFixed(1) ?? '未計測'} FPS / 中央値 ${m.medianMs?.toFixed(1) ?? '-'} ms\np95 ${m.p95Ms?.toFixed(1) ?? '-'} ms / ${m.sampleCount} frames`;
+      }
+    } catch (error) { review.ready = false; report(error); }
+  }
+  review.sample = age => { settings = reviewSettings({ ...settings, age, ages: 'fixed' }); records = records.map(r => editReviewCharacter(r, { age })); refreshLooks(); };
+  function dispose() {
+    if (!alive) return; alive = false; review.ready = false; cancelAnimationFrame(frameId); events.abort(); observer.disconnect(); orbit.dispose();
+    pool?.dispose(); disposeTemplate(template); ground.geometry.dispose(); ground.material.dispose(); marker.geometry.dispose(); marker.material.dispose(); renderer.dispose();
+  }
+  on(window, 'pagehide', event => { if (!event.persisted) dispose(); else suspend(); });
+  on(window, 'pageshow', suspend); syncUI(); background(); frameId = requestAnimationFrame(frame); void load(defaultBytes);
 }
-function measure() {
-  const sorted = [...frames].sort((a,b)=>a-b), p = q=>sorted[Math.min(sorted.length-1,Math.floor(sorted.length*q))] ?? null;
-  return {three:THREE.REVISION, sampleCount:frames.length, medianMs:p(.5), p95Ms:p(.95), info:{calls:renderer.info.render.calls, triangles:renderer.info.render.triangles, geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures}, pool:pool?.stats(), hardwareAcceptance:'not-measured'};
-}
-review.measure = measure; review.sample = (age)=>{el('ages').value='fixed';el('age').value=age;rebuild();};
-function frame(now) {
-  requestAnimationFrame(frame); const actualDelta=(now-last)/1000, delta=Math.min(1,actualDelta);last=now;elapsed+=delta;
-  if (!review.ready) {renderer.render(scene,camera);return;}
-  const plan=new Map(crowdPlan(actors.map((a,i)=>({id:a.id,visible:true,important:i===0,distance:a.root.position.distanceTo(camera.position)}))).map(p=>[p.id,p]));
-  actors.forEach((a,i)=>{const p=plan.get(a.id);if(schedules.get(a.id).advance(delta,p.animationHz)!==null)a.sample(appearanceForCharacter(records[i]),elapsed+i*.19,el('motion').checked?pose:null);if(el('rotate').checked)a.root.rotation.y=elapsed*.22;});
-  renderer.render(scene,camera);if(warmup>0)warmup--;else{frames.push(actualDelta*1000);if(frames.length>900)frames.shift();}
-  if(frames.length%15===0){const m=measure();el('metrics').textContent=`Three r${m.three}\n${m.pool.active}体 / 共有Geometry ${m.pool.geometries}\n共有Texture ${m.pool.textures}\nDraw calls ${m.info.calls}\nTriangles ${m.info.triangles.toLocaleString()}\nフレーム ${m.medianMs?.toFixed(1)??'—'} ms (中央値)\np95 ${m.p95Ms?.toFixed(1)??'—'} ms\n測定 ${m.sampleCount}フレーム`;}
-}
-requestAnimationFrame(frame);
-const asset = './simulator/assets/SHINO_review.vrm';
-if (asset) {
-  const url = new URL(asset,location.href);
-  if(url.origin!==location.origin)error(Error('レビュー用assetは同一originのみ利用できます'));
-  else load(async()=>{const r=await fetch(url,{signal:AbortSignal.timeout(60000)});if(!r.ok)throw Error(`HTTP ${r.status}`);const size=Number(r.headers.get('content-length'));if(size>128*1024*1024)throw Error('モデルサイズ超過');return r.arrayBuffer();});
-}
+try { start(); } catch (error) { report(error); el('retry').disabled = false; el('retry').onclick = () => location.reload(); }
