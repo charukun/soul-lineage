@@ -1,6 +1,6 @@
 {
   "name": "@soul/village",
-  "displayName": "星継ぎの庭",
+  "displayName": "MURAAAAAAA",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -16,6 +16,7 @@
     "@soul/shared-ui": "*",
     "@soul/game-data": "*",
     "@soul/platform-web": "*",
-    "@soul/network": "*"
+    "@soul/network": "*",
+    "@soul/audio": "*"
   }
 }
