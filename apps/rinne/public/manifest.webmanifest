@@ -1,0 +1,12 @@
+{
+  "id": "./",
+  "name": "輪廻転焦",
+  "short_name": "輪廻転焦",
+  "description": "めぐる、いのち。また、どこかで。",
+  "lang": "ja",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b151b",
+  "theme_color": "#0b151b",
+  "icons": [{ "src": "./icons/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

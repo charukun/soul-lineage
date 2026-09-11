@@ -1,3 +1,4 @@
+document.title = `暗い喰らいCry${__BUILD_INFO__.environment === 'prod' ? '' : ` | ${__BUILD_INFO__.environment.toUpperCase()}`}`;
 // Catch module download/initialization errors before the game owns its loading UI.
 const boot = document.querySelector('#boot');
 const progress = document.querySelector('#boot-progress');

@@ -1,0 +1,12 @@
+{
+  "id": "./",
+  "name": "暗い喰らいCry",
+  "short_name": "暗い喰らいCry",
+  "description": "人間狩りの夜。",
+  "lang": "ja",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0a1618",
+  "theme_color": "#0a1618",
+  "icons": [{ "src": "./icons/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

@@ -11,6 +11,7 @@ import {installMusicLibrary} from '@soul/shared-ui/music';
 const info = typeof __BUILD_INFO__ !== 'undefined' ? __BUILD_INFO__ : {
   name:'輪廻転焦',app:'rinne',environment:'local',commit:'UNBUILT',inputHash:null,
 };
+document.title = `${info.name}${info.environment === 'prod' ? '' : ` | ${info.environment.toUpperCase()}`}`;
 const dialog = document.getElementById('village-dialog');
 installOnlinePlayer(document.getElementById('village-panel'));
 document.getElementById('open-village').addEventListener('click', () => dialog.showModal());
