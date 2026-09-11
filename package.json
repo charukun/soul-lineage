@@ -20,6 +20,7 @@
     "test:app": "node scripts/test-app.mjs",
     "build": "npm run build --workspaces --if-present",
     "build:rinne": "npm run build --workspace @soul/rinne",
+    "build:review": "node scripts/build-review.mjs",
     "build:village": "npm run build --workspace @soul/village",
     "build:demon": "npm run build --workspace @soul/demon",
     "affected": "node scripts/affected.mjs",
