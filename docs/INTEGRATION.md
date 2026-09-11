@@ -20,6 +20,19 @@ mergeはGitHubのPR merge APIと実行のGITHUB_TOKENを使用します。途中
 
 保護ルールはGitHub APIが最終的に強制します。現在のdevelopはbranch APIでは未保護と表示されており、管理権限がないため設定変更は行っていません。自動化独自の検証を実施しますが、管理者による手動pushを技術的に禁止するものではありません。
 
+## 一人開発の所有者承認・手動Integration
+
+共同maintainerがいない場合、所有者 `charukun` 自身のPRはGitHubの自己Approve制約により自動merge条件を満たせません。所有者が明示的に依頼したIntegrationでは、以下を正式な手動承認・統合経路とします。この手順の導入は、所有者がWORK上で承認した運用変更に基づきます。
+
+1. 所有者が対象PRのdevelop統合を明示承認し、Integration担当が実際の差分をレビューする。既存セッションの明示承認は有効であり、同じ範囲について再確認を繰り返さない。
+2. PRへ所有者承認の根拠、対象PR番号・完全なhead SHA、確認したCI run、差分レビュー結果を記録する。担当が代理記録したことを明記し、GitHubのAPPROVEDレビューや独立した他者レビューとして扱わない。
+3. 同一Repository・所有者作成・非draft・develop向けであること、最新headのfast gateと検証artifact、他のChecks/status、依存PR、未解決thread・Changes requested・明示hold・競合を確認する。失敗や未完了を承認で無視しない。developの直前Integration成功を確認し、失敗中は既存の修復手順に従う。
+4. developがPR分岐点以降に変更されていれば差分を照合する。merge直前にhead・base・Ready状態・label・body・review・Checksを再取得し、変更があれば再評価する。head変更前の確認記録を新しいheadへ流用しない。
+5. Integration担当が通常のPR merge APIに `expected head SHA` を指定してdevelopへmergeする。GitHubが要求する保護ルールはそのまま適用し、拒否されたら停止する。force push、admin bypass、保護設定の緩和は行わない。
+6. developへのpushで既存Deployを起動する。起動しなければ既存CIの `Request Integration` jobを再実行してdevelopへのdispatchを要求する。最終SHAの `integration/develop=success` と該当runのDEV配信・公開検証結果まで確認する。main / Productionは変更しない。
+
+自動Integrationの `reviewDecision` と自動merge条件は変更しません。所有者のコメント・labelだけで自動承認を生成しません。通常の実装WORKは引き続きReady PRまで、所有者承認を受けたIntegration WORKがこの手動経路を担当します。今回の手順追加PRも、所有者の導入承認を記録し、同じCI・差分確認・head指定merge・公開検証を経て統合します。
+
 ## 最終検証と配信
 
 1. 現在SHAに成功した最終結果がなければ、最初にそのdevelopを検証して基準を確立。失敗後は `integration:repair` を付けた修復PRだけが自動統合候補となり、通常の安全条件も満たす必要があります。

@@ -1,4 +1,6 @@
 import { platformContractVersion } from '@soul/platform';
+export { createVillageAuthority, advanceVillageAuthority, VILLAGE_PHASE } from './village-authority.js';
+export { createVillageCheckpoint, validateVillageCheckpoint } from './village-checkpoint.js';
 // HTTP transport is injected. No browser, console SDK, region or account is hardcoded.
 export function createApiClient(platform, endpoint) {
   if (platform.contractVersion !== platformContractVersion) throw new Error('Incompatible platform');

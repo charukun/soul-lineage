@@ -9,6 +9,7 @@ This repository contains 輪廻転焦 (formerly 魂の系譜), village housing, 
 - Game/domain logic must use injected platform ports. Browser APIs, SDK calls, renderer/UI setup and device storage belong in adapters/bootstrap.
 - Keep production source on main. Reuse existing GitHub Pages/OIDC infrastructure, retain unchanged app artifacts, and do not silently promote develop game code to production.
 - Validate affected apps and shared packages. Deployment changes also require infrastructure tests and public URL verification.
+- For smartphone-only development, follow `docs/MOBILE_HYBRID_DEVELOPMENT.md`: normal WORK/GitHub connector is the default; when connector transport cannot handle changed files, switch the same work branch to GitHub Codespaces and normal `git push`. Do not split/Base64-retry large binaries through the connector.
 
 ## WORK roles (current operation)
 

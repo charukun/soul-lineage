@@ -113,6 +113,11 @@ jobs:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
           INTEGRATION_FULL: ${{ github.ref == 'refs/heads/develop' }}
         run: node sources/dev/scripts/verify-browser.mjs "$SITE_URL" _site .deploy-state/changed.json
+      - name: Verify public three-player P2P raid
+        if: steps.assemble.outputs.changed == 'true' && github.ref == 'refs/heads/develop'
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: node sources/dev/scripts/verify-p2p-browser.mjs "$SITE_URL"
       - name: Keep browser screenshots and test results
         if: always() && steps.assemble.outputs.changed == 'true'
         uses: actions/upload-artifact@v4
