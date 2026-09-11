@@ -2,93 +2,72 @@ name: CI
 on:
   pull_request:
     branches: [develop, main]
+    types: [opened, synchronize, reopened, ready_for_review, edited, labeled, unlabeled]
 permissions:
   contents: read
 concurrency:
   group: ci-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
-  plan:
+  build:
+    name: Validate and build
     runs-on: ubuntu-latest
-    outputs:
-      apps: ${{ steps.plan.outputs.apps }}
-      has_apps: ${{ steps.plan.outputs.has_apps }}
-      packages: ${{ steps.plan.outputs.packages }}
-      has_packages: ${{ steps.plan.outputs.has_packages }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-      - name: Resolve changed apps and transitive consumers
-        id: plan
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: node scripts/affected.mjs "$BASE_SHA" "$HEAD_SHA"
-      - name: Verify impact analysis and deployment isolation
-        if: steps.plan.outputs.infrastructure == 'true'
-        run: npm test
-  apps:
-    needs: plan
-    if: needs.plan.outputs.has_apps == 'true'
-    name: Build (${{ matrix.app }})
-    strategy:
-      fail-fast: false
-      matrix:
-        app: ${{ fromJSON(needs.plan.outputs.apps) }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       APP_ENV: dev
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: npm
-      - run: npm ci
-      - run: npm run check -- ${{ matrix.app }}
-      - run: npm run test:app -- ${{ matrix.app }}
-      - run: npm run build --workspace @soul/${{ matrix.app }}
-  packages:
-    needs: plan
-    if: needs.plan.outputs.has_packages == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          cache: npm
-      - run: npm ci
-      - name: Verify changed shared packages (including packages without consumers)
+      - name: Resolve exact PR head and affected workspaces
+        id: plan
         env:
-          PACKAGES: ${{ needs.plan.outputs.packages }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/affected.mjs "$BASE_SHA" "$HEAD_SHA"
+      - run: npm ci
+        if: steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.has_packages == 'true' || steps.plan.outputs.infrastructure == 'true'
+      - name: Fast verification (shared tests run once; no browser or deployment)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/validate.mjs fast "$BASE_SHA" "$HEAD_SHA"
+      - name: Record PR/head identity for Integration
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          node --input-type=module <<'JS'
-          import { execFileSync } from 'node:child_process';
-          for (const name of JSON.parse(process.env.PACKAGES)) {
-            execFileSync('node', ['scripts/check.mjs', name], { stdio: 'inherit' });
-            execFileSync('node', ['scripts/test-app.mjs', name], { stdio: 'inherit' });
-          }
-          JS
-  build:
-    name: Validate and build
-    if: always()
-    needs: [plan, apps, packages]
+          mkdir -p .deploy-state
+          node --input-type=module -e "import fs from 'node:fs'; fs.writeFileSync('.deploy-state/pr-fast.json', JSON.stringify({pr:process.env.PR_NUMBER,head:process.env.HEAD_SHA,base:process.env.BASE_SHA}));"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr-fast-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+          path: .deploy-state/pr-fast.json
+          overwrite: true
+          retention-days: 14
+  integration-request:
+    name: Request Integration
+    needs: build
+    if: >-
+      github.event.pull_request.base.ref == 'develop' &&
+      !github.event.pull_request.draft &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
     steps:
-      - name: Required CI gate (including documentation-only PRs)
-        env:
-          PLAN: ${{ needs.plan.result }}
-          APPS: ${{ needs.apps.result }}
-          PACKAGES: ${{ needs.packages.result }}
-        run: test "$PLAN" = success && { test "$APPS" = success || test "$APPS" = skipped; } && { test "$PACKAGES" = success || test "$PACKAGES" = skipped; }
+      # Existing deploy.yml is registered on main. Dispatch explicitly selects develop;
+      # workflow_run/schedule would require changing the default branch's workflows.
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo, workflow_id: 'deploy.yml', ref: 'develop'
+            });

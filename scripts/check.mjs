@@ -6,7 +6,7 @@ import { graph, closure, appNode } from './workspaces.mjs';
 
 const root = process.cwd();
 const nodes = graph(root);
-const selected = process.argv[2] ? closure(nodes, nodes.has(process.argv[2]) ? process.argv[2] : appNode(nodes, process.argv[2]).name) : new Set(nodes.keys());
+const selected = process.argv[2] ? new Set(process.argv.slice(2).flatMap(id => [...closure(nodes, nodes.has(id) ? id : appNode(nodes, id).name)])) : new Set(nodes.keys());
 for (const name of selected) {
   const node = nodes.get(name);
   if (node.group === 'apps') {

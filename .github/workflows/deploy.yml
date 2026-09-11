@@ -10,8 +10,43 @@ concurrency:
   group: pages
   cancel-in-progress: false
 jobs:
+  integrate:
+    name: Integrate Ready PRs
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+      checks: read
+      statuses: write
+    outputs:
+      sha: ${{ steps.queue.outputs.sha }}
+      verify: ${{ steps.queue.outputs.verify }}
+      retry: ${{ steps.queue.outputs.retry }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Evaluate Ready PRs and merge eligible heads as one batch
+        id: queue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/integration.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-report
+          path: .deploy-state/integration.json
+          retention-days: 14
   publish:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    needs: integrate
+    if: always() && (github.ref == 'refs/heads/main' || (needs.integrate.result == 'success' && needs.integrate.outputs.verify == 'true'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -25,7 +60,7 @@ jobs:
       - name: Checkout latest DEV and deployment coordinator
         uses: actions/checkout@v6
         with:
-          ref: develop
+          ref: ${{ needs.integrate.outputs.sha || 'develop' }}
           path: sources/dev
           persist-credentials: false
       - name: Checkout latest PROD source
@@ -45,7 +80,18 @@ jobs:
         id: assemble
         env:
           SITE_URL: https://charukun.github.io/soul-lineage/
+          INTEGRATION_FULL: ${{ github.ref == 'refs/heads/develop' }}
+          DEPLOY_DEV_ONLY: ${{ github.ref == 'refs/heads/develop' }}
         run: node sources/dev/scripts/deploy.mjs sources/dev sources/prod _site "$SITE_URL"
+      - name: Refuse a superseded develop snapshot before publishing
+        if: github.ref == 'refs/heads/develop'
+        uses: actions/github-script@v8
+        env:
+          EXPECTED_SHA: ${{ needs.integrate.outputs.sha }}
+        with:
+          script: |
+            const { data } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
+            if (data.commit.sha !== process.env.EXPECTED_SHA) core.setFailed('develop advanced; the next Integration run will publish it');
       - uses: actions/configure-pages@v5
         if: steps.assemble.outputs.changed == 'true'
       - uses: actions/upload-pages-artifact@v4
@@ -61,10 +107,11 @@ jobs:
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
         run: node sources/dev/scripts/verify-live.mjs "$SITE_URL" _site
-      - name: Verify changed public apps in real Chromium / WebGL2
+      - name: Verify final DEV apps in real Chromium / WebGL2
         if: steps.assemble.outputs.changed == 'true'
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
+          INTEGRATION_FULL: ${{ github.ref == 'refs/heads/develop' }}
         run: node sources/dev/scripts/verify-browser.mjs "$SITE_URL" _site .deploy-state/changed.json
       - name: Keep browser screenshots and test results
         if: always() && steps.assemble.outputs.changed == 'true'
@@ -74,3 +121,31 @@ jobs:
           path: sources/dev/test-results/
           if-no-files-found: ignore
           retention-days: 14
+  result:
+    name: Record final develop result
+    needs: [integrate, publish]
+    if: always() && needs.integrate.result == 'success' && needs.integrate.outputs.verify == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+      actions: write
+    steps:
+      - uses: actions/github-script@v8
+        env:
+          FINAL_SHA: ${{ needs.integrate.outputs.sha }}
+          RESULT: ${{ needs.publish.result }}
+          RETRY: ${{ needs.integrate.outputs.retry }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              ...context.repo, sha: process.env.FINAL_SHA,
+              context: 'integration/develop',
+              state: process.env.RESULT === 'success' ? 'success' : 'failure',
+              description: process.env.RESULT === 'success'
+                ? 'Full regression + DEV HTTP + real Chromium/WebGL2 passed'
+                : 'Final verification failed; automatic merges paused until repair',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
+            if (process.env.RESULT === 'success' && process.env.RETRY === 'true') {
+              await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'deploy.yml', ref: 'develop' });
+            }
