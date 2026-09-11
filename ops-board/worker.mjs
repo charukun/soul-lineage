@@ -12,6 +12,7 @@ import {
   publishedCommit,
   workflowFailure,
 } from './model.mjs';
+import { splitPulls } from './pulls.mjs';
 
 const STATE_KEY = 'ops-state-v1';
 const REFRESH_TOKEN_HEADER = 'authorization';
@@ -46,10 +47,6 @@ function runView(run) {
     updatedAt: run.updated_at,
     url: run.html_url,
   };
-}
-
-function latestRun(runs, name, branch) {
-  return runs.find(run => run.name === name && (!branch || run.head_branch === branch)) || null;
 }
 
 function deploymentState(branchSha, deployedSha, run) {
@@ -189,7 +186,7 @@ async function compareQueue(deployedCommit, branchCommit) {
   return deploymentQueue(data);
 }
 
-function environmentFromManifest(id, manifest, branchCommit, deployRun, previous) {
+function environmentFromManifest(id, manifest, branchCommit, deployRun) {
   const published = publishedCommit(manifest, id);
   const name = id === 'dev' ? 'DEV' : 'Production';
   const branch = id === 'dev' ? 'develop' : 'main';
@@ -221,13 +218,17 @@ export async function buildState(previous = null) {
   const [manifestResult, branchesResult, pullsResult, runsResult] = await Promise.all([
     fetchJson(manifestUrl, { headers: { accept: 'application/json' }, label: 'Published deployment manifest' }),
     github('/branches?per_page=100'),
-    github('/pulls?state=open&base=develop&sort=created&direction=asc&per_page=100'),
+    github('/pulls?state=all&base=develop&sort=updated&direction=desc&per_page=100'),
     github('/actions/runs?per_page=100'),
   ]);
 
   const manifest = manifestResult.data;
   const branches = new Map((branchesResult.data || []).map(branch => [branch.name, branch]));
-  const openPulls = Array.isArray(pullsResult.data) ? pullsResult.data : [];
+  const allPulls = Array.isArray(pullsResult.data) ? pullsResult.data : [];
+  const openPulls = allPulls
+    .filter(pr => pr.state === 'open')
+    .sort((a, b) => (Date.parse(a.created_at || 0) || 0) - (Date.parse(b.created_at || 0) || 0));
+  const pullRequests = splitPulls(allPulls);
   const runs = Array.isArray(runsResult.data?.workflow_runs) ? runsResult.data.workflow_runs : [];
   const developRuns = runs.filter(run => run.name === 'Deploy DEV and PROD' && run.head_branch === 'develop');
   const mainRuns = runs.filter(run => run.name === 'Deploy DEV and PROD' && run.head_branch === 'main');
@@ -235,8 +236,8 @@ export async function buildState(previous = null) {
   const latestMainRun = mainRuns[0] || null;
   const previousById = new Map((previous?.environments || []).map(env => [env.id, env]));
 
-  let dev = environmentFromManifest('dev', manifest, branches.get('develop')?.commit?.sha || null, latestDevelopRun, previousById.get('dev'));
-  let prod = environmentFromManifest('prod', manifest, branches.get('main')?.commit?.sha || null, latestMainRun, previousById.get('prod'));
+  let dev = environmentFromManifest('dev', manifest, branches.get('develop')?.commit?.sha || null, latestDevelopRun);
+  let prod = environmentFromManifest('prod', manifest, branches.get('main')?.commit?.sha || null, latestMainRun);
   dev = await withHistory(dev, previousById.get('dev'));
   prod = await withHistory(prod, previousById.get('prod'));
   dev.deployQueue = await compareQueue(dev.deployedCommit, dev.branchCommit);
@@ -272,6 +273,12 @@ export async function buildState(previous = null) {
     startedAt,
     syncSource: 'GitHub API + published deployment manifests/statuses',
     githubRateRemaining: Number.isFinite(rateRemaining) ? rateRemaining : null,
+    pullRequests: {
+      normal: pullRequests.normal,
+      visualReview: pullRequests.visualReview,
+      total: allPulls.length,
+      truncated: allPulls.length >= 100,
+    },
     environments: [dev, prod, ...previews],
     environmentDiff: diff,
     integration: {
