@@ -3,6 +3,8 @@ import { createSaveEnvelope, readSaveEnvelope } from '@soul/game-data';
 
 export const SAVE_KEY = 'living-v5';
 const MAX_SAVE_BYTES = 8_000_000;
+const SAVE_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 40;
 
 /** Device-local persistence through injected ports, never a shared-host authority. */
 export function createSaveStore(platform) {
@@ -15,6 +17,19 @@ export function createSaveStore(platform) {
     const envelope = readSaveEnvelope(JSON.parse(text), { gameId: 'village', playerId: 'local' });
     revision = envelope.revision;
     return validate(envelope.payload);
+  };
+  const writeWithRetry = async (key, value) => {
+    let cause;
+    for (let attempt = 1; attempt <= SAVE_ATTEMPTS; attempt++) {
+      try {
+        await platform.storage.write(key, value);
+        return;
+      } catch (nextCause) {
+        cause = nextCause;
+        if (attempt < SAVE_ATTEMPTS) await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * attempt));
+      }
+    }
+    throw cause;
   };
   return {
     async load() {
@@ -36,7 +51,9 @@ export function createSaveStore(platform) {
       const payload = JSON.parse(world.export());
       const envelope = JSON.stringify(createSaveEnvelope({ gameId: 'village', playerId: 'local', revision: ++revision, updatedAt: platform.clock.now(), payload }));
       if (envelope.length > MAX_SAVE_BYTES) return Promise.reject(new Error('保存データが大きすぎます'));
-      const operation = tail.catch(() => {}).then(() => platform.storage.write(SAVE_KEY, envelope));
+      // Mobile browsers can briefly reject local persistence while lifecycle/storage work overlaps.
+      // Keep writes ordered, but absorb short transient failures before surfacing a real error.
+      const operation = tail.catch(() => {}).then(() => writeWithRetry(SAVE_KEY, envelope));
       tail = operation;
       operation.then(() => { error = null; }, cause => { error = cause; });
       return operation;
