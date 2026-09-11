@@ -16,7 +16,7 @@ Use one dedicated Workers Free project for the review branch.
 - Static output: `dist/rinne`
 - Review URL: the Worker's stable `workers.dev` URL
 
-`npm run build:review` builds the real Rinne workspace and rewrites only the generated preview output so `/` opens the Visual Review Lab. It does not modify the game source entry.
+`npm run build:review` builds the real Rinne workspace and rewrites only the generated preview output so `/` opens the Visual Review Lab. It does not modify the game source entry. The same command also validates Workers Static Assets limits before deployment.
 
 The Worker must remain isolated from the existing DEV/Production deployment. Do not alter the existing GitHub Pages CI/CD, `develop`, or `main`.
 
@@ -38,16 +38,25 @@ The workflow uses concurrency cancellation, so superseded pushes do not need to 
 ## Normal loop
 
 1. Push Visual Review Lab/model/motion/VFX changes to `work/visual-review-lab-v2`.
-2. GitHub Actions builds the static preview.
+2. GitHub Actions builds the static preview and runs the asset-limit guard.
 3. The prebuilt assets are deployed to the same Worker URL.
 4. Review that URL on mobile and send corrections.
 5. Keep PR #23 Draft until the visual result is approved.
 
 If Cloudflare deployment is temporarily unavailable, source work and normal CI can continue; only the preview URL remains on the previous successful revision. The preview path must never block ordinary development.
 
-## Large assets
+## Large assets and deploy guards
 
-Cloudflare Workers Static Assets currently limits an individual static asset to 25 MiB. Do not force oversized GLB/textures through the preview bundle. If a review asset exceeds that size, use the repository's large-asset path (for example R2 or another approved asset distribution path) and let Review Lab reference it.
+`scripts/check-review-assets.mjs` runs as part of `npm run build:review` and fails before deployment when the generated preview would exceed Workers Static Assets limits used by this workflow:
+
+- more than 20,000 static files
+- any individual static asset larger than 25 MiB
+
+Assets at or above 20 MiB emit a warning so they can be moved before they become blockers. Do not force oversized GLB/textures through the preview bundle. Move them to the repository's approved large-asset path (for example R2) and let Review Lab reference them by URL.
+
+## Source-of-truth rule
+
+The Review Lab must consume the same character/model/motion/VFX source modules and assets used by the game. Do not create review-only copies of production assets or animation logic. `review-adapter.js` is the review integration surface for wiring the production sources into the Lab.
 
 ## Codespaces
 
