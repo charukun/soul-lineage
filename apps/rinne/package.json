@@ -7,8 +7,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173 --strictPort",
     "build": "vite build && node ../../scripts/verify-build.mjs ../../dist/rinne rinne",
-    "preview": "vite preview --host 0.0.0.0 --port 5273 --strictPort",
-    "test:browser:master-character": "playwright test --config tests/browser/master-character.config.mjs"
+    "preview": "vite preview --host 0.0.0.0 --port 5273 --strictPort"
   },
   "dependencies": {
     "@soul/assets": "*",
