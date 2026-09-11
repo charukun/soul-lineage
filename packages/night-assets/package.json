@@ -1,0 +1,10 @@
+{
+  "name": "@soul/night-assets",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./kaykit/geometry.js",
+    "./notices": "./notices.txt?url"
+  }
+}

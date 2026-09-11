@@ -1,0 +1,13 @@
+{
+  "name": "@soul/housing-assets",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./models.js",
+    "./catalog": "./catalog.js"
+  },
+  "dependencies": {
+    "three": "0.186.0"
+  }
+}

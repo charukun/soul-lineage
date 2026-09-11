@@ -1,0 +1,17 @@
+{
+  "name": "@soul/raid",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./session.js",
+    "./profile": "./profile.js",
+    "./world": "./world.js"
+  },
+  "dependencies": {
+    "@soul/tidebreak-combat": "*",
+    "@soul/housing-assets": "*",
+    "@soul/input": "*",
+    "@soul/night-assets": "*"
+  }
+}

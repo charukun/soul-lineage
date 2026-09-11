@@ -1,6 +1,6 @@
 {
   "name": "@soul/demon",
-  "displayName": "魔王軍ゲーム",
+  "displayName": "暗い喰らいCry",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,6 +15,12 @@
     "@soul/rendering": "*",
     "@soul/shared-ui": "*",
     "@soul/game-data": "*",
-    "@soul/platform-web": "*"
+    "@soul/platform-web": "*",
+    "three": "0.186.0",
+    "@soul/raid": "*",
+    "@soul/input": "*",
+    "@soul/tidebreak-combat": "*",
+    "@soul/housing-assets": "*",
+    "@soul/night-assets": "*"
   }
 }
