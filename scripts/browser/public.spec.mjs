@@ -5,11 +5,12 @@ const targets = JSON.parse(process.env.BROWSER_TARGETS || '[]');
 if (!base || !targets.length) throw new Error('Pass a published URL and exact manifest targets');
 for (const target of targets) {
   test(`${target.path} starts WebGL2 from the deployed commit`, async ({ page }, testInfo) => {
-    if(target.app==='rinne'&&!target.legacy)test.setTimeout(180000);
-    const errors = [], failedRequests = [];
+    test.setTimeout(target.app === 'rinne' && !target.legacy ? 180000 : 60000);
+    const errors = [], failedRequests = [], simulatorRequests = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     page.on('requestfailed', request => failedRequests.push(request.url()));
+    page.on('request', request => { if (request.url().includes('/simulator/')) simulatorRequests.push(request.url()); });
     const url = new URL(`${target.path}/`, base).href;
     const response = await page.goto(url, { waitUntil: 'networkidle' });
     expect(response.status()).toBe(200);
@@ -23,7 +24,51 @@ for (const target of targets) {
       return { version: gl.getParameter(gl.VERSION), width: gl.drawingBufferWidth, height: gl.drawingBufferHeight };
     });
     expect(gpu?.version).toContain('WebGL 2.0'); expect(gpu.width).toBeGreaterThan(0); expect(gpu.height).toBeGreaterThan(0);
-    if (target.app === 'demon' && !target.legacy) {
+    if (target.app === 'rinne' && !target.legacy) {
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(target.version.name);
+      await expect(canvas).toHaveAttribute('data-app', 'rinne');
+      await expect(canvas).toHaveAttribute('data-platform', 'web');
+      await expect(page.locator('#title-screen')).toHaveAttribute('data-experience', 'rinne-title');
+      await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+      await expect(page.locator('#start-simulator')).toBeEnabled();
+      expect(await page.locator('#emblem').evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
+      expect(simulatorRequests).toEqual([]);
+      await page.setViewportSize({ width: 390, height: 844 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath('rinne-title-mobile.png') });
+      await page.locator('#start-simulator').click();
+      await expect.poll(() => page.evaluate(() => window.__RINNE_TITLE__?.snapshot().state), { timeout: 100000 }).toBe('playing');
+      expect(simulatorRequests.length).toBeGreaterThan(0);
+      const frame = page.frames().find(item => item.url().includes('/simulator/index.html'));
+      expect(frame).toBeTruthy();
+      const ready = await frame.evaluate(() => ({ ready: window.__ATELIER__?.snapshot().ready, model: window.__HUMANOID_LAB__?.report().id, finite: window.__HUMANOID_LAB__?.report().finite }));
+      expect(ready.ready).toBe(true); expect(ready.finite).toBe(true); expect(ready.model).toBe('SHINO');
+      await frame.evaluate(() => window.__ATELIER__.stop());
+      const combat = await frame.evaluate(() => {
+        const app = window.__ATELIER__;
+        window.__LIFE_LAB__.advance(Math.max(0, 22 - window.__LIFE_LAB__.snapshot().ageYears) * 60);
+        window.__LIFE_LAB__.setEnemies(true);
+        app.setup({ opponent: 'duel', distance: 2, weapon: 'sword' });
+        app.step(720, false);
+        app.render();
+        return app.snapshot().stats;
+      });
+      expect(combat.hits).toBeGreaterThan(0); expect(combat.damage).toBeGreaterThan(0);
+      await page.screenshot({ path: testInfo.outputPath('rinne-simulator-mobile.png') });
+      const simulator = page.frameLocator('#simulator-frame');
+      await simulator.locator('#lifeBadge').click();
+      await simulator.locator('[data-life-rate="20"]').click();
+      await simulator.locator('#lifeEnemies').uncheck();
+      await simulator.locator('#lifeResume').click();
+      const life = await frame.evaluate(() => window.__LIFE_LAB__.snapshot());
+      expect(life.rate).toBe(20); expect(life.enemiesEnabled).toBe(false);
+      await page.locator('#back-title').click();
+      await expect(page.locator('#simulator-frame')).toHaveCount(0);
+      await expect(page.locator('#title-screen')).toBeVisible();
+      await expect(canvas).toHaveAttribute('data-renderer', 'ready');
+      await testInfo.attach('simulator.json', { body: JSON.stringify({ ready, combat }, null, 2), contentType: 'application/json' });
+      await page.setViewportSize({ width: 1280, height: 800 });
+    } else if (target.app === 'demon' && !target.legacy) {
       await expect(canvas).toHaveAttribute('data-app', 'demon');
       await expect(canvas).toHaveAttribute('data-world', 'night-hunt.v2');
       await expect(canvas).toHaveAttribute('data-asset', 'kaykit.floor_tile_small');
@@ -90,45 +135,6 @@ for (const target of targets) {
       await page.locator('#onlineDialog form button').click();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({path:testInfo.outputPath('village-mobile.png')});
-    } else if (target.app === 'rinne' && !target.legacy) {
-        // The title no longer draws the foundation bench; do not counterfeit world/asset markers.
-        await expect(page.locator('#title-screen')).toHaveAttribute('data-experience', 'rinne-title');
-        await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
-        await expect(page.locator('#start-simulator')).toBeEnabled();
-        expect(page.frames().length).toBe(1);
-        await page.setViewportSize({ width: 390, height: 844 });
-        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-        await page.screenshot({ path: testInfo.outputPath('mobile-title.png'), fullPage: true });
-        await page.locator('#start-simulator').click();
-        await expect.poll(() => page.evaluate(() => window.__RINNE_TITLE__?.snapshot().state), { timeout: 100000 }).toBe('playing');
-        
-        const simulator = page.frameLocator('#simulator-frame');
-        await expect(simulator.locator('#boot')).toBeHidden();
-        const frame = page.frames().find(f => f.url().includes('/simulator/index.html'));
-        expect(frame).toBeTruthy();
-        const ready = await frame.evaluate(() => ({ ready: window.__ATELIER__?.snapshot().ready, model: window.__HUMANOID_LAB__?.report().id, finite: window.__HUMANOID_LAB__?.report().finite }));
-        expect(ready.ready).toBe(true); expect(ready.finite).toBe(true); expect(ready.model).toBe('SHINO');
-        // Run the unchanged auto-combat engine with deterministic ticks, not forced hits.
-        await frame.evaluate(() => window.__ATELIER__.stop());
-        const combat = await frame.evaluate(() => {
-          const app = window.__ATELIER__;
-          window.__LIFE_LAB__.advance(Math.max(0,22-window.__LIFE_LAB__.snapshot().ageYears)*60);window.__LIFE_LAB__.setEnemies(true);app.setup({ opponent: 'duel', distance: 2, weapon: 'sword' });
-          app.step(720, false); app.render();
-          return app.snapshot().stats;
-        });
-        expect(combat.hits).toBeGreaterThan(0); expect(combat.damage).toBeGreaterThan(0);
-        await page.screenshot({ path: testInfo.outputPath('mobile-simulator.png'), fullPage: true });
-        await simulator.locator('#lifeBadge').click();
-        await simulator.locator('[data-life-rate="20"]').click();
-        await simulator.locator('#lifeEnemies').uncheck();
-        await simulator.locator('#lifeResume').click();
-        const life=await frame.evaluate(()=>window.__LIFE_LAB__.snapshot());
-        expect(life.rate).toBe(20);expect(life.enemiesEnabled).toBe(false);
-        await page.locator('#back-title').click();
-        await expect(page.locator('#simulator-frame')).toHaveCount(0);
-        await expect(page.locator('#title-screen')).toBeVisible();
-        await expect(canvas).toHaveAttribute('data-renderer', 'ready');
-        await testInfo.attach('simulator.json', { body: JSON.stringify({ ready, combat }, null, 2), contentType: 'application/json' });
     } else if (!target.legacy) {
       await expect(page.getByRole('heading', { level: 1 })).toHaveText(target.version.name);
       await expect(canvas).toHaveAttribute('data-app', target.app);
@@ -144,12 +150,12 @@ for (const target of targets) {
       await page.screenshot({ path: testInfo.outputPath('mobile.png'), fullPage: true });
       await page.setViewportSize({ width: 1280, height: 800 });
     }
-    if(!target.legacy){
+    if (!target.legacy) {
       await page.locator('.soul-music [data-open]').click();
       await page.locator('.soul-music [data-world]').selectOption('');
       await expect(page.locator('.soul-music [data-track]')).toHaveCount(150);
       await page.locator('.soul-music [data-track="r01"]').click();
-      await expect.poll(()=>page.locator('.soul-music audio').evaluate(a=>a.currentTime)).toBeGreaterThan(0);
+      await expect.poll(() => page.locator('.soul-music audio').evaluate(audio => audio.currentTime)).toBeGreaterThan(0);
       await page.locator('.soul-music [data-stop]').click();
       await page.locator('.soul-music form button').click();
     }
