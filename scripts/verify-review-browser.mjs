@@ -46,11 +46,12 @@ export async function verifyReviewBrowser(output,{publicUrl=process.env.REVIEW_P
     const manifest=await (await page.request.get(base+'asset-review/manifest.json')).json();
     if(expectedCommit)assert.equal(manifest.buildCommit,expectedCommit,'The asset manifest must match the requested commit');
     report.families=manifest.families;report.testedClips=[];
+    await openTab('simple');
     for(const row of manifest.families){
       if(!row.clips.length)continue;const name=row.clips[0];await page.selectOption('#clip',name);await seek(.2);const state=await snapshot();
       assert.equal(state.clip,name);assert.ok(Object.values(state.pose).flat().every(Number.isFinite));report.testedClips.push(name);
     }
-    await page.selectOption('#clip','Walk_Loop');await seek(.4);await openTab('simple');
+    await page.selectOption('#clip','Walk_Loop');await seek(.4);
     await page.selectOption('#weapon-select','dagger');
     await page.waitForTimeout(1200);
     assert.equal(await page.locator('#weapon-select').inputValue(),'dagger');
