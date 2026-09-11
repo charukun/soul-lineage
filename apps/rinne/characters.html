@@ -1,20 +1,69 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>MasterCharacter Review — 輪廻転焦</title>
-<style>
-*{box-sizing:border-box}body{margin:0;background:#131a1c;color:#eee6d4;font:15px/1.55 system-ui,sans-serif}header{padding:18px 24px;border-bottom:1px solid #435056}h1{margin:0;font-size:24px}p{margin:6px 0;color:#c2c8c3}.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;min-height:80vh}#stage{width:100%;height:80vh;display:block}aside{padding:20px;background:#20292a}label{display:block;margin:16px 0 6px}button,select,input{font:inherit;max-width:100%}button,select{padding:8px;background:#334244;color:#fff;border:1px solid #849286;border-radius:4px}input[type=range]{width:100%}#status{padding:12px;border-left:3px solid #bcad77;overflow-wrap:anywhere}pre{white-space:pre-wrap;font-size:13px}small{color:#b3bdb7}progress{width:100%}footer{padding:16px 24px;color:#b5bdb9}@media(max-width:700px){.layout{display:block}#stage{height:58vh}aside{padding:16px}header{padding:12px 16px}h1{font-size:20px}}
-</style>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#172428"><title>量産モデルシミュレーター | 輪廻転焦</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23172428'/%3E%3Cpath d='M16 47V17h11l5 12 5-12h11v30H38V32l-6 13-6-13v15z' fill='%23dcc493'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./src/character-review.css">
 </head>
-<body><header><a href="./">〈 タイトルへ</a><h1>MasterCharacter / Sendagaya_Shino</h1><p>輪廻転焦 · 独立レビュー環境。本編・セーブ・通信接続は変更しません。</p></header>
-<div class="layout"><canvas id="stage"></canvas><aside>
-<div id="status" role="status">キャラクターを読み込んでいます。</div><progress id="progress" max="1" value="0"></progress>
-<label>モデルファイル <input id="file" type="file" accept=".vrm,.glb"></label><button id="retry" disabled>再試行</button>
-<label>同時表示 <select id="count"><option value="1" selected>1体</option><option value="30">30体</option></select></label>
-<label>年齢 <select id="ages"><option value="mixed">年齢混在 0 / 7 / 22 / 55 / 85</option><option value="fixed">全員同じ年齢</option></select></label>
-<input id="age" aria-label="年齢" type="range" min="0" max="90" value="22"><output id="age-label">22歳</output>
-<label>衣装配色 <select id="outfit"><option value="mixed">3配色</option><option value="original">Original</option><option value="moss">Moss</option><option value="ember">Ember</option></select></label>
-<label><input id="motion" type="checkbox" checked> レビュー用の呼吸・重心移動</label>
-<label><input id="rotate" type="checkbox"> 全員を回転</label>
-<button id="measure">フレーム計測をリセット</button><pre id="metrics">未計測</pre>
-<small>配色バリエーションです。新しい衣装形状・完成版モーションではありません。FPSはこの端末・この場面での測定値で、実機性能の合格判定ではありません。</small>
-</aside></div><footer>原作: VRoid Project / pixiv Inc.（CC0） · VRM 1.0 conversion: Coatie（coati）。元モデルのメタデータ・利用条件を保持します。</footer>
-<script type="module" src="./src/character-review.js"></script></body></html>
+<body>
+<header class="page-head"><a href="./" class="back">〈 ゲームへ</a><div><span class="eyebrow">RINNE / CHARACTER ATELIER</span><h1>量産モデルシミュレーター</h1><p>Sendagaya_Shino · 個体差をつくる、並べる、確かめる。</p></div><span class="review-badge">REVIEW ONLY</span></header>
+<main class="workbench">
+  <section class="stage-panel" aria-label="モデル表示">
+    <div class="stage-tools">
+      <label>表示 <select id="view"><option value="crowd">一覧比較</option><option value="single">選択個体だけ</option></select></label>
+      <label>体数 <select id="count"><option value="1">1体</option><option value="6" selected>6体</option><option value="12">12体</option><option value="30">30体</option></select></label>
+      <button id="pause" type="button" aria-pressed="false">一時停止</button>
+    </div>
+    <div class="canvas-wrap"><canvas id="stage" aria-label="量産キャラクターの3D表示。ドラッグで回転、ピンチで拡大できます。"></canvas>
+      <div class="stage-caption"><span id="subject">モデル準備中</span><span>ドラッグで回転 / ピンチで拡大</span></div>
+    </div>
+    <div class="camera-tools" aria-label="カメラ"><button data-camera="overview">全体</button><button data-camera="front">正面</button><button data-camera="back">背面</button><button data-camera="side">横</button><button data-camera="face">顔</button><button id="capture">画像を保存</button></div>
+    <div class="load-state"><div id="status" role="status" aria-live="polite">監査済みモデルを読み込んでいます。</div><button id="retry" disabled>再試行</button><progress id="progress" max="1" value="0" aria-label="モデル読込状況"></progress></div>
+    <p class="stage-note">本編・セーブ・通信には接続しません。形状は既存の完成衣装のまま、年齢・体格・配色・表情を比較します。</p>
+  </section>
+  <aside class="controls" aria-label="生成と検査条件">
+    <details open><summary><span>01</span> 個体を生成</summary><div class="section-body">
+      <label for="seed">生成seed</label><div class="input-row"><input id="seed" type="number" inputmode="numeric" min="0" max="4294967295" step="1" value="1000"><button id="regenerate">生成</button><button id="next-seed">次の組</button></div>
+      <label for="ancestry">遺伝の組合せ</label><select id="ancestry"><option value="independent">独立した30個体</option><option value="family">親2体＋子の遺伝比較</option></select>
+      <label for="ages">全員の年齢</label><select id="ages"><option value="mixed">年齢を混在させる</option><option value="fixed">同じ年齢にそろえる</option></select>
+      <div class="range-row"><input id="age" aria-label="全員の年齢" type="range" min="0" max="90" step="1" value="22"><output id="age-label">22歳</output></div>
+      <label for="outfit">全員の衣装配色</label><select id="outfit"><option value="mixed">3配色を混在</option><option value="original">Original</option><option value="moss">Moss</option><option value="ember">Ember</option></select>
+      <p class="hint">同じseedで同じ遺伝子を再現。生成すると個別編集をリセットします。年齢操作は外見検査であり、出生や復活のイベントではありません。</p>
+    </div></details>
+    <details open><summary><span>02</span> 動作と表情</summary><div class="section-body">
+      <label for="selected">検査する個体</label><div class="input-row"><button id="previous" aria-label="前の個体">〈</button><select id="selected" aria-label="検査する個体"></select><button id="next" aria-label="次の個体">〉</button></div>
+      <label for="motion">骨格検査用ポーズ</label><select id="motion"><option value="rest">元のレスト姿勢</option><option value="idle" selected>呼吸・重心移動</option><option value="walk">歩行の関節テスト</option></select>
+      <p class="hint">検査用の関節運動です。並行制作中の完成版モーションは置き換えません。</p>
+      <label for="expression">モデルに収録された表情</label><select id="expression"><option value="">ニュートラル</option></select>
+      <div class="range-row"><input id="expression-weight" aria-label="表情の強さ" type="range" min="0" max="1" step="0.05" value="1"><output id="expression-label">100%</output></div>
+      <label for="expression-mode">表情を適用する範囲</label><select id="expression-mode"><option value="selected">選択個体だけ</option><option value="all">全員に同じ表情</option><option value="mixed">個体ごとに異なる表情</option></select>
+      <label class="check"><input id="blink" type="checkbox" checked> 個別のまばたき</label>
+      <label for="springs">髪・衣装の揺れ</label><select id="springs"><option value="auto">自動LOD（近くの最大6体）</option><option value="all">全員フル更新（負荷検査）</option><option value="off">OFF</option></select>
+      <label class="check"><input id="rotate" type="checkbox"> 個体をゆっくり回転</label>
+    </div></details>
+    <details><summary><span>03</span> 選択個体の形質</summary><div class="section-body">
+      <pre id="identity">読み込み後に表示</pre>
+      <label for="gene-height">身長遺伝子</label><input id="gene-height" type="range" min="0" max="1" step="0.01">
+      <label for="gene-build">体格遺伝子</label><input id="gene-build" type="range" min="0" max="1" step="0.01">
+      <label for="gene-hair">髪の配色遺伝子</label><input id="gene-hair" type="range" min="0" max="1" step="0.01">
+      <label for="gene-eyes">瞳の配色遺伝子</label><input id="gene-eyes" type="range" min="0" max="1" step="0.01">
+      <label for="gene-skin">肌の配色遺伝子</label><input id="gene-skin" type="range" min="0" max="1" step="0.01">
+      <p class="hint">選択した個体だけの検査用編集。遺伝子の変更はエクスポートに保存されます。本編の成長・親子・能力値は変更しません。</p>
+    </div></details>
+    <details><summary><span>04</span> 負荷・記録</summary><div class="section-body">
+      <label for="background">比較背景</label><select id="background"><option value="slate">青灰</option><option value="white">白</option><option value="black">黒</option></select>
+      <pre id="metrics">未計測</pre><button id="measure">フレーム計測をリセット</button>
+      <p class="hint">FPSとp95はこの画面の実測値です。端末の合格判定や、30体すべてのフル更新を自動的に証明する数値ではありません。</p>
+      <label for="note">検査メモ</label><textarea id="note" rows="3" maxlength="2000" placeholder="例：個体04、85歳、横から見た髪の揺れ"></textarea>
+      <button id="export" class="primary">検査データを保存（JSON）</button>
+      <label for="session-file">検査データを読み込む</label><input id="session-file" type="file" accept=".json,application/json">
+      <p class="hint">個体・条件・メモを保存します。VRM本体は複製しません。</p>
+      <label for="file">監査済みShinoを端末から読み直す</label><input id="file" type="file" accept=".vrm,.glb">
+      <pre id="capabilities">監査結果を準備中</pre>
+    </div></details>
+  </aside>
+</main>
+<footer>原作：VRoid Project / pixiv Inc.（CC0） · VRM 1.0 conversion：Coatie（coati）。<a href="./simulator/licenses/MODEL_LICENSE_SUMMARY_JA.txt">収録モデルの利用条件</a></footer>
+<script type="module" src="./src/character-review.js"></script>
+</body></html>
