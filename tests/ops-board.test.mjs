@@ -7,6 +7,13 @@ import {
   parseMergePulls,
   publishedCommit,
 } from '../ops-board/model.mjs';
+import {
+  STALE_DRAFT_MS,
+  bodyLines,
+  compactPull,
+  githubPullState,
+  splitPulls,
+} from '../ops-board/pulls.mjs';
 import { opsDeploymentUrl } from '../ops-board/deployment-url.mjs';
 
 const mergeCommit = (number, title, date, sha = `merge-${number}`) => ({
@@ -68,6 +75,37 @@ test('ready PR with successful CI becomes red after the stall threshold', () => 
   assert.equal(state.stage, 'MERGE_WAIT');
   assert.equal(state.warning, true);
   assert.equal(state.tone, 'danger');
+});
+
+test('PR board reads title and detail from the first two body lines', () => {
+  assert.deepEqual(bodyLines('MasterCharacter量産基盤の整備\nSendagaya_Shinoを基準モデル化\nthird'), {
+    title: 'MasterCharacter量産基盤の整備',
+    detail: 'Sendagaya_Shinoを基準モデル化',
+  });
+});
+
+test('PR board uses only GitHub standard lifecycle states', () => {
+  assert.equal(githubPullState({ merged_at: '2026-09-12T00:00:00Z', state: 'closed', draft: false }), 'Merged');
+  assert.equal(githubPullState({ merged_at: null, state: 'closed', draft: false }), 'Closed');
+  assert.equal(githubPullState({ merged_at: null, state: 'open', draft: true }), 'Draft');
+  assert.equal(githubPullState({ merged_at: null, state: 'open', draft: false }), 'Ready');
+});
+
+test('stale Draft is a weak display hint after 12 hours', () => {
+  const now = Date.parse('2026-09-12T12:00:00Z');
+  const old = new Date(now - STALE_DRAFT_MS - 1000).toISOString();
+  const item = compactPull({ number: 7, title: 'fallback', body: 'Title\nDetail', state: 'open', draft: true, updated_at: old, html_url: 'https://github.com/x/y/pull/7', head: { ref: 'feat/x' } }, now);
+  assert.equal(item.state, 'Draft');
+  assert.equal(item.staleDraft, true);
+});
+
+test('Visual Review Lab is separated from ordinary implementation PRs', () => {
+  const split = splitPulls([
+    { number: 1, title: 'Normal', body: 'Normal title\nNormal detail', state: 'open', draft: true, updated_at: '2026-09-12T01:00:00Z', html_url: 'https://github.com/x/y/pull/1', head: { ref: 'feat/normal' } },
+    { number: 2, title: 'Visual Review Lab', body: 'Review lab\nLong-lived preview', state: 'open', draft: true, updated_at: '2026-09-12T01:00:00Z', html_url: 'https://github.com/x/y/pull/2', head: { ref: 'work/visual-review-lab-v2' } },
+  ], Date.parse('2026-09-12T02:00:00Z'));
+  assert.deepEqual(split.normal.map(x => x.number), [1]);
+  assert.deepEqual(split.visualReview.map(x => x.number), [2]);
 });
 
 test('worker deployment URL parser only accepts the stable rinne-ops URL', () => {
