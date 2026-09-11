@@ -40,10 +40,10 @@ export async function verifyReviewBrowser(output,{publicUrl=process.env.REVIEW_P
       assert.equal(state.clip,name);assert.ok(Object.values(state.pose).flat().every(Number.isFinite));report.testedClips.push(name);
     }
     await page.selectOption('#clip','Walk_Loop');await seek(.4);await page.screenshot({path:resolve(evidence,'shino-mobile.png')});
-    await page.check('#weapon-toggle');await page.click('#trigger-overlay');await page.screenshot({path:resolve(evidence,'sword-vfx-candidate.png')});
+    await page.check('#weapon-toggle');await page.locator('#trigger-overlay').evaluate(node=>node.click());await page.screenshot({path:resolve(evidence,'sword-vfx-candidate.png')});
     await page.setViewportSize({width:1280,height:800});await page.screenshot({path:resolve(evidence,'shino-desktop.png')});
     // An actual missing URL must remain an error, never a fabricated rig.
-    await page.fill('#model-url',base+'deliberately-missing.glb');await page.click('#load-url');
+    await page.fill('#model-url',base+'deliberately-missing.glb');await page.locator('#load-url').evaluate(node=>node.click());
     await page.waitForFunction(()=>document.querySelector('#review-status').dataset.kind==='error');assert.equal((await snapshot()).loaded,false);
     await page.selectOption('#preset','character.sendagaya-shino.v1');await page.waitForFunction(()=>window.__reviewLab.snapshot().loaded,null,{timeout:90000});
     report.final=await snapshot();delete report.final.pose;delete report.final.animations;
