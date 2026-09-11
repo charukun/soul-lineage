@@ -33,7 +33,7 @@ function appendClip(groupLabel,value,label=value){
   const select=document.querySelector('#clip');if(!select||[...select.options].some(o=>o.value===value))return;
   let group=[...select.querySelectorAll('optgroup')].find(g=>g.label===groupLabel);if(!group){group=document.createElement('optgroup');group.label=groupLabel;select.append(group);}group.append(new Option(label,value));
 }
-function updateSummary(loaded,total=null){const node=document.querySelector('#family-summary');if(node)node.textContent=total?`${loaded}/${total} モーション読込済み。読み込めたものから即確認できます。`:`${loaded} モーション使用可能。残りを読み込み中。`;}
+function updateSummary(loaded,total=null,failed=0){const node=document.querySelector('#family-summary');if(node)node.textContent=total?`${loaded}/${total} モーション読込済み${failed?`（${failed}件スキップ）`:''}。読み込めたものから即確認できます。`:`${loaded} モーション使用可能${failed?`（${failed}件スキップ）`:''}。残りを読み込み中。`;}
 function inPlaceClip(clip){if(!clip)return clip;for(const track of clip.tracks||[])if(track.name.endsWith('.position'))for(let i=0;i<track.values.length;i+=3){track.values[i]=0;track.values[i+2]=0;}return clip;}
 async function loadAllSources({scene,rootUrl,assetUrl,signal,onProgress}){
   const vendorBase=new URL('./simulator/vendor/',rootUrl),simBase=new URL('./simulator/',rootUrl),js='.js';
@@ -60,28 +60,32 @@ async function loadAllSources({scene,rootUrl,assetUrl,signal,onProgress}){
     afterSample(){if(vrm.scene.visible){vrm.update(0);vrm.scene.updateMatrixWorld(true);}stage.updateMatrixWorld(true);},setWeapon(){},sampleEffects(){},
     dispose(){disposed=true;effects?.dispose();externalRetarget?.dispose();for(const root of weapons.values())disposeLoaded(root);if(externalRoot)disposeLoaded(externalRoot);vrmModule.VRMUtils.deepDispose(vrm.scene);stage.removeFromParent();}};
   const motionCatalog=[...motionCatalogModule.default].sort((a,b)=>(a.bytes||Infinity)-(b.bytes||Infinity));
-  const externalWeight=6671104,totalUnits=motionCatalog.reduce((s,x)=>s+(x.bytes||0),0)+externalWeight;let completed=0,loaded=authoredNames.length;
-  updateSummary(loaded);progressUI('残りのモーションを読み込み中',0,totalUnits,`${loaded} 使用可能`);
+  const externalWeight=6671104,totalUnits=motionCatalog.reduce((s,x)=>s+(x.bytes||0),0)+externalWeight;let completed=0,loaded=authoredNames.length,failed=0;
+  updateSummary(loaded,null,failed);progressUI('残りのモーションを読み込み中',0,totalUnits,`${loaded} 使用可能`);
   setTimeout(async()=>{
     try{
       for(const item of motionCatalog){
-        if(disposed||signal.aborted)return;const bytes=await loadBytes(new URL(item.file,simBase),{signal,expectedSize:item.bytes,onProgress:n=>progressUI(`共有モーション: ${item.label}`,completed+n,totalUnits,`${loaded} 使用可能`)});
-        const l=new loaderModule.GLTFLoader();l.register(p=>new vrmaModule.VRMAnimationLoaderPlugin(p));const parsed=await l.parseAsync(bytes,simBase.href),anim=parsed.userData.vrmAnimations?.[0];if(!anim)throw new Error(`VRMAを解析できません: ${item.id}`);
-        const clip=vrmaModule.createVRMAnimationClip(anim,vrm);clip.name=item.id;if(['walk','run-slow'].includes(item.id))inPlaceClip(clip);const value=`共有VRMA / ${item.label}`;clips.set(value,clip);body.clipNames.push(value);appendClip('ゲーム共通 / VRMA',value,item.label);completed+=item.bytes||0;loaded++;updateSummary(loaded);
+        if(disposed||signal.aborted)return;
+        try{
+          const bytes=await loadBytes(new URL(item.file,simBase),{signal,expectedSize:item.bytes,onProgress:n=>progressUI(`共有モーション: ${item.label}`,completed+n,totalUnits,`${loaded} 使用可能${failed?` / ${failed}件スキップ`:''}`)});
+          const l=new loaderModule.GLTFLoader();l.register(p=>new vrmaModule.VRMAnimationLoaderPlugin(p));const parsed=await l.parseAsync(bytes,simBase.href),anim=parsed.userData.vrmAnimations?.[0];if(!anim)throw new Error(`VRMAを解析できません: ${item.id}`);
+          const clip=vrmaModule.createVRMAnimationClip(anim,vrm);clip.name=item.id;if(['walk','run-slow'].includes(item.id))inPlaceClip(clip);const value=`共有VRMA / ${item.label}`;clips.set(value,clip);body.clipNames.push(value);appendClip('ゲーム共通 / VRMA',value,item.label);loaded++;
+        }catch(error){failed++;console.warn(`Shared VRMA skipped: ${item.id}`,error);}
+        completed+=item.bytes||0;updateSummary(loaded,null,failed);
       }
       if(disposed||signal.aborted)return;
       const manifestResponse=await fetch(new URL(`manifest.json?v=${REVIEW_ASSET_REVISION}`,assetUrl),{signal,cache:'no-cache'});if(!manifestResponse.ok)throw new Error(`Asset manifest HTTP ${manifestResponse.status}`);const manifest=await manifestResponse.json(),row=manifest.files.find(file=>file.id==='animation.quaternius.library');if(!row?.sha256||!row.size)throw new Error('Animation integrity record is missing');
-      const motionBytes=await loadBytes(new URL(`AnimationLibrary.glb?v=${row.sha256}`,assetUrl),{signal,expectedSize:row.size,sha256:row.sha256,onProgress:n=>progressUI('外部比較モーション / Quaternius',completed+n,totalUnits,`${loaded} 使用可能`)});
+      const motionBytes=await loadBytes(new URL(`AnimationLibrary.glb?v=${row.sha256}`,assetUrl),{signal,expectedSize:row.size,sha256:row.sha256,onProgress:n=>progressUI('外部比較モーション / Quaternius',completed+n,totalUnits,`${loaded} 使用可能${failed?` / ${failed}件スキップ`:''}`)});
       const qLoader=new GLTFLoader(),library=await qLoader.parseAsync(motionBytes,assetUrl.href),externalCharacter=await qLoader.parseAsync(modelBytes,rootUrl.href);externalRoot=externalCharacter.scene;externalRoot.visible=false;stage.add(externalRoot);
       externalRetarget=await createQuaterniusRetargeter(library,externalCharacter);effects=await createReviewEffects(scene,assetUrl);
       for(const name of externalRetarget.clipNames){const value=`外部 / ${name}`;clips.set(value,externalRetarget.getClip(name,{inPlace:true}));body.clipNames.push(value);appendClip('外部Asset比較 / Quaternius',value,name);loaded++;}
-      completed+=externalWeight;updateSummary(loaded,loaded);finishProgress(`${loaded} モーション使用可能`);
+      completed+=externalWeight;updateSummary(loaded,loaded+failed,failed);finishProgress(`${loaded} 使用可能${failed?` / ${failed}件スキップ`:''}`);
       const socket=new THREE.Group();socket.name='KayKitWeaponReviewSocket';externalRetarget.bones.rightHand.add(socket);let activeWeapon=null;
       async function selectWeapon(id='greatsword'){if(!reviewWeapons.some(row=>row.id===id))id='greatsword';for(const root of weapons.values())root.visible=false;if(!weapons.has(id)){if(!pendingWeapons.has(id)){const spec=reviewWeapons.find(row=>row.id===id);pendingWeapons.set(id,qLoader.loadAsync(KAYKIT_ROOT+spec.file).then(g=>{g.scene.name=`KayKit:${id}`;g.scene.scale.setScalar(.5);socket.add(g.scene);weapons.set(id,g.scene);pendingWeapons.delete(id);return g.scene;}));}await pendingWeapons.get(id);}for(const [key,root]of weapons)root.visible=key===id;return id;}
       body.setWeapon=async({enabled=false,id=null,scale=.5,x=0,y=0,z=0})=>{if(!externalRoot?.visible){socket.visible=false;return;}const requested=id||document.querySelector('#weapon-select')?.value||'greatsword';if(requested!==activeWeapon)activeWeapon=await selectWeapon(requested);socket.visible=enabled;const selected=weapons.get(activeWeapon);if(selected)selected.scale.setScalar(Math.max(.1,Math.min(1,scale)));socket.rotation.set(x*Math.PI/180,y*Math.PI/180,z*Math.PI/180);};
       body.sampleEffects=age=>{if(!externalRoot?.visible)return;const impact=externalRetarget.bones.rightHand.getWorldPosition(new THREE.Vector3()),left=externalRetarget.bones.leftFoot.getWorldPosition(new THREE.Vector3()),right=externalRetarget.bones.rightFoot.getWorldPosition(new THREE.Vector3()),ground=left.add(right).multiplyScalar(.5);impact.z+=.25;effects.sample(age,impact,ground);};
       disposeLoaded(library.scene);
-    }catch(error){if(disposed||signal.aborted)return;console.error(error);progressUI('一部素材の読み込みに失敗',0,100,error.message);const node=document.querySelector('#family-summary');if(node)node.textContent=`${loaded} モーションは使用可能。残りの読み込みでエラー: ${error.message}`;}
+    }catch(error){if(disposed||signal.aborted)return;console.error(error);progressUI('一部素材の読み込みに失敗',0,100,error.message);const node=document.querySelector('#family-summary');if(node)node.textContent=`${loaded} モーションは使用可能。後続読込エラー: ${error.message}`;}
   },0);
   return body;
 }
