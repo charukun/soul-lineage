@@ -1,5 +1,74 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="UTF-8"><link rel="icon" href="data:,"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="robots" content="noindex,nofollow"><title>輪廻転焦</title></head>
-<body><main><header><img id="emblem" alt="共通ワールドの紋章"><div><p class="eyebrow">rinne / development</p><h1>輪廻転焦</h1></div></header>
-<section class="stage" aria-label="共通ワールドのプレビュー"><canvas id="game" aria-label="共通家具のベンチ"></canvas><p class="caption">はじまりの村 · 共通の家具サンプル</p></section>
-<footer><span id="status" role="status">起動しています…</span><span>開発用の雛形 · ゲーム本編は準備中</span></footer></main><script type="module" src="/src/main.js"></script></body></html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b151b">
+  <meta name="description" content="輪廻転焦。めぐる、いのち。また、どこかで。">
+  <title>輪廻転焦</title>
+  <link rel="icon" href="./title-assets/crest.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./src/title/title.css">
+</head>
+<body>
+  <main id="title-screen" aria-label="輪廻転焦 タイトル画面" data-phase="intro">
+    <div class="world-fallback" aria-hidden="true"></div>
+    <canvas id="game" aria-label="光と霧が流れる黄昏の村" data-renderer="loading"></canvas>
+    <div class="world-shade" aria-hidden="true"></div>
+    <div class="sun-shaft" aria-hidden="true"></div>
+    <canvas id="soul-particles" aria-hidden="true"></canvas>
+    <div class="edge-frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <header class="topline">
+      <span class="chapter-mark"><img id="emblem" class="shared-emblem" alt="世界の紋章"> 魂のゆくえ</span>
+      <button id="sound-toggle" class="sound-toggle" type="button" aria-label="音をオンにする" aria-pressed="false">
+        <span class="sound-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span id="sound-label">音なし</span>
+      </button>
+    </header>
+    <section class="title-lockup" aria-label="輪廻転焦">
+      <div class="astral-seal" aria-hidden="true">
+        <svg viewBox="0 0 320 320" role="presentation"><defs><linearGradient id="gold"><stop stop-color="#f6dfaa"/><stop offset=".48" stop-color="#bb8e51"/><stop offset="1" stop-color="#edd49b"/></linearGradient></defs><g fill="none" stroke="url(#gold)"><circle cx="160" cy="160" r="141" stroke-width=".7"/><circle cx="160" cy="160" r="134" stroke-width=".4" stroke-dasharray="2 13"/><path d="M160 7 170 21 160 35 150 21Z M160 285 170 299 160 313 150 299Z" stroke-width=".8"/><path d="M18 160H45 M275 160H302 M160 34V72 M160 248V286"/><circle cx="160" cy="160" r="105" stroke-width=".4" stroke-dasharray="160 120 55 40"/></g></svg>
+        <span class="orbit-star"></span>
+      </div>
+      <p class="logo-prelude">REINCARNATION OF SOULS</p>
+      <h1 id="app-title"><span>輪廻</span><span>転焦</span></h1>
+      <p class="roman-title">RINNE TENKOU</p>
+      <div class="title-flourish" aria-hidden="true"><i></i><span>✧</span><i></i></div>
+    </section>
+    <p class="world-poem">めぐる、いのち。<br><span>また、どこかで。</span></p>
+    <section class="title-menu" aria-label="タイトルメニュー">
+      <p class="menu-invitation"><span></span> その一太刀が、次の生へ。 <span></span></p>
+      <button id="start-simulator" class="main-button" type="button" aria-describedby="simulator-detail">
+        <span class="button-flare" aria-hidden="true"></span>
+        <svg class="sword-icon" viewBox="0 0 40 40" aria-hidden="true"><path d="m27 5 8-1-1 8-16 16-6-6ZM10 20l12 12M12 28l-7 7M4 31l5 5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m32 7-17 18" stroke="currentColor" stroke-width=".6"/></svg>
+        <span class="button-words"><strong>スキルシミュレーター</strong><small>SKILL SIMULATOR</small></span>
+        <span class="button-arrow" aria-hidden="true">›</span>
+      </button>
+      <p id="simulator-detail">技を閃き、自分だけの戦いを。</p>
+      <div class="secondary-menu"><button id="open-settings" type="button">設定</button><span aria-hidden="true">◇</span><button id="replay-intro" type="button">演出をもう一度</button></div>
+    </section>
+    <footer class="bottomline"><span id="version">LOCAL PREVIEW</span><span>めぐりつづける物語</span></footer>
+    <button id="skip-intro" class="skip-intro" type="button">演出をスキップ <span aria-hidden="true">›</span></button>
+    <p id="status" class="sr-only" role="status" aria-live="polite"></p>
+    <div id="renderer-warning" class="renderer-warning" role="alert" hidden>WebGL2を利用できません。背景は静止表示です。シミュレーターの起動にはWebGL2が必要です。</div>
+  </main>
+  <section id="simulator-shell" aria-label="スキルシミュレーター" hidden>
+    <header class="simulator-top"><button id="back-title" type="button">〈 タイトルへ</button><span>スキルシミュレーター</span><small id="simulator-version"></small></header>
+    <div id="frame-slot"></div>
+    <div id="game-loading" aria-busy="true">
+      <span class="loading-rune" aria-hidden="true">✧</span><h2 id="loading-heading">稽古場へ</h2>
+      <p id="loading-stage">1 / 6　起動データ</p>
+      <p id="loading-message" role="status" aria-live="polite">起動データを準備しています</p>
+      <div class="loading-meter"><div class="loading-meter-top"><span>この工程の進捗</span><strong id="loading-value">処理中</strong></div>
+        <progress id="loading-progress" max="1" aria-label="この工程の進捗"></progress>
+        <div class="loading-meter-bottom"><span id="loading-count"></span><span id="loading-time">経過 0秒</span></div>
+      </div>
+      <p id="loading-wait" role="status"></p><p id="loading-error" role="alert" hidden></p>
+      <small id="loading-hint">左上から読み込みを中止してタイトルに戻れます。</small>
+      <button id="retry-load" type="button" hidden>もう一度読み込む</button>
+      <details id="loading-details"><summary>読み込みの詳細</summary><pre id="loading-technical"></pre></details>
+    </div>
+  </section>
+  <dialog id="settings-dialog" aria-labelledby="settings-title"><form method="dialog"><button class="dialog-close" aria-label="設定を閉じる">×</button></form><span class="dialog-star" aria-hidden="true">✧</span><h2 id="settings-title">旅の支度</h2><p>タイトル画面の設定</p><label class="setting-row"><span>音楽と効果音<small>タップしてから音が流れます</small></span><input id="setting-sound" type="checkbox"></label><label class="setting-row"><span>演出を控えめに<small>カメラ移動と粒子の変化を抑えます</small></span><input id="setting-motion" type="checkbox"></label><p class="settings-note">シミュレーターの音量・画質は、<br>稽古場の設定から変更できます。</p></dialog>
+  <noscript><p class="noscript">このゲームを開くにはJavaScriptを有効にしてください。</p></noscript>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

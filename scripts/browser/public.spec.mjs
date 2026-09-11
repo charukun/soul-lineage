@@ -5,10 +5,12 @@ const targets = JSON.parse(process.env.BROWSER_TARGETS || '[]');
 if (!base || !targets.length) throw new Error('Pass a published URL and exact manifest targets');
 for (const target of targets) {
   test(`${target.path} starts WebGL2 from the deployed commit`, async ({ page }, testInfo) => {
-    const errors = [], failedRequests = [];
+    test.setTimeout(target.app === 'rinne' && !target.legacy ? 180000 : 60000);
+    const errors = [], failedRequests = [], simulatorRequests = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     page.on('requestfailed', request => failedRequests.push(request.url()));
+    page.on('request', request => { if (request.url().includes('/simulator/')) simulatorRequests.push(request.url()); });
     const url = new URL(`${target.path}/`, base).href;
     const response = await page.goto(url, { waitUntil: 'networkidle' });
     expect(response.status()).toBe(200);
@@ -22,7 +24,36 @@ for (const target of targets) {
       return { version: gl.getParameter(gl.VERSION), width: gl.drawingBufferWidth, height: gl.drawingBufferHeight };
     });
     expect(gpu?.version).toContain('WebGL 2.0'); expect(gpu.width).toBeGreaterThan(0); expect(gpu.height).toBeGreaterThan(0);
-    if (target.app === 'demon' && !target.legacy) {
+    if (target.app === 'rinne' && !target.legacy) {
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(target.version.name);
+      await expect(canvas).toHaveAttribute('data-app', 'rinne');
+      await expect(canvas).toHaveAttribute('data-platform', 'web');
+      await expect(page.locator('#title-screen')).toHaveAttribute('data-experience', 'rinne-title');
+      await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+      await expect(page.locator('#start-simulator')).toBeEnabled();
+      expect(await page.locator('#emblem').evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
+      expect(simulatorRequests).toEqual([]);
+      await page.setViewportSize({ width: 390, height: 844 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath('rinne-title-mobile.png') });
+      await page.locator('#start-simulator').click();
+      await expect.poll(() => page.evaluate(() => window.__RINNE_TITLE__?.snapshot().state), { timeout: 100000 }).toBe('playing');
+      expect(simulatorRequests.length).toBeGreaterThan(0);
+      const frame = page.frames().find(item => item.url().includes('/simulator/index.html'));
+      expect(frame).toBeTruthy();
+      const ready = await frame.evaluate(() => ({ ready: window.__ATELIER__?.snapshot().ready, model: window.__HUMANOID_LAB__?.report().id, finite: window.__HUMANOID_LAB__?.report().finite }));
+      expect(ready.ready).toBe(true); expect(ready.finite).toBe(true); expect(ready.model).toBeTruthy();
+      await frame.evaluate(() => window.__ATELIER__.stop());
+      const combat = await frame.evaluate(() => { const app = window.__ATELIER__; app.setup({ opponent: 'duel', distance: 2, weapon: 'sword' }); app.step(720, false); app.render(); return app.snapshot().stats; });
+      expect(combat.hits).toBeGreaterThan(0); expect(combat.damage).toBeGreaterThan(0);
+      await page.screenshot({ path: testInfo.outputPath('rinne-simulator-mobile.png') });
+      await page.locator('#back-title').click();
+      await expect(page.locator('#simulator-frame')).toHaveCount(0);
+      await expect(page.locator('#title-screen')).toBeVisible();
+      await expect(canvas).toHaveAttribute('data-renderer', 'ready');
+      await testInfo.attach('simulator.json', { body: JSON.stringify({ ready, combat }, null, 2), contentType: 'application/json' });
+      await page.setViewportSize({ width: 1280, height: 800 });
+    } else if (target.app === 'demon' && !target.legacy) {
       await expect(canvas).toHaveAttribute('data-app', 'demon');
       await expect(canvas).toHaveAttribute('data-world', 'night-hunt.v2');
       await expect(canvas).toHaveAttribute('data-asset', 'kaykit.floor_tile_small');
