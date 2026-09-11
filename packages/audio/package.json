@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./bgm-150/manifest.json": "./assets/bgm-150/ogg-manifest.json",
+    "./bgm-150/*": "./assets/bgm-150/*"
   },
   "dependencies": {}
 }
