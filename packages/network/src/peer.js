@@ -1,7 +1,7 @@
 const ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}]};
 const encode=value=>{const bytes=new TextEncoder().encode(JSON.stringify(value));let text='';for(const byte of bytes)text+=String.fromCharCode(byte);return btoa(text);};
 const decode=value=>{const text=atob(value.trim()),bytes=Uint8Array.from(text,c=>c.charCodeAt(0));return JSON.parse(new TextDecoder().decode(bytes));};
-const waitIce=pc=>pc.iceGatheringState==='complete'?Promise.resolve():new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('接続コードの作成がタイムアウトしました。')),12000);pc.addEventListener('icegatheringstatechange',()=>{if(pc.iceGatheringState==='complete'){clearTimeout(timer);resolve();}});});
+const waitIce=pc=>pc.iceGatheringState==='complete'?Promise.resolve():new Promise(resolve=>{const timer=setTimeout(resolve,12000);pc.addEventListener('icegatheringstatechange',()=>{if(pc.iceGatheringState==='complete'){clearTimeout(timer);resolve();}});});
 export async function createHostOffer({RTCPeerConnection,onMessage,onState}){
  const pc=new RTCPeerConnection(ICE),channel=pc.createDataChannel('soul-lineage',{ordered:true});
  wire(pc,channel,onMessage,onState);await pc.setLocalDescription(await pc.createOffer());await waitIce(pc);
