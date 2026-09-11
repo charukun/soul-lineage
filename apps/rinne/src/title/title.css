@@ -28,3 +28,5 @@
 #loading-technical{max-height:145px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#07171c80;padding:12px;font:10px/1.7 monospace;color:#c5c5b7}
 #retry-load{min-height:44px;margin:14px 0 0}
 @media(max-height:510px){#game-loading{justify-content:flex-start;padding-top:16px}#game-loading .loading-rune{display:none}#game-loading h2{font-size:19px;margin:2px 0}#game-loading #loading-message{margin:4px 0 10px}#loading-details{margin-top:4px}}
+
+#village-dialog{width:min(92vw,560px);max-height:85dvh;overflow:auto;color:#eee;background:#15130f;border:1px solid #8b7750;padding:16px}#village-dialog::backdrop{background:#000b}#village-dialog textarea{box-sizing:border-box}#village-dialog button{cursor:pointer}

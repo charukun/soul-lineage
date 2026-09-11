@@ -43,7 +43,7 @@
         <span class="button-arrow" aria-hidden="true">›</span>
       </button>
       <p id="simulator-detail">技を閃き、自分だけの戦いを。</p>
-      <div class="secondary-menu"><button id="open-online" type="button">村へ参加</button><span aria-hidden="true">◇</span><button id="open-settings" type="button">設定</button><span aria-hidden="true">◇</span><button id="replay-intro" type="button">演出をもう一度</button></div>
+      <div class="secondary-menu"><button id="open-village" type="button">村へ参加</button><span aria-hidden="true">◇</span><button id="open-settings" type="button">設定</button><span aria-hidden="true">◇</span><button id="replay-intro" type="button">演出をもう一度</button></div>
     </section>
     <footer class="bottomline"><span id="version">LOCAL PREVIEW</span><span>めぐりつづける物語</span></footer>
     <button id="skip-intro" class="skip-intro" type="button">演出をスキップ <span aria-hidden="true">›</span></button>
@@ -68,8 +68,8 @@
     </div>
   </section>
   <dialog id="settings-dialog" aria-labelledby="settings-title"><form method="dialog"><button class="dialog-close" aria-label="設定を閉じる">×</button></form><span class="dialog-star" aria-hidden="true">✧</span><h2 id="settings-title">旅の支度</h2><p>タイトル画面の設定</p><label class="setting-row"><span>音楽と効果音<small>タップしてから音が流れます</small></span><input id="setting-sound" type="checkbox"></label><label class="setting-row"><span>演出を控えめに<small>カメラ移動と粒子の変化を抑えます</small></span><input id="setting-motion" type="checkbox"></label><p><a href="./characters.html">キャラクターを確認する</a></p><p class="settings-note">シミュレーターの音量・画質は、<br>稽古場の設定から変更できます。</p></dialog>
+  <dialog id="village-dialog" aria-label="村へ参加"><form method="dialog"><button aria-label="村への参加画面を閉じる">タイトルへ戻る</button></form><div id="village-panel"></div></dialog>
   <noscript><p class="noscript">このゲームを開くにはJavaScriptを有効にしてください。</p></noscript>
   <script type="module" src="./src/main.js"></script>
-<dialog id="online-dialog" aria-label="村へ参加"><form method="dialog"><button>閉じる</button></form><div id="online-mount"></div></dialog>
 </body>
 </html>
