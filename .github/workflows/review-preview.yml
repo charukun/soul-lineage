@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 concurrency:
   group: visual-review-preview
@@ -43,6 +44,17 @@ jobs:
         env:
           REVIEW_PUBLIC_URL: ${{ steps.deploy.outputs.url }}
         run: npm run test:review-browser
+      - name: Expose stable Review Lab URL
+        if: steps.deploy.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEW_PUBLIC_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=success \
+            -f context=visual-review/public \
+            -f description="Visual Review Lab is live" \
+            -f target_url="$REVIEW_PUBLIC_URL"
       - name: Retain Review Lab verification evidence
         if: always()
         uses: actions/upload-artifact@v4
