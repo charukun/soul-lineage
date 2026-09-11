@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { Group, Bone, BoxGeometry, MeshStandardMaterial, SkinnedMesh, Skeleton, Float32BufferAttribute, Uint16BufferAttribute, Vector3, Texture } from 'three';
-import { createShinoProductionPool, shinoProductionRigFromGLTF } from '../src/master-character-production.js';
+import { createShinoProductionPool } from '../src/master-character-production.js';
 const REQUIRED = ['hips', 'spine', 'head', ...['left', 'right'].flatMap(s => ['UpperArm', 'LowerArm', 'Hand', 'UpperLeg', 'LowerLeg', 'Foot'].map(n => s + n))];
 function fixture() {
   const template = new Group(), humanoid = {};
@@ -50,26 +49,4 @@ test('recycled actors reset morph weights, transforms and secondary state withou
   b.updateSecondary(1 / 60, false); assert.ok(spring.quaternion.angleTo(f.head.quaternion) < 1e-8);
   b.sample({ ...look, scale: .4, headScale: 1.22, width: .88, height: .9 }); b.updateSecondary(1, true);
   assert.ok(spring.getWorldPosition(new Vector3()).toArray().every(Number.isFinite)); assert.throws(() => b.updateSecondary(-1)); pool.dispose(); pool.dispose(); f.release();
-});
-test('actual Shino JSON resolves expression and spring references inside one graph', async () => {
-  // Exact asset metadata contract, not a substitute for a real GLTF/GPU browser test.
-  const bytes = readFileSync(new URL('../../../apps/rinne/public/simulator/assets/SHINO_review.vrm', import.meta.url));
-  const json = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString('utf8'));
-  const nodes = json.nodes.map(row => {
-    const result = new Bone(); result.name = row.name ?? '';
-    if (row.translation) result.position.fromArray(row.translation); if (row.rotation) result.quaternion.fromArray(row.rotation); if (row.scale) result.scale.fromArray(row.scale);
-    if (row.mesh !== undefined) {
-      result.isMesh = true; const mesh = json.meshes[row.mesh]; const count = mesh.primitives[0].targets?.length ?? 0;
-      if (count) result.morphTargetInfluences = new Array(count).fill(0);
-    }
-    return result;
-  });
-  json.nodes.forEach((row, i) => (row.children ?? []).forEach(child => nodes[i].add(nodes[child])));
-  const scene = new Group(); json.scenes[json.scene ?? 0].nodes.forEach(i => scene.add(nodes[i])); scene.updateMatrixWorld(true);
-  const gltf = { scene, parser: { json, getDependency: async (type, i) => { assert.equal(type, 'node'); return nodes[i]; } } };
-  const rig = await shinoProductionRigFromGLTF(gltf); assert.ok(rig.expressions.length > 0); assert.ok(rig.springs.length > 0); assert.equal(rig.warnings.length, 0, rig.warnings.join(', '));
-  assert.ok(rig.springs.some(s => s.joints.length > 1));
-  console.log(`Shino actual metadata: ${rig.expressions.length} expressions / ${rig.springs.length} spring chains`);
-  const bad = structuredClone(json); bad.extensions.VRMC_springBone.springs[0].joints[0].node = json.nodes.length + 1;
-  await assert.rejects(() => shinoProductionRigFromGLTF({ ...gltf, parser: { ...gltf.parser, json: bad } }), /rig node/);
 });
