@@ -52,7 +52,7 @@ npm run affected -- origin/develop HEAD
 ## CI/CD
 
 - 実装WORK: 実装・影響範囲の高速検証・Ready for review PRまで。高速gateは1runnerでinstall・共有テストを重複させません。
-- Integration: Ready PRを安全条件で判定し、developへまとめて統合。最終SHAで全体検証・DEV公開・全DEVゲームの実Chromium/WebGL2確認を実施します。
+- Integration: Ready PRを安全条件で判定し、developへまとめて統合。最終SHAで影響範囲の高速検証・DEV公開・公開HTTP/source照合を実施します。重い全体回帰・実Chromium/WebGL2・P2Pは必要時の別jobへ分離します。
 - 変更appのみbuildし、不変appとProductionの公開済み成果物をhash検証して保持。同じ最終SHAが検証済みなら重複実行を省略します。
 - 既存Pages・OIDC・GITHUB_TOKENを利用。main/Productionはdevelop Integrationで変更しません。
 - 運用の正本: [WORKの分担](docs/DEVELOPMENT.md)、[自動Integration・停止・復旧](docs/INTEGRATION.md)。

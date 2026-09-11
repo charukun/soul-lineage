@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dependencies, eligibility, reviewDecision } from '../scripts/integration-policy.mjs';
-import { client, fastGate, integrate } from '../scripts/integration.mjs';
+import { client, fastGate, integrate, recordQueue } from '../scripts/integration.mjs';
 import { preserveProduction } from '../scripts/deploy.mjs';
 const repository = 'charukun/soul-lineage';
 const sha = 'a'.repeat(40);
@@ -64,7 +64,7 @@ function fake({ prs = [candidate(1), candidate(2)], failed = false, moved = fals
       if (path.includes('/statuses')) return current === 'base' ? [{context:'integration/develop',state:'success'}] : [];
       if (path.endsWith('/files')) return [{filename:`docs/feature-${path.match(/\d+/)[0]}.md`}];
       if (path.endsWith('/reviews')) return [];
-      if (key === 'workflow_runs') return prs.map(p=>({id:p.number,head_sha:p.head.sha,head_branch:p.head.ref,head_repository:p.head.repo,pull_requests:[]}));
+      if (key === 'workflow_runs') return prs.map(p=>({id:p.number,head_sha:p.head.sha,head_branch:p.head.ref,head_repository:p.head.repo,event:'pull_request',pull_requests:[]}));
       if (key === 'artifacts') return [{name:`pr-fast-${path.match(/runs\/(\d+)/)[1]}-${sha}`,expired:false}];
       if (key === 'jobs') return [{name:'Validate and build',status:'completed',conclusion:failed?'failure':'success'}];
       if (key === 'check_runs') return [{name:'Request Integration',status:'in_progress'}, {name:'Validate and build',status:'completed',conclusion:'success'}];
@@ -116,4 +116,67 @@ test('failed final baseline holds ordinary PRs but allows a verified repair', as
   const {c,merges}=fake({prs:[pr,candidate(2)]}); const original=c.pages;
   c.pages=(p,k)=>p.includes('/statuses')?[{context:'integration/develop',state:'failure'}]:original(p,k);
   const report=await integrate(c,repository); assert.deepEqual(merges,[1]); assert.equal(report.verified,false);
+});
+
+test('successful recovery requests another scan; stable held PRs do not loop', async () => {
+  const recovery = fake(); const original = recovery.c.pages;
+  recovery.c.pages = (p,k) => p.includes('/statuses') ? [{context:'integration/develop',state:'failure'}] : original(p,k);
+  const report = await integrate(recovery.c,repository);
+  assert.deepEqual(recovery.merges,[]); assert.equal(report.retry,true);
+  const held = candidate(); held.labels = [{name:'integration:hold'}];
+  const stable = fake({prs:[held]}); const stopped = await integrate(stable.c,repository);
+  assert.deepEqual(stable.merges,[]); assert.equal(stopped.retry,false); assert.equal(stopped.verified,true);
+});
+test('integration control PR is held without head approval and cannot self-loop', async () => {
+  const {c,merges} = fake({prs:[candidate()]}); const original=c.pages;
+  c.pages=(p,k)=>p.endsWith('/files')?[{filename:'.github/workflows/deploy.yml'}]:original(p,k);
+  const result=await integrate(c,repository);
+  assert.deepEqual(merges,[]); assert.equal(result.retry,false);
+  assert.match(result.held[0].reason,/approval/);
+});
+test('review wakeups have valid fast evidence and queue status cannot deadlock itself', async () => {
+  for (const event of ['pull_request_review','pull_request_review_thread']) {
+    const {c}=fake(); const original=c.pages;
+    c.pages=async(p,k)=> {
+      const result=await original(p,k);
+      if(k==='workflow_runs') return result.map(r=>({...r,event}));
+      if(p.includes('/statuses')) return [...result,{context:'integration/queue',state:'pending'}];
+      return result;
+    };
+    assert.equal(await fastGate(c,candidate()),true);
+  }
+  const {c}=fake(); const original=c.pages;
+  c.pages=async(p,k)=>k==='workflow_runs'?(await original(p,k)).map(r=>({...r,event:'push'})):original(p,k);
+  assert.equal(await fastGate(c,candidate()),false);
+});
+test('transient unknown mergeability settles without another external event', async () => {
+  const {c,merges}=fake({prs:[candidate()]}); const original=c.api; let reads=0, waits=0;
+  c.api=async(m,p,b)=>{ const result=await original(m,p,b);
+    if(m==='GET' && /\/pulls\/1$/.test(p) && ++reads===1) result.mergeable=null;
+    return result;
+  };
+  await integrate(c,repository,async()=>{waits++;});
+  assert.equal(waits,1); assert.deepEqual(merges,[1]);
+});
+test('batch cap resumes remaining work and never merges a draft', async () => {
+  const prs=Array.from({length:10},(_,i)=>candidate(i+1)); prs[9].draft=true;
+  const {c,merges}=fake({prs}); const report=await integrate(c,repository);
+  assert.equal(merges.length,8); assert.equal(report.retry,true); assert.ok(!merges.includes(10));
+});
+test('held reasons are recorded idempotently without changing PR labels or reviews', async () => {
+  const {c}=fake({prs:[candidate()]}); const original=c.api; const posts=[];
+  c.api=async(m,p,b)=>{if(m==='POST'){posts.push({p,b}); return {};} return original(m,p,b);};
+  const report={held:[{pr:1,reason:'explicit Integration hold'}],merged:[]};
+  await recordQueue(c,report,'https://github.com/run');
+  assert.equal(posts.length,1); assert.equal(posts[0].b.context,'integration/queue');
+  c.pages=async()=>[posts[0].b];
+  await recordQueue(c,report,'https://github.com/new-run'); assert.equal(posts.length,1);
+});
+test('normal DEV delivery excludes full/browser/P2P gates and verifies deployed SHA', () => {
+  const workflow=readFileSync('.github/workflows/deploy.yml','utf8');
+  const publish=workflow.split('  publish:')[1].split('  result:')[0];
+  assert.doesNotMatch(publish,/INTEGRATION_FULL|verify-browser|verify-p2p/);
+  assert.match(publish,/verify-live/); assert.match(workflow,/inputs.full_verification == true/);
+  assert.match(workflow,/context: 'verification\/full'/);
+  assert.match(readFileSync('scripts/verify-live.mjs','utf8'),/live.validatedDevelop, expected.validatedDevelop/);
 });

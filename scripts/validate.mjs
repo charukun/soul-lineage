@@ -5,9 +5,10 @@ import { graph, closure, appNode } from './workspaces.mjs';
 // One install, one syntax pass and one execution of each shared test per run.
 const run = (command, args) => execFileSync(command, args, { stdio: 'inherit' });
 const full = process.argv[2] === 'full';
-if (!full && process.argv[2] !== 'fast') throw new Error('Use fast <base> <head> or full');
+const deploy = process.argv[2] === 'deploy';
+if (!full && !deploy && process.argv[2] !== 'fast') throw new Error('Use fast <base> <head>, deploy [apps...] or full');
 const nodes = graph();
-const plan = full ? null : JSON.parse(execFileSync(process.execPath,
+const plan = full ? null : deploy ? { apps: process.argv.slice(3), packages: [], infrastructure: true } : JSON.parse(execFileSync(process.execPath,
   ['scripts/affected.mjs', ...process.argv.slice(3)], { encoding: 'utf8' }));
 const selected = full ? [...nodes.keys()] : [...new Set([
   ...plan.apps.flatMap(id => [...closure(nodes, appNode(nodes, id).name)]),
@@ -22,5 +23,5 @@ const tests = selected.flatMap(name => {
 });
 if (full || plan.infrastructure) tests.push(...readdirSync('tests').filter(f => f.endsWith('.test.mjs')).map(f => `tests/${f}`));
 if (tests.length) run(process.execPath, ['--test', ...new Set(tests)]);
-if (!full) for (const app of plan.apps) run('npm', ['run', 'build', '--workspace', `@soul/${app}`]);
+if (!full && !deploy) for (const app of plan.apps) run('npm', ['run', 'build', '--workspace', `@soul/${app}`]);
 // The full gate's builds are performed once by deploy.mjs and reused for Pages.
