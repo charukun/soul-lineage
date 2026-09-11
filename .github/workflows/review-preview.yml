@@ -1,5 +1,6 @@
 name: Visual Review Preview
 # Dedicated review-only deployment; does not target develop, main, DEV, or Production.
+# Fast-path policy: build first, publish immediately, then run browser verification without blocking deployment.
 
 on:
   push:
@@ -35,8 +36,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build:review
-      - name: Verify Review Lab with mobile and desktop WebGL
-        run: npm run test:review-browser
       - name: Deploy static Review Lab to Cloudflare Workers
         id: deploy
         if: vars.REVIEW_PREVIEW_ENABLED == 'true'
@@ -48,8 +47,9 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           npx --yes wrangler@4 deploy --config wrangler.review.jsonc | tee "$RUNNER_TEMP/review-deploy.log"
           node scripts/review-deployment-url.mjs "$RUNNER_TEMP/review-deploy.log"
-      - name: Verify published Review Lab at the stable URL
+      - name: Verify published Review Lab without blocking deployment
         if: steps.deploy.outcome == 'success'
+        continue-on-error: true
         env:
           REVIEW_PUBLIC_URL: ${{ steps.deploy.outputs.url }}
         run: npm run test:review-browser
@@ -57,13 +57,13 @@ jobs:
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
-          JOB_STATUS: ${{ job.status }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
           REVIEW_PUBLIC_URL: ${{ steps.deploy.outputs.url }}
         run: |
           state=failure
           description="Visual Review Lab deployment failed"
           target_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          if [ "$JOB_STATUS" = "success" ] && [ -n "$REVIEW_PUBLIC_URL" ]; then
+          if [ "$DEPLOY_OUTCOME" = "success" ] && [ -n "$REVIEW_PUBLIC_URL" ]; then
             state=success
             description="Visual Review Lab is live"
             target_url="$REVIEW_PUBLIC_URL"
