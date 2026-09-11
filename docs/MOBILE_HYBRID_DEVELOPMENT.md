@@ -15,11 +15,11 @@
 
 ## 書き込み経路の確認順（停止しないための必須ルール）
 
-CLIの `git push` が認証エラーになっても、Repositoryへの書き込み権限がないとは判断しません。実装WORKは、PR作成前に次の順で利用可能な経路を確認します。
+**Chatから起動されたWork/Codex環境では、通常gitによる直接pushを第一の正式経路**とします。CLIの `git push` が認証エラーになっても、Repositoryへの書き込み権限がないとは判断しません。実装WORKは、PR作成前に次の順で利用可能な経路を確認します。
 
-1. 接続済みのGitHub連携（branch・commit・PRを直接作成できる経路）を確認し、利用可能ならこれを使う。
-2. 通常の `git push` 認証済み経路を試す。
-3. 大きなファイル、Base64/payload上限、または通常git認証の問題で上記が使えない場合だけ、同じbranchをCodespacesで開いて通常git pushを使う。
+1. Chatから起動されたWork/Codex環境で、作業branchへ通常gitで直接pushする。
+2. その環境のGitHub連携（branch・commit・PRを直接作成できる経路）が利用可能なら、通常git direct pushと同じ正式な書き込み経路として使う。
+3. 大きなファイル、Base64/payload上限、または上記の書き込み経路が使えない場合だけ、同じbranchをCodespacesで開いて通常git pushを使う。
 
 一つの経路が失敗しただけで、作業を「認証待ち」「手動対応待ち」として止めない。利用可能な次の正規経路へ切り替え、実装・検証済みのbranchと差分を維持したままReady PRまで進める。
 
