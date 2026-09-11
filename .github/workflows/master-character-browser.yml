@@ -40,6 +40,8 @@ jobs:
           APP_ENV: dev
         run: npm run build:rinne
       - name: Start local production preview
+        env:
+          APP_ENV: dev
         run: |
           nohup npm run preview --workspace @soul/rinne > /tmp/rinne-preview.log 2>&1 &
           node --input-type=module <<'JS'
