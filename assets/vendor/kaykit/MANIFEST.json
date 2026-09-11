@@ -1,6 +1,8 @@
 {
   "version": 1,
   "license": "CC0-1.0",
+  "materialized": true,
+  "verification": "Each runtime file was checked with git hash-object against the blob ID from its pinned upstream commit before commit.",
   "sources": {
     "dungeon": {
       "repository": "KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0",
@@ -11,7 +13,7 @@
       "commit": "15b62b9bad122f72926c10fb14d622c73819fa54"
     }
   },
-  "policy": "Curated runtime subset only. Git blob IDs are verified against the pinned upstream commits during materialization.",
+  "policy": "Curated runtime subset only. Keep source/license metadata with the repository and do not replace these files from mutable upstream URLs.",
   "village": [
     "chair.gltf.glb",
     "table_medium.gltf.glb",
