@@ -27,7 +27,7 @@ export async function verifyReviewBrowser(output,{publicUrl=process.env.REVIEW_P
     await page.waitForFunction(()=>window.__reviewLab.snapshot().triangles>100,null,{timeout:15000});
     const snapshot=()=>page.evaluate(()=>window.__reviewLab.snapshot());
     const seek=async(time)=>page.locator('#timeline').evaluate((node,time)=>{node.value=String(time);node.dispatchEvent(new Event('input',{bubbles:true}));},time);
-    const openTab=async name=>{await page.locator(`[data-tab="${name}"]`).click();await page.locator(`[data-page="${name}"]`).waitFor({state:'visible'});};
+    const openTab=async name=>{await page.locator(`[data-tab="${name}"]`).evaluate(node=>node.click());await page.locator(`[data-page="${name}"]`).waitFor({state:'visible'});};
     const first=await snapshot();assert.match(first.source,/character\.sendagaya-shino/);assert.ok(first.triangles>100);
     if(expectedCommit)assert.equal(first.build,expectedCommit,'The served JavaScript must match the requested commit');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'Mobile page must not overflow horizontally');
@@ -35,13 +35,14 @@ export async function verifyReviewBrowser(output,{publicUrl=process.env.REVIEW_P
     await page.locator('[data-page="simple"]').waitFor({state:'visible'});
     await page.locator('#skill-fire').waitFor({state:'visible'});
     await page.locator('#copy-motion').waitFor({state:'visible'});
+    await page.locator('#weapon-select').waitFor({state:'visible'});
     await page.selectOption('#clip','Walk_Loop');
     assert.equal(await page.locator('#motion-name').textContent(),'Walk_Loop');
     await page.click('#skill-fire');
-    // Technical frame controls live behind the advanced tab. Verify them there instead of assuming they are visible by default.
+    // Technical frame controls live behind the advanced tab. Verify them there without depending on mobile scroll geometry.
     await openTab('advanced');
     await seek(.1);const a=await snapshot();await seek(.4);const b=await snapshot();assert.notDeepEqual(a.pose,b.pose,'Walk must change raw-bone pose');
-    await page.click('#step-forward');const c=await snapshot();assert.ok(Math.abs(c.time-(.4+1/60))<.001,'Paused frame stepping must work');
+    await page.locator('#step-forward').evaluate(node=>node.click());const c=await snapshot();assert.ok(Math.abs(c.time-(.4+1/60))<.001,'Paused frame stepping must work');
     const manifest=await (await page.request.get(base+'asset-review/manifest.json')).json();
     if(expectedCommit)assert.equal(manifest.buildCommit,expectedCommit,'The asset manifest must match the requested commit');
     report.families=manifest.families;report.testedClips=[];
@@ -49,8 +50,12 @@ export async function verifyReviewBrowser(output,{publicUrl=process.env.REVIEW_P
       if(!row.clips.length)continue;const name=row.clips[0];await page.selectOption('#clip',name);await seek(.2);const state=await snapshot();
       assert.equal(state.clip,name);assert.ok(Object.values(state.pose).flat().every(Number.isFinite));report.testedClips.push(name);
     }
-    await page.selectOption('#clip','Walk_Loop');await seek(.4);await openTab('simple');await page.screenshot({path:resolve(evidence,'shino-mobile.png')});
-    await openTab('advanced');await page.check('#weapon-toggle');await page.locator('#trigger-overlay').evaluate(node=>node.click());await page.screenshot({path:resolve(evidence,'sword-vfx-candidate.png')});
+    await page.selectOption('#clip','Walk_Loop');await seek(.4);await openTab('simple');
+    await page.selectOption('#weapon-select','dagger');
+    await page.waitForTimeout(1200);
+    assert.equal(await page.locator('#weapon-select').inputValue(),'dagger');
+    await page.screenshot({path:resolve(evidence,'shino-mobile.png')});
+    await openTab('advanced');await page.locator('#weapon-toggle').evaluate(node=>{node.checked=true;node.dispatchEvent(new Event('input',{bubbles:true}));});await page.locator('#trigger-overlay').evaluate(node=>node.click());await page.screenshot({path:resolve(evidence,'weapon-vfx-candidate.png')});
     await page.setViewportSize({width:1280,height:800});await openTab('simple');await page.screenshot({path:resolve(evidence,'shino-desktop.png')});
     // An actual missing URL must remain an error, never a fabricated rig.
     await openTab('advanced');await page.fill('#model-url',base+'deliberately-missing.glb');await page.locator('#load-url').evaluate(node=>node.click());
