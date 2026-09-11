@@ -1,27 +1,34 @@
 <!doctype html>
 <html lang="ja">
-<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><meta name="theme-color" content="#0b0d10"/><title>輪廻転焦 Visual Review Lab</title><style>.badge{max-width:90vw;overflow-wrap:anywhere}.hint{overflow-wrap:anywhere}.telemetry{max-width:42vw;overflow:hidden}#clip{min-width:0}#build-label{overflow-wrap:anywhere}</style></head>
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><meta name="theme-color" content="#0b0d10"/><title>輪廻転焦 Visual Review Lab</title></head>
 <body><main class="review-shell">
 <header class="topbar"><div class="title"><strong>Visual Review Lab</strong><span id="build-label">3D / Motion / VFX</span></div><div class="telemetry"><span id="fps">0 FPS</span><span id="clip-label">No clip</span></div></header>
 <section class="viewport"><canvas id="review-canvas"></canvas><div class="hud"><div class="badge" id="review-status" role="status">Review Lab starting…</div><div class="badge" id="source-label">No source</div></div></section>
 <aside class="panel">
+<nav class="review-tabs" aria-label="レビュー表示"><button class="tab active" type="button" data-tab="simple">確認</button><button class="tab" type="button" data-tab="advanced">詳細</button></nav>
+<section class="tab-page active" data-page="simple">
+<div class="motion-card"><span class="eyebrow">現在の技モーション</span><strong id="motion-name">素材読込中</strong><span id="motion-meta">技を選択してください</span><button class="btn tiny" id="copy-motion">モーション情報をコピー</button></div>
+<div class="field"><label for="clip">技を切り替え</label><select id="clip" aria-label="技モーション"><option value="">素材未読込</option></select></div>
+<div class="simple-actions"><button class="btn primary skill-fire" id="skill-fire">技を発動</button><label class="toggle repeat-toggle"><input id="loop-toggle" type="checkbox" checked/>繰り返す</label></div>
+<div class="row compact"><button class="btn" id="prev-motion">前の技</button><button class="btn" id="next-motion">次の技</button><button class="btn" id="rest-pose">静止比較</button></div>
+<p class="hint" id="family-summary">実素材の収録内容を照合します。</p>
+<div class="field"><label for="review-note">指摘メモ</label><textarea id="review-note" placeholder="例：剣攻撃の振り終わりが固い。"></textarea></div>
+<div class="review-note-actions"><button class="btn primary" id="copy-review">レビュー情報をコピー</button><button class="btn" id="capture">画像</button></div>
+</section>
+<section class="tab-page" data-page="advanced">
+<p class="advanced-note">時刻・フレーム・武器角度・VFX発火位置など、細かい検証が必要な時だけ使う画面です。</p>
 <div class="field"><label for="preset">実素材</label><select id="preset"><option value="">手動読込</option></select></div>
 <div class="source-tools"><input id="model-url" type="text" inputmode="url" placeholder="GLB / glTF / VRM URL"/><button class="btn tiny" id="load-url">読込</button><label class="btn tiny file-button">GLB/VRM<input id="model-file" type="file" accept=".glb,.vrm"/></label></div>
-<div class="row compact"><button class="btn tiny" id="retry">再試行</button><button class="btn tiny" id="rest-pose">元モデルと比較</button></div>
-<p class="hint" id="family-summary">実素材の収録内容を照合します。見た目の承認前です。</p>
-<div class="divider"></div>
-<div class="clip-tools"><select id="clip" aria-label="収録モーション"><option value="">素材未読込</option></select><select id="speed" aria-label="再生速度"><option value="0.1">0.1×</option><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></div>
+<div class="row compact"><button class="btn tiny" id="retry">再試行</button><select id="speed" aria-label="再生速度"><option value="0.1">0.1×</option><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></div>
 <div class="timeline-wrap"><span class="time" id="current-time">0.000s</span><input id="timeline" type="range" min="0" max="1" step="0.001" value="0" aria-label="時刻"/><span class="time" id="duration">0.000s</span></div>
-<div class="row compact"><button class="btn tiny" id="restart">↺</button><button class="btn tiny" id="step-back">−1f</button><button class="btn tiny primary" id="play-toggle">再生</button><button class="btn tiny" id="step-forward">+1f</button><label class="toggle"><input id="loop-toggle" type="checkbox" checked/>Loop</label></div>
-<label class="toggle"><input id="in-place" type="checkbox" checked/>その場で再生（世界の移動処理は変更しません）</label>
+<div class="row compact"><button class="btn tiny" id="restart">↺</button><button class="btn tiny" id="step-back">−1f</button><button class="btn tiny" id="play-toggle">再生</button><button class="btn tiny" id="step-forward">+1f</button></div>
+<label class="toggle"><input id="in-place" type="checkbox" checked/>その場で再生</label>
 <div class="divider"></div><div class="camera-strip"><button class="btn tiny" data-camera="front">前</button><button class="btn tiny" data-camera="back">後</button><button class="btn tiny" data-camera="left">左</button><button class="btn tiny" data-camera="right">右</button><button class="btn tiny" data-camera="top">上</button><button class="btn tiny" data-camera="three">斜</button></div>
 <div class="row compact"><label class="toggle"><input id="skeleton-toggle" type="checkbox"/>Skeleton</label><label class="toggle"><input id="bounds-toggle" type="checkbox"/>Bounds</label><label class="toggle"><input id="wireframe-toggle" type="checkbox"/>Wire</label><label class="toggle"><input id="grid-toggle" type="checkbox" checked/>Grid</label></div>
-<div class="divider"></div><label class="toggle"><input id="weapon-toggle" type="checkbox"/>KayKit大剣（持ち位置の調整用）</label>
-<div class="row compact"><label>倍率<input id="weapon-scale" type="number" min="0.1" max="1" step="0.05" value="0.5" style="width:4.5em"/></label><label>X°<input id="weapon-x" type="number" value="0" step="5" style="width:4.5em"/></label><label>Y°<input id="weapon-y" type="number" value="0" step="5" style="width:4.5em"/></label><label>Z°<input id="weapon-z" type="number" value="-90" step="5" style="width:4.5em"/></label></div>
-<p class="hint">外部制作の剣を0.5倍で仮取付。両手の握り・姿勢・足滑りは確認前です。</p>
-<div class="divider"></div><div class="row"><div class="field"><label for="overlay-time">VFX確認マーカー / 秒</label><input id="overlay-time" type="number" min="0" step="0.001" value="0.420"/></div><label class="toggle"><input id="overlay-toggle" type="checkbox"/>VFX</label><button class="btn tiny" id="trigger-overlay">発火フレーム</button></div>
-<p class="hint">Kenney画像による火花・光・粉塵。本体の命中判定・効果音との接続は未実施です。</p>
-<div class="divider"></div><div class="field"><label for="review-note">指摘メモ</label><textarea id="review-note" placeholder="動作名と時刻、直したい箇所を書いてください。"></textarea></div>
-<div class="review-note-actions"><button class="btn primary" id="copy-review">レビュー情報をコピー</button><button class="btn" id="copy-link">状態URL</button><button class="btn" id="capture">画像</button></div>
+<div class="divider"></div><label class="toggle"><input id="weapon-toggle" type="checkbox"/>KayKit大剣</label>
+<div class="row compact"><label>倍率<input id="weapon-scale" type="number" min="0.1" max="1" step="0.05" value="0.5"/></label><label>X°<input id="weapon-x" type="number" value="0" step="5"/></label><label>Y°<input id="weapon-y" type="number" value="0" step="5"/></label><label>Z°<input id="weapon-z" type="number" value="-90" step="5"/></label></div>
+<div class="divider"></div><div class="row"><div class="field"><label for="overlay-time">VFXマーカー / 秒</label><input id="overlay-time" type="number" min="0" step="0.001" value="0.420"/></div><label class="toggle"><input id="overlay-toggle" type="checkbox"/>VFX</label><button class="btn tiny" id="trigger-overlay">発火</button></div>
+<div class="review-note-actions"><button class="btn" id="copy-link">状態URL</button></div>
 <p class="hint"><a href="./asset-review/CREDITS.txt" target="_blank" rel="noopener">素材・ライセンス</a> · <a href="./asset-review/manifest.json" target="_blank" rel="noopener">版・ハッシュ・収録一覧</a></p>
+</section>
 </aside></main><script type="module" src="./src/review/main.js"></script></body></html>
