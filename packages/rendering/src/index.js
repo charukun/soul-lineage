@@ -38,3 +38,5 @@ export function createWorldPreview(canvas, world) {
 // App render adapters reuse the workspace engine; never ship a second vendor copy.
 export * as THREE from 'three';
 export { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+export { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+export { OrbitControls } from 'three/addons/controls/OrbitControls.js';
