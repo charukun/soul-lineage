@@ -9,6 +9,8 @@ const rendering = readFileSync('packages/rendering/src/index.js', 'utf8');
 const devcontainer = readFileSync('.devcontainer/devcontainer.json', 'utf8');
 const rootPackage = JSON.parse(readFileSync('package.json', 'utf8'));
 const previewBuild = readFileSync('scripts/build-review.mjs', 'utf8');
+const previewWorkflow = readFileSync('.github/workflows/review-preview.yml', 'utf8');
+const wrangler = readFileSync('wrangler.review.jsonc', 'utf8');
 
 assert.match(html, /id="review-canvas"/);
 assert.match(html, /レビュー情報をコピー/);
@@ -26,3 +28,9 @@ assert.doesNotMatch(devcontainer, /postStartCommand|openBrowser|REVIEW_LAB=1/);
 assert.equal(rootPackage.scripts['build:review'], 'node scripts/build-review.mjs');
 assert.match(previewBuild, /build:rinne/);
 assert.match(previewBuild, /copyFileSync\(review, appIndex\)/);
+assert.match(previewWorkflow, /work\/visual-review-lab-v2/);
+assert.match(previewWorkflow, /npm run build:review/);
+assert.match(previewWorkflow, /wrangler@4 deploy/);
+assert.match(previewWorkflow, /REVIEW_PREVIEW_ENABLED/);
+assert.match(wrangler, /rinne-visual-review/);
+assert.match(wrangler, /dist\/rinne/);
