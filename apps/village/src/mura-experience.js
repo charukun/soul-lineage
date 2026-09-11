@@ -3,6 +3,7 @@ if(!village)throw new Error('MURAAAAAAA experience layer requires a booted villa
 
 const {world,sim,view,ui,save,selection,cancelPlacement}=village;
 const $=id=>document.getElementById(id);
+const DAYS_YEAR=12;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
 const pad=n=>String(n).padStart(2,'0');
@@ -121,7 +122,7 @@ function installEventLog(){
  const list=wrap.querySelector('.eventList'),count=opener.querySelector('[data-count]');
  let records=[];try{records=JSON.parse(localStorage.getItem(LOG_KEY))||[];}catch{}
  const persist=()=>{try{localStorage.setItem(LOG_KEY,JSON.stringify(records.slice(0,30)));}catch{}};
- const timeLabel=()=>`${Math.floor(world.state.clock/365)+1}年 ${Math.floor(world.state.clock%365)+1}日 ${pad(Math.floor(world.state.time))}:${pad(Math.floor((world.state.time%1)*60))}`;
+ const timeLabel=()=>`${Math.floor(world.state.clock/DAYS_YEAR)+1}年 ${Math.floor(world.state.clock%DAYS_YEAR)+1}日 ${pad(Math.floor(world.state.time))}:${pad(Math.floor((world.state.time%1)*60))}`;
  function focusFor(record){
   if(record.type==='threat'&&sim.raid?.monsters?.length){const alive=sim.raid.monsters.filter(m=>m.health>0);if(alive.length){const x=alive.reduce((n,m)=>n+m.x,0)/alive.length,z=alive.reduce((n,m)=>n+m.z,0)/alive.length;view.focus(x,z,32);wrap.hidden=true;return true;}}
   const person=world.people.find(p=>record.text.includes(p.name));if(person){view.focus(person.x,person.z,30);wrap.hidden=true;return true;}
@@ -168,7 +169,7 @@ function installSmoothWorldTime(){
   view.hemi.intensity+=(.68+day*1.05-view.hemi.intensity)*k;lerpColor(view.hemi.color,hemi,k);lerpColor(view.hemi.groundColor,ground,k);
   lerpColor(view.scene.background,sky,k);lerpColor(view.scene.fog.color,sky,k);lerpColor(view.waterMat.uniforms.tint.value,water,k);
   view.renderer.toneMappingExposure+=(1.03+day*.09-view.renderer.toneMappingExposure)*k;
-  const calendar=$('calendar');if(calendar){const hour=Math.floor(h),minute=Math.floor((h-hour)*60);calendar.textContent=`${Math.floor(world.state.clock/365)+1}年目 · ${Math.floor(world.state.clock%365)+1}日 · ${pad(hour)}:${pad(minute)}`;}
+  const calendar=$('calendar');if(calendar){const hour=Math.floor(h),minute=Math.floor((h-hour)*60);calendar.textContent=`${Math.floor(world.state.clock/DAYS_YEAR)+1}年目 · ${Math.floor(world.state.clock%DAYS_YEAR)+1}日 · ${pad(hour)}:${pad(minute)}`;}
   const scale=clamp(1.05+(46-view.span)*.012,.72,1.55);$('speechLayer')?.style.setProperty('--mura-bubble-scale',scale.toFixed(3));
   requestAnimationFrame(loop);
  };
