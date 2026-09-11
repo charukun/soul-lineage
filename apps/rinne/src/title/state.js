@@ -15,8 +15,9 @@ export function normalizeEnvironment(value) {
   return ({ development: 'dev', production: 'prod', dev: 'dev', prod: 'prod', local: 'local', test: 'test' })[value] ?? 'local';
 }
 export function normalizedSettings(value, systemReducedMotion = false) {
+  const hasSound = value && Object.hasOwn(value, 'sound');
   return {
-    sound: value?.sound === true,
+    sound: hasSound ? value.sound === true : true,
     reducedMotion: typeof value?.reducedMotion === 'boolean' ? value.reducedMotion : Boolean(systemReducedMotion),
   };
 }
