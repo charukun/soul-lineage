@@ -114,6 +114,17 @@ jobs:
           ARTIFACT: pr-browser-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
         with:
           script: |
+            // Privileged repair recording always runs from trusted develop, never from PR code.
+            // During this feature's one-time bootstrap, develop does not contain the recorder yet.
+            try {
+              await github.rest.repos.getContent({ ...context.repo, path: 'scripts/browser-repair-ticket.mjs', ref: 'develop' });
+            } catch (error) {
+              if (error.status === 404) {
+                core.notice('Browser repair recorder is not installed on develop yet; bootstrap dispatch skipped.');
+                return;
+              }
+              throw error;
+            }
             await github.rest.actions.createWorkflowDispatch({
               ...context.repo,
               workflow_id: 'deploy.yml',
