@@ -1,0 +1,30 @@
+[
+  {
+    "asset": "floor_tile_small",
+    "sourceRepository": "KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0",
+    "commit": "b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07",
+    "sourcePath": "addons/kaykit_dungeon_remastered/Assets/obj/floor_tile_small.obj",
+    "sourceGitBlob": "2d4ed18e2d4ad6bb8213618e6b5f283cc4effe4b",
+    "license": "CC0-1.0",
+    "author": "Kay Lousberg",
+    "retrievedVia": "GitHub.fetch_file",
+    "transformation": "Vertex and face topology retained; UV, authored normals and atlas removed, normals recalculated, recolored by runtime",
+    "vertices": 36,
+    "faces": 37,
+    "derivativeSha256": "f2cf6ec4a77894a347b59ec5655ad0b37fb5323b261b8a69c6e887ed658e654a"
+  },
+  {
+    "asset": "banner_blue",
+    "sourceRepository": "KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0",
+    "commit": "b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07",
+    "sourcePath": "addons/kaykit_dungeon_remastered/Assets/obj/banner_blue.obj",
+    "sourceGitBlob": "1306d527258a549e6b202d00aaf7f8680c30248f",
+    "license": "CC0-1.0",
+    "author": "Kay Lousberg",
+    "retrievedVia": "GitHub.fetch_file",
+    "transformation": "Vertex and face topology retained; UV, authored normals and atlas removed, normals recalculated, recolored by runtime",
+    "vertices": 67,
+    "faces": 63,
+    "derivativeSha256": "873109f33451c7dc96acad988a2d03d8fef2878aa06152c9367012391214e49d"
+  }
+]

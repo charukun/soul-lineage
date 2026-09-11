@@ -1,0 +1,13 @@
+{
+  "repository": "charukun/soul-lineage",
+  "observedDevelop": "6e8c1dc669feba109fa1ee7b3fa026152921b38f",
+  "combatSource": "Library/Rinne_Tidebreak_Lifecycle_Package.zip/source/Tidebreak_Combat_Balance_Atelier.original.html",
+  "originalHtmlSha256": "4b2d54401aa87958de8b8c9e30e91f2f6e7590c61287663b5ff6371fae24f985",
+  "retainedSourceSha256": "258cb7d0140db95af3485515714d9503b5c12dc05a9caa37855fa6bbe3ff9869",
+  "transformations": [
+    "Remove HTML/audio base64 and application boot",
+    "Inject deterministic RNG seed",
+    "Add mock presentation ports and facade; authored combat, timing, hit and pose functions are retained",
+    "No remote repository changes"
+  ]
+}

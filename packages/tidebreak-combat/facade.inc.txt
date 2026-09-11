@@ -1,0 +1,46 @@
+// Presentation is optional. Combat state remains the original implementation.
+for (const k of Object.keys(audio)) if(typeof audio[k]==='function') audio[k]=()=>null;
+prefs.sound=false;prefs.quality=0;showFX=false;world={colliders:[]};
+renderLog=()=>{};updateLiveUI=()=>{};syncPause=()=>{};floating=()=>{};
+// Preserve real impact/contact processing, forward visual events without DOM.
+const impactOriginal=impactAt;
+impactAt=function(x,y,z,yaw,power,guard){ports.onImpact?.({x,y,z,yaw,power,guard});};
+addLog=(text,type='')=>ports.onLog?.({text,type});
+loadStorage();
+// Disable endless simulator respawning: raids own terminal outcomes.
+replaceActor=()=>{};
+equippedWeapon=ports.weapon||'fist';
+for(const k of ATTACK_KEYS){loadout[k].weapon=equippedWeapon;}
+resetScene(true);
+function snapshotActor(a){return {id:a.id,x:a.x,z:a.z,yaw:a.yaw,hp:a.hp,maxhp:a.maxhp,dead:a.dead,weapon:a.weapon,attack:a.attack?.kind??null,progress:attackProgress(a),charge:a.attack?.chargeTime??0,combatReady:a.combatReady,flash:a.flash,walk:a.walk,moveSpeed:a.moveSpeed,stun:a.stun,guarding:a.guarding,slot:a.run?.slot??null,skill:a.run?.recipe?.name??null,pose:poseChannels(a),flow:a.flow?copy(a.flow):null};}
+function configure(v={}){
+ world.colliders=(v.colliders||[]).map(c=>({...c}));
+ equippedWeapon=v.weapon||'fist';enemyStyle=v.enemyStyle||'balanced';
+ const set=v.loadout;
+ if(set)for(const k of ATTACK_KEYS)if(set[k])loadout[k]=normalizeRecipe({...set[k],weapon:equippedWeapon});
+ for(const k of ATTACK_KEYS){loadout[k].weapon=equippedWeapon;}
+ drafts=copy(loadout);poolReady=false;initPools();
+ if(v.mindset&&Object.hasOwn(MINDS,v.mindset)){mindset=v.mindset;fixedMindset=v.mindset;}
+ resetScene(true);
+ hero.weapon=equippedWeapon;hero.hp=v.hp??240;hero.maxhp=v.maxhp??hero.hp;
+ const e=enemies[0];e.weapon=v.enemyWeapon||'sword';e.hp=v.enemyHp??100;e.maxhp=e.hp;
+ if(v.positions){Object.assign(hero,v.positions.hero);Object.assign(e,v.positions.enemy);hero.home=[hero.x,hero.z];e.home=[e.x,e.z];initFeet(hero);initFeet(e);}
+ if(v.enemyLoadout){e.sharedLoadout=copy(v.enemyLoadout);}
+ return state();
+}
+const enemyChoiceOriginal=chooseEnemyRecipe;
+chooseEnemyRecipe=function(a){if(a.sharedLoadout){const k=ATTACK_KEYS[(a.attackCount||0)%3];if(a.sharedLoadout[k])return normalizeRecipe({...a.sharedLoadout[k],weapon:a.weapon});}return enemyChoiceOriginal(a);};
+function state(){return {hero:snapshotActor(hero),enemy:snapshotActor(enemies[0]),time,stats:copy(stats),contacts:copy(lastContacts),done:hero.dead||enemies[0].dead};}
+return {
+ configure,
+ step(dt=1/60){if(!hero.dead&&!enemies[0].dead)update(Math.min(1/30,Math.max(0,dt)));return state();},
+ input(x,y,amount,cameraAngle=0){manual.dx=x;manual.dy=y;manual.amount=clamp(amount,0,1);camAngle=cameraAngle;},
+ state,
+ templates:()=>copy(TEMPLATES),
+ loadout:()=>copy(loadout),
+ weapons:()=>Object.keys(WEAPONS),
+ decodeNotebook:(data)=>copy(decodeNotebook(data,false)),
+ exportNotebook:()=>copy(exportData()),
+ sourceVersion:'Tidebreak 10.0 / expanded-humanoid source',
+ _test:{hit(who,damage){const t=who==='hero'?hero:enemies[0],src=who==='hero'?enemies[0]:hero;t.invuln=0;registerHit(src,t,{id:++attackSerial,kind:'slash',damage,element:'steel',damaged:new Set(),power:1,hitCount:0},{point:[t.x,1.2,t.z]});return state();}}
+};

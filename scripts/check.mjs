@@ -3,6 +3,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve, relative } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { graph, closure, appNode } from './workspaces.mjs';
+import { importSpecifiers } from './import-specifiers.mjs';
 
 const root = process.cwd();
 const nodes = graph(root);
@@ -22,8 +23,7 @@ for (const name of selected) {
       assert.ok(!/\b(window|document|navigator|localStorage|sessionStorage)\s*[.\[]|\b(?:fetch|WebSocket|XMLHttpRequest)\s*\(/.test(source.replace(/\/\/[^\n]*/g, '')), `Platform-specific global in portable code: ${node.dir}/${file}`);
       assert.ok(!source.includes("from '@soul/platform-web'") && !source.includes("from '@soul/rendering'") && !source.includes("from '@soul/shared-ui'"), `Browser adapter imported by portable code: ${node.dir}/${file}`);
     }
-    for (const match of source.matchAll(/(?:from\s*|import\s*\(?\s*|new URL\(\s*)['"]([^'"]+)['"]/g)) {
-      const spec = match[1];
+    for (const spec of importSpecifiers(source)) {
       if (file === 'vite.config.js' && spec === '../../scripts/vite-app.mjs') continue;
       if (spec.startsWith('.')) {
         const target = relative(root, resolve(absolute, '..', spec));

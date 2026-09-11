@@ -1,0 +1,11 @@
+export class NightAudio {
+ constructor(){this.enabled=true;this.ctx=null;this.steps=0;}
+ start(){if(!this.ctx){const C=globalThis.AudioContext||globalThis.webkitAudioContext;if(!C)return;try{this.ctx=new C();this.master=this.ctx.createGain();this.master.gain.value=.16;this.master.connect(this.ctx.destination);
+ const osc=this.ctx.createOscillator(),gain=this.ctx.createGain();osc.type='sine';osc.frequency.value=49;gain.gain.value=.065;osc.connect(gain).connect(this.master);osc.start();
+ const b=this.ctx.createBuffer(1,this.ctx.sampleRate*4,this.ctx.sampleRate),a=b.getChannelData(0);let v=0;for(let i=0;i<a.length;i++){v+=(Math.random()*2-1-v)*.013;a[i]=v*.22;}const n=this.ctx.createBufferSource();n.buffer=b;n.loop=true;const f=this.ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=370;n.connect(f).connect(this.master);n.start();}catch{this.ctx=null;return;}}this.ctx.resume().catch(()=>{});}
+ toggle(){this.enabled=!this.enabled;if(this.master)this.master.gain.setTargetAtTime(this.enabled?.16:0,this.ctx.currentTime,.1);return this.enabled;}
+ pause(v){if(!this.ctx)return;v?this.ctx.suspend().catch(()=>{}):this.ctx.resume().catch(()=>{});}
+ tone(f,d=.2,volume=.2,type='sine',end=null){if(!this.ctx||!this.enabled)return;const t=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.value=f;if(end)o.frequency.exponentialRampToValueAtTime(end,t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(this.master);o.start(t);o.stop(t+d+.04);o.onended=()=>{o.disconnect();g.disconnect();};}
+ event(e){if(e.type==='impact'){this.tone(e.guard?220:82,.18,.5,'triangle',e.guard?110:35);this.tone(1050,.05,.08,'square',430);}if(e.type==='consume'){this.tone(130,.7,.3,'triangle',38);this.tone(490,1.2,.035,'sine',155);}if(e.type==='scent'||e.type==='shadow')this.tone(150,1.2,.11,'sine',650);if(e.type==='guardian')for(const f of [155,155*2.71,155*5.08])this.tone(f,3.0,f===155?.3:.055,'sine');if(e.type==='gate')this.tone(43,.5,.5,'sawtooth',20);}
+ tick(dt,moving){this.steps+=dt;if(moving&&this.steps>.31){this.steps=0;this.tone(65,.075,.15,'triangle',24);}}
+}
