@@ -3,7 +3,8 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export function opsDeploymentUrl(log) {
-  const matches = [...new Set(log.match(/https:\/\/rinne-ops\.[a-z0-9-]+\.workers\.dev\b/g) || [])];
+  const plain = String(log).replace(/\x1b\[[0-9;]*m/g, '');
+  const matches = [...new Set(plain.match(/https:\/\/rinne-ops\.[a-z0-9-]+\.workers\.dev\b/g) || [])];
   if (matches.length !== 1) throw new Error(`Expected one stable rinne-ops workers.dev URL, found ${matches.length}`);
   return `${matches[0]}/`;
 }
