@@ -10,6 +10,7 @@ const head = process.argv[3] || 'HEAD';
 const plan = JSON.parse(execFileSync(process.execPath, ['scripts/affected.mjs', base, head], { cwd: root, encoding: 'utf8' }));
 const apps = plan.infrastructure ? plan.allApps : plan.apps;
 const ports = { rinne: 5273, village: 5274, demon: 5275 };
+const viteBin = resolve(root, 'node_modules/vite/bin/vite.js');
 mkdirSync(resolve(root, 'test-results/pr-browser'), { recursive: true });
 if (!apps.length) {
   console.log('No affected app browser targets.');
@@ -28,6 +29,14 @@ async function waitFor(url, processRef) {
   throw new Error(`Preview timeout: ${url}`);
 }
 
+async function stopPreview(preview) {
+  if (preview.exitCode !== null) return;
+  preview.kill('SIGTERM');
+  for (let attempt = 0; attempt < 20 && preview.exitCode === null; attempt++) await delay(50);
+  if (preview.exitCode === null) preview.kill('SIGKILL');
+  for (let attempt = 0; attempt < 20 && preview.exitCode === null; attempt++) await delay(50);
+}
+
 for (const app of apps) {
   const port = ports[app];
   if (!port) throw new Error(`Missing preview port for ${app}`);
@@ -36,8 +45,10 @@ for (const app of apps) {
     stdio: 'inherit',
     env: { ...process.env, APP_ENV: 'dev', APP_BRANCH: process.env.GITHUB_HEAD_REF || 'pr' },
   });
-  const preview = spawn('npm', ['run', 'preview', '--workspace', `@soul/${app}`], {
-    cwd: root,
+  // Spawn Vite directly rather than through npm. Killing npm can orphan its Vite child and
+  // leave inherited stdio handles open, which makes the CI step appear to hang after success.
+  const preview = spawn(process.execPath, [viteBin, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], {
+    cwd: resolve(root, 'apps', app),
     stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, APP_ENV: 'dev' },
   });
@@ -91,8 +102,6 @@ for (const app of apps) {
     throw error;
   } finally {
     if (browser) await browser.close().catch(() => {});
-    preview.kill('SIGTERM');
-    await delay(150).catch(() => {});
-    if (preview.exitCode === null) preview.kill('SIGKILL');
+    await stopPreview(preview);
   }
 }
