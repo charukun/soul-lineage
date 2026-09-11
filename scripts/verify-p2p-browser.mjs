@@ -1,6 +1,7 @@
 import{chromium}from'@playwright/test';
 const browser=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--enable-webgl']});
-const village=await browser.newPage(),rinne=await browser.newPage(),demon=await browser.newPage();
+const context=await browser.newContext();
+const village=await context.newPage(),rinne=await context.newPage(),demon=await context.newPage();
 const base=(process.argv[2]||'http://127.0.0.1:5170/').replace(/\/?$/,'/');
 async function pair(client,openClient){await village.click('#make-offer');await village.waitForFunction(()=>document.querySelector('#offer')?.value.length>100);const offer=await village.inputValue('#offer');await openClient();await client.fill(openClient===openDemon?'#online-offer':'#host-offer',offer);await client.click(openClient===openDemon?'#online-join':'#join-peer');const answerSelector=openClient===openDemon?'#online-answer':'#peer-answer';await client.waitForFunction(s=>document.querySelector(s)?.value.length>100,answerSelector);await village.fill('#answer',await client.inputValue(answerSelector));await village.click('#accept-answer');}
 const openRinne=async()=>{};const openDemon=async()=>{await demon.click('#online-open');};
