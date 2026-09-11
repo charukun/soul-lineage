@@ -16,6 +16,8 @@
     "@soul/shared-ui": "*",
     "@soul/game-data": "*",
     "@soul/platform-web": "*",
-    "@soul/network": "*"
+    "@soul/network": "*",
+    "@soul/characters": "*",
+    "three": "0.186.0"
   }
 }

@@ -89,6 +89,45 @@ for (const target of targets) {
       await page.locator('#onlineDialog form button').click();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({path:testInfo.outputPath('village-mobile.png')});
+    } else if (target.app === 'rinne' && !target.legacy) {
+        // The title no longer draws the foundation bench; do not counterfeit world/asset markers.
+        await expect(page.locator('#title-screen')).toHaveAttribute('data-experience', 'rinne-title');
+        await expect(page.locator('#status')).toHaveAttribute('data-state', 'ready');
+        await expect(page.locator('#start-simulator')).toBeEnabled();
+        expect(page.frames().length).toBe(1);
+        await page.setViewportSize({ width: 390, height: 844 });
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        await page.screenshot({ path: testInfo.outputPath('mobile-title.png'), fullPage: true });
+        await page.locator('#start-simulator').click();
+        await expect.poll(() => page.evaluate(() => window.__RINNE_TITLE__?.snapshot().state), { timeout: 100000 }).toBe('playing');
+        
+        const simulator = page.frameLocator('#simulator-frame');
+        await expect(simulator.locator('#boot')).toBeHidden();
+        const frame = page.frames().find(f => f.url().includes('/simulator/index.html'));
+        expect(frame).toBeTruthy();
+        const ready = await frame.evaluate(() => ({ ready: window.__ATELIER__?.snapshot().ready, model: window.__HUMANOID_LAB__?.report().id, finite: window.__HUMANOID_LAB__?.report().finite }));
+        expect(ready.ready).toBe(true); expect(ready.finite).toBe(true); expect(ready.model).toBe('SHINO');
+        // Run the unchanged auto-combat engine with deterministic ticks, not forced hits.
+        await frame.evaluate(() => window.__ATELIER__.stop());
+        const combat = await frame.evaluate(() => {
+          const app = window.__ATELIER__;
+          window.__LIFE_LAB__.setEnemies(true);app.setup({ opponent: 'duel', distance: 2, weapon: 'sword' });
+          app.step(720, false); app.render();
+          return app.snapshot().stats;
+        });
+        expect(combat.hits).toBeGreaterThan(0); expect(combat.damage).toBeGreaterThan(0);
+        await page.screenshot({ path: testInfo.outputPath('mobile-simulator.png'), fullPage: true });
+        await simulator.locator('#lifeBadge').click();
+        await simulator.locator('[data-life-rate="20"]').click();
+        await simulator.locator('#lifeEnemies').uncheck();
+        await simulator.locator('#lifeResume').click();
+        const life=await frame.evaluate(()=>window.__LIFE_LAB__.snapshot());
+        expect(life.rate).toBe(20);expect(life.enemiesEnabled).toBe(false);
+        await page.locator('#back-title').click();
+        await expect(page.locator('#simulator-frame')).toHaveCount(0);
+        await expect(page.locator('#title-screen')).toBeVisible();
+        await expect(canvas).toHaveAttribute('data-renderer', 'ready');
+        await testInfo.attach('simulator.json', { body: JSON.stringify({ ready, combat }, null, 2), contentType: 'application/json' });
     } else if (!target.legacy) {
       await expect(page.getByRole('heading', { level: 1 })).toHaveText(target.version.name);
       await expect(canvas).toHaveAttribute('data-app', target.app);
@@ -103,6 +142,15 @@ for (const target of targets) {
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       await page.screenshot({ path: testInfo.outputPath('mobile.png'), fullPage: true });
       await page.setViewportSize({ width: 1280, height: 800 });
+    }
+    if(!target.legacy){
+      await page.locator('.soul-music [data-open]').click();
+      await page.locator('.soul-music [data-world]').selectOption('');
+      await expect(page.locator('.soul-music [data-track]')).toHaveCount(150);
+      await page.locator('.soul-music [data-track="r01"]').click();
+      await expect.poll(()=>page.locator('.soul-music audio').evaluate(a=>a.currentTime)).toBeGreaterThan(0);
+      await page.locator('.soul-music [data-stop]').click();
+      await page.locator('.soul-music form button').click();
     }
     expect(errors).toEqual([]); expect(failedRequests).toEqual([]);
     const record = { url, commit: target.version.commit, inputHash: target.version.inputHash, webgl: gpu, errors, failedRequests };

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>MasterCharacter Review — 輪廻転焦</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#131a1c;color:#eee6d4;font:15px/1.55 system-ui,sans-serif}header{padding:18px 24px;border-bottom:1px solid #435056}h1{margin:0;font-size:24px}p{margin:6px 0;color:#c2c8c3}.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;min-height:80vh}#stage{width:100%;height:80vh;display:block}aside{padding:20px;background:#20292a}label{display:block;margin:16px 0 6px}button,select,input{font:inherit;max-width:100%}button,select{padding:8px;background:#334244;color:#fff;border:1px solid #849286;border-radius:4px}input[type=range]{width:100%}#status{padding:12px;border-left:3px solid #bcad77;overflow-wrap:anywhere}pre{white-space:pre-wrap;font-size:13px}small{color:#b3bdb7}progress{width:100%}footer{padding:16px 24px;color:#b5bdb9}@media(max-width:700px){.layout{display:block}#stage{height:58vh}aside{padding:16px}header{padding:12px 16px}h1{font-size:20px}}
+</style>
+</head>
+<body><header><a href="./">〈 タイトルへ</a><h1>MasterCharacter / Sendagaya_Shino</h1><p>輪廻転焦 · 独立レビュー環境。本編・セーブ・通信接続は変更しません。</p></header>
+<div class="layout"><canvas id="stage"></canvas><aside>
+<div id="status" role="status">キャラクターを読み込んでいます。</div><progress id="progress" max="1" value="0"></progress>
+<label>モデルファイル <input id="file" type="file" accept=".vrm,.glb"></label><button id="retry" disabled>再試行</button>
+<label>同時表示 <select id="count"><option value="1" selected>1体</option><option value="30">30体</option></select></label>
+<label>年齢 <select id="ages"><option value="mixed">年齢混在 0 / 7 / 22 / 55 / 85</option><option value="fixed">全員同じ年齢</option></select></label>
+<input id="age" aria-label="年齢" type="range" min="0" max="90" value="22"><output id="age-label">22歳</output>
+<label>衣装配色 <select id="outfit"><option value="mixed">3配色</option><option value="original">Original</option><option value="moss">Moss</option><option value="ember">Ember</option></select></label>
+<label><input id="motion" type="checkbox" checked> レビュー用の呼吸・重心移動</label>
+<label><input id="rotate" type="checkbox"> 全員を回転</label>
+<button id="measure">フレーム計測をリセット</button><pre id="metrics">未計測</pre>
+<small>配色バリエーションです。新しい衣装形状・完成版モーションではありません。FPSはこの端末・この場面での測定値で、実機性能の合格判定ではありません。</small>
+</aside></div><footer>原作: VRoid Project / pixiv Inc.（CC0） · VRM 1.0 conversion: Coatie（coati）。元モデルのメタデータ・利用条件を保持します。</footer>
+<script type="module" src="./src/character-review.js"></script></body></html>

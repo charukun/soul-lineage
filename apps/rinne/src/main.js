@@ -1,32 +1,22 @@
-import { sharedEmblemUrl } from '@soul/assets';
-import { createWorldPreview } from '@soul/rendering';
-import { showStatus } from '@soul/shared-ui';
-import { createWebPlatform } from '@soul/platform-web';
-import { createApp } from './app.js';
-import { installVillageHostRehearsal } from './village-link.js';
-import '@soul/shared-ui/style.css';
-import { installOnlinePlayer } from './online.js';
-const info = __BUILD_INFO__;
-const canvas = document.querySelector('#game');
-const status = document.querySelector('#status');
-document.title = `${info.name} | ${info.environment.toUpperCase()}`;
-document.querySelector('#emblem').src = sharedEmblemUrl;
-canvas.dataset.app = info.app; canvas.dataset.commit = info.commit; canvas.dataset.environment = info.environment;
-try {
-  const platform = createWebPlatform({ gameId: 'rinne', environment: info.environment });
-  const app = createApp(platform);
-  const preview = createWorldPreview(canvas, app.world);
-  let worldTimeMs = 0, lastFrame = performance.now(), frameId;
-  const frame = now => { if (!window.__VILLAGE_WORLD_PAUSED__) worldTimeMs += Math.max(0, now - lastFrame); lastFrame = now; canvas.dataset.worldTimeMs = String(Math.round(worldTimeMs)); frameId = requestAnimationFrame(frame); };
-  frameId = requestAnimationFrame(frame);
-  const villageLink = installVillageHostRehearsal({
-    capture: () => ({ worldTimeMs: Math.round(worldTimeMs), world: app.world, characters: [], npcs: [], randomState: null }),
-    apply: checkpoint => { worldTimeMs = checkpoint.worldTimeMs; canvas.dataset.worldRevision = String(checkpoint.world?.revision ?? ''); },
-  });
-  canvas.dataset.platform = platform.id; canvas.dataset.contentVersion = app.contentVersion;
-  showStatus(status, '起動完了 · 共通ワールドを読み込みました');
-  installOnlinePlayer();
-  if (import.meta.hot) import.meta.hot.dispose(() => { preview.dispose(); cancelAnimationFrame(frameId); villageLink?.then(link => link.dispose()); });
-} catch (error) {
-  canvas.dataset.renderer = 'unavailable'; showStatus(status, '表示を開始できませんでした。WebGL2対応環境でお試しください。', 'error'); console.error(error);
-}
+import {sharedEmblemUrl} from '@soul/assets';
+import { mountTitle } from './title/controller.js';
+// Build information is injected by the existing monorepo Vite plugin. A standalone
+// preview must never claim to be a deployed commit.
+const info = typeof __BUILD_INFO__ !== 'undefined' ? __BUILD_INFO__ : {
+  name:'輪廻転焦',app:'rinne',environment:'local',commit:'UNBUILT',inputHash:null,
+};
+const dispose = mountTitle(info,{emblemURL:sharedEmblemUrl});
+if (import.meta.hot) import.meta.hot.dispose(dispose);
+
+import {installOnlinePlayer} from './online.js';
+const onlineDialog=document.querySelector('#online-dialog');
+let disposeOnline;
+document.querySelector('#open-online').addEventListener('click',()=>{
+ if(!disposeOnline)disposeOnline=installOnlinePlayer({mount:document.querySelector('#online-mount'),environment:info.environment});
+ onlineDialog.showModal();
+});
+if(import.meta.hot)import.meta.hot.dispose(()=>disposeOnline?.());
+
+import {installMusicLibrary} from '@soul/shared-ui/music';
+const disposeMusic=installMusicLibrary({game:'rinne',environment:__BUILD_INFO__.environment});
+if(import.meta.hot)import.meta.hot.dispose(disposeMusic);
