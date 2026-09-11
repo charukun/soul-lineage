@@ -57,11 +57,13 @@ for (const app of apps) {
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     page.on('requestfailed', request => failedRequests.push({ url: request.url(), failure: request.failure()?.errorText || 'failed' }));
-    const response = await page.goto(url, { waitUntil: 'networkidle', timeout: app === 'rinne' ? 120000 : 60000 });
+    // Games can keep media/WebRTC/network activity alive indefinitely. DOM readiness plus the
+    // renderer contract below is the deterministic gate; waiting for networkidle only adds stalls.
+    const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     if (!response?.ok()) throw new Error(`${app} returned HTTP ${response?.status()}`);
     const canvas = page.locator('#game');
-    await canvas.waitFor({ state: 'visible', timeout: 60000 });
-    await page.waitForFunction(() => document.querySelector('#game')?.dataset.renderer === 'ready', null, { timeout: 60000 });
+    await canvas.waitFor({ state: 'visible', timeout: 45000 });
+    await page.waitForFunction(() => document.querySelector('#game')?.dataset.renderer === 'ready', null, { timeout: 45000 });
     const renderer = await canvas.getAttribute('data-renderer');
     const appId = await canvas.getAttribute('data-app');
     const widthOk = await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
