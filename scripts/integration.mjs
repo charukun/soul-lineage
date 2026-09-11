@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { setTimeout as delay } from 'node:timers/promises';
 import { contextName, dependencies, eligibility } from './integration-policy.mjs';
+
+export const queueContext = 'integration/queue';
+export const validationEvents = ['pull_request', 'pull_request_review'];
 
 export function client(repository, token, request = fetch) {
   assert.match(repository, /^[\w.-]+\/[\w.-]+$/);
@@ -26,9 +30,9 @@ export function client(repository, token, request = fetch) {
   return { api, pages, root };
 }
 export async function fastGate(c, pr) {
-  const runs = await c.pages(`/actions/workflows/ci.yml/runs?event=pull_request&head_sha=${pr.head.sha}`, 'workflow_runs');
+  const runs = await c.pages(`/actions/workflows/ci.yml/runs?head_sha=${pr.head.sha}`, 'workflow_runs');
   const matching = runs.filter(r => r.head_sha === pr.head.sha && r.head_branch === pr.head.ref &&
-    r.head_repository?.full_name === pr.head.repo.full_name);
+    r.head_repository?.full_name === pr.head.repo.full_name && validationEvents.includes(r.event));
   matching.sort((a, b) => b.id - a.id);
   if (!matching.length) return false;
   const run = matching[0];
@@ -43,7 +47,7 @@ export async function fastGate(c, pr) {
   for (const status of statuses) if (!latestStatuses.has(status.context)) latestStatuses.set(status.context, status);
   // Dispatch has no role in code validation. Do not deadlock on our own request job.
   return checks.filter(x => x.name !== 'Request Integration').every(x => x.status === 'completed' && ['success', 'neutral', 'skipped'].includes(x.conclusion)) &&
-    [...latestStatuses.values()].filter(x => x.context !== contextName).every(x => x.state === 'success');
+    [...latestStatuses.values()].filter(x => ![contextName, queueContext].includes(x.context)).every(x => x.state === 'success');
 }
 async function threads(c, pr) {
   let cursor = null;
@@ -57,7 +61,7 @@ async function threads(c, pr) {
   } while (cursor);
   return false;
 }
-export async function integrate(c, repository) {
+export async function integrate(c, repository, wait = delay) {
   const report = { startedAt: new Date().toISOString(), merged: [], held: [] };
   const branch = () => c.api('GET', `${c.root}/branches/develop`);
   const current = await branch(); let expected = current.commit.sha;
@@ -77,7 +81,13 @@ export async function integrate(c, repository) {
     for (const snapshot of [...pending]) {
       if (report.merged.length >= 8) break;
       try {
-        const pr = await c.api('GET', `${c.root}/pulls/${snapshot.number}`);
+        let pr = await c.api('GET', `${c.root}/pulls/${snapshot.number}`);
+        // GitHub recomputes mergeability after each predecessor merge. Allow that
+        // asynchronous calculation to settle without dropping the only wakeup.
+        for (let attempt = 0; pr.mergeable === null && attempt < 3; attempt++) {
+          await wait(1000);
+          pr = await c.api('GET', `${c.root}/pulls/${snapshot.number}`);
+        }
         if (pr.state !== 'open') { pending.splice(pending.indexOf(snapshot), 1); continue; }
         const deps = dependencies(pr.body || '');
         const depStates = await Promise.all(deps.map(n => c.api('GET', `${c.root}/pulls/${n}`)));
@@ -117,11 +127,26 @@ export async function integrate(c, repository) {
     }
     if (!progress) break;
   }
-  report.retry = pending.length > 0 && (baselinePending || report.merged.length >= 8);
+  // A successful repair/baseline must wake the queue again. Previously recovery
+  // returned retry=false, leaving Ready PRs stranded even after a successful retry.
+  // No progress + an already successful baseline stops: holds cannot self-loop.
+  report.retry = pending.length > 0 && (baselinePending || recovery || report.merged.length > 0);
   report.sha = (await branch()).commit.sha;
   const finalStatuses = await c.pages(`/commits/${report.sha}/statuses`);
   report.verified = finalStatuses.find(x => x.context === contextName)?.state === 'success';
   return report;
+}
+export async function recordQueue(c, report, targetUrl) {
+  for (const item of [...report.held, ...report.merged]) {
+    const pr = await c.api('GET', `${c.root}/pulls/${item.pr}`);
+    const merged = Boolean(item.merge);
+    const status = { context: queueContext, state: merged ? 'success' : 'pending',
+      description: (merged ? `Merged into develop: ${item.merge.slice(0, 12)}; see DEV result` : `Held: ${item.reason}`).slice(0, 140),
+      target_url: targetUrl };
+    const previous = (await c.pages(`/commits/${pr.head.sha}/statuses`)).find(x => x.context === queueContext);
+    if (previous?.state !== status.state || previous?.description !== status.description)
+      await c.api('POST', `${c.root}/statuses/${pr.head.sha}`, status);
+  }
 }
 async function main() {
   const repository = process.env.GITHUB_REPOSITORY;
@@ -132,8 +157,9 @@ async function main() {
   mkdirSync('.deploy-state', { recursive: true });
   writeFileSync('.deploy-state/integration.json', JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
+  await recordQueue(c, report, `https://github.com/${repository}/actions/runs/${process.env.GITHUB_RUN_ID}`);
   if (!report.verified) await c.api('POST', `${c.root}/statuses/${report.sha}`, {
-    state: 'pending', context: contextName, description: 'Final develop regression, DEV deployment and public browser gate',
+    state: 'pending', context: contextName, description: 'Affected fast checks, DEV deployment and public HTTP/source verification',
     target_url: `https://github.com/${repository}/actions/runs/${process.env.GITHUB_RUN_ID}`,
   });
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `sha=${report.sha}\nverify=${!report.verified}\nretry=${report.retry}\n`);

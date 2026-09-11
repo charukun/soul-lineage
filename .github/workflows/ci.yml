@@ -3,6 +3,8 @@ on:
   pull_request:
     branches: [develop, main]
     types: [opened, synchronize, reopened, ready_for_review, edited, labeled, unlabeled]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
 permissions:
   contents: read
 concurrency:
@@ -11,6 +13,7 @@ concurrency:
 jobs:
   build:
     name: Validate and build
+    if: contains(fromJSON('["develop", "main"]'), github.event.pull_request.base.ref)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -62,12 +65,29 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: write
+      pull-requests: read
     steps:
       # Existing deploy.yml is registered on main. Dispatch explicitly selects develop;
       # workflow_run/schedule would require changing the default branch's workflows.
       - uses: actions/github-script@v8
         with:
           script: |
-            await github.rest.actions.createWorkflowDispatch({
-              ...context.repo, workflow_id: 'deploy.yml', ref: 'develop'
+            // Refetch live state: Ready can change while the fast gate runs.
+            const { data: pr } = await github.rest.pulls.get({
+              ...context.repo, pull_number: context.payload.pull_request.number
             });
+            if (pr.state !== 'open' || pr.draft || pr.base.ref !== 'develop' ||
+                pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+                pr.head.sha !== context.payload.pull_request.head.sha) return;
+            // Retry transient API failures, but do not create an unbounded retry workflow.
+            for (let attempt = 0; attempt < 3; attempt++) {
+              try {
+                await github.rest.actions.createWorkflowDispatch({
+                  ...context.repo, workflow_id: 'deploy.yml', ref: 'develop'
+                });
+                return;
+              } catch (error) {
+                if (attempt === 2 || (error.status && error.status < 500 && error.status !== 429)) throw error;
+                await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+              }
+            }

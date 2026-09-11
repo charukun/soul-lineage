@@ -54,15 +54,16 @@ async function main() {
   const old = new Map(previous.entries.map(entry => [entry.path, entry]));
   const changed = desired.filter(entry => needsBuild(entry, old.get(entry.path)));
   const removed = previous.entries.some(entry => !desired.some(next => next.path === entry.path));
-  const publish = changed.length > 0 || removed || full;
+  const publish = changed.length > 0 || removed || full || devOnly;
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `changed=${publish}\n`);
   console.log(`Changed apps: ${changed.map(e => e.path).join(', ') || 'none'}`);
   if (!publish) { console.log('All app inputs unchanged; no build, test or Pages deployment needed.'); return; }
   await rm(output, { recursive: true, force: true }); await mkdir(output, { recursive: true });
   const installed = new Set();
-  if (full) {
+  if (full || devOnly) {
     run(sources.dev, 'npm', ['ci']); installed.add(sources.dev);
-    run(sources.dev, 'node', ['scripts/validate.mjs', 'full']);
+    run(sources.dev, 'node', ['scripts/validate.mjs', ...(full ? ['full'] :
+      ['deploy', ...changed.filter(e => e.environment === 'dev').map(e => e.app)])]);
   }
   const entries = [];
   for (const entry of desired) {
@@ -76,7 +77,7 @@ async function main() {
       run(entry.root, 'npm', ['ci'], env); installed.add(entry.root);
       if (!entry.legacy) run(entry.root, 'npm', ['test'], env);
     }
-    if (!(full && entry.environment === 'dev')) {
+    if (!((full || devOnly) && entry.environment === 'dev')) {
       run(entry.root, 'npm', ['run', 'check', ...(entry.legacy ? [] : ['--', entry.app])], env);
       if (!entry.legacy) run(entry.root, 'npm', ['run', 'test:app', '--', entry.app], env);
     }
@@ -101,7 +102,7 @@ async function main() {
   }
   await writeFile(resolve(output, 'index.html'), '<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=prod/"><title>輪廻転焦</title></head><body><a href="prod/">輪廻転焦</a></body></html>');
   await writeFile(resolve(output, '.nojekyll'), '');
-  await writeFile(resolve(output, 'deployment-manifest.json'), JSON.stringify({ schemaVersion: 1, ...(full ? { validatedDevelop: developSha } : {}), entries }, null, 2));
+  await writeFile(resolve(output, 'deployment-manifest.json'), JSON.stringify({ schemaVersion: 1, ...((full || devOnly) ? { validatedDevelop: developSha } : {}), entries }, null, 2));
   await mkdir('.deploy-state', { recursive: true });
   await writeFile('.deploy-state/changed.json', JSON.stringify(changed.map(entry => entry.path)));
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,

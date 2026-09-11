@@ -3,6 +3,12 @@ on:
   push:
     branches: [develop, main]
   workflow_dispatch:
+    inputs:
+      full_verification:
+        description: 'Run separate full regression / public WebGL2 / P2P diagnostics after DEV publication'
+        type: boolean
+        required: false
+        default: false
 permissions:
   contents: read
 # GitHub Pages replaces one site atomically. Serialize the latest complete snapshot.
@@ -80,7 +86,6 @@ jobs:
         id: assemble
         env:
           SITE_URL: https://charukun.github.io/soul-lineage/
-          INTEGRATION_FULL: ${{ github.ref == 'refs/heads/develop' }}
           DEPLOY_DEV_ONLY: ${{ github.ref == 'refs/heads/develop' }}
         run: node sources/dev/scripts/deploy.mjs sources/dev sources/prod _site "$SITE_URL"
       - name: Refuse a superseded develop snapshot before publishing
@@ -107,28 +112,19 @@ jobs:
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
         run: node sources/dev/scripts/verify-live.mjs "$SITE_URL" _site
-      # DEV fast path: publishing is the completion gate. Browser checks still run and keep artifacts,
-      # but only Production treats them as release-blocking quality gates.
-      - name: Verify final DEV apps in real Chromium / WebGL2
-        if: steps.assemble.outputs.changed == 'true'
-        continue-on-error: ${{ github.ref == 'refs/heads/develop' }}
+      - name: Preserve blocking Production browser verification
+        if: github.ref == 'refs/heads/main' && steps.assemble.outputs.changed == 'true'
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
-          INTEGRATION_FULL: ${{ github.ref == 'refs/heads/develop' }}
         run: node sources/dev/scripts/verify-browser.mjs "$SITE_URL" _site .deploy-state/changed.json
-      - name: Verify public three-player P2P raid
-        if: steps.assemble.outputs.changed == 'true' && github.ref == 'refs/heads/develop'
-        continue-on-error: true
-        env:
-          SITE_URL: ${{ steps.deployment.outputs.page_url }}
-        run: node sources/dev/scripts/verify-p2p-browser.mjs "$SITE_URL"
-      - name: Keep browser screenshots and test results
-        if: always() && steps.assemble.outputs.changed == 'true'
+      - name: Keep the exact deployed snapshot for optional diagnostics
         uses: actions/upload-artifact@v4
         with:
-          name: public-browser-verification
-          path: sources/dev/test-results/
-          if-no-files-found: ignore
+          name: dev-published-snapshot
+          path: |
+            _site/deployment-manifest.json
+            .deploy-state/changed.json
+          include-hidden-files: true
           retention-days: 14
   result:
     name: Record final develop result
@@ -151,10 +147,77 @@ jobs:
               context: 'integration/develop',
               state: process.env.RESULT === 'success' ? 'success' : 'failure',
               description: process.env.RESULT === 'success'
-                ? 'DEV published; post-deploy browser checks are non-blocking'
-                : 'DEV build/publish verification failed; automatic merges paused until repair',
+                ? 'Affected fast checks + DEV deployment + public HTTP/source verification passed'
+                : 'DEV delivery failed; automatic merges paused until repair',
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             });
             if (process.env.RESULT === 'success' && process.env.RETRY === 'true') {
               await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'deploy.yml', ref: 'develop' });
             }
+  full-verification:
+    name: Optional full regression and public browser diagnostics
+    needs: [integrate, publish, result]
+    if: >-
+      always() && github.ref == 'refs/heads/develop' &&
+      inputs.full_verification == true && needs.integrate.result == 'success' &&
+      (needs.publish.result == 'success' || needs.integrate.outputs.verify == 'false')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.integrate.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Full regression (separate from the DEV delivery gate)
+        run: node scripts/validate.mjs full
+      - name: Fetch and verify the published snapshot identity
+        env:
+          EXPECTED_SHA: ${{ needs.integrate.outputs.sha }}
+        run: |
+          mkdir -p .deploy-state
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          const response = await fetch(`https://charukun.github.io/soul-lineage/deployment-manifest.json?run=${process.env.GITHUB_RUN_ID}`);
+          assert.equal(response.status, 200);
+          const manifest = await response.json();
+          assert.equal(manifest.validatedDevelop, process.env.EXPECTED_SHA, 'DEV has advanced; run diagnostics again on latest develop');
+          fs.writeFileSync('.deploy-state/deployment-manifest.json', JSON.stringify(manifest));
+          fs.writeFileSync('.deploy-state/changed.json', '[]');
+          JS
+      - name: Public Chromium / WebGL2
+        env:
+          INTEGRATION_FULL: 'true'
+        run: node scripts/verify-browser.mjs https://charukun.github.io/soul-lineage/ .deploy-state .deploy-state/changed.json
+      - name: Public three-player P2P raid
+        run: node scripts/verify-p2p-browser.mjs https://charukun.github.io/soul-lineage/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-browser-verification
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Record separate diagnostic result
+        if: always()
+        uses: actions/github-script@v8
+        env:
+          FINAL_SHA: ${{ needs.integrate.outputs.sha }}
+          RESULT: ${{ job.status }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              ...context.repo, sha: process.env.FINAL_SHA,
+              context: 'verification/full',
+              state: process.env.RESULT === 'success' ? 'success' : 'failure',
+              description: 'Full regression / public WebGL2 / P2P diagnostics; separate from DEV delivery',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
