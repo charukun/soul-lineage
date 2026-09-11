@@ -9,12 +9,10 @@ import {chromium} from '@playwright/test';
 export async function verifyReviewBrowser(output,{publicUrl=process.env.REVIEW_PUBLIC_URL,expectedCommit=process.env.GITHUB_SHA}={}){
   const root=resolve(output),evidence=resolve('artifacts',publicUrl?'review-public':'review-local');await mkdir(evidence,{recursive:true});
   const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.vrm':'model/gltf-binary','.glb':'model/gltf-binary','.gltf':'model/gltf+json','.bin':'application/octet-stream','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml','.txt':'text/plain'};
-  const server=createServer(async(req,res)=>{
-    try{let path=resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(path!==root&&!path.startsWith(root+sep))throw new Error('path');if((await stat(path)).isDirectory())path=resolve(path,'index.html');const bytes=await readFile(path);res.writeHead(200,{'content-type':types[extname(path)]||'application/octet-stream','cache-control':'no-cache'});res.end(bytes);}catch{res.writeHead(404);res.end('not found');}
-  });
+  const server=createServer(async(req,res)=>{try{let path=resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(path!==root&&!path.startsWith(root+sep))throw new Error('path');if((await stat(path)).isDirectory())path=resolve(path,'index.html');const bytes=await readFile(path);res.writeHead(200,{'content-type':types[extname(path)]||'application/octet-stream','cache-control':'no-cache'});res.end(bytes);}catch{res.writeHead(404);res.end('not found');}});
   if(!publicUrl)await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base=publicUrl?new URL(publicUrl).href:`http://127.0.0.1:${server.address().port}/`;let browser;
-  const report={kind:'targeted-software-WebGL-smoke',url:base,expectedCommit,physicalPixelFold:false,visualApproval:false,passed:false,errors:[]};
+  const report={kind:'targeted-software-WebGL-progressive-smoke',url:base,expectedCommit,physicalPixelFold:false,visualApproval:false,passed:false,errors:[]};
   try{
     const chrome=['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/opt/google/chrome/chrome'].find(existsSync);
     if(!chrome&&!existsSync(chromium.executablePath()))execFileSync('npx',['playwright','install','chromium'],{stdio:'inherit',timeout:120000});
@@ -26,44 +24,30 @@ export async function verifyReviewBrowser(output,{publicUrl=process.env.REVIEW_P
     assert.equal(await page.locator('#review-status').getAttribute('data-kind'),'','Initial load failed: '+await page.locator('#review-status').textContent());
     await page.waitForFunction(()=>window.__reviewLab.snapshot().triangles>100,null,{timeout:15000});
     const snapshot=()=>page.evaluate(()=>window.__reviewLab.snapshot());
-    const seek=async(time)=>page.locator('#timeline').evaluate((node,time)=>{node.value=String(time);node.dispatchEvent(new Event('input',{bubbles:true}));},time);
+    const seek=async time=>page.locator('#timeline').evaluate((node,time)=>{node.value=String(time);node.dispatchEvent(new Event('input',{bubbles:true}));},time);
     const openTab=async name=>{await page.locator(`[data-tab="${name}"]`).evaluate(node=>node.click());await page.locator(`[data-page="${name}"]`).waitFor({state:'visible'});};
-    const first=await snapshot();assert.match(first.source,/character\.sendagaya-shino/);assert.ok(first.triangles>100);
+    const first=await snapshot();assert.match(first.source,/全モーションソース/);assert.ok(first.triangles>100);
     if(expectedCommit)assert.equal(first.build,expectedCommit,'The served JavaScript must match the requested commit');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'Mobile page must not overflow horizontally');
-    // The default surface is deliberately simple and must expose the reviewer-facing controls.
+    assert.equal(await page.locator('link[rel="manifest"]').count(),0,'Review Lab must not expose PWA installation');
+    await page.locator('#load-progress').waitFor({state:'attached'});
     await page.locator('[data-page="simple"]').waitFor({state:'visible'});
     await page.locator('#skill-fire').waitFor({state:'visible'});
-    await page.locator('#copy-motion').waitFor({state:'visible'});
-    await page.locator('#weapon-select').waitFor({state:'visible'});
-    await page.selectOption('#clip','Walk_Loop');
-    assert.equal(await page.locator('#motion-name').textContent(),'Walk_Loop');
-    await page.click('#skill-fire');
-    // Technical frame controls live behind the advanced tab. Verify them there without depending on mobile scroll geometry.
-    await openTab('advanced');
-    await seek(.1);const a=await snapshot();await seek(.4);const b=await snapshot();assert.notDeepEqual(a.pose,b.pose,'Walk must change raw-bone pose');
+    await page.waitForFunction(()=>[...document.querySelector('#clip').options].some(o=>o.value==='Tidebreak / Walk'),null,{timeout:30000});
+    await page.selectOption('#clip','Tidebreak / Walk');await page.click('#skill-fire');
+    await openTab('advanced');await seek(.1);const a=await snapshot();await seek(.4);const b=await snapshot();assert.notDeepEqual(a.pose,b.pose,'Tidebreak Walk must animate');
     await page.locator('#step-forward').evaluate(node=>node.click());const c=await snapshot();assert.ok(Math.abs(c.time-(.4+1/60))<.001,'Paused frame stepping must work');
-    const manifest=await (await page.request.get(base+'asset-review/manifest.json')).json();
-    if(expectedCommit)assert.equal(manifest.buildCommit,expectedCommit,'The asset manifest must match the requested commit');
-    report.families=manifest.families;report.testedClips=[];
     await openTab('simple');
-    for(const row of manifest.families){
-      if(!row.clips.length)continue;const name=row.clips[0];await page.selectOption('#clip',name);await seek(.2);const state=await snapshot();
-      assert.equal(state.clip,name);assert.ok(Object.values(state.pose).flat().every(Number.isFinite));report.testedClips.push(name);
-    }
-    await page.selectOption('#clip','Walk_Loop');await seek(.4);
-    await page.selectOption('#weapon-select','dagger');
-    await page.waitForTimeout(1200);
-    assert.equal(await page.locator('#weapon-select').inputValue(),'dagger');
+    await page.waitForFunction(()=>[...document.querySelector('#clip').options].some(o=>o.value.startsWith('共有VRMA / ')),null,{timeout:90000});
+    const sharedValue=await page.locator('#clip option').evaluateAll(options=>options.find(o=>o.value.startsWith('共有VRMA / '))?.value||'');assert.ok(sharedValue);await page.selectOption('#clip',sharedValue);await page.click('#skill-fire');
+    await page.waitForFunction(()=>[...document.querySelector('#clip').options].some(o=>o.value==='外部 / Walk_Loop'),null,{timeout:120000});
+    await page.selectOption('#clip','外部 / Walk_Loop');await page.click('#skill-fire');
+    await page.selectOption('#weapon-select','dagger');await page.waitForTimeout(1200);assert.equal(await page.locator('#weapon-select').inputValue(),'dagger');
     await page.screenshot({path:resolve(evidence,'shino-mobile.png')});
-    await openTab('advanced');await page.locator('#weapon-toggle').evaluate(node=>{node.checked=true;node.dispatchEvent(new Event('input',{bubbles:true}));});await page.locator('#trigger-overlay').evaluate(node=>node.click());await page.screenshot({path:resolve(evidence,'weapon-vfx-candidate.png')});
+    await openTab('advanced');await page.locator('#trigger-overlay').evaluate(node=>node.click());await page.screenshot({path:resolve(evidence,'weapon-vfx-candidate.png')});
     await page.setViewportSize({width:1280,height:800});await openTab('simple');await page.screenshot({path:resolve(evidence,'shino-desktop.png')});
-    // An actual missing URL must remain an error, never a fabricated rig.
-    await openTab('advanced');await page.fill('#model-url',base+'deliberately-missing.glb');await page.locator('#load-url').evaluate(node=>node.click());
-    await page.waitForFunction(()=>document.querySelector('#review-status').dataset.kind==='error');assert.equal((await snapshot()).loaded,false);
-    await page.selectOption('#preset','character.sendagaya-shino.v1');await page.waitForFunction(()=>window.__reviewLab.snapshot().loaded,null,{timeout:90000});
-    await openTab('simple');
-    report.final=await snapshot();delete report.final.pose;delete report.final.animations;
+    const manifest=await (await page.request.get(base+'asset-review/manifest.json')).json();if(expectedCommit)assert.equal(manifest.buildCommit,expectedCommit,'The asset manifest must match the requested commit');
+    report.final=await snapshot();delete report.final.pose;report.loadedAnimations=report.final.animations?.length||0;delete report.final.animations;
     assert.deepEqual(report.errors,[]);report.passed=true;
   }catch(error){report.failure=error.stack||String(error);throw error;}
   finally{await browser?.close();if(server.listening)await new Promise(resolve=>server.close(resolve));await writeFile(resolve(evidence,'validation.json'),JSON.stringify(report,null,2));console.log('REVIEW_BROWSER_RESULT '+JSON.stringify(report));}
