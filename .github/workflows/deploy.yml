@@ -11,7 +11,6 @@ on:
         default: false
 permissions:
   contents: read
-# GitHub Pages replaces one site atomically. Serialize the latest complete snapshot.
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -50,15 +49,18 @@ jobs:
           name: integration-report
           path: .deploy-state/integration.json
           retention-days: 14
+
   publish:
     needs: integrate
     if: always() && (github.ref == 'refs/heads/main' || (needs.integrate.result == 'success' && needs.integrate.outputs.verify == 'true'))
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     permissions:
       contents: read
       pages: write
       id-token: write
+    outputs:
+      browser_outcome: ${{ steps.dev_browser.outcome }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -112,20 +114,67 @@ jobs:
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
         run: node sources/dev/scripts/verify-live.mjs "$SITE_URL" _site
+      - name: Focused DEV browser verification
+        id: dev_browser
+        if: github.ref == 'refs/heads/develop' && steps.assemble.outputs.changed == 'true'
+        continue-on-error: true
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: node sources/dev/scripts/verify-browser.mjs "$SITE_URL" _site sources/dev/.deploy-state/changed.json
+      - name: Preserve DEV browser evidence
+        if: always() && github.ref == 'refs/heads/develop'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-browser-${{ needs.integrate.outputs.sha }}
+          path: sources/dev/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Fail DEV publication result when focused browser verification failed
+        if: steps.dev_browser.outcome == 'failure'
+        run: exit 1
       - name: Preserve blocking Production browser verification
         if: github.ref == 'refs/heads/main' && steps.assemble.outputs.changed == 'true'
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
-        run: node sources/dev/scripts/verify-browser.mjs "$SITE_URL" _site .deploy-state/changed.json
+        run: node sources/dev/scripts/verify-browser.mjs "$SITE_URL" _site sources/dev/.deploy-state/changed.json
       - name: Keep the exact deployed snapshot for optional diagnostics
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: dev-published-snapshot
           path: |
             _site/deployment-manifest.json
-            .deploy-state/changed.json
+            sources/dev/.deploy-state/changed.json
           include-hidden-files: true
+          if-no-files-found: ignore
           retention-days: 14
+
+  browser-repair-state:
+    name: Record DEV browser repair state
+    needs: [integrate, publish]
+    if: >-
+      always() && github.ref == 'refs/heads/develop' && needs.integrate.result == 'success' &&
+      (needs.publish.outputs.browser_outcome == 'success' || needs.publish.outputs.browser_outcome == 'failure')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.integrate.outputs.sha }}
+          persist-credentials: false
+      - name: Create/update machine-readable repair ticket
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPAIR_SCOPE: develop
+          REPAIR_CONCLUSION: ${{ needs.publish.outputs.browser_outcome }}
+          REPAIR_HEAD_SHA: ${{ needs.integrate.outputs.sha }}
+          REPAIR_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPAIR_ARTIFACT: dev-browser-${{ needs.integrate.outputs.sha }}
+        run: node scripts/browser-repair-ticket.mjs
+
   result:
     name: Record final develop result
     needs: [integrate, publish]
@@ -147,13 +196,14 @@ jobs:
               context: 'integration/develop',
               state: process.env.RESULT === 'success' ? 'success' : 'failure',
               description: process.env.RESULT === 'success'
-                ? 'Affected fast checks + DEV deployment + public HTTP/source verification passed'
-                : 'DEV delivery failed; automatic merges paused until repair',
+                ? 'Fast checks + DEV deploy + HTTP/source + focused browser verification passed'
+                : 'DEV delivery/browser verification failed; automatic merges paused until repair',
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             });
             if (process.env.RESULT === 'success' && process.env.RETRY === 'true') {
               await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'deploy.yml', ref: 'develop' });
             }
+
   full-verification:
     name: Optional full regression and public browser diagnostics
     needs: [integrate, publish, result]
