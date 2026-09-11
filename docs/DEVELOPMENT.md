@@ -11,7 +11,7 @@
 
 ## 実装WORK
 
-1. `AGENTS.md`、最新develop、対象app/packageの仕様を確認し、専用branchで実装。
+1. `AGENTS.md`、最新develop、対象app/packageの仕様を確認。コード変更を伴う通常の実装タスクは、コード修正前に専用branchをpushし、develop向けDraft PRを作成してから実装する。調査・相談・状況確認・文章作成のみのタスクは対象外。
 2. `npm ci` と `node scripts/validate.mjs fast origin/develop HEAD`。影響appのcheck/test/build、共有テストは1回。基盤変更時は基盤テストも実施。
 3. push前に `npm run push:route -- origin/develop HEAD` を実行。Chat/WORK/Codex実行環境の通常gitを第一候補とし、利用可能なGitHub連携/API、Codespaces＋通常gitの順で切り替える。`CODESPACES_GIT` または容量・Base64・payload上限系エラー時は、同じbranchをGitHub Codespacesで開いて通常`git push`へ即時切り替える。大きなバイナリを連携APIで分割/Base64再送しない。詳細は `docs/MOBILE_HYBRID_DEVELOPMENT.md`。
 4. PRへ変更理由・挙動・影響app/package・検証結果・残るリスクを書く。依存があれば `Depends-On: #12, #13`、なければ `Depends-On: none`。
