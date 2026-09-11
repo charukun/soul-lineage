@@ -1,0 +1,112 @@
+name: Materialize curated KayKit assets
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/materialize-kaykit-assets.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.event.pull_request.head.ref == 'chore/kaykit-curated-assets' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Fetch pinned CC0 assets and verify Git blob IDs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DUNGEON_REPO='KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0'
+          DUNGEON_COMMIT='b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07'
+          DUNGEON_ROOT="https://raw.githubusercontent.com/${DUNGEON_REPO}/${DUNGEON_COMMIT}/addons/kaykit_dungeon_remastered/Assets"
+          SKELETON_REPO='KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0'
+          SKELETON_COMMIT='15b62b9bad122f72926c10fb14d622c73819fa54'
+          SKELETON_ROOT="https://raw.githubusercontent.com/${SKELETON_REPO}/${SKELETON_COMMIT}"
+
+          fetch_asset() {
+            local target="$1"
+            local url="$2"
+            local expected="$3"
+            mkdir -p "$(dirname "$target")"
+            curl --fail --location --silent --show-error --retry 3 --retry-delay 2 "$url" --output "$target"
+            local actual
+            actual="$(git hash-object "$target")"
+            if [[ "$actual" != "$expected" ]]; then
+              echo "Git blob mismatch: $target expected=$expected actual=$actual" >&2
+              exit 1
+            fi
+            echo "verified $target $actual"
+          }
+
+          VILLAGE='apps/village/public/assets/vendor/kaykit-dungeon'
+          DEMON_DUNGEON='apps/demon/public/assets/vendor/kaykit-dungeon'
+          DEMON_SKELETON='apps/demon/public/assets/vendor/kaykit-skeletons'
+
+          fetch_asset "$VILLAGE/chair.gltf.glb" "$DUNGEON_ROOT/gltf/chair.gltf.glb" 'd714e3eace33b64d3a2190025a57dd9762e50a6f'
+          fetch_asset "$VILLAGE/table_medium.gltf.glb" "$DUNGEON_ROOT/gltf/table_medium.gltf.glb" 'eee20e6273e9fd1ecb4111bd74b5b298fc8bb12d'
+          fetch_asset "$VILLAGE/bed_decorated.gltf.glb" "$DUNGEON_ROOT/gltf/bed_decorated.gltf.glb" 'b7195b9fad17836ed2140f5ae15f45bb118e87e1'
+          fetch_asset "$VILLAGE/shelf_large.gltf.glb" "$DUNGEON_ROOT/gltf/shelf_large.gltf.glb" 'e1b7e9752aa4b2b7cc14106bbfb417a33396e432'
+          fetch_asset "$VILLAGE/table_small.gltf.glb" "$DUNGEON_ROOT/gltf/table_small.gltf.glb" 'f17e5b25518f59ce298c3a0ae43a77fd2d90da19'
+          fetch_asset "$VILLAGE/table_long.gltf.glb" "$DUNGEON_ROOT/gltf/table_long.gltf.glb" '5b364d5c58e7d217e87698b3962dd144fddc74a1'
+          fetch_asset "$VILLAGE/candle_lit.gltf.glb" "$DUNGEON_ROOT/gltf/candle_lit.gltf.glb" 'b79333506e47e0288472b770a11c2e4b5ded93cc'
+          fetch_asset "$VILLAGE/chest.glb" "$DUNGEON_ROOT/gltf/chest.glb" '534c76a794d4b531a91619871845e92e3ca6e432'
+
+          fetch_asset "$DEMON_DUNGEON/barrel_small.gltf.glb" "$DUNGEON_ROOT/gltf/barrel_small.gltf.glb" '327119c21a6e5c13ee7ffa0d02f408c0a09281fe'
+          fetch_asset "$DEMON_DUNGEON/box_small.gltf.glb" "$DUNGEON_ROOT/gltf/box_small.gltf.glb" 'afe14e93cf5f5068e270184116eb6eab2ec4d7eb'
+          fetch_asset "$DEMON_DUNGEON/rubble_large.gltf.glb" "$DUNGEON_ROOT/gltf/rubble_large.gltf.glb" '4ddb08100ba5203d1ef7427c54d0ceb3868f170c'
+          fetch_asset "$DEMON_DUNGEON/torch_lit.gltf.glb" "$DUNGEON_ROOT/gltf/torch_lit.gltf.glb" '7976a030114d40da7e46ca719f35d973d9d9f55c'
+          fetch_asset "$DEMON_SKELETON/Skeleton_Minion.glb" "$SKELETON_ROOT/addons/kaykit_character_pack_skeletons/Characters/gltf/Skeleton_Minion.glb" '3b7e7ee4f1c8dd6dd99ddad27824ef1dc52ff12d'
+
+          fetch_asset 'assets/vendor/kaykit/licenses/Dungeon_Remastered_LICENSE.txt' "$DUNGEON_ROOT/LICENSE.txt" '686cf4ee3931b75d4ecfac6308f9d3287553748c'
+          fetch_asset 'assets/vendor/kaykit/licenses/Skeletons_LICENSE.txt' "$SKELETON_ROOT/LICENSE.txt" '5de5a1e35003680bd6b97b4c247eed71d51a9fb7'
+
+          mkdir -p assets/vendor/kaykit
+          cat > assets/vendor/kaykit/MANIFEST.json <<'JSON'
+          {
+            "version": 1,
+            "license": "CC0-1.0",
+            "sources": {
+              "dungeon": {
+                "repository": "KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0",
+                "commit": "b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07"
+              },
+              "skeletons": {
+                "repository": "KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0",
+                "commit": "15b62b9bad122f72926c10fb14d622c73819fa54"
+              }
+            },
+            "policy": "Curated runtime subset only. Git blob IDs are verified against the pinned upstream commits during materialization.",
+            "village": [
+              "chair.gltf.glb",
+              "table_medium.gltf.glb",
+              "bed_decorated.gltf.glb",
+              "shelf_large.gltf.glb",
+              "table_small.gltf.glb",
+              "table_long.gltf.glb",
+              "candle_lit.gltf.glb",
+              "chest.glb"
+            ],
+            "demon": {
+              "dungeon": ["barrel_small.gltf.glb", "box_small.gltf.glb", "rubble_large.gltf.glb", "torch_lit.gltf.glb"],
+              "skeletons": ["Skeleton_Minion.glb"]
+            }
+          }
+          JSON
+
+          rm -f .github/workflows/materialize-kaykit-assets.yml
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --stat
+          git commit -m 'chore(assets): materialize curated KayKit runtime models'
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
