@@ -16,7 +16,9 @@ test('Studio parser rejects altered MIDI bytes',()=>{
  const bad=structuredClone(catalog);bad.tracks[0].midiBase64=Buffer.concat([midi,Buffer.from([1])]).toString('base64');
  assert.throws(()=>readStudioCatalog(`<script id="catalogData">${JSON.stringify(bad)}</script>`),/MIDI digest mismatch/);
 });
-test('MIT evidence must contain permission and notice-retention clauses',()=>{
+test('MIT evidence must identify the license and contain permission/notice clauses',()=>{
  assert.equal(verifyMitLicense('MIT License\nPermission is hereby granted, free of charge, to any person...\nThe above copyright notice and this permission notice shall be included...'),true);
- assert.throws(()=>verifyMitLicense('MIT-ish'),/permission grant missing/i);
+ assert.throws(()=>verifyMitLicense('not an MIT notice'),/identify the MIT License/i);
+ assert.throws(()=>verifyMitLicense('MIT License\nThe above copyright notice and this permission notice shall be included...'),/permission grant missing/i);
+ assert.throws(()=>verifyMitLicense('MIT License\nPermission is hereby granted, free of charge, to any person...'),/notice-retention clause missing/i);
 });
