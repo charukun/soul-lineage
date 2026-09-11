@@ -37,13 +37,24 @@ The workflow uses concurrency cancellation, so superseded pushes do not need to 
 
 ## Normal loop
 
-1. Push Visual Review Lab/model/motion/VFX changes to `work/visual-review-lab-v2`.
-2. GitHub Actions builds the static preview and runs the asset-limit guard.
-3. The prebuilt assets are deployed to the same Worker URL.
-4. Review that URL on mobile and send corrections.
-5. Keep PR #23 Draft until the visual result is approved.
+1. Collect one review correction batch from the user.
+2. Implement the batch against the real shared character/model/motion/VFX sources and Review Lab integration.
+3. Push the completed batch to `work/visual-review-lab-v2`; avoid intermediate pushes when practical so one correction batch normally produces one preview deployment.
+4. GitHub Actions builds the static preview, runs the asset-limit guard and browser verification, then deploys the prebuilt assets to the same Worker URL.
+5. Verify the stable Worker URL is serving the expected latest commit/build. A source commit or green build alone is not sufficient.
+6. Only after the latest deployment and verification succeed, tell the user the preview is ready and ask them to reload the same URL.
+7. The user reviews on the target device and sends the next correction batch.
+8. Keep PR #23 Draft until the visual result is explicitly approved.
 
-If Cloudflare deployment is temporarily unavailable, source work and normal CI can continue; only the preview URL remains on the previous successful revision. The preview path must never block ordinary development.
+Never report a visual correction as ready for user review merely because source changes were committed. The user-review handoff point is successful deployment plus verification of the expected build on the stable preview URL.
+
+If Cloudflare deployment is temporarily unavailable, source work and normal CI can continue; the stable preview URL remains on the previous successful revision. Report that the preview is stale rather than asking the user to review it. Preview failure must never block unrelated ordinary development.
+
+## Review scope and environment separation
+
+The Visual Review Worker is a disposable review surface for the Draft branch, not DEV and not Production. Changes visible there do not imply that `develop`, normal DEV, `main`, or Production has changed. Promotion happens only through the normal Ready PR and Integration flow after visual approval.
+
+The stable preview URL is publicly reachable unless a separate access-control layer is deliberately configured. Do not put secrets, credentials, personal data, private administration functions, or other material unsuitable for public access into the Review Lab or its generated static assets.
 
 ## Large assets and deploy guards
 
