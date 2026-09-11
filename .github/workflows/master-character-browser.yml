@@ -1,0 +1,68 @@
+name: MasterCharacter Browser Validation
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'apps/rinne/characters.html'
+      - 'apps/rinne/src/character-review.js'
+      - 'apps/rinne/src/character-review-state.js'
+      - 'apps/rinne/src/character-review.css'
+      - 'packages/rendering/src/master-character*.js'
+      - 'packages/characters/**'
+      - 'scripts/browser/master-character.spec.mjs'
+      - 'scripts/browser/master-character.config.mjs'
+      - '.github/workflows/master-character-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: master-character-browser-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: Real 30-actor Chromium / WebGL2
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm exec -- playwright install --with-deps chromium
+      - name: Build Rinne DEV bundle
+        env:
+          APP_ENV: dev
+        run: npm run build:rinne
+      - name: Start local production preview
+        run: |
+          nohup npm run preview --workspace @soul/rinne > /tmp/rinne-preview.log 2>&1 &
+          node --input-type=module <<'JS'
+          const url = 'http://127.0.0.1:5273/characters.html';
+          for (let i = 0; i < 90; i++) {
+            try { const response = await fetch(url); if (response.ok) process.exit(0); } catch {}
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+          throw new Error('Rinne preview did not become ready');
+          JS
+      - name: Validate real 30-actor simulator
+        env:
+          MASTER_CHARACTER_URL: http://127.0.0.1:5273/characters.html
+        run: npm exec -- playwright test --config scripts/browser/master-character.config.mjs
+      - name: Preserve preview log
+        if: always()
+        run: |
+          mkdir -p test-results/master-character
+          cp /tmp/rinne-preview.log test-results/master-character/preview.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: master-character-browser-${{ github.run_id }}
+          path: test-results/master-character/
+          if-no-files-found: ignore
+          retention-days: 14
