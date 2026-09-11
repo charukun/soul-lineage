@@ -38,8 +38,7 @@ export async function verifyReviewBrowser(output,{publicUrl=process.env.REVIEW_P
     await openTab('advanced');await seek(.1);const a=await snapshot();await seek(.4);const b=await snapshot();assert.notDeepEqual(a.pose,b.pose,'Tidebreak Walk must animate');
     await page.locator('#step-forward').evaluate(node=>node.click());const c=await snapshot();assert.ok(Math.abs(c.time-(.4+1/60))<.001,'Paused frame stepping must work');
     await openTab('simple');
-    await page.waitForFunction(()=>[...document.querySelector('#clip').options].some(o=>o.value.startsWith('共有VRMA / ')),null,{timeout:90000});
-    const sharedValue=await page.locator('#clip option').evaluateAll(options=>options.find(o=>o.value.startsWith('共有VRMA / '))?.value||'');assert.ok(sharedValue);await page.selectOption('#clip',sharedValue);await page.click('#skill-fire');
+    const sharedWalk='共有VRMA / Walk / 歩行';await page.waitForFunction(value=>[...document.querySelector('#clip').options].some(o=>o.value===value),sharedWalk,{timeout:90000});await page.selectOption('#clip',sharedWalk);await page.click('#skill-fire');
     await page.waitForFunction(()=>[...document.querySelector('#clip').options].some(o=>o.value==='外部 / Walk_Loop'),null,{timeout:120000});
     await page.selectOption('#clip','外部 / Walk_Loop');await page.click('#skill-fire');
     await page.selectOption('#weapon-select','dagger');await page.waitForTimeout(1200);assert.equal(await page.locator('#weapon-select').inputValue(),'dagger');
