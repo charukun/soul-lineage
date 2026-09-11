@@ -8,7 +8,9 @@ PRの `Validate and build` 成功後、`Request Integration` が既存 `deploy.y
 
 mergeはGitHubのPR merge APIと実行のGITHUB_TOKENを使用します。途中のmergeからpush Workflowを発火させず、同じ実行で最終developを明示checkoutして高速検証・公開します。PAT・追加サービス・常駐pollingは不要です。
 
-レビュー提出・dismiss・thread解決もCIから再要求します。dispatch前に最新PRのReady/base/headを再照合し、一時的なAPI障害は最大3回再試行します。`workflow_run`/`schedule`はdefault branch上のworkflowを必要とするため、main変更禁止のこの構成では起動手段として使いません。
+レビュー提出・編集・dismissもCIから再要求します。dispatch前に最新PRのReady/base/headを再照合し、一時的なAPI障害は最大3回再試行します。`workflow_run`/`schedule`はdefault branch上のworkflowを必要とするため、main変更禁止のこの構成では起動手段として使いません。
+
+thread解決後にレビューイベントが発生しない場合は、既存CIのRequest Integration再実行またはdevelopへの手動dispatchで再判定します。GitHub Actionsにはthread解決専用のworkflow triggerはありません。
 
 各PRの`integration/queue` statusに保留理由またはmerge結果とActionsへのリンクを記録します。この運用statusと`Request Integration`自身はcode gateから除外します。明示hold・レビュー待ちは自動解除しません。自動化は自分の変更PRや承認を生成せず、基盤PRは下記の承認条件を維持します。解消できない保留を成功とは扱いません。
 

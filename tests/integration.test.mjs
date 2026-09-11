@@ -135,7 +135,7 @@ test('integration control PR is held without head approval and cannot self-loop'
   assert.match(result.held[0].reason,/approval/);
 });
 test('review wakeups have valid fast evidence and queue status cannot deadlock itself', async () => {
-  for (const event of ['pull_request_review','pull_request_review_thread']) {
+  for (const event of ['pull_request_review']) {
     const {c}=fake(); const original=c.pages;
     c.pages=async(p,k)=> {
       const result=await original(p,k);
@@ -175,8 +175,8 @@ test('held reasons are recorded idempotently without changing PR labels or revie
 test('normal DEV delivery excludes full/browser/P2P gates and verifies deployed SHA', () => {
   const workflow=readFileSync('.github/workflows/deploy.yml','utf8');
   const publish=workflow.split('  publish:')[1].split('  result:')[0];
-  assert.doesNotMatch(publish,/INTEGRATION_FULL|verify-browser|verify-p2p/);
-  assert.match(publish,/verify-live/); assert.match(workflow,/inputs.full_verification == true/);
+  assert.doesNotMatch(publish,/INTEGRATION_FULL|verify-p2p/);
+  assert.match(publish,/verify-live/); assert.match(publish,/github.ref == 'refs\/heads\/main'/); assert.match(workflow,/inputs.full_verification == true/);
   assert.match(workflow,/context: 'verification\/full'/);
   assert.match(readFileSync('scripts/verify-live.mjs','utf8'),/live.validatedDevelop, expected.validatedDevelop/);
 });

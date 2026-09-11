@@ -6,7 +6,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { contextName, dependencies, eligibility } from './integration-policy.mjs';
 
 export const queueContext = 'integration/queue';
-export const validationEvents = ['pull_request', 'pull_request_review', 'pull_request_review_thread'];
+export const validationEvents = ['pull_request', 'pull_request_review'];
 
 export function client(repository, token, request = fetch) {
   assert.match(repository, /^[\w.-]+\/[\w.-]+$/);
