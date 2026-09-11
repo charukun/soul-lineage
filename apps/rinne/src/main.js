@@ -28,5 +28,5 @@ if (new URLSearchParams(location.search).has('villageHostLab')) {
 if (import.meta.hot) import.meta.hot.dispose(()=>{cancelAnimationFrame(clock);lab?.then(link=>link.dispose());});
 if (import.meta.hot) import.meta.hot.dispose(dispose);
 
-const disposeMusic=installMusicLibrary({game:'rinne',environment:info.environment});
+const disposeMusic=installMusicLibrary({game:'rinne',environment:info.environment,defaultTrack:'r01',autoStart:true});
 if(import.meta.hot)import.meta.hot.dispose(disposeMusic);
