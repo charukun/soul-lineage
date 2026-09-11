@@ -26,6 +26,12 @@ export function desiredEntries(sources) {
   }
   return entries;
 }
+export function preserveProduction(desired, previous, devOnly) {
+  if (!devOnly) return desired;
+  const production = previous.entries.filter(entry => entry.environment === 'prod');
+  assert.ok(production.length, 'DEV-only Integration requires an existing Production manifest');
+  return [...desired.filter(entry => entry.environment === 'dev'), ...production];
+}
 export function needsBuild(entry, previous) {
   return !previous || previous.inputHash !== entry.inputHash || previous.legacy !== entry.legacy;
 }
@@ -41,16 +47,23 @@ async function main() {
   const response = await fetch(manifestUrl, { signal: AbortSignal.timeout(30000), cache: 'no-store' });
   if (response.status === 200) { previous = await response.json(); assert.equal(previous.schemaVersion, 1); }
   else assert.equal(response.status, 404, 'Cannot establish current deployment; refusing a blind replacement');
-  const desired = desiredEntries(sources);
+  const full = process.env.INTEGRATION_FULL === 'true';
+  const devOnly = process.env.DEPLOY_DEV_ONLY === 'true';
+  const developSha = git(sources.dev, ['rev-parse', 'HEAD']);
+  const desired = preserveProduction(desiredEntries(devOnly ? { dev: sources.dev } : sources), previous, devOnly);
   const old = new Map(previous.entries.map(entry => [entry.path, entry]));
   const changed = desired.filter(entry => needsBuild(entry, old.get(entry.path)));
   const removed = previous.entries.some(entry => !desired.some(next => next.path === entry.path));
-  const publish = changed.length > 0 || removed;
+  const publish = changed.length > 0 || removed || full;
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `changed=${publish}\n`);
   console.log(`Changed apps: ${changed.map(e => e.path).join(', ') || 'none'}`);
   if (!publish) { console.log('All app inputs unchanged; no build, test or Pages deployment needed.'); return; }
   await rm(output, { recursive: true, force: true }); await mkdir(output, { recursive: true });
   const installed = new Set();
+  if (full) {
+    run(sources.dev, 'npm', ['ci']); installed.add(sources.dev);
+    run(sources.dev, 'node', ['scripts/validate.mjs', 'full']);
+  }
   const entries = [];
   for (const entry of desired) {
     const former = old.get(entry.path);
@@ -63,8 +76,10 @@ async function main() {
       run(entry.root, 'npm', ['ci'], env); installed.add(entry.root);
       if (!entry.legacy) run(entry.root, 'npm', ['test'], env);
     }
-    run(entry.root, 'npm', ['run', 'check', ...(entry.legacy ? [] : ['--', entry.app])], env);
-    if (!entry.legacy) run(entry.root, 'npm', ['run', 'test:app', '--', entry.app], env);
+    if (!(full && entry.environment === 'dev')) {
+      run(entry.root, 'npm', ['run', 'check', ...(entry.legacy ? [] : ['--', entry.app])], env);
+      if (!entry.legacy) run(entry.root, 'npm', ['run', 'test:app', '--', entry.app], env);
+    }
     run(entry.root, 'npm', ['run', 'build', ...(entry.legacy ? [] : ['--workspace', `@soul/${entry.app}`])], env);
     const dist = resolve(entry.root, 'dist', entry.legacy ? '' : entry.app);
     const version = JSON.parse(readFileSync(resolve(dist, 'version.json'), 'utf8'));
@@ -86,7 +101,7 @@ async function main() {
   }
   await writeFile(resolve(output, 'index.html'), '<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=prod/"><title>輪廻転焦</title></head><body><a href="prod/">輪廻転焦</a></body></html>');
   await writeFile(resolve(output, '.nojekyll'), '');
-  await writeFile(resolve(output, 'deployment-manifest.json'), JSON.stringify({ schemaVersion: 1, entries }, null, 2));
+  await writeFile(resolve(output, 'deployment-manifest.json'), JSON.stringify({ schemaVersion: 1, ...(full ? { validatedDevelop: developSha } : {}), entries }, null, 2));
   await mkdir('.deploy-state', { recursive: true });
   await writeFile('.deploy-state/changed.json', JSON.stringify(changed.map(entry => entry.path)));
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,
