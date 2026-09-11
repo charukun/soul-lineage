@@ -1,9 +1,9 @@
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { appConfig } from '../../scripts/vite-app.mjs';
 
 const config = appConfig('rinne', import.meta.url);
-const appRoot = fileURLToPath(new URL('.', import.meta.url));
+const appRoot = dirname(fileURLToPath(import.meta.url));
 config.build = {
   ...config.build,
   rollupOptions: {
