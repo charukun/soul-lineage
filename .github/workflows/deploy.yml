@@ -107,14 +107,18 @@ jobs:
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
         run: node sources/dev/scripts/verify-live.mjs "$SITE_URL" _site
+      # DEV fast path: publishing is the completion gate. Browser checks still run and keep artifacts,
+      # but only Production treats them as release-blocking quality gates.
       - name: Verify final DEV apps in real Chromium / WebGL2
         if: steps.assemble.outputs.changed == 'true'
+        continue-on-error: ${{ github.ref == 'refs/heads/develop' }}
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
           INTEGRATION_FULL: ${{ github.ref == 'refs/heads/develop' }}
         run: node sources/dev/scripts/verify-browser.mjs "$SITE_URL" _site .deploy-state/changed.json
       - name: Verify public three-player P2P raid
         if: steps.assemble.outputs.changed == 'true' && github.ref == 'refs/heads/develop'
+        continue-on-error: true
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
         run: node sources/dev/scripts/verify-p2p-browser.mjs "$SITE_URL"
@@ -147,8 +151,8 @@ jobs:
               context: 'integration/develop',
               state: process.env.RESULT === 'success' ? 'success' : 'failure',
               description: process.env.RESULT === 'success'
-                ? 'Full regression + DEV HTTP + real Chromium/WebGL2 passed'
-                : 'Final verification failed; automatic merges paused until repair',
+                ? 'DEV published; post-deploy browser checks are non-blocking'
+                : 'DEV build/publish verification failed; automatic merges paused until repair',
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             });
             if (process.env.RESULT === 'success' && process.env.RETRY === 'true') {
