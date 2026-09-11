@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#0c1017">
   <title>Rinne Ops Board</title>
   <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./pr-board.css">
 </head>
 <body>
   <main class="shell">
@@ -23,6 +24,19 @@
     </section>
 
     <section id="alerts" class="alerts" hidden></section>
+
+    <section>
+      <div class="section-head"><h2>PR管理</h2><span class="muted">Draft → Ready → Merged</span></div>
+      <div id="pulls" class="card pull-board"><p class="empty">PR一覧を同期中</p></div>
+    </section>
+
+    <section id="visual-review-section" hidden>
+      <div class="section-head"><h2>Visual Review Lab</h2><span class="muted">長寿命Draft</span></div>
+      <div class="card pull-board visual-review-card">
+        <p class="visual-review-note">通常実装タスクとは分離して表示します。</p>
+        <div id="visual-review-pulls"></div>
+      </div>
+    </section>
 
     <section>
       <div class="section-head"><h2>公開環境</h2><span id="env-count" class="muted"></span></div>
@@ -50,5 +64,6 @@
     </footer>
   </main>
   <script type="module" src="./app.js"></script>
+  <script type="module" src="./pull-board.js"></script>
 </body>
 </html>
