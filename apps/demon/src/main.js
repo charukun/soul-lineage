@@ -3,6 +3,7 @@ const boot = document.querySelector('#boot');
 const progress = document.querySelector('#boot-progress');
 try {
   progress.value = 1;
+  await import('./asset-visuals.js');
   const game = await import('./web/main.js');
   progress.value = 2;
   await game.boot();
