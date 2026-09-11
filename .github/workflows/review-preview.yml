@@ -1,4 +1,5 @@
 name: Visual Review Preview
+# Dedicated review-only deployment; does not target develop, main, DEV, or Production.
 
 on:
   push:
