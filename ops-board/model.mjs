@@ -82,32 +82,6 @@ export function classifyPull(pr, runs = [], developRuns = [], now = Date.now()) 
   }
 
   const ciTime = Date.parse(ci.updated_at || ci.created_at || pr.updated_at || pr.created_at || 0) || now;
-  const relatedIntegration = developRuns.find(run => {
-    const created = Date.parse(run.created_at || run.run_started_at || 0) || 0;
-    return created >= ciTime - 30000;
-  }) || null;
-
-  if (relatedIntegration && ['queued', 'in_progress', 'waiting', 'requested', 'pending'].includes(relatedIntegration.status)) {
-    return {
-      ...base,
-      stage: 'INTEGRATING',
-      label: 'Integration中',
-      tone: 'progress',
-      reason: 'Integration workflow running',
-      integrationRun: relatedIntegration.html_url || null,
-    };
-  }
-  if (relatedIntegration && workflowFailure(relatedIntegration)) {
-    return {
-      ...base,
-      stage: 'FAILED',
-      label: 'Failed',
-      tone: 'danger',
-      reason: `Integration: ${relatedIntegration.conclusion}`,
-      integrationRun: relatedIntegration.html_url || null,
-    };
-  }
-
   const stalledMs = Math.max(0, now - ciTime);
   return {
     ...base,
@@ -122,11 +96,15 @@ export function classifyPull(pr, runs = [], developRuns = [], now = Date.now()) 
 }
 
 export function environmentDiff(dev, prod) {
-  const pulls = diffPulls(dev?.reflectedPrs || [], prod?.reflectedPrs || []);
+  if (dev?.historyComplete !== true || prod?.historyComplete !== true) {
+    return { count: null, pulls: [], label: 'DEV / Production差分は公開履歴を確定できるまで未確定', exact: false };
+  }
+  const pulls = diffPulls(dev.reflectedPrs || [], prod.reflectedPrs || []);
   return {
     count: pulls.length,
     pulls,
     label: pulls.length === 0 ? 'DEVとProductionは同一PR範囲' : `DEVはProductionより +${pulls.length} PR`,
+    exact: true,
   };
 }
 
@@ -162,6 +140,7 @@ export function overallIntegration(queue = [], latestDevelopRun = null, deployQu
     return { label: 'Failed', tone: 'danger' };
   }
   if (deployQueues.some(item => item?.warning)) return { label: 'Failed', tone: 'danger' };
+  if (latestDevelopRun && ['queued', 'in_progress', 'waiting', 'requested', 'pending'].includes(latestDevelopRun.status)) return { label: 'Integration中', tone: 'progress' };
   if (queue.some(item => item.stage === 'INTEGRATING')) return { label: 'Integration中', tone: 'progress' };
   if (queue.some(item => item.warning)) return { label: '滞留あり', tone: 'danger' };
   if (deployQueues.some(item => (item?.commitsAhead || 0) > 0)) return { label: 'deploy待ち', tone: 'warning' };
