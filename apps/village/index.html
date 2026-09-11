@@ -1,5 +1,29 @@
-<!doctype html>
-<html lang="ja"><head><meta charset="UTF-8"><link rel="icon" href="data:,"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="robots" content="noindex,nofollow"><title>村ハウジングゲーム</title></head>
-<body><main><header><img id="emblem" alt="共通ワールドの紋章"><div><p class="eyebrow">village / development</p><h1>村ハウジングゲーム</h1></div></header>
-<section class="stage" aria-label="共通ワールドのプレビュー"><canvas id="game" aria-label="共通家具のベンチ"></canvas><p class="caption">はじまりの村 · 共通の家具サンプル</p></section>
-<footer><span id="status" role="status">起動しています…</span><span>開発用の雛形 · ゲーム本編は準備中</span></footer></main><script type="module" src="/src/main.js"></script></body></html>
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><link rel="icon" href="data:,"><meta name="theme-color" content="#879a7a"><title>星継ぎの庭 | 輪廻転焦 Village</title><link rel="stylesheet" href="./src/web/style.css"></head><body>
+<canvas id="game" aria-label="村。指でなぞって移動、二本指で拡大縮小。建物をタップすると編集できます。"></canvas>
+<div id="loading"><span class="eyebrow">輪廻転焦 VILLAGE</span><p class="loadingTitle">星継ぎの庭</p><p id="loadText">暮らしと守りが、道をつくる。</p><progress id="progress" max="100" value="5"></progress><button id="retry" hidden>もう一度ひらく</button><button id="recover" hidden>保存を退避して新しい村をつくる</button></div>
+<header id="title"><img id="emblem" alt="輪廻転焦の紋章"><span class="eyebrow">輪廻転焦 VILLAGE</span><h1>星継ぎの庭</h1><p id="calendar"></p><p id="status" role="status" aria-live="polite"></p></header>
+<section id="idleStatus" aria-label="無操作中の村の状況"><span class="eyebrow">村 の い ま</span><p id="idleMood"></p><div class="idleFacts"><span><b id="idlePopulation"></b>暮らす人</span><span><b id="idleSafety"></b>村の守り</span><span><b id="idleBeds"></b>空き寝床</span></div><p id="idleResources"></p><p id="idleNote"></p></section>
+<p id="idleMoment"></p><div id="speechLayer" aria-hidden="true"></div>
+<div id="tutorial" hidden><button id="tutorialAction"><small id="tutorialCount"></small><span id="tutorialText"></span><span class="tutorialArrow">›</span></button><button id="dismissTutorial" aria-label="はじめの案内を閉じる">×</button></div>
+<button id="leaveRoom" class="glass" hidden>屋根を戻す</button>
+<div id="drawer" class="glass" hidden><div class="drawerHeader"><span id="drawerTitle">村に、何を置こう。</span><button id="closeDrawer" aria-label="閉じる">×</button></div><p id="stockTray"></p><div id="tabs"></div><div id="catalog"></div><footer><small>選んで地面をタップ · 長押しでドラッグ</small><div><button id="undo">取り消す</button><button id="more">その他</button></div></footer></div>
+<button id="build" class="glass" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8M5 10v10h14V10M9 20v-6h6v6"/></svg><span>つくる</span></button>
+<div id="context" class="glass" hidden><div class="contextTop"><span id="objectLabel"></span><button id="deselect" aria-label="選択を解除">×</button></div><p id="objectInfo"></p><div class="actions"><button id="move">移動</button><button id="enter">内装</button><button id="details">詳細</button></div></div>
+<div id="placement" class="glass" hidden><span id="placementText"></span><div id="materialChoices"></div><small id="placementCost"></small><div class="actions"><button id="rotate">回転</button><button id="cancelPlace">完了</button></div></div>
+<div id="toast" hidden><span id="toastText"></span></div>
+<dialog id="dialog"><div id="dialogContent"></div><form method="dialog"><button class="dialogClose">閉じる</button></form></dialog>
+<dialog id="onlineDialog"><p>参加コードでつなぐ共通村の対戦です。建築・住民の生活シミュレーションとは別に進行します。</p><main id="onlineHost"></main><form method="dialog"><button>村へ戻る</button></form></dialog>
+<input id="importFile" type="file" accept=".json,application/json" hidden>
+
+<script>
+// A failed entry-chunk download happens before the module bootstrap can run.
+window.addEventListener('error',function(event){
+ if(event.target && event.target.tagName==='SCRIPT' && !window.village){
+  document.getElementById('loadText').textContent='起動用ファイルを取得できませんでした。通信状態を確認して再試行してください。';
+  document.getElementById('retry').hidden=false;
+  document.getElementById('game').dataset.renderer='error';
+ }
+},true);
+document.getElementById('retry').onclick=function(){location.reload();};
+</script>
+<script type="module" src="./src/main.js"></script></body></html>

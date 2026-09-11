@@ -1,24 +1,48 @@
-import { sharedEmblemUrl } from '@soul/assets';
-import { createWorldPreview } from '@soul/rendering';
-import { showStatus } from '@soul/shared-ui';
-import { createWebPlatform } from '@soul/platform-web';
-import { createApp } from './app.js';
-import '@soul/shared-ui/style.css';
-import { installOnlineHost } from './online.js';
-const info = __BUILD_INFO__;
+// Keep this bootstrap independent of large modules so download/initialization
+// errors remain visible and retryable rather than stranding the loading screen.
 const canvas = document.querySelector('#game');
-const status = document.querySelector('#status');
-document.title = `${info.name} | ${info.environment.toUpperCase()}`;
-document.querySelector('#emblem').src = sharedEmblemUrl;
-canvas.dataset.app = info.app; canvas.dataset.commit = info.commit; canvas.dataset.environment = info.environment;
-try {
-  const platform = createWebPlatform({ gameId: 'village', environment: info.environment });
-  const app = createApp(platform);
-  const preview = createWorldPreview(canvas, app.world);
-  canvas.dataset.platform = platform.id; canvas.dataset.contentVersion = app.contentVersion;
-  showStatus(status, '起動完了 · 共通ワールドを読み込みました');
-  installOnlineHost();
-  if (import.meta.hot) import.meta.hot.dispose(() => preview.dispose());
-} catch (error) {
-  canvas.dataset.renderer = 'unavailable'; showStatus(status, '表示を開始できませんでした。WebGL2対応環境でお試しください。', 'error'); console.error(error);
+const loading = document.querySelector('#loading');
+const progress = document.querySelector('#progress');
+const message = document.querySelector('#loadText');
+const retry = document.querySelector('#retry');
+const recover = document.querySelector('#recover');
+let finished = false;
+const watchdog = setTimeout(() => {
+  if (finished) return;
+  message.textContent = '読み込みに時間がかかっています。通信状態を確認し、再試行できます。';
+  retry.hidden = false;
+}, 20000);
+function reportError(error) {
+  clearTimeout(watchdog);
+  finished = true;
+  loading.hidden = false;
+  canvas.dataset.renderer = 'error';
+  const detail = error?.message || String(error);
+  message.textContent = `村をひらけませんでした。\n${detail}`;
+  retry.hidden = false;
+  recover.hidden = !window.__VILLAGE_BOOT__?.canRecover();
 }
+retry.onclick = () => location.reload();
+recover.onclick = async () => {
+  if (!confirm('現在の保存データを退避して、新しい村を始めます。退避できなければ現在の保存は残します。続けますか？')) return;
+  recover.disabled = true;
+  try { await window.__VILLAGE_BOOT__.recover(); location.reload(); }
+  catch (error) { reportError(error); recover.disabled = false; }
+};
+window.addEventListener('village:fatal', event => reportError(event.detail));
+try {
+  progress.value = 10;
+  message.textContent = '村の資産と暮らしの仕組みを読み込んでいます。';
+  const { boot } = await import('./web/main.js');
+  await boot({
+    onProgress(value, text) { progress.value = value; message.textContent = text; },
+  });
+  clearTimeout(watchdog);
+  finished = true;
+  progress.value = 100;
+  loading.hidden = true;
+} catch (error) {
+  console.error(error);
+  reportError(error);
+}
+if (import.meta.hot) import.meta.hot.accept(() => location.reload());

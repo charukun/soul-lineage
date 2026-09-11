@@ -76,6 +76,19 @@ for (const target of targets) {
       expect(nextIDs).not.toContain(started.village);
       await page.locator('#sheet-close').click();
       await page.setViewportSize({ width: 1280, height: 800 });
+    } else if (target.app === 'village' && !target.legacy && await page.locator('#build').count()) {
+      await expect(canvas).toHaveAttribute('data-game-world', 'hoshitsugi.life-and-guard.v5');
+      await expect(page.locator('#loading')).toBeHidden();
+      await expect(page.getByRole('heading', {level: 1})).toHaveText('星継ぎの庭');
+      await page.setViewportSize({width:390,height:844});
+      await page.locator('#build').click();
+      await expect(page.locator('#catalog')).toBeVisible();
+      await page.locator('#more').click();
+      await page.locator('#onlineOpen').click();
+      await expect(page.locator('#make-offer')).toBeVisible();
+      await page.locator('#onlineDialog form button').click();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({path:testInfo.outputPath('village-mobile.png')});
     } else if (!target.legacy) {
       await expect(page.getByRole('heading', { level: 1 })).toHaveText(target.version.name);
       await expect(canvas).toHaveAttribute('data-app', target.app);

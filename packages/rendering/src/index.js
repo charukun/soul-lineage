@@ -35,3 +35,6 @@ export function createWorldPreview(canvas, world) {
   canvas.addEventListener('webglcontextlost', lost); canvas.addEventListener('webglcontextrestored', render); render();
   return { dispose() { observer.disconnect(); canvas.removeEventListener('webglcontextlost', lost); canvas.removeEventListener('webglcontextrestored', render); resources.forEach(r => r.dispose()); renderer.dispose(); } };
 }
+// App render adapters reuse the workspace engine; never ship a second vendor copy.
+export * as THREE from 'three';
+export { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
