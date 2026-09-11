@@ -183,7 +183,8 @@ async function buildPreviewEnvironment(candidate, branches, previous) {
 }
 
 async function compareQueue(deployedCommit, branchCommit) {
-  if (!deployedCommit || !branchCommit || deployedCommit === branchCommit) return deploymentQueue({ status: 'identical', ahead_by: 0, behind_by: 0, total_commits: 0, commits: [] });
+  if (!deployedCommit || !branchCommit) return deploymentQueue(null);
+  if (deployedCommit === branchCommit) return deploymentQueue({ status: 'identical', ahead_by: 0, behind_by: 0, total_commits: 0, commits: [] });
   const { data } = await github(`/compare/${encodeURIComponent(deployedCommit)}...${encodeURIComponent(branchCommit)}`);
   return deploymentQueue(data);
 }
