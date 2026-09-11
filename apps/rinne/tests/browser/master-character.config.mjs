@@ -7,7 +7,7 @@ export default defineConfig({
   retries: 0,
   timeout: 180000,
   expect: { timeout: 15000 },
-  outputDir: '../../test-results/master-character',
+  outputDir: '../../../../test-results/master-character',
   reporter: [['list']],
   use: {
     browserName: 'chromium',
