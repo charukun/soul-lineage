@@ -1,0 +1,12 @@
+{
+  "id": "./review.html",
+  "name": "輪廻転焦 Visual Review Lab",
+  "short_name": "Visual Review",
+  "description": "輪廻転焦の3D・モーション・VFX確認環境。",
+  "lang": "ja",
+  "start_url": "./review.html",
+  "display": "standalone",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
+  "icons": [{ "src": "./review-icons/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
