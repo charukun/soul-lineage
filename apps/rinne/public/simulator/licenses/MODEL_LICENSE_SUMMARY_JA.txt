@@ -1,0 +1,63 @@
+Atelier Humanoid Review 2 / モデルとモーションの利用条件
+確認日: 2026-09-11
+本Reviewのプログラムの利用条件と第三者アセットの利用条件は別です。
+各モデルとモーションの正確な原本SHA-256、取得元Repository/commit/Runはassets/manifest.json、assets/motions.jsonにあります。
+
+AvatarSample_A / AvatarSample_B / AvatarSample_C
+作者: VRoid Project / pixiv Inc.
+https://vroid.pixiv.help/hc/en-us/articles/4402394424089-VRoidPreset-A-Z
+VRoidの独自利用条件。CC0でもMITでもありません。
+個人・法人による商用利用は可能ですが、含まれるモデルデータの有償再配布、キャラクター作成サービスへの転用、CC0化などは禁止されています。
+この無料Reviewに同梱します。原本・派生データの利用にも公式の条件を継承してください。
+このソフトはpixivの公式ソフトや推奨製品ではありません。
+
+Sendagaya_Shino
+原作: VRoid Project / pixiv Inc.
+https://vroid.pixiv.help/hc/en-us/articles/360013482714-Sendagaya-Shino
+原作はCC0です。
+収録するのはCoatie (metadata: coati)によるVRM 1.0変換版v2.0です。
+https://hub.vroid.com/en/characters/4593660874193246717/models/7956589129305596116
+https://github.com/yw0nam/YUI/blob/9bce6c36d28f58693db3ce6f4203871ab1c11b76/resources/vrms/Sendagaya_Shino.PROVENANCE.md
+変換版の埋込情報: commercialUsage=corporation, allowRedistribution=true,
+modification=allowModificationRedistribution, creditNotation=unnecessary,
+licenseUrl=https://vrm.dev/licenses/1.0/
+原作のCC0と変換版の埋込条件を混同せず、公開ページと埋込情報を確認してください。
+
+つくよみちゃん公式3Dモデル タイプA © Rei Yumesaki
+作者: 夢前黎（Rei Yumesaki）、スカート調整: DONAMO-163
+https://tyc.rei-yumesaki.net/material/avatar/3d-a/
+本ソフトへの同梱として提供します。独立した単体モデル配布として扱わないでください。
+個人・法人の商用利用可能。所定のクレジット、原作キャラクターとしての同一性、キャラクター利用条件の継承が必要です。
+公開するコンテンツにも原作名と利用条件を継承してください。
+このソフトのオリジナルキャラクターではありません。本Reviewの動作は公式の言動・設定ではありません。
+実在対象への攻撃・批判、特定の政治・宗教・思想を主張する用途に使わないでください。
+未改変原本の単体有償配布、VRoid Hubの公開再配布で元規約を上書きすることはできません。
+その他の条件・細則・クレジット方法は公式ページを参照してください。
+PNG保存機能にはモデル名、クレジットと利用条件URLを添えています。
+ソフトウェア全体の転載時にも本通知を含めてください。
+
+共通VRMA 13本
+個別のSHA-256はassets/motions.jsonに記録しています。以下の3配布元はいずれも作者ページでCC0を明示しています。
+・Sachi VRMA 1 / sashii
+ https://booth.pm/ja/items/6412084
+ idle-01, speaking-01, airplane-02, airplane-05
+・CC0-animation-retarget-vrm / sashii、元Josieモーション: JenJell
+ https://booth.pm/ja/items/7861818
+ https://jenjell.itch.io/josie-character-model
+ walk, run-slow
+・使いどころに困るモーションセット / へすい・rerofumi
+ https://booth.pm/ja/items/5527394
+ drink-water, exercise-step, failed-apology, pose-motion, reaction-startle, review-phone, success-cheer
+CC0: https://creativecommons.org/publicdomain/zero/1.0/
+比較ではwalk/run-slowの水平ルート移動を固定します。VRMAの原本は変更していません。
+モーションのライセンスがCC0でも、適用先のキャラクターの利用条件は残ります。
+これらの13本はモデルの内蔵Animationではありません。
+
+Review作成モーション
+src/motions.jsのIdle, Walk, Run, Attack, Hit Reactionは本Review用に作成した共通比較テンプレートです。
+取得元モデルの内蔵Animation、モーションキャプチャ、戦闘ゲーム完成品としては提供していません。
+衣装の布シミュレーションや衝突判定は含みません。大きな姿勢では衣装貫通や接地のずれが残ります。
+
+手元から追加したモデル
+ライセンスは検証されません。埋込情報にAllowなどがあっても、正規の権利許諾の証明にはなりません。
+原作者・正規配布元の条件を確認してください。読込はブラウザ内のみで、外部送信は行いません。
