@@ -10,6 +10,7 @@ This repository contains 輪廻転焦 (formerly 魂の系譜), village housing, 
 - Keep production source on main. Reuse existing GitHub Pages/OIDC infrastructure, retain unchanged app artifacts, and do not silently promote develop game code to production.
 - Validate affected apps and shared packages. Deployment changes also require infrastructure tests and public URL verification.
 - For smartphone-only development, follow `docs/MOBILE_HYBRID_DEVELOPMENT.md`: normal WORK/GitHub connector is the default; when connector transport cannot handle changed files, switch the same work branch to GitHub Codespaces and normal `git push`. Do not split/Base64-retry large binaries through the connector.
+- For Rinne 3D model, character motion and VFX visual-correction work, `apps/rinne/docs/VISUAL_REVIEW_PREVIEW.md` is the operating source of truth. Keep the review PR Draft during iteration, use the dedicated Workers Static Assets preview rather than normal DEV/Codespaces/Cloudflare Pages, and do not ask the user to review until the latest preview deployment and verification have succeeded.
 
 ## WORK roles (current operation)
 
