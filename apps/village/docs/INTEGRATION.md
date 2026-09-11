@@ -2,7 +2,7 @@
 
 ## 正本と範囲
 
-Base: `charukun/soul-lineage` develop `69ea1f714e6c07bea079884ab7ebc0088f0feaa9`。
+Base: `charukun/soul-lineage` develop `9909f10`（オンライン村襲撃統合後）。
 入力: `Hoshitsugi_Village_LifeAndGuard_Package.zip`。既存の `apps/village` の入口・Vite構成・共通Platform契約を維持します。`apps/rinne`、`apps/demon`、main、Production、CI/CD定義は変更対象外です。
 
 `src/game/{core,catalog,terrain,simulation,bridge}.js` は添付のゲームルールを変更せず移設しました。512m四方、村長と護衛の初期生活、建築・内装・取り消し、地形・資源解放・建材選択、住民の生産・食事・家具・移住、人口制限、11m護衛保護、救助、45秒予告と人口連動のAI襲撃、増築、5年ごとの船を保持しています。
@@ -23,7 +23,7 @@ Platform storageと共通SaveEnvelopeを使用し、environment / gameId=village
 
 ## 未接続の機能を成功扱いしない
 
-本編の実プレイヤー、魔物プレイヤー、共通オンライン村、認証、村長ホスト/Host Migration、本編の戦闘・時計・乗船転送は今回のdevelopに接続先がないため、このローカル村とは未接続です。一族居住はデータ契約と明示的なデモまで、襲撃はAIです。UIでもその区別を表示します。新しい共有ネットワーク契約を勝手に制定しません。
+最新developの参加コード式オンライン村ホストは、その他→オンライン村から開ける専用ダイアログへ維持しました。`src/online.js` と共有通信実装は最新developのままです。共通村ID・既存台帳・通信・対人戦闘の挙動を変更していません。再表示しても同じホストを利用します。建築した地形・住民の生活・一族居住はそのオンライン状態へ同期されず、認証・Host Migration・本編時計・乗船転送も未接続です。一族居住はデータ契約と明示的なデモまで、襲撃はAIです。UIでもその区別を表示します。新しい共有ネットワーク契約を勝手に制定しません。
 
 時計は添付のローカル仕様（1日60秒・1年12日、停止/1/5/20倍）を維持し、非表示タブでは進行を止めます。SwiftShaderによる画面確認はPixel Fold実機の性能保証やコンソール対応の証明ではありません。
 
@@ -32,7 +32,10 @@ Platform storageと共通SaveEnvelopeを使用し、environment / gameId=village
 - 元のゲームルール64件に保存保護・環境分離9件を追加し、Nodeで73件成功。
 - 3600秒の決定的進行テスト成功。19人、4襲撃、喪失0人、増築10件、生産・食事・家具購入を確認。
 - ローカルUIの57項目、起動・保存・context lossの異常系7項目が成功。ローカルUI確認はネットワークの管理制限によりabout:blankで統合ソースをdata URLとしてロード。添付Three.js 0.185.1とメモリ保存ポートを利用する限定試験であり、配信URL・本番保存・Repository pin 0.186.0による動作証明とは区別します。
-- 正式なNode 24 / lockfile / Three.js 0.186.0 / Viteビルドは未実行。GitHubへのソース登録がOpenAIの安全性確認でブロックされたためcommit/PR/CIには未到達です。次の担当は既存高速CIで確認し、実行結果をPRに記録してください。
+- 引き継ぎ後、Node 24.19.0 / npm 11.9.0で `npm ci`、最新developに対する既存fast gateの135テスト、3ゲームのViteビルドが成功。Three.js 0.186.0を利用。GitHubへのソース登録も完了。最終headのCI結果はPR #9で確認してください。
+- 進行テストの出力先指定をNode path APIへ修正し、workspace境界検査を通過。ブラウザ試験はrunner起動例外も失敗として記録するよう修正。
+- 実URLの操作テスト62/62成功（Chromium 152 + SwiftShader、Three.js r186、localStorage）。PC/縦持ちタッチ/横持ち、建築、内装、資源、増築、AI襲撃、保存・再読込を確認。
+- ビルド済み配信の起動・保存・破損退避・context lossと最新developのオンライン村メニュー（起動・時計・再表示）は10/10成功。新たな実プレイヤー同士の接続試験はこの村統合では再実施せず、通信処理自体は最新developを維持しています。
 - 最終develop・DEV公開・公開URLの実Chromium確認はIntegration担当。Readyや高速CIだけで公開完了と報告しません。
 
 Depends-On: none

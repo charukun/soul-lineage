@@ -8,3 +8,5 @@
 @media(prefers-reduced-motion:reduce){#idleStatus,#idleMoment,.speech{transition:none;animation:none}}
 
 #emblem{width:24px;height:24px;position:absolute;left:-34px;top:18px}#title{margin-left:28px}#status{font-size:10px;max-width:260px}#status:empty{display:none}.loadingTitle{font-size:clamp(28px,6vw,44px);letter-spacing:.2em;margin:16px 0}#loading button{margin:10px 0}#loading p{white-space:pre-wrap;overflow-wrap:anywhere}#loading{z-index:100}#recover{max-width:90vw}
+
+#onlineDialog{max-width:720px;width:calc(100vw - 32px);max-height:85vh;overflow:auto;border:1px solid var(--border);border-radius:18px;background:#f9f5e9;color:#394334;padding:20px}#onlineDialog::backdrop{background:#17221380}#onlineDialog main{min-width:0}#onlineDialog pre{white-space:pre-wrap;overflow-wrap:anywhere}#onlineDialog textarea{box-sizing:border-box}

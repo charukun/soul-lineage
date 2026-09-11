@@ -15,6 +15,7 @@
     "@soul/rendering": "*",
     "@soul/shared-ui": "*",
     "@soul/game-data": "*",
-    "@soul/platform-web": "*"
+    "@soul/platform-web": "*",
+    "@soul/network": "*"
   }
 }
