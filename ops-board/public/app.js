@@ -104,7 +104,8 @@ function renderDiff(diff) {
   const root = $('#diff');
   root.replaceChildren();
   const top = el('div', 'diff-title');
-  top.append(el('strong', '', diff?.label || '差分を確定できません'), badge(diff?.count ? `+${diff.count}` : '0', diff?.count ? 'warning' : 'ok'));
+  const exactCount = Number.isInteger(diff?.count);
+  top.append(el('strong', '', diff?.label || '差分を確定できません'), badge(exactCount ? (diff.count ? `+${diff.count}` : '0') : '—', exactCount ? (diff.count ? 'warning' : 'ok') : 'info'));
   root.append(top, details('差分PR一覧', prList(diff?.pulls)));
 }
 
