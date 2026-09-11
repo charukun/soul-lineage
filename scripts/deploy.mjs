@@ -35,6 +35,24 @@ export function preserveProduction(desired, previous, devOnly) {
 export function needsBuild(entry, previous) {
   return !previous || previous.inputHash !== entry.inputHash || previous.legacy !== entry.legacy;
 }
+export function uniqueEnvironmentCommit(entries, environment) {
+  const commits = [...new Set(entries.filter(entry => entry.environment === environment).map(entry => entry?.version?.commit).filter(Boolean))];
+  return commits.length === 1 ? commits[0] : null;
+}
+export function buildEnvironmentSnapshots(previous, entries, { developSha, productionSha, devOnly, deployedAt, workflowRunId }) {
+  const snapshots = {
+    dev: { branch: 'develop', commit: developSha, deployedAt, workflowRunId },
+  };
+  if (!devOnly) {
+    snapshots.prod = { branch: 'main', commit: productionSha, deployedAt, workflowRunId };
+  } else if (previous?.environmentSnapshots?.prod?.commit) {
+    snapshots.prod = previous.environmentSnapshots.prod;
+  } else {
+    const legacyProd = uniqueEnvironmentCommit(entries, 'prod');
+    if (legacyProd) snapshots.prod = { branch: 'main', commit: legacyProd, deployedAt: null, workflowRunId: null, source: 'legacy-entry-set' };
+  }
+  return snapshots;
+}
 async function main() {
   const sources = { dev: resolve(process.argv[2]), prod: resolve(process.argv[3]) };
   const output = resolve(process.argv[4] || '_site');
@@ -50,6 +68,7 @@ async function main() {
   const full = process.env.INTEGRATION_FULL === 'true';
   const devOnly = process.env.DEPLOY_DEV_ONLY === 'true';
   const developSha = git(sources.dev, ['rev-parse', 'HEAD']);
+  const productionSha = git(sources.prod, ['rev-parse', 'HEAD']);
   const desired = preserveProduction(desiredEntries(devOnly ? { dev: sources.dev } : sources), previous, devOnly);
   const old = new Map(previous.entries.map(entry => [entry.path, entry]));
   const changed = desired.filter(entry => needsBuild(entry, old.get(entry.path)));
@@ -102,7 +121,10 @@ async function main() {
   }
   await writeFile(resolve(output, 'index.html'), '<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=prod/"><title>輪廻転焦</title></head><body><a href="prod/">輪廻転焦</a></body></html>');
   await writeFile(resolve(output, '.nojekyll'), '');
-  await writeFile(resolve(output, 'deployment-manifest.json'), JSON.stringify({ schemaVersion: 1, ...((full || devOnly) ? { validatedDevelop: developSha } : {}), entries }, null, 2));
+  const deployedAt = new Date().toISOString();
+  const workflowRunId = process.env.GITHUB_RUN_ID || null;
+  const environmentSnapshots = buildEnvironmentSnapshots(previous, entries, { developSha, productionSha, devOnly, deployedAt, workflowRunId });
+  await writeFile(resolve(output, 'deployment-manifest.json'), JSON.stringify({ schemaVersion: 1, ...((full || devOnly) ? { validatedDevelop: developSha } : {}), environmentSnapshots, entries }, null, 2));
   await mkdir('.deploy-state', { recursive: true });
   await writeFile('.deploy-state/changed.json', JSON.stringify(changed.map(entry => entry.path)));
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,
