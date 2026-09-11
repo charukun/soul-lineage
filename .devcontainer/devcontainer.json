@@ -2,11 +2,12 @@
   "name": "soul-lineage mobile hybrid",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:1-24-bookworm",
   "postCreateCommand": "npm ci",
+  "postStartCommand": "bash -lc 'if ! curl -fsS http://127.0.0.1:5173/review.html >/dev/null 2>&1; then nohup env REVIEW_LAB=1 npm run dev:rinne >/tmp/rinne-review-lab.log 2>&1 </dev/null & fi'",
   "forwardPorts": [5173, 5174, 5175],
   "portsAttributes": {
     "5173": {
-      "label": "rinne / Vite",
-      "onAutoForward": "notify"
+      "label": "Rinne Visual Review Lab",
+      "onAutoForward": "openBrowser"
     },
     "5174": {
       "label": "secondary Vite",
