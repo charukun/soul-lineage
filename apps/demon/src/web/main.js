@@ -8,6 +8,7 @@ import {RaidSession} from '@soul/raid';
 import {PREY,FORMS,offerVillages,importHousing} from '@soul/raid/world';
 import {SwipeInput} from '@soul/input';
 import {createTidebreakRuntime} from '@soul/tidebreak-combat';
+import {installOnlineRaid} from './online.js';
 const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let view,game,store,profile,error=null,mode='title',paused=false,sheetKind='',toastUntil=0,toastText='',last=0,acc=0,returnMode=false,selectedPower=null,drag=null,lastHud=0;
 const swipe=new SwipeInput(),audio=new NightAudio();
@@ -53,6 +54,7 @@ export async function boot(){const storage=await createExclusiveProfileStorage(_
  $('sheet-close').onclick=()=>{if(sheetKind==='error'&&error)return;if(mode==='result'){mode='title';$('title').hidden=false;$('hud').hidden=true;}paused=false;closeSheet();};
  window.addEventListener('resize',()=>view.resize());installInput();requestAnimationFrame(frame);
  window.__NIGHT_HUNT__={snapshot:()=>({mode,paused:!$('sheet').hidden||paused,source:game.village.source,village:game.village.id,visited:Object.keys(store.read().visits),profile:store.read(),player:JSON.parse(JSON.stringify(game.player)),npcs:game.village.npcs.map(n=>({id:n.id,kind:n.kind,adult:n.adult,role:n.role,hp:n.hp,dead:n.dead,eaten:n.eaten,x:n.x,z:n.z,marked:n.marked,state:n.state})),combat:game.fight?game.fight.core.state():null,eaten:game.eaten,alarm:game.alarm,time:game.time,finished:game.finished,metrics:view.metrics(),input:{id:swipe.id,dx:swipe.dx,dy:swipe.dy,amount:swipe.amount,dash:swipe.dash}}),openRoutes:routes};
+ installOnlineRaid(()=>window.__NIGHT_HUNT__.snapshot());
  // Explicit review mode only. Never deletes visit history or fakes an online identity.
  if(import.meta.env.DEV && new URLSearchParams(location.search).has('review'))window.__NIGHT_REVIEW__={enter:async(i=0)=>{await claimAndEnter(offerVillages(store)[i]);},nearHuman(i=0){const n=game.village.npcs[i];game.player.x=n.x;game.player.z=n.z+2.5;game.player.yaw=Math.PI;},setPosition(x,z){game.fight=null;game.devour=null;game.player.x=x;game.player.z=z;game.player.pose=null;},step(n=1){for(let i=0;i<Math.min(n,36000)&&!game.finished;i++)game.tick(1/60,{x:0,z:0,amount:0});},unlock(k){store.unlock(k);refresh();},finish(s='escaped'){game.finish(s);},retry(id){return store.claim({id,name:'再訪テスト'});},read:()=>store.read(),screenshot(){view.update(game,1/60,false);hud(performance.now());},ready:()=>!!game};
 }
