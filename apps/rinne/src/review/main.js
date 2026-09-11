@@ -47,7 +47,7 @@ async function startReview() {
   function weapon(){body?.setWeapon?.({enabled:q('#weapon-toggle').checked,scale:numeric('#weapon-scale',.5),x:numeric('#weapon-x'),y:numeric('#weapon-y'),z:numeric('#weapon-z')});}
   function sample(){
     if(action){action.enabled=true;action.paused=false;action.time=clock.time;mixer.update(0);}
-    weapon();body?.root.updateMatrixWorld(true);
+    weapon();body?.afterSample?.();body?.root.updateMatrixWorld(true);
     const age=q('#overlay-toggle').checked&&activeClip?markerAge(clock.time,numeric('#overlay-time',.42),clock.duration,clock.loop):Infinity;
     body?.sampleEffects?.(age);
     q('#timeline').max=String(clock.duration||1);q('#timeline').value=String(clock.time);
@@ -70,26 +70,31 @@ async function startReview() {
     body=next;scene.add(body.root);mixer=new THREE.AnimationMixer(body.root);
     body.root.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;}});
     q('#source-label').textContent=body.label;
+    q('#weapon-controls').hidden=body.weaponReview===false;
     const selector=q('#clip');selector.replaceChildren(new Option('元モデル（静止比較）',''));
-    const families=[...REVIEW_MOTION_FAMILIES,{id:'other',label:'その他の収録動作'}];
-    for(const family of families){
-      const names=body.clipNames.filter(name=>classifyMotion(name)===family.id);
-      const group=document.createElement('optgroup');group.label=family.label;
-      if(!names.length){const option=new Option('未収録 / 自動代用なし','');option.disabled=true;group.append(option);}
-      for(const name of names)group.append(new Option(name,name));selector.append(group);
+    if(body.clipGroups?.length){
+      for(const row of body.clipGroups){const group=document.createElement('optgroup');group.label=row.label;for(const name of row.names)group.append(new Option(name,name));selector.append(group);}
+    }else{
+      const families=[...REVIEW_MOTION_FAMILIES,{id:'other',label:'その他の収録動作'}];
+      for(const family of families){
+        const names=body.clipNames.filter(name=>classifyMotion(name)===family.id);
+        const group=document.createElement('optgroup');group.label=family.label;
+        if(!names.length){const option=new Option('未収録 / 自動代用なし','');option.disabled=true;group.append(option);}
+        for(const name of names)group.append(new Option(name,name));selector.append(group);
+      }
     }
     const absent=REVIEW_MOTION_FAMILIES.filter(row=>!body.clipNames.some(name=>classifyMotion(name)===row.id)).map(row=>row.label);
-    q('#family-summary').textContent=`収録 ${body.clipNames.length}動作。${absent.length?'未収録: '+absent.join('・'):'6系統の候補を検出'}。動作名は配布元のまま。`;
-    const wanted=params.get('clip'),first=body.clipNames.includes(wanted)?wanted:body.clipNames.includes('Idle_Loop')?'Idle_Loop':body.clipNames[0];
+    q('#family-summary').textContent=body.summary||`収録 ${body.clipNames.length}動作。${absent.length?'未収録: '+absent.join('・'):'6系統の候補を検出'}。動作名は配布元のまま。`;
+    const wanted=params.get('clip'),first=body.clipNames.includes(wanted)?wanted:body.clipNames.includes('Idle_Loop')?'Idle_Loop':body.clipNames.includes('Idle')?'Idle':body.clipNames[0];
     playClip(params.get('rest')==='1'?'':first||'',true);
     if(params.has('t'))clock.seek(Math.max(0,Number(params.get('t'))||0));
     wireframe();refreshHelpers();frameModel(params.get('camera')||'three');sample();setStatus('実素材読込済み / 見た目の承認待ち');
   }
-  async function loadPreset(){
+  async function loadPreset(presetId=q('#preset').value||reviewPresets[0].id){
     const token=++generation;loading?.abort();loading=new AbortController();clearBody();setStatus('実素材を読み込み中');
-    q('#preset').value=reviewPresets[0].id;q('#model-url').value='';
+    q('#preset').value=presetId;q('#model-url').value='';
     try{
-      const result=await extensions.loadPreset({signal:loading.signal,onProgress:message=>{if(token===generation)setStatus(message);}});
+      const result=await extensions.loadPreset({presetId,signal:loading.signal,onProgress:message=>{if(token===generation)setStatus(message);}});
       if(token!==generation){result.dispose();return;}attach(result);
     }catch(error){if(token===generation){clearBody();setStatus(`${error.message} / 再試行できます`,'error');console.error(error);}}
   }
@@ -104,7 +109,8 @@ async function startReview() {
     }catch(error){if(token===generation){if(gltf)disposeLoaded(gltf.scene);clearBody();setStatus(`${error.message} / 代用モデルは表示しません`,'error');console.error(error);}}
   }
   for(const preset of reviewPresets)q('#preset').add(new Option(preset.label,preset.id));
-  q('#preset').addEventListener('change',wrap(()=>{if(q('#preset').value)return loadPreset();}));
+  if(params.has('preset')&&reviewPresets.some(row=>row.id===params.get('preset')))q('#preset').value=params.get('preset');else q('#preset').value=reviewPresets[0].id;
+  q('#preset').addEventListener('change',wrap(()=>{if(q('#preset').value)return loadPreset(q('#preset').value);}));
   q('#retry').addEventListener('click',wrap(()=>q('#model-url').value.trim()?loadManual(q('#model-url').value.trim()):loadPreset()));
   q('#load-url').addEventListener('click',wrap(()=>{const url=q('#model-url').value.trim();if(!url)throw new Error('モデルURLを入力してください');return loadManual(url);}));
   q('#model-file').addEventListener('change',wrap(async()=>{
