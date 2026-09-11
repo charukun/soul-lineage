@@ -24,7 +24,8 @@
     "build:demon": "npm run build --workspace @soul/demon",
     "affected": "node scripts/affected.mjs",
     "preview": "npm run preview --workspace @soul/rinne",
-    "app:add": "node scripts/add-app.mjs"
+    "app:add": "node scripts/add-app.mjs",
+    "push:route": "node scripts/check-push-route.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
