@@ -41,12 +41,22 @@ test('published commit prefers explicit deployment snapshot and fails closed for
 });
 
 test('DEV vs Production PR delta is an exact set difference', () => {
-  const dev = { reflectedPrs: [{ number: 3 }, { number: 2 }, { number: 1 }] };
-  const prod = { reflectedPrs: [{ number: 1 }] };
+  const dev = { historyComplete: true, reflectedPrs: [{ number: 3 }, { number: 2 }, { number: 1 }] };
+  const prod = { historyComplete: true, reflectedPrs: [{ number: 1 }] };
   const diff = environmentDiff(dev, prod);
   assert.equal(diff.count, 2);
   assert.match(diff.label, /\+2 PR/);
   assert.deepEqual(diff.pulls.map(x => x.number), [3, 2]);
+});
+
+test('DEV vs Production diff fails closed while either public history is incomplete', () => {
+  const diff = environmentDiff(
+    { historyComplete: true, reflectedPrs: [{ number: 3 }] },
+    { historyComplete: false, reflectedPrs: [] },
+  );
+  assert.equal(diff.count, null);
+  assert.equal(diff.exact, false);
+  assert.deepEqual(diff.pulls, []);
 });
 
 test('ready PR with successful CI becomes red after the stall threshold', () => {
