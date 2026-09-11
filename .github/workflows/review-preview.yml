@@ -19,6 +19,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Mark Review Lab deployment pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=pending \
+            -f context=visual-review/public \
+            -f description="Visual Review Lab deployment is running" \
+            -f target_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
@@ -44,17 +53,26 @@ jobs:
         env:
           REVIEW_PUBLIC_URL: ${{ steps.deploy.outputs.url }}
         run: npm run test:review-browser
-      - name: Expose stable Review Lab URL
-        if: steps.deploy.outcome == 'success'
+      - name: Record Review Lab result
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
           REVIEW_PUBLIC_URL: ${{ steps.deploy.outputs.url }}
         run: |
+          state=failure
+          description="Visual Review Lab deployment failed"
+          target_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [ "$JOB_STATUS" = "success" ] && [ -n "$REVIEW_PUBLIC_URL" ]; then
+            state=success
+            description="Visual Review Lab is live"
+            target_url="$REVIEW_PUBLIC_URL"
+          fi
           gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
-            -f state=success \
+            -f state="$state" \
             -f context=visual-review/public \
-            -f description="Visual Review Lab is live" \
-            -f target_url="$REVIEW_PUBLIC_URL"
+            -f description="$description" \
+            -f target_url="$target_url"
       - name: Retain Review Lab verification evidence
         if: always()
         uses: actions/upload-artifact@v4
