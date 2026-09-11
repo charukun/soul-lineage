@@ -14,6 +14,8 @@ thread解決後にレビューイベントが発生しない場合は、既存CI
 
 各PRの`integration/queue` statusに保留理由またはmerge結果とActionsへのリンクを記録します。この運用statusと`Request Integration`自身はcode gateから除外します。明示hold・レビュー待ちは自動解除しません。自動化は自分の変更PRや承認を生成せず、基盤PRは下記の承認条件を維持します。解消できない保留を成功とは扱いません。
 
+Draftは通常実装・Visual Review Labともに候補抽出・dispatch前・merge直前で明示的に除外します。Draftの軽量チェックはReady用fast gateの代わりになりません。本文・状態・更新日時・Lab識別の契約は [DEVELOPMENT.md](DEVELOPMENT.md#実装開始前draft-pr通常のコード変更タスク) を参照してください。
+
 ## 自動merge条件
 
 - 同一Repositoryの信頼された寄稿者によるopen・非draft・develop向けPR。

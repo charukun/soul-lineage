@@ -14,6 +14,7 @@ This repository contains 輪廻転焦 (formerly 魂の系譜), village housing, 
 ## WORK roles (current operation)
 
 - Read `docs/DEVELOPMENT.md` and `docs/INTEGRATION.md` for the current delivery flow.
+- For normal code-changing tasks, push a work branch and open a Draft PR before code edits; follow the first-two-body-lines, lightweight Draft CI and recovery contract in `docs/DEVELOPMENT.md`. Read-only and writing-only tasks are exempt.
 - Implementation WORK ends at implementation, affected fast verification and a Ready for review PR to develop. It does not merge, run the heavy full regression, or wait for DEV publication unless the user explicitly assigns Integration work.
 - Integration owns dependency/review/check/conflict decisions, develop merges, affected fast verification, DEV deployment and public HTTP/source verification. Never equate Ready with DEV publication. Heavy full regression, browser and P2P checks are separate opt-in diagnostics; preserve Production quality gates.
 - Keep PRs focused. State changed apps/packages, checks actually run, shared impacts and `Depends-On: #N` (or `none`). Use draft or `integration:hold` for unfinished work/undecided semantics. Never clear holds or resolve review objections to make automation proceed.

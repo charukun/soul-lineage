@@ -180,3 +180,13 @@ test('normal DEV delivery excludes full/browser/P2P gates and verifies deployed 
   assert.match(workflow,/context: 'verification\/full'/);
   assert.match(readFileSync('scripts/verify-live.mjs','utf8'),/live.validatedDevelop, expected.validatedDevelop/);
 });
+
+test('Draft CI is lightweight and Ready re-enables the existing gate', () => {
+  const ci = readFileSync('.github/workflows/ci.yml', 'utf8');
+  const draft = ci.split('  draft-check:')[1].split('  build:')[0];
+  assert.match(draft, /base.ref == 'develop' && github.event.pull_request.draft/);
+  assert.match(draft, /git diff --check/);
+  assert.doesNotMatch(draft, /run:.*(?:npm|validate|deploy)|uses: actions\/setup-node/);
+  assert.match(ci, /ready_for_review, converted_to_draft/);
+  assert.match(ci, /if: github.event.pull_request.base.ref == 'main' \|\| \(github.event.pull_request.base.ref == 'develop' && !github.event.pull_request.draft\)/);
+});
