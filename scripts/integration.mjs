@@ -29,6 +29,19 @@ export function client(repository, token, request = fetch) {
   }
   return { api, pages, root };
 }
+
+export function currentChecks(checks = []) {
+  const latest = new Map();
+  const ordered = [...checks].sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
+  for (const check of ordered) {
+    if (check.name === 'Request Integration') continue;
+    const app = check.app?.id ?? check.app?.slug ?? 'unknown';
+    const key = `${app}:${check.name}`;
+    if (!latest.has(key)) latest.set(key, check);
+  }
+  return [...latest.values()];
+}
+
 export async function fastGate(c, pr) {
   const runs = await c.pages(`/actions/workflows/ci.yml/runs?head_sha=${pr.head.sha}`, 'workflow_runs');
   const matching = runs.filter(r => r.head_sha === pr.head.sha && r.head_branch === pr.head.ref &&
@@ -41,12 +54,14 @@ export async function fastGate(c, pr) {
   const jobs = await c.pages(`/actions/runs/${run.id}/jobs?filter=latest`, 'jobs');
   const gate = jobs.find(j => j.name === 'Validate and build');
   if (gate?.status !== 'completed' || gate.conclusion !== 'success') return false;
-  const checks = await c.pages(`/commits/${pr.head.sha}/check-runs?filter=latest`, 'check_runs');
+  const checks = currentChecks(await c.pages(`/commits/${pr.head.sha}/check-runs?filter=latest`, 'check_runs'));
   const statuses = await c.pages(`/commits/${pr.head.sha}/statuses`);
   const latestStatuses = new Map();
   for (const status of statuses) if (!latestStatuses.has(status.context)) latestStatuses.set(status.context, status);
-  // Dispatch has no role in code validation. Do not deadlock on our own request job.
-  return checks.filter(x => x.name !== 'Request Integration').every(x => x.status === 'completed' && ['success', 'neutral', 'skipped'].includes(x.conclusion)) &&
+  // Dispatch has no role in code validation. Superseded check runs from the same
+  // app/name are ignored; otherwise a cancelled run replaced by a successful run
+  // can strand a Ready PR forever on the same immutable head.
+  return checks.every(x => x.status === 'completed' && ['success', 'neutral', 'skipped'].includes(x.conclusion)) &&
     [...latestStatuses.values()].filter(x => ![contextName, queueContext].includes(x.context)).every(x => x.state === 'success');
 }
 async function threads(c, pr) {
