@@ -24,7 +24,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build:review
+      - name: Verify Review Lab with mobile and desktop WebGL
+        run: npm run test:review-browser
       - name: Deploy static Review Lab to Cloudflare Workers
+        id: deploy
         if: vars.REVIEW_PREVIEW_ENABLED == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -32,4 +35,18 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
-          npx --yes wrangler@4 deploy --config wrangler.review.jsonc
+          npx --yes wrangler@4 deploy --config wrangler.review.jsonc | tee "$RUNNER_TEMP/review-deploy.log"
+          node scripts/review-deployment-url.mjs "$RUNNER_TEMP/review-deploy.log"
+      - name: Verify published Review Lab at the stable URL
+        if: steps.deploy.outcome == 'success'
+        env:
+          REVIEW_PUBLIC_URL: ${{ steps.deploy.outputs.url }}
+        run: npm run test:review-browser
+      - name: Retain Review Lab verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-review-${{ github.sha }}
+          path: artifacts/review-*/
+          if-no-files-found: ignore
+          retention-days: 14

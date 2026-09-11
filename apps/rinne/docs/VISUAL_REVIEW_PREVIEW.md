@@ -61,3 +61,9 @@ The Review Lab must consume the same character/model/motion/VFX source modules a
 ## Codespaces
 
 Codespaces remain fallback-only for Git transport or asset operations that cannot be handled through the normal connector. Do not auto-start Review Lab in Codespaces and do not leave a Codespace running for visual review.
+
+## Asset integration verification
+
+The Lab loads the exact Shino model from the current Rinne simulator, pinned Quaternius motion, KayKit sword and Kenney sprites. The fixed inputs and hashes are in `packages/assets/src/review-catalog.js`; built licenses and provenance are in `asset-review/`. See `docs/ASSET_REVIEW_INTEGRATION.md`.
+
+The dedicated workflow runs `npm run test:review-browser` before deployment and against the stable workers.dev URL after deployment, checking the actual built JS and asset manifest commit. Screenshots and reports are retained as an Actions artifact for 14 days. The normal PR fast gate remains browser-free. Software WebGL at a mobile viewport is not physical Pixel Fold performance approval.

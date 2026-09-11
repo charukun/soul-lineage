@@ -22,6 +22,7 @@
     "build:rinne": "npm run build --workspace @soul/rinne",
     "check:review-assets": "node scripts/check-review-assets.mjs",
     "build:review": "node scripts/build-review.mjs && npm run check:review-assets",
+    "test:review-browser": "node scripts/verify-review-browser.mjs",
     "build:village": "npm run build --workspace @soul/village",
     "build:demon": "npm run build --workspace @soul/demon",
     "affected": "node scripts/affected.mjs",

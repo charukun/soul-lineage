@@ -1,494 +1,157 @@
 import { THREE, GLTFLoader, OrbitControls } from '@soul/rendering';
-import { reviewPresets, installReviewExtensions } from './review-adapter.js';
+import { reviewPresets, installReviewExtensions, disposeLoaded } from './review-adapter.js';
+import { REVIEW_ASSET_REVISION, REVIEW_MOTION_FAMILIES, classifyMotion } from '@soul/assets/review-catalog';
+import { createPlayback, markerAge } from './playback.js';
 import './style.css';
-
 const q = selector => document.querySelector(selector);
-const canvas = q('#review-canvas');
-const status = q('#review-status');
-const modelUrlInput = q('#model-url');
-const modelFileInput = q('#model-file');
-const presetSelect = q('#preset');
-const clipSelect = q('#clip');
-const timeline = q('#timeline');
-const currentTimeLabel = q('#current-time');
-const durationLabel = q('#duration');
-const playButton = q('#play-toggle');
-const loopToggle = q('#loop-toggle');
-const skeletonToggle = q('#skeleton-toggle');
-const boundsToggle = q('#bounds-toggle');
-const wireframeToggle = q('#wireframe-toggle');
-const gridToggle = q('#grid-toggle');
-const overlayTimeInput = q('#overlay-time');
-const noteInput = q('#review-note');
-const sourceLabel = q('#source-label');
-const clipLabel = q('#clip-label');
-const fpsLabel = q('#fps');
 const params = new URLSearchParams(location.search);
-
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color('#101217');
-const camera = new THREE.PerspectiveCamera(36, 1, 0.01, 300);
-camera.position.set(3.2, 2.2, 5.2);
-const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true;
-controls.target.set(0, 1, 0);
-controls.minDistance = 0.6;
-controls.maxDistance = 25;
-
-scene.add(new THREE.HemisphereLight('#dfe8ff', '#312b24', 1.7));
-const key = new THREE.DirectionalLight('#fff4da', 3.2);
-key.position.set(4, 7, 4);
-key.castShadow = true;
-scene.add(key);
-const rim = new THREE.DirectionalLight('#8aa7ff', 1.2);
-rim.position.set(-5, 3, -4);
-scene.add(rim);
-
-const groundMaterial = new THREE.MeshStandardMaterial({ color: '#22262c', roughness: 0.95, metalness: 0 });
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), groundMaterial);
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-scene.add(ground);
-const grid = new THREE.GridHelper(30, 60, '#65707c', '#343b43');
-grid.position.y = 0.002;
-scene.add(grid);
-
-const reviewRoot = new THREE.Group();
-scene.add(reviewRoot);
-const overlayRoot = new THREE.Group();
-scene.add(overlayRoot);
-
-const loader = new GLTFLoader();
-let mixer = null;
-let model = null;
-let clips = [];
-let action = null;
-let activeClip = null;
-let skeletonHelper = null;
-let boundsHelper = null;
-let modelObjectUrl = null;
-let playing = true;
-let draggingTimeline = false;
-let lastTime = performance.now();
-let lastOverlayCycle = -1;
-let extension = null;
-let fpsSamples = [];
-
-function setStatus(message, kind = '') {
-  status.textContent = message;
-  status.dataset.kind = kind;
-}
-
-function disposeObject(object) {
-  object.traverse(child => {
-    if (child.geometry?.dispose) child.geometry.dispose();
-    const materials = Array.isArray(child.material) ? child.material : child.material ? [child.material] : [];
-    for (const material of materials) {
-      for (const value of Object.values(material)) if (value?.isTexture) value.dispose();
-      material.dispose?.();
+const clock = createPlayback();
+const numeric = (id,fallback=0) => {const value=Number(q(id).value);return Number.isFinite(value)?value:fallback;};
+const setStatus = (text,kind='') => {q('#review-status').textContent=text;q('#review-status').dataset.kind=kind;};
+const wrap = fn => (...args) => Promise.resolve().then(()=>fn(...args)).catch(error=>{console.error(error);setStatus(error.message,'error');});
+async function startReview() {
+  const canvas=q('#review-canvas');
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
+  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  const scene=new THREE.Scene();scene.background=new THREE.Color('#101217');
+  const camera=new THREE.PerspectiveCamera(36,1,.01,300);camera.position.set(3.2,2.2,5.2);
+  const controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.minDistance=.4;controls.maxDistance=30;
+  scene.add(new THREE.HemisphereLight('#dfe8ff','#312b24',1.7));
+  const key=new THREE.DirectionalLight('#fff4da',3.2);key.position.set(4,7,4);key.castShadow=true;scene.add(key);
+  const rim=new THREE.DirectionalLight('#8aa7ff',1.2);rim.position.set(-5,3,-4);scene.add(rim);
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(30,30),new THREE.MeshStandardMaterial({color:'#22262c',roughness:.95}));
+  ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+  const grid=new THREE.GridHelper(30,60,'#65707c','#343b43');grid.position.y=.002;scene.add(grid);
+  const extensions=await installReviewExtensions({scene});
+  const build=typeof __BUILD_INFO__ === 'object'?__BUILD_INFO__:{commit:'local',branch:'local'};
+  q('#build-label').textContent=`${String(build.commit).slice(0,12)} / ${REVIEW_ASSET_REVISION}`;
+  let body=null,mixer=null,action=null,activeClip=null,loading=null,generation=0;
+  let skeleton=null,bounds=null,cameraName='three',last=performance.now(),frames=[];
+  const disposeHelper=helper=>{if(!helper)return;helper.removeFromParent();helper.geometry?.dispose();helper.material?.dispose();};
+  function clearHelpers(){disposeHelper(skeleton);disposeHelper(bounds);skeleton=null;bounds=null;}
+  function clearBody(){clearHelpers();mixer?.stopAllAction();if(body)mixer?.uncacheRoot(body.root);body?.dispose();body=null;mixer=null;action=null;activeClip=null;clock.time=0;clock.duration=0;clock.playing=false;q('#clip').replaceChildren(new Option('素材未読込',''));q('#source-label').textContent='No source';q('#clip-label').textContent='No clip';}
+  function refreshHelpers(){
+    clearHelpers();if(!body)return;
+    if(q('#skeleton-toggle').checked){skeleton=new THREE.SkeletonHelper(body.root);scene.add(skeleton);}
+    if(q('#bounds-toggle').checked){bounds=new THREE.Box3Helper(new THREE.Box3().setFromObject(body.root),0xffcc66);scene.add(bounds);}
+  }
+  function wireframe(){body?.root.traverse(node=>{for(const mat of Array.isArray(node.material)?node.material:node.material?[node.material]:[])if('wireframe'in mat)mat.wireframe=q('#wireframe-toggle').checked;});}
+  function frameModel(name='three'){
+    if(!body)return;cameraName=name;body.root.updateMatrixWorld(true);
+    const box=new THREE.Box3().setFromObject(body.root);if(box.isEmpty())throw new Error('The selected asset has no visible mesh');
+    const sphere=box.getBoundingSphere(new THREE.Sphere()),d=Math.max(sphere.radius*3.2,1.5),center=sphere.center;
+    const offset=({front:[0,d*.15,d],back:[0,d*.15,-d],left:[-d,d*.15,0],right:[d,d*.15,0],top:[0,d,.001],three:[d*.72,d*.3,d*.72]})[name]||[d*.72,d*.3,d*.72];
+    camera.position.copy(center).add(new THREE.Vector3(...offset));controls.target.copy(center);camera.near=.01;camera.far=Math.max(100,d*20);camera.updateProjectionMatrix();controls.update();
+  }
+  function weapon(){body?.setWeapon?.({enabled:q('#weapon-toggle').checked,scale:numeric('#weapon-scale',.5),x:numeric('#weapon-x'),y:numeric('#weapon-y'),z:numeric('#weapon-z')});}
+  function sample(){
+    if(action){action.enabled=true;action.paused=false;action.time=clock.time;mixer.update(0);}
+    weapon();body?.root.updateMatrixWorld(true);
+    const age=q('#overlay-toggle').checked&&activeClip?markerAge(clock.time,numeric('#overlay-time',.42),clock.duration,clock.loop):Infinity;
+    body?.sampleEffects?.(age);
+    q('#timeline').max=String(clock.duration||1);q('#timeline').value=String(clock.time);
+    q('#current-time').textContent=`${clock.time.toFixed(3)}s`;q('#duration').textContent=`${clock.duration.toFixed(3)}s`;
+    q('#play-toggle').textContent=clock.playing?'一時停止':'再生';
+    if(bounds&&body)bounds.box.setFromObject(body.root);
+  }
+  function playClip(name,autoplay=true){
+    if(!body)return;
+    mixer.stopAllAction();action=null;activeClip=null;clock.time=0;clock.duration=0;clock.playing=false;
+    if(name){
+      activeClip=body.getClip(name,{inPlace:q('#in-place').checked});
+      if(!activeClip)throw new Error(`Source animation not found: ${name}`);
+      action=mixer.clipAction(activeClip);action.setLoop(THREE.LoopOnce,1);action.clampWhenFinished=true;action.reset().play();
+      clock.duration=activeClip.duration;clock.playing=autoplay;
     }
-  });
-}
-
-function clearModel() {
-  mixer?.stopAllAction();
-  mixer = null;
-  action = null;
-  activeClip = null;
-  clips = [];
-  skeletonHelper?.removeFromParent();
-  boundsHelper?.removeFromParent();
-  skeletonHelper = null;
-  boundsHelper = null;
-  if (model) {
-    model.removeFromParent();
-    disposeObject(model);
-    model = null;
+    q('#clip').value=name||'';q('#clip-label').textContent=name||'元モデル静止比較';sample();
   }
-  if (modelObjectUrl) {
-    URL.revokeObjectURL(modelObjectUrl);
-    modelObjectUrl = null;
-  }
-  overlayRoot.clear();
-}
-
-function frameModel(object) {
-  const box = new THREE.Box3().setFromObject(object);
-  if (box.isEmpty()) return;
-  const sphere = box.getBoundingSphere(new THREE.Sphere());
-  const radius = Math.max(sphere.radius, 0.25);
-  controls.target.copy(sphere.center);
-  camera.near = Math.max(radius / 100, 0.01);
-  camera.far = Math.max(radius * 100, 100);
-  camera.position.copy(sphere.center).add(new THREE.Vector3(radius * 1.8, radius * 0.85, radius * 3.0));
-  camera.updateProjectionMatrix();
-  controls.update();
-}
-
-function refreshHelpers() {
-  skeletonHelper?.removeFromParent();
-  boundsHelper?.removeFromParent();
-  skeletonHelper = null;
-  boundsHelper = null;
-  if (!model) return;
-  if (skeletonToggle.checked) {
-    const skinned = model.getObjectByProperty('isSkinnedMesh', true);
-    if (skinned || model.getObjectByProperty('isBone', true)) {
-      skeletonHelper = new THREE.SkeletonHelper(model);
-      scene.add(skeletonHelper);
+  function attach(next){
+    body=next;scene.add(body.root);mixer=new THREE.AnimationMixer(body.root);
+    body.root.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;}});
+    q('#source-label').textContent=body.label;
+    const selector=q('#clip');selector.replaceChildren(new Option('元モデル（静止比較）',''));
+    const families=[...REVIEW_MOTION_FAMILIES,{id:'other',label:'その他の収録動作'}];
+    for(const family of families){
+      const names=body.clipNames.filter(name=>classifyMotion(name)===family.id);
+      const group=document.createElement('optgroup');group.label=family.label;
+      if(!names.length){const option=new Option('未収録 / 自動代用なし','');option.disabled=true;group.append(option);}
+      for(const name of names)group.append(new Option(name,name));selector.append(group);
     }
+    const absent=REVIEW_MOTION_FAMILIES.filter(row=>!body.clipNames.some(name=>classifyMotion(name)===row.id)).map(row=>row.label);
+    q('#family-summary').textContent=`収録 ${body.clipNames.length}動作。${absent.length?'未収録: '+absent.join('・'):'6系統の候補を検出'}。動作名は配布元のまま。`;
+    const wanted=params.get('clip'),first=body.clipNames.includes(wanted)?wanted:body.clipNames.includes('Idle_Loop')?'Idle_Loop':body.clipNames[0];
+    playClip(params.get('rest')==='1'?'':first||'',true);
+    if(params.has('t'))clock.seek(Math.max(0,Number(params.get('t'))||0));
+    wireframe();refreshHelpers();frameModel(params.get('camera')||'three');sample();setStatus('実素材読込済み / 見た目の承認待ち');
   }
-  if (boundsToggle.checked) {
-    const box = new THREE.Box3().setFromObject(model);
-    boundsHelper = new THREE.Box3Helper(box, '#ffcc66');
-    scene.add(boundsHelper);
+  async function loadPreset(){
+    const token=++generation;loading?.abort();loading=new AbortController();clearBody();setStatus('実素材を読み込み中');
+    q('#preset').value=reviewPresets[0].id;q('#model-url').value='';
+    try{
+      const result=await extensions.loadPreset({signal:loading.signal,onProgress:message=>{if(token===generation)setStatus(message);}});
+      if(token!==generation){result.dispose();return;}attach(result);
+    }catch(error){if(token===generation){clearBody();setStatus(`${error.message} / 再試行できます`,'error');console.error(error);}}
   }
-}
-
-function setWireframe(enabled) {
-  model?.traverse(child => {
-    if (!child.isMesh) return;
-    const materials = Array.isArray(child.material) ? child.material : [child.material];
-    for (const material of materials) if (material && 'wireframe' in material) material.wireframe = enabled;
-  });
-}
-
-function setClips(nextClips) {
-  clips = nextClips || [];
-  clipSelect.replaceChildren();
-  if (!clips.length) {
-    clipSelect.add(new Option('Animation clipなし', ''));
-    clipLabel.textContent = 'No clip';
-    timeline.max = '1';
-    timeline.value = '0';
-    durationLabel.textContent = '0.000s';
-    return;
+  async function loadManual(url,label=url){
+    const token=++generation;loading?.abort();clearBody();setStatus('手動素材を読み込み中');q('#preset').value='';
+    const parsed=new URL(url,location.href);if(!['https:','http:','blob:'].includes(parsed.protocol))throw new Error('Unsupported model URL');
+    let gltf;
+    try{
+      gltf=await new GLTFLoader().loadAsync(parsed.href);
+      if(token!==generation){disposeLoaded(gltf.scene);return;}
+      attach({root:gltf.scene,clipNames:gltf.animations.map(clip=>clip.name),label:`手動素材（台帳未登録）: ${label}`,getClip:name=>gltf.animations.find(clip=>clip.name===name),dispose:()=>disposeLoaded(gltf.scene)});
+    }catch(error){if(token===generation){if(gltf)disposeLoaded(gltf.scene);clearBody();setStatus(`${error.message} / 代用モデルは表示しません`,'error');console.error(error);}}
   }
-  clips.forEach((clip, index) => clipSelect.add(new Option(`${clip.name || `Clip ${index + 1}`} · ${clip.duration.toFixed(3)}s`, String(index))));
-  playClip(0);
-}
-
-function playClip(index) {
-  if (!mixer || !clips[index]) return;
-  mixer.stopAllAction();
-  activeClip = clips[index];
-  mixer.setTime(0);
-  action = mixer.clipAction(activeClip);
-  action.setLoop(loopToggle.checked ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
-  action.clampWhenFinished = !loopToggle.checked;
-  action.reset().play();
-  action.paused = !playing;
-  timeline.min = '0';
-  timeline.max = String(activeClip.duration || 1);
-  timeline.step = '0.001';
-  timeline.value = '0';
-  durationLabel.textContent = `${(activeClip.duration || 0).toFixed(3)}s`;
-  clipLabel.textContent = activeClip.name || `Clip ${index + 1}`;
-  lastOverlayCycle = -1;
-}
-
-function seek(seconds) {
-  if (!mixer || !activeClip) return;
-  const duration = Math.max(activeClip.duration, 0.0001);
-  const value = loopToggle.checked ? ((seconds % duration) + duration) % duration : THREE.MathUtils.clamp(seconds, 0, duration);
-  action.paused = true;
-  mixer.setTime(0);
-  action.reset().play();
-  action.paused = true;
-  mixer.setTime(value);
-  timeline.value = String(value);
-  currentTimeLabel.textContent = `${value.toFixed(3)}s`;
-}
-
-function makeFallback() {
-  const root = new THREE.Group();
-  root.name = 'ReviewFallback';
-  const material = new THREE.MeshStandardMaterial({ color: '#c8d0dc', roughness: 0.78 });
-  const accent = new THREE.MeshStandardMaterial({ color: '#727f92', roughness: 0.65, metalness: 0.12 });
-  const part = (geometry, parent, position, name, mat = material) => {
-    const mesh = new THREE.Mesh(geometry, mat);
-    mesh.position.set(...position);
-    mesh.name = name;
-    mesh.castShadow = true;
-    parent.add(mesh);
-    return mesh;
-  };
-  const torso = new THREE.Group(); torso.name = 'Torso'; torso.position.y = 1.32; root.add(torso);
-  part(new THREE.BoxGeometry(.52, .68, .3), torso, [0, 0, 0], 'Chest');
-  part(new THREE.SphereGeometry(.22, 18, 12), root, [0, 1.93, 0], 'Head');
-  const leftArm = new THREE.Group(); leftArm.name = 'LeftArm'; leftArm.position.set(-.36, 1.57, 0); root.add(leftArm);
-  part(new THREE.CapsuleGeometry(.09, .55, 6, 10), leftArm, [0, -.28, 0], 'LeftArmMesh');
-  const rightArm = new THREE.Group(); rightArm.name = 'RightArm'; rightArm.position.set(.36, 1.57, 0); root.add(rightArm);
-  part(new THREE.CapsuleGeometry(.09, .55, 6, 10), rightArm, [0, -.28, 0], 'RightArmMesh');
-  const leftLeg = new THREE.Group(); leftLeg.name = 'LeftLeg'; leftLeg.position.set(-.17, .95, 0); root.add(leftLeg);
-  part(new THREE.CapsuleGeometry(.105, .72, 6, 10), leftLeg, [0, -.4, 0], 'LeftLegMesh', accent);
-  const rightLeg = new THREE.Group(); rightLeg.name = 'RightLeg'; rightLeg.position.set(.17, .95, 0); root.add(rightLeg);
-  part(new THREE.CapsuleGeometry(.105, .72, 6, 10), rightLeg, [0, -.4, 0], 'RightLegMesh', accent);
-  const weapon = new THREE.Group(); weapon.name = 'Weapon'; weapon.position.set(.02, -.56, 0); rightArm.add(weapon);
-  const blade = part(new THREE.BoxGeometry(.055, 1.25, .035), weapon, [0, -.58, 0], 'Blade', new THREE.MeshStandardMaterial({ color: '#dce5ec', metalness: .8, roughness: .25 }));
-  blade.position.x = .02;
-  part(new THREE.BoxGeometry(.32, .04, .05), weapon, [0, .02, 0], 'Guard', accent);
-  root.traverse(o => { if (o.isMesh) o.receiveShadow = true; });
-  const times = [0, .18, .42, .68, .95, 1.2];
-  const slash = new THREE.AnimationClip('Fallback_Slash', 1.2, [
-    new THREE.NumberKeyframeTrack('Torso.rotation[y]', times, [0, -.18, -.48, .42, .16, 0]),
-    new THREE.NumberKeyframeTrack('RightArm.rotation[x]', times, [-.25, -.6, -1.15, .55, -.1, -.25]),
-    new THREE.NumberKeyframeTrack('RightArm.rotation[z]', times, [-.12, -.45, -.85, .65, .05, -.12]),
-    new THREE.NumberKeyframeTrack('LeftArm.rotation[z]', times, [.12, .3, .5, -.28, -.02, .12]),
-  ]);
-  const idleTimes = [0, .7, 1.4];
-  const idle = new THREE.AnimationClip('Fallback_Idle', 1.4, [
-    new THREE.NumberKeyframeTrack('Torso.position[y]', idleTimes, [1.32, 1.335, 1.32]),
-    new THREE.NumberKeyframeTrack('LeftArm.rotation[z]', idleTimes, [.08, .12, .08]),
-    new THREE.NumberKeyframeTrack('RightArm.rotation[z]', idleTimes, [-.08, -.12, -.08]),
-  ]);
-  return { scene: root, animations: [slash, idle] };
-}
-
-function attachLoaded(sceneObject, animations, label) {
-  clearModel();
-  model = sceneObject;
-  model.traverse(child => {
-    if (child.isMesh) {
-      child.castShadow = true;
-      child.receiveShadow = true;
-    }
-  });
-  reviewRoot.add(model);
-  mixer = new THREE.AnimationMixer(model);
-  sourceLabel.textContent = label;
-  setClips(animations);
-  const requestedClip = params.get('clip');
-  if (requestedClip) {
-    const requestedIndex = clips.findIndex(clip => clip.name === requestedClip);
-    if (requestedIndex >= 0) { clipSelect.value = String(requestedIndex); playClip(requestedIndex); }
-  }
-  const requestedTime = Number(params.get('t'));
-  if (Number.isFinite(requestedTime) && requestedTime > 0) seek(requestedTime);
-  setWireframe(wireframeToggle.checked);
-  refreshHelpers();
-  frameModel(model);
-  setStatus(`Loaded: ${label}`);
-}
-
-function loadUrl(url, label = url) {
-  if (!url) return;
-  setStatus('モデルを読み込み中…');
-  loader.load(url, gltf => attachLoaded(gltf.scene, gltf.animations, label), progress => {
-    if (progress.total) setStatus(`モデルを読み込み中… ${Math.round(progress.loaded / progress.total * 100)}%`);
-  }, error => {
-    console.error(error);
-    setStatus('モデルの読み込みに失敗しました。URL/CORS/GLBを確認してください。', 'error');
-  });
-}
-
-function useFallback() {
-  const fallback = makeFallback();
-  attachLoaded(fallback.scene, fallback.animations, 'Fallback review rig');
-}
-
-function cameraPreset(name) {
-  if (!model) return;
-  const box = new THREE.Box3().setFromObject(model);
-  const sphere = box.getBoundingSphere(new THREE.Sphere());
-  const d = Math.max(sphere.radius * 3.2, 1.5);
-  const c = sphere.center;
-  const offsets = {
-    front: [0, .15 * d, d], back: [0, .15 * d, -d], left: [-d, .15 * d, 0], right: [d, .15 * d, 0],
-    top: [0, d, .001], three: [d * .72, d * .3, d * .72],
-  };
-  const v = offsets[name] || offsets.three;
-  controls.target.copy(c);
-  camera.position.set(c.x + v[0], c.y + v[1], c.z + v[2]);
-  controls.update();
-}
-
-function pulseOverlay() {
-  if (!model) return;
-  const box = new THREE.Box3().setFromObject(model);
-  const center = box.getCenter(new THREE.Vector3());
-  center.y = THREE.MathUtils.lerp(box.min.y, box.max.y, .56);
-  const group = new THREE.Group();
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(Math.max(box.getSize(new THREE.Vector3()).x * .35, .18), .018, 8, 48),
-    new THREE.MeshBasicMaterial({ color: '#ffd36a', transparent: true, opacity: .95, depthWrite: false })
-  );
-  ring.rotation.x = Math.PI / 2;
-  group.position.copy(center);
-  group.add(ring);
-  overlayRoot.add(group);
-  const born = performance.now();
-  const animate = now => {
-    const t = Math.min((now - born) / 280, 1);
-    group.scale.setScalar(1 + t * 1.9);
-    ring.material.opacity = 1 - t;
-    if (t < 1) requestAnimationFrame(animate);
-    else { ring.geometry.dispose(); ring.material.dispose(); group.removeFromParent(); }
-  };
-  requestAnimationFrame(animate);
-}
-
-function maybeTriggerOverlay(previous, current) {
-  if (!activeClip || !q('#overlay-toggle').checked) return;
-  const marker = Number(overlayTimeInput.value || 0);
-  const duration = activeClip.duration || 0;
-  if (marker < 0 || marker > duration) return;
-  const cycle = duration ? Math.floor((mixer?.time || 0) / duration) : 0;
-  const crossed = current >= previous ? previous < marker && current >= marker : current >= marker || previous < marker;
-  if (crossed && (cycle !== lastOverlayCycle || current < previous)) {
-    lastOverlayCycle = cycle;
-    pulseOverlay();
-    extension?.onMarker?.({ time: marker, clip: activeClip, model, scene });
-  }
-}
-
-function stateText() {
-  const current = Number(timeline.value || 0);
-  return [
-    '輪廻転焦 Visual Review Lab',
-    `Source: ${sourceLabel.textContent}`,
-    `Clip: ${activeClip?.name || 'none'}`,
-    `Time: ${current.toFixed(3)}s / ${(activeClip?.duration || 0).toFixed(3)}s`,
-    `Speed: ${q('#speed').value}x`,
-    `Loop: ${loopToggle.checked ? 'on' : 'off'}`,
-    `Skeleton: ${skeletonToggle.checked ? 'on' : 'off'} / Bounds: ${boundsToggle.checked ? 'on' : 'off'} / Wireframe: ${wireframeToggle.checked ? 'on' : 'off'}`,
-    `Review marker: ${Number(overlayTimeInput.value || 0).toFixed(3)}s`,
-    `Note: ${noteInput.value.trim() || '(none)'}`,
-    `Build: ${__BUILD_INFO__.commit} / ${__BUILD_INFO__.branch}`,
-  ].join('\n');
-}
-
-async function copyText(text) {
-  await navigator.clipboard.writeText(text);
-  setStatus('レビュー情報をコピーしました');
-}
-
-function updateUrlState() {
-  const url = new URL(location.href);
-  if (modelUrlInput.value.trim()) url.searchParams.set('model', modelUrlInput.value.trim()); else url.searchParams.delete('model');
-  if (activeClip) url.searchParams.set('clip', activeClip.name); else url.searchParams.delete('clip');
-  url.searchParams.set('t', Number(timeline.value || 0).toFixed(3));
-  url.searchParams.set('speed', q('#speed').value);
-  url.searchParams.set('marker', Number(overlayTimeInput.value || 0).toFixed(3));
-  history.replaceState(null, '', url);
-  return url.href;
-}
-
-function resize() {
-  const width = Math.max(canvas.clientWidth, 1);
-  const height = Math.max(canvas.clientHeight, 1);
-  renderer.setSize(width, height, false);
-  camera.aspect = width / height;
-  camera.updateProjectionMatrix();
-}
-new ResizeObserver(resize).observe(canvas);
-resize();
-
-q('#load-url').addEventListener('click', () => loadUrl(modelUrlInput.value.trim()));
-modelFileInput.addEventListener('change', () => {
-  const file = modelFileInput.files?.[0];
-  if (!file) return;
-  if (!file.name.toLowerCase().endsWith('.glb')) {
-    setStatus('ローカル読込は単一ファイルの .glb を推奨します。', 'error');
-    return;
-  }
-  modelObjectUrl = URL.createObjectURL(file);
-  loadUrl(modelObjectUrl, file.name);
-});
-q('#fallback').addEventListener('click', useFallback);
-clipSelect.addEventListener('change', () => playClip(Number(clipSelect.value)));
-playButton.addEventListener('click', () => {
-  playing = !playing;
-  if (action) action.paused = !playing;
-  playButton.textContent = playing ? '一時停止' : '再生';
-});
-loopToggle.addEventListener('change', () => {
-  if (action) {
-    action.setLoop(loopToggle.checked ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
-    action.clampWhenFinished = !loopToggle.checked;
-  }
-});
-timeline.addEventListener('pointerdown', () => { draggingTimeline = true; });
-window.addEventListener('pointerup', () => { draggingTimeline = false; });
-timeline.addEventListener('input', () => seek(Number(timeline.value)));
-q('#step-back').addEventListener('click', () => seek(Number(timeline.value) - 1 / 60));
-q('#step-forward').addEventListener('click', () => seek(Number(timeline.value) + 1 / 60));
-q('#restart').addEventListener('click', () => seek(0));
-q('#speed').addEventListener('change', () => { if (mixer) mixer.timeScale = Number(q('#speed').value); });
-skeletonToggle.addEventListener('change', refreshHelpers);
-boundsToggle.addEventListener('change', refreshHelpers);
-wireframeToggle.addEventListener('change', () => setWireframe(wireframeToggle.checked));
-gridToggle.addEventListener('change', () => { grid.visible = gridToggle.checked; ground.visible = gridToggle.checked; });
-q('#trigger-overlay').addEventListener('click', pulseOverlay);
-q('#copy-review').addEventListener('click', () => copyText(stateText()));
-q('#copy-link').addEventListener('click', () => copyText(updateUrlState()));
-q('#capture').addEventListener('click', async () => {
-  renderer.render(scene, camera);
-  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-  try {
-    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-    setStatus('スクリーンショットをクリップボードへコピーしました');
-  } catch {
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `rinne-review-${Date.now()}.png`;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-    setStatus('スクリーンショットを保存しました');
-  }
-});
-document.querySelectorAll('[data-camera]').forEach(button => button.addEventListener('click', () => cameraPreset(button.dataset.camera)));
-
-for (const preset of reviewPresets) presetSelect.add(new Option(preset.label || preset.id, preset.id));
-presetSelect.addEventListener('change', () => {
-  const preset = reviewPresets.find(item => item.id === presetSelect.value);
-  if (!preset) return;
-  modelUrlInput.value = preset.modelUrl || '';
-  if (preset.modelUrl) loadUrl(preset.modelUrl, preset.label || preset.id);
-});
-
-modelUrlInput.value = params.get('model') || '';
-q('#speed').value = params.get('speed') || '1';
-overlayTimeInput.value = params.get('marker') || '0.420';
-
-extension = await installReviewExtensions({ THREE, scene, camera, controls, renderer, reviewRoot, overlayRoot, get model() { return model; }, get mixer() { return mixer; } });
-if (params.get('model')) loadUrl(params.get('model'));
-else if (reviewPresets[0]?.modelUrl) {
-  presetSelect.value = reviewPresets[0].id;
-  modelUrlInput.value = reviewPresets[0].modelUrl;
-  loadUrl(reviewPresets[0].modelUrl, reviewPresets[0].label || reviewPresets[0].id);
-} else useFallback();
-
-function tick(now) {
-  const dt = Math.min((now - lastTime) / 1000, 0.05);
-  lastTime = now;
-  controls.update();
-  const speed = Number(q('#speed').value || 1);
-  if (mixer) mixer.timeScale = speed;
-  const previous = Number(timeline.value || 0);
-  if (mixer && playing && !draggingTimeline) {
-    mixer.update(dt);
-    if (activeClip) {
-      const duration = Math.max(activeClip.duration, .0001);
-      const current = loopToggle.checked ? mixer.time % duration : Math.min(mixer.time, duration);
-      maybeTriggerOverlay(previous, current);
-      timeline.value = String(current);
-      currentTimeLabel.textContent = `${current.toFixed(3)}s`;
-    }
-  }
-  if (boundsHelper && model) boundsHelper.box.setFromObject(model);
-  extension?.update?.(dt, { model, mixer, clip: activeClip, time: Number(timeline.value || 0) });
-  renderer.render(scene, camera);
-  fpsSamples.push(dt);
-  if (fpsSamples.length > 30) fpsSamples.shift();
-  const avg = fpsSamples.reduce((sum, value) => sum + value, 0) / Math.max(fpsSamples.length, 1);
-  fpsLabel.textContent = avg ? `${Math.round(1 / avg)} FPS` : '— FPS';
+  for(const preset of reviewPresets)q('#preset').add(new Option(preset.label,preset.id));
+  q('#preset').addEventListener('change',wrap(()=>{if(q('#preset').value)return loadPreset();}));
+  q('#retry').addEventListener('click',wrap(()=>q('#model-url').value.trim()?loadManual(q('#model-url').value.trim()):loadPreset()));
+  q('#load-url').addEventListener('click',wrap(()=>{const url=q('#model-url').value.trim();if(!url)throw new Error('モデルURLを入力してください');return loadManual(url);}));
+  q('#model-file').addEventListener('change',wrap(async()=>{
+    const file=q('#model-file').files?.[0];if(!file)return;
+    if(!/\.(glb|vrm)$/i.test(file.name)||file.size>25*1024*1024)throw new Error('単一GLB/VRM、25 MiB以下を選んでください');
+    const url=URL.createObjectURL(file);try{await loadManual(url,file.name);}finally{URL.revokeObjectURL(url);q('#model-file').value='';}
+  }));
+  q('#clip').addEventListener('change',wrap(()=>playClip(q('#clip').value)));
+  q('#rest-pose').addEventListener('click',wrap(()=>playClip('',false)));
+  q('#play-toggle').addEventListener('click',()=>{if(!action)return;if(clock.time>=clock.duration)clock.time=0;clock.playing=!clock.playing;sample();});
+  q('#restart').addEventListener('click',()=>{clock.seek(0);sample();});
+  q('#step-back').addEventListener('click',()=>{clock.step(-1 / 60);sample();});
+  q('#step-forward').addEventListener('click',()=>{clock.step(1 / 60);sample();});
+  q('#timeline').addEventListener('input',()=>{clock.seek(numeric('#timeline'));sample();});
+  q('#loop-toggle').addEventListener('change',()=>{clock.loop=q('#loop-toggle').checked;sample();});
+  q('#speed').addEventListener('change',()=>{clock.speed=Math.max(.1,Math.min(2,numeric('#speed',1)));});
+  q('#in-place').addEventListener('change',wrap(()=>playClip(activeClip?.name||'',clock.playing)));
+  for(const id of ['#skeleton-toggle','#bounds-toggle'])q(id).addEventListener('change',refreshHelpers);
+  q('#wireframe-toggle').addEventListener('change',wireframe);
+  q('#grid-toggle').addEventListener('change',()=>{grid.visible=q('#grid-toggle').checked;ground.visible=grid.visible;});
+  for(const id of ['#weapon-toggle','#weapon-scale','#weapon-x','#weapon-y','#weapon-z','#overlay-toggle','#overlay-time'])q(id).addEventListener('input',sample);
+  q('#trigger-overlay').addEventListener('click',()=>{if(!activeClip)return;q('#overlay-toggle').checked=true;clock.seek(Math.min(clock.duration,numeric('#overlay-time',.42)+.02));sample();});
+  document.querySelectorAll('[data-camera]').forEach(button=>button.addEventListener('click',wrap(()=>frameModel(button.dataset.camera))));
+  function stateText(){return ['輪廻転焦 Visual Review Lab',`Source: ${body?.label||'none'}`,`Clip: ${activeClip?.name||'rest'}`,`Time: ${clock.time.toFixed(3)} / ${clock.duration.toFixed(3)}`,`Speed: ${clock.speed}`,`In place: ${q('#in-place').checked}`,`Marker: ${q('#overlay-time').value} (preview only)`,`Weapon: ${q('#weapon-toggle').checked} / scale ${q('#weapon-scale').value} / XYZ ${q('#weapon-x').value},${q('#weapon-y').value},${q('#weapon-z').value}`,`Note: ${q('#review-note').value}`,`Build: ${build.commit} / ${build.branch}`,`Assets: ${REVIEW_ASSET_REVISION}`].join('\n');}
+  async function copy(text){await navigator.clipboard.writeText(text);setStatus('レビュー情報をコピーしました');}
+  q('#copy-review').addEventListener('click',wrap(()=>copy(stateText())));
+  q('#copy-link').addEventListener('click',wrap(()=>{
+    const url=new URL(location.href);url.search='';
+    const fields={preset:q('#preset').value,model:q('#model-url').value,clip:activeClip?.name||'',rest:activeClip?'0':'1',t:clock.time.toFixed(3),speed:clock.speed,marker:numeric('#overlay-time',.42),camera:cameraName,inPlace:q('#in-place').checked?'1':'0',weapon:q('#weapon-toggle').checked?'1':'0',weaponScale:numeric('#weapon-scale',.5),weaponX:numeric('#weapon-x'),weaponY:numeric('#weapon-y'),weaponZ:numeric('#weapon-z'),vfx:q('#overlay-toggle').checked?'1':'0'};
+    for(const [key,value]of Object.entries(fields))if(value!=='')url.searchParams.set(key,String(value));history.replaceState(null,'',url);return copy(url.href);
+  }));
+  q('#capture').addEventListener('click',wrap(async()=>{
+    renderer.render(scene,camera);const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw new Error('スクリーンショット取得に失敗しました');
+    try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);setStatus('画像をコピーしました');}
+    catch{const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`rinne-review-${String(build.commit).slice(0,8)}.png`;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);setStatus('画像を保存しました');}
+  }));
+  const resize=()=>{const w=Math.max(canvas.clientWidth,1),h=Math.max(canvas.clientHeight,1);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();};
+  new ResizeObserver(resize).observe(canvas);resize();
+  for(const [key,id]of [['marker','#overlay-time'],['weaponScale','#weapon-scale'],['weaponX','#weapon-x'],['weaponY','#weapon-y'],['weaponZ','#weapon-z']])if(params.has(key)&&Number.isFinite(Number(params.get(key))))q(id).value=params.get(key);
+  for(const [key,id]of [['inPlace','#in-place'],['weapon','#weapon-toggle'],['vfx','#overlay-toggle']])if(params.has(key))q(id).checked=params.get(key)==='1';
+  if(['0.1','0.25','0.5','1','1.5','2'].includes(params.get('speed')))q('#speed').value=params.get('speed');clock.speed=numeric('#speed',1);
+  window.__reviewLab={snapshot:()=>({loaded:Boolean(body),clip:activeClip?.name||null,time:clock.time,source:body?.label||null,build:build.commit,
+    animations:body?.clipNames||[],calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,
+    pose:body?.bones?Object.fromEntries(Object.entries(body.bones).map(([name,bone])=>[name,[...bone.position.toArray(),...bone.quaternion.toArray()]])):null}),stateText};
+  canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();clock.playing=false;setStatus('WebGLコンテキストが失われました。再読み込みしてください。','error');});
+  function tick(now){const raw=Math.max(0,(now-last)/1000);last=now;controls.update();if(!document.hidden){clock.update(raw);sample();renderer.render(scene,camera);frames.push(raw);if(frames.length>60)frames.shift();const avg=frames.reduce((a,b)=>a+b,0)/frames.length;q('#fps').textContent=avg?`${Math.round(1/avg)} FPS`:'0 FPS';}requestAnimationFrame(tick);}
   requestAnimationFrame(tick);
+  if(params.get('model')){q('#model-url').value=params.get('model');await loadManual(params.get('model'));}else await loadPreset();
 }
-requestAnimationFrame(tick);
+startReview().catch(error=>{console.error(error);setStatus(`Review初期化失敗: ${error.message}`,'error');});

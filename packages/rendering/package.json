@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./quaternius-retarget": "./src/quaternius-retarget.js",
+    "./review-effects": "./src/review-effects.js"
   },
   "dependencies": {
     "three": "0.186.0",
