@@ -4,6 +4,7 @@ import { showStatus } from '@soul/shared-ui';
 import { createWebPlatform } from '@soul/platform-web';
 import { createApp } from './app.js';
 import '@soul/shared-ui/style.css';
+import { installOnlineHost } from './online.js';
 const info = __BUILD_INFO__;
 const canvas = document.querySelector('#game');
 const status = document.querySelector('#status');
@@ -16,6 +17,7 @@ try {
   const preview = createWorldPreview(canvas, app.world);
   canvas.dataset.platform = platform.id; canvas.dataset.contentVersion = app.contentVersion;
   showStatus(status, '起動完了 · 共通ワールドを読み込みました');
+  installOnlineHost();
   if (import.meta.hot) import.meta.hot.dispose(() => preview.dispose());
 } catch (error) {
   canvas.dataset.renderer = 'unavailable'; showStatus(status, '表示を開始できませんでした。WebGL2対応環境でお試しください。', 'error'); console.error(error);

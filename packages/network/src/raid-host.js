@@ -1,0 +1,16 @@
+export const RAID_LEDGER_KEY='soul.village.raid-ledger.v1';
+export function canonicalVillageId(world){if(!world?.id)throw Error('村IDがありません。');return String(world.id);}
+export class RaidHost{
+ constructor({villageId,storage,now=()=>Date.now()}){this.villageId=villageId;this.storage=storage;this.now=now;this.peers=new Map();this.battle=null;this.ledger=this.read();}
+ read(){try{const value=JSON.parse(this.storage.getItem(RAID_LEDGER_KEY)||'{"version":1,"visits":{}}');if(value.version!==1||!value.visits||Array.isArray(value.visits))throw Error();return value;}catch{throw Error('村の襲撃台帳を安全に読み込めません。');}}
+ save(){this.storage.setItem(RAID_LEDGER_KEY,JSON.stringify(this.ledger));}
+ join(peerId,message){if(message?.type!=='join'||!['human','demon'].includes(message.role)||!message.playerId)throw Error('参加情報が不正です。');const key=`${this.villageId}:${message.playerId}`;if(message.role==='demon'&&this.ledger.visits[key])return{type:'rejected',reason:'この魔物はすでにこの村へ侵入しました。再入場できません。'};if(message.role==='demon'){this.ledger.visits[key]={villageId:this.villageId,playerId:message.playerId,status:'entered',enteredAt:this.now()};this.save();}this.peers.set(peerId,{role:message.role,playerId:message.playerId,name:String(message.name||message.role).slice(0,40),x:0,z:message.role==='demon'?8:0,hp:message.role==='demon'?230:180,maxhp:message.role==='demon'?230:180});return{type:'accepted',villageId:this.villageId,player:this.peers.get(peerId)};}
+ leave(peerId){this.peers.delete(peerId);if(this.battle&&(this.battle.demon===peerId||this.battle.human===peerId))this.battle=null;}
+ input(peerId,message){const p=this.peers.get(peerId);if(!p||message?.type!=='state')return;for(const key of ['x','z'])if(Number.isFinite(message[key]))p[key]=Math.max(-40,Math.min(40,message[key]));}
+  tick(dt){const entries=[...this.peers];if(!this.battle){const demons=entries.filter(([,p])=>p.role==='demon'&&p.hp>0),humans=entries.filter(([,p])=>p.role==='human'&&p.hp>0);outer:for(const [di,d] of demons)for(const [hi,h] of humans)if(Math.hypot(d.x-h.x,d.z-h.z)<4){const core=createTidebreakRuntime({seed:hash(`${this.villageId}:${d.playerId}:${h.playerId}`)});core.configure({weapon:'fist',enemyWeapon:'katana',hp:d.hp,maxhp:d.maxhp,enemyHp:h.hp,enemyStyle:'balanced',mindset:'balanced',positions:{hero:{x:d.x,z:d.z},enemy:{x:h.x,z:h.z}}});this.battle={demon:di,human:hi,time:0,core};break outer;}}
+  if(this.battle&&!this.battle.finished){const d=this.peers.get(this.battle.demon),h=this.peers.get(this.battle.human);if(!d||!h){this.battle=null;}else{this.battle.time+=dt;const state=this.battle.core.step(Math.min(dt,1/30));d.hp=state.hero.hp;h.hp=state.enemy.hp;d.x=state.hero.x;d.z=state.hero.z;h.x=state.enemy.x;h.z=state.enemy.z;if(state.hero.dead||state.enemy.dead){const winner=state.enemy.dead?'demon':'human';const key=`${this.villageId}:${d.playerId}`;this.ledger.visits[key].status=winner==='demon'?'completed':'defeated';this.ledger.visits[key].finishedAt=this.now();this.save();this.battle={demon:this.battle.demon,human:this.battle.human,time:this.battle.time,winner,finished:true};}}}
+  return{type:'snapshot',villageId:this.villageId,players:Object.fromEntries(entries),battle:this.battle};
+ }
+}
+function hash(text){let h=2166136261;for(const c of text)h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0;}
+import{createTidebreakRuntime}from'@soul/tidebreak-combat';
