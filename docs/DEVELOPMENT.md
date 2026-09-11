@@ -13,11 +13,16 @@
 
 1. `AGENTS.md`、最新develop、対象app/packageの仕様を確認し、専用branchで実装。
 2. `npm ci` と `node scripts/validate.mjs fast origin/develop HEAD`。影響appのcheck/test/build、共有テストは1回。基盤変更時は基盤テストも実施。
-3. PRへ変更理由・挙動・影響app/package・検証結果・残るリスクを書く。依存があれば `Depends-On: #12, #13`、なければ `Depends-On: none`。
-4. 完了したらReady for review。未完了、仕様未決定、取り込み待ちはdraftまたは `integration:hold`。既存Ready PRの保留もこのlabelで制御。
-5. 最終報告はPR URLと高速検証結果。最終公開はIntegrationの `integration/develop` statusで区別。
+3. push前に `npm run push:route -- origin/develop HEAD` を実行。通常は既存WORK/GitHub連携を使用し、`CODESPACES_GIT` または容量・Base64・payload上限系エラー時は、同じbranchをGitHub Codespacesで開いて通常`git push`へ即時切り替える。大きなバイナリを連携APIで分割/Base64再送しない。詳細は `docs/MOBILE_HYBRID_DEVELOPMENT.md`。
+4. PRへ変更理由・挙動・影響app/package・検証結果・残るリスクを書く。依存があれば `Depends-On: #12, #13`、なければ `Depends-On: none`。
+5. 完了したらReady for review。未完了、仕様未決定、取り込み待ちはdraftまたは `integration:hold`。既存Ready PRの保留もこのlabelで制御。
+6. 最終報告はPR URLと高速検証結果。最終公開はIntegrationの `integration/develop` statusで区別。
 
 単一appの変更をrootゲーム構成へ戻さず、3ゲームの独立した入口と共有package境界を維持します。通常作業でサブエージェントは使用しません。不要なフルCI、各PRごとのDEV確認、古いLibrary handoffの再作成は不要です。
+
+## 実装WORKからCodespacesへ切り替える場合
+
+Codespacesは「別の開発フロー」ではなくpush経路だけの代替です。最新developを正本とし、作業branch・fast validation・develop向けPR・Integration引き渡しは変更しません。100 MiBを超える単一ファイルは通常Gitへpushせず、Git LFSまたは適切なasset配布方式を選びます。
 
 ## Integrationへの引き渡し
 
