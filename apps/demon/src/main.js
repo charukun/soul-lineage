@@ -16,3 +16,7 @@ try {
   document.querySelector('#game').dataset.renderer = 'error';
 }
 document.querySelector('#boot-retry').onclick = () => location.reload();
+
+import {installMusicLibrary} from '@soul/shared-ui/music';
+const disposeMusic=installMusicLibrary({game:'demon',environment:__BUILD_INFO__.environment});
+if(import.meta.hot)import.meta.hot.dispose(disposeMusic);

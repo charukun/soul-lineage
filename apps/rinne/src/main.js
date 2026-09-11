@@ -4,6 +4,7 @@ import { createApp } from './app.js';
 import { installVillageHostRehearsal } from './village-link.js';
 import { installOnlinePlayer } from './online.js';
 import { mountTitle } from './title/controller.js';
+import {installMusicLibrary} from '@soul/shared-ui/music';
 
 // Build information is injected by the existing monorepo Vite plugin. A standalone
 // preview must never claim to be a deployed commit.
@@ -26,3 +27,6 @@ if (new URLSearchParams(location.search).has('villageHostLab')) {
 }
 if (import.meta.hot) import.meta.hot.dispose(()=>{cancelAnimationFrame(clock);lab?.then(link=>link.dispose());});
 if (import.meta.hot) import.meta.hot.dispose(dispose);
+
+const disposeMusic=installMusicLibrary({game:'rinne',environment:info.environment});
+if(import.meta.hot)import.meta.hot.dispose(disposeMusic);

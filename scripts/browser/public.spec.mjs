@@ -42,11 +42,26 @@ for (const target of targets) {
       const frame = page.frames().find(item => item.url().includes('/simulator/index.html'));
       expect(frame).toBeTruthy();
       const ready = await frame.evaluate(() => ({ ready: window.__ATELIER__?.snapshot().ready, model: window.__HUMANOID_LAB__?.report().id, finite: window.__HUMANOID_LAB__?.report().finite }));
-      expect(ready.ready).toBe(true); expect(ready.finite).toBe(true); expect(ready.model).toBeTruthy();
+      expect(ready.ready).toBe(true); expect(ready.finite).toBe(true); expect(ready.model).toBe('SHINO');
       await frame.evaluate(() => window.__ATELIER__.stop());
-      const combat = await frame.evaluate(() => { const app = window.__ATELIER__; app.setup({ opponent: 'duel', distance: 2, weapon: 'sword' }); app.step(720, false); app.render(); return app.snapshot().stats; });
+      const combat = await frame.evaluate(() => {
+        const app = window.__ATELIER__;
+        window.__LIFE_LAB__.advance(Math.max(0, 22 - window.__LIFE_LAB__.snapshot().ageYears) * 60);
+        window.__LIFE_LAB__.setEnemies(true);
+        app.setup({ opponent: 'duel', distance: 2, weapon: 'sword' });
+        app.step(720, false);
+        app.render();
+        return app.snapshot().stats;
+      });
       expect(combat.hits).toBeGreaterThan(0); expect(combat.damage).toBeGreaterThan(0);
       await page.screenshot({ path: testInfo.outputPath('rinne-simulator-mobile.png') });
+      const simulator = page.frameLocator('#simulator-frame');
+      await simulator.locator('#lifeBadge').click();
+      await simulator.locator('[data-life-rate="20"]').click();
+      await simulator.locator('#lifeEnemies').uncheck();
+      await simulator.locator('#lifeResume').click();
+      const life = await frame.evaluate(() => window.__LIFE_LAB__.snapshot());
+      expect(life.rate).toBe(20); expect(life.enemiesEnabled).toBe(false);
       await page.locator('#back-title').click();
       await expect(page.locator('#simulator-frame')).toHaveCount(0);
       await expect(page.locator('#title-screen')).toBeVisible();
@@ -134,6 +149,15 @@ for (const target of targets) {
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       await page.screenshot({ path: testInfo.outputPath('mobile.png'), fullPage: true });
       await page.setViewportSize({ width: 1280, height: 800 });
+    }
+    if (!target.legacy) {
+      await page.locator('.soul-music [data-open]').click();
+      await page.locator('.soul-music [data-world]').selectOption('');
+      await expect(page.locator('.soul-music [data-track]')).toHaveCount(150);
+      await page.locator('.soul-music [data-track="r01"]').click();
+      await expect.poll(() => page.locator('.soul-music audio').evaluate(audio => audio.currentTime)).toBeGreaterThan(0);
+      await page.locator('.soul-music [data-stop]').click();
+      await page.locator('.soul-music form button').click();
     }
     expect(errors).toEqual([]); expect(failedRequests).toEqual([]);
     const record = { url, commit: target.version.commit, inputHash: target.version.inputHash, webgl: gpu, errors, failedRequests };
