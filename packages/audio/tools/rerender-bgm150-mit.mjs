@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
@@ -23,7 +23,7 @@ export function readStudioCatalog(html){
   requireValue(typeof track.midiBase64==='string'&&track.midiBase64.length>16,`${track.id}: embedded MIDI missing`);
   const midi=Buffer.from(track.midiBase64,'base64');
   requireValue(midi.subarray(0,4).toString('ascii')==='MThd',`${track.id}: invalid MIDI header`);
-  if(track.midiSha256){requireValue(SHA.test(track.midiSha256)&&sha256(midi)===track.midiSha256,`${track.id}: MIDI digest mismatch`);}
+  if(track.midiSha256)requireValue(SHA.test(track.midiSha256)&&sha256(midi)===track.midiSha256,`${track.id}: MIDI digest mismatch`);
  }
  return catalog;
 }
@@ -45,12 +45,10 @@ export function rerender({studio,soundfont,license,sampleSources,currentCatalog,
  for(const path of [studio,soundfont,license,currentCatalog])requireValue(path&&existsSync(path),`Missing input: ${path}`);
  requireValue(output&&!existsSync(output),'Output must be a new directory');
  const licenseText=readFileSync(license,'utf8');verifyMitLicense(licenseText);
- const sourceHtml=readFileSync(studio,'utf8');
- const source=readStudioCatalog(sourceHtml);
+ const source=readStudioCatalog(readFileSync(studio,'utf8'));
  const current=JSON.parse(readFileSync(currentCatalog,'utf8'));
  requireValue(Array.isArray(current)&&current.length===150,'Current runtime catalog must contain 150 tracks');
- const currentById=new Map(current.map(t=>[t.id,t]));
- requireValue(currentById.size===150,'Runtime catalog contains duplicate IDs');
+ const currentById=new Map(current.map(t=>[t.id,t]));requireValue(currentById.size===150,'Runtime catalog contains duplicate IDs');
  const stage=mkdtempSync(resolve(dirname(resolve(output)),'.bgm150-mit-'));
  try{
   const audioDir=resolve(stage,'audio'),midiDir=resolve(stage,'midi'),evidenceDir=resolve(stage,'licenses');
@@ -75,11 +73,8 @@ export function rerender({studio,soundfont,license,sampleSources,currentCatalog,
   if(sampleSources&&existsSync(sampleSources))writeFileSync(resolve(evidenceDir,'MuseScore_General_Sample_Sources.csv'),readFileSync(sampleSources));
   const manifest={schemaVersion:1,collectionId:COLLECTION_ID,renderer:'FluidSynth',soundfont:{file:soundfont,sha256:sha256(readFileSync(soundfont)),license:'MIT',licenseNoticeRequired:true},tracks:results,commercialClearance:true,clearanceBasis:'Original embedded MIDI + MuseScore_General MIT SoundFont; retain MIT copyright/license notice in associated documentation.'};
   writeFileSync(resolve(stage,'rerender-manifest.json'),`${JSON.stringify(manifest,null,2)}\n`);
-  writeFileSync(resolve(stage,'README.md'),`# 三界の調べ / MIT rerender\n\n150曲を元の埋め込みMIDIから再レンダリングした候補出力です。MuseScore_General SoundFont のMIT著作権・許諾表示を配布物の関連ドキュメントに保持してください。\n`);
-  mkdirSync(dirname(resolve(output)),{recursive:true});
-  requireValue(!existsSync(output),'Output appeared while rendering');
-  const {renameSync}=await import('node:fs');renameSync(stage,output);
-  return manifest;
+  writeFileSync(resolve(stage,'README.md'),'# 三界の調べ / MIT rerender\n\n150曲を元の埋め込みMIDIから再レンダリングした候補出力です。MuseScore_General SoundFont のMIT著作権・許諾表示を配布物の関連ドキュメントに保持してください。\n');
+  mkdirSync(dirname(resolve(output)),{recursive:true});requireValue(!existsSync(output),'Output appeared while rendering');renameSync(stage,output);return manifest;
  }catch(error){rmSync(stage,{recursive:true,force:true});throw error;}
 }
 
@@ -87,6 +82,6 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  try{
   const {values}=parseArgs({options:{studio:{type:'string'},soundfont:{type:'string'},license:{type:'string'},sampleSources:{type:'string'},currentCatalog:{type:'string'},output:{type:'string'}}});
   for(const key of ['studio','soundfont','license','currentCatalog','output'])requireValue(values[key],`Missing --${key}`);
-  await rerender(values);
+  rerender(values);
  }catch(error){console.error(`BGM150 MIT rerender failed: ${error.message}`);process.exitCode=1;}
 }
