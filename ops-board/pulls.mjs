@@ -1,5 +1,26 @@
 export const STALE_DRAFT_MS = 12 * 60 * 60 * 1000;
 
+const TARGET_RULES = [
+  { id: 'rinne', label: '輪廻転焦', test: path => path.startsWith('apps/rinne/') },
+  { id: 'village', label: '村づくり', test: path => path.startsWith('apps/village/') },
+  { id: 'demon', label: '魔物側', test: path => path.startsWith('apps/demon/') },
+  { id: 'visual-review', label: 'Visual Review Lab', test: path => /visual[-_]review/i.test(path) },
+  { id: 'ops-board', label: '開発状況ボード', test: path => path.startsWith('ops-board/') || path === 'wrangler.ops.jsonc' || path === 'docs/OPS_BOARD.md' || /^tests\/ops-/.test(path) || path === '.github/workflows/ops-board.yml' },
+  { id: 'shared', label: '共通基盤', test: path => /^(packages|assets|templates)\//.test(path) },
+  { id: 'devops', label: '開発基盤', test: path => /^(\.github|scripts|tests|docs)\//.test(path) },
+];
+
+export function targetAppsFromFiles(files = []) {
+  const found = new Map();
+  for (const raw of files) {
+    const path = String(raw || '');
+    const match = TARGET_RULES.find(rule => rule.test(path));
+    if (match) found.set(match.id, { id: match.id, label: match.label });
+  }
+  if (!found.size && files.length) found.set('repository', { id: 'repository', label: 'Repository共通' });
+  return [...found.values()];
+}
+
 export function bodyLines(body = '') {
   const lines = String(body).replace(/\r/g, '').split('\n');
   return {
@@ -37,6 +58,8 @@ export function compactPull(pr, now = Date.now()) {
     head: pr?.head?.ref || null,
     visualReview: isVisualReviewPull(pr),
     staleDraft,
+    targets: Array.isArray(pr?.targetApps) ? pr.targetApps : [],
+    targetsComplete: pr?.targetAppsComplete !== false,
   };
 }
 
