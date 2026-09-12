@@ -1,0 +1,30 @@
+name: Read-only Visual Review usability audit
+on:
+  push:
+    branches: [audit/visual-review-f31b6a9-20260912]
+permissions:
+  contents: read
+concurrency:
+  group: audit-visual-review-f31b6a9-20260912
+  cancel-in-progress: false
+jobs:
+  operate-public-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Operate the existing public Review Lab without publishing or changing it
+        run: node scripts/audit/review-usability.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-review-usability-evidence
+          path: test-results/usability-audit/
+          retention-days: 7
+          if-no-files-found: error
