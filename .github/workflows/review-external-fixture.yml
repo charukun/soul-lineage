@@ -1,0 +1,38 @@
+name: Review public-asset fixture
+on:
+  push:
+    branches: [audit/review-plan-validation]
+    paths: [.github/workflows/review-external-fixture.yml]
+permissions:
+  contents: read
+jobs:
+  fixture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Download only existing pinned review inputs
+        run: |
+          node --input-type=module <<'JS'
+          import {prepareReviewAssets} from './scripts/prepare-review-assets.mjs';
+          import {mkdir,cp,writeFile} from 'node:fs/promises';
+          import {createHash} from 'node:crypto';
+          const out=process.env.RUNNER_TEMP+'/review-fixtures';
+          await mkdir(out,{recursive:true});
+          const prepared=await prepareReviewAssets();await cp(prepared.root,out+'/asset-review',{recursive:true});
+          const root='https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Assets/gltf/';
+          await mkdir(out+'/kaykit'); const done=new Set(),ledger=[];
+          async function get(file){if(done.has(file))return; if(!/^[\w.-]+$/.test(file))throw Error('Unexpected asset path');done.add(file);const r=await fetch(root+file);if(!r.ok)throw Error(file+' HTTP '+r.status);const b=Buffer.from(await r.arrayBuffer());if(b.length>25000000)throw Error('Too large');await writeFile(out+'/kaykit/'+file,b);ledger.push({file,url:root+file,bytes:b.length,sha256:createHash('sha256').update(b).digest('hex')});if(file.endsWith('.gltf')){const j=JSON.parse(b);for(const x of [...j.buffers||[],...j.images||[]])if(x.uri)await get(x.uri);}}
+          for(const f of ['sword_2handed','sword_1handed','axe_1handed','axe_2handed','dagger','crossbow_2handed','staff','wand'])await get(f+'.gltf');
+          await writeFile(out+'/kaykit/ledger.json',JSON.stringify(ledger,null,2));
+          JS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: review-pinned-public-fixture
+          path: ${{ runner.temp }}/review-fixtures/
+          retention-days: 2
