@@ -11,6 +11,8 @@ jobs:
   baseline:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      APP_ENV: dev
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,7 +39,7 @@ jobs:
           try{
             await new Promise(resolve=>setTimeout(resolve,1500));
             await page.goto('http://127.0.0.1:5173/characters.html',{waitUntil:'networkidle'});
-            await page.waitForFunction(()=>window.characterStudio?.review.ready,{timeout:90000});
+            await page.waitForFunction(()=>window.characterStudio?.review.ready,null,{timeout:90000});
             await page.evaluate(()=>characterStudio.review.configure({paused:true}));
             const info=await page.evaluate(()=>{
               const a=characterStudio.review.actors[0],meshes=[];
@@ -48,7 +50,7 @@ jobs:
             const results={};
             for(const n of [1,6,12,30]){
               await page.evaluate(n=>characterStudio.workspace.configure({view:n===1?'single':'crowd',count:n,paused:false}),n);
-              await page.waitForFunction(()=>characterStudio.review.measure().sampleCount>=90,{timeout:120000});
+              await page.waitForFunction(()=>characterStudio.review.measure().sampleCount>=90,null,{timeout:120000});
               results[n]=await page.evaluate(()=>characterStudio.review.measure());
               await page.evaluate(()=>characterStudio.review.configure({paused:true}));
               await page.screenshot({path:`qc-output/baseline-${n}.png`});
