@@ -28,8 +28,7 @@ function canonicalProfile(input = BASE) {
 }
 
 function colorMaterial(name, roughness = .72, metalness = 0) {
-  const material = new MeshStandardMaterial({ name, color: 0xffffff, roughness, metalness, side: DoubleSide });
-  return material;
+  return new MeshStandardMaterial({ name, color: 0xffffff, roughness, metalness, side: DoubleSide });
 }
 
 function addMesh(group, geometry, material, name, position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1]) {
@@ -52,9 +51,16 @@ export function attachModularAppearanceController(actor) {
     'A spawned humanoid actor is required');
   if (actor[KEY]) return actor[KEY];
 
+  // Capture only source materials before modular geometry is attached.
+  const sourceHairMaterials = new Set();
+  actor.visual.traverse(node => {
+    if (!node.isMesh) return;
+    for (const material of Array.isArray(node.material) ? node.material : [node.material]) if (material && /HAIR/i.test(material.name)) sourceHairMaterials.add(material);
+  });
+
   const geometries = new Set(), modularMaterials = new Set();
   const geometry = factory => { const value = factory(); geometries.add(value); return value; };
-  const hairMaterial = colorMaterial('MC_HAIR'); modularMaterials.add(hairMaterial);
+  const hairMaterial = colorMaterial('MC_COIFFURE'); modularMaterials.add(hairMaterial);
   const clothMaterial = colorMaterial('MC_CLOTH'); modularMaterials.add(clothMaterial);
   const accentMaterial = colorMaterial('MC_ACCENT', .5, .08); modularMaterials.add(accentMaterial);
   const darkMaterial = colorMaterial('MC_DARK', .42, .2); darkMaterial.color.setRGB(.08, .07, .06); modularMaterials.add(darkMaterial);
@@ -109,19 +115,15 @@ export function attachModularAppearanceController(actor) {
   const scarf = new Group(); scarf.name = 'accessory:scarf';
   addMesh(scarf, scarfGeometry, accentMaterial, 'scarf-ring', [0, .095, 0], [Math.PI / 2, 0, 0], [1.15, 1, 1]); torsoAccessoryRoot.add(scarf);
 
-  const sourceHairMaterials = new Set();
-  actor.visual.traverse(node => {
-    if (!node.isMesh) return;
-    for (const material of Array.isArray(node.material) ? node.material : [node.material]) if (material && /HAIR/i.test(material.name)) sourceHairMaterials.add(material);
-  });
-
   let profile = canonicalProfile(BASE), lastAppearance = null, disposed = false;
+  const baseRootScale = actor.root.scale.clone(), baseHeadScale = actor.bones.head.scale.clone();
   const baseSample = actor.sample.bind(actor), baseReset = actor.reset.bind(actor), baseDestroy = actor.destroy?.bind(actor);
 
   function restoreSourceHair() { sourceHairMaterials.forEach(material => { material.visible = true; }); }
   function hideAllParts() { hideChildren(hairRoot); hideChildren(outfitRoot); hideChildren(headAccessoryRoot); hideChildren(torsoAccessoryRoot); }
   function apply() {
     if (!lastAppearance || disposed) return;
+    actor.root.scale.copy(baseRootScale); actor.bones.head.scale.copy(baseHeadScale);
     const face = faceScale[profile.face], body = bodyScale[profile.body];
     actor.bones.head.scale.x *= face[0]; actor.bones.head.scale.y *= face[1]; actor.bones.head.scale.z *= face[2];
     actor.root.scale.x *= body[0]; actor.root.scale.y *= body[1]; actor.root.scale.z *= body[2];
@@ -141,9 +143,13 @@ export function attachModularAppearanceController(actor) {
     actor.root.updateWorldMatrix(true, true);
   }
 
-  actor.sample = (appearance, ...args) => { baseSample(appearance, ...args); lastAppearance = appearance; apply(); };
+  actor.sample = (appearance, ...args) => {
+    baseSample(appearance, ...args); baseRootScale.copy(actor.root.scale); baseHeadScale.copy(actor.bones.head.scale);
+    lastAppearance = appearance; apply();
+  };
   actor.reset = () => {
-    restoreSourceHair(); hideAllParts(); profile = canonicalProfile(BASE); lastAppearance = null; baseReset();
+    profile = canonicalProfile(BASE); lastAppearance = null; baseReset();
+    baseRootScale.copy(actor.root.scale); baseHeadScale.copy(actor.bones.head.scale); restoreSourceHair(); hideAllParts();
   };
   if (baseDestroy) actor.destroy = () => {
     if (disposed) return; baseDestroy(); disposed = true;
