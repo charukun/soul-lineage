@@ -1,15 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { appendFileSync } from 'node:fs';
+import { isVerifiedAudioRangeAbort, describeFailedRequest } from './media-request-contract.mjs';
 const base = process.env.BROWSER_SITE_URL?.replace(/\/?$/, '/');
 const targets = JSON.parse(process.env.BROWSER_TARGETS || '[]');
 if (!base || !targets.length) throw new Error('Pass a published URL and exact manifest targets');
 for (const target of targets) {
   test(`${target.path} starts WebGL2 from the deployed commit`, async ({ page }, testInfo) => {
     test.setTimeout(target.app === 'rinne' && !target.legacy ? 180000 : 60000);
-    const errors = [], failedRequests = [], simulatorRequests = [];
+    const errors = [], rawFailedRequests = [], simulatorRequests = [], playedSources = new Set();
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    page.on('requestfailed', request => failedRequests.push(request.url()));
+    page.on('requestfailed', request => rawFailedRequests.push(request));
     page.on('request', request => { if (request.url().includes('/simulator/')) simulatorRequests.push(request.url()); });
     const url = new URL(`${target.path}/`, base).href;
     const response = await page.goto(url, { waitUntil: 'networkidle' });
@@ -73,7 +74,7 @@ for (const target of targets) {
       await expect(canvas).toHaveAttribute('data-world', 'night-hunt.v2');
       await expect(canvas).toHaveAttribute('data-asset', 'kaykit.floor_tile_small');
       await expect(canvas).toHaveAttribute('data-platform', 'web');
-      await expect(page.getByRole('heading', { level: 1 })).toContainText('暗い');
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText('尽喰廻遊');
       expect(await page.locator('#emblem').evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
       await page.setViewportSize({ width: 390, height: 844 });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -125,11 +126,15 @@ for (const target of targets) {
     } else if (target.app === 'village' && !target.legacy && await page.locator('#build').count()) {
       await expect(canvas).toHaveAttribute('data-game-world', 'hoshitsugi.life-and-guard.v5');
       await expect(page.locator('#loading')).toBeHidden();
-      await expect(page.getByRole('heading', {level: 1})).toHaveText('星継ぎの庭');
+      await expect(page.locator('#muraEntry').getByRole('heading', {level: 2})).toHaveText('MURAAAAAAA');
+      // Carry forward PR #59: enter the current start screen before using the HUD.
+      await expect(page.locator('#muraEntry')).toBeVisible();
+      await page.locator('#muraEnterVillage').click();
+      await expect(page.locator('#muraEntry')).toBeHidden();
       await page.setViewportSize({width:390,height:844});
       await page.locator('#build').click();
       await expect(page.locator('#catalog')).toBeVisible();
-      await page.locator('#more').click();
+      await page.getByRole('button', {name: '設定', exact: true}).click();
       await page.locator('#onlineOpen').click();
       await expect(page.locator('#make-offer')).toBeVisible();
       await page.locator('#onlineDialog form button').click();
@@ -151,16 +156,37 @@ for (const target of targets) {
       await page.setViewportSize({ width: 1280, height: 800 });
     }
     if (!target.legacy) {
-      await page.locator('.soul-music [data-open]').click();
+      // The Village deliberately hides its old music trigger (PR #59).
+      if (target.app === 'village') {
+        await page.evaluate(() => window.__SOUL_MUSIC__.open());
+      } else await page.locator('.soul-music [data-open]').click();
+      await expect(page.locator('.soul-music dialog')).toBeVisible();
+      const audio = page.locator('.soul-music audio');
+      const snapshotAudio = () => audio.evaluate(player => ({ src: player.currentSrc, time: player.currentTime,
+        ready: player.readyState, paused: player.paused, error: player.error?.code ?? null }));
+      const prior = await snapshotAudio();
+      expect(prior.error).toBeNull();
+      if (prior.src && prior.time > 0 && prior.ready >= 2) playedSources.add(prior.src);
       await page.locator('.soul-music [data-world]').selectOption('');
       await expect(page.locator('.soul-music [data-track]')).toHaveCount(150);
       await page.locator('.soul-music [data-track="r01"]').click();
-      await expect.poll(() => page.locator('.soul-music audio').evaluate(audio => audio.currentTime)).toBeGreaterThan(0);
+      await expect(page.locator('.soul-music [data-state]')).toContainText('再生中：');
+      await expect.poll(() => audio.evaluate(player => player.currentTime)).toBeGreaterThan(0);
+      const playing = await snapshotAudio();
+      expect(playing.error).toBeNull(); expect(playing.ready).toBeGreaterThanOrEqual(2); expect(playing.paused).toBe(false);
+      expect(playing.src).toBeTruthy(); playedSources.add(playing.src);
       await page.locator('.soul-music [data-stop]').click();
+      expect(await audio.evaluate(player => player.paused)).toBe(true);
+      expect(await audio.evaluate(player => player.error)).toBeNull();
       await page.locator('.soul-music form button').click();
     }
+    const requestFailures = await Promise.all(rawFailedRequests.map(describeFailedRequest));
+    const expectedMediaAborts = requestFailures.filter(record => isVerifiedAudioRangeAbort(record, playedSources, new URL(url).origin));
+    const failedRequests = requestFailures.filter(record => !isVerifiedAudioRangeAbort(record, playedSources, new URL(url).origin));
+    const record = { url, commit: target.version.commit, inputHash: target.version.inputHash, webgl: gpu,
+      errors, failedRequests, expectedMediaAborts, requestFailures, verifiedAudioSources: [...playedSources] };
+    await testInfo.attach('request-diagnostics.json', { body: JSON.stringify(record, null, 2), contentType: 'application/json' });
     expect(errors).toEqual([]); expect(failedRequests).toEqual([]);
-    const record = { url, commit: target.version.commit, inputHash: target.version.inputHash, webgl: gpu, errors, failedRequests };
     await testInfo.attach('verified-browser.json', { body: JSON.stringify(record, null, 2), contentType: 'application/json' });
     console.log('BROWSER VERIFIED', JSON.stringify(record));
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n- Browser OK: ${url} — ${target.version.commit} — WebGL2\n`);
