@@ -1,168 +1,114 @@
-import {
-  BoxGeometry, Color, CylinderGeometry, DoubleSide, Group, Mesh, MeshStandardMaterial,
-  SphereGeometry, TorusGeometry
-} from 'three';
+import { Color, DoubleSide, Group, Mesh, MeshStandardMaterial, Vector3 } from 'three';
+import { validateVisualIdentity } from '@soul/characters';
+import { attachFaceIdentity } from './master-character-face.js';
+import { leaseWardrobeGeometry, wardrobeCacheStats, hairGeometry, outfitGeometry, gearGeometry, accessoryGeometry } from './master-character-wardrobe.js';
 
-const KEY = Symbol.for('soul.master-character.modular-appearance');
-const allowed = Object.freeze({
-  face: new Set(['classic', 'round', 'sharp', 'long']),
-  hair: new Set(['original', 'bob', 'crop', 'tail']),
-  body: new Set(['balanced', 'slender', 'sturdy', 'compact']),
-  outfit: new Set(['uniform', 'tunic', 'mantle', 'apron']),
-  accessory: new Set(['none', 'glasses', 'headband', 'scarf'])
-});
+const KEY = Symbol('master-character-modular');
 const BASE = Object.freeze({ version: 1, face: 'classic', hair: 'original', body: 'balanced', outfit: 'uniform', accessory: 'none' });
-const faceScale = Object.freeze({
-  classic: [1, 1, 1], round: [1.08, .96, 1.05], sharp: [.94, 1.04, .96], long: [.96, 1.08, .97]
-});
-const bodyScale = Object.freeze({
-  balanced: [1, 1, 1], slender: [.9, 1.02, .92], sturdy: [1.1, .98, 1.08], compact: [1.04, .94, 1.03]
-});
+const values = Object.freeze({ face: ['classic','round','sharp','long'], hair: ['original','bob','crop','tail'],
+  body: ['balanced','slender','sturdy','compact'], outfit: ['uniform','tunic','mantle','apron'], accessory: ['none','glasses','headband','scarf'] });
+const FACE = { classic:[1,1,1], round:[1.08,.96,1.05], sharp:[.94,1.04,.96], long:[.96,1.08,.97] };
+const BODY = { balanced:[1,1,1], slender:[.9,1.02,.92], sturdy:[1.1,.98,1.08], compact:[1.04,.94,1.03] };
 const check = (ok, message) => { if (!ok) throw new Error(message); };
-
-function canonicalProfile(input = BASE) {
-  check(input && typeof input === 'object' && !Array.isArray(input), 'Invalid modular appearance profile');
-  const profile = { ...BASE, ...input, version: 1 };
-  for (const [slot, values] of Object.entries(allowed)) check(values.has(profile[slot]), `Invalid modular appearance ${slot}`);
-  return Object.freeze(profile);
+const grayHair = new Color(.65,.65,.62);
+function canonicalProfile(input) {
+  check(input && typeof input === 'object' && (input.version === undefined || input.version === 1), 'Invalid modular appearance version');
+  const result = { ...BASE, ...input, version: 1 };
+  check(Object.keys(result).every(k => k === 'version' || Object.hasOwn(values,k)), 'Invalid modular appearance field');
+  for (const [slot, allowed] of Object.entries(values)) check(allowed.includes(result[slot]), `Invalid modular appearance ${slot}`);
+  return Object.freeze(result);
 }
+function group(parent,name) { const g=new Group();g.name=name;parent.add(g);return g; }
 
-function colorMaterial(name, roughness = .72, metalness = 0) {
-  return new MeshStandardMaterial({ name, color: 0xffffff, roughness, metalness, side: DoubleSide });
-}
-
-function addMesh(group, geometry, material, name, position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1]) {
-  const mesh = new Mesh(geometry, material);
-  mesh.name = name; mesh.position.fromArray(position); mesh.rotation.set(...rotation); mesh.scale.fromArray(scale);
-  mesh.castShadow = false; mesh.receiveShadow = false; group.add(mesh); return mesh;
-}
-
-function hideChildren(root) { for (const child of root.children) child.visible = false; }
-function showNamed(root, name) { hideChildren(root); const target = root.getObjectByName(name); if (target) target.visible = true; }
-
-/**
- * Adds an opt-in visual variation layer to an existing pooled MasterCharacter actor.
- * The source Shino body stays complete and clothed. Alternate outfits are overlays;
- * this module never hides the source body/clothes or treats missing covered geometry as skin.
- * Gameplay collision, inventory and simulation state remain caller-owned.
+/** Extension of the existing pool: source geometry/textures/rig and the complete base
+ * outfit remain loader-owned. Each actor owns only material uniforms and part leases.
+ * Restoring the source Shino does not change saved genes, expressions or motion clips.
  */
 export function attachModularAppearanceController(actor) {
-  check(actor?.root?.isObject3D && actor?.visual?.isObject3D && actor?.bones?.head?.isBone && actor?.bones?.spine?.isBone,
-    'A spawned humanoid actor is required');
+  check(actor?.root?.isObject3D && actor.visual?.isObject3D && actor.bones?.head && actor.bones?.spine, 'Invalid modular appearance actor');
   if (actor[KEY]) return actor[KEY];
-
-  // Capture only source materials before modular geometry is attached.
-  const sourceHairMaterials = new Set();
-  actor.visual.traverse(node => {
-    if (!node.isMesh) return;
-    for (const material of Array.isArray(node.material) ? node.material : [node.material]) if (material && /HAIR/i.test(material.name)) sourceHairMaterials.add(material);
-  });
-
-  const geometries = new Set(), modularMaterials = new Set();
-  const geometry = factory => { const value = factory(); geometries.add(value); return value; };
-  const hairMaterial = colorMaterial('MC_COIFFURE'); modularMaterials.add(hairMaterial);
-  const clothMaterial = colorMaterial('MC_CLOTH'); modularMaterials.add(clothMaterial);
-  const accentMaterial = colorMaterial('MC_ACCENT', .5, .08); modularMaterials.add(accentMaterial);
-  const darkMaterial = colorMaterial('MC_DARK', .42, .2); darkMaterial.color.setRGB(.08, .07, .06); modularMaterials.add(darkMaterial);
-
-  const hairRoot = new Group(); hairRoot.name = 'mc-hair-root'; actor.bones.head.add(hairRoot);
-  const outfitRoot = new Group(); outfitRoot.name = 'mc-outfit-root'; actor.bones.spine.add(outfitRoot);
-  const headAccessoryRoot = new Group(); headAccessoryRoot.name = 'mc-head-accessory-root'; actor.bones.head.add(headAccessoryRoot);
-  const torsoAccessoryRoot = new Group(); torsoAccessoryRoot.name = 'mc-torso-accessory-root'; actor.bones.spine.add(torsoAccessoryRoot);
-
-  const capGeometry = geometry(() => new SphereGeometry(.145, 14, 10, 0, Math.PI * 2, 0, Math.PI * .72));
-  const lockGeometry = geometry(() => new BoxGeometry(.052, .19, .07));
-  const tailGeometry = geometry(() => new CylinderGeometry(.035, .058, .28, 8));
-  const tunicGeometry = geometry(() => new CylinderGeometry(.205, .28, .44, 10, 1, true));
-  const panelGeometry = geometry(() => new BoxGeometry(.39, .48, .025));
-  const apronGeometry = geometry(() => new BoxGeometry(.29, .40, .018));
-  const beltGeometry = geometry(() => new BoxGeometry(.37, .045, .045));
-  const torusEyeGeometry = geometry(() => new TorusGeometry(.044, .008, 6, 14));
-  const bridgeGeometry = geometry(() => new BoxGeometry(.035, .009, .008));
-  const headbandGeometry = geometry(() => new TorusGeometry(.135, .012, 6, 20));
-  const scarfGeometry = geometry(() => new TorusGeometry(.12, .026, 7, 20));
-
-  const bob = new Group(); bob.name = 'hair:bob';
-  addMesh(bob, capGeometry, hairMaterial, 'bob-cap', [0, .055, -.006], [0, 0, 0], [1.05, .92, 1.03]);
-  addMesh(bob, lockGeometry, hairMaterial, 'bob-left', [-.105, -.04, .005], [0, 0, -.08]);
-  addMesh(bob, lockGeometry, hairMaterial, 'bob-right', [.105, -.04, .005], [0, 0, .08]);
-  hairRoot.add(bob);
-
-  const crop = new Group(); crop.name = 'hair:crop';
-  addMesh(crop, capGeometry, hairMaterial, 'crop-cap', [0, .064, -.008], [0, 0, 0], [.96, .68, .96]);
-  hairRoot.add(crop);
-
-  const tail = new Group(); tail.name = 'hair:tail';
-  addMesh(tail, capGeometry, hairMaterial, 'tail-cap', [0, .06, -.008], [0, 0, 0], [1, .76, 1]);
-  addMesh(tail, tailGeometry, hairMaterial, 'tail-lock', [0, -.045, -.17], [.28, 0, 0]);
-  hairRoot.add(tail);
-
-  const tunic = new Group(); tunic.name = 'outfit:tunic';
-  addMesh(tunic, tunicGeometry, clothMaterial, 'tunic-body', [0, -.13, 0], [0, 0, 0], [1, 1, .78]); outfitRoot.add(tunic);
-  const mantle = new Group(); mantle.name = 'outfit:mantle';
-  addMesh(mantle, panelGeometry, clothMaterial, 'mantle-back', [0, -.11, -.14], [.04, 0, 0]);
-  addMesh(mantle, beltGeometry, accentMaterial, 'mantle-collar', [0, .09, -.03], [0, 0, 0], [1.02, .8, 1.15]); outfitRoot.add(mantle);
-  const apron = new Group(); apron.name = 'outfit:apron';
-  addMesh(apron, apronGeometry, clothMaterial, 'apron-front', [0, -.13, .145]);
-  addMesh(apron, beltGeometry, accentMaterial, 'apron-belt', [0, .055, .02]); outfitRoot.add(apron);
-
-  const glasses = new Group(); glasses.name = 'accessory:glasses';
-  addMesh(glasses, torusEyeGeometry, darkMaterial, 'glasses-left', [-.055, .018, .118]);
-  addMesh(glasses, torusEyeGeometry, darkMaterial, 'glasses-right', [.055, .018, .118]);
-  addMesh(glasses, bridgeGeometry, darkMaterial, 'glasses-bridge', [0, .018, .118]); headAccessoryRoot.add(glasses);
-  const headband = new Group(); headband.name = 'accessory:headband';
-  addMesh(headband, headbandGeometry, accentMaterial, 'headband-ring', [0, .075, 0], [Math.PI / 2, 0, 0]); headAccessoryRoot.add(headband);
-  const scarf = new Group(); scarf.name = 'accessory:scarf';
-  addMesh(scarf, scarfGeometry, accentMaterial, 'scarf-ring', [0, .095, 0], [Math.PI / 2, 0, 0], [1.15, 1, 1]); torsoAccessoryRoot.add(scarf);
-
-  let profile = canonicalProfile(BASE), lastAppearance = null, disposed = false;
-  const baseRootScale = actor.root.scale.clone(), baseHeadScale = actor.bones.head.scale.clone();
-  const baseSample = actor.sample.bind(actor), baseReset = actor.reset.bind(actor), baseDestroy = actor.destroy?.bind(actor);
-
-  function restoreSourceHair() { sourceHairMaterials.forEach(material => { material.visible = true; }); }
-  function hideAllParts() { hideChildren(hairRoot); hideChildren(outfitRoot); hideChildren(headAccessoryRoot); hideChildren(torsoAccessoryRoot); }
-  function apply() {
-    if (!lastAppearance || disposed) return;
-    actor.root.scale.copy(baseRootScale); actor.bones.head.scale.copy(baseHeadScale);
-    const face = faceScale[profile.face], body = bodyScale[profile.body];
-    actor.bones.head.scale.x *= face[0]; actor.bones.head.scale.y *= face[1]; actor.bones.head.scale.z *= face[2];
-    actor.root.scale.x *= body[0]; actor.root.scale.y *= body[1]; actor.root.scale.z *= body[2];
-
-    hairMaterial.color.setRGB(...lastAppearance.hair);
-    clothMaterial.color.setRGB(...lastAppearance.dye);
-    accentMaterial.color.copy(new Color(...lastAppearance.dye)).lerp(new Color(...lastAppearance.hair), .22);
-
-    restoreSourceHair(); hideAllParts();
-    if (profile.hair !== 'original') {
-      sourceHairMaterials.forEach(material => { material.visible = false; });
-      showNamed(hairRoot, `hair:${profile.hair}`);
-    }
-    if (profile.outfit !== 'uniform') showNamed(outfitRoot, `outfit:${profile.outfit}`);
-    if (profile.accessory === 'glasses' || profile.accessory === 'headband') showNamed(headAccessoryRoot, `accessory:${profile.accessory}`);
-    if (profile.accessory === 'scarf') showNamed(torsoAccessoryRoot, 'accessory:scarf');
-    actor.root.updateWorldMatrix(true, true);
+  let profile=BASE, identity=null, appearance=null, destroyed=false;
+  const sourceHair = new Map();
+  actor.visual.traverse(n=>{if(!n.isMesh)return;for(const m of Array.isArray(n.material)?n.material:[n.material])if(m&&/HAIR/i.test(m.name))sourceHair.set(m,m.visible);});
+  const roots={ hair:group(actor.bones.head,'mc-hair-root'), outfit:group(actor.bones.spine,'mc-outfit-root'),
+    headAccessory:group(actor.bones.head,'mc-head-accessory'), torsoAccessory:group(actor.bones.spine,'mc-torso-accessory'), gear:group(actor.bones.spine,'mc-role-gear') };
+  const groups={};
+  for(const slot of ['hair','outfit'])for(const id of values[slot].slice(1))groups[`${slot}:${id}`]=group(roots[slot],`${slot}:${id}`);
+  for(const id of values.accessory.slice(1))groups[`accessory:${id}`]=group(id==='scarf'?roots.torsoAccessory:roots.headAccessory,`accessory:${id}`);
+  const materials={
+    hair:new MeshStandardMaterial({name:'MC_COIFFURE',color:0x473122,roughness:.67}),
+    cloth:new MeshStandardMaterial({name:'MC_CLOTH',color:0x647b69,roughness:.91,side:DoubleSide}),
+    trim:new MeshStandardMaterial({name:'MC_ACCENT',color:0x98835f,roughness:.84,side:DoubleSide}),
+    dark:new MeshStandardMaterial({name:'MC_DARK',color:0x382d25,roughness:.77}),
+    metal:new MeshStandardMaterial({name:'MC_METAL',color:0x7f8c8b,roughness:.56,metalness:.32,side:DoubleSide})
+  };
+  const shapeScratch=new Vector3(),dyeScratch=new Color();
+  const slots=new Map(), facial=attachFaceIdentity(actor), baseRoot=actor.root.scale.clone(), baseHead=actor.bones.head.scale.clone(), baseline=new Map();
+  const adjusted=['hips','leftShoulder','rightShoulder','leftUpperArm','rightUpperArm','leftLowerArm','rightLowerArm','leftHand','rightHand','leftLowerLeg','rightLowerLeg','leftFoot','rightFoot'];
+  function capture() { baseRoot.copy(actor.root.scale);baseHead.copy(actor.bones.head.scale);
+    for(const name of adjusted)if(actor.bones[name]){let p=baseline.get(name);if(!p){p=new Vector3();baseline.set(name,p);}p.copy(actor.bones[name].position);} }
+  capture();
+  function clearSlot(slot) {const entry=slots.get(slot);if(entry){entry.mesh.removeFromParent();entry.lease.release();slots.delete(slot);}}
+  function part(slot,key,parent,material,factory) {
+    const existing=slots.get(slot);if(existing?.key===key)return;
+    clearSlot(slot);if(!key)return;
+    const lease=leaseWardrobeGeometry(key,factory),mesh=new Mesh(lease.geometry,material);
+    mesh.name=`mc-part:${key}`;mesh.castShadow=false;mesh.receiveShadow=false;parent.add(mesh);slots.set(slot,{key,lease,mesh});
   }
-
-  actor.sample = (appearance, ...args) => {
-    baseSample(appearance, ...args); baseRootScale.copy(actor.root.scale); baseHeadScale.copy(actor.bones.head.scale);
-    lastAppearance = appearance; apply();
-  };
-  actor.reset = () => {
-    profile = canonicalProfile(BASE); lastAppearance = null; baseReset();
-    baseRootScale.copy(actor.root.scale); baseHeadScale.copy(actor.bones.head.scale); restoreSourceHair(); hideAllParts();
-  };
-  if (baseDestroy) actor.destroy = () => {
-    if (disposed) return; baseDestroy(); disposed = true;
-    modularMaterials.forEach(material => material.dispose()); geometries.forEach(value => value.dispose());
-  };
-
-  const controller = {
-    get profile() { return profile; },
-    setProfile(next) { profile = canonicalProfile(next); actor.resetSecondary?.(); apply(); return profile; },
-    resetProfile() { return controller.setProfile(BASE); },
+  function buildParts() {
+    for(const [name,g] of Object.entries(groups)) {const [slot,id]=name.split(':');g.visible=profile[slot]===id;}
+    const front=identity?.front??'parted',back=identity?.back??'close';
+    part('hair',profile.hair==='original'?null:`hair-v2:${profile.hair}:${front}:${back}`,groups[`hair:${profile.hair}`],materials.hair,()=>hairGeometry(profile.hair,front,back));
+    for(const trim of [false,true])part(`outfit:${trim}`,profile.outfit==='uniform'?null:`outfit-v2:${profile.outfit}:${trim}`,groups[`outfit:${profile.outfit}`],trim?materials.trim:materials.cloth,()=>outfitGeometry(profile.outfit,trim));
+    part('accessory',profile.accessory==='none'?null:`accessory-v2:${profile.accessory}`,groups[`accessory:${profile.accessory}`],profile.accessory==='scarf'?materials.cloth:materials.dark,()=>accessoryGeometry(profile.accessory));
+    const gear=identity&&profile.outfit!=='uniform'?identity.gear:'none';
+    for(const metal of [false,true]){
+      const hasGeometry=gear!=='none'&&(metal?['pauldron','armor','tools','quiver','pack','satchel','cowl','shawl','stole','chain'].includes(gear):gear!=='chain');
+      part(`gear:${metal}`,hasGeometry?`gear-v1:${gear}:${metal}`:null,roots.gear,metal?materials.metal:materials.trim,()=>gearGeometry(gear,metal));
+    }
+  }
+  function apply() {
+    if(destroyed)return;
+    actor.root.scale.copy(baseRoot).multiply(shapeScratch.fromArray(BODY[profile.body]));
+    actor.bones.head.scale.copy(baseHead).multiply(shapeScratch.fromArray(FACE[profile.face]));
+    for(const [name,position] of baseline)actor.bones[name].position.copy(position);
+    if(identity){
+      const p=identity.proportions;
+      actor.bones.head.scale.multiplyScalar(p.head);
+      for(const side of ['left','right']){
+        for(const name of ['Shoulder','UpperArm'])if(actor.bones[side+name])actor.bones[side+name].position.x*=p.shoulders;
+        for(const name of ['LowerArm','Hand'])if(actor.bones[side+name])actor.bones[side+name].position.multiplyScalar(p.arms);
+        for(const name of ['LowerLeg','Foot'])if(actor.bones[side+name])actor.bones[side+name].position.multiplyScalar(p.legs);
+      }
+      // Move the hip by the same leg-length delta, keeping the neutral feet grounded.
+      if(baseline.has('leftLowerLeg')&&baseline.has('leftFoot'))actor.bones.hips.position.y+=(Math.abs(baseline.get('leftLowerLeg').y)+Math.abs(baseline.get('leftFoot').y))*(p.legs-1);
+    }
+    for(const [material,visible] of sourceHair)material.visible=visible&&profile.hair==='original';
+    if(appearance){
+      materials.hair.color.setRGB(...appearance.hair).multiplyScalar(identity?.hairValue??1).lerp(grayHair,appearance.gray??0);
+      materials.cloth.color.setRGB(...(identity?.cloth??[.52,.63,.55])).multiply(dyeScratch.setRGB(...appearance.dye));
+      materials.trim.color.setRGB(...(identity?.trim??[.67,.55,.36]));
+      if(profile.accessory==='headband')materials.dark.color.copy(materials.trim.color);else materials.dark.color.setRGB(.10,.085,.07);
+      // Base sleeve/stocking textures remain part of the original complete outfit.
+    }
+    facial.set(identity,appearance);
+    actor.updateAttachments?.();
+  }
+  const sample=actor.sample.bind(actor),reset=actor.reset.bind(actor),destroy=actor.destroy.bind(actor);
+  const controller={
+    get profile(){return {...profile};}, get identity(){return identity;}, get usesSourceHair(){return profile.hair==='original';},
+    setProfile(next){profile=canonicalProfile(next);buildParts();actor.resetSecondary?.();apply();return controller.profile;},
+    setIdentity(next){
+      if(next!==null){validateVisualIdentity(next);identity=JSON.parse(JSON.stringify(next));profile=canonicalProfile(identity.parts);}else identity=null;
+      buildParts();actor.resetSecondary?.();apply();
+    },
     apply,
-    diagnostics() { return { sourceHairMaterials: sourceHairMaterials.size, face: profile.face, hair: profile.hair,
-      body: profile.body, outfit: profile.outfit, accessory: profile.accessory }; }
+    diagnostics(){return{...profile,identityVersion:identity?.version??null,role:identity?.role??null,front:identity?.front??null,back:identity?.back??null,
+      sourceHairMaterials:sourceHair.size,faceMaterials:facial.materialCount,activePartMeshes:slots.size,shared:wardrobeCacheStats()};}
   };
-  actor[KEY] = controller; return controller;
+  actor.sample=(p,...args)=>{sample(p,...args);appearance=p;capture();apply();};
+  actor.reset=()=>{profile=BASE;identity=null;appearance=null;reset();capture();buildParts();apply();};
+  actor.destroy=()=>{if(destroyed)return;actor.reset();for(const key of [...slots.keys()])clearSlot(key);
+    Object.values(roots).forEach(g=>g.removeFromParent());Object.values(materials).forEach(m=>m.dispose());destroyed=true;destroy();};
+  actor[KEY]=controller;actor.appearanceController=controller;buildParts();apply();return controller;
 }

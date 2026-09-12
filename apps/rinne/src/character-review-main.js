@@ -1,5 +1,5 @@
 import './character-review.js';
-import { APPEARANCE_PARTS, YEAR_MS } from '@soul/characters';
+import { VISUAL_ROLES, APPEARANCE_PARTS, YEAR_MS } from '@soul/characters';
 import { createCharacterWorkspace, downloadWorkspace } from './character-workspace.js';
 
 const el = id => document.getElementById(id);
@@ -42,6 +42,10 @@ function render() {
   el('undo').disabled = !review.ready || !w.history.canUndo; el('redo').disabled = !review.ready || !w.history.canRedo;
   el('save-state').textContent = w.saveMessage;
   if (!record) return;
+  renderQuality();
+  el('subject').textContent = settings.view === 'single'
+    ? `1体表示 · 個体 ${settings.selected + 1} / ${settings.count} · ${record.ageMs / YEAR_MS}歳`
+    : `個体 ${settings.selected + 1} / ${settings.count} · ${record.ageMs / YEAR_MS}歳`;
   el('selection-summary').textContent = `個体 ${String(settings.selected + 1).padStart(2, '0')} · ${record.ageMs / YEAR_MS}歳`;
   const p = w.getProfile();
   for (const b of document.querySelectorAll('[data-modular-value]')) b.setAttribute('aria-pressed', String(p[slot] === b.dataset.modularValue));
@@ -68,9 +72,30 @@ function render() {
   for (const b of document.querySelectorAll('[data-individual]')) b.setAttribute('aria-pressed', String(Number(b.dataset.individual) === settings.selected));
   if (review.ready && !wasReady) { wasReady = true; if (currentTab === 'parts') aimForSlot(); }
 }
+function renderQuality() {
+  const {review, workspace:w}=studio,q=w.quality,record=w.selected,identity=w.getIdentity();
+  if(document.activeElement!==el('quality-seed'))el('quality-seed').value=String(review.settings.seed);
+  el('quality-context').value=q.context;el('quality-role').value=q.role;el('quality-reference').checked=q.reference;
+  el('quality-age').value=review.settings.ages==='mixed'?'mixed':String(review.settings.age);
+  const baseline=q.mode==='baseline';el('quality-baseline').textContent=baseline?'強化した量産方式に戻す':'旧方式と比較';el('quality-baseline').setAttribute('aria-pressed',String(baseline));
+  const marked=q.marked.includes(record.id);el('quality-mark').textContent=marked?'要修正マークを解除':'この個体を要修正にする';el('quality-mark').setAttribute('aria-pressed',String(marked));
+  el('quality-identity').textContent=`${record.id} / seed ${record.seed}\n${identity?`${VISUAL_ROLES[identity.role]} · ${identity.front} / ${identity.back}`:baseline?'旧方式：色・全体サイズのみ':'Shino基準パーツ'}\n親: ${record.parents.join(' / ')||'なし'}`;
+  const r=w.qualityReport();el('quality-report').textContent=`量産 ${r.count}体 + 基準 ${r.referenceCount}体\n髪型 ${r.hairstyles}種 / 輪郭・目 ${r.faceGroups}群 / 役割 ${r.roles}種\n配色を除くシルエット ${r.silhouettes}種\n${r.similar.length?'似た組合せ: '+r.similar.map(ids=>ids.join('・')).join(' / '):'同一シルエットの組合せなし'}\n要修正 ${q.marked.length}体。数値は目安で、見た目の合格証明ではありません。`;
+  for(const b of document.querySelectorAll('[data-individual]')){const row=review.records[Number(b.dataset.individual)];b.dataset.qualityMarked=String(q.marked.includes(row.id));b.title=`${row.id} / seed ${row.seed}`;}
+}
 function init() {
   const review = window.masterCharacterReview; if (!review?.session) return;
   const workspace = createCharacterWorkspace(review); studio = { review, workspace }; window.characterStudio = studio;
+  for(const [id,label] of Object.entries(VISUAL_ROLES))if(!['child','elder'].includes(id))el('quality-role').add(new Option(label,id));
+  el('quality-context').addEventListener('change',()=>safe(()=>workspace.setQuality({context:el('quality-context').value})));
+  el('quality-role').addEventListener('change',()=>safe(()=>workspace.setQuality({role:el('quality-role').value})));
+  el('quality-reference').addEventListener('change',()=>safe(()=>workspace.setQuality({reference:el('quality-reference').checked})));
+  el('quality-age').addEventListener('change',()=>safe(()=>workspace.setAges(el('quality-age').value==='mixed'?'mixed':Number(el('quality-age').value))));
+  el('quality-generate').addEventListener('click',()=>safe(()=>workspace.generate(Number(el('quality-seed').value))));
+  el('quality-family').addEventListener('click',()=>safe(()=>{workspace.configure({ages:'mixed'});workspace.generate(Number(el('quality-seed').value),'family');}));
+  el('quality-baseline').addEventListener('click',()=>safe(()=>workspace.setQuality({mode:workspace.quality.mode==='baseline'?'enhanced':'baseline'})));
+  el('quality-camera').addEventListener('click',()=>safe(()=>review.aim(workspace.quality.context==='studio'?'overview':workspace.quality.context)));
+  el('quality-mark').addEventListener('click',()=>safe(()=>workspace.markSelected()));
   for (const [id, label] of Object.entries(slots)) {
     const b = button(label, () => { slot = id; workspace.configure({ view: 'single' }); buildOptions(); aimForSlot(); }); b.dataset.slot = id; el('slot-tabs').append(b);
   }

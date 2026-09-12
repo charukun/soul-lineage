@@ -39,3 +39,12 @@ test('review model resolves to the sibling Rinne deployment',()=>{
  assert.equal(hashResident('same'),hashResident('same'));
  assert.notEqual(hashResident('same'),hashResident('different'));
 });
+
+test('resident identity uses actual age/job, deterministic without mutating the resident',async()=>{
+ const {residentVisualIdentity}=await import('../src/mura-master-characters.js');
+ const p={id:'resident-42',seed:42,role:'resident',ageYears:35,jobId:'workplace'};
+ const before=JSON.stringify(p),a=residentVisualIdentity(p,'carpenter');
+ assert.equal(a.role,'artisan');assert.equal(a.gear,'tools');assert.deepEqual(a,residentVisualIdentity({...p},'carpenter'));
+ assert.equal(JSON.stringify(p),before);assert.equal(residentVisualIdentity({...p,ageYears:3},'carpenter').gear,'none');
+ assert.deepEqual(a.face,residentVisualIdentity(p,'logging').face);
+});

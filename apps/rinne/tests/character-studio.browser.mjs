@@ -22,6 +22,26 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
       return { x:r.x,y:r.y,w:r.width,h:r.height,b:r.bottom, viewport:[innerWidth,innerHeight], document:[document.documentElement.scrollWidth,document.documentElement.scrollHeight] };
     });
   }
+  async function captureComparison(count) {
+    await page.locator(`[data-count="${count}"]`).click();
+    await page.waitForFunction(expected => {
+      const review = window.characterStudio.review;
+      return expected === 1
+        ? review.settings.view === 'single'
+        : review.settings.view === 'crowd' && review.settings.count === expected && review.actors.length === expected;
+    }, count);
+    await page.waitForTimeout(120);
+    const current = await state();
+    assert.equal(current.profile.hair,'bob');
+    const report = await page.locator('#quality-report').textContent();
+    if (count === 1) {
+      assert.match(await page.locator('#subject').textContent(), /^1体表示/);
+      assert.match(report, /量産 0体 \+ 基準 1体/);
+    }
+    await page.screenshot({path:resolve(output,`studio-compare-${count}-mobile.png`)});
+    checks.push({name:`${count}-person deterministic comparison rendered`,report});
+    return current;
+  }
   try {
     const response = await page.goto(new URL('./characters.html', baseURL).href, {waitUntil:'domcontentloaded',timeout:60000});
     assert.equal(response.status(),200); await ready();
@@ -54,13 +74,19 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
     await page.screenshot({path:resolve(output,'studio-main-mobile.png')});
     const before = await state();
     await page.locator('[data-tab="compare"]').click();
-    await page.locator('[data-count="12"]').click();
-    await page.waitForFunction(()=>window.characterStudio.review.actors.length===12);
-    assert.equal((await state()).profile.hair,'bob'); assert.deepEqual((await state()).records,before.records);
-    await page.locator('[data-count="30"]').click();
-    await page.waitForFunction(()=>window.characterStudio.review.actors.length===30);
-    assert.equal((await state()).profile.hair,'bob'); assert.deepEqual((await state()).records,before.records);
+    const one = await captureComparison(1); assert.deepEqual(one.records,before.records);
+    const six = await captureComparison(6); assert.deepEqual(six.records,before.records);
+    const twelve = await captureComparison(12); assert.deepEqual(twelve.records,before.records);
+    const thirty = await captureComparison(30); assert.deepEqual(thirty.records,before.records);
     await page.screenshot({path:resolve(output,'studio-compare-mobile.png')});
+    await page.locator('#quality-context').selectOption('village');
+    await page.locator('#quality-camera').click(); await page.waitForTimeout(120);
+    await page.screenshot({path:resolve(output,'studio-village-distance-mobile.png')});
+    await page.locator('#quality-context').selectOption('demon');
+    await page.locator('#quality-camera').click(); await page.waitForTimeout(120);
+    await page.screenshot({path:resolve(output,'studio-demon-distance-mobile.png')});
+    checks.push({name:'MURAAAAAAA and demon normal-distance preview rendered'});
+    await page.locator('#quality-context').selectOption('village');
     await page.locator('[data-individual="5"]').click();
     await page.locator('#edit-one').click();
     assert.equal((await state()).selected,5); assert.equal((await state()).view,'single');
@@ -68,7 +94,7 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
     await page.locator('[data-gene="eyes"][data-palette="2"]').click();
     await page.locator('[data-age="55"]').click();
     const colored=await state();assert.equal(colored.records[5].ageMs,55*60000);assert.deepEqual(colored.records[0],before.records[0]);
-    checks.push({name:'1/12/30 comparison preserves edits and targeted color/age edits stay isolated'});
+    checks.push({name:'1/6/12/30 comparison preserves edits and targeted color/age edits stay isolated'});
     for (const [width,height] of [[320,568],[360,640],[390,844],[412,892],[768,1024],[844,390],[1280,800]]) {
       await page.setViewportSize({width,height}); await page.waitForTimeout(80);
       const a=await bounds();

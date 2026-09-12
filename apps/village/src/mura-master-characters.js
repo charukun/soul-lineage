@@ -1,5 +1,7 @@
 import {THREE as T,GLTFLoader} from '@soul/rendering';
 import {createShinoProductionPool,shinoProductionRigFromGLTF} from '@soul/rendering/master-character-production';
+import {attachModularAppearanceController} from '@soul/rendering/master-character-modular';
+import {createCharacter,visualIdentityForCharacter,YEAR_MS} from '@soul/characters';
 
 export const MASTER_RESIDENT_LIMIT=6;
 export const MASTER_RESIDENT_NEAR=42;
@@ -28,6 +30,12 @@ export function residentAppearance(p){
  return{scale:ageScale(years),headScale:1+.22*(1-smooth(0,18,years)),gray:smooth(42,82,years),stoop:.25*smooth(55,90,years),skinAge:smooth(50,90,years),
   canEquipWeapon:years>=7,height,width,adultHeightMetres:1.72,hair,eyes,skin,dye,dead:Boolean(p?.dead)};
 }
+/** Presentation-only record; never written into the authoritative resident/save. */
+export function residentVisualIdentity(person,workplace=''){
+ const seed=hashResident(`${person?.id||'resident'}:${Number(person?.seed)||0}`);
+ const character=createCharacter({id:`resident.${hashResident(person?.id).toString(16)}`,seed,ageMs:Math.round(ageYears(person)*YEAR_MS)});
+ return visualIdentityForCharacter(character,{role:person?.role||'resident',workplace});
+}
 export function residentMasterScore(p,target={x:0,z:0}){const dx=(Number(p?.x)||0)-(Number(target?.x)||0),dz=(Number(p?.z)||0)-(Number(target?.z)||0),distance=Math.hypot(dx,dz);const priority=p?.role==='mayor'?120:p?.role==='guard'?18:0;return distance-priority;}
 export function masterModelUrl(href){return new URL('../rinne/simulator/assets/SHINO_review.vrm',href).href;}
 
@@ -45,18 +53,18 @@ function install(){
  const village=window.village;if(!village||window.__MURA_MASTER_CHARACTERS__)return;const{view}=village,originalSync=view.syncActor.bind(view),originalRemove=view.removeActor.bind(view);
  const state={version:1,state:'loading',limit:MASTER_RESIDENT_LIMIT,active:0,model:null,error:null};const entries=new Map();let pool=null;
  view.canvas.dataset.masterCharacter='loading';view.canvas.dataset.masterCharacterLimit=String(MASTER_RESIDENT_LIMIT);
- const snapshot=()=>({...state,active:entries.size,ids:[...entries.keys()]});window.__MURA_MASTER_CHARACTERS__={snapshot};
+ const snapshot=()=>({...state,active:entries.size,ids:[...entries.keys()],identities:[...entries.values()].map(e=>({id:e.person.id,...e.modular.diagnostics()}))});window.__MURA_MASTER_CHARACTERS__={snapshot};
  function release(id){const entry=entries.get(id);if(!entry)return false;if(view.actorNodes.get(id)===entry.actor.root)view.actorNodes.delete(id);pool?.despawn(entry.poolId);entries.delete(id);state.active=entries.size;return true;}
  function eligible(p,monster){return Boolean(pool&&!monster&&!p?.species&&!p?.hidden&&!p?.downed&&!p?.carry);}
  function threshold(p){return p?.role==='mayor'?MASTER_RESIDENT_RELEASE:Math.max(MASTER_RESIDENT_NEAR,Math.min(58,(view.span||40)*1.3));}
  function acquire(p,time){
   let entry=entries.get(p.id);if(entry)return entry;const score=residentMasterScore(p,view.target);if(score>threshold(p))return null;
   if(entries.size>=MASTER_RESIDENT_LIMIT){let worst=null;for(const candidate of entries.values()){const value=residentMasterScore(candidate.person,view.target);if(!worst||value>worst.score)worst={entry:candidate,score:value};}if(!worst||score>=worst.score-2)return null;release(worst.entry.person.id);}
-  const poolId=`village.${hashResident(p.id).toString(16)}.${String(p.id).length}`;const actor=pool.spawn(poolId);actor.root.userData.masterCharacter=true;actor.root.userData.personId=p.id;actor.root.userData.signature=`master:${p.role||'resident'}`;view.actors.add(actor.root);entry={actor,poolId,person:p,lastTime:time,appearanceKey:''};entries.set(p.id,entry);state.active=entries.size;return entry;
+  const poolId=`village.${hashResident(p.id).toString(16)}.${String(p.id).length}`;const actor=pool.spawn(poolId);actor.root.userData.masterCharacter=true;actor.root.userData.personId=p.id;actor.root.userData.signature=`master:${p.role||'resident'}`;view.actors.add(actor.root);entry={actor,modular:attachModularAppearanceController(actor),poolId,person:p,lastTime:time,appearanceKey:''};entries.set(p.id,entry);state.active=entries.size;return entry;
  }
  function syncMaster(p,time,monster){
   if(!eligible(p,monster)){release(p?.id);return null;}const score=residentMasterScore(p,view.target);if(score>MASTER_RESIDENT_RELEASE&&p.role!=='mayor'){release(p.id);return null;}const entry=acquire(p,time);if(!entry)return null;entry.person=p;
-  const years=ageYears(p),key=`${Math.floor(years*12)}:${p.role||'resident'}:${Number(p.seed)||0}:${Boolean(p.dead)}`;if(entry.appearanceKey!==key){entry.appearance=residentAppearance(p);entry.appearanceKey=key;entry.actor.resetSecondary();}
+  const workplace=village.world?.object?.(p.jobId)?.kind||'',years=ageYears(p),key=`${Math.floor(years*12)}:${p.role||'resident'}:${workplace}:${Number(p.seed)||0}:${Boolean(p.dead)}`;if(entry.appearanceKey!==key){entry.appearance=residentAppearance(p);entry.modular.setIdentity(residentVisualIdentity(p,workplace));entry.appearanceKey=key;entry.actor.resetSecondary();}
   entry.actor.sample(entry.appearance,time,bones=>pose(bones,time,p));
   if(entry.actor.expressionNames.includes('blink')){const phase=(time+(hashResident(p.id)%17)*.13)%3.4;entry.actor.setExpressions({blink:phase<.18?Math.sin(Math.PI*phase/.18):0});}
   const dt=clamp(time-entry.lastTime,0,.1);entry.lastTime=time;entry.actor.updateSecondary(dt,true);entry.actor.root.position.set(p.x||0,0,p.z||0);entry.actor.root.rotation.y=p.angle||0;entry.actor.root.visible=!p.hidden;entry.actor.root.userData.personId=p.id;return entry.actor.root;

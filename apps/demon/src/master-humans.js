@@ -2,6 +2,8 @@ import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {createShinoProductionPool,shinoProductionRigFromGLTF} from '@soul/rendering/master-character-production';
 import {NightView} from './web/view.js';
+import {attachModularAppearanceController} from '@soul/rendering/master-character-modular';
+import {createCharacter,visualIdentityForCharacter,YEAR_MS} from '@soul/characters';
 
 export const MASTER_HUMAN_LIMIT=6;
 export const SHINO_REVIEW_SHA256='83843ade7dbdfaacc9d601bda099fcb5757527e339b9c5deb223a2c2f5eb28ca';
@@ -23,6 +25,13 @@ export function humanAppearance(npc){
   height:.91+random()*.18,width:.89+random()*.22,adultHeightMetres:2.02,
   hair:pick(random,HAIR),eyes:pick(random,EYES),skin:pick(random,SKIN),dye:[...(ROLE_DYE[npc?.role]||[1,1,1])],dead:false};
 }
+/** Keep existing NPC age/colour derivation; role is gear, never combat state. */
+export function humanVisualIdentity(npc){
+ const seed=hashHuman(npc?.id||'human');
+ const age=19+rng(hashHuman(`${npc?.id||'human'}:${npc?.role||'traveller'}`))()*39;
+ const character=createCharacter({id:`human.${seed.toString(16)}`,seed,ageMs:Math.round(age*YEAR_MS)});
+ return visualIdentityForCharacter(character,{role:npc?.role||'traveller'});
+}
 export function masterHumanScore(npc,player={x:0,z:0}){const distance=Math.hypot((npc?.x||0)-(player?.x||0),(npc?.z||0)-(player?.z||0));const priority=npc?.marked?24:npc?.role==='knight'?10:npc?.role==='hunter'?5:0;return distance-priority;}
 export function masterHumanModelUrl(href){return new URL('../rinne/simulator/assets/SHINO_review.vrm',href).href;}
 
@@ -43,20 +52,20 @@ function stateFor(view){
  if(states.has(view))return states.get(view);
  const state={status:'loading',pool:null,rig:null,entries:new Map(),model:null,error:null};states.set(view,state);
  view.canvas.dataset.masterHuman='loading';view.canvas.dataset.masterHumanLimit=String(MASTER_HUMAN_LIMIT);
- if(typeof window!=='undefined')window.__DEMON_MASTER_HUMANS__={snapshot:()=>({status:state.status,active:state.entries.size,limit:MASTER_HUMAN_LIMIT,model:state.model,error:state.error,ids:[...state.entries.keys()]})};
+ if(typeof window!=='undefined')window.__DEMON_MASTER_HUMANS__={snapshot:()=>({status:state.status,active:state.entries.size,limit:MASTER_HUMAN_LIMIT,model:state.model,error:state.error,ids:[...state.entries.keys()],identities:[...state.entries.values()].map(e=>({id:e.npc.id,...e.modular.diagnostics()}))})};
  void load(view,state);return state;
 }
 async function load(view,state){try{const url=masterHumanModelUrl(location.href);state.model=url;const bytes=await fetchModel(url);const gltf=await new GLTFLoader().parseAsync(bytes,url);const rig=await shinoProductionRigFromGLTF(gltf);state.rig=rig;state.pool=createShinoProductionPool({template:gltf.scene,humanoid:rig.humanoid,rig,capacity:MASTER_HUMAN_LIMIT});state.status='ready';state.error=null;view.canvas.dataset.masterHuman='ready';}catch(error){state.status='fallback';state.error=String(error?.message||error);view.canvas.dataset.masterHuman='fallback';console.warn('[MasterCharacter humans] fallback',error);}}
 function release(view,state,id){const entry=state.entries.get(id);if(!entry)return;showProceduralBody(view.npcs.get(id),true);state.pool?.despawn(entry.poolId);state.entries.delete(id);}
 function releaseAll(view,state){for(const id of [...state.entries.keys()])release(view,state,id);}
-function acquire(view,state,npc){let entry=state.entries.get(npc.id);if(entry)return entry;if(!state.pool)return null;const poolId=`demon.${hashHuman(npc.id).toString(16)}.${String(npc.id).length}`;const actor=state.pool.spawn(poolId);actor.root.userData.masterCharacter=true;actor.root.userData.npcId=npc.id;view.actors.add(actor.root);entry={actor,poolId,npc,lastTime:0,appearance:humanAppearance(npc)};state.entries.set(npc.id,entry);return entry;}
+function acquire(view,state,npc){let entry=state.entries.get(npc.id);if(entry)return entry;if(!state.pool)return null;const poolId=`demon.${hashHuman(npc.id).toString(16)}.${String(npc.id).length}`;const actor=state.pool.spawn(poolId);actor.root.userData.masterCharacter=true;actor.root.userData.npcId=npc.id;view.actors.add(actor.root);const modular=attachModularAppearanceController(actor);modular.setIdentity(humanVisualIdentity(npc));entry={actor,modular,poolId,npc,lastTime:0,role:npc.role,appearance:humanAppearance(npc)};state.entries.set(npc.id,entry);return entry;}
 function sync(view,state,game,dt){
  const npcs=game?.village?.npcs||[],player=game?.player||{x:0,z:0};if(state.status!=='ready'){for(const n of npcs)showProceduralBody(view.npcs.get(n.id),true);return;}
  const selected=new Set(npcs.filter(n=>!n.dead&&!n.eaten).sort((a,b)=>masterHumanScore(a,player)-masterHumanScore(b,player)).slice(0,MASTER_HUMAN_LIMIT).map(n=>n.id));
  for(const id of [...state.entries.keys()])if(!selected.has(id))release(view,state,id);
  const time=game.time||view.elapsed||0;
  for(const npc of npcs){const procedural=view.npcs.get(npc.id);if(!selected.has(npc.id)){showProceduralBody(procedural,true);continue;}const entry=acquire(view,state,npc);if(!entry){showProceduralBody(procedural,true);continue;}
-  entry.npc=npc;entry.actor.sample(entry.appearance,time,bones=>pose(bones,time,npc));if(entry.actor.expressionNames.includes('blink')){const phase=(time+(hashHuman(npc.id)%13)*.17)%3.2;entry.actor.setExpressions({blink:phase<.16?Math.sin(Math.PI*phase/.16):0});}
+  entry.npc=npc;if(entry.role!==npc.role){entry.role=npc.role;entry.appearance=humanAppearance(npc);entry.modular.setIdentity(humanVisualIdentity(npc));}entry.actor.sample(entry.appearance,time,bones=>pose(bones,time,npc));if(entry.actor.expressionNames.includes('blink')){const phase=(time+(hashHuman(npc.id)%13)*.17)%3.2;entry.actor.setExpressions({blink:phase<.16?Math.sin(Math.PI*phase/.16):0});}
   entry.actor.updateSecondary(clamp(dt,0,.1),true);entry.actor.root.position.set(npc.x||0,0,npc.z||0);entry.actor.root.rotation.y=npc.yaw||0;entry.actor.root.visible=!npc.eaten&&!npc.dead;showProceduralBody(procedural,false);
  }
 }
