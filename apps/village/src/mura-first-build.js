@@ -15,11 +15,18 @@ const css=document.createElement('style');css.textContent=`
 #muraSettingsButton{min-width:44px!important;width:44px!important;height:44px!important;min-height:44px!important;padding:10px!important}
 #muraSettingsButton svg{width:18px!important;height:18px!important}
 #placement #muraRotateRange{height:44px!important}
+#housingMode{box-sizing:border-box}
+#housingMode #leaveRoom{position:static!important;inset:auto!important;transform:none!important;flex:0 0 auto;width:auto!important;min-width:44px!important;min-height:44px!important;height:auto!important;margin:0 0 0 auto;padding:8px!important;font-size:11px!important;pointer-events:auto;white-space:nowrap}
 `;
 document.head.append(css);
 let busy=false,timer;
 function notice(text){$('toastText').textContent=text;$('toast').hidden=false;clearTimeout(timer);timer=setTimeout(()=>$('toast').hidden=true,5000);}
 function refresh(){
+ // Keep the real exit control and its existing handler in the room's status row.
+ // The row follows the measured header height; a second fixed top-right button
+ // would sit underneath Settings. Moving it preserves ownership and save logic.
+ const housing=$('housingMode'),leave=$('leaveRoom');
+ if(housing&&leave&&leave.parentElement!==housing)housing.append(leave);
  const p=ui.pending;
  if(!p){done.disabled=false;find.disabled=false;return;}
  const error=world.canPlace(p.kind,p.x,p.z,p.rot,p.roomId,p.moveId);
