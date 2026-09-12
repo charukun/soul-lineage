@@ -20,8 +20,15 @@ const time = value => {
   return Number.isNaN(date.getTime()) ? '記録なし' : fmt.format(date);
 };
 
+function targetChip(target) {
+  const [label, tone] = stateView(target.state);
+  const chip = el('span', `target-chip ${tone}`);
+  chip.append(el('span', 'target-dot'), el('span', '', `${target.label || '公開先'} ${label}`));
+  return chip;
+}
+
 function targetRow(target) {
-  const row = el('div', `app-target state-${target.state || 'unknown'}`);
+  const row = el('div', `app-target state-${target.state || 'unknown'}${target.note ? ' has-note' : ''}`);
   const header = el('div', 'app-target-head');
   const [label, tone] = stateView(target.state);
   header.append(el('strong', '', target.label || '公開先'), el('span', `badge ${tone}`, label));
@@ -43,17 +50,41 @@ function targetRow(target) {
 }
 
 function appCard(app) {
-  const card = el('article', 'app-card');
-  const head = el('div', 'app-card-head');
-  head.append(el('h3', '', app.name || app.id));
-  const healthy = (app.targets || []).every(target => target.state === 'success');
-  const bad = (app.targets || []).some(target => target.state === 'failed');
-  head.append(el('span', `app-kind ${bad ? 'danger' : healthy ? 'ok' : 'info'}`, bad ? '要確認' : healthy ? '正常' : '確認中'));
-  card.append(head);
-  const targets = el('div', 'app-targets');
-  (app.targets || []).forEach(target => targets.append(targetRow(target)));
-  card.append(targets);
+  const targets = app.targets || [];
+  const healthy = targets.length > 0 && targets.every(target => target.state === 'success');
+  const bad = targets.some(target => target.state === 'failed');
+  const active = targets.some(target => target.state === 'deploying' || target.state === 'waiting');
+  const card = el('details', `app-card${bad ? ' app-card-attention' : ''}`);
+  card.open = bad;
+
+  const summary = el('summary', 'app-card-summary');
+  const title = el('div', 'app-title-block');
+  title.append(el('h3', '', app.name || app.id));
+  const chips = el('div', 'target-chips');
+  targets.forEach(target => chips.append(targetChip(target)));
+  title.append(chips);
+
+  const state = bad ? ['要確認','danger'] : active ? ['更新中','progress'] : healthy ? ['正常','ok'] : ['確認中','info'];
+  summary.append(title, el('span', `app-kind ${state[1]}`, state[0]));
+  card.append(summary);
+
+  const body = el('div', 'app-card-body');
+  const grid = el('div', 'app-targets');
+  targets.forEach(target => grid.append(targetRow(target)));
+  body.append(grid);
+  card.append(body);
   return card;
+}
+
+function groupSection(title, items) {
+  const section = el('section', 'app-group');
+  const head = el('div', 'app-group-head');
+  head.append(el('h3', '', title), el('span', 'muted', `${items.length}件`));
+  section.append(head);
+  const grid = el('div', 'app-grid');
+  items.forEach(app => grid.append(appCard(app)));
+  section.append(grid);
+  return section;
 }
 
 function render(apps = []) {
@@ -66,7 +97,11 @@ function render(apps = []) {
     root.append(el('div', 'card empty', '管理対象アプリを確認できませんでした'));
     return;
   }
-  apps.forEach(app => root.append(appCard(app)));
+
+  const games = apps.filter(app => app.kind !== 'tool');
+  const tools = apps.filter(app => app.kind === 'tool');
+  if (games.length) root.append(groupSection('ゲーム / 専用開発版', games));
+  if (tools.length) root.append(groupSection('開発ツール', tools));
 }
 
 async function load() {
