@@ -13,6 +13,7 @@ import {
   workflowFailure,
 } from './model.mjs';
 import { splitPulls } from './pulls.mjs';
+import { buildApplications } from './applications.mjs';
 
 const STATE_KEY = 'ops-state-v1';
 const REFRESH_TOKEN_HEADER = 'authorization';
@@ -248,6 +249,7 @@ export async function buildState(previous = null) {
     const environment = await buildPreviewEnvironment(candidate, branches, previous);
     if (environment) previews.push(environment);
   }
+  const applications = buildApplications(manifest, [dev, prod, ...previews], runs);
 
   const integrationQueue = openPulls.map(pr => classifyPull(pr, runs, developRuns));
   const diff = environmentDiff(dev, prod);
@@ -279,6 +281,7 @@ export async function buildState(previous = null) {
       total: allPulls.length,
       truncated: allPulls.length >= 100,
     },
+    applications,
     environments: [dev, prod, ...previews],
     environmentDiff: diff,
     integration: {
