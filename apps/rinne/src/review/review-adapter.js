@@ -20,8 +20,30 @@ export const reviewWeapons=Object.freeze([
   {id:'dagger',label:'短剣',file:'dagger.gltf'},{id:'crossbow',label:'クロスボウ',file:'crossbow_2handed.gltf'},
   {id:'staff',label:'杖',file:'staff.gltf'},{id:'wand',label:'ワンド',file:'wand.gltf'}
 ]);
-const TIDEBREAK_TECHNIQUES=Object.freeze([
-  ['thrust','突き'],['straight','直突き'],['heavy','強撃'],['sweep','薙ぎ'],['spin','回転斬り'],['round','横薙ぎ'],['wheel','車輪斬り'],['pommel','柄打ち'],['uppercut','斬り上げ'],['back','返し'],['leap','跳躍斬り'],['meteor','隕石斬り'],['spearwheel','槍車輪']
+
+// Source of truth: the skill simulator's STRIKES / weapon arts.
+const SKILL_SIM_TECHNIQUES=Object.freeze([
+  {kind:'slash',label:'流し斬り',weapon:'sword'},{kind:'back',label:'斬り返し',weapon:'sword'},{kind:'thrust',label:'刺し貫く',weapon:'sword'},{kind:'heavy',label:'叩き斬る',weapon:'sword'},
+  {kind:'dash',label:'駆け抜け斬り',weapon:'sword'},{kind:'spin',label:'旋回斬り',weapon:'sword'},{kind:'leap',label:'飛び込み斬り',weapon:'sword'},{kind:'retreat',label:'退いて構える',weapon:'sword'},
+  {kind:'uppercut',label:'斬り上げる',weapon:'sword'},{kind:'sweep',label:'足元を薙ぐ',weapon:'sword'},{kind:'diagonal',label:'袈裟に断つ',weapon:'sword'},{kind:'crosscut',label:'十字に斬り結ぶ',weapon:'sword'},
+  {kind:'round',label:'一回転の大薙ぎ',weapon:'sword'},{kind:'pierce',label:'渾身の貫き',weapon:'sword'},{kind:'sky',label:'跳躍突き',weapon:'spear'},{kind:'pommel',label:'柄で打ち崩す',weapon:'sword'},
+  {kind:'bash',label:'盾・鍔で押し返す',weapon:'sword'},{kind:'bullrush',label:'猛進・吹き飛ばし',weapon:'sword'},{kind:'meteor',label:'流星の強襲',weapon:'sword'},
+  {kind:'jab',label:'左の牽制拳',weapon:'fist'},{kind:'straight',label:'右の正拳',weapon:'fist'},{kind:'hook',label:'回し拳',weapon:'fist'},{kind:'bodyblow',label:'腹打ち',weapon:'fist'},
+  {kind:'risingfist',label:'突き上げ拳',weapon:'fist'},{kind:'oneinch',label:'寸勁',weapon:'fist'},{kind:'barrage',label:'連環双拳',weapon:'fist'},{kind:'rushfist',label:'崩山・突進拳',weapon:'fist'},
+  {kind:'katanaDraw',label:'居合い抜き',weapon:'katana'},{kind:'katanaKesa',label:'袈裟の一太刀',weapon:'katana'},{kind:'katanaReturn',label:'逆袈裟の返し',weapon:'katana'},{kind:'katanaThrust',label:'切っ先で貫く',weapon:'katana'},
+  {kind:'spearwheel',label:'風車の連旋',weapon:'spear'}
+]);
+const SKILL_SIM_DEFENSE=Object.freeze([
+  {kind:'guard',label:'堅く防ぐ',weapon:'sword',defense:'guard'},{kind:'parry',label:'刃を弾く',weapon:'sword',defense:'parry'},{kind:'counter',label:'受け流して反撃',weapon:'sword',defense:'counter'},
+  {kind:'ward',label:'守りの結界',weapon:'sword',defense:'ward'},{kind:'slip',label:'身をかわして返す',weapon:'sword',defense:'slip'},{kind:'brace',label:'踏ん張って受ける',weapon:'sword',defense:'brace'},
+  {kind:'ready',label:'構えを整える',weapon:'sword'}
+]);
+const SKILL_SIM_STANCES=Object.freeze([
+  {id:'balanced',label:'自然体',cfg:{}},{id:'assault',label:'攻め主体',cfg:{lean:.07,lower:.025,weight:.07}},{id:'defensive',label:'守り主体',cfg:{lean:-.04,lower:.05,weight:-.06,high:true}},
+  {id:'patient',label:'後の先',cfg:{lean:-.015,lower:.025,weight:-.04,half:.16}},{id:'counter',label:'見切り重視',cfg:{lean:-.03,lower:.05,weight:-.03,half:.23,high:true}},
+  {id:'elusive',label:'回避重視',cfg:{lower:.02,half:.18,light:true}},{id:'steadfast',label:'不動',cfg:{lower:.06,wide:.05}},{id:'survival',label:'生存優先',cfg:{lean:-.03,lower:.04,high:true}},
+  {id:'escort',label:'護衛優先',cfg:{lower:.065,wide:.04,high:true}},{id:'boxer',label:'拳闘のリズム',cfg:{lower:.025,half:.12,light:true,boxing:true}},
+  {id:'sideways',label:'半身の構え',cfg:{lower:.065,half:.24}},{id:'draw',label:'静の構え',cfg:{lower:.04,draw:true}}
 ]);
 const bytesCache=new Map(),inflight=new Map();
 let preloadStarted=false,preloadPromise=null,externalManifest=null;
@@ -58,6 +80,20 @@ function remapClip(sourceClip,sourceBones,targetBones,name=sourceClip.name){
   for(const track of sourceClip.tracks||[]){const dot=track.name.lastIndexOf('.'),uuid=track.name.slice(0,dot),prop=track.name.slice(dot+1),human=sourceByUuid.get(uuid),target=human&&targetBones[human];if(!target)continue;const times=Array.from(track.times),values=Array.from(track.values),targetName=`${target.uuid}.${prop}`;if(prop==='quaternion')tracks.push(new THREE.QuaternionKeyframeTrack(targetName,times,values));else if(prop==='position')tracks.push(new THREE.VectorKeyframeTrack(targetName,times,values));}
   return new THREE.AnimationClip(name,sourceClip.duration,tracks);
 }
+function poseClip(name,bones){
+  const tracks=[];for(const [human,bone] of Object.entries(bones)){if(!bone)continue;const q=bone.quaternion.toArray();tracks.push(new THREE.QuaternionKeyframeTrack(`${bone.uuid}.quaternion`,[0,1],[...q,...q]));if(human==='hips'){const p=bone.position.toArray();tracks.push(new THREE.VectorKeyframeTrack(`${bone.uuid}.position`,[0,1],[...p,...p]));}}
+  return new THREE.AnimationClip(name,1,tracks);
+}
+function applyStance(runtime,c,row){
+  runtime.resetRoot(c);runtime.resetBones(c);runtime.combatPose(c,row.id==='boxer'?'fist':'sword',null,0,0);const b=c.bones,m=row.cfg||{},unit=Math.max(.7,c.legLength||1);
+  if(b.hips){b.hips.position.y-=(m.lower||0)*unit;b.hips.position.x+=(m.weight||0)*unit;}
+  if(b.spine){b.spine.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler((m.lean||0),m.half||0,0)));}
+  if(m.high){for(const side of ['left','right'])b[side+'UpperArm']?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-.35,0,side==='left'?.28:-.28)));}
+  if(m.boxing){b.leftUpperArm?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-.65,0,.55)));b.rightUpperArm?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-.58,0,-.52)));b.leftLowerArm?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-.78,0,0)));b.rightLowerArm?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-.72,0,0)));}
+  if(m.draw){b.spine?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,-.18,0)));b.rightUpperArm?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(.20,-.15,-.55)));b.leftUpperArm?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(.12,.15,.38)));}
+  if(m.light){b.hips?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,.10,0)));}
+  c.root.updateMatrixWorld(true);
+}
 async function visibleHumanoidBones(gltf){
   const json=gltf.parser?.json,vrm1=json?.extensions?.VRMC_vrm?.humanoid?.humanBones;
   if(vrm1)return Object.fromEntries(await Promise.all(Object.entries(vrm1).map(async([name,row])=>[name,await gltf.parser.getDependency('node',row.node)])));
@@ -87,6 +123,7 @@ async function loadAllSources({scene,rootUrl,assetUrl,signal,onProgress,presetId
   const visibleLoader=new GLTFLoader(),visible=await visibleLoader.parseAsync(modelBytes,rootUrl.href),targetBones=await visibleHumanoidBones(visible);visible.scene.name=`${model.label}ReviewVisible`;visible.scene.updateMatrixWorld(true);
   const vendorLoader=new loaderModule.GLTFLoader();vendorLoader.register(p=>new vrmModule.VRMLoaderPlugin(p));const vendorGltf=await vendorLoader.parseAsync(modelBytes,rootUrl.href),vrm=vendorGltf.userData.vrm;if(!vrm)throw new Error('VRM Humanoid情報がありません');vrmModule.VRMUtils.rotateVRM0(vrm);if(vrm.lookAt){vrm.lookAt.autoUpdate=false;const proxy=new vrmaModule.VRMLookAtQuaternionProxy(vrm.lookAt);proxy.name='ReviewLookAtProxy';vrm.scene.add(proxy);}vrm.update(0);vrm.scene.updateMatrixWorld(true);
   const authored=motionsModule.createRetargetedClips(vrm),clips=new Map(),authoredNames=['Idle','Walk','Run','Attack','Hit Reaction','T-Pose'];for(const name of authoredNames){const value=`Tidebreak / ${name}`;clips.set(value,remapClip(authored.clips[name],authored.bones,targetBones,value));}
+  const bodyAliases=[['体 / 歩行','Tidebreak / Walk','歩行'],['体 / ダッシュ','Tidebreak / Run','ダッシュ'],['体 / 被弾','Tidebreak / Hit Reaction','被弾']];for(const [value,source,label] of bodyAliases){clips.set(value,clips.get(source));appendClip('心技体 / 体',value,label);}
   let disposed=false,effects=null,externalRetarget=null,library=null,failed=0;const weapons=new Map(),pendingWeapons=new Map();
   const weaponSocket=new THREE.Group();weaponSocket.name='ReviewWeaponSocket';targetBones.rightHand?.add(weaponSocket);let activeWeapon=null;
   async function selectWeapon(id='greatsword'){
@@ -95,19 +132,21 @@ async function loadAllSources({scene,rootUrl,assetUrl,signal,onProgress,presetId
     for(const [key,root]of weapons)root.visible=key===id;return id;
   }
   const body={root:visible.scene,bones:targetBones,clipNames:[...clips.keys()],label:`${model.name} / 全モーションソース`,weaponReview:true,clipGroups:[{label:'ゲーム実装 / Tidebreak自作',names:[...clips.keys()]}],summary:'Tidebreak自作モーションを使用可能。残りを優先順に読み込み中。',getClip:name=>clips.get(name)||null,afterSample(){visible.scene.updateMatrixWorld(true);},async setWeapon({enabled=false,id=null,scale=.5,x=0,y=0,z=0}={}){if(!weaponSocket.parent||!enabled){weaponSocket.visible=false;return;}const requested=id||document.querySelector('#weapon-select')?.value||'greatsword';if(requested!==activeWeapon||!weapons.has(requested))activeWeapon=await selectWeapon(requested);weaponSocket.visible=true;const selected=weapons.get(activeWeapon);if(selected)selected.scale.setScalar(Math.max(.1,Math.min(1,scale)));weaponSocket.rotation.set(x*Math.PI/180,y*Math.PI/180,z*Math.PI/180);},sampleEffects(){},dispose(){disposed=true;effects?.dispose();externalRetarget?.dispose();for(const root of weapons.values())disposeLoaded(root);disposeLoaded(library?.scene);disposeLoaded(visible.scene);vrmModule.VRMUtils.deepDispose(vrm.scene);}};
-  let loaded=authoredNames.length;updateSummary(loaded);startGlobalPreload({rootUrl,assetUrl,motionCatalog:motionCatalogModule.default});
+  let loaded=authoredNames.length+bodyAliases.length;updateSummary(loaded);startGlobalPreload({rootUrl,assetUrl,motionCatalog:motionCatalogModule.default});
   setTimeout(async()=>{
     for(const item of motionCatalog){if(disposed||signal.aborted)return;try{const bytes=await cachedBytes('motion:'+item.id,new URL(item.file,simBase),{expectedSize:item.bytes,onProgress:(n,total)=>progressUI(`共有: ${item.label}`,n,total,`${loaded} 使用可能`)});const l=new loaderModule.GLTFLoader();l.register(p=>new vrmaModule.VRMAnimationLoaderPlugin(p));const parsed=await l.parseAsync(bytes,simBase.href),anim=parsed.userData.vrmAnimations?.[0];if(!anim)throw new Error(`VRMAを解析できません: ${item.id}`);const vendorClip=vrmaModule.createVRMAnimationClip(anim,vrm);vendorClip.name=item.id;if(['walk','run-slow'].includes(item.id))inPlaceClip(vendorClip);const value=`共有VRMA / ${item.label}`,clip=remapClip(vendorClip,authored.bones,targetBones,value);clips.set(value,clip);body.clipNames.push(value);appendClip('ゲーム共通 / VRMA',value,item.label);loaded++;}catch(error){failed++;console.warn(`Shared VRMA skipped: ${item.id}`,error);}updateSummary(loaded,null,failed);}
     if(disposed||signal.aborted)return;
     const previousAssetBuffer=window.assetBuffer;
     try{
-      progressUI('Tidebreak実戦技',0,1,'既存戦闘ロジックから生成中');
+      progressUI('スキルシミュレータ技・構え',0,1,'既存戦闘ロジックから生成中');
       window.assetBuffer=async id=>{if(bytesCache.has('model:'+id))return bytesCache.get('model:'+id);const motionId=String(id).replace(/^motion:/,'');if(bytesCache.has('motion:'+motionId))return bytesCache.get('motion:'+motionId);const row=motionCatalog.find(x=>x.id===motionId);if(row)return cachedBytes('motion:'+motionId,new URL(row.file,simBase),{expectedSize:row.bytes});throw new Error(`Review asset not found: ${id}`);};
-      const runtime=new humanoidModule.HumanoidRuntime({weapons:{},strikes:{},clips:{},windows:{},progress:()=>0,window:()=>null,hand:()=> 'right',echo:()=>{},status:()=>{},attach:()=>{}});await runtime.load(model.label);
-      const generated=[...TIDEBREAK_TECHNIQUES.map(([kind,label])=>({kind,label,weapon:'sword'})),{kind:'parry',label:'パリィ',weapon:'sword'},{kind:'ready',label:'戦闘構え',weapon:'sword'}];
-      for(const row of generated){const source=runtime.bakeArmed(runtime.current,row.weapon,row.kind),value=`Tidebreak技 / ${row.label}`;clips.set(value,remapClip(source,runtime.current.bones,targetBones,value));body.clipNames.push(value);appendClip('Tidebreak実戦技',value,row.label);loaded++;}
-      runtime.dispose(runtime.current);progressUI('Tidebreak実戦技',1,1,`${generated.length} 技追加済み`);
-    }catch(error){failed++;console.error('Tidebreak technique generation failed',error);progressUI('Tidebreak実戦技の生成に失敗',0,1,error.message);}finally{window.assetBuffer=previousAssetBuffer;updateSummary(loaded,null,failed);}
+      const strikeMeta=Object.fromEntries([...SKILL_SIM_TECHNIQUES,...SKILL_SIM_DEFENSE].map(row=>[row.kind,row.defense?{defense:row.defense}:{}]));
+      const runtime=new humanoidModule.HumanoidRuntime({weapons:{},strikes:strikeMeta,clips:{},windows:{},progress:()=>0,window:()=>null,hand:()=> 'right',echo:()=>{},status:()=>{},attach:()=>{}});await runtime.load(model.label);
+      for(const row of SKILL_SIM_TECHNIQUES){let source;if(row.weapon==='fist'&&typeof runtime.bakeFist==='function')source=runtime.bakeFist(runtime.current,row.kind);else source=runtime.bakeArmed(runtime.current,row.weapon,row.kind);const value=`技 / ${row.label}`;clips.set(value,remapClip(source,runtime.current.bones,targetBones,value));body.clipNames.push(value);appendClip('スキルシミュレータ / 技',value,row.label);loaded++;}
+      for(const row of SKILL_SIM_DEFENSE){const source=runtime.bakeArmed(runtime.current,row.weapon,row.kind),value=`技 / ${row.label}`,mapped=remapClip(source,runtime.current.bones,targetBones,value);clips.set(value,mapped);body.clipNames.push(value);appendClip('スキルシミュレータ / 防御',value,row.label);loaded++;if(row.defense){const alias=`パリィ / ${row.label}`;clips.set(alias,mapped);body.clipNames.push(alias);appendClip('パリィ候補',alias,row.label);loaded++;}}
+      for(const row of SKILL_SIM_STANCES){applyStance(runtime,runtime.current,row);const source=poseClip(`stance:${row.id}`,runtime.current.bones),mapped=remapClip(source,runtime.current.bones,targetBones,`構え / ${row.label}`),value=`構え / ${row.label}`;clips.set(value,mapped);body.clipNames.push(value);appendClip('スキルシミュレータ / 構え',value,row.label);const mind=`心 / ${row.label}`;clips.set(mind,mapped);body.clipNames.push(mind);appendClip('心技体 / 心',mind,row.label);loaded++;}
+      runtime.dispose(runtime.current);progressUI('スキルシミュレータ技・構え',1,1,`${SKILL_SIM_TECHNIQUES.length}技 / ${SKILL_SIM_STANCES.length}構え追加済み`);
+    }catch(error){failed++;console.error('Skill simulator motion generation failed',error);progressUI('スキルシミュレータ技・構えの生成に失敗',0,1,error.message);}finally{window.assetBuffer=previousAssetBuffer;updateSummary(loaded,null,failed);}
     if(disposed||signal.aborted)return;
     try{
       const response=externalManifest?null:await fetch(new URL(`manifest.json?v=${REVIEW_ASSET_REVISION}`,assetUrl),{cache:'force-cache'});const manifest=externalManifest||(response?.ok?await response.json():null),row=manifest?.files?.find(file=>file.id==='animation.quaternius.library');if(!row?.sha256||!row.size)throw new Error('Animation integrity record is missing');
