@@ -1,4 +1,4 @@
-name: Rinne Public Portal
+name: Wayfinder Public Gallery
 
 on:
   push:
@@ -19,7 +19,7 @@ permissions:
   statuses: write
 
 concurrency:
-  group: rinne-public-portal
+  group: wayfinder-public-gallery
   cancel-in-progress: true
 
 jobs:
@@ -32,36 +32,38 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Fast portal verification
+      - name: Fast gallery verification
         run: |
           node --check portal/public/app.js
-          node --check ops-board/pulls.mjs
+          node --check portal/worker.mjs
           node --test tests/portal.test.mjs
-          grep -q 'RINNE GATE' portal/public/index.html
+          grep -q 'WAYFINDER' portal/public/index.html
+          grep -q 'share-page' portal/public/index.html
+          grep -q 'copy-page' portal/public/index.html
           grep -q 'favicon.svg' portal/public/index.html
           ! grep -q 'rel="manifest"' portal/public/index.html
 
-      - name: Verify every published destination
+      - name: Probe external destinations without blocking gallery deploy
         run: |
           node --input-type=module <<'JS' > /tmp/portal-urls.txt
           import fs from 'node:fs';
           const catalog = JSON.parse(fs.readFileSync('portal/catalog.json', 'utf8'));
-          const urls = catalog.items.flatMap(item => item.links || []).filter(link => link.verify).map(link => link.url);
+          const urls = catalog.items.flatMap(item => item.links || []).map(link => link.url);
           for (const url of [...new Set(urls)]) console.log(url);
           JS
           while IFS= read -r url; do
             echo "CHECK $url"
-            code=$(curl -L -sS --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 30 -o /dev/null -w '%{http_code}' "$url")
+            code=$(curl -L -sS --retry 2 --retry-delay 1 --connect-timeout 8 --max-time 20 -o /dev/null -w '%{http_code}' "$url" || true)
             case "$code" in
-              2*|3*) ;;
-              *) echo "::error::Public destination unavailable ($code): $url"; exit 1 ;;
+              2*|3*) echo "OK $code" ;;
+              *) echo "::warning::Destination currently unavailable ($code): $url" ;;
             esac
           done < /tmp/portal-urls.txt
 
       - name: Prepare static catalog
         run: cp portal/catalog.json portal/public/catalog.json
 
-      - name: Deploy public portal to Cloudflare Workers
+      - name: Deploy Wayfinder to Cloudflare Workers
         id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -75,33 +77,41 @@ jobs:
         id: public
         if: steps.deploy.outcome == 'success'
         run: |
-          echo "url=https://rinne-portal.c-okamoto.workers.dev/" >> "$GITHUB_OUTPUT"
-          echo "RINNE GATE: https://rinne-portal.c-okamoto.workers.dev/" >> "$GITHUB_STEP_SUMMARY"
+          echo "url=https://wayfinder-gallery.c-okamoto.workers.dev/" >> "$GITHUB_OUTPUT"
+          echo "WAYFINDER: https://wayfinder-gallery.c-okamoto.workers.dev/" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify deployed portal after propagation
+      - name: Verify deployed gallery after propagation
         if: steps.public.outputs.url != ''
         env:
           PORTAL_URL: ${{ steps.public.outputs.url }}
         run: |
           ready=false
-          for attempt in $(seq 1 12); do
+          for attempt in $(seq 1 15); do
             code=$(curl -L -sS --connect-timeout 10 --max-time 20 -o /tmp/portal-index.html -w '%{http_code}' "$PORTAL_URL" || true)
-            if [ "$code" = "200" ] && grep -q 'RINNE GATE' /tmp/portal-index.html; then
+            if [ "$code" = "200" ] && grep -q 'WAYFINDER' /tmp/portal-index.html; then
               ready=true
               break
             fi
-            echo "Waiting for Workers propagation ($attempt/12, HTTP $code)"
+            echo "Waiting for Workers propagation ($attempt/15, HTTP $code)"
             sleep 2
           done
           if [ "$ready" != "true" ]; then
-            echo "::error::Portal root did not become ready"
+            echo "::error::Wayfinder root did not become ready"
             exit 1
           fi
 
-          curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "${PORTAL_URL}catalog.json" | node --input-type=module -e "let s='';for await(const c of process.stdin)s+=c;const x=JSON.parse(s);if(!Array.isArray(x.items)||!x.items.some(i=>i.id==='rinne')||!x.items.some(i=>i.id==='master-character'))process.exit(1)"
+          curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "${PORTAL_URL}catalog.json" > /tmp/catalog.json
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const x=JSON.parse(fs.readFileSync('/tmp/catalog.json','utf8'));
+          const text=JSON.stringify(x).toLowerCase();
+          if(!Array.isArray(x.items)||x.items.length<2) process.exit(1);
+          if(/soul-lineage|bloodline-legacy|rinne-/.test(text)) process.exit(2);
+          JS
+          curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "${PORTAL_URL}api/catalog" | node --input-type=module -e "let s='';for await(const c of process.stdin)s+=c;const x=JSON.parse(s);if(!Array.isArray(x.items)||!x.items.some(i=>i.id==='guiltys-garden')||!x.items.every(i=>'preview' in i))process.exit(1)"
           curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "${PORTAL_URL}favicon.svg" | grep -q '<svg'
 
-      - name: Record public portal status
+      - name: Record public gallery status
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -109,11 +119,11 @@ jobs:
           JOB_STATUS: ${{ job.status }}
         run: |
           state=failure
-          description="RINNE GATE deployment failed"
+          description="WAYFINDER deployment failed"
           target_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           if [ "$JOB_STATUS" = "success" ] && [ -n "$PUBLIC_URL" ]; then
             state=success
-            description="RINNE GATE is live"
+            description="WAYFINDER is live"
             target_url="$PUBLIC_URL"
           fi
           gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
