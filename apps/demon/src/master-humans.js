@@ -35,7 +35,7 @@ function pose(bones,time,npc){
 }
 async function digest(bytes){const raw=await crypto.subtle.digest('SHA-256',bytes);return[...new Uint8Array(raw)].map(x=>x.toString(16).padStart(2,'0')).join('');}
 async function fetchModel(url){const response=await fetch(url,{signal:AbortSignal.timeout(60000)});if(!response.ok)throw new Error(`MasterCharacter HTTP ${response.status}`);const declared=Number(response.headers.get('content-length'));if(Number.isFinite(declared)&&declared>MAX_MODEL_BYTES)throw new Error('MasterCharacter asset too large');const bytes=await response.arrayBuffer();if(bytes.byteLength<28||bytes.byteLength>MAX_MODEL_BYTES)throw new Error('MasterCharacter asset size invalid');if(await digest(bytes)!==SHINO_REVIEW_SHA256)throw new Error('MasterCharacter asset hash mismatch');return bytes;}
-function weaponMesh(node,weapon){for(let p=node;p;p=p.parent){if(p===weapon)return true;if(p===node.parent?.parent?.parent)break;}return false;}
+function weaponMesh(node,weapon){for(let p=node;p;p=p.parent)if(p===weapon)return true;return false;}
 function showProceduralBody(group,visible){if(!group)return;const weapon=group.userData?.weapon;group.traverse(node=>{if(!node.isMesh)return;node.visible=visible||Boolean(weapon&&weaponMesh(node,weapon));});}
 
 const states=new WeakMap();
