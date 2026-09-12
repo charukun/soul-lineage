@@ -8,9 +8,9 @@ concurrency:
   group: character-workshop-isolated-qc
   cancel-in-progress: false
 jobs:
-  snapshot:
+  baseline:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,26 +21,49 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: Package tracked source and installed dependencies, without credentials or unrelated audio/video
-        shell: bash
+      - run: npx playwright install --with-deps chromium
+      - name: Measure actual workshop, without changing game data or test gates
         run: |
-          python3 - <<'PY'
-          import pathlib, subprocess, tarfile, json
-          paths = subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
-          excluded = {'.ogg','.mp3','.wav','.mid','.midi','.mp4','.webm','.zip','.blend'}
-          with tarfile.open('/tmp/character-workshop-runtime.tar.gz','w:gz') as out:
-              for name in paths:
-                  p = pathlib.Path(name)
-                  if name and p.is_file() and p.suffix.lower() not in excluded:
-                      out.add(p, arcname=name, recursive=False)
-              out.add('node_modules', arcname='node_modules')
-          pathlib.Path('/tmp/source.json').write_text(json.dumps({'commit': subprocess.check_output(['git','rev-parse','HEAD']).decode().strip(), 'excludedSuffixes': sorted(excluded), 'purpose': 'read-only focused Character Workshop inspection; no credentials, no deployment'}, indent=2))
-          PY
+          mkdir -p qc-output
+          cat > .workshop-baseline.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import { spawn } from 'node:child_process';
+          import { writeFile } from 'node:fs/promises';
+          import assert from 'node:assert/strict';
+          const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--config','apps/rinne/vite.config.js','--host','127.0.0.1','--port','5173'],{stdio:'inherit'});
+          const browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+          const page=await browser.newPage({viewport:{width:1280,height:960},deviceScaleFactor:1});
+          const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+          try{
+            await new Promise(resolve=>setTimeout(resolve,1500));
+            await page.goto('http://127.0.0.1:5173/characters.html',{waitUntil:'networkidle'});
+            await page.waitForFunction(()=>window.characterStudio?.review.ready,{timeout:90000});
+            await page.evaluate(()=>characterStudio.review.configure({paused:true}));
+            const info=await page.evaluate(()=>{
+              const a=characterStudio.review.actors[0],meshes=[];
+              a.visual.traverse(n=>{if(n.isMesh){n.geometry.computeBoundingBox();meshes.push({name:n.name,material:(Array.isArray(n.material)?n.material:[n.material]).map(m=>m.name),vertices:n.geometry.attributes.position.count,box:{min:n.geometry.boundingBox.min.toArray(),max:n.geometry.boundingBox.max.toArray()},morphs:n.morphTargetDictionary});}});
+              return {bones:Object.fromEntries(Object.entries(a.bones).map(([k,b])=>[k,{pos:b.position.toArray(),world:b.getWorldPosition(b.position.clone()).toArray(),scale:b.scale.toArray()}])),meshes,measure:characterStudio.review.measure()};
+            });
+            await writeFile('qc-output/baseline-rig.json',JSON.stringify(info,null,2));
+            const results={};
+            for(const n of [1,6,12,30]){
+              await page.evaluate(n=>characterStudio.workspace.configure({view:n===1?'single':'crowd',count:n,paused:false}),n);
+              await page.waitForFunction(()=>characterStudio.review.measure().sampleCount>=90,{timeout:120000});
+              results[n]=await page.evaluate(()=>characterStudio.review.measure());
+              await page.evaluate(()=>characterStudio.review.configure({paused:true}));
+              await page.screenshot({path:`qc-output/baseline-${n}.png`});
+            }
+            await page.evaluate(()=>{characterStudio.workspace.configure({view:'single',count:6});characterStudio.workspace.change('hair','bob');characterStudio.review.aim('face')});
+            await page.waitForTimeout(300);await page.screenshot({path:'qc-output/baseline-bob-face.png'});
+            await writeFile('qc-output/baseline-metrics.json',JSON.stringify({source:'82cd6ba95217ea32020b3fb680f15ae7c96032d1',renderer:'Chromium SwiftShader; NOT Pixel Fold hardware acceptance',results,errors},null,2));
+            assert.deepEqual(errors,[]);
+          }catch(error){await page.screenshot({path:'qc-output/failure.png'}).catch(()=>{});await writeFile('qc-output/error.txt',String(error));throw error;}
+          finally{await browser.close();server.kill();}
+          JS
+          node .workshop-baseline.mjs
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: character-workshop-runtime-baseline
-          path: |
-            /tmp/character-workshop-runtime.tar.gz
-            /tmp/source.json
-          retention-days: 3
-          compression-level: 0
+          name: character-workshop-visual-baseline
+          path: qc-output
+          retention-days: 7
