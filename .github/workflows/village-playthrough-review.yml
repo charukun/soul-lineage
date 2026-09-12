@@ -6,31 +6,43 @@ on:
 permissions:
   contents: read
 jobs:
-  playthrough:
+  workspace:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
         with:
-          sparse-checkout: scripts/review
+          ref: d6c62fa401e3ceee31e37d990e2303909e3145b9
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Prepare isolated Chromium
+      - run: npm ci
+      - name: Package exact source, village assets and installed dependencies for local verification
         run: |
-          mkdir -p /tmp/village-review
-          cp scripts/review/village-focused-review.mjs /tmp/village-review/review.mjs
-          npm install --prefix /tmp/village-review playwright@1.55.1 --no-package-lock
-          /tmp/village-review/node_modules/.bin/playwright install --with-deps chromium
-      - name: Operate resident camera and unlocked furniture on public DEV
-        env:
-          REVIEW_OUT: ${{ github.workspace }}/playthrough
-        run: timeout 300s node /tmp/village-review/review.mjs
+          mkdir -p /tmp/village-workspace
+          node -v > /tmp/village-workspace/NODE_VERSION
+          git rev-parse HEAD > /tmp/village-workspace/SOURCE_COMMIT
+          cp "$(command -v node)" /tmp/village-workspace/node
+          python3 - <<'PY'
+          import subprocess,pathlib,tarfile,json
+          root=pathlib.Path('.')
+          files=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          paths=[]
+          for f in filter(None,files):
+              p=pathlib.Path(f)
+              if not p.is_file():continue
+              text=p.suffix.lower() in {'.js','.mjs','.cjs','.ts','.json','.md','.css','.html','.yaml','.yml','.py','.jsonc','.svg','.lock','.toml','.glsl','.sh','.txt','.obj','.mtl'} or p.name in {'.gitignore','.gitattributes','.npmrc'}
+              village=f.startswith(('apps/village/','packages/assets/','packages/audio/'))
+              if text or village:paths.append(p)
+          with tarfile.open('/tmp/village-workspace/source-and-deps.tar.gz','w:gz',compresslevel=3) as tar:
+              for p in paths:tar.add(p,arcname=str(p),recursive=False)
+              tar.add('node_modules',arcname='node_modules')
+          print('Packaged tracked source files:',len(paths))
+          PY
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: village-focused-playthrough-evidence
-          path: playthrough/
-          if-no-files-found: error
-          retention-days: 7
+          name: village-exact-source-workspace
+          path: /tmp/village-workspace/
+          compression-level: 3
+          retention-days: 3
