@@ -133,6 +133,7 @@ test('public dashboard is compact, grouped, target-aware, and not installable as
   assert.match(index, /アプリ別の公開状況/);
   assert.doesNotMatch(index, /rel="manifest"/);
   assert.match(appBoard, /app-summary-card/);
+  assert.match(appBoard, /app-target-summary/);
   assert.match(appBoard, /ゲーム \/ 専用開発版/);
   assert.match(appBoard, /開発ツール/);
   assert.match(pullBoard, /pulls\/\$\{number\}\/files/);
