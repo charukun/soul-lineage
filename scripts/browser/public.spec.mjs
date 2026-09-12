@@ -126,6 +126,9 @@ for (const target of targets) {
       await expect(canvas).toHaveAttribute('data-game-world', 'hoshitsugi.life-and-guard.v5');
       await expect(page.locator('#loading')).toBeHidden();
       await expect(page.getByRole('heading', {level: 1})).toHaveText('MURAAAAAAA');
+      await expect(page.locator('#muraEntry')).toBeVisible();
+      await page.locator('#muraEnterVillage').click();
+      await expect(page.locator('#muraEntry')).toBeHidden();
       await page.setViewportSize({width:390,height:844});
       await page.locator('#build').click();
       await expect(page.locator('#catalog')).toBeVisible();
@@ -151,7 +154,8 @@ for (const target of targets) {
       await page.setViewportSize({ width: 1280, height: 800 });
     }
     if (!target.legacy) {
-      await page.locator('.soul-music [data-open]').click();
+      if (target.app === 'village') await page.evaluate(() => window.__SOUL_MUSIC__?.open());
+      else await page.locator('.soul-music [data-open]').click();
       await page.locator('.soul-music [data-world]').selectOption('');
       await expect(page.locator('.soul-music [data-track]')).toHaveCount(150);
       await page.locator('.soul-music [data-track="r01"]').click();
