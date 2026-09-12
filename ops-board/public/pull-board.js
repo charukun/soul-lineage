@@ -11,6 +11,13 @@ const el = (tag, className, text) => {
 
 const badgeTone = state => ({ Draft: 'progress', Ready: 'warning', Merged: 'ok', Closed: 'info' })[state] || 'info';
 const stateLabel = state => ({ Draft: '作業中', Ready: '統合待ち', Merged: '統合済み', Closed: '終了' })[state] || state;
+const filterOptions = [
+  ['all', 'すべて', 'info'],
+  ['Draft', '作業中', 'progress'],
+  ['Ready', '統合待ち', 'warning'],
+  ['Merged', '統合済み', 'ok'],
+  ['Closed', '終了', 'info'],
+];
 const targetRules = [
   ['rinne', '輪廻転焦', path => path.startsWith('apps/rinne/')],
   ['village', '村づくり', path => path.startsWith('apps/village/')],
@@ -20,6 +27,9 @@ const targetRules = [
   ['shared', '共通基盤', path => /^(packages|assets|templates)\//.test(path)],
   ['devops', '開発基盤', path => /^(\.github|scripts|tests|docs)\//.test(path)],
 ];
+
+let selectedFilter = 'all';
+let currentPullData = null;
 
 function classifyTargets(files = []) {
   const found = new Map();
@@ -132,7 +142,25 @@ function rows(items, emptyText, resolveAppTargets = false) {
 }
 
 function count(items, state) {
-  return items.filter(item => item.state === state).length;
+  return state === 'all' ? items.length : items.filter(item => item.state === state).length;
+}
+
+function filterBar(items) {
+  const root = el('div', 'pull-filters');
+  root.setAttribute('aria-label', '開発タスクの状態フィルタ');
+  for (const [state, label, tone] of filterOptions) {
+    const button = el('button', `pull-filter ${tone}${selectedFilter === state ? ' active' : ''}`, `${label} ${count(items, state)}`);
+    button.type = 'button';
+    button.dataset.state = state;
+    button.setAttribute('aria-pressed', selectedFilter === state ? 'true' : 'false');
+    button.addEventListener('click', () => {
+      if (selectedFilter === state) return;
+      selectedFilter = state;
+      render(currentPullData || {});
+    });
+    root.append(button);
+  }
+  return root;
 }
 
 function completedSection(items) {
@@ -142,17 +170,21 @@ function completedSection(items) {
 }
 
 function render(data = {}) {
+  currentPullData = data;
   const items = data.normal || [];
   const active = items.filter(item => item.state === 'Draft' || item.state === 'Ready');
   const completed = items.filter(item => item.state === 'Merged' || item.state === 'Closed');
   const root = $('#pulls');
   root.replaceChildren();
+  root.append(filterBar(items));
 
-  const counts = el('div', 'pull-counts');
-  for (const [state, tone] of [['Draft','progress'], ['Ready','warning'], ['Merged','ok'], ['Closed','info']]) {
-    counts.append(el('span', `badge ${tone}`, `${stateLabel(state)} ${count(items, state)}`));
+  if (selectedFilter === 'all') {
+    root.append(rows(active, '現在、作業中・統合待ちのPRはありません', true), completedSection(completed));
+  } else {
+    const filtered = items.filter(item => item.state === selectedFilter);
+    root.append(rows(filtered, `${stateLabel(selectedFilter)}のPRはありません`, true));
   }
-  root.append(counts, rows(active, '現在、作業中・統合待ちのPRはありません', true), completedSection(completed));
+
   if (data.truncated) root.append(el('p', 'empty', '直近100件を表示しています。'));
 
   const visualSection = $('#visual-review-section');
