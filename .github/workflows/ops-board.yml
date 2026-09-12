@@ -39,7 +39,11 @@ jobs:
           node --check ops-board/public/pull-board.js
           node --test tests/ops-board.test.mjs tests/ops-applications.test.mjs
           grep -q 'favicon.svg' ops-board/public/index.html
+          grep -q 'summary-grid' ops-board/public/index.html
           grep -q 'アプリ別の公開状況' ops-board/public/index.html
+          grep -q 'ゲーム / 専用開発版' ops-board/public/app-board.js
+          ! grep -q 'rel="manifest"' ops-board/public/index.html
+          test ! -e ops-board/public/manifest.webmanifest
       - name: Derive server-only refresh credential
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -76,7 +80,10 @@ jobs:
         env:
           OPS_URL: ${{ steps.public.outputs.url }}
         run: |
-          curl -fsS --retry 4 --retry-delay 2 "${OPS_URL}" | grep -q '開発状況ボード'
+          page=$(curl -fsS --retry 4 --retry-delay 2 "${OPS_URL}")
+          printf '%s' "$page" | grep -q '開発状況ボード'
+          printf '%s' "$page" | grep -q 'summary-grid'
+          ! printf '%s' "$page" | grep -q 'rel="manifest"'
           curl -fsS --retry 4 --retry-delay 2 "${OPS_URL}favicon.svg" | grep -q '<svg'
           curl -fsS --retry 4 --retry-delay 2 "${OPS_URL}api/state" | node --input-type=module -e "let s='';for await(const c of process.stdin)s+=c;const x=JSON.parse(s);if(x.repository!=='charukun/soul-lineage'||!Array.isArray(x.environments)||!Array.isArray(x.pullRequests?.normal)||!Array.isArray(x.pullRequests?.visualReview)||!Array.isArray(x.applications)||!x.applications.some(a=>a.id==='rinne'))process.exit(1)"
       - name: Record public Ops Board status
