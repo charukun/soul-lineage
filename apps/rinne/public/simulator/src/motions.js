@@ -6,7 +6,7 @@ const TAU=Math.PI*2, clamp=T.MathUtils.clamp;
 const smooth=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
 function pulse(t,a,b,c,d){if(t<a||t>d)return 0;if(t<b)return smooth((t-a)/(b-a));if(t<c)return 1;return 1-smooth((t-c)/(d-c));}
 export const motionInfo={
- 'Idle':{duration:4,label:'呼吸・重心移動',note:'呼吸、肩の追従、左右の荷重移動。'},
+ 'Idle':{duration:4,label:'戦闘待機',note:'半身、低い重心、前後に開いた足、胸と顔を守るガード。接地を保った呼吸と小さな荷重移動。'},
  'Walk':{duration:1.14,label:'歩行',note:'左右交互の支持脚、脚長に合わせた二関節IK、腕と胴の逆位相。'},
  'Run':{duration:.74,label:'走行',note:'短い接地と滞空、膝の引き上げ、前傾と腕振り。'},
  'Attack':{duration:2.3,label:'踏み込み強撃',note:'深い溜めから踏み込み、腰・胸・肩を連鎖させて全身を乗せた強撃。大きなフォロースルーと構えへの復帰。'},
@@ -47,11 +47,29 @@ export function createRetargetedClips(vrm){
  function relaxedArms(swing=0,bend=.12){rot('leftUpperArm',0,-.05,1.38);rot('rightUpperArm',0,.05,-1.38);bones.leftUpperArm.quaternion.premultiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(1,0,0),swing*flip));bones.rightUpperArm.quaternion.premultiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(1,0,0),-swing*flip));rot('leftLowerArm',0,-bend,0);rot('rightLowerArm',0,bend,0);rot('leftHand',0,-.06,.025);rot('rightHand',0,.06,-.025);}
  function evaluate(name,t){
   reset();if(name==='T-Pose')return;fingers();const Tm=motionInfo[name].duration,p=t/Tm,w=p*TAU;
-  let hipDrop=.017*scale;
   if(name==='Idle'){
-   bones.hips.position.x+=flip*.009*scale*Math.sin(w);bones.hips.position.y-=hipDrop;
-   rot('hips',0,.016*Math.sin(w),.012*Math.sin(w));rot('spine',-.015+.009*Math.sin(w),0,-.01*Math.sin(w));rot('chest',.012+.012*Math.sin(w),.015*Math.sin(w));rot('head',.012*Math.sin(w-.5),.024*Math.sin(w+.7),.012*Math.sin(w));relaxedArms(.013*Math.sin(w),.12);
-   rot('leftShoulder',0,0,-.008*Math.sin(w));rot('rightShoulder',0,0,.008*Math.sin(w));vrm.scene.updateMatrixWorld(true);for(const s of ['left','right'])leg(s,footRest[s]);
+   // Integer-frequency curves keep both pose and velocity continuous at the loop seam.
+   const breath=Math.sin(w),sway=Math.sin(w-.35),pressure=Math.cos(w*2);
+   const left=footRest.left.clone(),right=footRest.right.clone();
+   left.z-=.12*scale;left.x-=.04*scale;
+   right.z+=.09*scale;right.x+=.03*scale;
+   bones.hips.position.y-=scale*(.072+.008*pressure);
+   bones.hips.position.z-=flip*.04*scale;
+   bones.hips.position.x+=flip*.006*scale*breath;
+   rot('hips',-.05,.11+.025*sway,.012*breath);
+   rot('spine',-.17,-.10+.035*sway,-.012*breath);
+   rot('chest',.08+.008*breath,-.12+.04*sway,0);
+   rot('head',.03,.08-.03*sway,.006*breath);
+   rot('leftShoulder',0,0,.10);rot('rightShoulder',0,0,-.10);
+   vrm.scene.updateMatrixWorld(true);
+   // Fixed foot targets avoid sliding or unnecessary stepping during combat idle.
+   leg('left',left,0);leg('right',right,0);
+   vrm.scene.updateMatrixWorld(true);
+   const shoulderY=vrm.scene.worldToLocal(bones.leftUpperArm.getWorldPosition(new T.Vector3())).y;
+   const L=new T.Vector3(-.18*scale,shoulderY+(-.05+.01*breath)*scale,-(.18+.02*sway)*scale);
+   const R=new T.Vector3(.14*scale,shoulderY+(-.08-.01*breath)*scale,-(.24-.02*sway)*scale);
+   hand('left',L);hand('right',R);fingers(.78);
+   rot('leftHand',-.08,-.14,.08);rot('rightHand',-.10,.16,-.06);
   }else if(name==='Walk'||name==='Run'){
    const run=name==='Run',stance=run?.38:.61,stride=(run?.64:.37)*scale,lift=(run?.19:.075)*scale;
    const step=(p*2)%1;
