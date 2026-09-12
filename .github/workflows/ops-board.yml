@@ -2,7 +2,11 @@ name: Rinne Ops Board
 
 on:
   push:
-    branches: [develop, feat/rinne-ops-board, feat/rinne-ops-board-v2]
+    branches:
+      - develop
+      - 'feat/**'
+      - 'fix/**'
+      - 'work/**'
     paths:
       - 'ops-board/**'
       - 'wrangler.ops.jsonc'
