@@ -1,0 +1,11 @@
+/* Auxiliary tools never cover pause, movement, scent or the return command. */
+#hud header{grid-template-columns:1fr 1.5fr 44px}
+#pause,#sheet-close{min-width:44px;min-height:44px;padding:0}
+#first-hunt-guide{font-size:11px;line-height:1.65;margin:7px 0 0;color:#c1ccba;letter-spacing:.025em;max-width:260px}
+#online-box{box-sizing:border-box;width:min(430px,calc(100vw - 28px));max-height:88dvh;overflow:auto;background:linear-gradient(140deg,#172625,#0b181b);color:#d1d0b7;border:1px solid #b9b28a77;padding:18px}
+#online-box:not([open]){display:none}
+#online-box::backdrop{background:#02090cc9}
+#online-box form{text-align:right;margin:0}
+#online-box button{min-height:44px;padding:8px 14px}
+#online-box textarea{box-sizing:border-box;width:100%;height:80px;display:block;margin:8px 0;background:#071316;color:#c1ccba;border:1px solid #84947e66}
+#online-box label,#online-box p{font-size:12px;line-height:1.7}
