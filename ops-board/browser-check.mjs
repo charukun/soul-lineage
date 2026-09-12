@@ -11,8 +11,8 @@ const fixture = {
   repository: 'charukun/soul-lineage', generatedAt: rawDate, syncStatus: 'ok', alerts: [],
   pullRequests: { normal: ['Draft', 'Ready', 'Merged', 'Closed'].map((state, i) => ({ number: i + 1, title: `検証用タスク ${i + 1}`, detail: '変更概要と対象アプリの確認', state, updatedAt: rawDate, url: `https://github.com/charukun/soul-lineage/pull/${i+1}`, targets: [{ id: 'rinne', label: '輪廻転焦' }], targetsStatus: 'ready', targetsComplete: true })), visualReview: [] },
   applications: ['rinne','village','demon','portal','ops-board','visual-review'].map((id,i) => ({ id, name: ['輪廻転焦','MURAAAAAAA','魔物側','WAYFINDER','開発状況ボード','Visual Review Lab'][i], kind: i < 3 ? 'game' : 'tool', targets: [{ id, label: '開発版', state: i === 3 ? 'unknown' : 'success', commit: 'a'.repeat(40), deployedAt: rawDate, url: base, source: '検証データ' }] })),
-  environments: [{ id:'dev', name:'DEV', deployState:'success', deployedCommit:'a'.repeat(40), deployedAt:rawDate, url:base, branch:'develop', reflectedPrCount:1, reflectedPrs:[{number:3,title:'統合済みタスク',url:'https://github.com/charukun/soul-lineage/pull/3',mergedAt:rawDate}], historyComplete:true }],
-  environmentDiff:{ count:1, label:'DEVはProductionより +1 PR', pulls:[] }, integration:{ queue:[], watchdog:{staleReadyCount:0,stalledThresholdMinutes:10} }, recentActionFailures:[], actionHistory:[],
+  environments: [{ id:'dev', name:'DEV', deployState:'success', deployedCommit:'a'.repeat(40), deployedAt:rawDate, url:base, branch:'develop', reflectedPrCount:1, reflectedPrs:[{number:3,title:'長い公開PR名 ' + 'SharedVillageVisualsAndCharacterWorkshop'.repeat(6),url:'https://github.com/charukun/soul-lineage/pull/3',mergedAt:rawDate}], historyComplete:true }],
+  environmentDiff:{ count:1, label:'DEVはProductionより +1 PR', pulls:[] }, integration:{ phase:'delivery', tone:'progress', queue:[{number:999,title:'長い統合タスク ' + 'IntegrationAndCharacterAppearance'.repeat(5),label:'自動テスト中',tone:'progress',url:base,reason:'CI実行中'}], watchdog:{staleReadyCount:0,stalledThresholdMinutes:10} }, recentActionFailures:[], actionHistory:[],
 };
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width:390, height:844 }, isMobile:true, hasTouch:true, deviceScaleFactor:1, locale:'ja-JP', timezoneId:'Asia/Tokyo' });
@@ -69,9 +69,11 @@ try {
     await page.setViewportSize({ width, height:844 });
     await page.locator('.section-tabs a[href="#apps-section"]').click();
     await page.waitForTimeout(400);
-    const metrics = await page.evaluate(() => ({ width:innerWidth, scrollWidth:document.documentElement.scrollWidth,
+    const metrics = await page.evaluate(() => ({ width:innerWidth, clientWidth:document.documentElement.clientWidth, scrollWidth:document.documentElement.scrollWidth,
+      overflow:[...document.querySelectorAll('body *')].filter(node => {const r=node.getBoundingClientRect();return r.width>0 && r.right>document.documentElement.clientWidth+1;}).slice(0,12).map(node=>({tag:node.tagName,className:node.className,text:node.textContent.slice(0,100),right:node.getBoundingClientRect().right})),
       grids:[...document.querySelectorAll('.app-grid')].map(node => getComputedStyle(node).gridTemplateColumns.split(' ').length),
       fonts:[...document.querySelectorAll('#applications strong,#applications span,#applications h3,#applications button')].filter(node => node.textContent.trim()).map(node => parseFloat(getComputedStyle(node).fontSize)) }));
+    await writeFile(`${out}/layout-${width}.json`, JSON.stringify(metrics, null, 2));
     assert.ok(metrics.scrollWidth <= width + 1, JSON.stringify(metrics));
     assert.ok(metrics.grids.every(n => n === 3), JSON.stringify(metrics));
     assert.ok(Math.min(...metrics.fonts) >= 11, JSON.stringify(metrics));

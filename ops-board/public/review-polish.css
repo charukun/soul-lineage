@@ -44,3 +44,14 @@
 
 .app-update-note { display:block; font-size:11px; line-height:1.4; color:var(--warning); margin-top:3px; overflow-wrap:anywhere; }
 .app-update-note.danger { color:var(--danger); }
+
+/* Real PR titles and URLs can be unbroken. Wrap their content, not the viewport. */
+.board-section, .stack, .environment, .queue-list, .queue-item, .pr-list, .failure-list,
+.diagnostic-content { min-width:0; }
+.alert, .pr-title, .queue-head a, .environment-head > div, .diagnostic-help,
+.integration-summary > div, .diagnostic-head > div, footer { overflow-wrap:anywhere; min-width:0; }
+.environment-head, .integration-summary, .queue-head { flex-wrap:wrap; }
+.environment-head > div, .integration-summary > div, .queue-head > a { flex:1 1 140px; }
+.environment-head .badge, .integration-summary .badge, .queue-head .badge,
+.failure > span { flex:0 0 auto; max-width:100%; white-space:normal; overflow-wrap:anywhere; line-height:1.35; }
+.pr-title small, .queue-item p { overflow-wrap:anywhere; }
