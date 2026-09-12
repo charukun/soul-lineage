@@ -125,7 +125,7 @@ for (const target of targets) {
     } else if (target.app === 'village' && !target.legacy && await page.locator('#build').count()) {
       await expect(canvas).toHaveAttribute('data-game-world', 'hoshitsugi.life-and-guard.v5');
       await expect(page.locator('#loading')).toBeHidden();
-      await expect(page.getByRole('heading', {level: 1})).toHaveText('星継ぎの庭');
+      await expect(page.getByRole('heading', {level: 1})).toHaveText('MURAAAAAAA');
       await page.setViewportSize({width:390,height:844});
       await page.locator('#build').click();
       await expect(page.locator('#catalog')).toBeVisible();
