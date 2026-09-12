@@ -52,6 +52,8 @@ try {
   await import('./mura-mobile-feedback-fix.js');
   await import('./mura-mobile-feedback-fix-2.js');
   await import('./mura-mobile-feedback-fix-3.js');
+  await import('./mura-ux-polish-4.js');
+  await import('./mura-ux-polish-4b.js');
   await import('./mura-background-bgm.js');
   document.title = document.title.replace(/^星継ぎの庭/, 'MURAAAAAAA');
   clearTimeout(watchdog);
