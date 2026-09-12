@@ -1,13 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const root = new URL('../', import.meta.url);
-const read = path => readFileSync(new URL(path, root), 'utf8');
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const read = path => readFileSync(resolve(root, path), 'utf8');
 
 test('retired Village Rehearsal is not a source, static asset, or build entry', () => {
-  assert.equal(existsSync(new URL('village-rehearsal.html', root)), false);
-  assert.equal(existsSync(new URL('public/village-rehearsal.html', root)), false);
+  assert.equal(existsSync(resolve(root, 'village-rehearsal.html')), false);
+  assert.equal(existsSync(resolve(root, 'public/village-rehearsal.html')), false);
   assert.doesNotMatch(read('vite.config.js'), /village-rehearsal\.html/);
 });
 
