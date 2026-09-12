@@ -8,7 +8,7 @@ permissions:
 jobs:
   playthrough:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v6
         with:
@@ -20,17 +20,17 @@ jobs:
       - name: Prepare isolated Chromium
         run: |
           mkdir -p /tmp/village-review
-          cp scripts/review/village-playthrough.mjs /tmp/village-review/review.mjs
+          cp scripts/review/village-focused-review.mjs /tmp/village-review/review.mjs
           npm install --prefix /tmp/village-review playwright@1.55.1 --no-package-lock
           /tmp/village-review/node_modules/.bin/playwright install --with-deps chromium
-      - name: Operate the public DEV app in an isolated mobile profile
+      - name: Operate resident camera and unlocked furniture on public DEV
         env:
           REVIEW_OUT: ${{ github.workspace }}/playthrough
-        run: node /tmp/village-review/review.mjs
+        run: timeout 300s node /tmp/village-review/review.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: village-mobile-playthrough-evidence
+          name: village-focused-playthrough-evidence
           path: playthrough/
           if-no-files-found: error
           retention-days: 7
