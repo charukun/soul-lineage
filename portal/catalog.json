@@ -1,142 +1,30 @@
 {
-  "title": "RINNE GATE",
-  "subtitle": "PUBLIC BUILDS / LABS / TOOLS",
-  "updatedBy": "GitHub + public deployment checks",
+  "title": "WAYFINDER",
+  "subtitle": "A MOVING DIRECTORY",
   "items": [
     {
-      "id": "rinne",
-      "category": "play",
-      "eyebrow": "MAIN WORLD",
-      "title": "輪廻転焦",
-      "description": "輪廻と血の系譜をめぐるWebGL世界。現在のゲーム本編。",
-      "accent": "amber",
-      "featured": true,
+      "id": "guiltys-garden",
+      "room": "ROOM 01",
+      "title": "GUILTY'S GARDEN",
+      "description": "別プロジェクトとして運用している公開サイト。ページそのものを作品として見せるリッチプレビューで紹介します。",
+      "accent": "#ef6f9c",
+      "previewUrl": "https://guiltys-garden.com/",
+      "fallbackPreviewUrl": "https://github.com/charukun/gg-sites",
       "links": [
-        { "label": "DEVを開く", "url": "https://charukun.github.io/soul-lineage/dev/rinne/", "verify": true, "tone": "primary" },
-        { "label": "Production", "url": "https://charukun.github.io/soul-lineage/prod/", "verify": true, "tone": "quiet" }
-      ],
-      "tags": ["GAME", "WEBGL", "DEV"]
+        { "label": "SITE", "url": "https://guiltys-garden.com/", "kind": "site" },
+        { "label": "SOURCE", "url": "https://github.com/charukun/gg-sites", "kind": "source" }
+      ]
     },
     {
-      "id": "village",
-      "category": "play",
-      "eyebrow": "VILLAGE",
-      "title": "MURAAAAAAA",
-      "description": "村づくり・住民・ハウジング側の開発版。",
-      "accent": "mint",
+      "id": "yare",
+      "room": "ROOM 02",
+      "title": "YARE",
+      "description": "AIを使ったMarketing Ops基盤。現時点では公開アプリURLが確定していないため、公開Repositoryを入口にしています。",
+      "accent": "#f2b25d",
+      "previewUrl": "https://github.com/charukun/doit-yare",
       "links": [
-        { "label": "開く", "url": "https://charukun.github.io/soul-lineage/dev/village/", "verify": true, "tone": "primary" }
-      ],
-      "tags": ["GAME", "HOUSING", "DEV"]
-    },
-    {
-      "id": "demon",
-      "category": "play",
-      "eyebrow": "NIGHT SIDE",
-      "title": "暗い喰らいCry",
-      "description": "魔物側から世界へ侵入する夜のゲーム。",
-      "accent": "crimson",
-      "links": [
-        { "label": "開く", "url": "https://charukun.github.io/soul-lineage/dev/demon/", "verify": true, "tone": "primary" }
-      ],
-      "tags": ["GAME", "NIGHT", "DEV"]
-    },
-    {
-      "id": "master-character",
-      "category": "lab",
-      "eyebrow": "CHARACTER LAB",
-      "title": "MasterCharacter Simulator",
-      "description": "Sendagaya_Shinoを基準に、量産キャラクターを確認するシミュレーター。",
-      "accent": "violet",
-      "links": [
-        { "label": "シミュレーター", "url": "https://charukun.github.io/soul-lineage/dev/rinne/simulator/", "verify": true, "tone": "primary" }
-      ],
-      "tags": ["LAB", "CHARACTER"]
-    },
-    {
-      "id": "character-review",
-      "category": "lab",
-      "eyebrow": "VISUAL CHECK",
-      "title": "Character Review",
-      "description": "キャラクターを軽量に比較・確認するレビュー画面。",
-      "accent": "ice",
-      "links": [
-        { "label": "標準", "url": "https://charukun.github.io/soul-lineage/dev/rinne/characters.html", "verify": true, "tone": "primary" },
-        { "label": "詳細", "url": "https://charukun.github.io/soul-lineage/dev/rinne/characters-advanced.html", "verify": true, "tone": "quiet" }
-      ],
-      "tags": ["LAB", "REVIEW"]
-    },
-    {
-      "id": "visual-review",
-      "category": "tools",
-      "eyebrow": "VISUAL QA",
-      "title": "Visual Review Lab",
-      "description": "素材・UI・キャラクターをスマホから素早く確認する専用環境。",
-      "accent": "violet",
-      "links": [
-        { "label": "開く", "url": "https://rinne-visual-review.c-okamoto.workers.dev/", "verify": true, "tone": "primary" }
-      ],
-      "tags": ["TOOL", "REVIEW"]
-    },
-    {
-      "id": "ops-board",
-      "category": "tools",
-      "eyebrow": "DEVELOPMENT OPS",
-      "title": "Rinne Ops Board",
-      "description": "公開状態、PR、Integration、デプロイを確認する開発運用ボード。",
-      "accent": "ice",
-      "links": [
-        { "label": "開く", "url": "https://rinne-ops.c-okamoto.workers.dev/", "verify": true, "tone": "primary" }
-      ],
-      "tags": ["TOOL", "OPS"]
-    },
-    {
-      "id": "soul-lineage-source",
-      "category": "source",
-      "eyebrow": "PUBLIC SOURCE",
-      "title": "soul-lineage",
-      "description": "輪廻転焦の実装正本Repository。",
-      "accent": "graphite",
-      "links": [
-        { "label": "GitHub", "url": "https://github.com/charukun/soul-lineage", "verify": true, "tone": "quiet" }
-      ],
-      "tags": ["SOURCE"]
-    },
-    {
-      "id": "gg-sites-source",
-      "category": "source",
-      "eyebrow": "PUBLIC SOURCE",
-      "title": "GUILTY GARDEN / gg-sites",
-      "description": "別プロジェクトの公開Repository。公開アプリURLは現時点で未確認。",
-      "accent": "crimson",
-      "links": [
-        { "label": "GitHub", "url": "https://github.com/charukun/gg-sites", "verify": true, "tone": "quiet" }
-      ],
-      "tags": ["SOURCE", "EXTERNAL"]
-    },
-    {
-      "id": "yare-source",
-      "category": "source",
-      "eyebrow": "PUBLIC SOURCE",
-      "title": "YARE / doit-yare",
-      "description": "Marketing Ops系の公開Repository。公開アプリURLは現時点で未確認。",
-      "accent": "amber",
-      "links": [
-        { "label": "GitHub", "url": "https://github.com/charukun/doit-yare", "verify": true, "tone": "quiet" }
-      ],
-      "tags": ["SOURCE", "EXTERNAL"]
-    },
-    {
-      "id": "bloodline-source",
-      "category": "source",
-      "eyebrow": "PUBLIC SOURCE",
-      "title": "Bloodline Legacy",
-      "description": "血脈の系譜の公開Repository。公開アプリURLは現時点で未確認。",
-      "accent": "violet",
-      "links": [
-        { "label": "GitHub", "url": "https://github.com/charukun/bloodline-legacy", "verify": true, "tone": "quiet" }
-      ],
-      "tags": ["SOURCE", "EXTERNAL"]
+        { "label": "SOURCE", "url": "https://github.com/charukun/doit-yare", "kind": "source" }
+      ]
     }
   ]
 }
