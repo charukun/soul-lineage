@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0c1017">
+  <title>輪廻転焦 開発状況ボード</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./pr-board.css">
+  <link rel="stylesheet" href="./app-board.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">輪廻転焦 / 開発運用</p>
+        <h1>開発状況ボード</h1>
+        <p class="muted">Rinne Ops Board</p>
+      </div>
+      <button id="reload" class="reload" type="button">最新に更新</button>
+    </header>
+
+    <nav class="section-tabs" aria-label="画面内ナビゲーション">
+      <a href="#overview-section">概要</a>
+      <a href="#apps-section">アプリ</a>
+      <a href="#tasks-section">開発タスク</a>
+      <a href="#details-section">詳細</a>
+    </nav>
+
+    <section id="overview-section" class="board-section">
+      <div class="section-head"><h2>いまの状態</h2><span class="muted">要点だけ集約</span></div>
+      <div id="overview-summary" class="summary-grid" aria-live="polite">
+        <article id="hero" class="summary-card tone-info skeleton">
+          <span class="summary-label">全体</span>
+          <strong class="summary-value">確認中</strong>
+          <small>自動統合</small>
+        </article>
+        <article class="summary-card"><span class="summary-label">公開</span><strong id="summary-apps" class="summary-value">--</strong><small id="summary-apps-note">アプリ</small></article>
+        <article class="summary-card"><span class="summary-label">作業中</span><strong id="summary-drafts" class="summary-value">--</strong><small>PR</small></article>
+        <article class="summary-card"><span class="summary-label">統合待ち</span><strong id="summary-ready" class="summary-value">--</strong><small>PR</small></article>
+        <article class="summary-card"><span class="summary-label">DEV差分</span><strong id="summary-diff" class="summary-value">--</strong><small>Production比</small></article>
+        <article class="summary-card"><span class="summary-label">直近失敗</span><strong id="summary-failures" class="summary-value">--</strong><small>Actions</small></article>
+      </div>
+    </section>
+
+    <section id="alert-section" class="board-section" hidden>
+      <div class="section-head"><h2>要対応</h2><span id="alert-count" class="muted"></span></div>
+      <div id="alerts" class="alerts"></div>
+    </section>
+
+    <section id="apps-section" class="board-section">
+      <div class="section-head"><h2>アプリ別の公開状況</h2><span id="app-summary" class="muted">確認中</span></div>
+      <div id="applications" class="app-groups"><div class="card"><p class="empty">アプリ状態を確認中</p></div></div>
+    </section>
+
+    <details class="usage-guide">
+      <summary>使い方を見る</summary>
+      <ol>
+        <li><strong>概要</strong>で全体、公開数、PR、DEV差分を一度に確認します。</li>
+        <li><strong>アプリ</strong>はゲーム / 開発ツール単位にまとまっています。各アプリを開くとURL・公開commit・更新時刻を確認できます。</li>
+        <li><strong>開発タスク</strong>では、文章情報のあるPRを1件1行で確認できます。</li>
+        <li>赤い「要対応」は文章を省略せず1件ずつ表示します。</li>
+        <li>データは自動で<strong>5分ごと</strong>に取り直します。「最新に更新」でもすぐ再表示できます。</li>
+      </ol>
+    </details>
+
+    <section id="tasks-section" class="board-section">
+      <div class="section-head"><h2>開発タスク</h2><span class="muted">作業中 → 統合待ち → 完了</span></div>
+      <div id="pulls" class="card pull-board"><p class="empty">PR一覧を確認中</p></div>
+
+      <div id="visual-review-section" hidden>
+        <div class="section-head subsection-head"><h2>Visual Review Lab</h2><span class="muted">長期運用の確認用PR</span></div>
+        <div class="card pull-board visual-review-card">
+          <p class="visual-review-note">通常の開発タスクとは別枠で表示します。</p>
+          <div id="visual-review-pulls"></div>
+        </div>
+      </div>
+    </section>
+
+    <details id="details-section" class="technical-details">
+      <summary>詳しい技術情報</summary>
+      <div class="technical-body">
+        <section>
+          <div class="section-head"><h2>公開先の詳細</h2><span id="env-count" class="muted"></span></div>
+          <div id="environments" class="stack"></div>
+        </section>
+
+        <section>
+          <div class="section-head"><h2>開発版と本番版の差</h2></div>
+          <div id="diff" class="card"></div>
+        </section>
+
+        <section>
+          <div class="section-head"><h2>自動統合の状態</h2></div>
+          <div id="integration" class="card"></div>
+        </section>
+
+        <section>
+          <div class="section-head"><h2>自動処理 / エラー</h2></div>
+          <div id="failures" class="card"></div>
+        </section>
+      </div>
+    </details>
+
+    <footer>
+      <p id="last-updated">最終更新: --</p>
+      <p id="source" class="muted">GitHubと公開環境を照合</p>
+    </footer>
+  </main>
+  <script type="module" src="./app.js"></script>
+  <script type="module" src="./app-board.js"></script>
+  <script type="module" src="./pull-board.js"></script>
+</body>
+</html>
