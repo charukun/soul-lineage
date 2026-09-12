@@ -25,6 +25,25 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   await page.locator('#deselect').click();
   const facility=await page.evaluate(()=>window.village.world.objects.find(o=>o.kind==='storage'));
   expect(facility?.phase).toBe('built');
+  // The placement guide focuses the tent, not the storehouse. Bring the latter
+  // into view through the same drag gesture as a player before attempting a pick.
+  // Projection reads are diagnostic only; camera/world setters are never called.
+  for (let step=0;step<8;step++) {
+    const drag=await page.evaluate(id=>{
+      const {world,view}=window.village,host=world.object(id),rect=view.canvas.getBoundingClientRect();
+      const p=view.project(host.x,1,host.z);
+      const x=rect.left+rect.width/2,y=rect.top+rect.height/2;
+      const dx=x-(rect.left+p.x),dy=y-(rect.top+p.y);
+      return {x,y,dx:Math.max(-rect.width*.32,Math.min(rect.width*.32,dx)),dy:Math.max(-rect.height*.23,Math.min(rect.height*.23,dy)),distance:Math.hypot(dx,dy)};
+    },facility.id);
+    if(drag.distance<12)break;
+    await page.mouse.move(drag.x,drag.y);
+    await page.mouse.down();
+    await page.mouse.move(drag.x+drag.dx,drag.y+drag.dy,{steps:12});
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+  }
+  await page.screenshot({path:testInfo.outputPath('first-storehouse-in-view.png')});
   let point;
   await expect.poll(async()=>{
     point=await page.evaluate(id=>{
