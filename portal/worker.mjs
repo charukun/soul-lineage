@@ -3,6 +3,10 @@ const JSON_HEADERS = {
   'cache-control': 'public, max-age=300, s-maxage=1800, stale-while-revalidate=86400',
 };
 
+const PULSE_STATE_URL = 'https://rinne-ops.c-okamoto.workers.dev/api/state';
+const PULSE_REPOSITORY = 'charukun/soul-lineage';
+const ACCENTS = ['#8fb7ff', '#78d9b1', '#d59cff', '#f0b36c', '#77d6e8', '#f28fb3'];
+
 function decode(value = '') {
   return String(value)
     .replace(/&amp;/g, '&')
@@ -29,6 +33,78 @@ function absolute(value, base) {
   } catch {
     return null;
   }
+}
+
+function httpsUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function publicStateLabel(state) {
+  if (state === 'success') return 'LIVE';
+  if (state === 'deploying') return 'UPDATING';
+  if (state === 'failed') return 'LAST LIVE';
+  if (state === 'waiting') return 'WAITING';
+  return 'PUBLIC';
+}
+
+function appDescription(app, links) {
+  const labels = links.map(link => link.label.replace(/\s·\s(?:LIVE|UPDATING|LAST LIVE|WAITING|PUBLIC)$/, '')).join(' / ');
+  if (app.kind === 'game') return `PULSEで公開URLを確認できた環境: ${labels}`;
+  if (app.kind === 'preview') return `PULSEで確認できる専用プレビュー: ${labels}`;
+  return `PULSEで確認できる公開ツール: ${labels}`;
+}
+
+export function catalogFromPulseState(state) {
+  if (!state || state.repository !== PULSE_REPOSITORY) throw new Error('PULSE repository mismatch');
+  if (!Array.isArray(state.applications)) throw new Error('PULSE applications missing');
+
+  const items = [];
+  for (const app of state.applications) {
+    if (!app || app.id === 'portal') continue;
+    const links = (app.targets || []).map(target => {
+      const url = httpsUrl(target?.url);
+      if (!url) return null;
+      return {
+        label: `${target.label || 'OPEN'} · ${publicStateLabel(target.state)}`,
+        url,
+        kind: target.environment || app.kind || 'site',
+        state: target.state || 'unknown',
+        environment: target.environment || null,
+      };
+    }).filter(Boolean);
+    if (!links.length) continue;
+
+    const index = items.length;
+    items.push({
+      id: app.id,
+      room: `PATH ${String(index + 1).padStart(2, '0')}`,
+      title: app.name || app.id,
+      description: appDescription(app, links),
+      accent: ACCENTS[index % ACCENTS.length],
+      previewUrl: links[0].url,
+      links,
+      pulse: {
+        kind: app.kind || 'unknown',
+        updatedAt: state.applicationsUpdatedAt || state.generatedAt || null,
+        source: 'PULSE /api/state',
+      },
+    });
+  }
+
+  return {
+    title: 'WAYFINDER',
+    subtitle: 'PULSE PUBLIC PATHS',
+    version: 3,
+    source: 'PULSE',
+    repository: PULSE_REPOSITORY,
+    generatedAt: state.applicationsUpdatedAt || state.generatedAt || null,
+    items,
+  };
 }
 
 function parseMetadata(html, url) {
@@ -92,7 +168,7 @@ async function fetchPreview(url) {
     const response = await fetch(url, {
       redirect: 'follow',
       headers: {
-        'user-agent': 'WayfinderRichPreview/1.0 (+https://wayfinder-gallery.c-okamoto.workers.dev/)',
+        'user-agent': 'WayfinderRichPreview/2.0 (+https://wayfinder-gallery.c-okamoto.workers.dev/)',
         accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.5',
       },
       signal: AbortSignal.timeout(8000),
@@ -126,6 +202,15 @@ async function catalogFromAssets(env, request) {
   return response.json();
 }
 
+async function catalogFromPulse() {
+  const response = await fetch(PULSE_STATE_URL, {
+    headers: { accept: 'application/json', 'user-agent': 'wayfinder-pulse-directory/1.0' },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new Error(`PULSE HTTP ${response.status}`);
+  return catalogFromPulseState(await response.json());
+}
+
 async function enrichItem(item) {
   const primaryUrl = item.previewUrl || item.links?.[0]?.url;
   const fallbackUrl = item.fallbackPreviewUrl;
@@ -147,10 +232,19 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === '/api/catalog') {
+      let catalog;
+      let degraded = false;
+      let syncError = null;
       try {
-        const catalog = await catalogFromAssets(env, request);
+        catalog = await catalogFromPulse();
+      } catch (error) {
+        degraded = true;
+        syncError = String(error?.message || error);
+        catalog = await catalogFromAssets(env, request);
+      }
+      try {
         const items = await Promise.all((catalog.items || []).map(enrichItem));
-        return new Response(JSON.stringify({ ...catalog, items }), { headers: JSON_HEADERS });
+        return new Response(JSON.stringify({ ...catalog, items, degraded, syncError }), { headers: JSON_HEADERS });
       } catch (error) {
         return new Response(JSON.stringify({ error: String(error?.message || error) }), {
           status: 502,
