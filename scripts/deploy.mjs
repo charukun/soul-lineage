@@ -11,6 +11,9 @@ import { INITIAL_ENVIRONMENT_APPS, GAME_ENVIRONMENTS } from './application-catal
 import { missingEnvironmentEntries, retainPinnedEntries } from './environment-plan.mjs';
 const run = (root, command, args, env = {}) => execFileSync(command, args, { cwd: root, stdio: 'inherit', env: { ...process.env, ...env } });
 const git = (root, args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
+// The Integration run that merges this change still executes the older workflow YAML.
+// Its new coordinator must initialize the explicitly approved app set without a new YAML flag.
+export const initializeEnvironments = (devOnly, flag = process.env.INITIALIZE_GAME_ENVIRONMENTS) => devOnly && flag !== 'false';
 export function desiredEntries(sources) {
   const entries = [];
   for (const [environment, root] of Object.entries(sources)) {
@@ -83,13 +86,15 @@ async function main() {
   else assert.equal(response.status, 404, 'Cannot establish current deployment; refusing a blind replacement');
   const full = process.env.INTEGRATION_FULL === 'true';
   const devOnly = process.env.DEPLOY_DEV_ONLY === 'true';
+  const initialize = initializeEnvironments(devOnly);
   const developSha = git(sources.dev, ['rev-parse', 'HEAD']);
   const productionSha = git(sources.prod, ['rev-parse', 'HEAD']);
   let retained = preserveProduction(desiredEntries(devOnly ? { dev: sources.dev } : sources), previous, devOnly);
   if (devOnly && process.env.REFRESH_STAGING === 'true') {
+    assert.ok(initialize, 'Staging refresh requires environment initialization; refusing to remove a pinned release');
     retained = retained.filter(entry => entry.environment !== 'staging' || !INITIAL_ENVIRONMENT_APPS.includes(entry.app));
   }
-  const initial = devOnly && process.env.INITIALIZE_GAME_ENVIRONMENTS === 'true'
+  const initial = initialize
     ? missingEnvironmentEntries(desiredEntries({ staging: sources.dev, prod: sources.dev }), retained, INITIAL_ENVIRONMENT_APPS) : [];
   const desired = [...retained, ...initial];
   const old = new Map(previous.entries.map(entry => [entry.path, entry]));
@@ -134,6 +139,11 @@ async function main() {
       legacy: entry.legacy, ...(entry.pinned ? { pinned: true } : {}), deployedAt: new Date().toISOString(),
       version, files: await inventory(dist) });
     console.log(`BUILD ${entry.path} / ${version.commit}`);
+  }
+  if (initialize) {
+    for (const app of INITIAL_ENVIRONMENT_APPS) for (const { id: environment } of GAME_ENVIRONMENTS) {
+      assert.ok(entries.some(entry => entry.app === app && entry.environment === environment), `Missing required environment: ${environment}/${app}`);
+    }
   }
   for (const { id: environment } of GAME_ENVIRONMENTS) {
     if (entries.some(e => e.path === environment)) continue;
