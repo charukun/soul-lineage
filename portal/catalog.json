@@ -67,18 +67,6 @@
       "tags": ["LAB", "REVIEW"]
     },
     {
-      "id": "village-rehearsal",
-      "category": "lab",
-      "eyebrow": "SYSTEM LAB",
-      "title": "Village Rehearsal",
-      "description": "村連携やゲーム内導線を確認するリハーサルページ。",
-      "accent": "mint",
-      "links": [
-        { "label": "開く", "url": "https://charukun.github.io/soul-lineage/dev/rinne/village-rehearsal.html", "verify": true, "tone": "primary" }
-      ],
-      "tags": ["LAB", "VILLAGE"]
-    },
-    {
       "id": "visual-review",
       "category": "tools",
       "eyebrow": "VISUAL QA",
