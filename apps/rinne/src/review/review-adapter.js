@@ -5,10 +5,10 @@ export async function installReviewExtensions(options){
   const base=await installBase(options);
   return {...base,async loadPreset(args){
     const body=installWeaponReviewPolish(await base.loadPreset(args));
-    const originalGet=body.getClip?.bind(body);
+    const originalGet=body.getClip?.bind(body),cache=new WeakMap();
     body.getClip=(name,opts)=>{
       const clip=originalGet?.(name,opts);if(!clip||name!=='技 / 流し斬り')return clip;
-      const stretched=clip.clone();for(const track of stretched.tracks)track.scale(1.28);stretched.resetDuration();return stretched;
+      if(!cache.has(clip)){const stretched=clip.clone();for(const track of stretched.tracks)track.scale(1.28);stretched.resetDuration();cache.set(clip,stretched);}return cache.get(clip);
     };
     return body;
   }};

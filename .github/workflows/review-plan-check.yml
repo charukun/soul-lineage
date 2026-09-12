@@ -1,0 +1,59 @@
+name: Focused Review plan verification
+on:
+  push:
+    branches: [audit/review-plan-validation]
+    paths:
+      - apps/rinne/src/review/**
+      - apps/rinne/tests/review-plan/**
+      - tests/review-plan-browser.mjs
+      - scripts/audit/materialize-review-plan.py
+      - .github/workflows/review-plan-check.yml
+permissions:
+  contents: write
+concurrency:
+  group: review-plan-verification
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Materialize exact reviewed UTF-8 source on the isolated diagnostic branch
+        run: |
+          test "$GITHUB_REF_NAME" = audit/review-plan-validation
+          python scripts/audit/materialize-review-plan.py
+          git config user.name 'Review validation'
+          git config user.email '68882498+charukun@users.noreply.github.com'
+          git add apps/rinne/src/review/main.js apps/rinne/src/review/review-adapter-base.js apps/rinne/src/review/review-motion-integrity.js
+          if ! git diff --cached --quiet; then git commit -m 'feat(review): materialize coherent review state and normalized pose transfer'; fi
+          echo "REVIEW_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          mkdir -p test-results/review-plan
+          git ls-tree -r HEAD apps/rinne/src/review apps/rinne/tests/review-plan tests/review-plan-browser.mjs > test-results/review-plan/source-tree.txt
+          git rev-parse HEAD > test-results/review-plan/source-sha.txt
+      - run: npm ci
+      - name: Fast deterministic state, integrity and real skeleton tests
+        run: node --test apps/rinne/tests/review-plan/*.test.mjs
+      - name: Existing Review build and asset gates
+        run: GITHUB_SHA="$REVIEW_SOURCE_SHA" npm run build:review
+      - run: npx playwright install --with-deps chromium
+      - name: Actual model interaction and phase screenshots
+        run: REVIEW_EXPECTED_SHA="$REVIEW_SOURCE_SHA" node tests/review-plan-browser.mjs
+      - name: Preserve tested source on this diagnostic branch only
+        if: success()
+        run: |
+          test "$GITHUB_REF_NAME" = audit/review-plan-validation
+          remote=$(git ls-remote origin "refs/heads/$GITHUB_REF_NAME" | cut -f1)
+          test "$remote" = "$GITHUB_SHA"
+          git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: review-plan-verification
+          path: test-results/review-plan/
+          retention-days: 7
+          if-no-files-found: error
