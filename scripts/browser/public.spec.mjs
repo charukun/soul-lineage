@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { appendFileSync } from 'node:fs';
+import {registerClarityTests} from './public-clarity.mjs';
 import { isVerifiedAudioRangeAbort, describeFailedRequest } from './media-request-contract.mjs';
 const base = process.env.BROWSER_SITE_URL?.replace(/\/?$/, '/');
 const targets = JSON.parse(process.env.BROWSER_TARGETS || '[]');
@@ -159,6 +160,12 @@ for (const target of targets) {
       // The Village deliberately hides its old music trigger (PR #59).
       if (target.app === 'village') {
         await page.evaluate(() => window.__SOUL_MUSIC__.open());
+      } else if (target.app === 'rinne') {
+        await page.locator('#open-settings').click();
+        await page.locator('#title-music').click();
+      } else if (target.app === 'demon') {
+        await page.locator('#title-settings').click();
+        await page.locator('#music-library').click();
       } else await page.locator('.soul-music [data-open]').click();
       await expect(page.locator('.soul-music dialog')).toBeVisible();
       const audio = page.locator('.soul-music audio');
@@ -192,3 +199,6 @@ for (const target of targets) {
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n- Browser OK: ${url} — ${target.version.commit} — WebGL2\n`);
   });
 }
+
+// Each added interaction scenario gets its own fresh page, storage and time budget.
+registerClarityTests({test, expect, targets, base});

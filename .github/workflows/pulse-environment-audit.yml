@@ -1,0 +1,58 @@
+name: PULSE public environment audit
+on:
+  pull_request:
+    paths:
+      - 'ops-board/**'
+      - 'scripts/deploy.mjs'
+      - 'scripts/application-catalog.mjs'
+      - '.github/workflows/pulse-environment-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Read published manifests and environment URLs (no deployment)
+        run: |
+          node --input-type=module <<'JS'
+          import { appendFileSync } from 'node:fs';
+          const root = 'https://charukun.github.io/soul-lineage/';
+          const get = url => fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(20000) });
+          const response = await get(`${root}deployment-manifest.json?audit=${Date.now()}`);
+          if (!response.ok) throw new Error(`manifest HTTP ${response.status}`);
+          const manifest = await response.json();
+          console.log('PUBLISHED_SNAPSHOTS', JSON.stringify(manifest.environmentSnapshots || {}));
+          console.log('PUBLISHED_ENTRIES', JSON.stringify((manifest.entries || []).map(({ app, environment, path, version }) => ({ app, environment, path, version }))));
+          const rows = await Promise.all(['rinne', 'demon', 'village'].flatMap(app => ['dev', 'staging', 'prod'].map(async environment => {
+            const entry = (manifest.entries || []).find(e => e.app === app && e.environment === environment);
+            const path = entry?.path || `${environment}/${app}`;
+            if (!/^[a-z0-9/-]+$/.test(path)) throw new Error('Invalid public manifest path');
+            const url = new URL(`${path}/`, root).href;
+            try {
+              const r = await get(url);
+              const html = await r.text();
+              return { app, environment, registered: Boolean(entry), http: r.status, title: html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || null, url, commit: entry?.version?.commit || null };
+            } catch (error) { return { app, environment, registered: Boolean(entry), url, error: error.message }; }
+          })));
+          for (const row of rows) console.log('ENVIRONMENT_AUDIT', JSON.stringify(row));
+          for (const url of ['https://rinne-ops.c-okamoto.workers.dev/', 'https://wayfinder-gallery.c-okamoto.workers.dev/']) {
+            try { const r = await get(url); const html = await r.text(); console.log('TOOL_AUDIT', JSON.stringify({ url, http: r.status, title: html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || null })); }
+            catch (error) { console.log('TOOL_AUDIT', JSON.stringify({ url, error: error.message })); }
+          }
+          try {
+            const r = await get('https://rinne-ops.c-okamoto.workers.dev/api/state');
+            const s = await r.json();
+            console.log('PULSE_RUNTIME_AUDIT', JSON.stringify({ http: r.status, schemaVersion: s.schemaVersion,
+              syncStatus: s.syncStatus, syncError: s.syncError, generatedAt: s.generatedAt, lastAttemptAt: s.lastAttemptAt,
+              githubRateRemaining: s.githubRateRemaining, refreshReason: s.refreshReason,
+              applications: (s.applications || []).map(({ id, name, targets }) => ({ id, name, targets: (targets || []).map(({ environment, state, url, commit }) => ({ environment, state, url, commit })) })) }));
+          } catch (error) { console.log('PULSE_RUNTIME_AUDIT', JSON.stringify({ error: error.message })); }
+          const missing = rows.filter(r => !r.registered || r.http !== 200);
+          console.log('ENVIRONMENT_COVERAGE', missing.length ? `INCOMPLETE: ${missing.length} missing/unverified targets` : 'COMPLETE: all 9 targets registered and HTTP 200');
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, '# Public environment audit\n\nThis is a read-only audit, not proof that this PR is deployed.\n\n| App | Environment | Manifest | HTTP | Commit |\n| --- | --- | --- | --- | --- |\n' + rows.map(r => `| ${r.app} | ${r.environment} | ${r.registered ? 'yes' : 'missing'} | ${r.http || r.error} | ${r.commit || 'unknown'} |`).join('\n') + `\n\nCoverage: ${missing.length ? 'INCOMPLETE' : 'COMPLETE'}\n`);
+          JS

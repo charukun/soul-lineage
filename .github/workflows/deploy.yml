@@ -4,6 +4,11 @@ on:
     branches: [develop, main]
   workflow_dispatch:
     inputs:
+      refresh_staging:
+        description: 'Refresh pinned validation environments from the verified develop snapshot; retain Production'
+        type: boolean
+        required: false
+        default: false
       full_verification:
         description: 'Run separate full regression / public WebGL2 / P2P diagnostics after DEV publication'
         type: boolean
@@ -117,7 +122,7 @@ jobs:
 
   publish:
     needs: integrate
-    if: always() && (github.ref == 'refs/heads/main' || (needs.integrate.result == 'success' && needs.integrate.outputs.verify == 'true'))
+    if: always() && (github.ref == 'refs/heads/main' || (needs.integrate.result == 'success' && (needs.integrate.outputs.verify == 'true' || inputs.refresh_staging == true)))
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
@@ -154,6 +159,8 @@ jobs:
         env:
           SITE_URL: https://charukun.github.io/soul-lineage/
           DEPLOY_DEV_ONLY: ${{ github.ref == 'refs/heads/develop' }}
+          INITIALIZE_GAME_ENVIRONMENTS: 'true'
+          REFRESH_STAGING: ${{ inputs.refresh_staging == true && github.ref == 'refs/heads/develop' }}
         run: node sources/dev/scripts/deploy.mjs sources/dev sources/prod _site "$SITE_URL"
       - name: Refuse a superseded develop snapshot before publishing
         if: github.ref == 'refs/heads/develop'
@@ -243,7 +250,7 @@ jobs:
   result:
     name: Record final develop result
     needs: [integrate, publish]
-    if: always() && needs.integrate.result == 'success' && needs.integrate.outputs.verify == 'true'
+    if: always() && needs.integrate.result == 'success' && (needs.integrate.outputs.verify == 'true' || inputs.refresh_staging == true)
     runs-on: ubuntu-latest
     permissions:
       statuses: write
