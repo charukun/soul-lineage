@@ -26,7 +26,7 @@ test('tools use verified public status while failed Lanternfell never invents a 
     url: 'https://rinne-visual-review.example.workers.dev/', deployedCommit: 'vrm', deployedAt: '2026-09-12T00:00:00Z',
   }];
   const runs = [
-    { name: 'Rinne Public Portal', status: 'completed', conclusion: 'success', head_sha: 'portal', updated_at: '2026-09-12T00:00:30Z' },
+    { name: 'Wayfinder Public Gallery', status: 'completed', conclusion: 'success', head_sha: 'portal', updated_at: '2026-09-12T00:00:30Z' },
     { name: 'Rinne Ops Board', status: 'completed', conclusion: 'success', head_sha: 'ops', updated_at: '2026-09-12T00:01:00Z' },
     { name: 'Lanternfell night portrait DEV', status: 'completed', conclusion: 'failure', head_sha: 'lantern', updated_at: '2026-09-12T00:02:00Z' },
   ];
@@ -38,6 +38,7 @@ test('tools use verified public status while failed Lanternfell never invents a 
   assert.equal(visual.targets[0].url, environments[0].url);
   assert.equal(portal.targets[0].url, PORTAL_PUBLIC_URL);
   assert.equal(portal.targets[0].state, 'success');
+  assert.equal(portal.name, 'WAYFINDER（公開リンクギャラリー）');
   assert.equal(ops.targets[0].url, OPS_PUBLIC_URL);
   assert.equal(lantern.targets[0].state, 'failed');
   assert.equal(lantern.targets[0].url, null);
