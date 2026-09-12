@@ -1,8 +1,8 @@
-import {LIMIT,DAYS_YEAR} from './game/core.js';
+import {DAYS_YEAR} from './game/core.js';
 
 const village=window.village;
 if(!village)throw new Error('MURAAAAAAA entry polish requires a booted village');
-const {world,view,ui,activity}=village;
+const {world,view,activity}=village;
 const $=id=>document.getElementById(id);
 
 const css=document.createElement('style');css.dataset.muraEntryPolish='1';css.textContent=`
@@ -19,14 +19,13 @@ const css=document.createElement('style');css.dataset.muraEntryPolish='1';css.te
 #muraEnterVillage svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8}
 #muraEntryCard .muraEntryHint{display:block;margin-top:14px;font-size:9px;color:rgba(247,239,216,.48);letter-spacing:.08em}
 body.mura-entry-open #title,body.mura-entry-open #tutorial,body.mura-entry-open #build,body.mura-entry-open #context,body.mura-entry-open #placement,body.mura-entry-open #idleStatus,body.mura-entry-open #idleMoment{opacity:0!important;pointer-events:none!important}
-/* Idle Village Now is genuinely idle-only and translucent. */
 #idleStatus{right:12px!important;left:auto!important;top:max(12px,env(safe-area-inset-top))!important;width:min(330px,calc(100vw - 24px))!important;background:linear-gradient(145deg,rgba(249,245,229,.56),rgba(236,239,220,.45))!important;border:1px solid rgba(255,255,239,.58)!important;box-shadow:0 14px 44px rgba(43,55,39,.14)!important;backdrop-filter:blur(14px) saturate(.95)!important;opacity:0!important;transform:translateY(-7px) scale(.985)!important;pointer-events:none!important;transition:opacity .95s ease,transform .95s cubic-bezier(.2,.75,.2,1)!important}
 #idleStatus.visible{opacity:1!important;transform:translateY(0) scale(1)!important;pointer-events:auto!important}
 .muraNowHead{align-items:center!important}.muraNowActions{display:flex!important;flex-direction:row!important;gap:5px!important;align-items:center!important}.muraNowActions button{min-height:30px!important;padding:5px 8px!important;border-radius:12px!important;background:rgba(81,104,76,.10)!important;border:1px solid rgba(80,94,69,.11)!important;font-size:9px!important;white-space:nowrap}.muraNowActions .muraButtonIcon{margin-right:3px!important;width:14px!important}.muraNowActions svg{width:13px!important;height:13px!important}
-/* Tutorial gets a stable text column instead of being squeezed into 47vw. */
 #tutorial{left:12px!important;right:auto!important;top:max(82px,calc(env(safe-area-inset-top) + 72px))!important;bottom:auto!important;transform:none!important;width:min(360px,calc(100vw - 24px))!important;max-width:none!important;min-height:48px!important;border-radius:18px!important;white-space:normal!important;align-items:stretch!important;overflow:hidden!important;z-index:17!important}
 #tutorialAction{flex:1!important;min-width:0!important;width:auto!important;display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;align-items:center!important;gap:9px!important;padding:8px 8px 8px 11px!important;white-space:normal!important;text-align:left!important;line-height:1.45!important}
 #tutorialCount{white-space:nowrap!important;align-self:center!important}#tutorialText{min-width:0!important;overflow-wrap:anywhere!important;word-break:normal!important;font-size:11px!important}#tutorial .tutorialArrow{justify-self:end!important}#dismissTutorial{flex:0 0 36px!important;width:36px!important;padding:3px!important;border-left:1px solid rgba(103,111,82,.10)!important;border-radius:0!important}
+#muraMayorFollow{display:none!important}
 @media(max-width:560px){#muraEntryCard{padding:28px 20px 25px;border-radius:24px}#muraEntryCard h2{font-size:36px}#muraEntryFacts{gap:5px}#muraEntryFacts span{min-width:75px;padding:7px 8px}#idleStatus{width:min(300px,calc(100vw - 16px))!important;right:8px!important}.muraClimate{grid-template-columns:repeat(3,1fr)!important}.muraClimate span{padding:5px!important}.muraScaleLine{display:flex!important;font-size:7px!important}#tutorial{width:calc(100vw - 24px)!important}}
 @media(max-height:520px){#muraEntryCard{padding:19px 24px}#muraEntryCard .muraEntryMark{display:none}#muraEntryCard h2{font-size:31px}#muraEntryCard .muraEntryLead{margin:8px auto 10px;line-height:1.5}#muraEntryFacts{margin-bottom:10px}#tutorial{top:64px!important;width:min(330px,55vw)!important}}
 @media(prefers-reduced-motion:reduce){#muraEntry,#idleStatus{transition:none!important}}
@@ -38,6 +37,7 @@ function seasonName(){
  return ['春','夏','秋','冬'][index];
 }
 function installEntryScreen(){
+ $('muraMayorIntro')?.remove();try{localStorage.setItem('mura.village.mayor-intro.v1','1');}catch{}
  document.body.classList.add('mura-entry-open');
  const entry=document.createElement('section');entry.id='muraEntry';entry.setAttribute('aria-label','ゲーム開始');
  const pop=world.population(),year=Math.floor(world.state.clock/DAYS_YEAR)+1;
@@ -51,14 +51,18 @@ function installEntryScreen(){
 
 function installVillageNowActions(){
  const panel=$('idleStatus'),head=panel?.querySelector('.muraNowHead');if(!panel||!head)return;
- // v2 previously forced the panel visible. From here on, core updateIdle owns visibility.
  panel.classList.remove('visible');
+ $('muraMayorFollow')?.remove();
  let actions=head.querySelector('.muraNowActions');if(!actions){actions=document.createElement('div');actions.className='muraNowActions';head.append(actions);}
- const event=$('muraEventButton');if(event)actions.append(event);
+ const event=$('muraEventButton');if(event){
+  actions.append(event);
+  const log=$('muraEventLog');
+  event.onpointerdown=e=>{e.preventDefault();if(log)log.hidden=!log.hidden;};
+  event.onclick=e=>e.preventDefault();
+ }
  const mayor=world.people.find(p=>p.role==='mayor');
  if(mayor&&!actions.querySelector('#muraFollowMayor')){
   const follow=document.createElement('button');follow.id='muraFollowMayor';follow.type='button';follow.innerHTML='<span class="muraButtonIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M5 21c1-5 3-7 7-7s6 2 7 7"/></svg></span><span>村長を追う</span>';
-  // pointerdown fires even though global activity handling fades this idle-only panel.
   follow.addEventListener('pointerdown',e=>{e.preventDefault();view.focus(mayor.x,mayor.z,27);view.followId=mayor.id;activity();});
   follow.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();view.focus(mayor.x,mayor.z,27);view.followId=mayor.id;activity();}});
   actions.prepend(follow);
@@ -71,26 +75,6 @@ function removeMayorFollowFromDialog(){
 }
 const dialogObserver=new MutationObserver(()=>queueMicrotask(removeMayorFollowFromDialog));if($('dialogContent'))dialogObserver.observe($('dialogContent'),{childList:true,subtree:true});
 
-function installCameraInertia(){
- const originalPan=view.pan.bind(view),originalRender=view.render.bind(view),originalFocus=view.focus.bind(view),originalTouch=view.touch.bind(view);
- let vx=0,vz=0,lastPanAt=0;
- const stop=()=>{vx=0;vz=0;};view.stopInertia=stop;
- view.touch=(...args)=>{if(performance.now()-lastPanAt>90)stop();return originalTouch(...args);};
- view.focus=(...args)=>{stop();return originalFocus(...args);};
- view.pan=(dx,dy)=>{
-  const bx=view.target.x,bz=view.target.z,now=performance.now();originalPan(dx,dy);const dt=Math.max(.008,Math.min(.055,(now-(lastPanAt||now-16))/1000)),wx=view.target.x-bx,wz=view.target.z-bz;
-  if(Number.isFinite(wx)&&Number.isFinite(wz)&&Math.hypot(wx,wz)>.0001){const mix=.52;vx=vx*(1-mix)+(wx/dt)*mix;vz=vz*(1-mix)+(wz/dt)*mix;const speed=Math.hypot(vx,vz),cap=150;if(speed>cap){vx=vx/speed*cap;vz=vz/speed*cap;}}
-  lastPanAt=now;
- };
- view.render=(time,dt)=>{
-  if(view.interacting||view.cameraGoal||view.followId){if(view.cameraGoal||view.followId)stop();}
-  else if(Math.hypot(vx,vz)>.02){view.target.x=Math.max(-LIMIT,Math.min(LIMIT,view.target.x+vx*dt));view.target.z=Math.max(-LIMIT,Math.min(LIMIT,view.target.z+vz*dt));const decay=Math.exp(-4.35*Math.min(dt,.08));vx*=decay;vz*=decay;if(Math.hypot(vx,vz)<.025)stop();}
-  return originalRender(time,dt);
- };
- window.__MURA_CAMERA_INERTIA__={stop,get velocity(){return{x:vx,z:vz};}};
-}
-
-installCameraInertia();
 installVillageNowActions();
 installEntryScreen();
 removeMayorFollowFromDialog();
