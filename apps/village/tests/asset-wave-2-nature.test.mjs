@@ -5,6 +5,8 @@ import {readFileSync} from 'node:fs';
 
 const root=new URL('../public/assets/vendor/kenney-nature/',import.meta.url);
 const manifest=JSON.parse(readFileSync(new URL('MANIFEST.json',root),'utf8'));
+const natureSource=readFileSync(new URL('../src/nature-visuals.js',import.meta.url),'utf8');
+const assetPassSource=readFileSync(new URL('../src/asset-visuals.js',import.meta.url),'utf8');
 const expected={
   'License.txt':'cb96b75e3560ac78d7a53ce6f083f4cdb5c53faea6141b62d63458dcfe1e4b9d',
   'tree_oak.glb':'d7fd8773674928c50c11b66d12c636d49bdcc15a8b1c7fbb98e6f63a3439a3f3',
@@ -22,4 +24,14 @@ test('second-wave Nature Kit files match the verified official archive manifest'
   assert.equal(manifest.officialArchiveSha256,'fa7974a0d342bfe63c38664ba9f8ec1a4aab8ea25f099bdc56870e33588c4d9d');
   assert.deepEqual(manifest.files,expected);
   for(const [name,sha] of Object.entries(expected))assert.equal(sha256(readFileSync(new URL(name,root))),sha,name);
+});
+
+test('Nature Kit is connected as repository-local visual dressing only',()=>{
+  assert.match(assetPassSource,/import '\.\/nature-visuals\.js'/);
+  for(const file of ['tree_oak.glb','tree_default.glb','rock_largeA.glb','rock_smallA.glb','sign.glb'])assert.match(natureSource,new RegExp(file.replace('.','\\.')));
+  assert.match(natureSource,/repository-local-visual-only/);
+  assert.match(natureSource,/Existing naturalTrees\(\), logging, collision and resource rules remain authoritative/);
+  assert.match(natureSource,/visualOnly=true/);
+  assert.doesNotMatch(natureSource,/raw\.githubusercontent\.com/);
+  assert.doesNotMatch(natureSource,/world\.(?:objects|stock|resources)\s*=/);
 });
