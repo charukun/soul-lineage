@@ -10,6 +10,7 @@ on:
     paths:
       - 'portal/**'
       - 'wrangler.portal.jsonc'
+      - 'wrangler.portal-legacy.jsonc'
       - '.github/workflows/portal.yml'
       - 'tests/portal.test.mjs'
   workflow_dispatch:
@@ -36,6 +37,7 @@ jobs:
         run: |
           node --check portal/public/app.js
           node --check portal/worker.mjs
+          node --check portal/legacy-redirect.mjs
           node --test tests/portal.test.mjs
           grep -q 'WAYFINDER' portal/public/index.html
           grep -q 'share-page' portal/public/index.html
@@ -110,6 +112,19 @@ jobs:
           JS
           curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "${PORTAL_URL}api/catalog" | node --input-type=module -e "let s='';for await(const c of process.stdin)s+=c;const x=JSON.parse(s);if(!Array.isArray(x.items)||!x.items.some(i=>i.id==='guiltys-garden')||!x.items.every(i=>'preview' in i))process.exit(1)"
           curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "${PORTAL_URL}favicon.svg" | grep -q '<svg'
+
+      - name: Redirect legacy portal URL to Wayfinder
+        if: steps.public.outputs.url != ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4 deploy --config wrangler.portal-legacy.jsonc
+
+      - name: Verify legacy redirect
+        if: steps.public.outputs.url != ''
+        run: |
+          location=$(curl -sSI --retry 6 --retry-delay 2 --retry-all-errors https://rinne-portal.c-okamoto.workers.dev/ | tr -d '\r' | awk 'BEGIN{IGNORECASE=1}/^location:/{print $2; exit}')
+          test "$location" = "https://wayfinder-gallery.c-okamoto.workers.dev/"
 
       - name: Record public gallery status
         if: always()
