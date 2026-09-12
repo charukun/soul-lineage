@@ -1,0 +1,110 @@
+name: Rinne Public Portal
+
+on:
+  push:
+    branches:
+      - develop
+      - 'feat/**'
+      - 'fix/**'
+      - 'work/**'
+    paths:
+      - 'portal/**'
+      - 'wrangler.portal.jsonc'
+      - '.github/workflows/portal.yml'
+      - 'tests/portal.test.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: rinne-public-portal
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Fast portal verification
+        run: |
+          node --check portal/public/app.js
+          node --check ops-board/pulls.mjs
+          node --test tests/portal.test.mjs
+          grep -q 'RINNE GATE' portal/public/index.html
+          grep -q 'favicon.svg' portal/public/index.html
+          ! grep -q 'rel="manifest"' portal/public/index.html
+
+      - name: Verify every published destination
+        run: |
+          node --input-type=module <<'JS' > /tmp/portal-urls.txt
+          import fs from 'node:fs';
+          const catalog = JSON.parse(fs.readFileSync('portal/catalog.json', 'utf8'));
+          const urls = catalog.items.flatMap(item => item.links || []).filter(link => link.verify).map(link => link.url);
+          for (const url of [...new Set(urls)]) console.log(url);
+          JS
+          while IFS= read -r url; do
+            echo "CHECK $url"
+            code=$(curl -L -sS --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 30 -o /dev/null -w '%{http_code}' "$url")
+            case "$code" in
+              2*|3*) ;;
+              *) echo "::error::Public destination unavailable ($code): $url"; exit 1 ;;
+            esac
+          done < /tmp/portal-urls.txt
+
+      - name: Prepare static catalog
+        run: cp portal/catalog.json portal/public/catalog.json
+
+      - name: Deploy public portal to Cloudflare Workers
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --yes wrangler@4 deploy --config wrangler.portal.jsonc
+
+      - name: Use stable public URL
+        id: public
+        if: steps.deploy.outcome == 'success'
+        run: |
+          echo "url=https://rinne-portal.c-okamoto.workers.dev/" >> "$GITHUB_OUTPUT"
+          echo "RINNE GATE: https://rinne-portal.c-okamoto.workers.dev/" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify deployed portal
+        if: steps.public.outputs.url != ''
+        env:
+          PORTAL_URL: ${{ steps.public.outputs.url }}
+        run: |
+          page=$(curl -fsS --retry 4 --retry-delay 2 "$PORTAL_URL")
+          printf '%s' "$page" | grep -q 'RINNE GATE'
+          curl -fsS --retry 4 --retry-delay 2 "${PORTAL_URL}catalog.json" | node --input-type=module -e "let s='';for await(const c of process.stdin)s+=c;const x=JSON.parse(s);if(!Array.isArray(x.items)||!x.items.some(i=>i.id==='rinne')||!x.items.some(i=>i.id==='master-character'))process.exit(1)"
+          curl -fsS --retry 4 --retry-delay 2 "${PORTAL_URL}favicon.svg" | grep -q '<svg'
+
+      - name: Record public portal status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLIC_URL: ${{ steps.public.outputs.url }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          state=failure
+          description="RINNE GATE deployment failed"
+          target_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [ "$JOB_STATUS" = "success" ] && [ -n "$PUBLIC_URL" ]; then
+            state=success
+            description="RINNE GATE is live"
+            target_url="$PUBLIC_URL"
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$state" \
+            -f context=portal/public \
+            -f description="$description" \
+            -f target_url="$target_url"
