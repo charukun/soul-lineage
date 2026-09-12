@@ -22,7 +22,13 @@ export function qualityIdentity(record, index, input, manual = null) {
 export function qualityProfile(record, index, input, manual = null) {
   return manual ?? qualityIdentity(record,index,input)?.parts ?? BASE_APPEARANCE_PARTS;
 }
-export function qualityReport(records, input, profiles = new Map()) {
-  const quality = qualitySettings(input), rows = records.map((record,index)=>({ id:record.id, identity:qualityIdentity(record,index,{...quality,mode:'enhanced'},profiles.get(record.id)) })).filter(row=>row.identity);
+/** Indices preserve the original cohort position when reporting a filtered/single view. */
+export function qualityReport(records, input, profiles = new Map(), indices = null) {
+  const quality = qualitySettings(input);
+  check(indices === null || Array.isArray(indices) && indices.length === records.length, 'Invalid quality report indices');
+  const rows = records.map((record,offset)=>{
+    const index = indices?.[offset] ?? offset;
+    return { id:record.id, identity:qualityIdentity(record,index,{...quality,mode:'enhanced'},profiles.get(record.id)) };
+  }).filter(row=>row.identity);
   return { ...compareVisualIdentities(rows), referenceCount: records.length - rows.length, mode:quality.mode };
 }
