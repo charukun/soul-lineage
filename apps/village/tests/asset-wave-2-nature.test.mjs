@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 
 const root=new URL('../public/assets/vendor/kenney-nature/',import.meta.url);
-const manifest=JSON.parse(readFileSync(new URL('MANIFEST.json',root),'utf8'));
+const manifest=JSON.parse(readFileSync(new URL('./MANIFEST.json',root),'utf8'));
 const natureSource=readFileSync(new URL('../src/nature-visuals.js',import.meta.url),'utf8');
 const assetPassSource=readFileSync(new URL('../src/asset-visuals.js',import.meta.url),'utf8');
 const expected={
