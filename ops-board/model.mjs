@@ -7,6 +7,8 @@ export const API_HISTORY_PAGE_LIMIT = 10;
 const FAILURE_CONCLUSIONS = new Set([
   'failure', 'cancelled', 'timed_out', 'action_required', 'startup_failure', 'stale',
 ]);
+const ACTIVE_RUN_STATES = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
+const HOLD_LABELS = new Set(['integration:hold', 'integration:manual', 'do-not-merge']);
 
 export function shortSha(value) {
   return typeof value === 'string' && value.length >= 7 ? value.slice(0, 12) : null;
@@ -52,6 +54,11 @@ export function latestRunForSha(runs, sha, workflowName = 'CI') {
   return (runs || []).find(run => run?.name === workflowName && run?.head_sha === sha) || null;
 }
 
+function explicitIntegrationHold(pr) {
+  const labels = new Set((pr?.labels || []).map(item => item?.name).filter(Boolean));
+  return [...HOLD_LABELS].some(label => labels.has(label)) || /^Integration-Hold:\s*\S+/im.test(pr?.body || '');
+}
+
 export function classifyPull(pr, runs = [], developRuns = [], now = Date.now()) {
   const ci = latestRunForSha(runs, pr?.head?.sha, 'CI');
   const base = {
@@ -70,6 +77,9 @@ export function classifyPull(pr, runs = [], developRuns = [], now = Date.now()) 
 
   if (pr.draft) {
     return { ...base, stage: 'READY_WAIT', label: 'Ready for review待ち', tone: 'info', reason: 'Draft PR' };
+  }
+  if (explicitIntegrationHold(pr)) {
+    return { ...base, stage: 'HOLD', label: 'Integration保留', tone: 'info', reason: '明示的なIntegration hold' };
   }
   if (!ci || ci.status !== 'completed') {
     return { ...base, stage: 'READY_WAIT', label: 'Ready for review待ち', tone: 'info', reason: ci ? 'CI実行中' : 'CI待ち' };
@@ -135,16 +145,25 @@ export function deploymentQueue(compare) {
   };
 }
 
-export function overallIntegration(queue = [], latestDevelopRun = null, deployQueues = []) {
+export function overallIntegration(queue = [], latestDevelopRun = null, deployQueues = [], now = Date.now()) {
   if (queue.some(item => item.stage === 'FAILED' || item.stage === 'CI_FAILED') || workflowFailure(latestDevelopRun)) {
-    return { label: 'Failed', tone: 'danger' };
+    return { label: 'Failed', tone: 'danger', phase: 'failed', heartbeatAt: latestDevelopRun?.updated_at || null };
   }
-  if (deployQueues.some(item => item?.warning)) return { label: 'Failed', tone: 'danger' };
-  if (latestDevelopRun && ['queued', 'in_progress', 'waiting', 'requested', 'pending'].includes(latestDevelopRun.status)) return { label: 'Integration中', tone: 'progress' };
-  if (queue.some(item => item.stage === 'INTEGRATING')) return { label: 'Integration中', tone: 'progress' };
-  if (queue.some(item => item.warning)) return { label: '滞留あり', tone: 'danger' };
-  if (deployQueues.some(item => (item?.commitsAhead || 0) > 0)) return { label: 'deploy待ち', tone: 'warning' };
-  if (queue.some(item => item.stage === 'MERGE_WAIT')) return { label: 'merge待ち', tone: 'warning' };
-  if (queue.some(item => item.stage === 'READY_WAIT')) return { label: 'Ready待ち', tone: 'info' };
-  return { label: '正常', tone: 'ok' };
+  if (deployQueues.some(item => item?.warning)) return { label: 'Failed', tone: 'danger', phase: 'branch-diverged', heartbeatAt: latestDevelopRun?.updated_at || null };
+  if (latestDevelopRun && ACTIVE_RUN_STATES.has(latestDevelopRun.status)) {
+    const heartbeatAt = latestDevelopRun.updated_at || latestDevelopRun.created_at || null;
+    const heartbeatMs = Date.parse(heartbeatAt || 0) || now;
+    const stalledMs = Math.max(0, now - heartbeatMs);
+    if (stalledMs >= STALL_WARNING_MS) {
+      return { label: 'DEV delivery停止疑い', tone: 'danger', phase: 'delivery', heartbeatAt, stalled: true, stalledMs };
+    }
+    return { label: 'DEV delivery中', tone: 'progress', phase: 'delivery', heartbeatAt, stalled: false, stalledMs };
+  }
+  if (queue.some(item => item.stage === 'INTEGRATING')) return { label: 'Integration中', tone: 'progress', phase: 'integration', heartbeatAt: null };
+  if (queue.some(item => item.warning)) return { label: '滞留あり', tone: 'danger', phase: 'ready-queue', heartbeatAt: latestDevelopRun?.updated_at || null };
+  if (deployQueues.some(item => (item?.commitsAhead || 0) > 0)) return { label: 'deploy待ち', tone: 'warning', phase: 'deploy-wait', heartbeatAt: latestDevelopRun?.updated_at || null };
+  if (queue.some(item => item.stage === 'MERGE_WAIT')) return { label: 'merge待ち', tone: 'warning', phase: 'ready-queue', heartbeatAt: latestDevelopRun?.updated_at || null };
+  if (queue.some(item => item.stage === 'READY_WAIT')) return { label: 'Ready待ち', tone: 'info', phase: 'ready-wait', heartbeatAt: latestDevelopRun?.updated_at || null };
+  if (queue.some(item => item.stage === 'HOLD')) return { label: '保留あり', tone: 'info', phase: 'hold', heartbeatAt: latestDevelopRun?.updated_at || null };
+  return { label: '正常', tone: 'ok', phase: 'idle', heartbeatAt: latestDevelopRun?.updated_at || null };
 }

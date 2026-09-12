@@ -12,6 +12,7 @@ const APP_ICONS = {
   village: './icons/village.svg',
   demon: './icons/demon.svg',
   lanternfell: './icons/lanternfell.svg',
+  'character-studio': './icons/character-studio.svg',
   'visual-review': './icons/visual-review.svg',
   portal: './icons/wayfinder.svg',
   'ops-board': './icons/ops-board.svg',

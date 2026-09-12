@@ -33,6 +33,19 @@ function targetFor(app, definition, entries, environment, manifest) {
   };
 }
 
+function characterStudioTarget(entries, environmentById, manifest) {
+  const definition = GAME_ENVIRONMENTS.find(item => item.id === 'dev');
+  const rinneDev = targetFor('rinne', definition, entries, environmentById.get('dev'), manifest);
+  return {
+    ...rinneDev,
+    id: 'character-studio',
+    label: 'DEV公開',
+    expectedUrl: `${PAGES_ROOT}dev/rinne/characters.html`,
+    url: rinneDev.url ? new URL('characters.html', rinneDev.url).toString() : null,
+    source: '輪廻転焦 DEV 公開manifest',
+  };
+}
+
 export function buildApplications(manifest = {}, environments = [], runs = []) {
   const environmentById = new Map(environments.map(env => [env.id, env]));
   const entries = (manifest.entries || []).filter(entry => validApp(entry?.app) && environmentIds.has(entry.environment));
@@ -41,6 +54,11 @@ export function buildApplications(manifest = {}, environments = [], runs = []) {
     id, name: GAME_NAMES[id] || entries.find(entry => entry.app === id)?.version?.name || id, kind: 'game',
     targets: GAME_ENVIRONMENTS.map(definition => targetFor(id, definition, entries, environmentById.get(definition.id), manifest)),
   }]));
+
+  groups.set('character-studio', {
+    id: 'character-studio', name: 'キャラクター工房', kind: 'tool',
+    targets: [characterStudioTarget(entries, environmentById, manifest)],
+  });
 
   for (const env of environments.filter(item => item.kind === 'preview')) {
     const id = env.id === 'visual-review' ? 'visual-review' : `preview:${env.id}`;
@@ -72,7 +90,7 @@ export function buildApplications(manifest = {}, environments = [], runs = []) {
       source: 'Lanternfell dedicated workflow', note: runState(lanternRun) === 'failed'
         ? '専用公開処理が失敗中。公開URLは確認できるまで表示しません。' : '専用公開URLの検証結果を確認中です。' }],
   });
-  const order = ['rinne', 'village', 'demon', 'lanternfell', 'visual-review', 'portal', 'ops-board'];
+  const order = ['rinne', 'village', 'demon', 'lanternfell', 'character-studio', 'visual-review', 'portal', 'ops-board'];
   return [...groups.values()].sort((a, b) => {
     const ai = order.indexOf(a.id); const bi = order.indexOf(b.id);
     return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi) || a.name.localeCompare(b.name, 'ja');

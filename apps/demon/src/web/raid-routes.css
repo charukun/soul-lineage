@@ -1,0 +1,13 @@
+.route-card.raid-route{padding:15px 2px 17px;min-width:0}
+.raid-route .raid-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:7px 0 9px}
+.raid-route .raid-heading strong{font-size:18px;letter-spacing:.05em;line-height:1.6;margin:0}
+.raid-route .raid-danger{font-size:11px;letter-spacing:.06em;white-space:nowrap;padding:4px 8px;border:1px solid #8c9d7966;color:#bdc6a8}
+.raid-route .raid-danger b{font-weight:500;margin-left:4px;font-size:14px}
+.raid-route .raid-danger[data-danger="2"]{border-color:#ac915d77;color:#d7bc89}
+.raid-route .raid-danger[data-danger="3"]{border-color:#af685a99;color:#e7a38e}
+.raid-route .raid-counts{display:flex;flex-wrap:wrap;gap:4px 13px;font-size:11px;line-height:1.8;color:#b0bbb0}
+.raid-route .raid-counts b{color:#dddac5;font:14px Georgia,serif;margin:0 3px;font-variant-numeric:tabular-nums}
+.raid-route .raid-reason{display:block;font-size:11px;line-height:1.7;color:#b4b3a0;margin:6px 0 10px}
+.raid-route .route-bottom{flex-wrap:wrap;justify-content:flex-start;gap:3px 12px;padding-top:8px;border-top:1px solid #a1b19c16;line-height:1.7}
+.raid-route .raid-note{display:block;font-size:10px;line-height:1.8;color:#99aa9c;margin-top:8px}
+@media(max-width:360px){.raid-route .raid-heading strong{font-size:16px}.raid-route .raid-danger{padding:3px 6px}.raid-route .raid-counts{gap:3px 9px}}
