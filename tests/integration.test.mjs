@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dependencies, eligibility, reviewDecision } from '../scripts/integration-policy.mjs';
-import { client, fastGate, integrate, recordQueue } from '../scripts/integration.mjs';
+import { client, fastGate, integrate, recordQueue, trustedReviewPrefix } from '../scripts/integration.mjs';
 import { preserveProduction } from '../scripts/deploy.mjs';
 const repository = 'charukun/soul-lineage';
 const sha = 'a'.repeat(40);
@@ -24,13 +24,17 @@ test('Ready same-repo head passes; every unsafe or indeterminate prerequisite bl
   ];
   for (const mutate of variants) { const x = input(); mutate(x); assert.ok(eligibility(x), mutate.toString()); }
 });
-test('current maintainer approval, requested changes, stale approval and shared overlap', () => {
+test('current maintainer or trusted exact-head bot approval works; requested/stale/fake reviews do not', () => {
   const approval = { id: 1, user: { login: 'reviewer' }, state: 'APPROVED', commit_id: sha, author_association: 'COLLABORATOR' };
   const x = input(); x.files = ['scripts/deploy.mjs']; x.reviews = [approval];
   assert.equal(eligibility(x), null);
   x.reviews = [{ ...approval, commit_id: 'old' }]; assert.ok(eligibility(x));
   x.reviews = [approval, { ...approval, id: 2, state: 'CHANGES_REQUESTED' }]; assert.equal(reviewDecision(x.reviews, sha).rejected, true);
   x.reviews.push({ ...approval, id: 3, state: 'DISMISSED' }); assert.equal(reviewDecision(x.reviews, sha).approved, false);
+  const bot = { id: 4, user: { login: 'github-actions[bot]' }, state: 'APPROVED', commit_id: sha, author_association: 'NONE', body: `${trustedReviewPrefix}${sha} verified` };
+  x.reviews = [bot]; assert.equal(eligibility(x), null);
+  x.reviews = [{ ...bot, commit_id: 'b'.repeat(40) }]; assert.ok(eligibility(x));
+  x.reviews = [{ ...bot, body: `Generic approval for ${sha}` }]; assert.ok(eligibility(x));
   x.files = ['packages/world/src/a.js']; x.baseChanges = ['packages/world/src/b.js']; x.reviews = [];
   assert.ok(eligibility(x));
   x.baseChanges = ['packages/audio/src/b.js']; assert.equal(eligibility(x), null);
@@ -40,8 +44,9 @@ test('dependency parsing fails closed on ambiguous/cross-repository references',
   assert.deepEqual(dependencies('Depends-On: none'), []);
   for (const value of ['', '#2 and #3', 'owner/repo#4', '#2 maybe']) assert.throws(() => dependencies(`Depends-On: ${value}`));
 });
-function fake({ prs = [candidate(1), candidate(2)], failed = false, moved = false, denied = false } = {}) {
+function fake({ prs = [candidate(1), candidate(2)], failed = false, moved = false, denied = false, reviewState = null } = {}) {
   let current = 'base'; let reads = 0; const merges = []; const closed = new Map();
+  const reviewsByPr = new Map(prs.map(p => [p.number, reviewState ? [{ id: 1, user: {login:'reviewer'}, state: reviewState, commit_id: p.head.sha, author_association:'COLLABORATOR', body:'review' }] : []]));
   const c = {
     root: `/repos/${repository}`,
     async api(method, path, body) {
@@ -50,6 +55,12 @@ function fake({ prs = [candidate(1), candidate(2)], failed = false, moved = fals
       if (path === '/graphql') return {data:{repository:{pullRequest:{reviewThreads:{nodes:[],pageInfo:{hasNextPage:false}}}}}};
       if (path.includes('/compare/')) return { merge_base_commit: {sha:current}, files:[] };
       const number = Number(path.match(/\/pulls\/(\d+)/)?.[1]);
+      if (method === 'POST' && path.endsWith('/reviews')) {
+        const review = { id: 100 + (reviewsByPr.get(number)?.length || 0), user: {login:'github-actions[bot]'},
+          state: body.event === 'APPROVE' ? 'APPROVED' : 'COMMENTED', commit_id: body.commit_id,
+          author_association:'NONE', body: body.body };
+        reviewsByPr.get(number).push(review); return review;
+      }
       if (method === 'PUT') {
         assert.ok(path.endsWith('/merge')); assert.equal(body.sha, sha); assert.equal(body.merge_method, 'merge');
         merges.push(number); closed.set(number,{...prs.find(p => p.number === number),merged:true,state:'closed'}); current = `merge${number}`;
@@ -63,7 +74,7 @@ function fake({ prs = [candidate(1), candidate(2)], failed = false, moved = fals
       if (path.startsWith('/pulls?')) return prs;
       if (path.includes('/statuses')) return current === 'base' ? [{context:'integration/develop',state:'success'}] : [];
       if (path.endsWith('/files')) return [{filename:`docs/feature-${path.match(/\d+/)[0]}.md`}];
-      if (path.endsWith('/reviews')) return [];
+      if (path.endsWith('/reviews')) return structuredClone(reviewsByPr.get(Number(path.match(/\/pulls\/(\d+)/)[1])) || []);
       if (key === 'workflow_runs') return prs.map(p=>({id:p.number,head_sha:p.head.sha,head_branch:p.head.ref,head_repository:p.head.repo,event:'pull_request',pull_requests:[]}));
       if (key === 'artifacts') return [{name:`pr-fast-${path.match(/runs\/(\d+)/)[1]}-${sha}`,expired:false}];
       if (key === 'jobs') return [{name:'Validate and build',status:'completed',conclusion:failed?'failure':'success'}];
@@ -71,7 +82,7 @@ function fake({ prs = [candidate(1), candidate(2)], failed = false, moved = fals
       throw new Error(`Unhandled ${path}`);
     },
   };
-  return {c,merges};
+  return {c,merges,reviewsByPr};
 }
 test('two eligible PRs batch into one final SHA; own dispatch cannot deadlock', async () => {
   const {c,merges} = fake(); const report = await integrate(c,repository);
@@ -127,12 +138,21 @@ test('successful recovery requests another scan; stable held PRs do not loop', a
   const stable = fake({prs:[held]}); const stopped = await integrate(stable.c,repository);
   assert.deepEqual(stable.merges,[]); assert.equal(stopped.retry,false); assert.equal(stopped.verified,true);
 });
-test('integration control PR is held without head approval and cannot self-loop', async () => {
-  const {c,merges} = fake({prs:[candidate()]}); const original=c.pages;
+test('trusted internal control PR is exact-head reviewed then merged without weakening holds', async () => {
+  const {c,merges,reviewsByPr} = fake({prs:[candidate()]}); const original=c.pages;
   c.pages=(p,k)=>p.endsWith('/files')?[{filename:'.github/workflows/deploy.yml'}]:original(p,k);
   const result=await integrate(c,repository);
-  assert.deepEqual(merges,[]); assert.equal(result.retry,false);
-  assert.match(result.held[0].reason,/approval/);
+  assert.deepEqual(merges,[1]); assert.deepEqual(result.held,[]); assert.deepEqual(result.trustedReviewed,[{pr:1,head:sha}]);
+  assert.equal(reviewsByPr.get(1).length,1); assert.match(reviewsByPr.get(1)[0].body,/Trusted Integration Review/);
+  const held=candidate(); held.labels=[{name:'integration:hold'}];
+  const blocked=fake({prs:[held]}); const blockedOriginal=blocked.c.pages;
+  blocked.c.pages=(p,k)=>p.endsWith('/files')?[{filename:'.github/workflows/deploy.yml'}]:blockedOriginal(p,k);
+  const blockedResult=await integrate(blocked.c,repository);
+  assert.deepEqual(blocked.merges,[]); assert.equal(blocked.reviewsByPr.get(1).length,0); assert.match(blockedResult.held[0].reason,/hold/);
+  const rejected=fake({prs:[candidate()],reviewState:'CHANGES_REQUESTED'}); const rejectedOriginal=rejected.c.pages;
+  rejected.c.pages=(p,k)=>p.endsWith('/files')?[{filename:'.github/workflows/deploy.yml'}]:rejectedOriginal(p,k);
+  const rejectedResult=await integrate(rejected.c,repository);
+  assert.deepEqual(rejected.merges,[]); assert.equal(rejected.reviewsByPr.get(1).length,1); assert.match(rejectedResult.held[0].reason,/requested changes/);
 });
 test('review wakeups have valid fast evidence and queue status cannot deadlock itself', async () => {
   for (const event of ['pull_request_review']) {
