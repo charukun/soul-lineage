@@ -8,64 +8,36 @@ concurrency:
   group: character-workshop-isolated-qc
   cancel-in-progress: false
 jobs:
-  baseline:
+  source:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      APP_ENV: dev
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 82cd6ba95217ea32020b3fb680f15ae7c96032d1
+          ref: 8281167ef2f535f5e75a22f016d188b21b4a75b8
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - name: Measure actual workshop, without changing game data or test gates
+      - name: Archive tracked source only and installed workspace dependencies
         run: |
           mkdir -p qc-output
-          cat > .workshop-baseline.mjs <<'JS'
-          import { chromium } from 'playwright';
-          import { spawn } from 'node:child_process';
-          import { writeFile } from 'node:fs/promises';
-          import assert from 'node:assert/strict';
-          const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--config','apps/rinne/vite.config.js','--host','127.0.0.1','--port','5173'],{stdio:'inherit'});
-          const browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-          const page=await browser.newPage({viewport:{width:1280,height:960},deviceScaleFactor:1});
-          const errors=[];page.on('pageerror',e=>errors.push(String(e)));
-          try{
-            await new Promise(resolve=>setTimeout(resolve,1500));
-            await page.goto('http://127.0.0.1:5173/characters.html',{waitUntil:'networkidle'});
-            await page.waitForFunction(()=>window.characterStudio?.review.ready,null,{timeout:90000});
-            await page.evaluate(()=>characterStudio.review.configure({paused:true}));
-            const info=await page.evaluate(()=>{
-              const a=characterStudio.review.actors[0],meshes=[];
-              a.visual.traverse(n=>{if(n.isMesh){n.geometry.computeBoundingBox();meshes.push({name:n.name,material:(Array.isArray(n.material)?n.material:[n.material]).map(m=>m.name),vertices:n.geometry.attributes.position.count,box:{min:n.geometry.boundingBox.min.toArray(),max:n.geometry.boundingBox.max.toArray()},morphs:n.morphTargetDictionary});}});
-              return {bones:Object.fromEntries(Object.entries(a.bones).map(([k,b])=>[k,{pos:b.position.toArray(),world:b.getWorldPosition(b.position.clone()).toArray(),scale:b.scale.toArray()}])),meshes,measure:characterStudio.review.measure()};
-            });
-            await writeFile('qc-output/baseline-rig.json',JSON.stringify(info,null,2));
-            const results={};
-            for(const n of [1,6,12,30]){
-              await page.evaluate(n=>characterStudio.workspace.configure({view:n===1?'single':'crowd',count:n,paused:false}),n);
-              await page.waitForFunction(()=>characterStudio.review.measure().sampleCount>=90,null,{timeout:120000});
-              results[n]=await page.evaluate(()=>characterStudio.review.measure());
-              await page.evaluate(()=>characterStudio.review.configure({paused:true}));
-              await page.screenshot({path:`qc-output/baseline-${n}.png`});
-            }
-            await page.evaluate(()=>{characterStudio.workspace.configure({view:'single',count:6});characterStudio.workspace.change('hair','bob');characterStudio.review.aim('face')});
-            await page.waitForTimeout(300);await page.screenshot({path:'qc-output/baseline-bob-face.png'});
-            await writeFile('qc-output/baseline-metrics.json',JSON.stringify({source:'82cd6ba95217ea32020b3fb680f15ae7c96032d1',renderer:'Chromium SwiftShader; NOT Pixel Fold hardware acceptance',results,errors},null,2));
-            assert.deepEqual(errors,[]);
-          }catch(error){await page.screenshot({path:'qc-output/failure.png'}).catch(()=>{});await writeFile('qc-output/error.txt',String(error));throw error;}
-          finally{await browser.close();server.kill();}
-          JS
-          node .workshop-baseline.mjs
+          git rev-parse HEAD > qc-output/source-sha.txt
+          python3 - <<'PY'
+          import subprocess, tarfile
+          from pathlib import Path
+          names = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          with tarfile.open('qc-output/source.tgz', 'w:gz') as tar:
+              for name in names:
+                  p = Path(name)
+                  if p.is_file() and p.suffix in {'.js', '.mjs', '.cjs', '.json', '.jsonc', '.md', '.html', '.css', '.yml', '.yaml', '.ts'}:
+                      tar.add(p, arcname=name)
+          PY
+          tar -czf qc-output/dependencies.tgz node_modules
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: character-workshop-visual-baseline
+          name: character-workshop-recovery-source
           path: qc-output
-          retention-days: 7
+          retention-days: 3
