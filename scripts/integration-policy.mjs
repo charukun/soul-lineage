@@ -2,6 +2,7 @@
 export const contextName = 'integration/develop';
 export const sensitive = path => /^(\.github\/|scripts\/|AGENTS\.md$|docs\/(DEVELOPMENT|INTEGRATION)\.md$)/.test(path);
 export const scope = path => path.startsWith('packages/') ? path.split('/').slice(0, 2).join('/') : path;
+const trustedReview = review => review.user?.login === 'github-actions[bot]' && /^Trusted Integration Review: exact head [0-9a-f]{40}\b/.test(review.body || '');
 export function dependencies(body = '') {
   const result = [];
   for (const line of body.split('\n').filter(line => /^Depends-On:/i.test(line))) {
@@ -19,7 +20,8 @@ export function reviewDecision(reviews, head) {
   }
   const values = [...latest.values()];
   return { rejected: values.some(r => r.state === 'CHANGES_REQUESTED'), approved: values.some(r =>
-    r.state === 'APPROVED' && r.commit_id === head && ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(r.author_association)) };
+    r.state === 'APPROVED' && r.commit_id === head &&
+    (['OWNER', 'MEMBER', 'COLLABORATOR'].includes(r.author_association) || trustedReview(r))) };
 }
 export function eligibility({ pr, repository, files, reviews, unresolved, dependenciesMerged, checksPassed, baseChanges = [], recovery = false }) {
   if (pr.state !== 'open' || pr.draft || pr.base.ref !== 'develop') return 'not a Ready develop PR';
