@@ -77,55 +77,16 @@ function environmentCard(env) {
   const metrics = el('div', 'metrics');
   const count = Number.isInteger(env.reflectedPrCount) ? `${env.reflectedPrCount}件` : '未確定';
   metrics.append(
-    metric('deploy SHA', shortSha(env.deployedCommit), true),
-    metric('deploy日時', time(env.deployedAt)),
+    metric('公開SHA', shortSha(env.deployedCommit), true),
+    metric('公開日時', time(env.deployedAt)),
     metric('反映済みPR', count),
-    metric('branch', env.branch || '—'),
+    metric('元branch', env.branch || '—'),
   );
   card.append(metrics);
   if (env.exactCommit === false) card.append(el('p', 'empty', '公開物が複数SHAのため、単一SHAを推測していません。'));
-  card.append(details('反映済みPR一覧', prList(env.reflectedPrs, env.historyComplete === false ? '履歴の全件確定前です' : '該当PRなし')));
-  if (env.deployQueue?.pulls?.length) card.append(details('branch merge済み・未deploy', prList(env.deployQueue.pulls)));
+  card.append(details('反映済みPRを見る', prList(env.reflectedPrs, env.historyComplete === false ? '履歴の全件確定前です' : '該当PRなし')));
+  if (env.deployQueue?.pulls?.length) card.append(details('merge済み・まだ未公開', prList(env.deployQueue.pulls)));
   return card;
-}
-
-function setSummary(id, value, note, tone = 'info') {
-  const node = $(id);
-  if (!node) return;
-  node.textContent = value;
-  const card = node.closest('.summary-card');
-  if (card) card.className = `summary-card tone-${tone}`;
-  const small = card?.querySelector('small');
-  if (small && note !== undefined) small.textContent = note;
-}
-
-function renderOverview(state, integration) {
-  const hero = $('#hero');
-  const label = overallLabel(integration);
-  hero.className = `summary-card tone-${integration?.tone || 'info'}${state.syncStatus === 'degraded' ? ' error' : ''}`;
-  hero.replaceChildren(
-    el('span', 'summary-label', '全体'),
-    el('strong', 'summary-value', state.syncStatus === 'degraded' ? '同期注意' : label),
-    el('small', '', state.syncStatus === 'degraded' ? 'データ取得が劣化中' : '自動統合'),
-  );
-
-  const apps = state.applications || [];
-  const healthyApps = apps.filter(app => (app.targets || []).length && (app.targets || []).every(target => target.state === 'success')).length;
-  const failedApps = apps.filter(app => (app.targets || []).some(target => target.state === 'failed')).length;
-  const appTone = failedApps ? 'danger' : healthyApps === apps.length && apps.length ? 'ok' : 'warning';
-  setSummary('#summary-apps', apps.length ? `${healthyApps}/${apps.length}` : '—', failedApps ? `要対応 ${failedApps}` : '正常アプリ', appTone);
-
-  const pulls = [...(state.pullRequests?.normal || []), ...(state.pullRequests?.visualReview || [])];
-  const drafts = pulls.filter(pr => pr.state === 'Draft').length;
-  const ready = pulls.filter(pr => pr.state === 'Ready').length;
-  setSummary('#summary-drafts', String(drafts), 'PR', drafts ? 'progress' : 'ok');
-  setSummary('#summary-ready', String(ready), 'PR', ready ? 'warning' : 'ok');
-
-  const diffCount = state.environmentDiff?.count;
-  setSummary('#summary-diff', Number.isInteger(diffCount) ? (diffCount ? `+${diffCount}` : '0') : '—', 'Production比', Number.isInteger(diffCount) ? (diffCount ? 'warning' : 'ok') : 'info');
-
-  const failures = state.recentActionFailures || [];
-  setSummary('#summary-failures', String(failures.length), 'Actions', failures.length ? 'danger' : 'ok');
 }
 
 function renderAlerts(alerts = []) {
@@ -148,7 +109,7 @@ function renderDiff(diff) {
   const top = el('div', 'diff-title');
   const exactCount = Number.isInteger(diff?.count);
   top.append(el('strong', '', diff?.label || '差分を確定できません'), badge(exactCount ? (diff.count ? `+${diff.count}` : '0') : '—', exactCount ? (diff.count ? 'warning' : 'ok') : 'info'));
-  root.append(top, details('差分PR一覧', prList(diff?.pulls)));
+  root.append(top, details('差分PRを見る', prList(diff?.pulls)));
 }
 
 function renderIntegration(integration = {}) {
@@ -158,13 +119,13 @@ function renderIntegration(integration = {}) {
   const desc = el('div');
   const label = overallLabel(integration);
   desc.append(el('strong', '', label));
-  desc.append(el('p', 'muted', `統合待ち警告: ${integration.watchdog?.staleReadyCount ?? 0}件 / 閾値 ${integration.watchdog?.stalledThresholdMinutes ?? 10}分`));
+  desc.append(el('p', 'muted', `統合待ち警告 ${integration.watchdog?.staleReadyCount ?? 0}件 / 判定 ${integration.watchdog?.stalledThresholdMinutes ?? 10}分`));
   top.append(desc, badge(label, integration.tone || 'info'));
   root.append(top);
 
   const list = el('div', 'queue-list');
   const queue = integration.queue || [];
-  if (!queue.length) list.append(el('p', 'empty', 'Open Ready PRなし'));
+  if (!queue.length) list.append(el('p', 'empty', 'Ready状態で待っているPRはありません'));
   for (const item of queue) {
     const row = el('article', 'queue-item');
     const head = el('div', 'queue-head');
@@ -173,14 +134,14 @@ function renderIntegration(integration = {}) {
     list.append(row);
   }
   root.append(list);
-  if (integration.deployWaiting?.length) root.append(details('develop merge済み・deploy待ち', prList(integration.deployWaiting)));
+  if (integration.deployWaiting?.length) root.append(details('merge済み・deploy待ち', prList(integration.deployWaiting)));
 }
 
 function renderFailures(items = []) {
   const root = $('#failures');
   root.replaceChildren();
   if (!items.length) {
-    root.append(el('p', 'empty', '直近のActions失敗なし'));
+    root.append(el('p', 'empty ok-message', '直近のActions失敗はありません'));
     return;
   }
   const list = el('div', 'failure-list');
@@ -194,7 +155,6 @@ function renderFailures(items = []) {
 
 function render(state) {
   const integration = state.integration || { label:'不明', tone:'info' };
-  renderOverview(state, integration);
   renderAlerts(state.alerts || []);
 
   const envs = state.environments || [];
@@ -215,6 +175,18 @@ function render(state) {
   $('#source').textContent = `${state.syncSource || 'GitHub API'}${Number.isFinite(state.githubRateRemaining) ? ` / API残量 ${state.githubRateRemaining}` : ''}`;
 }
 
+function renderLoadError(error) {
+  const section = $('#alert-section');
+  const root = $('#alerts');
+  section.hidden = false;
+  $('#alert-count').textContent = '1件';
+  root.replaceChildren();
+  const box = el('div', 'alert danger');
+  box.append(el('strong', '', '開発状況を取得できません'));
+  box.append(el('p', '', `${error.message} / 「最新に更新」で再取得してください。`));
+  root.append(box);
+}
+
 async function load() {
   const button = $('#reload');
   button.disabled = true;
@@ -223,9 +195,7 @@ async function load() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     render(await response.json());
   } catch (error) {
-    const hero = $('#hero');
-    hero.className = 'summary-card tone-danger error';
-    hero.replaceChildren(el('span', 'summary-label', '全体'), el('strong', 'summary-value', '取得失敗'), el('small', '', error.message));
+    renderLoadError(error);
   } finally {
     button.disabled = false;
   }

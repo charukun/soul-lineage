@@ -6,6 +6,18 @@ const el = (tag, className, text) => {
   if (text !== undefined && text !== null) node.textContent = String(text);
   return node;
 };
+
+const APP_ICONS = {
+  rinne: './icons/rinne.svg',
+  village: './icons/village.svg',
+  demon: './icons/demon.svg',
+  lanternfell: './icons/lanternfell.svg',
+  'visual-review': './icons/visual-review.svg',
+  portal: './icons/wayfinder.svg',
+  'ops-board': './icons/ops-board.svg',
+};
+const DEFAULT_ICON = './icons/default.svg';
+
 const stateView = state => ({
   success: ['公開中', 'ok'],
   deploying: ['更新中', 'progress'],
@@ -19,6 +31,18 @@ const time = value => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '記録なし' : fmt.format(date);
 };
+
+function iconFor(app) {
+  const image = el('img', 'app-icon');
+  const id = String(app.id || '');
+  image.src = APP_ICONS[id] || (id.startsWith('preview:') ? APP_ICONS.lanternfell : DEFAULT_ICON);
+  image.alt = '';
+  image.loading = 'lazy';
+  image.addEventListener('error', () => {
+    if (!image.src.endsWith('/icons/default.svg')) image.src = DEFAULT_ICON;
+  }, { once: true });
+  return image;
+}
 
 function targetSummary(target) {
   const [label, tone] = stateView(target.state);
@@ -51,9 +75,9 @@ function appCard(app) {
   const state = bad ? ['要確認','danger'] : active ? ['更新中','progress'] : healthy ? ['正常','ok'] : ['確認中','info'];
 
   const card = el('article', `app-summary-card${bad ? ' app-card-attention' : ''}`);
-  const head = el('div', 'app-summary-head');
-  head.append(el('h3', '', app.name || app.id), el('span', `app-kind ${state[1]}`, state[0]));
-  card.append(head);
+  const visual = el('div', 'app-summary-visual');
+  visual.append(iconFor(app), el('span', `app-kind ${state[1]}`, state[0]));
+  card.append(visual, el('h3', 'app-summary-title', app.name || app.id));
 
   const targetsRoot = el('div', 'app-summary-targets');
   targets.forEach(target => targetsRoot.append(targetSummary(target)));
