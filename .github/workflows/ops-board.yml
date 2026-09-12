@@ -19,6 +19,8 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
+  actions: read
   statuses: write
 
 concurrency:
@@ -28,7 +30,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -36,15 +38,8 @@ jobs:
           node-version: '24'
       - name: Fast PULSE verification
         run: |
-          node --check ops-board/model.mjs
-          node --check ops-board/pulls.mjs
-          node --check ops-board/applications.mjs
-          node --check ops-board/worker.mjs
-          node --check ops-board/deployment-url.mjs
-          node --check ops-board/public/app.js
-          node --check ops-board/public/app-board.js
-          node --check ops-board/public/pull-board.js
-          node --test tests/ops-board.test.mjs tests/ops-applications.test.mjs tests/pulse-*.test.mjs
+          for file in ops-board/*.mjs ops-board/public/*.js ops-board/public/*.mjs; do node --check "$file"; done
+          node --test tests/ops-*.test.mjs tests/pulse-*.test.mjs
           grep -q '<title>PULSE</title>' ops-board/public/index.html
           grep -q 'favicon.svg' ops-board/public/index.html
           grep -q '要対応タスク' ops-board/public/index.html
@@ -54,13 +49,26 @@ jobs:
           grep -q 'ゲーム / 専用開発版' ops-board/public/app-board.js
           grep -q 'APP_ICONS' ops-board/public/app-board.js
           grep -q 'grid-template-columns:repeat(3,minmax(0,1fr))' ops-board/public/app-board.css
-          test -f ops-board/public/icons/rinne.svg
-          test -f ops-board/public/icons/village.svg
-          test -f ops-board/public/icons/demon.svg
-          test -f ops-board/public/icons/wayfinder.svg
+          for icon in rinne village demon lanternfell visual-review wayfinder ops-board default; do test -f "ops-board/public/icons/$icon.svg"; done
           ! grep -q 'summary-grid' ops-board/public/index.html
           ! grep -q 'rel="manifest"' ops-board/public/index.html
+          ! grep -q 'api.github.com' ops-board/public/pull-board.js
           test ! -e ops-board/public/manifest.webmanifest
+      - name: Prepare focused UI verification
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Verify changed interactions before publication
+        env:
+          OPS_URL: http://127.0.0.1:8765/
+          OPS_FIXTURE: '1'
+          OPS_REPORT_DIR: ops-review-results/preflight
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory ops-board/public > /tmp/ops-server.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 10); do curl -fsS "$OPS_URL" >/dev/null && break; sleep 1; done
+          node ops-board/browser-check.mjs
       - name: Derive server-only refresh credential
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -71,28 +79,33 @@ jobs:
           refresh_token=$(printf '%s' "$CLOUDFLARE_API_TOKEN|$GITHUB_REPOSITORY|rinne-ops-refresh-v1" | sha256sum | awk '{print $1}')
           echo "::add-mask::$refresh_token"
           echo "OPS_REFRESH_TOKEN=$refresh_token" >> "$GITHUB_ENV"
+      - name: Stamp the actual publication source
+        run: |
+          node --input-type=module -e "import fs from 'node:fs';fs.writeFileSync('ops-board/public/version.json',JSON.stringify({app:'ops-board',commit:process.env.GITHUB_SHA,builtAt:new Date().toISOString()}))"
       - name: Deploy PULSE to Cloudflare Workers
         id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          npx --yes wrangler@4 deploy --config wrangler.ops.jsonc --var "OPS_REFRESH_TOKEN:$OPS_REFRESH_TOKEN"
+        run: npx --yes wrangler@4 deploy --config wrangler.ops.jsonc --var "OPS_REFRESH_TOKEN:$OPS_REFRESH_TOKEN" --var "OPS_BUILD_SHA:$GITHUB_SHA"
       - name: Use stable Workers URL
         id: public
         if: steps.deploy.outcome == 'success'
         run: |
           echo "url=https://rinne-ops.c-okamoto.workers.dev/" >> "$GITHUB_OUTPUT"
           echo "PULSE: https://rinne-ops.c-okamoto.workers.dev/" >> "$GITHUB_STEP_SUMMARY"
-      - name: Prime GitHub-backed state immediately
+      - name: Verify exact Worker and Static Assets source after propagation
         if: steps.public.outputs.url != ''
         env:
           OPS_URL: ${{ steps.public.outputs.url }}
-        run: |
-          curl -fsS --retry 2 -X POST \
-            -H "Authorization: Bearer $OPS_REFRESH_TOKEN" \
-            "${OPS_URL}api/refresh" >/dev/null
-      - name: Verify public PULSE and application matrix
+        run: node ops-board/publication-check.mjs version
+      - name: Prime GitHub state and cached target attribution
+        if: steps.public.outputs.url != ''
+        env:
+          OPS_URL: ${{ steps.public.outputs.url }}
+          GH_TOKEN: ${{ github.token }}
+        run: node ops-board/prime.mjs
+      - name: Verify public board and API
         if: steps.public.outputs.url != ''
         env:
           OPS_URL: ${{ steps.public.outputs.url }}
@@ -102,27 +115,19 @@ jobs:
           printf '%s' "$page" | grep -q '要対応タスク'
           printf '%s' "$page" | grep -q '公開・自動処理の状態'
           printf '%s' "$page" | grep -q 'diagnostic-grid'
+          printf '%s' "$page" | grep -q 'sync-freshness'
           ! printf '%s' "$page" | grep -q 'summary-grid'
           ! printf '%s' "$page" | grep -q 'rel="manifest"'
           curl -fsS --retry 4 --retry-delay 2 "${OPS_URL}favicon.svg" | grep -q '<svg'
           curl -fsS --retry 4 --retry-delay 2 "${OPS_URL}icons/rinne.svg" | grep -q '<svg'
-          node --input-type=module <<'JS'
-          import assert from 'node:assert/strict';
-          const response = await fetch(`${process.env.OPS_URL}api/state`, { cache: 'no-store', signal: AbortSignal.timeout(30000) });
-          assert.equal(response.status, 200);
-          const x = await response.json();
-          assert.equal(x.repository, 'charukun/soul-lineage');
-          for (const list of [x.environments, x.pullRequests?.normal, x.pullRequests?.visualReview, x.applications]) assert.ok(Array.isArray(list));
-          for (const [id, name] of Object.entries({ rinne: '輪廻転焦', demon: '尽喰廻遊', village: 'MURAAAAAAA', portal: 'WAYFINDER', 'ops-board': 'PULSE' })) {
-            const app = x.applications.find(a => a.id === id);
-            assert.equal(app?.name, name, `${id} display name`);
-            if (app.kind === 'game') assert.deepEqual(app.targets.map(t => t.environment), ['dev', 'staging', 'prod']);
-          }
-          const visual = x.applications.find(a => a.id === 'visual-review');
-          if (visual) assert.equal(visual.name, 'Visual Review Lab');
-          console.log('PULSE_PUBLIC_VERIFIED', JSON.stringify(x.applications.map(({id,name,targets}) => ({id,name,targets:targets.map(({environment,state,url,commit})=>({environment,state,url,commit}))}))));
-          JS
-      - name: Record public PULSE status
+          node ops-board/publication-check.mjs
+      - name: Operate the deployed board with a mobile browser
+        if: steps.public.outputs.url != ''
+        env:
+          OPS_URL: ${{ steps.public.outputs.url }}
+          OPS_REPORT_DIR: ops-review-results/public
+        run: node ops-board/browser-check.mjs
+      - name: Record public Ops Board status
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -130,15 +135,19 @@ jobs:
           JOB_STATUS: ${{ job.status }}
         run: |
           state=failure
-          description="PULSE deployment failed"
+          description="PULSE deployment or verification failed"
           target_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           if [ "$JOB_STATUS" = "success" ] && [ -n "$PUBLIC_URL" ]; then
             state=success
-            description="PULSE is live; names and environment matrix verified"
+            description="PULSE is live and browser-verified"
             target_url="$PUBLIC_URL"
           fi
           gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
-            -f state="$state" \
-            -f context=ops-board/public \
-            -f description="$description" \
-            -f target_url="$target_url"
+            -f state="$state" -f context=ops-board/public \
+            -f description="$description" -f target_url="$target_url"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ops-board-focused-review
+          path: ops-review-results/
+          retention-days: 7

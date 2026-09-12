@@ -45,7 +45,8 @@ test('PULSE title, canonical names and deployment metadata are wired together', 
   assert.doesNotMatch(html, /開発状況ボード|Rinne Ops Board/);
   assert.equal(GAME_NAMES.demon, '尽喰廻遊');
   assert.match(text('scripts/vite-app.mjs'), /GAME_ENVIRONMENTS\.some/);
-  assert.match(text('ops-board/worker.mjs'), /environments: \[dev, staging, prod, \.\.\.previews\]/);
+  assert.match(text('ops-board/worker.mjs'), /buildState.*collector\.mjs/);
+  assert.match(text('ops-board/collector.mjs'), /environments: \[dev, staging, prod, \.\.\.previews\]/);
   assert.equal(existsSync(new URL('../.task-tools/pulse-apply.mjs', import.meta.url)), false);
   assert.equal(existsSync(new URL('../.github/workflows/pulse-task-worker.yml', import.meta.url)), false);
 });
@@ -58,7 +59,8 @@ test('delivery wiring initializes only missing releases and preserves public/bro
   assert.match(workflow, /scripts\/verify-live\.mjs/);
   assert.match(workflow, /scripts\/verify-browser\.mjs/);
   const boardWorkflow = text('.github/workflows/ops-board.yml');
-  assert.match(boardWorkflow, /PULSE_PUBLIC_VERIFIED/);
+  assert.match(boardWorkflow, /node ops-board\/publication-check\.mjs/);
+  assert.match(text('ops-board/publication-check.mjs'), /PULSE_PUBLIC_VERIFIED/);
   assert.match(boardWorkflow, /scripts\/application-catalog\.mjs/);
   assert.doesNotMatch(boardWorkflow, /grep -q '開発状況ボード'/);
 });

@@ -1,0 +1,57 @@
+/* Keep the three-column overview readable; exact deployment facts live in the dialog. */
+[hidden] { display:none !important; }
+.refresh-area { display:grid; justify-items:end; gap:6px; flex:0 0 auto; }
+.sync-freshness { margin:0; max-width:155px; text-align:right; color:var(--muted); font-size:11px; line-height:1.4; }
+.sync-freshness.danger { color:var(--danger); }
+.sync-freshness.warning { color:var(--warning); }
+.section-head { flex-wrap:wrap; }
+#app-summary { line-height:1.5; }
+.app-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; align-items:start; }
+.app-summary-card { padding:8px 6px; border-radius:12px; }
+.app-summary-visual { display:flex; flex-wrap:wrap; align-items:center; gap:4px; }
+.app-icon { width:32px; height:32px; border-radius:8px; }
+.app-kind { padding:3px; font-size:11px; }
+.app-summary-title { margin:8px 0; font-size:12px; line-height:1.4; min-height:34px; word-break:break-word; overflow-wrap:anywhere; }
+.app-summary-targets { gap:5px; }
+.app-target-summary { min-height:47px; padding:6px; }
+.app-target-summary-top { display:grid; gap:4px; font-size:11px; }
+.app-target-summary-top strong, .mini-state { font-size:11px; line-height:1.25; }
+.app-target-summary-top strong { white-space:normal; overflow-wrap:anywhere; }
+.mini-state { gap:4px; }
+.mini-dot { flex:0 0 5px; }
+.app-more { width:100%; min-height:36px; margin-top:6px; padding:6px 1px; font:inherit; font-size:11px; font-weight:700; color:var(--text); border:1px solid var(--line); border-radius:8px; background:transparent; cursor:pointer; }
+.app-dialog { width:min(94vw,520px); max-height:85dvh; padding:18px; color:var(--text); background:var(--panel); border:1px solid var(--line); border-radius:18px; }
+.app-dialog::backdrop { background:rgba(0,0,0,.72); }
+.app-dialog-head { display:flex; align-items:center; justify-content:space-between; gap:12px; position:sticky; top:-18px; padding:8px 0; background:var(--panel); z-index:1; }
+.app-dialog-head h2 { overflow-wrap:anywhere; }
+.app-dialog-close { min-height:44px; padding:0 14px; flex:0 0 auto; border:1px solid var(--line); border-radius:10px; background:var(--panel-2); color:var(--text); font-weight:700; }
+.app-public-detail { padding:12px 0; border-bottom:1px solid var(--line); }
+.app-public-detail h3 { font-size:14px; }
+.app-public-detail dl { display:grid; gap:6px; margin:12px 0; }
+.app-public-detail dt { font-size:11px; color:var(--muted); }
+.app-public-detail dd { margin:0 0 8px; overflow-wrap:anywhere; white-space:normal; font-size:13px; }
+.app-detail-link { display:flex; align-items:center; justify-content:center; min-height:44px; padding:8px 12px; border:1px solid var(--line); border-radius:10px; text-decoration:none; font-size:13px; background:var(--panel-2); }
+.app-detail-url { color:var(--muted); overflow-wrap:anywhere; font-size:11px; line-height:1.5; }
+.failure-heading { font-size:13px; }
+.failure p { margin:5px 0 0; }
+.failure .history-result { color:var(--muted); }
+.failure > div { min-width:0; overflow-wrap:anywhere; }
+.targets-notice { padding-top:8px; line-height:1.5; }
+:focus-visible { outline:2px solid var(--progress); outline-offset:3px; }
+@media(max-width:360px) { .shell { padding-inline:10px; } .topbar h1 { font-size:24px; } .reload { padding-inline:10px; } .refresh-area { max-width:128px; } .app-kind { padding-inline:0; } }
+
+.topbar > div:first-child { min-width:0; }
+
+.app-update-note { display:block; font-size:11px; line-height:1.4; color:var(--warning); margin-top:3px; overflow-wrap:anywhere; }
+.app-update-note.danger { color:var(--danger); }
+
+/* Real PR titles and URLs can be unbroken. Wrap their content, not the viewport. */
+.board-section, .stack, .environment, .queue-list, .queue-item, .pr-list, .failure-list,
+.diagnostic-content { min-width:0; }
+.alert, .pr-title, .queue-head a, .environment-head > div, .diagnostic-help,
+.integration-summary > div, .diagnostic-head > div, footer { overflow-wrap:anywhere; min-width:0; }
+.environment-head, .integration-summary, .queue-head { flex-wrap:wrap; }
+.environment-head > div, .integration-summary > div, .queue-head > a { flex:1 1 140px; }
+.environment-head .badge, .integration-summary .badge, .queue-head .badge,
+.failure > span { flex:0 0 auto; max-width:100%; white-space:normal; overflow-wrap:anywhere; line-height:1.35; }
+.pr-title small, .queue-item p { overflow-wrap:anywhere; }

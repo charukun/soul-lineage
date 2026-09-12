@@ -1,211 +1,105 @@
+import { subscribe, preserveView, disclosure } from './view-state.js';
+import { ageLabel } from './health.mjs';
 const $ = selector => document.querySelector(selector);
-const fmt = new Intl.DateTimeFormat('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-const REPOSITORY = 'charukun/soul-lineage';
-
+const fmt = new Intl.DateTimeFormat('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
 const el = (tag, className, text) => {
   const node = document.createElement(tag);
   if (className) node.className = className;
   if (text !== undefined && text !== null) node.textContent = String(text);
   return node;
 };
-
-const badgeTone = state => ({ Draft: 'progress', Ready: 'warning', Merged: 'ok', Closed: 'info' })[state] || 'info';
 const stateLabel = state => ({ Draft: '作業中', Ready: '統合待ち', Merged: '統合済み', Closed: '終了' })[state] || state;
-const filterOptions = [
-  ['all', 'すべて', 'info'],
-  ['Draft', '作業中', 'progress'],
-  ['Ready', '統合待ち', 'warning'],
-  ['Merged', '統合済み', 'ok'],
-  ['Closed', '終了', 'info'],
-];
-const targetRules = [
-  ['rinne', '輪廻転焦', path => path.startsWith('apps/rinne/')],
-  ['village', '村づくり', path => path.startsWith('apps/village/')],
-  ['demon', '魔物側', path => path.startsWith('apps/demon/')],
-  ['visual-review', 'Visual Review', path => /visual[-_]review/i.test(path)],
-  ['ops-board', '開発状況', path => path.startsWith('ops-board/') || path === 'wrangler.ops.jsonc' || path === 'docs/OPS_BOARD.md' || /^tests\/ops-/.test(path) || path === '.github/workflows/ops-board.yml'],
-  ['shared', '共通基盤', path => /^(packages|assets|templates)\//.test(path)],
-  ['devops', '開発基盤', path => /^(\.github|scripts|tests|docs)\//.test(path)],
-];
-
+const badgeTone = state => ({ Draft: 'progress', Ready: 'warning', Merged: 'ok', Closed: 'info' })[state] || 'info';
+const filterOptions = [['all', 'すべて', 'info'], ['Draft', '作業中', 'progress'], ['Ready', '統合待ち', 'warning'], ['Merged', '統合済み', 'ok'], ['Closed', '終了', 'info']];
 let selectedFilter = 'all';
-let currentPullData = null;
+try { const saved = sessionStorage.getItem('rinne-ops:filter'); if (filterOptions.some(([id]) => id === saved)) selectedFilter = saved; } catch { /* storage optional */ }
+let currentPullData = {};
 
-function classifyTargets(files = []) {
-  const found = new Map();
-  for (const raw of files) {
-    const path = String(raw || '');
-    const rule = targetRules.find(([, , test]) => test(path));
-    if (rule) found.set(rule[0], { id: rule[0], label: rule[1] });
-  }
-  if (!found.size && files.length) found.set('repository', { id: 'repository', label: 'Repository共通' });
-  return [...found.values()];
-}
-
-function cacheKey(pr) {
-  return `rinne-ops:targets:${pr.number}:${pr.updatedAt || 'unknown'}`;
-}
-
-function readCachedTargets(pr) {
-  try {
-    const value = localStorage.getItem(cacheKey(pr));
-    return value ? JSON.parse(value) : null;
-  } catch { return null; }
-}
-
-function writeCachedTargets(pr, targets) {
-  try { localStorage.setItem(cacheKey(pr), JSON.stringify(targets)); } catch { /* storage unavailable */ }
-}
-
-async function changedFiles(number) {
-  const files = [];
-  for (let page = 1; page <= 5; page++) {
-    const response = await fetch(`https://api.github.com/repos/${REPOSITORY}/pulls/${number}/files?per_page=100&page=${page}`, {
-      headers: { accept: 'application/vnd.github+json' },
-    });
-    if (!response.ok) throw new Error(`GitHub ${response.status}`);
-    const data = await response.json();
-    if (!Array.isArray(data)) throw new Error('GitHub files response');
-    files.push(...data.map(item => item.filename).filter(Boolean));
-    if (data.length < 100) break;
-  }
-  return files;
-}
-
-function renderTargetChips(root, targets = [], loading = false) {
-  root.replaceChildren();
-  if (loading) {
-    root.append(el('span', 'pull-target muted-target', '対象確認中'));
-    return;
-  }
+function renderTargetChips(root, pr) {
+  const targets = Array.isArray(pr.targets) ? pr.targets : [];
   if (!targets.length) {
-    root.append(el('span', 'pull-target muted-target', '対象未取得'));
+    const text = pr.targetsStatus === 'pending' ? '対象確認中' : pr.targetsComplete === true ? '対象なし' : '対象未取得';
+    root.append(el('span', 'pull-target muted-target', text));
     return;
   }
   targets.slice(0, 2).forEach(target => root.append(el('span', 'pull-target', target.label)));
-  if (targets.length > 2) root.append(el('span', 'pull-target more-target', `+${targets.length - 2}`));
+  if (targets.length > 2) {
+    const more = el('span', 'pull-target more-target', `+${targets.length - 2}`);
+    more.title = targets.slice(2).map(target => target.label).join(' / ');
+    root.append(more);
+  }
+  if (pr.targetsComplete !== true) root.append(el('span', 'pull-target muted-target', '一部取得'));
+  root.title = targets.map(target => target.label).join(' / ');
 }
 
-async function resolveTargets(pr, root) {
-  if (Array.isArray(pr.targets) && pr.targets.length) {
-    renderTargetChips(root, pr.targets);
-    return;
-  }
-  const cached = readCachedTargets(pr);
-  if (Array.isArray(cached)) {
-    renderTargetChips(root, cached);
-    return;
-  }
-  renderTargetChips(root, [], true);
-  try {
-    const targets = classifyTargets(await changedFiles(pr.number));
-    writeCachedTargets(pr, targets);
-    renderTargetChips(root, targets);
-  } catch {
-    renderTargetChips(root, []);
-  }
-}
-
-function row(pr, resolveAppTargets = false) {
-  const link = el('a', `pull-row${pr.staleDraft ? ' stale-draft' : ''}`);
-  link.href = pr.url;
-  link.target = '_blank';
-  link.rel = 'noreferrer';
-
+function row(pr) {
+  const link = el('a', `pull-row${pr.staleDraft && !pr.visualReview ? ' stale-draft' : ''}`);
+  try { if (new URL(pr.url).protocol === 'https:') link.href = pr.url; } catch { /* no unsafe link */ }
+  link.target = '_blank'; link.rel = 'noreferrer'; link.dataset.viewKey = `pr:${pr.number}`;
   const top = el('div', 'pull-row-top');
-  top.append(el('strong', 'pull-title', pr.title || `PR #${pr.number}`));
+  const title = el('strong', 'pull-title', pr.title || `PR #${pr.number}`);
+  title.title = pr.title || '';
   const status = el('span', `badge ${badgeTone(pr.state)}`, stateLabel(pr.state));
   status.title = pr.state;
-  top.append(status);
-
+  top.append(title, status);
   const bottom = el('div', 'pull-row-bottom');
-  bottom.append(el('span', 'pull-detail', pr.detail || '詳細未記載'));
+  const detail = el('span', 'pull-detail', pr.detail || '詳細未記載');
+  detail.title = pr.detail || '';
+  bottom.append(detail);
   const meta = el('span', 'pull-meta');
-  const targetRoot = el('span', 'pull-targets');
-  if (resolveAppTargets) resolveTargets(pr, targetRoot);
-  else if (Array.isArray(pr.targets) && pr.targets.length) renderTargetChips(targetRoot, pr.targets);
-  if (targetRoot.childNodes.length || resolveAppTargets) meta.append(targetRoot);
-  meta.append(el('span', 'pull-number', `#${pr.number}`));
-  const updated = pr.updatedAt ? fmt.format(new Date(pr.updatedAt)) : '未記録';
-  meta.append(el('span', '', `更新 ${updated}`));
-  if (pr.staleDraft) meta.append(el('span', 'stale-note', 'しばらく更新なし'));
-  bottom.append(meta);
-  link.append(top, bottom);
+  const targets = el('span', 'pull-targets');
+  renderTargetChips(targets, pr);
+  const date = Date.parse(pr.updatedAt || '');
+  const updated = Number.isFinite(date) ? fmt.format(date) : '未記録';
+  const time = el('time', '', `更新 ${updated}`);
+  if (Number.isFinite(date)) { time.dateTime = new Date(date).toISOString(); time.title = ageLabel(Math.max(0, Date.now() - date)); }
+  meta.append(targets, el('span', 'pull-number', `#${pr.number}`), time);
+  if (pr.staleDraft && !pr.visualReview) meta.append(el('span', 'stale-note', 'しばらく更新なし'));
+  bottom.append(meta); link.append(top, bottom);
   return link;
 }
-
-function rows(items, emptyText, resolveAppTargets = false) {
-  const root = el('div', 'pull-list');
-  if (!items.length) root.append(el('p', 'empty', emptyText));
-  else items.forEach(item => root.append(row(item, resolveAppTargets)));
-  return root;
+function rows(items, emptyText) {
+  const node = el('div', 'pull-list');
+  if (!items.length) node.append(el('p', 'empty', emptyText));
+  else items.forEach(item => node.append(row(item)));
+  return node;
 }
-
-function count(items, state) {
-  return state === 'all' ? items.length : items.filter(item => item.state === state).length;
-}
-
 function filterBar(items) {
   const root = el('div', 'pull-filters');
   root.setAttribute('aria-label', '開発タスクの状態フィルタ');
   for (const [state, label, tone] of filterOptions) {
-    const button = el('button', `pull-filter ${tone}${selectedFilter === state ? ' active' : ''}`, `${label} ${count(items, state)}`);
-    button.type = 'button';
-    button.dataset.state = state;
-    button.setAttribute('aria-pressed', selectedFilter === state ? 'true' : 'false');
+    const count = state === 'all' ? items.length : items.filter(item => item.state === state).length;
+    const button = el('button', `pull-filter ${tone}${selectedFilter === state ? ' active' : ''}`, `${label} ${count}`);
+    button.type = 'button'; button.dataset.state = state; button.dataset.viewKey = `filter:${state}`;
+    button.setAttribute('aria-pressed', String(selectedFilter === state));
     button.addEventListener('click', () => {
       if (selectedFilter === state) return;
       selectedFilter = state;
-      render(currentPullData || {});
+      try { sessionStorage.setItem('rinne-ops:filter', state); } catch { /* storage optional */ }
+      preserveView(() => render(currentPullData));
     });
     root.append(button);
   }
   return root;
 }
-
-function completedSection(items) {
-  const details = el('details', 'completed-pulls');
-  details.append(el('summary', '', `完了・終了 ${items.length}件`), rows(items, '完了PRなし'));
-  return details;
-}
-
 function render(data = {}) {
   currentPullData = data;
   const items = data.normal || [];
-  const active = items.filter(item => item.state === 'Draft' || item.state === 'Ready');
-  const completed = items.filter(item => item.state === 'Merged' || item.state === 'Closed');
+  const active = items.filter(item => ['Draft', 'Ready'].includes(item.state));
+  const completed = items.filter(item => ['Merged', 'Closed'].includes(item.state));
   const root = $('#pulls');
-  root.replaceChildren();
-  root.append(filterBar(items));
-
+  root.replaceChildren(filterBar(items));
   if (selectedFilter === 'all') {
-    root.append(rows(active, '現在、作業中・統合待ちのPRはありません', true), completedSection(completed));
-  } else {
-    const filtered = items.filter(item => item.state === selectedFilter);
-    root.append(rows(filtered, `${stateLabel(selectedFilter)}のPRはありません`, true));
-  }
-
-  if (data.truncated) root.append(el('p', 'empty', '直近100件を表示しています。'));
-
-  const visualSection = $('#visual-review-section');
-  const visualRoot = $('#visual-review-pulls');
+    root.append(rows(active, '現在、作業中・統合待ちのPRはありません'),
+      disclosure('completed-pulls', `完了・終了 ${completed.length}件`, rows(completed, '完了PRなし'), 'completed-pulls'));
+  } else root.append(rows(items.filter(item => item.state === selectedFilter), `${stateLabel(selectedFilter)}のPRはありません`));
+  if (data.truncated) root.append(el('p', 'empty', `取得できた${data.total || items.length}件を表示しています。未取得の履歴があります。`));
+  if (data.targetLookup?.pending || data.targetLookup?.unavailable) root.append(el('p', 'empty targets-notice', '対象アプリはサーバーで順次確認しています。未取得のPRは取得でき次第更新されます。'));
   const visual = data.visualReview || [];
-  visualRoot.replaceChildren(rows(visual, 'Visual Review Lab PRなし', true));
-  visualSection.hidden = visual.length === 0;
+  $('#visual-review-pulls').replaceChildren(rows(visual, 'Visual Review Lab PRなし'));
+  $('#visual-review-section').hidden = visual.length === 0;
 }
-
-async function load() {
-  try {
-    const response = await fetch(`/api/state?pulls=${Date.now()}`, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const state = await response.json();
-    render(state.pullRequests || {});
-  } catch (error) {
-    const root = $('#pulls');
-    root.replaceChildren(el('p', 'empty', `PR一覧を取得できません: ${error.message}`));
-  }
-}
-
-$('#reload').addEventListener('click', load);
-load();
-setInterval(load, 60000);
+subscribe((state, error) => {
+  if (state && !error) render(state.pullRequests || {});
+  else if (!state) $('#pulls').replaceChildren(el('p', 'empty', 'PR一覧を取得できません。上部の取得状態を確認してください。'));
+});

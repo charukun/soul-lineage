@@ -5,7 +5,7 @@ export const STALL_WARNING_MS = 10 * 60 * 1000;
 export const API_HISTORY_PAGE_LIMIT = 10;
 
 const FAILURE_CONCLUSIONS = new Set([
-  'failure', 'cancelled', 'timed_out', 'action_required', 'startup_failure', 'stale',
+  'failure', 'timed_out', 'action_required', 'startup_failure', 'stale',
 ]);
 const ACTIVE_RUN_STATES = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
 const HOLD_LABELS = new Set(['integration:hold', 'integration:manual', 'do-not-merge']);
@@ -76,19 +76,19 @@ export function classifyPull(pr, runs = [], developRuns = [], now = Date.now()) 
   };
 
   if (pr.draft) {
-    return { ...base, stage: 'READY_WAIT', label: 'Ready for review待ち', tone: 'info', reason: 'Draft PR' };
+    return { ...base, stage: 'READY_WAIT', label: '作業中', tone: 'info', reason: 'Draft PR' };
   }
   if (explicitIntegrationHold(pr)) {
     return { ...base, stage: 'HOLD', label: 'Integration保留', tone: 'info', reason: '明示的なIntegration hold' };
   }
   if (!ci || ci.status !== 'completed') {
-    return { ...base, stage: 'READY_WAIT', label: 'Ready for review待ち', tone: 'info', reason: ci ? 'CI実行中' : 'CI待ち' };
+    return { ...base, stage: 'READY_WAIT', label: ci ? '自動テスト中' : '自動テスト待ち', tone: 'info', reason: ci ? 'CI実行中' : 'CI待ち' };
   }
   if (FAILURE_CONCLUSIONS.has(ci.conclusion)) {
     return { ...base, stage: 'CI_FAILED', label: 'CI失敗', tone: 'danger', reason: ci.conclusion || 'failure' };
   }
-  if (!['success', 'neutral', 'skipped'].includes(ci.conclusion)) {
-    return { ...base, stage: 'READY_WAIT', label: 'Ready for review待ち', tone: 'warning', reason: `CI: ${ci.conclusion || ci.status}` };
+  if (ci.conclusion !== 'success') {
+    return { ...base, stage: 'READY_WAIT', label: '自動テスト未完了', tone: 'warning', reason: `CI: ${ci.conclusion || ci.status}` };
   }
 
   const ciTime = Date.parse(ci.updated_at || ci.created_at || pr.updated_at || pr.created_at || 0) || now;
@@ -96,9 +96,9 @@ export function classifyPull(pr, runs = [], developRuns = [], now = Date.now()) 
   return {
     ...base,
     stage: 'MERGE_WAIT',
-    label: 'merge待ち',
+    label: '統合待ち',
     tone: stalledMs >= STALL_WARNING_MS ? 'danger' : 'warning',
-    reason: 'Ready + CI success; PR is still open',
+    reason: '自動テストは成功していますが、まだ統合されていません',
     stalledMs,
     warning: stalledMs >= STALL_WARNING_MS,
     eligibleSince: new Date(ciTime).toISOString(),
@@ -162,7 +162,7 @@ export function overallIntegration(queue = [], latestDevelopRun = null, deployQu
   if (queue.some(item => item.stage === 'INTEGRATING')) return { label: 'Integration中', tone: 'progress', phase: 'integration', heartbeatAt: null };
   if (queue.some(item => item.warning)) return { label: '滞留あり', tone: 'danger', phase: 'ready-queue', heartbeatAt: latestDevelopRun?.updated_at || null };
   if (deployQueues.some(item => (item?.commitsAhead || 0) > 0)) return { label: 'deploy待ち', tone: 'warning', phase: 'deploy-wait', heartbeatAt: latestDevelopRun?.updated_at || null };
-  if (queue.some(item => item.stage === 'MERGE_WAIT')) return { label: 'merge待ち', tone: 'warning', phase: 'ready-queue', heartbeatAt: latestDevelopRun?.updated_at || null };
+  if (queue.some(item => item.stage === 'MERGE_WAIT')) return { label: '統合待ち', tone: 'warning', phase: 'ready-queue', heartbeatAt: latestDevelopRun?.updated_at || null };
   if (queue.some(item => item.stage === 'READY_WAIT')) return { label: 'Ready待ち', tone: 'info', phase: 'ready-wait', heartbeatAt: latestDevelopRun?.updated_at || null };
   if (queue.some(item => item.stage === 'HOLD')) return { label: '保留あり', tone: 'info', phase: 'hold', heartbeatAt: latestDevelopRun?.updated_at || null };
   return { label: '正常', tone: 'ok', phase: 'idle', heartbeatAt: latestDevelopRun?.updated_at || null };
