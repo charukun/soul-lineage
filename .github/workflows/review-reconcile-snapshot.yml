@@ -1,0 +1,27 @@
+name: Review reconciliation source snapshot
+on:
+  push:
+    branches: [audit/review-plan-validation]
+    paths: [.github/workflows/review-reconcile-snapshot.yml]
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Export concurrent feature without altering any branch
+        run: |
+          git archive --format=zip --output="$RUNNER_TEMP/concurrent.zip" fb670ea424628c3311dd91ddc1edcfc9e24c1759 apps/rinne/review.html apps/rinne/src/review tests/review-posture.test.mjs tests/review-workflow.test.mjs
+          git archive --format=zip --output="$RUNNER_TEMP/verified.zip" 8d62049d5d90db741d02150e9344a3c0d6e91ba5 apps/rinne/src/review apps/rinne/tests/review-plan tests/review-plan-browser.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: review-reconciliation-source
+          path: |
+            ${{ runner.temp }}/concurrent.zip
+            ${{ runner.temp }}/verified.zip
+          retention-days: 2
