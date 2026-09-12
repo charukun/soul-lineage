@@ -1,0 +1,70 @@
+name: Ops review recovery diagnostics
+on:
+  push:
+    branches: ['fix/ops-board-review-polish']
+    paths: ['.github/workflows/ops-review-recovery.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          sparse-checkout: |
+            ops-board
+            docs
+            scripts
+            tests
+            .github
+          persist-credentials: false
+      - name: Capture source and merge diagnostics without pushing or deploying
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/ops-recovery/{head,develop,merged,public}
+          git config user.name 'Ops recovery inspection'
+          git config user.email 'noreply@users.noreply.github.com'
+          git rev-parse HEAD > /tmp/ops-recovery/head-sha.txt
+          git rev-parse origin/develop > /tmp/ops-recovery/develop-sha.txt
+          git rev-parse origin/develop^{tree} > /tmp/ops-recovery/develop-tree.txt
+          git diff --name-only origin/develop...HEAD > /tmp/ops-recovery/changed-paths.txt
+          git archive HEAD ops-board docs scripts tests .github package.json package-lock.json wrangler.ops.jsonc AGENTS.md README.md | tar -x -C /tmp/ops-recovery/head
+          git archive origin/develop ops-board docs scripts tests .github package.json package-lock.json wrangler.ops.jsonc AGENTS.md README.md | tar -x -C /tmp/ops-recovery/develop
+          set +e
+          git merge --no-commit --no-ff origin/develop > /tmp/ops-recovery/merge.log 2>&1
+          code=$?
+          set -e
+          echo "$code" > /tmp/ops-recovery/merge-exit.txt
+          git diff --name-only --diff-filter=U > /tmp/ops-recovery/conflicts.txt
+          git diff > /tmp/ops-recovery/merge.diff
+          cp -a ops-board docs scripts tests .github package.json package-lock.json wrangler.ops.jsonc AGENTS.md README.md /tmp/ops-recovery/merged/
+          gh api "repos/$GITHUB_REPOSITORY/git/trees/$(cat /tmp/ops-recovery/develop-sha.txt)?recursive=1" > /tmp/ops-recovery/develop-tree.json
+          cat /tmp/ops-recovery/conflicts.txt
+      - name: Capture actual public responses
+        run: |
+          for path in index.html api/state version.json; do
+            file=$(printf '%s' "$path" | tr '/' '-')
+            curl -sS --connect-timeout 10 --max-time 40 -D "/tmp/ops-recovery/public/$file.headers" "https://rinne-ops.c-okamoto.workers.dev/$path" -o "/tmp/ops-recovery/public/$file" || true
+          done
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const p='/tmp/ops-recovery/public/';
+          for(const name of ['version.json','api-state']) {
+            try {
+              const s=JSON.parse(fs.readFileSync(p+name,'utf8'));
+              console.log(name,JSON.stringify(name==='api-state'?{schemaVersion:s.schemaVersion,generatedAt:s.generatedAt,syncStatus:s.syncStatus,syncError:s.syncError,lastAttemptAt:s.lastAttemptAt,appNames:s.applications?.map(a=>a.name),pullCounts:[s.pullRequests?.normal?.length,s.pullRequests?.visualReview?.length],targetAttribution:s.targetAttribution}:s));
+            } catch(e) { console.log(name,e.message); }
+          }
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ops-review-recovery-source
+          path: /tmp/ops-recovery/
+          include-hidden-files: true
+          retention-days: 3
