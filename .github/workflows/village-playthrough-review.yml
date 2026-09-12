@@ -26,7 +26,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Verify expected feature head and retain current develop
+      - name: Verify expected feature head before applying original-base splices
         working-directory: work
         run: |
           set -euo pipefail
@@ -35,11 +35,10 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git fetch origin develop
-          git merge --no-edit origin/develop
           git rev-parse origin/develop > ../publication/base.txt
       - name: Verify every before and after checksum, then apply text-only changes
         run: python3 control/scripts/review/apply-village-readable.py control/scripts/review/transfer work publication
-      - name: Commit verified feature changes
+      - name: Commit verified changes and three-way merge current develop without overwriting it
         working-directory: work
         run: |
           set -euo pipefail
@@ -47,7 +46,22 @@ jobs:
           while IFS= read -r path; do git add -- "$path"; done < ../publication/paths.txt
           git diff --cached --stat | tee ../publication/diff-stat.txt
           git commit -m 'fix(village): consolidate placement, catalog, observation and tactile surfaces'
+          git rev-parse HEAD > ../publication/implementation-commit.txt
+          git merge --no-edit origin/develop
           git rev-parse HEAD > ../publication/commit.txt
+          python3 - <<'PY'
+          import hashlib,json,pathlib
+          rows=json.loads(pathlib.Path('../publication/verified-files.json').read_text())
+          for r in rows:
+              if not r['path'].startswith('apps/village/'):continue
+              p=pathlib.Path(r['path']);actual=hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else '-'
+              assert actual==r['after'],r['path']
+          smoke=pathlib.Path('scripts/browser/pr-smoke.mjs').read_text()
+          assert 'verifyVillagePlaythrough(browser, url,' in smoke
+          assert 'verifySoloClarity(page, frame, expect, evidence)' in smoke
+          assert 'verifyHuntClarity(page, expect, evidence)' in smoke
+          print('Village checksums intact; concurrent clarity gates preserved')
+          PY
           node scripts/check-push-route.mjs origin/develop HEAD | tee ../publication/push-route.txt
       - name: Install exact locked dependencies
         working-directory: work
