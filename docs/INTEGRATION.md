@@ -1,77 +1,112 @@
 # develop Integration
 
-## 起動と集約
+## 責任分界
 
-PRの `Validate and build` 成功後、`Request Integration` が既存 `deploy.yml` を **developを指定してworkflow_dispatch** します。developへの通常pushも復旧・初回検証の入口です。mainに存在する既存workflowを利用するため、default branch変更やmainへの新workflow追加は不要です。
+実装セッションは最新developから作業branchを作り、コード変更を伴う通常タスクでは先にDraft PRを作成します。実装、必要最低限の高速検証、commit/push、Ready for review化までを担当し、Ready後にCI完了を同期的に待ったり、同じrunを反復ポーリングしたりしません。
 
-全Integration・Pages配信は既存の `pages` concurrency groupで直列化します。pendingイベントがまとめられても、各実行が現在の全Ready PRを再走査するため、特定イベントのPR番号に依存しません。上限8PR/バッチ、依存順を再評価します。残りは成功後に次のバッチを要求します。
+Ready後のCI監視、保留理由の判定、develop統合、DEV公開、公開HTTP/source照合、focused browser gate、失敗時の修復差し戻しはIntegrationの責任です。main / Productionは明示的に許可された作業以外では変更しません。
 
-mergeはGitHubのPR merge APIと実行のGITHUB_TOKENを使用します。途中のmergeからpush Workflowを発火させず、同じ実行で最終developを明示checkoutして高速検証・公開します。PAT・追加サービス・常駐pollingは不要です。
+## Draft → Ready
 
-レビュー提出・編集・dismissもCIから再要求します。dispatch前に最新PRのReady/base/headを再照合し、一時的なAPI障害は最大3回再試行します。`workflow_run`/`schedule`はdefault branch上のworkflowを必要とするため、main変更禁止のこの構成では起動手段として使いません。
+Draft中は `Draft lightweight check` だけを実行します。これはpatch whitespaceなど、作業中branchを壊したまま放置しないための軽量gateです。install/build/browser/IntegrationはDraftでは実行しません。
 
-thread解決後にレビューイベントが発生しない場合は、既存CIのRequest Integration再実行またはdevelopへの手動dispatchで再判定します。GitHub Actionsにはthread解決専用のworkflow triggerはありません。
+Ready化すると `Validate and build`、影響範囲browser smoke、repair記録、`Request Integration` が有効になります。Ready用fast gateはDraft lightweight checkでは代替できません。
 
-各PRの`integration/queue` statusに保留理由またはmerge結果とActionsへのリンクを記録します。この運用statusと`Request Integration`自身はcode gateから除外します。明示hold・レビュー待ちは自動解除しません。自動化は自分の変更PRや承認を生成せず、基盤PRは下記の承認条件を維持します。解消できない保留を成功とは扱いません。
+## Integrationの起動
+
+Ready PRのfast/browser gate成功後、`Request Integration` がdevelop上の既存 `deploy.yml` をworkflow dispatchします。developへのpushもIntegration/DEV検証を起動します。
+
+Integrationは起動イベントのPRだけを見るのではなく、その時点のdevelop向けReady PRを全件再走査します。1バッチ最大8PRで、依存関係を複数passで再評価します。バッチ後に残りがあり、再走査が必要な場合だけ次のdispatchを要求します。
+
+全DEV Integration/Pages配信は `pages` concurrency groupで直列化します。PR browser repairの記録は `.github/workflows/browser-repair.yml` の `browser-repair-pr-<PR番号>` groupへ分離し、repair記録runが通常Integration/DEV publishをpending段階で置換・cancelしないようにします。
 
 ## 自動merge条件
 
-- 同一Repositoryの信頼された寄稿者によるopen・非draft・develop向けPR。
-- 現在のhead SHAに対応する `ci.yml` の最新runで `Validate and build` が成功。PR番号/headの検証artifactを照合。ほかのChecks/statusの失敗や未完了も保留。
-- `Depends-On` の全PRがdevelopへmerge済み。曖昧・他repo参照は保留。
-- GitHubがmerge可能と判定し、保護ルールが許可。未解決review threadとChanges requestedなし。
-- 明示holdなし。基盤・自動化・運用制御ファイルの変更には、現在headへのmaintainer approvalが必要。
-- PR分岐点からdevelopに入った変更と同じファイル/共有packageが重なる場合、Integration reviewが必要。
-- merge直前にhead・Ready状態・label・body・review・Checks・develop SHAを再取得。head指定merge APIを使い、force pushや保護設定の緩和は行わない。
+候補PRは次をすべて満たす必要があります。
 
-保護ルールはGitHub APIが最終的に強制します。現在のdevelopはbranch APIでは未保護と表示されており、管理権限がないため設定変更は行っていません。自動化独自の検証を実施しますが、管理者による手動pushを技術的に禁止するものではありません。
+- open、非Draft、baseがdevelop。
+- headが同一Repositoryで、author associationがOWNER / MEMBER / COLLABORATOR。
+- `integration:hold`、`integration:manual`、`do-not-merge`、本文 `Integration-Hold:` がない。
+- `Depends-On` の全PRがdevelopへmerge済み。曖昧な記法や他Repository参照は不可。
+- GitHubのmergeabilityが許可状態。
+- 未解決review thread、Changes requestedがない。
+- 現在のexact head SHAに対する最新fast gateが成功し、`pr-fast-<PR>-<SHA>` artifactが存在する。
+- code gate対象の他Checks/statusが成功している。
+- developの最終検証が失敗中なら、通常PRではなく `integration:repair` の修復PRを先に処理する。
 
-## 一人開発の所有者承認・手動Integration
+merge直前にhead SHA、Ready状態、label、body、review、Checks、develop SHAを再取得します。途中で変化したPRを古い判定のままmergeしません。merge APIにはexact head SHAを渡し、force pushやbranch protection緩和は行いません。
 
-共同maintainerがいない場合、所有者 `charukun` 自身のPRはGitHubの自己Approve制約により自動merge条件を満たせません。所有者が明示的に依頼したIntegrationでは、以下を正式な手動承認・統合経路とします。この手順の導入は、所有者がWORK上で承認した運用変更に基づきます。
+## 自動化・基盤変更のtrusted exact-head authorization
 
-1. 所有者が対象PRのdevelop統合を明示承認し、Integration担当が実際の差分をレビューする。既存セッションの明示承認は有効であり、同じ範囲について再確認を繰り返さない。
-2. PRへ所有者承認の根拠、対象PR番号・完全なhead SHA、確認したCI run、差分レビュー結果を記録する。担当が代理記録したことを明記し、GitHubのAPPROVEDレビューや独立した他者レビューとして扱わない。
-3. 同一Repository・所有者作成・非draft・develop向けであること、最新headのfast gateと検証artifact、他のChecks/status、依存PR、未解決thread・Changes requested・明示hold・競合を確認する。失敗や未完了を承認で無視しない。developの直前Integration成功を確認し、失敗中は既存の修復手順に従う。
-4. developがPR分岐点以降に変更されていれば差分を照合する。merge直前にhead・base・Ready状態・label・body・review・Checksを再取得し、変更があれば再評価する。head変更前の確認記録を新しいheadへ流用しない。
-5. Integration担当が通常のPR merge APIに `expected head SHA` を指定してdevelopへmergeする。GitHubが要求する保護ルールはそのまま適用し、拒否されたら停止する。force push、admin bypass、保護設定の緩和は行わない。
-6. developへのpushで既存Deployを起動する。起動しなければ既存CIの `Request Integration` jobを再実行してdevelopへのdispatchを要求する。最終SHAの `integration/develop=success` と該当runのDEV配信・公開HTTP照合まで確認する。main / Productionは変更しない。
+`.github/**`、`scripts/**`、`AGENTS.md`、`docs/DEVELOPMENT.md`、`docs/INTEGRATION.md` などの制御面変更は、通常アプリ変更より強いレビュー条件を維持します。
 
-自動Integrationの `reviewDecision` と自動merge条件は変更しません。所有者のコメント・labelだけで自動承認を生成しません。通常の実装WORKは引き続きReady PRまで、所有者承認を受けたIntegration WORKがこの手動経路を担当します。今回の手順追加PRも、所有者の導入承認を記録し、同じCI・差分確認・head指定merge・公開検証を経て統合します。
+このRepositoryは単独owner運用で、GitHubはPR作成者自身によるAPPROVEを許可しません。そのため、制御面PRが全ての安全条件を満たし、残る保留理由が「現在headへのmaintainer approval」だけの場合に限り、develop上で実行されるtrusted Integrationがexact-head authorizationを作成できます。
 
-## DEV高速開発ポリシー（通常フロー）
+trusted authorizationは次の順で扱います。
 
-通常開発はDEV公開速度を優先します。`integration/develop` は影響範囲の高速検証・DEV配信・公開HTTP/source一致の成功を表します。重い全体回帰・実ブラウザ・P2P E2Eの成功証明とは分けます。
+1. same-repository / trusted author / Ready / holdなし / 依存完了 / review thread解決 / Changes requestedなし / current fast gate成功を先に確認する。
+2. GitHub Actions botによるPR APPROVE作成を試す。成功した場合、そのreviewは必ず現在の `commit_id` と `Trusted Integration Review: exact head <SHA>` markerを持つ。
+3. Repository設定によりbot review APIがHTTP 422で拒否された場合だけ、現在head commitへ `integration/trusted-review=success` statusを記録する。
+4. status fallbackは同じtrusted Integration実行のメモリ内でだけexact-head approval evidenceとして扱い、eligibilityを再計算する。statusはcommit SHAそのものに紐づくため、head更新後には流用されない。
+5. merge直前にPR mutable state、review/status、fast gate、develop SHAを再取得する。GitHubのmerge APIやbranch protectionが拒否したら停止する。
 
-1. 未検証または失敗したdevelopは、まず現在のコードを高速gateで検証・配信して基準を回復。失敗中は従来どおり修復PRのみ取り込み候補とし、成功後に通常Ready PRを自動再走査します。
-2. 最終SHAをcheckoutし、公開済みinputHashとの比較で変更appを求めます。install、変更appと推移依存のcheck/test、基盤テストを1回ずつ実行します。buildは変更appごとに1回だけです。
-3. 不変appとProductionの公開manifest・全ファイルをSHA-256検証して保持します。DEV統合ではmainをbuild/昇格しません。Production基準が取得できなければ停止します。
-4. 配信直前にdevelopのSHAを再確認し、Pages公開後は入口・assets・versionとmanifestの`validatedDevelop`を照合します。失敗は`integration/develop=failure`として可視化します。
-5. 成功済みの同じ最終SHAは再配信しません。初回基準確立・失敗からの復旧・PRバッチ進行後に残りがあれば再走査します。成功基準上で進展のない保留だけなら再dispatchしません。
+次はtrusted authorizationでは上書きしません。
 
-### 重い検証
+- Changes requested、未解決review thread。
+- explicit hold。
+- 外部RepositoryのPRや信頼されていないauthor。
+- Draft、依存未完了、CI/browser failure。
+- stale head、偽marker、古いstatus。
 
-既存DeployのRun workflowでbranch **develop**、`full_verification=true`を指定したときだけ、独立jobで全体回帰・公開Chromium/WebGL2・P2P検証を実行します。結果は`verification/full`に記録します。通常DEV配信の`integration/develop`を上書きしません。テストのassertionやProduction品質基準は下げません。
+`integration/trusted-review` は保護ルールの迂回ではありません。GitHub Actions review作成がRepository設定で使えない一人開発環境でも、develop側control planeがexact headに対して同じ安全判定を監査可能に残すためのfallbackです。将来branch protectionが独立reviewを必須化した場合、最終merge APIが拒否するため自動で停止します。
 
-appが無変更ならversion.jsonの元build SHAを保持します。最終developとの整合はinputHashとmanifestのvalidatedDevelopで追跡します。SwiftShaderは機能検証であり実機の性能測定ではありません。
+## develop baselineとrepair
 
-## 停止・復旧
+Integration開始時に現在developの `integration/develop` statusを確認します。
 
-- 個別PRの保留理由: Actions summaryおよび `integration-report` artifact。自動化はレビュー解決・label削除・仕様変更を代行しません。
-- 全体検証が失敗: 通常の自動mergeを停止。原因修正PRへ `integration:repair` を付けるか、Integration担当が修正をレビューして統合。基盤変更は自動merge条件を満たさなければ担当者が直接PR merge。
-- CI成功後のdispatchだけが失敗: 権限エラーを直した後 `Request Integration` を再実行。既存Deploy workflowのRun workflowでbranch **develop** を選ぶ操作でも回復可能。
-- 一時的なネットワーク/公開後ブラウザ失敗: 同じDeploy runの全jobを再実行。失敗SHAでは高速検証・公開・HTTP照合を再実施し、古いmanifestだけでsuccessへ変えません。重い検証はfull_verificationを指定して別途実行します。
-- 実行が中断されpendingのまま: 同様に全jobを再実行。pendingも通常merge停止として扱います。
-- 公開前失敗は公開済みsnapshotを維持。公開後失敗は既に公開済みなので、復旧PRで正常状態へ戻します。自動で未知のrollbackを実行しません。
+- statusがない初回baselineは、追加PRをmergeする前に現developを検証・公開します。
+- statusがfailure/pendingなら通常PRを止め、`integration:repair` の修復PRを優先します。
+- repair成功後はReady PRキューを自動再走査します。
+- 成功済みの同一最終SHAは重複build/deployを避けます。
 
-main/Productionを変更する別作業はこの運用の対象外です。既存main側workflowは変更していません。
+browser failureは `docs/BROWSER_SELF_HEALING.md` に従います。修復ワーカーはassertion削除や検証条件弱体化で通しません。PR scopeとdevelop scopeを区別し、machine-readable repair ticketのattempt/claimを尊重します。
 
-公式仕様: [GITHUB_TOKENのイベント抑止とdispatch](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)、[Workflowイベントのdefault branch条件](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)。
+PR browser smokeの結果記録は `browser-repair.yml` へdispatchします。DEV公開後のfocused browser結果はdevelop repair ticketへ記録します。repair recorderとDEV Integrationは別concurrencyなので互いのpending runを置換しません。
 
-## PR #33事故の原因と修復（2026-09-12）
+## DEV公開
 
-- CI run `34646610289`は成功し、直後のIntegration run `34646652144`も起動していました。起動漏れではありません。
-- #33の保留理由は`previous final develop gate failed; repair first`。当時の重い公開ブラウザgateの失敗が通常PRのmergeを止めていました。
-- 後続run `34651148929`はPages配信とHTTP確認が成功した一方、rinne/villageのaudio blob requestを公開ブラウザテストが失敗として記録。重い検証を通常DEVの全PR停止条件にしていた点がDEV高速ポリシーと不一致でした。
-- 失敗基準で通常PRを保留すると`retry=false`になり、仮に再配信が成功しても取り込みを再開しない不具合がありました。復旧後の再走査を追加しました。
-- 変更範囲: CI再起動条件・有限dispatch再試行、Integrationの再走査と保留可視化、DEV影響検証、重い検証の分離、公開SHA照合。ゲーム内容、レビュー保護、main、Productionのソースは変更しません。
+IntegrationがPRをmergeした最終develop SHAを正本として、影響範囲をbuildします。不変appとProduction snapshotはhash検証して保持し、develop Integrationからmainを昇格させません。
+
+Pages公開前にdevelopが期待SHAから進んでいないことを確認します。公開後はmanifest、入口、assets、source commitを照合し、focused browser verificationを実施します。成功時だけ最終SHAへ `integration/develop=success` を記録します。
+
+focused browser failure時は公開runをfailureとし、repair ticketを作成します。HTTP 200だけ、あるいはdeploy action成功だけをDEV成功とは扱いません。
+
+重い全体回帰・public WebGL2/P2P diagnosticsは通常DEV deliveryから分離し、必要時に `full_verification=true` で実行します。通常Integrationの速度と、重い診断の品質基準を混同しません。
+
+## 保留と再起動
+
+各PRのheadに `integration/queue` statusを記録します。
+
+- merge済み: success + merge SHA。
+- 保留: pending +具体的な理由。
+
+`integration/queue` と `Request Integration` 自身はcode validation gateから除外し、自分自身のpending statusで永久停止しないようにします。
+
+一時的なmergeability=nullは短時間だけ有限再取得します。API失敗、developの予期しない移動、大規模なbase比較など、確実な判定ができない場合はfail closedで保留します。
+
+成功後に未処理PRが残り、baseline復旧・repair復旧・同一バッチのmerge進展など次の再走査に意味がある場合だけ再dispatchします。進展不能なholdだけで自己ループしません。
+
+## 失敗時の原則
+
+- CI失敗: exact headと失敗runを根拠に修正ワーカーへ返す。
+- browser失敗: self-healing ticketから原因を特定し、最小修正する。
+- deploy/公開照合失敗: `integration/develop=failure` のまま通常mergeを止める。
+- repair記録run失敗: DEV Integrationをcancelせず、repair記録側だけ復旧する。
+- session停止: Repositoryのbranch / commit / PR / handoff / CI状態から別sessionで続行する。
+- GitHub経路1つの失敗だけで作業不能と判断しない。
+
+main / Productionを変更する作業はこのdevelop Integrationの対象外です。
+
+## Bootstrap例外の扱い
+
+trusted review機構そのものを導入したPR #76と、repair recorder concurrency分離を導入したPR #54は、旧仕組みでは自分自身のデッドロックを解消できなかったため、exact-head CI成功確認後に一度限りのbootstrap mergeを行いました。これは移行履歴であり、通常運用のmerge経路ではありません。

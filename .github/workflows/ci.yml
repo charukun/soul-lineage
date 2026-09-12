@@ -2,7 +2,7 @@ name: CI
 on:
   pull_request:
     branches: [develop, main]
-    types: [opened, synchronize, reopened, ready_for_review, edited, labeled, unlabeled]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited, labeled, unlabeled]
   pull_request_review:
     types: [submitted, edited, dismissed]
 permissions:
@@ -11,9 +11,26 @@ concurrency:
   group: ci-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
+  draft-check:
+    name: Draft lightweight check
+    if: github.event.pull_request.base.ref == 'develop' && github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check patch whitespace only (no install, build or deploy)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: git diff --check "$BASE_SHA...$HEAD_SHA"
+
   build:
     name: Validate and build
-    if: contains(fromJSON('["develop", "main"]'), github.event.pull_request.base.ref)
+    if: github.event.pull_request.base.ref == 'main' || (github.event.pull_request.base.ref == 'develop' && !github.event.pull_request.draft)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
