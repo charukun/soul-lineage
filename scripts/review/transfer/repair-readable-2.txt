@@ -1,0 +1,207 @@
+MURA-PATCH/1
+FILE apps/village/src/web/main.js 6cc1b7556a702f5de423affa50af1b232fb41df427ba70ae2b20249a57910305 9cda94ebbec82b9ad6cc58b6f4e9bc62637e7cd451c51a5c0ed7f8fb72c16735 26
+EDIT 2 2 166
+import {availableFurniture,canEditRoom} from '../game/housing-access.js';
+import {installSceneInput,installCatalogDrag,installCatalogDrop} from './pointer-input.js';
+
+EDIT 22 23 85
+let storageOK=true,resetting=false;
+const frameHooks=new Set(),eventHooks=new Set();
+
+EDIT 31 32 186
+const ui={category:'住まい',selected:null,selectedRoom:null,pending:null,drawer:false,drag:null,lastActivity:performance.now(),idle:false,entryOpen:true,dialogPage:null,bubbles:new Map()};
+
+EDIT 34 35 706
+async function save(){
+ if(resetting)return false;
+ try{await store.save(world);storageOK=true;$('status').textContent='';$('status').dataset.state='ready';return true;}
+ catch(error){storageOK=false;$('status').dataset.state='warning';$('status').textContent='保存できません。設定の開発者ページからバックアップできます。';return false;}
+}
+// Keep the current world intact until backup succeeds; block every autosave
+// during recovery so beforeunload cannot resurrect the village being removed.
+async function resetVillage(){
+ if(resetting)return;
+ resetting=true;
+ try{await store.recover();location.reload();}
+ catch(error){resetting=false;throw error;}
+}
+window.__VILLAGE_BOOT__={recover:resetVillage,canRecover:()=>store.blocked};
+
+EDIT 39 40 335
+function selection(id,room=view.roomId){view.endObservation();ui.selected=id;ui.selectedRoom=room;ui.pending=null;view.clearGhost();view.showTerrainHints(null);$('placement').hidden=true;const o=world.list(room).find(o=>o.id===id);if(!o){deselect();return;}view.select(o,room);closeDrawer();$('context').hidden=false;updateContext();}
+
+EDIT 42 43 237
+ $('objectLabel').textContent=d.label+((o.level||1)>1?' · '+o.level+'段階目':'');$('enter').hidden=!d.building||!!ui.selectedRoom||!ready(o)||o.kind==='campfire';$('enter').textContent=d.open||['yard','market'].includes(d.shape)?'敷地':'内装';
+
+EDIT 50 52 391
+function closeDrawer(){ui.drawer=false;$('drawer').hidden=true;$('build').setAttribute('aria-expanded','false');$('build').querySelector('span').textContent='つくる';}
+function openDrawer(){
+ input.stop();cancelPlacement();deselect();ui.drawer=true;$('drawer').hidden=false;
+ $('build').setAttribute('aria-expanded','true');$('build').querySelector('span').textContent='閉じる';renderCatalog();
+}
+
+EDIT 55 56 199
+ const items=view.roomId?availableFurniture(world,view.roomId,FURNITURE):ui.category==='庭'?garden:visible.filter(d=>d.category===ui.category),tutorial=world.tutorialStep();$('catalog').innerHTML='';
+
+EDIT 58 59 191
+  b.querySelector('img').src=view.thumbnail(d.id);b.onclick=()=>{if(performance.now()-(ui.lastDrag||0)<350)return;beginPlacement(d.id);};installCatalogDrag(b,d.id,{ui,begin:beginPlacement});
+
+EDIT 64 65 348
+ if(options.length>1&&!p.roomId&&!p.moveId)for(const option of options){const b=document.createElement('button');b.className=option.id===p.material?'active':'';b.textContent=option.label+(option.affordable?'':'');b.dataset.material=option.id;b.onclick=()=>{p.material=option.id;renderMaterials();refreshPreview();};$('materialChoices').append(b);}
+
+EDIT 67 72 887
+function beginPlacement(kind,moveId=null){
+ if(!defs[kind])return false;
+ if(view.roomId&&!canEditRoom(world,view.roomId)){toast('この場所は編集できません');return false;}
+ input.stop();view.endObservation();closeDrawer();deselect();
+ const moved=moveId&&world.list(view.roomId).find(o=>o.id===moveId);if(moveId&&!moved)return false;
+ const material=moved?.material||materialOptions(world.state,kind).find(o=>o.affordable)?.id||'base';
+ ui.pending={kind,rot:moved?.rot||0,moveId,roomId:view.roomId,material};
+ view.interacting=true;view.cameraGoal=null;$('placement').hidden=false;
+ renderMaterials();view.showTerrainHints(kind);$('muraRotation').value=String(Math.round(ui.pending.rot*180/Math.PI));
+ if(moved){ui.pending.x=moved.x;ui.pending.z=moved.z;refreshPreview();}
+ else if(kind==='harbor'){view.focus(166,0,70);previewAt(166,0);}
+ else previewAt(view.target.x,view.target.z);
+ return true;
+
+EDIT 74 79 1456
+function previewAt(x,z){
+ if(!ui.pending)return;const p=ui.pending,h=p.roomId&&world.object(p.roomId);
+ if(p.roomId&&!h){cancelPlacement();return;}
+ const q=h?worldToLocal(h,x,z):{x,z};if(p.kind==='harbor'){q.x=166;p.rot=0;}
+ p.x=q.x;p.z=q.z;refreshPreview();
+}
+function refreshPreview(){
+ const p=ui.pending;if(!p)return;
+ p.error=world.canPlace(p.kind,p.x,p.z,p.rot,p.roomId,p.moveId);
+ view.setGhost(p.kind,p.x,p.z,p.rot,!p.error,p.material);
+ $('placementText').textContent=defs[p.kind].label+' · '+(p.error||'配置できます');
+ $('placement').classList.toggle('invalid',!!p.error);$('cancelPlace').disabled=!!p.error;
+ $('muraRotationValue').textContent=Math.round(p.rot*180/Math.PI)+'°';
+}
+function confirmPlacement(){
+ const p=ui.pending;if(!p)return false;
+ // The displayed candidate is the only commit source. No pointer raycast here.
+ const r=p.moveId?world.move(p.moveId,p.x,p.z,p.rot,p.roomId):world.add(p.kind,p.x,p.z,p.rot,p.roomId,{material:p.material});
+ if(r.error){toast(r.error);refreshPreview();return false;}
+ const id=p.moveId||r.object?.id;cancelPlacement();if(id)selection(id,p.roomId);void save();
+ toast(p.moveId?'移動しました':r.object?.phase==='planned'?'建築を予約しました':'配置しました',2000);return true;
+}
+$('build').onclick=()=>ui.drawer?closeDrawer():openDrawer();$('deselect').onclick=deselect;
+$('move').onclick=()=>{const o=world.list(ui.selectedRoom).find(o=>o.id===ui.selected);if(o){view.roomId=ui.selectedRoom;beginPlacement(o.kind,o.id);}};
+
+EDIT 80 86 1797
+function enterRoom(id){
+ if(!canEditRoom(world,id))return false;
+ input.stop();view.endObservation();cancelPlacement();closeDrawer();deselect();
+ if(!view.enterRoom(id))return false;
+ $('leaveRoom').hidden=false;ui.category='家具';return true;
+}
+function exitRoom(){input.stop();cancelPlacement();closeDrawer();deselect();view.endObservation();view.exitRoom();$('leaveRoom').hidden=true;ui.category='住まい';}
+$('leaveRoom').onclick=exitRoom;
+$('cancelPlace').onclick=confirmPlacement;$('muraCancelPlacement').onclick=cancelPlacement;
+$('muraRotation').oninput=e=>{if(ui.pending){ui.pending.rot=Number(e.target.value)*Math.PI/180;refreshPreview();}};
+$('rotate').onclick=()=>{if(ui.pending){ui.pending.rot=(ui.pending.rot+Math.PI/2)%(Math.PI*2);$('muraRotation').value=String(Math.round(ui.pending.rot*180/Math.PI));refreshPreview();}};
+function showDialog(html,{page='detail',back=null}={}){
+ input.stop();ui.dialogPage=page;
+ $('dialogContent').innerHTML=html;
+ $('dialog').dataset.page=page;
+ const button=$('muraDialogBack');button.hidden=!back;button.onclick=back;
+ if(!$('dialog').open)$('dialog').showModal();view.interacting=true;activity();
+}
+$('dialog').addEventListener('close',()=>{ui.dialogPage=null;view.interacting=!!ui.pending;view.lastInteraction=performance.now();activity();});
+function removeDialog(id,room){const o=world.list(room).find(o=>o.id===id);if(!o)return;showDialog(`<h2>${esc(defs[o.kind].label)}を削除</h2><p>${o.room?`室内の配置物 ${o.room.length}個も一緒に削除します。`:''}「取り消す」で同じ物と内装を戻せます。</p><p class="muted">建築に使った建材は払い戻されません。住人のいる住まいは先に住み替えが必要です。</p><button id="confirmDelete" class="wide danger">削除</button>`);$('confirmDelete').onclick=()=>{const r=world.remove(id,room);if(r.error){toast(r.error);return;}$('dialog').close();deselect();save();toast('削除しました。「つくる」の取り消すで戻せます');};}
+
+EDIT 87 88 1125
+ showDialog(`<span class="eyebrow">${d.clanOnly?'一族の住まい':d.building?'施設の手帖':'設置物'}</span><h2>${esc(d.label)}</h2><p>${esc(d.trait||'村の景色や住まいを整える設置物です。')}</p>${d.building?`<div class="factGrid"><span>建材<b>${esc(MATERIALS[o.material||'base'].label)}</b></span><span>増築<b>${o.level||1} / 3</b></span><span>就労<b>${workers.length} / ${jobsOf(o)}</b></span></div>`:''}${d.terrain?`<p class="muted">立地：${terrainHint(d.terrain)}</p>`:''}${d.produce?`<p>獲得：${costText(d.produce)}${(o.level||1)>1?' × '+(1+((o.level||1)-1)*.45).toFixed(2):''}${d.input?'<br>消費：'+costText(d.input):''}</p>`:''}${workers.length?'<p>働く人：'+workers.map(p=>esc(p.name)).join('、')+'</p>':''}${o.upgrade?`<p>増築中：${Math.floor(o.upgrade.progress*100)}%</p>`:canUpgrade?`<button id="upgrade" class="wide">増築<small>${costText(cost)}</small></button><p class="muted">${world.canAfford(cost)?'必要な資材がそろっています。':'不足：'+world.deficit(cost).join('・')}<br>敷地と内装を保ち、定員・就労枠・生産量・守りを強化します。</p>`:''}${d.clanOnly?'<p class="muted">本編接続待ち。一般NPCは入居しません。ローカルの一族ゲストは開発者ページで試せます。</p>':''}${!d.reserved&&o.kind!=='campfire'?'<button id="delete" class="wide danger">削除</button>':''}`);
+
+EDIT 101 102 479
+function more(){
+ showDialog(`<h2>設定</h2><div class="settingsGrid"><button id="musicOpen">音楽</button><button id="photo">写真</button><button id="journal">出来事</button><button id="help">ヘルプ</button><button id="onlineOpen">オンライン</button><button class="muraTitleAction" id="muraTitleAction">タイトル</button>${info.environment!=='prod'?'<button id="muraDeveloperOpen">開発者</button>':''}</div><p class="muted">${storageOK?'自動保存しています。':'保存できません。開発者ページからバックアップできます。'}</p>`,{page:'settings'});
+
+EDIT 103 108 896
+ $('musicOpen').onclick=()=>{$('dialog').close();window.__SOUL_MUSIC__?.open();};
+ $('photo').onclick=()=>{view.render(elapsed,0);const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='MURAAAAAAA.png';a.click();};
+ $('journal').onclick=()=>showDialog('<h2>出来事</h2>'+world.state.news.slice(0,35).map(n=>`<article class="journalEntry"><small>${Math.floor(n.day/DAYS_YEAR)+1}年 · ${Math.floor(n.day%DAYS_YEAR)+1}日</small><p>${esc(n.text)}</p></article>`).join(''),{page:'events',back:more});
+ $('help').onclick=help;
+ $('muraTitleAction').onclick=async()=>{const b=$('muraTitleAction');b.disabled=true;if(!await save()){b.disabled=false;toast('保存に失敗しました。タイトルには戻りません。');return;}cancelPlacement();closeDrawer();deselect();view.endObservation();$('dialog').close();window.__MURA_ENTRY_POLISH__.open();};
+ if($('muraDeveloperOpen'))$('muraDeveloperOpen').onclick=developer;
+
+EDIT 109 110 2167
+function help(){
+ showDialog(`<h2>村のヘルプ</h2><h3>建築と内装</h3><p>つくるで施設や家具を選び、地面をタップして位置を決めます。「配置」で確定。「取消」は候補だけを取り消します。指でなぞると視点移動、二本指で拡大・縮小と回転ができます。</p><p>完成した施設を選んで「内装」へ。村長として家具の配置・移動・削除ができます。一族の邸宅は一族プレイヤー専用の住まいです。</p><h3>村人の暮らし</h3><p>最初は空きテント、林のそばの伐採場、肥沃な土の小麦畑を用意しましょう。チュートリアルを押すと対象の場所と施設候補へ案内します。資源を初めて手に入れると新しい施設や家具が解放されます。</p><p>食事・警備・住まいの余裕に応じて住民が増えます。住民をタップすると詳細が開き、正面・横・背面から観察できます。「俯瞰」で村の視点へ戻れます。</p><h3>保存</h3><p>村はこの端末に自動保存されます。タイトルへ戻っても続きから再開できます。初期化すると今の村を退避して新しい村へ戻ります。</p><p class="muted">ローカル試作です。本編プレイヤーとの接続は未完了。現在の襲来はAIイベントです。</p>`,{page:'help',back:more});
+}
+function developer(){
+ if(info.environment==='prod')return;
+ showDialog(`<h2>開発者</h2><div class="row"><label for="muraDevSpeed">暮らしの速さ</label><select id="muraDevSpeed"><option value="0">停止</option><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option></select></div><div class="row"><label for="muraDevTilt">チルトシフト</label><output id="muraDevTiltValue"></output><input id="muraDevTilt" type="range" min="0.2" max="1.6" step="0.05"></div><details><summary>データの退避と検証</summary><p>自動保存とは別のJSONバックアップです。復旧・検証用に使用します。</p><button id="exportSave">バックアップ</button><button id="loadSave">復元</button><button id="demoPlayer">一族ゲスト</button><button id="onlineOpen">オンライン試験</button></details>`,{page:'developer',back:more});
+ const speed=$('muraDevSpeed'),tilt=$('muraDevTilt'),value=$('muraDevTiltValue');speed.value=String(world.state.settings.speed);tilt.value=String(world.state.settings.tilt);value.textContent=Number(tilt.value).toFixed(2);
+ speed.onchange=()=>{world.state.settings.speed=Number(speed.value);void save();};tilt.oninput=()=>{world.state.settings.tilt=Number(tilt.value);value.textContent=Number(tilt.value).toFixed(2);};tilt.onchange=()=>void save();
+ $('exportSave').onclick=()=>download(world.export(),'MURAAAAAAA-backup.json');$('loadSave').onclick=()=>$('importFile').click();$('onlineOpen').onclick=openOnline;
+ $('demoPlayer').onclick=()=>{const r=bridge.upsert({id:'lineage-guest',name:'旅の一族（デモ）',clanId:'星渡りの一族'},{demo:true});if(r.error)toast(r.error);else{sim.refresh();$('dialog').close();view.focus(r.person.x,r.person.z,32);void save();}};
+}
+
+EDIT 111 116 350
+function observePerson(id,mode='top'){
+ const p=world.people.find(p=>p.id===id);if(!p)return false;
+ input.stop();cancelPlacement();closeDrawer();deselect();if($('dialog').open)$('dialog').close();
+ if(p.insideId&&view.roomId!==p.insideId){view.enterRoom(p.insideId);$('leaveRoom').hidden=false;}
+ view.observePerson(id,mode);activity();return true;
+
+EDIT 117 132 1747
+function personDialog(id){
+ const p=world.people.find(p=>p.id===id);if(!p)return;
+ const h=world.object(p.homeId),job=world.object(p.jobId),role=p.role==='mayor'?'村長':isGuard(p)?'護衛':isPlayer(p)?'一族プレイヤー':'住民';
+ showDialog(`<span class="eyebrow">${role}</span><h2>${esc(p.name)}</h2><p class="personStatus">${esc(p.status||'休息中')}</p><div class="personMeters">${[['体調',p.health],['満腹',p.hunger],['気分',p.happiness]].map(([label,n])=>`<div><span>${label}</span><meter min="0" max="100" value="${Number(n)||0}"></meter><small>${Math.floor(Number(n)||0)}</small></div>`).join('')}</div><p>住まい：${esc(h?defs[h.kind].label:'なし')}<br>仕事：${esc(job?defs[job.kind].label:role)}<br>好きな時間：${esc(p.favorite||'村の散歩')}</p><div class="memories">${(p.memories||[]).slice(0,3).map(m=>'<p>'+esc(m.text)+'</p>').join('')}</div><div class="muraPersonCamera"><button data-camera="front">正面</button><button data-camera="side">横</button><button data-camera="back">背面</button><button data-camera="top">俯瞰</button></div><button id="followPerson">追従</button>${h?'<button id="visitHome">内装</button>':''}${p.role!=='mayor'&&p.id!=='guard-npc'?'<button id="relocate">住替え</button>':''}`,{page:'person'});
+ for(const b of $('dialogContent').querySelectorAll('[data-camera]'))b.onclick=()=>observePerson(id,b.dataset.camera);
+ $('followPerson').onclick=()=>{observePerson(id,'top');toast('追従中 · ドラッグで解除',1800);};
+ if($('visitHome'))$('visitHome').onclick=()=>{$('dialog').close();enterRoom(h.id);};
+ if($('relocate'))$('relocate').onclick=()=>{const home=sim.availableHomes({player:isPlayer(p)}).find(o=>o.id!==h?.id);if(!home){toast('空き住まいがありません');return;}const r=world.assign(p.id,home.id);if(r.error)toast(r.error);else{$('dialog').close();sim.go(p,home,'home');void save();}};
+
+EDIT 133 137 1039
+function tap(x,y){
+ if(ui.entryOpen)return;
+ if(ui.pending){const p=view.ground(x,y);if(p)previewAt(p.x,p.z);return;}
+ closeDrawer();const person=view.pickPerson(x,y);if(person){personDialog(person);return;}
+ const id=view.pick(x,y);if(id){if(world.object(id)){if(view.roomId&&id!==view.roomId)exitRoom();selection(id,null);}else selection(id,view.roomId);return;}deselect();
+}
+const input=installSceneInput(canvas,{view,ui,tap,activity}),pointers=input.pointers;
+installCatalogDrop({ui,view,preview:previewAt,activity,cancel:cancelPlacement});
+$('tutorialAction').onclick=()=>{
+ const step=world.tutorialStep();if(!step)return;
+ if(!unlocked(world.state,step.kind)){toast('丸太が届くのを待ちましょう');return;}
+ ui.category=defs[step.kind].category;openDrawer();view.endObservation();view.focus(step.at[0],step.at[1],46);
+ const target=$('catalog').querySelector(`[data-kind="${CSS.escape(step.kind)}"]`);
+ if(target){target.classList.add('muraTutorialTarget');requestAnimationFrame(()=>target.scrollIntoView({block:'nearest',inline:'nearest'}));}
+};
+
+EDIT 138 139 209
+function updateTutorial(){const step=world.tutorialStep(),blocked=ui.entryOpen||!!view.observation||!!ui.pending||ui.drawer||!!ui.selected||!!view.roomId||$('dialog').open;$('tutorial').hidden=!step||blocked;
+
+EDIT 141 150 1407
+function updateIdle(){ui.idle=performance.now()-ui.lastActivity>8000&&!ui.entryOpen&&!ui.drag&&!pointers.size&&!ui.drawer&&!ui.pending&&!ui.selected&&!view.roomId&&!view.observation&&!document.querySelector('dialog[open]');}
+function updateBubbles(){
+ const now=performance.now(),layer=$('speechLayer');
+ for(const p of world.people){if(p.bubble&&!ui.bubbles.has(p.bubble.id)&&!ui.seenBubbles?.has(p.bubble.id)){
+  ui.seenBubbles??=new Set();ui.seenBubbles.add(p.bubble.id);if(ui.seenBubbles.size>300)ui.seenBubbles.delete(ui.seenBubbles.values().next().value);
+  const node=document.createElement('div');node.className='speech';node.textContent=p.bubble.text;node.dataset.personId=p.id;layer.append(node);ui.bubbles.set(p.bubble.id,{node,personId:p.id,created:now});
+ }}
+ for(const[id,b]of ui.bubbles){
+  const p=world.people.find(p=>p.id===b.personId);if(!p||now-b.created>5000){b.node.remove();ui.bubbles.delete(id);continue;}
+  const point=view.headPoint(p),micro=view.span>66; b.node.classList.toggle('micro',micro);
+  b.node.style.left=point.x+'px';b.node.style.top=(point.y-6)+'px';
+  b.node.style.setProperty('--speech-scale',String(micro?Math.max(.45,Math.min(.8,65/view.span)):Math.max(.6,Math.min(1,32/view.span))));
+  b.node.hidden=ui.entryOpen||ui.drawer||!!ui.pending||!!ui.dialogPage||point.x<12||point.x>view.w-12||point.y<60||point.y>view.h-90||!!(p.insideId&&p.insideId!==view.roomId);
+ }
+
+EDIT 153 154 119
+world.listeners.add(()=>{renderDirty=true;});sim.onEvent=(text,type)=>{for(const hook of eventHooks)hook(text,type);};
+
+EDIT 155 156 256
+ if(!ui.entryOpen&&!resetting)sim.update(dt*world.state.settings.speed);if(renderDirty){view.rebuild();renderDirty=false;updateContext();if(ui.selected){const o=world.list(ui.selectedRoom).find(o=>o.id===ui.selected);if(o)view.select(o,ui.selectedRoom);}}
+
+EDIT 158 159 286
+ if(elapsed-lastSave>12){lastSave=elapsed;save();}view.interacting=ui.entryOpen||!!ui.pending||!!ui.drag||pointers.size>0||!!document.querySelector('dialog[open]')||ui.drawer;view.render(elapsed,dt);updateBubbles();for(const hook of frameHooks)hook(now,dt);requestAnimationFrame(loop);
+
+EDIT 161 162 439
+window.village={world,sim,view,ui,bridge,version:5,frameHooks,eventHooks,info,toast,resetVillage,more,help,developer,observePerson,confirmPlacement,previewAt,refreshPreview,exitRoom,closeDrawer,renderCatalog,deselect,enterRoom,openDrawer,beginPlacement,cancelPlacement,selection,personDialog,buildingDetails,updateIdle,updateTutorial,save,activity,get fps(){return frameSeconds?frames/frameSeconds:0;},get storageOK(){return storageOK;}};
+
