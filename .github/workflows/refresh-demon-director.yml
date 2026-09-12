@@ -1,0 +1,44 @@
+name: Refresh demon director feature branch
+on:
+  push:
+    branches: [diagnostics/refresh-demon-director-20260912]
+    paths: [.github/workflows/refresh-demon-director.yml]
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/demon-raid-briefing-devour
+          fetch-depth: 0
+      - name: Merge current develop into the exact authorized feature head
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch=feat/demon-raid-briefing-devour
+          expected=0eea78333865eeb6f0a6dd6492074706bc224dcd
+          test "$(git rev-parse HEAD)" = "$expected"
+          git fetch origin develop "$branch"
+          test "$(git rev-parse "origin/$branch")" = "$expected"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          base=$(git rev-parse origin/develop)
+          git merge --no-ff --no-edit "$base"
+          git diff --check HEAD^ HEAD
+          mkdir -p /tmp/demon-refresh
+          git rev-parse HEAD > /tmp/demon-refresh/HEAD
+          git rev-parse HEAD^{tree} > /tmp/demon-refresh/TREE
+          printf '%s\n' "$base" > /tmp/demon-refresh/DEVELOP
+          git diff --stat "$base" HEAD > /tmp/demon-refresh/DIFFSTAT
+          git diff "$base" HEAD -- apps/demon/src/web/main.js > /tmp/demon-refresh/main.patch
+          git push origin "HEAD:refs/heads/$branch"
+          printf 'Refreshed only %s to %s; no develop/main ref writes.\n' "$branch" "$(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: demon-feature-refresh-proof
+          path: /tmp/demon-refresh
+          retention-days: 3
