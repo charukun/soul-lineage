@@ -38,7 +38,7 @@ test('placement, highlight, climate and rich detail UI contracts stay enabled',(
  assert.match(source,/MURAAAAAAA_FacilityIdentity/);
 });
 
-test('entry screen, idle Village Now and camera inertia contracts stay enabled',()=>{
+test('entry screen and idle Village Now contracts stay enabled',()=>{
  const source=read('mura-entry-polish.js');
  assert.match(source,/id="muraEntryCard"/);
  assert.match(source,/id="muraEnterVillage"/);
@@ -46,10 +46,18 @@ test('entry screen, idle Village Now and camera inertia contracts stay enabled',
  assert.match(source,/panel\.classList\.remove\('visible'\)/);
  assert.match(source,/id='muraFollowMayor'/);
  assert.match(source,/view\.followId=mayor\.id/);
- assert.match(source,/installCameraInertia/);
- assert.match(source,/Math\.exp\(-4\.35/);
+ assert.match(source,/muraMayorFollow/);
  assert.match(source,/#tutorial\{/);
  assert.match(source,/grid-template-columns:auto minmax\(0,1fr\) auto/);
+});
+
+test('camera inertia preserves release velocity and coasts after pointer up',()=>{
+ const source=read('mura-experience.js');
+ assert.match(source,/const cancelInertiaFrame/);
+ assert.match(source,/Do not call stopInertia here/);
+ assert.match(source,/Math\.pow\(\.94/);
+ assert.match(source,/inertia\.vx\*dt\*1\.18/);
+ assert.match(source,/inertia\.vx=inertia\.vx\*\.62\+rawX\*\.38/);
 });
 
 test('music adapter resumes after returning to the browser',()=>{
