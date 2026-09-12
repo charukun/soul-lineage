@@ -38,6 +38,7 @@ const shortSha = value => value ? String(value).slice(0, 12) : '確定不能';
 const badge = (label, tone = 'info') => el('span', `badge ${tone}`, label);
 const deployLabel = state => ({ success:'公開済み', deploying:'deploy中', waiting:'deploy待ち', failed:'失敗', unknown:'不明' })[state] || state || '不明';
 const deployTone = state => ({ success:'ok', deploying:'progress', waiting:'warning', failed:'danger', unknown:'info' })[state] || 'info';
+const overallLabel = integration => ({ ok:'正常', progress:'処理中', warning:'確認', danger:'要対応', info:'確認中' })[integration?.tone] || '確認中';
 
 function metric(label, value, isSha = false) {
   const box = el('div', 'metric');
@@ -88,10 +89,51 @@ function environmentCard(env) {
   return card;
 }
 
+function setSummary(id, value, note, tone = 'info') {
+  const node = $(id);
+  if (!node) return;
+  node.textContent = value;
+  const card = node.closest('.summary-card');
+  if (card) card.className = `summary-card tone-${tone}`;
+  const small = card?.querySelector('small');
+  if (small && note !== undefined) small.textContent = note;
+}
+
+function renderOverview(state, integration) {
+  const hero = $('#hero');
+  const label = overallLabel(integration);
+  hero.className = `summary-card tone-${integration?.tone || 'info'}${state.syncStatus === 'degraded' ? ' error' : ''}`;
+  hero.replaceChildren(
+    el('span', 'summary-label', '全体'),
+    el('strong', 'summary-value', state.syncStatus === 'degraded' ? '同期注意' : label),
+    el('small', '', state.syncStatus === 'degraded' ? 'データ取得が劣化中' : '自動統合'),
+  );
+
+  const apps = state.applications || [];
+  const healthyApps = apps.filter(app => (app.targets || []).length && (app.targets || []).every(target => target.state === 'success')).length;
+  const failedApps = apps.filter(app => (app.targets || []).some(target => target.state === 'failed')).length;
+  const appTone = failedApps ? 'danger' : healthyApps === apps.length && apps.length ? 'ok' : 'warning';
+  setSummary('#summary-apps', apps.length ? `${healthyApps}/${apps.length}` : '—', failedApps ? `要対応 ${failedApps}` : '正常アプリ', appTone);
+
+  const pulls = [...(state.pullRequests?.normal || []), ...(state.pullRequests?.visualReview || [])];
+  const drafts = pulls.filter(pr => pr.state === 'Draft').length;
+  const ready = pulls.filter(pr => pr.state === 'Ready').length;
+  setSummary('#summary-drafts', String(drafts), 'PR', drafts ? 'progress' : 'ok');
+  setSummary('#summary-ready', String(ready), 'PR', ready ? 'warning' : 'ok');
+
+  const diffCount = state.environmentDiff?.count;
+  setSummary('#summary-diff', Number.isInteger(diffCount) ? (diffCount ? `+${diffCount}` : '0') : '—', 'Production比', Number.isInteger(diffCount) ? (diffCount ? 'warning' : 'ok') : 'info');
+
+  const failures = state.recentActionFailures || [];
+  setSummary('#summary-failures', String(failures.length), 'Actions', failures.length ? 'danger' : 'ok');
+}
+
 function renderAlerts(alerts = []) {
+  const section = $('#alert-section');
   const root = $('#alerts');
   root.replaceChildren();
-  root.hidden = alerts.length === 0;
+  section.hidden = alerts.length === 0;
+  $('#alert-count').textContent = alerts.length ? `${alerts.length}件` : '';
   for (const item of alerts) {
     const box = safeHref(item.url) ? link('', item.url, `alert ${item.tone}`) : el('div', `alert ${item.tone}`);
     box.append(el('strong', '', item.title));
@@ -114,9 +156,10 @@ function renderIntegration(integration = {}) {
   root.replaceChildren();
   const top = el('div', 'integration-summary');
   const desc = el('div');
-  desc.append(el('strong', '', integration.label || '不明'));
-  desc.append(el('p', 'muted', `Ready滞留警告: ${integration.watchdog?.staleReadyCount ?? 0}件 / 閾値 ${integration.watchdog?.stalledThresholdMinutes ?? 10}分`));
-  top.append(desc, badge(integration.label || '不明', integration.tone || 'info'));
+  const label = overallLabel(integration);
+  desc.append(el('strong', '', label));
+  desc.append(el('p', 'muted', `統合待ち警告: ${integration.watchdog?.staleReadyCount ?? 0}件 / 閾値 ${integration.watchdog?.stalledThresholdMinutes ?? 10}分`));
+  top.append(desc, badge(label, integration.tone || 'info'));
   root.append(top);
 
   const list = el('div', 'queue-list');
@@ -151,16 +194,11 @@ function renderFailures(items = []) {
 
 function render(state) {
   const integration = state.integration || { label:'不明', tone:'info' };
-  const hero = $('#hero');
-  hero.className = `hero tone-${integration.tone || 'info'}${state.syncStatus === 'degraded' ? ' error' : ''}`;
-  hero.replaceChildren();
-  const status = el('div', 'hero-status');
-  status.append(el('span', 'dot'), el('strong', '', integration.label));
-  hero.append(status, el('p', '', state.syncStatus === 'degraded' ? `同期劣化: ${state.syncError || 'unknown'}` : state.environmentDiff?.label || '公開状態を同期済み'));
-
+  renderOverview(state, integration);
   renderAlerts(state.alerts || []);
+
   const envs = state.environments || [];
-  $('#env-count').textContent = `${envs.length} environments`;
+  $('#env-count').textContent = `${envs.length}件`;
   const environmentRoot = $('#environments');
   environmentRoot.replaceChildren();
   if (!envs.length) {
@@ -186,11 +224,8 @@ async function load() {
     render(await response.json());
   } catch (error) {
     const hero = $('#hero');
-    hero.className = 'hero tone-danger error';
-    hero.replaceChildren();
-    const status = el('div', 'hero-status');
-    status.append(el('span', 'dot'), el('strong', '', '取得失敗'));
-    hero.append(status, el('p', '', error.message));
+    hero.className = 'summary-card tone-danger error';
+    hero.replaceChildren(el('span', 'summary-label', '全体'), el('strong', 'summary-value', '取得失敗'), el('small', '', error.message));
   } finally {
     button.disabled = false;
   }
