@@ -1,4 +1,3 @@
-import './mura-master-characters.js';
 import { THREE as T, GLTFLoader } from '@soul/rendering';
 import { View } from './web/view.js';
 
