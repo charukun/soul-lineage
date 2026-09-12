@@ -1,4 +1,5 @@
 export const OPS_PUBLIC_URL = 'https://rinne-ops.c-okamoto.workers.dev/';
+export const PORTAL_PUBLIC_URL = 'https://rinne-portal.c-okamoto.workers.dev/';
 
 const displayNames = {
   rinne: '輪廻転焦',
@@ -64,6 +65,23 @@ export function buildApplications(manifest = {}, environments = [], runs = []) {
     });
   }
 
+  const portalRun = runs.find(run => run.name === 'Rinne Public Portal') || null;
+  groups.set('portal', {
+    id: 'portal',
+    name: 'RINNE GATE（公開リンク集）',
+    kind: 'tool',
+    targets: [{
+      id: 'portal',
+      label: '一般公開',
+      environment: 'tool',
+      state: runState(portalRun),
+      url: PORTAL_PUBLIC_URL,
+      commit: portalRun?.head_sha || null,
+      deployedAt: portalRun?.updated_at || null,
+      source: 'Rinne Public Portal workflow',
+    }],
+  });
+
   const opsRun = runs.find(run => run.name === 'Rinne Ops Board') || null;
   groups.set('ops-board', {
     id: 'ops-board',
@@ -105,7 +123,7 @@ export function buildApplications(manifest = {}, environments = [], runs = []) {
     });
   }
 
-  const order = ['rinne', 'village', 'demon', 'lanternfell', 'visual-review', 'ops-board'];
+  const order = ['rinne', 'village', 'demon', 'lanternfell', 'visual-review', 'portal', 'ops-board'];
   return [...groups.values()]
     .map(group => ({ ...group, targets: [...group.targets].sort((a, b) => (a.environment === 'prod' ? 1 : 0) - (b.environment === 'prod' ? 1 : 0)) }))
     .sort((a, b) => {
