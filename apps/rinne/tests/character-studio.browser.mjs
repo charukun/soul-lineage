@@ -86,6 +86,7 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
     assert.equal((await state()).selected,5);
     assert.equal(await page.evaluate(()=>window.characterStudio.workspace.getProfile(window.characterStudio.review.records[0].id).hair),'bob');
     const advancedBefore=await bounds();
+    assert.ok(advancedBefore.y>=0 && advancedBefore.h>=150 && advancedBefore.b<=844,JSON.stringify(advancedBefore));
     await page.locator('.controls').evaluate(node=>node.scrollTop=node.scrollHeight);
     const advancedAfter=await bounds();assert.equal(advancedBefore.y,advancedAfter.y);assert.equal(advancedBefore.h,advancedAfter.h);
     await page.locator('.controls details').last().evaluate(node=>node.open=true);
@@ -97,6 +98,9 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
     assert.equal((await state()).selected,5);
     await page.locator('#session-file').setInputFiles(path);
     await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('顔・髪・服も引き継ぎ'));
+    const advancedFocused=await bounds();
+    assert.equal(advancedFocused.y,advancedBefore.y);assert.equal(advancedFocused.h,advancedBefore.h);
+    assert.ok(advancedFocused.b<=844 && advancedFocused.y>=0,JSON.stringify(advancedFocused));
     await page.screenshot({path:resolve(output,'studio-advanced-mobile.png')});
     await page.locator('.page-head a.back').click(); await ready();
     assert.equal((await state()).selected,5); assert.equal((await state()).records[5].ageMs,55*60000);
