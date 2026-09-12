@@ -1,0 +1,31 @@
+{
+  "title": "WAYFINDER",
+  "subtitle": "A MOVING DIRECTORY",
+  "version": 2,
+  "items": [
+    {
+      "id": "guiltys-garden",
+      "room": "ROOM 01",
+      "title": "GUILTY'S GARDEN",
+      "description": "別プロジェクトとして運用している公開サイト。ページそのものを作品として見せるリッチプレビューで紹介します。",
+      "accent": "#ef6f9c",
+      "previewUrl": "https://guiltys-garden.com/",
+      "fallbackPreviewUrl": "https://github.com/charukun/gg-sites",
+      "links": [
+        { "label": "SITE", "url": "https://guiltys-garden.com/", "kind": "site" },
+        { "label": "SOURCE", "url": "https://github.com/charukun/gg-sites", "kind": "source" }
+      ]
+    },
+    {
+      "id": "yare",
+      "room": "ROOM 02",
+      "title": "YARE",
+      "description": "AIを使ったMarketing Ops基盤。現時点では公開アプリURLが確定していないため、公開Repositoryを入口にしています。",
+      "accent": "#f2b25d",
+      "previewUrl": "https://github.com/charukun/doit-yare",
+      "links": [
+        { "label": "SOURCE", "url": "https://github.com/charukun/doit-yare", "kind": "source" }
+      ]
+    }
+  ]
+}

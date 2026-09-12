@@ -1,0 +1,148 @@
+name: Wayfinder Public Gallery
+
+on:
+  push:
+    branches:
+      - develop
+      - 'feat/**'
+      - 'fix/**'
+      - 'work/**'
+    paths:
+      - 'portal/**'
+      - 'wrangler.portal.jsonc'
+      - 'wrangler.portal-legacy.jsonc'
+      - '.github/workflows/portal.yml'
+      - 'tests/portal.test.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: wayfinder-public-gallery
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Fast gallery verification
+        run: |
+          node --check portal/public/app.js
+          node --check portal/worker.mjs
+          node --check portal/legacy-redirect.mjs
+          node --test tests/portal.test.mjs
+          grep -q 'WAYFINDER' portal/public/index.html
+          grep -q 'share-page' portal/public/index.html
+          grep -q 'copy-page' portal/public/index.html
+          grep -q 'favicon.svg' portal/public/index.html
+          ! grep -q 'rel="manifest"' portal/public/index.html
+
+      - name: Probe external destinations without blocking gallery deploy
+        run: |
+          node --input-type=module <<'JS' > /tmp/portal-urls.txt
+          import fs from 'node:fs';
+          const catalog = JSON.parse(fs.readFileSync('portal/catalog.json', 'utf8'));
+          const urls = catalog.items.flatMap(item => item.links || []).map(link => link.url);
+          for (const url of [...new Set(urls)]) console.log(url);
+          JS
+          while IFS= read -r url; do
+            echo "CHECK $url"
+            code=$(curl -L -sS --retry 2 --retry-delay 1 --connect-timeout 8 --max-time 20 -o /dev/null -w '%{http_code}' "$url" || true)
+            case "$code" in
+              2*|3*) echo "OK $code" ;;
+              *) echo "::warning::Destination currently unavailable ($code): $url" ;;
+            esac
+          done < /tmp/portal-urls.txt
+
+      - name: Prepare static catalog
+        run: cp portal/catalog.json portal/public/catalog.json
+
+      - name: Deploy Wayfinder to Cloudflare Workers
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --yes wrangler@4 deploy --config wrangler.portal.jsonc
+
+      - name: Use stable public URL
+        id: public
+        if: steps.deploy.outcome == 'success'
+        run: |
+          echo "url=https://wayfinder-gallery.c-okamoto.workers.dev/" >> "$GITHUB_OUTPUT"
+          echo "WAYFINDER: https://wayfinder-gallery.c-okamoto.workers.dev/" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify deployed gallery after propagation
+        if: steps.public.outputs.url != ''
+        env:
+          PORTAL_URL: ${{ steps.public.outputs.url }}
+        run: |
+          ready=false
+          for attempt in $(seq 1 15); do
+            code=$(curl -L -sS --connect-timeout 10 --max-time 20 -o /tmp/portal-index.html -w '%{http_code}' "$PORTAL_URL" || true)
+            if [ "$code" = "200" ] && grep -q 'WAYFINDER' /tmp/portal-index.html; then
+              ready=true
+              break
+            fi
+            echo "Waiting for Workers propagation ($attempt/15, HTTP $code)"
+            sleep 2
+          done
+          if [ "$ready" != "true" ]; then
+            echo "::error::Wayfinder root did not become ready"
+            exit 1
+          fi
+
+          curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "${PORTAL_URL}catalog.json" > /tmp/catalog.json
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const x=JSON.parse(fs.readFileSync('/tmp/catalog.json','utf8'));
+          const text=JSON.stringify(x).toLowerCase();
+          if(!Array.isArray(x.items)||x.items.length<2) process.exit(1);
+          if(/soul-lineage|bloodline-legacy|rinne-/.test(text)) process.exit(2);
+          JS
+          curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "${PORTAL_URL}api/catalog" | node --input-type=module -e "let s='';for await(const c of process.stdin)s+=c;const x=JSON.parse(s);if(!Array.isArray(x.items)||!x.items.some(i=>i.id==='guiltys-garden')||!x.items.every(i=>'preview' in i))process.exit(1)"
+          curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "${PORTAL_URL}favicon.svg" | grep -q '<svg'
+
+      - name: Redirect legacy portal URL to Wayfinder
+        if: steps.public.outputs.url != ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4 deploy --config wrangler.portal-legacy.jsonc
+
+      - name: Verify legacy redirect
+        if: steps.public.outputs.url != ''
+        run: |
+          location=$(curl -sSI --retry 6 --retry-delay 2 --retry-all-errors https://rinne-portal.c-okamoto.workers.dev/ | tr -d '\r' | awk 'BEGIN{IGNORECASE=1}/^location:/{print $2; exit}')
+          test "$location" = "https://wayfinder-gallery.c-okamoto.workers.dev/"
+
+      - name: Record public gallery status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLIC_URL: ${{ steps.public.outputs.url }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          state=failure
+          description="WAYFINDER deployment failed"
+          target_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [ "$JOB_STATUS" = "success" ] && [ -n "$PUBLIC_URL" ]; then
+            state=success
+            description="WAYFINDER is live"
+            target_url="$PUBLIC_URL"
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$state" \
+            -f context=portal/public \
+            -f description="$description" \
+            -f target_url="$target_url"
