@@ -86,6 +86,7 @@ function start() {
     el('identity').textContent = `${record.id}\nseed ${record.seed} / revision ${record.revision}\n${record.ageMs / YEAR_MS}歳 / ${record.lifeState}\n${record.outfitId}\n親: ${record.parents.join(', ') || 'なし'}`;
     el('subject').textContent = `個体 ${settings.selected + 1} / ${settings.count} · ${record.ageMs / YEAR_MS}歳`;
     review.settings = { ...settings }; review.records = records;
+    window.dispatchEvent(new Event('character-review-change'));
   }
   function background() {
     const color = { slate: '#1e3036', white: '#ffffff', black: '#000000' }[settings.background];
@@ -192,7 +193,7 @@ function start() {
       rebuild(); el('progress').value = .8; renderer.compile(scene, camera); renderer.render(scene, camera);
       review.ready = true; el('progress').value = 1; status('監査済みモデルを表示中。個体差・表情・揺れ・共有状態を検査できます。');
     } catch (error) { review.ready = !installed && Boolean(pool); retry = defaultBytes; report(error); }
-    finally { nextPool?.dispose(); disposeTemplate(nextTemplate); loading = false; el('retry').disabled = !alive; }
+    finally { nextPool?.dispose(); disposeTemplate(nextTemplate); loading = false; el('retry').disabled = !alive; window.dispatchEvent(new Event('character-review-change')); }
   }
   for (const id of ['view', 'count']) on(el(id), 'change', guard(() => update({ [id]: id === 'count' ? Number(el(id).value) : el(id).value }, id === 'count' ? 'rebuild' : 'arrange')));
   function regenerate() { settings = reviewSettings({ ...settings, seed: Number(el('seed').value) }); records = createReviewCohort(settings); rebuild(); }
@@ -271,6 +272,22 @@ function start() {
     } catch (error) { review.ready = false; report(error); }
   }
   review.sample = age => { settings = reviewSettings({ ...settings, age, ages: 'fixed' }); records = records.map(r => editReviewCharacter(r, { age })); refreshLooks(); };
+  // Explicit inspection API. Never touches game saves, inventories or network authority.
+  review.session = () => serializeReviewSession({ settings, records, note: el('note').value });
+  review.restore = text => {
+    const next = deserializeReviewSession(text);
+    if (pool && next.settings.expression && !pool.diagnostics().expressionNames.includes(next.settings.expression)) throw new Error('このモデルに存在しない表情です');
+    settings = next.settings; records = next.records; el('note').value = next.note;
+    rebuild(); background();
+  };
+  review.editSelected = changes => {
+    records[settings.selected] = editReviewCharacter(records[settings.selected], changes);
+    if (changes.age !== undefined) settings.ages = 'mixed';
+    refreshLooks();
+  };
+  review.configure = patch => update(patch, patch.count !== undefined ? 'rebuild' : patch.view !== undefined || patch.selected !== undefined ? 'arrange' : 'looks');
+  review.refresh = refreshLooks;
+  review.aim = aim;
   function dispose() {
     if (!alive) return; alive = false; review.ready = false; cancelAnimationFrame(frameId); events.abort(); observer.disconnect(); orbit.dispose();
     pool?.dispose(); disposeTemplate(template); ground.geometry.dispose(); ground.material.dispose(); marker.geometry.dispose(); marker.material.dispose(); renderer.dispose();
@@ -279,3 +296,5 @@ function start() {
   on(window, 'pageshow', suspend); syncUI(); background(); frameId = requestAnimationFrame(frame); void load(defaultBytes);
 }
 try { start(); } catch (error) { report(error); el('retry').disabled = false; el('retry').onclick = () => location.reload(); }
+
+if (document.body.classList.contains('advanced-review')) import('./character-workspace-advanced.js').catch(report);
