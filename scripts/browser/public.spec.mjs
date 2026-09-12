@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { appendFileSync } from 'node:fs';
-import {verifySoloClarity,verifyHuntClarity} from './play-clarity.mjs';
+import {registerClarityTests} from './public-clarity.mjs';
 import { isVerifiedAudioRangeAbort, describeFailedRequest } from './media-request-contract.mjs';
 const base = process.env.BROWSER_SITE_URL?.replace(/\/?$/, '/');
 const targets = JSON.parse(process.env.BROWSER_TARGETS || '[]');
@@ -45,7 +45,6 @@ for (const target of targets) {
       expect(frame).toBeTruthy();
       const ready = await frame.evaluate(() => ({ ready: window.__ATELIER__?.snapshot().ready, model: window.__HUMANOID_LAB__?.report().id, finite: window.__HUMANOID_LAB__?.report().finite }));
       expect(ready.ready).toBe(true); expect(ready.finite).toBe(true); expect(ready.model).toBe('SHINO');
-      await verifySoloClarity(page, frame, expect, testInfo);
       await frame.evaluate(() => window.__ATELIER__.stop());
       const combat = await frame.evaluate(() => {
         const app = window.__ATELIER__;
@@ -88,7 +87,6 @@ for (const target of targets) {
       const started = await page.evaluate(() => window.__NIGHT_HUNT__.snapshot());
       expect(started.profile.visits[started.village].status).toBe('entered');
       expect(started.metrics.assets.floor).toBeGreaterThan(0);
-      await verifyHuntClarity(page, expect, testInfo);
       await page.mouse.click(195, 510);
       await page.waitForTimeout(150);
       const tapped = await page.evaluate(() => window.__NIGHT_HUNT__.snapshot());
@@ -201,3 +199,6 @@ for (const target of targets) {
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n- Browser OK: ${url} — ${target.version.commit} — WebGL2\n`);
   });
 }
+
+// Each added interaction scenario gets its own fresh page, storage and time budget.
+registerClarityTests({test, expect, targets, base});
