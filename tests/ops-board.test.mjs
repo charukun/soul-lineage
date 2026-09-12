@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import {
   STALL_WARNING_MS,
   classifyPull,
@@ -111,4 +112,15 @@ test('Visual Review Lab is separated from ordinary implementation PRs', () => {
 test('worker deployment URL parser only accepts the stable rinne-ops URL', () => {
   assert.equal(opsDeploymentUrl('Uploaded\nhttps://rinne-ops.c-okamoto.workers.dev\n'), 'https://rinne-ops.c-okamoto.workers.dev/');
   assert.throws(() => opsDeploymentUrl('https://example.workers.dev'));
+});
+
+test('public dashboard is compact, grouped, and not installable as a PWA', async () => {
+  const index = await readFile(new URL('../ops-board/public/index.html', import.meta.url), 'utf8');
+  const appBoard = await readFile(new URL('../ops-board/public/app-board.js', import.meta.url), 'utf8');
+  assert.match(index, /class="summary-grid"/);
+  assert.match(index, /概要/);
+  assert.match(index, /アプリ別の公開状況/);
+  assert.doesNotMatch(index, /rel="manifest"/);
+  assert.match(appBoard, /ゲーム \/ 専用開発版/);
+  assert.match(appBoard, /開発ツール/);
 });
