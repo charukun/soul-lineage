@@ -4,7 +4,7 @@ const bool=(v,d)=>v==='1'?true:v==='0'?false:d;
 export function readReviewState(input){
  const p=input instanceof URLSearchParams?input:new URLSearchParams(input);
  const sequence=p.getAll('stage').filter(n=>n&&n.length<=200).slice(0,3);
- return{version:2,sequence,preset:p.get('preset')||'model.SHINO',clip:p.get('clip')||'通常 / 自然体',mode:p.get('mode')==='combat'?'combat':'normal',
+ return{version:2,sequence,preset:p.get('preset')||'model.SHINO',clip:p.get('rest')==='1'?'':p.has('clip')?p.get('clip'):'通常 / 自然体',mode:p.get('mode')==='combat'?'combat':'normal',
   weaponId:WEAPONS.includes(p.get('weaponId'))?p.get('weaponId'):'katana',weaponEnabled:bool(p.get('weapon'),false),weaponScale:number(p.get('weaponScale'),.5,.1,1),
   weaponX:number(p.get('weaponX'),0,-360,360),weaponY:number(p.get('weaponY'),0,-360,360),weaponZ:number(p.get('weaponZ'),0,-360,360),
   camera:['front','back','left','right','top','three'].includes(p.get('camera'))?p.get('camera'):'three',inPlace:bool(p.get('inPlace'),true),vfx:bool(p.get('vfx'),false),marker:number(p.get('marker'),.42,0,120),

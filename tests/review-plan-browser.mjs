@@ -101,6 +101,14 @@ try{
   await page.locator('#review-feedback-close').click();await page.locator('#copy-motion').click();assert.ok((await page.locator('#review-feedback-text').inputValue()).endsWith('再確認メモ'));await page.locator('#review-feedback-close').click();
   return{transitions,sequence:f.sequence,globalTime:f.time,localTime:f.localTime,feedbackRetained:true};
  });
+ await step('Static rig inspection also round-trips through the public state URL',async()=>{
+  await page.locator('[data-primary="advanced"]').click();await page.locator('#rest-pose').click();
+  const before=await snap();assert.equal(before.state.clip,'');assert.equal(before.state.playing,false);
+  const link=await page.evaluate(()=>window.__reviewLab.stateURL());const other=await context.newPage();observe(other);
+  await other.goto(link,{waitUntil:'domcontentloaded',timeout:60000});await ready(other);await other.waitForTimeout(300);
+  const after=await snap(other);assert.equal(after.state.clip,'');assert.equal(after.state.playing,false);assert.deepEqual(after.sequence,[]);
+  await other.screenshot({path:resolve(out,'static-restored.png')});await other.close();return{before:before.state,after:after.state};
+ });
  await step('No runtime/page errors or failed requests; converted motion integrity is enforced',async()=>{assert.deepEqual(report.errors,[]);assert.deepEqual(report.network,[]);return{issues:(await snap()).assetProblems};});
  report.final=await snap();
 }catch(error){report.fatal=String(error);await shot('fatal').catch(()=>{});}

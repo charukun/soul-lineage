@@ -42,3 +42,10 @@ test('sequence URL preserves repeated stages and final paused global time',()=>{
  const r=readReviewState(reviewStateURL('https://example.invalid/',s).searchParams);
  assert.deepEqual(r.sequence,s.sequence);assert.equal(r.time,s.time);assert.equal(r.playing,false);assert.equal(r.loop,false);
 });
+
+
+test('rest pose URLs preserve an explicitly empty clip and legacy rest flag',()=>{
+ const s={...readReviewState(''),clip:'',sequence:[],playing:false};
+ const round=readReviewState(reviewStateURL('https://example.invalid/',s).searchParams);
+ assert.equal(round.clip,'');assert.equal(round.playing,false);assert.equal(readReviewState('rest=1').clip,'');
+});

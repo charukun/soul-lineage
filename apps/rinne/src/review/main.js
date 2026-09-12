@@ -100,9 +100,9 @@ async function startReview() {
   }
   function playClip(name,autoplay=true,restore=false){playSequence(name?[name]:[],autoplay,restore);}
   function restoreSelection(){
-    const names=state.sequence?.length?[...state.sequence]:[state.clip||'通常 / 自然体'];
+    const names=state.sequence?.length?[...state.sequence]:state.clip?[state.clip]:[];
     if(!names.every(n=>body.clipNames.includes(n)))return false;
-    const savedTime=state.time,savedClip=state.clip,playing=state.playing;
+    const savedTime=state.time,playing=state.playing;
     playSequence(names,playing,true);clock.time=Math.min(savedTime,clock.duration);
     restoringSequence=true;sample();restoringSequence=false;return true;
   }
@@ -125,6 +125,7 @@ async function startReview() {
     }
     const absent=REVIEW_MOTION_FAMILIES.filter(row=>!body.clipNames.some(name=>classifyMotion(name)===row.id)).map(row=>row.label);
     q('#family-summary').textContent=body.summary||`収録 ${body.clipNames.length}動作。${absent.length?'未収録: '+absent.join('・'):'6系統の候補を検出'}。動作名は配布元のまま。`;
+    if(!body.poseTransfer&&!state.shared&&!body.clipNames.includes(state.clip)){state.clip=body.clipNames[0]||'';state.sequence=[];}
     if(!restoreSelection()){clock.playing=false;setStatus('指定モーションを読み込み中');}
     wireframe();refreshHelpers();frameModel(state.camera);syncControls();sample();
     document.dispatchEvent(new CustomEvent('review-model-loaded',{detail:{presetId:state.preset}}));
@@ -176,7 +177,7 @@ async function startReview() {
   q('#grid-toggle').addEventListener('change',()=>{grid.visible=q('#grid-toggle').checked;ground.visible=grid.visible;});
   for(const id of ['#weapon-toggle','#weapon-select','#weapon-scale','#weapon-x','#weapon-y','#weapon-z','#overlay-toggle','#overlay-time'])q(id).addEventListener('input',()=>{
     state.weaponEnabled=q('#weapon-toggle').checked;state.weaponId=q('#weapon-select').value;
-    state.weaponScale=numeric('#weapon-scale',.5);state.weaponX=numeric('#weapon-x');state.weaponY=numeric('#weapon-y');state.weaponZ=numeric('#weapon-z');state.vfx=q('#overlay-toggle').checked;state.marker=numeric('#overlay-time',.42);syncControls();sample();
+    state.weaponScale=Math.max(.1,Math.min(1,numeric('#weapon-scale',.5)));state.weaponX=Math.max(-360,Math.min(360,numeric('#weapon-x')));state.weaponY=Math.max(-360,Math.min(360,numeric('#weapon-y')));state.weaponZ=Math.max(-360,Math.min(360,numeric('#weapon-z')));state.vfx=q('#overlay-toggle').checked;state.marker=numeric('#overlay-time',.42);syncControls();sample();
   });
   document.addEventListener('review-combat-mode',event=>{state.mode=event.detail.mode==='combat'?'combat':'normal';state.time=0;playClip(state.mode==='combat'?'Tidebreak / Idle':'通常 / 自然体',true,true);clock.loop=true;syncControls();sample();});
   document.addEventListener('review-phase',event=>{const phases=metaFor()?.phases||[],index=Number(event.detail.index);if(phases[index]){clock.seek((sequenceFrame(sequence,clock.time)?.offset||0)+phases[index][1]);sample();}});
