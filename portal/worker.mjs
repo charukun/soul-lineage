@@ -1,6 +1,6 @@
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'public, max-age=300, s-maxage=1800, stale-while-revalidate=86400',
+  'cache-control': 'no-store',
 };
 
 const PULSE_STATE_URL = 'https://rinne-ops.c-okamoto.workers.dev/api/state';
@@ -202,11 +202,14 @@ async function catalogFromAssets(env, request) {
   return response.json();
 }
 
-async function catalogFromPulse() {
-  const response = await fetch(PULSE_STATE_URL, {
+async function catalogFromPulse(env) {
+  const options = {
     headers: { accept: 'application/json', 'user-agent': 'wayfinder-pulse-directory/1.0' },
     signal: AbortSignal.timeout(10000),
-  });
+  };
+  const response = env?.PULSE?.fetch
+    ? await env.PULSE.fetch('https://pulse.internal/api/state', options)
+    : await fetch(PULSE_STATE_URL, options);
   if (!response.ok) throw new Error(`PULSE HTTP ${response.status}`);
   return catalogFromPulseState(await response.json());
 }
@@ -236,7 +239,7 @@ export default {
       let degraded = false;
       let syncError = null;
       try {
-        catalog = await catalogFromPulse();
+        catalog = await catalogFromPulse(env);
       } catch (error) {
         degraded = true;
         syncError = String(error?.message || error);
@@ -248,7 +251,7 @@ export default {
       } catch (error) {
         return new Response(JSON.stringify({ error: String(error?.message || error) }), {
           status: 502,
-          headers: { ...JSON_HEADERS, 'cache-control': 'no-store' },
+          headers: JSON_HEADERS,
         });
       }
     }
