@@ -148,14 +148,13 @@ jobs:
           sha=$(git rev-parse HEAD)
           body_file="$RUNNER_TEMP/rinne-pr-body.md"
           gh pr view "$PR_NUMBER" --json body --jq .body > "$body_file"
-          cat >> "$body_file" <<EOF
-
-## Dispatch result
-- worker: RINNE Dispatch / OpenAI Codex Action
-- fast verification: \`npm ci\` + \`node scripts/validate.mjs fast origin/develop HEAD\` passed
-- commit: \`$sha\`
-- workflow: $RUN_URL
-EOF
+          {
+            printf '\n## Dispatch result\n'
+            printf '%s\n' '- worker: RINNE Dispatch / OpenAI Codex Action'
+            printf '%s\n' '- fast verification: `npm ci` + `node scripts/validate.mjs fast origin/develop HEAD` passed'
+            printf '%s\n' "- commit: \`$sha\`"
+            printf '%s\n' "- workflow: $RUN_URL"
+          } >> "$body_file"
           gh pr edit "$PR_NUMBER" --body-file "$body_file"
           gh api "repos/$GITHUB_REPOSITORY/statuses/$sha" \
             -f state=success \
