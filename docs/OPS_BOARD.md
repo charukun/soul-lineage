@@ -27,3 +27,15 @@ Open develop PR の CI と Integration workflow を照合し、Ready + 必要 CI
 ## Secrets
 
 Cloudflare deploy は既存 Repository Secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` を Actions runner 内だけで利用します。Ops refresh token は API token から一方向に導出し、Worker の server-side variable として渡します。静的 UI と `/api/state` に secret は含めません。
+
+## 操作レビュー後の受入条件（2026-09-12）
+
+機能を増やすより、表示の正確さと確認操作の継続性を優先します。
+
+- 同期失敗・古いスナップショット・現在のCI失敗を「要対応」に表示する。未確認を正常扱いしない。更新ボタンの近くに最終取得の経過時間を表示し、大きな全体サマリは復活させない。
+- PRの対象アプリはサーバー側で変更ファイルから判定し、head/base SHAに紐づけて保存する。状態フィルタ操作からブラウザがGitHub APIを直接呼ばない。失敗時は未取得を明示し、更新されていない結果を現headの結果として扱わない。
+- アプリ一覧は3列を維持し、アイコン・名称・環境・状態を読みやすくする。SHA・公開日時は開いて確認できるようにする。
+- 手動・自動更新とも、選択中フィルタ、開閉状態、読んでいる位置を維持する。
+- 先頭2行契約のない旧形式PRは、PR titleと本文概要へfallbackする。PR本文そのものは変更しない。
+- 現在の失敗と、キャンセル・後続成功で解消済みの履歴を分ける。キャンセル単独を障害と断定しない。
+- 名称・環境の整合性を扱うPR #89とは重複作業をしない。main / Production、ゲーム、Visual Review Lab、公開リンク集の内容は変更しない。
