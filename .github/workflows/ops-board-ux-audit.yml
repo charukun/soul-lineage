@@ -17,169 +17,32 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Prepare isolated browser (no app build or deployment)
+      - name: Extract the pinned read-only audit specification
         run: |
           mkdir -p /tmp/ops-audit
-          cd /tmp/ops-audit
+          curl -fsS --retry 2 https://raw.githubusercontent.com/charukun/soul-lineage/03b8bf58526ead84b83f5d151779f94942590a3f/.github/workflows/ops-board-ux-audit.yml > /tmp/ops-audit/spec.yml
+          python3 - <<'PY'
+          import pathlib, textwrap
+          p = pathlib.Path('/tmp/ops-audit')
+          text = (p / 'spec.yml').read_text()
+          start = text.index("          import { chromium }")
+          end = text.index('\n          JS\n', start)
+          script = textwrap.dedent(text[start:end])
+          old = 'recentActionFailures: state.recentActionFailures } } };'
+          assert script.count(old) == 1
+          script = script.replace(old, 'recentActionFailures: state.recentActionFailures } };')
+          script = script.replace("includes('取得できません'), { timeout: 30000 }", "includes('取得できません'), null, { timeout: 30000 }")
+          (p / 'review.mjs').write_text(script + '\n')
+          PY
+          node --check /tmp/ops-audit/review.mjs
+      - name: Prepare isolated browser (no app build or deployment)
+        working-directory: /tmp/ops-audit
+        run: |
           npm install --ignore-scripts --no-audit --no-fund @playwright/test@1.63.0
           npx playwright install --with-deps chromium
       - name: Operate public board without modifying services
         working-directory: /tmp/ops-audit
-        run: |
-          cat > review.mjs <<'JS'
-          import { chromium } from '@playwright/test';
-          import fs from 'node:fs/promises';
-          const base = 'https://rinne-ops.c-okamoto.workers.dev/';
-          const out = '/tmp/ops-audit/results';
-          await fs.mkdir(out, { recursive: true });
-          const report = { startedAt: new Date().toISOString(), url: base, mode: 'Read-only public browser audit; no application or deployment changes', observations: [], consoleErrors: [], networkErrors: [], stateResponses: [] };
-          const record = (name, data) => { report.observations.push({ name, data }); console.log('OBSERVATION ' + JSON.stringify({ name, data })); };
-          const step = async (name, fn) => { try { record(name, await fn()); } catch (e) { record(name, { error: String(e.message).slice(0, 1500) }); } };
-          const browser = await chromium.launch({ headless: true });
-          const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1, locale: 'ja-JP', timezoneId: 'Asia/Tokyo' });
-          await context.tracing.start({ screenshots: true, snapshots: true });
-          const page = await context.newPage();
-          page.setDefaultTimeout(9000);
-          page.on('pageerror', e => report.consoleErrors.push(String(e.message)));
-          page.on('console', e => { if (e.type() === 'error') report.consoleErrors.push(e.text().slice(0, 600)); });
-          page.on('requestfailed', r => report.networkErrors.push({ url: r.url(), error: r.failure()?.errorText }));
-          page.on('response', async r => {
-            if (r.status() >= 400) report.networkErrors.push({ url: r.url(), status: r.status() });
-            if (r.url().includes('/api/state')) {
-              try { const s = await r.json(); report.stateResponses.push({ url: r.url(), at: new Date().toISOString(), generatedAt: s.generatedAt, syncStatus: s.syncStatus }); } catch {}
-            }
-          });
-          const snap = async (name, fullPage = false) => { await page.screenshot({ path: `${out}/${name}.jpg`, type: 'jpeg', quality: 65, fullPage }); return name + '.jpg'; };
-          const visibleRows = () => page.locator('#pulls .pull-row:visible').evaluateAll(nodes => nodes.map(n => ({ title: n.querySelector('.pull-title')?.textContent, detail: n.querySelector('.pull-detail')?.textContent, state: n.querySelector('.badge')?.textContent, number: n.querySelector('.pull-number')?.textContent, meta: n.querySelector('.pull-meta')?.textContent, height: n.getBoundingClientRect().height, targets: [...n.querySelectorAll('.pull-target')].map(t => t.textContent) })));
-          let state;
-          try {
-            await step('initial-load', async () => {
-              const t = Date.now();
-              const res = await page.goto(base, { waitUntil: 'domcontentloaded', timeout: 45000 });
-              await page.waitForFunction(() => document.querySelectorAll('.app-summary-card').length > 0 || document.querySelector('#applications')?.textContent.includes('取得できません'), { timeout: 30000 });
-              await page.waitForTimeout(1500);
-              const firstView = await snap('01-initial-mobile');
-              const response = await context.request.get(base + 'api/state');
-              state = await response.json();
-              await fs.writeFile(`${out}/state.json`, JSON.stringify(state, null, 2));
-              await fs.writeFile(`${out}/rendered-initial.html`, await page.content());
-              return { httpStatus: res.status(), elapsedMs: Date.now() - t, title: await page.title(), screenshot: firstView, pageText: (await page.locator('body').innerText()).slice(0, 18000), state: { generatedAt: state.generatedAt, lastAttemptAt: state.lastAttemptAt, syncStatus: state.syncStatus, syncError: state.syncError, rateRemaining: state.githubRateRemaining, pullCount: state.pullRequests?.normal?.length, visualCount: state.pullRequests?.visualReview?.length, apps: state.applications, environments: (state.environments || []).map(({ reflectedPrs, ...x }) => ({ ...x, reflectedPrNumbers: reflectedPrs?.map(p => p.number) })), diff: state.environmentDiff, integration: state.integration, alerts: state.alerts, recentActionFailures: state.recentActionFailures } } };
-            });
-            for (const text of ['要対応', '開発タスク', 'アプリ', '公開・自動処理']) {
-              await step('navigation-' + text, async () => {
-                const a = page.locator('.section-tabs a').filter({ hasText: text }).first();
-                const href = await a.getAttribute('href');
-                await a.click();
-                await page.waitForTimeout(450);
-                return { href, hash: new URL(page.url()).hash, target: await page.locator(href).evaluate(n => ({ hidden: n.hidden, top: n.getBoundingClientRect().top, height: n.getBoundingClientRect().height })), screenshot: await snap('nav-' + href.slice(1)) };
-              });
-            }
-            for (const f of ['Draft', 'Ready', 'Merged', 'Closed', 'all']) {
-              await step('filter-' + f, async () => {
-                await page.locator(`.pull-filter[data-state="${f}"]`).click();
-                await page.waitForTimeout(800);
-                return { selected: await page.locator('.pull-filter.active').innerText(), buttons: await page.locator('.pull-filter').allTextContents(), rows: await visibleRows(), visualReview: { visible: await page.locator('#visual-review-section').isVisible(), rows: await page.locator('#visual-review-pulls .pull-row').allTextContents() }, screenshot: await snap('filter-' + f) };
-              });
-            }
-            await step('completed-expand-and-refresh', async () => {
-              const d = page.locator('#pulls .completed-pulls');
-              await d.locator('summary').click();
-              const before = await d.getAttribute('open');
-              const rowCount = await page.locator('#pulls .pull-row:visible').count();
-              await page.locator('#reload').click();
-              await page.waitForTimeout(2200);
-              return { beforeOpen: before !== null, visibleRowsExpanded: rowCount, afterRefreshOpen: (await page.locator('#pulls .completed-pulls').getAttribute('open')) !== null };
-            });
-            await step('filter-survives-refresh', async () => {
-              await page.locator('.pull-filter[data-state="Draft"]').click();
-              await page.locator('#reload').click();
-              await page.waitForTimeout(1800);
-              return { active: await page.locator('.pull-filter.active').innerText(), rows: await visibleRows() };
-            });
-            await step('publication-history-expand-and-refresh', async () => {
-              const summary = page.locator('#environments details summary').first();
-              await summary.click();
-              const before = await summary.locator('..').getAttribute('open');
-              const text = await summary.locator('..').innerText();
-              await snap('publication-history');
-              await page.locator('#reload').click();
-              await page.waitForTimeout(1800);
-              return { beforeOpen: before !== null, afterRefreshOpen: (await page.locator('#environments details').first().getAttribute('open')) !== null, contents: text.slice(0, 5000) };
-            });
-            await step('diff-and-integration-details', async () => {
-              for (const selector of ['#diff details summary', '#integration details summary']) {
-                const matches = page.locator(selector);
-                for (let i = 0; i < Math.min(await matches.count(), 3); i++) await matches.nth(i).click();
-              }
-              return { diff: await page.locator('#diff').innerText(), integration: await page.locator('#integration').innerText(), failures: await page.locator('#failures').innerText() };
-            });
-            await step('app-icons-and-links', async () => {
-              await page.locator('.section-tabs a[href="#apps-section"]').click();
-              await page.waitForTimeout(700);
-              return await page.locator('#applications').evaluate(root => ({ images: [...root.querySelectorAll('img')].map(i => ({ src: i.src, alt: i.alt, complete: i.complete, naturalWidth: i.naturalWidth })), links: [...root.querySelectorAll('a')].map(a => ({ href: a.href, text: a.textContent, aria: a.getAttribute('aria-label'), rect: { width: a.getBoundingClientRect().width, height: a.getBoundingClientRect().height } })), text: root.innerText }));
-            });
-            for (const [w, h] of [[320, 740], [390, 844], [412, 915], [673, 841], [1280, 900]]) {
-              await step('layout-' + w, async () => {
-                await page.setViewportSize({ width: w, height: h });
-                await page.locator('.section-tabs a[href="#apps-section"]').click();
-                await page.waitForTimeout(500);
-                return { viewport: [w, h], screenshot: await snap('apps-' + w), metrics: await page.evaluate(() => ({ viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth, grids: [...document.querySelectorAll('.app-grid')].map(n => getComputedStyle(n).gridTemplateColumns), cards: [...document.querySelectorAll('.app-summary-card')].map(n => ({ text: n.innerText, width: n.getBoundingClientRect().width, height: n.getBoundingClientRect().height })), smallText: [...document.querySelectorAll('#applications span, #applications strong, #applications time')].filter(n => n.textContent?.trim()).slice(0, 30).map(n => ({ text: n.textContent, font: getComputedStyle(n).fontSize })), overflow: [...document.querySelectorAll('body *')].filter(n => { const r=n.getBoundingClientRect(); return r.width > 0 && (r.right > innerWidth + 2 || r.left < -2); }).slice(0, 20).map(n => ({ tag: n.tagName, class: n.className, text: n.textContent.slice(0, 80) })) })) };
-              });
-            }
-            await page.setViewportSize({ width: 390, height: 844 });
-            await step('open-pr-on-GitHub', async () => {
-              await page.locator('.pull-filter[data-state="Merged"]').click();
-              const a = page.locator('#pulls .pull-row').first();
-              const expected = await a.getAttribute('href');
-              const promise = context.waitForEvent('page');
-              await a.click();
-              const p = await promise;
-              try { await p.waitForLoadState('domcontentloaded', { timeout: 20000 }); return { expected, url: p.url(), title: await p.title() }; } finally { await p.close(); }
-            });
-            await step('open-app-from-board', async () => {
-              const a = page.locator('#applications a[href]').first();
-              const expected = await a.getAttribute('href');
-              const promise = context.waitForEvent('page');
-              await a.click();
-              const p = await promise;
-              try { await p.waitForLoadState('domcontentloaded', { timeout: 25000 }); return { expected, url: p.url(), title: await p.title() }; } finally { await p.close(); }
-            });
-            await step('public-destinations-http', async () => {
-              const urls = await page.locator('#applications a[href]').evaluateAll(ns => [...new Set(ns.map(n => n.href))]);
-              const result = [];
-              for (const u of urls.slice(0, 20)) {
-                try { const r = await context.request.get(u, { timeout: 12000 }); const body = await r.text(); result.push({ url: u, finalUrl: r.url(), status: r.status(), title: body.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] }); } catch(e) { result.push({ url: u, error: e.message.slice(0, 300) }); }
-              }
-              return result;
-            });
-            await step('live-static-code-snapshot', async () => {
-              const files = ['app.js','app-board.js','app-board.css','pull-board.js','pr-board.css','style.css'];
-              for (const f of files) { const r=await context.request.get(base+f); await fs.writeFile(`${out}/${f}`, await r.text()); }
-              return files;
-            });
-            await step('simulated-api-outage', async () => {
-              await page.route('**/api/state?*', r => r.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"audit-simulated-outage"}' }));
-              await page.locator('#reload').click();
-              await page.waitForTimeout(500);
-              await page.evaluate(() => scrollTo(0, 0));
-              return { simulated: true, screenshot: await snap('simulated-outage'), alertVisible: await page.locator('#alert-section').isVisible(), alertText: await page.locator('#alerts').innerText(), lastUpdated: await page.locator('#last-updated').innerText(), applications: await page.locator('#applications').innerText(), pulls: await page.locator('#pulls').innerText() };
-            });
-            await page.unroute('**/api/state?*');
-            await step('recovery-after-simulated-outage', async () => {
-              await page.locator('#reload').click();
-              await page.waitForTimeout(2000);
-              return { applications: await page.locator('.app-summary-card').count(), filters: await page.locator('.pull-filter').count(), errors: report.consoleErrors };
-            });
-          } catch (e) { report.fatal = e.stack; } finally {
-            report.finishedAt = new Date().toISOString();
-            await fs.writeFile(`${out}/report.json`, JSON.stringify(report, null, 2));
-            console.log('AUDIT_FINAL ' + JSON.stringify({ startedAt: report.startedAt, finishedAt: report.finishedAt, observations: report.observations.length, consoleErrors: report.consoleErrors, networkErrors: report.networkErrors.slice(0, 40), stateResponses: report.stateResponses, fatal: report.fatal }));
-            await context.tracing.stop({ path: `${out}/trace.zip` });
-            await browser.close();
-          }
-          JS
-          node --check review.mjs
-          node review.mjs
+        run: node review.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
