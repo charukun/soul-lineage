@@ -17,6 +17,7 @@
     "@soul/game-data": "*",
     "@soul/platform-web": "*",
     "@soul/network": "*",
-    "@soul/audio": "*"
+    "@soul/audio": "*",
+    "@soul/characters": "*"
   }
 }

@@ -22,6 +22,7 @@
     "@soul/input": "*",
     "@soul/tidebreak-combat": "*",
     "@soul/housing-assets": "*",
-    "@soul/night-assets": "*"
+    "@soul/night-assets": "*",
+    "@soul/characters": "*"
   }
 }
