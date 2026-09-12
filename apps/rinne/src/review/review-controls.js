@@ -11,7 +11,9 @@ export function installFocusedReviewUI(){
  const phases=make('div','','phase-controls');phases.setAttribute('aria-label','動作の確認位置');
  for(let i=0;i<4;i++){const b=button(['構え','打ち出し','打点','戻り'][i],()=>document.dispatchEvent(new CustomEvent('review-phase',{detail:{index:i}})));b.dataset.phase=String(i);b.disabled=true;phases.append(b);}quick.append(phases);
  const camera=q('.camera-strip');if(camera){quick.append(camera);camera.append(q('#copy-motion'));camera.setAttribute('aria-label','確認角度');}
- q('.viewport').after(quick);
+ // Keep every control inside the 30% dock; scrolling must not resize the stage.
+ const dock=make('section','','review-controls-dock');dock.setAttribute('aria-label','レビュー操作');
+ q('.viewport').after(dock);dock.append(quick,q('.panel'));
  const head=q('.notebook-head');head.querySelector('.book-title').hidden=true;head.querySelector('.transport-mini').hidden=true;
  const modes=q('#posture-modes');if(modes){modes.setAttribute('aria-label','通常と戦闘の切り替え');head.append(modes);}
  q('.review-tabs').hidden=true;const oldQuick=q('.weapon-quick');if(oldQuick)oldQuick.hidden=true;
@@ -33,7 +35,7 @@ export function installFocusedReviewUI(){
  for(const[id,label]of families){const b=button(label,()=>{category=id;filters.querySelectorAll('button').forEach(n=>n.setAttribute('aria-pressed',String(n.dataset.family===id)));renderList();});b.dataset.family=id;b.setAttribute('aria-pressed',String(id==='all'));filters.append(b);}
  search.addEventListener('input',renderList);browser.append(search,filters,list);notebook.prepend(browser);
  const primary=make('nav','','review-primary-tabs');
- for(const[id,label]of [['motions','動作を選ぶ'],['advanced','詳細調整']]){const b=button(label,()=>{const detail=id==='advanced';browser.hidden=detail;advanced.hidden=!detail;primary.querySelectorAll('button').forEach(n=>n.setAttribute('aria-pressed',String(n===b)));notebook.scrollTop=0;});b.dataset.primary=id;b.setAttribute('aria-pressed',String(id==='motions'));primary.append(b);}head.after(primary);
+ for(const[id,label]of [['motions','動作を選ぶ'],['advanced','詳細調整']]){const b=button(label,()=>{const detail=id==='advanced';browser.hidden=detail;advanced.hidden=!detail;primary.querySelectorAll('button').forEach(n=>n.setAttribute('aria-pressed',String(n===b)));dock.scrollTop=0;});b.dataset.primary=id;b.setAttribute('aria-pressed',String(id==='motions'));primary.append(b);}head.after(primary);
  const equipment=make('div','','review-equipment');equipment.append(make('label','武器'));
  equipment.querySelector('label').htmlFor='weapon-select';equipment.append(q('#weapon-select'));equipment.append(q('#weapon-toggle').closest('label'));primary.after(equipment);
  const notice=make('p','','compatibility-notice');notice.id='compatibility-notice';equipment.after(notice);
