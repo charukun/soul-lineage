@@ -14,6 +14,7 @@ import {
   compactPull,
   githubPullState,
   splitPulls,
+  targetAppsFromFiles,
 } from '../ops-board/pulls.mjs';
 import { opsDeploymentUrl } from '../ops-board/deployment-url.mjs';
 
@@ -109,18 +110,31 @@ test('Visual Review Lab is separated from ordinary implementation PRs', () => {
   assert.deepEqual(split.visualReview.map(x => x.number), [2]);
 });
 
+test('changed file paths map to target applications deterministically', () => {
+  assert.deepEqual(targetAppsFromFiles([
+    'apps/rinne/src/main.js',
+    'apps/village/src/main.js',
+    'packages/network/src/index.js',
+  ]).map(x => x.label), ['輪廻転焦', '村づくり', '共通基盤']);
+  assert.deepEqual(targetAppsFromFiles(['README.md']).map(x => x.label), ['Repository共通']);
+});
+
 test('worker deployment URL parser only accepts the stable rinne-ops URL', () => {
   assert.equal(opsDeploymentUrl('Uploaded\nhttps://rinne-ops.c-okamoto.workers.dev\n'), 'https://rinne-ops.c-okamoto.workers.dev/');
   assert.throws(() => opsDeploymentUrl('https://example.workers.dev'));
 });
 
-test('public dashboard is compact, grouped, and not installable as a PWA', async () => {
+test('public dashboard is compact, grouped, target-aware, and not installable as a PWA', async () => {
   const index = await readFile(new URL('../ops-board/public/index.html', import.meta.url), 'utf8');
   const appBoard = await readFile(new URL('../ops-board/public/app-board.js', import.meta.url), 'utf8');
+  const pullBoard = await readFile(new URL('../ops-board/public/pull-board.js', import.meta.url), 'utf8');
   assert.match(index, /class="summary-grid"/);
   assert.match(index, /概要/);
   assert.match(index, /アプリ別の公開状況/);
   assert.doesNotMatch(index, /rel="manifest"/);
+  assert.match(appBoard, /app-summary-card/);
   assert.match(appBoard, /ゲーム \/ 専用開発版/);
   assert.match(appBoard, /開発ツール/);
+  assert.match(pullBoard, /pulls\/\$\{number\}\/files/);
+  assert.match(pullBoard, /対象確認中/);
 });
