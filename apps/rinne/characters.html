@@ -1,135 +1,70 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#10191d"><title>MasterCharacter Review | 輪廻転焦</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23172428'/%3E%3Cpath d='M16 47V17h11l5 12 5-12h11v30H38V32l-6 13-6-13v15z' fill='%23dcc493'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./src/character-review-main.css">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#142226"><title>キャラクター工房 | 輪廻転焦 DEV</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23172428'/%3E%3Cpath d='M16 47V17h11l5 12 5-12h11v30H38V32l-6 13-6-13v15z' fill='%23dcc493'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./src/character-review-main.css">
 </head>
 <body class="review-main">
-<main class="review-app">
-  <section class="stage-shell" aria-label="モデル表示">
-    <header class="stage-head">
-      <a href="./" class="icon-link" aria-label="ゲームへ戻る">‹</a>
-      <div class="stage-title"><span>MASTER CHARACTER REVIEW</span><strong>Sendagaya_Shino</strong></div>
-      <a id="advanced-link" class="advanced-link" href="./characters-advanced.html">詳細調整</a>
-    </header>
-    <div class="canvas-wrap">
-      <canvas id="stage" aria-label="量産キャラクターの3D表示。ドラッグで回転、ピンチで拡大できます。"></canvas>
-      <div class="stage-gradient" aria-hidden="true"></div>
-      <div class="subject-row">
-        <button id="hero-previous" class="round-button" type="button" aria-label="前の個体">‹</button>
-        <div><span id="mode-label">個体差を確認</span><strong id="subject">モデル準備中</strong></div>
-        <button id="hero-next" class="round-button" type="button" aria-label="次の個体">›</button>
-      </div>
-      <div class="stage-actions" aria-label="カメラと再生">
-        <button data-camera="overview" type="button">全体</button>
-        <button data-camera="front" type="button">正面</button>
-        <button data-camera="side" type="button">横</button>
-        <button data-camera="face" type="button">顔</button>
-        <button data-camera="back" type="button" class="secondary-camera">背面</button>
-        <button id="pause" type="button" aria-pressed="false">停止</button>
-        <button id="capture" type="button" aria-label="表示中の画像を保存">保存</button>
-      </div>
-    </div>
-    <div class="stage-status">
-      <div id="status" role="status" aria-live="polite">監査済みモデルを読み込んでいます。</div>
-      <button id="retry" type="button" disabled>再試行</button>
-      <progress id="progress" max="1" value="0" aria-label="モデル読込状況"></progress>
-    </div>
-  </section>
-
-  <section class="review-controls" aria-label="確認モード">
-    <nav class="mode-grid" aria-label="確認する要素">
-      <button type="button" data-review-mode="population" aria-pressed="true"><b>群</b><span>個体差</span></button>
-      <button type="button" data-review-mode="age" aria-pressed="false"><b>齢</b><span>年齢・体格</span></button>
-      <button type="button" data-review-mode="color" aria-pressed="false"><b>彩</b><span>配色</span></button>
-      <button type="button" data-review-mode="expression" aria-pressed="false"><b>顔</b><span>表情</span></button>
-      <button type="button" data-review-mode="spring" aria-pressed="false"><b>揺</b><span>髪・衣装</span></button>
-      <button type="button" data-review-mode="performance" aria-pressed="false"><b>負</b><span>30体負荷</span></button>
-    </nav>
-
-    <div class="mode-intro">
-      <span>確認モード</span><strong id="mode-title">個体差</strong><p id="mode-description">体数と血縁パターンを切り替え、同じMasterCharacterからどこまで自然な差が出るかを確認します。</p>
-    </div>
-
-    <section class="mode-panel is-active" data-mode-panel="population">
-      <div class="action-grid three">
-        <button type="button" data-count="6">6体</button><button type="button" data-count="12">12体</button><button type="button" data-count="30">30体</button>
-      </div>
-      <div class="action-grid two">
-        <button type="button" data-ancestry="independent">独立個体</button><button type="button" data-ancestry="family">親2体＋子</button>
-      </div>
-      <button id="next-cohort" class="wide-action" type="button">次の個体群を生成</button>
-      <p class="panel-help">seedを30進めて別の個体群を作ります。細かいseed指定は「詳細調整」へ。</p>
-    </section>
-
-    <section class="mode-panel" data-mode-panel="age">
-      <div class="action-grid three age-presets">
-        <button type="button" data-age="0">0歳</button><button type="button" data-age="7">7歳</button><button type="button" data-age="15">15歳</button>
-        <button type="button" data-age="22">22歳</button><button type="button" data-age="55">55歳</button><button type="button" data-age="85">85歳</button>
-      </div>
-      <div class="action-grid two">
-        <button type="button" id="mixed-ages">年齢を混在</button><button type="button" id="body-compare">22歳で体格差</button>
-      </div>
-      <p class="panel-help">年齢を揃えると遺伝由来の体格差が見やすくなります。個別の遺伝子編集は詳細ページで行います。</p>
-    </section>
-
-    <section class="mode-panel" data-mode-panel="color">
-      <div class="action-grid two">
-        <button type="button" data-outfit="mixed">3配色を並べる</button><button type="button" data-outfit="original">Original</button>
-        <button type="button" data-outfit="moss">Moss</button><button type="button" data-outfit="ember">Ember</button>
-      </div>
-      <p class="panel-help">形状を変えず、同じ完成衣装の既存パレットだけを比較します。</p>
-    </section>
-
-    <section class="mode-panel" data-mode-panel="expression">
-      <div id="expression-grid" class="action-grid expression-grid" aria-live="polite"><span class="loading-copy">表情を読み込み中…</span></div>
-      <div class="action-grid three scope-grid">
-        <button type="button" data-expression-mode="selected">選択だけ</button><button type="button" data-expression-mode="all">全員</button><button type="button" data-expression-mode="mixed">ばらす</button>
-      </div>
-      <p class="panel-help">表情確認時は自動で単体・顔カメラへ寄せます。細かな強度は詳細ページへ。</p>
-    </section>
-
-    <section class="mode-panel" data-mode-panel="spring">
-      <span class="group-label">揺れ物の更新</span>
-      <div class="action-grid three"><button type="button" data-springs="off">OFF</button><button type="button" data-springs="auto">Auto</button><button type="button" data-springs="all">全員</button></div>
-      <span class="group-label">確認用の動き</span>
-      <div class="action-grid three"><button type="button" data-motion="rest">静止</button><button type="button" data-motion="idle">呼吸</button><button type="button" data-motion="walk">歩行</button></div>
-      <button id="rotate-toggle" class="wide-action" type="button" aria-pressed="false">ゆっくり回転して全周を見る</button>
-      <p class="panel-help">ここでの動きは骨格・揺れ確認用です。並行制作中の完成版モーションは置き換えません。</p>
-    </section>
-
-    <section class="mode-panel" data-mode-panel="performance">
-      <div class="action-grid two"><button type="button" id="perf-auto">30体 / Auto</button><button type="button" id="perf-full">30体 / 揺れ全員</button></div>
-      <pre id="metrics-live" class="metrics-card">計測準備中</pre>
-      <button id="reset-measure" class="wide-action" type="button">計測をリセット</button>
-      <p class="panel-help">FPS・p95は現在の端末と画面での実測です。Production合格証明ではありません。</p>
-    </section>
-
-    <div class="review-meta">
-      <strong>監査済みMasterCharacter</strong><pre id="capability-live">モデル情報を準備中</pre>
-      <p>本編・セーブ・通信には接続しません。</p>
-      <a href="./simulator/licenses/MODEL_LICENSE_SUMMARY_JA.txt">モデル利用条件</a>
-    </div>
-
-    <div id="compat-controls" hidden aria-hidden="true">
-      <select id="view"><option value="crowd">crowd</option><option value="single">single</option></select>
-      <select id="count"><option value="1">1</option><option value="6" selected>6</option><option value="12">12</option><option value="30">30</option></select>
-      <input id="seed" type="number" value="1000"><button id="regenerate" type="button">regenerate</button><button id="next-seed" type="button">next seed</button>
-      <select id="ancestry"><option value="independent">independent</option><option value="family">family</option></select>
-      <select id="ages"><option value="mixed">mixed</option><option value="fixed">fixed</option></select><input id="age" type="range" min="0" max="90" value="22"><output id="age-label">22歳</output>
-      <select id="outfit"><option value="mixed">mixed</option><option value="original">original</option><option value="moss">moss</option><option value="ember">ember</option></select>
-      <button id="previous" type="button">previous</button><select id="selected"></select><button id="next" type="button">next</button>
-      <select id="motion"><option value="rest">rest</option><option value="idle" selected>idle</option><option value="walk">walk</option></select>
-      <select id="expression"><option value="">neutral</option></select><input id="expression-weight" type="range" min="0" max="1" step="0.05" value="1"><output id="expression-label">100%</output>
-      <select id="expression-mode"><option value="selected">selected</option><option value="all">all</option><option value="mixed">mixed</option></select>
-      <input id="blink" type="checkbox" checked><select id="springs"><option value="auto">auto</option><option value="all">all</option><option value="off">off</option></select><input id="rotate" type="checkbox">
-      <pre id="identity"></pre><input id="gene-height" type="range" min="0" max="1"><input id="gene-build" type="range" min="0" max="1"><input id="gene-hair" type="range" min="0" max="1"><input id="gene-eyes" type="range" min="0" max="1"><input id="gene-skin" type="range" min="0" max="1">
-      <select id="background"><option value="slate">slate</option><option value="white">white</option><option value="black">black</option></select><pre id="metrics"></pre><button id="measure" type="button">measure</button>
-      <textarea id="note"></textarea><button id="export" type="button">export</button><input id="session-file" type="file" accept=".json,application/json"><input id="file" type="file" accept=".vrm,.glb"><pre id="capabilities"></pre>
-    </div>
-  </section>
+<main class="review-app" data-studio-version="3">
+<section class="stage-shell" aria-label="モデル表示">
+<header class="stage-head"><a href="./" class="back-link" aria-label="ゲームへ戻る">‹</a><h1>キャラクター工房 <small>SHINO</small></h1><a id="advanced-link" href="./characters-advanced.html">詳細調整</a></header>
+<div class="canvas-wrap"><canvas id="stage" aria-label="モデル。ドラッグで回転、ピンチで拡大"></canvas>
+<div class="subject-row"><button id="hero-previous" type="button" aria-label="前の個体">‹</button><span id="subject">モデル準備中</span><button id="hero-next" type="button" aria-label="次の個体">›</button></div>
+<div id="preview-label" hidden>元のパーツを表示中</div>
+<button id="frame-model" type="button" title="モデルを画面に収める">全身に戻す</button>
+</div>
+<div class="stage-actions" aria-label="カメラと表示"><button data-camera="front" type="button">正面</button><button data-camera="side" type="button">横</button><button data-camera="back" type="button">背面</button><button data-camera="face" type="button">顔</button><button id="pause" type="button" aria-pressed="false">一時停止</button><button id="capture" type="button">撮影</button><button data-camera="overview" type="button" hidden>全体</button></div>
+<div class="stage-status"><span id="status" role="status" aria-live="polite">モデルを読み込んでいます。</span><button id="retry" type="button" disabled>再試行</button><progress id="progress" max="1" value="0" aria-label="モデル読込状況"></progress></div>
+</section>
+<section class="editor-dock" aria-label="キャラクター編集">
+<nav class="mode-tabs" role="tablist" aria-label="編集・確認"><button type="button" role="tab" id="tab-parts" data-tab="parts" aria-controls="panel-parts" aria-selected="true">見た目</button><button type="button" role="tab" id="tab-colors" data-tab="colors" aria-controls="panel-colors" aria-selected="false" tabindex="-1">色・年齢</button><button type="button" role="tab" id="tab-motion" data-tab="motion" aria-controls="panel-motion" aria-selected="false" tabindex="-1">動き</button><button type="button" role="tab" id="tab-compare" data-tab="compare" aria-controls="panel-compare" aria-selected="false" tabindex="-1">比較</button></nav>
+<div class="review-controls" tabindex="0" aria-label="編集項目。ここだけスクロールします">
+<fieldset id="editor-fields" disabled><legend class="sr-only">選択した個体の編集</legend>
+<section id="panel-parts" class="studio-panel" role="tabpanel" aria-labelledby="tab-parts">
+<div id="slot-tabs" class="slot-tabs" role="group" aria-label="変更する部位"></div>
+<div class="panel-heading"><h2 id="slot-title">髪型</h2><span class="scope-label">選択中の1体だけ</span></div>
+<div id="part-options" class="part-options" role="group" aria-label="部位の候補"></div>
+<div class="part-actions"><button id="original-preview" type="button" aria-pressed="false">元のパーツと比較</button><button id="random-one" type="button">別の組み合わせ</button></div>
+<p class="hint" id="slot-hint">候補を押すとその場で切り替わります。</p>
+</section>
+<section id="panel-colors" class="studio-panel" role="tabpanel" aria-labelledby="tab-colors" hidden>
+<div class="panel-heading"><h2>色と年齢</h2><span class="scope-label">選択中の1体だけ</span></div><div id="color-options"></div>
+<h3>年齢</h3><div id="age-options" class="choice-row"></div><p class="hint">身長や細かな体格は「詳細調整」で変更できます。</p>
+</section>
+<section id="panel-motion" class="studio-panel" role="tabpanel" aria-labelledby="tab-motion" hidden>
+<h2>動かして確認</h2><h3>動き</h3><div class="choice-row"><button data-motion="rest" type="button">基本姿勢</button><button data-motion="idle" type="button">呼吸</button><button data-motion="walk" type="button">歩行</button></div>
+<h3>表情</h3><div id="expression-grid" class="choice-row"></div>
+<h3>揺れ・全周</h3><div class="choice-row"><button id="spring-toggle" type="button" aria-pressed="true">揺れ ON</button><button id="rotate-toggle" type="button" aria-pressed="false">自動回転 OFF</button></div><p class="hint">現在の動きは骨格確認用。衣装パーツ自体の品質は変わりません。</p>
+</section>
+<section id="panel-compare" class="studio-panel" role="tabpanel" aria-labelledby="tab-compare" hidden>
+<h2>編集した個体を並べる</h2><div class="choice-row compare-counts"><button data-count="1" type="button">1体</button><button data-count="6" type="button">6体</button><button data-count="12" type="button">12体</button><button data-count="30" type="button">30体</button></div>
+<p class="hint">表示だけ切り替えます。作った見た目は変わりません。</p><h3>編集する個体</h3><div id="individuals" class="individuals" role="group" aria-label="個体を選ぶ"></div>
+<button id="edit-one" class="wide-button" type="button">選んだ1体を編集</button><details class="diagnostics"><summary>負荷・診断</summary><pre id="metrics-live">計測準備中</pre><button id="full-springs" type="button" aria-pressed="false">全員の揺れ更新</button></details>
+</section>
+</fieldset>
+<details class="about"><summary>この工房について</summary><p>本編・セーブ・通信には接続しません。顔と体型は比率調整、髪は初期パーツ、衣装は制服の上に追加する上着です。編集内容はこのブラウザに保存します。</p><a href="./simulator/licenses/MODEL_LICENSE_SUMMARY_JA.txt">モデル利用条件</a></details>
+</div>
+<footer class="editor-footer"><div class="save-line"><output id="save-state" aria-live="polite">準備中</output><span id="selection-summary"></span></div><div class="footer-actions"><button id="undo" type="button" disabled>戻す</button><button id="redo" type="button" disabled>やり直す</button><button id="save-workspace" type="button" class="primary" disabled>データ保存</button></div></footer>
+</section>
 </main>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<div id="compat-controls" hidden aria-hidden="true">
+<select id="view"><option value="crowd">crowd</option><option value="single">single</option></select>
+<select id="count"><option value="1">1</option><option value="6" selected>6</option><option value="12">12</option><option value="30">30</option></select>
+<input id="seed" type="number" value="1000"><button id="regenerate" type="button">regenerate</button><button id="next-seed" type="button">next</button>
+<select id="ancestry"><option value="independent">independent</option><option value="family">family</option></select>
+<select id="ages"><option value="mixed">mixed</option><option value="fixed">fixed</option></select><input id="age" type="range" min="0" max="90" value="22"><output id="age-label"></output>
+<select id="outfit"><option value="mixed">mixed</option><option value="original">original</option><option value="moss">moss</option><option value="ember">ember</option></select>
+<button id="previous" type="button">previous</button><select id="selected"></select><button id="next" type="button">next</button>
+<select id="motion"><option value="rest">rest</option><option value="idle">idle</option><option value="walk">walk</option></select>
+<select id="expression"><option value="">neutral</option></select><input id="expression-weight" type="range" min="0" max="1" step="0.05" value="1"><output id="expression-label"></output>
+<select id="expression-mode"><option value="selected">selected</option><option value="all">all</option><option value="mixed">mixed</option></select>
+<input id="blink" type="checkbox" checked><select id="springs"><option value="auto">auto</option><option value="all">all</option><option value="off">off</option></select><input id="rotate" type="checkbox">
+<pre id="identity"></pre><input id="gene-height" type="range" min="0" max="1" step="0.01"><input id="gene-build" type="range" min="0" max="1" step="0.01"><input id="gene-hair" type="range" min="0" max="1" step="0.01"><input id="gene-eyes" type="range" min="0" max="1" step="0.01"><input id="gene-skin" type="range" min="0" max="1" step="0.01">
+<select id="background"><option value="slate">slate</option><option value="white">white</option><option value="black">black</option></select><pre id="metrics"></pre><button id="measure" type="button">measure</button>
+<textarea id="note"></textarea><button id="export" type="button">export</button><input id="session-file" type="file" accept=".json,application/json"><input id="file" type="file" accept=".vrm,.glb"><pre id="capabilities"></pre>
+</div>
 <script type="module" src="./src/character-review-main.js"></script>
 </body></html>

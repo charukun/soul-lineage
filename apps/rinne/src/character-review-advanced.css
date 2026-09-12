@@ -1,3 +1,15 @@
-.advanced-review{overflow-x:hidden}.advanced-review .page-head{background:rgba(17,28,32,.96);backdrop-filter:blur(8px);position:relative;z-index:12}.advanced-review .controls details{scroll-margin-top:12px}.advanced-review .stage-panel{background:var(--bg)}
-@media(max-width:680px){.advanced-review .page-head{padding:8px 10px}.advanced-review .page-head p{display:none}.advanced-review .workbench{display:block}.advanced-review .stage-panel{position:sticky;top:0;z-index:10;padding:7px 10px 9px;border-bottom:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.28)}.advanced-review #stage{height:38dvh;min-height:220px;max-height:390px}.advanced-review .stage-tools{margin-bottom:5px}.advanced-review .camera-tools{margin-top:5px}.advanced-review .load-state{margin-top:6px}.advanced-review .stage-note{display:none}.advanced-review .controls{position:relative;z-index:1}.advanced-review summary{padding:13px 14px}.advanced-review .section-body{padding:0 14px 18px}}
-@media(max-height:690px) and (max-width:680px){.advanced-review #stage{height:33dvh;min-height:190px}.advanced-review .camera-tools button{min-height:38px}.advanced-review .page-head{position:static}}
+/* The detailed controls scroll independently too, including on short mobile screens. */
+html:has(.advanced-review){height:100%;overflow:hidden}
+.advanced-review{height:100vh;height:100dvh;overflow:hidden;display:grid;grid-template-rows:auto minmax(0,1fr) auto}
+.advanced-review .page-head{width:100%;max-width:none;padding:6px 12px;background:var(--bg)}
+.advanced-review .page-head h1{font-size:18px}.advanced-review .page-head p,.advanced-review .review-badge{display:none}
+.advanced-review .workbench{width:100%;height:100%;max-height:100%;margin:0;max-width:none;min-height:0;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,350px);align-items:stretch}
+.advanced-review .stage-panel{position:relative;min-width:0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto auto;padding:8px;background:var(--bg)}
+.advanced-review .canvas-wrap{min-height:0}.advanced-review #stage{height:100%;min-height:0;max-height:none}
+.advanced-review .stage-note{display:none}.advanced-review .controls{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.advanced-review .stage-tools{gap:5px;flex-wrap:wrap;margin-bottom:6px}.advanced-review .stage-tools label{font-size:11px;gap:3px}.advanced-review .stage-tools select{font-size:11px;max-width:118px;padding:3px}
+.advanced-review .camera-tools{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;margin-top:6px}.advanced-review .camera-tools button{min-width:0;min-height:44px;font-size:10px;padding:2px}
+.advanced-review .load-state{margin-top:4px}.advanced-review #status{font-size:10px;max-height:42px;overflow:auto}
+.advanced-review>footer{width:100%;max-width:none;font-size:9px;padding:3px 10px;max-height:28px;overflow:auto}
+@media(max-width:680px){.advanced-review .workbench{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,60fr) minmax(0,40fr)}.advanced-review .stage-panel{border-bottom:1px solid var(--line)}.advanced-review .page-head{padding:4px 9px}.advanced-review .page-head h1{font-size:15px}.advanced-review .eyebrow{display:none}.advanced-review .controls details{scroll-margin-top:0}.advanced-review .stage-tools>button{font-size:11px;padding:4px 7px}.advanced-review .controls{border-top:0}}
+@media(orientation:landscape) and (max-height:600px){.advanced-review .workbench{grid-template-columns:minmax(0,1fr) minmax(290px,43%);grid-template-rows:minmax(0,1fr)}.advanced-review>footer{display:none}}
