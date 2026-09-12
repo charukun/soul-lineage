@@ -8,22 +8,29 @@ concurrency:
   group: character-workshop-isolated-qc
   cancel-in-progress: false
 jobs:
-  reference:
+  committed-character-qc:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 8281167ef2f535f5e75a22f016d188b21b4a75b8
+          ref: 6fa2538106fd8ae12bf805393289c16a3339fc80
           persist-credentials: false
-      - name: Export unchanged repository reference asset and license evidence
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Verify the committed character data layer only
         run: |
           mkdir -p qc-output
           git rev-parse HEAD > qc-output/source-sha.txt
-          sha256sum apps/rinne/public/simulator/assets/SHINO_review.vrm > qc-output/model-sha256.txt
-          tar -czf qc-output/shino-reference.tgz apps/rinne/public/simulator/assets/SHINO_review.vrm apps/rinne/public/simulator/licenses
+          node --version > qc-output/node-version.txt
+          node --test packages/characters/tests/*.test.mjs | tee qc-output/character-tests.txt
+          npm run check -- rinne village demon | tee qc-output/workspace-check.txt
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: character-workshop-unchanged-reference
+          name: character-workshop-committed-qc-validation
           path: qc-output
-          retention-days: 3
+          retention-days: 7
