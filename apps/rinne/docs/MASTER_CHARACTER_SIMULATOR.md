@@ -6,6 +6,14 @@ Sendagaya_Shino remains the audited MasterCharacter from merged PR #26. The reco
 
 The opt-in entry is `apps/rinne/characters.html`, built alongside the Rinne app by the existing build. The simulator loads repository-local `simulator/assets/SHINO_review.vrm` only after complete GLB, exact content hash and license validation. No external model resources or game saves are accessed.
 
+## UX revision acceptance
+
+The next simulator UI revision keeps the rendered character stage continuously visible while the operator changes the primary inspection target. The main screen is a review console, not a parameter editor: large mode buttons switch the active confirmation target such as population, age/body variation, color variation, expressions, secondary motion and performance. The selected mode exposes only the few controls needed to judge that target without pushing the 3D stage off-screen.
+
+Detailed genetic values, seed/session import-export, per-gene editing, raw diagnostics and maintenance-oriented controls move to a separate advanced page. The advanced page may share the same canonical review/session state and renderer contracts, but must not be required for normal visual confirmation. On smartphone viewports, scrolling the main controls must not make the primary render stage disappear; the stage remains sticky/anchored and usable while mode controls change. The main flow should be usable one-handed with prominent touch targets and clear current-mode/selected-character state.
+
+Acceptance for this revision includes: no horizontal overflow at narrow mobile widths; mode changes preserve the visible stage; every former capability remains available either on the main review console or the advanced page; game saves/network authority remain disconnected; no changes to the audited Shino asset, gameplay rules, main, Production, or parallel motion work.
+
 ## Controls
 
 - Deterministic seed cohorts; 1/6/12/30 displayed actors; selected-only inspection; two-parent inheritance comparison.
