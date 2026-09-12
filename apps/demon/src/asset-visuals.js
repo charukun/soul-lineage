@@ -1,3 +1,4 @@
+import './master-humans.js';
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { NightView } from './web/view.js';
