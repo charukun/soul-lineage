@@ -56,11 +56,31 @@ async function install(view,generation){
   view.__natureGroup=group;view.outside.add(group);view.canvas.dataset.natureAssets=String(group.children.length);view.renderer.shadowMap.needsUpdate=true;
 }
 
+// Do not compete with the first village boot. The visual-only GLBs begin only
+// after the existing loading overlay has been dismissed, then yield once more
+// to the browser before network/decode work starts.
+function scheduleInstall(view,generation){
+  view.canvas.dataset.natureAssets='pending';
+  const start=()=>{
+    if(view.__naturePassGeneration!==generation)return;
+    const run=()=>void install(view,generation);
+    if(typeof requestIdleCallback==='function')requestIdleCallback(run,{timeout:1500});
+    else setTimeout(run,0);
+  };
+  const loading=document.querySelector('#loading');
+  if(!loading||loading.hidden){start();return;}
+  const observer=new MutationObserver(()=>{
+    if(!loading.hidden)return;
+    observer.disconnect();start();
+  });
+  observer.observe(loading,{attributes:true,attributeFilter:['hidden']});
+}
+
 const originalMakeTerrain=View.prototype.makeTerrain;
 View.prototype.makeTerrain=function makeTerrainWithSourcedNature(...args){
   const result=originalMakeTerrain.apply(this,args);
   this.__naturePassGeneration=(this.__naturePassGeneration||0)+1;
-  void install(this,this.__naturePassGeneration);
+  scheduleInstall(this,this.__naturePassGeneration);
   return result;
 };
 
@@ -69,5 +89,5 @@ window.__MURAAAAAAA_NATURE__=Object.freeze({
   root:ROOT,
   layout:LAYOUT,
   mode:'repository-local-visual-only',
-  note:'Distant dressing only; gameplay trees, resources and collision remain unchanged.',
+  note:'Distant dressing only; gameplay trees, resources and collision remain unchanged. Loads after first boot.',
 });
