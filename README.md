@@ -1,6 +1,6 @@
 # 輪廻転焦 — 3ゲーム共通開発基盤
 
-`charukun/soul-lineage` は「輪廻転焦」（旧名：魂の系譜）・村ハウジングゲーム・魔物側ゲームのmonorepoです。魔物側の `apps/demon` は「暗い喰らいCry」の単独狩りを実装しています。輪廻転焦と村の入口は現在のdevelopの雛形を維持しています。認証・実プレイヤー対戦・共有村サーバーは未接続です。魔物側の実装範囲と残作業は [魔物ゲーム統合](docs/demon/INTEGRATION.md) を参照してください。
+`charukun/soul-lineage` は「輪廻転焦」（旧名：魂の系譜）・村ハウジングゲーム・魔物側ゲームのmonorepoです。魔物側の `apps/demon` は「尽喰廻遊」の単独狩りを実装しています。輪廻転焦と村の入口は現在のdevelopの雛形を維持しています。認証・実プレイヤー対戦・共有村サーバーは未接続です。魔物側の実装範囲と残作業は [魔物ゲーム統合](docs/demon/INTEGRATION.md) を参照してください。
 
 | ゲーム | ソース | DEV URL | 将来のProductionパス |
 | --- | --- | --- | --- |
@@ -69,3 +69,7 @@ npm run build --workspace @soul/fourth
 ```
 
 テンプレートは稼働ゲームから独立した `templates/app/`。workspaceを追加すれば影響判定とDEV公開先 `/dev/fourth/` は自動認識します。共通packageの利用は各appのpackage.jsonへ明示します。
+
+## 開発・検証・本番の整合性
+
+各ゲームの環境構成・初回補完・固定リリースの更新方法は [環境運用](docs/GAME_ENVIRONMENTS.md) を正本とします。従来表の「将来対応」は初回補完前の表記です。公開済み判定は PULSE と公開manifestで確認してください。

@@ -14,10 +14,12 @@ test('published apps are grouped by app with exact manifest paths', () => {
   ];
   const apps = buildApplications(manifest, environments, []);
   const rinne = apps.find(app => app.id === 'rinne');
-  assert.equal(rinne.targets.length, 2);
+  assert.equal(rinne.targets.length, 3);
+  assert.equal(rinne.targets[1].state, 'missing');
+  assert.equal(rinne.targets[1].url, null);
   assert.equal(rinne.targets[0].url, 'https://charukun.github.io/soul-lineage/dev/rinne/');
   assert.equal(rinne.targets[0].commit, 'dev-rinne');
-  assert.equal(rinne.targets[1].url, 'https://charukun.github.io/soul-lineage/prod/');
+  assert.equal(rinne.targets[2].url, 'https://charukun.github.io/soul-lineage/prod/');
 });
 
 test('tools use verified public status while failed Lanternfell never invents a URL', () => {
@@ -38,7 +40,9 @@ test('tools use verified public status while failed Lanternfell never invents a 
   assert.equal(visual.targets[0].url, environments[0].url);
   assert.equal(portal.targets[0].url, PORTAL_PUBLIC_URL);
   assert.equal(portal.targets[0].state, 'success');
-  assert.equal(portal.name, 'WAYFINDER（公開リンクギャラリー）');
+  assert.equal(portal.name, 'WAYFINDER');
+  assert.equal(visual.name, 'Visual Review Lab');
+  assert.equal(ops.name, 'PULSE');
   assert.equal(ops.targets[0].url, OPS_PUBLIC_URL);
   assert.equal(lantern.targets[0].state, 'failed');
   assert.equal(lantern.targets[0].url, null);
