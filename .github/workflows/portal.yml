@@ -78,15 +78,28 @@ jobs:
           echo "url=https://rinne-portal.c-okamoto.workers.dev/" >> "$GITHUB_OUTPUT"
           echo "RINNE GATE: https://rinne-portal.c-okamoto.workers.dev/" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify deployed portal
+      - name: Verify deployed portal after propagation
         if: steps.public.outputs.url != ''
         env:
           PORTAL_URL: ${{ steps.public.outputs.url }}
         run: |
-          page=$(curl -fsS --retry 4 --retry-delay 2 "$PORTAL_URL")
-          printf '%s' "$page" | grep -q 'RINNE GATE'
-          curl -fsS --retry 4 --retry-delay 2 "${PORTAL_URL}catalog.json" | node --input-type=module -e "let s='';for await(const c of process.stdin)s+=c;const x=JSON.parse(s);if(!Array.isArray(x.items)||!x.items.some(i=>i.id==='rinne')||!x.items.some(i=>i.id==='master-character'))process.exit(1)"
-          curl -fsS --retry 4 --retry-delay 2 "${PORTAL_URL}favicon.svg" | grep -q '<svg'
+          ready=false
+          for attempt in $(seq 1 12); do
+            code=$(curl -L -sS --connect-timeout 10 --max-time 20 -o /tmp/portal-index.html -w '%{http_code}' "$PORTAL_URL" || true)
+            if [ "$code" = "200" ] && grep -q 'RINNE GATE' /tmp/portal-index.html; then
+              ready=true
+              break
+            fi
+            echo "Waiting for Workers propagation ($attempt/12, HTTP $code)"
+            sleep 2
+          done
+          if [ "$ready" != "true" ]; then
+            echo "::error::Portal root did not become ready"
+            exit 1
+          fi
+
+          curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "${PORTAL_URL}catalog.json" | node --input-type=module -e "let s='';for await(const c of process.stdin)s+=c;const x=JSON.parse(s);if(!Array.isArray(x.items)||!x.items.some(i=>i.id==='rinne')||!x.items.some(i=>i.id==='master-character'))process.exit(1)"
+          curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "${PORTAL_URL}favicon.svg" | grep -q '<svg'
 
       - name: Record public portal status
         if: always()
