@@ -1,5 +1,6 @@
 import {createTidebreakRuntime} from '@soul/tidebreak-combat';
 import {PREY,makeVillage,random,hash} from './world.js';
+import {advanceDevour,cancelDevour} from './devour.js';
 export class RaidSession {
  constructor(village,profile,ports={}){this.village=makeVillage(village);this.profile=profile;this.ports=ports;this.rng=random(hash(village.id));this.time=0;this.alarm=0;this.eaten=0;this.targetEaten=false;this.finished=false;this.fight=null;this.devour=null;this.events=[];this.scent=0;this.scentCooldown=0;this.shadowCooldown=0;this.wardCooldown=0;this.escapeHold=0;this.guardSent=false;this.gatePush=0;this.safeTime=0;this.maxhp=this.getMaxHP();this.player={x:this.village.entry.x,z:this.village.entry.z,yaw:Math.PI,hp:this.maxhp,maxhp:this.maxhp,speed:0,walk:0,pose:null};}
  getMaxHP(){return 230+(this.has('smith')?65:0)+(this.profile.form==='brute'?75:0);}
@@ -17,15 +18,15 @@ export class RaidSession {
  const skill=this.skillSet();c.configure({...skill,hp:p.hp,maxhp:p.maxhp,enemyHp:npc.hp,enemyWeapon:npc.echo?.weapon||d.weapon,enemyStyle:npc.role==='knight'?'counter':['traveller','bellkeeper','gravekeeper'].includes(npc.role)?'cautious':'balanced',mindset:this.profile.form==='stalker'?'elusive':this.profile.form==='brute'?'steadfast':'balanced',positions:{hero:{x:0,z:0},enemy:{x:npc.x-ox,z:npc.z-oz}},enemyLoadout:npc.echo?.loadout,colliders:[...this.village.colliders,...(!this.village.gate.broken?[-1.7,0,1.7].map(x=>({x,z:this.village.gate.z,r:.7})):[]),...(!this.has('acolyte')?[{...this.village.shelter}]:[])].filter(o=>Math.hypot(o.x-ox,o.z-oz)<11).map(o=>({...o,x:o.x-ox,z:o.z-oz}))});
  npc.state='combat';this.alarm=Math.min(100,this.alarm+8*(this.has('bellkeeper')?.5:1));this.emit('engage',{npc});}
  consume(n){if(n.eaten)return;n.eaten=true;n.dead=true;this.eaten++;this.targetEaten||=n.marked;this.player.hp=Math.min(this.player.maxhp,this.player.hp+(this.has('traveller')?75:42));this.alarm=Math.min(100,this.alarm+(n.role==='bellkeeper'?0:12)*(this.has('bellkeeper')?.5:1));if(n.role==='bellkeeper'){this.alarm=Math.max(0,this.alarm-18);this.emit('bell-silenced');}this.ports.consume?.(n.role);this.emit('consume',{npc:n,role:n.role,goal:!!n.marked});}
- finish(status){if(this.finished)return;this.finished=true;this.ports.finish?.(status,this.eaten);this.emit('finish',{status,eaten:this.eaten,target:this.targetEaten});}
+ finish(status){if(this.finished)return;this.finished=true;cancelDevour(this);this.player.speed=0;this.ports.finish?.(status,this.eaten);this.emit('finish',{status,eaten:this.eaten,target:this.targetEaten});}
  addGuard(){if(this.guardSent)return;this.guardSent=true;const echo=this.profile.echo,n={id:this.village.id+':guardian',kind:'human',adult:true,role:'knight',name:echo?'読み込んだ守護者':'夜警の討伐騎士',x:2,z:-22,homeX:2,homeZ:-22,yaw:0,hp:echo?220:175,maxhp:echo?220:175,state:'pursue',clock:0,walk:0,marked:false,dead:false,eaten:false,echo};this.village.npcs.push(n);this.emit('guardian',{echo:!!echo});}
  tick(dt,input){if(this.finished)return;dt=Math.min(dt,1/30);this.time+=dt;for(const k of ['scent','scentCooldown','shadowCooldown','wardCooldown','safeTime'])this[k]=Math.max(0,this[k]-dt);const p=this.player,w=this.village;const v=input||{x:0,z:0,amount:0,screenX:0,screenY:0};
  if(this.fight){const f=this.fight;f.core.input(v.x||0,v.z||0,v.amount,0);const s=f.core.step(dt);p.x=f.ox+s.hero.x;p.z=f.oz+s.hero.z;p.yaw=s.hero.yaw;p.hp=s.hero.hp;p.pose=s.hero.pose;p.slot=s.hero.slot;p.skill=s.hero.skill;p.progress=s.hero.progress;p.speed=s.hero.moveSpeed;f.npc.x=f.ox+s.enemy.x;f.npc.z=f.oz+s.enemy.z;f.npc.yaw=s.enemy.yaw;f.npc.hp=s.enemy.hp;f.npc.pose=s.enemy.pose;
  if(p.hp<f.lastHp){this.emit('hurt',{amount:f.lastHp-p.hp});f.lastHp=p.hp;}
  if(s.hero.dead){this.finish('defeated');return;}
- if(s.enemy.dead){f.npc.dead=true;f.npc.state='down';this.devour={npc:f.npc,t:0};p.pose=null;p.skill=null;this.fight=null;this.emit('down',{npc:f.npc});}
+ if(s.enemy.dead){f.npc.dead=true;f.npc.pose=null;f.npc.state='down';this.devour={npc:f.npc,t:0};p.pose=null;p.skill=null;this.fight=null;this.emit('down',{npc:f.npc});}
  else if(v.amount>.05&&Math.hypot(p.x-f.npc.x,p.z-f.npc.z)>6){f.npc.state='pursue';f.npc.pose=null;this.fight=null;p.pose=null;p.skill=null;this.safeTime=1.6;this.emit('disengage');}
- }else if(this.devour){const n=this.devour.npc,d=Math.hypot(n.x-p.x,n.z-p.z);if(v.amount>.08){this.devour=null;}else{if(d>.75)this.walkActor(p,(n.x-p.x)/d*dt*2,(n.z-p.z)/d*dt*2);p.yaw=Math.atan2(n.x-p.x,n.z-p.z);this.devour.t+=dt;if(this.devour.t>1.5){this.consume(n);this.devour=null;}}}
+ }else if(this.devour){advanceDevour(this,dt,v.amount);}
  else{
  const speed=v.dash?4.65:2.85,formBoost=this.profile.form==='stalker'?1.15:1;
  const dx=v.x*v.amount*speed*formBoost*dt,dz=v.z*v.amount*speed*formBoost*dt;const moved=this.walkActor(p,dx,dz);p.speed=moved/dt;p.walk+=moved*3.8;if(v.amount>.05){const target=Math.atan2(v.x,v.z);p.yaw+=Math.atan2(Math.sin(target-p.yaw),Math.cos(target-p.yaw))*Math.min(1,dt*12);}
