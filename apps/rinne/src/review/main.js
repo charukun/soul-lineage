@@ -2,6 +2,7 @@ import { THREE, GLTFLoader, OrbitControls } from '@soul/rendering';
 import { reviewPresets, installReviewExtensions, disposeLoaded } from './review-adapter.js';
 import { REVIEW_ASSET_REVISION, REVIEW_MOTION_FAMILIES, classifyMotion } from '@soul/assets/review-catalog';
 import { createPlayback, markerAge } from './playback.js';
+import { installWeaponReviewPolish } from './weapon-review-polish.js';
 import './style.css';
 const q = selector => document.querySelector(selector);
 const params = new URLSearchParams(location.search);
@@ -26,7 +27,7 @@ async function startReview() {
   const extensions=await installReviewExtensions({scene});
   const build=typeof __BUILD_INFO__ === 'object'?__BUILD_INFO__:{commit:'local',branch:'local'};
   q('#build-label').textContent=`${String(build.commit).slice(0,12)} / ${REVIEW_ASSET_REVISION}`;
-  let body=null,mixer=null,action=null,activeClip=null,loading=null,generation=0;
+  let body=null,mixer=null,action=null,activeClip=null,loading=null,generation=0,reviewMode='normal';
   let skeleton=null,bounds=null,cameraName='three',last=performance.now(),frames=[];
   const disposeHelper=helper=>{if(!helper)return;helper.removeFromParent();helper.geometry?.dispose();helper.material?.dispose();};
   function clearHelpers(){disposeHelper(skeleton);disposeHelper(bounds);skeleton=null;bounds=null;}
@@ -44,7 +45,7 @@ async function startReview() {
     const offset=({front:[0,d*.15,d],back:[0,d*.15,-d],left:[-d,d*.15,0],right:[d,d*.15,0],top:[0,d,.001],three:[d*.72,d*.3,d*.72]})[name]||[d*.72,d*.3,d*.72];
     camera.position.copy(center).add(new THREE.Vector3(...offset));controls.target.copy(center);camera.near=.01;camera.far=Math.max(100,d*20);camera.updateProjectionMatrix();controls.update();
   }
-  function weapon(){body?.setWeapon?.({enabled:q('#weapon-toggle').checked,scale:numeric('#weapon-scale',.5),x:numeric('#weapon-x'),y:numeric('#weapon-y'),z:numeric('#weapon-z')});}
+  function weapon(){body?.setWeapon?.({enabled:q('#weapon-toggle').checked,id:q('#weapon-select')?.value||null,scale:numeric('#weapon-scale',.5),x:numeric('#weapon-x'),y:numeric('#weapon-y'),z:numeric('#weapon-z')});}
   function sample(){
     if(action){action.enabled=true;action.paused=false;action.time=clock.time;mixer.update(0);}
     weapon();body?.afterSample?.();body?.root.updateMatrixWorld(true);
@@ -61,13 +62,17 @@ async function startReview() {
     if(name){
       activeClip=body.getClip(name,{inPlace:q('#in-place').checked});
       if(!activeClip)throw new Error(`Source animation not found: ${name}`);
+      if(name==='技 / 流し斬り'){
+        activeClip=activeClip.clone();for(const track of activeClip.tracks)track.scale(1.28);activeClip.resetDuration();
+      }
+      const technique=name.startsWith('技 / ');if(technique){q('#loop-toggle').checked=false;clock.loop=false;}
       action=mixer.clipAction(activeClip);action.setLoop(THREE.LoopOnce,1);action.clampWhenFinished=true;action.reset().play();
       clock.duration=activeClip.duration;clock.playing=autoplay;
     }
     q('#clip').value=name||'';q('#clip-label').textContent=name||'元モデル静止比較';sample();
   }
   function attach(next){
-    body=next;scene.add(body.root);mixer=new THREE.AnimationMixer(body.root);
+    body=installWeaponReviewPolish(next);scene.add(body.root);mixer=new THREE.AnimationMixer(body.root);
     body.root.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;}});
     q('#source-label').textContent=body.label;
     q('#weapon-controls').hidden=body.weaponReview===false;
@@ -131,33 +136,7 @@ async function startReview() {
   for(const id of ['#skeleton-toggle','#bounds-toggle'])q(id).addEventListener('change',refreshHelpers);
   q('#wireframe-toggle').addEventListener('change',wireframe);
   q('#grid-toggle').addEventListener('change',()=>{grid.visible=q('#grid-toggle').checked;ground.visible=grid.visible;});
-  for(const id of ['#weapon-toggle','#weapon-scale','#weapon-x','#weapon-y','#weapon-z','#overlay-toggle','#overlay-time'])q(id).addEventListener('input',sample);
-  q('#trigger-overlay').addEventListener('click',()=>{if(!activeClip)return;q('#overlay-toggle').checked=true;clock.seek(Math.min(clock.duration,numeric('#overlay-time',.42)+.02));sample();});
-  document.querySelectorAll('[data-camera]').forEach(button=>button.addEventListener('click',wrap(()=>frameModel(button.dataset.camera))));
-  function stateText(){return ['輪廻転焦 Visual Review Lab',`Source: ${body?.label||'none'}`,`Clip: ${activeClip?.name||'rest'}`,`Time: ${clock.time.toFixed(3)} / ${clock.duration.toFixed(3)}`,`Speed: ${clock.speed}`,`In place: ${q('#in-place').checked}`,`Marker: ${q('#overlay-time').value} (preview only)`,`Weapon: ${q('#weapon-toggle').checked} / scale ${q('#weapon-scale').value} / XYZ ${q('#weapon-x').value},${q('#weapon-y').value},${q('#weapon-z').value}`,`Note: ${q('#review-note').value}`,`Build: ${build.commit} / ${build.branch}`,`Assets: ${REVIEW_ASSET_REVISION}`].join('\n');}
-  async function copy(text){await navigator.clipboard.writeText(text);setStatus('レビュー情報をコピーしました');}
-  q('#copy-review').addEventListener('click',wrap(()=>copy(stateText())));
-  q('#copy-link').addEventListener('click',wrap(()=>{
-    const url=new URL(location.href);url.search='';
-    const fields={preset:q('#preset').value,model:q('#model-url').value,clip:activeClip?.name||'',rest:activeClip?'0':'1',t:clock.time.toFixed(3),speed:clock.speed,marker:numeric('#overlay-time',.42),camera:cameraName,inPlace:q('#in-place').checked?'1':'0',weapon:q('#weapon-toggle').checked?'1':'0',weaponScale:numeric('#weapon-scale',.5),weaponX:numeric('#weapon-x'),weaponY:numeric('#weapon-y'),weaponZ:numeric('#weapon-z'),vfx:q('#overlay-toggle').checked?'1':'0'};
-    for(const [key,value]of Object.entries(fields))if(value!=='')url.searchParams.set(key,String(value));history.replaceState(null,'',url);return copy(url.href);
-  }));
-  q('#capture').addEventListener('click',wrap(async()=>{
-    renderer.render(scene,camera);const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw new Error('スクリーンショット取得に失敗しました');
-    try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);setStatus('画像をコピーしました');}
-    catch{const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`rinne-review-${String(build.commit).slice(0,8)}.png`;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);setStatus('画像を保存しました');}
-  }));
-  const resize=()=>{const w=Math.max(canvas.clientWidth,1),h=Math.max(canvas.clientHeight,1);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();};
-  new ResizeObserver(resize).observe(canvas);resize();
-  for(const [key,id]of [['marker','#overlay-time'],['weaponScale','#weapon-scale'],['weaponX','#weapon-x'],['weaponY','#weapon-y'],['weaponZ','#weapon-z']])if(params.has(key)&&Number.isFinite(Number(params.get(key))))q(id).value=params.get(key);
-  for(const [key,id]of [['inPlace','#in-place'],['weapon','#weapon-toggle'],['vfx','#overlay-toggle']])if(params.has(key))q(id).checked=params.get(key)==='1';
-  if(['0.1','0.25','0.5','1','1.5','2'].includes(params.get('speed')))q('#speed').value=params.get('speed');clock.speed=numeric('#speed',1);
-  window.__reviewLab={snapshot:()=>({loaded:Boolean(body),clip:activeClip?.name||null,time:clock.time,source:body?.label||null,build:build.commit,
-    animations:body?.clipNames||[],calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,
-    pose:body?.bones?Object.fromEntries(Object.entries(body.bones).map(([name,bone])=>[name,[...bone.position.toArray(),...bone.quaternion.toArray()]])):null}),stateText};
-  canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();clock.playing=false;setStatus('WebGLコンテキストが失われました。再読み込みしてください。','error');});
-  function tick(now){const raw=Math.max(0,(now-last)/1000);last=now;controls.update();if(!document.hidden){clock.update(raw);sample();renderer.render(scene,camera);frames.push(raw);if(frames.length>60)frames.shift();const avg=frames.reduce((a,b)=>a+b,0)/frames.length;q('#fps').textContent=avg?`${Math.round(1/avg)} FPS`:'0 FPS';}requestAnimationFrame(tick);}
-  requestAnimationFrame(tick);
-  if(params.get('model')){q('#model-url').value=params.get('model');await loadManual(params.get('model'));}else await loadPreset();
-}
-startReview().catch(error=>{console.error(error);setStatus(`Review初期化失敗: ${error.message}`,'error');});
+  for(const id of ['#weapon-toggle','#weapon-select','#weapon-scale','#weapon-x','#weapon-y','#weapon-z','#overlay-toggle','#overlay-time'])q(id).addEventListener('input',sample);
+  document.addEventListener('review-combat-mode',wrap(async event=>{
+    reviewMode=event.detail?.mode==='combat'?'combat':'normal';
+    if(reviewMode==='normal'){const idle=body?.clipNames.find(name=>name==='Tidebreak / Idle'||/Idle|待機/.test(name));play
