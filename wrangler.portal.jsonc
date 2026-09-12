@@ -8,5 +8,11 @@
     "directory": "./portal/public",
     "binding": "ASSETS",
     "run_worker_first": ["/api/*"]
-  }
+  },
+  "services": [
+    {
+      "binding": "PULSE",
+      "service": "rinne-ops"
+    }
+  ]
 }
