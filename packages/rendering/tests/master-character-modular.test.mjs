@@ -35,6 +35,18 @@ test('modular controller changes silhouette after the canonical actor sample', (
   actor.destroy();
 });
 
+test('repeated manual part edits do not compound body/head scaling', () => {
+  const { actor } = actorFixture();
+  const controller = attachModularAppearanceController(actor);
+  actor.sample(appearance);
+  controller.setProfile({ version: 1, face: 'round', hair: 'bob', body: 'sturdy', outfit: 'tunic', accessory: 'none' });
+  const firstRoot = actor.root.scale.toArray(), firstHead = actor.bones.head.scale.toArray();
+  controller.setProfile({ version: 1, face: 'round', hair: 'tail', body: 'sturdy', outfit: 'mantle', accessory: 'scarf' });
+  assert.deepEqual(actor.root.scale.toArray(), firstRoot);
+  assert.deepEqual(actor.bones.head.scale.toArray(), firstHead);
+  actor.destroy();
+});
+
 test('reset restores the unmodified Shino presentation', () => {
   const { actor, hair } = actorFixture();
   const controller = attachModularAppearanceController(actor);
