@@ -103,6 +103,9 @@ for (const app of apps) {
       await page.locator('[data-village]').first().click();
       await expect(page.locator('#hud')).toBeVisible();
       await verifyHuntClarity(page, expect, evidence);
+    } else if (app === 'village') {
+      const {verifyVillageFirstBuild} = await import('../../apps/village/tests/first-build.browser.mjs');
+      await verifyVillageFirstBuild(page, expect, evidence, () => capturePlayedAudio(page, playedSources));
     }
     await capturePlayedAudio(page, playedSources);
     const media = await mediaDiagnostics(rawRequests, playedSources, new URL(url).origin);
