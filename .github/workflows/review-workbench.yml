@@ -1,0 +1,32 @@
+name: Review workbench snapshot
+on:
+  push:
+    branches: [audit/review-plan-validation]
+    paths: [.github/workflows/review-workbench.yml]
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Package tracked source and installed dependencies only
+        run: |
+          git archive --format=tar HEAD > "$RUNNER_TEMP/source.tar"
+          tar -rf "$RUNNER_TEMP/source.tar" node_modules
+          gzip -1 "$RUNNER_TEMP/source.tar"
+          sha256sum "$RUNNER_TEMP/source.tar.gz"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: review-local-workbench
+          path: ${{ runner.temp }}/source.tar.gz
+          retention-days: 2
+          compression-level: 0
