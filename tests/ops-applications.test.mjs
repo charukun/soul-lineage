@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildApplications, OPS_PUBLIC_URL } from '../ops-board/applications.mjs';
+import { buildApplications, OPS_PUBLIC_URL, PORTAL_PUBLIC_URL } from '../ops-board/applications.mjs';
 
 test('published apps are grouped by app with exact manifest paths', () => {
   const manifest = { entries: [
@@ -26,14 +26,18 @@ test('tools use verified public status while failed Lanternfell never invents a 
     url: 'https://rinne-visual-review.example.workers.dev/', deployedCommit: 'vrm', deployedAt: '2026-09-12T00:00:00Z',
   }];
   const runs = [
+    { name: 'Rinne Public Portal', status: 'completed', conclusion: 'success', head_sha: 'portal', updated_at: '2026-09-12T00:00:30Z' },
     { name: 'Rinne Ops Board', status: 'completed', conclusion: 'success', head_sha: 'ops', updated_at: '2026-09-12T00:01:00Z' },
     { name: 'Lanternfell night portrait DEV', status: 'completed', conclusion: 'failure', head_sha: 'lantern', updated_at: '2026-09-12T00:02:00Z' },
   ];
   const apps = buildApplications({ entries: [] }, environments, runs);
   const visual = apps.find(app => app.id === 'visual-review');
+  const portal = apps.find(app => app.id === 'portal');
   const ops = apps.find(app => app.id === 'ops-board');
   const lantern = apps.find(app => app.id === 'lanternfell');
   assert.equal(visual.targets[0].url, environments[0].url);
+  assert.equal(portal.targets[0].url, PORTAL_PUBLIC_URL);
+  assert.equal(portal.targets[0].state, 'success');
   assert.equal(ops.targets[0].url, OPS_PUBLIC_URL);
   assert.equal(lantern.targets[0].state, 'failed');
   assert.equal(lantern.targets[0].url, null);
