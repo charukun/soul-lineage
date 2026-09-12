@@ -62,9 +62,7 @@ function refreshSelectors() {
   document.querySelectorAll('[data-combat-mode]').forEach(button => { button.disabled = !modeMotion(button.dataset.combatMode); });
 }
 function modeMotion(mode) {
-  return allOptions().find(o => mode === 'combat'
-    ? /^構え \/ 自然体$|^技 \/ 構えを整える$/.test(o.value)
-    : /^Tidebreak \/ Idle$|(?:^|[ /_])Idle(?:$|[ /_])|待機/i.test(o.value))?.value;
+  return allOptions().find(o=>o.value===(mode==='combat'?'Tidebreak / Idle':'通常 / 自然体'))?.value;
 }
 
 // Keep the existing motion picker; never insert asset-provided labels as HTML.
@@ -106,10 +104,8 @@ document.querySelectorAll('[data-review-tab]').forEach(button => button.addEvent
   });
   document.querySelectorAll('[data-review-page]').forEach(page => page.classList.toggle('active', page.dataset.reviewPage === button.dataset.reviewTab));
 }));
-document.querySelectorAll('[data-combat-mode]').forEach(button => button.addEventListener('click', () => {
-  const value = modeMotion(button.dataset.combatMode); if (!value) return;
-  playValue(value);
-  document.querySelectorAll('[data-combat-mode]').forEach(other => other.classList.toggle('active', other === button));
+document.querySelectorAll('[data-combat-mode]').forEach(button=>button.addEventListener('click',()=>{
+  document.dispatchEvent(new CustomEvent('review-combat-mode',{detail:{mode:button.dataset.combatMode}}));
 }));
 
 const dialog = q('#review-feedback-dialog'), editor = q('#review-feedback-text'), feedbackStatus = q('#review-feedback-status');
@@ -131,7 +127,7 @@ function reviewContext(id) {
     composition: STAGES.map((key, i) => `${STAGE_LABELS[i]}=${names[key] || '未選択'}`).join(' → '),
     sequence: snapshot?.sequence?.length ? snapshot.sequence.join(' → ') : master.value || '静止比較',
     active: snapshot?.clip || master.value, time: text('#current-time'), duration: text('#duration'),
-    speed: q('#speed').value, loop: q('#loop-toggle').checked, url: location.href
+    speed: q('#speed').value, loop: q('#loop-toggle').checked, url: window.__reviewLab?.stateURL?.() || location.href
   };
 }
 function openFeedback(id, origin) {

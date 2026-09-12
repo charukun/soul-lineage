@@ -40,65 +40,29 @@ export function bakePosturePreview(runtime) {
 
 /** Keep the visible weapon on the hip until the reaching hand meets it (and vice versa). */
 export function installPostureWeaponPreview(body) {
-  const hand = body.bones?.rightHand, hips = body.bones?.hips;
-  const socket = hand?.getObjectByName('ReviewWeaponPolishedSocket');
-  if (!hand || !hips || !socket) return body;
-  const originalSet = body.setWeapon?.bind(body), originalSample = body.samplePosture?.bind(body);
-  const handMatrix = new THREE.Matrix4();
-  let sampled = null, signature = '', calibrated = null, disposed = false;
-  const nodes = new Map(Object.values(body.bones).map(bone => [bone.uuid, bone]));
-  function carryMatrix(row) {
-    const saved = Object.values(body.bones).map(bone => [bone, bone.position.clone(), bone.quaternion.clone()]);
+  const hand=body.bones?.rightHand,hips=body.bones?.hips,socket=hand?.getObjectByName('ReviewWeaponPolishedSocket');
+  if(!hand||!hips||!socket)return body;
+  const originalAfter=body.afterSample?.bind(body);let signature='',calibrated=null;
+  const nodes=new Map(Object.values(body.bones).map(b=>[b.uuid,b]));
+  function carryMatrix(row,handMatrix){
+    const saved=Object.values(body.bones).map(b=>[b,b.position.clone(),b.quaternion.clone()]);
     try {
-      for (const track of row.clip.tracks) {
-        const dot = track.name.lastIndexOf('.'), node = nodes.get(track.name.slice(0, dot)), property = track.name.slice(dot + 1);
-        if (node && ['position', 'quaternion'].includes(property)) node[property].fromArray(track.createInterpolant().evaluate(row.transferTime));
-      }
+      for(const track of row.clip.tracks){const dot=track.name.lastIndexOf('.'),n=nodes.get(track.name.slice(0,dot)),p=track.name.slice(dot+1);if(n&&['position','quaternion'].includes(p))n[p].fromArray(track.createInterpolant().evaluate(row.transferTime));}
       body.root.updateMatrixWorld(true);
       return hips.matrixWorld.clone().invert().multiply(hand.matrixWorld).multiply(handMatrix);
-    } finally {
-      for (const [bone, position, quaternion] of saved) { bone.position.copy(position); bone.quaternion.copy(quaternion); }
-      body.root.updateMatrixWorld(true);
-    }
+    }finally{for(const[b,p,q]of saved){b.position.copy(p);b.quaternion.copy(q);}body.root.updateMatrixWorld(true);}
   }
-  function apply() {
-    if (disposed) return;
-    const row = body.posturePreviews?.get(sampled?.name);
-    const amount = row ? postureAmount(row.kind, sampled.time) : 1;
-    if (row && amount <= .25) {
-      const key = `${row.name}:${handMatrix.elements.join(',')}`;
-      if (signature !== key) { calibrated = carryMatrix(row); signature = key; }
-      if (socket.parent !== hips) hips.add(socket);
-      calibrated.decompose(socket.position, socket.quaternion, socket.scale);
-    } else {
-      if (socket.parent !== hand) hand.add(socket);
-      handMatrix.decompose(socket.position, socket.quaternion, socket.scale);
+  body.afterSample=(time,name,state)=>{
+    const matrix=body.weaponHandMatrix?.();
+    if(matrix){if(socket.parent!==hand)hand.add(socket);matrix.decompose(socket.position,socket.quaternion,socket.scale);}
+    originalAfter?.(time,name,state);
+    const row=body.posturePreviews?.get(name);const amount=row?postureAmount(row.kind,time):1;
+    if(row&&matrix&&socket.visible&&amount<=.25){
+      const key=row.name+':'+matrix.elements.join(',');if(key!==signature){calibrated=carryMatrix(row,matrix);signature=key;}
+      hips.add(socket);calibrated.decompose(socket.position,socket.quaternion,socket.scale);socket.updateMatrixWorld(true);
     }
-    socket.updateMatrixWorld(true);
-  }
-  body.samplePosture = state => { originalSample?.(state); sampled = state; apply(); };
-  let pendingWeapon = null, latestWeapon = null;
-  body.setWeapon = options => {
-    latestWeapon = options;
-    if (pendingWeapon) return pendingWeapon;
-    // Coalesce frames while a weapon loads. Parallel completions must not capture a hip
-    // transform as the hand grip after another completion has reparented the socket.
-    pendingWeapon = (async () => {
-      let applied;
-      do {
-        const requested = latestWeapon;
-        if (disposed) return;
-        await originalSet?.(requested);
-        if (disposed) return;
-        if (requested?.enabled) {
-          socket.scale.set(1, 1, 1); socket.updateMatrix(); handMatrix.copy(socket.matrix); apply();
-        }
-        applied = requested;
-      } while (applied !== latestWeapon);
-    })().finally(() => { pendingWeapon = null; });
-    return pendingWeapon;
+    body.postureDiagnostics=row?{kind:row.kind,amount,attachment:socket.parent===hips?'hips':'hand',time}:null;
   };
-  const originalDispose = body.dispose?.bind(body);
-  body.dispose = () => { disposed = true; body.posturePreviews?.clear(); originalDispose?.(); };
+  const oldDispose=body.dispose?.bind(body);body.dispose=()=>{body.posturePreviews?.clear();oldDispose?.();};
   return body;
 }
