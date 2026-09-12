@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 
 const source=readFileSync(new URL('../src/asset-visuals.js',import.meta.url),'utf8');
 const root=new URL('../public/assets/vendor/kenney-particles/',import.meta.url);
-const manifest=JSON.parse(readFileSync(new URL('MANIFEST.json',root),'utf8'));
+const manifest=JSON.parse(readFileSync(new URL('./MANIFEST.json',root),'utf8'));
 const expected={
   'LICENSE.txt':'e198510d3c6ac7e3dc4370f1f0861d8c617362e8',
   'spark_05.png':'e01086ab2deabdedfa85f48df5f1c40392c19723',
