@@ -51,7 +51,7 @@ test('start/end return the torso, jaw and planted feet to the resting pose',()=>
 });
 test('real adapter and session wire progress, cleanup and the new route renderer',()=>{
  const creature=readFileSync(new URL('../src/web/creatures.js',import.meta.url),'utf8');
- const session=readFileSync(new URL('../../../packages/raid/session.js',import.meta.url),'utf8');
+ const session=readFileSync(new URL(import.meta.resolve('@soul/raid')),'utf8');
  const main=readFileSync(new URL('../src/web/main.js',import.meta.url),'utf8');
  assert.match(creature,/Number\.isFinite\(a\.devourProgress\)/);assert.match(creature,/applyCapturedPose\(g,a\.capturedBy\)/);
  assert.match(creature,/foot\.quaternion\.copy\(inverse\)/);assert.ok(!creature.includes('Math.sin(time*10)'));
