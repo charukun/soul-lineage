@@ -17,9 +17,10 @@ export function ageLabel(ms) {
 
 export function appHealth(app) {
   const targets = app.targets || [];
-  if (targets.some(target => target.state === 'failed')) return ['要対応', 'danger'];
-  if (targets.some(target => target.state === 'deploying')) return ['更新中', 'progress'];
-  if (targets.some(target => target.state === 'waiting')) return ['公開待ち', 'warning'];
+  if (targets.some(target => target.state === 'failed' || target.updateState === 'failed')) return ['要対応', 'danger'];
+  if (targets.some(target => target.state === 'deploying' || target.updateState === 'deploying')) return ['更新中', 'progress'];
+  if (targets.some(target => target.state === 'waiting' || target.updateState === 'waiting')) return ['公開待ち', 'warning'];
+  if (targets.some(target => target.state === 'missing')) return ['未公開あり', 'info'];
   if (targets.length && targets.every(target => target.state === 'success')) return ['正常', 'ok'];
   return ['未確認', 'info'];
 }
@@ -32,7 +33,7 @@ export function appSummary(apps = []) {
 
 export function boardAlerts(state, now = Date.now(), loadError = null) {
   // Always derive transient warnings; never keep a resolved sync error in stored alerts.
-  const alerts = (state?.alerts || []).filter(item => !['sync-failed', 'sync-stale', 'sync-unavailable', 'client-fetch'].includes(item.type));
+  const alerts = (state?.alerts || []).filter(item => !['sync-failed', 'sync-stale', 'sync-unavailable', 'client-fetch', 'github-sync-degraded', 'delivery-stalled', 'ci-failed'].includes(item.type));
   const age = snapshotAge(state, now);
   if (loadError || state?.syncStatus === 'degraded') {
     alerts.unshift({ type: loadError ? 'client-fetch' : 'sync-failed', tone: 'danger', title: '最新情報を取得できていません',
@@ -47,6 +48,11 @@ export function boardAlerts(state, now = Date.now(), loadError = null) {
     if (alerts.some(alert => alert.type === 'ci-failed' && alert.prNumber === item.number)) continue;
     alerts.push({ type: 'ci-failed', prNumber: item.number, tone: 'danger', title: `#${item.number} の自動テストが失敗`,
       detail: `${item.title || ''}${item.reason ? ` / ${item.reason}` : ''}`, url: item.ci?.url || item.url });
+  }
+  if (state?.integration?.stalled) {
+    alerts.push({ type: 'delivery-stalled', tone: 'danger', title: '開発版の公開処理が停止している可能性があります',
+      detail: 'GitHub上の公開処理の更新が10分以上ありません。実行ログを確認してください。',
+      since: state.integration.heartbeatAt, url: state.integration.latestRun?.url });
   }
   return alerts;
 }

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0c1017">
-  <title>輪廻転焦 開発状況ボード</title>
+  <title>PULSE</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="./pr-board.css">
@@ -15,9 +15,8 @@
   <main class="shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">輪廻転焦 / 開発運用</p>
-        <h1>開発状況ボード</h1>
-        <p class="muted">Rinne Ops Board</p>
+        <p class="eyebrow">DEVELOPMENT / OPERATIONS</p>
+        <h1 class="pulse-wordmark">PULSE</h1>
       </div>
       <div class="refresh-area"><button id="reload" class="reload" type="button">最新に更新</button>
         <p id="sync-freshness" class="sync-freshness" role="status">最終取得 未取得</p></div>
@@ -51,7 +50,7 @@
 
     <section id="apps-section" class="board-section">
       <div class="section-head"><h2>アプリ別の公開状況</h2><span id="app-summary" class="muted">確認中</span></div>
-      <p class="section-description">各アプリがいま公開されているかを、アイコン付きの3列一覧で確認できます。</p>
+      <p class="section-description">各ゲームの開発・検証・本番を確認できます。未公開の環境も省略せず表示します。</p>
       <div id="applications" class="app-groups"><div class="card"><p class="empty">アプリ状態を確認中</p></div></div>
     </section>
 

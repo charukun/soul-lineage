@@ -8,9 +8,9 @@ const el = (tag, className, text) => {
   if (text !== undefined && text !== null) node.textContent = String(text);
   return node;
 };
-const APP_ICONS = { rinne: './icons/rinne.svg', village: './icons/village.svg', demon: './icons/demon.svg', lanternfell: './icons/lanternfell.svg', 'visual-review': './icons/visual-review.svg', portal: './icons/wayfinder.svg', 'ops-board': './icons/ops-board.svg' };
+const APP_ICONS = { 'character-studio': './icons/character-studio.svg', rinne: './icons/rinne.svg', village: './icons/village.svg', demon: './icons/demon.svg', lanternfell: './icons/lanternfell.svg', 'visual-review': './icons/visual-review.svg', portal: './icons/wayfinder.svg', 'ops-board': './icons/ops-board.svg' };
 const DEFAULT_ICON = './icons/default.svg';
-const stateView = state => ({ success: ['公開中', 'ok'], deploying: ['更新中', 'progress'], waiting: ['公開待ち', 'warning'], failed: ['要対応', 'danger'], unknown: ['未確認', 'info'] })[state] || ['未確認', 'info'];
+const stateView = state => ({ success: ['公開中', 'ok'], deploying: ['更新中', 'progress'], waiting: ['公開待ち', 'warning'], failed: ['要対応', 'danger'], unknown: ['未確認', 'info'], missing: ['未公開', 'info'] })[state] || ['未確認', 'info'];
 const safeHref = value => { try { const u = new URL(value); return u.protocol === 'https:' ? u.href : null; } catch { return null; } };
 const time = value => { const d = Date.parse(value || ''); return Number.isFinite(d) ? `${fmt.format(d)}（端末時刻）` : '記録なし'; };
 let currentApps = [];
@@ -46,6 +46,9 @@ function fillDialog(app) {
     detailPair(values, '公開済みの版（SHA）', target.commit || '未確定', true);
     detailPair(values, '公開日時', time(target.deployedAt));
     detailPair(values, '取得元', target.source || '取得元未記録');
+    if (target.updateState && target.updateState !== 'success') {
+      detailPair(values, '次の更新', stateView(target.updateState)[0]);
+    }
     section.append(values);
     if (target.note) section.append(el('p', 'empty', target.note));
     const url = safeHref(target.url);
@@ -77,6 +80,10 @@ function targetSummary(target, app) {
   const state = el('span', `mini-state ${tone}`);
   state.append(el('span', 'mini-dot'), el('span', '', label));
   top.append(el('strong', '', target.label || '公開先'), state); node.append(top);
+  if (target.state === 'success' && ['failed', 'deploying', 'waiting'].includes(target.updateState)) {
+    node.append(el('span', `app-update-note ${stateView(target.updateState)[1]}`,
+      target.updateState === 'failed' ? '次の更新に失敗' : target.updateState === 'deploying' ? '次の更新中' : '次の更新待ち'));
+  }
   return node;
 }
 function appCard(app) {

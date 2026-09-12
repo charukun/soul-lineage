@@ -146,6 +146,7 @@ test('public dashboard prioritizes action items/tasks and uses a 3-column icon a
   assert.ok(alertPosition >= 0 && taskPosition > alertPosition && appPosition > taskPosition);
 
   assert.match(appBoard, /APP_ICONS/);
+  assert.match(appBoard, /character-studio\.svg/);
   assert.match(appBoard, /app-icon/);
   assert.match(appBoard, /ゲーム \/ 専用開発版/);
   assert.match(appBoard, /開発ツール/);
@@ -154,7 +155,7 @@ test('public dashboard prioritizes action items/tasks and uses a 3-column icon a
   assert.match(pullBoard, /subscribe/);
   assert.match(pullBoard, /対象確認中/);
 
-  for (const name of ['rinne', 'village', 'demon', 'lanternfell', 'visual-review', 'wayfinder', 'ops-board', 'default']) {
+  for (const name of ['rinne', 'village', 'demon', 'lanternfell', 'character-studio', 'visual-review', 'wayfinder', 'ops-board', 'default']) {
     const svg = await readFile(new URL(`../ops-board/public/icons/${name}.svg`, import.meta.url), 'utf8');
     assert.match(svg, /<svg/);
   }

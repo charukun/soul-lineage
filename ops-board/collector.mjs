@@ -17,9 +17,9 @@ function deploymentState(branchSha, deployedSha, run) {
   if (workflowFailure(run)) return 'failed';
   return 'waiting';
 }
-function environmentFromManifest(id, manifest, branchCommit, deployRun) {
+export function environmentFromManifest(id, manifest, branchCommit, deployRun) {
   const published = publishedCommit(manifest, id);
-  return { id, kind: 'pages', name: id === 'dev' ? 'DEV' : 'Production', branch: id === 'dev' ? 'develop' : 'main', branchCommit,
+  return { id, kind: 'pages', name: { dev: 'DEV', staging: 'STAGING / 検証', prod: 'Production' }[id], branch: manifest.environmentSnapshots?.[id]?.branch || (id === 'prod' ? 'main' : 'develop'), branchCommit,
     deployedCommit: published.commit, sourceCommits: published.sourceCommits || [], deployedAt: published.deployedAt || null, url: `${PAGES_ROOT}${id}/`,
     deployState: deploymentState(branchCommit, published.commit, deployRun), latestRun: runView(deployRun), source: 'GitHub Pages deployment-manifest.json', exactCommit: published.exact };
 }
@@ -60,7 +60,7 @@ async function previewEnvironment(candidate, branches, previous, client) {
     if (!selected) return null;
     publicStatus = { state: selected.state, context: selected.context, targetUrl: selected.target_url, updatedAt: selected.updated_at || selected.created_at || null };
   }
-  const env = { id: publicStatus.context.replace(/\/public$/, ''), kind: 'preview', name: publicStatus.context === 'visual-review/public' ? 'Visual Review' : candidate.name.replace(/\bpreview\b/ig, '').trim(),
+  const env = { id: publicStatus.context.replace(/\/public$/, ''), kind: 'preview', name: publicStatus.context === 'visual-review/public' ? 'Visual Review Lab' : candidate.name.replace(/\bpreview\b/ig, '').trim(),
     workflow: candidate.name, branch: success.head_branch, branchCommit: branches.get(success.head_branch)?.commit?.sha || success.head_sha,
     deployedCommit: success.head_sha, deployedAt: publicStatus.updatedAt, url: publicStatus.targetUrl,
     deployState: RUNNING.has(latest?.status) ? 'deploying' : FAILED_CONCLUSIONS.has(latest?.conclusion) ? 'failed' : latest?.conclusion === 'cancelled' ? 'waiting' : 'success',
@@ -76,6 +76,7 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     const response = await fetchImpl(manifestUrl, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
     if (!response.ok) throw new Error(`公開manifest取得: HTTP ${response.status}`);
     const manifest = await response.json();
+    if (manifest?.schemaVersion !== 1 || !Array.isArray(manifest.entries)) throw new Error('公開manifestの形式が不正です');
     const branchesResult = await client.get('/branches?per_page=100');
     const branches = new Map((branchesResult.data || []).map(branch => [branch.name, branch]));
     const pulls = [];
@@ -96,11 +97,14 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     let prod = environmentFromManifest('prod', manifest, branches.get('main')?.commit?.sha || null, mainRuns[0]);
     dev = await withHistory(dev, previousById.get('dev'), client);
     prod = await withHistory(prod, previousById.get('prod'), client);
+    let staging = environmentFromManifest('staging', manifest, publishedCommit(manifest, 'staging').commit, null);
+    staging = await withHistory(staging, previousById.get('staging'), client);
+    staging.source = 'Pinned validation release / published manifest';
     dev.deployQueue = await compareQueue(dev.deployedCommit, dev.branchCommit, client);
     prod.deployQueue = await compareQueue(prod.deployedCommit, prod.branchCommit, client);
     const previews = [];
     for (const candidate of previewCandidates(runs)) { const env = await previewEnvironment(candidate, branches, previous, client); if (env) previews.push(env); }
-    const applications = buildApplications(manifest, [dev, prod, ...previews], runs);
+    const applications = buildApplications(manifest, [dev, staging, prod, ...previews], runs);
     const openPulls = allPulls.filter(pr => pr.state === 'open' && !isVisualReviewPull(pr)).sort((a, b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0));
     const integrationQueue = openPulls.map(pr => classifyPull(pr, runs, developRuns));
     const integration = overallIntegration(integrationQueue, developRuns[0], [dev.deployQueue, prod.deployQueue]);
@@ -119,7 +123,7 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     return { schemaVersion: 2, repository: REPOSITORY, generatedAt: now, lastAttemptAt: now, startedAt, syncStatus: 'ok',
       syncSource: 'GitHub API + published deployment manifests/statuses', githubRateRemaining: client.remaining,
       pullRequests: { ...pullRequests, total: allPulls.length, truncated: !pullsComplete, targetLookup: { ready: targets.ready, pending: targets.pending, unavailable: targets.unavailable, attempted: targets.attempted } },
-      applications, environments: [dev, prod, ...previews], environmentDiff: environmentDiff(dev, prod),
+      applications, applicationsUpdatedAt: now, applicationsSource: 'public-manifest', environments: [dev, staging, prod, ...previews], environmentDiff: environmentDiff(dev, prod),
       integration: { ...integration, queue: integrationQueue, latestRun: runView(developRuns[0]), deployWaiting: dev.deployQueue?.pulls || [], watchdog: { stalledThresholdMinutes: 10, staleReadyCount: integrationQueue.filter(item => item.warning).length } },
       recentActionFailures: failures.current.map(runView), actionHistory: failures.history.map(runView), alerts,
       publicManifest: { url: manifestUrl.origin + manifestUrl.pathname, schemaVersion: manifest.schemaVersion, validatedDevelop: manifest.validatedDevelop || null, environmentSnapshots: manifest.environmentSnapshots || null } };

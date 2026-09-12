@@ -2,6 +2,7 @@
 (()=>{'use strict';
  const config=window.__RINNE_EMBED__||{},token=config.token||window.__RINNE_EMBED_TOKEN__||new URL(location.href).searchParams.get('titleToken');
  const embedded=Boolean(token&&parent!==window),target=/^https?:\/\//.test(config.hostOrigin||'')?config.hostOrigin:/^https?:$/.test(location.protocol)?location.origin:'*';
+ const observationURL=new URL('./observation.js',document.currentScript?.src||location.href);
  let ready=false,failed=false,timer=0,serial=0;const pending=new Map();
  const send=(type,extra={})=>{if(embedded)parent.postMessage({channel:'rinne-title-v1',token,type,...extra},target);};
  const progress=data=>{if(!ready&&!failed)send('progress',{progress:data});};
@@ -11,7 +12,7 @@
   window.__RINNE_BOOT_ERROR__={code,detail};
   send('error',{message:'ゲームを起動できませんでした。詳細を確認して、もう一度お試しください。',code,detail});
  };
- const markReady=()=>{if(ready||failed)return;ready=true;clearInterval(timer);send('ready');};
+ const markReady=()=>{if(ready||failed)return;ready=true;clearInterval(timer);if(config.offline){send('ready');return;}import(observationURL.href).then(({installObservation})=>{installObservation();send('ready');}).catch(error=>fail(error,'PRESENTATION_BOOT_ERROR'));};
  const yieldUI=()=>new Promise(resolve=>setTimeout(resolve,0));
  const step=async data=>{progress(data);await yieldUI();};
  const readAsset=async(id,url,onProgress)=>{

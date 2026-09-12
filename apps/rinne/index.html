@@ -8,6 +8,7 @@
   <title>輪廻転焦</title>
   <link rel="icon" href="./title-assets/crest.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./src/title/title.css">
+<link rel="stylesheet" href="./src/title/play-clarity.css">
 </head>
 <body>
   <main id="title-screen" aria-label="輪廻転焦 タイトル画面" data-phase="intro">
@@ -42,7 +43,7 @@
         <span class="button-words"><strong>スキルシミュレーター</strong><small>SKILL SIMULATOR</small></span>
         <span class="button-arrow" aria-hidden="true">›</span>
       </button>
-      <p id="simulator-detail">技を閃き、自分だけの戦いを。</p>
+      <p id="simulator-detail">技を閃き、自分だけの戦いを。<br><small>年齢・技構成は保存。入り直すと体力・稽古結果はリセット。</small></p>
       <div class="secondary-menu"><button id="open-village" type="button">村へ参加</button><span aria-hidden="true">◇</span><button id="open-settings" type="button">設定</button><span aria-hidden="true">◇</span><button id="replay-intro" type="button">演出をもう一度</button></div>
     </section>
     <footer class="bottomline"><span id="version">LOCAL PREVIEW</span><span>めぐりつづける物語</span></footer>
@@ -51,7 +52,7 @@
     <div id="renderer-warning" class="renderer-warning" role="alert" hidden>WebGL2を利用できません。背景は静止表示です。シミュレーターの起動にはWebGL2が必要です。</div>
   </main>
   <section id="simulator-shell" aria-label="スキルシミュレーター" hidden>
-    <header class="simulator-top"><button id="back-title" type="button">〈 タイトルへ</button><span>スキルシミュレーター</span><small id="simulator-version"></small></header>
+    <header class="simulator-top"><button id="back-title" type="button">〈 タイトルへ</button><span>スキルシミュレーター</span><small id="simulator-version"></small><button id="simulator-music" type="button" aria-haspopup="dialog">音楽室</button></header>
     <div id="frame-slot"></div>
     <div id="game-loading" aria-busy="true">
       <span class="loading-rune" aria-hidden="true">✧</span><h2 id="loading-heading">稽古場へ</h2>
@@ -67,7 +68,7 @@
       <details id="loading-details"><summary>読み込みの詳細</summary><pre id="loading-technical"></pre></details>
     </div>
   </section>
-  <dialog id="settings-dialog" aria-labelledby="settings-title"><form method="dialog"><button class="dialog-close" aria-label="設定を閉じる">×</button></form><span class="dialog-star" aria-hidden="true">✧</span><h2 id="settings-title">旅の支度</h2><p>タイトル画面の設定</p><label class="setting-row"><span>音楽と効果音<small>タップしてから音が流れます</small></span><input id="setting-sound" type="checkbox"></label><label class="setting-row"><span>演出を控えめに<small>カメラ移動と粒子の変化を抑えます</small></span><input id="setting-motion" type="checkbox"></label><p><a href="./characters.html">キャラクターを確認する</a></p><p class="settings-note">シミュレーターの音量・画質は、<br>稽古場の設定から変更できます。</p></dialog>
+  <dialog id="settings-dialog" aria-labelledby="settings-title"><form method="dialog"><button class="dialog-close" aria-label="設定を閉じる">×</button></form><span class="dialog-star" aria-hidden="true">✧</span><h2 id="settings-title">旅の支度</h2><p>タイトル画面の設定</p><label class="setting-row"><span>タイトルの環境音<small>タップしてから音が流れます</small></span><input id="setting-sound" type="checkbox"></label><label class="setting-row"><span>演出を控えめに<small>カメラ移動と粒子の変化を抑えます</small></span><input id="setting-motion" type="checkbox"></label><p><button id="title-music" type="button" aria-haspopup="dialog">音楽室・BGM音量</button></p><p><a href="./characters.html">キャラクターを確認する</a></p><p class="settings-note">シミュレーターの音量・画質は、<br>稽古場の設定から変更できます。</p></dialog>
   <dialog id="village-dialog" aria-label="村へ参加"><form method="dialog"><button aria-label="村への参加画面を閉じる">タイトルへ戻る</button></form><div id="village-panel"></div></dialog>
   <noscript><p class="noscript">このゲームを開くにはJavaScriptを有効にしてください。</p></noscript>
   <script type="module" src="./src/main.js"></script>

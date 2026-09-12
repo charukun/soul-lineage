@@ -16,9 +16,19 @@ Ready化すると `Validate and build`、影響範囲browser smoke、repair記�
 
 Ready PRのfast/browser gate成功後、`Request Integration` がdevelop上の既存 `deploy.yml` をworkflow dispatchします。developへのpushもIntegration/DEV検証を起動します。
 
-Integrationは起動イベントのPRだけを見るのではなく、その時点のdevelop向けReady PRを全件再走査します。1バッチ最大8PRで、依存関係を複数passで再評価します。バッチ後に残りがあり、再走査が必要な場合だけ次のdispatchを要求します。
+Integrationは起動イベントのPRだけを見るのではなく、その時点のdevelop向けReady PRを全件再走査します。高コストなexact-head評価は1run最大12PR、mergeは1バッチ最大8PRとし、依存関係を複数passで再評価します。Integration本体には6分の処理予算を置き、jobの10分timeoutより前に診断情報を残して未処理PRを次runへ引き継ぎます。明示holdやrecovering中の通常PRなど、安価に確定できる保留は高コストなCI/review/compare取得より先に判定します。
 
-全DEV Integration/Pages配信は `pages` concurrency groupで直列化します。PR browser repairの記録は `.github/workflows/browser-repair.yml` の `browser-repair-pr-<PR番号>` groupへ分離し、repair記録runが通常Integration/DEV publishをpending段階で置換・cancelしないようにします。
+Integration評価は `integration-develop` concurrency groupで直列化し、GitHub Pages公開・focused browser verificationは `pages` concurrency groupで別に直列化します。これにより、重い公開/browser処理が進行中でも次のReady検知とIntegration評価自体は待たされません。一方、developの `integration/develop` statusがpending/failureの間は通常PRの追加mergeを許可しないため、未検証baselineへ連続mergeしません。PR browser repairの記録は `.github/workflows/browser-repair.yml` の `browser-repair-pr-<PR番号>` groupへ分離します。
+
+## GitHub APIの取得予算と診断
+
+Integrationは安全条件を減らさず、同一run内の重複取得を削減します。
+
+- 初期評価中のimmutableなPR head単位データだけrun内GET cacheを使います。merge直前のPR、review、thread、Checks/status、develop SHAはcacheを使わず必ず再取得します。
+- generic paginationを100ページまで無制限に走らせず、用途別に上限を設定し、上限超過はfail closedで保留します。
+- GitHub API request timeoutは既定15秒です。429、secondary rate limitを示す403、retry可能な5xxは有限回だけ指数backoffし、`Retry-After` / rate-limit resetを尊重します。長時間のrate-limit待ちはjob内で無理にsleepせず診断を残して停止します。
+- request数、route別回数、cache hit、retry、throttle/timeout、rate-limit header、現在phase / PR、heartbeat、処理時間を `.deploy-state/integration-diagnostics.json` へ逐次記録します。
+- `integration.json` と diagnosticsは `integration-report` artifactとして保持します。script内予算をjob timeoutより短くすることで、異常時もartifact upload stepへ到達できる設計にします。
 
 ## 自動merge条件
 
@@ -82,6 +92,12 @@ Pages公開前にdevelopが期待SHAから進んでいないことを確認し�
 focused browser failure時は公開runをfailureとし、repair ticketを作成します。HTTP 200だけ、あるいはdeploy action成功だけをDEV成功とは扱いません。
 
 重い全体回帰・public WebGL2/P2P diagnosticsは通常DEV deliveryから分離し、必要時に `full_verification=true` で実行します。通常Integrationの速度と、重い診断の品質基準を混同しません。
+
+## PULSEとの責務分離
+
+PULSEはCloudflare Workerの定期refreshでGitHub状態と公開manifestを軽量収集し、Integration/Pages jobの完了待ちを状態更新の前提にしません。`Deploy DEV and PROD` workflow全体がactiveであるだけでは「Integration中」と表示せず、公開/browserを含むdelivery中としてheartbeatとphaseを返します。10分以上heartbeatが更新されないactive deliveryは停止疑いとして検知します。
+
+`integration:hold`、`integration:manual`、`do-not-merge`、本文 `Integration-Hold:` のPRは意図的保留として扱い、CI成功後のstale Ready alertへ誤分類しません。WAYFINDERはPULSEの公開stateを正本として参照し、重いIntegrationロジックを自身で再実行しません。
 
 ## 保留と再起動
 

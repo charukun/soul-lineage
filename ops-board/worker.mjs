@@ -1,17 +1,31 @@
 import { DurableObject } from 'cloudflare:workers';
 import { buildState } from './collector.mjs';
 import { readStored, writeStored } from './github-client.mjs';
+import { degradedState } from './fallback-state.mjs';
 import { boardAlerts } from './public/health.mjs';
 export { buildState } from './collector.mjs';
 const STATE_KEY = 'ops-state-v2';
 function json(data, status = 200) { return new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } }); }
-function publicState(state) { return state ? { ...state, alerts: boardAlerts(state) } : state; }
+function publicState(state, env) { return state ? { ...state, buildCommit: env.OPS_BUILD_SHA || null, alerts: boardAlerts(state) } : state; }
 
 export class OpsState extends DurableObject {
-  constructor(ctx, env) { super(ctx, env); this.ctx = ctx; this.env = env; this.inflight = null; }
-  async getState() { return await readStored(this.ctx.storage, STATE_KEY) || await this.ctx.storage.get('ops-state-v1') || null; }
+  constructor(ctx, env) { super(ctx, env); this.ctx = ctx; this.env = env; this.inflight = null; this.inflightAuthenticated = false; }
+  async getState() {
+    // During migration, another already-published release may have fresher v1 data.
+    const current = await readStored(this.ctx.storage, STATE_KEY);
+    const legacy = await this.ctx.storage.get('ops-state-v1');
+    if (!current) return legacy || null;
+    if (!legacy) return current;
+    return (Date.parse(legacy.generatedAt || '') || 0) > (Date.parse(current.generatedAt || '') || 0) ? legacy : current;
+  }
   async refresh(source = 'manual', requestToken = '') {
-    if (this.inflight) return this.inflight;
+    if (this.inflight) {
+      if (!requestToken || this.inflightAuthenticated) return this.inflight;
+      // Do not mistake an anonymous Cron result for the explicitly authenticated prime.
+      await this.inflight.catch(() => {});
+      return this.refresh(source, requestToken);
+    }
+    this.inflightAuthenticated = Boolean(requestToken || this.env.OPS_GITHUB_TOKEN);
     this.inflight = (async () => {
       const previous = await this.getState();
       try {
@@ -22,12 +36,10 @@ export class OpsState extends DurableObject {
         await writeStored(this.ctx.storage, STATE_KEY, state);
         return state;
       } catch (error) {
-        if (!previous) throw error;
-        const degraded = { ...previous, syncStatus: 'degraded', syncError: String(error?.message || '取得失敗'), lastAttemptAt: new Date().toISOString(),
-          nextRetryAt: error.retryAt ? new Date(error.retryAt).toISOString() : null, refreshReason: source };
-        await writeStored(this.ctx.storage, STATE_KEY, degraded);
-        return degraded;
-      } finally { this.inflight = null; }
+        const state = await degradedState(previous, error, { source });
+        await writeStored(this.ctx.storage, STATE_KEY, state);
+        return state;
+      } finally { this.inflight = null; this.inflightAuthenticated = false; }
     })();
     return this.inflight;
   }
@@ -37,17 +49,20 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
+      if (url.pathname === '/api/version' && request.method === 'GET') {
+        return json({ app: 'ops-board', commit: env.OPS_BUILD_SHA || null });
+      }
       if (url.pathname === '/api/state' && request.method === 'GET') {
         const stub = env.OPS_STATE.getByName('global');
         const state = await stub.getState() || await stub.refresh('cold-start');
-        return json(publicState(state));
+        return json(publicState(state, env));
       }
       if (url.pathname === '/api/refresh' && request.method === 'POST') {
         if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
         const token = request.headers.get('x-ops-github-token') || '';
         if (token.length > 1024) return json({ error: 'invalid_credential' }, 400);
         const stub = env.OPS_STATE.getByName('global');
-        return json(publicState(await stub.refresh('github-event', token)));
+        return json(publicState(await stub.refresh('github-event', token), env));
       }
       if (url.pathname.startsWith('/api/')) return json({ error: 'not_found' }, 404);
       return env.ASSETS.fetch(request);

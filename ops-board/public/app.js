@@ -119,11 +119,14 @@ function renderIntegration(integration = {}) {
   root.replaceChildren();
   const top = el('div', 'integration-summary');
   const desc = el('div');
-  const label = overallLabel(integration);
+  const label = ({delivery: integration.stalled ? '公開処理の停止疑い' : '開発版を公開・検証中',
+    integration: '変更を統合中', hold: '意図的な保留あり', 'deploy-wait': '次の公開待ち',
+    'ready-queue': '統合待ちを確認', failed: '処理の失敗を確認', idle: '自動処理は待機中'})[integration.phase] || overallLabel(integration);
   desc.append(el('strong', '', label));
   desc.append(el('p', 'muted', `統合待ち警告 ${integration.watchdog?.staleReadyCount ?? 0}件 / 判定 ${integration.watchdog?.stalledThresholdMinutes ?? 10}分`));
   top.append(desc, badge(label, integration.tone || 'info'));
   root.append(top);
+  if (integration.heartbeatAt) root.append(el('p', 'muted', `処理の最終更新 ${time(integration.heartbeatAt)}`));
 
   const list = el('div', 'queue-list');
   const queue = integration.queue || [];

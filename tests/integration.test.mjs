@@ -108,11 +108,14 @@ test('DEV-only deploy retains complete Production manifest, refusing a missing b
   assert.equal(result[1],production); assert.equal(result.length,2);
   assert.throws(()=>preserveProduction([],{entries:[]},true));
 });
-test('workflow privilege separation and no default-branch-only trigger', () => {
+test('workflow privilege separation and publication-only serialization', () => {
   const ci = readFileSync('.github/workflows/ci.yml','utf8'), deploy=readFileSync('.github/workflows/deploy.yml','utf8');
   assert.match(ci,/name: Validate and build/); assert.match(ci,/ref: 'develop'/);
   assert.doesNotMatch(ci,/contents: write|pull-requests: write|workflow_run:|pull_request_target:/);
-  assert.match(deploy,/group: pages\n  cancel-in-progress: false/);
+  assert.doesNotMatch(deploy,/^concurrency:\n\s+group: pages/m);
+  assert.match(deploy,/integrate:[\s\S]*?concurrency:\n\s+group: integration-develop\n\s+cancel-in-progress: false/);
+  assert.match(deploy,/publish:[\s\S]*?concurrency:\n\s+group: pages\n\s+cancel-in-progress: false/);
+  assert.match(deploy,/integration-diagnostics\.json/);
   assert.match(deploy,/ref: \$\{\{ needs.integrate.outputs.sha/);
   assert.match(deploy,/DEPLOY_DEV_ONLY:/); assert.match(deploy,/Record final develop result/);
   assert.doesNotMatch(deploy,/ref: main[\s\S]*persist-credentials: true/);
