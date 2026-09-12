@@ -150,7 +150,8 @@ test('public dashboard prioritizes action items/tasks and uses a 3-column icon a
   assert.match(appBoard, /ゲーム \/ 専用開発版/);
   assert.match(appBoard, /開発ツール/);
   assert.match(appCss, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.match(pullBoard, /pulls\/\$\{number\}\/files/);
+  assert.doesNotMatch(pullBoard, /api\.github\.com|changedFiles\(/);
+  assert.match(pullBoard, /subscribe/);
   assert.match(pullBoard, /対象確認中/);
 
   for (const name of ['rinne', 'village', 'demon', 'lanternfell', 'visual-review', 'wayfinder', 'ops-board', 'default']) {

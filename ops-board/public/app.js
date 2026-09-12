@@ -1,5 +1,7 @@
+import { subscribe, disclosure, preserveView } from './view-state.js';
+import { boardAlerts, snapshotAge, ageLabel, STALE_SNAPSHOT_MS, FAILED_CONCLUSIONS } from './health.mjs';
 const $ = selector => document.querySelector(selector);
-const fmt = new Intl.DateTimeFormat('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const fmt = new Intl.DateTimeFormat('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'short' });
 
 const el = (tag, className, text) => {
   const node = document.createElement(tag);
@@ -36,7 +38,7 @@ const duration = ms => {
 };
 const shortSha = value => value ? String(value).slice(0, 12) : '確定不能';
 const badge = (label, tone = 'info') => el('span', `badge ${tone}`, label);
-const deployLabel = state => ({ success:'公開済み', deploying:'deploy中', waiting:'deploy待ち', failed:'失敗', unknown:'不明' })[state] || state || '不明';
+const deployLabel = state => ({ success:'公開済み', deploying:'公開処理中', waiting:'公開待ち', failed:'失敗', unknown:'不明' })[state] || state || '不明';
 const deployTone = state => ({ success:'ok', deploying:'progress', waiting:'warning', failed:'danger', unknown:'info' })[state] || 'info';
 const overallLabel = integration => ({ ok:'正常', progress:'処理中', warning:'確認', danger:'要対応', info:'確認中' })[integration?.tone] || '確認中';
 
@@ -53,21 +55,20 @@ function prList(items, emptyText = 'PRなし') {
     const row = el('li', 'pr');
     row.append(link(`#${pr.number}`, pr.url, 'pr-no'));
     const text = el('div', 'pr-title', pr.title || `PR #${pr.number}`);
-    text.append(el('small', '', `merge ${time(pr.mergedAt)}`));
+    text.append(el('small', '', `統合 ${time(pr.mergedAt)}`));
     row.append(text);
     list.append(row);
   }
   return list;
 }
 
-function details(title, content) {
-  const root = el('details');
-  root.append(el('summary', '', title), content);
-  return root;
+function details(title, content, key = title) {
+  return disclosure(key, title, content);
 }
 
 function environmentCard(env) {
   const card = el('article', 'environment');
+  card.dataset.viewKey = `environment:${env.id}`;
   const head = el('div', 'environment-head');
   const left = el('div');
   left.append(el('h3', '', env.name), link(env.url, env.url, 'url'));
@@ -84,8 +85,8 @@ function environmentCard(env) {
   );
   card.append(metrics);
   if (env.exactCommit === false) card.append(el('p', 'empty', '公開物が複数SHAのため、単一SHAを推測していません。'));
-  card.append(details('反映済みPRを見る', prList(env.reflectedPrs, env.historyComplete === false ? '履歴の全件確定前です' : '該当PRなし')));
-  if (env.deployQueue?.pulls?.length) card.append(details('merge済み・まだ未公開', prList(env.deployQueue.pulls)));
+  card.append(details('反映済みPRを見る', prList(env.reflectedPrs, env.historyComplete === false ? '履歴の全件確定前です' : '該当PRなし'), `env:${env.id}:reflected`));
+  if (env.deployQueue?.pulls?.length) card.append(details('merge済み・まだ未公開', prList(env.deployQueue.pulls), `env:${env.id}:waiting`));
   return card;
 }
 
@@ -97,6 +98,7 @@ function renderAlerts(alerts = []) {
   $('#alert-count').textContent = alerts.length ? `${alerts.length}件` : '';
   for (const item of alerts) {
     const box = safeHref(item.url) ? link('', item.url, `alert ${item.tone}`) : el('div', `alert ${item.tone}`);
+    box.dataset.viewKey = `alert:${item.type}:${item.prNumber || item.url || item.title}`;
     box.append(el('strong', '', item.title));
     box.append(el('p', '', `${item.detail || ''}${item.since ? ` / ${time(item.since)}から` : ''}`));
     root.append(box);
@@ -109,7 +111,7 @@ function renderDiff(diff) {
   const top = el('div', 'diff-title');
   const exactCount = Number.isInteger(diff?.count);
   top.append(el('strong', '', diff?.label || '差分を確定できません'), badge(exactCount ? (diff.count ? `+${diff.count}` : '0') : '—', exactCount ? (diff.count ? 'warning' : 'ok') : 'info'));
-  root.append(top, details('差分PRを見る', prList(diff?.pulls)));
+  root.append(top, details('差分PRを見る', prList(diff?.pulls), 'diff:pulls'));
 }
 
 function renderIntegration(integration = {}) {
@@ -128,34 +130,58 @@ function renderIntegration(integration = {}) {
   if (!queue.length) list.append(el('p', 'empty', 'Ready状態で待っているPRはありません'));
   for (const item of queue) {
     const row = el('article', 'queue-item');
+    row.dataset.viewKey = `queue:${item.number}`;
     const head = el('div', 'queue-head');
     head.append(link(`#${item.number} ${item.title}`, item.url), badge(item.label, item.tone));
     row.append(head, el('p', '', `${item.reason || ''}${Number.isFinite(item.stalledMs) ? ` / 滞留 ${duration(item.stalledMs)}` : ''}`));
     list.append(row);
   }
   root.append(list);
-  if (integration.deployWaiting?.length) root.append(details('merge済み・deploy待ち', prList(integration.deployWaiting)));
+  if (integration.deployWaiting?.length) root.append(details('merge済み・deploy待ち', prList(integration.deployWaiting), 'integration:waiting'));
 }
 
-function renderFailures(items = []) {
-  const root = $('#failures');
-  root.replaceChildren();
-  if (!items.length) {
-    root.append(el('p', 'empty ok-message', '直近のActions失敗はありません'));
-    return;
-  }
+function failureRows(items) {
   const list = el('div', 'failure-list');
   for (const run of items) {
-    const row = el('div', 'failure');
-    row.append(link(`${run.workflow} / ${run.branch || '—'}`, run.url), el('span', '', run.conclusion));
-    list.append(row);
+    const row = el('div', 'failure'); row.dataset.viewKey = `run:${run.id}`;
+    const text = el('div');
+    text.append(link(`${run.workflow} / ${run.branch || '記録なし'}`, run.url));
+    text.append(el('p', 'muted', time(run.updatedAt || run.createdAt)));
+    const label = run.historyLabel || ({ failure: '失敗', cancelled: '中断', timed_out: '時間切れ', action_required: '確認待ち', startup_failure: '起動失敗', stale: '期限切れ' })[run.conclusion] || '未確認';
+    const result = el('span', run.historyLabel || run.conclusion === 'cancelled' ? 'history-result' : '', label);
+    row.append(text, result); list.append(row);
   }
-  root.append(list);
+  return list;
+}
+function renderFailures(state) {
+  const root = $('#failures'); root.replaceChildren();
+  const current = (state.recentActionFailures || []).filter(run => FAILED_CONCLUSIONS.has(run.conclusion));
+  const history = state.actionHistory || (state.recentActionFailures || []).filter(run => run.conclusion === 'cancelled');
+  root.append(el('strong', 'failure-heading', `対応が必要な失敗 ${current.length}件`));
+  if (current.length) root.append(failureRows(current));
+  else root.append(el('p', 'empty', state.syncStatus === 'degraded' ? '前回取得した範囲に失敗はありません。最新状態は未確認です。' : '今回取得した範囲に、未解消の失敗はありません。'));
+  if (history.length) root.append(details(`中断・過去の記録 ${history.length}件`, failureRows(history), 'actions:history'));
+}
+let currentState = null;
+let currentError = null;
+function renderFreshness() {
+  const state = currentState;
+  const age = snapshotAge(state);
+  const stale = age === null || age >= STALE_SNAPSHOT_MS;
+  const failed = Boolean(currentError) || state?.syncStatus === 'degraded';
+  const stamp = $('#sync-freshness');
+  if (stamp) {
+    stamp.textContent = `${failed ? '更新失敗 · ' : stale ? '更新確認 · ' : ''}最終取得 ${ageLabel(age)}`;
+    stamp.className = `sync-freshness ${failed ? 'danger' : stale ? 'warning' : 'info'}`;
+    stamp.title = `最終取得 ${time(state?.generatedAt)} / 取得試行 ${time(state?.lastAttemptAt || state?.generatedAt)}`;
+  }
+  renderAlerts(boardAlerts(state, Date.now(), currentError));
 }
 
 function render(state) {
   const integration = state.integration || { label:'不明', tone:'info' };
-  renderAlerts(state.alerts || []);
+  currentState = state; currentError = null;
+  renderFreshness();
 
   const envs = state.environments || [];
   $('#env-count').textContent = `${envs.length}件`;
@@ -170,37 +196,14 @@ function render(state) {
   }
   renderDiff(state.environmentDiff);
   renderIntegration(integration);
-  renderFailures(state.recentActionFailures || []);
+  renderFailures(state);
   $('#last-updated').textContent = `最終更新: ${time(state.generatedAt)} / 取得試行: ${time(state.lastAttemptAt || state.generatedAt)}`;
   $('#source').textContent = `${state.syncSource || 'GitHub API'}${Number.isFinite(state.githubRateRemaining) ? ` / API残量 ${state.githubRateRemaining}` : ''}`;
 }
 
-function renderLoadError(error) {
-  const section = $('#alert-section');
-  const root = $('#alerts');
-  section.hidden = false;
-  $('#alert-count').textContent = '1件';
-  root.replaceChildren();
-  const box = el('div', 'alert danger');
-  box.append(el('strong', '', '開発状況を取得できません'));
-  box.append(el('p', '', `${error.message} / 「最新に更新」で再取得してください。`));
-  root.append(box);
-}
-
-async function load() {
-  const button = $('#reload');
-  button.disabled = true;
-  try {
-    const response = await fetch(`/api/state?view=${Date.now()}`, { cache:'no-store' });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    render(await response.json());
-  } catch (error) {
-    renderLoadError(error);
-  } finally {
-    button.disabled = false;
-  }
-}
-
-$('#reload').addEventListener('click', load);
-load();
-setInterval(load, 60000);
+subscribe((state, error) => {
+  if (error) { currentState = state; currentError = error; renderFreshness(); }
+  else if (state) render(state);
+});
+// Refresh age labels even while the same saved snapshot is being shown.
+setInterval(() => preserveView(renderFreshness), 15000);
