@@ -3,34 +3,66 @@ on:
   push:
     branches: [review/character-workshop-qc-20260912]
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: character-workshop-isolated-qc
   cancel-in-progress: false
 jobs:
-  committed-character-qc:
+  sync-existing-history:
+    if: github.repository == 'charukun/soul-lineage'
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 6fa2538106fd8ae12bf805393289c16a3339fc80
-          persist-credentials: false
+          ref: feat/character-workshop-diversity
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
-      - name: Verify the committed character data layer only
+      - name: Merge only existing repository commits into the work branch
         run: |
           mkdir -p qc-output
+          test "$(git rev-parse HEAD)" = 6fa2538106fd8ae12bf805393289c16a3339fc80
+          git fetch origin develop feat/character-workshop-diversity
+          test "$(git rev-parse origin/feat/character-workshop-diversity)" = 6fa2538106fd8ae12bf805393289c16a3339fc80
+          test "$(git rev-parse origin/develop)" = b68407c7703b13c1d70cccf7d52200896a276bd5
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git merge --no-edit origin/develop 2>&1 | tee qc-output/merge.txt
           git rev-parse HEAD > qc-output/source-sha.txt
+          git diff --name-only origin/develop..HEAD > qc-output/pr-files.txt
+          test ! -e packages/rendering/src/master-character-wardrobe.js
+      - run: npm ci
+      - name: Verify merged committed code, not the unreflected local candidate
+        run: |
           node --version > qc-output/node-version.txt
           node --test packages/characters/tests/*.test.mjs | tee qc-output/character-tests.txt
           npm run check -- rinne village demon | tee qc-output/workspace-check.txt
+      - name: Push only the checked work branch, without force
+        run: git push origin HEAD:refs/heads/feat/character-workshop-diversity
+      - name: Record tracked text source for local reconciliation
+        run: |
+          python3 - <<'PY'
+          import subprocess, tarfile
+          from pathlib import Path
+          names = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          with tarfile.open('qc-output/source.tgz', 'w:gz') as tar:
+              for name in names:
+                  p = Path(name)
+                  if p.is_file() and (p.suffix in {'.js', '.mjs', '.cjs', '.json', '.jsonc', '.md', '.html', '.css', '.yml', '.yaml', '.ts', '.svg'} or p.name == '.gitignore'):
+                      tar.add(p, arcname=name)
+          PY
+      - name: Record worktree diagnostics
+        if: always()
+        run: |
+          mkdir -p qc-output
+          git status --porcelain > qc-output/worktree-status.txt
+          git diff --name-only --diff-filter=U > qc-output/unmerged-paths.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: character-workshop-committed-qc-validation
+          name: character-workshop-history-sync
           path: qc-output
           retention-days: 7
