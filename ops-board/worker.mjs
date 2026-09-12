@@ -14,6 +14,7 @@ import {
 } from './model.mjs';
 import { splitPulls } from './pulls.mjs';
 import { buildApplications } from './applications.mjs';
+import { publishedFallback } from './published-fallback.mjs';
 
 const STATE_KEY = 'ops-state-v1';
 const REFRESH_TOKEN_HEADER = 'authorization';
@@ -285,6 +286,8 @@ export async function buildState(previous = null) {
       truncated: allPulls.length >= 100,
     },
     applications,
+    applicationsUpdatedAt: isoNow(),
+    applicationsSource: 'public-manifest',
     environments: [dev, staging, prod, ...previews],
     environmentDiff: diff,
     integration: {
@@ -331,14 +334,24 @@ export class OpsState extends DurableObject {
         await this.ctx.storage.put(STATE_KEY, state);
         return state;
       } catch (error) {
-        if (!previous) throw error;
-        const degraded = {
-          ...previous,
-          syncStatus: 'degraded',
-          syncError: String(error?.message || error),
-          lastAttemptAt: isoNow(),
-          refreshReason: source,
-        };
+        let degraded;
+        try {
+          const manifestUrl = new URL('deployment-manifest.json', PAGES_ROOT);
+          manifestUrl.searchParams.set('ops-fallback', Date.now().toString());
+          const { data } = await fetchJson(manifestUrl, { headers: { accept: 'application/json' }, label: 'Published manifest fallback' });
+          degraded = publishedFallback(previous, data, { now: isoNow(), error, source });
+          degraded.manifestSyncError = null;
+        } catch (manifestError) {
+          if (!previous) throw error;
+          degraded = {
+            ...previous,
+            syncStatus: 'degraded',
+            syncError: String(error?.message || error),
+            manifestSyncError: String(manifestError?.message || manifestError),
+            lastAttemptAt: isoNow(),
+            refreshReason: source,
+          };
+        }
         await this.ctx.storage.put(STATE_KEY, degraded);
         return degraded;
       } finally {
