@@ -124,18 +124,37 @@ test('worker deployment URL parser only accepts the stable rinne-ops URL', () =>
   assert.throws(() => opsDeploymentUrl('https://example.workers.dev'));
 });
 
-test('public dashboard is compact, grouped, target-aware, and not installable as a PWA', async () => {
-  const index = await readFile(new URL('../ops-board/public/index.html', import.meta.url), 'utf8');
-  const appBoard = await readFile(new URL('../ops-board/public/app-board.js', import.meta.url), 'utf8');
-  const pullBoard = await readFile(new URL('../ops-board/public/pull-board.js', import.meta.url), 'utf8');
-  assert.match(index, /class="summary-grid"/);
-  assert.match(index, /概要/);
+test('public dashboard prioritizes action items/tasks and uses a 3-column icon app grid', async () => {
+  const [index, appBoard, appCss, pullBoard] = await Promise.all([
+    readFile(new URL('../ops-board/public/index.html', import.meta.url), 'utf8'),
+    readFile(new URL('../ops-board/public/app-board.js', import.meta.url), 'utf8'),
+    readFile(new URL('../ops-board/public/app-board.css', import.meta.url), 'utf8'),
+    readFile(new URL('../ops-board/public/pull-board.js', import.meta.url), 'utf8'),
+  ]);
+
+  assert.doesNotMatch(index, /summary-grid|いまの状態/);
+  assert.match(index, /要対応タスク/);
+  assert.match(index, /開発タスク/);
   assert.match(index, /アプリ別の公開状況/);
+  assert.match(index, /公開・自動処理の状態/);
+  assert.match(index, /diagnostic-grid/);
   assert.doesNotMatch(index, /rel="manifest"/);
-  assert.match(appBoard, /app-summary-card/);
-  assert.match(appBoard, /app-target-summary/);
+
+  const alertPosition = index.indexOf('id="alert-section"');
+  const taskPosition = index.indexOf('id="tasks-section"');
+  const appPosition = index.indexOf('id="apps-section"');
+  assert.ok(alertPosition >= 0 && taskPosition > alertPosition && appPosition > taskPosition);
+
+  assert.match(appBoard, /APP_ICONS/);
+  assert.match(appBoard, /app-icon/);
   assert.match(appBoard, /ゲーム \/ 専用開発版/);
   assert.match(appBoard, /開発ツール/);
+  assert.match(appCss, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(pullBoard, /pulls\/\$\{number\}\/files/);
   assert.match(pullBoard, /対象確認中/);
+
+  for (const name of ['rinne', 'village', 'demon', 'lanternfell', 'visual-review', 'wayfinder', 'ops-board', 'default']) {
+    const svg = await readFile(new URL(`../ops-board/public/icons/${name}.svg`, import.meta.url), 'utf8');
+    assert.match(svg, /<svg/);
+  }
 });
