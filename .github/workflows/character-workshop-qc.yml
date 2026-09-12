@@ -8,36 +8,22 @@ concurrency:
   group: character-workshop-isolated-qc
   cancel-in-progress: false
 jobs:
-  source:
+  reference:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
           ref: 8281167ef2f535f5e75a22f016d188b21b4a75b8
           persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - name: Archive tracked source only and installed workspace dependencies
+      - name: Export unchanged repository reference asset and license evidence
         run: |
           mkdir -p qc-output
           git rev-parse HEAD > qc-output/source-sha.txt
-          python3 - <<'PY'
-          import subprocess, tarfile
-          from pathlib import Path
-          names = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
-          with tarfile.open('qc-output/source.tgz', 'w:gz') as tar:
-              for name in names:
-                  p = Path(name)
-                  if p.is_file() and p.suffix in {'.js', '.mjs', '.cjs', '.json', '.jsonc', '.md', '.html', '.css', '.yml', '.yaml', '.ts'}:
-                      tar.add(p, arcname=name)
-          PY
-          tar -czf qc-output/dependencies.tgz node_modules
+          sha256sum apps/rinne/public/simulator/assets/SHINO_review.vrm > qc-output/model-sha256.txt
+          tar -czf qc-output/shino-reference.tgz apps/rinne/public/simulator/assets/SHINO_review.vrm apps/rinne/public/simulator/licenses
       - uses: actions/upload-artifact@v4
         with:
-          name: character-workshop-recovery-source
+          name: character-workshop-unchanged-reference
           path: qc-output
           retention-days: 3
