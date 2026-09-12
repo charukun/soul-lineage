@@ -27,6 +27,7 @@ function targetSummary(target) {
     node.href = target.url;
     node.target = '_blank';
     node.rel = 'noreferrer';
+    node.title = `${target.label || '公開先'}を開く`;
   }
   const top = el('div', 'app-target-summary-top');
   top.append(el('strong', '', target.label || '公開先'));
@@ -38,7 +39,7 @@ function targetSummary(target) {
   const meta = el('div', 'app-target-summary-meta');
   meta.append(el('span', '', shortSha(target.commit)), el('span', '', time(target.deployedAt)));
   node.append(meta);
-  if (target.note) node.title = target.note;
+  if (target.note && !target.url) node.title = target.note;
   return node;
 }
 
