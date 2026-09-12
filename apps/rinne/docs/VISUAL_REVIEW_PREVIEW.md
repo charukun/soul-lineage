@@ -22,31 +22,37 @@ The Worker must remain isolated from the existing DEV/Production deployment. Do 
 
 ## GitHub setup
 
-The workflow `.github/workflows/review-preview.yml` builds on each push to `work/visual-review-lab-v2`. Deployment is disabled until initial Cloudflare setup is complete.
+The workflow `.github/workflows/review-preview.yml` builds on each push to `work/visual-review-lab-v2`.
 
-After creating the dedicated Worker credentials, configure repository Actions secrets:
+Repository Actions secrets:
 
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
 
-Then configure repository Actions variable:
+Repository Actions variable:
 
 - `REVIEW_PREVIEW_ENABLED=true`
 
 The workflow uses concurrency cancellation, so superseded pushes do not need to finish before the newest preview is built.
 
-## Normal loop
+## Fast visual-review policy
 
-1. Collect one review correction batch from the user.
+Visual Review Lab exists for rapid human visual review on the target device. Normal correction pushes must not wait for heavyweight browser E2E or full motion playback verification.
+
+Normal loop:
+
+1. Collect one correction batch from the user.
 2. Implement the batch against the real shared character/model/motion/VFX sources and Review Lab integration.
-3. Push the completed batch to `work/visual-review-lab-v2`; avoid intermediate pushes when practical so one correction batch normally produces one preview deployment.
-4. GitHub Actions builds the static preview, runs the asset-limit guard and browser verification, then deploys the prebuilt assets to the same Worker URL.
-5. Verify the stable Worker URL is serving the expected latest commit/build. A source commit or green build alone is not sufficient.
-6. Only after the latest deployment and verification succeed, tell the user the preview is ready and ask them to reload the same URL.
-7. The user reviews on the target device and sends the next correction batch.
+3. Run only the minimum build/static checks needed to avoid publishing a broken bundle.
+4. Push the completed batch to `work/visual-review-lab-v2`; avoid intermediate pushes when practical.
+5. GitHub Actions builds and deploys directly to the dedicated Worker.
+6. When deployment succeeds, tell the user to reload the stable URL and perform visual confirmation on the target device.
+7. Iterate from the user's feedback.
 8. Keep PR #23 Draft until the visual result is explicitly approved.
 
-Never report a visual correction as ready for user review merely because source changes were committed. The user-review handoff point is successful deployment plus verification of the expected build on the stable preview URL.
+Do not run `test:review-browser`, Playwright, full-motion traversal, screenshot capture, or long public-URL waits on every normal Visual Review Lab update. Those checks are reserved for explicit debugging, Ready-for-review preparation, or when a change directly affects the deployment/runtime contract and lightweight checks are insufficient.
+
+A normal Visual Review Lab handoff requires successful build and Worker deployment. Human visual approval is performed by the user, not inferred from automated browser screenshots.
 
 If Cloudflare deployment is temporarily unavailable, source work and normal CI can continue; the stable preview URL remains on the previous successful revision. Report that the preview is stale rather than asking the user to review it. Preview failure must never block unrelated ordinary development.
 
@@ -63,7 +69,7 @@ The stable preview URL is publicly reachable unless a separate access-control la
 - more than 20,000 static files
 - any individual static asset larger than 25 MiB
 
-Assets at or above 20 MiB emit a warning so they can be moved before they become blockers. Do not force oversized GLB/textures through the preview bundle. Move them to the repository's approved large-asset path (for example R2) and let Review Lab reference them by URL.
+Assets at or above 20 MiB emit a warning so they can be moved before they become blockers. Do not force oversized GLB/textures through the preview bundle. Move them to the repository's approved large-asset path and let Review Lab reference them by URL.
 
 ## Source-of-truth rule
 
@@ -73,8 +79,6 @@ The Review Lab must consume the same character/model/motion/VFX source modules a
 
 Codespaces remain fallback-only for Git transport or asset operations that cannot be handled through the normal connector. Do not auto-start Review Lab in Codespaces and do not leave a Codespace running for visual review.
 
-## Asset integration verification
+## Heavy verification
 
-The Lab loads the exact Shino model from the current Rinne simulator, pinned Quaternius motion, KayKit sword and Kenney sprites. The fixed inputs and hashes are in `packages/assets/src/review-catalog.js`; built licenses and provenance are in `asset-review/`. See `docs/ASSET_REVIEW_INTEGRATION.md`.
-
-The dedicated workflow runs `npm run test:review-browser` before deployment and against the stable workers.dev URL after deployment, checking the actual built JS and asset manifest commit. Screenshots and reports are retained as an Actions artifact for 14 days. The normal PR fast gate remains browser-free. Software WebGL at a mobile viewport is not physical Pixel Fold performance approval.
+Heavy browser verification remains available as an explicit tool, but it is not part of the default fast loop. Use it only when specifically needed for runtime debugging, promotion readiness, or Production-grade verification. Software WebGL at a mobile viewport is not physical Pixel Fold performance approval.
