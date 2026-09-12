@@ -32,6 +32,6 @@ test('undo/redo retains edits across display changes; a new edit clears redo', (
 });
 test('history is bounded and editor storage has its own namespace', () => {
   const h=createEditHistory(2);h.record('a','b');h.record('b','c');h.record('c','d');
-  assert.equal(h.undo('d'),'c');assert.equal(h.undo('b'),'b');assert.equal(h.undo('a'),null);
+  assert.equal(h.undo('d'),'c');assert.equal(h.undo('c'),'b');assert.equal(h.undo('b'),null);
   assert.equal(WORKSPACE_KEY,'rinne.character-studio.workspace.v1');
 });

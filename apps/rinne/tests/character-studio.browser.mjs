@@ -23,7 +23,7 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
     });
   }
   try {
-    const response = await page.goto(new URL('characters.html', baseURL).href, {waitUntil:'domcontentloaded',timeout:60000});
+    const response = await page.goto(new URL('./characters.html', baseURL).href, {waitUntil:'domcontentloaded',timeout:60000});
     assert.equal(response.status(),200); await ready();
     assert.equal((await state()).view,'single');
     const gpu = await page.locator('#stage').evaluate(canvas => { const gl=canvas.getContext('webgl2'); return gl&&!gl.isContextLost() ? { version:gl.getParameter(gl.VERSION),width:gl.drawingBufferWidth,height:gl.drawingBufferHeight } : null; });
