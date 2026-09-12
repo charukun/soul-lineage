@@ -5,6 +5,7 @@ import { installVillageHostRehearsal } from './village-link.js';
 import { installOnlinePlayer } from './online.js';
 import { mountTitle } from './title/controller.js';
 import {installMusicLibrary} from '@soul/shared-ui/music';
+import {acquireSoloPause} from './title/solo-pause.js';
 
 // Build information is injected by the existing monorepo Vite plugin. A standalone
 // preview must never claim to be a deployed commit.
@@ -28,5 +29,7 @@ if (new URLSearchParams(location.search).has('villageHostLab')) {
 if (import.meta.hot) import.meta.hot.dispose(()=>{cancelAnimationFrame(clock);lab?.then(link=>link.dispose());});
 if (import.meta.hot) import.meta.hot.dispose(dispose);
 
-const disposeMusic=installMusicLibrary({game:'rinne',environment:info.environment,defaultTrack:'r01',autoStart:true});
+let releaseMusicPause=()=>{};
+const disposeMusic=installMusicLibrary({game:'rinne',environment:info.environment,defaultTrack:'r01',autoStart:true,trigger:'hidden',contextNote:'音楽室では単独稽古を一時停止します。効果音は稽古場のサウンド設定から。',onOpen(){releaseMusicPause=acquireSoloPause(document.getElementById('simulator-frame'));},onClose(){releaseMusicPause();releaseMusicPause=()=>{};}});
+for(const id of ['title-music','simulator-music']){const button=document.getElementById(id);button.hidden=info.environment==='prod';button.onclick=()=>window.__SOUL_MUSIC__?.open();}
 if(import.meta.hot)import.meta.hot.dispose(disposeMusic);

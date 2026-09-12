@@ -19,5 +19,5 @@ try {
 document.querySelector('#boot-retry').onclick = () => location.reload();
 
 import {installMusicLibrary} from '@soul/shared-ui/music';
-const disposeMusic=installMusicLibrary({game:'demon',environment:__BUILD_INFO__.environment});
+const disposeMusic=installMusicLibrary({game:'demon',environment:__BUILD_INFO__.environment,trigger:'hidden',contextNote:'この画面では単独狩りを止めています。閉じると設定画面に戻ります。'});
 if(import.meta.hot)import.meta.hot.dispose(disposeMusic);

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { appendFileSync } from 'node:fs';
+import {verifySoloClarity,verifyHuntClarity} from './play-clarity.mjs';
 import { isVerifiedAudioRangeAbort, describeFailedRequest } from './media-request-contract.mjs';
 const base = process.env.BROWSER_SITE_URL?.replace(/\/?$/, '/');
 const targets = JSON.parse(process.env.BROWSER_TARGETS || '[]');
@@ -44,6 +45,7 @@ for (const target of targets) {
       expect(frame).toBeTruthy();
       const ready = await frame.evaluate(() => ({ ready: window.__ATELIER__?.snapshot().ready, model: window.__HUMANOID_LAB__?.report().id, finite: window.__HUMANOID_LAB__?.report().finite }));
       expect(ready.ready).toBe(true); expect(ready.finite).toBe(true); expect(ready.model).toBe('SHINO');
+      await verifySoloClarity(page, frame, expect, testInfo);
       await frame.evaluate(() => window.__ATELIER__.stop());
       const combat = await frame.evaluate(() => {
         const app = window.__ATELIER__;
@@ -86,6 +88,7 @@ for (const target of targets) {
       const started = await page.evaluate(() => window.__NIGHT_HUNT__.snapshot());
       expect(started.profile.visits[started.village].status).toBe('entered');
       expect(started.metrics.assets.floor).toBeGreaterThan(0);
+      await verifyHuntClarity(page, expect, testInfo);
       await page.mouse.click(195, 510);
       await page.waitForTimeout(150);
       const tapped = await page.evaluate(() => window.__NIGHT_HUNT__.snapshot());
@@ -159,6 +162,12 @@ for (const target of targets) {
       // The Village deliberately hides its old music trigger (PR #59).
       if (target.app === 'village') {
         await page.evaluate(() => window.__SOUL_MUSIC__.open());
+      } else if (target.app === 'rinne') {
+        await page.locator('#open-settings').click();
+        await page.locator('#title-music').click();
+      } else if (target.app === 'demon') {
+        await page.locator('#title-settings').click();
+        await page.locator('#music-library').click();
       } else await page.locator('.soul-music [data-open]').click();
       await expect(page.locator('.soul-music dialog')).toBeVisible();
       const audio = page.locator('.soul-music audio');
