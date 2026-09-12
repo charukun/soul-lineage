@@ -70,7 +70,16 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   const furnished=await page.evaluate(id=>window.village.world.object(id),facility.id);
   const bed=furnished.room.find(o=>o.kind==='dirtbed');expect(bed).toBeTruthy();
   await expect.poll(()=>page.evaluate(()=>window.village.storageOK)).toBe(true);
-  await page.locator('#leaveRoom').click();
+  const exit=page.locator('#leaveRoom');
+  await expect(exit).toBeVisible();
+  await expect.poll(()=>page.evaluate(()=>{
+    const button=document.getElementById('leaveRoom'),r=button.getBoundingClientRect();
+    const header=document.getElementById('idleStatus').getBoundingClientRect();
+    return r.width>=44&&r.height>=44&&r.top>=header.bottom&&r.left>=0&&r.right<=innerWidth&&
+      r.bottom<=innerHeight&&button.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2));
+  })).toBe(true);
+  await page.screenshot({path:testInfo.outputPath('first-furniture-exit-visible.png')});
+  await exit.click();
   await expect.poll(()=>page.evaluate(()=>window.village.view.roomId)).toBe(null);
   await beforeReload();
   await page.reload({waitUntil:'domcontentloaded'});
