@@ -14,6 +14,10 @@
 
 各環境は deploy 状態、公開済み SHA、deploy 日時、反映済み PR 件数と一覧を表示します。PR 一覧は公開 SHA から到達可能な GitHub merge commit を根拠に生成します。
 
+## 開発ツール
+
+PULSE の「開発ツール」には、独立した公開先だけでなくゲーム配下の検証・制作画面も登録できます。キャラクター工房は `apps/rinne/characters.html` を正本とし、輪廻転焦 DEV の公開 manifest に `rinne` が存在するときだけ `dev/rinne/characters.html` を公開中として表示します。公開 SHA と更新日時は同じ DEV manifest entry から取得し、URLだけを推測して公開扱いにはしません。
+
 ## 更新
 
 Cloudflare Cron Trigger が5分ごとに Durable Object のスナップショットを更新します。GitHub Actions の Integration / DEV deploy 完了時にも、Worker 内だけが知る refresh token を使って再同期します。ブラウザへ GitHub/Cloudflare の認証情報は渡しません。
