@@ -10,7 +10,7 @@ const runState = run => {
   if (!run) return 'unknown';
   if (['queued', 'in_progress', 'waiting', 'requested', 'pending'].includes(run.status)) return 'deploying';
   if (run.status === 'completed' && run.conclusion === 'success') return 'success';
-  if (run.status === 'completed' && ['failure', 'cancelled', 'timed_out', 'action_required', 'startup_failure', 'stale'].includes(run.conclusion)) return 'failed';
+  if (run.status === 'completed' && ['failure', 'timed_out', 'action_required', 'startup_failure', 'stale'].includes(run.conclusion)) return 'failed';
   return 'unknown';
 };
 
