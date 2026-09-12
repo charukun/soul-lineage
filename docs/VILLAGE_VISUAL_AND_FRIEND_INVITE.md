@@ -10,7 +10,7 @@ Reuse the strongest village rendering techniques across the independent apps wit
 - Reuse presentation techniques rather than importing another app: ACES tone mapping, layered ambient/key/fill lighting, fog depth, restrained material grading, emissive/local light accents, contact grounding and small-scale terrain variation.
 - Shared renderer helpers belong in `packages/rendering`; apps must not import another app.
 - Demon rendering is the visual reference and should not regress while techniques are extracted.
-- Village and Rinne/Lanternfell should adopt the shared visual language with their own presets and mobile performance budgets.
+- Village consumes the shared daytime preset and adds a restrained atmospheric depth layer. Rinne/Lanternfell keeps its static Three.js adapter and receives the same visual language through its moonlit fog/light/bloom stack plus a restrained screen-space atmosphere layer.
 
 ## Real-player village contract
 
@@ -20,12 +20,13 @@ Reuse the strongest village rendering techniques across the independent apps wit
 - Existing WebRTC offer/answer transport may be reused, but player-facing copy must describe a friend visit rather than an online raid.
 - Invalid or expired invitations fail closed and never expose a generic real-player-village browser.
 - The transport remains peer-to-peer; this task does not add a public village directory or matchmaking service.
+- Only the village exterior presentation snapshot is shared with the guest. News, progression, raid ledger and room contents stay local.
 
 ## Acceptance
 
 - Demon normal UI contains no selectable real-player-village target.
-- Opening the demon app without an invitation presents no friend-village control.
-- Opening with a valid friend invitation presents a dedicated visit panel and creates a non-hostile guest session.
+- Opening the demon app presents no friend-village or real-player-village control.
+- A valid friend invitation opens the dedicated Village friend-visit page and creates a non-hostile sightseeing session.
 - Village app can deliberately issue/copy an invitation and accept the guest response using the existing peer transport.
-- Shared rendering helpers are exercised by at least the Village app and one Rinne/Lanternfell presentation path, without cross-app imports.
-- Fast tests cover hidden/default behavior, invitation parsing and non-hostile role semantics.
+- Village and Rinne/Lanternfell each receive a concrete adaptation of the shared visual language without cross-app imports.
+- Fast tests cover hidden/default behavior, invitation parsing, privacy boundaries, non-hostile role semantics and visual-language wiring.
