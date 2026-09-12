@@ -12,6 +12,7 @@ const APP_ICONS = {
   village: './icons/village.svg',
   demon: './icons/demon.svg',
   lanternfell: './icons/lanternfell.svg',
+  'character-studio': './icons/character-studio.svg',
   'visual-review': './icons/visual-review.svg',
   portal: './icons/wayfinder.svg',
   'ops-board': './icons/ops-board.svg',
@@ -23,6 +24,7 @@ const stateView = state => ({
   deploying: ['更新中', 'progress'],
   waiting: ['公開待ち', 'warning'],
   failed: ['要対応', 'danger'],
+  missing: ['未公開', 'warning'],
   unknown: ['確認中', 'info'],
 })[state] || ['確認中', 'info'];
 const shortSha = value => value ? String(value).slice(0, 8) : '未確定';
@@ -70,7 +72,7 @@ function targetSummary(target) {
 function appCard(app) {
   const targets = app.targets || [];
   const healthy = targets.length > 0 && targets.every(target => target.state === 'success');
-  const bad = targets.some(target => target.state === 'failed');
+  const bad = targets.some(target => target.state === 'failed' || target.state === 'missing');
   const active = targets.some(target => target.state === 'deploying' || target.state === 'waiting');
   const state = bad ? ['要確認','danger'] : active ? ['更新中','progress'] : healthy ? ['正常','ok'] : ['確認中','info'];
 
@@ -101,8 +103,8 @@ function render(apps = []) {
   const root = $('#applications');
   root.replaceChildren();
   const summary = $('#app-summary');
-  const errors = apps.filter(app => (app.targets || []).some(target => target.state === 'failed')).length;
-  summary.textContent = `${apps.length}アプリ${errors ? ` / 要確認 ${errors}` : ' / 正常'}`;
+  const errors = apps.filter(app => !(app.targets || []).length || app.targets.some(target => target.state !== 'success')).length;
+  summary.textContent = apps.length ? `${apps.length}アプリ${errors ? ` / 未公開・要確認 ${errors}` : ' / 正常'}` : '公開情報なし';
   if (!apps.length) {
     root.append(el('div', 'card empty', '管理対象アプリを確認できませんでした'));
     return;

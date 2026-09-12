@@ -1,6 +1,6 @@
-# Rinne Ops Board
+# PULSE
 
-`Rinne Ops Board` は、輪廻転焦の公開状態と Integration の詰まりをスマートフォンから確認するための read-only 運用ダッシュボードです。
+`PULSE` は、輪廻転焦の公開状態と Integration の詰まりをスマートフォンから確認するための read-only 運用ダッシュボードです。
 
 ## 正本
 
@@ -13,6 +13,10 @@
 - Ops Board 自体: Cloudflare Worker `rinne-ops` と Static Assets で公開します。
 
 各環境は deploy 状態、公開済み SHA、deploy 日時、反映済み PR 件数と一覧を表示します。PR 一覧は公開 SHA から到達可能な GitHub merge commit を根拠に生成します。
+
+## 開発ツール
+
+PULSE の「開発ツール」には、独立した公開先だけでなくゲーム配下の検証・制作画面も登録できます。キャラクター工房は `apps/rinne/characters.html` を正本とし、輪廻転焦 DEV の公開 manifest に `rinne` が存在するときだけ `dev/rinne/characters.html` を公開中として表示します。公開 SHA と更新日時は同じ DEV manifest entry から取得し、URLだけを推測して公開扱いにはしません。
 
 ## 更新
 
@@ -27,3 +31,7 @@ Open develop PR の CI と Integration workflow を照合し、Ready + 必要 CI
 ## Secrets
 
 Cloudflare deploy は既存 Repository Secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` を Actions runner 内だけで利用します。Ops refresh token は API token から一方向に導出し、Worker の server-side variable として渡します。静的 UI と `/api/state` に secret は含めません。
+
+## 名称と3環境
+
+ゲーム名は各workspaceのdisplayNameを正本とし、古い公開manifestの名前で上書きしません。各ゲームに開発・検証・本番を常に表示し、未登録は「未公開」、情報の重複や不正なパスは「確認中」としてリンクを有効化しません。環境全体が混在SHAでも各アプリの実公開SHAを表示します。検証版は固定リリースであり、DEVの次の更新で自動上書きしません。詳しくは GAME_ENVIRONMENTS.md を参照してください。Worker名rinne-ops、URL、workflow名は互換性のため維持します。
