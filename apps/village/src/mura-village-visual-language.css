@@ -1,0 +1,6 @@
+/* Shared village visual language, kept soft for the daylight life-sim. */
+body:before,body:after{content:"";position:fixed;inset:0;pointer-events:none}
+body:before{z-index:3;background:radial-gradient(ellipse at 50% 44%,transparent 55%,rgba(53,73,62,.035) 74%,rgba(35,52,45,.12) 100%);mix-blend-mode:multiply}
+body:after{z-index:3;opacity:.07;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 4px),radial-gradient(circle at 23% 31%,rgba(255,236,188,.10) 0 1px,transparent 1.8px);background-size:100% 4px,43px 47px}
+#game{filter:saturate(1.025) contrast(1.018)}
+@media(prefers-reduced-motion:reduce){#game{filter:saturate(1.012) contrast(1.012)}}
