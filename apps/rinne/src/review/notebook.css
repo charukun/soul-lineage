@@ -1,0 +1,33 @@
+.review-shell .review-tabs { overflow-x: auto; }
+.review-shell .review-tabs .tab { flex-shrink: 0; }
+.review-shell .review-page .stage-row { grid-template-columns: 26px minmax(0,1fr) 48px 64px; }
+body .review-shell .review-page[data-review-page="axis"] .stage-row { grid-template-columns: 28px minmax(0,1fr) 64px !important; }
+body .review-shell .review-page[data-review-page="reaction"] .single-review,
+body .review-shell .review-page[data-review-page="stance"] .single-review,
+body .review-shell .review-page[data-review-page="parry"] .single-review { grid-template-columns: minmax(0,1fr) 64px !important; }
+.review-shell .review-page .copy-slot { min-width: 64px; min-height: 40px; white-space: nowrap; font-size: 10px; }
+.review-shell .review-page .play-slot:disabled,
+.review-shell .review-page .picker-trigger:disabled,
+.review-shell .review-page [data-combat-mode]:disabled { opacity: .5; cursor: not-allowed; }
+.review-shell .review-page .sequence-help { font-size: 10px; line-height: 1.7; color: #b4c6bb; margin: 9px 0; }
+.review-shell #posture-modes { margin: 0 0 14px; justify-content: flex-start; flex-wrap: wrap; }
+.review-shell #posture-modes button { min-height: 40px; font-size: 11px; padding: 0 15px; }
+.review-feedback-dialog { box-sizing: border-box; width: min(620px,calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 16px; overflow-y: auto; border: 1px solid #d6bd8466; border-radius: 14px; background: #1a3334; color: #ece7d5; }
+.review-feedback-dialog::backdrop { background: #071719bb; backdrop-filter: blur(4px); }
+.review-feedback-dialog header { display: flex; gap: 12px; justify-content: space-between; align-items: center; }
+.review-feedback-dialog h2 { margin: 0; min-width: 0; font: 18px var(--serif,serif); color: #f0dfb3; overflow-wrap: anywhere; }
+.review-feedback-dialog button { min-height: 44px; padding: 8px 12px; border: 1px solid #d6bd8466; border-radius: 8px; background: #122829; color: #ece7d5; font-size: 13px; cursor: pointer; }
+.review-feedback-dialog header button { flex-shrink: 0; }
+.review-feedback-dialog .feedback-description { font-size: 12px; line-height: 1.7; margin: 12px 0; color: #b4c6bb; }
+.review-feedback-dialog label { display: block; margin-bottom: 6px; font-size: 12px; }
+.review-feedback-dialog textarea { box-sizing: border-box; display: block; width: 100%; min-height: 200px; height: 42dvh; max-height: 460px; resize: vertical; padding: 12px; border: 1px solid #b4bda255; border-radius: 8px; background: #0e2425; color: #f3eedf; font-family: inherit; font-size: 16px; line-height: 1.5; }
+.review-feedback-dialog textarea[hidden] { display: none; }
+.review-feedback-dialog .feedback-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.review-feedback-dialog #review-feedback-copy { background: #d6bd84; color: #172d2e; font-weight: 700; }
+.review-feedback-dialog #review-feedback-status { min-height: 1.5em; font-size: 12px; line-height: 1.6; margin: 8px 0 0; overflow-wrap: anywhere; }
+.review-feedback-dialog #review-feedback-manual { height: 150px; min-height: 150px; margin-top: 8px; }
+.review-feedback-dialog :focus-visible { outline: 2px solid #f0dfb3; outline-offset: 3px; }
+@media(max-width:480px) {
+ .review-feedback-dialog { padding: 14px; padding-bottom: max(14px,env(safe-area-inset-bottom)); }
+ .review-feedback-dialog .feedback-actions button { font-size: 12px; padding: 8px 6px; }
+}

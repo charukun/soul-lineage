@@ -3,6 +3,7 @@ import { createQuaterniusRetargeter } from '@soul/rendering/quaternius-retarget'
 import { createReviewEffects } from '@soul/rendering/review-effects';
 import { SHINO_REVIEW, REVIEW_ASSET_REVISION } from '@soul/assets/review-catalog';
 import { installReviewUX } from './review-ux.js';
+import { bakePosturePreview } from './posture-preview.js';
 
 const SHINO_BASE={path:SHINO_REVIEW.publicPath,size:SHINO_REVIEW.size,sha256:SHINO_REVIEW.sha256,runtimeId:'SHINO',cacheId:'SHINO',portrait:'SHINO'};
 const MODELS=Object.freeze({
@@ -154,6 +155,15 @@ async function loadAllSources({scene,rootUrl,assetUrl,signal,onProgress,presetId
       window.assetBuffer=async id=>{const modelKey='model:'+id;if(bytesCache.has(modelKey))return bytesCache.get(modelKey);if(id===model.runtimeId&&bytesCache.has(modelCacheKey(model)))return bytesCache.get(modelCacheKey(model));const motionId=String(id).replace(/^motion:/,'');if(bytesCache.has('motion:'+motionId))return bytesCache.get('motion:'+motionId);const row=motionCatalog.find(x=>x.id===motionId);if(row)return cachedBytes('motion:'+motionId,new URL(row.file,simBase),{expectedSize:row.bytes});throw new Error(`Review asset not found: ${id}`);};
       const strikeMeta=Object.fromEntries([...MASTER_TECHNIQUES,...MASTER_DEFENSE].map(row=>[row.kind,row.defense?{defense:row.defense}:{}]));
       const runtime=new humanoidModule.HumanoidRuntime({weapons:{},strikes:strikeMeta,clips:{},windows:{},progress:()=>0,window:()=>null,hand:()=> 'right',echo:()=>{},status:()=>{},attach:()=>{}});await runtime.load(model.runtimeId||model.label);
+      if(disposed||signal.aborted){runtime.dispose(runtime.current);return;}
+      try{
+        body.posturePreviews=new Map();
+        for(const row of bakePosturePreview(runtime)){
+          const mapped=remapClip(row.clip,runtime.current.bones,targetBones,row.name);
+          clips.set(row.name,mapped);body.posturePreviews.set(row.name,{...row,clip:mapped});
+          body.clipNames.push(row.name);appendClip('ゲーム共通 / 抜刀・納刀',row.name);loaded++;
+        }
+      }catch(error){failed++;console.error('Posture preview generation failed',error);}
       for(const row of MASTER_TECHNIQUES){let source;if(row.weapon==='fist'&&typeof runtime.bakeFist==='function')source=runtime.bakeFist(runtime.current,row.kind);else source=runtime.bakeArmed(runtime.current,row.weapon,row.kind);const value=`技 / ${row.label}`;clips.set(value,remapClip(source,runtime.current.bones,targetBones,value));body.clipNames.push(value);appendClip('MasterCharacter共有Humanoid / 技',value,row.label);loaded++;}
       for(const row of MASTER_DEFENSE){const source=runtime.bakeArmed(runtime.current,row.weapon,row.kind),value=`技 / ${row.label}`,mapped=remapClip(source,runtime.current.bones,targetBones,value);clips.set(value,mapped);body.clipNames.push(value);appendClip('MasterCharacter共有Humanoid / 防御',value,row.label);loaded++;if(row.defense){const alias=`パリィ / ${row.label}`;clips.set(alias,mapped);body.clipNames.push(alias);appendClip('パリィ候補',alias,row.label);loaded++;}}
       for(const row of MASTER_STANCES){applyStance(runtime,runtime.current,row);const source=poseClip(`stance:${row.id}`,runtime.current.bones),mapped=remapClip(source,runtime.current.bones,targetBones,`構え / ${row.label}`),value=`構え / ${row.label}`;clips.set(value,mapped);body.clipNames.push(value);appendClip('MasterCharacter共有Humanoid / 構え',value,row.label);const mind=`心 / ${row.label}`;clips.set(mind,mapped);body.clipNames.push(mind);appendClip('心技体 / 心',mind,row.label);loaded++;}
