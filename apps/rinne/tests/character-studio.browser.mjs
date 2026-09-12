@@ -24,7 +24,12 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
   }
   async function captureComparison(count) {
     await page.locator(`[data-count="${count}"]`).click();
-    await page.waitForFunction(expected => window.characterStudio.review.actors.length === expected, count);
+    await page.waitForFunction(expected => {
+      const review = window.characterStudio.review;
+      return expected === 1
+        ? review.settings.view === 'single'
+        : review.settings.view === 'crowd' && review.settings.count === expected && review.actors.length === expected;
+    }, count);
     await page.waitForTimeout(120);
     const current = await state();
     assert.equal(current.profile.hair,'bob');
