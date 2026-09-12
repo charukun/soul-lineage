@@ -1,0 +1,11 @@
+{
+  "name": "輪廻転焦 開発状況ボード",
+  "short_name": "開発状況",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090c12",
+  "theme_color": "#0c1017",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
