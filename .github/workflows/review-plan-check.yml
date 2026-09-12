@@ -3,8 +3,7 @@ on:
   push:
     branches: [audit/review-plan-validation]
     paths:
-      - scripts/audit/reconcile-reviewed-source.py
-      - scripts/audit/extend-review-acceptance.py
+      - scripts/audit/finalize-review-state.py
       - .github/workflows/review-plan-check.yml
 permissions:
   contents: write
@@ -23,28 +22,27 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - name: Reconcile known concurrent notebook and preserve exact tested source
+      - name: Final bounded review state compatibility
         run: |
           test "$GITHUB_REF_NAME" = audit/review-plan-validation
-          python scripts/audit/reconcile-reviewed-source.py
-          python scripts/audit/extend-review-acceptance.py
+          python scripts/audit/finalize-review-state.py
           git config user.name 'Review validation'
           git config user.email '68882498+charukun@users.noreply.github.com'
-          git add apps/rinne/review.html apps/rinne/src/review apps/rinne/tests/review-plan tests/review-plan-browser.mjs tests/review-posture.test.mjs tests/review-workflow.test.mjs
-          if ! git diff --cached --quiet; then git commit -m 'feat(review): reconcile native posture, sequences, feedback and anatomical fist'; fi
+          git add apps/rinne/src/review apps/rinne/tests/review-plan tests/review-plan-browser.mjs
+          if ! git diff --cached --quiet; then git commit -m 'fix(review): preserve static review URLs and bounded manual offsets'; fi
           echo "REVIEW_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
           mkdir -p test-results/review-plan
-          git ls-tree -r HEAD apps/rinne/review.html apps/rinne/src/review apps/rinne/tests/review-plan tests/review-plan-browser.mjs tests/review-posture.test.mjs tests/review-workflow.test.mjs > test-results/review-plan/source-tree.txt
+          git ls-tree -r HEAD apps/rinne/review.html apps/rinne/src/review apps/rinne/docs/REVIEW_PLAN_IMPLEMENTATION.md apps/rinne/tests/review-plan tests/review-plan-browser.mjs tests/review-posture.test.mjs tests/review-workflow.test.mjs > test-results/review-plan/source-tree.txt
           git rev-parse HEAD > test-results/review-plan/source-sha.txt
       - run: npm ci
-      - name: Existing and new deterministic state, native posture and skeleton tests
+      - name: Existing and new state, posture and real skeleton tests
         run: |
           node scripts/check.mjs rinne
           node --test apps/rinne/tests/review-plan/*.test.mjs tests/review-posture.test.mjs tests/review-workflow.test.mjs
       - name: Existing Review build and asset gates
         run: GITHUB_SHA="$REVIEW_SOURCE_SHA" npm run build:review
       - run: npx playwright install --with-deps chromium
-      - name: Actual model, concurrent controls and phase screenshots
+      - name: Actual model and complete review workflow checks
         run: REVIEW_EXPECTED_SHA="$REVIEW_SOURCE_SHA" node tests/review-plan-browser.mjs
       - name: Preserve tested source on this diagnostic branch only
         if: success()
