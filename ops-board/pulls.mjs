@@ -1,6 +1,36 @@
 export const STALE_DRAFT_MS = 12 * 60 * 60 * 1000;
 
 const TARGET_RULES = [
+  {
+    id: 'portal',
+    label: '公開リンク集',
+    test: path => path.startsWith('portal/') || path === 'wrangler.portal.jsonc' || path === 'docs/PUBLIC_PORTAL.md' || path === '.github/workflows/portal.yml' || /^tests\/portal/.test(path),
+  },
+  {
+    id: 'master-character',
+    label: 'MasterCharacter',
+    test: path => /apps\/rinne\/public\/simulator\//.test(path) || /MASTER_CHARACTER/i.test(path) || path.startsWith('packages/characters/') || /master-character/i.test(path),
+  },
+  {
+    id: 'character-review',
+    label: 'キャラレビュー',
+    test: path => /apps\/rinne\/(characters(?:-advanced)?\.html|src\/character-review)/.test(path),
+  },
+  {
+    id: 'village-rehearsal',
+    label: '村連携リハーサル',
+    test: path => /apps\/rinne\/village-rehearsal\.html/.test(path) || /apps\/rinne\/src\/village-/.test(path),
+  },
+  {
+    id: 'audio',
+    label: '音楽 / BGM',
+    test: path => path.startsWith('packages/audio/') || path === 'packages/shared-ui/src/music.js' || /\b(bgm|music|audio)\b/i.test(path),
+  },
+  {
+    id: 'tidebreak',
+    label: 'Tidebreak / Lanternfell',
+    test: path => path.startsWith('packages/tidebreak-combat/') || path.startsWith('packages/night-assets/') || /tidebreak|lanternfell/i.test(path),
+  },
   { id: 'rinne', label: '輪廻転焦', test: path => path.startsWith('apps/rinne/') },
   { id: 'village', label: '村づくり', test: path => path.startsWith('apps/village/') },
   { id: 'demon', label: '魔物側', test: path => path.startsWith('apps/demon/') },
