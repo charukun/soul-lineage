@@ -22,7 +22,7 @@ test('run-local GET cache reuses immutable evaluation data', async () => {
   assert.equal(c.metrics().cacheHits, 1);
 });
 
-test('429 obeys retry policy and leaves throttle diagnostics', async () => {
+test('429 obeys Retry-After and leaves throttle diagnostics', async () => {
   let calls = 0;
   const waits = [];
   const c = client(repository, 'token', async () => {
@@ -36,6 +36,21 @@ test('429 obeys retry policy and leaves throttle diagnostics', async () => {
   assert.equal(c.metrics().throttleResponses, 1);
   assert.equal(c.metrics().retries, 1);
   assert.deepEqual(waits, [0]);
+});
+
+test('missing rate headers on a 5xx use exponential retry instead of fake rate-limit zero', async () => {
+  let calls = 0;
+  const waits = [];
+  const c = client(repository, 'token', async () => {
+    calls++;
+    if (calls === 1) return response(503, 'temporary');
+    return response(200, []);
+  }, { wait: async ms => waits.push(ms) });
+  await c.pages('/commits/head/statuses', undefined, { maxPages: 1 });
+  assert.equal(calls, 2);
+  assert.deepEqual(waits, [1000]);
+  assert.equal(c.metrics().throttleResponses, 0);
+  assert.equal(c.metrics().rateRemaining, null);
 });
 
 test('explicit holds are prefiltered before expensive per-PR GitHub reads', async () => {
@@ -67,8 +82,8 @@ test('explicit holds are prefiltered before expensive per-PR GitHub reads', asyn
   assert.ok(!seen.some(x => /check-runs|actions\/workflows|artifacts|reviews|compare/.test(x)));
 });
 
-test('expensive Ready evaluation is bounded even when the queue is large', async () => {
-  const prs = Array.from({ length: maxReadyEvaluationsPerRun + 5 }, (_, index) => ({
+function largeQueue(size) {
+  const prs = Array.from({ length: size }, (_, index) => ({
     number: index + 1, state: 'open', draft: false, author_association: 'OWNER', mergeable: true, mergeable_state: 'clean',
     body: 'Depends-On: none', labels: [],
     base: { ref: 'develop', repo: { full_name: repository } },
@@ -94,8 +109,25 @@ test('expensive Ready evaluation is bounded even when the queue is large', async
       throw new Error(`unexpected pages ${path}`);
     },
   };
-  const report = await integrate(c, repository, async () => {}, { runId: 0 });
+  return { c, prs, detailReads: () => detailReads };
+}
+
+test('expensive Ready evaluation is bounded and emits a continuation cursor', async () => {
+  const queue = largeQueue(maxReadyEvaluationsPerRun + 5);
+  const report = await integrate(queue.c, repository, async () => {}, { evaluationCursor: 0 });
+  assert.equal(report.evaluationCursor, 0);
   assert.equal(report.deferred.length, 5);
-  assert.ok(detailReads <= maxReadyEvaluationsPerRun);
+  assert.equal(report.retryCursor, maxReadyEvaluationsPerRun);
+  assert.ok(queue.detailReads() <= maxReadyEvaluationsPerRun);
   assert.equal(report.retry, true);
+});
+
+test('continuation cursor visits the remaining static queue once and then stops', async () => {
+  const queue = largeQueue(maxReadyEvaluationsPerRun + 5);
+  const report = await integrate(queue.c, repository, async () => {}, { evaluationCursor: maxReadyEvaluationsPerRun });
+  assert.equal(report.evaluationCursor, maxReadyEvaluationsPerRun);
+  assert.equal(report.deferred.length, 0);
+  assert.equal(report.nextCursor, null);
+  assert.equal(report.retry, false);
+  assert.ok(queue.detailReads() <= 5);
 });
