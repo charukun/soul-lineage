@@ -1,0 +1,46 @@
+name: Character Workshop isolated quality review
+on:
+  push:
+    branches: [review/character-workshop-qc-20260912]
+permissions:
+  contents: read
+concurrency:
+  group: character-workshop-isolated-qc
+  cancel-in-progress: false
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 82cd6ba95217ea32020b3fb680f15ae7c96032d1
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Package tracked source and installed dependencies, without credentials or unrelated audio/video
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import pathlib, subprocess, tarfile, json
+          paths = subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          excluded = {'.ogg','.mp3','.wav','.mid','.midi','.mp4','.webm','.zip','.blend'}
+          with tarfile.open('/tmp/character-workshop-runtime.tar.gz','w:gz') as out:
+              for name in paths:
+                  p = pathlib.Path(name)
+                  if name and p.is_file() and p.suffix.lower() not in excluded:
+                      out.add(p, arcname=name, recursive=False)
+              out.add('node_modules', arcname='node_modules')
+          pathlib.Path('/tmp/source.json').write_text(json.dumps({'commit': subprocess.check_output(['git','rev-parse','HEAD']).decode().strip(), 'excludedSuffixes': sorted(excluded), 'purpose': 'read-only focused Character Workshop inspection; no credentials, no deployment'}, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: character-workshop-runtime-baseline
+          path: |
+            /tmp/character-workshop-runtime.tar.gz
+            /tmp/source.json
+          retention-days: 3
+          compression-level: 0
