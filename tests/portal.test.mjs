@@ -31,6 +31,10 @@ test('public portal catalog has unique HTTPS destinations and keeps source-only 
   assert.equal(byId.get('gg-sites-source').category, 'source');
   assert.equal(byId.get('yare-source').category, 'source');
   assert.equal(byId.get('bloodline-source').category, 'source');
+  // Retire the obsolete public page, not the playable village or host diagnostics.
+  assert.equal(byId.has('village-rehearsal'), false);
+  assert.ok(urls.every(url => !new URL(url).pathname.endsWith('/village-rehearsal.html')));
+  assert.match(byId.get('village').links[0].url, /\/dev\/village\/$/);
 });
 
 test('portal UI is static, filterable and deliberately non-installable', async () => {
