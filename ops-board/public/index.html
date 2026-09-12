@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0c1017">
-  <title>輪廻転焦 開発状況ボード</title>
+  <title>PULSE</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="./pr-board.css">
@@ -14,56 +14,24 @@
   <main class="shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">輪廻転焦 / 開発運用</p>
-        <h1>開発状況ボード</h1>
-        <p class="muted">Rinne Ops Board</p>
+        <p class="eyebrow">DEVELOPMENT / OPERATIONS</p>
+        <h1 class="pulse-wordmark">PULSE</h1>
       </div>
       <button id="reload" class="reload" type="button">最新に更新</button>
     </header>
 
     <nav class="section-tabs" aria-label="画面内ナビゲーション">
-      <a href="#overview-section">概要</a>
-      <a href="#apps-section">アプリ</a>
+      <a href="#alert-section">要対応</a>
       <a href="#tasks-section">開発タスク</a>
-      <a href="#details-section">詳細</a>
+      <a href="#apps-section">アプリ</a>
+      <a href="#details-section">公開・自動処理</a>
     </nav>
 
-    <section id="overview-section" class="board-section">
-      <div class="section-head"><h2>いまの状態</h2><span class="muted">要点だけ集約</span></div>
-      <div id="overview-summary" class="summary-grid" aria-live="polite">
-        <article id="hero" class="summary-card tone-info skeleton">
-          <span class="summary-label">全体</span>
-          <strong class="summary-value">確認中</strong>
-          <small>自動統合</small>
-        </article>
-        <article class="summary-card"><span class="summary-label">公開</span><strong id="summary-apps" class="summary-value">--</strong><small id="summary-apps-note">アプリ</small></article>
-        <article class="summary-card"><span class="summary-label">作業中</span><strong id="summary-drafts" class="summary-value">--</strong><small>PR</small></article>
-        <article class="summary-card"><span class="summary-label">統合待ち</span><strong id="summary-ready" class="summary-value">--</strong><small>PR</small></article>
-        <article class="summary-card"><span class="summary-label">DEV差分</span><strong id="summary-diff" class="summary-value">--</strong><small>Production比</small></article>
-        <article class="summary-card"><span class="summary-label">直近失敗</span><strong id="summary-failures" class="summary-value">--</strong><small>Actions</small></article>
-      </div>
-    </section>
-
     <section id="alert-section" class="board-section" hidden>
-      <div class="section-head"><h2>要対応</h2><span id="alert-count" class="muted"></span></div>
+      <div class="section-head"><h2>要対応タスク</h2><span id="alert-count" class="muted"></span></div>
+      <p class="section-description">止まっている統合や失敗だけを表示します。ここが空なら、いま緊急対応はありません。</p>
       <div id="alerts" class="alerts"></div>
     </section>
-
-    <section id="apps-section" class="board-section">
-      <div class="section-head"><h2>アプリ別の公開状況</h2><span id="app-summary" class="muted">確認中</span></div>
-      <div id="applications" class="app-groups"><div class="card"><p class="empty">アプリ状態を確認中</p></div></div>
-    </section>
-
-    <details class="usage-guide">
-      <summary>使い方を見る</summary>
-      <ol>
-        <li><strong>概要</strong>で全体、公開数、PR、DEV差分を一度に確認します。</li>
-        <li><strong>アプリ</strong>はゲーム / 開発ツール単位にまとまっています。各アプリを開くとURL・公開commit・更新時刻を確認できます。</li>
-        <li><strong>開発タスク</strong>では、文章情報のあるPRを1件1行で確認できます。</li>
-        <li>赤い「要対応」は文章を省略せず1件ずつ表示します。</li>
-        <li>データは自動で<strong>5分ごと</strong>に取り直します。「最新に更新」でもすぐ再表示できます。</li>
-      </ol>
-    </details>
 
     <section id="tasks-section" class="board-section">
       <div class="section-head"><h2>開発タスク</h2><span class="muted">作業中 → 統合待ち → 完了</span></div>
@@ -78,30 +46,56 @@
       </div>
     </section>
 
-    <details id="details-section" class="technical-details">
-      <summary>詳しい技術情報</summary>
-      <div class="technical-body">
-        <section>
-          <div class="section-head"><h2>公開先の詳細</h2><span id="env-count" class="muted"></span></div>
+    <section id="apps-section" class="board-section">
+      <div class="section-head"><h2>アプリ別の公開状況</h2><span id="app-summary" class="muted">確認中</span></div>
+      <p class="section-description">各ゲームの開発・検証・本番を確認できます。未公開の環境も省略せず表示します。</p>
+      <div id="applications" class="app-groups"><div class="card"><p class="empty">アプリ状態を確認中</p></div></div>
+    </section>
+
+    <details class="usage-guide">
+      <summary>使い方を見る</summary>
+      <ol>
+        <li><strong>要対応タスク</strong>が出ていれば、まずそこを確認します。</li>
+        <li><strong>開発タスク</strong>で作業中 / 統合待ち / 完了のPRを確認します。</li>
+        <li><strong>アプリ</strong>ではアイコンと公開状態を3列で見比べ、タップすると公開先を開けます。</li>
+        <li><strong>公開・自動処理の状態</strong>は、公開済みSHA・本番との差・自動統合・Actions失敗を確認する場所です。</li>
+        <li>データは自動で<strong>5分ごと</strong>に取り直します。「最新に更新」でもすぐ再表示できます。</li>
+      </ol>
+    </details>
+
+    <section id="details-section" class="board-section diagnostics-section">
+      <div class="section-head"><h2>公開・自動処理の状態</h2><span class="muted">必要なときだけ確認</span></div>
+      <p class="section-description diagnostics-intro">ここは「実際にどこまで公開されたか」「本番との差」「自動統合が止まっていないか」「Actionsが失敗していないか」の4点を確認する場所です。</p>
+
+      <div class="diagnostic-grid">
+        <section class="diagnostic-panel diagnostic-wide">
+          <div class="diagnostic-head">
+            <div><p class="diagnostic-kicker">PUBLICATION</p><h3>実際に公開されている状態</h3></div>
+            <span id="env-count" class="muted"></span>
+          </div>
+          <p class="diagnostic-help">公開済みcommit SHA・deploy日時・反映済みPRを表示します。branchにmerge済みでも、まだ公開されていなければここでは未公開として区別します。</p>
           <div id="environments" class="stack"></div>
         </section>
 
-        <section>
-          <div class="section-head"><h2>開発版と本番版の差</h2></div>
-          <div id="diff" class="card"></div>
+        <section class="diagnostic-panel">
+          <div class="diagnostic-head"><div><p class="diagnostic-kicker">DEV → PROD</p><h3>本番との差</h3></div></div>
+          <p class="diagnostic-help">DEVには入っているがProductionにはまだ入っていないPRを確認します。</p>
+          <div id="diff" class="card diagnostic-content"></div>
         </section>
 
-        <section>
-          <div class="section-head"><h2>自動統合の状態</h2></div>
-          <div id="integration" class="card"></div>
+        <section class="diagnostic-panel">
+          <div class="diagnostic-head"><div><p class="diagnostic-kicker">INTEGRATION</p><h3>自動統合</h3></div></div>
+          <p class="diagnostic-help">Ready PRがIntegrationに拾われ、merge / deployへ進めているかを確認します。</p>
+          <div id="integration" class="card diagnostic-content"></div>
         </section>
 
-        <section>
-          <div class="section-head"><h2>自動処理 / エラー</h2></div>
-          <div id="failures" class="card"></div>
+        <section class="diagnostic-panel diagnostic-wide">
+          <div class="diagnostic-head"><div><p class="diagnostic-kicker">GITHUB ACTIONS</p><h3>自動処理の失敗</h3></div></div>
+          <p class="diagnostic-help">直近のGitHub Actions失敗だけを表示します。何もなければ正常です。</p>
+          <div id="failures" class="card diagnostic-content"></div>
         </section>
       </div>
-    </details>
+    </section>
 
     <footer>
       <p id="last-updated">最終更新: --</p>

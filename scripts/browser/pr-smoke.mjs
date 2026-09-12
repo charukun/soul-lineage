@@ -1,4 +1,6 @@
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
+import {verifySoloClarity, verifyHuntClarity} from './play-clarity.mjs';
+import {capturePlayedAudio,mediaDiagnostics} from './media-diagnostics.mjs';
 import { execFileSync, spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -64,10 +66,10 @@ for (const app of apps) {
     await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
     const page = await context.newPage();
     const errors = [];
-    const failedRequests = [];
+    const failedRequests = [], rawRequests = [], playedSources = new Set();
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    page.on('requestfailed', request => failedRequests.push({ url: request.url(), failure: request.failure()?.errorText || 'failed' }));
+    page.on('requestfailed', request => { rawRequests.push(request); failedRequests.push({ url: request.url(), failure: request.failure()?.errorText || 'failed' }); });
     // Games can keep media/WebRTC/network activity alive indefinitely. DOM readiness plus the
     // renderer contract below is the deterministic gate; waiting for networkidle only adds stalls.
     const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
@@ -88,6 +90,24 @@ for (const app of apps) {
     if (renderer !== 'ready' || appId !== app || !widthOk || !webgl?.version?.includes('WebGL 2.0') || errors.length || failedRequests.length) {
       throw new Error(`Browser smoke failed for ${app}: ${JSON.stringify(report)}`);
     }
+    // Exercise changed controls before Integration, using the same assertions as public DEV.
+    const evidence = { outputPath: name => resolve(root, `test-results/pr-browser/${app}-${name}`) };
+    if (app === 'rinne') {
+      await page.locator('#start-simulator').click();
+      await page.waitForFunction(() => window.__RINNE_TITLE__?.snapshot().state === 'playing', null, {timeout:100000});
+      const frame = page.frames().find(item => item.url().includes('/simulator/index.html'));
+      if (!frame) throw new Error('Simulator iframe did not become ready');
+      await verifySoloClarity(page, frame, expect, evidence);
+    } else if (app === 'demon') {
+      await page.locator('#begin').click();
+      await page.locator('[data-village]').first().click();
+      await expect(page.locator('#hud')).toBeVisible();
+      await verifyHuntClarity(page, expect, evidence);
+    }
+    await capturePlayedAudio(page, playedSources);
+    const media = await mediaDiagnostics(rawRequests, playedSources, new URL(url).origin);
+    writeFileSync(resolve(root, `test-results/pr-browser/${app}-media.json`), JSON.stringify(media, null, 2));
+    if (errors.length || media.failedRequests.length) throw new Error(`Play clarity failed: ${JSON.stringify({errors,...media})}`);
     await context.tracing.stop({ path: resolve(root, `test-results/pr-browser/${app}-trace.zip`) });
     await context.close();
     console.log('PR BROWSER VERIFIED', JSON.stringify(report));

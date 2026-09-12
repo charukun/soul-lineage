@@ -1,0 +1,9 @@
+/* Keep auxiliary actions in the header, outside the playfield. */
+.simulator-top{height:calc(44px + var(--safe-top));gap:6px}
+.simulator-top button{min-width:44px;min-height:44px;height:44px}
+.simulator-top>span{flex:1;min-width:0;text-align:center}
+.simulator-top small{position:absolute;right:10px;top:calc(46px + var(--safe-top));pointer-events:none;opacity:.6}
+#simulator-music{border-left:1px solid #cfb57445;padding:0 9px}
+#title-music{min-height:44px;padding:8px 14px;border:1px solid #bea16b66}
+#simulator-detail small{font-size:9px;letter-spacing:0;line-height:1.7}
+#game-loading{top:calc(44px + var(--safe-top))}

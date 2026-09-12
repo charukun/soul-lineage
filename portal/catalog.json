@@ -1,30 +1,25 @@
 {
   "title": "WAYFINDER",
-  "subtitle": "A MOVING DIRECTORY",
-  "version": 2,
+  "subtitle": "PULSE PUBLIC PATHS",
+  "version": 3,
+  "source": "fallback",
+  "repository": "charukun/soul-lineage",
   "items": [
     {
-      "id": "guiltys-garden",
-      "room": "ROOM 01",
-      "title": "GUILTY'S GARDEN",
-      "description": "別プロジェクトとして運用している公開サイト。ページそのものを作品として見せるリッチプレビューで紹介します。",
-      "accent": "#ef6f9c",
-      "previewUrl": "https://guiltys-garden.com/",
-      "fallbackPreviewUrl": "https://github.com/charukun/gg-sites",
+      "id": "ops-board",
+      "room": "SYSTEM",
+      "title": "PULSE",
+      "description": "WAYFINDERがPULSEと同期できない場合の復旧入口です。公開状況の正本はPULSEで確認できます。",
+      "accent": "#77d6e8",
+      "previewUrl": "https://rinne-ops.c-okamoto.workers.dev/",
       "links": [
-        { "label": "SITE", "url": "https://guiltys-garden.com/", "kind": "site" },
-        { "label": "SOURCE", "url": "https://github.com/charukun/gg-sites", "kind": "source" }
-      ]
-    },
-    {
-      "id": "yare",
-      "room": "ROOM 02",
-      "title": "YARE",
-      "description": "AIを使ったMarketing Ops基盤。現時点では公開アプリURLが確定していないため、公開Repositoryを入口にしています。",
-      "accent": "#f2b25d",
-      "previewUrl": "https://github.com/charukun/doit-yare",
-      "links": [
-        { "label": "SOURCE", "url": "https://github.com/charukun/doit-yare", "kind": "source" }
+        {
+          "label": "PULSE · PUBLIC",
+          "url": "https://rinne-ops.c-okamoto.workers.dev/",
+          "kind": "tool",
+          "state": "fallback",
+          "environment": "tool"
+        }
       ]
     }
   ]
