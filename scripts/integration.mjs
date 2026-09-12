@@ -24,12 +24,19 @@ function routeName(path) {
     .replace(/([?&]page=)\d+/g, '$1:page');
 }
 
+function numericHeader(response, name) {
+  const raw = response?.headers?.get?.(name);
+  if (raw === null || raw === undefined || raw === '') return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function retryDelayMs(response, attempt) {
-  const retryAfter = Number(response?.headers?.get?.('retry-after'));
-  if (Number.isFinite(retryAfter) && retryAfter >= 0) return retryAfter * 1000;
-  const remaining = Number(response?.headers?.get?.('x-ratelimit-remaining'));
-  const reset = Number(response?.headers?.get?.('x-ratelimit-reset'));
-  if (remaining === 0 && Number.isFinite(reset)) return Math.max(1000, reset * 1000 - Date.now() + 250);
+  const retryAfter = numericHeader(response, 'retry-after');
+  if (retryAfter !== null && retryAfter >= 0) return retryAfter * 1000;
+  const remaining = numericHeader(response, 'x-ratelimit-remaining');
+  const reset = numericHeader(response, 'x-ratelimit-reset');
+  if (remaining === 0 && reset !== null) return Math.max(1000, reset * 1000 - Date.now() + 250);
   return Math.min(8000, 1000 * (2 ** attempt));
 }
 
@@ -110,10 +117,10 @@ export function client(repository, token, request = fetch, options = {}) {
         continue;
       }
 
-      const remaining = Number(response.headers?.get?.('x-ratelimit-remaining'));
-      const reset = Number(response.headers?.get?.('x-ratelimit-reset'));
-      if (Number.isFinite(remaining)) telemetry.rateRemaining = remaining;
-      if (Number.isFinite(reset)) telemetry.rateReset = new Date(reset * 1000).toISOString();
+      const remaining = numericHeader(response, 'x-ratelimit-remaining');
+      const reset = numericHeader(response, 'x-ratelimit-reset');
+      if (remaining !== null) telemetry.rateRemaining = remaining;
+      if (reset !== null) telemetry.rateReset = new Date(reset * 1000).toISOString();
       if (response.ok) {
         const data = response.status === 204 ? null : await response.json();
         if (cacheKey) cache.set(cacheKey, data);
@@ -131,8 +138,9 @@ export function client(repository, token, request = fetch, options = {}) {
         // Some test doubles expose only json(); status/headers are still sufficient.
       }
       const secondary = response.status === 403 && /secondary rate limit|abuse detection/i.test(errorDetail);
+      const hasRetryAfter = response.headers?.get?.('retry-after') !== null && response.headers?.get?.('retry-after') !== undefined;
       const throttled = response.status === 429 || secondary ||
-        (response.status === 403 && (response.headers?.get?.('retry-after') || remaining === 0));
+        (response.status === 403 && (hasRetryAfter || remaining === 0));
       if (throttled) telemetry.throttleResponses++;
       const retryable = throttled || retryableServerStatuses.has(response.status);
       lastError = new Error(`GitHub ${method} ${path}: HTTP ${response.status}${secondary ? ' (secondary rate limit)' : ''}`);
@@ -275,18 +283,20 @@ function cheapHoldReason(pr, repository, recovery) {
   return null;
 }
 
-function selectEvaluationWindow(items, limit, runId = process.env.GITHUB_RUN_ID) {
-  if (items.length <= limit) return { selected: [...items], deferred: [] };
-  const numericRun = Number(runId || 0);
-  const start = Number.isSafeInteger(numericRun) ? numericRun % items.length : 0;
-  const rotated = [...items.slice(start), ...items.slice(0, start)];
-  return { selected: rotated.slice(0, limit), deferred: rotated.slice(limit) };
+function selectEvaluationWindow(items, limit, cursorInput = process.env.INTEGRATION_EVALUATION_CURSOR) {
+  if (!items.length) return { start: 0, selected: [], deferred: [], nextCursor: null };
+  const parsed = Number(cursorInput ?? 0);
+  const start = Number.isSafeInteger(parsed) && parsed >= 0 && parsed < items.length ? parsed : 0;
+  const selected = items.slice(start, start + limit);
+  const nextIndex = start + selected.length;
+  const nextCursor = nextIndex < items.length ? nextIndex : null;
+  return { start, selected, deferred: nextCursor === null ? [] : items.slice(nextCursor), nextCursor };
 }
 
 export async function integrate(c, repository, wait = delay, options = {}) {
   const startedMs = Date.now();
   const timeBudgetMs = Number(options.timeBudgetMs || process.env.INTEGRATION_TIME_BUDGET_MS || defaultIntegrationBudgetMs);
-  const report = { startedAt: new Date(startedMs).toISOString(), merged: [], held: [], trustedReviewed: [], deferred: [], budgetExhausted: false };
+  const report = { startedAt: new Date(startedMs).toISOString(), merged: [], held: [], trustedReviewed: [], deferred: [], budgetExhausted: false, evaluationCursor: 0, nextCursor: null, retryCursor: 0 };
   const branch = () => c.api('GET', `${c.root}/branches/develop`);
   c.mark?.('baseline');
   const current = await branch(); let expected = current.commit.sha;
@@ -303,9 +313,11 @@ export async function integrate(c, repository, wait = delay, options = {}) {
     if (reason) report.held.push({ pr: snapshot.number, head: snapshot.head?.sha || null, reason });
     else expensive.push(snapshot);
   }
-  const window = selectEvaluationWindow(expensive, Number(options.maxReadyEvaluationsPerRun || maxReadyEvaluationsPerRun), options.runId);
+  const window = selectEvaluationWindow(expensive, Number(options.maxReadyEvaluationsPerRun || maxReadyEvaluationsPerRun), options.evaluationCursor);
+  report.evaluationCursor = window.start;
+  report.nextCursor = window.nextCursor;
   const pending = [...window.selected];
-  report.deferred.push(...window.deferred.map(p => ({ pr: p.number, head: p.head?.sha || null, reason: 'deferred by Integration request budget' })));
+  report.deferred.push(...window.deferred.map(p => ({ pr: p.number, head: p.head?.sha || null, reason: 'deferred to next bounded Integration scan' })));
 
   // Snapshot Ready PRs; revisit dependencies after predecessors merge. Bound API work.
   outer: for (let pass = 0; pass < 3 && pending.length && report.merged.length < maxMergesPerRun; pass++) {
@@ -318,8 +330,9 @@ export async function integrate(c, repository, wait = delay, options = {}) {
       if (report.merged.length >= maxMergesPerRun) break;
       if (Date.now() - startedMs >= timeBudgetMs) {
         report.budgetExhausted = true;
+        report.nextCursor = null;
         for (const item of pending) {
-          if (!report.deferred.some(x => x.pr === item.number)) report.deferred.push({ pr: item.number, head: item.head?.sha || null, reason: 'deferred by Integration time budget' });
+          if (!report.deferred.some(x => x.pr === item.number)) report.deferred.push({ pr: item.number, head: item.head?.sha || null, reason: 'deferred by Integration time budget; wait for the next external wakeup' });
         }
         break outer;
       }
@@ -384,11 +397,12 @@ export async function integrate(c, repository, wait = delay, options = {}) {
     }
     if (!progress) break;
   }
-  // A successful repair/baseline must wake the queue again. Previously recovery
-  // returned retry=false, leaving Ready PRs stranded even after a successful retry.
-  // No progress + an already successful baseline stops: holds cannot self-loop.
+  // A successful repair/baseline must wake the queue again. Count-bounded scans use
+  // a cursor so a large static set is visited exactly once instead of self-looping.
   const recoveryHeld = recovery && report.held.some(item => item.reason === 'previous final develop gate failed; repair first');
-  report.retry = report.deferred.length > 0 || recoveryHeld || (pending.length > 0 && (baselinePending || recovery || report.merged.length > 0));
+  const countContinuation = report.nextCursor !== null && !report.budgetExhausted;
+  report.retry = countContinuation || recoveryHeld || (pending.length > 0 && (baselinePending || recovery || report.merged.length > 0));
+  report.retryCursor = (report.merged.length > 0 || baselinePending || recovery) ? 0 : (report.nextCursor ?? 0);
   c.mark?.('final-develop-status');
   report.sha = (await branch()).commit.sha;
   const finalStatuses = await c.pages(`/commits/${report.sha}/statuses`, undefined, { maxPages: 10 });
@@ -448,12 +462,12 @@ async function main() {
       `## Integration\nFinal develop: ${report.sha || 'unknown'}\n\nMerged: ${(report.merged || []).map(x => `#${x.pr}`).join(', ') || 'none'}\n\n` +
       `Trusted reviewed: ${(report.trustedReviewed || []).map(x => `#${x.pr}`).join(', ') || 'none'}\n\n` +
       `API requests: ${report.api?.requests ?? 'n/a'}; cache hits: ${report.api?.cacheHits ?? 'n/a'}; retries: ${report.api?.retries ?? 'n/a'}; throttles: ${report.api?.throttleResponses ?? 'n/a'}\n\n` +
-      `Duration: ${report.durationMs ?? report.api?.elapsedMs ?? 'n/a'} ms; deferred: ${(report.deferred || []).length}; phase: ${report.api?.phase || 'unknown'}\n\n` +
+      `Duration: ${report.durationMs ?? report.api?.elapsedMs ?? 'n/a'} ms; deferred: ${(report.deferred || []).length}; phase: ${report.api?.phase || 'unknown'}; cursor: ${report.evaluationCursor ?? 0} -> ${report.retryCursor ?? 0}\n\n` +
       (report.held || []).map(x => `- #${x.pr}: ${x.reason}\n`).join('') + (report.verified ? '\nAlready verified; no duplicate build or deploy.\n' : '') +
       (thrown ? `\nError: ${thrown.message}\n` : ''));
   }
   if (thrown) throw thrown;
-  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `sha=${report.sha}\nverify=${!report.verified}\nretry=${report.retry}\n`);
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `sha=${report.sha}\nverify=${!report.verified}\nretry=${report.retry}\ncursor=${report.retryCursor ?? 0}\n`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) await main();
