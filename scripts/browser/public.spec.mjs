@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { appendFileSync } from 'node:fs';
 import {registerClarityTests} from './public-clarity.mjs';
+import {registerMusicTests} from './public-music.mjs';
+import {capturePlayedAudio} from './media-diagnostics.mjs';
 import { isVerifiedAudioRangeAbort, describeFailedRequest } from './media-request-contract.mjs';
 const base = process.env.BROWSER_SITE_URL?.replace(/\/?$/, '/');
 const targets = JSON.parse(process.env.BROWSER_TARGETS || '[]');
@@ -52,8 +54,12 @@ for (const target of targets) {
         window.__LIFE_LAB__.setEnemies(true);
         app.setup({ opponent: 'duel', distance: 2, weapon: 'sword' });
         app.step(720, false);
+        const opening = app.snapshot().stats;
+        // A duel may spend the opening in parries/interruptions. Observe a fixed
+        // full minute, not a retry-until-hit loop, and retain the opening evidence.
+        app.step(2880, false);
         app.render();
-        return app.snapshot().stats;
+        return { ...app.snapshot().stats, opening };
       });
       expect(combat.hits).toBeGreaterThan(0); expect(combat.damage).toBeGreaterThan(0);
       await page.screenshot({ path: testInfo.outputPath('rinne-simulator-mobile.png') });
@@ -156,37 +162,7 @@ for (const target of targets) {
       await page.screenshot({ path: testInfo.outputPath('mobile.png'), fullPage: true });
       await page.setViewportSize({ width: 1280, height: 800 });
     }
-    if (!target.legacy) {
-      // The Village deliberately hides its old music trigger (PR #59).
-      if (target.app === 'village') {
-        await page.evaluate(() => window.__SOUL_MUSIC__.open());
-      } else if (target.app === 'rinne') {
-        await page.locator('#open-settings').click();
-        await page.locator('#title-music').click();
-      } else if (target.app === 'demon') {
-        await page.locator('#title-settings').click();
-        await page.locator('#music-library').click();
-      } else await page.locator('.soul-music [data-open]').click();
-      await expect(page.locator('.soul-music dialog')).toBeVisible();
-      const audio = page.locator('.soul-music audio');
-      const snapshotAudio = () => audio.evaluate(player => ({ src: player.currentSrc, time: player.currentTime,
-        ready: player.readyState, paused: player.paused, error: player.error?.code ?? null }));
-      const prior = await snapshotAudio();
-      expect(prior.error).toBeNull();
-      if (prior.src && prior.time > 0 && prior.ready >= 2) playedSources.add(prior.src);
-      await page.locator('.soul-music [data-world]').selectOption('');
-      await expect(page.locator('.soul-music [data-track]')).toHaveCount(150);
-      await page.locator('.soul-music [data-track="r01"]').click();
-      await expect(page.locator('.soul-music [data-state]')).toContainText('再生中：');
-      await expect.poll(() => audio.evaluate(player => player.currentTime)).toBeGreaterThan(0);
-      const playing = await snapshotAudio();
-      expect(playing.error).toBeNull(); expect(playing.ready).toBeGreaterThanOrEqual(2); expect(playing.paused).toBe(false);
-      expect(playing.src).toBeTruthy(); playedSources.add(playing.src);
-      await page.locator('.soul-music [data-stop]').click();
-      expect(await audio.evaluate(player => player.paused)).toBe(true);
-      expect(await audio.evaluate(player => player.error)).toBeNull();
-      await page.locator('.soul-music form button').click();
-    }
+    await capturePlayedAudio(page,playedSources);
     const requestFailures = await Promise.all(rawFailedRequests.map(describeFailedRequest));
     const expectedMediaAborts = requestFailures.filter(record => isVerifiedAudioRangeAbort(record, playedSources, new URL(url).origin));
     const failedRequests = requestFailures.filter(record => !isVerifiedAudioRangeAbort(record, playedSources, new URL(url).origin));
@@ -202,3 +178,4 @@ for (const target of targets) {
 
 // Each added interaction scenario gets its own fresh page, storage and time budget.
 registerClarityTests({test, expect, targets, base});
+registerMusicTests({test, expect, targets, base});

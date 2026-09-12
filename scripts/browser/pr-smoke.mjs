@@ -1,5 +1,6 @@
 import { chromium, expect } from '@playwright/test';
 import {verifySoloClarity, verifyHuntClarity} from './play-clarity.mjs';
+import {capturePlayedAudio,mediaDiagnostics} from './media-diagnostics.mjs';
 import { execFileSync, spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -65,10 +66,10 @@ for (const app of apps) {
     await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
     const page = await context.newPage();
     const errors = [];
-    const failedRequests = [];
+    const failedRequests = [], rawRequests = [], playedSources = new Set();
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    page.on('requestfailed', request => failedRequests.push({ url: request.url(), failure: request.failure()?.errorText || 'failed' }));
+    page.on('requestfailed', request => { rawRequests.push(request); failedRequests.push({ url: request.url(), failure: request.failure()?.errorText || 'failed' }); });
     // Games can keep media/WebRTC/network activity alive indefinitely. DOM readiness plus the
     // renderer contract below is the deterministic gate; waiting for networkidle only adds stalls.
     const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
@@ -106,7 +107,10 @@ for (const app of apps) {
       const {verifyVillageFirstBuild} = await import('../../apps/village/tests/first-build.browser.mjs');
       await verifyVillageFirstBuild(page, expect, evidence);
     }
-    if (errors.length || failedRequests.length) throw new Error(`Play clarity failed: ${JSON.stringify({errors,failedRequests})}`);
+    await capturePlayedAudio(page, playedSources);
+    const media = await mediaDiagnostics(rawRequests, playedSources, new URL(url).origin);
+    writeFileSync(resolve(root, `test-results/pr-browser/${app}-media.json`), JSON.stringify(media, null, 2));
+    if (errors.length || media.failedRequests.length) throw new Error(`Play clarity failed: ${JSON.stringify({errors,...media})}`);
     await context.tracing.stop({ path: resolve(root, `test-results/pr-browser/${app}-trace.zip`) });
     await context.close();
     console.log('PR BROWSER VERIFIED', JSON.stringify(report));
