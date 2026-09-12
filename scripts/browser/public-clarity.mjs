@@ -29,7 +29,7 @@ export function registerClarityTests({test, expect, targets, base}) {
           await verifySoloClarity(page, frame, expect, testInfo);
         } else if (target.app === 'village') {
           const {verifyVillageFirstBuild} = await import('../../apps/village/tests/first-build.browser.mjs');
-          await verifyVillageFirstBuild(page, expect, testInfo);
+          await verifyVillageFirstBuild(page, expect, testInfo, () => capturePlayedAudio(page, playedSources));
         } else {
           await page.locator('#begin').click();
           await page.locator('[data-village]').first().click();
