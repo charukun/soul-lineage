@@ -98,6 +98,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/integration.mjs
+      - name: Refresh Ops Board after merge evaluation
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          OPS_BOARD_URL: https://rinne-ops.c-okamoto.workers.dev/
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then exit 0; fi
+          token=$(printf '%s' "$CLOUDFLARE_API_TOKEN|$GITHUB_REPOSITORY|rinne-ops-refresh-v1" | sha256sum | awk '{print $1}')
+          echo "::add-mask::$token"
+          curl -fsS --retry 2 -X POST -H "Authorization: Bearer $token" "${OPS_BOARD_URL}api/refresh" >/dev/null || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -258,6 +268,17 @@ jobs:
             if (process.env.RESULT === 'success' && process.env.RETRY === 'true') {
               await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'deploy.yml', ref: 'develop' });
             }
+      - name: Refresh Ops Board after DEV deploy result
+        if: always()
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          OPS_BOARD_URL: https://rinne-ops.c-okamoto.workers.dev/
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then exit 0; fi
+          token=$(printf '%s' "$CLOUDFLARE_API_TOKEN|$GITHUB_REPOSITORY|rinne-ops-refresh-v1" | sha256sum | awk '{print $1}')
+          echo "::add-mask::$token"
+          curl -fsS --retry 2 -X POST -H "Authorization: Bearer $token" "${OPS_BOARD_URL}api/refresh" >/dev/null || true
 
   full-verification:
     name: Optional full regression and public browser diagnostics
