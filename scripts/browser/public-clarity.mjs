@@ -3,10 +3,12 @@ import {capturePlayedAudio,mediaDiagnostics} from './media-diagnostics.mjs';
 
 /** Independent contexts prevent UI review steps from changing a gameplay fixture. */
 export function registerClarityTests({test, expect, targets, base}) {
-  for (const target of targets.filter(t => !t.legacy && t.version.environment!=='prod' && ['rinne', 'demon'].includes(t.app))) {
+  for (const target of targets.filter(t => !t.legacy && t.version.environment !== 'prod' && ['rinne', 'demon', 'village'].includes(t.app))) {
     test(`${target.path} preserves native play clarity on the deployed commit`, async ({page}, testInfo) => {
+      // Same per-app deadlines as the original smoke, with no retries or relaxed assertions.
       test.setTimeout(target.app === 'rinne' ? 180000 : 60000);
-      const errors = [], rawRequests = [], playedSources = new Set();let media={};
+      const errors = [], rawRequests = [], playedSources = new Set();
+      let media = {};
       page.on('pageerror', e => errors.push(e.message));
       page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
       page.on('requestfailed', r => rawRequests.push(r));
@@ -25,14 +27,17 @@ export function registerClarityTests({test, expect, targets, base}) {
           const frame = page.frames().find(f => f.url().includes('/simulator/index.html'));
           expect(frame).toBeTruthy();
           await verifySoloClarity(page, frame, expect, testInfo);
+        } else if (target.app === 'village') {
+          const {verifyVillageFirstBuild} = await import('../../apps/village/tests/first-build.browser.mjs');
+          await verifyVillageFirstBuild(page, expect, testInfo, () => capturePlayedAudio(page, playedSources));
         } else {
           await page.locator('#begin').click();
           await page.locator('[data-village]').first().click();
           await expect(page.locator('#hud')).toBeVisible();
           await verifyHuntClarity(page, expect, testInfo);
         }
-        await capturePlayedAudio(page,playedSources);
-        media=await mediaDiagnostics(rawRequests,playedSources,new URL(url).origin);
+        await capturePlayedAudio(page, playedSources);
+        media = await mediaDiagnostics(rawRequests, playedSources, new URL(url).origin);
         expect(errors).toEqual([]);
         expect(media.failedRequests).toEqual([]);
       } finally {
