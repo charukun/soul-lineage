@@ -32,7 +32,8 @@ try{
  await step('Right straight: one shot, guard, strike, return, camera and slow playback',async()=>{
   await motion('Tidebreak / Attack');const s=await snap();assert.equal(s.state.mode,'combat');assert.equal(s.state.loop,false);assert.equal(s.state.weaponEnabled,false);assert.equal(s.state.clip,'Tidebreak / Attack');
   await page.locator('[data-camera="front"]').click();const frames=[];
-  for(let i=0;i<4;i++){await page.locator(`[data-phase="${i}"]`).click();await page.waitForTimeout(60);const f=await snap();assert.equal(f.state.playing,false);frames.push({time:f.time,pose:f.pose});await shot('punch-front-'+i);}
+  for(let i=0;i<4;i++){await page.locator(`[data-phase="${i}"]`).click();await page.waitForTimeout(60);const f=await snap();assert.equal(f.state.playing,false);frames.push({time:f.time,pose:f.pose,worldPose:f.worldPose});await shot('punch-front-'+i);}
+  assert.ok(frames[2].worldPose.rightHand[2]-frames[0].worldPose.rightHand[2]>.15,'paused display must show the punch, not T-pose');
   await page.locator('[data-camera="right"]').click();for(let i=0;i<4;i++){await page.locator(`[data-phase="${i}"]`).click();await page.waitForTimeout(60);await shot('punch-side-'+i);}
   await page.locator('[data-camera="three"]').click();await page.locator('[data-phase="2"]').click();await shot('02-punch-three');
   await page.locator('#restart').click();await page.locator('#speed').selectOption('0.25');await page.locator('#play-toggle').click();await page.waitForTimeout(1500);const slow=await snap();assert.ok(slow.time>0&&slow.time<1.45);await page.locator('#play-toggle').click();await page.locator('#speed').selectOption('1');
@@ -40,12 +41,12 @@ try{
  });
  await step('Nine weapons have stable grips; two-handed weapons have actual support',async()=>{
   await page.locator('[data-combat-mode="combat"]').click();await page.locator('#weapon-toggle').check();const rows=[];
-  for(const id of ['katana','sword','greatsword','axe','greataxe','dagger','crossbow','staff','wand']){await page.locator('#weapon-select').selectOption(id);await waitWeapon(id);await page.locator('[data-camera="three"]').click();await shot('weapon-'+id);const s=await snap();rows.push(s.weapon);assert.equal(s.weapon.id,id);if(s.weapon.support)assert.ok(s.weapon.supportError<.035,JSON.stringify(s.weapon));}
+  for(const id of ['katana','sword','greatsword','axe','greataxe','dagger','crossbow','staff','wand']){await page.locator('#weapon-select').selectOption(id);await waitWeapon(id);await page.locator('[data-camera="three"]').click();await shot('weapon-'+id);for(const angle of ['front','right']){await page.locator(`[data-camera="${angle}"]`).click();await shot('weapon-'+id+'-'+angle);}const s=await snap();rows.push(s.weapon);assert.equal(s.weapon.id,id);if(s.weapon.support)assert.ok(s.weapon.supportError<.035,JSON.stringify(s.weapon));await page.locator('[data-combat-mode="normal"]').click();await shot('weapon-'+id+'-normal');assert.equal((await snap()).state.mode,'normal');await page.locator('[data-combat-mode="combat"]').click();}
   await page.locator('[data-combat-mode="normal"]').click();assert.equal((await snap()).state.mode,'normal');await shot('03-normal-carry');
   await page.locator('#weapon-select').selectOption('greatsword');await page.locator('#weapon-select').selectOption('katana');await page.locator('#weapon-toggle').uncheck();await page.waitForTimeout(800);assert.equal((await snap()).state.weaponEnabled,false);return rows;
  });
  await step('Flowing slash uses a katana, complete phases and end pose',async()=>{
-  await page.waitForFunction(()=>window.__reviewLab.snapshot().animations.includes('技 / 流し斬り'),null,{timeout:150000});await motion('技 / 流し斬り');await waitWeapon('katana');assert.equal((await snap()).state.loop,false);
+  await page.waitForFunction(()=>window.__reviewLab.snapshot().animations.includes('技 / 流し斬り'),null,{timeout:150000});await page.locator('#weapon-toggle').uncheck();await motion('技 / 流し斬り');await waitWeapon('katana');assert.equal((await snap()).state.loop,false);
   await page.locator('[data-camera="three"]').click();const frames=[];
   for(let i=0;i<4;i++){await page.locator(`[data-phase="${i}"]`).click();await page.waitForTimeout(100);const s=await snap();frames.push({time:s.time,weapon:s.weapon});if(s.weapon.support)assert.ok(s.weapon.supportError<.035,JSON.stringify(s.weapon));await shot('slash-'+i);}
   await page.evaluate(()=>window.__reviewLab.seek(1.28));await shot('slash-end');return frames;

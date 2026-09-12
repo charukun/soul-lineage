@@ -64,3 +64,20 @@ export function solveTwoBone(a,b,c,target,pole) {
   aimBone(a,b,elbow);aimBone(b,c,destination);
   return c.getWorldPosition(new T.Vector3()).distanceTo(target);
 }
+
+/** Explicit writes are required after resetPose: AnimationMixer intentionally
+ * caches unchanged values, so update(0) alone can leave a paused model in rest.
+ */
+const samplers=new WeakMap();
+export function sampleRawClip(clip,root,time){
+ let roots=samplers.get(clip);if(!roots){roots=new WeakMap();samplers.set(clip,roots);}
+ let bindings=roots.get(root);
+ if(!bindings){bindings=clip.tracks.map(track=>{
+  const dot=track.name.lastIndexOf('.'),id=track.name.slice(0,dot),property=track.name.slice(dot+1);
+  const node=root.getObjectByProperty('uuid',id)||root.getObjectByName(id);
+  if(!node||!['quaternion','position','scale'].includes(property))throw new Error(`Unresolved review pose channel: ${track.name}`);
+  return{node,property,interpolant:track.createInterpolant()};
+ });roots.set(root,bindings);}
+ for(const{node,property,interpolant}of bindings){node[property].fromArray(interpolant.evaluate(Math.max(0,Math.min(clip.duration,time))));if(property==='quaternion')node.quaternion.normalize();}
+ root.updateMatrixWorld(true);
+}

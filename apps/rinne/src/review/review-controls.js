@@ -42,7 +42,7 @@ export function installFocusedReviewUI(){
  new MutationObserver(renderList).observe(q('#clip'),{childList:true,subtree:true});
  let problemKey='',phaseKey='';
  document.addEventListener('review-state-change',event=>{const{state,meta,problems}=event.detail;
-  if(selected!==state.clip){selected=state.clip;list.querySelectorAll('[data-motion-id]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.motionId===selected)));}
+  if(selected!==state.clip){selected=state.clip;q('#motion-name').textContent=selected==='Tidebreak / Attack'?'右の直突き':selected||'元モデル';q('#motion-meta').textContent=selected;list.querySelectorAll('[data-motion-id]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.motionId===selected)));}
   const mk=String(window.__reviewLab?.metadata?.().length||0);if(mk!==lastMeta){lastMeta=mk;renderList();}
   const key=JSON.stringify(meta?.phases||[]);if(key!==phaseKey){phaseKey=key;phases.querySelectorAll('button').forEach((b,i)=>{b.disabled=!meta?.phases?.[i];b.textContent=meta?.phases?.[i]?.[0]||['構え','打ち出し','打点','戻り'][i];b.title=meta?.phases?.[i]?`${meta.phases[i][1].toFixed(3)}秒`:'この動作には確認区間が未定義です';});}
   const incompatible=meta?.category==='unarmed'&&state.weaponEnabled;

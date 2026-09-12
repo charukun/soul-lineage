@@ -5,7 +5,7 @@ import * as T from '../../public/simulator/vendor/three.js';
 import {GLTFLoader} from '../../public/simulator/vendor/GLTFLoader.js';
 import {VRMLoaderPlugin,VRMUtils} from '../../public/simulator/vendor/three-vrm.module.js';
 import {createMartialClips} from '../../src/review/martial-motion.js';
-import {rawClipFromNormalized} from '../../src/review/pose-transfer.js';
+import {rawClipFromNormalized,sampleRawClip} from '../../src/review/pose-transfer.js';
 globalThis.self=globalThis;
 // Skeleton-math test only. Browser suite separately loads the original textures.
 const loader=new GLTFLoader();loader.register(()=>({name:'SkeletonMathOnly',loadTexture:()=>Promise.resolve(null)}));loader.register(p=>new VRMLoaderPlugin(p));
@@ -37,3 +37,8 @@ test('Attack begins and ends at the same guarded pose; middle frames extend the 
 });
 test('all output tracks and orientations remain finite and normalized',()=>{for(const tr of output.tracks){assert.ok([...tr.values].every(Number.isFinite));if(tr.name.endsWith('.quaternion'))for(let i=0;i<tr.values.length;i+=4)assert.ok(Math.abs(Math.hypot(...tr.values.slice(i,i+4))-1)<.0002);}});
 process.on('exit',()=>{writeFileSync('/tmp/review-pose-observations.json',JSON.stringify(observations,null,2));});
+
+test('paused and reverse seeks explicitly reapply the raw pose after reset',()=>{
+ sampleRawClip(output,vrm.scene,.56);const expected=point('rightHand').clone();
+ for(const time of [0,.56,1.45,.56]){for(const b of Object.values(raw))b.quaternion.identity();sampleRawClip(output,vrm.scene,time);if(time===.56)assert.ok(point('rightHand').distanceTo(expected)<1e-6);}
+});
