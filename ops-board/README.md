@@ -6,3 +6,4 @@
 - branch mergeと実deployを分離して表示
 - 5分Cron + merge/deploy後の即時同期
 - SecretsはWorker側のみで保持し、ブラウザには露出しない
+- 一般公開リンクギャラリー `WAYFINDER` の専用Cloudflareデプロイ状態も追跡する
