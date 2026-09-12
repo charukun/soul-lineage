@@ -14,6 +14,11 @@ on:
         type: boolean
         required: false
         default: false
+      integration_cursor:
+        description: 'Internal bounded Ready-queue scan cursor'
+        type: string
+        required: false
+        default: '0'
       repair_scope:
         description: 'Internal browser repair recorder scope (empty or pr)'
         type: string
@@ -90,6 +95,7 @@ jobs:
       sha: ${{ steps.queue.outputs.sha }}
       verify: ${{ steps.queue.outputs.verify }}
       retry: ${{ steps.queue.outputs.retry }}
+      cursor: ${{ steps.queue.outputs.cursor }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -104,6 +110,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-diagnostics.json
           INTEGRATION_TIME_BUDGET_MS: '360000'
+          INTEGRATION_EVALUATION_CURSOR: ${{ inputs.integration_cursor || '0' }}
         run: node scripts/integration.mjs
       - name: Refresh Ops Board after merge evaluation
         continue-on-error: true
@@ -125,6 +132,29 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 14
+
+  integration-continuation:
+    name: Continue bounded Ready scan
+    needs: integrate
+    if: >-
+      always() && github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr' &&
+      needs.integrate.result == 'success' && needs.integrate.outputs.retry == 'true' &&
+      needs.integrate.outputs.verify == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/github-script@v8
+        env:
+          CURSOR: ${{ needs.integrate.outputs.cursor }}
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo,
+              workflow_id: 'deploy.yml',
+              ref: 'develop',
+              inputs: { integration_cursor: process.env.CURSOR || '0' }
+            });
 
   publish:
     needs: integrate
@@ -270,6 +300,7 @@ jobs:
           FINAL_SHA: ${{ needs.integrate.outputs.sha }}
           RESULT: ${{ needs.publish.result }}
           RETRY: ${{ needs.integrate.outputs.retry }}
+          CURSOR: ${{ needs.integrate.outputs.cursor }}
         with:
           script: |
             await github.rest.repos.createCommitStatus({
@@ -282,7 +313,12 @@ jobs:
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             });
             if (process.env.RESULT === 'success' && process.env.RETRY === 'true') {
-              await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'deploy.yml', ref: 'develop' });
+              await github.rest.actions.createWorkflowDispatch({
+                ...context.repo,
+                workflow_id: 'deploy.yml',
+                ref: 'develop',
+                inputs: { integration_cursor: process.env.CURSOR || '0' }
+              });
             }
       - name: Refresh Ops Board after DEV deploy result
         if: always()
