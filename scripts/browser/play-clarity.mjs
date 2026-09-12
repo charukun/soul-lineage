@@ -32,9 +32,9 @@ export async function verifyHuntClarity(page, expect, testInfo) {
   const bounds=await page.locator('#pause').boundingBox();expect(bounds.width).toBeGreaterThanOrEqual(44);expect(bounds.height).toBeGreaterThanOrEqual(44);
   await page.locator('#pause').click();
   await assertHuntGuideState(page, expect, false);
-  await page.locator('#online-settings').click();
-  await expect(page.locator('#online-box')).toBeVisible();
-  await page.locator('#online-close').click();
+  // Friend visits use Village invitations; normal hunts expose no player-village entry.
+  await expect(page.locator('#online-settings')).toHaveCount(0);
+  await expect(page.locator('#online-box')).toHaveCount(0);
   await expect(page.locator('#sheet')).toBeVisible();
   await page.locator('#music-library').click();
   const time=await page.evaluate(()=>window.__NIGHT_HUNT__.snapshot().time);
