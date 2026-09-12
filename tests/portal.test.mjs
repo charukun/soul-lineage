@@ -6,69 +6,45 @@ import { targetAppsFromFiles } from '../ops-board/pulls.mjs';
 const root = new URL('../', import.meta.url);
 const read = path => readFile(new URL(path, root), 'utf8');
 
-test('public portal catalog has unique HTTPS destinations and keeps source-only projects separate', async () => {
+test('public gallery excludes every Rinne-related destination', async () => {
   const catalog = JSON.parse(await read('portal/catalog.json'));
-  assert.ok(Array.isArray(catalog.items) && catalog.items.length >= 10);
-  const ids = catalog.items.map(item => item.id);
-  assert.equal(new Set(ids).size, ids.length);
-
-  const urls = [];
-  for (const item of catalog.items) {
-    assert.ok(['play', 'lab', 'tools', 'source'].includes(item.category));
-    assert.ok(item.title);
-    assert.ok(Array.isArray(item.links) && item.links.length > 0);
-    for (const link of item.links) {
-      const url = new URL(link.url);
-      assert.equal(url.protocol, 'https:');
-      urls.push(url.href);
-    }
-  }
-  assert.equal(new Set(urls).size, urls.length);
-
-  const byId = new Map(catalog.items.map(item => [item.id, item]));
-  assert.equal(byId.get('master-character').category, 'lab');
-  assert.match(byId.get('master-character').links[0].url, /\/dev\/rinne\/simulator\/$/);
-  assert.equal(byId.get('gg-sites-source').category, 'source');
-  assert.equal(byId.get('yare-source').category, 'source');
-  assert.equal(byId.get('bloodline-source').category, 'source');
-  // Retire the obsolete public page, not the playable village or host diagnostics.
-  assert.equal(byId.has('village-rehearsal'), false);
-  assert.ok(urls.every(url => !new URL(url).pathname.endsWith('/village-rehearsal.html')));
-  assert.match(byId.get('village').links[0].url, /\/dev\/village\/$/);
+  assert.ok(Array.isArray(catalog.items) && catalog.items.length >= 2);
+  const urls = catalog.items.flatMap(item => item.links || []).map(link => link.url);
+  const text = JSON.stringify(catalog).toLowerCase();
+  assert.doesNotMatch(text, /soul-lineage|bloodline-legacy|rinne-visual|rinne-ops|輪廻転焦/);
+  assert.ok(urls.every(url => new URL(url).protocol === 'https:'));
+  assert.ok(catalog.items.some(item => item.id === 'guiltys-garden'));
+  assert.ok(catalog.items.some(item => item.id === 'yare'));
 });
 
-test('portal UI is static, filterable and deliberately non-installable', async () => {
-  const [html, css, js] = await Promise.all([
+test('gallery is immersive rather than a conventional card directory', async () => {
+  const [html, css, js, worker, wrangler] = await Promise.all([
     read('portal/public/index.html'),
     read('portal/public/style.css'),
     read('portal/public/app.js'),
+    read('portal/worker.mjs'),
+    read('wrangler.portal.jsonc'),
   ]);
-  assert.match(html, /RINNE GATE/);
-  assert.match(html, /data-filter="play"/);
-  assert.match(html, /data-filter="source"/);
-  assert.match(html, /favicon\.svg/);
+  assert.match(html, /<canvas id="world"/);
+  assert.match(html, /id="journey"/);
+  assert.match(html, /id="share-page"/);
+  assert.match(html, /id="copy-page"/);
+  assert.doesNotMatch(html, /<header\b|<main\b|<nav\b/);
+  assert.match(css, /position:sticky/);
+  assert.match(css, /perspective:1500px/);
+  assert.match(css, /preview-frame/);
+  assert.match(js, /requestAnimationFrame\(tick\)/);
+  assert.match(js, /navigator\.share/);
+  assert.match(js, /navigator\.clipboard\.writeText/);
+  assert.match(worker, /og:image/);
+  assert.match(worker, /og:video/);
+  assert.match(worker, /twitter:player/);
+  assert.match(worker, /\/api\/catalog/);
+  assert.match(wrangler, /wayfinder-gallery/);
   assert.doesNotMatch(html, /rel="manifest"/);
-  assert.match(css, /portal-card/);
-  assert.match(css, /@media\(min-width:860px\)/);
-  assert.match(js, /catalog\.json/);
-  assert.match(js, /setFilter/);
 });
 
-test('target classifier recognizes internal sub-apps and the new portal before broad app rules', () => {
-  const labels = targetAppsFromFiles([
-    'apps/rinne/public/simulator/index.html',
-    'apps/rinne/characters-advanced.html',
-    'apps/rinne/village-rehearsal.html',
-    'packages/audio/src/index.js',
-    'packages/tidebreak-combat/src/index.js',
-    'portal/public/index.html',
-  ]).map(item => item.label);
-  assert.deepEqual(labels, [
-    'MasterCharacter',
-    'キャラレビュー',
-    '村連携リハーサル',
-    '音楽 / BGM',
-    'Tidebreak / Lanternfell',
-    '公開リンク集',
-  ]);
+test('target classifier still recognizes the public gallery as its own app', () => {
+  const labels = targetAppsFromFiles(['portal/public/index.html']).map(item => item.label);
+  assert.deepEqual(labels, ['公開リンク集']);
 });
