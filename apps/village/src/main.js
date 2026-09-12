@@ -8,7 +8,7 @@ const progress = document.querySelector('#progress');
 const message = document.querySelector('#loadText');
 const retry = document.querySelector('#retry');
 const recover = document.querySelector('#recover');
-const disposeMusic=installMusicLibrary({game:'village',environment:__BUILD_INFO__.environment,defaultTrack:'v01',autoStart:true});
+const disposeMusic=installMusicLibrary({game:'village',environment:__BUILD_INFO__.environment,defaultTrack:'v01',autoStart:true,preferDefault:true,trigger:'hidden'});
 let finished = false;
 const watchdog = setTimeout(() => {
   if (finished) return;
@@ -42,8 +42,11 @@ try {
   await boot({
     onProgress(value, text) { progress.value = value; message.textContent = text; },
   });
+  await import('./mura-world-systems.js');
+  await import('./mura-performance.js');
   await import('./mura-experience.js');
   await import('./mura-rotation-fix.js');
+  await import('./mura-v2-ui.js');
   document.title = document.title.replace(/^星継ぎの庭/, 'MURAAAAAAA');
   clearTimeout(watchdog);
   finished = true;
