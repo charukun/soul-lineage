@@ -35,3 +35,13 @@ test('Nature Kit is connected as repository-local visual dressing only',()=>{
   assert.doesNotMatch(natureSource,/raw\.githubusercontent\.com/);
   assert.doesNotMatch(natureSource,/world\.(?:objects|stock|resources)\s*=/);
 });
+
+test('Nature GLB work starts only after the existing village loading overlay is dismissed',()=>{
+  assert.match(natureSource,/function scheduleInstall/);
+  assert.match(natureSource,/document\.querySelector\('#loading'\)/);
+  assert.match(natureSource,/if\(!loading\|\|loading\.hidden\)/);
+  assert.match(natureSource,/new MutationObserver/);
+  assert.match(natureSource,/requestIdleCallback/);
+  assert.match(natureSource,/scheduleInstall\(this,this\.__naturePassGeneration\)/);
+  assert.doesNotMatch(natureSource,/void install\(this,this\.__naturePassGeneration\)/);
+});
