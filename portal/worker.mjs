@@ -80,8 +80,12 @@ async function fetchPreview(url) {
 
   const cache = caches.default;
   const cacheKey = new Request(`https://wayfinder-preview.invalid/meta?u=${encodeURIComponent(url)}`);
-  const cached = await cache.match(cacheKey);
-  if (cached) return cached.json();
+  try {
+    const cached = await cache.match(cacheKey);
+    if (cached) return cached.json();
+  } catch {
+    // Cache is an optimization only; metadata fetch must still work without it.
+  }
 
   let preview;
   try {
@@ -107,7 +111,11 @@ async function fetchPreview(url) {
   }
 
   const response = new Response(JSON.stringify(preview), { headers: { ...JSON_HEADERS, 'cache-control': 'public, max-age=900' } });
-  await cache.put(cacheKey, response.clone());
+  try {
+    await cache.put(cacheKey, response.clone());
+  } catch {
+    // Never fail the rich preview response because a cache backend rejected a write.
+  }
   return preview;
 }
 
