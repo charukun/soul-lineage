@@ -59,7 +59,12 @@ export function createCharacterWorkspace(review) {
     history, snapshot, save,
     get quality() { return qualitySettings(quality); },
     getIdentity(index = review.settings.selected) { return qualityIdentity(review.records[index], index, quality, profiles.get(review.records[index].id)); },
-    qualityReport() { return qualityReport(review.records.slice(0, review.settings.count), quality, profiles); },
+    qualityReport() {
+      const indices = review.settings.view === 'single'
+        ? [review.settings.selected]
+        : Array.from({ length: review.settings.count }, (_, index) => index);
+      return qualityReport(indices.map(index => review.records[index]), quality, profiles, indices);
+    },
     setQuality(patch) { perform(() => { quality = qualitySettings({ ...quality, ...patch }); }); },
     markSelected() { const id = selected().id; perform(() => { quality.marked = quality.marked.includes(id) ? quality.marked.filter(x => x !== id) : [...quality.marked, id]; }); },
     generate(seed, ancestry = review.settings.ancestry) {
