@@ -34,6 +34,10 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
     const current = await state();
     assert.equal(current.profile.hair,'bob');
     const report = await page.locator('#quality-report').textContent();
+    if (count === 1) {
+      assert.match(await page.locator('#subject').textContent(), /^1体表示/);
+      assert.match(report, /量産 0体 \+ 基準 1体/);
+    }
     await page.screenshot({path:resolve(output,`studio-compare-${count}-mobile.png`)});
     checks.push({name:`${count}-person deterministic comparison rendered`,report});
     return current;
@@ -75,6 +79,14 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
     const twelve = await captureComparison(12); assert.deepEqual(twelve.records,before.records);
     const thirty = await captureComparison(30); assert.deepEqual(thirty.records,before.records);
     await page.screenshot({path:resolve(output,'studio-compare-mobile.png')});
+    await page.locator('#quality-context').selectOption('village');
+    await page.locator('#quality-camera').click(); await page.waitForTimeout(120);
+    await page.screenshot({path:resolve(output,'studio-village-distance-mobile.png')});
+    await page.locator('#quality-context').selectOption('demon');
+    await page.locator('#quality-camera').click(); await page.waitForTimeout(120);
+    await page.screenshot({path:resolve(output,'studio-demon-distance-mobile.png')});
+    checks.push({name:'MURAAAAAAA and demon normal-distance preview rendered'});
+    await page.locator('#quality-context').selectOption('village');
     await page.locator('[data-individual="5"]').click();
     await page.locator('#edit-one').click();
     assert.equal((await state()).selected,5); assert.equal((await state()).view,'single');
