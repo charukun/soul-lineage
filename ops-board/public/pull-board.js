@@ -9,6 +9,7 @@ const el = (tag, className, text) => {
 };
 
 const badgeTone = state => ({ Draft: 'progress', Ready: 'warning', Merged: 'ok', Closed: 'info' })[state] || 'info';
+const stateLabel = state => ({ Draft: '作業中', Ready: '統合待ち', Merged: '統合済み', Closed: '終了' })[state] || state;
 
 function row(pr) {
   const link = el('a', `pull-row${pr.staleDraft ? ' stale-draft' : ''}`);
@@ -18,7 +19,9 @@ function row(pr) {
 
   const top = el('div', 'pull-row-top');
   top.append(el('strong', 'pull-title', pr.title || `PR #${pr.number}`));
-  top.append(el('span', `badge ${badgeTone(pr.state)}`, pr.state));
+  const status = el('span', `badge ${badgeTone(pr.state)}`, stateLabel(pr.state));
+  status.title = pr.state;
+  top.append(status);
 
   const bottom = el('div', 'pull-row-bottom');
   bottom.append(el('span', 'pull-detail', pr.detail || '詳細未記載'));
@@ -26,7 +29,7 @@ function row(pr) {
   meta.append(el('span', 'pull-number', `#${pr.number}`));
   const updated = pr.updatedAt ? fmt.format(new Date(pr.updatedAt)) : '未記録';
   meta.append(el('span', '', `更新 ${updated}`));
-  if (pr.staleDraft) meta.append(el('span', 'stale-note', '更新停滞'));
+  if (pr.staleDraft) meta.append(el('span', 'stale-note', 'しばらく更新なし'));
   bottom.append(meta);
   link.append(top, bottom);
   return link;
@@ -45,7 +48,7 @@ function count(items, state) {
 
 function completedSection(items) {
   const details = el('details', 'completed-pulls');
-  details.append(el('summary', '', `完了済み ${items.length}件`), rows(items, '完了PRなし'));
+  details.append(el('summary', '', `完了・終了 ${items.length}件`), rows(items, '完了PRなし'));
   return details;
 }
 
@@ -58,9 +61,9 @@ function render(data = {}) {
 
   const counts = el('div', 'pull-counts');
   for (const [state, tone] of [['Draft','progress'], ['Ready','warning'], ['Merged','ok'], ['Closed','info']]) {
-    counts.append(el('span', `badge ${tone}`, `${state} ${count(items, state)}`));
+    counts.append(el('span', `badge ${tone}`, `${stateLabel(state)} ${count(items, state)}`));
   }
-  root.append(counts, rows(active, '作業中 / Integration待ちPRなし'), completedSection(completed));
+  root.append(counts, rows(active, '現在、作業中・統合待ちのPRはありません'), completedSection(completed));
   if (data.truncated) root.append(el('p', 'empty', '直近100件を表示しています。'));
 
   const visualSection = $('#visual-review-section');
@@ -78,7 +81,7 @@ async function load() {
     render(state.pullRequests || {});
   } catch (error) {
     const root = $('#pulls');
-    root.replaceChildren(el('p', 'empty', `PR一覧取得失敗: ${error.message}`));
+    root.replaceChildren(el('p', 'empty', `PR一覧を取得できません: ${error.message}`));
   }
 }
 
