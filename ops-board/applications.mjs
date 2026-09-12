@@ -1,5 +1,5 @@
 export const OPS_PUBLIC_URL = 'https://rinne-ops.c-okamoto.workers.dev/';
-export const PORTAL_PUBLIC_URL = 'https://rinne-portal.c-okamoto.workers.dev/';
+export const PORTAL_PUBLIC_URL = 'https://wayfinder-gallery.c-okamoto.workers.dev/';
 
 const displayNames = {
   rinne: '輪廻転焦',
@@ -65,10 +65,10 @@ export function buildApplications(manifest = {}, environments = [], runs = []) {
     });
   }
 
-  const portalRun = runs.find(run => run.name === 'Rinne Public Portal') || null;
+  const portalRun = runs.find(run => run.name === 'Wayfinder Public Gallery') || null;
   groups.set('portal', {
     id: 'portal',
-    name: 'RINNE GATE（公開リンク集）',
+    name: 'WAYFINDER（公開リンクギャラリー）',
     kind: 'tool',
     targets: [{
       id: 'portal',
@@ -78,7 +78,7 @@ export function buildApplications(manifest = {}, environments = [], runs = []) {
       url: PORTAL_PUBLIC_URL,
       commit: portalRun?.head_sha || null,
       deployedAt: portalRun?.updated_at || null,
-      source: 'Rinne Public Portal workflow',
+      source: 'Wayfinder Public Gallery workflow',
     }],
   });
 
@@ -99,8 +99,6 @@ export function buildApplications(manifest = {}, environments = [], runs = []) {
     }],
   });
 
-  // Lanternfell has an isolated Cloudflare delivery path on its long-lived branch.
-  // The current workflow may fail before a public URL is verified, so never guess a URL.
   const lanternRun = runs.find(run => /^Lanternfell (night portrait DEV|isolated preview check)$/i.test(run.name || '')) || null;
   if (lanternRun && !groups.has('lanternfell')) {
     groups.set('lanternfell', {
