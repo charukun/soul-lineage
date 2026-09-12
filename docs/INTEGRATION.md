@@ -1,5 +1,9 @@
 # develop Integration
 
+## 責任分界
+
+実装セッションはDraft先行 → 実装 → 必要最低限の高速検証 → commit/push → Ready化・結果通知で終了し、CIを同期的に待機・反復ポーリングしません。Ready後のCI監視、失敗判定、develop統合、CI/CDとDEV反映はIntegrationが担当します。CI失敗時のみhead SHA・失敗run・診断根拠と必要な修正を実装ワーカーへ返し、修正後もワーカーはReady化で終了します。既存のイベント・通知・復旧・レビュー条件を維持します。詳細な実装手順は [DEVELOPMENT.md](DEVELOPMENT.md) が正本です。
+
 ## 起動と集約
 
 PRの `Validate and build` 成功後、`Request Integration` が既存 `deploy.yml` を **developを指定してworkflow_dispatch** します。developへの通常pushも復旧・初回検証の入口です。mainに存在する既存workflowを利用するため、default branch変更やmainへの新workflow追加は不要です。
@@ -13,6 +17,8 @@ mergeはGitHubのPR merge APIと実行のGITHUB_TOKENを使用します。途中
 thread解決後にレビューイベントが発生しない場合は、既存CIのRequest Integration再実行またはdevelopへの手動dispatchで再判定します。GitHub Actionsにはthread解決専用のworkflow triggerはありません。
 
 各PRの`integration/queue` statusに保留理由またはmerge結果とActionsへのリンクを記録します。この運用statusと`Request Integration`自身はcode gateから除外します。明示hold・レビュー待ちは自動解除しません。自動化は自分の変更PRや承認を生成せず、基盤PRは下記の承認条件を維持します。解消できない保留を成功とは扱いません。
+
+Draftは通常実装・Visual Review Labともに候補抽出・dispatch前・merge直前で明示的に除外します。Draftの軽量チェックはReady用fast gateの代わりになりません。本文・状態・更新日時・Lab識別の契約は [DEVELOPMENT.md](DEVELOPMENT.md#実装開始前draft-pr通常のコード変更タスク) を参照してください。
 
 ## 自動merge条件
 

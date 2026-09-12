@@ -53,13 +53,13 @@ Inspect the linked failing Actions run and download its browser artifact. Review
 
 For scope=pr, repair the existing PR head branch when it is safe and still current. Preserve the original PR and let CI/browser rerun naturally.
 
-For scope=develop, branch from latest develop using repair/browser-issue-<issue>-a<attempt>, implement and fast-verify the fix, push it, and create a Ready for review PR to develop. Include `Auto-Repair-Issue: #<issue>` and `Depends-On: none` in the PR body. Do not merge it yourself unless the session was explicitly assigned Integration.
+For scope=develop, branch from latest develop using repair/browser-issue-<issue>-a<attempt>, push and open a Draft PR before code edits, then implement and fast-verify the fix, push it, and mark the PR Ready for review to develop. Include `Auto-Repair-Issue: #<issue>` and `Depends-On: none` in the PR body. Do not merge it yourself unless the session was explicitly assigned Integration.
 
 Use normal git from Chat/WORK/Codex first, then the connected GitHub API, then Codespaces + normal git if transport/size prevents push. Never stop merely because one GitHub route fails.
 
 Do not modify main/Production. Do not create parallel repair branches for the same issue. Do not retrigger yourself by changing state back to pending. Only GitHub browser verification may move a repair back to pending or forward to ready-for-integration/verified. If the issue reaches maxAttempts, leave it human-required with a concise root-cause summary and the next recommended human action.
 
-A repair is not complete until GitHub records browser success. For a develop ticket, PR browser success is only ready-for-integration; final completion requires the repaired change to pass Integration, DEV publication and public DEV browser verification.
+The implementation worker ends after fast verification, push and Ready, without waiting for CI/browser completion or repeatedly polling it. Integration monitors the asynchronous result and returns a repair worker only on failure. End-to-end repair verification is not complete until GitHub records browser success. For a develop ticket, PR browser success is only ready-for-integration; final completion requires the repaired change to pass Integration, DEV publication and public DEV browser verification.
 ```
 
 The repository creates the machine-readable event and enforces the loop guard. The ChatGPT account/project owns registration of the Work event trigger itself; repository code cannot register an account-level ChatGPT Work trigger.
