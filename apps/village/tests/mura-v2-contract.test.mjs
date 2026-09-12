@@ -10,7 +10,7 @@ const read=name=>fs.readFileSync(path.join(src,name),'utf8');
 
 test('village v2 boots scalable world and UI layers',()=>{
  const main=read('main.js');
- for(const module of ['mura-world-systems.js','mura-performance.js','mura-v2-ui.js'])assert.match(main,new RegExp(module.replace('.','\\.')));
+ for(const module of ['mura-world-systems.js','mura-performance.js','mura-v2-ui.js','mura-entry-polish.js'])assert.match(main,new RegExp(module.replace('.','\\.')));
  assert.match(main,/defaultTrack:'v01'/);
  assert.match(main,/preferDefault:true/);
 });
@@ -36,6 +36,20 @@ test('placement, highlight, climate and rich detail UI contracts stay enabled',(
  assert.match(source,/querySelector\('#relocate'\)\?\.remove/);
  assert.match(source,/MURAAAAAAA_MayorRegalia/);
  assert.match(source,/MURAAAAAAA_FacilityIdentity/);
+});
+
+test('entry screen, idle Village Now and camera inertia contracts stay enabled',()=>{
+ const source=read('mura-entry-polish.js');
+ assert.match(source,/id="muraEntryCard"/);
+ assert.match(source,/id="muraEnterVillage"/);
+ assert.match(source,/mura-entry-open/);
+ assert.match(source,/panel\.classList\.remove\('visible'\)/);
+ assert.match(source,/id='muraFollowMayor'/);
+ assert.match(source,/view\.followId=mayor\.id/);
+ assert.match(source,/installCameraInertia/);
+ assert.match(source,/Math\.exp\(-4\.35/);
+ assert.match(source,/#tutorial\{/);
+ assert.match(source,/grid-template-columns:auto minmax\(0,1fr\) auto/);
 });
 
 test('music adapter resumes after returning to the browser',()=>{
