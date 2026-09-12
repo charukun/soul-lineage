@@ -1,4 +1,5 @@
 import './character-review.js';
+import './character-review-modular.js';
 
 const el = id => document.getElementById(id);
 const modeCopy = {
