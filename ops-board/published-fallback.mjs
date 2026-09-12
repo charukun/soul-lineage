@@ -14,6 +14,7 @@ export function publishedFallback(previous, manifest, { now, error, source }) {
     const commits = [...new Set(entries.map(entry => entry.version?.commit).filter(Boolean))];
     const commit = snapshot?.commit || (commits.length === 1 ? commits[0] : null);
     const same = Boolean(commit && old?.deployedCommit === commit);
+    const cachedHistory = same && Array.isArray(old.reflectedPrs);
     return {
       ...old, id: definition.id, kind: 'pages', name: { dev: 'DEV', staging: 'STAGING / 検証', prod: 'Production' }[definition.id],
       branch: snapshot?.branch || definition.branch, branchCommit: null,
@@ -21,9 +22,12 @@ export function publishedFallback(previous, manifest, { now, error, source }) {
       url: entries.length ? `https://charukun.github.io/soul-lineage/${definition.id}/` : null,
       deployState: commit ? 'success' : 'unknown', latestRun: null,
       source: '公開manifest（GitHub履歴の更新は失敗中）', exactCommit: Boolean(commit),
-      reflectedPrs: same ? (old.reflectedPrs || []) : [],
-      reflectedPrCount: same ? (old.reflectedPrCount ?? null) : null,
-      historyComplete: same ? Boolean(old.historyComplete) : false,
+      // null means not fetched, unlike a fetched empty history. This lets the normal
+      // refresh recover history after GitHub becomes available, at the same SHA.
+      reflectedPrs: cachedHistory ? old.reflectedPrs : null,
+      reflectedPrCount: cachedHistory ? (old.reflectedPrCount ?? null) : null,
+      historyComplete: cachedHistory ? Boolean(old.historyComplete) : false,
+      commitCountScanned: cachedHistory ? (old.commitCountScanned || 0) : 0,
       deployQueue: deploymentQueue(null),
     };
   });
@@ -41,8 +45,13 @@ export function publishedFallback(previous, manifest, { now, error, source }) {
     pullRequests: previous?.pullRequests || { normal: [], visualReview: [], total: 0, truncated: true },
     applications, environments, applicationsUpdatedAt: now, applicationsSource: 'public-manifest',
     environmentDiff: environmentDiff(environments[0], environments[2]),
-    integration: { ...(previous?.integration || {}), state: 'unknown', queue: previous?.integration?.queue || [] },
-    alerts: previous?.alerts || [], recentActionFailures: previous?.recentActionFailures || [],
+    integration: { ...(previous?.integration || {}), state: 'unknown', tone: 'info', queue: previous?.integration?.queue || [] },
+    alerts: [
+      { type: 'github-sync-degraded', tone: 'warning', title: 'GitHub履歴の更新に失敗',
+        detail: `${String(error?.message || error)}。公開環境の一覧は公開manifestから更新しています。` },
+      ...(previous?.alerts || []).filter(alert => alert.type !== 'github-sync-degraded'),
+    ],
+    recentActionFailures: previous?.recentActionFailures || [],
     syncStatus: 'degraded', syncError: String(error?.message || error), lastAttemptAt: now, refreshReason: source,
     publicManifest: { url: 'https://charukun.github.io/soul-lineage/deployment-manifest.json', schemaVersion: 1,
       validatedDevelop: manifest.validatedDevelop || null, environmentSnapshots: manifest.environmentSnapshots || null },

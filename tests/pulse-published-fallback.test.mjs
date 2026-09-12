@@ -19,15 +19,19 @@ test('GitHub 403 cannot retain retired names or the old two-environment matrix',
   assert.match(state.syncError, /403/);
 });
 
-test('fresh public staging metadata invalidates stale reflected-PR history', () => {
-  const old = { environments: [{ id: 'staging', deployedCommit: 'old', reflectedPrs: [{ number: 1 }], reflectedPrCount: 1, historyComplete: true }] };
-  const state = publishedFallback(old, { schemaVersion: 1, entries: [published('staging', 'new')] }, options);
+test('fresh public staging metadata invalidates stale reflected-PR history and leaves it fetchable', () => {
+  const old = { environments: [{ id: 'staging', deployedCommit: 'old', reflectedPrs: [{ number: 1 }], reflectedPrCount: 1, historyComplete: true, commitCountScanned: 10 }] };
+  const manifest = { schemaVersion: 1, entries: [published('staging', 'new')] };
+  const state = publishedFallback(old, manifest, options);
   const staging = state.environments.find(env => env.id === 'staging');
   assert.equal(staging.deployedCommit, 'new');
   assert.equal(staging.branchCommit, null);
   assert.equal(staging.historyComplete, false);
-  assert.deepEqual(staging.reflectedPrs, []);
+  assert.equal(staging.reflectedPrs, null);
   assert.equal(staging.reflectedPrCount, null);
+  assert.equal(staging.commitCountScanned, 0);
+  const repeated = publishedFallback(state, manifest, options).environments.find(env => env.id === 'staging');
+  assert.equal(Array.isArray(repeated.reflectedPrs), false, 'normal refresh must not reuse an unfetched history');
 });
 
 test('cached tool URLs survive but their old names and freshness claims do not', () => {
@@ -53,6 +57,18 @@ test('public-only cold start never invents a successful GitHub sync', () => {
   assert.equal(state.syncStatus, 'degraded');
   assert.equal(state.applications.find(app => app.id === 'demon').targets[2].commit, 'release');
   assert.deepEqual(state.pullRequests.normal, []);
+});
+
+test('GitHub sync failures are visible in the existing UI without repeated alerts or stale green status', () => {
+  const old = { integration: { tone: 'ok', state: 'success' }, alerts: [{ type: 'another-alert', title: 'Retain this' }] };
+  const manifest = { schemaVersion: 1, entries: [published('dev', 'same')] };
+  const state = publishedFallback(publishedFallback(old, manifest, options), manifest, options);
+  assert.equal(state.integration.tone, 'info');
+  const warnings = state.alerts.filter(alert => alert.type === 'github-sync-degraded');
+  assert.equal(warnings.length, 1);
+  assert.equal(warnings[0].tone, 'warning');
+  assert.match(warnings[0].detail, /403/);
+  assert.ok(state.alerts.some(alert => alert.type === 'another-alert'));
 });
 
 test('a malformed public manifest is not interpreted as all games being unpublished', () => {
