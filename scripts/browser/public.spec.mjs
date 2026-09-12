@@ -126,7 +126,7 @@ for (const target of targets) {
     } else if (target.app === 'village' && !target.legacy && await page.locator('#build').count()) {
       await expect(canvas).toHaveAttribute('data-game-world', 'hoshitsugi.life-and-guard.v5');
       await expect(page.locator('#loading')).toBeHidden();
-      await expect(page.getByRole('heading', {level: 1})).toHaveText('MURAAAAAAA');
+      await expect(page.locator('#muraEntry').getByRole('heading', {level: 2})).toHaveText('MURAAAAAAA');
       // Carry forward PR #59: enter the current start screen before using the HUD.
       await expect(page.locator('#muraEntry')).toBeVisible();
       await page.locator('#muraEnterVillage').click();
@@ -134,7 +134,7 @@ for (const target of targets) {
       await page.setViewportSize({width:390,height:844});
       await page.locator('#build').click();
       await expect(page.locator('#catalog')).toBeVisible();
-      await page.locator('#more').click();
+      await page.getByRole('button', {name: '設定', exact: true}).click();
       await page.locator('#onlineOpen').click();
       await expect(page.locator('#make-offer')).toBeVisible();
       await page.locator('#onlineDialog form button').click();
