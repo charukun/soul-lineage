@@ -4,24 +4,74 @@ on:
     branches: [review/village-playthrough-20260912]
     paths: [.github/workflows/village-playthrough-review.yml]
 permissions:
-  contents: read
+  contents: write
+concurrency:
+  group: village-pr90-text-publication
+  cancel-in-progress: false
 jobs:
-  browser-runtime:
+  publish-verified-feature:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v6
+        with:
+          path: control
+          persist-credentials: false
+          sparse-checkout: scripts/review
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/village-playthrough-stability
+          path: work
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Prepare standalone Playwright headless runtime
+      - name: Verify expected feature head and retain current develop
+        working-directory: work
         run: |
-          mkdir -p /tmp/village-browser
-          npm install --prefix /tmp/village-browser playwright@1.55.1 --no-package-lock
-          PLAYWRIGHT_BROWSERS_PATH=/tmp/village-browser/runtime /tmp/village-browser/node_modules/.bin/playwright install chromium --only-shell
-          tar -czf /tmp/village-browser-runtime.tar.gz -C /tmp/village-browser runtime
+          set -euo pipefail
+          mkdir -p ../publication
+          test "$(git rev-parse HEAD)" = 2426349040585d95b5eb4781215557a4b385f3a3
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin develop
+          git merge --no-edit origin/develop
+          git rev-parse origin/develop > ../publication/base.txt
+      - name: Verify every before and after checksum, then apply text-only changes
+        run: python3 control/scripts/review/apply-village-readable.py control/scripts/review/transfer work publication
+      - name: Commit verified feature changes
+        working-directory: work
+        run: |
+          set -euo pipefail
+          git diff --check
+          while IFS= read -r path; do git add -- "$path"; done < ../publication/paths.txt
+          git diff --cached --stat | tee ../publication/diff-stat.txt
+          git commit -m 'fix(village): consolidate placement, catalog, observation and tactile surfaces'
+          git rev-parse HEAD > ../publication/commit.txt
+          node scripts/check-push-route.mjs origin/develop HEAD | tee ../publication/push-route.txt
+      - name: Install exact locked dependencies
+        working-directory: work
+        run: npm ci
+      - name: Run affected fast verification with infrastructure tests
+        working-directory: work
+        env:
+          APP_ENV: dev
+          APP_BRANCH: fix/village-playthrough-stability
+        run: |
+          set -o pipefail
+          node scripts/validate.mjs fast origin/develop HEAD 2>&1 | tee ../publication/fast-verification.log
+      - name: Push only the authorized feature branch, never main or develop
+        working-directory: work
+        run: |
+          set -euo pipefail
+          remote=$(git ls-remote origin refs/heads/fix/village-playthrough-stability | cut -f1)
+          test "$remote" = 2426349040585d95b5eb4781215557a4b385f3a3
+          git push origin HEAD:refs/heads/fix/village-playthrough-stability
+          echo FEATURE_PUSH_SUCCESS | tee ../publication/result.txt
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: village-headless-browser-runtime
-          path: /tmp/village-browser-runtime.tar.gz
-          compression-level: 1
-          retention-days: 3
+          name: village-pr90-publication-evidence
+          path: publication/
+          if-no-files-found: error
+          retention-days: 7
