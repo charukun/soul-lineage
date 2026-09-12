@@ -1,7 +1,9 @@
 Task: second-wave sourced environment and VFX asset integration
-Status: IN PROGRESS
+Status: VALIDATING
 
 - Keep Character Workshop diversity and Shino motion work isolated from this task.
 - Curate provenance-verified Kenney Nature Kit and Particle Pack assets only.
-- Integrate VFX into demon first; integrate village Nature after PR #90 no longer owns the same visual file.
-- Preserve gameplay rules, AI, combat authority, saves, LOD/fallback, main and Production.
+- Integrate sourced Particle Pack VFX into 尽喰廻遊 without changing combat authority.
+- Integrate Kenney Nature as MURAAAAAAA visual-only edge dressing without replacing gameplay trees/resources/collision.
+- Preserve AI, combat authority, saves, LOD/fallback, main and Production.
+- Latest develop is merged before Ready validation.
