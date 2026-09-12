@@ -48,15 +48,17 @@ function installCameraGestures(){
  const canvas=$('game');if(!canvas)return;
  const pointers=new Map();
  let inertia={vx:0,vy:0,raf:0,last:0},multi=null;
- const stopInertia=()=>{if(inertia.raf)cancelAnimationFrame(inertia.raf);inertia.raf=0;inertia.vx=inertia.vy=0;};
+ const cancelInertiaFrame=()=>{if(inertia.raf)cancelAnimationFrame(inertia.raf);inertia.raf=0;};
+ const stopInertia=()=>{cancelInertiaFrame();inertia.vx=inertia.vy=0;};
  const runInertia=()=>{
-  stopInertia();
+  // Do not call stopInertia here: the release velocity is the momentum we need to preserve.
+  cancelInertiaFrame();
   let last=performance.now();
   const tick=now=>{
    const dt=Math.min(32,now-last);last=now;
-   inertia.vx*=Math.pow(.91,dt/16);inertia.vy*=Math.pow(.91,dt/16);
-   if(Math.hypot(inertia.vx,inertia.vy)<.035){stopInertia();return;}
-   view.pan(inertia.vx*dt,inertia.vy*dt);
+   inertia.vx*=Math.pow(.94,dt/16);inertia.vy*=Math.pow(.94,dt/16);
+   if(Math.hypot(inertia.vx,inertia.vy)<.018){stopInertia();return;}
+   view.pan(inertia.vx*dt*1.18,inertia.vy*dt*1.18);
    inertia.raf=requestAnimationFrame(tick);
   };
   inertia.raf=requestAnimationFrame(tick);
@@ -87,12 +89,14 @@ function installCameraGestures(){
   if(!p.drag)return;
   e.preventDefault();e.stopPropagation();
   view.pan(dx,dy);
-  const dt=Math.max(1,now-p.lastT);inertia.vx=dx/dt;inertia.vy=dy/dt;p.lastT=now;
+  const dt=Math.max(1,now-p.lastT),rawX=dx/dt,rawY=dy/dt;
+  // Smooth several recent samples so a tiny final finger movement does not erase momentum.
+  inertia.vx=inertia.vx*.62+rawX*.38;inertia.vy=inertia.vy*.62+rawY*.38;p.lastT=now;
  },{capture:true,passive:false});
  const end=e=>{
   const p=pointers.get(e.pointerId);if(!p)return;
   pointers.delete(e.pointerId);
-  if(p.drag&&!p.multi&&pointers.size===0&&Math.hypot(inertia.vx,inertia.vy)>.08)runInertia();
+  if(p.drag&&!p.multi&&pointers.size===0&&Math.hypot(inertia.vx,inertia.vy)>.045)runInertia();
   if(pointers.size<2)multi=null;
  };
  canvas.addEventListener('pointerup',end,{capture:true,passive:true});
