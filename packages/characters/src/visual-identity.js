@@ -33,6 +33,12 @@ const channel = (seed, salt) => mix(seed, salt) / 4294967296;
 const bin = (x, n) => Math.min(n - 1, Math.floor(x * n));
 const mean = (c, key) => (c.genome[key][0] + c.genome[key][1]) / 131070;
 const round = x => Math.round(x * 100000) / 100000;
+// A short crop cannot expose a tied tail. Normalize the unused back channel so
+// identical rendered geometry is not advertised or cached as an extra haircut.
+const coherentHairBack = (hair, back) => hair === 'crop' && back === 'tied' ? 'close' : back;
+const visibleHairKey = identity => identity.parts.hair === 'original' ? 'original'
+  : [identity.parts.hair, identity.front, coherentHairBack(identity.parts.hair, identity.back)].join('/');
+
 
 /** Existing role and workplace remain authoritative. This returns a display category only. */
 export function visualRole(role = 'resident', workplace = '', years = 22) {
@@ -83,7 +89,7 @@ export function visualIdentityForCharacter(character, { role = 'resident', workp
   const gear = years < 7 || profile.outfit === 'uniform' ? 'none' : GEAR[occupation];
   const result = {
     version: VISUAL_IDENTITY_VERSION, seed, role: occupation, ageBand: years < 14 ? 'child' : years >= 65 ? 'elder' : 'adult',
-    parts: profile, front: HAIR_FRONTS[mix(seed, 0x9201) % HAIR_FRONTS.length], back: HAIR_BACKS[mix(seed, 0x1123) % HAIR_BACKS.length],
+    parts: profile, front: HAIR_FRONTS[mix(seed, 0x9201) % HAIR_FRONTS.length], back: coherentHairBack(profile.hair, HAIR_BACKS[mix(seed, 0x1123) % HAIR_BACKS.length]),
     face: Object.fromEntries(Object.entries(face).map(([k, v]) => [k, round(v)])),
     proportions: Object.fromEntries(Object.entries(proportions).map(([k, v]) => [k, round(v)])),
     gear, cloth: [...CLOTH[clothIndex]], trim: [...TRIM[mix(seed, 0x3981) % TRIM.length]],
@@ -110,7 +116,7 @@ export function validateVisualIdentity(value) {
 /** Coarse, color-independent QC. Distinct signatures are NOT a visual approval. */
 export function visualSilhouetteKey(identity) {
   validateVisualIdentity(identity);
-  return [identity.ageBand, identity.parts.hair, identity.front, identity.back,
+  return [identity.ageBand, visibleHairKey(identity),
     identity.parts.body, identity.parts.outfit, identity.gear].join('/');
 }
 export function compareVisualIdentities(rows) {
@@ -119,7 +125,7 @@ export function compareVisualIdentities(rows) {
   rows.forEach(({ id, identity }) => {
     const key = visualSilhouetteKey(identity);
     if (!groups.has(key)) groups.set(key, []); groups.get(key).push(id);
-    heads.add(`${identity.parts.hair}/${identity.front}/${identity.back}`);
+    heads.add(visibleHairKey(identity));
     faces.add(`${identity.parts.face}/${Math.round(identity.face.jaw * 10)}/${Math.round(identity.face.eyeHeight * 10)}`);
     roles.add(identity.role);
   });
