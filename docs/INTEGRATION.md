@@ -36,24 +36,29 @@ Integrationは起動イベントのPRだけを見るのではなく、その時�
 
 merge直前にhead SHA、Ready状態、label、body、review、Checks、develop SHAを再取得します。途中で変化したPRを古い判定のままmergeしません。merge APIにはexact head SHAを渡し、force pushやbranch protection緩和は行いません。
 
-## 自動化・基盤変更のtrusted exact-head review
+## 自動化・基盤変更のtrusted exact-head authorization
 
 `.github/**`、`scripts/**`、`AGENTS.md`、`docs/DEVELOPMENT.md`、`docs/INTEGRATION.md` などの制御面変更は、通常アプリ変更より強いレビュー条件を維持します。
 
-このRepositoryは単独owner運用で、GitHubはPR作成者自身によるAPPROVEを許可しません。そのため、制御面PRが全ての安全条件を満たし、残る保留理由が「現在headへのmaintainer approval」だけの場合に限り、develop上で実行されるtrusted Integrationが監査可能なexact-head approvalを作成できます。
+このRepositoryは単独owner運用で、GitHubはPR作成者自身によるAPPROVEを許可しません。そのため、制御面PRが全ての安全条件を満たし、残る保留理由が「現在headへのmaintainer approval」だけの場合に限り、develop上で実行されるtrusted Integrationがexact-head authorizationを作成できます。
 
-trusted reviewは以下の条件をすべて満たします。
+trusted authorizationは次の順で扱います。
 
-- PRコードではなく、develop上の `scripts/integration.mjs` から実行する。
-- same-repository / trusted author / Ready / holdなし / 依存完了 / review thread解決 / Changes requestedなし / fast gate成功を先に確認する。
-- reviewの `commit_id` は現在の40桁head SHAと完全一致させる。
-- bodyは `Trusted Integration Review: exact head <SHA>` で始める。
-- `github-actions[bot]` のこのexact-head marker付きAPPROVEDだけをtrusted reviewとして認識する。
-- stale SHA、偽marker、一般コメント、古いapprovalを現在headへ流用しない。
-- review作成後にeligibilityを再計算し、merge直前にmutable stateとfast gateをもう一度再取得する。
-- Changes requested、explicit hold、外部PR、Draft、依存未完了、CI失敗をtrusted reviewで上書きしない。
+1. same-repository / trusted author / Ready / holdなし / 依存完了 / review thread解決 / Changes requestedなし / current fast gate成功を先に確認する。
+2. GitHub Actions botによるPR APPROVE作成を試す。成功した場合、そのreviewは必ず現在の `commit_id` と `Trusted Integration Review: exact head <SHA>` markerを持つ。
+3. Repository設定によりbot review APIがHTTP 422で拒否された場合だけ、現在head commitへ `integration/trusted-review=success` statusを記録する。
+4. status fallbackは同じtrusted Integration実行のメモリ内でだけexact-head approval evidenceとして扱い、eligibilityを再計算する。statusはcommit SHAそのものに紐づくため、head更新後には流用されない。
+5. merge直前にPR mutable state、review/status、fast gate、develop SHAを再取得する。GitHubのmerge APIやbranch protectionが拒否したら停止する。
 
-つまりこれは保護条件の迂回ではなく、一人開発Repositoryで自己Approve不能による永久停止だけを、develop側のtrusted control planeで解消する仕組みです。
+次はtrusted authorizationでは上書きしません。
+
+- Changes requested、未解決review thread。
+- explicit hold。
+- 外部RepositoryのPRや信頼されていないauthor。
+- Draft、依存未完了、CI/browser failure。
+- stale head、偽marker、古いstatus。
+
+`integration/trusted-review` は保護ルールの迂回ではありません。GitHub Actions review作成がRepository設定で使えない一人開発環境でも、develop側control planeがexact headに対して同じ安全判定を監査可能に残すためのfallbackです。将来branch protectionが独立reviewを必須化した場合、最終merge APIが拒否するため自動で停止します。
 
 ## develop baselineとrepair
 
