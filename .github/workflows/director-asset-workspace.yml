@@ -12,17 +12,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: d6c62fa401e3ceee31e37d990e2303909e3145b9
-          sparse-checkout: apps/rinne/public/simulator/assets
+          sparse-checkout: |
+            apps
+            assets
+            packages/assets
+            packages/night-assets
           persist-credentials: false
-      - name: Archive unchanged assets and provenance
+      - name: Archive unchanged browser assets and provenance
         run: |
           mkdir -p /tmp/director-assets
           git rev-parse HEAD > /tmp/director-assets/SOURCE_COMMIT
-          git ls-tree -r HEAD apps/rinne/public/simulator/assets > /tmp/director-assets/GIT_BLOBS.txt
-          tar -czf /tmp/director-assets/simulator-assets.tar.gz apps/rinne/public/simulator/assets
+          git ls-tree -r HEAD apps assets packages/assets packages/night-assets > /tmp/director-assets/GIT_BLOBS.txt
+          tar -czf /tmp/director-assets/browser-assets.tar.gz apps assets packages/assets packages/night-assets
       - uses: actions/upload-artifact@v4
         with:
-          name: director-exact-simulator-assets
+          name: director-exact-browser-assets
           path: /tmp/director-assets
           retention-days: 1
           compression-level: 0
