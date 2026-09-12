@@ -1,0 +1,42 @@
+name: Director public hunt flick playthrough
+on:
+  push:
+    branches: [diagnostics/director-pr98-20260913]
+    paths: [.github/workflows/director-public-hunt-dash.yml]
+permissions:
+  contents: read
+jobs:
+  play:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: 990511c1f2c7ce3c753407412f9f474f12c8dfe0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci && npx playwright install --with-deps chromium
+      - name: Repeat read-only public review with native flick-to-run
+        run: |
+          mkdir -p test-results/director-hunt-dash
+          python3 - <<'PY'
+          from pathlib import Path
+          from textwrap import dedent
+          source=Path('.github/workflows/director-public-hunt.yml').read_text()
+          script=dedent(source.split("cat > director-public-hunt.mjs <<'JS'\n",1)[1].split('\n          JS\n',1)[0])
+          old='await page.mouse.move(195,470);await page.mouse.down();await page.mouse.move(195+sx*52,470+sy*52,{steps:8});await page.waitForTimeout(700);await page.mouse.up();'
+          new='await page.mouse.move(195,470);await page.mouse.down();await page.mouse.move(195+sx*80,470+sy*80,{steps:2});await page.mouse.up();await page.waitForTimeout(450);'
+          assert script.count(old)==1
+          script=script.replace(old,new).replace("out='test-results/director-hunt'","out='test-results/director-hunt-dash'")
+          Path('director-public-hunt-dash.mjs').write_text(script)
+          PY
+          node director-public-hunt-dash.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: director-public-hunt-dash-20260913
+          path: test-results/director-hunt-dash/
+          retention-days: 7
