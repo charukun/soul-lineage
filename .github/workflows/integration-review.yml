@@ -1,0 +1,69 @@
+name: Trusted Integration Review
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Ready PR number requiring trusted control-plane review'
+        type: string
+        required: true
+      head_sha:
+        description: 'Exact PR head SHA evaluated by Integration'
+        type: string
+        required: true
+permissions:
+  contents: read
+  pull-requests: write
+  actions: write
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/github-script@v8
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+        with:
+          script: |
+            const prNumber = Number(process.env.PR_NUMBER);
+            const headSha = process.env.HEAD_SHA;
+            if (!Number.isInteger(prNumber) || !/^[0-9a-f]{40}$/.test(headSha)) {
+              core.setFailed('Invalid review target');
+              return;
+            }
+            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: prNumber });
+            const labels = (pr.labels || []).map(x => x.name);
+            const trustedAuthor = ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.author_association);
+            if (pr.state !== 'open' || pr.draft || pr.base.ref !== 'develop' ||
+                pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+                pr.head.sha !== headSha || !trustedAuthor ||
+                labels.some(x => ['integration:hold', 'integration:manual', 'do-not-merge'].includes(x))) {
+              core.setFailed('PR no longer qualifies for trusted Integration review');
+              return;
+            }
+            const files = await github.paginate(github.rest.pulls.listFiles, { ...context.repo, pull_number: prNumber, per_page: 100 });
+            const sensitive = files.some(file => /^(\.github\/|scripts\/|AGENTS\.md$|docs\/(DEVELOPMENT|INTEGRATION)\.md$)/.test(file.filename) || (file.previous_filename && /^(\.github\/|scripts\/|AGENTS\.md$|docs\/(DEVELOPMENT|INTEGRATION)\.md$)/.test(file.previous_filename)));
+            if (!sensitive) {
+              core.notice('No protected control-plane files remain on this head.');
+            } else {
+              const reviews = await github.paginate(github.rest.pulls.listReviews, { ...context.repo, pull_number: prNumber, per_page: 100 });
+              const latest = new Map();
+              for (const review of reviews.sort((a, b) => a.id - b.id)) {
+                if (['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(review.state)) latest.set(review.user.login, review);
+              }
+              if ([...latest.values()].some(review => review.state === 'CHANGES_REQUESTED')) {
+                core.setFailed('Requested changes exist; trusted review will not override them');
+                return;
+              }
+              const already = [...latest.values()].some(review => review.state === 'APPROVED' && review.commit_id === headSha && review.user.login === 'github-actions[bot]' && /Trusted Integration Review/.test(review.body || ''));
+              if (!already) {
+                await github.rest.pulls.createReview({
+                  ...context.repo,
+                  pull_number: prNumber,
+                  commit_id: headSha,
+                  event: 'APPROVE',
+                  body: `Trusted Integration Review: exact head ${headSha} passed same-repository ownership, Ready-state and hold checks. Final merge eligibility is still re-evaluated by develop Integration.`
+                });
+              }
+            }
+            await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'deploy.yml', ref: 'develop' });
