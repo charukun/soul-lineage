@@ -49,6 +49,7 @@ try {
   await import('./mura-v2-ui.js');
   await import('./mura-entry-polish.js');
   await import('./mura-housing-ui-polish.js');
+  await import('./mura-mobile-feedback-fix.js');
   document.title = document.title.replace(/^星継ぎの庭/, 'MURAAAAAAA');
   clearTimeout(watchdog);
   finished = true;
