@@ -43,6 +43,9 @@ function render() {
   el('save-state').textContent = w.saveMessage;
   if (!record) return;
   renderQuality();
+  el('subject').textContent = settings.view === 'single'
+    ? `1体表示 · 個体 ${settings.selected + 1} / ${settings.count} · ${record.ageMs / YEAR_MS}歳`
+    : `個体 ${settings.selected + 1} / ${settings.count} · ${record.ageMs / YEAR_MS}歳`;
   el('selection-summary').textContent = `個体 ${String(settings.selected + 1).padStart(2, '0')} · ${record.ageMs / YEAR_MS}歳`;
   const p = w.getProfile();
   for (const b of document.querySelectorAll('[data-modular-value]')) b.setAttribute('aria-pressed', String(p[slot] === b.dataset.modularValue));
