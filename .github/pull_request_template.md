@@ -17,4 +17,4 @@ Depends-On: none
 - 実行した検証と結果:
 - 残るリスク・仕様判断:
 
-実装WORKはReady PRまで。最終developの影響範囲高速検証・DEV公開・HTTP/source確認はIntegrationが担当し、重い検証は必要時に分離します。未完了・未決定はdraftまたはintegration:hold。
+実装WORKはReady化・結果報告で終了。CI完了の同期待機・繰り返しポーリングは禁止。CI監視と失敗時の修正差し戻しはIntegrationが担当。最終developの影響範囲高速検証・DEV公開・HTTP/source確認はIntegrationが担当し、重い検証は必要時に分離します。未完了・未決定はdraftまたはintegration:hold。

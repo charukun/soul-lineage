@@ -7,7 +7,7 @@
 | 実装WORK | 最新develop → branch push・Draft PR → 実装 → 影響範囲の高速検証・push → Ready for review |
 | Integration | 最新Checks・依存・レビュー・競合を判定 → developへ統合 → 最終SHAの影響範囲高速検証 → DEV公開 → 公開HTTP/source確認 |
 
-通常の実装WORKはmerge、全体の重いブラウザ検証、DEV公開待ちを繰り返しません。変更した機能を確かめるための必要な局所テスト・画面確認は省略しません。ユーザーが個別にIntegrationまで依頼した場合は、その担当範囲に従います。
+通常の実装WORKはReady for review化後に結果を報告して終了します。CI完了・merge・DEV公開を同期的に待たず、CIを何度もポーリングする処理（watch、sleep付きループ、同じChecks/runの繰り返し取得）は禁止します。push直後など既に判明しているCI失敗の短時間・単発確認は許容しますが、未完了なら待機せずIntegrationへ引き渡します。重いE2E・全体検証・実ブラウザ総点検を毎回実施しません。変更した機能を確かめるための必要な局所テスト・画面確認は省略しません。ユーザーが個別にIntegrationまで依頼した場合は、その担当範囲に従います。
 
 ## 実装WORK
 
@@ -16,7 +16,7 @@
 3. push前に `npm run push:route -- origin/develop HEAD` を実行。Chat/WORK/Codex実行環境の通常gitを第一候補とし、利用可能なGitHub連携/API、Codespaces＋通常gitの順で切り替える。`CODESPACES_GIT` または容量・Base64・payload上限系エラー時は、同じbranchをGitHub Codespacesで開いて通常`git push`へ即時切り替える。大きなバイナリを連携APIで分割/Base64再送しない。詳細は `docs/MOBILE_HYBRID_DEVELOPMENT.md`。
 4. PR本文先頭は下記の2行契約を維持し、その下へ変更理由・挙動・影響app/package・検証結果・残るリスクを書く。依存があれば `Depends-On: #12, #13`、なければ `Depends-On: none`。
 5. 完了したらReady for review。未完了、仕様未決定、取り込み待ちはdraftまたは `integration:hold`。既存Ready PRの保留もこのlabelで制御。
-6. 最終報告はPR URLと高速検証結果。最終公開はIntegrationの `integration/develop` statusで区別。
+6. Ready化で実装セッションの責任を終了。最終報告はbranch・commit SHA・PR URL・実行済み高速検証結果。CI未確認/実行中はそのまま明記し、CI成功を完了報告条件にしない。最終公開はIntegrationの `integration/develop` statusで区別。
 
 単一appの変更をrootゲーム構成へ戻さず、3ゲームの独立した入口と共有package境界を維持します。通常作業でサブエージェントは使用しません。不要なフルCI、各PRごとのDEV確認、古いLibrary handoffの再作成は不要です。
 
@@ -25,6 +25,10 @@
 Codespacesは「別の開発フロー」ではなくpush経路だけの代替です。最新developを正本とし、作業branch・fast validation・develop向けPR・Integration引き渡しは変更しません。100 MiBを超える単一ファイルは通常Gitへpushせず、Git LFSまたは適切なasset配布方式を選びます。
 
 ## Integrationへの引き渡し
+
+Ready PRのCI監視・結果判定・develop統合・CI/CD・DEV反映はIntegration側の責任です。実装セッションを監視役として待機させません。既存のGitHubイベント・Actions・通知を使い、CI失敗時のみ失敗run・head SHA・ログ/対象テスト・修正範囲を実装ワーカーへ返します。新しい独自タスク管理は追加しません。修正ワーカーは同じPR/branchを復旧起点とし、必要ならDraftへ戻して修正・高速検証・push・Ready化まで進め、再び待機せず終了します。レビュー・競合・明示holdは従来どおりIntegrationが扱います。
+
+実装完了通知（SUCCESS）はpush/Readyまでの成功を示し、CI成功・DEV公開成功とは区別します。Ready後のCI失敗/DEV反映通知と復旧判断はIntegration側で扱います。実装セッション終了をheartbeat途絶による障害と誤認しないよう、既存の終了信号/通知手順を使います。
 
 自動判定で意味上の仕様矛盾まで証明することはできません。共有契約の変更・意味上の競合はPRに明記し、解消前にReadyへ進めないでください。自動判定できないものは保留し、Integration担当が判断・必要修正・再検証します。
 

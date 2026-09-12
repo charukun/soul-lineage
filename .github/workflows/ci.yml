@@ -52,7 +52,7 @@ jobs:
         run: node scripts/affected.mjs "$BASE_SHA" "$HEAD_SHA"
       - run: npm ci
         if: steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.has_packages == 'true' || steps.plan.outputs.infrastructure == 'true'
-      - name: Fast verification (shared tests run once; no browser or deployment)
+      - name: Fast verification (shared tests run once)
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -71,10 +71,96 @@ jobs:
           path: .deploy-state/pr-fast.json
           overwrite: true
           retention-days: 14
-  integration-request:
-    name: Request Integration
+
+  browser:
+    name: Affected browser smoke
     needs: build
     if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.base.ref == 'develop' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      APP_ENV: dev
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run affected mobile/WebGL browser smoke
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/browser/pr-smoke.mjs "$BASE_SHA" "$HEAD_SHA"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-browser-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+          path: test-results/pr-browser/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  browser-repair-dispatch:
+    name: Dispatch browser repair state
+    needs: [build, browser]
+    if: >-
+      always() && github.event_name == 'pull_request' && needs.build.result == 'success' &&
+      (needs.browser.result == 'success' || needs.browser.result == 'failure') &&
+      github.event.pull_request.base.ref == 'develop' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      pull-requests: read
+    steps:
+      - uses: actions/github-script@v8
+        env:
+          CONCLUSION: ${{ needs.browser.result }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          ARTIFACT: pr-browser-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+        with:
+          script: |
+            // Privileged repair recording always runs from trusted develop, never from PR code.
+            // During this feature's one-time bootstrap, develop does not contain the recorder yet.
+            try {
+              await github.rest.repos.getContent({ ...context.repo, path: 'scripts/browser-repair-ticket.mjs', ref: 'develop' });
+            } catch (error) {
+              if (error.status === 404) {
+                core.notice('Browser repair recorder is not installed on develop yet; bootstrap dispatch skipped.');
+                return;
+              }
+              throw error;
+            }
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo,
+              workflow_id: 'deploy.yml',
+              ref: 'develop',
+              inputs: {
+                repair_scope: 'pr',
+                repair_conclusion: process.env.CONCLUSION,
+                repair_head_sha: process.env.HEAD_SHA,
+                repair_pr_number: process.env.PR_NUMBER,
+                repair_run_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                repair_artifact: process.env.ARTIFACT
+              }
+            });
+
+  integration-request:
+    name: Request Integration
+    needs: [build, browser]
+    if: >-
+      always() && needs.build.result == 'success' &&
+      (needs.browser.result == 'success' || needs.browser.result == 'skipped') &&
       github.event.pull_request.base.ref == 'develop' &&
       !github.event.pull_request.draft &&
       github.event.pull_request.head.repo.full_name == github.repository
@@ -83,19 +169,15 @@ jobs:
       actions: write
       pull-requests: read
     steps:
-      # Existing deploy.yml is registered on main. Dispatch explicitly selects develop;
-      # workflow_run/schedule would require changing the default branch's workflows.
       - uses: actions/github-script@v8
         with:
           script: |
-            // Refetch live state: Ready can change while the fast gate runs.
             const { data: pr } = await github.rest.pulls.get({
               ...context.repo, pull_number: context.payload.pull_request.number
             });
             if (pr.state !== 'open' || pr.draft || pr.base.ref !== 'develop' ||
                 pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
                 pr.head.sha !== context.payload.pull_request.head.sha) return;
-            // Retry transient API failures, but do not create an unbounded retry workflow.
             for (let attempt = 0; attempt < 3; attempt++) {
               try {
                 await github.rest.actions.createWorkflowDispatch({

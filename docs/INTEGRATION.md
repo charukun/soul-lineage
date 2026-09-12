@@ -1,5 +1,9 @@
 # develop Integration
 
+## 責任分界
+
+実装セッションはDraft先行 → 実装 → 必要最低限の高速検証 → commit/push → Ready化・結果通知で終了し、CIを同期的に待機・反復ポーリングしません。Ready後のCI監視、失敗判定、develop統合、CI/CDとDEV反映はIntegrationが担当します。CI失敗時のみhead SHA・失敗run・診断根拠と必要な修正を実装ワーカーへ返し、修正後もワーカーはReady化で終了します。既存のイベント・通知・復旧・レビュー条件を維持します。詳細な実装手順は [DEVELOPMENT.md](DEVELOPMENT.md) が正本です。
+
 ## 起動と集約
 
 PRの `Validate and build` 成功後、`Request Integration` が既存 `deploy.yml` を **developを指定してworkflow_dispatch** します。developへの通常pushも復旧・初回検証の入口です。mainに存在する既存workflowを利用するため、default branch変更やmainへの新workflow追加は不要です。
