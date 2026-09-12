@@ -32,7 +32,7 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
       for(const y of [2,1,.5,3]) for(const dx of [0,-1,1,-2,2]) for(const dz of [0,-1,1]) {
         const p=view.project(host.x+dx,y,host.z+dz),x=p.x+rect.left,z=p.y+rect.top;
         const element=document.elementFromPoint(x,z);
-        if(x>10&&x<innerWidth-10&&z>100&&z<innerHeight-140&&element?.closest('#scene')&&view.pick(x,z)===id&&!view.pickPerson(x,z))return{x,y:z};
+        if(x>10&&x<innerWidth-10&&z>100&&z<innerHeight-140&&element===view.canvas&&view.pick(x,z)===id&&!view.pickPerson(x,z))return{x,y:z};
       }
       return null;
     },facility.id);
