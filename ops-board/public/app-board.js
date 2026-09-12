@@ -13,40 +13,33 @@ const stateView = state => ({
   failed: ['要対応', 'danger'],
   unknown: ['確認中', 'info'],
 })[state] || ['確認中', 'info'];
-const shortSha = value => value ? String(value).slice(0, 10) : '未確定';
+const shortSha = value => value ? String(value).slice(0, 8) : '未確定';
 const time = value => {
   if (!value) return '記録なし';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '記録なし' : fmt.format(date);
 };
 
-function targetChip(target) {
+function targetSummary(target) {
   const [label, tone] = stateView(target.state);
-  const chip = el('span', `target-chip ${tone}`);
-  chip.append(el('span', 'target-dot'), el('span', '', `${target.label || '公開先'} ${label}`));
-  return chip;
-}
-
-function targetRow(target) {
-  const row = el('div', `app-target state-${target.state || 'unknown'}${target.note ? ' has-note' : ''}`);
-  const header = el('div', 'app-target-head');
-  const [label, tone] = stateView(target.state);
-  header.append(el('strong', '', target.label || '公開先'), el('span', `badge ${tone}`, label));
-  row.append(header);
+  const node = el(target.url ? 'a' : 'div', `app-target-summary ${tone}${target.url ? ' is-link' : ''}`);
   if (target.url) {
-    const link = el('a', 'app-url', target.url);
-    link.href = target.url;
-    link.target = '_blank';
-    link.rel = 'noreferrer';
-    row.append(link);
-  } else {
-    row.append(el('span', 'app-url unavailable', '公開URL 未確定'));
+    node.href = target.url;
+    node.target = '_blank';
+    node.rel = 'noreferrer';
   }
-  const meta = el('div', 'app-target-meta');
-  meta.append(el('span', '', `公開版 ${shortSha(target.commit)}`), el('span', '', `更新 ${time(target.deployedAt)}`));
-  row.append(meta);
-  if (target.note) row.append(el('p', 'app-note', target.note));
-  return row;
+  const top = el('div', 'app-target-summary-top');
+  top.append(el('strong', '', target.label || '公開先'));
+  const state = el('span', `mini-state ${tone}`);
+  state.append(el('span', 'mini-dot'), el('span', '', label));
+  top.append(state);
+  node.append(top);
+
+  const meta = el('div', 'app-target-summary-meta');
+  meta.append(el('span', '', shortSha(target.commit)), el('span', '', time(target.deployedAt)));
+  node.append(meta);
+  if (target.note) node.title = target.note;
+  return node;
 }
 
 function appCard(app) {
@@ -54,25 +47,17 @@ function appCard(app) {
   const healthy = targets.length > 0 && targets.every(target => target.state === 'success');
   const bad = targets.some(target => target.state === 'failed');
   const active = targets.some(target => target.state === 'deploying' || target.state === 'waiting');
-  const card = el('details', `app-card${bad ? ' app-card-attention' : ''}`);
-  card.open = bad;
-
-  const summary = el('summary', 'app-card-summary');
-  const title = el('div', 'app-title-block');
-  title.append(el('h3', '', app.name || app.id));
-  const chips = el('div', 'target-chips');
-  targets.forEach(target => chips.append(targetChip(target)));
-  title.append(chips);
-
   const state = bad ? ['要確認','danger'] : active ? ['更新中','progress'] : healthy ? ['正常','ok'] : ['確認中','info'];
-  summary.append(title, el('span', `app-kind ${state[1]}`, state[0]));
-  card.append(summary);
 
-  const body = el('div', 'app-card-body');
-  const grid = el('div', 'app-targets');
-  targets.forEach(target => grid.append(targetRow(target)));
-  body.append(grid);
-  card.append(body);
+  const card = el('article', `app-summary-card${bad ? ' app-card-attention' : ''}`);
+  const head = el('div', 'app-summary-head');
+  head.append(el('h3', '', app.name || app.id), el('span', `app-kind ${state[1]}`, state[0]));
+  card.append(head);
+
+  const targetsRoot = el('div', 'app-summary-targets');
+  targets.forEach(target => targetsRoot.append(targetSummary(target)));
+  if (!targets.length) targetsRoot.append(el('div', 'app-target-summary info', '公開情報なし'));
+  card.append(targetsRoot);
   return card;
 }
 
