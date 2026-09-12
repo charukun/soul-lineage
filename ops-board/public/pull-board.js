@@ -1,5 +1,6 @@
 const $ = selector => document.querySelector(selector);
 const fmt = new Intl.DateTimeFormat('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+const REPOSITORY = 'charukun/soul-lineage';
 
 const el = (tag, className, text) => {
   const node = document.createElement(tag);
@@ -10,8 +11,92 @@ const el = (tag, className, text) => {
 
 const badgeTone = state => ({ Draft: 'progress', Ready: 'warning', Merged: 'ok', Closed: 'info' })[state] || 'info';
 const stateLabel = state => ({ Draft: '作業中', Ready: '統合待ち', Merged: '統合済み', Closed: '終了' })[state] || state;
+const targetRules = [
+  ['rinne', '輪廻転焦', path => path.startsWith('apps/rinne/')],
+  ['village', '村づくり', path => path.startsWith('apps/village/')],
+  ['demon', '魔物側', path => path.startsWith('apps/demon/')],
+  ['visual-review', 'Visual Review', path => /visual[-_]review/i.test(path)],
+  ['ops-board', '開発状況', path => path.startsWith('ops-board/') || path === 'wrangler.ops.jsonc' || path === 'docs/OPS_BOARD.md' || /^tests\/ops-/.test(path) || path === '.github/workflows/ops-board.yml'],
+  ['shared', '共通基盤', path => /^(packages|assets|templates)\//.test(path)],
+  ['devops', '開発基盤', path => /^(\.github|scripts|tests|docs)\//.test(path)],
+];
 
-function row(pr) {
+function classifyTargets(files = []) {
+  const found = new Map();
+  for (const raw of files) {
+    const path = String(raw || '');
+    const rule = targetRules.find(([, , test]) => test(path));
+    if (rule) found.set(rule[0], { id: rule[0], label: rule[1] });
+  }
+  if (!found.size && files.length) found.set('repository', { id: 'repository', label: 'Repository共通' });
+  return [...found.values()];
+}
+
+function cacheKey(pr) {
+  return `rinne-ops:targets:${pr.number}:${pr.updatedAt || 'unknown'}`;
+}
+
+function readCachedTargets(pr) {
+  try {
+    const value = localStorage.getItem(cacheKey(pr));
+    return value ? JSON.parse(value) : null;
+  } catch { return null; }
+}
+
+function writeCachedTargets(pr, targets) {
+  try { localStorage.setItem(cacheKey(pr), JSON.stringify(targets)); } catch { /* storage unavailable */ }
+}
+
+async function changedFiles(number) {
+  const files = [];
+  for (let page = 1; page <= 5; page++) {
+    const response = await fetch(`https://api.github.com/repos/${REPOSITORY}/pulls/${number}/files?per_page=100&page=${page}`, {
+      headers: { accept: 'application/vnd.github+json' },
+    });
+    if (!response.ok) throw new Error(`GitHub ${response.status}`);
+    const data = await response.json();
+    if (!Array.isArray(data)) throw new Error('GitHub files response');
+    files.push(...data.map(item => item.filename).filter(Boolean));
+    if (data.length < 100) break;
+  }
+  return files;
+}
+
+function renderTargetChips(root, targets = [], loading = false) {
+  root.replaceChildren();
+  if (loading) {
+    root.append(el('span', 'pull-target muted-target', '対象確認中'));
+    return;
+  }
+  if (!targets.length) {
+    root.append(el('span', 'pull-target muted-target', '対象未取得'));
+    return;
+  }
+  targets.slice(0, 2).forEach(target => root.append(el('span', 'pull-target', target.label)));
+  if (targets.length > 2) root.append(el('span', 'pull-target more-target', `+${targets.length - 2}`));
+}
+
+async function resolveTargets(pr, root) {
+  if (Array.isArray(pr.targets) && pr.targets.length) {
+    renderTargetChips(root, pr.targets);
+    return;
+  }
+  const cached = readCachedTargets(pr);
+  if (Array.isArray(cached)) {
+    renderTargetChips(root, cached);
+    return;
+  }
+  renderTargetChips(root, [], true);
+  try {
+    const targets = classifyTargets(await changedFiles(pr.number));
+    writeCachedTargets(pr, targets);
+    renderTargetChips(root, targets);
+  } catch {
+    renderTargetChips(root, []);
+  }
+}
+
+function row(pr, resolveAppTargets = false) {
   const link = el('a', `pull-row${pr.staleDraft ? ' stale-draft' : ''}`);
   link.href = pr.url;
   link.target = '_blank';
@@ -26,6 +111,10 @@ function row(pr) {
   const bottom = el('div', 'pull-row-bottom');
   bottom.append(el('span', 'pull-detail', pr.detail || '詳細未記載'));
   const meta = el('span', 'pull-meta');
+  const targetRoot = el('span', 'pull-targets');
+  if (resolveAppTargets) resolveTargets(pr, targetRoot);
+  else if (Array.isArray(pr.targets) && pr.targets.length) renderTargetChips(targetRoot, pr.targets);
+  if (targetRoot.childNodes.length || resolveAppTargets) meta.append(targetRoot);
   meta.append(el('span', 'pull-number', `#${pr.number}`));
   const updated = pr.updatedAt ? fmt.format(new Date(pr.updatedAt)) : '未記録';
   meta.append(el('span', '', `更新 ${updated}`));
@@ -35,10 +124,10 @@ function row(pr) {
   return link;
 }
 
-function rows(items, emptyText) {
+function rows(items, emptyText, resolveAppTargets = false) {
   const root = el('div', 'pull-list');
   if (!items.length) root.append(el('p', 'empty', emptyText));
-  else items.forEach(item => root.append(row(item)));
+  else items.forEach(item => root.append(row(item, resolveAppTargets)));
   return root;
 }
 
@@ -63,13 +152,13 @@ function render(data = {}) {
   for (const [state, tone] of [['Draft','progress'], ['Ready','warning'], ['Merged','ok'], ['Closed','info']]) {
     counts.append(el('span', `badge ${tone}`, `${stateLabel(state)} ${count(items, state)}`));
   }
-  root.append(counts, rows(active, '現在、作業中・統合待ちのPRはありません'), completedSection(completed));
+  root.append(counts, rows(active, '現在、作業中・統合待ちのPRはありません', true), completedSection(completed));
   if (data.truncated) root.append(el('p', 'empty', '直近100件を表示しています。'));
 
   const visualSection = $('#visual-review-section');
   const visualRoot = $('#visual-review-pulls');
   const visual = data.visualReview || [];
-  visualRoot.replaceChildren(rows(visual, 'Visual Review Lab PRなし'));
+  visualRoot.replaceChildren(rows(visual, 'Visual Review Lab PRなし', true));
   visualSection.hidden = visual.length === 0;
 }
 
