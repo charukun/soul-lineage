@@ -1,0 +1,55 @@
+name: Refresh village director feature branch
+on:
+  push:
+    branches: [diagnostics/refresh-demon-director-20260912]
+    paths: [.github/workflows/refresh-village-director.yml]
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/village-first-build-guidance
+          fetch-depth: 0
+      - name: Merge current develop and preserve proven playback before reload
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch=fix/village-first-build-guidance
+          expected=ecbcf951fbd73dad638f2314e680016b7c75b768
+          test "$(git rev-parse HEAD)" = "$expected"
+          git fetch origin develop "$branch"
+          test "$(git rev-parse "origin/$branch")" = "$expected"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          base=$(git rev-parse origin/develop)
+          git merge --no-ff --no-edit "$base"
+          python3 - <<'PY'
+          from pathlib import Path
+          for file,args in [('scripts/browser/pr-smoke.mjs','page, expect, evidence'),('scripts/browser/public-clarity.mjs','page, expect, testInfo')]:
+              p=Path(file);s=p.read_text();old='verifyVillageFirstBuild('+args+');'
+              assert s.count(old)==1, file
+              p.write_text(s.replace(old,'verifyVillageFirstBuild('+args+', () => capturePlayedAudio(page, playedSources));'))
+          PY
+          node --check apps/village/tests/first-build.browser.mjs
+          node --check scripts/browser/pr-smoke.mjs
+          node --check scripts/browser/public-clarity.mjs
+          git diff --check
+          git add scripts/browser/pr-smoke.mjs scripts/browser/public-clarity.mjs
+          git commit -m 'test: retain verified audio evidence across village reload'
+          mkdir -p /tmp/village-refresh
+          git rev-parse HEAD > /tmp/village-refresh/HEAD
+          git rev-parse HEAD^{tree} > /tmp/village-refresh/TREE
+          printf '%s\n' "$base" > /tmp/village-refresh/DEVELOP
+          git diff --stat "$base" HEAD > /tmp/village-refresh/DIFFSTAT
+          git push origin "HEAD:refs/heads/$branch"
+          printf 'Refreshed only %s to %s; no develop/main ref writes.\n' "$branch" "$(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: village-feature-refresh-proof
+          path: /tmp/village-refresh
+          retention-days: 3
