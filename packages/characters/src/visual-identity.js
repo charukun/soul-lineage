@@ -13,7 +13,9 @@ export const HAIR_BACKS = Object.freeze(['close', 'layered', 'tied']);
 const OUTFITS = Object.freeze({ resident: 'tunic', mayor: 'mantle', guard: 'tunic', artisan: 'apron',
   laborer: 'tunic', elder: 'mantle', child: 'tunic', knight: 'mantle', hunter: 'tunic', arcanist: 'mantle',
   smith: 'apron', acolyte: 'mantle', gravekeeper: 'tunic', bellkeeper: 'mantle', traveller: 'tunic' });
-const GEAR = Object.freeze({ resident: 'belt', mayor: 'chain', guard: 'pauldron', artisan: 'tools', laborer: 'pack',
+// Village roles need to read at the game's normal orthographic distance, not only in the close Workshop camera.
+// The mayor gets a broad ceremonial front sash and guards use the full shoulder/chest armor silhouette.
+const GEAR = Object.freeze({ resident: 'belt', mayor: 'stole', guard: 'armor', artisan: 'tools', laborer: 'pack',
   elder: 'shawl', child: 'none', knight: 'armor', hunter: 'quiver', arcanist: 'cowl', smith: 'tools',
   acolyte: 'stole', gravekeeper: 'pack', bellkeeper: 'chain', traveller: 'satchel' });
 const jobRoles = Object.freeze({
@@ -38,7 +40,6 @@ const round = x => Math.round(x * 100000) / 100000;
 const coherentHairBack = (hair, back) => hair === 'crop' && back === 'tied' ? 'close' : back;
 const visibleHairKey = identity => identity.parts.hair === 'original' ? 'original'
   : [identity.parts.hair, identity.front, coherentHairBack(identity.parts.hair, identity.back)].join('/');
-
 
 /** Existing role and workplace remain authoritative. This returns a display category only. */
 export function visualRole(role = 'resident', workplace = '', years = 22) {
