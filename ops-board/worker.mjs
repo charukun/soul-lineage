@@ -135,7 +135,7 @@ function previewCandidates(runs) {
 }
 
 function previewName(context, workflowName) {
-  if (context === 'visual-review/public') return 'Visual Review';
+  if (context === 'visual-review/public') return 'Visual Review Lab';
   return workflowName.replace(/\bpreview\b/ig, '').trim() || context.replace(/\/public$/, '');
 }
 
@@ -189,8 +189,8 @@ async function compareQueue(deployedCommit, branchCommit) {
 
 function environmentFromManifest(id, manifest, branchCommit, deployRun) {
   const published = publishedCommit(manifest, id);
-  const name = id === 'dev' ? 'DEV' : 'Production';
-  const branch = id === 'dev' ? 'develop' : 'main';
+  const name = { dev: 'DEV', staging: 'STAGING / 検証', prod: 'Production' }[id];
+  const branch = manifest.environmentSnapshots?.[id]?.branch || (id === 'prod' ? 'main' : 'develop');
   return {
     id,
     kind: 'pages',
@@ -239,6 +239,9 @@ export async function buildState(previous = null) {
 
   let dev = environmentFromManifest('dev', manifest, branches.get('develop')?.commit?.sha || null, latestDevelopRun);
   let prod = environmentFromManifest('prod', manifest, branches.get('main')?.commit?.sha || null, latestMainRun);
+  let staging = environmentFromManifest('staging', manifest, publishedCommit(manifest, 'staging').commit, null);
+  staging = await withHistory(staging, previousById.get('staging'));
+  staging.source = 'Pinned validation release / published manifest';
   dev = await withHistory(dev, previousById.get('dev'));
   prod = await withHistory(prod, previousById.get('prod'));
   dev.deployQueue = await compareQueue(dev.deployedCommit, dev.branchCommit);
@@ -249,7 +252,7 @@ export async function buildState(previous = null) {
     const environment = await buildPreviewEnvironment(candidate, branches, previous);
     if (environment) previews.push(environment);
   }
-  const applications = buildApplications(manifest, [dev, prod, ...previews], runs);
+  const applications = buildApplications(manifest, [dev, staging, prod, ...previews], runs);
 
   const integrationQueue = openPulls.map(pr => classifyPull(pr, runs, developRuns));
   const diff = environmentDiff(dev, prod);
@@ -282,7 +285,7 @@ export async function buildState(previous = null) {
       truncated: allPulls.length >= 100,
     },
     applications,
-    environments: [dev, prod, ...previews],
+    environments: [dev, staging, prod, ...previews],
     environmentDiff: diff,
     integration: {
       ...integration,
