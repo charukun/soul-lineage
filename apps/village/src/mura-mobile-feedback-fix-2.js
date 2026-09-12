@@ -25,6 +25,10 @@ button[data-mura-close-clean='1']{font-size:0!important;padding-left:5px!importa
 #muraIdleDetails[data-person-id]{pointer-events:auto!important;cursor:pointer!important}#muraIdleDetails[data-person-id]:active{transform:translateY(0) scale(.985)!important}
 /* Resident camera presets. */
 .muraPersonCamera{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:9px 0 4px;padding-top:8px;border-top:1px solid #75644822}.muraPersonCamera button{min-height:31px!important;padding:4px 5px!important;font-size:8px!important;background:#d7e2c9!important;border:1px solid #6d785b2d!important;border-radius:10px!important;box-shadow:inset 0 1px 0 #fff8!important}.muraPersonCamera small{grid-column:1/-1;font-size:7px;opacity:.62}
+/* Construction progress lives in-world and stays small. */
+#muraConstructionLayer{position:fixed;inset:0;pointer-events:none;z-index:19}.muraBuildProgress{position:absolute;left:0;top:0;min-width:92px;max-width:140px;padding:4px 6px 5px;border-radius:9px;background:linear-gradient(145deg,rgba(247,240,220,.78),rgba(222,229,207,.70));border:1px solid rgba(255,255,238,.62);box-shadow:0 4px 12px rgba(43,55,39,.12),inset 0 1px 0 #fff8;backdrop-filter:blur(5px);transform:translate(-50%,-100%);color:#45574c}.muraBuildProgressHead{display:flex;justify-content:space-between;gap:7px;align-items:center;font-size:7px;line-height:1.2;margin-bottom:3px}.muraBuildProgressHead b{font-size:7px;max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.muraBuildProgressTrack{height:4px;border-radius:4px;background:#76846c24;overflow:hidden;box-shadow:inset 0 1px 2px #33412e18}.muraBuildProgressTrack i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#9bb18d,#c5b171);transition:width .18s linear}
+/* Compact settings control in the HUD. */
+#muraSettingsButton{position:static!important;min-width:22px!important;width:22px!important;height:22px!important;min-height:22px!important;padding:2px!important;border-radius:9px!important;background:rgba(255,250,234,.18)!important;border:1px solid rgba(91,104,78,.09)!important;box-shadow:none!important}#muraSettingsButton svg{width:12px!important;height:12px!important;margin:0!important}.muraTitleAction{width:100%;min-height:36px!important;font-weight:800!important}
 `;
 document.head.append(css);
 
@@ -83,6 +87,25 @@ function installPersonCameraPresets(){
  new MutationObserver(()=>queueMicrotask(enhance)).observe(host,{childList:true});enhance();
 }
 
+function installConstructionProgress(){
+ const layer=document.createElement('div');layer.id='muraConstructionLayer';document.body.append(layer);const nodes=new Map();
+ const loop=()=>{const active=[];for(const o of world.objects){let progress=null,label='';if(o.phase==='building'){progress=Math.max(0,Math.min(1,Number(o.progress)||0));label='建築';}else if(o.upgrade){progress=Math.max(0,Math.min(1,Number(o.upgrade.progress)||0));label='増築';}if(progress===null)continue;active.push(o.id);let node=nodes.get(o.id);if(!node){node=document.createElement('div');node.className='muraBuildProgress';node.innerHTML='<div class="muraBuildProgressHead"><b></b><span></span></div><div class="muraBuildProgressTrack"><i></i></div>';layer.append(node);nodes.set(o.id,node);}const point=view.project(o.x,4,o.z);node.hidden=point.x<20||point.x>innerWidth-20||point.y<60||point.y>innerHeight-70;node.style.transform=`translate(${point.x}px,${point.y}px) translate(-50%,-100%)`;node.querySelector('b').textContent=`${defs[o.kind]?.label||o.kind} · ${label}`;node.querySelector('span').textContent=`${Math.round(progress*100)}%`;node.querySelector('i').style.width=`${Math.max(3,progress*100)}%`;}
+  for(const[id,node]of nodes)if(!active.includes(id)){node.remove();nodes.delete(id);}requestAnimationFrame(loop);};requestAnimationFrame(loop);
+}
+
+function installSettingsAndTitle(){
+ const actions=document.querySelector('.muraHudActions');if(!actions||$('muraSettingsButton'))return;const b=document.createElement('button');b.id='muraSettingsButton';b.type='button';b.dataset.muraIcon='native';b.setAttribute('aria-label','設定');b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.4 1a7 7 0 0 0-1.7-1L14.5 3h-5L9.2 6a7 7 0 0 0-1.7 1L5 6 3 9.5 5.1 11a7 7 0 0 0 0 2L3 14.5 5 18l2.5-1a7 7 0 0 0 1.7 1l.3 3h5l.3-3a7 7 0 0 0 1.7-1l2.5 1 2-3.5-2.1-1.5a7 7 0 0 0 .1-1Z"/></svg>';actions.append(b);
+ b.onclick=()=>{const more=$('more');if(more)more.click();queueMicrotask(()=>{const host=$('dialogContent');if(!host||host.querySelector('.muraTitleAction'))return;const title=document.createElement('button');title.type='button';title.className='wide muraTitleAction';title.textContent='タイトル';host.append(title);title.onclick=async()=>{try{await village.save?.();}catch{}location.reload();};normalizeButtonLabels(host);});};
+}
+
+const BUTTON_LABELS=new Map([
+ ['この人に、そっとカメラを合わせる','追う'],['この住まいの内装を見る','内装'],['空き住まいへ住み替え','住み替え'],['資材を使って増築する','増築'],['この建物を削除する','削除'],['この設置物を削除する','削除'],['村をファイルに保存','保存'],['保存した村を読み込む','読込'],['いまの景色を撮る','撮影'],['暮らしの記録','記録'],['村のしくみ','ヘルプ'],['オンライン村（参加コード）','オンライン'],['一族の居住を試す（ローカル）','一族デモ'],['カメラがそっと追いかけます。指で動かすと追従を終えます。','追う']
+]);
+function normalizeButtonLabels(root=document){
+ const buttons=[];if(root.matches?.('button'))buttons.push(root);if(root.querySelectorAll)buttons.push(...root.querySelectorAll('button'));for(const b of buttons){if(b.dataset.camera||b.id==='muraSettingsButton'||b.id==='muraResetVillage')continue;const text=(b.textContent||'').trim();let next=BUTTON_LABELS.get(text);if(!next){if(/^この.+を削除する$/.test(text))next='削除';else if(/増築する/.test(text))next='増築';else if(/カメラを合わせる/.test(text))next='追う';else if(/内装を見る/.test(text))next='内装';else if(/住み替え/.test(text)&&text.length>5)next='住み替え';}if(!next||next===text)continue;const icon=b.querySelector('.muraButtonIcon');b.replaceChildren();if(icon)b.append(icon);b.append(document.createTextNode(next));}
+}
+function installButtonLanguageCleanup(){normalizeButtonLabels();new MutationObserver(records=>{for(const r of records)for(const n of r.addedNodes)if(n.nodeType===1)normalizeButtonLabels(n);}).observe(document.body,{childList:true,subtree:true});setInterval(()=>normalizeButtonLabels(),1000);}
+
 restoreProceduralResidents();
 softenSelectionEffect();
 cleanDuplicateCloseButtons();
@@ -90,5 +113,8 @@ sharpenRoadAgainstTilt();
 installSingleCommitPlacement();
 installActivityFocus();
 installPersonCameraPresets();
+installConstructionProgress();
+installSettingsAndTitle();
+installButtonLanguageCleanup();
 
-window.__MURA_MOBILE_FEEDBACK_FIX_2__={version:1};
+window.__MURA_MOBILE_FEEDBACK_FIX_2__={version:2};
