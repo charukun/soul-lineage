@@ -23,13 +23,14 @@ export async function verifyVillageFirstBuild(page, expect, testInfo) {
   await page.locator('#enter').click();
   await expect.poll(()=>page.evaluate(()=>window.village.view.roomId)).toBe(tent.id);
   await page.locator('#build').click();
-  await page.locator('[data-kind="bed"]').click();
+  // Planks and cloth have not been discovered. Use the authored starter furniture.
+  await page.locator('[data-kind="dirtbed"]').click();
   await page.locator('#muraFindPlacement').click();
   await expect(page.locator('#cancelPlace')).toHaveText('ここに置く');
   await page.locator('#cancelPlace').click();
   await expect(page.locator('#placement')).toBeHidden();
   const furnished=await page.evaluate(id=>window.village.world.object(id),tent.id);
-  const bed=furnished.room.find(o=>o.kind==='bed');expect(bed).toBeTruthy();
+  const bed=furnished.room.find(o=>o.kind==='dirtbed');expect(bed).toBeTruthy();
   await expect.poll(()=>page.evaluate(()=>window.village.storageOK)).toBe(true);
   await page.locator('#leaveRoom').click();
   await expect.poll(()=>page.evaluate(()=>window.village.view.roomId)).toBe(null);
