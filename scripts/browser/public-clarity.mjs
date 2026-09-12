@@ -2,7 +2,7 @@ import {verifySoloClarity, verifyHuntClarity} from './play-clarity.mjs';
 
 /** Independent contexts prevent UI review steps from changing a gameplay fixture. */
 export function registerClarityTests({test, expect, targets, base}) {
-  for (const target of targets.filter(t => !t.legacy && ['rinne', 'demon'].includes(t.app))) {
+  for (const target of targets.filter(t => !t.legacy && ['rinne', 'demon', 'village'].includes(t.app))) {
     test(`${target.path} preserves native play clarity on the deployed commit`, async ({page}, testInfo) => {
       // Same per-app deadlines as the original smoke, with no retries or relaxed assertions.
       test.setTimeout(target.app === 'rinne' ? 180000 : 60000);
@@ -25,6 +25,9 @@ export function registerClarityTests({test, expect, targets, base}) {
           const frame = page.frames().find(f => f.url().includes('/simulator/index.html'));
           expect(frame).toBeTruthy();
           await verifySoloClarity(page, frame, expect, testInfo);
+        } else if (target.app === 'village') {
+          const {verifyVillageFirstBuild} = await import('../../apps/village/tests/first-build.browser.mjs');
+          await verifyVillageFirstBuild(page, expect, testInfo);
         } else {
           await page.locator('#begin').click();
           await page.locator('[data-village]').first().click();

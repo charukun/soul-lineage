@@ -1,4 +1,5 @@
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
+import {verifySoloClarity, verifyHuntClarity} from './play-clarity.mjs';
 import { execFileSync, spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -88,6 +89,24 @@ for (const app of apps) {
     if (renderer !== 'ready' || appId !== app || !widthOk || !webgl?.version?.includes('WebGL 2.0') || errors.length || failedRequests.length) {
       throw new Error(`Browser smoke failed for ${app}: ${JSON.stringify(report)}`);
     }
+    // Exercise changed controls before Integration, using the same assertions as public DEV.
+    const evidence = { outputPath: name => resolve(root, `test-results/pr-browser/${app}-${name}`) };
+    if (app === 'rinne') {
+      await page.locator('#start-simulator').click();
+      await page.waitForFunction(() => window.__RINNE_TITLE__?.snapshot().state === 'playing', null, {timeout:100000});
+      const frame = page.frames().find(item => item.url().includes('/simulator/index.html'));
+      if (!frame) throw new Error('Simulator iframe did not become ready');
+      await verifySoloClarity(page, frame, expect, evidence);
+    } else if (app === 'demon') {
+      await page.locator('#begin').click();
+      await page.locator('[data-village]').first().click();
+      await expect(page.locator('#hud')).toBeVisible();
+      await verifyHuntClarity(page, expect, evidence);
+    } else if (app === 'village') {
+      const {verifyVillageFirstBuild} = await import('../../apps/village/tests/first-build.browser.mjs');
+      await verifyVillageFirstBuild(page, expect, evidence);
+    }
+    if (errors.length || failedRequests.length) throw new Error(`Play clarity failed: ${JSON.stringify({errors,failedRequests})}`);
     await context.tracing.stop({ path: resolve(root, `test-results/pr-browser/${app}-trace.zip`) });
     await context.close();
     console.log('PR BROWSER VERIFIED', JSON.stringify(report));

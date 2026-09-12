@@ -1,0 +1,44 @@
+/** User-facing placement help is exercised with native input, never world mutation. */
+export async function verifyVillageFirstBuild(page, expect, testInfo) {
+  await expect(page.locator('#loading')).toBeHidden();
+  await page.locator('#muraEnterVillage').click();
+  await expect(page.locator('#muraEntry')).toBeHidden();
+  const settings=await page.locator('#muraSettingsButton').boundingBox();
+  expect(settings.width).toBeGreaterThanOrEqual(44);expect(settings.height).toBeGreaterThanOrEqual(44);
+  const before=await page.evaluate(()=>({count:window.village.world.objects.length,beds:window.village.world.population().openBeds}));
+  await page.locator('#build').click();
+  await page.locator('[data-kind="tent"]').click();
+  await expect(page.locator('#placement')).toBeVisible();
+  await expect(page.locator('#cancelPlace')).toHaveText('ここに建てる');
+  await page.locator('#muraFindPlacement').click();
+  expect(await page.evaluate(()=>window.village.world.objects.length)).toBe(before.count);
+  await expect(page.locator('#cancelPlace')).toBeEnabled();
+  await page.locator('#cancelPlace').click();
+  await expect(page.locator('#placement')).toBeHidden();
+  const tent=await page.evaluate(()=>window.village.world.objects.find(o=>o.kind==='tent'));
+  expect(tent).toBeTruthy();expect(tent.phase).toBe('built');
+  expect(await page.evaluate(()=>window.village.world.population().openBeds)).toBe(before.beds+2);
+  await expect(page.locator('#toastText')).toContainText('寝床が2床増えました');
+  await page.screenshot({path:testInfo.outputPath('first-tent-built.png')});
+  await page.locator('#enter').click();
+  await expect.poll(()=>page.evaluate(()=>window.village.view.roomId)).toBe(tent.id);
+  await page.locator('#build').click();
+  await page.locator('[data-kind="bed"]').click();
+  await page.locator('#muraFindPlacement').click();
+  await expect(page.locator('#cancelPlace')).toHaveText('ここに置く');
+  await page.locator('#cancelPlace').click();
+  await expect(page.locator('#placement')).toBeHidden();
+  const furnished=await page.evaluate(id=>window.village.world.object(id),tent.id);
+  const bed=furnished.room.find(o=>o.kind==='bed');expect(bed).toBeTruthy();
+  await expect.poll(()=>page.evaluate(()=>window.village.storageOK)).toBe(true);
+  await page.locator('#leaveRoom').click();
+  await expect.poll(()=>page.evaluate(()=>window.village.view.roomId)).toBe(null);
+  await page.reload({waitUntil:'domcontentloaded'});
+  await expect(page.locator('#loading')).toBeHidden();
+  await page.locator('#muraEnterVillage').click();
+  const restored=await page.evaluate(id=>window.village.world.object(id),tent.id);
+  for(const key of ['id','kind','x','z','rot','phase'])expect(restored[key]).toBe(tent[key]);
+  expect(restored.room.find(o=>o.id===bed.id)).toEqual(bed);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.screenshot({path:testInfo.outputPath('first-build-reloaded.png')});
+}
