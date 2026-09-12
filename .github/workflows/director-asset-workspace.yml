@@ -1,0 +1,28 @@
+name: Director exact asset workspace
+on:
+  push:
+    branches: [diagnostics/director-asset-workspace-20260912]
+    paths: [.github/workflows/director-asset-workspace.yml]
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: d6c62fa401e3ceee31e37d990e2303909e3145b9
+          sparse-checkout: apps/rinne/public/simulator/assets
+          persist-credentials: false
+      - name: Archive unchanged assets and provenance
+        run: |
+          mkdir -p /tmp/director-assets
+          git rev-parse HEAD > /tmp/director-assets/SOURCE_COMMIT
+          git ls-tree -r HEAD apps/rinne/public/simulator/assets > /tmp/director-assets/GIT_BLOBS.txt
+          tar -czf /tmp/director-assets/simulator-assets.tar.gz apps/rinne/public/simulator/assets
+      - uses: actions/upload-artifact@v4
+        with:
+          name: director-exact-simulator-assets
+          path: /tmp/director-assets
+          retention-days: 1
+          compression-level: 0
