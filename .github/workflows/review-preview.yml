@@ -1,6 +1,6 @@
 name: Visual Review Preview
 # Dedicated review-only deployment; does not target develop, main, DEV, or Production.
-# Fast-path policy: build first, publish immediately, then run browser verification without blocking deployment.
+# Fast-path policy: build and publish only. Human visual review happens on the target device.
 
 on:
   push:
@@ -47,12 +47,6 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           npx --yes wrangler@4 deploy --config wrangler.review.jsonc | tee "$RUNNER_TEMP/review-deploy.log"
           node scripts/review-deployment-url.mjs "$RUNNER_TEMP/review-deploy.log"
-      - name: Verify published Review Lab without blocking deployment
-        if: steps.deploy.outcome == 'success'
-        continue-on-error: true
-        env:
-          REVIEW_PUBLIC_URL: ${{ steps.deploy.outputs.url }}
-        run: npm run test:review-browser
       - name: Record Review Lab result
         if: always()
         env:
@@ -73,11 +67,3 @@ jobs:
             -f context=visual-review/public \
             -f description="$description" \
             -f target_url="$target_url"
-      - name: Retain Review Lab verification evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: visual-review-${{ github.sha }}
-          path: artifacts/review-*/
-          if-no-files-found: ignore
-          retention-days: 14
