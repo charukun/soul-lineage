@@ -26,38 +26,14 @@ test('population, storage, construction and aging contracts stay enabled',()=>{
  assert.match(source,/carryLimit/);
 });
 
-test('placement, highlight, climate and rich detail UI contracts stay enabled',()=>{
- const source=read('mura-v2-ui.js');
- assert.match(source,/muraSelectionTag/);
- assert.match(source,/muraRotateRange/);
- assert.match(source,/muraCancelPlacement/);
- assert.match(source,/currentClimate/);
- assert.match(source,/virtualResidents/);
- assert.match(source,/querySelector\('#relocate'\)\?\.remove/);
- assert.match(source,/MURAAAAAAA_MayorRegalia/);
- assert.match(source,/MURAAAAAAA_FacilityIdentity/);
+// Interaction assertions live in pointer-input.test.mjs and the touch-driven
+// playthrough.browser.mjs. These checks only guard retained bootstrap contracts.
+test('climate and the existing mayor model remain enabled',()=>{
+ const source=read('mura-v2-ui.js');assert.match(source,/currentClimate/);assert.match(source,/MURAAAAAAA_MayorRegalia/);
 });
-
-test('entry screen and idle Village Now contracts stay enabled',()=>{
- const source=read('mura-entry-polish.js');
- assert.match(source,/id="muraEntryCard"/);
- assert.match(source,/id="muraEnterVillage"/);
- assert.match(source,/mura-entry-open/);
- assert.match(source,/panel\.classList\.remove\('visible'\)/);
- assert.match(source,/id='muraFollowMayor'/);
- assert.match(source,/view\.followId=mayor\.id/);
- assert.match(source,/muraMayorFollow/);
- assert.match(source,/#tutorial\{/);
- assert.match(source,/grid-template-columns:auto minmax\(0,1fr\) auto/);
-});
-
-test('camera inertia preserves release velocity and coasts after pointer up',()=>{
- const source=read('mura-experience.js');
- assert.match(source,/const cancelInertiaFrame/);
- assert.match(source,/Do not call stopInertia here/);
- assert.match(source,/Math\.pow\(\.94/);
- assert.match(source,/inertia\.vx\*dt\*1\.18/);
- assert.match(source,/inertia\.vx=inertia\.vx\*\.62\+rawX\*\.38/);
+test('entry and explicit interface bootstrap remain enabled',()=>{
+ const source=read('mura-entry-polish.js');assert.match(source,/muraEntryCard/);assert.match(source,/muraEnterVillage/);
+ assert.match(read('main.js'),/installInterface/);assert.match(read('web/interface.js'),/muraFollowMayor/);
 });
 
 test('music adapter resumes after returning to the browser',()=>{

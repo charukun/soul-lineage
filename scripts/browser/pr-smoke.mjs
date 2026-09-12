@@ -113,6 +113,10 @@ for (const app of apps) {
     console.log('PR BROWSER VERIFIED', JSON.stringify(report));
     // Additional targeted editor gate. It does not replace or weaken the game smoke above.
     const changed = execFileSync('git', ['diff', '--name-only', base, head], { cwd: root, encoding: 'utf8' });
+    if (app === 'village' && /apps\/village\/|scripts\/browser\/pr-smoke/.test(changed)) {
+      const { verifyVillagePlaythrough } = await import('../../apps/village/tests/playthrough.browser.mjs');
+      await verifyVillagePlaythrough(browser, url, resolve(root, 'test-results/pr-browser/village-playthrough'));
+    }
     if (app === 'rinne' && /apps\/rinne\/(characters|src\/character-|tests\/character-)|scripts\/browser\/pr-smoke/.test(changed)) {
       const { verifyCharacterStudio } = await import('../../apps/rinne/tests/character-studio.browser.mjs');
       await verifyCharacterStudio(browser, url, resolve(root, 'test-results/pr-browser'));

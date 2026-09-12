@@ -110,9 +110,47 @@ function rawAsset(name,colors,scale=[1,1,1]){
  group.scale.set(...scale);group.userData.assetBacked=true;return group;
 }
 function tentModel(w,d,color){return rawAsset('tent',{cloth:color,patch:new T.Color(color).multiplyScalar(.77).getHex(),wood:0x78624d},[w/.5476,6/.56113,d/.6664]);}
+/** Distinct work-site silhouettes assembled from the existing timber/stone vocabulary. */
+function workSite(kind,d){
+ const g=new T.Group(),wood=0x927151,trim=0x69563e,roof=0x9c9f79;
+ const timber=(x,y,z,w,h,depth)=>box(g,x,y,z,w,h,depth,wood);
+ const log=(x,y,z,len=3)=>{const n=cyl(g,x,y,z,.29,len,wood);n.rotation.z=Math.PI/2;const cap=cyl(g,x+len/2+.01,y,z,.25,.03,0xd0b782);cap.rotation.z=Math.PI/2;};
+ const shed=(x,z,w,depth)=>{
+  for(const dx of[-w/2+.2,w/2-.2])for(const dz of[-depth/2+.2,depth/2-.2])timber(x+dx,1.55,z+dz,.28,3.1,.28);
+  for(let i=0;i<6;i++){const n=box(g,x,3.15+(i/5)*.5,z-depth/2+i*depth/5,w+.45,.16,depth/5+.06,roof);n.rotation.x=-.09;}
+  timber(x,2.7,z-depth/2,w,.2,.22);
+ };
+ const sign=(x,z)=>{timber(x,.85,z,.14,1.7,.14);box(g,x,1.5,z,1.2,.65,.12,trim);};
+ if(kind==='logging'){
+  shed(-1.9,-2.6,5.6,4);for(let row=0;row<3;row++)for(let col=0;col<3-row;col++)log(-2+col*.12,.35+row*.51,-2.7+col*.68,4.4);
+  timber(2.7,.95,1.5,3.7,.22,1.1);for(const x of[1.25,4.15])for(const z of[1.1,1.9])timber(x,.45,z,.2,.9,.2);
+  log(2.6,1.2,1.5,3.9);const stump=cyl(g,-2.5,.45,2.6,.75,.9,trim);cyl(g,-2.5,.92,2.6,.65,.04,0xd1b986);sign(4.5,3.8);
+ }else if(kind==='storage'){
+  for(const x of[-3.8,3.8]){shed(x,-1.2,2.7,6.5);for(const y of[.55,1.7]){timber(x,y,-1.2,2.5,.15,6.2);for(let i=0;i<3;i++)box(g,x,y+.45,-3.4+i*2,1.8,.85,1.5,0xa7895f);}}
+  for(let i=0;i<3;i++)box(g,-1.5+i*1.5,.5,-4.5,1.2,1,1.3,0xb6a079);sign(3.8,4.4);
+ }else if(kind==='quarry'){
+  for(let i=0;i<5;i++){const rock=rawAsset('stone',{stone:0x949c8c},[16+i%2*5,18+i%3*6,14]);rock.position.set(-5+i*2.5,0,-3.3);g.add(rock);}
+  for(let i=0;i<6;i++)box(g,-3+(i%3)*1.2,.3+Math.floor(i/3)*.6,.3+(i%2)*.5,1.05,.58,.85,0xb1b3a0);
+  timber(3.6,2.3,1.1,.36,4.6,.36);timber(2.5,4.5,1.1,3.4,.3,.3);limb(g,[3.6,3.1,1.1],[1.8,4.5,1.1],.12,trim);limb(g,[1.4,4.5,1.1],[1.4,1,1.1],.025,trim);sign(-4.8,4);
+ }else if(kind==='clay'){
+  box(g,-1,.09,-1.4,7.5,.16,6,0x99836c);for(let i=0;i<3;i++){const basket=rawAsset('stone',{stone:0xb79370},[5,5,5]);basket.position.set(3.6,0,-2+i*2);g.add(basket);}timber(-1,1.1,3,5,.16,1.6);for(const x of[-3,1])timber(x,.55,3,.25,1.1,.25);sign(4,3.9);
+ }else if(kind==='carpenter'){
+  shed(0,-1,9,6.8);timber(0,1.1,-.8,6,.25,1.7);for(const x of[-2.6,2.6])for(const z of[-1.4,-.2])timber(x,.55,z,.27,1.1,.27);
+  for(let i=0;i<7;i++){const plank=timber(-3.7+i*.35,1.35,-3.5,.25,2.7,.12);plank.rotation.z=-.12;}
+  for(let i=0;i<3;i++)timber(2.9,.2+i*.25,2.9,3.5,.22,.8);sign(4.5,3.7);
+ }else if(kind==='guardpost'){
+  // An open watch platform reads differently from housing tents.
+  for(const x of[-2,2])for(const z of[-2,2])timber(x,1.3,z,.38,2.6,.38);
+  timber(0,2.65,0,5,.25,5);for(const x of[-2.2,2.2]){timber(x,3.25,0,.17,1.1,.17);timber(x,3.6,0,.15,.15,4.5);}
+  timber(0,3.6,-2.2,4.5,.15,.15);for(let i=0;i<6;i++)timber(0,.2+i*.4,2.7-i*.23,1.4,.16,.4);
+  timber(-2,4.5,-2,.16,3.7,.16);box(g,-1.3,5.7,-2,1.4,.8,.07,0x9e6e5b);sign(3.5,3.7);
+ }
+ g.name='work-site-'+kind;return g;
+}
 export function building(kind,material='base',level=1){const d=defs[kind];if(!d)return new T.Group();
  let g;
- if(d.shape==='tent'){g=tentModel(d.w,d.d,d.roof);}
+ if(['logging','storage','quarry','clay','carpenter','guardpost'].includes(kind)){g=workSite(kind,d);}
+ else if(d.shape==='tent'){g=tentModel(d.w,d.d,d.roof);}
  else if(d.shape==='fire'){g=rawAsset('campfire',{wood:0x775b44},[9,9,9]);}
  else if(['yard','field','market','pond','orchard'].includes(d.shape)){
   g=new T.Group();

@@ -74,34 +74,20 @@ function prepare(node, candidate) {
   return node;
 }
 
-function visualCandidate(kind, fallback) {
-  const candidate = CANDIDATES[kind];
-  if (!candidate) return fallback;
-  const root = new T.Group();
-  root.name = `MURAAAAAAA_${kind}`;
-  root.userData.assetSource = SOURCE;
-  root.userData.assetCandidate = candidate.file;
-  root.userData.assetUrl = candidateUrl(candidate.file);
-  if (fallback) root.add(fallback);
-  loadTemplate(kind).then(template => {
-    const model = prepare(template.clone(true), candidate);
-    if (fallback) fallback.visible = false;
-    root.add(model);
-    root.userData.assetLoaded = true;
-  }).catch(error => {
-    root.userData.assetLoaded = false;
-    root.userData.assetError = error?.message || String(error);
-    // The procedural model remains visible, so a missing/corrupt local asset
-    // never removes furniture or blocks gameplay.
-    console.warn(`[MURAAAAAAA] local visual asset failed: ${kind}`, error);
-  });
-  return root;
-}
-
-const originalGetProp = View.prototype.getProp;
-View.prototype.getProp = function getPropWithAssetCandidate(kind) {
-  return visualCandidate(kind, originalGetProp.call(this, kind));
-};
+// Resolve each small local model once before the View is built. A late/missing
+// asset keeps the procedural template for this session, for BOTH thumbnails
+// and world instances. Never reparent/hide the shared procedural cache.
+const readyTemplates=new Map();let settled=false,timer;
+await Promise.race([
+ Promise.allSettled(Object.keys(CANDIDATES).map(async kind=>{
+  try{const template=await loadTemplate(kind);if(!settled){const node=prepare(template,CANDIDATES[kind]);node.userData.assetSource=SOURCE;node.userData.assetLoaded=true;readyTemplates.set(kind,node);}}
+  catch(error){console.warn(`[MURAAAAAAA] local visual asset fallback: ${kind}`,error);}
+ })),
+ new Promise(resolve=>{timer=setTimeout(resolve,4000);})
+]);
+settled=true;clearTimeout(timer);
+const originalGetProp=View.prototype.getProp;
+View.prototype.getProp=function(kind){return readyTemplates.get(kind)||originalGetProp.call(this,kind);};
 
 window.__MURAAAAAAA_ASSETS__ = Object.freeze({
   source: SOURCE,

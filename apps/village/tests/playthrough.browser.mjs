@@ -1,0 +1,135 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+
+/** Focused touch regression, run with a real Chromium and a served village build. */
+export async function verifyVillagePlaythrough(browser,url,out){
+ await fs.mkdir(out,{recursive:true});
+ const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,locale:'ja-JP'});
+ const page=await context.newPage();page.setDefaultTimeout(8000);
+ const report={url,started:new Date().toISOString(),checks:[],errors:[],nativeDialogs:[],fixtures:['isolated local save','paused simulation via developer UI','rotated room and resources via diagnostic fixture']};
+ page.on('pageerror',e=>report.errors.push(e.message));page.on('dialog',async d=>{report.nativeDialogs.push(d.message());await d.dismiss();});
+ await context.tracing.start({screenshots:true,snapshots:true,sources:true});
+ const tap=s=>page.locator(s).first().tap();
+ const state=()=>page.evaluate(()=>{const{world,view,ui}=window.village;return{pending:ui.pending?{...ui.pending}:null,room:view.roomId,observation:view.observation,span:view.span,yaw:view.yaw,pitch:view.pitch,target:view.target.toArray(),objects:world.objects.length,selected:ui.selected,roomItems:view.roomId?world.list(view.roomId):[]};});
+ async function check(name,fn){console.log('CHECK',name);const result=await fn();report.checks.push({name,result:result??true});await fs.writeFile(`${out}/results.json`,JSON.stringify(report,null,2));}
+ async function screenshot(name){await page.screenshot({path:`${out}/${name}.png`});}
+ async function close(){if(await page.locator('#dialog').evaluate(e=>e.open))await tap('.dialogClose');}
+ async function openResident(){
+  await close();await tap('#muraFollowMayor');await page.waitForTimeout(1100);
+  const q=await page.evaluate(()=>{const{world,view}=window.village,p=world.people.find(p=>p.role==='mayor');return view.project(p.x,1.2,p.z);});
+  await page.touchscreen.tap(q.x,q.y);await page.locator('#visitHome').waitFor();
+ }
+ async function spot(){return page.evaluate(()=>{
+  const{world,view,ui}=window.village,p=ui.pending;if(!p)return null;
+  for(let y=180;y<innerHeight*.66;y+=15)for(let x=30;x<innerWidth-30;x+=15){
+   if(document.elementFromPoint(x,y)?.id!=='game')continue;
+   const q=view.ground(x,y);if(!q)continue;const h=p.roomId&&world.object(p.roomId),dx=h?q.x-h.x:0,dz=h?q.z-h.z:0;
+   const a=h?{x:dx*Math.cos(h.rot)-dz*Math.sin(h.rot),z:dx*Math.sin(h.rot)+dz*Math.cos(h.rot)}:q;
+   if(!world.canPlace(p.kind,a.x,a.z,p.rot,p.roomId,p.moveId))return{x,y};
+  }return null;
+ });}
+ async function drag(){
+  const cdp=await context.newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:200,y:335,id:1}]});
+  for(let i=1;i<=6;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:200+i*6,y:335+i*4,id:1}]});await page.waitForTimeout(40);}
+  const before=(await state()).pending;await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(250);
+  const after=(await state()).pending;await cdp.detach();assert.deepEqual(after,before);return{before,after};
+ }
+ try{
+  await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});await page.waitForFunction(()=>window.village&&document.querySelector('#loading').hidden,null,{timeout:45000});
+  report.commit=await page.locator('#game').getAttribute('data-commit');
+  await check('title fits 320, 390 and 820 CSS pixel widths',async()=>{
+   const boxes=[];for(const width of [320,390,820]){await page.setViewportSize({width,height:844});await page.waitForTimeout(100);const r=await page.evaluate(()=>{const h=document.querySelector('#muraEntryCard h2'),p=h.parentElement;return{left:h.getBoundingClientRect().left,right:h.getBoundingClientRect().right,parentRight:p.getBoundingClientRect().right,textFits:h.scrollWidth<=h.clientWidth,pageFits:document.documentElement.scrollWidth<=innerWidth};});assert.ok(r.textFits&&r.pageFits&&r.right<=r.parentRight);boxes.push({width,...r});}await page.setViewportSize({width:390,height:844});await screenshot('01-title');return boxes;
+  });
+  await tap('#muraEnterVillage');await tap('#muraSettingsButton');await tap('#muraDeveloperOpen');await page.selectOption('#muraDevSpeed','0');await tap('#muraDialogBack');
+  await check('settings retain the same actions after help and developer back',async()=>{
+   const buttons=()=>page.locator('.settingsGrid button').allTextContents(),before=await buttons();
+   assert.equal(await page.locator('#exportSave,#loadSave,#muraDevSpeed,#muraDevTilt').count(),0);
+   await tap('#help');await tap('#muraDialogBack');assert.deepEqual(await buttons(),before);
+   await tap('#muraDeveloperOpen');assert.ok(await page.locator('#muraDevTilt').isVisible());await tap('#muraDialogBack');assert.deepEqual(await buttons(),before);await screenshot('02-settings');return before;
+  });
+  await close();await openResident();await screenshot('03-resident');await tap('#visitHome');await tap('#build');
+  await check('catalog stays unchanged for 30 seconds without unlock changes',async()=>{
+   const snapshot=()=>page.locator('#catalog').evaluate(e=>({ids:[...e.querySelectorAll('.card')].map(b=>b.dataset.kind),height:e.getBoundingClientRect().height,drawer:e.closest('#drawer').getBoundingClientRect().height}));
+   const before=await snapshot();assert.ok(before.ids.includes('dirtbed'));assert.ok(!before.ids.includes('counter'));
+   for(let i=0;i<30;i++){await page.waitForTimeout(1000);assert.deepEqual(await snapshot(),before);}return before;
+  });
+  await check('20 consecutive normal taps select the same unlocked furniture',async()=>{
+   for(let i=0;i<20;i++){await tap('[data-kind=dirtbed]');assert.equal((await state()).pending.kind,'dirtbed');await tap('#muraCancelPlacement');await tap('#build');}
+   await screenshot('04-furniture');return{consecutiveTaps:20};
+  });
+  await tap('[data-kind=dirtbed]');
+  await check('ground tap only changes preview; drag and pointerup keep that candidate',async()=>{
+   const before=await state(),q=await spot();assert.ok(q,'visible valid floor position');await page.touchscreen.tap(q.x,q.y);const preview=await state();assert.equal(preview.roomItems.length,before.roomItems.length);assert.ok(!preview.pending.error);
+   const data=await drag();assert.equal((await state()).roomItems.length,before.roomItems.length);return data;
+  });
+  await check('confirm adds exactly one item at the displayed local coordinates',async()=>{
+   const q=await spot();assert.ok(q);await page.touchscreen.tap(q.x,q.y);const before=await state();await tap('#cancelPlace');const after=await state();
+   assert.equal(after.pending,null);assert.equal(after.roomItems.length,before.roomItems.length+1);const added=after.roomItems.find(i=>i.id===after.selected);assert.ok(added);assert.equal(added.x,before.pending.x);assert.equal(added.z,before.pending.z);return{candidate:before.pending,item:added};
+  });
+  await check('furniture details, move, cancel, move and confirm are usable',async()=>{
+   await tap('#details');assert.ok(await page.locator('#delete').isVisible());await screenshot('05-furniture-details');await close();const before=await state(),selected=before.roomItems.find(o=>o.id===before.selected);
+   await tap('#move');assert.equal((await state()).pending.x,selected.x);assert.equal((await state()).pending.z,selected.z);await tap('#muraCancelPlacement');
+   await page.evaluate(id=>window.village.selection(id,'b1'),selected.id);await tap('#move');await tap('#rotate');const q=await spot();assert.ok(q);await page.touchscreen.tap(q.x,q.y);const pending=(await state()).pending;await tap('#cancelPlace');const after=await state();assert.equal(after.roomItems.length,before.roomItems.length);const moved=after.roomItems.find(o=>o.id===selected.id);assert.equal(moved.rot,pending.rot);assert.equal(moved.x,pending.x);return moved;
+  });
+  await check('rotated interior keeps local coordinates through tap and release',async()=>{
+   await page.evaluate(()=>{const v=window.village;v.world.object('b1').rot=Math.PI/3;v.world.changed();v.deselect();});
+   await tap('#build');await tap('[data-kind=dirtbed]');const q=await spot();assert.ok(q);await page.touchscreen.tap(q.x,q.y);const before=await state();await drag();assert.equal((await state()).pending.x,before.pending.x);await tap('#cancelPlace');const after=await state(),placed=after.roomItems.find(o=>o.id===after.selected);assert.equal(placed.x,before.pending.x);assert.equal(placed.z,before.pending.z);return placed;
+  });
+  await check('interior exit stays tappable across widths, header and catalog states',async()=>{
+   const checks=[];
+   for(const width of[320,390,820])for(const expanded of[false,true])for(const drawer of[false,true]){
+    await page.setViewportSize({width,height:844});await page.evaluate(()=>window.village.enterRoom('b1'));await page.waitForTimeout(250);
+    if((await page.locator('#muraHudToggle').getAttribute('aria-expanded'))!==String(expanded))await tap('#muraHudToggle');
+    if(drawer)await tap('#build');const rect=await page.locator('#leaveRoom').boundingBox();assert.ok(rect&&rect.y>0);
+    const hit=await page.evaluate(({x,y,width,height})=>document.elementFromPoint(x+width/2,y+height/2)?.closest('button')?.id,rect);assert.equal(hit,'leaveRoom');await tap('#leaveRoom');assert.equal((await state()).room,null);checks.push({width,expanded,drawer});
+   }
+   await page.setViewportSize({width:390,height:844});return checks;
+  });
+  await check('front and back cameras zoom, hold position and return to overhead',async()=>{
+   const poses=[];
+   for(const mode of['front','side','back']){
+    await openResident();await tap(`[data-camera=${mode}]`);await page.waitForFunction(()=>window.village.view.span<5.05);
+    await page.waitForTimeout(1600);const before=await state();await page.waitForTimeout(2200);const after=await state();
+    assert.ok(Math.abs(after.yaw-before.yaw)<.004);assert.ok(after.span<5.05);assert.ok(after.pitch<.25);assert.equal(after.observation.mode,mode);
+    await screenshot('06-camera-'+mode);poses.push(after);
+   }
+   // A moving-subject fixture proves the rig follows coordinates, not a snapshot.
+   await page.evaluate(()=>{const v=window.village,p=v.world.people.find(p=>p.id===v.view.observation.id);p.x+=1.2;});
+   await page.waitForFunction(()=>{const v=window.village,p=v.world.people.find(p=>p.id===v.view.observation.id);return Math.hypot(p.x-v.view.target.x,p.z-v.view.target.z)<.06;},null,{timeout:4000});
+   const distance=await page.evaluate(()=>{const v=window.village,p=v.world.people.find(p=>p.id===v.view.observation.id);return Math.hypot(p.x-v.view.target.x,p.z-v.view.target.z);});assert.ok(distance<.06);
+   await tap('#muraEndObservation');assert.equal((await state()).observation,null);assert.ok((await state()).pitch>.6);return{poses,movingTargetError:distance};
+  });
+  await check('central resident messages focus the resident and never leave an invisible input blocker',async()=>{
+   await page.waitForTimeout(250);
+   await page.evaluate(()=>{const v=window.village;v.sim.moment('村長が花を眺めています',[v.world.people[0]]);v.ui.lastActivity=performance.now()-9000;});await page.locator('#muraIdleDetails').waitFor();
+   // Measure the settled card, not the deliberate 300 ms entrance motion.
+   await page.waitForFunction(()=>document.querySelector('#muraIdleDetails').getAnimations().every(a=>a.playState==='finished'));
+   const r=await page.locator('#muraIdleDetails').boundingBox();assert.ok(Math.abs(r.x+r.width/2-195)<2&&Math.abs(r.y+r.height/2-422)<2);await screenshot('07-moment');await tap('#muraIdleDetails');
+   await page.waitForTimeout(300);assert.ok(await page.locator('#muraIdleDetails').isHidden());const hit=await page.evaluate(()=>document.elementFromPoint(195,422)?.id);assert.notEqual(hit,'muraIdleDetails');await tap('#muraEndObservation');return r;
+  });
+  await check('speech follows projected head position without fixed-pixel world offset',async()=>{
+   await page.evaluate(()=>{const v=window.village;v.sim.remember(v.world.people[0],'review','こんにちは');});await page.waitForTimeout(450);
+   const error=await page.evaluate(()=>{const v=window.village,p=v.world.people[0],node=document.querySelector(`.speech[data-person-id="${p.id}"]`),head=v.view.headPoint(p);if(!node)return 999;return Math.abs(parseFloat(node.style.left)-head.x)+Math.abs(parseFloat(node.style.top)-(head.y-6));});assert.ok(error<3);await screenshot('08-speech');return{projectionError:error};
+  });
+  await check('newly unlocked catalog remains stable, and source models are visibly distinct',async()=>{
+   await page.evaluate(()=>{const v=window.village;for(const key of['wood','plank','stone','cloth','metal','clay','seed'])v.world.gain(key,50);v.enterRoom('b1');});await tap('#build');
+   const ids=await page.locator('#catalog .card').evaluateAll(es=>es.map(e=>e.dataset.kind));assert.ok(ids.includes('chair')&&ids.includes('bed')&&ids.length>1);
+   for(let i=0;i<10;i++){await page.waitForTimeout(120);assert.deepEqual(await page.locator('#catalog .card').evaluateAll(es=>es.map(e=>e.dataset.kind)),ids);}
+   await screenshot('09-unlocked-catalog');await tap('#leaveRoom');
+   const models=await page.evaluate(()=>{const v=window.village;return ['logging','storage','quarry','carpenter','guardpost'].map(kind=>{const model=v.view.getBuilding(kind);return{kind,vertices:model.children.reduce((n,c)=>n+(c.geometry?.attributes?.position?.count||0),0),thumbnail:v.view.thumbnail(kind).length};});});assert.equal(new Set(models.map(m=>m.vertices)).size,5);
+   await page.evaluate(()=>{const v=window.village;const root=document.createElement('section');root.id='reviewFacilities';root.style='position:fixed;inset:65px 10px 70px;z-index:80;overflow:auto;background:#ece4d2;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px;border-radius:18px';for(const[kind,label]of[['logging','伐採場'],['storage','資材置き場'],['quarry','石切場'],['carpenter','木工所'],['guardpost','詰所']]){const d=document.createElement('div'),i=new Image();i.src=v.view.thumbnail(kind);i.style='width:100%;image-rendering:auto';d.append(i,document.createTextNode(label));root.append(d);}document.body.append(root);});await screenshot('10-facility-models');await page.locator('#reviewFacilities').evaluate(e=>e.remove());return models;
+  });
+  await check('title return, reset cancel, failed backup and successful reset preserve the correct save',async()=>{
+   const before=await page.evaluate(()=>JSON.stringify(window.village.world.objects));await tap('#muraSettingsButton');await tap('#muraTitleAction');assert.ok(await page.locator('#muraEnterVillage').isVisible());
+   await tap('#muraResetVillage');await tap('#muraResetConfirm [data-cancel]');assert.equal(await page.evaluate(()=>JSON.stringify(window.village.world.objects)),before);
+   await page.evaluate(()=>{window.__storageWrite=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k.includes('.recovery.'))throw Error('test backup failure');return window.__storageWrite.call(this,k,v);};});
+   await tap('#muraResetVillage');await tap('#muraResetConfirm [data-reset]');await page.locator('#muraResetConfirm [data-error]').waitFor();assert.equal(await page.evaluate(()=>JSON.stringify(window.village.world.objects)),before);
+   await page.evaluate(()=>{Storage.prototype.setItem=window.__storageWrite;delete window.__storageWrite;});await tap('#muraResetConfirm [data-reset]');await page.waitForTimeout(1000);await page.waitForSelector('#muraEnterVillage',{timeout:30000});
+   assert.ok(await page.evaluate(()=>!window.village.world.state.known.includes('plank')));await page.reload({waitUntil:'domcontentloaded'});await page.waitForSelector('#muraEnterVillage',{timeout:30000});assert.ok(await page.evaluate(()=>!window.village.world.state.known.includes('plank')));await screenshot('11-reset');
+  });
+  assert.deepEqual(report.nativeDialogs,[]);assert.deepEqual(report.errors,[]);report.success=true;
+ }catch(error){report.success=false;report.failure=String(error);await screenshot('failure').catch(()=>{});throw error;}
+ finally{report.finished=new Date().toISOString();await fs.writeFile(`${out}/results.json`,JSON.stringify(report,null,2));await context.tracing.stop({path:`${out}/trace.zip`});await context.close();}
+ return report;
+}

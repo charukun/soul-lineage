@@ -16,7 +16,7 @@ export const BUILDINGS=[
  f('market','市場',16,12,{shape:'market',effect:'market',produce:{cloth:1,herb:1},input:{food:1},roof:0xc49289,trait:'4日ごとに旅商人が2日間滞在。食料と交換で布・薬草を入手。住人は小物や家具を買います。'}),
  f('home','空き家',12,12,{capacity:3,jobs:0,category:'住まい',roof:0xbc7e62,unlock:['wood'],cost:{wood:12,plank:8,stone:6},variants:true,trait:'3人の家。建材を選べ、増築で定員と快適さが増します。'}),
  f('lodge','大きな空き家',16,18,{capacity:6,jobs:0,category:'住まい',floors:2,roof:0x77988a,unlock:['plank','stone'],cost:{wood:24,plank:16,stone:12},variants:true,trait:'6人の共同住宅。村の食料と警備に余裕をつくってから。'}),
- f('clanManor','一族の邸宅',22,22,{capacity:4,jobs:0,category:'住まい',floors:2,roof:0x858ab0,clanOnly:true,unlock:['plank','stone','cloth'],cost:{wood:28,plank:32,stone:24,cloth:8},variants:true,trait:'輪廻転焦の一族プレイヤー専用。一般NPCは自動入居しません。各人の家具と一族情報を保持します。'}),
+ f('clanManor','一族の邸宅',28,26,{capacity:4,jobs:0,category:'住まい',floors:2,roof:0x858ab0,clanOnly:true,unlock:['plank','stone','cloth'],cost:{wood:28,plank:32,stone:24,cloth:8},variants:true,trait:'輪廻転焦の一族プレイヤー専用。一般NPCは自動入居しません。各人の家具と一族情報を保持します。'}),
  f('guardpost','詰所',10,10,{shape:'tent',category:'守り',roof:0x829ca5,jobs:1,unlock:['wood'],cost:{wood:8},effect:'guard',defense:5,trait:'住人1人が警備職に就きます。就労後は周辺を巡回し、移住者の安心枠+5。'}),
  f('watchtower','見張り台',8,8,{category:'守り',floors:2,jobs:1,roof:0x7d9196,unlock:['plank'],cost:{wood:12,plank:8},effect:'watch',defense:4,trait:'近隣30mの見張り。警備員の迎撃に加え、脅威の早期発見と安心枠+4。'}),
  f('barracks','駐屯所',18,18,{category:'守り',floors:2,jobs:3,cost:{wood:22,stone:25,plank:20},unlock:['plank','stone'],effect:'guard',defense:10,roof:0x8b8f9e,trait:'警備職3人の拠点。巡回と救助を行い、移住者の安心枠+10。'}),
