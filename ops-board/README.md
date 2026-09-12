@@ -1,4 +1,4 @@
-# Rinne Ops Board
+# PULSE
 
 スマホブラウザから、公開環境・PR・Integration・CI/CDの状態を確認するための運用ダッシュボードです。
 
