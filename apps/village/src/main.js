@@ -43,6 +43,7 @@ try {
     onProgress(value, text) { progress.value = value; message.textContent = text; },
   });
   await import('./mura-world-systems.js');
+  await import('./mura-performance.js');
   await import('./mura-experience.js');
   await import('./mura-rotation-fix.js');
   await import('./mura-v2-ui.js');
