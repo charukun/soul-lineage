@@ -1,0 +1,155 @@
+MURA-PATCH/1
+FILE apps/village/index.html c37c7551ea39b3a5e87f40af0b4ecedab7622d6fc36a4d5d442e755a9e6f4358 38ef38c02eec228d9d34d760652a6c6a3f6d4a08aa0b257a44dc175360b65358 5
+EDIT 0 1 474
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><link rel="icon" type="image/svg+xml" href="./favicon.svg?v=2"><link rel="shortcut icon" href="./favicon.svg?v=2"><meta name="theme-color" content="#879a7a"><title>MURAAAAAAA | 輪廻転焦 Village</title><link rel="stylesheet" href="./src/web/style.css"><link rel="stylesheet" href="./src/web/tactile.css"></head><body>
+
+EDIT 2 3 271
+<div id="loading"><span class="eyebrow">輪廻転焦 VILLAGE</span><p class="loadingTitle">MURAAAAAAA</p><p id="loadText">暮らしと守りが、道をつくる。</p><progress id="progress" max="100" value="5"></progress><button id="retry" hidden>再試行</button><button id="recover" hidden>復旧</button></div>
+
+EDIT 7 10 488
+<div id="muraModeControls"><button id="leaveRoom" hidden>村へ戻る</button><button id="muraEndObservation" hidden>俯瞰</button></div>
+<div id="drawer" class="glass" hidden><p id="stockTray"></p><div id="tabs"></div><div id="catalog"></div><footer><small>タップで選択 · 長押しで移動</small><div><button id="undo">取り消す</button></div></footer></div>
+<button id="build" class="glass" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="m14 3 7 7-3 3-3-3-9 10-3-3 10-9-2-2z"/></svg><span>つくる</span></button>
+
+EDIT 11 12 492
+<div id="placement" class="glass" hidden><span id="placementText"></span><div id="materialChoices"></div><small id="placementCost"></small><div class="rotationControl"><label for="muraRotation">回転</label><output id="muraRotationValue">0°</output><input id="muraRotation" type="range" min="0" max="360" step="1" value="0"></div><div class="actions"><button id="rotate" aria-label="90度回転">90°</button><button id="muraCancelPlacement">取消</button><button id="cancelPlace">配置</button></div></div>
+
+EDIT 13 14 231
+<dialog id="dialog"><div id="dialogContent"></div><footer class="dialogNavigation"><button type="button" id="muraDialogBack" hidden>戻る</button><form method="dialog"><button class="dialogClose">閉じる</button></form></footer></dialog>
+
+FILE apps/village/src/asset-visuals.js 86faba2990cd429723f7c07e4fb529d02da89f9a925c9453bc6448cb4b98c1af 737bffc8abb9fb0808eee64c98dbe5059d43725d62025ed5760b015060c0aa63 1
+EDIT 76 104 913
+// Resolve each small local model once before the View is built. A late/missing
+// asset keeps the procedural template for this session, for BOTH thumbnails
+// and world instances. Never reparent/hide the shared procedural cache.
+const readyTemplates=new Map();let settled=false,timer;
+await Promise.race([
+ Promise.allSettled(Object.keys(CANDIDATES).map(async kind=>{
+  try{const template=await loadTemplate(kind);if(!settled){const node=prepare(template,CANDIDATES[kind]);node.userData.assetSource=SOURCE;node.userData.assetLoaded=true;readyTemplates.set(kind,node);}}
+  catch(error){console.warn(`[MURAAAAAAA] local visual asset fallback: ${kind}`,error);}
+ })),
+ new Promise(resolve=>{timer=setTimeout(resolve,4000);})
+]);
+settled=true;clearTimeout(timer);
+const originalGetProp=View.prototype.getProp;
+View.prototype.getProp=function(kind){return readyTemplates.get(kind)||originalGetProp.call(this,kind);};
+
+FILE apps/village/src/game/catalog.js 8f86b92f1dbdf83833bf9036034eae59a47cd72dc287591f213b69901424b609 f2cb8fe069db469ccca3d6f9488fa7bece290fc4d47b11f211c8212a3c028052 1
+EDIT 18 19 247
+ f('clanManor','一族の邸宅',28,26,{capacity:4,jobs:0,category:'住まい',floors:2,roof:0x858ab0,clanOnly:true,unlock:['plank','stone','cloth'],cost:{wood:28,plank:32,stone:24,cloth:8},variants:true,trait:'輪廻転焦の一族プレイヤー専用。一般NPCは自動入居しません。各人の家具と一族情報を保持します。'}),
+
+FILE apps/village/src/main.js 250929adb390565b89a2ccf021268c7d8240704c1752928747686d39691ec426 40fe3c1f9c2316dba96457c53e4484c2176d2fcc45dce3756a671817c792d0c4 3
+EDIT 47 48 0
+
+EDIT 49 49 99
+  const {installInterface}=await import('./web/interface.js');
+  installInterface(window.village);
+
+EDIT 50 56 0
+
+FILE apps/village/src/mura-entry-polish.js 37074be78d40dbc38aa8a71f94512c483890cd1fac932b00499169a274ceeab2 907c3a479026a8f4925941d70a87e812cd027970e68ee410ff2b8f6ce275fc88 4
+EDIT 1 5 71
+const village=window.village,{world,ui,activity,resetVillage}=village;
+
+
+EDIT 7 37 988
+function open(){
+ if($('muraEntry'))return;
+ ui.entryOpen=true;document.body.classList.add('mura-entry-open');
+ const panel=document.createElement('section');panel.id='muraEntry';panel.setAttribute('aria-label','タイトル');
+ const pop=world.population();
+ panel.innerHTML=`<div id="muraEntryCard"><h2>MURAAAAAAA</h2><p class="muraEntryLead">小さな暮らしを、見守る。</p><div id="muraEntryFacts"><span>${Math.floor(world.state.clock/DAYS_YEAR)+1}年</span><span>${pop.people}人</span></div><button id="muraEnterVillage">村へ入る</button>${village.info.environment!=='prod'?'<button id="muraResetVillage">村を初期化</button>':''}<small class="muraEntryHint">自動保存で、続きから。</small></div>`;
+ document.body.append(panel);
+ $('muraEnterVillage').onclick=()=>{ui.entryOpen=false;document.body.classList.remove('mura-entry-open');panel.remove();activity();village.view.lastInteraction=performance.now();};
+ if($('muraResetVillage'))$('muraResetVillage').onclick=resetConfirm;
+ $('muraEnterVillage').focus({preventScroll:true});
+
+EDIT 38 49 911
+function resetConfirm(){
+ let dialog=$('muraResetConfirm');
+ if(!dialog){dialog=document.createElement('dialog');dialog.id='muraResetConfirm';document.body.append(dialog);}
+ dialog.innerHTML='<h2>村を初期化</h2><p>今の村を退避して、最初から始めます。</p><p data-error role="alert" hidden></p><div class="muraResetActions"><button data-cancel>戻る</button><button class="danger" data-reset>初期化</button></div>';
+ dialog.querySelector('[data-cancel]').onclick=()=>dialog.close();
+ dialog.querySelector('[data-reset]').onclick=async()=>{
+  const button=dialog.querySelector('[data-reset]');button.disabled=true;button.textContent='初期化中';
+  try{await resetVillage();}
+  catch(error){button.disabled=false;button.textContent='初期化';const message=dialog.querySelector('[data-error]');message.hidden=false;message.textContent=`初期化できませんでした。今の村は残しています。${error.message||''}`;}
+ };
+ dialog.showModal();dialog.querySelector('[data-cancel]').focus();
+
+EDIT 50 81 55
+window.__MURA_ENTRY_POLISH__={version:2,open};
+open();
+
+
+FILE apps/village/src/mura-experience.js f5fc39d9dbad88f2553640060a5c6cbe9c215a05cdd872b1b4be500ac6d7989d 5b665200fd6925ef01367bc0d837e80c71b082a1b7938ee23fca411bb5f66587 5
+EDIT 0 4 35
+const {world,view}=window.village;
+
+
+EDIT 9 160 0
+
+EDIT 176 177 0
+
+EDIT 182 188 0
+
+EDIT 189 191 46
+window.__MURAAAAAAA_EXPERIENCE__={version:2};
+
+
+FILE apps/village/src/mura-housing-ui-polish.js d8bddb4de4091a56c2ae6859cca13ae120994dad2e13fd411bbff19a1d2d5c93 - 0
+FILE apps/village/src/mura-mobile-feedback-fix-2.js 0f255c2b3cfaff945f4b45a7af2379e81c794fdb80506345610ba940036b608d - 0
+FILE apps/village/src/mura-mobile-feedback-fix-3.js b7dc206edc1351beac54e6489550da20b54fcb3e1364adf39668b029c9a3f49b - 0
+FILE apps/village/src/mura-mobile-feedback-fix.js 76ed36aaeacb95ad5fc8fa3dd8f668994d4b7e91dbe0700dfecbc0f0b28e1edc - 0
+FILE apps/village/src/mura-patch.js f947910436bf2ba10887a06619d82e9af78fdfb802eb0f8e8c4e6cf63a3875a7 edc26e091e23202797247e9d924dd17cff3c50d494606694201a125919ac304b 7
+EDIT 5 5 74
+import {canEditRoom,isFurnitureUnlocked} from './game/housing-access.js';
+
+
+EDIT 33 37 52
+export const furnitureUnlocked=isFurnitureUnlocked;
+
+
+EDIT 41 43 78
+function roomDenied(world,roomId){return roomId&&!canEditRoom(world,roomId);}
+
+
+EDIT 46 47 58
+ if(roomDenied(this,roomId))return{error:'この場所は編集できません'};
+
+
+EDIT 52 53 58
+ if(roomDenied(this,roomId))return{error:'この場所は編集できません'};
+
+
+EDIT 57 58 58
+ if(roomDenied(this,roomId))return{error:'この場所は編集できません'};
+
+
+EDIT 141 172 0
+
+FILE apps/village/src/mura-rotation-fix.js 3183ef8a00d7fbae3b5ea9f99b026e3f070fc229d1af2f7f885e99de6e4ac04d - 0
+FILE apps/village/src/mura-ux-polish-4.js 56615f9867f0ddd9cc6b8ca0a277a0c10a38dc2692cbe7f45f72b5f4ede52262 - 0
+FILE apps/village/src/mura-ux-polish-4b.js 312533f397757a1fd278d0c68295dc88c41696c191b20837b63f36fc93904e9d - 0
+FILE apps/village/src/mura-v2-ui.js 1223cc4d05b8f26ad3c6e2951de2785819136321a1fcfaab683a3618600b8a14 e83a570cb4e424b4ed3e130b3ba1814a6c073e836e426ca95e318d6acdb41be8 6
+EDIT 1 8 127
+import {defs,DAYS_YEAR} from './game/core.js';
+import {t,exposeI18n} from './mura-i18n.js';
+const {world,view}=window.village;
+
+
+EDIT 10 89 0
+
+EDIT 106 145 1210
+function mayorGear(node){if(!node||node.userData.muraMayor)return;node.userData.muraMayor=true;const g=new T.Group();g.name='MURAAAAAAA_MayorRegalia';const felt=new T.MeshStandardMaterial({color:0x4f725c,roughness:.92}),trim=new T.MeshStandardMaterial({color:0xd4b16d,roughness:.58,metalness:.12}),cloth=new T.MeshStandardMaterial({color:0x9b665d,roughness:.95});const brim=new T.Mesh(new T.CylinderGeometry(.48,.56,.11,12),felt);brim.position.set(0,1.95,0);g.add(brim);const crown=new T.Mesh(new T.ConeGeometry(.38,.62,10),felt);crown.position.set(.03,2.28,0);crown.rotation.z=-.12;g.add(crown);const sash=box(g,.22,1.15,.27,.12,1.05,.07,trim);sash.rotation.z=-.4;const cape=new T.Mesh(new T.SphereGeometry(.58,10,7,0,Math.PI*2,0,Math.PI*.48),cloth);cape.position.set(0,1.17,-.27);cape.scale.set(1,.92,.55);g.add(cape);const staff=cyl(g,.58,1.15,.08,.035,2.25,mats.wood);staff.rotation.z=-.05;sphere(g,.62,2.35,.08,.11,trim);const aura=new T.Mesh(new T.RingGeometry(.56,.72,32),new T.MeshBasicMaterial({color:0xffd783,transparent:true,opacity:.5,depthWrite:false,side:T.DoubleSide}));aura.rotation.x=-Math.PI/2;aura.position.y=.05;g.add(aura);g.userData.aura=aura;node.add(g);node.userData.muraMayorGroup=g;}
+
+
+EDIT 147 150 0
+
+EDIT 151 152 0
+
+EDIT 153 156 56
+window.__MURAAAAAAA_V2_UI__={version:3,currentClimate};
+
+
+FILE apps/village/src/mura.css b7e63b0f7ed1937daf337eb0b6eb7637a02b4759c279fc334115ab592acd4fd6 - 0
