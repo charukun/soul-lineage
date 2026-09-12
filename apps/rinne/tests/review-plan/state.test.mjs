@@ -35,3 +35,10 @@ test('all nine weapons have explicit grip definitions and support for two-handed
  for(const id of ['greatsword','katana','greataxe','crossbow','staff'])assert.equal(WEAPON_PROFILES[id].support.length,3);
  const model=createKatana();assert.ok(model.children.length>=10);model.traverse(n=>{if(n.geometry)assert.ok([...n.geometry.attributes.position.array].every(Number.isFinite));});
 });
+
+
+test('sequence URL preserves repeated stages and final paused global time',()=>{
+ const s={...readReviewState(''),sequence:['Tidebreak / Idle','Tidebreak / Attack','Tidebreak / Attack'],clip:'Tidebreak / Attack',time:6.9,playing:false,loop:false};
+ const r=readReviewState(reviewStateURL('https://example.invalid/',s).searchParams);
+ assert.deepEqual(r.sequence,s.sequence);assert.equal(r.time,s.time);assert.equal(r.playing,false);assert.equal(r.loop,false);
+});

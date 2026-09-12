@@ -49,3 +49,9 @@ html,body{height:100%;width:100%;margin:0;overflow:hidden}
  .review-shell>.panel{grid-area:3/2/5/3;border-left:1px solid var(--line);border-top:0}
 }
 @media(max-width:380px){.review-shell{grid-template-rows:32px auto minmax(150px,1fr) auto minmax(110px,.8fr)}.review-shell .notebook-head{padding:2px 6px}.review-shell .panel-footer{display:none}.review-shell>.panel{grid-template-rows:auto auto auto auto minmax(0,1fr)}.quick-transport>*,.quick-transport>.toggle{min-height:36px}.phase-controls button,.quick-review .camera-strip button{min-height:32px}.review-primary-tabs button{min-height:32px}.review-equipment select,.review-equipment .toggle{min-height:30px}}
+
+/* Concurrent notebook controls keep their behavior within the bounded main panel. */
+.review-shell .notebook-head #posture-modes{margin:0;flex-wrap:nowrap}
+.review-shell .notebook-head #posture-modes button{min-height:36px;padding:3px 7px;font-size:10px}
+.quick-review .camera-strip{grid-template-columns:repeat(6,minmax(0,1fr)) minmax(54px,1.2fr)}
+.quick-review #copy-motion{font-size:10px;min-height:36px;white-space:nowrap}

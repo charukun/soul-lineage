@@ -10,11 +10,10 @@ export function installFocusedReviewUI(){
  quick.append(transport);
  const phases=make('div','','phase-controls');phases.setAttribute('aria-label','動作の確認位置');
  for(let i=0;i<4;i++){const b=button(['構え','打ち出し','打点','戻り'][i],()=>document.dispatchEvent(new CustomEvent('review-phase',{detail:{index:i}})));b.dataset.phase=String(i);b.disabled=true;phases.append(b);}quick.append(phases);
- const camera=q('.camera-strip');if(camera){quick.append(camera);camera.setAttribute('aria-label','確認角度');}
+ const camera=q('.camera-strip');if(camera){quick.append(camera);camera.append(q('#copy-motion'));camera.setAttribute('aria-label','確認角度');}
  q('.viewport').after(quick);
  const head=q('.notebook-head');head.querySelector('.book-title').hidden=true;head.querySelector('.transport-mini').hidden=true;
- const modes=make('div','','combat-mode-switch');modes.setAttribute('aria-label','通常と戦闘の切り替え');
- for(const[id,label]of [['normal','通常'],['combat','戦闘態勢']]){const b=button(label,()=>document.dispatchEvent(new CustomEvent('review-combat-mode',{detail:{mode:id}})));b.dataset.combatMode=id;b.setAttribute('aria-pressed',String(id==='normal'));modes.append(b);}head.append(modes);
+ const modes=q('#posture-modes');if(modes){modes.setAttribute('aria-label','通常と戦闘の切り替え');head.append(modes);}
  q('.review-tabs').hidden=true;const oldQuick=q('.weapon-quick');if(oldQuick)oldQuick.hidden=true;
  const notebook=q('.notebook-scroll'),advanced=q('[data-review-page="advanced"]');
  const legacy=make('details','','legacy-review');legacy.append(make('summary','技構成・系統別の詳細'));

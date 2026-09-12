@@ -42,3 +42,12 @@ test('paused and reverse seeks explicitly reapply the raw pose after reset',()=>
  sampleRawClip(output,vrm.scene,.56);const expected=point('rightHand').clone();
  for(const time of [0,.56,1.45,.56]){for(const b of Object.values(raw))b.quaternion.identity();sampleRawClip(output,vrm.scene,time);if(time===.56)assert.ok(point('rightHand').distanceTo(expected)<1e-6);}
 });
+
+
+test('both thumbs oppose the curled fingers rather than remaining spread out',()=>{
+ sampleRawClip(output,vrm.scene,.56);
+ for(const side of ['left','right']){
+  const thumb=point(side+'ThumbDistal'),index=point(side+'IndexIntermediate');
+  assert.ok(thumb.distanceTo(index)<.025,side+' thumb must be near the curled index finger');
+ }
+});

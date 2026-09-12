@@ -3,7 +3,8 @@ const number=(v,d,min,max)=>{if(v===null||v===undefined||v==='')return d;const n
 const bool=(v,d)=>v==='1'?true:v==='0'?false:d;
 export function readReviewState(input){
  const p=input instanceof URLSearchParams?input:new URLSearchParams(input);
- return{version:2,preset:p.get('preset')||'model.SHINO',clip:p.get('clip')||'通常 / 自然体',mode:p.get('mode')==='combat'?'combat':'normal',
+ const sequence=p.getAll('stage').filter(n=>n&&n.length<=200).slice(0,3);
+ return{version:2,sequence,preset:p.get('preset')||'model.SHINO',clip:p.get('clip')||'通常 / 自然体',mode:p.get('mode')==='combat'?'combat':'normal',
   weaponId:WEAPONS.includes(p.get('weaponId'))?p.get('weaponId'):'katana',weaponEnabled:bool(p.get('weapon'),false),weaponScale:number(p.get('weaponScale'),.5,.1,1),
   weaponX:number(p.get('weaponX'),0,-360,360),weaponY:number(p.get('weaponY'),0,-360,360),weaponZ:number(p.get('weaponZ'),0,-360,360),
   camera:['front','back','left','right','top','three'].includes(p.get('camera'))?p.get('camera'):'three',inPlace:bool(p.get('inPlace'),true),vfx:bool(p.get('vfx'),false),marker:number(p.get('marker'),.42,0,120),
@@ -12,12 +13,13 @@ export function readReviewState(input){
 export function reviewStateURL(base,state){
  const u=new URL(base);u.search='';
  const fields={state:2,preset:state.preset,clip:state.clip,mode:state.mode,weaponId:state.weaponId,weapon:state.weaponEnabled?'1':'0',weaponScale:state.weaponScale,weaponX:state.weaponX,weaponY:state.weaponY,weaponZ:state.weaponZ,camera:state.camera,inPlace:state.inPlace?'1':'0',vfx:state.vfx?'1':'0',marker:state.marker,t:state.time,speed:state.speed,loop:state.loop?'1':'0',playing:state.playing?'1':'0'};
- for(const[k,v]of Object.entries(fields))u.searchParams.set(k,String(v));return u;
+ for(const[k,v]of Object.entries(fields))u.searchParams.set(k,String(v));for(const stage of state.sequence||[])u.searchParams.append('stage',stage);return u;
 }
 export function applyMotionPolicy(state,meta){
  const next={...state};if(!meta)return next;
  if(meta.posture)next.mode=meta.posture;if(typeof meta.loop==='boolean')next.loop=meta.loop;
  if(meta.weapon==='none')next.weaponEnabled=false;
+ if(meta.kind==='draw'||meta.kind==='sheathe'){next.weaponId='sword';next.weaponEnabled=true;}
  if(meta.kind==='slash'&&!next.weaponEnabled){next.weaponId='katana';next.weaponEnabled=true;}
  return next;
 }

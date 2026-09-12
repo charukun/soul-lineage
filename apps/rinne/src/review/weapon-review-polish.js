@@ -1,5 +1,6 @@
 import { THREE as T, GLTFLoader } from '@soul/rendering';
 import { solveTwoBone } from './pose-transfer.js';
+import { createHandClosure } from './hand-shape.js';
 const ROOT='https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Assets/gltf/';
 export const WEAPON_PROFILES=Object.freeze({
  greatsword:{file:'sword_2handed.gltf',scale:.50,grip:[0,-.025,0],support:[0,-.28,0],axis:'y'},
@@ -51,6 +52,7 @@ export function installWeaponReviewPolish(body){
  if(!body?.bones?.rightHand)return body;
  body.root.updateMatrixWorld(true);body.bones.rightHand.getObjectByName('ReviewWeaponSocket')?.removeFromParent();
  const palms={right:calibratedPalm(body.bones,'right'),left:calibratedPalm(body.bones,'left')};
+ const closures=Object.fromEntries(['right','left'].map(side=>[side,createHandClosure(body.bones,side)]));
  const socket=new T.Group();socket.name='ReviewWeaponPolishedSocket';socket.position.copy(palms.right.offset);socket.quaternion.copy(palms.right.rotation);palms.right.hand.add(socket);socket.visible=false;
  const roots=new Map(),pending=new Map(),loader=new GLTFLoader();let active=null,disposed=false,sequence=0;
  let config={enabled:false,id:'katana',scale:.5,x:0,y:0,z:0},signature='';
@@ -76,7 +78,7 @@ export function installWeaponReviewPolish(body){
     for(const[k,n]of roots)n.visible=k===id;active=id;socket.visible=true;
   }catch(error){if(token===sequence){body.weaponError=String(error.message);throw error;}}
  };
- function curl(side){for(const[name,{b,q,axis}]of palms[side].fingerRest){const factor=name.includes('Thumb')?.45:name.endsWith('Intermediate')?1.15:name.endsWith('Distal')?.78:.55;b.quaternion.copy(q).multiply(new T.Quaternion().setFromAxisAngle(axis,factor));}}
+ function curl(side){closures[side](.88);}
  function handAt(side,palmPoint,palmQ){
   const p=palms[side],q=palmQ.clone().multiply(p.rotation.clone().invert());
   const scale=p.hand.getWorldScale(vec()),wrist=palmPoint.clone().sub(p.offset.clone().multiply(scale).applyQuaternion(q));
@@ -110,7 +112,7 @@ export function installWeaponReviewPolish(body){
   }
   body.root.updateMatrixWorld(true);curl('right');
   let supportError=null;
-  if(spec.support&&!normal){
+  if(spec.support&&!normal&&!body.posturePreviews?.has(clip)){
     const target=vec(...spec.support).applyMatrix4(root.matrixWorld),frame=socket.getWorldQuaternion(new T.Quaternion());
     if(spec.axis!=='z')frame.multiply(new T.Quaternion().setFromAxisAngle(vec(0,1,0),Math.PI));
     handAt('left',target,frame);body.root.updateMatrixWorld(true);
@@ -119,6 +121,7 @@ export function installWeaponReviewPolish(body){
   body.weaponDiagnostics={id:active,grip:spec.grip,support:spec.support||null,supportError,sourceScale:root.scale.x,pose:state.mode||'normal'};
  };
  body.weaponDiagnostics=null;
+ body.weaponHandMatrix=()=>new T.Matrix4().compose(palms.right.offset,palms.right.rotation.clone().multiply(new T.Quaternion().setFromEuler(new T.Euler(rad(config.x),rad(config.y),rad(config.z)))),vec(1,1,1));
  const oldDispose=body.dispose?.bind(body);body.dispose=()=>{disposed=true;sequence++;for(const root of roots.values())disposeObject(root);roots.clear();socket.removeFromParent();oldDispose?.();};
  return body;
 }

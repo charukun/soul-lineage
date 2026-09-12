@@ -2,6 +2,7 @@ import { THREE, GLTFLoader, OrbitControls } from '@soul/rendering';
 import { reviewPresets, installReviewExtensions, disposeLoaded } from './review-adapter.js';
 import { REVIEW_ASSET_REVISION, REVIEW_MOTION_FAMILIES, classifyMotion } from '@soul/assets/review-catalog';
 import { createPlayback, markerAge } from './playback.js';
+import { sequenceDuration, sequenceFrame } from './review-contract.js';
 import './style.css';
 import { readReviewState, reviewStateURL, applyMotionPolicy } from './review-state.js';
 import { installFocusedReviewUI } from './review-controls.js';
@@ -33,10 +34,11 @@ async function startReview() {
   const build=typeof __BUILD_INFO__ === 'object'?__BUILD_INFO__:{commit:'local',branch:'local'};
   q('#build-label').textContent=`${String(build.commit).slice(0,12)} / ${REVIEW_ASSET_REVISION}`;
   let body=null,mixer=null,action=null,activeClip=null,loading=null,generation=0;
+  let sequence=[],sequenceNames=[],sequenceIndex=-1,restoringSequence=false;
   let skeleton=null,bounds=null,cameraName='three',last=performance.now(),frames=[];
   const disposeHelper=helper=>{if(!helper)return;helper.removeFromParent();helper.geometry?.dispose();helper.material?.dispose();};
   function clearHelpers(){disposeHelper(skeleton);disposeHelper(bounds);skeleton=null;bounds=null;}
-  function clearBody(){clearHelpers();mixer?.stopAllAction();if(body)mixer?.uncacheRoot(body.root);body?.dispose();body=null;mixer=null;action=null;activeClip=null;clock.time=0;clock.duration=0;clock.playing=false;q('#clip').replaceChildren(new Option('素材未読込',''));q('#source-label').textContent='No source';q('#clip-label').textContent='No clip';}
+  function clearBody(){sequence=[];sequenceNames=[];sequenceIndex=-1;clearHelpers();mixer?.stopAllAction();if(body)mixer?.uncacheRoot(body.root);body?.dispose();body=null;mixer=null;action=null;activeClip=null;clock.time=0;clock.duration=0;clock.playing=false;q('#clip').replaceChildren(new Option('素材未読込',''));q('#source-label').textContent='No source';q('#clip-label').textContent='No clip';}
   function refreshHelpers(){
     clearHelpers();if(!body)return;
     if(q('#skeleton-toggle').checked){skeleton=new THREE.SkeletonHelper(body.root);scene.add(skeleton);}
@@ -50,7 +52,7 @@ async function startReview() {
     const offset=({front:[0,d*.15,d],back:[0,d*.15,-d],left:[-d,d*.15,0],right:[d,d*.15,0],top:[0,d,.001],three:[d*.72,d*.3,d*.72]})[name]||[d*.72,d*.3,d*.72];
     camera.position.copy(center).add(new THREE.Vector3(...offset));controls.target.copy(center);camera.near=.01;camera.far=Math.max(100,d*20);camera.updateProjectionMatrix();controls.update();
   }
-  function currentState(){return{...state,time:clock.time,speed:clock.speed,loop:clock.loop,playing:clock.playing};}
+  function currentState(){return{...state,sequence:[...sequenceNames],time:clock.time,speed:clock.speed,loop:clock.loop,playing:clock.playing};}
   function metaFor(name=state.clip){const meta=body?.motionMeta?.get(name);return meta?.kind==='slash'?{...meta,phases:meta.phases?.map(([label,t])=>[label,t*1.28])}:meta;}
   function syncControls(){
     q('#weapon-select').value=state.weaponId;q('#weapon-toggle').checked=state.weaponEnabled;
@@ -63,10 +65,20 @@ async function startReview() {
   function weapon(){const current=body;if(!current?.setWeapon)return;Promise.resolve(current.setWeapon({enabled:state.weaponEnabled,id:state.weaponId,scale:state.weaponScale,x:state.weaponX,y:state.weaponY,z:state.weaponZ})).catch(error=>{if(body===current)setStatus('武器読込失敗: '+error.message,'error');});}
   function sample(){
     if(body?.suspendSampling)return;
+    const frame=sequenceFrame(sequence,clock.time);
+    if(frame&&frame.index!==sequenceIndex){
+      const subsequent=sequenceIndex>=0;
+      mixer.stopAllAction();sequenceIndex=frame.index;activeClip=sequence[frame.index];state.clip=sequenceNames[frame.index];
+      if(subsequent&&!restoringSequence){const loop=clock.loop;Object.assign(state,applyMotionPolicy(state,metaFor(state.clip)));state.loop=loop;}
+      action=mixer.clipAction(activeClip);action.setLoop(THREE.LoopOnce,1);action.clampWhenFinished=true;action.reset().play();
+      q('#clip').value=state.clip;q('#clip-label').textContent=state.clip;syncControls();
+      document.dispatchEvent(new CustomEvent('review-sequence-frame',{detail:{index:frame.index,names:[...sequenceNames]}}));
+    }
     body?.resetPose?.();
-    if(action){action.enabled=true;action.paused=false;action.time=clock.time;mixer.update(0);if(body.resetPose)sampleRawClip(activeClip,body.root,clock.time);}
-    weapon();body?.afterSample?.(clock.time,state.clip,state);body?.root.updateMatrixWorld(true);
-    const age=state.vfx&&activeClip?markerAge(clock.time,state.marker,clock.duration,clock.loop):Infinity;
+    const localTime=frame?.time||0;
+    if(action){action.enabled=true;action.paused=false;action.time=localTime;mixer.update(0);if(body.resetPose)sampleRawClip(activeClip,body.root,localTime);}
+    weapon();body?.afterSample?.(localTime,state.clip,state);body?.root.updateMatrixWorld(true);
+    const age=state.vfx&&activeClip?markerAge(localTime,state.marker,activeClip.duration,clock.loop&&sequence.length===1):Infinity;
     body?.sampleEffects?.(age);
     q('#timeline').max=String(clock.duration||1);q('#timeline').value=String(clock.time);
     q('#current-time').textContent=`${clock.time.toFixed(3)}s`;q('#duration').textContent=`${clock.duration.toFixed(3)}s`;
@@ -74,18 +86,25 @@ async function startReview() {
     if(bounds&&body)bounds.box.setFromObject(body.root);
     document.dispatchEvent(new CustomEvent('review-state-change',{detail:{state:currentState(),meta:metaFor(),problems:body?.assetProblems||[],weapon:body?.weaponDiagnostics||null,loaded:!!body}}));
   }
-  function playClip(name,autoplay=true,restore=false){
-    if(!body)return;
-    if(!restore){Object.assign(state,applyMotionPolicy(state,metaFor(name)));clock.loop=state.loop;}
-    state.clip=name;
-    mixer.stopAllAction();action=null;activeClip=null;clock.time=0;clock.duration=0;clock.playing=false;
-    if(name){
-      activeClip=body.getClip(name,{inPlace:q('#in-place').checked});
-      if(!activeClip)throw new Error(`Source animation not found: ${name}`);
-      action=mixer.clipAction(activeClip);action.setLoop(THREE.LoopOnce,1);action.clampWhenFinished=true;action.reset().play();
-      clock.duration=activeClip.duration;clock.playing=autoplay;
-    }
-    q('#clip').value=name||'';q('#clip-label').textContent=name||'元モデル静止比較';syncControls();sample();
+  function playSequence(names,autoplay=true,restore=false){
+    if(!body)throw new Error('モデルの読み込み完了後に再生してください');
+    if(!Array.isArray(names)||names.length>3||names.some(name=>typeof name!=='string'||!name))throw new Error('再生モーションの指定が不正です');
+    // Resolve every stage before touching current playback; never skip missing stages.
+    const clips=names.map(name=>{const clip=body.getClip(name,{inPlace:state.inPlace});if(!clip)throw new Error(`Source animation not found: ${name}`);return clip;});
+    const duration=sequenceDuration(clips);
+    if(!restore){Object.assign(state,applyMotionPolicy(state,metaFor(names[0])));clock.loop=names.length>1?false:state.loop;state.loop=clock.loop;}
+    mixer.stopAllAction();action=null;activeClip=null;sequence=clips;sequenceNames=[...names];sequenceIndex=-1;
+    state.sequence=[...names];state.clip=names[0]||'';clock.time=0;clock.duration=duration;clock.playing=autoplay&&clips.length>0;
+    if(!names.length){q('#clip').value='';q('#clip-label').textContent='元モデル静止比較';document.dispatchEvent(new CustomEvent('review-sequence-frame',{detail:{index:0,names:[]}}));}
+    restoringSequence=restore;syncControls();sample();restoringSequence=false;
+  }
+  function playClip(name,autoplay=true,restore=false){playSequence(name?[name]:[],autoplay,restore);}
+  function restoreSelection(){
+    const names=state.sequence?.length?[...state.sequence]:[state.clip||'通常 / 自然体'];
+    if(!names.every(n=>body.clipNames.includes(n)))return false;
+    const savedTime=state.time,savedClip=state.clip,playing=state.playing;
+    playSequence(names,playing,true);clock.time=Math.min(savedTime,clock.duration);
+    restoringSequence=true;sample();restoringSequence=false;return true;
   }
   function attach(next){
     body=next;scene.add(body.root);mixer=new THREE.AnimationMixer(body.root);
@@ -106,16 +125,14 @@ async function startReview() {
     }
     const absent=REVIEW_MOTION_FAMILIES.filter(row=>!body.clipNames.some(name=>classifyMotion(name)===row.id)).map(row=>row.label);
     q('#family-summary').textContent=body.summary||`収録 ${body.clipNames.length}動作。${absent.length?'未収録: '+absent.join('・'):'6系統の候補を検出'}。動作名は配布元のまま。`;
-    const wanted=state.clip||'通常 / 自然体',savedTime=state.time;
-    if(body.clipNames.includes(wanted)){playClip(wanted,state.playing,true);clock.time=Math.min(savedTime,clock.duration);}
-    else{clock.playing=false;setStatus('指定モーションを読み込み中');}
+    if(!restoreSelection()){clock.playing=false;setStatus('指定モーションを読み込み中');}
     wireframe();refreshHelpers();frameModel(state.camera);syncControls();sample();
     document.dispatchEvent(new CustomEvent('review-model-loaded',{detail:{presetId:state.preset}}));
     setStatus('基本素材を表示中。追加素材は準備状況から確認できます。');
 
   }
   async function loadPreset(presetId=q('#preset').value||reviewPresets[0].id){
-    state.time=clock.time;state.playing=clock.playing;const token=++generation;loading?.abort();loading=new AbortController();clearBody();setStatus('実素材を読み込み中');
+    if(body){state.sequence=[...sequenceNames];}state.time=clock.time;state.playing=clock.playing;const token=++generation;loading?.abort();loading=new AbortController();clearBody();setStatus('実素材を読み込み中');
     q('#preset').value=presetId;state.preset=presetId;q('#model-url').value='';
     try{
       const result=await extensions.loadPreset({presetId,signal:loading.signal,onProgress:message=>{if(token===generation)setStatus(message);}});
@@ -143,7 +160,8 @@ async function startReview() {
     const url=URL.createObjectURL(file);try{await loadManual(url,file.name);}finally{URL.revokeObjectURL(url);q('#model-file').value='';}
   }));
   q('#clip').addEventListener('change',wrap(()=>{state.shared=false;state.time=0;playClip(q('#clip').value);}));
-  new MutationObserver(()=>{if(body&&!activeClip&&body.clipNames.includes(state.clip)){const t=state.time;playClip(state.clip,state.playing,true);clock.time=Math.min(t,clock.duration);sample();}}).observe(q('#clip'),{childList:true,subtree:true});
+  new MutationObserver(()=>{if(body&&!activeClip)restoreSelection();}).observe(q('#clip'),{childList:true,subtree:true});
+  document.addEventListener('review-play-sequence',wrap(event=>{state.shared=false;playSequence(event.detail?.names);}));
   q('#rest-pose').addEventListener('click',wrap(()=>playClip('',false)));
   q('#play-toggle').addEventListener('click',()=>{if(!action)return;if(clock.time>=clock.duration)clock.time=0;clock.playing=!clock.playing;sample();});
   q('#restart').addEventListener('click',()=>{clock.seek(0);sample();});
@@ -152,7 +170,7 @@ async function startReview() {
   q('#timeline').addEventListener('input',()=>{clock.seek(numeric('#timeline'));sample();});
   q('#loop-toggle').addEventListener('change',()=>{clock.loop=q('#loop-toggle').checked;state.loop=clock.loop;sample();});
   q('#speed').addEventListener('change',()=>{clock.speed=Math.max(.1,Math.min(2,numeric('#speed',1)));state.speed=clock.speed;});
-  q('#in-place').addEventListener('change',wrap(()=>{state.inPlace=q('#in-place').checked;const t=clock.time;playClip(state.clip,clock.playing,true);clock.time=t;sample();}));
+  q('#in-place').addEventListener('change',wrap(()=>{state.inPlace=q('#in-place').checked;const t=clock.time;playSequence([...sequenceNames],clock.playing,true);clock.time=t;restoringSequence=true;sample();restoringSequence=false;}));
   for(const id of ['#skeleton-toggle','#bounds-toggle'])q(id).addEventListener('change',refreshHelpers);
   q('#wireframe-toggle').addEventListener('change',wireframe);
   q('#grid-toggle').addEventListener('change',()=>{grid.visible=q('#grid-toggle').checked;ground.visible=grid.visible;});
@@ -161,12 +179,12 @@ async function startReview() {
     state.weaponScale=numeric('#weapon-scale',.5);state.weaponX=numeric('#weapon-x');state.weaponY=numeric('#weapon-y');state.weaponZ=numeric('#weapon-z');state.vfx=q('#overlay-toggle').checked;state.marker=numeric('#overlay-time',.42);syncControls();sample();
   });
   document.addEventListener('review-combat-mode',event=>{state.mode=event.detail.mode==='combat'?'combat':'normal';state.time=0;playClip(state.mode==='combat'?'Tidebreak / Idle':'通常 / 自然体',true,true);clock.loop=true;syncControls();sample();});
-  document.addEventListener('review-phase',event=>{const phases=metaFor()?.phases||[],index=Number(event.detail.index);if(phases[index]){clock.seek(phases[index][1]);sample();}});
-  q('#trigger-overlay').addEventListener('click',()=>{if(!activeClip)return;q('#overlay-toggle').checked=true;state.vfx=true;clock.seek(Math.min(clock.duration,numeric('#overlay-time',.42)+.02));sample();});
+  document.addEventListener('review-phase',event=>{const phases=metaFor()?.phases||[],index=Number(event.detail.index);if(phases[index]){clock.seek((sequenceFrame(sequence,clock.time)?.offset||0)+phases[index][1]);sample();}});
+  q('#trigger-overlay').addEventListener('click',()=>{if(!activeClip)return;q('#overlay-toggle').checked=true;state.vfx=true;clock.seek((sequenceFrame(sequence,clock.time)?.offset||0)+Math.min(activeClip.duration,numeric('#overlay-time',.42)+.02));sample();});
   document.querySelectorAll('[data-camera]').forEach(button=>button.addEventListener('click',wrap(()=>frameModel(button.dataset.camera))));
-  function stateText(){return ['輪廻転焦 Visual Review Lab',`Source: ${body?.label||'none'}`,`Clip: ${activeClip?.name||'rest'}`,`Time: ${clock.time.toFixed(3)} / ${clock.duration.toFixed(3)}`,`Speed: ${clock.speed}`,`In place: ${q('#in-place').checked}`,`Marker: ${q('#overlay-time').value} (preview only)`,`Posture: ${state.mode}`,`Loop: ${clock.loop}`,`Weapon: ${state.weaponId} / ${state.weaponEnabled} / scale ${q('#weapon-scale').value} / XYZ ${q('#weapon-x').value},${q('#weapon-y').value},${q('#weapon-z').value}`,`Note: ${q('#review-note').value}`,`Build: ${build.commit} / ${build.branch}`,`Assets: ${REVIEW_ASSET_REVISION}`].join('\n');}
+  function stateText(){return ['輪廻転焦 Visual Review Lab',`Source: ${body?.label||'none'}`,`Clip: ${activeClip?.name||'rest'}`,`Sequence: ${sequenceNames.join(' → ')||'rest'}`,`Time: ${clock.time.toFixed(3)} / ${clock.duration.toFixed(3)}`,`Speed: ${clock.speed}`,`In place: ${q('#in-place').checked}`,`Marker: ${q('#overlay-time').value} (preview only)`,`Posture: ${state.mode}`,`Loop: ${clock.loop}`,`Weapon: ${state.weaponId} / ${state.weaponEnabled} / scale ${q('#weapon-scale').value} / XYZ ${q('#weapon-x').value},${q('#weapon-y').value},${q('#weapon-z').value}`,`Note: ${q('#review-note').value}`,`Build: ${build.commit} / ${build.branch}`,`Assets: ${REVIEW_ASSET_REVISION}`].join('\n');}
   async function copy(text){await navigator.clipboard.writeText(text);setStatus('レビュー情報をコピーしました');}
-  q('#copy-review').addEventListener('click',wrap(()=>copy(stateText())));
+  // notebook.js owns the editable feedback dialog, including its explicit Copy action.
   q('#copy-link').addEventListener('click',wrap(()=>{
     const url=reviewStateURL(location.href,currentState());
     if(q('#model-url').value)url.searchParams.set('model',q('#model-url').value);
@@ -181,8 +199,8 @@ async function startReview() {
   new ResizeObserver(resize).observe(canvas);resize();
   syncControls();
   window.__reviewLab={snapshot:()=>({loaded:Boolean(body),clip:activeClip?.name||null,time:clock.time,source:body?.label||null,build:build.commit,state:currentState(),metadata:body?.motionMeta?[...body.motionMeta]:[],assetProblems:body?.assetProblems||[],weapon:body?.weaponDiagnostics||null,poseTransfer:body?.poseTransfer||null,worldPose:body?.bones?Object.fromEntries(['rightHand','leftHand','rightLowerArm','rightUpperArm','leftFoot','rightFoot'].map(n=>[n,body.bones[n].getWorldPosition(new THREE.Vector3()).toArray()])):null,
-    animations:body?.clipNames||[],calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,
-    pose:body?.bones?Object.fromEntries(Object.entries(body.bones).map(([name,bone])=>[name,[...bone.position.toArray(),...bone.quaternion.toArray()]])):null}),stateText,metadata:()=>body?.motionMeta?[...body.motionMeta]:[],seek:time=>{clock.seek(time);sample();},frame:frameModel};
+    sequence:[...sequenceNames],sequenceIndex,playing:clock.playing,duration:clock.duration,loop:clock.loop,speed:clock.speed,localTime:sequenceFrame(sequence,clock.time)?.time||0,posture:body?.postureDiagnostics||null,animations:body?.clipNames||[],calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,
+    pose:body?.bones?Object.fromEntries(Object.entries(body.bones).map(([name,bone])=>[name,[...bone.position.toArray(),...bone.quaternion.toArray()]])):null}),stateText,stateURL:()=>reviewStateURL(location.href,currentState()).href,metadata:()=>body?.motionMeta?[...body.motionMeta]:[],seek:time=>{clock.seek(time);sample();},frame:frameModel};
   canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();clock.playing=false;setStatus('WebGLコンテキストが失われました。再読み込みしてください。','error');});
   function tick(now){const raw=Math.max(0,(now-last)/1000);last=now;controls.update();if(!document.hidden){clock.update(raw);sample();renderer.render(scene,camera);frames.push(raw);if(frames.length>60)frames.shift();const avg=frames.reduce((a,b)=>a+b,0)/frames.length;q('#fps').textContent=avg?`${Math.round(1/avg)} FPS`:'0 FPS';}requestAnimationFrame(tick);}
   requestAnimationFrame(tick);

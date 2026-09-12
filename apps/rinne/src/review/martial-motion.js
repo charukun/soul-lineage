@@ -1,5 +1,6 @@
 import { THREE as T } from '@soul/rendering';
 import { solveTwoBone } from './pose-transfer.js';
+import { createHandClosure } from './hand-shape.js';
 const clamp=T.MathUtils.clamp;
 const ease=x=>{x=clamp(x,0,1);return x*x*x*(x*(x*6-15)+10);};
 const rise=(t,a,b)=>ease((t-a)/(b-a));
@@ -31,6 +32,7 @@ export function createMartialClips(vrm) {
       const name=side+finger+seg,b=bones[name]; if(b)fingerAxes[name]=across.clone().applyQuaternion(b.getWorldQuaternion(new T.Quaternion()).invert());
     }
   }
+  const closures=Object.fromEntries(['left','right'].map(side=>[side,createHandClosure(bones,side)]));
   const reset=()=>{for(const[name,b]of Object.entries(bones)){b.position.copy(rest[name].p);b.quaternion.copy(rest[name].q);}};
   const rot=(name,x=0,y=0,z=0)=>{if(bones[name])bones[name].quaternion.copy(rest[name].q).multiply(new T.Quaternion().setFromEuler(new T.Euler(x*flip,y,z*flip,'YXZ')));};
   const setWorld=(bone,q)=>{bone.quaternion.copy(bone.parent.getWorldQuaternion(new T.Quaternion()).invert()).multiply(q).normalize();bone.updateWorldMatrix(false,true);};
@@ -48,12 +50,7 @@ export function createMartialClips(vrm) {
     const wrist=bones[side+'Hand'],forearm=wrist.getWorldPosition(vec()).sub(bones[side+'LowerArm'].getWorldPosition(vec())).normalize();
     const q=new T.Quaternion().setFromUnitVectors(handLong[side],forearm).multiply(handRestWorld[side]);
     q.premultiply(new T.Quaternion().setFromAxisAngle(forearm,pronation));setWorld(wrist,q);
-    for(const finger of ['Index','Middle','Ring','Little']) for(const[seg,angle]of [['Proximal',.58],['Intermediate',1.32],['Distal',.93]]) {
-      const name=side+finger+seg,b=bones[name];if(b&&fingerAxes[name])b.quaternion.copy(rest[name].q).multiply(new T.Quaternion().setFromAxisAngle(fingerAxes[name],angle));
-    }
-    for(const[seg,angle]of [['Metacarpal',.48],['Proximal',.70],['Distal',.48]]){
-      const name=side+'Thumb'+seg,b=bones[name];if(b&&fingerAxes[name])b.quaternion.copy(rest[name].q).multiply(new T.Quaternion().setFromAxisAngle(fingerAxes[name],angle));
-    }
+    closures[side](1);
   }
   function evaluate(kind,t){
     reset();
