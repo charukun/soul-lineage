@@ -1,0 +1,67 @@
+name: Director PR98 read-only diagnostic
+on:
+  push:
+    branches: [diagnostics/director-pr98-20260913]
+    paths: [.github/workflows/director-pr98-diagnostic.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: cef7d4caae3b05a66418565d39e9eff792711d9d
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: |
+          mkdir -p /tmp/director-evidence
+          git rev-parse HEAD > /tmp/director-evidence/SOURCE_COMMIT
+          git ls-files -s > /tmp/director-evidence/GIT_INDEX
+          python3 - <<'PY'
+          import subprocess,tarfile,pathlib
+          paths=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          with tarfile.open('/tmp/director-evidence/exact-text.tar.gz','w:gz') as out:
+            for p in filter(None,paths):
+              try: pathlib.Path(p).read_text(encoding='utf-8')
+              except (UnicodeError,ValueError): continue
+              out.add(p,arcname=p)
+          PY
+          npm ci
+          npx playwright install --with-deps chromium
+          APP_ENV=dev npm run build --workspace @soul/village
+      - name: Native first build and camera inspection
+        run: |
+          cat > director-diagnostic.mjs <<'JS'
+          import {chromium,expect} from '@playwright/test';
+          import {spawn} from 'node:child_process';
+          import {writeFileSync} from 'node:fs';
+          const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port','5274','--strictPort'],{cwd:process.cwd(),stdio:'inherit'});
+          server.kill();
+          const preview=spawn(process.execPath,[process.cwd()+'/node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port','5274','--strictPort'],{cwd:process.cwd()+'/apps/village',stdio:'inherit'});
+          const browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader']});
+          const context=await browser.newContext({viewport:{width:390,height:844}});
+          await context.tracing.start({screenshots:true,snapshots:true,sources:true});
+          const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+          const snapshots=[];
+          async function snapshot(label){const state=await page.evaluate(()=>{const {world,view}=window.village;const host=world.objects.find(o=>o.kind==='storage');const rect=view.canvas.getBoundingClientRect();const points=[];for(const y of [2,1,.5,3])for(const dx of [0,-1,1,-2,2])for(const dz of [0,-1,1]){const p=view.project(host.x+dx,y,host.z+dz),x=p.x+rect.left,z=p.y+rect.top;const element=document.elementFromPoint(x,z);if(x>10&&x<innerWidth-10&&z>100&&z<innerHeight-140&&element===view.canvas&&view.pick(x,z)===host.id&&!view.pickPerson(x,z))points.push({x,y:z});}return{host,projection:view.project(host.x,1,host.z),target:view.target,span:view.span,points,canvas:{width:rect.width,height:rect.height,left:rect.left,top:rect.top}};});snapshots.push({label,...state});console.log(label,JSON.stringify(state));await page.screenshot({path:'/tmp/director-evidence/'+label+'.png'});return state;}
+          try{
+            await page.goto('http://127.0.0.1:5274/',{waitUntil:'domcontentloaded'});
+            await expect(page.locator('#loading')).toBeHidden({timeout:45000});await page.locator('#muraEnterVillage').click();await expect(page.locator('#muraEntry')).toBeHidden();
+            await page.locator('#build').click();await page.locator('[data-kind="tent"]').click();await page.locator('#muraFindPlacement').click();await page.locator('#cancelPlace').click();await expect(page.locator('#placement')).toBeHidden();await page.locator('#deselect').click();
+            await snapshot('before-camera');await page.mouse.move(195,420);await page.mouse.wheel(0,650);await page.waitForTimeout(500);let s=await snapshot('zoomed-out');
+            for(let i=0;i<4&&!s.points.length;i++){const dx=Math.max(-110,Math.min(110,195-s.projection.x)),dy=Math.max(-170,Math.min(170,420-s.projection.y));await page.mouse.move(195,420);await page.mouse.down();await page.mouse.move(195+dx,420+dy,{steps:10});await page.mouse.up();await page.waitForTimeout(500);s=await snapshot('pan-'+i);}
+            if(s.points.length){await page.mouse.click(s.points[0].x,s.points[0].y);await page.locator('#enter').click();await expect.poll(()=>page.evaluate(()=>window.village.view.roomId)).toBe(s.host.id);await page.locator('#build').click();await page.locator('[data-kind="dirtbed"]').click();await page.locator('#muraFindPlacement').click();await page.locator('#cancelPlace').click();await expect(page.locator('#placement')).toBeHidden();await page.screenshot({path:'/tmp/director-evidence/furnished.png'});console.log('FURNITURE',await page.evaluate(()=>window.village.world.objects.find(o=>o.kind==='storage').room));}
+          }finally{writeFileSync('/tmp/director-evidence/camera.json',JSON.stringify({snapshots,errors},null,2));await context.tracing.stop({path:'/tmp/director-evidence/trace.zip'});await browser.close();preview.kill();}
+          JS
+          node director-diagnostic.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: director-pr98-exact-diagnostic
+          path: /tmp/director-evidence/
+          retention-days: 3
