@@ -1,6 +1,11 @@
 .pull-board { padding: 10px 12px; }
-.pull-counts { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 5px; margin-bottom: 7px; }
-.pull-counts .badge { justify-content: center; min-width: 0; padding-inline: 4px; font-size: 9px; overflow: hidden; text-overflow: ellipsis; }
+.pull-filters { display: flex; gap: 5px; margin: 0 -2px 7px; padding: 0 2px 2px; overflow-x: auto; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.pull-filters::-webkit-scrollbar { display: none; }
+.pull-filter { flex: 0 0 auto; min-height: 28px; padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-2); color: var(--muted); font: inherit; font-size: 9px; font-weight: 800; line-height: 1; white-space: nowrap; }
+.pull-filter.active { color: var(--text); background: color-mix(in srgb,var(--panel-2) 82%,white 18%); border-color: color-mix(in srgb,var(--info) 55%,var(--line)); }
+.pull-filter.progress.active { border-color: color-mix(in srgb,var(--progress) 70%,var(--line)); box-shadow: inset 0 0 0 1px color-mix(in srgb,var(--progress) 18%,transparent); }
+.pull-filter.warning.active { border-color: color-mix(in srgb,var(--warning) 70%,var(--line)); color: #ffe3a3; box-shadow: inset 0 0 0 1px color-mix(in srgb,var(--warning) 18%,transparent); }
+.pull-filter.ok.active { border-color: color-mix(in srgb,var(--ok) 70%,var(--line)); color: #a8f2c8; box-shadow: inset 0 0 0 1px color-mix(in srgb,var(--ok) 18%,transparent); }
 .pull-list { display: grid; gap: 0; }
 .pull-row { display: block; min-width: 0; padding: 8px 2px; border-top: 1px solid rgba(255,255,255,.055); color: inherit; text-decoration: none; }
 .pull-row:first-child { border-top: 0; }
@@ -21,9 +26,6 @@
 .completed-pulls summary { min-height: 34px; font-size: 11px; color: var(--muted); }
 .visual-review-card { border-style: dashed; background: color-mix(in srgb, var(--panel) 90%, #15253d 10%); }
 .visual-review-note { margin: 0 0 5px; color: var(--muted); font-size: 10px; }
-@media (max-width: 340px) {
-  .pull-counts { grid-template-columns: repeat(2,minmax(0,1fr)); }
-}
 @media (max-width: 430px) {
   .pull-row-bottom { grid-template-columns: minmax(0,1fr); gap: 4px; }
   .pull-meta { justify-content: flex-start; flex-wrap: wrap; }
