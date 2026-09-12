@@ -1,71 +1,115 @@
 # RINNE Dispatcher
 
-RINNE Dispatcher is a thin control-plane entry point for turning one natural-language instruction into the appropriate existing execution route without replacing GitHub as the source of truth.
+RINNE Dispatcher turns one natural-language instruction into an isolated implementation worker while keeping GitHub, not a Chat/agent session, as the source of truth.
 
-## Scope
+## Why this route
 
-The dispatcher may start an implementation worker for a self-contained code task. It does not introduce a separate task database, custom task ID state machine, or a second Integration queue. Existing GitHub branch / Draft PR / Ready / merged state remains authoritative, and existing `Depends-On`, Integration, browser repair, PULSE, heartbeat and notification flows remain in force.
+The repository already has an event-driven Integration path for Ready PRs. Dispatcher therefore does **not** create a second Integration worker, a custom task database, or a task-ID state machine. It fills only the missing front half: creating a dedicated implementation work item from a short instruction.
 
-The first implementation route is an OpenAI managed Agent Session created through an authenticated PULSE API endpoint. The spawned worker must operate on `charukun/soul-lineage` and follow the current `AGENTS.md`, `docs/DEVELOPMENT.md`, `docs/INTEGRATION.md`, and repository-local policies at execution time.
+The first release uses a normal GitHub Draft PR as the work record and the official OpenAI Codex GitHub Action as the isolated implementation worker. This avoids requiring a ChatGPT-project child-chat API and gives the worker a checked-out repository while preserving the existing Draft → Ready → Integration lifecycle.
 
-## Dispatch contract
+## User-facing command
 
-`POST /api/dispatch`
+A project Chat may treat requests such as these as dispatch requests when the work is self-contained and can run without iterative human visual/semantic direction:
 
-Request body:
+- `派生して。Villageの初回建築導線を改善`
+- `別セッションで。faviconの不具合を直して`
+- `この小修正を並列で進めて`
 
-```json
-{
-  "instruction": "Visual Review Labの描画領域を7割にする",
-  "mode": "implementation"
-}
+Interactive design work, ambiguous specification work, large visual iteration, and tasks that need repeated human feedback remain normal Chat / WORK sessions.
+
+## Bootstrap contract
+
+For an implementation dispatch, the initiating Chat/WORK performs only the bootstrap below. It does not implement the requested code itself.
+
+1. Re-read latest `develop`, `AGENTS.md`, `docs/DEVELOPMENT.md`, `docs/INTEGRATION.md`, and relevant policies.
+2. Create `dispatch/<short-slug>` from the current latest `develop`.
+3. Add one temporary `.task-start/<short-slug>.md` marker containing the requested scope and bootstrap/recovery information. This is only the meaningful initial diff needed to create the Draft PR and is removed before a successful Ready transition.
+4. Open a develop-targeting **Draft PR** whose body begins with the normal two-line contract and contains:
+
+```text
+RINNE-Dispatch: implementation
+
+## Request
+<the implementation request>
 ```
 
-`mode` is optional and defaults to `implementation` in the first release. The dispatcher intentionally does not create a second automatic Integration worker. Ready PR processing continues through the repository's existing Integration workflow.
+5. Stop the bootstrap role. The `RINNE Dispatch` GitHub workflow starts from the `pull_request.opened` event.
 
-A successful request creates a managed Agent Session and returns the OpenAI session identifier and status. That session identifier is transport metadata only. Recovery and completion are determined from the worker's GitHub branch, Draft/Ready PR, commit and existing Integration state, not from the session identifier.
+No separate task identifier is created. The branch, Draft PR, head SHA, workflow run, and later Ready PR are the recovery coordinates.
 
-## Spawned implementation worker rules
+## Eligibility and trust boundary
 
-The generated worker instruction requires all of the following:
+The workflow runs the implementation worker only when all of these conditions are true:
 
-1. Re-fetch latest `develop`, `AGENTS.md`, `docs/DEVELOPMENT.md`, `docs/INTEGRATION.md` and relevant repository policy before editing.
-2. Use latest `develop` as the implementation base.
-3. Create and push a dedicated branch and develop-targeting Draft PR before code edits, following the PR body contract.
-4. Implement only the requested scope and preserve app/package boundaries.
-5. Run the minimum affected fast verification required by repository policy.
-6. Commit and push, update the PR with actual verification, mark it Ready for review, then stop without synchronously waiting for CI/merge/DEV.
-7. Never modify `main` or Production unless an explicit future request authorizes it.
-8. Do not weaken tests, browser assertions, review requirements, Integration rules or repository protections to make the task pass.
-9. Do not create sub-agents for normal implementation work.
+- PR is Draft.
+- base is `develop`.
+- head belongs to the same repository.
+- head branch starts with `dispatch/`.
+- author association is `OWNER`, `MEMBER`, or `COLLABORATOR`.
+- PR body contains `RINNE-Dispatch: implementation` and a non-empty `## Request` section.
 
-## Authentication and secrets
+The workflow deliberately uses `pull_request`, not `pull_request_target`. Forked/untrusted PR content is not granted the OpenAI credential. The Codex Action itself also enforces repository write-access checks.
 
-The dispatch endpoint is disabled unless all required secrets/configuration are present. Secrets are Worker-side only and must never be returned to the browser or embedded in static assets.
+## Worker isolation
 
-Required runtime values:
+`openai/codex-action` is pinned to an exact commit and runs with:
 
-- `RINNE_DISPATCH_TOKEN`: bearer token required by `/api/dispatch` and private session-status endpoints.
-- `OPENAI_API_KEY`: OpenAI API credential used only by the Worker.
-- `RINNE_AGENT_ENVIRONMENT_TEMPLATE_ID`: reusable OpenAI-hosted environment template that contains the repository execution setup.
+- a workspace-limited permission profile,
+- `drop-sudo` safety strategy,
+- checkout credentials not persisted into the worker workspace,
+- the OpenAI API key supplied only to the action's secure proxy path.
 
-Optional runtime values:
+The generated prompt places repository delivery/safety rules above the user request. The worker is told to edit the working tree only. It must not create another branch/PR, push, mark Ready, merge, touch main/Production, spawn sub-agents, or weaken validation.
 
-- `RINNE_AGENT_MODEL`: model used for spawned sessions. The Worker keeps this configurable instead of baking policy to a particular model release.
+The workflow wrapper owns commit, push, result recording, and Ready transition.
 
-The reusable environment template is expected to provide normal `git` access to the repository and the credentials required for branch/PR operations. GitHub credentials belong in the confidential environment template, not in the dispatch request or response.
+## Completion behavior
 
-## Failure behavior
+When substantive changes exist:
 
-Authentication failures return `401`. Invalid instructions return `400`. Missing server configuration returns `503` with only the names of missing configuration values. OpenAI API failures return a sanitized upstream error and do not expose credentials or confidential environment contents.
+1. Remove the transient `.task-start` marker from the final diff.
+2. Commit the implementation locally.
+3. Run `npm ci`.
+4. Run `node scripts/validate.mjs fast origin/develop HEAD`.
+5. Push the same dispatch branch.
+6. Record the exact commit and fast verification in the PR.
+7. Record `dispatch/implementation=success` on the exact head.
+8. Mark the PR Ready for review and stop.
 
-If worker execution later fails, recovery follows the repository's existing branch / commit / PR / handoff / CI state. The dispatcher does not attempt to infer completion from ChatGPT app notifications and does not replace the existing external SUCCESS / FAILED notification path.
+Existing Integration then owns CI monitoring, merge, DEV deploy and public/browser verification. Dispatcher never polls CI waiting for completion.
 
-## Acceptance criteria for the first release
+If the worker finds the request already satisfied and produces no substantive diff, the Draft PR is commented and closed without merge rather than manufacturing a meaningless change.
 
-- Authenticated `POST /api/dispatch` creates a managed Agent Session with initial implementation instructions.
-- `GET /api/dispatch/sessions/:id` can retrieve the private upstream session state for diagnostics.
-- Unauthorized callers cannot start or inspect sessions.
-- Missing secrets fail closed.
-- Unit tests cover request validation, authorization, session body construction and upstream failure sanitization.
-- Existing PULSE state/read APIs and Integration behavior remain unchanged.
+## Failure and recovery
+
+On a failed Codex/validation run, the workflow keeps the PR Draft. Any recoverable local changes are committed/pushed as WIP when possible, a failure commit status is written, and the PR comment records:
+
+- failed route,
+- branch,
+- commit,
+- workflow/log URL,
+- normal-git / connected GitHub API / Codespaces recovery route.
+
+Recovery starts from that same Draft PR and branch. The dispatcher does not create a replacement task or infer success from ChatGPT application notifications.
+
+## Secrets and configuration
+
+Required GitHub Actions secret:
+
+- `OPENAI_API_KEY`: credential used by the official Codex Action.
+
+Optional repository variable:
+
+- `RINNE_CODEX_MODEL`: explicit Codex model override. If empty, the action/CLI default model is used.
+
+The standard GitHub Actions token is used only by wrapper steps after the Codex worker finishes to push and update the PR. Checkout uses `persist-credentials: false`, so the implementation worker does not receive persisted repository credentials through the working tree.
+
+## First-release acceptance criteria
+
+- A properly formed same-repository Draft PR on `dispatch/*` starts exactly one implementation workflow on open.
+- Invalid/fork/non-Draft dispatch attempts do not run the worker.
+- The worker receives only the `## Request` scope beneath repository safety instructions.
+- Successful work is fast-validated, pushed on the same branch, and made Ready for existing Integration.
+- Failed work stays Draft and leaves a GitHub recovery point.
+- No independent Integration queue, task database, Task-ID state machine, main change, or Production change is introduced.
