@@ -1,0 +1,77 @@
+name: Director public hunt native playthrough
+on:
+  push:
+    branches: [diagnostics/director-pr98-20260913]
+    paths: [.github/workflows/director-public-hunt.yml]
+permissions:
+  contents: read
+jobs:
+  play:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: 8281167ef2f535f5e75a22f016d188b21b4a75b8
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci && npx playwright install --with-deps chromium
+      - name: Approach, auto combat, devour, equip and return without state injection
+        run: |
+          mkdir -p test-results/director-hunt
+          cat > director-public-hunt.mjs <<'JS'
+          import {chromium,expect} from '@playwright/test';
+          import {writeFileSync} from 'node:fs';
+          const out='test-results/director-hunt',url='https://charukun.github.io/soul-lineage/dev/demon/';
+          const browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader']});
+          const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true});
+          await context.tracing.start({screenshots:true,snapshots:true,sources:true});
+          const page=await context.newPage(),events=[],errors=[];
+          page.on('pageerror',e=>errors.push(e.message));let version,final,entry,returning=false,equipped=false,captured=false;
+          const read=()=>page.evaluate(()=>window.__NIGHT_HUNT__.snapshot());
+          async function shot(name){await page.screenshot({path:out+'/'+name+'.png'});}
+          try {
+            const response=await page.goto(url,{waitUntil:'domcontentloaded'});expect(response.status()).toBe(200);
+            version=await(await context.request.get(url+'version.json')).json();
+            await expect(page.locator('#game')).toHaveAttribute('data-renderer','ready',{timeout:45000});
+            await expect(page.locator('#game')).toHaveAttribute('data-commit',version.commit);
+            await page.locator('#begin').click();await shot('01-raid-selection');
+            await page.locator('[data-village]').first().click();await expect(page.locator('#hud')).toBeVisible();
+            let state=await read();entry={x:state.player.x,z:state.player.z};await shot('02-entered');
+            await page.locator('#scent').click();
+            const started=Date.now();let lastStage='',step=0;
+            while(Date.now()-started<145000){
+              state=await read();final=state;
+              const stage=state.finished?'finished':state.devouring?'devouring':state.combat?'combat':state.eaten?'return':'approach';
+              events.push({step:step++,stage,player:state.player,time:state.time,eaten:state.eaten,input:state.input});
+              if(stage!==lastStage){await shot(String(step).padStart(3,'0')+'-'+stage);lastStage=stage;}
+              if(state.finished)break;
+              if(state.devouring){if(!captured){for(let i=0;i<6;i++){await shot('devour-'+i);await page.waitForTimeout(100);}captured=true;}else await page.waitForTimeout(300);continue;}
+              if(state.combat){await page.waitForTimeout(750);continue;}
+              if(state.eaten&&!returning){await page.locator('#memory').click();await shot('03-memory');const powers=page.locator('[data-power]');if(await powers.count()){await powers.first().click();const slots=page.locator('[data-slot]');if(await slots.count()){await slots.first().click();equipped=true;}}await page.locator('#sheet-close').click();await page.locator('#return').click();returning=true;}
+              const targets=state.npcs.filter(n=>!n.eaten&&!n.dead&&n.role!=='knight'&&n.role!=='acolyte').sort((a,b)=>Math.hypot(a.x-state.player.x,a.z-state.player.z)-Math.hypot(b.x-state.player.x,b.z-state.player.z));
+              const target=returning?entry:targets[0];if(!target)break;
+              const dx=target.x-state.player.x,dz=target.z-state.player.z,d=Math.hypot(dx,dz);
+              if(returning&&d<2.1){await page.waitForTimeout(2000);continue;}
+              const c=Math.cos(.33),s=Math.sin(.33),sx=(c*dx-s*dz)/(d||1),sy=(s*dx+c*dz)/(d||1);
+              await page.mouse.move(195,470);await page.mouse.down();await page.mouse.move(195+sx*52,470+sy*52,{steps:8});await page.waitForTimeout(700);await page.mouse.up();
+            }
+            final=await read();await shot('99-final');
+            const saved=final.profile;await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('#game')).toHaveAttribute('data-renderer','ready',{timeout:45000});const restored=await read();
+            events.push({stage:'reload',visitsPreserved:JSON.stringify(saved.visits)===JSON.stringify(restored.profile.visits),unlocked:restored.profile.unlocked,equipped:restored.profile.equipped});
+            await shot('100-reloaded');expect(errors).toEqual([]);
+          } finally {
+            writeFileSync(out+'/report.json',JSON.stringify({url,version,entry,captured,equipped,returning,final,events,errors},null,2));
+            await context.tracing.stop({path:out+'/trace.zip'});await browser.close();
+          }
+          JS
+          node director-public-hunt.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: director-public-hunt-20260913
+          path: test-results/director-hunt/
+          retention-days: 7
