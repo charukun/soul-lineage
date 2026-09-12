@@ -44,6 +44,14 @@ jobs:
             try { const r = await get(url); const html = await r.text(); console.log('TOOL_AUDIT', JSON.stringify({ url, http: r.status, title: html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || null })); }
             catch (error) { console.log('TOOL_AUDIT', JSON.stringify({ url, error: error.message })); }
           }
+          try {
+            const r = await get('https://rinne-ops.c-okamoto.workers.dev/api/state');
+            const s = await r.json();
+            console.log('PULSE_RUNTIME_AUDIT', JSON.stringify({ http: r.status, schemaVersion: s.schemaVersion,
+              syncStatus: s.syncStatus, syncError: s.syncError, generatedAt: s.generatedAt, lastAttemptAt: s.lastAttemptAt,
+              githubRateRemaining: s.githubRateRemaining, refreshReason: s.refreshReason,
+              applications: (s.applications || []).map(({ id, name, targets }) => ({ id, name, targets: (targets || []).map(({ environment, state, url, commit }) => ({ environment, state, url, commit })) })) }));
+          } catch (error) { console.log('PULSE_RUNTIME_AUDIT', JSON.stringify({ error: error.message })); }
           const missing = rows.filter(r => !r.registered || r.http !== 200);
           console.log('ENVIRONMENT_COVERAGE', missing.length ? `INCOMPLETE: ${missing.length} missing/unverified targets` : 'COMPLETE: all 9 targets registered and HTTP 200');
           appendFileSync(process.env.GITHUB_STEP_SUMMARY, '# Public environment audit\n\nThis is a read-only audit, not proof that this PR is deployed.\n\n| App | Environment | Manifest | HTTP | Commit |\n| --- | --- | --- | --- | --- |\n' + rows.map(r => `| ${r.app} | ${r.environment} | ${r.registered ? 'yes' : 'missing'} | ${r.http || r.error} | ${r.commit || 'unknown'} |`).join('\n') + `\n\nCoverage: ${missing.length ? 'INCOMPLETE' : 'COMPLETE'}\n`);
