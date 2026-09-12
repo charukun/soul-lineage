@@ -29,7 +29,7 @@ test('favicon links resolve inside the app for local, DEV and production subpath
   }
 });
 
-test('mobile fallback is a complete decodable 48px RGBA PNG, not an empty placeholder', () => {
+test('mobile fallback is a complete decodable 48px PNG, not an empty placeholder', () => {
   const link = links.find(link => link.type === 'image/png');
   assert.ok(link, 'PNG favicon is required');
   const png = asset(link.href);
@@ -37,23 +37,26 @@ test('mobile fallback is a complete decodable 48px RGBA PNG, not an empty placeh
   assert.equal(png.toString('ascii', 12, 16), 'IHDR');
   assert.equal(png.readUInt32BE(16), 48);
   assert.equal(png.readUInt32BE(20), 48);
-  assert.equal(png[24], 8);
-  assert.equal(png[25], 6);
+  assert.equal(png[24], 4, '4-bit palette');
+  assert.equal(png[25], 3, 'indexed PNG');
   assert.equal(png[28], 0, 'non-interlaced PNG');
   const data = [];
   let end = false;
+  let palette = false;
   for (let offset = 8; offset < png.length;) {
     const length = png.readUInt32BE(offset);
     assert.ok(offset + length + 12 <= png.length, 'PNG chunk must not be truncated');
     const type = png.toString('ascii', offset + 4, offset + 8);
+    if (type === 'PLTE') { palette = true; assert.equal(length, 8 * 3); }
     if (type === 'IDAT') data.push(png.subarray(offset + 8, offset + 8 + length));
     if (type === 'IEND') { end = true; assert.equal(length, 0); }
     offset += length + 12;
     if (end) assert.equal(offset, png.length, 'IEND must be the final chunk');
   }
   assert.ok(end);
+  assert.ok(palette);
   const pixels = inflateSync(Buffer.concat(data));
-  assert.equal(pixels.length, 48 * (1 + 48 * 4));
+  assert.equal(pixels.length, 48 * (1 + 48 / 2));
   assert.ok(pixels.some(byte => byte > 4), 'PNG must not be a blank placeholder');
 });
 
