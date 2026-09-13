@@ -1,4 +1,5 @@
 import { BASE_APPEARANCE_PARTS, canonicalAppearanceParts } from './appearance-parts.js';
+import { MASTER_ID } from './master-character.js';
 
 export const CHARACTER_REFERENCE_MODEL_VERSION = 1;
 
@@ -8,16 +9,18 @@ const freezeModel = model => Object.freeze({
 });
 
 /**
- * Character Workshop model catalog.
- * Reference sheets are alignment material only. The actual selectable profile
- * must point at already implemented MasterCharacter / modular-part contracts.
+ * Character Workshop reference-model catalog.
+ * Reference sheets align review with implementation; they never replace the
+ * audited MasterCharacter asset or authorize proposed/game-owned parts.
  */
 export const CHARACTER_REFERENCE_MODELS = Object.freeze({
   'shino.reference.v2': freezeModel({
     id: 'shino.reference.v2',
     label: 'Shino Reference v2',
+    kind: 'reference-preset',
     characterId: 'Sendagaya_Shino',
-    masterId: 'shino.master.v1',
+    masterId: MASTER_ID,
+    assetId: MASTER_ID,
     referencePath: 'docs/characters/references/shino/shino-character-reference-sheet-v2.webp',
     profile: BASE_APPEARANCE_PARTS,
     note: 'CURRENT MASTER と実装済みモジュラーパーツのみ。提案パーツやゲーム固有装備は含めない。'
