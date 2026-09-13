@@ -34,3 +34,13 @@ The **Motion QA** tab now supplies a 30-second source review, 8 fixed cameras,
 before/after, frame stepping, 1/6/12/30 comparison and structured issue JSON.
 See [Motion Quality Pipeline](MOTION_QUALITY.md) for the implementation, first case,
 validation and remaining visual/device gates.
+
+## NPC role-reference integration
+
+The ten `CONCEPT TARGET / NOT IMPLEMENTED` sheets under `docs/characters/references/npc-role-set/` are design targets for diversity, not runtime truth. Character Workshop must expose them as reference cards and report which visible traits are already representable by the current modular kit versus which remain proposed.
+
+The runtime-facing contract is metadata-first. `@soul/characters` may describe a reference archetype with age band, visual role, target silhouette, preferred existing modular slots, and proposed hair/outfit/gear cues. Existing implemented slots are allowed to influence deterministic generation only when the mapping uses an already-implemented part. A concept-only prop, armor piece, body feature, hairstyle or garment must remain explicitly proposed until an authored runtime asset is approved.
+
+Workshop comparison should allow a reviewer to choose a target archetype, regenerate 1/6/12/30 deterministic characters for that target, inspect the sheet beside the 3D stage, and see a coverage report split into `IMPLEMENTED MODULAR PARTS`, `PROPOSED PARTS`, and `GAME EQUIPMENT`. The existing free/mixed generation mode remains available and must not be replaced by reference-targeted generation.
+
+Initial archetypes: child boy, child girl, elderly man, elderly woman, guard, knight, blacksmith, laborer, hunter and arcanist. Child/elder references constrain age bands; role references map to the existing display roles where possible. This integration must not change Character save/schema, combat stats, hitboxes, inventory, network authority, lifecycle rules, or the audited Shino MasterCharacter.
