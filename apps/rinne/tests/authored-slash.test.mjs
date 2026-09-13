@@ -13,7 +13,7 @@ async function loadRig(){
   globalThis.window={assetBuffer:async id=>{
     const path=id.startsWith('motion:')?'motions/'+id.slice(7)+'.vrma':id+'_review.vrm';
     const b=await readFile(new URL('../public/simulator/assets/'+path,import.meta.url));
-    return b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);
+    return b.buffer.slice(b.byteOffset,b.byteLength);
   }};
   const parse=GLTFLoader.prototype.parseAsync;
   GLTFLoader.prototype.parseAsync=function(data,path){
@@ -40,6 +40,8 @@ test('slash preserves the existing combat clock and has continuous pose endpoint
   assert.deepEqual(SLASH_TIMING,{active:[.35,.64],contact:.5,launch:.34,plant:.49,chain:.86,lead:1});
   const start=sampleSlashPose(0),end=sampleSlashPose(1);
   assert.deepEqual(start,end);
+  assert.deepEqual(start.grip,[-.19,-.37,.35],'weapon hand must meet the normal sword guard at the slash seam');
+  assert.deepEqual(start.shield,[.24,-.36,.31],'free hand must meet the normal sword guard at the slash seam');
   for(const contact of [.3,.5,.7])assert.equal(slashTime(contact,contact),.5);
   for(let i=0;i<=1000;i++)for(const value of Object.values(sampleSlashPose(i/1000)))assert.ok(value.every(Number.isFinite));
 });
