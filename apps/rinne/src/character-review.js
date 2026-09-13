@@ -109,9 +109,28 @@ function start() {
   function aim(preset = 'overview') {
     const actor = actors[settings.selected]; if (!actor) return;
     let target, distance;
+    orbit.maxDistance = ['village','demon'].includes(preset) ? 120 : 45;
+    camera.fov = preset === 'demon' ? 42 : 38;
+    camera.updateProjectionMatrix();
+    if (preset === 'village') {
+      // Match MURAAAAAAA's normal 46m vertical span in perspective, without changing the game camera.
+      distance = 46 / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+      camera.position.set(distance * .28, distance * .62, distance * .74);
+      orbit.target.set(0,.85,0); camera.lookAt(orbit.target); orbit.update(); resetMeasure(); return;
+    }
+    if (preset === 'demon') {
+      const zoom = canvas.clientWidth / canvas.clientHeight > 1.3 ? 15 : 19;
+      camera.position.set(Math.sin(.33)*zoom*.88, zoom, Math.cos(.33)*zoom*.88);
+      orbit.target.set(0,.1,-2.6); camera.lookAt(orbit.target); orbit.update(); resetMeasure(); return;
+    }
     if (preset === 'overview' && settings.view === 'crowd' && settings.count > 1) {
-      target = new THREE.Vector3(0, .85, 0); distance = Math.max(6, Math.ceil(Math.sqrt(settings.count)) * 3.0 / Math.min(1, camera.aspect));
-      distance = Math.min(42, distance); camera.position.set(distance * .25, distance * .55, distance); orbit.target.copy(target);
+      const columns = Math.ceil(Math.sqrt(settings.count)), rows = Math.ceil(settings.count / columns);
+      const width = (columns-1)*2.1+2.6, depth = (rows-1)*2.3+2, height = 3;
+      target = new THREE.Vector3(0, 1.15, 0);
+      const tangent = Math.tan(THREE.MathUtils.degToRad(camera.fov/2)), elevation = .48;
+      distance = Math.max(width/(2*tangent*camera.aspect), (height*Math.cos(elevation)+depth*Math.sin(elevation))/(2*tangent)) + depth*.5;
+      distance = Math.max(6,distance)*1.12; orbit.maxDistance = Math.max(45,distance*1.2);
+      camera.position.copy(target).add(new THREE.Vector3(0, Math.sin(elevation)*distance, Math.cos(elevation)*distance)); orbit.target.copy(target);
     } else {
       const look = appearances[settings.selected], height = look.adultHeightMetres * look.scale * look.height;
       actor.root.updateWorldMatrix(true, true);

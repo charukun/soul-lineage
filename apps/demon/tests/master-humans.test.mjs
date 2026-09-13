@@ -26,3 +26,11 @@ test('review model resolves to sibling Rinne DEV deployment',()=>{
  assert.equal(hashHuman('same'),hashHuman('same'));
  assert.notEqual(hashHuman('same'),hashHuman('different'));
 });
+
+test('NPC visual role is deterministic and does not write combat/pose/state',async()=>{
+ const {humanVisualIdentity}=await import('../src/master-humans.js');
+ const n={id:'npc-42',role:'hunter',state:'pursue',pose:{phase:.4},hp:123};const before=JSON.stringify(n);
+ const a=humanVisualIdentity(n);assert.equal(a.gear,'quiver');assert.deepEqual(a,humanVisualIdentity({...n}));
+ assert.equal(JSON.stringify(n),before);assert.equal(humanVisualIdentity({...n,role:'knight'}).gear,'armor');
+ assert.deepEqual(a.parts.body,humanVisualIdentity({...n,role:'knight'}).parts.body);
+});
