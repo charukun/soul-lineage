@@ -9,7 +9,7 @@ export function firstHuntGuide(game, profile, { sensed = false, memorySeen = fal
   if (game.fight) return advice('combat', '自動戦闘。操作は不要。序 → 破 → 急と敵の生命を見る。');
   if (game.eaten > 0) {
     if (!memorySeen && !returning) return advice('memory', '記憶を得た。「肉体」を押して、装着できる力を確認する。');
-    const d = Math.hypot(game.player.x - game.village.entry.x, game.player.z - game.village.entry.z);
+    const d = game.nearestEscape?.().distance ?? Math.hypot(game.player.x - game.village.entry.x, game.player.z - game.village.entry.z);
     return d < 2.8 ? advice('escape', '帰還口の輪の中で指を離す。その場で待つと帰還する。') :
       advice('return', '「帰路」を押すと、出口方向と残り距離が出る。');
   }
