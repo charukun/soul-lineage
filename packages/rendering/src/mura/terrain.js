@@ -39,5 +39,7 @@ const view={scene,outside,getProp},UP=new T.Vector3(0,1,0);
  // Small motes over the village, as ambience rather than collectible currency.
  const pv=[];for(let i=0;i<80;i++)pv.push((rand(i+14)-.5)*140,1+rand(i+63)*12,(rand(i+126)-.5)*140);const pg=new T.BufferGeometry();pg.setAttribute('position',new T.Float32BufferAttribute(pv,3));view.motes=new T.Points(pg,new T.PointsMaterial({color:0xfff1c0,size:.1,transparent:true,opacity:.5,depthWrite:false}));view.outside.add(view.motes);
  
-return view;
+// Return generated terrain state only; do not replace host methods with injected callbacks.
+const {scene:hostScene,outside:hostOutside,getProp:hostGetProp,...terrain}=view;
+return terrain;
 }
