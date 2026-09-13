@@ -91,3 +91,23 @@ document.querySelector('#reload')?.addEventListener('click', loadBoard);
 setTimeout(loadBoard, 0);
 setInterval(() => { if (!document.hidden) loadBoard(); }, 60000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) loadBoard(); });
+
+// Deep links into a collapsed operational panel reveal it before scrolling.
+function revealSection() {
+  const id = location.hash.slice(1);
+  const target = id && document.getElementById(id);
+  if (!target) return;
+  let parent = target;
+  while (parent) { if (parent.tagName === 'DETAILS') parent.open = true; parent = parent.parentElement; }
+  document.querySelectorAll('.section-tabs a').forEach(link => {
+    if (link.hash === location.hash) link.setAttribute('aria-current', 'location');
+    else link.removeAttribute('aria-current');
+  });
+  target.scrollIntoView({ block: 'start', behavior: 'instant' });
+}
+window.addEventListener('hashchange', revealSection);
+document.addEventListener('click', event => {
+  const link = event.target.closest('a[href^="#"]');
+  if (link && link.hash === location.hash) revealSection();
+});
+revealSection();

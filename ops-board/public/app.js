@@ -91,17 +91,34 @@ function environmentCard(env) {
 }
 
 function renderAlerts(alerts = []) {
-  const section = $('#alert-section');
   const root = $('#alerts');
   root.replaceChildren();
-  section.hidden = alerts.length === 0;
-  $('#alert-count').textContent = alerts.length ? `${alerts.length}件` : '';
-  for (const item of alerts) {
-    const box = safeHref(item.url) ? link('', item.url, `alert ${item.tone}`) : el('div', `alert ${item.tone}`);
+  $('#alert-count').textContent = `${alerts.length}件`;
+  $('#nav-alert-count').textContent = String(alerts.length);
+  if (!alerts.length) {
+    const clear = el('div', 'problem-clear');
+    clear.append(el('strong', '', '確認した範囲に問題はありません'), el('span', 'muted', '最終取得時点の情報です'));
+    root.append(clear); return;
+  }
+  const sorted = [...alerts].sort((a, b) => (a.tone === 'danger' ? 0 : 1) - (b.tone === 'danger' ? 0 : 1));
+  const make = item => {
+    const box = el('article', `alert ${item.tone}`);
     box.dataset.viewKey = `alert:${item.type}:${item.prNumber || item.url || item.title}`;
-    box.append(el('strong', '', item.title));
-    box.append(el('p', '', `${item.detail || ''}${item.since ? ` / ${time(item.since)}から` : ''}`));
-    root.append(box);
+    const head = el('div', 'problem-head');
+    head.append(badge(item.tone === 'danger' ? '要対応' : '要確認', item.tone), el('strong', '', item.title));
+    box.append(head, el('p', '', `${item.detail || ''}${item.since ? ` / ${time(item.since)}から` : ''}`));
+    if (safeHref(item.url)) box.append(link('原因・対応を確認 ↗', item.url, 'problem-action'));
+    else if (item.section) {
+      const action = el('a', 'problem-action', '詳細を確認 →'); action.href = item.section; box.append(action);
+    }
+    const action = box.querySelector('.problem-action');
+    if (action) action.dataset.viewKey = `action:${box.dataset.viewKey}`;
+    return box;
+  };
+  sorted.slice(0, 3).forEach(item => root.append(make(item)));
+  if (sorted.length > 3) {
+    const rest = el('div', 'alerts'); sorted.slice(3).forEach(item => rest.append(make(item)));
+    root.append(details(`ほかの問題 ${sorted.length - 3}件を見る`, rest, 'remaining-problems'));
   }
 }
 

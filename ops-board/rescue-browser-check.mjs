@@ -25,7 +25,7 @@ page.on('pageerror',e=>errors.push(e.message));
 page.on('request',r=>{if(new URL(r.url()).hostname==='api.github.com')errors.push('Browser called GitHub API');});
 const checks=[]; const check=(name)=>{checks.push(name);console.log('PASS '+name);};
 try{
-  await page.goto(base);await page.waitForSelector('.rs-worker-pool .rs-card');
+  await page.goto(base);await page.locator('#rescue-section > summary').click();await page.waitForSelector('.rs-worker-pool .rs-card');
   assert.equal(await page.locator('#rescue-section h2').textContent(),'INTEGRATION RESCUE');
   assert.match(await page.locator('.rs-workers-total').innerText(),/4 \/ 6 ACTIVE/);check('section and active count');
   assert.equal(await page.locator('.rs-worker-pool .rs-card').count(),5);
@@ -42,7 +42,7 @@ try{
   await page.locator('#reload').click();await page.waitForFunction(()=>!document.querySelector('#reload').disabled);
   assert.equal(await page.locator('.rs-card[data-pr="120"] details').getAttribute('open'),'');check('disclosure survives snapshot refresh');
   for(const width of [320,390,673,1100]){
-    await page.setViewportSize({width,height:844});await page.locator('a[href="#rescue-section"]').click();await page.waitForTimeout(200);
+    await page.setViewportSize({width,height:844});await page.locator('#rescue-section > summary').scrollIntoViewIfNeeded();await page.waitForTimeout(200);
     const dimensions=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
     assert.ok(dimensions.scroll<=width+1,JSON.stringify(dimensions));
     await page.screenshot({path:`${out}/rescue-${width}.png`});check(`mobile/desktop no overflow ${width}px`);

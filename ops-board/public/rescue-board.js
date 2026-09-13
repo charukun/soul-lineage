@@ -74,6 +74,11 @@ function group(title, records, now, staleMs, className = '') {
 export function renderRescue(view, now = Date.now()) {
   if (!root) return;
   root.replaceChildren();
+  const summary = document.querySelector('#rescue-summary');
+  if (summary) {
+    const stale = !Number.isFinite(Date.parse(view?.generatedAt)) || now - Date.parse(view?.generatedAt) > 12 * 60000;
+    summary.textContent = !view?.available ? '未取得' : stale || view.observationError ? '最新状態は未確認' : `修復中 ${view.counts.active} · 待ち ${view.counts.queued + view.counts.blocked} · 要確認 ${view.counts.manual + view.counts.stale}`;
+  }
   if (!view?.available) {
     root.append(node('p', 'rs-empty', 'RESCUE · 状態未取得'), node('p', 'rs-note', view?.observationError || '最初のCoordinator実行と状態取得を待っています。稼働数はまだ未確認です。')); return;
   }

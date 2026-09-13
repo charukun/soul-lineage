@@ -55,10 +55,10 @@ jobs:
           node --test tests/ops-*.test.mjs tests/pulse-*.test.mjs
           grep -q '<title>PULSE</title>' ops-board/public/index.html
           grep -q 'favicon.svg' ops-board/public/index.html
-          grep -q '要対応タスク' ops-board/public/index.html
+          grep -q '現在の問題' ops-board/public/index.html
           grep -q '公開・自動処理の状態' ops-board/public/index.html
           grep -q 'diagnostic-grid' ops-board/public/index.html
-          grep -q 'アプリ別の公開状況' ops-board/public/index.html
+          grep -q 'アプリの公開ステータス' ops-board/public/index.html
           grep -q 'ゲーム / 専用開発版' ops-board/public/app-board.js
           grep -q 'APP_ICONS' ops-board/public/app-board.js
           grep -q 'grid-template-columns:repeat(3,minmax(0,1fr))' ops-board/public/app-board.css
@@ -160,7 +160,7 @@ jobs:
         run: |
           page=$(curl -fsS --retry 4 --retry-delay 2 "${OPS_URL}")
           printf '%s' "$page" | grep -q '<title>PULSE</title>'
-          printf '%s' "$page" | grep -q '要対応タスク'
+          printf '%s' "$page" | grep -q '現在の問題'
           printf '%s' "$page" | grep -q '公開・自動処理の状態'
           printf '%s' "$page" | grep -q 'diagnostic-grid'
           printf '%s' "$page" | grep -q 'sync-freshness'

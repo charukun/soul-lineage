@@ -1,5 +1,5 @@
 import { subscribe, preserveView, disclosure } from './view-state.js';
-import { ageLabel } from './health.mjs';
+import { ageLabel, pullProgress } from './health.mjs';
 const $ = selector => document.querySelector(selector);
 const fmt = new Intl.DateTimeFormat('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
 const el = (tag, className, text) => {
@@ -14,6 +14,7 @@ const filterOptions = [['all', 'すべて', 'info'], ['Draft', '作業中', 'pro
 let selectedFilter = 'all';
 try { const saved = sessionStorage.getItem('rinne-ops:filter'); if (filterOptions.some(([id]) => id === saved)) selectedFilter = saved; } catch { /* storage optional */ }
 let currentPullData = {};
+let currentIntegration = {};
 
 function renderTargetChips(root, pr) {
   const targets = Array.isArray(pr.targets) ? pr.targets : [];
@@ -57,12 +58,20 @@ function row(pr) {
   if (pr.monitoringOwner === 'Integration') meta.append(el('span', 'pull-target', 'CI監視: Integration'));
   if (pr.staleDraft && !pr.visualReview) meta.append(el('span', 'stale-note', 'しばらく更新なし'));
   bottom.append(meta); link.append(top, bottom);
+  const progress = pullProgress(pr, currentIntegration);
+  if (progress) link.append(el('p', `pull-progress ${progress.tone || 'info'}`, `${progress.label}${progress.reason ? ` · ${progress.reason}` : ''}`));
   return link;
 }
 function rows(items, emptyText) {
   const node = el('div', 'pull-list');
   if (!items.length) node.append(el('p', 'empty', emptyText));
-  else items.forEach(item => node.append(row(item)));
+  else {
+    items.slice(0, 6).forEach(item => node.append(row(item)));
+    if (items.length > 6) {
+      const rest = el('div', 'pull-list'); items.slice(6).forEach(item => rest.append(row(item)));
+      node.append(disclosure(`pulls:more:${selectedFilter}:${items[0]?.state}`, `残りのタスク ${items.length - 6}件を見る`, rest));
+    }
+  }
   return node;
 }
 function filterBar(items) {
@@ -89,6 +98,7 @@ function render(data = {}) {
   const active = items.filter(item => ['Draft', 'Ready'].includes(item.state));
   const completed = items.filter(item => ['Merged', 'Closed'].includes(item.state));
   const root = $('#pulls');
+  $('#task-summary').textContent = `進行中 ${active.length}件`;
   root.replaceChildren(filterBar(items));
   if (selectedFilter === 'all') {
     root.append(rows(active, '現在、作業中・統合待ちのPRはありません'),
@@ -101,6 +111,6 @@ function render(data = {}) {
   $('#visual-review-section').hidden = visual.length === 0;
 }
 subscribe((state, error) => {
-  if (state && !error) render(state.pullRequests || {});
+  if (state && !error) { currentIntegration = state.integration || {}; render(state.pullRequests || {}); }
   else if (!state) $('#pulls').replaceChildren(el('p', 'empty', 'PR一覧を取得できません。上部の取得状態を確認してください。'));
 });

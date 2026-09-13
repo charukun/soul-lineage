@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="./app-board.css">
   <link rel="stylesheet" href="./review-polish.css">
   <link rel="stylesheet" href="./rescue-board.css">
+  <link rel="stylesheet" href="./priority-board.css">
 </head>
 <body>
   <main class="shell">
@@ -24,58 +25,52 @@
     </header>
 
     <nav class="section-tabs" aria-label="画面内ナビゲーション">
-      <a href="#alert-section">要対応</a>
-      <a href="#rescue-section">RESCUE</a>
-      <a href="#tasks-section">開発タスク</a>
-      <a href="#apps-section">アプリ</a>
-      <a href="#details-section">公開・自動処理</a>
+      <a href="#alert-section">現在の問題 <span id="nav-alert-count">—</span></a>
+      <a href="#apps-section">公開ステータス</a>
+      <a href="#tasks-section">開発状況</a>
     </nav>
 
-    <section id="alert-section" class="board-section" hidden>
-      <div class="section-head"><h2>要対応タスク</h2><span id="alert-count" class="muted"></span></div>
-      <p class="section-description">同期の遅れ、統合の滞留、現在のCI失敗を表示します。最終取得時刻も確認してください。</p>
-      <div id="alerts" class="alerts"></div>
+    <section id="alert-section" class="board-section priority-section">
+      <div class="section-head"><h2>現在の問題</h2><span id="alert-count" class="muted">確認中</span></div>
+      <div id="alerts" class="alerts"><p class="card empty">現在の問題を確認中</p></div>
     </section>
 
-    <section id="rescue-section" class="board-section">
-      <div class="section-head"><h2>INTEGRATION RESCUE</h2></div>
-      <p class="section-description">PRを修復するWorkerと、統合までの進行を表示します。</p>
-      <div id="integration-rescue" class="card"><p class="empty">Rescue状態を確認中</p></div>
+    <section id="apps-section" class="board-section priority-section">
+      <div class="section-head"><h2>アプリの公開ステータス</h2><span id="app-summary" class="muted">確認中</span></div>
+      <div id="applications" class="app-groups"><div class="card"><p class="empty">アプリ状態を確認中</p></div></div>
     </section>
 
-    <section id="tasks-section" class="board-section">
-      <div class="section-head"><h2>開発タスク</h2><span class="muted">作業中 → 統合待ち → 完了</span></div>
+    <section id="tasks-section" class="board-section priority-section">
+      <div class="section-head"><h2>開発状況</h2><span id="task-summary" class="muted">確認中</span></div>
+      <p class="section-description">作業中 → 統合待ち → 統合済み。公開状況は上のアプリで確認できます。</p>
       <div id="pulls" class="card pull-board"><p class="empty">PR一覧を確認中</p></div>
-
       <div id="visual-review-section" hidden>
-        <div class="section-head subsection-head"><h2>Visual Review Lab</h2><span class="muted">長期運用の確認用PR</span></div>
-        <div class="card pull-board visual-review-card">
-          <p class="visual-review-note">通常の開発タスクとは別枠で表示します。</p>
-          <div id="visual-review-pulls"></div>
-        </div>
+        <details data-disclosure="visual-review" class="secondary-disclosure">
+          <summary>Visual Review Lab <span class="muted">確認用PR</span></summary>
+          <div id="visual-review-pulls" class="visual-review-card"></div>
+        </details>
       </div>
     </section>
 
-    <section id="apps-section" class="board-section">
-      <div class="section-head"><h2>アプリ別の公開状況</h2><span id="app-summary" class="muted">確認中</span></div>
-      <p class="section-description">各ゲームの開発・検証・本番を確認できます。未公開の環境も省略せず表示します。</p>
-      <div id="applications" class="app-groups"><div class="card"><p class="empty">アプリ状態を確認中</p></div></div>
-    </section>
+    <details id="rescue-section" class="board-section secondary-disclosure" data-disclosure="rescue-section">
+      <summary><span>自動修復の状況</span><span id="rescue-summary" class="muted">確認中</span></summary>
+      <div class="section-head"><h2>INTEGRATION RESCUE</h2></div>
+      <div id="integration-rescue" class="card"><p class="empty">Rescue状態を確認中</p></div>
+    </details>
 
     <details class="usage-guide">
       <summary>使い方を見る</summary>
       <ol>
-        <li><strong>要対応タスク</strong>が出ていれば、まずそこを確認します。</li>
-        <li><strong>開発タスク</strong>で作業中 / 統合待ち / 完了のPRを確認します。</li>
-        <li><strong>アプリ</strong>ではアイコンと公開状態を3列で見比べ、環境名で公開先を開き、「公開の詳細」でSHAと日時を確認できます。</li>
+        <li><strong>現在の問題</strong>で、失敗・滞留・取得の遅れを確認します。</li>
+        <li><strong>開発状況</strong>で作業中 / 統合待ち / 統合済みのPRを確認します。</li>
+        <li><strong>アプリ</strong>では開発・検証・本番を見比べ、環境名で公開先を開き、「公開の詳細」でSHAと日時を確認できます。</li>
         <li><strong>公開・自動処理の状態</strong>は、公開済みSHA・本番との差・自動統合・Actions失敗を確認する場所です。</li>
         <li>サーバーは<strong>5分ごと</strong>に同期します。「最新に更新」は保存済みの最新結果を読み込みます。</li>
       </ol>
     </details>
 
-    <section id="details-section" class="board-section diagnostics-section">
-      <div class="section-head"><h2>公開・自動処理の状態</h2><span class="muted">必要なときだけ確認</span></div>
-      <p class="section-description diagnostics-intro">ここは「実際にどこまで公開されたか」「本番との差」「自動統合が止まっていないか」「Actionsが失敗していないか」の4点を確認する場所です。</p>
+    <details id="details-section" class="board-section diagnostics-section secondary-disclosure" data-disclosure="diagnostics">
+      <summary>公開・自動処理の状態 <span class="muted">詳細</span></summary>
 
       <div class="diagnostic-grid">
         <section class="diagnostic-panel diagnostic-wide">
@@ -105,7 +100,7 @@
           <div id="failures" class="card diagnostic-content"></div>
         </section>
       </div>
-    </section>
+    </details>
 
     <footer>
       <p id="last-updated">最終更新: --</p>

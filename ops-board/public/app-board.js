@@ -1,4 +1,4 @@
-import { subscribe } from './view-state.js';
+import { subscribe, disclosure } from './view-state.js';
 import { appHealth, appSummary } from './health.mjs';
 const $ = selector => document.querySelector(selector);
 const fmt = new Intl.DateTimeFormat('ja-JP', { dateStyle: 'medium', timeStyle: 'short' });
@@ -92,7 +92,8 @@ function appCard(app) {
   card.dataset.viewKey = `app:${app.id}`;
   const visual = el('div', 'app-summary-visual'); visual.append(iconFor(app), el('span', `app-kind ${tone}`, label));
   const title = el('h3', 'app-summary-title', app.name || app.id); title.title = app.name || app.id;
-  card.append(visual, title);
+  const head = el('div', 'app-card-head'); head.append(visual, title);
+  card.append(head);
   const targets = el('div', 'app-summary-targets');
   (app.targets || []).forEach(target => targets.append(targetSummary(target, app)));
   if (!(app.targets || []).length) targets.append(el('p', 'empty', '公開情報なし'));
@@ -114,7 +115,7 @@ function render(apps) {
   if (!apps.length) { root.append(el('p', 'card empty', '管理対象アプリを確認できませんでした')); return; }
   const games = apps.filter(app => app.kind !== 'tool'); const tools = apps.filter(app => app.kind === 'tool');
   if (games.length) root.append(groupSection('ゲーム / 専用開発版', games));
-  if (tools.length) root.append(groupSection('開発ツール', tools));
+  if (tools.length) root.append(disclosure('application-tools', `開発ツール ${tools.length}件`, groupSection('開発ツール', tools), 'secondary-disclosure app-tools'));
   if (dialog.open) {
     const app = currentApps.find(item => item.id === selectedApp);
     if (app) fillDialog(app); else dialogContent.replaceChildren(el('p', 'empty', 'このアプリの最新情報は取得できませんでした。'));
