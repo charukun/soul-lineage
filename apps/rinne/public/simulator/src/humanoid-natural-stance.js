@@ -1,5 +1,6 @@
 import * as T from '../vendor/three.js';
 import {HumanoidRuntime as BaseHumanoidRuntime,weaponSockets} from './humanoid-core.js';
+import {SWORD_FREE_GUARD} from './authored-slash.js';
 
 const v=(x=0,y=0,z=0)=>new T.Vector3(x,y,z);
 const Q=()=>new T.Quaternion();
@@ -86,6 +87,23 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
       position:this.point(c,side+'Hand'),
       quaternion:c.bones[side+'Hand'].getWorldQuaternion(Q())
     }]));
+  }
+
+  attachHands(c,weapon,grip,dir,roll=0,weight=1,forcedQ=null,supportWeight=1){
+    super.attachHands(c,weapon,grip,dir,roll,weight,forcedQ,supportWeight);
+    if(weapon!=='sword'||!c?.bones?.leftHand)return;
+    const strength=clamp(supportWeight);
+    if(strength<=1e-6)return;
+    c.root.updateMatrixWorld(true);
+    const s=c.legLength/.82,current=this.point(c,'leftHand');
+    const desired=v(SWORD_FREE_GUARD[0]*s,c.shoulderY+SWORD_FREE_GUARD[1]*s,SWORD_FREE_GUARD[2]*s);
+    const target=current.clone().lerp(desired,strength);
+    const handQ=c.bones.leftHand.getWorldQuaternion(Q());
+    this.solve(c,'left','arm',target,naturalArmPole(this,c,'left'),true);
+    this.setWorldQ(c,'leftHand',handQ);
+    // The off hand is a guard/balance hand, not a second weapon grip.
+    this.curl(c,'left',T.MathUtils.lerp(1,.28,strength));
+    c.root.updateMatrixWorld(true);
   }
 
   ground(c,a,d,commit){
