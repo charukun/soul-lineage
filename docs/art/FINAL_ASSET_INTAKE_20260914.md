@@ -2,20 +2,17 @@
 
 Base: `develop@850483da6b053edfd16428edf238b639072db90a`.
 
-Purpose: finish the remaining asset review without disturbing the parallel Character Workshop, Shino motion, or Rinne UI work. Every recovered candidate ends in one of: ADOPTED, ADOPT-NOW, HOLD, or REJECT.
+Purpose: finish the remaining asset review without disturbing the parallel Character Workshop, Shino motion, or Rinne UI work. Every recovered candidate ends in one of: ADOPTED, HOLD, or REJECT.
 
-## Already adopted
+## Adopted
 
 - Kenney Fantasy Town Kit: MURAAAAAAA modular village geometry, CC0.
 - Kenney Nature Kit / Pirate Kit: tent, campfire, soil, stone, pier, boat and later Nature GLBs, CC0.
 - KayKit Dungeon Remastered: MURAAAAAAA furniture and 尽喰廻遊 environment props, CC0.
 - KayKit Skeletons: Skeleton Minion ambient visual in 尽喰廻遊, CC0. Combat semantics are intentionally not attached.
 - Kenney Particle Pack: repository-local spark/slash/smoke/flare textures used by 尽喰廻遊, CC0.
-
-## Adopt now
-
-- Lucide pinned UI SVG set from `lucide-icons/lucide@a79b2d131dab2bf20cb224bd0937b439a9c4fa99`. These are neutral reusable UI assets and do not compete with the active Rinne UI redesign. Store repository-local with license and expose through `@soul/assets`.
-- Remaining audited Kenney Particle sprites that were part of the recovered asset manifest: `magic_01.png`, `circle_01.png`, `star_01.png`, `flame_01.png`. Store repository-local at the existing pinned Particle Pack commit. Current combat timing remains unchanged.
+- Lucide pinned UI SVG set from `lucide-icons/lucide@a79b2d131dab2bf20cb224bd0937b439a9c4fa99`: 17 neutral reusable UI icons stored repository-local with upstream license and provenance, exposed through `@soul/assets`.
+- Remaining audited Kenney Particle sprites from `Calinou/kenney-particle-pack@ab7086639ee73be31abd87feb21bf1402d4e8144`: `magic_01.png`, `circle_01.png`, `star_01.png`, `flame_01.png`. Stored repository-local and reserved for approved VFX; current combat timing/semantics are unchanged.
 
 ## Hold
 
@@ -30,6 +27,8 @@ Purpose: finish the remaining asset review without disturbing the parallel Chara
 - KayKit Medieval Hexagon Pack as current village terrain/buildings: technically usable CC0 models, but hex-tile topology and low-poly language conflict with the current shared-world village art/terrain. Retain only as historical reference.
 - RPGUI/Buch live theme: the recovered source itself records that it was removed from the live entry. Do not reintroduce it.
 
-## Completion gate
+## Audit result
 
-This intake is complete when the ADOPT-NOW assets are repository-local with immutable provenance/license metadata, `@soul/assets` exposes the Lucide set, tests verify the pinned manifests, Fast CI succeeds, and the PR is Ready for Integration. No main/Production changes.
+Recovered candidates are fully classified: no known candidate from the recovered Lanternfell asset ledger remains unreviewed. This does not mean every file from every upstream asset pack is vendored. Only assets with a concrete current/reusable purpose are kept in the canonical repository.
+
+Completion gate: repository-local ADOPTED assets, immutable provenance/license metadata, `@soul/assets` Lucide exports, pinned-manifest tests, Fast CI, Ready for Integration, and no main/Production changes.
