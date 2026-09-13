@@ -8,6 +8,9 @@ export class RaidSession {
  constructor(village,profile,ports={}){this.village=makeVillage(village);this.profile=profile;this.ports=ports;this.rng=random(hash(village.id));this.time=0;this.alarm=0;this.eaten=0;this.targetEaten=false;this.finished=false;this.fight=null;this.devour=null;this.events=[];this.scent=0;this.scentCooldown=0;this.shadowCooldown=0;this.wardCooldown=0;this.escapeHold=0;this.guardSent=false;this.gatePush=0;this.safeTime=0;this.idleFor=0;this.roamAngle=this.rng()*Math.PI*2;this.roamTurn=2.5+this.rng()*2;this.maxhp=this.getMaxHP();this.player={x:this.village.entry.x,z:this.village.entry.z,yaw:Math.PI,hp:this.maxhp,maxhp:this.maxhp,speed:0,walk:0,pose:null,autoRoam:false};}
  getMaxHP(){return 230+(this.has('smith')?65:0)+(this.profile.form==='brute'?75:0);}
  has(k){return this.profile.unlocked.includes(k);}
+ resetIdle(){this.idleFor=0;if(this.player.autoRoam)this.player.speed=0;this.player.autoRoam=false;}
+ escapePoints(){const w=this.village,points=[{id:'entry',label:'村口',x:w.entry.x,z:w.entry.z}];if(this.has('gravekeeper'))points.push({id:'graveway',label:'墓道',x:-7,z:-25});return points;}
+ nearestEscape(){const p=this.player;return this.escapePoints().map(point=>({...point,distance:Math.hypot(p.x-point.x,p.z-point.z)})).sort((a,b)=>a.distance-b.distance)[0];}
  refreshProfile(p){const old=this.player?.maxhp||230;this.profile=p;this.maxhp=this.getMaxHP();if(this.player){this.player.maxhp=this.maxhp;this.player.hp=Math.min(this.maxhp,this.player.hp+Math.max(0,this.maxhp-old));}}
  emit(type,data={}){const e={type,...data};this.events.push(e);if(this.events.length>64)this.events.shift();this.ports.event?.(e);}
  walkActor(a,dx,dz,ignoreGate=false){const w=this.village,n=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.18));let moved=0;for(let i=0;i<n;i++){let x=Math.max(-w.bounds,Math.min(w.bounds,a.x+dx/n)),z=Math.max(-w.bounds,Math.min(w.bounds,a.z+dz/n));for(const c of w.colliders){const dd=Math.hypot(x-c.x,z-c.z),rad=c.r+.36;if(dd<rad){if(dd<.001){x=c.x+rad;}else{x=c.x+(x-c.x)/dd*rad;z=c.z+(z-c.z)/dd*rad;}}}
@@ -26,7 +29,16 @@ export class RaidSession {
  finish(status){if(this.finished)return;this.finished=true;if(this.fight)this.rememberFight(this.fight);cancelDevour(this);this.player.speed=0;this.player.autoRoam=false;this.ports.finish?.(status,this.eaten);this.emit('finish',{status,eaten:this.eaten,target:this.targetEaten});}
  addGuard(){if(this.guardSent)return;this.guardSent=true;const echo=this.profile.echo,n={id:this.village.id+':guardian',kind:'human',adult:true,role:'knight',name:echo?'読み込んだ守護者':'夜警の討伐騎士',x:2,z:-22,homeX:2,homeZ:-22,yaw:0,hp:echo?220:175,maxhp:echo?220:175,state:'pursue',clock:0,walk:0,marked:false,dead:false,eaten:false,echo};this.village.npcs.push(n);this.emit('guardian',{echo:!!echo});}
  tick(dt,input){if(this.finished)return;dt=Math.min(dt,1/30);this.time+=dt;for(const k of ['scent','scentCooldown','shadowCooldown','wardCooldown','safeTime'])this[k]=Math.max(0,this[k]-dt);const p=this.player,w=this.village;let v=input||{x:0,z:0,amount:0,screenX:0,screenY:0};
- if(!this.fight&&!this.devour){if(v.amount>.05){this.idleFor=0;p.autoRoam=false;}else this.idleFor+=dt;const fallenNear=w.npcs.some(n=>n.dead&&!n.eaten&&Math.hypot(n.x-p.x,n.z-p.z)<2.7);if(this.idleFor>4.5&&!fallenNear){this.roamTurn-=dt;if(this.roamTurn<=0){this.roamAngle+=(this.rng()-.5)*1.8;this.roamTurn=2.7+this.rng()*3.8;}v={...v,x:Math.sin(this.roamAngle),z:Math.cos(this.roamAngle),amount:.22,dash:false,autoRoam:true};p.autoRoam=true;}}else{this.idleFor=0;p.autoRoam=false;}
+ if(this.fight||this.devour||v.active||v.amount>.05)this.resetIdle();
+ else{
+  this.idleFor+=dt;p.autoRoam=false;
+  const fallenNear=w.npcs.some(n=>n.dead&&!n.eaten&&Math.hypot(n.x-p.x,n.z-p.z)<2.7);
+  const returning=this.eaten>0&&this.nearestEscape().distance<2.8;
+  if(this.idleFor>4.5&&!fallenNear&&!returning){
+   this.roamTurn-=dt;if(this.roamTurn<=0){this.roamAngle+=(this.rng()-.5)*1.8;this.roamTurn=2.7+this.rng()*3.8;}
+   v={...v,x:Math.sin(this.roamAngle),z:Math.cos(this.roamAngle),amount:.22,dash:false,autoRoam:true};p.autoRoam=true;
+  }
+ }
  if(this.fight){const f=this.fight;f.core.input(v.x||0,v.z||0,v.amount,0);const s=f.core.step(dt);p.x=f.ox+s.hero.x;p.z=f.oz+s.hero.z;p.yaw=s.hero.yaw;p.hp=s.hero.hp;p.pose=s.hero.pose;p.slot=s.hero.slot;p.skill=s.hero.skill;p.progress=s.hero.progress;p.speed=s.hero.moveSpeed;f.npc.x=f.ox+s.enemy.x;f.npc.z=f.oz+s.enemy.z;f.npc.yaw=s.enemy.yaw;f.npc.hp=s.enemy.hp;f.npc.pose=s.enemy.pose;
  if(p.hp<f.lastHp){this.emit('hurt',{amount:f.lastHp-p.hp});f.lastHp=p.hp;}
  if(s.hero.dead){this.rememberFight(f);this.finish('defeated');return;}
@@ -37,7 +49,7 @@ export class RaidSession {
  const speed=v.dash?4.65:2.85,formBoost=this.profile.form==='stalker'?1.15:1;
  const dx=v.x*v.amount*speed*formBoost*dt,dz=v.z*v.amount*speed*formBoost*dt;const moved=this.walkActor(p,dx,dz);p.speed=moved/dt;p.walk+=moved*3.8;if(v.amount>.05){const target=Math.atan2(v.x,v.z);p.yaw+=Math.atan2(Math.sin(target-p.yaw),Math.cos(target-p.yaw))*Math.min(1,dt*(v.autoRoam?3.4:12));}
  if(!w.gate.broken&&this.has('smith')&&v.amount>.1&&Math.hypot(p.x-w.gate.x,p.z-w.gate.z)<2.7){this.gatePush+=dt;if(this.gatePush>.75){w.gate.broken=true;this.emit('gate',{x:w.gate.x,z:w.gate.z});}}else this.gatePush=0;
- for(const n of w.npcs){if(n.eaten)continue;const d=Math.hypot(n.x-p.x,n.z-p.z);if(n.dead){if(d<2.5&&v.amount<.05){this.devour={npc:n,t:0};break;}}else if(d<3.9&&this.safeTime<=0&&!this.lineBlocked(p,n)){this.engage(n);break;}}
+ for(const n of w.npcs){if(n.eaten)continue;const d=Math.hypot(n.x-p.x,n.z-p.z);if(n.dead){if(d<2.5&&v.amount<.05){this.devour={npc:n,t:0};this.resetIdle();break;}}else if(d<3.9&&this.safeTime<=0&&!this.lineBlocked(p,n)){this.engage(n);break;}}
  }
  let witnesses=0;
  for(const n of w.npcs){if(n.dead||n.eaten||n.state==='combat')continue;n.clock+=dt;const dx=p.x-n.x,dz=p.z-n.z,d=Math.hypot(dx,dz);let vx=0,vz=0,s=0;
@@ -51,8 +63,8 @@ export class RaidSession {
  this.alarm=Math.min(100,Math.max(0,this.alarm+dt*(witnesses*.62*(this.has('bellkeeper')?.4:1)-(witnesses===0&&!this.fight?.2:0))));
  if((this.alarm>=72||this.time>160)&&!this.guardSent)this.addGuard();
  if(this.time>285)this.alarm=Math.min(100,this.alarm+dt*.8);
- const nearExit=Math.hypot(p.x-w.entry.x,p.z-w.entry.z)<2.8,backExit=this.has('gravekeeper')&&Math.hypot(p.x+7,p.z+25)<2.8;
- if((nearExit||backExit)&&this.eaten>0&&!this.fight&&!this.devour&&v.amount<.05){this.escapeHold+=dt;if(this.escapeHold>1.6)this.finish(this.targetEaten?'completed':'escaped');}else this.escapeHold=0;
+ const nearExit=this.escapePoints().some(point=>Math.hypot(p.x-point.x,p.z-point.z)<2.8);
+ if(nearExit&&this.eaten>0&&!this.fight&&!this.devour&&v.amount<.05){this.escapeHold+=dt;if(this.escapeHold>1.6)this.finish(this.targetEaten?'completed':'escaped');}else this.escapeHold=0;
  }
  lineBlocked(a,b){const w=this.village;if(!this.has('acolyte')&&Math.hypot(b.x-w.shelter.x,b.z-w.shelter.z)<w.shelter.r)return true;const dx=b.x-a.x,dz=b.z-a.z,l2=dx*dx+dz*dz;if(!l2)return false;if(!w.gate.broken&&Math.abs(dz)>.001){const t=(w.gate.z-a.z)/dz;if(t>0&&t<1&&Math.abs(a.x+dx*t)<2.5)return true;}for(const c of this.village.colliders){const t=Math.max(0,Math.min(1,((c.x-a.x)*dx+(c.z-a.z)*dz)/l2));if(Math.hypot(a.x+dx*t-c.x,a.z+dz*t-c.z)<c.r*.92)return true;}return false;}
 }

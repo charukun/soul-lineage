@@ -7,11 +7,18 @@
     ".": "./src/index.js",
     "./master-character": "./src/master-character.js",
     "./master-character-production": "./src/master-character-production.js",
-    "./master-character-modular": "./src/master-character-modular.js"
+    "./master-character-modular": "./src/master-character-modular.js",
+    "./mura": "./src/mura/models.js",
+    "./mura/asset-data": "./src/mura/asset-data.js",
+    "./mura/nature-data": "./src/mura/nature-data.js",
+    "./mura/terrain": "./src/mura/terrain.js",
+    "./motion-quality": "./src/motion-quality.js"
   },
   "dependencies": {
     "three": "0.186.0",
     "@soul/assets": "*",
-    "@soul/characters": "*"
+    "@soul/characters": "*",
+    "@soul/world": "*",
+    "@soul/animations": "*"
   }
 }

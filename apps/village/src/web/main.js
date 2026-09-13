@@ -1,3 +1,5 @@
+import {projectMuraLayout,validateMuraLayout} from '@soul/world/mura';
+import {createSharedWorldChannel} from '@soul/platform-web/shared-world';
 import {World,defs,BUILDINGS,GARDEN,FURNITURE,ready,entry,worldToLocal,localToWorld,DAYS_YEAR,DAY_SECONDS,RESOURCE_NAMES,unlocked,capacityOf,jobsOf,materialOptions,recipe,MATERIALS,TUTORIAL,terrainHint,isGuard,isPlayer} from '../game/core.js';
 import {View} from './view.js';
 import {Simulation} from '../game/simulation.js';
@@ -12,6 +14,8 @@ const info=__BUILD_INFO__;
 const platform=createWebPlatform({gameId:'village',environment:info.environment,playerId:'local'});
 const foundation=createApp(platform);
 const store=createSaveStore(platform);
+const worldChannel=createSharedWorldChannel({environment:info.environment,writer:true,validate:validateMuraLayout});
+function publishLayout(){try{worldChannel.publish(projectMuraLayout(world.state));}catch(error){$('status').textContent='村は保存済みですが、共通マップを更新できません：'+error.message;}}
 window.__VILLAGE_BOOT__={recover:()=>store.recover(),canRecover:()=>store.blocked};
 const canvas=$('scene');
 Object.assign(canvas.dataset,{app:info.app,commit:info.commit,environment:info.environment,platform:platform.id,contentVersion:String(foundation.contentVersion),gameWorld:'hoshitsugi.life-and-guard.v5'});
@@ -19,7 +23,7 @@ document.title=`星継ぎの庭 | ${info.environment.toUpperCase()}`;
 $('emblem').src=sharedEmblemUrl;
 onProgress(35,'保存した村を確かめています。');
 const saved=await store.load();
-const world=new World(saved||undefined);
+const world=new World(saved||undefined);publishLayout();
 let storageOK=true;
 onProgress(55,'地形と建物を用意しています。');
 await new Promise(resolve=>requestAnimationFrame(resolve));
@@ -32,7 +36,7 @@ canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();stoppe
 const ui={category:'住まい',selected:null,selectedRoom:null,pending:null,drawer:false,drag:null,lastActivity:performance.now(),idle:false,bubbles:new Map()};
 let toastTimer=null,renderDirty=true,last=performance.now(),elapsed=0,lastUI=0,lastSave=0,frames=0,frameSeconds=0,knownKey='',tutorialKey='';
 function toast(text,ms=3500){$('toastText').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,ms);}
-function save(){return store.save(world).then(()=>{storageOK=true;if($('status').dataset.state==='warning'){$('status').textContent='';$('status').dataset.state='ready';}},error=>{storageOK=false;$('status').dataset.state='warning';$('status').textContent='保存できません。その他からJSONを書き出してください。';});}
+function save(){return store.save(world).then(()=>{storageOK=true;publishLayout();if($('status').dataset.state==='warning'){$('status').textContent='';$('status').dataset.state='ready';}},error=>{storageOK=false;$('status').dataset.state='warning';$('status').textContent='保存できません。その他からJSONを書き出してください。';});}
 function activity(){ui.lastActivity=performance.now();ui.idle=false;$('idleStatus').classList.remove('visible');$('idleMoment').classList.remove('visible');}
 for(const name of ['pointerdown','pointerup','wheel','keydown'])document.addEventListener(name,activity,{passive:true,capture:true});
 document.addEventListener('pointermove',e=>{if(e.buttons)activity();},{passive:true,capture:true});

@@ -50,6 +50,9 @@ export function compactPull(pr, now = Date.now()) {
   const visualReview = isVisualReviewPull(pr);
   return {
     number: pr.number, title: copy.title, detail: copy.detail, state, updatedAt, url: pr.html_url,
+    deliveryStage: !visualReview && state === 'Ready' ? 'READY_FOR_INTEGRATION' : state === 'Merged' ? 'INTEGRATED' : null,
+    monitoringOwner: !visualReview && state === 'Ready' ? 'Integration' : null,
+    workerEnded: !visualReview && state === 'Ready',
     head: pr?.head?.ref || null, headSha: pr?.head?.sha || null, baseSha: pr?.base?.sha || null,
     visualReview, staleDraft: !visualReview && state === 'Draft' && Boolean(updatedAt) && now - Date.parse(updatedAt) >= STALE_DRAFT_MS,
     targets: Array.isArray(pr?.targetApps) ? pr.targetApps : [], targetsComplete: pr?.targetAppsComplete === true,

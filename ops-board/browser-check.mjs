@@ -36,7 +36,7 @@ try {
     const versionResponse = await context.request.get(new URL('version.json', base).href);
     assert.equal(versionResponse.status(), 200);
     const version = await versionResponse.json();
-    if (process.env.GITHUB_SHA) assert.equal(version.commit, process.env.GITHUB_SHA);
+    if ((process.env.OPS_SOURCE_SHA || process.env.GITHUB_SHA)) assert.equal(version.commit, (process.env.OPS_SOURCE_SHA || process.env.GITHUB_SHA));
     report.version = version;
     assert.equal(latestState?.schemaVersion, 2);
     assert.equal(latestState?.syncStatus, 'ok');

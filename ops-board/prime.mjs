@@ -9,7 +9,7 @@ let previousReady = -1;
 for (let batch = 0; batch < 12; batch++) {
   const response = await fetch(new URL('api/refresh', url), { method: 'POST', headers: { authorization: `Bearer ${refreshToken}`, 'x-ops-github-token': githubToken }, signal: AbortSignal.timeout(120000) });
   if (!response.ok) throw new Error(`Ops refresh HTTP ${response.status}`);
-  const state = assertSnapshot(await response.json(), process.env.GITHUB_SHA);
+  const state = assertSnapshot(await response.json(), (process.env.OPS_SOURCE_SHA || process.env.GITHUB_SHA));
   const lookup = state.pullRequests.targetLookup;
   console.log(`Target batch ${batch + 1}: ready=${lookup.ready}, pending=${lookup.pending}, unavailable=${lookup.unavailable}`);
   if (!lookup.pending || lookup.ready === previousReady) {

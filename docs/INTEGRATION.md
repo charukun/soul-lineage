@@ -2,7 +2,7 @@
 
 ## 責任分界
 
-実装セッションは最新developから作業branchを作り、コード変更を伴う通常タスクでは先にDraft PRを作成します。実装、必要最低限の高速検証、commit/push、Ready for review化までを担当し、Ready後にCI完了を同期的に待ったり、同じrunを反復ポーリングしたりしません。
+実装セッションの終了条件と待機禁止の正本は [実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md)。通常実装はDraft PR → 実装・高速検証・push → Ready → `READY_FOR_INTEGRATION` handoffで終了します。
 
 Ready後のCI監視、保留理由の判定、develop統合、DEV公開、公開HTTP/source照合、focused browser gate、失敗時の修復差し戻しはIntegrationの責任です。main / Productionは明示的に許可された作業以外では変更しません。
 
@@ -14,7 +14,11 @@ Ready化すると `Validate and build`、影響範囲browser smoke、repair記�
 
 ## Integrationの起動
 
+Ready時点で、CIの既存 `Request Rescue observation` jobがbuild/browserへの`needs`なしで起動します。trusted developの `implementation-handoff.mjs` が最新PRのReady/base/repository/headを再確認し、`implementation/handoff=success` と同一PR/headの受領コメントを記録、設定済みntfyへ `READY_FOR_INTEGRATION` を送ります。これは実装責任の終了でありCI成功ではありません。Workerはこのjobの完了も待ちません。通知失敗は警告と受領コメントへ残し、通常CI・Rescue dispatchを止めません。
+
 Ready PRのfast/browser gate成功後、`Request Integration` がdevelop上の既存 `deploy.yml` をworkflow dispatchします。developへのpushもIntegration/DEV検証を起動します。
+
+失敗やイベント欠落は既存Rescueと独立watchdogが再走査します。Ready受領に新しいworkflowの既定branch登録は必要ありません。導入PR自身はtrusted developにrecorderがまだ無いため既存Readyイベントへhandoffし、recorder確認はローカルのAPI fixtureで行います。導入のための先行mergeやmain変更は不要です。
 
 Integrationは起動イベントのPRだけを見るのではなく、その時点のdevelop向けReady PRを全件再走査します。高コストなexact-head評価は1run最大12PR、mergeは1バッチ最大8PRとし、依存関係を複数passで再評価します。Integration本体には6分の処理予算を置き、jobの10分timeoutより前に診断情報を残して未処理PRを次runへ引き継ぎます。明示holdやrecovering中の通常PRなど、安価に確定できる保留は高コストなCI/review/compare取得より先に判定します。
 
@@ -106,7 +110,9 @@ PULSEはCloudflare Workerの定期refreshでGitHub状態と公開manifestを軽�
 - merge済み: success + merge SHA。
 - 保留: pending +具体的な理由。
 
-`integration/queue` と `Request Integration` 自身はcode validation gateから除外し、自分自身のpending statusで永久停止しないようにします。
+`integration/queue`、`implementation/handoff`、`ops-board/public`、`Request Integration`、`Request Rescue observation` はcode validation gateから除外します。受領・通知・起動処理をcode gateへ混ぜて自己待機することを防ぎ、fast artifact・build・browser・他のChecksは維持します。
+
+統合batchは `INTEGRATED`、最終 `integration/develop=success`（DEV公開・HTTP/source・focused browser成功）後は `DEV_DEPLOYED` を既存ntfy設定へ通知します。通知失敗で統合・公開判定を変更せず、Actionsへ警告を残します。
 
 一時的なmergeability=nullは短時間だけ有限再取得します。API失敗、developの予期しない移動、大規模なbase比較など、確実な判定ができない場合はfail closedで保留します。
 
@@ -123,6 +129,26 @@ PULSEはCloudflare Workerの定期refreshでGitHub状態と公開manifestを軽�
 
 main / Productionを変更する作業はこのdevelop Integrationの対象外です。
 
+## Integration Rescue の責任境界
+
+Ready PRの修復は独立したCoordinatorと複数のPR単位Workerで行い、通常Integrationの最終判定から分離する。変更scopeとDepends-Onを比較し、独立PRを並列、関連PRを再評価付き並列、競合PRを先行PRのdevelop統合後の次Waveに振り分ける。claim・heartbeat・有限retryをGitHubへ記録し、PULSEはその観測ビューとする。修復pushはmerge成功を意味せず、exact-head checks・review・thread・dependency・baseline・merge直前再検証をすべて通常Integrationへ戻す。明示holdの解除、force push、main / Production変更は行わない。
+
+実装・設定・独立watchdog・PULSE・復旧手順は [Integration Rescue](INTEGRATION_RESCUE.md) を参照。
+
 ## Bootstrap例外の扱い
 
 trusted review機構そのものを導入したPR #76と、repair recorder concurrency分離を導入したPR #54は、旧仕組みでは自分自身のデッドロックを解消できなかったため、exact-head CI成功確認後に一度限りのbootstrap mergeを行いました。これは移行履歴であり、通常運用のmerge経路ではありません。
+
+## PULSE公開とcancelled CIの回収
+
+PULSEのfeature branchは検証のみ行い、共有公開先・公開statusを更新しない。公開はdevelop専用job、concurrencyはbranchごとに分離する。cancelled/stale runは公開failureへ変換しない。旧PULSEのgeneric `deploy` checkは、GitHub Actions provider・exact SHA・`ops-board.yml`のcheck suiteとの一致を確認したものだけcode gateから除外する。新しい `PULSE verification` と他workflowのdeploy checkは引き続き品質gateである。
+
+CI validation（opened/synchronize/reopened/Ready）とmetadata/review observationを別concurrency groupにする。Integrationは現在headの最新pull_request validation runのfast artifactとbuild/browser両jobのsuccessを要求し、review/metadata runのskipped browserで代用しない。
+
+通常Integrationはcancelledの現在headに対し、review/hold/dependency/headと最新runを再取得して、該当jobとdownstreamだけ再実行する。失敗・実行中・古いheadは再実行せず、合計3attemptで停止する。再実行要求は成功判定ではない。
+
+既存の独立Work watchdogが呼ぶ `deploy.yml` の `rescue_mode=scan` は `Recover missed Ready CI and Integration requests` も実行する。これはPULSEとは独立し、cancelled CIの再実行と成功済みReady PRの取り逃した起動を標準Integrationへ返す。merge/branch更新/hold解除は行わない。通常Integrationと同じconcurrencyで重複操作を直列化し、1走査12PR・API/時間予算・回転windowで制限する。既定branchへの新workflow登録、main変更、有料API、追加のタスクDBは不要。
+
+回復結果は `integration-report` の `ciRecovery` と `integration-queue-recovery` artifactへ残す。実証結果は [キュー回復](INTEGRATION_QUEUE_RECOVERY.md) を参照。
+
+PULSE公開workflowはreusableとして既存deploy workflowから最終develop SHAを渡して呼ぶ。GITHUB_TOKEN mergeのpushイベント抑止・main上にops-board.ymlがない制約に依存しない。PULSE失敗はその公開job/statusに記録し、ゲームのfast/browser/DEV gateへ混入しない。公開SHAはcheckout・Worker・Static Assets・公開検証・commit statusで同じ `OPS_SOURCE_SHA` を使用する。

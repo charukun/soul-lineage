@@ -56,7 +56,7 @@ export function actionProblems(runs = [], pulls = []) {
   const open = new Map(pulls.filter(pr => pr.state === 'open').map(pr => [pr.head?.ref, pr.head?.sha]));
   const closed = new Set(pulls.filter(pr => pr.state === 'closed').map(pr => pr.head?.ref));
   const ordered = [...runs].sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0) || b.id - a.id);
-  const key = run => `${run.workflow_id || run.name}:${run.head_branch}:${run.event || ''}`;
+  const key = run => `${run.workflow_id || run.name}:${run.head_branch}:${run.event || ''}:${/^CI observation #/.test(run.name || '') ? 'observation' : 'validation'}`;
   const latest = new Map();
   const current = [], history = [];
   for (const run of ordered) { if (!latest.has(key(run))) latest.set(key(run), run); }

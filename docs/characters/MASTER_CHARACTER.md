@@ -83,3 +83,11 @@ Before clearing `integration:hold` / starting production:
 4. Run actual model browser validation on the pinned repository dependencies, followed by 30 visible actors in representative scenes on desktop and Pixel Fold-class hardware. Target p95 frame time <=16.67 ms desktop / <=33.34 ms mobile after warmup; record viewport, DPR, device/browser/GPU, asset/build hashes, duration, draw calls, texture memory, and thermal conditions. Require geometry/texture LOD or atlas work where measurements demand it. Software rendering is not device acceptance.
 
 A green fast check, Ready PR, import audit or a synthetic 30-clone test must not be relabeled as completing these gates. Keep main and Production unchanged; merge and final DEV verification belong to Integration.
+
+## Motion quality extension
+
+The current shared motion normalization, anatomy/clearance checks, calibrated weapon
+profiles and reproducible Workshop review are documented in
+[MOTION_QUALITY.md](MOTION_QUALITY.md). `motionRest` is captured before posing an actor;
+correction runs after modular/age presentation. Source asset approval, gameplay
+eligibility, collision authority and individual visual approval remain separate.

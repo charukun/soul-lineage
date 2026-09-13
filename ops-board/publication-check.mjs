@@ -59,6 +59,6 @@ export async function verifyPublicSnapshot(base, expected) {
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const base = process.env.OPS_URL || 'https://rinne-ops.c-okamoto.workers.dev/';
-  if (process.argv[2] === 'version') await waitForPublication(base, process.env.GITHUB_SHA);
-  else await verifyPublicSnapshot(base, process.env.GITHUB_SHA);
+  if (process.argv[2] === 'version') await waitForPublication(base, (process.env.OPS_SOURCE_SHA || process.env.GITHUB_SHA));
+  else await verifyPublicSnapshot(base, (process.env.OPS_SOURCE_SHA || process.env.GITHUB_SHA));
 }

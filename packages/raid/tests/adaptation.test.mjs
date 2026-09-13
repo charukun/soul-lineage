@@ -48,4 +48,30 @@ test('sustained retreat can peel out of combat instead of hard locking the playe
  for(let i=0;i<70&&g.fight;i++)g.tick(1/60,{x:0,z:1,amount:1});
  assert.equal(g.fight,null);assert.ok(g.safeTime>0);assert.ok(events.some(e=>e.type==='disengage'));
 });
-EOF
+
+test('touch without movement holds the creature still; pause restarts the idle delay',()=>{
+ const s=storeAt(),g=new RaidSession(offerVillages(s)[0],s.read());g.village.npcs=[];
+ for(let i=0;i<270;i++)g.tick(1/60,still);
+ assert.equal(g.player.autoRoam,false);
+ for(let i=0;i<60;i++)g.tick(1/60,still);
+ assert.equal(g.player.autoRoam,true);
+ const start={x:g.player.x,z:g.player.z};
+ for(let i=0;i<360;i++)g.tick(1/60,{...still,active:true});
+ assert.equal(g.player.autoRoam,false);assert.equal(g.player.x,start.x);assert.equal(g.player.z,start.z);
+ for(let i=0;i<330;i++)g.tick(1/60,still);
+ g.resetIdle();assert.equal(g.player.speed,0);assert.equal(g.player.autoRoam,false);
+ for(let i=0;i<240;i++)g.tick(1/60,still);
+ assert.equal(g.player.autoRoam,false);
+});
+test('wandering gives way immediately to fallen prey, combat and the return hold',()=>{
+ const s=storeAt(),g=new RaidSession(offerVillages(s)[0],s.read());const n=g.village.npcs[0];g.village.npcs=[];
+ for(let i=0;i<330;i++)g.tick(1/60,still);
+ assert.equal(g.player.autoRoam,true);
+ Object.assign(n,{x:g.player.x,z:g.player.z,dead:true,eaten:false});g.village.npcs=[n];g.tick(1/60,still);
+ assert.equal(g.player.autoRoam,false);assert.equal(g.devour.npc,n);
+ g.devour=null;n.dead=false;n.z=g.player.z-2;g.engage(n);assert.equal(g.player.autoRoam,false);assert.equal(g.idleFor,0);
+ g.fight=null;g.village.npcs=[];g.eaten=1;g.idleFor=10;
+ g.player.x=g.village.entry.x;g.player.z=g.village.entry.z;
+ for(let i=0;i<110&&!g.finished;i++)g.tick(1/60,still);
+ assert.equal(g.finished,true);assert.equal(g.player.autoRoam,false);
+});

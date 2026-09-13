@@ -6,6 +6,7 @@ export function acquireSoloPause(frame) {
   const take = () => {
     if (released || held || !frame.isConnected) return;
     try {
+      if(frame.contentWindow?.__RINNE_GAME_PORT__?.session?.().mode==='shared')return;
       childDocument = frame.contentDocument;
       if (!childDocument?.querySelector('#boot')?.hidden) return;
       button = childDocument.getElementById('pauseBtn');

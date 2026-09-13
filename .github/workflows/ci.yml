@@ -1,4 +1,7 @@
 name: CI
+# Metadata/review wakeups have no authority to cancel a required validation run.
+run-name: >-
+  CI ${{ (github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review","converted_to_draft"]'), github.event.action)) && 'validation' || 'observation' }} #${{ github.event.pull_request.number }} ${{ github.event.pull_request.head.sha }}
 on:
   pull_request:
     branches: [develop, main]
@@ -8,12 +11,83 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: ci-${{ github.event.pull_request.number }}
+  group: ci-${{ github.event.pull_request.number }}-${{ (github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review","converted_to_draft"]'), github.event.action)) && 'validation' || 'observation' }}
   cancel-in-progress: true
 jobs:
+  readiness:
+    name: Resolve current PR state
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      pull-requests: read
+    outputs:
+      ready: ${{ steps.current.outputs.ready }}
+      draft: ${{ steps.current.outputs.draft }}
+    steps:
+      - id: current
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: context.payload.pull_request.number });
+            const current = pr.state === 'open' && pr.head.sha === context.payload.pull_request.head.sha;
+            core.setOutput('ready', current && !pr.draft);
+            core.setOutput('draft', current && pr.draft);
+
+  request-rescue:
+    name: Request Rescue observation
+    needs: readiness
+    if: >-
+      github.event.pull_request.base.ref == 'develop' && needs.readiness.outputs.ready == 'true' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+      actions: write
+      statuses: write
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+          sparse-checkout: scripts
+      - name: Record Ready handoff without waiting for CI
+        continue-on-error: true
+        uses: actions/github-script@v8
+        env:
+          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+        with:
+          script: |
+            const { existsSync } = require('node:fs');
+            if (!existsSync('scripts/implementation-handoff.mjs')) {
+              core.notice('Handoff recorder is not on develop yet; existing Ready/Rescue events own this bootstrap PR.');
+              return;
+            }
+            const { recordHandoff } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/implementation-handoff.mjs`);
+            const result = await recordHandoff({ github, repo: context.repo,
+              number: context.payload.pull_request.number,
+              expectedHead: context.payload.pull_request.head.sha,
+              runUrl: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              notification: { url: process.env.NTFY_TOPIC_URL, token: process.env.NTFY_TOKEN },
+              warn: message => core.warning(message) });
+            core.summary.addRaw(JSON.stringify(result)).write();
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            const file = await github.rest.repos.getContent({ ...context.repo, path: 'scripts/integration-rescue-coordinator.mjs', ref: 'develop' }).catch(error => {
+              if (error.status === 404) return null;
+              throw error;
+            });
+            if (file) await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'deploy.yml', ref: 'develop', inputs: { rescue_mode: 'scan' } });
+
   draft-check:
     name: Draft lightweight check
-    if: github.event.pull_request.base.ref == 'develop' && github.event.pull_request.draft
+    needs: readiness
+    if: github.event.pull_request.base.ref == 'develop' && needs.readiness.outputs.draft == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
@@ -30,7 +104,11 @@ jobs:
 
   build:
     name: Validate and build
-    if: github.event.pull_request.base.ref == 'main' || (github.event.pull_request.base.ref == 'develop' && !github.event.pull_request.draft)
+    needs: readiness
+    if: >-
+      github.event.pull_request.base.ref == 'main' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'develop' &&
+      needs.readiness.outputs.ready == 'true' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -142,10 +220,11 @@ jobs:
               }
               throw error;
             }
-            try {
-              await github.rest.actions.createWorkflowDispatch({
+            await github.rest.actions.createWorkflowDispatch({
                 ...context.repo,
-                workflow_id: 'browser-repair.yml',
+                // deploy.yml is already registered on the default branch and
+                // owns this trusted repair_scope=pr recorder on develop.
+                workflow_id: 'deploy.yml',
                 ref: 'develop',
                 inputs: {
                   repair_scope: 'pr',
@@ -155,23 +234,18 @@ jobs:
                   repair_run_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
                   repair_artifact: process.env.ARTIFACT
                 }
-              });
-            } catch (error) {
-              if (error.status === 404) {
-                core.notice('Browser repair workflow is not installed on develop yet; bootstrap dispatch skipped.');
-                return;
-              }
-              throw error;
-            }
+            });
 
   integration-request:
     name: Request Integration
-    needs: [build, browser]
+    needs: [readiness, build, browser]
     if: >-
-      always() && needs.build.result == 'success' &&
-      (needs.browser.result == 'success' || needs.browser.result == 'skipped') &&
+      always() && !cancelled() &&
+      ((needs.build.result == 'success' && needs.browser.result == 'success') ||
+      (needs.build.result == 'skipped' && (github.event_name == 'pull_request_review' ||
+      contains(fromJSON('["edited","labeled","unlabeled"]'), github.event.action)))) &&
       github.event.pull_request.base.ref == 'develop' &&
-      !github.event.pull_request.draft &&
+      needs.readiness.outputs.ready == 'true' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:

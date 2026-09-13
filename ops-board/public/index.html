@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="./pr-board.css">
   <link rel="stylesheet" href="./app-board.css">
   <link rel="stylesheet" href="./review-polish.css">
+  <link rel="stylesheet" href="./rescue-board.css">
 </head>
 <body>
   <main class="shell">
@@ -24,6 +25,7 @@
 
     <nav class="section-tabs" aria-label="画面内ナビゲーション">
       <a href="#alert-section">要対応</a>
+      <a href="#rescue-section">RESCUE</a>
       <a href="#tasks-section">開発タスク</a>
       <a href="#apps-section">アプリ</a>
       <a href="#details-section">公開・自動処理</a>
@@ -33,6 +35,12 @@
       <div class="section-head"><h2>要対応タスク</h2><span id="alert-count" class="muted"></span></div>
       <p class="section-description">同期の遅れ、統合の滞留、現在のCI失敗を表示します。最終取得時刻も確認してください。</p>
       <div id="alerts" class="alerts"></div>
+    </section>
+
+    <section id="rescue-section" class="board-section">
+      <div class="section-head"><h2>INTEGRATION RESCUE</h2></div>
+      <p class="section-description">PRを修復するWorkerと、統合までの進行を表示します。</p>
+      <div id="integration-rescue" class="card"><p class="empty">Rescue状態を確認中</p></div>
     </section>
 
     <section id="tasks-section" class="board-section">
@@ -107,5 +115,6 @@
   <script type="module" src="./app.js"></script>
   <script type="module" src="./app-board.js"></script>
   <script type="module" src="./pull-board.js"></script>
+  <script type="module" src="./rescue-board.js"></script>
 </body>
 </html>

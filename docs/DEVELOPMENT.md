@@ -7,7 +7,7 @@
 | 実装WORK | 最新develop → branch push・Draft PR → 実装 → 影響範囲の高速検証・push → Ready for review |
 | Integration | 最新Checks・依存・レビュー・競合を判定 → developへ統合 → 最終SHAの影響範囲高速検証 → DEV公開 → 公開HTTP/source確認 |
 
-通常の実装WORKはReady for review化後に結果を報告して終了します。CI完了・merge・DEV公開を同期的に待たず、CIを何度もポーリングする処理（watch、sleep付きループ、同じChecks/runの繰り返し取得）は禁止します。push直後など既に判明しているCI失敗の短時間・単発確認は許容しますが、未完了なら待機せずIntegrationへ引き渡します。重いE2E・全体検証・実ブラウザ総点検を毎回実施しません。変更した機能を確かめるための必要な局所テスト・画面確認は省略しません。ユーザーが個別にIntegrationまで依頼した場合は、その担当範囲に従います。
+実装セッションの責任終了・CI同期待機禁止・通知・復旧の正本は [実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md)。Ready for review → `READY_FOR_INTEGRATION` handoff → 結果報告で終了し、CI/browserのRunning・Queued・Pendingを完了まで追跡しません。変更した機能の必要な局所テストは維持し、重いE2E・全体検証はIntegrationへ任せます。明示的なIntegration担当依頼は別責務です。
 
 ## 実装WORK
 
@@ -16,7 +16,7 @@
 3. push前に `npm run push:route -- origin/develop HEAD` を実行。Chat/WORK/Codex実行環境の通常gitを第一候補とし、利用可能なGitHub連携/API、Codespaces＋通常gitの順で切り替える。`CODESPACES_GIT` または容量・Base64・payload上限系エラー時は、同じbranchをGitHub Codespacesで開いて通常`git push`へ即時切り替える。大きなバイナリを連携APIで分割/Base64再送しない。詳細は `docs/MOBILE_HYBRID_DEVELOPMENT.md`。
 4. PR本文先頭は下記の2行契約を維持し、その下へ変更理由・挙動・影響app/package・検証結果・残るリスクを書く。依存があれば `Depends-On: #12, #13`、なければ `Depends-On: none`。
 5. 完了したらReady for review。未完了、仕様未決定、取り込み待ちはdraftまたは `integration:hold`。既存Ready PRの保留もこのlabelで制御。
-6. Ready化で実装セッションの責任を終了。最終報告はbranch・commit SHA・PR URL・実行済み高速検証結果。CI未確認/実行中はそのまま明記し、CI成功を完了報告条件にしない。最終公開はIntegrationの `integration/develop` statusで区別。
+6. Ready化で実装セッションの責任を終了。最終報告に実装完了・branch・commit SHA・PR URL・Ready済み・`READY_FOR_INTEGRATION`・CIをIntegrationへhandoff済み・高速検証結果を記載する。GitHub側のhandoff recorderの完了も待たない。通知やCIの未確認をそのまま明記し、最終応答を保留しない。
 
 単一appの変更をrootゲーム構成へ戻さず、3ゲームの独立した入口と共有package境界を維持します。通常作業でサブエージェントは使用しません。不要なフルCI、各PRごとのDEV確認、古いLibrary handoffの再作成は不要です。
 
@@ -28,7 +28,7 @@ Codespacesは「別の開発フロー」ではなくpush経路だけの代替で
 
 Ready PRのCI監視・結果判定・develop統合・CI/CD・DEV反映はIntegration側の責任です。実装セッションを監視役として待機させません。既存のGitHubイベント・Actions・通知を使い、CI失敗時のみ失敗run・head SHA・ログ/対象テスト・修正範囲を実装ワーカーへ返します。新しい独自タスク管理は追加しません。修正ワーカーは同じPR/branchを復旧起点とし、必要ならDraftへ戻して修正・高速検証・push・Ready化まで進め、再び待機せず終了します。レビュー・競合・明示holdは従来どおりIntegrationが扱います。
 
-実装完了通知（SUCCESS）はpush/Readyまでの成功を示し、CI成功・DEV公開成功とは区別します。Ready後のCI失敗/DEV反映通知と復旧判断はIntegration側で扱います。実装セッション終了をheartbeat途絶による障害と誤認しないよう、既存の終了信号/通知手順を使います。
+実装成功通知は `READY_FOR_INTEGRATION`。既存SUCCESSの実装完了に相当し、Integrationの `INTEGRATED` / `DEV_DEPLOYED` と区別します。終了信号と通知未設定・失敗時の扱いは [実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md) を参照。
 
 自動判定で意味上の仕様矛盾まで証明することはできません。共有契約の変更・意味上の競合はPRに明記し、解消前にReadyへ進めないでください。自動判定できないものは保留し、Integration担当が判断・必要修正・再検証します。
 
@@ -64,7 +64,7 @@ Sendagaya_Shinoを基準モデル化し、量産用共通構造と確認シミ�
 - 管理画面はGitHub RESTのPR一覧（`state=all`、pagination必須）/PR詳細から `number`, `html_url`, `body`, `state`, `draft`, `merged_at`, `updated_at`, `head.ref`, `head.sha`, `base.ref` を取得する。GraphQLでは対応する `isDraft`, `mergedAt`, `updatedAt`, `headRefName`, `headRefOid` を使える。先頭2行をタイトル＋詳細として表示し、更新日時はタイムゾーン付きで表示する。古い形式の既存PRはPR titleと本文概要へfallbackし、本文を勝手に書き換えない。
 - `merged_at`を先に判定し、次にclosed、open+draft、open+非draftを判定する。最終更新時刻と現在時刻の差を表示し、画面の表示閾値で長時間未更新Draftを判別する。`updated_at`はGitHub上の更新時刻であり実行中保証・heartbeatではない。自動closeや自動Ready化はしない。
 - セッション停止時は当該Draft PR・branch・最新commit・handoff・最新developとの差分・CI/CDを復旧起点とし、別セッションで同じPRを継続する。既存task-start/heartbeat/watchdog通知を置き換えない。
-- 開始時のbranch push/Draft登録は作業完了SUCCESSとは区別する。既存のpush検知通知を維持し、最終SUCCESSは実装・高速検証・push・Ready更新後。FAILEDは到達工程、失敗理由、試した経路、復旧経路を含める。
+- 開始時のbranch push/Draft登録は完了通知とは区別する。実装・高速検証・push・Ready更新後の成功名は `READY_FOR_INTEGRATION`。FAILEDは到達工程、失敗理由、試した経路、復旧経路を含める。
 
 ### Visual Review Labは独立運用を維持
 

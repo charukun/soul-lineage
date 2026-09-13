@@ -137,6 +137,8 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
     assert.deepEqual(errors,[]);assert.deepEqual(network,[]);
     writeFileSync(resolve(output,'studio-browser.json'),JSON.stringify({success:true,checks,errors,network},null,2));
     console.log('CHARACTER STUDIO BROWSER VERIFIED',JSON.stringify({checks:checks.length,errors,network}));
+    const { verifyCharacterMotionQA } = await import('./character-motion-qa.browser.mjs');
+    await verifyCharacterMotionQA(browser,baseURL,output);
   } catch(error) {
     await page.screenshot({path:resolve(output,'studio-failure.png')}).catch(()=>{});
     writeFileSync(resolve(output,'studio-browser.json'),JSON.stringify({success:false,error:String(error),checks,errors,network},null,2));

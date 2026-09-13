@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { onBrowserFailure, onDevelopBrowserSuccess, onPrBrowserSuccess, parseRepairState, replaceRepairState, linkedIssueNumber, DEFAULT_MAX_ATTEMPTS } from './browser-repair-state.mjs';
+import { onBrowserFailure, onDevelopBrowserSuccess, onPrBrowserSuccess, parseRepairState, replaceRepairState, linkedIssueNumber, DEFAULT_MAX_ATTEMPTS, currentPrRepair } from './browser-repair-state.mjs';
 
 const repository = process.env.GITHUB_REPOSITORY;
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
@@ -51,6 +51,10 @@ async function commentOnce(number, body, marker) {
 }
 
 const sourcePr = await associatedPr();
+if (scope === 'pr' && !currentPrRepair(sourcePr, headSha)) {
+  console.log(JSON.stringify({ action: 'noop-stale-pr-result', pr: prNumber, headSha }));
+  process.exit(0);
+}
 const sourcePrBody = sourcePr?.body || '';
 let issue = await getIssue(linkedIssueNumber(sourcePrBody));
 let existingState = issue ? parseRepairState(issue.body || '') : null;

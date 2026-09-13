@@ -69,3 +69,9 @@ The repository creates the machine-readable event and enforces the loop guard. T
 On each browser failure, inspect in this order: JSON report, console/page errors, failed requests, screenshot, trace, then full Actions job log. Network-only/transient failures may be retried once by the worker when evidence supports that diagnosis; repeated failure must be fixed, not hidden with retries or relaxed assertions.
 
 Normal success has no repair issue. Auto-repair success closes a PR-scoped ticket after PR browser success, or a develop-scoped ticket only after repaired develop passes public DEV browser verification. Automatic repair exhaustion leaves the issue open in `human-required` with the failing run/artifact preserved.
+
+## Native input during animated UI transitions
+
+A visible control may still be moving or briefly covered while a drawer opens. Browser helpers must wait within the existing input timeout for a positive-size native hit target, then send real pointer input. Permanent occlusion must still fail; do not force-click, inject DOM clicks, disable production animation, or extend scenario deadlines to hide it. Cover both transient and persistent occlusion in regression tests.
+
+An Integration run that requires public DEV verification must run browser cases even if deployment reuses every app artifact. An empty build delta does not certify a previously failed browser result: select all current DEV targets when no changed DEV target exists, and reject a manifest without DEV targets. Production target selection remains unchanged. The GitHub Actions repair-state dispatch is an operational handoff, separate from the mandatory exact-head fast/browser jobs; an API outage cannot manufacture a quality failure or success.
