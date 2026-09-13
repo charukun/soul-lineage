@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import * as T from '../public/simulator/vendor/three.js';
 import {GLTFLoader} from '../public/simulator/vendor/GLTFLoader.js';
 import {HumanoidRuntime} from '../public/simulator/src/humanoid.js';
-import {SLASH_SECONDS,SLASH_TIMING,sampleSlashPose,slashTime} from '../public/simulator/src/authored-slash.js';
+import {SLASH_SECONDS,SLASH_TIMING,SWORD_FREE_GUARD,sampleSlashPose,slashTime} from '../public/simulator/src/authored-slash.js';
 
 // Load the shipped VRM, retargeted clips and production runtime. Only texture
 // decoding is stubbed: this verifies real bone transforms, not GPU appearance.
@@ -46,7 +46,7 @@ test('slash preserves the existing combat clock and has continuous pose endpoint
   const start=sampleSlashPose(0),end=sampleSlashPose(1);
   assert.deepEqual(start,end);
   assert.deepEqual(start.grip,[-.19,-.37,.35],'weapon hand must meet the normal sword guard at the slash seam');
-  assert.deepEqual(start.shield,[.24,-.36,.31],'free hand must meet the normal sword guard at the slash seam');
+  assert.deepEqual(start.shield,[...SWORD_FREE_GUARD],'free hand must meet the relaxed sword guard at the slash seam');
   for(const contact of [.3,.5,.7])assert.equal(slashTime(contact,contact),.5);
   for(let i=0;i<=1000;i++)for(const value of Object.values(sampleSlashPose(i/1000)))assert.ok(value.every(Number.isFinite));
 });
@@ -66,10 +66,12 @@ test('actual Shino static guard supports the torso and base without drifting eit
       assert.ok(actual.position.distanceTo(expected.position)<2e-4,`${side} socket position moved after torso support`);
       assert.ok(actual.quaternion.angleTo(expected.quaternion)<1e-5,`${side} socket orientation moved after torso support`);
     }
-    const left=runtime.point(c,'leftFoot'),right=runtime.point(c,'rightFoot');
-    assert.ok(left.x>right.x,'ready stance must keep the feet on their anatomical left/right sides');
-    assert.ok(left.z>right.z,'ready stance must stagger the front and rear foot instead of standing square');
-    assert.ok(left.distanceTo(right)>.16,`ready stance base is still too narrow: ${left.distanceTo(right)}`);
+    const leftFoot=runtime.point(c,'leftFoot'),rightFoot=runtime.point(c,'rightFoot');
+    assert.ok(leftFoot.x>rightFoot.x,'ready stance must keep the feet on their anatomical left/right sides');
+    assert.ok(leftFoot.z>rightFoot.z,'ready stance must stagger the front and rear foot instead of standing square');
+    assert.ok(leftFoot.distanceTo(rightFoot)>.16,`ready stance base is still too narrow: ${leftFoot.distanceTo(rightFoot)}`);
+    const chest=runtime.point(c,c.bones.upperChest?'upperChest':'chest');
+    assert.ok(runtime.point(c,'leftHand').distanceTo(chest)<runtime.point(c,'rightHand').distanceTo(chest),'free hand should stay closer to the torso than the weapon hand');
   }finally{runtime.dispose(c);delete globalThis.window;delete globalThis.self;}
 });
 
