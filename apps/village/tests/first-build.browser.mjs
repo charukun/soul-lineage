@@ -28,14 +28,15 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   expect(await page.evaluate(()=>window.village.world.population().openBeds)).toBe(before.beds+2);
   await expect(page.locator('#toastText')).toContainText('寝床が2床増えました');
   await page.screenshot({path:testInfo.outputPath('first-tent-built.png')});
+
   // NPC homes are intentionally not player-editable. Select the existing storehouse
-  // through its visible rendered mesh; projection and picking only read the scene.
+  // through a genuinely visible screen-space part of its rendered footprint.
   await page.locator('#deselect').click();
   const facility=await page.evaluate(()=>window.village.world.objects.find(o=>o.kind==='storage'));
   expect(facility?.phase).toBe('built');
   // The placement guide focuses the tent, not the storehouse. Bring the latter
   // into view through the same drag gesture as a player before attempting a pick.
-  // Projection reads are diagnostic only; camera/world setters are never called.
+  // Projection and picking are reads only; camera/world setters are never called.
   for (let step=0;step<8;step++) {
     const drag=await page.evaluate(id=>{
       const {world,view}=window.village,host=world.object(id),rect=view.canvas.getBoundingClientRect();
@@ -56,15 +57,20 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   await expect.poll(async()=>{
     point=await page.evaluate(id=>{
       const {world,view}=window.village,host=world.object(id),rect=view.canvas.getBoundingClientRect();
-      for(const y of [2,1,.5,3]) for(const dx of [0,-1,1,-2,2]) for(const dz of [0,-1,1]) {
-        const p=view.project(host.x+dx,y,host.z+dz),x=p.x+rect.left,z=p.y+rect.top;
-        const element=document.elementFromPoint(x,z);
-        if(x>10&&x<innerWidth-10&&z>100&&z<innerHeight-140&&element===view.canvas&&view.pick(x,z)===id&&!view.pickPerson(x,z))return{x,y:z};
+      const center=view.project(host.x,1.4,host.z),cx=rect.left+center.x,cy=rect.top+center.y;
+      const offsets=[];
+      for(let dy=-108;dy<=108;dy+=12)for(let dx=-144;dx<=144;dx+=12)offsets.push({dx,dy,d:dx*dx+dy*dy});
+      offsets.sort((a,b)=>a.d-b.d);
+      for(const {dx,dy} of offsets){
+        const x=cx+dx,y=cy+dy;
+        if(x<=10||x>=innerWidth-10||y<=100||y>=innerHeight-140)continue;
+        const element=document.elementFromPoint(x,y);
+        if(element===view.canvas&&view.pick(x,y)===id&&!view.pickPerson(x,y))return{x,y};
       }
       return null;
     },facility.id);
     return !!point;
-  }).toBe(true);
+  },{timeout:5000}).toBe(true);
   await page.mouse.click(point.x,point.y);
   await page.locator('#enter').click();
   await expect.poll(()=>page.evaluate(()=>window.village.view.roomId)).toBe(facility.id);
