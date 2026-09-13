@@ -152,7 +152,7 @@ jobs:
     uses: ./.github/workflows/integration-rescue.yml
     permissions:
       contents: write
-      pull-requests: read
+      pull-requests: write
       issues: write
       actions: write
       statuses: read
