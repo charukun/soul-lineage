@@ -12,6 +12,8 @@
 
 ## 開発・独立build
 
+輪廻転焦本編への仕様導入は [血脈の系譜からのゲーム仕様抽出・適用差分](docs/rinne/BLOODLINE_GAMEPLAY_SPEC.md) を参照してください。元コードの移植ではなく独自実装のためのレビュー資料で、既存の寿命・継承・操作ルールとの採用判断は未確定です。
+
 Node.js 24 / npm 11、npm workspacesと既存のViteを使用します。
 
 ```sh
