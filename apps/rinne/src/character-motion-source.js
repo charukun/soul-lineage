@@ -7,7 +7,7 @@ import { captureMotionRest, captureNormalizedMotion } from '@soul/rendering/moti
  */
 export async function loadWorkshopMotionSource({resolveModule,readAsset,progress=()=>{}}) {
   const [{HumanoidRuntime},{SLASH_SECONDS,SLASH_TIMING,SLASH_REVISION},{createReviewSword}]=await Promise.all([
-    resolveModule('humanoid-natural-stance.js'),resolveModule('authored-slash.js'),resolveModule('review-sword.js')]);
+    resolveModule('humanoid.js'),resolveModule('authored-slash.js'),resolveModule('review-sword.js')]);
   const runtime=new HumanoidRuntime({readAsset,weapons:{sword:{base:.21,tip:1.62,width:.065}},strikes:{slash:{}},clips:{slash:SLASH_TIMING},windows:{},
     progress:(a,t)=>Math.min(1,Math.max(0,(t??a.attack?.t??0)/SLASH_SECONDS)),window:(_kind,p)=>p>=SLASH_TIMING.active[0]&&p<=SLASH_TIMING.active[1]?0:-1});
   try {await runtime.load('SHINO');return {...await bakeWorkshopMotionSource(runtime,{slashSeconds:SLASH_SECONDS,revision:SLASH_REVISION,progress}),createSword:createReviewSword};}
