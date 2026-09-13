@@ -10,10 +10,14 @@ jobs:
   story-review:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    env:
+      APP_ENV: dev
+      APP_BRANCH: fix/rinne-director-playability-loop
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
