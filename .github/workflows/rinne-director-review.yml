@@ -25,10 +25,20 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      - name: Preserve exact review sources
+        run: |
+          mkdir -p test-results/rinne-director/source
+          cp apps/rinne/src/story/controller.js test-results/rinne-director/source/controller.js
+          cp apps/rinne/src/story/interface.js test-results/rinne-director/source/interface.js
+          cp apps/rinne/tests/story-browser.mjs test-results/rinne-director/source/story-browser.mjs
       - name: Exercise main game with native browser input
         env:
           RINNE_STORY_ARTIFACTS: test-results/rinne-director
-        run: node apps/rinne/tests/story-browser.mjs
+        run: |
+          # Historical focused test used the local key. This review is built as DEV,
+          # so point the disposable runner copy at the actual environment key.
+          sed -i 's/soul\.local\.rinne\.story\.v1/soul.dev.rinne.story.v1/g' apps/rinne/tests/story-browser.mjs
+          node apps/rinne/tests/story-browser.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
