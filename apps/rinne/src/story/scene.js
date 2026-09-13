@@ -13,12 +13,23 @@ export async function createStoryScene(port,doc,initialLayout){
   const models=createMuraModels(T,{createCanvas:()=>doc.createElement('canvas')}),cache=new Map(),objects=new T.Group(),land=new T.Group();village.add(land,objects);
   const getProp=kind=>{if(!cache.has(kind))cache.set(kind,flattenMuraModel(T,models.prop(kind,14)));return cache.get(kind);};
   const terrain=createMuraTerrain({THREE:T,scene:root,outside:land,getProp,mat:models.mat,createCanvas:()=>doc.createElement('canvas')});
-  let layout=initialLayout,layoutSignature='';
+  let layout=initialLayout,layoutSignature='',occluders=[],occluderMaterials=[];
+  function clearOccluders(){for(const entry of occluderMaterials)entry.material.dispose();occluders=[];occluderMaterials=[];}
+  function registerOccluder(node,object){
+    const materials=[];
+    node.traverse(mesh=>{if(!mesh.isMesh)return;const source=Array.isArray(mesh.material)?mesh.material:[mesh.material],clones=source.map(material=>material.clone());mesh.material=Array.isArray(mesh.material)?clones:clones[0];for(const material of clones){const entry={material,opacity:material.opacity,transparent:material.transparent,depthWrite:material.depthWrite};materials.push(entry);occluderMaterials.push(entry);}});
+    occluders.push({object,materials});
+  }
+  function updateOccluders(hero){
+    for(const entry of occluders){const d=defs[entry.object.kind];if(!d)continue;const threshold=Math.max(d.w||0,d.d||0)*.62+2.5,near=Math.hypot(hero.x-entry.object.x,hero.z-entry.object.z)<threshold;
+      for(const original of entry.materials){const target=near?Math.min(original.opacity,.28):original.opacity,material=original.material;material.opacity+=(target-material.opacity)*.24;if(Math.abs(target-material.opacity)<.01)material.opacity=target;const faded=material.opacity<original.opacity-.01;material.transparent=original.transparent||faded;material.depthWrite=faded?false:original.depthWrite;material.needsUpdate=true;}
+    }
+  }
   function updateLayout(next){if(next===layout&&layoutSignature)return;const signature=JSON.stringify(next);if(signature===layoutSignature)return;layoutSignature=signature;layout=next;
-    objects.traverse(o=>{if(o.userData.label){o.material.map.dispose();o.material.dispose();}});objects.clear();
+    objects.traverse(o=>{if(o.userData.label){o.material.map.dispose();o.material.dispose();}});clearOccluders();objects.clear();
     const node=o=>{const key=`${o.kind}:${o.material}:${o.level}`;if(!cache.has(key))cache.set(key,flattenMuraModel(T,defs[o.kind].building?models.building(o.kind,o.material,o.level):models.prop(o.kind)));
       const n=cache.get(key).clone();n.position.set(o.x,.025,o.z);n.rotation.y=o.rot;n.userData.entityId=o.id;n.userData.assetId=o.assetId;
-      if(o.phase!=='built')n.visible=false;return n;};
+      if(o.phase!=='built')n.visible=false;else if(defs[o.kind]?.building)registerOccluder(n,o);return n;};
     for(const o of layout.objects){const n=node(o);objects.add(n);if(o.phase==='built'){const l=label(objects,defs[o.kind].label,o.x,6,o.z);l.scale.set(3,.56,1);l.userData.label=true;}
       if(o.room?.length){const room=new T.Group();room.position.set(o.x,.035,o.z);room.rotation.y=o.rot;for(const f of o.room)room.add(node(f));objects.add(room);}
     }
@@ -28,14 +39,14 @@ export async function createStoryScene(port,doc,initialLayout){
   box(field,18,.18,13,0,-.03,0,0x847b6e);box(field,2.4,.18,2.4,-5,.08,3,0x82968a);label(field,'帰還船・救護所',-5,1.5,3);
   for(const [x,z] of [[-6,-4],[-2,-4],[5,4],[6,-3]]){const wall=box(field,1.4,1.1,.6,x,.6,z,0x616963);wall.rotation.y=x;}
   const frontLabel=label(field,'前線',0,2.5,-4.5);
-  const ringGeometry=new T.RingGeometry(.48,.55,48),ringMaterial=new T.MeshBasicMaterial({color:0xe7c986,transparent:true,opacity:.7,depthWrite:false,side:T.DoubleSide});
-  const heroRing=new T.Mesh(ringGeometry,ringMaterial);heroRing.rotation.x=-Math.PI/2;root.add(heroRing);disposables.push(ringGeometry,ringMaterial);
+  const ringGeometry=new T.RingGeometry(.68,.82,48),ringMaterial=new T.MeshBasicMaterial({color:0xf0d48e,transparent:true,opacity:.82,depthWrite:false,side:T.DoubleSide});
+  const heroRing=new T.Mesh(ringGeometry,ringMaterial);heroRing.rotation.x=-Math.PI/2;heroRing.renderOrder=20;root.add(heroRing);disposables.push(ringGeometry,ringMaterial);
   const resident=await port.resident();let state=null,lastZone='',clock=0;
   const motherLabel=label(root,'母',0,2.4,0),rescueLabel=label(root,'倒れた村人',0,.8,0);
   view.background([.35,.46,.47]);
   view.onDraw(()=>{
     if(!state)return;clock+=1/60;const hero=view.hero(),c=view.humanoid();village.visible=state.zone==='village';field.visible=!village.visible;
-    if(hero.dead)c.root.visible=true;heroRing.position.set(hero.x,.085,hero.z);heroRing.visible=!hero.dead;
+    if(hero.dead)c.root.visible=true;heroRing.position.set(hero.x,.085,hero.z);const pulse=1+Math.sin(clock*3.1)*.045;heroRing.scale.setScalar(pulse);heroRing.visible=!hero.dead;updateOccluders(hero);
     const birth=state.phase==='birth',r=state.rescue,visible=birth||state.zone==='frontier'&&r&&r.status!=='safe';
     for(const p of resident.runtime.current.shadowMeshes)p.visible=!!visible;resident.runtime.current.root.visible=!!visible;motherLabel.visible=birth;rescueLabel.visible=!!visible&&!birth;
     if(visible){const carried=birth||r.status==='carried',x=carried?hero.x:r.x,z=carried?hero.z:r.z;
@@ -55,5 +66,5 @@ export async function createStoryScene(port,doc,initialLayout){
     terrain.waterMat.uniforms.time.value=clock;terrain.motes.visible=state.zone==='village';
     frontLabel.visible=state.zone==='frontier';
   });
-  return{sync(next,world=layout){state=next;updateLayout(world);},relocate(){const p=safeMuraPosition(layout,view.hero());port.position(p.x,p.z);},dispose(){view.onDraw(null);resident.dispose();root.removeFromParent();const resources=new Set(disposables);for(const group of [root,...cache.values()])group.traverse(o=>{if(o.isMesh){resources.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material]){resources.add(m);if(m.map)resources.add(m.map);}}});for(const item of resources)item.dispose();}};
+  return{sync(next,world=layout){state=next;updateLayout(world);},relocate(){const p=safeMuraPosition(layout,view.hero());port.position(p.x,p.z);},dispose(){view.onDraw(null);resident.dispose();clearOccluders();root.removeFromParent();const resources=new Set(disposables);for(const group of [root,...cache.values()])group.traverse(o=>{if(o.isMesh){resources.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material]){resources.add(m);if(m.map)resources.add(m.map);}}});for(const item of resources)item.dispose();}};
 }
