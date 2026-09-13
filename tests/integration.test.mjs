@@ -21,6 +21,7 @@ test('Ready same-repo head passes; every unsafe or indeterminate prerequisite bl
     x => x.pr.mergeable = null, x => x.pr.mergeable_state = 'dirty', x => x.pr.mergeable_state = 'blocked',
     x => x.unresolved = true, x => x.dependenciesMerged = false, x => x.checksPassed = false,
     x => x.recovery = true, x => x.files = ['scripts/deploy.mjs'], x => x.baseChanges = [...x.files],
+    x => x.files = ['docs/RINNE_PROJECT_EXECUTION_POLICY.md'],
   ];
   for (const mutate of variants) { const x = input(); mutate(x); assert.ok(eligibility(x), mutate.toString()); }
 });
@@ -87,6 +88,22 @@ function fake({ prs = [candidate(1), candidate(2)], failed = false, moved = fals
 test('two eligible PRs batch into one final SHA; own dispatch cannot deadlock', async () => {
   const {c,merges} = fake(); const report = await integrate(c,repository);
   assert.deepEqual(merges,[1,2]); assert.equal(report.sha,'merge2'); assert.equal(report.verified,false); assert.deepEqual(report.held,[]);
+});
+test('handoff receipt cannot block or replace exact-head build/browser gates', async () => {
+  const { c } = fake({ prs: [candidate()] });
+  const pages = c.pages.bind(c);
+  let browser = { name: 'Affected browser smoke', status: 'completed', conclusion: 'success' };
+  c.pages = async (path, key) => {
+    const original = await pages(path, key);
+    if (path.includes('/statuses')) return [...original, { context: 'implementation/handoff', state: 'pending' }];
+    if (key === 'check_runs') return [...original, browser, { name: 'Request Rescue observation', status: 'in_progress' }];
+    return original;
+  };
+  assert.equal(await fastGate(c, candidate()), true);
+  browser = { ...browser, status: 'in_progress', conclusion: null };
+  assert.equal(await fastGate(c, candidate()), false);
+  browser = { ...browser, status: 'completed', conclusion: 'failure' };
+  assert.equal(await fastGate(c, candidate()), false);
 });
 test('dependencies are revisited after their predecessor merges', async () => {
   const first = candidate(1); first.body = 'Depends-On: #2';

@@ -66,6 +66,8 @@ export function classifyPull(pr, runs = [], developRuns = [], now = Date.now()) 
     title: pr.title,
     url: pr.html_url || `https://github.com/${REPOSITORY}/pull/${pr.number}`,
     headSha: pr?.head?.sha || null,
+    monitoringOwner: pr.draft ? 'Implementation' : 'Integration',
+    workerEnded: !pr.draft,
     updatedAt: pr.updated_at || pr.created_at || null,
     ci: ci ? {
       status: ci.status,
@@ -82,7 +84,7 @@ export function classifyPull(pr, runs = [], developRuns = [], now = Date.now()) 
     return { ...base, stage: 'HOLD', label: 'Integration保留', tone: 'info', reason: '明示的なIntegration hold' };
   }
   if (!ci || ci.status !== 'completed') {
-    return { ...base, stage: 'READY_WAIT', label: ci ? '自動テスト中' : '自動テスト待ち', tone: 'info', reason: ci ? 'CI実行中' : 'CI待ち' };
+    return { ...base, stage: 'READY_WAIT', label: ci ? '自動テスト中' : '自動テスト待ち', tone: 'info', reason: `${ci ? 'CI実行中' : 'CI待ち'} / Integrationが監視・実装Worker終了` };
   }
   if (FAILURE_CONCLUSIONS.has(ci.conclusion)) {
     return { ...base, stage: 'CI_FAILED', label: 'CI失敗', tone: 'danger', reason: ci.conclusion || 'failure' };

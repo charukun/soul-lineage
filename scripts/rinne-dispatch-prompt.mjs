@@ -1,4 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises';
+import { WORKER_CI_RULES } from './implementation-handoff.mjs';
 
 export const DISPATCH_MARKER = 'RINNE-Dispatch: implementation';
 export const DISPATCH_BRANCH_PREFIX = 'dispatch/';
@@ -46,6 +47,13 @@ export function isEligibleDispatchPull(pull, repository) {
   }
 }
 
+function workCiRules() {
+  return WORKER_CI_RULES.replace(
+    'The wrapper owns push/Ready and then ends the worker responsibility as READY_FOR_INTEGRATION.',
+    'This ChatGPT Work task owns push/Ready and then ends its worker responsibility as READY_FOR_INTEGRATION.',
+  );
+}
+
 export function buildDispatchPrompt({ repository, number, base, head, body }) {
   const request = parseDispatchBody(body);
   return `You are the ChatGPT Work implementation worker for an already-created Draft PR in ${repository}.
@@ -58,7 +66,7 @@ Head: ${head}
 The Draft PR and dispatch branch already exist and are the recovery/source-of-truth record. Work on this same PR and branch. Do NOT create another branch or PR. Do NOT modify main or Production.
 
 Before editing:
-1. Read AGENTS.md, docs/DEVELOPMENT.md, docs/INTEGRATION.md, docs/DISPATCHER.md, and relevant app/package documentation from the repository.
+1. Read AGENTS.md, docs/DEVELOPMENT.md, docs/INTEGRATION.md, docs/RINNE_PROJECT_EXECUTION_POLICY.md, docs/DISPATCHER.md, and relevant app/package documentation from the repository.
 2. Reconcile the dispatch branch with the latest develop before substantive edits. Preserve app/package boundaries and current Repository policy.
 3. Treat GitHub state as authoritative. Project-uploaded files are not required for this task.
 
@@ -70,9 +78,10 @@ Implementation and delivery rules:
 - Run the affected fast verification, including npm ci and node scripts/validate.mjs fast origin/develop HEAD when applicable to code changes.
 - Commit and push the implementation to the same ${head} branch.
 - Update the existing PR with the result and exact commit SHA, then mark that PR Ready for review.
-- Do not wait synchronously for CI after Ready. Existing Integration owns CI, develop merge and DEV publication.
 - If the request is already satisfied and no substantive diff is needed, comment that result and close the Draft PR without merge.
 - If work cannot be completed, leave the PR Draft and comment the reached stage, branch/SHA, failure reason, routes tried and next recovery route.
+
+${workCiRules()}
 
 This route must not call the OpenAI Platform API directly and must not depend on OPENAI_API_KEY or platform API credits. It runs as a ChatGPT Work task using the user's ChatGPT plan and connected GitHub app.
 

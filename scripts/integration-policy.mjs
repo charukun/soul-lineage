@@ -1,6 +1,6 @@
 // Pure policy: API/permission failures are handled by the caller as blockers.
 export const contextName = 'integration/develop';
-export const sensitive = path => /^(\.github\/|scripts\/|AGENTS\.md$|docs\/(DEVELOPMENT|INTEGRATION)\.md$)/.test(path);
+export const sensitive = path => /^(\.github\/|scripts\/|AGENTS\.md$|docs\/(DEVELOPMENT|INTEGRATION|RINNE_PROJECT_EXECUTION_POLICY)\.md$)/.test(path);
 export const scope = path => path.startsWith('packages/') ? path.split('/').slice(0, 2).join('/') : path;
 const trustedReview = review => review.user?.login === 'github-actions[bot]' && /^Trusted Integration Review: exact head [0-9a-f]{40}\b/.test(review.body || '');
 export function dependencies(body = '') {

@@ -63,4 +63,4 @@ jobs:
             -f context=dispatch/handoff \
             -f description='Eligible for ChatGPT Work event task' \
             -f target_url="$RUN_URL" >/dev/null
-          gh pr comment "$PR_NUMBER" --body "RINNE Dispatch: QUEUED FOR CHATGPT WORK\n\nbranch: \`$HEAD_REF\`\ncommit: \`$HEAD_SHA\`\nPR: $PR_URL\n\nThis repository workflow performs handoff validation only. It does not invoke the OpenAI API, does not use \`OPENAI_API_KEY\`, and does not incur platform API credits. A configured ChatGPT Work GitHub pull-request event task owns implementation on this same Draft PR/branch."
+          gh pr comment "$PR_NUMBER" --body "RINNE Dispatch: QUEUED FOR CHATGPT WORK\n\nbranch: \`$HEAD_REF\`\ncommit: \`$HEAD_SHA\`\nPR: $PR_URL\n\nThis repository workflow performs handoff validation only. It does not invoke a metered Platform API worker, does not consume a Platform API credential, and does not incur separate Platform API credits. A configured ChatGPT Work GitHub pull-request event task owns implementation on this same Draft PR/branch."

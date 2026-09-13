@@ -68,7 +68,8 @@ test('Work handoff prompt keeps repository delivery policy above user scope', ()
   assert.match(prompt, /Do NOT modify main or Production/);
   assert.match(prompt, /Commit and push the implementation to the same dispatch\/village-first-build branch/);
   assert.match(prompt, /mark that PR Ready for review/);
-  assert.match(prompt, /Do not wait synchronously for CI after Ready/);
+  assert.match(prompt, /Do not wait for GitHub Actions, CI or Playwright\/browser completion/);
+  assert.match(prompt, /READY_FOR_INTEGRATION/);
   assert.match(prompt, /must not call the OpenAI Platform API directly/);
   assert.match(prompt, /must not depend on OPENAI_API_KEY/);
   assert.match(prompt, /<rinne_request>[\s\S]*村の初回建築導線を改善してください。/);
@@ -95,6 +96,8 @@ test('dispatcher documentation requires ChatGPT Work GitHub event task and no pl
   assert.match(docs, /ChatGPT Work/);
   assert.match(docs, /pull request opened/i);
   assert.match(docs, /no separate OpenAI Platform API credits/i);
+  assert.match(docs, /READY_FOR_INTEGRATION/);
+  assert.match(docs, /RINNE_PROJECT_EXECUTION_POLICY\.md/);
   assert.match(docs, /Settings > Apps/);
   assert.doesNotMatch(docs, /Required GitHub Actions secret:[\s\S]*OPENAI_API_KEY/);
 });

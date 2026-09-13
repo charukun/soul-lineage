@@ -22,7 +22,36 @@ jobs:
     permissions:
       contents: read
       actions: write
+      statuses: write
+      issues: write
+      pull-requests: read
     steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+          sparse-checkout: scripts
+      - name: Record Ready handoff without waiting for CI
+        continue-on-error: true
+        uses: actions/github-script@v8
+        env:
+          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+        with:
+          script: |
+            const { existsSync } = require('node:fs');
+            if (!existsSync('scripts/implementation-handoff.mjs')) {
+              core.notice('Handoff recorder is not on develop yet; existing Ready/Rescue events own this bootstrap PR.');
+              return;
+            }
+            const { recordHandoff } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/implementation-handoff.mjs`);
+            const result = await recordHandoff({ github, repo: context.repo,
+              number: context.payload.pull_request.number,
+              expectedHead: context.payload.pull_request.head.sha,
+              runUrl: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              notification: { url: process.env.NTFY_TOPIC_URL, token: process.env.NTFY_TOKEN },
+              warn: message => core.warning(message) });
+            core.summary.addRaw(JSON.stringify(result)).write();
       - uses: actions/github-script@v8
         with:
           script: |

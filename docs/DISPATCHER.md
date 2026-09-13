@@ -4,7 +4,7 @@ RINNE Dispatcher turns one short instruction into an isolated implementation wor
 
 ## Current route: ChatGPT Work, no Platform API credits
 
-The active route does **not** call the OpenAI Platform API from GitHub Actions and does not use `OPENAI_API_KEY`.
+The active route does **not** call the OpenAI Platform API from GitHub Actions and does not use `OPENAI_API_KEY`. No separate OpenAI Platform API credits are required for the normal Dispatcher route.
 
 The flow is:
 
@@ -18,13 +18,16 @@ Project Chat / WORK
   -> affected fast verification
   -> commit / push
   -> Ready for review
+  -> READY_FOR_INTEGRATION
   -> existing Integration
   -> develop / DEV
 ```
 
 The GitHub workflow `.github/workflows/rinne-dispatch.yml` is intentionally only a handoff validator/recorder. It must never invoke `openai/codex-action`, use `OPENAI_API_KEY`, or silently fall back to a paid API route.
 
-ChatGPT Work event-triggered tasks are part of eligible ChatGPT plans. They use the connected GitHub app and do not require separate OpenAI Platform API credits. Normal ChatGPT plan limits and connected-app approval requirements still apply.
+ChatGPT Work event-triggered tasks use the connected GitHub app and the user's eligible ChatGPT plan. No separate OpenAI Platform API credits are required. Normal ChatGPT plan limits and connected-app approval requirements still apply.
+
+The canonical implementation-session boundary is [RINNE_PROJECT_EXECUTION_POLICY.md](RINNE_PROJECT_EXECUTION_POLICY.md). The Work task ends at push + Ready + `READY_FOR_INTEGRATION`. Running / Queued / Pending CI or browser checks are not waited on. The existing Integration path owns asynchronous CI/browser monitoring, merge, DEV publication, repair and delivery notifications.
 
 ## User-facing command
 
@@ -40,7 +43,7 @@ Interactive design work, ambiguous specification work, large visual iteration, a
 
 For an implementation dispatch, the initiating Chat/WORK performs only the bootstrap below. It does not implement the requested code itself.
 
-1. Re-read latest `develop`, `AGENTS.md`, `docs/DEVELOPMENT.md`, `docs/INTEGRATION.md`, this file, and relevant app/package documentation.
+1. Re-read latest `develop`, `AGENTS.md`, `docs/DEVELOPMENT.md`, `docs/INTEGRATION.md`, `docs/RINNE_PROJECT_EXECUTION_POLICY.md`, this file, and relevant app/package documentation.
 2. Create `dispatch/<short-slug>` from current latest `develop`.
 3. Add one temporary `.task-start/<short-slug>.md` marker containing scope and recovery information. This is only the meaningful initial diff needed to create the Draft PR.
 4. Open a develop-targeting **Draft PR**. The body must begin with the normal two-line contract, then contain:
@@ -92,7 +95,7 @@ You are the implementation worker for the GitHub pull request that triggered thi
 
 First verify that the PR is still open, Draft, targets develop, comes from the same repository, its head starts with dispatch/, and its body contains `RINNE-Dispatch: implementation` plus a non-empty `## Request`. If not, stop without changing anything.
 
-Use the repository as the source of truth. Read current develop, AGENTS.md, docs/DEVELOPMENT.md, docs/INTEGRATION.md, docs/DISPATCHER.md and relevant app/package documentation before editing.
+Use the repository as the source of truth. Read current develop, AGENTS.md, docs/DEVELOPMENT.md, docs/INTEGRATION.md, docs/RINNE_PROJECT_EXECUTION_POLICY.md, docs/DISPATCHER.md and relevant app/package documentation before editing.
 
 Work on the existing dispatch branch and existing Draft PR. Do not create another branch or PR. Reconcile with latest develop before substantive changes. Implement only the `## Request` scope. Do not modify main or Production. Do not weaken tests, browser assertions, review requirements, Integration rules or repository protections.
 
@@ -100,7 +103,7 @@ Use the existing repository write-route policy: normal git first when available,
 
 For code changes, perform the required affected fast verification, including `npm ci` and `node scripts/validate.mjs fast origin/develop HEAD` when applicable. Commit and push to the same dispatch branch. Update the existing PR with the result, exact commit SHA and checks actually run, remove the transient `.task-start` marker, then mark that PR Ready for review.
 
-After Ready, stop. Do not synchronously wait for CI, merge or DEV publication. Existing Integration owns that path.
+After Ready, record `READY_FOR_INTEGRATION` and stop. Do not synchronously wait for CI, browser verification, merge or DEV publication. Existing Integration owns that path.
 
 If the request is already satisfied and no substantive diff is needed, comment that result and close the Draft PR without merge.
 
@@ -118,9 +121,9 @@ When substantive changes exist, the Work task owns implementation through Ready 
 5. commit and push the same dispatch branch;
 6. update the existing PR with exact result/SHA;
 7. mark the PR Ready for review;
-8. stop without polling CI.
+8. record `READY_FOR_INTEGRATION` and stop without polling CI.
 
-Existing Integration then owns CI monitoring, develop merge, DEV deploy and public/browser verification.
+Existing Integration then owns CI monitoring, develop merge, DEV deploy and public/browser verification. The immediate Ready handoff recorder introduced by the repository delivery policy is a durable receipt only; it is not a reason for the implementation worker to wait.
 
 If there is no substantive implementation change, close the Draft PR without merge rather than manufacturing a meaningless change.
 
@@ -134,13 +137,14 @@ If ChatGPT Work is unavailable, its GitHub permission requires approval, or its 
 
 The first prototype used `openai/codex-action` from GitHub Actions with `OPENAI_API_KEY`. The end-to-end smoke test reached the Codex worker but stopped because Platform API credits were unavailable. That route is retired for normal RINNE Dispatch operation.
 
-The repository may still contain historical PR/comments referring to `OPENAI_API_KEY`; they are migration history, not the current dispatch contract. Once this no-API migration is integrated, the repository Actions secret can be removed if it is not used by another workflow.
+The repository may still contain historical PR/comments referring to `OPENAI_API_KEY`; they are migration history, not the current dispatch contract. Do not remove the repository secret solely for Dispatcher cleanup while another workflow still references it.
 
 ## Acceptance criteria
 
 - Opening an eligible same-repository `dispatch/*` Draft PR records a no-cost GitHub handoff and never invokes `openai/codex-action`.
 - No dispatch GitHub Action references or consumes `OPENAI_API_KEY`.
 - A configured ChatGPT Work GitHub PR event task can implement on the existing branch/PR and hand the result to Ready for review.
+- The Work task follows the repository no-wait boundary and ends at `READY_FOR_INTEGRATION`.
 - No-op work closes Draft without merge.
 - Failure preserves the Draft PR/branch recovery point.
 - Existing Ready -> Integration -> develop -> DEV remains unchanged.
