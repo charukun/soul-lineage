@@ -97,17 +97,11 @@ export function installWeaponReviewPolish(body){
   oldAfter?.();if(!active||!socket.visible)return;
   const spec=WEAPON_PROFILES[active],meta=body.motionMeta?.get(clip),root=roots.get(active);let target,q;
   const shoulder=local(body.bones.rightUpperArm),hip=local(body.bones.hips),normal=state.mode==='normal';
-  // Reference idle grips and the reviewed slash get dedicated pose constraints.
+  // Idle grip constraints only. Combat clips retain their shared authored hands.
   // An explicitly mismatched motion remains visible and labelled, not silently replaced.
-  if(clip==='通常 / 自然体'||clip==='Tidebreak / Idle'||meta?.kind==='ready'||meta?.kind==='slash'){
+  if(clip==='通常 / 自然体'||clip==='Tidebreak / Idle'||meta?.kind==='ready'){
     if(normal){target=vec(.19*unit,hip.y+.04*unit,-.12*unit);q=bladeQ(vec(.12,-.48,-.87),spec.axis);}
     else {target=vec(.08*unit,shoulder.y-(active==='crossbow'?.13:.25)*unit,-(active==='crossbow'?.17:active==='staff'?.19:.28)*unit);q=bladeQ(active==='crossbow'?vec(0,0,-1):vec(.02,.68,-.73),spec.axis);}
-    if(meta?.kind==='slash'&&!normal){
-      const f=T.MathUtils.clamp(time/1.28,0,1),keys=[{t:0,p:[.08,-.25,-.28],d:[.02,.68,-.73]},{t:.25,p:[.25,.04,-.05],d:[.20,.95,.24]},{t:.49,p:[-.04,-.12,-.38],d:[-.72,-.12,-.68]},{t:.73,p:[-.27,-.31,-.17],d:[-.80,-.58,.12]},{t:1,p:[.08,-.25,-.28],d:[.02,.68,-.73]}];
-      let i=keys.findIndex(k=>k.t>=f);if(i<1)i=1;const a=keys[i-1],b=keys[i],u=smooth((f-a.t)/(b.t-a.t));
-      const p=vec(...a.p).lerp(vec(...b.p),u);target=vec(p.x*unit,shoulder.y+p.y*unit,p.z*unit);
-      q=bladeQ(vec(...a.d),spec.axis).slerp(bladeQ(vec(...b.d),spec.axis),u);
-    }
     handAt('right',toWorld(target),q);
   }
   body.root.updateMatrixWorld(true);curl('right');

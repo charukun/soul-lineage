@@ -6,11 +6,12 @@ Lab base: `158bf987713bd3ae8db89c502fa6c6584f815176`.
 The user requested independent publication of the authored Shino slash to the
 existing Visual Review Lab, without waiting for develop Integration.
 
-The Lab home now opens **作り直した4秒連撃を確認**, linking to
-`/simulator/motion-review.html?mode=flow`; see [the connected phrase](SWORD_FLOW_LAB.md).
-The prior 30 s score remains at `/simulator/motion-review.html?mode=sequence`. The original single slash remains at
-`/simulator/motion-review.html` and in the viewer mode selector. The single page starts the Shino sword slash immediately
-and provides pause/restart, speed, seek, frame steps, orbit and camera presets.
+The current Lab home opens **既存の技で30秒演武**, linking to
+`/simulator/motion-review.html?mode=sequence`; see
+[existing sword motions](EXISTING_SWORD_MOTIONS_LAB.md) for the latest changes.
+The same viewer offers all five improved individual techniques at `?mode=single`
+and a four-technique composition at `?mode=combination`, with pause/restart,
+speed, seek, frame steps, orbit and camera presets.
 Its back link returns to the Lab home. No model or clip selection is required.
 
 The canonical simulator runtime and its dependency closure are brought forward

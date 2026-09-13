@@ -1,6 +1,5 @@
 import * as T from '../vendor/three.js';
 import {applyAuthoredSlash,slashSupport,SLASH_REVISION} from './authored-slash.js';
-import {FLOW_SECONDS,applySwordFlow,flowFoot} from './sword-flow.js';
 import {AUTHORED_SWORD_KINDS,applyAuthoredSword} from './authored-sword.js';
 import {prepareAgeAppearance,applyAgePosture,finishAgeAppearance,disposeAgeAppearance} from './life-appearance.js';
 import {clone as cloneSkeleton} from '../vendor/SkeletonUtils.js';
@@ -22,7 +21,7 @@ function keys(rows,p){if(p<=rows[0][0])return rows[0][1].slice();if(p>=rows.at(-
 function trackPose(bones){const out={};for(const [n,b] of Object.entries(bones))out[n]={p:b.position.clone(),q:b.quaternion.clone()};return out;}
 function applyPose(bones,p){for(const [n,t] of Object.entries(p)){if(bones[n]){bones[n].position.copy(t.p);bones[n].quaternion.copy(t.q);}}}
 function poseClip(name,bones,pose){const tracks=[];for(const [n,b]of Object.entries(bones)){tracks.push(new T.QuaternionKeyframeTrack(b.uuid+'.quaternion',[0,1],[...pose[n].q.toArray(),...pose[n].q.toArray()]));if(n==='hips')tracks.push(new T.VectorKeyframeTrack(b.uuid+'.position',[0,1],[...pose[n].p.toArray(),...pose[n].p.toArray()]));}return new T.AnimationClip(name,1,tracks);}
-function evaluateTracks(clip,t,bonesByName){for(const tr of clip.tracks){const dot=tr.name.lastIndexOf('.'),name=tr.name.slice(0,dot),prop=tr.name.slice(dot+1),node=bonesByName[name];if(!node)continue;const value=(tr._tbInterpolator??=tr.createInterpolant()).evaluate(clamp(t,0,clip.duration));if(prop==='quaternion')node.quaternion.fromArray(value).normalize();else if(prop==='position')node.position.fromArray(value);}}
+function evaluateTracks(clip,t,bonesByName,weight=1){for(const tr of clip.tracks){const dot=tr.name.lastIndexOf('.'),name=tr.name.slice(0,dot),prop=tr.name.slice(dot+1),node=bonesByName[name];if(!node)continue;const value=(tr._tbInterpolator??=tr.createInterpolant()).evaluate(clamp(t,0,clip.duration));if(prop==='quaternion'){if(weight===1)node.quaternion.fromArray(value).normalize();else node.quaternion.slerp(Q().fromArray(value),weight);}else if(prop==='position'){if(weight===1)node.position.fromArray(value);else node.position.lerp(v().fromArray(value),weight);}}}
 export class HumanoidRuntime{
  constructor(api){this.api=api;this.catalog=catalog;this.current=null;this.token=0;this.clock=0;this.errors=[];this.modelId='A';this.ready=false;this.height=2.02;this.motionSource='Expanded Review';this.sourceInfo={models:5,embeddedAnimations:0,sharedVRMA:13,reviewAuthored:5,sourceAttack:'unarmed jab/cross',sourceDeath:false};this.testOverride=null;}
  async load(id){const m=catalog.find(x=>x.id===id);if(!m)throw Error('未知のHumanoid: '+id);if(this.current?.id===id)return this.current;const token=++this.token;this.api.status?.(m.name+'：モデル・モーションを展開中');
@@ -136,9 +135,9 @@ export class HumanoidRuntime{
  combatPose(c,weapon,kind,p,baseTime=0){const H=c.shoulderY,L=c.legLength,s=L/.82,def=!!this.api.strikes[kind]?.defense||['none','ready','retreat'].includes(kind),attack=!!kind&&!def;
   // Armed attacks no longer inherit the old jab/cross body. Start from a neutral moving guard,
   // then author the whole-body cut around the weapon path.
-  const authored=c.id==='SHINO'&&weapon==='sword'&&(kind==='flow'||kind==='slash'||AUTHORED_SWORD_KINDS.includes(kind));
+  const authored=c.id==='SHINO'&&weapon==='sword'&&(kind==='slash'||AUTHORED_SWORD_KINDS.includes(kind));
   evaluateTracks(c.shared['idle-01'],attack?(authored?0:(p*.42)%c.shared['idle-01'].duration):baseTime%c.shared['idle-01'].duration,c.byName);
-  if(authored){if(kind==='flow')applySwordFlow(this,c,p);else if(kind==='slash')applyAuthoredSlash(this,c,p,this.api.clips.slash);else applyAuthoredSword(this,c,kind,p,this.api.clips[kind]);return;}
+  if(authored){if(kind==='slash')applyAuthoredSlash(this,c,p,this.api.clips.slash);else applyAuthoredSword(this,c,kind,p,this.api.clips[kind]);return;}
   c.root.updateMatrixWorld(true);
   if(weapon==='fist')return;
   const guard=this.guard(c,weapon,H,s);let grip=guard.grip.clone(),dir=guard.dir.clone(),roll=guard.roll,row=null;
@@ -178,9 +177,16 @@ export class HumanoidRuntime{
   else if(weapon==='fist'&&d.type==='combat'){clip=c.review.clips.Attack;time=.23+.012*Math.sin(d.clock*2.1);}
   else{clip=c.shared['idle-01'];time=d.time%clip.duration;}
   if(!clip)throw Error('Animation Clip未解決: '+d.type);
-  if(c.state!==d.key){if(c.blending){c.mixer.uncacheClip(c.blending.clip);c.actions.delete(c.blending.clip.uuid);}c.blending=c.lastActual?{pose:c.lastActual,clip:poseClip('Transition:'+d.key,c.bones,c.lastActual),start:(a._humanoidClock||0)-(d.type==='attack'?(a.attack?.t||0):d.type==='hit'?(a.reaction?.t||0):d.type==='recovery'?(a.recovery?.t||0):0),duration:d.type==='hit'?.065:d.type==='death'?.12:d.type==='attack'?.070:['walk','run','combat'].includes(d.type)?.115:.16}:null;c.state=d.key;}
+  if(c.state!==d.key){if(c.blending){c.mixer.uncacheClip(c.blending.clip);c.actions.delete(c.blending.clip.uuid);}c.blending=!a.motionSequence&&c.lastActual?{pose:c.lastActual,clip:poseClip('Transition:'+d.key,c.bones,c.lastActual),start:(a._humanoidClock||0)-(d.type==='attack'?(a.attack?.t||0):d.type==='hit'?(a.reaction?.t||0):d.type==='recovery'?(a.recovery?.t||0):0),duration:d.type==='hit'?.065:d.type==='death'?.12:d.type==='attack'?.070:['walk','run','combat'].includes(d.type)?.115:.16}:null;c.state=d.key;}
+  if(a.motionSequence&&d.type==='attack'&&a.motionBlend){const k=weapon+':'+a.motionBlend.kind;c.generated[k]??=this.bakeArmed(c,weapon,a.motionBlend.kind);}
   c.mixer.stopAllAction();this.resetBones(c);const action=this.action(c,clip);action.reset().play();action.paused=true;action.time=clamp(time,0,clip.duration);let weight=c.blending?smooth((d.clock-c.blending.start)/c.blending.duration):1;action.setEffectiveWeight(weight);
-  if(c.blending&&weight<1){const old=this.action(c,c.blending.clip);old.reset().play();old.paused=true;old.time=0;old.setEffectiveWeight(1-weight);}c.mixer.update(0);c.root.updateMatrixWorld(true);
+  if(c.blending&&weight<1){const old=this.action(c,c.blending.clip);old.reset().play();old.paused=true;old.time=0;old.setEffectiveWeight(1-weight);}c.mixer.update(0);
+  if(a.motionSequence&&d.type==='attack'&&a.motionBlend){
+   const blend=a.motionBlend,k=weapon+':'+blend.kind;
+   const previous=c.generated[k];
+   evaluateTracks(previous,blend.phase,c.byName,clamp(blend.weight,0,1));
+  }
+  c.root.updateMatrixWorld(true);
   this.applyReferenceLocomotion(c,d,weapon);
   if(d.type==='hit'||d.type==='recovery'){const hp=clamp(d.time/(d.type==='hit'?1.3:1.8),0,1),kick=Math.sin(Math.min(1,hp)*PI),flip=c.vrm.meta.metaVersion==='1'?-1:1;const add=(name,e)=>{const b=c.bones[name];if(b)b.quaternion.multiply(Q().setFromEuler(e)).normalize();};add('hips',new T.Euler(.10*kick*flip,-.10*kick,.05*kick*flip,'YXZ'));add('spine',new T.Euler(.14*kick*flip,-.14*kick,.08*kick*flip,'YXZ'));add('chest',new T.Euler(.10*kick*flip,-.10*kick,.05*kick*flip,'YXZ'));c.bones.hips.position.z-=.055*c.legLength*kick;c.bones.hips.position.y-=.025*c.legLength*kick;c.root.updateMatrixWorld(true);}
   // Armed clip already contains both gripping hands. Non-attack layers retain source legs/torso.
@@ -245,7 +251,6 @@ export class HumanoidRuntime{
       return q<.43; // one planted foot, brief aerial/transfer window, then the other foot
     }
     if(d.type==='attack'){
-      if(c.id==='SHINO'&&a.weapon==='sword'&&d.kind==='flow')return flowFoot(side,d.time*FLOW_SECONDS).support;
       if(c.id==='SHINO'&&a.weapon==='sword'&&(d.kind==='slash'||AUTHORED_SWORD_KINDS.includes(d.kind)))return slashSupport(side,d.time,this.api.clips[d.kind]?.contact);
       // Reference master motion: rear foot loads first, front foot owns impact/follow-through.
       return side==='right'?d.time>=0&&d.time<.43:d.time>.28&&d.time<.96;
@@ -268,7 +273,7 @@ export class HumanoidRuntime{
   }const tracks=Object.entries(c.bones).map(([n,b])=>new T.QuaternionKeyframeTrack(b.uuid+'.quaternion',times,data[n]));tracks.push(new T.VectorKeyframeTrack(c.bones.hips.uuid+'.position',times,hips));return new T.AnimationClip('Expanded Review Attack / hit-window blend / '+kind,1,tracks);
  }
 
- bakeArmed(c,weapon,kind){this.resetRoot(c);const times=[],data={},hips=[],count=kind==='flow'?360:90;for(const n of Object.keys(c.bones))data[n]=[];for(let i=0;i<=count;i++){times.push(i/count);this.resetBones(c);this.combatPose(c,weapon,kind,i/count);for(const[n,b]of Object.entries(c.bones)){const q=b.quaternion.toArray(),out=data[n];if(out.length&&q.reduce((sum,x,k)=>sum+x*out[out.length-4+k],0)<0)for(let k=0;k<4;k++)q[k]*=-1;out.push(...q);}hips.push(...c.bones.hips.position.toArray());}const tracks=Object.entries(c.bones).map(([n,b])=>new T.QuaternionKeyframeTrack(b.uuid+'.quaternion',times,data[n]));tracks.push(new T.VectorKeyframeTrack(c.bones.hips.uuid+'.position',times,hips));return new T.AnimationClip('Tidebreak armed / '+weapon+' / '+kind,1,tracks);}
+ bakeArmed(c,weapon,kind){this.resetRoot(c);const times=[],data={},hips=[],count=90;for(const n of Object.keys(c.bones))data[n]=[];for(let i=0;i<=count;i++){times.push(i/count);this.resetBones(c);this.combatPose(c,weapon,kind,i/count);for(const[n,b]of Object.entries(c.bones)){const q=b.quaternion.toArray(),out=data[n];if(out.length&&q.reduce((sum,x,k)=>sum+x*out[out.length-4+k],0)<0)for(let k=0;k<4;k++)q[k]*=-1;out.push(...q);}hips.push(...c.bones.hips.position.toArray());}const tracks=Object.entries(c.bones).map(([n,b])=>new T.QuaternionKeyframeTrack(b.uuid+'.quaternion',times,data[n]));tracks.push(new T.VectorKeyframeTrack(c.bones.hips.uuid+'.position',times,hips));return new T.AnimationClip('Tidebreak armed / '+weapon+' / '+kind,1,tracks);}
  measureLocomotion(c){this.resetRoot(c);const out={};for(const [name,id]of [['walk','walk'],['run','run-slow']]){const clip=c.shared[id],samples=[];for(let i=0;i<=96;i++){this.resetBones(c);evaluateTracks(clip,clip.duration*i/96,c.byName);c.root.updateMatrixWorld(true);samples.push(['left','right'].map(side=>this.point(c,side+'Foot').toArray()));}const floor=Math.min(...samples.flatMap(x=>x.map(p=>p[1]))),slopes=[];for(let i=1;i<samples.length;i++)for(let side=0;side<2;side++){const a=samples[i-1][side],b=samples[i][side];if(Math.min(a[1],b[1])<floor+.04&&b[2]<a[2]-.0001)slopes.push((a[2]-b[2])*96*c.unit);}slopes.sort((a,b)=>a-b);const cycleDistance=clamp(slopes[Math.floor(slopes.length/2)]||1.1,.45,3.0);out[name]={clip:id,duration:clip.duration,cycleDistance,method:'measured low-foot backward velocity; distance-matched phase; bounded world support IK'};}return out;}
  tick(a,dt){if(!a?.hero)return;this.clock+=dt;this.updateEchoes();a._humanoidClock=(a._humanoidClock||0)+dt;const speed=Math.hypot(a.vx||0,a.vz||0);if(!a.attack&&!a.dead&&!a.recovery)a._humanoidPhase=(a._humanoidPhase||0)+speed*dt/(this.current?.locomotion[speed>2.4?'run':'walk'].cycleDistance||1.16)*((a.vx||0)*Math.sin(a.yaw)+(a.vz||0)*Math.cos(a.yaw)<-.07?-1:1);}
  checkSocket(c,result,weapon){const world=c.sockets.right.node.getWorldPosition(v()),expected=new T.Vector3().setFromMatrixPosition(new T.Matrix4().fromArray(result.rightSocket));c.socketError=world.distanceTo(expected);const spec=weaponSockets[weapon];if(spec?.two&&result.supportAttached&&result.attachment!=='hips'){const l=c.sockets.left.node.getWorldPosition(v()),grip=v(...spec.left).applyMatrix4(new T.Matrix4().fromArray(result.sm));c.secondaryGripError=l.distanceTo(grip);}else c.secondaryGripError=null;c.finite=Object.values(c.bones).every(b=>b.position.toArray().concat(b.quaternion.toArray()).every(Number.isFinite));}

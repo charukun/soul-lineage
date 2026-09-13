@@ -6,7 +6,7 @@ import * as T from '../vendor/three.js';
 
 export const SLASH_SECONDS = .66;
 export const SLASH_TIMING = Object.freeze({active:Object.freeze([.35,.64]),contact:.50,launch:.34,plant:.49,chain:.86,lead:1});
-export const SLASH_REVISION = 'shino-slash-1';
+export const SLASH_REVISION = 'shino-slash-2';
 const clamp = (x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 
 // Monotone cubic interpolation keeps momentum through intermediate poses without
@@ -39,7 +39,7 @@ const body = {
   head:[[0,0,0,0],[.34,-.015,.33,0],[.50,.055,-.28,.04],[.66,.04,-.44,.025],[.82,.02,-.22,0],[1,0,0,0]],
   offset:[[0,0,-.028,0],[.24,-.040,-.135,-.040],[.35,-.030,-.145,-.015],[.47,.035,-.115,.13],[.55,.045,-.115,.16],[.70,.025,-.070,.115],[.84,.013,-.048,.055],[1,0,-.028,0]],
   // These are hand targets, not a generic circular blade orbit.
-  grip:[[0,-.19,-.37,.35],[.22,-.36,-.15,.075],[.35,-.42,-.10,.005],[.44,-.40,-.14,.25],[.50,-.055,-.27,.49],[.59,.32,-.44,.36],[.72,.31,-.52,.10],[.84,.15,-.44,.20],[1,-.19,-.37,.35]],
+  grip:[[0,-.19,-.37,.35],[.22,-.38,-.15,.16],[.35,-.43,-.10,.15],[.44,-.40,-.14,.30],[.50,-.055,-.27,.53],[.59,.32,-.42,.42],[.72,.31,-.46,.28],[.84,.15,-.40,.31],[1,-.19,-.37,.35]],
   // Blade direction is spherical (yaw/elevation), with the cutting plane rolling
   // through the wrist instead of a direction-vector lerp collapsing at opposition.
   blade:[[0,.398,1.15,0],[.25,-1.68,.94,-.38],[.37,-1.83,.82,-.52],[.44,-1.40,.38,-.48],[.50,0,.02,-.15],[.59,1.47,-.30,.25],[.72,1.94,-.40,.46],[.84,1.50,.30,.36],[1,.398,1.15,0]],

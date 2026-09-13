@@ -1,23 +1,26 @@
 import * as T from '../vendor/three.js';
 import {OrbitControls} from '../vendor/OrbitControls.js';
 import {HumanoidRuntime} from './humanoid.js';
-import {SLASH_SECONDS,SLASH_REVISION} from './authored-slash.js';
-import {PERFORMANCE_SECONDS,PERFORMANCE_REVISION,SWORD_TIMINGS,applyPerformance} from './sword-performance.js';
-import {FLOW_SECONDS,FLOW_REVISION,FLOW_TIMING,FLOW_WINDOWS,flowWindow,sampleSwordFlow} from './sword-flow.js';
+import {SLASH_SECONDS} from './authored-slash.js';
+import {PERFORMANCE_SECONDS,SWORD_TIMINGS,applyPerformance} from './sword-performance.js';
+import {SWORD_MOVES,SWORD_REVISION} from './authored-sword.js';
+import {SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence} from './sword-sequence.js';
 import {createReviewSword} from './review-sword.js';
 const $=id=>document.getElementById(id),canvas=$('motion-stage');
 let renderer,runtime,controls,shadow,frame=0,playing=true,last=0,elapsed=0;
 const requestedMode=new URLSearchParams(location.search).get('mode');
-let mode=['flow','baseline','sequence'].includes(requestedMode)?requestedMode:'single';
-const shortMode=()=>mode==='flow'||mode==='baseline';
-const duration=()=>shortMode()?FLOW_SECONDS:mode==='sequence'?PERFORMANCE_SECONDS:SLASH_SECONDS;
+let mode=requestedMode==='flow'?'combination':['combination','baseline','sequence','single'].includes(requestedMode)?requestedMode:'single';
+let singleKind='slash';
+const completeSequence=createSwordSequence(['slash','back','uppercut','heavy'],{connected:false});
+const shortMode=()=>mode==='combination'||mode==='baseline';
+const duration=()=>shortMode()?SHORT_SWORD_SECONDS:mode==='sequence'?PERFORMANCE_SECONDS:SWORD_MOVES[singleKind].seconds;
 const scene=new T.Scene();scene.background=new T.Color('#25343c');scene.fog=new T.Fog('#25343c',8,16);
 const camera=new T.PerspectiveCamera(35,1,.05,30),focus=new T.Vector3(0,1.13,.3);
 const actor={id:'motion-review-shino',hero:true,weapon:'sword',weaponDraw:1,lifeAgeYears:22,x:0,z:0,yaw:0,air:0,vx:0,vz:0,combatReady:true,_humanoidClock:0,attack:null};
 const status=message=>{$('motion-status').textContent=message;};
-const api={weapons:{sword:{base:.21,tip:1.62,width:.065}},strikes:{slash:{},back:{},uppercut:{},thrust:{},heavy:{},flow:{}},clips:{...SWORD_TIMINGS,flow:FLOW_TIMING},windows:{flow:FLOW_WINDOWS},
+const api={weapons:{sword:{base:.21,tip:1.62,width:.065}},strikes:{slash:{},back:{},uppercut:{},thrust:{},heavy:{}},clips:SWORD_TIMINGS,windows:{},
  progress:(a,t)=>Math.min(1,Math.max(0,(t??a.attack?.t??0)/(a.attack?.duration||SLASH_SECONDS))),
- window:(kind,p)=>{if(kind==='flow')return flowWindow(p);const active=SWORD_TIMINGS[kind]?.active;return active&&p>=active[0]&&p<=active[1]?0:-1;},
+ window:(kind,p)=>{const active=SWORD_TIMINGS[kind]?.active;return active&&p>=active[0]&&p<=active[1]?0:-1;},
  attach:c=>scene.add(c.root),status};
 const sword=createReviewSword();sword.matrixAutoUpdate=false;scene.add(sword);
 // A short ribbon follows the actual blade sockets, never a canned effect clip.
@@ -39,8 +42,8 @@ function syncReference(time,force=false){
  const video=$('reference-video');
  if(!$('compare-reference').checked||!shortMode()){video.pause();return;}
  video.playbackRate=Number($('speed').value);
- if(video.readyState&& (force||Math.abs(video.currentTime-time)>.12))video.currentTime=Math.min(FLOW_SECONDS-.001,time);
- if(playing&&time<FLOW_SECONDS){if(video.paused)video.play().catch(()=>{});}else video.pause();
+ if(video.readyState&& (force||Math.abs(video.currentTime-time)>.12))video.currentTime=Math.min(SHORT_SWORD_SECONDS-.001,time);
+ if(playing&&time<SHORT_SWORD_SECONDS){if(video.paused)video.play().catch(()=>{});}else video.pause();
 }
 function toggleReference(){
  const open=$('compare-reference').checked&&shortMode();$('reference-panel').hidden=!open;
@@ -50,20 +53,15 @@ function toggleReference(){
 function phaseLabel(p){return p<.12?'構え':p<.34?'溜め':p<.46?'踏み込み':p<.60?'斬撃':p<.82?'振り抜き':'構えへ';}
 function pose(time){
  let label;
- if(mode==='flow'){
-  const f=sampleSwordFlow(time),scale=runtime.current.unit*runtime.current.legLength/.82;
-  Object.assign(actor,{x:f.root.x*scale,z:f.root.z*scale,yaw:f.root.yaw,vx:0,vz:0,_humanoidClock:time,_humanoidPhase:0,attack:{id:'flow-preview',kind:'flow',t:time,duration:FLOW_SECONDS}});label=f.label;
- }else if(mode==='baseline'){
-  const cuts=[['slash',.66],['back',.69],['uppercut',.74],['heavy',.98]];let start=0,attack=null;
-  for(const [kind,length] of cuts){if(time<start+length){attack={id:'baseline-'+kind,kind,t:time-start,duration:length};break;}start+=length;}
-  attack??={id:'baseline-end',kind:'slash',t:0,duration:SLASH_SECONDS};
-  Object.assign(actor,{x:0,z:0,yaw:0,vx:0,vz:0,_humanoidClock:time,_humanoidPhase:0,attack});label='従来の単発モーションを接続';
+ if(shortMode()){
+  Object.assign(actor,{x:0,z:0,yaw:0,vx:0,vz:0,_humanoidClock:time,_humanoidPhase:0});
+  const f=applySwordSequence(actor,mode==='combination'?SHORT_SWORD_SEQUENCE:completeSequence,time,{start:.3});label=f.current.label+(f.previous?' · '+f.previous.label+'から接続':'');
  }else if(mode==='sequence')label=applyPerformance(actor,time,runtime.current.locomotion).event.label;
- else{Object.assign(actor,{x:0,z:0,yaw:0,vx:0,vz:0,_humanoidClock:time,_humanoidPhase:0,attack:{id:'slash-preview',kind:'slash',t:time,duration:SLASH_SECONDS}});label=phaseLabel(time/SLASH_SECONDS);}
+ else{Object.assign(actor,{x:0,z:0,yaw:0,vx:0,vz:0,_humanoidClock:time,_humanoidPhase:0,motionBlend:null,motionSequence:false,attack:{id:'single-'+singleKind,kind:singleKind,t:time,duration:SWORD_MOVES[singleKind].seconds}});label=SWORD_MOVES[singleKind].label+' · '+phaseLabel(time/SWORD_MOVES[singleKind].seconds);}
  return {result:runtime.render(actor),label};
 }
 function follow(snap=false){
- const target=shortMode()?new T.Vector3(.23,1.13,.95):new T.Vector3(actor.x,1.13,actor.z+.3),next=snap?target:focus.clone().lerp(target,.18),delta=next.clone().sub(focus);
+ const target=shortMode()?new T.Vector3(0,1.13,.3):new T.Vector3(actor.x,1.13,actor.z+.3),next=snap?target:focus.clone().lerp(target,.18),delta=next.clone().sub(focus);
  camera.position.add(delta);controls.target.add(delta);focus.copy(next);
 }
 function render(){
@@ -85,12 +83,12 @@ function prepareAt(time){
 function seek(time){playing=false;elapsed=Math.min(duration(),Math.max(0,time));prepareAt(elapsed);syncPlay();render();}
 function syncPlay(){$('play').textContent=playing?'一時停止':'再生';$('play').setAttribute('aria-pressed',String(playing));syncReference(Math.min(duration(),elapsed),true);}
 function fittedDistance(){return Math.max(shortMode()?5.8:4.9,1.5/(Math.tan(T.MathUtils.degToRad(camera.fov/2))*camera.aspect)+.65);}
-function view(id){if(!controls)return;const distance=fittedDistance(),yaw=({three:.72,front:0,side:Math.PI/2,back:Math.PI})[id]??.72;if(shortMode())focus.set(.23,1.13,.95);else focus.set(actor.x,1.13,actor.z+.3);camera.position.set(focus.x+Math.sin(yaw)*distance,focus.y+distance*.16,focus.z+Math.cos(yaw)*distance);controls.target.copy(focus);controls.update();for(const b of document.querySelectorAll('[data-view]'))b.setAttribute('aria-pressed',String(b.dataset.view===id));render();}
+function view(id){if(!controls)return;const distance=fittedDistance(),yaw=({three:.72,front:0,side:Math.PI/2,back:Math.PI})[id]??.72;if(shortMode())focus.set(0,1.13,.3);else focus.set(actor.x,1.13,actor.z+.3);camera.position.set(focus.x+Math.sin(yaw)*distance,focus.y+distance*.16,focus.z+Math.cos(yaw)*distance);controls.target.copy(focus);controls.update();for(const b of document.querySelectorAll('[data-view]'))b.setAttribute('aria-pressed',String(b.dataset.view===id));render();}
 function resize(){if(!renderer)return;const box=canvas.parentElement.getBoundingClientRect();renderer.setSize(box.width,box.height,false);camera.aspect=box.width/Math.max(1,box.height);camera.updateProjectionMatrix();if(controls){const offset=camera.position.clone().sub(controls.target).normalize();camera.position.copy(controls.target).addScaledVector(offset,fittedDistance());controls.update();}render();}
 function configure(){
- $('mode').value=mode;$('timeline').max=String(duration());$('trail').disabled=mode==='single';$('compare-reference').disabled=!shortMode();if(!shortMode())$('compare-reference').checked=false;toggleReference();
- $('motion-version').textContent=shortMode()?`${mode==='flow'?FLOW_REVISION:'従来の単発接続'} · 4秒 / 4連撃`:mode==='sequence'?`${PERFORMANCE_REVISION} · 30秒 · 5種類 / 17撃`:`斬撃 ${SLASH_REVISION} · 1動作 ${SLASH_SECONDS.toFixed(2)}秒`;
- if(runtime?.ready)status(shortMode()?'踏み込み・踏み替え・旋回をつないだ連撃。演目で従来版と切り替えられます。':mode==='sequence'?'接近・連撃・回り込みの30秒演武。ドラッグで視点を変更できます。':'しのちゃんの斬撃 · エフェクトなし');
+ $('mode').value=mode;$('single-kind').value=singleKind;$('single-kind-row').hidden=mode!=='single';$('timeline').max=String(duration());$('trail').disabled=mode==='single';$('compare-reference').disabled=!shortMode();if(!shortMode())$('compare-reference').checked=false;toggleReference();
+ $('motion-version').textContent=`${SWORD_REVISION} · `+(shortMode()?'既存4技 / 4秒':mode==='sequence'?'既存5技 / 30秒':SWORD_MOVES[singleKind].label);
+ if(runtime?.ready)status(shortMode()?'既存の技を接続。単体モーションにも同じ改善が反映されています。':mode==='sequence'?'既存の技・歩行・走行を組み合わせた30秒演武。':'技構成と同じ共有モーションを単体で確認できます。');
 }
 function restart(){elapsed=0;prepareAt(0);playing=true;last=0;syncPlay();render();}
 function loop(now){const dt=last?Math.min(.25,(now-last)/1000):0;last=now;
@@ -115,6 +113,7 @@ async function start(){try{
  configure();view('three');resize();syncPlay();frame=requestAnimationFrame(loop);
 }catch(e){status(`表示できませんでした：${e.message}`);$('retry').hidden=false;}}
 $('mode').onchange=e=>{mode=e.target.value;$('repeat').checked=!shortMode();const url=new URL(location.href);url.searchParams.set('mode',mode);window.history.replaceState(null,'',url);configure();restart();};
+$('single-kind').onchange=e=>{singleKind=e.target.value;configure();restart();};
 $('play').onclick=()=>{playing=!playing;if(playing&&elapsed>=duration()){elapsed=0;prepareAt(0);}last=0;syncPlay();};
 $('restart').onclick=restart;$('timeline').oninput=e=>seek(Number(e.target.value));
 $('previous-frame').onclick=()=>seek(Math.min(duration(),elapsed)-1/60);$('next-frame').onclick=()=>seek(Math.min(duration(),elapsed)+1/60);

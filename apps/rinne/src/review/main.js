@@ -3,6 +3,8 @@ import { reviewPresets, installReviewExtensions, disposeLoaded } from './review-
 import { REVIEW_ASSET_REVISION, REVIEW_MOTION_FAMILIES, classifyMotion } from '@soul/assets/review-catalog';
 import { createPlayback, markerAge } from './playback.js';
 import { sequenceDuration, sequenceFrame } from './review-contract.js';
+import {SWORD_MOVES} from '../../public/simulator/src/authored-sword.js';
+import {createSwordSequence,swordSequenceFrame} from '../../public/simulator/src/sword-sequence.js';
 import './style.css';
 import { readReviewState, reviewStateURL, applyMotionPolicy } from './review-state.js';
 import { installFocusedReviewUI } from './review-controls.js';
@@ -34,11 +36,11 @@ async function startReview() {
   const build=typeof __BUILD_INFO__ === 'object'?__BUILD_INFO__:{commit:'local',branch:'local'};
   q('#build-label').textContent=`${String(build.commit).slice(0,12)} / ${REVIEW_ASSET_REVISION}`;
   let body=null,mixer=null,action=null,activeClip=null,loading=null,generation=0;
-  let sequence=[],sequenceNames=[],sequenceIndex=-1,restoringSequence=false;
+  let sequence=[],sequenceNames=[],sequenceIndex=-1,restoringSequence=false,swordSequence=null;
   let skeleton=null,bounds=null,cameraName='three',last=performance.now(),frames=[];
   const disposeHelper=helper=>{if(!helper)return;helper.removeFromParent();helper.geometry?.dispose();helper.material?.dispose();};
   function clearHelpers(){disposeHelper(skeleton);disposeHelper(bounds);skeleton=null;bounds=null;}
-  function clearBody(){sequence=[];sequenceNames=[];sequenceIndex=-1;clearHelpers();mixer?.stopAllAction();if(body)mixer?.uncacheRoot(body.root);body?.dispose();body=null;mixer=null;action=null;activeClip=null;clock.time=0;clock.duration=0;clock.playing=false;q('#clip').replaceChildren(new Option('素材未読込',''));q('#source-label').textContent='No source';q('#clip-label').textContent='No clip';}
+  function clearBody(){swordSequence=null;sequence=[];sequenceNames=[];sequenceIndex=-1;clearHelpers();mixer?.stopAllAction();if(body)mixer?.uncacheRoot(body.root);body?.dispose();body=null;mixer=null;action=null;activeClip=null;clock.time=0;clock.duration=0;clock.playing=false;q('#clip').replaceChildren(new Option('素材未読込',''));q('#source-label').textContent='No source';q('#clip-label').textContent='No clip';}
   function refreshHelpers(){
     clearHelpers();if(!body)return;
     if(q('#skeleton-toggle').checked){skeleton=new THREE.SkeletonHelper(body.root);scene.add(skeleton);}
@@ -53,7 +55,12 @@ async function startReview() {
     camera.position.copy(center).add(new THREE.Vector3(...offset));controls.target.copy(center);camera.near=.01;camera.far=Math.max(100,d*20);camera.updateProjectionMatrix();controls.update();
   }
   function currentState(){return{...state,sequence:[...sequenceNames],time:clock.time,speed:clock.speed,loop:clock.loop,playing:clock.playing};}
-  function metaFor(name=state.clip){const meta=body?.motionMeta?.get(name);return meta?.kind==='slash'?{...meta,phases:meta.phases?.map(([label,t])=>[label,t*1.28])}:meta;}
+  function metaFor(name=state.clip){return body?.motionMeta?.get(name);}
+  function reviewFrame(){
+    if(!swordSequence)return sequenceFrame(sequence,clock.time);
+    const f=swordSequenceFrame(swordSequence,clock.time);
+    return {...f,time:f.current.phase*sequence[f.index].duration,duration:sequence[f.index].duration};
+  }
   function syncControls(){
     q('#weapon-select').value=state.weaponId;q('#weapon-toggle').checked=state.weaponEnabled;
     for(const [key,id]of [['weaponScale','#weapon-scale'],['weaponX','#weapon-x'],['weaponY','#weapon-y'],['weaponZ','#weapon-z']])q(id).value=String(state[key]);
@@ -65,7 +72,7 @@ async function startReview() {
   function weapon(){const current=body;if(!current?.setWeapon)return;Promise.resolve(current.setWeapon({enabled:state.weaponEnabled,id:state.weaponId,scale:state.weaponScale,x:state.weaponX,y:state.weaponY,z:state.weaponZ})).catch(error=>{if(body===current)setStatus('武器読込失敗: '+error.message,'error');});}
   function sample(){
     if(body?.suspendSampling)return;
-    const frame=sequenceFrame(sequence,clock.time);
+    const frame=reviewFrame();
     if(frame&&frame.index!==sequenceIndex){
       const subsequent=sequenceIndex>=0;
       mixer.stopAllAction();sequenceIndex=frame.index;activeClip=sequence[frame.index];state.clip=sequenceNames[frame.index];
@@ -76,7 +83,7 @@ async function startReview() {
     }
     body?.resetPose?.();
     const localTime=frame?.time||0;
-    if(action){action.enabled=true;action.paused=false;action.time=localTime;mixer.update(0);if(body.resetPose)sampleRawClip(activeClip,body.root,localTime);}
+    if(action){action.enabled=true;action.paused=false;action.time=localTime;mixer.update(0);if(body.resetPose){if(frame.previous)sampleRawClip(sequence[frame.previous.index],body.root,frame.previous.phase*sequence[frame.previous.index].duration);sampleRawClip(activeClip,body.root,localTime,frame.previous?frame.weight:1);}}
     weapon();body?.afterSample?.(localTime,state.clip,state);body?.root.updateMatrixWorld(true);
     const age=state.vfx&&activeClip?markerAge(localTime,state.marker,activeClip.duration,clock.loop&&sequence.length===1):Infinity;
     body?.sampleEffects?.(age);
@@ -91,9 +98,11 @@ async function startReview() {
     if(!Array.isArray(names)||names.length>3||names.some(name=>typeof name!=='string'||!name))throw new Error('再生モーションの指定が不正です');
     // Resolve every stage before touching current playback; never skip missing stages.
     const clips=names.map(name=>{const clip=body.getClip(name,{inPlace:state.inPlace});if(!clip)throw new Error(`Source animation not found: ${name}`);return clip;});
-    const duration=sequenceDuration(clips);
+    const kinds=names.map(name=>metaFor(name)?.weapon==='sword'?metaFor(name)?.kind:null);
+    const nextSwordSequence=names.length>1&&kinds.every(kind=>SWORD_MOVES[kind])?createSwordSequence(kinds):null;
+    const duration=nextSwordSequence?.duration??sequenceDuration(clips);
     if(!restore){Object.assign(state,applyMotionPolicy(state,metaFor(names[0])));clock.loop=names.length>1?false:state.loop;state.loop=clock.loop;}
-    mixer.stopAllAction();action=null;activeClip=null;sequence=clips;sequenceNames=[...names];sequenceIndex=-1;
+    mixer.stopAllAction();action=null;activeClip=null;sequence=clips;swordSequence=nextSwordSequence;sequenceNames=[...names];sequenceIndex=-1;
     state.sequence=[...names];state.clip=names[0]||'';clock.time=0;clock.duration=duration;clock.playing=autoplay&&clips.length>0;
     if(!names.length){q('#clip').value='';q('#clip-label').textContent='元モデル静止比較';document.dispatchEvent(new CustomEvent('review-sequence-frame',{detail:{index:0,names:[]}}));}
     restoringSequence=restore;syncControls();sample();restoringSequence=false;
@@ -180,8 +189,8 @@ async function startReview() {
     state.weaponScale=Math.max(.1,Math.min(1,numeric('#weapon-scale',.5)));state.weaponX=Math.max(-360,Math.min(360,numeric('#weapon-x')));state.weaponY=Math.max(-360,Math.min(360,numeric('#weapon-y')));state.weaponZ=Math.max(-360,Math.min(360,numeric('#weapon-z')));state.vfx=q('#overlay-toggle').checked;state.marker=numeric('#overlay-time',.42);syncControls();sample();
   });
   document.addEventListener('review-combat-mode',event=>{state.mode=event.detail.mode==='combat'?'combat':'normal';state.time=0;playClip(state.mode==='combat'?'Tidebreak / Idle':'通常 / 自然体',true,true);clock.loop=true;syncControls();sample();});
-  document.addEventListener('review-phase',event=>{const phases=metaFor()?.phases||[],index=Number(event.detail.index);if(phases[index]){clock.seek((sequenceFrame(sequence,clock.time)?.offset||0)+phases[index][1]);sample();}});
-  q('#trigger-overlay').addEventListener('click',()=>{if(!activeClip)return;q('#overlay-toggle').checked=true;state.vfx=true;clock.seek((sequenceFrame(sequence,clock.time)?.offset||0)+Math.min(activeClip.duration,numeric('#overlay-time',.42)+.02));sample();});
+  document.addEventListener('review-phase',event=>{const phases=metaFor()?.phases||[],index=Number(event.detail.index);if(phases[index]){clock.seek((reviewFrame()?.offset||0)+phases[index][1]);sample();}});
+  q('#trigger-overlay').addEventListener('click',()=>{if(!activeClip)return;q('#overlay-toggle').checked=true;state.vfx=true;clock.seek((reviewFrame()?.offset||0)+Math.min(activeClip.duration,numeric('#overlay-time',.42)+.02));sample();});
   document.querySelectorAll('[data-camera]').forEach(button=>button.addEventListener('click',wrap(()=>frameModel(button.dataset.camera))));
   function stateText(){return ['輪廻転焦 Visual Review Lab',`Source: ${body?.label||'none'}`,`Clip: ${activeClip?.name||'rest'}`,`Sequence: ${sequenceNames.join(' → ')||'rest'}`,`Time: ${clock.time.toFixed(3)} / ${clock.duration.toFixed(3)}`,`Speed: ${clock.speed}`,`In place: ${q('#in-place').checked}`,`Marker: ${q('#overlay-time').value} (preview only)`,`Posture: ${state.mode}`,`Loop: ${clock.loop}`,`Weapon: ${state.weaponId} / ${state.weaponEnabled} / scale ${q('#weapon-scale').value} / XYZ ${q('#weapon-x').value},${q('#weapon-y').value},${q('#weapon-z').value}`,`Note: ${q('#review-note').value}`,`Build: ${build.commit} / ${build.branch}`,`Assets: ${REVIEW_ASSET_REVISION}`].join('\n');}
   async function copy(text){await navigator.clipboard.writeText(text);setStatus('レビュー情報をコピーしました');}
@@ -200,7 +209,7 @@ async function startReview() {
   new ResizeObserver(resize).observe(canvas);resize();
   syncControls();
   window.__reviewLab={snapshot:()=>({loaded:Boolean(body),clip:activeClip?.name||null,time:clock.time,source:body?.label||null,build:build.commit,state:currentState(),metadata:body?.motionMeta?[...body.motionMeta]:[],assetProblems:body?.assetProblems||[],weapon:body?.weaponDiagnostics||null,poseTransfer:body?.poseTransfer||null,worldPose:body?.bones?Object.fromEntries(['rightHand','leftHand','rightLowerArm','rightUpperArm','leftFoot','rightFoot'].map(n=>[n,body.bones[n].getWorldPosition(new THREE.Vector3()).toArray()])):null,
-    sequence:[...sequenceNames],sequenceIndex,playing:clock.playing,duration:clock.duration,loop:clock.loop,speed:clock.speed,localTime:sequenceFrame(sequence,clock.time)?.time||0,posture:body?.postureDiagnostics||null,animations:body?.clipNames||[],calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,
+    sequence:[...sequenceNames],sequenceIndex,playing:clock.playing,duration:clock.duration,loop:clock.loop,speed:clock.speed,localTime:reviewFrame()?.time||0,posture:body?.postureDiagnostics||null,animations:body?.clipNames||[],calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,
     pose:body?.bones?Object.fromEntries(Object.entries(body.bones).map(([name,bone])=>[name,[...bone.position.toArray(),...bone.quaternion.toArray()]])):null}),stateText,stateURL:()=>reviewStateURL(location.href,currentState()).href,metadata:()=>body?.motionMeta?[...body.motionMeta]:[],seek:time=>{clock.seek(time);sample();},frame:frameModel};
   canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();clock.playing=false;setStatus('WebGLコンテキストが失われました。再読み込みしてください。','error');});
   function tick(now){const raw=Math.max(0,(now-last)/1000);last=now;controls.update();if(!document.hidden){clock.update(raw);sample();renderer.render(scene,camera);frames.push(raw);if(frames.length>60)frames.shift();const avg=frames.reduce((a,b)=>a+b,0)/frames.length;q('#fps').textContent=avg?`${Math.round(1/avg)} FPS`:'0 FPS';}requestAnimationFrame(tick);}

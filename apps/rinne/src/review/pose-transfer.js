@@ -69,7 +69,7 @@ export function solveTwoBone(a,b,c,target,pole) {
  * caches unchanged values, so update(0) alone can leave a paused model in rest.
  */
 const samplers=new WeakMap();
-export function sampleRawClip(clip,root,time){
+export function sampleRawClip(clip,root,time,weight=1){
  let roots=samplers.get(clip);if(!roots){roots=new WeakMap();samplers.set(clip,roots);}
  let bindings=roots.get(root);
  if(!bindings){bindings=clip.tracks.map(track=>{
@@ -78,6 +78,6 @@ export function sampleRawClip(clip,root,time){
   if(!node||!['quaternion','position','scale'].includes(property))throw new Error(`Unresolved review pose channel: ${track.name}`);
   return{node,property,interpolant:track.createInterpolant()};
  });roots.set(root,bindings);}
- for(const{node,property,interpolant}of bindings){node[property].fromArray(interpolant.evaluate(Math.max(0,Math.min(clip.duration,time))));if(property==='quaternion')node.quaternion.normalize();}
+ for(const{node,property,interpolant}of bindings){const value=interpolant.evaluate(Math.max(0,Math.min(clip.duration,time)));if(weight===1)node[property].fromArray(value);else if(property==='quaternion')node.quaternion.slerp(new T.Quaternion().fromArray(value),weight);else node[property].lerp(new T.Vector3().fromArray(value),weight);if(property==='quaternion')node.quaternion.normalize();}
  root.updateMatrixWorld(true);
 }

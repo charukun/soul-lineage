@@ -1,5 +1,11 @@
 # Shino: connected four-second sword phrase
 
+> Historical record for `shino-flow-1`, superseded by
+> [existing sword motions](EXISTING_SWORD_MOTIONS_LAB.md). The standalone `flow`
+> attack and its capture/test entry points have been removed. Images, video and
+> measurements below describe the previous batch, not the current playback.
+> Old `?mode=flow` links now open a composition of four existing techniques.
+
 The user rejected `shino-performance-1` for insufficient dynamism and approved
 focusing first on a short, visually inspected phrase before expanding it to 30 s.
 This batch is `shino-flow-1`, based on Lab commit
