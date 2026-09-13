@@ -1,5 +1,5 @@
 import * as T from '../vendor/three.js';
-import {HumanoidRuntime as BaseHumanoidRuntime,weaponSockets} from './humanoid.js';
+import {HumanoidRuntime as BaseHumanoidRuntime,weaponSockets} from './humanoid-core.js';
 
 const v=(x=0,y=0,z=0)=>new T.Vector3(x,y,z);
 const Q=()=>new T.Quaternion();
@@ -80,16 +80,26 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
     }
   }
 
-  render(a){
-    const result=super.render(a),c=this.current;
+  sample(a,at=null,px=a.x,pz=a.z,commit=false){
+    const result=super.sample(a,at,px,pz,commit),c=this.current;
     if(!result||!c)return result;
-    const attackProgress=a.attack?this.api.progress(a):null;
+    const attackProgress=a.attack?this.api.progress(a,at):null;
     if(shouldNaturalizeWeaponStance(a,attackProgress)){
       this.naturalizeHeldWeapon(c,a.weapon||'sword');
-      // super.render() owns the committed transition snapshot. Keep that snapshot in
-      // sync with the pose actually shown, otherwise the next state blends from the
-      // pre-correction elbow and visibly pops back for one transition frame.
-      this.syncVisibleArmSnapshot(c,a.weapon||'sword');
+      if(commit){
+        // super.sample() already committed the transition source. Replace just the
+        // visible arm snapshot so the next state starts from the pose actually shown.
+        this.syncVisibleArmSnapshot(c,a.weapon||'sword');
+        // Naturalized normalized bones must reach the rendered/raw skeleton in this
+        // same frame. Weapon/socket matrices stay valid because hand position and
+        // world orientation are deliberately preserved by naturalizeHeldWeapon().
+        c.vrm.update(0);
+        c.root.updateMatrixWorld(true);
+        for(const proxy of c.shadowMeshes){
+          proxy.matrix.copy(proxy.userData.source.matrixWorld);
+          proxy.matrixWorldNeedsUpdate=true;
+        }
+      }
     }else c.naturalStanceReport=null;
     return result;
   }
