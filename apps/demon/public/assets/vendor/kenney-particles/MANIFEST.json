@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "pack": "Kenney Particle Pack",
+  "license": "CC0-1.0",
+  "repository": "Calinou/kenney-particle-pack",
+  "commit": "ab7086639ee73be31abd87feb21bf1402d4e8144",
+  "files": {
+    "LICENSE.txt": "e198510d3c6ac7e3dc4370f1f0861d8c617362e8",
+    "spark_05.png": "e01086ab2deabdedfa85f48df5f1c40392c19723",
+    "slash_03.png": "31f250ab448fcd8c767a4960c6fbc7105b326fa5",
+    "smoke_05.png": "4a77199d4ddab9d6482d8285ed3cd962983d8ffa",
+    "flare_01.png": "bd25bd874e47467e95d6623aa0364be1c619617a"
+  }
+}
