@@ -16,7 +16,7 @@ function card(v,profile,imported=false,recommended=false){
  const weather=v.weather==='rain'?'雨の夜':'深い霧';
  const label=`${d.label}、危険度${d.dangerLabel}、住人${d.residents}人、${prey.power}${profile.unlocked.includes(v.target)?'習得済み':'未習得'}`;
  return `<button class="route-card raid-route${recommended?' recommended':''}" ${identity} ${imported&&visited?'disabled':''} aria-label="${escape(label)}">
- <span class="tag">${imported?'読み込んだ村 · オフライン':weather}${recommended?'<b class="raid-recommended">初回推奨</b>':''}</span>
+ <span class="tag">${imported?'読み込んだ村 · オフライン':weather}${recommended?'<b class="raid-recommended">推奨</b>':''}</span>
  <span class="raid-heading"><strong>${d.label}</strong><span class="raid-danger" data-danger="${d.danger}">危険度 <b>${d.dangerLabel}</b></span></span>
  <span class="raid-counts"><span>家屋 <b>${d.homes}</b>棟</span><span>住人 <b>${d.residents}</b>人</span><span>武装者 <b>${d.armed}</b>人</span></span>
  <span class="raid-reason">${d.reason}</span>
