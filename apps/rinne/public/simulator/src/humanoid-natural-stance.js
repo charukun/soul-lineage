@@ -3,10 +3,17 @@ import {HumanoidRuntime as BaseHumanoidRuntime,weaponSockets} from './humanoid-c
 
 const v=(x=0,y=0,z=0)=>new T.Vector3(x,y,z);
 const Q=()=>new T.Quaternion();
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x);};
 
 function projectedDirection(vector,reach){
   const out=vector.clone().addScaledVector(reach,-vector.dot(reach));
   return out.lengthSq()>1e-10?out.normalize():out;
+}
+
+function stanceSides(weapon){
+  const spec=weaponSockets[weapon]||weaponSockets.sword;
+  return weapon==='sword'||spec.two?['right','left']:['right'];
 }
 
 /**
@@ -47,17 +54,56 @@ export function shouldNaturalizeWeaponStance(a,progress=null){
   return holding&&quiet&&(a.weapon||'sword')!=='fist';
 }
 
+/** Static ready posture only. Moving/attacking actors keep their authored whole-body
+ * motion. The draw amount fades the support posture in after the blade clears the hip. */
+export function readyBodyStrength(a){
+  if(!a||a.attack||a.reaction||a.recovery||a.dead||a.zanshin)return 0;
+  if(!(a.combatReady||a.weaponTransition)||(a.weapon||'sword')==='fist')return 0;
+  if(Math.hypot(a.vx||0,a.vz||0)>.10)return 0;
+  return smooth(((a.weaponDraw??1)-.25)/.75);
+}
+
 export class HumanoidRuntime extends BaseHumanoidRuntime{
-  naturalizeHeldWeapon(c,weapon){
+  captureHandLocks(c,weapon){
+    c.root.updateMatrixWorld(true);
+    return Object.fromEntries(stanceSides(weapon).filter(side=>c.bones[side+'Hand']).map(side=>[side,{
+      position:this.point(c,side+'Hand'),
+      quaternion:c.bones[side+'Hand'].getWorldQuaternion(Q())
+    }]));
+  }
+
+  applyReadyBody(c,strength,commit=false){
+    strength=clamp(strength);
+    c.readyBodyStrength=strength;
+    if(!strength)return;
+    const flip=c.vrm.meta.metaVersion==='1'?-1:1;
+    const deltas={
+      spine:new T.Euler(-.030*flip*strength,0,0,'YXZ'),
+      chest:new T.Euler(-.010*flip*strength,0,0,'YXZ'),
+      neck:new T.Euler(.012*flip*strength,0,0,'YXZ'),
+      head:new T.Euler(.020*flip*strength,0,0,'YXZ')
+    };
+    for(const [name,euler]of Object.entries(deltas)){
+      const bone=c.bones[name];if(!bone)continue;
+      const delta=Q().setFromEuler(euler);
+      bone.quaternion.multiply(delta).normalize();
+      // super.sample() captured the transition source before this presentation layer.
+      // Carry the same small support posture into that snapshot so the next state does
+      // not briefly return to the idle torso. Positions/pelvis/feet stay untouched.
+      if(commit&&c.lastActual?.[name])c.lastActual[name].q.multiply(delta).normalize();
+    }
+    c.root.updateMatrixWorld(true);
+  }
+
+  naturalizeHeldWeapon(c,weapon,locks=null){
     if(!c||weapon==='fist')return null;
-    const spec=weaponSockets[weapon]||weaponSockets.sword;
-    const sides=weapon==='sword'||spec.two?['right','left']:['right'];
+    const sides=stanceSides(weapon);
     const metrics={weapon,sides:[],maxHandDisplacement:0,maxHandAngleError:0};
     c.root.updateMatrixWorld(true);
     for(const side of sides){
       if(!c.bones[side+'UpperArm']||!c.bones[side+'LowerArm']||!c.bones[side+'Hand'])continue;
-      const handTarget=this.point(c,side+'Hand');
-      const handQ=c.bones[side+'Hand'].getWorldQuaternion(Q());
+      const lock=locks?.[side],handTarget=lock?.position?.clone()??this.point(c,side+'Hand');
+      const handQ=lock?.quaternion?.clone()??c.bones[side+'Hand'].getWorldQuaternion(Q());
       const pole=naturalArmPole(this,c,side);
       this.solve(c,side,'arm',handTarget,pole,true);
       this.setWorldQ(c,side+'Hand',handQ);
@@ -74,9 +120,7 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
 
   syncVisibleArmSnapshot(c,weapon){
     if(!c.lastActual)return;
-    const spec=weaponSockets[weapon]||weaponSockets.sword;
-    const sides=weapon==='sword'||spec.two?['right','left']:['right'];
-    for(const side of sides)for(const bone of ['UpperArm','LowerArm','Hand']){
+    for(const side of stanceSides(weapon))for(const bone of ['UpperArm','LowerArm','Hand']){
       const name=side+bone,current=c.bones[name],saved=c.lastActual[name];
       if(current&&saved){saved.q.copy(current.quaternion);saved.p.copy(current.position);}
     }
@@ -85,13 +129,19 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
   sample(a,at=null,px=a.x,pz=a.z,commit=false){
     const result=super.sample(a,at,px,pz,commit),c=this.current;
     if(!result||!c)return result;
-    const attackProgress=a.attack?this.api.progress(a,at):null;
+    const weapon=a.weapon||'sword',attackProgress=a.attack?this.api.progress(a,at):null;
+    const bodyStrength=readyBodyStrength(a);
+    // Save the already-authored hand/weapon contact before the torso begins supporting
+    // it. Re-solving the arms back to these world transforms keeps result.sm, collision
+    // sampling and the visible grip coincident even though the shoulders move slightly.
+    const handLocks=bodyStrength?this.captureHandLocks(c,weapon):null;
+    this.applyReadyBody(c,bodyStrength,commit);
     if(shouldNaturalizeWeaponStance(a,attackProgress)){
-      this.naturalizeHeldWeapon(c,a.weapon||'sword');
+      this.naturalizeHeldWeapon(c,weapon,handLocks);
       if(commit){
         // super.sample() already committed the transition source. Replace just the
         // visible arm snapshot so the next state starts from the pose actually shown.
-        this.syncVisibleArmSnapshot(c,a.weapon||'sword');
+        this.syncVisibleArmSnapshot(c,weapon);
         // Naturalized normalized bones must reach the rendered/raw skeleton in this
         // same frame. Weapon/socket matrices stay valid because hand position and
         // world orientation are deliberately preserved by naturalizeHeldWeapon().
@@ -107,6 +157,6 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
   }
 
   report(){
-    return {...super.report(),naturalStance:this.current?.naturalStanceReport??null};
+    return {...super.report(),naturalStance:this.current?.naturalStanceReport??null,readyBodyStrength:this.current?.readyBodyStrength??0};
   }
 }
