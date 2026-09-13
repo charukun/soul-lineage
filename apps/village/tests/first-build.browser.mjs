@@ -108,6 +108,8 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   const restoredFacility=await page.evaluate(id=>window.village.world.object(id),facility.id);
   expect(restoredFacility.room.find(o=>o.id===bed.id)).toEqual(bed);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-  await page.screenshot({path:testInfo.outputPath('first-build-reloaded.png')});
+  // Public Playwright cases already capture the final page automatically.
+  // Do not spend the interaction deadline taking the same final picture twice.
+  if (captureMilestones) await page.screenshot({path:testInfo.outputPath('first-build-reloaded.png')});
   if (verifyDirector) await verifyVillageDirectorPolish(page, expect, testInfo);
 }

@@ -78,10 +78,21 @@ export async function verifyVillageDirectorPolish(page, expect, testInfo) {
   await page.screenshot({path:testInfo.outputPath('director-resident-side.png')});
 
   // A normal camera drag must take control back immediately.
-  const canvas=page.locator('#game'),box=await canvas.boundingBox();
-  await page.mouse.move(box.x+box.width*.52,box.y+box.height*.52);
+  // The centered resident-details card is intentionally interactive. Find a
+  // real unobstructed canvas gesture instead of dragging that card by accident.
+  const drag=await page.evaluate(()=>{
+    const canvas=document.getElementById('game'),box=canvas.getBoundingClientRect();
+    for(const fy of [.68,.32,.60])for(const fx of [.18,.80,.34]){
+      const x=box.x+box.width*fx,y=box.y+box.height*fy;
+      const endX=x+box.width*(fx>.5?-.10:.10),endY=y+box.height*.05;
+      if(document.elementFromPoint(x,y)===canvas&&document.elementFromPoint(endX,endY)===canvas)return{x,y,endX,endY};
+    }
+    return null;
+  });
+  expect(drag).toBeTruthy();
+  await page.mouse.move(drag.x,drag.y);
   await page.mouse.down();
-  await page.mouse.move(box.x+box.width*.63,box.y+box.height*.58,{steps:8});
+  await page.mouse.move(drag.endX,drag.endY,{steps:8});
   await page.mouse.up();
   await expect(bar).toBeHidden({timeout:5000});
   expect(await page.evaluate(()=>window.__MURA_DIRECTOR_POLISH__.observation.active)).toBe(false);

@@ -16,5 +16,5 @@ test('Draft PR uses lightweight CI and Ready owns fast/browser/Integration gates
   const buildHeader = ci.split('  build:')[1].split('    steps:')[0];
   assert.match(buildHeader, /needs.readiness.outputs.ready == 'true'/);
   assert.match(ci.split('  integration-request:')[1], /needs.readiness.outputs.ready == 'true'/);
-  assert.match(ci, /workflow_id: 'browser-repair\.yml'/);
+  assert.match(ci.split('  browser-repair-dispatch:')[1].split('  integration-request:')[0], /workflow_id: 'deploy\.yml'/);
 });
