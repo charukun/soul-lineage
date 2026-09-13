@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {FLOW_SECONDS,FLOW_TIMING,flowWindow,flowFoot,sampleFlowRoot,sampleSwordFlow} from '../public/simulator/src/sword-flow.js';
 import {AUTHORED_SWORD_KINDS,sampleSwordPose} from '../public/simulator/src/authored-sword.js';
 import {PERFORMANCE_SECONDS,PERFORMANCE_EVENTS,SWORD_TIMINGS,samplePerformance,applyPerformance} from '../public/simulator/src/sword-performance.js';
 import assert from 'node:assert/strict';
@@ -23,9 +24,9 @@ async function loadRig(){
     return parse.call(this,data,path);
   };
   const runtime=new HumanoidRuntime({
-    weapons:{sword:{base:.21,tip:1.62,width:.065}},clips:SWORD_TIMINGS,strikes:{slash:{}},windows:{},
+    weapons:{sword:{base:.21,tip:1.62,width:.065}},clips:{...SWORD_TIMINGS,flow:FLOW_TIMING},strikes:{slash:{}},windows:{},
     progress:(a,t)=>Math.min(1,Math.max(0,(t??a.attack?.t??0)/(a.attack?.duration||SLASH_SECONDS))),
-    window:(_k,p)=>p>=SLASH_TIMING.active[0]&&p<=SLASH_TIMING.active[1]?0:-1,
+    window:(_k,p)=>_k==='flow'?flowWindow(p):p>=SLASH_TIMING.active[0]&&p<=SLASH_TIMING.active[1]?0:-1,
   });
   try{await runtime.load('SHINO');}finally{GLTFLoader.prototype.parseAsync=parse;}
   return runtime;
@@ -125,5 +126,37 @@ test('real rig joins approaches and cuts without a boundary pop or loose grip',a
    }
   }
   console.log(JSON.stringify({performanceSeconds:30,strikes:17,maxBoundaryBladeJump:maxBoundary}));
+ }finally{runtime.dispose(c);delete globalThis.window;delete globalThis.self;}
+});
+
+
+test('moving four-cut phrase plants world-space feet and retains grip through turns',async()=>{
+ const runtime=await loadRig(),c=runtime.current,scale=c.unit*c.legLength/.82;
+ const actor={id:'flow-rig-test',hero:true,weapon:'sword',weaponDraw:1,lifeAgeYears:22,air:0,combatReady:true,vx:0,vz:0,attack:{id:'flow-test',kind:'flow',t:0,duration:FLOW_SECONDS}};
+ const contacts=new Set(),samples=[];let maxFootError=0,minBladeY=Infinity,maxGrip=0;
+ try{
+  for(let i=0;i<=240;i++){
+   const t=i/60,root=sampleFlowRoot(t);Object.assign(actor,{x:root.x*scale,z:root.z*scale,yaw:root.yaw,_humanoidClock:t});actor.attack.t=t;
+   const r=runtime.render(actor);assert.ok(c.finite);assert.ok(r.sm.every(Number.isFinite));maxGrip=Math.max(maxGrip,c.socketError);assert.ok(c.socketError<1e-5);
+   if(r.active)contacts.add(r.group);minBladeY=Math.min(minBladeY,r.weaponTip[1]);
+   for(const side of ['left','right']){
+    const f=flowFoot(side,t),ankle=runtime.point(c,side+'Foot');
+    if(f.support)maxFootError=Math.max(maxFootError,Math.hypot(ankle.x-f.x*scale,ankle.z-f.z*scale));
+    const hip=runtime.point(c,side+'UpperLeg'),knee=runtime.point(c,side+'LowerLeg'),axis=ankle.clone().sub(hip).normalize(),bend=knee.sub(hip);bend.addScaledVector(axis,-bend.dot(axis));
+    assert.ok(bend.dot(new T.Vector3(Math.sin(f.yaw),0,Math.cos(f.yaw)))>=-1e-4,`${side} knee inverted at ${t}`);
+   }
+   samples.push({t,root,hip:runtime.point(c,'hips'),tip:new T.Vector3(...r.weaponTip)});
+  }
+  assert.deepEqual([...contacts],[0,1,2,3]);assert.ok(maxFootError<.035,`support anchor error ${maxFootError}`);assert.ok(minBladeY>-.02,`blade crosses ground: ${minBladeY}`);
+  assert.ok(Math.hypot(actor.x,actor.z)>1.8,'the character must advance during attacks');
+  for(const [a,b] of [[.44,.64],[.94,1.13],[1.55,1.77],[2.44,2.66]]){
+   const first=sampleFlowRoot(a),last=sampleFlowRoot(b);assert.ok(Math.hypot(last.x-first.x,last.z-first.z)>.12,'each strike must carry root travel');
+  }
+  // Follow-through remains loaded between hits, rather than returning to guard.
+  const guard=sampleSwordFlow(0).pose.grip;
+  for(const t of [.8,1.3,2.0])assert.ok(new T.Vector3(...sampleSwordFlow(t).pose.grip).distanceTo(new T.Vector3(...guard))>.22);
+  const travel=(a,b)=>samples.slice(a+1,b+1).reduce((n,s,i)=>n+s.tip.distanceTo(samples[a+i].tip),0)/(b-a);
+  assert.ok(travel(27,36)>travel(6,21)*1.5,'the first cut must accelerate beyond its preparation');
+  console.log(JSON.stringify({flowSeconds:4,contacts:[...contacts],maxFootError,minBladeY,maxGrip,rootTravel:Math.hypot(actor.x,actor.z)}));
  }finally{runtime.dispose(c);delete globalThis.window;delete globalThis.self;}
 });

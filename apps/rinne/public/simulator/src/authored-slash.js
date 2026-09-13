@@ -78,11 +78,13 @@ export function applySwordPose(runtime,c,pose,p) {
   c.bones.hips.position.add(new T.Vector3(...pose.offset).multiplyScalar(s));
   c.root.updateMatrixWorld(true);
   for(const [side,key]of [['left','lead'],['right','rear']]){
-    const target=c.neutralPoints[side+'Foot'].clone().add(new T.Vector3(...pose[key]).multiplyScalar(s));
-    runtime.solve(c,side,'leg',target,new T.Vector3(side==='left'?.15:-.15,0,1),true);
+    const foot=pose.feet?.[side];
+    const target=foot?new T.Vector3(foot.x*s,c.neutralPoints[side+'Foot'].y+foot.y*s,foot.z*s):c.neutralPoints[side+'Foot'].clone().add(new T.Vector3(...pose[key]).multiplyScalar(s));
+    const poleYaw=(foot?.yaw??0)*.6;
+    runtime.solve(c,side,'leg',target,new T.Vector3(Math.sin(poleYaw)+(side==='left'?.15:-.15),0,Math.cos(poleYaw)),true);
     // Keep the sole level during support, while the rear heel pivots into the cut.
-    const yaw=pose.hips[1]*(side==='right'?.70:.20);
-    const heel=side==='right'?poseCurve([[0,0],[.35,0],[.60,.16],[.78,.08],[1,0]],p)[0]:0;
+    const yaw=foot?.yaw??pose.hips[1]*(side==='right'?.70:.20);
+    const heel=foot?.pitch??(side==='right'?poseCurve([[0,0],[.35,0],[.60,.16],[.78,.08],[1,0]],p)[0]:0);
     runtime.setWorldQ(c,side+'Foot',new T.Quaternion().setFromEuler(new T.Euler(-heel,yaw,0,'YXZ')));
   }
   const [x,y,z]=pose.grip,[yaw,elevation,roll]=pose.blade;

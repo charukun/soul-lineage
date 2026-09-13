@@ -8,14 +8,14 @@
 <body>
 <main>
 <header><a href="../" aria-label="Visual Review Labに戻る">‹ Labへ</a><h1>剣の演武 <small>SHINO</small></h1></header>
-<section class="stage" aria-label="演武の表示"><canvas id="motion-stage" aria-label="しのちゃんの全身演武。ドラッグで視点を変更"></canvas><output id="phase-label">準備中</output></section>
+<section class="stage" aria-label="演武の表示"><section id="reference-panel" hidden aria-label="参考動画"><video id="reference-video" muted playsinline preload="metadata" aria-label="提供動画の2.5秒から6.5秒"></video><span>参考動画 · 2.5–6.5秒</span><p id="reference-error" hidden>参考動画を読み込めませんでした。</p></section><div class="render-view"><canvas id="motion-stage" aria-label="しのちゃんの全身演武。ドラッグで視点を変更"></canvas><output id="phase-label">準備中</output></div></section>
 <section class="controls" aria-label="モーションの確認">
 <p id="motion-status" role="status" aria-live="polite">しのちゃんと斬撃を読み込んでいます。</p>
-<div class="mode-row"><label>演目 <select id="mode"><option value="sequence">30秒の自動演武</option><option value="single">斬撃単体</option></select></label><output id="time-label">0.0 / 30.0 秒</output></div>
-<div class="buttons"><button id="play" disabled>一時停止</button><button id="restart" disabled>最初から</button><label>速さ<select id="speed"><option value="1">通常</option><option value="0.5">1/2</option><option value="0.25">1/4</option></select></label></div>
+<div class="mode-row"><label>演目 <select id="mode"><option value="flow">改善した4秒連撃</option><option value="baseline">従来の単発接続</option><option value="sequence">前の30秒演武</option><option value="single">斬撃単体</option></select></label><output id="time-label">0.0 / 30.0 秒</output></div>
+<div class="buttons"><button id="play" disabled>一時停止</button><button id="restart" disabled>最初から</button><label>速さ<select id="speed"><option value="1">通常</option><option value="0.5">1/2</option><option value="0.25">1/4</option></select></label><label class="compare-toggle"><input id="compare-reference" type="checkbox">参考動画と並べる</label></div>
 <div class="timeline"><button id="previous-frame" aria-label="1コマ戻る" disabled>−1</button><input id="timeline" aria-label="モーションの再生位置" type="range" min="0" max="1" step="0.001" value="0" disabled><button id="next-frame" aria-label="1コマ進む" disabled>＋1</button></div>
 <div class="buttons views" aria-label="視点"><button data-view="three" aria-pressed="true">斜め</button><button data-view="front" aria-pressed="false">正面</button><button data-view="side" aria-pressed="false">横</button><button data-view="back" aria-pressed="false">背面</button></div>
-<details><summary>この動きについて</summary><p>参考動画の接近・連撃・回り込みの流れを、しのちゃんの30秒の演武として構成。横薙ぎ・斬り返し・斬り上げ・突き・振り下ろしを組み合わせています。斬撃単体にも切り替えられます。</p><div class="options"><label><input id="repeat" type="checkbox" checked> 繰り返す</label><label><input id="trail" type="checkbox" checked> 刀の軌跡</label></div><p id="motion-version"></p></details>
+<details><summary>この動きについて</summary><p>提供動画の地上での連撃を基準に、踏み込み → 斬り返し → 斬り上げ → 振り下ろしを一続きで作り直しています。演目で従来の単発接続と比較できます。参考動画は同じ再生位置・速度で動きます。動画のコマ単位の復元ではありません。</p><div class="options"><label><input id="repeat" type="checkbox" checked> 繰り返す</label><label><input id="trail" type="checkbox" checked> 刀の軌跡</label></div><p id="motion-version"></p></details>
 <button id="retry" hidden>再読み込み</button>
 </section>
 </main><script type="module" src="./src/motion-review.js"></script>

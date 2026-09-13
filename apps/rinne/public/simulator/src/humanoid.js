@@ -1,5 +1,6 @@
 import * as T from '../vendor/three.js';
 import {applyAuthoredSlash,slashSupport,SLASH_REVISION} from './authored-slash.js';
+import {FLOW_SECONDS,applySwordFlow,flowFoot} from './sword-flow.js';
 import {AUTHORED_SWORD_KINDS,applyAuthoredSword} from './authored-sword.js';
 import {prepareAgeAppearance,applyAgePosture,finishAgeAppearance,disposeAgeAppearance} from './life-appearance.js';
 import {clone as cloneSkeleton} from '../vendor/SkeletonUtils.js';
@@ -135,9 +136,9 @@ export class HumanoidRuntime{
  combatPose(c,weapon,kind,p,baseTime=0){const H=c.shoulderY,L=c.legLength,s=L/.82,def=!!this.api.strikes[kind]?.defense||['none','ready','retreat'].includes(kind),attack=!!kind&&!def;
   // Armed attacks no longer inherit the old jab/cross body. Start from a neutral moving guard,
   // then author the whole-body cut around the weapon path.
-  const authored=c.id==='SHINO'&&weapon==='sword'&&(kind==='slash'||AUTHORED_SWORD_KINDS.includes(kind));
+  const authored=c.id==='SHINO'&&weapon==='sword'&&(kind==='flow'||kind==='slash'||AUTHORED_SWORD_KINDS.includes(kind));
   evaluateTracks(c.shared['idle-01'],attack?(authored?0:(p*.42)%c.shared['idle-01'].duration):baseTime%c.shared['idle-01'].duration,c.byName);
-  if(authored){if(kind==='slash')applyAuthoredSlash(this,c,p,this.api.clips.slash);else applyAuthoredSword(this,c,kind,p,this.api.clips[kind]);return;}
+  if(authored){if(kind==='flow')applySwordFlow(this,c,p);else if(kind==='slash')applyAuthoredSlash(this,c,p,this.api.clips.slash);else applyAuthoredSword(this,c,kind,p,this.api.clips[kind]);return;}
   c.root.updateMatrixWorld(true);
   if(weapon==='fist')return;
   const guard=this.guard(c,weapon,H,s);let grip=guard.grip.clone(),dir=guard.dir.clone(),roll=guard.roll,row=null;
@@ -244,6 +245,7 @@ export class HumanoidRuntime{
       return q<.43; // one planted foot, brief aerial/transfer window, then the other foot
     }
     if(d.type==='attack'){
+      if(c.id==='SHINO'&&a.weapon==='sword'&&d.kind==='flow')return flowFoot(side,d.time*FLOW_SECONDS).support;
       if(c.id==='SHINO'&&a.weapon==='sword'&&(d.kind==='slash'||AUTHORED_SWORD_KINDS.includes(d.kind)))return slashSupport(side,d.time,this.api.clips[d.kind]?.contact);
       // Reference master motion: rear foot loads first, front foot owns impact/follow-through.
       return side==='right'?d.time>=0&&d.time<.43:d.time>.28&&d.time<.96;
@@ -266,7 +268,7 @@ export class HumanoidRuntime{
   }const tracks=Object.entries(c.bones).map(([n,b])=>new T.QuaternionKeyframeTrack(b.uuid+'.quaternion',times,data[n]));tracks.push(new T.VectorKeyframeTrack(c.bones.hips.uuid+'.position',times,hips));return new T.AnimationClip('Expanded Review Attack / hit-window blend / '+kind,1,tracks);
  }
 
- bakeArmed(c,weapon,kind){this.resetRoot(c);const times=[],data={},hips=[],count=90;for(const n of Object.keys(c.bones))data[n]=[];for(let i=0;i<=count;i++){times.push(i/count);this.resetBones(c);this.combatPose(c,weapon,kind,i/count);for(const[n,b]of Object.entries(c.bones)){const q=b.quaternion.toArray(),out=data[n];if(out.length&&q.reduce((sum,x,k)=>sum+x*out[out.length-4+k],0)<0)for(let k=0;k<4;k++)q[k]*=-1;out.push(...q);}hips.push(...c.bones.hips.position.toArray());}const tracks=Object.entries(c.bones).map(([n,b])=>new T.QuaternionKeyframeTrack(b.uuid+'.quaternion',times,data[n]));tracks.push(new T.VectorKeyframeTrack(c.bones.hips.uuid+'.position',times,hips));return new T.AnimationClip('Tidebreak armed / '+weapon+' / '+kind,1,tracks);}
+ bakeArmed(c,weapon,kind){this.resetRoot(c);const times=[],data={},hips=[],count=kind==='flow'?360:90;for(const n of Object.keys(c.bones))data[n]=[];for(let i=0;i<=count;i++){times.push(i/count);this.resetBones(c);this.combatPose(c,weapon,kind,i/count);for(const[n,b]of Object.entries(c.bones)){const q=b.quaternion.toArray(),out=data[n];if(out.length&&q.reduce((sum,x,k)=>sum+x*out[out.length-4+k],0)<0)for(let k=0;k<4;k++)q[k]*=-1;out.push(...q);}hips.push(...c.bones.hips.position.toArray());}const tracks=Object.entries(c.bones).map(([n,b])=>new T.QuaternionKeyframeTrack(b.uuid+'.quaternion',times,data[n]));tracks.push(new T.VectorKeyframeTrack(c.bones.hips.uuid+'.position',times,hips));return new T.AnimationClip('Tidebreak armed / '+weapon+' / '+kind,1,tracks);}
  measureLocomotion(c){this.resetRoot(c);const out={};for(const [name,id]of [['walk','walk'],['run','run-slow']]){const clip=c.shared[id],samples=[];for(let i=0;i<=96;i++){this.resetBones(c);evaluateTracks(clip,clip.duration*i/96,c.byName);c.root.updateMatrixWorld(true);samples.push(['left','right'].map(side=>this.point(c,side+'Foot').toArray()));}const floor=Math.min(...samples.flatMap(x=>x.map(p=>p[1]))),slopes=[];for(let i=1;i<samples.length;i++)for(let side=0;side<2;side++){const a=samples[i-1][side],b=samples[i][side];if(Math.min(a[1],b[1])<floor+.04&&b[2]<a[2]-.0001)slopes.push((a[2]-b[2])*96*c.unit);}slopes.sort((a,b)=>a-b);const cycleDistance=clamp(slopes[Math.floor(slopes.length/2)]||1.1,.45,3.0);out[name]={clip:id,duration:clip.duration,cycleDistance,method:'measured low-foot backward velocity; distance-matched phase; bounded world support IK'};}return out;}
  tick(a,dt){if(!a?.hero)return;this.clock+=dt;this.updateEchoes();a._humanoidClock=(a._humanoidClock||0)+dt;const speed=Math.hypot(a.vx||0,a.vz||0);if(!a.attack&&!a.dead&&!a.recovery)a._humanoidPhase=(a._humanoidPhase||0)+speed*dt/(this.current?.locomotion[speed>2.4?'run':'walk'].cycleDistance||1.16)*((a.vx||0)*Math.sin(a.yaw)+(a.vz||0)*Math.cos(a.yaw)<-.07?-1:1);}
  checkSocket(c,result,weapon){const world=c.sockets.right.node.getWorldPosition(v()),expected=new T.Vector3().setFromMatrixPosition(new T.Matrix4().fromArray(result.rightSocket));c.socketError=world.distanceTo(expected);const spec=weaponSockets[weapon];if(spec?.two&&result.supportAttached&&result.attachment!=='hips'){const l=c.sockets.left.node.getWorldPosition(v()),grip=v(...spec.left).applyMatrix4(new T.Matrix4().fromArray(result.sm));c.secondaryGripError=l.distanceTo(grip);}else c.secondaryGripError=null;c.finite=Object.values(c.bones).every(b=>b.position.toArray().concat(b.quaternion.toArray()).every(Number.isFinite));}
