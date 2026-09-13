@@ -1,4 +1,6 @@
 import test from 'node:test';
+import {AUTHORED_SWORD_KINDS,sampleSwordPose} from '../public/simulator/src/authored-sword.js';
+import {PERFORMANCE_SECONDS,PERFORMANCE_EVENTS,SWORD_TIMINGS,samplePerformance,applyPerformance} from '../public/simulator/src/sword-performance.js';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import * as T from '../public/simulator/vendor/three.js';
@@ -21,8 +23,8 @@ async function loadRig(){
     return parse.call(this,data,path);
   };
   const runtime=new HumanoidRuntime({
-    weapons:{sword:{base:.21,tip:1.62,width:.065}},clips:{slash:SLASH_TIMING},strikes:{slash:{}},windows:{},
-    progress:(a,t)=>Math.min(1,Math.max(0,(t??a.attack?.t??0)/SLASH_SECONDS)),
+    weapons:{sword:{base:.21,tip:1.62,width:.065}},clips:SWORD_TIMINGS,strikes:{slash:{}},windows:{},
+    progress:(a,t)=>Math.min(1,Math.max(0,(t??a.attack?.t??0)/(a.attack?.duration||SLASH_SECONDS))),
     window:(_k,p)=>p>=SLASH_TIMING.active[0]&&p<=SLASH_TIMING.active[1]?0:-1,
   });
   try{await runtime.load('SHINO');}finally{GLTFLoader.prototype.parseAsync=parse;}
@@ -73,4 +75,55 @@ test('actual Shino slash keeps knees forward, grip attached and support planted'
     assert.ok(travel(50,70)>travel(0,30)*2,'cut must accelerate beyond loading speed');
     console.log(JSON.stringify({frames:frames.length,maxSocketError:maxSocket,minForwardKnee:minKnee,plantedToeDrift:slip}));
   }finally{runtime.dispose(c);delete globalThis.window;delete globalThis.self;}
+});
+
+
+test('30-second score covers five cuts and preserves root/gait continuity',()=>{
+ assert.equal(PERFORMANCE_SECONDS,30);
+ assert.equal(PERFORMANCE_EVENTS.at(-1).end,30);
+ const cuts=PERFORMANCE_EVENTS.filter(e=>!['move','guard'].includes(e.kind));
+ assert.equal(cuts.length,17);assert.equal(new Set(cuts.map(e=>e.kind)).size,5);
+ for(const e of PERFORMANCE_EVENTS){
+  const a=samplePerformance(e.start-1e-7),b=samplePerformance(e.start+1e-7);
+  for(const k of ['x','z','yaw','vx','vz','walk','run'])assert.ok(Math.abs(a[k]-b[k])<1e-4,`${k} jumps at ${e.start}`);
+  for(const p of [0,.25,.5,.75,1]){const s=samplePerformance(e.start+p*e.duration);for(const k of ['x','z','yaw','vx','vz','walk','run'])assert.ok(Number.isFinite(s[k]));}
+ }
+ const first=samplePerformance(0),last=samplePerformance(30);
+ for(const k of ['x','z','vx','vz'])assert.equal(first[k],last[k]);
+ assert.ok(Math.abs(Math.sin(last.yaw-first.yaw))<1e-8);
+ assert.equal(samplePerformance(-3).time,0);assert.equal(samplePerformance(100).time,30);
+ for(const kind of AUTHORED_SWORD_KINDS){
+  const a=sampleSwordPose(kind,0),b=sampleSwordPose(kind,1);
+  for(const k of Object.keys(a))for(let j=0;j<a[k].length;j++)assert.ok(Math.abs(a[k][j]-b[k][j])<1e-10,`${kind} guard seam`);
+ }
+});
+
+test('real rig joins approaches and cuts without a boundary pop or loose grip',async()=>{
+ const runtime=await loadRig(),c=runtime.current;
+ const actor={id:'performance-test',hero:true,weapon:'sword',weaponDraw:1,lifeAgeYears:22,air:0,combatReady:true};
+ const reset=()=>{c.state=null;c.lastActual=null;c.blending=null;c.footLocks={};c.resetSpring=true;};
+ const sample=t=>{applyPerformance(actor,t,c.locomotion);const result=runtime.render(actor);assert.ok(result.sm.every(Number.isFinite));assert.ok(c.finite);assert.ok(c.socketError<1e-5);return result;};
+ let maxBoundary=0;
+ try{
+  for(const e of PERFORMANCE_EVENTS.slice(1)){
+   reset();for(let t=Math.max(0,e.start-.25);t<e.start-1e-4;t+=1/60)sample(t);
+   const a=sample(e.start-1e-6),b=sample(e.start+1e-6);
+   const jump=new T.Vector3(...a.weaponTip).distanceTo(new T.Vector3(...b.weaponTip));
+   maxBoundary=Math.max(maxBoundary,jump);assert.ok(jump<.02,`blade jumps ${jump}m at ${e.start}`);
+  }
+  for(const kind of AUTHORED_SWORD_KINDS){
+   const e=PERFORMANCE_EVENTS.find(e=>e.kind===kind);reset();
+   for(const phase of [0,.27,.38,.5,.64,.8,1]){
+    const result=sample(e.start+phase*e.duration);
+    if(phase>.1&&phase<.9)for(const side of ['left','right']){
+     const hip=runtime.point(c,side+'UpperLeg'),knee=runtime.point(c,side+'LowerLeg'),ankle=runtime.point(c,side+'Foot');
+     const axis=ankle.clone().sub(hip).normalize(),bend=knee.sub(hip);bend.addScaledVector(axis,-bend.dot(axis));
+     const forward=new T.Vector3(Math.sin(actor.yaw),0,Math.cos(actor.yaw));
+     assert.ok(bend.dot(forward)>-1e-5,`${kind} ${side} knee at ${phase}`);
+    }
+    if(phase===.5)assert.ok(result.active,`${kind} missing contact`);
+   }
+  }
+  console.log(JSON.stringify({performanceSeconds:30,strikes:17,maxBoundaryBladeJump:maxBoundary}));
+ }finally{runtime.dispose(c);delete globalThis.window;delete globalThis.self;}
 });

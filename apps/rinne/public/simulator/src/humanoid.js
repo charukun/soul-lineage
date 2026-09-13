@@ -1,5 +1,6 @@
 import * as T from '../vendor/three.js';
 import {applyAuthoredSlash,slashSupport,SLASH_REVISION} from './authored-slash.js';
+import {AUTHORED_SWORD_KINDS,applyAuthoredSword} from './authored-sword.js';
 import {prepareAgeAppearance,applyAgePosture,finishAgeAppearance,disposeAgeAppearance} from './life-appearance.js';
 import {clone as cloneSkeleton} from '../vendor/SkeletonUtils.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
@@ -134,9 +135,9 @@ export class HumanoidRuntime{
  combatPose(c,weapon,kind,p,baseTime=0){const H=c.shoulderY,L=c.legLength,s=L/.82,def=!!this.api.strikes[kind]?.defense||['none','ready','retreat'].includes(kind),attack=!!kind&&!def;
   // Armed attacks no longer inherit the old jab/cross body. Start from a neutral moving guard,
   // then author the whole-body cut around the weapon path.
-  const authored=c.id==='SHINO'&&weapon==='sword'&&kind==='slash';
+  const authored=c.id==='SHINO'&&weapon==='sword'&&(kind==='slash'||AUTHORED_SWORD_KINDS.includes(kind));
   evaluateTracks(c.shared['idle-01'],attack?(authored?0:(p*.42)%c.shared['idle-01'].duration):baseTime%c.shared['idle-01'].duration,c.byName);
-  if(authored){applyAuthoredSlash(this,c,p,this.api.clips.slash);return;}
+  if(authored){if(kind==='slash')applyAuthoredSlash(this,c,p,this.api.clips.slash);else applyAuthoredSword(this,c,kind,p,this.api.clips[kind]);return;}
   c.root.updateMatrixWorld(true);
   if(weapon==='fist')return;
   const guard=this.guard(c,weapon,H,s);let grip=guard.grip.clone(),dir=guard.dir.clone(),roll=guard.roll,row=null;
@@ -243,7 +244,7 @@ export class HumanoidRuntime{
       return q<.43; // one planted foot, brief aerial/transfer window, then the other foot
     }
     if(d.type==='attack'){
-      if(c.id==='SHINO'&&a.weapon==='sword'&&d.kind==='slash')return slashSupport(side,d.time,this.api.clips.slash?.contact);
+      if(c.id==='SHINO'&&a.weapon==='sword'&&(d.kind==='slash'||AUTHORED_SWORD_KINDS.includes(d.kind)))return slashSupport(side,d.time,this.api.clips[d.kind]?.contact);
       // Reference master motion: rear foot loads first, front foot owns impact/follow-through.
       return side==='right'?d.time>=0&&d.time<.43:d.time>.28&&d.time<.96;
     }

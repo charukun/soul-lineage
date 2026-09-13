@@ -62,7 +62,13 @@ export function sampleSlashPose(phase, contact) {
 }
 
 export function applyAuthoredSlash(runtime,c,phase,definition=SLASH_TIMING) {
-  const pose=sampleSlashPose(phase,definition.contact),s=c.legLength/.82;
+  const pose=sampleSlashPose(phase,definition.contact);
+  return applySwordPose(runtime,c,pose,slashTime(phase,definition.contact));
+}
+
+/** Shared rig application: authored keys choose the pose, IK keeps anatomy/grip. */
+export function applySwordPose(runtime,c,pose,p) {
+  const s=c.legLength/.82;
   const flip=c.vrm.meta.metaVersion==='1'?-1:1;
   for(const name of ['hips','spine','chest','head']){
     const b=c.bones[name];if(!b)continue;
@@ -75,7 +81,7 @@ export function applyAuthoredSlash(runtime,c,phase,definition=SLASH_TIMING) {
     const target=c.neutralPoints[side+'Foot'].clone().add(new T.Vector3(...pose[key]).multiplyScalar(s));
     runtime.solve(c,side,'leg',target,new T.Vector3(side==='left'?.15:-.15,0,1),true);
     // Keep the sole level during support, while the rear heel pivots into the cut.
-    const p=slashTime(phase,definition.contact),yaw=pose.hips[1]*(side==='right'?.70:.20);
+    const yaw=pose.hips[1]*(side==='right'?.70:.20);
     const heel=side==='right'?poseCurve([[0,0],[.35,0],[.60,.16],[.78,.08],[1,0]],p)[0]:0;
     runtime.setWorldQ(c,side+'Foot',new T.Quaternion().setFromEuler(new T.Euler(-heel,yaw,0,'YXZ')));
   }
