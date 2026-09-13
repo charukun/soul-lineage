@@ -70,7 +70,7 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write
-      pull-requests: read
+      pull-requests: write
       actions: write
       issues: write
       statuses: read
@@ -106,6 +106,13 @@ jobs:
           sudo chmod -R g+rwX work
           sudo chown -R root:root control
           sudo chmod -R a-w control
+          # Only directory traversal is needed through the runner-owned ancestors.
+          # Keep the wrapper immutable and grant no ancestor read/write access.
+          rescue_parent="$GITHUB_WORKSPACE"
+          while [ "$rescue_parent" != / ]; do
+            sudo chmod o+x "$rescue_parent"
+            rescue_parent="$(dirname "$rescue_parent")"
+          done
           chmod a+rx "$RUNNER_TEMP" "$RUNNER_TEMP/rescue"
           chmod a+r "$RUNNER_TEMP/rescue/"*
       - name: Heartbeat the live worker lease
@@ -161,7 +168,7 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write
-      pull-requests: read
+      pull-requests: write
       issues: write
       actions: write
       statuses: read

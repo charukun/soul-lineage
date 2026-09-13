@@ -155,10 +155,12 @@ export function assertValidationUnchanged(work, testedHead, configuration) {
   assert.equal(git(['rev-parse', 'HEAD'], work), testedHead, 'VALIDATION_REWROTE_HISTORY');
   assert.equal(git(['status', '--porcelain'], work), '', 'VALIDATION_MODIFIED_WORKTREE');
 }
-async function run(command, args, work, log) {
+export async function runValidation(command, args, work, log) {
   await new Promise((resolveRun, reject) => {
     const user = process.env.RESCUE_VALIDATION_USER;
-    const child = spawn(user ? 'sudo' : command, user ? ['-H', '-u', user, '--', 'env', `PATH=${process.env.PATH}`, command, ...args] : args, { cwd: work, env: cleanEnv(), stdio: ['ignore', 'pipe', 'pipe'] });
+    // Pin cwd after the UID change as well as before it. npm must never discover
+    // a parent checkout or the target user's home as its project root.
+    const child = spawn(user ? 'sudo' : command, user ? ['-n', '-H', '-u', user, '--chdir', resolve(work), '--', 'env', `PATH=${process.env.PATH}`, `PWD=${resolve(work)}`, command, ...args] : args, { cwd: work, env: { ...cleanEnv(), PWD: resolve(work) }, stdio: ['ignore', 'pipe', 'pipe'] });
     child.stdout.on('data', b => { process.stdout.write(b); log?.(b); });
     child.stderr.on('data', b => { process.stderr.write(b); log?.(b); });
     child.on('error', reject); child.on('exit', code => code === 0 ? resolveRun() : reject(new Error(`VALIDATION_FAILED:${command}:${code}`)));
@@ -217,7 +219,7 @@ async function main() {
         writeFileSync(reportFile(work), JSON.stringify(safeUpdateReport(record, work, conflicts, workspaceConsumers(resolve(import.meta.dirname, '..')))));
         await update((state, r) => transition(state, r, 'RESOLVING', '非重複のdevelop更新を作成。PRファイルのblobとmodeを保持', Date.now()));
       }
-      writeFileSync(progressFile(work), JSON.stringify({ currentStep: 'ANALYZING', currentAction: 'PR diffとdevelopの関連変更を比較中' }));
+      writeFileSync(progressFile(work), JSON.stringify({ currentStep: record.mode === 'reevaluate' ? 'ANALYZING' : 'RESOLVING', currentAction: 'PR diffとdevelopの関連変更を比較済み。検証準備中' }));
       if (process.env.GITHUB_OUTPUT) writeFileSync(process.env.GITHUB_OUTPUT, 'uses_paid_api=false\n', { flag: 'a' });
       return;
     }
@@ -237,8 +239,9 @@ async function main() {
         }
         await update((state, r) => { r.resolution = report.summary.slice(0, 240); transition(state, r, 'VALIDATING', '競合解消完了。対象のfast verificationを実行中', Date.now()); });
         const testedHead = git(['rev-parse', 'HEAD'], work);
-        await run('npm', ['ci'], work);
-        await run(process.execPath, [resolve(import.meta.dirname, 'validate.mjs'), 'fast', record.developSha, 'HEAD'], work);
+        await runValidation(process.execPath, [resolve(import.meta.dirname, 'integration-rescue-validation.mjs'), work], work);
+        await runValidation('npm', ['--prefix', work, 'ci'], work);
+        await runValidation(process.execPath, [resolve(import.meta.dirname, 'validate.mjs'), 'fast', record.developSha, 'HEAD'], work);
         assertValidationUnchanged(work, testedHead, context.gitConfigFingerprint);
         await preflight(c, record, workspaceConsumers(resolve(import.meta.dirname, '..')));
         await update((state, r) => { r.validation = { status: 'passed', command: 'npm ci + trusted validate.mjs fast', head: testedHead, at: new Date().toISOString() }; transition(state, r, 'PUSHING', '検証成功。headとdevelopを再確認して元PR branchへpush', Date.now()); });
