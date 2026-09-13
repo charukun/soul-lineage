@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "repository": "charukun/soul-lineage",
-  "revision": 162,
+  "revision": 163,
   "config": {
     "maxConcurrency": 4,
     "maxAttempts": 3,
@@ -5729,10 +5729,26 @@
       "repairIssue": 145,
       "reason": "FINAL_DEV_BROWSER_VERIFICATION_NOT_PROVEN; PR_REOPEN_READY_TRANSPORT_FAILED; PULSE_SOURCE_INCIDENT_154",
       "developCommit": "1a0a40d5184f732c85e9e9f69c785cd3fd23962f"
+    },
+    {
+      "id": "gmail:1a09a28c0244ee43",
+      "type": "work-notice",
+      "sentAt": "2026-09-13T09:45:56.000Z",
+      "channel": "gmail-self",
+      "messageId": "1a09a28c0244ee43",
+      "pr": 155,
+      "commit": "095adc40d74e01cbd9104cfbaf2e74926308a4f2",
+      "status": "FAILED",
+      "workerId": "ci/34748767152/pr-155/a1",
+      "attempt": 1,
+      "reason": "DISPATCH_BROWSER_REPAIR_STATE_TRANSPORT_FAILED; INTEGRATION_QUEUE_PENDING",
+      "runId": "34748767152",
+      "nextRecoveryPr": 153,
+      "nextRecoveryCommit": "b91970b1053941220ed9a1c0e86d92b2bc756c74"
     }
   ],
   "cursor": 0,
-  "updatedAt": "2026-09-13T09:44:36.279Z",
+  "updatedAt": "2026-09-13T09:46:16.039Z",
   "coordinator": {
     "runId": "34748924862",
     "heartbeatAt": "2026-09-13T09:06:55.688Z",
