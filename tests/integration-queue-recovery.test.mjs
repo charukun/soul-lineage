@@ -148,3 +148,16 @@ test('live PR readiness wins over stale event Draft data; moved/closed heads do 
     assert.deepEqual(outputs, expected);
   }
 });
+
+test('PULSE CI display and failure history do not let observation success hide validation failure', async () => {
+  const { classifyPull } = await import('../ops-board/model.mjs');
+  const { actionProblems } = await import('../ops-board/review-model.mjs');
+  const f = fixture();
+  const common = { workflow_id: 1, head_sha: sha, head_branch: f.pr.head.ref, event: 'pull_request', status: 'completed' };
+  const runs = [
+    { ...common, id: 2, name: 'CI observation #138 head', conclusion: 'success' },
+    { ...common, id: 1, name: 'CI validation #138 head', conclusion: 'failure' },
+  ];
+  assert.equal(classifyPull(f.pr, runs).stage, 'CI_FAILED');
+  assert.equal(actionProblems(runs, [f.pr]).current[0].id, 1);
+});
