@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {mkdir,readFile} from 'node:fs/promises';
 import {basename,join} from 'node:path';
 import {createServer} from 'vite';
+const environment=process.env.APP_ENV||'local';
+const storyKey=`soul.${environment}.rinne.story.v1`,worldKey=`soul.${environment}.world.mura.v1`;
 const server=process.env.RINNE_STORY_URL?null:await createServer({configFile:'apps/rinne/vite.config.js',server:{host:'127.0.0.1',port:5193,strictPort:true,watch:null,hmr:false}});
 await server?.listen();
 const url=process.env.RINNE_STORY_URL||'http://127.0.0.1:5193/';
@@ -24,7 +26,7 @@ async function boot(hash='#story'){
   if(status.state==='error')throw Error(await page.locator('#loading-technical').innerText());
   frame=page.frames().find(f=>f.url().includes('/simulator/index.html'));assert.ok(frame);
 }
-async function save(){return frame.evaluate(()=>{document.getElementById('story-records').click();document.getElementById('story-close').click();return JSON.parse(localStorage.getItem('soul.local.rinne.story.v1'));});}
+async function save(){return frame.evaluate(key=>{document.getElementById('story-records').click();document.getElementById('story-close').click();return JSON.parse(localStorage.getItem(key));},storyKey);}
 async function loadFixture(change){const data=await save();change(data);await frame.locator('#story-records').click();await frame.locator('#story-file').setInputFiles({name:'fixture.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(data))});await frame.waitForFunction(()=>document.getElementById('story-file').files.length===0);if(await frame.locator('#story-dialog[open]').count())await frame.locator('#story-close').click();}
 async function walkWithTouch(dx=58){
   const cdp=await context.newCDPSession(page),box=await frame.locator('#game').boundingBox(),x=box.x+90,y=box.y+box.height*.54;
@@ -42,7 +44,7 @@ try{
   const birth=await save();assert.deepEqual(birth.story.gifts,['bell','stone']);assert.equal(birth.runtime.enemies.length,0);
   await page.screenshot({path:output+'/birth-desktop.png'});
   await frame.locator('[data-action="release"]').click();await frame.locator('[data-action="activity:care:home"]').click();
-  await frame.waitForFunction(()=>JSON.parse(localStorage.getItem('soul.local.rinne.story.v1')).story.experiences.care===1,null,{timeout:15000});
+  await frame.waitForFunction(key=>JSON.parse(localStorage.getItem(key)).story.experiences.care===1,storyKey,{timeout:15000});
   // Real touch input through the exposed playfield, not a position setter.
   await page.setViewportSize({width:390,height:844});
   assert.equal((await frame.locator('#game').boundingBox()).height,844);
@@ -73,8 +75,8 @@ try{
   const living=await save();await boot();const restored=await save();assert.deepEqual(restored.story.gifts,living.story.gifts);assert.equal(restored.story.experiences.care,1);assert.deepEqual(restored.runtime.notebook,living.runtime.notebook);
   // A village-authoritative layout update moves a building over the old position.
   const sender=await context.newPage();await sender.goto(url);const updated=structuredClone(restored.world);updated.revision++;Object.assign(updated.objects[0],{x:restored.runtime.hero.x,z:restored.runtime.hero.z});
-  await sender.evaluate(world=>localStorage.setItem('soul.local.world.mura.v1',JSON.stringify(world)),updated);
-  await frame.waitForFunction(revision=>JSON.parse(localStorage.getItem('soul.local.rinne.story.v1')).world.revision===revision,updated.revision);
+  await sender.evaluate(({key,world})=>localStorage.setItem(key,JSON.stringify(world)),{key:worldKey,world:updated});
+  await frame.waitForFunction(({key,revision})=>JSON.parse(localStorage.getItem(key)).world.revision===revision,{key:storyKey,revision:updated.revision});
   await sender.close();await page.bringToFront();const updatedSave=await save();assert.deepEqual(updatedSave.runtime.notebook,restored.runtime.notebook);assert.deepEqual(updatedSave.story.gifts,restored.story.gifts);assert.ok(Math.hypot(updatedSave.runtime.hero.x-updated.objects[0].x,updatedSave.runtime.hero.z-updated.objects[0].z)>2);
   console.log('birth, activity and save reload passed');
   await loadFixture(data=>{data.runtime.life.ageSeconds=900;data.runtime.life.worldSeconds=data.story.bornAt+900;data.story.lastWorld=data.runtime.life.worldSeconds;data.runtime.hero.x=166;data.runtime.hero.z=0;});
@@ -97,5 +99,5 @@ try{
   await page.locator('#start-simulator').click();await page.waitForFunction(()=>window.__RINNE_TITLE__?.snapshot().state==='playing',null,{timeout:120000});
   frame=page.frames().find(f=>f.url().includes('/simulator/index.html'));assert.equal(await frame.evaluate(()=>!!window.__RINNE_GAME_PORT__),false);assert.equal(await frame.locator('#story-hud').count(),0);assert.ok(await frame.evaluate(()=>window.__ATELIER__.snapshot().enemies.length>0));
   assert.deepEqual(errors,[]);console.log('mobile layout, isolated persistence and standalone simulator passed');
-}catch(error){await page.screenshot({path:output+'/failure.png'}).catch(()=>{});console.error('Page errors:',errors);console.error('Game state:',await frame?.evaluate(()=>({runtime:window.__RINNE_GAME_PORT__?.snapshot(),dialogs:[...document.querySelectorAll('dialog[open]')].map(d=>d.id),save:JSON.parse(localStorage.getItem('soul.local.rinne.story.v1'))?.story,record:document.getElementById('story-dialog-content')?.textContent})).catch(()=>null));throw error;}
+}catch(error){await page.screenshot({path:output+'/failure.png'}).catch(()=>{});console.error('Page errors:',errors);console.error('Game state:',await frame?.evaluate(key=>({runtime:window.__RINNE_GAME_PORT__?.snapshot(),dialogs:[...document.querySelectorAll('dialog[open]')].map(d=>d.id),save:JSON.parse(localStorage.getItem(key))?.story,record:document.getElementById('story-dialog-content')?.textContent}),storyKey).catch(()=>null));throw error;}
 finally{await browser.close();await server?.close();}
