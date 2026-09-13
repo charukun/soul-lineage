@@ -44,10 +44,8 @@ jobs:
             -e 's/soul\.local\.rinne\.story\.v1/soul.dev.rinne.story.v1/g' \
             -e 's/soul\.local\.world\.mura\.v1/soul.dev.world.mura.v1/g' \
             apps/rinne/tests/story-browser.mjs
-          # Seven large WebGL screenshots are useful evidence but can each wait on
-          # a slow software-GPU readback. The full playthrough owns this pass; the
-          # visual review already has baseline captures and gets a targeted capture
-          # after the state/interaction path succeeds.
+          # Large WebGL screenshots can dominate SwiftShader time. The full
+          # playthrough owns this pass; visual evidence is captured separately.
           perl -0pi -e "s/await page\.screenshot\(\{path:output\+'[^']+'\}\);//g" apps/rinne/tests/story-browser.mjs
           node apps/rinne/tests/story-browser.mjs
       - uses: actions/upload-artifact@v4
