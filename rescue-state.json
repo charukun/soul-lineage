@@ -1,0 +1,1 @@
+{"schema":1,"repository":"charukun/soul-lineage","revision":0,"config":{"maxConcurrency":4,"maxAttempts":3,"heartbeatMs":120000,"staleMs":600000,"queueStallMs":900000,"retryMs":300000,"scanMinMs":120000,"apiReserve":200,"maxEvaluations":12,"maxRequests":160},"records":{},"waves":[],"activity":[],"outbox":[],"cursor":0,"updatedAt":null,"coordinator":{}}
