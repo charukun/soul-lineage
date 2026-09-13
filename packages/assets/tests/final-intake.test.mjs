@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {sharedIconUrls,sharedIconProvenance} from '../src/index.js';
 
 const root=new URL('../src/icons/lucide/',import.meta.url);
-const manifest=JSON.parse(readFileSync(new URL('MANIFEST.json',root),'utf8'));
+const manifest=JSON.parse(readFileSync(new URL('./MANIFEST.json',root),'utf8'));
 
 test('shared Lucide inventory is complete and pinned',()=>{
   assert.equal(manifest.repository,'lucide-icons/lucide');
