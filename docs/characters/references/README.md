@@ -12,4 +12,4 @@ This directory stores visual character reference sheets used to keep concept art
 
 ## Shino
 
-`shino/shino-character-reference-sheet-v2.webp` is the first repository reference sheet for the current Shino-based MasterCharacter workflow. It is a review/reference image, not a replacement for `packages/characters`, `packages/rendering`, or the audited VRM asset contract.
+`shino/shino-character-reference-sheet-v2.png` is the first repository reference sheet for the current Shino-based MasterCharacter workflow. It is a review/reference image, not a replacement for `packages/characters`, `packages/rendering`, or the audited VRM asset contract.
