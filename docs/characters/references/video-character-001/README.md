@@ -1,8 +1,15 @@
 # Video Character 001
 
-Status: `SOURCE OBSERVED / NOT IMPLEMENTED`
+Status: `SOURCE OBSERVED / DEMON ADAPTER PROTOTYPE`
 
 This folder records a character reference extracted from the user-provided gameplay video `1000003106.mp4`. The character has not been assigned a canon name in the repository, so the neutral production ID `video-character-001` is used until a name is approved.
+
+The demon app now has a selectable appearance prototype linked to this reference ID
+(`silver-reaper`, provisional display name 白銀の鎌姫). Its face uses Shino's existing
+rig and its wardrobe/weapon geometry is separately authored. This is not an audited
+CURRENT MASTER or Character Workshop preset. Designed details, validation evidence
+and remaining runtime checks are recorded in
+[`PLAYABLE_CHARACTERS.md`](../../../../apps/demon/docs/PLAYABLE_CHARACTERS.md).
 
 ## Reference sheet
 
