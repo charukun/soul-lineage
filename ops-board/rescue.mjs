@@ -14,6 +14,7 @@ export function rescueView(state, now = Date.now()) {
     heartbeatStale: Boolean(r.lease) && now - Date.parse(r.heartbeatAt || r.claimedAt) > config.staleMs,
     returnedAt: r.returnedAt || null, pushedAt: r.pushedAt || null, mergedAt: r.mergedAt || null, devAt: r.devAt || null,
     pushedSha: r.pushedSha || null, mergeCommit: r.mergeCommit || null, devCommit: r.devCommit || null,
+    stagedSha: r.stagedSha || null, stagedAt: r.stagedAt || null, pushWorkerId: r.pushWorkerId || null, heartbeatCount: r.heartbeatCount || 0,
     resolution: safeString(r.resolution), failureReason: safeString(r.failureReason, 400), failures: (r.failures || []).slice(-3),
     validation: r.validation ? { status: r.validation.status, command: safeString(r.validation.command), at: r.validation.at, head: r.validation.head } : null,
     url: `https://github.com/${REPOSITORY}/pull/${r.pr}`, runUrl: safeString(r.runUrl),
@@ -22,13 +23,14 @@ export function rescueView(state, now = Date.now()) {
   const manual = records.filter(r => r.state === 'FAILED_MANUAL');
   const counts = { active: workers.filter(r => !r.heartbeatStale && ACTIVE.has(r.state)).length, reserved: workers.length, max: config.maxConcurrency,
     queued: queue.filter(r => r.state !== 'BLOCKED_BY_RESCUE').length, blocked: queue.filter(r => r.state === 'BLOCKED_BY_RESCUE').length,
-    validating: records.filter(r => r.state === 'VALIDATING').length, returned: records.filter(r => RETURNED.has(r.state)).length,
+    validating: records.filter(r => r.state === 'VALIDATING').length, awaitingPush: records.filter(r => r.state === 'AWAITING_PUSH').length,
+    returned: records.filter(r => RETURNED.has(r.state) && r.state !== 'AWAITING_PUSH').length,
     manual: manual.length, retry: records.filter(r => r.state === 'FAILED_RETRYABLE').length,
     stale: workers.filter(r => r.state === 'STALE' || r.heartbeatStale).length };
   const recent = records.filter(r => RETURNED.has(r.state) || ['MERGED', 'DEV'].includes(r.state)).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)).slice(0, 20);
   const activity = state.activity.filter(e => now - Date.parse(e.at) < 86400000);
   const count = types => new Set(activity.filter(e => types.includes(e.type)).map(e => e.pr)).size;
-  const status = !state.coordinator?.configured ? 'CONFIGURATION_REQUIRED' : counts.manual || counts.stale ? 'ATTENTION' : counts.active ? 'ACTIVE' : counts.queued || counts.blocked || counts.returned ? 'WAITING' : 'ALL_CLEAR';
+  const status = !state.coordinator?.configured ? 'CONFIGURATION_REQUIRED' : counts.manual || counts.stale ? 'ATTENTION' : counts.active ? 'ACTIVE' : counts.queued || counts.blocked || counts.returned || counts.awaitingPush ? 'WAITING' : 'ALL_CLEAR';
   return { available: true, status, generatedAt: state.updatedAt, staleMs: config.staleMs,
     coordinator: { heartbeatAt: state.coordinator?.heartbeatAt, phase: state.coordinator?.phase, reason: safeString(state.coordinator?.configurationReason), errors: state.coordinator?.errors || [] },
     counts, workers, queue: queue.sort((a, b) => (b.priority?.score || 0) - (a.priority?.score || 0)), manual, recent,

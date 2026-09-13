@@ -4,7 +4,7 @@ export const REPOSITORY = 'charukun/soul-lineage';
 export const STATE_BRANCH = 'automation/integration-rescue-state';
 export const STATE_FILE = 'rescue-state.json';
 export const ACTIVE = new Set(['CLAIMED', 'ANALYZING', 'RESOLVING', 'VALIDATING', 'PUSHING']);
-export const RETURNED = new Set(['PUSHED', 'RETURNED_TO_INTEGRATION', 'CHECKING']);
+export const RETURNED = new Set(['AWAITING_PUSH', 'PUSHED', 'RETURNED_TO_INTEGRATION', 'CHECKING']);
 export const TERMINAL = new Set(['MERGED', 'DEV', 'FAILED_MANUAL', 'CLOSED']);
 export const STATES = new Set(['DETECTED', 'QUEUED', 'BLOCKED_BY_RESCUE', ...ACTIVE, ...RETURNED,
   ...TERMINAL, 'FAILED_RETRYABLE', 'STALE']);
@@ -132,6 +132,8 @@ export function heartbeat(state, pr, rescueId, workerId, progress, now) {
   const r = owned(state, pr, rescueId, workerId);
   if (!ACTIVE.has(r.state) && r.state !== 'STALE') throw new Error('CLAIM_REJECTED: worker no longer active');
   r.heartbeatAt = new Date(now).toISOString();
+  r.heartbeatCount = (r.heartbeatCount || 0) + 1;
+  if (r.heartbeatCount === 1) event(state, r, 'WORKER_HEARTBEAT', 'Live Actions worker heartbeat observed', now);
   if (r.state === 'STALE') transition(state, r, ACTIVE.has(r.staleFrom) ? r.staleFrom : 'ANALYZING', 'Worker heartbeat recovered; original lease retained', now);
   // Worker summaries never control lifecycle, claims, validation results or push authorization.
   if (progress?.currentAction) r.currentAction = String(progress.currentAction).replace(/[\r\n]+/g, ' ').slice(0, 240);
@@ -188,7 +190,7 @@ export function planWave(state, { runId, now, id }) {
     transition(state, r, 'QUEUED', 'Eligible for next Wave', now);
     if (occupied.length + selected.length >= state.config.maxConcurrency) continue;
     r.previousPushedSha = r.pushedSha || r.previousPushedSha || null;
-    for (const key of ['returnedAt', 'pushedAt', 'pushedSha', 'pendingIntegration', 'validation', 'integrationRequestedAt']) delete r[key];
+    for (const key of ['returnedAt', 'pushedAt', 'pushedSha', 'pendingIntegration', 'validation', 'integrationRequestedAt', 'stagedSha', 'stagedTree', 'stagedParents', 'stagedAt', 'pushLease', 'pushWorkerId', 'heartbeatCount']) delete r[key];
     r.attempt++; r.rescueId = `${id}-pr-${r.pr}-a${r.attempt}`;
     r.wave = id; r.runId = String(runId); r.claimedBy = `${runId}/pr-${r.pr}/a${r.attempt}`;
     r.claimedAt = r.heartbeatAt = new Date(now).toISOString(); r.lease = r.rescueId;
