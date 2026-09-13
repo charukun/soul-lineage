@@ -42,19 +42,25 @@ export function storyTransientObjective(state,experienceNames={}){
 /**
  * Story activities may share one physical landmark. A navigation map should
  * show that landmark once and summarize what can be done there instead of
- * looking like several duplicate buildings.
+ * looking like several duplicate buildings. When fallbacks share the campfire,
+ * keep the historical `garden` target so saved/tests/navigation links remain valid.
  */
 export function uniqueStoryDestinations(places=[]){
   const groups=new Map();
   for(const place of places){
     const key=`${Math.round(Number(place.x)*10)/10}:${Math.round(Number(place.z)*10)/10}`;
     let group=groups.get(key);
-    if(!group){group={...place,verbs:[]};groups.set(key,group);}
+    if(!group){group={places:[],verbs:[]};groups.set(key,group);}
+    group.places.push(place);
     if(place.verb&&!group.verbs.includes(place.verb))group.verbs.push(place.verb);
   }
-  return [...groups.values()].map(({verbs,...place})=>({
-    ...place,
-    verb:verbs.length?verbs.join('・'):place.verb,
-    activities:verbs,
-  }));
+  return [...groups.values()].map(group=>{
+    const canonical=group.places.find(place=>place.id==='garden')||group.places[0];
+    return{
+      ...canonical,
+      verb:group.verbs.length?group.verbs.join('・'):canonical.verb,
+      activities:group.verbs,
+      aliases:group.places.map(place=>place.id),
+    };
+  });
 }
