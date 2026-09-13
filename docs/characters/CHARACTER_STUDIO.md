@@ -29,3 +29,8 @@ The user explicitly requested DEV deployment. PR/head-specific Integration revie
 Character Workshop owns repeatable character/rig/body-variation motion QA; Visual Review Lab owns detailed skill/VFX choreography. The shared `packages/animations` quality layer must remain model-provider independent and presentation-only. Review results must retain character, source motion, frame/time, deterministic camera, affected bones, severity, cause category, status and before/after evidence. Numeric diagnostics never substitute for visual approval.
 
 The initial acceptance case is Shino arm/torso penetration, followed by body/height/age variants and a 6/12-character cohort. Existing authored combat timing and expression must be preserved. Future vision workers consume and produce the same review contract without embedding a model API in the game.
+
+The **Motion QA** tab now supplies a 30-second source review, 8 fixed cameras,
+before/after, frame stepping, 1/6/12/30 comparison and structured issue JSON.
+See [Motion Quality Pipeline](MOTION_QUALITY.md) for the implementation, first case,
+validation and remaining visual/device gates.

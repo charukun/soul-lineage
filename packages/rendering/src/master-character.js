@@ -1,4 +1,5 @@
 import { AnimationMixer, Box3, Color, Group, Matrix4, Quaternion, Vector3 } from 'three';
+import { captureMotionRest } from './motion-quality.js';
 import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
 const required = ['hips', 'spine', 'head', ...['left', 'right'].flatMap(s => ['UpperArm', 'LowerArm', 'Hand', 'UpperLeg', 'LowerLeg', 'Foot'].map(n => s + n))];
 const check = (ok, message) => { if (!ok) throw new Error(message); };
@@ -68,7 +69,7 @@ export function createMasterCharacterPool({ template, humanoid, capacity = 30 })
     });
     const mixer = new AnimationMixer(visual), sockets = new Map(); let clip = null, appearance = null;
     const instance = {
-      id: null, root, visual, bones, attachments,
+      id: null, root, visual, bones, attachments, motionRest: captureMotionRest(bones, sourceHeight),
       setClip(sourceClip) {
         mixer.stopAllAction(); if (clip) mixer.uncacheClip(clip); clip = null;
         if (!sourceClip) return;

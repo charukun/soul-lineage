@@ -114,7 +114,7 @@ function init() {
   for (const age of [0, 7, 15, 22, 55, 85]) { const b = button(`${age}歳`, () => { workspace.edit({ age }); review.aim('front'); }); b.dataset.age = String(age); el('age-options').append(b); }
   for (const b of document.querySelectorAll('[data-tab]')) b.addEventListener('click', () => safe(() => activate(b.dataset.tab)));
   document.querySelector('.mode-tabs').addEventListener('keydown', event => {
-    const tabs = ['parts','colors','motion','compare']; let index = tabs.indexOf(currentTab);
+    const tabs = ['parts','colors','motion','qa','compare']; let index = tabs.indexOf(currentTab);
     if (event.key === 'ArrowRight') index = (index + 1) % tabs.length; else if (event.key === 'ArrowLeft') index = (index + tabs.length - 1) % tabs.length; else if (event.key === 'Home') index = 0; else if (event.key === 'End') index = tabs.length - 1; else return;
     event.preventDefault(); safe(() => activate(tabs[index], true));
   });

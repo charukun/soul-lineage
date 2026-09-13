@@ -27,13 +27,13 @@ export class HumanoidRuntime{
   const loader=new GLTFLoader();loader.register(p=>new VRMLoaderPlugin(p));const boot=window.__RINNE_BOOT__;
   await boot?.step({stage:'model',message:m.name+' のデータを読み込んでいます'});
   const report=p=>boot?.progress({stage:'model',message:m.name+' のデータを読み込んでいます',...p,unit:'bytes'});
-  const data=boot?await boot.readAsset(id,m.file,report):window.assetBuffer?await window.assetBuffer(id):await(await fetch(m.file)).arrayBuffer();
+  const data=this.api.readAsset?await this.api.readAsset(id,m.file):boot?await boot.readAsset(id,m.file,report):window.assetBuffer?await window.assetBuffer(id):await(await fetch(m.file)).arrayBuffer();
   await boot?.step({stage:'model',message:m.name+' の形・骨格・テクスチャを組み立てています'});
   const gltf=await loader.parseAsync(data,'');const vrm=gltf.userData.vrm;if(!vrm)throw Error('VRM Humanoid情報がありません');VRMUtils.rotateVRM0(vrm);if(vrm.lookAt)vrm.lookAt.autoUpdate=false;vrm.update(0);vrm.scene.updateMatrixWorld(true);
   const bbox=new T.Box3().setFromObject(vrm.scene),sourceHeight=bbox.max.y-bbox.min.y;
   const bones={},raw={},byName={};for(const name of Object.keys(vrm.humanoid.normalizedHumanBones)){const b=vrm.humanoid.getNormalizedBoneNode(name);if(b){bones[name]=b;raw[name]=vrm.humanoid.getRawBoneNode(name);byName[b.name]=b;byName[b.uuid]=b;}}
   const required=['hips','spine','head',...['left','right'].flatMap(s=>['UpperArm','LowerArm','Hand','UpperLeg','LowerLeg','Foot'].map(n=>s+n))];const missing=required.filter(n=>!bones[n]);if(missing.length)throw Error('不足ボーン: '+missing.join(','));
-  const rest=trackPose(bones),review=createRetargetedClips(vrm),shared=await retargetBank(vrm);applyPose(bones,rest);vrm.update(0);vrm.scene.updateMatrixWorld(true);
+  const rest=trackPose(bones),review=createRetargetedClips(vrm),shared=await retargetBank(vrm,this.api.readAsset);applyPose(bones,rest);vrm.update(0);vrm.scene.updateMatrixWorld(true);
   await boot?.step({stage:'render',message:'武器・姿勢・描画の準備を仕上げています'});
   const unit=this.height/sourceHeight,root=new T.Group();root.name='TidebreakHumanoid:'+id;root.add(vrm.scene);vrm.scene.position.y=-bbox.min.y;root.scale.setScalar(unit);root.updateMatrixWorld(true);
   const c={id,m,vrm,gltf,bones,raw,byName,rest,review,shared,root,unit,sourceHeight,floorOffset:-bbox.min.y,profile:profiles[id]||profiles.A,mixer:new T.AnimationMixer(vrm.scene),actions:new Map(),state:null,phase:0,clock:0,blending:null,lastActual:null,lastActorId:null,footLocks:{},generated:{},socketReports:{},sockets:{},shadowMeshes:[],materials:[],lastDrawClock:-1,echoes:[],resetSpring:true,materialState:[]};

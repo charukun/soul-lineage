@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createWorkshopMotionQA } from './character-motion-qa.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { appearanceForCharacter, auditShinoDocument, crowdPlan, PoseSchedule, GENES, YEAR_MS } from '@soul/characters';
@@ -59,6 +60,7 @@ function start() {
   let settings = reviewSettings(), records = createReviewCohort(settings), actors = [], schedules = [], appearances = [];
   let pool = null, template = null, loading = false, retry = defaultBytes, alive = true, frameId = 0;
   let elapsed = 0, last = performance.now(), warmup = 60, frames = [], lastMetrics = 0, physicsActors = 0, drawnActors = 0;
+  let motionQA = null;
   const events = new AbortController(), on = (target, type, handler) => target.addEventListener(type, handler, { signal: events.signal });
   const guard = handler => event => { try { handler(event); } catch (error) { report(error); syncUI(); } };
   function resetMeasure() { warmup = 60; frames = []; lastMetrics = 0; }
@@ -107,6 +109,7 @@ function start() {
     if (actor) { marker.position.x = actor.root.position.x; marker.position.z = actor.root.position.z; }
   }
   function aim(preset = 'overview') {
+    if (motionQA?.active) { motionQA.aim(preset === 'side' ? 'left' : ['front','back'].includes(preset) ? preset : 'front'); return; }
     const actor = actors[settings.selected]; if (!actor) return;
     let target, distance;
     orbit.maxDistance = ['village','demon'].includes(preset) ? 120 : 45;
@@ -144,7 +147,7 @@ function start() {
   }
   function resize() {
     const width = Math.max(1, canvas.clientWidth), height = Math.max(1, canvas.clientHeight);
-    renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix(); resetMeasure();
+    renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix(); if (motionQA?.active) motionQA.aim(motionQA.camera); resetMeasure();
   }
   const observer = new ResizeObserver(resize); observer.observe(canvas); resize();
   const axis = new THREE.Vector3(0, 0, 1), pitch = new THREE.Vector3(1, 0, 0), quaternion = new THREE.Quaternion();
@@ -174,7 +177,7 @@ function start() {
   }
   function refreshLooks() {
     appearances = records.slice(0, settings.count).map(appearanceForCharacter);
-    actors.forEach((actor, i) => { actor.sample(appearances[i], elapsed + i * .19, settings.motion === 'rest' ? null : pose); applyExpressions(actor, i); });
+    actors.forEach((actor, i) => { actor.sample(appearances[i], elapsed + i * .19, motionQA?.pose(actor) ?? (settings.motion === 'rest' ? null : pose)); motionQA?.finish(actor, i); applyExpressions(actor, i); });
     syncUI(); resetMeasure();
   }
   function rebuild() {
@@ -269,18 +272,18 @@ function start() {
     const actual = (now - last) / 1000; last = now;
     if (document.hidden || !review.ready) return;
     try {
-      const dt = Math.min(.1, Math.max(0, actual)); if (!settings.paused) elapsed += dt; orbit.update(); physicsActors = 0; drawnActors = 0;
+      const dt = Math.min(.1, Math.max(0, actual)); if (!settings.paused) elapsed += dt; if (!motionQA?.active) orbit.update(); motionQA?.tick(dt); physicsActors = 0; drawnActors = 0;
       const plan = new Map(crowdPlan(actors.map((a, i) => ({ id: a.id, visible: a.root.visible, important: i === settings.selected, distance: a.root.position.distanceTo(camera.position) }))).map(p => [p.id, p]));
       actors.forEach((actor, i) => {
         const policy = plan.get(actor.id); if (actor.root.visible) drawnActors++;
         if (!settings.paused) {
-          if (schedules[i].advance(dt, policy.animationHz) !== null) actor.sample(appearances[i], elapsed + i * .19, settings.motion === 'rest' ? null : pose);
+          if (schedules[i].advance(dt, policy.animationHz) !== null) { actor.sample(appearances[i], elapsed + i * .19, motionQA?.pose(actor) ?? (settings.motion === 'rest' ? null : pose)); motionQA?.finish(actor, i); }
           if (settings.rotate) actor.root.rotation.y = elapsed * .22;
           if (policy.visible) applyExpressions(actor, i);
         }
         const enabled = policy.visible && (settings.springs === 'all' || settings.springs === 'auto' && policy.springBones);
         if (enabled && actor.secondaryJointCount) physicsActors++;
-        if (!settings.paused) actor.updateSecondary(dt, enabled);
+        if (!settings.paused) actor.updateSecondary(dt, enabled && !motionQA?.active);
       });
       renderer.render(scene, camera);
       if (!settings.paused && Number.isFinite(actual) && actual > 0) { if (warmup > 0) warmup--; else { frames.push(actual * 1000); if (frames.length > 600) frames.shift(); } }
@@ -307,9 +310,11 @@ function start() {
   review.configure = patch => update(patch, patch.count !== undefined ? 'rebuild' : patch.view !== undefined || patch.selected !== undefined ? 'arrange' : 'looks');
   review.refresh = refreshLooks;
   review.aim = aim;
+  motionQA = createWorkshopMotionQA({ review, scene, camera, orbit, canvas, refresh: refreshLooks, draw: () => renderer.render(scene, camera) });
+  review.motionQA = motionQA;
   function dispose() {
     if (!alive) return; alive = false; review.ready = false; cancelAnimationFrame(frameId); events.abort(); observer.disconnect(); orbit.dispose();
-    pool?.dispose(); disposeTemplate(template); ground.geometry.dispose(); ground.material.dispose(); marker.geometry.dispose(); marker.material.dispose(); renderer.dispose();
+    motionQA?.dispose(); pool?.dispose(); disposeTemplate(template); ground.geometry.dispose(); ground.material.dispose(); marker.geometry.dispose(); marker.material.dispose(); renderer.dispose();
   }
   on(window, 'pagehide', event => { if (!event.persisted) dispose(); else suspend(); });
   on(window, 'pageshow', suspend); syncUI(); background(); frameId = requestAnimationFrame(frame); void load(defaultBytes);
