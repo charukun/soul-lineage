@@ -128,3 +128,12 @@ The existing Character Studio browser gate additionally invokes
 `character-motion-qa.browser.mjs`; PNG/JSON evidence joins its existing artifact.
 Physical Pixel Fold performance and final aesthetic approval remain separate.
 Implementation delivery ends at Ready; Integration owns CI, merge and DEV publication.
+
+## Follow-up acceptance: correction continuity
+
+Evaluate the merged pipeline on current develop, including the remaining arm,
+wrist and weapon-attachment transitions. Improve the common correction layer
+without reauthoring the stance work in PR #156 or the independent Lab branch.
+Require same-frame multi-view evidence, deterministic seek/playback agreement,
+body/age variants, and preservation of authored action/contact timing.
+Numerical improvement remains separate from visual approval.
