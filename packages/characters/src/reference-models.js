@@ -21,7 +21,7 @@ export const CHARACTER_REFERENCE_MODELS = Object.freeze({
     characterId: 'Sendagaya_Shino',
     masterId: MASTER_ID,
     assetId: MASTER_ID,
-    referencePath: 'docs/characters/references/shino/shino-character-reference-sheet-v2.webp',
+    referencePath: 'docs/characters/references/shino/shino-character-reference-sheet-v2.png',
     profile: BASE_APPEARANCE_PARTS,
     note: 'CURRENT MASTER と実装済みモジュラーパーツのみ。提案パーツやゲーム固有装備は含めない。'
   })
