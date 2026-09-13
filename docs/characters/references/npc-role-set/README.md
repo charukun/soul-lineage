@@ -1,14 +1,24 @@
 # NPC Role Concept Set
 
-Status: `CONCEPT TARGET / NOT IMPLEMENTED`
+Status: `CONCEPT TARGET / PARTIALLY MAPPED`
 
 Generated/reviewed: 2026-09-13
 
 ## Purpose
 
-This set expands the visual design space available to future Character Workshop authoring, MURAAAAAAA residents, and human NPC generation. It intentionally covers age and role silhouettes that are weak when every character is derived only from Shino-like adult proportions and the initial modular kit.
+This set expands the visual design space available to Character Workshop authoring, MURAAAAAAA residents, and human NPC generation. It covers age and role silhouettes that are weak when every character is derived only from Shino-like adult proportions and the initial modular kit.
 
 Implementation truth remains the audited MasterCharacter plus the current `packages/characters` and `packages/rendering` contracts. A picture in this directory does not make a depicted part available at runtime.
+
+## Runtime mapping status
+
+Character Workshop now consumes these sheets as explicit reference archetypes. Each target maps only to existing runtime-safe age/role/modular channels. The Child Girl / Elderly Woman references also motivated two newly implemented low-cost modular parts: `hair:bun` and `accessory:ribbon`. All other image-only details remain proposed or game-owned until separately authored and approved.
+
+The Workshop must continue to show three separate buckets for every target:
+
+- `IMPLEMENTED MODULAR PARTS`: runtime-safe parts/age/role channels currently used by target generation.
+- `PROPOSED PARTS`: visible target details that still need authored geometry/material/rig work.
+- `GAME EQUIPMENT`: details owned by gameplay/equipment contracts, not cosmetic body slots.
 
 ## Sheets
 
@@ -27,13 +37,7 @@ Implementation truth remains the audited MasterCharacter plus the current `packa
 
 ## Adoption boundary
 
-Before using a detail in runtime, classify it explicitly:
-
-- `IMPLEMENTED MODULAR PARTS`: already exists in the current audited/modular implementation.
-- `PROPOSED PARTS`: visual target that still requires authored geometry/material/rig work.
-- `GAME EQUIPMENT`: gameplay-owned equipment whose appearance must follow that game's equipment contract rather than silently becoming a cosmetic body part.
-
-The exact faces, haircuts, garments, child/elder body proportions, tools, armor, weapons, bags, books, staffs, bows and other props shown here are not automatically implemented. Use Character Workshop rendered review to decide what should be authored next, then validate the resulting runtime geometry separately.
+Before using a detail in runtime, classify it explicitly. The exact faces, garments, detailed body features, tools, armor, bags, books and other props shown here are not automatically implemented. Use Character Workshop rendered review to decide what should be authored next, then validate resulting runtime geometry separately.
 
 ## Source handling
 

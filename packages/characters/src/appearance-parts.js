@@ -14,7 +14,8 @@ export const APPEARANCE_PARTS = Object.freeze({
     { id: 'original', label: 'Shino' },
     { id: 'bob', label: 'ボブ' },
     { id: 'crop', label: 'ショート' },
-    { id: 'tail', label: 'テール' }
+    { id: 'tail', label: 'テール' },
+    { id: 'bun', label: 'お団子' }
   ]),
   body: freezeCatalog([
     { id: 'balanced', label: '標準' },
@@ -32,7 +33,8 @@ export const APPEARANCE_PARTS = Object.freeze({
     { id: 'none', label: 'なし' },
     { id: 'glasses', label: '眼鏡' },
     { id: 'headband', label: 'ヘッドバンド' },
-    { id: 'scarf', label: 'スカーフ' }
+    { id: 'scarf', label: 'スカーフ' },
+    { id: 'ribbon', label: 'リボン' }
   ])
 });
 

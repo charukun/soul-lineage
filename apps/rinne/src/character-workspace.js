@@ -1,5 +1,7 @@
+import './character-reference-workshop.js';
 import { qualitySettings, qualityIdentity, qualityProfile, qualityReport } from './character-quality-state.js';
-import { BASE_APPEARANCE_PARTS, canonicalAppearanceParts, mergeAppearanceParts, nextAppearanceParts, characterReferenceModel } from '@soul/characters';
+import { BASE_APPEARANCE_PARTS, canonicalAppearanceParts, mergeAppearanceParts, nextAppearanceParts,
+  characterReferenceModel, characterReferenceArchetype } from '@soul/characters';
 import { attachModularAppearanceController } from '@soul/rendering/master-character-modular';
 import { createReviewCohort, editReviewCharacter, reviewSettings, serializeReviewSession } from './character-review-state.js';
 import { WORKSPACE_KEY, serializeWorkspace, deserializeWorkspace, createEditHistory } from './character-workspace-state.js';
@@ -11,6 +13,7 @@ export function createCharacterWorkspace(review) {
   let syncing = false, restoring = false, previewId = null, generation = 0, saveMessage = 'このブラウザに保存', timer;
   const selected = () => review.records[review.settings.selected];
   const model = () => modelId ? characterReferenceModel(modelId) : null;
+  const target = () => quality.archetype === 'mixed' ? null : characterReferenceArchetype(quality.archetype);
   const profile = id => { const index = review.records.findIndex(r => r.id === id); return qualityProfile(review.records[index], index, quality, profiles.get(id)); };
   const snapshot = () => serializeWorkspace(review.session(), [...profiles].filter(([id]) => review.records.some(r => r.id === id)), quality);
   const emit = () => window.dispatchEvent(new Event('character-workspace-change'));
@@ -36,7 +39,6 @@ export function createCharacterWorkspace(review) {
         const identity = selectedReference || actor.id === previewId ? null : qualityIdentity(review.records[index], index, quality, profiles.get(actor.id));
         const next = selectedReference ? selectedReference.profile : actor.id === previewId || quality.mode === 'baseline' ? BASE_APPEARANCE_PARTS : profile(actor.id);
         if (JSON.stringify(controller.identity) !== JSON.stringify(identity)) controller.setIdentity(identity);
-        // Check the actual controller after pool recycling, not a stale signature cache.
         if (JSON.stringify(controller.profile) !== JSON.stringify(next)) controller.setProfile(next);
       }
       if (attached) review.refresh();
@@ -63,6 +65,7 @@ export function createCharacterWorkspace(review) {
     get quality() { return qualitySettings(quality); },
     get modelId() { return modelId; },
     get model() { return model(); },
+    get target() { return target(); },
     getIdentity(index = review.settings.selected) { return modelId && index === review.settings.selected ? null : qualityIdentity(review.records[index], index, quality, profiles.get(review.records[index].id)); },
     qualityReport() {
       const indices = review.settings.view === 'single'
@@ -75,17 +78,35 @@ export function createCharacterWorkspace(review) {
       if (modelId === next) return;
       modelId = next; previewId = null; sync(); emit();
     },
+    selectArchetype(id = 'mixed') {
+      const key = id || 'mixed', ref = key === 'mixed' ? null : characterReferenceArchetype(key);
+      if (quality.archetype === key) return;
+      perform(() => {
+        modelId = null; profiles.clear(); quality.marked = [];
+        quality = qualitySettings({ ...quality, archetype: key, ...(ref ? { role: ref.role } : {}) });
+        if (ref) {
+          const settings = reviewSettings({ ...review.settings, ages: 'fixed', age: ref.age, selected: 0 });
+          review.restore(serializeReviewSession({ settings, records: createReviewCohort(settings) }));
+        }
+      });
+    },
     setQuality(patch) { perform(() => { quality = qualitySettings({ ...quality, ...patch }); }); },
     markSelected() { const id = selected().id; perform(() => { quality.marked = quality.marked.includes(id) ? quality.marked.filter(x => x !== id) : [...quality.marked, id]; }); },
     generate(seed, ancestry = review.settings.ancestry) {
-      perform(() => { modelId = null; const settings = reviewSettings({ ...review.settings, seed, ancestry, selected: 0 });
+      perform(() => {
+        modelId = null; const ref = target();
+        const settings = reviewSettings({ ...review.settings, seed, ancestry, selected: 0, ...(ref ? { ages: 'fixed', age: ref.age } : {}) });
         profiles.clear(); quality.marked = [];
-        review.restore(serializeReviewSession({ settings, records: createReviewCohort(settings) })); });
+        review.restore(serializeReviewSession({ settings, records: createReviewCohort(settings) }));
+      });
     },
     setAges(age) {
-      perform(() => { const settings = reviewSettings({ ...review.settings, ages: age === 'mixed' ? 'mixed' : 'fixed', ...(age === 'mixed' ? {} : { age }) });
+      perform(() => {
+        quality = qualitySettings({ ...quality, archetype: 'mixed' });
+        const settings = reviewSettings({ ...review.settings, ages: age === 'mixed' ? 'mixed' : 'fixed', ...(age === 'mixed' ? {} : { age }) });
         const records = review.records.map((r, i) => editReviewCharacter(r, { age: age === 'mixed' ? [7,22,35,55,75][i % 5] : age }));
-        review.restore(serializeReviewSession({ settings, records })); });
+        review.restore(serializeReviewSession({ settings, records }));
+      });
     },
     get saveMessage() { return saveMessage; },
     get selected() { return selected(); },
@@ -115,7 +136,6 @@ export function createCharacterWorkspace(review) {
     sync(); clearTimeout(timer); timer = setTimeout(save, 180);
   });
   window.addEventListener('pagehide', () => { clearTimeout(timer); save(); });
-  // Finish navigation writes before pagehide can dispose the renderer.
   for (const link of document.querySelectorAll('a[href*="characters"]')) link.addEventListener('click', save);
   sync();
   return api;

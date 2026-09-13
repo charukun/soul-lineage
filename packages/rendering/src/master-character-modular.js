@@ -5,8 +5,8 @@ import { leaseWardrobeGeometry, wardrobeCacheStats, hairGeometry, outfitGeometry
 
 const KEY = Symbol('master-character-modular');
 const BASE = Object.freeze({ version: 1, face: 'classic', hair: 'original', body: 'balanced', outfit: 'uniform', accessory: 'none' });
-const values = Object.freeze({ face: ['classic','round','sharp','long'], hair: ['original','bob','crop','tail'],
-  body: ['balanced','slender','sturdy','compact'], outfit: ['uniform','tunic','mantle','apron'], accessory: ['none','glasses','headband','scarf'] });
+const values = Object.freeze({ face: ['classic','round','sharp','long'], hair: ['original','bob','crop','tail','bun'],
+  body: ['balanced','slender','sturdy','compact'], outfit: ['uniform','tunic','mantle','apron'], accessory: ['none','glasses','headband','scarf','ribbon'] });
 const FACE = { classic:[1,1,1], round:[1.08,.96,1.05], sharp:[.94,1.04,.96], long:[.96,1.08,.97] };
 const BODY = { balanced:[1,1,1], slender:[.9,1.02,.92], sturdy:[1.1,.98,1.08], compact:[1.04,.94,1.03] };
 const check = (ok, message) => { if (!ok) throw new Error(message); };
@@ -60,7 +60,8 @@ export function attachModularAppearanceController(actor) {
     const front=identity?.front??'parted',back=identity?.back??'close';
     part('hair',profile.hair==='original'?null:`hair-v2:${profile.hair}:${front}:${back}`,groups[`hair:${profile.hair}`],materials.hair,()=>hairGeometry(profile.hair,front,back));
     for(const trim of [false,true])part(`outfit:${trim}`,profile.outfit==='uniform'?null:`outfit-v2:${profile.outfit}:${trim}`,groups[`outfit:${profile.outfit}`],trim?materials.trim:materials.cloth,()=>outfitGeometry(profile.outfit,trim));
-    part('accessory',profile.accessory==='none'?null:`accessory-v2:${profile.accessory}`,groups[`accessory:${profile.accessory}`],profile.accessory==='scarf'?materials.cloth:materials.dark,()=>accessoryGeometry(profile.accessory));
+    const accessoryMaterial=profile.accessory==='scarf'?materials.cloth:profile.accessory==='ribbon'?materials.trim:materials.dark;
+    part('accessory',profile.accessory==='none'?null:`accessory-v2:${profile.accessory}`,groups[`accessory:${profile.accessory}`],accessoryMaterial,()=>accessoryGeometry(profile.accessory));
     const gear=identity&&profile.outfit!=='uniform'?identity.gear:'none';
     for(const metal of [false,true]){
       const hasGeometry=gear!=='none'&&(metal?['pauldron','armor','tools','quiver','pack','satchel','cowl','shawl','stole','chain'].includes(gear):gear!=='chain');
@@ -80,7 +81,6 @@ export function attachModularAppearanceController(actor) {
         for(const name of ['LowerArm','Hand'])if(actor.bones[side+name])actor.bones[side+name].position.multiplyScalar(p.arms);
         for(const name of ['LowerLeg','Foot'])if(actor.bones[side+name])actor.bones[side+name].position.multiplyScalar(p.legs);
       }
-      // Move the hip by the same leg-length delta, keeping the neutral feet grounded.
       if(baseline.has('leftLowerLeg')&&baseline.has('leftFoot'))actor.bones.hips.position.y+=(Math.abs(baseline.get('leftLowerLeg').y)+Math.abs(baseline.get('leftFoot').y))*(p.legs-1);
     }
     for(const [material,visible] of sourceHair)material.visible=visible&&profile.hair==='original';
@@ -89,7 +89,6 @@ export function attachModularAppearanceController(actor) {
       materials.cloth.color.setRGB(...(identity?.cloth??[.52,.63,.55])).multiply(dyeScratch.setRGB(...appearance.dye));
       materials.trim.color.setRGB(...(identity?.trim??[.67,.55,.36]));
       if(profile.accessory==='headband')materials.dark.color.copy(materials.trim.color);else materials.dark.color.setRGB(.10,.085,.07);
-      // Base sleeve/stocking textures remain part of the original complete outfit.
     }
     facial.set(identity,appearance);
     actor.updateAttachments?.();
