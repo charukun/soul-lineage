@@ -26,6 +26,12 @@ test('acquisition, memory review and real exit distance form a complete guide',(
  g.player.z=2.79;assert.equal(firstHuntGuide(g,profile(),{memorySeen:true}).step,'escape');
  g.player.z=2.8;assert.equal(firstHuntGuide(g,profile(),{memorySeen:true}).step,'return');
 });
+test('guide follows the nearest unlocked alternate exit',()=>{
+ const g=game();g.eaten=1;g.nearestEscape=()=>({id:'graveway',label:'墓道',x:-7,z:-25,distance:2.5});
+ assert.equal(firstHuntGuide(g,profile(),{memorySeen:true}).step,'escape');
+ g.nearestEscape=()=>({id:'graveway',label:'墓道',x:-7,z:-25,distance:4});
+ assert.equal(firstHuntGuide(g,profile(),{memorySeen:true}).step,'return');
+});
 test('abandonment/defeat/zero-prey retreat does not complete first hunt',()=>{
  for(const status of ['abandoned','defeated','entered'])assert.equal(hasCompletedFirstHunt({visits:{one:{status,eaten:2}}}),false);
  assert.equal(hasCompletedFirstHunt({visits:{one:{status:'escaped',eaten:0}}}),false);
