@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {ProfileStore} from '@soul/raid/profile';
 import {RaidSession} from '@soul/raid';
-import {playableCharacter,selectCharacter} from '../src/characters.js';
+import {activeCharacter,playableCharacter,selectCharacter} from '../src/characters.js';
 
 function fixture(){let raw=null;return new ProfileStore({getItem:()=>raw,setItem:(_,value)=>{raw=value;}},()=> 'character-test',()=>100);}
 test('legacy profiles keep their original creature and unknown appearance ids remain recoverable',()=>{
@@ -32,4 +32,20 @@ test('invalid selection and storage failures never report a successful change',(
   const store=fixture(),before=store.read();assert.throws(()=>selectCharacter(store,'__proto__'));assert.deepEqual(store.read(),before);
   const raw=JSON.stringify(before),blocked=new ProfileStore({getItem:()=>raw,setItem:()=>{throw new Error('full');}});
   assert.throws(()=>selectCharacter(blocked,'silver-reaper'));assert.deepEqual(blocked.read(),before);
+});
+test('suspended selection uses the creature across reloads and hunts without erasing saved progress',()=>{
+  const store=fixture();store.claim({id:'past-village',name:'訪問済み'});store.unlock('smith');store.unlock('hunter');
+  store.finish('past-village','escaped',2);store.change(p=>{p.form='brute';});store.equip('hunter',0);
+  selectCharacter(store,'silver-reaper');
+  const saved=store.read(),raw=JSON.stringify(saved);
+  const reloaded=new ProfileStore({getItem:()=>raw,setItem:()=>assert.fail('rendering must not write the save')});
+  assert.equal(activeCharacter(reloaded.read()).id,'night-creature');
+  for(const id of ['next-hunt','following-hunt']){
+    const game=new RaidSession({id,name:id,seed:7,target:'traveller',level:1,weather:'fog',source:'generated'},reloaded.read());
+    assert.equal(activeCharacter(game.profile).id,'night-creature');
+    assert.equal(game.profile.form,'brute');
+    assert.equal(game.getMaxHP(),new RaidSession(game.village,{...saved,character:'night-creature'}).getMaxHP());
+  }
+  assert.equal(playableCharacter(reloaded.read()).id,'silver-reaper');
+  assert.deepEqual(reloaded.read(),saved);
 });
