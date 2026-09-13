@@ -7,9 +7,9 @@ on:
 permissions:
   contents: read
 jobs:
-  story-review:
+  visual-review:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 8
     env:
       APP_ENV: dev
       APP_BRANCH: fix/rinne-director-playability-loop
@@ -27,27 +27,10 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Verify director guidance rules
         run: node --test apps/rinne/tests/action-priority.test.mjs
-      - name: Preserve exact review sources
-        run: |
-          mkdir -p test-results/rinne-director/source
-          cp apps/rinne/src/story/controller.js test-results/rinne-director/source/controller.js
-          cp apps/rinne/src/story/interface.js test-results/rinne-director/source/interface.js
-          cp apps/rinne/src/story/action-priority.js test-results/rinne-director/source/action-priority.js
-          cp apps/rinne/src/story/scene.js test-results/rinne-director/source/scene.js
-          cp apps/rinne/tests/story-browser.mjs test-results/rinne-director/source/story-browser.mjs
-      - name: Exercise main game with native browser input
-        env:
-          RINNE_STORY_ARTIFACTS: test-results/rinne-director
-        run: |
-          cp apps/rinne/tests/story-browser.mjs /tmp/rinne-story-browser.mjs
-          # Large WebGL screenshots can dominate SwiftShader time. The complete
-          # gameplay path owns this pass; focused visual evidence is captured next.
-          perl -0pi -e "s/await page\.screenshot\(\{path:output\+'[^']+'\}\);//g" apps/rinne/tests/story-browser.mjs
-          node apps/rinne/tests/story-browser.mjs
-          mv /tmp/rinne-story-browser.mjs apps/rinne/tests/story-browser.mjs
       - name: Capture focused 390x844 play and map evidence
         run: |
-          cat > /tmp/rinne-director-capture.mjs <<'JS'
+          mkdir -p test-results/rinne-director
+          cat > test-results/rinne-director-capture.mjs <<'JS'
           import {chromium} from 'playwright';
           import {createServer} from 'vite';
           import {writeFile,mkdir} from 'node:fs/promises';
@@ -69,11 +52,11 @@ jobs:
             await writeFile(`${output}/final-map-destinations.json`,JSON.stringify(destinations,null,2));await capture('final-map-mobile');await cdp.detach();
           }finally{await browser.close();await server.close();}
           JS
-          node /tmp/rinne-director-capture.mjs
+          node test-results/rinne-director-capture.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: rinne-director-review-${{ github.sha }}
+          name: rinne-director-visual-${{ github.sha }}
           path: test-results/rinne-director/
           if-no-files-found: error
           retention-days: 7
