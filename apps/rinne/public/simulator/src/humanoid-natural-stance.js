@@ -39,7 +39,9 @@ export function naturalArmPole(runtime,c,side){
 }
 
 export function shouldNaturalizeWeaponStance(a,progress=null){
-  const holding=(a.weaponDraw??1)>.25||a.combatReady||a.weaponTransition;
+  // weaponTransition spans the whole draw/sheathe animation, including frames where
+  // the weapon is still in the scabbard. Correct only once the weapon is visibly held.
+  const holding=(a.weaponDraw??1)>.25;
   const guardWindow=!a.attack||progress<=.12||progress>=.82;
   const quiet=guardWindow&&!a.reaction&&!a.recovery&&!a.dead&&!a.zanshin;
   return holding&&quiet&&(a.weapon||'sword')!=='fist';
