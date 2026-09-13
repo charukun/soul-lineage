@@ -13,13 +13,14 @@ test('legacy profiles keep their original creature and unknown appearance ids re
   assert.equal(playableCharacter(store.read()).id,'night-creature');
   assert.equal(store.read().character,'future-character');
 });
-test('selecting the reaper persists without changing visits, memories, form or combat rules',()=>{
+test('selecting Kirishiro Shizuha persists without changing visits, memories, form or combat rules',()=>{
   const store=fixture();store.claim({id:'one-way-village',name:'訪問済み'});store.unlock('smith');store.unlock('hunter');
   store.change(p=>{p.form='brute';});
   const before=store.read(),village={id:'battle-fixture',name:'test',seed:7,target:'traveller',level:1,weather:'fog',source:'generated'};
   const oldGame=new RaidSession(village,before);
-  selectCharacter(store,'silver-reaper');const after=store.read();
-  assert.equal(playableCharacter(after).name,'白銀の鎌姫');
+  selectCharacter(store,'silver-reaper');const after=store.read(),character=playableCharacter(after);
+  assert.equal(character.name,'霧白静刃');
+  assert.equal(character.referenceId,'kirishiro-shizuha');
   assert.deepEqual({...after,character:undefined,revision:before.revision},{...before,character:undefined});
   const newGame=new RaidSession(village,after);
   assert.equal(newGame.getMaxHP(),oldGame.getMaxHP());assert.deepEqual(newGame.skillSet(),oldGame.skillSet());

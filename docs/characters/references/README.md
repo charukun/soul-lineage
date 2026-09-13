@@ -15,9 +15,11 @@ This directory stores visual character reference sheets used to keep concept art
 
 `shino/shino-character-reference-sheet-v2.png` is the first repository reference sheet for the current Shino-based MasterCharacter workflow. It is a review/reference image, not a replacement for `packages/characters`, `packages/rendering`, or the audited VRM asset contract.
 
-## Video Character 001
+## Kirishiro Shizuha / 霧白静刃
 
-`video-character-001/video-character-reference-sheet-v1.webp` captures only the identity cues visible in the supplied gameplay video: long silver hair, a dark silhouette, an oversized ornate scythe, and low dynamic combat posture. See `video-character-001/README.md` for frame times, unresolved details, and the implementation boundary.
+`kirishiro-shizuha/kirishiro-shizuha-character-reference-sheet-v1.webp` is the overview sheet for 霧白静刃 (Kirishiro Shizuha), the silver-haired scythe wielder currently prototyped in 尽喰廻遊. The same directory also contains higher-density turnaround, face, weapon, action, material, and detail panels for modelling and visual review.
+
+The previous `video-character-001` observation-sheet track has been retired. Keep one reference identity for this character and use the approved name `霧白静刃 / Kirishiro Shizuha` in user-facing surfaces and design documentation.
 
 ## NPC Role Concept Set
 
