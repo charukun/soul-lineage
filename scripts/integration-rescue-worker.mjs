@@ -160,7 +160,7 @@ export async function runValidation(command, args, work, log) {
     const user = process.env.RESCUE_VALIDATION_USER;
     // Pin cwd after the UID change as well as before it. npm must never discover
     // a parent checkout or the target user's home as its project root.
-    const child = spawn(user ? 'sudo' : command, user ? ['-n', '-H', '-u', user, '--chdir', resolve(work), '--', 'env', `PATH=${process.env.PATH}`, `PWD=${resolve(work)}`, command, ...args] : args, { cwd: work, env: { ...cleanEnv(), PWD: resolve(work) }, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(user ? 'sudo' : command, user ? ['-n', '-H', '-u', user, '--', 'env', '--chdir', resolve(work), `PATH=${process.env.PATH}`, `PWD=${resolve(work)}`, command, ...args] : args, { cwd: work, env: { ...cleanEnv(), PWD: resolve(work) }, stdio: ['ignore', 'pipe', 'pipe'] });
     child.stdout.on('data', b => { process.stdout.write(b); log?.(b); });
     child.stderr.on('data', b => { process.stderr.write(b); log?.(b); });
     child.on('error', reject); child.on('exit', code => code === 0 ? resolveRun() : reject(new Error(`VALIDATION_FAILED:${command}:${code}`)));
