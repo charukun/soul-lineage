@@ -103,6 +103,34 @@ test('30-second score covers five cuts and preserves root/gait continuity',()=>{
  }
 });
 
+test('existing sword arms fold for loading, extend at contact and retain a bent counterarm',async()=>{
+ const runtime=await loadRig(),c=runtime.current;
+ const actor={id:'arm-range',hero:true,weapon:'sword',weaponDraw:1,lifeAgeYears:22,x:0,z:0,yaw:0,air:0,vx:0,vz:0,combatReady:true};
+ const bend=side=>{
+  const a=runtime.point(c,side+'UpperArm'),b=runtime.point(c,side+'LowerArm'),d=runtime.point(c,side+'Hand');
+  return Math.PI-a.sub(b).angleTo(d.sub(b));
+ };
+ const measurements={};
+ try{
+  for(const [kind,move]of Object.entries(SWORD_MOVES)){
+   c.state=null;c.lastActual=null;c.blending=null;c.footLocks={};
+   let load=0,contact=0,minCounter=Infinity;
+   for(let i=0;i<=100;i++){
+    actor.attack={id:kind,kind,t:i/100*move.seconds,duration:move.seconds};actor._humanoidClock=actor.attack.t;
+    runtime.render(actor);assert.ok(c.finite);
+    const right=bend('right'),left=bend('left');
+    assert.ok(right>.25&&right<2.25,`${kind} sword elbow leaves its working range at ${i}%`);
+    minCounter=Math.min(minCounter,left);
+    if(i===25)load=right;if(i===50)contact=right;
+   }
+   assert.ok(load>contact+.40,`${kind} elbow does not release from loading into contact`);
+   assert.ok(minCounter>.60,`${kind} counterarm straightens into its IK limit`);
+   measurements[kind]={loadDeg:load*180/Math.PI,contactDeg:contact*180/Math.PI,minCounterDeg:minCounter*180/Math.PI};
+  }
+  console.log(JSON.stringify({armBend:measurements}));
+ }finally{runtime.dispose(c);delete globalThis.window;delete globalThis.self;}
+});
+
 test('real rig joins approaches and cuts without a boundary pop or loose grip',async()=>{
  const runtime=await loadRig(),c=runtime.current;
  const actor={id:'performance-test',hero:true,weapon:'sword',weaponDraw:1,lifeAgeYears:22,air:0,combatReady:true};
@@ -206,19 +234,21 @@ test('moving existing-clip combinations retain forward momentum and all five ind
  const runtime=await loadRig(),c=runtime.current;
  const actor={id:'forward-sequence',hero:true,weapon:'sword',weaponDraw:1,lifeAgeYears:22,x:0,z:0,yaw:0,air:0,combatReady:true,vx:0,vz:0};
  const scale=c.unit*c.legLength/.82,reset=()=>{c.state=null;c.lastActual=null;c.blending=null;c.footLocks={};c.resetSpring=true;};
- let maxBackward=0,previous=null,minBlade=Infinity,plantedStart=null,maxSlip=0;
+ let maxBackward=0,previous=null,minBlade=Infinity,plantedStart=null,maxSlip=0,previous30Hz=null,maxHeightStep=0;
  try{
   for(let i=0;i<=480;i++){
    const t=i/120;actor._humanoidClock=t;applySwordSequence(actor,SHORT_SWORD_SEQUENCE,t,{start:.3});Object.assign(actor,swordSequenceTravel(SHORT_SWORD_SEQUENCE,t-.3,scale));
    const r=runtime.render(actor),hips=c.raw.hips.getWorldPosition(new T.Vector3()),toe=c.raw.leftToes.getWorldPosition(new T.Vector3());
    assert.ok(c.finite);assert.ok(c.socketError<1e-5);
    if(previous)maxBackward=Math.max(maxBackward,previous.z-hips.z);previous=hips;
+   if(i%4===0){if(previous30Hz)maxHeightStep=Math.max(maxHeightStep,Math.abs(hips.y-previous30Hz.y));previous30Hz=hips.clone();}
    const phase=actor.attack.t/actor.attack.duration;
    if(phase>=.49&&phase<=.70){plantedStart??=toe.clone();maxSlip=Math.max(maxSlip,toe.distanceTo(plantedStart));}else plantedStart=null;
    minBlade=Math.min(minBlade,r.weaponTip[1]);
   }
   assert.ok(maxBackward<.003,`pelvis recoils between connected attacks: ${maxBackward} m`);
   assert.ok(maxSlip<.005,`moving support foot slips: ${maxSlip} m`);
+  assert.ok(maxHeightStep<.10,`high-to-low composition drops too abruptly at 30 Hz: ${maxHeightStep} m`);
   for(const [kind,move]of Object.entries(SWORD_MOVES)){
    reset();Object.assign(actor,{x:0,z:0,vx:0,vz:0,motionBlend:null,motionSequence:false});
    for(let i=0;i<=120;i++){
@@ -227,7 +257,7 @@ test('moving existing-clip combinations retain forward momentum and all five ind
    }
   }
   assert.ok(minBlade>.02,`blade penetrates floor: ${minBlade} m`);
-  console.log(JSON.stringify({maxBackward120Hz:maxBackward,movingPlantedToeDrift:maxSlip,minBladeAllFive:minBlade}));
+  console.log(JSON.stringify({maxBackward120Hz:maxBackward,movingPlantedToeDrift:maxSlip,maxHeightStep30Hz:maxHeightStep,minBladeAllFive:minBlade}));
  }finally{runtime.dispose(c);delete globalThis.window;delete globalThis.self;}
 });
 

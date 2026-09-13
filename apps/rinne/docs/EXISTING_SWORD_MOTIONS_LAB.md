@@ -15,16 +15,19 @@ cuts distinct full-body motion, connect seven cuts in the short review, and use
 | `uppercut` | 斬り上げる | 0.74 s |
 | `heavy` | 叩き斬る | 0.98 s |
 
-`authored-slash.js` (`shino-slash-3`) and `authored-sword.js` (`shared-sword-3`)
+`authored-slash.js` (`shino-slash-4`) and `authored-sword.js` (`shared-sword-4`)
 remain the sources consumed by `HumanoidRuntime.bakeArmed` and the Lab adapter.
 The slash uses staggered pelvis/chest rotation and a longer lead step. Back cut
 opens the opposite side; thrust lowers into a longer stance; uppercut compresses
 then rises; heavy loads high and finishes low. Grip targets carry with the moving
-pelvis, keeping the hands in front of the ribs and maintaining elbow room.
+pelvis. Phase-dependent arm reach folds the sword elbow during loading and
+extends it through contact; the counterarm follows torso yaw with bend reserve.
+Ground targets stay within a reachable leg arc, and uppercut/back recoveries
+settle into the next attack without a stand-up/reset.
 
 `sword-sequence.js` lists only existing clip IDs and their connection times.
-Connected recoveries end at phase 0.72, the following clip enters at phase 0.18,
-and they overlap for 80 ms. Original clip speed and active windows remain intact.
+Connected recoveries end at phase 0.80, the following clip enters at phase 0.18,
+and they overlap for 140 ms. Original clip speed and active windows remain intact.
 No new attack ID or independent review pose is introduced. The main Lab's
 **技構成** uses the same connection when two or three sword techniques are selected.
 
@@ -46,7 +49,7 @@ Unlabelled locomotion retains its existing speed/debounce classification.
   Approach/retreat segments connect to the accumulated attack travel; walk/run
   phase follows the resulting distance. The sequence ends back at its origin.
 - `?mode=combination`: slash → back → uppercut → slash → back → thrust → heavy.
-  Seven cuts occupy 2.6618 seconds inside the four-second review window. Existing
+  Seven cuts occupy 2.6306 seconds inside the four-second review window. Existing
   `?mode=flow` links still resolve here.
 - `?mode=baseline`: the same seven improved techniques with complete recoveries.
   The review window expands to include every cut; this is not an old build.
@@ -58,6 +61,12 @@ follows horizontal pelvis movement while keeping its height fixed, preserving
 visible crouches/rises and the blade framing as the character advances.
 
 ## Iteration evidence
+
+The latest batch adds **fourteen further corrections**, recorded with ordered
+source deltas and measured rig results in
+[SWORD_REFERENCE_ITERATIONS.md](SWORD_REFERENCE_ITERATIONS.md). The six passes
+below describe the preceding batch; they are not counted toward the new fourteen.
+
 
 The original 33.297-second upload was inspected in cropped contact sheets,
 including 2.5–4.5 seconds at 12 fps and early/later phrases at 6 fps. The reference
@@ -81,14 +90,14 @@ The Lab adapter now handles X/Z display scales separately.
 ## Verification and limits
 
 - `node --test apps/rinne/tests/authored-slash.test.mjs apps/rinne/tests/sword-sequence-viewer.test.mjs`:
-  nine tests use the real Shino VRM and shared runtime. Checks include unchanged
+  ten tests use the real Shino VRM and shared runtime. Checks include unchanged
   combat timing, sockets, moving planted-foot drift, all hit windows, repeated
   techniques, 30-second joins, Lab normalized-to-raw pose/travel parity, contact
   guards, and actual viewer handlers for load/play/seek/speed/reference/modes.
 - At 120 Hz, maximum backward pelvis increment during the short moving sequence
-  is 0.000526 m; planted toe drift is below 0.000000066 m. The minimum blade-tip
-  height across all five individual cuts is 0.135 m. Maximum socket error is
-  below 0.000000132 m; the 30-second boundary blade jump is below 0.00412 m.
+  is 0.000600 m; planted toe drift is below 0.000000038 m. The minimum blade-tip
+  height across all five individual cuts is 0.1878 m. Maximum socket error is
+  below 0.000000134 m; the 30-second boundary blade jump is below 0.00412 m.
   These diagnose continuity and attachment, not artistic quality.
 - Captured 121 short-sequence frames and 901 full-performance frames at 30 fps
   from the actual skinned mesh. Inspected side/three-quarter contact sheets,

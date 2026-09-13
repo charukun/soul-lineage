@@ -8,8 +8,10 @@ export function createSwordSequence(kinds,{connected=true}={}) {
  let end=0;
  const entries=kinds.map((kind,index)=>{
   const move=SWORD_MOVES[kind];
-  const enter=connected&&index>0?.18:0,exit=connected&&index<kinds.length-1?.72:1;
-  const overlap=connected&&index>0?.08:0,start=end-overlap;
+  // Carry the source recovery into the next loading pose. The longer overlap
+  // softens high-to-low joins while still finishing before every contact.
+  const enter=connected&&index>0?.18:0,exit=connected&&index<kinds.length-1?.80:1;
+  const overlap=connected&&index>0?.14:0,start=end-overlap;
   const length=(exit-enter)*move.seconds;
   const row={kind,index,start,end:start+length,enter,exit,overlap,seconds:move.seconds,label:move.label};
   end=row.end;return Object.freeze(row);

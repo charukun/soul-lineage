@@ -26,7 +26,7 @@ for(let i=0;i<frameCount;i++){
  const result=runtime.render(actor);sword.matrix.fromArray(result.sm);sword.updateMatrixWorld(true);
  for(const mesh of meshes){if(mesh.isSkinnedMesh)mesh.skeleton.update();}
  let offset=i*count*3;for(const mesh of meshes){for(let j=0;j<mesh.geometry.getAttribute('position').count;j++){mesh.getVertexPosition(j,v);v.applyMatrix4(mesh.matrixWorld);vertices.set(v.toArray(),offset);offset+=3;}}
- points.push({phase:p,tip:result.weaponTip,hips:c.raw.hips.getWorldPosition(v).toArray(),left:c.raw.leftFoot.getWorldPosition(v).toArray(),right:c.raw.rightFoot.getWorldPosition(v).toArray(),socketError:c.socketError,finite:c.finite});
+ points.push({phase:p,kind:actor.attack?.kind,attackPhase:result.phase,root:[actor.x,actor.z],joints:Object.fromEntries(['hips','spine','chest','head',...['left','right'].flatMap(side=>['UpperArm','LowerArm','Hand','UpperLeg','LowerLeg','Foot','Toes'].map(n=>side+n))].filter(n=>c.raw[n]).map(n=>[n,c.raw[n].getWorldPosition(v).toArray()])),tip:result.weaponTip,hips:c.raw.hips.getWorldPosition(v).toArray(),left:c.raw.leftFoot.getWorldPosition(v).toArray(),right:c.raw.rightFoot.getWorldPosition(v).toArray(),socketError:c.socketError,finite:c.finite});
 }
 await writeFile(resolve(outDir,'vertices.bin'),Buffer.from(vertices.buffer));
 await writeFile(resolve(outDir,'capture.json'),JSON.stringify({frameCount,count,seconds,kind,meshes:descriptions,points}));

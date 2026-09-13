@@ -6,7 +6,7 @@ import * as T from '../vendor/three.js';
 
 export const SLASH_SECONDS = .66;
 export const SLASH_TIMING = Object.freeze({active:Object.freeze([.35,.64]),contact:.50,launch:.34,plant:.49,chain:.86,lead:1});
-export const SLASH_REVISION = 'shino-slash-3';
+export const SLASH_REVISION = 'shino-slash-4';
 const clamp = (x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 
 // Monotone cubic interpolation keeps momentum through intermediate poses without
@@ -32,18 +32,19 @@ export function poseCurve(rows, t) {
 }
 
 const body = {
+  reach:[[0,.82],[.23,.76],[.36,.79],[.50,.965],[.64,.88],[.82,.80],[1,.82]],
   // Ground -> pelvis -> chest -> blade. The long loading arc is followed by a
   // short release; recovery moves the feet again instead of sliding planted legs.
-  hips:[[0,0,0,0],[.23,-.10,-.49,-.07],[.34,-.15,-.48,-.08],[.44,-.21,.05,-.06],[.50,-.22,.39,-.025],[.62,-.15,.65,.065],[.76,-.08,.51,.035],[1,0,0,0]],
-  spine:[[0,0,0,0],[.28,.045,-.21,.085],[.38,.025,-.25,.055],[.50,-.14,.12,-.10],[.62,-.11,.26,-.09],[.80,-.03,.13,-.035],[1,0,0,0]],
+  hips:[[0,0,0,0],[.23,-.10,-.49,-.07],[.34,-.15,-.48,-.08],[.44,-.21,.05,-.06],[.50,-.28,.39,-.045],[.62,-.15,.65,.065],[.76,-.08,.51,.035],[1,0,0,0]],
+  spine:[[0,0,0,0],[.28,.045,-.21,.085],[.38,.025,-.25,.055],[.50,-.18,.12,-.10],[.62,-.11,.26,-.09],[.80,-.03,.13,-.035],[1,0,0,0]],
   chest:[[0,0,0,0],[.30,.055,-.14,.06],[.40,.025,-.17,.045],[.50,-.065,.07,-.07],[.63,-.09,.16,-.055],[.80,-.02,.07,-.02],[1,0,0,0]],
   head:[[0,0,0,0],[.34,-.015,.46,0],[.50,.085,-.29,.045],[.66,.05,-.56,.035],[.82,.02,-.23,0],[1,0,0,0]],
-  offset:[[0,0,-.028,0],[.22,-.065,-.17,-.065],[.34,-.045,-.205,-.01],[.47,.055,-.175,.27],[.56,.08,-.16,.34],[.70,.06,-.10,.33],[.84,.025,-.06,.16],[1,0,-.028,0]],
-  grip:[[0,-.19,-.37,.35],[.23,-.34,-.13,.17],[.36,-.37,-.055,.18],[.44,-.40,-.10,.29],[.50,-.055,-.22,.55],[.59,.31,-.40,.43],[.72,.28,-.45,.27],[.84,.11,-.38,.30],[1,-.19,-.37,.35]],
-  blade:[[0,.398,1.15,0],[.25,-1.80,1.0,-.40],[.38,-1.95,.82,-.50],[.44,-1.42,.38,-.45],[.50,0,.02,-.15],[.59,1.58,-.33,.27],[.72,2.02,-.42,.42],[.84,1.45,.35,.32],[1,.398,1.15,0]],
+  offset:[[0,0,-.028,0],[.22,-.065,-.215,-.065],[.34,-.045,-.255,-.01],[.47,.055,-.245,.27],[.56,.08,-.22,.34],[.70,.06,-.17,.33],[.84,.025,-.06,.16],[1,0,-.028,0]],
+  grip:[[0,-.19,-.37,.35],[.23,-.38,-.23,.12],[.36,-.43,-.20,.08],[.44,-.42,-.18,.27],[.50,-.055,-.22,.66],[.59,.31,-.40,.53],[.72,.28,-.45,.30],[.84,.11,-.38,.30],[1,-.19,-.37,.35]],
+  blade:[[0,.398,1.15,0],[.25,-2.10,.36,-.36],[.38,-2.22,.28,-.46],[.44,-1.52,.20,-.35],[.50,0,.02,-.15],[.59,1.58,-.33,.27],[.72,2.02,-.42,.42],[.84,1.45,.35,.32],[1,.398,1.15,0]],
   shield:[[0,.25,-.32,.17],[.30,.34,-.27,.21],[.50,.28,-.27,.21],[.65,.37,-.30,.07],[.84,.30,-.31,.13],[1,.25,-.32,.17]],
-  lead:[[0,.045,0,.10],[.16,.045,0,.10],[.31,.095,.115,.30],[.46,.15,0,.61],[.73,.15,0,.61],[.87,.09,.105,.35],[1,.045,0,.10]],
-  rear:[[0,-.045,0,-.10],[.35,-.065,0,-.10],[.53,-.09,.085,.035],[.72,-.07,0,.20],[.79,-.07,0,.20],[.90,-.055,.075,.07],[1,-.045,0,-.10]],
+  lead:[[0,.045,0,.10],[.16,.045,0,.10],[.31,.12,.035,.31],[.46,.19,0,.61],[.73,.19,0,.61],[.87,.11,.045,.35],[1,.045,0,.10]],
+  rear:[[0,-.045,0,-.10],[.35,-.065,0,-.10],[.53,-.09,.035,.035],[.72,-.07,0,.20],[.79,-.07,0,.20],[.90,-.055,.035,.07],[1,-.045,0,-.10]],
 };
 
 export function slashTime(phase, contact=SLASH_TIMING.contact) {
@@ -78,6 +79,13 @@ export function applySwordPose(runtime,c,pose,p) {
   for(const [side,key]of [['left','lead'],['right','rear']]){
     const foot=pose.feet?.[side];
     const target=foot?new T.Vector3(foot.x*s,c.neutralPoints[side+'Foot'].y+foot.y*s,foot.z*s):c.neutralPoints[side+'Foot'].clone().add(new T.Vector3(...pose[key]).multiplyScalar(s));
+    // Place the sole on its authored height inside a reachable horizontal arc.
+    // Letting IK clamp a distant ground target instead raises a rigid straight leg.
+    const hip=runtime.point(c,side+'UpperLeg'),knee=runtime.point(c,side+'LowerLeg'),ankle=runtime.point(c,side+'Foot');
+    const reach=(hip.distanceTo(knee)+knee.distanceTo(ankle))*.985;
+    const dy=hip.y-target.y,horizontal=new T.Vector3(target.x-hip.x,0,target.z-hip.z);
+    const maxHorizontal=Math.sqrt(Math.max(0,reach*reach-dy*dy));
+    if(horizontal.length()>maxHorizontal){horizontal.setLength(maxHorizontal);target.x=hip.x+horizontal.x;target.z=hip.z+horizontal.z;}
     const poleYaw=(foot?.yaw??0)*.6;
     runtime.solve(c,side,'leg',target,new T.Vector3(Math.sin(poleYaw)+(side==='left'?.15:-.15),0,Math.cos(poleYaw)),true);
     // Keep the sole level during support, while the rear heel pivots into the cut.
@@ -89,8 +97,18 @@ export function applySwordPose(runtime,c,pose,p) {
   const carry=new T.Vector3(pose.offset[0],(pose.offset[1]+.028)*.72,pose.offset[2]).multiplyScalar(s);
   const grip=new T.Vector3(x*s,c.shoulderY+y*s,z*s).add(carry);
   const dir=new T.Vector3(Math.sin(yaw)*Math.cos(elevation),Math.sin(elevation),Math.cos(yaw)*Math.cos(elevation));
-  runtime.attachHands(c,'sword',grip,dir,roll,1);
+  // Load with a bent elbow, extend through contact, then fold into recovery.
+  // A phase-specific reach cap avoids hitting the same IK limit for every pose.
+  const reach=pose.reach?.[0]??.965;
+  runtime.attachHands(c,'sword',grip,dir,roll,1,null,1,reach);
   const [lx,ly,lz]=pose.shield;
-  runtime.solve(c,'left','arm',new T.Vector3(lx*s,c.shoulderY+ly*s,lz*s).add(carry),new T.Vector3(.6,-1,0));
+  const torsoYaw=(pose.hips[1]+pose.spine[1]+pose.chest[1])*.75;
+  const up=new T.Vector3(0,1,0),free=new T.Vector3(lx*s,ly*s,lz*s).applyAxisAngle(up,torsoYaw);
+  free.y+=c.shoulderY;free.add(carry);
+  const shoulder=runtime.point(c,'leftUpperArm'),elbow=runtime.point(c,'leftLowerArm'),hand=runtime.point(c,'leftHand');
+  const maxFreeReach=(shoulder.distanceTo(elbow)+elbow.distanceTo(hand))*.90;
+  const extension=free.clone().sub(shoulder);if(extension.length()>maxFreeReach)free.copy(shoulder).add(extension.setLength(maxFreeReach));
+  runtime.solve(c,'left','arm',free,new T.Vector3(.6,-1,0).applyAxisAngle(up,torsoYaw));
+  runtime.setWorldQ(c,'leftHand',new T.Quaternion().setFromEuler(new T.Euler(0,torsoYaw,0)));
   c.root.updateMatrixWorld(true);
 }

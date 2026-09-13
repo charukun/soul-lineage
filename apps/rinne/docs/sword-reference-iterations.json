@@ -1,0 +1,293 @@
+{
+  "baseline_commit": "40dd14d92ac1cf69c357db563fb548476b578fc3",
+  "source_order": [
+    "authored-slash.js",
+    "authored-sword.js",
+    "sword-sequence.js",
+    "humanoid.js"
+  ],
+  "source_hash_algorithm": "SHA256 of concatenated UTF-8 files in source_order",
+  "capture": "actual Shino VRM + canonical runtime; native clips approximately 30 Hz, combination exactly 30 Hz; CPU source-texture renderer",
+  "iterations": [
+    {
+      "iteration": 1,
+      "kind": "slash",
+      "reference_interval": "2.5–3.2 s",
+      "finding": "Lowered and widened the loading blade arc around the shoulder; inspected side and three-quarter mesh views.",
+      "frames": 21,
+      "minBlade": 0.7573856989715986,
+      "pelvisHeightRange": 0.22047316910999015,
+      "bladeHeightRange": 1.3424919406887499,
+      "rightElbowBend": [
+        30.39630793696886,
+        48.520774348394404
+      ],
+      "leftElbowBend": [
+        41.13689008507179,
+        89.50493394304289
+      ],
+      "sourceSHA256": "4017e0be1aa3f6bc3863ddddeb1d807b8a5e25b1bb766637e3197963bff67da1",
+      "source_patch": "--- a/authored-slash.js\n+++ b/authored-slash.js\n@@ -6,7 +6,7 @@\n \n export const SLASH_SECONDS = .66;\n export const SLASH_TIMING = Object.freeze({active:Object.freeze([.35,.64]),contact:.50,launch:.34,plant:.49,chain:.86,lead:1});\n-export const SLASH_REVISION = 'shino-slash-3';\n+export const SLASH_REVISION = 'shino-slash-4';\n const clamp = (x,a=0,b=1)=>Math.min(b,Math.max(a,x));\n \n // Monotone cubic interpolation keeps momentum through intermediate poses without\n@@ -39,8 +39,8 @@\n   chest:[[0,0,0,0],[.30,.055,-.14,.06],[.40,.025,-.17,.045],[.50,-.065,.07,-.07],[.63,-.09,.16,-.055],[.80,-.02,.07,-.02],[1,0,0,0]],\n   head:[[0,0,0,0],[.34,-.015,.46,0],[.50,.085,-.29,.045],[.66,.05,-.56,.035],[.82,.02,-.23,0],[1,0,0,0]],\n   offset:[[0,0,-.028,0],[.22,-.065,-.17,-.065],[.34,-.045,-.205,-.01],[.47,.055,-.175,.27],[.56,.08,-.16,.34],[.70,.06,-.10,.33],[.84,.025,-.06,.16],[1,0,-.028,0]],\n-  grip:[[0,-.19,-.37,.35],[.23,-.34,-.13,.17],[.36,-.37,-.055,.18],[.44,-.40,-.10,.29],[.50,-.055,-.22,.55],[.59,.31,-.40,.43],[.72,.28,-.45,.27],[.84,.11,-.38,.30],[1,-.19,-.37,.35]],\n-  blade:[[0,.398,1.15,0],[.25,-1.80,1.0,-.40],[.38,-1.95,.82,-.50],[.44,-1.42,.38,-.45],[.50,0,.02,-.15],[.59,1.58,-.33,.27],[.72,2.02,-.42,.42],[.84,1.45,.35,.32],[1,.398,1.15,0]],\n+  grip:[[0,-.19,-.37,.35],[.23,-.38,-.23,.12],[.36,-.43,-.20,.08],[.44,-.42,-.18,.27],[.50,-.055,-.22,.55],[.59,.31,-.40,.43],[.72,.28,-.45,.27],[.84,.11,-.38,.30],[1,-.19,-.37,.35]],\n+  blade:[[0,.398,1.15,0],[.25,-2.10,.36,-.36],[.38,-2.22,.28,-.46],[.44,-1.52,.20,-.35],[.50,0,.02,-.15],[.59,1.58,-.33,.27],[.72,2.02,-.42,.42],[.84,1.45,.35,.32],[1,.398,1.15,0]],\n   shield:[[0,.25,-.32,.17],[.30,.34,-.27,.21],[.50,.28,-.27,.21],[.65,.37,-.30,.07],[.84,.30,-.31,.13],[1,.25,-.32,.17]],\n   lead:[[0,.045,0,.10],[.16,.045,0,.10],[.31,.095,.115,.30],[.46,.15,0,.61],[.73,.15,0,.61],[.87,.09,.105,.35],[1,.045,0,.10]],\n   rear:[[0,-.045,0,-.10],[.35,-.065,0,-.10],[.53,-.09,.085,.035],[.72,-.07,0,.20],[.79,-.07,0,.20],[.90,-.055,.075,.07],[1,-.045,0,-.10]],\n"
+    },
+    {
+      "iteration": 2,
+      "kind": "slash",
+      "reference_interval": "2.5–3.2 s",
+      "finding": "Lowered the lead/recovery foot lift and deepened the pelvis/torso loading; reduced the marching-step silhouette.",
+      "frames": 21,
+      "minBlade": 0.6836396678611167,
+      "pelvisHeightRange": 0.29562487387565684,
+      "bladeHeightRange": 1.4162379717992317,
+      "rightElbowBend": [
+        30.390949913218556,
+        67.80153127427664
+      ],
+      "leftElbowBend": [
+        46.09307138998029,
+        98.77385156520985
+      ],
+      "sourceSHA256": "3d56459baccc4c5aa146c30c56c9a204d769af55d5c125013149546f83a2937b",
+      "source_patch": "--- a/authored-slash.js\n+++ b/authored-slash.js\n@@ -34,15 +34,15 @@\n const body = {\n   // Ground -> pelvis -> chest -> blade. The long loading arc is followed by a\n   // short release; recovery moves the feet again instead of sliding planted legs.\n-  hips:[[0,0,0,0],[.23,-.10,-.49,-.07],[.34,-.15,-.48,-.08],[.44,-.21,.05,-.06],[.50,-.22,.39,-.025],[.62,-.15,.65,.065],[.76,-.08,.51,.035],[1,0,0,0]],\n-  spine:[[0,0,0,0],[.28,.045,-.21,.085],[.38,.025,-.25,.055],[.50,-.14,.12,-.10],[.62,-.11,.26,-.09],[.80,-.03,.13,-.035],[1,0,0,0]],\n+  hips:[[0,0,0,0],[.23,-.10,-.49,-.07],[.34,-.15,-.48,-.08],[.44,-.21,.05,-.06],[.50,-.28,.39,-.045],[.62,-.15,.65,.065],[.76,-.08,.51,.035],[1,0,0,0]],\n+  spine:[[0,0,0,0],[.28,.045,-.21,.085],[.38,.025,-.25,.055],[.50,-.18,.12,-.10],[.62,-.11,.26,-.09],[.80,-.03,.13,-.035],[1,0,0,0]],\n   chest:[[0,0,0,0],[.30,.055,-.14,.06],[.40,.025,-.17,.045],[.50,-.065,.07,-.07],[.63,-.09,.16,-.055],[.80,-.02,.07,-.02],[1,0,0,0]],\n   head:[[0,0,0,0],[.34,-.015,.46,0],[.50,.085,-.29,.045],[.66,.05,-.56,.035],[.82,.02,-.23,0],[1,0,0,0]],\n-  offset:[[0,0,-.028,0],[.22,-.065,-.17,-.065],[.34,-.045,-.205,-.01],[.47,.055,-.175,.27],[.56,.08,-.16,.34],[.70,.06,-.10,.33],[.84,.025,-.06,.16],[1,0,-.028,0]],\n+  offset:[[0,0,-.028,0],[.22,-.065,-.215,-.065],[.34,-.045,-.255,-.01],[.47,.055,-.245,.27],[.56,.08,-.22,.34],[.70,.06,-.17,.33],[.84,.025,-.06,.16],[1,0,-.028,0]],\n   grip:[[0,-.19,-.37,.35],[.23,-.38,-.23,.12],[.36,-.43,-.20,.08],[.44,-.42,-.18,.27],[.50,-.055,-.22,.55],[.59,.31,-.40,.43],[.72,.28,-.45,.27],[.84,.11,-.38,.30],[1,-.19,-.37,.35]],\n   blade:[[0,.398,1.15,0],[.25,-2.10,.36,-.36],[.38,-2.22,.28,-.46],[.44,-1.52,.20,-.35],[.50,0,.02,-.15],[.59,1.58,-.33,.27],[.72,2.02,-.42,.42],[.84,1.45,.35,.32],[1,.398,1.15,0]],\n   shield:[[0,.25,-.32,.17],[.30,.34,-.27,.21],[.50,.28,-.27,.21],[.65,.37,-.30,.07],[.84,.30,-.31,.13],[1,.25,-.32,.17]],\n-  lead:[[0,.045,0,.10],[.16,.045,0,.10],[.31,.095,.115,.30],[.46,.15,0,.61],[.73,.15,0,.61],[.87,.09,.105,.35],[1,.045,0,.10]],\n+  lead:[[0,.045,0,.10],[.16,.045,0,.10],[.31,.12,.035,.31],[.46,.19,0,.61],[.73,.19,0,.61],[.87,.11,.045,.35],[1,.045,0,.10]],\n   rear:[[0,-.045,0,-.10],[.35,-.065,0,-.10],[.53,-.09,.085,.035],[.72,-.07,0,.20],[.79,-.07,0,.20],[.90,-.055,.075,.07],[1,-.045,0,-.10]],\n };\n \n"
+    },
+    {
+      "iteration": 3,
+      "kind": "back",
+      "reference_interval": "3.0–3.5 s",
+      "finding": "Loaded the reverse cut from the preceding low follow-through. Rendered elbow stayed near 30 degrees throughout, revealing an IK reach-limit problem.",
+      "frames": 22,
+      "minBlade": 0.7532321751442452,
+      "pelvisHeightRange": 0.2730749568165741,
+      "bladeHeightRange": 1.3466454645161032,
+      "rightElbowBend": [
+        30.395528364315982,
+        30.409415411463943
+      ],
+      "leftElbowBend": [
+        55.11205573923423,
+        81.36542471005755
+      ],
+      "sourceSHA256": "8934efdc539db09a442e109c178803440e73637af780cb1d17ec98bbf8a08e30",
+      "source_patch": "--- a/authored-sword.js\n+++ b/authored-sword.js\n@@ -1,6 +1,6 @@\n /** Companion cuts for Shino. Same canonical rig/IK as the approved slash. */\n import {poseCurve,sampleSlashPose,slashTime,applySwordPose,SLASH_SECONDS,SLASH_TIMING} from './authored-slash.js';\n-export const SWORD_REVISION='shared-sword-3';\n+export const SWORD_REVISION='shared-sword-4';\n export const SWORD_MOVES=Object.freeze(Object.fromEntries([\n  ['slash','流し斬り',SLASH_SECONDS],['back','斬り返し',.69],['thrust','刺し貫く',.67],['uppercut','斬り上げる',.74],['heavy','叩き斬る',.98],\n ].map(([kind,label,seconds])=>[kind,Object.freeze({kind,label,seconds,timing:SLASH_TIMING})])));\n@@ -18,15 +18,15 @@\n // slash leg cycle. Endpoints share a guard; authored active/contact clocks do not change.\n const motions={\n  back:{\n-  hips:[[.24,-.12,.48,.07],[.36,-.17,.51,.07],[.46,-.20,.02,.02],[.53,-.14,-.45,-.04],[.65,-.07,-.64,-.07],[.80,-.03,-.36,-.025]],\n+  hips:[[.16,-.12,.43,.06],[.24,-.12,.48,.07],[.36,-.17,.51,.07],[.46,-.20,.02,.02],[.53,-.14,-.45,-.04],[.65,-.07,-.64,-.07],[.80,-.03,-.36,-.025]],\n   spine:[[.28,.02,.22,-.06],[.40,-.02,.21,-.07],[.53,-.08,-.17,.08],[.66,-.04,-.28,.09],[.80,0,-.13,.04]],\n   chest:[[.30,.04,.13,-.04],[.42,0,.17,-.04],[.53,-.05,-.12,.065],[.68,-.02,-.15,.04]],\n   head:[[.35,.02,-.42,0],[.53,.06,.36,-.025],[.70,.02,.50,0]],\n-  offset:[[.24,.065,-.18,-.035],[.36,.045,-.21,.02],[.50,-.07,-.14,.29],[.66,-.10,-.08,.34],[.80,-.055,-.055,.23]],\n-  grip:[[.27,.25,-.43,.34],[.38,.28,-.36,.34],[.50,.015,-.23,.54],[.64,-.40,-.09,.28],[.80,-.34,-.15,.23]],\n-  blade:[[.27,1.95,-.35,.40],[.38,1.82,-.20,.38],[.50,0,.16,0],[.64,-1.85,.71,-.32],[.80,-1.42,.87,-.22]],\n-  lead:[[.16,.045,0,.10],[.31,.16,.085,.25],[.46,.20,0,.48],[.73,.20,0,.48],[.87,.10,.08,.30]],\n-  rear:[[.35,-.045,0,-.10],[.55,-.19,.11,.18],[.72,-.24,0,.39],[.79,-.24,0,.39],[.91,-.12,.10,.13]],\n+  offset:[[.16,.06,-.19,-.01],[.24,.065,-.22,-.035],[.36,.045,-.245,.02],[.50,-.07,-.205,.29],[.66,-.10,-.13,.34],[.80,-.055,-.055,.23]],\n+  grip:[[.16,.31,-.43,.27],[.27,.34,-.42,.26],[.38,.36,-.35,.26],[.50,.035,-.27,.59],[.64,-.40,-.20,.28],[.80,-.35,-.23,.24]],\n+  blade:[[.16,2.02,-.35,.36],[.27,2.06,-.32,.36],[.38,1.98,-.21,.32],[.50,0,.08,0],[.64,-2.02,.34,-.30],[.80,-1.76,.52,-.22]],\n+  lead:[[.16,.045,0,.10],[.31,.16,.035,.25],[.46,.20,0,.48],[.73,.20,0,.48],[.87,.10,.08,.30]],\n+  rear:[[.35,-.045,0,-.10],[.55,-.19,.05,.18],[.72,-.24,0,.39],[.79,-.24,0,.39],[.91,-.12,.10,.13]],\n   shield:[[.30,.32,-.27,.08],[.50,.33,-.31,.18],[.66,.25,-.30,.24],[.80,.27,-.31,.20]],\n  },\n  uppercut:{\n"
+    },
+    {
+      "iteration": 4,
+      "kind": "back",
+      "reference_interval": "3.0–3.5 s",
+      "finding": "Added phase-dependent sword-hand reach. The native back cut now bends about 81 degrees during loading and extends at contact.",
+      "frames": 22,
+      "minBlade": 0.8067813917447053,
+      "pelvisHeightRange": 0.2730749568165741,
+      "bladeHeightRange": 1.3412885557706786,
+      "rightElbowBend": [
+        32.47543927161884,
+        81.03892337929976
+      ],
+      "leftElbowBend": [
+        55.11205573923423,
+        81.36542471005755
+      ],
+      "sourceSHA256": "6d4fa8ebe80f84964276bbd5d834fe42264eaac493896d6f3e52b911bd5cb60d",
+      "source_patch": "--- a/authored-slash.js\n+++ b/authored-slash.js\n@@ -89,7 +89,10 @@\n   const carry=new T.Vector3(pose.offset[0],(pose.offset[1]+.028)*.72,pose.offset[2]).multiplyScalar(s);\n   const grip=new T.Vector3(x*s,c.shoulderY+y*s,z*s).add(carry);\n   const dir=new T.Vector3(Math.sin(yaw)*Math.cos(elevation),Math.sin(elevation),Math.cos(yaw)*Math.cos(elevation));\n-  runtime.attachHands(c,'sword',grip,dir,roll,1);\n+  // Load with a bent elbow, extend through contact, then fold into recovery.\n+  // A phase-specific reach cap avoids hitting the same IK limit for every pose.\n+  const reach=pose.reach?.[0]??poseCurve([[0,.82],[.23,.76],[.36,.79],[.50,.965],[.64,.88],[.82,.80],[1,.82]],p)[0];\n+  runtime.attachHands(c,'sword',grip,dir,roll,1,null,1,reach);\n   const [lx,ly,lz]=pose.shield;\n   runtime.solve(c,'left','arm',new T.Vector3(lx*s,c.shoulderY+ly*s,lz*s).add(carry),new T.Vector3(.6,-1,0));\n   c.root.updateMatrixWorld(true);\n--- a/humanoid.js\n+++ b/humanoid.js\n@@ -156,10 +156,10 @@\n   if(spin){const spinYaw=(phase-.5)*TAU*.92;dir=[Math.sin(spinYaw),.10,Math.cos(spinYaw)];}\n   const arc=Math.sin(swing*PI),gx=-.035+.25*Math.sin(yaw),gy=H-(heavy?(.30+.13*swing):low?.55:.34)*s,gz=.22+.34*arc;return{grip:[gx*s,gy,gz*s],dir,twist:T.MathUtils.lerp(-.52,.60,swing)*(reverse?-1:1),roll:weapon==='katana'?PI/2:0,contact,isThrust:false};\n  }\n- attachHands(c,weapon,grip,dir,roll=0,weight=1,forcedQ=null,supportWeight=1){const spec=weaponSockets[weapon]||weaponSockets.sword;const wanted=forcedQ?.clone()||socketOrientation(dir,roll);\n+ attachHands(c,weapon,grip,dir,roll=0,weight=1,forcedQ=null,supportWeight=1,reachScale=.965){const spec=weaponSockets[weapon]||weaponSockets.sword;const wanted=forcedQ?.clone()||socketOrientation(dir,roll);\n   // Project the shared grip into the intersection of both anatomical reach spheres.\n   // This preserves arm lengths and prevents an unreachable support hand from floating.\n-  grip=grip.clone();{const constraints=(spec.two&&supportWeight>0?['right','left']:['right']).map(side=>{const hs=c.sockets[side],hq=wanted.clone().multiply(hs.normRotation.clone().invert()),offset=hs.normOffset.clone().applyQuaternion(hq),delta=side==='left'?v(...spec.left).sub(v(...spec.grip)).multiplyScalar(spec.scale/c.unit).applyQuaternion(wanted):v(),upper=this.point(c,side+'UpperArm'),lower=this.point(c,side+'LowerArm'),end=this.point(c,side+'Hand');return{strength:side==='left'?supportWeight:1,center:upper.clone().add(offset).sub(delta),radius:(upper.distanceTo(lower)+lower.distanceTo(end))*.965};});for(let i=0;i<20;i++)for(const k of constraints){const delta=grip.clone().sub(k.center),d=delta.length();if(d>k.radius)grip.lerp(k.center.clone().addScaledVector(delta,k.radius/d),k.strength);}}\n+  grip=grip.clone();{const constraints=(spec.two&&supportWeight>0?['right','left']:['right']).map(side=>{const hs=c.sockets[side],hq=wanted.clone().multiply(hs.normRotation.clone().invert()),offset=hs.normOffset.clone().applyQuaternion(hq),delta=side==='left'?v(...spec.left).sub(v(...spec.grip)).multiplyScalar(spec.scale/c.unit).applyQuaternion(wanted):v(),upper=this.point(c,side+'UpperArm'),lower=this.point(c,side+'LowerArm'),end=this.point(c,side+'Hand');return{strength:side==='left'?supportWeight:1,center:upper.clone().add(offset).sub(delta),radius:(upper.distanceTo(lower)+lower.distanceTo(end))*clamp(reachScale,.65,.965)};});for(let i=0;i<20;i++)for(const k of constraints){const delta=grip.clone().sub(k.center),d=delta.length();if(d>k.radius)grip.lerp(k.center.clone().addScaledVector(delta,k.radius/d),k.strength);}}\n   const drive=(side,target,q)=>{const socket=c.sockets[side],handQ=q.clone().multiply(socket.normRotation.clone().invert()),offset=socket.normOffset.clone().applyQuaternion(handQ),wrist=target.clone().sub(offset);const sign=side==='right'?-1:1;this.solve(c,side,'arm',wrist,v(sign*.55,-.95,-.12));this.setWorldQ(c,side+'Hand',handQ);this.curl(c,side,weight);};\n   drive('right',grip,wanted);if(weapon==='sword')drive('left',v(.24*c.legLength/.82,c.shoulderY-.36*c.legLength/.82,.31*c.legLength/.82),Q());c.root.updateMatrixWorld(true);const right=this.normalSocket(c,'right');const weaponM=gripMatrix(right,spec,c.unit);if(spec.two&&supportWeight>0){const names=['UpperArm','LowerArm','Hand'].map(n=>'left'+n),before=names.map(n=>c.bones[n].quaternion.clone()),left=v(...spec.left).applyMatrix4(weaponM);drive('left',left,wanted);if(supportWeight<1)names.forEach((n,i)=>c.bones[n].quaternion.copy(before[i].slerp(c.bones[n].quaternion.clone(),supportWeight)));}\n  }\n"
+    },
+    {
+      "iteration": 5,
+      "kind": "uppercut",
+      "reference_interval": "3.16–4.0 s",
+      "finding": "Lowered loading and raised the blade to a clear overhead apex. Inspection exposed a straight counterarm and insufficient planted-leg reserve.",
+      "frames": 23,
+      "minBlade": 0.19217834379349807,
+      "pelvisHeightRange": 0.3912727254966005,
+      "bladeHeightRange": 2.661856027839195,
+      "rightElbowBend": [
+        30.409415662579594,
+        90.15634124703803
+      ],
+      "leftElbowBend": [
+        0.7774116360060175,
+        84.01436217968563
+      ],
+      "sourceSHA256": "57cf79ba8cdb495980827d57f1ed7435ab62fb81adeea560cab1ab3265280f34",
+      "source_patch": "--- a/authored-sword.js\n+++ b/authored-sword.js\n@@ -34,10 +34,10 @@\n   spine:[[.28,-.10,-.13,.03],[.39,-.13,-.17,.025],[.53,.015,.08,-.035],[.65,.035,.13,-.045],[.82,.025,.05,-.015]],\n   chest:[[.29,-.065,-.08,.02],[.41,-.08,-.12,.02],[.54,.02,.07,-.025],[.67,.035,.10,-.03]],\n   head:[[.35,.10,.27,0],[.52,-.035,-.10,.02],[.66,-.07,-.33,.02]],\n-  offset:[[.24,-.045,-.24,-.04],[.37,-.035,-.28,.025],[.49,.025,-.14,.22],[.61,.045,-.04,.32],[.73,.03,-.07,.29],[.86,.01,-.065,.15]],\n-  grip:[[.27,-.33,-.54,.25],[.38,-.35,-.53,.28],[.50,-.07,-.25,.55],[.64,.11,.075,.38],[.80,.01,-.015,.31]],\n-  blade:[[.27,-.8,-1.10,-.18],[.38,-.6,-.90,-.20],[.50,0,.12,0],[.64,.50,1.20,.10],[.80,.40,1.25,.08]],\n-  lead:[[.16,.045,0,.10],[.31,.09,.075,.27],[.46,.13,0,.51],[.73,.13,0,.51],[.87,.08,.08,.30]],\n+  offset:[[.24,-.055,-.27,-.04],[.37,-.045,-.32,.025],[.49,.025,-.16,.22],[.61,.055,-.005,.32],[.73,.04,-.035,.29],[.86,.01,-.065,.15]],\n+  grip:[[.27,-.32,-.46,.19],[.38,-.34,-.44,.22],[.50,-.09,-.19,.51],[.64,-.09,.25,.16],[.80,-.15,.095,.24]],\n+  blade:[[.27,-.8,-1.10,-.18],[.38,-.6,-.90,-.20],[.50,0,.12,0],[.64,-.16,1.40,.10],[.80,.22,1.26,.08]],\n+  lead:[[.16,.045,0,.10],[.31,.11,.035,.27],[.46,.13,0,.51],[.73,.13,0,.51],[.87,.08,.08,.30]],\n   rear:[[.35,-.055,0,-.10],[.56,-.09,.10,.05],[.72,-.075,0,.23],[.80,-.075,0,.23],[.91,-.05,.07,.08]],\n   shield:[[.30,.31,-.35,.23],[.50,.30,-.30,.20],[.65,.36,-.39,.06],[.82,.28,-.34,.12]],\n  },\n"
+    },
+    {
+      "iteration": 6,
+      "kind": "heavy",
+      "reference_interval": "4.16–5.0 s",
+      "finding": "Held the blade behind vertical before a faster downward release, with deeper torso hinge and lower step lift.",
+      "frames": 30,
+      "minBlade": 0.25660866486262146,
+      "pelvisHeightRange": 0.31333650357501164,
+      "bladeHeightRange": 2.452088518361437,
+      "rightElbowBend": [
+        34.41483873717892,
+        81.01615807151892
+      ],
+      "leftElbowBend": [
+        49.06188681508194,
+        103.4422968368208
+      ],
+      "sourceSHA256": "2a9a652fd51eda64d63948f14e537e08d5b1c849e1e454d74c838bded2a7e364",
+      "source_patch": "--- a/authored-sword.js\n+++ b/authored-sword.js\n@@ -54,14 +54,14 @@\n   shield:[[.30,.33,-.30,.13],[.50,.29,-.32,.25],[.65,.30,-.32,.22],[.80,.27,-.31,.17]],\n  },\n  heavy:{\n-  hips:[[.24,.04,-.20,-.015],[.38,.065,-.18,-.015],[.48,-.19,.07,0],[.57,-.31,.16,.03],[.67,-.25,.20,.045],[.83,-.075,.10,.01]],\n-  spine:[[.28,.09,-.08,0],[.40,.095,-.06,0],[.52,-.18,.045,0],[.64,-.18,.065,0],[.83,-.035,.02,0]],\n+  hips:[[.24,.04,-.20,-.015],[.38,.065,-.18,-.015],[.48,-.19,.07,0],[.57,-.36,.16,.03],[.67,-.25,.20,.045],[.83,-.075,.10,.01]],\n+  spine:[[.28,.09,-.08,0],[.40,.095,-.06,0],[.52,-.22,.045,0],[.64,-.18,.065,0],[.83,-.035,.02,0]],\n   chest:[[.28,.08,-.04,0],[.41,.09,-.03,0],[.53,-.12,.04,0],[.66,-.10,.04,0]],\n   head:[[.35,-.07,.15,0],[.51,.14,-.08,0],[.65,.18,-.15,0]],\n   offset:[[.24,-.025,-.07,-.045],[.38,-.02,-.045,-.005],[.50,.025,-.23,.25],[.61,.04,-.28,.35],[.72,.03,-.22,.31],[.86,.01,-.085,.16]],\n-  grip:[[.25,-.24,.09,.20],[.39,-.22,.14,.23],[.50,-.10,-.22,.53],[.65,.015,-.49,.47],[.79,-.07,-.43,.35]],\n-  blade:[[.25,-.35,1.40,-.05],[.39,-.20,1.60,0],[.50,0,-.13,0],[.65,.05,-.87,.06],[.79,.10,-.66,.08]],\n-  lead:[[.16,.045,0,.10],[.31,.09,.16,.26],[.46,.17,0,.61],[.73,.17,0,.61],[.87,.09,.11,.33]],\n+  grip:[[.25,-.22,.25,.09],[.41,-.20,.31,.08],[.50,-.10,-.23,.55],[.64,.015,-.48,.48],[.79,-.07,-.43,.35]],\n+  blade:[[.25,-.20,1.84,-.05],[.41,-.12,2.02,0],[.50,0,-.13,0],[.64,.05,-.88,.06],[.79,.10,-.66,.08]],\n+  lead:[[.16,.045,0,.10],[.31,.11,.055,.26],[.46,.17,0,.61],[.73,.17,0,.61],[.87,.09,.11,.33]],\n   rear:[[.35,-.065,0,-.10],[.55,-.12,.09,.05],[.72,-.12,0,.22],[.79,-.12,0,.22],[.91,-.08,.085,.08]],\n   shield:[[.30,.35,-.24,.13],[.50,.30,-.30,.25],[.67,.33,-.37,.20],[.82,.29,-.32,.18]],\n  },\n"
+    },
+    {
+      "iteration": 7,
+      "kind": "thrust",
+      "reference_interval": "3.0–4.5 s",
+      "finding": "Compressed the loaded arm/torso and lengthened contact extension; preserved the original native hit clock.",
+      "frames": 21,
+      "minBlade": 1.2008027621723605,
+      "pelvisHeightRange": 0.23974021868699225,
+      "bladeHeightRange": 0.9472671853430235,
+      "rightElbowBend": [
+        30.40941506182553,
+        87.8824179836458
+      ],
+      "leftElbowBend": [
+        55.11205573923423,
+        82.35308632306234
+      ],
+      "sourceSHA256": "bef3938ff15701c6729124823a8e717565f2c53f23a879ab0fd90cbfce67d03c",
+      "source_patch": "--- a/authored-slash.js\n+++ b/authored-slash.js\n@@ -32,6 +32,7 @@\n }\n \n const body = {\n+  reach:[[0,.82],[.23,.76],[.36,.79],[.50,.965],[.64,.88],[.82,.80],[1,.82]],\n   // Ground -> pelvis -> chest -> blade. The long loading arc is followed by a\n   // short release; recovery moves the feet again instead of sliding planted legs.\n   hips:[[0,0,0,0],[.23,-.10,-.49,-.07],[.34,-.15,-.48,-.08],[.44,-.21,.05,-.06],[.50,-.28,.39,-.045],[.62,-.15,.65,.065],[.76,-.08,.51,.035],[1,0,0,0]],\n@@ -91,7 +92,7 @@\n   const dir=new T.Vector3(Math.sin(yaw)*Math.cos(elevation),Math.sin(elevation),Math.cos(yaw)*Math.cos(elevation));\n   // Load with a bent elbow, extend through contact, then fold into recovery.\n   // A phase-specific reach cap avoids hitting the same IK limit for every pose.\n-  const reach=pose.reach?.[0]??poseCurve([[0,.82],[.23,.76],[.36,.79],[.50,.965],[.64,.88],[.82,.80],[1,.82]],p)[0];\n+  const reach=pose.reach?.[0]??.965;\n   runtime.attachHands(c,'sword',grip,dir,roll,1,null,1,reach);\n   const [lx,ly,lz]=pose.shield;\n   runtime.solve(c,'left','arm',new T.Vector3(lx*s,c.shoulderY+ly*s,lz*s).add(carry),new T.Vector3(.6,-1,0));\n--- a/authored-sword.js\n+++ b/authored-sword.js\n@@ -42,14 +42,15 @@\n   shield:[[.30,.31,-.35,.23],[.50,.30,-.30,.20],[.65,.36,-.39,.06],[.82,.28,-.34,.12]],\n  },\n  thrust:{\n-  hips:[[.24,-.09,-.22,-.025],[.38,-.14,-.24,-.04],[.50,-.26,.16,-.025],[.59,-.24,.20,-.02],[.76,-.09,.12,0]],\n+  reach:[[.24,.72],[.40,.74],[.50,.965],[.60,.955],[.78,.78]],\n+  hips:[[.24,-.12,-.40,-.035],[.38,-.16,-.44,-.045],[.50,-.33,.23,-.035],[.59,-.30,.25,-.02],[.76,-.09,.12,0]],\n   spine:[[.30,.025,-.12,.025],[.40,.02,-.13,.02],[.50,-.13,.09,-.025],[.61,-.105,.10,-.025],[.80,-.015,.04,0]],\n   chest:[[.30,.02,-.08,.015],[.40,.02,-.09,.02],[.50,-.06,.07,-.015],[.60,-.045,.075,-.015]],\n   head:[[.35,.035,.22,0],[.52,.14,-.18,0],[.65,.09,-.21,0]],\n   offset:[[.24,-.035,-.16,-.10],[.38,-.025,-.195,-.055],[.50,.035,-.22,.39],[.60,.045,-.20,.42],[.74,.02,-.12,.30],[.86,.005,-.065,.12]],\n-  grip:[[.26,-.26,-.33,.23],[.39,-.27,-.30,.24],[.50,-.12,-.24,.60],[.59,-.12,-.24,.58],[.78,-.24,-.32,.31]],\n+  grip:[[.26,-.25,-.28,.13],[.40,-.25,-.27,.13],[.50,-.12,-.24,.68],[.59,-.12,-.24,.65],[.78,-.24,-.32,.31]],\n   blade:[[.24,-.03,.03,0],[.39,-.01,.015,0],[.50,0,.02,0],[.61,0,.02,0],[.82,.13,.60,0]],\n-  lead:[[.16,.045,0,.10],[.31,.065,.12,.27],[.46,.095,0,.70],[.73,.095,0,.70],[.87,.065,.12,.35]],\n+  lead:[[.16,.045,0,.10],[.31,.08,.045,.29],[.46,.095,0,.70],[.73,.095,0,.70],[.87,.08,.05,.35]],\n   rear:[[.35,-.055,0,-.10],[.56,-.07,.065,.025],[.72,-.07,0,.20],[.79,-.07,0,.20],[.91,-.055,.075,.04]],\n   shield:[[.30,.33,-.30,.13],[.50,.29,-.32,.25],[.65,.30,-.32,.22],[.80,.27,-.31,.17]],\n  },\n"
+    },
+    {
+      "iteration": 8,
+      "kind": "uppercut",
+      "reference_interval": "3.16–4.0 s",
+      "finding": "Coupled the free arm and its pole to torso yaw, with a 90-percent reach reserve; eliminated its straight-arm apex.",
+      "frames": 23,
+      "minBlade": 0.19217834379349807,
+      "pelvisHeightRange": 0.3912727254966005,
+      "bladeHeightRange": 2.661856027839195,
+      "rightElbowBend": [
+        30.409415662579594,
+        90.15634124703803
+      ],
+      "leftElbowBend": [
+        51.68603166249771,
+        91.95903475898878
+      ],
+      "sourceSHA256": "5970d94bd5b5820d3518c5dbd61aa0a7578c45e18377e6c6f13a2d38d8ee3dc1",
+      "source_patch": "--- a/authored-slash.js\n+++ b/authored-slash.js\n@@ -95,6 +95,13 @@\n   const reach=pose.reach?.[0]??.965;\n   runtime.attachHands(c,'sword',grip,dir,roll,1,null,1,reach);\n   const [lx,ly,lz]=pose.shield;\n-  runtime.solve(c,'left','arm',new T.Vector3(lx*s,c.shoulderY+ly*s,lz*s).add(carry),new T.Vector3(.6,-1,0));\n+  const torsoYaw=(pose.hips[1]+pose.spine[1]+pose.chest[1])*.75;\n+  const up=new T.Vector3(0,1,0),free=new T.Vector3(lx*s,ly*s,lz*s).applyAxisAngle(up,torsoYaw);\n+  free.y+=c.shoulderY;free.add(carry);\n+  const shoulder=runtime.point(c,'leftUpperArm'),elbow=runtime.point(c,'leftLowerArm'),hand=runtime.point(c,'leftHand');\n+  const maxFreeReach=(shoulder.distanceTo(elbow)+elbow.distanceTo(hand))*.90;\n+  const extension=free.clone().sub(shoulder);if(extension.length()>maxFreeReach)free.copy(shoulder).add(extension.setLength(maxFreeReach));\n+  runtime.solve(c,'left','arm',free,new T.Vector3(.6,-1,0).applyAxisAngle(up,torsoYaw));\n+  runtime.setWorldQ(c,'leftHand',new T.Quaternion().setFromEuler(new T.Euler(0,torsoYaw,0)));\n   c.root.updateMatrixWorld(true);\n }\n"
+    },
+    {
+      "iteration": 9,
+      "kind": "combination",
+      "reference_interval": "2.5–4.5 s",
+      "finding": "Projected ground targets into reachable leg arcs and lowered rear lifts. Moving-rig verification exposed 17.76 mm of planted-toe slip at the uppercut apex; this pass was not accepted as final.",
+      "frames": 121,
+      "minBlade": 0.19030431975382456,
+      "pelvisHeightRange": 0.39170864638149705,
+      "bladeHeightRange": 2.553071962504995,
+      "rightElbowBend": [
+        30.525258027741845,
+        91.69509782163088
+      ],
+      "leftElbowBend": [
+        51.68371107411934,
+        97.80541087854012
+      ],
+      "sourceSHA256": "544a87dad994957215e33f0eae14dbaf30139dbf9c79c06deec9973f7489221a",
+      "source_patch": "--- a/authored-slash.js\n+++ b/authored-slash.js\n@@ -44,7 +44,7 @@\n   blade:[[0,.398,1.15,0],[.25,-2.10,.36,-.36],[.38,-2.22,.28,-.46],[.44,-1.52,.20,-.35],[.50,0,.02,-.15],[.59,1.58,-.33,.27],[.72,2.02,-.42,.42],[.84,1.45,.35,.32],[1,.398,1.15,0]],\n   shield:[[0,.25,-.32,.17],[.30,.34,-.27,.21],[.50,.28,-.27,.21],[.65,.37,-.30,.07],[.84,.30,-.31,.13],[1,.25,-.32,.17]],\n   lead:[[0,.045,0,.10],[.16,.045,0,.10],[.31,.12,.035,.31],[.46,.19,0,.61],[.73,.19,0,.61],[.87,.11,.045,.35],[1,.045,0,.10]],\n-  rear:[[0,-.045,0,-.10],[.35,-.065,0,-.10],[.53,-.09,.085,.035],[.72,-.07,0,.20],[.79,-.07,0,.20],[.90,-.055,.075,.07],[1,-.045,0,-.10]],\n+  rear:[[0,-.045,0,-.10],[.35,-.065,0,-.10],[.53,-.09,.035,.035],[.72,-.07,0,.20],[.79,-.07,0,.20],[.90,-.055,.035,.07],[1,-.045,0,-.10]],\n };\n \n export function slashTime(phase, contact=SLASH_TIMING.contact) {\n@@ -79,6 +79,13 @@\n   for(const [side,key]of [['left','lead'],['right','rear']]){\n     const foot=pose.feet?.[side];\n     const target=foot?new T.Vector3(foot.x*s,c.neutralPoints[side+'Foot'].y+foot.y*s,foot.z*s):c.neutralPoints[side+'Foot'].clone().add(new T.Vector3(...pose[key]).multiplyScalar(s));\n+    // Place the sole on its authored height inside a reachable horizontal arc.\n+    // Letting IK clamp a distant ground target instead raises a rigid straight leg.\n+    const hip=runtime.point(c,side+'UpperLeg'),knee=runtime.point(c,side+'LowerLeg'),ankle=runtime.point(c,side+'Foot');\n+    const reach=(hip.distanceTo(knee)+knee.distanceTo(ankle))*.985;\n+    const dy=hip.y-target.y,horizontal=new T.Vector3(target.x-hip.x,0,target.z-hip.z);\n+    const maxHorizontal=Math.sqrt(Math.max(0,reach*reach-dy*dy));\n+    if(horizontal.length()>maxHorizontal){horizontal.setLength(maxHorizontal);target.x=hip.x+horizontal.x;target.z=hip.z+horizontal.z;}\n     const poleYaw=(foot?.yaw??0)*.6;\n     runtime.solve(c,side,'leg',target,new T.Vector3(Math.sin(poleYaw)+(side==='left'?.15:-.15),0,Math.cos(poleYaw)),true);\n     // Keep the sole level during support, while the rear heel pivots into the cut.\n--- a/authored-sword.js\n+++ b/authored-sword.js\n@@ -38,7 +38,7 @@\n   grip:[[.27,-.32,-.46,.19],[.38,-.34,-.44,.22],[.50,-.09,-.19,.51],[.64,-.09,.25,.16],[.80,-.15,.095,.24]],\n   blade:[[.27,-.8,-1.10,-.18],[.38,-.6,-.90,-.20],[.50,0,.12,0],[.64,-.16,1.40,.10],[.80,.22,1.26,.08]],\n   lead:[[.16,.045,0,.10],[.31,.11,.035,.27],[.46,.13,0,.51],[.73,.13,0,.51],[.87,.08,.08,.30]],\n-  rear:[[.35,-.055,0,-.10],[.56,-.09,.10,.05],[.72,-.075,0,.23],[.80,-.075,0,.23],[.91,-.05,.07,.08]],\n+  rear:[[.35,-.055,0,-.10],[.56,-.09,.035,.05],[.72,-.075,0,.23],[.80,-.075,0,.23],[.91,-.05,.07,.08]],\n   shield:[[.30,.31,-.35,.23],[.50,.30,-.30,.20],[.65,.36,-.39,.06],[.82,.28,-.34,.12]],\n  },\n  thrust:{\n@@ -51,7 +51,7 @@\n   grip:[[.26,-.25,-.28,.13],[.40,-.25,-.27,.13],[.50,-.12,-.24,.68],[.59,-.12,-.24,.65],[.78,-.24,-.32,.31]],\n   blade:[[.24,-.03,.03,0],[.39,-.01,.015,0],[.50,0,.02,0],[.61,0,.02,0],[.82,.13,.60,0]],\n   lead:[[.16,.045,0,.10],[.31,.08,.045,.29],[.46,.095,0,.70],[.73,.095,0,.70],[.87,.08,.05,.35]],\n-  rear:[[.35,-.055,0,-.10],[.56,-.07,.065,.025],[.72,-.07,0,.20],[.79,-.07,0,.20],[.91,-.055,.075,.04]],\n+  rear:[[.35,-.055,0,-.10],[.56,-.07,.025,.025],[.72,-.07,0,.20],[.79,-.07,0,.20],[.91,-.055,.075,.04]],\n   shield:[[.30,.33,-.30,.13],[.50,.29,-.32,.25],[.65,.30,-.32,.22],[.80,.27,-.31,.17]],\n  },\n  heavy:{\n@@ -63,7 +63,7 @@\n   grip:[[.25,-.22,.25,.09],[.41,-.20,.31,.08],[.50,-.10,-.23,.55],[.64,.015,-.48,.48],[.79,-.07,-.43,.35]],\n   blade:[[.25,-.20,1.84,-.05],[.41,-.12,2.02,0],[.50,0,-.13,0],[.64,.05,-.88,.06],[.79,.10,-.66,.08]],\n   lead:[[.16,.045,0,.10],[.31,.11,.055,.26],[.46,.17,0,.61],[.73,.17,0,.61],[.87,.09,.11,.33]],\n-  rear:[[.35,-.065,0,-.10],[.55,-.12,.09,.05],[.72,-.12,0,.22],[.79,-.12,0,.22],[.91,-.08,.085,.08]],\n+  rear:[[.35,-.065,0,-.10],[.55,-.12,.035,.05],[.72,-.12,0,.22],[.79,-.12,0,.22],[.91,-.08,.085,.08]],\n   shield:[[.30,.35,-.24,.13],[.50,.30,-.30,.25],[.67,.33,-.37,.20],[.82,.29,-.32,.18]],\n  },\n };\n"
+    },
+    {
+      "iteration": 10,
+      "kind": "combination",
+      "reference_interval": "3.16–4.0 s",
+      "finding": "Lowered the uppercut apex to preserve knee reserve; the existing 5 mm planted-toe test passed without relaxing its threshold.",
+      "frames": 121,
+      "minBlade": 0.19030431975382456,
+      "pelvisHeightRange": 0.3647831697645644,
+      "bladeHeightRange": 2.533584350600238,
+      "rightElbowBend": [
+        30.525258027741845,
+        87.18582700578033
+      ],
+      "leftElbowBend": [
+        51.68371107411934,
+        97.80541087854012
+      ],
+      "sourceSHA256": "a7d21dbb424d1dbe635450a3bd83de296e0992ab8e131828da9e04cfe39cf61a",
+      "source_patch": "--- a/authored-sword.js\n+++ b/authored-sword.js\n@@ -34,7 +34,7 @@\n   spine:[[.28,-.10,-.13,.03],[.39,-.13,-.17,.025],[.53,.015,.08,-.035],[.65,.035,.13,-.045],[.82,.025,.05,-.015]],\n   chest:[[.29,-.065,-.08,.02],[.41,-.08,-.12,.02],[.54,.02,.07,-.025],[.67,.035,.10,-.03]],\n   head:[[.35,.10,.27,0],[.52,-.035,-.10,.02],[.66,-.07,-.33,.02]],\n-  offset:[[.24,-.055,-.27,-.04],[.37,-.045,-.32,.025],[.49,.025,-.16,.22],[.61,.055,-.005,.32],[.73,.04,-.035,.29],[.86,.01,-.065,.15]],\n+  offset:[[.24,-.055,-.27,-.04],[.37,-.045,-.32,.025],[.49,.025,-.16,.22],[.61,.055,-.095,.32],[.73,.04,-.085,.29],[.86,.01,-.065,.15]],\n   grip:[[.27,-.32,-.46,.19],[.38,-.34,-.44,.22],[.50,-.09,-.19,.51],[.64,-.09,.25,.16],[.80,-.15,.095,.24]],\n   blade:[[.27,-.8,-1.10,-.18],[.38,-.6,-.90,-.20],[.50,0,.12,0],[.64,-.16,1.40,.10],[.80,.22,1.26,.08]],\n   lead:[[.16,.045,0,.10],[.31,.11,.035,.27],[.46,.13,0,.51],[.73,.13,0,.51],[.87,.08,.08,.30]],\n"
+    },
+    {
+      "iteration": 11,
+      "kind": "combination",
+      "reference_interval": "2.5–4.5 s",
+      "finding": "Carried original recovery through phase 0.80 and increased overlap from 80 to 140 ms. Contacts still use native clocks; high-to-low connection remained too abrupt.",
+      "frames": 121,
+      "minBlade": 0.23715683352419525,
+      "pelvisHeightRange": 0.3551818349307434,
+      "bladeHeightRange": 2.5024319542890616,
+      "rightElbowBend": [
+        30.41549441064708,
+        85.6450704306228
+      ],
+      "leftElbowBend": [
+        51.67933355888882,
+        98.00409043606642
+      ],
+      "sourceSHA256": "099d017624c2f810ddea6f8ab7110bf870efd2d6fe6dbe0e2f64604341e67adc",
+      "source_patch": "--- a/sword-sequence.js\n+++ b/sword-sequence.js\n@@ -8,8 +8,10 @@\n  let end=0;\n  const entries=kinds.map((kind,index)=>{\n   const move=SWORD_MOVES[kind];\n-  const enter=connected&&index>0?.18:0,exit=connected&&index<kinds.length-1?.72:1;\n-  const overlap=connected&&index>0?.08:0,start=end-overlap;\n+  // Carry the source recovery into the next loading pose. The longer overlap\n+  // softens high-to-low joins while still finishing before every contact.\n+  const enter=connected&&index>0?.18:0,exit=connected&&index<kinds.length-1?.80:1;\n+  const overlap=connected&&index>0?.14:0,start=end-overlap;\n   const length=(exit-enter)*move.seconds;\n   const row={kind,index,start,end:start+length,enter,exit,overlap,seconds:move.seconds,label:move.label};\n   end=row.end;return Object.freeze(row);\n"
+    },
+    {
+      "iteration": 12,
+      "kind": "combination",
+      "reference_interval": "3.16–4.5 s",
+      "finding": "Settled the uppercut under its overhead blade before the next slash. The largest remaining height step moved to the preceding back-to-uppercut join.",
+      "frames": 121,
+      "minBlade": 0.23715683352419525,
+      "pelvisHeightRange": 0.3551818349307434,
+      "bladeHeightRange": 2.500212989817372,
+      "rightElbowBend": [
+        30.41549441064708,
+        85.6450704306228
+      ],
+      "leftElbowBend": [
+        51.679327029985295,
+        98.00409043606642
+      ],
+      "sourceSHA256": "d1565b912dee853ea7428e93adca3df0b86d5754d6ab648b5467154991cf34d4",
+      "source_patch": "--- a/authored-sword.js\n+++ b/authored-sword.js\n@@ -34,7 +34,8 @@\n   spine:[[.28,-.10,-.13,.03],[.39,-.13,-.17,.025],[.53,.015,.08,-.035],[.65,.035,.13,-.045],[.82,.025,.05,-.015]],\n   chest:[[.29,-.065,-.08,.02],[.41,-.08,-.12,.02],[.54,.02,.07,-.025],[.67,.035,.10,-.03]],\n   head:[[.35,.10,.27,0],[.52,-.035,-.10,.02],[.66,-.07,-.33,.02]],\n-  offset:[[.24,-.055,-.27,-.04],[.37,-.045,-.32,.025],[.49,.025,-.16,.22],[.61,.055,-.095,.32],[.73,.04,-.085,.29],[.86,.01,-.065,.15]],\n+  // Settle under the overhead blade before handing weight to the next cut.\n+  offset:[[.24,-.055,-.27,-.04],[.37,-.045,-.32,.025],[.49,.025,-.16,.22],[.61,.055,-.095,.32],[.73,.04,-.17,.29],[.86,.01,-.085,.15]],\n   grip:[[.27,-.32,-.46,.19],[.38,-.34,-.44,.22],[.50,-.09,-.19,.51],[.64,-.09,.25,.16],[.80,-.15,.095,.24]],\n   blade:[[.27,-.8,-1.10,-.18],[.38,-.6,-.90,-.20],[.50,0,.12,0],[.64,-.16,1.40,.10],[.80,.22,1.26,.08]],\n   lead:[[.16,.045,0,.10],[.31,.11,.035,.27],[.46,.13,0,.51],[.73,.13,0,.51],[.87,.08,.08,.30]],\n"
+    },
+    {
+      "iteration": 13,
+      "kind": "combination",
+      "reference_interval": "2.5–4.5 s",
+      "finding": "Kept the back-cut recovery low, eliminating its stand-up/reset before the next loading pose. Maximum 30 Hz pelvis height step fell to 90.2 mm.",
+      "frames": 121,
+      "minBlade": 0.23489872388423705,
+      "pelvisHeightRange": 0.3574985992994528,
+      "bladeHeightRange": 2.5024710994573303,
+      "rightElbowBend": [
+        30.41549441064708,
+        85.64975610968902
+      ],
+      "leftElbowBend": [
+        51.679327029985295,
+        98.00409043606642
+      ],
+      "sourceSHA256": "e69c0b990e3af6aa0e2faaf2222b9d211cbfd63fee1d5d82fbe420a02586d80e",
+      "source_patch": "--- a/authored-sword.js\n+++ b/authored-sword.js\n@@ -22,7 +22,7 @@\n   spine:[[.28,.02,.22,-.06],[.40,-.02,.21,-.07],[.53,-.08,-.17,.08],[.66,-.04,-.28,.09],[.80,0,-.13,.04]],\n   chest:[[.30,.04,.13,-.04],[.42,0,.17,-.04],[.53,-.05,-.12,.065],[.68,-.02,-.15,.04]],\n   head:[[.35,.02,-.42,0],[.53,.06,.36,-.025],[.70,.02,.50,0]],\n-  offset:[[.16,.06,-.19,-.01],[.24,.065,-.22,-.035],[.36,.045,-.245,.02],[.50,-.07,-.205,.29],[.66,-.10,-.13,.34],[.80,-.055,-.055,.23]],\n+  offset:[[.16,.06,-.19,-.01],[.24,.065,-.22,-.035],[.36,.045,-.245,.02],[.50,-.07,-.205,.29],[.66,-.10,-.17,.34],[.80,-.055,-.14,.23]],\n   grip:[[.16,.31,-.43,.27],[.27,.34,-.42,.26],[.38,.36,-.35,.26],[.50,.035,-.27,.59],[.64,-.40,-.20,.28],[.80,-.35,-.23,.24]],\n   blade:[[.16,2.02,-.35,.36],[.27,2.06,-.32,.36],[.38,1.98,-.21,.32],[.50,0,.08,0],[.64,-2.02,.34,-.30],[.80,-1.76,.52,-.22]],\n   lead:[[.16,.045,0,.10],[.31,.16,.035,.25],[.46,.20,0,.48],[.73,.20,0,.48],[.87,.10,.08,.30]],\n"
+    },
+    {
+      "iteration": 14,
+      "kind": "combination",
+      "reference_interval": "2.5–3.5 s",
+      "finding": "Extended the slash grip forward at contact and through follow-through. Native slash elbow bend at contact changed from 67.8 to 30.4 degrees, visibly strengthening the forward cut.",
+      "frames": 121,
+      "minBlade": 0.23489872388423705,
+      "pelvisHeightRange": 0.3574985992994528,
+      "bladeHeightRange": 2.5024710994573303,
+      "rightElbowBend": [
+        30.41549441064708,
+        85.64975610968902
+      ],
+      "leftElbowBend": [
+        51.679327029985295,
+        98.00409043606642
+      ],
+      "sourceSHA256": "5ee30fdd870cf7f316b230c71666340723f742ff40bc51845481fb3bf9b84e58",
+      "source_patch": "--- a/authored-slash.js\n+++ b/authored-slash.js\n@@ -40,7 +40,7 @@\n   chest:[[0,0,0,0],[.30,.055,-.14,.06],[.40,.025,-.17,.045],[.50,-.065,.07,-.07],[.63,-.09,.16,-.055],[.80,-.02,.07,-.02],[1,0,0,0]],\n   head:[[0,0,0,0],[.34,-.015,.46,0],[.50,.085,-.29,.045],[.66,.05,-.56,.035],[.82,.02,-.23,0],[1,0,0,0]],\n   offset:[[0,0,-.028,0],[.22,-.065,-.215,-.065],[.34,-.045,-.255,-.01],[.47,.055,-.245,.27],[.56,.08,-.22,.34],[.70,.06,-.17,.33],[.84,.025,-.06,.16],[1,0,-.028,0]],\n-  grip:[[0,-.19,-.37,.35],[.23,-.38,-.23,.12],[.36,-.43,-.20,.08],[.44,-.42,-.18,.27],[.50,-.055,-.22,.55],[.59,.31,-.40,.43],[.72,.28,-.45,.27],[.84,.11,-.38,.30],[1,-.19,-.37,.35]],\n+  grip:[[0,-.19,-.37,.35],[.23,-.38,-.23,.12],[.36,-.43,-.20,.08],[.44,-.42,-.18,.27],[.50,-.055,-.22,.66],[.59,.31,-.40,.53],[.72,.28,-.45,.30],[.84,.11,-.38,.30],[1,-.19,-.37,.35]],\n   blade:[[0,.398,1.15,0],[.25,-2.10,.36,-.36],[.38,-2.22,.28,-.46],[.44,-1.52,.20,-.35],[.50,0,.02,-.15],[.59,1.58,-.33,.27],[.72,2.02,-.42,.42],[.84,1.45,.35,.32],[1,.398,1.15,0]],\n   shield:[[0,.25,-.32,.17],[.30,.34,-.27,.21],[.50,.28,-.27,.21],[.65,.37,-.30,.07],[.84,.30,-.31,.13],[1,.25,-.32,.17]],\n   lead:[[0,.045,0,.10],[.16,.045,0,.10],[.31,.12,.035,.31],[.46,.19,0,.61],[.73,.19,0,.61],[.87,.11,.045,.35],[1,.045,0,.10]],\n"
+    }
+  ]
+}

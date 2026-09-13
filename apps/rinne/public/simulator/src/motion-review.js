@@ -84,7 +84,7 @@ function prepareAt(time){
 }
 function seek(time){playing=false;elapsed=Math.min(duration(),Math.max(0,time));prepareAt(elapsed);syncPlay();render();}
 function syncPlay(){$('play').textContent=playing?'一時停止':'再生';$('play').setAttribute('aria-pressed',String(playing));syncReference(Math.min(duration(),elapsed),true);}
-function fittedDistance(){return Math.max(shortMode()?5.8:4.9,1.7/(Math.tan(T.MathUtils.degToRad(camera.fov/2))*camera.aspect)+.65);}
+function fittedDistance(){const margin=shortMode()?1.7:2.1;return Math.max(shortMode()?5.8:6.5,margin/(Math.tan(T.MathUtils.degToRad(camera.fov/2))*camera.aspect)+.65);}
 function view(id){if(!controls)return;const distance=fittedDistance(),yaw=({three:.72,front:0,side:Math.PI/2,back:Math.PI})[id]??.72;focus.copy(focusTarget());camera.position.set(focus.x+Math.sin(yaw)*distance,focus.y+distance*.16,focus.z+Math.cos(yaw)*distance);controls.target.copy(focus);controls.update();for(const b of document.querySelectorAll('[data-view]'))b.setAttribute('aria-pressed',String(b.dataset.view===id));render();}
 function resize(){if(!renderer)return;const box=canvas.parentElement.getBoundingClientRect();renderer.setSize(box.width,box.height,false);camera.aspect=box.width/Math.max(1,box.height);camera.updateProjectionMatrix();if(controls){const offset=camera.position.clone().sub(controls.target).normalize();camera.position.copy(controls.target).addScaledVector(offset,fittedDistance());controls.update();}render();}
 function configure(){
