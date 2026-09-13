@@ -52,7 +52,8 @@ export async function coordinate(c, store, { now = Date.now(), runId, runAttempt
   for (const r of Object.values(initial.records).filter(r => RETURNED.has(r.state) || r.state === 'MERGED').slice(0, 8)) {
     const pr = live.get(r.pr) || await c.api('GET', `${c.root}/pulls/${r.pr}`);
     let timedOut = false;
-    if (RETURNED.has(r.state) && !r.pendingIntegration && !pr.merged && !pr.merged_at && now - Date.parse(r.integrationRequestedAt || r.returnedAt) > store.config.queueStallMs) timedOut = true;
+    if (r.state === 'AWAITING_PUSH') timedOut = now - Date.parse(r.stagedAt) > 2 * 3600000;
+    else if (RETURNED.has(r.state) && !r.pendingIntegration && !pr.merged && !pr.merged_at && now - Date.parse(r.integrationRequestedAt || r.returnedAt) > store.config.queueStallMs) timedOut = true;
     lifecycle.push({ pr, expectedId: r.rescueId, excluded: manualReason(pr), timedOut });
   }
   const candidates = all.filter(pr => !pr.draft && (!initial.records[pr.number] || !initial.records[pr.number].lease && !RETURNED.has(initial.records[pr.number].state) && !TERMINAL.has(initial.records[pr.number].state)));
@@ -113,7 +114,7 @@ export async function coordinate(c, store, { now = Date.now(), runId, runAttempt
       else if (pr.head.sha !== r.headSha && pr.head.sha !== r.pushedSha) {
         failure(state, r, 'HEAD_CHANGED_AFTER_RESCUE', now);
       }
-      else if (timedOut && !r.lease) failure(state, r, 'INTEGRATION_RETURN_STALLED', now);
+      else if (timedOut && !r.lease) failure(state, r, r.state === 'AWAITING_PUSH' ? 'WORK_PUSH_RELAY_STALLED' : 'INTEGRATION_RETURN_STALLED', now);
     }
     for (const obs of observations) mergeObserved(state, obs, now);
     // Detect dependency cycles even when the participants are in different scan windows.
@@ -129,7 +130,8 @@ export async function coordinate(c, store, { now = Date.now(), runId, runAttempt
     state.cursor = start + selected.length < candidates.length ? start + selected.length : 0;
     state.coordinator = { runId: String(runId), heartbeatAt: new Date(now).toISOString(), develop, configured,
       phase: configured ? 'observing' : 'CONFIGURATION_REQUIRED', errors,
-      configurationReason: configured ? null : 'OPENAI_API_KEY and event-capable RESCUE_GITHUB_TOKEN are required; no AI worker started' };
+      backend: 'actions-no-api + chatgpt-work-push',
+      configurationReason: configured ? null : 'Rescue explicitly disabled; no worker started' };
     // A fresh PR API snapshot is mandatory before each claim, including retry/next-wave records.
     const freshIds = new Set(observations.filter(o => !o.excluded).map(o => o.record.pr));
     const deferred = [];
