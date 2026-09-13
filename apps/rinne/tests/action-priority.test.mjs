@@ -46,17 +46,20 @@ test('village objective temporarily reflects the action or reward that needs att
   assert.equal(storyTransientObjective({phase:'living',zone:'frontier',activity:null,pendingDiscoveries:['attention']}),null);
 });
 
-test('map groups several activities on the same physical landmark into one destination',()=>{
+test('map groups several activities on the same physical landmark and preserves its canonical target',()=>{
   const places=[
     {id:'home',name:'村長のテント',x:-5,z:5,verb:'母に話す'},
-    {id:'garden',name:'焚き火',x:6,z:8,verb:'文字を学ぶ'},
+    // Fallback school/library/shrine can precede the authored campfire place.
+    {id:'school',name:'焚き火',x:6,z:8,verb:'文字を学ぶ'},
     {id:'library',name:'焚き火',x:6,z:8,verb:'本を読む'},
     {id:'shrine',name:'焚き火',x:6,z:8,verb:'祈りを捧げる'},
+    {id:'garden',name:'焚き火',x:6,z:8,verb:'体を動かす'},
   ];
   const destinations=uniqueStoryDestinations(places);
   assert.equal(destinations.length,2);
   const fire=destinations.find(place=>place.name==='焚き火');
   assert.equal(fire.id,'garden');
-  assert.deepEqual(fire.activities,['文字を学ぶ','本を読む','祈りを捧げる']);
-  assert.equal(fire.verb,'文字を学ぶ・本を読む・祈りを捧げる');
+  assert.deepEqual(fire.aliases,['school','library','shrine','garden']);
+  assert.deepEqual(fire.activities,['文字を学ぶ','本を読む','祈りを捧げる','体を動かす']);
+  assert.equal(fire.verb,'文字を学ぶ・本を読む・祈りを捧げる・体を動かす');
 });
