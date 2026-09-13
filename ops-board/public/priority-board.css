@@ -56,6 +56,7 @@ body { background:var(--bg); }
 .secondary-disclosure > summary::after { margin-left:auto; }
 .secondary-disclosure > summary .muted { font-size:12px; }
 .secondary-disclosure[open] { padding-bottom:14px; }
+.secondary-disclosure details:not([open]) > summary::after { content:'＋'; }
 .app-tools { margin-top:0; }
 .pull-board { padding:14px; }
 .pull-filters { flex-wrap:wrap; gap:7px; margin:0 0 12px; padding:0; }
