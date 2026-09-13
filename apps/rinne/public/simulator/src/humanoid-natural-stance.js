@@ -103,7 +103,8 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
     c.root.updateMatrixWorld(true);
     for(const side of ['left','right']){
       const target=c.neutralPoints[side+'Foot'].clone();
-      const lateral=(side==='left'?-1:1)*.055*s*strength;
+      // VRM normalized anatomy uses +X for the character's left and -X for the right.
+      const lateral=(side==='left'?1:-1)*.055*s*strength;
       const stagger=(side==='left'?.110:-.075)*s*strength;
       target.x+=lateral;
       target.z+=stagger;
