@@ -5,7 +5,7 @@ async function expectVillageReady(page, expect) {
   await expect(page.locator('#game')).toHaveAttribute('data-renderer','ready',{timeout:STARTUP_TIMEOUT_MS});
 }
 
-export async function verifyVillageFirstBuild(page, expect, testInfo, beforeReload = async () => {}) {
+export async function verifyVillageFirstBuild(page, expect, testInfo, beforeReload = async () => {}, { captureMilestones = true } = {}) {
   await expectVillageReady(page, expect);
   await page.locator('#muraEnterVillage').click();
   await expect(page.locator('#muraEntry')).toBeHidden();
@@ -25,7 +25,7 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   expect(tent).toBeTruthy();expect(tent.phase).toBe('built');
   expect(await page.evaluate(()=>window.village.world.population().openBeds)).toBe(before.beds+2);
   await expect(page.locator('#toastText')).toContainText('寝床が2床増えました');
-  await page.screenshot({path:testInfo.outputPath('first-tent-built.png')});
+  if (captureMilestones) await page.screenshot({path:testInfo.outputPath('first-tent-built.png')});
   // NPC homes are intentionally not player-editable. Select the existing storehouse
   // through its visible rendered mesh; projection and picking only read the scene.
   await page.locator('#deselect').click();
@@ -49,7 +49,7 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
     await page.mouse.up();
     await page.waitForTimeout(150);
   }
-  await page.screenshot({path:testInfo.outputPath('first-storehouse-in-view.png')});
+  if (captureMilestones) await page.screenshot({path:testInfo.outputPath('first-storehouse-in-view.png')});
   let point;
   await expect.poll(async()=>{
     point=await page.evaluate(id=>{
@@ -84,7 +84,7 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
     return r.width>=44&&r.height>=44&&r.top>=header.bottom&&r.left>=0&&r.right<=innerWidth&&
       r.bottom<=innerHeight&&button.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2));
   })).toBe(true);
-  await page.screenshot({path:testInfo.outputPath('first-furniture-exit-visible.png')});
+  if (captureMilestones) await page.screenshot({path:testInfo.outputPath('first-furniture-exit-visible.png')});
   await exit.click();
   await expect.poll(()=>page.evaluate(()=>window.village.view.roomId)).toBe(null);
   await beforeReload();

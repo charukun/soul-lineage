@@ -380,6 +380,10 @@ jobs:
           CURSOR: ${{ needs.integrate.outputs.cursor }}
         with:
           script: |
+            if (['cancelled', 'skipped'].includes(process.env.RESULT)) {
+              core.notice('Publication was cancelled or superseded; no failed DEV quality result is recorded.');
+              return;
+            }
             await github.rest.repos.createCommitStatus({
               ...context.repo, sha: process.env.FINAL_SHA,
               context: 'integration/develop',

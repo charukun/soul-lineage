@@ -339,6 +339,17 @@ function selectEvaluationWindow(items, limit, cursorInput = process.env.INTEGRAT
   return { start, selected, deferred: nextCursor === null ? [] : items.slice(nextCursor), nextCursor };
 }
 
+export async function activeDevelopVerification(c, status) {
+  if (status?.state !== 'pending') return null;
+  const prefix = `https://github.com/${c.root.replace(/^\/repos\//, '')}/actions/runs/`;
+  if (!status.target_url?.startsWith(prefix)) return null;
+  const id = status.target_url.slice(prefix.length);
+  if (!/^\d+$/.test(id) || id === process.env.GITHUB_RUN_ID) return null;
+  const run = await c.api('GET', `${c.root}/actions/runs/${id}`);
+  return run.path === '.github/workflows/deploy.yml' && run.head_branch === 'develop' &&
+    ['queued', 'in_progress', 'waiting', 'pending', 'requested'].includes(run.status) ? Number(id) : null;
+}
+
 export async function integrate(c, repository, wait = delay, options = {}) {
   const startedMs = Date.now();
   const timeBudgetMs = Number(options.timeBudgetMs || process.env.INTEGRATION_TIME_BUDGET_MS || defaultIntegrationBudgetMs);
@@ -352,6 +363,16 @@ export async function integrate(c, repository, wait = delay, options = {}) {
   const baselinePending = !previous;
   const open = await c.pages('/pulls?state=open&base=develop&sort=created&direction=asc', undefined, { maxPages: 10 });
   const ready = open.filter(p => !p.draft);
+
+  // A pending result is owned by the existing publisher. A second publication
+  // can cancel another pending Pages job even with cancel-in-progress: false.
+  const verificationOwner = await activeDevelopVerification(c, previous);
+  if (verificationOwner) {
+    report.held = ready.map(p => ({ pr: p.number, head: p.head.sha,
+      reason: `current develop verification is running in ${verificationOwner}` }));
+    return { ...report, sha: expected, verified: false, verificationPending: true,
+      verificationOwner, retry: false, finishedAt: new Date().toISOString(), durationMs: Date.now() - startedMs };
+  }
 
   const expensive = [];
   for (const snapshot of ready) {
@@ -498,7 +519,7 @@ async function main() {
   try {
     report = await integrate(c, repository);
     await recordQueue(c, report, `https://github.com/${repository}/actions/runs/${process.env.GITHUB_RUN_ID}`);
-    if (!report.verified) await c.api('POST', `${c.root}/statuses/${report.sha}`, {
+    if (!report.verified && !report.verificationPending) await c.api('POST', `${c.root}/statuses/${report.sha}`, {
       state: 'pending', context: contextName, description: 'Affected fast checks, DEV deployment and public HTTP/source verification',
       target_url: `https://github.com/${repository}/actions/runs/${process.env.GITHUB_RUN_ID}`,
     });
@@ -521,7 +542,7 @@ async function main() {
       (thrown ? `\nError: ${thrown.message}\n` : ''));
   }
   if (thrown) throw thrown;
-  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `sha=${report.sha}\nverify=${!report.verified}\nretry=${report.retry}\ncursor=${report.retryCursor ?? 0}\n`);
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `sha=${report.sha}\nverify=${!report.verified && !report.verificationPending}\nretry=${report.retry}\ncursor=${report.retryCursor ?? 0}\n`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) await main();
