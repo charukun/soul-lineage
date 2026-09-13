@@ -4,8 +4,8 @@ const node = (tag, cls, text) => { const n = document.createElement(tag); if (cl
 const link = (label, path) => { const n = node('a', 'rs-link', label); n.href = `https://github.com/charukun/soul-lineage/${path}`; n.target = '_blank'; n.rel = 'noreferrer'; return n; };
 const age = (time, now) => { const ms = now - Date.parse(time); if (!Number.isFinite(ms)) return '未記録'; const sec = Math.max(0, Math.floor(ms / 1000)); return sec < 60 ? `${sec}s` : sec < 3600 ? `${Math.floor(sec / 60)}m ${sec % 60}s` : `${Math.floor(sec / 3600)}h ${Math.floor(sec % 3600 / 60)}m`; };
 const pill = (text, tone = '') => node('span', `rs-pill ${tone}`, text);
-const labels = { DETECTED: '検知', QUEUED: '待機', BLOCKED_BY_RESCUE: '順番待ち', CLAIMED: 'Worker起動待ち', ANALYZING: '分析中', RESOLVING: '修復中', VALIDATING: '検証中', PUSHING: 'push前確認', PUSHED: 'push完了', RETURNED_TO_INTEGRATION: 'Integration復帰', CHECKING: '通常gate確認待ち', MERGED: 'develop統合済み', DEV: 'DEV公開確認済み', FAILED_RETRYABLE: '再試行待ち', FAILED_MANUAL: '人の確認が必要', STALE: 'WORKER STALE' };
-const order = ['DETECTED', 'QUEUED', 'CLAIMED', 'ANALYZING', 'RESOLVING', 'VALIDATING', 'PUSHING', 'PUSHED', 'RETURNED_TO_INTEGRATION', 'CHECKING', 'MERGED', 'DEV'];
+const labels = { DETECTED: '検知', QUEUED: '待機', BLOCKED_BY_RESCUE: '順番待ち', CLAIMED: 'Worker起動待ち', ANALYZING: '分析中', RESOLVING: '修復中', VALIDATING: '検証中', PUSHING: 'commit確定前', AWAITING_PUSH: 'Work push待ち', PUSHED: 'push完了', RETURNED_TO_INTEGRATION: 'Integration復帰', CHECKING: '通常gate確認待ち', MERGED: 'develop統合済み', DEV: 'DEV公開確認済み', FAILED_RETRYABLE: '再試行待ち', FAILED_MANUAL: '人の確認が必要', STALE: 'WORKER STALE' };
+const order = ['DETECTED', 'QUEUED', 'CLAIMED', 'ANALYZING', 'RESOLVING', 'VALIDATING', 'PUSHING', 'AWAITING_PUSH', 'PUSHED', 'RETURNED_TO_INTEGRATION', 'CHECKING', 'MERGED', 'DEV'];
 function rail(record) {
   const box = node('ol', 'rs-rail');
   const steps = record.returnedAt ? [['PUSHED','PUSH'],['RETURNED_TO_INTEGRATION','RETURN'],['CHECKING','CHECK'],['MERGED','MERGE'],['DEV','DEV']] :
@@ -48,6 +48,9 @@ function card(record, now, staleMs) {
   c.append(node('p', 'rs-note', `Attempt ${record.attempt || 0} / ${record.maxAttempts || '—'}`));
   if (record.failureReason) c.append(node('p', 'rs-failure', `Previous failure: ${record.failureReason}`));
   if (manual) c.append(node('strong', 'rs-human', 'Human review required · PRで仕様と診断を確認'));
+  if (record.stagedSha && !record.pushedSha) c.append(link(`Staged ${record.stagedSha.slice(0, 8)} · branch未反映`, `commit/${record.stagedSha}`));
+  if (record.pushWorkerId) c.append(node('p', 'rs-note', `Push relay: ${record.pushWorkerId}`));
+  if (record.heartbeatCount) c.append(node('p', 'rs-note', `Recorded worker heartbeats: ${record.heartbeatCount}`));
   if (record.pushedSha && /^[0-9a-f]{40}$/.test(record.pushedSha)) c.append(link(`Commit ${record.pushedSha.slice(0, 8)}`, `commit/${record.pushedSha}`));
   if (record.returnedAt) c.append(node('p', 'rs-resolution', `Result: ${labels[record.state] || record.state}${record.resolution ? ' · ' + record.resolution : ''}`));
   const details = node('div', 'rs-details');
@@ -88,7 +91,7 @@ export function renderRescue(view, now = Date.now()) {
   if (view.coordinator?.reason) root.append(node('p', 'rs-configuration', view.coordinator.reason));
   if (staleObservation || view.observationError) root.append(node('p', 'rs-configuration', '最新の状態を取得できていません。前回の記録を表示しています。'));
   const metrics = node('div', 'rs-metrics');
-  for (const [name, value, cls] of [['WORKERS', `${c.active} / ${c.max} ACTIVE`, 'rs-workers-total'], ['QUEUED', c.queued, ''], ['BLOCKED', c.blocked, ''], ['VALIDATING', c.validating, ''], ['RETURNED', c.returned, ''], ['MANUAL', c.manual, ''], ['FAILED / RETRY', c.retry, ''], ['STALE', staleWorkers, '']]) {
+  for (const [name, value, cls] of [['WORKERS', `${c.active} / ${c.max} ACTIVE`, 'rs-workers-total'], ['QUEUED', c.queued, ''], ['BLOCKED', c.blocked, ''], ['VALIDATING', c.validating, ''], ['WORK PUSH', c.awaitingPush || 0, ''], ['RETURNED', c.returned, ''], ['MANUAL', c.manual, ''], ['FAILED / RETRY', c.retry, ''], ['STALE', staleWorkers, '']]) {
     const tone = Number(value) > 0 && ['MANUAL','FAILED / RETRY','STALE'].includes(name) ? name === 'MANUAL' ? 'red' : 'yellow' : '';
     const box = node('div', `rs-metric ${cls}`); box.append(node('span', '', name), node('strong', tone, value)); metrics.append(box);
   }
