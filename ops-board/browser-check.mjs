@@ -10,7 +10,7 @@ const rawDate = new Date().toISOString();
 const fixture = {
   repository: 'charukun/soul-lineage', generatedAt: rawDate, syncStatus: 'ok', alerts: [],
   pullRequests: { normal: ['Draft', 'Ready', 'Merged', 'Closed'].map((state, i) => ({ number: i + 1, title: `検証用タスク ${i + 1}`, detail: '変更概要と対象アプリの確認', state, updatedAt: rawDate, url: `https://github.com/charukun/soul-lineage/pull/${i+1}`, targets: [{ id: 'rinne', label: '輪廻転焦' }], targetsStatus: 'ready', targetsComplete: true })), visualReview: [] },
-  applications: ['rinne','village','demon','portal','ops-board','visual-review'].map((id,i) => ({ id, name: ['輪廻転焦','MURAAAAAAA','魔物側','WAYFINDER','開発状況ボード','Visual Review Lab'][i], kind: i < 3 ? 'game' : 'tool', targets: [{ id, label: '開発版', state: i === 3 ? 'unknown' : 'success', commit: 'a'.repeat(40), deployedAt: rawDate, url: base, source: '検証データ' }] })),
+  applications: ['rinne','village','demon','portal','ops-board','visual-review'].map((id,i) => ({ id, name: ['輪廻転焦','MURAAAAAAA','魔物側','WAYFINDER','開発状況ボード','Visual Review Lab'][i], kind: i < 3 ? 'game' : 'tool', targets: (i < 3 ? ['開発', '検証', '本番'] : ['公開先']).map((label, n) => ({ id: `${id}-${n}`, label, state: i === 3 ? 'unknown' : 'success', commit: 'a'.repeat(40), deployedAt: rawDate, url: base, source: '検証データ' })) })),
   environments: [{ id:'dev', name:'DEV', deployState:'success', deployedCommit:'a'.repeat(40), deployedAt:rawDate, url:base, branch:'develop', reflectedPrCount:1, reflectedPrs:[{number:3,title:'長い公開PR名 ' + 'SharedVillageVisualsAndCharacterWorkshop'.repeat(6),url:'https://github.com/charukun/soul-lineage/pull/3',mergedAt:rawDate}], historyComplete:true }],
   environmentDiff:{ count:1, label:'DEVはProductionより +1 PR', pulls:[] }, integration:{ phase:'delivery', tone:'progress', queue:[{number:999,title:'長い統合タスク ' + 'IntegrationAndCharacterAppearance'.repeat(5),label:'自動テスト中',tone:'progress',url:base,reason:'CI実行中'}], watchdog:{staleReadyCount:0,stalledThresholdMinutes:10} }, recentActionFailures:[], actionHistory:[],
 };
@@ -42,6 +42,19 @@ try {
     assert.equal(latestState?.syncStatus, 'ok');
     check('live snapshot and exact deployed SHA', version.commit);
   }
+  assert.equal(await page.locator('#rescue-section').getAttribute('open'), null);
+  assert.equal(await page.locator('#details-section').getAttribute('open'), null);
+  assert.equal(await page.locator('.section-tabs a').count(), 3);
+  const order = await page.locator('.priority-section').evaluateAll(nodes => nodes.map(node => node.id));
+  assert.deepEqual(order, ['alert-section', 'apps-section', 'tasks-section']);
+  check('three primary sections precede collapsed diagnostics');
+  if (fixtureMode) assert.match(await page.locator('#alerts').innerText(), /確認した範囲に問題はありません/);
+  await page.locator('.app-tools > summary').click();
+  assert.ok(await page.locator('.app-tools .app-summary-card').count() > 0);
+  await reload();
+  assert.notEqual(await page.locator('.app-tools').getAttribute('open'), null);
+  await page.locator('.app-tools > summary').click();
+  check('tool disclosure remains available and survives refresh');
   const requestsBeforeFilters = report.githubRequests.length;
   for (const state of ['Draft','Ready','Merged','Closed','all']) {
     await page.locator(`.pull-filter[data-state="${state}"]`).click();
@@ -50,6 +63,7 @@ try {
   assert.equal(report.githubRequests.length, requestsBeforeFilters);
   check('all state filters without GitHub requests');
   await page.locator('#pulls .completed-pulls > summary').click();
+  await page.locator('#details-section > summary').click();
   await page.locator('#environments details > summary').first().click();
   await reload();
   assert.notEqual(await page.locator('#pulls .completed-pulls').getAttribute('open'), null);
@@ -65,20 +79,22 @@ try {
   assert.equal(await page.locator('#app-dialog').isVisible(), true);
   await page.locator('.app-dialog-close').click();
   check('app exact metadata dialog remains open through snapshot updates');
-  for (const width of [320,390,673]) {
+  for (const width of [320,390,673,1100]) {
     await page.setViewportSize({ width, height:844 });
     await page.locator('.section-tabs a[href="#apps-section"]').click();
     await page.waitForTimeout(400);
     const metrics = await page.evaluate(() => ({ width:innerWidth, clientWidth:document.documentElement.clientWidth, scrollWidth:document.documentElement.scrollWidth,
       overflow:[...document.querySelectorAll('body *')].filter(node => {const r=node.getBoundingClientRect();return r.width>0 && r.right>document.documentElement.clientWidth+1;}).slice(0,12).map(node=>({tag:node.tagName,className:node.className,text:node.textContent.slice(0,100),right:node.getBoundingClientRect().right})),
-      grids:[...document.querySelectorAll('.app-grid')].map(node => getComputedStyle(node).gridTemplateColumns.split(' ').length),
+      grids:[...document.querySelectorAll('.app-grid')].filter(node => node.getBoundingClientRect().width > 0).map(node => getComputedStyle(node).gridTemplateColumns.split(' ').length),
+      targets:[...document.querySelectorAll('.app-summary-targets')].filter(node => node.getBoundingClientRect().width > 0).map(node => getComputedStyle(node).gridTemplateColumns.split(' ').length),
       fonts:[...document.querySelectorAll('#applications strong,#applications span,#applications h3,#applications button')].filter(node => node.textContent.trim()).map(node => parseFloat(getComputedStyle(node).fontSize)) }));
     await writeFile(`${out}/layout-${width}.json`, JSON.stringify(metrics, null, 2));
     assert.ok(metrics.scrollWidth <= width + 1, JSON.stringify(metrics));
-    assert.ok(metrics.grids.every(n => n === 3), JSON.stringify(metrics));
+    assert.ok(metrics.grids.every(n => n === (width >= 900 ? 3 : 1)), JSON.stringify(metrics));
+    assert.ok(metrics.targets.every(n => n === 3), JSON.stringify(metrics));
     assert.ok(Math.min(...metrics.fonts) >= 11, JSON.stringify(metrics));
     await page.screenshot({ path:`${out}/apps-${width}.png` });
-    check(`three-column readable layout at ${width}px`, metrics);
+    check(`responsive readable layout at ${width}px`, metrics);
   }
   await page.setViewportSize({ width:390, height:844 });
   const beforeScroll = await page.evaluate(() => scrollY);
@@ -89,6 +105,7 @@ try {
   report.state = latestState;
   const stale = structuredClone(fixtureMode ? fixture : latestState);
   stale.generatedAt = new Date(Date.now()-7*60000).toISOString(); stale.syncStatus='degraded'; stale.syncError='browser test: HTTP 429'; stale.alerts=[];
+  stale.integrationRescue={available:true, generatedAt:rawDate, counts:{active:0,queued:0,blocked:0,manual:1,stale:0}, workers:[], queue:[], manual:[{pr:85,state:'FAILED_MANUAL',title:'要確認',files:[],scopes:[]}], recent:[],waves:[],activity:[],throughput:{},coordinator:{},status:'ATTENTION'};
   stale.integration.queue=[{ number:85, title:'CI failure test', stage:'CI_FAILED', tone:'danger', label:'CI失敗', reason:'failure' }];
   stale.applications=[{id:'unknown',name:'未確認のアプリ',kind:'tool',targets:[{id:'unknown',label:'公開先',state:'unknown'}]}];
   await page.unroute('**/api/state');
@@ -97,6 +114,9 @@ try {
   assert.match(await page.locator('#alerts').innerText(), /最新情報を取得できていません/);
   assert.match(await page.locator('#alerts').innerText(), /#85/);
   assert.match(await page.locator('#sync-freshness').innerText(), /更新失敗/);
+  await page.locator('#alerts a[href="#rescue-section"]').click();
+  assert.notEqual(await page.locator('#rescue-section').getAttribute('open'), null);
+  check('problem link opens the relevant Rescue detail');
   assert.doesNotMatch(await page.locator('#app-summary').innerText(), /正常/);
   await page.evaluate(() => scrollTo(0,0)); await page.screenshot({path:`${out}/simulated-alerts.png`});
   check('simulated stale sync and CI failure are visible; unknown app is not healthy');

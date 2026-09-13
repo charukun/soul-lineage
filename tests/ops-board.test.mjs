@@ -124,7 +124,7 @@ test('worker deployment URL parser only accepts the stable rinne-ops URL', () =>
   assert.throws(() => opsDeploymentUrl('https://example.workers.dev'));
 });
 
-test('public dashboard prioritizes action items/tasks and uses a 3-column icon app grid', async () => {
+test('public dashboard prioritizes problems, publication, and development with responsive app cards', async () => {
   const [index, appBoard, appCss, pullBoard] = await Promise.all([
     readFile(new URL('../ops-board/public/index.html', import.meta.url), 'utf8'),
     readFile(new URL('../ops-board/public/app-board.js', import.meta.url), 'utf8'),
@@ -133,9 +133,9 @@ test('public dashboard prioritizes action items/tasks and uses a 3-column icon a
   ]);
 
   assert.doesNotMatch(index, /summary-grid|いまの状態/);
-  assert.match(index, /要対応タスク/);
-  assert.match(index, /開発タスク/);
-  assert.match(index, /アプリ別の公開状況/);
+  assert.match(index, /現在の問題/);
+  assert.match(index, /開発状況/);
+  assert.match(index, /アプリの公開ステータス/);
   assert.match(index, /公開・自動処理の状態/);
   assert.match(index, /diagnostic-grid/);
   assert.doesNotMatch(index, /rel="manifest"/);
@@ -143,7 +143,7 @@ test('public dashboard prioritizes action items/tasks and uses a 3-column icon a
   const alertPosition = index.indexOf('id="alert-section"');
   const taskPosition = index.indexOf('id="tasks-section"');
   const appPosition = index.indexOf('id="apps-section"');
-  assert.ok(alertPosition >= 0 && taskPosition > alertPosition && appPosition > taskPosition);
+  assert.ok(alertPosition >= 0 && appPosition > alertPosition && taskPosition > appPosition);
 
   assert.match(appBoard, /APP_ICONS/);
   assert.match(appBoard, /character-studio\.svg/);

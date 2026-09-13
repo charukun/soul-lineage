@@ -1,0 +1,92 @@
+/* Primary information stays readable; operational detail is disclosed on demand. */
+:root { --bg:#0d1118; --panel:#151c26; --panel-2:#1d2633; --line:#303c4b; --muted:#a6b3c5; }
+body { background:var(--bg); }
+.shell { width:min(100%,1120px); padding-inline:18px; }
+.topbar { align-items:center; margin-bottom:22px; }
+.eyebrow { font-size:10px; letter-spacing:.1em; }
+.pulse-wordmark { font-size:32px; }
+.reload { cursor:pointer; min-height:44px; border-radius:8px; }
+.section-tabs { position:sticky; top:0; z-index:5; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; padding:8px 0; margin:0; background:var(--bg); border-bottom:1px solid var(--line); }
+.section-tabs a { min-height:48px; padding:8px 3px; border:0; border-radius:6px; font-size:13px; color:var(--text); background:transparent; display:flex; justify-content:center; gap:5px; }
+.section-tabs a:hover, .section-tabs a[aria-current] { background:var(--panel-2); color:#d6eaff; }
+#nav-alert-count { font-variant-numeric:tabular-nums; color:var(--warning); font-size:12px; }
+.board-section { scroll-margin-top:80px; }
+.section-head { margin:26px 0 12px; }
+.section-head h2 { font-size:19px; letter-spacing:.01em; }
+.section-description { font-size:12px; margin:0 0 12px; }
+.muted, .empty { font-size:12px; line-height:1.5; }
+.card, .environment, .alert { box-shadow:none; border-radius:12px; }
+.badge { font-size:11px; line-height:1.3; min-height:25px; color:var(--text); }
+.badge.ok { color:#86e4af; background:#193a2b; }
+.badge.progress { color:#9bcbff; background:#1d3854; }
+.badge.warning { color:#f6d184; background:#3b3220; }
+.badge.danger { color:#ffabab; background:#48292e; }
+.badge.info { color:#c1cad8; background:#2d3746; }
+.problem-clear { display:flex; flex-wrap:wrap; gap:6px 18px; padding:16px; border:1px solid #315843; border-radius:10px; background:#13251d; }
+.problem-clear strong { font-size:14px; color:#a6e7c1; }
+.problem-head { display:flex; align-items:flex-start; gap:9px; }
+.problem-head .badge { flex-shrink:0; }
+.problem-head strong { font-size:14px; line-height:1.6; }
+.alert { padding:14px 16px; border-left-width:3px; }
+.alert p { font-size:12px; line-height:1.7; }
+.problem-action { display:inline-flex; align-items:center; min-height:44px; font-size:12px; font-weight:700; color:#b5d8ff; text-decoration:none; }
+.alerts details { margin-top:0; padding-top:0; }
+.app-groups { gap:12px; }
+.app-group-head { margin-bottom:2px; }
+.app-group-head h3 { font-size:12px; }
+.app-grid { grid-template-columns:minmax(0,1fr); gap:10px; align-items:stretch; }
+.app-summary-card { padding:14px; border-radius:12px; }
+.app-card-head { display:flex; align-items:center; gap:12px; position:relative; min-height:34px; padding-right:82px; }
+.app-summary-visual { flex-shrink:0; }
+.app-icon { width:32px; height:32px; }
+.app-kind { position:absolute; right:0; top:5px; padding:4px 6px; font-size:11px; }
+.app-summary-title { display:block; margin:0; min-height:0; font-size:16px; line-height:1.4; overflow:visible; overflow-wrap:anywhere; }
+.app-summary-targets { grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; margin-top:14px; }
+.app-target-summary, .app-target-summary.is-link { min-height:64px; padding:9px 7px; border-radius:7px; }
+.app-target-summary.is-link::after { content:'↗'; top:9px; right:6px; font-size:12px; }
+.app-target-summary-top { grid-template-columns:1fr; gap:8px; }
+.app-target-summary-top strong { font-size:12px; padding-right:10px; line-height:1.3; }
+.mini-state { font-size:12px; white-space:normal; }
+.mini-dot { height:6px; width:6px; flex-basis:6px; }
+.app-more { display:block; width:auto; margin:8px 0 -6px auto; min-height:44px; padding:6px 0 6px 16px; border:0; font-size:12px; color:var(--muted); }
+.app-more:hover { color:var(--text); }
+.app-update-note { font-size:11px; }
+.secondary-disclosure { margin-top:16px; padding:0 14px; border:1px solid var(--line); border-radius:10px; background:var(--panel); }
+.secondary-disclosure > summary { min-height:54px; font-size:14px; flex-wrap:wrap; justify-content:flex-start; }
+.secondary-disclosure > summary::after { margin-left:auto; }
+.secondary-disclosure > summary .muted { font-size:12px; }
+.secondary-disclosure[open] { padding-bottom:14px; }
+.app-tools { margin-top:0; }
+.pull-board { padding:14px; }
+.pull-filters { flex-wrap:wrap; gap:7px; margin:0 0 12px; padding:0; }
+.pull-filter { min-height:44px; padding:8px 12px; font-size:12px; border-radius:8px; cursor:pointer; }
+.pull-row { padding:16px 0; }
+.pull-row-top { align-items:start; }
+.pull-title { white-space:normal; overflow:visible; font-size:15px; line-height:1.55; overflow-wrap:anywhere; }
+.pull-row-bottom { grid-template-columns:minmax(0,1fr); gap:9px; margin-top:7px; }
+.pull-detail { white-space:normal; font-size:12px; line-height:1.6; overflow-wrap:anywhere; }
+.pull-meta { justify-content:flex-start; flex-wrap:wrap; font-size:11px; gap:6px; white-space:normal; }
+.pull-targets { flex-wrap:wrap; }
+.pull-target { max-width:none; font-size:11px; padding:3px 6px; min-height:22px; white-space:normal; }
+.pull-progress { margin:9px 0 0; padding:8px 10px; border-radius:6px; background:var(--panel-2); font-size:12px; line-height:1.6; overflow-wrap:anywhere; }
+.pull-progress.danger { color:#ffb0b0; border-left:2px solid var(--danger); }
+.pull-progress.warning { color:#f2d197; }
+.stale-draft { opacity:1; padding-left:10px; }
+.completed-pulls summary, summary { min-height:44px; font-size:13px; }
+.diagnostic-grid { margin-top:12px; }
+.diagnostic-help { font-size:12px; }
+.usage-guide { margin-top:16px; }
+@media(min-width:900px) {
+  .shell { padding-inline:28px; }
+  .app-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .section-tabs { width:100%; }
+  .app-summary-title { font-size:15px; }
+}
+@media(max-width:360px) {
+  .shell { padding-inline:10px; }
+  .section-tabs a { font-size:12px; }
+  .app-summary-card { padding:11px; }
+  .app-summary-targets { gap:5px; }
+  .app-target-summary, .app-target-summary.is-link { padding-inline:6px; }
+}
+@media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
