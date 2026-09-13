@@ -49,7 +49,10 @@ export function naturalArmPole(runtime,c,side){
  * A continuous weight removes the old 12%/82% IK on/off step. */
 export function guardBlendStrength(a,progress=null){
   if(!a||a.reaction||a.recovery||a.dead||a.zanshin||(a.weapon||'sword')==='fist')return 0;
-  const held=smooth(((a.weaponDraw??1)-.25)/.75);
+  const hasExplicitDraw=Number.isFinite(a.weaponDraw);
+  if(!hasExplicitDraw&&!a.combatReady&&!a.weaponTransition)return 0;
+  const draw=hasExplicitDraw?a.weaponDraw:(a.combatReady||a.weaponTransition?1:0);
+  const held=smooth((draw-.25)/.75);
   if(!held)return 0;
   if(!a.attack)return held;
   if(!Number.isFinite(progress))return 0;
