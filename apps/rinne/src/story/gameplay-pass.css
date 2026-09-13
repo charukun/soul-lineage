@@ -1,0 +1,96 @@
+/* Gameplay quality pass: keep the world in view and make only the next useful control loud. */
+body[data-story]{overflow:hidden;overscroll-behavior:none}
+
+/* The objective becomes a compact quest callout instead of a second HUD panel. */
+#story-objective{display:flex;align-items:baseline;gap:7px;max-width:min(520px,calc(100vw - 88px));white-space:normal}
+#story-objective::before{content:attr(data-stage);flex:none;padding:1px 6px;border:1px solid #d6b57380;border-radius:999px;background:#241b11c9;color:#f2d79b;font:8px/1.6 var(--story-serif);letter-spacing:.08em;text-shadow:none}
+#story-interface[data-guidance="danger"] #story-objective::before{border-color:#d28a67;background:#4b2119d9;color:#ffd5b6}
+#story-interface[data-guidance="urgent"] #story-objective::before{border-color:#e4bd65;background:#4d3816dc;color:#ffe3a0}
+#story-interface[data-guidance="reward"] #story-objective::before{border-color:#b9d88c;background:#283b20dc;color:#ddf4b5;box-shadow:0 0 12px #9ac65f33}
+#story-interface[data-guidance="clear"] #story-objective::before{border-color:#9fd0bd;background:#1d3d34dc;color:#c9f4e4}
+
+/* Full-width browser-like toolbars surrender the lower half of the screen to the game. */
+#story-belt{bottom:calc(8px + var(--story-safe-bottom));width:auto;min-width:0;height:62px;padding:5px 7px;gap:7px;border:1px solid #a8864f;border-bottom:3px solid #392611;border-radius:16px;background:linear-gradient(#3c2f22ed,#211710f2);box-shadow:inset 0 0 0 2px #17100b,inset 0 1px #f0d49b42,0 7px 20px #0008}
+#story-belt::before{display:none}
+#story-belt .belt-tool{width:49px;height:49px;min-height:49px;padding:4px 2px;border-radius:50% 50% 7px 7px;font-size:8px}
+#story-belt .belt-tool svg{width:19px;height:19px}
+#story-stop{display:none!important}
+#story-interface[data-moving="true"] #story-stop{display:flex!important}
+#story-interface[data-moving="true"] #story-rest{display:none!important}
+#story-interface[data-resting="true"] #story-rest{display:flex!important}
+
+/* Context actions sit above the thumb zone and no longer float halfway up the playfield. */
+#story-actions{right:13px;bottom:calc(84px + var(--story-safe-bottom));width:154px}
+body[data-story] #story-buttons button{min-height:56px;padding:8px 9px;font-size:13px}
+#story-more{margin-top:7px;min-height:42px!important}
+#story-message-wrap{bottom:calc(74px + var(--story-safe-bottom));left:16px;right:184px;text-align:left}
+#story-message{font-size:10px;max-width:360px;margin:0}
+#story-activity-progress{width:min(180px,100%);margin:5px 0 0}
+
+/* Teach movement once, then get out of the player's way. */
+#story-move-hint{bottom:calc(91px + var(--story-safe-bottom));left:17px;width:145px;gap:9px;opacity:.72}
+.move-hint-ring{width:52px;height:52px;outline-offset:3px}
+.move-hint-ring svg{width:23px;height:23px}
+#story-interface[data-moved="true"] #story-move-hint{display:none}
+
+/* Low health reads as danger without restoring the old dashboard battle HUD. */
+#story-interface::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:-1;opacity:0;transition:opacity .18s;background:radial-gradient(circle at 50% 48%,transparent 52%,#60180f35 78%,#2b0808a8 100%)}
+#story-interface[data-health="wounded"]::after{opacity:.35}
+#story-interface[data-health="critical"]::after{opacity:.8;animation:rinne-critical 1.15s ease-in-out infinite}
+#story-interface[data-health="critical"] .story-health i{background:linear-gradient(#e6b28c,#a85e46 45%,#632c28 90%);box-shadow:0 0 8px #ef856a80}
+@keyframes rinne-critical{50%{opacity:.48}}
+
+/* Successful interactions get one short, tactile acknowledgement. */
+#story-interface[data-notice="true"] #story-message-wrap{animation:rinne-notice .42s ease-out}
+#story-interface[data-notice="true"] #story-message{display:inline-block;padding:5px 9px;border-left:2px solid #e3c57b;background:linear-gradient(90deg,#17120ddd,transparent);color:#fff2cb}
+@keyframes rinne-notice{0%{transform:translateY(5px);opacity:.35}100%{transform:none;opacity:1}}
+
+/* Phone portrait is the primary play surface. Preserve the scene, not a web page. */
+@media(max-width:760px){
+ #story-hud{top:calc(8px + var(--story-safe-top));left:10px;right:10px}
+ .soul-vitals{height:55px;gap:8px;max-width:calc(100% - 61px)}
+ #story-age-slot{width:52px;height:52px}
+ body[data-story] #lifeBadge{width:52px!important;height:52px!important;min-height:52px;padding:6px 2px!important}
+ body[data-story] #lifeBadge strong{font-size:22px}
+ #story-zone{font-size:13px}
+ #story-summary{font-size:9px}
+ .story-health{height:7px;margin-top:3px}
+ #story-health-label{font-size:8px}
+ #story-menu-button.metal-coin{width:49px;height:52px;min-height:49px}
+ .quest-ribbon{padding-top:2px;gap:5px;max-width:100%}
+ .quest-seal{display:none}
+ #story-objective{font-size:10px;line-height:1.45;gap:5px}
+ #story-objective::before{font-size:7px;padding:1px 5px}
+ #story-waypoint{top:calc(94px + var(--story-safe-top));left:11px;min-height:42px;padding:4px 8px 4px 4px;max-width:calc(100% - 22px)}
+ #story-bearing svg{width:22px;height:22px}
+ #story-waypoint strong{font-size:10px}#story-waypoint small{font-size:8px}
+ #story-session-status{top:calc(82px + var(--story-safe-top));right:11px;font-size:7px;max-width:45%}
+ #story-interface[data-phase="birth"] #story-actions{bottom:calc(78px + var(--story-safe-bottom));padding:10px 11px 12px}
+ #story-interface[data-phase="birth"] #story-message-wrap{bottom:calc(68px + var(--story-safe-bottom));left:16px;right:16px;text-align:center}
+}
+
+@media(max-width:370px){
+ #story-belt{gap:5px;padding-left:5px;padding-right:5px}
+ #story-belt .belt-tool{width:46px}
+ #story-actions{right:9px;width:145px}
+ #story-message-wrap{right:166px}
+ #story-objective{font-size:9px}
+}
+
+@media(max-height:680px) and (max-width:760px){
+ #story-waypoint{top:calc(88px + var(--story-safe-top))}
+ #story-actions{bottom:calc(77px + var(--story-safe-bottom))}
+ #story-message-wrap{bottom:calc(67px + var(--story-safe-bottom))}
+ #story-move-hint{bottom:calc(82px + var(--story-safe-bottom))}
+ #story-interface[data-phase="birth"] #story-actions{bottom:calc(72px + var(--story-safe-bottom))}
+}
+
+@media(max-height:500px) and (min-width:600px){
+ #story-belt{bottom:6px;height:56px;padding:3px 5px}
+ #story-belt .belt-tool{width:45px;height:45px;min-height:45px}
+ #story-actions{bottom:13px;right:12px}
+ #story-message-wrap{bottom:68px;left:170px;right:180px;text-align:center}
+ #story-move-hint{bottom:14px}
+}
+
+@media(prefers-reduced-motion:reduce){#story-interface[data-health="critical"]::after,#story-interface[data-notice="true"] #story-message-wrap{animation:none!important}}
