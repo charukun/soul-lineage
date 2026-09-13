@@ -7,6 +7,24 @@ async function stanceModule(){
   return import('../public/simulator/src/humanoid-natural-stance.js');
 }
 
+function syntheticArmedRig(){
+  const root=new T.Group(),upperChest=new T.Bone();
+  upperChest.position.set(0,1.28,0);root.add(upperChest);
+  const bones={upperChest};
+  for(const side of ['right','left']){
+    const sign=side==='right'?-1:1;
+    const upper=new T.Bone(),lower=new T.Bone(),hand=new T.Bone();
+    upper.position.set(sign*.24,.14,0);
+    lower.position.set(sign*.035,-.24,.09);
+    hand.position.set(sign*.045,-.025,.31);
+    hand.quaternion.setFromEuler(new T.Euler(.08*sign,.12,-.06*sign));
+    upperChest.add(upper);upper.add(lower);lower.add(hand);
+    bones[side+'UpperArm']=upper;bones[side+'LowerArm']=lower;bones[side+'Hand']=hand;
+  }
+  root.updateMatrixWorld(true);
+  return {root,bones};
+}
+
 test('weapon stance pole keeps elbows outside the torso instead of pulling them straight down',async()=>{
   const {naturalArmPole}=await stanceModule();
   const points={
@@ -27,6 +45,27 @@ test('weapon stance pole keeps elbows outside the torso instead of pulling them 
     assert.ok(pole.dot(outward)>fixed.dot(outward),`${side} elbow should favor anatomical outward clearance`);
   }
   assert.ok(Math.sign(naturalArmPole(runtime,c,'right').x)!==Math.sign(naturalArmPole(runtime,c,'left').x),'mirrored shoulders need mirrored elbow escape');
+});
+
+test('natural stance preserves both hand contact transforms while changing arm bend',async()=>{
+  const {HumanoidRuntime}=await stanceModule();
+  const runtime=new HumanoidRuntime({}),c=syntheticArmedRig();
+  const before=Object.fromEntries(['right','left'].map(side=>[side,{
+    position:runtime.point(c,side+'Hand'),
+    quaternion:c.bones[side+'Hand'].getWorldQuaternion(new T.Quaternion())
+  }]));
+  const elbowBefore=runtime.point(c,'rightLowerArm');
+  const report=runtime.naturalizeHeldWeapon(c,'sword');
+  assert.equal(report.sides.length,2);
+  assert.ok(report.maxHandDisplacement<2e-4,`hand contact drifted ${report.maxHandDisplacement}`);
+  assert.ok(report.maxHandAngleError<1e-5,`wrist orientation drifted ${report.maxHandAngleError}`);
+  for(const side of ['right','left']){
+    const afterPosition=runtime.point(c,side+'Hand');
+    const afterQuaternion=c.bones[side+'Hand'].getWorldQuaternion(new T.Quaternion());
+    assert.ok(afterPosition.distanceTo(before[side].position)<2e-4,`${side} hand endpoint moved`);
+    assert.ok(afterQuaternion.angleTo(before[side].quaternion)<1e-5,`${side} wrist world orientation moved`);
+  }
+  assert.ok(runtime.point(c,'rightLowerArm').distanceTo(elbowBefore)>1e-4,'elbow should actually be re-solved, not leave the old bend untouched');
 });
 
 test('natural stance only touches held-weapon guard windows, never the authored strike body',async()=>{
