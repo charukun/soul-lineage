@@ -1,9 +1,13 @@
 # Integration Rescue 実稼働受入・復旧記録
 
 Task: Integration Rescue 実稼働・復旧WORK
-Result: FAILED / CONFIGURATION_REQUIRED — 自動Rescueの成功受入は未完了。
+Result: IN_PROGRESS / NO_ADDITIONAL_API_BILLING — 自動Rescueの成功受入は未完了。
 Observed: 2026-09-13 03:14 UTC / 12:14 JST
 Recovery branch: `work/integration-rescue-live-recovery`
+
+## 課金不要方針への訂正（ユーザー指示）
+
+追加API課金なしが必須。以前のAPI残高追加・長期PAT追加を前提にした復旧依頼は撤回する。OPENAI_API_KEYの存在と過去の残高不足は旧実装の観測事実であり、課金を依頼する根拠にはしない。ChatGPT Workの既存契約・接続済みGitHubと標準Actionsの利用可能な範囲で復旧し、API有料経路への自動fallbackを設けない。
 
 この記録は観測時点の証跡。再開時は最新develop・PR・Secrets存在・stateを再取得する。main / Productionを変更せず、実証を完了するまでSUCCESSにしない。
 
@@ -69,7 +73,7 @@ Waveは空、Worker IDなし、repair commitなし、Rescueによるmerge/DEV de
 
 > You have no credits remaining. Add credits to continue using the API
 
-キーなしではなく利用残高の問題。新しいAPIキーを無意味に作り直したり、同じ失敗を反復させたりしていない。キーが属するAPI organization/projectの利用枠を本人が復旧する必要がある。
+キーなしではなく利用残高の問題。新しいAPIキーを無意味に作り直したり、同じ失敗を反復させたりしていない。追加課金を求めず、このAPI依存経路を廃止する。
 
 並行PR #130はDispatcherをAPI課金不要のWork handoffへ移行する変更だが、観測時は未mergeであり、本文にもIntegration Rescueは別経路と明記されている。#130の目的を無断で変えず、Rescueが既にAPI不要になったとは扱わない。
 
@@ -80,7 +84,7 @@ Waveは空、Worker IDなし、repair commitなし、Rescueによるmerge/DEV de
 - workflow_dispatchはGITHUB_TOKENから起動可能だが、CIの別イベント経路への移植・exact-head artifactの検証設計が別途必要。単に認証条件を削除しない。
 - Cloudflare cronはActions jobの外で継続するため、jobに限定されたGITHUB_TOKENを永続Secretへ保存する代替は使わない。
 - GitHub App短期tokenなら長期PATを避けられるが、本人管理のApp ID/秘密鍵が必要。既存Connector/Amplifyの資格情報を抽出・転用しない。
-- 現行実装を起動する最小の追加資格情報は、対象をこのRepositoryに限定した期限付きfine-grained PATを `RESCUE_GITHUB_TOKEN` に登録する方法。
+- 旧実装はPAT追加を前提としていたが、その設定依頼は撤回。標準GITHUB_TOKENによるpushと明示的なexact-head検証dispatch、接続済みGitHubを使うWork修復を再評価する。
 - tokenはpushとwatchdog dispatchにだけ利用。Contents read/write、Actions read/writeが必要。古いPRへ最新developのworkflowを取り込むpushにはWorkflows writeも必要。PR/Issues調査やstateの他操作はjobのGITHUB_TOKENを維持する。管理権限・全Repositoryアクセスは不要。
 
 参考: [GitHub workflow trigger](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)、[App installation token](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app)
@@ -107,27 +111,12 @@ Waveは空、Worker IDなし、repair commitなし、Rescueによるmerge/DEV de
 5. MAX_RESCUE_CONCURRENCY=4を保存。
 6. 実scanを1回dispatch。runを数十秒おきに反復pollせず、受付・結果・state更新・PULSE照合の節目で取得。
 
-## 本人操作後に同じWORKから再開
+## 同じWORKで追加API課金なしの復旧を継続
 
-本人が行う設定はまとめて一度だけ依頼する。Secret値は会話へ貼り付けない。
+API残高追加・APIキー新設・長期PAT新設は依頼しない。既存のRescue状態遷移・通常Integration gateを維持した経路を実装・検証する。並行PR #130のDispatcher移行は再取得して尊重する。
 
-1. 既存OPENAI_API_KEYが所属するAPI organization/projectの課金画面で利用残高を復旧する。
-2. GitHub Settings → Developer settings → Personal access tokens → Fine-grained tokensで、Resource owner=charukun、Only select repositories=soul-lineage、期限あり、上記最小権限のtokenを発行。
-3. Repository Settings → Secrets and variables → Actions → New repository secretへ `RESCUE_GITHUB_TOKEN` として登録。
-4. 同じSecret画面にスマホで購読している実ntfy送信先を `NTFY_TOPIC_URL` として登録。認証が必要なtopicは `NTFY_TOKEN` も登録。購読先が未作成ならその設定が必要。
-
-設定後のWORK手順（監視ループを起動しない）:
-
-```sh
-git fetch origin
-gh workflow run ops-board.yml --repo charukun/soul-lineage --ref develop
-gh workflow run deploy.yml --repo charukun/soul-lineage --ref develop -f rescue_mode=scan
-```
-
-- 最新developと#130等の並行変更を再取得し、資格情報の存在と有効性を再確認。
-- ops-boardのwatchdog公開/Secret登録成功と、後続cronからの実dispatchを確認。
-- 実候補を再評価してclaim/Worker ID/attempt/Wave/heartbeatを記録。危険な仕様衝突はmanualを維持。
-- Workerの修復commit/push → RETURNED/CHECKING → 通常exact-head fast/browser gates → merge → 最終developのintegration/develop=success → 公開manifest/source/browserを実証。
-- #93がmanualなら別の安全な実候補で1件以上成功させる。安全な実候補がない場合のみ隔離した検証用PRを作成する。
-- PULSE、state、snapshot、run/artifactを再照合し、既存ntfyへtask/結果/branch/SHA/PR/実証対象/DEV結果を送信する。
-- 成功証跡をこの記録とPRへ追記し、完了条件をすべて満たしてからSUCCESSにする。
+- API呼出しを行わないActions修復と、意味判断が必要な場合の既存ChatGPT Work経路を分ける。
+- GITHUB_TOKEN pushに伴うCIイベント抑止は、実際のexact-head fast/browser検証経路で解消する。成功statusの捏造で代用しない。
+- Workイベントと既存監視で滞留を再取得し、claim/heartbeat/attempt/修復結果を実GitHub stateに記録する。
+- #93を含む危険な仕様衝突・hold・review異議は自動解除しない。安全な実PRの修復からDEVまでを実証する。
+- PULSEとstateの一致・外部通知の実送信も引き続き完了条件とする。未実証の項目は成功扱いしない。
