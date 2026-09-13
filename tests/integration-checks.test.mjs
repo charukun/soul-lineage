@@ -30,3 +30,13 @@ test('same check name from different providers remains independently required', 
   ]);
   assert.equal(checks.length, 2);
 });
+
+test('GitHub repair recorder transport failure is independent of real browser quality and external checks',()=>{
+  const checks=currentChecks([
+    {id:11,name:'Dispatch browser repair state',status:'completed',conclusion:'failure',app:{id:1,slug:'github-actions'}},
+    {id:12,name:'Affected browser smoke',status:'completed',conclusion:'failure',app:{id:1,slug:'github-actions'}},
+    {id:13,name:'Dispatch browser repair state',status:'completed',conclusion:'failure',app:{id:2,slug:'external-quality'}},
+  ]);
+  assert.deepEqual(checks.map(check=>check.id),[13,12]);
+  assert.ok(checks.every(check=>check.conclusion==='failure'));
+});
