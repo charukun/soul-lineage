@@ -37,6 +37,8 @@
     <p class="world-poem">めぐる、いのち。<br><span>また、どこかで。</span></p>
     <section class="title-menu" aria-label="タイトルメニュー">
       <p class="menu-invitation"><span></span> その一太刀が、次の生へ。 <span></span></p>
+      <button id="start-story" class="main-button" type="button" aria-describedby="story-detail"><span class="button-words"><strong>本編をはじめる・つづける</strong><small>LIVE A LIFE</small></span><span class="button-arrow" aria-hidden="true">›</span></button>
+      <p id="story-detail">村で生き、戦い、次の生へ。暮らしと旅の途中から再開。</p>
       <button id="start-simulator" class="main-button" type="button" aria-describedby="simulator-detail">
         <span class="button-flare" aria-hidden="true"></span>
         <svg class="sword-icon" viewBox="0 0 40 40" aria-hidden="true"><path d="m27 5 8-1-1 8-16 16-6-6ZM10 20l12 12M12 28l-7 7M4 31l5 5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m32 7-17 18" stroke="currentColor" stroke-width=".6"/></svg>
@@ -52,7 +54,7 @@
     <div id="renderer-warning" class="renderer-warning" role="alert" hidden>WebGL2を利用できません。背景は静止表示です。シミュレーターの起動にはWebGL2が必要です。</div>
   </main>
   <section id="simulator-shell" aria-label="スキルシミュレーター" hidden>
-    <header class="simulator-top"><button id="back-title" type="button">〈 タイトルへ</button><span>スキルシミュレーター</span><small id="simulator-version"></small><button id="simulator-music" type="button" aria-haspopup="dialog">音楽室</button></header>
+    <header class="simulator-top"><button id="back-title" type="button">〈 タイトルへ</button><span id="experience-title">スキルシミュレーター</span><small id="simulator-version"></small><button id="simulator-music" type="button" aria-haspopup="dialog">音楽室</button></header>
     <div id="frame-slot"></div>
     <div id="game-loading" aria-busy="true">
       <span class="loading-rune" aria-hidden="true">✧</span><h2 id="loading-heading">稽古場へ</h2>

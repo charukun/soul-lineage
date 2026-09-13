@@ -13,6 +13,9 @@ test('transitive shared assets and platform changes select their consumers', () 
   assert.deepEqual(affected(nodes, ['packages/platform/src/index.js']), all);
 });
 test('unused packages do not build unrelated games', () => assert.deepEqual(affected(nodes, ['packages/animations/src/index.js']), []));
+test('shared MURA world/rendering updates reach all consumers', () => {
+  for (const file of ['packages/world/src/mura/catalog.js', 'packages/rendering/src/mura/models.js']) assert.deepEqual(affected(nodes, [file]), all);
+});
 test('audio and character shared contracts reach all current apps',()=>{assert.deepEqual(affected(nodes,['packages/audio/src/index.js']),all);assert.deepEqual(affected(nodes,['packages/characters/src/master-character.js']),all);});
 test('workspace manifests are dependency-graph inputs without widening ordinary tooling paths', () => {
   for (const path of ['apps/demon/package.json', 'apps/rinne/package.json', 'packages/characters/package.json']) {

@@ -30,3 +30,12 @@
 @media(max-height:510px){#game-loading{justify-content:flex-start;padding-top:16px}#game-loading .loading-rune{display:none}#game-loading h2{font-size:19px;margin:2px 0}#game-loading #loading-message{margin:4px 0 10px}#loading-details{margin-top:4px}}
 
 #village-dialog{width:min(92vw,560px);max-height:85dvh;overflow:auto;color:#eee;background:#15130f;border:1px solid #8b7750;padding:16px}#village-dialog::backdrop{background:#000b}#village-dialog textarea{box-sizing:border-box}#village-dialog button{cursor:pointer}
+
+/* Two destinations fit within the existing title composition. */
+#story-detail{font-size:11px;line-height:1.8;margin:8px 0 12px;color:#d5cbb5}
+#start-simulator{height:48px;background:#142b2bc7;border-color:#bcaa785c}
+#start-simulator .sword-icon,#start-simulator .button-words small{display:none}
+#start-simulator .button-words strong{font-size:14px}
+#simulator-detail{font-size:10px;margin:7px 0}#simulator-detail small{display:none}
+@media(max-height:690px){#start-story{height:58px}#story-detail{margin:5px 0;font-size:10px}#start-simulator{height:42px}.world-poem{display:none}}
+@media(max-height:480px) and (min-aspect-ratio:1/1){#story-detail,.menu-invitation{display:none}.title-menu{bottom:8%;left:70%;width:300px}#start-simulator{margin-top:8px}}
