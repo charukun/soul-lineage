@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dependencies, eligibility, reviewDecision } from '../scripts/integration-policy.mjs';
-import { client, fastGate, integrate, recordQueue, trustedReviewPrefix } from '../scripts/integration.mjs';
+import { client, fastGate, integrate, recordQueue, trustedReviewPrefix, activeDevelopVerification } from '../scripts/integration.mjs';
 import { preserveProduction } from '../scripts/deploy.mjs';
 const repository = 'charukun/soul-lineage';
 const sha = 'a'.repeat(40);
@@ -78,7 +78,7 @@ function fake({ prs = [candidate(1), candidate(2)], failed = false, moved = fals
       if (path.endsWith('/reviews')) return structuredClone(reviewsByPr.get(Number(path.match(/\/pulls\/(\d+)/)[1])) || []);
       if (key === 'workflow_runs') return prs.map(p=>({id:p.number,head_sha:p.head.sha,head_branch:p.head.ref,head_repository:p.head.repo,event:'pull_request',pull_requests:[]}));
       if (key === 'artifacts') return [{name:`pr-fast-${path.match(/runs\/(\d+)/)[1]}-${sha}`,expired:false}];
-      if (key === 'jobs') return [{name:'Validate and build',status:'completed',conclusion:failed?'failure':'success'}];
+      if (key === 'jobs') return [{name:'Validate and build',status:'completed',conclusion:failed?'failure':'success'}, {name:'Affected browser smoke',status:'completed',conclusion:'success'}];
       if (key === 'check_runs') return [{name:'Request Integration',status:'in_progress'}, {name:'Validate and build',status:'completed',conclusion:'success'}];
       throw new Error(`Unhandled ${path}`);
     },
@@ -88,6 +88,37 @@ function fake({ prs = [candidate(1), candidate(2)], failed = false, moved = fals
 test('two eligible PRs batch into one final SHA; own dispatch cannot deadlock', async () => {
   const {c,merges} = fake(); const report = await integrate(c,repository);
   assert.deepEqual(merges,[1,2]); assert.equal(report.sha,'merge2'); assert.equal(report.verified,false); assert.deepEqual(report.held,[]);
+});
+test('a live DEV verifier owns pending evidence without a duplicate merge, publish or continuation', async () => {
+  const {c,merges}=fake(); const pages=c.pages.bind(c),api=c.api.bind(c);
+  c.pages=async(path,key)=>path.includes('/statuses')?[{context:'integration/develop',state:'pending',target_url:`https://github.com/${repository}/actions/runs/123`}]:pages(path,key);
+  c.api=async(method,path,body)=>path.endsWith('/actions/runs/123')?{path:'.github/workflows/deploy.yml',head_branch:'develop',status:'in_progress'}:api(method,path,body);
+  const report=await integrate(c,repository);
+  assert.deepEqual(merges,[]); assert.equal(report.verificationPending,true);
+  assert.equal(report.verificationOwner,123); assert.equal(report.retry,false);
+  assert.equal(report.verified,false); assert.equal(report.sha,'base');
+});
+test('stale/completed/unrelated verifier does not suppress the required final gate', async () => {
+  const status={state:'pending',target_url:`https://github.com/${repository}/actions/runs/123`};
+  for(const run of [
+    {path:'.github/workflows/deploy.yml',head_branch:'develop',status:'completed',conclusion:'cancelled'},
+    {path:'.github/workflows/deploy.yml',head_branch:'main',status:'in_progress'},
+    {path:'.github/workflows/ci.yml',head_branch:'develop',status:'in_progress'},
+  ]) assert.equal(await activeDevelopVerification({root:`/repos/${repository}`,api:async()=>run},status),null);
+  const c={root:`/repos/${repository}`,api:async()=>{throw Error('must not query another repository');}};
+  assert.equal(await activeDevelopVerification(c,{...status,target_url:'https://github.com/other/repo/actions/runs/123'}),null);
+  assert.equal(await activeDevelopVerification(c,{...status,state:'failure'}),null);
+});
+test('cancelled publication cannot write a false failed DEV status; real failure remains failure', async () => {
+  const source=readFileSync(new URL('../.github/workflows/deploy.yml',import.meta.url),'utf8');
+  const job=source.slice(source.indexOf('\n  result:'));
+  const script=job.match(/          script: \|\n([\s\S]*?)\n      - uses:/)[1].split('\n').map(line=>line.slice(12)).join('\n');
+  const execute=new Function('github','context','core','process',`return (async()=>{${script}})()`);
+  for(const result of ['cancelled','skipped','failure','success']){
+    const writes=[];
+    await execute({rest:{repos:{createCommitStatus:async s=>writes.push(s)}}},{repo:{}},{notice:()=>{}},{env:{RESULT:result,FINAL_SHA:sha,RETRY:'false'}});
+    assert.deepEqual(writes.map(s=>s.state),['cancelled','skipped'].includes(result)?[]:[result]);
+  }
 });
 test('handoff receipt cannot block or replace exact-head build/browser gates', async () => {
   const { c } = fake({ prs: [candidate()] });
@@ -174,7 +205,7 @@ test('trusted internal control PR is exact-head reviewed then merged without wea
   const rejectedResult=await integrate(rejected.c,repository);
   assert.deepEqual(rejected.merges,[]); assert.equal(rejected.reviewsByPr.get(1).length,1); assert.match(rejectedResult.held[0].reason,/requested changes/);
 });
-test('review wakeups have valid fast evidence and queue status cannot deadlock itself', async () => {
+test('review-only wakeups cannot replace PR browser evidence and queue cannot deadlock itself', async () => {
   for (const event of ['pull_request_review']) {
     const {c}=fake(); const original=c.pages;
     c.pages=async(p,k)=> {
@@ -183,7 +214,7 @@ test('review wakeups have valid fast evidence and queue status cannot deadlock i
       if(p.includes('/statuses')) return [...result,{context:'integration/queue',state:'pending'}];
       return result;
     };
-    assert.equal(await fastGate(c,candidate()),true);
+    assert.equal(await fastGate(c,candidate()),false);
   }
   const {c}=fake(); const original=c.pages;
   c.pages=async(p,k)=>k==='workflow_runs'?(await original(p,k)).map(r=>({...r,event:'push'})):original(p,k);

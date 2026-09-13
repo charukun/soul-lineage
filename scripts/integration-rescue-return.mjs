@@ -7,7 +7,7 @@ import { rescueClient, RescueStore, comparison } from './integration-rescue-stor
 export async function returnToIntegration(c, store, now = Date.now()) {
   const lease = randomUUID();
   const reserved = await store.mutate(state => {
-    const selected = Object.values(state.records).filter(r => RETURNED.has(r.state) && r.pendingIntegration &&
+    const selected = Object.values(state.records).filter(r => RETURNED.has(r.state) && r.state !== 'AWAITING_PUSH' && r.pendingIntegration &&
       (!r.dispatchLease || now - Date.parse(r.dispatchLease.at) > 60000)).slice(0, store.config.maxConcurrency);
     for (const r of selected) r.dispatchLease = { id: lease, at: new Date(now).toISOString() };
     return selected.map(r => structuredClone(r));
@@ -73,9 +73,10 @@ export async function collectDelivery(c, store, now = Date.now()) {
 }
 export async function notifyOutbox(c, store, { url = '', token = '', request = fetch } = {}) {
   const { state } = await store.read();
-  for (const item of state.outbox.filter(n => !n.sentAt).slice(0, 5)) {
+  for (const item of state.outbox.filter(n => !n.sentAt && (n.notificationAttempts || 0) < 3 && (!n.nextNotificationAt || Date.parse(n.nextNotificationAt) <= Date.now())).slice(0, 5)) {
     const message = item.type === 'manual' ? `Integration Rescue\nFAILED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: human review required` :
       `Integration Rescue\nREADY_FOR_INTEGRATION\nWave: ${item.wave}\nReturned to Integration: ${item.prs.map(n => '#' + n).join(' ')}\nManual: ${item.manual.map(n => '#' + n).join(' ') || 'none'}\nCI/browser monitoring: Integration; repair workers ended`;
+    try {
     // Existing ntfy deployment can supply its normal topic URL/token; never invent a recipient.
     if (url) {
       if (!url.startsWith('https://')) throw new Error('NTFY_HTTPS_REQUIRED');
@@ -91,6 +92,18 @@ export async function notifyOutbox(c, store, { url = '', token = '', request = f
       const entry = state.outbox.find(n => n.id === item.id);
       if (entry) { entry.sentAt = new Date().toISOString(); entry.channel = url ? 'ntfy' : item.type === 'manual' ? 'github-pr' : 'pulse-summary'; }
     });
+    } catch (error) {
+      // Notification transport is not a repair/validation gate. Keep the unsent
+      // receipt and a bounded retry in durable state, without claiming delivery.
+      await store.mutate(state => {
+        const entry = state.outbox.find(n => n.id === item.id);
+        if (!entry || entry.sentAt) return;
+        entry.notificationAttempts = (entry.notificationAttempts || 0) + 1;
+        entry.notificationError = String(error.message).slice(0, 400);
+        entry.nextNotificationAt = new Date(Date.now() + entry.notificationAttempts * 300000).toISOString();
+      });
+      console.warn(`Rescue notification ${item.id} was not delivered: ${error.message}`);
+    }
   }
 }
 export async function finalize(c, store, now = Date.now()) {
@@ -99,7 +112,7 @@ export async function finalize(c, store, now = Date.now()) {
     for (const wave of state.waves) {
       if (wave.completedAt) continue;
       const records = wave.rescueIds.map(id => Object.values(state.records).find(r => r.rescueId === id));
-      if (records.some(r => r?.lease)) continue;
+      if (records.some(r => r?.lease || r?.state === 'AWAITING_PUSH' || r?.pushLease)) continue;
       wave.completedAt = new Date(now).toISOString();
       const prs = records.filter(r => r?.returnedAt).map(r => r.pr), manual = records.filter(r => r?.state === 'FAILED_MANUAL').map(r => r.pr);
       wave.returned = prs; wave.manual = manual;
@@ -122,7 +135,6 @@ async function main() {
     return;
   }
   const config = rescueConfig(process.env), c = rescueClient(process.env.GH_TOKEN, config), store = new RescueStore(c, config);
-  await notifyOutbox(c, store, { url: process.env.NTFY_TOPIC_URL, token: process.env.NTFY_TOKEN });
   await finalize(c, store);
   await notifyOutbox(c, store, { url: process.env.NTFY_TOPIC_URL, token: process.env.NTFY_TOKEN });
 }

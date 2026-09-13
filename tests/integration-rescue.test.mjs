@@ -183,7 +183,7 @@ test('real workflow uses matrix isolation with pool cap and per-PR fencing, no f
   assert.match(workflow,/strategy:[\s\S]*fail-fast: false[\s\S]*max-parallel:/);
   assert.match(workflow,/group: integration-rescue-pr-\$\{\{ matrix.pr \}\}/);
   assert.match(workflow,/path: control/);assert.match(workflow,/path: work/);assert.match(workflow,/persist-credentials: false/);
-  assert.match(workflow,/safety-strategy: unprivileged-user/);assert.match(workflow,/sudo chown -R root:root control/);
+  assert.doesNotMatch(workflow,/openai\/codex-action|OPENAI_API_KEY|RESCUE_GITHUB_TOKEN/);assert.match(workflow,/sudo chown -R root:root control/);
   const worker=readFileSync('scripts/integration-rescue-worker.mjs','utf8');
   assert.doesNotMatch(worker,/'--force'|'--force-with-lease'|'rebase'|\/merge`/);
   assert.match(worker,/validate\.mjs/);assert.match(worker,/assertAssertionsPreserved/);
@@ -207,7 +207,7 @@ test('coordinator discovers multiple independent PRs and makes one four-worker W
   const result=await coordinate(mem.c,mem.store,{now,runId:'44'});
   assert.equal(result.errors.length,0);assert.equal(result.result.length,4);assert.equal(mem.current().records[5].state,'QUEUED');
 });
-test('missing AI/push credential never pretends workers are running',async()=>{
+test('explicitly disabled coordinator never pretends workers are running',async()=>{
   const mem=memoryStore(newState(),{api(){return {commit:{sha:develop}};},pages(){return [];}});
   const result=await coordinate(mem.c,mem.store,{now,runId:'45',configured:false});
   assert.deepEqual(result.result,[]);assert.equal(result.state.coordinator.phase,'CONFIGURATION_REQUIRED');
@@ -235,4 +235,18 @@ test('event bursts reuse the recent scan and do not repeat PR enumeration', asyn
   const mem=memoryStore(s);
   const result=await coordinate(mem.c,mem.store,{now:now+1000,runId:'99'});
   assert.deepEqual(result.result,[]);assert.equal(mem.calls.length,1);
+});
+
+test('a formerly manual PR closed by normal Integration is observed as merged without retrying manual work', async () => {
+  const memory = memoryStore(stateWith(record(136, ['apps/rinne/src/story/interface.js'], { state: 'FAILED_MANUAL', attempt: 3, lease: null, rescueId: 'old-manual' })), {
+    api: async (_method, path) => {
+      if (path.endsWith('/branches/develop')) return { commit: { sha: develop } };
+      if (path.endsWith('/pulls/136')) return pr(136, { state: 'closed', merged: true, merged_at: date, merge_commit_sha: develop });
+      throw new Error(path);
+    },
+    pages: async path => { if (path.startsWith('/pulls?') || path.startsWith('/issues?')) return []; throw new Error(path); },
+  });
+  await coordinate(memory.c, memory.store, { now, runId: 'normal-merge-observation' });
+  const r = memory.current().records[136];
+  assert.equal(r.state, 'MERGED'); assert.equal(r.mergeCommit, develop); assert.equal(r.attempt, 3); assert.equal(r.lease, null);
 });

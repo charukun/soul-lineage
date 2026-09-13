@@ -1,4 +1,7 @@
 name: CI
+# Metadata/review wakeups have no authority to cancel a required validation run.
+run-name: >-
+  CI ${{ (github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review","converted_to_draft"]'), github.event.action)) && 'validation' || 'observation' }} #${{ github.event.pull_request.number }} ${{ github.event.pull_request.head.sha }}
 on:
   pull_request:
     branches: [develop, main]
@@ -8,13 +11,33 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: ci-${{ github.event.pull_request.number }}
+  group: ci-${{ github.event.pull_request.number }}-${{ (github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review","converted_to_draft"]'), github.event.action)) && 'validation' || 'observation' }}
   cancel-in-progress: true
 jobs:
+  readiness:
+    name: Resolve current PR state
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      pull-requests: read
+    outputs:
+      ready: ${{ steps.current.outputs.ready }}
+      draft: ${{ steps.current.outputs.draft }}
+    steps:
+      - id: current
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: context.payload.pull_request.number });
+            const current = pr.state === 'open' && pr.head.sha === context.payload.pull_request.head.sha;
+            core.setOutput('ready', current && !pr.draft);
+            core.setOutput('draft', current && pr.draft);
+
   request-rescue:
     name: Request Rescue observation
+    needs: readiness
     if: >-
-      github.event.pull_request.base.ref == 'develop' && !github.event.pull_request.draft &&
+      github.event.pull_request.base.ref == 'develop' && needs.readiness.outputs.ready == 'true' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
     runs-on: ubuntu-latest
@@ -63,7 +86,8 @@ jobs:
 
   draft-check:
     name: Draft lightweight check
-    if: github.event.pull_request.base.ref == 'develop' && github.event.pull_request.draft
+    needs: readiness
+    if: github.event.pull_request.base.ref == 'develop' && needs.readiness.outputs.draft == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
@@ -80,7 +104,11 @@ jobs:
 
   build:
     name: Validate and build
-    if: github.event.pull_request.base.ref == 'main' || (github.event.pull_request.base.ref == 'develop' && !github.event.pull_request.draft)
+    needs: readiness
+    if: >-
+      github.event.pull_request.base.ref == 'main' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'develop' &&
+      needs.readiness.outputs.ready == 'true' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -216,12 +244,14 @@ jobs:
 
   integration-request:
     name: Request Integration
-    needs: [build, browser]
+    needs: [readiness, build, browser]
     if: >-
-      always() && needs.build.result == 'success' &&
-      (needs.browser.result == 'success' || needs.browser.result == 'skipped') &&
+      always() && !cancelled() &&
+      ((needs.build.result == 'success' && needs.browser.result == 'success') ||
+      (needs.build.result == 'skipped' && (github.event_name == 'pull_request_review' ||
+      contains(fromJSON('["edited","labeled","unlabeled"]'), github.event.action)))) &&
       github.event.pull_request.base.ref == 'develop' &&
-      !github.event.pull_request.draft &&
+      needs.readiness.outputs.ready == 'true' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:

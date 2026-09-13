@@ -93,7 +93,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      actions: read
+      actions: write
       checks: read
       statuses: write
     outputs:
@@ -145,6 +145,57 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  pulse:
+    name: Publish develop PULSE
+    needs: integrate
+    if: >-
+      github.ref == 'refs/heads/develop' && needs.integrate.result == 'success' &&
+      inputs.repair_scope != 'pr' && inputs.rescue_mode != 'scan' && needs.integrate.outputs.verify == 'true'
+    uses: ./.github/workflows/ops-board.yml
+    with:
+      source_sha: ${{ needs.integrate.outputs.sha }}
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+      statuses: write
+    secrets: inherit
+
+  queue-recovery:
+    name: Recover missed Ready CI and Integration requests
+    if: github.ref == 'refs/heads/develop' && inputs.rescue_mode == 'scan' && inputs.repair_scope != 'pr'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    concurrency:
+      group: integration-develop
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: write
+      checks: read
+      statuses: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Re-evaluate current Ready heads without merging or editing branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/integration-queue-recovery.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-queue-recovery
+          path: .deploy-state/queue-recovery.json
+          include-hidden-files: true
+          retention-days: 7
+
   rescue:
     name: Parallel Integration Rescue
     needs: integrate
@@ -152,7 +203,7 @@ jobs:
     uses: ./.github/workflows/integration-rescue.yml
     permissions:
       contents: write
-      pull-requests: read
+      pull-requests: write
       issues: write
       actions: write
       statuses: read
@@ -329,6 +380,10 @@ jobs:
           CURSOR: ${{ needs.integrate.outputs.cursor }}
         with:
           script: |
+            if (['cancelled', 'skipped'].includes(process.env.RESULT)) {
+              core.notice('Publication was cancelled or superseded; no failed DEV quality result is recorded.');
+              return;
+            }
             await github.rest.repos.createCommitStatus({
               ...context.repo, sha: process.env.FINAL_SHA,
               context: 'integration/develop',

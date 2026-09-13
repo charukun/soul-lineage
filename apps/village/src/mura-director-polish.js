@@ -78,7 +78,7 @@ function bindPersonDialog(){
   button.dataset.directorCamera='1';
   button.onclick=()=>beginObservation(p.id,button.dataset.camera);
  }
- const follow=host.querySelector('#followPerson');if(follow){follow.textContent='追従して見る';follow.onclick=()=>beginObservation(p.id,'top');}
+ const follow=host.querySelector('#followPerson');if(follow){if(follow.textContent!=='追従して見る')follow.textContent='追従して見る';follow.onclick=()=>beginObservation(p.id,'top');}
 }
 const dialogHost=$('dialogContent');if(dialogHost){new MutationObserver(()=>queueMicrotask(bindPersonDialog)).observe(dialogHost,{childList:true,subtree:true});bindPersonDialog();}
 

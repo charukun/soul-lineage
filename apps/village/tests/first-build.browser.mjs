@@ -17,11 +17,15 @@ async function nativeTap(page, expect, locator) {
   await page.mouse.click(point.x,point.y);
 }
 
-export async function verifyVillageFirstBuild(page, expect, testInfo, beforeReload = async () => {}) {
-  page.setDefaultTimeout(8000);
+export async function enterVillageForBrowser(page, expect) {
   await expectVillageReady(page, expect);
   await nativeTap(page,expect,page.locator('#muraEnterVillage'));
   await expect(page.locator('#muraEntry')).toBeHidden();
+}
+
+export async function verifyVillageFirstBuild(page, expect, testInfo, beforeReload = async () => {}, { captureMilestones = true, verifyDirector = true } = {}) {
+  page.setDefaultTimeout(8000);
+  await enterVillageForBrowser(page, expect);
   const settings=await page.locator('#muraSettingsButton').boundingBox();
   expect(settings.width).toBeGreaterThanOrEqual(44);expect(settings.height).toBeGreaterThanOrEqual(44);
   const before=await page.evaluate(()=>({count:window.village.world.objects.length,beds:window.village.world.population().openBeds}));
@@ -38,7 +42,7 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   expect(tent).toBeTruthy();expect(tent.phase).toBe('built');
   expect(await page.evaluate(()=>window.village.world.population().openBeds)).toBe(before.beds+2);
   await expect(page.locator('#toastText')).toContainText('寝床が2床増えました');
-  await page.screenshot({path:testInfo.outputPath('first-tent-built.png')});
+  if (captureMilestones) await page.screenshot({path:testInfo.outputPath('first-tent-built.png')});
 
   await nativeTap(page,expect,page.locator('#deselect'));
   const facility=await page.evaluate(()=>window.village.world.objects.find(o=>o.kind==='storage'));
@@ -56,7 +60,7 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
     await page.mouse.move(drag.x+drag.dx,drag.y+drag.dy,{steps:12});await page.mouse.up();
     await page.waitForTimeout(150);
   }
-  await page.screenshot({path:testInfo.outputPath('first-storehouse-in-view.png')});
+  if (captureMilestones) await page.screenshot({path:testInfo.outputPath('first-storehouse-in-view.png')});
   let point;
   await expect.poll(async()=>{
     point=await page.evaluate(id=>{
@@ -92,7 +96,7 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
     const header=document.getElementById('idleStatus').getBoundingClientRect();
     return r.width>=44&&r.height>=44&&r.top>=header.bottom&&r.left>=0&&r.right<=innerWidth&&r.bottom<=innerHeight&&button.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2));
   })).toBe(true);
-  await page.screenshot({path:testInfo.outputPath('first-furniture-exit-visible.png')});
+  if (captureMilestones) await page.screenshot({path:testInfo.outputPath('first-furniture-exit-visible.png')});
   await nativeTap(page,expect,exit);
   await expect.poll(()=>page.evaluate(()=>window.village.view.roomId)).toBe(null);
   await beforeReload();
@@ -105,5 +109,5 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   expect(restoredFacility.room.find(o=>o.id===bed.id)).toEqual(bed);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:testInfo.outputPath('first-build-reloaded.png')});
-  await verifyVillageDirectorPolish(page, expect, testInfo);
+  if (verifyDirector) await verifyVillageDirectorPolish(page, expect, testInfo);
 }

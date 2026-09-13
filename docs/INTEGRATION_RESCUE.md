@@ -10,9 +10,9 @@ Ready PRが修復可能な理由で停止したとき、Coordinatorが変更領�
 | Policy | `scripts/integration-rescue-policy.mjs` | 純粋な状態遷移、GREEN/YELLOW/RED、snapshot再評価 |
 | Durable state | `scripts/integration-rescue-store.mjs` | GitHub Contents APIのblob SHA条件付き更新によるCAS |
 | Worker Pool | `.github/workflows/integration-rescue.yml` | dynamic matrix、独立runner/checkout、PR単位concurrency |
-| Semantic worker | `scripts/integration-rescue-worker.mjs` | 現行APIへPR目的を移植、信頼済みwrapperの検証、通常push |
+| Safe base-update worker | `scripts/integration-rescue-worker.mjs` | 独立差分のbase更新、信頼済みwrapperの検証、staged commit作成 |
 | Return / notification | `scripts/integration-rescue-return.mjs` | 通常Integrationへ集約dispatch、merge/DEV追跡、通知outbox |
-| Independent watchdog | `scripts/integration-rescue-watchdog-worker.mjs` | PULSEと別のCloudflare Workerが10分ごとに既存deploy workflowを起動 |
+| Independent watchdog / push relay | 既存ChatGPT Workタスク、`scripts/integration-rescue-work-push.mjs` | PULSEと別にGitHub stateを再取得、元PRの通常pushと既存scan起動を担当 |
 | PULSE | `ops-board/rescue.mjs`, `public/rescue-board.*` | GitHub stateの観測ビュー。制御やmerge権限は持たない |
 
 ## 起動経路と既定branch制約
@@ -21,29 +21,32 @@ Ready PRが修復可能な理由で停止したとき、Coordinatorが変更領�
 
 既定branchにも存在する`deploy.yml`を`ref: develop`で起動し、develop側の新しい`rescue_mode: scan`入力でRescue専用走査を行う。このmodeではmerge/deploy jobを起動しない。通常のdevelop pushおよびIntegration実行後も同じreusable Rescue workflowへ接続する。CIのReady/synchronize/review等のPRイベントは短い`Request Rescue observation`からこの既存経路を起動する。
 
-競合PRでは`pull_request` workflow自体が起動しないことがあるため、独立Cloudflare cronがイベント欠落・worker死亡・孤立queueを再走査する。PULSEを閉じても、PULSE自体が停止してもcronとRescueは継続する。scopeはGitHub上で再取得し、外部cronへPRコードやAIログを渡さない。
+競合PRでは`pull_request` workflow自体が起動しないことがあるため、独立Work watchdogがイベント欠落・worker死亡・孤立queueを再走査する。PULSEを閉じても、PULSE自体が停止してもWork watchdogとRescueは継続する。scopeはGitHub上で再取得し、外部のAPIモデルへPRコードやログを渡さない。
 
-Worker終了時は同じWaveの他Workerを待たず通常Integrationへの復帰を依頼する。復帰dispatchはstate上の短いleaseで重複予約を防止。自己dispatchは未送信の復帰headがある場合のみで、同じheadの送信済み記録から再発火しない。進展のないqueueはcronで有限retryし、無限自己dispatchしない。
+Worker終了時は同じWaveの他Workerを待たず通常Integrationへの復帰を依頼する。復帰dispatchはstate上の短いleaseで重複予約を防止。自己dispatchは未送信の復帰headがある場合のみで、同じheadの送信済み記録から再発火しない。進展のないqueueはwatchdogで有限retryし、無限自己dispatchしない。
 
-## 設定と有効化
+## 追加API課金なしの実行経路
 
-| 設定 | 既定値 / 用途 |
+ユーザーの必須条件は追加API課金なし。Rescue workflowから `openai/codex-action`、`OPENAI_API_KEY`、`RINNE_CODEX_MODEL`、`RESCUE_GITHUB_TOKEN` を除去した。API残高追加やPAT新設は起動条件にしない。有料APIへのfallbackはない。既存ChatGPT Workの利用枠が利用できない場合はGitHubに停止状態を残し、追加クレジットを自動購入しない。
+
+| 設定 / 接続 | 用途 |
 | --- | --- |
-| Repository variable `MAX_RESCUE_CONCURRENCY` | 4。1〜16で設定可能。全run合計のclaim上限とmatrix max-parallel |
-| Repository variable `MAX_RESCUE_ATTEMPTS` | 3。1〜10で設定可能。PR単位の累計上限 |
-| Secret `OPENAI_API_KEY` | RINNE Dispatchと同じ公式Codex Action用API資格情報 |
-| Secret `RESCUE_GITHUB_TOKEN` | 同Repositoryへ通常pushしCIイベントを発火できるfine-grained PAT等。Contents/Actions write、PR/Issues read。組織の権限ポリシーに従う |
-| Variable `RINNE_CODEX_MODEL` | Dispatchと同じ任意model指定。空なら公式Actionの既定 |
-| Existing `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | PULSE観測更新と独立watchdogの公開 |
-| Optional `NTFY_TOPIC_URL`, `NTFY_TOKEN` | 既存ntfy topicへmanual即時・Wave集約通知 |
+| `MAX_RESCUE_CONCURRENCY` | 既定4、1〜16。Actions全run合計のclaim上限 |
+| `MAX_RESCUE_ATTEMPTS` | 既定3、1〜10。PRごとの有限試行 |
+| 標準 `GITHUB_TOKEN` | PR調査、state CAS、検証済みGit tree/commitオブジェクト作成、既存workflow dispatch |
+| 既存ChatGPT Work + GitHub接続 | 検証済みcommitの元PR branchへの通常反映、独立watchdog |
+| 既存Cloudflare Secrets | PULSEの観測更新・公開。Rescueの認証キーに転用しない |
+| 任意 `NTFY_TOPIC_URL` / `NTFY_TOKEN` | 設定済みの場合のみ既存通知先へ送信 |
 
-WorkerへAIキー/書込みtokenを渡すのはwrapper/公式Actionのみ。PRコードを実行するnpm/testsの子processから秘密環境変数を除外する。AIは別の非特権OSユーザーとして`work/`だけを編集し、root所有・書込み不可の`control/`にある検証wrapperを変更できない。PR checkoutは`persist-credentials: false`。push tokenはpush直前のgit子process環境にだけ設定し、git config/コマンド引数へ保存しない。
+Actions Workerは実checkoutで最新developを非commit mergeし、PRの全変更fileのblob/modeが保持されることを確認する。同file変更、text conflict、関連する実行コードや共有契約、control同士の更新は `FAILED_MANUAL`。clean mergeを意味的安全の証明にせず、範囲が独立したbase更新だけを自動処理する。manual hold、Changes requested、未解決threadは解除しない。
 
-`GITHUB_TOKEN`だけのpushは通常のPR CIを再発火しない。そのためevent-capable push tokenを必須とし、架空のCI成功statusや古いfast artifactで代用しない。AI/push資格情報が無い場合はPULSEを`CONFIGURATION_REQUIRED`としてWorker起動を止める。資格情報の設定を「実装済み」から推測しない。
+非特権userの `npm ci` とtrusted fast検証が成功したら、既にGitHubに存在するblobだけでGit tree/commitを作り、ローカル検証treeとの完全一致を確認する。これは**branchへ未反映**の `AWAITING_PUSH`。Worker leaseを解放し、PULSEにstaged commitとWork push待ちを表示する。
 
-この変更はReady PRで引き渡す。develop統合後、PULSE workflowが独立watchdogを公開しtokenをWorker Secretとして登録する。token未設定なら明示warningを残す。設定追加後はdevelopの既存`ops-board.yml`を再実行する。稼働確認はPULSEのRescue状態とActionsの`Plan Rescue Wave` / `Rescue PR N` jobを正本にする。
+検証の作業directoryはsudoでUID変更した後も明示し、npmのprefixを同じ実checkoutへ固定する。非特権UIDからcwd・lockfileを読み取るpreflightを実行し、runner所有の親directoryには通過権限だけを追加する。trusted controlの書込禁止と検証後のcommit/tree/config不変検査は維持する。PRコメントを行うWorker/returnには標準GITHUB_TOKENのpull-requests writeを付与する。通知失敗は未送信のoutboxに理由と最大3回のbackoffを残し、修復・Integration復帰の成否とは独立させる。
 
-RINNE Dispatchは調査時点でPR #105にあり未統合だったため、そのコードへの依存や取り込みは作らず、同じ公式Action/設定名を再利用した。developにはtask-start markerとbrowser repair通知の契約があるが、ntfy送信/watchdogの実装は確認できなかった。Rescueはその実行状態をGitHubに補完し、既存契約を置き換えない。
+標準GITHUB_TOKENのpushイベント抑止・workflow変更権限に頼らず、既存Workが `integration-rescue-work-push.mjs` の安全確認とCASを経て元PR branchをfast-forwardする。接続済みGitHubの通常イベントから既存CIが起動する。CI実装・fastGate・exact-head artifact・review規則は変えず、古いartifactや架空statusで代用しない。
+
+[Work push / watchdog手順](INTEGRATION_RESCUE_WORK.md)を正本とする。独立時計はChatGPT Workの既存タスクを使い、対応上限の1時間周期。PRイベントは通常CIから即時scanを依頼する。旧Cloudflare cronのPAT登録jobは廃止し、短命GITHUB_TOKENを外部Secretへ保存しない。旧watchdogファイルは過去の構成の資料であり、現在の有効化手順ではない。
 
 ## Scope、優先度、Wave
 
@@ -75,13 +78,13 @@ browser self-healingのpending/working ticketが同じPRを担当している場
 
 ## 検証とIntegration復帰
 
-単純なours/theirsではなく、現行developのinterfaceを維持しながらPRの目的を移植する。公式Codex Actionはworking treeだけを編集し、信頼済みwrapperが履歴不変・未解決marker・scope逸脱・assertion削除を検査する。validation制御自体の意味的な書換えが必要な競合はmanualにする。
+同file競合や関連コードの意味判断はmanualへ送り、既存ChatGPT Workで仕様・reviewを確認する。自動base更新のwrapperは履歴不変・blob/mode保持・未解決marker・scope逸脱・assertion削除を検査する。検証後のtreeだけをGitHubへstagingし、失敗したcommitを対象branchへ反映しない。
 
-wrapperは非commit mergeの結果を通常commitし、`npm ci`と信頼済み`validate.mjs fast`を実行する。テストで変更されたworking treeをpushしない。push直前にhead、review/thread、依存、PR契約、最新developを再確認し、元PR branchへ通常fast-forward pushする。force push、history rewrite、develop直接pushは禁止。
+Work push relayは実Actions job成功、staged commitのtree/parents、PR契約、head、review/thread、依存、browser repair所有権、最新developを再確認する。CASでpush予約を取得してから元PR branchだけを通常fast-forwardする。force push、history rewrite、develop直接pushは禁止。push後もGitHub headを再取得してPUSHED/RETURNEDを記録する。通常Integrationだけがmerge/DEV成功を判定する。
 
-push後にGitHub headを再取得してPUSHEDを記録し、最新developを再評価してRETURNEDへ進める。通常Integrationへの再評価要求はexact-head fast artifactもreviewも作成しない。source変更なしのqueue復旧も同じ通常ゲートへ戻す。復帰後の滞留も上限付きretry対象で、merge/DEV成功とpush成功を区別する。
+AWAITING_PUSHは稼働WorkerでもIntegration復帰済みでもない。RED順番lockは保持する。Work relayの予約は10分、停止したrelayは同一staged commitの実head照合で冪等復旧する。2時間未反映なら有限retryに分類する。
 
-[実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md)の同期待機禁止は修正Workerにも適用する。RETURNED時にlease/slotを解放してWorkerを終了し、CHECKINGはCoordinatorが観測する。生成指示はDispatchと共通の禁止ルールを挿入する。Waveの修正push成功通知は `READY_FOR_INTEGRATION` とし、通常Integrationの `INTEGRATED` / `DEV_DEPLOYED` を待ってWorkerを保持しない。既存claim・heartbeat・attempt・REDの順番lockは変更しない。
+[実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md)の同期待機禁止は修正Workerにも適用する。RETURNED時にlease/slotを解放してWorkerを終了し、CHECKINGはCoordinatorが観測する。意味調査用のWork指示はDispatchと共通の禁止ルールを維持する。Waveの修正push成功通知は `READY_FOR_INTEGRATION` とし、通常Integrationの `INTEGRATED` / `DEV_DEPLOYED` を待ってWorkerを保持しない。既存claim・heartbeat・attempt・REDの順番lockは変更しない。
 
 ## PULSEの観測
 
@@ -97,4 +100,8 @@ GitHub上のstate更新後に認証済みsnapshotをPULSEへ送る。これは�
 
 2026-09-13に[GitHub Actions limits](https://docs.github.com/en/actions/reference/limits)を確認。標準runnerの同時job上限はFree 20 / Pro 40（他workflowと共有）、matrix上限は256。Poolの初期4はこの共有枠に余裕を残す設定で、アカウントの空き枠を保証するものではない。GitHubのGITHUB_TOKENは通常1,000 API requests/hour/repository。Coordinatorは最大12件/160リクエスト/3分の予算を持ち、既存Integration clientのtimeout/backoffを再利用する。イベントburst時はcoordinator concurrencyとCASに加え120秒以内の再走査を集約し、REST残量200を通常Integrationとlive lease用に残す。各値はrescueConfigで一元管理する。
 
-[GitHub workflow events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)の既定branch制約と[公式Codex Action](https://github.com/openai/codex-action)のAPI key・非特権実行を踏まえた構成。AI側の実同時実行数はAPI projectのrate/token制限にも依存する。429/quota/timeoutは診断付き有限retryとし、ChatGPTの契約だけからAPI利用枠があるとは判定しない。
+[GitHub workflow trigger](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)のイベント抑止と既定branch制約を維持する。公開Repositoryの標準runnerの利用条件は[GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions)を参照する。追加API利用枠・長期PAT・追加有料runnerは導入しない。
+
+## CIイベント回収との境界
+
+既存watchdogの `rescue_mode=scan` は通常Integration側のbounded queue-recoveryも起動する。cancelled CIの再実行や成功済みPRのIntegration request欠落は、branchのbase更新・意味修復ではない。回収処理はWorker claim/attempt/RED lockを変更せず、実際のfailed gateはsuccessへ書き換えない。競合・意味判断のFAILED_MANUALは従来どおり人間の判断を待つ。

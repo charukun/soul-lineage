@@ -121,6 +121,9 @@ for (const target of targets) {
       await other.goto(url);
       await expect(other.locator('#boot-detail')).toContainText('別のタブ');
       await other.close();
+      // Reload destroys the first document's blob URLs. Preserve demonstrated
+      // playback before navigation; unknown/failed media still fail diagnostics.
+      await capturePlayedAudio(page, playedSources);
       await page.reload();
       await expect(canvas).toHaveAttribute('data-renderer', 'ready');
       const resumed = await page.evaluate(() => window.__NIGHT_HUNT__.snapshot());

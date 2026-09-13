@@ -34,7 +34,7 @@ jobs:
         id: plan
         env:
           GH_TOKEN: ${{ github.token }}
-          RESCUE_CONFIGURED: ${{ secrets.OPENAI_API_KEY != '' && secrets.RESCUE_GITHUB_TOKEN != '' }}
+          RESCUE_CONFIGURED: 'true'
           MAX_RESCUE_CONCURRENCY: ${{ vars.MAX_RESCUE_CONCURRENCY }}
           MAX_RESCUE_ATTEMPTS: ${{ vars.MAX_RESCUE_ATTEMPTS }}
           RESCUE_DIAGNOSTICS_PATH: .deploy-state/rescue-api.json
@@ -70,7 +70,7 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write
-      pull-requests: read
+      pull-requests: write
       actions: write
       issues: write
       statuses: read
@@ -99,14 +99,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: node control/scripts/integration-rescue-worker.mjs prepare work "$RUNNER_TEMP/rescue/context.json"
-      - name: Prepare isolated AI user and immutable trusted wrapper
-        if: steps.prepare.outputs.needs_ai == 'true'
+      - name: Isolate validation from the immutable trusted wrapper
         run: |
           sudo useradd --create-home rescue-agent
           sudo chown -R "rescue-agent:$(id -gn)" work
           sudo chmod -R g+rwX work
           sudo chown -R root:root control
           sudo chmod -R a-w control
+          # Only directory traversal is needed through the runner-owned ancestors.
+          # Keep the wrapper immutable and grant no ancestor read/write access.
+          rescue_parent="$GITHUB_WORKSPACE"
+          while [ "$rescue_parent" != / ]; do
+            sudo chmod o+x "$rescue_parent"
+            rescue_parent="$(dirname "$rescue_parent")"
+          done
           chmod a+rx "$RUNNER_TEMP" "$RUNNER_TEMP/rescue"
           chmod a+r "$RUNNER_TEMP/rescue/"*
       - name: Heartbeat the live worker lease
@@ -116,27 +122,10 @@ jobs:
         run: |
           node control/scripts/integration-rescue-worker.mjs heartbeat work "$RUNNER_TEMP/rescue/context.json" > "$RUNNER_TEMP/rescue/heartbeat.log" 2>&1 &
           echo "$!" > "$RUNNER_TEMP/rescue/heartbeat.pid"
-      - name: Semantic reconciliation on the exact PR checkout
-        if: steps.prepare.outputs.needs_ai == 'true'
-        uses: openai/codex-action@86365089eb2b84e0a8fb0717b304f8bdcb13b20e
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          model: ${{ vars.RINNE_CODEX_MODEL }}
-          working-directory: work
-          prompt-file: ${{ runner.temp }}/rescue/context.json.prompt
-          output-schema-file: ${{ runner.temp }}/rescue/context.json.schema
-          output-file: work/.rescue-result.json
-          permission-profile: ':workspace'
-          safety-strategy: unprivileged-user
-          codex-user: rescue-agent
-          allow-bots: true
-      - name: Return checkout ownership to trusted wrapper
-        if: always() && steps.prepare.outputs.needs_ai == 'true'
-        run: sudo chown -R "$(id -u):$(id -g)" work
-      - name: Trusted fast verification and ordinary push to the original PR branch
+      - name: Verify the safe base update and stage its exact commit for Work push
         env:
           GH_TOKEN: ${{ github.token }}
-          RESCUE_PUSH_TOKEN: ${{ secrets.RESCUE_GITHUB_TOKEN }}
+          RESCUE_VALIDATION_USER: rescue-agent
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: node control/scripts/integration-rescue-worker.mjs finish work "$RUNNER_TEMP/rescue/context.json"
       - name: Preserve failure state and fence this lease
@@ -179,7 +168,7 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write
-      pull-requests: read
+      pull-requests: write
       issues: write
       actions: write
       statuses: read
