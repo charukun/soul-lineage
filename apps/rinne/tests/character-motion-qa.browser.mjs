@@ -31,7 +31,20 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
     await page.locator('[data-qa-camera="front"]').click();assert.deepEqual((await qa()).cameraPosition,cameras.front);
     await page.locator('#qa-tour').check();await seek(10);await page.locator('#qa-play').click();await page.waitForFunction(()=>window.masterCharacterReview.motionQA.camera==='left');
     await page.locator('#qa-tour').uncheck();checks.push('eight repeatable camera presets and clock-driven tour');
-    await page.setViewportSize({width:900,height:900});await seek(17.475);await page.locator('[data-qa-camera="front-left"]').click();
+
+    // This PR changes the live draw/guard silhouette. Preserve raw (pre-QA-correction)
+    // visual evidence at the exact end-of-draw and settled-guard frames from two views.
+    await page.setViewportSize({width:900,height:900});
+    await page.locator('#qa-before').click();
+    for(const [time,label]of [[13.97,'draw-end'],[16.97,'guard']])for(const camera of ['front-left','left']){
+      await seek(time);await page.locator(`[data-qa-camera="${camera}"]`).click();
+      const stance=await qa();assert.equal(stance.frame,Math.round(time*60));snapshots.push({stance:label,camera,snapshot:stance});
+      await page.screenshot({path:resolve(output,`motion-qa-${label}-raw-${camera}.png`)});
+    }
+    await page.locator('#qa-before').click();
+    checks.push('raw draw-end and guard stance evidence captured from front-left and side');
+
+    await seek(17.475);await page.locator('[data-qa-camera="front-left"]').click();
     await page.locator('#qa-before').click();const before=await qa();
     await page.screenshot({path:resolve(output,'motion-qa-before.png')});
     await page.locator('#qa-before').click();const after=await qa();
