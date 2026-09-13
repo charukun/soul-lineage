@@ -189,6 +189,7 @@ export function currentChecks(checks = []) {
   const ordered = [...checks].sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
   for (const check of ordered) {
     if (['Request Integration', 'Request Rescue observation'].includes(check.name)) continue;
+    if (check.app?.slug==='github-actions'&&check.name==='Dispatch browser repair state') continue;
     const app = check.app?.id ?? check.app?.slug ?? 'unknown';
     const key = `${app}:${check.name}`;
     if (!latest.has(key)) latest.set(key, check);

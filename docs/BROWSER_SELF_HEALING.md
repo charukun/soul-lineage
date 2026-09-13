@@ -73,3 +73,5 @@ Normal success has no repair issue. Auto-repair success closes a PR-scoped ticke
 ## Native input during animated UI transitions
 
 A visible control may still be moving or briefly covered while a drawer opens. Browser helpers must wait within the existing input timeout for a positive-size native hit target, then send real pointer input. Permanent occlusion must still fail; do not force-click, inject DOM clicks, disable production animation, or extend scenario deadlines to hide it. Cover both transient and persistent occlusion in regression tests.
+
+An Integration run that requires public DEV verification must run browser cases even if deployment reuses every app artifact. An empty build delta does not certify a previously failed browser result: select all current DEV targets when no changed DEV target exists, and reject a manifest without DEV targets. Production target selection remains unchanged. The GitHub Actions repair-state dispatch is an operational handoff, separate from the mandatory exact-head fast/browser jobs; an API outage cannot manufacture a quality failure or success.

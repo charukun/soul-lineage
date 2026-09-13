@@ -18,7 +18,11 @@ test('focused mode preserves exact changed-app selection',()=>{
 test('full DEV mode checks all DEV apps; explicit local lists retain staging',()=>{
  assert.deepEqual(selectBrowserTargets(entries,{full:true}).map(e=>e.path),all.slice(0,3));
  assert.deepEqual(selectBrowserTargets(entries,{changed:['staging/village']}).map(e=>e.path),['staging/village']);
- assert.deepEqual(selectBrowserTargets(entries,{changed:[],ref:'refs/heads/develop'}),[]);
+});
+test('verification-required DEV retry checks reused assets instead of reporting an empty browser success',()=>{
+ for(const changed of [[],['staging/rinne']])assert.deepEqual(selectBrowserTargets(entries,{changed,ref:'refs/heads/develop'}).map(e=>e.path),all.slice(0,3));
+ assert.throws(()=>selectBrowserTargets([],{ref:'refs/heads/develop'}),/No DEV browser targets/);
+ assert.deepEqual(selectBrowserTargets(entries,{changed:[],ref:'refs/heads/main'}),[]);
 });
 test('successful playback evidence requires progress, decoded data and no media error',async()=>{
  const players=[{currentSrc:'good',currentTime:1,readyState:2,error:null},{currentSrc:'unplayed',currentTime:0,readyState:4,error:null},{currentSrc:'undecoded',currentTime:1,readyState:1,error:null},{currentSrc:'bad',currentTime:1,readyState:4,error:{code:3}}];
