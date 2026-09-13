@@ -85,7 +85,12 @@ export function applyAuthoredSlash(runtime,c,phase,definition=SLASH_TIMING) {
   const grip=new T.Vector3(x*s,c.shoulderY+y*s,z*s);
   const dir=new T.Vector3(Math.sin(yaw)*Math.cos(elevation),Math.sin(elevation),Math.cos(yaw)*Math.cos(elevation));
   runtime.attachHands(c,'sword',grip,dir,roll,1);
+  // attachHands gives the sword free hand its neutral guard orientation. Moving that
+  // arm to the authored shield target must not make the wrist inherit the parent-arm
+  // rotation; otherwise the wrist snaps back by ~90 degrees when the attack ends.
+  const freeHandQ=c.bones.leftHand?.getWorldQuaternion(new T.Quaternion());
   const [lx,ly,lz]=pose.shield;
   runtime.solve(c,'left','arm',new T.Vector3(lx*s,c.shoulderY+ly*s,lz*s),new T.Vector3(.6,-1,0));
+  if(freeHandQ)runtime.setWorldQ(c,'leftHand',freeHandQ);
   c.root.updateMatrixWorld(true);
 }
