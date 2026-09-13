@@ -8,6 +8,8 @@
 
 通常実装WorkerのCI待機は禁止。このタスクはIntegrationの1回分だけを担当する。数十秒おきのpoll、watch、sleep待機はしない。実stateに未完了を記録し、次のイベント/タスクへ引き継ぐ。手順やファイルが最新developに未統合ならコードの有効化を推測せず止める。
 
+この未統合gateは、定期復旧タスクがclaim・pushなどの実稼働操作を行う前提条件。導入PR自体の実装・検証・push・Ready化を停止する条件ではない。導入PRは通常の実装手順で仕上げ、trusted Integrationのレビュー・CIを経て統合する。定期タスクの条件を緩めて未統合コードを実稼働させない。
+
 ## AWAITING_PUSHの反映
 
 1. stateの現在blob SHAを取得。AWAITING_PUSHのrecordごとに実PR、reviews、全review threads、open browser repair issues、Depends-On、最新developと関連比較、staged git commit、実Actions run/jobs/stepsを取得する。未取得を空のreviews/threadsに置き換えない。

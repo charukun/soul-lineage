@@ -3,7 +3,10 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { git, safeUpdateReport, stageVerifiedCommit } from '../scripts/integration-rescue-worker.mjs';
+import { createHash } from 'node:crypto';
+import { git, safeUpdateReport, stageVerifiedCommit, assertValidationUnchanged } from '../scripts/integration-rescue-worker.mjs';
+import { coordinate } from '../scripts/integration-rescue-coordinator.mjs';
+import { finalize } from '../scripts/integration-rescue-return.mjs';
 import { claimWorkPush, finishWorkPush, verifyWorkPush } from '../scripts/integration-rescue-work-push.mjs';
 import { REPOSITORY, newState, conflictScope } from '../scripts/integration-rescue-policy.mjs';
 import { contractFingerprint } from '../scripts/integration-rescue-store.mjs';
@@ -79,6 +82,92 @@ test('PULSE distinguishes staged commit from push/Integration success and never 
   const { state } = ready(); const view = rescueView(state);
   assert.equal(view.status, 'WAITING'); assert.equal(view.counts.active, 0); assert.equal(view.counts.returned, 0); assert.equal(view.counts.awaitingPush, 1);
   assert.equal(view.recent[0].pushedSha, null); assert.equal(view.recent[0].stagedSha, 'c'.repeat(40));
+});
+
+function lifecycleStore(state, evidence, beforeMutation = () => {}) {
+  const store = { config: state.config,
+    async initialize() { return { state: structuredClone(state) }; },
+    async read() { return { state: structuredClone(state) }; },
+    async mutate(fn) { beforeMutation(); return { result: fn(state), state: structuredClone(state) }; } };
+  const dispatches = [];
+  const c = { root: `/repos/${REPOSITORY}`,
+    async api(method, path, body) {
+      if (path.endsWith('/branches/develop')) return { commit: { sha: evidence.develop } };
+      if (path.endsWith('/pulls/1')) return structuredClone(evidence.pr);
+      if (path.endsWith('/dispatches')) { dispatches.push(body); return {}; }
+      throw new Error(`Unexpected ${method} ${path}`);
+    },
+    async pages(path) {
+      if (path.startsWith('/pulls?')) return [structuredClone(evidence.pr)];
+      if (path.startsWith('/issues?') || path.endsWith('/statuses')) return [];
+      throw new Error(`Unexpected pages ${path}`);
+    } };
+  return { c, store, dispatches };
+}
+
+test('Coordinator preserves the staged head between ref update and relay completion, but rejects unrelated heads', async () => {
+  for (const otherHead of [false, true]) {
+    const { state, record, evidence } = ready();
+    record.stagedAt = new Date(1800000000000).toISOString(); record.attempt = 1; record.maxAttempts = 3;
+    evidence.pr.head.sha = otherHead ? 'e'.repeat(40) : record.stagedSha;
+    const { c, store } = lifecycleStore(state, evidence);
+    await coordinate(c, store, { now: 1800000001000, runId: 'scan', scan: false });
+    assert.equal(record.state, otherHead ? 'FAILED_RETRYABLE' : 'AWAITING_PUSH');
+    assert.equal(record.pushedSha, undefined); // A scan cannot invent a relay receipt.
+  }
+});
+
+test('a stale scan cannot overwrite a relay result committed during its state CAS', async () => {
+  const { state, record, evidence } = ready();
+  const { c, store } = lifecycleStore(state, evidence, () => {
+    record.headSha = record.pushedSha = record.stagedSha;
+    record.state = 'RETURNED_TO_INTEGRATION';
+  });
+  await coordinate(c, store, { now: 1800000001000, runId: 'scan', scan: false });
+  assert.equal(record.state, 'RETURNED_TO_INTEGRATION');
+  assert.equal(record.failureReason, undefined);
+});
+
+test('a fresh push lease survives queue timeout and an expired lease reaches bounded retry', async () => {
+  for (const age of [1000, 600001]) {
+    const { state, record, evidence } = ready(), now = 1800000000000;
+    record.stagedAt = new Date(0).toISOString(); record.attempt = 1; record.maxAttempts = 3;
+    record.pushLease = { workerId: 'work/live', at: new Date(now - age).toISOString() };
+    const { c, store } = lifecycleStore(state, evidence);
+    await coordinate(c, store, { now, runId: 'scan', scan: false });
+    assert.equal(record.state, age < 600000 ? 'AWAITING_PUSH' : 'FAILED_RETRYABLE');
+  }
+});
+
+test('Wave summary is emitted only after the waiting Work relay actually returns its push', async () => {
+  const { state, record, evidence } = ready();
+  state.waves = [{ id: 'wave-123', rescueIds: [record.rescueId] }];
+  const { c, store, dispatches } = lifecycleStore(state, evidence);
+  await finalize(c, store, 1000);
+  assert.equal(state.waves[0].completedAt, undefined); assert.equal(state.outbox.length, 0);
+  assert.equal(dispatches.length, 0);
+  claimWorkPush(state, 1, record.rescueId, 'work/live', evidence, 2000);
+  evidence.pr.head.sha = record.stagedSha;
+  finishWorkPush(state, 1, record.rescueId, 'work/live', evidence, 3000);
+  await finalize(c, store, 4000);
+  assert.equal(dispatches.length, 1); assert.equal(record.state, 'CHECKING');
+  assert.deepEqual(state.outbox[0].prs, [1]); assert.ok(state.waves[0].completedAt);
+  await finalize(c, store, 5000);
+  assert.equal(dispatches.length, 1); assert.equal(state.outbox.length, 1);
+});
+
+test('validation cannot replace its pinned commit even by making a clean worktree commit', () => {
+  const work = mkdtempSync(join(tmpdir(), 'rescue-validate-'));
+  try {
+    git(['init', '-b', 'work/test'], work); git(['config', 'user.name', 'test'], work); git(['config', 'user.email', 'test@example.invalid'], work);
+    writeFileSync(join(work, 'test.txt'), 'before\n'); git(['add', '.'], work); git(['commit', '-m', 'before'], work);
+    const head = git(['rev-parse', 'HEAD'], work);
+    const config = createHash('sha256').update(readFileSync(join(work, '.git/config'))).digest('hex');
+    assertValidationUnchanged(work, head, config);
+    writeFileSync(join(work, 'test.txt'), 'after\n'); git(['add', '.'], work); git(['commit', '-m', 'validation mutation'], work);
+    assert.equal(git(['status', '--porcelain'], work), '');
+    assert.throws(() => assertValidationUnchanged(work, head, config), /VALIDATION_REWROTE_HISTORY/);
+  } finally { rmSync(work, { recursive: true, force: true }); }
 });
 test('Rescue has no paid API action or PAT prerequisite and preserves the original CI validation path', () => {
   const workflow = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');

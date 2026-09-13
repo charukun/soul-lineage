@@ -120,3 +120,17 @@ API残高追加・APIキー新設・長期PAT新設は依頼しない。既存�
 - Workイベントと既存監視で滞留を再取得し、claim/heartbeat/attempt/修復結果を実GitHub stateに記録する。
 - #93を含む危険な仕様衝突・hold・review異議は自動解除しない。安全な実PRの修復からDEVまでを実証する。
 - PULSEとstateの一致・外部通知の実送信も引き続き完了条件とする。未実証の項目は成功扱いしない。
+
+## 未反映実装の回収と導入PR検証（2026-09-13追記）
+
+再取得したdevelopは `e374fbfca3fbabefe2be2658a77f2a15aacdb70e`。PR #132のremote head `dbb10ed4c4877bedf0ea6e117df754d8ab939100` は受入文書だけの差分だったが、同じ作業環境に課金なし実装が未pushで残っていた。定期復旧の未統合gateは実稼働操作に適用するものであり、導入PRを仕上げる作業は継続できる。
+
+- API ActionとPAT必須判定をRescueから除去。Actionsは非重複のbase更新だけを行い、PRのblob/mode保持とfast検証の同一treeをGitHubへstagingする。意味的競合はFAILED_MANUALへ送る。
+- 既存Work接続が実Actions証跡・PR安全条件・CAS予約を確認し、同じstaged commitを元PRへ通常反映する。長期PAT新設・有料API fallback・main変更はない。
+- Work push直後と完了CASの間をCoordinatorがHEAD_CHANGEDとして壊す競合を修正。古いscanが新しいpush完了記録を上書きしない。生存push予約はtimeout判定から保護し、期限切れは有限retryへ送る。
+- AWAITING_PUSHでWaveを完了させず、実際のIntegration復帰後に集約通知を一度だけ作る。検証前のHEADを固定し、検証中のcommit/config変更も拒否する。
+- `npm ci`、`node scripts/validate.mjs fast origin/develop HEAD` 成功。565 tests passed、3 app builds成功。実Git merge・staging tree一致・CAS競合・Wave通知・検証中commit改変拒否を含む。変更workflowのYAML / 全run blockのbash構文、`git diff --check`も成功。
+- ローカルPULSEブラウザ確認はChromium実体が無く起動不能。公開PULSEの新表示・実Actions Worker・修復push・DEV経路の受入は未完了。565件のテストを実稼働成功の代わりにしない。
+- 既存の毎時Integration Rescue復旧タスクは有効で、統合後の最新developを読む契約。新しい重複タスクは作らない。ntfyへの新規設定依頼はしない。既存本人宛て外部通知の利用可否と実送信結果は実稼働時に分けて記録する。
+
+導入PRは実装・高速検証を終えてReadyへ進める。実稼働受入は統合後の別段階であり、導入PRのhold条件に含めて循環待ちにしない。通常Integrationのexact-head review / fast / browser / baseline gateはすべて維持する。自動Rescue全体の最終結果は引き続きIN_PROGRESS。

@@ -45,16 +45,17 @@ export async function coordinate(c, store, { now = Date.now(), runId, runAttempt
     runStates[run] = (await c.api('GET', `${c.root}/actions/runs/${run}`)).status;
   }
   const lifecycle = [];
+  const observedRecord = r => ({ state: r.state, headSha: r.headSha, pushedSha: r.pushedSha, stagedSha: r.stagedSha });
   for (const r of Object.values(initial.records).filter(r => !r.lease && !TERMINAL.has(r.state) && (!live.has(r.pr) || live.get(r.pr).draft)).slice(0, 4)) {
     const pr = live.get(r.pr) || await c.api('GET', `${c.root}/pulls/${r.pr}`);
-    lifecycle.push({ pr, expectedId: r.rescueId, excluded: manualReason(pr) });
+    lifecycle.push({ pr, expectedId: r.rescueId, observed: observedRecord(r), excluded: manualReason(pr) });
   }
   for (const r of Object.values(initial.records).filter(r => RETURNED.has(r.state) || r.state === 'MERGED').slice(0, 8)) {
     const pr = live.get(r.pr) || await c.api('GET', `${c.root}/pulls/${r.pr}`);
     let timedOut = false;
     if (r.state === 'AWAITING_PUSH') timedOut = now - Date.parse(r.stagedAt) > 2 * 3600000;
     else if (RETURNED.has(r.state) && !r.pendingIntegration && !pr.merged && !pr.merged_at && now - Date.parse(r.integrationRequestedAt || r.returnedAt) > store.config.queueStallMs) timedOut = true;
-    lifecycle.push({ pr, expectedId: r.rescueId, excluded: manualReason(pr), timedOut });
+    lifecycle.push({ pr, expectedId: r.rescueId, observed: observedRecord(r), excluded: manualReason(pr), timedOut });
   }
   const candidates = all.filter(pr => !pr.draft && (!initial.records[pr.number] || !initial.records[pr.number].lease && !RETURNED.has(initial.records[pr.number].state) && !TERMINAL.has(initial.records[pr.number].state)));
   const start = initial.cursor < candidates.length ? initial.cursor : 0;
@@ -102,8 +103,11 @@ export async function coordinate(c, store, { now = Date.now(), runId, runAttempt
   const result = await store.mutate(state => {
     state.config = store.config;
     recoverStale(state, runStates, now);
-    for (const { pr, expectedId, excluded, timedOut } of lifecycle) {
+    for (const { pr, expectedId, observed, excluded, timedOut } of lifecycle) {
       const r = state.records[pr.number]; if (!r || r.rescueId !== expectedId) continue;
+      // A relay may finish between this scan's GET and the state CAS. Its newer
+      // evidence wins; a stale PR head must not undo an observed successful push.
+      if (Object.entries(observed).some(([key, value]) => r[key] !== value)) continue;
       if (pr.merged || pr.merged_at) {
         if (!['MERGED', 'DEV'].includes(r.state)) {
           r.mergedAt = pr.merged_at || new Date(now).toISOString(); r.mergeCommit = pr.merge_commit_sha;
@@ -111,10 +115,13 @@ export async function coordinate(c, store, { now = Date.now(), runId, runAttempt
         }
       } else if (pr.state === 'closed') transition(state, r, 'CLOSED', 'PR closed without merge', now);
       else if (excluded) failure(state, r, excluded, now, true);
-      else if (pr.head.sha !== r.headSha && pr.head.sha !== r.pushedSha) {
+      else if (pr.head.sha !== r.headSha && pr.head.sha !== r.pushedSha &&
+          !(r.state === 'AWAITING_PUSH' && pr.head.sha === r.stagedSha)) {
         failure(state, r, 'HEAD_CHANGED_AFTER_RESCUE', now);
       }
-      else if (timedOut && !r.lease) failure(state, r, r.state === 'AWAITING_PUSH' ? 'WORK_PUSH_RELAY_STALLED' : 'INTEGRATION_RETURN_STALLED', now);
+      else if (timedOut && !r.lease && !(r.pushLease && now - Date.parse(r.pushLease.at) <= 600000)) {
+        failure(state, r, r.state === 'AWAITING_PUSH' ? 'WORK_PUSH_RELAY_STALLED' : 'INTEGRATION_RETURN_STALLED', now);
+      }
     }
     for (const obs of observations) mergeObserved(state, obs, now);
     // Detect dependency cycles even when the participants are in different scan windows.

@@ -150,6 +150,11 @@ export function inspectResolvedTree(record, work) {
   }
   return paths;
 }
+export function assertValidationUnchanged(work, testedHead, configuration) {
+  assert.equal(gitConfigFingerprint(work), configuration, 'VALIDATION_CHANGED_GIT_CONFIGURATION');
+  assert.equal(git(['rev-parse', 'HEAD'], work), testedHead, 'VALIDATION_REWROTE_HISTORY');
+  assert.equal(git(['status', '--porcelain'], work), '', 'VALIDATION_MODIFIED_WORKTREE');
+}
 async function run(command, args, work, log) {
   await new Promise((resolveRun, reject) => {
     const user = process.env.RESCUE_VALIDATION_USER;
@@ -231,10 +236,10 @@ async function main() {
           git(['commit', '-m', `chore(integration-rescue): reconcile PR #${pr} with develop`], work);
         }
         await update((state, r) => { r.resolution = report.summary.slice(0, 240); transition(state, r, 'VALIDATING', '競合解消完了。対象のfast verificationを実行中', Date.now()); });
+        const testedHead = git(['rev-parse', 'HEAD'], work);
         await run('npm', ['ci'], work);
         await run(process.execPath, [resolve(import.meta.dirname, 'validate.mjs'), 'fast', record.developSha, 'HEAD'], work);
-        const testedHead = git(['rev-parse', 'HEAD'], work);
-        assert.equal(git(['status', '--porcelain'], work), '', 'VALIDATION_MODIFIED_WORKTREE');
+        assertValidationUnchanged(work, testedHead, context.gitConfigFingerprint);
         await preflight(c, record, workspaceConsumers(resolve(import.meta.dirname, '..')));
         await update((state, r) => { r.validation = { status: 'passed', command: 'npm ci + trusted validate.mjs fast', head: testedHead, at: new Date().toISOString() }; transition(state, r, 'PUSHING', '検証成功。headとdevelopを再確認して元PR branchへpush', Date.now()); });
         // GitHub mutable head is checked again immediately before an ordinary fast-forward push.
