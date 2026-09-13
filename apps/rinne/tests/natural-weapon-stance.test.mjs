@@ -68,7 +68,7 @@ test('natural stance preserves both hand contact transforms while changing arm b
   assert.ok(runtime.point(c,'rightLowerArm').distanceTo(elbowBefore)>1e-4,'elbow should actually be re-solved, not leave the old bend untouched');
 });
 
-test('natural stance only touches held-weapon guard windows, never the authored strike body',async()=>{
+test('natural stance only touches visibly held-weapon guard windows, never the authored strike body',async()=>{
   const {shouldNaturalizeWeaponStance}=await stanceModule();
   const base={weapon:'sword',weaponDraw:1,combatReady:true,weaponTransition:false,attack:null,reaction:null,recovery:null,dead:false,zanshin:null};
   assert.equal(shouldNaturalizeWeaponStance(base,null),true,'ready stance should be corrected');
@@ -77,6 +77,8 @@ test('natural stance only touches held-weapon guard windows, never the authored 
   assert.equal(shouldNaturalizeWeaponStance({...base,attack:{}},.90),true,'return-to-guard may be corrected');
   assert.equal(shouldNaturalizeWeaponStance({...base,weapon:'fist'},null),false,'unarmed motion is out of scope');
   assert.equal(shouldNaturalizeWeaponStance({...base,weaponDraw:.1,combatReady:false},null),false,'sheathed weapon must not pull the arms');
+  assert.equal(shouldNaturalizeWeaponStance({...base,weaponDraw:.1,combatReady:true,weaponTransition:true},null),false,'draw transition must not pull arms before the weapon clears the scabbard');
+  assert.equal(shouldNaturalizeWeaponStance({...base,weaponDraw:.26,combatReady:true,weaponTransition:true},null),true,'draw transition may naturalize once the weapon is visibly held');
   assert.equal(shouldNaturalizeWeaponStance({...base,reaction:{}},null),false,'hit reaction must not be overwritten');
 });
 
