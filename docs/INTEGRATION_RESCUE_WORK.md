@@ -1,5 +1,14 @@
 # Integration Rescue: existing Work push and watchdog
 
+## Workによる競合修復の自動引き継ぎ（導入範囲）
+
+ユーザーの継続的な依頼に基づき、既存の定期Workへ、Actionsが同file競合で停止したPRの仕様確認と修復を追加する。
+対象は `FAILED_MANUAL:SEMANTIC_CONFLICT` のうち、最新の確定仕様と両側の変更目的を両立できるもの。
+明示hold・review・未解決thread・browser repair所有権・追加API課金禁止は維持する。
+既存rescue-state上のCAS予約と有限attemptを使い、元PRを修復して通常Integrationへ戻す。
+仕様を決められない案件はその理由を記録して停止し、同じheadを繰り返し修復しない。
+導入コードがdevelopへ統合されるまで、定期Workはこの修復経路を実稼働させない。
+
 追加API課金なし。既存ChatGPT Work / GitHub接続で1回分の復旧を処理し、GitHubを正本に終了する。新しいモデルAPI、PAT、常駐server、独自queueは作らない。利用枠不足時に追加課金へfallbackしない。
 
 ## 読み込みと役割
