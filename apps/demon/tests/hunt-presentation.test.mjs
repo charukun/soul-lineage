@@ -14,16 +14,16 @@ test('raid choices use size, text risk, and actual counts instead of names',()=>
  for(const count of [8,12,16])assert.ok(html.includes(`住人 <b>${count}</b>人`));
  assert.ok(html.includes('討伐騎士'));
 });
-test('selection IDs are escaped and memory is secondary',()=>{
+test('selection IDs are escaped and learned ability is secondary',()=>{
  const html=renderRaidRoutes([{...offers[0],id:'a" onclick="bad',name:'<script>bad</script>'}],{...profile,unlocked:['traveller']});
  assert.ok(html.includes('data-village="a&quot; onclick=&quot;bad"'));
- assert.ok(!html.includes('<script>'));assert.ok(html.includes('習得済み'));
+ assert.ok(!html.includes('<script>'));assert.ok(html.includes('刻印済み'));
  assert.ok(html.indexOf('小規模の村')<html.indexOf('命の余熱'));
 });
-test('imported visited village is disabled and reports simulated residents explicitly',()=>{
+test('imported visited village is disabled and marked as a scar without tutorial prose',()=>{
  const imported={...offers[0],source:'imported-local',entities:[]};
  const a=renderRaidRoutes([],{...profile,imported,visits:{[imported.id]:{}}});
- assert.match(a,/data-imported="1" disabled/);assert.ok(a.includes('再訪不可'));
+ assert.match(a,/data-imported="1" disabled/);assert.ok(a.includes('喰痕'));assert.ok(!a.includes('再訪不可'));
  const b=renderRaidRoutes([],{...profile,imported});
  assert.ok(b.includes('住人と危険度は単独狩り用の生成値'));assert.ok(!b.includes('固有名はカードに表示しない'));
 });
@@ -49,6 +49,13 @@ test('start/end return the torso, jaw and planted feet to the resting pose',()=>
  const a=sampleDevourMotion(0),b=sampleDevourMotion(1);
  for(const key of Object.keys(a).filter(k=>!['phase','progress'].includes(k)))assert.ok(Math.abs(a[key]-b[key])<1e-12,key);
 });
+test('UI uses lineage and adaptive combat instead of manual technique slots',()=>{
+ const main=readFileSync(new URL('../src/web/main.js',import.meta.url),'utf8');
+ const index=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.match(main,/renderLineage\(profile\)/);assert.match(main,/store\.learn\(role,move\)/);
+ assert.ok(!main.includes('data-slot'));assert.ok(!main.includes('store.equip('));
+ assert.ok(index.includes('転生史'));assert.ok(index.includes('放置すると徘徊'));assert.ok(!index.includes('二度と戻れない'));
+});
 test('real adapter and session wire progress, cleanup and the new route renderer',()=>{
  const creature=readFileSync(new URL('../src/web/creatures.js',import.meta.url),'utf8');
  const session=readFileSync(new URL(import.meta.resolve('@soul/raid')),'utf8');
@@ -56,5 +63,7 @@ test('real adapter and session wire progress, cleanup and the new route renderer
  assert.match(creature,/Number\.isFinite\(a\.devourProgress\)/);assert.match(creature,/applyCapturedPose\(g,a\.capturedBy\)/);
  assert.match(creature,/foot\.quaternion\.copy\(inverse\)/);assert.ok(!creature.includes('Math.sin(time*10)'));
  assert.match(session,/advanceDevour\(this,dt,v\.amount\)/);assert.match(session,/cancelDevour\(this\)/);
+ assert.match(session,/autoRoam/);assert.match(session,/f\.retreat/);
  assert.match(main,/renderRaidRoutes\(offers,profile\)/);assert.match(main,/import '\.\/raid-routes\.css'/);
 });
+EOF
