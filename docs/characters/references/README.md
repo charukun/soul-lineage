@@ -25,17 +25,19 @@ This directory stores visual character reference sheets used to keep concept art
 
 These sheets are `CONCEPT TARGET / NOT IMPLEMENTED` unless a detail is already covered by the current MasterCharacter or modular appearance contracts. They are review targets for future authored parts and generation rules, not proof that the depicted hair, clothing, body shape, props, armor, weapons, or accessories exist in runtime today.
 
+The repository stores compact AVIF review previews. The original generated high-resolution images are production-source inputs outside this commit, so these previews must not be described as original/source assets.
+
 Initial set:
 
-- `child-boy.png`
-- `child-girl.png`
-- `elderly-man.png`
-- `elderly-woman.png`
-- `guard.png`
-- `knight.png`
-- `blacksmith.png`
-- `laborer.png`
-- `hunter.png`
-- `arcanist.png`
+- `child-boy.avif`
+- `child-girl.avif`
+- `elderly-man.avif`
+- `elderly-woman.avif`
+- `guard.avif`
+- `knight.avif`
+- `blacksmith.avif`
+- `laborer.avif`
+- `hunter.avif`
+- `arcanist.avif`
 
 When adopting details from these sheets, classify each adopted element as `IMPLEMENTED MODULAR PARTS`, `PROPOSED PARTS`, or `GAME EQUIPMENT` before connecting it to runtime generation.
