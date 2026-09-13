@@ -28,5 +28,9 @@ test('PULSE character references groups repository image assets without exposing
   assert.equal(result.groups[1].title, 'Shino');
   assert.equal(result.groups[1].primaryAsset.name, 'shino-character-reference-sheet-v2.png');
   assert.equal(result.groups[0].readmeUrl.endsWith('/README.md'), true);
-  assert.deepEqual(calls, [...fixtures.keys()]);
+  assert.deepEqual(calls, [
+    '/contents/docs/characters/references?ref=develop',
+    '/contents/docs/characters/references/npc-role-set?ref=develop',
+    '/contents/docs/characters/references/shino?ref=develop',
+  ]);
 });
