@@ -73,6 +73,12 @@ export function readyBodyStrength(a,progress=null){
   return guardBlendStrength(a,progress);
 }
 
+/** Static guard gets a small fencing base without changing locomotion or attack footwork. */
+export function readyBaseStrength(a,descriptor=null){
+  if(!a||descriptor?.type!=='combat'||a.air||Math.hypot(a.vx||0,a.vz||0)>.10)return 0;
+  return readyBodyStrength(a,null);
+}
+
 export class HumanoidRuntime extends BaseHumanoidRuntime{
   captureHandLocks(c,weapon){
     c.root.updateMatrixWorld(true);
@@ -82,16 +88,44 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
     }]));
   }
 
+  ground(c,a,d,commit){
+    super.ground(c,a,d,commit);
+    const strength=readyBaseStrength(a,d);
+    c.readyBaseStrength=strength;
+    if(!strength)return;
+    const s=c.legLength/.82,flip=c.vrm.meta.metaVersion==='1'?-1:1;
+    const hips=c.bones.hips;
+    // Lower the centre of mass a little and turn the pelvis against the weapon-side
+    // shoulder. The actor root never moves, so gameplay position/collision stay intact.
+    hips.position.y-=.018*s*strength;
+    hips.position.z+=.010*s*strength;
+    hips.quaternion.multiply(Q().setFromEuler(new T.Euler(-.010*flip*strength,-.035*strength,0,'YXZ'))).normalize();
+    c.root.updateMatrixWorld(true);
+    for(const side of ['left','right']){
+      const target=c.neutralPoints[side+'Foot'].clone();
+      const lateral=(side==='left'?-1:1)*.055*s*strength;
+      const stagger=(side==='left'?.110:-.075)*s*strength;
+      target.x+=lateral;
+      target.z+=stagger;
+      this.solve(c,side,'leg',target,v(0,0,1));
+    }
+    c.root.updateMatrixWorld(true);
+  }
+
   applyReadyBody(c,strength,commit=false){
     strength=clamp(strength);
     c.readyBodyStrength=strength;
     if(!strength)return;
     const flip=c.vrm.meta.metaVersion==='1'?-1:1;
+    // A guard should read through the rib cage and shoulders, not as two arms pasted
+    // onto an idle torso. Keep the turn small and counter it at the neck/head so gaze
+    // stays on target while the weapon-side shoulder participates in the pose.
     const deltas={
-      spine:new T.Euler(-.030*flip*strength,0,0,'YXZ'),
-      chest:new T.Euler(-.010*flip*strength,0,0,'YXZ'),
-      neck:new T.Euler(.012*flip*strength,0,0,'YXZ'),
-      head:new T.Euler(.020*flip*strength,0,0,'YXZ')
+      spine:new T.Euler(-.034*flip*strength,.030*strength,.008*flip*strength,'YXZ'),
+      chest:new T.Euler(-.016*flip*strength,.042*strength,-.010*flip*strength,'YXZ'),
+      upperChest:new T.Euler(0,.020*strength,-.006*flip*strength,'YXZ'),
+      neck:new T.Euler(.012*flip*strength,-.032*strength,0,'YXZ'),
+      head:new T.Euler(.020*flip*strength,-.060*strength,0,'YXZ')
     };
     for(const [name,euler]of Object.entries(deltas)){
       const bone=c.bones[name];if(!bone)continue;
@@ -162,6 +196,6 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
   }
 
   report(){
-    return {...super.report(),naturalStance:this.current?.naturalStanceReport??null,readyBodyStrength:this.current?.readyBodyStrength??0};
+    return {...super.report(),naturalStance:this.current?.naturalStanceReport??null,readyBodyStrength:this.current?.readyBodyStrength??0,readyBaseStrength:this.current?.readyBaseStrength??0};
   }
 }
