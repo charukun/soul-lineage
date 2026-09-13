@@ -27,7 +27,7 @@ export async function recoverQueue(c, { now = Date.now(), limit = 12, budgetMs =
         const queue = statuses.find(s => s.context === 'integration/queue');
         // Known semantic/review holds are not missed CI events. Integration owns
         // their disposition; this observer never clears or rewrites them.
-        const missed = !queue || /fast gate|another check|cancelled.*CI|deferred|time budget|HTTP (429|5\d\d)/i.test(queue.description || '');
+        const missed = !queue || /fast gate|another check|cancelled.*CI|develop verification is running|deferred|time budget|HTTP (429|5\d\d)/i.test(queue.description || '');
         if (missed && await recoveryReady(c, pr)) report.wake.push({ pr: pr.number, head: pr.head.sha });
       } else {
         const recovery = await recoverCancelledCi(c, pr);

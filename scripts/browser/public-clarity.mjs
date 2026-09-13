@@ -29,7 +29,10 @@ export function registerClarityTests({test, expect, targets, base}) {
           await verifySoloClarity(page, frame, expect, testInfo);
         } else if (target.app === 'village') {
           const {verifyVillageFirstBuild} = await import('../../apps/village/tests/first-build.browser.mjs');
-          await verifyVillageFirstBuild(page, expect, testInfo, () => capturePlayedAudio(page, playedSources));
+          // Intermediate screenshots took 17s in the #145 trace. Keep every
+          // interaction/persistence assertion and the same 60s budget, with the
+          // final screenshot and automatic failure screenshot/trace retained.
+          await verifyVillageFirstBuild(page, expect, testInfo, () => capturePlayedAudio(page, playedSources), { captureMilestones: false });
         } else {
           await page.locator('#begin').click();
           await page.locator('[data-village]').first().click();

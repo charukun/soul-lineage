@@ -98,6 +98,8 @@ test('external scan recovers missed Integration requests but never merges or edi
   const report = await recoverQueue(f.c);
   assert.equal(report.dispatched, true);
   assert.deepEqual(f.posts, [{ path: `/repos/${repository}/actions/workflows/deploy.yml/dispatches`, body: { ref: 'develop' } }]);
+  f.posts = []; f.statuses[0].description = 'Held: current develop verification is running in 123';
+  assert.equal((await recoverQueue(f.c)).dispatched, true); assert.equal(f.posts.length, 1);
   f.posts = []; f.statuses[0].description = 'Held: overlapping changes since PR base require Integration review';
   assert.equal((await recoverQueue(f.c)).dispatched, false); assert.equal(f.posts.length, 0);
 });

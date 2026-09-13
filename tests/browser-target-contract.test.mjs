@@ -32,6 +32,20 @@ test('diagnostics reuse exact range-abort contract and retain all unexpected fai
  assert.equal(result.requestFailures.length,3);assert.equal(result.expectedMediaAborts.length,1);assert.equal(result.failedRequests.length,2);
  assert.equal((await mediaDiagnostics([request()],new Set(),origin)).failedRequests.length,1);
 });
+test('playback captured before reload survives a new document without accepting unplayed blobs',async()=>{
+ const origin='https://local.test',old=`blob:${origin}/old`,next=`blob:${origin}/new`,sources=new Set();
+ let players=[{currentSrc:old,currentTime:3,readyState:4,error:null}];
+ const page={locator:()=>({evaluateAll:async fn=>fn(players)})};
+ await capturePlayedAudio(page,sources);
+ players=[{currentSrc:next,currentTime:0,readyState:4,error:null}];
+ await capturePlayedAudio(page,sources);
+ const request=url=>({url:()=>url,method:()=> 'GET',resourceType:()=> 'media',failure:()=>({errorText:'net::ERR_ABORTED'}),response:async()=>({status:()=>206,headers:()=>({'content-type':'audio/ogg'})})});
+ const result=await mediaDiagnostics([request(old),request(next)],sources,origin);
+ assert.deepEqual(result.expectedMediaAborts.map(x=>x.url),[old]);
+ assert.deepEqual(result.failedRequests.map(x=>x.url),[next]);
+ const source=readFileSync(new URL('../scripts/browser/public.spec.mjs',import.meta.url),'utf8');
+ assert.match(source,/await capturePlayedAudio\(page, playedSources\);\s+await page.reload\(\)/);
+});
 test('separated audio case retains 150 tracks, decoding, progress, pause and Production absence checks',()=>{
  const source=readFileSync(new URL('../scripts/browser/public-music.mjs',import.meta.url),'utf8');
  for(const text of ['toHaveCount(150)','playing.error','playing.ready','playing.paused','player.currentTime','data-stop','toBe(\'undefined\')','toHaveCount(0)','test.setTimeout(60000)'])assert.ok(source.includes(text),text);
