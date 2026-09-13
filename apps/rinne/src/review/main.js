@@ -82,6 +82,7 @@ async function startReview() {
       document.dispatchEvent(new CustomEvent('review-sequence-frame',{detail:{index:frame.index,names:[...sequenceNames]}}));
     }
     body?.resetPose?.();
+    body?.applySwordTravel?.(swordSequence,clock.time,state.inPlace);
     const localTime=frame?.time||0;
     if(action){action.enabled=true;action.paused=false;action.time=localTime;mixer.update(0);if(body.resetPose){if(frame.previous)sampleRawClip(sequence[frame.previous.index],body.root,frame.previous.phase*sequence[frame.previous.index].duration);sampleRawClip(activeClip,body.root,localTime,frame.previous?frame.weight:1);}}
     weapon();body?.afterSample?.(localTime,state.clip,state);body?.root.updateMatrixWorld(true);

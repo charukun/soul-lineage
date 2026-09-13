@@ -6,7 +6,7 @@ import * as T from '../vendor/three.js';
 
 export const SLASH_SECONDS = .66;
 export const SLASH_TIMING = Object.freeze({active:Object.freeze([.35,.64]),contact:.50,launch:.34,plant:.49,chain:.86,lead:1});
-export const SLASH_REVISION = 'shino-slash-2';
+export const SLASH_REVISION = 'shino-slash-3';
 const clamp = (x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 
 // Monotone cubic interpolation keeps momentum through intermediate poses without
@@ -32,20 +32,18 @@ export function poseCurve(rows, t) {
 }
 
 const body = {
-  // Hips lead the chest; the weapon stays loaded until the forward foot lands.
-  hips:[[0,0,0,0],[.22,-.04,-.32,-.035],[.34,-.09,-.36,-.045],[.44,-.12,.04,-.035],[.50,-.14,.35,-.02],[.62,-.10,.53,.025],[.78,-.055,.38,.015],[1,0,0,0]],
-  spine:[[0,0,0,0],[.26,.025,-.16,.045],[.38,-.015,-.20,.04],[.50,-.10,.15,-.07],[.62,-.085,.27,-.06],[.80,-.03,.16,-.025],[1,0,0,0]],
-  chest:[[0,0,0,0],[.30,.04,-.14,.03],[.40,.015,-.16,.015],[.50,-.05,.08,-.06],[.62,-.07,.19,-.045],[.80,-.015,.09,-.015],[1,0,0,0]],
-  head:[[0,0,0,0],[.34,-.015,.33,0],[.50,.055,-.28,.04],[.66,.04,-.44,.025],[.82,.02,-.22,0],[1,0,0,0]],
-  offset:[[0,0,-.028,0],[.24,-.040,-.135,-.040],[.35,-.030,-.145,-.015],[.47,.035,-.115,.13],[.55,.045,-.115,.16],[.70,.025,-.070,.115],[.84,.013,-.048,.055],[1,0,-.028,0]],
-  // These are hand targets, not a generic circular blade orbit.
-  grip:[[0,-.19,-.37,.35],[.22,-.38,-.15,.16],[.35,-.43,-.10,.15],[.44,-.40,-.14,.30],[.50,-.055,-.27,.53],[.59,.32,-.42,.42],[.72,.31,-.46,.28],[.84,.15,-.40,.31],[1,-.19,-.37,.35]],
-  // Blade direction is spherical (yaw/elevation), with the cutting plane rolling
-  // through the wrist instead of a direction-vector lerp collapsing at opposition.
-  blade:[[0,.398,1.15,0],[.25,-1.68,.94,-.38],[.37,-1.83,.82,-.52],[.44,-1.40,.38,-.48],[.50,0,.02,-.15],[.59,1.47,-.30,.25],[.72,1.94,-.40,.46],[.84,1.50,.30,.36],[1,.398,1.15,0]],
-  shield:[[0,.25,-.32,.17],[.30,.24,-.28,.21],[.50,.29,-.29,.19],[.65,.34,-.28,.14],[.84,.29,-.31,.17],[1,.25,-.32,.17]],
-  lead:[[0,.045,0,.10],[.16,.045,0,.10],[.31,.070,.065,.19],[.46,.10,0,.34],[.73,.10,0,.34],[.87,.070,.045,.22],[1,.045,0,.10]],
-  rear:[[0,-.045,0,-.10],[.35,-.070,0,-.10],[.56,-.075,.010,-.105],[.72,-.045,.018,-.06],[.88,-.045,0,-.045],[1,-.045,0,-.10]],
+  // Ground -> pelvis -> chest -> blade. The long loading arc is followed by a
+  // short release; recovery moves the feet again instead of sliding planted legs.
+  hips:[[0,0,0,0],[.23,-.10,-.49,-.07],[.34,-.15,-.48,-.08],[.44,-.21,.05,-.06],[.50,-.22,.39,-.025],[.62,-.15,.65,.065],[.76,-.08,.51,.035],[1,0,0,0]],
+  spine:[[0,0,0,0],[.28,.045,-.21,.085],[.38,.025,-.25,.055],[.50,-.14,.12,-.10],[.62,-.11,.26,-.09],[.80,-.03,.13,-.035],[1,0,0,0]],
+  chest:[[0,0,0,0],[.30,.055,-.14,.06],[.40,.025,-.17,.045],[.50,-.065,.07,-.07],[.63,-.09,.16,-.055],[.80,-.02,.07,-.02],[1,0,0,0]],
+  head:[[0,0,0,0],[.34,-.015,.46,0],[.50,.085,-.29,.045],[.66,.05,-.56,.035],[.82,.02,-.23,0],[1,0,0,0]],
+  offset:[[0,0,-.028,0],[.22,-.065,-.17,-.065],[.34,-.045,-.205,-.01],[.47,.055,-.175,.27],[.56,.08,-.16,.34],[.70,.06,-.10,.33],[.84,.025,-.06,.16],[1,0,-.028,0]],
+  grip:[[0,-.19,-.37,.35],[.23,-.34,-.13,.17],[.36,-.37,-.055,.18],[.44,-.40,-.10,.29],[.50,-.055,-.22,.55],[.59,.31,-.40,.43],[.72,.28,-.45,.27],[.84,.11,-.38,.30],[1,-.19,-.37,.35]],
+  blade:[[0,.398,1.15,0],[.25,-1.80,1.0,-.40],[.38,-1.95,.82,-.50],[.44,-1.42,.38,-.45],[.50,0,.02,-.15],[.59,1.58,-.33,.27],[.72,2.02,-.42,.42],[.84,1.45,.35,.32],[1,.398,1.15,0]],
+  shield:[[0,.25,-.32,.17],[.30,.34,-.27,.21],[.50,.28,-.27,.21],[.65,.37,-.30,.07],[.84,.30,-.31,.13],[1,.25,-.32,.17]],
+  lead:[[0,.045,0,.10],[.16,.045,0,.10],[.31,.095,.115,.30],[.46,.15,0,.61],[.73,.15,0,.61],[.87,.09,.105,.35],[1,.045,0,.10]],
+  rear:[[0,-.045,0,-.10],[.35,-.065,0,-.10],[.53,-.09,.085,.035],[.72,-.07,0,.20],[.79,-.07,0,.20],[.90,-.055,.075,.07],[1,-.045,0,-.10]],
 };
 
 export function slashTime(phase, contact=SLASH_TIMING.contact) {
@@ -88,10 +86,11 @@ export function applySwordPose(runtime,c,pose,p) {
     runtime.setWorldQ(c,side+'Foot',new T.Quaternion().setFromEuler(new T.Euler(-heel,yaw,0,'YXZ')));
   }
   const [x,y,z]=pose.grip,[yaw,elevation,roll]=pose.blade;
-  const grip=new T.Vector3(x*s,c.shoulderY+y*s,z*s);
+  const carry=new T.Vector3(pose.offset[0],(pose.offset[1]+.028)*.72,pose.offset[2]).multiplyScalar(s);
+  const grip=new T.Vector3(x*s,c.shoulderY+y*s,z*s).add(carry);
   const dir=new T.Vector3(Math.sin(yaw)*Math.cos(elevation),Math.sin(elevation),Math.cos(yaw)*Math.cos(elevation));
   runtime.attachHands(c,'sword',grip,dir,roll,1);
   const [lx,ly,lz]=pose.shield;
-  runtime.solve(c,'left','arm',new T.Vector3(lx*s,c.shoulderY+ly*s,lz*s),new T.Vector3(.6,-1,0));
+  runtime.solve(c,'left','arm',new T.Vector3(lx*s,c.shoulderY+ly*s,lz*s).add(carry),new T.Vector3(.6,-1,0));
   c.root.updateMatrixWorld(true);
 }

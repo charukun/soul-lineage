@@ -8,7 +8,7 @@ import {HumanoidRuntime} from '../public/simulator/src/humanoid.js';
 import {SLASH_SECONDS,SLASH_REVISION} from '../public/simulator/src/authored-slash.js';
 import {PERFORMANCE_SECONDS,PERFORMANCE_REVISION,SWORD_TIMINGS,applyPerformance} from '../public/simulator/src/sword-performance.js';
 import {SWORD_MOVES,SWORD_REVISION} from '../public/simulator/src/authored-sword.js';
-import {SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence} from '../public/simulator/src/sword-sequence.js';
+import {SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence,swordSequenceTravel} from '../public/simulator/src/sword-sequence.js';
 import {createReviewSword} from '../public/simulator/src/review-sword.js';
 
 // Exercise the actual viewer handlers and real model/rig. Only browser surfaces,
@@ -34,7 +34,7 @@ test('existing-motion viewer composes clips, selects individual techniques and s
  const parse=GLTFLoader.prototype.parseAsync;
  GLTFLoader.prototype.parseAsync=function(data,path){this.register(()=>({name:'CpuViewerTextureStub',loadTexture:()=>Promise.resolve(new Three.Texture())}));return parse.call(this,data,path);};
  globalThis.window=window;globalThis.self=globalThis;
- const context={T:{...Three,WebGLRenderer:Renderer},OrbitControls,HumanoidRuntime,SLASH_SECONDS,SLASH_REVISION,PERFORMANCE_SECONDS,PERFORMANCE_REVISION,SWORD_TIMINGS,applyPerformance,SWORD_MOVES,SWORD_REVISION,SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence,createReviewSword,document,window,location,URL,URLSearchParams,devicePixelRatio:1,requestAnimationFrame:fn=>{nextFrame=fn;return 1;},cancelAnimationFrame(){}};
+ const context={T:{...Three,WebGLRenderer:Renderer},OrbitControls,HumanoidRuntime,SLASH_SECONDS,SLASH_REVISION,PERFORMANCE_SECONDS,PERFORMANCE_REVISION,SWORD_TIMINGS,applyPerformance,SWORD_MOVES,SWORD_REVISION,SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence,swordSequenceTravel,createReviewSword,document,window,location,URL,URLSearchParams,devicePixelRatio:1,requestAnimationFrame:fn=>{nextFrame=fn;return 1;},cancelAnimationFrame(){}};
  try{
   await vm.runInNewContext('(async()=>{'+source+'})()',context);
   assert.equal(ids.play.disabled,false,ids['motion-status'].textContent);

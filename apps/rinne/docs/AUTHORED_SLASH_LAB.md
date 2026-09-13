@@ -10,7 +10,7 @@ The current Lab home opens **既存の技で30秒演武**, linking to
 `/simulator/motion-review.html?mode=sequence`; see
 [existing sword motions](EXISTING_SWORD_MOTIONS_LAB.md) for the latest changes.
 The same viewer offers all five improved individual techniques at `?mode=single`
-and a four-technique composition at `?mode=combination`, with pause/restart,
+and a seven-cut composition at `?mode=combination`, with pause/restart,
 speed, seek, frame steps, orbit and camera presets.
 Its back link returns to the Lab home. No model or clip selection is required.
 

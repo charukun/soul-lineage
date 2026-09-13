@@ -4,16 +4,16 @@ import {HumanoidRuntime} from './humanoid.js';
 import {SLASH_SECONDS} from './authored-slash.js';
 import {PERFORMANCE_SECONDS,SWORD_TIMINGS,applyPerformance} from './sword-performance.js';
 import {SWORD_MOVES,SWORD_REVISION} from './authored-sword.js';
-import {SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence} from './sword-sequence.js';
+import {SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence,swordSequenceTravel} from './sword-sequence.js';
 import {createReviewSword} from './review-sword.js';
 const $=id=>document.getElementById(id),canvas=$('motion-stage');
 let renderer,runtime,controls,shadow,frame=0,playing=true,last=0,elapsed=0;
 const requestedMode=new URLSearchParams(location.search).get('mode');
 let mode=requestedMode==='flow'?'combination':['combination','baseline','sequence','single'].includes(requestedMode)?requestedMode:'single';
 let singleKind='slash';
-const completeSequence=createSwordSequence(['slash','back','uppercut','heavy'],{connected:false});
+const completeSequence=createSwordSequence(SHORT_SWORD_SEQUENCE.entries.map(row=>row.kind),{connected:false});
 const shortMode=()=>mode==='combination'||mode==='baseline';
-const duration=()=>shortMode()?SHORT_SWORD_SECONDS:mode==='sequence'?PERFORMANCE_SECONDS:SWORD_MOVES[singleKind].seconds;
+const duration=()=>mode==='baseline'?Math.max(SHORT_SWORD_SECONDS,completeSequence.duration+.3):mode==='combination'?SHORT_SWORD_SECONDS:mode==='sequence'?PERFORMANCE_SECONDS:SWORD_MOVES[singleKind].seconds;
 const scene=new T.Scene();scene.background=new T.Color('#25343c');scene.fog=new T.Fog('#25343c',8,16);
 const camera=new T.PerspectiveCamera(35,1,.05,30),focus=new T.Vector3(0,1.13,.3);
 const actor={id:'motion-review-shino',hero:true,weapon:'sword',weaponDraw:1,lifeAgeYears:22,x:0,z:0,yaw:0,air:0,vx:0,vz:0,combatReady:true,_humanoidClock:0,attack:null};
@@ -55,13 +55,15 @@ function pose(time){
  let label;
  if(shortMode()){
   Object.assign(actor,{x:0,z:0,yaw:0,vx:0,vz:0,_humanoidClock:time,_humanoidPhase:0});
-  const f=applySwordSequence(actor,mode==='combination'?SHORT_SWORD_SEQUENCE:completeSequence,time,{start:.3});label=f.current.label+(f.previous?' · '+f.previous.label+'から接続':'');
- }else if(mode==='sequence')label=applyPerformance(actor,time,runtime.current.locomotion).event.label;
+  const sequence=mode==='combination'?SHORT_SWORD_SEQUENCE:completeSequence;
+  const f=applySwordSequence(actor,sequence,time,{start:.3});Object.assign(actor,swordSequenceTravel(sequence,time-.3,runtime.current.unit*runtime.current.legLength/.82));label=f.current.label+(f.previous?' · '+f.previous.label+'から接続':'');
+ }else if(mode==='sequence')label=applyPerformance(actor,time,runtime.current.locomotion,runtime.current.unit*runtime.current.legLength/.82).event.label;
  else{Object.assign(actor,{x:0,z:0,yaw:0,vx:0,vz:0,_humanoidClock:time,_humanoidPhase:0,motionBlend:null,motionSequence:false,attack:{id:'single-'+singleKind,kind:singleKind,t:time,duration:SWORD_MOVES[singleKind].seconds}});label=SWORD_MOVES[singleKind].label+' · '+phaseLabel(time/SWORD_MOVES[singleKind].seconds);}
  return {result:runtime.render(actor),label};
 }
+function focusTarget(){const hips=runtime?.current?.raw?.hips?.getWorldPosition(new T.Vector3());return new T.Vector3(hips?.x??actor.x,1.13,(hips?.z??actor.z)+.25);}
 function follow(snap=false){
- const target=shortMode()?new T.Vector3(0,1.13,.3):new T.Vector3(actor.x,1.13,actor.z+.3),next=snap?target:focus.clone().lerp(target,.18),delta=next.clone().sub(focus);
+ const target=focusTarget(),next=snap?target:focus.clone().lerp(target,.18),delta=next.clone().sub(focus);
  camera.position.add(delta);controls.target.add(delta);focus.copy(next);
 }
 function render(){
@@ -82,12 +84,12 @@ function prepareAt(time){
 }
 function seek(time){playing=false;elapsed=Math.min(duration(),Math.max(0,time));prepareAt(elapsed);syncPlay();render();}
 function syncPlay(){$('play').textContent=playing?'一時停止':'再生';$('play').setAttribute('aria-pressed',String(playing));syncReference(Math.min(duration(),elapsed),true);}
-function fittedDistance(){return Math.max(shortMode()?5.8:4.9,1.5/(Math.tan(T.MathUtils.degToRad(camera.fov/2))*camera.aspect)+.65);}
-function view(id){if(!controls)return;const distance=fittedDistance(),yaw=({three:.72,front:0,side:Math.PI/2,back:Math.PI})[id]??.72;if(shortMode())focus.set(0,1.13,.3);else focus.set(actor.x,1.13,actor.z+.3);camera.position.set(focus.x+Math.sin(yaw)*distance,focus.y+distance*.16,focus.z+Math.cos(yaw)*distance);controls.target.copy(focus);controls.update();for(const b of document.querySelectorAll('[data-view]'))b.setAttribute('aria-pressed',String(b.dataset.view===id));render();}
+function fittedDistance(){return Math.max(shortMode()?5.8:4.9,1.7/(Math.tan(T.MathUtils.degToRad(camera.fov/2))*camera.aspect)+.65);}
+function view(id){if(!controls)return;const distance=fittedDistance(),yaw=({three:.72,front:0,side:Math.PI/2,back:Math.PI})[id]??.72;focus.copy(focusTarget());camera.position.set(focus.x+Math.sin(yaw)*distance,focus.y+distance*.16,focus.z+Math.cos(yaw)*distance);controls.target.copy(focus);controls.update();for(const b of document.querySelectorAll('[data-view]'))b.setAttribute('aria-pressed',String(b.dataset.view===id));render();}
 function resize(){if(!renderer)return;const box=canvas.parentElement.getBoundingClientRect();renderer.setSize(box.width,box.height,false);camera.aspect=box.width/Math.max(1,box.height);camera.updateProjectionMatrix();if(controls){const offset=camera.position.clone().sub(controls.target).normalize();camera.position.copy(controls.target).addScaledVector(offset,fittedDistance());controls.update();}render();}
 function configure(){
  $('mode').value=mode;$('single-kind').value=singleKind;$('single-kind-row').hidden=mode!=='single';$('timeline').max=String(duration());$('trail').disabled=mode==='single';$('compare-reference').disabled=!shortMode();if(!shortMode())$('compare-reference').checked=false;toggleReference();
- $('motion-version').textContent=`${SWORD_REVISION} · `+(shortMode()?'既存4技 / 4秒':mode==='sequence'?'既存5技 / 30秒':SWORD_MOVES[singleKind].label);
+ $('motion-version').textContent=`${SWORD_REVISION} · `+(shortMode()?`既存7連撃 / ${duration().toFixed(1)}秒`:mode==='sequence'?'既存5技・29撃 / 30秒':SWORD_MOVES[singleKind].label);
  if(runtime?.ready)status(shortMode()?'既存の技を接続。単体モーションにも同じ改善が反映されています。':mode==='sequence'?'既存の技・歩行・走行を組み合わせた30秒演武。':'技構成と同じ共有モーションを単体で確認できます。');
 }
 function restart(){elapsed=0;prepareAt(0);playing=true;last=0;syncPlay();render();}

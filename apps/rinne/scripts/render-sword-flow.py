@@ -40,17 +40,29 @@ def raster(screen,world,tris,uvs,mats,tex,img,zbuf):
     zbuf[y,x]=z
     for j in range(3):img[y,x,j]=min(255,int(px[j]*lighting))
  return img
-view=args[0] if args else 'three';angle={'three':.65,'front':0,'side':1.57,'back':3.14}[view];eye=np.array([np.sin(angle)*5,2.4,np.cos(angle)*5]);target=np.array([.23,1.05,1.05]);forward=target-eye;forward/=np.linalg.norm(forward);right=np.cross(forward,[0,1,0]);right/=np.linalg.norm(right);up=np.cross(right,forward);basis=np.stack([right,-up,forward],axis=1)
-frames=list(range(meta['frameCount'])) if '--all' in args else list(map(int,args[1:])) if len(args)>1 else [0,9,16,24,31,41,51,63,77,86,103,120];out=root/view;out.mkdir(exist_ok=True)
+view=args[0] if args else 'three';angle={'three':.65,'front':0,'side':1.57,'back':3.14}[view]
+follow='--follow' in args
+forward=np.array([-np.sin(angle),-.22,-np.cos(angle)]);forward/=np.linalg.norm(forward);right=np.cross(forward,[0,1,0]);right/=np.linalg.norm(right);up=np.cross(right,forward);basis=np.stack([right,-up,forward],axis=1)
+requested=[int(a) for a in args[1:] if not a.startswith('--')]
+defaults=[round(p*(meta['frameCount']-1)) for p in [0,.08,.14,.20,.26,.34,.43,.53,.64,.73,.86,1]]
+frames=list(range(meta['frameCount'])) if '--all' in args else requested or defaults
+frames=[i for i in frames if 0<=i<meta['frameCount']]
+name=view+('-follow' if follow else '');out=root/name;out.mkdir(exist_ok=True)
+target=np.array([0.,1.05,1.4]);scale=165.
+if not follow:
+ lo=np.min(verts,axis=(0,1));hi=np.max(verts,axis=(0,1));target=(lo+hi)/2
+ corners=np.array([[x,y,z] for x in [lo[0],hi[0]] for y in [lo[1],hi[1]] for z in [lo[2],hi[2]]]);bounds=(corners-target)@basis
+ scale=min(450/max(.01,np.ptp(bounds[:,0])),530/max(.01,np.ptp(bounds[:,1])))
 for idx in frames:
- world=np.asarray(verts[idx]);screen=(world-target)@basis;screen[:,:2]*=165;screen[:,0]+=256;screen[:,1]+=325
+ if follow:target=np.array([meta['points'][idx]['hips'][0],1.05,meta['points'][idx]['hips'][2]+.25])
+ world=np.asarray(verts[idx]);screen=(world-target)@basis;screen[:,:2]*=scale;screen[:,0]+=256;screen[:,1]+=325
  im=np.zeros((620,512,3),dtype=np.uint8);im[:]=[39,53,61];grid=Image.fromarray(im);gd=ImageDraw.Draw(grid)
  for k in np.arange(-4,5,.5):
   for line in [[[k,.02,-3],[k,.02,5]],[[-4,.02,k],[4,.02,k]]]:
-   pts=(np.array(line)-target)@basis;pts[:,:2]*=165;pts[:,0]+=256;pts[:,1]+=325;gd.line([tuple(pts[0,:2]),tuple(pts[1,:2])],fill=(54,73,79),width=1)
- im=np.array(grid);z=np.full((620,512),np.inf);raster(screen,world,triangles,uvs,material,tex,im,z);img=Image.fromarray(im);d=ImageDraw.Draw(img);d.text((20,20),f'SHINO | {view} | {idx/30:.2f} s',fill='#ead6ab');img.save(out/f'{idx:03}.png')
-selected=frames if len(frames)<=15 else [0,9,16,24,31,41,51,63,77,86,103,120]
+   pts=(np.array(line)-target)@basis;pts[:,:2]*=scale;pts[:,0]+=256;pts[:,1]+=325;gd.line([tuple(pts[0,:2]),tuple(pts[1,:2])],fill=(54,73,79),width=1)
+ im=np.array(grid);z=np.full((620,512),np.inf);raster(screen,world,triangles,uvs,material,tex,im,z);img=Image.fromarray(im);d=ImageDraw.Draw(img);d.text((20,20),f'SHINO | {view} | {idx/(meta["frameCount"]-1)*meta.get("seconds",4):.2f} s',fill='#ead6ab');img.save(out/f'{idx:03}.png')
+selected=frames if len(frames)<=15 else defaults
 strip=Image.new('RGB',(512*3,620*((len(selected)+2)//3)),(20,30,35))
 for i,idx in enumerate(selected):strip.paste(Image.open(out/f'{idx:03}.png'),((i%3)*512,(i//3)*620))
-strip.save(root/f'{view}-strip.jpg',quality=88)
-print(root/f'{view}-strip.jpg')
+strip.save(root/f'{name}-strip.jpg',quality=88)
+print(root/f'{name}-strip.jpg')

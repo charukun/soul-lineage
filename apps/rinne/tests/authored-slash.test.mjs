@@ -1,6 +1,8 @@
 import test from 'node:test';
+import {applyReviewSwordTravel} from '../src/review/sword-travel.js';
+import {footContact} from '../public/simulator/src/contact-motion.js';
 import {rawClipFromNormalized,sampleRawClip} from '../src/review/pose-transfer.js';
-import {SHORT_SWORD_SEQUENCE,createSwordSequence,swordSequenceFrame,applySwordSequence} from '../public/simulator/src/sword-sequence.js';
+import {SHORT_SWORD_SEQUENCE,createSwordSequence,swordSequenceFrame,applySwordSequence,swordSequenceTravel} from '../public/simulator/src/sword-sequence.js';
 import {SWORD_MOVES,swordClipInSeconds} from '../public/simulator/src/authored-sword.js';
 import {AUTHORED_SWORD_KINDS,sampleSwordPose} from '../public/simulator/src/authored-sword.js';
 import {PERFORMANCE_SECONDS,PERFORMANCE_EVENTS,PERFORMANCE_PHRASES,SWORD_TIMINGS,samplePerformance,applyPerformance} from '../public/simulator/src/sword-performance.js';
@@ -85,7 +87,7 @@ test('30-second score covers five cuts and preserves root/gait continuity',()=>{
  assert.equal(PERFORMANCE_SECONDS,30);
  assert.equal(PERFORMANCE_EVENTS.at(-1).end,30);
  const cuts=PERFORMANCE_EVENTS.filter(e=>!['move','guard'].includes(e.kind));
- assert.equal(cuts.length,17);assert.equal(new Set(cuts.map(e=>e.kind)).size,5);
+ assert.equal(cuts.length,29);assert.equal(new Set(cuts.map(e=>e.kind)).size,5);
  for(const e of PERFORMANCE_EVENTS){
   const a=samplePerformance(e.start-1e-7),b=samplePerformance(e.start+1e-7);
   for(const k of ['x','z','yaw','vx','vz','walk','run'])assert.ok(Math.abs(a[k]-b[k])<1e-4,`${k} jumps at ${e.start}`);
@@ -105,7 +107,7 @@ test('real rig joins approaches and cuts without a boundary pop or loose grip',a
  const runtime=await loadRig(),c=runtime.current;
  const actor={id:'performance-test',hero:true,weapon:'sword',weaponDraw:1,lifeAgeYears:22,air:0,combatReady:true};
  const reset=()=>{c.state=null;c.lastActual=null;c.blending=null;c.footLocks={};c.resetSpring=true;};
- const sample=t=>{applyPerformance(actor,t,c.locomotion);const result=runtime.render(actor);assert.ok(result.sm.every(Number.isFinite));assert.ok(c.finite);assert.ok(c.socketError<1e-5);return result;};
+ const sample=t=>{applyPerformance(actor,t,c.locomotion,c.unit*c.legLength/.82);const result=runtime.render(actor);assert.ok(result.sm.every(Number.isFinite));assert.ok(c.finite);assert.ok(c.socketError<1e-5);return result;};
  let maxBoundary=0;
  try{
   for(const e of PERFORMANCE_EVENTS.slice(1)){
@@ -127,7 +129,7 @@ test('real rig joins approaches and cuts without a boundary pop or loose grip',a
 
    }
   }
-  console.log(JSON.stringify({performanceSeconds:30,strikes:17,maxBoundaryBladeJump:maxBoundary}));
+  console.log(JSON.stringify({performanceSeconds:30,strikes:29,maxBoundaryBladeJump:maxBoundary}));
  }finally{runtime.dispose(c);delete globalThis.window;delete globalThis.self;}
 });
 
@@ -143,7 +145,7 @@ test('existing clips drive both single attacks and composed phrases without a ne
    assert.ok(SWORD_MOVES[actor.attack.kind],'composition uses an existing clip ID');
    if(r.active)contacts.add(actor.attack.kind);minBladeY=Math.min(minBladeY,r.weaponTip[1]);
   }
-  assert.deepEqual([...contacts],['slash','back','uppercut','heavy']);assert.ok(minBladeY>-.02,`blade below ground ${minBladeY}`);
+  assert.deepEqual([...contacts],['slash','back','uppercut','thrust','heavy']);assert.ok(minBladeY>-.02,`blade below ground ${minBladeY}`);
   for(const row of SHORT_SWORD_SEQUENCE.entries.slice(1)){
    c.lastActual=null;c.state=null;c.blending=null;c.footLocks={};
    const a=render(row.start+.3-1e-6),b=render(row.start+.3+1e-6);
@@ -175,19 +177,71 @@ test('Lab raw-rig composition reproduces the shared normalized clips at forward 
    assert.ok(rawClips[kind].tracks.some(t=>t.name===c.raw.leftUpperLeg.uuid+'.quaternion'));
   }
   const times=[0,.2,...plan.entries.slice(1).flatMap(e=>[e.start,e.start+.02,e.start+.04,e.start+.079]),plan.duration,.2,0];
-  let maxAngle=0;
+  let maxAngle=0,maxTranslation=0;
+  const origin=c.vrm.scene.position.clone(),poseScale=c.unit*c.legLength/.82;
   for(const time of times){
+   c.vrm.scene.position.copy(origin);
    const f=swordSequenceFrame(plan,time),sample=(map,root)=>{
     if(f.previous)sampleRawClip(map[f.previous.kind],root,f.previous.phase*SWORD_MOVES[f.previous.kind].seconds);
     sampleRawClip(map[f.current.kind],root,f.current.phase*SWORD_MOVES[f.current.kind].seconds,f.previous?f.weight:1);
    };
-   runtime.resetBones(c);sample(normalized,c.root);c.vrm.humanoid.update();
+   runtime.resetBones(c);c.root.scale.setScalar(c.unit);sample(normalized,c.root);c.vrm.humanoid.update();
    const expected=Object.fromEntries(Object.entries(c.raw).map(([name,b])=>[name,b.quaternion.clone()]));
+   c.root.updateMatrixWorld(true);const expectedHips=c.raw.hips.getWorldPosition(new T.Vector3()),move=swordSequenceTravel(plan,time,poseScale);expectedHips.x+=move.x;expectedHips.z+=move.z;
    for(const b of Object.values(c.raw))b.quaternion.identity();
    sample(rawClips,c.root);
+   applyReviewSwordTravel(c.vrm.scene,origin,plan,time,{poseScale,displayScale:[1/c.unit,1/c.unit,1/c.unit]});
+   const actualHips=c.raw.hips.getWorldPosition(new T.Vector3());maxTranslation=Math.max(maxTranslation,Math.hypot(actualHips.x-expectedHips.x,actualHips.z-expectedHips.z));
    for(const name of Object.keys(c.raw))maxAngle=Math.max(maxAngle,c.raw[name].quaternion.clone().normalize().angleTo(expected[name].normalize()));
   }
   assert.ok(maxAngle<.00005,`Lab/runtime pose mismatch ${maxAngle}`);
-  console.log(JSON.stringify({labRuntimeMaxAngle:maxAngle}));
+  assert.ok(maxTranslation<.0001,`Lab/runtime root translation mismatch ${maxTranslation}`);
+  applyReviewSwordTravel(c.vrm.scene,origin,null,0);assert.deepEqual(c.vrm.scene.position.toArray(),origin.toArray());
+  console.log(JSON.stringify({labRuntimeMaxAngle:maxAngle,labRuntimeMaxTranslation:maxTranslation}));
  }finally{runtime.dispose(c);delete globalThis.window;delete globalThis.self;}
+});
+
+
+test('moving existing-clip combinations retain forward momentum and all five individual cuts stay clear of the floor',async()=>{
+ const runtime=await loadRig(),c=runtime.current;
+ const actor={id:'forward-sequence',hero:true,weapon:'sword',weaponDraw:1,lifeAgeYears:22,x:0,z:0,yaw:0,air:0,combatReady:true,vx:0,vz:0};
+ const scale=c.unit*c.legLength/.82,reset=()=>{c.state=null;c.lastActual=null;c.blending=null;c.footLocks={};c.resetSpring=true;};
+ let maxBackward=0,previous=null,minBlade=Infinity,plantedStart=null,maxSlip=0;
+ try{
+  for(let i=0;i<=480;i++){
+   const t=i/120;actor._humanoidClock=t;applySwordSequence(actor,SHORT_SWORD_SEQUENCE,t,{start:.3});Object.assign(actor,swordSequenceTravel(SHORT_SWORD_SEQUENCE,t-.3,scale));
+   const r=runtime.render(actor),hips=c.raw.hips.getWorldPosition(new T.Vector3()),toe=c.raw.leftToes.getWorldPosition(new T.Vector3());
+   assert.ok(c.finite);assert.ok(c.socketError<1e-5);
+   if(previous)maxBackward=Math.max(maxBackward,previous.z-hips.z);previous=hips;
+   const phase=actor.attack.t/actor.attack.duration;
+   if(phase>=.49&&phase<=.70){plantedStart??=toe.clone();maxSlip=Math.max(maxSlip,toe.distanceTo(plantedStart));}else plantedStart=null;
+   minBlade=Math.min(minBlade,r.weaponTip[1]);
+  }
+  assert.ok(maxBackward<.003,`pelvis recoils between connected attacks: ${maxBackward} m`);
+  assert.ok(maxSlip<.005,`moving support foot slips: ${maxSlip} m`);
+  for(const [kind,move]of Object.entries(SWORD_MOVES)){
+   reset();Object.assign(actor,{x:0,z:0,vx:0,vz:0,motionBlend:null,motionSequence:false});
+   for(let i=0;i<=120;i++){
+    actor.attack={id:kind,kind,t:i/120*move.seconds,duration:move.seconds};actor._humanoidClock=actor.attack.t;
+    const r=runtime.render(actor);assert.ok(c.finite);assert.ok(c.socketError<1e-5);minBlade=Math.min(minBlade,r.weaponTip[1]);
+   }
+  }
+  assert.ok(minBlade>.02,`blade penetrates floor: ${minBlade} m`);
+  console.log(JSON.stringify({maxBackward120Hz:maxBackward,movingPlantedToeDrift:maxSlip,minBladeAllFive:minBlade}));
+ }finally{runtime.dispose(c);delete globalThis.window;delete globalThis.self;}
+});
+
+
+test('authored fast foot plants preserve height, reach and discontinuity guards',()=>{
+ const v=(x,y=0)=>new T.Vector3(x,y,0);
+ const initial=footContact(null,v(0),0,true,{commit:true}).state;
+ const planted=footContact(initial,v(.04),1/120,true,{commit:true,authoredPlant:true}).state;
+ assert.equal(planted.locked,true,'explicit plant accepts a fast arriving foot');
+ assert.equal(footContact(initial,v(.04),1/120,true,{commit:true}).state.locked,false,'unlabelled gait still infers contact from speed');
+ assert.equal(footContact(initial,v(.04,.04),1/120,true,{commit:true,authoredPlant:true}).state.locked,false,'raised foot cannot plant');
+ for(const [input,eligible]of [[v(.05,.06),true],[v(.30),true],[v(.05),false],[v(1),true]]){
+  const r=footContact(planted,input,2/120,eligible,{commit:true,authoredPlant:true});
+  assert.equal(r.state.locked,false,'height, reach, lift-off or discontinuity releases contact');
+  assert.ok(r.target.toArray().every(Number.isFinite));
+ }
 });

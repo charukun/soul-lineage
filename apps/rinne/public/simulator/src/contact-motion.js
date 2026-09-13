@@ -18,7 +18,7 @@ export function supportContactWeight(draw) { return smooth01((draw-.55)/.30); }
  * Toe input is in world space. Short contact debounce and separate release thresholds
  * suppress noisy height classification. Discontinuities drop all old correction.
  */
-export function footContact(previous,input,clock,eligible,{height=0,maxSpeed=1.6,commit=false}={}) {
+export function footContact(previous,input,clock,eligible,{height=0,maxSpeed=1.6,commit=false,authoredPlant=false}={}) {
   if (!commit || previous?.clock===clock) {
     if (!previous || previous.input.distanceTo(input)>.35) return {state:previous,target:input.clone()};
     const target=previous.locked?previous.anchor.clone():input.clone().add(releaseOffset(previous.offset,previous.offsetVelocity,clock-previous.releaseTime));
@@ -31,14 +31,16 @@ export function footContact(previous,input,clock,eligible,{height=0,maxSpeed=1.6
   }
   const s={...previous},velocity=input.clone().sub(previous.input).multiplyScalar(1/dt);
   const speed=Math.hypot(velocity.x,velocity.z),heightError=input.y-height;
-  const canEnter=eligible&&heightError<.032&&speed<maxSpeed;
+  // An explicitly authored plant can arrive quickly. Height, reach and release
+  // guards still apply; only unlabelled locomotion infers contact from low speed.
+  const canEnter=eligible&&heightError<.032&&(authoredPlant||speed<maxSpeed);
   s.dwell=canEnter?previous.dwell+dt:0;
   const leave=!eligible||heightError>.055||input.distanceTo(previous.anchor)>.24;
   if (s.locked&&leave) {
     s.locked=false;s.releaseTime=clock;
     s.offset=previous.target.clone().sub(input);
     s.offsetVelocity=previous.targetVelocity.clone().sub(velocity).clampLength(0,2.5);
-  } else if (!s.locked&&s.dwell>=.035&&clock-s.releaseTime>.07) {
+  } else if (!s.locked&&canEnter&&s.dwell>=(authoredPlant?0:.035)&&clock-s.releaseTime>(authoredPlant?0:.07)) {
     s.locked=true;s.anchor=input.clone();s.anchor.y=Math.max(height,s.anchor.y);
     s.offset=V();s.offsetVelocity=V();
   }

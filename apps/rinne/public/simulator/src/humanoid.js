@@ -257,7 +257,8 @@ export class HumanoidRuntime{
     }
     return false;
   };
-  for(const side of ['left','right']){const toeName=c.bones[side+'Toes']?side+'Toes':side+'Foot',toe=this.point(c,toeName),ankle=this.point(c,side+'Foot'),input=world(toe),height=.065+c.neutralPoints[toeName].y*ageUnit,previous=c.footLocks[side],locked=stance(side);const {state,target}=footContact(previous,input,d.clock,locked,{height,maxSpeed:d.type==='run'?.82:.62,commit});if(commit)c.footLocks[side]=state;if(!a.air&&locked&&target.distanceToSquared(input)>1e-10){const footQ=c.bones[side+'Foot'].getWorldQuaternion(Q()),heelTarget=local(target).add(ankle.clone().sub(toe));this.solve(c,side,'leg',heelTarget,v(0,0,1));this.setWorldQ(c,side+'Foot',footQ);}}
+  const authoredPlant=d.type==='attack'&&c.id==='SHINO'&&a.weapon==='sword'&&(d.kind==='slash'||AUTHORED_SWORD_KINDS.includes(d.kind));
+  for(const side of ['left','right']){const toeName=c.bones[side+'Toes']?side+'Toes':side+'Foot',toe=this.point(c,toeName),ankle=this.point(c,side+'Foot'),input=world(toe),height=.065+c.neutralPoints[toeName].y*ageUnit,previous=c.footLocks[side],locked=stance(side);const {state,target}=footContact(previous,input,d.clock,locked,{height,maxSpeed:d.type==='run'?.82:.62,commit,authoredPlant});if(commit)c.footLocks[side]=state;if(!a.air&&(locked||authoredPlant)&&target.distanceToSquared(input)>1e-10){const footQ=c.bones[side+'Foot'].getWorldQuaternion(Q()),heelTarget=local(target).add(ankle.clone().sub(toe));this.solve(c,side,'leg',heelTarget,v(0,0,1));this.setWorldQ(c,side+'Foot',footQ);}}
   if(['idle','combat','parry'].includes(d.type)&&!a.air){for(const side of ['left','right']){const target=c.neutralPoints[side+'Foot'].clone();target.z+=side==='left'?.10:-.10;this.solve(c,side,'leg',target,v(0,0,1));}}
  }
  // Preserve the Review's authored jab/cross trajectories. In multi-hit skills, blend
