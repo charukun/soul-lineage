@@ -17,7 +17,7 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
     await page.locator('[data-tab="qa"]').click();await page.locator('#qa-start').click();
     await page.waitForFunction(()=>window.masterCharacterReview.motionQA.active,null,{timeout:60000});
     const started=await qa();await page.waitForFunction(t=>window.masterCharacterReview.motionQA.time>t+.05,started.time);
-    assert.deepEqual(await page.evaluate(()=>window.masterCharacterReview.motionQA.sources),['idle-01','walk','run-slow','runtime.weaponDraw','runtime.guard','authored-slash']);
+    assert.deepEqual(await page.evaluate(()=>window.masterCharacterReview.motionQA.sources),['idle-01','walk','run-slow','runtime.weaponDraw','runtime.guard','runtime.naturalWeaponStance','authored-slash']);
     checks.push('one-tap review starts actual source animation');
     for(const t of [2.97,6.97,10.97,13.97,16.97,22.97,26.97]){
       await seek(t);await page.locator('#qa-play').click();await page.waitForFunction(t=>window.masterCharacterReview.motionQA.time>t+.1,t);
