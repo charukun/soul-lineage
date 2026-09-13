@@ -188,7 +188,7 @@ export function currentChecks(checks = []) {
   const latest = new Map();
   const ordered = [...checks].sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
   for (const check of ordered) {
-    if (check.name === 'Request Integration') continue;
+    if (['Request Integration', 'Request Rescue observation'].includes(check.name)) continue;
     const app = check.app?.id ?? check.app?.slug ?? 'unknown';
     const key = `${app}:${check.name}`;
     if (!latest.has(key)) latest.set(key, check);
@@ -217,7 +217,7 @@ export async function fastGate(c, pr, options = {}) {
   // app/name are ignored; otherwise a cancelled run replaced by a successful run
   // can strand a Ready PR forever on the same immutable head.
   return checks.every(x => x.status === 'completed' && ['success', 'neutral', 'skipped'].includes(x.conclusion)) &&
-    [...latestStatuses.values()].filter(x => ![contextName, queueContext].includes(x.context)).every(x => x.state === 'success');
+    [...latestStatuses.values()].filter(x => ![contextName, queueContext, 'implementation/handoff'].includes(x.context)).every(x => x.state === 'success');
 }
 
 async function threads(c, pr) {

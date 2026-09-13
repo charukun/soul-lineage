@@ -79,6 +79,8 @@ When substantive changes exist:
 
 Existing Integration then owns CI monitoring, merge, DEV deploy and public/browser verification. Dispatcher never polls CI waiting for completion.
 
+The canonical boundary is [RINNE_PROJECT_EXECUTION_POLICY.md](RINNE_PROJECT_EXECUTION_POLICY.md). Both Dispatch and Rescue prompts embed the same no-wait instruction. The wrapper records `READY_FOR_INTEGRATION` only after Ready succeeds; result-recording failure after Ready does not send the worker back into implementation. The existing immediate CI observation job owns the durable handoff and external notification, independently of build/browser completion.
+
 If the worker finds the request already satisfied and produces no substantive diff, the Draft PR is commented and closed without merge rather than manufacturing a meaningless change.
 
 ## Failure and recovery
@@ -103,7 +105,11 @@ Optional repository variable:
 
 - `RINNE_CODEX_MODEL`: explicit Codex model override. If empty, the action/CLI default model is used.
 
-The standard GitHub Actions token is used only by wrapper steps after the Codex worker finishes to push and update the PR. Checkout uses `persist-credentials: false`, so the implementation worker does not receive persisted repository credentials through the working tree.
+The standard GitHub Actions token is used only by wrapper status/comment and failure-preservation steps. Checkout uses `persist-credentials: false`, so the implementation worker does not receive persisted repository credentials through the working tree.
+
+Successful push and Ready now require `DISPATCH_GITHUB_TOKEN` (or the existing `RESCUE_GITHUB_TOKEN` fallback) with Contents and Pull requests write. Other wrapper status/comment operations keep the standard Actions token. Missing credentials fail before launching Codex and retain the Draft recovery point. Tokens remain step-scoped and are never passed to the implementation action or local verification. If reusing the Rescue token, its PR permission must allow Ready mutation; PR read alone is insufficient.
+
+Reason: standard `GITHUB_TOKEN` does not trigger `ready_for_review` CI. GitHub documents exceptions for explicit dispatch and approval-required opened/synchronize/reopened events, which do not provide automatic Ready delivery. Use an event-capable App/PAT credential; do not fabricate a fast artifact or wait for an event that cannot start. [GitHub workflow triggering](https://docs.github.com/actions/using-workflows/triggering-a-workflow) (verified 2026-09-13).
 
 ## First-release acceptance criteria
 

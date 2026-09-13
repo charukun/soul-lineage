@@ -117,6 +117,13 @@ jobs:
           INTEGRATION_TIME_BUDGET_MS: '360000'
           INTEGRATION_EVALUATION_CURSOR: ${{ inputs.integration_cursor || '0' }}
         run: node scripts/integration.mjs
+      - name: Notify integrated PRs separately from DEV delivery
+        if: always()
+        continue-on-error: true
+        env:
+          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+        run: node scripts/notify-delivery.mjs INTEGRATED .deploy-state/integration.json
       - name: Refresh Ops Board after merge evaluation
         continue-on-error: true
         env:
@@ -310,6 +317,7 @@ jobs:
     if: always() && needs.integrate.result == 'success' && (needs.integrate.outputs.verify == 'true' || inputs.refresh_staging == true)
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       statuses: write
       actions: write
     steps:
@@ -338,6 +346,20 @@ jobs:
                 inputs: { integration_cursor: process.env.CURSOR || '0' }
               });
             }
+      - uses: actions/checkout@v6
+        if: needs.publish.result == 'success'
+        with:
+          ref: develop
+          persist-credentials: false
+          sparse-checkout: scripts
+      - name: Notify verified DEV delivery
+        if: needs.publish.result == 'success'
+        continue-on-error: true
+        env:
+          FINAL_SHA: ${{ needs.integrate.outputs.sha }}
+          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+        run: node scripts/notify-delivery.mjs DEV_DEPLOYED
       - name: Refresh Ops Board after DEV deploy result
         if: always()
         continue-on-error: true
