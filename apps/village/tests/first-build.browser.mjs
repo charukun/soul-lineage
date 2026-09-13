@@ -8,6 +8,7 @@ async function expectVillageReady(page, expect) {
 }
 
 export async function verifyVillageFirstBuild(page, expect, testInfo, beforeReload = async () => {}) {
+  page.setDefaultTimeout(8000);
   await expectVillageReady(page, expect);
   await page.locator('#muraEnterVillage').click();
   await expect(page.locator('#muraEntry')).toBeHidden();
@@ -29,14 +30,9 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   await expect(page.locator('#toastText')).toContainText('寝床が2床増えました');
   await page.screenshot({path:testInfo.outputPath('first-tent-built.png')});
 
-  // NPC homes are intentionally not player-editable. Select the existing storehouse
-  // through a genuinely visible screen-space part of its rendered footprint.
   await page.locator('#deselect').click();
   const facility=await page.evaluate(()=>window.village.world.objects.find(o=>o.kind==='storage'));
   expect(facility?.phase).toBe('built');
-  // The placement guide focuses the tent, not the storehouse. Bring the latter
-  // into view through the same drag gesture as a player before attempting a pick.
-  // Projection and picking are reads only; camera/world setters are never called.
   for (let step=0;step<8;step++) {
     const drag=await page.evaluate(id=>{
       const {world,view}=window.village,host=world.object(id),rect=view.canvas.getBoundingClientRect();
@@ -72,10 +68,10 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
     return !!point;
   },{timeout:5000}).toBe(true);
   await page.mouse.click(point.x,point.y);
+  await expect(page.locator('#enter')).toBeVisible();
   await page.locator('#enter').click();
   await expect.poll(()=>page.evaluate(()=>window.village.view.roomId)).toBe(facility.id);
   await page.locator('#build').click();
-  // Planks and cloth have not been discovered. Use the authored starter furniture.
   await page.locator('[data-kind="dirtbed"]').click();
   await page.locator('#muraFindPlacement').click();
   await expect(page.locator('#cancelPlace')).toHaveText('ここに置く');
@@ -105,6 +101,5 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   expect(restoredFacility.room.find(o=>o.id===bed.id)).toEqual(bed);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:testInfo.outputPath('first-build-reloaded.png')});
-
   await verifyVillageDirectorPolish(page, expect, testInfo);
 }
