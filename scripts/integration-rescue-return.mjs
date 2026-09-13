@@ -75,7 +75,7 @@ export async function notifyOutbox(c, store, { url = '', token = '', request = f
   const { state } = await store.read();
   for (const item of state.outbox.filter(n => !n.sentAt).slice(0, 5)) {
     const message = item.type === 'manual' ? `Integration Rescue\nFAILED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: human review required` :
-      `Integration Rescue\nSUCCESS\nWave: ${item.wave}\nReturned to Integration: ${item.prs.map(n => '#' + n).join(' ')}\nManual: ${item.manual.map(n => '#' + n).join(' ') || 'none'}`;
+      `Integration Rescue\nREADY_FOR_INTEGRATION\nWave: ${item.wave}\nReturned to Integration: ${item.prs.map(n => '#' + n).join(' ')}\nManual: ${item.manual.map(n => '#' + n).join(' ') || 'none'}\nCI/browser monitoring: Integration; repair workers ended`;
     // Existing ntfy deployment can supply its normal topic URL/token; never invent a recipient.
     if (url) {
       if (!url.startsWith('https://')) throw new Error('NTFY_HTTPS_REQUIRED');

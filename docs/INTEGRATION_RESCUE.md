@@ -81,6 +81,8 @@ wrapperは非commit mergeの結果を通常commitし、`npm ci`と信頼済み`v
 
 push後にGitHub headを再取得してPUSHEDを記録し、最新developを再評価してRETURNEDへ進める。通常Integrationへの再評価要求はexact-head fast artifactもreviewも作成しない。source変更なしのqueue復旧も同じ通常ゲートへ戻す。復帰後の滞留も上限付きretry対象で、merge/DEV成功とpush成功を区別する。
 
+[実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md)の同期待機禁止は修正Workerにも適用する。RETURNED時にlease/slotを解放してWorkerを終了し、CHECKINGはCoordinatorが観測する。生成指示はDispatchと共通の禁止ルールを挿入する。Waveの修正push成功通知は `READY_FOR_INTEGRATION` とし、通常Integrationの `INTEGRATED` / `DEV_DEPLOYED` を待ってWorkerを保持しない。既存claim・heartbeat・attempt・REDの順番lockは変更しない。
+
 ## PULSEの観測
 
 INTEGRATION RESCUEは既存PULSE内に追加。上部のactive/max、queue、blocked、validating、returned、manual、retry、staleに加え、実worker IDのカード、短い作業要約、工程rail、scope/files、Wave、依存待ち、再試行理由、成功履歴、通常Integration/merge/DEVへの進行を表示する。
