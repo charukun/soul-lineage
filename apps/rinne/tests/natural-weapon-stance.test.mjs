@@ -83,9 +83,13 @@ test('natural stance only touches visibly held-weapon guard windows, never the a
 });
 
 test('ready-body support blends through draw and guard seams without touching the strike body',async()=>{
-  const {readyBodyStrength}=await stanceModule();
-  const base={weapon:'sword',weaponDraw:1,combatReady:true,weaponTransition:false,vx:0,vz:0,attack:null,reaction:null,recovery:null,dead:false,zanshin:null};
-  assert.equal(readyBodyStrength(base),1,'settled static guard should receive full subtle torso support');
+  const {readyBodyStrength,readyBaseStrength}=await stanceModule();
+  const base={weapon:'sword',weaponDraw:1,combatReady:true,weaponTransition:false,vx:0,vz:0,air:0,attack:null,reaction:null,recovery:null,dead:false,zanshin:null};
+  assert.equal(readyBodyStrength(base),1,'settled static guard should receive full supporting torso posture');
+  assert.equal(readyBaseStrength(base,{type:'combat'}),1,'settled combat guard should receive a grounded base');
+  assert.equal(readyBaseStrength({...base,vz:1},{type:'combat'}),0,'moving guard must leave locomotion feet alone');
+  assert.equal(readyBaseStrength({...base,air:1},{type:'combat'}),0,'airborne guard must leave the base alone');
+  assert.equal(readyBaseStrength(base,{type:'attack'}),0,'attack footwork stays authored');
   assert.equal(readyBodyStrength({...base,weaponDraw:.25,weaponTransition:true}),0,'torso must remain idle until the blade clears the hip');
   assert.ok(Math.abs(readyBodyStrength({...base,weaponDraw:.625,weaponTransition:true})-.5)<1e-9,'draw midpoint should blend torso support smoothly');
   assert.equal(readyBodyStrength({...base,weaponDraw:.1,weaponTransition:true}),0,'sheathed draw frame must not lean');
