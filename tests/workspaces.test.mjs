@@ -13,7 +13,7 @@ test('transitive shared assets and platform changes select their consumers', () 
   assert.deepEqual(affected(nodes, ['packages/platform/src/index.js']), all);
 });
 test('unused packages do not build unrelated games', () => assert.deepEqual(affected(nodes, ['packages/animations/src/index.js']), []));
-test('music reaches all apps while character contracts reach rinne',()=>{assert.deepEqual(affected(nodes,['packages/audio/src/index.js']),all);assert.deepEqual(affected(nodes,['packages/characters/src/master-character.js']),['rinne']);});
+test('music and character contracts reach every current consumer',()=>{assert.deepEqual(affected(nodes,['packages/audio/src/index.js']),all);assert.deepEqual(affected(nodes,['packages/characters/src/master-character.js']),all);});
 test('docs skip apps; lock/config and unknown/deleted paths fail closed', () => {
   assert.deepEqual(affected(nodes, ['README.md', 'docs/PLATFORMS.md']), []);
   for (const path of ['package-lock.json', 'scripts/deploy.mjs', 'packages/removed/src/main.js', 'new.config.js']) assert.deepEqual(affected(nodes, [path]), all);
