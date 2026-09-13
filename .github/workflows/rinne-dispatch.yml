@@ -1,4 +1,4 @@
-name: RINNE Dispatch
+name: RINNE Dispatch Handoff
 
 on:
   pull_request:
@@ -6,17 +6,17 @@ on:
     branches: [develop]
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
   issues: write
   statuses: write
 
 concurrency:
-  group: rinne-dispatch-${{ github.event.pull_request.number }}
+  group: rinne-dispatch-handoff-${{ github.event.pull_request.number }}
   cancel-in-progress: false
 
 jobs:
-  implementation:
+  handoff:
     if: >-
       github.event.pull_request.draft == true &&
       github.event.pull_request.base.ref == 'develop' &&
@@ -27,18 +27,19 @@ jobs:
        github.event.pull_request.author_association == 'MEMBER' ||
        github.event.pull_request.author_association == 'COLLABORATOR')
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 5
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       PR_URL: ${{ github.event.pull_request.html_url }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
-      - name: Checkout dispatched branch without persisted credentials
+      - name: Checkout dispatched branch for contract validation
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
 
       - name: Set up Node
@@ -46,143 +47,20 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Validate dispatch request and build isolated prompt
+      - name: Validate dispatch request
         env:
-          PROMPT_FILE: ${{ runner.temp }}/rinne-dispatch-prompt.txt
+          HANDOFF_FILE: ${{ runner.temp }}/rinne-work-handoff.txt
         run: |
-          node scripts/rinne-dispatch-prompt.mjs "$GITHUB_EVENT_PATH" "$PROMPT_FILE" "$GITHUB_REPOSITORY"
-          test -s "$PROMPT_FILE"
+          node scripts/rinne-dispatch-prompt.mjs "$GITHUB_EVENT_PATH" "$HANDOFF_FILE" "$GITHUB_REPOSITORY"
+          test -s "$HANDOFF_FILE"
 
-      - name: Reconcile branch with current develop
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git fetch origin develop:refs/remotes/origin/develop --no-tags
-          git merge --no-edit origin/develop
-
-      - name: Capture worker baseline
-        id: baseline
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Run isolated implementation worker
-        id: codex
-        uses: openai/codex-action@86365089eb2b84e0a8fb0717b304f8bdcb13b20e
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          prompt-file: ${{ runner.temp }}/rinne-dispatch-prompt.txt
-          permission-profile: ':workspace'
-          safety-strategy: 'drop-sudo'
-          model: ${{ vars.RINNE_CODEX_MODEL }}
-          effort: 'high'
-
-      - name: Detect substantive implementation changes
-        id: changes
-        env:
-          START_SHA: ${{ steps.baseline.outputs.sha }}
-        run: |
-          {
-            git diff --name-only "$START_SHA"..HEAD || true
-            git diff --name-only
-            git diff --cached --name-only
-            git ls-files --others --exclude-standard
-          } | sed '/^$/d' | sort -u > "$RUNNER_TEMP/rinne-all-changes.txt"
-          grep -v '^\.task-start/' "$RUNNER_TEMP/rinne-all-changes.txt" > "$RUNNER_TEMP/rinne-substantive-changes.txt" || true
-          if [ -s "$RUNNER_TEMP/rinne-substantive-changes.txt" ]; then
-            echo 'has_changes=true' >> "$GITHUB_OUTPUT"
-          else
-            echo 'has_changes=false' >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Close no-op dispatch cleanly
-        if: steps.changes.outputs.has_changes == 'false'
+      - name: Record ChatGPT Work handoff
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          sha=$(git rev-parse HEAD)
-          gh pr comment "$PR_NUMBER" --body "RINNE Dispatch: SUCCESS (no code change required)\n\nbranch: \`$HEAD_REF\`\ncommit: \`$sha\`\nPR: $PR_URL\n\nThe worker found no substantive change to apply. The Draft PR is closed without merging."
-          gh pr close "$PR_NUMBER"
-          gh api "repos/$GITHUB_REPOSITORY/statuses/$sha" \
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" \
             -f state=success \
-            -f context=dispatch/implementation \
-            -f description='Dispatch completed with no code change' \
+            -f context=dispatch/handoff \
+            -f description='Eligible for ChatGPT Work event task' \
             -f target_url="$RUN_URL" >/dev/null
-
-      - name: Remove transient task-start marker
-        if: steps.changes.outputs.has_changes == 'true'
-        run: |
-          while IFS= read -r path; do
-            [ -z "$path" ] && continue
-            git rm -f -- "$path"
-          done < <(git diff --name-only --diff-filter=A origin/develop...HEAD -- .task-start)
-
-      - name: Commit implementation locally
-        if: steps.changes.outputs.has_changes == 'true'
-        run: |
-          git add -A
-          if ! git diff --cached --quiet; then
-            git commit -m 'feat: apply RINNE dispatched implementation'
-          fi
-          git status --short
-
-      - name: Install dependencies
-        if: steps.changes.outputs.has_changes == 'true'
-        run: npm ci
-
-      - name: Run repository fast validation
-        if: steps.changes.outputs.has_changes == 'true'
-        run: node scripts/validate.mjs fast origin/develop HEAD
-
-      - name: Push successful implementation
-        if: steps.changes.outputs.has_changes == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh auth setup-git
-          git push origin "HEAD:$HEAD_REF"
-
-      - name: Record result and mark Ready for review
-        if: steps.changes.outputs.has_changes == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          sha=$(git rev-parse HEAD)
-          body_file="$RUNNER_TEMP/rinne-pr-body.md"
-          gh pr view "$PR_NUMBER" --json body --jq .body > "$body_file"
-          {
-            printf '\n## Dispatch result\n'
-            printf '%s\n' '- worker: RINNE Dispatch / OpenAI Codex Action'
-            printf '%s\n' '- fast verification: `npm ci` + `node scripts/validate.mjs fast origin/develop HEAD` passed'
-            printf '%s\n' "- commit: \`$sha\`"
-            printf '%s\n' "- workflow: $RUN_URL"
-          } >> "$body_file"
-          gh pr edit "$PR_NUMBER" --body-file "$body_file"
-          gh api "repos/$GITHUB_REPOSITORY/statuses/$sha" \
-            -f state=success \
-            -f context=dispatch/implementation \
-            -f description='RINNE dispatched implementation ready' \
-            -f target_url="$RUN_URL" >/dev/null
-          gh pr comment "$PR_NUMBER" --body "RINNE Dispatch: SUCCESS\n\nbranch: \`$HEAD_REF\`\ncommit: \`$sha\`\nPR: $PR_URL\n\nFast validation passed. Handing off to the existing Integration flow."
-          gh pr ready "$PR_NUMBER"
-
-      - name: Preserve failed work and report recovery point
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set +e
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          if ! git diff --cached --quiet; then
-            git commit -m 'wip: preserve failed RINNE dispatch work'
-          fi
-          gh auth setup-git
-          git push origin "HEAD:$HEAD_REF"
-          sha=$(git rev-parse HEAD)
-          gh api "repos/$GITHUB_REPOSITORY/statuses/$sha" \
-            -f state=failure \
-            -f context=dispatch/implementation \
-            -f description='RINNE dispatch failed; Draft PR retained' \
-            -f target_url="$RUN_URL" >/dev/null
-          gh pr comment "$PR_NUMBER" --body "RINNE Dispatch: FAILED\n\nreached: GitHub Actions / Codex implementation route\nbranch: \`$HEAD_REF\`\ncommit: \`$sha\`\nreason: inspect the failed workflow step and logs: $RUN_URL\ntried GitHub route: same-repository Draft PR + GitHub Actions + OpenAI Codex Action\nnext recovery route: continue this same Draft PR/branch from normal git; if unavailable, use the connected GitHub API or Codespaces + normal git per repository policy."
-          exit 0
+          gh pr comment "$PR_NUMBER" --body "RINNE Dispatch: QUEUED FOR CHATGPT WORK\n\nbranch: \`$HEAD_REF\`\ncommit: \`$HEAD_SHA\`\nPR: $PR_URL\n\nThis repository workflow performs handoff validation only. It does not invoke the OpenAI API, does not use \`OPENAI_API_KEY\`, and does not incur platform API credits. A configured ChatGPT Work GitHub pull-request event task owns implementation on this same Draft PR/branch."
