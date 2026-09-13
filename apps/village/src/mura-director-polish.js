@@ -1,8 +1,9 @@
+import {nextVillageGoal} from './game/director-guidance.js';
+
 const village=window.village;
 if(!village)throw new Error('MURAAAAAAA director polish requires a booted village');
 const {world,view}=village;
 const $=id=>document.getElementById(id);
-const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const shortestAngle=(from,to)=>Math.atan2(Math.sin(to-from),Math.cos(to-from));
 
 const css=document.createElement('style');
@@ -81,24 +82,12 @@ function bindPersonDialog(){
 }
 const dialogHost=$('dialogContent');if(dialogHost){new MutationObserver(()=>queueMicrotask(bindPersonDialog)).observe(dialogHost,{childList:true,subtree:true});bindPersonDialog();}
 
-function villageGoal(){
- const step=world.tutorialStep?.();if(step)return null;
- if(world.state.defense?.raid?.phase==='warning')return'襲来の気配。警備職と守りの届く範囲を確認';
- const p=world.population();
- const free=Math.max(0,p.openBeds-p.people);
- if(free<1)return'次の住人を迎えるため、寝床のある住まいを増やす';
- if(p.safety<=p.people)return'村が広がっています。警備施設か警備職を増やす';
- if(p.food<=p.people)return'食事の余裕が少なめ。畑や食事の場所を整える';
- const idle=world.people.filter(person=>!person.dead&&!person.jobId&&!['mayor','guard'].includes(person.role));
- if(idle.length)return`${idle[0].name}の仕事先を用意して、村の生産を伸ばす`;
- return'暮らしは安定。住民を眺めながら内装や景観を整える';
-}
 function installGoal(){
  const hud=document.querySelector('.muraCompactHud');if(!hud||$('muraVillageGoal'))return;
  const node=document.createElement('div');node.id='muraVillageGoal';node.innerHTML='<b>次の一手</b><span></span>';hud.append(node);
- let previous='';const refresh=()=>{const text=villageGoal();node.hidden=!text;if(!text||text===previous)return;previous=text;node.querySelector('span').textContent=text;};
+ let previous='';const refresh=()=>{const text=nextVillageGoal(world);node.hidden=!text;if(!text||text===previous)return;previous=text;node.querySelector('span').textContent=text;};
  refresh();setInterval(refresh,900);
 }
 installGoal();
 
-window.__MURA_DIRECTOR_POLISH__={version:1,beginObservation,stopObservation,get observation(){return{...observation};},villageGoal};
+window.__MURA_DIRECTOR_POLISH__={version:1,beginObservation,stopObservation,get observation(){return{...observation};},villageGoal:()=>nextVillageGoal(world)};
