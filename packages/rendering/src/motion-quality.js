@@ -1,5 +1,5 @@
 import { Quaternion, Vector3, Matrix4 } from 'three';
-import { normalizeHumanoidPose, retargetHumanoidPose, selfIntersectionRisks, bodyCompensation, weaponCalibration } from '@soul/animations';
+import { normalizeHumanoidPose, retargetHumanoidPose, selfIntersectionRisks, bodyCompensation, weaponCalibration, weaponTransferWeight } from '@soul/animations';
 
 const V = a => new Vector3(...(a??[0,0,0]));
 const Q = a => new Quaternion(...(a??[0,0,0,1]));
@@ -69,13 +69,13 @@ export function createMotionQualityAdapter(actor,{height,torsoRatio=.38,armRatio
     aim(bn,cn,end);return elbow;
   }
   function worldHand(side,q) {const b=bones[side+'Hand'];b.quaternion.copy(hierarchyQuaternion(b.parent).invert().multiply(q)).normalize();b.updateWorldMatrix(false,true);}
-  function shareWristTwist(side) {
+  function shareWristTwist(side,override=null) {
     const lower=bones[side+'LowerArm'],hand=bones[side+'Hand'],axis=hand.position.clone().normalize();
     const delta=hand.quaternion.clone().multiply(Q(rest.bones[side+'Hand'].local).invert());
     const projection=delta.x*axis.x+delta.y*axis.y+delta.z*axis.z;
     let angle=2*Math.atan2(projection,delta.w);if(angle>Math.PI)angle-=Math.PI*2;if(angle<-Math.PI)angle+=Math.PI*2;
     // Periodic transfer avoids a +60/-60 degree jump when the wrist crosses pi.
-    const move=Math.PI/3*Math.sin(angle);
+    const move=override??Math.PI/3*Math.sin(angle);
     if(Math.abs(move)<1e-5)return;
     const handQ=hierarchyQuaternion(hand);lower.quaternion.multiply(Q().setFromAxisAngle(axis,move)).normalize();lower.updateWorldMatrix(false,true);worldHand(side,handQ);
     lastCorrections.push({side,method:'forearm-wrist-twist-sharing',radians:move});
@@ -118,10 +118,74 @@ export function createMotionQualityAdapter(actor,{height,torsoRatio=.38,armRatio
     solve(side,best.target,best.bend);worldHand(side,handQ);
     lastCorrections.push({side,method:'anatomical-arm-clearance',radians:best.angle,handDisplacement:best.target.distanceTo(originalHand)});
   }
+  function carryFrame(profile){
+    const p=weaponCalibration(profile),c=p.carry;
+    if(!c||!bones[c.bone])throw new Error('Missing weapon carry socket');
+    return {profile:p,position:root.localToWorld(point(c.bone).add(V(c.position).multiplyScalar(rest.height/c.referenceHeight))),
+      quaternion:hierarchyQuaternion(root).multiply(Q(c.rotation))};
+  }
+  function placeWeapon(object,profile,position,quaternion,appearanceScale){
+    if(!Number.isFinite(appearanceScale)||appearanceScale<=0)throw new Error('Invalid weapon appearance scale');
+    const world=new Matrix4().compose(position,quaternion,V([1,1,1]))
+      .multiply(new Matrix4().makeScale(profile.scale*appearanceScale,profile.scale*appearanceScale,profile.scale*appearanceScale))
+      .multiply(new Matrix4().makeTranslation(...profile.grip.map(x=>-x)));
+    object.parent?.updateWorldMatrix(true,false);
+    object.matrix.copy(new Matrix4().copy(object.parent?.matrixWorld??new Matrix4()).invert().multiply(world));
+    object.matrixAutoUpdate=false;object.matrixWorldNeedsUpdate=true;object.updateWorldMatrix(true,true);
+    return {a:root.worldToLocal(V(profile.bladeBase).applyMatrix4(world)).toArray(),b:root.worldToLocal(V(profile.bladeTip).applyMatrix4(world)).toArray(),radius:shoulderWidth*.035};
+  }
   return {rest,inspect,point,solve,worldHand,
     apply(pose){applyNormalizedMotion(bones,pose,rest);},
     correct(){lastCorrections.length=0;root.updateWorldMatrix(true,true);for(const side of SIDES){correctArm(side);shareWristTwist(side);}return inspect();},
+    measureCorrection(){
+      const before=Object.fromEntries(SIDES.map(side=>[side,{hand:point(side+'Hand'),elbow:point(side+'LowerArm')}]));
+      this.correct();
+      return Object.fromEntries(SIDES.map(side=>[side,{
+        hand:point(side+'Hand').sub(before[side].hand).toArray(),
+        elbow:point(side+'LowerArm').sub(before[side].elbow).toArray(),
+        twist:lastCorrections.find(c=>c.side===side&&c.method==='forearm-wrist-twist-sharing')?.radians??0
+      }]));
+    },
+    /** Reconstruct measured limb lengths after smoothing offsets. Preserve the
+     * authored palm orientation instead of filtering the sword's contact arc. */
+    applyCorrection(offsets){
+      for(const side of SIDES){const o=offsets?.[side];
+        if(!o||!Number.isFinite(o.twist)||!['hand','elbow'].every(k=>Array.isArray(o[k])&&o[k].length===3&&o[k].every(Number.isFinite)))throw new Error('Invalid arm correction');}
+      lastCorrections.length=0;root.updateWorldMatrix(true,true);
+      for(const side of SIDES){
+        const handQ=hierarchyQuaternion(bones[side+'Hand']),offset=offsets[side];
+        solve(side,point(side+'Hand').add(V(offset.hand)),point(side+'LowerArm').add(V(offset.elbow)).sub(point(side+'UpperArm')));
+        worldHand(side,handQ);shareWristTwist(side,offset.twist);
+        lastCorrections.push({side,method:'continuous-clearance-offset',handDisplacement:V(offset.hand).length()});
+      }
+      return inspect();
+    },
     reset(){lastCorrections.length=0;},
+    calibrateCarriedWeapon(object,profile,{appearanceScale=1}={}){
+      root.updateWorldMatrix(true,true);const carry=carryFrame(profile);
+      return placeWeapon(object,carry.profile,carry.position,carry.quaternion,appearanceScale);
+    },
+    /** Match the palm to the common carry socket around ownership transfer. The
+     * weight is zero outside the profile's reach/release range (including skills).
+     * Retarget the arm, not a floating sword between two unrelated sockets. */
+    matchWeaponTransfer(profile,socket,draw){
+      const p=weaponCalibration(profile),weight=weaponTransferWeight(draw,p.carry);
+      if(!weight)return {weight,error:0};
+      root.updateWorldMatrix(true,true);const carry=carryFrame(p),hand=bones.rightHand;
+      const previous=Object.fromEntries(['rightUpperArm','rightLowerArm'].map(n=>[n,bones[n].quaternion.clone()]));
+      const palm=hand.localToWorld(V(socket.position)),target=palm.clone().lerp(carry.position,weight);
+      const handQ=hierarchyQuaternion(hand).slerp(carry.quaternion.clone().multiply(Q(p.rotation).invert()).multiply(Q(socket.quaternion).invert()),weight);
+      worldHand('right',handQ);root.updateWorldMatrix(true,true);
+      const palmOffset=root.worldToLocal(hand.localToWorld(V(socket.position))).sub(point('rightHand'));
+      solve('right',root.worldToLocal(target).sub(palmOffset),point('rightLowerArm').sub(point('rightUpperArm')));
+      worldHand('right',handQ);shareWristTwist('right');
+      // Fade the solve itself as well, including its elbow-plane/twist choice.
+      // A vanishing target offset must not reset the continuous track's twist.
+      for(const [name,q]of Object.entries(previous))bones[name].quaternion.copy(q.slerp(bones[name].quaternion.clone(),weight));
+      root.updateWorldMatrix(true,true);worldHand('right',handQ);
+      const error=hand.localToWorld(V(socket.position)).distanceTo(carry.position);
+      lastCorrections.push({side:'right',method:'weapon-socket-transfer',weight,error});return {weight,error};
+    },
     /** Grip points are measured in the RAW hand rest frame; both hands share one weapon profile. */
     calibrateWeapon(object,profile,socket,{appearanceScale=1}={}) {
       const p=weaponCalibration(profile),hand=bones.rightHand;root.updateWorldMatrix(true,true);

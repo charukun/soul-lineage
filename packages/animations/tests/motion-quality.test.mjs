@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeHumanoidPose,retargetHumanoidPose,blendHumanoidPose,stabilizeMotionBoundaries,inspectPose,inspectTransition,selfIntersectionRisks,bodyCompensation,weaponCalibration,REVIEW_SWORD_CALIBRATION,qaCamera,qaSequenceAt,QA_CAMERAS,createQAReport,serializeQAReport,deserializeQAReport } from '../src/index.js';
+import { normalizeHumanoidPose,retargetHumanoidPose,blendHumanoidPose,stabilizeMotionBoundaries,inspectPose,inspectTransition,selfIntersectionRisks,bodyCompensation,weaponCalibration,weaponTransferWeight,REVIEW_SWORD_CALIBRATION,qaCamera,qaSequenceAt,QA_CAMERAS,createQAReport,serializeQAReport,deserializeQAReport } from '../src/index.js';
 import { segmentDistance } from '../src/quality-math.js';
 const near=(a,b)=>a.forEach((x,i)=>assert.ok(Math.abs(x-b[i])<1e-6,`${a} != ${b}`));
 const identity=[0,0,0,1],z90=[0,0,Math.SQRT1_2,Math.SQRT1_2];
@@ -47,6 +47,10 @@ test('weapon/body calibration accepts anatomical variation and rejects malformed
   assert.equal(bodyCompensation().layer,'presentation');assert.throws(()=>bodyCompensation({width:Infinity}));
   const two=weaponCalibration({...REVIEW_SWORD_CALIBRATION,twoHanded:true,supportGrip:[0,-.25,0]});assert.equal(two.twoHanded,true);
   assert.throws(()=>weaponCalibration({...two,scale:-1}));assert.throws(()=>weaponCalibration({...two,grip:[0,NaN,0]}));
+  const carry=REVIEW_SWORD_CALIBRATION.carry;
+  assert.equal(weaponTransferWeight(.25,carry),1);assert.equal(weaponTransferWeight(0,carry),0);assert.equal(weaponTransferWeight(1,carry),0);
+  assert.ok(weaponTransferWeight(carry.reach+.0001,carry)<.00001);
+  assert.throws(()=>weaponCalibration({...two,carry:{...carry,release:carry.transfer}}));
 });
 test('eight deterministic cameras and source sequence are independent of pose/random time',()=>{
   const positions=new Set();for(const id of Object.keys(QA_CAMERAS)){const a=qaCamera(id,{aspect:390/420});assert.deepEqual(a,qaCamera(id,{aspect:390/420}));positions.add(a.position.join(','));}
