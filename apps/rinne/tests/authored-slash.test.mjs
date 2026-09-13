@@ -29,6 +29,11 @@ async function loadRig(){
   return runtime;
 }
 
+function matrixPose(matrix){
+  const position=new T.Vector3(),quaternion=new T.Quaternion(),scale=new T.Vector3();
+  matrix.decompose(position,quaternion,scale);return {position,quaternion};
+}
+
 test('slash preserves the existing combat clock and has continuous pose endpoints',async()=>{
   const game=await readFile(new URL('../public/simulator/index.html',import.meta.url),'utf8');
   const timing=game.match(/slash:\{active:\[([^\]]+)\],contact:([\d.]+),launch:([\d.]+),plant:([\d.]+),chain:([\d.]+),lead:([\d.]+)/);
@@ -44,6 +49,23 @@ test('slash preserves the existing combat clock and has continuous pose endpoint
   assert.deepEqual(start.shield,[.24,-.36,.31],'free hand must meet the normal sword guard at the slash seam');
   for(const contact of [.3,.5,.7])assert.equal(slashTime(contact,contact),.5);
   for(let i=0;i<=1000;i++)for(const value of Object.values(sampleSlashPose(i/1000)))assert.ok(value.every(Number.isFinite));
+});
+
+test('actual Shino static guard supports the torso without drifting either hand socket',async()=>{
+  const runtime=await loadRig(),c=runtime.current;
+  const actor={id:'guard-rig-test',hero:true,weapon:'sword',weaponDraw:1,lifeAgeYears:22,x:0,z:0,yaw:0,air:0,vx:0,vz:0,combatReady:true,weaponTransition:false,_humanoidClock:0,attack:null};
+  try{
+    const result=runtime.render(actor),report=runtime.report();
+    assert.equal(report.readyBodyStrength,1,'settled guard should use the subtle supporting torso posture');
+    assert.ok(report.naturalStance?.maxHandDisplacement<2e-4,`guard hand contact drifted ${report.naturalStance?.maxHandDisplacement}`);
+    assert.ok(report.naturalStance?.maxHandAngleError<1e-5,`guard wrist orientation drifted ${report.naturalStance?.maxHandAngleError}`);
+    for(const side of ['right','left']){
+      const expected=matrixPose(new T.Matrix4().fromArray(result[side+'Socket']));
+      const actual=matrixPose(runtime.normalSocket(c,side));
+      assert.ok(actual.position.distanceTo(expected.position)<2e-4,`${side} socket position moved after torso support`);
+      assert.ok(actual.quaternion.angleTo(expected.quaternion)<1e-5,`${side} socket orientation moved after torso support`);
+    }
+  }finally{runtime.dispose(c);delete globalThis.window;delete globalThis.self;}
 });
 
 test('actual Shino slash keeps knees forward, grip attached and support planted',async()=>{
