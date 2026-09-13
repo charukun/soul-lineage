@@ -14,6 +14,13 @@ test('mobile UX polish includes requested tactile and guidance features',()=>{
  ])assert.ok(source.includes(needle),needle);
 });
 
+test('facility decoration enriches live nodes without a second full boot rebuild',()=>{
+ assert.ok(source.includes('muraFacilityDecorated'));
+ assert.ok(source.includes('view.objectNodes.get(o.id)'));
+ assert.ok(source.includes('view.renderer.shadowMap.needsUpdate=true'));
+ assert.ok(!source.includes('view.buildingCache?.clear?.();view.rebuild?.();'));
+});
+
 test('facility rooms stay editable by the mayor',()=>{
  assert.ok(compat.includes("d?.building&&!d.capacity"));
  assert.ok(compat.includes("title.textContent='施設内装'"));

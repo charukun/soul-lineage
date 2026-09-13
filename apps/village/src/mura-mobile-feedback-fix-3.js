@@ -39,7 +39,7 @@ function installFeltReset(){
 
 function repairTransparentResidents(){
  const repair=()=>{for(const p of world.people){let root=view.actorNodes?.get?.(p.id);if(!root)continue;let visibleMesh=false;root.visible=true;root.traverse?.(node=>{if(!node.isMesh)return;node.visible=true;const mats=Array.isArray(node.material)?node.material:[node.material];for(const m of mats){if(!m)continue;if('opacity'in m)m.opacity=1;m.transparent=false;if('depthWrite'in m)m.depthWrite=true;m.needsUpdate=true;}visibleMesh=true;});if(!visibleMesh&&view.removeActor&&view.syncActor){view.removeActor(p.id);root=view.syncActor(p,performance.now()/1000,false);root&&(root.visible=true);}}};
- repair();setInterval(repair,900);
+ setTimeout(repair,0);setInterval(repair,900);
 }
 
 function enhanceSettingsAndHelp(){

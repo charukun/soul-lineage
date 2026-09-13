@@ -77,10 +77,10 @@ function softenWorldSelection(){
 }
 
 function decorateFacilities(){
- const original=view.getBuilding.bind(view),done=new Set();
+ const original=view.getBuilding.bind(view);
  const wood=new T.MeshStandardMaterial({color:0x8c6848,roughness:.95}),leaf=new T.MeshStandardMaterial({color:0x748b5f,roughness:1}),gold=new T.MeshStandardMaterial({color:0xc5a460,roughness:1}),stone=new T.MeshStandardMaterial({color:0x8f9388,roughness:1}),cloth=new T.MeshStandardMaterial({color:0x8d9f91,roughness:.95});
  const box=(g,x,y,z,w,h,d,m)=>{const n=new T.Mesh(new T.BoxGeometry(w,h,d),m);n.position.set(x,y,z);n.castShadow=n.receiveShadow=true;g.add(n);};
- view.getBuilding=(kind,material='base',level=1)=>{const g=original(kind,material,level);const key=`${kind}:${material}:${level}`;if(done.has(key))return g;done.add(key);
+ const decorate=(g,kind)=>{if(!g||g.userData.muraFacilityDecorated)return g;g.userData.muraFacilityDecorated=true;
   if(kind==='logging'){for(let i=0;i<5;i++){const log=new T.Mesh(new T.CylinderGeometry(.28,.32,4.4,8),wood);log.rotation.z=Math.PI/2;log.position.set((i%2)*.5-.25,.35+Math.floor(i/2)*.5,-1.4+i%2*.55);g.add(log);}box(g,2.2,.55,1.7,.25,2.5,.25,cloth);}
   if(kind==='storage'){for(const [x,z] of[[-2,-1],[0,-1],[2,-1],[-1,1],[1,1]])box(g,x,.55,z,1.5,1.1,1.5,wood);}
   if(kind==='wheat'){for(let z=-4;z<=4;z+=1.35)for(let x=-4;x<=4;x+=1.35){const stalk=new T.Mesh(new T.CylinderGeometry(.035,.05,.9,5),gold);stalk.position.set(x,.45,z);g.add(stalk);}}
@@ -88,7 +88,9 @@ function decorateFacilities(){
   if(kind==='carpenter'){box(g,0,.85,-1,4.5,.45,1.5,wood);box(g,-1.7,1.7,-1,.18,1.8,.18,cloth);}
   if(kind==='guardpost'){box(g,0,2.2,0,.22,4.4,.22,wood);box(g,.65,3.4,0,1.3,.8,.08,cloth);}
   return g;};
- view.buildingCache?.clear?.();view.rebuild?.();
+ view.getBuilding=(kind,material='base',level=1)=>decorate(original(kind,material,level),kind);
+ for(const o of world.objects){if(!defs[o.kind]?.building)continue;decorate(view.objectNodes.get(o.id),o.kind);}
+ view.renderer.shadowMap.needsUpdate=true;
 }
 
 function enableMayorFacilityHousing(){
