@@ -65,7 +65,7 @@ test('real adapter and session wire progress, cleanup and the new route renderer
  const index=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(creature,/Number\.isFinite\(a\.devourProgress\)/);assert.match(creature,/applyCapturedPose\(g,a\.capturedBy\)/);
  assert.match(creature,/foot\.quaternion\.copy\(inverse\)/);assert.ok(!creature.includes('Math.sin(time*10)'));
- assert.match(session,/advanceDevour\(this,dt,v\.amount\)/);assert.match(session,/cancelDevour\(this\)/);
- assert.match(main,/renderRaidRoutes\(offers,profile\)/);assert.match(main,/huntUiState\(game/);assert.match(main,/import '\.\/raid-routes\.css'/);
+ assert.match(session,/advanceDevour\(this,dt,v\.amount\)/);assert.match(session,/cancelDevour\(this\)/);assert.match(session,/escapePoints\(\)/);
+ assert.match(main,/renderRaidRoutes\(offers,profile\)/);assert.match(main,/huntUiState\(game/);assert.match(main,/game\.nearestEscape\?\.\(\)/);assert.match(main,/if\(game\?\.eaten>0\)guideState\.memorySeen=true/);assert.match(main,/import '\.\/raid-routes\.css'/);
  for(const id of ['enemy-name','enemy-health-track','return-label'])assert.ok(index.includes(`id="${id}"`));
 });
