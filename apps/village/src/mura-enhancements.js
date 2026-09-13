@@ -14,5 +14,6 @@ import './mura-ux-polish-4.js';
 import './mura-ux-polish-4b.js';
 import './mura-background-bgm.js';
 import './mura-first-build.js';
+import './mura-director-polish.js';
 
 export const MURA_ENHANCEMENTS_READY = true;
