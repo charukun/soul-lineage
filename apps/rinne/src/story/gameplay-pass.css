@@ -14,7 +14,7 @@ body[data-story]{overflow:hidden;overscroll-behavior:none}
 #story-belt::before{display:none}
 #story-belt .belt-tool{width:49px;height:49px;min-height:49px;padding:4px 2px;border-radius:50% 50% 7px 7px;font-size:8px}
 #story-belt .belt-tool svg{width:19px;height:19px}
-#story-stop{display:none!important}
+#story-interface[data-moved="true"][data-moving="false"] #story-stop{display:none!important}
 #story-interface[data-moving="true"] #story-stop{display:flex!important}
 #story-interface[data-moving="true"] #story-rest{display:none!important}
 #story-interface[data-resting="true"] #story-rest{display:flex!important}
