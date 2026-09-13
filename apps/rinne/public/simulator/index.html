@@ -1941,7 +1941,7 @@ function camera(dt=0){const alive=[hero,...enemies,...(escort?[escort]:[])].filt
  let target=camTarget.slice();if(prefs.shake&&shake>0){target[0]+=Math.sin(time*113)*shake;target[2]+=Math.cos(time*97)*shake*.6;}
  const orbitR=storySession?.zone==='village'?60:24,off=[Math.sin(camAngle)*Math.cos(camPitch)*orbitR,Math.sin(camPitch)*orbitR,Math.cos(camAngle)*Math.cos(camPitch)*orbitR];eye=add(target,off);const view=lookAt(eye,target);if(renderer.camera){renderer.camera.matrixWorld.fromArray(view).invert();renderer.camera.matrixWorldInverse.fromArray(view);}camRight=[view[0],view[4],view[8]];camUp=[view[1],view[5],view[9]];
  const px=all.map(a=>dot(sub([a.x,1.3,a.z],target),camRight)),py=all.map(a=>dot(sub([a.x,1.3,a.z],target),camUp));
- const desired=Math.max(storySession?.zone==='village'?18:H<300?6.6:6.3,(Math.max(...px)-Math.min(...px)+4.8)*H/W,Math.max(...py)-Math.min(...py)+5.1)/zoom;
+ const desired=Math.max(storySession?.zone==='village'?28:H<300?6.6:6.3,(Math.max(...px)-Math.min(...px)+4.8)*H/W,Math.max(...py)-Math.min(...py)+5.1)/zoom;
  camHeight=mix(camHeight,desired,dt>0?1-Math.exp(-dt*(desired>camHeight?6:1.8)):1);const vh=camHeight,vw=vh*W/H;vp=mm(ortho(-vw/2,vw/2,-vh/2,vh/2,.1,storySession?600:120),view);
 }
 function project(p){const t=tp(vp,p);return[(t[0]*.5+.5)*W,(-t[1]*.5+.5)*H];}
@@ -2799,7 +2799,7 @@ function inputVector(){if(autoDash.active)return{x:autoDash.x,z:autoDash.z,amoun
 function retreating(a){const v=inputVector(),t=nearestThreat(a);return v.amount>.05&&(!t.actor||((t.actor.x-a.x)*v.x+(t.actor.z-a.z)*v.z)/Math.max(.001,t.distance)<-.12);}
 function stopDash(){autoDash.active=false;autoDash.speed=0;autoDash.blocked=0;if($('dashStop'))$('dashStop').hidden=true;}
 releaseMove=function(){const id=manual.id;manual.id=null;manual.dx=manual.dy=manual.amount=0;manual.samples=[];stopDash();if($('movePad'))$('movePad').hidden=true;if(id!=null&&canvas.hasPointerCapture?.(id))try{canvas.releasePointerCapture(id);}catch{}};
-function beginAutoDash(x,z){if(paused||!hero||hero.dead||hero.recovery||hero.reaction||hero.stun>0||$('settingsDialog').open||$('cameraDialog')?.open)return false;
+function beginAutoDash(x,z){if(storySession?.inputBlocked||paused||!hero||hero.dead||hero.recovery||hero.reaction||hero.stun>0||$('settingsDialog').open||$('cameraDialog')?.open)return false;
  const len=Math.hypot(x,z);if(len<.01)return false;autoDash.active=true;autoDash.x=x/len;autoDash.z=z/len;autoDash.speed=2.6;autoDash.blocked=autoDash.dust=0;hero.manualIntentUntil=time+1.1;hero.plan=null;hero.spacing=null;if(hero.endlag)hero.endlag.next=null;$('dashStop').hidden=false;stats.dashes=(stats.dashes||0)+1;return true;}
 const actor6=makeActor;
 makeActor=function(...args){const a=actor6(...args);a.combatReady=true;a.combatBlend=1;a.separationTime=0;a.manualIntentUntil=-10;a.awarenessReason='警戒';a.disengagePending=false;return a;};
@@ -2863,7 +2863,7 @@ poseChannels=function(a,at=null){const q=combatPose6(a,at);if(!a.hero||a.dead||a
 const feet6=stanceFootSpec;
 stanceFootSpec=function(a){const s=feet6(a);if(!a.hero)return s;const b=clamp(a.combatBlend??1,0,1);return{width:mix(.175,s.width,b),lead:mix(.06,s.lead,b),rear:mix(-.06,s.rear,b)};};
 function installMovementGestures(stick){
- canvas.addEventListener('pointerdown',e=>{if((e.pointerType==='mouse'&&e.button!==0)||manual.id!==null||paused||!hero||hero.dead||$('settingsDialog').open||$('cameraDialog')?.open)return;
+ canvas.addEventListener('pointerdown',e=>{if((e.pointerType==='mouse'&&e.button!==0)||manual.id!==null||storySession?.inputBlocked||paused||!hero||hero.dead||$('settingsDialog').open||$('cameraDialog')?.open)return;
   e.preventDefault();stopDash();canvas.setPointerCapture(e.pointerId);manual.id=e.pointerId;manual.x=e.clientX;manual.y=e.clientY;manual.dx=manual.dy=manual.amount=0;manual.started=performance.now();manual.samples=[{x:e.clientX,y:e.clientY,t:manual.started}];const rect=$('stage').getBoundingClientRect();stick.style.left=(e.clientX-rect.left)+'px';stick.style.top=(e.clientY-rect.top)+'px';$('moveNub').style.transform='translate(0,0)';stick.hidden=false;});
  canvas.addEventListener('pointermove',e=>{if(manual.id!==e.pointerId)return;e.preventDefault();const now=performance.now();manual.dx=e.clientX-manual.x;manual.dy=e.clientY-manual.y;const d=Math.hypot(manual.dx,manual.dy);manual.amount=clamp((d-6)/40,0,1);const scale=Math.min(1,34/(d||1));$('moveNub').style.transform='translate('+manual.dx*scale+'px,'+manual.dy*scale+'px)';manual.samples.push({x:e.clientX,y:e.clientY,t:now});while(manual.samples.length>2&&manual.samples[1].t<now-130)manual.samples.shift();});
  canvas.addEventListener('pointerup',e=>{if(e.pointerId!==manual.id)return;e.preventDefault();const now=performance.now(),elapsed=now-manual.started,dx=e.clientX-manual.x,dy=e.clientY-manual.y,d=Math.hypot(dx,dy),samples=manual.samples||[],recent=samples.find(p=>p.t>=now-130)||samples.at(-1),tail=recent?Math.hypot(e.clientX-recent.x,e.clientY-recent.y)/Math.max(12,now-recent.t):0;
@@ -3928,14 +3928,17 @@ function installLifeUI(){const badge=document.createElement('button');badge.id='
 
 /** Explicit main-game port; the simulator's input, clock and combat remain owners. */
 function installStoryPort(){
- paused=true;syncPause();storySession={moveScale:1,carried:true,tick:null,draw:null,bounds:{x:7.6,z:5.4},canEnter:null,zone:'village'};
+ paused=true;camAngle=0;camPitch=.82;zoom=1;syncPause();storySession={moveScale:1,carried:true,inputBlocked:false,tick:null,draw:null,bounds:{x:7.6,z:5.4},canEnter:null,zone:'village'};
  world.props=[];world.flags=[];world.colliders=[];removeLifeEnemies();
  const actorState=a=>({x:a.x,z:a.z,hp:a.hp,maxhp:a.maxhp,dead:a.dead,weapon:a.weapon});
- const snapshot=()=>({life:lifeClock.snapshot(),hero:actorState(hero),enemies:enemies.map(actorState),paused});
+ const snapshot=()=>({life:lifeClock.snapshot(),hero:actorState(hero),enemies:enemies.map(actorState),paused,controls:{moving:manual.amount>.01||autoDash.active,dashing:autoDash.active,cameraAngle:camAngle}});
  const position=(x,z)=>{hero.x=clamp(x,-256,256);hero.z=clamp(z,-256,256);hero.kx=hero.kz=0;initFeet(hero);releaseMove();camera(0);};
  const restoreActor=(a,s)=>{a.x=s.x;a.z=s.z;a.hp=s.hp;a.maxhp=s.maxhp;a.dead=s.dead;a.deadTime=s.dead?2:0;a.weapon=s.weapon;initFeet(a);};
  window.__RINNE_GAME_PORT__={
   version:1, snapshot, stopMove:releaseMove,position,
+  session:()=>({mode:'solo',phase:'open',members:[],epoch:0,revision:0}),
+  blockInput(value){storySession.inputBlocked=!!value;if(value)releaseMove();},
+  camera({angle=camAngle,pitch=camPitch,scale=zoom}={}){camAngle=Number.isFinite(angle)?angle:camAngle;camPitch=clamp(pitch,.25,1.1);zoom=clamp(scale,.7,1.45);camera(0);},
   world({zone,bounds,canEnter}){Object.assign(storySession,{zone,bounds,canEnter});camera(0);},
   subscribe(fn){storySession.tick=fn;return()=>{storySession.tick=null;};},
   view(){return{THREE,scene:renderer.scene,humanoid:()=>humanoid.current,hero:()=>hero,
