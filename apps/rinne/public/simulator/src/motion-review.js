@@ -1,6 +1,6 @@
 import * as T from '../vendor/three.js';
 import {OrbitControls} from '../vendor/OrbitControls.js';
-import {HumanoidRuntime} from './humanoid.js';
+import {HumanoidRuntime} from './humanoid-natural-stance.js';
 import {SLASH_TIMING,SLASH_SECONDS,SLASH_REVISION} from './authored-slash.js';
 import {createReviewSword} from './review-sword.js';
 const $=id=>document.getElementById(id),canvas=$('motion-stage');
