@@ -1,4 +1,7 @@
 import nativeSkin from '../story/native-skin.css?inline';
+import pageStyle from '../story/page-layout.css?inline';
+import notebookStyle from '../story/notebook-pages.css?inline';
+import {mountNotebookPages} from '../story/notebook-pages.js';
 import {mountStory} from '../story/controller.js';
 import {TitleWorld} from './world.js';
 import {SoulParticles} from './particles.js';
@@ -14,7 +17,7 @@ export function mountTitle(buildInfo, options={}){
  refreshStoryEntry();
  const storageKey=`rinne.title.${environment}.v1`;let saved=null;try{saved=JSON.parse(localStorage.getItem(storageKey));}catch{}
  let settings=normalizedSettings(saved,media.matches),state='intro',world,frame=null,requestToken='',introStart=performance.now(),raf=0,last=0,seconds=0,timeout=0,launchDelay=0,destroyed=false,visible=!document.hidden;
- let skinElement=null;
+ let skinElement=null,disposeNotebook=null;
  let pointer=[0,0],drift=[0,0],gesture=false,launchAbort=null,experience='simulator',disposeStory=null,mountingStory=false;
  const loading=new LoadingUI($,(message,code)=>showError(message,code),options.loadingLimits);
  const assetRequests=new Set();
@@ -38,12 +41,12 @@ export function mountTitle(buildInfo, options={}){
  function pause(){if(raf)cancelAnimationFrame(raf);raf=0;}
  function removeFrame(){
   clearTimeout(timeout);clearTimeout(launchDelay);loading.stop();launchAbort?.abort();launchAbort=null;
-  disposeStory?.();disposeStory=null;skinElement?.remove();skinElement=null;mountingStory=false;requestToken='';assetRequests.clear();frame?.remove();frame=null;$('frame-slot').replaceChildren();
+  disposeStory?.();disposeStory=null;disposeNotebook?.();disposeNotebook=null;skinElement?.remove();skinElement=null;mountingStory=false;requestToken='';assetRequests.clear();frame?.remove();frame=null;$('frame-slot').replaceChildren();
  }
  function showError(message,code='BOOT_ERROR',detail=''){
   if(state!=='loading'&&state!=='playing')return;
   updateState('fail');loading.fail(message,code,detail);$('game-loading').hidden=false;$('game-loading').setAttribute('aria-busy','false');
-  launchAbort?.abort();disposeStory?.();disposeStory=null;mountingStory=false;frame?.remove();frame=null;requestToken='';assetRequests.clear();
+  launchAbort?.abort();disposeStory?.();disposeStory=null;disposeNotebook?.();disposeNotebook=null;skinElement?.remove();skinElement=null;mountingStory=false;frame?.remove();frame=null;requestToken='';assetRequests.clear();
  }
  async function loadFrame(){
   if(destroyed||state!=='loading')return;
@@ -100,7 +103,7 @@ export function mountTitle(buildInfo, options={}){
   if(data.type==='asset-request'){serveAsset(event);return;}
   if(data.type==='progress'&&state==='loading'){loading.update(data.progress);return;}
   if(data.type==='ready'&&state==='loading'){
-   if(!skinElement){const child=frame.contentDocument;skinElement=child.createElement('style');skinElement.textContent=nativeSkin;child.head.append(skinElement);child.body.dataset.rinneSkin='tactile';for(const values of child.querySelectorAll('.ratio-values')){const details=child.createElement('details'),summary=child.createElement('summary');details.className='ratio-disclosure';summary.textContent='比率を調整';values.before(details);details.append(summary,values);}}
+   if(!skinElement){const child=frame.contentDocument;skinElement=child.createElement('style');skinElement.textContent=nativeSkin+pageStyle+notebookStyle;child.head.append(skinElement);child.body.dataset.rinneSkin='tactile';disposeNotebook=mountNotebookPages(frame.contentWindow);}
    if(experience==='story'){
     if(mountingStory)return;mountingStory=true;const token=requestToken;
     try{const dispose=await mountStory(frame.contentWindow,environment,{signal:launchAbort.signal,onExit:()=>back(),onMusic:()=>$('simulator-music').click()});if(token!==requestToken||state!=='loading'){dispose();return;}disposeStory=dispose;}

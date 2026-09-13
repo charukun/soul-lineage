@@ -5,6 +5,7 @@ import {readStorySave,createStorySave} from '../game/story-save.js';
 import {createStoryScene} from './scene.js';
 import css from './story.css?inline';
 import {createPlayInterface} from './interface.js';
+import {mountStoryPages} from './story-pages.js';
 import {acquireStorySaveLease} from './save-lease.js';
 
 /** Browser adapter for the portable story and the existing, same-origin game port. */
@@ -31,6 +32,7 @@ export async function mountStory(win,environment,{signal,onExit,onMusic}={}){
   const death=doc.createElement('dialog');death.id='story-ended';death.setAttribute('aria-labelledby','story-ended-title');death.innerHTML='<p class="story-kicker">ひとつの生涯、その終わり</p><h2 id="story-ended-title">また、どこかで。</h2><p>90年を生き終えました。技と装備の設定は、次の人生にも残ります。</p><label for="story-memento">この生涯を象徴するもの</label><select id="story-memento"></select><button id="story-rebirth">もう一度、生まれる</button>';
   doc.body.append(dialog,death);const $=id=>doc.getElementById(id);let signature='',saveElapsed=0,lastNotice='',noticeUntil=0;
   const ui=createPlayInterface({win,port,onRecords:openRecords,onExit,onMusic,onAction:perform});
+  const disposePages=mountStoryPages(win);
   $('game').tabIndex=0;
   $('settingsTitle').textContent='戦いの手帳';
   doc.querySelector('.modal-footer > span').firstChild.textContent='輪廻転焦 · 戦いの手帳 / ';
@@ -111,7 +113,8 @@ export async function mountStory(win,environment,{signal,onExit,onMusic}={}){
     paragraph(content,`生活経験：${Object.entries(s.experiences).map(([k,n])=>`${EXPERIENCES[k]} ${n}`).join(' / ')}`);
     paragraph(content,`今回の生涯：救助 ${s.rescued}人、前線突破 ${s.victories}回`);
     const map=doc.createElement('div');map.className='story-place-list';for(const p of story.places)paragraph(map,`${p.name}：${p.z<0?'村の北側':'村の南側'}・${p.x<0?'西寄り':'東寄り'}`);content.append(map);
-    paragraph(content,`村の人々（${s.residents.length}/30）：${s.residents.map(r=>`${r.name} ${Math.max(0,Math.floor((f.life.worldSeconds-r.bornAt)/60))}歳`).join('、')}`);
+    paragraph(content,`村の人々（${s.residents.length}/30）`);
+    for(const resident of s.residents)paragraph(content,`${resident.name} · ${Math.max(0,Math.floor((f.life.worldSeconds-resident.bornAt)/60))}歳`);
     paragraph(content,'生涯の記録');if(!s.history.length)paragraph(content,'最初の人生を歩んでいます。');
     for(const h of s.history)paragraph(content,`第${h.generation}生 · 世界暦${Math.floor(h.worldEnd/60)}年まで · 救助${h.rescued}人 · 突破${h.victories}回 · ${h.memento}`);
     for(const event of s.events.slice(0,12))paragraph(content,event);
@@ -147,7 +150,7 @@ export async function mountStory(win,environment,{signal,onExit,onMusic}={}){
   on(doc,'visibilitychange',save);on(win,'pagehide',save);
   // Native notebook controls keep their current composition/equipment semantics.
   on($('settingsDialog'),'close',()=>{save();render(true);});on($('lifeDialog'),'close',save);
-  const dispose=()=>{if(disposed)return;save();disposed=true;active=false;lease.release();if(ui.canPause())port.pause(true);else port.blockInput(true);unsubscribe();unsubscribeWorld();abort.abort();win.clearInterval(uiTimer);scene.dispose();ui.destroy();dialog.remove();death.remove();style.remove();delete doc.body.dataset.story;};
+  const dispose=()=>{if(disposed)return;save();disposed=true;active=false;lease.release();if(ui.canPause())port.pause(true);else port.blockInput(true);unsubscribe();unsubscribeWorld();abort.abort();win.clearInterval(uiTimer);scene.dispose();disposePages();ui.destroy();dialog.remove();death.remove();style.remove();delete doc.body.dataset.story;};
   signal?.addEventListener('abort',dispose,{once:true});
   active=true;sync();render(true);save();if(story.state.phase!=='ended')port.pause(false);
   return dispose;
