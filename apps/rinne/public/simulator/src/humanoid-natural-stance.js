@@ -54,13 +54,19 @@ export function shouldNaturalizeWeaponStance(a,progress=null){
   return holding&&quiet&&(a.weapon||'sword')!=='fist';
 }
 
-/** Static ready posture only. Moving/attacking actors keep their authored whole-body
- * motion. The draw amount fades the support posture in after the blade clears the hip. */
-export function readyBodyStrength(a){
-  if(!a||a.attack||a.reaction||a.recovery||a.dead||a.zanshin)return 0;
+/** Small whole-body support for the ready silhouette. The same support fades out over
+ * the opening guard and returns over the authored recovery, so attack->guard never
+ * switches the shoulders underneath a world-locked wrist in one frame. */
+export function readyBodyStrength(a,progress=null){
+  if(!a||a.reaction||a.recovery||a.dead||a.zanshin)return 0;
   if(!(a.combatReady||a.weaponTransition)||(a.weapon||'sword')==='fist')return 0;
   if(Math.hypot(a.vx||0,a.vz||0)>.10)return 0;
-  return smooth(((a.weaponDraw??1)-.25)/.75);
+  const draw=smooth(((a.weaponDraw??1)-.25)/.75);
+  if(!a.attack)return draw;
+  if(!Number.isFinite(progress))return 0;
+  if(progress<=.12)return draw*(1-smooth(progress/.12));
+  if(progress>=.82)return draw*smooth((progress-.82)/.18);
+  return 0;
 }
 
 export class HumanoidRuntime extends BaseHumanoidRuntime{
@@ -130,7 +136,7 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
     const result=super.sample(a,at,px,pz,commit),c=this.current;
     if(!result||!c)return result;
     const weapon=a.weapon||'sword',attackProgress=a.attack?this.api.progress(a,at):null;
-    const bodyStrength=readyBodyStrength(a);
+    const bodyStrength=readyBodyStrength(a,attackProgress);
     // Save the already-authored hand/weapon contact before the torso begins supporting
     // it. Re-solving the arms back to these world transforms keeps result.sm, collision
     // sampling and the visible grip coincident even though the shoulders move slightly.
