@@ -24,14 +24,14 @@ permissions:
   contents: read
   pull-requests: read
   actions: read
-  statuses: write
 
 concurrency:
-  group: rinne-ops-board
-  cancel-in-progress: true
+  group: rinne-ops-board-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  verify:
+    name: PULSE verification
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -72,6 +72,37 @@ jobs:
           trap 'kill "$server" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 10); do curl -fsS "$OPS_URL" >/dev/null && break; sleep 1; done
           node ops-board/browser-check.mjs
+      - name: Verify Rescue cockpit with parallel/stale/manual fixtures on mobile
+        run: node ops-board/rescue-browser-check.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ops-board-preflight-review
+          path: ops-review-results/
+          retention-days: 7
+
+  deploy:
+    name: Publish PULSE
+    needs: verify
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Reject stale publication source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api repos/$GITHUB_REPOSITORY/branches/develop --jq .commit.sha)" = "$GITHUB_SHA"
       - name: Derive server-only refresh credential
         # Rescue fixtures run only in this local test harness; they are never deployed.
         id: refresh-credential
@@ -84,8 +115,6 @@ jobs:
           refresh_token=$(printf '%s' "$CLOUDFLARE_API_TOKEN|$GITHUB_REPOSITORY|rinne-ops-refresh-v1" | sha256sum | awk '{print $1}')
           echo "::add-mask::$refresh_token"
           echo "OPS_REFRESH_TOKEN=$refresh_token" >> "$GITHUB_ENV"
-      - name: Verify Rescue cockpit with parallel/stale/manual fixtures on mobile
-        run: node ops-board/rescue-browser-check.mjs
       - name: Stamp the actual publication source
         run: |
           node --input-type=module -e "import fs from 'node:fs';fs.writeFileSync('ops-board/public/version.json',JSON.stringify({app:'ops-board',commit:process.env.GITHUB_SHA,builtAt:new Date().toISOString()}))"
@@ -135,7 +164,7 @@ jobs:
           OPS_REPORT_DIR: ops-review-results/public
         run: node ops-board/browser-check.mjs
       - name: Record public Ops Board status
-        if: always()
+        if: ${{ !cancelled() && github.ref == 'refs/heads/develop' && steps.deploy.outcome != 'skipped' }}
         env:
           GH_TOKEN: ${{ github.token }}
           PUBLIC_URL: ${{ steps.public.outputs.url }}

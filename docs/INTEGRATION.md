@@ -110,7 +110,7 @@ PULSEはCloudflare Workerの定期refreshでGitHub状態と公開manifestを軽�
 - merge済み: success + merge SHA。
 - 保留: pending +具体的な理由。
 
-`integration/queue`、`implementation/handoff`、`Request Integration`、`Request Rescue observation` はcode validation gateから除外します。受領・通知・起動処理をcode gateへ混ぜて自己待機することを防ぎ、fast artifact・build・browser・他のChecksは維持します。
+`integration/queue`、`implementation/handoff`、`ops-board/public`、`Request Integration`、`Request Rescue observation` はcode validation gateから除外します。受領・通知・起動処理をcode gateへ混ぜて自己待機することを防ぎ、fast artifact・build・browser・他のChecksは維持します。
 
 統合batchは `INTEGRATED`、最終 `integration/develop=success`（DEV公開・HTTP/source・focused browser成功）後は `DEV_DEPLOYED` を既存ntfy設定へ通知します。通知失敗で統合・公開判定を変更せず、Actionsへ警告を残します。
 
@@ -138,3 +138,15 @@ Ready PRの修復は独立したCoordinatorと複数のPR単位Workerで行い�
 ## Bootstrap例外の扱い
 
 trusted review機構そのものを導入したPR #76と、repair recorder concurrency分離を導入したPR #54は、旧仕組みでは自分自身のデッドロックを解消できなかったため、exact-head CI成功確認後に一度限りのbootstrap mergeを行いました。これは移行履歴であり、通常運用のmerge経路ではありません。
+
+## PULSE公開とcancelled CIの回収
+
+PULSEのfeature branchは検証のみ行い、共有公開先・公開statusを更新しない。公開はdevelop専用job、concurrencyはbranchごとに分離する。cancelled/stale runは公開failureへ変換しない。旧PULSEのgeneric `deploy` checkは、GitHub Actions provider・exact SHA・`ops-board.yml`のcheck suiteとの一致を確認したものだけcode gateから除外する。新しい `PULSE verification` と他workflowのdeploy checkは引き続き品質gateである。
+
+CI validation（opened/synchronize/reopened/Ready）とmetadata/review observationを別concurrency groupにする。Integrationは現在headの最新pull_request validation runのfast artifactとbuild/browser両jobのsuccessを要求し、review/metadata runのskipped browserで代用しない。
+
+通常Integrationはcancelledの現在headに対し、review/hold/dependency/headと最新runを再取得して、該当jobとdownstreamだけ再実行する。失敗・実行中・古いheadは再実行せず、合計3attemptで停止する。再実行要求は成功判定ではない。
+
+既存の独立Work watchdogが呼ぶ `deploy.yml` の `rescue_mode=scan` は `Recover missed Ready CI and Integration requests` も実行する。これはPULSEとは独立し、cancelled CIの再実行と成功済みReady PRの取り逃した起動を標準Integrationへ返す。merge/branch更新/hold解除は行わない。通常Integrationと同じconcurrencyで重複操作を直列化し、1走査12PR・API/時間予算・回転windowで制限する。既定branchへの新workflow登録、main変更、有料API、追加のタスクDBは不要。
+
+回復結果は `integration-report` の `ciRecovery` と `integration-queue-recovery` artifactへ残す。実証結果は [キュー回復](INTEGRATION_QUEUE_RECOVERY.md) を参照。

@@ -3,12 +3,12 @@ import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
-import { contextName, dependencies, eligibility } from './integration-policy.mjs';
+import { contextName, dependencies, eligibility, reviewDecision } from './integration-policy.mjs';
 import { integrationRescueReason } from './integration-rescue-policy.mjs';
 
 export const queueContext = 'integration/queue';
 export const trustedReviewContext = 'integration/trusted-review';
-export const validationEvents = ['pull_request', 'pull_request_review'];
+export const validationEvents = ['pull_request'];
 export const trustedReviewPrefix = 'Trusted Integration Review: exact head ';
 export const maxReadyEvaluationsPerRun = 12;
 export const maxMergesPerRun = 8;
@@ -196,28 +196,73 @@ export function currentChecks(checks = []) {
   return [...latest.values()];
 }
 
+export async function validationRuns(c, pr, options = {}) {
+  const runs = await c.pages(`/actions/workflows/ci.yml/runs?head_sha=${pr.head.sha}`, 'workflow_runs', { maxPages: 3, cache: options.cache === true });
+  return runs.filter(r => r.head_sha === pr.head.sha && r.head_branch === pr.head.ref &&
+    r.head_repository?.full_name === pr.head.repo.full_name).sort((a, b) => b.id - a.id);
+}
+export const isValidationRun = r => validationEvents.includes(r.event) && !/^CI observation /.test(r.display_title || '');
+
 export async function fastGate(c, pr, options = {}) {
   const cache = options.cache === true;
-  const runs = await c.pages(`/actions/workflows/ci.yml/runs?head_sha=${pr.head.sha}`, 'workflow_runs', { maxPages: 3, cache });
-  const matching = runs.filter(r => r.head_sha === pr.head.sha && r.head_branch === pr.head.ref &&
-    r.head_repository?.full_name === pr.head.repo.full_name && validationEvents.includes(r.event));
-  matching.sort((a, b) => b.id - a.id);
-  if (!matching.length) return false;
-  const run = matching[0];
+  const runs = await validationRuns(c, pr, options);
+  const run = runs.find(isValidationRun);
+  if (!run) return false;
   const artifacts = await c.pages(`/actions/runs/${run.id}/artifacts`, 'artifacts', { maxPages: 3, cache });
   if (!artifacts.some(a => a.name === `pr-fast-${pr.number}-${pr.head.sha}` && !a.expired)) return false;
   const jobs = await c.pages(`/actions/runs/${run.id}/jobs?filter=latest`, 'jobs', { maxPages: 3, cache });
-  const gate = jobs.find(j => j.name === 'Validate and build');
-  if (gate?.status !== 'completed' || gate.conclusion !== 'success') return false;
-  const checks = currentChecks(await c.pages(`/commits/${pr.head.sha}/check-runs?filter=latest`, 'check_runs', { maxPages: 3, cache }));
+  // A later metadata/review run with a skipped browser never replaces this evidence.
+  for (const name of ['Validate and build', 'Affected browser smoke']) {
+    const gate = jobs.find(j => j.name === name);
+    if (gate?.status !== 'completed' || gate.conclusion !== 'success') return false;
+  }
+  let checks = await c.pages(`/commits/${pr.head.sha}/check-runs?filter=latest`, 'check_runs', { maxPages: 3, cache });
+  const observerSuites = new Set(runs.filter(r => !isValidationRun(r)).map(r => r.check_suite_id).filter(Boolean));
+  checks = checks.filter(x => !(x.app?.slug === 'github-actions' && observerSuites.has(x.check_suite?.id)));
+  // Older PULSE versions used the generic job name "deploy". Exclude only jobs
+  // whose check suite is proven to belong to that exact public-board workflow.
+  if (checks.some(x => ['deploy', 'Publish PULSE'].includes(x.name))) {
+    const publicRuns = await c.pages(`/actions/workflows/ops-board.yml/runs?head_sha=${pr.head.sha}`, 'workflow_runs', { maxPages: 3, cache });
+    const suites = new Set(publicRuns.filter(r => r.head_sha === pr.head.sha &&
+      r.head_repository?.full_name === pr.head.repo.full_name &&
+      r.path === '.github/workflows/ops-board.yml').map(r => r.check_suite_id).filter(Boolean));
+    checks = checks.filter(x => !(x.app?.slug === 'github-actions' && suites.has(x.check_suite?.id) && ['deploy', 'Publish PULSE'].includes(x.name)));
+  }
   const statuses = await c.pages(`/commits/${pr.head.sha}/statuses`, undefined, { maxPages: 10, cache });
   const latestStatuses = new Map();
   for (const status of statuses) if (!latestStatuses.has(status.context)) latestStatuses.set(status.context, status);
-  // Dispatch has no role in code validation. Superseded check runs from the same
-  // app/name are ignored; otherwise a cancelled run replaced by a successful run
-  // can strand a Ready PR forever on the same immutable head.
-  return checks.every(x => x.status === 'completed' && ['success', 'neutral', 'skipped'].includes(x.conclusion)) &&
-    [...latestStatuses.values()].filter(x => ![contextName, queueContext, 'implementation/handoff'].includes(x.context)).every(x => x.state === 'success');
+  return currentChecks(checks).every(x => x.status === 'completed' && ['success', 'neutral', 'skipped'].includes(x.conclusion)) &&
+    [...latestStatuses.values()].filter(x => ![contextName, queueContext, 'implementation/handoff', 'ops-board/public'].includes(x.context)).every(x => x.state === 'success');
+}
+
+// This action restarts interrupted validation; it never marks a gate successful.
+export async function recoverCancelledCi(c, pr) {
+  const run = (await validationRuns(c, pr)).find(isValidationRun);
+  if (!run || run.status !== 'completed') return { state: 'unchanged' };
+  const jobs = await c.pages(`/actions/runs/${run.id}/jobs?filter=latest`, 'jobs', { maxPages: 3 });
+  const gates = jobs.filter(j => ['Validate and build', 'Affected browser smoke'].includes(j.name));
+  if (gates.some(j => ['failure', 'timed_out', 'action_required'].includes(j.conclusion))) return { state: 'failed', run: run.id };
+  const cancelled = gates.find(j => j.conclusion === 'cancelled');
+  if (!cancelled) return { state: 'unchanged' };
+  if ((run.run_attempt || 1) >= 3) return { state: 'blocked', reason: 'cancelled CI retry limit reached; manual inspection required', run: run.id };
+  if (!await recoveryReady(c, pr)) return { state: 'changed', run: run.id };
+  const freshRun = await c.api('GET', `${c.root}/actions/runs/${run.id}`);
+  if (freshRun.status !== 'completed' || freshRun.run_attempt !== run.run_attempt || freshRun.head_sha !== pr.head.sha) return { state: 'changed', run: run.id };
+  await c.api('POST', `${c.root}/actions/jobs/${cancelled.id}/rerun`);
+  return { state: 'requested', reason: 'cancelled current-head CI re-run requested; required gates pending', run: run.id, job: cancelled.id, attempt: (run.run_attempt || 1) + 1 };
+}
+
+export async function recoveryReady(c, expected) {
+  const pr = await c.api('GET', `${c.root}/pulls/${expected.number}`);
+  if (pr.head.sha !== expected.head.sha || cheapHoldReason(pr, expected.base.repo.full_name, false) ||
+      pr.mergeable !== true || !['clean', 'unstable', 'has_hooks'].includes(pr.mergeable_state)) return false;
+  const reviews = await c.pages(`/pulls/${pr.number}/reviews`, undefined, { maxPages: 10 });
+  if (reviewDecision(reviews, pr.head.sha).rejected || await threads(c, pr)) return false;
+  for (const number of dependencies(pr.body || '')) {
+    const dep = await c.api('GET', `${c.root}/pulls/${number}`);
+    if (!dep.merged || dep.base.ref !== 'develop' || dep.base.repo.full_name !== pr.base.repo.full_name) return false;
+  }
+  return true;
 }
 
 async function threads(c, pr) {
@@ -297,7 +342,7 @@ function selectEvaluationWindow(items, limit, cursorInput = process.env.INTEGRAT
 export async function integrate(c, repository, wait = delay, options = {}) {
   const startedMs = Date.now();
   const timeBudgetMs = Number(options.timeBudgetMs || process.env.INTEGRATION_TIME_BUDGET_MS || defaultIntegrationBudgetMs);
-  const report = { startedAt: new Date(startedMs).toISOString(), merged: [], held: [], trustedReviewed: [], deferred: [], budgetExhausted: false, evaluationCursor: 0, nextCursor: null, retryCursor: 0 };
+  const report = { startedAt: new Date(startedMs).toISOString(), merged: [], held: [], trustedReviewed: [], ciRecovery: [], deferred: [], budgetExhausted: false, evaluationCursor: 0, nextCursor: null, retryCursor: 0 };
   const branch = () => c.api('GET', `${c.root}/branches/develop`);
   c.mark?.('baseline');
   const current = await branch(); let expected = current.commit.sha;
@@ -367,6 +412,13 @@ export async function integrate(c, repository, wait = delay, options = {}) {
           dependenciesMerged: depStates.every(p => p.merged && p.base.ref === 'develop' && p.base.repo.full_name === repository),
           checksPassed, baseChanges: (comparison.files || []).flatMap(f => [f.filename, f.previous_filename].filter(Boolean)), recovery });
         let reason = eligibility(criteria());
+        if (reason === 'current head fast gate or another check is not successful' && !report.ciRecovery.some(x => x.pr === pr.number)) {
+          const recovered = await recoverCancelledCi(c, pr);
+          if (['requested', 'blocked'].includes(recovered.state)) {
+            report.ciRecovery.push({ pr: pr.number, head: pr.head.sha, ...recovered });
+            reason = recovered.reason;
+          }
+        }
         if (reason === trustedReviewReason) {
           reviews = await ensureTrustedReview(c, pr);
           report.trustedReviewed.push({ pr: pr.number, head: pr.head.sha });

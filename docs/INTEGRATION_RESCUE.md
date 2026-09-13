@@ -101,3 +101,7 @@ GitHub上のstate更新後に認証済みsnapshotをPULSEへ送る。これは�
 2026-09-13に[GitHub Actions limits](https://docs.github.com/en/actions/reference/limits)を確認。標準runnerの同時job上限はFree 20 / Pro 40（他workflowと共有）、matrix上限は256。Poolの初期4はこの共有枠に余裕を残す設定で、アカウントの空き枠を保証するものではない。GitHubのGITHUB_TOKENは通常1,000 API requests/hour/repository。Coordinatorは最大12件/160リクエスト/3分の予算を持ち、既存Integration clientのtimeout/backoffを再利用する。イベントburst時はcoordinator concurrencyとCASに加え120秒以内の再走査を集約し、REST残量200を通常Integrationとlive lease用に残す。各値はrescueConfigで一元管理する。
 
 [GitHub workflow trigger](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)のイベント抑止と既定branch制約を維持する。公開Repositoryの標準runnerの利用条件は[GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions)を参照する。追加API利用枠・長期PAT・追加有料runnerは導入しない。
+
+## CIイベント回収との境界
+
+既存watchdogの `rescue_mode=scan` は通常Integration側のbounded queue-recoveryも起動する。cancelled CIの再実行や成功済みPRのIntegration request欠落は、branchのbase更新・意味修復ではない。回収処理はWorker claim/attempt/RED lockを変更せず、実際のfailed gateはsuccessへ書き換えない。競合・意味判断のFAILED_MANUALは従来どおり人間の判断を待つ。
