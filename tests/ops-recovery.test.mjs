@@ -81,7 +81,7 @@ test('a resolved CI warning disappears and a stale delivery is surfaced once',()
 test('publication workflow checks exact source before authenticated prime and retains browser gates',()=>{
   const source=readFileSync(new URL('../.github/workflows/ops-board.yml',import.meta.url),'utf8');
   assert.ok(source.indexOf('publication-check.mjs version') < source.indexOf('node ops-board/prime.mjs'));
-  assert.match(source,/OPS_BUILD_SHA:\$GITHUB_SHA/);
+  assert.match(source,/OPS_BUILD_SHA:\$OPS_SOURCE_SHA/);
   assert.match(source,/ops-review-results\/public/);
   assert.equal((source.match(/node ops-board\/browser-check.mjs/g)||[]).length,2);
 });

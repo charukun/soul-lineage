@@ -51,7 +51,8 @@ export function workflowFailure(run) {
 }
 
 export function latestRunForSha(runs, sha, workflowName = 'CI') {
-  return (runs || []).find(run => run?.name === workflowName && run?.head_sha === sha) || null;
+  return (runs || []).find(run => run?.head_sha === sha &&
+    (run?.name === workflowName || (workflowName === 'CI' && /^CI validation #/.test(run?.name || '')))) || null;
 }
 
 function explicitIntegrationHold(pr) {
