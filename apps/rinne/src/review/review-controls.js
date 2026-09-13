@@ -22,13 +22,28 @@ export function installFocusedReviewUI(){
  const skillTab=q('[data-review-tab="skill"]'),advancedTab=q('[data-review-tab="advanced"]');
  if(skillTab)skillTab.hidden=true;if(advancedTab)advancedTab.hidden=true;
  if(skillPage)notebook.prepend(skillPage);
+ const forceRepeat=()=>queueMicrotask(()=>{const loop=q('#loop-toggle');if(!loop)return;loop.checked=true;loop.dispatchEvent(new Event('change',{bubbles:true}));});
  for(const play of skillPage?.querySelectorAll('[data-play-select]')||[]){
-  play.textContent='↻ 確認';play.setAttribute('title','この段階まで繰り返し確認');
-  play.addEventListener('click',()=>queueMicrotask(()=>{const loop=q('#loop-toggle');if(!loop)return;loop.checked=true;loop.dispatchEvent(new Event('change',{bubbles:true}));}));
+  play.textContent='↻ 確認';play.setAttribute('title','この段だけを繰り返し確認');
+  play.addEventListener('click',event=>{
+   const id=play.dataset.playSelect,select=q(`#${id}`),master=q('#clip'),value=select?.value;
+   if(!value||!master)return;
+   event.stopImmediatePropagation();
+   master.value=value;master.dispatchEvent(new Event('change',{bubbles:true}));forceRepeat();
+  },true);
  }
  for(const copy of skillPage?.querySelectorAll('.copy-slot')||[])copy.hidden=true;
  skillPage?.querySelector('.stage-titles')?.setAttribute('hidden','');
- const help=skillPage?.querySelector('.sequence-help');if(help)help.textContent='序・破・急を選び「確認」。選んだ範囲を止めるまで繰り返します。';
+ const help=skillPage?.querySelector('.sequence-help');if(help)help.textContent='各段の「確認」は単体再生。下の「序破急を通しで確認」で3段を一連再生します。';
+ if(skillPage){
+  const full=button('↻ 序破急を通しで確認',()=>{
+   const names=['stage-jo','stage-ha','stage-kyu'].map(id=>q(`#${id}`)?.value||'');
+   if(names.some(name=>!name)){const status=q('#review-status');if(status){status.textContent='序・破・急をすべて選択してください';status.dataset.kind='error';}return;}
+   document.dispatchEvent(new CustomEvent('review-play-sequence',{detail:{names}}));forceRepeat();
+  },'play-slot strong sequence-review-action');
+  full.style.width='100%';full.style.minHeight='48px';full.style.margin='4px 0 2px';full.setAttribute('aria-label','序破急を一連で繰り返し確認');
+  skillPage.append(full);
+ }
  const secondary=make('details','','review-secondary-disclosure');secondary.append(make('summary','その他の動作'));
  if(tabs){secondary.append(tabs);for(const page of [...document.querySelectorAll('.review-page')])if(!['skill','advanced'].includes(page.dataset.reviewPage))secondary.append(page);notebook.append(secondary);}
  secondary.addEventListener('toggle',()=>{if(!secondary.open&&skillTab&&!skillTab.classList.contains('active'))skillTab.click();});

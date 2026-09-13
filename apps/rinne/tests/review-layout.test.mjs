@@ -21,14 +21,28 @@ test('floating 操作 and 指摘 actions keep the viewer task-first', () => {
   assert.match(css, /\.review-feedback-toggle\{/);
 });
 
-test('skill composition is primary, repeat review is the default, and details start collapsed', () => {
+test('each stage reviews independently while full sequence review is a separate action', () => {
+  assert.match(source, /play\.textContent='↻ 確認'/);
+  assert.match(source, /play\.setAttribute\('title','この段だけを繰り返し確認'\)/);
+  assert.match(source, /event\.stopImmediatePropagation\(\)/);
+  assert.match(source, /master\.value=value;master\.dispatchEvent\(new Event\('change'/);
+  assert.match(source, /button\('↻ 序破急を通しで確認'/);
+  assert.match(source, /\['stage-jo','stage-ha','stage-kyu'\]\.map/);
+  assert.match(source, /new CustomEvent\('review-play-sequence',\{detail:\{names\}\}\)/);
+  assert.match(source, /各段の「確認」は単体再生。下の「序破急を通しで確認」で3段を一連再生します。/);
+});
+
+test('repeat review stays enabled for both single-stage and full-sequence review', () => {
+  assert.match(source, /const forceRepeat=\(\)=>queueMicrotask/);
+  assert.match(source, /loop\.checked=true;loop\.dispatchEvent\(new Event\('change'/);
+  assert.match(source, /master\.dispatchEvent\(new Event\('change',[\s\S]*forceRepeat\(\)/);
+  assert.match(source, /review-play-sequence',[\s\S]*forceRepeat\(\)/);
+});
+
+test('skill composition is primary and detailed controls start collapsed', () => {
   assert.match(source, /const advancedDetails=make\('details','','review-advanced-disclosure'\)/);
   assert.match(source, /advancedDetails\.append\(make\('summary','詳細設定'\)\)/);
   assert.match(source, /if\(skillPage\)notebook\.prepend\(skillPage\)/);
-  assert.match(source, /play\.textContent='↻ 確認'/);
-  assert.match(source, /queueMicrotask\(\(\)=>\{const loop=q\('#loop-toggle'\)/);
-  assert.match(source, /loop\.checked=true;loop\.dispatchEvent\(new Event\('change'/);
-  assert.match(source, /止めるまで繰り返します/);
   assert.match(css, /\.review-controls-dock \.stage-row\{grid-template-columns:30px minmax\(0,1fr\) 72px!important/);
   assert.match(css, /\.review-controls-dock \.copy-slot\{display:none!important\}/);
 });
