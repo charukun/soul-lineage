@@ -42,6 +42,8 @@ Actions Workerは実checkoutで最新developを非commit mergeし、PRの全変�
 
 非特権userの `npm ci` とtrusted fast検証が成功したら、既にGitHubに存在するblobだけでGit tree/commitを作り、ローカル検証treeとの完全一致を確認する。これは**branchへ未反映**の `AWAITING_PUSH`。Worker leaseを解放し、PULSEにstaged commitとWork push待ちを表示する。
 
+検証の作業directoryはsudoでUID変更した後も明示し、npmのprefixを同じ実checkoutへ固定する。非特権UIDからcwd・lockfileを読み取るpreflightを実行し、runner所有の親directoryには通過権限だけを追加する。trusted controlの書込禁止と検証後のcommit/tree/config不変検査は維持する。PRコメントを行うWorker/returnには標準GITHUB_TOKENのpull-requests writeを付与する。通知失敗は未送信のoutboxに理由と最大3回のbackoffを残し、修復・Integration復帰の成否とは独立させる。
+
 標準GITHUB_TOKENのpushイベント抑止・workflow変更権限に頼らず、既存Workが `integration-rescue-work-push.mjs` の安全確認とCASを経て元PR branchをfast-forwardする。接続済みGitHubの通常イベントから既存CIが起動する。CI実装・fastGate・exact-head artifact・review規則は変えず、古いartifactや架空statusで代用しない。
 
 [Work push / watchdog手順](INTEGRATION_RESCUE_WORK.md)を正本とする。独立時計はChatGPT Workの既存タスクを使い、対応上限の1時間周期。PRイベントは通常CIから即時scanを依頼する。旧Cloudflare cronのPAT登録jobは廃止し、短命GITHUB_TOKENを外部Secretへ保存しない。旧watchdogファイルは過去の構成の資料であり、現在の有効化手順ではない。
