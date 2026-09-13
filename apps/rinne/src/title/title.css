@@ -39,3 +39,41 @@
 #simulator-detail{font-size:10px;margin:7px 0}#simulator-detail small{display:none}
 @media(max-height:690px){#start-story{height:58px}#story-detail{margin:5px 0;font-size:10px}#start-simulator{height:42px}.world-poem{display:none}}
 @media(max-height:480px) and (min-aspect-ratio:1/1){#story-detail,.menu-invitation{display:none}.title-menu{bottom:8%;left:70%;width:300px}#start-simulator{margin-top:8px}}
+
+/* The title and the live adventure share a forged frame and a leather binding. */
+#title-screen .edge-frame{border-color:#d9b87560;box-shadow:inset 0 0 0 4px #15130c66,0 0 0 3px #30241344}
+#title-screen .edge-frame i{width:29px;height:29px;border-width:2px;border-color:#dfbf82}
+#title-screen h1{color:#f1dca7;text-shadow:0 2px 0 #72522b,0 4px 2px #1c160f,0 0 35px #edcf9350;letter-spacing:.09em}
+#title-screen .title-lockup{top:16%}
+#title-screen .world-poem{top:43%;text-shadow:0 2px 4px #061113}
+#title-screen .title-menu{bottom:calc(59px + var(--safe-bottom));width:min(380px,calc(100% - 56px));padding:22px 20px 12px;border:1px solid #b7965f;border-top:2px solid #e3c48b;border-bottom:4px solid #34220e;border-radius:4px;background:repeating-linear-gradient(3deg,#fff2cf06 0 1px,transparent 1px 4px),linear-gradient(115deg,#544431ed,#29231bec 60%,#2b291ced);box-shadow:inset 0 0 0 4px #18140ec9,inset 0 0 0 5px #b4985750,0 8px 35px #02080ec9}
+#title-screen .menu-invitation{font-size:10px;letter-spacing:.1em;margin:0 0 15px;color:#e3c993}
+#title-screen .main-button{width:100%;height:70px;border:1px solid #e0c286;border-bottom:4px solid #482e14;border-radius:4px;background:radial-gradient(ellipse at 30% 0,#f0d8a754,transparent 65%),repeating-linear-gradient(0deg,#ffecd808 0 1px,transparent 1px 3px),linear-gradient(#8a7049,#61492e 52%,#45301a);box-shadow:inset 0 0 0 2px #50391d,inset 0 0 0 3px #d0ad6b99,0 4px 0 #130e08,0 7px 14px #0008;text-shadow:0 2px 2px #21160a}
+#title-screen .main-button:active{translate:0 3px;box-shadow:inset 0 3px 12px #2a1b0c,0 1px #0e0b06}
+#title-screen .main-button::before{content:'✦';display:flex;align-items:center;justify-content:center;width:39px;height:39px;flex:none;margin-right:13px;border:1px solid #d2b17a;border-radius:50%;color:#ffe3a6;font-size:23px;background:radial-gradient(circle at 40% 30%,#b79555,#504122 65%);box-shadow:inset 0 0 0 3px #3b2a15,0 2px 4px #120e09}
+#title-screen .button-words strong{font-size:18px;letter-spacing:.07em;font-weight:600}#title-screen .button-words small{font-size:8px;letter-spacing:.16em;color:#e6c991}
+#title-screen #story-detail{font-size:10px;line-height:1.6;margin:12px 0 15px;color:#cbbc9c}
+#title-screen #start-simulator{height:51px;border-color:#a88c56;border-bottom-color:#24170c;background:linear-gradient(#544735,#31291e);box-shadow:inset 0 0 0 2px #211b10,inset 0 0 0 3px #aa915b44,0 3px 0 #150f08}
+#title-screen #start-simulator::before{content:'⚔';width:28px;height:28px;font-size:16px;margin-right:10px}
+#title-screen #start-simulator .button-words strong{font-size:13px;letter-spacing:.1em}
+#title-screen #simulator-detail{font-size:9px;line-height:1.5;margin:9px 0 4px;color:#c6b799}
+#title-screen .secondary-menu{gap:3px;margin:5px 0 0;justify-content:space-between}#title-screen .secondary-menu button{min-height:44px;font-size:10px;line-height:1.5;padding:4px 6px;color:#ddc89f}#title-screen .secondary-menu>span{font-size:7px;color:#8e764d}
+#title-screen .sound-toggle{min-width:68px;min-height:44px;border:1px solid #bea37277;background:linear-gradient(#544834bb,#201d16cc);box-shadow:inset 0 0 0 2px #1d1b13,0 2px 5px #0006;padding:8px 10px;border-radius:4px;color:#edd4a5}
+#title-screen .topline{top:calc(21px + var(--safe-top));align-items:center}#title-screen .bottomline{bottom:calc(28px + var(--safe-bottom))}
+#settings-dialog{background:repeating-linear-gradient(4deg,#fff8de08 0 1px,transparent 1px 4px),linear-gradient(110deg,#56482f,#272d20);border:2px solid #c4a36d;box-shadow:inset 0 0 0 3px #302416,0 0 0 4px #19140e,0 20px 70px #000b}
+#settings-dialog button,#village-dialog button,#retry-load{min-height:44px;padding:9px 13px;border:1px solid #c6a66f;border-bottom:3px solid #352411;background:linear-gradient(#705838,#3d2d1c);box-shadow:inset 0 0 0 2px #2b2014,0 3px 7px #0005;color:#f1ddb2;border-radius:4px;text-shadow:0 1px 2px #000}
+#settings-dialog .dialog-close{padding:0}
+#game-loading{background:repeating-linear-gradient(0deg,#f4dfbc03 0 1px,transparent 1px 4px),radial-gradient(ellipse at 50% 40%,#4c4b31,#151c17 70%)}
+#simulator-shell[data-experience=story][data-playing=true] .simulator-top{display:none}
+#simulator-shell[data-experience=story][data-playing=true] #frame-slot{height:100dvh}
+@media(min-aspect-ratio:1/1){#title-screen .title-lockup{left:28%;top:20%}#title-screen .title-menu{left:73%;bottom:14%;width:min(360px,40%)}#title-screen .world-poem{left:24%;right:auto;top:64%;font-size:13px;writing-mode:horizontal-tb}#title-screen .world-poem br{display:none}}
+@media(max-height:720px) and (max-aspect-ratio:1/1){#title-screen .title-lockup{top:12%}#title-screen h1{font-size:15vw}#title-screen .title-menu{bottom:43px;padding:16px 16px 6px}#title-screen .main-button{height:61px}#title-screen .menu-invitation{margin-bottom:10px}#title-screen #story-detail{margin:9px 0 10px}#title-screen .world-poem{display:none}#title-screen .bottomline{bottom:20px}}
+@media(max-height:500px) and (min-aspect-ratio:1/1){#title-screen .title-lockup{top:18%;left:27%}#title-screen .title-menu{bottom:8%;left:73%;padding:15px 15px 7px}#title-screen .main-button{height:57px}#title-screen #story-detail{display:block;margin:7px 0 10px;font-size:9px}#title-screen .menu-invitation{display:none}#title-screen .secondary-menu button{font-size:9px}#title-screen .world-poem{top:70%}}
+#village-dialog{width:min(620px,calc(100vw - 24px));padding:22px;max-height:calc(100dvh - 28px);border:2px solid #c5a56b;background:repeating-linear-gradient(2deg,#81592c0c 0 1px,transparent 1px 4px),linear-gradient(110deg,#cab07f,#ecddba 10%,#ddc99e);color:#392d1e;box-shadow:inset 0 0 0 3px #8d673155,0 0 0 4px #24190f,0 20px 70px #000b}
+#village-panel>section{margin:12px auto!important;padding:0!important;border:0!important;background:transparent!important;color:#392d1e!important;text-align:left}
+#village-panel h2{font:27px var(--serif);color:#392d1e;letter-spacing:.12em}
+#village-panel label{display:block;margin:18px 0 6px;font-size:13px;color:#5b4325}#village-panel p{font-size:12px;line-height:1.7}
+#village-panel textarea{display:block!important;width:100%!important;min-height:80px!important;background:#f5e6c5!important;color:#40331d!important;border:1px solid #947543!important;border-radius:4px;padding:12px!important;box-shadow:inset 0 3px 8px #684c2533;font:12px/1.5 monospace}
+#village-panel button{min-width:46px;min-height:48px;border:1px solid #d5b47b!important;border-bottom:3px solid #443015!important;background:linear-gradient(#775d3c,#3f2e1c)!important;box-shadow:inset 0 0 0 2px #352612,0 3px 5px #3b281644;color:#f6e6bf!important;border-radius:4px;padding:10px 15px!important;font:13px var(--serif)}
+#village-panel #join-peer{width:100%;margin:8px 0!important}#village-panel #raid-state{white-space:pre-wrap;font:13px/1.8 var(--serif);padding:14px;border:1px solid #99794788;background:#80633515;color:#584126}
+#village-panel .peer-movement{display:flex;gap:10px;justify-content:center;margin-top:16px}#village-panel .peer-movement button{font-size:22px;min-width:54px}#village-panel .peer-note{border-left:2px solid #94703c;padding-left:12px;color:#705839}

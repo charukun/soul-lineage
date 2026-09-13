@@ -7,7 +7,7 @@ import { rescueClient, RescueStore, comparison } from './integration-rescue-stor
 export async function returnToIntegration(c, store, now = Date.now()) {
   const lease = randomUUID();
   const reserved = await store.mutate(state => {
-    const selected = Object.values(state.records).filter(r => RETURNED.has(r.state) && r.pendingIntegration &&
+    const selected = Object.values(state.records).filter(r => RETURNED.has(r.state) && r.state !== 'AWAITING_PUSH' && r.pendingIntegration &&
       (!r.dispatchLease || now - Date.parse(r.dispatchLease.at) > 60000)).slice(0, store.config.maxConcurrency);
     for (const r of selected) r.dispatchLease = { id: lease, at: new Date(now).toISOString() };
     return selected.map(r => structuredClone(r));
@@ -99,7 +99,7 @@ export async function finalize(c, store, now = Date.now()) {
     for (const wave of state.waves) {
       if (wave.completedAt) continue;
       const records = wave.rescueIds.map(id => Object.values(state.records).find(r => r.rescueId === id));
-      if (records.some(r => r?.lease)) continue;
+      if (records.some(r => r?.lease || r?.state === 'AWAITING_PUSH' || r?.pushLease)) continue;
       wave.completedAt = new Date(now).toISOString();
       const prs = records.filter(r => r?.returnedAt).map(r => r.pr), manual = records.filter(r => r?.state === 'FAILED_MANUAL').map(r => r.pr);
       wave.returned = prs; wave.manual = manual;
