@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import * as T from '../public/simulator/vendor/three.js';
 import {GLTFLoader} from '../public/simulator/vendor/GLTFLoader.js';
 import {HumanoidRuntime} from '../public/simulator/src/humanoid.js';
-import {SLASH_SECONDS,SLASH_TIMING,sampleSlashPose,slashTime} from '../public/simulator/src/authored-slash.js';
+import {SLASH_SECONDS,SLASH_TIMING,SWORD_FREE_GUARD,sampleSlashPose,slashTime} from '../public/simulator/src/authored-slash.js';
 
 // Load the shipped VRM, retargeted clips and production runtime. Only texture
 // decoding is stubbed: this verifies real bone transforms, not GPU appearance.
@@ -29,6 +29,11 @@ async function loadRig(){
   return runtime;
 }
 
+function matrixPose(matrix){
+  const position=new T.Vector3(),quaternion=new T.Quaternion(),scale=new T.Vector3();
+  matrix.decompose(position,quaternion,scale);return {position,quaternion};
+}
+
 test('slash preserves the existing combat clock and has continuous pose endpoints',async()=>{
   const game=await readFile(new URL('../public/simulator/index.html',import.meta.url),'utf8');
   const timing=game.match(/slash:\{active:\[([^\]]+)\],contact:([\d.]+),launch:([\d.]+),plant:([\d.]+),chain:([\d.]+),lead:([\d.]+)/);
@@ -40,8 +45,34 @@ test('slash preserves the existing combat clock and has continuous pose endpoint
   assert.deepEqual(SLASH_TIMING,{active:[.35,.64],contact:.5,launch:.34,plant:.49,chain:.86,lead:1});
   const start=sampleSlashPose(0),end=sampleSlashPose(1);
   assert.deepEqual(start,end);
+  assert.deepEqual(start.grip,[-.19,-.37,.35],'weapon hand must meet the normal sword guard at the slash seam');
+  assert.deepEqual(start.shield,[...SWORD_FREE_GUARD],'free hand must meet the relaxed sword guard at the slash seam');
   for(const contact of [.3,.5,.7])assert.equal(slashTime(contact,contact),.5);
   for(let i=0;i<=1000;i++)for(const value of Object.values(sampleSlashPose(i/1000)))assert.ok(value.every(Number.isFinite));
+});
+
+test('actual Shino static guard supports the torso and base without drifting either hand socket',async()=>{
+  const runtime=await loadRig(),c=runtime.current;
+  const actor={id:'guard-rig-test',hero:true,weapon:'sword',weaponDraw:1,lifeAgeYears:22,x:0,z:0,yaw:0,air:0,vx:0,vz:0,combatReady:true,weaponTransition:false,_humanoidClock:0,attack:null};
+  try{
+    const result=runtime.render(actor),report=runtime.report();
+    assert.equal(report.readyBodyStrength,1,'settled guard should use the supporting torso posture');
+    assert.equal(report.readyBaseStrength,1,'settled guard should use the grounded ready base');
+    assert.ok(report.naturalStance?.maxHandDisplacement<2e-4,`guard hand contact drifted ${report.naturalStance?.maxHandDisplacement}`);
+    assert.ok(report.naturalStance?.maxHandAngleError<1e-5,`guard wrist orientation drifted ${report.naturalStance?.maxHandAngleError}`);
+    for(const side of ['right','left']){
+      const expected=matrixPose(new T.Matrix4().fromArray(result[side+'Socket']));
+      const actual=matrixPose(runtime.normalSocket(c,side));
+      assert.ok(actual.position.distanceTo(expected.position)<2e-4,`${side} socket position moved after torso support`);
+      assert.ok(actual.quaternion.angleTo(expected.quaternion)<1e-5,`${side} socket orientation moved after torso support`);
+    }
+    const leftFoot=runtime.point(c,'leftFoot'),rightFoot=runtime.point(c,'rightFoot');
+    assert.ok(leftFoot.x>rightFoot.x,'ready stance must keep the feet on their anatomical left/right sides');
+    assert.ok(leftFoot.z>rightFoot.z,'ready stance must stagger the front and rear foot instead of standing square');
+    assert.ok(leftFoot.distanceTo(rightFoot)>.16,`ready stance base is still too narrow: ${leftFoot.distanceTo(rightFoot)}`);
+    const chest=runtime.point(c,c.bones.upperChest?'upperChest':'chest');
+    assert.ok(runtime.point(c,'leftHand').distanceTo(chest)<runtime.point(c,'rightHand').distanceTo(chest),'free hand should stay closer to the torso than the weapon hand');
+  }finally{runtime.dispose(c);delete globalThis.window;delete globalThis.self;}
 });
 
 test('actual Shino slash keeps knees forward, grip attached and support planted',async()=>{
