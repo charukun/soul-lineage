@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, chmodSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, chmodSync, writeFileSync, rmSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { runValidation } from '../scripts/integration-rescue-worker.mjs';
@@ -28,14 +28,20 @@ test('GitHub runner can run the pinned npm project under an unprivileged UID', {
 }, async () => {
   const root = mkdtempSync(join(tmpdir(), 'rescue-uid-'));
   const work = join(root, 'work');
-  mkdirSync(work); chmodSync(root, 0o755); chmodSync(work, 0o777);
+  mkdirSync(work); chmodSync(work, 0o777);
+  const probe = join(root, 'validation.mjs');
+  copyFileSync(resolve('scripts/integration-rescue-validation.mjs'), probe);
   const previous = process.env.RESCUE_VALIDATION_USER;
   try {
     writeFileSync(join(work, 'package.json'), '{"name":"rescue-runtime-probe","version":"1.0.0"}');
     writeFileSync(join(work, 'package-lock.json'), JSON.stringify({ name: 'rescue-runtime-probe', version: '1.0.0', lockfileVersion: 3, packages: { '': { name: 'rescue-runtime-probe', version: '1.0.0' } } }));
     process.env.RESCUE_VALIDATION_USER = 'nobody';
+    await assert.rejects(runValidation(process.execPath, [probe, work], work), /VALIDATION_FAILED/);
+    // Reproduce the private runner ancestor, then add only traversal, just as
+    // the live workflow does. This does not alter the actual CI checkout.
+    chmodSync(root, 0o711);
     let output = '';
-    await runValidation(process.execPath, [resolve('scripts/integration-rescue-validation.mjs'), work], work, b => { output += b; });
+    await runValidation(process.execPath, [probe, work], work, b => { output += b; });
     assert.notEqual(JSON.parse(output).uid, process.getuid());
     await runValidation('npm', ['--prefix', work, '--cache', join(work, '.cache'), 'ci', '--no-audit', '--no-fund'], work);
   } finally {
