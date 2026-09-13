@@ -1,4 +1,7 @@
 .route-card.raid-route{padding:15px 2px 17px;min-width:0}
+.raid-route.recommended{padding-left:10px;padding-right:10px;border-left:2px solid #c9b77a;background:linear-gradient(90deg,#b8a45e13,transparent 70%)}
+.raid-route .tag{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.raid-recommended{font-weight:500;font-size:9px;letter-spacing:.1em;color:#dfc98e;border:1px solid #bca56d73;padding:3px 7px;white-space:nowrap}
 .raid-route .raid-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:7px 0 9px}
 .raid-route .raid-heading strong{font-size:18px;letter-spacing:.05em;line-height:1.6;margin:0}
 .raid-route .raid-danger{font-size:11px;letter-spacing:.06em;white-space:nowrap;padding:4px 8px;border:1px solid #8c9d7966;color:#bdc6a8}
@@ -10,4 +13,4 @@
 .raid-route .raid-reason{display:block;font-size:11px;line-height:1.7;color:#b4b3a0;margin:6px 0 10px}
 .raid-route .route-bottom{flex-wrap:wrap;justify-content:flex-start;gap:3px 12px;padding-top:8px;border-top:1px solid #a1b19c16;line-height:1.7}
 .raid-route .raid-note{display:block;font-size:10px;line-height:1.8;color:#99aa9c;margin-top:8px}
-@media(max-width:360px){.raid-route .raid-heading strong{font-size:16px}.raid-route .raid-danger{padding:3px 6px}.raid-route .raid-counts{gap:3px 9px}}
+@media(max-width:360px){.raid-route .raid-heading strong{font-size:16px}.raid-route .raid-danger{padding:3px 6px}.raid-route .raid-counts{gap:3px 9px}.raid-route.recommended{padding-left:7px;padding-right:7px}}
