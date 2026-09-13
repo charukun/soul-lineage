@@ -59,7 +59,9 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
     const result=super.render(a),c=this.current;
     if(!result||!c)return result;
     const holding=(a.weaponDraw??1)>.25||a.combatReady||a.weaponTransition;
-    const quiet=!a.attack&&!a.reaction&&!a.recovery&&!a.dead&&!a.zanshin;
+    const attackProgress=a.attack?this.api.progress(a):null;
+    const guardWindow=!a.attack||attackProgress<=.12||attackProgress>=.82;
+    const quiet=guardWindow&&!a.reaction&&!a.recovery&&!a.dead&&!a.zanshin;
     if(holding&&quiet)this.naturalizeHeldWeapon(c,a.weapon||'sword');
     return result;
   }
