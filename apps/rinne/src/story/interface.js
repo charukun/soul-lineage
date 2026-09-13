@@ -1,4 +1,5 @@
 import {createMenuGate,SOLO_SESSION} from './menu-gate.js';
+import {choosePrimaryStoryAction} from './action-priority.js';
 import {riverX,defs} from '@soul/world/mura';
 
 const paths={
@@ -25,7 +26,7 @@ const paths={
  camera:'M3 7h5l2-3h5l2 3h4v14H3Zm9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z',
 };
 export const icon=name=>`<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${paths[name]||paths.star}"/></svg>`;
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 const markFor=action=>({gift:'star',talk:'talk',release:'walk',activity:'hand',equip:'sword',travel:'ship',rescue:'hand',next:'compass',rest:'rest',discover:'star',cancel:'close',weapons:'sword'}[action.split(':')[0]]||'hand');
 
 /** Presentation only. Inputs and combat are still owned by the native game port. */
@@ -79,13 +80,13 @@ export function createPlayInterface({win,port,onRecords,onExit,onMusic,onAction}
   root.dataset.phase=state.phase;$('story-actions').dataset.phase=state.phase;
   const live=state.phase==='living',available=buttons.filter(b=>b.dataset.action!=='rest');
   if(!live){$('story-buttons').append(...buttons.map(decorate));$('story-more').hidden=true;return;}
-  const primary=available.find(b=>!b.disabled&&!b.dataset.action.startsWith('activity:observe')&&!b.dataset.action.startsWith('activity:track'))||available.find(b=>!b.disabled)||available[0];
+  const primary=choosePrimaryStoryAction(available,state);
   if(primary)$('story-buttons').append(decorate(primary));
   const other=available.filter(b=>b!==primary);$('story-choice-buttons').append(...other.map(decorate));$('story-more').hidden=!other.length;
-  $('story-choice-description').textContent='行動中はここで過ごします。歩き出すと中断できます。';
+  $('story-choice-description').textContent=state.activity?'今の行動を中断する操作もここにあります。歩き出しても中断できます。':state.pendingDiscoveries?.length?'閃いた技はここで受け取れます。ほかの行動を選ぶこともできます。':'行動中はここで過ごします。歩き出すと中断できます。';
  }
  function destination(){if(!latest)return null;const {story,frame}=latest,s=story.state;if(s.zone==='frontier')return s.rescue?.status==='waiting'?{id:'rescue',name:'倒れた村人',...s.rescue}:{id:'return',name:'帰還船・救護所',x:-5,z:3};return story.places.find(p=>p.id===targetId)||story.nearest(frame.hero);}
- function update(data){latest=data;const {frame,story,layout}=data,s=story.state;
+ function update(data){latest=data;const {story,frame,layout}=data,s=story.state;
   gate.sync();const session=readSession(),solo=gate.canPause();
   $('lifeBadge').disabled=!solo;for(const control of menu.querySelectorAll('[data-tool="pauseBtn"],[data-tool="lifeBadge"]'))control.disabled=!solo;
   $('story-session-status').textContent=session.mode==='solo'?'ひとりの旅':session.phase==='migrating'?'村との繋がりを引き継いでいます':session.phase==='closed'?'村との接続が途絶えました':`同じ世界に ${(session.members||[]).length} 人 · メニュー中も世界は進みます`;
@@ -116,7 +117,7 @@ export function createPlayInterface({win,port,onRecords,onExit,onMusic,onAction}
   const buildings=s.zone==='village'?layout.objects.filter(o=>o.phase==='built').map(o=>{const d=defs[o.kind],[x,y]=pos(o.x,o.z),w=d.w*scale,h=d.d*scale;return `<rect x="${x-w/2}" y="${y-h/2}" width="${w}" height="${h}" rx="1" transform="rotate(${o.rot*180/Math.PI} ${x} ${y})"/>`;}).join(''):'';
   const [hx,hy]=pos(frame.hero.x,frame.hero.z),[tx,ty]=point?pos(point.x,point.z):[hx,hy];
   const outside=frame.hero.x<ext.x||frame.hero.x>ext.x+ext.w||frame.hero.z<ext.z||frame.hero.z>ext.z+ext.h;
-  $('story-map-surface').innerHTML=`<svg viewBox="0 0 600 332" role="img" aria-label="${esc(layout.name)}の地図。現在位置と施設"><rect class="map-paper" x="5" y="5" width="590" height="322" rx="5"/><path class="map-grid" d="M24 80h552M24 136h552M24 192h552M24 248h552M90 28v272M190 28v272M290 28v272M390 28v272M490 28v272"/>${s.zone==='village'?`<polyline class="map-river" points="${river}"/>`:''}<g class="map-buildings">${buildings}</g><path class="map-bearing-line" d="M${Math.max(20,Math.min(580,hx))} ${Math.max(20,Math.min(310,hy))}L${tx} ${ty}"/><g>${points.map(p=>{const [x,y]=pos(p.x,p.z);return `<circle class="map-pin ${p.id===point?.id?'selected':''}" cx="${x}" cy="${y}" r="${p.id===point?.id?7:4}"/>`;}).join('')}</g><g class="map-you" transform="translate(${Math.max(20,Math.min(580,hx))} ${Math.max(20,Math.min(310,hy))})"><circle r="10"/><path d="m0-6 4 10-4-2-4 2Z"/></g><text x="545" y="40" class="map-north">北 ↑</text><text x="24" y="319" class="map-coordinate">${outside?'地図の外側 · ':''}現在地 ${frame.hero.x.toFixed(0)}, ${frame.hero.z.toFixed(0)}</text></svg>`;
+  $('story-map-surface').innerHTML=`<svg viewBox="0 0 600 332" role="img" aria-label="${esc(layout.name)}の地図。現在位置と施設"><rect class="map-paper" x="5" y="5" width="590" height="322" rx="5"/><path class="map-grid" d="M24 80h552M24 136h552M24 192h552M24 248h552M90 28v272M190 28v272M290 28v272M390 28v272"/>${s.zone==='village'?`<polyline class="map-river" points="${river}"/>`:''}<g class="map-buildings">${buildings}</g><path class="map-bearing-line" d="M${Math.max(20,Math.min(580,hx))} ${Math.max(20,Math.min(310,hy))}L${tx} ${ty}"/><g>${points.map(p=>{const [x,y]=pos(p.x,p.z);return `<circle class="map-pin ${p.id===point?.id?'selected':''}" cx="${x}" cy="${y}" r="${p.id===point?.id?7:4}"/>`;}).join('')}</g><g class="map-you" transform="translate(${Math.max(20,Math.min(580,hx))} ${Math.max(20,Math.min(310,hy))})"><circle r="10"/><path d="m0-6 4 10-4-2-4 2Z"/></g><text x="545" y="40" class="map-north">北 ↑</text><text x="24" y="319" class="map-coordinate">${outside?'地図の外側 · ':''}現在地 ${frame.hero.x.toFixed(0)}, ${frame.hero.z.toFixed(0)}</text></svg>`;
   const members=readSession().members||[];$('story-companions').hidden=readSession().mode!=='shared';$('story-companions').querySelector('ul').innerHTML=members.map(m=>`<li data-player-id="${esc(m.playerId||m.id)}">${esc(m.name||'旅人')} · ${m.connected===false?'接続を確認中':'参加中'}</li>`).join('');
   $('story-map-list').innerHTML=points.map(p=>`<button data-destination="${esc(p.id)}" aria-pressed="${p.id===targetId}">${icon(p.id==='port'?'ship':p.id==='armory'?'sword':'home')}<span>${esc(p.name)}<small>${esc(p.verb|| (p.id==='port'?'船に乗る':p.id==='armory'?'武具庫':'ここへ向かう'))}</small></span><b>${Math.ceil(Math.hypot(p.x-frame.hero.x,p.z-frame.hero.z))} m</b></button>`).join('');
  }
