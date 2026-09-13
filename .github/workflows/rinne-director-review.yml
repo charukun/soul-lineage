@@ -1,0 +1,34 @@
+name: Rinne Director Review
+on:
+  push:
+    branches: [fix/rinne-director-playability-loop]
+    paths:
+      - .github/workflows/rinne-director-review.yml
+permissions:
+  contents: read
+jobs:
+  story-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Exercise main game with native browser input
+        env:
+          RINNE_STORY_ARTIFACTS: test-results/rinne-director
+        run: node apps/rinne/tests/story-browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rinne-director-review-${{ github.sha }}
+          path: test-results/rinne-director/
+          if-no-files-found: error
+          retention-days: 7
