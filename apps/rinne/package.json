@@ -1,6 +1,6 @@
 {
   "name": "@soul/rinne",
-  "displayName": "輪廻転焦",
+  "displayName": "\u8f2a\u5efb\u8ee2\u7126",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -18,7 +18,8 @@
     "@soul/platform-web": "*",
     "@soul/network": "*",
     "@soul/characters": "*",
-    "three": "0.186.0"
+    "three": "0.186.0",
+    "@soul/animations": "*"
   },
   "devDependencies": {
     "playwright": "1.63.0",

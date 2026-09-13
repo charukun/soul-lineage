@@ -12,7 +12,7 @@ test('transitive shared assets and platform changes select their consumers', () 
   assert.deepEqual(affected(nodes, ['packages/assets/src/index.js']), all);
   assert.deepEqual(affected(nodes, ['packages/platform/src/index.js']), all);
 });
-test('unused packages do not build unrelated games', () => assert.deepEqual(affected(nodes, ['packages/animations/src/index.js']), []));
+test('shared motion quality reaches all rendering consumers', () => assert.deepEqual(affected(nodes, ['packages/animations/src/index.js']), all));
 test('shared MURA world/rendering updates reach all consumers', () => {
   for (const file of ['packages/world/src/mura/catalog.js', 'packages/rendering/src/mura/models.js']) assert.deepEqual(affected(nodes, [file]), all);
 });

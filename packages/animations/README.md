@@ -1,3 +1,9 @@
 # @soul/animations
 
-Animation共通定義の入口です。`src/index.js` のcatalogに安定したIDで登録してください。ゲーム進行やPlatform SDKへの依存は置きません。今回、本体のコンテンツは追加していません。
+Portable humanoid motion quality contracts: rest-frame normalization/retargeting,
+pose sanity policies, transition interpolation, capsule risks, weapon/body profiles,
+deterministic review cameras and validated QA JSON. No Three.js, DOM, game simulation
+or AI provider dependency. The asset catalog remains empty; source motions are owned
+by the existing app/runtime rather than copied into a fictitious package catalog.
+
+See [Motion Quality Pipeline](../../docs/characters/MOTION_QUALITY.md).

@@ -14,9 +14,9 @@ test('main and advanced retain every audited renderer control with unique IDs', 
     for (const camera of ['overview','front','side','back','face']) assert.ok(html.includes(`data-camera="${camera}"`));
   }
 });
-test('editing is primary, four keyboard tabs replace stacked diagnostic menus', () => {
-  assert.equal([...main.matchAll(/role="tab"/g)].length, 4);
-  for (const tab of ['parts','colors','motion','compare']) assert.ok(main.includes(`data-tab="${tab}"`));
+test('editing is primary, five keyboard tabs including Motion QA replace stacked diagnostic menus', () => {
+  assert.equal([...main.matchAll(/role="tab"/g)].length, 5);
+  for (const tab of ['parts','colors','motion','qa','compare']) assert.ok(main.includes(`data-tab="${tab}"`));
   assert.match(main, /id="compat-controls" hidden/);
   assert.match(main, /href="\.\/characters-advanced\.html"/);
   assert.match(shell, /ArrowRight/); assert.match(shell, /ArrowLeft/);

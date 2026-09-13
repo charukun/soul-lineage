@@ -3,13 +3,17 @@ import {GLTFLoader} from '../vendor/GLTFLoader.js';
 import {VRMAnimationLoaderPlugin,VRMLookAtQuaternionProxy,createVRMAnimationClip} from '../vendor/three-vrm-animation.module.js';
 import catalog from './motion-catalog.js';
 let bankPromise;
-export function sharedBank(){
- return bankPromise??=(async()=>{const bank={};for(const item of catalog){const loader=new GLTFLoader();loader.register(p=>new VRMAnimationLoaderPlugin(p));const boot=window.__RINNE_BOOT__,loaded=Object.keys(bank).length;
+const injectedBanks=new WeakMap();
+export function sharedBank(readAsset){
+ if(readAsset&&injectedBanks.has(readAsset))return injectedBanks.get(readAsset);
+ if(!readAsset&&bankPromise)return bankPromise;
+ const promise=(async()=>{const bank={};for(const item of catalog){const loader=new GLTFLoader();loader.register(p=>new VRMAnimationLoaderPlugin(p));const boot=window.__RINNE_BOOT__,loaded=Object.keys(bank).length;
  await boot?.step({stage:'motion',message:'モーションを読み込んでいます：'+item.id,loaded,total:catalog.length,unit:'clips'});
- const bytes=boot?await boot.readAsset('motion:'+item.id,item.file):window.assetBuffer?await window.assetBuffer('motion:'+item.id):await(await fetch(item.file)).arrayBuffer();const gltf=await loader.parseAsync(bytes,'');const anim=gltf.userData.vrmAnimations?.[0];if(!anim)throw Error('VRMAを解析できません: '+item.id);bank[item.id]=anim;boot?.progress({stage:'motion',message:'モーションを読み込んでいます',loaded:Object.keys(bank).length,total:catalog.length,unit:'clips'});}return bank;})().catch(e=>{bankPromise=null;throw e;});
+ const bytes=readAsset?await readAsset('motion:'+item.id,item.file):boot?await boot.readAsset('motion:'+item.id,item.file):window.assetBuffer?await window.assetBuffer('motion:'+item.id):await(await fetch(item.file)).arrayBuffer();const gltf=await loader.parseAsync(bytes,'');const anim=gltf.userData.vrmAnimations?.[0];if(!anim)throw Error('VRMAを解析できません: '+item.id);bank[item.id]=anim;boot?.progress({stage:'motion',message:'モーションを読み込んでいます',loaded:Object.keys(bank).length,total:catalog.length,unit:'clips'});}return bank;})().catch(e=>{if(readAsset)injectedBanks.delete(readAsset);else bankPromise=null;throw e;});
+ if(readAsset)injectedBanks.set(readAsset,promise);else bankPromise=promise;return promise;
 }
-export async function retargetBank(vrm){
- const bank=await sharedBank(),clips={};
+export async function retargetBank(vrm,readAsset){
+ const bank=await sharedBank(readAsset),clips={};
  if(vrm.lookAt){const proxy=new VRMLookAtQuaternionProxy(vrm.lookAt);proxy.name='ReviewLookAtProxy';vrm.scene.add(proxy);}
  for(const item of catalog){const clip=createVRMAnimationClip(bank[item.id],vrm);clip.name=item.id;
   // Keep locomotion in-place for a fixed studio, preserving vertical motion.
