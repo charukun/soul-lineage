@@ -16,8 +16,8 @@ test('raid choices use size, text risk, and actual counts instead of names',()=>
 });
 test('first hunt recommends exactly one safest generated route',()=>{
  assert.equal(recommendRouteId(offers,profile),'route:0');
- const html=renderRaidRoutes(offers,profile);assert.equal((html.match(/初回推奨/g)||[]).length,1);
- assert.ok(html.indexOf('data-village="route:0"')<html.indexOf('初回推奨'));
+ const html=renderRaidRoutes(offers,profile);assert.equal((html.match(/class="raid-recommended">推奨/g)||[]).length,1);
+ assert.ok(html.indexOf('data-village="route:0"')<html.indexOf('class="raid-recommended">推奨'));
 });
 test('later hunts prioritize an unlearned memory before risk tie breakers',()=>{
  const sameRisk=[{...offers[0],id:'known',target:'traveller'},{...offers[0],id:'new',seed:9,target:'bellkeeper'}];
