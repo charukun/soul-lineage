@@ -55,7 +55,7 @@ test('only trusted same-repository Draft PRs on dispatch branches are eligible',
   assert.equal(isEligibleDispatchPull(pull({ head: { ref: 'dispatch/x', repo: { full_name: 'someone/fork' } } }), 'charukun/soul-lineage'), false);
 });
 
-test('worker prompt keeps GitHub delivery policy above user scope', () => {
+test('Work handoff prompt keeps repository delivery policy above user scope', () => {
   const prompt = buildDispatchPrompt({
     repository: 'charukun/soul-lineage',
     number: 123,
@@ -63,24 +63,41 @@ test('worker prompt keeps GitHub delivery policy above user scope', () => {
     head: 'dispatch/village-first-build',
     body,
   });
+  assert.match(prompt, /ChatGPT Work implementation worker/);
   assert.match(prompt, /Do NOT create another branch or PR/);
-  assert.match(prompt, /Do NOT mark the PR Ready, merge it, push it, or modify main\/Production/);
-  assert.match(prompt, /Do not create sub-agents/);
-  assert.match(prompt, /Do not weaken tests/);
+  assert.match(prompt, /Do NOT modify main or Production/);
+  assert.match(prompt, /Commit and push the implementation to the same dispatch\/village-first-build branch/);
+  assert.match(prompt, /mark that PR Ready for review/);
+  assert.match(prompt, /Do not wait for GitHub Actions, CI or Playwright\/browser completion/);
+  assert.match(prompt, /READY_FOR_INTEGRATION/);
+  assert.match(prompt, /must not call the OpenAI Platform API directly/);
+  assert.match(prompt, /must not depend on OPENAI_API_KEY/);
   assert.match(prompt, /<rinne_request>[\s\S]*村の初回建築導線を改善してください。/);
   assert.doesNotMatch(prompt, /この節は依頼本文に含めない/);
 });
 
-test('dispatch workflow uses same-repository pull_request, pinned Codex action and existing Draft/Ready lifecycle', async () => {
+test('dispatch workflow validates GitHub handoff without paid Codex API execution', async () => {
   const workflow = await readFile(new URL('../.github/workflows/rinne-dispatch.yml', import.meta.url), 'utf8');
   assert.match(workflow, /pull_request:/);
   assert.doesNotMatch(workflow, /pull_request_target/);
   assert.match(workflow, /head\.repo\.full_name == github\.repository/);
-  assert.match(workflow, /openai\/codex-action@86365089eb2b84e0a8fb0717b304f8bdcb13b20e/);
-  assert.match(workflow, /permission-profile: ':workspace'/);
-  assert.match(workflow, /safety-strategy: 'drop-sudo'/);
+  assert.match(workflow, /RINNE Dispatch: QUEUED FOR CHATGPT WORK/);
+  assert.match(workflow, /context=dispatch\/handoff/);
   assert.match(workflow, /persist-credentials: false/);
-  assert.match(workflow, /gh pr ready/);
-  assert.match(workflow, /node scripts\/validate\.mjs fast origin\/develop HEAD/);
+  assert.doesNotMatch(workflow, /openai\/codex-action/);
+  assert.doesNotMatch(workflow, /OPENAI_API_KEY/);
+  assert.doesNotMatch(workflow, /gh pr ready/);
+  assert.doesNotMatch(workflow, /node scripts\/validate\.mjs fast origin\/develop HEAD/);
   assert.doesNotMatch(workflow, /main.*push|push.*main/i);
+});
+
+test('dispatcher documentation requires ChatGPT Work GitHub event task and no platform API credits', async () => {
+  const docs = await readFile(new URL('../docs/DISPATCHER.md', import.meta.url), 'utf8');
+  assert.match(docs, /ChatGPT Work/);
+  assert.match(docs, /pull request opened/i);
+  assert.match(docs, /no separate OpenAI Platform API credits/i);
+  assert.match(docs, /READY_FOR_INTEGRATION/);
+  assert.match(docs, /RINNE_PROJECT_EXECUTION_POLICY\.md/);
+  assert.match(docs, /Settings > Apps/);
+  assert.doesNotMatch(docs, /Required GitHub Actions secret:[\s\S]*OPENAI_API_KEY/);
 });
