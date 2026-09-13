@@ -1,4 +1,5 @@
 import * as T from '../vendor/three.js';
+import {applyAuthoredSlash,slashSupport,SLASH_REVISION} from './authored-slash.js';
 import {prepareAgeAppearance,applyAgePosture,finishAgeAppearance,disposeAgeAppearance} from './life-appearance.js';
 import {clone as cloneSkeleton} from '../vendor/SkeletonUtils.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
@@ -66,7 +67,8 @@ export class HumanoidRuntime{
  point(c,name){return c.bones[name].getWorldPosition(v());}
  // Delta rotation preserves authored axial twist instead of rebuilding a bone's roll.
  aim(c,bone,child,target){const b=c.bones[bone],ch=c.bones[child],origin=b.getWorldPosition(v()),from=ch.getWorldPosition(v()).sub(origin),to=target.clone().sub(origin);if(from.lengthSq()<1e-12||to.lengthSq()<1e-12)return;const delta=Q().setFromUnitVectors(from.normalize(),to.normalize()),world=delta.multiply(b.getWorldQuaternion(Q()));b.quaternion.copy(b.parent.getWorldQuaternion(Q()).invert()).multiply(world).normalize();b.updateWorldMatrix(false,true);}
- solve(c,side,limb,target,pole){const [an,bn,en]=limb==='leg'?[side+'UpperLeg',side+'LowerLeg',side+'Foot']:[side+'UpperArm',side+'LowerArm',side+'Hand'];const A=this.point(c,an),B=this.point(c,bn),C=this.point(c,en),l1=A.distanceTo(B),l2=B.distanceTo(C),d=target.clone().sub(A);if(!Number.isFinite(d.lengthSq())||l1<1e-6||l2<1e-6)return C;if(d.lengthSq()<1e-12)d.copy(C).sub(A);if(d.lengthSq()<1e-12)d.set(0,-1,0);let r=clamp(d.length(),Math.abs(l1-l2)+1e-5,l1+l2-1e-5);if(limb==='leg')r=Math.max(Math.abs(l1-l2)+1e-5,softReach(r,l1+l2-1e-5,.004/c.unit));d.normalize();const dest=A.clone().addScaledVector(d,r);let bend=(limb==='leg'?B.clone().sub(A):pole.clone());bend.addScaledVector(d,-bend.dot(d));if(bend.lengthSq()<1e-8){bend=pole.clone().addScaledVector(d,-pole.dot(d));if(bend.lengthSq()<1e-8){bend=Math.abs(d.y)<.85?v(0,1,0):v(0,0,1);bend.addScaledVector(d,-bend.dot(d));}}bend.normalize();const x=(l1*l1-l2*l2+r*r)/(2*r),h=Math.sqrt(Math.max(0,l1*l1-x*x)),joint=A.clone().addScaledVector(d,x).addScaledVector(bend,h);this.aim(c,an,bn,joint);this.aim(c,bn,en,dest);return dest;}
+ // Authored poses can choose an anatomical knee pole; other clips retain their bend.
+ solve(c,side,limb,target,pole,explicitPole=false){const [an,bn,en]=limb==='leg'?[side+'UpperLeg',side+'LowerLeg',side+'Foot']:[side+'UpperArm',side+'LowerArm',side+'Hand'];const A=this.point(c,an),B=this.point(c,bn),C=this.point(c,en),l1=A.distanceTo(B),l2=B.distanceTo(C),d=target.clone().sub(A);if(!Number.isFinite(d.lengthSq())||l1<1e-6||l2<1e-6)return C;if(d.lengthSq()<1e-12)d.copy(C).sub(A);if(d.lengthSq()<1e-12)d.set(0,-1,0);let r=clamp(d.length(),Math.abs(l1-l2)+1e-5,l1+l2-1e-5);if(limb==='leg')r=Math.max(Math.abs(l1-l2)+1e-5,softReach(r,l1+l2-1e-5,.004/c.unit));d.normalize();const dest=A.clone().addScaledVector(d,r);let bend=(limb==='leg'&&!explicitPole?B.clone().sub(A):pole.clone());bend.addScaledVector(d,-bend.dot(d));if(bend.lengthSq()<1e-8){bend=pole.clone().addScaledVector(d,-pole.dot(d));if(bend.lengthSq()<1e-8){bend=Math.abs(d.y)<.85?v(0,1,0):v(0,0,1);bend.addScaledVector(d,-bend.dot(d));}}bend.normalize();const x=(l1*l1-l2*l2+r*r)/(2*r),h=Math.sqrt(Math.max(0,l1*l1-x*x)),joint=A.clone().addScaledVector(d,x).addScaledVector(bend,h);this.aim(c,an,bn,joint);this.aim(c,bn,en,dest);return dest;}
  setWorldQ(c,name,q){const b=c.bones[name];b.quaternion.copy(b.parent.getWorldQuaternion(Q()).invert()).multiply(q);b.updateWorldMatrix(false,true);}
  curl(c,side,amount=1){const sign=side==='left'?-1:1;amount=clamp(amount,0,1);
   const bend=(name,k)=>{const b=c.bones[name],axis=c.fingerHinges?.[name];if(b&&axis){b.quaternion.copy(c.rest[name].q);const opposition=c.thumbOpposition?.[name];if(opposition)b.quaternion.multiply(Q().setFromAxisAngle(opposition,-.72*amount));b.quaternion.multiply(Q().setFromAxisAngle(axis,sign*k*amount)).normalize();}};
@@ -132,7 +134,9 @@ export class HumanoidRuntime{
  combatPose(c,weapon,kind,p,baseTime=0){const H=c.shoulderY,L=c.legLength,s=L/.82,def=!!this.api.strikes[kind]?.defense||['none','ready','retreat'].includes(kind),attack=!!kind&&!def;
   // Armed attacks no longer inherit the old jab/cross body. Start from a neutral moving guard,
   // then author the whole-body cut around the weapon path.
-  evaluateTracks(c.shared['idle-01'],attack?(p*.42)%c.shared['idle-01'].duration:baseTime%c.shared['idle-01'].duration,c.byName);
+  const authored=c.id==='SHINO'&&weapon==='sword'&&kind==='slash';
+  evaluateTracks(c.shared['idle-01'],attack?(authored?0:(p*.42)%c.shared['idle-01'].duration):baseTime%c.shared['idle-01'].duration,c.byName);
+  if(authored){applyAuthoredSlash(this,c,p,this.api.clips.slash);return;}
   c.root.updateMatrixWorld(true);
   if(weapon==='fist')return;
   const guard=this.guard(c,weapon,H,s);let grip=guard.grip.clone(),dir=guard.dir.clone(),roll=guard.roll,row=null;
@@ -239,6 +243,7 @@ export class HumanoidRuntime{
       return q<.43; // one planted foot, brief aerial/transfer window, then the other foot
     }
     if(d.type==='attack'){
+      if(c.id==='SHINO'&&a.weapon==='sword'&&d.kind==='slash')return slashSupport(side,d.time,this.api.clips.slash?.contact);
       // Reference master motion: rear foot loads first, front foot owns impact/follow-through.
       return side==='right'?d.time>=0&&d.time<.43:d.time>.28&&d.time<.96;
     }
@@ -288,6 +293,6 @@ export class HumanoidRuntime{
   for(const[n,b]of Object.entries(c.bones)){const q=b.quaternion.toArray(),out=data[n];if(out.length&&q.reduce((sum,x,k)=>sum+x*out[out.length-4+k],0)<0)for(let k=0;k<4;k++)q[k]*=-1;out.push(...q);}hips.push(...c.bones.hips.position.toArray());
  }const tracks=Object.entries(c.bones).map(([n,b])=>new T.QuaternionKeyframeTrack(b.uuid+'.quaternion',times,data[n]));tracks.push(new T.VectorKeyframeTrack(c.bones.hips.uuid+'.position',times,hips));return new T.AnimationClip('Tidebreak Zanshin / '+weapon+' / '+id,1,tracks);}
 
- report(){const c=this.current;if(!c)return{ready:false,errors:this.errors};return{ready:this.ready,id:c.id,runtimeVersion:'cg-master-motion-3.0-reference-timed-life',ageAppearance:c.ageAppearance,hairMaterials:c.ageHair.length,contactMethod:'toe-space C1 offset release; delta-rotation IK; simulation-clock ownership',footContacts:Object.fromEntries(Object.entries(c.footLocks).filter(([,x])=>x).map(([k,x])=>[k,{locked:x.locked,clock:x.clock,dwell:x.dwell,error:x.target.distanceTo(x.input)}])),echoes:c.echoes.length,source:this.sourceInfo,unit:c.unit,sourceHeight:c.sourceHeight,normalizedHeight:this.height,bones:Object.keys(c.bones).length,builtIn:c.gltf.animations.length,vrma:Object.keys(c.shared),generated:Object.keys(c.generated),sockets:c.socketReports,socketError:c.socketError,secondaryGripError:c.secondaryGripError,locomotion:c.locomotion,finite:c.finite,attachment:c.lastResult?.attachment,animation:c.lastResult?.descriptor,clip:c.lastResult?.clip,root:c.root.position.toArray(),quaternions:Object.fromEntries(Object.entries(c.bones).map(([n,b])=>[n,b.quaternion.toArray()])),bindBoundsMin:new T.Box3().setFromObject(c.root).min.toArray(),errors:this.errors};}
+ report(){const c=this.current;if(!c)return{ready:false,errors:this.errors};return{ready:this.ready,id:c.id,runtimeVersion:'cg-master-motion-3.1-authored-slash',authoredSlash:SLASH_REVISION,ageAppearance:c.ageAppearance,hairMaterials:c.ageHair.length,contactMethod:'toe-space C1 offset release; delta-rotation IK; simulation-clock ownership',footContacts:Object.fromEntries(Object.entries(c.footLocks).filter(([,x])=>x).map(([k,x])=>[k,{locked:x.locked,clock:x.clock,dwell:x.dwell,error:x.target.distanceTo(x.input)}])),echoes:c.echoes.length,source:this.sourceInfo,unit:c.unit,sourceHeight:c.sourceHeight,normalizedHeight:this.height,bones:Object.keys(c.bones).length,builtIn:c.gltf.animations.length,vrma:Object.keys(c.shared),generated:Object.keys(c.generated),sockets:c.socketReports,socketError:c.socketError,secondaryGripError:c.secondaryGripError,locomotion:c.locomotion,finite:c.finite,attachment:c.lastResult?.attachment,animation:c.lastResult?.descriptor,clip:c.lastResult?.clip,root:c.root.position.toArray(),quaternions:Object.fromEntries(Object.entries(c.bones).map(([n,b])=>[n,b.quaternion.toArray()])),bindBoundsMin:new T.Box3().setFromObject(c.root).min.toArray(),errors:this.errors};}
 }
 export {catalog,motionCatalog,profiles,weaponSockets};
