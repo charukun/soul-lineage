@@ -5,6 +5,8 @@ export class RaidSession {
  constructor(village,profile,ports={}){this.village=makeVillage(village);this.profile=profile;this.ports=ports;this.rng=random(hash(village.id));this.time=0;this.alarm=0;this.eaten=0;this.targetEaten=false;this.finished=false;this.fight=null;this.devour=null;this.events=[];this.scent=0;this.scentCooldown=0;this.shadowCooldown=0;this.wardCooldown=0;this.escapeHold=0;this.guardSent=false;this.gatePush=0;this.safeTime=0;this.maxhp=this.getMaxHP();this.player={x:this.village.entry.x,z:this.village.entry.z,yaw:Math.PI,hp:this.maxhp,maxhp:this.maxhp,speed:0,walk:0,pose:null};}
  getMaxHP(){return 230+(this.has('smith')?65:0)+(this.profile.form==='brute'?75:0);}
  has(k){return this.profile.equipped.includes(k);}
+ escapePoints(){const w=this.village,points=[{id:'entry',label:'村口',x:w.entry.x,z:w.entry.z}];if(this.has('gravekeeper'))points.push({id:'graveway',label:'墓道',x:-7,z:-25});return points;}
+ nearestEscape(){const p=this.player;return this.escapePoints().map(point=>({...point,distance:Math.hypot(p.x-point.x,p.z-point.z)})).sort((a,b)=>a.distance-b.distance)[0];}
  refreshProfile(p){const old=this.player?.maxhp||230;this.profile=p;this.maxhp=this.getMaxHP();if(this.player){this.player.maxhp=this.maxhp;this.player.hp=Math.min(this.maxhp,this.player.hp+Math.max(0,this.maxhp-old));}}
  emit(type,data={}){const e={type,...data};this.events.push(e);if(this.events.length>64)this.events.shift();this.ports.event?.(e);}
  walkActor(a,dx,dz,ignoreGate=false){const w=this.village,n=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.18));let moved=0;for(let i=0;i<n;i++){let x=Math.max(-w.bounds,Math.min(w.bounds,a.x+dx/n)),z=Math.max(-w.bounds,Math.min(w.bounds,a.z+dz/n));for(const c of w.colliders){const dd=Math.hypot(x-c.x,z-c.z),rad=c.r+.36;if(dd<rad){if(dd<.001){x=c.x+rad;}else{x=c.x+(x-c.x)/dd*rad;z=c.z+(z-c.z)/dd*rad;}}}
@@ -45,8 +47,8 @@ export class RaidSession {
  this.alarm=Math.min(100,Math.max(0,this.alarm+dt*(witnesses*.62*(this.has('bellkeeper')?.4:1)-(witnesses===0&&!this.fight?.2:0))));
  if((this.alarm>=72||this.time>160)&&!this.guardSent)this.addGuard();
  if(this.time>285)this.alarm=Math.min(100,this.alarm+dt*.8);
- const nearExit=Math.hypot(p.x-w.entry.x,p.z-w.entry.z)<2.8,backExit=this.has('gravekeeper')&&Math.hypot(p.x+7,p.z+25)<2.8;
- if((nearExit||backExit)&&this.eaten>0&&!this.fight&&!this.devour&&v.amount<.05){this.escapeHold+=dt;if(this.escapeHold>1.6)this.finish(this.targetEaten?'completed':'escaped');}else this.escapeHold=0;
+ const nearExit=this.escapePoints().some(point=>Math.hypot(p.x-point.x,p.z-point.z)<2.8);
+ if(nearExit&&this.eaten>0&&!this.fight&&!this.devour&&v.amount<.05){this.escapeHold+=dt;if(this.escapeHold>1.6)this.finish(this.targetEaten?'completed':'escaped');}else this.escapeHold=0;
  }
  lineBlocked(a,b){const w=this.village;if(!this.has('acolyte')&&Math.hypot(b.x-w.shelter.x,b.z-w.shelter.z)<w.shelter.r)return true;const dx=b.x-a.x,dz=b.z-a.z,l2=dx*dx+dz*dz;if(!l2)return false;if(!w.gate.broken&&Math.abs(dz)>.001){const t=(w.gate.z-a.z)/dz;if(t>0&&t<1&&Math.abs(a.x+dx*t)<2.5)return true;}for(const c of this.village.colliders){const t=Math.max(0,Math.min(1,((c.x-a.x)*dx+(c.z-a.z)*dz)/l2));if(Math.hypot(a.x+dx*t-c.x,a.z+dz*t-c.z)<c.r*.92)return true;}return false;}
 }
