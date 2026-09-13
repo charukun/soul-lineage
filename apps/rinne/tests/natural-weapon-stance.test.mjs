@@ -41,4 +41,11 @@ test('natural stance only touches held-weapon guard windows, never the authored 
   assert.equal(shouldNaturalizeWeaponStance({...base,reaction:{}},null),false,'hit reaction must not be overwritten');
 });
 
+test('the live humanoid entrypoint exports the natural-stance runtime',async()=>{
+  const stance=await stanceModule();
+  const live=await import('../public/simulator/src/humanoid.js');
+  assert.equal(live.HumanoidRuntime,stance.HumanoidRuntime,'simulator import must not bypass stance correction');
+  assert.equal(Object.hasOwn(live.HumanoidRuntime.prototype,'sample'),true,'live runtime must naturalize the shared renderer/collision sampler');
+});
+
 test.after(()=>{delete globalThis.window;});
