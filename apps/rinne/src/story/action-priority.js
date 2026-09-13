@@ -27,3 +27,34 @@ export function choosePrimaryStoryAction(buttons,state={}){
   const pool=enabled.length?enabled:available;
   return pool.toSorted((a,b)=>storyActionPriority(a.dataset?.action,state)-storyActionPriority(b.dataset?.action,state))[0]||null;
 }
+
+/** Short-lived goals outrank generic age guidance while the player is in the village. */
+export function storyTransientObjective(state,experienceNames={}){
+  if(state?.zone!=='village'||state?.phase!=='living')return null;
+  if(state.activity){
+    const name=experienceNames[state.activity.kind]||'生活行動';
+    return `${name}を続けています。歩き出すと中断します。`;
+  }
+  if((state.pendingDiscoveries?.length||0)>0)return'暮らしの閃きを受け取り、技目録へ加えよう。';
+  return null;
+}
+
+/**
+ * Story activities may share one physical landmark. A navigation map should
+ * show that landmark once and summarize what can be done there instead of
+ * looking like several duplicate buildings.
+ */
+export function uniqueStoryDestinations(places=[]){
+  const groups=new Map();
+  for(const place of places){
+    const key=`${Math.round(Number(place.x)*10)/10}:${Math.round(Number(place.z)*10)/10}`;
+    let group=groups.get(key);
+    if(!group){group={...place,verbs:[]};groups.set(key,group);}
+    if(place.verb&&!group.verbs.includes(place.verb))group.verbs.push(place.verb);
+  }
+  return [...groups.values()].map(({verbs,...place})=>({
+    ...place,
+    verb:verbs.length?verbs.join('・'):place.verb,
+    activities:verbs,
+  }));
+}
