@@ -18,10 +18,19 @@ export function installReviewUX({reviewPresets,reviewWeapons}){
     backdrop.innerHTML='<section class="model-picker-sheet"><header><strong>キャラクター</strong><button type="button">閉じる</button></header><div class="model-picker-list"></div></section>';
     document.body.append(backdrop);const list=backdrop.querySelector('.model-picker-list'),close=backdrop.querySelector('header button');
     const portrait=id=>`./simulator/assets/portrait_${id}.webp`;
-    function activeRow(){return reviewPresets.find(r=>r.id===preset.value)||reviewPresets[0];}
-    function render(){const active=activeRow();list.replaceChildren(...reviewPresets.map(row=>{const portraitId=row.portrait||row.label,b=document.createElement('button');b.type='button';b.className='model-picker-item'+(row.id===active?.id?' active':'');b.innerHTML=`<img src="${portrait(portraitId)}" alt=""><span>${row.name||row.label}<small>${row.label}</small></span>`;b.onclick=()=>{preset.value=row.id;preset.dispatchEvent(new Event('change',{bubbles:true}));trigger.textContent=`キャラ: ${row.name||row.label}`;backdrop.hidden=true;render();};return b;}));}
+    function selectableRows(){
+      const rows=new Map(reviewPresets.map(row=>[row.id,row]));
+      for(const option of preset.options){
+        if(!option.value||rows.has(option.value))continue;
+        const label=option.textContent||option.value;
+        rows.set(option.value,{id:option.value,label,name:label,portrait:'SHINO'});
+      }
+      return [...rows.values()];
+    }
+    function activeRow(){const rows=selectableRows();return rows.find(r=>r.id===preset.value)||rows[0];}
+    function render(){const rows=selectableRows(),active=activeRow();list.replaceChildren(...rows.map(row=>{const portraitId=row.portrait||row.label,b=document.createElement('button');b.type='button';b.className='model-picker-item'+(row.id===active?.id?' active':'');b.innerHTML=`<img src="${portrait(portraitId)}" alt=""><span>${row.name||row.label}<small>${row.label}</small></span>`;b.onclick=()=>{preset.value=row.id;preset.dispatchEvent(new Event('change',{bubbles:true}));trigger.textContent=`キャラ: ${row.name||row.label}`;backdrop.hidden=true;render();};return b;}));}
     trigger.onclick=()=>{render();backdrop.hidden=false;};close.onclick=()=>backdrop.hidden=true;backdrop.addEventListener('click',e=>{if(e.target===backdrop)backdrop.hidden=true;});
-    document.addEventListener('review-model-loaded',e=>{const row=reviewPresets.find(r=>r.id===e.detail?.presetId);if(row)trigger.textContent=`キャラ: ${row.name||row.label}`;});
+    document.addEventListener('review-model-loaded',e=>{const row=selectableRows().find(r=>r.id===e.detail?.presetId);if(row)trigger.textContent=`キャラ: ${row.name||row.label}`;});
   }
 
   const tabs=q('.review-tabs'),weaponSelect=q('#weapon-select'),weaponToggle=q('#weapon-toggle');
