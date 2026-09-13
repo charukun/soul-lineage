@@ -2,6 +2,10 @@ export const MARKER_START = '<!-- browser-repair:v1';
 export const MARKER_END = '-->';
 export const DEFAULT_MAX_ATTEMPTS = 3;
 
+export function currentPrRepair(pr, headSha) {
+  return Boolean(pr && pr.state === 'open' && pr.base?.ref === 'develop' && pr.head?.sha === headSha);
+}
+
 export function parseRepairState(body = '') {
   const start = body.indexOf(MARKER_START);
   if (start < 0) return null;

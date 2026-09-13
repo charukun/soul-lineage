@@ -220,10 +220,11 @@ jobs:
               }
               throw error;
             }
-            try {
-              await github.rest.actions.createWorkflowDispatch({
+            await github.rest.actions.createWorkflowDispatch({
                 ...context.repo,
-                workflow_id: 'browser-repair.yml',
+                // deploy.yml is already registered on the default branch and
+                // owns this trusted repair_scope=pr recorder on develop.
+                workflow_id: 'deploy.yml',
                 ref: 'develop',
                 inputs: {
                   repair_scope: 'pr',
@@ -233,14 +234,7 @@ jobs:
                   repair_run_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
                   repair_artifact: process.env.ARTIFACT
                 }
-              });
-            } catch (error) {
-              if (error.status === 404) {
-                core.notice('Browser repair workflow is not installed on develop yet; bootstrap dispatch skipped.');
-                return;
-              }
-              throw error;
-            }
+            });
 
   integration-request:
     name: Request Integration
