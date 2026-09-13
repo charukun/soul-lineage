@@ -7,7 +7,7 @@ import { captureMotionRest, captureNormalizedMotion } from '@soul/rendering/moti
  */
 export async function loadWorkshopMotionSource({resolveModule,readAsset,progress=()=>{}}) {
   const [{HumanoidRuntime},{SLASH_SECONDS,SLASH_TIMING,SLASH_REVISION},{createReviewSword}]=await Promise.all([
-    resolveModule('humanoid.js'),resolveModule('authored-slash.js'),resolveModule('review-sword.js')]);
+    resolveModule('humanoid-natural-stance.js'),resolveModule('authored-slash.js'),resolveModule('review-sword.js')]);
   const runtime=new HumanoidRuntime({readAsset,weapons:{sword:{base:.21,tip:1.62,width:.065}},strikes:{slash:{}},clips:{slash:SLASH_TIMING},windows:{},
     progress:(a,t)=>Math.min(1,Math.max(0,(t??a.attack?.t??0)/SLASH_SECONDS)),window:(_kind,p)=>p>=SLASH_TIMING.active[0]&&p<=SLASH_TIMING.active[1]?0:-1});
   try {await runtime.load('SHINO');return {...await bakeWorkshopMotionSource(runtime,{slashSeconds:SLASH_SECONDS,revision:SLASH_REVISION,progress}),createSword:createReviewSword};}
@@ -37,5 +37,5 @@ export async function bakeWorkshopMotionSource(runtime,{slashSeconds,revision,pr
   for(let i=frames.length-31;i<frames.length;i++)frames[i]=blendHumanoidPose(frames[i],frames[0],(i-(frames.length-31))/30);
   const transitionRanges=[[2.9,3.15],[6.9,7.15],[10.98,11.5],[13.9,14.15],[23,23.3],[26.5,27.2]];
   const qualityFrames=stabilizeMotionBoundaries({frames,fps:QA_FPS,duration:30},transitionRanges);
-  return {version:1,fps:QA_FPS,duration:30,revision,sourceHeight:c.sourceHeight,frames,qualityFrames,transitionRanges,attachments,socket,sourceRest:rest,sources:['idle-01','walk','run-slow','runtime.weaponDraw','runtime.guard','authored-slash']};
+  return {version:1,fps:QA_FPS,duration:30,revision,sourceHeight:c.sourceHeight,frames,qualityFrames,transitionRanges,attachments,socket,sourceRest:rest,sources:['idle-01','walk','run-slow','runtime.weaponDraw','runtime.guard','runtime.naturalWeaponStance','authored-slash']};
 }
