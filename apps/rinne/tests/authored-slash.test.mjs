@@ -13,7 +13,7 @@ async function loadRig(){
   globalThis.window={assetBuffer:async id=>{
     const path=id.startsWith('motion:')?'motions/'+id.slice(7)+'.vrma':id+'_review.vrm';
     const b=await readFile(new URL('../public/simulator/assets/'+path,import.meta.url));
-    return b.buffer.slice(b.byteOffset,b.byteLength);
+    return b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);
   }};
   const parse=GLTFLoader.prototype.parseAsync;
   GLTFLoader.prototype.parseAsync=function(data,path){
@@ -51,12 +51,13 @@ test('slash preserves the existing combat clock and has continuous pose endpoint
   for(let i=0;i<=1000;i++)for(const value of Object.values(sampleSlashPose(i/1000)))assert.ok(value.every(Number.isFinite));
 });
 
-test('actual Shino static guard supports the torso without drifting either hand socket',async()=>{
+test('actual Shino static guard supports the torso and base without drifting either hand socket',async()=>{
   const runtime=await loadRig(),c=runtime.current;
   const actor={id:'guard-rig-test',hero:true,weapon:'sword',weaponDraw:1,lifeAgeYears:22,x:0,z:0,yaw:0,air:0,vx:0,vz:0,combatReady:true,weaponTransition:false,_humanoidClock:0,attack:null};
   try{
     const result=runtime.render(actor),report=runtime.report();
-    assert.equal(report.readyBodyStrength,1,'settled guard should use the subtle supporting torso posture');
+    assert.equal(report.readyBodyStrength,1,'settled guard should use the supporting torso posture');
+    assert.equal(report.readyBaseStrength,1,'settled guard should use the grounded ready base');
     assert.ok(report.naturalStance?.maxHandDisplacement<2e-4,`guard hand contact drifted ${report.naturalStance?.maxHandDisplacement}`);
     assert.ok(report.naturalStance?.maxHandAngleError<1e-5,`guard wrist orientation drifted ${report.naturalStance?.maxHandAngleError}`);
     for(const side of ['right','left']){
@@ -65,6 +66,10 @@ test('actual Shino static guard supports the torso without drifting either hand 
       assert.ok(actual.position.distanceTo(expected.position)<2e-4,`${side} socket position moved after torso support`);
       assert.ok(actual.quaternion.angleTo(expected.quaternion)<1e-5,`${side} socket orientation moved after torso support`);
     }
+    const left=runtime.point(c,'leftFoot'),right=runtime.point(c,'rightFoot');
+    assert.ok(left.x>right.x,'ready stance must keep the feet on their anatomical left/right sides');
+    assert.ok(left.z>right.z,'ready stance must stagger the front and rear foot instead of standing square');
+    assert.ok(left.distanceTo(right)>.16,`ready stance base is still too narrow: ${left.distanceTo(right)}`);
   }finally{runtime.dispose(c);delete globalThis.window;delete globalThis.self;}
 });
 
