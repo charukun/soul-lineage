@@ -1,6 +1,12 @@
 /** User-facing placement help is exercised with native input, never world mutation. */
+const STARTUP_TIMEOUT_MS = 15_000;
+async function expectVillageReady(page, expect) {
+  await expect(page.locator('#loading')).toBeHidden({timeout:STARTUP_TIMEOUT_MS});
+  await expect(page.locator('#game')).toHaveAttribute('data-renderer','ready',{timeout:STARTUP_TIMEOUT_MS});
+}
+
 export async function verifyVillageFirstBuild(page, expect, testInfo, beforeReload = async () => {}) {
-  await expect(page.locator('#loading')).toBeHidden();
+  await expectVillageReady(page, expect);
   await page.locator('#muraEnterVillage').click();
   await expect(page.locator('#muraEntry')).toBeHidden();
   const settings=await page.locator('#muraSettingsButton').boundingBox();
@@ -83,7 +89,7 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   await expect.poll(()=>page.evaluate(()=>window.village.view.roomId)).toBe(null);
   await beforeReload();
   await page.reload({waitUntil:'domcontentloaded'});
-  await expect(page.locator('#loading')).toBeHidden();
+  await expectVillageReady(page, expect);
   await page.locator('#muraEnterVillage').click();
   const restored=await page.evaluate(id=>window.village.world.object(id),tent.id);
   for(const key of ['id','kind','x','z','rot','phase'])expect(restored[key]).toBe(tent[key]);
