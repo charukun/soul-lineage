@@ -1,7 +1,16 @@
 /* Auxiliary tools never cover pause, movement, scent or the return command. */
 #hud header{grid-template-columns:1fr 1.5fr 44px}
 #pause,#sheet-close{min-width:44px;min-height:44px;padding:0}
-#first-hunt-guide{font-size:11px;line-height:1.65;margin:7px 0 0;color:#c1ccba;letter-spacing:.025em;max-width:260px}
+#first-hunt-guide{font-size:11px;line-height:1.65;margin:7px 0 0;color:#c1ccba;letter-spacing:.025em;max-width:280px}
+#hud[data-guide="sense"] #scent:not(:disabled),#hud[data-guide="memory"] #memory:not(:disabled),#hud[data-guide="return"] #return:not(:disabled),#hud[data-guide="escape"] #return:not(:disabled){filter:brightness(1.28);text-shadow:0 0 12px #c6d7b788}
+#hud[data-guide="sense"] #scent:not(:disabled)::before,#hud[data-guide="memory"] #memory:not(:disabled)::before,#hud[data-guide="return"] #return:not(:disabled)::before{content:'次';position:absolute;top:-10px;right:-5px;min-width:22px;height:22px;display:grid;place-items:center;border:1px solid #c5b98588;background:#132321e8;color:#e5d7ad;font-size:9px;line-height:1;letter-spacing:.05em;border-radius:50%}
+.controls .seal:disabled{opacity:.28;filter:saturate(.45);cursor:default}
+#return.locked:not(:disabled){opacity:.5}
+#return.locked #return-arrow{font-size:21px;color:#8f9589}
+#enemy-name{min-height:17px;margin-top:8px;font-size:10px;letter-spacing:.16em;color:#d4c8ae;text-shadow:0 2px 8px #000}
+#enemy-health-track{width:min(180px,48vw);height:3px;margin:6px auto 0;background:#553a384f;overflow:hidden;transform:skewX(-18deg)}
+#enemy-health{height:100%;width:0;max-width:none;margin:0;background:linear-gradient(90deg,#723b35,var(--blood));transition:width .15s}
+#battle{bottom:calc(165px + env(safe-area-inset-bottom))}
 #online-box{box-sizing:border-box;width:min(430px,calc(100vw - 28px));max-height:88dvh;overflow:auto;background:linear-gradient(140deg,#172625,#0b181b);color:#d1d0b7;border:1px solid #b9b28a77;padding:18px}
 #online-box:not([open]){display:none}
 #online-box::backdrop{background:#02090cc9}
@@ -9,3 +18,4 @@
 #online-box button{min-height:44px;padding:8px 14px}
 #online-box textarea{box-sizing:border-box;width:100%;height:80px;display:block;margin:8px 0;background:#071316;color:#c1ccba;border:1px solid #84947e66}
 #online-box label,#online-box p{font-size:12px;line-height:1.7}
+@media(max-height:650px){#battle{bottom:calc(143px + env(safe-area-inset-bottom))}#first-hunt-guide{max-width:230px;font-size:10px}}

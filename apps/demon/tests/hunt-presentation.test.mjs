@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {renderRaidRoutes} from '../src/web/raid-routes.js';
+import {renderRaidRoutes,recommendRouteId} from '../src/web/raid-routes.js';
 import {sampleDevourMotion,DEVOUR_PHASES} from '../src/web/devour-motion.js';
-const profile={visits:{},unlocked:[],imported:null};
+const profile={visits:{},unlocked:[],imported:null,hunts:0};
 const offers=['small','medium','large'].map((raidScale,i)=>({id:'route:'+i,seed:i+1,name:'固有名はカードに表示しない',target:'traveller',raidScale,source:'generated'}));
 test('raid choices use size, text risk, and actual counts instead of names',()=>{
  const html=renderRaidRoutes(offers,profile);
@@ -13,6 +13,15 @@ test('raid choices use size, text risk, and actual counts instead of names',()=>
  for(const count of [6,10,14])assert.ok(html.includes(`家屋 <b>${count}</b>棟`));
  for(const count of [8,12,16])assert.ok(html.includes(`住人 <b>${count}</b>人`));
  assert.ok(html.includes('討伐騎士'));
+});
+test('first hunt recommends exactly one safest generated route',()=>{
+ assert.equal(recommendRouteId(offers,profile),'route:0');
+ const html=renderRaidRoutes(offers,profile);assert.equal((html.match(/class="raid-recommended">推奨/g)||[]).length,1);
+ assert.ok(html.indexOf('data-village="route:0"')<html.indexOf('class="raid-recommended">推奨'));
+});
+test('later hunts prioritize an unlearned memory before risk tie breakers',()=>{
+ const sameRisk=[{...offers[0],id:'known',target:'traveller'},{...offers[0],id:'new',seed:9,target:'bellkeeper'}];
+ assert.equal(recommendRouteId(sameRisk,{...profile,hunts:2,unlocked:['traveller']}),'new');
 });
 test('selection IDs are escaped and memory is secondary',()=>{
  const html=renderRaidRoutes([{...offers[0],id:'a" onclick="bad',name:'<script>bad</script>'}],{...profile,unlocked:['traveller']});
@@ -53,8 +62,10 @@ test('real adapter and session wire progress, cleanup and the new route renderer
  const creature=readFileSync(new URL('../src/web/creatures.js',import.meta.url),'utf8');
  const session=readFileSync(new URL(import.meta.resolve('@soul/raid')),'utf8');
  const main=readFileSync(new URL('../src/web/main.js',import.meta.url),'utf8');
+ const index=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(creature,/Number\.isFinite\(a\.devourProgress\)/);assert.match(creature,/applyCapturedPose\(g,a\.capturedBy\)/);
  assert.match(creature,/foot\.quaternion\.copy\(inverse\)/);assert.ok(!creature.includes('Math.sin(time*10)'));
- assert.match(session,/advanceDevour\(this,dt,v\.amount\)/);assert.match(session,/cancelDevour\(this\)/);
- assert.match(main,/renderRaidRoutes\(offers,profile\)/);assert.match(main,/import '\.\/raid-routes\.css'/);
+ assert.match(session,/advanceDevour\(this,dt,v\.amount\)/);assert.match(session,/cancelDevour\(this\)/);assert.match(session,/escapePoints\(\)/);
+ assert.match(main,/renderRaidRoutes\(offers,profile\)/);assert.match(main,/huntUiState\(game/);assert.match(main,/game\.nearestEscape\?\.\(\)/);assert.match(main,/if\(game\?\.eaten>0\)guideState\.memorySeen=true/);assert.match(main,/import '\.\/raid-routes\.css'/);
+ for(const id of ['enemy-name','enemy-health-track','return-label'])assert.ok(index.includes(`id="${id}"`));
 });
