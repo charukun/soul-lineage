@@ -8,4 +8,11 @@
 - Trusted Integration and the existing watchdog/Rescue scan recover cancelled current-head CI and missed Integration requests with bounded retries. Old heads, explicit holds, review objections and real failures are not waived.
 - Verify recovery against the current Ready queue and the published DEV source. Keep main/Production and additional paid API services outside this change.
 
-Implementation and observed results are recorded here after verification.
+## Implementation verification
+
+- PR #144 / initial implementation tree `e1e50924359fb6da5cdedc1df5d899ed83f4a646`: fast validation 587 pass, 1 optional skip, all three game builds passed.
+- Live #133 and #136: successful CI and cancelled PULSE `deploy` check/public failure verified from jobs and statuses.
+- Live #138: build succeeded, browser cancelled, Integration request skipped.
+- Live #126: actual fast failure is a nonexistent `.webp` reference; the repository asset is `.png`. A minimal reference correction passes the existing four tests without modifying assertions.
+- The first #144 Ready run (34744670090) ran only Draft lightweight validation despite the current PR being Ready. CI now resolves current PR state/head through the read-only API before selecting Draft or Ready jobs. A green Draft run is never used as fast/browser evidence.
+- Real merge, queue rescan and DEV delivery evidence will be added after completion.

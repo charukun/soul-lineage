@@ -121,7 +121,8 @@ test('PULSE exposes owner without adding worker heartbeat alerts after Ready, in
 test('workflow boundary is independent of build/browser; Dispatch ends after Ready without monitoring', () => {
   const ci = readFileSync('.github/workflows/ci.yml', 'utf8');
   const immediate = ci.split('  request-rescue:')[1].split('  draft-check:')[0];
-  assert.doesNotMatch(immediate, /needs:/);
+  assert.doesNotMatch(immediate, /needs:.*(?:build|browser)/);
+  assert.match(immediate, /needs: readiness/);
   assert.match(immediate, /ref: develop/);
   assert.match(immediate, /recordHandoff/);
   assert.match(immediate, /workflow_id: 'deploy.yml'.*rescue_mode: 'scan'/);

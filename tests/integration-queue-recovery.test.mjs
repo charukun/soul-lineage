@@ -129,3 +129,22 @@ test('workflow contract separates observation/validation and develop-only public
   assert.match(ci, /group: ci-.*'validation' \|\| 'observation'/);
   assert.match(deploy, /queue-recovery:[\s\S]*?inputs.rescue_mode == 'scan'[\s\S]*?integration-queue-recovery.mjs/);
 });
+
+test('live PR readiness wins over stale event Draft data; moved/closed heads do not validate', async () => {
+  const workflow = readFileSync('.github/workflows/ci.yml', 'utf8');
+  const script = workflow.split('  readiness:')[1].split('  request-rescue:')[0].split('          script: |\n')[1];
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  const evaluate = new AsyncFunction('github', 'context', 'core', script);
+  for (const [live, expected] of [
+    [{ state: 'open', draft: false, head: { sha } }, { ready: true, draft: false }],
+    [{ state: 'open', draft: true, head: { sha } }, { ready: false, draft: true }],
+    [{ state: 'open', draft: false, head: { sha: 'new' } }, { ready: false, draft: false }],
+    [{ state: 'closed', draft: false, head: { sha } }, { ready: false, draft: false }],
+  ]) {
+    const outputs = {};
+    await evaluate({ rest: { pulls: { get: async () => ({ data: live }) } } },
+      { repo: {}, payload: { pull_request: { number: 144, draft: true, head: { sha } } } },
+      { setOutput: (name, value) => outputs[name] = value });
+    assert.deepEqual(outputs, expected);
+  }
+});
