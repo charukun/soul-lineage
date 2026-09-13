@@ -78,7 +78,7 @@ function fake({ prs = [candidate(1), candidate(2)], failed = false, moved = fals
       if (path.endsWith('/reviews')) return structuredClone(reviewsByPr.get(Number(path.match(/\/pulls\/(\d+)/)[1])) || []);
       if (key === 'workflow_runs') return prs.map(p=>({id:p.number,head_sha:p.head.sha,head_branch:p.head.ref,head_repository:p.head.repo,event:'pull_request',pull_requests:[]}));
       if (key === 'artifacts') return [{name:`pr-fast-${path.match(/runs\/(\d+)/)[1]}-${sha}`,expired:false}];
-      if (key === 'jobs') return [{name:'Validate and build',status:'completed',conclusion:failed?'failure':'success'}];
+      if (key === 'jobs') return [{name:'Validate and build',status:'completed',conclusion:failed?'failure':'success'}, {name:'Affected browser smoke',status:'completed',conclusion:'success'}];
       if (key === 'check_runs') return [{name:'Request Integration',status:'in_progress'}, {name:'Validate and build',status:'completed',conclusion:'success'}];
       throw new Error(`Unhandled ${path}`);
     },
@@ -174,7 +174,7 @@ test('trusted internal control PR is exact-head reviewed then merged without wea
   const rejectedResult=await integrate(rejected.c,repository);
   assert.deepEqual(rejected.merges,[]); assert.equal(rejected.reviewsByPr.get(1).length,1); assert.match(rejectedResult.held[0].reason,/requested changes/);
 });
-test('review wakeups have valid fast evidence and queue status cannot deadlock itself', async () => {
+test('review-only wakeups cannot replace PR browser evidence and queue cannot deadlock itself', async () => {
   for (const event of ['pull_request_review']) {
     const {c}=fake(); const original=c.pages;
     c.pages=async(p,k)=> {
@@ -183,7 +183,7 @@ test('review wakeups have valid fast evidence and queue status cannot deadlock i
       if(p.includes('/statuses')) return [...result,{context:'integration/queue',state:'pending'}];
       return result;
     };
-    assert.equal(await fastGate(c,candidate()),true);
+    assert.equal(await fastGate(c,candidate()),false);
   }
   const {c}=fake(); const original=c.pages;
   c.pages=async(p,k)=>k==='workflow_runs'?(await original(p,k)).map(r=>({...r,event:'push'})):original(p,k);

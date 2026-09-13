@@ -5,6 +5,7 @@ import { resolve, extname } from 'node:path';
 import { chromium } from '@playwright/test';
 import { rescueFixture } from '../tests/fixtures/integration-rescue-state.mjs';
 import { rescueView } from './rescue.mjs';
+import { event } from '../scripts/integration-rescue-policy.mjs';
 
 const out=resolve(process.env.OPS_RESCUE_REPORT_DIR || 'ops-review-results/rescue');await mkdir(out,{recursive:true});
 let fixture=rescueFixture(), errors=[];
@@ -46,6 +47,19 @@ try{
     assert.ok(dimensions.scroll<=width+1,JSON.stringify(dimensions));
     await page.screenshot({path:`${out}/rescue-${width}.png`});check(`mobile/desktop no overflow ${width}px`);
   }
+  fixture.records[119].mode='reevaluate';
+  Object.assign(fixture.records[118],{attempt:0,rescueId:null,claimedBy:null,returnedAt:null,state:'DEV',currentStep:'DEV'});
+  event(fixture,fixture.records[118],'DEV','DEV observed without Rescue repair',Date.now());
+  fixture.records[199]={...fixture.records[119],pr:199,state:'AWAITING_PUSH',currentStep:'AWAITING_PUSH',returnedAt:null,pushedSha:null,pushedAt:null,stagedSha:'a'.repeat(40)};
+  await page.locator('#reload').click();await page.waitForFunction(()=>!document.querySelector('#reload').disabled);
+  assert.match(await page.locator('.rs-throughput').innerText(),/Rescued 0.*Merged 0/);
+  assert.match(await page.locator('.rs-throughput').innerText(),/merge 1.*DEV 1/);
+  assert.match(await page.locator('.rs-card[data-pr="119"]').innerText(),/再評価のみ・修復pushなし/);
+  assert.doesNotMatch(await page.locator('.rs-card[data-pr="119"] .rs-rail').innerText(),/PUSH/);
+  assert.match(await page.locator('.rs-card[data-pr="118"]').innerText(),/統合状況の観測・修復証跡なし/);
+  assert.doesNotMatch(await page.locator('.rs-card[data-pr="118"] .rs-rail').innerText(),/PUSH|RETURN/);
+  assert.match(await page.locator('.rs-card[data-pr="199"]').innerText(),/commit準備済み・push待ち/);
+  check('observed delivery, reevaluation and staged commits do not imply repair success');
   fixture=rescueFixture(Date.now(),true);await page.locator('#reload').click();await page.waitForFunction(()=>document.querySelector('.rs-status')?.textContent==='ALL CLEAR');
   assert.match(await page.locator('.rs-workers-total').innerText(),/0 \/ 6 ACTIVE/);assert.equal(await page.locator('.rs-worker-pool .rs-card').count(),0);check('normal empty ALL CLEAR');
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:`${out}/empty-390.png`});

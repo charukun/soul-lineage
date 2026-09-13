@@ -1,5 +1,5 @@
 import './character-review.js';
-import { VISUAL_ROLES, APPEARANCE_PARTS, YEAR_MS } from '@soul/characters';
+import { VISUAL_ROLES, APPEARANCE_PARTS, CHARACTER_REFERENCE_MODELS, YEAR_MS } from '@soul/characters';
 import { createCharacterWorkspace, downloadWorkspace } from './character-workspace.js';
 
 const el = id => document.getElementById(id);
@@ -13,6 +13,17 @@ let studio, currentTab = 'parts', slot = 'hair', wasReady = false, individualsCo
 function toast(message) { el('toast').textContent = message; el('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { el('toast').hidden = true; }, 2800); }
 function safe(action) { try { action(); } catch (error) { toast(error.message); } }
 function aimForSlot() { if (!studio?.review.ready) return; studio.review.aim(['face', 'hair'].includes(slot) ? 'face' : 'front'); }
+function buildModelOptions() {
+  const panel = el('panel-parts'), heading = make('h3', 'キャラモデル'), row = make('div', '', 'choice-row'), note = make('p', '', 'hint');
+  heading.id = 'character-model-title'; row.id = 'character-model-options'; row.setAttribute('role', 'group'); row.setAttribute('aria-labelledby', heading.id); note.id = 'character-model-note';
+  const generated = button('量産モデル', () => { studio.workspace.configure({ view: 'single' }); studio.workspace.selectModel(null); studio.review.aim('front'); });
+  generated.dataset.characterModel = ''; row.append(generated);
+  for (const model of Object.values(CHARACTER_REFERENCE_MODELS)) {
+    const b = button(model.label, () => { studio.workspace.configure({ view: 'single' }); studio.workspace.selectModel(model.id); studio.review.aim('front'); });
+    b.dataset.characterModel = model.id; row.append(b);
+  }
+  panel.prepend(note); panel.prepend(row); panel.prepend(heading);
+}
 function buildOptions() {
   el('slot-title').textContent = titles[slot]; el('slot-hint').textContent = hints[slot];
   el('part-options').setAttribute('aria-label', `${titles[slot]}の候補`);
@@ -43,11 +54,16 @@ function render() {
   el('save-state').textContent = w.saveMessage;
   if (!record) return;
   renderQuality();
+  const modelLabel = w.model?.label;
   el('subject').textContent = settings.view === 'single'
-    ? `1体表示 · 個体 ${settings.selected + 1} / ${settings.count} · ${record.ageMs / YEAR_MS}歳`
+    ? `${modelLabel ? `${modelLabel} · ` : ''}1体表示 · 個体 ${settings.selected + 1} / ${settings.count} · ${record.ageMs / YEAR_MS}歳`
     : `個体 ${settings.selected + 1} / ${settings.count} · ${record.ageMs / YEAR_MS}歳`;
-  el('selection-summary').textContent = `個体 ${String(settings.selected + 1).padStart(2, '0')} · ${record.ageMs / YEAR_MS}歳`;
+  el('selection-summary').textContent = `${modelLabel ? `${modelLabel} · ` : ''}個体 ${String(settings.selected + 1).padStart(2, '0')} · ${record.ageMs / YEAR_MS}歳`;
   const p = w.getProfile();
+  for (const b of document.querySelectorAll('[data-character-model]')) b.setAttribute('aria-pressed', String(b.dataset.characterModel === (w.modelId ?? '')));
+  if (el('character-model-note')) el('character-model-note').textContent = w.model
+    ? `${w.model.note} リファレンス画像は ${w.model.referencePath}。手動で部位を変更するとカスタム編集へ戻ります。`
+    : '通常の量産モデルです。seed・遺伝・役割から見た目を生成します。';
   for (const b of document.querySelectorAll('[data-modular-value]')) b.setAttribute('aria-pressed', String(p[slot] === b.dataset.modularValue));
   el('original-preview').setAttribute('aria-pressed', String(w.previewing));
   el('original-preview').textContent = w.previewing ? '編集した姿に戻す' : '元のパーツと比較'; el('preview-label').hidden = !w.previewing;
@@ -79,13 +95,14 @@ function renderQuality() {
   el('quality-age').value=review.settings.ages==='mixed'?'mixed':String(review.settings.age);
   const baseline=q.mode==='baseline';el('quality-baseline').textContent=baseline?'強化した量産方式に戻す':'旧方式と比較';el('quality-baseline').setAttribute('aria-pressed',String(baseline));
   const marked=q.marked.includes(record.id);el('quality-mark').textContent=marked?'要修正マークを解除':'この個体を要修正にする';el('quality-mark').setAttribute('aria-pressed',String(marked));
-  el('quality-identity').textContent=`${record.id} / seed ${record.seed}\n${identity?`${VISUAL_ROLES[identity.role]} · ${identity.front} / ${identity.back}`:baseline?'旧方式：色・全体サイズのみ':'Shino基準パーツ'}\n親: ${record.parents.join(' / ')||'なし'}`;
+  el('quality-identity').textContent=`${record.id} / seed ${record.seed}\n${w.model?`${w.model.label} / ${w.model.masterId}`:identity?`${VISUAL_ROLES[identity.role]} · ${identity.front} / ${identity.back}`:baseline?'旧方式：色・全体サイズのみ':'Shino基準パーツ'}\n親: ${record.parents.join(' / ')||'なし'}`;
   const r=w.qualityReport();el('quality-report').textContent=`量産 ${r.count}体 + 基準 ${r.referenceCount}体\n髪型 ${r.hairstyles}種 / 輪郭・目 ${r.faceGroups}群 / 役割 ${r.roles}種\n配色を除くシルエット ${r.silhouettes}種\n${r.similar.length?'似た組合せ: '+r.similar.map(ids=>ids.join('・')).join(' / '):'同一シルエットの組合せなし'}\n要修正 ${q.marked.length}体。数値は目安で、見た目の合格証明ではありません。`;
   for(const b of document.querySelectorAll('[data-individual]')){const row=review.records[Number(b.dataset.individual)];b.dataset.qualityMarked=String(q.marked.includes(row.id));b.title=`${row.id} / seed ${row.seed}`;}
 }
 function init() {
   const review = window.masterCharacterReview; if (!review?.session) return;
   const workspace = createCharacterWorkspace(review); studio = { review, workspace }; window.characterStudio = studio;
+  buildModelOptions();
   for(const [id,label] of Object.entries(VISUAL_ROLES))if(!['child','elder'].includes(id))el('quality-role').add(new Option(label,id));
   el('quality-context').addEventListener('change',()=>safe(()=>workspace.setQuality({context:el('quality-context').value})));
   el('quality-role').addEventListener('change',()=>safe(()=>workspace.setQuality({role:el('quality-role').value})));

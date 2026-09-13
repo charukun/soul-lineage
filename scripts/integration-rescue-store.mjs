@@ -99,9 +99,46 @@ export async function pullEvidence(c, prNumber, { detailed = false } = {}) {
   }
   return result;
 }
+const gitSha = value => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value);
+function completeTree(data, expectedSha) {
+  if (!gitSha(expectedSha) || data?.sha !== expectedSha || data.truncated !== false ||
+    !Array.isArray(data.tree) || data.tree.length > 100000) throw new Error('INCOMPLETE_BASE_COMPARISON');
+  const entries = new Map(), paths = new Set();
+  for (const entry of data.tree) {
+    if (typeof entry.path !== 'string' || !entry.path || entry.path.includes('\0') ||
+      entry.path.split('/').some(p => !p || p === '.' || p === '..') || paths.has(entry.path) || !gitSha(entry.sha) ||
+      !({ tree: ['040000'], blob: ['100644', '100755', '120000'], commit: ['160000'] }[entry.type]?.includes(entry.mode))) {
+      throw new Error('INCOMPLETE_BASE_COMPARISON');
+    }
+    paths.add(entry.path);
+    if (entry.type !== 'tree') entries.set(entry.path, `${entry.mode}:${entry.type}:${entry.sha}`);
+  }
+  return entries;
+}
+export function treeChangedPaths(baseTree, headTree, baseSha, headSha) {
+  const before = completeTree(baseTree, baseSha), after = completeTree(headTree, headSha);
+  // Compare leaf identities, including executable bits, symlinks and gitlinks.
+  // A rename is represented by both paths, which is conservative for scope locks.
+  return [...new Set([...before.keys(), ...after.keys()])].filter(path => before.get(path) !== after.get(path)).sort();
+}
 export async function comparison(c, base, head) {
   if (base === head) return { files: [], mergeBase: base, ahead: 0, status: 'identical' };
   const data = await c.api('GET', `${c.root}/compare/${base}...${head}`);
-  if (!data.merge_base_commit?.sha || !Array.isArray(data.files) || data.files.length >= 300) throw new Error('INCOMPLETE_BASE_COMPARISON');
-  return { files: data.files.flatMap(f => [f.filename, f.previous_filename].filter(Boolean)), mergeBase: data.merge_base_commit.sha, ahead: data.ahead_by, status: data.status };
+  if (!gitSha(data.merge_base_commit?.sha) || !Array.isArray(data.files) ||
+    data.files.some(f => typeof f.filename !== 'string' || !f.filename || (f.previous_filename !== undefined && typeof f.previous_filename !== 'string'))) {
+    throw new Error('INCOMPLETE_BASE_COMPARISON');
+  }
+  let files = data.files.flatMap(f => [f.filename, f.previous_filename].filter(Boolean));
+  if (data.files.length >= 300) {
+    // Compare has a 300-file cap even with pagination. Pin both trees to the
+    // merge-base and requested head, preserving three-dot semantics for divergence.
+    if (!gitSha(head) || !gitSha(data.merge_base_commit.commit?.tree?.sha)) throw new Error('INCOMPLETE_BASE_COMPARISON');
+    const commit = await c.api('GET', `${c.root}/git/commits/${head}`);
+    if (commit?.sha !== head || !gitSha(commit.tree?.sha)) throw new Error('INCOMPLETE_BASE_COMPARISON');
+    const beforeSha = data.merge_base_commit.commit.tree.sha, afterSha = commit.tree.sha;
+    const before = await c.api('GET', `${c.root}/git/trees/${beforeSha}?recursive=1`);
+    const after = await c.api('GET', `${c.root}/git/trees/${afterSha}?recursive=1`);
+    files = treeChangedPaths(before, after, beforeSha, afterSha);
+  }
+  return { files, mergeBase: data.merge_base_commit.sha, ahead: data.ahead_by, status: data.status };
 }

@@ -3,14 +3,14 @@ import { execFileSync, spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { REPOSITORY, rescueConfig, owned, heartbeat, transition, failure, evaluateSnapshot, manualReason, fileScope } from './integration-rescue-policy.mjs';
+import { REPOSITORY, rescueConfig, owned, heartbeat, transition, failure, evaluateSnapshot, manualReason, fileScope, conflictScope } from './integration-rescue-policy.mjs';
 import { rescueClient, RescueStore, pullEvidence, comparison, browserRepairFor, contractFingerprint } from './integration-rescue-store.mjs';
 import { workspaceConsumers } from './integration-rescue-coordinator.mjs';
 import { createHash } from 'node:crypto';
 import { WORKER_CI_RULES } from './implementation-handoff.mjs';
 
 const cleanEnv = () => Object.fromEntries(Object.entries(process.env).filter(([key]) => !/TOKEN|SECRET|API_KEY|AUTHORIZATION|PASSWORD/.test(key)));
-export const git = (args, cwd, options = {}) => execFileSync('git', ['-c', 'core.hooksPath=/dev/null', ...args], { cwd, env: cleanEnv(), encoding: 'utf8', ...options }).trim();
+export const git = (args, cwd, options = {}) => execFileSync('git', ['-c', 'core.hooksPath=/dev/null', '-c', `safe.directory=${resolve(cwd)}`, ...args], { cwd, env: cleanEnv(), encoding: 'utf8', ...options }).trim();
 function progressFile(work) { return resolve(work, '.rescue-progress.json'); }
 function reportFile(work) { return resolve(work, '.rescue-result.json'); }
 const gitConfigFingerprint = work => createHash('sha256').update(readFileSync(resolve(work, '.git/config'))).digest('hex');
@@ -82,6 +82,53 @@ export function assertAssertionsPreserved(before, after, path) {
   if ([...old].some(line => !next.has(line))) throw new Error(`FAILED_MANUAL:ASSERTION_REMOVAL:${path}`);
 }
 function show(ref, path, work) { try { return git(['show', `${ref}:${path}`], work); } catch { return ''; } }
+// This is a conservative base update, not a substitute for semantic review.
+// Every PR-authored file must survive byte-for-byte. Related executable changes
+// and textual conflicts go to manual review; there is no paid-model fallback.
+export function safeUpdateReport(record, work, conflicts, consumers = {}) {
+  if (conflicts.length) throw new Error(`FAILED_MANUAL:SEMANTIC_CONFLICT:${conflicts.join(',').slice(0, 220)}`);
+  const overlap = record.scope.files.filter(path => record.baseChanges.includes(path));
+  if (overlap.length) throw new Error(`FAILED_MANUAL:OVERLAPPING_CHANGES:${overlap.join(',').slice(0, 220)}`);
+  const baseScope = conflictScope(record.baseChanges, '', consumers);
+  if (record.scope.control && baseScope.control || record.scope.contract || baseScope.contract && record.scope.scopes.some(s => baseScope.related.includes(s))) {
+    throw new Error('FAILED_MANUAL:CONTROL_OR_CONTRACT_RECONCILIATION');
+  }
+  if (record.scope.scopes.some(s => /^(apps|packages)\//.test(s) && baseScope.related.includes(s)) ||
+      record.scope.shared.length && record.scope.related.some(s => baseScope.scopes.includes(s))) {
+    throw new Error('FAILED_MANUAL:RELATED_CODE_RECONCILIATION');
+  }
+  for (const path of record.scope.files) {
+    const original = git(['ls-tree', record.headSha, '--', path], work);
+    const merged = git(['ls-files', '--stage', '--', path], work).replace(/ 0\t/, '\t').replace(' blob ', ' ');
+    // Compare blob identity/mode, including a deletion; never infer semantics from a clean merge.
+    if (original.replace(' blob ', ' ') !== merged) throw new Error(`FAILED_MANUAL:PR_FILE_CHANGED:${path}`);
+  }
+  return { decision: 'READY', summary: 'Disjoint base update; PR-authored file blobs and modes preserved; no semantic rewrite or API call',
+    purposePreserved: true, validationPreserved: true, inspectedFiles: record.scope.files, tests: ['git merge + exact PR blob/mode comparison'] };
+}
+
+export async function stageVerifiedCommit(c, record, work, testedHead) {
+  const tree = [];
+  for (const path of git(['diff', '--name-only', '-z', record.headSha, testedHead], work).split('\0').filter(Boolean)) {
+    const entry = git(['ls-tree', testedHead, '--', path], work);
+    if (!entry) { tree.push({ path, mode: '100644', type: 'blob', sha: null }); continue; }
+    const match = entry.match(/^(100644|100755) blob ([0-9a-f]{40})\t/);
+    assert.ok(match, `FAILED_MANUAL:UNSUPPORTED_TREE_ENTRY:${path}`);
+    // Disjoint merges only reuse blobs already present on GitHub. Never transport
+    // untrusted generated content through a privileged API call.
+    const known = [record.headSha, record.developSha].some(ref => git(['ls-tree', ref, '--', path], work).startsWith(`${match[1]} blob ${match[2]}\t`));
+    assert.ok(known, `FAILED_MANUAL:NEW_BLOB_REQUIRES_WORK:${path}`);
+    tree.push({ path, mode: match[1], type: 'blob', sha: match[2] });
+  }
+  const expectedTree = git(['rev-parse', `${testedHead}^{tree}`], work);
+  const result = await c.api('POST', `${c.root}/git/trees`, { base_tree: git(['rev-parse', `${record.headSha}^{tree}`], work), tree });
+  assert.equal(result.sha, expectedTree, 'STAGED_TREE_MISMATCH');
+  const parents = [record.headSha, record.developSha];
+  const commit = await c.api('POST', `${c.root}/git/commits`, { tree: result.sha, parents,
+    message: `chore(integration-rescue): update PR #${record.pr} from verified develop\n\nRescue-ID: ${record.rescueId}\nNo API model used. Original PR file blobs preserved.` });
+  assert.match(commit.sha, /^[0-9a-f]{40}$/);
+  return { sha: commit.sha, tree: expectedTree, parents };
+}
 export function inspectResolvedTree(record, work) {
   assert.equal(git(['rev-parse', 'HEAD'], work), record.headSha, 'WORKER_REWROTE_HISTORY');
   assert.equal(git(['diff', '--name-only', '--diff-filter=U'], work), '', 'UNRESOLVED_CONFLICTS');
@@ -103,9 +150,17 @@ export function inspectResolvedTree(record, work) {
   }
   return paths;
 }
-async function run(command, args, work, log) {
+export function assertValidationUnchanged(work, testedHead, configuration) {
+  assert.equal(gitConfigFingerprint(work), configuration, 'VALIDATION_CHANGED_GIT_CONFIGURATION');
+  assert.equal(git(['rev-parse', 'HEAD'], work), testedHead, 'VALIDATION_REWROTE_HISTORY');
+  assert.equal(git(['status', '--porcelain'], work), '', 'VALIDATION_MODIFIED_WORKTREE');
+}
+export async function runValidation(command, args, work, log) {
   await new Promise((resolveRun, reject) => {
-    const child = spawn(command, args, { cwd: work, env: cleanEnv(), stdio: ['ignore', 'pipe', 'pipe'] });
+    const user = process.env.RESCUE_VALIDATION_USER;
+    // Pin cwd after the UID change as well as before it. npm must never discover
+    // a parent checkout or the target user's home as its project root.
+    const child = spawn(user ? 'sudo' : command, user ? ['-n', '-H', '-u', user, '--', 'env', '--chdir', resolve(work), `PATH=${process.env.PATH}`, `PWD=${resolve(work)}`, command, ...args] : args, { cwd: work, env: { ...cleanEnv(), PWD: resolve(work) }, stdio: ['ignore', 'pipe', 'pipe'] });
     child.stdout.on('data', b => { process.stdout.write(b); log?.(b); });
     child.stderr.on('data', b => { process.stderr.write(b); log?.(b); });
     child.on('error', reject); child.on('exit', code => code === 0 ? resolveRun() : reject(new Error(`VALIDATION_FAILED:${command}:${code}`)));
@@ -160,8 +215,12 @@ async function main() {
       writeFileSync(contextPath, JSON.stringify({ record, conflicts, gitConfigFingerprint: gitConfigFingerprint(work) }, null, 2));
       writeFileSync(contextPath + '.prompt', workerPrompt(record, evidence.pr, conflicts, priorEvidence));
       writeFileSync(contextPath + '.schema', JSON.stringify(resultSchema));
-      writeFileSync(progressFile(work), JSON.stringify({ currentStep: 'ANALYZING', currentAction: 'PR diffとdevelopの関連変更を比較中' }));
-      if (process.env.GITHUB_OUTPUT) writeFileSync(process.env.GITHUB_OUTPUT, `needs_ai=${record.mode !== 'reevaluate'}\n`, { flag: 'a' });
+      if (record.mode !== 'reevaluate') {
+        writeFileSync(reportFile(work), JSON.stringify(safeUpdateReport(record, work, conflicts, workspaceConsumers(resolve(import.meta.dirname, '..')))));
+        await update((state, r) => transition(state, r, 'RESOLVING', '非重複のdevelop更新を作成。PRファイルのblobとmodeを保持', Date.now()));
+      }
+      writeFileSync(progressFile(work), JSON.stringify({ currentStep: record.mode === 'reevaluate' ? 'ANALYZING' : 'RESOLVING', currentAction: 'PR diffとdevelopの関連変更を比較済み。検証準備中' }));
+      if (process.env.GITHUB_OUTPUT) writeFileSync(process.env.GITHUB_OUTPUT, 'uses_paid_api=false\n', { flag: 'a' });
       return;
     }
     if (command === 'finish') {
@@ -179,10 +238,11 @@ async function main() {
           git(['commit', '-m', `chore(integration-rescue): reconcile PR #${pr} with develop`], work);
         }
         await update((state, r) => { r.resolution = report.summary.slice(0, 240); transition(state, r, 'VALIDATING', '競合解消完了。対象のfast verificationを実行中', Date.now()); });
-        await run('npm', ['ci'], work);
-        await run(process.execPath, [resolve(import.meta.dirname, 'validate.mjs'), 'fast', record.developSha, 'HEAD'], work);
         const testedHead = git(['rev-parse', 'HEAD'], work);
-        assert.equal(git(['status', '--porcelain'], work), '', 'VALIDATION_MODIFIED_WORKTREE');
+        await runValidation(process.execPath, [resolve(import.meta.dirname, 'integration-rescue-validation.mjs'), work], work);
+        await runValidation('npm', ['--prefix', work, 'ci'], work);
+        await runValidation(process.execPath, [resolve(import.meta.dirname, 'validate.mjs'), 'fast', record.developSha, 'HEAD'], work);
+        assertValidationUnchanged(work, testedHead, context.gitConfigFingerprint);
         await preflight(c, record, workspaceConsumers(resolve(import.meta.dirname, '..')));
         await update((state, r) => { r.validation = { status: 'passed', command: 'npm ci + trusted validate.mjs fast', head: testedHead, at: new Date().toISOString() }; transition(state, r, 'PUSHING', '検証成功。headとdevelopを再確認して元PR branchへpush', Date.now()); });
         // GitHub mutable head is checked again immediately before an ordinary fast-forward push.
@@ -190,16 +250,15 @@ async function main() {
         assert.equal(fresh.head.sha, record.headSha, 'HEAD_CHANGED');
         assert.equal(manualReason(fresh), null, 'FAILED_MANUAL:PR_HELD_BEFORE_PUSH');
         await getRecord();
-        assert.ok(process.env.RESCUE_PUSH_TOKEN, 'EVENT_CAPABLE_PUSH_TOKEN_REQUIRED');
-        const auth = Buffer.from(`x-access-token:${process.env.RESCUE_PUSH_TOKEN}`).toString('base64');
-        // Secret is confined to the git child environment, never config, argv or AI workspace.
-        execFileSync('git', ['-c', 'core.hooksPath=/dev/null', 'push', 'origin', `HEAD:refs/heads/${record.branch}`], { cwd: work, stdio: 'pipe', env: { ...cleanEnv(),
-          GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'http.https://github.com/.extraheader', GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${auth}` } });
-        const pushed = await c.api('GET', `${c.root}/pulls/${pr}`);
-        assert.equal(pushed.head.sha, testedHead, 'HEAD_CHANGED_AFTER_PUSH');
-        await update((state, r) => { r.pushedSha = testedHead; r.headSha = testedHead; r.pushedAt = new Date().toISOString(); transition(state, r, 'PUSHED', 'push完了。通常Integrationへ返す前に最新developを再確認', Date.now()); });
-        record.headSha = testedHead;
+        const staged = await stageVerifiedCommit(c, record, work, testedHead);
         await preflight(c, record, workspaceConsumers(resolve(import.meta.dirname, '..')));
+        await update((state, r) => {
+          r.stagedSha = staged.sha; r.stagedTree = staged.tree; r.stagedParents = staged.parents; r.stagedAt = new Date().toISOString();
+          r.validation.testedTree = staged.tree; r.validation.testedLocalHead = testedHead; r.validation.head = staged.sha;
+          r.lease = null; r.pendingIntegration = false;
+          transition(state, r, 'AWAITING_PUSH', '修復commitの実tree検証済み。既存ChatGPT WorkのGitHub接続で元PRへ通常push待ち（追加APIなし）', Date.now());
+        });
+        return;
       } else {
         await preflight(c, record, workspaceConsumers(resolve(import.meta.dirname, '..')));
         for (const path of [reportFile(work), progressFile(work)]) if (existsSync(path)) unlinkSync(path);

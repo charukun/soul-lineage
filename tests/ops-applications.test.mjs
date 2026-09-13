@@ -55,7 +55,7 @@ test('tools use verified public status while failed Lanternfell never invents a 
   }];
   const runs = [
     { name: 'Wayfinder Public Gallery', status: 'completed', conclusion: 'success', head_sha: 'portal', updated_at: '2026-09-12T00:00:30Z' },
-    { name: 'Rinne Ops Board', status: 'completed', conclusion: 'success', head_sha: 'ops', updated_at: '2026-09-12T00:01:00Z' },
+    { name: 'Rinne Ops Board', head_branch: 'develop', status: 'completed', conclusion: 'success', head_sha: 'ops', updated_at: '2026-09-12T00:01:00Z' },
     { name: 'Lanternfell night portrait DEV', status: 'completed', conclusion: 'failure', head_sha: 'lantern', updated_at: '2026-09-12T00:02:00Z' },
   ];
   const apps = buildApplications({ entries: [] }, environments, runs);

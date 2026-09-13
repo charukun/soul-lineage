@@ -9,7 +9,7 @@ export async function createStoryScene(port,doc,initialLayout){
   root.name='RinneStoryWorld';root.add(village,field);view.scene.add(root);
   const disposables=[];
   function box(parent,w,h,d,x,y,z,color){const geometry=new T.BoxGeometry(w,h,d),material=new T.MeshStandardMaterial({color,roughness:.95});disposables.push(geometry,material);const m=new T.Mesh(geometry,material);m.position.set(x,y,z);parent.add(m);return m;}
-  function label(parent,text,x,y,z){const canvas=doc.createElement('canvas');canvas.width=512;canvas.height=96;const ctx=canvas.getContext('2d');ctx.fillStyle='#112b29dd';ctx.fillRect(0,0,512,96);ctx.font='36px "Noto Sans CJK JP", "Noto Sans JP", sans-serif';ctx.textAlign='center';ctx.fillStyle='#f4e6bc';ctx.fillText(text,256,61);const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;const material=new T.SpriteMaterial({map:texture,depthTest:false});const sprite=new T.Sprite(material);sprite.position.set(x,y,z);sprite.scale.set(1.6,.3,1);sprite.renderOrder=25;parent.add(sprite);disposables.push(texture,material);return sprite;}
+  function label(parent,text,x,y,z){const canvas=doc.createElement('canvas');canvas.width=512;canvas.height=96;const ctx=canvas.getContext('2d');const paper=ctx.createLinearGradient(0,0,0,96);paper.addColorStop(0,'#b6a073');paper.addColorStop(.12,'#55452b');paper.addColorStop(.8,'#312719');paper.addColorStop(1,'#161108');ctx.fillStyle=paper;ctx.fillRect(0,0,512,96);ctx.strokeStyle='#bfa16b';ctx.lineWidth=3;ctx.strokeRect(7,7,498,82);ctx.font='36px "Noto Serif CJK JP", serif';ctx.textAlign='center';ctx.fillStyle='#f4e6bc';ctx.shadowColor='#000';ctx.shadowOffsetY=2;ctx.shadowBlur=2;ctx.fillText(text,256,61);const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;const material=new T.SpriteMaterial({map:texture,depthTest:false});const sprite=new T.Sprite(material);sprite.position.set(x,y,z);sprite.scale.set(1.6,.3,1);sprite.renderOrder=25;parent.add(sprite);disposables.push(texture,material);return sprite;}
   const models=createMuraModels(T,{createCanvas:()=>doc.createElement('canvas')}),cache=new Map(),objects=new T.Group(),land=new T.Group();village.add(land,objects);
   const getProp=kind=>{if(!cache.has(kind))cache.set(kind,flattenMuraModel(T,models.prop(kind,14)));return cache.get(kind);};
   const terrain=createMuraTerrain({THREE:T,scene:root,outside:land,getProp,mat:models.mat,createCanvas:()=>doc.createElement('canvas')});
@@ -28,12 +28,14 @@ export async function createStoryScene(port,doc,initialLayout){
   box(field,18,.18,13,0,-.03,0,0x847b6e);box(field,2.4,.18,2.4,-5,.08,3,0x82968a);label(field,'帰還船・救護所',-5,1.5,3);
   for(const [x,z] of [[-6,-4],[-2,-4],[5,4],[6,-3]]){const wall=box(field,1.4,1.1,.6,x,.6,z,0x616963);wall.rotation.y=x;}
   const frontLabel=label(field,'前線',0,2.5,-4.5);
+  const ringGeometry=new T.RingGeometry(.48,.55,48),ringMaterial=new T.MeshBasicMaterial({color:0xe7c986,transparent:true,opacity:.7,depthWrite:false,side:T.DoubleSide});
+  const heroRing=new T.Mesh(ringGeometry,ringMaterial);heroRing.rotation.x=-Math.PI/2;root.add(heroRing);disposables.push(ringGeometry,ringMaterial);
   const resident=await port.resident();let state=null,lastZone='',clock=0;
   const motherLabel=label(root,'母',0,2.4,0),rescueLabel=label(root,'倒れた村人',0,.8,0);
   view.background([.35,.46,.47]);
   view.onDraw(()=>{
     if(!state)return;clock+=1/60;const hero=view.hero(),c=view.humanoid();village.visible=state.zone==='village';field.visible=!village.visible;
-    if(hero.dead)c.root.visible=true;
+    if(hero.dead)c.root.visible=true;heroRing.position.set(hero.x,.085,hero.z);heroRing.visible=!hero.dead;
     const birth=state.phase==='birth',r=state.rescue,visible=birth||state.zone==='frontier'&&r&&r.status!=='safe';
     for(const p of resident.runtime.current.shadowMeshes)p.visible=!!visible;resident.runtime.current.root.visible=!!visible;motherLabel.visible=birth;rescueLabel.visible=!!visible&&!birth;
     if(visible){const carried=birth||r.status==='carried',x=carried?hero.x:r.x,z=carried?hero.z:r.z;

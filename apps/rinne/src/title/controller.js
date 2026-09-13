@@ -1,3 +1,4 @@
+import nativeSkin from '../story/native-skin.css?inline';
 import {mountStory} from '../story/controller.js';
 import {TitleWorld} from './world.js';
 import {SoulParticles} from './particles.js';
@@ -9,8 +10,11 @@ import {LoadingUI} from './loading-ui.js';
 export function mountTitle(buildInfo, options={}){
  const $=id=>document.getElementById(id),screen=$('title-screen'),shell=$('simulator-shell'),canvas=$('game');
  const environment=normalizeEnvironment(buildInfo.environment),base=new URL('.',options.baseURL||document.baseURI),media=matchMedia('(prefers-reduced-motion: reduce)'),abort=new AbortController(),signal=abort.signal;
+ function refreshStoryEntry(){let hasSave=false;try{hasSave=localStorage.getItem(`soul.${environment}.rinne.story.v1`)!==null;}catch{}$('start-story').querySelector('strong').textContent=hasSave?'物語をつづける':'物語をはじめる';}
+ refreshStoryEntry();
  const storageKey=`rinne.title.${environment}.v1`;let saved=null;try{saved=JSON.parse(localStorage.getItem(storageKey));}catch{}
  let settings=normalizedSettings(saved,media.matches),state='intro',world,frame=null,requestToken='',introStart=performance.now(),raf=0,last=0,seconds=0,timeout=0,launchDelay=0,destroyed=false,visible=!document.hidden;
+ let skinElement=null;
  let pointer=[0,0],drift=[0,0],gesture=false,launchAbort=null,experience='simulator',disposeStory=null,mountingStory=false;
  const loading=new LoadingUI($,(message,code)=>showError(message,code),options.loadingLimits);
  const assetRequests=new Set();
@@ -34,7 +38,7 @@ export function mountTitle(buildInfo, options={}){
  function pause(){if(raf)cancelAnimationFrame(raf);raf=0;}
  function removeFrame(){
   clearTimeout(timeout);clearTimeout(launchDelay);loading.stop();launchAbort?.abort();launchAbort=null;
-  disposeStory?.();disposeStory=null;mountingStory=false;requestToken='';assetRequests.clear();frame?.remove();frame=null;$('frame-slot').replaceChildren();
+  disposeStory?.();disposeStory=null;skinElement?.remove();skinElement=null;mountingStory=false;requestToken='';assetRequests.clear();frame?.remove();frame=null;$('frame-slot').replaceChildren();
  }
  function showError(message,code='BOOT_ERROR',detail=''){
   if(state!=='loading'&&state!=='playing')return;
@@ -44,6 +48,7 @@ export function mountTitle(buildInfo, options={}){
  async function loadFrame(){
   if(destroyed||state!=='loading')return;
   screen.hidden=true;shell.hidden=false;pause();document.body.classList.add('paused');audio.setActive(false);
+  shell.dataset.experience=experience;delete shell.dataset.playing;
   $('game-loading').hidden=false;$('game-loading').setAttribute('aria-busy','true');
   launchAbort=new AbortController();const launchSignal=launchAbort.signal;loading.start();$('loading-heading').textContent=experience==='story'?'物語の中へ':'稽古場へ';$('experience-title').textContent=experience==='story'?'輪廻転焦 本編':'スキルシミュレーター';shell.setAttribute('aria-label',$('experience-title').textContent);
   requestToken=globalThis.crypto?.randomUUID?.()||(globalThis.crypto?.getRandomValues?Array.from(crypto.getRandomValues(new Uint32Array(4)),n=>n.toString(16).padStart(8,'0')).join(''):`title-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`);
@@ -83,9 +88,9 @@ export function mountTitle(buildInfo, options={}){
   launchDelay=setTimeout(loadFrame,settings.reducedMotion?0:650);
  }
  function back({fromHistory=false}={}){
-  removeFrame();updateState('back');screen.hidden=false;shell.hidden=true;screen.dataset.phase='title';$('skip-intro').hidden=true;$('start-simulator').disabled=false;document.body.classList.remove('paused');
+  removeFrame();updateState('back');screen.hidden=false;shell.hidden=true;delete shell.dataset.playing;screen.dataset.phase='title';$('skip-intro').hidden=true;$('start-simulator').disabled=false;document.body.classList.remove('paused');
   if(!fromHistory&&['#story','#simulator'].includes(location.hash)){try{if(history.state?.rinneTitle)history.back();else history.replaceState(null,'',location.href.split('#')[0]);}catch{}}
-  audio.setActive(settings.sound&&gesture&&visible);world?.resize();particles.resize();resume();$('start-simulator').focus({preventScroll:true});status('タイトル画面に戻りました。');
+  refreshStoryEntry();audio.setActive(settings.sound&&gesture&&visible);world?.resize();particles.resize();resume();$('start-simulator').focus({preventScroll:true});status('タイトル画面に戻りました。');
  }
  listen($('start-story'),'click',()=>enter({mode:'story'}));listen($('start-simulator'),'click',()=>enter());listen($('back-title'),'click',()=>back());
  listen($('retry-load'),'click',()=>{if(state!=='error')return;removeFrame();updateState('retry');loadFrame();});
@@ -95,13 +100,14 @@ export function mountTitle(buildInfo, options={}){
   if(data.type==='asset-request'){serveAsset(event);return;}
   if(data.type==='progress'&&state==='loading'){loading.update(data.progress);return;}
   if(data.type==='ready'&&state==='loading'){
+   if(!skinElement){const child=frame.contentDocument;skinElement=child.createElement('style');skinElement.textContent=nativeSkin;child.head.append(skinElement);child.body.dataset.rinneSkin='tactile';for(const values of child.querySelectorAll('.ratio-values')){const details=child.createElement('details'),summary=child.createElement('summary');details.className='ratio-disclosure';summary.textContent='比率を調整';values.before(details);details.append(summary,values);}}
    if(experience==='story'){
     if(mountingStory)return;mountingStory=true;const token=requestToken;
-    try{const dispose=await mountStory(frame.contentWindow,environment,{signal:launchAbort.signal});if(token!==requestToken||state!=='loading'){dispose();return;}disposeStory=dispose;}
+    try{const dispose=await mountStory(frame.contentWindow,environment,{signal:launchAbort.signal,onExit:()=>back(),onMusic:()=>$('simulator-music').click()});if(token!==requestToken||state!=='loading'){dispose();return;}disposeStory=dispose;}
     catch(error){if(token===requestToken)showError('本編を開けませんでした。保存データはそのまま残しています。','STORY_BOOT_ERROR',String(error?.message||error));return;}
    }
    loading.update({stage:'ready',message:'準備ができました',loaded:1,total:1});loading.stop();updateState('ready');
-   $('game-loading').hidden=true;$('game-loading').setAttribute('aria-busy','false');frame.removeAttribute('aria-hidden');frame.focus();
+   $('game-loading').hidden=true;$('game-loading').setAttribute('aria-busy','false');frame.removeAttribute('aria-hidden');shell.dataset.playing='true';frame.focus();
   }else if(data.type==='error'&&(state==='loading'||state==='playing'))showError(data.message||'稽古場を起動できませんでした。',data.code||'GAME_ERROR',data.detail||'');
  });
  listen(window,'popstate',()=>{if(['#simulator','#story'].includes(location.hash)){if(isTitle())enter({fromHistory:true,mode:location.hash.slice(1)});}else if(!isTitle())back({fromHistory:true});});

@@ -20,9 +20,9 @@ export function rescueFixture(now = Date.now(), empty = false) {
   put(140,'FAILED_RETRYABLE','apps/rinne',{lease:null,attempt:2,failureReason:'test failure',failures:[{attempt:1,workerId:'1399/pr-140/a1',reason:'test failure',at:new Date(now-60000).toISOString()}]});
   put(142,'FAILED_MANUAL','packages/game-data',{lease:null,attempt:3,risk:'RED',failureReason:'Product specification conflict: save schema',currentAction:'保存仕様が矛盾しています。PRで仕様判断が必要です。'});
   put(145,'STALE','apps/legacy',{lease:'r145',heartbeatAt:new Date(now-12*60000).toISOString(),currentAction:'Worker heartbeat lost; runner terminationを確認中'});
-  const done=put(119,'CHECKING','apps/village',{lease:null,returnedAt:new Date(now-2*60000).toISOString(),pushedAt:new Date(now-3*60000).toISOString(),pushedSha:'d'.repeat(40),resolution:'semantic merge',currentAction:'push完了。通常Integrationの再評価待ち',validation:{status:'passed',command:'trusted fast validation'}});
+  const done=put(119,'CHECKING','apps/village',{lease:null,returnedAt:new Date(now-2*60000).toISOString(),pushedAt:new Date(now-3*60000).toISOString(),pushedSha:'d'.repeat(40),resolution:'semantic merge',currentAction:'push完了。通常Integrationの再評価待ち',validation:{status:'passed',command:'trusted fast validation',head:'d'.repeat(40)}});
   event(s,done,'RETURNED_TO_INTEGRATION','PR #119 returned to Integration',now-2*60000);
-  const merged=put(118,'MERGED','docs',{lease:null,returnedAt:new Date(now-30*60000).toISOString(),mergedAt:new Date(now-10*60000).toISOString(),mergeCommit:'e'.repeat(40),pushedSha:'f'.repeat(40),currentAction:'Rescue後のdevelop統合を確認'});
+  const merged=put(118,'MERGED','docs',{lease:null,claimedAt:new Date(now-35*60000).toISOString(),pushedAt:new Date(now-31*60000).toISOString(),returnedAt:new Date(now-30*60000).toISOString(),mergedAt:new Date(now-10*60000).toISOString(),mergeCommit:'e'.repeat(40),pushedSha:'f'.repeat(40),validation:{status:'passed',command:'trusted fast validation',head:'f'.repeat(40)},currentAction:'Rescue後のdevelop統合を確認'});
   event(s,merged,'RETURNED_TO_INTEGRATION','PR #118 returned to Integration',now-30*60000);event(s,merged,'MERGED','PR #118 merged after Rescue',now-10*60000);
   event(s,s.records[145],'STALE','Worker 1398 lost heartbeat',now-60000);
   event(s,s.records[140],'CLAIMED','Recovered by Worker 1400/pr-140/a2',now-50000);
