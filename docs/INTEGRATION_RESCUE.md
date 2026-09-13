@@ -74,7 +74,7 @@ heartbeatは120秒ごと、600秒途絶でSTALE。進行要約にはcurrentStep/
 
 retryは300秒×attemptの待機を置く。前回run、failure reason、patch、context artifactを次Workerへ渡し、同じbranch/commitを復旧点にする。古いpatchは無条件適用しない。head/PR目的の変更は破棄・再評価。developの変更が無関係scopeなら継続し、関連scopeなら最新基準の次attemptへ移る。
 
-browser self-healingのpending/working ticketが同じPRを担当している場合はRescueを待機し、既存repair Workerと競合させない。human-requiredはRescue側もmanualとする。manual hold、Changes requested、unresolved thread、Draft、外部PR、untrusted author、main/Productionは修復で解除しない。自動処理は`FAILED_MANUAL`を自発的に再開しない。
+browser self-healingのpending/working ticketが同じPRを担当している場合はRescueを待機し、既存repair Workerと競合させない。human-requiredはRescue側もmanualとする。manual hold、Changes requested、unresolved thread、Draft、外部PR、untrusted author、main/Productionは修復で解除しない。Actionsは`FAILED_MANUAL`を自発的に再開しない。既存の定期Workだけが、ユーザー承認済みのSEMANTIC_CONFLICT修復を [Work手順](INTEGRATION_RESCUE_WORK.md) のCAS予約・仕様確認・有限attemptで引き継ぐ。他の停止理由は自動解除しない。
 
 ## 検証とIntegration復帰
 
@@ -104,4 +104,4 @@ GitHub上のstate更新後に認証済みsnapshotをPULSEへ送る。これは�
 
 ## CIイベント回収との境界
 
-既存watchdogの `rescue_mode=scan` は通常Integration側のbounded queue-recoveryも起動する。cancelled CIの再実行や成功済みPRのIntegration request欠落は、branchのbase更新・意味修復ではない。回収処理はWorker claim/attempt/RED lockを変更せず、実際のfailed gateはsuccessへ書き換えない。競合・意味判断のFAILED_MANUALは従来どおり人間の判断を待つ。
+既存watchdogの `rescue_mode=scan` は通常Integration側のbounded queue-recoveryも起動する。cancelled CIの再実行や成功済みPRのIntegration request欠落は、branchのbase更新・意味修復ではない。回収処理はWorker claim/attempt/RED lockを変更せず、実際のfailed gateはsuccessへ書き換えない。競合のSEMANTIC_CONFLICTは上記のWorkへ引き継ぎ、Workでも判断不能な仕様と明示保留は人間の判断を待つ。
