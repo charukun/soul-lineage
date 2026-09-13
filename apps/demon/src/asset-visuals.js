@@ -16,16 +16,40 @@ const DUNGEON_SOURCE = Object.freeze({
   license: 'CC0-1.0',
   manifest: 'assets/vendor/kaykit/MANIFEST.json',
 });
+const PARTICLE_SOURCE = Object.freeze({
+  repository: 'Calinou/kenney-particle-pack',
+  commit: 'ab7086639ee73be31abd87feb21bf1402d4e8144',
+  license: 'CC0-1.0',
+  manifest: 'assets/vendor/kenney-particles/MANIFEST.json',
+  files: Object.freeze(['spark_05.png', 'slash_03.png', 'smoke_05.png', 'flare_01.png']),
+});
 const LOCAL = Object.freeze({
   skeletons: `${import.meta.env.BASE_URL}assets/vendor/kaykit-skeletons`,
   dungeon: `${import.meta.env.BASE_URL}assets/vendor/kaykit-dungeon`,
+  particles: `${import.meta.env.BASE_URL}assets/vendor/kenney-particles`,
 });
 const loader = new GLTFLoader();
+const textureLoader = new T.TextureLoader();
 const cache = new Map();
+const particleTextures = new Map();
 
 function load(url) {
   if (!cache.has(url)) cache.set(url, loader.loadAsync(url).catch(error => { cache.delete(url); throw error; }));
   return cache.get(url);
+}
+function particleTexture(file) {
+  if (particleTextures.has(file)) return particleTextures.get(file);
+  const url = `${LOCAL.particles}/${file}`;
+  const texture = textureLoader.load(url, loaded => {
+    loaded.colorSpace = T.SRGBColorSpace;
+    loaded.needsUpdate = true;
+  }, undefined, error => console.warn(`[尽喰廻遊] local particle texture failed: ${file}`, error));
+  texture.colorSpace = T.SRGBColorSpace;
+  particleTextures.set(file, texture);
+  return texture;
+}
+function primeParticleTextures() {
+  for (const file of PARTICLE_SOURCE.files) particleTexture(file);
 }
 function shadows(root) {
   root.traverse(node => {
@@ -72,7 +96,7 @@ async function addSkeletonSentinel(view, generation) {
       view.__assetMixers.push(mixer);
     }
   } catch (error) {
-    console.warn('[暗い喰らいCry] local skeleton visual candidate failed', error);
+    console.warn('[尽喰廻遊] local skeleton visual candidate failed', error);
   }
 }
 
@@ -99,10 +123,93 @@ async function addDungeonProps(view, generation) {
       prop.userData.assetUrl = url;
       view.environment.add(prop);
     } catch (error) {
-      console.warn(`[暗い喰らいCry] local dungeon prop failed: ${file}`, error);
+      console.warn(`[尽喰廻遊] local dungeon prop failed: ${file}`, error);
     }
   }));
 }
+
+// Reuse the existing bounded particle simulation and only replace its texture/material layer.
+NightView.prototype.spark = function sourcedSpark(x, y, z, color, count = 16, inward = false) {
+  const geometry = new T.BufferGeometry();
+  const positions = new Float32Array(count * 3);
+  const velocity = [];
+  for (let i = 0; i < count; i++) {
+    const angle = i * 2.399;
+    positions.set([x, y, z], i * 3);
+    velocity.push([Math.cos(angle) * (1 + i % 4), .8 + (i % 5) * .65, Math.sin(angle) * (1 + i % 3)]);
+  }
+  geometry.setAttribute('position', new T.BufferAttribute(positions, 3));
+  const mesh = new T.Points(geometry, new T.PointsMaterial({
+    color,
+    size: inward ? .22 : .13,
+    map: particleTexture(inward ? 'smoke_05.png' : 'spark_05.png'),
+    alphaTest: .025,
+    transparent: true,
+    opacity: 1,
+    depthWrite: false,
+    blending: T.AdditiveBlending,
+    sizeAttenuation: true,
+  }));
+  mesh.userData.visualOnly = true;
+  mesh.userData.source = PARTICLE_SOURCE;
+  this.effects.add(mesh);
+  this.fx.push({ mesh, age: 0, life: inward ? .82 : .7, vel: velocity, inward });
+};
+
+const originalSlash = NightView.prototype.slash;
+NightView.prototype.slash = function sourcedSlash(x, z, yaw) {
+  originalSlash.call(this, x, z, yaw);
+  const geometry = new T.PlaneGeometry(1.9, 1.9);
+  const material = new T.MeshBasicMaterial({
+    map: particleTexture('slash_03.png'),
+    color: 0xe8ddbe,
+    transparent: true,
+    opacity: .82,
+    alphaTest: .02,
+    depthWrite: false,
+    side: T.DoubleSide,
+    blending: T.AdditiveBlending,
+  });
+  const mesh = new T.Mesh(geometry, material);
+  mesh.position.set(x, .08, z);
+  mesh.rotation.set(-Math.PI / 2, 0, -yaw + .3);
+  mesh.userData.visualOnly = true;
+  mesh.userData.source = PARTICLE_SOURCE;
+  this.effects.add(mesh);
+  this.fx.push({ mesh, age: 0, life: .18 });
+};
+
+function addFlare(view, x, y, z, color, scale = 1.5) {
+  const geometry = new T.PlaneGeometry(scale, scale);
+  const material = new T.MeshBasicMaterial({
+    map: particleTexture('flare_01.png'),
+    color,
+    transparent: true,
+    opacity: .72,
+    alphaTest: .01,
+    depthWrite: false,
+    side: T.DoubleSide,
+    blending: T.AdditiveBlending,
+  });
+  const mesh = new T.Mesh(geometry, material);
+  mesh.position.set(x, y, z);
+  mesh.quaternion.copy(view.camera.quaternion);
+  mesh.userData.visualOnly = true;
+  mesh.userData.source = PARTICLE_SOURCE;
+  view.effects.add(mesh);
+  view.fx.push({ mesh, age: 0, life: .24 });
+}
+
+const originalEvent = NightView.prototype.event;
+NightView.prototype.event = function eventWithSourcedVfx(event) {
+  const result = originalEvent.call(this, event);
+  if (event.type === 'gate') addFlare(this, event.x, 1, event.z, 0xc8a775, 2.2);
+  if (event.type === 'shadow') {
+    addFlare(this, event.x, 1, event.z, 0x83bdba, 1.7);
+    addFlare(this, event.tx, 1, event.tz, 0x83bdba, 1.7);
+  }
+  return result;
+};
 
 const originalBuild = NightView.prototype.build;
 NightView.prototype.build = function buildWithAssetPass(world) {
@@ -110,6 +217,7 @@ NightView.prototype.build = function buildWithAssetPass(world) {
   this.__assetPassGeneration = (this.__assetPassGeneration || 0) + 1;
   this.__assetMixers = [];
   const generation = this.__assetPassGeneration;
+  primeParticleTextures();
   addDungeonProps(this, generation);
   addSkeletonSentinel(this, generation);
   return result;
@@ -125,7 +233,8 @@ NightView.prototype.update = function updateWithAssetPass(game, dt, title = fals
 window.__DEMON_ASSET_PASS__ = Object.freeze({
   skeleton: SKELETON_SOURCE,
   dungeon: DUNGEON_SOURCE,
+  particles: PARTICLE_SOURCE,
   roots: LOCAL,
   mode: 'repository-local-visual-only',
-  note: 'Skeleton is an ambient candidate and has no combat or NPC semantics yet.',
+  note: 'Sourced particles replace only the visual material layer; combat and NPC semantics are unchanged. Skeleton remains ambient-only.',
 });
