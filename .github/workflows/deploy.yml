@@ -69,7 +69,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.repair_head_sha }}
+          ref: develop
           persist-credentials: false
       - name: Create/update machine-readable repair ticket
         env:
