@@ -21,3 +21,12 @@ This repository contains 輪廻転焦 (formerly 魂の系譜), village housing, 
 - Keep PRs focused. State changed apps/packages, checks actually run, shared impacts and `Depends-On: #N` (or `none`). Use draft or `integration:hold` for unfinished work/undecided semantics. Never clear holds or resolve review objections to make automation proceed.
 - Automation/control changes require Integration review of the exact head; no policy/protection bypass. Normal work uses no sub-agents.
 - Do not modify main or Production as part of develop Integration. Explicit user scope supersedes older handoff instructions that assign merge/deploy to every WORK.
+
+## RINNE Dispatch
+
+- Read `docs/DISPATCHER.md` before using or modifying the dispatch route.
+- When the user explicitly says `派生して`, `別セッションで`, or otherwise asks to hand a self-contained implementation task to a dedicated worker, the initiating Chat/WORK may bootstrap a RINNE Dispatch instead of implementing the code itself.
+- Dispatch is for tasks that can complete without repeated human visual/semantic decisions. Ambiguous specifications, large visual iteration, and work requiring ongoing user feedback stay in normal Chat/WORK.
+- Bootstrap from the current latest `develop`: create `dispatch/<short-slug>`, add a temporary `.task-start/<short-slug>.md` scope marker as the meaningful initial diff, and open a develop-targeting Draft PR. Its first two body lines follow the normal PR contract, followed by `RINNE-Dispatch: implementation` and a non-empty `## Request` section. Do not make the requested implementation edits during bootstrap.
+- The `RINNE Dispatch` GitHub workflow owns the isolated Codex implementation, fast validation, push and Ready transition. The Draft PR / branch / commit remain the recovery source of truth; do not add a separate task ID, task database, or second Integration queue.
+- After the dispatch PR becomes Ready, the existing Integration flow owns CI, merge and DEV publication exactly as for any other Ready PR.
