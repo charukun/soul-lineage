@@ -51,7 +51,7 @@ function render() {
   if (!target) return;
   const preview = el('reference-archetype-preview'); preview.src = `./reference/npc-role-set/${target.assetFile}`; preview.alt = `${target.label} キャラクターリファレンス`;
   detail.querySelector('.reference-archetype-title').textContent = target.label;
-  detail.querySelector('.reference-archetype-meta').textContent = `${target.age}歳 · ${VISUAL_ROLES[target.role] ?? target.role} · CONCEPT TARGET / NOT IMPLEMENTED`;
+  detail.querySelector('.reference-archetype-meta').textContent = `${target.age}歳 · ${VISUAL_ROLES[target.role] ?? target.role} · CONCEPT TARGET / PARTIALLY MAPPED`;
   const coverage = el('reference-coverage-grid'); coverage.replaceChildren(
     listBlock('IMPLEMENTED MODULAR PARTS', target.coverage.implementedModularParts, 'implemented'),
     listBlock('PROPOSED PARTS', target.coverage.proposedParts, 'proposed'),

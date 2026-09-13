@@ -30,5 +30,5 @@ test('all ten concept previews are published as Rinne-local review assets', asyn
 test('Workshop reference module keeps implementation/proposal/equipment boundaries visible', async () => {
   const source = await readFile(new URL('../src/character-reference-workshop.js', import.meta.url), 'utf8');
   for (const marker of ['IMPLEMENTED MODULAR PARTS', 'PROPOSED PARTS', 'GAME EQUIPMENT', 'selectArchetype']) assert.match(source, new RegExp(marker));
-  assert.match(source, /CONCEPT TARGET \/ NOT IMPLEMENTED/);
+  assert.match(source, /CONCEPT TARGET \/ PARTIALLY MAPPED/);
 });
