@@ -4,6 +4,11 @@ on:
     branches: [develop, main]
   workflow_dispatch:
     inputs:
+      rescue_mode:
+        description: 'Internal Integration Rescue wakeup (scan skips merge/deploy)'
+        type: string
+        required: false
+        default: ''
       refresh_staging:
         description: 'Refresh pinned validation environments from the verified develop snapshot; retain Production'
         type: boolean
@@ -79,7 +84,7 @@ jobs:
 
   integrate:
     name: Integrate Ready PRs
-    if: github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr'
+    if: github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr' && inputs.rescue_mode != 'scan'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
@@ -132,6 +137,19 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 14
+
+  rescue:
+    name: Parallel Integration Rescue
+    needs: integrate
+    if: always() && github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr'
+    uses: ./.github/workflows/integration-rescue.yml
+    permissions:
+      contents: write
+      pull-requests: read
+      issues: write
+      actions: write
+      statuses: read
+    secrets: inherit
 
   integration-continuation:
     name: Continue bounded Ready scan

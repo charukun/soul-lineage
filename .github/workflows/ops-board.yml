@@ -10,6 +10,9 @@ on:
     paths:
       - 'ops-board/**'
       - 'scripts/application-catalog.mjs'
+      - 'scripts/integration-rescue-*.mjs'
+      - 'wrangler.rescue-watchdog.jsonc'
+      - 'tests/fixtures/integration-rescue-state.mjs'
       - 'apps/*/package.json'
       - 'tests/pulse-*.test.mjs'
       - 'wrangler.ops.jsonc'
@@ -70,6 +73,8 @@ jobs:
           for attempt in $(seq 1 10); do curl -fsS "$OPS_URL" >/dev/null && break; sleep 1; done
           node ops-board/browser-check.mjs
       - name: Derive server-only refresh credential
+        # Rescue fixtures run only in this local test harness; they are never deployed.
+        id: refresh-credential
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -79,6 +84,8 @@ jobs:
           refresh_token=$(printf '%s' "$CLOUDFLARE_API_TOKEN|$GITHUB_REPOSITORY|rinne-ops-refresh-v1" | sha256sum | awk '{print $1}')
           echo "::add-mask::$refresh_token"
           echo "OPS_REFRESH_TOKEN=$refresh_token" >> "$GITHUB_ENV"
+      - name: Verify Rescue cockpit with parallel/stale/manual fixtures on mobile
+        run: node ops-board/rescue-browser-check.mjs
       - name: Stamp the actual publication source
         run: |
           node --input-type=module -e "import fs from 'node:fs';fs.writeFileSync('ops-board/public/version.json',JSON.stringify({app:'ops-board',commit:process.env.GITHUB_SHA,builtAt:new Date().toISOString()}))"
@@ -151,3 +158,30 @@ jobs:
           name: ops-board-focused-review
           path: ops-review-results/
           retention-days: 7
+
+  rescue-watchdog:
+    name: Install independent Rescue watchdog
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Publish the independent clock when its event token is configured
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          RESCUE_GITHUB_TOKEN: ${{ secrets.RESCUE_GITHUB_TOKEN }}
+        run: |
+          if [ -z "$RESCUE_GITHUB_TOKEN" ]; then
+            echo '::warning::RESCUE_GITHUB_TOKEN missing; independent watchdog is not active'
+            exit 0
+          fi
+          node --input-type=module -e 'process.stdout.write(JSON.stringify({RESCUE_GITHUB_TOKEN:process.env.RESCUE_GITHUB_TOKEN}))' > "$RUNNER_TEMP/rescue-secrets.json"
+          trap 'rm -f "$RUNNER_TEMP/rescue-secrets.json"' EXIT
+          npx --yes wrangler@4 deploy --config wrangler.rescue-watchdog.jsonc
+          npx --yes wrangler@4 secret bulk "$RUNNER_TEMP/rescue-secrets.json" --config wrangler.rescue-watchdog.jsonc

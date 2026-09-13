@@ -123,6 +123,12 @@ PULSEはCloudflare Workerの定期refreshでGitHub状態と公開manifestを軽�
 
 main / Productionを変更する作業はこのdevelop Integrationの対象外です。
 
+## Integration Rescue の責任境界
+
+Ready PRの修復は独立したCoordinatorと複数のPR単位Workerで行い、通常Integrationの最終判定から分離する。変更scopeとDepends-Onを比較し、独立PRを並列、関連PRを再評価付き並列、競合PRを先行PRのdevelop統合後の次Waveに振り分ける。claim・heartbeat・有限retryをGitHubへ記録し、PULSEはその観測ビューとする。修復pushはmerge成功を意味せず、exact-head checks・review・thread・dependency・baseline・merge直前再検証をすべて通常Integrationへ戻す。明示holdの解除、force push、main / Production変更は行わない。
+
+実装・設定・独立watchdog・PULSE・復旧手順は [Integration Rescue](INTEGRATION_RESCUE.md) を参照。
+
 ## Bootstrap例外の扱い
 
 trusted review機構そのものを導入したPR #76と、repair recorder concurrency分離を導入したPR #54は、旧仕組みでは自分自身のデッドロックを解消できなかったため、exact-head CI成功確認後に一度限りのbootstrap mergeを行いました。これは移行履歴であり、通常運用のmerge経路ではありません。
