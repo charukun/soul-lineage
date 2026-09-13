@@ -6,13 +6,20 @@ async function expectVillageReady(page, expect) {
   await expect(page.locator('#loading')).toBeHidden({timeout:STARTUP_TIMEOUT_MS});
   await expect(page.locator('#game')).toHaveAttribute('data-renderer','ready',{timeout:STARTUP_TIMEOUT_MS});
 }
-async function nativeTap(page, expect, locator) {
+export async function nativeTap(page, expect, locator) {
   await expect(locator).toBeVisible({timeout:8000});
+  await expect(locator).toBeEnabled({timeout:8000});
   await locator.scrollIntoViewIfNeeded({timeout:8000});
-  const point=await locator.evaluate(element=>{
-    const r=element.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
-    return{x,y,width:r.width,height:r.height,hit:element.contains(document.elementFromPoint(x,y))};
-  });
+  let point;
+  // A drawer can be visible before its controls receive pointer input. Sample
+  // fresh geometry within the existing input budget; persistent cover must fail.
+  await expect.poll(async()=>{
+    point=await locator.evaluate(element=>{
+      const r=element.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
+      return{x,y,width:r.width,height:r.height,hit:element.contains(document.elementFromPoint(x,y))};
+    });
+    return point.width>0&&point.height>0&&point.hit;
+  },{timeout:8000}).toBe(true);
   expect(point.width).toBeGreaterThan(0);expect(point.height).toBeGreaterThan(0);expect(point.hit).toBe(true);
   await page.mouse.click(point.x,point.y);
 }
