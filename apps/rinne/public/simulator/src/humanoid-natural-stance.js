@@ -38,11 +38,19 @@ export function naturalArmPole(runtime,c,side){
   return pole.normalize();
 }
 
+export function shouldNaturalizeWeaponStance(a,progress=null){
+  const holding=(a.weaponDraw??1)>.25||a.combatReady||a.weaponTransition;
+  const guardWindow=!a.attack||progress<=.12||progress>=.82;
+  const quiet=guardWindow&&!a.reaction&&!a.recovery&&!a.dead&&!a.zanshin;
+  return holding&&quiet&&(a.weapon||'sword')!=='fist';
+}
+
 export class HumanoidRuntime extends BaseHumanoidRuntime{
   naturalizeHeldWeapon(c,weapon){
-    if(!c||weapon==='fist')return;
+    if(!c||weapon==='fist')return null;
     const spec=weaponSockets[weapon]||weaponSockets.sword;
     const sides=weapon==='sword'||spec.two?['right','left']:['right'];
+    const metrics={weapon,sides:[],maxHandDisplacement:0,maxHandAngleError:0};
     c.root.updateMatrixWorld(true);
     for(const side of sides){
       if(!c.bones[side+'UpperArm']||!c.bones[side+'LowerArm']||!c.bones[side+'Hand'])continue;
@@ -52,17 +60,41 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
       this.solve(c,side,'arm',handTarget,pole,true);
       this.setWorldQ(c,side+'Hand',handQ);
       c.root.updateMatrixWorld(true);
+      const handAfter=this.point(c,side+'Hand'),qAfter=c.bones[side+'Hand'].getWorldQuaternion(Q());
+      const handDisplacement=handAfter.distanceTo(handTarget),handAngleError=qAfter.angleTo(handQ);
+      metrics.maxHandDisplacement=Math.max(metrics.maxHandDisplacement,handDisplacement);
+      metrics.maxHandAngleError=Math.max(metrics.maxHandAngleError,handAngleError);
+      metrics.sides.push({side,pole:pole.toArray(),handDisplacement,handAngleError});
+    }
+    c.naturalStanceReport=metrics;
+    return metrics;
+  }
+
+  syncVisibleArmSnapshot(c,weapon){
+    if(!c.lastActual)return;
+    const spec=weaponSockets[weapon]||weaponSockets.sword;
+    const sides=weapon==='sword'||spec.two?['right','left']:['right'];
+    for(const side of sides)for(const bone of ['UpperArm','LowerArm','Hand']){
+      const name=side+bone,current=c.bones[name],saved=c.lastActual[name];
+      if(current&&saved){saved.q.copy(current.quaternion);saved.p.copy(current.position);}
     }
   }
 
   render(a){
     const result=super.render(a),c=this.current;
     if(!result||!c)return result;
-    const holding=(a.weaponDraw??1)>.25||a.combatReady||a.weaponTransition;
     const attackProgress=a.attack?this.api.progress(a):null;
-    const guardWindow=!a.attack||attackProgress<=.12||attackProgress>=.82;
-    const quiet=guardWindow&&!a.reaction&&!a.recovery&&!a.dead&&!a.zanshin;
-    if(holding&&quiet)this.naturalizeHeldWeapon(c,a.weapon||'sword');
+    if(shouldNaturalizeWeaponStance(a,attackProgress)){
+      this.naturalizeHeldWeapon(c,a.weapon||'sword');
+      // super.render() owns the committed transition snapshot. Keep that snapshot in
+      // sync with the pose actually shown, otherwise the next state blends from the
+      // pre-correction elbow and visibly pops back for one transition frame.
+      this.syncVisibleArmSnapshot(c,a.weapon||'sword');
+    }else c.naturalStanceReport=null;
     return result;
+  }
+
+  report(){
+    return {...super.report(),naturalStance:this.current?.naturalStanceReport??null};
   }
 }
