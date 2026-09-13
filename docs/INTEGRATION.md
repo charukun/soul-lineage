@@ -150,3 +150,5 @@ CI validation（opened/synchronize/reopened/Ready）とmetadata/review observati
 既存の独立Work watchdogが呼ぶ `deploy.yml` の `rescue_mode=scan` は `Recover missed Ready CI and Integration requests` も実行する。これはPULSEとは独立し、cancelled CIの再実行と成功済みReady PRの取り逃した起動を標準Integrationへ返す。merge/branch更新/hold解除は行わない。通常Integrationと同じconcurrencyで重複操作を直列化し、1走査12PR・API/時間予算・回転windowで制限する。既定branchへの新workflow登録、main変更、有料API、追加のタスクDBは不要。
 
 回復結果は `integration-report` の `ciRecovery` と `integration-queue-recovery` artifactへ残す。実証結果は [キュー回復](INTEGRATION_QUEUE_RECOVERY.md) を参照。
+
+PULSE公開workflowはreusableとして既存deploy workflowから最終develop SHAを渡して呼ぶ。GITHUB_TOKEN mergeのpushイベント抑止・main上にops-board.ymlがない制約に依存しない。PULSE失敗はその公開job/statusに記録し、ゲームのfast/browser/DEV gateへ混入しない。公開SHAはcheckout・Worker・Static Assets・公開検証・commit statusで同じ `OPS_SOURCE_SHA` を使用する。

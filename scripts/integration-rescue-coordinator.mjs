@@ -46,7 +46,7 @@ export async function coordinate(c, store, { now = Date.now(), runId, runAttempt
   }
   const lifecycle = [];
   const observedRecord = r => ({ state: r.state, headSha: r.headSha, pushedSha: r.pushedSha, stagedSha: r.stagedSha });
-  for (const r of Object.values(initial.records).filter(r => !r.lease && !TERMINAL.has(r.state) && (!live.has(r.pr) || live.get(r.pr).draft)).slice(0, 4)) {
+  for (const r of Object.values(initial.records).filter(r => !r.lease && ((!TERMINAL.has(r.state) && (!live.has(r.pr) || live.get(r.pr).draft)) || (r.state === 'FAILED_MANUAL' && !live.has(r.pr)))).slice(0, 4)) {
     const pr = live.get(r.pr) || await c.api('GET', `${c.root}/pulls/${r.pr}`);
     lifecycle.push({ pr, expectedId: r.rescueId, observed: observedRecord(r), excluded: manualReason(pr) });
   }

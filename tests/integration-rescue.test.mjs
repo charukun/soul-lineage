@@ -236,3 +236,17 @@ test('event bursts reuse the recent scan and do not repeat PR enumeration', asyn
   const result=await coordinate(mem.c,mem.store,{now:now+1000,runId:'99'});
   assert.deepEqual(result.result,[]);assert.equal(mem.calls.length,1);
 });
+
+test('a formerly manual PR closed by normal Integration is observed as merged without retrying manual work', async () => {
+  const memory = memoryStore(stateWith(record(136, ['apps/rinne/src/story/interface.js'], { state: 'FAILED_MANUAL', attempt: 3, lease: null, rescueId: 'old-manual' })), {
+    api: async (_method, path) => {
+      if (path.endsWith('/branches/develop')) return { commit: { sha: develop } };
+      if (path.endsWith('/pulls/136')) return pr(136, { state: 'closed', merged: true, merged_at: date, merge_commit_sha: develop });
+      throw new Error(path);
+    },
+    pages: async path => { if (path.startsWith('/pulls?') || path.startsWith('/issues?')) return []; throw new Error(path); },
+  });
+  await coordinate(memory.c, memory.store, { now, runId: 'normal-merge-observation' });
+  const r = memory.current().records[136];
+  assert.equal(r.state, 'MERGED'); assert.equal(r.mergeCommit, develop); assert.equal(r.attempt, 3); assert.equal(r.lease, null);
+});

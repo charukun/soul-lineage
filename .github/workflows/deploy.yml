@@ -145,6 +145,22 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  pulse:
+    name: Publish develop PULSE
+    needs: integrate
+    if: >-
+      github.ref == 'refs/heads/develop' && needs.integrate.result == 'success' &&
+      inputs.repair_scope != 'pr' && inputs.rescue_mode != 'scan' && needs.integrate.outputs.verify == 'true'
+    uses: ./.github/workflows/ops-board.yml
+    with:
+      source_sha: ${{ needs.integrate.outputs.sha }}
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+      statuses: write
+    secrets: inherit
+
   queue-recovery:
     name: Recover missed Ready CI and Integration requests
     if: github.ref == 'refs/heads/develop' && inputs.rescue_mode == 'scan' && inputs.repair_scope != 'pr'

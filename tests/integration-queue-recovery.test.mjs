@@ -161,3 +161,15 @@ test('PULSE CI display and failure history do not let observation success hide v
   assert.equal(classifyPull(f.pr, runs).stage, 'CI_FAILED');
   assert.equal(actionProblems(runs, [f.pr]).current[0].id, 1);
 });
+
+test('bot merge publishes PULSE through the registered deploy route with exact final source', () => {
+  const pulse = readFileSync('.github/workflows/ops-board.yml', 'utf8');
+  const deploy = readFileSync('.github/workflows/deploy.yml', 'utf8');
+  assert.match(pulse, /workflow_call:[\s\S]*source_sha:/);
+  assert.match(pulse, /ref: \$\{\{ env.OPS_SOURCE_SHA \}\}/);
+  assert.match(pulse, /statuses\/\$OPS_SOURCE_SHA/);
+  assert.match(deploy, /uses: \.\/\.github\/workflows\/ops-board.yml/);
+  assert.match(deploy, /source_sha: \$\{\{ needs.integrate.outputs.sha \}\}/);
+  const result = deploy.split('  result:')[1].split('  full-verification:')[0];
+  assert.doesNotMatch(result, /needs.pulse/);
+});
