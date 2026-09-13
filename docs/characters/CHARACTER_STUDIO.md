@@ -23,3 +23,9 @@ This changes usability, not asset quality. Face and body options are proportions
 Source-contract tests keep the audit, loading bounds and both build entries. New workspace tests cover versions, malformed imports, round-trip parts and history. The existing affected browser lane calls the focused real-Shino studio test when character UI changes. It checks stationary preview bounds at 320/360/390/412/768/844/1280 widths, paused part switching, actual replacement-hair visibility, undo/redo, 12/30-view edit retention, selected-only changes and main/detail/JSON/reload continuity. Screenshots and JSON results are in the existing browser artifact directory.
 
 The user explicitly requested DEV deployment. PR/head-specific Integration review, code gates, Pages/OIDC delivery and public source verification remain required; main and Production are unchanged.
+
+## Motion QA delivery contract
+
+Character Workshop owns repeatable character/rig/body-variation motion QA; Visual Review Lab owns detailed skill/VFX choreography. The shared `packages/animations` quality layer must remain model-provider independent and presentation-only. Review results must retain character, source motion, frame/time, deterministic camera, affected bones, severity, cause category, status and before/after evidence. Numeric diagnostics never substitute for visual approval.
+
+The initial acceptance case is Shino arm/torso penetration, followed by body/height/age variants and a 6/12-character cohort. Existing authored combat timing and expression must be preserved. Future vision workers consume and produce the same review contract without embedding a model API in the game.
