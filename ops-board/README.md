@@ -9,3 +9,4 @@
 - 一般公開リンクギャラリー `WAYFINDER` の専用Cloudflareデプロイ状態も追跡する
 - `WAYFINDER` はPULSEの公開状況に掲載される輪廻転焦Repository内の公開先を案内する導線として扱い、別Repository・別プロジェクト（例: GUILTY'S GARDEN / YARE）を混在させない
 - ゲームは公開manifestで確認できた開発・検証・本番URLのみを掲載し、Visual Review Labなどの公開ツールはPULSEでURLが確認できるものだけを掲載する
+- `キャラクターリファレンス` ページでは `docs/characters/references/` を正本として、Referenceセットと画像をスマホ向け一覧で確認できるようにする。ブラウザからGitHub APIを直接呼ばず、PULSEの既存 `/api/state` 同期へ統合する
