@@ -108,6 +108,6 @@ export function mountNotebookPages(win) {
   book(lifeBody,()=>[chapter('時の流れ',all(lifeBody,'.book-flow>.life-age-display,.book-flow>.life-help,.book-flow>.life-saved,.life-section>label,.life-section>input,.life-presets,.life-section>p'))]);
   simpleDialog('cameraDialog','.camera-title','#cameraHome');
   const refresh=()=>books.forEach(b=>b.refresh());
-  doc.addEventListener('click',refresh,{signal:abort.signal});
+  doc.addEventListener('click',event=>{if(!event.target.closest('.book-pages'))refresh();},{signal:abort.signal});
   return()=>{abort.abort();for(const b of books.reverse())b.destroy();delete doc.body.dataset.pageUi;};
 }
