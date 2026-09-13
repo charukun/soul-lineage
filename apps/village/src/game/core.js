@@ -1,3 +1,4 @@
+import {initialMuraObjects} from '@soul/world/mura';
 import {BUILDINGS,GARDEN,FURNITURE,defs,RESOURCE_NAMES,MATERIALS,unlocked,recipe,materialOptions,capacityOf,jobsOf,TUTORIAL} from './catalog.js';
 import {LIMIT,SIZE,riverX,inWater,terrainError,terrainHint,TERRAIN_SITES} from './terrain.js';
 export {BUILDINGS,GARDEN,FURNITURE,defs,RESOURCE_NAMES,MATERIALS,unlocked,recipe,materialOptions,capacityOf,jobsOf,TUTORIAL,LIMIT,SIZE,riverX,inWater,terrainHint,TERRAIN_SITES};
@@ -15,7 +16,7 @@ export const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 function actor(id,name,homeId,x,z,role){return{id,name,homeId,x,z,role,source:role==='mayor'?'avatar-npc':'local-npc',jobId:null,task:'idle',timer:0,path:[],hunger:85,purse:0,health:100,happiness:78,skill:0,seed:role==='mayor'?1:8,angle:0,insideId:null,status:role==='guard'?'村長を見守っています':'新しい村を見渡しています',favorite:role==='mayor'?'焚き火の語らい':'木陰でひと休み',memories:[]};}
 export function initial(){return{
  version:VERSION,name:'星継ぎの庭',villageId:'local-hoshitsugi',nextId:4,revision:0,rng:837491,
- objects:[{id:'b1',kind:'mayor',x:-7,z:-5,rot:0,phase:'built',level:1,material:'base',room:[]},{id:'b2',kind:'campfire',x:5,z:8,rot:0,phase:'built',level:1,room:[]},{id:'b3',kind:'guardhome',x:12,z:-7,rot:0,phase:'built',level:1,room:[]}],
+ objects:initialMuraObjects(),
  people:[actor('mayor-npc','村長','b1',-5,5,'mayor'),actor('guard-npc','アルド','b3',0,6,'guard')],
  clock:.36,time:8.64,stock:Object.fromEntries(Object.keys(RESOURCE_NAMES).map(k=>[k,0])),known:[],traffic:{},
  settings:{speed:1,tilt:.85,quality:1},stats:{arrivals:0,produced:0,meals:0,purchases:0,furnished:0,ships:0,raids:0,defeated:0,rescues:0,losses:0,upgrades:0,moments:0},

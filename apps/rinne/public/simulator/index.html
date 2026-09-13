@@ -342,6 +342,9 @@ select[data-rarity="1"],[data-rarity="1"].book-name{color:#bce2c9}select[data-ra
 import * as THREE from "three";
 import {HumanoidRuntime} from "./src/humanoid.js";
 import {LifeClock,appearanceForAge} from "./src/life-clock.js";
+const STORY_MODE=new URL(location.href).searchParams.get('experience')==='story'||window.__RINNE_EMBED__?.experience==='story';
+// Main-game persistence is one atomic envelope owned by its platform adapter.
+const deviceStorage=STORY_MODE?{getItem:()=>null,setItem:()=>{},removeItem:()=>{}}:{getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value),removeItem:key=>localStorage.removeItem(key)};
 const saveEnvironment=['dev','prod'].includes(new URL(location.href).searchParams.get('environment'))?new URL(location.href).searchParams.get('environment'):'local';
 const deviceSaveKey=key=>`soul.${saveEnvironment}.rinne.device.${key}`;
 import {fitWeaponGeometry} from "./src/weapon-surface.js";
@@ -1481,7 +1484,7 @@ const martialPartsPrevious=actorParts;
 actorParts=function(a,p){let parts=martialPartsPrevious(a,p);if(a.weapon==='fist'){parts=parts.filter(x=>x.name!=='gauntlet');for(const side of ['right','left'])parts.push({name:'gauntlet',m:fistMatrix(p,p.body,side)});}if(a.weapon==='katana')parts.push({name:'katanaSheath',m:mm(p.pelvis,mat([-.27,.07,-.07],[1.23,0,-.25]))});return parts;};
 
 (async()=>{'use strict';
-let humanoid;
+let humanoid,storySession=null;
 const $=id=>document.getElementById(id),copy=x=>JSON.parse(JSON.stringify(x));
 const canvas=$('game');
 function fatal(e){window.__RINNE_BOOT__?.fail(e);console.error(e);$('fatal').hidden=false;$('boot').hidden=true;$('fatalText').textContent=String(e?.message||e)+'\nWebGL対応ブラウザでHTMLを開いてください。';}
@@ -1637,11 +1640,11 @@ function validateRecipe(v){return v&&typeof v.name==='string'&&v.name.trim().len
 function normalizeRecipe(v){if(!validateRecipe(v))throw Error('技の形式が正しくありません');return{id:typeof v.id==='string'?v.id.slice(0,70):'custom',name:v.name.trim(),type:v.type==='reaction'?'reaction':'normal',...(v.type==='reaction'?{receive:v.receive}:{}),weapon:v.weapon,element:v.element,rhythm:v.rhythm,tempo:v.tempo,aura:Object.hasOwn(AURAS,v.aura)?v.aura:'none',steps:v.steps.map(s=>({kind:s.kind,footwork:s.footwork,charge:s.charge||'none'}))};}
 function recipeSignature(r){return JSON.stringify(normalizeRecipe(r));}
 function compatible(r,slot=selectedSlot){return slot==='uke'?r.type==='reaction':r.type!=='reaction';}
-function store(){try{localStorage.setItem(STORE,JSON.stringify({version:4,loadout,drafts,library,prefs,selectedSlot,settings:{opponent,avatar,distance,motionScale,showFX,showGrid,debug,zoom,equippedWeapon,battleMode,rarityProfile,mindset}}));storageOK=true;}catch{storageOK=false;}const n=$('storageNotice');if(n)n.textContent=storageOK?'':'この閲覧環境ではブラウザ保存が使えません。技目録を書き出して保管してください。';}
+function store(){try{deviceStorage.setItem(STORE,JSON.stringify({version:4,loadout,drafts,library,prefs,selectedSlot,settings:{opponent,avatar,distance,motionScale,showFX,showGrid,debug,zoom,equippedWeapon,battleMode,rarityProfile,mindset}}));storageOK=true;}catch{storageOK=false;}const n=$('storageNotice');if(n)n.textContent=storageOK?'':'この閲覧環境ではブラウザ保存が使えません。技目録を書き出して保管してください。';}
 function loadStorage(){
  for(const k of SLOT_KEYS)loadout[k]=normalizeRecipe(loadout[k]);drafts=copy(loadout);
  library=[...TEMPLATES,...Object.keys(RECEIVES).map(receiveRecipe)].map(normalizeRecipe);
- try{const v=JSON.parse(localStorage.getItem(STORE)||localStorage.getItem(PREVIOUS_STORE)||localStorage.getItem(deviceSaveKey('tidebreak.atelier.v2'))||'null');if([2,3,4].includes(v?.version)){
+ try{const v=JSON.parse(deviceStorage.getItem(STORE)||deviceStorage.getItem(PREVIOUS_STORE)||deviceStorage.getItem(deviceSaveKey('tidebreak.atelier.v2'))||'null');if([2,3,4].includes(v?.version)){
   for(const k of SLOT_KEYS){if(validateRecipe(v.loadout?.[k])&&compatible(v.loadout[k],k))loadout[k]=normalizeRecipe(v.loadout[k]);}
   drafts=copy(loadout);for(const k of SLOT_KEYS)if(validateRecipe(v.drafts?.[k])&&compatible(v.drafts[k],k))drafts[k]=normalizeRecipe(v.drafts[k]);
   if(SLOT_KEYS.includes(v.selectedSlot))selectedSlot=v.selectedSlot;
@@ -1650,7 +1653,7 @@ function loadStorage(){
   const s=v.settings||{};if(['duel','guard','evade','group','dummy'].includes(s.opponent))opponent=s.opponent;if(['knight','girl'].includes(s.avatar))avatar=s.avatar;
   if(Number.isFinite(s.distance))distance=clamp(s.distance,1.2,7);if(v.version===3&&Number.isFinite(s.motionScale))motionScale=clamp(s.motionScale,.75,1.25);if(Number.isFinite(s.zoom))zoom=clamp(s.zoom,.7,1.45);
   if(typeof s.showFX==='boolean')showFX=s.showFX;if(typeof s.showGrid==='boolean')showGrid=s.showGrid;if(typeof s.debug==='boolean')debug=s.debug;equippedWeapon=Object.hasOwn(WEAPONS,s.equippedWeapon)?s.equippedWeapon:loadout.jo.weapon;battleMode=s.battleMode==='random'?'random':'fixed';
- }else{const old=JSON.parse(localStorage.getItem(LEGACY_STORE)||'null');if(old?.version===1&&Array.isArray(old.library)){const oldItems=old.library.filter(validateRecipe).slice(0,60).map(normalizeRecipe);library=[...oldItems,...library].slice(0,60);}}
+ }else{const old=JSON.parse(deviceStorage.getItem(LEGACY_STORE)||'null');if(old?.version===1&&Array.isArray(old.library)){const oldItems=old.library.filter(validateRecipe).slice(0,60).map(normalizeRecipe);library=[...oldItems,...library].slice(0,60);}}
  }catch{storageOK=false;}drafts={...copy(loadout),...drafts};for(const k of SLOT_KEYS){loadout[k].weapon=equippedWeapon;drafts[k].weapon=equippedWeapon;}current=drafts[selectedSlot];
 }
 function addHistory(){history=history.slice(0,historyIndex+1);history.push({slot:selectedSlot,recipe:copy(current)});if(history.length>70)history.shift();historyIndex=history.length-1;}
@@ -1661,11 +1664,11 @@ function resetScene(clear=true){audio.stopVoices();for(const f of floats)f.el.re
  hero=makeActor(true,-distance/2,0);enemies=[makeActor(false,distance/2,0,0)];if(opponent==='group')enemies.push(makeActor(false,distance/2+.4,-2.2,1),makeActor(false,distance/2+.4,2.2,2));
  particles=[];circles=[];crowns=[];ripples=[];impacts=[];ghosts=[];auras=[];echoes=[];mist=[];lastContacts=[];hitstop=0;impactSlow=0;impactSlowScale=1;shake=0;for(const e of enemies){e.yaw=Math.atan2(hero.x-e.x,hero.z-e.z);initFeet(e);}acc=0;camTarget=[0,.95,0];camHeight=6;syncPause();renderLog();updateLiveUI();}
 function nearest(a=hero){const list=a.hero?enemies:[hero];let result=null,d=Infinity;for(const b of list){if(b.dead)continue;const l=Math.hypot(a.x-b.x,a.z-b.z);if(l<d){d=l;result=b;}}return result;}
-function moveActor(a,dx,dz){if(!Number.isFinite(dx+dz))throw Error('移動値が不正です');const pieces=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.24));for(let i=0;i<pieces;i++){
- a.x=clamp(a.x+dx/pieces,-7.6,7.6);a.z=clamp(a.z+dz/pieces,-5.4,5.4);
+function moveActor(a,dx,dz){if(a.hero&&storySession){dx*=storySession.moveScale;dz*=storySession.moveScale;}if(!Number.isFinite(dx+dz))throw Error('移動値が不正です');const pieces=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.24));for(let i=0;i<pieces;i++){
+ const oldX=a.x,oldZ=a.z,bounds=storySession?.bounds||{x:7.6,z:5.4};a.x=clamp(a.x+dx/pieces,-bounds.x,bounds.x);a.z=clamp(a.z+dz/pieces,-bounds.z,bounds.z);if(storySession?.canEnter&&!storySession.canEnter(a.x,a.z,a.r)){if(storySession.canEnter(a.x,oldZ,a.r))a.z=oldZ;else if(storySession.canEnter(oldX,a.z,a.r))a.x=oldX;else{a.x=oldX;a.z=oldZ;}}
  for(const p of world.colliders){const x=a.x-p.x,z=a.z-p.z,d=Math.hypot(x,z),r=a.r+p.r;if(d<r&&d>.0001){a.x=p.x+x/d*r;a.z=p.z+z/d*r;}}
  for(const b of [hero,...enemies,...(escort?[escort]:[])]){if(!b||a===b||b.dead)continue;const x=a.x-b.x,z=a.z-b.z,d=Math.hypot(x,z),r=a.r+b.r+.04;if(d<r&&d>.0001){a.x=b.x+x/d*r;a.z=b.z+z/d*r;}}
- a.x=clamp(a.x,-7.6,7.6);a.z=clamp(a.z,-5.4,5.4);
+ a.x=clamp(a.x,-bounds.x,bounds.x);a.z=clamp(a.z,-bounds.z,bounds.z);
  }}
 function stageSpec(step,r,i){
  const st=STRIKES[step.kind],c=POSE_CLIPS[step.kind],manual=CHARGES[step.charge||'none'];
@@ -1936,10 +1939,10 @@ function update(dt){time+=dt;elapsed+=dt;shake*=Math.exp(-dt*12);if(hitstop>0){h
 function resize(){if(!renderer)return;const r=$('stage').getBoundingClientRect();W=Math.max(1,r.width);H=Math.max(1,r.height);let dpr=Math.min(devicePixelRatio||1,[.9,1.4,1.8][prefs.quality]);dpr=Math.min(dpr,Math.sqrt([650000,1200000,2100000][prefs.quality]/(W*H)));renderer.resize(W,H,dpr,prefs.quality);}
 function camera(dt=0){const alive=[hero,...enemies,...(escort?[escort]:[])].filter(a=>!a.dead),all=alive.length?alive:[hero,...enemies];const xs=all.map(a=>a.x),zs=all.map(a=>a.z),center=[(Math.min(...xs)+Math.max(...xs))/2,.95,(Math.min(...zs)+Math.max(...zs))/2];camTarget=lerpV(camTarget,center,dt>0?1-Math.exp(-dt*3.5):1);
  let target=camTarget.slice();if(prefs.shake&&shake>0){target[0]+=Math.sin(time*113)*shake;target[2]+=Math.cos(time*97)*shake*.6;}
- const orbitR=24,off=[Math.sin(camAngle)*Math.cos(camPitch)*orbitR,Math.sin(camPitch)*orbitR,Math.cos(camAngle)*Math.cos(camPitch)*orbitR];eye=add(target,off);const view=lookAt(eye,target);if(renderer.camera){renderer.camera.matrixWorld.fromArray(view).invert();renderer.camera.matrixWorldInverse.fromArray(view);}camRight=[view[0],view[4],view[8]];camUp=[view[1],view[5],view[9]];
+ const orbitR=storySession?.zone==='village'?60:24,off=[Math.sin(camAngle)*Math.cos(camPitch)*orbitR,Math.sin(camPitch)*orbitR,Math.cos(camAngle)*Math.cos(camPitch)*orbitR];eye=add(target,off);const view=lookAt(eye,target);if(renderer.camera){renderer.camera.matrixWorld.fromArray(view).invert();renderer.camera.matrixWorldInverse.fromArray(view);}camRight=[view[0],view[4],view[8]];camUp=[view[1],view[5],view[9]];
  const px=all.map(a=>dot(sub([a.x,1.3,a.z],target),camRight)),py=all.map(a=>dot(sub([a.x,1.3,a.z],target),camUp));
- const desired=Math.max(H<300?6.6:6.3,(Math.max(...px)-Math.min(...px)+4.8)*H/W,Math.max(...py)-Math.min(...py)+5.1)/zoom;
- camHeight=mix(camHeight,desired,dt>0?1-Math.exp(-dt*(desired>camHeight?6:1.8)):1);const vh=camHeight,vw=vh*W/H;vp=mm(ortho(-vw/2,vw/2,-vh/2,vh/2,.1,120),view);
+ const desired=Math.max(storySession?.zone==='village'?18:H<300?6.6:6.3,(Math.max(...px)-Math.min(...px)+4.8)*H/W,Math.max(...py)-Math.min(...py)+5.1)/zoom;
+ camHeight=mix(camHeight,desired,dt>0?1-Math.exp(-dt*(desired>camHeight?6:1.8)):1);const vh=camHeight,vw=vh*W/H;vp=mm(ortho(-vw/2,vw/2,-vh/2,vh/2,.1,storySession?600:120),view);
 }
 function project(p){const t=tp(vp,p);return[(t[0]*.5+.5)*W,(-t[1]*.5+.5)*H];}
 function drawFlag(f,out){const rows=7,cols=4;function p(u,v){return[f.x+u*.77,f.y-v*1.35+(v>.85?Math.abs(u-.5)*.34:0),f.z+Math.sin(time*2.4-u*3+v*2)*(.08+u*.14)-.02];}for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){let u=x/cols,v=y/rows;out.quad(p(u,v),p(u+1/cols,v),p(u+1/cols,v+1/rows),p(u,v+1/rows),shade(C.blue,1+x*.03));}rod(out,[f.x-.1,f.y+.03,f.z],[f.x+.88,f.y+.03,f.z],.025,.025,C.gold,6);}
@@ -2024,7 +2027,8 @@ function drawFrame(){if(!renderer||!hero)return;const begin=performance.now();dy
  if(debug){for(const a of [hero,...enemies]){if(a.dead)continue;const p=actorPose(a);rod(fx,p.weaponBase,p.weaponTip,.018,.018,0xffd273,5);for(const f of a.feet)ring(fx,[f.p[0],.085,f.p[2]],.105,.020,f.contact?[.45,1,.66,.85]:[1,.69,.27,.85],16);for(const y of [.55,1.1,1.6])ring(fx,[a.x,y+(a.air||0),a.z],a.r,.013,a.hero?[.62,.89,1,.38]:[1,.57,.35,.42],24);}for(const c of lastContacts){if(time-c.time>.8)continue;rod(fx,add(c.point,[0,-.12,0]),add(c.point,[0,.12,0]),.028,.028,0xff7960,5);}}
  for(const a of enemies)if(showFX&&!a.dead&&a.attack&&a.attack.damage>0&&attackProgress(a)<POSE_CLIPS[a.attack.kind].launch){const p=attackProgress(a);ring(fx,[a.x,.082,a.z],1.65,.035,[1,.50,.33,.18+p*.35],24,a.yaw-PI*.32,PI*.64);}
  drawEscort();ripUniform.fill(0);if(showFX)for(let i=0;i<ripples.length&&i<16;i++){const r=ripples[i];ripUniform.set([r.x,r.z,r.r,r.a*Math.max(0,1-r.t/1.25)],i*4);}
- renderer.render(showGrid?layers:layers.filter(l=>l.b!==grid),vp,time,ripUniform,eye);
+ storySession?.draw?.();
+ renderer.render(storySession?layers.filter(l=>!l.static):showGrid?layers:layers.filter(l=>l.b!==grid),vp,time,ripUniform,eye);
  drawMs=mix(drawMs,performance.now()-begin,.03);
 }
 
@@ -2238,7 +2242,7 @@ for(const k of SLOT_KEYS){const b=document.createElement('button');b.id='slot-'+
  canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();paused=true;syncPause();fatal(Error('グラフィック処理が中断されました。ページを再読み込みしてください。'));});
 }
 function loop(now){requestId=requestAnimationFrame(loop);if(document.hidden){lastTime=now;acc=0;return;}const actual=lastTime?Math.max(0,(now-lastTime)/1000):1/60,dt=Math.min(actual,.10);lastTime=now;
- if(!paused){advanceLife(actual);acc+=dt*speed;let n=0;while(acc>=1/60&&n<12){update(1/60);acc-=1/60;n++;}}
+ if(!paused){advanceLife(actual);acc+=dt*speed;let n=0;while(acc>=1/60&&n<12){update(1/60);acc-=1/60;n++;}storySession?.tick?.(actual);}
  camera(dt);drawFrame();uiClock+=actual;if(uiClock>.075){uiClock=0;updateLiveUI();}fpsElapsed+=actual;fpsFrames++;if(fpsElapsed>=1){fps=Math.round(fpsFrames/fpsElapsed);fpsElapsed=0;fpsFrames=0;$('engineInfo').textContent=renderer.name+' · '+fps+' fps\n'+Math.round(renderer.triangles/1000)+'k triangles · '+canvas.width+' × '+canvas.height+'\n外部通信なし · HTML単体で動作';$('engineInfo').style.whiteSpace='pre-line';}}
 /* Runtime extension. Stored recipes keep components, never a trusted rarity field. */
 let rarityProfile='normal',mindset='balanced',mindDraft='balanced',editingMind=false,escort=null;
@@ -2375,7 +2379,7 @@ function drawEscort(){if(!escort)return;const p=escort,fade=p.dead?.25:1;rod(dyn
 const storeV3=store;
 store=function(){storeV3();};
 const loadV3=loadStorage;
-loadStorage=function(){loadV3();try{const v=JSON.parse(localStorage.getItem(STORE)||localStorage.getItem(PREVIOUS_STORE)||'null'),s=v?.settings||{};if(Object.hasOwn(RARITY_PROFILES,s.rarityProfile))rarityProfile=s.rarityProfile;if(Object.hasOwn(MINDS,s.mindset))mindset=s.mindset;}catch{}mindDraft=mindset;for(const k of SLOT_KEYS){loadout[k]=toWeapon(loadout[k],equippedWeapon);drafts[k]=toWeapon(drafts[k],equippedWeapon);}current=drafts[selectedSlot];};
+loadStorage=function(){loadV3();try{const v=JSON.parse(deviceStorage.getItem(STORE)||deviceStorage.getItem(PREVIOUS_STORE)||'null'),s=v?.settings||{};if(Object.hasOwn(RARITY_PROFILES,s.rarityProfile))rarityProfile=s.rarityProfile;if(Object.hasOwn(MINDS,s.mindset))mindset=s.mindset;}catch{}mindDraft=mindset;for(const k of SLOT_KEYS){loadout[k]=toWeapon(loadout[k],equippedWeapon);drafts[k]=toWeapon(drafts[k],equippedWeapon);}current=drafts[selectedSlot];};
 const exportV3=exportData;
 exportData=function(){return{...exportV3(),version:4,rarityProfile,mindset,groups:{attack:['jo','ha','kyu'],defense:['uke','mindset']}};};
 const importV3=importData;
@@ -2602,7 +2606,7 @@ audio.foot=function(a,f,force=1){this.play('step',{x:f.p[0],z:f.p[2],gain:(a.her
 audio.startAmbience=function(){if(this.sea)return;const c=this.ctx,b=c.createBuffer(1,c.sampleRate*6,c.sampleRate),data=b.getChannelData(0),r=seedRng(180);let lo=0;for(let i=0;i<data.length;i++){lo+=(r()*2-1-lo)*.007;data[i]=lo*.12;}const s=c.createBufferSource();s.buffer=b;s.loop=true;s.connect(this.buses.ambient);s.start();this.sea=s;};
 /* Migration and atomic notebook validation. v4 originals are left intact. */
 const load4=loadStorage;
-loadStorage=function(){load4();fixedMindset=mindset;try{const v=JSON.parse(localStorage.getItem(STORE5)||'null');if(v?.version===5){
+loadStorage=function(){load4();fixedMindset=mindset;try{const v=JSON.parse(deviceStorage.getItem(STORE5)||'null');if(v?.version===5){
  const prepared=decodeNotebook(v.notebook,false);applyNotebook(prepared,false);if(v.prefs){for(const k of ['music','sfx','ambient'])if(Number.isFinite(v.prefs[k]))prefs[k]=clamp(v.prefs[k],0,1);for(const k of ['sound','shake'])if(typeof v.prefs[k]==='boolean')prefs[k]=v.prefs[k];if(Number.isInteger(v.prefs.quality))prefs.quality=clamp(v.prefs.quality,0,2);}
  const s=v.settings||{};if(['duel','guard','evade','group','dummy'].includes(s.opponent))opponent=s.opponent;if(Number.isFinite(s.distance))distance=clamp(s.distance,1.2,7);if(Number.isFinite(s.motionScale))motionScale=clamp(s.motionScale,.75,1.25);if(Number.isFinite(s.zoom))zoom=clamp(s.zoom,.7,1.45);for(const k of ATTACK_KEYS)candidateIndex[k]=Number.isInteger(v.candidateIndex?.[k])?clamp(v.candidateIndex[k],0,2):0;if(SLOT_KEYS.includes(v.selectedSlot))selectedSlot=v.selectedSlot;
  if(typeof s.showFX==='boolean')showFX=s.showFX;if(typeof s.showGrid==='boolean')showGrid=s.showGrid;if(typeof s.debug==='boolean')debug=s.debug;
@@ -2611,7 +2615,7 @@ loadStorage=function(){load4();fixedMindset=mindset;try{const v=JSON.parse(local
  if(!poolReady)initPools();for(const k of SLOT_KEYS){loadout[k]=normalizeRecipe(loadout[k]);drafts[k]=normalizeRecipe(drafts[k]);}flushPools();mindDraft=fixedMindset;current=drafts[selectedSlot];
 };
 exportData=function(){flushPools();return{format:'tidebreak-atelier',version:5,recipes:copy(library),loadout:copy(loadout),attackPools:copy(attackPools),equipment:{avatar,weapon:equippedWeapon},battleMode,defenseMode,rarityProfile,mindset:fixedMindset,enemyStyle,groups:{attack:['jo','ha','kyu'],defense:['uke','mindset']}};};
-store=function(){flushPools();try{localStorage.setItem(STORE5,JSON.stringify({version:5,notebook:exportData(),draftPools,ukeDraft:drafts.uke,candidateIndex,selectedSlot,prefs,settings:{opponent,distance,motionScale,zoom,showFX,showGrid,debug}}));storageOK=true;}catch{storageOK=false;}if($('storageNotice'))$('storageNotice').textContent=storageOK?'':'この環境では保存できません。技目録を書き出して保管してください。';};
+store=function(){flushPools();try{deviceStorage.setItem(STORE5,JSON.stringify({version:5,notebook:exportData(),draftPools,ukeDraft:drafts.uke,candidateIndex,selectedSlot,prefs,settings:{opponent,distance,motionScale,zoom,showFX,showGrid,debug}}));storageOK=true;}catch{storageOK=false;}if($('storageNotice'))$('storageNotice').textContent=storageOK?'':'この環境では保存できません。技目録を書き出して保管してください。';};
 function decodeNotebook(data,merge=true){if(!data||data.format!=='tidebreak-atelier'||![1,2,3,4,5].includes(data.version)||!Array.isArray(data.recipes)||data.recipes.length>60)throw Error('技目録の形式が正しくありません');
  const items=data.recipes.map(r=>normalizeRecipe(r));const weapon=data.equipment?.weapon||equippedWeapon,av=data.equipment?.avatar||avatar;if(!Object.hasOwn(WEAPONS,weapon)||!['knight','girl'].includes(av))throw Error('装備の形式が正しくありません');
  for(const [key,dict]of [['rarityProfile',RARITY_PROFILES],['mindset',MINDS],['enemyStyle',ENEMY_STYLES]])if(data[key]!=null&&!Object.hasOwn(dict,data[key]))throw Error(key+' が不正です');
@@ -2762,9 +2766,9 @@ const decode5=decodeNotebook;
 decodeNotebook=function(data,merge=true){if(data?.tempoMode!=null&&!['fixed','random'].includes(data.tempoMode))throw Error('技速度の方式が不正です');const v=decode5(data.version===6?{...data,version:5}:data,merge);v.tempoMode=data.tempoMode||'fixed';for(const k of ATTACK_KEYS){v.pools[k]=v.pools[k].map(cleanPlayerRecipe);v.slots[k]=v.pools[k][0];}v.slots.uke=cleanPlayerRecipe(v.slots.uke);v.library=v.library.map(cleanPlayerRecipe);return v;};
 const apply5=applyNotebook;
 applyNotebook=function(v,refresh=true){tempoMode=v.tempoMode||'fixed';apply5(v,refresh);if(refresh)syncTempoControls();};
-store=function(){flushPools();try{localStorage.setItem(STORE6,JSON.stringify({version:6,notebook:exportData(),draftPools,ukeDraft:drafts.uke,candidateIndex,selectedSlot,prefs,settings:{opponent,distance,motionScale,zoom,showFX,showGrid,debug}}));storageOK=true;}catch{storageOK=false;}if($('storageNotice'))$('storageNotice').textContent=storageOK?'':'この環境では保存できません。技目録を書き出して保管してください。';};
+store=function(){flushPools();try{deviceStorage.setItem(STORE6,JSON.stringify({version:6,notebook:exportData(),draftPools,ukeDraft:drafts.uke,candidateIndex,selectedSlot,prefs,settings:{opponent,distance,motionScale,zoom,showFX,showGrid,debug}}));storageOK=true;}catch{storageOK=false;}if($('storageNotice'))$('storageNotice').textContent=storageOK?'':'この環境では保存できません。技目録を書き出して保管してください。';};
 const load5=loadStorage;
-loadStorage=function(){load5();try{const v=JSON.parse(localStorage.getItem(STORE6)||'null');if(v?.version===6){const prepared=decodeNotebook(v.notebook,false);applyNotebook(prepared,false);if(v.prefs){for(const k of ['music','sfx','ambient'])if(Number.isFinite(v.prefs[k]))prefs[k]=clamp(v.prefs[k],0,1);for(const k of ['sound','shake'])if(typeof v.prefs[k]==='boolean')prefs[k]=v.prefs[k];if(Number.isInteger(v.prefs.quality))prefs.quality=clamp(v.prefs.quality,0,2);}
+loadStorage=function(){load5();try{const v=JSON.parse(deviceStorage.getItem(STORE6)||'null');if(v?.version===6){const prepared=decodeNotebook(v.notebook,false);applyNotebook(prepared,false);if(v.prefs){for(const k of ['music','sfx','ambient'])if(Number.isFinite(v.prefs[k]))prefs[k]=clamp(v.prefs[k],0,1);for(const k of ['sound','shake'])if(typeof v.prefs[k]==='boolean')prefs[k]=v.prefs[k];if(Number.isInteger(v.prefs.quality))prefs.quality=clamp(v.prefs.quality,0,2);}
  const s=v.settings||{};if(['duel','guard','evade','group','dummy'].includes(s.opponent))opponent=s.opponent;if(Number.isFinite(s.distance))distance=clamp(s.distance,1.2,7);if(Number.isFinite(s.motionScale))motionScale=clamp(s.motionScale,.75,1.25);if(Number.isFinite(s.zoom))zoom=clamp(s.zoom,.7,1.45);for(const k of ATTACK_KEYS)candidateIndex[k]=Number.isInteger(v.candidateIndex?.[k])?clamp(v.candidateIndex[k],0,2):0;if(SLOT_KEYS.includes(v.selectedSlot))selectedSlot=v.selectedSlot;for(const k of ['showFX','showGrid','debug'])if(typeof s[k]==='boolean'){if(k==='showFX')showFX=s[k];if(k==='showGrid')showGrid=s[k];if(k==='debug')debug=s[k];}
  initPools(prepared.pools,v.draftPools);if(validateRecipe(v.ukeDraft))drafts.uke=normalizeRecipe(v.ukeDraft);
  }}catch(e){console.warn('Saved v6 configuration ignored:',e.message);}cleanPlayerState();current=drafts[selectedSlot];};
@@ -2956,8 +2960,8 @@ const export6=exportData,decode6=decodeNotebook,apply6=applyNotebook,load6=loadS
 exportData=function(){return{...export6(),version:7,craftRarityProfile};};
 decodeNotebook=function(data,merge=true){if(data?.craftRarityProfile!=null&&!Object.hasOwn(RARITY_PROFILES,data.craftRarityProfile))throw Error('作成時の抽選傾向が不正です');const v=decode6(data?.version===7?{...data,version:6}:data,merge);v.craftRarityProfile=data.craftRarityProfile||data.rarityProfile||'normal';return v;};
 applyNotebook=function(v,refresh=true){craftRarityProfile=v.craftRarityProfile||'normal';apply6(v,refresh);if(refresh){overviewKey='';syncCreation();renderOverview();}};
-store=function(){flushPools();try{localStorage.setItem(deviceSaveKey('tidebreak.atelier.v7'),JSON.stringify({version:7,notebook:exportData(),draftPools,ukeDraft:drafts.uke,candidateIndex,selectedSlot,prefs,settings:{opponent,distance,motionScale,zoom,showFX,showGrid,debug}}));storageOK=true;}catch{storageOK=false;}if($('storageNotice'))$('storageNotice').textContent=storageOK?'':'この環境では保存できません。技目録を書き出して保管してください。';};
-loadStorage=function(){load6();try{const v=JSON.parse(localStorage.getItem(deviceSaveKey('tidebreak.atelier.v7'))||'null');if(v?.version===7){const p=decodeNotebook(v.notebook,false);applyNotebook(p,false);for(const k of ATTACK_KEYS)candidateIndex[k]=Number.isInteger(v.candidateIndex?.[k])?clamp(v.candidateIndex[k],0,2):0;if(SLOT_KEYS.includes(v.selectedSlot))selectedSlot=v.selectedSlot;initPools(p.pools,v.draftPools);if(validateRecipe(v.ukeDraft))drafts.uke=normalizeRecipe(v.ukeDraft);
+store=function(){flushPools();try{deviceStorage.setItem(deviceSaveKey('tidebreak.atelier.v7'),JSON.stringify({version:7,notebook:exportData(),draftPools,ukeDraft:drafts.uke,candidateIndex,selectedSlot,prefs,settings:{opponent,distance,motionScale,zoom,showFX,showGrid,debug}}));storageOK=true;}catch{storageOK=false;}if($('storageNotice'))$('storageNotice').textContent=storageOK?'':'この環境では保存できません。技目録を書き出して保管してください。';};
+loadStorage=function(){load6();try{const v=JSON.parse(deviceStorage.getItem(deviceSaveKey('tidebreak.atelier.v7'))||'null');if(v?.version===7){const p=decodeNotebook(v.notebook,false);applyNotebook(p,false);for(const k of ATTACK_KEYS)candidateIndex[k]=Number.isInteger(v.candidateIndex?.[k])?clamp(v.candidateIndex[k],0,2):0;if(SLOT_KEYS.includes(v.selectedSlot))selectedSlot=v.selectedSlot;initPools(p.pools,v.draftPools);if(validateRecipe(v.ukeDraft))drafts.uke=normalizeRecipe(v.ukeDraft);
  const pref=v.prefs||{};for(const k of ['music','sfx','ambient'])if(Number.isFinite(pref[k]))prefs[k]=clamp(pref[k],0,1);for(const k of ['sound','shake'])if(typeof pref[k]==='boolean')prefs[k]=pref[k];if(Number.isInteger(pref.quality))prefs.quality=clamp(pref.quality,0,2);
  const s=v.settings||{};if(['duel','guard','evade','group','dummy'].includes(s.opponent))opponent=s.opponent;if(Number.isFinite(s.distance))distance=clamp(s.distance,1.2,7);if(Number.isFinite(s.motionScale))motionScale=clamp(s.motionScale,.75,1.25);if(Number.isFinite(s.zoom))zoom=clamp(s.zoom,.7,1.45);if(typeof s.showFX==='boolean')showFX=s.showFX;if(typeof s.showGrid==='boolean')showGrid=s.showGrid;if(typeof s.debug==='boolean')debug=s.debug;
  }}catch(e){console.warn('Saved v7 configuration ignored:',e.message);}cleanPlayerState();library=library.map(normalizeRecipe);current=drafts[selectedSlot];};
@@ -3272,10 +3276,10 @@ const export8=exportData,decode8=decodeNotebook,apply8=applyNotebook,store8=stor
 exportData=function(){return{...export8(),version:8,bodyEmote,emoteCatalogVersion:1};};
 decodeNotebook=function(data,merge=true){if(data?.bodyEmote!=null&&!Object.hasOwn(EMOTES,data.bodyEmote))throw Error('残心エモートのIDが不正です');const v=decode8(data?.version===8?{...data,version:7}:data,merge);v.bodyEmote=data.bodyEmote||'quiet';return v;};
 applyNotebook=function(v,refresh=true){bodyEmote=bodyDraft=v.bodyEmote||'quiet';apply8(v,refresh);if(refresh){syncBody();overviewKey='';renderOverview();}};
-store=function(){flushPools();try{localStorage.setItem(deviceSaveKey('tidebreak.atelier.v8'),JSON.stringify({version:8,notebook:exportData(),draftPools,ukeDraft:drafts.uke,candidateIndex,selectedSlot,prefs,settings:{opponent,distance,motionScale,zoom,showFX,showGrid,debug}}));storageOK=true;}catch{storageOK=false;}if($('storageNotice'))$('storageNotice').textContent=storageOK?'':'この環境では保存できません。技目録を書き出して保管してください。';};
+store=function(){flushPools();try{deviceStorage.setItem(deviceSaveKey('tidebreak.atelier.v8'),JSON.stringify({version:8,notebook:exportData(),draftPools,ukeDraft:drafts.uke,candidateIndex,selectedSlot,prefs,settings:{opponent,distance,motionScale,zoom,showFX,showGrid,debug}}));storageOK=true;}catch{storageOK=false;}if($('storageNotice'))$('storageNotice').textContent=storageOK?'':'この環境では保存できません。技目録を書き出して保管してください。';};
 loadStorage=function(){// Reuse the validated v7 migrator without overwriting older saved data.
- let newer=null,old=null;try{newer=JSON.parse(localStorage.getItem(deviceSaveKey('tidebreak.atelier.v8'))||'null');old=localStorage.getItem(deviceSaveKey('tidebreak.atelier.v7'));if(newer?.version===8&&newer.notebook){decodeNotebook(newer.notebook,false);localStorage.setItem(deviceSaveKey('tidebreak.atelier.v7'),JSON.stringify({...newer,version:7}));}}catch(e){console.warn('v8 storage ignored',e.message);newer=null;}
- try{load8();}finally{try{if(newer){if(old==null)localStorage.removeItem('tidebreak.atelier.v7');else localStorage.setItem(deviceSaveKey('tidebreak.atelier.v7'),old);}}catch{}}
+ let newer=null,old=null;try{newer=JSON.parse(deviceStorage.getItem(deviceSaveKey('tidebreak.atelier.v8'))||'null');old=deviceStorage.getItem(deviceSaveKey('tidebreak.atelier.v7'));if(newer?.version===8&&newer.notebook){decodeNotebook(newer.notebook,false);deviceStorage.setItem(deviceSaveKey('tidebreak.atelier.v7'),JSON.stringify({...newer,version:7}));}}catch(e){console.warn('v8 storage ignored',e.message);newer=null;}
+ try{load8();}finally{try{if(newer){if(old==null)deviceStorage.removeItem('tidebreak.atelier.v7');else deviceStorage.setItem(deviceSaveKey('tidebreak.atelier.v7'),old);}}catch{}}
  if(newer?.notebook&&Object.hasOwn(EMOTES,newer.notebook.bodyEmote))bodyEmote=bodyDraft=newer.notebook.bodyEmote;
 };
 // Local inspection only. These functions do not bypass a live payment system; there is none in this standalone demo.
@@ -3575,9 +3579,9 @@ decodeNotebook=function(data,merge=true){if(data?.version===9){if(data.defensePo
 };
 applyNotebook=function(v,refresh=true){apply9(v,false);initDefenseGrid(v.defenseGrid);fillBias=v.fillBias||'normal';fillScope=v.fillScope||'empty';savedCreatorExtras=v.catalogExtras||[];battleMode=defenseMode='fixed';loadout.uke=copy(firstDefense('uke'));bodyEmote=firstDefense('body');mindset=fixedMindset=firstDefense('mind');if(hero){hero.mindCandidate=defensePools.mind.indexOf(mindset);ensureEscort();}recentDefense=[];overviewKey='';catalogDirty=true;
  if(refresh&&catalogReady){$('avatar').value=humanoid?.modelId||'A';syncEditor();syncGroundOptions();renderOverview(true);renderLibrary();updateLiveUI();store();}};
-store=function(){if(!poolReady)return;flushPools();try{localStorage.setItem(deviceSaveKey('tidebreak.atelier.v9'),JSON.stringify({version:9,notebook:exportData(),draftPools,ukeDraft:drafts.uke,candidateIndex,selectedSlot,creatorCategory,creatorAutoName,prefs,settings:{opponent,distance,motionScale,zoom,showFX,showGrid,debug}}));storageOK=true;}catch{storageOK=false;}
+store=function(){if(!poolReady)return;flushPools();try{deviceStorage.setItem(deviceSaveKey('tidebreak.atelier.v9'),JSON.stringify({version:9,notebook:exportData(),draftPools,ukeDraft:drafts.uke,candidateIndex,selectedSlot,creatorCategory,creatorAutoName,prefs,settings:{opponent,distance,motionScale,zoom,showFX,showGrid,debug}}));storageOK=true;}catch{storageOK=false;}
  if($('storageNotice'))$('storageNotice').textContent=storageOK?'':'この環境ではブラウザ保存ができません。技目録を書き出して保管してください。';};
-loadStorage=function(){load9();if(!poolReady)initPools();initDefenseGrid();try{const cache=JSON.parse(localStorage.getItem(deviceSaveKey('tidebreak.atelier.v9'))||'null');if(cache?.version===9){const v=decodeNotebook(cache.notebook,false);applyNotebook(v,false);for(const k of ATTACK_KEYS)candidateIndex[k]=Number.isInteger(cache.candidateIndex?.[k])?clamp(cache.candidateIndex[k],0,2):0;if(SLOT_KEYS.includes(cache.selectedSlot))selectedSlot=cache.selectedSlot;
+loadStorage=function(){load9();if(!poolReady)initPools();initDefenseGrid();try{const cache=JSON.parse(deviceStorage.getItem(deviceSaveKey('tidebreak.atelier.v9'))||'null');if(cache?.version===9){const v=decodeNotebook(cache.notebook,false);applyNotebook(v,false);for(const k of ATTACK_KEYS)candidateIndex[k]=Number.isInteger(cache.candidateIndex?.[k])?clamp(cache.candidateIndex[k],0,2):0;if(SLOT_KEYS.includes(cache.selectedSlot))selectedSlot=cache.selectedSlot;
  initPools(v.pools,cache.draftPools);if(validateRecipe(cache.ukeDraft)&&cache.ukeDraft.type==='reaction')drafts.uke=normalizeRecipe(cache.ukeDraft);current=drafts[selectedSlot];creatorAutoName=cache.creatorAutoName!==false;
  const p=cache.prefs||{};for(const k of ['music','sfx','ambient'])if(Number.isFinite(p[k]))prefs[k]=clamp(p[k],0,1);for(const k of ['sound','shake'])if(typeof p[k]==='boolean')prefs[k]=p[k];if(Number.isInteger(p.quality))prefs.quality=clamp(p.quality,0,2);
  const s=cache.settings||{};if(['duel','guard','evade','group','dummy'].includes(s.opponent))opponent=s.opponent;if(Number.isFinite(s.distance))distance=clamp(s.distance,1.2,7);if(Number.isFinite(s.motionScale))motionScale=clamp(s.motionScale,.75,1.25);if(Number.isFinite(s.zoom))zoom=clamp(s.zoom,.7,1.45);for(const k of ['showFX','showGrid','debug'])if(typeof s[k]==='boolean'){if(k==='showFX')showFX=s[k];if(k==='showGrid')showGrid=s[k];if(k==='debug')debug=s[k];}}}catch(e){console.warn('v9 settings ignored:',e.message);}battleMode=defenseMode='fixed';library=library.map(normalizeRecipe);};
@@ -3759,8 +3763,8 @@ decodeNotebook=function(data,merge=true){let source=data;
  const out=decode10(source,merge);out.tempoMode='fixed';out.weights=Object.fromEntries(ATTACK_KEYS.map(k=>[k,wholePercent(data?.attackWeights?.[k]||[1,1,1],out.pools[k].map(hasRecipe))]));out.archive=copy(data?.legacyDefenseArchive||[]);return out;
 };
 applyNotebook=function(v,refresh=true){legacyDefenseArchive=copy(v.archive||[]);attackWeights=v.weights||{jo:[100,0,0],ha:[100,0,0],kyu:[100,0,0]};apply10(v,false);tempoMode='fixed';for(const k of ATTACK_KEYS)attackWeights[k]=effectiveWeights(k);if(refresh&&catalogReady){$('avatar').value=humanoid?.modelId||'A';syncEditor();syncGroundOptions();refreshEquipmentIcons();renderOverview(true);renderLibrary();updateLiveUI();store();}};
-store=function(){if(!poolReady)return;flushPools();try{localStorage.setItem(deviceSaveKey('tidebreak.atelier.v10'),JSON.stringify({version:10,notebook:exportData(),draftPools,ukeDraft:drafts.uke,candidateIndex,selectedSlot,creatorCategory,creatorAutoName,craftRarityProfile,prefs,settings:{opponent,distance,motionScale,zoom,showFX,showGrid,debug}}));storageOK=true;}catch{storageOK=false;}if($('storageNotice'))$('storageNotice').textContent=storageOK?'':'ブラウザ保存を利用できません。技目録を書き出して保管してください。';};
-loadStorage=function(){let cache=null;try{cache=JSON.parse(localStorage.getItem(deviceSaveKey('tidebreak.atelier.v10'))||'null');if(cache?.version===10){const v=decodeNotebook(cache.notebook,false);applyNotebook(v,false);for(const k of ATTACK_KEYS)candidateIndex[k]=Number.isInteger(cache.candidateIndex?.[k])?clamp(cache.candidateIndex[k],0,2):0;if(SLOT_KEYS.includes(cache.selectedSlot))selectedSlot=cache.selectedSlot;initPools(v.pools,cache.draftPools);if(validateRecipe(cache.ukeDraft)&&cache.ukeDraft.type==='reaction')drafts.uke=normalizeRecipe(cache.ukeDraft);current=drafts[selectedSlot];creatorAutoName=cache.creatorAutoName!==false;if(Object.hasOwn(RARITY_PROFILES,cache.craftRarityProfile))craftRarityProfile=cache.craftRarityProfile;
+store=function(){if(!poolReady)return;flushPools();try{deviceStorage.setItem(deviceSaveKey('tidebreak.atelier.v10'),JSON.stringify({version:10,notebook:exportData(),draftPools,ukeDraft:drafts.uke,candidateIndex,selectedSlot,creatorCategory,creatorAutoName,craftRarityProfile,prefs,settings:{opponent,distance,motionScale,zoom,showFX,showGrid,debug}}));storageOK=true;}catch{storageOK=false;}if($('storageNotice'))$('storageNotice').textContent=storageOK?'':'ブラウザ保存を利用できません。技目録を書き出して保管してください。';};
+loadStorage=function(){let cache=null;try{cache=JSON.parse(deviceStorage.getItem(deviceSaveKey('tidebreak.atelier.v10'))||'null');if(cache?.version===10){const v=decodeNotebook(cache.notebook,false);applyNotebook(v,false);for(const k of ATTACK_KEYS)candidateIndex[k]=Number.isInteger(cache.candidateIndex?.[k])?clamp(cache.candidateIndex[k],0,2):0;if(SLOT_KEYS.includes(cache.selectedSlot))selectedSlot=cache.selectedSlot;initPools(v.pools,cache.draftPools);if(validateRecipe(cache.ukeDraft)&&cache.ukeDraft.type==='reaction')drafts.uke=normalizeRecipe(cache.ukeDraft);current=drafts[selectedSlot];creatorAutoName=cache.creatorAutoName!==false;if(Object.hasOwn(RARITY_PROFILES,cache.craftRarityProfile))craftRarityProfile=cache.craftRarityProfile;
  const p=cache.prefs||{};for(const k of ['music','sfx','ambient'])if(Number.isFinite(p[k]))prefs[k]=clamp(p[k],0,1);for(const k of ['sound','shake'])if(typeof p[k]==='boolean')prefs[k]=p[k];if(Number.isInteger(p.quality))prefs.quality=clamp(p.quality,0,2);const s=cache.settings||{};if(['duel','guard','evade','group','dummy'].includes(s.opponent))opponent=s.opponent;if(Number.isFinite(s.distance))distance=clamp(s.distance,1.2,7);if(Number.isFinite(s.motionScale))motionScale=clamp(s.motionScale,.75,1.25);if(Number.isFinite(s.zoom))zoom=clamp(s.zoom,.7,1.45);if(typeof s.showFX==='boolean')showFX=s.showFX;if(typeof s.showGrid==='boolean')showGrid=s.showGrid;if(typeof s.debug==='boolean')debug=s.debug;tempoMode='fixed';return;}}
  catch(e){console.warn('v10 settings ignored:',e.message);}load10();tempoMode='fixed';for(const k of ATTACK_KEYS)attackWeights[k]=wholePercent([1,1,1],activeMask(k));
 };
@@ -3849,7 +3853,7 @@ drawCombatEffects=function(out,shadows,opaque){combatFX10(out,shadows,opaque);fo
 
 
 // Expanded integration boundary: actor movement/AI/skill logic is not replaced.
-function initialHumanoidId(){try{const id=localStorage.getItem(deviceSaveKey('tidebreak.expanded.model'));return ['A','B','C','SHINO','TSUKU'].includes(id)?id:'SHINO';}catch{return 'SHINO';}}
+function initialHumanoidId(){try{const id=deviceStorage.getItem(deviceSaveKey('tidebreak.expanded.model'));return ['A','B','C','SHINO','TSUKU'].includes(id)?id:'SHINO';}catch{return 'SHINO';}}
 function installNativeRenderer(){const T=THREE;renderer.scene.add(new T.HemisphereLight(0xe9f0ff,0x63676c,.80));for(const[col,intensity,x,y,z]of[[0xfff4e6,1.15,-3,4,4],[0xd5e7ff,.43,3,2,2],[0xd1e6ed,1.25,0,3,-3]]){const light=new T.DirectionalLight(col,intensity);light.position.set(x,y,z);renderer.scene.add(light);}renderer.name+=' / Expanded Humanoid';}
 humanoid=new HumanoidRuntime({weapons:WEAPONS,strikes:STRIKES,clips:POSE_CLIPS,windows:HIT_WINDOWS,progress:attackProgress,window:(kind,p)=>contactWindow(kind,p),hand:(kind,p)=>activeHandSide({kind,p}),echo:node=>renderer.scene.add(node),status:message=>{if($('humanoidStatus'))$('humanoidStatus').textContent=message;},attach:c=>{renderer.scene.add(c.root);for(const p of c.shadowMeshes)renderer.shadowScene.add(p);renderer.renderer.renderLists.dispose();}});
 const expandedOldPose=actorPose,expandedOldSample=sampleWeapon,expandedOldDraw=drawActor,expandedOldParts=actorParts;
@@ -3867,10 +3871,10 @@ function expandedParts(a,p){const out=[],w=WEAPONS[a.weapon];if(a.weapon!=='fist
  return out;
 }
 actorParts=function(a,p){return a.hero&&humanoid.current?expandedParts(a,p):expandedOldParts(a,p);};
-drawActor=function(a,out,shadows,now){if(!a.hero||!humanoid.current)return expandedOldDraw(a,out,shadows,now);humanoid.updateEchoes(showFX);const p=humanoid.render(a);for(const part of expandedParts(a,p))out.append(models[part.name],part.m,a.dead?1-clamp((a.deadTime-.85)/.70,0,1):1,a.flash>0?[1,1,.96,clamp(a.flash*6.5,0,.84)]:null);a.weaponBase=p.a;a.weaponTip=p.b;a.trailActive=p.active;if(!a.dead){disc(shadows,a.x,.076,a.z,.36,.27,[.025,.075,.10,.19/(1+(a.air||0))],20);disc(shadows,a.x,.075,a.z,.49,.38,[.035,.10,.13,.07],20);}};
+drawActor=function(a,out,shadows,now){if(!a.hero||!humanoid.current)return expandedOldDraw(a,out,shadows,now);humanoid.updateEchoes(showFX);const p=humanoid.render(a);for(const part of (storySession?.carried||STORY_MODE&&lifeClock.ageYears<7?[]:expandedParts(a,p)))out.append(models[part.name],part.m,a.dead?1-clamp((a.deadTime-.85)/.70,0,1):1,a.flash>0?[1,1,.96,clamp(a.flash*6.5,0,.84)]:null);a.weaponBase=p.a;a.weaponTip=p.b;a.trailActive=p.active;if(!a.dead){disc(shadows,a.x,.076,a.z,.36,.27,[.025,.075,.10,.19/(1+(a.air||0))],20);disc(shadows,a.x,.075,a.z,.49,.38,[.035,.10,.13,.07],20);}};
 const echoExpanded=addEcho;addEcho=function(a){echoExpanded(a);if(a.hero&&showFX&&humanoid.current)humanoid.captureEcho(a);};
 const hitExpanded=knockReaction;knockReaction=function(a,...args){a._hitSerial=(a._hitSerial||0)+1;return hitExpanded(a,...args);};
-async function chooseHumanoid(id){const select=$('avatar'),before=humanoid.modelId;select.disabled=true;const busy=$('humanoidBusy');busy.hidden=false;try{await humanoid.load(id);select.value=id;try{localStorage.setItem(deviceSaveKey('tidebreak.expanded.model'),id);}catch{}if(hero){hero.trail=[];hero._humanoidModel=id;}syncEquipment();refreshHumanoidUI();renderOverview(true);if(hero){camera(0);drawFrame();updateLiveUI();}store();return true;}catch(e){humanoid.errors.push(e.message);select.value=before;toast('モデルを変更できませんでした：'+e.message);return false;}finally{select.disabled=false;busy.hidden=true;}}
+async function chooseHumanoid(id){const select=$('avatar'),before=humanoid.modelId;select.disabled=true;const busy=$('humanoidBusy');busy.hidden=false;try{await humanoid.load(id);select.value=id;try{deviceStorage.setItem(deviceSaveKey('tidebreak.expanded.model'),id);}catch{}if(hero){hero.trail=[];hero._humanoidModel=id;}syncEquipment();refreshHumanoidUI();renderOverview(true);if(hero){camera(0);drawFrame();updateLiveUI();}store();return true;}catch(e){humanoid.errors.push(e.message);select.value=before;toast('モデルを変更できませんでした：'+e.message);return false;}finally{select.disabled=false;busy.hidden=true;}}
 function refreshHumanoidUI(){const c=humanoid.current;if(!c)return;$('avatar').value=c.id;$('avatarSummary').textContent=c.m.name;$('humanoidPortrait').src=window.ASSET_PORTRAITS?.[c.id]||'assets/portrait_'+c.id+'.webp';$('humanoidCredit').textContent=c.m.credit+'\n'+c.m.license+'\n'+c.m.commercialNotes;}
 function installCharacterUI(){const sel=$('avatar');sel.replaceChildren(...humanoid.catalog.map(m=>new Option(m.name,m.id)));sel.onchange=()=>chooseHumanoid(sel.value);const status=document.createElement('small');status.id='humanoidStatus';sel.after(status);const portrait=document.createElement('img');portrait.id='humanoidPortrait';portrait.alt='選択中のキャラクター';$('avatarSummary').before(portrait);const credit=document.createElement('p');credit.id='humanoidCredit';$('equipmentFields').append(credit);const detail=document.createElement('details');detail.className='humanoid-details';detail.innerHTML='<summary>Animationとモデルについて</summary><p>Expanded Review収録の5体。Idle / Walk / Run：共通VRMA。被弾と拳の動作：Review作成モーション。武器別攻撃・死亡・共通Weapon SocketはTidebreak向けの追加実装です。モデル切替では体力・技・位置を変更しません。</p><p>モデルに内蔵Animationはありません。各キャラクターの原作・利用条件は同梱のlicensesをご確認ください。</p><div class="humanoid-actions"><button id="sameCombatReset" type="button">同じ条件で稽古をリセット</button><button id="humanoidReport" type="button">骨格・Socket情報を書き出す</button></div>';$('panel-character').append(detail);$('sameCombatReset').onclick=()=>{resetScene(true);refreshHumanoidUI();};$('humanoidReport').onclick=()=>{const b=new Blob([JSON.stringify(humanoid.report(),null,2)],{type:'application/json'}),url=URL.createObjectURL(b),a=document.createElement('a');a.href=url;a.download='Tidebreak_'+humanoid.modelId+'_Humanoid.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);};const busy=document.createElement('div');busy.id='humanoidBusy';busy.hidden=true;busy.textContent='キャラクターとAnimationを読み込んでいます';$('stage').append(busy);}
 const syncExpanded=syncEquipment;syncEquipment=function(){syncExpanded();if($('humanoidPortrait')&&humanoid.current)refreshHumanoidUI();};
@@ -3889,20 +3893,20 @@ function installHumanoidLab(){refreshHumanoidUI();window.__CG_QUALITY__={version
 
 // UI/platform boundary. The domain clock has no browser or renderer dependencies.
 const LIFE_STORE=deviceSaveKey('rinne.tidebreak.life.v1');
-function readLifeSave(){try{return JSON.parse(localStorage.getItem(LIFE_STORE)||'null');}catch{return null;}}
+function readLifeSave(){try{return JSON.parse(deviceStorage.getItem(LIFE_STORE)||'null');}catch{return null;}}
 const lifeClock=new LifeClock(readLifeSave());let lifeUIReady=false,lifeSaveElapsed=0,lifeWasPaused=false,lifeStorageOK=true;
-function saveLife(){try{localStorage.setItem(LIFE_STORE,JSON.stringify(lifeClock));lifeStorageOK=true;}catch{lifeStorageOK=false;}if($('lifeSaveNote'))$('lifeSaveNote').textContent=lifeStorageOK?'この端末に年齢と設定を自動保存します。':'この閲覧環境では保存できません。閉じると年齢が戻ります。';}
+function saveLife(){try{deviceStorage.setItem(LIFE_STORE,JSON.stringify(lifeClock));lifeStorageOK=true;}catch{lifeStorageOK=false;}if($('lifeSaveNote'))$('lifeSaveNote').textContent=lifeStorageOK?'この端末に年齢と設定を自動保存します。':'この閲覧環境では保存できません。閉じると年齢が戻ります。';}
 function syncHeroAge(){if(hero){hero.lifeAgeYears=lifeClock.ageYears;hero.lifeAgeScale=appearanceForAge(lifeClock.ageYears).scale;}}
 function cancelLifeCombat(a){if(!a)return;if(a.attack)audio.cancelAttack(a.attack.id);for(const k of ['attack','run','pendingCounter','pendingReceive','recovery','reaction','endlag','flow','zanshin','evasion','parryMotion','spacing','plan'])a[k]=null;a.trail=[];a.trailActive=false;a.kx=a.kz=a.vx=a.vz=0;a.burn=a.ward=a.stun=0;a.burnOwner=null;a.airV=0;a.guarding=false;}
 function removeLifeEnemies(){for(const e of enemies)cancelLifeCombat(e);enemies=[];cancelLifeCombat(hero);if(hero&&!hero.dead)changeReadiness(hero,false,'敵の出現をOFFにしました');releaseMove();particles=[];circles=[];crowns=[];impacts=[];ghosts=[];auras=[];echoes=[];mist=[];lastContacts=[];for(const f of floats)f.el.remove();floats=[];humanoid?.clearEchoes();hitstop=0;shake=0;audio.stopVoices();}
 function setLifeEnemies(enabled){lifeClock.setEnemies(enabled);if(!enabled)removeLifeEnemies();else if(!enemies.length&&hero&&!lifeClock.expired){const n=opponent==='group'?3:1,x=hero.x>0?-5:5;enemies=Array.from({length:n},(_,i)=>{const e=makeActor(false,x,n===3?(i-1)*2.2:0,i);e.spawn=.65;e.invuln=.85;e.yaw=Math.atan2(hero.x-e.x,hero.z-e.z);initFeet(e);return e;});}saveLife();updateLiveUI();syncLifeUI();}
 function endLife(restored=false){if(!hero||hero.lifeExpired)return;syncHeroAge();cancelLifeCombat(hero);releaseMove();audio.stopVoices();hero.lifeExpired=true;hero.dead=true;hero.hp=0;hero.deadTime=restored?1.6:0;hero.air=hero.airV=0;hero.deathPose=poseChannels(hero);hero.combatReady=false;hero.weaponTransition=null;hitstop=0;shake=0;for(const e of enemies)cancelLifeCombat(e);humanoid?.clearEchoes();if(!restored)addLog('90歳。静かに、生涯を終えました。','life');saveLife();if(restored)showLifeDeath();}
-function showLifeDeath(){if(!lifeUIReady||$('lifeDeathDialog').open)return;paused=true;acc=0;syncPause();$('lifeDeathAge').textContent=lifeClock.age+'歳';$('lifeDeathDialog').showModal();syncLifeUI();}
+function showLifeDeath(){if(STORY_MODE)return;if(!lifeUIReady||$('lifeDeathDialog').open)return;paused=true;acc=0;syncPause();$('lifeDeathAge').textContent=lifeClock.age+'歳';$('lifeDeathDialog').showModal();syncLifeUI();}
 function advanceLife(realSeconds){if(!hero||lifeClock.expired)return;const event=lifeClock.advance(realSeconds);syncHeroAge();lifeSaveElapsed+=realSeconds;if(event.birthdays)syncLifeUI();if(event.died)endLife();if(lifeSaveElapsed>=2||event.died){lifeSaveElapsed=0;saveLife();}}
 const resetBeforeLife=resetScene;
 resetScene=function(...args){resetBeforeLife(...args);syncHeroAge();if(!lifeClock.enemiesEnabled)removeLifeEnemies();if(lifeClock.expired)endLife(true);syncLifeUI();};
 const replaceBeforeLife=replaceActor;
-replaceActor=function(a){if(a.hero&&a.lifeExpired)return a;if(!a.hero&&!lifeClock.enemiesEnabled)return null;const next=replaceBeforeLife(a);if(a.hero)syncHeroAge();return next;};
+replaceActor=function(a){if(storySession)return a;if(a.hero&&a.lifeExpired)return a;if(!a.hero&&!lifeClock.enemiesEnabled)return null;const next=replaceBeforeLife(a);if(a.hero)syncHeroAge();return next;};
 const updateBeforeLife=update;
 update=function(dt){updateBeforeLife(dt);if(hero?.lifeExpired&&hero.deadTime>=1.55)showLifeDeath();};
 const liveBeforeLife=updateLiveUI;
@@ -3921,6 +3925,57 @@ function installLifeUI(){const badge=document.createElement('button');badge.id='
  window.__LIFE_LAB__={snapshot:()=>lifeClock.snapshot(),advance:seconds=>{advanceLife(seconds);syncHeroAge();camera(0);drawFrame();updateLiveUI();return lifeClock.snapshot();},setRate:rateChanged,setEnemies:setLifeEnemies,rebirth:rebirthLife,save:saveLife};
 }
 
+
+/** Explicit main-game port; the simulator's input, clock and combat remain owners. */
+function installStoryPort(){
+ paused=true;syncPause();storySession={moveScale:1,carried:true,tick:null,draw:null,bounds:{x:7.6,z:5.4},canEnter:null,zone:'village'};
+ world.props=[];world.flags=[];world.colliders=[];removeLifeEnemies();
+ const actorState=a=>({x:a.x,z:a.z,hp:a.hp,maxhp:a.maxhp,dead:a.dead,weapon:a.weapon});
+ const snapshot=()=>({life:lifeClock.snapshot(),hero:actorState(hero),enemies:enemies.map(actorState),paused});
+ const position=(x,z)=>{hero.x=clamp(x,-256,256);hero.z=clamp(z,-256,256);hero.kx=hero.kz=0;initFeet(hero);releaseMove();camera(0);};
+ const restoreActor=(a,s)=>{a.x=s.x;a.z=s.z;a.hp=s.hp;a.maxhp=s.maxhp;a.dead=s.dead;a.deadTime=s.dead?2:0;a.weapon=s.weapon;initFeet(a);};
+ window.__RINNE_GAME_PORT__={
+  version:1, snapshot, stopMove:releaseMove,position,
+  world({zone,bounds,canEnter}){Object.assign(storySession,{zone,bounds,canEnter});camera(0);},
+  subscribe(fn){storySession.tick=fn;return()=>{storySession.tick=null;};},
+  view(){return{THREE,scene:renderer.scene,humanoid:()=>humanoid.current,hero:()=>hero,
+   onDraw(fn){storySession.draw=fn;},colliders:items=>{world.colliders=items;},background:rgb=>{renderer.backgroundOverride=rgb;}};},
+  async resident(){
+   const runtime=new HumanoidRuntime({...humanoid.api,status:()=>{},attach:c=>{renderer.scene.add(c.root);for(const p of c.shadowMeshes)renderer.shadowScene.add(p);}});
+   await runtime.load('SHINO');const a=makeActor(true,0,0);a.weapon='fist';a.lifeAgeYears=32;a.lifeAgeScale=1;
+   return {runtime,render({x,z,yaw=0,dead=false,clock=0}){Object.assign(a,{x,z,yaw,dead,deadTime:dead?1.4:0,_humanoidClock:clock});runtime.render(a);},dispose(){runtime.dispose(runtime.current);}};
+  },
+  pause(value){if(document.hidden){hiddenWasPaused=!!value;paused=true;}else paused=!!value;acc=0;lastTime=0;releaseMove();syncPause();},
+  setRate(value){lifeClock.setRate(value);syncLifeUI();},
+  posture({carried=false,moveScale=1}){storySession.carried=carried;storySession.moveScale=moveScale;},
+  save(){return{version:1,life:lifeClock.toJSON(),notebook:exportData(),hero:actorState(hero),enemies:enemies.map(actorState)};},
+  async restore(data){
+   // Validate everything before replacing the running world.
+   const notebook=data?decodeNotebook(data.notebook,false):null;
+   const model=data?.notebook?.equipment?.humanoidModel;
+   if(model&&!['A','B','C','SHINO','TSUKU'].includes(model))throw Error('キャラクターの保存形式が不正です');
+   if(model&&model!==humanoid.modelId&&!await chooseHumanoid(model))throw Error('保存したキャラクターを読み込めません');
+   if(notebook)applyNotebook(notebook,true);
+   Object.assign(lifeClock,new LifeClock(data?.life));lifeClock.setEnemies(false);resetScene(true);
+   if(data){restoreActor(hero,data.hero);enemies=data.enemies.map((s,i)=>{const e=makeActor(false,s.x,s.z,i);restoreActor(e,s);return e;});lifeClock.setEnemies(enemies.length>0);}
+   else position(-5,1.6);
+   syncHeroAge();paused=true;syncPause();camera(0);drawFrame();
+  },
+  encounter(front){removeLifeEnemies();lifeClock.setEnemies(true);opponent=front===5?'duel':'group';
+   const count=front===5?1:Math.min(3,1+Math.floor(front/2));
+   enemies=Array.from({length:count},(_,i)=>{const e=makeActor(false,3,(i-(count-1)/2)*2,i);e.hp=e.maxhp=front===5?540:e.maxhp;e.spawn=1;e.invuln=1;initFeet(e);return e;});position(-5,3);
+  },
+  village(at){lifeClock.setEnemies(false);removeLifeEnemies();if(at)position(at.x,at.z);},
+  recover(){cancelLifeCombat(hero);hero.dead=false;hero.lifeExpired=false;hero.hp=hero.maxhp*.5;hero.deadTime=0;hero.spawn=.5;hero.invuln=1;humanoid.current.state=null;humanoid.current.lastActual=null;},
+  heal(amount){if(!hero.dead&&!lifeClock.expired)hero.hp=Math.min(hero.maxhp,hero.hp+Math.max(0,amount));},
+  rebirth(){rebirthLife();lifeClock.setEnemies(false);removeLifeEnemies();position(-5,1.6);},
+  weapons:()=>Object.entries(WEAPONS).map(([id,w])=>({id,name:w.label})),
+  equip(id){if(lifeClock.ageYears<7||!Object.hasOwn(WEAPONS,id))return false;changeWeapon(id);return true;},
+  discover(id,name){const key='story-'+id;if(library.some(r=>r.id===key))return true;if(library.length>=60)return false;const r=generateSkill('jo',true);r.id=key;r.name=name;library.push(r);renderLibrary();return true;},
+  notebook:()=>exportData(),openNotebook:()=>{$('settingsBtn').click();},
+ };
+}
+
 try{
  await window.__RINNE_BOOT__?.step({stage:'engine',message:'WebGLの描画と世界を準備しています'});
  loadStorage();renderer=new ThreeRenderer(canvas,THREE);installNativeRenderer();setupModels();reforgeModels();setupAtelierModels();setupGirlModels();world=makeWorld();
@@ -3928,7 +3983,7 @@ try{
  for(let n=-8;n<=8;n++){const alpha=n===0?.22:.075;grid.quad([n,.051,-7],[n+.012,.051,-7],[n+.012,.051,7],[n,.051,7],[.85,.83,.62,alpha],1);grid.quad([-9,.052,n],[9,.052,n],[9,.052,n+.012],[-9,.052,n+.012],[.85,.83,.62,alpha],1);}for(const r of [1,2,3,4])ring(grid,[0,.054,0],r,.012,[.86,.82,.60,.11],80);
  layers=[{b:world.water,static:true,water:true},{b:world.static,static:true,cast:true},{b:grid,static:true,alpha:true},{b:shadow,alpha:true},{b:dynamic,cast:true},{b:fx,alpha:true},{b:glow,alpha:true,additive:true}];
  buildUI();installCharacterUI();await humanoid.load(initialHumanoidId());await window.__RINNE_BOOT__?.step({stage:'render',message:'最初のゲーム画面を描画しています'});addHistory();resetScene(true);syncEditor();renderLibrary();resize();camera(0);drawFrame();$('boot').hidden=true;if(!window.__ATELIER_TEST_MODE__)requestId=requestAnimationFrame(loop);
- installHumanoidLab();installLifeUI();
+ installHumanoidLab();installLifeUI();if(STORY_MODE)installStoryPort();
  // Deterministic, local-only inspection hooks. No network, no telemetry transmission.
  window.__ATELIER__={
  snapshot:()=>({version:'10.2.0-life',life:lifeClock.snapshot(),motionVersion:'expanded-humanoid-1.0',craftRarityProfile,autoDash:{...autoDash},stanceRules:{...STANCE_RULES},tempoMode,hudVersion:'attack-defense-2',enemyStyle,defenseMode,fixedMindset,attackPools:copy(attackPools),candidateIndex:copy(candidateIndex),camera:{angle:camAngle,pitch:camPitch,zoom},manual:{...manual},ready:true,paused,automatic:true,renderer:renderer.name,fps,drawMs,time,elapsed,triangles:renderer.triangles,resolution:[canvas.width,canvas.height],equippedWeapon,battleMode,rarityProfile,mindset,escort:escort?{id:escort.id,hp:escort.hp,maxhp:escort.maxhp,dead:escort.dead,x:escort.x,z:escort.z}:null,lastRandomSkills:copy(lastRandomSkills),current:copy(current),selectedSlot,loadout:copy(loadout),drafts:copy(drafts),stats:copy(stats),opponent,avatar,motionScale,hero:actorSnapshot(hero),enemies:enemies.map(actorSnapshot),effects:{ripples:ripples.length,crowns:crowns.length,dust:mist.filter(p=>p.kind==='dust').length,particles:particles.length,trail:hero.trail.length,auras:auras.length,echoes:echoes.length,mist:mist.length,mistBudget:[100,210,310][prefs.quality]},library:copy(library),contacts:copy(lastContacts),audio:{...audio.snapshot(),groundSamples:!!audio.groundSamples},storageOK}),
