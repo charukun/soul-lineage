@@ -1,0 +1,200 @@
+name: Integration Rescue
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  coordinator:
+    name: Plan Rescue Wave
+    if: github.repository == 'charukun/soul-lineage' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    concurrency:
+      group: integration-rescue-coordinator
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: read
+      issues: read
+      statuses: read
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      has_workers: ${{ steps.plan.outputs.has_workers }}
+      max_parallel: ${{ steps.plan.outputs.max_parallel }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Bound queue scan and atomically reserve independent workers
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESCUE_CONFIGURED: ${{ secrets.OPENAI_API_KEY != '' && secrets.RESCUE_GITHUB_TOKEN != '' }}
+          MAX_RESCUE_CONCURRENCY: ${{ vars.MAX_RESCUE_CONCURRENCY }}
+          MAX_RESCUE_ATTEMPTS: ${{ vars.MAX_RESCUE_ATTEMPTS }}
+          RESCUE_DIAGNOSTICS_PATH: .deploy-state/rescue-api.json
+          RESCUE_COORDINATOR: 'true'
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/integration-rescue-coordinator.mjs
+      - name: Notify Coordinator failure without depending on GitHub state availability
+        if: failure()
+        env:
+          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+        run: node scripts/integration-rescue-return.mjs --coordinator-failure
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-rescue-coordinator-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .deploy-state/rescue-*.json
+          include-hidden-files: true
+          retention-days: 7
+
+  worker:
+    name: Rescue PR ${{ matrix.pr }}
+    needs: coordinator
+    if: needs.coordinator.outputs.has_workers == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ fromJSON(needs.coordinator.outputs.max_parallel) }}
+      matrix: ${{ fromJSON(needs.coordinator.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: integration-rescue-pr-${{ matrix.pr }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: write
+      issues: write
+      statuses: read
+    env:
+      RESCUE_PR: ${{ matrix.pr }}
+      RESCUE_ID: ${{ matrix.rescueId }}
+      RESCUE_WORKER_ID: ${{ matrix.workerId }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ matrix.head }}
+          path: work
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Recheck claim, head, develop, reviews and dependencies
+        id: prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node control/scripts/integration-rescue-worker.mjs prepare work "$RUNNER_TEMP/rescue/context.json"
+      - name: Prepare isolated AI user and immutable trusted wrapper
+        if: steps.prepare.outputs.needs_ai == 'true'
+        run: |
+          sudo useradd --create-home rescue-agent
+          sudo chown -R "rescue-agent:$(id -gn)" work
+          sudo chmod -R g+rwX work
+          sudo chown -R root:root control
+          sudo chmod -R a-w control
+          chmod a+rx "$RUNNER_TEMP" "$RUNNER_TEMP/rescue"
+          chmod a+r "$RUNNER_TEMP/rescue/"*
+      - name: Heartbeat the live worker lease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          node control/scripts/integration-rescue-worker.mjs heartbeat work "$RUNNER_TEMP/rescue/context.json" > "$RUNNER_TEMP/rescue/heartbeat.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/rescue/heartbeat.pid"
+      - name: Semantic reconciliation on the exact PR checkout
+        if: steps.prepare.outputs.needs_ai == 'true'
+        uses: openai/codex-action@86365089eb2b84e0a8fb0717b304f8bdcb13b20e
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          model: ${{ vars.RINNE_CODEX_MODEL }}
+          working-directory: work
+          prompt-file: ${{ runner.temp }}/rescue/context.json.prompt
+          output-schema-file: ${{ runner.temp }}/rescue/context.json.schema
+          output-file: work/.rescue-result.json
+          permission-profile: ':workspace'
+          safety-strategy: unprivileged-user
+          codex-user: rescue-agent
+          allow-bots: true
+      - name: Return checkout ownership to trusted wrapper
+        if: always() && steps.prepare.outputs.needs_ai == 'true'
+        run: sudo chown -R "$(id -u):$(id -g)" work
+      - name: Trusted fast verification and ordinary push to the original PR branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESCUE_PUSH_TOKEN: ${{ secrets.RESCUE_GITHUB_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node control/scripts/integration-rescue-worker.mjs finish work "$RUNNER_TEMP/rescue/context.json"
+      - name: Preserve failure state and fence this lease
+        if: failure() || cancelled()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node control/scripts/integration-rescue-worker.mjs fail work "$RUNNER_TEMP/rescue/context.json"
+      - name: Stop heartbeat
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/rescue/heartbeat.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/rescue/heartbeat.pid")" 2>/dev/null || true
+          fi
+      - name: Return this worker immediately and notify actionable failures
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node control/scripts/integration-rescue-return.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-rescue-pr-${{ matrix.pr }}-${{ matrix.rescueId }}
+          path: ${{ runner.temp }}/rescue/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
+
+  return:
+    name: Return repaired heads to normal Integration
+    needs: [coordinator, worker]
+    if: always() && needs.coordinator.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: integration-rescue-return
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: read
+      issues: write
+      actions: write
+      statuses: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Aggregate return, delivery tracking and actionable notifications
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node scripts/integration-rescue-return.mjs

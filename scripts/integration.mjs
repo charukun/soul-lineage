@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { contextName, dependencies, eligibility } from './integration-policy.mjs';
+import { integrationRescueReason } from './integration-rescue-policy.mjs';
 
 export const queueContext = 'integration/queue';
 export const trustedReviewContext = 'integration/trusted-review';
@@ -408,6 +409,7 @@ export async function integrate(c, repository, wait = delay, options = {}) {
   const finalStatuses = await c.pages(`/commits/${report.sha}/statuses`, undefined, { maxPages: 10 });
   report.verified = finalStatuses.find(x => x.context === contextName)?.state === 'success';
   report.finishedAt = new Date().toISOString();
+  for (const item of [...report.held, ...report.deferred]) item.rescueReason = integrationRescueReason(item.reason);
   report.durationMs = Date.now() - startedMs;
   return report;
 }

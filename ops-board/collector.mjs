@@ -4,6 +4,7 @@ import { buildApplications } from './applications.mjs';
 import { createGithubClient } from './github-client.mjs';
 import { enrichTargets, actionProblems } from './review-model.mjs';
 import { FAILED_CONCLUSIONS } from './public/health.mjs';
+import { collectRescue } from './rescue.mjs';
 const RUNNING = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
 const stamp = () => new Date().toISOString();
 function runView(run) {
@@ -116,6 +117,7 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     }
     if (workflowFailure(developRuns[0])) alerts.push({ type: 'integration-failed', tone: 'danger', title: '自動統合処理が失敗', detail: developRuns[0].conclusion, url: developRuns[0].html_url });
     // Target lookup is optional: a rate-limit here must not discard fresh deploy/CI facts.
+    const integrationRescue = await collectRescue(client, previous?.integrationRescue);
     const targets = await enrichTargets(allPulls, client, storage, token ? 16 : 2);
     const pullRequests = splitPulls(targets.pulls);
     const failures = actionProblems(runs, allPulls);
@@ -125,7 +127,7 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
       pullRequests: { ...pullRequests, total: allPulls.length, truncated: !pullsComplete, targetLookup: { ready: targets.ready, pending: targets.pending, unavailable: targets.unavailable, attempted: targets.attempted } },
       applications, applicationsUpdatedAt: now, applicationsSource: 'public-manifest', environments: [dev, staging, prod, ...previews], environmentDiff: environmentDiff(dev, prod),
       integration: { ...integration, queue: integrationQueue, latestRun: runView(developRuns[0]), deployWaiting: dev.deployQueue?.pulls || [], watchdog: { stalledThresholdMinutes: 10, staleReadyCount: integrationQueue.filter(item => item.warning).length } },
-      recentActionFailures: failures.current.map(runView), actionHistory: failures.history.map(runView), alerts,
+      integrationRescue, recentActionFailures: failures.current.map(runView), actionHistory: failures.history.map(runView), alerts,
       publicManifest: { url: manifestUrl.origin + manifestUrl.pathname, schemaVersion: manifest.schemaVersion, validatedDevelop: manifest.validatedDevelop || null, environmentSnapshots: manifest.environmentSnapshots || null } };
   } finally { await client.prune(); }
 }
