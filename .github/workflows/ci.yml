@@ -11,6 +11,27 @@ concurrency:
   group: ci-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
+  request-rescue:
+    name: Request Rescue observation
+    if: >-
+      github.event.pull_request.base.ref == 'develop' && !github.event.pull_request.draft &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            const file = await github.rest.repos.getContent({ ...context.repo, path: 'scripts/integration-rescue-coordinator.mjs', ref: 'develop' }).catch(error => {
+              if (error.status === 404) return null;
+              throw error;
+            });
+            if (file) await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'deploy.yml', ref: 'develop', inputs: { rescue_mode: 'scan' } });
+
   draft-check:
     name: Draft lightweight check
     if: github.event.pull_request.base.ref == 'develop' && github.event.pull_request.draft

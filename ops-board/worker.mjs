@@ -15,8 +15,15 @@ export class OpsState extends DurableObject {
     const current = await readStored(this.ctx.storage, STATE_KEY);
     const legacy = await this.ctx.storage.get('ops-state-v1');
     if (!current) return legacy || null;
-    if (!legacy) return current;
-    return (Date.parse(legacy.generatedAt || '') || 0) > (Date.parse(current.generatedAt || '') || 0) ? legacy : current;
+    const state = !legacy ? current : (Date.parse(legacy.generatedAt || '') || 0) > (Date.parse(current.generatedAt || '') || 0) ? legacy : current;
+    const rescue = await readStored(this.ctx.storage, 'rescue-observation-v1');
+    if (rescue && Date.parse(rescue.generatedAt) > Date.parse(state.integrationRescue?.generatedAt || 0)) return { ...state, integrationRescue: rescue };
+    return state;
+  }
+  async observeRescue(snapshot) {
+    const previous = await readStored(this.ctx.storage, 'rescue-observation-v1');
+    if (!previous || Date.parse(snapshot.generatedAt) > Date.parse(previous.generatedAt)) await writeStored(this.ctx.storage, 'rescue-observation-v1', snapshot);
+    return { accepted: true };
   }
   async refresh(source = 'manual', requestToken = '') {
     if (this.inflight) {
@@ -63,6 +70,14 @@ export default {
         if (token.length > 1024) return json({ error: 'invalid_credential' }, 400);
         const stub = env.OPS_STATE.getByName('global');
         return json(publicState(await stub.refresh('github-event', token), env));
+      }
+      if (url.pathname === '/api/rescue-observation' && request.method === 'POST') {
+        if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
+        const body = await request.text();
+        if (body.length > 900000) return json({ error: 'snapshot_too_large' }, 413);
+        const snapshot = JSON.parse(body);
+        if (!snapshot.available || !Number.isFinite(Date.parse(snapshot.generatedAt)) || !Array.isArray(snapshot.workers) || !Array.isArray(snapshot.queue)) return json({ error: 'invalid_snapshot' }, 400);
+        return json(await env.OPS_STATE.getByName('global').observeRescue(snapshot));
       }
       if (url.pathname.startsWith('/api/')) return json({ error: 'not_found' }, 404);
       return env.ASSETS.fetch(request);

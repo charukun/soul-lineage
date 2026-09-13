@@ -42,20 +42,9 @@ try {
   await boot({
     onProgress(value, text) { progress.value = value; message.textContent = text; },
   });
-  await import('./mura-world-systems.js');
-  await import('./mura-performance.js');
-  await import('./mura-experience.js');
-  await import('./mura-rotation-fix.js');
-  await import('./mura-v2-ui.js');
-  await import('./mura-entry-polish.js');
-  await import('./mura-housing-ui-polish.js');
-  await import('./mura-mobile-feedback-fix.js');
-  await import('./mura-mobile-feedback-fix-2.js');
-  await import('./mura-mobile-feedback-fix-3.js');
-  await import('./mura-ux-polish-4.js');
-  await import('./mura-ux-polish-4b.js');
-  await import('./mura-background-bgm.js');
-  await import('./mura-first-build.js');
+  // Preserve the historical side-effect order, but let Vite/browser fetch the
+  // post-boot layer as one module graph instead of 14 serial dynamic imports.
+  await import('./mura-enhancements.js');
   document.title = document.title.replace(/^星継ぎの庭/, 'MURAAAAAAA');
   clearTimeout(watchdog);
   finished = true;
