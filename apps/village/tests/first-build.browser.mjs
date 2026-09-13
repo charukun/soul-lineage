@@ -1,3 +1,5 @@
+import {verifyVillageDirectorPolish} from './director-polish.browser.mjs';
+
 /** User-facing placement help is exercised with native input, never world mutation. */
 const STARTUP_TIMEOUT_MS = 15_000;
 async function expectVillageReady(page, expect) {
@@ -97,4 +99,6 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   expect(restoredFacility.room.find(o=>o.id===bed.id)).toEqual(bed);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:testInfo.outputPath('first-build-reloaded.png')});
+
+  await verifyVillageDirectorPolish(page, expect, testInfo);
 }
