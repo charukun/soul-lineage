@@ -8,8 +8,10 @@ const labels = { DETECTED: '検知', QUEUED: '待機', BLOCKED_BY_RESCUE: '順�
 const order = ['DETECTED', 'QUEUED', 'CLAIMED', 'ANALYZING', 'RESOLVING', 'VALIDATING', 'PUSHING', 'AWAITING_PUSH', 'PUSHED', 'RETURNED_TO_INTEGRATION', 'CHECKING', 'MERGED', 'DEV'];
 function rail(record) {
   const box = node('ol', 'rs-rail');
-  const steps = record.returnedAt ? [['PUSHED','PUSH'],['RETURNED_TO_INTEGRATION','RETURN'],['CHECKING','CHECK'],['MERGED','MERGE'],['DEV','DEV']] :
-    [['ANALYZING','ANALYZE'],['RESOLVING','RESOLVE'],['VALIDATING','VALIDATE'],['PUSHING','PUSH'],['RETURNED_TO_INTEGRATION','RETURN']];
+  const delivery = [['CHECKING','CHECK'],['MERGED','MERGE'],['DEV','DEV']];
+  const steps = record.returnedAt ? [...(record.repairVerified ? [['PUSHED','PUSH']] : []),['RETURNED_TO_INTEGRATION','RETURN'],...delivery] :
+    ['MERGED','DEV'].includes(record.state) ? delivery :
+    [['ANALYZING','ANALYZE'],['RESOLVING','RESOLVE'],['VALIDATING','VALIDATE'],['PUSHED','PUSH'],['RETURNED_TO_INTEGRATION','RETURN']];
   const at = order.indexOf(record.currentStep || record.state);
   box.setAttribute('aria-label', `現在: ${labels[record.state] || record.state}`);
   for (const [state, label] of steps) {
@@ -25,8 +27,11 @@ function card(record, now, staleMs) {
   if (record.workerId) c.append(node('p', 'rs-worker-id', `WORKER ${record.workerId}`));
   const top = node('div', 'rs-card-head'); top.append(link(`#${record.pr}`, `pull/${record.pr}`), pill(stale ? 'WORKER STALE' : record.state, stale || manual ? 'danger' : record.lease ? 'live' : ''));
   c.append(top, node('h3', '', record.title || `PR #${record.pr}`));
+  if (record.returnedAt || ['AWAITING_PUSH','MERGED','DEV'].includes(record.state)) {
+    c.append(pill(({repaired:'修復push・検証を確認',staged:'commit準備済み・push待ち',reevaluated:'再評価のみ・修復pushなし',observed:'統合状況の観測・修復証跡なし'})[record.deliveryKind] || '修復証跡未確認'));
+  }
   c.append(node('p', 'rs-action', record.currentAction || labels[record.state] || record.state));
-  if (record.lease || record.returnedAt) c.append(rail(record));
+  if (record.lease || record.returnedAt || ['MERGED','DEV'].includes(record.state)) c.append(rail(record));
   const meta = node('div', 'rs-meta');
   meta.append(pill(record.risk || 'RED', (record.risk || 'RED').toLowerCase()), node('span', '', (record.scopes || []).join(' · ') || 'Scope未確定'));
   c.append(meta, node('p', 'rs-note', `Reason: ${record.reason || '状態再評価'}`));
@@ -103,23 +108,27 @@ export function renderRescue(view, now = Date.now()) {
   if (view.waves.length) {
     const waves = node('section', 'rs-wave-list'); waves.append(node('h3', 'rs-group-title', 'Rescue Waves'));
     for (const w of view.waves.slice(0, 3)) {
-      const box = node('article', 'rs-wave'); box.append(node('strong', '', w.id), pill(w.completedAt ? 'REPAIRED / FINISHED' : 'ACTIVE'));
+      const box = node('article', 'rs-wave'); box.append(node('strong', '', w.id), pill(w.completedAt ? 'FINISHED' : 'ACTIVE'));
       const prs = node('p', '', 'Parallel: '); for (const pr of w.prs) prs.append(link(`#${pr}`, `pull/${pr}`), document.createTextNode(' ')); box.append(prs);
-      box.append(node('p', 'rs-note', `${w.repaired} / ${w.prs.length} returned to Integration`));
+      box.append(node('p', 'rs-note', `${w.repaired} 修復push確認 · ${w.returnedCount ?? 0} / ${w.prs.length} Integration復帰`));
       for (const r of w.waiting) box.append(node('p', 'rs-blocker', `#${r.pr} → waiting for ${r.blockedBy.map(n => '#' + n).join(', ')}`));
       waves.append(box);
     }
     root.append(waves);
   }
   if (view.queue.length) root.append(group('Queue · 次Wave候補 / 順番待ち', view.queue, now, view.staleMs, 'rs-queue'));
-  if (view.recent.length) root.append(group('Rescued → Integration → DEV', view.recent, now, view.staleMs, 'rs-recent'));
+  if (view.recent.length) root.append(group('修復・再評価・Integration / DEV観測', view.recent, now, view.staleMs, 'rs-recent'));
   const t = view.throughput;
   const stats = node('section', 'rs-throughput'); stats.append(node('h3', 'rs-group-title', 'Last 24h · 保持記録内'));
   stats.append(node('p', '', `Rescued ${t.rescued} · Merged ${t.merged} · Manual ${t.manual} · Retrying ${t.retrying}`)); root.append(stats);
+  stats.append(node('p', 'rs-note', 'Rescued / Mergedは同じWorkerの検証・修復push・復帰を確認できた件数。証跡未保持の履歴は含みません。'));
+  stats.append(node('p', 'rs-note', `修復証跡なしの観測: merge ${view.observed?.merged ?? 0} · DEV ${view.observed?.dev ?? 0}`));
   const feed = node('section', 'rs-activity'); feed.append(node('h3', 'rs-group-title', 'Recent activity'));
   for (const e of view.activity.slice(0, 12)) {
     const item = node('div', 'rs-event'); item.append(node('time', '', new Date(e.at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })));
-    const content = node('div'); if (e.pr) content.append(link(`#${e.pr}`, `pull/${e.pr}`)); content.append(node('p', '', e.action)); item.append(content); feed.append(item);
+    const content = node('div'); if (e.pr) content.append(link(`#${e.pr}`, `pull/${e.pr}`)); content.append(node('p', '', e.action));
+    if (['RETURNED_TO_INTEGRATION','MERGED','DEV'].includes(e.type) && !e.repairVerified) content.append(pill('修復証跡なしの観測'));
+    item.append(content); feed.append(item);
   }
   if (!view.activity.length) feed.append(node('p', 'rs-note', '直近のRescueイベントはありません'));
   root.append(feed);
