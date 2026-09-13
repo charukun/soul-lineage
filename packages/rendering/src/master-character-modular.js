@@ -1,7 +1,8 @@
-import { Color, DoubleSide, Group, Mesh, MeshStandardMaterial, Vector3 } from 'three';
+import { Color, DoubleSide, Group, Mesh, MeshStandardMaterial, Quaternion, Vector3 } from 'three';
 import { validateVisualIdentity } from '@soul/characters';
 import { attachFaceIdentity } from './master-character-face.js';
 import { leaseWardrobeGeometry, wardrobeCacheStats, hairGeometry, outfitGeometry, gearGeometry, accessoryGeometry } from './master-character-wardrobe.js';
+import { referenceArchetypePartSpecs, referenceDetailGeometry } from './reference-archetype-parts.js';
 
 const KEY = Symbol('master-character-modular');
 const BASE = Object.freeze({ version: 1, face: 'classic', hair: 'original', body: 'balanced', outfit: 'uniform', accessory: 'none' });
@@ -11,6 +12,7 @@ const FACE = { classic:[1,1,1], round:[1.08,.96,1.05], sharp:[.94,1.04,.96], lon
 const BODY = { balanced:[1,1,1], slender:[.9,1.02,.92], sturdy:[1.1,.98,1.08], compact:[1.04,.94,1.03] };
 const check = (ok, message) => { if (!ok) throw new Error(message); };
 const grayHair = new Color(.65,.65,.62);
+const downAxis = new Vector3(0,-1,0);
 function canonicalProfile(input) {
   check(input && typeof input === 'object' && (input.version === undefined || input.version === 1), 'Invalid modular appearance version');
   const result = { ...BASE, ...input, version: 1 };
@@ -42,8 +44,9 @@ export function attachModularAppearanceController(actor) {
     dark:new MeshStandardMaterial({name:'MC_DARK',color:0x382d25,roughness:.77}),
     metal:new MeshStandardMaterial({name:'MC_METAL',color:0x7f8c8b,roughness:.56,metalness:.32,side:DoubleSide})
   };
-  const shapeScratch=new Vector3(),dyeScratch=new Color();
-  const slots=new Map(), facial=attachFaceIdentity(actor), baseRoot=actor.root.scale.clone(), baseHead=actor.bones.head.scale.clone(), baseline=new Map();
+  const shapeScratch=new Vector3(),dyeScratch=new Color(),partDirection=new Vector3();
+  const slots=new Map(), referenceRoots=new Map(), facial=attachFaceIdentity(actor),
+    baseRoot=actor.root.scale.clone(), baseHead=actor.bones.head.scale.clone(), baseline=new Map();
   const adjusted=['hips','leftShoulder','rightShoulder','leftUpperArm','rightUpperArm','leftLowerArm','rightLowerArm','leftHand','rightHand','leftLowerLeg','rightLowerLeg','leftFoot','rightFoot'];
   function capture() { baseRoot.copy(actor.root.scale);baseHead.copy(actor.bones.head.scale);
     for(const name of adjusted)if(actor.bones[name]){let p=baseline.get(name);if(!p){p=new Vector3();baseline.set(name,p);}p.copy(actor.bones[name].position);} }
@@ -54,6 +57,35 @@ export function attachModularAppearanceController(actor) {
     clearSlot(slot);if(!key)return;
     const lease=leaseWardrobeGeometry(key,factory),mesh=new Mesh(lease.geometry,material);
     mesh.name=`mc-part:${key}`;mesh.castShadow=false;mesh.receiveShadow=false;parent.add(mesh);slots.set(slot,{key,lease,mesh});
+  }
+  function referenceRoot(spec) {
+    const key=`${spec.mount}:${spec.orientTo??''}`;
+    let entry=referenceRoots.get(key);
+    if(!entry){
+      const parent=actor.bones[spec.mount];check(parent?.isBone,`Missing reference detail mount: ${spec.mount}`);
+      entry={root:group(parent,`mc-reference-root:${key}`),spec};referenceRoots.set(key,entry);
+    }
+    return entry.root;
+  }
+  function refreshReferenceRoots() {
+    for(const {root,spec} of referenceRoots.values()){
+      root.quaternion.identity();
+      if(!spec.orientTo)continue;
+      const parent=actor.bones[spec.mount],child=actor.bones[spec.orientTo];
+      if(child?.parent!==parent||child.position.lengthSq()<=1e-8)continue;
+      partDirection.copy(child.position).normalize();
+      root.quaternion.copy(new Quaternion().setFromUnitVectors(downAxis,partDirection));
+    }
+  }
+  function buildReferenceParts() {
+    for(const key of [...slots.keys()])if(key.startsWith('reference:'))clearSlot(key);
+    const archetype=identity?.referenceArchetypeId;
+    if(!archetype)return;
+    const specs=referenceArchetypePartSpecs(archetype);
+    specs.forEach((spec,index)=>{
+      const material=materials[spec.material];check(material,`Invalid reference detail material: ${spec.material}`);
+      part(`reference:${index}`,`reference-v1:${spec.id}`,referenceRoot(spec),material,()=>referenceDetailGeometry(spec.id));
+    });
   }
   function buildParts() {
     for(const [name,g] of Object.entries(groups)) {const [slot,id]=name.split(':');g.visible=profile[slot]===id;}
@@ -67,6 +99,7 @@ export function attachModularAppearanceController(actor) {
       const hasGeometry=gear!=='none'&&(metal?['pauldron','armor','tools','quiver','pack','satchel','cowl','shawl','stole','chain'].includes(gear):gear!=='chain');
       part(`gear:${metal}`,hasGeometry?`gear-v1:${gear}:${metal}`:null,roots.gear,metal?materials.metal:materials.trim,()=>gearGeometry(gear,metal));
     }
+    buildReferenceParts();
   }
   function apply() {
     if(destroyed)return;
@@ -83,6 +116,7 @@ export function attachModularAppearanceController(actor) {
       }
       if(baseline.has('leftLowerLeg')&&baseline.has('leftFoot'))actor.bones.hips.position.y+=(Math.abs(baseline.get('leftLowerLeg').y)+Math.abs(baseline.get('leftFoot').y))*(p.legs-1);
     }
+    refreshReferenceRoots();
     for(const [material,visible] of sourceHair)material.visible=visible&&profile.hair==='original';
     if(appearance){
       materials.hair.color.setRGB(...appearance.hair).multiplyScalar(identity?.hairValue??1).lerp(grayHair,appearance.gray??0);
@@ -103,11 +137,13 @@ export function attachModularAppearanceController(actor) {
     },
     apply,
     diagnostics(){return{...profile,identityVersion:identity?.version??null,role:identity?.role??null,front:identity?.front??null,back:identity?.back??null,
+      referenceArchetypeId:identity?.referenceArchetypeId??null,referencePartMeshes:[...slots.keys()].filter(key=>key.startsWith('reference:')).length,
       sourceHairMaterials:sourceHair.size,faceMaterials:facial.materialCount,activePartMeshes:slots.size,shared:wardrobeCacheStats()};}
   };
   actor.sample=(p,...args)=>{sample(p,...args);appearance=p;capture();apply();};
   actor.reset=()=>{profile=BASE;identity=null;appearance=null;reset();capture();buildParts();apply();};
   actor.destroy=()=>{if(destroyed)return;actor.reset();for(const key of [...slots.keys()])clearSlot(key);
+    for(const {root} of referenceRoots.values())root.removeFromParent();referenceRoots.clear();
     Object.values(roots).forEach(g=>g.removeFromParent());Object.values(materials).forEach(m=>m.dispose());destroyed=true;destroy();};
   actor[KEY]=controller;actor.appearanceController=controller;buildParts();apply();return controller;
 }
