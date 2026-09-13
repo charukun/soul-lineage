@@ -9,23 +9,22 @@ test('guide starts with scent and progresses only after real input',()=>{
  assert.equal(firstHuntGuide(g,p,{sensed:true}).step,'approach');
  assert.equal(JSON.stringify([g,p]),before);
 });
-test('combat and devour take precedence over return and memory',()=>{
- const g=game();g.eaten=1;g.fight={};assert.equal(firstHuntGuide(g,profile(),{returning:true}).step,'combat');
+test('combat explains retreat and devour still takes precedence',()=>{
+ const g=game();g.eaten=1;g.fight={};const combat=firstHuntGuide(g,profile(),{returning:true});assert.equal(combat.step,'combat');assert.match(combat.text,/退く|離れ/);
  g.devour={};assert.equal(firstHuntGuide(g,profile()).step,'devour');
 });
 test('near a fallen prey recommends stopping, not movement',()=>{
  const g=game();g.village.npcs=[{x:0,z:10,dead:true,eaten:false}];assert.equal(firstHuntGuide(g,profile()).step,'stop');
  g.village.npcs[0].eaten=true;assert.equal(firstHuntGuide(g,profile()).step,'sense');
 });
-test('return with no prey cannot promise immediate escape',()=>{
- assert.equal(firstHuntGuide(game(),profile(),{returning:true}).step,'need-prey');
+test('return with no prey cannot promise immediate escape',()=>assert.equal(firstHuntGuide(game(),profile(),{returning:true}).step,'need-prey'));
+test('acquisition, lineage review and real exit distance form a complete guide',()=>{
+ const g=game();g.eaten=1;const acquired=firstHuntGuide(g,profile());assert.equal(acquired.step,'lineage');assert.match(acquired.text,/転生史/);
+ assert.equal(firstHuntGuide(g,profile(),{lineageSeen:true}).step,'return');
+ g.player.z=2.79;assert.equal(firstHuntGuide(g,profile(),{lineageSeen:true}).step,'escape');
+ g.player.z=2.8;assert.equal(firstHuntGuide(g,profile(),{lineageSeen:true}).step,'return');
 });
-test('acquisition, memory review and real exit distance form a complete guide',()=>{
- const g=game();g.eaten=1;assert.equal(firstHuntGuide(g,profile()).step,'memory');
- assert.equal(firstHuntGuide(g,profile(),{memorySeen:true}).step,'return');
- g.player.z=2.79;assert.equal(firstHuntGuide(g,profile(),{memorySeen:true}).step,'escape');
- g.player.z=2.8;assert.equal(firstHuntGuide(g,profile(),{memorySeen:true}).step,'return');
-});
+test('legacy memorySeen state remains compatible with an in-progress saved guide',()=>{const g=game();g.eaten=1;assert.equal(firstHuntGuide(g,profile(),{memorySeen:true}).step,'return');});
 test('abandonment/defeat/zero-prey retreat does not complete first hunt',()=>{
  for(const status of ['abandoned','defeated','entered'])assert.equal(hasCompletedFirstHunt({visits:{one:{status,eaten:2}}}),false);
  assert.equal(hasCompletedFirstHunt({visits:{one:{status:'escaped',eaten:0}}}),false);
