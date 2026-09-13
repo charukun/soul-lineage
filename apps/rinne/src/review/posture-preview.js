@@ -18,7 +18,7 @@ export function bakePosturePreview(runtime) {
     return ['draw', 'sheathe'].map(kind => {
       const name = kind === 'draw' ? '姿勢 / 抜刀（ゲーム共通）' : '姿勢 / 納刀（ゲーム共通）';
       const times = [], rotations = Object.fromEntries(Object.keys(current.bones).map(key => [key, []])), hips = [];
-      const actor = {id: 'lab-posture', hero: true, weapon: 'sword', combatReady: true, weaponTransition: true, x: 0, z: 0, yaw: 0, _humanoidClock: 0, _humanoidPhase: 0};
+      const actor = {id: 'lab-posture', hero: true, lifeAgeYears: 22, weapon: 'sword', combatReady: true, weaponTransition: true, x: 0, z: 0, yaw: 0, _humanoidClock: 0, _humanoidPhase: 0};
       for (let frame = 0; frame <= 84; frame++) {
         const time = frame / 84 * POSTURE_DURATION;
         actor.weaponDraw = postureAmount(kind, time);
