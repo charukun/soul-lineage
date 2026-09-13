@@ -3,7 +3,7 @@ import {makeModel,optimizeGroup,box,cyl,beam,mesh} from '@soul/housing-assets';
 import {KAYKIT} from '@soul/night-assets';
 import {random,hash} from '@soul/raid/world';
 import {createCreature,animateCreature} from './creatures.js';
-import {playableCharacter} from '../characters.js';
+import {activeCharacter,CHARACTER_SELECTION_ENABLED} from '../characters.js';
 import {loadReaperPlayer} from './reaper-player.js';
 const look=new T.Vector3(),temp=new T.Vector3(),modelCache=new Map();
 const palette=new Map();
@@ -23,7 +23,7 @@ export class NightView {
  this.groundTex=texture();this.resize();this.frameCount=0;this.fps=0;this.fpsClock=0;
  }
  async prepareCharacter(id){
-  if(id!=='silver-reaper'||this.reaper)return;
+  if(!CHARACTER_SELECTION_ENABLED||id!=='silver-reaper'||this.reaper)return;
   if(!this.reaperLoading)this.reaperLoading=loadReaperPlayer().then(reaper=>{this.reaper=reaper;reaper.root.visible=false;this.scene.add(reaper.root);}).finally(()=>{this.reaperLoading=null;});
   await this.reaperLoading;
  }
@@ -68,7 +68,7 @@ export class NightView {
  slash(x,z,yaw){const geo=new T.TorusGeometry(.9,.017,3,38,Math.PI*1.2),mesh=new T.Mesh(geo,new T.MeshBasicMaterial({color:0xe8ddbe,transparent:true,opacity:1,depthWrite:false,blending:T.AdditiveBlending}));mesh.rotation.set(.65,yaw,.4);mesh.position.set(x,1.2,z);this.effects.add(mesh);this.fx.push({mesh,age:0,life:.20});}
  update(g,dt,title=false){this.elapsed+=dt;const realNow=performance.now();this.fpsClock+=(realNow-(this.fpsLast||realNow))/1000;this.fpsLast=realNow;this.frameCount++;if(this.fpsClock>1){this.fps=this.frameCount/this.fpsClock;this.frameCount=0;this.fpsClock=0;}this.pulse=Math.max(0,this.pulse-dt);
  const p=g.player,time=g.time||this.elapsed,w=g.village;
- const requested=this.previewCharacter||playableCharacter(g.profile).id;
+ const requested=(CHARACTER_SELECTION_ENABLED&&this.previewCharacter)||activeCharacter(g.profile).id;
  this.characterId=requested==='silver-reaper'&&this.reaper?'silver-reaper':'night-creature';
  this.canvas.dataset.character=this.characterId;
  const displayPlayer=this.characterPreview?{...p,pose:null,speed:0,walk:0,yaw:this.characterPreviewYaw||0}:p;
