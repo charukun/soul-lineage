@@ -1,6 +1,7 @@
 import { API_HISTORY_PAGE_LIMIT, PAGES_ROOT, REPOSITORY, classifyPull, deploymentQueue, environmentDiff, overallIntegration, parseMergePulls, publishedCommit, workflowFailure } from './model.mjs';
 import { splitPulls, isVisualReviewPull } from './pulls.mjs';
 import { buildApplications } from './applications.mjs';
+import { collectCharacterReferences } from './character-references.mjs';
 import { createGithubClient } from './github-client.mjs';
 import { enrichTargets, actionProblems } from './review-model.mjs';
 import { FAILED_CONCLUSIONS } from './public/health.mjs';
@@ -106,6 +107,9 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     const previews = [];
     for (const candidate of previewCandidates(runs)) { const env = await previewEnvironment(candidate, branches, previous, client); if (env) previews.push(env); }
     const applications = buildApplications(manifest, [dev, staging, prod, ...previews], runs);
+    let characterReferences = previous?.characterReferences || { source:'docs/characters/references', branch:'develop', groups:[], totalGroups:0, totalAssets:0, stale:true };
+    try { characterReferences = await collectCharacterReferences(client); }
+    catch (error) { characterReferences = { ...characterReferences, stale:true, error:error?.message || String(error) }; }
     const openPulls = allPulls.filter(pr => pr.state === 'open' && !isVisualReviewPull(pr)).sort((a, b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0));
     const integrationQueue = openPulls.map(pr => classifyPull(pr, runs, developRuns));
     const integration = overallIntegration(integrationQueue, developRuns[0], [dev.deployQueue, prod.deployQueue]);
@@ -125,7 +129,7 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     return { schemaVersion: 2, repository: REPOSITORY, generatedAt: now, lastAttemptAt: now, startedAt, syncStatus: 'ok',
       syncSource: 'GitHub API + published deployment manifests/statuses', githubRateRemaining: client.remaining,
       pullRequests: { ...pullRequests, total: allPulls.length, truncated: !pullsComplete, targetLookup: { ready: targets.ready, pending: targets.pending, unavailable: targets.unavailable, attempted: targets.attempted } },
-      applications, applicationsUpdatedAt: now, applicationsSource: 'public-manifest', environments: [dev, staging, prod, ...previews], environmentDiff: environmentDiff(dev, prod),
+      applications, applicationsUpdatedAt: now, applicationsSource: 'public-manifest', characterReferences, environments: [dev, staging, prod, ...previews], environmentDiff: environmentDiff(dev, prod),
       integration: { ...integration, queue: integrationQueue, latestRun: runView(developRuns[0]), deployWaiting: dev.deployQueue?.pulls || [], watchdog: { stalledThresholdMinutes: 10, staleReadyCount: integrationQueue.filter(item => item.warning).length } },
       integrationRescue, recentActionFailures: failures.current.map(runView), actionHistory: failures.history.map(runView), alerts,
       publicManifest: { url: manifestUrl.origin + manifestUrl.pathname, schemaVersion: manifest.schemaVersion, validatedDevelop: manifest.validatedDevelop || null, environmentSnapshots: manifest.environmentSnapshots || null } };
