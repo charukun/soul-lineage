@@ -82,15 +82,23 @@ test('natural stance only touches visibly held-weapon guard windows, never the a
   assert.equal(shouldNaturalizeWeaponStance({...base,reaction:{}},null),false,'hit reaction must not be overwritten');
 });
 
-test('static ready-body support fades in with the draw and never overrides authored motion',async()=>{
+test('ready-body support blends through draw and guard seams without touching the strike body',async()=>{
   const {readyBodyStrength}=await stanceModule();
   const base={weapon:'sword',weaponDraw:1,combatReady:true,weaponTransition:false,vx:0,vz:0,attack:null,reaction:null,recovery:null,dead:false,zanshin:null};
   assert.equal(readyBodyStrength(base),1,'settled static guard should receive full subtle torso support');
   assert.equal(readyBodyStrength({...base,weaponDraw:.25,weaponTransition:true}),0,'torso must remain idle until the blade clears the hip');
   assert.ok(Math.abs(readyBodyStrength({...base,weaponDraw:.625,weaponTransition:true})-.5)<1e-9,'draw midpoint should blend torso support smoothly');
   assert.equal(readyBodyStrength({...base,weaponDraw:.1,weaponTransition:true}),0,'sheathed draw frame must not lean');
+  const attack={...base,attack:{}};
+  assert.equal(readyBodyStrength(attack),0,'an attack without a resolved progress must not guess a support amount');
+  assert.equal(readyBodyStrength(attack,0),1,'attack starts in the same supported guard');
+  assert.ok(Math.abs(readyBodyStrength(attack,.06)-.5)<1e-9,'opening guard fades support smoothly');
+  assert.equal(readyBodyStrength(attack,.12),0,'authored strike body owns the motion after the opening guard');
+  assert.equal(readyBodyStrength(attack,.5),0,'contact body remains entirely authored');
+  assert.equal(readyBodyStrength(attack,.82),0,'recovery support starts from zero');
+  assert.ok(Math.abs(readyBodyStrength(attack,.91)-.5)<1e-9,'recovery blends back toward the ready torso');
+  assert.equal(readyBodyStrength(attack,1),1,'attack endpoint must meet the settled guard torso');
   assert.equal(readyBodyStrength({...base,vz:1}),0,'moving guard keeps locomotion body motion');
-  assert.equal(readyBodyStrength({...base,attack:{}}),0,'authored attack body must stay untouched');
   assert.equal(readyBodyStrength({...base,reaction:{}}),0,'hit reaction must stay untouched');
   assert.equal(readyBodyStrength({...base,combatReady:false,weaponTransition:false}),0,'ordinary idle must stay untouched');
   assert.equal(readyBodyStrength({...base,weapon:'fist'}),0,'unarmed combat is outside this weapon stance layer');
