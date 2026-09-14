@@ -13,12 +13,14 @@ const progress = document.querySelector('#boot-progress');
 try {
   progress.value = 1;
   await import('./asset-visuals.js');
-  // Install the shared human motion presentation before the game creates NightView.
+  // Install shared human motion presentation before the game creates NightView.
   await import('./master-humans.js');
   await import('./motion-crowd.js');
   const game = await import('./web/main.js');
   progress.value = 2;
   await game.boot();
+  const {installFirstHuntDirector} = await import('./web/first-hunt-director.js');
+  installFirstHuntDirector();
   progress.value = 3;
 } catch (error) {
   console.error(error);
