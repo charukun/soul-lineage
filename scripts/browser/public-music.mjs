@@ -35,9 +35,16 @@ export function registerMusicTests({test,expect,targets,base}) {
       await expect(page.locator('.soul-music [data-track]')).toHaveCount(150);
       const requestedTrack=page.locator('.soul-music [data-track="r01"]');
       if(!await requestedTrack.isVisible()) {
-        const nextPage=page.locator('.soul-music dialog').getByRole('button',{name:'次のページ'});
-        await expect(nextPage).toBeEnabled();
-        await nextPage.click();
+        const pageSelect=page.locator('.soul-music dialog select[aria-label="表示するページ"]');
+        await expect(pageSelect).toBeVisible();
+        const pageValues=await pageSelect.locator('option').evaluateAll(options=>options.map(option=>option.value));
+        let requestedPage=null;
+        for(const value of pageValues) {
+          await pageSelect.selectOption(value);
+          if(await requestedTrack.isVisible()) {requestedPage=value;break;}
+        }
+        expect(requestedPage).not.toBeNull();
+        await pageSelect.selectOption(requestedPage);
       }
       await expect(requestedTrack).toBeVisible();
       await requestedTrack.click();
