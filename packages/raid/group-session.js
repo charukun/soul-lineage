@@ -23,6 +23,20 @@ export class RaidSession extends SingleRaidSession {
  isAggressive(npc){return (npc?.behavior||villagerBehavior(npc?.role))==='fight';}
  combatantCount(){return (this.fight?1:0)+this.combatants.filter(f=>!f.npc.dead&&!f.npc.eaten).length;}
  isCombatant(npc){return this.fight?.npc===npc||this.combatants.some(f=>f.npc===npc);}
+ consume(n){
+  if(n.eaten)return;
+  const before={hp:this.player.hp,maxhp:this.player.maxhp,unlocked:this.profile.unlocked.length,known:this.profile.unlocked.includes(n.role)};
+  n.eaten=true;n.dead=true;this.eaten++;this.targetEaten||=n.marked;
+  this.player.hp=Math.min(this.player.maxhp,this.player.hp+(this.has('traveller')?75:42));
+  this.alarm=Math.min(100,this.alarm+(n.role==='bellkeeper'?0:12)*(this.has('bellkeeper')?.5:1));
+  if(n.role==='bellkeeper'){this.alarm=Math.max(0,this.alarm-18);this.emit('bell-silenced');}
+  this.ports.consume?.(n.role);
+  this.emit('consume',{npc:n,role:n.role,goal:!!n.marked,at:this.time,reward:{
+   healed:Math.max(0,this.player.hp-before.hp),maxHpGain:Math.max(0,this.player.maxhp-before.maxhp),
+   memoryNew:!before.known&&this.profile.unlocked.includes(n.role),equipped:this.has(n.role),
+   unlockedBefore:before.unlocked,unlockedCount:this.profile.unlocked.length
+  }});
+ }
  engage(npc){
   if(this.finished||npc.dead||npc.eaten||this.isCombatant(npc))return;
   if(!this.fight){super.engage(npc);return;}
