@@ -41,13 +41,15 @@ test('interaction layer never owns authoritative actor world state or damage',as
  assert.doesNotMatch(source,/\.hp\s*=|damage\s*\(/,'presentation layer must not own damage');
  assert.match(source,/if\(!commit\)return null;const spec=interactionFor/);
  assert.match(source,/if\(!commit\|\|!a\?\.reaction/);
- assert.match(source,/if\(commit\)this\._interaction\.history\.set/);
+ assert.match(source,/if\(commit\)\{[\s\S]*this\._interaction\.history\.set/,'history only advances after a successful committed sample');
+ assert.doesNotMatch(source,/prepareInteractionState[\s\S]*history\.set/,'preparation must remain side-effect free');
 });
 
-test('paired and interaction offsets keep weapon/world samples and shadows aligned',async()=>{
+test('paired and interaction rigid offsets keep all returned samples and shadows aligned',async()=>{
  const source=await readFile(new URL('../public/simulator/src/humanoid-interaction.js',import.meta.url),'utf8');
  assert.match(source,/\['a','b','weaponBase','weaponTip'\]/);
  assert.match(source,/\['sm','leftSocket','rightSocket','carry'\]/);
- assert.match(source,/transformResult\(result,offset\)/);
+ assert.match(source,/makeRotationY\(yaw\)/);assert.match(source,/rigidTransformResult\(result,origin,yaw,offset\)/);
  assert.match(source,/proxy\.matrix\.copy\(proxy\.userData\.source\.matrixWorld\)/);
+ assert.match(source,/this\.api\.gazeTarget\?\.\(a\)/,'sync frame consumes the same locked target provider as gaze');
 });
