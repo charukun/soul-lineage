@@ -7,6 +7,8 @@ try {
   const game = await import('./web/main.js');
   progress.value = 2;
   await game.boot();
+  const {installFirstHuntDirector} = await import('./web/first-hunt-director.js');
+  installFirstHuntDirector();
   progress.value = 3;
 } catch (error) {
   console.error(error);
