@@ -1,3 +1,42 @@
+# Active 100-pass batch — 6 / 100 (2026-09-14)
+
+This unfinished batch starts at Lab commit
+`f2da2524a627e5e4057be1cd9a18e03a22b32282`. It does not reuse the fourteen
+completed passes below. Six source changes were replayed after reconciling the
+latest remote Lab head, then each revision was captured with the actual skinned
+SHINO rig at 12 fps from front-three-quarter and side views. The final before / after
+state was additionally captured at 30 fps. The available reference was
+`public/simulator/assets/review/reference-sword-4s.mp4` (original 2.5–6.5 s).
+
+| Pass | Source before → after | Reference | Full-body finding, correction and comparison |
+| --- | --- | --- | --- |
+| 1 | `f2da252` → `be4308b` | 2.5–6.5 s | The knee plane stayed forward while the support foot and pelvis turned. The leg IK pole now follows the support-foot heading. Three-quarter and side captures show less crossed-knee silhouette; foot contact and loop tests remain green. |
+| 2 | `be4308b` → `48dac41` | 2.5–6.5 s | The free arm read as an open, disconnected display hand. Its target now compresses toward the ribs during release and finger curl follows the phase. The rendered hand remains inside the counterguard instead of spreading away from the torso. |
+| 3 | `48dac41` → `b16faf8` | 2.5–6.5 s | The head followed the full torso twist and briefly lost the opponent. Head yaw now counter-rotates toward the target while retaining authored follow-through. Captures show a steadier facing direction without freezing the neck. |
+| 4 | `b16faf8` → `4521e6b` | 3.16–4.0 s original | The uppercut pelvis rose abruptly under the blade. The leg drive is distributed before and through contact. The 30 Hz maximum pelvis-height step fell from the preceding recorded 90.2 mm to 77.3 mm in the final batch state. |
+| 5 | `4521e6b` → `adb3633` | 2.5–6.5 s | Resetting the free wrist in local space inherited forearm twist and could turn the palm up before snapping at the guard seam. The pre-IK world orientation is now restored after arm solving. The captured counterhand keeps a consistent neutral orientation. |
+| 6 | `adb3633` → `e794c5e` | 3.16–4.5 s original | Uppercut recovery rose before the following slash loaded, weakening momentum transfer. The low recovery is held to phase .73. The final sequence keeps the pelvis under the overhead finish longer before handing into the next cut. |
+
+Reproduction evidence for this run is in `/tmp/rinne-pass-<short-sha>-1309/`
+(`capture.json`, `three-follow-strip.jpg`, `side-follow-strip.jpg`) and the final
+30 fps comparison is `/tmp/rinne-batch-compare-1309.mp4`. These are transient
+WORK artifacts, not shipped application assets. Every pass has a reconstructible
+Git parent/commit diff; no source-neutral replay is counted.
+
+The sequential frames and reference strip were inspected, but normal-speed visual
+playback of every individual pass was not completed. Therefore the primary stage
+remains **revise**, the changes are not yet eligible for the three-app adoption PR,
+and this batch remains 94 passes short. The final 30 fps MP4 being generated is not
+treated as proof that it was watched or as human approval. Remaining blocking work
+is the reference's much larger lateral travel, whole-body rotation, release-speed
+contrast and momentum transfer; WebGL/MToon, cloth collision and physical-device
+fps also remain unverified.
+
+Focused result at `e794c5e`: 13 actual-rig/viewer tests passed; maximum socket error
+`1.3311642302e-7 m`, moving planted-toe drift `4.5843376e-8 m`, maximum 30 Hz
+pelvis-height step `0.0773229 m`, and minimum blade-tip height `0.192333 m`.
+These are continuity diagnostics, not artistic scores.
+
 # Fourteen further reference-driven corrections
 
 This batch starts at Lab commit `40dd14d92ac1cf69c357db563fb548476b578fc3`.

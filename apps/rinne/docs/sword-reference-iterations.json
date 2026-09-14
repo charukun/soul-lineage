@@ -1,4 +1,122 @@
 {
+  "active_batch": {
+    "id": "2026-09-14-full-body-authoring-100",
+    "status": "incomplete",
+    "target": 100,
+    "completed": 6,
+    "remaining": 94,
+    "baseline_commit": "f2da2524a627e5e4057be1cd9a18e03a22b32282",
+    "latest_commit": "e794c5ece0406ad10d47e676a7c372c11f36fd8b",
+    "reference": {
+      "asset": "apps/rinne/public/simulator/assets/review/reference-sword-4s.mp4",
+      "range": [0, 4],
+      "original_range": [2.5, 6.5]
+    },
+    "model": "SHINO_review.vrm",
+    "rig": "canonical HumanoidRuntime raw VRM rig",
+    "invariants": [
+      "existing five attack IDs",
+      "native durations and contact clocks",
+      "input, damage and hit detection",
+      "no motion applied to unsupported monster rigs"
+    ],
+    "evidence": {
+      "renderer": "actual skinned/source-textured CPU mesh with simplified lighting",
+      "views": ["three-quarter follow", "side follow"],
+      "per_pass_fps": 12,
+      "final_fps": 30,
+      "transient_root": "/tmp/rinne-pass-<short-sha>-1309",
+      "final_comparison": "/tmp/rinne-batch-compare-1309.mp4",
+      "normal_speed_review": "not completed for every individual pass; primary stage remains revise",
+      "webgl": "not verified",
+      "physical_device_fps": "not verified"
+    },
+    "stages": {
+      "blocking": {
+        "status": "reviewed",
+        "outcome": "improved",
+        "observation": "Knee plane, free-arm silhouette, opponent focus, uppercut support and recovery were compared in actual-mesh three-quarter and side sequences."
+      },
+      "primary": {
+        "status": "revise",
+        "outcome": "unverified",
+        "observation": "A final 30 fps MP4 was generated, but normal-speed visual playback was not completed for every source revision; large travel, rotation and speed contrast still trail the reference."
+      },
+      "polish": {
+        "status": "pending",
+        "outcome": "unverified",
+        "observation": "Wrist continuity was improved, but cloth/hair collision, WebGL/MToon and physical-device playback remain unverified."
+      }
+    },
+    "iterations": [
+      {
+        "iteration": 1,
+        "reference_interval": "original 2.5–6.5 s",
+        "finding": "Knee plane stayed forward while support foot and pelvis turned.",
+        "correction": "Drive the leg IK pole from support-foot heading.",
+        "before": "f2da2524a627e5e4057be1cd9a18e03a22b32282",
+        "after": "be4308baa236591c7780aa3c44e42b013ba73f97",
+        "evidence": "/tmp/rinne-pass-be4308b-1309/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "Less crossed-knee silhouette; retained grounded contact.",
+        "remaining": "Individual-pass normal-speed review and mesh collision review."
+      },
+      {
+        "iteration": 2,
+        "reference_interval": "original 2.5–6.5 s",
+        "finding": "Open free hand separated from the torso and weakened counterbalance.",
+        "correction": "Compress the free-arm target and phase its finger curl.",
+        "before": "be4308baa236591c7780aa3c44e42b013ba73f97",
+        "after": "48dac4196e8ec875170441ecac29bb48e8fcc4f1",
+        "evidence": "/tmp/rinne-pass-48dac41-1309/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "Counterhand stays closer to the rib cage through release.",
+        "remaining": "Individual-pass normal-speed review and clothing clearance."
+      },
+      {
+        "iteration": 3,
+        "reference_interval": "original 2.5–6.5 s",
+        "finding": "Head yaw followed the torso and briefly lost the opponent.",
+        "correction": "Blend an opponent-focus counter-rotation into authored head yaw.",
+        "before": "48dac4196e8ec875170441ecac29bb48e8fcc4f1",
+        "after": "b16faf826ecbcdbe9f390cbabd692d3d0863675c",
+        "evidence": "/tmp/rinne-pass-b16faf8-1309/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "Facing direction remains steadier without a frozen neck.",
+        "remaining": "Individual-pass normal-speed review and target-aware gameplay validation."
+      },
+      {
+        "iteration": 4,
+        "reference_interval": "original 3.16–4.0 s",
+        "finding": "Uppercut pelvis rose abruptly beneath the blade.",
+        "correction": "Distribute leg drive before and through contact.",
+        "before": "b16faf826ecbcdbe9f390cbabd692d3d0863675c",
+        "after": "4521e6b0704785772110064f3ce59686d7cd300a",
+        "evidence": "/tmp/rinne-pass-4521e6b-1309/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "Final 30 Hz pelvis-height step is 0.0773229 m.",
+        "remaining": "The reference still has stronger lateral travel and rotation."
+      },
+      {
+        "iteration": 5,
+        "reference_interval": "original 2.5–6.5 s",
+        "finding": "Local wrist reset inherited forearm twist and could snap at the guard seam.",
+        "correction": "Restore the pre-IK neutral free-wrist world orientation after arm solve.",
+        "before": "4521e6b0704785772110064f3ce59686d7cd300a",
+        "after": "adb3633fa2fd6e0293db9a35ade37220c49ab5bb",
+        "evidence": "/tmp/rinne-pass-adb3633-1309/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "Free wrist keeps a consistent orientation across arm IK.",
+        "remaining": "Finger/cloth collision and individual-pass normal-speed review."
+      },
+      {
+        "iteration": 6,
+        "reference_interval": "original 3.16–4.5 s",
+        "finding": "Uppercut recovery rose before the next slash loaded.",
+        "correction": "Hold the low recovery through phase .73 before the connection.",
+        "before": "adb3633fa2fd6e0293db9a35ade37220c49ab5bb",
+        "after": "e794c5ece0406ad10d47e676a7c372c11f36fd8b",
+        "evidence": "/tmp/rinne-pass-e794c5e-1309/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "The pelvis stays under the overhead finish longer before the next cut.",
+        "remaining": "Individual-pass normal-speed review and stronger momentum transfer."
+      }
+    ]
+  },
   "baseline_commit": "40dd14d92ac1cf69c357db563fb548476b578fc3",
   "source_order": [
     "authored-slash.js",
