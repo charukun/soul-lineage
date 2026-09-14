@@ -44,7 +44,9 @@ const body = {
   offset:[[0,0,-.028,0],[.22,-.065,-.215,-.065],[.34,-.045,-.255,-.01],[.47,.055,-.245,.27],[.56,.08,-.22,.34],[.70,.06,-.17,.33],[.84,.025,-.06,.16],[1,0,-.028,0]],
   grip:[[0,-.19,-.37,.35],[.23,-.38,-.23,.12],[.36,-.43,-.20,.08],[.44,-.42,-.18,.27],[.50,-.055,-.22,.66],[.59,.31,-.40,.53],[.72,.28,-.45,.30],[.84,.11,-.38,.30],[1,-.19,-.37,.35]],
   blade:[[0,.398,1.15,0],[.25,-2.10,.36,-.36],[.38,-2.22,.28,-.46],[.44,-1.52,.20,-.35],[.50,0,.02,-.15],[.59,1.58,-.33,.27],[.72,2.02,-.42,.42],[.84,1.45,.35,.32],[1,.398,1.15,0]],
-  shield:[[0,...SWORD_FREE_GUARD],[.30,.34,-.27,.21],[.50,.28,-.27,.21],[.65,.37,-.30,.07],[.84,.30,-.31,.13],[1,...SWORD_FREE_GUARD]],
+  // The free hand compresses toward the ribs during release, then opens back
+  // into guard. It counterbalances the sword rather than presenting a flat palm.
+  shield:[[0,...SWORD_FREE_GUARD],[.30,.25,-.24,.17],[.50,.24,-.26,.13],[.65,.26,-.28,.10],[.84,.23,-.28,.17],[1,...SWORD_FREE_GUARD]],
   lead:[[0,.045,0,.10],[.16,.045,0,.10],[.31,.12,.035,.31],[.46,.19,0,.61],[.73,.19,0,.61],[.87,.11,.045,.35],[1,.045,0,.10]],
   rear:[[0,-.045,0,-.10],[.35,-.065,0,-.10],[.53,-.09,.035,.035],[.72,-.07,0,.20],[.79,-.07,0,.20],[.90,-.055,.035,.07],[1,-.045,0,-.10]],
 };
@@ -114,6 +116,7 @@ export function applySwordPose(runtime,c,pose,p) {
   const maxFreeReach=(shoulder.distanceTo(elbow)+elbow.distanceTo(hand))*.90;
   const extension=free.clone().sub(shoulder);if(extension.length()>maxFreeReach)free.copy(shoulder).add(extension.setLength(maxFreeReach));
   runtime.solve(c,'left','arm',free,new T.Vector3(.6,-1,0).applyAxisAngle(up,torsoYaw));
-  c.bones.leftHand.quaternion.copy(c.rest.leftHand.q);runtime.curl(c,'left',.28);
+  c.bones.leftHand.quaternion.copy(c.rest.leftHand.q);
+  runtime.curl(c,'left',poseCurve([[0,.28],[.30,.50],[.50,.62],[.70,.54],[1,.28]],p)[0]);
   c.root.updateMatrixWorld(true);
 }
