@@ -35,25 +35,18 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
   const state={key,clock,speed,yaw,dt,personality,condition,adaptation,locomotion,micro,commit:Boolean(commit)};if(commit)this._interaction.history.set(key,{clock,speed,yaw});return state;
  }
 
- combatPose(c,weapon,kind,p,baseTime=0){
-  super.combatPose(c,weapon,kind,p,baseTime);const state=this._interaction.active;if(!state)return;const {personality,condition,adaptation}=state,sign=/back|reverse|return/i.test(kind||'')?-1:1,add=(name,e)=>{const b=c.bones[name];if(b)b.quaternion.multiply(q().setFromEuler(e)).normalize();};
-  const phase=clamp(p),load=Math.sin(Math.PI*clamp(phase/.28)),recover=phase>.68?Math.sin(Math.PI*clamp((phase-.68)/.32)):0;
-  add('hips',new T.Euler((personality.posture+condition.torsoGuard)*.20,-sign*.025*load*personality.anticipation,sign*.012*recover,'YXZ'));
-  add('spine',new T.Euler(personality.posture*.22+condition.torsoGuard*.34,-sign*.032*load*personality.anticipation,sign*.015*recover,'YXZ'));
-  if(c.bones.leftShoulder)c.bones.leftShoulder.quaternion.multiply(q().setFromEuler(new T.Euler(0,0,condition.shoulderDropLeft,'YXZ'))).normalize();
-  if(c.bones.rightShoulder)c.bones.rightShoulder.quaternion.multiply(q().setFromEuler(new T.Euler(0,0,-condition.shoulderDropRight,'YXZ'))).normalize();
-  const weaponSag=condition.weaponSag*(weapon==='great'||weapon==='axe'?1.15:1)*adaptation.weaponArcScale;if(c.bones.rightUpperArm)c.bones.rightUpperArm.quaternion.multiply(q().setFromEuler(new T.Euler(weaponSag*.18,0,0,'YXZ'))).normalize();
-  c.root.updateMatrixWorld(true);
- }
-
  ground(c,a,d,commit){
-  super.ground(c,a,d,commit);const state=this._interaction.active;if(!state||d.type==='death')return;const {personality,condition,adaptation,locomotion,micro}=state,add=(name,e)=>{const b=c.bones[name];if(b)b.quaternion.multiply(q().setFromEuler(e)).normalize();};
-  const limpSign=condition.limpSide==='left'?-1:condition.limpSide==='right'?1:0,moveScale=adaptation.strideScale*personality.stride*condition.speedScale;
-  add('hips',new T.Euler(locomotion.pelvisLean*.16+micro.breath*.16,locomotion.turnLean*.22*personality.turnSharpness,limpSign*condition.limp+micro.swayX*.35,'YXZ'));
-  add('spine',new T.Euler(personality.posture*.24+condition.torsoGuard*.30+micro.breath*.32,locomotion.turnLean*.12,micro.swayX*.42,'YXZ'));
-  add('head',new T.Euler(micro.headPitch,0,micro.headYaw*.35,'YXZ'));
-  if(['walk','run'].includes(d.type)){const left=c.bones.leftUpperLeg,right=c.bones.rightUpperLeg;if(left)left.quaternion.multiply(q().setFromEuler(new T.Euler((moveScale-1)*.05*condition.strideLeft,0,0,'YXZ'))).normalize();if(right)right.quaternion.multiply(q().setFromEuler(new T.Euler((moveScale-1)*.05*condition.strideRight,0,0,'YXZ'))).normalize();}
-  c.root.updateMatrixWorld(true);if(commit)syncSnapshot(c,['hips','spine','head','leftUpperLeg','rightUpperLeg']);
+  const state=this._interaction.active;if(state&&d.type!=='death'){
+   const {personality,condition,adaptation,locomotion,micro}=state,add=(name,e)=>{const b=c.bones[name];if(b)b.quaternion.multiply(q().setFromEuler(e)).normalize();},limpSign=condition.limpSide==='left'?-1:condition.limpSide==='right'?1:0,moveScale=adaptation.strideScale*personality.stride*condition.speedScale;
+   add('hips',new T.Euler(locomotion.pelvisLean*.16+micro.breath*.16,locomotion.turnLean*.22*personality.turnSharpness,limpSign*condition.limp+micro.swayX*.35,'YXZ'));
+   add('spine',new T.Euler(personality.posture*.24+condition.torsoGuard*.30+micro.breath*.32,locomotion.turnLean*.12,micro.swayX*.42,'YXZ'));
+   add('head',new T.Euler(micro.headPitch,0,micro.headYaw*.35,'YXZ'));
+   if(['walk','run'].includes(d.type)){const left=c.bones.leftUpperLeg,right=c.bones.rightUpperLeg;if(left)left.quaternion.multiply(q().setFromEuler(new T.Euler((moveScale-1)*.05*condition.strideLeft,0,0,'YXZ'))).normalize();if(right)right.quaternion.multiply(q().setFromEuler(new T.Euler((moveScale-1)*.05*condition.strideRight,0,0,'YXZ'))).normalize();}
+   if(d.type==='attack'||d.type==='combat'){if(c.bones.leftShoulder)c.bones.leftShoulder.quaternion.multiply(q().setFromEuler(new T.Euler(0,0,condition.shoulderDropLeft,'YXZ'))).normalize();if(c.bones.rightShoulder)c.bones.rightShoulder.quaternion.multiply(q().setFromEuler(new T.Euler(0,0,-condition.shoulderDropRight,'YXZ'))).normalize();const sag=condition.weaponSag*(a.weapon==='great'||a.weapon==='axe'?1.15:1)*adaptation.weaponArcScale;if(c.bones.rightUpperArm)c.bones.rightUpperArm.quaternion.multiply(q().setFromEuler(new T.Euler(sag*.18,0,0,'YXZ'))).normalize();}
+   c.root.updateMatrixWorld(true);
+  }
+  super.ground(c,a,d,commit);
+  if(state&&commit)syncSnapshot(c,['hips','spine','head','leftUpperLeg','rightUpperLeg','leftShoulder','rightShoulder','rightUpperArm']);
  }
 
  applyInteractionPlan(c,a,result,commit){
