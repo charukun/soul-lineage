@@ -154,8 +154,8 @@ export function recoverStale(state, runStates, now) {
 
 export function planWave(state, { runId, now, id }) {
   const all = Object.values(state.records);
-  const occupied = all.filter(r => r.lease);
-  const locks = all.filter(r => r.lease || RETURNED.has(r.state));
+  const occupied = all.filter(r => r.lease || r.workRepair?.status === 'working');
+  const locks = all.filter(r => r.lease || r.workRepair?.status === 'working' || RETURNED.has(r.state));
   const candidates = all.filter(r => ['DETECTED', 'QUEUED', 'BLOCKED_BY_RESCUE', 'FAILED_RETRYABLE'].includes(r.state) &&
     !r.lease && (!r.nextAttemptAt || Date.parse(r.nextAttemptAt) <= now));
   for (const r of candidates) r.priority = priority(r, all, now);
