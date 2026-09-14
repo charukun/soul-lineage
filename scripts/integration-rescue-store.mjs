@@ -2,6 +2,7 @@ import { client } from './integration.mjs';
 import { REPOSITORY, STATE_BRANCH, STATE_FILE, newState } from './integration-rescue-policy.mjs';
 import { publishObservation } from './integration-rescue-pulse.mjs';
 import { parseRepairState, linkedIssueNumber } from './browser-repair-state.mjs';
+import { compactRescueState } from './integration-flow-control.mjs';
 import { createHash } from 'node:crypto';
 
 export const contractFingerprint = pr => createHash('sha256').update(JSON.stringify({ title: pr.title, body: pr.body,
@@ -43,7 +44,6 @@ export class RescueStore {
   async initialize() {
     const existing = await this.read();
     if (existing.state) return existing;
-    // An isolated orphan state branch; no game code, no main/develop write.
     const tree = await this.c.api('POST', `${this.c.root}/git/trees`, { tree: [{ path: STATE_FILE, mode: '100644', type: 'blob', content: JSON.stringify(newState(this.config)) }] });
     const commit = await this.c.api('POST', `${this.c.root}/git/commits`, { message: 'chore(integration-rescue): initialize durable queue', tree: tree.sha, parents: [] });
     try { await this.c.api('POST', `${this.c.root}/git/refs`, { ref: `refs/heads/${STATE_BRANCH}`, sha: commit.sha }); }
@@ -61,12 +61,12 @@ export class RescueStore {
       if (result && typeof result.then === 'function') throw new Error('CAS operation must be synchronous and side-effect free');
       if (JSON.stringify(state) === before) return { state, result };
       state.revision++; state.updatedAt = new Date().toISOString();
+      compactRescueState(state, Date.now());
       const encoded = Buffer.from(JSON.stringify(state));
       if (encoded.length > 900000) throw new Error('RESCUE_STATE_SIZE_BUDGET');
       try {
         await this.c.api('PUT', `${this.c.root}/contents/${STATE_FILE}`, { branch: STATE_BRANCH, sha,
           message: `chore(integration-rescue): state revision ${state.revision}`, content: encoded.toString('base64') });
-        // PULSE is a best-effort observation sink, never a claim or execution dependency.
         await publishObservation(state).catch(error => console.warn(error.message));
         return { state, result };
       } catch (error) {
@@ -117,8 +117,6 @@ function completeTree(data, expectedSha) {
 }
 export function treeChangedPaths(baseTree, headTree, baseSha, headSha) {
   const before = completeTree(baseTree, baseSha), after = completeTree(headTree, headSha);
-  // Compare leaf identities, including executable bits, symlinks and gitlinks.
-  // A rename is represented by both paths, which is conservative for scope locks.
   return [...new Set([...before.keys(), ...after.keys()])].filter(path => before.get(path) !== after.get(path)).sort();
 }
 export async function comparison(c, base, head) {
@@ -130,8 +128,6 @@ export async function comparison(c, base, head) {
   }
   let files = data.files.flatMap(f => [f.filename, f.previous_filename].filter(Boolean));
   if (data.files.length >= 300) {
-    // Compare has a 300-file cap even with pagination. Pin both trees to the
-    // merge-base and requested head, preserving three-dot semantics for divergence.
     if (!gitSha(head) || !gitSha(data.merge_base_commit.commit?.tree?.sha)) throw new Error('INCOMPLETE_BASE_COMPARISON');
     const commit = await c.api('GET', `${c.root}/git/commits/${head}`);
     if (commit?.sha !== head || !gitSha(commit.tree?.sha)) throw new Error('INCOMPLETE_BASE_COMPARISON');
