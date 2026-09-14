@@ -13,6 +13,7 @@ const REPAIR_CLASSES = [
   ['overlap', /^FAILED_MANUAL:OVERLAPPING_CHANGES(?::|$)/],
   ['related', /^FAILED_MANUAL:RELATED_CODE_RECONCILIATION(?::|$)/],
   ['control', /^FAILED_MANUAL:CONTROL_OR_CONTRACT_RECONCILIATION(?::|$)/],
+  ['assertion', /^FAILED_MANUAL:ASSERTION_REMOVAL(?::|$)/],
   ['transport', /(?:GitHub POST .*\/git\/trees: HTTP 422|TREE_STAGING|GIT_TREE.*422)/i],
 ];
 const active = r => r.workRepair?.status === 'working';
@@ -43,9 +44,6 @@ function safety(record, evidence) {
   assert.equal(browserRepairFor(pr, issues), null, 'BROWSER_REPAIR_OWNS_PR');
   assert.ok(filesComplete === true && Array.isArray(files) && files.length > 0 && files.length === pr.changed_files, 'INCOMPLETE_FILES');
   const scope = conflictScope(files.flatMap(f => [f.filename,f.previous_filename].filter(Boolean)), pr.body);
-  // Schema/save/protocol contracts still require an explicit product decision. Control-plane files may
-  // be reconciled by Work only with the elevated proof required in prepareWorkRepairPush().
-  assert.equal(scope.contract, false, 'DATA_OR_PROTOCOL_CONTRACT_REQUIRES_HUMAN');
   const numbers = [...String(pr.body || '').matchAll(/^Depends-On:\s*(.*)$/gim)].flatMap(m => [...m[1].matchAll(/#(\d+)/g)].map(m => Number(m[1])));
   for (const number of numbers) {
     const dep = dependencies?.find(d => d.number === number);
@@ -106,6 +104,18 @@ export function prepareWorkRepairPush(state, prNumber, workerId, evidence, resul
     assert.equal(result.decision?.controlReview?.preservesGates, true, 'CONTROL_GATES_NOT_PROVEN');
     assert.ok(Array.isArray(result.decision.controlReview.governingSources) && result.decision.controlReview.governingSources.length > 0, 'CONTROL_GOVERNING_SOURCES_REQUIRED');
     assert.ok(result.decision.controlReview.governingSources.every(s => typeof s === 'string' && s.trim()), 'CONTROL_GOVERNING_SOURCES_REQUIRED');
+  }
+  if (scope.contract) {
+    assert.equal(result.decision?.contractReview?.noProductChoiceRequired, true, 'CONTRACT_PRODUCT_DECISION_REQUIRED');
+    assert.equal(result.decision?.contractReview?.preservesCompatibility, true, 'CONTRACT_COMPATIBILITY_NOT_PROVEN');
+    assert.ok(Array.isArray(result.decision.contractReview.governingSources) && result.decision.contractReview.governingSources.length > 0, 'CONTRACT_GOVERNING_SOURCES_REQUIRED');
+    assert.ok(result.decision.contractReview.governingSources.every(s => typeof s === 'string' && s.trim()), 'CONTRACT_GOVERNING_SOURCES_REQUIRED');
+  }
+  if (w.repairKind === 'assertion') {
+    assert.equal(result.decision?.assertionReview?.preservesCoverage, true, 'ASSERTION_COVERAGE_NOT_PROVEN');
+    assert.equal(result.decision?.assertionReview?.removedAssertionsReconciled, true, 'REMOVED_ASSERTIONS_NOT_RECONCILED');
+    assert.ok(Array.isArray(result.decision.assertionReview.governingTests) && result.decision.assertionReview.governingTests.length > 0, 'ASSERTION_GOVERNING_TESTS_REQUIRED');
+    assert.ok(result.decision.assertionReview.governingTests.every(s => typeof s === 'string' && s.trim()), 'ASSERTION_GOVERNING_TESTS_REQUIRED');
   }
   assert.ok(sha(result.head) && sha(result.tree), 'MISSING_RESULT_REFS');
   assert.equal(result.validation?.status,'passed','FAST_NOT_PASSED');
