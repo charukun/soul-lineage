@@ -13,6 +13,7 @@ import {
 
 const sha = value => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value);
 const safeRef = value => String(value).replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 80);
+const TRAIN_PREFIX = 'automation/integration-train-';
 
 export async function virtualTrainCandidates(c, state, develop, { max = 5, inspect = 8 } = {}) {
   const open = await c.pages('/pulls?state=open&base=develop&sort=created&direction=asc', undefined, { maxPages: 6 });
@@ -42,7 +43,7 @@ export async function virtualTrainCandidates(c, state, develop, { max = 5, inspe
 }
 
 export async function cleanupVirtualTrain(c, branch) {
-  if (!branch?.startsWith('automation/integration-train-')) return false;
+  if (!branch?.startsWith(TRAIN_PREFIX)) return false;
   try {
     await c.api('DELETE', `${c.root}/git/refs/heads/${branch}`);
     return true;
@@ -50,6 +51,25 @@ export async function cleanupVirtualTrain(c, branch) {
     if (/HTTP 404\b/.test(error.message)) return false;
     throw error;
   }
+}
+
+export async function cleanupOrphanedVirtualTrains(c, { limit = 8 } = {}) {
+  let refs;
+  try {
+    refs = await c.api('GET', `${c.root}/git/matching-refs/heads/${TRAIN_PREFIX}`);
+  } catch (error) {
+    if (/HTTP 404\b/.test(error.message)) return [];
+    throw error;
+  }
+  if (!Array.isArray(refs)) return [];
+
+  const removed = [];
+  for (const ref of refs.slice(0, limit)) {
+    const branch = String(ref?.ref || '').replace(/^refs\/heads\//, '');
+    if (!branch.startsWith(TRAIN_PREFIX)) continue;
+    if (await cleanupVirtualTrain(c, branch)) removed.push(branch);
+  }
+  return removed;
 }
 
 export async function buildVirtualTrain(c, state, develop, {
@@ -68,7 +88,7 @@ export async function buildVirtualTrain(c, state, develop, {
     };
   }
 
-  const branch = `automation/integration-train-${safeRef(runId)}-${develop.slice(0, 8)}`;
+  const branch = `${TRAIN_PREFIX}${safeRef(runId)}-${develop.slice(0, 8)}`;
   const ref = `refs/heads/${branch}`;
   let current = develop;
   let created = false;
@@ -142,6 +162,8 @@ export async function recordVirtualTrain(store, proof, now = Date.now()) {
 }
 
 export async function planVirtualTrain(c, store, { runId = Date.now() } = {}) {
+  await cleanupOrphanedVirtualTrains(c).catch(error => console.warn(`Virtual Train orphan cleanup skipped: ${error.message}`));
+
   const { state } = await store.read();
   const develop = (await c.api('GET', `${c.root}/branches/develop`)).commit.sha;
   const records = Object.values(state?.records || {});
