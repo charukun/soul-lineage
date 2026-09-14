@@ -7,5 +7,5 @@ test('repository character production manifests and catalog classifications pass
   const result = JSON.parse(text);
   assert.equal(result.schema, 'character-production-check');
   assert.equal(result.ok, true, result.failures?.join('\n'));
-  assert.ok(result.manifests.some(row => row.id === 'shino.reference.v2' && row.declaredStage === 'REFERENCE'));
+  assert.ok(result.manifests.some(row => row.id === 'shino.reference.v2' && row.declaredStage === 'PRIMARY'));
 });
