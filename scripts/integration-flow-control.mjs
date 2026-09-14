@@ -2,7 +2,7 @@ import { compareScopes } from './integration-rescue-policy.mjs';
 
 export const FLOW_THRESHOLDS = Object.freeze({ busyReady: 5, burnDownReady: 10, trainSize: 5, staleReadyHours: 72 });
 const HOUR_MS = 60 * 60 * 1000;
-const TERMINAL = new Set(['MERGED', 'DEV', 'CLOSED']);
+const ARCHIVABLE = new Set(['DEV', 'CLOSED']);
 
 export function flowPressure({ ready = 0, recoverableManual = 0 } = {}) {
   const demand = Math.max(0, Number(ready) || 0) + Math.max(0, Number(recoverableManual) || 0);
@@ -66,7 +66,16 @@ export function compactRescueState(state, now = Date.now(), { terminalRetentionM
   if (!state?.records) return state;
   state.history ||= { archivedTerminal: 0, byState: {}, lastCompactedAt: null };
   for (const [pr, record] of Object.entries(state.records)) {
-    if (!TERMINAL.has(record.state)) continue;
+    // FAILED_MANUAL can carry thousands of base-change paths, but Work repair uses
+    // the immutable head/develop refs plus record.scope. Keep the diagnostic count,
+    // not the bulky list, while the record remains recoverable.
+    if (record.state === 'FAILED_MANUAL' && Array.isArray(record.baseChanges) && record.baseChanges.length) {
+      record.baseChangeCount = record.baseChanges.length;
+      record.baseChangesCompacted = true;
+      delete record.baseChanges;
+    }
+    // MERGED remains live delivery state until DEV verification is observed.
+    if (!ARCHIVABLE.has(record.state)) continue;
     const age = now - Date.parse(record.updatedAt || record.devAt || record.mergedAt || 0);
     if (!Number.isFinite(age) || age < terminalRetentionMs) continue;
     state.history.archivedTerminal++;
