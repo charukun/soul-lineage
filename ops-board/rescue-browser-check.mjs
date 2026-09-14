@@ -31,7 +31,7 @@ try{
   assert.equal(await page.locator('.rs-worker-pool .rs-card').count(),5);
   assert.match(await page.locator('.rs-card[data-pr="124"]').innerText(),/1400\/pr-124\/a1[\s\S]*VALIDATING/);check('real worker IDs and validation stage');
   const technical=page.locator('details[data-disclosure="rescue:technical"]');
-  await technical.locator('summary').click();
+  await technical.locator(':scope > summary').click();
   assert.equal(await technical.getAttribute('open'),'');
   assert.match(await page.locator('.rs-wave-list').innerText(),/wave-14[\s\S]*#125.*#120/);check('wave and dependency order');
   assert.match(await page.locator('.rs-queue').innerText(),/#125 WAITING FOR #120[\s\S]*FAILED_RETRYABLE/);check('queue, blocked reason and retry');
