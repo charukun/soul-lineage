@@ -6,6 +6,10 @@ const MAX_DOCS = 8;
 
 const ROUTES = [
   {
+    test: ({ text }) => /\b(implement|implementation|fix|add|change|update|repair|refactor)\b|実装|修正|追加|変更|対応|改善|修復/i.test(text),
+    docs: ['docs/DEVELOPMENT.md'],
+  },
+  {
     test: ({ text, paths }) => /\b(integration|merge|ready|handoff|deploy|release|ci|github actions)\b|統合|マージ|デプロイ|公開|引き渡し/i.test(text)
       || paths.some(path => path.startsWith('.github/workflows/')),
     docs: ['docs/DEVELOPMENT.md', 'docs/INTEGRATION.md', 'docs/RINNE_PROJECT_EXECUTION_POLICY.md'],
