@@ -6,6 +6,7 @@ import {createPresenceTransport} from '@soul/network/transport-lod';
 import {createPeerHostedWorldNode} from '@soul/network/peer-hosted-world';
 import {createPeerMeshCoordinator} from '@soul/network/peer-mesh';
 import {createVillageCheckpoint} from '@soul/network';
+import {sampleBrowserHostCapability} from '@soul/platform-web/peer-signaling';
 import {installWorldDarknessOverlay} from '@soul/shared-ui/world-darkness';
 
 const PLAYER_KEY='soul.village.peer.v1';
@@ -105,7 +106,7 @@ export function installOnlineHost(container=document.getElementById('onlineHost'
       if(message.type==='join'){
         peerId=String(message.playerId||'');if(!peerId)throw new Error('参加者IDがありません。');
         const result=raidHost.join(peerId,message);if(result.type==='rejected'){connection.send(result);connection.close();return;}
-        direct.set(peerId,connection);node.hostAdmit(peerId,{eligible:message.hostEligible===true,meta:{app:message.app||message.role,role:message.role,name:message.name||message.role}});
+        direct.set(peerId,connection);node.hostAdmit(peerId,{eligible:message.hostEligible===true,meta:{app:message.app||message.role,role:message.role,name:message.name||message.role,hostCapability:message.hostCapability||null}});
         connection.send(result);const snap=node.snapshot(),cp={epoch:snap.epoch,revision:snap.checkpointRevision,checkpoint:captureCheckpoint()};connection.send({type:'world-welcome',worldId:snap.worldId,mayorId:node.authority.mayorId,authority:node.authority,checkpoint:cp});node.publishCheckpoint(cp.checkpoint);syncMesh();return;
       }
       handleMessage(peerId,message,kind);
@@ -115,6 +116,7 @@ export function installOnlineHost(container=document.getElementById('onlineHost'
   async function joinRemote(){
     if(node)throw new Error('すでに共通村へ接続しています。');
     const offer=$('#peer-world-offer').value.trim();if(!offer)throw new Error('参加コードを貼り付けてください。');
+    const hostCapability=await sampleBrowserHostCapability();
     let connection;
     connection=await acceptHostOffer(offer,{RTCPeerConnection,dualChannel:true,onState:s=>{if(!disposed&&CLOSED.has(s)&&node){star=null;node.tick();}},onMessage:(message,kind)=>{
       if(message.type==='world-welcome'){
@@ -124,7 +126,7 @@ export function installOnlineHost(container=document.getElementById('onlineHost'
       if(message.type?.startsWith('world-')){handleProtocol(starHostId,message);return;}
       handleMessage(starHostId,message,kind);
     }});
-    star=connection;$('#peer-world-answer').value=connection.code;connection.send({type:'join',role:'human',playerId:selfId,name:'MURAAAAAAA Host候補',app:'village',hostEligible:true,transport:'dual-v1'});
+    star=connection;$('#peer-world-answer').value=connection.code;connection.send({type:'join',role:'human',playerId:selfId,name:'MURAAAAAAA Host候補',app:'village',hostEligible:true,hostCapability,transport:'dual-v1'});
   }
 
   $('#peer-world-host').onclick=()=>startHost().catch(e=>stateText(e.message));$('#peer-world-make-offer').onclick=()=>makeOffer().catch(e=>stateText(e.message));
