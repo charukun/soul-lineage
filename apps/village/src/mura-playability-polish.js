@@ -73,13 +73,17 @@ function installSelectionAssist(){
 function installGestureThreshold(){
  const canvas=$('game');if(!canvas)return;
  const tracked=new Map(),rawPan=view.pan.bind(view),dragThreshold=10;
+ let suppressPanUntil=0;
  const distance=point=>Math.hypot(point.x-point.sx,point.y-point.sy);
- canvas.addEventListener('pointerdown',event=>{tracked.set(event.pointerId,{sx:event.clientX,sy:event.clientY,x:event.clientX,y:event.clientY,multi:false});if(tracked.size>1)for(const point of tracked.values())point.multi=true;},{capture:true,passive:true});
+ canvas.addEventListener('pointerdown',event=>{suppressPanUntil=0;tracked.set(event.pointerId,{sx:event.clientX,sy:event.clientY,x:event.clientX,y:event.clientY,multi:false});if(tracked.size>1)for(const point of tracked.values())point.multi=true;},{capture:true,passive:true});
  canvas.addEventListener('pointermove',event=>{const point=tracked.get(event.pointerId);if(!point)return;point.x=event.clientX;point.y=event.clientY;if(tracked.size>1)for(const current of tracked.values())current.multi=true;},{capture:true,passive:true});
- view.pan=(dx,dy)=>{if(tracked.size===1){const point=tracked.values().next().value;if(point&&!point.multi&&distance(point)<dragThreshold)return;}return rawPan(dx,dy);};
+ view.pan=(dx,dy)=>{if(performance.now()<suppressPanUntil)return;if(tracked.size===1){const point=tracked.values().next().value;if(point&&!point.multi&&distance(point)<dragThreshold)return;}return rawPan(dx,dy);};
  canvas.addEventListener('pointerup',event=>{
   const point=tracked.get(event.pointerId);tracked.delete(event.pointerId);if(!point||point.multi||ui.pending)return;
   point.x=event.clientX;point.y=event.clientY;const moved=distance(point);if(moved<7||moved>=dragThreshold)return;
+  // The older inertia layer starts at 4px. Keep its queued momentum muted for
+  // this rescued tap; a new pointerdown cancels that mute and the old inertia.
+  suppressPanUntil=performance.now()+700;
   const person=view.pickPerson(event.clientX,event.clientY);if(person){village.personDialog(person);return;}
   const id=view.pick(event.clientX,event.clientY);if(!id){$('deselect')?.click();return;}
   if(world.object(id)){if(view.roomId&&id!==view.roomId){view.exitRoom();$('leaveRoom').hidden=true;}village.selection(id,null);}else village.selection(id,view.roomId);
