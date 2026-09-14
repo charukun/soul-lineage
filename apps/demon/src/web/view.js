@@ -71,7 +71,7 @@ export class NightView {
  this.characterId=requested==='silver-reaper'&&this.reaper?'silver-reaper':'night-creature';
  this.canvas.dataset.character=this.characterId;
  const displayPlayer=this.characterPreview?{...p,pose:null,speed:0,walk:0,yaw:this.characterPreviewYaw||0}:p;
- animateCreature(this.player,displayPlayer,this.characterPreview?this.elapsed:time,{form:g.profile.form,eating:!this.characterPreview&&!!g.devour});
+ animateCreature(this.player,displayPlayer,this.characterPreview?this.elapsed:time,{form:g.profile.form,eating:!this.characterPreview&&!!g.devour,feast:g.fight?0:feast.body});
  this.player.visible=this.characterId==='night-creature';
  if(this.reaper){this.reaper.root.visible=this.characterId==='silver-reaper';if(this.reaper.root.visible)this.reaper.update(displayPlayer,this.characterPreview?this.elapsed:time,dt,{preview:!!this.characterPreview,eating:!this.characterPreview&&!!g.devour,dead:!this.characterPreview&&p.hp<=0});}
  for(const n of w.npcs){if(!this.npcs.has(n.id))this.addHuman(n);const o=this.npcs.get(n.id);o.visible=!n.eaten;animateCreature(o,n,time);const el=o.userData.label,d=Math.hypot(n.x-p.x,n.z-p.z),show=!title&&!n.eaten&&d<29&&(d<7||g.scent>0||g.has('hunter')||n.marked&&d<15||this.feastTarget?.npc.id===n.id);el.hidden=!show;if(show){temp.set(n.x,n.dead?.4:2.15,n.z).project(this.camera);el.style.transform=`translate(${(temp.x*.5+.5)*innerWidth}px,${(-temp.y*.5+.5)*innerHeight}px) translate(-50%,-100%)`;el.style.opacity=n.dead?.65:1;el.classList.toggle('afraid',n.state==='flee');el.classList.toggle('next-prey',this.feastTarget?.npc.id===n.id);}}
