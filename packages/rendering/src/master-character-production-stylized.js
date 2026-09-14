@@ -9,6 +9,11 @@ function profileForActorId(id) {
   return 'npc';
 }
 
+function applyProfile(root, profileId) {
+  if (!root?.traverse || root.userData?.stylizedArt?.profileId === profileId) return;
+  applyStylizedArtProfile(root, profileId, { cloneMaterials: false });
+}
+
 /**
  * Shared production-pool adapter. Review Shino receives the hero Mid Poly
  * presentation target, while population instances keep the cheaper NPC target.
@@ -20,10 +25,10 @@ export function createShinoProductionPool(options) {
   pool.spawn = (id, ...args) => {
     const actor = spawn(id, ...args);
     const profileId = profileForActorId(id);
-    if (actor.root?.userData?.stylizedArt?.profileId !== profileId) {
-      applyStylizedArtProfile(actor.root, profileId, { cloneMaterials: false });
-    }
+    applyProfile(actor.root, profileId);
+    applyProfile(actor.attachments, profileId);
     actor.root.userData.stylizedCharacterRole = profileId;
+    if (actor.attachments) actor.attachments.userData.stylizedCharacterRole = profileId;
     return actor;
   };
   return pool;
