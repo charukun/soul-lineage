@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Bone, BoxGeometry, Group, Mesh, MeshStandardMaterial } from 'three';
-import { CHARACTER_REFERENCE_MODELS } from '../../characters/src/reference-models.js';
+import { CHARACTER_REFERENCE_MODELS } from '@soul/characters';
 import { attachModularAppearanceController } from '../src/master-character-modular.js';
 import { attachReferenceCharacterController } from '../src/master-character-reference.js';
 
