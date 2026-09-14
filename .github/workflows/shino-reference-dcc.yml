@@ -8,6 +8,7 @@ on:
       - .github/workflows/shino-reference-dcc.yml
       - scripts/blender/build-shino-reference-v2.py
       - scripts/blender/run-shino-reference-v2.py
+      - scripts/blender/refine-shino-reference-v2.py
       - scripts/blender/character-production-audit.py
       - scripts/patch-vrm-humanoid.py
       - scripts/finalize-shino-reference-v2.py
@@ -51,11 +52,19 @@ jobs:
           mkdir -p generated/shino-reference-v2
           cp apps/rinne/public/simulator/assets/SHINO_review.vrm generated/shino-reference-v2/SHINO_review.glb
 
-      - name: Build dedicated Shino Reference v2 DCC mesh
+      - name: Build dedicated Shino Reference v2 DCC primary mesh
         run: |
           xvfb-run -a blender --background --python-exit-code 1 \
             --python scripts/blender/run-shino-reference-v2.py -- \
             --source generated/shino-reference-v2/SHINO_review.glb \
+            --source-vrm apps/rinne/public/simulator/assets/SHINO_review.vrm \
+            --out generated/shino-reference-v2
+
+      - name: Refine face and silhouette from audited high-density donor
+        run: |
+          xvfb-run -a blender --background --python-exit-code 1 \
+            generated/shino-reference-v2/source/ShinoReferenceV2.blend \
+            --python scripts/blender/refine-shino-reference-v2.py -- \
             --source-vrm apps/rinne/public/simulator/assets/SHINO_review.vrm \
             --out generated/shino-reference-v2
 
@@ -96,7 +105,7 @@ jobs:
 
       - name: Fast generated-asset sanity
         run: |
-          python3 -m py_compile scripts/blender/build-shino-reference-v2.py scripts/blender/run-shino-reference-v2.py scripts/patch-vrm-humanoid.py scripts/finalize-shino-reference-v2.py
+          python3 -m py_compile scripts/blender/build-shino-reference-v2.py scripts/blender/run-shino-reference-v2.py scripts/blender/refine-shino-reference-v2.py scripts/patch-vrm-humanoid.py scripts/finalize-shino-reference-v2.py
           test -s apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm
           test -s apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json
           test -s assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend
@@ -118,7 +127,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Generated DCC assets are unchanged."
           else
-            git commit -m "build(characters): generate Shino Reference v2 DCC assets"
+            git commit -m "build(characters): refine Shino Reference v2 DCC assets"
             git push origin HEAD:${GITHUB_REF_NAME}
           fi
 
