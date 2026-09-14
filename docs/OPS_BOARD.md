@@ -76,3 +76,17 @@ Integration Flow の初期表示は内部用語を避け、「何件たまって
 - 人の判断が必要な案件が0件なら「いまはあなたの操作は不要」と明示し、必要な場合だけ件数を警告する。
 - 技術的な処理速度、Virtual Train、自動調整、failure knowledge は折りたたみの「詳しい処理情報」に残す。
 - 既存の状態計算、Rescue/Integrationの動作、品質gate、main / Productionは変更しない。
+
+## Reconciliation Control Planeとの整合（2026-09-15）
+
+PULSEのIntegration状態は `docs/INTEGRATION_RECONCILIATION.md` のcontrol planeを正本として説明します。旧来の「CI成功後10分openなら滞留」という単独判定は補助情報に降格し、Reconcilerが生成するcurrent-state分類と矛盾する警告を出しません。
+
+- Ready PRの主分類は `writer / validating / train / repair / active / blocked / deferred` とし、同じPRを別の旧状態機械で二重判定しない。
+- `blocked` は依存・hold・review・semantic conflictなどの理由を表示し、単なる「Integration滞留」へ潰さない。
+- `validating` はexact-head CI/browser証拠待ちとして扱い、経過時間だけで失敗扱いしない。
+- `repair / active` はRescue executorの担当として表示し、第二のIntegration queueとして扱わない。
+- `writer` はdevelop writer候補、`train` はcombined validation候補であり、いずれもmerge済みを意味しない。
+- `deferred` はbounded evaluationの次回評価待ちであり、異常とは限らない。
+- Reconciliation snapshotが未取得またはdevelop/head不一致でfreshnessを証明できない場合は、旧判定へ断定的にfallbackせず「状態未確定」として表示する。
+- 通知チャネルの未設定・送信失敗は delivery observability の問題として別表示し、`integration/develop=success` やReconciliationの成功を上書きして「Integration失敗」とは表示しない。
+- PULSE自身の公開失敗、current CI/browser gate失敗、develop publication失敗は引き続き要対応として扱う。品質gateは弱めない。
