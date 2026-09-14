@@ -2,6 +2,14 @@
 
 Character共通定義の入口です。`src/index.js` のcatalogに安定したIDで登録してください。ゲーム進行やPlatform SDKへの依存は置きません。
 
+## Production stage gate
+
+キャラクターモデル制作は `docs/characters/CHARACTER_PRODUCTION_PIPELINE.md` と `src/production-pipeline.js` に従います。`REFERENCE -> BLOCKOUT -> PRIMARY -> SECONDARY -> DEFORMATION -> MOTION -> POLISH -> RUNTIME_READY` の順で証跡を積み、`packages/characters/production/*.production.json` を正本にします。
+
+Three.js primitives / runtime procedural geometryは確認用の `BLOCKOUT` までです。見た目が表示できる、共通リグで動く、Visual Review Labに載る、という事実だけでproduction/game-readyへ昇格させません。`PRIMARY` 以降はDCC（Blender優先、Maya可）またはprovenance確認済みimport meshを必要とし、最終昇格には変形、Motion QA、明示Visual Approval、WebGL2とDesktop/Pixel Fold級実測を要求します。
+
+`npm run characters:production:check` はcatalogとproduction manifestの誤分類をfail closedで検出します。Astra/実装Workerはキャラクター作業前にこの契約を読み、現在stageを報告してください。
+
 ## Character Workshop主導の量産品質
 
 既存MasterCharacterを拡張し、色替えだけでなく髪・顔・年齢・身体比率・衣装・役割シルエットで、同じ世界に住む別人を表現します。Shino基準個体と並行するモーション実装は維持します。
