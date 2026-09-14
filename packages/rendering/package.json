@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.js",
     "./quaternius-retarget": "./src/quaternius-retarget.js",
-    "./review-effects": "./src/review-effects.js"
+    "./review-effects": "./src/review-effects.js",
+    "./master-character-reference": "./src/master-character-reference.js"
   },
   "dependencies": {
     "three": "0.186.0",
