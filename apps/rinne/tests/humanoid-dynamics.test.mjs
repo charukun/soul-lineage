@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {localImpactBeat,localDirectionalReaction,localWeaponInertiaStep,localTerrainAdjustments,HUMANOID_DYNAMICS_REVISION} from '../public/simulator/src/humanoid-dynamics.js';
-import {createImpactBeat,directionalHitReaction,weaponInertiaStep,terrainFootAdjustments} from '../../../packages/animations/src/gameplay-motion-quality.js';
+import {createImpactBeat,directionalHitReaction,weaponInertiaStep,terrainFootAdjustments} from '@soul/animations';
 
 const close=(a,b,eps=1e-12)=>assert.ok(Math.abs(a-b)<=eps,`${a} != ${b}`);
 
@@ -34,12 +34,13 @@ test('Rinne terrain adapter matches shared pelvis/foot split',()=>{
  close(local.pelvisY,shared.pelvisY);for(const side of ['left','right']){close(local[side].y,shared[side].y);for(const axis of ['x','y','z'])close(local[side].normal[axis],shared[side].normal[axis]);}
 });
 
-test('final humanoid entry layers life over dynamics and preserves sampler boundary',async()=>{
+test('humanoid entry keeps dynamics and life layers below the operational runtime',async()=>{
  const entry=await readFile(new URL('../public/simulator/src/humanoid.js',import.meta.url),'utf8');
  const source=await readFile(new URL('../public/simulator/src/humanoid-dynamics.js',import.meta.url),'utf8');
  assert.equal(HUMANOID_DYNAMICS_REVISION,'mass-response-2');
  assert.match(entry,/HUMANOID_DYNAMICS_REVISION.*humanoid-dynamics/);
- assert.match(entry,/HumanoidRuntime,HUMANOID_LIFE_REVISION.*humanoid-life/);
+ assert.match(entry,/HUMANOID_LIFE_REVISION.*humanoid-life/);
+ assert.match(entry,/HumanoidRuntime,HUMANOID_OPERATIONAL_REVISION.*humanoid-operational/);
  assert.match(source,/if\(!commit\|\|!result\?\.a\|\|!result\?\.b\|\|!result\?\.sm/);
  assert.match(source,/Array\.isArray\(value\)\|\|ArrayBuffer\.isView\(value\)/);
  assert.match(source,/writePoint\(result\.b,newB\)/);
