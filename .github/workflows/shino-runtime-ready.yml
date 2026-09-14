@@ -10,6 +10,7 @@ on:
       - scripts/patch-vrm-runtime-ready.py
       - scripts/write-shino-runtime-integrity.py
       - scripts/browser/shino-runtime-ready.mjs
+      - packages/characters/tests/runtime-asset-audit.test.mjs
   workflow_dispatch:
 
 permissions:
