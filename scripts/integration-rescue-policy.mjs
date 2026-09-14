@@ -5,8 +5,9 @@ export const STATE_BRANCH = 'automation/integration-rescue-state';
 export const STATE_FILE = 'rescue-state.json';
 export const ACTIVE = new Set(['CLAIMED', 'ANALYZING', 'RESOLVING', 'VALIDATING', 'PUSHING']);
 export const RETURNED = new Set(['AWAITING_PUSH', 'PUSHED', 'RETURNED_TO_INTEGRATION', 'CHECKING']);
+export const SEMANTIC_WORK = new Set(['AWAITING_SEMANTIC_WORK', 'SEMANTIC_WORKING']);
 export const TERMINAL = new Set(['MERGED', 'DEV', 'FAILED_MANUAL', 'CLOSED']);
-export const STATES = new Set(['DETECTED', 'QUEUED', 'BLOCKED_BY_RESCUE', ...ACTIVE, ...RETURNED,
+export const STATES = new Set(['DETECTED', 'QUEUED', 'BLOCKED_BY_RESCUE', ...ACTIVE, ...RETURNED, ...SEMANTIC_WORK,
   ...TERMINAL, 'FAILED_RETRYABLE', 'STALE']);
 const number = (env, key, fallback, min, max) => {
   const value = env[key] === undefined || env[key] === '' ? fallback : Number(env[key]);
@@ -15,16 +16,16 @@ const number = (env, key, fallback, min, max) => {
 };
 export function rescueConfig(env = {}) {
   return {
-    maxConcurrency: number(env, 'MAX_RESCUE_CONCURRENCY', 4, 1, 16),
+    maxConcurrency: number(env, 'MAX_RESCUE_CONCURRENCY', 6, 1, 16),
     maxAttempts: number(env, 'MAX_RESCUE_ATTEMPTS', 3, 1, 10),
     heartbeatMs: number(env, 'RESCUE_HEARTBEAT_SECONDS', 120, 60, 300) * 1000,
     staleMs: number(env, 'RESCUE_STALE_SECONDS', 600, 360, 3600) * 1000,
-    queueStallMs: number(env, 'RESCUE_QUEUE_STALL_SECONDS', 900, 300, 86400) * 1000,
-    retryMs: number(env, 'RESCUE_RETRY_SECONDS', 300, 60, 3600) * 1000,
-    scanMinMs: number(env, 'RESCUE_SCAN_MIN_SECONDS', 120, 60, 600) * 1000,
+    queueStallMs: number(env, 'RESCUE_QUEUE_STALL_SECONDS', 300, 300, 86400) * 1000,
+    retryMs: number(env, 'RESCUE_RETRY_SECONDS', 120, 60, 3600) * 1000,
+    scanMinMs: number(env, 'RESCUE_SCAN_MIN_SECONDS', 60, 60, 600) * 1000,
     apiReserve: number(env, 'RESCUE_API_RESERVE', 200, 100, 500),
-    maxEvaluations: number(env, 'RESCUE_MAX_EVALUATIONS', 12, 1, 24),
-    maxRequests: number(env, 'RESCUE_MAX_REQUESTS', 160, 40, 300),
+    maxEvaluations: number(env, 'RESCUE_MAX_EVALUATIONS', 24, 1, 24),
+    maxRequests: number(env, 'RESCUE_MAX_REQUESTS', 220, 40, 300),
   };
 }
 export function manualReason(pr, { reviews, unresolved, complete = true } = {}) {
@@ -115,13 +116,31 @@ export function transition(state, record, next, action, now) {
   if (record.state !== next) event(state, record, next, action, now);
   record.state = next; record.currentStep = next; record.currentAction = String(action).slice(0, 240); record.updatedAt = new Date(now).toISOString();
 }
+export function semanticWorkReason(reason = '') {
+  return /^FAILED_MANUAL:(?:SEMANTIC_CONFLICT|OVERLAPPING_CHANGES|RELATED_CODE_RECONCILIATION|CONTROL_OR_CONTRACT_RECONCILIATION)(?::|$)/.test(String(reason));
+}
+export function observationOnlyReason(reason = '') {
+  return /^(?:PR_CONTRACT_CHANGED|HEAD_CHANGED|HEAD_CHANGED_AFTER_RESCUE|RELATED_DEVELOP_ADVANCED|DEPENDENCY_NOT_MERGED)$/.test(String(reason));
+}
 export function failure(state, record, reason, now, manual = false) {
-  record.failures = [...(record.failures || []), { reason: String(reason).slice(0, 400), at: new Date(now).toISOString(), workerId: record.claimedBy, attempt: record.attempt, runId: record.runId, rescueId: record.rescueId }].slice(-10);
-  record.failureReason = String(reason).slice(0, 400);
+  const text = String(reason).slice(0, 400);
+  const attemptAtFailure = record.attempt;
+  record.failures = [...(record.failures || []), { reason: text, at: new Date(now).toISOString(), workerId: record.claimedBy, attempt: attemptAtFailure, runId: record.runId, rescueId: record.rescueId }].slice(-10);
+  record.failureReason = text;
   record.lease = null;
-  record.nextAttemptAt = new Date(now + state.config.retryMs * Math.max(1, record.attempt)).toISOString();
-  transition(state, record, manual || record.attempt >= record.maxAttempts ? 'FAILED_MANUAL' : 'FAILED_RETRYABLE', reason, now);
-  if (record.state === 'FAILED_MANUAL') state.outbox.push({ id: `${record.rescueId || 'pr-' + record.pr}:manual:${record.attempt}`, type: 'manual', pr: record.pr, reason: record.failureReason, attempt: record.attempt, maxAttempts: record.maxAttempts });
+  if (manual && semanticWorkReason(text)) {
+    record.semanticReason = text;
+    record.semanticRequestedAt = new Date(now).toISOString();
+    record.semanticLease = null;
+    record.nextAttemptAt = null;
+    transition(state, record, 'AWAITING_SEMANTIC_WORK', '機械的base更新では意味保証できないため既存ChatGPT WorkのSemantic Rescueへ引き渡し', now);
+    state.outbox.push({ id: `${record.rescueId || 'pr-' + record.pr}:semantic:${attemptAtFailure}`, type: 'semantic', pr: record.pr, reason: text, attempt: attemptAtFailure, maxAttempts: record.maxAttempts });
+    return;
+  }
+  if (!manual && observationOnlyReason(text) && record.attempt > 0) record.attempt--;
+  record.nextAttemptAt = new Date(now + (observationOnlyReason(text) ? state.config.scanMinMs : state.config.retryMs * Math.max(1, record.attempt))).toISOString();
+  transition(state, record, manual || record.attempt >= record.maxAttempts ? 'FAILED_MANUAL' : 'FAILED_RETRYABLE', text, now);
+  if (record.state === 'FAILED_MANUAL') state.outbox.push({ id: `${record.rescueId || 'pr-' + record.pr}:manual:${attemptAtFailure}`, type: 'manual', pr: record.pr, reason: record.failureReason, attempt: attemptAtFailure, maxAttempts: record.maxAttempts });
 }
 export function owned(state, pr, rescueId, workerId) {
   const r = state.records[pr];
@@ -155,7 +174,7 @@ export function recoverStale(state, runStates, now) {
 export function planWave(state, { runId, now, id }) {
   const all = Object.values(state.records);
   const occupied = all.filter(r => r.lease);
-  const locks = all.filter(r => r.lease || RETURNED.has(r.state));
+  const locks = all.filter(r => r.lease || RETURNED.has(r.state) || SEMANTIC_WORK.has(r.state));
   const candidates = all.filter(r => ['DETECTED', 'QUEUED', 'BLOCKED_BY_RESCUE', 'FAILED_RETRYABLE'].includes(r.state) &&
     !r.lease && (!r.nextAttemptAt || Date.parse(r.nextAttemptAt) <= now));
   for (const r of candidates) r.priority = priority(r, all, now);
@@ -174,7 +193,7 @@ export function planWave(state, { runId, now, id }) {
       r.risk = 'RED'; r.waitingReason = `Waiting for ${blockers.map(pr => `#${pr}`).join(', ')} to merge into develop`;
       for (const pr of blockers) {
         const predecessor = state.records[pr];
-        if (predecessor && (predecessor.lease || RETURNED.has(predecessor.state))) {
+        if (predecessor && (predecessor.lease || RETURNED.has(predecessor.state) || SEMANTIC_WORK.has(predecessor.state))) {
           predecessor.risk = 'RED'; predecessor.riskReason = `Sequential predecessor; #${r.pr} waits for this PR to merge`;
         }
       }
