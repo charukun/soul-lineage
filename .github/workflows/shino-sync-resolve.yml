@@ -45,6 +45,7 @@ jobs:
           test -z "$(git diff --name-only --diff-filter=U)"
       - name: Fast merged-state validation
         run: |
+          # Run 3: stale root production-stage expectation has been reconciled to PRIMARY.
           git diff --check
           node --check apps/rinne/src/character-workspace.js
           node --check packages/characters/src/reference-models.js
