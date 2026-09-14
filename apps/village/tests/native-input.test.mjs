@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {nativeTap} from './first-build.browser.mjs';
 
 function harness(points, {enabled=true}={}) {
-  const clicks=[], samples=[], budgets=[];
+  const events=[], samples=[], budgets=[];
   const locator={
     async scrollIntoViewIfNeeded(options){budgets.push(options.timeout);},
     async evaluate(){const point=points[Math.min(samples.length,points.length-1)];samples.push(point);return point;},
@@ -16,29 +16,51 @@ function harness(points, {enabled=true}={}) {
   });
   expect.poll=(sample,options)=>({async toBe(expected){
     budgets.push(options.timeout);
-    for(let attempt=0;attempt<3;attempt++)if(await sample()===expected)return;
+    for(let attempt=0;attempt<4;attempt++)if(await sample()===expected)return;
     assert.fail('native target remains obstructed');
   }});
-  const page={mouse:{async click(x,y){clicks.push({x,y,samples:samples.length});}}};
-  return{page,expect,locator,clicks,samples,budgets};
+  const page={mouse:{
+    async move(x,y){events.push({type:'move',x,y,samples:samples.length});},
+    async down(){events.push({type:'down',samples:samples.length});},
+    async up(){events.push({type:'up',samples:samples.length});},
+  }};
+  return{page,expect,locator,events,samples,budgets};
 }
 const ready={x:80,y:650,width:100,height:100,hit:true};
 
-test('native tap re-samples an opening drawer and clicks only its accessible current position',async()=>{
-  const h=harness([{...ready,x:80,y:850,hit:false},ready]);
+test('native tap re-samples an opening drawer and presses only its accessible current position',async()=>{
+  const h=harness([{...ready,y:850,hit:false},ready,ready]);
   await nativeTap(h.page,h.expect,h.locator);
-  assert.deepEqual(h.clicks,[{x:80,y:650,samples:2}]);
+  assert.deepEqual(h.events,[
+    {type:'move',x:80,y:650,samples:2},
+    {type:'down',samples:3},
+    {type:'up',samples:3},
+  ]);
   assert.ok(h.budgets.every(value=>value===8000));
 });
-test('native tap never clicks persistently covered or zero-size targets',async()=>{
+
+test('native tap retries when a rerender moves the target after pointer positioning',async()=>{
+  const moved={...ready,y:562};
+  const h=harness([ready,moved,moved,moved]);
+  await nativeTap(h.page,h.expect,h.locator);
+  assert.deepEqual(h.events,[
+    {type:'move',x:80,y:650,samples:1},
+    {type:'move',x:80,y:562,samples:3},
+    {type:'down',samples:4},
+    {type:'up',samples:4},
+  ]);
+});
+
+test('native tap never presses persistently covered or zero-size targets',async()=>{
   for(const point of [{...ready,hit:false},{...ready,width:0}]){
     const h=harness([point]);
     await assert.rejects(nativeTap(h.page,h.expect,h.locator),/remains obstructed/);
-    assert.deepEqual(h.clicks,[]);
+    assert.deepEqual(h.events,[]);
   }
 });
+
 test('native tap does not interact with disabled controls',async()=>{
   const h=harness([ready],{enabled:false});
   await assert.rejects(nativeTap(h.page,h.expect,h.locator),/disabled/);
-  assert.deepEqual(h.clicks,[]);assert.deepEqual(h.samples,[]);
+  assert.deepEqual(h.events,[]);assert.deepEqual(h.samples,[]);
 });
