@@ -11,6 +11,12 @@ This directory stores visual character reference sheets used to keep concept art
 - Update the reference sheet when an approved model or modular-part contract changes materially.
 - New characters should use the same structure so references can later be generated and reviewed as a consistent production set.
 
+## Reference-to-model builder
+
+A reference can now be registered with a machine-readable `production` contract in `packages/characters/src/reference-models.js`. Character Workshop can export a provider-neutral model-build request that preserves the four authority buckets above. An external modeling provider may then return a VRM/GLB candidate, but the current MasterCharacter remains active until provenance, identity, silhouette, topology, rig, materials, clipping, motion, and performance gates all pass.
+
+See `docs/characters/MODEL_BUILDER.md` for the provider adapter, CLI, candidate review and game-distribution manifest flow. The builder does not treat a concept/reference image as proof that proposed parts or game equipment are implemented.
+
 ## Shino
 
 `shino/shino-character-reference-sheet-v2.png` is the first repository reference sheet for the current Shino-based MasterCharacter workflow. It is a review/reference image, not a replacement for `packages/characters`, `packages/rendering`, or the audited VRM asset contract.
