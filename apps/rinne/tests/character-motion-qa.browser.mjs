@@ -53,6 +53,17 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
     const penetration=s=>s.diagnostics.filter(i=>i.category==='self intersection').reduce((m,i)=>Math.max(m,i.penetration??0),0);
     assert.ok(penetration(after)<penetration(before),'source arm penetration case must improve');
     snapshots.push({before,after});checks.push('same frame before/after visible arm clearance improvement');
+
+    await seek(5);await page.locator('#qa-ab-known').click();
+    await page.waitForFunction(()=>window.masterCharacterReview.motionQA.comparison?.frame===1049);
+    const comparison=await page.evaluate(()=>window.masterCharacterReview.motionQA.comparison);
+    assert.equal(comparison.frame,1049);assert.equal(comparison.camera,'front-left');assert.equal(comparison.before.frame,comparison.after.frame);assert.equal(comparison.before.camera,comparison.after.camera);
+    assert.ok(penetration(comparison.after)<penetration(comparison.before),'visible A/B panel must use the improving basis-on result');
+    for(const id of ['qa-ab-before','qa-ab-after'])assert.match(await page.locator(`#${id}`).getAttribute('src'),/^data:image\/jpeg/);
+    assert.match(await page.locator('#qa-ab-summary').textContent(),/合否は左右の実画像/);
+    await page.locator('#qa-ab').screenshot({path:resolve(output,'motion-qa-ab-comparison.png')});
+    snapshots.push({comparison});checks.push('one-tap user-visible A/B panel locks the same Shino frame and camera');
+
     for(const count of [6,12]){
       await page.locator(`[data-qa-count="${count}"]`).click();await seek(17.475);
       assert.equal(await page.evaluate(()=>window.masterCharacterReview.actors.length),count);
