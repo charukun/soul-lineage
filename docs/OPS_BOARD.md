@@ -46,7 +46,7 @@ Cloudflare deploy は既存 Repository Secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFL
 
 ## 名称と3環境
 
-ゲーム名は各workspaceのdisplayNameを正本とし、古い公開manifestの名前で上書きしません。各ゲームに開発・検証・本番を常に表示し、未登録は「未公開」、情報の重複や不正なパスは「確認中」としてリンクを有効化しません。環境全体が混在SHAでも各アプリの実公開SHAを表示します。検証版は固定リリースであり、DEVの次の更新で自動上書きしません。詳しくは GAME_ENVIRONMENTS.md を参照してください。Worker名rinne-ops、URL、workflow名は互換性のため維持します。
+ゲーム名は各workspaceのdisplayNameを正本とし、古い公開manifestの名前で上書きしません。各ゲームに開発・検証・本番を常に表示し、未登録は「未公開」、情報の重複や不正なパスは「確認中」としてリンクを有効化しません。環境全体が混在SHAでも各アプリの実公開SHAを表示します。検証版は固定リリースであり、DEVの次の更新で自動上書きしません。詳しくは GAME_ENVIRONMENTS.md を参照してください。
 
 ## 公開後検証と復旧
 
@@ -64,3 +64,15 @@ Rescueの初期表示は、スマートフォンで一目で状況を把握で�
 - 実行中PRはサマリ直下にNOWとして最大3件表示し、PR番号と現在工程を読み取れるようにする。
 - 状態ラベル、最終更新、KPI、NOW、詳細を見るの順序を維持し、320px幅でも横スクロールさせない。
 - 詳細の既存disclosure、Rescue stateの意味、Integration gate、main / Productionの挙動は変更しない。
+
+## Integration Flow の平易表示（2026-09-14）
+
+Integration Flow の初期表示は内部用語を避け、「何件たまっているか」「どこで時間がかかっているか」「ユーザーの操作が必要か」を日本語で先に示します。BURN_DOWN、Demand、Quarantine、p95、Virtual Train、Auto tuning などの技術情報は削除せず、詳細表示へ退避します。
+
+- `BURN_DOWN` は「滞留を解消中」、`BUSY` は「やや混雑」、`NORMAL` は「順調」と表示する。
+- `Draft→Ready` は「実装開始 → 統合待ち」、`Ready→Merge` は「統合待ち → develop反映」、`Merge→DEV` は「develop反映 → DEV公開」と言い換える。
+- p50 は「通常」、p95 は「遅いケース」、samples は「実績件数」として表示し、統計用語を初期画面から外す。
+- ボトルネックに応じて「主な遅れは実装側 / Integration / DEV公開」の短い説明を出す。
+- 人の判断が必要な案件が0件なら「いまはあなたの操作は不要」と明示し、必要な場合だけ件数を警告する。
+- 技術的な処理速度、Virtual Train、自動調整、failure knowledge は折りたたみの「詳しい処理情報」に残す。
+- 既存の状態計算、Rescue/Integrationの動作、品質gate、main / Productionは変更しない。

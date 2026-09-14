@@ -103,9 +103,9 @@ test('stale Ready classifier is bounded and excludes Draft/closed PRs', () => {
   assert.equal(staleReadyCandidate({state:'closed',draft:false,created_at:new Date(now-100*3600000).toISOString()},now),false);
 });
 
-test('workflow contracts isolate Virtual Train and keep stack writes in trusted Return lane', () => {
-  const rescue=readFileSync('.github/workflows/integration-rescue.yml','utf8'),queue=readFileSync('scripts/integration-queue-recovery.mjs','utf8'),returns=readFileSync('scripts/integration-rescue-return.mjs','utf8'),train=readFileSync('scripts/integration-virtual-train.mjs','utf8');
-  assert.match(rescue,/Validate Virtual Integration Train/); assert.match(rescue,/validate\.mjs fast/); assert.match(rescue,/browser\/pr-smoke\.mjs/); assert.match(rescue,/contents: write/); assert.match(queue,/write\s*=\s*false/); assert.match(returns,/write:\s*true/); assert.match(train,/automation\/integration-train-/); assert.match(train,/DELETE/); assert.match(train,/status:\s*'validated'/);
+test('workflow contracts keep Virtual Train under reconciliation and stack writes in trusted Return lane', () => {
+  const controller=readFileSync('.github/workflows/integration-controller.yml','utf8'),rescue=readFileSync('.github/workflows/integration-rescue.yml','utf8'),queue=readFileSync('scripts/integration-queue-recovery.mjs','utf8'),returns=readFileSync('scripts/integration-rescue-return.mjs','utf8'),train=readFileSync('scripts/integration-virtual-train.mjs','utf8');
+  assert.match(controller,/Validate planned Virtual Integration Train/); assert.match(controller,/validate\.mjs fast/); assert.match(controller,/browser\/pr-smoke\.mjs/); assert.match(controller,/Serialized expected-head writer/); assert.match(rescue,/Integration Repair Executors/); assert.doesNotMatch(rescue,/Validate (planned )?Virtual Integration Train/); assert.match(queue,/write\s*=\s*false/); assert.match(returns,/write:\s*true/); assert.match(train,/automation\/integration-train-/); assert.match(train,/DELETE/); assert.match(train,/status:\s*'validated'/);
 });
 
 test('workflow contracts coalesce CI and pause Code Health PR creation under pressure', () => {
@@ -113,7 +113,7 @@ test('workflow contracts coalesce CI and pause Code Health PR creation under pre
   assert.match(ci,/group: ci-\$\{\{ github\.event\.pull_request\.number \}\}-/); assert.match(ci,/cancel-in-progress: true/); assert.match(health,/Measure Integration backlog pressure/); assert.match(health,/steps\.pressure\.outputs\.pause != 'true'/); assert.match(health,/41898282\+github-actions\[bot\]@users\.noreply\.github\.com/);
 });
 
-test('AI repair and PULSE expose Draft-to-DEV, Virtual Train and Quarantine without weakening gates', () => {
+test('AI repair and PULSE expose end-to-end delivery, Virtual Train and quarantine without weakening gates', () => {
   const returns=readFileSync('scripts/integration-rescue-return.mjs','utf8'),flow=readFileSync('ops-board/public/flow-board.js','utf8'),index=readFileSync('ops-board/public/index.html','utf8'),quarantine=readFileSync('scripts/integration-quarantine-signal.mjs','utf8');
-  assert.match(returns,/AI_REPAIR_REQUIRED/); assert.match(quarantine,/AI_DEEP_REPAIR_REQUIRED/); assert.match(flow,/Draft→Ready/); assert.match(flow,/Draft→DEV/); assert.match(flow,/Virtual Train/); assert.match(flow,/Quarantine/); assert.doesNotMatch(flow,/innerHTML/); assert.match(index,/id="integration-flow"/);
+  assert.match(returns,/AI_REPAIR_REQUIRED/); assert.match(quarantine,/AI_DEEP_REPAIR_REQUIRED/); assert.match(flow,/Draft→Ready/); assert.match(flow,/実装開始 → DEV公開/); assert.match(flow,/latency\.implementationToDev/); assert.match(flow,/Virtual Train/); assert.match(flow,/自動修復用に隔離/); assert.match(flow,/view\.counts\?\.quarantine/); assert.doesNotMatch(flow,/innerHTML/); assert.match(index,/id="integration-flow"/);
 });
