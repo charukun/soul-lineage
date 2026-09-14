@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { buildContextPlan, selectContextDocs } from '../scripts/context-plan.mjs';
 
 test('default context stays minimal instead of preloading the documentation tree', () => {
@@ -48,4 +49,14 @@ test('plan explicitly records retrieval and product-context boundaries', () => {
   assert.ok(plan.read.includes('docs/CODE_HEALTH.md'));
   assert.ok(plan.avoidPreload.includes('past chat history'));
   assert.match(plan.boundary, /product-injected system\/Project\/memory context/);
+});
+
+test('repository entrypoints wire the lean context policy and command', () => {
+  const agents = readFileSync('AGENTS.md', 'utf8');
+  const policy = readFileSync('docs/CONTEXT_EFFICIENCY.md', 'utf8');
+  const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+  assert.match(agents, /docs\/CONTEXT_EFFICIENCY\.md/);
+  assert.match(agents, /npm run context:plan/);
+  assert.match(policy, /過去会話、closed PR、Actions履歴、全docs、全diffを一括取得しない/);
+  assert.equal(pkg.scripts['context:plan'], 'node scripts/context-plan.mjs');
 });
