@@ -4,14 +4,14 @@
 
 This review exists to answer one concrete question: does the shared Motion Quality runtime layer materially improve the same Shino motion, or are we merely accumulating infrastructure?
 
-The comparison must keep the character, source motion, timeline, camera and playback speed fixed. The only intentional difference is whether the shared correction path is applied.
+The comparison must keep the character, source motion, timeline, camera and playback speed fixed. The intentional comparison is the existing Workshop **Before** path versus the current Motion Quality correction path. Shared rendering, rig loading and coordinate infrastructure remain common so unrelated renderer differences do not contaminate the result.
 
 ## Reviewer surface
 
 Character Workshop -> Motion QA exposes a dedicated **A/B比較** mode.
 
-- **A / 基盤OFF** renders the existing source pose and legacy grip ordering without the shared transition repair, anatomical correction or geometry-space grip calibration.
-- **B / 基盤ON** renders the same frame through the current shared Motion Quality path.
+- **A / 既存Before（補正OFF）** renders the same source pose through the pre-correction review path and legacy grip profile. It does not apply the current transition-repaired frame bank or anatomical arm-clearance correction.
+- **B / 現行Motion Quality** renders the same frame through the current transition-repaired frame bank, anatomical correction and current grip-calibration profile.
 - Both views use the same selected Shino, source frame, camera, lighting and playback clock.
 - The UI labels the two sides explicitly and never presents numeric diagnostics as visual approval.
 - A reviewer can pause, scrub, step one frame and change the fixed QA camera while preserving A/B alignment.
