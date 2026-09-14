@@ -40,6 +40,8 @@ jobs:
             exit 1
           fi
           python3 scripts/resolve-shino-develop-sync.py
+          python3 scripts/patch-reference-production-status.py
+          git add packages/characters/src/reference-models.js
           test -z "$(git diff --name-only --diff-filter=U)"
       - name: Fast merged-state validation
         run: |
