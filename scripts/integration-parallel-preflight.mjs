@@ -64,7 +64,12 @@ async function warmCandidate(c, repository, develop, snapshot) {
 export async function primeParallelIntegrationPreflight(c, repository, options = {}) {
   const started = Date.now();
   const concurrency = positiveInt(options.concurrency);
-  const maxCandidates = Math.max(concurrency, Number(options.maxCandidates || concurrency));
+  const requestedCandidates = Number(options.maxCandidates || concurrency);
+  const maxCandidates = Number.isSafeInteger(requestedCandidates) && requestedCandidates >= concurrency
+    ? Math.min(24, requestedCandidates)
+    : concurrency;
+  const warm = options.warmCandidate || warmCandidate;
+  assert.equal(typeof warm, 'function', 'PARALLEL_PREFLIGHT_WARMER_REQUIRED');
   const develop = (await c.api('GET', `${c.root}/branches/develop`, null, { cache: true })).commit.sha;
   const open = await c.pages('/pulls?state=open&base=develop&sort=created&direction=asc', undefined, { maxPages: 10, cache: true });
   const candidates = open.filter(pr => !pr.draft && pr.base?.ref === 'develop' && pr.head?.repo?.full_name === repository).slice(0, maxCandidates);
@@ -80,7 +85,7 @@ export async function primeParallelIntegrationPreflight(c, repository, options =
     durationMs: Date.now() - started,
   };
 
-  const settled = await mapWithConcurrency(candidates, concurrency, snapshot => warmCandidate(c, repository, develop, snapshot));
+  const settled = await mapWithConcurrency(candidates, concurrency, snapshot => warm(c, repository, develop, snapshot));
   const warmed = settled.filter(item => item.status === 'fulfilled' && !item.value?.skipped).map(item => item.value);
   const failed = settled.flatMap((item, index) => item.status === 'rejected'
     ? [{ pr: candidates[index].number, reason: item.reason?.message || String(item.reason) }]
