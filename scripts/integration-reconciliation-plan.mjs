@@ -190,7 +190,7 @@ export function buildReconciliationPlan({
     blocked,
     deferred: deferred.map(item => ({ ...item, pr: Number(item.pr) })),
     wakeAgain: actionable > 0,
-    actionableIdle: actionable > 0 && active.length === 0,
+    actionableIdle: repair.length > 0 && active.length === 0,
   };
 }
 
