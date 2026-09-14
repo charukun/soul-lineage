@@ -12,6 +12,7 @@ on:
       - scripts/blender/refine-shino-reference-v2-v3.py
       - scripts/blender/refine-shino-reference-v2-v4.py
       - scripts/blender/refine-shino-reference-v2-v5.py
+      - scripts/blender/refine-shino-reference-v2-v6.py
       - scripts/blender/normalize-shino-reference-v2-transforms.py
       - scripts/blender/character-production-audit.py
       - scripts/patch-vrm-humanoid.py
@@ -96,6 +97,14 @@ jobs:
             --source-vrm apps/rinne/public/simulator/assets/SHINO_review.vrm \
             --out generated/shino-reference-v2
 
+      - name: Correct body proportions with humanoid bone-length scaling
+        run: |
+          xvfb-run -a blender --background --python-exit-code 1 \
+            generated/shino-reference-v2/source/ShinoReferenceV2.blend \
+            --python scripts/blender/refine-shino-reference-v2-v6.py -- \
+            --source-vrm apps/rinne/public/simulator/assets/SHINO_review.vrm \
+            --out generated/shino-reference-v2
+
       - name: Normalize authored detail transforms and re-export
         run: |
           xvfb-run -a blender --background --python-exit-code 1 \
@@ -141,7 +150,7 @@ jobs:
 
       - name: Fast generated-asset sanity
         run: |
-          python3 -m py_compile scripts/blender/build-shino-reference-v2.py scripts/blender/run-shino-reference-v2.py scripts/blender/refine-shino-reference-v2.py scripts/blender/refine-shino-reference-v2-v3.py scripts/blender/refine-shino-reference-v2-v4.py scripts/blender/refine-shino-reference-v2-v5.py scripts/blender/normalize-shino-reference-v2-transforms.py scripts/patch-vrm-humanoid.py scripts/finalize-shino-reference-v2.py
+          python3 -m py_compile scripts/blender/build-shino-reference-v2.py scripts/blender/run-shino-reference-v2.py scripts/blender/refine-shino-reference-v2.py scripts/blender/refine-shino-reference-v2-v3.py scripts/blender/refine-shino-reference-v2-v4.py scripts/blender/refine-shino-reference-v2-v5.py scripts/blender/refine-shino-reference-v2-v6.py scripts/blender/normalize-shino-reference-v2-transforms.py scripts/patch-vrm-humanoid.py scripts/finalize-shino-reference-v2.py
           test -s apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm
           test -s apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json
           test -s assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend
@@ -167,7 +176,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Generated DCC assets are unchanged."
           else
-            git commit -m "build(characters): refine Shino Reference v2 DCC assets v6"
+            git commit -m "build(characters): refine Shino Reference v2 DCC assets v7"
             git push origin HEAD:${GITHUB_REF_NAME}
           fi
 
