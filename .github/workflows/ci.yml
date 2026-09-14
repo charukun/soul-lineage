@@ -111,43 +111,82 @@ jobs:
       needs.readiness.outputs.ready == 'true' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action))
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
     env:
       APP_ENV: dev
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: develop
+          path: control
+          persist-credentials: false
+          sparse-checkout: |
+            scripts
+            ops-board
+      - uses: actions/checkout@v6
+        with:
           ref: ${{ github.event.pull_request.head.sha }}
+          path: work
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: npm
+          cache-dependency-path: work/package-lock.json
+      - name: Reuse exact Rescue fast verification when the trusted evidence matches
+        id: rescue-fast
+        if: >-
+          github.event.pull_request.base.ref == 'develop' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ ! -f control/scripts/integration-rescue-fast-evidence.mjs ]; then
+            echo 'Trusted reuse verifier is not on develop yet; run normal fast CI for this bootstrap PR.'
+            echo 'reuse=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          node control/scripts/integration-rescue-fast-evidence.mjs
       - name: Resolve exact PR head and affected workspaces
         id: plan
+        working-directory: work
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: node scripts/affected.mjs "$BASE_SHA" "$HEAD_SHA"
       - run: npm ci
-        if: steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.has_packages == 'true' || steps.plan.outputs.infrastructure == 'true'
+        working-directory: work
+        if: >-
+          steps.rescue-fast.outputs.reuse != 'true' &&
+          (steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.has_packages == 'true' || steps.plan.outputs.infrastructure == 'true')
       - name: Fast verification (shared tests run once)
+        if: steps.rescue-fast.outputs.reuse != 'true'
+        working-directory: work
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: node scripts/validate.mjs fast "$BASE_SHA" "$HEAD_SHA"
       - name: Record PR/head identity for Integration
+        working-directory: work
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          RESCUE_FAST_REUSED: ${{ steps.rescue-fast.outputs.reuse }}
+          RESCUE_RUN_ID: ${{ steps.rescue-fast.outputs.run_id }}
+          RESCUE_TESTED_TREE: ${{ steps.rescue-fast.outputs.tested_tree }}
         run: |
           mkdir -p .deploy-state
-          node --input-type=module -e "import fs from 'node:fs'; fs.writeFileSync('.deploy-state/pr-fast.json', JSON.stringify({pr:process.env.PR_NUMBER,head:process.env.HEAD_SHA,base:process.env.BASE_SHA}));"
+          node --input-type=module -e "import fs from 'node:fs'; fs.writeFileSync('.deploy-state/pr-fast.json', JSON.stringify({pr:process.env.PR_NUMBER,head:process.env.HEAD_SHA,base:process.env.BASE_SHA,source:process.env.RESCUE_FAST_REUSED==='true'?'integration-rescue':'ci',rescueRun:process.env.RESCUE_RUN_ID||null,testedTree:process.env.RESCUE_TESTED_TREE||null}));"
       - uses: actions/upload-artifact@v4
         with:
           name: pr-fast-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
-          path: .deploy-state/pr-fast.json
+          path: work/.deploy-state/pr-fast.json
           overwrite: true
           retention-days: 14
 

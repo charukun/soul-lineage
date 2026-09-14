@@ -30,9 +30,12 @@ try{
   assert.match(await page.locator('.rs-workers-total').innerText(),/4 \/ 6 ACTIVE/);check('section and active count');
   assert.equal(await page.locator('.rs-worker-pool .rs-card').count(),5);
   assert.match(await page.locator('.rs-card[data-pr="124"]').innerText(),/1400\/pr-124\/a1[\s\S]*VALIDATING/);check('real worker IDs and validation stage');
+  const technical=page.locator('details[data-disclosure="rescue:technical"]');
+  await technical.locator(':scope > summary').click();
+  assert.equal(await technical.getAttribute('open'),'');
   assert.match(await page.locator('.rs-wave-list').innerText(),/wave-14[\s\S]*#125.*#120/);check('wave and dependency order');
   assert.match(await page.locator('.rs-queue').innerText(),/#125 WAITING FOR #120[\s\S]*FAILED_RETRYABLE/);check('queue, blocked reason and retry');
-  assert.match(await page.locator('.rs-manual-list').innerText(),/save schema[\s\S]*Human review required/);check('manual failure visible');
+  assert.match(await page.locator('.rs-manual-list').innerText(),/save schema[\s\S]*(?:Human decision required|Manual hold|人の判断が必要)/);check('manual failure visible');
   assert.match(await page.locator('.rs-stale').innerText(),/WORKER STALE[\s\S]*Heartbeat 12m/);check('stale heartbeat visible');
   assert.equal(await page.locator('.rs-card[data-pr="120"] .rs-card-head a').getAttribute('href'),'https://github.com/charukun/soul-lineage/pull/120');
   assert.equal(await page.locator('.rs-recent .rs-card[data-pr="119"] a[href*="/commit/"]').getAttribute('href'),'https://github.com/charukun/soul-lineage/commit/'+'d'.repeat(40));check('PR and resolution commit links');

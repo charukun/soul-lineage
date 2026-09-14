@@ -171,10 +171,10 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       actions: write
       checks: read
-      statuses: read
+      statuses: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -400,6 +400,19 @@ jobs:
                 ref: 'develop',
                 inputs: { integration_cursor: process.env.CURSOR || '0' }
               });
+            } else if (process.env.RESULT === 'success') {
+              // This is an acceleration only. The independent ten-minute watchdog
+              // remains the durable fallback if the immediate dispatch API is unavailable.
+              if (github.rest.actions?.createWorkflowDispatch) {
+                await github.rest.actions.createWorkflowDispatch({
+                  ...context.repo,
+                  workflow_id: 'deploy.yml',
+                  ref: 'develop',
+                  inputs: { rescue_mode: 'scan' }
+                });
+              } else {
+                core.notice('Immediate Queue Recovery dispatch unavailable; independent watchdog remains active.');
+              }
             }
       - uses: actions/checkout@v6
         if: needs.publish.result == 'success'

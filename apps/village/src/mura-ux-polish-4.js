@@ -99,7 +99,9 @@ function enableMayorFacilityHousing(){
  World.prototype.add=function(kind,x,z,rot=0,roomId=null,options={}){return withFacility(this,roomId,()=>originalAdd.call(this,kind,x,z,rot,roomId,options));};
  World.prototype.move=function(id,x,z,rot,roomId=null){return withFacility(this,roomId,()=>originalMove.call(this,id,x,z,rot,roomId));};
  World.prototype.remove=function(id,roomId=null){return withFacility(this,roomId,()=>originalRemove.call(this,id,roomId));};
- const refresh=()=>{const host=view.roomId&&world.object(view.roomId);const build=$('build');if(host&&defs[host.kind]?.building&&build)build.hidden=false;for(const card of document.querySelectorAll('#catalog .card')){const kind=card.dataset.kind;if(view.roomId&&defs[kind]?.furniture)card.hidden=false;}};setInterval(refresh,300);
+ // The renderer owns furniture unlock visibility. Re-showing locked cards here
+ // changes the drawer height between frames and moves native input targets.
+ const refresh=()=>{const host=view.roomId&&world.object(view.roomId);const build=$('build');if(host&&defs[host.kind]?.building&&build)build.hidden=false;};setInterval(refresh,300);
 }
 
 function protectClanHomes(){
