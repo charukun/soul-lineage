@@ -20,9 +20,9 @@ AI実装を高速・並列に積み重ねても、単一ファイルの肥大化
 
 ### 2. Trusted develop maintenance
 
-`.github/workflows/code-health.yml` は単独のdefault-branch scheduleではなく、`workflow_call` の再利用workflowです。Repositoryのdefault branchは `main` であり、developにしか存在しないschedule/workflow_dispatchを永続起動源として扱いません。
+Code Healthの継続監査は独立したdevelop-only schedule/workflowではなく、`.github/workflows/integration-rescue.yml` の `Code Health maintenance` jobとして既存のtrusted develop control planeへ内蔵します。Repositoryのdefault branchは `main` なので、developにしか存在しない `schedule` / `workflow_dispatch` を永続起動源として扱いません。
 
-既存の `deploy.yml` → `integration-rescue.yml` というdevelop上のtrusted control planeから、Rescue/Integrationの1サイクル終了時に軽量監査を呼び出します。監査は`npm ci`やブラウザを起動せず、tracked sourceだけをNodeで解析します。この呼び出しはIntegration/Rescueのmerge判定を置き換えず、Code Health失敗をゲームのDEV成功へ偽装しません。
+既存の `deploy.yml` → `integration-rescue.yml` がRescue/Integrationの1サイクルを終えた時点で軽量監査を実行します。監査は`npm ci`やブラウザを起動せず、tracked sourceだけをNodeで解析します。このjobはIntegration/Rescueのmerge判定を置き換えず、Code Health失敗をゲームのDEV成功へ偽装しません。
 
 監査は以下を合成して0〜100のhotspot scoreを作ります。
 
