@@ -4,15 +4,13 @@ const node = (tag, cls, text) => { const n = document.createElement(tag); if (cl
 const link = (label, path) => { const n = node('a', 'rs-link', label); n.href = `https://github.com/charukun/soul-lineage/${path}`; n.target = '_blank'; n.rel = 'noreferrer'; return n; };
 const age = (time, now) => { const ms = now - Date.parse(time); if (!Number.isFinite(ms)) return '未記録'; const sec = Math.max(0, Math.floor(ms / 1000)); return sec < 60 ? `${sec}s` : sec < 3600 ? `${Math.floor(sec / 60)}m ${sec % 60}s` : `${Math.floor(sec / 3600)}h ${Math.floor(sec % 3600 / 60)}m`; };
 const pill = (text, tone = '') => node('span', `rs-pill ${tone}`, text);
-const labels = { DETECTED: '検知', QUEUED: '待機', BLOCKED_BY_RESCUE: '順番待ち', CLAIMED: 'Worker起動待ち', ANALYZING: '分析中', RESOLVING: '修復中', AWAITING_SEMANTIC_WORK: 'Semantic Work待ち', SEMANTIC_WORKING: 'Semantic修復中', VALIDATING: '検証中', PUSHING: 'commit確定前', AWAITING_PUSH: 'Work push待ち', PUSHED: 'push完了', RETURNED_TO_INTEGRATION: 'Integration復帰', CHECKING: '通常gate確認待ち', MERGED: 'develop統合済み', DEV: 'DEV公開確認済み', FAILED_RETRYABLE: '再試行待ち', FAILED_MANUAL: '人の確認が必要', STALE: 'WORKER STALE' };
-const order = ['DETECTED', 'QUEUED', 'CLAIMED', 'ANALYZING', 'RESOLVING', 'AWAITING_SEMANTIC_WORK', 'SEMANTIC_WORKING', 'VALIDATING', 'PUSHING', 'AWAITING_PUSH', 'PUSHED', 'RETURNED_TO_INTEGRATION', 'CHECKING', 'MERGED', 'DEV'];
+const labels = { DETECTED: '検知', QUEUED: '待機', BLOCKED_BY_RESCUE: '順番待ち', CLAIMED: 'Worker起動待ち', ANALYZING: '分析中', RESOLVING: '修復中', VALIDATING: '検証中', PUSHING: 'commit確定前', AWAITING_PUSH: 'Work push待ち', PUSHED: 'push完了', RETURNED_TO_INTEGRATION: 'Integration復帰', CHECKING: '通常gate確認待ち', MERGED: 'develop統合済み', DEV: 'DEV公開確認済み', FAILED_RETRYABLE: '再試行待ち', FAILED_MANUAL: '人の確認が必要', STALE: 'WORKER STALE' };
+const order = ['DETECTED', 'QUEUED', 'CLAIMED', 'ANALYZING', 'RESOLVING', 'VALIDATING', 'PUSHING', 'AWAITING_PUSH', 'PUSHED', 'RETURNED_TO_INTEGRATION', 'CHECKING', 'MERGED', 'DEV'];
 function rail(record) {
   const box = node('ol', 'rs-rail');
   const delivery = [['CHECKING','CHECK'],['MERGED','MERGE'],['DEV','DEV']];
-  const semantic = ['AWAITING_SEMANTIC_WORK','SEMANTIC_WORKING'].includes(record.state) || record.semanticResolvedAt;
-  const steps = record.returnedAt ? [...(record.repairVerified ? [['PUSHED','PUSH']] : semantic ? [['SEMANTIC_WORKING','SEMANTIC'],['PUSHED','PUSH']] : []),['RETURNED_TO_INTEGRATION','RETURN'],...delivery] :
-    ['MERGED','DEV'].includes(record.state) ? delivery : semantic ?
-    [['ANALYZING','ANALYZE'],['AWAITING_SEMANTIC_WORK','HANDOFF'],['SEMANTIC_WORKING','SEMANTIC'],['RETURNED_TO_INTEGRATION','RETURN']] :
+  const steps = record.returnedAt ? [...(record.repairVerified ? [['PUSHED','PUSH']] : []),['RETURNED_TO_INTEGRATION','RETURN'],...delivery] :
+    ['MERGED','DEV'].includes(record.state) ? delivery :
     [['ANALYZING','ANALYZE'],['RESOLVING','RESOLVE'],['VALIDATING','VALIDATE'],['PUSHED','PUSH'],['RETURNED_TO_INTEGRATION','RETURN']];
   const at = order.indexOf(record.currentStep || record.state);
   box.setAttribute('aria-label', `現在: ${labels[record.state] || record.state}`);
@@ -25,21 +23,18 @@ function rail(record) {
 function card(record, now, staleMs) {
   const stale = record.lease && (record.state === 'STALE' || now - Date.parse(record.heartbeatAt || record.claimedAt) > staleMs);
   const manual = record.state === 'FAILED_MANUAL';
-  const semantic = ['AWAITING_SEMANTIC_WORK','SEMANTIC_WORKING'].includes(record.state);
   const c = node('article', `rs-card ${stale ? 'rs-stale' : manual ? 'rs-manual' : ''}`); c.dataset.viewKey = `rescue:${record.pr}`; c.dataset.pr = record.pr;
   if (record.workerId) c.append(node('p', 'rs-worker-id', `WORKER ${record.workerId}`));
-  if (record.semanticWorkerId) c.append(node('p', 'rs-worker-id', `SEMANTIC WORKER ${record.semanticWorkerId}`));
-  const top = node('div', 'rs-card-head'); top.append(link(`#${record.pr}`, `pull/${record.pr}`), pill(stale ? 'WORKER STALE' : record.state, stale || manual ? 'danger' : record.lease || record.state === 'SEMANTIC_WORKING' ? 'live' : ''));
+  const top = node('div', 'rs-card-head'); top.append(link(`#${record.pr}`, `pull/${record.pr}`), pill(stale ? 'WORKER STALE' : record.state, stale || manual ? 'danger' : record.lease ? 'live' : ''));
   c.append(top, node('h3', '', record.title || `PR #${record.pr}`));
-  if (record.returnedAt || ['AWAITING_PUSH','MERGED','DEV','AWAITING_SEMANTIC_WORK','SEMANTIC_WORKING'].includes(record.state)) {
-    c.append(pill(({repaired:'修復push・検証を確認',staged:'commit準備済み・push待ち',semantic:'意味的競合をWorkで修復',reevaluated:'再評価のみ・修復pushなし',observed:'統合状況の観測・修復証跡なし'})[record.deliveryKind] || '修復証跡未確認'));
+  if (record.returnedAt || ['AWAITING_PUSH','MERGED','DEV'].includes(record.state)) {
+    c.append(pill(({repaired:'修復push・検証を確認',staged:'commit準備済み・push待ち',reevaluated:'再評価のみ・修復pushなし',observed:'統合状況の観測・修復証跡なし'})[record.deliveryKind] || '修復証跡未確認'));
   }
   c.append(node('p', 'rs-action', record.currentAction || labels[record.state] || record.state));
-  if (record.lease || semantic || record.returnedAt || ['MERGED','DEV'].includes(record.state)) c.append(rail(record));
+  if (record.lease || record.returnedAt || ['MERGED','DEV'].includes(record.state)) c.append(rail(record));
   const meta = node('div', 'rs-meta');
   meta.append(pill(record.risk || 'RED', (record.risk || 'RED').toLowerCase()), node('span', '', (record.scopes || []).join(' · ') || 'Scope未確定'));
   c.append(meta, node('p', 'rs-note', `Reason: ${record.reason || '状態再評価'}`));
-  if (record.semanticReason) c.append(node('p', 'rs-note', `Semantic: ${record.semanticReason}`));
   if (record.currentFile) c.append(node('p', 'rs-file', `File: ${record.currentFile}`));
   if (record.blockedBy?.length) {
     const waiting = node('p', 'rs-blocker', `#${record.pr} WAITING FOR `);
@@ -49,22 +44,20 @@ function card(record, now, staleMs) {
   if (record.lease) {
     c.append(node('p', `rs-timing ${stale ? 'danger' : ''}`, `Duration ${age(record.claimedAt, now)} · Heartbeat ${age(record.heartbeatAt, now)} ago`));
     if (stale) c.append(node('p', 'rs-note', '旧Actions実行の終了を確認してから別Workerへ引き継ぎます'));
-  } else if (semantic) {
-    c.append(node('p', 'rs-timing', `${record.state === 'SEMANTIC_WORKING' ? 'Semantic Work実行中' : 'Semantic Work待ち'} · ${age(record.semanticRequestedAt || record.updatedAt, now)}`));
   } else if (['QUEUED','DETECTED','FAILED_RETRYABLE','BLOCKED_BY_RESCUE'].includes(record.state)) {
     c.append(node('p', 'rs-timing', `Wait ${age(record.detectedAt, now)} · Priority ${record.priority?.label || '未評価'}`));
     if (!record.blockedBy?.length) c.append(node('p', 'rs-note', 'Next candidate · 次Waveで再評価'));
   }
   if (record.state === 'VALIDATING') c.append(node('p', 'rs-test', 'Fast verification 実行中 · 完了後に結果を記録'));
   if (record.validation?.status === 'passed') c.append(node('p', 'rs-test', 'Fast verification PASSED'));
-  c.append(node('p', 'rs-note', `Actions attempt ${record.attempt || 0} / ${record.maxAttempts || '—'}`));
+  c.append(node('p', 'rs-note', `Attempt ${record.attempt || 0} / ${record.maxAttempts || '—'}`));
   if (record.failureReason) c.append(node('p', 'rs-failure', `Previous failure: ${record.failureReason}`));
   if (manual) c.append(node('strong', 'rs-human', 'Human review required · PRで仕様と診断を確認'));
   if (record.stagedSha && !record.pushedSha) c.append(link(`Staged ${record.stagedSha.slice(0, 8)} · branch未反映`, `commit/${record.stagedSha}`));
   if (record.pushWorkerId) c.append(node('p', 'rs-note', `Push relay: ${record.pushWorkerId}`));
   if (record.heartbeatCount) c.append(node('p', 'rs-note', `Recorded worker heartbeats: ${record.heartbeatCount}`));
   if (record.pushedSha && /^[0-9a-f]{40}$/.test(record.pushedSha)) c.append(link(`Commit ${record.pushedSha.slice(0, 8)}`, `commit/${record.pushedSha}`));
-  if (record.returnedAt) c.append(node('p', 'rs-resolution', `Result: ${labels[record.state] || record.state}${record.semanticResolution ? ' · ' + record.semanticResolution : record.resolution ? ' · ' + record.resolution : ''}`));
+  if (record.returnedAt) c.append(node('p', 'rs-resolution', `Result: ${labels[record.state] || record.state}${record.resolution ? ' · ' + record.resolution : ''}`));
   const details = node('div', 'rs-details');
   details.append(node('p', '', `Rescue ID: ${record.rescueId || '未claim'}`), node('p', '', record.riskReason || '変更領域を比較して処理順を決定'));
   if (record.priority?.explanation) details.append(node('p', '', record.priority.explanation));
@@ -91,9 +84,9 @@ export function renderRescue(view, now = Date.now()) {
   top.append(node('strong', `rs-status ${view.status === 'ALL_CLEAR' ? 'green' : staleWorkers || c.manual ? 'yellow' : ''}`, status));
   top.append(node('p', 'rs-note', `状態更新 ${age(view.generatedAt, now)} ago · GitHub state`));
   root.append(top);
-  if (view.workers.length || view.semantic?.length) {
+  if (view.workers.length) {
     const glance = node('div', 'rs-live-prs');
-    for (const r of [...view.workers, ...(view.semantic || [])]) {
+    for (const r of view.workers) {
       const item = node('div', 'rs-live-pr');
       item.append(link(`#${r.pr}`, `pull/${r.pr}`), node('span', r.state === 'STALE' ? 'yellow' : '', labels[r.state] || r.state));
       glance.append(item);
@@ -103,15 +96,14 @@ export function renderRescue(view, now = Date.now()) {
   if (view.coordinator?.reason) root.append(node('p', 'rs-configuration', view.coordinator.reason));
   if (staleObservation || view.observationError) root.append(node('p', 'rs-configuration', '最新の状態を取得できていません。前回の記録を表示しています。'));
   const metrics = node('div', 'rs-metrics');
-  for (const [name, value, cls] of [['WORKERS', `${c.active} / ${c.max} ACTIVE`, 'rs-workers-total'], ['SEMANTIC', `${c.semanticWorking || 0} / ${c.semantic || 0}`, ''], ['QUEUED', c.queued, ''], ['BLOCKED', c.blocked, ''], ['VALIDATING', c.validating, ''], ['WORK PUSH', c.awaitingPush || 0, ''], ['RETURNED', c.returned, ''], ['MANUAL', c.manual, ''], ['FAILED / RETRY', c.retry, ''], ['STALE', staleWorkers, '']]) {
+  for (const [name, value, cls] of [['WORKERS', `${c.active} / ${c.max} ACTIVE`, 'rs-workers-total'], ['QUEUED', c.queued, ''], ['BLOCKED', c.blocked, ''], ['VALIDATING', c.validating, ''], ['WORK PUSH', c.awaitingPush || 0, ''], ['RETURNED', c.returned, ''], ['MANUAL', c.manual, ''], ['FAILED / RETRY', c.retry, ''], ['STALE', staleWorkers, '']]) {
     const tone = Number(value) > 0 && ['MANUAL','FAILED / RETRY','STALE'].includes(name) ? name === 'MANUAL' ? 'red' : 'yellow' : '';
     const box = node('div', `rs-metric ${cls}`); box.append(node('span', '', name), node('strong', tone, value)); metrics.append(box);
   }
   root.append(metrics);
   if (view.coordinator?.errors?.length) root.append(node('p', 'rs-configuration', `Coordinator: ${view.coordinator.errors.map(e => `${e.pr ? '#' + e.pr + ' ' : ''}${e.reason}`).join(' · ')}`));
   if (view.workers.length) root.append(group('Worker Pool', view.workers, now, view.staleMs, 'rs-worker-pool'));
-  else root.append(node('p', 'rs-empty', view.status === 'ALL_CLEAR' ? '修復待ちはありません。ALL CLEAR' : '実行中のActions Workerはありません'));
-  if (view.semantic?.length) root.append(group('Semantic Work Rescue', view.semantic, now, view.staleMs, 'rs-semantic-list'));
+  else root.append(node('p', 'rs-empty', view.status === 'ALL_CLEAR' ? '修復待ちはありません。ALL CLEAR' : '実行中のWorkerはありません'));
   if (view.manual.length) root.append(group('Manual required', view.manual, now, view.staleMs, 'rs-manual-list'));
   if (view.waves.length) {
     const waves = node('section', 'rs-wave-list'); waves.append(node('h3', 'rs-group-title', 'Rescue Waves'));
@@ -128,8 +120,8 @@ export function renderRescue(view, now = Date.now()) {
   if (view.recent.length) root.append(group('修復・再評価・Integration / DEV観測', view.recent, now, view.staleMs, 'rs-recent'));
   const t = view.throughput;
   const stats = node('section', 'rs-throughput'); stats.append(node('h3', 'rs-group-title', 'Last 24h · 保持記録内'));
-  stats.append(node('p', '', `Rescued ${t.rescued} · Semantic ${t.semantic || 0} · Merged ${t.merged} · Manual ${t.manual} · Retrying ${t.retrying}`)); root.append(stats);
-  stats.append(node('p', 'rs-note', 'Rescued / Mergedは同じWorkerの検証・修復push・復帰を確認できた件数。Semanticは意味的競合を既存Workへ引き渡した件数です。'));
+  stats.append(node('p', '', `Rescued ${t.rescued} · Merged ${t.merged} · Manual ${t.manual} · Retrying ${t.retrying}`)); root.append(stats);
+  stats.append(node('p', 'rs-note', 'Rescued / Mergedは同じWorkerの検証・修復push・復帰を確認できた件数。証跡未保持の履歴は含みません。'));
   stats.append(node('p', 'rs-note', `修復証跡なしの観測: merge ${view.observed?.merged ?? 0} · DEV ${view.observed?.dev ?? 0}`));
   const feed = node('section', 'rs-activity'); feed.append(node('h3', 'rs-group-title', 'Recent activity'));
   for (const e of view.activity.slice(0, 12)) {
