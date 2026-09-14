@@ -15,7 +15,7 @@ test('Rinne personality and locomotion adapters match shared runtime',()=>{
 test('Rinne two-body and paired impact math match shared contracts',()=>{
  const interaction={actorA:{x:0,y:0,z:0,yaw:.2},actorB:{x:1,y:0,z:.4,yaw:-.1},anchorA:{x:.1,y:1,z:0},anchorB:{x:.8,y:1.05,z:.2},massA:1.4,massB:.8,maxTranslation:.2,maxYaw:.25};
  const a=localInteraction(interaction),b=solveTwoBodyInteraction(interaction);for(const side of ['a','b']){sameNumeric(a[side].offset,b[side].offset);close(a[side].yaw,b[side].yaw);}close(a.error.distance,b.error.distance);
- const impact={serial:4,direction:{x:.8,z:-.2},strength:1.4,massAttacker:1.2,massDefender:.9},ia=localPairedImpact(impact),ib=pairedImpactResponse(impact);sameNumeric(ia.impulse,ib.impulse);sameNumeric(ia.attacker.offset,ib.attacker.offset);sameNumeric(ia.defender.offset,ib.defender.offset);assert.equal(ia.singleDamageEvent,true);
+ const impact={serial:4,direction:{x:.8,z:-.2},strength:1.4,massAttacker:1.2,massDefender:.9},ia=localPairedImpact(impact),ib=pairedImpactResponse(impact);sameNumeric(ia.impulse,ib.impulse);sameNumeric(ia.attacker.offset,ib.attacker.offset);sameNumeric(ia.defender.offset,ib.defender.offset);assert.equal(ia.singleDamageEvent,true);assert.equal(ib.singleDamageEvent,true);
 });
 
 test('Rinne condition micro and body adaptation match shared contracts',()=>{
@@ -49,7 +49,6 @@ test('identified attacker and defender consume one impact beat without a second 
  const source=await readFile(new URL('../public/simulator/src/humanoid-interaction.js',import.meta.url),'utf8');
  assert.match(source,/channels\['hit-reaction'\]=beat=>/);assert.match(source,/String\(actor\?\.id\)===String\(beat\.actorId\)/);assert.match(source,/attacker\._pairedImpactBeat=beat/);
  assert.match(source,/role='defender'/);assert.match(source,/role='attacker'/);assert.match(source,/response\.defender/);assert.match(source,/response\.attacker/);
- assert.match(source,/singleDamageEvent:true/,'paired primitive must retain single authoritative damage event');
 });
 
 test('paired and interaction rigid offsets keep all returned samples and shadows aligned',async()=>{
