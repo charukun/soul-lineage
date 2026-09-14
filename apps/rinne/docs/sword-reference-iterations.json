@@ -6,7 +6,7 @@
     "completed": 12,
     "remaining": 88,
     "baseline_commit": "f2da2524a627e5e4057be1cd9a18e03a22b32282",
-    "latest_commit": "d80f8cabf906d32f50cbad2f9095c8c4e08137d6",
+    "latest_commit": "00c30c95ff96c88512e521e1b829f37b58fb698f",
     "reference": {
       "asset": "apps/rinne/public/simulator/assets/review/reference-sword-4s.mp4",
       "range": [0, 4],
@@ -122,7 +122,7 @@
         "finding": "Slash torso rotation lacked a strong pelvis lead.",
         "correction": "Widen opposing hip yaw through load, contact and follow-through.",
         "before": "806c7f2d17eb9605d7e3e22062ad9987e3563273",
-        "after": "bad6606f5c00460bf7c6cbf0c3b302f28f4e33b9",
+        "after": "a89a300dd1b00200f50fce53290b3f4b2812cbd9",
         "evidence": "/tmp/rinne-pass7-{before,after}/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
         "result": "Front-three-quarter frames show a clearer full-body turn while side support remains readable.",
         "remaining": "Normal-speed media-player review and stronger release spacing."
@@ -132,8 +132,8 @@
         "reference_interval": "original 2.5–3.5 s",
         "finding": "Chest yaw crossed with the hips and flattened the kinetic chain.",
         "correction": "Retain chest coil through phase .46, then release after the pelvis.",
-        "before": "bad6606f5c00460bf7c6cbf0c3b302f28f4e33b9",
-        "after": "292c29bc3db48fe6932251cf37d9f962e4801039",
+        "before": "a89a300dd1b00200f50fce53290b3f4b2812cbd9",
+        "after": "8a9cb392b7e8abad51d1f1bea45afc31e137b9db",
         "evidence": "/tmp/rinne-pass8-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}; before=/tmp/rinne-pass7-after",
         "result": "Sequential frames retain a more closed load and a later shoulder turn.",
         "remaining": "Normal-speed media-player review; arm and blade still lack the reference acceleration."
@@ -143,8 +143,8 @@
         "reference_interval": "original 2.5–6.5 s",
         "finding": "Composed slashes advanced almost straight ahead.",
         "correction": "Widen review-only slash root travel without changing combat movement.",
-        "before": "292c29bc3db48fe6932251cf37d9f962e4801039",
-        "after": "f1512599e2daaa93bfc01f2c9f529531d13c2d40",
+        "before": "8a9cb392b7e8abad51d1f1bea45afc31e137b9db",
+        "after": "da7e0a1053569fcd879490284fa90f8a4f898ee8",
         "evidence": "/tmp/rinne-pass9-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}; before=/tmp/rinne-batch-806c7f2-combination",
         "result": "The four-second root path spans 0.220 m laterally instead of 0.120 m.",
         "remaining": "The reference still traverses a much larger screen-space distance."
@@ -154,8 +154,8 @@
         "reference_interval": "original 3.0–4.0 s",
         "finding": "The reverse cut released chest and hips together.",
         "correction": "Hold positive chest coil until phase .48 and cross after the hip turn.",
-        "before": "f1512599e2daaa93bfc01f2c9f529531d13c2d40",
-        "after": "d74d30c4838b772f34a475eb3172796b3826c7da",
+        "before": "da7e0a1053569fcd879490284fa90f8a4f898ee8",
+        "after": "ded5d5f8e337cecc52493b067491276659cc2e2d",
         "evidence": "/tmp/rinne-pass10-{before,after}/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
         "result": "Contact and recovery retain a delayed upper-body return in both views.",
         "remaining": "The visual difference is modest and requires normal-speed confirmation."
@@ -165,8 +165,8 @@
         "reference_interval": "original 3.5–5.5 s",
         "finding": "The thrust rose through contact and lost its driving line.",
         "correction": "Keep pelvis displacement lower through extension and early recovery.",
-        "before": "d74d30c4838b772f34a475eb3172796b3826c7da",
-        "after": "384b0bc59b86bfe7c60007197bdbc7a483439c1a",
+        "before": "ded5d5f8e337cecc52493b067491276659cc2e2d",
+        "after": "2f14eaa2bd560074306dde756ac1daa2790ad2a7",
         "evidence": "/tmp/rinne-pass11-{before,after}/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
         "result": "Actual-mesh contact pelvis height fell from 0.938 m to 0.894 m with the rear leg extended.",
         "remaining": "Foot pressure and cloth clearance need WebGL review."
@@ -176,8 +176,8 @@
         "reference_interval": "original 4.0–6.5 s",
         "finding": "The heavy cut stood tall under its overhead hold.",
         "correction": "Deepen vertical compression through preload and downward release.",
-        "before": "384b0bc59b86bfe7c60007197bdbc7a483439c1a",
-        "after": "48e998abb9bce6d470fd6c6d72f691bd50725a0f",
+        "before": "2f14eaa2bd560074306dde756ac1daa2790ad2a7",
+        "after": "2a7079cc905427d1003c7edf20630f7269d89134",
         "evidence": "/tmp/rinne-pass12-{before,after}/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
         "result": "Sampled preload lowered by 80 mm and minimum pelvis height by 25 mm.",
         "remaining": "Normal-speed impact weight and recovery into guard remain unconfirmed."
