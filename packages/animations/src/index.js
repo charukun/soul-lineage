@@ -11,3 +11,5 @@ export * from './gameplay-motion-quality.js';
 export * from './motion-life.js';
 export * from './motion-runtime.js';
 export * from './motion-frame-qa.js';
+export * from './motion-orchestration.js';
+export * from './motion-review-planner.js';
