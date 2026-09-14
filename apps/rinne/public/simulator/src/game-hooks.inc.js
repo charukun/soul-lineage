@@ -57,7 +57,7 @@ function advanceControllerSlashMotionWarp(actor){
 }
 // SLASH_MOTION_WARP_CONTROLLER_END
 
-humanoid=new HumanoidRuntime({weapons:WEAPONS,strikes:STRIKES,clips:POSE_CLIPS,windows:HIT_WINDOWS,progress:attackProgress,window:(kind,p)=>contactWindow(kind,p),hand:(kind,p)=>activeHandSide({kind,p}),echo:node=>renderer.scene.add(node),status:message=>{if($('humanoidStatus'))$('humanoidStatus').textContent=message;},attach:c=>{renderer.scene.add(c.root);for(const p of c.shadowMeshes)renderer.shadowScene.add(p);renderer.renderer.renderLists.dispose();}});
+humanoid=new HumanoidRuntime({weapons:WEAPONS,strikes:STRIKES,clips:POSE_CLIPS,windows:HIT_WINDOWS,progress:attackProgress,window:(kind,p)=>contactWindow(kind,p),hand:(kind,p)=>activeHandSide({kind,p}),gazeTarget:actor=>slashMotionWarpStates.get(actor)?.target??null,echo:node=>renderer.scene.add(node),status:message=>{if($('humanoidStatus'))$('humanoidStatus').textContent=message;},attach:c=>{renderer.scene.add(c.root);for(const p of c.shadowMeshes)renderer.shadowScene.add(p);renderer.renderer.renderLists.dispose();}});
 const controllerHumanoidTick=humanoid.tick.bind(humanoid);humanoid.tick=function(actor,dt){advanceControllerSlashMotionWarp(actor);return controllerHumanoidTick(actor,dt);};
 const expandedOldPose=actorPose,expandedOldSample=sampleWeapon,expandedOldDraw=drawActor,expandedOldParts=actorParts;
 // Same sampler drives the renderer, 240 Hz swept-capsule checks and VFX.
