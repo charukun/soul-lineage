@@ -5,7 +5,7 @@ const kindOf=action=>String(action||'').split(':')[0];
  * Lower numbers are more important. This never changes whether an action is
  * allowed; the controller remains the authority for enabled/disabled state.
  */
-export function storyActionPriority(action,state={}){
+export function storyActionPriority(action,state={},recommended=false){
   const kind=kindOf(action);
   if(state.activity&&kind==='cancel')return 0;
   if((state.pendingDiscoveries?.length||0)>0&&kind==='discover')return 1;
@@ -14,6 +14,8 @@ export function storyActionPriority(action,state={}){
   if(kind==='travel')return 4;
   if(kind==='equip')return 5;
   if(kind==='activity'){
+    // The journal's next practice wins over ordinary activities, below urgent actions.
+    if(recommended)return 5.5;
     if(String(action).startsWith('activity:observe')||String(action).startsWith('activity:track'))return 8;
     return 6;
   }
@@ -25,7 +27,7 @@ export function choosePrimaryStoryAction(buttons,state={}){
   const available=buttons.filter(button=>button.dataset?.action!=='rest');
   const enabled=available.filter(button=>!button.disabled);
   const pool=enabled.length?enabled:available;
-  return pool.toSorted((a,b)=>storyActionPriority(a.dataset?.action,state)-storyActionPriority(b.dataset?.action,state))[0]||null;
+  return pool.toSorted((a,b)=>storyActionPriority(a.dataset?.action,state,a.dataset?.recommended==='true')-storyActionPriority(b.dataset?.action,state,b.dataset?.recommended==='true'))[0]||null;
 }
 
 /** Short-lived goals outrank generic age guidance while the player is in the village. */
