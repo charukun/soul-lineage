@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { client, integrate, recordQueue } from './integration.mjs';
+import { consolidateControlPlanePrs } from './integration-control-consolidation.mjs';
 import { controlPlaneScopeForPr } from './integration-control-plane.mjs';
 
 export const AUTO_CONTROL_LABEL = 'integration:control-plane';
@@ -25,9 +26,11 @@ async function labelTrustedControlPlane(c, repository) {
 }
 
 export async function runController(c, repository, options = {}) {
+  const consolidation = await consolidateControlPlanePrs(c).catch(error => ({ closed: [], held: [{ reason: error.message }] }));
   const autoControl = await labelTrustedControlPlane(c, repository);
   const report = await integrate(c, repository, options.wait, options);
   report.autoControlPlane = autoControl;
+  report.controlPlaneConsolidation = consolidation;
   return report;
 }
 
@@ -38,7 +41,7 @@ async function main() {
   assert.ok(process.env.GH_TOKEN, 'Missing scoped Actions token');
   const diagnosticsPath = process.env.INTEGRATION_DIAGNOSTICS_PATH || '.deploy-state/integration-diagnostics.json';
   const c = client(repository, process.env.GH_TOKEN, fetch, { diagnosticsPath });
-  let report = { startedAt: new Date().toISOString(), merged: [], held: [], trustedReviewed: [], deferred: [], autoControlPlane: [] };
+  let report = { startedAt: new Date().toISOString(), merged: [], held: [], trustedReviewed: [], deferred: [], autoControlPlane: [], controlPlaneConsolidation: { closed: [], held: [] } };
   let thrown = null;
   try {
     report = await runController(c, repository, {
@@ -63,6 +66,7 @@ async function main() {
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,
       `## Integration Controller\nFinal develop: ${report.sha || 'unknown'}\n\nMerged: ${(report.merged || []).map(x => `#${x.pr}`).join(', ') || 'none'}\n\n` +
       `Auto control-plane: ${(report.autoControlPlane || []).filter(x => !x.error).map(x => `#${x.pr}`).join(', ') || 'none'}\n\n` +
+      `Consolidated control PRs: ${(report.controlPlaneConsolidation?.closed || []).map(x => `#${x.old}→#${x.replacement}`).join(', ') || 'none'}\n\n` +
       `API requests: ${report.api?.requests ?? 'n/a'}; duration: ${report.durationMs ?? report.api?.elapsedMs ?? 'n/a'} ms\n` +
       (thrown ? `\nError: ${thrown.message}\n` : ''));
     if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT,
