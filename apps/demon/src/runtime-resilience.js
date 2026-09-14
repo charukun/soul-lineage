@@ -49,19 +49,28 @@ function registerWorld(view, state) {
   state.lastLeak = state.leak.observe(stableSceneKey(view));
 }
 
+function disposeWarmupMesh(mesh) {
+  if (!mesh) return;
+  if (mesh.parent) mesh.parent.remove(mesh);
+  mesh.geometry?.dispose?.();
+  const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+  for (const material of materials) material?.dispose?.();
+}
+
 async function warmupDemon(view, state, reason) {
   const before = view.fx?.length || 0;
+  const beforeChildren = new Set(view.effects?.children || []);
   try {
     view.spark?.(0, -1000, 0, 0xffffff, 1, false);
     view.slash?.(0, -1000, 0);
     for (const fx of (view.fx || []).slice(before)) if (fx.mesh) { fx.mesh.frustumCulled = false; fx.mesh.visible = true; }
+    for (const child of view.effects?.children || []) if (!beforeChildren.has(child)) { child.frustumCulled = false; child.visible = true; }
     await state.warmup.warmup(reason);
   } finally {
     const extra = (view.fx || []).splice(before);
-    for (const fx of extra) {
-      if (fx.mesh?.parent) fx.mesh.parent.remove(fx.mesh);
-      fx.mesh?.geometry?.dispose?.(); fx.mesh?.material?.dispose?.();
-    }
+    const meshes = new Set(extra.map(fx => fx?.mesh).filter(Boolean));
+    for (const child of view.effects?.children || []) if (!beforeChildren.has(child)) meshes.add(child);
+    for (const mesh of meshes) disposeWarmupMesh(mesh);
   }
 }
 
