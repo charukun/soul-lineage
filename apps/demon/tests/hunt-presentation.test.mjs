@@ -79,7 +79,14 @@ test('UI uses lineage and adaptive combat instead of manual technique slots',()=
  const index=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(main,/renderLineage\(profile\)/);assert.match(main,/store\.learn\(role,move\)/);
  assert.ok(!main.includes('data-slot'));assert.ok(!main.includes('store.equip('));
- assert.ok(index.includes('転生史'));assert.ok(index.includes('放置すると徘徊'));assert.ok(!index.includes('二度と戻れない'));
+ assert.ok(index.includes('転生史'));assert.ok(index.includes('滑る · 弾く'));assert.ok(!index.includes('放置すると徘徊'));assert.ok(!index.includes('二度と戻れない'));
+});
+test('moment-to-moment HUD avoids long tutorial narration',()=>{
+ const main=readFileSync(new URL('../src/web/main.js',import.meta.url),'utf8');
+ const guide=readFileSync(new URL('../src/web/first-hunt-guide.js',import.meta.url),'utf8');
+ for(const prose of ['と対峙。退けば間合いは切れる。','帰還口の輪の中で指を離すと、この夜を終える。','夜へ入った。喰痕を残せ。','間合いを測る','輪の中で指を離す'])assert.ok(!main.includes(prose),prose);
+ for(const prose of ['自動戦闘中。','指を離したまま待つ。','人影へ指を滑らせる。','まず「嗅覚」を押す。'])assert.ok(!guide.includes(prose),prose);
+ assert.match(main,/groupCount>1\?' ×'\+groupCount/);
 });
 test('real adapter and session wire group combat, devour cleanup and route rendering',()=>{
  const creature=readFileSync(new URL('../src/web/creatures.js',import.meta.url),'utf8');
