@@ -3202,6 +3202,46 @@
       "workerId": "work/866e55ef0f5e/20260914T221805770Z-pr252-r3",
       "at": "2026-09-14T22:31:30.000Z",
       "action": "eligible_before=8; claimable_before=7; claimed=1; returned=1; human_required=0; eligible_after=7. #252を最高優先でclaimしてforceなし返却。claim後は#220/#93/#107/#90/#197/#260が#252とRED scope、#157はstate head 28b994d4と実head b5111969の不一致のため追加claimなし。次は#252の通常Integration所有解放後に#220から再評価。"
+    },
+    {
+      "id": "work/866e55ef0f5e/20260914T231800Z-blocked:BLOCKED:220",
+      "type": "WORK_REPAIR_BLOCKED",
+      "pr": 220,
+      "workerId": "work/866e55ef0f5e/20260914T231800Z-blocked",
+      "at": "2026-09-14T23:20:30.000Z",
+      "action": "WORK_REPAIR_BLOCKED: actual PR #220 is open/Ready at exact head 84e8a3f3; 63/63 changed files, reviews=0, unresolved threads=0, Browser Repair ownerなし、Depends-On #203はdevelopへmerge済み。ただしPR #252がCHECKINGでops-boardのRED順序lockを保持するためclaim不可。#252の通常Integration完了後に再claimする。"
+    },
+    {
+      "id": "work/866e55ef0f5e/20260914T231800Z-blocked:BLOCKED:93",
+      "type": "WORK_REPAIR_BLOCKED",
+      "pr": 93,
+      "workerId": "work/866e55ef0f5e/20260914T231800Z-blocked",
+      "at": "2026-09-14T23:20:30.000Z",
+      "action": "WORK_REPAIR_BLOCKED: actual PR #93 is open/Ready at exact head 961b515f; 24/24 changed files, reviews=0, unresolved threads=0, Browser Repair ownerなし。ただしPR #252 CHECKINGのRED順序lockが優先するためclaim不可。"
+    },
+    {
+      "id": "work/866e55ef0f5e/20260914T231800Z-blocked:BLOCKED:107",
+      "type": "WORK_REPAIR_BLOCKED",
+      "pr": 107,
+      "workerId": "work/866e55ef0f5e/20260914T231800Z-blocked",
+      "at": "2026-09-14T23:20:30.000Z",
+      "action": "WORK_REPAIR_BLOCKED: actual PR #107 is open/Ready at exact head c6342951; 4/4 changed files, reviews=0, unresolved threads=0, Browser Repair ownerなし。ただしPR #252 CHECKINGのRED順序lockが優先するためclaim不可。"
+    },
+    {
+      "id": "work/866e55ef0f5e/20260914T231800Z-blocked:BLOCKED:157",
+      "type": "WORK_REPAIR_BLOCKED",
+      "pr": 157,
+      "workerId": "work/866e55ef0f5e/20260914T231800Z-blocked",
+      "at": "2026-09-14T23:20:30.000Z",
+      "action": "WORK_REPAIR_BLOCKED: actual PR #157 is open/Ready at head b5111969、27/27 changed files、reviews=0、unresolved threads=0、Browser Repair ownerなし。ただしrescue-state record headは28b994d4のままでexact-head fence不一致。Coordinatorがrecordを実headへ更新後に再claimする。"
+    },
+    {
+      "id": "work/866e55ef0f5e/20260914T231800Z-blocked:RUN_FAILED",
+      "type": "WORK_REPAIR_RUN_FAILED",
+      "pr": 220,
+      "workerId": "work/866e55ef0f5e/20260914T231800Z-blocked",
+      "at": "2026-09-14T23:20:30.000Z",
+      "action": "eligible_before=7; claimable_before=0; claimed=0; returned=0; human_required=0; eligible_after=7. #252 CHECKING RED lockと#157 exact-head mismatchにより全候補blocked。正規Request Rescue observation job 104190185583を1回だけ起動済み。"
     }
   ],
   "config": {
@@ -7247,7 +7287,7 @@
       "claimedAt": "2026-09-13T04:27:46.626Z",
       "claimedBy": "34737932982/pr-93/a1",
       "contractFingerprint": "eb47e167cae71bfa9a46ff1d5312351df8b8372e1af068cbfae8bad23018cd16",
-      "currentAction": "WORK_REPAIR_BLOCKED: actual PR #93 remains open/Ready at exact head 961b515f with no hold/review thread, but PR #252 still owns AWAITING_PUSH RED control serialization; complete the bounded #252 restage/return first.",
+      "currentAction": "WORK_REPAIR_BLOCKED: actual PR #93 is open/Ready at exact head 961b515f; 24/24 changed files, reviews=0, unresolved threads=0, Browser Repair ownerなし。ただしPR #252 CHECKINGのRED順序lockが優先するためclaim不可。",
       "currentStep": "FAILED_MANUAL",
       "dependencies": [],
       "detail": "最新developの初回プレイ改善を保持し、通常の実プレイヤー村導線を撤去したまま競合解消・高速検証を完了",
@@ -7347,7 +7387,7 @@
       },
       "state": "FAILED_MANUAL",
       "title": "feat: share village visual language and friend-only visits",
-      "updatedAt": "2026-09-14T19:21:16.052Z",
+      "updatedAt": "2026-09-14T23:20:30.000Z",
       "waitingReason": null,
       "wave": "wave-34737932982-1"
     },
@@ -7362,7 +7402,7 @@
       "claimedAt": "2026-09-13T04:32:07.350Z",
       "claimedBy": "34738107940/pr-107/a1",
       "contractFingerprint": "c6aea44e80bac77dcc1576c67b7b63075def4a4a0ef6b1a4e0aba9bd09b29173",
-      "currentAction": "WORK_REPAIR_BLOCKED: actual PR #107 remains open/Ready at exact head c6342951 with no hold/review thread, but its Integration/control docs scope is RED against PR #252 AWAITING_PUSH; restage/return #252 first.",
+      "currentAction": "WORK_REPAIR_BLOCKED: actual PR #107 is open/Ready at exact head c6342951; 4/4 changed files, reviews=0, unresolved threads=0, Browser Repair ownerなし。ただしPR #252 CHECKINGのRED順序lockが優先するためclaim不可。",
       "currentStep": "FAILED_MANUAL",
       "dependencies": [],
       "detail": "Astraを含む実装ワーカー向けにモデリング・Visual Reviewの参照規約をRepositoryへ追加",
@@ -7429,7 +7469,7 @@
       },
       "state": "FAILED_MANUAL",
       "title": "docs: add RINNE 3D production standards",
-      "updatedAt": "2026-09-14T19:21:16.052Z",
+      "updatedAt": "2026-09-14T23:20:30.000Z",
       "waitingReason": null,
       "wave": "wave-34738107940-1"
     },
@@ -9591,7 +9631,7 @@
       "claimedAt": "2026-09-13T22:17:07.620Z",
       "claimedBy": "34786319725/pr-157/a1",
       "contractFingerprint": "a6eb7f76ecdc7e61ec15e4fed7760a5a38c1b849e00421bb807731a743c3dbd4",
-      "currentAction": "WORK_REPAIR_BLOCKED: actual PR #157 head is b5111969 while rescue-state head remains 28b994d4; Coordinator must refresh the exact-head record before any Work claim.",
+      "currentAction": "WORK_REPAIR_BLOCKED: actual PR #157 is open/Ready at head b5111969、27/27 changed files、reviews=0、unresolved threads=0、Browser Repair ownerなし。ただしrescue-state record headは28b994d4のままでexact-head fence不一致。Coordinatorがrecordを実headへ更新後に再claimする。",
       "currentStep": "FAILED_MANUAL",
       "dependencies": [],
       "detail": "Character Workshopで参照・目標生成・実装済み/未実装差分を確認できるようにする",
@@ -9689,7 +9729,7 @@
       },
       "state": "FAILED_MANUAL",
       "title": "feat(characters): connect NPC references to Character Workshop",
-      "updatedAt": "2026-09-14T19:21:16.052Z",
+      "updatedAt": "2026-09-14T23:20:30.000Z",
       "waitingReason": null,
       "wave": "wave-34786319725-1"
     },
@@ -13923,7 +13963,7 @@
       "browserRepair": null,
       "changes": 3119,
       "contractFingerprint": "37ba2a8c4fdd1aa7a46d037cf53c0790d34aee3f30d59954257e1ba2b6591228",
-      "currentAction": "FAILED_MANUAL:OVERLAPPING_CHANGES:apps/demon/src/adaptive-visual-performance.js,apps/demon/src/authored-visual-lod.js,apps/demon/src/main.js,apps/demon/src/stylized-visual-target.js,apps/demon/tests/stylized-performance.test.mjs,apps/demon/",
+      "currentAction": "WORK_REPAIR_BLOCKED: actual PR #220 is open/Ready at exact head 84e8a3f3; 63/63 changed files, reviews=0, unresolved threads=0, Browser Repair ownerなし、Depends-On #203はdevelopへmerge済み。ただしPR #252がCHECKINGでops-boardのRED順序lockを保持するためclaim不可。#252の通常Integration完了後に再claimする。",
       "currentStep": "FAILED_MANUAL",
       "dependencies": [
         203
@@ -14052,7 +14092,7 @@
       },
       "state": "FAILED_MANUAL",
       "title": "feat(rendering): complete GPU-aware compression and performance pipeline",
-      "updatedAt": "2026-09-14T21:20:41.024Z",
+      "updatedAt": "2026-09-14T23:20:30.000Z",
       "waitingReason": null,
       "riskReason": "Sequential predecessor; #263 waits for this PR to merge",
       "previousPushedSha": null,
@@ -18471,9 +18511,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 945,
+  "revision": 946,
   "schema": 1,
-  "updatedAt": "2026-09-14T22:31:30.000Z",
+  "updatedAt": "2026-09-14T23:20:30.000Z",
   "waves": [
     {
       "completedAt": "2026-09-13T22:16:08.163Z",
