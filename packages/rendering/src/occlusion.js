@@ -15,11 +15,16 @@ function candidateSamples(object) {
   ];
 }
 
+function streamAllows(object) {
+  return object?.userData?.visualStreamManaged ? object.userData.visualStreamVisible !== false : true;
+}
+
 /**
  * Conservative CPU occlusion culler for static set dressing.
  * A candidate is hidden only when every sampled ray is blocked by a registered
- * solid occluder before reaching the candidate. Visibility changed by another
- * system (streaming/gameplay) is never force-restored by this culler.
+ * solid occluder before reaching the candidate. Distance streaming and
+ * occlusion keep separate desired-visibility state, so neither can resurrect
+ * an object that the other still wants hidden.
  */
 export function createConservativeOcclusionCuller({ maxChecksPerUpdate = 8, minDistance = 18, hiddenConfirmations = 2 } = {}) {
   const raycaster = new Raycaster();
@@ -52,7 +57,10 @@ export function createConservativeOcclusionCuller({ maxChecksPerUpdate = 8, minD
         const object = candidates[(cursor + i) % candidates.length];
         if (!object || object.userData?.streamingCritical || object.userData?.occlusionDisabled) continue;
         const row = state.get(object) || { blocked: 0, ownedHidden: false };
-        if (object.visible === false && !row.ownedHidden) { row.blocked = 0; state.set(object, row); continue; }
+        if (!streamAllows(object)) {
+          row.blocked = 0; row.ownedHidden = false; object.userData.occluded = false; object.visible = false; state.set(object, row); continue;
+        }
+        if (object.visible === false && !row.ownedHidden && !object.userData?.visualStreamManaged) { row.blocked = 0; state.set(object, row); continue; }
         const isBlocked = blocked(camera, object, occluders);
         tested++;
         if (isBlocked) {
@@ -60,7 +68,7 @@ export function createConservativeOcclusionCuller({ maxChecksPerUpdate = 8, minD
           if (row.blocked >= hiddenConfirmations) { object.visible = false; row.ownedHidden = true; object.userData.occluded = true; hidden++; }
         } else {
           row.blocked = 0;
-          if (row.ownedHidden) object.visible = true;
+          if (row.ownedHidden || object.userData?.visualStreamManaged) object.visible = streamAllows(object);
           row.ownedHidden = false; object.userData.occluded = false; visible++;
         }
         state.set(object, row);
@@ -71,7 +79,7 @@ export function createConservativeOcclusionCuller({ maxChecksPerUpdate = 8, minD
     revealAll(candidates = []) {
       for (const object of candidates) {
         const row = state.get(object);
-        if (object && row?.ownedHidden) { object.visible = true; row.ownedHidden = false; row.blocked = 0; if (object.userData) object.userData.occluded = false; }
+        if (object && row?.ownedHidden) { object.visible = streamAllows(object); row.ownedHidden = false; row.blocked = 0; if (object.userData) object.userData.occluded = false; }
       }
     },
     snapshot() { return Object.freeze({ tested, hidden, visible, cursor }); },

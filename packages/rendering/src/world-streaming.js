@@ -36,14 +36,19 @@ export function createVisualDistanceStreamer({ baseDistance = 150, hysteresis = 
       const limit = Math.max(1, baseDistance * distanceScale); let tracked = 0, hidden = 0, skipped = 0;
       focusPoint.set(Number(focus.x)||0,Number(focus.y)||0,Number(focus.z)||0);
       for (const child of root.children) {
-        if (child.userData?.streamingCritical || child.userData?.interactive || child.userData?.stylizedStreamable === false || (!states.has(child) && child.visible === false)) { skipped++; continue; }
+        if (child.userData?.streamingCritical || child.userData?.interactive || child.userData?.stylizedStreamable === false || (!states.has(child) && child.visible === false && child.userData?.occluded !== true)) { skipped++; continue; }
         const metric=metrics(child); if(metric.radius>baseDistance*.72){skipped++;continue;}
         const distance=Math.hypot(metric.center.x-focusPoint.x,metric.center.z-focusPoint.z),wasVisible=states.get(child)??true;
         const threshold=wasVisible?limit+metric.radius:Math.max(1,limit-hysteresis+metric.radius),visible=distance<=threshold;
-        states.set(child,visible);child.visible=visible;tracked++;if(!visible)hidden++;
+        states.set(child,visible);
+        child.userData=child.userData||{};
+        child.userData.visualStreamManaged=true;
+        child.userData.visualStreamVisible=visible;
+        child.visible=visible && child.userData.occluded !== true;
+        tracked++;if(!visible)hidden++;
       }
       return {tracked,hidden,skipped,distance:limit};
     },
-    invalidate(child){if(child)bounds.delete(child);},
+    invalidate(child){if(child){bounds.delete(child);states.delete(child);delete child.userData?.visualStreamManaged;delete child.userData?.visualStreamVisible;}},
   };
 }

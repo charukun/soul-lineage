@@ -7,6 +7,7 @@ import { compressedAssetCapabilities } from '../src/compressed-gltf.js';
 import { createConservativeOcclusionCuller } from '../src/occlusion.js';
 import { batchStaticMeshes, remapGeometryUVToAtlas, validateTextureAtlasManifest } from '../src/instance-atlas.js';
 import { comparePerformanceSnapshots, createPerformanceRecorder } from '../src/performance-lab.js';
+import { createVisualDistanceStreamer } from '../src/world-streaming.js';
 
 test('GPU bottleneck classification separates CPU and GPU pressure', () => {
   assert.equal(classifyFrameBottleneck({ frameMs: 26, gpuMs: 22, targetFps: 60 }), 'gpu');
@@ -45,6 +46,19 @@ test('conservative occlusion requires repeated full-ray blocking and preserves e
   const externallyHidden = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial()); externallyHidden.position.z=-4; externallyHidden.visible=false; externallyHidden.updateMatrixWorld(true);
   culler.update({ camera, candidates: [externallyHidden], occluders: [occluder] });
   assert.equal(externallyHidden.visible, false);
+});
+
+test('distance streaming and occlusion never resurrect each others hidden state', () => {
+  const root=new THREE.Group(), candidate=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial()); candidate.position.z=-30; root.add(candidate); root.updateMatrixWorld(true);
+  const streamer=createVisualDistanceStreamer({baseDistance:5,hysteresis:1});
+  streamer.update(root,{x:0,y:0,z:0},1);
+  assert.equal(candidate.userData.visualStreamVisible,false); assert.equal(candidate.visible,false);
+  candidate.userData.occluded=true;
+  streamer.update(root,{x:0,y:0,z:-30},1);
+  assert.equal(candidate.userData.visualStreamVisible,true); assert.equal(candidate.visible,false);
+  candidate.userData.occluded=false;
+  streamer.update(root,{x:0,y:0,z:-30},1);
+  assert.equal(candidate.visible,true);
 });
 
 test('static batching consolidates exact repeats and atlas UV remap stays inside slot', () => {
