@@ -1,0 +1,44 @@
+name: Apply browser repair 168
+on:
+  push:
+    branches: [repair/browser-issue-168-a2]
+    paths: [.github/workflows/repair-168-apply.yml]
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: repair/browser-issue-168-a2
+          fetch-depth: 0
+      - name: Apply exact stale-contract repairs
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          music=Path('scripts/browser/public-music.mjs')
+          s=music.read_text()
+          old='''      await expect(page.locator('.soul-music [data-track]')).toHaveCount(150);\n      await page.locator('.soul-music [data-track="r01"]').click();'''
+          new='''      await expect(page.locator('.soul-music [data-track]')).toHaveCount(150);\n      const requestedTrack=page.locator('.soul-music [data-track="r01"]');\n      if(!await requestedTrack.isVisible()) {\n        const nextPage=page.locator('.soul-music dialog').getByRole('button',{name:'次のページ'});\n        await expect(nextPage).toBeEnabled();\n        await nextPage.click();\n      }\n      await expect(requestedTrack).toBeVisible();\n      await requestedTrack.click();'''
+          if s.count(old)!=1: raise SystemExit('music contract source changed; refuse blind repair')
+          music.write_text(s.replace(old,new))
+          public=Path('scripts/browser/public.spec.mjs')
+          p=public.read_text()
+          old_world="await expect(canvas).toHaveAttribute('data-world', 'night-hunt.v2');"
+          new_world="await expect(canvas).toHaveAttribute('data-world', 'night-hunt.v3');"
+          if p.count(old_world)!=1: raise SystemExit('demon world contract source changed; refuse blind repair')
+          public.write_text(p.replace(old_world,new_world))
+          PY
+          node --check scripts/browser/public-music.mjs
+          node --check scripts/browser/public.spec.mjs
+          git diff --check
+      - name: Commit verified repair and remove temporary workflow
+        run: |
+          git rm .github/workflows/repair-168-apply.yml
+          git config user.name 'browser-repair-worker'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/browser/public-music.mjs scripts/browser/public.spec.mjs
+          git commit -m 'fix(browser): follow paged music UI and demon v3 contract'
+          git push origin HEAD:repair/browser-issue-168-a2
