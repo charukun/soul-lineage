@@ -19,12 +19,12 @@ export function rescueConfig(env = {}) {
     maxAttempts: number(env, 'MAX_RESCUE_ATTEMPTS', 3, 1, 10),
     heartbeatMs: number(env, 'RESCUE_HEARTBEAT_SECONDS', 120, 60, 300) * 1000,
     staleMs: number(env, 'RESCUE_STALE_SECONDS', 600, 360, 3600) * 1000,
-    queueStallMs: number(env, 'RESCUE_QUEUE_STALL_SECONDS', 900, 300, 86400) * 1000,
-    retryMs: number(env, 'RESCUE_RETRY_SECONDS', 300, 60, 3600) * 1000,
-    scanMinMs: number(env, 'RESCUE_SCAN_MIN_SECONDS', 120, 60, 600) * 1000,
+    queueStallMs: number(env, 'RESCUE_QUEUE_STALL_SECONDS', 300, 300, 86400) * 1000,
+    retryMs: number(env, 'RESCUE_RETRY_SECONDS', 120, 60, 3600) * 1000,
+    scanMinMs: number(env, 'RESCUE_SCAN_MIN_SECONDS', 60, 60, 600) * 1000,
     apiReserve: number(env, 'RESCUE_API_RESERVE', 200, 100, 500),
-    maxEvaluations: number(env, 'RESCUE_MAX_EVALUATIONS', 12, 1, 24),
-    maxRequests: number(env, 'RESCUE_MAX_REQUESTS', 160, 40, 300),
+    maxEvaluations: number(env, 'RESCUE_MAX_EVALUATIONS', 24, 1, 24),
+    maxRequests: number(env, 'RESCUE_MAX_REQUESTS', 220, 40, 300),
   };
 }
 export function manualReason(pr, { reviews, unresolved, complete = true } = {}) {
@@ -115,13 +115,19 @@ export function transition(state, record, next, action, now) {
   if (record.state !== next) event(state, record, next, action, now);
   record.state = next; record.currentStep = next; record.currentAction = String(action).slice(0, 240); record.updatedAt = new Date(now).toISOString();
 }
+export function observationOnlyReason(reason = '') {
+  return /^(?:PR_CONTRACT_CHANGED|HEAD_CHANGED|HEAD_CHANGED_AFTER_RESCUE|RELATED_DEVELOP_ADVANCED|DEPENDENCY_NOT_MERGED)$/.test(String(reason));
+}
 export function failure(state, record, reason, now, manual = false) {
-  record.failures = [...(record.failures || []), { reason: String(reason).slice(0, 400), at: new Date(now).toISOString(), workerId: record.claimedBy, attempt: record.attempt, runId: record.runId, rescueId: record.rescueId }].slice(-10);
-  record.failureReason = String(reason).slice(0, 400);
+  const text = String(reason).slice(0, 400);
+  const attemptAtFailure = record.attempt;
+  record.failures = [...(record.failures || []), { reason: text, at: new Date(now).toISOString(), workerId: record.claimedBy, attempt: attemptAtFailure, runId: record.runId, rescueId: record.rescueId }].slice(-10);
+  record.failureReason = text;
   record.lease = null;
-  record.nextAttemptAt = new Date(now + state.config.retryMs * Math.max(1, record.attempt)).toISOString();
-  transition(state, record, manual || record.attempt >= record.maxAttempts ? 'FAILED_MANUAL' : 'FAILED_RETRYABLE', reason, now);
-  if (record.state === 'FAILED_MANUAL') state.outbox.push({ id: `${record.rescueId || 'pr-' + record.pr}:manual:${record.attempt}`, type: 'manual', pr: record.pr, reason: record.failureReason, attempt: record.attempt, maxAttempts: record.maxAttempts });
+  if (!manual && observationOnlyReason(text) && record.attempt > 0) record.attempt--;
+  record.nextAttemptAt = new Date(now + (observationOnlyReason(text) ? state.config.scanMinMs : state.config.retryMs * Math.max(1, record.attempt))).toISOString();
+  transition(state, record, manual || record.attempt >= record.maxAttempts ? 'FAILED_MANUAL' : 'FAILED_RETRYABLE', text, now);
+  if (record.state === 'FAILED_MANUAL') state.outbox.push({ id: `${record.rescueId || 'pr-' + record.pr}:manual:${attemptAtFailure}`, type: 'manual', pr: record.pr, reason: record.failureReason, attempt: attemptAtFailure, maxAttempts: record.maxAttempts });
 }
 export function owned(state, pr, rescueId, workerId) {
   const r = state.records[pr];
@@ -168,22 +174,22 @@ export function planWave(state, { runId, now, id }) {
     }
     if (r.attempt >= r.maxAttempts) { failure(state, r, 'RETRY_EXHAUSTED', now, true); continue; }
     const dependenciesWaiting = (r.dependencies || []).filter(pr => !r.mergedDependencies?.includes(pr));
-    const blockers = [...new Set([...dependenciesWaiting, ...locks.filter(p => p.pr !== r.pr && compareScopes(r.scope, p.scope).risk === 'RED').map(p => p.pr)])];
+    const blockers = [...new Set([...dependenciesWaiting, ...locks.filter(p => p.pr !== r.pr && compareScopes(r.scope, p.workRepair?.scope || p.scope).risk === 'RED').map(p => p.pr)])];
     r.blockedBy = blockers;
     if (blockers.length) {
       r.risk = 'RED'; r.waitingReason = `Waiting for ${blockers.map(pr => `#${pr}`).join(', ')} to merge into develop`;
       for (const pr of blockers) {
         const predecessor = state.records[pr];
-        if (predecessor && (predecessor.lease || RETURNED.has(predecessor.state))) {
+        if (predecessor && (predecessor.lease || predecessor.workRepair?.status === 'working' || RETURNED.has(predecessor.state))) {
           predecessor.risk = 'RED'; predecessor.riskReason = `Sequential predecessor; #${r.pr} waits for this PR to merge`;
         }
       }
       transition(state, r, 'BLOCKED_BY_RESCUE', r.waitingReason, now); continue;
     }
-    const relations = locks.filter(p => p.pr !== r.pr).map(p => compareScopes(r.scope, p.scope));
+    const relations = locks.filter(p => p.pr !== r.pr).map(p => compareScopes(r.scope, p.workRepair?.scope || p.scope));
     r.risk = relations.some(x => x.risk === 'YELLOW') ? 'YELLOW' : 'GREEN';
     r.riskReason = r.risk === 'YELLOW' ? 'Same package; latest develop recheck before/after push' : 'Independent changed scopes';
-    for (const peer of locks) if (peer.pr !== r.pr && compareScopes(r.scope, peer.scope).risk === 'YELLOW' && peer.risk !== 'RED') {
+    for (const peer of locks) if (peer.pr !== r.pr && compareScopes(r.scope, peer.workRepair?.scope || peer.scope).risk === 'YELLOW' && peer.risk !== 'RED') {
       peer.risk = 'YELLOW'; peer.riskReason = 'Same package; latest develop recheck before/after push';
     }
     r.waitingReason = null;
