@@ -9,12 +9,12 @@
   "scene": {
     "unitSystem": "METRIC",
     "scaleLength": 1.0,
-    "meshObjects": 83,
+    "meshObjects": 108,
     "armatures": 1,
-    "vertices": 22108,
-    "triangles": 42356,
-    "materials": 17,
-    "uvMeshCount": 83,
+    "vertices": 24934,
+    "triangles": 46153,
+    "materials": 22,
+    "uvMeshCount": 108,
     "shapeKeys": [
       "Basis",
       "Fcl_ALL_Angry",

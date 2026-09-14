@@ -20,23 +20,17 @@
   "productionStageRequested": "PRIMARY",
   "visualApproval": "pending",
   "refinement": {
-    "version": 4,
+    "version": 5,
     "auditedFaceDonor": true,
-    "donorMaterials": [
-      "n00_000_00_eyehighlight_00_eye (instance).002",
-      "n00_000_00_eyeiris_00_eye (instance).002",
-      "n00_000_00_eyewhite_00_eye (instance).002",
-      "n00_000_00_face_00_skin (instance).002",
-      "n00_000_00_facebrow_00_face (instance).002",
-      "n00_000_00_faceeyelash_00_face (instance).002",
-      "n00_000_00_faceeyeline_00_face (instance).002",
-      "n00_000_00_facemouth_00_face (instance).002"
-    ],
-    "facePlacement": "static-model-space-primary",
+    "auditedBodyBasemesh": true,
+    "bodyRestTransfer": "weighted-source-to-reference-bone-matrices",
+    "bodyVertices": 5081,
+    "bodyVerticesRemapped": 5081,
+    "bodyBoneTransforms": 134,
     "faceSkinning": "pending-deformation-stage",
     "sourceHairReused": false,
     "sourceClothingReused": false,
-    "sourceBodyReused": false,
+    "sourceBodySkinTopologyReused": true,
     "visualApproval": "pending"
   }
 }
