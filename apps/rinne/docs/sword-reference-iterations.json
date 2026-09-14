@@ -3,10 +3,10 @@
     "id": "2026-09-14-full-body-authoring-100",
     "status": "incomplete",
     "target": 100,
-    "completed": 38,
-    "remaining": 62,
+    "completed": 44,
+    "remaining": 56,
     "baseline_commit": "f2da2524a627e5e4057be1cd9a18e03a22b32282",
-    "latest_commit": "018714ef261ba82f87a24cea98ba6417bbc61267",
+    "latest_commit": "d6f6c9670f3460ff8a7b574829080c65c72685e3",
     "reference": {
       "asset": "apps/rinne/public/simulator/assets/review/reference-sword-4s.mp4",
       "range": [
@@ -34,9 +34,9 @@
       ],
       "per_pass_fps": 30,
       "final_fps": 30,
-      "transient_root": "/tmp/rinne-pass25-* through /tmp/rinne-pass38-*",
-      "final_comparison": "/tmp/rinne-batch-final-1709/combination-three-30fps.mp4",
-      "performance_sample": "/tmp/rinne-performance-final-1709 (30 seconds at 6 fps)",
+      "transient_root": "/tmp/rinne-pass25-* through /tmp/rinne-pass44-*",
+      "final_comparison": "/tmp/rinne-batch-final-1909-v2/combination-three-30fps.mp4",
+      "performance_sample": "/tmp/rinne-performance-final-1909-v2 (30 seconds at 6 fps)",
       "normal_speed_review": "30 fps encode generated; direct media playback unavailable in this execution environment, so primary remains revise",
       "webgl": "public Lab attempted; THREE.WebGLRenderer failed to create a WebGL context",
       "physical_device_fps": "not verified"
@@ -50,7 +50,7 @@
       "primary": {
         "status": "revise",
         "outcome": "unverified",
-        "observation": "Fourteen further full-body corrections improved load/contact/recovery contrast and kept the four-second phrase active; two regressing candidates were explicitly reverted. Direct normal-speed playback remains unavailable, so primary remains revise."
+        "observation": "Twenty further full-body corrections improved load/contact/recovery contrast and kept the four-second phrase active; two regressing candidates were explicitly reverted. Uppercut, reverse cut, heavy compression and thrust opposition were refined in passes 39–44. Direct normal-speed playback remains unavailable, so primary remains revise."
       },
       "polish": {
         "status": "pending",
@@ -480,6 +480,72 @@
         "evidence": "/tmp/rinne-pass38-after/{capture.json,three-follow-strip.jpg}",
         "result": "The longer phrase now passes with 5.40e-8 m planted-toe drift, 0.090075 m maximum 30 Hz pelvis step and no new attack IDs.",
         "remaining": "The final guard and overall travel still trail the reference; 1x device review remains required."
+      },
+      {
+        "iteration": 39,
+        "reference_interval": "3.16–4.0 s original",
+        "finding": "The uppercut pelvis opened before a comparatively square chest, so the rise lacked a readable stored coil.",
+        "correction": "Deepen the chest load and delay its release until after the pelvis begins turning.",
+        "before": "018714ef261ba82f87a24cea98ba6417bbc61267",
+        "after": "774f18e54e56dd0871e693d924377180992c93ab",
+        "evidence": "/tmp/rinne-pass39-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "Actual-mesh front and side sequences show a more closed load followed by a wider overhead chest release; grip attachment and finiteness remain valid.",
+        "remaining": "The reference still carries more translational speed through the rise."
+      },
+      {
+        "iteration": 40,
+        "reference_interval": "3.16–4.5 s original",
+        "finding": "The uppercut torso straightened too early after contact, disconnecting the leg drive from the overhead finish.",
+        "correction": "Retain forward hip and spine pitch through the overhead recovery without changing the contact clock.",
+        "before": "774f18e54e56dd0871e693d924377180992c93ab",
+        "after": "6b41001d99b9c507bdce3a9ad8b40d7833a0a1c7",
+        "evidence": "/tmp/rinne-pass40-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "The side sequence keeps the pelvis under the sword for longer and hands a forward-driven posture into recovery.",
+        "remaining": "Normal-speed acceleration and the following-technique handoff still require direct playback review."
+      },
+      {
+        "iteration": 41,
+        "reference_interval": "3.0–4.0 s original",
+        "finding": "The reverse cut rose at lateral contact and read as an arm-led sweep despite its authored yaw.",
+        "correction": "Keep the pelvis pitched and lower through contact and late lateral follow-through.",
+        "before": "6b41001d99b9c507bdce3a9ad8b40d7833a0a1c7",
+        "after": "a5e58803d90bf2876825a564c95878dd23355d6d",
+        "evidence": "/tmp/rinne-pass41-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "Front and side captures retain a lower centre of mass across the lateral blade path; planted-toe diagnostics improve to 3.91e-8 m.",
+        "remaining": "The reference traverses farther sideways and rotates the entire silhouette more aggressively."
+      },
+      {
+        "iteration": 42,
+        "reference_interval": "4.0–6.5 s original",
+        "finding": "The heavy cut held tall until immediately before contact, concentrating nearly all body compression in the release.",
+        "correction": "Insert a pre-contact pelvis drop so the legs visibly store weight before the unchanged strike instant.",
+        "before": "a5e58803d90bf2876825a564c95878dd23355d6d",
+        "after": "2ef171f7f054545e8eccf411f848b52e85333484",
+        "evidence": "/tmp/rinne-pass42-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "The side frames anticipate the downward release with an earlier compression while retaining the previous deepest height and grounded diagnostics.",
+        "remaining": "The reference's blade acceleration is still sharper at normal speed."
+      },
+      {
+        "iteration": 43,
+        "reference_interval": "3.5–5.5 s original",
+        "finding": "The thrust torso began returning upright immediately after extension, shortening its forward line.",
+        "correction": "Add spine and chest recovery keys that sustain forward reach without deepening the feet or pelvis.",
+        "before": "2ef171f7f054545e8eccf411f848b52e85333484",
+        "after": "33df6f26572d151b965f401c428949317f5ed3cb",
+        "evidence": "/tmp/rinne-pass43-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "The actual-mesh side sequence retains torso drive into recovery while toe drift remains 3.91e-8 m.",
+        "remaining": "The target travels farther and holds a more extreme whole-body extension."
+      },
+      {
+        "iteration": 44,
+        "reference_interval": "3.5–5.5 s original",
+        "finding": "Both arms flowed forward during the thrust, weakening whole-body opposition and the load-to-release silhouette change.",
+        "correction": "Pull the free-arm target behind the ribcage as the sword hand extends.",
+        "before": "33df6f26572d151b965f401c428949317f5ed3cb",
+        "after": "d6f6c9670f3460ff8a7b574829080c65c72685e3",
+        "evidence": "/tmp/rinne-pass44-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "The sword arm extends against a bent counterarm (minimum 54.6 degrees), producing a clearer opposed torso silhouette without loosening the grip.",
+        "remaining": "Cloth/hair clearance, MToon/WebGL and direct 1x playback remain unverified."
       }
     ]
   },

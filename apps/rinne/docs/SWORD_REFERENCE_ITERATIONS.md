@@ -1,9 +1,9 @@
-# Active 100-pass batch — 38 / 100 (2026-09-14)
+# Active 100-pass batch — 44 / 100 (2026-09-14)
 
 This unfinished batch starts at Lab commit
 `f2da2524a627e5e4057be1cd9a18e03a22b32282`. It does not reuse the fourteen
-completed passes below. Fourteen further source changes were made after reconciling the
-latest remote Lab head, bringing this unfinished batch to thirty-eight. Each new revision
+completed passes below. Twenty further source changes were made after reconciling the
+latest remote Lab head, bringing this unfinished batch to forty-four. Each new revision
 was captured with the actual skinned SHINO rig at 30 fps from front-three-quarter
 and side views. The final state was also captured as a 30 fps four-second combination
 and a six-fps temporal sample of the full 30-second performance. The available reference was
@@ -49,12 +49,19 @@ and a six-fps temporal sample of the full 30-second performance. The available r
 | 36 | `96323bb` → `1fdb9a8` | 2.5–6.5 s original | Reduced head counter-rotation so the head follows full-body torque without losing the forward read. |
 | 37 | `8ecd032` → `54b804d` | 3.5–6.5 s original | Restored the grounded heavy/thrust body keys after the regression; toe drift returned to `3.11e-8 m` and the high-to-low step to `0.090075 m`. |
 | 38 | `54b804d` → `018714e` | 2.5–6.5 s original | Reapplied the longer existing-technique phrase after the grounded fix; it now passes at `5.40e-8 m` toe drift with no new attack IDs. |
+| 39 | `018714e` → `774f18e` | 3.16–4.0 s original | Deepened the uppercut chest load and delayed its release behind the pelvis. Actual-mesh views show a more closed anticipation and wider overhead chest turn. |
+| 40 | `774f18e` → `6b41001` | 3.16–4.5 s original | Retained forward hip/spine pitch through the uppercut finish, preventing the torso from straightening before the leg drive reaches the sword. |
+| 41 | `6b41001` → `a5e5880` | 3.0–4.0 s original | Kept the reverse-cut pelvis lower and pitched across lateral contact. The cut reads less arm-led and retains `3.91e-8 m` planted-toe drift. |
+| 42 | `a5e5880` → `2ef171f` | 4.0–6.5 s original | Began heavy-cut compression before release, making the legs store weight ahead of the unchanged contact instead of dropping only at impact. |
+| 43 | `2ef171f` → `33df6f2` | 3.5–5.5 s original | Sustained thrust spine/chest reach into recovery without repeating the rejected deeper-foot candidate; grounded diagnostics remain passing. |
+| 44 | `33df6f2` → `d6f6c96` | 3.5–5.5 s original | Pulled the free arm behind the ribcage during thrust extension. The sword arm now opposes a bent counterarm instead of sending both arms forward. |
 
 New reproduction evidence for this run is in `/tmp/rinne-pass25-*` through
-`/tmp/rinne-pass38-*` (`capture.json`, `three-follow-strip.jpg`,
+`/tmp/rinne-pass44-*` (`capture.json`, `three-follow-strip.jpg`,
 `side-follow-strip.jpg`). The final sequence is `/tmp/rinne-batch-final-1709/`,
-including `combination-three-30fps.mp4` and half/quarter-speed encodes. The
-30-second sample is `/tmp/rinne-performance-final-1709/`. These are transient
+including `combination-three-30fps.mp4` and half/quarter-speed encodes. The latest
+final sequence is `/tmp/rinne-batch-final-1909-v2/`; the latest 30-second sample is
+`/tmp/rinne-performance-final-1909-v2/`. These are transient
 WORK artifacts, not shipped application assets. Every pass has a reconstructible
 Git parent/commit diff; no source-neutral replay is counted.
 
@@ -63,16 +70,16 @@ attempted, but Chrome reported `THREE.WebGLRenderer: Error creating WebGL contex
 the local MP4 could not be opened by the authenticated cloud browser's URL policy.
 Therefore normal-speed actual-model playback remains unconfirmed and the primary stage
 remains **revise**, the changes are not yet eligible for the three-app adoption PR,
-and this batch remains 62 passes short. The generated 30 fps MP4 is not
+and this batch remains 56 passes short. The generated 30 fps MP4 is not
 treated as proof of normal-speed review or as human approval. Remaining work
 is the reference's much larger lateral travel, whole-body rotation, release-speed
 contrast and momentum transfer; WebGL/MToon, cloth collision and physical-device
 fps also remain unverified.
 
-Focused result at revision `shared-sword-10`: 13 actual-rig/viewer tests passed;
-maximum final-combination socket error `1.3371319e-7 m`, moving planted-toe drift
-`5.4002867e-8 m`, maximum 30 Hz pelvis-height step `0.0900750 m`, and minimum
-blade-tip height `0.0561865 m`. `npm run build:review` also passed.
+Focused result at revision `shared-sword-11`: 13 actual-rig/viewer tests passed;
+maximum final-combination socket error `1.3517393e-7 m`, moving planted-toe drift
+`3.9095985e-8 m`, maximum 30 Hz pelvis-height step `0.0900750 m`, and minimum
+blade-tip height `0.0562868 m`. `npm run build:review` also passed.
 These are continuity diagnostics, not artistic scores.
 
 # Fourteen further reference-driven corrections
