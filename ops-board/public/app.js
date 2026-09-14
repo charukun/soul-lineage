@@ -114,6 +114,26 @@ function renderDiff(diff) {
   root.append(top, details('差分PRを見る', prList(diff?.pulls), 'diff:pulls'));
 }
 
+function renderControlPlane(root, control = {}) {
+  if (!control || (!control.latency && !control.workflow)) return;
+  const latency = control.latency || {};
+  const pressure = control.workflow || {};
+  const metrics = el('div', 'metrics control-plane-metrics');
+  metrics.append(
+    metric('最古Ready', `${latency.oldestMinutes ?? 0}分`),
+    metric('Ready待ち p50', `${latency.p50Minutes ?? 0}分`),
+    metric('Ready待ち p95', `${latency.p95Minutes ?? 0}分`),
+    metric('重複run / 24h', `${pressure.duplicateRuns ?? 0}件`),
+  );
+  root.append(metrics);
+  const health = el('p', 'muted control-plane-health',
+    `Control Plane · 通知 ${control.notification?.label || 'UNKNOWN'} · Canary ${control.canary?.label || 'UNKNOWN'} · Wake ${control.wakeup?.label || 'UNKNOWN'} · ` +
+    `24h run ${pressure.runs24h ?? 0} / cancel ${pressure.cancelled ?? 0} / active ${pressure.active ?? 0}`);
+  root.append(health);
+  if (control.notification?.label === 'MISCONFIGURED') root.append(el('p', 'empty', 'スマホ通知が未設定です。GitHub状態は正本ですが、外部通知の到達は未確認です。'));
+  if (control.observationError) root.append(el('p', 'empty', `Control Plane状態の取得に失敗: ${control.observationError}`));
+}
+
 function renderIntegration(integration = {}) {
   const root = $('#integration');
   root.replaceChildren();
@@ -127,6 +147,7 @@ function renderIntegration(integration = {}) {
   top.append(desc, badge(label, integration.tone || 'info'));
   root.append(top);
   if (integration.heartbeatAt) root.append(el('p', 'muted', `処理の最終更新 ${time(integration.heartbeatAt)}`));
+  renderControlPlane(root, integration.controlPlane);
 
   const list = el('div', 'queue-list');
   const queue = integration.queue || [];
@@ -208,5 +229,4 @@ subscribe((state, error) => {
   if (error) { currentState = state; currentError = error; renderFreshness(); }
   else if (state) render(state);
 });
-// Refresh age labels even while the same saved snapshot is being shown.
 setInterval(() => preserveView(renderFreshness), 15000);
