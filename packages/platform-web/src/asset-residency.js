@@ -11,21 +11,21 @@ export function createAssetResidencyCache({version='dev',fetchImpl=globalThis.fe
   async function trim(store){if(!store?.keys)return;const keys=await store.keys();if(keys.length<=maxEntries)return;for(const req of keys.slice(0,keys.length-maxEntries)){await store.delete(req);evictions++;}}
   return {
     async fetch(url,{hash='',requestInit={}}={}){
-      const key=await keyFor(url,hash);
-      if(memory.has(key)){hits++;return memory.get(key).clone();}
+      const key=await keyFor(url,hash),memoryKey=`${name}:${key}`;
+      if(memory.has(memoryKey)){hits++;return memory.get(memoryKey).clone();}
       const store=await cache();
       const cached=await store?.match?.(key);
-      if(cached){hits++;memory.set(key,cached.clone());return cached.clone();}
+      if(cached){hits++;memory.set(memoryKey,cached.clone());return cached.clone();}
       misses++;
       const response=await fetchImpl(url,requestInit);
       if(!response.ok)throw new Error(`Asset HTTP ${response.status}: ${url}`);
-      const copy=response.clone();memory.set(key,copy.clone());
+      const copy=response.clone();memory.set(memoryKey,copy.clone());
       if(store){await store.put(key,copy);puts++;await trim(store);}
       return response;
     },
     async arrayBuffer(url,options){return (await this.fetch(url,options)).arrayBuffer();},
-    async invalidate(){memory.clear();if(cachesImpl?.delete)await cachesImpl.delete(name);},
-    snapshot(){return Object.freeze({name,version,hits,misses,puts,evictions,memoryEntries:memory.size,persistent:Boolean(cachesImpl?.open)});},
+    async invalidate(){for(const key of [...memory.keys()])if(key.startsWith(`${name}:`))memory.delete(key);if(cachesImpl?.delete)await cachesImpl.delete(name);},
+    snapshot(){const prefix=`${name}:`;return Object.freeze({name,version,hits,misses,puts,evictions,memoryEntries:[...memory.keys()].filter(key=>key.startsWith(prefix)).length,persistent:Boolean(cachesImpl?.open)});},
   };
 }
 
