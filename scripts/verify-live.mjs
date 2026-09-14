@@ -10,6 +10,7 @@ for (let attempt = 0; attempt < 12; attempt++) {
   try {
     const manifestUrl = new URL('deployment-manifest.json', base); manifestUrl.searchParams.set('verify', `${Date.now()}-${attempt}`);
     const live = JSON.parse(await fetchBytes(manifestUrl));
+    assert.equal(live.validatedDevelop, expected.validatedDevelop, 'Published develop snapshot mismatch');
     assert.deepEqual(live.entries.map(e => [e.path, e.inputHash]), expected.entries.map(e => [e.path, e.inputHash]));
     for (const entry of expected.entries) {
       const url = new URL(`${entry.path}/version.json`, base); url.searchParams.set('verify', Date.now());

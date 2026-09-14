@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0a1328"><title>灯渡りの庭 | 夜灯の章</title>
+<link rel="icon" type="image/svg+xml" href="https://raw.githubusercontent.com/lucide-icons/lucide/a79b2d131dab2bf20cb224bd0937b439a9c4fa99/icons/moon.svg">
+<link rel="stylesheet" href="./night.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script>
+</head><body class="night-portrait">
+<canvas id="world" aria-label="灯渡りの庭の3Dフィールド"></canvas><div id="labels" aria-hidden="true"></div><main id="ui"></main><div id="toast" role="status" aria-live="polite"></div>
+<section id="boot" class="glass-panel"><h1>灯渡りの庭</h1><p>GitHub素材を読み込んでいます</p><div class="gauge"><span id="load-bar"></span></div><p id="load-text">描画ライブラリを準備中</p><small>初回はキャラ・モーション・背景の取得があります。</small></section>
+<section id="failure" class="glass-panel" hidden><h2>読み込みを再試行できます</h2><p id="failure-message"></p><button class="lf-button" id="retry">再試行</button><p>簡易モデルへの置き換えは行いません。保存済みデータはそのままです。</p></section>
+<script>
+window.reportLanternFailure=function(error){document.getElementById('boot').hidden=true;document.getElementById('failure').hidden=false;document.getElementById('failure-message').textContent=error?.message||String(error);};
+window.addEventListener('error',e=>{if(e.error)window.reportLanternFailure(e.error);});window.addEventListener('unhandledrejection',e=>window.reportLanternFailure(e.reason));document.getElementById('retry').onclick=()=>location.reload();
+</script><script type="module" src="./app.mjs"></script>
+</body></html>

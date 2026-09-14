@@ -5,6 +5,8 @@ import { installVillageHostRehearsal } from './village-link.js';
 import { installOnlinePlayer } from './online.js';
 import { mountTitle } from './title/controller.js';
 import {installMusicLibrary} from '@soul/shared-ui/music';
+import {acquireSoloPause} from './title/solo-pause.js';
+import {mountTitleMenuPages} from './title/menu-pages.js';
 
 // Build information is injected by the existing monorepo Vite plugin. A standalone
 // preview must never claim to be a deployed commit.
@@ -12,6 +14,12 @@ const info = typeof __BUILD_INFO__ !== 'undefined' ? __BUILD_INFO__ : {
   name:'輪廻転焦',app:'rinne',environment:'local',commit:'UNBUILT',inputHash:null,
 };
 document.title = `${info.name}${info.environment === 'prod' ? '' : ` | ${info.environment.toUpperCase()}`}`;
+if (!document.querySelector('link[rel="manifest"]')) {
+  const manifest = document.createElement('link');
+  manifest.rel = 'manifest';
+  manifest.href = './manifest.webmanifest';
+  document.head.append(manifest);
+}
 const dialog = document.getElementById('village-dialog');
 installOnlinePlayer(document.getElementById('village-panel'));
 document.getElementById('open-village').addEventListener('click', () => dialog.showModal());
@@ -29,5 +37,9 @@ if (new URLSearchParams(location.search).has('villageHostLab')) {
 if (import.meta.hot) import.meta.hot.dispose(()=>{cancelAnimationFrame(clock);lab?.then(link=>link.dispose());});
 if (import.meta.hot) import.meta.hot.dispose(dispose);
 
-const disposeMusic=installMusicLibrary({game:'rinne',environment:info.environment});
+let releaseMusicPause=()=>{};
+const disposeMusic=installMusicLibrary({game:'rinne',environment:info.environment,defaultTrack:'r01',autoStart:true,trigger:'hidden',contextNote:'音楽室では単独稽古を一時停止します。効果音は稽古場のサウンド設定から。',onOpen(){releaseMusicPause=acquireSoloPause(document.getElementById('simulator-frame'));},onClose(){releaseMusicPause();releaseMusicPause=()=>{};}});
+for(const id of ['title-music','simulator-music']){const button=document.getElementById(id);button.hidden=info.environment==='prod';button.onclick=()=>window.__SOUL_MUSIC__?.open();}
 if(import.meta.hot)import.meta.hot.dispose(disposeMusic);
+const disposeMenuPages=mountTitleMenuPages();
+if(import.meta.hot)import.meta.hot.dispose(disposeMenuPages);

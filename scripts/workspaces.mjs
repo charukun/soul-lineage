@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 
 export const toolingPath = path => /^(scripts\/|templates\/|tests\/|\.github\/workflows\/|package(?:-lock)?\.json$|\.nvmrc$|\.npmrc$)/.test(path);
 export const documentationPath = path => /^(docs\/|README\.md$|LICENSE(?:\..*)?$)/.test(path) || /\/README\.md$/.test(path);
+export const workspaceManifestPath = path => /^(apps|packages)\/[^/]+\/package\.json$/.test(path);
 
 export function graph(root = process.cwd()) {
   const nodes = new Map();

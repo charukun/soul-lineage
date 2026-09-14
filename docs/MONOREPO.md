@@ -10,6 +10,8 @@ Tidebreakなど既存ゲームを後から取り込む場合は `apps/rinne` が
 
 `affected.mjs` はPRのbase/headを比較し、rename前後の両パスを評価します。共有packageのconsumerを推移的に展開します。不明パス・削除package・base不明・lockfileやCI/build基盤の変更は全appへ広げます。未使用の共通packageはpackage自身のcheck/testのみを実行します。
 
+`apps/*/package.json` と `packages/*/package.json` の変更は依存グラフ自体の変更としてrootのworkspace回帰テストを必ず実行し、影響appのbuild範囲は更新後の依存グラフから算出します。依存追加を個別appの変更だけとして扱い、最終DEV公開まで依存マップの不整合を見逃す運用には戻しません。
+
 ## 配信の状態と復旧
 
 `deployment-manifest.json` は各公開appのinputHash、build時commit、全ファイルのSHA-256/sizeを持ちます。GitのイベントSHAだけではなく、各appと依存packageの内容をhash化します。ビルドに影響するroot設定・scripts・tests・lockfileも含めます。文書変更は除外します。
@@ -34,7 +36,7 @@ Pages全体が1単位のため、どれかのappのbuild/restoreが失敗すれ�
 - `npm run build:<app>`: 独立build、index/JS/CSS/共通SVG/version検証。
 - 配信後HTTP gate: 各公開入口、JS/CSS/SVGの内容、各appのcommit/inputHash検証。
 - 実ブラウザ: 各DEV URLでcanvasのrenderer=ready、world/asset ID、画像表示、console errorsを確認。
-- Integrationの最終Chromium gateは全DEV appを対象に1ブラウザworkerで実行。従来のmain側配信は変更appのみの動作を維持。公開snapshotの実commitと照合し、HTTP成功だけで起動成功と判断しません。WebGL2を無効にした環境や初期化失敗を成功扱いするfallbackは設けません。スクリーンショットはActionsのpublic-browser-verification artifactに14日保持します。
+- Integrationの任意full_verification jobは全DEV appを対象に1ブラウザworkerで実行。従来のmain側配信は変更appのみの動作を維持。公開snapshotの実commitと照合し、HTTP成功だけで起動成功と判断しません。WebGL2を無効にした環境や初期化失敗を成功扱いするfallbackは設けません。スクリーンショットはActionsのpublic-browser-verification artifactに14日保持します。
 
 3アプリの起動確認は基盤の検証です。将来追加するゲーム本体・ネイティブ実機の性能/認定テストの代わりにはなりません。
 
