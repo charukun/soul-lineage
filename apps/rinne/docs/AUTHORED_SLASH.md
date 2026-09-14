@@ -57,3 +57,27 @@ their existing motion. The common solver's explicit knee pole is opt-in.
 Integration review route: workshop button → automatic looping slash → pause and
 seek → 1/4 speed → front/side/back → return to workshop. Check narrow portrait
 framing, no clipped blade, frame controls, load/retry, and return navigation.
+
+## Motion quality final pass — 2026-09-14
+
+The final gameplay pass builds on the authored slash without changing its 0.66 s
+clock or contact authority. It adds controller-owned bounded approach/orientation,
+distance-aware locomotion diagnostics, technique-specific warp envelopes, a single
+impact beat contract, transition velocity carry, collision-clamped approach, and
+root-travel metadata. Motion Matching is deliberately not introduced: the current
+small authored bank benefits more from deterministic, inspectable corrections.
+
+Safety boundaries:
+
+- animation/root travel is metadata; gameplay/controller remains world-transform owner
+- warp never moves backward to satisfy standoff and is always bounded
+- target position is snapshotted at attack start; no mid-swing homing
+- contact ends positional correction; damage/contact timing remains authoritative
+- collision query may shorten or cancel travel but may never extend it
+- hit stop, camera impulse, reaction, VFX and SFX share one impact serial/timestamp
+- transition inertialization is presentation-only and cannot change collision/contact
+- technique selection is advisory unless the existing combat authority explicitly consumes it
+
+Focused tests must prove deterministic target selection, bounded/collision-clamped
+travel, stable contact timing, single impact emission, finite transition state, and
+backward compatibility with the existing authored slash and weapon socket sampler.
