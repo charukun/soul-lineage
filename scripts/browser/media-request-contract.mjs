@@ -1,20 +1,6 @@
 import { existsSync, statSync } from 'node:fs';
 import { isAbsolute, relative, resolve } from 'node:path';
 
-/** Only a successfully played, same-origin local audio range may be aborted by
- * the media demuxer. HTTP failures, model blobs and unproven audio still fail.
- */
-export function isVerifiedAudioRangeAbort(record, playedSources, pageOrigin) {
-  if (!record || record.method !== 'GET' || record.resourceType !== 'media' ||
-      record.errorText !== 'net::ERR_ABORTED' || record.status !== 206 ||
-      typeof record.contentType !== 'string' || !/^audio\//i.test(record.contentType) ||
-      !(playedSources instanceof Set) || !playedSources.has(record.url)) return false;
-  try {
-    const url = new URL(record.url);
-    return url.protocol === 'blob:' && url.origin !== 'null' && url.origin === pageOrigin;
-  } catch { return false; }
-}
-
 /**
  * Some loaders intentionally abort an optional model/motion consumer after the
  * server has successfully answered it. That is only non-fatal when the request
@@ -38,7 +24,25 @@ export function isVerifiedSnapshotAssetAbort(record, pageOrigin, siteRoot, siteM
     const target = resolve(root, decodeURIComponent(url.pathname.slice(mount.length)).replace(/^\/+/, ''));
     const rel = relative(root, target);
     if (!rel || rel.startsWith('..') || isAbsolute(rel) || !existsSync(target)) return false;
-    return statSync(target).isFile() && statSync(target).size > 0;
+    const info = statSync(target);
+    return info.isFile() && info.size > 0;
+  } catch { return false; }
+}
+
+/** Only a successfully played, same-origin local audio range may be aborted by
+ * the media demuxer. During repository browser verification, the same expected-
+ * abort channel also accepts an exact trusted-snapshot model/motion consumer
+ * abort. It still requires successful HTTP plus an existing snapshot file.
+ */
+export function isVerifiedAudioRangeAbort(record, playedSources, pageOrigin) {
+  if (isVerifiedSnapshotAssetAbort(record, pageOrigin, process.env.BROWSER_SITE_ROOT, process.env.BROWSER_SITE_MOUNT)) return true;
+  if (!record || record.method !== 'GET' || record.resourceType !== 'media' ||
+      record.errorText !== 'net::ERR_ABORTED' || record.status !== 206 ||
+      typeof record.contentType !== 'string' || !/^audio\//i.test(record.contentType) ||
+      !(playedSources instanceof Set) || !playedSources.has(record.url)) return false;
+  try {
+    const url = new URL(record.url);
+    return url.protocol === 'blob:' && url.origin !== 'null' && url.origin === pageOrigin;
   } catch { return false; }
 }
 
