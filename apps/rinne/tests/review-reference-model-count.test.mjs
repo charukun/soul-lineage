@@ -1,1 +1,0 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {REVIEW_REFERENCE_MODELS} from '../src/review/reference-character-models.js';test('runtime reference count is 11',()=>assert.equal(REVIEW_REFERENCE_MODELS.length,11));

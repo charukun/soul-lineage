@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { prepareReviewAssets } from './prepare-review-assets.mjs';
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-execFileSync(process.execPath,['--test','tests/review-asset-inputs.test.mjs','apps/rinne/tests/review-playback.test.mjs','apps/rinne/tests/review-reference-library.test.mjs','packages/rendering/tests/quaternius-retarget.test.mjs'],{stdio:'inherit'});
+execFileSync(process.execPath,['--test','tests/review-asset-inputs.test.mjs','apps/rinne/tests/review-playback.test.mjs','apps/rinne/tests/review-reference-library.test.mjs','apps/rinne/tests/review-reference-model-picker.test.mjs','packages/rendering/tests/quaternius-retarget.test.mjs'],{stdio:'inherit'});
 execFileSync(process.execPath,['scripts/check.mjs','rinne'],{stdio:'inherit'});
 const assets = await prepareReviewAssets();
 try {
