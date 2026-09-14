@@ -96,18 +96,20 @@ export function appendCheckpoint(journal,{epoch=journal?.epoch,revision,checkpoi
  return{journal:next,entry,compacted:false};
 }
 function digestAt(journal,revision){if(revision===journal.baseRevision)return journal.baseDigest;const entry=journal.entries.find(item=>item.toRevision===revision);return entry?.resultDigest??null;}
-export function createCatchupPayload(journal,knownRevision=0){
+export function createCatchupPayload(journal,knownRevision=0,knownDigest=null){
  if(!journal||journal.latestCheckpoint===null)return{version:1,kind:'none',epoch:journal?.epoch??0,revision:journal?.latestRevision??0};
  if(!validRevision(knownRevision)||knownRevision>journal.latestRevision)knownRevision=0;
+ const retainedDigest=digestAt(journal,knownRevision);
+ if(knownDigest&&retainedDigest!==knownDigest)return fullPayload(journal);
  if(knownRevision===journal.latestRevision)return{version:1,kind:'none',epoch:journal.epoch,revision:journal.latestRevision,digest:checkpointDigest(journal.latestCheckpoint)};
- const canDelta=knownRevision>=journal.baseRevision&&digestAt(journal,knownRevision)!==null;
- if(canDelta){const entries=journal.entries.filter(item=>item.toRevision>knownRevision);let cursor=knownRevision;for(const entry of entries){if(entry.fromRevision!==cursor)return fullPayload(journal);cursor=entry.toRevision;}if(cursor===journal.latestRevision)return{version:1,kind:'delta',epoch:journal.epoch,baseRevision:knownRevision,baseDigest:digestAt(journal,knownRevision),revision:journal.latestRevision,resultDigest:checkpointDigest(journal.latestCheckpoint),entries:clone(entries)};}
+ const canDelta=knownRevision>=journal.baseRevision&&retainedDigest!==null;
+ if(canDelta){const entries=journal.entries.filter(item=>item.toRevision>knownRevision);let cursor=knownRevision;for(const entry of entries){if(entry.fromRevision!==cursor)return fullPayload(journal);cursor=entry.toRevision;}if(cursor===journal.latestRevision)return{version:1,kind:'delta',epoch:journal.epoch,baseRevision:knownRevision,baseDigest:retainedDigest,revision:journal.latestRevision,resultDigest:checkpointDigest(journal.latestCheckpoint),entries:clone(entries)};}
  return fullPayload(journal);
 }
 function fullPayload(journal){return{version:1,kind:'full',epoch:journal.epoch,revision:journal.latestRevision,digest:checkpointDigest(journal.latestCheckpoint),checkpoint:clone(journal.latestCheckpoint)};}
 export function applyCatchupPayload(current,{revision=0}={},payload){
  if(!payload||payload.version!==1)throw new Error('Invalid checkpoint catch-up');
- if(payload.kind==='none'){if(payload.revision!==revision)throw new Error('Checkpoint catch-up revision mismatch');return{checkpoint:current===null?null:clone(current),revision};}
+ if(payload.kind==='none'){if(payload.revision!==revision)throw new Error('Checkpoint catch-up revision mismatch');if(current!==null&&payload.digest&&checkpointDigest(current)!==payload.digest)throw new Error('Checkpoint catch-up digest mismatch');return{checkpoint:current===null?null:clone(current),revision};}
  if(payload.kind==='full'){if(checkpointDigest(payload.checkpoint)!==payload.digest)throw new Error('Checkpoint full digest mismatch');return{checkpoint:clone(payload.checkpoint),revision:payload.revision};}
  if(payload.kind!=='delta'||current===null||payload.baseRevision!==revision||checkpointDigest(current)!==payload.baseDigest)throw new Error('Checkpoint catch-up base mismatch');
  let checkpoint=clone(current),cursor=revision;
