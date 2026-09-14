@@ -1,81 +1,29 @@
 import { validate } from './core.js';
 import { createSaveEnvelope, readSaveEnvelope } from '@soul/game-data';
+import { createIncrementalPatch,appendJournalEntry,replayJournal,shouldCompactJournal,journalBytes } from '@soul/world/incremental-journal';
 
 export const SAVE_KEY = 'living-v5';
-const MAX_SAVE_BYTES = 8_000_000;
-const SAVE_ATTEMPTS = 3;
-const RETRY_DELAY_MS = 40;
+const JOURNAL_KEY=`${SAVE_KEY}.journal.v1`,COMPACT_KEY=`${SAVE_KEY}.compact.v1`,MAX_SAVE_BYTES=8_000_000,SAVE_ATTEMPTS=3,RETRY_DELAY_MS=40;
 
-/** Device-local persistence through injected ports, never a shared-host authority. */
 export function createSaveStore(platform) {
-  let tail = Promise.resolve();
-  let blocked = false;
-  let error = null;
-  let revision = 0;
-  const decode = text => {
-    if (typeof text !== 'string' || text.length > MAX_SAVE_BYTES) throw new Error('保存データが大きすぎます');
-    const envelope = readSaveEnvelope(JSON.parse(text), { gameId: 'village', playerId: 'local' });
-    revision = envelope.revision;
-    return validate(envelope.payload);
-  };
-  const writeWithRetry = async (key, value) => {
-    let cause;
-    for (let attempt = 1; attempt <= SAVE_ATTEMPTS; attempt++) {
-      try {
-        await platform.storage.write(key, value);
-        return;
-      } catch (nextCause) {
-        cause = nextCause;
-        if (attempt < SAVE_ATTEMPTS) await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * attempt));
-      }
-    }
-    throw cause;
-  };
-  return {
-    async load() {
-      try {
-        const text = await platform.storage.read(SAVE_KEY);
-        const state = text === null ? null : decode(text);
-        blocked = false;
-        error = null;
-        return state;
-      } catch (cause) {
-        blocked = true;
-        error = cause;
-        throw new Error('保存した村を読み込めませんでした。保存データは上書きしていません。', { cause });
-      }
-    },
-    save(world) {
-      if (blocked) return Promise.reject(error || new Error('保存が保護されています'));
-      // Capture now, not when an earlier asynchronous write eventually completes.
-      const payload = JSON.parse(world.export());
-      const envelope = JSON.stringify(createSaveEnvelope({ gameId: 'village', playerId: 'local', revision: ++revision, updatedAt: platform.clock.now(), payload }));
-      if (envelope.length > MAX_SAVE_BYTES) return Promise.reject(new Error('保存データが大きすぎます'));
-      // Mobile browsers can briefly reject local persistence while lifecycle/storage work overlaps.
-      // Keep writes ordered, but absorb short transient failures before surfacing a real error.
-      const operation = tail.catch(() => {}).then(() => writeWithRetry(SAVE_KEY, envelope));
-      tail = operation;
-      operation.then(() => { error = null; }, cause => { error = cause; });
-      return operation;
-    },
-    async recover() {
-      await tail.catch(() => {});
-      const original = await platform.storage.read(SAVE_KEY);
-      // A failed backup must never be followed by deletion of the original.
-      if (original !== null) {
-        const prefix = `${SAVE_KEY}.recovery.${platform.clock.now()}`;
-        let key = prefix;
-        let suffix = 0;
-        while (await platform.storage.read(key) !== null) key = `${prefix}.${++suffix}`;
-        await platform.storage.write(key, original);
-      }
-      await platform.storage.remove(SAVE_KEY);
-      blocked = false;
-      error = null;
-      revision = 0;
-    },
-    flush: () => tail,
-    get error() { return error; },
-    get blocked() { return blocked; },
-  };
+ let tail=Promise.resolve(),blocked=false,error=null,revision=0,baseRevision=0,lastPayload=null,journal=null;
+ const parseEnvelope=text=>{if(typeof text!=='string'||text.length>MAX_SAVE_BYTES)throw new Error('保存データが大きすぎます');return readSaveEnvelope(JSON.parse(text),{gameId:'village',playerId:'local'});};
+ const writeWithRetry=async(key,value)=>{let cause;for(let attempt=1;attempt<=SAVE_ATTEMPTS;attempt++){try{await platform.storage.write(key,value);return;}catch(nextCause){cause=nextCause;if(attempt<SAVE_ATTEMPTS)await new Promise(resolve=>setTimeout(resolve,RETRY_DELAY_MS*attempt));}}throw cause;};
+ const envelopeText=(rev,payload)=>JSON.stringify(createSaveEnvelope({gameId:'village',playerId:'local',revision:rev,updatedAt:platform.clock.now(),payload}));
+ async function readBestBase(){const[baseText,compactText]=await Promise.all([platform.storage.read(SAVE_KEY),platform.storage.read(COMPACT_KEY)]),candidates=[];for(const text of [baseText,compactText])if(text!==null)candidates.push(parseEnvelope(text));if(!candidates.length)return null;candidates.sort((a,b)=>b.revision-a.revision);return candidates[0];}
+ return {
+  async load(){try{const base=await readBestBase();if(!base){lastPayload=null;revision=baseRevision=0;journal=null;blocked=false;error=null;return null;}baseRevision=base.revision;let payload=base.payload,nextRevision=base.revision;const journalText=await platform.storage.read(JOURNAL_KEY);journal=journalText?JSON.parse(journalText):{version:1,baseRevision,entries:[]};if(journal.baseRevision===baseRevision){const replayed=replayJournal(payload,journal,{baseRevision});payload=replayed.payload;nextRevision=replayed.revision;}else{const latest=journal.entries?.at(-1)?.revision||journal.baseRevision;if(latest>baseRevision)throw new Error('保存差分の基準revisionが一致しません');journal={version:1,baseRevision,entries:[]};}revision=nextRevision;lastPayload=validate(payload);blocked=false;error=null;return structuredClone(lastPayload);}catch(cause){blocked=true;error=cause;throw new Error('保存した村を読み込めませんでした。保存データは上書きしていません。',{cause});}},
+  save(world){if(blocked)return Promise.reject(error||new Error('保存が保護されています'));const payload=JSON.parse(world.export()),operation=tail.catch(()=>{}).then(async()=>{
+   if(lastPayload===null||baseRevision===0){const nextRevision=revision+1,text=envelopeText(nextRevision,payload);if(text.length>MAX_SAVE_BYTES)throw new Error('保存データが大きすぎます');await writeWithRetry(SAVE_KEY,text);await platform.storage.remove(JOURNAL_KEY).catch(()=>{});await platform.storage.remove(COMPACT_KEY).catch(()=>{});revision=baseRevision=nextRevision;journal={version:1,baseRevision,entries:[]};lastPayload=payload;return;}
+   const ops=createIncrementalPatch(lastPayload,payload);if(!ops.length){lastPayload=payload;return;}
+   const nextRevision=revision+1,nextJournal=appendJournalEntry(structuredClone(journal||{version:1,baseRevision,entries:[]}),{revision:nextRevision,updatedAt:platform.clock.now(),ops});
+   if(shouldCompactJournal(nextJournal)||journalBytes(nextJournal)>1_200_000){const text=envelopeText(nextRevision,payload);if(text.length>MAX_SAVE_BYTES)throw new Error('保存データが大きすぎます');await writeWithRetry(COMPACT_KEY,text);await writeWithRetry(SAVE_KEY,text);await writeWithRetry(JOURNAL_KEY,JSON.stringify({version:1,baseRevision:nextRevision,entries:[]}));await platform.storage.remove(COMPACT_KEY).catch(()=>{});baseRevision=nextRevision;journal={version:1,baseRevision,entries:[]};}
+   else{await writeWithRetry(JOURNAL_KEY,JSON.stringify(nextJournal));journal=nextJournal;}
+   revision=nextRevision;lastPayload=payload;
+  });tail=operation;operation.then(()=>{error=null;},cause=>{error=cause;});return operation;},
+  async recover(){await tail.catch(()=>{});const[base,journalText,compact]=await Promise.all([platform.storage.read(SAVE_KEY),platform.storage.read(JOURNAL_KEY),platform.storage.read(COMPACT_KEY)]);if(base!==null||journalText!==null||compact!==null){const prefix=`${SAVE_KEY}.recovery.${platform.clock.now()}`;if(base!==null)await platform.storage.write(`${prefix}.base`,base);if(journalText!==null)await platform.storage.write(`${prefix}.journal`,journalText);if(compact!==null)await platform.storage.write(`${prefix}.compact`,compact);}await platform.storage.remove(SAVE_KEY);await platform.storage.remove(JOURNAL_KEY);await platform.storage.remove(COMPACT_KEY);blocked=false;error=null;revision=baseRevision=0;lastPayload=null;journal=null;},
+  flush:()=>tail,
+  diagnostics:()=>Object.freeze({revision,baseRevision,journalEntries:journal?.entries?.length||0,journalBytes:journalBytes(journal)}),
+  get error(){return error;},get blocked(){return blocked;},
+ };
 }
