@@ -10,7 +10,7 @@ Repositoryのdefault branchは `main` であり、developだけに新設したwo
 
 - `.github/workflows/deploy.yml`
   - default branchにも存在する登録済みgateway。
-  - `workflow_dispatch` の通常wakeは重複をcoalesceし、develop上のreusable `integration-controller.yml` を呼ぶ。
+  - `workflow_dispatch` の通常wakeはdevelop上のreusable `integration-controller.yml` を呼ぶ。
   - develop / mainへのpushではPublisherとして動作する。
   - developではPages公開、公開source照合、focused browser、DEV結果、PULSE、通知health、Canaryを担当する。
   - main / Productionの既存公開経路は維持する。
@@ -18,14 +18,17 @@ Repositoryのdefault branchは `main` であり、developだけに新設したwo
   - `workflow_call` 専用。
   - Ready PRの評価、exact-head safety gate、develop merge、Integration Rescue、Queue Recovery、bounded continuationを担当する。
   - Pages公開を行わない。
+  - `integration-controller-develop` concurrencyで重いController実行をcoalesceする。
 
 これにより、Integration評価とPages/browser公開の責任を分離しつつ、default branchを変更せず既存dispatch入口を維持する。
 
 ## Wakeup coalescing
 
-`deploy.yml` のworkflow_dispatch runは、同じdevelopにactiveなgateway runが複数ある場合、最小run IDをownerとして1本だけControllerを実行する。その他は `integration/wakeup=pending` へ「coalesced」と記録して終了する。
+Readyイベントが多数同時に `deploy.yml` を起動しても、重いController本体はreusable workflowの `integration-controller-develop` concurrencyで直列化する。`cancel-in-progress: false` のため実行中Controllerは中断せず、GitHub Actionsが保持する最新pending Controllerが追従する。
 
-Publisherが動作中なら新しいReady wakeはPublisherの後ろへcoalesceする。DEV成功時に1回 `rescue_mode=scan` を起動するため、Readyイベントは失われない。独立watchdogもdurable fallbackとして残す。
+つまり複数のwake requestを全部重いIntegration評価へ展開せず、実行中1本と最新follow-upへ圧縮する。後続wake自体を捨てないので、実行中Controllerのsnapshot取得後にReadyになったPRも最新pending runで再走査される。
+
+ControllerがPRをmergeした場合、GITHUB_TOKEN mergeのpush event抑止へ依存せず、登録済み `deploy.yml` を `publish_only=true` で明示起動して最終developをPublisherへ渡す。DEV成功後は `rescue_mode=scan` を1回起動し、独立watchdogもdurable fallbackとして残す。
 
 ## Trusted control-plane Fast Lane
 
@@ -95,7 +98,7 @@ PULSEは既存Integration表示内に次を追加する。
 - active / cancelled / duplicate run数
 - notification health
 - Canary health
-- wake coalescing状態
+- wake / Controller状態
 
 巨大な別管理アプリは作らない。
 
