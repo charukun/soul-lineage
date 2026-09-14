@@ -53,3 +53,14 @@ Cloudflare deploy は既存 Repository Secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFL
 公開前に変更対象の単体テストとスマホ操作テストを行います。配信後は静的な `version.json` とWorkerの `/api/version` の双方を今回のcommitと照合してから、認証済みのサーバー間refreshで初期同期します。旧Workerの応答や古いスナップショットを新実装の成功として扱いません。公開APIのschema、同期状態、対象アプリ取得状況、現在の名称と3環境も検証し、公開ブラウザで同じ操作を再確認します。
 
 GitHub取得失敗時にも既存の公開manifest fallbackを維持します。公開アプリの名称と環境だけが更新できた場合、GitHub履歴の取得日時は変更せず警告を残します。キャンセルと意図的なIntegration保留は障害や自動統合滞留として誤分類しません。
+
+## Integration Rescue サマリ表示（2026-09-14）
+
+Rescueの初期表示は、スマートフォンで一目で状況を把握できる視認性を優先します。詳細なWorker/Wave/履歴は既存の折りたたみ配下に残し、正確な状態分類や観測値は削除しません。
+
+- サマリは状態ヘッダの下に4枚のKPIカードを2列で表示し、広い画面では4列へ展開する。
+- 4カードは「対応中」「対応待ち」「要確認」「完了」を色付き左ボーダーと大きい数値で区別する。
+- AI修復待ち、blocked、retry、stale、人判断、手動保留などの内訳は各カードの補助文として保持する。
+- 実行中PRはサマリ直下にNOWとして最大3件表示し、PR番号と現在工程を読み取れるようにする。
+- 状態ラベル、最終更新、KPI、NOW、詳細を見るの順序を維持し、320px幅でも横スクロールさせない。
+- 詳細の既存disclosure、Rescue stateの意味、Integration gate、main / Productionの挙動は変更しない。
