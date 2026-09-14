@@ -1,6 +1,6 @@
 name: Integration Controller
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       rescue_mode:
         description: 'scan runs recovery observation without merging'
@@ -148,7 +148,7 @@ jobs:
         with:
           script: |
             await github.rest.actions.createWorkflowDispatch({
-              ...context.repo, workflow_id: 'integration-controller.yml', ref: 'develop',
+              ...context.repo, workflow_id: 'deploy.yml', ref: 'develop',
               inputs: { integration_cursor: process.env.CURSOR || '0' }
             });
 
