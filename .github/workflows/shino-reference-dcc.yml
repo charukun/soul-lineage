@@ -126,7 +126,11 @@ jobs:
       - name: Commit generated DCC source and review outputs
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+charukun@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git stash push --include-untracked -m dcc-generated-output
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git stash pop
           git add \
             assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend \
             apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm \
