@@ -13649,22 +13649,6 @@
         "heartbeatAt": "2026-09-14T11:44:09.759Z",
         "expiresAt": "2026-09-14T12:29:09.759Z",
         "result": {
-          "head": "6e38165c80bfd684de7f8fada1e2e83d6c4e4f14",
-          "tree": "90715f91636bb5f868dc26e3682764d773a6b472",
-          "commit": {
-            "sha": "6e38165c80bfd684de7f8fada1e2e83d6c4e4f14",
-            "tree": {
-              "sha": "90715f91636bb5f868dc26e3682764d773a6b472"
-            },
-            "parents": [
-              {
-                "sha": "79b53322016290773eae70a7d0fa0541e62f766c"
-              },
-              {
-                "sha": "82bc75f15ead3c22883402f043d282d450f5f92c"
-              }
-            ]
-          },
           "changedPaths": [
             ".github/workflows/ci.yml",
             ".github/workflows/code-health.yml",
@@ -13702,44 +13686,22 @@
             "tests/integration-queue-recovery.test.mjs"
           ],
           "changedPathsComplete": true,
-          "validation": {
-            "status": "passed",
-            "tree": "90715f91636bb5f868dc26e3682764d773a6b472",
-            "commands": [
-              "npm ci --no-audit --no-fund",
-              "node --test tests/integration-flow-control.test.mjs tests/integration-autonomous-delivery-v4.test.mjs tests/integration-continuation.test.mjs tests/integration-queue-wakeup-contract.test.mjs tests/integration-queue-recovery.test.mjs tests/integration.test.mjs tests/integration-rescue-runtime.test.mjs",
-              "node scripts/validate.mjs fast 82bc75f15ead3c22883402f043d282d450f5f92c 6e38165c80bfd684de7f8fada1e2e83d6c4e4f14",
-              "git diff --check"
-            ],
-            "summary": "npm ci succeeded; focused control/rescue suite 65 passed, 1 platform-only skip; trusted fast passed including all affected builds; no conflict markers; exact 34-path scope."
-          },
-          "decision": {
-            "preservesBoth": true,
-            "sources": [
+          "commit": {
+            "parents": [
               {
-                "path": "docs/INTEGRATION_AUTONOMOUS_DELIVERY_V4.md",
-                "commit": "79b53322016290773eae70a7d0fa0541e62f766c"
+                "sha": "79b53322016290773eae70a7d0fa0541e62f766c"
               },
               {
-                "path": "tests/integration-autonomous-delivery-v4.test.mjs",
-                "commit": "79b53322016290773eae70a7d0fa0541e62f766c"
-              },
-              {
-                "path": "docs/INTEGRATION.md",
-                "commit": "82bc75f15ead3c22883402f043d282d450f5f92c"
-              },
-              {
-                "path": "AGENTS.md",
-                "commit": "82bc75f15ead3c22883402f043d282d450f5f92c"
-              },
-              {
-                "path": "tests/integration.test.mjs",
-                "commit": "82bc75f15ead3c22883402f043d282d450f5f92c"
+                "sha": "82bc75f15ead3c22883402f043d282d450f5f92c"
               }
             ],
-            "summary": "Preserved v4 Controller/Publisher split, bounded queue continuation, exact-head safety, gate ordering, LKG recovery, PULSE telemetry and notification behavior while retaining latest develop's publication UI and existing workflow/runtime contracts. Reconciled legacy delivery keys, runtime audit snapshots, reusable workflow outputs, and failure-isolated notification handling without weakening CI/browser/review/hold/dependency gates.",
+            "sha": "a46a28239d78912ed450b4b1421ae8cab5080381",
+            "tree": {
+              "sha": "90715f91636bb5f868dc26e3682764d773a6b472"
+            }
+          },
+          "decision": {
             "controlReview": {
-              "preservesGates": true,
               "governingSources": [
                 "AGENTS.md@82bc75f15ead3c22883402f043d282d450f5f92c",
                 "docs/DEVELOPMENT.md@82bc75f15ead3c22883402f043d282d450f5f92c",
@@ -13747,20 +13709,58 @@
                 "docs/RINNE_PROJECT_EXECUTION_POLICY.md@82bc75f15ead3c22883402f043d282d450f5f92c",
                 "docs/INTEGRATION_RESCUE.md@82bc75f15ead3c22883402f043d282d450f5f92c",
                 "docs/INTEGRATION_RESCUE_WORK.md@82bc75f15ead3c22883402f043d282d450f5f92c"
-              ]
-            }
+              ],
+              "preservesGates": true
+            },
+            "preservesBoth": true,
+            "sources": [
+              {
+                "commit": "79b53322016290773eae70a7d0fa0541e62f766c",
+                "path": "docs/INTEGRATION_AUTONOMOUS_DELIVERY_V4.md"
+              },
+              {
+                "commit": "79b53322016290773eae70a7d0fa0541e62f766c",
+                "path": "tests/integration-autonomous-delivery-v4.test.mjs"
+              },
+              {
+                "commit": "82bc75f15ead3c22883402f043d282d450f5f92c",
+                "path": "docs/INTEGRATION.md"
+              },
+              {
+                "commit": "82bc75f15ead3c22883402f043d282d450f5f92c",
+                "path": "AGENTS.md"
+              },
+              {
+                "commit": "82bc75f15ead3c22883402f043d282d450f5f92c",
+                "path": "tests/integration.test.mjs"
+              }
+            ],
+            "summary": "Preserved v4 Controller/Publisher split, bounded queue continuation, exact-head safety, gate ordering, LKG recovery, PULSE telemetry and notification behavior while retaining latest develop's publication UI and existing workflow/runtime contracts. Reconciled legacy delivery keys, runtime audit snapshots, reusable workflow outputs, and failure-isolated notification handling without weakening CI/browser/review/hold/dependency gates."
+          },
+          "head": "a46a28239d78912ed450b4b1421ae8cab5080381",
+          "tree": "90715f91636bb5f868dc26e3682764d773a6b472",
+          "validation": {
+            "commands": [
+              "npm ci --no-audit --no-fund",
+              "node --test tests/integration-flow-control.test.mjs tests/integration-autonomous-delivery-v4.test.mjs tests/integration-continuation.test.mjs tests/integration-queue-wakeup-contract.test.mjs tests/integration-queue-recovery.test.mjs tests/integration.test.mjs tests/integration-rescue-runtime.test.mjs",
+              "node scripts/validate.mjs fast 82bc75f15ead3c22883402f043d282d450f5f92c 6e38165c80bfd684de7f8fada1e2e83d6c4e4f14",
+              "git diff --check"
+            ],
+            "status": "passed",
+            "summary": "npm ci succeeded; focused control/rescue suite 65 passed, 1 platform-only skip; trusted fast passed including all affected builds; no conflict markers; exact 34-path scope. GitHub Git Data commit uses the identical validated tree and exact ordered parents.",
+            "tree": "90715f91636bb5f868dc26e3682764d773a6b472"
           }
         },
-        "pushPreparedAt": "2026-09-14T11:45:06.800Z"
+        "pushPreparedAt": "2026-09-14T11:46:46.041Z"
       },
       "workRepairAttempts": 1,
       "workRepairBaselineChurns": 1
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 665,
+  "revision": 666,
   "schema": 1,
-  "updatedAt": "2026-09-14T11:45:08.713Z",
+  "updatedAt": "2026-09-14T11:46:48.070Z",
   "waves": [
     {
       "completedAt": "2026-09-13T04:41:26.595Z",
