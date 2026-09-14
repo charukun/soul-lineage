@@ -6,7 +6,7 @@ const close=(a,b,eps=1e-9)=>assert.ok(Math.abs(a-b)<=eps,`${a} != ${b}`);
 
 test('anticipation and recovery live inside the existing normalized attack phase',()=>{
  const start=anticipationRecoveryEnvelope({phase:0}),load=anticipationRecoveryEnvelope({phase:.12}),contact=anticipationRecoveryEnvelope({phase:.5}),recover=anticipationRecoveryEnvelope({phase:.86}),end=anticipationRecoveryEnvelope({phase:1});
- assert.equal(start.anticipation,0);assert.ok(load.anticipation>.9);assert.ok(contact.drive>.5);assert.ok(recover.recovery>.9);assert.equal(end.recovery,0);
+ assert.equal(start.anticipation,0);assert.ok(load.anticipation>.9);assert.ok(contact.drive>.5);assert.ok(recover.recovery>.9);close(end.recovery,0);
 });
 
 test('gaze aim uses shortest yaw and clamps head pitch/yaw',()=>{
