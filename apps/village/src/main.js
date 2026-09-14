@@ -42,6 +42,7 @@ try {
   await import('./stylized-visual-target.js');
   await import('./adaptive-visual-performance.js');
   await import('./runtime-resilience.js');
+  await import('./shared-world-scale.js');
   const { boot } = await import('./web/main.js');
   await boot({ onProgress(value, text) { progress.value = value; message.textContent = text; } });
   await import('./mura-enhancements.js');

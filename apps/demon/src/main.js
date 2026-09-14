@@ -8,6 +8,7 @@ try {
   await import('./stylized-visual-target.js');
   await import('./adaptive-visual-performance.js');
   await import('./runtime-resilience.js');
+  await import('./shared-world-scale.js');
   const game = await import('./web/main.js');
   progress.value = 2;
   await game.boot();

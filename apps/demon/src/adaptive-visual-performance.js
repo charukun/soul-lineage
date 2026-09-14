@@ -10,95 +10,15 @@ import { batchStaticMeshes } from '@soul/rendering/instance-atlas';
 import { createPerformanceRecorder } from '@soul/rendering/performance-lab';
 import { createThermalTrendGovernor } from '@soul/rendering/thermal-governor';
 import { applyVisualQualityFloor, markVisualQualityPriority } from '@soul/rendering/visual-quality-floor';
+import { deviceCapabilityProfile, saveDeviceCapability } from '@soul/platform-web/device-capability';
 import { NightView } from './web/view.js';
 
-const governors = new WeakMap(), enemyFx = stylizedArtProfile('enemy').effects;
-const isMobileTarget = () => (typeof innerWidth === 'number' && innerWidth < 800) || /Android|iPhone|iPad/i.test(globalThis.navigator?.userAgent || '');
-
-function setShadowSize(view, scale) {
-  const base = innerWidth < 700 ? 512 : 1024, next = Math.max(256,Math.round(base*scale/256)*256);
-  if (view.moon?.shadow?.mapSize?.x === next) return;
-  view.moon.shadow.mapSize.set(next,next); view.moon.shadow.map?.dispose?.(); view.moon.shadow.map=null; view.renderer.shadowMap.needsUpdate=true;
-}
-
-function markCritical(view) {
-  for (const root of [view.gate,view.entry,view.back,view.ward]) if (root) markVisualQualityPriority(root,'critical');
-  if(view.player)markVisualQualityPriority(view.player,'enemy');
-  if(view.reaper?.root)markVisualQualityPriority(view.reaper.root,'hero');
-  for (const child of view.environment?.children || []) {
-    const geometry = child.geometry;
-    if (geometry?.parameters?.width >= 100 || geometry?.parameters?.height >= 100) { child.userData.streamingCritical=true; child.userData.noBatch=true; child.userData.impostorDisabled=true; }
-  }
-}
-
-function textureBytes(view) {
-  return [view.environment,view.actors,view.reaper?.root].filter(Boolean).reduce((sum,root)=>sum+auditTextureBudget(root).estimatedBytes,0);
-}
-
-function apply(view,snapshot) {
-  const q=snapshot.profile, enemyQuality=applyVisualQualityFloor(q,'enemy'), heroQuality=applyVisualQualityFloor(q,'hero'); view.__stylizedQuality=snapshot;
-  const base=view.__stylizedBasePixelRatio ?? (view.__stylizedBasePixelRatio=view.renderer.getPixelRatio());
-  const ratio=Math.max(.55,base*q.renderScale);
-  if (Math.abs(view.renderer.getPixelRatio()-ratio)>.01) { view.renderer.setPixelRatio(ratio); view.resize(); }
-  setShadowSize(view,q.shadowScale);
-  if(view.environment){
-    applyTextureQuality(view.environment,{anisotropy:q.textureAnisotropy});
-    for(const child of view.environment.children||[]){const profileId=child.userData?.stylizedArt?.profileId;if(profileId)applyStylizedShading(child,profileId);}
-  }
-  if(view.actors){
-    applyTextureQuality(view.actors,{anisotropy:enemyQuality.textureAnisotropy});
-    for(const child of view.actors.children||[]){const profileId=child.userData?.stylizedArt?.profileId;if(profileId)applyStylizedShading(child,profileId);}
-  }
-  if(view.reaper?.root){applyTextureQuality(view.reaper.root,{anisotropy:heroQuality.textureAnisotropy});applyStylizedShading(view.reaper.root,'hero');}
-  const vfxScale=Math.max(enemyQuality.vfxScale,enemyFx.scale*q.vfxScale);
-  view.stylizedVfxBudget={...enemyFx,scale:vfxScale,maxParticles:Math.max(120,Math.floor(enemyFx.maxParticles*vfxScale)),trailSegments:Math.max(12,Math.floor(enemyFx.trailSegments*vfxScale))};
-  view.__estimatedTextureBytes=textureBytes(view);
-}
-
-function occlusionRoots(view) {
-  const occluders=[],candidates=[];
-  for(const child of view.environment?.children||[]){
-    if(child.userData?.streamingCritical||child.userData?.occlusionDisabled||child.userData?.staticBatch)continue;
-    const box=new T.Box3().setFromObject(child);if(box.isEmpty())continue;const size=box.getSize(new T.Vector3()),horizontal=Math.max(size.x,size.z);
-    if(size.y>2.5&&horizontal>3.5&&horizontal<90)occluders.push(child);
-    else if(size.y>.1&&horizontal<35)candidates.push(child);
-  }
-  return {occluders,candidates};
-}
-
-function governorFor(view) {
-  if (governors.has(view)) return governors.get(view);
-  const streamer=createVisualDistanceStreamer({baseDistance:138,hysteresis:14});
-  const gpu=createGpuTimer(view.renderer),recorder=createPerformanceRecorder({label:'demon'}),occlusion=createConservativeOcclusionCuller({maxChecksPerUpdate:6,minDistance:18,hiddenConfirmations:2});
-  const thermal=createThermalTrendGovernor({sampleEverySeconds:5,baselineSamples:6,windowSamples:12});
-  const governor=createGpuAwareQualityGovernor({targetFps:isMobileTarget()?30:60,onChange:s=>apply(view,s)});
-  const state={governor,streamer,gpu,recorder,occlusion,thermal,occlusionFrame:0,staticBatch:null,stream:null};governors.set(view,state);markCritical(view);apply(view,governor.snapshot());
-  if(typeof window!=='undefined')window.__DEMON_ADAPTIVE_QUALITY__={snapshot:()=>({quality:governor.snapshot(),gpu:gpu.snapshot(),thermal:thermal.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),staticBatch:state.staticBatch?{batches:state.staticBatch.batches,instances:state.staticBatch.instances}:null,stream:state.stream,vfx:view.stylizedVfxBudget,textureBytes:view.__estimatedTextureBytes||0})};
-  return state;
-}
-
-const build=NightView.prototype.build;
-if(typeof build==='function'&&!build.__adaptiveVisualPerformance){
- const wrapped=function adaptiveDemonBuild(...args){const result=build.apply(this,args);markCritical(this);const state=governorFor(this);if(!state.staticBatch)state.staticBatch=batchStaticMeshes(this.environment,{minInstances:3,maxInstances:256});apply(this,state.governor.snapshot());return result;};
- wrapped.__adaptiveVisualPerformance=true;NightView.prototype.build=wrapped;
-}
-
-const update=NightView.prototype.update;
-if(typeof update==='function'&&!update.__adaptiveVisualPerformance){
- const wrapped=function adaptiveDemonUpdate(game,dt,...rest){
-  const state=governorFor(this);state.gpu.begin('demon-frame');
-  const result=update.call(this,game,dt,...rest);state.gpu.end();const gpu=state.gpu.poll(),snapshot=state.governor.snapshot(),focus=game?.player||this.player?.position||{x:0,z:0};
-  for(const actor of this.actors?.children||[]){actor.userData.presentationDistance=Math.hypot((actor.position?.x||0)-(focus.x||0),(actor.position?.z||0)-(focus.z||0));actor.userData.visualQualityLevel=snapshot.level;}
-  if(this.reaper?.root){this.reaper.root.userData.presentationDistance=0;this.reaper.root.userData.visualQualityLevel=snapshot.level;}
-  this.environment.userData.visualQualityLevel=snapshot.level;for(const child of this.environment.children||[])child.userData.visualQualityLevel=snapshot.level;
-  state.stream=state.streamer.update(this.environment,focus,snapshot.profile.streamDistanceScale);
-  let next=state.governor.observeFrame(dt,gpu.emaMs);
-  const thermal=state.thermal.observe(dt,dt*1000,gpu.emaMs);
-  if(thermal.recommendedMinLevel>next.level)next=state.governor.setLevel(thermal.recommendedMinLevel);
-  apply(this,next);
-  state.recorder.sample({frameMs:dt*1000,gpuMs:gpu.emaMs,drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,textureBytes:this.__estimatedTextureBytes||0});
-  if((state.occlusionFrame++%10)===0){const roots=occlusionRoots(this);state.occlusion.update({camera:this.camera,...roots});}
-  return result;
- };
- wrapped.__adaptiveVisualPerformance=true;NightView.prototype.update=wrapped;
-}
+const governors=new WeakMap(),enemyFx=stylizedArtProfile('enemy').effects;
+function setShadowSize(view,scale){const base=innerWidth<700?512:1024,next=Math.max(256,Math.round(base*scale/256)*256);if(view.moon?.shadow?.mapSize?.x===next)return;view.moon.shadow.mapSize.set(next,next);view.moon.shadow.map?.dispose?.();view.moon.shadow.map=null;view.renderer.shadowMap.needsUpdate=true;}
+function markCritical(view){for(const root of[view.gate,view.entry,view.back,view.ward])if(root)markVisualQualityPriority(root,'critical');if(view.player)markVisualQualityPriority(view.player,'enemy');if(view.reaper?.root)markVisualQualityPriority(view.reaper.root,'hero');for(const child of view.environment?.children||[]){const geometry=child.geometry;if(geometry?.parameters?.width>=100||geometry?.parameters?.height>=100){child.userData.streamingCritical=true;child.userData.noBatch=true;child.userData.impostorDisabled=true;}}}
+function textureBytes(view){return[view.environment,view.actors,view.reaper?.root].filter(Boolean).reduce((sum,root)=>sum+auditTextureBudget(root).estimatedBytes,0);}
+function apply(view,snapshot){const q=snapshot.profile,enemyQuality=applyVisualQualityFloor(q,'enemy'),heroQuality=applyVisualQualityFloor(q,'hero');view.__stylizedQuality=snapshot;const base=view.__stylizedBasePixelRatio??(view.__stylizedBasePixelRatio=view.renderer.getPixelRatio()),ratio=Math.max(.55,base*q.renderScale);if(Math.abs(view.renderer.getPixelRatio()-ratio)>.01){view.renderer.setPixelRatio(ratio);view.resize();}setShadowSize(view,q.shadowScale);if(view.environment){applyTextureQuality(view.environment,{anisotropy:q.textureAnisotropy});for(const child of view.environment.children||[]){const profileId=child.userData?.stylizedArt?.profileId;if(profileId)applyStylizedShading(child,profileId);}}if(view.actors){applyTextureQuality(view.actors,{anisotropy:enemyQuality.textureAnisotropy});for(const child of view.actors.children||[]){const profileId=child.userData?.stylizedArt?.profileId;if(profileId)applyStylizedShading(child,profileId);}}if(view.reaper?.root){applyTextureQuality(view.reaper.root,{anisotropy:heroQuality.textureAnisotropy});applyStylizedShading(view.reaper.root,'hero');}const vfxScale=Math.max(enemyQuality.vfxScale,enemyFx.scale*q.vfxScale);view.stylizedVfxBudget={...enemyFx,scale:vfxScale,maxParticles:Math.max(120,Math.floor(enemyFx.maxParticles*vfxScale)),trailSegments:Math.max(12,Math.floor(enemyFx.trailSegments*vfxScale))};view.__estimatedTextureBytes=textureBytes(view);}
+function occlusionRoots(view){const occluders=[],candidates=[];for(const child of view.environment?.children||[]){if(child.userData?.streamingCritical||child.userData?.occlusionDisabled||child.userData?.staticBatch)continue;const box=new T.Box3().setFromObject(child);if(box.isEmpty())continue;const size=box.getSize(new T.Vector3()),horizontal=Math.max(size.x,size.z);if(size.y>2.5&&horizontal>3.5&&horizontal<90)occluders.push(child);else if(size.y>.1&&horizontal<35)candidates.push(child);}return{occluders,candidates};}
+function governorFor(view){if(governors.has(view))return governors.get(view);const device=deviceCapabilityProfile({renderer:view.renderer});saveDeviceCapability(device);const streamer=createVisualDistanceStreamer({baseDistance:138,hysteresis:14});const gpu=createGpuTimer(view.renderer),recorder=createPerformanceRecorder({label:'demon'}),occlusion=createConservativeOcclusionCuller({maxChecksPerUpdate:6,minDistance:18,hiddenConfirmations:2}),thermal=createThermalTrendGovernor({sampleEverySeconds:5,baselineSamples:6,windowSamples:12});const governor=createGpuAwareQualityGovernor({targetFps:device.targetFps,initialLevel:device.initialQuality,onChange:s=>apply(view,s)});const state={governor,streamer,gpu,recorder,occlusion,thermal,device,occlusionFrame:0,staticBatch:null,stream:null};governors.set(view,state);markCritical(view);apply(view,governor.snapshot());if(typeof window!=='undefined')window.__DEMON_ADAPTIVE_QUALITY__={snapshot:()=>({quality:governor.snapshot(),device,gpu:gpu.snapshot(),thermal:thermal.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),staticBatch:state.staticBatch?{batches:state.staticBatch.batches,instances:state.staticBatch.instances}:null,stream:state.stream,vfx:view.stylizedVfxBudget,textureBytes:view.__estimatedTextureBytes||0})};return state;}
+const build=NightView.prototype.build;if(typeof build==='function'&&!build.__adaptiveVisualPerformance){const wrapped=function adaptiveDemonBuild(...args){const result=build.apply(this,args);markCritical(this);const state=governorFor(this);if(!state.staticBatch)state.staticBatch=batchStaticMeshes(this.environment,{minInstances:3,maxInstances:256});apply(this,state.governor.snapshot());return result;};wrapped.__adaptiveVisualPerformance=true;NightView.prototype.build=wrapped;}
+const update=NightView.prototype.update;if(typeof update==='function'&&!update.__adaptiveVisualPerformance){const wrapped=function adaptiveDemonUpdate(game,dt,...rest){const state=governorFor(this);state.gpu.begin('demon-frame');const result=update.call(this,game,dt,...rest);state.gpu.end();const gpu=state.gpu.poll(),snapshot=state.governor.snapshot(),focus=game?.player||this.player?.position||{x:0,z:0};for(const actor of this.actors?.children||[]){actor.userData.presentationDistance=Math.hypot((actor.position?.x||0)-(focus.x||0),(actor.position?.z||0)-(focus.z||0));actor.userData.visualQualityLevel=snapshot.level;}if(this.reaper?.root){this.reaper.root.userData.presentationDistance=0;this.reaper.root.userData.visualQualityLevel=snapshot.level;}this.environment.userData.visualQualityLevel=snapshot.level;for(const child of this.environment.children||[])child.userData.visualQualityLevel=snapshot.level;state.stream=state.streamer.update(this.environment,focus,snapshot.profile.streamDistanceScale);let next=state.governor.observeFrame(dt,gpu.emaMs);const thermal=state.thermal.observe(dt,dt*1000,gpu.emaMs);if(thermal.recommendedMinLevel>next.level)next=state.governor.setLevel(thermal.recommendedMinLevel);apply(this,next);state.recorder.sample({frameMs:dt*1000,gpuMs:gpu.emaMs,drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,textureBytes:this.__estimatedTextureBytes||0});if((state.occlusionFrame++%10)===0){const roots=occlusionRoots(this);state.occlusion.update({camera:this.camera,...roots});}return result;};wrapped.__adaptiveVisualPerformance=true;NightView.prototype.update=wrapped;}
