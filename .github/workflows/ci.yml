@@ -143,7 +143,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: node control/scripts/integration-rescue-fast-evidence.mjs
+        run: |
+          if [ ! -f control/scripts/integration-rescue-fast-evidence.mjs ]; then
+            echo 'Trusted reuse verifier is not on develop yet; run normal fast CI for this bootstrap PR.'
+            echo 'reuse=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          node control/scripts/integration-rescue-fast-evidence.mjs
       - name: Resolve exact PR head and affected workspaces
         id: plan
         working-directory: work
