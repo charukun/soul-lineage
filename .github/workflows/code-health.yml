@@ -36,12 +36,10 @@ jobs:
           ref: develop
           fetch-depth: 0
           persist-credentials: false
-
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
           node-version: '24'
-
       - name: Audit source health
         id: audit
         run: |
@@ -50,7 +48,30 @@ jobs:
           top_score=$(node --input-type=module -e "import fs from 'node:fs'; const r=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); process.stdout.write(String(r.summary?.topScore || 0));" "$REPORT_FILE")
           echo "actionable=$actionable" >> "$GITHUB_OUTPUT"
           echo "top_score=$top_score" >> "$GITHUB_OUTPUT"
-
+      - name: Measure Integration backlog pressure
+        id: pressure
+        if: >-
+          steps.audit.outputs.actionable == 'true' &&
+          (github.event_name == 'schedule' || inputs.dispatch == true)
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "ready=unknown" >> "$GITHUB_OUTPUT"
+          echo "mode=UNKNOWN" >> "$GITHUB_OUTPUT"
+          echo "pause=true" >> "$GITHUB_OUTPUT"
+          ready=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --base develop --limit 100 --json isDraft --jq '[.[] | select(.isDraft == false)] | length')
+          result=$(READY_COUNT="$ready" node --input-type=module - <<'JS'
+          import { flowPressure } from './scripts/integration-flow-control.mjs';
+          process.stdout.write(JSON.stringify(flowPressure({ ready:Number(process.env.READY_COUNT||0) })));
+          JS
+          )
+          mode=$(printf '%s' "$result" | node --input-type=module -e "let s=''; for await (const c of process.stdin) s+=c; process.stdout.write(JSON.parse(s).mode)")
+          pause=$(printf '%s' "$result" | node --input-type=module -e "let s=''; for await (const c of process.stdin) s+=c; process.stdout.write(String(JSON.parse(s).pauseMaintenance))")
+          echo "ready=$ready" >> "$GITHUB_OUTPUT"
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "pause=$pause" >> "$GITHUB_OUTPUT"
+          echo "Integration pressure: $mode / Ready $ready" >> "$GITHUB_STEP_SUMMARY"
       - name: Check for an in-flight automatic refactor
         id: active
         if: >-
@@ -59,19 +80,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          count=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --base develop --limit 100 \
-            --json headRefName \
-            --jq '[.[] | select(.headRefName | startswith("dispatch/code-health-"))] | length')
+          count=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --base develop --limit 100 --json headRefName --jq '[.[] | select(.headRefName | startswith("dispatch/code-health-"))] | length')
           echo "count=$count" >> "$GITHUB_OUTPUT"
-          if [ "$count" != "0" ]; then
-            echo "An automatic Code Health refactor is already open; this audit will not create another." >> "$GITHUB_STEP_SUMMARY"
-          fi
-
+          if [ "$count" != "0" ]; then echo "An automatic Code Health refactor is already open; this audit will not create another." >> "$GITHUB_STEP_SUMMARY"; fi
       - name: Build focused refactor request
         id: request
         if: >-
           steps.audit.outputs.actionable == 'true' &&
           steps.active.outputs.count == '0' &&
+          steps.pressure.outputs.pause != 'true' &&
           (github.event_name == 'schedule' || inputs.dispatch == true)
         run: |
           node scripts/code-health-dispatch.mjs "$REPORT_FILE" "$MARKER_FILE" "$BODY_FILE" > "$DISPATCH_FILE"
@@ -79,7 +96,14 @@ jobs:
           title=$(node --input-type=module -e "import fs from 'node:fs'; const r=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); process.stdout.write(r.title);" "$DISPATCH_FILE")
           echo "slug=$slug" >> "$GITHUB_OUTPUT"
           echo "title=$title" >> "$GITHUB_OUTPUT"
-
+      - name: Record backlog backpressure
+        if: >-
+          steps.audit.outputs.actionable == 'true' &&
+          steps.pressure.outputs.pause == 'true' &&
+          (github.event_name == 'schedule' || inputs.dispatch == true)
+        run: |
+          echo "Automatic Code Health dispatch paused by Integration backpressure: ${{ steps.pressure.outputs.mode }} / Ready ${{ steps.pressure.outputs.ready }}." >> "$GITHUB_STEP_SUMMARY"
+          echo 'Audit remains valid; backlog burn-down takes precedence.' >> "$GITHUB_STEP_SUMMARY"
       - name: Bootstrap one RINNE Dispatch Draft PR
         id: dispatch
         if: steps.request.outcome == 'success'
@@ -94,7 +118,6 @@ jobs:
             echo 'Automatic dispatch skipped: event-capable handoff credential is not configured.' >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-
           branch="dispatch/code-health-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${SLUG}"
           marker=".task-start/code-health-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.md"
           git config user.name 'github-actions[bot]'
@@ -110,21 +133,10 @@ jobs:
           echo "created=true" >> "$GITHUB_OUTPUT"
           echo "branch=$branch" >> "$GITHUB_OUTPUT"
           echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
-          {
-            echo ''
-            echo '### Automatic refactor handoff'
-            echo "Created one RINNE Dispatch Draft PR: $pr_url"
-            echo "Branch: \`$branch\`"
-            echo 'RINNE Dispatch owns implementation; existing Integration owns Ready PR delivery.'
-          } >> "$GITHUB_STEP_SUMMARY"
-
+          { echo ''; echo '### Automatic refactor handoff'; echo "Created one RINNE Dispatch Draft PR: $pr_url"; echo "Branch: \`$branch\`"; echo 'RINNE Dispatch owns implementation; existing Integration owns Ready PR delivery.'; } >> "$GITHUB_STEP_SUMMARY"
       - name: Record non-dispatch result
         if: >-
           steps.audit.outputs.actionable != 'true' ||
           (github.event_name == 'workflow_dispatch' && inputs.dispatch != true)
         run: |
-          if [ "${{ steps.audit.outputs.actionable }}" != "true" ]; then
-            echo 'No actionable hotspot crossed the configured threshold.' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo 'Manual audit only: an actionable hotspot exists, but dispatch=false.' >> "$GITHUB_STEP_SUMMARY"
-          fi
+          if [ "${{ steps.audit.outputs.actionable }}" != "true" ]; then echo 'No actionable hotspot crossed the configured threshold.' >> "$GITHUB_STEP_SUMMARY"; else echo 'Manual audit only: an actionable hotspot exists, but dispatch=false.' >> "$GITHUB_STEP_SUMMARY"; fi
