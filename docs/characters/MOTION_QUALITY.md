@@ -1,5 +1,9 @@
 # Character Motion Quality Pipeline v1
 
+Motion-changing WORK must first follow [Motion authoring](MOTION_AUTHORING.md):
+full-body key poses → weight/timing with observed 1x playback → detail and joins.
+The checks below diagnose mechanical defects; they do not establish dynamic acting.
+
 The portable contract is `@soul/animations`; the Three.js adapter is
 `@soul/rendering/motion-quality`. Character Workshop owns character, rig, body
 variation and Motion QA. The independent Visual Review Lab branch owns detailed
@@ -85,6 +89,19 @@ Schema: `character-motion-qa`, version `1`. `createQAReport`, `serializeQAReport
 `deserializeQAReport` are the authoritative executable validators. Imports reject
 unknown categories/statuses, invalid frame/camera data, malformed JSON, duplicate
 IDs, non-finite numbers, excess nesting and documents over 1,000,000 characters.
+
+New reports include `authoring` version 1, so the existing Workshop JSON export
+and import carry the authoring record without a second report store or game state.
+Older v1 reports remain readable; absent authoring data is **not assessed**, not passed.
+External workers fill this section following [the authoring guide](MOTION_AUTHORING.md).
+`validateAuthoringReview` enforces stage order and evidence metadata when a stage is
+marked `reviewed`; `authoringProgress` gives the earliest unfinished stage. Primary
+and polish need observed 1x before/after/reference videos. Blocking needs major
+full-body poses, actual front/side images and observed reference evidence.
+Reviewed evidence must match the report's source revision. Regression reopens the
+affected stage and later stages. Pending or revise records can be saved for recovery.
+These are record checks, not media playback, image analysis, verified URL retrieval,
+or automated artistic/human approval. No CI/Integration gate is replaced or relaxed.
 
 | Field | Meaning |
 | --- | --- |

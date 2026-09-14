@@ -2,26 +2,44 @@ import {verifyVillageDirectorPolish} from './director-polish.browser.mjs';
 
 /** User-facing placement help is exercised with native input, never world mutation. */
 const STARTUP_TIMEOUT_MS = 15_000;
+const NATIVE_TAP_TIMEOUT_MS = 8_000;
+const CAMERA_DRAG_STEPS = 3;
 async function expectVillageReady(page, expect) {
   await expect(page.locator('#loading')).toBeHidden({timeout:STARTUP_TIMEOUT_MS});
   await expect(page.locator('#game')).toHaveAttribute('data-renderer','ready',{timeout:STARTUP_TIMEOUT_MS});
 }
+async function sampleNativeTapPoint(locator) {
+  return locator.evaluate(element=>{
+    const r=element.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
+    return{x,y,width:r.width,height:r.height,hit:element.contains(document.elementFromPoint(x,y))};
+  });
+}
+async function nativeTapPointStillHits(locator, point) {
+  return locator.evaluate((element,{x,y})=>element.contains(document.elementFromPoint(x,y)),point);
+}
 export async function nativeTap(page, expect, locator) {
-  await expect(locator).toBeVisible({timeout:8000});
-  await expect(locator).toBeEnabled({timeout:8000});
-  await locator.scrollIntoViewIfNeeded({timeout:8000});
+  await expect(locator).toBeVisible({timeout:NATIVE_TAP_TIMEOUT_MS});
+  await expect(locator).toBeEnabled({timeout:NATIVE_TAP_TIMEOUT_MS});
+  await locator.scrollIntoViewIfNeeded({timeout:NATIVE_TAP_TIMEOUT_MS});
   let point;
-  // A drawer can be visible before its controls receive pointer input. Sample
-  // fresh geometry within the existing input budget; persistent cover must fail.
+  // Dynamic drawers can re-render between sampling a card and the native press.
+  // Move the real pointer to the candidate, then verify that exact pointer point
+  // still resolves inside the current same locator. A hover transform may move
+  // the element center without making the user's actual pointer stale; a sibling
+  // moving under the pointer still fails this same-element hit test and retries.
   await expect.poll(async()=>{
-    point=await locator.evaluate(element=>{
-      const r=element.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
-      return{x,y,width:r.width,height:r.height,hit:element.contains(document.elementFromPoint(x,y))};
-    });
-    return point.width>0&&point.height>0&&point.hit;
-  },{timeout:8000}).toBe(true);
+    const candidate=await sampleNativeTapPoint(locator);
+    if(!(candidate.width>0&&candidate.height>0&&candidate.hit))return false;
+    await page.mouse.move(candidate.x,candidate.y);
+    if(!(await nativeTapPointStillHits(locator,candidate)))return false;
+    point=candidate;
+    return true;
+  },{timeout:NATIVE_TAP_TIMEOUT_MS}).toBe(true);
   expect(point.width).toBeGreaterThan(0);expect(point.height).toBeGreaterThan(0);expect(point.hit).toBe(true);
-  await page.mouse.click(point.x,point.y);
+  // Keep the pointer at the verified point. mouse.click(x,y) performs another
+  // implicit move and would reopen the stale-coordinate race fenced above.
+  await page.mouse.down();
+  await page.mouse.up();
 }
 
 export async function enterVillageForBrowser(page, expect) {
@@ -63,8 +81,12 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
       return {x,y,dx:Math.max(-rect.width*.32,Math.min(rect.width*.32,dx)),dy:Math.max(-rect.height*.23,Math.min(rect.height*.23,dy)),distance:Math.hypot(dx,dy)};
     },facility.id);
     if(drag.distance<12)break;
+    // One public DEV trace spent ~5s on a 12-step native drag because every
+    // intermediate pointermove runs the real renderer/input path. Keep a real
+    // pointer drag, but use a small bounded number of moves; endpoint and all
+    // post-drag selection/persistence assertions remain unchanged.
     await page.mouse.move(drag.x,drag.y);await page.mouse.down();
-    await page.mouse.move(drag.x+drag.dx,drag.y+drag.dy,{steps:12});await page.mouse.up();
+    await page.mouse.move(drag.x+drag.dx,drag.y+drag.dy,{steps:CAMERA_DRAG_STEPS});await page.mouse.up();
     await page.waitForTimeout(150);
   }
   if (captureMilestones) await page.screenshot({path:testInfo.outputPath('first-storehouse-in-view.png')});
@@ -118,5 +140,5 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   // Public Playwright cases already capture the final page automatically.
   // Do not spend the interaction deadline taking the same final picture twice.
   if (captureMilestones) await page.screenshot({path:testInfo.outputPath('first-build-reloaded.png')});
-  if (verifyDirector) await verifyVillageDirectorPolish(page, expect, testInfo);
+  if (verifyDirector) await verifyVillageDirectorPolish(page, expect, testInfo, {captureEvidence:captureMilestones});
 }

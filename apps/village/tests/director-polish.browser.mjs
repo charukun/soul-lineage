@@ -1,6 +1,6 @@
 const angleError=(value,target)=>Math.abs(Math.atan2(Math.sin(value-target),Math.cos(value-target)));
 
-export async function verifyVillageDirectorPolish(page, expect, testInfo) {
+export async function verifyVillageDirectorPolish(page, expect, testInfo, {captureEvidence=true}={}) {
   page.setDefaultTimeout(8000);
   await expect.poll(()=>page.evaluate(()=>!!window.__MURA_DIRECTOR_POLISH__),{timeout:5000}).toBe(true);
 
@@ -66,7 +66,7 @@ export async function verifyVillageDirectorPolish(page, expect, testInfo) {
   expect(front.span).toBeLessThan(11);
   expect(Math.abs(front.x-front.w/2)).toBeLessThan(26);
   expect(Math.abs(front.y-front.h/2)).toBeLessThan(70);
-  await page.screenshot({path:testInfo.outputPath('director-resident-front-stable.png')});
+  if(captureEvidence)await page.screenshot({path:testInfo.outputPath('director-resident-front-stable.png')});
 
   await bar.locator('[data-observe="side"]').click({timeout:5000});
   await expect(bar.locator('[data-observe="side"]')).toHaveAttribute('aria-pressed','true');
@@ -75,7 +75,7 @@ export async function verifyVillageDirectorPolish(page, expect, testInfo) {
     const p=world.people.find(person=>person.id===id);
     return Math.abs(Math.atan2(Math.sin(view.yaw-((p.angle||0)+Math.PI/2)),Math.cos(view.yaw-((p.angle||0)+Math.PI/2))));
   }),{timeout:5000}).toBeLessThan(.08);
-  await page.screenshot({path:testInfo.outputPath('director-resident-side.png')});
+  if(captureEvidence)await page.screenshot({path:testInfo.outputPath('director-resident-side.png')});
 
   // A normal camera drag must take control back immediately.
   // The centered resident-details card is intentionally interactive. Find a
@@ -103,5 +103,5 @@ export async function verifyVillageDirectorPolish(page, expect, testInfo) {
   const goal=page.locator('#muraVillageGoal');
   await expect(goal).toBeVisible({timeout:5000});
   await expect(goal.locator('span')).not.toHaveText('');
-  await page.screenshot({path:testInfo.outputPath('director-village-next-step.png')});
+  if(captureEvidence)await page.screenshot({path:testInfo.outputPath('director-village-next-step.png')});
 }
