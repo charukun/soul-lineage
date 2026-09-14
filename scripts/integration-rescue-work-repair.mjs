@@ -7,9 +7,30 @@ import { contractFingerprint, browserRepairFor } from './integration-rescue-stor
 
 const sha = value => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value);
 const LEASE_MS = 45 * 60000;
-const semantic = r => /^FAILED_MANUAL:SEMANTIC_CONFLICT(?::|$)/.test(r.failureReason || '');
+const MAX_WORK_REPAIR_ATTEMPTS = 2;
+const REPAIR_CLASSES = [
+  ['semantic', /^FAILED_MANUAL:SEMANTIC_CONFLICT(?::|$)/],
+  ['overlap', /^FAILED_MANUAL:OVERLAPPING_CHANGES(?::|$)/],
+  ['related', /^FAILED_MANUAL:RELATED_CODE_RECONCILIATION(?::|$)/],
+  ['control', /^FAILED_MANUAL:CONTROL_OR_CONTRACT_RECONCILIATION(?::|$)/],
+  ['transport', /(?:GitHub POST .*\/git\/trees: HTTP 422|TREE_STAGING|GIT_TREE.*422)/i],
+];
 const active = r => r.workRepair?.status === 'working';
 const key = e => createHash('sha256').update(JSON.stringify([e.pr.head.sha,e.develop,contractFingerprint(e.pr)])).digest('hex');
+
+export function workRepairClass(record) {
+  const reason = String(record?.failureReason || '');
+  return REPAIR_CLASSES.find(([, pattern]) => pattern.test(reason))?.[0] || null;
+}
+
+export function workRepairEligibility(record) {
+  const kind = workRepairClass(record);
+  if (!kind) return { eligible:false, reason:'MANUAL_REASON_NOT_AUTOMATABLE' };
+  if (record?.workRepair?.status === 'human-required') return { eligible:false, reason:'HUMAN_DECISION_REQUIRED' };
+  const attempts = Number(record?.workRepairAttempts || 0);
+  if (attempts >= MAX_WORK_REPAIR_ATTEMPTS) return { eligible:false, reason:'WORK_REPAIR_ATTEMPTS_EXHAUSTED' };
+  return { eligible:true, kind, attempts, maxAttempts:MAX_WORK_REPAIR_ATTEMPTS };
+}
 
 function safety(record, evidence) {
   const { pr, reviews, unresolved, complete, issues, files, filesComplete, develop, dependencies } = evidence;
@@ -22,8 +43,9 @@ function safety(record, evidence) {
   assert.equal(browserRepairFor(pr, issues), null, 'BROWSER_REPAIR_OWNS_PR');
   assert.ok(filesComplete === true && Array.isArray(files) && files.length > 0 && files.length === pr.changed_files, 'INCOMPLETE_FILES');
   const scope = conflictScope(files.flatMap(f => [f.filename,f.previous_filename].filter(Boolean)), pr.body);
-  assert.equal(scope.control || scope.contract, false, 'CONTROL_OR_CONTRACT_REQUIRES_EXPLICIT_WORK');
-  // Parse actual current dependencies, not a stale state record.
+  // Schema/save/protocol contracts still require an explicit product decision. Control-plane files may
+  // be reconciled by Work only with the elevated proof required in prepareWorkRepairPush().
+  assert.equal(scope.contract, false, 'DATA_OR_PROTOCOL_CONTRACT_REQUIRES_HUMAN');
   const numbers = [...String(pr.body || '').matchAll(/^Depends-On:\s*(.*)$/gim)].flatMap(m => [...m[1].matchAll(/#(\d+)/g)].map(m => Number(m[1])));
   for (const number of numbers) {
     const dep = dependencies?.find(d => d.number === number);
@@ -33,12 +55,12 @@ function safety(record, evidence) {
 }
 export function verifyWorkRepair(record, evidence) {
   assert.equal(record?.state, 'FAILED_MANUAL', 'NOT_MANUAL');
-  assert.ok(semantic(record), 'NOT_SEMANTIC_CONFLICT');
+  const eligibility = workRepairEligibility(record);
+  assert.ok(eligibility.eligible, eligibility.reason);
   assert.ok(!record.lease && !record.pushLease, 'OTHER_WORKER_OWNS_PR');
   assert.equal(record.headSha, evidence.pr.head.sha, 'HEAD_CHANGED');
-  assert.ok(record.workRepair?.status !== 'human-required', 'HUMAN_DECISION_REQUIRED');
-  assert.ok(record.attempt < record.maxAttempts, 'ATTEMPTS_EXHAUSTED');
-  return safety(record, evidence);
+  const scope = safety(record, evidence);
+  return { ...scope, repairKind: eligibility.kind };
 }
 export function claimWorkRepair(state, prNumber, workerId, evidence, now = Date.now()) {
   assert.ok(typeof workerId === 'string' && /^work\/.+/.test(workerId) && workerId.length < 200, 'REAL_WORK_ID_REQUIRED');
@@ -47,12 +69,12 @@ export function claimWorkRepair(state, prNumber, workerId, evidence, now = Date.
   const peers = Object.values(state.records).filter(p => p.pr !== prNumber && (p.lease || RETURNED.has(p.state) || active(p)));
   assert.ok(!peers.some(p => compareScopes(scope,p.workRepair?.scope || p.scope).risk === 'RED'), 'RELATED_WORK_OWNS_SCOPE');
   assert.ok(Object.values(state.records).filter(p => p.lease || active(p) && p.pr !== prNumber).length < state.config.maxConcurrency, 'WORKER_POOL_FULL');
-  r.attempt++;
-  r.workRepair = { workerId, status:'working', attempt:r.attempt, sourceHead:evidence.pr.head.sha, develop:evidence.develop,
-    contract:contractFingerprint(evidence.pr), evidenceKey:key(evidence), scope, startedAt:new Date(now).toISOString(),
-    heartbeatAt:new Date(now).toISOString(), expiresAt:new Date(now + LEASE_MS).toISOString() };
-  r.currentStep='RESOLVING';r.currentAction='既存ChatGPT Workが両側の仕様を確認し競合を修復';r.updatedAt=new Date(now).toISOString();
-  event(state,r,'WORK_REPAIR_CLAIMED',`${workerId}: semantic review attempt ${r.attempt}/${r.maxAttempts}`,now);
+  r.workRepairAttempts = Number(r.workRepairAttempts || 0) + 1;
+  r.workRepair = { workerId, status:'working', attempt:r.workRepairAttempts, maxAttempts:MAX_WORK_REPAIR_ATTEMPTS, repairKind:scope.repairKind,
+    sourceHead:evidence.pr.head.sha, develop:evidence.develop, contract:contractFingerprint(evidence.pr), evidenceKey:key(evidence), scope,
+    startedAt:new Date(now).toISOString(), heartbeatAt:new Date(now).toISOString(), expiresAt:new Date(now + LEASE_MS).toISOString() };
+  r.currentStep='RESOLVING';r.currentAction=`既存ChatGPT Workが${scope.repairKind}停止を再評価し両側の仕様を保って修復`;r.updatedAt=new Date(now).toISOString();
+  event(state,r,'WORK_REPAIR_CLAIMED',`${workerId}: ${scope.repairKind} repair ${r.workRepairAttempts}/${MAX_WORK_REPAIR_ATTEMPTS}`,now);
   state.activity.at(-1).workerId=workerId;
   return r.workRepair;
 }
@@ -76,10 +98,15 @@ export function expireWorkRepair(state, prNumber, now = Date.now()) {
 }
 export function prepareWorkRepairPush(state, prNumber, workerId, evidence, result, now = Date.now()) {
   const r=owned(state,prNumber,workerId,now),w=r.workRepair;
-  safety(r,evidence);
+  const scope=safety(r,evidence);
   assert.equal(key(evidence),w.evidenceKey,'REPAIR_INPUT_CHANGED');
   assert.ok(result?.decision?.preservesBoth === true && result.decision.sources?.length > 0 && result.decision.summary?.trim(), 'SEMANTIC_REVIEW_REQUIRED');
   assert.ok(result.decision.sources.every(s=>s.path && [w.sourceHead,w.develop].includes(s.commit)) && [w.sourceHead,w.develop].every(commit=>result.decision.sources.some(s=>s.commit===commit)), 'PINNED_SPEC_SOURCES_REQUIRED');
+  if (scope.control) {
+    assert.equal(result.decision?.controlReview?.preservesGates, true, 'CONTROL_GATES_NOT_PROVEN');
+    assert.ok(Array.isArray(result.decision.controlReview.governingSources) && result.decision.controlReview.governingSources.length > 0, 'CONTROL_GOVERNING_SOURCES_REQUIRED');
+    assert.ok(result.decision.controlReview.governingSources.every(s => typeof s === 'string' && s.trim()), 'CONTROL_GOVERNING_SOURCES_REQUIRED');
+  }
   assert.ok(sha(result.head) && sha(result.tree), 'MISSING_RESULT_REFS');
   assert.equal(result.validation?.status,'passed','FAST_NOT_PASSED');
   assert.equal(result.validation.tree,result.tree,'UNTESTED_TREE');
@@ -88,7 +115,7 @@ export function prepareWorkRepairPush(state, prNumber, workerId, evidence, resul
   assert.deepEqual(result.commit.parents.map(p=>p.sha),[w.sourceHead,w.develop],'REPAIR_PARENTS_CHANGED');
   assert.ok(result.changedPathsComplete === true && Array.isArray(result.changedPaths) && result.changedPaths.length>0,'INCOMPLETE_RESULT_SCOPE');
   const allowed=new Set(w.scope.files);
-  assert.ok(result.changedPaths.every(p=>allowed.has(p) || w.scope.scopes.some(scope=>p.startsWith(scope+'/tests/') && /\.test\.[cm]?js$/.test(p))), 'REPAIR_SCOPE_EXPANDED');
+  assert.ok(result.changedPaths.every(p=>allowed.has(p) || w.scope.scopes.some(scopeName=>p.startsWith(scopeName+'/tests/') && /\.test\.[cm]?js$/.test(p))), 'REPAIR_SCOPE_EXPANDED');
   w.result=result;w.pushPreparedAt=new Date(now).toISOString();
   return { branch:r.branch,sha:result.head,force:false };
 }
