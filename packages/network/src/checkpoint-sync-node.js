@@ -1,4 +1,4 @@
-import {createPeerHostedWorldNode} from './peer-hosted-world.js';
+import {createPeerHostedWorldNode} from './peer-hosted-world-core.js';
 import {validateVillageCheckpoint} from './village-checkpoint.js';
 import {appendCheckpoint,applyCatchupPayload,applyCheckpointDelta,checkpointDigest,checkpointJournalDiagnostics,createCatchupPayload,createCheckpointJournal,rebaseCheckpointJournal} from './checkpoint-sync.js';
 
