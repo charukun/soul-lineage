@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {localAnticipationRecovery,localGazeAim,localGripStrength,localSecondaryStep,localPoseCorrective,localComboCarry,localReadability,localTrajectory,localMotionLod} from '../public/simulator/src/motion-life-math.js';
-import {anticipationRecoveryEnvelope,gazeAim,gripStrengthProfile,secondaryMotionStep,poseSpaceCorrective,comboMomentumCarry,motionReadabilityReport,perceptualTrajectoryDiagnostics,motionLodProfile} from '../../../packages/animations/src/motion-life.js';
+import {anticipationRecoveryEnvelope,gazeAim,gripStrengthProfile,secondaryMotionStep,poseSpaceCorrective,comboMomentumCarry,motionReadabilityReport,perceptualTrajectoryDiagnostics,motionLodProfile} from '@soul/animations';
 
 const close=(a,b,eps=1e-10)=>assert.ok(Math.abs(a-b)<=eps,`${a} != ${b}`);
 const sameNumeric=(a,b)=>{for(const key of Object.keys(a))if(typeof a[key]==='number')close(a[key],b[key]);};
@@ -27,9 +27,10 @@ test('Rinne readability, trajectory and LOD match shared contracts',()=>{
  assert.deepEqual(localMotionLod({distance:12}),motionLodProfile({distance:12}));
 });
 
-test('humanoid entry routes through life layer and life runtime preserves authority boundaries',async()=>{
+test('humanoid entry keeps life layer below the final operational runtime',async()=>{
  const entry=await readFile(new URL('../public/simulator/src/humanoid.js',import.meta.url),'utf8'),source=await readFile(new URL('../public/simulator/src/humanoid-life.js',import.meta.url),'utf8');
- assert.match(entry,/HumanoidRuntime,HUMANOID_LIFE_REVISION.*humanoid-life/);
+ assert.match(entry,/HUMANOID_LIFE_REVISION.*humanoid-life/);
+ assert.match(entry,/HumanoidRuntime,HUMANOID_OPERATIONAL_REVISION.*humanoid-operational/);
  assert.match(source,/combatPose\(c,weapon,kind,p,baseTime=0\)/);
  assert.match(source,/localGripStrength/);assert.match(source,/secondaryName/);assert.match(source,/localComboCarry/);assert.match(source,/localReadability/);assert.match(source,/localTrajectory/);assert.match(source,/localMotionLod/);
  assert.match(source,/this\.api\.progress\(a\)/);
