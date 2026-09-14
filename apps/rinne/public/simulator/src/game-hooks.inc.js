@@ -33,6 +33,7 @@ function sampleSlashMotionWarpPlan(plan,phase){
 }
 // SLASH_MOTION_WARP_PURE_END
 
+// SLASH_MOTION_WARP_CONTROLLER_BEGIN
 const slashMotionWarpStates=new WeakMap();
 function slashMotionWarpAttackEligible(actor){return !!actor?.hero&&!actor.dead&&!actor.recovery&&(actor.weapon||'sword')==='sword'&&actor.attack?.kind==='slash';}
 function clearSlashMotionWarp(actor){if(actor&&typeof actor==='object')slashMotionWarpStates.delete(actor);}
@@ -54,6 +55,7 @@ function advanceControllerSlashMotionWarp(actor){
  if(sample.contactReached)state.contactApplied=true;
  return state.plan;
 }
+// SLASH_MOTION_WARP_CONTROLLER_END
 
 humanoid=new HumanoidRuntime({weapons:WEAPONS,strikes:STRIKES,clips:POSE_CLIPS,windows:HIT_WINDOWS,progress:attackProgress,window:(kind,p)=>contactWindow(kind,p),hand:(kind,p)=>activeHandSide({kind,p}),echo:node=>renderer.scene.add(node),status:message=>{if($('humanoidStatus'))$('humanoidStatus').textContent=message;},attach:c=>{renderer.scene.add(c.root);for(const p of c.shadowMeshes)renderer.shadowScene.add(p);renderer.renderer.renderLists.dispose();}});
 const controllerHumanoidTick=humanoid.tick.bind(humanoid);humanoid.tick=function(actor,dt){advanceControllerSlashMotionWarp(actor);return controllerHumanoidTick(actor,dt);};
