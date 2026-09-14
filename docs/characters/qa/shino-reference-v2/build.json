@@ -20,21 +20,17 @@
   "productionStageRequested": "PRIMARY",
   "visualApproval": "pending",
   "refinement": {
-    "version": 6,
+    "version": 7,
     "auditedFaceDonor": true,
-    "auditedBodyBasemesh": true,
-    "bodyRestTransfer": "dominant-humanoid-length-scaled",
-    "bodyWeighting": "single-dominant-bone-primary",
-    "vertices": 5081,
-    "assignedBones": 22,
-    "fallbackVertices": 1050,
-    "minLengthRatio": 0.6772186819791498,
-    "maxLengthRatio": 4.45725991766118,
+    "auditedBodyBasemesh": false,
+    "bodyStrategy": "dedicated-stylized-primary-visible-skin",
+    "bodyDonorRetargetRejected": "v5-v6 visual review: adult-proportion donor produced disconnected or stretched limbs",
+    "hairStrategy": "open-cap-short-bangs",
     "faceSkinning": "pending-deformation-stage",
     "bodyBlendSkinning": "pending-deformation-stage",
+    "authoredPrimaryObjects": 25,
     "sourceHairReused": false,
     "sourceClothingReused": false,
-    "sourceBodySkinTopologyReused": true,
     "visualApproval": "pending"
   }
 }
