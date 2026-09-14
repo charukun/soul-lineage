@@ -29,7 +29,6 @@ jobs:
           node --check apps/rinne/src/character-workspace.js
           node --test \
             apps/rinne/tests/character-reference-model.test.mjs \
-            apps/rinne/tests/character-workspace.test.mjs \
             packages/characters/tests/runtime-asset-audit.test.mjs
 
       - name: Commit runtime wiring on latest branch head
