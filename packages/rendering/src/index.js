@@ -1,4 +1,7 @@
 import { Scene, Color, PerspectiveCamera, WebGLRenderer, HemisphereLight, DirectionalLight, Mesh, BoxGeometry, PlaneGeometry, MeshStandardMaterial, SRGBColorSpace } from 'three';
+import { GLTFLoader as ThreeGLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { assetById } from '@soul/assets';
 // WebGL presentation adapter. Receives portable world data, contains no game rules.
 export function createWorldPreview(canvas, world) {
@@ -35,7 +38,18 @@ export function createWorldPreview(canvas, world) {
   canvas.addEventListener('webglcontextlost', lost); canvas.addEventListener('webglcontextrestored', render); render();
   return { dispose() { observer.disconnect(); canvas.removeEventListener('webglcontextlost', lost); canvas.removeEventListener('webglcontextrestored', render); resources.forEach(r => r.dispose()); renderer.dispose(); } };
 }
+
+/** Backward-compatible loader with Meshopt enabled by default and opt-in KTX2 renderer binding. */
+export class GLTFLoader extends ThreeGLTFLoader {
+  constructor(manager) { super(manager); this.setMeshoptDecoder(MeshoptDecoder); this.__soulKtx2 = null; }
+  useCompressedTextures(renderer, { transcoderPath = '/basis/' } = {}) {
+    this.__soulKtx2?.dispose?.();
+    this.__soulKtx2 = new KTX2Loader(this.manager).setTranscoderPath(transcoderPath);
+    this.__soulKtx2.detectSupport(renderer); this.setKTX2Loader(this.__soulKtx2); return this;
+  }
+  disposeCompressedTextures() { this.__soulKtx2?.dispose?.(); this.__soulKtx2 = null; return this; }
+}
+
 // App render adapters reuse the workspace engine; never ship a second vendor copy.
 export * as THREE from 'three';
-export { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 export { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';

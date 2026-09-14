@@ -18,7 +18,8 @@ function candidateSamples(object) {
 /**
  * Conservative CPU occlusion culler for static set dressing.
  * A candidate is hidden only when every sampled ray is blocked by a registered
- * solid occluder before reaching the candidate. It is bounded and fail-open.
+ * solid occluder before reaching the candidate. Visibility changed by another
+ * system (streaming/gameplay) is never force-restored by this culler.
  */
 export function createConservativeOcclusionCuller({ maxChecksPerUpdate = 8, minDistance = 18, hiddenConfirmations = 2 } = {}) {
   const raycaster = new Raycaster();
@@ -50,14 +51,17 @@ export function createConservativeOcclusionCuller({ maxChecksPerUpdate = 8, minD
       for (let i = 0; i < count; i++) {
         const object = candidates[(cursor + i) % candidates.length];
         if (!object || object.userData?.streamingCritical || object.userData?.occlusionDisabled) continue;
-        const row = state.get(object) || { blocked: 0 };
+        const row = state.get(object) || { blocked: 0, ownedHidden: false };
+        if (object.visible === false && !row.ownedHidden) { row.blocked = 0; state.set(object, row); continue; }
         const isBlocked = blocked(camera, object, occluders);
         tested++;
         if (isBlocked) {
           row.blocked++;
-          if (row.blocked >= hiddenConfirmations) { object.visible = false; object.userData.occluded = true; hidden++; }
+          if (row.blocked >= hiddenConfirmations) { object.visible = false; row.ownedHidden = true; object.userData.occluded = true; hidden++; }
         } else {
-          row.blocked = 0; object.visible = true; object.userData.occluded = false; visible++;
+          row.blocked = 0;
+          if (row.ownedHidden) object.visible = true;
+          row.ownedHidden = false; object.userData.occluded = false; visible++;
         }
         state.set(object, row);
       }
@@ -65,7 +69,10 @@ export function createConservativeOcclusionCuller({ maxChecksPerUpdate = 8, minD
       return snapshot();
     },
     revealAll(candidates = []) {
-      for (const object of candidates) if (object) { object.visible = true; if (object.userData) object.userData.occluded = false; }
+      for (const object of candidates) {
+        const row = state.get(object);
+        if (object && row?.ownedHidden) { object.visible = true; row.ownedHidden = false; row.blocked = 0; if (object.userData) object.userData.occluded = false; }
+      }
     },
     snapshot() { return Object.freeze({ tested, hidden, visible, cursor }); },
   };
