@@ -1,0 +1,56 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {localAnticipationRecovery,localGazeAim,localGripStrength,localSecondaryStep,localPoseCorrective,localComboCarry,localReadability,localTrajectory,localMotionLod} from '../public/simulator/src/motion-life-math.js';
+import {anticipationRecoveryEnvelope,gazeAim,gripStrengthProfile,secondaryMotionStep,poseSpaceCorrective,comboMomentumCarry,motionReadabilityReport,perceptualTrajectoryDiagnostics,motionLodProfile} from '@soul/animations';
+
+const close=(a,b,eps=1e-10)=>assert.ok(Math.abs(a-b)<=eps,`${a} != ${b}`);
+const sameNumeric=(a,b)=>{for(const key of Object.keys(a))if(typeof a[key]==='number')close(a[key],b[key]);};
+
+test('Rinne anticipation/recovery and gaze adapters match shared contracts',()=>{
+ sameNumeric(localAnticipationRecovery({phase:.13,intensity:1.1}),anticipationRecoveryEnvelope({phase:.13,intensity:1.1}));
+ sameNumeric(localGazeAim({origin:[0,1.4,0],target:[1,1.8,2],bodyYaw:.2,weight:.8}),gazeAim({origin:[0,1.4,0],target:[1,1.8,2],bodyYaw:.2,weight:.8}));
+});
+
+test('Rinne grip, secondary spring, corrective and combo match shared contracts',()=>{
+ close(localGripStrength({phase:.47}),gripStrengthProfile({phase:.47}));
+ sameNumeric(localSecondaryStep({offset:.02,velocity:-.1,target:.08,dt:1/60}),secondaryMotionStep({offset:.02,velocity:-.1,target:.08,dt:1/60}));
+ sameNumeric(localPoseCorrective({shoulderElevation:1.2,kneeFlex:1.4,hipFlex:.9}),poseSpaceCorrective({shoulderElevation:1.2,kneeFlex:1.4,hipFlex:.9}));
+ close(localComboCarry({previous:.3,gap:.04,phase:.2}),comboMomentumCarry({previous:.3,gap:.04,phase:.2}));
+});
+
+test('Rinne readability, trajectory and LOD match shared contracts',()=>{
+ const keyframes=[{id:'contact',body:[0,1,0],weaponBase:[.1,1,.1],weaponTip:[.6,1.2,.5]}];
+ const localRead=localReadability({keyframes}),sharedRead=motionReadabilityReport({keyframes});close(localRead.weakestScore,sharedRead.weakestScore);assert.equal(localRead.readable,sharedRead.readable);
+ const samples=[{t:0,x:0,y:0,z:0},{t:.1,x:.1,y:.01,z:0},{t:.2,x:.2,y:.02,z:0},{t:.3,x:.3,y:.03,z:0}];
+ const localTraj=localTrajectory(samples,{jerkThreshold:1000}),sharedTraj=perceptualTrajectoryDiagnostics(samples,{jerkThreshold:1000});sameNumeric(localTraj,sharedTraj);assert.equal(localTraj.smooth,sharedTraj.smooth);
+ assert.deepEqual(localMotionLod({distance:12}),motionLodProfile({distance:12}));
+});
+
+test('humanoid entry keeps life layer below the final operational runtime',async()=>{
+ const entry=await readFile(new URL('../public/simulator/src/humanoid.js',import.meta.url),'utf8'),source=await readFile(new URL('../public/simulator/src/humanoid-life.js',import.meta.url),'utf8');
+ assert.match(entry,/HUMANOID_LIFE_REVISION.*humanoid-life/);
+ assert.match(entry,/HumanoidRuntime,HUMANOID_OPERATIONAL_REVISION.*humanoid-operational/);
+ assert.match(source,/combatPose\(c,weapon,kind,p,baseTime=0\)/);
+ assert.match(source,/localGripStrength/);assert.match(source,/secondaryName/);assert.match(source,/localComboCarry/);assert.match(source,/localReadability/);assert.match(source,/localTrajectory/);assert.match(source,/localMotionLod/);
+ assert.match(source,/this\.api\.progress\(a\)/);
+ assert.doesNotMatch(source,/a\.x\s*=|a\.z\s*=/,'life layer must not own authoritative actor translation');
+});
+
+test('combo carry keeps every returned world sample aligned and uses sampled root origin',async()=>{
+ const source=await readFile(new URL('../public/simulator/src/humanoid-life.js',import.meta.url),'utf8');
+ assert.match(source,/origin=\{x:c\.root\.position\.x,y:c\.root\.position\.y,z:c\.root\.position\.z\}/);
+ assert.match(source,/\['a','b','weaponBase','weaponTip'\]/);
+ assert.match(source,/\['sm','leftSocket','rightSocket','carry'\]/);
+ assert.match(source,/Array\.isArray\(value\)\|\|ArrayBuffer\.isView\(value\)/);
+});
+
+test('life runtime keeps secondary work commit-only, LOD-bounded and shadows synchronized',async()=>{
+ const source=await readFile(new URL('../public/simulator/src/humanoid-life.js',import.meta.url),'utf8');
+ assert.match(source,/if\(!commit\|\|!lod\.secondaryBones\)return/);
+ assert.match(source,/this\.secondaryNodes\(c,lod\.secondaryBones\)/);
+ assert.match(source,/if\(!lod\.fingers/);
+ assert.match(source,/if\(!lod\.gaze/);
+ assert.match(source,/perceptualQA/);
+ assert.match(source,/for\(const proxy of c\.shadowMeshes\)/);
+});
