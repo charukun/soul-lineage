@@ -30,12 +30,29 @@ function installReturnFlow(){
 }
 
 const milestone=document.createElement('div');milestone.id='muraMilestone';milestone.setAttribute('role','status');milestone.setAttribute('aria-live','polite');milestone.innerHTML='<b>村の変化</b><span></span>';document.body.append(milestone);
-let milestoneTimer=0,lastMilestone='',lastMilestoneAt=0;
+let milestoneTimer=0,lastMilestone='',lastMilestoneAt=0,audioContext=null;
+function ensureCueAudio(){
+ if(audioContext)return audioContext;
+ const AudioContext=window.AudioContext||window.webkitAudioContext;if(!AudioContext)return null;
+ try{audioContext=new AudioContext();if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});}catch{}
+ return audioContext;
+}
+document.addEventListener('pointerdown',ensureCueAudio,{capture:true,passive:true,once:true});
+function playCue(tone){
+ const context=audioContext;if(!context||context.state!=='running')return;
+ const notes={growth:[520,660],unlock:[650,880],event:[420,570],danger:[190,145]},pair=notes[tone];if(!pair)return;
+ const now=context.currentTime,osc=context.createOscillator(),gain=context.createGain();osc.type=tone==='danger'?'sawtooth':'triangle';osc.frequency.setValueAtTime(pair[0],now);osc.frequency.exponentialRampToValueAtTime(pair[1],now+.13);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(tone==='danger'?.018:.032,now+.018);gain.gain.exponentialRampToValueAtTime(.0001,now+.17);osc.connect(gain);gain.connect(context.destination);osc.start(now);osc.stop(now+.18);
+}
+function residentReaction(tone){
+ const lines={growth:'村が少し育ったね',unlock:'新しい仕事ができそう',danger:'みんな、気をつけて',event:'村で何か起きている'};if(!lines[tone])return;
+ const person=(tone==='danger'?world.people.find(p=>p.id==='guard-npc'):world.people.find(p=>p.role==='mayor'))||world.people.find(p=>!p.dead&&!p.hidden);if(!person)return;
+ person.bubble={text:lines[tone],id:world.state.nextId++,until:sim.elapsed+4};
+}
 function announce(text,type='life',force=false){
  text=String(text||'').trim();if(!text||(!force&&!shouldCelebrate(text,type)))return;
  const now=performance.now();if(text===lastMilestone&&now-lastMilestoneAt<1800)return;lastMilestone=text;lastMilestoneAt=now;
- milestone.dataset.tone=feedbackTone(text,type);milestone.querySelector('span').textContent=text;milestone.classList.remove('visible');
- requestAnimationFrame(()=>milestone.classList.add('visible'));clearTimeout(milestoneTimer);milestoneTimer=setTimeout(()=>milestone.classList.remove('visible'),3600);
+ const tone=feedbackTone(text,type);milestone.dataset.tone=tone;milestone.querySelector('span').textContent=text;milestone.classList.remove('visible');
+ requestAnimationFrame(()=>milestone.classList.add('visible'));clearTimeout(milestoneTimer);milestoneTimer=setTimeout(()=>milestone.classList.remove('visible'),3600);playCue(tone);residentReaction(tone);
 }
 
 function installSelectionAssist(){
