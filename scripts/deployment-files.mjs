@@ -28,10 +28,37 @@ export async function inventory(root) {
   }
   await walk(); return files.sort((a, b) => a.path.localeCompare(b.path));
 }
-export async function fetchBytes(url, request = fetch) {
-  const response = await request(url, { signal: AbortSignal.timeout(60000), cache: 'no-store' });
-  assert.equal(response.status, 200, `HTTP ${response.status}: ${url}`);
-  return Buffer.from(await response.arrayBuffer());
+const transientStatus = status => status === 429 || (status >= 500 && status <= 599);
+const transientNetworkError = error => ['AbortError', 'TimeoutError'].includes(error?.name) || error instanceof TypeError;
+function retryDelayMs(response, attempt) {
+  const value = response?.headers?.get?.('retry-after');
+  if (value) {
+    const seconds = Number(value);
+    if (Number.isFinite(seconds) && seconds >= 0) return Math.min(5000, Math.round(seconds * 1000));
+    const at = Date.parse(value);
+    if (Number.isFinite(at)) return Math.min(5000, Math.max(0, at - Date.now()));
+  }
+  return Math.min(2000, 250 * (2 ** attempt));
+}
+export async function fetchBytes(url, request = fetch, wait = ms => new Promise(resolve => setTimeout(resolve, ms))) {
+  const attempts = 4;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    let response;
+    try {
+      response = await request(url, { signal: AbortSignal.timeout(60000), cache: 'no-store' });
+    } catch (error) {
+      if (!transientNetworkError(error) || attempt === attempts - 1) throw error;
+      await wait(Math.min(2000, 250 * (2 ** attempt)));
+      continue;
+    }
+    if (response.status === 200) return Buffer.from(await response.arrayBuffer());
+    if (!transientStatus(response.status) || attempt === attempts - 1) {
+      assert.equal(response.status, 200, `HTTP ${response.status}: ${url}`);
+    }
+    const delay = retryDelayMs(response, attempt);
+    if (delay > 0) await wait(delay);
+  }
+  throw new Error(`Transient deployment fetch retry exhausted: ${url}`);
 }
 export async function restoreEntry(entry, root, baseUrl, request = fetch) {
   safeFile(entry.path);

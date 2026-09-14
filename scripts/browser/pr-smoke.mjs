@@ -105,7 +105,11 @@ for (const app of apps) {
       await verifyHuntClarity(page, expect, evidence);
     } else if (app === 'village') {
       const {verifyVillageFirstBuild} = await import('../../apps/village/tests/first-build.browser.mjs');
-      await verifyVillageFirstBuild(page, expect, evidence, () => capturePlayedAudio(page, playedSources));
+      // PR smoke already preserves a full-page screenshot and a screenshot-rich
+      // Playwright trace. Keep every gameplay/Director assertion, but avoid the
+      // extra milestone captures here; deployed DEV/public verification still
+      // uses the default captureMilestones=true evidence path.
+      await verifyVillageFirstBuild(page, expect, evidence, () => capturePlayedAudio(page, playedSources), {captureMilestones:false});
     }
     await capturePlayedAudio(page, playedSources);
     const media = await mediaDiagnostics(rawRequests, playedSources, new URL(url).origin);

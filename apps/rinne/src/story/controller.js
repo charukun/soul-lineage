@@ -75,7 +75,7 @@ export async function mountStory(win,environment,{signal,onExit,onMusic}={}){
         if(s.pendingDiscoveries.length)add('閃いた技を受け取る','discover');
         if(s.activity)add('行動をやめる','cancel');
         if(s.zone==='village'){
-          if(practice&&(!practice.place||story.near(practice.place,f.hero)))add(`${EXPERIENCES[practice.kind]}を重ねる`,practice.action,!s.activity);
+          if(practice&&(!practice.place||story.near(practice.place,f.hero))){add(`${EXPERIENCES[practice.kind]}を重ねる`,practice.action,!s.activity);buttons.at(-1).dataset.recommended='true';}
           for(const p of story.places.filter(p=>p.activity&&story.near(p,f.hero)))add(p.verb,`activity:${p.activity}:${p.id}`,!s.activity);
           add('周囲を観察','activity:observe:field',!s.activity);add('足跡を追う','activity:track:field',!s.activity);
           if(story.near(story.places.find(p=>p.id==='armory'),f.hero))for(const weapon of port.weapons())add(weapon.name,`equip:${weapon.id}`,f.life.ageYears>=7);

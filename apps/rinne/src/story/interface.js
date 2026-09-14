@@ -1,5 +1,6 @@
 import {createMenuGate,SOLO_SESSION} from './menu-gate.js';
 import {storyRoute,clearStorySegment} from '../game/story-route.js';
+import {choosePrimaryStoryAction,storyTransientObjective,uniqueStoryDestinations} from './action-priority.js';
 import {riverX,defs} from '@soul/world/mura';
 
 const paths={
@@ -80,10 +81,10 @@ export function createPlayInterface({win,port,onRecords,onExit,onMusic,onAction,
   root.dataset.phase=state.phase;$('story-actions').dataset.phase=state.phase;
   const live=state.phase==='living',available=buttons.filter(b=>b.dataset.action!=='rest');
   if(!live){$('story-buttons').append(...buttons.map(decorate));$('story-more').hidden=true;return;}
-  const primary=available.find(b=>!b.disabled)||available[0];
+  const primary=choosePrimaryStoryAction(available,state);
   if(primary)$('story-buttons').append(decorate(primary));
   const other=available.filter(b=>b!==primary);$('story-choice-buttons').append(...other.map(decorate));$('story-more').hidden=!other.length;
-  $('story-choice-description').textContent='行動中はここで過ごします。歩き出すと中断できます。';
+  $('story-choice-description').textContent=state.activity?'今の行動を中断する操作もここにあります。歩き出しても中断できます。':state.pendingDiscoveries?.length?'閃いた技はここで受け取れます。ほかの行動を選ぶこともできます。':'行動中はここで過ごします。歩き出すと中断できます。';
  }
  function destination(){if(!latest)return null;const {story,frame}=latest,s=story.state;if(s.zone==='frontier')return targetId!=='return'&&s.rescue?.status==='waiting'?{id:'rescue',name:'倒れた村人',...s.rescue}:{id:'return',name:'帰還船・救護所',x:-5,z:3};return story.places.find(p=>p.id===targetId)||story.nearest(frame.hero);}
  function update(data){latest=data;const {frame,story,layout}=data,s=story.state;
@@ -94,11 +95,12 @@ export function createPlayInterface({win,port,onRecords,onExit,onMusic,onAction,
   $('story-resume').disabled=!solo;
   for(const id of ['story-import','story-map-import'])if($(id))$(id).disabled=!solo;
   root.dataset.phase=s.phase;root.dataset.resting=String(s.resting);root.dataset.moving=String(!!frame.controls?.moving);root.dataset.combat=String(s.zone==='frontier');
+  const transientObjective=storyTransientObjective(s);if(s.activity&&transientObjective)$('story-objective').textContent=transientObjective;
   for(const b of doc.querySelectorAll('[data-weapon]'))b.disabled=frame.life.ageYears<7;
   $('story-health-label').textContent=frame.hero.dead?'救助を待っています':`${Math.ceil(frame.hero.hp)} / ${frame.hero.maxhp}`;
   $('story-hp').parentElement.setAttribute('aria-valuenow',String(Math.round(frame.hero.hp/frame.hero.maxhp*100)));
   $('story-rest').disabled=s.phase!=='living'||frame.hero.dead;$('story-rest').setAttribute('aria-pressed',String(s.resting));$('story-rest').querySelector('span').textContent=s.resting?'立ち上がる':'休む';
-  $('story-action-status').textContent=s.resting?'休息中':s.activity?'行動中':frame.controls?.dashing?'走っている':frame.controls?.moving?'歩いている':s.zone==='frontier'?'接近すると自動戦闘':'';
+  $('story-action-status').textContent=s.resting?'休息中':s.activity?'行動中':s.pendingDiscoveries?.length?'閃きあり':frame.controls?.dashing?'走っている':frame.controls?.moving?'歩いている':s.zone==='frontier'?'接近すると自動戦闘':'';
   $('story-activity-progress').hidden=!s.activity;$('story-activity-progress').value=s.activity?8-s.activity.remaining:0;
   $('story-pause-banner').hidden=!frame.paused||!!doc.querySelector('dialog[open]')||s.phase==='ended';
   const point=destination();$('story-waypoint').hidden=s.phase==='birth';
@@ -116,7 +118,7 @@ export function createPlayInterface({win,port,onRecords,onExit,onMusic,onAction,
   if(map.open&&lastSignature!==JSON.stringify([layout.revision,frame.hero.x,frame.hero.z,s.zone]))renderMap();
  }
  function renderMap(){const {story,frame,layout}=latest,s=story.state,point=destination();lastSignature=JSON.stringify([layout.revision,frame.hero.x,frame.hero.z,s.zone]);
-  const points=s.zone==='village'?story.places:[{id:'return',name:'帰還船・救護所',x:-5,z:3},...(s.rescue?[{id:'rescue',name:'倒れた村人',...s.rescue}]:[])];
+  const points=s.zone==='village'?uniqueStoryDestinations(story.places):[{id:'return',name:'帰還船・救護所',x:-5,z:3},...(s.rescue?[{id:'rescue',name:'倒れた村人',...s.rescue}]:[])];
   const all=s.zone==='village'?[...points,...layout.objects,frame.hero]:[];
   const minX=Math.min(-30,...all.map(p=>p.x))-12,maxX=Math.max(180,...all.map(p=>p.x))+12,minZ=Math.min(-35,...all.map(p=>p.z))-12,maxZ=Math.max(35,...all.map(p=>p.z))+12;
   const ext=s.zone==='village'?{x:minX,z:minZ,w:maxX-minX,h:maxZ-minZ}:{x:-9,z:-7,w:18,h:14};
@@ -127,9 +129,9 @@ export function createPlayInterface({win,port,onRecords,onExit,onMusic,onAction,
   const [hx,hy]=pos(frame.hero.x,frame.hero.z);
   const routeLine=(route||[]).map(p=>pos(p.x,p.z).join(" ")).join("L");
   const outside=frame.hero.x<ext.x||frame.hero.x>ext.x+ext.w||frame.hero.z<ext.z||frame.hero.z>ext.z+ext.h;
-  $('story-map-surface').innerHTML=`<svg viewBox="0 0 600 332" role="img" aria-label="${esc(layout.name)}の地図。現在位置と施設"><rect class="map-paper" x="5" y="5" width="590" height="322" rx="5"/><path class="map-grid" d="M24 80h552M24 136h552M24 192h552M24 248h552M90 28v272M190 28v272M290 28v272M390 28v272M490 28v272"/>${s.zone==='village'?`<polyline class="map-river" points="${river}"/>`:''}<g class="map-buildings">${buildings}</g><path class="map-bearing-line" d="M${Math.max(20,Math.min(580,hx))} ${Math.max(20,Math.min(310,hy))}${routeLine?`L${routeLine}`:''}"/><g>${points.map(p=>{const [x,y]=pos(p.x,p.z);return `<circle class="map-pin ${p.id===point?.id?'selected':''}" cx="${x}" cy="${y}" r="${p.id===point?.id?7:4}"/>`;}).join('')}</g><g class="map-you" transform="translate(${Math.max(20,Math.min(580,hx))} ${Math.max(20,Math.min(310,hy))})"><circle r="10"/><path d="m0-6 4 10-4-2-4 2Z"/></g><text x="545" y="40" class="map-north">北 ↑</text><text x="24" y="319" class="map-coordinate">${outside?'地図の外側 · ':''}現在地 ${frame.hero.x.toFixed(0)}, ${frame.hero.z.toFixed(0)}</text></svg>`;
+  $('story-map-surface').innerHTML=`<svg viewBox="0 0 600 332" role="img" aria-label="${esc(layout.name)}の地図。現在位置と施設"><rect class="map-paper" x="5" y="5" width="590" height="322" rx="5"/><path class="map-grid" d="M24 80h552M24 136h552M24 192h552M24 248h552M90 28v272M190 28v272M290 28v272M390 28v272M490 28v272"/>${s.zone==='village'?`<polyline class="map-river" points="${river}"/>`:''}<g class="map-buildings">${buildings}</g><path class="map-bearing-line" d="M${Math.max(20,Math.min(580,hx))} ${Math.max(20,Math.min(310,hy))}${routeLine?`L${routeLine}`:''}"/><g>${points.map(p=>{const [x,y]=pos(p.x,p.z);return `<circle class="map-pin ${(p.id===point?.id||p.aliases?.includes(point?.id))?'selected':''}" cx="${x}" cy="${y}" r="${(p.id===point?.id||p.aliases?.includes(point?.id))?7:4}"/>`;}).join('')}</g><g class="map-you" transform="translate(${Math.max(20,Math.min(580,hx))} ${Math.max(20,Math.min(310,hy))})"><circle r="10"/><path d="m0-6 4 10-4-2-4 2Z"/></g><text x="545" y="40" class="map-north">北 ↑</text><text x="24" y="319" class="map-coordinate">${outside?'地図の外側 · ':''}現在地 ${frame.hero.x.toFixed(0)}, ${frame.hero.z.toFixed(0)}</text></svg>`;
   const members=readSession().members||[];$('story-companions').hidden=readSession().mode!=='shared';$('story-companions').querySelector('ul').innerHTML=members.map(m=>`<li data-player-id="${esc(m.playerId||m.id)}">${esc(m.name||'旅人')} · ${m.connected===false?'接続を確認中':'参加中'}</li>`).join('');
-  $('story-map-list').innerHTML=points.map(p=>`<button data-destination="${esc(p.id)}" aria-pressed="${p.id===targetId}">${icon(p.id==='port'?'ship':p.id==='armory'?'sword':'home')}<span>${esc(p.name)}<small>${esc(p.verb|| (p.id==='port'?'船に乗る':p.id==='armory'?'武具庫':'ここへ向かう'))}</small></span><b>${Math.ceil(Math.hypot(p.x-frame.hero.x,p.z-frame.hero.z))} m</b></button>`).join('');
+  $('story-map-list').innerHTML=points.map(p=>`<button data-destination="${esc(p.id)}" aria-pressed="${p.id===targetId||p.aliases?.includes(targetId)||false}">${icon(p.id==='port'?'ship':p.id==='armory'?'sword':'home')}<span>${esc(p.name)}<small>${esc(p.verb|| (p.id==='port'?'船に乗る':p.id==='armory'?'武具庫':'ここへ向かう'))}</small></span><b>${Math.ceil(Math.hypot(p.x-frame.hero.x,p.z-frame.hero.z))} m</b></button>`).join('');
  }
  return{root,actions,update,openDialog:open,canPause:gate.canPause,closeChoices(){if(choices.open)close(choices);},selectTarget(id){targetId=id;if(latest)update(latest);},destroy(){gate.dispose();abort.abort();ageParent.append(age);artsParent.append(arts);root.remove();choices.remove();map.remove();menu.remove();}};
 }
