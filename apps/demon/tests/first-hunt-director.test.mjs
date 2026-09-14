@@ -35,6 +35,7 @@ test('after first devour the player gets two distinct meaningful prey choices',(
   player:{x:1,z:15},
   profile:{visits:{},unlocked:['traveller']},
   npcs:[
+   {id:'a',role:'traveller',x:1,z:15,dead:true,eaten:true},
    {id:'b',role:'bellkeeper',x:-3,z:8,dead:false,eaten:false},
    {id:'c',role:'smith',x:3,z:7,dead:false,eaten:false},
    {id:'d',role:'bellkeeper',x:4,z:6,dead:false,eaten:false}
@@ -46,6 +47,19 @@ test('after first devour the player gets two distinct meaningful prey choices',(
  assert.notEqual(state.choices[0].role,state.choices[1].role);
  assert.ok(state.choices.every(row=>row.power&&row.distance>0&&row.direction));
  assert.match(state.guide,/次の捕食/);
+});
+
+test('retry guidance follows the prey eaten in this hunt, not old unlock order',()=>{
+ const s=snapshot({
+  eaten:1,
+  profile:{visits:{old:{status:'defeated',eaten:2}},unlocked:['traveller','smith']},
+  npcs:[
+   {id:'a',role:'traveller',x:1,z:15,dead:true,eaten:true},
+   {id:'b',role:'bellkeeper',x:-3,z:8,dead:false,eaten:false},
+   {id:'c',role:'smith',x:3,z:7,dead:false,eaten:false}
+  ]
+ });
+ assert.match(firstHuntDirectorState(s).guide,/次の捕食/);
 });
 
 test('ability nudges point at an immediate gameplay use',()=>{
