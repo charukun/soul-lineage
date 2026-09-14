@@ -2,8 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {localBuildPoseCandidateBank,localSelectPoseStart,localSweptWeaponEvidence,localFootSliding,localJerk} from '../public/simulator/src/motion-operational-math.js';
-import {buildPoseCandidateBank,selectPoseStart,sweptWeaponContactEvidence} from '../../../packages/animations/src/motion-operationalization.js';
-import {footSlidingDiagnostics,motionJerkDiagnostics} from '../../../packages/animations/src/motion-kinematics-qa.js';
+import {buildPoseCandidateBank,selectPoseStart,sweptWeaponContactEvidence,footSlidingDiagnostics,motionJerkDiagnostics} from '@soul/animations';
 
 const clips=[{id:'walk',state:'move',duration:1,speed:1,yaw:0,supportSide:'left',continuity:.9},{id:'idle',state:'idle',duration:1,speed:0,yaw:0,supportSide:'right'}];
 test('Rinne candidate bank and start selection match shared contracts',()=>{const local=localBuildPoseCandidateBank({clips,fps:60,samplesPerClip:3}),shared=buildPoseCandidateBank({clips,fps:60,samplesPerClip:3});assert.deepEqual(local,shared);const input={state:'move',speed:1,yaw:0,supportSide:'left',trajectory:[{x:0,z:.4}]};assert.deepEqual(localSelectPoseStart({...input,bank:local}),selectPoseStart({...input,bank:shared}));});
