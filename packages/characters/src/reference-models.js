@@ -1,7 +1,7 @@
 import { BASE_APPEARANCE_PARTS, canonicalAppearanceParts } from './appearance-parts.js';
 import { MASTER_ID } from './master-character.js';
 
-export const CHARACTER_REFERENCE_MODEL_VERSION = 1;
+export const CHARACTER_REFERENCE_MODEL_VERSION = 2;
 
 const freezeModel = model => Object.freeze({
   ...model,
@@ -10,25 +10,26 @@ const freezeModel = model => Object.freeze({
 
 /**
  * Character Workshop reference-model catalog.
- * Reference sheets align review with implementation; they never replace the
- * audited MasterCharacter asset or authorize proposed/game-owned parts.
- * `productionStage` is deliberately explicit so a visual/reference preset cannot
- * be mistaken for a finished production model.
+ * A DCC asset remains non-production until the staged production manifest reaches
+ * RUNTIME_READY with explicit visual approval.
  */
 export const CHARACTER_REFERENCE_MODELS = Object.freeze({
   'shino.reference.v2': freezeModel({
     id: 'shino.reference.v2',
-    label: 'Shino Reference v2',
-    kind: 'reference-preset',
-    productionStage: 'REFERENCE',
-    modelingMode: 'reference-only',
+    label: 'Shino Reference v2 / DCC',
+    kind: 'dcc-character-model',
+    productionStage: 'PRIMARY',
+    modelingMode: 'dcc-blender',
     productionReady: false,
     characterId: 'Sendagaya_Shino',
     masterId: MASTER_ID,
-    assetId: MASTER_ID,
+    assetId: 'character.shino-reference-v2.dcc.v1',
+    assetPath: './simulator/assets/SHINO_REFERENCE_V2.vrm',
+    integrityPath: './simulator/assets/SHINO_REFERENCE_V2.asset.json',
+    dccSourcePath: 'assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend',
     referencePath: 'docs/characters/references/shino/shino-character-reference-sheet-v2.png',
     profile: BASE_APPEARANCE_PARTS,
-    note: 'CURRENT MASTER と実装済みモジュラーパーツのみ。提案パーツやゲーム固有装備は含めない。3D制作工程としてはREFERENCE段階で、専用造形の完成モデルではない。'
+    note: 'キャラクターリファレンスを正本にBlenderで専用造形したDCC PRIMARYモデル。旧Shinoの色替え/primitive blockoutではない。DEFORMATION以降と明示Visual Approvalは未完了。'
   })
 });
 
