@@ -16,7 +16,7 @@ function harness(points, {enabled=true}={}) {
   });
   expect.poll=(sample,options)=>({async toBe(expected){
     budgets.push(options.timeout);
-    for(let attempt=0;attempt<4;attempt++)if(await sample()===expected)return;
+    for(let attempt=0;attempt<3;attempt++)if(await sample()===expected)return;
     assert.fail('native target remains obstructed');
   }});
   const page={mouse:{
