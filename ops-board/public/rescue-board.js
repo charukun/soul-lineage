@@ -8,6 +8,14 @@ const labels = { DETECTED: '検知', QUEUED: '待機', BLOCKED_BY_RESCUE: '順�
 const order = ['DETECTED', 'QUEUED', 'CLAIMED', 'ANALYZING', 'RESOLVING', 'VALIDATING', 'PUSHING', 'AWAITING_PUSH', 'PUSHED', 'RETURNED_TO_INTEGRATION', 'CHECKING', 'MERGED', 'DEV'];
 const aiRecoverable = record => record.state === 'FAILED_MANUAL' && record.manualKind === 'work-recoverable';
 const stateLabelFor = record => record.state === 'FAILED_MANUAL' ? aiRecoverable(record) ? 'AI修復待ち' : record.manualKind === 'human-required' ? '人の判断が必要' : '手動確認' : labels[record.state] || record.state;
+const wakeBlockerLabel = blocker => {
+  const value = String(blocker || '');
+  if (!value) return '起動可能';
+  if (value.startsWith('SCOPE_LOCK:')) return `変更領域ロック ${value.slice('SCOPE_LOCK:'.length)}`;
+  if (value.startsWith('BROWSER_REPAIR_OWNS_PR:')) return `Browser Repair ${value.slice('BROWSER_REPAIR_OWNS_PR:'.length)}`;
+  if (value.startsWith('DEPENDENCY_WAIT:')) return `依存待ち ${value.slice('DEPENDENCY_WAIT:'.length)}`;
+  return ({ ACTIONS_WORKER_OWNS_PR:'Actions Worker処理中', WORK_REPAIR_ACTIVE:'AI修復中', WORK_PUSH_OWNS_PR:'push処理中', SCOPE_NOT_READY:'変更範囲の再取得待ち' })[value] || value;
+};
 function rail(record) {
   const box = node('ol', 'rs-rail');
   const delivery = [['CHECKING','CHECK'],['MERGED','MERGE'],['DEV','DEV']];
@@ -134,11 +142,14 @@ export function renderRescue(view, now = Date.now()) {
   const recoverableManual = view.recoverableManual || view.manual.filter(aiRecoverable);
   const humanManual = view.humanManual || view.manual.filter(r => r.manualKind === 'human-required');
   const manualHold = view.manualHold || view.manual.filter(r => !recoverableManual.includes(r) && !humanManual.includes(r));
-  const attention = humanManual.length + manualHold.length + (c.retry || 0) + staleWorkers;
+  const wake = view.flowControl?.workRepairWake || null;
+  const idleEligible = !c.active && wake?.status === 'WAKE_REQUIRED';
+  const idleBlocked = !c.active && recoverableManual.length > 0 && wake?.status === 'BLOCKED';
+  const attention = humanManual.length + manualHold.length + (c.retry || 0) + staleWorkers + (idleEligible ? 1 : 0);
   const waiting = (c.queued || 0) + (c.blocked || 0) + recoverableManual.length;
   const configurationRequired = view.status === 'CONFIGURATION_REQUIRED';
   const state = staleObservation || view.observationError ? 'delayed' : configurationRequired || attention ? 'attention' : c.active ? 'working' : waiting ? 'waiting' : 'healthy';
-  const summaryStateLabel = configurationRequired && state === 'attention' ? '設定確認が必要' : { delayed: '状態取得に遅延', attention: '確認が必要', working: 'Rescue稼働中', waiting: 'Rescue待機中', healthy: 'ALL CLEAR' }[state];
+  const summaryStateLabel = configurationRequired && state === 'attention' ? '設定確認が必要' : idleEligible && state === 'attention' ? 'AI修復Worker起動待ち' : { delayed: '状態取得に遅延', attention: '確認が必要', working: 'Rescue稼働中', waiting: 'Rescue待機中', healthy: 'ALL CLEAR' }[state];
   const summary = node('section', `rs-summary state-${state}`);
   const summaryHead = node('div', 'rs-summary-head');
   const headline = node('div', 'rs-summary-status');
@@ -149,9 +160,9 @@ export function renderRescue(view, now = Date.now()) {
   summaryHead.append(headline, updated);
   const metrics = node('div', 'rs-summary-grid');
   metrics.append(
-    summaryMetric('ACTIVE', `${c.active} / ${c.max}`, c.active ? 'workers running' : 'worker idle', c.active ? 'active' : ''),
+    summaryMetric('ACTIVE', `${c.active} / ${c.max}`, c.active ? 'workers running' : idleEligible ? `wake待ち · 空き ${wake.capacity}` : idleBlocked ? '全AI修復候補がblocked' : 'worker idle', c.active ? 'active' : idleEligible ? 'attention' : ''),
     summaryMetric('WAITING', waiting, `${c.queued || 0} queue · ${c.blocked || 0} blocked · ${recoverableManual.length} AI修復`, waiting ? 'waiting' : ''),
-    summaryMetric('ATTENTION', attention, `${humanManual.length} 人判断 · ${manualHold.length} 保留 · ${c.retry || 0} retry · ${staleWorkers} stale`, attention ? 'attention' : ''),
+    summaryMetric('ATTENTION', attention, `${humanManual.length} 人判断 · ${manualHold.length} 保留 · ${c.retry || 0} retry · ${staleWorkers} stale${idleEligible ? ' · 1 idle' : ''}`, attention ? 'attention' : ''),
     summaryMetric('RETURNED', c.returned || 0, `${c.validating || 0} validating · ${c.awaitingPush || 0} push待ち`, c.returned ? 'returned' : '')
   );
   summary.append(summaryHead, metrics);
@@ -166,7 +177,11 @@ export function renderRescue(view, now = Date.now()) {
     if (view.workers.length > 3) glance.append(node('span', 'rs-summary-more', `+${view.workers.length - 3}`));
     summary.append(glance);
   } else if (recoverableManual.length) {
-    summary.append(node('p', 'rs-summary-empty', `AI修復待ち ${recoverableManual.length}件 · 次のWork Repairで処理します。`));
+    if (idleEligible) summary.append(node('p', 'rs-summary-warning', `AI修復待ち ${recoverableManual.length}件 · 起動可能 ${wake.claimable}件 · 空き ${wake.capacity}枠。Work Repair wakeを記録済みです。`));
+    else if (idleBlocked) {
+      const blockers = (wake.candidates || []).filter(item => item.blocker).slice(0, 2).map(item => `#${item.pr} ${wakeBlockerLabel(item.blocker)}`).join(' · ');
+      summary.append(node('p', 'rs-summary-empty', `AI修復待ち ${recoverableManual.length}件 · 現在は安全条件で待機中${blockers ? ` · ${blockers}` : ''}`));
+    } else summary.append(node('p', 'rs-summary-empty', `AI修復待ち ${recoverableManual.length}件 · Coordinatorが起動可否を再評価します。`));
   } else {
     summary.append(node('p', 'rs-summary-empty', view.status === 'ALL_CLEAR' ? '修復待ちはありません。Integrationは平常です。' : '実行中のWorkerはありません。'));
   }
@@ -177,11 +192,18 @@ export function renderRescue(view, now = Date.now()) {
   const detail = node('div', 'rs-detail-body');
   if (view.coordinator?.reason) detail.append(node('p', 'rs-configuration', view.coordinator.reason));
   if (view.coordinator?.errors?.length) detail.append(node('p', 'rs-configuration', `Coordinator: ${view.coordinator.errors.map(e => `${e.pr ? '#' + e.pr + ' ' : ''}${e.reason}`).join(' · ')}`));
+  if (wake) {
+    const wakeInfo = node('div', 'rs-configuration');
+    wakeInfo.append(node('strong', '', `Work Repair wake: ${wake.status}`), node('p', '', `${wake.claimable} 起動可能 · ${wake.blocked} blocked · 空き ${wake.capacity} / ${wake.max}`));
+    if (wake.reason) wakeInfo.append(node('p', 'rs-note', wake.reason));
+    for (const item of (wake.candidates || []).slice(0, 4)) wakeInfo.append(node('p', 'rs-note', `#${item.pr} · ${wakeBlockerLabel(item.blocker)}`));
+    detail.append(wakeInfo);
+  }
 
   const fullMetrics = node('div', 'rs-metrics');
   for (const [name, value, cls] of [
     ['WORKERS', `${c.active} / ${c.max} ACTIVE`, 'rs-workers-total'], ['QUEUED', c.queued, ''], ['BLOCKED', c.blocked, ''], ['VALIDATING', c.validating, ''], ['WORK PUSH', c.awaitingPush || 0, ''], ['RETURNED', c.returned, ''],
-    ['AI REPAIR', recoverableManual.length, ''], ['HUMAN', humanManual.length, ''], ['MANUAL HOLD', manualHold.length, ''], ['FAILED / RETRY', c.retry, ''], ['STALE', staleWorkers, '']
+    ['AI REPAIR', recoverableManual.length, ''], ['AI CLAIMABLE', wake?.claimable || 0, ''], ['HUMAN', humanManual.length, ''], ['MANUAL HOLD', manualHold.length, ''], ['FAILED / RETRY', c.retry, ''], ['STALE', staleWorkers, '']
   ]) {
     const tone = Number(value) > 0 && ['HUMAN','MANUAL HOLD','FAILED / RETRY','STALE'].includes(name) ? ['HUMAN','MANUAL HOLD'].includes(name) ? 'red' : 'yellow' : '';
     const box = node('div', `rs-metric ${cls}`); box.append(node('span', '', name), node('strong', tone, value)); fullMetrics.append(box);

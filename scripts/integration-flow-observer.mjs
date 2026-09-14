@@ -6,6 +6,7 @@ import { refreshFailureKnowledge } from './integration-failure-knowledge.mjs';
 import { REPOSITORY, rescueConfig } from './integration-rescue-policy.mjs';
 import { rescueClient, RescueStore } from './integration-rescue-store.mjs';
 import { workRepairEligibility } from './integration-rescue-work-repair-policy.mjs';
+import { deriveWorkRepairWake } from './integration-rescue-work-wake.mjs';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -66,14 +67,17 @@ export async function observeFlow(c, store, now = Date.now()) {
         updatedAt: new Date(now).toISOString(),
       };
     }
+    const wake = deriveWorkRepairWake(state, now);
+    state.flowControl.workRepairWake = { ...wake, updatedAt: new Date(now).toISOString() };
     refreshFailureKnowledge(state, now);
-    return { tuning: state.flowControl.tuning, knowledge: state.failureKnowledge };
+    return { tuning: state.flowControl.tuning, knowledge: state.failureKnowledge, workRepairWake: state.flowControl.workRepairWake };
   });
 
   return {
     ready: ready.length,
     recoverableManual,
     tuning: mutation.result.tuning,
+    workRepairWake: mutation.result.workRepairWake,
     fingerprints: Object.keys(mutation.result.knowledge?.fingerprints || {}).length,
   };
 }
@@ -83,7 +87,7 @@ async function main() {
   const config = rescueConfig(process.env), c = rescueClient(process.env.GH_TOKEN, config), store = new RescueStore(c, config);
   const report = await observeFlow(c, store);
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT,
-    `max_parallel=${report.tuning.rescueConcurrency}\nmax_evaluations=${report.tuning.maxEvaluations}\ntrain_size=${report.tuning.trainSize}\nmode=${report.tuning.pressure.mode}\n`);
+    `max_parallel=${report.tuning.rescueConcurrency}\nmax_evaluations=${report.tuning.maxEvaluations}\ntrain_size=${report.tuning.trainSize}\nmode=${report.tuning.pressure.mode}\nwork_repair_wake=${report.workRepairWake?.wakeRequired === true}\n`);
   console.log(JSON.stringify(report, null, 2));
 }
 

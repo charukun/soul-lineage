@@ -1,6 +1,7 @@
 import { REPOSITORY, ACTIVE, RETURNED, rescueConfig } from '../scripts/integration-rescue-policy.mjs';
 import { deliveryLatencyMetrics, quarantineDecision } from '../scripts/integration-flow-control.mjs';
 import { workRepairEligibility } from '../scripts/integration-rescue-work-repair-policy.mjs';
+import { deriveWorkRepairWake } from '../scripts/integration-rescue-work-wake.mjs';
 
 const safeString = (value, max = 240) => typeof value === 'string' ? value.slice(0, max) : null;
 function repairEvidence(r) {
@@ -30,6 +31,22 @@ function trainProofView(proof) {
     browser: proof.browser || null,
     validatedAt: proof.validatedAt || null,
     recordedAt: proof.recordedAt || null,
+  };
+}
+function workRepairWakeView(wake) {
+  if (!wake) return null;
+  return {
+    status: wake.status || null,
+    wakeRequired: wake.wakeRequired === true,
+    active: Number(wake.active || 0),
+    max: Number(wake.max || 0),
+    capacity: Number(wake.capacity || 0),
+    eligible: Number(wake.eligible || 0),
+    claimable: Number(wake.claimable || 0),
+    blocked: Number(wake.blocked || 0),
+    reason: safeString(wake.reason),
+    updatedAt: wake.updatedAt || null,
+    candidates: (wake.candidates || []).slice(0, 8).map(item => ({ pr:item.pr, priority:item.priority || null, blocker:safeString(item.blocker) })),
   };
 }
 function failureKnowledgeView(state) {
@@ -87,6 +104,13 @@ export function rescueView(state, now = Date.now()) {
     quarantine: quarantine.length,
     retry: records.filter(r => r.state === 'FAILED_RETRYABLE').length,
     stale: workers.filter(r => r.state === 'STALE' || r.heartbeatStale).length };
+  const derivedWake = deriveWorkRepairWake(state, now);
+  const workRepairWake = workRepairWakeView({ ...derivedWake, ...(state.flowControl?.workRepairWake || {}), updatedAt: state.flowControl?.workRepairWake?.updatedAt || state.updatedAt });
+  const idleEligible = counts.active === 0 && workRepairWake?.status === 'WAKE_REQUIRED';
+  counts.idleEligible = idleEligible ? 1 : 0;
+  counts.workRepairClaimable = workRepairWake?.claimable || 0;
+  counts.workRepairBlocked = workRepairWake?.blocked || 0;
+  if (idleEligible) counts.attention += 1;
   const recent = records.filter(r => RETURNED.has(r.state) || ['MERGED', 'DEV'].includes(r.state)).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)).slice(0, 20);
   const activity = state.activity.filter(e => now - Date.parse(e.at) >= 0 && now - Date.parse(e.at) < 86400000);
   const deliveryLedger = Object.values(state.flowControl?.deliveries || {});
@@ -96,11 +120,11 @@ export function rescueView(state, now = Date.now()) {
     return Boolean(r?.repairVerified && e.workerId === r.workerId && e.id?.startsWith(`${r.rescueId}:`) && Date.parse(e.at) >= Date.parse(r.returnedAt));
   };
   const count = (types, predicate = () => true) => new Set(activity.filter(e => types.includes(e.type) && predicate(e)).map(e => e.pr)).size;
-  const status = !state.coordinator?.configured ? 'CONFIGURATION_REQUIRED' : counts.humanManual || counts.manualHold || counts.stale ? 'ATTENTION' : counts.active ? 'ACTIVE' : counts.queued || counts.blocked || counts.returned || counts.awaitingPush || counts.recoverableManual ? 'WAITING' : 'ALL_CLEAR';
+  const status = !state.coordinator?.configured ? 'CONFIGURATION_REQUIRED' : idleEligible || counts.humanManual || counts.manualHold || counts.stale ? 'ATTENTION' : counts.active ? 'ACTIVE' : counts.queued || counts.blocked || counts.returned || counts.awaitingPush || counts.recoverableManual ? 'WAITING' : 'ALL_CLEAR';
   return { available: true, status, generatedAt: state.updatedAt, staleMs: config.staleMs,
     coordinator: { heartbeatAt: state.coordinator?.heartbeatAt, phase: state.coordinator?.phase, reason: safeString(state.coordinator?.configurationReason), errors: state.coordinator?.errors || [] },
     counts, workers, queue: queue.sort((a, b) => (b.priority?.score || 0) - (a.priority?.score || 0)), manual, recoverableManual, humanManual, manualHold, quarantine, recent,
-    flowControl: { tuning: state.flowControl?.tuning || null, trainProof: trainProofView(state.flowControl?.trainProof), latency: deliveryLatencyMetrics(latencySource), deliverySamples: deliveryLedger.length, failureKnowledge: failureKnowledgeView(state) },
+    flowControl: { tuning: state.flowControl?.tuning || null, workRepairWake, trainProof: trainProofView(state.flowControl?.trainProof), latency: deliveryLatencyMetrics(latencySource), deliverySamples: deliveryLedger.length, failureKnowledge: failureKnowledgeView(state) },
     waves: state.waves.slice(-5).reverse().map(w => ({ ...w,
       repaired: records.filter(r => w.rescueIds.includes(r.rescueId) && r.repairVerified).length,
       returnedCount: records.filter(r => w.rescueIds.includes(r.rescueId) && r.returnedAt && r.state !== 'AWAITING_PUSH').length,
