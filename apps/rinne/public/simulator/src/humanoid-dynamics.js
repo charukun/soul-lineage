@@ -11,6 +11,7 @@ export const LOCAL_WEAPON_INERTIA=Object.freeze({
  spear:Object.freeze({lag:.030,maxAngle:.070,stiffness:25,damping:8.2})
 });
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth01=x=>{x=clamp(x);return x*x*(3-2*x);};
 const finite=(...v)=>v.every(Number.isFinite);
 const q=()=>new T.Quaternion();
 const v=(x=0,y=0,z=0)=>new T.Vector3(x,y,z);
@@ -34,6 +35,13 @@ export function localWeaponInertiaStep({offset=0,velocity=0,targetAngularVelocit
  if(!finite(offset,velocity,targetAngularVelocity,dt)||dt<=0)throw Error('Invalid weapon inertia step');
  const p=LOCAL_WEAPON_INERTIA[weapon]||LOCAL_WEAPON_INERTIA.sword,desired=clamp(-targetAngularVelocity*p.lag,-p.maxAngle,p.maxAngle),accel=(desired-offset)*p.stiffness-velocity*p.damping,nextVelocity=velocity+accel*dt;
  return{offset:clamp(offset+nextVelocity*dt,-p.maxAngle,p.maxAngle),velocity:nextVelocity,desired,maxAngle:p.maxAngle};
+}
+
+/** Presentation inertia must meet the authored pose exactly at attack boundaries. */
+export function weaponInertiaEnvelope(phase){
+ if(!Number.isFinite(phase))return 1;
+ const p=clamp(phase),fadeIn=smooth01(p/.08),fadeOut=smooth01((1-p)/.16);
+ return Math.min(fadeIn,fadeOut);
 }
 
 export function localTerrainAdjustments({left,right,maxFootLift=.22,maxPelvisShift=.16}={}){
@@ -89,10 +97,12 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
   if(!commit||!result?.a||!result?.b||!result?.sm||a?.dead||(a?.weapon||'sword')==='fist')return;
   const key=a.id??'hero',clock=a._humanoidClock||0,A=point3(result.a),B=point3(result.b),dir=B.clone().sub(A);if(!finite(A.x,A.y,A.z,B.x,B.y,B.z)||dir.lengthSq()<1e-8)return;
   const angle=Math.atan2(dir.x,dir.z),prev=this._dynamics.weapon.get(key)??{angle,clock,offset:0,velocity:0},dt=clamp(clock-prev.clock,1/240,1/20);let delta=(angle-prev.angle)%(Math.PI*2);if(delta>Math.PI)delta-=Math.PI*2;if(delta<-Math.PI)delta+=Math.PI*2;
-  const next=localWeaponInertiaStep({offset:prev.offset,velocity:prev.velocity,targetAngularVelocity:delta/dt,dt,weapon:a.weapon||'sword'});this._dynamics.weapon.set(key,{...next,angle,clock});if(Math.abs(next.offset)<1e-5)return;
-  const rot=q().setFromAxisAngle(v(0,1,0),next.offset),newB=B.clone().sub(A).applyQuaternion(rot).add(A);writePoint(result.b,newB);if(result.weaponTip)writePoint(result.weaponTip,newB);
+  const next=localWeaponInertiaStep({offset:prev.offset,velocity:prev.velocity,targetAngularVelocity:delta/dt,dt,weapon:a.weapon||'sword'});let phase=null;if(a?.attack&&typeof this.api.progress==='function'){try{phase=this.api.progress(a);}catch{phase=null;}}
+  const envelope=a?.attack?weaponInertiaEnvelope(phase):1,visualOffset=next.offset*envelope,endReset=a?.attack&&Number.isFinite(phase)&&phase>=.999;
+  this._dynamics.weapon.set(key,{...(endReset?{...next,offset:0,velocity:0,desired:0}:next),angle,clock});c.dynamicsWeapon={weapon:a.weapon||'sword',offset:visualOffset,desired:next.desired,envelope};
+  if(Math.abs(visualOffset)<1e-5)return;
+  const rot=q().setFromAxisAngle(v(0,1,0),visualOffset),newB=B.clone().sub(A).applyQuaternion(rot).add(A);writePoint(result.b,newB);if(result.weaponTip)writePoint(result.weaponTip,newB);
   const m=new T.Matrix4().fromArray(result.sm),pos=v(),orientation=q(),scale=v();m.decompose(pos,orientation,scale);orientation.premultiply(rot);const transformed=new T.Matrix4().compose(pos,orientation,scale);if(result.sm.set)result.sm.set(transformed.elements);else result.sm=Array.from(transformed.elements);
-  c.dynamicsWeapon={weapon:a.weapon||'sword',offset:next.offset,desired:next.desired};
  }
 
  updateBalance(c,a){
