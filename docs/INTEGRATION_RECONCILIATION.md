@@ -97,6 +97,14 @@ Plannerのbounded JSONは既存Rescue stateの `flowControl.reconciliation` に�
 
 verified DEV後の既存scan wakeも先にReconcilerを通るため、旧Queue Recoveryはmissed CI回復のexecutor/互換経路へ縮退する。通常writerのmerge可否は引き続きcurrent GitHub stateの再読で決める。
 
+## Runtime repair と AI repair の境界
+
+- queue-recovery / repair executor の runtime dependency と GitHub permission は、実際の import / write 契約から決める。sparse checkout や最小権限化によって transitive import や必要な status write を欠落させ、liveness を止めてはならない。
+- deterministic に修復できる checkout・permission・stale-head・safe base update は通常 executor が処理する。意味上の整合、control/contract reconciliation、assertion 保持、繰り返し失敗のような bounded manual class だけを既存 Work repair lane へ引き渡す。
+- AI は Planner / Writer の判定権限を持たない。AI repair は既存 PR / exact head / develop SHA / Rescue attempt budget を入力として、同じ PR branch を修復し、fast validation と既存 safety proof を満たして通常 Integration へ返す作業員である。
+- AI repair signal は新しい task queue や外部DBを作らず、既存 PR comment / commit status に machine-readable handoff envelope を残す。最低限 `repository`, `pr`, `head`, `develop`, `repairKind`, `reason`, `attempt/maxAttempts`, `constraints` を含め、head/develop が変われば再取得して古い envelope を実行根拠にしない。
+- `integration:hold`、review objection、human-required、product decision、Production gate は AI が解除・迂回しない。paid model API を Integration / Rescue の常駐経路へ追加せず、既存 ChatGPT Work / 明示的 Dispatch 等の許可済み実行経路が envelope を消費する。
+
 ## 受入条件
 
 - Ready backlogが存在しても、1件のblocked/failed PRが独立PRのpreflight・writer候補化を止めない。
