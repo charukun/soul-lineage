@@ -1,38 +1,6 @@
 {
   "activity": [
     {
-      "action": "競合解消完了。対象のfast verificationを実行中",
-      "at": "2026-09-13T23:36:10.382Z",
-      "id": "wave-34790087148-1-pr-162-a3:VALIDATING:1789342570382:258",
-      "pr": 162,
-      "type": "VALIDATING",
-      "workerId": "34790087148/pr-162/a3"
-    },
-    {
-      "action": "検証成功。headとdevelopを再確認して元PR branchへpush",
-      "at": "2026-09-13T23:36:23.237Z",
-      "id": "wave-34790087148-1-pr-162-a3:PUSHING:1789342583237:259",
-      "pr": 162,
-      "type": "PUSHING",
-      "workerId": "34790087148/pr-162/a3"
-    },
-    {
-      "action": "GitHub POST /repos/charukun/soul-lineage/git/trees: HTTP 422",
-      "at": "2026-09-13T23:36:24.810Z",
-      "id": "wave-34790087148-1-pr-162-a3:FAILED_MANUAL:1789342584810:260",
-      "pr": 162,
-      "type": "FAILED_MANUAL",
-      "workerId": "34790087148/pr-162/a3"
-    },
-    {
-      "action": "Normal Integration merged this PR into develop",
-      "at": "2026-09-13T23:44:19.585Z",
-      "id": "wave-34737427271-1-pr-121-a1:MERGED:1789343059585:263",
-      "pr": 121,
-      "type": "MERGED",
-      "workerId": "34737427271/pr-121/a1"
-    },
-    {
       "action": "Normal Integration merged this PR into develop",
       "at": "2026-09-13T23:44:19.585Z",
       "id": "wave-34787139055-1-pr-156-a3:MERGED:1789343059585:263",
@@ -3180,20 +3148,52 @@
       "workerId": "34844662360/pr-238/a3"
     },
     {
-      "id": "wave-34817518770-1-pr-200-a1:WORK_REPAIR_CLAIMED:1789392683284:717",
+      "action": "work/866e55ef0f5e/20260914T133123284Z: semantic repair 1/2",
       "at": "2026-09-14T13:31:23.284Z",
+      "id": "wave-34817518770-1-pr-200-a1:WORK_REPAIR_CLAIMED:1789392683284:717",
       "pr": 200,
-      "workerId": "work/866e55ef0f5e/20260914T133123284Z",
       "type": "WORK_REPAIR_CLAIMED",
-      "action": "work/866e55ef0f5e/20260914T133123284Z: semantic repair 1/2"
+      "workerId": "work/866e55ef0f5e/20260914T133123284Z"
     },
     {
-      "id": "wave-34800968170-1-pr-183-a1:WORK_REPAIR_BLOCKED:1789392683284:717",
+      "action": "claim blocked: Browser Repair #186 owns exact head 9ebee865. Next: browser repair finishes, then re-read PR and claim.",
       "at": "2026-09-14T13:31:23.284Z",
+      "id": "wave-34800968170-1-pr-183-a1:WORK_REPAIR_BLOCKED:1789392683284:717",
       "pr": 183,
+      "type": "WORK_REPAIR_BLOCKED",
+      "workerId": null
+    },
+    {
+      "id": "wave-34817518770-1-pr-200-a1:WORK_REPAIR_STOPPED:1789392727936:718",
+      "at": "2026-09-14T13:32:07.936Z",
+      "pr": 200,
+      "workerId": "work/866e55ef0f5e/20260914T133123284Z",
+      "type": "WORK_REPAIR_STOPPED",
+      "action": "failed: WORK_EXECUTION_ENVIRONMENT_UNAVAILABLE: exec-server is unavailable, so npm ci and trusted fast cannot be executed. No repair commit or push was created; retry remains finite and humanRequired=false."
+    },
+    {
+      "id": "wave-34737932982-1-pr-93-a1:WORK_REPAIR_BLOCKED:1789392727936:718",
+      "at": "2026-09-14T13:32:07.936Z",
+      "pr": 93,
       "workerId": null,
       "type": "WORK_REPAIR_BLOCKED",
-      "action": "claim blocked: Browser Repair #186 owns exact head 9ebee865. Next: browser repair finishes, then re-read PR and claim."
+      "action": "claim not added: selected PR #200 owns a RED shared-package/transitive scope (docs + shared packages). Next: #200 reservation released; retry when execution runner is available."
+    },
+    {
+      "id": "wave-34738107940-1-pr-107-a1:WORK_REPAIR_BLOCKED:1789392727936:718",
+      "at": "2026-09-14T13:32:07.936Z",
+      "pr": 107,
+      "workerId": null,
+      "type": "WORK_REPAIR_BLOCKED",
+      "action": "claim not added: selected PR #200 makes control-plane candidate #107 RED. Next: retry after #200 reservation release with an available execution runner."
+    },
+    {
+      "id": "coordinator:WORK_REPAIR_SCAN_FAILED:1789392727936:718",
+      "at": "2026-09-14T13:32:07.936Z",
+      "pr": null,
+      "workerId": null,
+      "type": "WORK_REPAIR_SCAN_FAILED",
+      "action": "eligible_before 14; claimable_before 3; claimed 1; returned 0; human_required 0; eligible_after 14. PR #200 stopped transiently: execution runner unavailable."
     }
   ],
   "config": {
@@ -5190,7 +5190,7 @@
       "claimedAt": "2026-09-13T04:27:46.626Z",
       "claimedBy": "34737932982/pr-93/a1",
       "contractFingerprint": "eb47e167cae71bfa9a46ff1d5312351df8b8372e1af068cbfae8bad23018cd16",
-      "currentAction": "claim blocked: PR #198 CHECKING holds a control-plane RED lock after exact-head browser failure (#245). Next: browser repair completes and Integration releases the lock, then claim.",
+      "currentAction": "claim not added: selected PR #200 owns a RED shared-package/transitive scope (docs + shared packages). Next: #200 reservation released; retry when execution runner is available.",
       "currentStep": "FAILED_MANUAL",
       "dependencies": [],
       "detail": "最新developの初回プレイ改善を保持し、通常の実プレイヤー村導線を撤去したまま競合解消・高速検証を完了",
@@ -5289,7 +5289,7 @@
       },
       "state": "FAILED_MANUAL",
       "title": "feat: share village visual language and friend-only visits",
-      "updatedAt": "2026-09-14T12:26:40.383Z",
+      "updatedAt": "2026-09-14T13:32:07.936Z",
       "waitingReason": null,
       "wave": "wave-34737932982-1"
     },
@@ -5304,7 +5304,7 @@
       "claimedAt": "2026-09-13T04:32:07.350Z",
       "claimedBy": "34738107940/pr-107/a1",
       "contractFingerprint": "c6aea44e80bac77dcc1576c67b7b63075def4a4a0ef6b1a4e0aba9bd09b29173",
-      "currentAction": "claim blocked: PR #198 CHECKING holds a control-plane RED lock after exact-head browser failure (#245). Next: browser repair completes and Integration releases the lock, then claim.",
+      "currentAction": "claim not added: selected PR #200 makes control-plane candidate #107 RED. Next: retry after #200 reservation release with an available execution runner.",
       "currentStep": "FAILED_MANUAL",
       "dependencies": [],
       "detail": "Astraを含む実装ワーカー向けにモデリング・Visual Reviewの参照規約をRepositoryへ追加",
@@ -5370,7 +5370,7 @@
       },
       "state": "FAILED_MANUAL",
       "title": "docs: add RINNE 3D production standards",
-      "updatedAt": "2026-09-14T12:26:40.383Z",
+      "updatedAt": "2026-09-14T13:32:07.936Z",
       "waitingReason": null,
       "wave": "wave-34738107940-1"
     },
@@ -10611,8 +10611,8 @@
       "claimedAt": "2026-09-14T07:25:21.147Z",
       "claimedBy": "34817518770/pr-200/a1",
       "contractFingerprint": "b1151367e145784405a0a98552ec733c035ac61836af4cbad01da8cdc3208fab",
-      "currentAction": "既存ChatGPT Workがsemantic停止を再評価し両側の仕様を保って修復",
-      "currentStep": "RESOLVING",
+      "currentAction": "WORK_EXECUTION_ENVIRONMENT_UNAVAILABLE: exec-server is unavailable, so npm ci and trusted fast cannot be executed. No repair commit or push was created; retry remains finite and humanRequired=false.",
+      "currentStep": "FAILED_MANUAL",
       "dependencies": [],
       "detail": "公開OSSの技法を診断基準へ変換し、移動・Root Motion・攻撃接近・ヒット感を再現可能に比較する",
       "detectedAt": "2026-09-14T05:25:13.176Z",
@@ -10686,24 +10686,24 @@
       },
       "state": "FAILED_MANUAL",
       "title": "feat: add external motion reference benchmark",
-      "updatedAt": "2026-09-14T13:31:23.284Z",
+      "updatedAt": "2026-09-14T13:32:07.936Z",
       "waitingReason": null,
       "wave": "wave-34817518770-1",
-      "workRepairAttempts": 1,
       "workRepair": {
-        "workerId": "work/866e55ef0f5e/20260914T133123284Z",
-        "status": "working",
         "attempt": 1,
-        "maxAttempts": 2,
-        "repairKind": "semantic",
         "baselineChurns": 0,
-        "maxBaselineChurns": 8,
-        "resumedFromBaselineAdvance": false,
-        "sourceHead": "4a856ca71faf2c5d8db415795cea7c47a33d8250",
-        "develop": "54589d38bd300e642daf2f5c5472f4f9b86b8dc7",
         "contract": "b1151367e145784405a0a98552ec733c035ac61836af4cbad01da8cdc3208fab",
+        "develop": "54589d38bd300e642daf2f5c5472f4f9b86b8dc7",
         "evidenceKey": "80d99e8409d62652d116453805eea9750f674762fe84cb75c369fa0587c07daa",
+        "expiresAt": "2026-09-14T14:16:23.284Z",
+        "heartbeatAt": "2026-09-14T13:31:23.284Z",
+        "maxAttempts": 2,
+        "maxBaselineChurns": 8,
+        "repairKind": "semantic",
+        "resumedFromBaselineAdvance": false,
         "scope": {
+          "contract": false,
+          "control": false,
           "files": [
             "docs/characters/MOTION_QUALITY.md",
             "docs/characters/qa/motion-reference-baseline-v1.md",
@@ -10713,26 +10713,28 @@
             "packages/animations/src/motion-reference-benchmark.js",
             "packages/animations/tests/motion-reference-benchmark.test.mjs"
           ],
-          "scopes": [
+          "related": [
             "docs",
             "packages/animations"
           ],
-          "related": [
+          "repairKind": "semantic",
+          "scopes": [
             "docs",
             "packages/animations"
           ],
           "shared": [
             "packages/animations"
           ],
-          "control": false,
-          "contract": false,
-          "specs": [],
-          "repairKind": "semantic"
+          "specs": []
         },
+        "sourceHead": "4a856ca71faf2c5d8db415795cea7c47a33d8250",
         "startedAt": "2026-09-14T13:31:23.284Z",
-        "heartbeatAt": "2026-09-14T13:31:23.284Z",
-        "expiresAt": "2026-09-14T14:16:23.284Z"
-      }
+        "status": "failed",
+        "workerId": "work/866e55ef0f5e/20260914T133123284Z",
+        "reason": "WORK_EXECUTION_ENVIRONMENT_UNAVAILABLE: exec-server is unavailable, so npm ci and trusted fast cannot be executed. No repair commit or push was created; retry remains finite and humanRequired=false.",
+        "finishedAt": "2026-09-14T13:32:07.936Z"
+      },
+      "workRepairAttempts": 1
     },
     "202": {
       "attempt": 1,
@@ -13754,7 +13756,7 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 718,
+  "revision": 719,
   "schema": 1,
   "updatedAt": "2026-09-14T12:48:37.762Z",
   "waves": [
