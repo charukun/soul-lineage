@@ -8,6 +8,8 @@ import { contractFingerprint, browserRepairFor } from './integration-rescue-stor
 const sha = value => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value);
 const LEASE_MS = 45 * 60000;
 const MAX_WORK_REPAIR_ATTEMPTS = 2;
+const MAX_BASELINE_CHURNS = 8;
+const BASELINE_ADVANCE = /(?:^WORK_REPAIR_BASELINE_ADVANCED:|DEVELOP_ADVANCED_AFTER_VALIDATION|Latest develop advanced from [0-9a-f]{40} to [0-9a-f]{40})/i;
 const REPAIR_CLASSES = [
   ['semantic', /^FAILED_MANUAL:SEMANTIC_CONFLICT(?::|$)/],
   ['overlap', /^FAILED_MANUAL:OVERLAPPING_CHANGES(?::|$)/],
@@ -18,6 +20,8 @@ const REPAIR_CLASSES = [
 ];
 const active = r => r.workRepair?.status === 'working';
 const key = e => createHash('sha256').update(JSON.stringify([e.pr.head.sha,e.develop,contractFingerprint(e.pr)])).digest('hex');
+const baselineResume = record => ['baseline-advanced'].includes(record?.workRepair?.status) ||
+  (record?.workRepair?.status === 'failed' && BASELINE_ADVANCE.test(String(record.workRepair.reason || '')));
 
 export function workRepairClass(record) {
   const reason = String(record?.failureReason || '');
@@ -29,8 +33,13 @@ export function workRepairEligibility(record) {
   if (!kind) return { eligible:false, reason:'MANUAL_REASON_NOT_AUTOMATABLE' };
   if (record?.workRepair?.status === 'human-required') return { eligible:false, reason:'HUMAN_DECISION_REQUIRED' };
   const attempts = Number(record?.workRepairAttempts || 0);
-  if (attempts >= MAX_WORK_REPAIR_ATTEMPTS) return { eligible:false, reason:'WORK_REPAIR_ATTEMPTS_EXHAUSTED' };
-  return { eligible:true, kind, attempts, maxAttempts:MAX_WORK_REPAIR_ATTEMPTS };
+  const baselineChurns = Number(record?.workRepairBaselineChurns || 0);
+  const resumeBaseline = baselineResume(record);
+  if (resumeBaseline && baselineChurns >= MAX_BASELINE_CHURNS) {
+    return { eligible:false, reason:'WORK_REPAIR_BASELINE_CHURN_EXHAUSTED', kind, attempts, maxAttempts:MAX_WORK_REPAIR_ATTEMPTS, baselineChurns, maxBaselineChurns:MAX_BASELINE_CHURNS };
+  }
+  if (attempts >= MAX_WORK_REPAIR_ATTEMPTS && !resumeBaseline) return { eligible:false, reason:'WORK_REPAIR_ATTEMPTS_EXHAUSTED' };
+  return { eligible:true, kind, attempts, maxAttempts:MAX_WORK_REPAIR_ATTEMPTS, baselineChurns, maxBaselineChurns:MAX_BASELINE_CHURNS, resumeBaseline };
 }
 
 function safety(record, evidence) {
@@ -62,17 +71,20 @@ export function verifyWorkRepair(record, evidence) {
 }
 export function claimWorkRepair(state, prNumber, workerId, evidence, now = Date.now()) {
   assert.ok(typeof workerId === 'string' && /^work\/.+/.test(workerId) && workerId.length < 200, 'REAL_WORK_ID_REQUIRED');
-  const r = state.records[prNumber], scope = verifyWorkRepair(r, evidence);
+  const r = state.records[prNumber], eligibility = workRepairEligibility(r), scope = verifyWorkRepair(r, evidence);
   assert.ok(!active(r) || now >= Date.parse(r.workRepair.expiresAt), 'WORK_REPAIR_ALREADY_CLAIMED');
   const peers = Object.values(state.records).filter(p => p.pr !== prNumber && (p.lease || RETURNED.has(p.state) || active(p)));
   assert.ok(!peers.some(p => compareScopes(scope,p.workRepair?.scope || p.scope).risk === 'RED'), 'RELATED_WORK_OWNS_SCOPE');
   assert.ok(Object.values(state.records).filter(p => p.lease || active(p) && p.pr !== prNumber).length < state.config.maxConcurrency, 'WORKER_POOL_FULL');
-  r.workRepairAttempts = Number(r.workRepairAttempts || 0) + 1;
-  r.workRepair = { workerId, status:'working', attempt:r.workRepairAttempts, maxAttempts:MAX_WORK_REPAIR_ATTEMPTS, repairKind:scope.repairKind,
+  if (!eligibility.resumeBaseline) r.workRepairAttempts = Number(r.workRepairAttempts || 0) + 1;
+  const attempt = Math.max(1, Number(r.workRepairAttempts || 0));
+  const baselineChurns = Number(r.workRepairBaselineChurns || 0);
+  r.workRepair = { workerId, status:'working', attempt, maxAttempts:MAX_WORK_REPAIR_ATTEMPTS, repairKind:scope.repairKind,
+    baselineChurns, maxBaselineChurns:MAX_BASELINE_CHURNS, resumedFromBaselineAdvance:Boolean(eligibility.resumeBaseline),
     sourceHead:evidence.pr.head.sha, develop:evidence.develop, contract:contractFingerprint(evidence.pr), evidenceKey:key(evidence), scope,
     startedAt:new Date(now).toISOString(), heartbeatAt:new Date(now).toISOString(), expiresAt:new Date(now + LEASE_MS).toISOString() };
   r.currentStep='RESOLVING';r.currentAction=`既存ChatGPT Workが${scope.repairKind}停止を再評価し両側の仕様を保って修復`;r.updatedAt=new Date(now).toISOString();
-  event(state,r,'WORK_REPAIR_CLAIMED',`${workerId}: ${scope.repairKind} repair ${r.workRepairAttempts}/${MAX_WORK_REPAIR_ATTEMPTS}`,now);
+  event(state,r,'WORK_REPAIR_CLAIMED',`${workerId}: ${scope.repairKind} repair ${attempt}/${MAX_WORK_REPAIR_ATTEMPTS}${eligibility.resumeBaseline ? `; baseline resume ${baselineChurns}/${MAX_BASELINE_CHURNS}` : ''}`,now);
   state.activity.at(-1).workerId=workerId;
   return r.workRepair;
 }
@@ -151,6 +163,16 @@ function recordReturn(state,r,evidence,now) {
   r.pushedAt=r.returnedAt=new Date(now).toISOString();r.pendingIntegration=true;
   transition(state,r,'RETURNED_TO_INTEGRATION','Workの仕様確認・fast検証・元PRへのpushを確認。通常Integrationへ返却',now);
   state.activity.at(-1).workerId=w.workerId;
+}
+export function stopWorkRepairForDevelopAdvance(state, prNumber, workerId, reason, {now=Date.now()}={}) {
+  const r=owned(state,prNumber,workerId,now),w=r.workRepair;
+  assert.ok(typeof reason==='string' && reason.trim(),'STOP_REASON_REQUIRED');
+  r.workRepairBaselineChurns=Number(r.workRepairBaselineChurns || 0)+1;
+  w.status='baseline-advanced';w.reason=`WORK_REPAIR_BASELINE_ADVANCED: ${reason}`.slice(0,1000);w.finishedAt=new Date(now).toISOString();
+  w.baselineChurns=r.workRepairBaselineChurns;w.maxBaselineChurns=MAX_BASELINE_CHURNS;
+  r.currentStep='FAILED_MANUAL';r.currentAction=`最新developでAI修復を再開予定 · baseline churn ${r.workRepairBaselineChurns}/${MAX_BASELINE_CHURNS}`;r.updatedAt=new Date(now).toISOString();
+  event(state,r,'WORK_REPAIR_BASELINE_ADVANCED',`attempt ${w.attempt}/${MAX_WORK_REPAIR_ATTEMPTS} preserved; baseline churn ${r.workRepairBaselineChurns}/${MAX_BASELINE_CHURNS}: ${reason}`,now);
+  return { attempt:w.attempt, maxAttempts:MAX_WORK_REPAIR_ATTEMPTS, baselineChurns:r.workRepairBaselineChurns, maxBaselineChurns:MAX_BASELINE_CHURNS };
 }
 export function stopWorkRepair(state, prNumber, workerId, reason, {humanRequired=true, now=Date.now()}={}) {
   const r=owned(state,prNumber,workerId,now),w=r.workRepair;
