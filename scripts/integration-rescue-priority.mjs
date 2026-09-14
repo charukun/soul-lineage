@@ -1,11 +1,12 @@
 import { REPOSITORY, STATE_BRANCH, RETURNED } from './integration-rescue-policy.mjs';
-import { flowPressure, prioritizeIntegrationTrain } from './integration-flow-control.mjs';
+import { adaptiveFlowTuning, deliveryLatencyMetrics, dependencyGraph, flowPressure, prioritizeIntegrationTrain, quarantineDecision } from './integration-flow-control.mjs';
 
 const HOUR_MS = 60 * 60 * 1000;
 const MAX_AGE_HOURS = 365 * 24;
 const CONTROL_PLANE_BOOST_HOURS = 72;
 const REPAIR_BOOST_HOURS = 168;
 const RETURNED_BOOST_HOURS = 100_000;
+const DEPENDENT_BOOST = 30;
 const controlBranch = /^(?:fix|feat|chore|perf)\/(?:integration(?:[-/]|$)|rescue(?:[-/]|$))/i;
 const controlText = /\b(?:integration rescue|integration throughput|rescue throughput|rescue work|integration control)\b/i;
 
@@ -32,48 +33,58 @@ export function isIntegrationControlPlane(item) {
   return controlText.test(`${item?.title || ''}\n${item?.body || ''}`);
 }
 
-export function readyPriorityScore(item, returnedHeads, now = Date.now()) {
+export function readyPriorityScore(item, returnedHeads, now = Date.now(), graph = null) {
   const labels = labelNames(item);
   const returned = returnedHeads.get(item?.number) === item?.head?.sha;
   const ageHours = readyAgeHours(item, now);
   const control = isIntegrationControlPlane(item);
   const repair = labels.has('integration:repair');
+  const dependents = graph?.unblockCount?.get(Number(item?.number)) || 0;
+  const quarantined = returnedHeads.quarantine?.has(Number(item?.number)) || false;
   return {
     returned,
     control,
     repair,
     ageHours,
-    score: ageHours +
+    dependents,
+    quarantined,
+    score: ageHours + dependents * DEPENDENT_BOOST +
       (control ? CONTROL_PLANE_BOOST_HOURS : 0) +
       (repair ? REPAIR_BOOST_HOURS : 0) +
-      (returned ? RETURNED_BOOST_HOURS : 0),
+      (returned ? RETURNED_BOOST_HOURS : 0) -
+      (quarantined && !repair && !returned ? 100_000 : 0),
   };
 }
 
 export async function returnedPriorityHeads(c) {
   const result = new Map();
   result.scopeByPr = new Map();
+  result.quarantine = new Set();
+  result.latency = deliveryLatencyMetrics([]);
   try {
     const file = await c.api('GET', `${c.root}/contents/rescue-state.json?ref=${encodeURIComponent(STATE_BRANCH)}`, null, { cache: true });
     const state = decode(file);
     if (!state || state.repository !== REPOSITORY) return result;
-    for (const record of Object.values(state.records || {})) {
+    const records = Object.values(state.records || {});
+    result.latency = deliveryLatencyMetrics(records);
+    for (const record of records) {
       if (record.scope?.files?.length) result.scopeByPr.set(record.pr, record.scope);
       if (RETURNED.has(record.state) && record.state !== 'AWAITING_PUSH' && record.returnedAt) result.set(record.pr, record.pushedSha || record.headSha);
+      if (quarantineDecision(record).quarantined) result.quarantine.add(Number(record.pr));
     }
     return result;
   } catch {
-    // Rescue priority/train ordering is an optimization only. Integration safety and
-    // availability must not depend on the state branch being readable at this instant.
     return result;
   }
 }
 
 export function prioritizeReturnedReady(items, returnedHeads, now = Date.now()) {
+  const graph = dependencyGraph(items);
   const pressure = flowPressure({ ready: items.length });
+  const tuning = adaptiveFlowTuning({ ready: items.length, latency: returnedHeads.latency });
   const sorted = [...items].sort((a, b) => {
-    const pa = readyPriorityScore(a, returnedHeads, now);
-    const pb = readyPriorityScore(b, returnedHeads, now);
+    const pa = readyPriorityScore(a, returnedHeads, now, graph);
+    const pb = readyPriorityScore(b, returnedHeads, now, graph);
     if (pa.score !== pb.score) return pb.score - pa.score;
     const aCreated = Date.parse(a?.created_at || a?.updated_at || '') || 0;
     const bCreated = Date.parse(b?.created_at || b?.updated_at || '') || 0;
@@ -81,13 +92,14 @@ export function prioritizeReturnedReady(items, returnedHeads, now = Date.now()) 
     return Number(a?.number || 0) - Number(b?.number || 0);
   });
   const pinned = sorted.filter(item => {
-    const score = readyPriorityScore(item, returnedHeads, now);
+    const score = readyPriorityScore(item, returnedHeads, now, graph);
     return score.returned || score.repair;
   });
   const pinnedIds = new Set(pinned.map(item => item.number));
-  const ordinary = sorted.filter(item => !pinnedIds.has(item.number));
-  const trained = pressure.mode === 'NORMAL' ? ordinary : prioritizeIntegrationTrain(ordinary, returnedHeads.scopeByPr || new Map());
-  const result = [...pinned, ...trained];
-  result.flowControl = { ...pressure, train: trained.slice(0, 5).map(item => item.number) };
+  const ordinary = sorted.filter(item => !pinnedIds.has(item.number) && !returnedHeads.quarantine?.has(Number(item.number)));
+  const quarantined = sorted.filter(item => !pinnedIds.has(item.number) && returnedHeads.quarantine?.has(Number(item.number)));
+  const trained = pressure.mode === 'NORMAL' ? ordinary : prioritizeIntegrationTrain(ordinary, returnedHeads.scopeByPr || new Map(), { max:tuning.trainSize });
+  const result = [...pinned, ...trained, ...quarantined];
+  result.flowControl = { ...pressure, ...tuning, train: trained.slice(0, tuning.trainSize).map(item => item.number), quarantined: quarantined.map(item => item.number), criticalPath: [...graph.unblockCount.entries()].filter(([,count]) => count > 0).sort((a,b)=>b[1]-a[1]).slice(0,8) };
   return result;
 }
