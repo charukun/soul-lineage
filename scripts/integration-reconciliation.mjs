@@ -31,6 +31,41 @@ async function scopeForPr(c, pr, record) {
   return conflictScope(paths, pr.body || '');
 }
 
+function persistedPlan(plan) {
+  return {
+    schema: plan.schema,
+    repository: plan.repository,
+    develop: plan.develop,
+    generatedAt: plan.generatedAt,
+    pressure: plan.pressure,
+    counts: plan.counts,
+    writer: plan.writer,
+    writerOrder: plan.writerOrder,
+    trains: plan.trains,
+    repair: plan.repair,
+    active: plan.active,
+    blocked: plan.blocked,
+    deferred: plan.deferred,
+    wakeAgain: plan.wakeAgain,
+    actionableIdle: plan.actionableIdle,
+    evaluated: plan.evaluated,
+    totalReady: plan.totalReady,
+    concurrency: plan.concurrency,
+  };
+}
+
+export async function persistReconciliationPlan(c, plan) {
+  const store = new RescueStore(c, rescueConfig(process.env));
+  await store.initialize();
+  const view = persistedPlan(plan);
+  await store.mutate(state => {
+    state.flowControl ||= {};
+    state.flowControl.reconciliation = view;
+    return view;
+  });
+  return view;
+}
+
 export async function collectReconciliationPlan(c, repository = REPOSITORY, options = {}) {
   const open = options.open || await c.pages('/pulls?state=open&base=develop&sort=created&direction=asc', undefined, { maxPages: 10 });
   const ready = open.filter(pr => !pr.draft && pr.base?.ref === 'develop');
@@ -99,6 +134,7 @@ async function main() {
     concurrency: Number(process.env.INTEGRATION_PREFLIGHT_CONCURRENCY || 6),
     maxEvaluations: Number(process.env.INTEGRATION_MAX_EVALUATIONS || maxReadyEvaluationsPerRun),
   });
+  if (process.env.INTEGRATION_RECONCILIATION_PERSIST === 'true') await persistReconciliationPlan(c, plan);
   mkdirSync(resolve(output, '..'), { recursive: true });
   writeFileSync(output, JSON.stringify(plan, null, 2));
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT,
