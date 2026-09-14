@@ -54,7 +54,7 @@ async function recordRuntimeAudit(c, develop, audit) {
     state,
     context: 'integration-rescue/config',
     description,
-    target_url: `https://github.com/${REPOSITORY}/actions/workflows/integration-controller.yml`,
+    target_url: `https://github.com/${REPOSITORY}/actions/workflows/deploy.yml`,
   });
 }
 
@@ -74,8 +74,8 @@ async function retireExactSuperseded(c, pr, develop) {
   return true;
 }
 
-// The external watchdog dispatches Integration Controller with rescue_mode=scan.
-// This observer recovers delivery events without claiming a Rescue worker or merging.
+// The external watchdog dispatches the registered deploy.yml gateway with rescue_mode=scan.
+// That gateway calls the develop-side reusable Integration Controller.
 export async function recoverQueue(c, { now = Date.now(), limit = 24, budgetMs = 150000 } = {}) {
   const started = Date.now();
   const report = { checked: [], ciRecovery: [], wake: [], superseded: [], errors: [], dispatched: false, configAudit: null };
@@ -123,7 +123,7 @@ export async function recoverQueue(c, { now = Date.now(), limit = 24, budgetMs =
     report.configAudit = { ok: false, pending: true, reason: 'Current develop snapshot unavailable; audit deferred', expected: RESCUE_RUNTIME_TARGET, actual: null, mismatches: [] };
   }
   if (report.wake.length) {
-    await c.api('POST', `${c.root}/actions/workflows/integration-controller.yml/dispatches`, { ref: 'develop' });
+    await c.api('POST', `${c.root}/actions/workflows/deploy.yml/dispatches`, { ref: 'develop' });
     report.dispatched = true;
   }
   return report;
