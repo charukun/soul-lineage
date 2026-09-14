@@ -71,6 +71,52 @@ function group(title, records, now, staleMs, className = '') {
   const section = node('section', `rs-group ${className}`); section.append(node('h3', 'rs-group-title', title));
   const cards = node('div', 'rs-cards'); for (const r of records) cards.append(card(r, now, staleMs)); section.append(cards); return section;
 }
+function summaryMetric(label, value, note = '', tone = '') {
+  const box = node('div', `rs-summary-metric ${tone}`);
+  box.append(node('span', 'rs-summary-label', label), node('strong', 'rs-summary-value', value));
+  if (note) box.append(node('span', 'rs-summary-note', note));
+  return box;
+}
+function detailDisclosure(key, title, content) {
+  return disclosure(`rescue:${key}`, title, content, 'rs-detail-disclosure');
+}
+function waveList(view) {
+  const waves = node('section', 'rs-wave-list');
+  for (const w of view.waves.slice(0, 3)) {
+    const box = node('article', 'rs-wave'); box.append(node('strong', '', w.id), pill(w.completedAt ? 'FINISHED' : 'ACTIVE'));
+    const prs = node('p', '', 'Parallel: '); for (const pr of w.prs) prs.append(link(`#${pr}`, `pull/${pr}`), document.createTextNode(' ')); box.append(prs);
+    box.append(node('p', 'rs-note', `${w.repaired} 修復push確認 · ${w.returnedCount ?? 0} / ${w.prs.length} Integration復帰`));
+    for (const r of w.waiting) box.append(node('p', 'rs-blocker', `#${r.pr} → waiting for ${r.blockedBy.map(n => '#' + n).join(', ')}`));
+    waves.append(box);
+  }
+  return waves;
+}
+function throughput(view) {
+  const t = view.throughput;
+  const stats = node('section', 'rs-throughput');
+  stats.append(node('p', '', `Rescued ${t.rescued} · Merged ${t.merged} · Manual ${t.manual} · Retrying ${t.retrying}`));
+  stats.append(node('p', 'rs-note', 'Rescued / Mergedは同じWorkerの検証・修復push・復帰を確認できた件数。証跡未保持の履歴は含みません。'));
+  stats.append(node('p', 'rs-note', `修復証跡なしの観測: merge ${view.observed?.merged ?? 0} · DEV ${view.observed?.dev ?? 0}`));
+  return stats;
+}
+function activityFeed(view) {
+  const feed = node('section', 'rs-activity');
+  for (const e of view.activity.slice(0, 12)) {
+    const item = node('div', 'rs-event'); item.append(node('time', '', new Date(e.at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })));
+    const content = node('div'); if (e.pr) content.append(link(`#${e.pr}`, `pull/${e.pr}`)); content.append(node('p', '', e.action));
+    if (['RETURNED_TO_INTEGRATION','MERGED','DEV'].includes(e.type) && !e.repairVerified) content.append(pill('修復証跡なしの観測'));
+    item.append(content); feed.append(item);
+  }
+  if (!view.activity.length) feed.append(node('p', 'rs-note', '直近のRescueイベントはありません'));
+  return feed;
+}
+function riskLegend() {
+  const legend = node('div');
+  for (const [color, description] of [['GREEN','変更領域が独立。並列処理'],['YELLOW','一部関連あり。完了時に再確認'],['RED','競合するため先行PRの統合後に処理']]) {
+    const p = node('p'); p.append(pill(color, color.toLowerCase()), document.createTextNode(' ' + description)); legend.append(p);
+  }
+  return legend;
+}
 export function renderRescue(view, now = Date.now()) {
   if (!root) return;
   root.replaceChildren();
@@ -79,61 +125,65 @@ export function renderRescue(view, now = Date.now()) {
   }
   const c = view.counts, staleObservation = now - Date.parse(view.generatedAt) > 12 * 60000;
   const staleWorkers = view.workers.filter(r => r.state === 'STALE' || now - Date.parse(r.heartbeatAt || r.claimedAt) > view.staleMs).length;
-  const top = node('div', 'rs-overview');
-  const status = staleObservation || view.observationError ? 'OBSERVATION DELAYED' : staleWorkers ? 'WORKER STALE' : view.status.replaceAll('_', ' ');
-  top.append(node('strong', `rs-status ${view.status === 'ALL_CLEAR' ? 'green' : staleWorkers || c.manual ? 'yellow' : ''}`, status));
-  top.append(node('p', 'rs-note', `状態更新 ${age(view.generatedAt, now)} ago · GitHub state`));
-  root.append(top);
+  const attention = (c.manual || 0) + (c.retry || 0) + staleWorkers;
+  const waiting = (c.queued || 0) + (c.blocked || 0);
+  const configurationRequired = view.status === 'CONFIGURATION_REQUIRED';
+  const state = staleObservation || view.observationError ? 'delayed' : configurationRequired || attention ? 'attention' : c.active ? 'working' : waiting ? 'waiting' : 'healthy';
+  const stateLabel = configurationRequired && state === 'attention' ? '設定確認が必要' : { delayed: '状態取得に遅延', attention: '確認が必要', working: 'Rescue稼働中', waiting: 'Rescue待機中', healthy: 'ALL CLEAR' }[state];
+  const summary = node('section', `rs-summary state-${state}`);
+  const summaryHead = node('div', 'rs-summary-head');
+  const headline = node('div', 'rs-summary-status');
+  headline.append(node('span', 'rs-summary-dot'), node('div', 'rs-summary-status-copy'));
+  headline.lastElementChild.append(node('span', 'rs-summary-eyebrow', 'INTEGRATION RESCUE'), node('strong', '', stateLabel));
+  const updated = node('div', 'rs-summary-updated');
+  updated.append(node('span', '', `更新 ${age(view.generatedAt, now)} ago`), node('span', '', 'GitHub state'));
+  summaryHead.append(headline, updated);
+  const metrics = node('div', 'rs-summary-grid');
+  metrics.append(
+    summaryMetric('ACTIVE', `${c.active} / ${c.max}`, c.active ? 'workers running' : 'worker idle', c.active ? 'active' : ''),
+    summaryMetric('WAITING', waiting, `${c.queued || 0} queue · ${c.blocked || 0} blocked`, waiting ? 'waiting' : ''),
+    summaryMetric('ATTENTION', attention, `${c.manual || 0} manual · ${c.retry || 0} retry · ${staleWorkers} stale`, attention ? 'attention' : ''),
+    summaryMetric('RETURNED', c.returned || 0, `${c.validating || 0} validating · ${c.awaitingPush || 0} push待ち`, c.returned ? 'returned' : '')
+  );
+  summary.append(summaryHead, metrics);
   if (view.workers.length) {
-    const glance = node('div', 'rs-live-prs');
-    for (const r of view.workers) {
-      const item = node('div', 'rs-live-pr');
-      item.append(link(`#${r.pr}`, `pull/${r.pr}`), node('span', r.state === 'STALE' ? 'yellow' : '', labels[r.state] || r.state));
+    const glance = node('div', 'rs-summary-live');
+    glance.append(node('span', 'rs-summary-live-label', 'NOW'));
+    for (const r of view.workers.slice(0, 3)) {
+      const item = node('span', `rs-summary-live-item ${r.state === 'STALE' ? 'attention' : ''}`);
+      item.append(link(`#${r.pr}`, `pull/${r.pr}`), node('span', '', labels[r.state] || r.state));
       glance.append(item);
     }
-    root.append(glance);
+    if (view.workers.length > 3) glance.append(node('span', 'rs-summary-more', `+${view.workers.length - 3}`));
+    summary.append(glance);
+  } else {
+    summary.append(node('p', 'rs-summary-empty', view.status === 'ALL_CLEAR' ? '修復待ちはありません。Integrationは平常です。' : '実行中のWorkerはありません。'));
   }
-  if (view.coordinator?.reason) root.append(node('p', 'rs-configuration', view.coordinator.reason));
-  if (staleObservation || view.observationError) root.append(node('p', 'rs-configuration', '最新の状態を取得できていません。前回の記録を表示しています。'));
-  const metrics = node('div', 'rs-metrics');
+  if (configurationRequired && view.coordinator?.reason) summary.append(node('p', 'rs-summary-warning', view.coordinator.reason));
+  if (staleObservation || view.observationError) summary.append(node('p', 'rs-summary-warning', '最新状態を取得できていません。前回の記録を表示しています。'));
+  root.append(summary);
+
+  const detail = node('div', 'rs-detail-body');
+  if (view.coordinator?.reason) detail.append(node('p', 'rs-configuration', view.coordinator.reason));
+  if (view.coordinator?.errors?.length) detail.append(node('p', 'rs-configuration', `Coordinator: ${view.coordinator.errors.map(e => `${e.pr ? '#' + e.pr + ' ' : ''}${e.reason}`).join(' · ')}`));
+
+  const fullMetrics = node('div', 'rs-metrics');
   for (const [name, value, cls] of [['WORKERS', `${c.active} / ${c.max} ACTIVE`, 'rs-workers-total'], ['QUEUED', c.queued, ''], ['BLOCKED', c.blocked, ''], ['VALIDATING', c.validating, ''], ['WORK PUSH', c.awaitingPush || 0, ''], ['RETURNED', c.returned, ''], ['MANUAL', c.manual, ''], ['FAILED / RETRY', c.retry, ''], ['STALE', staleWorkers, '']]) {
     const tone = Number(value) > 0 && ['MANUAL','FAILED / RETRY','STALE'].includes(name) ? name === 'MANUAL' ? 'red' : 'yellow' : '';
-    const box = node('div', `rs-metric ${cls}`); box.append(node('span', '', name), node('strong', tone, value)); metrics.append(box);
+    const box = node('div', `rs-metric ${cls}`); box.append(node('span', '', name), node('strong', tone, value)); fullMetrics.append(box);
   }
-  root.append(metrics);
-  if (view.coordinator?.errors?.length) root.append(node('p', 'rs-configuration', `Coordinator: ${view.coordinator.errors.map(e => `${e.pr ? '#' + e.pr + ' ' : ''}${e.reason}`).join(' · ')}`));
-  if (view.workers.length) root.append(group('Worker Pool', view.workers, now, view.staleMs, 'rs-worker-pool'));
-  else root.append(node('p', 'rs-empty', view.status === 'ALL_CLEAR' ? '修復待ちはありません。ALL CLEAR' : '実行中のWorkerはありません'));
-  if (view.manual.length) root.append(group('Manual required', view.manual, now, view.staleMs, 'rs-manual-list'));
-  if (view.waves.length) {
-    const waves = node('section', 'rs-wave-list'); waves.append(node('h3', 'rs-group-title', 'Rescue Waves'));
-    for (const w of view.waves.slice(0, 3)) {
-      const box = node('article', 'rs-wave'); box.append(node('strong', '', w.id), pill(w.completedAt ? 'FINISHED' : 'ACTIVE'));
-      const prs = node('p', '', 'Parallel: '); for (const pr of w.prs) prs.append(link(`#${pr}`, `pull/${pr}`), document.createTextNode(' ')); box.append(prs);
-      box.append(node('p', 'rs-note', `${w.repaired} 修復push確認 · ${w.returnedCount ?? 0} / ${w.prs.length} Integration復帰`));
-      for (const r of w.waiting) box.append(node('p', 'rs-blocker', `#${r.pr} → waiting for ${r.blockedBy.map(n => '#' + n).join(', ')}`));
-      waves.append(box);
-    }
-    root.append(waves);
-  }
-  if (view.queue.length) root.append(group('Queue · 次Wave候補 / 順番待ち', view.queue, now, view.staleMs, 'rs-queue'));
-  if (view.recent.length) root.append(group('修復・再評価・Integration / DEV観測', view.recent, now, view.staleMs, 'rs-recent'));
-  const t = view.throughput;
-  const stats = node('section', 'rs-throughput'); stats.append(node('h3', 'rs-group-title', 'Last 24h · 保持記録内'));
-  stats.append(node('p', '', `Rescued ${t.rescued} · Merged ${t.merged} · Manual ${t.manual} · Retrying ${t.retrying}`)); root.append(stats);
-  stats.append(node('p', 'rs-note', 'Rescued / Mergedは同じWorkerの検証・修復push・復帰を確認できた件数。証跡未保持の履歴は含みません。'));
-  stats.append(node('p', 'rs-note', `修復証跡なしの観測: merge ${view.observed?.merged ?? 0} · DEV ${view.observed?.dev ?? 0}`));
-  const feed = node('section', 'rs-activity'); feed.append(node('h3', 'rs-group-title', 'Recent activity'));
-  for (const e of view.activity.slice(0, 12)) {
-    const item = node('div', 'rs-event'); item.append(node('time', '', new Date(e.at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })));
-    const content = node('div'); if (e.pr) content.append(link(`#${e.pr}`, `pull/${e.pr}`)); content.append(node('p', '', e.action));
-    if (['RETURNED_TO_INTEGRATION','MERGED','DEV'].includes(e.type) && !e.repairVerified) content.append(pill('修復証跡なしの観測'));
-    item.append(content); feed.append(item);
-  }
-  if (!view.activity.length) feed.append(node('p', 'rs-note', '直近のRescueイベントはありません'));
-  root.append(feed);
-  const legend = node('div'); for (const [color, description] of [['GREEN','変更領域が独立。並列処理'],['YELLOW','一部関連あり。完了時に再確認'],['RED','競合するため先行PRの統合後に処理']]) { const p = node('p'); p.append(pill(color, color.toLowerCase()), document.createTextNode(' ' + description)); legend.append(p); }
-  root.append(disclosure('rescue:risk-info', 'GREEN / YELLOW / RED の意味', legend));
+  detail.append(detailDisclosure('metrics', '全ステータス', fullMetrics));
+  if (view.workers.length) detail.append(detailDisclosure('workers', `Worker Pool (${view.workers.length})`, group('', view.workers, now, view.staleMs, 'rs-worker-pool')));
+  if (view.manual.length) detail.append(detailDisclosure('manual', `Manual required (${view.manual.length})`, group('', view.manual, now, view.staleMs, 'rs-manual-list')));
+  if (view.waves.length) detail.append(detailDisclosure('waves', `Rescue Waves (${view.waves.length})`, waveList(view)));
+  if (view.queue.length) detail.append(detailDisclosure('queue', `Queue / 順番待ち (${view.queue.length})`, group('', view.queue, now, view.staleMs, 'rs-queue')));
+  if (view.recent.length) detail.append(detailDisclosure('recent', `修復・Integration / DEV観測 (${view.recent.length})`, group('', view.recent, now, view.staleMs, 'rs-recent')));
+  detail.append(detailDisclosure('throughput', 'Last 24h / throughput', throughput(view)));
+  detail.append(detailDisclosure('activity', `Recent activity (${Math.min(view.activity.length, 12)})`, activityFeed(view)));
+  detail.append(detailDisclosure('risk-info', 'GREEN / YELLOW / RED の意味', riskLegend()));
+
+  const detailTitle = `詳細を見る · Worker ${view.workers.length} · Queue ${view.queue.length} · Attention ${attention}`;
+  root.append(disclosure('rescue:details', detailTitle, detail, 'rs-drilldown'));
 }
 let latest = null;
 subscribe((state, error) => { if (!state || error) return; latest = state.integrationRescue; renderRescue(latest); });
