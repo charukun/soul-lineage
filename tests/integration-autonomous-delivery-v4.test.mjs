@@ -86,7 +86,7 @@ test('adaptive throughput remains bounded from normal operation through burn-dow
   assert.deepEqual([unstable.trainSize,unstable.rescueConcurrency,unstable.maxEvaluations],[2,3,12]);
 });
 
-test('workflow contracts keep exact-head validation, candidate promotion, LKG fallback and no paid model API', async () => {
+test('workflow contracts keep exact-head validation, reconciliation topology, candidate promotion, LKG fallback and no paid model API', async () => {
   const { readFileSync } = await import('node:fs');
   const ci = readFileSync('.github/workflows/ci.yml','utf8');
   const deploy = readFileSync('.github/workflows/deploy.yml','utf8');
@@ -101,8 +101,12 @@ test('workflow contracts keep exact-head validation, candidate promotion, LKG fa
   assert.match(deploy,/Restore Last Known Good DEV/);
   assert.match(deploy,/integration\/dev-fallback/);
   assert.match(controller,/integration-controller-develop/);
+  assert.match(controller,/Reconcile current GitHub reality/);
+  assert.match(controller,/Validate planned Virtual Integration Train/);
+  assert.match(controller,/Serialized expected-head writer/);
   assert.match(controller,/publisher-handoff:[\s\S]*publish_only: 'true'/);
-  assert.match(rescue,/Observe flow pressure and repair knowledge/);
-  assert.match(rescue,/Validate Virtual Integration Train/);
+  assert.match(rescue,/Observe repair pressure and knowledge/);
+  assert.match(rescue,/Plan repair executor wave/);
+  assert.doesNotMatch(rescue,/Validate (planned )?Virtual Integration Train/);
   assert.doesNotMatch(`${ci}\n${deploy}\n${controller}\n${rescue}`,/OPENAI_API_KEY|openai\/codex-action|RINNE_CODEX_MODEL/);
 });
