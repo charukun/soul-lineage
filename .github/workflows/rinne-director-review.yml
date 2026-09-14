@@ -1,4 +1,5 @@
 name: Rinne Director Review
+# Final disposable pass after visual review rejected broad building transparency.
 on:
   push:
     branches: [fix/rinne-director-playability-loop]
