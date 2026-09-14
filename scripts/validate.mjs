@@ -15,6 +15,8 @@ const selected = full ? [...nodes.keys()] : [...new Set([
   ...plan.packages.flatMap(name => [...closure(nodes, name)]),
 ])];
 console.log(JSON.stringify({ mode: full ? 'full' : 'fast', workspaces: selected, plan }, null, 2));
+if (!full && !deploy) run(process.execPath, ['scripts/visual-budget.mjs', 'guard', process.argv[3], process.argv[4]]);
+if (full) run(process.execPath, ['scripts/visual-budget.mjs', 'audit']);
 if (!selected.length && !plan?.infrastructure) process.exit(0);
 run(process.execPath, ['scripts/check.mjs', ...selected]);
 if (full || selected.includes('@soul/characters')) run(process.execPath, ['scripts/check-character-production.mjs']);
