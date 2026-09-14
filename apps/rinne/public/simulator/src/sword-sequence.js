@@ -56,10 +56,7 @@ export function swordSequenceTravel(sequence,seconds,poseScale=1){
  return {x,z,vx,vz};
 }
 
-// Keep the four-second reference window active with the same existing attacks.
-// Ending after the heavy cut left more than a second of neutral guard and hid
-// whether its recovery could hand momentum into another lateral phrase.
-export const SHORT_SWORD_SEQUENCE=createSwordSequence(['slash','back','uppercut','slash','back','thrust','heavy','slash','back']);
+export const SHORT_SWORD_SEQUENCE=createSwordSequence(['slash','back','uppercut','slash','back','thrust','heavy']);
 export const SHORT_SWORD_SECONDS=4;
 export function applySwordSequence(actor,sequence,seconds,{start=0}={}) {
  const frame=swordSequenceFrame(sequence,seconds-start),row=sequence.entries[frame.index];
