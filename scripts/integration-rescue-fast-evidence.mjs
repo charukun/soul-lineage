@@ -19,12 +19,15 @@ export async function reusableRescueFastEvidence(c, prNumber, headSha) {
   if (!record || record.mode === 'reevaluate') return null;
   if (record.pushedSha !== headSha || record.stagedSha !== headSha) return null;
   if (record.validation?.status !== 'passed' || record.validation.head !== headSha || !record.validation.testedTree || record.validation.testedTree !== record.stagedTree) return null;
-  if (!record.runId || !record.rescueId || !record.claimedBy) return null;
+  if (!record.runId || !record.rescueId || !record.claimedBy || !Array.isArray(record.stagedParents) || record.stagedParents.length !== 2) return null;
 
   const commit = await c.api('GET', `${c.root}/git/commits/${headSha}`);
   if (commit.tree?.sha !== record.stagedTree) return null;
+  if (commit.parents?.length !== 2 || commit.parents.some((parent, index) => parent.sha !== record.stagedParents[index])) return null;
   const run = await c.api('GET', `${c.root}/actions/runs/${record.runId}`);
   if (run.repository?.full_name !== REPOSITORY || run.head_branch !== 'develop' || run.path !== '.github/workflows/deploy.yml' || run.status !== 'completed' || run.conclusion !== 'success') return null;
+  const artifacts = await c.pages(`/actions/runs/${record.runId}/artifacts`, 'artifacts', { maxPages: 3 });
+  if (!artifacts.some(item => item.name === `integration-rescue-pr-${prNumber}-${record.rescueId}` && !item.expired)) return null;
   const jobs = await c.pages(`/actions/runs/${record.runId}/jobs?filter=latest`, 'jobs', { maxPages: 3 });
   const job = jobs.find(item => item.name === `Rescue PR ${prNumber}` || item.name?.endsWith(` / Rescue PR ${prNumber}`));
   if (job?.status !== 'completed' || job.conclusion !== 'success') return null;
