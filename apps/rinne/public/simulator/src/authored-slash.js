@@ -8,7 +8,7 @@ export const SLASH_SECONDS = .66;
 export const SLASH_TIMING = Object.freeze({active:Object.freeze([.35,.64]),contact:.50,launch:.34,plant:.49,chain:.86,lead:1});
 // Free hand envelope reconciled with develop PR #156.
 export const SWORD_FREE_GUARD=Object.freeze([.16,-.29,.20]);
-export const SLASH_REVISION = 'shino-slash-8';
+export const SLASH_REVISION = 'shino-slash-9';
 const clamp = (x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 
 // Monotone cubic interpolation keeps momentum through intermediate poses without
