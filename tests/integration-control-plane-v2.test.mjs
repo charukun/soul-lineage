@@ -28,10 +28,10 @@ test('DEV success wakes the registered gateway and runs canary', () => {
   assert.doesNotMatch(recovery, /actions\/workflows\/integration-controller\.yml\/dispatches/);
 });
 
-test('registered deploy gateway coalesces wakeups before admitting controller work', () => {
+test('controller concurrency keeps one active and one latest follow-up without dropping the newest wake', () => {
+  const controller = read('.github/workflows/integration-controller.yml');
   const deploy = read('.github/workflows/deploy.yml');
-  assert.match(deploy, /Coalesce Integration wakeup/);
-  assert.match(deploy, /coalesced behind run/);
-  assert.match(deploy, /integration\/wakeup/);
-  assert.match(deploy, /run_control/);
+  assert.match(controller, /concurrency:\s*\n\s*group: integration-controller-develop\s*\n\s*cancel-in-progress: false/s);
+  assert.match(controller, /duplicate wakeups are coalesced by concurrency/);
+  assert.doesNotMatch(deploy, /run_control|Coalesce Integration wakeup/);
 });
