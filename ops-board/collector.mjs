@@ -57,7 +57,6 @@ async function previewEnvironment(candidate, branches, previous, client) {
   let publicStatus = prior?.deployedCommit === success.head_sha ? prior.publicStatus : null;
   if (!publicStatus?.targetUrl) {
     const { data } = await client.get(`/commits/${success.head_sha}/status`);
-    // A failed action is not proof of deployment; accept only a successful public status.
     const selected = (data.statuses || []).find(status => status.state === 'success' && /\/public$/.test(status.context || '') && /^https:\/\//.test(status.target_url || ''));
     if (!selected) return null;
     publicStatus = { state: selected.state, context: selected.context, targetUrl: selected.target_url, updatedAt: selected.updated_at || selected.created_at || null };
@@ -93,6 +92,8 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     const { data: actions } = await client.get('/actions/runs?per_page=100');
     const runs = Array.isArray(actions?.workflow_runs) ? actions.workflow_runs : [];
     const developRuns = runs.filter(run => run.name === 'Deploy DEV and PROD' && run.head_branch === 'develop');
+    const controllerRuns = runs.filter(run => run.name === 'Integration Controller' && run.head_branch === 'develop');
+    const controlRuns = [...developRuns, ...controllerRuns].sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
     const mainRuns = runs.filter(run => run.name === 'Deploy DEV and PROD' && run.head_branch === 'main');
     const previousById = new Map((previous?.environments || []).map(env => [env.id, env]));
     let dev = environmentFromManifest('dev', manifest, branches.get('develop')?.commit?.sha || null, developRuns[0]);
@@ -109,21 +110,21 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     const applications = buildApplications(manifest, [dev, staging, prod, ...previews], runs);
     const openPulls = allPulls.filter(pr => pr.state === 'open' && !isVisualReviewPull(pr)).sort((a, b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0));
     const integrationQueue = openPulls.map(pr => classifyPull(pr, runs, developRuns));
-    const integration = overallIntegration(integrationQueue, developRuns[0], [dev.deployQueue, prod.deployQueue]);
+    const integration = overallIntegration(integrationQueue, controllerRuns[0] || developRuns[0], [dev.deployQueue, prod.deployQueue]);
     const alerts = [];
     for (const item of integrationQueue.filter(item => item.warning)) alerts.push({ type: 'stalled-ready-pr', tone: 'danger', title: `#${item.number} がIntegration滞留`, detail: item.reason, url: item.url, since: item.eligibleSince });
     for (const env of [dev, prod]) {
       if (env.deployQueue?.warning) alerts.push({ type: 'branch-diverged', tone: 'danger', title: `${env.name} の公開版とブランチの系譜を確認`, detail: `${env.deployQueue.state}: ahead ${env.deployQueue.commitsAhead}, behind ${env.deployQueue.commitsBehind}`, url: env.url });
       else if ((env.deployQueue?.commitsAhead || 0) > 0) alerts.push({ type: 'deploy-wait', tone: 'warning', title: `${env.name} 公開待ち`, detail: `${env.deployQueue.commitsAhead} commit 未公開`, url: env.url });
     }
-    if (workflowFailure(developRuns[0])) alerts.push({ type: 'integration-failed', tone: 'danger', title: '自動統合処理が失敗', detail: developRuns[0].conclusion, url: developRuns[0].html_url });
-    // Target lookup is optional: a rate-limit here must not discard fresh deploy/CI facts.
+    if (workflowFailure(developRuns[0])) alerts.push({ type: 'delivery-failed', tone: 'danger', title: 'DEV公開処理が失敗', detail: developRuns[0].conclusion, url: developRuns[0].html_url });
+    if (workflowFailure(controllerRuns[0])) alerts.push({ type: 'integration-failed', tone: 'danger', title: 'Integration Controllerが失敗', detail: controllerRuns[0].conclusion, url: controllerRuns[0].html_url });
     const integrationRescue = await collectRescue(client, previous?.integrationRescue);
-    let controlPlane = controlPlaneHealth({ statuses: [], runs: developRuns });
+    let controlPlane = controlPlaneHealth({ statuses: [], runs: controlRuns, queue: integrationQueue });
     if (dev.branchCommit) {
       try {
         const { data: status } = await client.get(`/commits/${dev.branchCommit}/status`);
-        controlPlane = controlPlaneHealth({ statuses: status.statuses || [], runs: developRuns });
+        controlPlane = controlPlaneHealth({ statuses: status.statuses || [], runs: controlRuns, queue: integrationQueue });
       } catch (error) {
         controlPlane.observationError = String(error.message || error).slice(0, 240);
       }
@@ -137,7 +138,7 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
       syncSource: 'GitHub API + published deployment manifests/statuses', githubRateRemaining: client.remaining,
       pullRequests: { ...pullRequests, total: allPulls.length, truncated: !pullsComplete, targetLookup: { ready: targets.ready, pending: targets.pending, unavailable: targets.unavailable, attempted: targets.attempted } },
       applications, applicationsUpdatedAt: now, applicationsSource: 'public-manifest', environments: [dev, staging, prod, ...previews], environmentDiff: environmentDiff(dev, prod),
-      integration: { ...integration, queue: integrationQueue, latestRun: runView(developRuns[0]), deployWaiting: dev.deployQueue?.pulls || [], watchdog: { stalledThresholdMinutes: 10, staleReadyCount: integrationQueue.filter(item => item.warning).length }, controlPlane },
+      integration: { ...integration, queue: integrationQueue, latestRun: runView(controllerRuns[0] || developRuns[0]), latestDeliveryRun: runView(developRuns[0]), deployWaiting: dev.deployQueue?.pulls || [], watchdog: { stalledThresholdMinutes: 10, staleReadyCount: integrationQueue.filter(item => item.warning).length }, controlPlane },
       integrationRescue, recentActionFailures: failures.current.map(runView), actionHistory: failures.history.map(runView), alerts,
       publicManifest: { url: manifestUrl.origin + manifestUrl.pathname, schemaVersion: manifest.schemaVersion, validatedDevelop: manifest.validatedDevelop || null, environmentSnapshots: manifest.environmentSnapshots || null } };
   } finally { await client.prune(); }
