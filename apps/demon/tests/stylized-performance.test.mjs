@@ -19,5 +19,6 @@ test('demon adaptive bridge controls GPU/CPU/thermal costs while preserving enem
 test('demon resilience prewarms combat shaders and protects context loss recovery',()=>{
   for(const token of ['createShaderWarmupManager','createResourceLeakSentinel','installWebGLContextRecovery','installStylizedBakedLighting','installSilhouetteImpostorLOD','view.spark','view.slash'])assert.match(resilience,new RegExp(token.replace('.','\\.')));
   assert.match(resilience,/context-restored/);assert.match(resilience,/character-ready/);
+  assert.match(resilience,/beforeChildren/);assert.match(resilience,/disposeWarmupMesh/);
   assert.doesNotMatch(resilience,/game\.(player|village|time)\s*=/);
 });
