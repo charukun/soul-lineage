@@ -17,31 +17,31 @@ export async function returnToIntegration(c, store, now = Date.now()) {
   const pending = reserved.result;
   if (!pending.length) return [];
   try {
-  const checked = [];
-  for (const r of pending.slice(0, store.config.maxConcurrency)) {
-    const pr = await c.api('GET', `${c.root}/pulls/${r.pr}`);
-    if (pr.head.sha !== (r.pushedSha || r.headSha)) {
-      await store.mutate(state => {
-        const current = state.records[r.pr];
-        if (current?.rescueId !== r.rescueId || current.dispatchLease?.id !== lease) return;
-        current.dispatchLease = null; current.pendingIntegration = false;
-        failure(state, current, 'HEAD_CHANGED_BEFORE_INTEGRATION_RETURN', now);
-      });
-      continue;
+    const checked = [];
+    for (const r of pending.slice(0, store.config.maxConcurrency)) {
+      const pr = await c.api('GET', `${c.root}/pulls/${r.pr}`);
+      if (pr.head.sha !== (r.pushedSha || r.headSha)) {
+        await store.mutate(state => {
+          const current = state.records[r.pr];
+          if (current?.rescueId !== r.rescueId || current.dispatchLease?.id !== lease) return;
+          current.dispatchLease = null; current.pendingIntegration = false;
+          failure(state, current, 'HEAD_CHANGED_BEFORE_INTEGRATION_RETURN', now);
+        });
+        continue;
+      }
+      checked.push({ pr: r.pr, rescueId: r.rescueId, head: pr.head.sha });
     }
-    checked.push({ pr: r.pr, rescueId: r.rescueId, head: pr.head.sha });
-  }
-  if (!checked.length) return [];
-  await c.api('POST', `${c.root}/actions/workflows/deploy.yml/dispatches`, { ref: 'develop' });
-  await store.mutate(state => {
-    for (const item of checked) {
-      const r = state.records[item.pr];
-      if (r?.rescueId !== item.rescueId || !r.pendingIntegration || r.dispatchLease?.id !== lease) continue;
-      r.pendingIntegration = false; r.dispatchLease = null; r.integrationRequestedAt = new Date(now).toISOString();
-      transition(state, r, 'CHECKING', 'Integrationへ再評価を依頼済み。Rescue返却PRを優先して現在headの通常gateを確認', now);
-    }
-  });
-  return checked.map(r => r.pr);
+    if (!checked.length) return [];
+    await c.api('POST', `${c.root}/actions/workflows/deploy.yml/dispatches`, { ref: 'develop' });
+    await store.mutate(state => {
+      for (const item of checked) {
+        const r = state.records[item.pr];
+        if (r?.rescueId !== item.rescueId || !r.pendingIntegration || r.dispatchLease?.id !== lease) continue;
+        r.pendingIntegration = false; r.dispatchLease = null; r.integrationRequestedAt = new Date(now).toISOString();
+        transition(state, r, 'CHECKING', 'Integrationへ再評価を依頼済み。Rescue返却PRを優先して現在headの通常gateを確認', now);
+      }
+    });
+    return checked.map(r => r.pr);
   } catch (error) {
     await store.mutate(state => {
       for (const item of pending) {
@@ -62,7 +62,7 @@ export async function reconcileReadyStacks(c, { limit = 4 } = {}) {
   const result = [];
   for (const pr of candidates) {
     try {
-      const outcome = await reconcileStack(c, pr, develop);
+      const outcome = await reconcileStack(c, pr, develop, { write:true });
       if (!['not-stacked','dependency-wait','safety-hold','already-current'].includes(outcome.state)) result.push({ pr:pr.number, ...outcome });
     } catch (error) { result.push({ pr:pr.number, state:'error', reason:error.message }); }
   }
@@ -115,20 +115,20 @@ export async function notifyOutbox(c, store, { url = '', token = '', request = f
       : `Integration Rescue\nFAILED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: human or approved Work review required` :
       `Integration Rescue\nREADY_FOR_INTEGRATION\nWave: ${item.wave}\nReturned to Integration: ${item.prs.map(n => '#' + n).join(' ')}\nManual: ${item.manual.map(n => '#' + n).join(' ') || 'none'}\nCI/browser monitoring: Integration; repair workers ended`;
     try {
-    if (aiRepair) await signalWorkRepair(c, item, record, message);
-    if (url) {
-      if (!url.startsWith('https://')) throw new Error('NTFY_HTTPS_REQUIRED');
-      const response = await request(url, { method: 'POST', headers: { 'Content-Type': 'text/plain; charset=utf-8', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: message, signal: AbortSignal.timeout(10000) });
-      if (!response.ok) throw new Error(`NTFY_FAILED:${response.status}`);
-    } else if (item.type === 'manual' && !aiRepair) {
-      const marker = `<!-- integration-rescue-notice:${item.id} -->`;
-      const comments = await c.pages(`/issues/${item.pr}/comments`, undefined, { maxPages: 3 });
-      if (!comments.some(comment => comment.body?.includes(marker))) await c.api('POST', `${c.root}/issues/${item.pr}/comments`, { body: `${marker}\n${message}` });
-    }
-    await store.mutate(state => {
-      const entry = state.outbox.find(n => n.id === item.id);
-      if (entry) { entry.sentAt = new Date().toISOString(); entry.channel = aiRepair ? 'github-pr+work-signal' : url ? 'ntfy' : item.type === 'manual' ? 'github-pr' : 'pulse-summary'; }
-    });
+      if (aiRepair) await signalWorkRepair(c, item, record, message);
+      if (url) {
+        if (!url.startsWith('https://')) throw new Error('NTFY_HTTPS_REQUIRED');
+        const response = await request(url, { method: 'POST', headers: { 'Content-Type': 'text/plain; charset=utf-8', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: message, signal: AbortSignal.timeout(10000) });
+        if (!response.ok) throw new Error(`NTFY_FAILED:${response.status}`);
+      } else if (item.type === 'manual' && !aiRepair) {
+        const marker = `<!-- integration-rescue-notice:${item.id} -->`;
+        const comments = await c.pages(`/issues/${item.pr}/comments`, undefined, { maxPages: 3 });
+        if (!comments.some(comment => comment.body?.includes(marker))) await c.api('POST', `${c.root}/issues/${item.pr}/comments`, { body: `${marker}\n${message}` });
+      }
+      await store.mutate(state => {
+        const entry = state.outbox.find(n => n.id === item.id);
+        if (entry) { entry.sentAt = new Date().toISOString(); entry.channel = aiRepair ? 'github-pr+work-signal' : url ? 'ntfy' : item.type === 'manual' ? 'github-pr' : 'pulse-summary'; }
+      });
     } catch (error) {
       await store.mutate(state => {
         const entry = state.outbox.find(n => n.id === item.id);
