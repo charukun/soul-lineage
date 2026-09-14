@@ -34,8 +34,8 @@ test('new form and permanent max health reflect the actual before/after profile'
 test('legacy equipment slots never suppress a permanently devoured power',()=>{
  const {game,store}=fixture();for(const role of ['traveller','bellkeeper','hunter'])store.unlock(role);game.refreshProfile(store.read());
  game.consume({...game.village.npcs[0],id:'smith',role:'smith'});const e=consumeEvent(game);
- assert.equal(e.reward.equipped,true);assert.equal(e.reward.maxHpGain,65);assert.match(feastReward(e).detail,/生命/);assert.equal(store.read().equipped.length,3);
- assert.equal(game.has('smith'),true);assert.equal(game.player.maxhp,295);
+ assert.equal(e.reward.equipped,true);assert.equal(e.reward.maxHpGain,140);assert.match(feastReward(e).detail,/生命/);assert.equal(store.read().equipped.length,3);
+ assert.equal(game.has('smith'),true);assert.equal(game.player.maxhp,370);assert.equal(game.profile.form,'brute');
 });
 test('reward envelopes are finite, reduced motion has no dolly, and effects expire',()=>{
  for(let i=0;i<=100;i++)for(const age of [0,.05,.3,1,2,2.4,Infinity]){const s=feastEnvelope(i/100,age,{reducedMotion:true});assert.equal(s.camera,0);for(const value of Object.values(s))if(typeof value==='number')assert.ok(Number.isFinite(value)&&value>=0&&value<=1);}
