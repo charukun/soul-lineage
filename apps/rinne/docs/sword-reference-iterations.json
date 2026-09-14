@@ -3,10 +3,10 @@
     "id": "2026-09-14-full-body-authoring-100",
     "status": "incomplete",
     "target": 100,
-    "completed": 44,
-    "remaining": 56,
+    "completed": 54,
+    "remaining": 46,
     "baseline_commit": "f2da2524a627e5e4057be1cd9a18e03a22b32282",
-    "latest_commit": "d6f6c9670f3460ff8a7b574829080c65c72685e3",
+    "latest_commit": "7ba23edb35ac5861b8ce8ab1086d56746e72256c",
     "reference": {
       "asset": "apps/rinne/public/simulator/assets/review/reference-sword-4s.mp4",
       "range": [
@@ -34,9 +34,9 @@
       ],
       "per_pass_fps": 30,
       "final_fps": 30,
-      "transient_root": "/tmp/rinne-pass25-* through /tmp/rinne-pass44-*",
-      "final_comparison": "/tmp/rinne-batch-final-1909-v2/combination-three-30fps.mp4",
-      "performance_sample": "/tmp/rinne-performance-final-1909-v2 (30 seconds at 6 fps)",
+      "transient_root": "/tmp/rinne-pass25-* through /tmp/rinne-pass54-*",
+      "final_comparison": "/tmp/rinne-batch-final-2009/combination-1x.mp4 (plus half/quarter-speed encodes)",
+      "performance_sample": "/tmp/rinne-performance-final-2009 (30 seconds at 6 fps)",
       "normal_speed_review": "30 fps encode generated; direct media playback unavailable in this execution environment, so primary remains revise",
       "webgl": "public Lab attempted; THREE.WebGLRenderer failed to create a WebGL context",
       "physical_device_fps": "not verified"
@@ -50,7 +50,7 @@
       "primary": {
         "status": "revise",
         "outcome": "unverified",
-        "observation": "Twenty further full-body corrections improved load/contact/recovery contrast and kept the four-second phrase active; two regressing candidates were explicitly reverted. Uppercut, reverse cut, heavy compression and thrust opposition were refined in passes 39–44. Direct normal-speed playback remains unavailable, so primary remains revise."
+        "observation": "Thirty further full-body corrections improved load/contact/recovery contrast and kept the four-second phrase active; two regressing candidates were explicitly reverted. Passes 45–54 widened slash/uppercut travel, strengthened pelvis-first reverse/heavy cuts, delayed chest release and added heavy-cut counterbalance. Direct normal-speed playback remains unavailable, so primary remains revise."
       },
       "polish": {
         "status": "pending",
@@ -546,6 +546,116 @@
         "evidence": "/tmp/rinne-pass44-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
         "result": "The sword arm extends against a bent counterarm (minimum 54.6 degrees), producing a clearer opposed torso silhouette without loosening the grip.",
         "remaining": "Cloth/hair clearance, MToon/WebGL and direct 1x playback remain unverified."
+      },
+      {
+        "iteration": 45,
+        "reference_interval": "2.5–3.5 s original",
+        "finding": "The slash centre stayed too close to its starting line while the reference loads support-side and traverses through contact.",
+        "correction": "Widen the slash pelvis offsets from support-side load through contact and recovery.",
+        "before": "0464f67ad7417d7fc4b8e21f1f2abd6f7932084c",
+        "after": "81b93c0837d2fdcd2e24058d6f7adc6c69a8bfba",
+        "evidence": "/tmp/rinne-pass45-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "Actual-mesh views show broader weight transfer while support contact remains stable.",
+        "remaining": "Reference screen travel is still substantially larger."
+      },
+      {
+        "iteration": 46,
+        "reference_interval": "2.5–3.5 s original",
+        "finding": "Slash pelvis rotation stopped immediately after contact and left the recovery under the weapon hand.",
+        "correction": "Carry hip yaw and roll farther through post-contact phases.",
+        "before": "81b93c0837d2fdcd2e24058d6f7adc6c69a8bfba",
+        "after": "5f9ddca8704ffae3a51c9308f584ad1a4d22191a",
+        "evidence": "/tmp/rinne-pass46-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "The recovery retains whole-body turn longer without changing the native contact clock.",
+        "remaining": "Normal-speed release contrast remains unverified."
+      },
+      {
+        "iteration": 47,
+        "reference_interval": "2.5–3.5 s original",
+        "finding": "Slash chest and pelvis crossed nearly together, flattening the ground-to-weapon sequence.",
+        "correction": "Retain chest coil after pelvis release and enlarge its later overtake.",
+        "before": "5f9ddca8704ffae3a51c9308f584ad1a4d22191a",
+        "after": "a7f3d6e297cf0341ca661f6b89294bc5d1caf2c8",
+        "evidence": "/tmp/rinne-pass47-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "Sequential frames show a clearer pelvis-first slash followed by chest release.",
+        "remaining": "Reference acceleration and shoulder/arm lag are still stronger."
+      },
+      {
+        "iteration": 48,
+        "reference_interval": "3.0–4.0 s original",
+        "finding": "The reverse cut remained chest/weapon-led at the start of its counter-rotation.",
+        "correction": "Start the reverse-cut pelvis turn earlier and widen it through contact.",
+        "before": "a7f3d6e297cf0341ca661f6b89294bc5d1caf2c8",
+        "after": "654b272bc9c6522efd00ac9a76f0d0a9011ab430",
+        "evidence": "/tmp/rinne-pass48-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "Actual-mesh frames show clearer support-to-countercut preparation.",
+        "remaining": "The target's lateral counterstep remains broader."
+      },
+      {
+        "iteration": 49,
+        "reference_interval": "3.0–4.0 s original",
+        "finding": "Reverse-cut chest still crossed with the pelvis instead of overtaking after it.",
+        "correction": "Delay the chest crossing and increase its later counter-rotation.",
+        "before": "654b272bc9c6522efd00ac9a76f0d0a9011ab430",
+        "after": "77cd32c70592aafaed5e59df3c83a68df2e9f52d",
+        "evidence": "/tmp/rinne-pass49-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "The upper-body reversal now follows rather than coincides with pelvic release.",
+        "remaining": "Reference follow-through carries farther into the next technique."
+      },
+      {
+        "iteration": 50,
+        "reference_interval": "3.16–4.0 s original",
+        "finding": "The uppercut climbed along an almost vertical centre path with too little support-to-apex traverse.",
+        "correction": "Widen uppercut lateral pelvis offsets from low load to overhead apex.",
+        "before": "77cd32c70592aafaed5e59df3c83a68df2e9f52d",
+        "after": "bebb02303b70d798de8992ddd61323d0fd79ebbb",
+        "evidence": "/tmp/rinne-pass50-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "The rising sword now carries the body farther across the support line while remaining grounded.",
+        "remaining": "The reference rise spans more screen space and rotates more fully."
+      },
+      {
+        "iteration": 51,
+        "reference_interval": "3.16–4.0 s original",
+        "finding": "Uppercut chest turn remained small and arrived too close to pelvis release.",
+        "correction": "Delay the initial chest response and expand its apex turn.",
+        "before": "bebb02303b70d798de8992ddd61323d0fd79ebbb",
+        "after": "35705087f228c62604d3c9e8efb6815647e762ba",
+        "evidence": "/tmp/rinne-pass51-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "Actual-mesh frames show the torso following leg and pelvis drive into the apex.",
+        "remaining": "Normal-speed snap and cloth/hair clearance are unverified."
+      },
+      {
+        "iteration": 52,
+        "reference_interval": "4.0–6.5 s original",
+        "finding": "The free arm reached forward during the heavy overhead load and weakened counterbalance.",
+        "correction": "Pull the bent free-arm target behind the ribs during load, then release it after contact.",
+        "before": "35705087f228c62604d3c9e8efb6815647e762ba",
+        "after": "9b8f31f587ba0939bb5cfe33660156b813550e1e",
+        "evidence": "/tmp/rinne-pass52-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "Side frames show a clearer opposed overhead silhouette with a minimum 51.7-degree counterarm bend.",
+        "remaining": "Reference overhead anticipation is deeper and more expansive."
+      },
+      {
+        "iteration": 53,
+        "reference_interval": "4.0–6.5 s original",
+        "finding": "Heavy-cut pelvis yaw was too small, leaving the overhead-to-downward action mostly sagittal and arm-led.",
+        "correction": "Increase pelvic wind-up and reverse it more strongly through the unchanged contact.",
+        "before": "9b8f31f587ba0939bb5cfe33660156b813550e1e",
+        "after": "176e6bc4c6a80380c5f99cc755bc617f9d25c5ca",
+        "evidence": "/tmp/rinne-pass53-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "The whole body now turns more clearly beneath the overhead blade while grip and floor diagnostics pass.",
+        "remaining": "Reference full-body rotation and release speed remain larger."
+      },
+      {
+        "iteration": 54,
+        "reference_interval": "4.0–6.5 s original",
+        "finding": "Heavy-cut chest still released with the pelvis, reducing the visible ground-to-weapon delay.",
+        "correction": "Hold chest coil through pelvic release and overtake during downward follow-through.",
+        "before": "176e6bc4c6a80380c5f99cc755bc617f9d25c5ca",
+        "after": "7ba23edb35ac5861b8ce8ab1086d56746e72256c",
+        "evidence": "/tmp/rinne-pass54-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "Front, three-quarter and side sequences retain grounding and show a clearer pelvis-to-chest release.",
+        "remaining": "Direct 1x playback, WebGL/MToon, cloth/hair clearance and device fps remain unverified."
       }
     ]
   },

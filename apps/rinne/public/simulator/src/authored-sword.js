@@ -1,6 +1,6 @@
 /** Companion cuts for Shino. Same canonical rig/IK as the approved slash. */
 import {poseCurve,sampleSlashPose,slashTime,applySwordPose,SLASH_SECONDS,SLASH_TIMING} from './authored-slash.js';
-export const SWORD_REVISION='shared-sword-11';
+export const SWORD_REVISION='shared-sword-12';
 export const SWORD_MOVES=Object.freeze(Object.fromEntries([
  ['slash','流し斬り',SLASH_SECONDS],['back','斬り返し',.69],['thrust','刺し貫く',.67],['uppercut','斬り上げる',.74],['heavy','叩き斬る',.98],
 ].map(([kind,label,seconds])=>[kind,Object.freeze({kind,label,seconds,timing:SLASH_TIMING})])));
