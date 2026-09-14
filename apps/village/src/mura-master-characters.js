@@ -1,6 +1,7 @@
 import {THREE as T,GLTFLoader} from '@soul/rendering';
 import {createShinoProductionPool,shinoProductionRigFromGLTF} from '@soul/rendering/master-character-production';
 import {attachModularAppearanceController} from '@soul/rendering/master-character-modular';
+import {createSharedMotionRuntime} from '@soul/rendering/motion-runtime';
 import {createCharacter,visualIdentityForCharacter,YEAR_MS} from '@soul/characters';
 
 export const MASTER_RESIDENT_LIMIT=6;
@@ -13,7 +14,8 @@ const EYES=[[.35,.2,.1],[.18,.3,.42],[.22,.36,.22],[.4,.24,.36]];
 const SKIN=[[1,1,1],[.94,.89,.82],[.84,.73,.64],[.7,.57,.47]];
 const DYE=[[1,1,1],[.56,.77,.62],[.9,.55,.44]];
 const SIZE_KEYS=[[0,.4],[3,.49],[7,.64],[12,.8],[18,.98],[22,1],[50,1],[65,.985],[80,.955],[90,.935]];
-const AXIS_Z=new T.Vector3(0,0,1),AXIS_X=new T.Vector3(1,0,0),Q=new T.Quaternion();
+const AXIS_Z=new T.Vector3(0,0,1),AXIS_X=new T.Vector3(1,0,0),AXIS_Y=new T.Vector3(0,1,0),Q=new T.Quaternion();
+const motionRuntime=createSharedMotionRuntime();
 
 const clamp=(x,lo,hi)=>Math.min(hi,Math.max(lo,x));
 const smooth=(lo,hi,x)=>{const t=clamp((x-lo)/(hi-lo),0,1);return t*t*(3-2*t);};
@@ -38,11 +40,16 @@ export function residentVisualIdentity(person,workplace=''){
 }
 export function residentMasterScore(p,target={x:0,z:0}){const dx=(Number(p?.x)||0)-(Number(target?.x)||0),dz=(Number(p?.z)||0)-(Number(target?.z)||0),distance=Math.hypot(dx,dz);const priority=p?.role==='mayor'?120:p?.role==='guard'?18:0;return distance-priority;}
 export function masterModelUrl(href){return new URL('../rinne/simulator/assets/SHINO_review.vrm',href).href;}
+function residentPersonality(p,years){if(years<12)return'child';if(years>=65)return'elderly';if(p?.role==='guard')return'aggressive';if(p?.role==='mayor')return'proud';if(p?.task==='work')return'calm';return'neutral';}
+function residentFatigue(p){if(Number.isFinite(p?.fatigue))return clamp(p.fatigue,0,1);if(Number.isFinite(p?.stamina)&&Number.isFinite(p?.maxStamina)&&p.maxStamina>0)return clamp(1-p.stamina/p.maxStamina,0,1);return 0;}
+function residentMotion(p,time,appearance){const years=ageYears(p),speed=Number.isFinite(p?.speed)?Math.max(0,p.speed):Math.hypot(Number(p?.vx)||0,Number(p?.vz)||0)||(p?.moving?1:0),stride=Math.sin(time*4.2+(Number(p?.seed)||0));return motionRuntime.sample({id:`village:${p.id}`},{speed,yaw:Number(p?.angle)||0,plantedSide:stride>=0?'left':'right',personality:residentPersonality(p,years),fatigue:residentFatigue(p),injuries:p?.injuries&&typeof p.injuries==='object'?p.injuries:{},body:{height:appearance?.height||1,width:appearance?.width||1,armLength:appearance?.height||1,legLength:appearance?.height||1},time,isHero:false});}
 
-function pose(bones,time,p){
- bones.leftUpperArm.quaternion.multiply(Q.setFromAxisAngle(AXIS_Z,-1.22));bones.rightUpperArm.quaternion.multiply(Q.setFromAxisAngle(AXIS_Z,1.22));
+function pose(bones,time,p,motion){
+ const personality=motion?.personality||{stride:1,posture:0},condition=motion?.condition||{strideLeft:1,strideRight:1,torsoGuard:0,shoulderDropLeft:0,shoulderDropRight:0},micro=motion?.micro||{breath:0,swayX:0,headYaw:0,headPitch:0},transition=motion?.transition||{pelvisLean:0,turnLean:0,strideScale:1};
+ bones.leftUpperArm.quaternion.multiply(Q.setFromAxisAngle(AXIS_Z,-1.22+condition.shoulderDropLeft));bones.rightUpperArm.quaternion.multiply(Q.setFromAxisAngle(AXIS_Z,1.22-condition.shoulderDropRight));
  bones.leftLowerArm.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,-.12));bones.rightLowerArm.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,-.12));
- if(p.moving){const stride=Math.sin(time*4.2+(Number(p.seed)||0))*.38;bones.leftUpperLeg.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,stride));bones.rightUpperLeg.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,-stride));bones.leftLowerLeg.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,Math.max(0,-stride)*1.25));bones.rightLowerLeg.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,Math.max(0,stride)*1.25));}
+ if(p.moving||Number(p?.speed)>.05){const stride=Math.sin(time*4.2+(Number(p.seed)||0))*.38*personality.stride*transition.strideScale;bones.leftUpperLeg.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,stride*condition.strideLeft));bones.rightUpperLeg.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,-stride*condition.strideRight));bones.leftLowerLeg.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,Math.max(0,-stride)*1.25));bones.rightLowerLeg.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,Math.max(0,stride)*1.25));}
+ const basePosture=personality.posture+condition.torsoGuard+micro.breath+transition.pelvisLean*.22;bones.spine.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,basePosture));bones.spine.quaternion.multiply(Q.setFromAxisAngle(AXIS_Z,micro.swayX+transition.turnLean*.18));if(bones.hips)bones.hips.quaternion.multiply(Q.setFromAxisAngle(AXIS_Y,transition.turnLean*.16));bones.head.quaternion.multiply(Q.setFromAxisAngle(AXIS_Y,micro.headYaw));bones.head.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,micro.headPitch));
  if(p.task==='work'){bones.spine.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,.12+Math.sin(time*3)*.05));bones.leftUpperArm.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,-.28));bones.rightUpperArm.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,-.28));}
  if(p.task==='defending'){bones.spine.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,-.04));bones.leftUpperArm.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,-.2));bones.rightUpperArm.quaternion.multiply(Q.setFromAxisAngle(AXIS_X,-.35));}
 }
@@ -51,22 +58,22 @@ async function modelBytes(url){const response=await fetch(url,{signal:AbortSigna
 
 function install(){
  const village=window.village;if(!village||window.__MURA_MASTER_CHARACTERS__)return;const{view}=village,originalSync=view.syncActor.bind(view),originalRemove=view.removeActor.bind(view);
- const state={version:1,state:'loading',limit:MASTER_RESIDENT_LIMIT,active:0,model:null,error:null};const entries=new Map();let pool=null;
+ const state={version:2,state:'loading',limit:MASTER_RESIDENT_LIMIT,active:0,model:null,error:null};const entries=new Map();let pool=null;
  view.canvas.dataset.masterCharacter='loading';view.canvas.dataset.masterCharacterLimit=String(MASTER_RESIDENT_LIMIT);
- const snapshot=()=>({...state,active:entries.size,ids:[...entries.keys()],identities:[...entries.values()].map(e=>({id:e.person.id,...e.modular.diagnostics()}))});window.__MURA_MASTER_CHARACTERS__={snapshot};
- function release(id){const entry=entries.get(id);if(!entry)return false;if(view.actorNodes.get(id)===entry.actor.root)view.actorNodes.delete(id);pool?.despawn(entry.poolId);entries.delete(id);state.active=entries.size;return true;}
+ const snapshot=()=>({...state,active:entries.size,ids:[...entries.keys()],identities:[...entries.values()].map(e=>({id:e.person.id,...e.modular.diagnostics(),motion:e.motion?{state:e.motion.transition.state,personality:e.motion.personality.name,fatigue:e.motion.condition.fatigue}:null}))});window.__MURA_MASTER_CHARACTERS__={snapshot};
+ function release(id){const entry=entries.get(id);if(!entry)return false;if(view.actorNodes.get(id)===entry.actor.root)view.actorNodes.delete(id);pool?.despawn(entry.poolId);motionRuntime.reset(`village:${id}`);entries.delete(id);state.active=entries.size;return true;}
  function eligible(p,monster){return Boolean(pool&&!monster&&!p?.species&&!p?.hidden&&!p?.downed&&!p?.carry);}
  function threshold(p){return p?.role==='mayor'?MASTER_RESIDENT_RELEASE:Math.max(MASTER_RESIDENT_NEAR,Math.min(58,(view.span||40)*1.3));}
  function acquire(p,time){
   let entry=entries.get(p.id);if(entry)return entry;const score=residentMasterScore(p,view.target);if(score>threshold(p))return null;
   if(entries.size>=MASTER_RESIDENT_LIMIT){let worst=null;for(const candidate of entries.values()){const value=residentMasterScore(candidate.person,view.target);if(!worst||value>worst.score)worst={entry:candidate,score:value};}if(!worst||score>=worst.score-2)return null;release(worst.entry.person.id);}
-  const poolId=`village.${hashResident(p.id).toString(16)}.${String(p.id).length}`;const actor=pool.spawn(poolId);actor.root.userData.masterCharacter=true;actor.root.userData.personId=p.id;actor.root.userData.signature=`master:${p.role||'resident'}`;view.actors.add(actor.root);entry={actor,modular:attachModularAppearanceController(actor),poolId,person:p,lastTime:time,appearanceKey:''};entries.set(p.id,entry);state.active=entries.size;return entry;
+  const poolId=`village.${hashResident(p.id).toString(16)}.${String(p.id).length}`;const actor=pool.spawn(poolId);actor.root.userData.masterCharacter=true;actor.root.userData.personId=p.id;actor.root.userData.signature=`master:${p.role||'resident'}`;view.actors.add(actor.root);entry={actor,modular:attachModularAppearanceController(actor),poolId,person:p,lastTime:time,appearanceKey:'',motion:null};entries.set(p.id,entry);state.active=entries.size;return entry;
  }
  function syncMaster(p,time,monster){
   if(!eligible(p,monster)){release(p?.id);return null;}const score=residentMasterScore(p,view.target);if(score>MASTER_RESIDENT_RELEASE&&p.role!=='mayor'){release(p.id);return null;}const entry=acquire(p,time);if(!entry)return null;entry.person=p;
   const workplace=village.world?.object?.(p.jobId)?.kind||'',years=ageYears(p),key=`${Math.floor(years*12)}:${p.role||'resident'}:${workplace}:${Number(p.seed)||0}:${Boolean(p.dead)}`;if(entry.appearanceKey!==key){entry.appearance=residentAppearance(p);entry.modular.setIdentity(residentVisualIdentity(p,workplace));entry.appearanceKey=key;entry.actor.resetSecondary();}
-  entry.actor.sample(entry.appearance,time,bones=>pose(bones,time,p));
-  if(entry.actor.expressionNames.includes('blink')){const phase=(time+(hashResident(p.id)%17)*.13)%3.4;entry.actor.setExpressions({blink:phase<.18?Math.sin(Math.PI*phase/.18):0});}
+  entry.motion=residentMotion(p,time,entry.appearance);entry.actor.sample(entry.appearance,time,bones=>pose(bones,time,p,entry.motion));
+  if(entry.actor.expressionNames.includes('blink'))entry.actor.setExpressions({blink:entry.motion.micro.blink});
   const dt=clamp(time-entry.lastTime,0,.1);entry.lastTime=time;entry.actor.updateSecondary(dt,true);entry.actor.root.position.set(p.x||0,0,p.z||0);entry.actor.root.rotation.y=p.angle||0;entry.actor.root.visible=!p.hidden;entry.actor.root.userData.personId=p.id;return entry.actor.root;
  }
  view.syncActor=(p,time,monster=false)=>{const node=syncMaster(p,time,monster);if(!node)return originalSync(p,time,monster);const current=view.actorNodes.get(p.id);if(current&&current!==node)view.actors.remove(current);if(node.parent!==view.actors)view.actors.add(node);view.actorNodes.set(p.id,node);return node;};
