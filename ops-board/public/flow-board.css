@@ -1,0 +1,62 @@
+#integration-flow {
+  margin: 12px 0 16px;
+  min-width: 0;
+}
+
+#integration-flow * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rs-flow-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+  margin-bottom: 10px;
+}
+
+.rs-flow-head strong {
+  font-size: 14px;
+  letter-spacing: .04em;
+}
+
+.rs-flow-head span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.rs-flow-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.rs-flow-metric {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+
+.rs-flow-metric span,
+.rs-flow-metric small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.rs-flow-metric strong {
+  font-size: 19px;
+  line-height: 1.15;
+}
+
+@media (min-width: 700px) {
+  .rs-flow-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
