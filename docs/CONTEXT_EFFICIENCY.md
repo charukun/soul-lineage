@@ -54,9 +54,13 @@
 
 Hard budgetは品質gateではなく取得戦略である。必要な仕様を読まずに判断するための免罪符にしない。予算を超える場合は全文投入ではなく、検索・line range・file patchへ粒度を落として必要情報を回収する。
 
+最終受入条件: AGENTS.mdも全文byte上限の例外にせず、容量不明・候補数超過はdeferredに残す。diff規模が取得できない場合はfile patchへ倒す。範囲出力はUTF-8 byte数で制限し、同一セッションで同じ内容を別経路から再投入しない。
+
 ## セッション引き継ぎ
 
 引き継ぎに必要なのは会話履歴ではなくGitHub上の現在状態。最低限、repository、branch、head SHA、PR、Draft/Ready、base、最新checks、必要ならhandoff/statusを使う。実装内容はPR diffとcommitを正本とする。
+
+原則は「1実装タスク = 1短寿命の新規セッション」。最新develop → AGENTS.md → context:plan → 必要文書 → 実装 → fast validation → push → Ready for review → READY_FOR_INTEGRATION → 終了とし、会話全文を引き継ぎデータにしない。
 
 人間向け説明が必要な場合も、過去会話を再掲する代わりに「現在何が正しいか」を短く報告する。履歴そのものが目的の依頼だけは時系列を取得する。
 
