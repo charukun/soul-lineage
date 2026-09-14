@@ -51,6 +51,29 @@ jobs:
           echo "actionable=$actionable" >> "$GITHUB_OUTPUT"
           echo "top_score=$top_score" >> "$GITHUB_OUTPUT"
 
+      - name: Measure Integration backlog pressure
+        id: pressure
+        if: >-
+          steps.audit.outputs.actionable == 'true' &&
+          (github.event_name == 'schedule' || inputs.dispatch == true)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ready=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --base develop --limit 100 --json isDraft \
+            --jq '[.[] | select(.isDraft == false)] | length')
+          result=$(READY_COUNT="$ready" node --input-type=module - <<'JS'
+          import { flowPressure } from './scripts/integration-flow-control.mjs';
+          const pressure = flowPressure({ ready: Number(process.env.READY_COUNT || 0) });
+          process.stdout.write(JSON.stringify(pressure));
+          JS
+          )
+          mode=$(printf '%s' "$result" | node --input-type=module -e "let s=''; for await (const c of process.stdin) s+=c; process.stdout.write(JSON.parse(s).mode)")
+          pause=$(printf '%s' "$result" | node --input-type=module -e "let s=''; for await (const c of process.stdin) s+=c; process.stdout.write(String(JSON.parse(s).pauseMaintenance))")
+          echo "ready=$ready" >> "$GITHUB_OUTPUT"
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "pause=$pause" >> "$GITHUB_OUTPUT"
+          echo "Integration pressure: $mode / Ready $ready" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Check for an in-flight automatic refactor
         id: active
         if: >-
@@ -72,6 +95,7 @@ jobs:
         if: >-
           steps.audit.outputs.actionable == 'true' &&
           steps.active.outputs.count == '0' &&
+          steps.pressure.outputs.pause != 'true' &&
           (github.event_name == 'schedule' || inputs.dispatch == true)
         run: |
           node scripts/code-health-dispatch.mjs "$REPORT_FILE" "$MARKER_FILE" "$BODY_FILE" > "$DISPATCH_FILE"
@@ -79,6 +103,15 @@ jobs:
           title=$(node --input-type=module -e "import fs from 'node:fs'; const r=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); process.stdout.write(r.title);" "$DISPATCH_FILE")
           echo "slug=$slug" >> "$GITHUB_OUTPUT"
           echo "title=$title" >> "$GITHUB_OUTPUT"
+
+      - name: Record backlog backpressure
+        if: >-
+          steps.audit.outputs.actionable == 'true' &&
+          steps.pressure.outputs.pause == 'true' &&
+          (github.event_name == 'schedule' || inputs.dispatch == true)
+        run: |
+          echo "Automatic Code Health dispatch paused by Integration backpressure: ${{ steps.pressure.outputs.mode }} / Ready ${{ steps.pressure.outputs.ready }}." >> "$GITHUB_STEP_SUMMARY"
+          echo 'The audit remains valid; backlog burn-down takes precedence over creating new maintenance PRs.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Bootstrap one RINNE Dispatch Draft PR
         id: dispatch
