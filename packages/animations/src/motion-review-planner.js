@@ -25,6 +25,14 @@ export function buildMotionReviewPlan({revision,evidence={},issues=[]}={}){
  for(const issue of issues)push('existing-issue',severityScore(issue),{id:issue.id??null,category:issue.category??'unknown',note:String(issue.note??'').slice(0,500)});
  tasks.sort((a,b)=>b.priority-a.priority||a.kind.localeCompare(b.kind));return freeze({schema:'motion-review-plan',version:1,revision,visualApprovalRequired:true,autoEditAllowed:false,autoApproveAllowed:false,tasks:freeze(tasks),next:tasks[0]??null});
 }
+export function validateMotionReviewPlan(plan){
+ if(!plan||plan.schema!=='motion-review-plan'||plan.version!==1||typeof plan.revision!=='string'||!plan.revision||plan.visualApprovalRequired!==true||plan.autoEditAllowed!==false||plan.autoApproveAllowed!==false||!Array.isArray(plan.tasks))throw Error('Invalid motion review plan');
+ for(const task of plan.tasks)if(!task||typeof task.kind!=='string'||!Number.isInteger(task.priority)||task.priority<1||task.priority>5||!task.detail||typeof task.detail!=='object')throw Error('Invalid motion review task');
+ if(plan.next!==null&&plan.next!==undefined&&!plan.tasks.includes(plan.next)&&!plan.tasks.some(task=>task.kind===plan.next.kind&&task.priority===plan.next.priority))throw Error('Invalid motion review next task');return plan;
+}
+export function attachMotionReviewPlan(report,plan){
+ if(!report||report.schema!=='character-motion-qa'||report.version!==1||!['pending','approved','changes-requested'].includes(report.visualApproval))throw Error('Invalid QA report');validateMotionReviewPlan(plan);const next={...report,motionReviewPlan:plan};if(next.visualApproval!==report.visualApproval)throw Error('Motion review plan cannot alter visual approval');return next;
+}
 
 export function motionDebugOverlayData({centerOfMass=null,supports=[],trajectory=null,interaction=null,hitDirection=null,footLocks=null,semanticEvents=[]}={}){
  if(!Array.isArray(supports)||!Array.isArray(semanticEvents))throw Error('Invalid motion debug overlay');const point=p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.z)?freeze({x:p.x,y:Number.isFinite(p.y)?p.y:0,z:p.z}):null;
@@ -32,4 +40,4 @@ export function motionDebugOverlayData({centerOfMass=null,supports=[],trajectory
  return freeze({version:1,centerOfMass:com,supports:freeze(supportPoints),futureTrajectory:freeze(future),interaction:interaction?freeze({schema:interaction.schema?.id??interaction.schema??null,anchors:interaction.anchors??null,partnerId:interaction.partnerId??null}):null,hitDirection:hit,footLocks:footLocks??null,semanticEvents:freeze(semanticEvents.map(e=>freeze({name:e.name,phase:e.phase,seconds:e.seconds}))),diagnosticOnly:true});
 }
 
-export function reviewRepairRequest(plan){if(!plan||plan.schema!=='motion-review-plan'||plan.version!==1)throw Error('Invalid motion review plan');if(!plan.next)return freeze({version:1,action:'none',reason:'no-diagnostic-findings',visualApprovalRequired:true});return freeze({version:1,action:'review',target:plan.next.kind,priority:plan.next.priority,detail:plan.next.detail,requiresRecapture:true,visualApprovalRequired:true,mayEditSource:false});}
+export function reviewRepairRequest(plan){validateMotionReviewPlan(plan);if(!plan.next)return freeze({version:1,action:'none',reason:'no-diagnostic-findings',visualApprovalRequired:true});return freeze({version:1,action:'review',target:plan.next.kind,priority:plan.next.priority,detail:plan.next.detail,requiresRecapture:true,visualApprovalRequired:true,mayEditSource:false});}
