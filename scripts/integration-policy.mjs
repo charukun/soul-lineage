@@ -23,12 +23,12 @@ export function reviewDecision(reviews, head) {
     r.state === 'APPROVED' && r.commit_id === head &&
     (['OWNER', 'MEMBER', 'COLLABORATOR'].includes(r.author_association) || trustedReview(r))) };
 }
-export function eligibility({ pr, repository, files, reviews, unresolved, dependenciesMerged, checksPassed, baseChanges = [], recovery = false }) {
+export function eligibility({ pr, repository, files, reviews, unresolved, dependenciesMerged, checksPassed, baseChanges = [], recovery = false, trustedControlPlane = false }) {
   if (pr.state !== 'open' || pr.draft || pr.base.ref !== 'develop') return 'not a Ready develop PR';
   if (pr.head.repo?.full_name !== repository || !['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.author_association)) return 'external contribution requires Integration review';
   const labels = pr.labels.map(x => x.name);
   if (labels.some(x => ['integration:hold', 'integration:manual', 'do-not-merge'].includes(x)) || /^Integration-Hold:\s*\S+/im.test(pr.body || '')) return 'explicit Integration hold';
-  if (recovery && !labels.includes('integration:repair')) return 'previous final develop gate failed; repair first';
+  if (recovery && !labels.includes('integration:repair') && !trustedControlPlane) return 'previous final develop gate failed; repair first';
   if (pr.mergeable !== true || !['clean', 'unstable', 'has_hooks'].includes(pr.mergeable_state)) return 'mergeability/protection requires attention';
   const review = reviewDecision(reviews, pr.head.sha);
   if (review.rejected || unresolved) return 'unresolved review or requested changes';
