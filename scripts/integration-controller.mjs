@@ -3,32 +3,31 @@ import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { client, integrate, recordQueue } from './integration.mjs';
 import { consolidateControlPlanePrs } from './integration-control-consolidation.mjs';
 import { controlPlaneScopeForPr } from './integration-control-plane.mjs';
-import { primeParallelIntegrationPreflight } from './integration-parallel-preflight.mjs';
+import { mapWithConcurrency, primeParallelIntegrationPreflight } from './integration-parallel-preflight.mjs';
 
 export const AUTO_CONTROL_LABEL = 'integration:control-plane';
 export const AUTO_RECOVERY_LABEL = 'integration:repair';
 
-async function labelTrustedControlPlane(c, repository) {
+async function labelTrustedControlPlane(c, repository, concurrency = 6) {
   const open = await c.pages('/pulls?state=open&base=develop&sort=created&direction=asc', undefined, { maxPages: 10 });
-  const labeled = [];
-  for (const pr of open.filter(item => !item.draft && item.head?.repo?.full_name === repository && ['OWNER','MEMBER','COLLABORATOR'].includes(item.author_association))) {
-    try {
-      const scope = await controlPlaneScopeForPr(c, pr.number, { cache: true });
-      if (!scope.trusted) continue;
-      const labels = new Set((pr.labels || []).map(label => label.name));
-      const add = [AUTO_CONTROL_LABEL, AUTO_RECOVERY_LABEL].filter(label => !labels.has(label));
-      if (add.length) await c.api('POST', `${c.root}/issues/${pr.number}/labels`, { labels: add });
-      labeled.push({ pr: pr.number, head: pr.head.sha, files: scope.files.length, labels: add });
-    } catch (error) {
-      labeled.push({ pr: pr.number, head: pr.head.sha, error: error.message });
-    }
-  }
-  return labeled;
+  const targets = open.filter(item => !item.draft && item.head?.repo?.full_name === repository && ['OWNER','MEMBER','COLLABORATOR'].includes(item.author_association));
+  const settled = await mapWithConcurrency(targets, concurrency, async pr => {
+    const scope = await controlPlaneScopeForPr(c, pr.number, { cache: true });
+    if (!scope.trusted) return null;
+    const labels = new Set((pr.labels || []).map(label => label.name));
+    const add = [AUTO_CONTROL_LABEL, AUTO_RECOVERY_LABEL].filter(label => !labels.has(label));
+    if (add.length) await c.api('POST', `${c.root}/issues/${pr.number}/labels`, { labels: add });
+    return { pr: pr.number, head: pr.head.sha, files: scope.files.length, labels: add };
+  });
+  return settled.flatMap((item, index) => {
+    if (item.status === 'rejected') return [{ pr: targets[index].number, head: targets[index].head.sha, error: item.reason?.message || String(item.reason) }];
+    return item.value ? [item.value] : [];
+  });
 }
 
 export async function runController(c, repository, options = {}) {
   const consolidation = await consolidateControlPlanePrs(c).catch(error => ({ closed: [], held: [{ reason: error.message }] }));
-  const autoControl = await labelTrustedControlPlane(c, repository);
+  const autoControl = await labelTrustedControlPlane(c, repository, options.parallelPreflightConcurrency || 6);
   const parallelPreflight = await primeParallelIntegrationPreflight(c, repository, {
     concurrency: options.parallelPreflightConcurrency,
     maxCandidates: options.parallelPreflightCandidates,
