@@ -4,6 +4,7 @@ const node = (tag, cls, text) => { const n = document.createElement(tag); if (cl
 const link = (label, path) => { const n = node('a', 'rs-link', label); n.href = `https://github.com/charukun/soul-lineage/${path}`; n.target = '_blank'; n.rel = 'noreferrer'; return n; };
 const age = (time, now) => { const ms = now - Date.parse(time); if (!Number.isFinite(ms)) return '未記録'; const sec = Math.max(0, Math.floor(ms / 1000)); return sec < 60 ? `${sec}s` : sec < 3600 ? `${Math.floor(sec / 60)}m ${sec % 60}s` : `${Math.floor(sec / 3600)}h ${Math.floor(sec % 3600 / 60)}m`; };
 const pill = (text, tone = '') => node('span', `rs-pill ${tone}`, text);
+const metric = (value, suffix = '') => value === null || value === undefined ? '—' : `${value}${suffix}`;
 const labels = { DETECTED: '検知', QUEUED: '待機', BLOCKED_BY_RESCUE: '順番待ち', CLAIMED: 'Worker起動待ち', ANALYZING: '分析中', RESOLVING: '修復中', VALIDATING: '検証中', PUSHING: 'commit確定前', AWAITING_PUSH: 'Work push待ち', PUSHED: 'push完了', RETURNED_TO_INTEGRATION: 'Integration復帰', CHECKING: '通常gate確認待ち', MERGED: 'develop統合済み', DEV: 'DEV公開確認済み', FAILED_RETRYABLE: '再試行待ち', FAILED_MANUAL: '人の確認が必要', STALE: 'WORKER STALE' };
 const reasonLabels = {
   DEVELOP_OVERLAP: 'develop更新と変更範囲が重なっています',
@@ -154,6 +155,29 @@ function problemSummary(records, now, staleMs) {
   if (records.length > 6) section.append(node('p', 'rs-note', `ほか ${records.length - 6}件は下の対応中・対応待ち一覧に表示`));
   return section;
 }
+function controlPlaneSummary(view) {
+  const performance = view.performance || {};
+  const control = view.controlPlane || {};
+  const section = node('section', 'rs-control-health');
+  section.append(node('h3', 'rs-group-title', '速度・Control Plane Health'));
+  const metrics = node('div', 'rs-metrics');
+  metrics.append(
+    summaryCard('最古待ち', metric(performance.oldestWaitingMinutes, 'm'), `検知→claim p50 ${metric(performance.detectedToClaimP50Minutes, 'm')}`, performance.oldestWaitingMinutes > 30 ? 'attention' : 'neutral'),
+    summaryCard('Merge p50', metric(performance.detectedToMergeP50Minutes, 'm'), `p95 ${metric(performance.detectedToMergeP95Minutes, 'm')}`, 'working'),
+    summaryCard('修復成功率', metric(performance.repairSuccessRatePct, '%'), `Retry率 ${metric(performance.retryRatePct, '%')}`, 'done'),
+    summaryCard('Actions 24h', control.workflow?.runs24h ?? '—', `cancel ${control.workflow?.cancelled ?? '—'} · 重複 ${control.workflow?.duplicateRuns ?? '—'}`, (control.workflow?.cancelled || control.workflow?.duplicateRuns) ? 'waiting' : 'neutral')
+  );
+  section.append(metrics);
+  const health = node('p', 'rs-diagnostics');
+  health.append(
+    document.createTextNode('Notification '), pill(control.notification?.label || 'UNKNOWN', control.notification?.label === 'HEALTHY' ? 'success' : control.notification?.label === 'MISCONFIGURED' || control.notification?.label === 'FAILED' ? 'danger' : ''),
+    document.createTextNode(' · Canary '), pill(control.canary?.label || 'UNKNOWN', control.canary?.label === 'HEALTHY' ? 'success' : control.canary?.label === 'FAILED' ? 'danger' : ''),
+    document.createTextNode(' · Wake '), pill(control.wakeup?.label || 'UNKNOWN', control.wakeup?.label === 'COALESCED' ? 'live' : control.wakeup?.label === 'FAILED' ? 'danger' : '')
+  );
+  section.append(health);
+  if (control.observationError) section.append(node('p', 'rs-configuration', `Control health取得: ${control.observationError}`));
+  return section;
+}
 export function renderRescue(view, now = Date.now()) {
   if (!root) return;
   root.replaceChildren();
@@ -187,6 +211,7 @@ export function renderRescue(view, now = Date.now()) {
   );
   root.append(metrics);
   const diagnostics = node('p', 'rs-diagnostics', `検証中 ${c.validating} · 再試行 ${c.retry} · Manual ${c.manual} · Stale ${staleWorkers}`); root.append(diagnostics);
+  root.append(controlPlaneSummary(view));
   if (view.coordinator?.errors?.length) root.append(node('p', 'rs-configuration', `Coordinator: ${view.coordinator.errors.map(e => `${e.pr ? '#' + e.pr + ' ' : ''}${e.reason}`).join(' · ')}`));
 
   if (unresolvedRecords.length) root.append(problemSummary(unresolvedRecords, now, view.staleMs));
