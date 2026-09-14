@@ -3928,6 +3928,21 @@
       "status": "FAILED",
       "type": "work-notice",
       "workerId": "work/866e55ef0f5e/20260914T112041Z"
+    },
+    {
+      "id": "gmail:1a09fd4925bedd01",
+      "type": "work-notice",
+      "sentAt": "2026-09-14T12:11:51.670Z",
+      "channel": "gmail-self",
+      "messageId": "1a09fd4925bedd01",
+      "pr": 198,
+      "branch": "feat/character-reference-model-builder",
+      "commit": "143d6014117cbfc4cd4dc81a6857b2b403c7d85b",
+      "status": "READY_FOR_INTEGRATION",
+      "workerId": "work/866e55ef0f5e/20260914T115922Z",
+      "attempt": 1,
+      "stage": "RETURNED_TO_INTEGRATION; exact-head CI started",
+      "next": "Normal exact-head CI/browser/Integration gates; then merge and DEV deployment"
     }
   ],
   "records": {
@@ -13924,7 +13939,7 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 683,
+  "revision": 684,
   "schema": 1,
   "updatedAt": "2026-09-14T12:10:28.631Z",
   "waves": [
