@@ -1,47 +1,38 @@
 import { installPostureWeaponPreview } from './posture-preview.js';
 import { installWeaponReviewPolish } from './weapon-review-polish.js';
 import { reviewPresets as baseReviewPresets, reviewWeapons, disposeLoaded, installReviewExtensions as installBase } from './review-adapter-base.js';
-
-const SHINO_REFERENCE_PROFILE=Object.freeze({
-  version:1,
-  face:'classic',
-  hair:'original',
-  body:'balanced',
-  outfit:'uniform',
-  accessory:'none'
-});
-
-const SHINO_REFERENCE_PRESET=Object.freeze({
-  id:'shino.reference.v2',
-  label:'Shino Reference v2',
-  name:'Sendagaya Shino / Character Reference v2',
-  portrait:'SHINO',
-  kind:'character',
-  sourcePresetId:'model.SHINO',
-  referencePath:'docs/characters/references/shino/shino-character-reference-sheet-v2.png',
-  profile:SHINO_REFERENCE_PROFILE
-});
+import { REVIEW_REFERENCE_MODELS, reviewReferenceModel } from './reference-character-models.js';
+import { attachReferenceCharacterController } from '@soul/rendering/master-character-reference';
 
 export const reviewPresets=Object.freeze([
   baseReviewPresets[0],
-  SHINO_REFERENCE_PRESET,
+  ...REVIEW_REFERENCE_MODELS,
   ...baseReviewPresets.slice(1)
 ]);
 export { reviewWeapons, disposeLoaded };
 
 function sourcePresetId(presetId){
-  return presetId===SHINO_REFERENCE_PRESET.id?SHINO_REFERENCE_PRESET.sourcePresetId:presetId;
+  return reviewReferenceModel(presetId)?.sourcePresetId||presetId;
+}
+
+function installRuntimeReference(loaded,reference){
+  const actor={root:loaded.root,visual:loaded.root,bones:loaded.bones};
+  const controller=attachReferenceCharacterController(actor);
+  controller.setIdentity(reference);
+  const dispose=loaded.dispose.bind(loaded);let disposed=false;
+  loaded.dispose=()=>{if(disposed)return;disposed=true;controller.destroy();dispose();};
+  loaded.label=`${reference.name} / Runtime Reference / 全モーションソース`;
+  loaded.referenceModel=reference;
+  loaded.referenceDiagnostics=()=>controller.diagnostics();
+  return loaded;
 }
 
 export async function installReviewExtensions(options){
   const base=await installBase(options);
   return {...base,async loadPreset(args){
-    const reference=args?.presetId===SHINO_REFERENCE_PRESET.id;
-    const loaded=await base.loadPreset({...args,presetId:sourcePresetId(args?.presetId)});
-    if(reference){
-      loaded.label=`${SHINO_REFERENCE_PRESET.name} / CURRENT MASTER / 全モーションソース`;
-      loaded.referenceModel=SHINO_REFERENCE_PRESET;
-    }
+    const reference=reviewReferenceModel(args?.presetId);
+    let loaded=await base.loadPreset({...args,presetId:sourcePresetId(args?.presetId)});
+    if(reference)loaded=installRuntimeReference(loaded,reference);
     return installPostureWeaponPreview(installWeaponReviewPolish(loaded));
   }};
 }
