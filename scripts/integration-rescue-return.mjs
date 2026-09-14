@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { REPOSITORY, rescueConfig, RETURNED, transition, failure } from './integration-rescue-policy.mjs';
 import { rescueClient, RescueStore, comparison } from './integration-rescue-store.mjs';
+import { workRepairEligibility } from './integration-rescue-work-repair-policy.mjs';
 
 export async function returnToIntegration(c, store, now = Date.now()) {
   const lease = randomUUID();
@@ -71,18 +72,42 @@ export async function collectDelivery(c, store, now = Date.now()) {
     }
   });
 }
+async function signalWorkRepair(c, item, record, message) {
+  const eligibility = workRepairEligibility(record);
+  if (item.type !== 'manual' || !eligibility.eligible || !record?.headSha) return false;
+  const marker = `<!-- integration-rescue-work-request:${item.id} -->`;
+  const comments = await c.pages(`/issues/${item.pr}/comments`, undefined, { maxPages: 3 });
+  if (!comments.some(comment => comment.body?.includes(marker))) {
+    await c.api('POST', `${c.root}/issues/${item.pr}/comments`, {
+      body: `${marker}\nAI_REPAIR_REQUIRED\n${message}\n\nWork-Repair-Kind: ${eligibility.kind}\nPeriodic Integration Rescue Work remains the durable backstop if an event-driven Work hook is unavailable.`,
+    });
+  }
+  await c.api('POST', `${c.root}/statuses/${record.headSha}`, {
+    state: 'pending',
+    context: 'integration-rescue/work-repair',
+    description: `AI repair requested: ${eligibility.kind}; periodic Work is fallback`,
+    target_url: `https://github.com/${REPOSITORY}/pull/${item.pr}`,
+  });
+  return true;
+}
 export async function notifyOutbox(c, store, { url = '', token = '', request = fetch } = {}) {
   const { state } = await store.read();
   for (const item of state.outbox.filter(n => !n.sentAt && (n.notificationAttempts || 0) < 3 && (!n.nextNotificationAt || Date.parse(n.nextNotificationAt) <= Date.now())).slice(0, 5)) {
-    const message = item.type === 'manual' ? `Integration Rescue\nFAILED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: human or approved Work review required` :
+    const record = state.records[item.pr];
+    const eligibility = item.type === 'manual' ? workRepairEligibility(record) : { eligible: false };
+    const aiRepair = Boolean(eligibility.eligible);
+    const message = item.type === 'manual' ? aiRepair
+      ? `Integration Rescue\nAI_REPAIR_REQUIRED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: existing ChatGPT Work repair lane; periodic Work remains fallback`
+      : `Integration Rescue\nFAILED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: human or approved Work review required` :
       `Integration Rescue\nREADY_FOR_INTEGRATION\nWave: ${item.wave}\nReturned to Integration: ${item.prs.map(n => '#' + n).join(' ')}\nManual: ${item.manual.map(n => '#' + n).join(' ') || 'none'}\nCI/browser monitoring: Integration; repair workers ended`;
     try {
+    if (aiRepair) await signalWorkRepair(c, item, record, message);
     // Existing ntfy deployment can supply its normal topic URL/token; never invent a recipient.
     if (url) {
       if (!url.startsWith('https://')) throw new Error('NTFY_HTTPS_REQUIRED');
       const response = await request(url, { method: 'POST', headers: { 'Content-Type': 'text/plain; charset=utf-8', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: message, signal: AbortSignal.timeout(10000) });
       if (!response.ok) throw new Error(`NTFY_FAILED:${response.status}`);
-    } else if (item.type === 'manual') {
+    } else if (item.type === 'manual' && !aiRepair) {
       // Repository-native notification and durable recovery point when no push topic is configured.
       const marker = `<!-- integration-rescue-notice:${item.id} -->`;
       const comments = await c.pages(`/issues/${item.pr}/comments`, undefined, { maxPages: 3 });
@@ -90,7 +115,7 @@ export async function notifyOutbox(c, store, { url = '', token = '', request = f
     }
     await store.mutate(state => {
       const entry = state.outbox.find(n => n.id === item.id);
-      if (entry) { entry.sentAt = new Date().toISOString(); entry.channel = url ? 'ntfy' : item.type === 'manual' ? 'github-pr' : 'pulse-summary'; }
+      if (entry) { entry.sentAt = new Date().toISOString(); entry.channel = aiRepair ? 'github-pr+work-signal' : url ? 'ntfy' : item.type === 'manual' ? 'github-pr' : 'pulse-summary'; }
     });
     } catch (error) {
       // Notification transport is not a repair/validation gate. Keep the unsent
