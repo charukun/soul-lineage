@@ -45,15 +45,7 @@ try {
   progress.value = 10;
   message.textContent = '村の資産と暮らしの仕組みを読み込んでいます。';
   await import('./mura-patch.js');
-  await Promise.all([
-    import('./asset-visuals.js'),
-    import('./authored-visual-lod.js'),
-    import('./stylized-visual-target.js'),
-    import('./adaptive-visual-performance.js'),
-    import('./runtime-resilience.js'),
-    import('./shared-world-scale.js'),
-    import('./simulation-scale.js'),
-  ]);
+  await import('./runtime-scale-stack.js');
   const { boot } = await import('./web/main.js');
   await boot({ onProgress(value, text) { progress.value = value; message.textContent = text; } });
   await import('./mura-enhancements.js');
