@@ -52,7 +52,7 @@ export function firstHuntDirectorState(snapshot){
   return{active:true,stage:'approach',guide:'近い人影へ。指を滑らせるだけで戦いは始まる。',preyId:prey?.id,objectiveKicker:'最初の獲物',objective:kind?`${kind.name} · ${kind.power}`:'近い人影を追え',choices:[]};
  }
  if(eaten===1){
-  const role=(profile.unlocked||[]).at(-1),choice=candidates(snapshot);
+  const role=(snapshot.npcs||[]).find(n=>n.eaten)?.role||(profile.unlocked||[]).at(-1),choice=candidates(snapshot);
   return{active:true,stage:'choice',guide:`${abilityNudge(role)} 次は選べ。喰う相手で、次の身体が変わる。`,objectiveKicker:'次の獲物は選べ',objective:'喰う相手で身体が変わる',choices:choice};
  }
  return{active:true,stage:'free',guide:'もう分かった。狙った命を追うか、今の身体を持ち帰るか。',choices:[]};
@@ -93,6 +93,7 @@ export function installFirstHuntDirector(){
  window.__FIRST_HUNT_DIRECTOR__=true;
  const ui=ensureUi(),hud=document.querySelector('#hud'),guide=document.querySelector('#first-hunt-guide'),kicker=document.querySelector('#objective small'),objective=document.querySelector('#objective span');
  let stopped=false,gainUntil=0,previous=window.__NIGHT_HUNT__.snapshot(),previousEaten=Number(previous?.eaten)||0,previousUnlocked=new Set(previous?.profile?.unlocked||[]);
+ const labelFor=id=>[...document.querySelectorAll('.nameplate')].find(el=>el.dataset.npc===id);
  function clearLabels(){for(const el of document.querySelectorAll('.nameplate.first-hunt-prey,.nameplate.first-hunt-choice-prey'))el.classList.remove('first-hunt-prey','first-hunt-choice-prey');}
  function frame(now){
   if(stopped)return;
@@ -106,12 +107,12 @@ export function installFirstHuntDirector(){
     if(guide){guide.hidden=false;guide.dataset.step=state.stage;guide.textContent=state.guide;}
     if(state.objectiveKicker&&kicker)kicker.textContent=state.objectiveKicker;
     if(state.objective&&objective)objective.textContent=state.objective;
-    document.querySelector(`.nameplate[data-npc="${CSS.escape(state.preyId||'')}"]`)?.classList.add('first-hunt-prey');
+    labelFor(state.preyId)?.classList.add('first-hunt-prey');
     renderChoices(ui.choices,state.choices||[]);
-    for(const row of state.choices||[])document.querySelector(`.nameplate[data-npc="${CSS.escape(row.id)}"]`)?.classList.add('first-hunt-choice-prey');
+    for(const row of state.choices||[])labelFor(row.id)?.classList.add('first-hunt-choice-prey');
    }else renderChoices(ui.choices,[]);
    const unlocked=new Set(snapshot.profile?.unlocked||[]),eaten=Number(snapshot.eaten)||0;
-   if(eaten>previousEaten){
+   if(state.active&&eaten>previousEaten){
     const added=[...unlocked].filter(role=>!previousUnlocked.has(role));
     const freshlyEaten=(snapshot.npcs||[]).find(n=>n.eaten&&!previous?.npcs?.find(old=>old.id===n.id)?.eaten);
     const role=freshlyEaten?.role||added.at(-1)||(snapshot.profile?.unlocked||[]).at(-1);
