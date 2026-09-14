@@ -14,6 +14,8 @@ const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const finite=(...v)=>v.every(Number.isFinite);
 const q=()=>new T.Quaternion();
 const v=(x=0,y=0,z=0)=>new T.Vector3(x,y,z);
+const point3=value=>value?.isVector3?value.clone():(Array.isArray(value)||ArrayBuffer.isView(value))?v().fromArray(value):v(value?.x??0,value?.y??0,value?.z??0);
+const writePoint=(target,value)=>{if(Array.isArray(target)||ArrayBuffer.isView(target)){target[0]=value.x;target[1]=value.y;target[2]=value.z;}else if(target?.copy)target.copy(value);else if(target&&typeof target==='object')Object.assign(target,value);};
 
 export function localImpactBeat({actorId,targetId,kind='hit',clock=0,serial=0,direction=null,strength=1,region='torso'}={}){
  if(!finite(clock,serial,strength)||serial<0||strength<0)throw Error('Invalid impact beat');
@@ -85,10 +87,10 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
 
  applyWeaponInertia(c,a,result,commit){
   if(!commit||!result?.a||!result?.b||!result?.sm||a?.dead||(a?.weapon||'sword')==='fist')return;
-  const key=a.id??'hero',clock=a._humanoidClock||0,A=result.a.clone?result.a.clone():v(result.a.x,result.a.y,result.a.z),B=result.b.clone?result.b.clone():v(result.b.x,result.b.y,result.b.z),dir=B.clone().sub(A);if(dir.lengthSq()<1e-8)return;
+  const key=a.id??'hero',clock=a._humanoidClock||0,A=point3(result.a),B=point3(result.b),dir=B.clone().sub(A);if(!finite(A.x,A.y,A.z,B.x,B.y,B.z)||dir.lengthSq()<1e-8)return;
   const angle=Math.atan2(dir.x,dir.z),prev=this._dynamics.weapon.get(key)??{angle,clock,offset:0,velocity:0},dt=clamp(clock-prev.clock,1/240,1/20);let delta=(angle-prev.angle)%(Math.PI*2);if(delta>Math.PI)delta-=Math.PI*2;if(delta<-Math.PI)delta+=Math.PI*2;
   const next=localWeaponInertiaStep({offset:prev.offset,velocity:prev.velocity,targetAngularVelocity:delta/dt,dt,weapon:a.weapon||'sword'});this._dynamics.weapon.set(key,{...next,angle,clock});if(Math.abs(next.offset)<1e-5)return;
-  const rot=q().setFromAxisAngle(v(0,1,0),next.offset),newB=B.clone().sub(A).applyQuaternion(rot).add(A);result.b.copy?result.b.copy(newB):Object.assign(result.b,newB);
+  const rot=q().setFromAxisAngle(v(0,1,0),next.offset),newB=B.clone().sub(A).applyQuaternion(rot).add(A);writePoint(result.b,newB);if(result.weaponTip)writePoint(result.weaponTip,newB);
   const m=new T.Matrix4().fromArray(result.sm),pos=v(),orientation=q(),scale=v();m.decompose(pos,orientation,scale);orientation.premultiply(rot);const transformed=new T.Matrix4().compose(pos,orientation,scale);if(result.sm.set)result.sm.set(transformed.elements);else result.sm=Array.from(transformed.elements);
   c.dynamicsWeapon={weapon:a.weapon||'sword',offset:next.offset,desired:next.desired};
  }
