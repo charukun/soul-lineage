@@ -34,6 +34,7 @@ function network(ids,{leaseMs=90,migrationTimeoutMs=180}={}){
   return{
     nodes,
     applied,
+    queue,
     deliver,
     advance(ms){time+=ms;for(const node of Object.values(nodes))node.tick();},
   };
@@ -84,4 +85,21 @@ test('non-host-eligible peer votes but is never elected',()=>{
   const isolate=e=>e.from==='a'||e.to==='a';for(let i=0;i<5;i++){time+=20;for(const n of Object.values(nodes))n.tick();deliver(isolate);}
   assert.equal(nodes.c.snapshot().hostId,'c');
   assert.notEqual(nodes.b.snapshot().hostId,'b');
+});
+
+test('plain authority messages cannot forge a newer epoch',()=>{
+  const net=network(['a','b','c']);net.nodes.a.seedHost();net.nodes.a.hostAdmit('b',{eligible:true});net.nodes.a.hostAdmit('c',{eligible:true});net.deliver();
+  const fake=structuredClone(net.nodes.a.authority);fake.epoch=99;fake.hostId='c';
+  assert.equal(net.nodes.b.receive('c',{type:'world-authority',authority:fake}),false);
+  assert.equal(net.nodes.b.snapshot().epoch,1);
+  assert.equal(net.nodes.b.snapshot().hostId,'a');
+});
+
+test('returning old host resynchronizes from a newer host migration proof',()=>{
+  const net=network(['a','b','c']);net.nodes.a.seedHost();net.nodes.a.hostAdmit('b',{eligible:true});net.nodes.a.hostAdmit('c',{eligible:true});net.nodes.a.publishCheckpoint(checkpoint(11));net.deliver();
+  for(let i=0;i<3;i++){net.advance(30);net.deliver();}
+  const isolate=e=>e.from==='a'||e.to==='a';for(let i=0;i<5;i++){net.advance(30);net.deliver(isolate);}
+  assert.equal(net.nodes.b.snapshot().hostId,'b');assert.equal(net.nodes.a.snapshot().epoch,2); // old host entered its own safe migration state
+  for(let i=0;i<4;i++){net.advance(30);net.deliver();}
+  assert.equal(net.nodes.a.snapshot().phase,'open');assert.equal(net.nodes.a.snapshot().hostId,'b');assert.equal(net.nodes.a.snapshot().epoch,2);
 });
