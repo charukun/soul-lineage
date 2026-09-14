@@ -25,6 +25,7 @@ test('only exact PR heads already contained in the same develop snapshot are sup
   const head = sha('a'), develop = sha('b');
   const exact = { base_commit: { sha: head }, merge_base_commit: { sha: head }, head_commit: { sha: develop }, status: 'ahead', ahead_by: 5 };
   assert.equal(exactDevelopAncestor(exact, head, develop), true);
+  assert.equal(exactDevelopAncestor({ base_commit: { sha: head }, merge_base_commit: { sha: head }, head_commit: { sha: head }, status: 'identical', ahead_by: 0 }, head, head), true);
   assert.equal(exactDevelopAncestor({ ...exact, merge_base_commit: { sha: sha('c') } }, head, develop), false);
   assert.equal(exactDevelopAncestor({ ...exact, head_commit: { sha: sha('d') } }, head, develop), false);
   assert.equal(exactDevelopAncestor({ ...exact, status: 'diverged' }, head, develop), false);
