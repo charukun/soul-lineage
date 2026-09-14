@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { REPOSITORY, manualReason, conflictScope, compareScopes, RETURNED, event, transition } from './integration-rescue-policy.mjs';
 import { contractFingerprint, browserRepairFor } from './integration-rescue-store.mjs';
-import { MAX_WORK_REPAIR_ATTEMPTS, MAX_BASELINE_CHURNS, workRepairClass, workRepairEligibility } from './integration-rescue-work-repair-policy.mjs';
+import { MAX_WORK_REPAIR_ATTEMPTS, MAX_BASELINE_CHURNS, workRepairClass, workRepairEligibility, workRepairBaselineAdvanceReason } from './integration-rescue-work-repair-policy.mjs';
 export { workRepairClass, workRepairEligibility } from './integration-rescue-work-repair-policy.mjs';
 
 const sha = value => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value);
@@ -145,8 +145,9 @@ export function stopWorkRepairForDevelopAdvance(state, prNumber, workerId, reaso
   return { attempt:w.attempt, maxAttempts:MAX_WORK_REPAIR_ATTEMPTS, baselineChurns:r.workRepairBaselineChurns, maxBaselineChurns:MAX_BASELINE_CHURNS };
 }
 export function stopWorkRepair(state, prNumber, workerId, reason, {humanRequired=true, now=Date.now()}={}) {
-  const r=owned(state,prNumber,workerId,now),w=r.workRepair;
   assert.ok(typeof reason==='string' && reason.trim(),'STOP_REASON_REQUIRED');
+  if (!humanRequired && workRepairBaselineAdvanceReason(reason)) return stopWorkRepairForDevelopAdvance(state,prNumber,workerId,reason,{now});
+  const r=owned(state,prNumber,workerId,now),w=r.workRepair;
   w.status=humanRequired?'human-required':'failed';w.reason=reason.slice(0,1000);w.finishedAt=new Date(now).toISOString();
   r.currentStep='FAILED_MANUAL';r.currentAction=reason.slice(0,240);r.updatedAt=new Date(now).toISOString();
   event(state,r,'WORK_REPAIR_STOPPED',`${w.status}: ${reason}`,now);
