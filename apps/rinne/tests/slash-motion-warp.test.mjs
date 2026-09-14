@@ -11,6 +11,14 @@ async function productionWarp(){
   return new Function(`${block};return {RINNE_SLASH_MOTION_WARP_VERSION,RINNE_SLASH_MOTION_WARP_DEFAULTS,validSlashMotionWarpTarget,chooseSlashMotionWarpTarget,createSlashMotionWarpPlan,sampleSlashMotionWarpPlan};`)();
 }
 
+async function productionController({candidates,progress}){
+  const source=await readFile(hooksUrl,'utf8');
+  const pure=source.match(/\/\/ SLASH_MOTION_WARP_PURE_BEGIN([\s\S]*?)\/\/ SLASH_MOTION_WARP_PURE_END/)?.[1];
+  const controller=source.match(/\/\/ SLASH_MOTION_WARP_CONTROLLER_BEGIN([\s\S]*?)\/\/ SLASH_MOTION_WARP_CONTROLLER_END/)?.[1];
+  assert.ok(pure&&controller,'production controller block missing');
+  return new Function('enemies','POSE_CLIPS','attackProgress',`${pure}\n${controller}\nreturn {advanceControllerSlashMotionWarp,clearSlashMotionWarp,slashMotionWarpStates};`)(candidates,{slash:{contact:.5}},progress);
+}
+
 test('already-close targets never make the slash step backward',async()=>{
   const {createSlashMotionWarpPlan,sampleSlashMotionWarpPlan}=await productionWarp();
   const plan=createSlashMotionWarpPlan({actor:{x:0,z:0,yaw:0},target:{x:0,z:.72},contact:.5});
@@ -41,6 +49,7 @@ test('target position is snapshotted once and later target movement does not hom
   target.x=20;target.z=-12;
   assert.deepEqual(sampleSlashMotionWarpPlan(plan,.4),before);
   assert.deepEqual(plan.target,{x:2,z:1});
+  assert.deepEqual(createSlashMotionWarpPlan({actor:{x:1,z:-1,yaw:.2},target:{x:2,z:1},contact:.5}),plan,'same input must be deterministic');
 });
 
 test('selection prefers explicit attack authority then deterministic nearest live fallback',async()=>{
@@ -50,6 +59,22 @@ test('selection prefers explicit attack authority then deterministic nearest liv
   assert.equal(fallback.id,'a','equal distances use stable id rather than array timing');
   const explicit=chooseSlashMotionWarpTarget({x:0,z:0,yaw:0,attack:{kind:'slash',targetId:'b'}},candidates);
   assert.equal(explicit.id,'b');
+});
+
+test('controller locks one target, stops writing at contact and clears on cancellation',async()=>{
+  let phase=.10;
+  const enemy={id:'enemy',x:0,z:2,hp:10},actor={id:'hero',hero:true,weapon:'sword',x:0,z:0,yaw:Math.PI/2,attack:{id:'one',kind:'slash'}};
+  const controller=await productionController({candidates:[enemy],progress:()=>phase});
+  const plan=controller.advanceControllerSlashMotionWarp(actor);
+  assert.equal(plan.target.z,2);
+  assert.equal(actor.x,0);assert.equal(actor.z,0);
+  phase=.34;controller.advanceControllerSlashMotionWarp(actor);const midZ=actor.z;assert.ok(midZ>0&&midZ<.55);
+  enemy.z=20;phase=.40;controller.advanceControllerSlashMotionWarp(actor);assert.ok(actor.z<.55,'later target movement must not become homing');
+  phase=.50;controller.advanceControllerSlashMotionWarp(actor);assert.ok(Math.abs(actor.z-.55)<1e-9);
+  actor.z=.73;phase=.70;controller.advanceControllerSlashMotionWarp(actor);assert.equal(actor.z,.73,'after contact the controller stops adding warp');
+  actor.attack=null;assert.equal(controller.advanceControllerSlashMotionWarp(actor),null);assert.equal(controller.slashMotionWarpStates.has(actor),false);
+  actor.attack={id:'two',kind:'slash'};enemy.z=1.4;phase=.20;controller.advanceControllerSlashMotionWarp(actor);assert.equal(controller.slashMotionWarpStates.get(actor).attack,actor.attack);
+  enemy.dead=true;assert.equal(controller.advanceControllerSlashMotionWarp(actor),null);assert.equal(controller.slashMotionWarpStates.has(actor),false);
 });
 
 test('invalid timing/coordinates fail closed and integration keeps one transform writer',async()=>{
