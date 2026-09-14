@@ -1,10 +1,10 @@
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { client, maxReadyEvaluationsPerRun } from './integration.mjs';
-import { dependencies } from './integration-policy.mjs';
+import { client, fastGate, maxReadyEvaluationsPerRun } from './integration.mjs';
+import { dependencies, reviewDecision } from './integration-policy.mjs';
 import { conflictScope, REPOSITORY, rescueConfig } from './integration-rescue-policy.mjs';
-import { RescueStore } from './integration-rescue-store.mjs';
+import { pullEvidence, RescueStore } from './integration-rescue-store.mjs';
 import { buildReconciliationPlan } from './integration-reconciliation-plan.mjs';
 
 async function mapLimit(items, limit, task) {
@@ -24,11 +24,27 @@ function recordMap(state) {
   return new Map(Object.values(state?.records || {}).map(record => [Number(record.pr), record]));
 }
 
-async function scopeForPr(c, pr, record) {
-  if (record?.headSha === pr.head?.sha && record.scope?.files?.length) return record.scope;
-  const files = await c.pages(`/pulls/${pr.number}/files`, undefined, { maxPages: 30, cache: true });
-  const paths = files.flatMap(file => [file.filename, file.previous_filename].filter(Boolean));
-  return conflictScope(paths, pr.body || '');
+async function preflightForPr(c, snapshot) {
+  try {
+    const evidence = await pullEvidence(c, snapshot.number, { detailed: true });
+    if (evidence.pr.head.sha !== snapshot.head?.sha) return [snapshot.number, { error: 'HEAD_CHANGED_DURING_PREFLIGHT' }];
+    const checksPassed = await fastGate(c, evidence.pr, { cache: true });
+    const decision = reviewDecision(evidence.reviews, evidence.pr.head.sha);
+    const paths = evidence.files.flatMap(file => [file.filename, file.previous_filename].filter(Boolean));
+    return [snapshot.number, {
+      pr: evidence.pr,
+      scope: conflictScope(paths, evidence.pr.body || ''),
+      files: paths,
+      checksPassed,
+      reviewRejected: decision.rejected,
+      reviewApproved: decision.approved,
+      unresolved: evidence.unresolved,
+      mergeable: evidence.pr.mergeable,
+      mergeableState: evidence.pr.mergeable_state,
+    }];
+  } catch (error) {
+    return [snapshot.number, { error: `PREFLIGHT: ${error.message}` }];
+  }
 }
 
 function persistedPlan(plan) {
@@ -44,6 +60,7 @@ function persistedPlan(plan) {
     trains: plan.trains,
     repair: plan.repair,
     active: plan.active,
+    validating: plan.validating,
     blocked: plan.blocked,
     deferred: plan.deferred,
     wakeAgain: plan.wakeAgain,
@@ -72,6 +89,7 @@ export async function collectReconciliationPlan(c, repository = REPOSITORY, opti
   const maxEvaluations = Math.max(1, Math.min(24, Number(options.maxEvaluations || maxReadyEvaluationsPerRun)));
   const selected = ready.slice(0, maxEvaluations);
   const deferred = ready.slice(maxEvaluations).map(pr => ({ pr: pr.number, head: pr.head?.sha || null, reason: 'deferred by reconciliation evaluation budget' }));
+  const concurrency = Math.max(1, Math.min(6, Number(options.concurrency || 6)));
 
   let state = options.state || null;
   if (!state && options.readRescueState !== false) {
@@ -83,16 +101,18 @@ export async function collectReconciliationPlan(c, repository = REPOSITORY, opti
     }
   }
   const records = recordMap(state);
-  const scopeRows = await mapLimit(selected, Number(options.concurrency || 6), async pr => [pr.number, await scopeForPr(c, pr, records.get(pr.number))]);
-  const scopeByPr = new Map(scopeRows);
+  const preflightRows = await mapLimit(selected, concurrency, snapshot => preflightForPr(c, snapshot));
+  const preflightByPr = new Map(preflightRows);
+  const currentReady = selected.map(snapshot => preflightByPr.get(snapshot.number)?.pr || snapshot);
+  const scopeByPr = new Map(currentReady.map(pr => [pr.number, preflightByPr.get(pr.number)?.scope || records.get(pr.number)?.scope]).filter(([, scope]) => scope?.files?.length));
 
   const dependencyNumbers = new Set();
-  for (const pr of selected) {
+  for (const pr of currentReady) {
     try { for (const number of dependencies(pr.body || '')) dependencyNumbers.add(number); }
     catch { /* planner records invalid dependency syntax as blocked */ }
   }
   const openByNumber = new Map(open.map(pr => [Number(pr.number), pr]));
-  const dependencyRows = await mapLimit([...dependencyNumbers], Number(options.concurrency || 6), async number => {
+  const dependencyRows = await mapLimit([...dependencyNumbers], concurrency, async number => {
     const snapshot = openByNumber.get(Number(number));
     if (snapshot) return [Number(number), { merged: false, state: snapshot.state || 'open' }];
     try {
@@ -104,10 +124,12 @@ export async function collectReconciliationPlan(c, repository = REPOSITORY, opti
   });
 
   const plan = buildReconciliationPlan({
-    ready: selected,
+    ready: currentReady,
     scopeByPr,
     dependencyStateByPr: new Map(dependencyRows),
     recordsByPr: records,
+    preflightByPr,
+    requirePreflight: true,
     deferred,
     maxTrainSize: options.maxTrainSize || state?.flowControl?.tuning?.trainSize || 5,
     now: options.now || Date.now(),
@@ -119,7 +141,7 @@ export async function collectReconciliationPlan(c, repository = REPOSITORY, opti
     develop,
     evaluated: selected.length,
     totalReady: ready.length,
-    concurrency: Math.max(1, Number(options.concurrency || 6)),
+    concurrency,
   };
 }
 
@@ -138,7 +160,7 @@ async function main() {
   mkdirSync(resolve(output, '..'), { recursive: true });
   writeFileSync(output, JSON.stringify(plan, null, 2));
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT,
-    `mode=${plan.pressure.mode}\nactionable=${plan.wakeAgain}\nactionable_idle=${plan.actionableIdle}\nwriter_count=${plan.counts.writer}\nrepair_count=${plan.counts.repair}\nactive_count=${plan.counts.active}\ntrain_count=${plan.counts.trains}\nready_count=${plan.totalReady}\n`);
+    `mode=${plan.pressure.mode}\nactionable=${plan.wakeAgain}\nactionable_idle=${plan.actionableIdle}\nwriter_count=${plan.counts.writer}\nrepair_count=${plan.counts.repair}\nactive_count=${plan.counts.active}\nvalidating_count=${plan.counts.validating}\ntrain_count=${plan.counts.trains}\nready_count=${plan.totalReady}\n`);
   console.log(JSON.stringify(plan, null, 2));
 }
 
