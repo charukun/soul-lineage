@@ -17,7 +17,7 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
     await page.locator('[data-tab="qa"]').click();await page.locator('#qa-start').click();
     await page.waitForFunction(()=>window.masterCharacterReview.motionQA.active,null,{timeout:60000});
     const started=await qa();await page.waitForFunction(t=>window.masterCharacterReview.motionQA.time>t+.05,started.time);
-    assert.deepEqual(await page.evaluate(()=>window.masterCharacterReview.motionQA.sources),['idle-01','walk','run-slow','runtime.weaponDraw','runtime.guard','authored-slash']);
+    assert.deepEqual(await page.evaluate(()=>window.masterCharacterReview.motionQA.sources),['idle-01','walk','run-slow','runtime.weaponDraw','runtime.guard','runtime.naturalWeaponStance','authored-slash']);
     checks.push('one-tap review starts actual source animation');
     for(const t of [2.97,6.97,10.97,13.97,16.97,22.97,26.97]){
       await seek(t);await page.locator('#qa-play').click();await page.waitForFunction(t=>window.masterCharacterReview.motionQA.time>t+.1,t);
@@ -31,7 +31,20 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
     await page.locator('[data-qa-camera="front"]').click();assert.deepEqual((await qa()).cameraPosition,cameras.front);
     await page.locator('#qa-tour').check();await seek(10);await page.locator('#qa-play').click();await page.waitForFunction(()=>window.masterCharacterReview.motionQA.camera==='left');
     await page.locator('#qa-tour').uncheck();checks.push('eight repeatable camera presets and clock-driven tour');
-    await page.setViewportSize({width:900,height:900});await seek(17.475);await page.locator('[data-qa-camera="front-left"]').click();
+
+    // This PR changes the live draw/guard silhouette. Preserve raw (pre-QA-correction)
+    // visual evidence at the exact end-of-draw and settled-guard frames from two views.
+    await page.setViewportSize({width:900,height:900});
+    await page.locator('#qa-before').click();
+    for(const [time,label]of [[13.97,'draw-end'],[16.97,'guard']])for(const camera of ['front-left','left']){
+      await seek(time);await page.locator(`[data-qa-camera="${camera}"]`).click();
+      const stance=await qa();assert.equal(stance.frame,Math.round(time*60));snapshots.push({stance:label,camera,snapshot:stance});
+      await page.screenshot({path:resolve(output,`motion-qa-${label}-raw-${camera}.png`)});
+    }
+    await page.locator('#qa-before').click();
+    checks.push('raw draw-end and guard stance evidence captured from front-left and side');
+
+    await seek(17.475);await page.locator('[data-qa-camera="front-left"]').click();
     await page.locator('#qa-before').click();const before=await qa();
     await page.screenshot({path:resolve(output,'motion-qa-before.png')});
     await page.locator('#qa-before').click();const after=await qa();

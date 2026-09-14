@@ -4,13 +4,23 @@ on:
     branches: [develop, main]
   workflow_dispatch:
     inputs:
+      publish_only:
+        description: 'Publish current branch snapshot without running Integration'
+        type: boolean
+        required: false
+        default: false
       rescue_mode:
-        description: 'Internal Integration Rescue wakeup (scan skips merge/deploy)'
+        description: 'Compatibility route to Integration Controller scan'
         type: string
         required: false
         default: ''
+      integration_cursor:
+        description: 'Compatibility bounded Ready queue cursor'
+        type: string
+        required: false
+        default: '0'
       refresh_staging:
-        description: 'Refresh pinned validation environments from the verified develop snapshot; retain Production'
+        description: 'Refresh pinned validation environments from verified develop; retain Production'
         type: boolean
         required: false
         default: false
@@ -19,11 +29,6 @@ on:
         type: boolean
         required: false
         default: false
-      integration_cursor:
-        description: 'Internal bounded Ready-queue scan cursor'
-        type: string
-        required: false
-        default: '0'
       repair_scope:
         description: 'Internal browser repair recorder scope (empty or pr)'
         type: string
@@ -83,77 +88,98 @@ jobs:
         run: node scripts/browser-repair-ticket.mjs
 
   integrate:
-    name: Integrate Ready PRs
-    if: github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr' && inputs.rescue_mode != 'scan'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    name: Integration Controller
+    # The reusable Controller uploads .deploy-state/integration-diagnostics.json in integration-report.
+    if: >-
+      github.event_name == 'workflow_dispatch' && inputs.repair_scope != 'pr' &&
+      inputs.publish_only != true && inputs.refresh_staging != true && inputs.full_verification != true &&
+      inputs.rescue_mode != 'scan'
     concurrency:
       group: integration-develop
       cancel-in-progress: false
+    uses: ./.github/workflows/integration-controller.yml
+    with:
+      rescue_mode: ${{ inputs.rescue_mode }}
+      integration_cursor: ${{ inputs.integration_cursor }}
     permissions:
       contents: write
       pull-requests: write
+      issues: write
       actions: write
       checks: read
       statuses: write
+    secrets: inherit
+
+  queue-recovery:
+    name: Recover missed Ready CI and Integration requests
+    if: >-
+      github.event_name == 'workflow_dispatch' && inputs.repair_scope != 'pr' &&
+      inputs.publish_only != true && inputs.refresh_staging != true && inputs.full_verification != true &&
+      inputs.rescue_mode == 'scan'
+    uses: ./.github/workflows/integration-controller.yml
+    with:
+      rescue_mode: scan
+      integration_cursor: ${{ inputs.integration_cursor }}
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: write
+      checks: read
+      statuses: write
+    secrets: inherit
+
+  integration-continuation:
+    name: Continue bounded Ready scan
+    needs: integrate
+    if: needs.integrate.result == 'success' && needs.integrate.outputs.retry == 'true' && needs.integrate.outputs.verify == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
     outputs:
-      sha: ${{ steps.queue.outputs.sha }}
-      verify: ${{ steps.queue.outputs.verify }}
-      retry: ${{ steps.queue.outputs.retry }}
       cursor: ${{ steps.queue.outputs.cursor }}
     steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: develop
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-      - name: Evaluate Ready PRs and merge eligible heads as one batch
+      - name: Preserve the bounded evaluation cursor
         id: queue
         env:
-          GH_TOKEN: ${{ github.token }}
-          INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-diagnostics.json
-          INTEGRATION_TIME_BUDGET_MS: '360000'
           INTEGRATION_EVALUATION_CURSOR: ${{ inputs.integration_cursor || '0' }}
-        run: node scripts/integration.mjs
-      - name: Notify integrated PRs separately from DEV delivery
-        if: always()
-        continue-on-error: true
+          NEXT_CURSOR: ${{ needs.integrate.outputs.cursor }}
+        run: echo "cursor=${NEXT_CURSOR:-$INTEGRATION_EVALUATION_CURSOR}" >> "$GITHUB_OUTPUT"
+      - uses: actions/github-script@v8
         env:
-          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
-          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
-        run: node scripts/notify-delivery.mjs INTEGRATED .deploy-state/integration.json
-      - name: Refresh Ops Board after merge evaluation
-        continue-on-error: true
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          OPS_BOARD_URL: https://rinne-ops.c-okamoto.workers.dev/
-        run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then exit 0; fi
-          token=$(printf '%s' "$CLOUDFLARE_API_TOKEN|$GITHUB_REPOSITORY|rinne-ops-refresh-v1" | sha256sum | awk '{print $1}')
-          echo "::add-mask::$token"
-          curl -fsS --retry 2 -X POST -H "Authorization: Bearer $token" "${OPS_BOARD_URL}api/refresh" >/dev/null || true
-      - uses: actions/upload-artifact@v4
-        if: always()
+          CURSOR: ${{ steps.queue.outputs.cursor }}
         with:
-          name: integration-report
-          path: |
-            .deploy-state/integration.json
-            .deploy-state/integration-diagnostics.json
-          include-hidden-files: true
-          if-no-files-found: warn
-          retention-days: 14
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo, workflow_id: 'deploy.yml', ref: 'develop',
+              inputs: { integration_cursor: process.env.CURSOR || '0' }
+            });
+
+  mark-develop-pending:
+    name: Mark DEV delivery pending
+    if: >-
+      github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr' &&
+      (github.event_name == 'push' || inputs.publish_only == true || inputs.refresh_staging == true || inputs.full_verification == true)
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({ ...context.repo, sha: context.sha,
+              context: 'integration/develop', state: 'pending',
+              description: 'DEV Publisher: candidate, promote, public source and browser verification pending',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
 
   pulse:
     name: Publish develop PULSE
-    needs: integrate
     if: >-
-      github.ref == 'refs/heads/develop' && needs.integrate.result == 'success' &&
-      inputs.repair_scope != 'pr' && inputs.rescue_mode != 'scan' && needs.integrate.outputs.verify == 'true'
+      github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr' &&
+      (github.event_name == 'push' || inputs.publish_only == true || inputs.refresh_staging == true || inputs.full_verification == true)
     uses: ./.github/workflows/ops-board.yml
     with:
-      source_sha: ${{ needs.integrate.outputs.sha }}
+      source_sha: ${{ github.sha }}
     permissions:
       contents: read
       pull-requests: read
@@ -161,82 +187,14 @@ jobs:
       statuses: write
     secrets: inherit
 
-  queue-recovery:
-    name: Recover missed Ready CI and Integration requests
-    if: github.ref == 'refs/heads/develop' && inputs.rescue_mode == 'scan' && inputs.repair_scope != 'pr'
-    runs-on: ubuntu-latest
-    timeout-minutes: 4
-    concurrency:
-      group: integration-develop
-      cancel-in-progress: false
-    permissions:
-      contents: read
-      pull-requests: read
-      actions: write
-      checks: read
-      statuses: read
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: develop
-          persist-credentials: false
-          sparse-checkout: scripts
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-      - name: Re-evaluate current Ready heads without merging or editing branches
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: node scripts/integration-queue-recovery.mjs
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: integration-queue-recovery
-          path: .deploy-state/queue-recovery.json
-          include-hidden-files: true
-          retention-days: 7
-
-  rescue:
-    name: Parallel Integration Rescue
-    needs: integrate
-    if: always() && github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr'
-    uses: ./.github/workflows/integration-rescue.yml
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: write
-      actions: write
-      statuses: read
-    secrets: inherit
-
-  integration-continuation:
-    name: Continue bounded Ready scan
+  publish:
+    name: Validate candidate and promote application snapshot
     needs: integrate
     if: >-
-      always() && github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr' &&
-      needs.integrate.result == 'success' && needs.integrate.outputs.retry == 'true' &&
-      needs.integrate.outputs.verify == 'false'
+      always() && inputs.repair_scope != 'pr' &&
+      (github.event_name == 'push' || inputs.publish_only == true || inputs.refresh_staging == true || inputs.full_verification == true)
     runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - uses: actions/github-script@v8
-        env:
-          CURSOR: ${{ needs.integrate.outputs.cursor }}
-        with:
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              ...context.repo,
-              workflow_id: 'deploy.yml',
-              ref: 'develop',
-              inputs: { integration_cursor: process.env.CURSOR || '0' }
-            });
-
-  publish:
-    needs: integrate
-    if: always() && (github.ref == 'refs/heads/main' || (needs.integrate.result == 'success' && (needs.integrate.outputs.verify == 'true' || inputs.refresh_staging == true)))
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     concurrency:
       group: pages
       cancel-in-progress: false
@@ -246,6 +204,9 @@ jobs:
       id-token: write
     outputs:
       browser_outcome: ${{ steps.dev_browser.outcome }}
+      live_outcome: ${{ steps.live.outcome }}
+      changed: ${{ steps.assemble.outputs.changed }}
+      promoted: ${{ steps.promoted.outputs.value }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -253,7 +214,7 @@ jobs:
       - name: Checkout latest DEV and deployment coordinator
         uses: actions/checkout@v6
         with:
-          ref: ${{ needs.integrate.outputs.sha || 'develop' }}
+          ref: ${{ needs.integrate.outputs.sha || (github.ref == 'refs/heads/develop' && github.sha || 'develop') }}
           path: sources/dev
           persist-credentials: false
       - name: Checkout latest PROD source
@@ -277,33 +238,59 @@ jobs:
           INITIALIZE_GAME_ENVIRONMENTS: 'true'
           REFRESH_STAGING: ${{ inputs.refresh_staging == true && github.ref == 'refs/heads/develop' }}
         run: node sources/dev/scripts/deploy.mjs sources/dev sources/prod _site "$SITE_URL"
-      - name: Refuse a superseded develop snapshot before publishing
+      - name: Refuse a superseded develop snapshot before candidate validation
         if: github.ref == 'refs/heads/develop'
         uses: actions/github-script@v8
         env:
-          EXPECTED_SHA: ${{ needs.integrate.outputs.sha }}
+          EXPECTED_SHA: ${{ github.sha }}
         with:
           script: |
             const { data } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
-            if (data.commit.sha !== process.env.EXPECTED_SHA) core.setFailed('develop advanced; the next Integration run will publish it');
+            if (data.commit.sha !== process.env.EXPECTED_SHA) core.setFailed('develop advanced; the next DEV Publisher run owns the newer snapshot');
+      - name: Deduplicate identical site bytes before candidate validation
+        if: steps.assemble.outputs.changed == 'true'
+        run: |
+          mkdir -p .deploy-state
+          node sources/dev/scripts/site-dedupe.mjs _site | tee .deploy-state/site-dedupe.json
+      - name: Validate exact DEV candidate before public promotion
+        if: github.ref == 'refs/heads/develop' && steps.assemble.outputs.changed == 'true'
+        env:
+          CANDIDATE_PORT: '4173'
+          CANDIDATE_URL: http://127.0.0.1:4173/soul-lineage/
+        run: |
+          node sources/dev/scripts/dev-candidate-server.mjs _site > .deploy-state/dev-candidate.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for n in $(seq 1 30); do
+            if curl -fsS "${CANDIDATE_URL}deployment-manifest.json" >/dev/null; then break; fi
+            if [ "$n" = 30 ]; then cat .deploy-state/dev-candidate.log; exit 1; fi
+            sleep 1
+          done
+          node sources/dev/scripts/verify-browser.mjs "$CANDIDATE_URL" _site .deploy-state/changed.json
       - uses: actions/configure-pages@v5
         if: steps.assemble.outputs.changed == 'true'
       - uses: actions/upload-pages-artifact@v4
         if: steps.assemble.outputs.changed == 'true'
         with:
           path: _site
-      - name: Publish changed snapshot
+      - name: Promote candidate to DEV Pages
         id: deployment
         if: steps.assemble.outputs.changed == 'true'
         uses: actions/deploy-pages@v4
+      - name: Record that public DEV was changed
+        id: promoted
+        if: steps.deployment.outcome == 'success'
+        run: echo 'value=true' >> "$GITHUB_OUTPUT"
       - name: Verify public app URLs, assets and source commits
+        id: live
         if: steps.assemble.outputs.changed == 'true'
+        continue-on-error: ${{ github.ref == 'refs/heads/develop' }}
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
         run: node sources/dev/scripts/verify-live.mjs "$SITE_URL" _site
-      - name: Focused DEV browser verification
+      - name: Focused DEV browser verification after promotion
         id: dev_browser
-        if: github.ref == 'refs/heads/develop' && steps.assemble.outputs.changed == 'true'
+        if: github.ref == 'refs/heads/develop' && steps.assemble.outputs.changed == 'true' && steps.live.outcome == 'success'
         continue-on-error: true
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
@@ -312,19 +299,31 @@ jobs:
         if: always() && github.ref == 'refs/heads/develop'
         uses: actions/upload-artifact@v4
         with:
-          name: dev-browser-${{ needs.integrate.outputs.sha }}
+          name: dev-browser-${{ github.sha }}
           path: sources/dev/test-results/
           if-no-files-found: ignore
           retention-days: 14
-      - name: Fail DEV publication result when focused browser verification failed
-        if: steps.dev_browser.outcome == 'failure'
+      - name: Preserve Last Known Good site artifact only after verified public DEV
+        if: >-
+          github.ref == 'refs/heads/develop' && steps.assemble.outputs.changed == 'true' &&
+          steps.live.outcome == 'success' && steps.dev_browser.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-lkg-site-${{ github.sha }}
+          path: _site/
+          include-hidden-files: true
+          retention-days: 14
+      - name: Fail current DEV result after recording rollback coordinates
+        if: >-
+          github.ref == 'refs/heads/develop' && steps.assemble.outputs.changed == 'true' &&
+          (steps.live.outcome == 'failure' || steps.dev_browser.outcome == 'failure' || steps.dev_browser.outcome == 'skipped')
         run: exit 1
       - name: Preserve blocking Production browser verification
         if: github.ref == 'refs/heads/main' && steps.assemble.outputs.changed == 'true'
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
         run: node sources/dev/scripts/verify-browser.mjs "$SITE_URL" _site .deploy-state/changed.json
-      - name: Keep the exact deployed snapshot for optional diagnostics
+      - name: Keep exact publication diagnostics
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -332,15 +331,97 @@ jobs:
           path: |
             _site/deployment-manifest.json
             .deploy-state/changed.json
+            .deploy-state/site-dedupe.json
+            .deploy-state/dev-candidate.log
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 14
 
+  rollback-lkg:
+    name: Restore Last Known Good DEV after promoted snapshot failure
+    needs: publish
+    if: >-
+      always() && github.ref == 'refs/heads/develop' && needs.publish.result == 'failure' &&
+      needs.publish.outputs.promoted == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+      id-token: write
+      statuses: write
+    environment:
+      name: github-pages
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          persist-credentials: false
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Locate previous verified same-repository DEV artifact
+        id: lkg
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: node control/scripts/dev-last-known-good.mjs locate
+      - uses: actions/download-artifact@v4
+        if: steps.lkg.outputs.found == 'true'
+        with:
+          artifact-ids: ${{ steps.lkg.outputs.artifact_id }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.lkg.outputs.run_id }}
+          path: rollback-site
+          merge-multiple: true
+      - name: Verify rollback artifact identity
+        if: steps.lkg.outputs.found == 'true'
+        run: node control/scripts/dev-last-known-good.mjs verify rollback-site "${{ steps.lkg.outputs.source_sha }}"
+      - uses: actions/configure-pages@v5
+        if: steps.lkg.outputs.found == 'true'
+      - uses: actions/upload-pages-artifact@v4
+        if: steps.lkg.outputs.found == 'true'
+        with:
+          path: rollback-site
+      - name: Restore previous verified DEV site
+        id: rollback
+        if: steps.lkg.outputs.found == 'true'
+        uses: actions/deploy-pages@v4
+      - name: Verify restored public source
+        if: steps.rollback.outcome == 'success'
+        env:
+          SITE_URL: ${{ steps.rollback.outputs.page_url }}
+        run: node control/scripts/verify-live.mjs "$SITE_URL" rollback-site
+      - name: Record DEV fallback without changing develop history
+        if: always()
+        uses: actions/github-script@v8
+        env:
+          FOUND: ${{ steps.lkg.outputs.found }}
+          SOURCE_SHA: ${{ steps.lkg.outputs.source_sha }}
+          ROLLBACK: ${{ steps.rollback.outcome }}
+        with:
+          script: |
+            const restored = process.env.FOUND === 'true' && process.env.ROLLBACK === 'success';
+            await github.rest.repos.createCommitStatus({ ...context.repo, sha: context.sha,
+              context: 'integration/dev-fallback', state: restored ? 'success' : 'failure',
+              description: restored
+                ? `Current DEV failed; public site restored to LKG ${process.env.SOURCE_SHA.slice(0,12)}`
+                : 'Current DEV failed and no verified LKG snapshot could be restored',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
+            if (!restored) core.setFailed('No verified Last Known Good DEV artifact restored');
+
   browser-repair-state:
     name: Record DEV browser repair state
-    needs: [integrate, publish]
+    needs: publish
     if: >-
-      always() && github.ref == 'refs/heads/develop' && needs.integrate.result == 'success' &&
+      always() && github.ref == 'refs/heads/develop' &&
       (needs.publish.outputs.browser_outcome == 'success' || needs.publish.outputs.browser_outcome == 'failure')
     runs-on: ubuntu-latest
     permissions:
@@ -350,22 +431,24 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ needs.integrate.outputs.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - name: Create/update machine-readable repair ticket
         env:
           GH_TOKEN: ${{ github.token }}
           REPAIR_SCOPE: develop
           REPAIR_CONCLUSION: ${{ needs.publish.outputs.browser_outcome }}
-          REPAIR_HEAD_SHA: ${{ needs.integrate.outputs.sha }}
+          REPAIR_HEAD_SHA: ${{ github.sha }}
           REPAIR_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          REPAIR_ARTIFACT: dev-browser-${{ needs.integrate.outputs.sha }}
+          REPAIR_ARTIFACT: dev-browser-${{ github.sha }}
         run: node scripts/browser-repair-ticket.mjs
 
   result:
     name: Record final develop result
-    needs: [integrate, publish]
-    if: always() && needs.integrate.result == 'success' && (needs.integrate.outputs.verify == 'true' || inputs.refresh_staging == true)
+    needs: [integrate, publish, rollback-lkg]
+    if: >-
+      always() && github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr' &&
+      (github.event_name == 'push' || inputs.publish_only == true || inputs.refresh_staging == true || inputs.full_verification == true)
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -374,47 +457,74 @@ jobs:
     steps:
       - uses: actions/github-script@v8
         env:
-          FINAL_SHA: ${{ needs.integrate.outputs.sha }}
+          RESULT: ${{ needs.publish.result }}
+          FALLBACK: ${{ needs.rollback-lkg.result }}
+          RETRY: ${{ needs.integrate.outputs.retry }}
+          CURSOR: ${{ needs.integrate.outputs.cursor }}
+        with:
+          script: |
+            if (['cancelled','skipped'].includes(process.env.RESULT)) {
+              core.notice('Publication was cancelled or superseded; no failed DEV quality result is recorded.');
+              return;
+            }
+            const success = process.env.RESULT === 'success';
+            const fallback = process.env.FALLBACK === 'success';
+            await github.rest.repos.createCommitStatus({ ...context.repo, sha: context.sha,
+              context: 'integration/develop', state: success ? 'success' : 'failure',
+              description: success
+                ? 'DEV candidate + promotion + HTTP/source + focused browser verification passed'
+                : fallback
+                  ? 'Current DEV failed; LKG public site restored; current develop remains blocked for repair'
+                  : 'DEV delivery/browser verification failed; automatic normal merges paused until repair',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
+      - uses: actions/checkout@v6
+        if: needs.publish.result == 'success'
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout: scripts
+      - name: Notify verified DEV delivery
+        id: notify
+        if: needs.publish.result == 'success'
+        continue-on-error: true
+        env:
+          FINAL_SHA: ${{ github.sha }}
+          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+        run: node scripts/notify-delivery.mjs DEV_DEPLOYED
+      - name: Record notification health
+        if: needs.publish.result == 'success'
+        uses: actions/github-script@v8
+        env:
+          CHANNEL: ${{ steps.notify.outputs.channel }}
+          NOTIFY_OUTCOME: ${{ steps.notify.outcome }}
+        with:
+          script: |
+            const channel = process.env.CHANNEL || (process.env.NOTIFY_OUTCOME === 'failure' ? 'failed' : 'not-configured');
+            const state = channel === 'ntfy' ? 'success' : channel === 'not-configured' ? 'error' : 'failure';
+            const description = channel === 'ntfy' ? 'ntfy smartphone delivery confirmed' : channel === 'not-configured'
+              ? 'NTFY_TOPIC_URL is not configured; smartphone delivery unconfirmed'
+              : 'ntfy delivery failed; GitHub remains authoritative';
+            await github.rest.repos.createCommitStatus({ ...context.repo, sha: context.sha,
+              context: 'notification/ntfy', state, description,
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
+      - name: Wake one bounded continuation or recovery scan after verified DEV
+        if: needs.publish.result == 'success'
+        uses: actions/github-script@v8
+        env:
           RESULT: ${{ needs.publish.result }}
           RETRY: ${{ needs.integrate.outputs.retry }}
           CURSOR: ${{ needs.integrate.outputs.cursor }}
         with:
           script: |
-            if (['cancelled', 'skipped'].includes(process.env.RESULT)) {
-              core.notice('Publication was cancelled or superseded; no failed DEV quality result is recorded.');
-              return;
-            }
-            await github.rest.repos.createCommitStatus({
-              ...context.repo, sha: process.env.FINAL_SHA,
-              context: 'integration/develop',
-              state: process.env.RESULT === 'success' ? 'success' : 'failure',
-              description: process.env.RESULT === 'success'
-                ? 'Fast checks + DEV deploy + HTTP/source + focused browser verification passed'
-                : 'DEV delivery/browser verification failed; automatic merges paused until repair',
-              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
-            });
             if (process.env.RESULT === 'success' && process.env.RETRY === 'true') {
-              await github.rest.actions.createWorkflowDispatch({
-                ...context.repo,
-                workflow_id: 'deploy.yml',
-                ref: 'develop',
-                inputs: { integration_cursor: process.env.CURSOR || '0' }
-              });
+              await github.rest.actions.createWorkflowDispatch({ ...context.repo,
+                workflow_id: 'deploy.yml', ref: 'develop',
+                inputs: { integration_cursor: process.env.CURSOR || '0' } });
+            } else if (process.env.RESULT === 'success') {
+              await github.rest.actions.createWorkflowDispatch({ ...context.repo,
+                workflow_id: 'deploy.yml', ref: 'develop', inputs: { rescue_mode: 'scan' } });
             }
-      - uses: actions/checkout@v6
-        if: needs.publish.result == 'success'
-        with:
-          ref: develop
-          persist-credentials: false
-          sparse-checkout: scripts
-      - name: Notify verified DEV delivery
-        if: needs.publish.result == 'success'
-        continue-on-error: true
-        env:
-          FINAL_SHA: ${{ needs.integrate.outputs.sha }}
-          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
-          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
-        run: node scripts/notify-delivery.mjs DEV_DEPLOYED
       - name: Refresh Ops Board after DEV deploy result
         if: always()
         continue-on-error: true
@@ -427,13 +537,37 @@ jobs:
           echo "::add-mask::$token"
           curl -fsS --retry 2 -X POST -H "Authorization: Bearer $token" "${OPS_BOARD_URL}api/refresh" >/dev/null || true
 
+  canary:
+    name: Control-plane end-to-end canary
+    needs: [pulse, publish, result]
+    if: >-
+      always() && github.ref == 'refs/heads/develop' && needs.publish.result == 'success' &&
+      needs.result.result == 'success' && needs.pulse.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout: scripts
+      - name: Verify DEV / PULSE / notification evidence coherently
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FINAL_SHA: ${{ github.sha }}
+          SITE_URL: https://charukun.github.io/soul-lineage/
+          OPS_BOARD_URL: https://rinne-ops.c-okamoto.workers.dev/
+        run: node scripts/integration-control-canary.mjs
+
   full-verification:
     name: Optional full regression and public browser diagnostics
-    needs: [integrate, publish, result]
+    needs: [publish, result]
     if: >-
       always() && github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr' &&
-      inputs.full_verification == true && needs.integrate.result == 'success' &&
-      (needs.publish.result == 'success' || needs.integrate.outputs.verify == 'false')
+      inputs.full_verification == true && needs.publish.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -442,18 +576,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ needs.integrate.outputs.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - name: Full regression (separate from the DEV delivery gate)
+      - name: Full regression (separate from DEV delivery gate)
         run: node scripts/validate.mjs full
-      - name: Fetch and verify the published snapshot identity
+      - name: Fetch and verify published snapshot identity
         env:
-          EXPECTED_SHA: ${{ needs.integrate.outputs.sha }}
+          EXPECTED_SHA: ${{ github.sha }}
         run: |
           mkdir -p .deploy-state
           node --input-type=module <<'JS'
@@ -483,14 +617,10 @@ jobs:
         if: always()
         uses: actions/github-script@v8
         env:
-          FINAL_SHA: ${{ needs.integrate.outputs.sha }}
           RESULT: ${{ job.status }}
         with:
           script: |
-            await github.rest.repos.createCommitStatus({
-              ...context.repo, sha: process.env.FINAL_SHA,
-              context: 'verification/full',
-              state: process.env.RESULT === 'success' ? 'success' : 'failure',
+            await github.rest.repos.createCommitStatus({ ...context.repo, sha: context.sha,
+              context: 'verification/full', state: process.env.RESULT === 'success' ? 'success' : 'failure',
               description: 'Full regression / public WebGL2 / P2P diagnostics; separate from DEV delivery',
-              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
-            });
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });

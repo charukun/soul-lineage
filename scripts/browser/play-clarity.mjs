@@ -31,7 +31,7 @@ export async function verifyHuntClarity(page, expect, testInfo) {
   await expect(page.locator('.soul-music [data-open]')).toBeHidden();
   const bounds=await page.locator('#pause').boundingBox();expect(bounds.width).toBeGreaterThanOrEqual(44);expect(bounds.height).toBeGreaterThanOrEqual(44);
   await page.locator('#pause').click();
-  await assertHuntGuideState(page, expect, false);
+  await assertHuntGuideState(page, expect);
   await page.locator('#online-settings').click();
   await expect(page.locator('#online-box')).toBeVisible();
   await page.locator('#online-close').click();
@@ -45,20 +45,21 @@ export async function verifyHuntClarity(page, expect, testInfo) {
   await page.locator('#scent').click();
   await expect(page.locator('#scent')).toBeDisabled();
   await page.locator('#pause').click();
-  await assertHuntGuideState(page, expect, true);
+  await assertHuntGuideState(page, expect);
   await page.locator('#sheet-close').click();
   await page.screenshot({path:testInfo.outputPath('first-hunt-guide.png')});
 }
 
 // The village is generated, so a real encounter may start before the first click.
 // Inspect the paused engine, not the guide itself, to determine the exact instruction.
-async function assertHuntGuideState(page, expect, sensed) {
+async function assertHuntGuideState(page, expect) {
   const state = await page.evaluate(() => window.__NIGHT_HUNT__.snapshot());
   expect(state.paused).toBe(true);
   expect(state.finished).toBe(false);
   expect(typeof state.devouring).toBe('boolean');
-  const nearPrey = state.npcs.some(n => n.dead && !n.eaten && Math.hypot(n.x-state.player.x,n.z-state.player.z)<2.5);
-  const expected = state.devouring ? 'devour' : state.combat ? 'combat' : state.eaten>0 ? 'memory' : nearPrey ? 'stop' : sensed ? 'approach' : 'sense';
+  const nearPrey = state.npcs.some(n => n.dead && !n.eaten && Math.hypot(n.x-state.player.x,n.z-state.player.z)<3.2);
+  const expected = state.devouring ? 'devour' : state.combat ? 'combat' : state.eaten===0 ? (nearPrey ? 'stop' : 'approach') : state.eaten===1 ? 'choice' : 'free';
   await expect(page.locator('#first-hunt-guide')).toHaveAttribute('data-step', expected);
+  await expect(page.locator('#hud')).toHaveAttribute('data-guide', expected);
   await expect(page.locator('#first-hunt-guide')).toBeVisible();
 }

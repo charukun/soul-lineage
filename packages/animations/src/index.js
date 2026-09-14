@@ -6,3 +6,4 @@ export * from './pose-sanity.js';
 export * from './intersection-risk.js';
 export * from './weapon-calibration.js';
 export * from './motion-qa.js';
+export * from './motion-authoring.js';

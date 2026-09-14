@@ -4,9 +4,42 @@ on:
 permissions:
   contents: read
 jobs:
+  flow-observer:
+    name: Observe flow pressure and repair knowledge
+    if: github.repository == 'charukun/soul-lineage' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: integration-rescue-flow-observer
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: read
+    outputs:
+      max_parallel: ${{ steps.flow.outputs.max_parallel }}
+      max_evaluations: ${{ steps.flow.outputs.max_evaluations }}
+      train_size: ${{ steps.flow.outputs.train_size }}
+      mode: ${{ steps.flow.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Update bounded flow tuning, delivery ledger and failure fingerprints
+        id: flow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESCUE_COORDINATOR: 'true'
+        run: node scripts/integration-flow-observer.mjs
+
   coordinator:
     name: Plan Rescue Wave
-    if: github.repository == 'charukun/soul-lineage' && github.ref == 'refs/heads/develop'
+    needs: flow-observer
+    if: needs.flow-observer.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 6
     concurrency:
@@ -35,7 +68,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RESCUE_CONFIGURED: 'true'
-          MAX_RESCUE_CONCURRENCY: ${{ vars.MAX_RESCUE_CONCURRENCY }}
+          MAX_RESCUE_CONCURRENCY: ${{ needs.flow-observer.outputs.max_parallel || '4' }}
+          RESCUE_MAX_EVALUATIONS: ${{ needs.flow-observer.outputs.max_evaluations || '16' }}
           MAX_RESCUE_ATTEMPTS: ${{ vars.MAX_RESCUE_ATTEMPTS }}
           RESCUE_DIAGNOSTICS_PATH: .deploy-state/rescue-api.json
           RESCUE_COORDINATOR: 'true'
@@ -53,6 +87,95 @@ jobs:
           name: integration-rescue-coordinator-${{ github.run_id }}-${{ github.run_attempt }}
           path: .deploy-state/rescue-*.json
           include-hidden-files: true
+          retention-days: 7
+
+  virtual-train:
+    name: Validate Virtual Integration Train
+    needs: [flow-observer, coordinator]
+    if: needs.coordinator.result == 'success' && needs.flow-observer.outputs.mode != 'NORMAL'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: integration-virtual-train
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: read
+      checks: read
+      statuses: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Assemble independent exact-head PRs on an ephemeral branch
+        id: plan
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAX_RESCUE_CONCURRENCY: ${{ needs.flow-observer.outputs.max_parallel }}
+          RESCUE_COORDINATOR: 'true'
+        run: node scripts/integration-virtual-train.mjs plan .deploy-state/virtual-train.json
+      - uses: actions/checkout@v6
+        if: steps.plan.outputs.has_train == 'true'
+        with:
+          ref: ${{ steps.plan.outputs.branch }}
+          path: train
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        if: steps.plan.outputs.has_train == 'true'
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: train/package-lock.json
+      - name: Install synthetic train dependencies
+        if: steps.plan.outputs.has_train == 'true'
+        working-directory: train
+        run: npm ci
+      - name: Validate combined train tree
+        id: fast
+        if: steps.plan.outputs.has_train == 'true'
+        continue-on-error: true
+        working-directory: train
+        env:
+          TRAIN_BASE: ${{ steps.plan.outputs.base }}
+          TRAIN_HEAD: ${{ steps.plan.outputs.commit }}
+        run: node scripts/validate.mjs fast "$TRAIN_BASE" "$TRAIN_HEAD"
+      - name: Install Chromium for combined affected smoke
+        if: steps.plan.outputs.has_train == 'true' && steps.fast.outcome == 'success'
+        working-directory: train
+        run: npx playwright install --with-deps chromium
+      - name: Browser-check the combined train tree
+        id: browser
+        if: steps.plan.outputs.has_train == 'true' && steps.fast.outcome == 'success'
+        continue-on-error: true
+        working-directory: train
+        env:
+          TRAIN_BASE: ${{ steps.plan.outputs.base }}
+          TRAIN_HEAD: ${{ steps.plan.outputs.commit }}
+        run: node scripts/browser/pr-smoke.mjs "$TRAIN_BASE" "$TRAIN_HEAD"
+      - name: Record exact synthetic-tree evidence and remove ephemeral branch
+        if: always() && hashFiles('.deploy-state/virtual-train.json') != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TRAIN_FAST: ${{ steps.fast.outcome || 'skipped' }}
+          TRAIN_BROWSER: ${{ steps.browser.outcome || 'skipped' }}
+          MAX_RESCUE_CONCURRENCY: ${{ needs.flow-observer.outputs.max_parallel }}
+        run: node scripts/integration-virtual-train.mjs finalize .deploy-state/virtual-train.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-virtual-train-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .deploy-state/virtual-train.json
+          include-hidden-files: true
+          if-no-files-found: ignore
           retention-days: 7
 
   worker:
@@ -106,8 +229,6 @@ jobs:
           sudo chmod -R g+rwX work
           sudo chown -R root:root control
           sudo chmod -R a-w control
-          # Only directory traversal is needed through the runner-owned ancestors.
-          # Keep the wrapper immutable and grant no ancestor read/write access.
           rescue_parent="$GITHUB_WORKSPACE"
           while [ "$rescue_parent" != / ]; do
             sudo chmod o+x "$rescue_parent"
@@ -162,7 +283,7 @@ jobs:
     needs: [coordinator, worker]
     if: always() && needs.coordinator.result == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 7
     concurrency:
       group: integration-rescue-return
       cancel-in-progress: false
@@ -171,7 +292,7 @@ jobs:
       pull-requests: write
       issues: write
       actions: write
-      statuses: read
+      statuses: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -180,10 +301,22 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Aggregate return, delivery tracking and actionable notifications
+      - name: Aggregate return, reconcile dependency stacks and notify actionable failures
         env:
           GH_TOKEN: ${{ github.token }}
           NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
           NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: node scripts/integration-rescue-return.mjs
+      - name: Signal quarantined exact heads for deep AI repair
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/integration-quarantine-signal.mjs
+      - name: Record verified DEV delivery latency for all tracked PRs
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/integration-flow-delivery.mjs

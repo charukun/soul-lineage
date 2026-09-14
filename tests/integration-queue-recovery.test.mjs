@@ -119,17 +119,19 @@ test('PULSE feature runs cannot be shown as public publication', () => {
   assert.equal(buildApplications({}, [], runs).find(a => a.id === 'ops-board').targets[0].commit, 'published');
 });
 
-test('workflow contract separates observation/validation and develop-only public side effects', () => {
+test('workflow contract separates observation/validation and routes queue recovery through the reusable Controller', () => {
   const pulse = readFileSync('.github/workflows/ops-board.yml', 'utf8');
   const ci = readFileSync('.github/workflows/ci.yml', 'utf8');
   const deploy = readFileSync('.github/workflows/deploy.yml', 'utf8');
+  const controller = readFileSync('.github/workflows/integration-controller.yml', 'utf8');
   const [verification, publication] = pulse.split('  deploy:');
   assert.doesNotMatch(verification, /secrets\.|statuses: write|wrangler@4 deploy/);
   assert.match(publication, /if: github.ref == 'refs\/heads\/develop'/);
   assert.match(publication, /Record public Ops Board status\n\s+if:.*!cancelled\(\)/);
   assert.match(pulse, /group: rinne-ops-board-\$\{\{ github.ref \}\}/);
   assert.match(ci, /group: ci-.*'validation' \|\| 'observation'/);
-  assert.match(deploy, /queue-recovery:[\s\S]*?inputs.rescue_mode == 'scan'[\s\S]*?integration-queue-recovery.mjs/);
+  assert.match(deploy, /uses: \.\/\.github\/workflows\/integration-controller\.yml/);
+  assert.match(controller, /queue-recovery:[\s\S]*?inputs.rescue_mode == 'scan'[\s\S]*?integration-queue-recovery\.mjs/);
 });
 
 test('live PR readiness wins over stale event Draft data; moved/closed heads do not validate', async () => {
@@ -164,14 +166,16 @@ test('PULSE CI display and failure history do not let observation success hide v
   assert.equal(actionProblems(runs, [f.pr]).current[0].id, 1);
 });
 
-test('bot merge publishes PULSE through the registered deploy route with exact final source', () => {
+test('bot merge hands off to Publisher, which publishes PULSE from the exact current develop source', () => {
   const pulse = readFileSync('.github/workflows/ops-board.yml', 'utf8');
   const deploy = readFileSync('.github/workflows/deploy.yml', 'utf8');
+  const controller = readFileSync('.github/workflows/integration-controller.yml', 'utf8');
   assert.match(pulse, /workflow_call:[\s\S]*source_sha:/);
   assert.match(pulse, /ref: \$\{\{ env.OPS_SOURCE_SHA \}\}/);
   assert.match(pulse, /statuses\/\$OPS_SOURCE_SHA/);
-  assert.match(deploy, /uses: \.\/\.github\/workflows\/ops-board.yml/);
-  assert.match(deploy, /source_sha: \$\{\{ needs.integrate.outputs.sha \}\}/);
-  const result = deploy.split('  result:')[1].split('  full-verification:')[0];
-  assert.doesNotMatch(result, /needs.pulse/);
+  assert.match(controller, /publisher-handoff:[\s\S]*publish_only: 'true'/);
+  assert.match(deploy, /uses: \.\/\.github\/workflows\/ops-board\.yml/);
+  assert.match(deploy, /source_sha: \$\{\{ github\.sha \}\}/);
+  const result = deploy.split('  result:')[1].split('  canary:')[0];
+  assert.doesNotMatch(result, /needs\.pulse/);
 });

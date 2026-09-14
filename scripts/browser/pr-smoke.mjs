@@ -11,9 +11,22 @@ const base = process.argv[2];
 const head = process.argv[3] || 'HEAD';
 const plan = JSON.parse(execFileSync(process.execPath, ['scripts/affected.mjs', base, head], { cwd: root, encoding: 'utf8' }));
 const apps = plan.infrastructure ? plan.allApps : plan.apps;
+const changedFiles = execFileSync('git', ['diff', '--name-only', base, head], { cwd: root, encoding: 'utf8' });
 const ports = { rinne: 5273, village: 5274, demon: 5275 };
 const viteBin = resolve(root, 'node_modules/vite/bin/vite.js');
 mkdirSync(resolve(root, 'test-results/pr-browser'), { recursive: true });
+
+// PULSE Rescue has a dedicated fixture-rich browser contract that is stricter than the
+// generic game smoke below. Run it on the PR head whenever the Rescue cockpit or its
+// state adapters change so failures cannot first appear only after Integration.
+if (/^(ops-board\/|scripts\/integration-rescue-(?:pulse|policy)\.mjs|tests\/fixtures\/integration-rescue-state\.mjs)/m.test(changedFiles)) {
+  execFileSync(process.execPath, ['ops-board/rescue-browser-check.mjs'], {
+    cwd: root,
+    stdio: 'inherit',
+    env: { ...process.env, OPS_RESCUE_REPORT_DIR: resolve(root, 'test-results/pr-browser/rescue') },
+  });
+}
+
 if (!apps.length) {
   console.log('No affected app browser targets.');
   process.exit(0);
@@ -105,7 +118,11 @@ for (const app of apps) {
       await verifyHuntClarity(page, expect, evidence);
     } else if (app === 'village') {
       const {verifyVillageFirstBuild} = await import('../../apps/village/tests/first-build.browser.mjs');
-      await verifyVillageFirstBuild(page, expect, evidence, () => capturePlayedAudio(page, playedSources));
+      // PR smoke already preserves a full-page screenshot and a screenshot-rich
+      // Playwright trace. Keep every gameplay/Director assertion, but avoid the
+      // extra milestone captures here; deployed DEV/public verification still
+      // uses the default captureMilestones=true evidence path.
+      await verifyVillageFirstBuild(page, expect, evidence, () => capturePlayedAudio(page, playedSources), {captureMilestones:false});
     }
     await capturePlayedAudio(page, playedSources);
     const media = await mediaDiagnostics(rawRequests, playedSources, new URL(url).origin);

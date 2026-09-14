@@ -60,7 +60,6 @@ export function animateCreature(g,a,time,options={}){
  if(!m&&a.dead&&a.capturedBy)applyCapturedPose(g,a.capturedBy);
 }
 
-
 const pivot=new T.Vector3(0,.91,0),inverse=new T.Quaternion(),point=new T.Vector3();
 function applyFeastPose(g,strength){
  const k=Math.max(0,Math.min(1,strength)),p=sampleDevourMotion(0);
@@ -74,8 +73,6 @@ function applyFeastPose(g,strength){
 function bodyLocal(body,x,y,z){return point.set(x,y,z).sub(body.position).applyQuaternion(inverse).toArray();}
 function applyDevourPose(g,p){
  const u=g.userData;
- // Pivot at the pelvis, not the ground. Solve feet back into body space so
- // the crouch never drags the soles below the terrain or swings them in air.
  u.body.rotation.set(p.pitch,p.twist,p.roll);
  u.body.position.copy(pivot).sub(point.copy(pivot).applyQuaternion(u.body.quaternion));
  u.body.position.y+=p.drop;inverse.copy(u.body.quaternion).invert();
@@ -102,8 +99,6 @@ function applyCapturedPose(g,capture){
  const p=sampleDevourMotion(capture.progress),k=p.hold;
  const size=capture.form==='brute'?1.12:capture.form==='stalker'?1.04:1;
  const yaw=capture.yaw||0,cs=Math.cos(yaw),sn=Math.sin(yaw);
- // Present the prone torso between the hands. This only moves the render
- // group; NPC/world coordinates and collision geometry remain unchanged.
  const forward=(.66-p.preyLift*.35)*size;
  const tx=capture.x+cs*1.15+sn*forward,tz=capture.z-sn*1.15+cs*forward;
  g.position.x+=(tx-g.position.x)*k;g.position.z+=(tz-g.position.z)*k;
