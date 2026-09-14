@@ -13,7 +13,8 @@
     "./mura/asset-data": "./src/mura/asset-data.js",
     "./mura/nature-data": "./src/mura/nature-data.js",
     "./mura/terrain": "./src/mura/terrain.js",
-    "./motion-quality": "./src/motion-quality.js"
+    "./motion-quality": "./src/motion-quality.js",
+    "./motion-runtime": "./src/motion-runtime.js"
   },
   "dependencies": {
     "three": "0.186.0",
