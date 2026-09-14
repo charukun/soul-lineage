@@ -270,3 +270,9 @@ jobs:
           NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: node scripts/integration-rescue-return.mjs
+      - name: Record verified DEV delivery latency for all tracked PRs
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/integration-flow-delivery.mjs
