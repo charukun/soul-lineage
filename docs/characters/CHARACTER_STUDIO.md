@@ -34,3 +34,11 @@ The **Motion QA** tab now supplies a 30-second source review, 8 fixed cameras,
 before/after, frame stepping, 1/6/12/30 comparison and structured issue JSON.
 See [Motion Quality Pipeline](MOTION_QUALITY.md) for the implementation, first case,
 validation and remaining visual/device gates.
+
+## Production stage contract
+
+Character Workshop is a review surface, not an automatic promotion mechanism. Character asset status follows [Character Production Pipeline v2](CHARACTER_PRODUCTION_PIPELINE.md): `REFERENCE -> BLOCKOUT -> PRIMARY -> SECONDARY -> DEFORMATION -> MOTION -> POLISH -> RUNTIME_READY`.
+
+Reference presets and runtime-procedural models must expose an honest stage in the shared character catalog. A model loading successfully, playing the common humanoid motions or appearing in the Workshop/Lab does not advance its stage. In particular, runtime-generated primitive/reference geometry is `BLOCKOUT` at most. Dedicated production geometry requires a DCC/reviewed-import source for `PRIMARY` and later stages.
+
+Workshop motion and visual evidence can satisfy parts of DEFORMATION/MOTION/POLISH review, but promotion is decided by the executable production manifest and `npm run characters:production:check`. The UI/report must not rename a lower-stage asset as production/game-ready. Generated crowd variants are quality previews of an underlying asset and are not individually promoted production assets.

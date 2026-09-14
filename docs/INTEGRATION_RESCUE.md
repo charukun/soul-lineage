@@ -12,7 +12,7 @@ Ready PRが修復可能な理由で停止したとき、Coordinatorが変更領�
 | Worker Pool | `.github/workflows/integration-rescue.yml` | dynamic matrix、独立runner/checkout、PR単位concurrency |
 | Safe base-update worker | `scripts/integration-rescue-worker.mjs` | 独立差分のbase更新、信頼済みwrapperの検証、staged commit作成 |
 | Return / notification | `scripts/integration-rescue-return.mjs` | 通常Integrationへ集約dispatch、merge/DEV追跡、通知outbox |
-| Independent watchdog / push relay | 既存ChatGPT Workタスク、`scripts/integration-rescue-work-push.mjs` | PULSEと別にGitHub stateを再取得、元PRの通常pushと既存scan起動を担当 |
+| Independent watchdog / push / manual-repair relay | 既存ChatGPT Workタスク、`scripts/integration-rescue-work-push.mjs`、`scripts/integration-rescue-work-repair.mjs` | PULSEと別にGitHub stateを再取得、元PRの通常push、recoverable FAILED_MANUAL修復、既存scan起動を担当 |
 | PULSE | `ops-board/rescue.mjs`, `public/rescue-board.*` | GitHub stateの観測ビュー。制御やmerge権限は持たない |
 
 ## 起動経路と既定branch制約
@@ -34,7 +34,7 @@ Worker終了時は同じWaveの他Workerを待たず通常Integrationへの復�
 | `MAX_RESCUE_CONCURRENCY` | 既定4、1〜16。Actions全run合計のclaim上限 |
 | `MAX_RESCUE_ATTEMPTS` | 既定3、1〜10。PRごとの有限試行 |
 | 標準 `GITHUB_TOKEN` | PR調査、state CAS、検証済みGit tree/commitオブジェクト作成、既存workflow dispatch |
-| 既存ChatGPT Work + GitHub接続 | 検証済みcommitの元PR branchへの通常反映、独立watchdog |
+| 既存ChatGPT Work + GitHub接続 | 検証済みcommitの元PR branchへの通常反映、独立watchdog、recoverable FAILED_MANUAL修復 |
 | 既存Cloudflare Secrets | PULSEの観測更新・公開。Rescueの認証キーに転用しない |
 | 任意 `NTFY_TOPIC_URL` / `NTFY_TOKEN` | 設定済みの場合のみ既存通知先へ送信 |
 
@@ -74,7 +74,7 @@ heartbeatは120秒ごと、600秒途絶でSTALE。進行要約にはcurrentStep/
 
 retryは300秒×attemptの待機を置く。前回run、failure reason、patch、context artifactを次Workerへ渡し、同じbranch/commitを復旧点にする。古いpatchは無条件適用しない。head/PR目的の変更は破棄・再評価。developの変更が無関係scopeなら継続し、関連scopeなら最新基準の次attemptへ移る。
 
-browser self-healingのpending/working ticketが同じPRを担当している場合はRescueを待機し、既存repair Workerと競合させない。human-requiredはRescue側もmanualとする。manual hold、Changes requested、unresolved thread、Draft、外部PR、untrusted author、main/Productionは修復で解除しない。自動処理は`FAILED_MANUAL`を自発的に再開しない。
+browser self-healingのpending/working ticketが同じPRを担当している場合はRescueを待機し、既存repair Workerと競合させない。human-requiredはRescue側もmanualとする。manual hold、Changes requested、unresolved thread、Draft、外部PR、untrusted author、main/Productionは修復で解除しない。Actionsは`FAILED_MANUAL`を自発的に再開しない。既存の定期Workだけが、`workRepairEligibility(record)` でrecoverableと判定された停止を [Work手順](INTEGRATION_RESCUE_WORK.md) のCAS予約・両側仕様確認・証拠付き安全gate・有限attemptで引き継ぐ。明示holdや真のプロダクト/契約判断はhuman-requiredのまま自動解除しない。
 
 ## 検証とIntegration復帰
 
@@ -104,4 +104,4 @@ GitHub上のstate更新後に認証済みsnapshotをPULSEへ送る。これは�
 
 ## CIイベント回収との境界
 
-既存watchdogの `rescue_mode=scan` は通常Integration側のbounded queue-recoveryも起動する。cancelled CIの再実行や成功済みPRのIntegration request欠落は、branchのbase更新・意味修復ではない。回収処理はWorker claim/attempt/RED lockを変更せず、実際のfailed gateはsuccessへ書き換えない。競合・意味判断のFAILED_MANUALは従来どおり人間の判断を待つ。
+既存watchdogの `rescue_mode=scan` は通常Integration側のbounded queue-recoveryも起動する。cancelled CIの再実行や成功済みPRのIntegration request欠落は、branchのbase更新・意味修復ではない。回収処理はWorker claim/attempt/RED lockを変更せず、実際のfailed gateはsuccessへ書き換えない。recoverable FAILED_MANUALは上記のWorkへ引き継ぎ、両側仕様・互換性・test coverage・control gateを必要な証拠で守れないもの、明示保留、真のプロダクト判断だけ人間の判断を待つ。

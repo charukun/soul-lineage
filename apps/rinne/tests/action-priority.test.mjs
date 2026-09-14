@@ -63,3 +63,13 @@ test('map groups several activities on the same physical landmark and preserves 
   assert.deepEqual(fire.activities,['文字を学ぶ','本を読む','祈りを捧げる','体を動かす']);
   assert.equal(fire.verb,'文字を学ぶ・本を読む・祈りを捧げる・体を動かす');
 });
+
+test('journal practice stays visible without displacing an urgent action',()=>{
+  const practice=button('activity:observe:field');practice.dataset.recommended='true';
+  assert.equal(choosePrimaryStoryAction([button('activity:care:home'),practice],{}),practice);
+  for(const [action,state] of [['cancel',{activity:{kind:'care'}}],['discover',{pendingDiscoveries:['attention']}],['travel',{}],['rescue',{}]]){
+    const urgent=button(action);assert.equal(choosePrimaryStoryAction([practice,urgent],state),urgent);
+  }
+  practice.disabled=true;
+  assert.equal(choosePrimaryStoryAction([practice,button('activity:care:home')],{}).dataset.action,'activity:care:home');
+});

@@ -7,3 +7,4 @@ export * from './intersection-risk.js';
 export * from './weapon-calibration.js';
 export * from './motion-reference-benchmark.js';
 export * from './motion-qa.js';
+export * from './motion-authoring.js';

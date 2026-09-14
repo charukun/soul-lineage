@@ -65,17 +65,17 @@ test('UI uses lineage and adaptive combat instead of manual technique slots',()=
  assert.ok(!main.includes('data-slot'));assert.ok(!main.includes('store.equip('));
  assert.ok(index.includes('転生史'));assert.ok(index.includes('放置すると徘徊'));assert.ok(!index.includes('二度と戻れない'));
 });
-test('real adapter and session wire progress, cleanup and the new route renderer',()=>{
+test('real adapter and grouped session preserve devour, escape and route contracts',()=>{
  const creature=readFileSync(new URL('../src/web/creatures.js',import.meta.url),'utf8');
- const session=readFileSync(new URL(import.meta.resolve('@soul/raid')),'utf8');
+ const grouped=readFileSync(new URL(import.meta.resolve('@soul/raid')),'utf8');
+ const single=readFileSync(new URL(import.meta.resolve('@soul/raid/single-session')),'utf8');
  const main=readFileSync(new URL('../src/web/main.js',import.meta.url),'utf8');
  const index=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(creature,/Number\.isFinite\(a\.devourProgress\)/);assert.match(creature,/applyCapturedPose\(g,a\.capturedBy\)/);
  assert.match(creature,/foot\.quaternion\.copy\(inverse\)/);assert.ok(!creature.includes('Math.sin(time*10)'));
- assert.match(session,/advanceDevour\(this,dt,v\.amount\)/);assert.match(session,/cancelDevour\(this\)/);assert.match(session,/escapePoints\(\)/);
+ assert.match(grouped,/extends SingleRaidSession/);assert.match(grouped,/super\.tick\(dt,input\)/);assert.match(grouped,/combatants/);
+ assert.match(single,/advanceDevour\(this,dt,v\.amount\)/);assert.match(single,/cancelDevour\(this\)/);assert.match(single,/escapePoints\(\)/);
  assert.match(main,/renderRaidRoutes\(offers,profile\)/);assert.match(main,/huntUiState\(game/);assert.match(main,/game\.nearestEscape\?\.\(\)/);assert.match(main,/if\(game\?\.eaten>0\)guideState\.memorySeen=true/);assert.match(main,/import '\.\/raid-routes\.css'/);
  for(const id of ['enemy-name','enemy-health-track','return-label'])assert.ok(index.includes(`id="${id}"`));
- assert.match(session,/advanceDevour\(this,dt,v\.amount\)/);assert.match(session,/cancelDevour\(this\)/);
- assert.match(session,/autoRoam/);assert.match(session,/f\.retreat/);
- assert.match(main,/renderRaidRoutes\(offers,profile\)/);assert.match(main,/import '\.\/raid-routes\.css'/);
+ assert.match(single,/autoRoam/);assert.match(single,/f\.retreat/);
 });

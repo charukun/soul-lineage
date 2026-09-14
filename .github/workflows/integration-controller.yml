@@ -1,0 +1,178 @@
+name: Integration Controller
+on:
+  workflow_call:
+    inputs:
+      rescue_mode:
+        description: 'scan runs recovery observation without merging'
+        type: string
+        required: false
+        default: ''
+      integration_cursor:
+        description: 'bounded Ready queue cursor'
+        type: string
+        required: false
+        default: '0'
+    outputs:
+      sha:
+        description: 'Final develop SHA evaluated by the controller'
+        value: ${{ jobs.integrate.outputs.sha }}
+      verify:
+        description: 'Whether DEV publication is required'
+        value: ${{ jobs.integrate.outputs.verify }}
+      retry:
+        description: 'Whether another bounded Ready evaluation is required'
+        value: ${{ jobs.integrate.outputs.retry }}
+      cursor:
+        description: 'Next bounded Ready evaluation cursor'
+        value: ${{ jobs.integrate.outputs.cursor }}
+      merged_count:
+        description: 'Number of exact heads merged by this controller run'
+        value: ${{ jobs.integrate.outputs.merged_count }}
+permissions:
+  contents: read
+concurrency:
+  group: integration-controller-develop
+  cancel-in-progress: false
+jobs:
+  integrate:
+    name: Integrate Ready PRs
+    if: inputs.rescue_mode != 'scan'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+      checks: read
+      statuses: write
+      issues: write
+    outputs:
+      sha: ${{ steps.queue.outputs.sha }}
+      verify: ${{ steps.queue.outputs.verify }}
+      retry: ${{ steps.queue.outputs.retry }}
+      cursor: ${{ steps.queue.outputs.cursor }}
+      merged_count: ${{ steps.queue.outputs.merged_count }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Record admitted controller wake
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { data } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
+            await github.rest.repos.createCommitStatus({ ...context.repo, sha: data.commit.sha,
+              context: 'integration/wakeup', state: 'success',
+              description: 'Integration Controller admitted; duplicate wakeups are coalesced by concurrency',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
+      - name: Evaluate Ready PRs and merge eligible heads as one batch
+        id: queue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-diagnostics.json
+          INTEGRATION_TIME_BUDGET_MS: '360000'
+          INTEGRATION_EVALUATION_CURSOR: ${{ inputs.integration_cursor || '0' }}
+        run: node scripts/integration-controller.mjs
+      - name: Notify integrated PRs separately from DEV delivery
+        id: notify
+        if: steps.queue.outputs.merged_count != '0'
+        continue-on-error: true
+        env:
+          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+        run: node scripts/notify-delivery.mjs INTEGRATED .deploy-state/integration.json
+      - name: Record notification health
+        if: always() && steps.queue.outputs.merged_count != '0'
+        uses: actions/github-script@v8
+        env:
+          FINAL_SHA: ${{ steps.queue.outputs.sha }}
+          CHANNEL: ${{ steps.notify.outputs.channel }}
+          NOTIFY_OUTCOME: ${{ steps.notify.outcome }}
+        with:
+          script: |
+            const channel = process.env.CHANNEL || (process.env.NOTIFY_OUTCOME === 'failure' ? 'failed' : 'not-configured');
+            const state = channel === 'ntfy' ? 'success' : channel === 'not-configured' ? 'error' : 'failure';
+            const description = channel === 'ntfy' ? 'ntfy smartphone delivery confirmed' : channel === 'not-configured'
+              ? 'NTFY_TOPIC_URL is not configured; smartphone delivery unconfirmed'
+              : 'ntfy delivery failed; GitHub remains authoritative';
+            if (/^[0-9a-f]{40}$/.test(process.env.FINAL_SHA || '')) await github.rest.repos.createCommitStatus({
+              ...context.repo, sha: process.env.FINAL_SHA, context: 'notification/ntfy', state, description,
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-report
+          path: |
+            .deploy-state/integration.json
+            .deploy-state/integration-diagnostics.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+
+  queue-recovery:
+    name: Recover missed Ready CI and Integration requests
+    if: inputs.rescue_mode == 'scan'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: write
+      checks: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Re-evaluate current Ready heads without merging or editing branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/integration-queue-recovery.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-queue-recovery
+          path: .deploy-state/queue-recovery.json
+          include-hidden-files: true
+          retention-days: 7
+
+  rescue:
+    name: Parallel Integration Rescue
+    needs: [integrate, queue-recovery]
+    if: always()
+    uses: ./.github/workflows/integration-rescue.yml
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: write
+      checks: read
+      statuses: write
+    secrets: inherit
+
+  publisher-handoff:
+    name: Wake DEV Publisher for merged or unverified develop
+    needs: integrate
+    if: >-
+      needs.integrate.result == 'success' &&
+      (needs.integrate.outputs.merged_count != '0' || needs.integrate.outputs.verify == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo, workflow_id: 'deploy.yml', ref: 'develop', inputs: { publish_only: 'true' }
+            });

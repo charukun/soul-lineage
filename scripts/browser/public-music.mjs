@@ -34,10 +34,15 @@ export function registerMusicTests({test,expect,targets,base}) {
       await page.locator('.soul-music [data-world]').selectOption('');
       await expect(page.locator('.soul-music [data-track]')).toHaveCount(150);
       const requestedTrack=page.locator('.soul-music [data-track="r01"]');
-      if(!await requestedTrack.isVisible()) {
-        const nextPage=page.locator('.soul-music dialog').getByRole('button',{name:'次のページ'});
-        await expect(nextPage).toBeEnabled();
-        await nextPage.click();
+      const pageSelect=page.locator('.soul-music dialog select[aria-label="表示するページ"]');
+      if(await pageSelect.count()) {
+        const requestedPageOption=pageSelect.locator('option').filter({hasText:'曲を選ぶ'}).first();
+        if(await requestedPageOption.count()) {
+          const requestedPage=await requestedPageOption.getAttribute('value');
+          expect(requestedPage).not.toBeNull();
+          await pageSelect.selectOption(requestedPage);
+          await expect(pageSelect).toHaveValue(requestedPage);
+        }
       }
       await expect(requestedTrack).toBeVisible();
       await requestedTrack.click();
@@ -48,8 +53,6 @@ export function registerMusicTests({test,expect,targets,base}) {
       expect(playing.src).toBeTruthy(); playedSources.add(playing.src);
       const stop=page.locator('.soul-music [data-stop]');
       if(target.app==='rinne'&&!await stop.isVisible()) {
-        const pageSelect=page.locator('.soul-music dialog select[aria-label="表示するページ"]');
-        await expect(pageSelect).toBeVisible();
         const stopPage=await pageSelect.locator('option').filter({hasText:'再生・音量'}).first().getAttribute('value');
         expect(stopPage).not.toBeNull();
         await pageSelect.selectOption(stopPage);
