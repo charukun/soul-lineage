@@ -58,6 +58,8 @@ Queue Recoveryは `automation/integration-rescue-state` の `rescue-state.json` 
 
 Semantic Work Rescueを有効にする #167 を先にdevelopへ統合し、その後このthroughput変更を通常Integrationで通す。#167が未統合の間も本PRのfast evidence、優先順位、並列設定はReadyのまま保持し、依存を迂回して先行mergeしない。
 
+#169がdevelopへ入った後の最初の成功DEV resultは即座にQueue Recovery scanを起動する。新しいRescue coordinatorが現在developを観測するまでconfig auditはpendingとし、その後success/failureへ確定する。
+
 ## 非目標
 
 - 意味が不明な競合を機械的にours/theirsで解消しない。
