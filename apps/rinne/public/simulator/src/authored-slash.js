@@ -81,7 +81,9 @@ export function applySwordPose(runtime,c,pose,p) {
       // authored guard endpoints and some follow-through, rather than freezing
       // the neck in world space or turning the face with every torso accent.
       const targetYaw=clamp(-(pose.hips[1]+pose.spine[1]+pose.chest[1]),-.9,.9);
-      const focus=.8*Math.sin(Math.PI*p)**2;
+      // Preserve opponent awareness without pinning the skull while the ribcage
+      // crosses the blade line. Some head follow-through sells the body torque.
+      const focus=.62*Math.sin(Math.PI*p)**2;
       y+=(targetYaw-y)*focus;
     }
     b.quaternion.multiply(new T.Quaternion().setFromEuler(new T.Euler(x*flip,y,z*flip,'YXZ'))).normalize();
