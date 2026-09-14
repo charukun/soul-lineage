@@ -45,7 +45,7 @@ test('planner keeps independent progress when another PR is dependency-blocked',
   assert.deepEqual(plan.blocked.map(item => item.pr), [2]);
   assert.deepEqual(plan.writerOrder, [1, 3]);
   assert.equal(plan.wakeAgain, true);
-  assert.equal(plan.actionableIdle, true);
+  assert.equal(plan.actionableIdle, false);
 });
 
 test('bounded preflight separates validation, review blocks, repair and writer candidates', () => {
@@ -111,6 +111,19 @@ test('repair is an executor lane rather than a second Integration queue', () => 
   assert.deepEqual(plan.active.map(item => item.pr), [3]);
   assert.deepEqual(plan.writerOrder, []);
   assert.equal(plan.actionableIdle, false);
+});
+
+test('repair backlog with no active repair executor is explicitly idle and actionable', () => {
+  const item = pr(1);
+  const plan = buildReconciliationPlan({
+    ready: [item],
+    scopeByPr: scopes([[1, ['apps/rinne/src/a.js']]]),
+    recordsByPr: new Map([[1, { pr:1, state:'FAILED_RETRYABLE', failureReason:'MERGE_CONFLICT' }]]),
+  });
+  assert.deepEqual(plan.repair.map(entry => entry.pr), [1]);
+  assert.equal(plan.active.length, 0);
+  assert.equal(plan.wakeAgain, true);
+  assert.equal(plan.actionableIdle, true);
 });
 
 test('integration:repair writer candidates are prioritized without bypassing writer safety', () => {
