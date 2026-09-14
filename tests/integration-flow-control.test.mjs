@@ -51,14 +51,15 @@ test('delivery latency reports p50/p95 from Ready detection through merge and DE
   assert.equal(m.mergeToDev.p95Ms,20*60000);assert.equal(m.readyToDev.p95Ms,35*60000);
 });
 
-test('state compaction archives only old terminal records and keeps active/manual recovery evidence',()=>{
+test('state compaction archives delivered history, keeps MERGED delivery, and shrinks manual base comparisons',()=>{
   const s=newState();
   s.records[1]={pr:1,state:'DEV',updatedAt:new Date(now-49*3600000).toISOString()};
-  s.records[2]={pr:2,state:'MERGED',updatedAt:new Date(now-1*3600000).toISOString()};
-  s.records[3]={pr:3,state:'FAILED_MANUAL',updatedAt:new Date(now-100*3600000).toISOString(),failureReason:'FAILED_MANUAL:SEMANTIC_CONFLICT:x'};
+  s.records[2]={pr:2,state:'MERGED',updatedAt:new Date(now-80*3600000).toISOString()};
+  s.records[3]={pr:3,state:'FAILED_MANUAL',updatedAt:new Date(now-100*3600000).toISOString(),failureReason:'FAILED_MANUAL:SEMANTIC_CONFLICT:x',baseChanges:['a','b','c']};
   s.records[4]={pr:4,state:'QUEUED',updatedAt:new Date(now-100*3600000).toISOString()};
   compactRescueState(s,now);
   assert.equal(s.records[1],undefined);assert.ok(s.records[2]);assert.ok(s.records[3]);assert.ok(s.records[4]);
+  assert.equal(s.records[3].baseChanges,undefined);assert.equal(s.records[3].baseChangeCount,3);assert.equal(s.records[3].baseChangesCompacted,true);
   assert.equal(s.history.archivedTerminal,1);assert.equal(s.history.byState.DEV,1);
 });
 
