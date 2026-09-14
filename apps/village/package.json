@@ -10,7 +10,6 @@
     "preview": "vite preview --host 0.0.0.0 --port 5274 --strictPort"
   },
   "dependencies": {
-    "@soul/animations": "*",
     "@soul/assets": "*",
     "@soul/world": "*",
     "@soul/rendering": "*",
