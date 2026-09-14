@@ -11,110 +11,66 @@
   <link rel="stylesheet" href="./app-board.css">
   <link rel="stylesheet" href="./review-polish.css">
   <link rel="stylesheet" href="./rescue-board.css">
+  <link rel="stylesheet" href="./flow-board.css">
 </head>
 <body>
   <main class="shell">
     <header class="topbar">
-      <div>
-        <p class="eyebrow">DEVELOPMENT / OPERATIONS</p>
-        <h1 class="pulse-wordmark">PULSE</h1>
-      </div>
-      <div class="refresh-area"><button id="reload" class="reload" type="button">最新に更新</button>
-        <p id="sync-freshness" class="sync-freshness" role="status">最終取得 未取得</p></div>
+      <div><p class="eyebrow">DEVELOPMENT / OPERATIONS</p><h1 class="pulse-wordmark">PULSE</h1></div>
+      <div class="refresh-area"><button id="reload" class="reload" type="button">最新に更新</button><p id="sync-freshness" class="sync-freshness" role="status">最終取得 未取得</p></div>
     </header>
-
     <nav class="section-tabs" aria-label="画面内ナビゲーション">
-      <a href="#alert-section">要対応</a>
-      <a href="#rescue-section">RESCUE</a>
-      <a href="#tasks-section">開発タスク</a>
-      <a href="#apps-section">アプリ</a>
-      <a href="#details-section">公開・自動処理</a>
+      <a href="#alert-section">要対応</a><a href="#rescue-section">RESCUE</a><a href="#tasks-section">開発タスク</a><a href="#apps-section">アプリ</a><a href="#details-section">公開・自動処理</a>
     </nav>
-
     <section id="alert-section" class="board-section" hidden>
       <div class="section-head"><h2>要対応タスク</h2><span id="alert-count" class="muted"></span></div>
-      <p class="section-description">同期の遅れ、統合の滞留、現在のCI失敗を表示します。最終取得時刻も確認してください。</p>
-      <div id="alerts" class="alerts"></div>
+      <p class="section-description">同期の遅れ、統合の滞留、現在のCI失敗を表示します。最終取得時刻も確認してください。</p><div id="alerts" class="alerts"></div>
     </section>
-
     <section id="rescue-section" class="board-section">
       <div class="section-head"><h2>INTEGRATION RESCUE</h2></div>
-      <p class="section-description">PRを修復するWorkerと、統合までの進行を表示します。</p>
+      <p class="section-description">PRを修復するWorker、配送速度、統合までの進行を表示します。</p>
+      <div id="integration-flow" class="card"><p class="empty">Flow metricsを確認中</p></div>
       <div id="integration-rescue" class="card"><p class="empty">Rescue状態を確認中</p></div>
     </section>
-
     <section id="tasks-section" class="board-section">
       <div class="section-head"><h2>開発タスク</h2><span class="muted">作業中 → 統合待ち → 完了</span></div>
       <div id="pulls" class="card pull-board"><p class="empty">PR一覧を確認中</p></div>
-
       <div id="visual-review-section" hidden>
         <div class="section-head subsection-head"><h2>Visual Review Lab</h2><span class="muted">長期運用の確認用PR</span></div>
-        <div class="card pull-board visual-review-card">
-          <p class="visual-review-note">通常の開発タスクとは別枠で表示します。</p>
-          <div id="visual-review-pulls"></div>
-        </div>
+        <div class="card pull-board visual-review-card"><p class="visual-review-note">通常の開発タスクとは別枠で表示します。</p><div id="visual-review-pulls"></div></div>
       </div>
     </section>
-
     <section id="apps-section" class="board-section">
       <div class="section-head"><h2>アプリ別の公開状況</h2><span id="app-summary" class="muted">確認中</span></div>
       <p class="section-description">各ゲームの開発・検証・本番を確認できます。未公開の環境も省略せず表示します。</p>
       <div id="applications" class="app-groups"><div class="card"><p class="empty">アプリ状態を確認中</p></div></div>
     </section>
-
     <details class="usage-guide">
       <summary>使い方を見る</summary>
       <ol>
         <li><strong>要対応タスク</strong>が出ていれば、まずそこを確認します。</li>
+        <li><strong>RESCUE</strong>で配送p50/p95、Virtual Train、Quarantine、AI修復状況を確認します。</li>
         <li><strong>開発タスク</strong>で作業中 / 統合待ち / 完了のPRを確認します。</li>
         <li><strong>アプリ</strong>ではアイコンと公開状態を3列で見比べ、環境名で公開先を開き、「公開の詳細」でSHAと日時を確認できます。</li>
         <li><strong>公開・自動処理の状態</strong>は、公開済みSHA・本番との差・自動統合・Actions失敗を確認する場所です。</li>
-        <li>サーバーは<strong>5分ごと</strong>に同期します。「最新に更新」は保存済みの最新結果を読み込みます。</li>
       </ol>
     </details>
-
     <section id="details-section" class="board-section diagnostics-section">
       <div class="section-head"><h2>公開・自動処理の状態</h2><span class="muted">必要なときだけ確認</span></div>
       <p class="section-description diagnostics-intro">ここは「実際にどこまで公開されたか」「本番との差」「自動統合が止まっていないか」「Actionsが失敗していないか」の4点を確認する場所です。</p>
-
       <div class="diagnostic-grid">
-        <section class="diagnostic-panel diagnostic-wide">
-          <div class="diagnostic-head">
-            <div><p class="diagnostic-kicker">PUBLICATION</p><h3>実際に公開されている状態</h3></div>
-            <span id="env-count" class="muted"></span>
-          </div>
-          <p class="diagnostic-help">公開済みcommit SHA・deploy日時・反映済みPRを表示します。branchにmerge済みでも、まだ公開されていなければ未公開として区別します。</p>
-          <div id="environments" class="stack"></div>
-        </section>
-
-        <section class="diagnostic-panel">
-          <div class="diagnostic-head"><div><p class="diagnostic-kicker">DEV → PROD</p><h3>本番との差</h3></div></div>
-          <p class="diagnostic-help">DEVには入っているがProductionにはまだ入っていないPRを確認します。</p>
-          <div id="diff" class="card diagnostic-content"></div>
-        </section>
-
-        <section class="diagnostic-panel">
-          <div class="diagnostic-head"><div><p class="diagnostic-kicker">INTEGRATION</p><h3>自動統合</h3></div></div>
-          <p class="diagnostic-help">Ready PRがIntegrationに拾われ、merge / deployへ進めているかを確認します。</p>
-          <div id="integration" class="card diagnostic-content"></div>
-        </section>
-
-        <section class="diagnostic-panel diagnostic-wide">
-          <div class="diagnostic-head"><div><p class="diagnostic-kicker">GITHUB ACTIONS</p><h3>自動処理の失敗</h3></div></div>
-          <p class="diagnostic-help">未解消の失敗を先に表示し、中断・後続成功で解消された実行は履歴へ分けます。取得範囲外は判定しません。</p>
-          <div id="failures" class="card diagnostic-content"></div>
-        </section>
+        <section class="diagnostic-panel diagnostic-wide"><div class="diagnostic-head"><div><p class="diagnostic-kicker">PUBLICATION</p><h3>実際に公開されている状態</h3></div><span id="env-count" class="muted"></span></div><p class="diagnostic-help">公開済みcommit SHA・deploy日時・反映済みPRを表示します。branchにmerge済みでも、まだ公開されていなければ未公開として区別します。</p><div id="environments" class="stack"></div></section>
+        <section class="diagnostic-panel"><div class="diagnostic-head"><div><p class="diagnostic-kicker">DEV → PROD</p><h3>本番との差</h3></div></div><p class="diagnostic-help">DEVには入っているがProductionにはまだ入っていないPRを確認します。</p><div id="diff" class="card diagnostic-content"></div></section>
+        <section class="diagnostic-panel"><div class="diagnostic-head"><div><p class="diagnostic-kicker">INTEGRATION</p><h3>自動統合</h3></div></div><p class="diagnostic-help">Ready PRがIntegrationに拾われ、merge / deployへ進めているかを確認します。</p><div id="integration" class="card diagnostic-content"></div></section>
+        <section class="diagnostic-panel diagnostic-wide"><div class="diagnostic-head"><div><p class="diagnostic-kicker">GITHUB ACTIONS</p><h3>自動処理の失敗</h3></div></div><p class="diagnostic-help">未解消の失敗を先に表示し、中断・後続成功で解消された実行は履歴へ分けます。取得範囲外は判定しません。</p><div id="failures" class="card diagnostic-content"></div></section>
       </div>
     </section>
-
-    <footer>
-      <p id="last-updated">最終更新: --</p>
-      <p id="source" class="muted">GitHubと公開環境を照合</p>
-    </footer>
+    <footer><p id="last-updated">最終更新: --</p><p id="source" class="muted">GitHubと公開環境を照合</p></footer>
   </main>
   <script type="module" src="./app.js"></script>
   <script type="module" src="./app-board.js"></script>
   <script type="module" src="./pull-board.js"></script>
+  <script type="module" src="./flow-board.js"></script>
   <script type="module" src="./rescue-board.js"></script>
 </body>
 </html>
