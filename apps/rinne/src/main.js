@@ -13,6 +13,13 @@ import {mountTitleMenuPages} from './title/menu-pages.js';
 const info = typeof __BUILD_INFO__ !== 'undefined' ? __BUILD_INFO__ : {
   name:'輪廻転焦',app:'rinne',environment:'local',commit:'UNBUILT',inputHash:null,
 };
+document.title = `${info.name}${info.environment === 'prod' ? '' : ` | ${info.environment.toUpperCase()}`}`;
+if (!document.querySelector('link[rel="manifest"]')) {
+  const manifest = document.createElement('link');
+  manifest.rel = 'manifest';
+  manifest.href = './manifest.webmanifest';
+  document.head.append(manifest);
+}
 const dialog = document.getElementById('village-dialog');
 installOnlinePlayer(document.getElementById('village-panel'));
 document.getElementById('open-village').addEventListener('click', () => dialog.showModal());

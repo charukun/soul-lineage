@@ -252,7 +252,7 @@ Fixed cameras and before/after evidence should be reused across revisions. The p
 
 The existing reference-derived runtime/procedural characters are **BLOCKOUTS**. Their ability to appear in Visual Review Lab, use the common rig or play motion does not make them PRIMARY/POLISH/RUNTIME_READY. They must be rebuilt through a DCC-authored mesh path and promoted through this pipeline before being treated as finished game characters.
 
-The current `shino.reference.v2` on develop is only a `reference-preset`, so its explicit repository stage is `REFERENCE` until a dedicated model is authored. If a later branch changes it or another reference character to `runtime-reference-model`, `scripts/check-character-production.mjs` requires `runtime-procedural` + `BLOCKOUT`, preventing the old "procedural geometry == production model" classification from returning.
+The current `shino.reference.v2` on develop is a dedicated `runtime-reference-model`, so its explicit repository stage is `BLOCKOUT` with `runtime-procedural` modeling mode. It remains non-production geometry until a DCC-authored model advances through the later evidence stages. `scripts/check-character-production.mjs` applies the same classification to every runtime reference character, preventing the old "procedural geometry == production model" classification from returning.
 
 ## Validation commands
 

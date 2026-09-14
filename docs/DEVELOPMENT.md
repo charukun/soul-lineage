@@ -30,7 +30,7 @@ Ready PRのCI監視・結果判定・develop統合・CI/CD・DEV反映はIntegra
 
 実装成功通知は `READY_FOR_INTEGRATION`。既存SUCCESSの実装完了に相当し、Integrationの `INTEGRATED` / `DEV_DEPLOYED` と区別します。終了信号と通知未設定・失敗時の扱いは [実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md) を参照。
 
-自動判定で意味上の仕様矛盾まで証明することはできません。共有契約の変更・意味上の競合はPRに明記し、解消前にReadyへ進めないでください。自動判定できないものは保留し、Integration担当が判断・必要修正・再検証します。
+自動判定で意味上の仕様矛盾まで証明することはできません。共有契約の変更・意味上の競合はPRに明記し、解消前にReadyへ進めないでください。Actionsが同file変更として止めたSEMANTIC_CONFLICTは、既存の定期Workが確定仕様を読んで両立できる範囲を修復します。Workでも判断できない真の仕様矛盾は保留し、ユーザーの判断後に必要修正・再検証します。
 
 [自動Integrationと復旧](INTEGRATION.md)
 
