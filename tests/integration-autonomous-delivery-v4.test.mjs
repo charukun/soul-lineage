@@ -9,6 +9,7 @@ import { chooseLastKnownGood, verifyLastKnownGood } from '../scripts/dev-last-kn
 import { candidatePath } from '../scripts/dev-candidate-server.mjs';
 import { supersededNumbers } from '../scripts/integration-control-consolidation.mjs';
 import { adaptiveFlowTuning, deliveryLatencyMetrics } from '../scripts/integration-flow-control.mjs';
+import { evaluateCanary } from '../scripts/integration-control-canary.mjs';
 
 const sha = c => c.repeat(40);
 
@@ -84,6 +85,26 @@ test('adaptive throughput remains bounded from normal operation through burn-dow
   assert.deepEqual([busy.trainSize,busy.rescueConcurrency,busy.maxEvaluations],[4,5,20]);
   assert.deepEqual([burn.trainSize,burn.rescueConcurrency,burn.maxEvaluations],[5,6,24]);
   assert.deepEqual([unstable.trainSize,unstable.rescueConcurrency,unstable.maxEvaluations],[2,3,12]);
+});
+
+test('control canary treats notification as advisory while preserving delivery gates', () => {
+  const head = sha('a');
+  const base = {
+    sha: head,
+    manifest: { validatedDevelop: head },
+    pulse: { repository: 'charukun/soul-lineage', generatedAt: '2026-09-15T00:00:00Z' },
+    statuses: [
+      { context: 'integration/develop', state: 'success' },
+      { context: 'ops-board/public', state: 'success' },
+      { context: 'notification/ntfy', state: 'error' },
+    ],
+  };
+  const advisory = evaluateCanary(base);
+  assert.equal(advisory.ok, true);
+  assert.equal(advisory.checks.notification, false);
+  assert.equal(advisory.advisory.notification, false);
+  const broken = evaluateCanary({ ...base, statuses: [{ context: 'integration/develop', state: 'failure' }, { context: 'ops-board/public', state: 'success' }] });
+  assert.equal(broken.ok, false);
 });
 
 test('workflow contracts keep exact-head validation, reconciliation topology, candidate promotion, LKG fallback and no paid model API', async () => {

@@ -32,8 +32,11 @@ export function appSummary(apps = []) {
 }
 
 export function boardAlerts(state, now = Date.now(), loadError = null) {
-  // Always derive transient warnings; never keep a resolved sync error in stored alerts.
-  const alerts = (state?.alerts || []).filter(item => !['sync-failed', 'sync-stale', 'sync-unavailable', 'client-fetch', 'github-sync-degraded', 'delivery-stalled', 'ci-failed'].includes(item.type));
+  // Always derive transient warnings; never keep a resolved sync error or retired legacy stall alert in stored alerts.
+  const alerts = (state?.alerts || []).filter(item => ![
+    'sync-failed', 'sync-stale', 'sync-unavailable', 'client-fetch', 'github-sync-degraded',
+    'delivery-stalled', 'ci-failed', 'stalled-ready-pr',
+  ].includes(item.type));
   const age = snapshotAge(state, now);
   if (loadError || state?.syncStatus === 'degraded') {
     alerts.unshift({ type: loadError ? 'client-fetch' : 'sync-failed', tone: 'danger', title: '最新情報を取得できていません',
