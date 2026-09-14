@@ -8,6 +8,7 @@ test('Integration Controller grants every permission required by reconciliation 
   const reconcile = controller.match(/\n  reconcile:\n[\s\S]*?\n  virtual-train:/)?.[0] || '';
   const train = controller.match(/\n  virtual-train:\n[\s\S]*?\n  integrate:/)?.[0] || '';
   const caller = controller.match(/\n  repair:\n[\s\S]*?\n  publisher-handoff:/)?.[0] || '';
+  const worker = rescue.match(/\n  worker:\n[\s\S]*?\n  return:/)?.[0] || '';
   assert.match(reconcile, /permissions:[\s\S]*?contents: write/);
   assert.match(reconcile, /permissions:[\s\S]*?statuses: write/);
   assert.match(train, /permissions:[\s\S]*?checks: read/);
@@ -17,5 +18,6 @@ test('Integration Controller grants every permission required by reconciliation 
   assert.match(caller, /permissions:[\s\S]*?actions: write/);
   assert.match(caller, /permissions:[\s\S]*?checks: read/);
   assert.match(caller, /permissions:[\s\S]*?statuses: write/);
+  assert.match(worker, /permissions:[\s\S]*?statuses: write/);
   assert.doesNotMatch(rescue, /\n  virtual-train:/);
 });

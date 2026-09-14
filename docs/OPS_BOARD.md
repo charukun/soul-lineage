@@ -24,9 +24,11 @@ Cloudflare Cron Trigger が5分ごとに Durable Object のスナップショッ
 
 UI は1分ごとに保存済みスナップショットを再取得します。これは GitHub API の再同期ではないため、閲覧数で GitHub API 呼び出しが増えません。
 
-## Integration 滞留
+## Integration の状態
 
-Open develop PR の CI と Integration workflow を照合し、Ready + 必要 CI 成功後も10分以上 open の PR を赤警告にします。状態は Ready for review待ち / Integration中 / CI失敗 / merge待ち / deploy待ち / Failed に分類します。既存 Integration の merge/retry ロジックを変更せず、Board は監視専用です。
+Open develop PR はCI経過時間だけでは判定せず、`docs/INTEGRATION_RECONCILIATION.md` の current-state planを正本として `writer / validating / train / repair / active / blocked / deferred` を表示します。CI失敗、DEV公開失敗、branch divergenceなど実際の異常は従来どおり要対応ですが、CI成功後に一定時間openであることだけを理由に赤い「Integration滞留」へ分類しません。
+
+Reconciliation snapshotが未取得、developが進んだ、またはPR headがplanと一致しない場合は古い判定へ戻さず「現在状態を再確認中」とします。PULSEは監視専用であり、既存Integrationのmerge/retry、安全gateを変更しません。
 
 ## Secrets
 
@@ -76,3 +78,17 @@ Integration Flow の初期表示は内部用語を避け、「何件たまって
 - 人の判断が必要な案件が0件なら「いまはあなたの操作は不要」と明示し、必要な場合だけ件数を警告する。
 - 技術的な処理速度、Virtual Train、自動調整、failure knowledge は折りたたみの「詳しい処理情報」に残す。
 - 既存の状態計算、Rescue/Integrationの動作、品質gate、main / Productionは変更しない。
+
+## Reconciliation Control Planeとの整合（2026-09-15）
+
+PULSEのIntegration状態は `docs/INTEGRATION_RECONCILIATION.md` のcontrol planeを正本として説明します。旧来の「CI成功後10分openなら滞留」という単独判定は廃止し、Reconcilerが生成するcurrent-state分類と矛盾する警告を出しません。
+
+- Ready PRの主分類は `writer / validating / train / repair / active / blocked / deferred` とし、同じPRを別の旧状態機械で二重判定しない。
+- `blocked` は依存・hold・review・semantic conflictなどの理由を表示し、単なる「Integration滞留」へ潰さない。
+- `validating` はexact-head CI/browser証拠待ちとして扱い、経過時間だけで失敗扱いしない。
+- `repair / active` はRescue executorの担当として表示し、第二のIntegration queueとして扱わない。
+- `writer` はdevelop writer候補、`train` はcombined validation候補であり、いずれもmerge済みを意味しない。
+- `deferred` はbounded evaluationの次回評価待ちであり、異常とは限らない。
+- Reconciliation snapshotが未取得またはdevelop/head不一致でfreshnessを証明できない場合は、旧判定へ断定的にfallbackせず「状態未確定」として表示する。
+- 通知チャネルの未設定・送信失敗は delivery observability の問題として別表示し、`integration/develop=success` やReconciliationの成功を上書きして「Integration失敗」とは表示しない。
+- PULSE自身の公開失敗、current CI/browser gate失敗、develop publication失敗は引き続き要対応として扱う。品質gateは弱めない。

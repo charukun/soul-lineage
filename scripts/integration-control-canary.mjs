@@ -15,7 +15,13 @@ export function evaluateCanary({ sha, manifest, pulse, statuses = [] }) {
     pulsePublication: latest.get('ops-board/public')?.state === 'success',
     notification: latest.get(NOTIFICATION_CONTEXT)?.state === 'success',
   };
-  return { ok: Object.values(checks).every(Boolean), checks };
+  const required = {
+    manifest: checks.manifest,
+    pulse: checks.pulse,
+    develop: checks.develop,
+    pulsePublication: checks.pulsePublication,
+  };
+  return { ok: Object.values(required).every(Boolean), checks, advisory: { notification: checks.notification } };
 }
 
 async function main() {
@@ -37,13 +43,15 @@ async function main() {
   const manifest = manifestResponse.ok ? await manifestResponse.json() : null;
   const pulse = pulseResponse.ok ? await pulseResponse.json() : null;
   const result = evaluateCanary({ sha, manifest, pulse, statuses });
+  const requiredFailures = ['manifest', 'pulse', 'develop', 'pulsePublication'].filter(key => !result.checks[key]);
   const response = await fetch(`https://api.github.com/repos/${repository}/statuses/${sha}`, {
     method: 'POST', headers, signal: AbortSignal.timeout(15000),
     body: JSON.stringify({
       state: result.ok ? 'success' : 'failure',
       context: CANARY_CONTEXT,
-      description: result.ok ? 'Ready/Integration/DEV/PULSE/notification evidence is coherent' :
-        `Control-plane canary failed: ${Object.entries(result.checks).filter(([, ok]) => !ok).map(([key]) => key).join(', ')}`.slice(0, 140),
+      description: result.ok
+        ? result.advisory.notification ? 'Ready/Integration/DEV/PULSE evidence is coherent' : 'Ready/Integration/DEV/PULSE coherent; notification unconfirmed'
+        : `Control-plane canary failed: ${requiredFailures.join(', ')}`.slice(0, 140),
       target_url: `https://github.com/${repository}/actions/runs/${process.env.GITHUB_RUN_ID}`,
     }),
   });
