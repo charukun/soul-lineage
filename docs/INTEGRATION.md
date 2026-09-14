@@ -6,6 +6,8 @@
 
 Ready後のCI監視、保留理由の判定、develop統合、DEV公開、公開HTTP/source照合、focused browser gate、失敗時の修復差し戻しはIntegrationの責任です。main / Productionは明示的に許可された作業以外では変更しません。
 
+Control Plane v2の入口・coalescing・Publisher分離・Canaryは [Integration Control Plane v2](INTEGRATION_CONTROL_PLANE_V2.md) を正本とします。
+
 ## Draft → Ready
 
 Draft中は `Draft lightweight check` だけを実行します。これはpatch whitespaceなど、作業中branchを壊したまま放置しないための軽量gateです。install/build/browser/IntegrationはDraftでは実行しません。
@@ -14,25 +16,43 @@ Ready化すると `Validate and build`、影響範囲browser smoke、repair記�
 
 ## Integrationの起動
 
-Ready時点で、CIの既存 `Request Rescue observation` jobがbuild/browserへの`needs`なしで起動します。trusted developの `implementation-handoff.mjs` が最新PRのReady/base/repository/headを再確認し、`implementation/handoff=success` と同一PR/headの受領コメントを記録、設定済みntfyへ `READY_FOR_INTEGRATION` を送ります。これは実装責任の終了でありCI成功ではありません。Workerはこのjobの完了も待ちません。通知失敗は警告と受領コメントへ残し、通常CI・Rescue dispatchを止めません。
+Ready時点で、CIの既存 `Request Rescue observation` jobがbuild/browserへの`needs`なしで起動します。trusted developの `implementation-handoff.mjs` が最新PRのReady/base/repository/headを再確認し、`implementation/handoff=success` と同一PR/headの受領コメントを記録、設定済みntfyへ `READY_FOR_INTEGRATION` を送ります。これは実装責任の終了でありCI成功ではありません。Workerはこのjobの完了も待ちません。通知失敗は警告と受領コメントへ残し、通常CI・Rescue起動を止めません。
 
-Ready PRのfast/browser gate成功後、`Request Integration` がdevelop上の既存 `deploy.yml` をworkflow dispatchします。developへのpushもIntegration/DEV検証を起動します。
+Ready PRのfast/browser gate成功後、`Request Integration` はdefault branchにも登録済みの `deploy.yml` をworkflow dispatchします。`deploy.yml` は外部gatewayであり、通常wakeをdevelop上のreusable `.github/workflows/integration-controller.yml` へ渡します。default branchが `main` のため、developだけに存在する新workflowをRESTから直接dispatchする設計にはしません。
 
-失敗やイベント欠落は既存Rescueと独立watchdogが再走査します。Ready受領に新しいworkflowの既定branch登録は必要ありません。導入PR自身はtrusted developにrecorderがまだ無いため既存Readyイベントへhandoffし、recorder確認はローカルのAPI fixtureで行います。導入のための先行mergeやmain変更は不要です。
+重いIntegration Controllerは `integration-controller-develop` concurrencyで `cancel-in-progress: false` とし、実行中1本を中断せず、GitHub Actionsが保持する最新pending follow-upだけを残します。複数Readyイベントを重い評価へ無制限に展開せず、最後のwakeも捨てません。
 
-Integrationは起動イベントのPRだけを見るのではなく、その時点のdevelop向けReady PRを全件再走査します。高コストなexact-head評価は1run最大12PR、mergeは1バッチ最大8PRとし、依存関係を複数passで再評価します。Integration本体には6分の処理予算を置き、jobの10分timeoutより前に診断情報を残して未処理PRを次runへ引き継ぎます。明示holdやrecovering中の通常PRなど、安価に確定できる保留は高コストなCI/review/compare取得より先に判定します。
+Integrationは起動イベントのPRだけを見るのではなく、その時点のdevelop向けReady PRを全件再走査します。高コストなexact-head評価は1run最大24PR、mergeは1バッチ最大8PRとし、依存関係を複数passで再評価します。Integration本体には6分の処理予算を置き、jobの10分timeoutより前に診断情報を残して未処理PRを次runへ引き継ぎます。明示holdやrecovering中の通常PRなど、安価に確定できる保留は高コストなCI/review/compare取得より先に判定します。
 
-Integration評価は `integration-develop` concurrency groupで直列化し、GitHub Pages公開・focused browser verificationは `pages` concurrency groupで別に直列化します。これにより、重い公開/browser処理が進行中でも次のReady検知とIntegration評価自体は待たされません。一方、developの `integration/develop` statusがpending/failureの間は通常PRの追加mergeを許可しないため、未検証baselineへ連続mergeしません。PR browser repairの記録は `.github/workflows/browser-repair.yml` の `browser-repair-pr-<PR番号>` groupへ分離します。
+ControllerはPages公開を行いません。PRをmergeした場合、GITHUB_TOKEN mergeのpush event発火へ依存せず、登録済み `deploy.yml` を `publish_only=true` で明示起動して最終develop SHAをDEV Publisherへ渡します。Publisherは `pages` concurrencyで直列化します。これにより、Integration評価と公開/browserの責務は分離されます。
+
+ただし、現在developの `integration/develop` がpendingで実PublisherがそのSHAを検証中なら、追加mergeはそのexact snapshot ownershipを尊重して保留します。failure時は通常PRを止め、repair laneを優先します。
+
+## Trusted control-plane Fast Lane
+
+Controller開始時にsame-repository / trusted authorのReady PRについて全changed-filesを取得します。すべてがIntegration / Rescue / PULSE / workflow / browser repair / delivery通知 / governing docsと対応testだけに限定される場合、`integration:control-plane` と `integration:repair` を自動付与できます。
+
+1ファイルでも `apps/**`、`packages/**`、`portal/**` など製品・共有runtimeが混ざれば自動Fast Laneには入りません。
+
+Fast Laneが迂回できるのは「無関係なdevelop baseline failureによる通常PR一律hold」だけです。次は一切弱めません。
+
+- exact-head fast/browser gate
+- mergeability / branch protection
+- Depends-On
+- Changes requested / unresolved thread
+- explicit hold / manual
+- trusted exact-head authorization
+- merge直前のmutable state再取得
 
 ## GitHub APIの取得予算と診断
 
 Integrationは安全条件を減らさず、同一run内の重複取得を削減します。
 
 - 初期評価中のimmutableなPR head単位データだけrun内GET cacheを使います。merge直前のPR、review、thread、Checks/status、develop SHAはcacheを使わず必ず再取得します。
-- generic paginationを100ページまで無制限に走らせず、用途別に上限を設定し、上限超過はfail closedで保留します。
+- generic paginationを無制限に走らせず、用途別に上限を設定し、上限超過はfail closedで保留します。
 - GitHub API request timeoutは既定15秒です。429、secondary rate limitを示す403、retry可能な5xxは有限回だけ指数backoffし、`Retry-After` / rate-limit resetを尊重します。長時間のrate-limit待ちはjob内で無理にsleepせず診断を残して停止します。
 - request数、route別回数、cache hit、retry、throttle/timeout、rate-limit header、現在phase / PR、heartbeat、処理時間を `.deploy-state/integration-diagnostics.json` へ逐次記録します。
-- `integration.json` と diagnosticsは `integration-report` artifactとして保持します。script内予算をjob timeoutより短くすることで、異常時もartifact upload stepへ到達できる設計にします。
+- `integration.json` と diagnosticsは `integration-report` artifactとして保持します。
 
 ## 自動merge条件
 
@@ -46,7 +66,7 @@ Integrationは安全条件を減らさず、同一run内の重複取得を削減
 - 未解決review thread、Changes requestedがない。
 - 現在のexact head SHAに対する最新fast gateが成功し、`pr-fast-<PR>-<SHA>` artifactが存在する。
 - code gate対象の他Checks/statusが成功している。
-- developの最終検証が失敗中なら、通常PRではなく `integration:repair` の修復PRを先に処理する。
+- developの最終検証が失敗中なら、通常PRではなく `integration:repair` または全changed-files証明済みtrusted control-plane修復を先に処理する。
 
 merge直前にhead SHA、Ready状態、label、body、review、Checks、develop SHAを再取得します。途中で変化したPRを古い判定のままmergeしません。merge APIにはexact head SHAを渡し、force pushやbranch protection緩和は行いません。
 
@@ -72,34 +92,54 @@ trusted authorizationは次の順で扱います。
 - Draft、依存未完了、CI/browser failure。
 - stale head、偽marker、古いstatus。
 
-`integration/trusted-review` は保護ルールの迂回ではありません。GitHub Actions review作成がRepository設定で使えない一人開発環境でも、develop側control planeがexact headに対して同じ安全判定を監査可能に残すためのfallbackです。将来branch protectionが独立reviewを必須化した場合、最終merge APIが拒否するため自動で停止します。
+`integration/trusted-review` は保護ルールの迂回ではありません。将来branch protectionが独立reviewを必須化した場合、最終merge APIが拒否するため自動で停止します。
 
 ## develop baselineとrepair
 
 Integration開始時に現在developの `integration/develop` statusを確認します。
 
-- statusがない初回baselineは、追加PRをmergeする前に現developを検証・公開します。
-- statusがfailure/pendingなら通常PRを止め、`integration:repair` の修復PRを優先します。
+- statusがない初回baselineは、追加PRをmergeする前に現developをPublisherへ渡して検証・公開します。
+- statusがfailure/pendingなら通常PRを止め、repair laneを優先します。
 - repair成功後はReady PRキューを自動再走査します。
 - 成功済みの同一最終SHAは重複build/deployを避けます。
 
 browser failureは `docs/BROWSER_SELF_HEALING.md` に従います。修復ワーカーはassertion削除や検証条件弱体化で通しません。PR scopeとdevelop scopeを区別し、machine-readable repair ticketのattempt/claimを尊重します。
 
-PR browser smokeの結果記録は `browser-repair.yml` へdispatchします。DEV公開後のfocused browser結果はdevelop repair ticketへ記録します。repair recorderとDEV Integrationは別concurrencyなので互いのpending runを置換しません。
+新しいdevelop browser結果が旧失敗SHAのexact descendantで、旧ticketがworkingでない場合は、成功なら旧generationをverified、再失敗ならsupersededとしてcloseします。working ticketの所有権は奪いません。
 
-## DEV公開
+PR browser smokeの結果記録は `browser-repair.yml` へdispatchします。DEV公開後のfocused browser結果はdevelop repair ticketへ記録します。
 
-IntegrationがPRをmergeした最終develop SHAを正本として、影響範囲をbuildします。不変appとProduction snapshotはhash検証して保持し、develop Integrationからmainを昇格させません。
+## DEV Publisher
+
+`deploy.yml` のpush / `publish_only=true` 側がDEV Publisherです。最終develop SHAを正本として影響範囲をbuildします。不変appとProduction snapshotはhash検証して保持し、develop Integrationからmainを昇格させません。
+
+Pages artifact作成前に、4KiB以上の同一byte / 同一modeファイルをSHA-256で確認してhardlinkへまとめます。公開pathや内容は変えず、重複byte転送だけを削減します。`site-dedupe.json` をpublication diagnosticsに保持します。
 
 Pages公開前にdevelopが期待SHAから進んでいないことを確認します。公開後はmanifest、入口、assets、source commitを照合し、focused browser verificationを実施します。成功時だけ最終SHAへ `integration/develop=success` を記録します。
 
 focused browser failure時は公開runをfailureとし、repair ticketを作成します。HTTP 200だけ、あるいはdeploy action成功だけをDEV成功とは扱いません。
 
-重い全体回帰・public WebGL2/P2P diagnosticsは通常DEV deliveryから分離し、必要時に `full_verification=true` で実行します。通常Integrationの速度と、重い診断の品質基準を混同しません。
+重い全体回帰・public WebGL2/P2P diagnosticsは通常DEV deliveryから分離し、必要時に `full_verification=true` で実行します。
+
+## Notification / Canary
+
+INTEGRATED / DEV_DEPLOYEDのntfy結果は `notification/ntfy` statusへ記録します。未設定は `error` として「スマホ到達未確認」を明示し、merge/DEV成功事実は巻き戻しません。
+
+DEV/PULSE成功後はControl-plane Canaryがexact SHAで次を照合し、`integration/canary` statusへ記録します。
+
+- public manifestのvalidated develop
+- PULSE `/api/state`
+- `integration/develop`
+- `ops-board/public`
+- `notification/ntfy`
+
+Canary failureはdelivery成功を捏造せず、制御面のdriftとして可視化します。
 
 ## PULSEとの責務分離
 
-PULSEはCloudflare Workerの定期refreshでGitHub状態と公開manifestを軽量収集し、Integration/Pages jobの完了待ちを状態更新の前提にしません。`Deploy DEV and PROD` workflow全体がactiveであるだけでは「Integration中」と表示せず、公開/browserを含むdelivery中としてheartbeatとphaseを返します。10分以上heartbeatが更新されないactive deliveryは停止疑いとして検知します。
+PULSEはCloudflare Workerの定期refreshでGitHub状態と公開manifestを軽量収集し、Integration/Pages jobの完了待ちを状態更新の前提にしません。
+
+Control Plane v2では既存Integration表示へ、最古Ready、Ready待ちp50/p95、24h run/cancel/重複数、notification health、Canary、wakeup状態を表示します。Rescue表示では検知→claim / mergeのp50/p95、修復成功率、retry率も表示します。巨大な別管理アプリは作りません。
 
 `integration:hold`、`integration:manual`、`do-not-merge`、本文 `Integration-Hold:` のPRは意図的保留として扱い、CI成功後のstale Ready alertへ誤分類しません。WAYFINDERはPULSEの公開stateを正本として参照し、重いIntegrationロジックを自身で再実行しません。
 
@@ -112,18 +152,18 @@ PULSEはCloudflare Workerの定期refreshでGitHub状態と公開manifestを軽�
 
 `integration/queue`、`implementation/handoff`、`ops-board/public`、`Request Integration`、`Request Rescue observation` はcode validation gateから除外します。受領・通知・起動処理をcode gateへ混ぜて自己待機することを防ぎ、fast artifact・build・browser・他のChecksは維持します。
 
-統合batchは `INTEGRATED`、最終 `integration/develop=success`（DEV公開・HTTP/source・focused browser成功）後は `DEV_DEPLOYED` を既存ntfy設定へ通知します。通知失敗で統合・公開判定を変更せず、Actionsへ警告を残します。
-
 一時的なmergeability=nullは短時間だけ有限再取得します。API失敗、developの予期しない移動、大規模なbase比較など、確実な判定ができない場合はfail closedで保留します。
 
-成功後に未処理PRが残り、baseline復旧・repair復旧・同一バッチのmerge進展など次の再走査に意味がある場合だけ再dispatchします。進展不能なholdだけで自己ループしません。
+成功後に未処理PRが残る場合、Controller continuationは登録済み `deploy.yml` gatewayを再dispatchします。Controller concurrencyが実行中1本を保持し、最新pending follow-upだけを残すため、wake stormで重い処理を増殖させません。
+
+独立watchdogが呼ぶ `deploy.yml` の `rescue_mode=scan` は、develop側reusable ControllerのQueue Recoveryへ渡されます。cancelled CIの再実行と成功済みReady PRの取り逃した起動を通常Integrationへ返します。merge/branch更新/hold解除は行いません。既定branchへの新workflow登録、main変更、有料API、追加タスクDBは不要です。
 
 ## 失敗時の原則
 
 - CI失敗: exact headと失敗runを根拠に修正ワーカーへ返す。
 - browser失敗: self-healing ticketから原因を特定し、最小修正する。
 - deploy/公開照合失敗: `integration/develop=failure` のまま通常mergeを止める。
-- repair記録run失敗: DEV Integrationをcancelせず、repair記録側だけ復旧する。
+- repair記録run失敗: DEV Publisherをcancelせず、repair記録側だけ復旧する。
 - session停止: Repositoryのbranch / commit / PR / handoff / CI状態から別sessionで続行する。
 - GitHub経路1つの失敗だけで作業不能と判断しない。
 
@@ -137,7 +177,7 @@ Ready PRの修復は独立したCoordinatorと複数のPR単位Workerで行い�
 
 ## Bootstrap例外の扱い
 
-trusted review機構そのものを導入したPR #76と、repair recorder concurrency分離を導入したPR #54は、旧仕組みでは自分自身のデッドロックを解消できなかったため、exact-head CI成功確認後に一度限りのbootstrap mergeを行いました。これは移行履歴であり、通常運用のmerge経路ではありません。
+過去のtrusted review機構やrepair recorder導入時に行った一度限りのbootstrap mergeは移行履歴です。Control Plane v2はdefault branchに既存の `deploy.yml` gatewayを利用し、develop上の新Controllerは `workflow_call` として呼ぶため、main変更や新workflowの先行登録を要求しません。
 
 ## PULSE公開とcancelled CIの回収
 
@@ -147,8 +187,4 @@ CI validation（opened/synchronize/reopened/Ready）とmetadata/review observati
 
 通常Integrationはcancelledの現在headに対し、review/hold/dependency/headと最新runを再取得して、該当jobとdownstreamだけ再実行する。失敗・実行中・古いheadは再実行せず、合計3attemptで停止する。再実行要求は成功判定ではない。
 
-既存の独立Work watchdogが呼ぶ `deploy.yml` の `rescue_mode=scan` は `Recover missed Ready CI and Integration requests` も実行する。これはPULSEとは独立し、cancelled CIの再実行と成功済みReady PRの取り逃した起動を標準Integrationへ返す。merge/branch更新/hold解除は行わない。通常Integrationと同じconcurrencyで重複操作を直列化し、1走査12PR・API/時間予算・回転windowで制限する。既定branchへの新workflow登録、main変更、有料API、追加のタスクDBは不要。
-
-回復結果は `integration-report` の `ciRecovery` と `integration-queue-recovery` artifactへ残す。実証結果は [キュー回復](INTEGRATION_QUEUE_RECOVERY.md) を参照。
-
-PULSE公開workflowはreusableとして既存deploy workflowから最終develop SHAを渡して呼ぶ。GITHUB_TOKEN mergeのpushイベント抑止・main上にops-board.ymlがない制約に依存しない。PULSE失敗はその公開job/statusに記録し、ゲームのfast/browser/DEV gateへ混入しない。公開SHAはcheckout・Worker・Static Assets・公開検証・commit statusで同じ `OPS_SOURCE_SHA` を使用する。
+PULSE公開workflowはreusableとしてPublisherから最終develop SHAを渡して呼ぶ。PULSE失敗はその公開job/statusに記録し、ゲームのfast/browser/DEV gateへ混入しない。公開SHAはcheckout・Worker・Static Assets・公開検証・commit statusで同じ `OPS_SOURCE_SHA` を使用する。
