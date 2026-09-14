@@ -96,6 +96,8 @@ export async function collectDelivery(c, store, now = Date.now()) {
 async function signalWorkRepair(c, item, record, message, state) {
   const eligibility = workRepairEligibility(record);
   if (item.type !== 'manual' || !eligibility.eligible || !record?.headSha) return false;
+  const pr = await c.api('GET', `${c.root}/pulls/${item.pr}`);
+  if (pr.state !== 'open' || pr.draft || pr.head?.sha !== record.headSha || pr.head?.repo?.full_name !== REPOSITORY || pr.base?.ref !== 'develop') return false;
   const marker = `<!-- integration-rescue-work-request:${item.id} -->`;
   const comments = await c.pages(`/issues/${item.pr}/comments`, undefined, { maxPages: 3 });
   const knowledge = bestKnownPlaybook(state, item.reason || record.failureReason || '');
@@ -106,8 +108,8 @@ async function signalWorkRepair(c, item, record, message, state) {
     const develop = (await c.api('GET', `${c.root}/branches/develop`)).commit.sha;
     const envelope = aiRepairEnvelope({
       pr: item.pr,
-      branch: record.branch,
-      head: record.headSha,
+      branch: pr.head.ref,
+      head: pr.head.sha,
       develop,
       repairKind: eligibility.kind,
       reason: item.reason || record.failureReason || 'FAILED_MANUAL repair requested',
