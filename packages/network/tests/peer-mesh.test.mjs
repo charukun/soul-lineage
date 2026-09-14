@@ -7,10 +7,10 @@ function fakeFactory(id){
   return{
     created,
     async createOffer({onState}){
-      const connection={code:`offer:${id}:${created.length}`,sent:[],async accept(code){this.answer=code;onState?.('open');},send(value){this.sent.push(value);},close(){}};
+      const connection={code:`offer:${id}:${created.length}`,sent:[],closed:false,async accept(code){this.answer=code;onState?.('open');},send(value){this.sent.push(value);},sendPresence(value){this.sent.push(value);},close(){this.closed=true;}};
       created.push(connection);return connection;
     },
-    async acceptOffer(code){return{code:`answer:${code}`,sent:[],send(value){this.sent.push(value);},close(){}};},
+    async acceptOffer(code){return{code:`answer:${code}`,sent:[],closed:false,send(value){this.sent.push(value);},sendPresence(value){this.sent.push(value);},close(){this.closed=true;}};},
   };
 }
 
@@ -36,4 +36,12 @@ test('higher id waits for the lower id offer and answers through relay',async()=
   assert.equal(mesh.has('a'),true);
   assert.equal(relay[0].to,'a');
   assert.equal(relay[0].signal.kind,'answer');
+});
+
+test('an established peer edge survives when that peer becomes the new host',async()=>{
+  const relay=[],factory=fakeFactory('c');
+  const mesh=createPeerMeshCoordinator({selfId:'c',relay:value=>relay.push(value),createOffer:factory.createOffer,acceptOffer:factory.acceptOffer});
+  await mesh.handleSignal('b',{kind:'offer',code:'offer-b'});assert.equal(mesh.has('b'),true);const connection=mesh.connection('b');
+  mesh.syncMembers(['a','b','c'],{hostId:'b'});
+  assert.equal(mesh.has('b'),true);assert.equal(mesh.connection('b'),connection);assert.equal(connection.closed,false);
 });
