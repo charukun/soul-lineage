@@ -85,10 +85,102 @@ jobs:
           include-hidden-files: true
           retention-days: 7
 
+  virtual-train:
+    name: Validate planned Virtual Integration Train
+    needs: reconcile
+    if: needs.reconcile.outputs.train_count != '0' && needs.reconcile.outputs.mode != 'NORMAL'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: integration-virtual-train
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: read
+      checks: read
+      statuses: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          name: integration-reconciliation-plan
+          path: .deploy-state
+      - name: Assemble the exact planned train on an ephemeral branch
+        id: plan
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTEGRATION_RECONCILIATION_PLAN: .deploy-state/integration-reconciliation.json
+          RESCUE_COORDINATOR: 'true'
+        run: node scripts/integration-virtual-train.mjs plan .deploy-state/virtual-train.json
+      - uses: actions/checkout@v6
+        if: steps.plan.outputs.has_train == 'true'
+        with:
+          ref: ${{ steps.plan.outputs.branch }}
+          path: train
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        if: steps.plan.outputs.has_train == 'true'
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: train/package-lock.json
+      - name: Install synthetic train dependencies
+        if: steps.plan.outputs.has_train == 'true'
+        working-directory: train
+        run: npm ci
+      - name: Validate combined train tree
+        id: fast
+        if: steps.plan.outputs.has_train == 'true'
+        continue-on-error: true
+        working-directory: train
+        env:
+          TRAIN_BASE: ${{ steps.plan.outputs.base }}
+          TRAIN_HEAD: ${{ steps.plan.outputs.commit }}
+        run: node scripts/validate.mjs fast "$TRAIN_BASE" "$TRAIN_HEAD"
+      - name: Install Chromium for combined affected smoke
+        if: steps.plan.outputs.has_train == 'true' && steps.fast.outcome == 'success'
+        working-directory: train
+        run: npx playwright install --with-deps chromium
+      - name: Browser-check the combined train tree
+        id: browser
+        if: steps.plan.outputs.has_train == 'true' && steps.fast.outcome == 'success'
+        continue-on-error: true
+        working-directory: train
+        env:
+          TRAIN_BASE: ${{ steps.plan.outputs.base }}
+          TRAIN_HEAD: ${{ steps.plan.outputs.commit }}
+        run: node scripts/browser/pr-smoke.mjs "$TRAIN_BASE" "$TRAIN_HEAD"
+      - name: Record exact train proof and remove ephemeral branch
+        if: always() && hashFiles('.deploy-state/virtual-train.json') != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TRAIN_FAST: ${{ steps.fast.outcome || 'skipped' }}
+          TRAIN_BROWSER: ${{ steps.browser.outcome || 'skipped' }}
+        run: node scripts/integration-virtual-train.mjs finalize .deploy-state/virtual-train.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-virtual-train-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .deploy-state/virtual-train.json
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
+
   integrate:
     name: Serialized expected-head writer
-    needs: reconcile
-    if: inputs.rescue_mode != 'scan'
+    needs: [reconcile, virtual-train]
+    if: always() && inputs.rescue_mode != 'scan' && needs.reconcile.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -195,98 +287,6 @@ jobs:
           name: integration-queue-recovery
           path: .deploy-state/queue-recovery.json
           include-hidden-files: true
-          retention-days: 7
-
-  virtual-train:
-    name: Validate planned Virtual Integration Train
-    needs: reconcile
-    if: needs.reconcile.outputs.train_count != '0' && needs.reconcile.outputs.mode != 'NORMAL'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    concurrency:
-      group: integration-virtual-train
-      cancel-in-progress: false
-    permissions:
-      contents: write
-      pull-requests: read
-      actions: read
-      checks: read
-      statuses: read
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: develop
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-      - uses: actions/download-artifact@v4
-        with:
-          name: integration-reconciliation-plan
-          path: .deploy-state
-      - name: Assemble the exact planned train on an ephemeral branch
-        id: plan
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          INTEGRATION_RECONCILIATION_PLAN: .deploy-state/integration-reconciliation.json
-          RESCUE_COORDINATOR: 'true'
-        run: node scripts/integration-virtual-train.mjs plan .deploy-state/virtual-train.json
-      - uses: actions/checkout@v6
-        if: steps.plan.outputs.has_train == 'true'
-        with:
-          ref: ${{ steps.plan.outputs.branch }}
-          path: train
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        if: steps.plan.outputs.has_train == 'true'
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: train/package-lock.json
-      - name: Install synthetic train dependencies
-        if: steps.plan.outputs.has_train == 'true'
-        working-directory: train
-        run: npm ci
-      - name: Validate combined train tree
-        id: fast
-        if: steps.plan.outputs.has_train == 'true'
-        continue-on-error: true
-        working-directory: train
-        env:
-          TRAIN_BASE: ${{ steps.plan.outputs.base }}
-          TRAIN_HEAD: ${{ steps.plan.outputs.commit }}
-        run: node scripts/validate.mjs fast "$TRAIN_BASE" "$TRAIN_HEAD"
-      - name: Install Chromium for combined affected smoke
-        if: steps.plan.outputs.has_train == 'true' && steps.fast.outcome == 'success'
-        working-directory: train
-        run: npx playwright install --with-deps chromium
-      - name: Browser-check the combined train tree
-        id: browser
-        if: steps.plan.outputs.has_train == 'true' && steps.fast.outcome == 'success'
-        continue-on-error: true
-        working-directory: train
-        env:
-          TRAIN_BASE: ${{ steps.plan.outputs.base }}
-          TRAIN_HEAD: ${{ steps.plan.outputs.commit }}
-        run: node scripts/browser/pr-smoke.mjs "$TRAIN_BASE" "$TRAIN_HEAD"
-      - name: Record exact train proof and remove ephemeral branch
-        if: always() && hashFiles('.deploy-state/virtual-train.json') != ''
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TRAIN_FAST: ${{ steps.fast.outcome || 'skipped' }}
-          TRAIN_BROWSER: ${{ steps.browser.outcome || 'skipped' }}
-        run: node scripts/integration-virtual-train.mjs finalize .deploy-state/virtual-train.json
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: integration-virtual-train-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .deploy-state/virtual-train.json
-          include-hidden-files: true
-          if-no-files-found: ignore
           retention-days: 7
 
   repair:
