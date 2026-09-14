@@ -38,6 +38,7 @@ try {
   message.textContent = '村の資産と暮らしの仕組みを読み込んでいます。';
   await import('./mura-patch.js');
   await import('./asset-visuals.js');
+  await import('./stylized-visual-target.js');
   const { boot } = await import('./web/main.js');
   await boot({
     onProgress(value, text) { progress.value = value; message.textContent = text; },
