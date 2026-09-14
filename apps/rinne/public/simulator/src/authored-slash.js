@@ -116,6 +116,10 @@ export function applySwordPose(runtime,c,pose,p) {
   // A phase-specific reach cap avoids hitting the same IK limit for every pose.
   const reach=pose.reach?.[0]??.965;
   runtime.attachHands(c,'sword',grip,dir,roll,1,null,1,reach);
+  // Preserve the canonical neutral free-hand orientation through arm IK, as on
+  // current develop. Rest-local wrist rotation inherits the twisting forearm and
+  // turns the palm upward in recovery, then snaps back at the guard seam.
+  const freeHandQ=c.bones.leftHand.getWorldQuaternion(new T.Quaternion());
   const [lx,ly,lz]=pose.shield;
   const torsoYaw=(pose.hips[1]+pose.spine[1]+pose.chest[1])*.75;
   const up=new T.Vector3(0,1,0),free=new T.Vector3(lx*s,ly*s,lz*s).applyAxisAngle(up,torsoYaw);
@@ -124,7 +128,7 @@ export function applySwordPose(runtime,c,pose,p) {
   const maxFreeReach=(shoulder.distanceTo(elbow)+elbow.distanceTo(hand))*.90;
   const extension=free.clone().sub(shoulder);if(extension.length()>maxFreeReach)free.copy(shoulder).add(extension.setLength(maxFreeReach));
   runtime.solve(c,'left','arm',free,new T.Vector3(.6,-1,0).applyAxisAngle(up,torsoYaw));
-  c.bones.leftHand.quaternion.copy(c.rest.leftHand.q);
+  runtime.setWorldQ(c,'leftHand',freeHandQ);
   runtime.curl(c,'left',poseCurve([[0,.28],[.30,.50],[.50,.62],[.70,.54],[1,.28]],p)[0]);
   c.root.updateMatrixWorld(true);
 }
