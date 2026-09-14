@@ -1,6 +1,6 @@
 # Integration Control Plane v2
 
-Status: implementation complete; exact-head Ready validation pending
+Status: implementation complete; Ready validation requested
 Base: develop
 Purpose: reduce Integration / Rescue / PULSE self-contention while preserving exact-head, review, browser, hold, dependency, and publication safety gates.
 
