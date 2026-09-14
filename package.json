@@ -16,6 +16,7 @@
     "dev:village": "npm run dev --workspace @soul/village",
     "dev:demon": "npm run dev --workspace @soul/demon",
     "check": "node scripts/check.mjs",
+    "health": "node scripts/code-health.mjs audit",
     "test": "node --test tests/*.test.mjs",
     "test:app": "node scripts/test-app.mjs",
     "build": "npm run build --workspaces --if-present",
