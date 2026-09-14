@@ -26,9 +26,14 @@ function injuriesFor(a){const value=a?._motionInjuries??a?.injuries;return value
 function bodyFor(a,c){const explicit=a?._motionBody;if(explicit&&typeof explicit==='object')return explicit;const scale=Number(c?.ageAppearance?.scale)||1;return{height:scale,width:1,armLength:scale,legLength:scale};}
 function interactionFor(a){const spec=a?._motionInteraction;return spec&&typeof spec==='object'?spec:null;}
 function syncSnapshot(c,names){if(!c.lastActual)return;for(const name of names){const b=c.bones[name],saved=c.lastActual[name];if(b&&saved){saved.p.copy(b.position);saved.q.copy(b.quaternion);}}}
+function beatSerial(beat){const explicit=Number(beat?.serial);if(Number.isFinite(explicit)&&explicit>=0)return explicit;const parsed=Number(String(beat?.id??'').split(':').at(-1));return Number.isFinite(parsed)&&parsed>=0?parsed:0;}
 
 export class HumanoidRuntime extends BaseHumanoidRuntime{
- constructor(api){super(api);this._interaction={active:null,history:new Map(),paired:null,plan:null,sync:null,reconciliation:null};}
+ constructor(api){super(api);this._interaction={active:null,history:new Map(),paired:null,plan:null,sync:null,reconciliation:null};this.installPairedImpactChannel();}
+
+ installPairedImpactChannel(){
+  const channels=globalThis.__RINNE_IMPACT_CHANNELS__??{};if(channels.__motionInteractionPaired)return;const previous=channels['hit-reaction'];channels['hit-reaction']=beat=>{try{previous?.(beat);}catch{}if(beat?.actorId==null)return;let actors=[];try{actors=globalThis.__HUMANOID_LAB__?.actors?.()??[];}catch{}const attacker=actors.find(actor=>String(actor?.id)===String(beat.actorId));if(attacker)attacker._pairedImpactBeat=beat;};Object.defineProperty(channels,'__motionInteractionPaired',{value:true});globalThis.__RINNE_IMPACT_CHANNELS__=channels;
+ }
 
  prepareInteractionState(a){
   const c=this.current,key=String(a?.id??'hero'),clock=Number(a?._humanoidClock)||0,speed=Math.hypot(Number(a?.vx)||0,Number(a?.vz)||0),yaw=Number(a?.yaw)||0,prev=this._interaction.history.get(key)??{clock,speed:0,yaw},dt=clamp(clock-prev.clock||1/60,1/240,.1),personality=localPersonality(personalityFor(a),a?._motionPersonalityOverrides||{}),condition=localCondition({fatigue:fatigueFor(a),injuries:injuriesFor(a)}),adaptation=localAdaptation(bodyFor(a,c)),locks=c?.footLocks||{},plantedSide=locks.left?.locked&&!locks.right?.locked?'left':locks.right?.locked&&!locks.left?.locked?'right':((Number(a?._humanoidPhase)||0)%1<.5?'left':'right'),locomotion=localLocomotion({speed,previousSpeed:prev.speed,yaw,previousYaw:prev.yaw,dt,plantedSide}),micro=localMicro({time:clock,seed:key,fatigue:condition.fatigue,personality});
@@ -55,7 +60,10 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
  }
 
  applyPairedResponse(c,a,result,commit){
-  if(!commit||!a?.reaction||!a?._impactBeat?.direction)return null;const beat=a._impactBeat,response=localPairedImpact({serial:beat.serial??a._hitSerial??0,direction:beat.direction,strength:beat.strength??1,massAttacker:Number(a?._motionAttackerMass)||1,massDefender:Number(a?._motionMass)||1}),phase=clamp((a.reaction.t||0)/Math.max(.05,a.reaction.duration||.25)),envelope=Math.sin(Math.PI*phase),offset={x:response.defender.offset.x*envelope,y:0,z:response.defender.offset.z*envelope},origin={x:c.root.position.x,z:c.root.position.z};c.root.position.x+=offset.x;c.root.position.z+=offset.z;c.root.updateMatrixWorld(true);rigidTransformResult(result,origin,0,offset);this._interaction.paired={...response,envelope};return this._interaction.paired;
+  if(!commit)return null;const defender=!!(a?.reaction&&a?._impactBeat?.direction),beat=defender?a._impactBeat:a?._pairedImpactBeat;if(!beat?.direction)return null;const response=localPairedImpact({serial:beatSerial(beat),direction:beat.direction,strength:beat.strength??1,massAttacker:Number(a?._motionAttackerMass)||1,massDefender:Number(a?._motionMass)||1}),clock=Number(a?._humanoidClock)||0;let envelope,part,role;
+  if(defender){const phase=clamp((a.reaction.t||0)/Math.max(.05,a.reaction.duration||.25));envelope=Math.sin(Math.PI*phase);part=response.defender;role='defender';}
+  else{const age=clock-Number(beat.clock||0),duration=.14;if(age<0||age>duration){if(age>duration&&a._pairedImpactBeat===beat)a._pairedImpactBeat=null;return null;}envelope=Math.sin(Math.PI*clamp(age/duration));part=response.attacker;role='attacker';}
+  const offset={x:part.offset.x*envelope,y:0,z:part.offset.z*envelope},origin={x:c.root.position.x,z:c.root.position.z};c.root.position.x+=offset.x;c.root.position.z+=offset.z;c.root.updateMatrixWorld(true);rigidTransformResult(result,origin,0,offset);this._interaction.paired={...response,envelope,role};return this._interaction.paired;
  }
 
  sample(a,at=null,px=a.x,pz=a.z,commit=false){
