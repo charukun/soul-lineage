@@ -33,6 +33,10 @@ Integration Rescueの安全条件を維持したまま、検知からReady復帰
 - retry base: 300秒 → 120秒。ただし指数的な無限retryはせずmaxAttemptsを維持する。
 - control-plane boost: 72時間相当。古い通常Readyはagingで追い越せる。
 
+## Rollout順序
+
+Semantic Work Rescueを有効にする #167 を先にdevelopへ統合し、その後このthroughput変更を通常Integrationで通す。#167が未統合の間も本PRのfast evidence、優先順位、並列設定はReadyのまま保持し、依存を迂回して先行mergeしない。
+
 ## 非目標
 
 - 意味が不明な競合を機械的にours/theirsで解消しない。
