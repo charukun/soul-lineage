@@ -5640,6 +5640,21 @@
       "status": "MERGED_DEV_FAILED",
       "type": "work-notice",
       "workerId": "work/866e55ef0f5e/20260914T1517Z-pr162"
+    },
+    {
+      "attempt": 0,
+      "branch": "feat/demon-first-hunt-loop",
+      "channel": "gmail-self",
+      "commit": "9ebee865ccc06531d6611a1545e0e7c60149fabb",
+      "id": "gmail:1a0a0a456b5f84ef",
+      "messageId": "1a0a0a456b5f84ef",
+      "next": "Coordinator reconciles stale merged PR #162 Work ownership; then re-read and claim #183. Restage #252 from latest develop before any push.",
+      "pr": 183,
+      "sentAt": "2026-09-14T15:58:53.806Z",
+      "stage": "verifyWorkRepair passed; claimWorkRepair rejected RELATED_WORK_OWNS_SCOPE because merged #162 retains workRepair.status=working; #252 also fences control candidates",
+      "status": "FAILED",
+      "type": "work-notice",
+      "workerId": "work/866e55ef0f5e/20260914T155423Z-pr183"
     }
   ],
   "records": {
@@ -17226,9 +17241,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 806,
+  "revision": 807,
   "schema": 1,
-  "updatedAt": "2026-09-14T15:58:01.584Z",
+  "updatedAt": "2026-09-14T15:58:53.807Z",
   "waves": [
     {
       "completedAt": "2026-09-13T07:24:55.714Z",
