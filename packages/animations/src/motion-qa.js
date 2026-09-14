@@ -12,7 +12,6 @@ export function qaCamera(id,{height=2.02,aspect=1,center=[0,0,0],span=0,depth=0}
   const target=[center[0],center[1]+height*.53,center[2]];
   return {id,version:1,fov,position:[target[0]+Math.sin(yaw)*distance*Math.cos(elevation),target[1]+(span>0?Math.sin(elevation)*distance:height*.08),target[2]+Math.cos(yaw)*distance*Math.cos(elevation)],target};
 }
-// App adapter verifies these source IDs exist before baking. No invented VRMA.
 export const QA_SEQUENCE=Object.freeze([
   {id:'idle',label:'Idle',start:0,end:3,source:'idle-01'},
   {id:'walk',label:'歩行',start:3,end:7,source:'walk'},
@@ -34,21 +33,25 @@ function snapshot(s) {
   if(s===null)return;
   if(!s||!boundedString(s.revision,160)||!boundedString(s.evidence,512)||!Number.isFinite(s.timestamp)||s.timestamp<0||!Number.isInteger(s.frame)||s.frame<0||!Object.hasOwn(QA_CAMERAS,s.camera))throw new Error('Invalid QA evidence snapshot');
 }
+export function validateMotionPerceptionEvidence(evidence){
+  if(!evidence||evidence.schema!=='motion-perception-qa'||evidence.version!==1||evidence.visualApprovalRequired!==true||!evidence.readability||evidence.readability.version!==1||!evidence.trajectory||evidence.trajectory.version!==1||!evidence.lod?.level)throw new Error('Invalid motion perception evidence');
+  if(!['full','near','mid','far'].includes(evidence.lod.level)||!Number.isFinite(evidence.readability.weakestScore)||!Number.isFinite(evidence.trajectory.maxJerk))throw new Error('Invalid motion perception evidence');
+  return evidence;
+}
 export function validateQAReport(report) {
   if(!report||report.schema!=='character-motion-qa'||report.version!==1||!boundedString(report.reviewer,160)||!boundedString(report.build,160)||!Array.isArray(report.issues)||report.issues.length>500||!report.review||report.review.fps!==60||!boundedString(report.review.sequence,160)||!Array.isArray(report.review.characters)||report.review.characters.length>30)throw new Error('Invalid QA report');
   if(!['pending','approved','changes-requested'].includes(report.visualApproval))throw new Error('Invalid visual approval');
   if(!vector(report.review.viewport,2)||report.review.viewport.some(v=>v<=0)||!Number.isFinite(report.review.dpr)||report.review.dpr<=0||!boundedString(report.review.lighting,160)||!boundedString(report.review.motionRevision,160))throw new Error('Invalid QA review conditions');
-  // Optional for old v1 reports; missing authoring evidence is never a visual pass.
   if(report.authoring!==undefined) {
     validateAuthoringReview(report.authoring);
     if(AUTHORING_STAGES.some(id=>report.authoring.stages[id].status==='reviewed')&&report.authoring.source.after!==report.review.motionRevision)throw new Error('Stale authoring source revision');
   }
+  if(report.motionPerception!==undefined)validateMotionPerceptionEvidence(report.motionPerception);
   const ids=new Set();
   for(const issue of report.issues) {
     if(!boundedString(issue.id,160)||ids.has(issue.id)||!boundedString(issue.character,160)||!boundedString(issue.motion,160)||!Number.isFinite(issue.timestamp)||issue.timestamp<0||!Number.isInteger(issue.frame)||issue.frame<0||!Object.hasOwn(QA_CAMERAS,issue.camera)||!Array.isArray(issue.affectedBones)||issue.affectedBones.length>64||!issue.affectedBones.every(x=>boundedString(x,96))||!['info','warning','error'].includes(issue.severity)||!QA_CATEGORIES.includes(issue.category)||!boundedString(issue.note,4000)||!['open','needs-review','resolved','accepted'].includes(issue.status))throw new Error('Invalid QA issue');
     ids.add(issue.id);snapshot(issue.before);snapshot(issue.after);
   }
-  // Refuse non-finite values even in extension metadata; never serialize NaN to null.
   const scan=(value,depth=0)=>{if(depth>24)throw new Error('QA nesting limit');if(typeof value==='number'&&!Number.isFinite(value))throw new Error('Non-finite QA data');if(value&&typeof value==='object')for(const v of Object.values(value))scan(v,depth+1);};scan(report);
   return report;
 }
@@ -61,5 +64,7 @@ export function deserializeQAReport(text) {
 export function createQAReport({build='',reviewer='human',review}) {
   return validateQAReport({schema:'character-motion-qa',version:1,build,reviewer,visualApproval:'pending',review,issues:[],authoring:createAuthoringReview()});
 }
-// External workers implement this contract; the game contains no model API/client.
-export const QA_WORKER_CONTRACT=Object.freeze({version:1,input:'review conditions + deterministic frames + previous character-motion-qa report + observed reference and before/after 1x video',output:'character-motion-qa report with authoring evidence',repairTargets:['motion','normalization','rig adapter','weapon calibration','appearance assets'],authoringGuide:AUTHORING_GUIDE,authoringStages:AUTHORING_STAGES,approval:'explicit visual review; numeric diagnostics and record completeness cannot approve'});
+export function attachMotionPerceptionQA(report,evidence){
+  validateQAReport(report);validateMotionPerceptionEvidence(evidence);const next={...report,motionPerception:evidence};validateQAReport(next);if(next.visualApproval!==report.visualApproval)throw new Error('Motion perception cannot approve visual quality');return next;
+}
+export const QA_WORKER_CONTRACT=Object.freeze({version:1,input:'review conditions + deterministic frames + previous character-motion-qa report + observed reference and before/after 1x video',output:'character-motion-qa report with authoring + optional motion-perception evidence',repairTargets:['motion','normalization','rig adapter','weapon calibration','appearance assets','anticipation / recovery','gaze','grip','secondary motion','pose corrective','combo continuity','silhouette readability','trajectory continuity','motion LOD'],authoringGuide:AUTHORING_GUIDE,authoringStages:AUTHORING_STAGES,approval:'explicit visual review; numeric diagnostics and record completeness cannot approve'});
