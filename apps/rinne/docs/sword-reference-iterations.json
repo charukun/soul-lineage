@@ -6,7 +6,7 @@
     "completed": 6,
     "remaining": 94,
     "baseline_commit": "f2da2524a627e5e4057be1cd9a18e03a22b32282",
-    "latest_commit": "e794c5ece0406ad10d47e676a7c372c11f36fd8b",
+    "latest_commit": "6e2fc9354abd9fe854224c42db56aa05beccf30a",
     "reference": {
       "asset": "apps/rinne/public/simulator/assets/review/reference-sword-4s.mp4",
       "range": [0, 4],
@@ -55,7 +55,7 @@
         "finding": "Knee plane stayed forward while support foot and pelvis turned.",
         "correction": "Drive the leg IK pole from support-foot heading.",
         "before": "f2da2524a627e5e4057be1cd9a18e03a22b32282",
-        "after": "be4308baa236591c7780aa3c44e42b013ba73f97",
+        "after": "c8deb5dfaf73538edba64d380d06f5ccc3ea37c3",
         "evidence": "/tmp/rinne-pass-be4308b-1309/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
         "result": "Less crossed-knee silhouette; retained grounded contact.",
         "remaining": "Individual-pass normal-speed review and mesh collision review."
@@ -65,8 +65,8 @@
         "reference_interval": "original 2.5–6.5 s",
         "finding": "Open free hand separated from the torso and weakened counterbalance.",
         "correction": "Compress the free-arm target and phase its finger curl.",
-        "before": "be4308baa236591c7780aa3c44e42b013ba73f97",
-        "after": "48dac4196e8ec875170441ecac29bb48e8fcc4f1",
+        "before": "c8deb5dfaf73538edba64d380d06f5ccc3ea37c3",
+        "after": "acb046127645d3ab298da2b07d809e33ee570be5",
         "evidence": "/tmp/rinne-pass-48dac41-1309/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
         "result": "Counterhand stays closer to the rib cage through release.",
         "remaining": "Individual-pass normal-speed review and clothing clearance."
@@ -76,8 +76,8 @@
         "reference_interval": "original 2.5–6.5 s",
         "finding": "Head yaw followed the torso and briefly lost the opponent.",
         "correction": "Blend an opponent-focus counter-rotation into authored head yaw.",
-        "before": "48dac4196e8ec875170441ecac29bb48e8fcc4f1",
-        "after": "b16faf826ecbcdbe9f390cbabd692d3d0863675c",
+        "before": "acb046127645d3ab298da2b07d809e33ee570be5",
+        "after": "72af3d4767d879ac69abdc674a8838198763a9b5",
         "evidence": "/tmp/rinne-pass-b16faf8-1309/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
         "result": "Facing direction remains steadier without a frozen neck.",
         "remaining": "Individual-pass normal-speed review and target-aware gameplay validation."
@@ -87,8 +87,8 @@
         "reference_interval": "original 3.16–4.0 s",
         "finding": "Uppercut pelvis rose abruptly beneath the blade.",
         "correction": "Distribute leg drive before and through contact.",
-        "before": "b16faf826ecbcdbe9f390cbabd692d3d0863675c",
-        "after": "4521e6b0704785772110064f3ce59686d7cd300a",
+        "before": "72af3d4767d879ac69abdc674a8838198763a9b5",
+        "after": "d14e0b9b6421a612ba641f10c8449f5b5a051092",
         "evidence": "/tmp/rinne-pass-4521e6b-1309/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
         "result": "Final 30 Hz pelvis-height step is 0.0773229 m.",
         "remaining": "The reference still has stronger lateral travel and rotation."
@@ -98,8 +98,8 @@
         "reference_interval": "original 2.5–6.5 s",
         "finding": "Local wrist reset inherited forearm twist and could snap at the guard seam.",
         "correction": "Restore the pre-IK neutral free-wrist world orientation after arm solve.",
-        "before": "4521e6b0704785772110064f3ce59686d7cd300a",
-        "after": "adb3633fa2fd6e0293db9a35ade37220c49ab5bb",
+        "before": "d14e0b9b6421a612ba641f10c8449f5b5a051092",
+        "after": "88169fd3e262b2388c1f0da84177599ec291101a",
         "evidence": "/tmp/rinne-pass-adb3633-1309/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
         "result": "Free wrist keeps a consistent orientation across arm IK.",
         "remaining": "Finger/cloth collision and individual-pass normal-speed review."
@@ -109,8 +109,8 @@
         "reference_interval": "original 3.16–4.5 s",
         "finding": "Uppercut recovery rose before the next slash loaded.",
         "correction": "Hold the low recovery through phase .73 before the connection.",
-        "before": "adb3633fa2fd6e0293db9a35ade37220c49ab5bb",
-        "after": "e794c5ece0406ad10d47e676a7c372c11f36fd8b",
+        "before": "88169fd3e262b2388c1f0da84177599ec291101a",
+        "after": "6e2fc9354abd9fe854224c42db56aa05beccf30a",
         "evidence": "/tmp/rinne-pass-e794c5e-1309/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
         "result": "The pelvis stays under the overhead finish longer before the next cut.",
         "remaining": "Individual-pass normal-speed review and stronger momentum transfer."
