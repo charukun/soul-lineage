@@ -4,7 +4,7 @@ import {
   CHARACTER_REFERENCE_MODELS,
   evaluateCharacterProduction,
   referenceModelProductionStage
-} from '@soul/characters';
+} from '../packages/characters/src/index.js';
 
 const productionDir = resolve('packages/characters/production');
 const failures = [];
