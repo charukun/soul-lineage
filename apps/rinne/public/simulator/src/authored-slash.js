@@ -88,7 +88,10 @@ export function applySwordPose(runtime,c,pose,p) {
     const dy=hip.y-target.y,horizontal=new T.Vector3(target.x-hip.x,0,target.z-hip.z);
     const maxHorizontal=Math.sqrt(Math.max(0,reach*reach-dy*dy));
     if(horizontal.length()>maxHorizontal){horizontal.setLength(maxHorizontal);target.x=hip.x+horizontal.x;target.z=hip.z+horizontal.z;}
-    const poleYaw=(foot?.yaw??0)*.6;
+    // The knee follows the same support-foot heading as the sole. A fixed +Z
+    // pole left the shin facing forward while the pelvis/rear heel turned,
+    // producing an inward, crossed-knee silhouette in the release/recovery.
+    const poleYaw=foot?.yaw??pose.hips[1]*(side==='right'?.70:.20);
     runtime.solve(c,side,'leg',target,new T.Vector3(Math.sin(poleYaw)+(side==='left'?.15:-.15),0,Math.cos(poleYaw)),true);
     // Keep the sole level during support, while the rear heel pivots into the cut.
     const yaw=foot?.yaw??pose.hips[1]*(side==='right'?.70:.20);
