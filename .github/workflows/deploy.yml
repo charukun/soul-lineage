@@ -171,10 +171,10 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       actions: write
       checks: read
-      statuses: read
+      statuses: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -399,6 +399,15 @@ jobs:
                 workflow_id: 'deploy.yml',
                 ref: 'develop',
                 inputs: { integration_cursor: process.env.CURSOR || '0' }
+              });
+            } else if (process.env.RESULT === 'success') {
+              // DEV verification just turned green. Recheck stale Ready heads now instead
+              // of waiting for the independent ten-minute watchdog tick.
+              await github.rest.actions.createWorkflowDispatch({
+                ...context.repo,
+                workflow_id: 'deploy.yml',
+                ref: 'develop',
+                inputs: { rescue_mode: 'scan' }
               });
             }
       - uses: actions/checkout@v6
