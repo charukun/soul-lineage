@@ -1,17 +1,19 @@
 import './character-art-qa.css';
 import { stylizedArtAudit, compareStylizedSilhouettes } from '@soul/rendering/stylized-art';
+import { auditTextureBudget } from '@soul/rendering/texture-quality';
 import { productionArtProfileForActorId } from '@soul/rendering/master-character-production';
 
 const el = id => document.getElementById(id);
 const text = (tag, value, className = '') => { const node = document.createElement(tag); node.textContent = value; node.className = className; return node; };
-const worstGate = gates => gates.includes('fail') ? 'fail' : gates.includes('review') ? 'review' : 'pass';
 const formatNumber = value => Number.isFinite(value) ? Math.round(value).toLocaleString() : '-';
+const formatMiB = value => Number.isFinite(value) ? `${(value / 1024 / 1024).toFixed(1)} MiB` : '-';
 
 function actorAudit(actor, review = window.masterCharacterReview) {
   if (!actor?.root) return null;
   const profileId = actor.root.userData?.stylizedArt?.profileId || productionArtProfileForActorId(actor.id);
   const body = stylizedArtAudit(actor.root, profileId);
   const attachments = actor.attachments?.children?.length ? stylizedArtAudit(actor.attachments, profileId) : null;
+  const textureBudget = auditTextureBudget(actor.root, { softBytes: profileId === 'hero' ? 64 * 1024 * 1024 : 32 * 1024 * 1024, maxDimension: profileId === 'hero' ? 4096 : 2048 });
   const totalTriangles = body.triangles + (attachments?.triangles ?? 0);
   const totalMaterials = body.materials + (attachments?.materials ?? 0);
   const warnings = [...body.warnings];
@@ -20,6 +22,7 @@ function actorAudit(actor, review = window.masterCharacterReview) {
   for (const value of attachments?.errors ?? []) if (value !== 'silhouette envelope is invalid') errors.push(`attachment: ${value}`);
   if (totalTriangles > body.budget.softTriangleBudget) warnings.push(`character + equipment triangles ${totalTriangles.toLocaleString()} > soft budget ${body.budget.softTriangleBudget.toLocaleString()}`);
   if (totalMaterials > body.budget.softMaterialBudget) warnings.push(`character + equipment materials ${totalMaterials} > soft budget ${body.budget.softMaterialBudget}`);
+  if (textureBudget.gate === 'review') warnings.push(`texture budget ${formatMiB(textureBudget.estimatedBytes)} / oversized ${textureBudget.oversized} / uncompressed candidates ${textureBudget.uncompressed}`);
 
   let hero = null;
   if (profileId === 'hero') {
@@ -42,7 +45,7 @@ function actorAudit(actor, review = window.masterCharacterReview) {
     hero = { visualApproval: report?.visualApproval ?? 'not-recorded', warnings: heroWarnings, errors: heroErrors };
   }
   const gate = errors.length ? 'fail' : warnings.length ? 'review' : 'pass';
-  return { id: actor.id, profileId, body, attachments, totalTriangles, totalMaterials, warnings, errors, hero, gate };
+  return { id: actor.id, profileId, body, attachments, textureBudget, animationLOD: actor.root.userData?.animationLOD || null, totalTriangles, totalMaterials, warnings, errors, hero, gate };
 }
 
 function metricCard(label, id) {
@@ -59,7 +62,7 @@ function install() {
   const head = text('div', '', 'art-qa-head'); head.append(text('h2', 'Art / Performance QA'));
   const gate = text('span', '準備中', 'art-gate'); gate.id = 'art-qa-gate'; head.append(gate); section.append(head);
   const grid = text('div', '', 'art-qa-grid');
-  grid.append(metricCard('Profile', 'art-qa-profile'), metricCard('Triangles', 'art-qa-triangles'), metricCard('Materials', 'art-qa-materials'), metricCard('LOD', 'art-qa-lod'), metricCard('Silhouette', 'art-qa-silhouette'), metricCard('Frame', 'art-qa-frame'));
+  grid.append(metricCard('Profile', 'art-qa-profile'), metricCard('Triangles', 'art-qa-triangles'), metricCard('Materials', 'art-qa-materials'), metricCard('Textures', 'art-qa-textures'), metricCard('LOD', 'art-qa-lod'), metricCard('Motion LOD', 'art-qa-motion-lod'), metricCard('Silhouette', 'art-qa-silhouette'), metricCard('Frame', 'art-qa-frame'));
   section.append(grid);
   const actions = text('div', '', 'art-qa-actions');
   const selected = text('button', '選択個体を再監査'); selected.type = 'button'; selected.id = 'art-qa-selected';
@@ -83,13 +86,16 @@ function install() {
     el('art-qa-profile').textContent = audit.profileId === 'hero' ? 'hero · SHINO GATE' : audit.profileId;
     el('art-qa-triangles').textContent = `${formatNumber(audit.totalTriangles)} / soft ${formatNumber(body.budget.softTriangleBudget)}`;
     el('art-qa-materials').textContent = `${audit.totalMaterials} / soft ${body.budget.softMaterialBudget}`;
+    el('art-qa-textures').textContent = `${audit.textureBudget.count} tex / ${formatMiB(audit.textureBudget.estimatedBytes)}`;
     el('art-qa-lod').textContent = `${body.lod.installed}/${body.lod.eligible} mesh`;
+    const motionLOD = audit.animationLOD;
+    el('art-qa-motion-lod').textContent = motionLOD ? `${motionLOD.id} · ${motionLOD.hz}Hz${motionLOD.secondaryMotion ? ' · spring' : ''}` : (audit.profileId === 'hero' ? 'hero · 60Hz' : '未計測');
     const s = body.silhouette;
     el('art-qa-silhouette').textContent = s.valid ? `前 ${s.frontAspect.toFixed(2)} / 横 ${s.sideAspect.toFixed(2)} / 3/4 ${s.diagonalAspect.toFixed(2)}` : '未取得';
     renderPerf();
     gate.textContent = audit.gate.toUpperCase(); gate.dataset.gate = audit.gate;
     const heroLine = audit.hero ? [`HERO Visual Approval: ${audit.hero.visualApproval}`] : [];
-    report.textContent = audit.errors.length || audit.warnings.length ? [...heroLine, ...audit.errors.map(v => `ERROR ${v}`), ...audit.warnings.map(v => `WARN ${v}`)].join('\n') : [...heroLine, '共有Material token・形状予算・LOD・シルエットの自動監査で問題なし。'].join('\n');
+    report.textContent = audit.errors.length || audit.warnings.length ? [...heroLine, ...audit.errors.map(v => `ERROR ${v}`), ...audit.warnings.map(v => `WARN ${v}`)].join('\n') : [...heroLine, '共有Material token・Texture予算・形状予算・LOD・シルエットの自動監査で問題なし。'].join('\n');
     el('stage')?.setAttribute('data-art-gate', audit.gate);
     window.__CHARACTER_ART_QA_LAST__ = audit;
   }

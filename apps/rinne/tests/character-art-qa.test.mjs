@@ -9,7 +9,9 @@ test('Character Workshop mounts the shared art/performance QA without a separate
   assert.match(main, /import '\.\/character-art-qa\.js';/);
   assert.match(qa, /stylizedArtAudit/);
   assert.match(qa, /compareStylizedSilhouettes/);
+  assert.match(qa, /auditTextureBudget/);
   assert.match(qa, /Art \/ Performance QA/);
+  assert.match(qa, /Motion LOD/);
   assert.match(qa, /全個体シルエット比較/);
   assert.match(qa, /__CHARACTER_ART_QA__/);
 });

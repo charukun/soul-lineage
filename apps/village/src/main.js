@@ -38,13 +38,11 @@ try {
   message.textContent = '村の資産と暮らしの仕組みを読み込んでいます。';
   await import('./mura-patch.js');
   await import('./asset-visuals.js');
+  await import('./authored-visual-lod.js');
   await import('./stylized-visual-target.js');
+  await import('./adaptive-visual-performance.js');
   const { boot } = await import('./web/main.js');
-  await boot({
-    onProgress(value, text) { progress.value = value; message.textContent = text; },
-  });
-  // Preserve the historical side-effect order, but let Vite/browser fetch the
-  // post-boot layer as one module graph instead of 14 serial dynamic imports.
+  await boot({ onProgress(value, text) { progress.value = value; message.textContent = text; } });
   await import('./mura-enhancements.js');
   document.title = document.title.replace(/^星継ぎの庭/, 'MURAAAAAAA');
   clearTimeout(watchdog);

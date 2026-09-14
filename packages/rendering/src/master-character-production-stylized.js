@@ -2,28 +2,51 @@ export * from './master-character-production.js';
 
 import { createShinoProductionPool as createBasePool } from './master-character-production.js';
 import { applyStylizedArtProfile } from './stylized-art.js';
+import { applyStylizedShading } from './stylized-shading.js';
+import { createAnimationLODScheduler } from './animation-lod.js';
 
 export function productionArtProfileForActorId(id) {
   const value = String(id || '');
   if (value.includes('Sendagaya_Shino') || value.includes('sendagaya-shino')) return 'hero';
-  // Character Workshop keeps the first review subject as its Shino reference
-  // target while the rest of the cohort stays representative of population cost.
   if (/^review\.[^.]+\.0$/.test(value)) return 'hero';
   return 'npc';
 }
 
 function applyProfile(root, profileId) {
   if (!root?.traverse || root.userData?.stylizedArt?.profileId === profileId) return;
-  // Hero/reference instances isolate their materials so later population
-  // styling cannot overwrite the hero target through a shared pool material.
   applyStylizedArtProfile(root, profileId, { cloneMaterials: profileId === 'hero' });
+  applyStylizedShading(root, profileId);
 }
 
-/**
- * Shared production-pool adapter. The Shino reference receives the hero Mid
- * Poly target, while population instances keep the cheaper NPC target.
- * Pooling, rigging, motion, audit and gameplay state stay in the base module.
- */
+function installAnimationLOD(actor, profileId) {
+  if (actor.__stylizedAnimationLOD) return;
+  const scheduler = createAnimationLODScheduler({ hero: profileId === 'hero' });
+  const sample = actor.sample.bind(actor);
+  const updateSecondary = actor.updateSecondary?.bind(actor);
+  const setExpressions = actor.setExpressions?.bind(actor);
+  const setExpression = actor.setExpression?.bind(actor);
+  const reset = actor.reset.bind(actor);
+  let lastTime = null, decision = null;
+  actor.sample = (appearance, time = 0, pose = null) => {
+    const dt = lastTime === null ? 1 / 60 : Math.max(0, Math.min(.25, time - lastTime));
+    lastTime = time;
+    const distance = Math.max(0, Number(actor.root.userData?.presentationDistance) || 0);
+    const qualityLevel = Math.max(0, Number(actor.root.userData?.visualQualityLevel) || 0);
+    decision = scheduler.update(dt, distance, qualityLevel);
+    actor.root.userData.animationLOD = { id: decision.id, hz: decision.hz, distance, qualityLevel, secondaryMotion: decision.secondaryMotion };
+    if (decision.shouldSample) sample(appearance, time, pose);
+  };
+  if (setExpressions) actor.setExpressions = values => { if (!decision || decision.expressionsDue) setExpressions(values); };
+  if (setExpression) actor.setExpression = (name, value) => { if (!decision || decision.expressionsDue) setExpression(name, value); };
+  if (updateSecondary) actor.updateSecondary = (deltaSeconds, enabled = true) => {
+    if (!decision) return updateSecondary(deltaSeconds, enabled);
+    if (!decision.secondaryMotion) return decision.changed || decision.shouldSample ? updateSecondary(Math.max(deltaSeconds, decision.sampleDelta), false) : undefined;
+    if (decision.shouldSample) return updateSecondary(Math.max(deltaSeconds, decision.sampleDelta), enabled);
+  };
+  actor.reset = () => { scheduler.reset(); lastTime = null; decision = null; reset(); };
+  actor.__stylizedAnimationLOD = true;
+}
+
 export function createShinoProductionPool(options) {
   const pool = createBasePool(options);
   const spawn = pool.spawn.bind(pool);
@@ -32,6 +55,7 @@ export function createShinoProductionPool(options) {
     const profileId = productionArtProfileForActorId(id);
     applyProfile(actor.root, profileId);
     applyProfile(actor.attachments, profileId);
+    installAnimationLOD(actor, profileId);
     actor.root.userData.stylizedCharacterRole = profileId;
     if (actor.attachments) actor.attachments.userData.stylizedCharacterRole = profileId;
     return actor;
