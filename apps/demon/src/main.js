@@ -12,15 +12,7 @@ const boot = document.querySelector('#boot');
 const progress = document.querySelector('#boot-progress');
 try {
   progress.value = 1;
-  await Promise.all([
-    import('./asset-visuals.js'),
-    import('./authored-visual-lod.js'),
-    import('./stylized-visual-target.js'),
-    import('./adaptive-visual-performance.js'),
-    import('./runtime-resilience.js'),
-    import('./shared-world-scale.js'),
-    import('./cpu-runtime-scale.js'),
-  ]);
+  await import('./runtime-scale-stack.js');
   const game = await import('./web/main.js');
   progress.value = 2;
   await game.boot();
