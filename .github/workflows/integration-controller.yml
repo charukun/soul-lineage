@@ -3,7 +3,7 @@ on:
   workflow_call:
     inputs:
       rescue_mode:
-        description: 'scan runs recovery observation without merging'
+        description: 'scan is a reconcile wake without develop writes'
         type: string
         required: false
         default: ''
@@ -14,19 +14,19 @@ on:
         default: '0'
     outputs:
       sha:
-        description: 'Final develop SHA evaluated by the controller'
+        description: 'Final develop SHA evaluated by the serialized writer'
         value: ${{ jobs.integrate.outputs.sha }}
       verify:
         description: 'Whether DEV publication is required'
         value: ${{ jobs.integrate.outputs.verify }}
       retry:
-        description: 'Whether another bounded Ready evaluation is required'
+        description: 'Whether another bounded reconciliation is required'
         value: ${{ jobs.integrate.outputs.retry }}
       cursor:
         description: 'Next bounded Ready evaluation cursor'
         value: ${{ jobs.integrate.outputs.cursor }}
       merged_count:
-        description: 'Number of exact heads merged by this controller run'
+        description: 'Number of exact heads merged by the serialized writer'
         value: ${{ jobs.integrate.outputs.merged_count }}
 permissions:
   contents: read
@@ -34,9 +34,153 @@ concurrency:
   group: integration-controller-develop
   cancel-in-progress: false
 jobs:
+  reconcile:
+    name: Reconcile current GitHub reality
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: read
+      checks: read
+      statuses: write
+    outputs:
+      mode: ${{ steps.plan.outputs.mode }}
+      actionable: ${{ steps.plan.outputs.actionable }}
+      actionable_idle: ${{ steps.plan.outputs.actionable_idle }}
+      writer_count: ${{ steps.plan.outputs.writer_count }}
+      repair_count: ${{ steps.plan.outputs.repair_count }}
+      active_count: ${{ steps.plan.outputs.active_count }}
+      train_count: ${{ steps.plan.outputs.train_count }}
+      ready_count: ${{ steps.plan.outputs.ready_count }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Record admitted reconciliation wake
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { data } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
+            await github.rest.repos.createCommitStatus({ ...context.repo, sha: data.commit.sha,
+              context: 'integration/wakeup', state: 'success',
+              description: 'Reconciliation admitted; GitHub current state will be replanned',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
+      - name: Build one pure reconciliation plan
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTEGRATION_PREFLIGHT_CONCURRENCY: '6'
+          INTEGRATION_MAX_EVALUATIONS: '24'
+          INTEGRATION_RECONCILIATION_PERSIST: 'true'
+        run: node scripts/integration-reconciliation.mjs plan .deploy-state/integration-reconciliation.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: integration-reconciliation-plan
+          path: .deploy-state/integration-reconciliation.json
+          include-hidden-files: true
+          retention-days: 7
+
+  virtual-train:
+    name: Validate planned Virtual Integration Train
+    needs: reconcile
+    if: needs.reconcile.outputs.train_count != '0' && needs.reconcile.outputs.mode != 'NORMAL'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: integration-virtual-train
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: read
+      checks: read
+      statuses: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          name: integration-reconciliation-plan
+          path: .deploy-state
+      - name: Assemble the exact planned train on an ephemeral branch
+        id: plan
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTEGRATION_RECONCILIATION_PLAN: .deploy-state/integration-reconciliation.json
+          RESCUE_COORDINATOR: 'true'
+        run: node scripts/integration-virtual-train.mjs plan .deploy-state/virtual-train.json
+      - uses: actions/checkout@v6
+        if: steps.plan.outputs.has_train == 'true'
+        with:
+          ref: ${{ steps.plan.outputs.branch }}
+          path: train
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        if: steps.plan.outputs.has_train == 'true'
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: train/package-lock.json
+      - name: Install synthetic train dependencies
+        if: steps.plan.outputs.has_train == 'true'
+        working-directory: train
+        run: npm ci
+      - name: Validate combined train tree
+        id: fast
+        if: steps.plan.outputs.has_train == 'true'
+        continue-on-error: true
+        working-directory: train
+        env:
+          TRAIN_BASE: ${{ steps.plan.outputs.base }}
+          TRAIN_HEAD: ${{ steps.plan.outputs.commit }}
+        run: node scripts/validate.mjs fast "$TRAIN_BASE" "$TRAIN_HEAD"
+      - name: Install Chromium for combined affected smoke
+        if: steps.plan.outputs.has_train == 'true' && steps.fast.outcome == 'success'
+        working-directory: train
+        run: npx playwright install --with-deps chromium
+      - name: Browser-check the combined train tree
+        id: browser
+        if: steps.plan.outputs.has_train == 'true' && steps.fast.outcome == 'success'
+        continue-on-error: true
+        working-directory: train
+        env:
+          TRAIN_BASE: ${{ steps.plan.outputs.base }}
+          TRAIN_HEAD: ${{ steps.plan.outputs.commit }}
+        run: node scripts/browser/pr-smoke.mjs "$TRAIN_BASE" "$TRAIN_HEAD"
+      - name: Record exact train proof and remove ephemeral branch
+        if: always() && hashFiles('.deploy-state/virtual-train.json') != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TRAIN_FAST: ${{ steps.fast.outcome || 'skipped' }}
+          TRAIN_BROWSER: ${{ steps.browser.outcome || 'skipped' }}
+        run: node scripts/integration-virtual-train.mjs finalize .deploy-state/virtual-train.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-virtual-train-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .deploy-state/virtual-train.json
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
+
   integrate:
-    name: Integrate Ready PRs
-    if: inputs.rescue_mode != 'scan'
+    name: Serialized expected-head writer
+    needs: [reconcile, virtual-train]
+    if: always() && inputs.rescue_mode != 'scan' && needs.reconcile.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -60,20 +204,16 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Record admitted controller wake
-        uses: actions/github-script@v8
+      - uses: actions/download-artifact@v4
         with:
-          script: |
-            const { data } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
-            await github.rest.repos.createCommitStatus({ ...context.repo, sha: data.commit.sha,
-              context: 'integration/wakeup', state: 'success',
-              description: 'Integration Controller admitted; duplicate wakeups are coalesced by concurrency',
-              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
-      - name: Evaluate Ready PRs and merge eligible heads as one batch
+          name: integration-reconciliation-plan
+          path: .deploy-state
+      - name: Re-read safety gates and merge eligible exact heads serially
         id: queue
         env:
           GH_TOKEN: ${{ github.token }}
           INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-diagnostics.json
+          INTEGRATION_RECONCILIATION_PLAN: .deploy-state/integration-reconciliation.json
           INTEGRATION_TIME_BUDGET_MS: '360000'
           INTEGRATION_EVALUATION_CURSOR: ${{ inputs.integration_cursor || '0' }}
         run: node scripts/integration-controller.mjs
@@ -110,12 +250,15 @@ jobs:
           path: |
             .deploy-state/integration.json
             .deploy-state/integration-diagnostics.json
+            .deploy-state/integration-reconciliation.json
+            .deploy-state/integration-reconciliation-final.json
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 14
 
   queue-recovery:
-    name: Recover missed Ready CI and Integration requests
+    name: Recover missed Ready CI after reconcile-only wake
+    needs: reconcile
     if: inputs.rescue_mode == 'scan'
     runs-on: ubuntu-latest
     timeout-minutes: 4
@@ -134,7 +277,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Re-evaluate current Ready heads without merging or editing branches
+      - name: Re-evaluate current Ready heads without develop writes
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/integration-queue-recovery.mjs
@@ -146,16 +289,17 @@ jobs:
           include-hidden-files: true
           retention-days: 7
 
-  rescue:
-    name: Parallel Integration Rescue
-    needs: [integrate, queue-recovery]
-    if: always()
+  repair:
+    name: Repair executor pool
+    needs: reconcile
+    if: always() && needs.reconcile.result == 'success'
     uses: ./.github/workflows/integration-rescue.yml
     permissions:
       contents: write
       pull-requests: write
       issues: write
       actions: write
+      checks: read
       statuses: write
     secrets: inherit
 

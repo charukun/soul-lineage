@@ -51,7 +51,7 @@ export function readyPriorityScore(item, returnedHeads, now = Date.now(), graph 
 
 export async function returnedPriorityHeads(c) {
   const result = new Map();
-  result.scopeByPr = new Map(); result.quarantineHeads = new Map(); result.latency = deliveryLatencyMetrics([]); result.provenTrain = null;
+  result.scopeByPr = new Map(); result.quarantineHeads = new Map(); result.latency = deliveryLatencyMetrics([]); result.provenTrain = null; result.reconciliationOrder = [];
   try {
     const file = await c.api('GET', `${c.root}/contents/rescue-state.json?ref=${encodeURIComponent(STATE_BRANCH)}`, null, { cache: true });
     const state = decode(file);
@@ -65,16 +65,23 @@ export async function returnedPriorityHeads(c) {
       if (quarantineDecision(record).quarantined && record.headSha) result.quarantineHeads.set(Number(record.pr), record.headSha);
     }
     const proof = state.flowControl?.trainProof;
+    const reconciliation = state.flowControl?.reconciliation;
+    let develop = null;
+    const currentDevelop = async () => develop ||= (await c.api('GET', `${c.root}/branches/develop`, null, { cache: true })).commit.sha;
     if (proof?.status === 'validated' && Array.isArray(proof.candidates) && proof.candidates.length >= 2) {
-      const develop = (await c.api('GET', `${c.root}/branches/develop`, null, { cache: true })).commit.sha;
-      if (proof.base === develop) result.provenTrain = proof;
+      if (proof.base === await currentDevelop()) result.provenTrain = proof;
+    }
+    if (reconciliation?.develop && Array.isArray(reconciliation.writer) && reconciliation.develop === await currentDevelop()) {
+      result.reconciliationOrder = reconciliation.writer
+        .filter(item => Number.isSafeInteger(Number(item.pr)) && /^[0-9a-f]{40}$/.test(item.head || ''))
+        .map(item => ({ pr: Number(item.pr), head: item.head }));
     }
     return result;
   } catch { return result; }
 }
 
 export function prioritizeReturnedReady(items, returnedHeads, now = Date.now()) {
-  returnedHeads.scopeByPr ||= new Map(); returnedHeads.quarantineHeads ||= new Map(); returnedHeads.latency ||= deliveryLatencyMetrics([]);
+  returnedHeads.scopeByPr ||= new Map(); returnedHeads.quarantineHeads ||= new Map(); returnedHeads.latency ||= deliveryLatencyMetrics([]); returnedHeads.reconciliationOrder ||= [];
   const graph = dependencyGraph(items), pressure = flowPressure({ ready: items.length }), tuning = adaptiveFlowTuning({ ready: items.length, latency: returnedHeads.latency });
   const sorted = [...items].sort((a, b) => {
     const pa = readyPriorityScore(a, returnedHeads, now, graph), pb = readyPriorityScore(b, returnedHeads, now, graph);
@@ -91,9 +98,17 @@ export function prioritizeReturnedReady(items, returnedHeads, now = Date.now()) 
   const provenIds = new Set(proven.map(item => item.number));
   const ordinary = sorted.filter(item => !pinnedIds.has(item.number) && !provenIds.has(item.number) && !isQuarantinedHead(returnedHeads, item));
   const quarantined = sorted.filter(item => !pinnedIds.has(item.number) && isQuarantinedHead(returnedHeads, item));
-  const trained = pressure.mode === 'NORMAL' ? ordinary : prioritizeIntegrationTrain(ordinary, returnedHeads.scopeByPr, { max: tuning.trainSize });
+  const plannedIndex = new Map(returnedHeads.reconciliationOrder.map((entry, index) => [`${entry.pr}:${entry.head}`, index]));
+  const planned = [...ordinary].sort((a, b) => {
+    const aIndex = plannedIndex.get(`${a.number}:${a.head?.sha}`), bIndex = plannedIndex.get(`${b.number}:${b.head?.sha}`);
+    if (aIndex !== undefined || bIndex !== undefined) return (aIndex ?? Number.MAX_SAFE_INTEGER) - (bIndex ?? Number.MAX_SAFE_INTEGER);
+    return 0;
+  });
+  const hasFreshPlan = planned.some(item => plannedIndex.has(`${item.number}:${item.head?.sha}`));
+  const trained = hasFreshPlan ? planned : pressure.mode === 'NORMAL' ? ordinary : prioritizeIntegrationTrain(ordinary, returnedHeads.scopeByPr, { max: tuning.trainSize });
   const result = [...pinned, ...proven, ...trained, ...quarantined];
   result.flowControl = { ...pressure, ...tuning, provenTrain: proven.map(item => item.number), train: trained.slice(0, tuning.trainSize).map(item => item.number),
+    reconciliationOrder: hasFreshPlan ? trained.filter(item => plannedIndex.has(`${item.number}:${item.head?.sha}`)).map(item => item.number) : [],
     quarantined: quarantined.map(item => item.number), criticalPath: [...graph.unblockCount.entries()].filter(([, count]) => count > 0).sort((a, b) => b[1] - a[1]).slice(0, 8) };
   return result;
 }

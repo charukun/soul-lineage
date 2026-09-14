@@ -36,7 +36,16 @@ try{
   await page.locator('#overview-task-card').click();
   await openDisclosure('section:rescue');
   await page.waitForSelector('.rs-summary');
-  assert.match(await page.locator('#rescue-section > summary').innerText(),/Integration Rescue/);
+  assert.match(await page.locator('#rescue-section > summary').innerText(),/自動統合と修復/);
+  const flowText=await page.locator('#integration-flow').innerText();
+  assert.match(flowText,/自動統合の状態[\s\S]*待機中[\s\S]*主な詰まり/);
+  assert.match(flowText,/あなたの確認が必要なPR|あなたの操作は不要/);
+  assert.doesNotMatch(flowText,/BURN_DOWN|p95|Virtual Train|Auto tuning/);
+  const flowDetails=page.locator('details[data-disclosure="flow:technical"]');
+  assert.equal(await flowDetails.getAttribute('open'),null);check('plain-language flow summary hides operator jargon by default');
+  await openDisclosure('flow:technical');
+  assert.match(await flowDetails.innerText(),/内部モード[\s\S]*(?:NORMAL|BUSY|BURN_DOWN)/);
+  assert.match(await flowDetails.innerText(),/遅いケース[\s\S]*実績/);check('technical flow evidence remains available on demand');
   assert.match(await page.locator('.rs-summary').innerText(),/4 \/ 6/);
   assert.equal(await page.locator('.rs-summary-live-item').count(),3);check('summary-first status and bounded NOW list');
 
@@ -77,6 +86,7 @@ try{
   await page.locator('#reload').click();await page.waitForFunction(()=>!document.querySelector('#reload').disabled);
   assert.equal(await page.locator('details[data-disclosure="section:tasks"]').getAttribute('open'),'');
   assert.equal(await page.locator('details[data-disclosure="section:rescue"]').getAttribute('open'),'');
+  assert.equal(await page.locator('details[data-disclosure="flow:technical"]').getAttribute('open'),'');
   assert.equal(await page.locator('details[data-disclosure="rescue:details"]').getAttribute('open'),'');
   assert.equal(await page.locator('details[data-disclosure="rescue:workers"]').getAttribute('open'),'');
   assert.equal(await page.locator('.rs-card[data-pr="120"] details').getAttribute('open'),'');check('drilldown and card disclosure survive snapshot refresh');
