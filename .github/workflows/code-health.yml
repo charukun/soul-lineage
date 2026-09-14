@@ -56,9 +56,14 @@ jobs:
         if: >-
           steps.audit.outputs.actionable == 'true' &&
           (github.event_name == 'schedule' || inputs.dispatch == true)
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Fail closed: if GitHub cannot be measured, do not create another maintenance PR.
+          echo "ready=unknown" >> "$GITHUB_OUTPUT"
+          echo "mode=UNKNOWN" >> "$GITHUB_OUTPUT"
+          echo "pause=true" >> "$GITHUB_OUTPUT"
           ready=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --base develop --limit 100 --json isDraft \
             --jq '[.[] | select(.isDraft == false)] | length')
           result=$(READY_COUNT="$ready" node --input-type=module - <<'JS'
@@ -131,7 +136,7 @@ jobs:
           branch="dispatch/code-health-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${SLUG}"
           marker=".task-start/code-health-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.md"
           git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.email '41898282+charukun@users.noreply.github.com'
           git checkout -b "$branch"
           mkdir -p .task-start
           cp "$MARKER_FILE" "$marker"
