@@ -2,6 +2,8 @@ import { REPOSITORY, ACTIVE, RETURNED, rescueConfig } from '../scripts/integrati
 
 const safeString = (value, max = 240) => typeof value === 'string' ? value.slice(0, max) : null;
 function repairEvidence(r) {
+  const w=r.workRepair,result=w?.result;
+  if(w?.status==='returned')return result?.head===r.pushedSha && result.validation?.status==='passed' && result.validation.tree===result.tree && result.commit?.tree?.sha===result.tree && result.commit?.sha===result.head && /^[0-9a-f]{40}$/.test(result.head) && result.commit.parents?.[0]?.sha===w.sourceHead && result.commit.parents?.[1]?.sha===w.develop && Date.parse(w.startedAt)<=Date.parse(r.pushedAt) && Date.parse(r.pushedAt)<=Date.parse(r.returnedAt) && ['RETURNED_TO_INTEGRATION','CHECKING','MERGED','DEV'].includes(r.state);
   const claimed = Date.parse(r.claimedAt), pushed = Date.parse(r.pushedAt), returned = Date.parse(r.returnedAt);
   return r.mode !== 'reevaluate' && Number.isSafeInteger(r.attempt) && r.attempt > 0 && Boolean(r.rescueId && r.claimedBy) &&
     /^[0-9a-f]{40}$/.test(r.pushedSha || '') && r.validation?.status === 'passed' && r.validation.head === r.pushedSha &&
@@ -12,21 +14,21 @@ export function rescueView(state, now = Date.now()) {
   if (!state || state.schema !== 1 || state.repository !== REPOSITORY) return { available: false, status: 'UNAVAILABLE', reason: 'Rescue状態をまだ取得していません', workers: [], queue: [], recent: [], manual: [], waves: [], activity: [] };
   const config = state.config || rescueConfig();
   const records = Object.values(state.records).map(r => ({
-    pr: r.pr, title: safeString(r.title), branch: safeString(r.branch), state: r.state,
+    pr: r.pr, title: safeString(r.title), branch: safeString(r.branch), state: r.workRepair?.status==='working'?'RESOLVING':r.state, sourceState:r.state,
     repairVerified: repairEvidence(r),
     deliveryKind: repairEvidence(r) ? 'repaired' : r.state === 'AWAITING_PUSH' ? 'staged' : r.mode === 'reevaluate' && r.returnedAt ? 'reevaluated' : 'observed',
-    rescueId: r.rescueId || null, workerId: r.claimedBy || null, wave: r.wave || null, lease: Boolean(r.lease),
+    rescueId: r.rescueId || null, workerId: r.workRepair?.workerId || r.claimedBy || null, wave: r.wave || null, lease: Boolean(r.lease || r.workRepair?.status==='working'),
     currentStep: r.currentStep, currentAction: safeString(r.currentAction), currentFile: safeString(r.currentFile), waitingReason: safeString(r.waitingReason),
     scopes: r.scope?.scopes || [], files: r.scope?.files || [], risk: r.risk || 'RED', riskReason: safeString(r.riskReason), reason: r.reason,
     priority: r.priority || null, blockedBy: r.blockedBy || [], dependencies: r.dependencies || [], attempt: r.attempt, maxAttempts: r.maxAttempts,
-    detectedAt: r.detectedAt, claimedAt: r.claimedAt, heartbeatAt: r.heartbeatAt, updatedAt: r.updatedAt,
-    heartbeatStale: Boolean(r.lease) && now - Date.parse(r.heartbeatAt || r.claimedAt) > config.staleMs,
+    detectedAt: r.detectedAt, claimedAt: r.workRepair?.startedAt || r.claimedAt, heartbeatAt: r.workRepair?.heartbeatAt || r.heartbeatAt, updatedAt: r.updatedAt,
+    heartbeatStale: r.workRepair?.status==='working' ? now-Date.parse(r.workRepair.heartbeatAt)>config.staleMs : Boolean(r.lease) && now - Date.parse(r.heartbeatAt || r.claimedAt) > config.staleMs,
     returnedAt: r.returnedAt || null, pushedAt: r.pushedAt || null, mergedAt: r.mergedAt || null, devAt: r.devAt || null,
     pushedSha: r.pushedSha || null, mergeCommit: r.mergeCommit || null, devCommit: r.devCommit || null,
     stagedSha: r.stagedSha || null, stagedAt: r.stagedAt || null, pushWorkerId: r.pushWorkerId || null, heartbeatCount: r.heartbeatCount || 0,
     resolution: safeString(r.resolution), failureReason: safeString(r.failureReason, 400), failures: (r.failures || []).slice(-3),
     validation: r.validation ? { status: r.validation.status, command: safeString(r.validation.command), at: r.validation.at, head: r.validation.head } : null,
-    url: `https://github.com/${REPOSITORY}/pull/${r.pr}`, runUrl: safeString(r.runUrl),
+    url: `https://github.com/${REPOSITORY}/pull/${r.pr}`, runUrl: r.workRepair ? null : safeString(r.runUrl),
   }));
   const workers = records.filter(r => r.lease), queue = records.filter(r => ['DETECTED', 'QUEUED', 'BLOCKED_BY_RESCUE', 'FAILED_RETRYABLE'].includes(r.state));
   const manual = records.filter(r => r.state === 'FAILED_MANUAL');
