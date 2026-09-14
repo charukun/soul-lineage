@@ -34,13 +34,16 @@ test('Rinne terrain adapter matches shared pelvis/foot split',()=>{
  close(local.pelvisY,shared.pelvisY);for(const side of ['left','right']){close(local[side].y,shared[side].y);for(const axis of ['x','y','z'])close(local[side].normal[axis],shared[side].normal[axis]);}
 });
 
-test('final humanoid entry routes through dynamics and preserves gameplay sampler boundary',async()=>{
+test('final humanoid entry layers life over dynamics and preserves sampler boundary',async()=>{
  const entry=await readFile(new URL('../public/simulator/src/humanoid.js',import.meta.url),'utf8');
  const source=await readFile(new URL('../public/simulator/src/humanoid-dynamics.js',import.meta.url),'utf8');
  assert.equal(HUMANOID_DYNAMICS_REVISION,'mass-response-2');
- assert.match(entry,/HumanoidRuntime,HUMANOID_DYNAMICS_REVISION.*humanoid-dynamics/);
- assert.doesNotMatch(entry,/HumanoidRuntime,naturalArmPole/);
+ assert.match(entry,/HUMANOID_DYNAMICS_REVISION.*humanoid-dynamics/);
+ assert.match(entry,/HumanoidRuntime,HUMANOID_LIFE_REVISION.*humanoid-life/);
  assert.match(source,/if\(!commit\|\|!result\?\.a\|\|!result\?\.b\|\|!result\?\.sm/);
+ assert.match(source,/Array\.isArray\(value\)\|\|ArrayBuffer\.isView\(value\)/);
+ assert.match(source,/writePoint\(result\.b,newB\)/);
+ assert.match(source,/if\(result\.weaponTip\)writePoint\(result\.weaponTip,newB\)/);
  assert.match(source,/if\(!commit\|\|a\?\.air\|\|a\?\.dead\|\|a\?\.attack\|\|a\?\.recovery\)return/);
  assert.match(source,/__RINNE_IMPACT_BEAT__/);
  assert.match(source,/__RINNE_IMPACT_CHANNELS__/);
