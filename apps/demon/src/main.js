@@ -15,6 +15,7 @@ try {
   await import('./asset-visuals.js');
   // Install shared human motion presentation before the game creates NightView.
   await import('./master-humans.js');
+  await import('./motion-interactions.js');
   await import('./motion-crowd.js');
   const game = await import('./web/main.js');
   progress.value = 2;
