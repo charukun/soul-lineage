@@ -1,4 +1,5 @@
 import { clamp } from './quality-math.js';
+import { validateMotionReferenceBenchmark } from './motion-reference-benchmark.js';
 export const MOTION_QA_VERSION=1;
 export const QA_FPS=60;
 export const QA_CATEGORIES=Object.freeze(['model','rig','skinning / weight','motion','transition','weapon grip','body variation','clothing','hair','self intersection','silhouette','unknown']);
@@ -55,5 +56,9 @@ export function deserializeQAReport(text) {
 export function createQAReport({build='',reviewer='human',review}) {
   return validateQAReport({schema:'character-motion-qa',version:1,build,reviewer,visualApproval:'pending',review,issues:[]});
 }
+export function attachMotionReferenceBenchmark(report,evidence) {
+  const valid=validateQAReport(report),benchmark=validateMotionReferenceBenchmark(evidence);
+  return validateQAReport({...valid,review:{...valid.review,motionReferenceBenchmark:benchmark}});
+}
 // External workers implement this contract; the game contains no model API/client.
-export const QA_WORKER_CONTRACT=Object.freeze({version:1,input:'review conditions + deterministic frames + previous character-motion-qa report',output:'character-motion-qa report',repairTargets:['motion','normalization','rig adapter','weapon calibration','appearance assets'],approval:'explicit visual review; numeric diagnostics cannot approve'});
+export const QA_WORKER_CONTRACT=Object.freeze({version:1,input:'review conditions + deterministic frames + previous character-motion-qa report',output:'character-motion-qa report',referenceBenchmark:'optional motion-reference-benchmark evidence; criteria are diagnostics and never visual approval',repairTargets:['motion','normalization','rig adapter','weapon calibration','locomotion timing','root motion ownership','motion warp','impact coordination','appearance assets'],approval:'explicit visual review; numeric/reference diagnostics cannot approve'});
