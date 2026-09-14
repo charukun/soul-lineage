@@ -65,6 +65,9 @@ function persistedPlan(plan) {
     deferred: plan.deferred,
     wakeAgain: plan.wakeAgain,
     actionableIdle: plan.actionableIdle,
+    stale: Boolean(plan.stale),
+    staleReason: plan.staleReason || null,
+    observedDevelop: plan.observedDevelop || null,
     evaluated: plan.evaluated,
     totalReady: plan.totalReady,
     concurrency: plan.concurrency,
@@ -84,6 +87,7 @@ export async function persistReconciliationPlan(c, plan) {
 }
 
 export async function collectReconciliationPlan(c, repository = REPOSITORY, options = {}) {
+  const develop = options.develop || (await c.api('GET', `${c.root}/branches/develop`)).commit.sha;
   const open = options.open || await c.pages('/pulls?state=open&base=develop&sort=created&direction=asc', undefined, { maxPages: 10 });
   const ready = open.filter(pr => !pr.draft && pr.base?.ref === 'develop');
   const maxEvaluations = Math.max(1, Math.min(24, Number(options.maxEvaluations || maxReadyEvaluationsPerRun)));
@@ -134,11 +138,24 @@ export async function collectReconciliationPlan(c, repository = REPOSITORY, opti
     maxTrainSize: options.maxTrainSize || state?.flowControl?.tuning?.trainSize || 5,
     now: options.now || Date.now(),
   });
-  const develop = options.develop || (await c.api('GET', `${c.root}/branches/develop`, null, { cache: true })).commit.sha;
+  const observedDevelop = options.develop || (await c.api('GET', `${c.root}/branches/develop`)).commit.sha;
+  const stale = observedDevelop !== develop;
   return {
     ...plan,
     repository,
     develop,
+    stale,
+    staleReason: stale ? 'DEVELOP_ADVANCED_DURING_RECONCILE' : null,
+    observedDevelop,
+    ...(stale ? {
+      writer: [],
+      writerOrder: [],
+      trains: [],
+      singles: [],
+      counts: { ...plan.counts, writer: 0, trains: 0, trainMembers: 0 },
+      wakeAgain: true,
+      actionableIdle: false,
+    } : {}),
     evaluated: selected.length,
     totalReady: ready.length,
     concurrency,
@@ -160,7 +177,7 @@ async function main() {
   mkdirSync(resolve(output, '..'), { recursive: true });
   writeFileSync(output, JSON.stringify(plan, null, 2));
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT,
-    `mode=${plan.pressure.mode}\nactionable=${plan.wakeAgain}\nactionable_idle=${plan.actionableIdle}\nwriter_count=${plan.counts.writer}\nrepair_count=${plan.counts.repair}\nactive_count=${plan.counts.active}\nvalidating_count=${plan.counts.validating}\ntrain_count=${plan.counts.trains}\nready_count=${plan.totalReady}\n`);
+    `mode=${plan.pressure.mode}\nstale=${plan.stale}\nactionable=${plan.wakeAgain}\nactionable_idle=${plan.actionableIdle}\nwriter_count=${plan.counts.writer}\nrepair_count=${plan.counts.repair}\nactive_count=${plan.counts.active}\nvalidating_count=${plan.counts.validating}\ntrain_count=${plan.counts.trains}\nready_count=${plan.totalReady}\n`);
   console.log(JSON.stringify(plan, null, 2));
 }
 
