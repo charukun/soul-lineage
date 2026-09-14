@@ -68,8 +68,12 @@ export class RescueStore {
           message: `chore(integration-rescue): state revision ${state.revision}`, content: encoded.toString('base64') });
         // Queue-recovery imports pullEvidence from this module under a scripts-only sparse checkout.
         // Keep the PULSE adapter lazy so read-only evidence collection never requires ops-board runtime files.
-        const { publishObservation } = await import('./integration-rescue-pulse.mjs');
-        await publishObservation(state).catch(error => console.warn(error.message));
+        try {
+          const { publishObservation } = await import('./integration-rescue-pulse.mjs');
+          await publishObservation(state);
+        } catch (error) {
+          console.warn(error.message);
+        }
         return { state, result };
       } catch (error) {
         if (!/HTTP (409|422)\b/.test(error.message) || attempt === 7) throw error;
