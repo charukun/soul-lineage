@@ -102,7 +102,7 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
       await page.screenshot({path:resolve(output,`motion-qa-${width}x${height}.png`)});
     }
     await page.locator('#qa-stop').click();assert.equal(await page.evaluate(()=>window.masterCharacterReview.motionQA.active),false);
-    assert.equal(await page.locator('#motion-live-compare').isHidden(),true);
+    await page.waitForFunction(()=>document.querySelector('#motion-live-compare').hidden===true);
     assert.deepEqual(errors,[]);assert.deepEqual(network,[]);assert.equal(await page.evaluate(()=>window.masterCharacterReview.ready),true);
     checks.push('portrait/landscape live-compare bounds and clean console/network');
     writeFileSync(resolve(output,'motion-qa-browser.json'),JSON.stringify({success:true,checks,snapshots,errors,network},null,2));
