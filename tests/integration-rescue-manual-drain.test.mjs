@@ -15,16 +15,16 @@ function repairFixture(){
 }
 
 test('develop advancement preserves semantic Work repair attempt and uses bounded churn budget',()=>{
-  const f=repairFixture();
+  const f=repairFixture(), baselines=['3','4','5','6','7','8','9','a'].map(c=>c.repeat(40));
   claimWorkRepair(f.state,162,'work/churn',f.evidence,now);
   assert.equal(f.r.workRepairAttempts,1);
-  for(let i=1;i<=8;i++){
-    const next=String((i%8)+3).repeat(40);
+  for(let i=1;i<=baselines.length;i++){
+    const next=baselines[i-1];
     const stopped=stopWorkRepairForDevelopAdvance(f.state,162,'work/churn',`Latest develop advanced from ${f.evidence.develop} to ${next}`,{now:now+i*100});
     assert.equal(stopped.attempt,1);
     assert.equal(f.r.workRepairAttempts,1);
     assert.equal(f.r.workRepairBaselineChurns,i);
-    if(i<8){
+    if(i<baselines.length){
       f.evidence.develop=next;
       const eligibility=workRepairEligibility(f.r);
       assert.equal(eligibility.eligible,true);
@@ -37,6 +37,17 @@ test('develop advancement preserves semantic Work repair attempt and uses bounde
   const exhausted=workRepairEligibility(f.r);
   assert.equal(exhausted.eligible,false);
   assert.equal(exhausted.reason,'WORK_REPAIR_BASELINE_CHURN_EXHAUSTED');
+});
+
+test('existing stopWorkRepair API automatically treats develop advancement as baseline churn',()=>{
+  const f=repairFixture(), next='a'.repeat(40);
+  claimWorkRepair(f.state,162,'work/backward-compatible',f.evidence,now);
+  const stopped=stopWorkRepair(f.state,162,'work/backward-compatible',`Latest develop advanced from ${base} to ${next} after trusted validation`,{humanRequired:false,now:now+1});
+  assert.equal(stopped.attempt,1);
+  assert.equal(f.r.workRepairAttempts,1);
+  assert.equal(f.r.workRepairBaselineChurns,1);
+  assert.equal(f.r.workRepair.status,'baseline-advanced');
+  assert.equal(workRepairEligibility(f.r).resumeBaseline,true);
 });
 
 test('legacy capped record whose last Work stop was develop advancement is recoverable',()=>{
@@ -83,10 +94,13 @@ test('PULSE separates AI repairable manual stops from human decisions and policy
   assert.equal(view.status,'ATTENTION');
 });
 
-test('PULSE public UI names AI repair waiting separately from human decisions',()=>{
+test('PULSE uses the pure repair policy and names AI repair waiting separately from human decisions',()=>{
   const source=readFileSync('ops-board/public/rescue-board.js','utf8');
+  const backend=readFileSync('ops-board/rescue.mjs','utf8');
   assert.match(source,/AI修復待ち/);
   assert.match(source,/人の判断が必要/);
   assert.match(source,/baseline churn/);
   assert.doesNotMatch(source,/FAILED_MANUAL: '人の確認が必要'/);
+  assert.match(backend,/integration-rescue-work-repair-policy\.mjs/);
+  assert.doesNotMatch(backend,/integration-rescue-work-repair\.mjs/);
 });
