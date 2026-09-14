@@ -16,7 +16,7 @@ function sourcePresetId(presetId){
 }
 
 function installRuntimeReference(loaded,reference){
-  const actor={root:loaded.root,visual:loaded.root,bones:loaded.bones};
+  const actor={root:loaded.root,visual:loaded.root,bones:loaded.bones,sample(){},destroy(){}};
   const controller=attachReferenceCharacterController(actor);
   controller.setIdentity(reference);
   const dispose=loaded.dispose.bind(loaded);let disposed=false;
