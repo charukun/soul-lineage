@@ -25,16 +25,18 @@
 ## 今回見つけて直した点
 
 - DOM追加順に依存していた主行動を、現在の意図に沿って優先する。生活行動中の中断、受取待ちの閃き、救助、前線進行、帰還/出航を、一般的な周辺行動より上に出す。可否判定そのものは既存controllerを正本とする。
-- 生活行動中や閃き待ちの短期目標を上部の目的表示へ反映し、「次に何が変わるか」を現在状態と一致させる。
+- 生活行動中や閃き待ちの短期目標を上部の目的表示へ反映し、「今の行動」「受け取れる報酬」を見失いにくくする。
 - 同じ焚き火座標へfallbackしている複数の生活施設を地図上で別施設のように重複表示せず、一つの目的地へまとめて可能な行動を列挙する。既存`garden` IDをcanonicalとして保存・導線互換を維持する。
-- カメラと主人公の間に大型施設が近接した場合だけ、その施設の表示materialを局所的にフェードし、主人公と移動方向を見失いにくくする。world geometry、当たり判定、配置、保存は変更しない。
+- 主人公の視認性改善として建物の自動透過も試したが、実画面レビューで景観への副作用が大きいと判断し採用しなかった。world geometry、当たり判定、配置、描画materialは最終製品差分で変更しない。
 
 ## 検証経過
 
-- `storyActionPriority` / 短期目標 / 地図目的地統合をpure functionとして局所テスト化。
+- `storyActionPriority` / 短期目標 / 地図目的地統合をpure functionとして局所テスト化。最新developとの仮merge後も6/6 PASS。
 - 390×844の専用review run `34787080281` は成功し、本編通常画面と地図を実描画で確認。地図は焚き火fallbackを1項目へ集約し、主要4目的地として表示された。
-- review後にdevelopへPR #156 / #158が統合されたため、古いbaseのgreenを最終証拠には流用せず、最新developへ載せ直して通常CI/browser gateを再実行する。
+- review後にdevelopへPR #156 / #158が統合されたため、最新develop `efe39406c7325ed6c6cb4be717b745acdb7b2114` を通常gitでreview workspaceへmergeし、競合なしを確認した。
+- 長寿命の一生回帰を追加診断した際、SwiftShaderの証拠撮影負荷と、既存`story-browser.mjs`がlocal保存キーを固定参照するためDEV環境で保存を見失う診断ハーネス上の問題を確認した。これらをゲーム本体の保存失敗とは扱わない。最終delivery判定は通常のexact-head CI/browser gateと、Integration後の公開DEV focused browser gateを正本とする。
+- 実画面レビュー後に新しいP0/P1の操作停止・導線破綻・状態矛盾は確認されず、残る課題は施設/生活コンテンツ拡張や審美調整として別フェーズへ切り分ける。
 
 ## Delivery
 
-通常gitを第一経路として試行し、DNS失敗のため接続済みGitHub APIへ切替済み。同一branchを継続する。Draft PRで実装し、局所/fast検証、Ready化、既存Integration、develop統合、DEV公開、公開sourceとfocused browser証拠まで確認する。CI条件・browser assertion・承認を期限のために弱めない。
+通常gitを第一経路として試行し、Chat実行環境ではGitHub DNS解決に失敗したため接続済みGitHub APIへ切替済み。GitHub Actionsのreview workspaceでは通常gitによる最新develop取得・mergeに成功した。同一branchを継続する。Draft PRで実装し、局所検証後にReady化し、既存Integrationでdevelop統合・DEV公開・公開sourceとfocused browser証拠まで確認する。CI条件・browser assertion・承認を弱めない。
