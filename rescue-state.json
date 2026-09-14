@@ -3194,6 +3194,14 @@
       "workerId": "34836663499/pr-238/a1",
       "type": "CHECKING",
       "action": "Integrationへ再評価を依頼済み。Rescue返却PRを優先して現在headの通常gateを確認"
+    },
+    {
+      "id": "work-pr238:POST_RETURN_CI_FAILED:a46a28239d78912ed450b4b1421ae8cab5080381",
+      "type": "POST_RETURN_CI_FAILED",
+      "pr": 238,
+      "workerId": "work/866e55ef0f5e/20260914T112041Z",
+      "at": "2026-09-14T11:50:51.488Z",
+      "action": "Exact-head Validate and build failed: CI bootstrap invoked control/scripts/integration-gate-cost.mjs before v4 exists on develop; next Rescue classification must return this head to Work repair."
     }
   ],
   "config": {
@@ -13491,7 +13499,7 @@
       "claimedAt": "2026-09-14T11:11:51.292Z",
       "claimedBy": "34836663499/pr-238/a1",
       "contractFingerprint": "0249b0e7db39f29121a2453dc028e7ae0bca7c54619d9c308151b801ec204822",
-      "currentAction": "Integrationへ再評価を依頼済み。Rescue返却PRを優先して現在headの通常gateを確認",
+      "currentAction": "exact-head CI失敗を確認。Rescue分類後、control checkout bootstrap経路をWork repairへ再引継ぎ",
       "currentStep": "CHECKING",
       "dependencies": [],
       "detail": "#223 Control Plane v2 / #225 Autonomous Delivery v3 を最新develop上で一本化し、配送制御をv4へ更新",
@@ -13589,7 +13597,7 @@
       },
       "state": "CHECKING",
       "title": "feat(integration): autonomous delivery v4",
-      "updatedAt": "2026-09-14T11:48:21.614Z",
+      "updatedAt": "2026-09-14T11:50:51.488Z",
       "waitingReason": null,
       "wave": "wave-34836663499-1",
       "workRepair": {
@@ -13790,9 +13798,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 672,
+  "revision": 673,
   "schema": 1,
-  "updatedAt": "2026-09-14T11:49:19.879Z",
+  "updatedAt": "2026-09-14T11:50:51.488Z",
   "waves": [
     {
       "completedAt": "2026-09-13T04:41:26.595Z",
