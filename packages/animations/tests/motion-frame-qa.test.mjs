@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {compareRgbaFrames,compareLandmarkFrames,createFrameComparisonEvidence,summarizeFrameComparisons} from '../src/motion-frame-qa.js';
+import {compareRgbaFrames,compareLandmarkFrames,createFrameComparisonEvidence,summarizeFrameComparisons,validateFrameComparisonEvidence} from '../src/motion-frame-qa.js';
 
 test('RGBA comparison passes identical frames and catches localized regression',()=>{
  const a=new Uint8ClampedArray(4*100);a.fill(20);const same=compareRgbaFrames(a,new Uint8ClampedArray(a));assert.equal(same.pass,true);assert.equal(same.changedPixels,0);
@@ -14,4 +14,12 @@ test('landmark comparison tracks root joints and weapon independently',()=>{
 
 test('frame evidence stays diagnostic and summary never claims visual approval',()=>{
  const rgba=compareRgbaFrames(new Uint8Array(16),new Uint8Array(16)),landmarks=compareLandmarkFrames({root:[0,0,0],joints:[[0,1,0]],weaponTip:[0,1,0]},{root:[0,0,0],joints:[[0,1,0]],weaponTip:[0,1,0]});const evidence=createFrameComparisonEvidence({camera:'front',frame:120,beforeRevision:'old',afterRevision:'new',rgba,landmarks});assert.equal(evidence.visualApprovalRequired,true);const summary=summarizeFrameComparisons([evidence]);assert.equal(summary.diagnosticPass,true);assert.equal(summary.visualApprovalRequired,true);
+});
+
+test('malformed frame evidence fails closed instead of looking verified',()=>{
+ const rgba=compareRgbaFrames(new Uint8Array(16),new Uint8Array(16)),landmarks=compareLandmarkFrames({root:[0,0,0],joints:[[0,1,0]],weaponTip:[0,1,0]},{root:[0,0,0],joints:[[0,1,0]],weaponTip:[0,1,0]}),evidence=createFrameComparisonEvidence({camera:'front',frame:1,beforeRevision:'a',afterRevision:'b',rgba,landmarks});
+ assert.throws(()=>validateFrameComparisonEvidence({...evidence,visualApprovalRequired:false}));
+ assert.throws(()=>validateFrameComparisonEvidence({...evidence,rgba:{...rgba,changedRatio:NaN}}));
+ assert.throws(()=>validateFrameComparisonEvidence({...evidence,landmarks:{...landmarks,jointDeltas:[Infinity]}}));
+ assert.throws(()=>summarizeFrameComparisons([]));
 });
