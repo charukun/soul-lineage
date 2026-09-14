@@ -3,7 +3,7 @@ import {createPeerMeshCoordinator} from './peer-mesh.js';
 import {createPeerHostedWorldNode} from './peer-hosted-world.js';
 import {createPresenceTransport} from './transport-lod.js';
 
-const CLOSED=new Set(['closed','failed','disconnected','error']);
+const CLOSED=new Set(['closed','failed','error']);
 export async function connectPeerHostedWorld({
   offer,
   selfId,
@@ -25,15 +25,10 @@ export async function connectPeerHostedWorld({
   if(!offer||!selfId||!role||!RTCPeerConnection)throw new Error('Peer world client requires offer, identity and WebRTC');
   let star=null,starHostId=null,node=null,mesh=null,disposed=false;
   const transport=createPresenceTransport({now});
-
   const connectionFor=peerId=>mesh?.connection(peerId)||(starHostId===String(peerId)?star:null)||null;
-  const sendTo=(peerId,message,{presence=false}={})=>{
-    const connection=connectionFor(peerId);if(!connection)return false;
-    try{presence&&connection.sendPresence?connection.sendPresence(message):connection.send(message);return true;}catch{return false;}
-  };
+  const sendTo=(peerId,message,{presence=false}={})=>{const connection=connectionFor(peerId);if(!connection)return false;try{presence&&connection.sendPresence?connection.sendPresence(message):connection.send(message);return true;}catch{return false;}};
   const broadcast=message=>{let sent=0,seen=new Set();if(star&&starHostId){try{star.send(message);sent++;seen.add(starHostId);}catch{}}for(const id of mesh?.snapshot().connected||[])if(!seen.has(id)&&mesh.send(id,message))sent++;return sent;};
   const emit=({to,message})=>to?sendTo(to,message):broadcast(message);
-
   function syncMesh(){const authority=node?.authority;if(!authority||!mesh)return;const starOwnsCurrentHost=Boolean(star&&starHostId===authority.hostId);mesh.syncMembers(Object.keys(authority.members||{}),{hostId:starOwnsCurrentHost?authority.hostId:null});}
   function phase(info){onPhase(info);syncMesh();}
   function createNode(message){
@@ -55,15 +50,10 @@ export async function connectPeerHostedWorld({
     if(message.type==='rejected'){onState('rejected',{reason:message.reason});return true;}
     return false;
   }
-
   let connection;
   connection=await acceptHostOffer(offer,{RTCPeerConnection,dualChannel:true,onState:state=>{onState(state);if(state==='open'&&connection)connection.send({type:'join',role,playerId:selfId,name:name||role,app:app||role,hostEligible,transport:'dual-v1'});if(CLOSED.has(state)&&node){star=null;node.tick();syncMesh();}},onMessage:(message,kind)=>handle(starHostId||'initial-host',message,kind)});
   star=connection;
-
-  const timer=setInterval(()=>{
-    if(disposed)return;node?.tick();const hostId=node?.snapshot().hostId,state=getLocalState?.();if(hostId&&hostId!==selfId&&state){const connection=connectionFor(hostId);if(connection)transport.sendLocalState(selfId,connection,state,{hz:sendHz,time:now()});}
-  },25);
-
+  const timer=setInterval(()=>{if(disposed)return;node?.tick();const hostId=node?.snapshot().hostId,state=getLocalState?.();if(hostId&&hostId!==selfId&&state){const connection=connectionFor(hostId);if(connection)transport.sendLocalState(selfId,connection,state,{hz:sendHz,time:now()});}},25);
   function dispose(){if(disposed)return;disposed=true;clearInterval(timer);mesh?.close();star?.close?.();node?.close();}
   return{answerCode:connection.code,dispose,sendTo,snapshot:()=>Object.freeze({selfId,starHostId,node:node?.snapshot()||null,mesh:mesh?.snapshot()||null,transport:transport.snapshot()}),get node(){return node;}};
 }
