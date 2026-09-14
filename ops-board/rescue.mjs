@@ -1,5 +1,5 @@
 import { REPOSITORY, ACTIVE, RETURNED, rescueConfig } from '../scripts/integration-rescue-policy.mjs';
-import { workRepairEligibility } from '../scripts/integration-rescue-work-repair.mjs';
+import { workRepairEligibility } from '../scripts/integration-rescue-work-repair-policy.mjs';
 
 const safeString = (value, max = 240) => typeof value === 'string' ? value.slice(0, max) : null;
 function repairEvidence(r) {
