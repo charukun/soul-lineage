@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {localPersonality,localLocomotion,localInteraction,localCondition,localMicro,localPairedImpact,localAdaptation,localSyncFrame,localReconcile} from '../public/simulator/src/motion-interaction-math.js';
-import {resolveMotionPersonality,locomotionTransition,solveTwoBodyInteraction,conditionMotionProfile,microMotionSample,pairedImpactResponse,bodyMotionAdaptation,createMotionSyncFrame,reconcileMotionSync} from '../../../packages/animations/src/motion-runtime.js';
+import {resolveMotionPersonality,locomotionTransition,solveTwoBodyInteraction,conditionMotionProfile,microMotionSample,pairedImpactResponse,bodyMotionAdaptation,createMotionSyncFrame,reconcileMotionSync} from '@soul/animations';
 
 const close=(a,b,eps=1e-10)=>assert.ok(Math.abs(a-b)<=eps,`${a} != ${b}`);
 function sameNumeric(a,b){for(const key of Object.keys(a))if(typeof a[key]==='number')close(a[key],b[key]);}
@@ -29,9 +29,10 @@ test('Rinne motion sync and reconciliation match shared contract',()=>{
  const remote=createMotionSyncFrame({...spec,sequence:10,clock:5.6,impactSerial:4,position:{x:1.4,z:-2},yaw:.6}),ra=localReconcile(a,remote),rb=reconcileMotionSync(b,remote);sameNumeric(ra,rb);for(const key of ['remoteNewer','targetChanged','impactChanged','reseedPresentation'])assert.equal(ra[key],rb[key]);
 });
 
-test('final humanoid entry routes through interaction layer',async()=>{
+test('humanoid entry keeps interaction layer below final operational runtime',async()=>{
  const entry=await readFile(new URL('../public/simulator/src/humanoid.js',import.meta.url),'utf8'),source=await readFile(new URL('../public/simulator/src/humanoid-interaction.js',import.meta.url),'utf8');
- assert.match(entry,/HumanoidRuntime,HUMANOID_INTERACTION_REVISION.*humanoid-interaction/);
+ assert.match(entry,/HUMANOID_INTERACTION_REVISION.*humanoid-interaction/);
+ assert.match(entry,/HumanoidRuntime,HUMANOID_OPERATIONAL_REVISION.*humanoid-operational/);
  assert.match(source,/extends BaseHumanoidRuntime/);assert.match(source,/prepareInteractionState/);assert.match(source,/applyInteractionPlan/);assert.match(source,/applyPairedResponse/);assert.match(source,/motionSyncFrame/);assert.match(source,/reconcileMotion/);
 });
 
