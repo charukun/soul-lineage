@@ -95,7 +95,7 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
     return !!point;
   },{timeout:5000}).toBe(true);
   await page.mouse.click(point.x,point.y);
-  await expect.poll(id=>page.evaluate(expected=>window.village.ui.selected===expected, id),facility.id).toBe(true);
+  await expect.poll(()=>page.evaluate(expected=>window.village.ui.selected===expected,facility.id)).toBe(true);
   await nativeTap(page,expect,page.locator('#enter'));
   await expect.poll(()=>page.evaluate(()=>window.village.view.roomId)).toBe(facility.id);
   await nativeTap(page,expect,page.locator('#build'));
