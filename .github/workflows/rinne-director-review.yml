@@ -35,11 +35,13 @@ jobs:
       - name: Exercise complete life loop with native browser input
         env:
           RINNE_STORY_ARTIFACTS: test-results/rinne-story-full
+          APP_ENV: local
+          CI: ''
         run: |
-          # This step validates behavior only. The source test's screenshots are
-          # evidence, not assertions, and SwiftShader can stall them. Keep every
-          # authored locator/state timeout unchanged and take visual evidence in
-          # the dedicated CDP step below.
+          # The authored smoke uses the local save-envelope key. We run that exact
+          # behavior contract here while the dedicated CDP step below captures
+          # the DEV-metadata visual evidence. Screenshots are evidence only and
+          # are skipped in this behavior pass so SwiftShader cannot mask actions.
           python3 - <<'PY'
           from pathlib import Path
           p=Path('apps/rinne/tests/story-browser.mjs')
