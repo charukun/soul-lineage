@@ -6,15 +6,13 @@ async function text(path) {
   return readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 }
 
-test('Code Health uses the develop reusable control plane rather than a develop-only schedule', async () => {
-  const [health, rescue] = await Promise.all([
-    text('.github/workflows/code-health.yml'),
-    text('.github/workflows/integration-rescue.yml'),
-  ]);
-  assert.match(health, /workflow_call:/);
-  assert.doesNotMatch(health, /\bschedule:/);
-  assert.match(health, /72\*60\*60\*1000/);
-  assert.match(rescue, /uses: \.\/\.github\/workflows\/code-health\.yml/);
+test('Code Health is embedded in the trusted develop control plane rather than a develop-only schedule', async () => {
+  const rescue = await text('.github/workflows/integration-rescue.yml');
+  await assert.rejects(text('.github/workflows/code-health.yml'), /ENOENT/);
+  assert.match(rescue, /name: Code Health maintenance/);
+  assert.doesNotMatch(rescue, /\bschedule:/);
+  assert.match(rescue, /72\*60\*60\*1000/);
+  assert.doesNotMatch(rescue, /uses: \.\/\.github\/workflows\/code-health\.yml/);
   assert.match(rescue, /MAX_RESCUE_CONCURRENCY: \$\{\{ vars\.MAX_RESCUE_CONCURRENCY \|\| '4' \}\}/);
   assert.doesNotMatch(rescue, /MAX_RESCUE_CONCURRENCY_V2/);
 });
