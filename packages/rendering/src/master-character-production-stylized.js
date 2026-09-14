@@ -14,7 +14,9 @@ export function productionArtProfileForActorId(id) {
 
 function applyProfile(root, profileId) {
   if (!root?.traverse || root.userData?.stylizedArt?.profileId === profileId) return;
-  applyStylizedArtProfile(root, profileId, { cloneMaterials: false });
+  // Hero/reference instances isolate their materials so later population
+  // styling cannot overwrite the hero target through a shared pool material.
+  applyStylizedArtProfile(root, profileId, { cloneMaterials: profileId === 'hero' });
 }
 
 /**
