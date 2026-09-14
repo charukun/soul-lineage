@@ -1,10 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {localDirectionalReaction,localWeaponInertiaStep,localTerrainAdjustments,HUMANOID_DYNAMICS_REVISION} from '../public/simulator/src/humanoid-dynamics.js';
-import {directionalHitReaction,weaponInertiaStep,terrainFootAdjustments} from '../../../packages/animations/src/gameplay-motion-quality.js';
+import {localImpactBeat,localDirectionalReaction,localWeaponInertiaStep,localTerrainAdjustments,HUMANOID_DYNAMICS_REVISION} from '../public/simulator/src/humanoid-dynamics.js';
+import {createImpactBeat,directionalHitReaction,weaponInertiaStep,terrainFootAdjustments} from '../../../packages/animations/src/gameplay-motion-quality.js';
 
 const close=(a,b,eps=1e-12)=>assert.ok(Math.abs(a-b)<=eps,`${a} != ${b}`);
+
+test('Rinne impact beat adapter matches shared v2 contract',()=>{
+ const input={actorId:'attacker',targetId:'hero',kind:'slash',clock:2.4,serial:9,direction:{x:.4,z:-.8},strength:1.2,region:'torso'};
+ assert.deepEqual(localImpactBeat(input),createImpactBeat(input));
+});
 
 test('Rinne directional reaction adapter matches shared contract',()=>{
  const input={incomingX:.8,incomingZ:-.2,targetYaw:.6,strength:1.3,region:'leg'};
@@ -32,11 +37,12 @@ test('Rinne terrain adapter matches shared pelvis/foot split',()=>{
 test('final humanoid entry routes through dynamics and preserves gameplay sampler boundary',async()=>{
  const entry=await readFile(new URL('../public/simulator/src/humanoid.js',import.meta.url),'utf8');
  const source=await readFile(new URL('../public/simulator/src/humanoid-dynamics.js',import.meta.url),'utf8');
- assert.equal(HUMANOID_DYNAMICS_REVISION,'mass-response-1');
+ assert.equal(HUMANOID_DYNAMICS_REVISION,'mass-response-2');
  assert.match(entry,/HumanoidRuntime,HUMANOID_DYNAMICS_REVISION.*humanoid-dynamics/);
  assert.doesNotMatch(entry,/HumanoidRuntime,naturalArmPole/);
  assert.match(source,/if\(!commit\|\|!result\?\.a\|\|!result\?\.b\|\|!result\?\.sm/);
  assert.match(source,/if\(!commit\|\|a\?\.air\|\|a\?\.dead\|\|a\?\.attack\|\|a\?\.recovery\)return/);
+ assert.match(source,/__RINNE_IMPACT_BEAT__/);
+ assert.match(source,/__RINNE_IMPACT_CHANNELS__/);
  assert.match(source,/dynamicsBalance/);
- assert.match(source,/a\?\._impactBeat/);
 });
