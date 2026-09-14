@@ -3,10 +3,10 @@
     "id": "2026-09-14-full-body-authoring-100",
     "status": "incomplete",
     "target": 100,
-    "completed": 12,
-    "remaining": 88,
+    "completed": 18,
+    "remaining": 82,
     "baseline_commit": "f2da2524a627e5e4057be1cd9a18e03a22b32282",
-    "latest_commit": "00c30c95ff96c88512e521e1b829f37b58fb698f",
+    "latest_commit": "43dbff35dc29e97e1888ce503a25ae1e4affdcc4",
     "reference": {
       "asset": "apps/rinne/public/simulator/assets/review/reference-sword-4s.mp4",
       "range": [0, 4],
@@ -25,11 +25,11 @@
       "views": ["three-quarter follow", "side follow"],
       "per_pass_fps": 30,
       "final_fps": 30,
-      "transient_root": "/tmp/rinne-pass7-* through /tmp/rinne-pass12-*",
-      "final_comparison": "/tmp/rinne-batch-final-1413/combination-{three,side}-1x.mp4",
-      "performance_sample": "/tmp/rinne-performance-final-1413 (30 seconds sampled at 6 fps)",
-      "normal_speed_review": "1x encodes generated, but not played in a media player; primary stage remains revise",
-      "webgl": "not verified",
+      "transient_root": "/tmp/rinne-pass13-* through /tmp/rinne-pass18-*",
+      "final_comparison": "/tmp/rinne-batch-final-1515/combination-three-30fps.mp4",
+      "performance_sample": "/tmp/rinne-performance-final-1515 (30 seconds sampled at 6 fps)",
+      "normal_speed_review": "30 fps encode generated, but local playback was blocked by cloud-browser URL policy; primary remains revise",
+      "webgl": "public Lab attempted; THREE.WebGLRenderer failed to create a WebGL context",
       "physical_device_fps": "not verified"
     },
     "stages": {
@@ -41,7 +41,7 @@
       "primary": {
         "status": "revise",
         "outcome": "unverified",
-        "observation": "Pelvis-led rotation, delayed chest release, lateral composition travel and lower thrust/heavy centers were improved in sequential captures. Final 30 fps MP4s were generated, but normal-speed media-player review was not completed; speed contrast and momentum transfer still trail the reference."
+        "observation": "Deeper slash load, wider follow-through, uppercut pelvis/chest sequencing, heavy chest lag and reverse-step counterbalance were improved in sequential captures. Browser WebGL failed and the local 30 fps encode could not be opened by the cloud-browser URL policy, so normal-speed actual-model review remains incomplete."
       },
       "polish": {
         "status": "pending",
@@ -181,6 +181,72 @@
         "evidence": "/tmp/rinne-pass12-{before,after}/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
         "result": "Sampled preload lowered by 80 mm and minimum pelvis height by 25 mm.",
         "remaining": "Normal-speed impact weight and recovery into guard remain unconfirmed."
+      },
+      {
+        "iteration": 13,
+        "reference_interval": "original 2.5–3.5 s",
+        "finding": "The slash blade began leaving the loaded shoulder too early.",
+        "correction": "Retain the deep rearward blade pose through phase .44.",
+        "before": "5754b5955fb62b928d63f9643611c3f1ff821e2d",
+        "after": "dc89ec0b7f21b63a469a3ad184eb74abef3c706a",
+        "evidence": "/tmp/rinne-pass13-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}; before=/tmp/rinne-pass8-after",
+        "result": "The blade stays near the shoulder longer before contact while the support silhouette remains planted.",
+        "remaining": "Normal-speed acceleration and shoulder clearance remain unconfirmed."
+      },
+      {
+        "iteration": 14,
+        "reference_interval": "original 2.5–3.5 s",
+        "finding": "The slash follow-through arc stopped too soon after contact.",
+        "correction": "Extend blade yaw and roll through phases .59 and .72.",
+        "before": "dc89ec0b7f21b63a469a3ad184eb74abef3c706a",
+        "after": "7c776710a07a75331a64af638c06bd804283753d",
+        "evidence": "/tmp/rinne-pass14-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}; before=/tmp/rinne-pass13-after",
+        "result": "Three-quarter frames show a wider cross-body overshoot without changing the recovery endpoint.",
+        "remaining": "Normal-speed impact and cloth clearance remain unconfirmed."
+      },
+      {
+        "iteration": 15,
+        "reference_interval": "original 3.16–4.0 s",
+        "finding": "The uppercut rose through a narrow, almost square pelvis.",
+        "correction": "Widen opposing pelvis yaw in load, release and overhead recovery.",
+        "before": "7c776710a07a75331a64af638c06bd804283753d",
+        "after": "85ec4a353b6b916321fb48769412751bc292becd",
+        "evidence": "/tmp/rinne-pass15-{before,after}/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
+        "result": "The support leg and pelvis turn more visibly beneath the rising blade.",
+        "remaining": "Rotation remains subtler than the reference and needs 1x confirmation."
+      },
+      {
+        "iteration": 16,
+        "reference_interval": "original 3.16–4.0 s",
+        "finding": "Uppercut hips and chest unwound at nearly the same time.",
+        "correction": "Retain chest coil after pelvis release, then overtake into the finish.",
+        "before": "85ec4a353b6b916321fb48769412751bc292becd",
+        "after": "45abfc206ab2b6d7de83f93c701aa8d2833ec983",
+        "evidence": "/tmp/rinne-pass16-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}; before=/tmp/rinne-pass15-after",
+        "result": "Sequential views show pelvis-first release with stable sword attachment and support.",
+        "remaining": "The difference is modest and requires normal-speed confirmation."
+      },
+      {
+        "iteration": 17,
+        "reference_interval": "original 4.0–6.5 s",
+        "finding": "The heavy-cut chest dropped with the hips and lost stored weight.",
+        "correction": "Hold the chest through phase .48 and drop after pelvis release.",
+        "before": "45abfc206ab2b6d7de83f93c701aa8d2833ec983",
+        "after": "7dac4f46fa992091775ad52991d15f3b1c5067b2",
+        "evidence": "/tmp/rinne-pass17-after/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}; before=/tmp/rinne-pass12-after",
+        "result": "The side sequence retains the chest behind the pelvis before the downward drive.",
+        "remaining": "Impact weight and recovery need normal-speed and cloth review."
+      },
+      {
+        "iteration": 18,
+        "reference_interval": "original 2.5–6.5 s",
+        "finding": "The reverse step did not counterbalance the preceding lateral slash.",
+        "correction": "Widen review-composition back travel from [-.12,.40] to [-.18,.44].",
+        "before": "7dac4f46fa992091775ad52991d15f3b1c5067b2",
+        "after": "5711c7b6b0ef8c74a475b59460e97d2eb4abd4ea",
+        "evidence": "/tmp/rinne-pass18-{before,after}/{capture.json,front-strip.jpg,three-strip.jpg}",
+        "result": "Front frames show a clearer left-right phrase without changing gameplay movement.",
+        "remaining": "The reference still traverses a larger distance and transfers more speed into the next cut."
       }
     ]
   },
