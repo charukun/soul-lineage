@@ -19,6 +19,7 @@
     "performance:browser": "node scripts/browser/performance-smoke.mjs",
     "performance:compare": "node scripts/performance-regression.mjs",
     "world-scale:replay": "node scripts/world-scale-replay.mjs",
+    "world:host-chaos": "node scripts/peer-host-chaos.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:app": "node scripts/test-app.mjs",
     "build": "npm run build --workspaces --if-present",
