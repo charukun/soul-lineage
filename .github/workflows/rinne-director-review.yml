@@ -34,7 +34,18 @@ jobs:
       - name: Exercise complete life loop with native browser input
         env:
           RINNE_STORY_ARTIFACTS: test-results/rinne-story-full
-        run: node apps/rinne/tests/story-browser.mjs
+        run: |
+          # SwiftShader evidence capture can be slower than gameplay. Extend only
+          # screenshot calls in this disposable review workspace; locator/action
+          # timeouts in the actual scenario remain the authored 15 seconds.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('apps/rinne/tests/story-browser.mjs')
+          s=p.read_text()
+          s=s.replace('page.screenshot({', 'page.screenshot({timeout:45000,')
+          p.write_text(s)
+          PY
+          node apps/rinne/tests/story-browser.mjs
       - name: Capture focused 390x844 play and map evidence
         run: |
           mkdir -p test-results/rinne-director
