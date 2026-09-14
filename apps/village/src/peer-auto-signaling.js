@@ -3,7 +3,7 @@ import {normalizeHostCapability} from '@soul/network';
 
 const wait=async(test,{timeoutMs=20_000,intervalMs=80}={})=>{const until=performance.now()+timeoutMs;while(performance.now()<until){const value=await test();if(value)return value;await new Promise(r=>setTimeout(r,intervalMs));}throw new Error('接続処理が時間切れになりました。');};
 const short=value=>String(value||'').slice(0,8);
-const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 
 export function installPeerAutoSignaling({root,client=createPeerSignalingClient()}={}){
   if(!root||root.querySelector('.peer-auto-signaling'))return null;
@@ -55,16 +55,16 @@ export function installPeerAutoSignaling({root,client=createPeerSignalingClient(
     const offer=root.querySelector('#peer-world-offer'),join=root.querySelector('#peer-world-join'),answer=root.querySelector('#peer-world-answer');offer.value=offerEvent.offer;join.click();const answerCode=await wait(()=>answer.value.length>20&&answer.value,{timeoutMs:20_000});const answered=await client.postAnswer(roomId,joined.joinId,joined.guestToken,answerCode);await wait(()=>snapshot()?.node?.phase==='open',{timeoutMs:25_000});
     room={...joined.room,hostToken:joined.guestToken,originalHost:false};hostCursor=answered.hostCursor??hostCursor;state('共通村へ接続しました。Host交代も自動で追従します。');startHostLoop();startTelemetry();
   }
-  function startTelemetry(){if(telemetryLoop)return;telemetryLoop=setInterval(()=>sendTelemetry().catch(()=>{}),2000);sendTelemetry().catch(()=>{});}
+  function startTelemetry(){if(telemetryLoop)return;telemetryLoop=setInterval(()=>sendTelemetry().catch(()=>{}),1000);sendTelemetry().catch(()=>{});}
   async function sendTelemetry(){
-    if(!room)return;const snap=snapshot(),node=snap?.node;if(!node||node.hostId!==snap.selfId)return;const now=performance.now();
+    if(!room)return;const snap=snapshot(),node=snap?.node;if(!node)return;const now=performance.now();
     if(node.phase!==lastPhase){if(node.phase==='migrating')migrationStart=now;if(lastPhase==='migrating'&&node.phase==='open'&&migrationStart!==null){lastMigrationMs=now-migrationStart;migrationStart=null;}if(node.phase==='closed'&&lastPhase==='migrating')splitBrainPrevented++;lastPhase=node.phase;}
-    const members=Object.values(node.authority?.members||{}).filter(m=>m.connected),total=members.length,required=Math.floor(total/2)+1,hostMember=node.authority?.members?.[node.hostId],score=hostMember?.meta?.hostCapability?.score??(await capability()).score;
-    await client.telemetry(room.roomId,room.hostToken,{phase:node.phase,hostId:node.hostId,hostRef:short(node.hostId),hostScore:score,peers:Math.max(1,total),checkpointRevision:node.checkpointRevision,epoch:node.epoch,quorum:{acked:node.phase==='open'?required:0,total},migrationMs:lastMigrationMs,sloPass:lastMigrationMs===null||lastMigrationMs<=6000,splitBrainPrevented});
+    const isHost=node.hostId===snap.selfId;if(node.phase==='open'&&!isHost)return;if(!room.originalHost&&!['migrating','closed'].includes(node.phase)&&!isHost)return;
+    const members=Object.values(node.authority?.members||{}).filter(m=>m.connected),total=members.length,required=Math.floor(total/2)+1,hostMember=node.hostId?node.authority?.members?.[node.hostId]:null,score=hostMember?.meta?.hostCapability?.score??(isHost?(await capability()).score:null);
+    await client.telemetry(room.roomId,room.hostToken,{phase:node.phase,hostId:node.hostId||'',hostRef:node.hostId?short(node.hostId):'',hostScore:score,peers:Math.max(1,total),checkpointRevision:node.checkpointRevision,epoch:node.epoch,quorum:{acked:node.phase==='open'?required:0,total},migrationMs:lastMigrationMs,sloPass:lastMigrationMs===null||lastMigrationMs<=6000,splitBrainPrevented});
   }
-  async function deleteRoomIfOriginalHost(){if(!room?.originalHost)return;const snap=snapshot();if(!snap?.node||snap.node.hostId!==snap.selfId)return;try{await client.closeRoom(room.roomId,room.hostToken);}catch{}}
   box.querySelector('[data-auto-host]').onclick=()=>startHosting().catch(error=>state(`自動公開できません。手動接続は利用できます: ${error.message}`));
   box.querySelector('[data-auto-refresh]').onclick=()=>renderRooms();
-  const onHide=()=>{deleteRoomIfOriginalHost();};window.addEventListener('pagehide',onHide,{once:true});renderRooms();
-  const api={refresh:renderRooms,host:startHosting,close:async()=>{stopped=true;clearInterval(hostLoop);clearInterval(telemetryLoop);await deleteRoomIfOriginalHost();window.removeEventListener('pagehide',onHide);box.remove();},snapshot:()=>({room:room?.roomId||null,lastMigrationMs,splitBrainPrevented,controller:room?true:false,activeJoin:activeJoin?.joinId||null,queued:joinQueue.length})};window.__VILLAGE_AUTO_SIGNALING__=api;return api;
+  const onHide=()=>{};window.addEventListener('pagehide',onHide,{once:true});renderRooms();
+  const api={refresh:renderRooms,host:startHosting,close:async()=>{stopped=true;clearInterval(hostLoop);clearInterval(telemetryLoop);window.removeEventListener('pagehide',onHide);box.remove();},snapshot:()=>({room:room?.roomId||null,lastMigrationMs,splitBrainPrevented,controller:!!room,activeJoin:activeJoin?.joinId||null,queued:joinQueue.length})};window.__VILLAGE_AUTO_SIGNALING__=api;return api;
 }
