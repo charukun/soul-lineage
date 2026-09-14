@@ -19,6 +19,7 @@ async function api(method, path, body) {
     method,
     headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
     ...(body ? { body: JSON.stringify(body) } : {}),
+    signal: AbortSignal.timeout(15000),
   });
   if (!response.ok) throw new Error(`${method} ${path}: HTTP ${response.status} ${await response.text()}`);
   return response.status === 204 ? null : response.json();
@@ -43,6 +44,33 @@ async function findIssue(sourceKey) {
   return issues.find(issue => !issue.pull_request && parseRepairState(issue.body || '')?.sourceKey === sourceKey) || null;
 }
 
+async function ancestorOfCurrent(sha) {
+  if (!/^[0-9a-f]{40}$/.test(sha || '') || sha === headSha) return false;
+  const comparison = await api('GET', `/compare/${sha}...${headSha}`);
+  return comparison?.base_commit?.sha === sha && comparison?.merge_base_commit?.sha === sha &&
+    comparison?.head_commit?.sha === headSha && ['ahead', 'identical'].includes(comparison?.status);
+}
+
+async function retireOlderDevelopTickets() {
+  if (scope !== 'develop') return [];
+  const issues = await api('GET', '/issues?state=open&per_page=100&sort=updated&direction=desc');
+  const retired = [];
+  for (const candidate of issues) {
+    if (candidate.pull_request) continue;
+    const state = parseRepairState(candidate.body || '');
+    if (!state || state.scope !== 'develop' || state.state === 'working' || state.createdFromSha === headSha) continue;
+    if (!await ancestorOfCurrent(state.createdFromSha)) continue;
+    const now = new Date().toISOString();
+    const next = conclusion === 'success'
+      ? { ...state, state: 'verified', verifiedAt: now, verifiedBySha: headSha }
+      : { ...state, state: 'superseded', supersededAt: now, supersededBySha: headSha };
+    await api('PATCH', `/issues/${candidate.number}`, { body: replaceRepairState(candidate.body || '', next), state: 'closed' });
+    await api('POST', `/issues/${candidate.number}/comments`, { body: `<!-- browser-repair-generation:${headSha} -->\nA newer develop verification at \`${headSha}\` ${conclusion === 'success' ? 'verified the descendant baseline' : 'superseded this older failure generation'}.` });
+    retired.push(candidate.number);
+  }
+  return retired;
+}
+
 async function commentOnce(number, body, marker) {
   if (!number) return;
   const comments = await api('GET', `/issues/${number}/comments?per_page=100`);
@@ -55,6 +83,7 @@ if (scope === 'pr' && !currentPrRepair(sourcePr, headSha)) {
   console.log(JSON.stringify({ action: 'noop-stale-pr-result', pr: prNumber, headSha }));
   process.exit(0);
 }
+const retired = await retireOlderDevelopTickets();
 const sourcePrBody = sourcePr?.body || '';
 let issue = await getIssue(linkedIssueNumber(sourcePrBody));
 let existingState = issue ? parseRepairState(issue.body || '') : null;
@@ -79,7 +108,7 @@ else if (scope === 'develop') nextState = onDevelopBrowserSuccess(baseState, det
 else nextState = onPrBrowserSuccess(baseState, details);
 
 if (!issue && conclusion === 'success') {
-  console.log(JSON.stringify({ action: 'noop-success', sourceKey, state: nextState }, null, 2));
+  console.log(JSON.stringify({ action: 'noop-success', sourceKey, retired, state: nextState }, null, 2));
   process.exit(0);
 }
 
@@ -115,4 +144,4 @@ await commentOnce(issue.number,
   `Browser verification **${conclusion}** for \`${headSha}\`. State: **${nextState.state}**.\n\n${runUrl}`,
   runMarker);
 
-console.log(JSON.stringify({ issue: issue.number, sourceKey, state: nextState }, null, 2));
+console.log(JSON.stringify({ issue: issue.number, sourceKey, retired, state: nextState }, null, 2));
