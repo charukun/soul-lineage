@@ -75,9 +75,9 @@ export function createPeerMeshCoordinator({
   }
 
   function syncMembers(memberIds,{hostId=null}={}){
-    const wanted=new Set((memberIds||[]).map(String).filter(id=>id!==selfId&&id!==hostId));
-    for(const id of [...connections.keys()])if(!wanted.has(id)){connections.get(id)?.close?.();connections.delete(id);}
-    for(const id of wanted)if(selfId.localeCompare(id)<0)initiate(id);
+    const members=new Set((memberIds||[]).map(String).filter(id=>id!==selfId));
+    for(const id of [...connections.keys()])if(!members.has(id)){connections.get(id)?.close?.();connections.delete(id);}
+    for(const id of members){if(id===hostId)continue;if(selfId.localeCompare(id)<0)initiate(id);}
     return snapshot();
   }
 
