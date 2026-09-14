@@ -33,10 +33,13 @@ try {
   await page.waitForSelector('.app-summary-card');
   await page.waitForSelector('.pull-filter');
   if (!fixtureMode) {
-    const versionResponse = await context.request.get(new URL('version.json', base).href);
+    const expectedSource = process.env.OPS_SOURCE_SHA || process.env.GITHUB_SHA;
+    const versionUrl = new URL('version.json', base);
+    if (expectedSource) versionUrl.searchParams.set('verify', expectedSource);
+    const versionResponse = await context.request.get(versionUrl.href, { headers: { 'cache-control':'no-cache' } });
     assert.equal(versionResponse.status(), 200);
     const version = await versionResponse.json();
-    if ((process.env.OPS_SOURCE_SHA || process.env.GITHUB_SHA)) assert.equal(version.commit, (process.env.OPS_SOURCE_SHA || process.env.GITHUB_SHA));
+    if (expectedSource) assert.equal(version.commit, expectedSource);
     report.version = version;
     assert.equal(latestState?.schemaVersion, 2);
     assert.equal(latestState?.syncStatus, 'ok');
