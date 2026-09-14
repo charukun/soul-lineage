@@ -29,7 +29,8 @@ function render(view){
   const readyMerge=records.map(r=>duration(r.detectedAt,r.mergedAt)).filter(Number.isFinite);
   const mergeDev=records.map(r=>duration(r.mergedAt,r.devAt)).filter(Number.isFinite);
   const readyDev=records.map(r=>duration(r.detectedAt,r.devAt)).filter(Number.isFinite);
-  const demand=(view.counts?.waiting||0)+(view.counts?.recoverableManual||0);
+  // #217 folds recoverable manual items into counts.waiting already.
+  const demand=view.counts?.waiting||0;
   const mode=demand>=10?'BURN_DOWN':demand>=5?'BUSY':'NORMAL';
   const candidates=[['Ready→Merge',percentile(readyMerge,.95)],['Merge→DEV',percentile(mergeDev,.95)]].filter(([,v])=>Number.isFinite(v));
   const bottleneck=candidates.sort((a,b)=>b[1]-a[1])[0]?.[0]||'未計測';
