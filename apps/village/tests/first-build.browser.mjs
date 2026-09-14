@@ -134,5 +134,5 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   // Public Playwright cases already capture the final page automatically.
   // Do not spend the interaction deadline taking the same final picture twice.
   if (captureMilestones) await page.screenshot({path:testInfo.outputPath('first-build-reloaded.png')});
-  if (verifyDirector) await verifyVillageDirectorPolish(page, expect, testInfo);
+  if (verifyDirector) await verifyVillageDirectorPolish(page, expect, testInfo, {captureEvidence:captureMilestones});
 }
