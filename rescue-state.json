@@ -3164,36 +3164,36 @@
       "workerId": null
     },
     {
+      "action": "failed: WORK_EXECUTION_ENVIRONMENT_UNAVAILABLE: exec-server is unavailable, so npm ci and trusted fast cannot be executed. No repair commit or push was created; retry remains finite and humanRequired=false.",
+      "at": "2026-09-14T13:32:07.936Z",
       "id": "wave-34817518770-1-pr-200-a1:WORK_REPAIR_STOPPED:1789392727936:718",
-      "at": "2026-09-14T13:32:07.936Z",
       "pr": 200,
-      "workerId": "work/866e55ef0f5e/20260914T133123284Z",
       "type": "WORK_REPAIR_STOPPED",
-      "action": "failed: WORK_EXECUTION_ENVIRONMENT_UNAVAILABLE: exec-server is unavailable, so npm ci and trusted fast cannot be executed. No repair commit or push was created; retry remains finite and humanRequired=false."
+      "workerId": "work/866e55ef0f5e/20260914T133123284Z"
     },
     {
+      "action": "claim not added: selected PR #200 owns a RED shared-package/transitive scope (docs + shared packages). Next: #200 reservation released; retry when execution runner is available.",
+      "at": "2026-09-14T13:32:07.936Z",
       "id": "wave-34737932982-1-pr-93-a1:WORK_REPAIR_BLOCKED:1789392727936:718",
-      "at": "2026-09-14T13:32:07.936Z",
       "pr": 93,
-      "workerId": null,
       "type": "WORK_REPAIR_BLOCKED",
-      "action": "claim not added: selected PR #200 owns a RED shared-package/transitive scope (docs + shared packages). Next: #200 reservation released; retry when execution runner is available."
+      "workerId": null
     },
     {
+      "action": "claim not added: selected PR #200 makes control-plane candidate #107 RED. Next: retry after #200 reservation release with an available execution runner.",
+      "at": "2026-09-14T13:32:07.936Z",
       "id": "wave-34738107940-1-pr-107-a1:WORK_REPAIR_BLOCKED:1789392727936:718",
-      "at": "2026-09-14T13:32:07.936Z",
       "pr": 107,
-      "workerId": null,
       "type": "WORK_REPAIR_BLOCKED",
-      "action": "claim not added: selected PR #200 makes control-plane candidate #107 RED. Next: retry after #200 reservation release with an available execution runner."
+      "workerId": null
     },
     {
-      "id": "coordinator:WORK_REPAIR_SCAN_FAILED:1789392727936:718",
+      "action": "eligible_before 14; claimable_before 3; claimed 1; returned 0; human_required 0; eligible_after 14. PR #200 stopped transiently: execution runner unavailable.",
       "at": "2026-09-14T13:32:07.936Z",
+      "id": "coordinator:WORK_REPAIR_SCAN_FAILED:1789392727936:718",
       "pr": null,
-      "workerId": null,
       "type": "WORK_REPAIR_SCAN_FAILED",
-      "action": "eligible_before 14; claimable_before 3; claimed 1; returned 0; human_required 0; eligible_after 14. PR #200 stopped transiently: execution runner unavailable."
+      "workerId": null
     }
   ],
   "config": {
@@ -3997,6 +3997,21 @@
       "reason": "FAILED_MANUAL:OVERLAPPING_CHANGES:scripts/integration-gate-cost.mjs",
       "sentAt": "2026-09-14T12:41:19.941Z",
       "type": "manual"
+    },
+    {
+      "id": "gmail:1a0a01e8ca2cd475",
+      "type": "work-notice",
+      "sentAt": "2026-09-14T13:32:45.030Z",
+      "channel": "gmail-self",
+      "messageId": "1a0a01e8ca2cd475",
+      "pr": 200,
+      "branch": "feat/motion-reference-benchmark",
+      "commit": "4a856ca71faf2c5d8db415795cea7c47a33d8250",
+      "status": "FAILED",
+      "workerId": "work/866e55ef0f5e/20260914T133123284Z",
+      "attempt": 1,
+      "stage": "Work repair claimed; execution runner unavailable before npm ci/trusted fast",
+      "next": "Retry semantic repair after runner recovery; finite attempt 2/2"
     }
   ],
   "records": {
@@ -10696,9 +10711,11 @@
         "develop": "54589d38bd300e642daf2f5c5472f4f9b86b8dc7",
         "evidenceKey": "80d99e8409d62652d116453805eea9750f674762fe84cb75c369fa0587c07daa",
         "expiresAt": "2026-09-14T14:16:23.284Z",
+        "finishedAt": "2026-09-14T13:32:07.936Z",
         "heartbeatAt": "2026-09-14T13:31:23.284Z",
         "maxAttempts": 2,
         "maxBaselineChurns": 8,
+        "reason": "WORK_EXECUTION_ENVIRONMENT_UNAVAILABLE: exec-server is unavailable, so npm ci and trusted fast cannot be executed. No repair commit or push was created; retry remains finite and humanRequired=false.",
         "repairKind": "semantic",
         "resumedFromBaselineAdvance": false,
         "scope": {
@@ -10730,9 +10747,7 @@
         "sourceHead": "4a856ca71faf2c5d8db415795cea7c47a33d8250",
         "startedAt": "2026-09-14T13:31:23.284Z",
         "status": "failed",
-        "workerId": "work/866e55ef0f5e/20260914T133123284Z",
-        "reason": "WORK_EXECUTION_ENVIRONMENT_UNAVAILABLE: exec-server is unavailable, so npm ci and trusted fast cannot be executed. No repair commit or push was created; retry remains finite and humanRequired=false.",
-        "finishedAt": "2026-09-14T13:32:07.936Z"
+        "workerId": "work/866e55ef0f5e/20260914T133123284Z"
       },
       "workRepairAttempts": 1
     },
@@ -13756,7 +13771,7 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 719,
+  "revision": 720,
   "schema": 1,
   "updatedAt": "2026-09-14T12:48:37.762Z",
   "waves": [
