@@ -1,0 +1,16 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const main=fs.readFileSync(new URL('../src/main.js',import.meta.url),'utf8'),stack=fs.readFileSync(new URL('../src/runtime-scale-stack.js',import.meta.url),'utf8'),adaptive=fs.readFileSync(new URL('../src/adaptive-visual-performance.js',import.meta.url),'utf8'),resilience=fs.readFileSync(new URL('../src/runtime-resilience.js',import.meta.url),'utf8'),scale=fs.readFileSync(new URL('../src/shared-world-scale.js',import.meta.url),'utf8'),cpu=fs.readFileSync(new URL('../src/cpu-runtime-scale.js',import.meta.url),'utf8'),audio=fs.readFileSync(new URL('../src/web/audio.js',import.meta.url),'utf8'),online=fs.readFileSync(new URL('../src/web/online.js',import.meta.url),'utf8');
+
+test('demon loads one ordered runtime module graph before game boot',()=>{assert.match(main,/runtime-scale-stack\.js/);assert.ok(main.indexOf("./runtime-scale-stack.js")<main.indexOf("./web/main.js"));assert.ok(stack.indexOf("./asset-visuals.js")<stack.indexOf("./authored-visual-lod.js"));assert.ok(stack.indexOf("./authored-visual-lod.js")<stack.indexOf("./stylized-visual-target.js"));assert.ok(stack.indexOf("./stylized-visual-target.js")<stack.indexOf("./adaptive-visual-performance.js"));assert.ok(stack.indexOf("./adaptive-visual-performance.js")<stack.indexOf("./runtime-resilience.js"));assert.ok(stack.indexOf("./runtime-resilience.js")<stack.indexOf("./shared-world-scale.js"));assert.ok(stack.indexOf("./shared-world-scale.js")<stack.indexOf("./cpu-runtime-scale.js"));});
+
+test('demon visual bridges keep combat authority outside presentation quality systems',()=>{for(const token of ['createGpuAwareQualityGovernor','createGpuTimer','createThermalTrendGovernor','applyVisualQualityFloor'])assert.match(adaptive,new RegExp(token));for(const token of ['installWebGLContextRecovery','createResourceLeakSentinel','view.spark','view.slash'])assert.match(resilience,new RegExp(token.replace('.','\\.')));assert.doesNotMatch(resilience,/game\.(player|village|time)\s*=/);});
+
+test('demon shared-world scale smooths remote presence and profiles worker planning',()=>{for(const token of ['createWorldScaleWorker','createSnapshotInterpolator','createRuntimeProfiler','createCrowdPresenceRenderer','createAssetResidencyCache','__DEMON_WORLD_SCALE__'])assert.match(scale,new RegExp(token));assert.match(scale,/interpolationMode/);});
+
+test('demon CPU bridge measures authoritative RaidSession tick without replacing it',()=>{assert.match(cpu,/RaidSession\.prototype\.tick/);assert.match(cpu,/tick\.apply\(this,args\)/);assert.match(cpu,/createRuntimeProfiler/);assert.doesNotMatch(cpu,/player\.(x|z)\s*=/);});
+
+test('demon audio uses AudioWorklet category mixer with transparent fallback buses',()=>{for(const token of ['createAudioWorkletCategoryMixer','ambientBus','fxBus','__DEMON_AUDIO_WORKLET__'])assert.match(audio,new RegExp(token));assert.match(audio,/if\(mixer\.supported\)/);});
+
+test('demon online path uses lossy presence channel and bounded reconciliation diagnostics',()=>{for(const token of ['dualChannel:true','createPresenceTransport','createPredictionReconciler','sendLocalState','snapshot-delta','__DEMON_NETWORK_SCALE__'])assert.match(online,new RegExp(token.replace('.','\\.')));assert.doesNotMatch(online,/game\.(player|village|time)\s*=/);});

@@ -5,9 +5,13 @@
   "type": "module",
   "exports": {
     ".": "./src/index.js",
-    "./shared-world": "./src/shared-world.js"
+    "./shared-world": "./src/shared-world.js",
+    "./world-scale-worker": "./src/world-scale-worker.js",
+    "./asset-residency": "./src/asset-residency.js",
+    "./device-capability": "./src/device-capability.js",
+    "./runtime-profiler": "./src/runtime-profiler.js",
+    "./audio-worklet-mixer": "./src/audio-worklet-mixer.js",
+    "./peer-signaling": "./src/peer-signaling.js"
   },
-  "dependencies": {
-    "@soul/platform": "*"
-  }
+  "dependencies": {"@soul/platform": "*"}
 }

@@ -10,8 +10,10 @@ const root = resolve(new URL('../..', import.meta.url).pathname);
 const base = process.argv[2];
 const head = process.argv[3] || 'HEAD';
 const plan = JSON.parse(execFileSync(process.execPath, ['scripts/affected.mjs', base, head], { cwd: root, encoding: 'utf8' }));
-const apps = plan.infrastructure ? plan.allApps : plan.apps;
 const changedFiles = execFileSync('git', ['diff', '--name-only', base, head], { cwd: root, encoding: 'utf8' });
+const wantsPeerHostMigration = /^(?:apps\/village\/src\/(?:online\.js|peer-|runtime-scale-stack\.js)|apps\/rinne\/src\/online\.js|apps\/demon\/src\/(?:web\/online\.js|peer-authority-pause\.js)|packages\/network\/src\/(?:peer(?:-|\.)|village-|raid-host)|packages\/shared-ui\/src\/world-darkness\.js|scripts\/peer-host-chaos\.mjs|scripts\/browser\/peer-host-migration-smoke\.mjs|tests\/peer-host)/m.test(changedFiles);
+const plannedApps = plan.infrastructure ? plan.allApps : plan.apps;
+const apps = [...new Set([...plannedApps, ...(wantsPeerHostMigration ? ['village'] : [])])];
 const ports = { rinne: 5273, village: 5274, demon: 5275 };
 const viteBin = resolve(root, 'node_modules/vite/bin/vite.js');
 mkdirSync(resolve(root, 'test-results/pr-browser'), { recursive: true });
@@ -123,6 +125,10 @@ for (const app of apps) {
       // extra milestone captures here; deployed DEV/public verification still
       // uses the default captureMilestones=true evidence path.
       await verifyVillageFirstBuild(page, expect, evidence, () => capturePlayedAudio(page, playedSources), {captureMilestones:false});
+      if (wantsPeerHostMigration) {
+        const {verifyPeerHostMigration} = await import('./peer-host-migration-smoke.mjs');
+        await verifyPeerHostMigration(browser, url, evidence);
+      }
     }
     await capturePlayedAudio(page, playedSources);
     const media = await mediaDiagnostics(rawRequests, playedSources, new URL(url).origin);

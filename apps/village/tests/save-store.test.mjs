@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { World, initial } from '../src/game/core.js';
 import { createSaveStore, SAVE_KEY } from '../src/game/save-store.js';
+const JOURNAL_KEY=`${SAVE_KEY}.journal.v1`,COMPACT_KEY=`${SAVE_KEY}.compact.v1`;
 function fixture(initialEntries = []) {
   const data = new Map(initialEntries);
   const platform = { clock: { now: () => 123456 }, storage: {
@@ -24,21 +25,31 @@ test('invalid saved data is not replaced by a fresh village', async () => {
   await assert.rejects(f.store.save(new World()));
   assert.equal(f.data.get(SAVE_KEY),'{broken');assert.equal(f.store.blocked,true);
 });
+test('a corrupt compact shadow cannot hide a valid canonical base snapshot', async()=>{
+ const f=fixture(),w=new World();w.gain('wood',3);await f.store.save(w);f.data.set(COMPACT_KEY,'{broken');const fresh=createSaveStore(f.platform),loaded=await fresh.load();assert.equal(loaded.stock.wood,initial().stock.wood+3);assert.equal(fresh.blocked,false);
+});
+test('a valid compact shadow can recover when the canonical base copy is corrupt', async()=>{
+ const f=fixture(),w=new World();w.gain('wood',4);await f.store.save(w);const full=f.data.get(SAVE_KEY);f.data.set(COMPACT_KEY,full);f.data.set(SAVE_KEY,'{broken');const fresh=createSaveStore(f.platform),loaded=await fresh.load();assert.equal(loaded.stock.wood,initial().stock.wood+4);assert.equal(fresh.blocked,false);
+});
 test('foreign game/player and unknown envelope schema fail closed', async () => {
   for (const patch of [{gameId:'demon'},{playerId:'another-player'},{schemaVersion:99},{revision:-1}]) {
     const raw=JSON.stringify({schemaVersion:1,gameId:'village',playerId:'local',revision:1,updatedAt:123456,payload:initial(),...patch});
     const f=fixture([[SAVE_KEY,raw]]);await assert.rejects(f.store.load());assert.equal(f.data.get(SAVE_KEY),raw);
   }
 });
-test('queued async writes cannot regress to an older gameplay snapshot', async () => {
+test('queued async writes cannot regress gameplay and second revision is journaled', async () => {
   const f=fixture();let finish;let calls=0;
   f.platform.storage.write=async (key,value)=>{
     if(++calls===1)await new Promise(resolve=>{finish=resolve;});f.data.set(key,value);
   };
   const w=new World();const first=f.store.save(w);w.gain('wood',7);const second=f.store.save(w);w.gain('wood',9);
   while(!finish)await new Promise(resolve=>setImmediate(resolve));finish();await Promise.all([first,second]);
-  assert.equal(JSON.parse(f.data.get(SAVE_KEY)).payload.stock.wood,7);
-  assert.equal(JSON.parse(f.data.get(SAVE_KEY)).revision,2);
+  const base=JSON.parse(f.data.get(SAVE_KEY)),journal=JSON.parse(f.data.get(JOURNAL_KEY));
+  assert.equal(base.revision,1);assert.equal(journal.baseRevision,1);assert.equal(journal.entries.at(-1).revision,2);
+  const loaded=await f.store.load();assert.equal(loaded.stock.wood,7);assert.equal(f.store.diagnostics().revision,2);
+});
+test('no-op saves do not create a revision gap', async()=>{
+ const f=fixture(),w=new World();await f.store.save(w);await f.store.save(w);assert.equal(f.store.diagnostics().revision,1);w.gain('wood',1);await f.store.save(w);assert.equal(f.store.diagnostics().revision,2);const fresh=createSaveStore(f.platform),loaded=await fresh.load();assert.equal(loaded.stock.wood,initial().stock.wood+1);assert.equal(fresh.diagnostics().revision,2);
 });
 test('a failed write is observable and does not poison later saves', async () => {
   const f=fixture();const original=f.platform.storage.write;f.platform.storage.write=async ()=>{throw Error('quota');};
@@ -49,7 +60,7 @@ test('recovery keeps the original unless a backup was successfully written', asy
   const f=fixture([[SAVE_KEY,'bad-json']]);await assert.rejects(f.store.load());
   const original=f.platform.storage.write;f.platform.storage.write=async ()=>{throw Error('quota');};
   await assert.rejects(f.store.recover(),/quota/);assert.equal(f.data.get(SAVE_KEY),'bad-json');
-  f.platform.storage.write=original;await f.store.recover();assert.equal(f.data.get(`${SAVE_KEY}.recovery.123456`),'bad-json');
+  f.platform.storage.write=original;await f.store.recover();assert.equal(f.data.get(`${SAVE_KEY}.recovery.123456.base`),'bad-json');
   assert.equal(f.data.has(SAVE_KEY),false);assert.equal(f.store.blocked,false);
 });
 test('unscoped legacy saves are never read automatically across environments', async () => {
