@@ -1,0 +1,69 @@
+name: Shino DCC sync resolve
+
+on:
+  push:
+    branches:
+      - feat/shino-reference-v2-dcc
+    paths:
+      - .github/workflows/shino-sync-resolve.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Merge latest develop and resolve DCC overlaps
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin develop
+          set +e
+          git merge --no-commit --no-ff origin/develop
+          merge_rc=$?
+          set -e
+          printf 'merge exit: %s\n' "$merge_rc"
+          actual="$(git diff --name-only --diff-filter=U | sort)"
+          expected="$(printf '%s\n' \
+            apps/rinne/src/character-workspace.js \
+            packages/characters/src/reference-models.js \
+            packages/characters/tests/reference-models.test.mjs \
+            scripts/validate.mjs | sort)"
+          if [ "$actual" != "$expected" ]; then
+            echo 'Unexpected conflict set:'
+            printf '%s\n' "$actual"
+            exit 1
+          fi
+          python3 scripts/resolve-shino-develop-sync.py
+          test -z "$(git diff --name-only --diff-filter=U)"
+      - name: Fast merged-state validation
+        run: |
+          git diff --check
+          node --check apps/rinne/src/character-workspace.js
+          node --check packages/characters/src/reference-models.js
+          node --check packages/characters/tests/reference-models.test.mjs
+          node --check scripts/validate.mjs
+          node --test \
+            packages/characters/tests/reference-models.test.mjs \
+            packages/characters/tests/runtime-asset-audit.test.mjs \
+            packages/characters/tests/reference-production-status.test.mjs \
+            tests/character-production-gate.test.mjs
+          node scripts/check-character-production.mjs
+      - name: Preserve workflow files for token-safe merge push
+        run: |
+          git restore --source=HEAD --staged --worktree .github/workflows
+          if [ -n "$(git diff --cached --name-only -- .github/workflows)" ]; then
+            echo 'Workflow changes remain staged; refusing token-limited push.'
+            git diff --cached --name-status -- .github/workflows
+            exit 1
+          fi
+      - name: Commit and push develop sync
+        run: |
+          git status --short
+          git commit -m "merge: sync latest develop into Shino DCC"
+          git push origin HEAD:${GITHUB_REF_NAME}
