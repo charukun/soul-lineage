@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/shino-reference-dcc.yml
       - scripts/blender/build-shino-reference-v2.py
+      - scripts/blender/run-shino-reference-v2.py
       - scripts/blender/character-production-audit.py
       - scripts/patch-vrm-humanoid.py
       - scripts/finalize-shino-reference-v2.py
@@ -48,8 +49,8 @@ jobs:
 
       - name: Build dedicated Shino Reference v2 DCC mesh
         run: |
-          blender --background \
-            --python scripts/blender/build-shino-reference-v2.py -- \
+          blender --background --python-exit-code 1 \
+            --python scripts/blender/run-shino-reference-v2.py -- \
             --source generated/shino-reference-v2/SHINO_review.glb \
             --source-vrm apps/rinne/public/simulator/assets/SHINO_review.vrm \
             --out generated/shino-reference-v2
@@ -63,7 +64,7 @@ jobs:
 
       - name: Audit Blender source
         run: |
-          blender --background generated/shino-reference-v2/source/ShinoReferenceV2.blend \
+          blender --background --python-exit-code 1 generated/shino-reference-v2/source/ShinoReferenceV2.blend \
             --python scripts/blender/character-production-audit.py -- \
             --out generated/shino-reference-v2/blender-audit.json \
             --character-id shino.reference.v2
@@ -91,7 +92,7 @@ jobs:
 
       - name: Fast generated-asset sanity
         run: |
-          python3 -m py_compile scripts/blender/build-shino-reference-v2.py scripts/patch-vrm-humanoid.py scripts/finalize-shino-reference-v2.py
+          python3 -m py_compile scripts/blender/build-shino-reference-v2.py scripts/blender/run-shino-reference-v2.py scripts/patch-vrm-humanoid.py scripts/finalize-shino-reference-v2.py
           test -s apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm
           test -s apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json
           test -s assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend
@@ -103,7 +104,7 @@ jobs:
       - name: Commit generated DCC source and review outputs
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+charukun@users.noreply.github.com"
           git add \
             assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend \
             apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm \
