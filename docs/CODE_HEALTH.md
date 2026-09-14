@@ -18,9 +18,11 @@ AI実装を高速・並列に積み重ねても、単一ファイルの肥大化
 
 このguardは「変更を禁止する」ものではありません。同じ責務を別moduleへ分ける、既存packageへ寄せる、重複を共通化する方向へ実装を促します。現在ある負債を理由に通常PRを全面停止しないratchetです。
 
-### 2. Scheduled maintenance
+### 2. Trusted develop maintenance
 
-`.github/workflows/code-health.yml` は週2回、最新`develop`を軽量監査します。`npm ci`やブラウザは起動せず、tracked sourceだけをNodeで解析します。手動`workflow_dispatch`も利用でき、`dispatch=false`なら監査だけを行います。
+`.github/workflows/code-health.yml` は単独のdefault-branch scheduleではなく、`workflow_call` の再利用workflowです。Repositoryのdefault branchは `main` であり、developにしか存在しないschedule/workflow_dispatchを永続起動源として扱いません。
+
+既存の `deploy.yml` → `integration-rescue.yml` というdevelop上のtrusted control planeから、Rescue/Integrationの1サイクル終了時に軽量監査を呼び出します。監査は`npm ci`やブラウザを起動せず、tracked sourceだけをNodeで解析します。この呼び出しはIntegration/Rescueのmerge判定を置き換えず、Code Health失敗をゲームのDEV成功へ偽装しません。
 
 監査は以下を合成して0〜100のhotspot scoreを作ります。
 
@@ -33,15 +35,16 @@ AI実装を高速・並列に積み重ねても、単一ファイルの肥大化
 
 ## 自動リファクタの流れ
 
-監査でactionable hotspotがある場合、scheduled runは次の条件を満たすと**1件だけ**自動リファクタを起動します。
+監査でactionable hotspotがある場合、trusted develop maintenanceは次の条件を満たすと**1件だけ**自動リファクタを起動します。
 
 1. `dispatch/code-health-*` のopen PRが存在しない。
-2. `DISPATCH_GITHUB_TOKEN` または既存 `RESCUE_GITHUB_TOKEN` が利用できる。
-3. 最上位hotspotがconfigured thresholdを超えている。
+2. 直近の自動Code Health PR作成から72時間以上経過している。
+3. `DISPATCH_GITHUB_TOKEN` または既存 `RESCUE_GITHUB_TOKEN` が利用できる。
+4. 最上位hotspotがconfigured thresholdを超えている。
 
-Code Health自身は実装しません。最新developから `dispatch/code-health-*` branchと一時 `.task-start` marker、develop向けDraft PRを作り、PR本文へ通常の `RINNE-Dispatch: implementation` / `## Request` contractを入れます。PR作成イベントから既存 `RINNE Dispatch` が起動し、focused refactor → fast validation → push → Ready for reviewまでを担当します。その後は通常どおりIntegrationがCI、develop統合、DEV公開を担当します。
+Code Health自身は実装しません。最新developから `dispatch/code-health-*` branchと一時 `.task-start` marker、develop向けDraft PRを作り、PR本文へ通常の `RINNE-Dispatch: implementation` / `## Request` contractを入れます。PR作成イベントから既存 `RINNE Dispatch Handoff` がeligibleな作業を記録し、設定済みChatGPT Work GitHubイベントタスクがfocused refactor → fast validation → push → Ready for reviewを担当します。その後は通常どおりIntegrationがCI、develop統合、DEV公開を担当します。
 
-独自Task-ID、独自queue、別のIntegration worker、外部状態DBは作りません。branch / PR / commitが復旧点です。自動refactorが既にopenなら次の定期監査は新しいPRを増やしません。
+独自Task-ID、独自queue、別のIntegration worker、外部状態DBは作りません。branch / PR / commitが復旧点です。自動refactorが既にopen、または72時間cooldown内なら新しいPRを増やしません。
 
 ## Refactor workerの安全境界
 
