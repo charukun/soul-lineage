@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { randomUUID } from 'node:crypto';
-import { REPOSITORY, rescueConfig, RETURNED, transition, failure } from './integration-rescue-policy.mjs';
+import { REPOSITORY, rescueConfig, RETURNED, SEMANTIC_WORK, transition, failure } from './integration-rescue-policy.mjs';
 import { rescueClient, RescueStore, comparison } from './integration-rescue-store.mjs';
 
 export async function returnToIntegration(c, store, now = Date.now()) {
@@ -37,7 +37,7 @@ export async function returnToIntegration(c, store, now = Date.now()) {
       const r = state.records[item.pr];
       if (r?.rescueId !== item.rescueId || !r.pendingIntegration || r.dispatchLease?.id !== lease) continue;
       r.pendingIntegration = false; r.dispatchLease = null; r.integrationRequestedAt = new Date(now).toISOString();
-      transition(state, r, 'CHECKING', 'Integrationへ再評価を依頼済み。現在headの通常gate待ち', now);
+      transition(state, r, 'CHECKING', 'Integrationへ再評価を依頼済み。Rescue返却PRを優先して現在headの通常gateを確認', now);
     }
   });
   return checked.map(r => r.pr);
@@ -71,18 +71,22 @@ export async function collectDelivery(c, store, now = Date.now()) {
     }
   });
 }
+function outboxMessage(item) {
+  if (item.type === 'manual') return `Integration Rescue\nFAILED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: human review required`;
+  if (item.type === 'semantic') return `Integration Rescue\nSEMANTIC_WORK_REQUIRED\nPR: #${item.pr}\nactions attempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: existing ChatGPT Work semantic rescue; no paid API fallback`;
+  return `Integration Rescue\nREADY_FOR_INTEGRATION\nWave: ${item.wave}\nReturned to Integration: ${(item.prs || []).map(n => '#' + n).join(' ')}\nManual: ${(item.manual || []).map(n => '#' + n).join(' ') || 'none'}\nCI/browser monitoring: Integration; repair workers ended`;
+}
 export async function notifyOutbox(c, store, { url = '', token = '', request = fetch } = {}) {
   const { state } = await store.read();
   for (const item of state.outbox.filter(n => !n.sentAt && (n.notificationAttempts || 0) < 3 && (!n.nextNotificationAt || Date.parse(n.nextNotificationAt) <= Date.now())).slice(0, 5)) {
-    const message = item.type === 'manual' ? `Integration Rescue\nFAILED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: human review required` :
-      `Integration Rescue\nREADY_FOR_INTEGRATION\nWave: ${item.wave}\nReturned to Integration: ${item.prs.map(n => '#' + n).join(' ')}\nManual: ${item.manual.map(n => '#' + n).join(' ') || 'none'}\nCI/browser monitoring: Integration; repair workers ended`;
+    const message = outboxMessage(item);
     try {
     // Existing ntfy deployment can supply its normal topic URL/token; never invent a recipient.
     if (url) {
       if (!url.startsWith('https://')) throw new Error('NTFY_HTTPS_REQUIRED');
       const response = await request(url, { method: 'POST', headers: { 'Content-Type': 'text/plain; charset=utf-8', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: message, signal: AbortSignal.timeout(10000) });
       if (!response.ok) throw new Error(`NTFY_FAILED:${response.status}`);
-    } else if (item.type === 'manual') {
+    } else if (['manual', 'semantic'].includes(item.type)) {
       // Repository-native notification and durable recovery point when no push topic is configured.
       const marker = `<!-- integration-rescue-notice:${item.id} -->`;
       const comments = await c.pages(`/issues/${item.pr}/comments`, undefined, { maxPages: 3 });
@@ -90,7 +94,7 @@ export async function notifyOutbox(c, store, { url = '', token = '', request = f
     }
     await store.mutate(state => {
       const entry = state.outbox.find(n => n.id === item.id);
-      if (entry) { entry.sentAt = new Date().toISOString(); entry.channel = url ? 'ntfy' : item.type === 'manual' ? 'github-pr' : 'pulse-summary'; }
+      if (entry) { entry.sentAt = new Date().toISOString(); entry.channel = url ? 'ntfy' : ['manual', 'semantic'].includes(item.type) ? 'github-pr' : 'pulse-summary'; }
     });
     } catch (error) {
       // Notification transport is not a repair/validation gate. Keep the unsent
@@ -112,7 +116,7 @@ export async function finalize(c, store, now = Date.now()) {
     for (const wave of state.waves) {
       if (wave.completedAt) continue;
       const records = wave.rescueIds.map(id => Object.values(state.records).find(r => r.rescueId === id));
-      if (records.some(r => r?.lease || r?.state === 'AWAITING_PUSH' || r?.pushLease)) continue;
+      if (records.some(r => r?.lease || r?.state === 'AWAITING_PUSH' || r?.pushLease || SEMANTIC_WORK.has(r?.state))) continue;
       wave.completedAt = new Date(now).toISOString();
       const prs = records.filter(r => r?.returnedAt).map(r => r.pr), manual = records.filter(r => r?.state === 'FAILED_MANUAL').map(r => r.pr);
       wave.returned = prs; wave.manual = manual;
