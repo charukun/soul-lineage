@@ -35,7 +35,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RESCUE_CONFIGURED: 'true'
-          # v2 has an independent tuning key so the legacy repository value 4 does not pin the new baseline.
           MAX_RESCUE_CONCURRENCY: ${{ vars.MAX_RESCUE_CONCURRENCY_V2 || '6' }}
           MAX_RESCUE_ATTEMPTS: ${{ vars.MAX_RESCUE_ATTEMPTS }}
           RESCUE_DIAGNOSTICS_PATH: .deploy-state/rescue-api.json
@@ -54,6 +53,93 @@ jobs:
           name: integration-rescue-coordinator-${{ github.run_id }}-${{ github.run_attempt }}
           path: .deploy-state/rescue-*.json
           include-hidden-files: true
+          retention-days: 7
+
+  virtual-train:
+    name: Validate Virtual Integration Train
+    needs: coordinator
+    if: needs.coordinator.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: integration-virtual-train
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: read
+      checks: read
+      statuses: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Assemble independent exact-head PRs on an ephemeral branch
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAX_RESCUE_CONCURRENCY: ${{ needs.coordinator.outputs.max_parallel }}
+          RESCUE_COORDINATOR: 'true'
+        run: node scripts/integration-virtual-train.mjs plan .deploy-state/virtual-train.json
+      - uses: actions/checkout@v6
+        if: steps.plan.outputs.has_train == 'true'
+        with:
+          ref: ${{ steps.plan.outputs.branch }}
+          path: train
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        if: steps.plan.outputs.has_train == 'true'
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: train/package-lock.json
+      - name: Install synthetic train dependencies
+        if: steps.plan.outputs.has_train == 'true'
+        working-directory: train
+        run: npm ci
+      - name: Validate combined train tree
+        id: fast
+        if: steps.plan.outputs.has_train == 'true'
+        continue-on-error: true
+        working-directory: train
+        env:
+          TRAIN_BASE: ${{ steps.plan.outputs.base }}
+          TRAIN_HEAD: ${{ steps.plan.outputs.commit }}
+        run: node scripts/validate.mjs fast "$TRAIN_BASE" "$TRAIN_HEAD"
+      - name: Install Chromium for combined affected smoke
+        if: steps.plan.outputs.has_train == 'true' && steps.fast.outcome == 'success'
+        working-directory: train
+        run: npx playwright install --with-deps chromium
+      - name: Browser-check the combined train tree
+        id: browser
+        if: steps.plan.outputs.has_train == 'true' && steps.fast.outcome == 'success'
+        continue-on-error: true
+        working-directory: train
+        env:
+          TRAIN_BASE: ${{ steps.plan.outputs.base }}
+          TRAIN_HEAD: ${{ steps.plan.outputs.commit }}
+        run: node scripts/browser/pr-smoke.mjs "$TRAIN_BASE" "$TRAIN_HEAD"
+      - name: Record exact synthetic-tree evidence and remove ephemeral branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TRAIN_FAST: ${{ steps.fast.outcome || 'skipped' }}
+          TRAIN_BROWSER: ${{ steps.browser.outcome || 'skipped' }}
+          MAX_RESCUE_CONCURRENCY: ${{ needs.coordinator.outputs.max_parallel }}
+        run: node scripts/integration-virtual-train.mjs finalize .deploy-state/virtual-train.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-virtual-train-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .deploy-state/virtual-train.json
+          include-hidden-files: true
+          if-no-files-found: ignore
           retention-days: 7
 
   worker:
@@ -107,8 +193,6 @@ jobs:
           sudo chmod -R g+rwX work
           sudo chown -R root:root control
           sudo chmod -R a-w control
-          # Only directory traversal is needed through the runner-owned ancestors.
-          # Keep the wrapper immutable and grant no ancestor read/write access.
           rescue_parent="$GITHUB_WORKSPACE"
           while [ "$rescue_parent" != / ]; do
             sudo chmod o+x "$rescue_parent"
@@ -138,9 +222,7 @@ jobs:
       - name: Stop heartbeat
         if: always()
         run: |
-          if [ -f "$RUNNER_TEMP/rescue/heartbeat.pid" ]; then
-            kill "$(cat "$RUNNER_TEMP/rescue/heartbeat.pid")" 2>/dev/null || true
-          fi
+          if [ -f "$RUNNER_TEMP/rescue/heartbeat.pid" ]; then kill "$(cat "$RUNNER_TEMP/rescue/heartbeat.pid")" 2>/dev/null || true; fi
       - name: Return this worker immediately and notify actionable failures
         if: always()
         env:
@@ -163,7 +245,7 @@ jobs:
     needs: [coordinator, worker]
     if: always() && needs.coordinator.result == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 7
     concurrency:
       group: integration-rescue-return
       cancel-in-progress: false
@@ -181,7 +263,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Aggregate return, delivery tracking and actionable notifications
+      - name: Aggregate return, reconcile dependency stacks and notify actionable failures
         env:
           GH_TOKEN: ${{ github.token }}
           NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
