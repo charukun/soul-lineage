@@ -2,6 +2,7 @@ import { client } from './integration.mjs';
 import { REPOSITORY, STATE_BRANCH, STATE_FILE, newState } from './integration-rescue-policy.mjs';
 import { publishObservation } from './integration-rescue-pulse.mjs';
 import { parseRepairState, linkedIssueNumber } from './browser-repair-state.mjs';
+import { compactRescueState } from './integration-flow-control.mjs';
 import { createHash } from 'node:crypto';
 
 export const contractFingerprint = pr => createHash('sha256').update(JSON.stringify({ title: pr.title, body: pr.body,
@@ -61,6 +62,7 @@ export class RescueStore {
       if (result && typeof result.then === 'function') throw new Error('CAS operation must be synchronous and side-effect free');
       if (JSON.stringify(state) === before) return { state, result };
       state.revision++; state.updatedAt = new Date().toISOString();
+      compactRescueState(state, Date.now());
       const encoded = Buffer.from(JSON.stringify(state));
       if (encoded.length > 900000) throw new Error('RESCUE_STATE_SIZE_BUDGET');
       try {
