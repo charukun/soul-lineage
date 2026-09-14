@@ -42,7 +42,9 @@ try{
   await page.waitForSelector('.rs-worker-pool .rs-card',{state:'visible'});
   assert.match(await page.locator('.rs-workers-total').innerText(),/4 \/ 6 ACTIVE/);check('full metrics disclosure');
   assert.equal(await page.locator('.rs-worker-pool .rs-card').count(),5);
-  assert.match(await page.locator('.rs-card[data-pr="124"]').innerText(),/1400\/pr-124\/a1[\s\S]*VALIDATING/);check('real worker IDs and validation stage');
+  const validatingCard=await page.locator('.rs-card[data-pr="124"]').innerText();
+  assert.match(validatingCard,/1400\/pr-124\/a1/);
+  assert.match(validatingCard,/検証中[\s\S]*VALIDATE/);check('real worker IDs and validation stage');
 
   await openDisclosure('rescue:waves');
   assert.match(await page.locator('.rs-wave-list').innerText(),/wave-14[\s\S]*#125.*#120/);check('wave and dependency order');
