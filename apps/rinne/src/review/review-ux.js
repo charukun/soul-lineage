@@ -11,47 +11,18 @@ export function installReviewUX({reviewPresets,reviewWeapons}){
     @media(min-width:900px){.model-picker-sheet{max-width:480px;margin:0 auto}.weapon-quick{padding:7px 14px}}
   `;
   document.head.append(style);
-
-  if(!q('.review-reference-link')){
-    const link=document.createElement('a');link.className='review-reference-link';link.href='./references.html';link.textContent='リファレンス';link.setAttribute('aria-label','キャラクターリファレンス一覧を開く');
-    q('.topbar')?.append(link);
-  }
-
+  if(!q('.review-reference-link')){const link=document.createElement('a');link.className='review-reference-link';link.href='./references.html';link.textContent='リファレンス';link.setAttribute('aria-label','キャラクターリファレンス一覧を開く');q('.topbar')?.append(link);}
   const preset=q('#preset'),strip=q('.model-strip');
   if(strip&&preset){
     const trigger=document.createElement('button');trigger.type='button';trigger.className='model-select-trigger';trigger.textContent='キャラ: Sendagaya Shino';strip.append(trigger);
-    const backdrop=document.createElement('div');backdrop.className='model-picker-backdrop';backdrop.hidden=true;
-    backdrop.innerHTML='<section class="model-picker-sheet"><header><strong>キャラクター</strong><button type="button">閉じる</button></header><div class="model-picker-list"></div></section>';
-    document.body.append(backdrop);const list=backdrop.querySelector('.model-picker-list'),close=backdrop.querySelector('header button');
-    const portrait=id=>`./simulator/assets/portrait_${id}.webp`;
-    function selectableRows(){
-      const rows=new Map(reviewPresets.map(row=>[row.id,row]));
-      for(const option of preset.options){
-        if(!option.value||rows.has(option.value))continue;
-        const label=option.textContent||option.value;
-        rows.set(option.value,{id:option.value,label,name:label,portrait:'SHINO'});
-      }
-      return [...rows.values()];
-    }
+    const backdrop=document.createElement('div');backdrop.className='model-picker-backdrop';backdrop.hidden=true;backdrop.innerHTML='<section class="model-picker-sheet"><header><strong>キャラクター</strong><button type="button">閉じる</button></header><div class="model-picker-list"></div></section>';document.body.append(backdrop);const list=backdrop.querySelector('.model-picker-list'),close=backdrop.querySelector('header button');
+    const portrait=row=>row.portraitPath||`./simulator/assets/portrait_${row.portrait||row.label}.webp`;
+    function selectableRows(){const rows=new Map(reviewPresets.map(row=>[row.id,row]));for(const option of preset.options){if(!option.value||rows.has(option.value))continue;const label=option.textContent||option.value;rows.set(option.value,{id:option.value,label,name:label,portrait:'SHINO'});}return [...rows.values()];}
     function activeRow(){const rows=selectableRows();return rows.find(r=>r.id===preset.value)||rows[0];}
-    function render(){const rows=selectableRows(),active=activeRow();list.replaceChildren(...rows.map(row=>{const portraitId=row.portrait||row.label,b=document.createElement('button');b.type='button';b.className='model-picker-item'+(row.id===active?.id?' active':'');b.innerHTML=`<img src="${portrait(portraitId)}" alt=""><span>${row.name||row.label}<small>${row.label}</small></span>`;b.onclick=()=>{preset.value=row.id;preset.dispatchEvent(new Event('change',{bubbles:true}));trigger.textContent=`キャラ: ${row.name||row.label}`;backdrop.hidden=true;render();};return b;}));}
-    trigger.onclick=()=>{render();backdrop.hidden=false;};close.onclick=()=>backdrop.hidden=true;backdrop.addEventListener('click',e=>{if(e.target===backdrop)backdrop.hidden=true;});
-    document.addEventListener('review-model-loaded',e=>{const row=selectableRows().find(r=>r.id===e.detail?.presetId);if(row)trigger.textContent=`キャラ: ${row.name||row.label}`;});
+    function render(){const rows=selectableRows(),active=activeRow();list.replaceChildren(...rows.map(row=>{const b=document.createElement('button');b.type='button';b.className='model-picker-item'+(row.id===active?.id?' active':'');b.innerHTML=`<img src="${portrait(row)}" alt=""><span>${row.name||row.label}<small>${row.label}</small></span>`;b.onclick=()=>{preset.value=row.id;preset.dispatchEvent(new Event('change',{bubbles:true}));trigger.textContent=`キャラ: ${row.name||row.label}`;backdrop.hidden=true;render();};return b;}));}
+    trigger.onclick=()=>{render();backdrop.hidden=false;};close.onclick=()=>backdrop.hidden=true;backdrop.addEventListener('click',e=>{if(e.target===backdrop)backdrop.hidden=true;});document.addEventListener('review-model-loaded',e=>{const row=selectableRows().find(r=>r.id===e.detail?.presetId);if(row)trigger.textContent=`キャラ: ${row.name||row.label}`;});
   }
-
   const tabs=q('.review-tabs'),weaponSelect=q('#weapon-select'),weaponToggle=q('#weapon-toggle');
-  if(tabs&&weaponSelect&&weaponToggle){
-    const bar=document.createElement('div');bar.className='weapon-quick';bar.innerHTML='<span>武器</span><div class="weapon-scroll"></div>';const scroll=bar.querySelector('.weapon-scroll');
-    const defs=[{id:'none',label:'なし'},...reviewWeapons];
-    const setWeapon=id=>{const enabled=id!=='none';weaponToggle.checked=enabled;if(enabled){weaponSelect.value=id;weaponSelect.dispatchEvent(new Event('input',{bubbles:true}));weaponSelect.dispatchEvent(new Event('change',{bubbles:true}));}weaponToggle.dispatchEvent(new Event('input',{bubbles:true}));scroll.querySelectorAll('.weapon-chip').forEach(b=>b.classList.toggle('active',b.dataset.weapon===id));};
-    defs.forEach((row,i)=>{const b=document.createElement('button');b.type='button';b.className='weapon-chip'+(i===0?' active':'');b.dataset.weapon=row.id;b.textContent=row.label;b.onclick=()=>setWeapon(row.id);scroll.append(b);});
-    tabs.after(bar);
-  }
-
-  const immediateIds=new Set(['reaction-select','stance-select','parry-select','axis-shin','axis-gi','axis-tai']);
-  document.addEventListener('change',event=>{
-    const select=event.target;if(!(select instanceof HTMLSelectElement)||!select.classList.contains('review-select')||!immediateIds.has(select.id)||!select.value)return;
-    const master=q('#clip');if(!master)return;master.value=select.value;master.dispatchEvent(new Event('change',{bubbles:true}));
-  });
-  for(const page of ['reaction','stance','parry','axis']){const node=q(`[data-review-page="${page}"]`);if(node&&!node.querySelector('.instant-note')){const note=document.createElement('p');note.className='instant-note';note.textContent='候補を一覧からタップして比較できます。';node.append(note);}}
+  if(tabs&&weaponSelect&&weaponToggle){const bar=document.createElement('div');bar.className='weapon-quick';bar.innerHTML='<span>武器</span><div class="weapon-scroll"></div>';const scroll=bar.querySelector('.weapon-scroll');const defs=[{id:'none',label:'なし'},...reviewWeapons];const setWeapon=id=>{const enabled=id!=='none';weaponToggle.checked=enabled;if(enabled){weaponSelect.value=id;weaponSelect.dispatchEvent(new Event('input',{bubbles:true}));weaponSelect.dispatchEvent(new Event('change',{bubbles:true}));}weaponToggle.dispatchEvent(new Event('input',{bubbles:true}));scroll.querySelectorAll('.weapon-chip').forEach(b=>b.classList.toggle('active',b.dataset.weapon===id));};defs.forEach((row,i)=>{const b=document.createElement('button');b.type='button';b.className='weapon-chip'+(i===0?' active':'');b.dataset.weapon=row.id;b.textContent=row.label;b.onclick=()=>setWeapon(row.id);scroll.append(b);});tabs.after(bar);}
+  const immediateIds=new Set(['reaction-select','stance-select','parry-select','axis-shin','axis-gi','axis-tai']);document.addEventListener('change',event=>{const select=event.target;if(!(select instanceof HTMLSelectElement)||!select.classList.contains('review-select')||!immediateIds.has(select.id)||!select.value)return;const master=q('#clip');if(!master)return;master.value=select.value;master.dispatchEvent(new Event('change',{bubbles:true}));});for(const page of ['reaction','stance','parry','axis']){const node=q(`[data-review-page="${page}"]`);if(node&&!node.querySelector('.instant-note')){const note=document.createElement('p');note.className='instant-note';note.textContent='候補を一覧からタップして比較できます。';node.append(note);}}
 }
