@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { rescueConfig, newState, failure } from '../scripts/integration-rescue-policy.mjs';
-import { prioritizeReturnedReady } from '../scripts/integration-rescue-priority.mjs';
+import { isIntegrationControlPlane, prioritizeReturnedReady, readyPriorityScore } from '../scripts/integration-rescue-priority.mjs';
 import { reusableRescueFastEvidence } from '../scripts/integration-rescue-fast-evidence.mjs';
 
 const sha = char => char.repeat(40);
@@ -60,11 +60,31 @@ test('real repair failures still consume the bounded attempt and backoff', () =>
 });
 
 test('returned Rescue heads are evaluated before ordinary Ready PRs', () => {
-  const ordinary = { number: 1, head: { sha: sha('1') } };
-  const rescued = { number: 2, head: { sha: sha('2') } };
-  const stale = { number: 3, head: { sha: sha('3') } };
+  const ordinary = { number: 1, created_at: '2026-09-13T00:00:00Z', head: { sha: sha('1'), ref: 'feat/ordinary' } };
+  const rescued = { number: 2, created_at: '2026-09-14T00:00:00Z', head: { sha: sha('2'), ref: 'feat/rescue-returned' } };
+  const stale = { number: 3, created_at: '2026-09-12T00:00:00Z', head: { sha: sha('3'), ref: 'feat/ordinary-stale' } };
   const returned = new Map([[2, sha('2')], [3, sha('9')]]);
-  assert.deepEqual(prioritizeReturnedReady([ordinary, stale, rescued], returned).map(item => item.number), [2, 1, 3]);
+  assert.deepEqual(prioritizeReturnedReady([ordinary, stale, rescued], returned, Date.parse('2026-09-14T00:00:00Z')).map(item => item.number), [2, 3, 1]);
+});
+
+test('Integration control-plane Ready PRs get a bounded priority boost without starving old work', () => {
+  const now = Date.parse('2026-09-14T12:00:00Z');
+  const control = { number: 167, title: 'Rescueの競合停止を既存Workへ自動で引き継ぐ', created_at: '2026-09-14T11:00:00Z', head: { sha: sha('a'), ref: 'feat/rescue-work-conflict-repair' }, labels: [] };
+  const recentOrdinary = { number: 168, title: 'gameplay polish', created_at: '2026-09-12T12:00:00Z', head: { sha: sha('b'), ref: 'feat/gameplay' }, labels: [] };
+  const oldOrdinary = { number: 31, title: 'older work', created_at: '2026-09-10T12:00:00Z', head: { sha: sha('c'), ref: 'feat/older-work' }, labels: [] };
+  assert.equal(isIntegrationControlPlane(control), true);
+  assert.ok(readyPriorityScore(control, new Map(), now).score > readyPriorityScore(recentOrdinary, new Map(), now).score,
+    'control-plane work should overtake a merely recent ordinary PR');
+  assert.ok(readyPriorityScore(oldOrdinary, new Map(), now).score > readyPriorityScore(control, new Map(), now).score,
+    'aging must eventually overtake the control-plane boost');
+  assert.deepEqual(prioritizeReturnedReady([recentOrdinary, control, oldOrdinary], new Map(), now).map(item => item.number), [31, 167, 168]);
+});
+
+test('integration:repair gets a stronger bounded boost than ordinary control-plane work', () => {
+  const now = Date.parse('2026-09-14T12:00:00Z');
+  const repair = { number: 1, created_at: '2026-09-14T12:00:00Z', head: { sha: sha('d'), ref: 'fix/app' }, labels: [{ name: 'integration:repair' }] };
+  const control = { number: 2, created_at: '2026-09-14T12:00:00Z', head: { sha: sha('e'), ref: 'fix/integration-rescue-throughput' }, labels: [] };
+  assert.ok(readyPriorityScore(repair, new Map(), now).score > readyPriorityScore(control, new Map(), now).score);
 });
 
 test('fast evidence reuse requires exact state, commit tree, parents, artifact and successful Actions worker', async () => {
