@@ -20,6 +20,9 @@ concurrency:
   group: shino-reference-v2-dcc
   cancel-in-progress: true
 
+env:
+  LIBGL_ALWAYS_SOFTWARE: "1"
+
 jobs:
   build-dcc:
     runs-on: ubuntu-latest
@@ -35,12 +38,12 @@ jobs:
           git fetch origin "${GITHUB_REF_NAME}"
           git checkout -B "${GITHUB_REF_NAME}" "origin/${GITHUB_REF_NAME}"
 
-      - name: Install Blender
+      - name: Install Blender headless runtime
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender python3-numpy
+          sudo apt-get install -y blender python3-numpy xvfb libegl1 libgl1-mesa-dri libglx-mesa0
           blender --version
-          blender --background --python-exit-code 1 --python-expr "import numpy; print('Blender numpy', numpy.__version__)"
+          xvfb-run -a blender --background --python-exit-code 1 --python-expr "import numpy; print('Blender numpy', numpy.__version__)"
 
       - name: Prepare audited rig input
         run: |
@@ -50,7 +53,7 @@ jobs:
 
       - name: Build dedicated Shino Reference v2 DCC mesh
         run: |
-          blender --background --python-exit-code 1 \
+          xvfb-run -a blender --background --python-exit-code 1 \
             --python scripts/blender/run-shino-reference-v2.py -- \
             --source generated/shino-reference-v2/SHINO_review.glb \
             --source-vrm apps/rinne/public/simulator/assets/SHINO_review.vrm \
@@ -65,7 +68,7 @@ jobs:
 
       - name: Audit Blender source
         run: |
-          blender --background --python-exit-code 1 generated/shino-reference-v2/source/ShinoReferenceV2.blend \
+          xvfb-run -a blender --background --python-exit-code 1 generated/shino-reference-v2/source/ShinoReferenceV2.blend \
             --python scripts/blender/character-production-audit.py -- \
             --out generated/shino-reference-v2/blender-audit.json \
             --character-id shino.reference.v2
