@@ -1,0 +1,109 @@
+import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { client, maxReadyEvaluationsPerRun } from './integration.mjs';
+import { dependencies } from './integration-policy.mjs';
+import { conflictScope, REPOSITORY, rescueConfig } from './integration-rescue-policy.mjs';
+import { RescueStore } from './integration-rescue-store.mjs';
+import { buildReconciliationPlan } from './integration-reconciliation-plan.mjs';
+
+async function mapLimit(items, limit, task) {
+  const values = new Array(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(Math.max(1, limit), items.length) }, async () => {
+    while (cursor < items.length) {
+      const index = cursor++;
+      values[index] = await task(items[index], index);
+    }
+  });
+  await Promise.all(workers);
+  return values;
+}
+
+function recordMap(state) {
+  return new Map(Object.values(state?.records || {}).map(record => [Number(record.pr), record]));
+}
+
+async function scopeForPr(c, pr, record) {
+  if (record?.headSha === pr.head?.sha && record.scope?.files?.length) return record.scope;
+  const files = await c.pages(`/pulls/${pr.number}/files`, undefined, { maxPages: 30, cache: true });
+  const paths = files.flatMap(file => [file.filename, file.previous_filename].filter(Boolean));
+  return conflictScope(paths, pr.body || '');
+}
+
+export async function collectReconciliationPlan(c, repository = REPOSITORY, options = {}) {
+  const open = options.open || await c.pages('/pulls?state=open&base=develop&sort=created&direction=asc', undefined, { maxPages: 10 });
+  const ready = open.filter(pr => !pr.draft && pr.base?.ref === 'develop');
+  const maxEvaluations = Math.max(1, Math.min(24, Number(options.maxEvaluations || maxReadyEvaluationsPerRun)));
+  const selected = ready.slice(0, maxEvaluations);
+  const deferred = ready.slice(maxEvaluations).map(pr => ({ pr: pr.number, head: pr.head?.sha || null, reason: 'deferred by reconciliation evaluation budget' }));
+
+  let state = options.state || null;
+  if (!state && options.readRescueState !== false) {
+    try {
+      const store = new RescueStore(c, rescueConfig(process.env));
+      state = (await store.read()).state;
+    } catch {
+      state = null;
+    }
+  }
+  const records = recordMap(state);
+  const scopeRows = await mapLimit(selected, Number(options.concurrency || 6), async pr => [pr.number, await scopeForPr(c, pr, records.get(pr.number))]);
+  const scopeByPr = new Map(scopeRows);
+
+  const dependencyNumbers = new Set();
+  for (const pr of selected) {
+    try { for (const number of dependencies(pr.body || '')) dependencyNumbers.add(number); }
+    catch { /* planner records invalid dependency syntax as blocked */ }
+  }
+  const openByNumber = new Map(open.map(pr => [Number(pr.number), pr]));
+  const dependencyRows = await mapLimit([...dependencyNumbers], Number(options.concurrency || 6), async number => {
+    const snapshot = openByNumber.get(Number(number));
+    if (snapshot) return [Number(number), { merged: false, state: snapshot.state || 'open' }];
+    try {
+      const pr = await c.api('GET', `${c.root}/pulls/${number}`, null, { cache: true });
+      return [Number(number), { merged: Boolean(pr.merged || pr.merged_at), state: pr.state || null, base: pr.base?.ref || null }];
+    } catch (error) {
+      return [Number(number), { merged: false, state: 'unknown', error: error.message }];
+    }
+  });
+
+  const plan = buildReconciliationPlan({
+    ready: selected,
+    scopeByPr,
+    dependencyStateByPr: new Map(dependencyRows),
+    recordsByPr: records,
+    deferred,
+    maxTrainSize: options.maxTrainSize || state?.flowControl?.tuning?.trainSize || 5,
+    now: options.now || Date.now(),
+  });
+  const develop = options.develop || (await c.api('GET', `${c.root}/branches/develop`, null, { cache: true })).commit.sha;
+  return {
+    ...plan,
+    repository,
+    develop,
+    evaluated: selected.length,
+    totalReady: ready.length,
+    concurrency: Math.max(1, Number(options.concurrency || 6)),
+  };
+}
+
+async function main() {
+  if (process.env.GITHUB_REPOSITORY !== REPOSITORY || process.env.GITHUB_REF !== 'refs/heads/develop') throw new Error('RECONCILIATION_TRUSTED_DEVELOP_ONLY');
+  if (!process.env.GH_TOKEN) throw new Error('Missing scoped Actions token');
+  const mode = process.argv[2] || 'plan';
+  const output = process.argv[3] || '.deploy-state/integration-reconciliation.json';
+  if (mode !== 'plan') throw new Error('usage: integration-reconciliation.mjs plan [output.json]');
+  const c = client(REPOSITORY, process.env.GH_TOKEN, fetch, { diagnosticsPath: process.env.INTEGRATION_RECONCILIATION_DIAGNOSTICS_PATH || null });
+  const plan = await collectReconciliationPlan(c, REPOSITORY, {
+    concurrency: Number(process.env.INTEGRATION_PREFLIGHT_CONCURRENCY || 6),
+    maxEvaluations: Number(process.env.INTEGRATION_MAX_EVALUATIONS || maxReadyEvaluationsPerRun),
+  });
+  mkdirSync(resolve(output, '..'), { recursive: true });
+  writeFileSync(output, JSON.stringify(plan, null, 2));
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT,
+    `mode=${plan.pressure.mode}\nactionable=${plan.wakeAgain}\nactionable_idle=${plan.actionableIdle}\nwriter_count=${plan.counts.writer}\nrepair_count=${plan.counts.repair}\nactive_count=${plan.counts.active}\ntrain_count=${plan.counts.trains}\nready_count=${plan.totalReady}\n`);
+  console.log(JSON.stringify(plan, null, 2));
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) await main();
