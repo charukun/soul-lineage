@@ -4,4 +4,5 @@ export {HUMANOID_DYNAMICS_REVISION} from './humanoid-dynamics.js';
 export {HUMANOID_LIFE_REVISION} from './humanoid-life.js';
 export {HUMANOID_INTERACTION_REVISION} from './humanoid-interaction.js';
 export {HUMANOID_SELECTION_REVISION} from './humanoid-selection.js';
-export {HumanoidRuntime,HUMANOID_OPERATIONAL_REVISION} from './humanoid-operational.js';
+export {HUMANOID_OPERATIONAL_REVISION} from './humanoid-operational.js';
+export {HumanoidRuntime,HUMANOID_FINALIZED_REVISION} from './humanoid-finalized.js';
