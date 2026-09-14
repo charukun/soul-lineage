@@ -6,3 +6,4 @@ import './adaptive-visual-performance.js';
 import './runtime-resilience.js';
 import './shared-world-scale.js';
 import './simulation-scale.js';
+import './peer-save-guard.js';
