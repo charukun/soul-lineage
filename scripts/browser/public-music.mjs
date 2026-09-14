@@ -33,7 +33,14 @@ export function registerMusicTests({test,expect,targets,base}) {
       if (prior.src && prior.time > 0 && prior.ready >= 2) playedSources.add(prior.src);
       await page.locator('.soul-music [data-world]').selectOption('');
       await expect(page.locator('.soul-music [data-track]')).toHaveCount(150);
-      await page.locator('.soul-music [data-track="r01"]').click();
+      const requestedTrack=page.locator('.soul-music [data-track="r01"]');
+      if(!await requestedTrack.isVisible()) {
+        const nextPage=page.locator('.soul-music dialog').getByRole('button',{name:'次のページ'});
+        await expect(nextPage).toBeEnabled();
+        await nextPage.click();
+      }
+      await expect(requestedTrack).toBeVisible();
+      await requestedTrack.click();
       await expect(page.locator('.soul-music [data-state]')).toContainText('再生中：');
       await expect.poll(() => audio.evaluate(player => player.currentTime)).toBeGreaterThan(0);
       const playing = await snapshotAudio();
