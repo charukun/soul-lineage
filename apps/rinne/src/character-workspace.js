@@ -120,8 +120,8 @@ export function createCharacterWorkspace(review) {
   sync();
   return api;
 }
-export function downloadWorkspace(text) {
+export function downloadWorkspace(text, filename = 'shino-workspace.json') {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-  const link = document.createElement('a'); link.href = url; link.download = 'shino-workspace.json';
+  const link = document.createElement('a'); link.href = url; link.download = filename;
   document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
