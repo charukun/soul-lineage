@@ -40,9 +40,16 @@ test('interaction layer never owns authoritative actor world state or damage',as
  assert.doesNotMatch(source,/a\.x\s*=|a\.z\s*=|a\.yaw\s*=/,'presentation layer must not write authoritative actor transform');
  assert.doesNotMatch(source,/\.hp\s*=|damage\s*\(/,'presentation layer must not own damage');
  assert.match(source,/if\(!commit\)return null;const spec=interactionFor/);
- assert.match(source,/if\(!commit\|\|!a\?\.reaction/);
+ assert.match(source,/applyPairedResponse\(c,a,result,commit\)\{\n  if\(!commit\)return null/);
  assert.match(source,/if\(commit\)\{[\s\S]*this\._interaction\.history\.set/,'history only advances after a successful committed sample');
  const prepare=source.match(/prepareInteractionState\(a\)\{([\s\S]*?)\n \}/)?.[1];assert.ok(prepare);assert.doesNotMatch(prepare,/history\.set/,'preparation must remain side-effect free');
+});
+
+test('identified attacker and defender consume one impact beat without a second damage event',async()=>{
+ const source=await readFile(new URL('../public/simulator/src/humanoid-interaction.js',import.meta.url),'utf8');
+ assert.match(source,/channels\['hit-reaction'\]=beat=>/);assert.match(source,/String\(actor\?\.id\)===String\(beat\.actorId\)/);assert.match(source,/attacker\._pairedImpactBeat=beat/);
+ assert.match(source,/role='defender'/);assert.match(source,/role='attacker'/);assert.match(source,/response\.defender/);assert.match(source,/response\.attacker/);
+ assert.match(source,/singleDamageEvent:true/,'paired primitive must retain single authoritative damage event');
 });
 
 test('paired and interaction rigid offsets keep all returned samples and shadows aligned',async()=>{
