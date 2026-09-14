@@ -13,3 +13,5 @@ export * from './motion-runtime.js';
 export * from './motion-frame-qa.js';
 export * from './motion-orchestration.js';
 export * from './motion-review-planner.js';
+export * from './motion-operationalization.js';
+export * from './motion-kinematics-qa.js';
