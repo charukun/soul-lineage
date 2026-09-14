@@ -3,9 +3,12 @@ export * from './master-character-production.js';
 import { createShinoProductionPool as createBasePool } from './master-character-production.js';
 import { applyStylizedArtProfile } from './stylized-art.js';
 
-function profileForActorId(id) {
+export function productionArtProfileForActorId(id) {
   const value = String(id || '');
-  if (value.startsWith('review.') || value.includes('Sendagaya_Shino') || value.includes('sendagaya-shino')) return 'hero';
+  if (value.includes('Sendagaya_Shino') || value.includes('sendagaya-shino')) return 'hero';
+  // Character Workshop keeps the first review subject as its Shino reference
+  // target while the rest of the cohort stays representative of population cost.
+  if (/^review\.[^.]+\.0$/.test(value)) return 'hero';
   return 'npc';
 }
 
@@ -15,8 +18,8 @@ function applyProfile(root, profileId) {
 }
 
 /**
- * Shared production-pool adapter. Review Shino receives the hero Mid Poly
- * presentation target, while population instances keep the cheaper NPC target.
+ * Shared production-pool adapter. The Shino reference receives the hero Mid
+ * Poly target, while population instances keep the cheaper NPC target.
  * Pooling, rigging, motion, audit and gameplay state stay in the base module.
  */
 export function createShinoProductionPool(options) {
@@ -24,7 +27,7 @@ export function createShinoProductionPool(options) {
   const spawn = pool.spawn.bind(pool);
   pool.spawn = (id, ...args) => {
     const actor = spawn(id, ...args);
-    const profileId = profileForActorId(id);
+    const profileId = productionArtProfileForActorId(id);
     applyProfile(actor.root, profileId);
     applyProfile(actor.attachments, profileId);
     actor.root.userData.stylizedCharacterRole = profileId;
