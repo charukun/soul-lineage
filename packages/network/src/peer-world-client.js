@@ -34,7 +34,7 @@ export async function connectPeerHostedWorld({
   const broadcast=message=>{let sent=0,seen=new Set();if(star&&starHostId){try{star.send(message);sent++;seen.add(starHostId);}catch{}}for(const id of mesh?.snapshot().connected||[])if(!seen.has(id)&&mesh.send(id,message))sent++;return sent;};
   const emit=({to,message})=>to?sendTo(to,message):broadcast(message);
 
-  function syncMesh(){const authority=node?.authority;if(!authority||!mesh)return;if(authority.hostId!==selfId)mesh.syncMembers(Object.keys(authority.members||{}),{hostId:authority.hostId});}
+  function syncMesh(){const authority=node?.authority;if(!authority||!mesh)return;const starOwnsCurrentHost=Boolean(star&&starHostId===authority.hostId);mesh.syncMembers(Object.keys(authority.members||{}),{hostId:starOwnsCurrentHost?authority.hostId:null});}
   function phase(info){onPhase(info);syncMesh();}
   function createNode(message){
     if(node)return node;
@@ -48,7 +48,7 @@ export async function connectPeerHostedWorld({
     if(disposed||!message)return false;
     if(message.type==='world-welcome'){starHostId=String(message.authority?.hostId||message.mayorId);createNode(message);onAccepted(message);return true;}
     if(message.type==='mesh-signal'){mesh?.handleSignal(message.from||senderId,message.signal);return true;}
-    if(message.type?.startsWith('world-')){const handled=node?.receive(senderId,message)||false;if(handled&&message.type==='world-authority')syncMesh();return handled;}
+    if(message.type?.startsWith('world-')){const handled=node?.receive(senderId,message)||false;if(handled&&['world-authority','world-migration-open'].includes(message.type))syncMesh();return handled;}
     if(message.type==='snapshot-delta'||message.type==='snapshot'){onPresence(message.players||{},message.serverTime??now());if(message.battle)onBattle(message.battle);return true;}
     if(message.type==='battle'){onBattle(message.battle);return true;}
     if(message.type==='accepted'){onAccepted(message);return true;}
@@ -57,7 +57,7 @@ export async function connectPeerHostedWorld({
   }
 
   let connection;
-  connection=await acceptHostOffer(offer,{RTCPeerConnection,dualChannel:true,onState:state=>{onState(state);if(state==='open'&&connection)connection.send({type:'join',role,playerId:selfId,name:name||role,app:app||role,hostEligible,transport:'dual-v1'});if(CLOSED.has(state)&&node){star=null;node.tick();}},onMessage:(message,kind)=>handle(starHostId||'initial-host',message,kind)});
+  connection=await acceptHostOffer(offer,{RTCPeerConnection,dualChannel:true,onState:state=>{onState(state);if(state==='open'&&connection)connection.send({type:'join',role,playerId:selfId,name:name||role,app:app||role,hostEligible,transport:'dual-v1'});if(CLOSED.has(state)&&node){star=null;node.tick();syncMesh();}},onMessage:(message,kind)=>handle(starHostId||'initial-host',message,kind)});
   star=connection;
 
   const timer=setInterval(()=>{
