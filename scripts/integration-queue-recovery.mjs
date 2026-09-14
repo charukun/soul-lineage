@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { client, fastGate, recoverCancelledCi, recoveryReady } from './integration.mjs';
 import { manualReason, REPOSITORY, STATE_BRANCH, STATE_FILE } from './integration-rescue-policy.mjs';
+import { flowPressure, staleReadyCandidate } from './integration-flow-control.mjs';
 
 export const RESCUE_RUNTIME_TARGET = Object.freeze({
   maxConcurrency: 6,
@@ -78,7 +79,7 @@ async function retireExactSuperseded(c, pr, develop) {
 // observer recovers delivery events without claiming a Rescue worker or merging.
 export async function recoverQueue(c, { now = Date.now(), limit = 24, budgetMs = 150000 } = {}) {
   const started = Date.now();
-  const report = { checked: [], ciRecovery: [], wake: [], superseded: [], errors: [], dispatched: false, configAudit: null };
+  const report = { checked: [], ciRecovery: [], wake: [], superseded: [], staleReview: [], errors: [], dispatched: false, configAudit: null, flowControl: null };
   let develop = null;
   try {
     develop = (await c.api('GET', `${c.root}/branches/develop`)).commit.sha;
@@ -89,10 +90,11 @@ export async function recoverQueue(c, { now = Date.now(), limit = 24, budgetMs =
   }
   const all = await c.pages('/pulls?state=open&base=develop&sort=created&direction=asc', undefined, { maxPages: 6 });
   const ready = all.filter(pr => !manualReason(pr));
-  // A time-based window gives queues larger than one API budget a fair scan
-  // without adding another task database or requiring a self-dispatch loop.
+  report.flowControl = flowPressure({ ready: ready.length });
+  // Normal mode rotates fair windows. Under burn-down pressure, oldest Ready work
+  // stays at the front until the historical queue is materially reduced.
   const windows = Math.max(1, Math.ceil(ready.length / limit));
-  const start = (Math.floor(now / 600000) % windows) * limit;
+  const start = report.flowControl.mode === 'BURN_DOWN' ? 0 : (Math.floor(now / 600000) % windows) * limit;
   for (const snapshot of ready.slice(start, start + limit)) {
     if (Date.now() - started > budgetMs || (c.metrics?.().requests || 0) > 140 ||
         (c.metrics?.().rateRemaining != null && c.metrics().rateRemaining < 200)) break;
@@ -104,6 +106,7 @@ export async function recoverQueue(c, { now = Date.now(), limit = 24, budgetMs =
         report.superseded.push({ pr: pr.number, head: pr.head.sha, develop });
         continue;
       }
+      if (staleReadyCandidate(pr, now)) report.staleReview.push({ pr: pr.number, head: pr.head.sha, createdAt: pr.created_at || null, reason: 'STALE_READY_AI_REVIEW_CANDIDATE' });
       if (pr.mergeable !== true) continue;
       if (await fastGate(c, pr)) {
         const statuses = await c.pages(`/commits/${pr.head.sha}/statuses`, undefined, { maxPages: 3 });
