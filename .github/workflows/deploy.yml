@@ -87,49 +87,11 @@ jobs:
           REPAIR_ARTIFACT: ${{ inputs.repair_artifact }}
         run: node scripts/browser-repair-ticket.mjs
 
-  route-integration:
-    name: Coalesce Integration wakeup
+  controller:
+    name: Integration Controller
     if: >-
       github.event_name == 'workflow_dispatch' && inputs.repair_scope != 'pr' &&
       inputs.publish_only != true && inputs.refresh_staging != true && inputs.full_verification != true
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    permissions:
-      actions: read
-      contents: read
-      statuses: write
-    outputs:
-      run_control: ${{ steps.route.outputs.run_control }}
-      owner: ${{ steps.route.outputs.owner }}
-    steps:
-      - id: route
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const active = new Set(['queued','in_progress','waiting','requested','pending']);
-            const [branch, publisherRuns] = await Promise.all([
-              github.rest.repos.getBranch({ ...context.repo, branch: 'develop' }),
-              github.rest.actions.listWorkflowRuns({ ...context.repo, workflow_id: 'deploy.yml', branch: 'develop', per_page: 50 }),
-            ]);
-            const byId = new Map((publisherRuns.data.workflow_runs || [])
-              .filter(run => active.has(run.status)).map(run => [run.id, run]));
-            if (!byId.has(context.runId)) byId.set(context.runId, {
-              id: context.runId, status: 'in_progress', html_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
-            });
-            const owner = [...byId.values()].sort((a,b) => a.id-b.id)[0];
-            const runControl = owner.id === context.runId;
-            core.setOutput('run_control', String(runControl));
-            core.setOutput('owner', String(owner.id));
-            await github.rest.repos.createCommitStatus({ ...context.repo, sha: branch.data.commit.sha,
-              context: 'integration/wakeup', state: runControl ? 'success' : 'pending',
-              description: runControl ? 'Integration Controller admitted for latest Ready queue' : `Ready queue changed; coalesced behind run ${owner.id}`.slice(0,140),
-              target_url: owner.html_url });
-            if (!runControl) core.notice(`Coalesced Integration wakeup behind ${owner.html_url}`);
-
-  controller:
-    name: Integration Controller
-    needs: route-integration
-    if: needs.route-integration.outputs.run_control == 'true'
     uses: ./.github/workflows/integration-controller.yml
     with:
       rescue_mode: ${{ inputs.rescue_mode }}
