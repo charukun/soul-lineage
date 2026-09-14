@@ -98,14 +98,6 @@ jobs:
             --source-vrm apps/rinne/public/simulator/assets/SHINO_review.vrm \
             --out generated/shino-reference-v2
 
-      - name: Correct body proportions with humanoid bone-length scaling
-        run: |
-          xvfb-run -a blender --background --python-exit-code 1 \
-            generated/shino-reference-v2/source/ShinoReferenceV2.blend \
-            --python scripts/blender/refine-shino-reference-v2-v6.py -- \
-            --source-vrm apps/rinne/public/simulator/assets/SHINO_review.vrm \
-            --out generated/shino-reference-v2
-
       - name: Replace unsafe donor body with coherent stylized PRIMARY body
         run: |
           xvfb-run -a blender --background --python-exit-code 1 \
