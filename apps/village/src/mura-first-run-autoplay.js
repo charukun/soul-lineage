@@ -1,4 +1,3 @@
-import {defs} from './game/core.js';
 import {consumeFreshVillageLoad} from './game/save-store.js';
 import {markFirstRunAutoplaySeen,markFirstRunAutoplayStarted,shouldRunFirstRunAutoplay} from './game/first-run-onboarding.js';
 
@@ -150,10 +149,10 @@ function install(){
   document.removeEventListener('keydown',blockKeys,true);
   document.body.classList.remove('mura-first-run-autoplay');
   overlay.remove();
-  style.remove();
   const build=document.getElementById('build');
   build?.classList.add('mura-first-run-ready');
-  setTimeout(()=>build?.classList.remove('mura-first-run-ready'),reduced?1000:5200);
+  const cleanupDelay=reduced?1000:5200;
+  setTimeout(()=>{build?.classList.remove('mura-first-run-ready');style.remove();},cleanupDelay);
   village.activity();
   village.updateTutorial();
  }
@@ -180,7 +179,6 @@ function install(){
    if(!active)return;
    progressAt(index);
    if(!await animateObject(steps[index]))return;
-   progressAt(index+1);
    await wait(timing.after);
   }
   if(!active)return;
