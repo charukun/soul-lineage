@@ -3132,91 +3132,91 @@
       "workerId": "34836663499/pr-238/a1"
     },
     {
-      "id": "wave-34836663499-1-pr-238-a1:WORK_REPAIR_CLAIMED:1789386249759:663",
+      "action": "work/866e55ef0f5e/20260914T112041Z: control repair 1/2; baseline resume 1/8",
       "at": "2026-09-14T11:44:09.759Z",
+      "id": "wave-34836663499-1-pr-238-a1:WORK_REPAIR_CLAIMED:1789386249759:663",
       "pr": 238,
-      "workerId": "work/866e55ef0f5e/20260914T112041Z",
       "type": "WORK_REPAIR_CLAIMED",
-      "action": "work/866e55ef0f5e/20260914T112041Z: control repair 1/2; baseline resume 1/8"
+      "workerId": "work/866e55ef0f5e/20260914T112041Z"
     },
     {
-      "id": "wave-34836663499-1-pr-238-a1:RETURNED_TO_INTEGRATION:1789386471557:667",
+      "action": "Workの仕様確認・fast検証・元PRへのpushを確認。通常Integrationへ返却",
       "at": "2026-09-14T11:47:51.557Z",
+      "id": "wave-34836663499-1-pr-238-a1:RETURNED_TO_INTEGRATION:1789386471557:667",
       "pr": 238,
-      "workerId": "work/866e55ef0f5e/20260914T112041Z",
       "type": "RETURNED_TO_INTEGRATION",
-      "action": "Workの仕様確認・fast検証・元PRへのpushを確認。通常Integrationへ返却"
+      "workerId": "work/866e55ef0f5e/20260914T112041Z"
     },
     {
-      "id": "wave-34836663499-1-pr-238-a1:CHECKING:1789386501614:670",
+      "action": "Integrationへ再評価を依頼済み。Rescue返却PRを優先して現在headの通常gateを確認",
       "at": "2026-09-14T11:48:21.614Z",
+      "id": "wave-34836663499-1-pr-238-a1:CHECKING:1789386501614:670",
       "pr": 238,
-      "workerId": "34836663499/pr-238/a1",
       "type": "CHECKING",
-      "action": "Integrationへ再評価を依頼済み。Rescue返却PRを優先して現在headの通常gateを確認"
+      "workerId": "34836663499/pr-238/a1"
     },
     {
-      "id": "work-pr238:POST_RETURN_CI_FAILED:a46a28239d78912ed450b4b1421ae8cab5080381",
-      "type": "POST_RETURN_CI_FAILED",
-      "pr": 238,
-      "workerId": "work/866e55ef0f5e/20260914T112041Z",
+      "action": "Exact-head Validate and build failed: CI bootstrap invoked control/scripts/integration-gate-cost.mjs before v4 exists on develop; next Rescue classification must return this head to Work repair.",
       "at": "2026-09-14T11:50:51.488Z",
-      "action": "Exact-head Validate and build failed: CI bootstrap invoked control/scripts/integration-gate-cost.mjs before v4 exists on develop; next Rescue classification must return this head to Work repair."
+      "id": "work-pr238:POST_RETURN_CI_FAILED:a46a28239d78912ed450b4b1421ae8cab5080381",
+      "pr": 238,
+      "type": "POST_RETURN_CI_FAILED",
+      "workerId": "work/866e55ef0f5e/20260914T112041Z"
     },
     {
-      "id": "wave-34836663499-1-pr-238-a1:FAILED_RETRYABLE:1789386951802:675",
+      "action": "INTEGRATION_RETURN_STALLED",
       "at": "2026-09-14T11:55:51.802Z",
+      "id": "wave-34836663499-1-pr-238-a1:FAILED_RETRYABLE:1789386951802:675",
       "pr": 238,
-      "workerId": "34836663499/pr-238/a1",
       "type": "FAILED_RETRYABLE",
-      "action": "INTEGRATION_RETURN_STALLED"
+      "workerId": "34836663499/pr-238/a1"
     },
     {
+      "action": "work/866e55ef0f5e/20260914T115922Z: semantic repair 1/2",
+      "at": "2026-09-14T11:59:22.978Z",
       "id": "wave-34816139258-1-pr-198-a1:WORK_REPAIR_CLAIMED:1789387162978:677",
-      "at": "2026-09-14T11:59:22.978Z",
       "pr": 198,
-      "workerId": "work/866e55ef0f5e/20260914T115922Z",
       "type": "WORK_REPAIR_CLAIMED",
-      "action": "work/866e55ef0f5e/20260914T115922Z: semantic repair 1/2"
+      "workerId": "work/866e55ef0f5e/20260914T115922Z"
     },
     {
-      "id": "work-run:work/866e55ef0f5e/20260914T115922Z:BLOCKED:1789387162978",
-      "type": "WORK_REPAIR_BLOCKED",
-      "pr": 183,
-      "workerId": null,
+      "action": "Priority #1 not claimed: open Browser Repair #186 owns exact PR #183 head 9ebee865ccc06531d6611a1545e0e7c60149fabb; next path is Browser Repair resolution/closure, then re-read PR and claim.",
       "at": "2026-09-14T11:59:22.978Z",
-      "action": "Priority #1 not claimed: open Browser Repair #186 owns exact PR #183 head 9ebee865ccc06531d6611a1545e0e7c60149fabb; next path is Browser Repair resolution/closure, then re-read PR and claim."
+      "id": "work-run:work/866e55ef0f5e/20260914T115922Z:BLOCKED:1789387162978",
+      "pr": 183,
+      "type": "WORK_REPAIR_BLOCKED",
+      "workerId": null
     },
     {
-      "id": "wave-34836663499-1-pr-238-a1:BLOCKED_BY_RESCUE:1789387161935:678",
+      "action": "Waiting for #198 to merge into develop",
       "at": "2026-09-14T11:59:21.935Z",
+      "id": "wave-34836663499-1-pr-238-a1:BLOCKED_BY_RESCUE:1789387161935:678",
       "pr": 238,
-      "workerId": "34836663499/pr-238/a1",
       "type": "BLOCKED_BY_RESCUE",
-      "action": "Waiting for #198 to merge into develop"
+      "workerId": "34836663499/pr-238/a1"
     }
   ],
   "config": {
-    "maxConcurrency": 6,
-    "maxAttempts": 3,
+    "apiReserve": 200,
     "heartbeatMs": 120000,
-    "staleMs": 600000,
+    "maxAttempts": 3,
+    "maxConcurrency": 6,
+    "maxEvaluations": 24,
+    "maxRequests": 220,
     "queueStallMs": 300000,
     "retryMs": 120000,
     "scanMinMs": 60000,
-    "apiReserve": 200,
-    "maxEvaluations": 24,
-    "maxRequests": 220
+    "staleMs": 600000
   },
   "coordinator": {
-    "runId": "34840956887",
-    "heartbeatAt": "2026-09-14T11:59:21.935Z",
-    "develop": "82bc75f15ead3c22883402f043d282d450f5f92c",
-    "configured": true,
-    "phase": "observing",
-    "errors": [],
     "backend": "actions-no-api + chatgpt-work-push",
-    "configurationReason": null
+    "configurationReason": null,
+    "configured": true,
+    "develop": "82bc75f15ead3c22883402f043d282d450f5f92c",
+    "errors": [],
+    "heartbeatAt": "2026-09-14T11:59:21.935Z",
+    "phase": "observing",
+    "runId": "34840956887"
   },
   "cursor": 0,
   "outbox": [
@@ -3902,32 +3902,32 @@
       "type": "manual"
     },
     {
-      "id": "gmail:1a09fbfdc4def6af",
-      "type": "work-notice",
-      "sentAt": "2026-09-14T11:49:19.879Z",
+      "attempt": 1,
+      "branch": "feat/integration-autonomous-delivery-v4",
       "channel": "gmail-self",
+      "commit": "a46a28239d78912ed450b4b1421ae8cab5080381",
+      "id": "gmail:1a09fbfdc4def6af",
       "messageId": "1a09fbfdc4def6af",
       "pr": 238,
-      "commit": "a46a28239d78912ed450b4b1421ae8cab5080381",
+      "sentAt": "2026-09-14T11:49:19.879Z",
       "status": "READY_FOR_INTEGRATION",
-      "branch": "feat/integration-autonomous-delivery-v4",
-      "workerId": "work/866e55ef0f5e/20260914T112041Z",
-      "attempt": 1
+      "type": "work-notice",
+      "workerId": "work/866e55ef0f5e/20260914T112041Z"
     },
     {
-      "id": "gmail:1a09fc1b2dec43da",
-      "type": "work-notice",
-      "sentAt": "2026-09-14T11:51:18.313Z",
-      "channel": "gmail-self",
-      "messageId": "1a09fc1b2dec43da",
-      "pr": 238,
-      "commit": "a46a28239d78912ed450b4b1421ae8cab5080381",
-      "status": "FAILED",
-      "branch": "feat/integration-autonomous-delivery-v4",
-      "workerId": "work/866e55ef0f5e/20260914T112041Z",
       "attempt": 1,
+      "branch": "feat/integration-autonomous-delivery-v4",
+      "channel": "gmail-self",
+      "commit": "a46a28239d78912ed450b4b1421ae8cab5080381",
+      "id": "gmail:1a09fc1b2dec43da",
+      "messageId": "1a09fc1b2dec43da",
+      "next": "Rescue classification then Work repair of pre-integration control checkout bootstrap",
+      "pr": 238,
+      "sentAt": "2026-09-14T11:51:18.313Z",
       "stage": "exact-head Validate and build",
-      "next": "Rescue classification then Work repair of pre-integration control checkout bootstrap"
+      "status": "FAILED",
+      "type": "work-notice",
+      "workerId": "work/866e55ef0f5e/20260914T112041Z"
     }
   ],
   "records": {
@@ -9616,14 +9616,16 @@
       "nextAttemptAt": null,
       "pr": 174,
       "priority": {
-        "score": 10,
+        "explanation": "repair 0; dependents +0; age +10; small 0; risk/size penalty",
         "label": "LOW",
-        "explanation": "repair 0; dependents +0; age +10; small 0; risk/size penalty"
+        "score": 10
       },
       "reason": "DEVELOP_ADVANCED",
       "repair": false,
       "risk": "RED",
       "scope": {
+        "contract": false,
+        "control": false,
         "files": [
           "apps/village/docs/FIRST_BUILD_ACCEPTANCE.md",
           "apps/village/src/game/first-run-onboarding.js",
@@ -9633,15 +9635,13 @@
           "apps/village/tests/first-run-onboarding.test.mjs",
           "apps/village/tests/save-store-first-run.test.mjs"
         ],
-        "scopes": [
-          "apps/village"
-        ],
         "related": [
           "apps/village"
         ],
+        "scopes": [
+          "apps/village"
+        ],
         "shared": [],
-        "control": false,
-        "contract": false,
         "specs": []
       },
       "state": "BLOCKED_BY_RESCUE",
@@ -10313,9 +10313,9 @@
       "pr": 184,
       "previousPushedSha": null,
       "priority": {
-        "score": 8,
+        "explanation": "repair 0; dependents +0; age +8; small 0; risk/size penalty",
         "label": "LOW",
-        "explanation": "repair 0; dependents +0; age +8; small 0; risk/size penalty"
+        "score": 8
       },
       "reason": "DEVELOP_ADVANCED",
       "repair": false,
@@ -10326,6 +10326,8 @@
       "runId": "34801420315",
       "runUrl": "https://github.com/charukun/soul-lineage/actions/runs/34801420315",
       "scope": {
+        "contract": false,
+        "control": false,
         "files": [
           "apps/village/docs/REQUIREMENTS.md",
           "apps/village/src/mura-enhancements.js",
@@ -10334,15 +10336,13 @@
           "apps/village/tests/first-build.browser.mjs",
           "apps/village/tests/playability-polish.test.mjs"
         ],
-        "scopes": [
-          "apps/village"
-        ],
         "related": [
           "apps/village"
         ],
+        "scopes": [
+          "apps/village"
+        ],
         "shared": [],
-        "control": false,
-        "contract": false,
         "specs": []
       },
       "snapshot": {
@@ -11070,58 +11070,18 @@
       "updatedAt": "2026-09-14T11:59:22.978Z",
       "waitingReason": null,
       "wave": "wave-34816139258-1",
-      "workRepairAttempts": 1,
       "workRepair": {
-        "workerId": "work/866e55ef0f5e/20260914T115922Z",
-        "status": "working",
         "attempt": 1,
-        "maxAttempts": 2,
-        "repairKind": "semantic",
         "baselineChurns": 0,
-        "maxBaselineChurns": 8,
-        "resumedFromBaselineAdvance": false,
-        "sourceHead": "aedbb2fbce328ef48048b90a807771398a4b180a",
-        "develop": "82bc75f15ead3c22883402f043d282d450f5f92c",
         "contract": "80733b57b8676030d07f4f1ea76f7e25a30c1a3a3b485e230f0b93b41c93caeb",
+        "develop": "82bc75f15ead3c22883402f043d282d450f5f92c",
         "evidenceKey": "bbddcb7af65cadc13aa4e93ee9fd152a1c47e0aa3464c48f2b32227373b2f998",
-        "scope": {
-          "files": [
-            "apps/rinne/src/character-review-main.js",
-            "apps/rinne/src/character-workspace.js",
-            "apps/rinne/tests/character-reference-model.test.mjs",
-            "docs/characters/CHARACTER_STUDIO.md",
-            "docs/characters/MODEL_BUILDER.md",
-            "docs/characters/references/README.md",
-            "packages/characters/src/index.js",
-            "packages/characters/src/model-builder.js",
-            "packages/characters/src/reference-models.js",
-            "packages/characters/tests/model-builder.test.mjs",
-            "scripts/character-model-builder.mjs",
-            "tests/character-model-builder.test.mjs"
-          ],
-          "scopes": [
-            "apps/rinne",
-            "docs",
-            "packages/characters",
-            "repository"
-          ],
-          "related": [
-            "apps/rinne",
-            "docs",
-            "packages/characters",
-            "repository"
-          ],
-          "shared": [
-            "packages/characters"
-          ],
-          "control": true,
-          "contract": false,
-          "specs": [],
-          "repairKind": "semantic"
-        },
-        "startedAt": "2026-09-14T11:59:22.978Z",
-        "heartbeatAt": "2026-09-14T11:59:22.978Z",
         "expiresAt": "2026-09-14T12:44:22.978Z",
+        "heartbeatAt": "2026-09-14T11:59:22.978Z",
+        "maxAttempts": 2,
+        "maxBaselineChurns": 8,
+        "pushPreparedAt": "2026-09-14T12:08:20.000Z",
+        "repairKind": "semantic",
         "result": {
           "changedPaths": [
             "apps/rinne/src/character-review-main.js",
@@ -11139,10 +11099,6 @@
           ],
           "changedPathsComplete": true,
           "commit": {
-            "sha": "3a0fc4bdbe95aa3f02a62c5335f4f5f2b3566450",
-            "tree": {
-              "sha": "43fdea78850017ce5dacbf46232f147c64ca2c0a"
-            },
             "parents": [
               {
                 "sha": "aedbb2fbce328ef48048b90a807771398a4b180a"
@@ -11150,25 +11106,23 @@
               {
                 "sha": "82bc75f15ead3c22883402f043d282d450f5f92c"
               }
-            ]
-          },
-          "head": "3a0fc4bdbe95aa3f02a62c5335f4f5f2b3566450",
-          "tree": "43fdea78850017ce5dacbf46232f147c64ca2c0a",
-          "validation": {
-            "status": "passed",
-            "tree": "43fdea78850017ce5dacbf46232f147c64ca2c0a",
-            "commands": [
-              "npm ci --no-audit --no-fund",
-              "node --test packages/characters/tests/model-builder.test.mjs tests/character-model-builder.test.mjs packages/characters/tests/production-pipeline.test.mjs packages/characters/tests/reference-models.test.mjs packages/characters/tests/reference-production-status.test.mjs apps/rinne/tests/character-reference-model.test.mjs",
-              "npm run characters:production:check",
-              "node scripts/validate.mjs fast 82bc75f15ead3c22883402f043d282d450f5f92c 3a0fc4bdbe95aa3f02a62c5335f4f5f2b3566450",
-              "git diff --check"
             ],
-            "summary": "npm ci succeeded; focused character/model-builder and production tests 20/20 passed; production check passed with 11 catalog models and BLOCKOUT ceiling; trusted fast passed 780 tests with 1 platform-only skip and all demon/rinne/village builds; no conflict markers; exact 12-path PR scope."
+            "sha": "143d6014117cbfc4cd4dc81a6857b2b403c7d85b",
+            "tree": {
+              "sha": "43fdea78850017ce5dacbf46232f147c64ca2c0a"
+            }
           },
           "decision": {
+            "controlReview": {
+              "governingSources": [
+                "AGENTS.md@82bc75f15ead3c22883402f043d282d450f5f92c",
+                "docs/DEVELOPMENT.md@82bc75f15ead3c22883402f043d282d450f5f92c",
+                "docs/INTEGRATION.md@82bc75f15ead3c22883402f043d282d450f5f92c",
+                "docs/INTEGRATION_RESCUE_WORK.md@82bc75f15ead3c22883402f043d282d450f5f92c"
+              ],
+              "preservesGates": true
+            },
             "preservesBoth": true,
-            "summary": "Preserved PR #198 provider-neutral model build request, QA acceptance, Workshop export, CLI and gated distribution while retaining develop's 11-model runtime reference catalog and explicit runtime-procedural BLOCKOUT ceiling. Build requests now use the audited MasterCharacter as fallback, so reference blockouts cannot be mistaken for production assets; both model-builder and production-pipeline exports and documentation remain intact.",
             "sources": [
               {
                 "commit": "aedbb2fbce328ef48048b90a807771398a4b180a",
@@ -11187,19 +11141,65 @@
                 "path": "packages/characters/tests/production-pipeline.test.mjs"
               }
             ],
-            "controlReview": {
-              "preservesGates": true,
-              "governingSources": [
-                "AGENTS.md@82bc75f15ead3c22883402f043d282d450f5f92c",
-                "docs/DEVELOPMENT.md@82bc75f15ead3c22883402f043d282d450f5f92c",
-                "docs/INTEGRATION.md@82bc75f15ead3c22883402f043d282d450f5f92c",
-                "docs/INTEGRATION_RESCUE_WORK.md@82bc75f15ead3c22883402f043d282d450f5f92c"
-              ]
-            }
+            "summary": "Preserved PR #198 provider-neutral model build request, QA acceptance, Workshop export, CLI and gated distribution while retaining develop's 11-model runtime reference catalog and explicit runtime-procedural BLOCKOUT ceiling. Build requests now use the audited MasterCharacter as fallback, so reference blockouts cannot be mistaken for production assets; both model-builder and production-pipeline exports and documentation remain intact."
+          },
+          "head": "143d6014117cbfc4cd4dc81a6857b2b403c7d85b",
+          "tree": "43fdea78850017ce5dacbf46232f147c64ca2c0a",
+          "validation": {
+            "commands": [
+              "npm ci --no-audit --no-fund",
+              "node --test packages/characters/tests/model-builder.test.mjs tests/character-model-builder.test.mjs packages/characters/tests/production-pipeline.test.mjs packages/characters/tests/reference-models.test.mjs packages/characters/tests/reference-production-status.test.mjs apps/rinne/tests/character-reference-model.test.mjs",
+              "npm run characters:production:check",
+              "node scripts/validate.mjs fast 82bc75f15ead3c22883402f043d282d450f5f92c 143d6014117cbfc4cd4dc81a6857b2b403c7d85b",
+              "git diff --check"
+            ],
+            "status": "passed",
+            "summary": "npm ci succeeded; focused character/model-builder and production tests 20/20 passed; production check passed with 11 catalog models and BLOCKOUT ceiling; trusted fast passed 780 tests with 1 platform-only skip and all demon/rinne/village builds; no conflict markers; exact 12-path PR scope.",
+            "tree": "43fdea78850017ce5dacbf46232f147c64ca2c0a"
           }
         },
-        "pushPreparedAt": "2026-09-14T12:04:03.825Z"
-      }
+        "resumedFromBaselineAdvance": false,
+        "scope": {
+          "contract": false,
+          "control": true,
+          "files": [
+            "apps/rinne/src/character-review-main.js",
+            "apps/rinne/src/character-workspace.js",
+            "apps/rinne/tests/character-reference-model.test.mjs",
+            "docs/characters/CHARACTER_STUDIO.md",
+            "docs/characters/MODEL_BUILDER.md",
+            "docs/characters/references/README.md",
+            "packages/characters/src/index.js",
+            "packages/characters/src/model-builder.js",
+            "packages/characters/src/reference-models.js",
+            "packages/characters/tests/model-builder.test.mjs",
+            "scripts/character-model-builder.mjs",
+            "tests/character-model-builder.test.mjs"
+          ],
+          "related": [
+            "apps/rinne",
+            "docs",
+            "packages/characters",
+            "repository"
+          ],
+          "repairKind": "semantic",
+          "scopes": [
+            "apps/rinne",
+            "docs",
+            "packages/characters",
+            "repository"
+          ],
+          "shared": [
+            "packages/characters"
+          ],
+          "specs": []
+        },
+        "sourceHead": "aedbb2fbce328ef48048b90a807771398a4b180a",
+        "startedAt": "2026-09-14T11:59:22.978Z",
+        "status": "working",
+        "workerId": "work/866e55ef0f5e/20260914T115922Z"
+      },
+      "workRepairAttempts": 1
     },
     "200": {
       "attempt": 1,
@@ -12060,14 +12060,16 @@
       "nextAttemptAt": null,
       "pr": 220,
       "priority": {
-        "score": 4,
+        "explanation": "repair 0; dependents +20; age +4; small 0; risk/size penalty",
         "label": "LOW",
-        "explanation": "repair 0; dependents +20; age +4; small 0; risk/size penalty"
+        "score": 4
       },
       "reason": "MERGE_CONFLICT",
       "repair": false,
       "risk": "RED",
       "scope": {
+        "contract": false,
+        "control": true,
         "files": [
           ".gitignore",
           "apps/demon/package.json",
@@ -12133,7 +12135,7 @@
           "tests/rendering-performance-pipeline.test.mjs",
           "tests/visual-budget.test.mjs"
         ],
-        "scopes": [
+        "related": [
           "repository",
           "apps/demon",
           "apps/rinne",
@@ -12142,7 +12144,7 @@
           "packages/characters",
           "packages/rendering"
         ],
-        "related": [
+        "scopes": [
           "repository",
           "apps/demon",
           "apps/rinne",
@@ -12155,8 +12157,6 @@
           "packages/characters",
           "packages/rendering"
         ],
-        "control": true,
-        "contract": false,
         "specs": []
       },
       "state": "BLOCKED_BY_RESCUE",
@@ -12610,14 +12610,16 @@
       "nextAttemptAt": null,
       "pr": 226,
       "priority": {
-        "score": 3,
+        "explanation": "repair 0; dependents +20; age +3; small 0; risk/size penalty",
         "label": "LOW",
-        "explanation": "repair 0; dependents +20; age +3; small 0; risk/size penalty"
+        "score": 3
       },
       "reason": "MERGE_CONFLICT",
       "repair": false,
       "risk": "RED",
       "scope": {
+        "contract": false,
+        "control": true,
         "files": [
           ".gitignore",
           "apps/demon/package.json",
@@ -12694,7 +12696,7 @@
           "tests/rendering-performance-pipeline.test.mjs",
           "tests/visual-budget.test.mjs"
         ],
-        "scopes": [
+        "related": [
           "repository",
           "apps/demon",
           "apps/rinne",
@@ -12703,7 +12705,7 @@
           "packages/characters",
           "packages/rendering"
         ],
-        "related": [
+        "scopes": [
           "repository",
           "apps/demon",
           "apps/rinne",
@@ -12716,8 +12718,6 @@
           "packages/characters",
           "packages/rendering"
         ],
-        "control": true,
-        "contract": false,
         "specs": []
       },
       "state": "BLOCKED_BY_RESCUE",
@@ -12863,14 +12863,16 @@
       "nextAttemptAt": null,
       "pr": 229,
       "priority": {
-        "score": 2,
+        "explanation": "repair 0; dependents +20; age +2; small 0; risk/size penalty",
         "label": "LOW",
-        "explanation": "repair 0; dependents +20; age +2; small 0; risk/size penalty"
+        "score": 2
       },
       "reason": "MERGE_CONFLICT",
       "repair": false,
       "risk": "RED",
       "scope": {
+        "contract": true,
+        "control": true,
         "files": [
           ".gitignore",
           "apps/demon/package.json",
@@ -12974,19 +12976,6 @@
           "tests/visual-budget.test.mjs",
           "tests/world-scale-contract.test.mjs"
         ],
-        "scopes": [
-          "repository",
-          "apps/demon",
-          "apps/rinne",
-          "apps/village",
-          "docs",
-          "packages/audio",
-          "packages/characters",
-          "packages/network",
-          "packages/platform-web",
-          "packages/rendering",
-          "packages/world"
-        ],
         "related": [
           "repository",
           "apps/demon",
@@ -13001,6 +12990,19 @@
           "packages/world",
           "packages/shared-ui"
         ],
+        "scopes": [
+          "repository",
+          "apps/demon",
+          "apps/rinne",
+          "apps/village",
+          "docs",
+          "packages/audio",
+          "packages/characters",
+          "packages/network",
+          "packages/platform-web",
+          "packages/rendering",
+          "packages/world"
+        ],
         "shared": [
           "packages/audio",
           "packages/characters",
@@ -13009,8 +13011,6 @@
           "packages/rendering",
           "packages/world"
         ],
-        "control": true,
-        "contract": true,
         "specs": []
       },
       "state": "BLOCKED_BY_RESCUE",
@@ -13319,14 +13319,16 @@
       "nextAttemptAt": null,
       "pr": 236,
       "priority": {
-        "score": -19,
+        "explanation": "repair 0; dependents +0; age +1; small 0; risk/size penalty",
         "label": "LOW",
-        "explanation": "repair 0; dependents +0; age +1; small 0; risk/size penalty"
+        "score": -19
       },
       "reason": "MERGE_CONFLICT",
       "repair": false,
       "risk": "RED",
       "scope": {
+        "contract": true,
+        "control": true,
         "files": [
           ".gitignore",
           "apps/demon/package.json",
@@ -13453,19 +13455,6 @@
           "tests/visual-budget.test.mjs",
           "tests/world-scale-contract.test.mjs"
         ],
-        "scopes": [
-          "repository",
-          "apps/demon",
-          "apps/rinne",
-          "apps/village",
-          "docs",
-          "packages/audio",
-          "packages/characters",
-          "packages/network",
-          "packages/platform-web",
-          "packages/rendering",
-          "packages/world"
-        ],
         "related": [
           "repository",
           "apps/demon",
@@ -13480,6 +13469,19 @@
           "packages/world",
           "packages/shared-ui"
         ],
+        "scopes": [
+          "repository",
+          "apps/demon",
+          "apps/rinne",
+          "apps/village",
+          "docs",
+          "packages/audio",
+          "packages/characters",
+          "packages/network",
+          "packages/platform-web",
+          "packages/rendering",
+          "packages/world"
+        ],
         "shared": [
           "packages/audio",
           "packages/characters",
@@ -13488,8 +13490,6 @@
           "packages/rendering",
           "packages/world"
         ],
-        "control": true,
-        "contract": true,
         "specs": []
       },
       "state": "BLOCKED_BY_RESCUE",
@@ -13605,6 +13605,7 @@
       "detail": "#223 Control Plane v2 / #225 Autonomous Delivery v3 を最新develop上で一本化し、配送制御をv4へ更新",
       "detectedAt": "2026-09-14T11:11:51.292Z",
       "developSha": "82bc75f15ead3c22883402f043d282d450f5f92c",
+      "dispatchLease": null,
       "failureReason": "INTEGRATION_RETURN_STALLED",
       "failures": [
         {
@@ -13616,37 +13617,44 @@
           "workerId": "34836663499/pr-238/a1"
         },
         {
-          "reason": "INTEGRATION_RETURN_STALLED",
           "at": "2026-09-14T11:55:51.802Z",
-          "workerId": "34836663499/pr-238/a1",
           "attempt": 1,
+          "reason": "INTEGRATION_RETURN_STALLED",
+          "rescueId": "wave-34836663499-1-pr-238-a1",
           "runId": "34836663499",
-          "rescueId": "wave-34836663499-1-pr-238-a1"
+          "workerId": "34836663499/pr-238/a1"
         }
       ],
       "headSha": "a46a28239d78912ed450b4b1421ae8cab5080381",
       "heartbeatAt": "2026-09-14T11:11:51.292Z",
+      "integrationRequestedAt": "2026-09-14T11:48:21.614Z",
       "lease": null,
       "maxAttempts": 3,
       "mergeBaseSha": "82bc75f15ead3c22883402f043d282d450f5f92c",
       "mergedDependencies": [],
       "mode": "reevaluate",
       "nextAttemptAt": "2026-09-14T11:57:51.802Z",
+      "pendingIntegration": false,
       "pr": 238,
       "previousPushedSha": null,
       "priority": {
-        "score": 80,
+        "explanation": "repair +100; dependents +0; age +0; small 0; risk/size penalty",
         "label": "HIGH",
-        "explanation": "repair +100; dependents +0; age +0; small 0; risk/size penalty"
+        "score": 80
       },
+      "pushedAt": "2026-09-14T11:47:51.557Z",
+      "pushedSha": "a46a28239d78912ed450b4b1421ae8cab5080381",
       "reason": "QUEUE_PENDING",
       "repair": true,
       "rescueId": "wave-34836663499-1-pr-238-a1",
+      "returnedAt": "2026-09-14T11:47:51.557Z",
       "risk": "RED",
       "riskReason": "Sequential predecessor; #236 waits for this PR to merge",
       "runId": "34836663499",
       "runUrl": "https://github.com/charukun/soul-lineage/actions/runs/34836663499",
       "scope": {
+        "contract": false,
+        "control": true,
         "files": [
           ".github/workflows/ci.yml",
           ".github/workflows/code-health.yml",
@@ -13683,19 +13691,17 @@
           "tests/integration-flow-control.test.mjs",
           "tests/integration-queue-recovery.test.mjs"
         ],
-        "scopes": [
-          "repository",
-          "docs",
-          "ops-board"
-        ],
         "related": [
           "repository",
           "docs",
           "ops-board"
         ],
+        "scopes": [
+          "repository",
+          "docs",
+          "ops-board"
+        ],
         "shared": [],
-        "control": true,
-        "contract": false,
         "specs": []
       },
       "snapshot": {
@@ -13706,77 +13712,33 @@
       "state": "BLOCKED_BY_RESCUE",
       "title": "feat(integration): autonomous delivery v4",
       "updatedAt": "2026-09-14T11:59:21.935Z",
+      "validation": {
+        "commands": [
+          "npm ci --no-audit --no-fund",
+          "node --test tests/integration-flow-control.test.mjs tests/integration-autonomous-delivery-v4.test.mjs tests/integration-continuation.test.mjs tests/integration-queue-wakeup-contract.test.mjs tests/integration-queue-recovery.test.mjs tests/integration.test.mjs tests/integration-rescue-runtime.test.mjs",
+          "node scripts/validate.mjs fast 82bc75f15ead3c22883402f043d282d450f5f92c 6e38165c80bfd684de7f8fada1e2e83d6c4e4f14",
+          "git diff --check"
+        ],
+        "head": "a46a28239d78912ed450b4b1421ae8cab5080381",
+        "status": "passed",
+        "summary": "npm ci succeeded; focused control/rescue suite 65 passed, 1 platform-only skip; trusted fast passed including all affected builds; no conflict markers; exact 34-path scope. GitHub Git Data commit uses the identical validated tree and exact ordered parents.",
+        "tree": "90715f91636bb5f868dc26e3682764d773a6b472"
+      },
       "waitingReason": "Waiting for #198 to merge into develop",
       "wave": "wave-34836663499-1",
       "workRepair": {
-        "workerId": "work/866e55ef0f5e/20260914T112041Z",
-        "status": "returned",
         "attempt": 1,
-        "maxAttempts": 2,
-        "repairKind": "control",
         "baselineChurns": 1,
-        "maxBaselineChurns": 8,
-        "resumedFromBaselineAdvance": true,
-        "sourceHead": "79b53322016290773eae70a7d0fa0541e62f766c",
-        "develop": "82bc75f15ead3c22883402f043d282d450f5f92c",
         "contract": "0249b0e7db39f29121a2453dc028e7ae0bca7c54619d9c308151b801ec204822",
+        "develop": "82bc75f15ead3c22883402f043d282d450f5f92c",
         "evidenceKey": "3fbaa489e77cbf81acc81d044c5fc01998c7f03514a4eb9cc048bf38a9eb5a70",
-        "scope": {
-          "files": [
-            ".github/workflows/ci.yml",
-            ".github/workflows/code-health.yml",
-            ".github/workflows/deploy.yml",
-            ".github/workflows/integration-controller.yml",
-            ".github/workflows/integration-rescue.yml",
-            "docs/INTEGRATION_AUTONOMOUS_DELIVERY_V4.md",
-            "ops-board/public/flow-board.css",
-            "ops-board/public/flow-board.js",
-            "ops-board/public/index.html",
-            "ops-board/rescue.mjs",
-            "scripts/browser-repair-ticket.mjs",
-            "scripts/dev-candidate-server.mjs",
-            "scripts/dev-last-known-good.mjs",
-            "scripts/integration-control-canary.mjs",
-            "scripts/integration-control-consolidation.mjs",
-            "scripts/integration-control-plane.mjs",
-            "scripts/integration-controller.mjs",
-            "scripts/integration-failure-knowledge.mjs",
-            "scripts/integration-flow-control.mjs",
-            "scripts/integration-flow-delivery.mjs",
-            "scripts/integration-flow-observer.mjs",
-            "scripts/integration-gate-cost.mjs",
-            "scripts/integration-quarantine-signal.mjs",
-            "scripts/integration-queue-recovery.mjs",
-            "scripts/integration-rescue-priority.mjs",
-            "scripts/integration-rescue-return.mjs",
-            "scripts/integration-rescue-store.mjs",
-            "scripts/integration-stack-ci.mjs",
-            "scripts/integration-virtual-train.mjs",
-            "scripts/notify-delivery.mjs",
-            "scripts/site-dedupe.mjs",
-            "tests/integration-autonomous-delivery-v4.test.mjs",
-            "tests/integration-flow-control.test.mjs",
-            "tests/integration-queue-recovery.test.mjs"
-          ],
-          "scopes": [
-            "repository",
-            "docs",
-            "ops-board"
-          ],
-          "related": [
-            "repository",
-            "docs",
-            "ops-board"
-          ],
-          "shared": [],
-          "control": true,
-          "contract": false,
-          "specs": [],
-          "repairKind": "control"
-        },
-        "startedAt": "2026-09-14T11:44:09.759Z",
-        "heartbeatAt": "2026-09-14T11:44:09.759Z",
         "expiresAt": "2026-09-14T12:29:09.759Z",
+        "finishedAt": "2026-09-14T11:47:51.557Z",
+        "heartbeatAt": "2026-09-14T11:44:09.759Z",
+        "maxAttempts": 2,
+        "maxBaselineChurns": 8,
+        "pushPreparedAt": "2026-09-14T11:46:46.041Z",
+        "repairKind": "control",
         "result": {
           "changedPaths": [
             ".github/workflows/ci.yml",
@@ -13880,33 +13842,71 @@
             "tree": "90715f91636bb5f868dc26e3682764d773a6b472"
           }
         },
-        "pushPreparedAt": "2026-09-14T11:46:46.041Z",
-        "finishedAt": "2026-09-14T11:47:51.557Z"
+        "resumedFromBaselineAdvance": true,
+        "scope": {
+          "contract": false,
+          "control": true,
+          "files": [
+            ".github/workflows/ci.yml",
+            ".github/workflows/code-health.yml",
+            ".github/workflows/deploy.yml",
+            ".github/workflows/integration-controller.yml",
+            ".github/workflows/integration-rescue.yml",
+            "docs/INTEGRATION_AUTONOMOUS_DELIVERY_V4.md",
+            "ops-board/public/flow-board.css",
+            "ops-board/public/flow-board.js",
+            "ops-board/public/index.html",
+            "ops-board/rescue.mjs",
+            "scripts/browser-repair-ticket.mjs",
+            "scripts/dev-candidate-server.mjs",
+            "scripts/dev-last-known-good.mjs",
+            "scripts/integration-control-canary.mjs",
+            "scripts/integration-control-consolidation.mjs",
+            "scripts/integration-control-plane.mjs",
+            "scripts/integration-controller.mjs",
+            "scripts/integration-failure-knowledge.mjs",
+            "scripts/integration-flow-control.mjs",
+            "scripts/integration-flow-delivery.mjs",
+            "scripts/integration-flow-observer.mjs",
+            "scripts/integration-gate-cost.mjs",
+            "scripts/integration-quarantine-signal.mjs",
+            "scripts/integration-queue-recovery.mjs",
+            "scripts/integration-rescue-priority.mjs",
+            "scripts/integration-rescue-return.mjs",
+            "scripts/integration-rescue-store.mjs",
+            "scripts/integration-stack-ci.mjs",
+            "scripts/integration-virtual-train.mjs",
+            "scripts/notify-delivery.mjs",
+            "scripts/site-dedupe.mjs",
+            "tests/integration-autonomous-delivery-v4.test.mjs",
+            "tests/integration-flow-control.test.mjs",
+            "tests/integration-queue-recovery.test.mjs"
+          ],
+          "related": [
+            "repository",
+            "docs",
+            "ops-board"
+          ],
+          "repairKind": "control",
+          "scopes": [
+            "repository",
+            "docs",
+            "ops-board"
+          ],
+          "shared": [],
+          "specs": []
+        },
+        "sourceHead": "79b53322016290773eae70a7d0fa0541e62f766c",
+        "startedAt": "2026-09-14T11:44:09.759Z",
+        "status": "returned",
+        "workerId": "work/866e55ef0f5e/20260914T112041Z"
       },
       "workRepairAttempts": 1,
-      "workRepairBaselineChurns": 1,
-      "pushedSha": "a46a28239d78912ed450b4b1421ae8cab5080381",
-      "validation": {
-        "commands": [
-          "npm ci --no-audit --no-fund",
-          "node --test tests/integration-flow-control.test.mjs tests/integration-autonomous-delivery-v4.test.mjs tests/integration-continuation.test.mjs tests/integration-queue-wakeup-contract.test.mjs tests/integration-queue-recovery.test.mjs tests/integration.test.mjs tests/integration-rescue-runtime.test.mjs",
-          "node scripts/validate.mjs fast 82bc75f15ead3c22883402f043d282d450f5f92c 6e38165c80bfd684de7f8fada1e2e83d6c4e4f14",
-          "git diff --check"
-        ],
-        "status": "passed",
-        "summary": "npm ci succeeded; focused control/rescue suite 65 passed, 1 platform-only skip; trusted fast passed including all affected builds; no conflict markers; exact 34-path scope. GitHub Git Data commit uses the identical validated tree and exact ordered parents.",
-        "tree": "90715f91636bb5f868dc26e3682764d773a6b472",
-        "head": "a46a28239d78912ed450b4b1421ae8cab5080381"
-      },
-      "returnedAt": "2026-09-14T11:47:51.557Z",
-      "pushedAt": "2026-09-14T11:47:51.557Z",
-      "pendingIntegration": false,
-      "dispatchLease": null,
-      "integrationRequestedAt": "2026-09-14T11:48:21.614Z"
+      "workRepairBaselineChurns": 1
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 680,
+  "revision": 681,
   "schema": 1,
   "updatedAt": "2026-09-14T12:04:05.747Z",
   "waves": [
