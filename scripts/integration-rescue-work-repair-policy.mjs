@@ -4,15 +4,27 @@ const REPAIR_CLASSES = [
   ['related', /^FAILED_MANUAL:RELATED_CODE_RECONCILIATION(?::|$)/],
   ['control', /^FAILED_MANUAL:CONTROL_OR_CONTRACT_RECONCILIATION(?::|$)/],
   ['assertion', /^FAILED_MANUAL:ASSERTION_REMOVAL(?::|$)/],
+  ['ci', /(?:current head fast gate or another check is not successful|CI_GATE_FAILED|VALIDATION_FAILED(?::|$)|Affected browser smoke|browser smoke)/i],
+  ['large-base', /(?:Large base comparison needs manual Integration review|LARGE_BASE_RECONCILIATION)/i],
   ['transport', /(?:GitHub POST .*\/git\/trees: HTTP 422|TREE_STAGING|GIT_TREE.*422)/i],
 ];
 const BASELINE_ADVANCE = /(?:^WORK_REPAIR_BASELINE_ADVANCED:|DEVELOP_ADVANCED_AFTER_VALIDATION|Latest develop advanced from [0-9a-f]{40} to [0-9a-f]{40})/i;
 export const MAX_WORK_REPAIR_ATTEMPTS = 2;
 export const MAX_BASELINE_CHURNS = 8;
 
+function repairReasons(record) {
+  return [
+    String(record?.failureReason || ''),
+    ...(Array.isArray(record?.failures) ? [...record.failures].reverse().map(item => String(item?.reason || '')) : []),
+  ].filter(Boolean);
+}
+
 export function workRepairClass(record) {
-  const reason = String(record?.failureReason || '');
-  return REPAIR_CLASSES.find(([, pattern]) => pattern.test(reason))?.[0] || null;
+  for (const reason of repairReasons(record)) {
+    const match = REPAIR_CLASSES.find(([, pattern]) => pattern.test(reason));
+    if (match) return match[0];
+  }
+  return null;
 }
 
 export function workRepairBaselineAdvanceReason(reason) {
