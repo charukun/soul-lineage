@@ -125,9 +125,22 @@ export function deliveryLatencyMetrics(records = []) {
   return { implementationToReady: metric(implementationToReady), readyToMerge: metric(readyToMerge), mergeToDev: metric(mergeToDev), readyToDev: metric(readyToDev), implementationToDev: metric(implementationToDev) };
 }
 
+export function returnedRepairHead(record, head = record?.headSha) {
+  return Boolean(
+    record &&
+    typeof head === 'string' &&
+    ['RETURNED_TO_INTEGRATION', 'CHECKING'].includes(record.state) &&
+    record.headSha === head &&
+    record.pushedSha === head &&
+    record.workRepair?.status === 'returned' &&
+    record.workRepair?.result?.head === head
+  );
+}
+
 export function quarantineDecision(record) {
   if (!record || record.state === 'DEV' || record.state === 'CLOSED' || record.workRepair?.status === 'human-required') return { quarantined: false, failures: 0 };
   const meaningful = (record.failures || []).filter(item => !observationOnlyReason(String(item?.reason || '')));
+  if (returnedRepairHead(record)) return { quarantined: false, failures: meaningful.length, reason: null, released: true };
   const recent = meaningful.slice(-FLOW_LIMITS.quarantineFailures);
   const distinct = new Set(recent.map(item => String(item.reason || '').replace(/[0-9a-f]{40}/ig, ':sha').replace(/\d+/g, ':n')));
   const quarantined = recent.length >= FLOW_LIMITS.quarantineFailures && distinct.size >= 2;
