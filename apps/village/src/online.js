@@ -9,7 +9,7 @@ import {createVillageCheckpoint} from '@soul/network';
 import {installWorldDarknessOverlay} from '@soul/shared-ui/world-darkness';
 
 const PLAYER_KEY='soul.village.peer.v1';
-const CLOSED=new Set(['closed','failed','disconnected','error']);
+const CLOSED=new Set(['closed','failed','error']);
 let activeSession=null;
 
 export function installOnlineHost(container=document.getElementById('onlineHost')){
