@@ -61,6 +61,38 @@ CPU実メッシュ描画は使用可。ただし簡易照明、WebGL未検証、
 
 ## 配布と責任範囲
 
+### 既存JSONへの記録方法
+
+Character WorkshopのMotion QAで新規作成したレポートのJSON出力には、空の `authoring` が入る。
+作業者が実際の比較後に記入し、既存のJSON読込／出力で検証する。専用入力画面や自動視聴機能は追加しない。
+旧v1レポートには `createAuthoringReview()` の結果を追加できる。欠落した旧記録は未評価として保持する。
+
+```js
+import { createAuthoringReview, authoringProgress, serializeQAReport } from '@soul/animations';
+report.authoring ??= createAuthoringReview();
+// 実際の比較を記録した後に、既存JSON出力と同じvalidatorを使う。
+console.log(authoringProgress(report.authoring));
+const json = serializeQAReport(report);
+```
+
+- `source`: 変更前後のrevision、実model／rig、既存motion ID、不変条件。
+  `after` は `report.review.motionRevision` と一致させる。SHAやソース差分の場所は証拠と既存反復記録に残す。
+- `reference`: 実際に参照したasset、動画内 `range: [開始秒, 終了秒]`、分かる場合は元動画の `originalRange`。
+- `keyPoses`: `label` / `time` / `support` / `centerOfMass` / `silhouette`。技内の主要点を最低3点記録する。
+- `stages.blocking / primary / polish`: `status` は pending / revise / reviewed、
+  `outcome` は unverified / improved / unchanged / regressed。`observation` にその工程の比較結果を記す。
+- `evidence[]`: `kind` (image/video)、`role` (before/after/reference)、`uri`、`revision`、
+  `camera`、`range`、`renderer` (webgl/cpu-mesh/reference)、`reviewed`、動画なら `speed`。
+  画像のrangeは該当連続コマの区間。blockingはfrontとleftまたはrightの実モデル画像を使う。
+  revisionはbefore/afterのsource値、参照はreference.assetと一致させる。
+- `remaining` / `limitations`: 残る差と検証限界。CPU利用時は照明・WebGL・実機fpsの未検証を具体的に残す。
+
+`reviewed` は作業者が証拠を確認した申告であり、人間の最終承認ではない。
+記録上の全工程完了でも `authoringProgress().visualApproval` は `not-assessed` のまま。
+未観測を空の成功値で埋めずpending/reviseで保存する。前工程が崩れたら後工程もpendingへ戻す。
+
+### 通常Integrationへの接続
+
 Lab専用 `work/visual-review-lab-v2` / PR #23 はDraftと独立公開を維持する。
 三作取り込みは検証済みの共有差分と必要な接続だけを別PRへ移し、各アプリの実呼び出しと配布を確認する。
 対応しないモンスター等のリグへ人型の剣動作を強制しない。

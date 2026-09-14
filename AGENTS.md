@@ -22,6 +22,12 @@ This repository contains 輪廻転焦 (formerly 魂の系譜), village housing, 
 - Automation/control changes require Integration review of the exact head; no policy/protection bypass. Normal work uses no sub-agents.
 - Do not modify main or Production as part of develop Integration. Explicit user scope supersedes older handoff instructions that assign merge/deploy to every WORK.
 
+## Motion authoring and review
+
+- For character motion, stance, locomotion or motion-transition changes, read `docs/characters/MOTION_AUTHORING.md` and `docs/characters/MOTION_QUALITY.md` before editing. Design full-body key poses first, then weight/timing and normal-speed playback, then detail/transition polish. Return to the earliest weak stage when a correction regresses it.
+- Use the existing Motion QA report's `authoring` record and existing Lab iteration notes. Record reference seconds, before/after source revisions, actual model/rig evidence and remaining differences. Numeric tests, rendered stills, exported-but-unwatched video and iteration counts cannot stand in for normal-speed visual evaluation or human approval.
+- Preserve native gameplay/contact timing, shared sources and independent Lab Draft operation. This authoring contract does not change Integration/hold/approval gates or require a Lab merge. See the authoring guide for per-app adoption and CPU/WebGL evidence limits.
+
 ## RINNE Dispatch
 
 - Read `docs/DISPATCHER.md` before using or modifying the dispatch route.
