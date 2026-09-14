@@ -122,7 +122,9 @@ jobs:
           ref: develop
           path: control
           persist-credentials: false
-          sparse-checkout: scripts
+          sparse-checkout: |
+            scripts
+            ops-board
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha }}
