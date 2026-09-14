@@ -3,6 +3,7 @@ export { createVillageAuthority, advanceVillageAuthority, VILLAGE_PHASE } from '
 export { createVillageCheckpoint, validateVillageCheckpoint } from './village-checkpoint.js';
 export { createPeerHostedWorldNode } from './peer-hosted-world.js';
 export { createPeerMeshCoordinator } from './peer-mesh.js';
+export { HOST_CAPABILITY_VERSION, normalizeHostCapability, rankHostCandidates, selectHostCandidate } from './host-capability.js';
 // HTTP transport is injected. No browser, console SDK, region or account is hardcoded.
 export function createApiClient(platform, endpoint) {
   if (platform.contractVersion !== platformContractVersion) throw new Error('Incompatible platform');
