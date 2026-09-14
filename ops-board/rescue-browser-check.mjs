@@ -49,7 +49,9 @@ try{
   await openDisclosure('rescue:waves');
   assert.match(await page.locator('.rs-wave-list').innerText(),/wave-14[\s\S]*#125.*#120/);check('wave and dependency order');
   await openDisclosure('rescue:queue');
-  assert.match(await page.locator('details[data-disclosure="rescue:queue"] .rs-queue').innerText(),/#125 WAITING FOR #120[\s\S]*FAILED_RETRYABLE/);check('queue, blocked reason and retry');
+  const queueText=await page.locator('details[data-disclosure="rescue:queue"] .rs-queue').innerText();
+  assert.match(queueText,/#125 WAITING FOR #120/);
+  assert.match(queueText,/#140[\s\S]*再試行待ち/);check('queue, blocked reason and retry');
 
   const human=page.locator('details[data-disclosure="rescue:human"]');
   const hold=page.locator('details[data-disclosure="rescue:manual-hold"]');
