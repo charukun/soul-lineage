@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, statSync } from 'node:fs';
+import { statSync } from 'node:fs';
 
 const ALWAYS = ['AGENTS.md'];
 const MAX_DOCS = 8;
@@ -9,6 +9,11 @@ export const WHOLE_DIFF_MAX_LINES = 2000;
 export const MAX_LOG_BYTES = 64 * 1024;
 
 const ROUTES = [
+  {
+    test: ({ text, paths }) => /lean context|context.?budget|bootstrap|コンテキスト|トークン/i.test(text)
+      || paths.some(path => /context-(plan|excerpt)|CONTEXT_EFFICIENCY|CHATGPT_PROJECT_BOOTSTRAP/.test(path)),
+    docs: ['docs/CONTEXT_EFFICIENCY.md', 'docs/CHATGPT_PROJECT_BOOTSTRAP.md'],
+  },
   {
     test: ({ text }) => /\b(implement|implementation|fix|add|change|update|repair|refactor)\b|実装|修正|追加|変更|対応|改善|修復/i.test(text),
     docs: ['docs/DEVELOPMENT.md'],
@@ -65,8 +70,8 @@ function unique(items) {
 }
 
 function positiveInteger(value, name) {
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) throw new Error(`${name} must be a positive integer`);
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) throw new Error(`${name} must be a positive integer`);
   return parsed;
 }
 
@@ -102,13 +107,13 @@ function changedPaths(root, base, head) {
 }
 
 function diffStats(root, base, head, fallbackFileCount = 0) {
-  const output = git(root, ['diff', '--numstat', '--no-renames', base, head], null);
+  const output = git(root, ['diff', '--numstat', '-z', '--no-renames', '--no-ext-diff', '--no-textconv', base, head], null);
   if (output === null) return { fileCount: fallbackFileCount, changedLines: null, binaryFiles: null };
   if (!output) return { fileCount: fallbackFileCount, changedLines: 0, binaryFiles: 0 };
   let changedLines = 0;
   let binaryFiles = 0;
   let fileCount = 0;
-  for (const line of output.split('\n').filter(Boolean)) {
+  for (const line of output.split('\0').filter(Boolean)) {
     const [added, deleted] = line.split('\t');
     fileCount += 1;
     if (added === '-' || deleted === '-') binaryFiles += 1;
@@ -119,9 +124,10 @@ function diffStats(root, base, head, fallbackFileCount = 0) {
 
 function fileBytes(root, path) {
   try {
-    return statSync(`${root}/${path}`).size;
+    const stat = statSync(`${root}/${path}`);
+    return stat.isFile() ? stat.size : null;
   } catch {
-    return 0;
+    return null;
   }
 }
 
@@ -131,9 +137,7 @@ export function selectContextDocs({ task = '', paths = [], root = process.cwd() 
   for (const route of ROUTES) {
     if (route.test(context)) docs.push(...route.docs);
   }
-  return unique(docs)
-    .filter(path => path === 'AGENTS.md' || existsSync(`${root}/${path}`))
-    .slice(0, MAX_DOCS);
+  return unique(docs);
 }
 
 export function budgetContextDocs({ task = '', paths = [], root = process.cwd(), maxBytes = DEFAULT_MAX_BYTES } = {}) {
@@ -145,12 +149,12 @@ export function budgetContextDocs({ task = '', paths = [], root = process.cwd(),
 
   for (const path of candidates) {
     const bytes = fileBytes(root, path);
-    const mandatory = path === 'AGENTS.md';
-    if (mandatory || usedBytes + bytes <= limit) {
+    const reason = bytes === null ? 'size-unknown' : read.length >= MAX_DOCS ? 'document-count' : 'byte-budget';
+    if (bytes !== null && read.length < MAX_DOCS && usedBytes + bytes <= limit) {
       read.push(path);
       usedBytes += bytes;
     } else {
-      deferred.push({ path, bytes, strategy: 'search-or-line-range' });
+      deferred.push({ path, bytes, reason, strategy: 'search-or-line-range' });
     }
   }
 
@@ -165,7 +169,8 @@ export function budgetContextDocs({ task = '', paths = [], root = process.cwd(),
 }
 
 export function chooseDiffStrategy({ fileCount = 0, changedLines = 0, binaryFiles = 0 } = {}) {
-  const large = fileCount > WHOLE_DIFF_MAX_FILES
+  const unknown = [fileCount, changedLines, binaryFiles].some(value => !Number.isSafeInteger(value) || value < 0);
+  const large = unknown || fileCount > WHOLE_DIFF_MAX_FILES
     || (changedLines !== null && changedLines > WHOLE_DIFF_MAX_LINES)
     || (binaryFiles !== null && binaryFiles > 0);
   return large ? 'metadata→changed-filenames→file-patch' : 'whole-diff-allowed-but-not-required';
@@ -175,8 +180,8 @@ export function buildContextPlan({ task = '', paths = [], base = 'origin/develop
   const explicitPaths = unique(paths.filter(Boolean));
   const inferredPaths = explicitPaths.length > 0 ? explicitPaths : changedPaths(root, base, head);
   const branch = git(root, ['branch', '--show-current'], null);
-  const headSha = git(root, ['rev-parse', head], null);
-  const baseSha = git(root, ['rev-parse', base], null);
+  const headSha = git(root, ['rev-parse', '--verify', '--end-of-options', `${head}^{commit}`], null);
+  const baseSha = git(root, ['rev-parse', '--verify', '--end-of-options', `${base}^{commit}`], null);
   const budget = budgetContextDocs({ task, paths: inferredPaths, root, maxBytes });
   const diff = diffStats(root, base, head, inferredPaths.length);
   return {
@@ -224,7 +229,7 @@ function printCompact(plan) {
   for (const path of plan.read) console.log(`- ${path}`);
   if (plan.deferred.length > 0) {
     console.log('deferred (search/range only):');
-    for (const item of plan.deferred) console.log(`- ${item.path} (${item.bytes} bytes)`);
+    for (const item of plan.deferred) console.log(`- ${item.path} (${item.bytes ?? 'unknown'} bytes; ${item.reason})`);
   }
   console.log(`diff: ${plan.diff.fileCount} files, ${plan.diff.changedLines ?? 'unknown'} changed lines → ${plan.diff.strategy}`);
   if (plan.changedPaths.length > 0) {

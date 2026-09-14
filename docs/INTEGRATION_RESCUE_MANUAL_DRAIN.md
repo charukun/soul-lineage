@@ -5,6 +5,7 @@
 ## 受入条件
 
 - `SEMANTIC_CONFLICT`、`OVERLAPPING_CHANGES`、`RELATED_CODE_RECONCILIATION`、安全性を証明できる `CONTROL_OR_CONTRACT_RECONCILIATION`、`ASSERTION_REMOVAL`、recoverable transport failure は `workRepairEligibility()` を正本として Work repair lane に残す。
+- exact-head fast/browser CI failure、および大きなbase差分で通常Integrationが自動統合を止めた場合も、過去のfailure evidenceまで遡ってAI修復可能ならWork repair laneへ戻す。単に`RETRY_EXHAUSTED`へ到達したことだけでは墓場化しない。
 - Work repair 中に latest `develop` が前進した場合、それだけを意味修復失敗として数えない。現在の修復予約を安全に終了し、最新 baseline で再取得・再検証する。
 - baseline 前進による再開始は独立した有限 churn budget で制限し、同じ head を無限に再試行しない。
 - 真の仕様選択、明示 hold、Changes requested、未解決 thread、Draft、外部/非 trusted PR、browser repair ownership は従来どおり自動解除しない。
@@ -13,4 +14,4 @@
 
 ## 実稼働の完了条件
 
-変更は最新 `develop` からの専用 PR で実装し、関連 unit test と PULSE contract を更新する。Ready for review 後は通常 Integration に引き渡す。統合後、既存の `Integration Rescue 復旧` Work は統合済み helper を正本として recoverable backlog を最大4PR/回で drain する。
+変更は最新 `develop` からの専用 PR で実装し、関連 unit test と PULSE contract を更新する。Ready for review 後は通常 Integration に引き渡す。統合後、既存の `Integration Rescue 復旧` Work は統合済み helper を正本として recoverable backlog を最大4PR/回で drain する。Actions側のIntegration Rescueは独立scopeを最大6並列で扱い、Work repair中のslotも同じ全体並列上限へ含める。

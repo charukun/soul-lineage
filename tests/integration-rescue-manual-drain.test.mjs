@@ -64,6 +64,22 @@ test('legacy capped record whose last Work stop was develop advancement is recov
   assert.equal(f.r.workRepair.resumedFromBaselineAdvance,true);
 });
 
+test('legacy exhausted records remain AI-repairable when prior failure was CI or large-base reconciliation',()=>{
+  const ci=repairFixture();
+  ci.r.failureReason='RETRY_EXHAUSTED';
+  ci.r.failures=[{reason:'VALIDATION_FAILED:npm:1'}];
+  let eligibility=workRepairEligibility(ci.r);
+  assert.equal(eligibility.eligible,true);
+  assert.equal(eligibility.kind,'ci');
+
+  const large=repairFixture();
+  large.r.failureReason='RETRY_EXHAUSTED';
+  large.r.failures=[{reason:'Large base comparison needs manual Integration review'}];
+  eligibility=workRepairEligibility(large.r);
+  assert.equal(eligibility.eligible,true);
+  assert.equal(eligibility.kind,'large-base');
+});
+
 test('real Work failures still consume the finite semantic retry budget',()=>{
   const f=repairFixture();
   claimWorkRepair(f.state,162,'work/fail',f.evidence,now);
