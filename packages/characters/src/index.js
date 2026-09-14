@@ -8,3 +8,4 @@ export * from './character-sync.js';
 export * from './visual-identity.js';
 export * from './reference-models.js';
 export * from './production-pipeline.js';
+export * from './runtime-asset-audit.js';
