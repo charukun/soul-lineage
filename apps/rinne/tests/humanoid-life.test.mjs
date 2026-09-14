@@ -36,6 +36,14 @@ test('humanoid entry routes through life layer and life runtime preserves author
  assert.doesNotMatch(source,/a\.x\s*=|a\.z\s*=/,'life layer must not own authoritative actor translation');
 });
 
+test('combo carry keeps every returned world sample aligned and uses sampled root origin',async()=>{
+ const source=await readFile(new URL('../public/simulator/src/humanoid-life.js',import.meta.url),'utf8');
+ assert.match(source,/origin=\{x:c\.root\.position\.x,y:c\.root\.position\.y,z:c\.root\.position\.z\}/);
+ assert.match(source,/\['a','b','weaponBase','weaponTip'\]/);
+ assert.match(source,/\['sm','leftSocket','rightSocket','carry'\]/);
+ assert.match(source,/Array\.isArray\(value\)\|\|ArrayBuffer\.isView\(value\)/);
+});
+
 test('life runtime keeps secondary work commit-only and LOD-bounded',async()=>{
  const source=await readFile(new URL('../public/simulator/src/humanoid-life.js',import.meta.url),'utf8');
  assert.match(source,/if\(!commit\|\|!lod\.secondaryBones\)return/);
