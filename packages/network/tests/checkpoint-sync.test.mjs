@@ -24,9 +24,17 @@ test('known revision inside retained journal receives only contiguous deltas',()
  let journal=createCheckpointJournal({epoch:1,revision:1,checkpoint:a,maxEntries:8,maxBytes:100000});
  journal=appendCheckpoint(journal,{epoch:1,revision:2,checkpoint:b}).journal;
  journal=appendCheckpoint(journal,{epoch:1,revision:3,checkpoint:c}).journal;
- const payload=createCatchupPayload(journal,1);
+ const payload=createCatchupPayload(journal,1,checkpointDigest(a));
  assert.equal(payload.kind,'delta');assert.equal(payload.entries.length,2);
  assert.deepEqual(applyCatchupPayload(a,{revision:1},payload),{checkpoint:c,revision:3});
+});
+
+test('same revision with a wrong digest receives full state instead of a no-op',()=>{
+ const a=cp(1);const journal=createCheckpointJournal({epoch:1,revision:4,checkpoint:a});
+ const payload=createCatchupPayload(journal,4,'00000000');
+ assert.equal(payload.kind,'full');assert.equal(payload.revision,4);
+ const none=createCatchupPayload(journal,4,checkpointDigest(a));assert.equal(none.kind,'none');
+ assert.throws(()=>applyCatchupPayload(cp(99),{revision:4},none),/digest mismatch/);
 });
 
 test('compaction makes an old revision fall back to a full checkpoint',()=>{
@@ -35,7 +43,7 @@ test('compaction makes an old revision fall back to a full checkpoint',()=>{
  journal=appendCheckpoint(journal,{epoch:1,revision:2,checkpoint:b}).journal;
  journal=appendCheckpoint(journal,{epoch:1,revision:3,checkpoint:c}).journal;
  assert.equal(journal.baseRevision,3);assert.equal(journal.entries.length,0);
- const payload=createCatchupPayload(journal,1);
+ const payload=createCatchupPayload(journal,1,checkpointDigest(a));
  assert.equal(payload.kind,'full');assert.equal(payload.revision,3);assert.deepEqual(payload.checkpoint,c);
 });
 
