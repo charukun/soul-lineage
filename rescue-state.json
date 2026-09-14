@@ -1,14 +1,6 @@
 {
   "activity": [
     {
-      "action": "PR_CONTRACT_CHANGED",
-      "at": "2026-09-13T22:22:11.784Z",
-      "id": "wave-34786547885-1-pr-156-a2:FAILED_RETRYABLE:1789338131784:208",
-      "pr": 156,
-      "type": "FAILED_RETRYABLE",
-      "workerId": "34786547885/pr-156/a2"
-    },
-    {
       "action": "Normal Integration merged this PR into develop",
       "at": "2026-09-13T22:24:31.533Z",
       "id": "wave-34786415418-1-pr-161-a1:MERGED:1789338271533:210",
@@ -3194,6 +3186,14 @@
       "pr": 238,
       "type": "WORK_REPAIR_BASELINE_ADVANCED",
       "workerId": "34836663499/pr-238/a1"
+    },
+    {
+      "id": "wave-34836663499-1-pr-238-a1:WORK_REPAIR_CLAIMED:1789386249759:663",
+      "at": "2026-09-14T11:44:09.759Z",
+      "pr": 238,
+      "workerId": "work/866e55ef0f5e/20260914T112041Z",
+      "type": "WORK_REPAIR_CLAIMED",
+      "action": "work/866e55ef0f5e/20260914T112041Z: control repair 1/2; baseline resume 1/8"
     }
   ],
   "config": {
@@ -13478,8 +13478,8 @@
       "claimedAt": "2026-09-14T11:11:51.292Z",
       "claimedBy": "34836663499/pr-238/a1",
       "contractFingerprint": "0249b0e7db39f29121a2453dc028e7ae0bca7c54619d9c308151b801ec204822",
-      "currentAction": "最新developでAI修復を再開予定 · baseline churn 1/8",
-      "currentStep": "FAILED_MANUAL",
+      "currentAction": "既存ChatGPT Workがcontrol停止を再評価し両側の仕様を保って修復",
+      "currentStep": "RESOLVING",
       "dependencies": [],
       "detail": "#223 Control Plane v2 / #225 Autonomous Delivery v3 を最新develop上で一本化し、配送制御をv4へ更新",
       "detectedAt": "2026-09-14T11:11:51.292Z",
@@ -13576,26 +13576,23 @@
       },
       "state": "FAILED_MANUAL",
       "title": "feat(integration): autonomous delivery v4",
-      "updatedAt": "2026-09-14T11:43:17.848Z",
+      "updatedAt": "2026-09-14T11:44:09.759Z",
       "waitingReason": null,
       "wave": "wave-34836663499-1",
       "workRepair": {
+        "workerId": "work/866e55ef0f5e/20260914T112041Z",
+        "status": "working",
         "attempt": 1,
-        "baselineChurns": 1,
-        "contract": "0249b0e7db39f29121a2453dc028e7ae0bca7c54619d9c308151b801ec204822",
-        "develop": "5755715bedd4b2de4fa39963724434fb8ed47e52",
-        "evidenceKey": "7eed0586c815ff95d07c50f6d3c6759650c5328defef43b888506721eefcbee8",
-        "expiresAt": "2026-09-14T12:10:53.264Z",
-        "finishedAt": "2026-09-14T11:43:17.848Z",
-        "heartbeatAt": "2026-09-14T11:25:53.264Z",
         "maxAttempts": 2,
-        "maxBaselineChurns": 8,
-        "reason": "WORK_REPAIR_BASELINE_ADVANCED: Latest develop advanced from 5755715bedd4b2de4fa39963724434fb8ed47e52 to 82bc75f15ead3c22883402f043d282d450f5f92c during validation; semantic repair preserved and revalidated on the new baseline.",
         "repairKind": "control",
-        "resumedFromBaselineAdvance": false,
+        "baselineChurns": 1,
+        "maxBaselineChurns": 8,
+        "resumedFromBaselineAdvance": true,
+        "sourceHead": "79b53322016290773eae70a7d0fa0541e62f766c",
+        "develop": "82bc75f15ead3c22883402f043d282d450f5f92c",
+        "contract": "0249b0e7db39f29121a2453dc028e7ae0bca7c54619d9c308151b801ec204822",
+        "evidenceKey": "3fbaa489e77cbf81acc81d044c5fc01998c7f03514a4eb9cc048bf38a9eb5a70",
         "scope": {
-          "contract": false,
-          "control": true,
           "files": [
             ".github/workflows/ci.yml",
             ".github/workflows/code-health.yml",
@@ -13632,33 +13629,34 @@
             "tests/integration-flow-control.test.mjs",
             "tests/integration-queue-recovery.test.mjs"
           ],
-          "related": [
-            "repository",
-            "docs",
-            "ops-board"
-          ],
-          "repairKind": "control",
           "scopes": [
             "repository",
             "docs",
             "ops-board"
           ],
+          "related": [
+            "repository",
+            "docs",
+            "ops-board"
+          ],
           "shared": [],
-          "specs": []
+          "control": true,
+          "contract": false,
+          "specs": [],
+          "repairKind": "control"
         },
-        "sourceHead": "79b53322016290773eae70a7d0fa0541e62f766c",
-        "startedAt": "2026-09-14T11:25:53.264Z",
-        "status": "baseline-advanced",
-        "workerId": "work/866e55ef0f5e/20260914T112041Z"
+        "startedAt": "2026-09-14T11:44:09.759Z",
+        "heartbeatAt": "2026-09-14T11:44:09.759Z",
+        "expiresAt": "2026-09-14T12:29:09.759Z"
       },
       "workRepairAttempts": 1,
       "workRepairBaselineChurns": 1
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 663,
+  "revision": 664,
   "schema": 1,
-  "updatedAt": "2026-09-14T11:43:28.757Z",
+  "updatedAt": "2026-09-14T11:44:11.659Z",
   "waves": [
     {
       "completedAt": "2026-09-13T04:41:26.595Z",
