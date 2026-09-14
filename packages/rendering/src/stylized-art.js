@@ -2,10 +2,11 @@ import { stylizedArtProfile, STYLIZED_ART_VERSION, STYLIZED_ART_STYLE_ID } from 
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-function styledMaterial(material, profile, cache) {
-  if (!material || typeof material.clone !== 'function') return material;
+function styledMaterial(material, profile, cache, clone) {
+  if (!material) return material;
   if (cache.has(material)) return cache.get(material);
-  const next = material.clone();
+  if (clone && typeof material.clone !== 'function') return material;
+  const next = clone ? material.clone() : material;
   if ('roughness' in next && Number.isFinite(next.roughness)) {
     next.roughness = clamp(next.roughness, profile.surface.roughness[0], profile.surface.roughness[1]);
   }
@@ -34,11 +35,9 @@ export function applyStylizedArtProfile(root, profileId, { cloneMaterials = true
     node.castShadow = profile.shadow.cast;
     node.receiveShadow = profile.shadow.receive;
     node.frustumCulled = true;
-    if (cloneMaterials) {
-      node.material = Array.isArray(node.material)
-        ? node.material.map(material => styledMaterial(material, profile, cache))
-        : styledMaterial(node.material, profile, cache);
-    }
+    node.material = Array.isArray(node.material)
+      ? node.material.map(material => styledMaterial(material, profile, cache, cloneMaterials))
+      : styledMaterial(node.material, profile, cache, cloneMaterials);
     node.userData = node.userData || {};
     node.userData.stylizedArtProfile = profile.id;
   });
