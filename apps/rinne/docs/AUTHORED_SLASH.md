@@ -57,3 +57,27 @@ their existing motion. The common solver's explicit knee pole is opt-in.
 Integration review route: workshop button → automatic looping slash → pause and
 seek → 1/4 speed → front/side/back → return to workshop. Check narrow portrait
 framing, no clipped blade, frame controls, load/retry, and return navigation.
+
+## Bounded Motion Warp acceptance
+
+The next runtime improvement preserves the authored `.66 s` slash, active/contact
+window, planted-foot correction, weapon sockets and damage authority. It only fixes
+the spatial approach into the existing strike.
+
+- lock one valid target when the slash starts; do not home toward a moving target
+  every frame;
+- controller/gameplay owns `actor.x`, `actor.z` and `actor.yaw`; the humanoid renderer
+  remains presentation-only and must not become a second transform writer;
+- finish facing the locked target before the main approach, then move only inside a
+  bounded pre-contact window and stop adding warp at contact;
+- never back away from an already-close target to manufacture animation space;
+- clamp approach distance so a distant enemy cannot cause a teleport or replace the
+  existing movement/range rules;
+- cancel/reset warp when the attack changes, target becomes invalid, actor is
+  incapacitated or recovery hands control back;
+- multiplayer authority remains unchanged: this is deterministic local/controller
+  movement derived from the same attack state, not a new network authority.
+
+Focused tests must cover near/already-in-range targets, bounded far targets, target
+locking despite later target movement, turn-before-approach ordering, exact stop at
+contact, cancellation, determinism and unchanged slash timing/contact constants.
