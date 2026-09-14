@@ -136,7 +136,7 @@ jobs:
           branch="dispatch/code-health-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${SLUG}"
           marker=".task-start/code-health-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.md"
           git config user.name 'github-actions[bot]'
-          git config user.email '41898282+charukun@users.noreply.github.com'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -b "$branch"
           mkdir -p .task-start
           cp "$MARKER_FILE" "$marker"
