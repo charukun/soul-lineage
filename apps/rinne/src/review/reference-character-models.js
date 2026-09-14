@@ -17,6 +17,7 @@ const PALETTE=Object.freeze({
 function make({id,label,name=label,referencePath,hair,front,back,design,scale,palette,...style}){
   return Object.freeze({
     id,label,name,kind:'character',sourcePresetId:'model.SHINO',referencePath,
+    productionStage:'BLOCKOUT',modelingMode:'runtime-procedural',productionReady:false,
     portraitPath:id==='shino.reference.v2'?null:RAW+referencePath,
     portrait:id==='shino.reference.v2'?'SHINO':null,
     parts:Object.freeze({hair}),front,back,
