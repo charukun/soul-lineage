@@ -75,7 +75,15 @@ export function applySwordPose(runtime,c,pose,p) {
   const flip=c.vrm.meta.metaVersion==='1'?-1:1;
   for(const name of ['hips','spine','chest','head']){
     const b=c.bones[name];if(!b)continue;
-    const [x,y,z]=pose[name];
+    let [x,y,z]=pose[name];
+    if(name==='head'){
+      // Keep attention on the opponent while hips/chest lead the cut. Preserve
+      // authored guard endpoints and some follow-through, rather than freezing
+      // the neck in world space or turning the face with every torso accent.
+      const targetYaw=clamp(-(pose.hips[1]+pose.spine[1]+pose.chest[1]),-.9,.9);
+      const focus=.8*Math.sin(Math.PI*p)**2;
+      y+=(targetYaw-y)*focus;
+    }
     b.quaternion.multiply(new T.Quaternion().setFromEuler(new T.Euler(x*flip,y,z*flip,'YXZ'))).normalize();
   }
   c.bones.hips.position.add(new T.Vector3(...pose.offset).multiplyScalar(s));
