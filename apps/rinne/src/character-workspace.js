@@ -14,6 +14,10 @@ export function createCharacterWorkspace(review) {
   const profile = id => { const index = review.records.findIndex(r => r.id === id); return qualityProfile(review.records[index], index, quality, profiles.get(id)); };
   const snapshot = () => serializeWorkspace(review.session(), [...profiles].filter(([id]) => review.records.some(r => r.id === id)), quality);
   const emit = () => window.dispatchEvent(new Event('character-workspace-change'));
+  function clearModelSelection() {
+    const previous = model(); modelId = null;
+    if (previous?.kind === 'dcc-character-model') void review.loadDefaultModel?.();
+  }
   function save() {
     try { localStorage.setItem(WORKSPACE_KEY, snapshot()); saveMessage = 'このブラウザに保存済み'; }
     catch { saveMessage = '端末保存できません。データ保存を使用'; }
@@ -29,10 +33,11 @@ export function createCharacterWorkspace(review) {
       let attached = false;
       const selectedId = selected()?.id, referenceModel = model();
       for (const actor of review.actors) {
-        let controller = controllers.get(actor);
-        if (!controller) { controller = attachModularAppearanceController(actor); controllers.set(actor, controller); attached = true; }
         const index = review.records.findIndex(r => r.id === actor.id);
         const selectedReference = referenceModel && actor.id === selectedId ? referenceModel : null;
+        if (selectedReference?.kind === 'dcc-character-model') continue;
+        let controller = controllers.get(actor);
+        if (!controller) { controller = attachModularAppearanceController(actor); controllers.set(actor, controller); attached = true; }
         const identity = selectedReference || actor.id === previewId ? null : qualityIdentity(review.records[index], index, quality, profiles.get(actor.id));
         const next = selectedReference ? selectedReference.profile : actor.id === previewId || quality.mode === 'baseline' ? BASE_APPEARANCE_PARTS : profile(actor.id);
         if (JSON.stringify(controller.identity) !== JSON.stringify(identity)) controller.setIdentity(identity);
@@ -73,17 +78,20 @@ export function createCharacterWorkspace(review) {
     selectModel(id = null) {
       const next = id === null || id === '' ? null : characterReferenceModel(id).id;
       if (modelId === next) return;
-      modelId = next; previewId = null; sync(); emit();
+      const previous = model(); modelId = next; previewId = null; const selectedModel = model();
+      if (selectedModel?.kind === 'dcc-character-model') void review.loadReferenceModel?.(selectedModel);
+      else if (previous?.kind === 'dcc-character-model') void review.loadDefaultModel?.();
+      sync(); emit();
     },
     setQuality(patch) { perform(() => { quality = qualitySettings({ ...quality, ...patch }); }); },
     markSelected() { const id = selected().id; perform(() => { quality.marked = quality.marked.includes(id) ? quality.marked.filter(x => x !== id) : [...quality.marked, id]; }); },
     generate(seed, ancestry = review.settings.ancestry) {
-      perform(() => { modelId = null; const settings = reviewSettings({ ...review.settings, seed, ancestry, selected: 0 });
+      perform(() => { clearModelSelection(); const settings = reviewSettings({ ...review.settings, seed, ancestry, selected: 0 });
         profiles.clear(); quality.marked = [];
         review.restore(serializeReviewSession({ settings, records: createReviewCohort(settings) })); });
     },
     setAges(age) {
-      perform(() => { const settings = reviewSettings({ ...review.settings, ages: age === 'mixed' ? 'mixed' : 'fixed', ...(age === 'mixed' ? {} : { age }) });
+      perform(() => { clearModelSelection(); const settings = reviewSettings({ ...review.settings, ages: age === 'mixed' ? 'mixed' : 'fixed', ...(age === 'mixed' ? {} : { age }) });
         const records = review.records.map((r, i) => editReviewCharacter(r, { age: age === 'mixed' ? [7,22,35,55,75][i % 5] : age }));
         review.restore(serializeReviewSession({ settings, records })); });
     },
@@ -91,11 +99,11 @@ export function createCharacterWorkspace(review) {
     get selected() { return selected(); },
     get previewing() { return previewId !== null; },
     getProfile(id = selected().id) { return modelId && id === selected().id ? canonicalAppearanceParts(model().profile) : canonicalAppearanceParts(profile(id)); },
-    change(slot, value) { perform(() => { modelId = null; const id = selected().id; profiles.set(id, mergeAppearanceParts(profile(id), { [slot]: value })); review.refresh(); }); },
-    edit(changes) { perform(() => review.editSelected(changes)); },
-    randomize() { perform(() => { modelId = null; generation = generation % 65535 + 1; profiles.set(selected().id, nextAppearanceParts(selected(), generation)); review.refresh(); }); },
+    change(slot, value) { perform(() => { clearModelSelection(); const id = selected().id; profiles.set(id, mergeAppearanceParts(profile(id), { [slot]: value })); review.refresh(); }); },
+    edit(changes) { perform(() => { clearModelSelection(); review.editSelected(changes); }); },
+    randomize() { perform(() => { clearModelSelection(); generation = generation % 65535 + 1; profiles.set(selected().id, nextAppearanceParts(selected(), generation)); review.refresh(); }); },
     configure(patch) { previewId = null; review.configure(patch); sync(); },
-    previewOriginal() { modelId = null; previewId = previewId ? null : selected().id; sync(); },
+    previewOriginal() { clearModelSelection(); previewId = previewId ? null : selected().id; sync(); },
     undo() { const next = history.undo(snapshot()); if (next) { install(next); save(); } },
     redo() { const next = history.redo(snapshot()); if (next) { install(next); save(); } },
     import(text) { const next = deserializeWorkspace(text); perform(() => install(JSON.stringify(next))); },
