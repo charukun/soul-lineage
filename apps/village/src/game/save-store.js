@@ -5,6 +5,14 @@ export const SAVE_KEY = 'living-v5';
 const MAX_SAVE_BYTES = 8_000_000;
 const SAVE_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 40;
+let freshVillageLoad = false;
+
+/** Consumed by the post-boot first-run director after boot has safely created the canonical save. */
+export function consumeFreshVillageLoad() {
+  const fresh = freshVillageLoad;
+  freshVillageLoad = false;
+  return fresh;
+}
 
 /** Device-local persistence through injected ports, never a shared-host authority. */
 export function createSaveStore(platform) {
@@ -35,11 +43,13 @@ export function createSaveStore(platform) {
     async load() {
       try {
         const text = await platform.storage.read(SAVE_KEY);
+        freshVillageLoad = text === null;
         const state = text === null ? null : decode(text);
         blocked = false;
         error = null;
         return state;
       } catch (cause) {
+        freshVillageLoad = false;
         blocked = true;
         error = cause;
         throw new Error('保存した村を読み込めませんでした。保存データは上書きしていません。', { cause });
@@ -70,6 +80,7 @@ export function createSaveStore(platform) {
         await platform.storage.write(key, original);
       }
       await platform.storage.remove(SAVE_KEY);
+      freshVillageLoad = false;
       blocked = false;
       error = null;
       revision = 0;
