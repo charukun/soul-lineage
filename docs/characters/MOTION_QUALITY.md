@@ -128,3 +128,39 @@ The existing Character Studio browser gate additionally invokes
 `character-motion-qa.browser.mjs`; PNG/JSON evidence joins its existing artifact.
 Physical Pixel Fold performance and final aesthetic approval remain separate.
 Implementation delivery ends at Ready; Integration owns CI, merge and DEV publication.
+
+## External motion reference benchmark scope
+
+Public implementations are **technique references**, not runtime dependencies and not
+sources for wholesale code or asset copying. The primary reference for this batch is
+`achrefelouafi/SoldierThirdPersonThreeJS` (MIT): its documented locomotion phase
+synchronization, real-speed playback scaling, root-motion ownership, motion-warped
+approach and coordinated impact beat are useful comparison points for this Three.js
+pipeline. Secondary references may explain alternative design choices, but they do
+not override this repository's gameplay, rig, MasterCharacter, licensing or visual
+approval contracts.
+
+This batch must add an executable, provider-neutral benchmark under
+`@soul/animations` and connect it to Motion QA as diagnostic evidence. The benchmark
+must cover, at minimum: locomotion gait phase continuity; animation playback matched
+to actual travel speed; explicit ownership/extraction of horizontal root motion;
+attack phases that distinguish turn, approach, contact and recovery; bounded target
+alignment/motion warping without transform-authority conflicts; and a single impact
+beat that can coordinate hit-stop, camera impulse and hit reaction. Weapon/body
+intersection and eight-view human visual review remain existing gates rather than
+being replaced by the benchmark.
+
+Acceptance criteria for the implementation are:
+
+- reference metadata records repository URL, pinned revision when available, license,
+  observed technique and adoption policy, while copying no external assets;
+- benchmark inputs/outputs reject non-finite, impossible or ambiguous timing and
+  ownership data rather than manufacturing a score;
+- diagnostics expose individual criteria and actionable gaps instead of one opaque
+  aesthetic score, and never set `visualApproval`;
+- tests prove passing and failing locomotion, root-motion, attack-phase, warp and
+  impact-beat cases, including stable deterministic output;
+- current QA report serialization remains backward compatible; benchmark evidence is
+  optional extension metadata until a later schema revision is deliberately chosen;
+- no current gameplay timings, damage/contact authority, multiplayer authority,
+  Visual Review Lab branch, `main` or Production are changed by this task.
