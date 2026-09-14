@@ -41,6 +41,19 @@
 - コード調査: file/path検索 →該当file →必要なら周辺file。最初からRepository全体を列挙しない。
 - 文書調査: `AGENTS.md` → task-specific doc。`DEVELOPMENT.md` / `INTEGRATION.md` / `RINNE_PROJECT_EXECUTION_POLICY.md` を毎回無条件に全文取得しない。役割やdelivery境界の確認が必要なタスクでのみ読む。
 
+## Hard budget phase
+
+`context:plan` は参照候補の列挙だけでなく、初期全文取得に使えるbyte budgetを持つ。既定値は48 KiBとし、`--max-bytes`で明示変更できる。これはtoken数の推測ではなくRepository文書のUTF-8 byte数に対する上限である。
+
+- budget内の文書だけを `read` として返し、超過候補は `deferred` として全文取得を避ける。
+- `deferred` は不要という意味ではない。検索・見出し・必要line rangeで絞って読む対象である。
+- `AGENTS.md` は最優先。task-specific文書はrouting順を維持し、予算超過時に巨大context dumpへ戻らない。
+- changed pathsが多いPRではwhole diffを既定にしない。12 filesまたは2,000 changed linesを超える場合はmetadata → changed filenames → file patchへ切り替える。
+- Actions調査はfailed/cancelled jobだけを対象にし、logは原因周辺を64 KiB以内へ絞る。追加範囲が必要なら同じlogを重複取得せず次の範囲を読む。
+- 同じexact headに対して既取得のPR metadata / checks / documentを無理由に再取得しない。headが変わった、状態遷移が起きた、または追加証拠が必要な場合だけ更新する。
+
+Hard budgetは品質gateではなく取得戦略である。必要な仕様を読まずに判断するための免罪符にしない。予算を超える場合は全文投入ではなく、検索・line range・file patchへ粒度を落として必要情報を回収する。
+
 ## セッション引き継ぎ
 
 引き継ぎに必要なのは会話履歴ではなくGitHub上の現在状態。最低限、repository、branch、head SHA、PR、Draft/Ready、base、最新checks、必要ならhandoff/statusを使う。実装内容はPR diffとcommitを正本とする。

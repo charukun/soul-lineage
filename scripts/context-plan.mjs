@@ -1,8 +1,12 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 
 const ALWAYS = ['AGENTS.md'];
 const MAX_DOCS = 8;
+export const DEFAULT_MAX_BYTES = 48 * 1024;
+export const WHOLE_DIFF_MAX_FILES = 12;
+export const WHOLE_DIFF_MAX_LINES = 2000;
+export const MAX_LOG_BYTES = 64 * 1024;
 
 const ROUTES = [
   {
@@ -60,8 +64,14 @@ function unique(items) {
   return [...new Set(items)];
 }
 
+function positiveInteger(value, name) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) throw new Error(`${name} must be a positive integer`);
+  return parsed;
+}
+
 function parseArgs(argv) {
-  const result = { task: '', paths: [], base: 'origin/develop', head: 'HEAD', json: false };
+  const result = { task: '', paths: [], base: 'origin/develop', head: 'HEAD', json: false, maxBytes: DEFAULT_MAX_BYTES };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--task') result.task = argv[++index] || '';
@@ -69,6 +79,7 @@ function parseArgs(argv) {
     else if (arg === '--paths') result.paths.push(...(argv[++index] || '').split(',').map(value => value.trim()));
     else if (arg === '--base') result.base = argv[++index] || result.base;
     else if (arg === '--head') result.head = argv[++index] || result.head;
+    else if (arg === '--max-bytes') result.maxBytes = positiveInteger(argv[++index], '--max-bytes');
     else if (arg === '--json') result.json = true;
     else if (arg === '--help' || arg === '-h') result.help = true;
     else throw new Error(`Unknown argument: ${arg}`);
@@ -90,6 +101,30 @@ function changedPaths(root, base, head) {
   return output ? output.split('\0').filter(Boolean) : [];
 }
 
+function diffStats(root, base, head, fallbackFileCount = 0) {
+  const output = git(root, ['diff', '--numstat', '--no-renames', base, head], null);
+  if (output === null) return { fileCount: fallbackFileCount, changedLines: null, binaryFiles: null };
+  if (!output) return { fileCount: fallbackFileCount, changedLines: 0, binaryFiles: 0 };
+  let changedLines = 0;
+  let binaryFiles = 0;
+  let fileCount = 0;
+  for (const line of output.split('\n').filter(Boolean)) {
+    const [added, deleted] = line.split('\t');
+    fileCount += 1;
+    if (added === '-' || deleted === '-') binaryFiles += 1;
+    else changedLines += Number.parseInt(added, 10) + Number.parseInt(deleted, 10);
+  }
+  return { fileCount, changedLines, binaryFiles };
+}
+
+function fileBytes(root, path) {
+  try {
+    return statSync(`${root}/${path}`).size;
+  } catch {
+    return 0;
+  }
+}
+
 export function selectContextDocs({ task = '', paths = [], root = process.cwd() } = {}) {
   const context = { text: task, paths: unique(paths.filter(Boolean)) };
   const docs = [...ALWAYS];
@@ -101,20 +136,73 @@ export function selectContextDocs({ task = '', paths = [], root = process.cwd() 
     .slice(0, MAX_DOCS);
 }
 
-export function buildContextPlan({ task = '', paths = [], base = 'origin/develop', head = 'HEAD', root = process.cwd() } = {}) {
+export function budgetContextDocs({ task = '', paths = [], root = process.cwd(), maxBytes = DEFAULT_MAX_BYTES } = {}) {
+  const limit = positiveInteger(maxBytes, 'maxBytes');
+  const candidates = selectContextDocs({ task, paths, root });
+  const read = [];
+  const deferred = [];
+  let usedBytes = 0;
+
+  for (const path of candidates) {
+    const bytes = fileBytes(root, path);
+    const mandatory = path === 'AGENTS.md';
+    if (mandatory || usedBytes + bytes <= limit) {
+      read.push(path);
+      usedBytes += bytes;
+    } else {
+      deferred.push({ path, bytes, strategy: 'search-or-line-range' });
+    }
+  }
+
+  return {
+    maxBytes: limit,
+    usedBytes,
+    remainingBytes: Math.max(0, limit - usedBytes),
+    overBudget: usedBytes > limit || deferred.length > 0,
+    read,
+    deferred,
+  };
+}
+
+export function chooseDiffStrategy({ fileCount = 0, changedLines = 0, binaryFiles = 0 } = {}) {
+  const large = fileCount > WHOLE_DIFF_MAX_FILES
+    || (changedLines !== null && changedLines > WHOLE_DIFF_MAX_LINES)
+    || (binaryFiles !== null && binaryFiles > 0);
+  return large ? 'metadata→changed-filenames→file-patch' : 'whole-diff-allowed-but-not-required';
+}
+
+export function buildContextPlan({ task = '', paths = [], base = 'origin/develop', head = 'HEAD', root = process.cwd(), maxBytes = DEFAULT_MAX_BYTES } = {}) {
   const explicitPaths = unique(paths.filter(Boolean));
   const inferredPaths = explicitPaths.length > 0 ? explicitPaths : changedPaths(root, base, head);
   const branch = git(root, ['branch', '--show-current'], null);
   const headSha = git(root, ['rev-parse', head], null);
   const baseSha = git(root, ['rev-parse', base], null);
+  const budget = budgetContextDocs({ task, paths: inferredPaths, root, maxBytes });
+  const diff = diffStats(root, base, head, inferredPaths.length);
   return {
     sourceOfTruth: 'latest develop + current GitHub branch/commit/PR state',
     task: task || null,
     git: { branch, head: headSha, base: baseSha },
     changedPaths: inferredPaths,
-    read: selectContextDocs({ task, paths: inferredPaths, root }),
+    budget: {
+      maxBytes: budget.maxBytes,
+      usedBytes: budget.usedBytes,
+      remainingBytes: budget.remainingBytes,
+      overBudget: budget.overBudget,
+      note: 'UTF-8 repository bytes, not a token estimate',
+    },
+    read: budget.read,
+    deferred: budget.deferred,
+    diff: { ...diff, strategy: chooseDiffStrategy(diff) },
+    githubRetrieval: {
+      maxLogBytes: MAX_LOG_BYTES,
+      pr: 'metadata → changed filenames → necessary file patch; avoid whole diff when diff.strategy requires file-patch',
+      ci: 'exact-head status → failed/cancelled job → relevant log slice; do not preload successful job logs',
+      cache: 'reuse exact-head metadata/documents until head/state changes or new evidence is required',
+    },
     retrieval: [
       'Read only the listed docs that are necessary for the decision.',
+      'For deferred docs, search or fetch a line range instead of the whole file.',
       'Search/narrow first; fetch full files, PR patches, or CI logs only when needed.',
       'Reuse already-known exact-head metadata until there is a reason it may have changed.',
     ],
@@ -124,21 +212,27 @@ export function buildContextPlan({ task = '', paths = [], base = 'origin/develop
 }
 
 function printHelp() {
-  console.log(`Usage: npm run context:plan -- [options]\n\nOptions:\n  --task <text>       Short task summary used to select relevant docs\n  --path <path>       Add a relevant/changed path (repeatable)\n  --paths <a,b>       Add comma-separated paths\n  --base <ref>        Diff base when no path is supplied (default: origin/develop)\n  --head <ref>        Diff head (default: HEAD)\n  --json              Print JSON instead of compact text\n`);
+  console.log(`Usage: npm run context:plan -- [options]\n\nOptions:\n  --task <text>       Short task summary used to select relevant docs\n  --path <path>       Add a relevant/changed path (repeatable)\n  --paths <a,b>       Add comma-separated paths\n  --base <ref>        Diff base when no path is supplied (default: origin/develop)\n  --head <ref>        Diff head (default: HEAD)\n  --max-bytes <n>     Initial full-document byte budget (default: ${DEFAULT_MAX_BYTES})\n  --json              Print JSON instead of compact text\n`);
 }
 
 function printCompact(plan) {
   console.log('LEAN_CONTEXT_PLAN');
   if (plan.task) console.log(`task: ${plan.task}`);
   if (plan.git.branch || plan.git.head) console.log(`git: ${plan.git.branch || 'detached'} @ ${plan.git.head || 'unknown'}`);
+  console.log(`budget: ${plan.budget.usedBytes}/${plan.budget.maxBytes} bytes${plan.budget.overBudget ? ' (narrow deferred docs)' : ''}`);
   console.log('read:');
   for (const path of plan.read) console.log(`- ${path}`);
+  if (plan.deferred.length > 0) {
+    console.log('deferred (search/range only):');
+    for (const item of plan.deferred) console.log(`- ${item.path} (${item.bytes} bytes)`);
+  }
+  console.log(`diff: ${plan.diff.fileCount} files, ${plan.diff.changedLines ?? 'unknown'} changed lines → ${plan.diff.strategy}`);
   if (plan.changedPaths.length > 0) {
     console.log('changed paths:');
     for (const path of plan.changedPaths.slice(0, 20)) console.log(`- ${path}`);
     if (plan.changedPaths.length > 20) console.log(`- ... +${plan.changedPaths.length - 20} more (do not preload contents)`);
   }
-  console.log('rule: narrow/search first; do not preload old chats, all docs, whole diffs, or all CI logs');
+  console.log('rule: narrow/search first; do not preload old chats, all docs, whole large diffs, or all CI logs');
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
