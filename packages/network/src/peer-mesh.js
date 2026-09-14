@@ -91,5 +91,5 @@ export function createPeerMeshCoordinator({
   function close(){for(const id of [...connections.keys()])closePeer(id);for(const[id,item]of pending){item.connection?.close?.();pending.delete(id);}}
   function snapshot(){return Object.freeze({selfId,connected:[...connections.keys()].sort(),pending:[...pending.keys()].sort(),offers,answers,failures});}
 
-  return{syncMembers,handleSignal,send,broadcast,closePeer,close,snapshot,has:peerId=>connections.has(String(peerId))};
+  return{syncMembers,handleSignal,send,broadcast,connection:peerId=>connections.get(String(peerId))||null,closePeer,close,snapshot,has:peerId=>connections.has(String(peerId))};
 }
