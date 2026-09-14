@@ -5,6 +5,7 @@ import {localLayerPlan,localSemanticTimeline,localPredict,localRank,localVariati
 
 export const HUMANOID_SELECTION_REVISION='motion-selection-1';
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const angleDelta=(from,to)=>{let d=(to-from)%(Math.PI*2);if(d>Math.PI)d-=Math.PI*2;if(d<-Math.PI)d+=Math.PI*2;return d;};
 const now=()=>globalThis.performance?.now?.()??Date.now();
 const point=value=>value?.isVector3?value.clone():Array.isArray(value)||ArrayBuffer.isView(value)?new T.Vector3().fromArray(value):new T.Vector3(value?.x??0,value?.y??0,value?.z??0);
 const writePoint=(target,value)=>{if(Array.isArray(target)||ArrayBuffer.isView(target)){target[0]=value.x;target[1]=value.y;target[2]=value.z;}else if(target?.copy)target.copy(value);};
@@ -12,12 +13,13 @@ const writeMatrix=(target,matrix)=>{if(target?.set)target.set(matrix.elements);e
 
 function interactionSchemaFor(a){const spec=a?._motionInteraction;if(!spec?.schema)return null;try{return localSchema(spec.schema,{partner:spec.partner,anchors:{self:spec.anchorSelf,partner:spec.anchorPartner}});}catch{return null;}}
 function intentFor(a){const explicit=a?._motionIntent;if(explicit&&Number.isFinite(explicit.x)&&Number.isFinite(explicit.z))return{x:explicit.x,z:explicit.z};return{x:Number(a?.vx)||0,z:Number(a?.vz)||0};}
+function predictedLead(a){const intent=intentFor(a),trajectory=localPredict({position:{x:Number(a?.x)||0,z:Number(a?.z)||0},velocity:{x:Number(a?.vx)||0,z:Number(a?.vz)||0},intent,yaw:Number(a?.yaw)||0,horizon:.32,steps:3}),last=trajectory.points.at(-1),dx=last.x-(Number(a?.x)||0),dz=last.z-(Number(a?.z)||0),distance=Math.hypot(dx,dz);if(distance<.03)return{yaw:0,pitch:0,trajectory};const targetYaw=Math.atan2(dx,dz),delta=angleDelta(Number(a?.yaw)||0,targetYaw);return{yaw:clamp(delta*.22,-.09,.09),pitch:clamp(distance*.018,0,.035),trajectory};}
 function rotateWeaponResult(result,constraint){if(!result?.a||!result?.b||!constraint)return;const base=point(result.a),sign=Math.sign(constraint.normal.x)||1,angle=constraint.deflection*sign,rot=new T.Matrix4().makeTranslation(base.x,base.y,base.z).multiply(new T.Matrix4().makeRotationY(angle)).multiply(new T.Matrix4().makeTranslation(-base.x,-base.y,-base.z)),translate=new T.Matrix4().makeTranslation(constraint.recoilOffset.x,0,constraint.recoilOffset.z),full=translate.multiply(rot);for(const key of ['a','b','weaponBase','weaponTip'])if(result[key])writePoint(result[key],point(result[key]).applyMatrix4(full));if(result.sm)writeMatrix(result.sm,full.clone().multiply(new T.Matrix4().fromArray(result.sm)));}
 
 export class HumanoidRuntime extends BaseHumanoidRuntime{
  constructor(api){super(api);this._selection={layerPlan:localLayerPlan(),semantic:new Map(),current:null,profile:{samples:0,totalMs:0,maxMs:0,budgetMs:5.5}};}
 
- ground(c,a,d,commit){const variation=localVariation(a?.id??'hero'),hips=c?.bones?.hips;if(hips&&d.type!=='death'){const idle=d.type==='idle'||d.type==='guard',walk=d.type==='walk'||d.type==='run',yaw=(variation.stanceScale-1)*(idle?.12:.04)+(walk?(variation.turnScale-1)*.025:0);hips.quaternion.multiply(new T.Quaternion().setFromEuler(new T.Euler(0,yaw,0,'YXZ'))).normalize();}super.ground(c,a,d,commit);}
+ ground(c,a,d,commit){const variation=localVariation(a?.id??'hero'),lead=predictedLead(a),hips=c?.bones?.hips,head=c?.bones?.head;if(d.type!=='death'){const idle=d.type==='idle'||d.type==='guard',walk=d.type==='walk'||d.type==='run',variationYaw=(variation.stanceScale-1)*(idle?.12:.04)+(walk?(variation.turnScale-1)*.025:0);if(hips)hips.quaternion.multiply(new T.Quaternion().setFromEuler(new T.Euler(lead.pitch,variationYaw+lead.yaw,0,'YXZ'))).normalize();if(head)head.quaternion.multiply(new T.Quaternion().setFromEuler(new T.Euler(0,lead.yaw*.42,0,'YXZ'))).normalize();}super.ground(c,a,d,commit);}
 
  buildSemantic(a){if(!a?.attack)return null;const kind=a.attack.kind,contact=this.api.clips?.[kind]?.contact??.5,duration=kind==='slash'?SLASH_SECONDS:Number(a.attack.duration)||1,active=kind==='slash'?SLASH_TIMING.active:[Math.max(0,contact-.08),Math.min(1,contact+.08)];return localSemanticTimeline({duration,contactPhase:contact,activeStart:active[0],activeEnd:active[1],plantPhase:kind==='slash'?SLASH_TIMING.plant*.30:.12,handoffPhase:kind==='slash'?SLASH_TIMING.chain:.9});}
 
