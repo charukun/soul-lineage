@@ -3,7 +3,7 @@
   "version": 1,
   "blender": "4.0.2",
   "sourceVrm": "apps/rinne/public/simulator/assets/SHINO_review.vrm",
-  "meshObjects": 71,
+  "meshObjects": 78,
   "surfaces": {
     "skin": 14,
     "face": 8,
@@ -18,5 +18,23 @@
     "three-quarter"
   ],
   "productionStageRequested": "PRIMARY",
-  "visualApproval": "pending"
+  "visualApproval": "pending",
+  "refinement": {
+    "version": 2,
+    "auditedFaceDonor": true,
+    "donorMaterials": [
+      "n00_000_00_eyehighlight_00_eye (instance).001",
+      "n00_000_00_eyeiris_00_eye (instance).001",
+      "n00_000_00_eyewhite_00_eye (instance).001",
+      "n00_000_00_face_00_skin (instance).001",
+      "n00_000_00_facebrow_00_face (instance).001",
+      "n00_000_00_faceeyelash_00_face (instance).001",
+      "n00_000_00_faceeyeline_00_face (instance).001",
+      "n00_000_00_facemouth_00_face (instance).001"
+    ],
+    "sourceHairReused": false,
+    "sourceClothingReused": false,
+    "sourceBodyReused": false,
+    "visualApproval": "pending"
+  }
 }
