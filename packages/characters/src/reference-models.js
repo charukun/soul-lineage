@@ -1,5 +1,6 @@
 import { BASE_APPEARANCE_PARTS, canonicalAppearanceParts } from './appearance-parts.js';
 import { MASTER_ID } from './master-character.js';
+import { SHINO_ART_PROFILE_ID } from './art-direction.js';
 
 export const CHARACTER_REFERENCE_MODEL_VERSION = 1;
 
@@ -21,9 +22,10 @@ export const CHARACTER_REFERENCE_MODELS = Object.freeze({
     characterId: 'Sendagaya_Shino',
     masterId: MASTER_ID,
     assetId: MASTER_ID,
+    artProfileId: SHINO_ART_PROFILE_ID,
     referencePath: 'docs/characters/references/shino/shino-character-reference-sheet-v2.png',
     profile: BASE_APPEARANCE_PARTS,
-    note: 'CURRENT MASTER と実装済みモジュラーパーツのみ。提案パーツやゲーム固有装備は含めない。'
+    note: 'CURRENT MASTER と実装済みモジュラーパーツのみ。提案パーツやゲーム固有装備は含めない。Stylized Mid Poly の主役基準として確認する。'
   })
 });
 
