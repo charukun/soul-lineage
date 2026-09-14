@@ -48,6 +48,31 @@ test('planner keeps independent progress when another PR is dependency-blocked',
   assert.equal(plan.actionableIdle, true);
 });
 
+test('bounded preflight separates validation, review blocks, repair and writer candidates', () => {
+  const items = [pr(1), pr(2), pr(3), pr(4)];
+  const plan = buildReconciliationPlan({
+    ready: items,
+    scopeByPr: scopes([
+      [1, ['apps/rinne/src/a.js']],
+      [2, ['apps/village/src/a.js']],
+      [3, ['apps/demon/src/a.js']],
+      [4, ['apps/lanternfell/src/a.js']],
+    ]),
+    preflightByPr: new Map([
+      [1, { checksPassed:true, mergeable:true, mergeableState:'clean', reviewRejected:false, unresolved:false }],
+      [2, { checksPassed:false, mergeable:true, mergeableState:'clean', reviewRejected:false, unresolved:false }],
+      [3, { checksPassed:true, mergeable:false, mergeableState:'dirty', reviewRejected:false, unresolved:false }],
+      [4, { checksPassed:true, mergeable:true, mergeableState:'clean', reviewRejected:true, unresolved:false }],
+    ]),
+    requirePreflight: true,
+  });
+  assert.deepEqual(plan.writerOrder, [1]);
+  assert.deepEqual(plan.validating.map(item => item.pr), [2]);
+  assert.deepEqual(plan.repair.map(item => item.pr), [3]);
+  assert.deepEqual(plan.blocked.map(item => item.pr), [4]);
+  assert.equal(plan.counts.validating, 1);
+});
+
 test('planner groups only GREEN scopes and never batches same-package YELLOW or control-plane RED', () => {
   const items = [pr(1), pr(2), pr(3), pr(4), pr(5)];
   const plan = buildReconciliationPlan({
@@ -124,6 +149,7 @@ test('workflow topology makes reconciliation the planner, Rescue only a repair e
   const rescue = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');
   assert.match(controller, /Reconcile current GitHub reality/);
   assert.match(controller, /Serialized expected-head writer/);
+  assert.match(controller, /needs: \[reconcile, virtual-train\]/);
   assert.match(controller, /Validate planned Virtual Integration Train/);
   assert.match(controller, /Repair executor pool/);
   assert.match(controller, /INTEGRATION_PREFLIGHT_CONCURRENCY: '6'/);
@@ -138,6 +164,7 @@ test('PULSE exposes planner lanes instead of only one backlog number', () => {
   assert.match(server, /reconciliationView/);
   assert.match(server, /actionableIdle/);
   assert.match(client, /writer/);
+  assert.match(client, /validating/);
   assert.match(client, /repair/);
   assert.match(client, /blocked/);
   assert.match(client, /次のreconcileで再配分/);
