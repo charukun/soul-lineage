@@ -114,27 +114,30 @@ function renderDiff(diff) {
   root.append(top, details('差分PRを見る', prList(diff?.pulls), 'diff:pulls'));
 }
 
-function renderControlPlane(root, control = {}) {
+function renderControlPlane(root, control = {}, rescue = {}) {
   if (!control || (!control.latency && !control.workflow)) return;
   const latency = control.latency || {};
   const pressure = control.workflow || {};
+  const performance = rescue?.performance || {};
   const metrics = el('div', 'metrics control-plane-metrics');
   metrics.append(
     metric('最古Ready', `${latency.oldestMinutes ?? 0}分`),
     metric('Ready待ち p50', `${latency.p50Minutes ?? 0}分`),
     metric('Ready待ち p95', `${latency.p95Minutes ?? 0}分`),
     metric('重複run / 24h', `${pressure.duplicateRuns ?? 0}件`),
+    metric('Rescue merge p95', performance.detectedToMergeP95Minutes == null ? '—' : `${performance.detectedToMergeP95Minutes}分`),
+    metric('修復成功率', performance.repairSuccessRatePct == null ? '—' : `${performance.repairSuccessRatePct}%`),
   );
   root.append(metrics);
   const health = el('p', 'muted control-plane-health',
     `Control Plane · 通知 ${control.notification?.label || 'UNKNOWN'} · Canary ${control.canary?.label || 'UNKNOWN'} · Wake ${control.wakeup?.label || 'UNKNOWN'} · ` +
-    `24h run ${pressure.runs24h ?? 0} / cancel ${pressure.cancelled ?? 0} / active ${pressure.active ?? 0}`);
+    `24h run ${pressure.runs24h ?? 0} / cancel ${pressure.cancelled ?? 0} / active ${pressure.active ?? 0} · Rescue retry ${performance.retryRatePct == null ? '—' : `${performance.retryRatePct}%`}`);
   root.append(health);
   if (control.notification?.label === 'MISCONFIGURED') root.append(el('p', 'empty', 'スマホ通知が未設定です。GitHub状態は正本ですが、外部通知の到達は未確認です。'));
   if (control.observationError) root.append(el('p', 'empty', `Control Plane状態の取得に失敗: ${control.observationError}`));
 }
 
-function renderIntegration(integration = {}) {
+function renderIntegration(integration = {}, rescue = {}) {
   const root = $('#integration');
   root.replaceChildren();
   const top = el('div', 'integration-summary');
@@ -147,7 +150,7 @@ function renderIntegration(integration = {}) {
   top.append(desc, badge(label, integration.tone || 'info'));
   root.append(top);
   if (integration.heartbeatAt) root.append(el('p', 'muted', `処理の最終更新 ${time(integration.heartbeatAt)}`));
-  renderControlPlane(root, integration.controlPlane);
+  renderControlPlane(root, integration.controlPlane, rescue);
 
   const list = el('div', 'queue-list');
   const queue = integration.queue || [];
@@ -219,7 +222,7 @@ function render(state) {
     envs.forEach(env => environmentRoot.append(environmentCard(env)));
   }
   renderDiff(state.environmentDiff);
-  renderIntegration(integration);
+  renderIntegration(integration, state.integrationRescue || {});
   renderFailures(state);
   $('#last-updated').textContent = `最終更新: ${time(state.generatedAt)} / 取得試行: ${time(state.lastAttemptAt || state.generatedAt)}`;
   $('#source').textContent = `${state.syncSource || 'GitHub API'}${Number.isFinite(state.githubRateRemaining) ? ` / API残量 ${state.githubRateRemaining}` : ''}`;
