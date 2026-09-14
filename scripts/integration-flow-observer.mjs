@@ -7,16 +7,26 @@ import { REPOSITORY, rescueConfig } from './integration-rescue-policy.mjs';
 import { rescueClient, RescueStore } from './integration-rescue-store.mjs';
 import { workRepairEligibility } from './integration-rescue-work-repair-policy.mjs';
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 export async function observeFlow(c, store, now = Date.now()) {
   const open = await c.pages('/pulls?state=open&base=develop&sort=created&direction=asc', undefined, { maxPages: 6 });
   const ready = open.filter(pr => !pr.draft);
   const closed = await c.api('GET', `${c.root}/pulls?state=closed&base=develop&sort=updated&direction=desc&per_page=40&page=1`);
   const merged = (Array.isArray(closed) ? closed : []).filter(pr => pr.merged_at || pr.merged).slice(0, 40);
-  const snapshot = await store.read();
+  const snapshot = await store.initialize();
   const records = Object.values(snapshot.state?.records || {});
   const deliveries = Object.values(snapshot.state?.flowControl?.deliveries || {});
   const latency = deliveryLatencyMetrics(deliveries.length ? deliveries : records);
-  const failureRate = records.filter(record => (record.failures || []).length > 0).length / Math.max(1, records.length);
+  const relevant = records.filter(record => {
+    const updated = Date.parse(record.updatedAt || record.detectedAt || 0);
+    return !Number.isFinite(updated) || now - updated < DAY_MS || !['DEV','CLOSED'].includes(record.state);
+  });
+  const recentlyFailed = relevant.filter(record => (record.failures || []).some(failure => {
+    const at = Date.parse(failure.at || 0);
+    return Number.isFinite(at) && now - at < DAY_MS;
+  }));
+  const failureRate = recentlyFailed.length / Math.max(1, relevant.length);
   const recoverableManual = records.filter(record => record.state === 'FAILED_MANUAL' && workRepairEligibility(record).eligible).length;
   const tuning = adaptiveFlowTuning({
     ready: ready.length,
