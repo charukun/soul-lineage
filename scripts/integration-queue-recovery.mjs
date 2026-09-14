@@ -79,7 +79,14 @@ async function retireExactSuperseded(c, pr, develop) {
 export async function recoverQueue(c, { now = Date.now(), limit = 24, budgetMs = 150000 } = {}) {
   const started = Date.now();
   const report = { checked: [], ciRecovery: [], wake: [], superseded: [], errors: [], dispatched: false, configAudit: null };
-  const develop = (await c.api('GET', `${c.root}/branches/develop`)).commit.sha;
+  let develop = null;
+  try {
+    develop = (await c.api('GET', `${c.root}/branches/develop`)).commit.sha;
+  } catch (error) {
+    // Cleanup/config audit are additive. A temporary branch-read failure must not
+    // disable the pre-existing missed-CI / missed-Integration recovery path.
+    report.errors.push({ pr: null, reason: `DEVELOP_SNAPSHOT: ${error.message}` });
+  }
   const all = await c.pages('/pulls?state=open&base=develop&sort=created&direction=asc', undefined, { maxPages: 6 });
   const ready = all.filter(pr => !manualReason(pr));
   // A time-based window gives queues larger than one API budget a fair scan
@@ -93,7 +100,7 @@ export async function recoverQueue(c, { now = Date.now(), limit = 24, budgetMs =
       const pr = await c.api('GET', `${c.root}/pulls/${snapshot.number}`);
       report.checked.push(pr.number);
       if (manualReason(pr)) continue;
-      if (await retireExactSuperseded(c, pr, develop)) {
+      if (develop && await retireExactSuperseded(c, pr, develop)) {
         report.superseded.push({ pr: pr.number, head: pr.head.sha, develop });
         continue;
       }
@@ -111,11 +118,15 @@ export async function recoverQueue(c, { now = Date.now(), limit = 24, budgetMs =
       }
     } catch (error) { report.errors.push({ pr: snapshot.number, reason: error.message }); }
   }
-  try {
-    report.configAudit = rescueRuntimeAudit(await readRescueState(c), develop);
-    await recordRuntimeAudit(c, develop, report.configAudit);
-  } catch (error) {
-    report.errors.push({ pr: null, reason: `RESCUE_CONFIG_AUDIT: ${error.message}` });
+  if (develop) {
+    try {
+      report.configAudit = rescueRuntimeAudit(await readRescueState(c), develop);
+      await recordRuntimeAudit(c, develop, report.configAudit);
+    } catch (error) {
+      report.errors.push({ pr: null, reason: `RESCUE_CONFIG_AUDIT: ${error.message}` });
+    }
+  } else {
+    report.configAudit = { ok: false, pending: true, reason: 'Current develop snapshot unavailable; audit deferred', expected: RESCUE_RUNTIME_TARGET, actual: null, mismatches: [] };
   }
   if (report.wake.length) {
     // One standard Integration scan; gates are re-read there before any merge.
