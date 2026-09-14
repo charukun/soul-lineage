@@ -17,11 +17,10 @@ function environmentProfile(node) {
 function styleView(view) {
   for (const child of view.environment?.children || []) once(child, environmentProfile(child));
   for (const child of view.actors?.children || []) {
-    const profileId = child === view.player ? 'enemy'
-      : child === view.reaper ? 'hero'
-      : child.userData?.monster ? 'enemy' : 'npc';
+    const profileId = child === view.player ? 'enemy' : child.userData?.monster ? 'enemy' : 'npc';
     once(child, profileId);
   }
+  if (view.reaper?.root) once(view.reaper.root, 'hero');
   if (view.canvas) view.canvas.dataset.visualStyle = 'stylized-low-mid-poly';
 }
 
@@ -56,6 +55,7 @@ if (typeof window !== 'undefined') {
     diagnostics: view => ({
       environment: stylizedArtDiagnostics(view?.environment),
       actors: stylizedArtDiagnostics(view?.actors),
+      hero: stylizedArtDiagnostics(view?.reaper?.root),
     }),
   });
 }
