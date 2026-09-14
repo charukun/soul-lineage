@@ -18,7 +18,10 @@ export function registerClarityTests({test, expect, targets, base}) {
       page.on('requestfailed', r => rawRequests.push(r));
       const url = new URL(`${target.path}/`, base).href;
       await page.setViewportSize({width:390, height:844});
-      const response = await page.goto(url, {waitUntil:'domcontentloaded'});
+      // Candidate verification serves the assembled static snapshot directly.
+      // Wait for its initial model/motion fetches to settle before clarity actions
+      // so intentional later UI transitions are not confused with boot failures.
+      const response = await page.goto(url, {waitUntil:'networkidle'});
       expect(response.status()).toBe(200);
       const canvas = page.locator('#game');
       await expect(canvas).toHaveAttribute('data-renderer', 'ready');
