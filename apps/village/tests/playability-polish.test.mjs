@@ -56,7 +56,7 @@ test('post-boot enhancement graph loads the playability layer last',()=>{
  assert.ok(playability>director);
 });
 
-test('browser polish keeps native first-build and return-flow hooks',()=>{
+test('browser polish keeps the full first-play interaction contract',()=>{
  const source=readFileSync(new URL('../src/mura-playability-polish.js',import.meta.url),'utf8');
- for(const contract of ['muraFindPlacement','cancelPlace','muraEnterVillage','nearestProjectedObject','world.notify','view.pickPerson','__MURA_PLAYABILITY_POLISH__'])assert.ok(source.includes(contract),contract);
+ for(const contract of ['muraFindPlacement','cancelPlace','muraEnterVillage','nearestProjectedObject','world.notify','view.pickPerson','dragThreshold=10','AudioContext','residentReaction','__MURA_PLAYABILITY_POLISH__'])assert.ok(source.includes(contract),contract);
 });
