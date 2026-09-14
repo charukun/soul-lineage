@@ -1,15 +1,13 @@
 name: Code Health
 
 on:
-  schedule:
-    - cron: '23 20 * * 0,3'
-  workflow_dispatch:
+  workflow_call:
     inputs:
       dispatch:
         description: Create one RINNE Dispatch Draft PR when an actionable hotspot exists
         type: boolean
         required: false
-        default: false
+        default: true
 
 permissions:
   contents: read
@@ -51,28 +49,34 @@ jobs:
           echo "actionable=$actionable" >> "$GITHUB_OUTPUT"
           echo "top_score=$top_score" >> "$GITHUB_OUTPUT"
 
-      - name: Check for an in-flight automatic refactor
+      - name: Check in-flight refactor and cooldown
         id: active
-        if: >-
-          steps.audit.outputs.actionable == 'true' &&
-          (github.event_name == 'schedule' || inputs.dispatch == true)
+        if: steps.audit.outputs.actionable == 'true' && inputs.dispatch == true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          count=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --base develop --limit 100 \
-            --json headRefName \
-            --jq '[.[] | select(.headRefName | startswith("dispatch/code-health-"))] | length')
+          pulls=$(gh pr list --repo "$GITHUB_REPOSITORY" --state all --base develop --limit 100 --json headRefName,createdAt,state)
+          count=$(printf '%s' "$pulls" | jq '[.[] | select(.state == "OPEN" and (.headRefName | startswith("dispatch/code-health-")))] | length')
+          latest=$(printf '%s' "$pulls" | jq -r '[.[] | select(.headRefName | startswith("dispatch/code-health-")) | .createdAt] | sort | last // ""')
+          cooldown=false
+          if [ -n "$latest" ]; then
+            cooldown=$(node --input-type=module -e "const age=Date.now()-Date.parse(process.argv[1]); process.stdout.write(String(Number.isFinite(age) && age < 72*60*60*1000));" "$latest")
+          fi
           echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "cooldown=$cooldown" >> "$GITHUB_OUTPUT"
           if [ "$count" != "0" ]; then
             echo "An automatic Code Health refactor is already open; this audit will not create another." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$cooldown" = "true" ]; then
+            echo "The previous automatic Code Health refactor is less than 72 hours old; this audit will not create another yet." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Build focused refactor request
         id: request
         if: >-
           steps.audit.outputs.actionable == 'true' &&
+          inputs.dispatch == true &&
           steps.active.outputs.count == '0' &&
-          (github.event_name == 'schedule' || inputs.dispatch == true)
+          steps.active.outputs.cooldown != 'true'
         run: |
           node scripts/code-health-dispatch.mjs "$REPORT_FILE" "$MARKER_FILE" "$BODY_FILE" > "$DISPATCH_FILE"
           slug=$(node --input-type=module -e "import fs from 'node:fs'; const r=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); process.stdout.write(r.slug);" "$DISPATCH_FILE")
@@ -115,16 +119,18 @@ jobs:
             echo '### Automatic refactor handoff'
             echo "Created one RINNE Dispatch Draft PR: $pr_url"
             echo "Branch: \`$branch\`"
-            echo 'RINNE Dispatch owns implementation; existing Integration owns Ready PR delivery.'
+            echo 'RINNE Dispatch handoff owns implementation; existing Integration owns Ready PR delivery.'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Record non-dispatch result
         if: >-
           steps.audit.outputs.actionable != 'true' ||
-          (github.event_name == 'workflow_dispatch' && inputs.dispatch != true)
+          inputs.dispatch != true ||
+          steps.active.outputs.count != '0' ||
+          steps.active.outputs.cooldown == 'true'
         run: |
           if [ "${{ steps.audit.outputs.actionable }}" != "true" ]; then
             echo 'No actionable hotspot crossed the configured threshold.' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo 'Manual audit only: an actionable hotspot exists, but dispatch=false.' >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${{ inputs.dispatch }}" != "true" ]; then
+            echo 'Audit-only call: an actionable hotspot exists, but dispatch=false.' >> "$GITHUB_STEP_SUMMARY"
           fi
