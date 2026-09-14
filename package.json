@@ -17,6 +17,7 @@
     "dev:demon": "npm run dev --workspace @soul/demon",
     "check": "node scripts/check.mjs",
     "health": "node scripts/code-health.mjs audit",
+    "visual:budget": "node scripts/visual-budget.mjs audit",
     "test": "node --test tests/*.test.mjs",
     "test:app": "node scripts/test-app.mjs",
     "build": "npm run build --workspaces --if-present",
