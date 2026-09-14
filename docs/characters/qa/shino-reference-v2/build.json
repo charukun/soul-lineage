@@ -20,18 +20,17 @@
   "productionStageRequested": "PRIMARY",
   "visualApproval": "pending",
   "refinement": {
-    "version": 9,
-    "strategy": "clean-dedicated-stylized-primary-polish",
+    "version": 10,
+    "strategy": "clean-dedicated-stylized-primary-waist-final",
     "legacyVisibleMeshesRetained": false,
     "auditedArmatureRetained": true,
     "primaryGeometryBinding": "static-unbound",
     "deformationBinding": "pending-deformation-stage",
     "visualFixes": [
-      "horizontal-belt",
-      "continuous-shorts",
-      "joined-boot-toe",
-      "clean-bob-back",
-      "flatter-anime-eyes"
+      "tucked-waist-bridge",
+      "body-hugging-belt",
+      "closed-crotch-silhouette",
+      "shorts-belt-overlap"
     ],
     "visualApproval": "pending"
   }
