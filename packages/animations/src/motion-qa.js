@@ -1,5 +1,6 @@
 import { clamp } from './quality-math.js';
 import { createAuthoringReview, validateAuthoringReview, AUTHORING_STAGES, AUTHORING_GUIDE } from './motion-authoring.js';
+import { summarizeFrameComparisons } from './motion-frame-qa.js';
 export const MOTION_QA_VERSION=1;
 export const QA_FPS=60;
 export const QA_CATEGORIES=Object.freeze(['model','rig','skinning / weight','motion','transition','weapon grip','body variation','clothing','hair','self intersection','silhouette','unknown']);
@@ -38,6 +39,10 @@ export function validateMotionPerceptionEvidence(evidence){
   if(!['full','near','mid','far'].includes(evidence.lod.level)||!Number.isFinite(evidence.readability.weakestScore)||!Number.isFinite(evidence.trajectory.maxJerk))throw new Error('Invalid motion perception evidence');
   return evidence;
 }
+export function validateFrameComparisons(items){
+  if(!Array.isArray(items)||items.length<1||items.length>240)throw new Error('Invalid frame comparison evidence');
+  const summary=summarizeFrameComparisons(items);if(summary.visualApprovalRequired!==true)throw new Error('Frame comparison cannot approve visual quality');return summary;
+}
 export function validateQAReport(report) {
   if(!report||report.schema!=='character-motion-qa'||report.version!==1||!boundedString(report.reviewer,160)||!boundedString(report.build,160)||!Array.isArray(report.issues)||report.issues.length>500||!report.review||report.review.fps!==60||!boundedString(report.review.sequence,160)||!Array.isArray(report.review.characters)||report.review.characters.length>30)throw new Error('Invalid QA report');
   if(!['pending','approved','changes-requested'].includes(report.visualApproval))throw new Error('Invalid visual approval');
@@ -47,6 +52,7 @@ export function validateQAReport(report) {
     if(AUTHORING_STAGES.some(id=>report.authoring.stages[id].status==='reviewed')&&report.authoring.source.after!==report.review.motionRevision)throw new Error('Stale authoring source revision');
   }
   if(report.motionPerception!==undefined)validateMotionPerceptionEvidence(report.motionPerception);
+  if(report.frameComparisons!==undefined)validateFrameComparisons(report.frameComparisons);
   const ids=new Set();
   for(const issue of report.issues) {
     if(!boundedString(issue.id,160)||ids.has(issue.id)||!boundedString(issue.character,160)||!boundedString(issue.motion,160)||!Number.isFinite(issue.timestamp)||issue.timestamp<0||!Number.isInteger(issue.frame)||issue.frame<0||!Object.hasOwn(QA_CAMERAS,issue.camera)||!Array.isArray(issue.affectedBones)||issue.affectedBones.length>64||!issue.affectedBones.every(x=>boundedString(x,96))||!['info','warning','error'].includes(issue.severity)||!QA_CATEGORIES.includes(issue.category)||!boundedString(issue.note,4000)||!['open','needs-review','resolved','accepted'].includes(issue.status))throw new Error('Invalid QA issue');
@@ -67,4 +73,7 @@ export function createQAReport({build='',reviewer='human',review}) {
 export function attachMotionPerceptionQA(report,evidence){
   validateQAReport(report);validateMotionPerceptionEvidence(evidence);const next={...report,motionPerception:evidence};validateQAReport(next);if(next.visualApproval!==report.visualApproval)throw new Error('Motion perception cannot approve visual quality');return next;
 }
-export const QA_WORKER_CONTRACT=Object.freeze({version:1,input:'review conditions + deterministic frames + previous character-motion-qa report + observed reference and before/after 1x video',output:'character-motion-qa report with authoring + optional motion-perception evidence',repairTargets:['motion','normalization','rig adapter','weapon calibration','appearance assets','anticipation / recovery','gaze','grip','secondary motion','pose corrective','combo continuity','silhouette readability','trajectory continuity','motion LOD'],authoringGuide:AUTHORING_GUIDE,authoringStages:AUTHORING_STAGES,approval:'explicit visual review; numeric diagnostics and record completeness cannot approve'});
+export function attachFrameComparisonQA(report,evidence){
+  validateQAReport(report);validateFrameComparisons(evidence);const next={...report,frameComparisons:evidence};validateQAReport(next);if(next.visualApproval!==report.visualApproval)throw new Error('Frame comparison cannot approve visual quality');return next;
+}
+export const QA_WORKER_CONTRACT=Object.freeze({version:1,input:'review conditions + deterministic frames + previous character-motion-qa report + observed reference and before/after 1x video',output:'character-motion-qa report with authoring + optional motion-perception/frame-comparison evidence',repairTargets:['motion','normalization','rig adapter','weapon calibration','appearance assets','anticipation / recovery','gaze','grip','secondary motion','pose corrective','combo continuity','silhouette readability','trajectory continuity','motion LOD','paired interaction','locomotion transition','personality','fatigue / injury','frame regression'],authoringGuide:AUTHORING_GUIDE,authoringStages:AUTHORING_STAGES,approval:'explicit visual review; numeric diagnostics, frame comparisons and record completeness cannot approve'});
