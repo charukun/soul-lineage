@@ -325,6 +325,9 @@ jobs:
         if: steps.lkg.outputs.found == 'true'
         with:
           artifact-ids: ${{ steps.lkg.outputs.artifact_id }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.lkg.outputs.run_id }}
           path: rollback-site
           merge-multiple: true
       - name: Verify rollback artifact identity
