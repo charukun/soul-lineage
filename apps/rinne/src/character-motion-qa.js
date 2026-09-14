@@ -124,7 +124,7 @@ export function createWorkshopMotionQA({review,scene,camera,orbit,canvas,refresh
     },
     pose(actor){return active?()=>adapter(actor).apply(pose??sample(time)):null;},
     finish(actor,index){finishActor(actor,index);},
-    snapshot(){return {time,frame:qaSequenceAt(time).frame,camera:cameraId,cameraPosition:camera.position.toArray(),cameraTarget:orbit.target.toArray(),corrected,liveCompare,diagnostics,corrections:observed,comparison:comparison?clone(comparison):null,visualRequired:['skinning / weight','clothing','hair','silhouette'],conditions:conditions()};},
+    snapshot(){return {time,playing,frame:qaSequenceAt(time).frame,camera:cameraId,cameraPosition:camera.position.toArray(),cameraTarget:orbit.target.toArray(),corrected,liveCompare,diagnostics,corrections:observed,comparison:comparison?clone(comparison):null,visualRequired:['skinning / weight','clothing','hair','silhouette'],conditions:conditions()};},
     dispose(){active=false;cancelAnimationFrame(liveFrameId);liveLayer.remove();cleanupWeapons();style.remove();swordTemplate?.traverse(o=>{o.geometry?.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])m?.dispose();});}
   };
   return api;
