@@ -1,7 +1,7 @@
 import * as T from '../vendor/three.js';
 import {HumanoidRuntime as BaseHumanoidRuntime} from './humanoid-natural-stance.js';
 
-export const HUMANOID_DYNAMICS_REVISION='mass-response-1';
+export const HUMANOID_DYNAMICS_REVISION='mass-response-2';
 export const LOCAL_WEAPON_INERTIA=Object.freeze({
  fist:Object.freeze({lag:0,maxAngle:0,stiffness:40,damping:13}),
  sword:Object.freeze({lag:.020,maxAngle:.055,stiffness:34,damping:10}),
@@ -14,6 +14,12 @@ const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const finite=(...v)=>v.every(Number.isFinite);
 const q=()=>new T.Quaternion();
 const v=(x=0,y=0,z=0)=>new T.Vector3(x,y,z);
+
+export function localImpactBeat({actorId,targetId,kind='hit',clock=0,serial=0,direction=null,strength=1,region='torso'}={}){
+ if(!finite(clock,serial,strength)||serial<0||strength<0)throw Error('Invalid impact beat');
+ const dir=direction&&finite(direction.x,direction.z)?Object.freeze({x:direction.x,z:direction.z}):null;
+ return Object.freeze({version:2,id:`${actorId??'actor'}:${targetId??'target'}:${kind}:${serial}`,actorId:actorId??null,targetId:targetId??null,kind,clock,strength,region,direction:dir,channels:Object.freeze(['hit-stop','camera-impulse','hit-reaction','vfx','sfx'])});
+}
 
 export function localDirectionalReaction({incomingX=0,incomingZ=-1,targetYaw=0,strength=1,region='torso'}={}){
  if(!finite(incomingX,incomingZ,targetYaw,strength)||strength<0)throw Error('Invalid directional hit reaction');
@@ -34,8 +40,8 @@ export function localTerrainAdjustments({left,right,maxFootLift=.22,maxPelvisShi
  return{left:{y:l-pelvis,normal:norm(left.normal)},right:{y:r-pelvis,normal:norm(right.normal)},pelvisY:pelvis};
 }
 
-function impactVector(a){
- const beat=a?._impactBeat,dir=beat?.direction??a?.reaction?.direction;
+function impactVector(a,includeBeat=true){
+ const beat=includeBeat?a?._impactBeat:null,dir=beat?.direction??a?.reaction?.direction;
  if(dir&&finite(dir.x,dir.z))return{x:dir.x,z:dir.z,strength:beat?.strength??a.reaction?.strength??1,region:beat?.region??a.reaction?.region??'torso'};
  const rx=a?.reaction;if(rx&&finite(rx.fromX,rx.fromZ)&&finite(a.x,a.z))return{x:a.x-rx.fromX,z:a.z-rx.fromZ,strength:rx.strength??1,region:rx.region??'torso'};
  return{x:-Math.sin(a?.yaw||0),z:-Math.cos(a?.yaw||0),strength:rx?.strength??1,region:rx?.region??'torso'};
@@ -44,7 +50,16 @@ function impactVector(a){
 function syncSnapshot(c,names){if(!c.lastActual)return;for(const name of names){const b=c.bones[name],saved=c.lastActual[name];if(b&&saved){saved.p.copy(b.position);saved.q.copy(b.quaternion);}}}
 
 export class HumanoidRuntime extends BaseHumanoidRuntime{
- constructor(api){super(api);this._dynamics={weapon:new Map(),balance:null,terrain:null,reaction:null};}
+ constructor(api){super(api);this._dynamics={weapon:new Map(),impactByActor:new Map(),impact:null,balance:null,terrain:null,reaction:null};}
+
+ emitImpactBeat(a){
+  if(!a?.reaction)return null;const actorKey=a.id??'hero',serial=a._hitSerial??a.reaction.serial??0,previous=this._dynamics.impactByActor.get(actorKey);if(previous?.serial===serial&&previous?.reaction===a.reaction)return previous.beat;
+  const vector=impactVector(a,false),sourceId=a.reaction.attackerId??a.reaction.sourceId??a.reaction.source?.id??null,kind=a.reaction.kind??a.reaction.attackKind??'hit',beat=localImpactBeat({actorId:sourceId,targetId:a.id??actorKey,kind,clock:a._humanoidClock||0,serial,direction:{x:vector.x,z:vector.z},strength:vector.strength,region:vector.region});
+  a._impactBeat=beat;this._dynamics.impactByActor.set(actorKey,{serial,reaction:a.reaction,beat});this._dynamics.impact=beat;
+  try{globalThis.__RINNE_IMPACT_BEAT__?.(beat);}catch{}
+  const channels=globalThis.__RINNE_IMPACT_CHANNELS__;if(channels&&typeof channels==='object')for(const channel of beat.channels){try{channels[channel]?.(beat);}catch{}}
+  return beat;
+ }
 
  applyDirectionalReaction(c,a,commit){
   if(!a?.reaction||a.dead)return;
@@ -83,6 +98,6 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
   const supports=['left','right'].filter(side=>c.footLocks?.[side]?.locked);if(!supports.length)supports.push('left','right');const support=supports.map(side=>points[side+'Foot']).filter(Boolean);if(!support.length)return;let nearest=support[0].clone(),distance;if(support.length>1){const a0=support[0],b=support[1],line=b.clone().sub(a0),d=line.lengthSq(),t=d>1e-9?clamp(com.clone().sub(a0).dot(line)/d):0;nearest=a0.clone().addScaledVector(line,t);}distance=Math.hypot(com.x-nearest.x,com.z-nearest.z);const radius=.09*Math.max(1,c.root.scale.x||1),margin=radius-distance;c.dynamicsBalance={com:com.toArray(),support:support.map(p=>p.toArray()),inside:margin>=0,margin,distance};this._dynamics.balance=c.dynamicsBalance;
  }
 
- sample(a,at=null,px=a.x,pz=a.z,commit=false){const result=super.sample(a,at,px,pz,commit),c=this.current;if(!result||!c)return result;this.applyDirectionalReaction(c,a,commit);this.applyTerrain(c,a,commit);this.applyWeaponInertia(c,a,result,commit);if(commit)this.updateBalance(c,a);if(commit){c.vrm.update(0);c.root.updateMatrixWorld(true);}return result;}
- report(){return{...super.report(),dynamics:{revision:HUMANOID_DYNAMICS_REVISION,reaction:this._dynamics.reaction,terrain:this._dynamics.terrain,balance:this._dynamics.balance,weapon:[...this._dynamics.weapon.entries()].map(([id,x])=>({id,offset:x.offset,velocity:x.velocity}))}};}
+ sample(a,at=null,px=a.x,pz=a.z,commit=false){const result=super.sample(a,at,px,pz,commit),c=this.current;if(!result||!c)return result;if(commit)this.emitImpactBeat(a);this.applyDirectionalReaction(c,a,commit);this.applyTerrain(c,a,commit);this.applyWeaponInertia(c,a,result,commit);if(commit)this.updateBalance(c,a);if(commit){c.vrm.update(0);c.root.updateMatrixWorld(true);}return result;}
+ report(){return{...super.report(),dynamics:{revision:HUMANOID_DYNAMICS_REVISION,impact:this._dynamics.impact,reaction:this._dynamics.reaction,terrain:this._dynamics.terrain,balance:this._dynamics.balance,weapon:[...this._dynamics.weapon.entries()].map(([id,x])=>({id,offset:x.offset,velocity:x.velocity}))}};}
 }
