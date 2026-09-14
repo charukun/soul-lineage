@@ -76,7 +76,7 @@ export function installOnlineHost(container=document.getElementById('onlineHost'
     if(node)return node;
     if(raidHost.villageId!==worldId)raidHost=new RaidHost({villageId:worldId,storage:localStorage});
     node=createPeerHostedWorldNode({selfId,worldId,mayorId,hostEligible:true,emit:emitProtocol,applyCheckpoint:applyRemoteCheckpoint,onPhase:phaseChanged});
-    mesh=createPeerMeshCoordinator({selfId,RTCPeerConnection,relay:event=>{const hostId=node?.snapshot().hostId;if(hostId&&hostId!==selfId)sendDirect(hostId,{type:'mesh-relay',from:selfId,...event});},onMessage:(peerId,message,kind)=>handleMessage(peerId,message,kind),onState:(peerId,state)=>{if(CLOSED.has(state)&&node?.isHost){node.hostDisconnect(peerId);raidHost.leave(peerId);}}});
+    mesh=createPeerMeshCoordinator({selfId,RTCPeerConnection,relay:event=>{const hostId=node?.snapshot().hostId;if(hostId&&hostId!==selfId)sendDirect(hostId,{type:'mesh-relay',from:selfId,...event});},onMessage:(peerId,message,kind)=>handleMessage(peerId,message,kind),onState:(peerId,state)=>{if(!disposed&&CLOSED.has(state)&&node?.isHost){node.hostDisconnect(peerId);raidHost.leave(peerId);}}});
     if(authority)node.adoptAuthority(authority.hostId||mayorId,authority);
     if(checkpoint)node.receive(authority?.hostId||mayorId,{type:'world-checkpoint',worldId,hostId:authority?.hostId||mayorId,epoch:checkpoint.epoch,revision:checkpoint.revision,checkpoint:checkpoint.checkpoint});
     syncMesh();return node;
@@ -101,7 +101,7 @@ export function installOnlineHost(container=document.getElementById('onlineHost'
   async function makeOffer(){
     if(!node?.isHost)throw new Error('現在のHostだけが参加コードを発行できます。');
     let peerId=`pending-${++seq}`,connection;
-    connection=await createHostOffer({RTCPeerConnection,dualChannel:true,onState:s=>{if(CLOSED.has(s)){for(const[id,c]of direct)if(c===connection){direct.delete(id);node?.hostDisconnect(id);raidHost.leave(id);}}},onMessage:(message,kind)=>{
+    connection=await createHostOffer({RTCPeerConnection,dualChannel:true,onState:s=>{if(!disposed&&CLOSED.has(s)){for(const[id,c]of direct)if(c===connection){direct.delete(id);node?.hostDisconnect(id);raidHost.leave(id);}}},onMessage:(message,kind)=>{
       if(message.type==='join'){
         peerId=String(message.playerId||'');if(!peerId)throw new Error('参加者IDがありません。');
         const result=raidHost.join(peerId,message);if(result.type==='rejected'){connection.send(result);connection.close();return;}
@@ -116,7 +116,7 @@ export function installOnlineHost(container=document.getElementById('onlineHost'
     if(node)throw new Error('すでに共通村へ接続しています。');
     const offer=$('#peer-world-offer').value.trim();if(!offer)throw new Error('参加コードを貼り付けてください。');
     let connection;
-    connection=await acceptHostOffer(offer,{RTCPeerConnection,dualChannel:true,onState:s=>{if(CLOSED.has(s)&&node){star=null;node.tick();}},onMessage:(message,kind)=>{
+    connection=await acceptHostOffer(offer,{RTCPeerConnection,dualChannel:true,onState:s=>{if(!disposed&&CLOSED.has(s)&&node){star=null;node.tick();}},onMessage:(message,kind)=>{
       if(message.type==='world-welcome'){
         starHostId=String(message.authority?.hostId||message.mayorId);star=connection;remoteSession=true;window.__VILLAGE_REMOTE_WORLD_ACTIVE__=true;makeNode(message);window.__VILLAGE_SIMULATION_PAUSED__=true;syncMesh();stateText('共通村の待機Hostとして接続しました。Host移譲時だけ村を復元します。');return;
       }
@@ -138,7 +138,8 @@ export function installOnlineHost(container=document.getElementById('onlineHost'
     const snap=node?.snapshot();if(snap)$('#peer-world-debug').textContent=`World ${snap.worldId}\nPhase ${snap.phase} / Epoch ${snap.epoch}\nHost ${snap.hostId||'-'} / Candidate ${snap.candidateId||'-'}\nCheckpoint ${snap.checkpointRevision}\nMesh ${mesh?.snapshot().connected.length||0}\nPresence ${transport.snapshot().presenceSent} / drop ${transport.snapshot().dropped}`;
   },100);
 
+  const crashForDiagnostics=()=>{if(disposed)return;disposed=true;clearInterval(timer);node?.close();overlay.setPhase('closed',{title:'村との繋がりが途絶えた',note:'Host突然停止の診断中'});window.__VILLAGE_SIMULATION_PAUSED__=true;mesh?.close();for(const connection of direct.values())connection.close?.();star?.close?.();};
   const dispose=()=>{if(disposed)return;disposed=true;clearInterval(timer);if(node?.isHost)node.gracefulHandoff();mesh?.close();for(const connection of direct.values())connection.close?.();star?.close?.();node?.close();overlay.dispose();window.__VILLAGE_SIMULATION_PAUSED__=false;window.__VILLAGE_REMOTE_WORLD_ACTIVE__=false;if(activeSession?.dispose===dispose)activeSession=null;};
-  window.addEventListener('pagehide',dispose,{once:true});activeSession={dispose,snapshot:()=>({selfId,node:node?.snapshot()||null,mesh:mesh?.snapshot()||null,transport:transport.snapshot(),remoteSession})};window.__VILLAGE_PEER_HOSTED_WORLD__=activeSession;return activeSession;
+  window.addEventListener('pagehide',dispose,{once:true});activeSession={dispose,crashForDiagnostics,snapshot:()=>({selfId,node:node?.snapshot()||null,mesh:mesh?.snapshot()||null,transport:transport.snapshot(),remoteSession})};window.__VILLAGE_PEER_HOSTED_WORLD__=activeSession;return activeSession;
 }
 function style(el){el.style.cssText='margin:0 auto;max-width:720px;padding:12px;color:#eee';el.querySelectorAll('textarea').forEach(x=>x.style.cssText='display:block;width:100%;height:68px;margin:6px 0;background:#080808;color:#bfe;padding:8px;box-sizing:border-box');el.querySelectorAll('button').forEach(x=>x.style.cssText='padding:9px;margin:3px;background:#6b5530;color:white;border:0;border-radius:8px');}
