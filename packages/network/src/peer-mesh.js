@@ -27,12 +27,12 @@ export function createPeerMeshCoordinator({
       let connection;
       connection=await createOffer({
         RTCPeerConnection,
-        dualChannel:false,
+        dualChannel:true,
         onState:state=>{
           onState(peerId,state);
           if(['closed','failed','disconnected','error'].includes(state)&&connections.get(peerId)===connection)connections.delete(peerId);
         },
-        onMessage:message=>onMessage(peerId,message),
+        onMessage:(message,kind)=>onMessage(peerId,message,kind),
       });
       pending.set(peerId,{state:'offer',connection});
       offers++;
@@ -51,12 +51,12 @@ export function createPeerMeshCoordinator({
         let connection;
         connection=await acceptOffer(signal.code,{
           RTCPeerConnection,
-          dualChannel:false,
+          dualChannel:true,
           onState:state=>{
             onState(from,state);
             if(['closed','failed','disconnected','error'].includes(state)&&connections.get(from)===connection)connections.delete(from);
           },
-          onMessage:message=>onMessage(from,message),
+          onMessage:(message,kind)=>onMessage(from,message,kind),
         });
         bind(from,connection);answers++;
         relay({type:'mesh-signal',to:from,signal:{kind:'answer',code:connection.code}});
@@ -81,12 +81,12 @@ export function createPeerMeshCoordinator({
     return snapshot();
   }
 
-  function send(peerId,message){
+  function send(peerId,message,{presence=false}={}){
     const id=String(peerId),connection=connections.get(id);
     if(!connection)return false;
-    try{connection.send(message);return true;}catch{connections.delete(id);failures++;return false;}
+    try{presence&&connection.sendPresence?connection.sendPresence(message):connection.send(message);return true;}catch{connections.delete(id);failures++;return false;}
   }
-  function broadcast(message){let sent=0;for(const[id]of connections)if(send(id,message))sent++;return sent;}
+  function broadcast(message,options){let sent=0;for(const[id]of connections)if(send(id,message,options))sent++;return sent;}
   function closePeer(peerId){const id=String(peerId);connections.get(id)?.close?.();connections.delete(id);const item=pending.get(id);item?.connection?.close?.();pending.delete(id);}
   function close(){for(const id of [...connections.keys()])closePeer(id);for(const[id,item]of pending){item.connection?.close?.();pending.delete(id);}}
   function snapshot(){return Object.freeze({selfId,connected:[...connections.keys()].sort(),pending:[...pending.keys()].sort(),offers,answers,failures});}
