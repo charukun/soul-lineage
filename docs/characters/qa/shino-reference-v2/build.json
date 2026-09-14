@@ -1,0 +1,22 @@
+{
+  "schema": "shino-reference-v2-dcc-build",
+  "version": 1,
+  "blender": "4.0.2",
+  "sourceVrm": "apps/rinne/public/simulator/assets/SHINO_review.vrm",
+  "meshObjects": 71,
+  "surfaces": {
+    "skin": 14,
+    "face": 8,
+    "hair": 25,
+    "clothing": 15,
+    "accessories": 9
+  },
+  "referenceViews": [
+    "front",
+    "side",
+    "back",
+    "three-quarter"
+  ],
+  "productionStageRequested": "PRIMARY",
+  "visualApproval": "pending"
+}
