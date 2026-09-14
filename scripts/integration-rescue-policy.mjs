@@ -5,9 +5,8 @@ export const STATE_BRANCH = 'automation/integration-rescue-state';
 export const STATE_FILE = 'rescue-state.json';
 export const ACTIVE = new Set(['CLAIMED', 'ANALYZING', 'RESOLVING', 'VALIDATING', 'PUSHING']);
 export const RETURNED = new Set(['AWAITING_PUSH', 'PUSHED', 'RETURNED_TO_INTEGRATION', 'CHECKING']);
-export const SEMANTIC_WORK = new Set(['AWAITING_SEMANTIC_WORK', 'SEMANTIC_WORKING']);
 export const TERMINAL = new Set(['MERGED', 'DEV', 'FAILED_MANUAL', 'CLOSED']);
-export const STATES = new Set(['DETECTED', 'QUEUED', 'BLOCKED_BY_RESCUE', ...ACTIVE, ...RETURNED, ...SEMANTIC_WORK,
+export const STATES = new Set(['DETECTED', 'QUEUED', 'BLOCKED_BY_RESCUE', ...ACTIVE, ...RETURNED,
   ...TERMINAL, 'FAILED_RETRYABLE', 'STALE']);
 const number = (env, key, fallback, min, max) => {
   const value = env[key] === undefined || env[key] === '' ? fallback : Number(env[key]);
@@ -116,9 +115,6 @@ export function transition(state, record, next, action, now) {
   if (record.state !== next) event(state, record, next, action, now);
   record.state = next; record.currentStep = next; record.currentAction = String(action).slice(0, 240); record.updatedAt = new Date(now).toISOString();
 }
-export function semanticWorkReason(reason = '') {
-  return /^FAILED_MANUAL:(?:SEMANTIC_CONFLICT|OVERLAPPING_CHANGES|RELATED_CODE_RECONCILIATION|CONTROL_OR_CONTRACT_RECONCILIATION)(?::|$)/.test(String(reason));
-}
 export function observationOnlyReason(reason = '') {
   return /^(?:PR_CONTRACT_CHANGED|HEAD_CHANGED|HEAD_CHANGED_AFTER_RESCUE|RELATED_DEVELOP_ADVANCED|DEPENDENCY_NOT_MERGED)$/.test(String(reason));
 }
@@ -128,15 +124,6 @@ export function failure(state, record, reason, now, manual = false) {
   record.failures = [...(record.failures || []), { reason: text, at: new Date(now).toISOString(), workerId: record.claimedBy, attempt: attemptAtFailure, runId: record.runId, rescueId: record.rescueId }].slice(-10);
   record.failureReason = text;
   record.lease = null;
-  if (manual && semanticWorkReason(text)) {
-    record.semanticReason = text;
-    record.semanticRequestedAt = new Date(now).toISOString();
-    record.semanticLease = null;
-    record.nextAttemptAt = null;
-    transition(state, record, 'AWAITING_SEMANTIC_WORK', '機械的base更新では意味保証できないため既存ChatGPT WorkのSemantic Rescueへ引き渡し', now);
-    state.outbox.push({ id: `${record.rescueId || 'pr-' + record.pr}:semantic:${attemptAtFailure}`, type: 'semantic', pr: record.pr, reason: text, attempt: attemptAtFailure, maxAttempts: record.maxAttempts });
-    return;
-  }
   if (!manual && observationOnlyReason(text) && record.attempt > 0) record.attempt--;
   record.nextAttemptAt = new Date(now + (observationOnlyReason(text) ? state.config.scanMinMs : state.config.retryMs * Math.max(1, record.attempt))).toISOString();
   transition(state, record, manual || record.attempt >= record.maxAttempts ? 'FAILED_MANUAL' : 'FAILED_RETRYABLE', text, now);
@@ -173,8 +160,8 @@ export function recoverStale(state, runStates, now) {
 
 export function planWave(state, { runId, now, id }) {
   const all = Object.values(state.records);
-  const occupied = all.filter(r => r.lease);
-  const locks = all.filter(r => r.lease || RETURNED.has(r.state) || SEMANTIC_WORK.has(r.state));
+  const occupied = all.filter(r => r.lease || r.workRepair?.status === 'working');
+  const locks = all.filter(r => r.lease || r.workRepair?.status === 'working' || RETURNED.has(r.state));
   const candidates = all.filter(r => ['DETECTED', 'QUEUED', 'BLOCKED_BY_RESCUE', 'FAILED_RETRYABLE'].includes(r.state) &&
     !r.lease && (!r.nextAttemptAt || Date.parse(r.nextAttemptAt) <= now));
   for (const r of candidates) r.priority = priority(r, all, now);
@@ -187,22 +174,22 @@ export function planWave(state, { runId, now, id }) {
     }
     if (r.attempt >= r.maxAttempts) { failure(state, r, 'RETRY_EXHAUSTED', now, true); continue; }
     const dependenciesWaiting = (r.dependencies || []).filter(pr => !r.mergedDependencies?.includes(pr));
-    const blockers = [...new Set([...dependenciesWaiting, ...locks.filter(p => p.pr !== r.pr && compareScopes(r.scope, p.scope).risk === 'RED').map(p => p.pr)])];
+    const blockers = [...new Set([...dependenciesWaiting, ...locks.filter(p => p.pr !== r.pr && compareScopes(r.scope, p.workRepair?.scope || p.scope).risk === 'RED').map(p => p.pr)])];
     r.blockedBy = blockers;
     if (blockers.length) {
       r.risk = 'RED'; r.waitingReason = `Waiting for ${blockers.map(pr => `#${pr}`).join(', ')} to merge into develop`;
       for (const pr of blockers) {
         const predecessor = state.records[pr];
-        if (predecessor && (predecessor.lease || RETURNED.has(predecessor.state) || SEMANTIC_WORK.has(predecessor.state))) {
+        if (predecessor && (predecessor.lease || predecessor.workRepair?.status === 'working' || RETURNED.has(predecessor.state))) {
           predecessor.risk = 'RED'; predecessor.riskReason = `Sequential predecessor; #${r.pr} waits for this PR to merge`;
         }
       }
       transition(state, r, 'BLOCKED_BY_RESCUE', r.waitingReason, now); continue;
     }
-    const relations = locks.filter(p => p.pr !== r.pr).map(p => compareScopes(r.scope, p.scope));
+    const relations = locks.filter(p => p.pr !== r.pr).map(p => compareScopes(r.scope, p.workRepair?.scope || p.scope));
     r.risk = relations.some(x => x.risk === 'YELLOW') ? 'YELLOW' : 'GREEN';
     r.riskReason = r.risk === 'YELLOW' ? 'Same package; latest develop recheck before/after push' : 'Independent changed scopes';
-    for (const peer of locks) if (peer.pr !== r.pr && compareScopes(r.scope, peer.scope).risk === 'YELLOW' && peer.risk !== 'RED') {
+    for (const peer of locks) if (peer.pr !== r.pr && compareScopes(r.scope, peer.workRepair?.scope || peer.scope).risk === 'YELLOW' && peer.risk !== 'RED') {
       peer.risk = 'YELLOW'; peer.riskReason = 'Same package; latest develop recheck before/after push';
     }
     r.waitingReason = null;
