@@ -81,3 +81,44 @@ the spatial approach into the existing strike.
 Focused tests must cover near/already-in-range targets, bounded far targets, target
 locking despite later target movement, turn-before-approach ordering, exact stop at
 contact, cancellation, determinism and unchanged slash timing/contact constants.
+
+## Motion Quality Phase 2 acceptance
+
+Phase 2 builds on the controller-owned bounded Motion Warp without turning the
+animation layer into gameplay authority. It is a coordinated quality pass rather
+than a collection of unrelated per-model patches.
+
+- Distance Matching uses measured locomotion cycle distance plus actual remaining
+  travel to settle starts/stops and approach timing instead of advancing gait only by
+  elapsed time. Stride correction stays bounded and only alters visual leg reach;
+- Orientation Warping distributes short turns across pelvis/chest/feet while
+  `actor.yaw` remains the single authoritative world heading. Large turns must not
+  rotate the whole character as one rigid turntable;
+- each attack kind exposes machine-readable warp metadata: authored travel,
+  standoff, max correction, turn end, warp start and contact/warp end. Slash keeps
+  its existing `.66 s` timing and `contact=.50` contract;
+- the controller may select a better existing attack for distance/angle before it
+  applies warp. Motion Warp is a bounded correction, not a replacement for attack
+  selection or movement rules;
+- planned warp endpoints are clipped by the existing world/collision boundary when
+  that boundary is available. Failure to resolve a safe endpoint shortens or skips
+  warp; it never tunnels the actor through geometry;
+- one Impact Beat coordinates contact-time hit stop, camera impulse, VFX/SFX hooks
+  and hit reaction diagnostics so presentation systems agree on the same contact
+  event without moving damage authority out of gameplay;
+- transition inertialization carries bounded pose velocity through locomotion,
+  guard, attack and recovery boundaries, then decays it. It must never change
+  active/contact windows, sockets, collision roots or gameplay position;
+- Root Motion metadata is explicit even for presentation-authored attacks. Imported
+  or generated clips declare intended horizontal travel rather than silently moving
+  the visual root;
+- all helpers fail closed for non-finite data, remain deterministic for the same
+  state, and expose diagnostics to Character Lab / focused tests without granting
+  automatic visual approval;
+- multiplayer/network authority, damage/contact authority, input, progression,
+  saves, Visual Review Lab branch, `main` and Production remain unchanged.
+
+Focused verification must cover deterministic metadata, distance/angle attack
+choice, bounded stride/orientation correction, collision-shortened warp, one-shot
+Impact Beat dispatch, transition decay, root-motion ownership and preservation of
+existing authored slash timing/socket/contact contracts.
