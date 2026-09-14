@@ -15,9 +15,13 @@ export function workRepairClass(record) {
   return REPAIR_CLASSES.find(([, pattern]) => pattern.test(reason))?.[0] || null;
 }
 
+export function workRepairBaselineAdvanceReason(reason) {
+  return BASELINE_ADVANCE.test(String(reason || ''));
+}
+
 export function workRepairResumesAfterBaselineAdvance(record) {
   return record?.workRepair?.status === 'baseline-advanced' ||
-    (record?.workRepair?.status === 'failed' && BASELINE_ADVANCE.test(String(record.workRepair.reason || '')));
+    (record?.workRepair?.status === 'failed' && workRepairBaselineAdvanceReason(record.workRepair.reason));
 }
 
 export function workRepairEligibility(record) {
