@@ -3,8 +3,10 @@ import { pathToFileURL } from 'node:url';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { GAME_NAMES, GAME_ENVIRONMENTS, BOARD_NAME } from '../scripts/application-catalog.mjs';
 
+const EXACT_SHA = /^[a-f0-9]{40}$/;
+
 export function assertVersion(version, expected, label = 'publication') {
-  assert.match(expected || '', /^[a-f0-9]{40}$/, 'Expected exact Git commit SHA');
+  assert.match(expected || '', EXACT_SHA, 'Expected exact Git commit SHA');
   assert.equal(version?.app, 'ops-board', `${label}: wrong application`);
   assert.equal(version.commit, expected, `${label}: different deployed source`);
 }
@@ -30,6 +32,25 @@ export function assertSnapshot(state, expected) {
   assert.deepEqual(state.environments.filter(env => env.kind === 'pages').map(env => env.id), ['dev', 'staging', 'prod']);
   return state;
 }
+
+export async function waitForExpectedWorkerRevision(loadState, expected, { attempts = 30, delayMs = 2000 } = {}) {
+  assert.match(expected || '', EXACT_SHA, 'Expected exact Git commit SHA');
+  assert.ok(Number.isInteger(attempts) && attempts > 0, 'attempts must be positive');
+  assert.ok(Number.isFinite(delayMs) && delayMs >= 0, 'delayMs must be non-negative');
+  let last;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const state = await loadState();
+    const actual = state?.buildCommit;
+    if (actual === expected) return state;
+    if (!EXACT_SHA.test(actual || '')) {
+      throw new Error(`Worker snapshot is missing an exact build revision: ${String(actual || 'none')}`);
+    }
+    last = new Error(`Worker revision changed after publication: expected ${expected}, got ${actual}`);
+    if (attempt < attempts - 1 && delayMs) await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+  throw last;
+}
+
 async function fetchJson(url) {
   const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(30000) });
   if (!response.ok) throw new Error(`${new URL(url).pathname}: HTTP ${response.status}`);
@@ -48,7 +69,10 @@ export async function waitForPublication(base, expected) {
   throw last;
 }
 export async function verifyPublicSnapshot(base, expected) {
-  const state = await fetchJson(new URL('api/state', base));
+  const state = await waitForExpectedWorkerRevision(
+    () => fetchJson(new URL(`api/state?verify=${expected}`, base)),
+    expected,
+  );
   const out = process.env.OPS_REPORT_DIR || 'ops-review-results/public';
   await mkdir(out, { recursive: true });
   // Only the deliberately public API response is recorded. Request credentials are never written.
