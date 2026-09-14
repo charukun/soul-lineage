@@ -1,0 +1,47 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {appendCheckpoint,applyCatchupPayload,applyCheckpointDelta,checkpointDigest,createCatchupPayload,createCheckpointDelta,createCheckpointJournal} from '../src/checkpoint-sync.js';
+
+const cp=(time,hp=10)=>({schemaVersion:1,worldTimeMs:time,world:{weather:'clear',buildings:[{id:'home',hp}]},characters:[{id:'p1',position:[1,0,2],hp}],npcs:[{id:'n1',position:[3,0,4],mood:time}],randomState:{seed:7},session:null});
+
+test('checkpoint delta round-trips entity and nested changes',()=>{
+ const a=cp(10,10),b=cp(20,7);b.npcs.push({id:'n2',position:[5,0,6],mood:2});
+ const delta=createCheckpointDelta(a,b,{epoch:1,fromRevision:1,toRevision:2});
+ assert.ok(delta.ops.length>0);
+ assert.deepEqual(applyCheckpointDelta(a,delta,{epoch:1,revision:1}),b);
+ assert.equal(delta.baseDigest,checkpointDigest(a));
+ assert.equal(delta.resultDigest,checkpointDigest(b));
+});
+
+test('tampered delta fails digest verification',()=>{
+ const a=cp(1),b=cp(2),delta=createCheckpointDelta(a,b,{epoch:1,fromRevision:1,toRevision:2});
+ delta.resultDigest='00000000';
+ assert.throws(()=>applyCheckpointDelta(a,delta,{epoch:1,revision:1}),/result mismatch/);
+});
+
+test('known revision inside retained journal receives only contiguous deltas',()=>{
+ const a=cp(1),b=cp(2),c=cp(3);
+ let journal=createCheckpointJournal({epoch:1,revision:1,checkpoint:a,maxEntries:8,maxBytes:100000});
+ journal=appendCheckpoint(journal,{epoch:1,revision:2,checkpoint:b}).journal;
+ journal=appendCheckpoint(journal,{epoch:1,revision:3,checkpoint:c}).journal;
+ const payload=createCatchupPayload(journal,1);
+ assert.equal(payload.kind,'delta');assert.equal(payload.entries.length,2);
+ assert.deepEqual(applyCatchupPayload(a,{revision:1},payload),{checkpoint:c,revision:3});
+});
+
+test('compaction makes an old revision fall back to a full checkpoint',()=>{
+ const a=cp(1),b=cp(2),c=cp(3);
+ let journal=createCheckpointJournal({epoch:1,revision:1,checkpoint:a,maxEntries:2,maxBytes:100000});
+ journal=appendCheckpoint(journal,{epoch:1,revision:2,checkpoint:b}).journal;
+ journal=appendCheckpoint(journal,{epoch:1,revision:3,checkpoint:c}).journal;
+ assert.equal(journal.baseRevision,3);assert.equal(journal.entries.length,0);
+ const payload=createCatchupPayload(journal,1);
+ assert.equal(payload.kind,'full');assert.equal(payload.revision,3);assert.deepEqual(payload.checkpoint,c);
+});
+
+test('unknown or future revision never guesses a baseline',()=>{
+ const a=cp(1);const journal=createCheckpointJournal({epoch:1,revision:4,checkpoint:a});
+ const payload=createCatchupPayload(journal,99);
+ assert.equal(payload.kind,'full');
+ assert.throws(()=>applyCatchupPayload(cp(0),{revision:3},{...payload,kind:'delta',baseRevision:3,entries:[]}),/base mismatch|result mismatch/);
+});
