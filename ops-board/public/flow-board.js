@@ -31,6 +31,12 @@ function humanRequiredCount(view){
   if(Array.isArray(view?.manual)) return view.manual.filter(item=>item?.manualKind==='human-required').length;
   return Number(view?.counts?.human||0);
 }
+function notificationLine(view){
+  const value=view?.notification||'not configured';
+  if(value==='ntfy')return 'スマホ通知: ntfy到達確認済み';
+  if(value==='not configured')return 'スマホ通知: 未設定（Integration / DEV成功判定とは別）';
+  return `スマホ通知: ${value}（delivery observabilityのみ）`;
+}
 function render(view){
   if(!root)return; root.replaceChildren();
   if(!view?.available){root.append(node('p','empty','自動統合の状態を取得できていません'));return;}
@@ -73,6 +79,7 @@ function render(view){
   const topology=reconciliationBlock(reconciliation); if(topology)detail.append(topology);
   if(tuning.rescueConcurrency)detail.append(node('p','rs-note',`Auto tuning: Repair ${tuning.rescueConcurrency} workers · eval ${tuning.maxEvaluations} · Train ${tuning.trainSize} · ${tuning.reason||''}`));
   detail.append(proofLine(view.flowControl?.trainProof));
+  detail.append(node('p','rs-note',notificationLine(view)));
   const knowledge=view.flowControl?.failureKnowledge||[];
   if(knowledge.length){ const list=node('div','rs-flow-knowledge'); for(const item of knowledge.slice(0,5)) list.append(node('span','rs-pill',`${item.kind} ${item.successfulRepairs||0}/${item.count||0}`)); detail.append(list); }
   detail.append(node('p','rs-note','ReconcilerはGitHubの現在状態から毎回planを再構築します。Train/repair/preflightは並列化できますが、develop writerと個別PRのexact-head/review/check/merge直前再確認、DEV gateは省略しません。'));
