@@ -6,6 +6,7 @@ import { rescueClient, RescueStore, comparison } from './integration-rescue-stor
 import { workRepairEligibility } from './integration-rescue-work-repair-policy.mjs';
 import { bestKnownPlaybook } from './integration-failure-knowledge.mjs';
 import { reconcileStack } from './integration-queue-recovery.mjs';
+import { aiRepairEnvelope, aiRepairEnvelopeMarker } from './integration-ai-repair-envelope.mjs';
 
 export async function returnToIntegration(c, store, now = Date.now()) {
   const lease = randomUUID();
@@ -102,8 +103,20 @@ async function signalWorkRepair(c, item, record, message, state) {
     ? `\nKnown pattern: ${knowledge.learned.id} (${knowledge.learned.successfulRepairs}/${knowledge.learned.count} prior successful repairs).\nSuggested safe playbook:\n- ${knowledge.learned.playbook.join('\n- ')}`
     : `\nSuggested safe playbook:\n- ${knowledge.fingerprint.playbook.join('\n- ')}`;
   if (!comments.some(comment => comment.body?.includes(marker))) {
+    const develop = (await c.api('GET', `${c.root}/branches/develop`)).commit.sha;
+    const envelope = aiRepairEnvelope({
+      pr: item.pr,
+      branch: record.branch,
+      head: record.headSha,
+      develop,
+      repairKind: eligibility.kind,
+      reason: item.reason || record.failureReason || 'FAILED_MANUAL repair requested',
+      attempt: eligibility.attempts,
+      maxAttempts: eligibility.maxAttempts,
+      source: 'integration-rescue-work',
+    });
     await c.api('POST', `${c.root}/issues/${item.pr}/comments`, {
-      body: `${marker}\nAI_REPAIR_REQUIRED\n${message}\n\nWork-Repair-Kind: ${eligibility.kind}${learned}\n\nPeriodic Integration Rescue Work remains the durable backstop if an event-driven Work hook is unavailable.`,
+      body: `${marker}\n${aiRepairEnvelopeMarker(envelope)}\nAI_REPAIR_REQUIRED\n${message}\n\nWork-Repair-Kind: ${eligibility.kind}${learned}\n\nThe envelope is a bounded handoff snapshot, not authority: re-read current PR/head/develop before editing. Periodic Integration Rescue Work remains the durable backstop if an event-driven Work hook is unavailable.`,
     });
   }
   await c.api('POST', `${c.root}/statuses/${record.headSha}`, {
