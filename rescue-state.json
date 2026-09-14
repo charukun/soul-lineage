@@ -3156,44 +3156,44 @@
       "workerId": "34816139258/pr-198/a1"
     },
     {
+      "action": "claim blocked: Browser Repair #186 owns exact head 9ebee865 and PR #198 CHECKING holds a control-plane RED lock. Next: #186 and #245 complete, then re-read and claim.",
+      "at": "2026-09-14T12:26:40.383Z",
       "id": "pr-183:WORK_REPAIR_BLOCKED:1789388800383:688",
-      "at": "2026-09-14T12:26:40.383Z",
       "pr": 183,
-      "workerId": null,
       "type": "WORK_REPAIR_BLOCKED",
-      "action": "claim blocked: Browser Repair #186 owns exact head 9ebee865 and PR #198 CHECKING holds a control-plane RED lock. Next: #186 and #245 complete, then re-read and claim."
+      "workerId": null
     },
     {
+      "action": "claim blocked: PR #198 CHECKING holds a control-plane RED lock after exact-head browser failure (#245). Next: browser repair completes and Integration releases the lock, then claim.",
+      "at": "2026-09-14T12:26:40.383Z",
       "id": "pr-200:WORK_REPAIR_BLOCKED:1789388800383:688",
-      "at": "2026-09-14T12:26:40.383Z",
       "pr": 200,
-      "workerId": null,
       "type": "WORK_REPAIR_BLOCKED",
-      "action": "claim blocked: PR #198 CHECKING holds a control-plane RED lock after exact-head browser failure (#245). Next: browser repair completes and Integration releases the lock, then claim."
+      "workerId": null
     },
     {
+      "action": "claim blocked: PR #198 CHECKING holds a control-plane RED lock after exact-head browser failure (#245). Next: browser repair completes and Integration releases the lock, then claim.",
+      "at": "2026-09-14T12:26:40.383Z",
       "id": "pr-93:WORK_REPAIR_BLOCKED:1789388800383:688",
-      "at": "2026-09-14T12:26:40.383Z",
       "pr": 93,
-      "workerId": null,
       "type": "WORK_REPAIR_BLOCKED",
-      "action": "claim blocked: PR #198 CHECKING holds a control-plane RED lock after exact-head browser failure (#245). Next: browser repair completes and Integration releases the lock, then claim."
+      "workerId": null
     },
     {
+      "action": "claim blocked: PR #198 CHECKING holds a control-plane RED lock after exact-head browser failure (#245). Next: browser repair completes and Integration releases the lock, then claim.",
+      "at": "2026-09-14T12:26:40.383Z",
       "id": "pr-107:WORK_REPAIR_BLOCKED:1789388800383:688",
-      "at": "2026-09-14T12:26:40.383Z",
       "pr": 107,
-      "workerId": null,
       "type": "WORK_REPAIR_BLOCKED",
-      "action": "claim blocked: PR #198 CHECKING holds a control-plane RED lock after exact-head browser failure (#245). Next: browser repair completes and Integration releases the lock, then claim."
+      "workerId": null
     },
     {
-      "id": "coordinator:WORK_REPAIR_SCAN_FAILED:1789388800383:688",
+      "action": "open FAILED_MANUAL 14; eligible_before 13; claimed 0; returned 0; human_required 0; eligible_after 13. Top four blocked by active control/browser ownership.",
       "at": "2026-09-14T12:26:40.383Z",
+      "id": "coordinator:WORK_REPAIR_SCAN_FAILED:1789388800383:688",
       "pr": null,
-      "workerId": null,
       "type": "WORK_REPAIR_SCAN_FAILED",
-      "action": "open FAILED_MANUAL 14; eligible_before 13; claimed 0; returned 0; human_required 0; eligible_after 13. Top four blocked by active control/browser ownership."
+      "workerId": null
     }
   ],
   "config": {
@@ -3943,6 +3943,21 @@
       "status": "READY_FOR_INTEGRATION",
       "type": "work-notice",
       "workerId": "work/866e55ef0f5e/20260914T115922Z"
+    },
+    {
+      "id": "gmail:1a09fe2d65a2e903",
+      "type": "work-notice",
+      "sentAt": "2026-09-14T12:27:31.631Z",
+      "channel": "gmail-self",
+      "messageId": "1a09fe2d65a2e903",
+      "pr": 198,
+      "branch": "feat/character-reference-model-builder",
+      "commit": "143d6014117cbfc4cd4dc81a6857b2b403c7d85b",
+      "status": "FAILED",
+      "workerId": "work/866e55ef0f5e/20260914T115922Z",
+      "attempt": 1,
+      "stage": "exact-head Affected browser smoke failed; Work repair claims fenced by CHECKING control lock",
+      "next": "Browser Repair #245, then Integration lock release and priority-ordered Work repair retry"
     }
   ],
   "records": {
@@ -13941,7 +13956,7 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 689,
+  "revision": 690,
   "schema": 1,
   "updatedAt": "2026-09-14T12:16:57.033Z",
   "waves": [
