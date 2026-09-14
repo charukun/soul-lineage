@@ -25,6 +25,7 @@
     "build:demon": "npm run build --workspace @soul/demon",
     "affected": "node scripts/affected.mjs",
     "context:plan": "node scripts/context-plan.mjs",
+    "context:excerpt": "node scripts/context-excerpt.mjs",
     "preview": "npm run preview --workspace @soul/rinne",
     "app:add": "node scripts/add-app.mjs",
     "push:route": "node scripts/check-push-route.mjs"

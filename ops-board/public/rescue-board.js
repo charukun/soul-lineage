@@ -4,8 +4,7 @@ const node = (tag, cls, text) => { const n = document.createElement(tag); if (cl
 const link = (label, path) => { const n = node('a', 'rs-link', label); n.href = `https://github.com/charukun/soul-lineage/${path}`; n.target = '_blank'; n.rel = 'noreferrer'; return n; };
 const age = (time, now) => { const ms = now - Date.parse(time); if (!Number.isFinite(ms)) return '未記録'; const sec = Math.max(0, Math.floor(ms / 1000)); return sec < 60 ? `${sec}s` : sec < 3600 ? `${Math.floor(sec / 60)}m ${sec % 60}s` : `${Math.floor(sec / 3600)}h ${Math.floor(sec % 3600 / 60)}m`; };
 const pill = (text, tone = '') => node('span', `rs-pill ${tone}`, text);
-const metric = (value, suffix = '') => value === null || value === undefined ? '—' : `${value}${suffix}`;
-const labels = { DETECTED: '検知', QUEUED: '待機', BLOCKED_BY_RESCUE: '順番待ち', CLAIMED: 'Worker起動待ち', ANALYZING: '分析中', RESOLVING: '修復中', VALIDATING: '検証中', PUSHING: 'commit確定前', AWAITING_PUSH: 'Work push待ち', PUSHED: 'push完了', RETURNED_TO_INTEGRATION: 'Integration復帰', CHECKING: '通常gate確認待ち', MERGED: 'develop統合済み', DEV: 'DEV公開確認済み', FAILED_RETRYABLE: '再試行待ち', FAILED_MANUAL: '人の確認が必要', STALE: 'WORKER STALE' };
+const labels = { DETECTED: '検知', QUEUED: '待機', BLOCKED_BY_RESCUE: '順番待ち', CLAIMED: 'Worker起動待ち', ANALYZING: '分析中', RESOLVING: '修復中', VALIDATING: '検証中', PUSHING: 'commit確定前', AWAITING_PUSH: 'Work push待ち', PUSHED: 'push完了', RETURNED_TO_INTEGRATION: 'Integration復帰', CHECKING: '通常gate確認待ち', MERGED: 'develop統合済み', DEV: 'DEV公開確認済み', FAILED_RETRYABLE: '再試行待ち', FAILED_MANUAL: '手動停止', STALE: 'WORKER STALE' };
 const reasonLabels = {
   DEVELOP_OVERLAP: 'develop更新と変更範囲が重なっています',
   MERGE_CONFLICT: 'developとのmerge conflictを検知しています',
@@ -31,6 +30,8 @@ const order = ['DETECTED', 'QUEUED', 'CLAIMED', 'ANALYZING', 'RESOLVING', 'VALID
 const waitingStates = new Set(['DETECTED', 'QUEUED', 'BLOCKED_BY_RESCUE', 'FAILED_RETRYABLE', 'AWAITING_PUSH', 'PUSHED', 'RETURNED_TO_INTEGRATION', 'CHECKING']);
 const completeStates = new Set(['MERGED', 'DEV']);
 const uniqueByPr = records => [...new Map(records.filter(Boolean).map(r => [r.pr, r])).values()];
+const aiRecoverable = record => record.state === 'FAILED_MANUAL' && record.manualKind === 'work-recoverable';
+const stateLabel = record => record.state === 'FAILED_MANUAL' ? aiRecoverable(record) ? 'AI修復待ち' : record.manualKind === 'human-required' ? '人の判断が必要' : '手動確認' : labels[record.state] || record.state;
 const reasonText = record => {
   if (record.state === 'FAILED_MANUAL' && record.failureReason) return record.failureReason;
   if (record.state === 'FAILED_RETRYABLE' && record.failureReason) return record.failureReason;
@@ -39,6 +40,11 @@ const reasonText = record => {
 };
 const nextAction = record => {
   if (record.blockedBy?.length) return '先行PRのdevelop統合後に自動で再評価';
+  if (record.state === 'FAILED_MANUAL') {
+    if (aiRecoverable(record)) return '既存ChatGPT Workが最新developを再取得し、仕様を両立させて修復';
+    if (record.manualKind === 'human-required') return '人が仕様上の選択を行い、その判断を元に再検証';
+    return 'Draft・hold・所有権・上限などの保留条件を解消して再評価';
+  }
   return ({
     DETECTED: '優先度と競合範囲を判定してRescue queueへ投入',
     QUEUED: '次のRescue waveでWorkerを割り当て',
@@ -55,11 +61,10 @@ const nextAction = record => {
     MERGED: 'DEV公開状態を確認',
     DEV: '対応完了',
     FAILED_RETRYABLE: '再試行条件を満たした次回waveで再実行',
-    FAILED_MANUAL: '人がPRと診断内容を確認',
     STALE: '旧Worker終了確認後に別Workerへ引き継ぎ',
   })[record.state] || '状態を再評価';
 };
-const statusText = record => record.state === 'STALE' ? 'WORKER STALE' : `${labels[record.state] || record.state} · ${record.state}`;
+const statusText = record => record.state === 'STALE' ? 'WORKER STALE' : `${stateLabel(record)} · ${record.state}`;
 function labeledLine(label, value, cls = '') {
   const row = node('div', `rs-context-row ${cls}`); row.append(node('span', 'rs-context-label', label), node('span', 'rs-context-value', value)); return row;
 }
@@ -70,7 +75,7 @@ function rail(record) {
     ['MERGED','DEV'].includes(record.state) ? delivery :
     [['ANALYZING','ANALYZE'],['RESOLVING','RESOLVE'],['VALIDATING','VALIDATE'],['PUSHED','PUSH'],['RETURNED_TO_INTEGRATION','RETURN']];
   const at = order.indexOf(record.currentStep || record.state);
-  box.setAttribute('aria-label', `現在: ${labels[record.state] || record.state}`);
+  box.setAttribute('aria-label', `現在: ${stateLabel(record)}`);
   for (const [state, label] of steps) {
     const index = order.indexOf(state), cls = index < at ? 'done' : index === at ? 'current' : '';
     const step = node('li', cls, label); if (cls === 'current') step.setAttribute('aria-current', 'step'); box.append(step);
@@ -80,18 +85,19 @@ function rail(record) {
 function card(record, now, staleMs) {
   const stale = record.lease && (record.state === 'STALE' || now - Date.parse(record.heartbeatAt || record.claimedAt) > staleMs);
   const manual = record.state === 'FAILED_MANUAL';
+  const recoverable = aiRecoverable(record);
   const complete = completeStates.has(record.state);
-  const waiting = waitingStates.has(record.state);
-  const c = node('article', `rs-card ${stale ? 'rs-stale' : manual ? 'rs-manual' : complete ? 'rs-complete' : waiting ? 'rs-waiting' : 'rs-working'}`); c.dataset.viewKey = `rescue:${record.pr}`; c.dataset.pr = record.pr;
+  const waiting = waitingStates.has(record.state) || recoverable;
+  const c = node('article', `rs-card ${stale ? 'rs-stale' : manual && !recoverable ? 'rs-manual' : complete ? 'rs-complete' : waiting ? 'rs-waiting' : 'rs-working'}`); c.dataset.viewKey = `rescue:${record.pr}`; c.dataset.pr = record.pr;
   if (record.workerId) c.append(node('p', 'rs-worker-id', `WORKER ${record.workerId}`));
-  const top = node('div', 'rs-card-head'); top.append(link(`#${record.pr}`, `pull/${record.pr}`), pill(stale ? 'WORKER STALE' : statusText(record), stale || manual ? 'danger' : record.lease ? 'live' : complete ? 'success' : ''));
+  const top = node('div', 'rs-card-head'); top.append(link(`#${record.pr}`, `pull/${record.pr}`), pill(stale ? 'WORKER STALE' : statusText(record), stale || manual && !recoverable ? 'danger' : record.lease ? 'live' : complete ? 'success' : ''));
   c.append(top, node('h3', '', record.title || `PR #${record.pr}`));
   if (record.returnedAt || ['AWAITING_PUSH','MERGED','DEV'].includes(record.state)) {
     c.append(pill(({repaired:'修復push・検証を確認',staged:'commit準備済み・push待ち',reevaluated:'再評価のみ・修復pushなし',observed:'統合状況の観測・修復証跡なし'})[record.deliveryKind] || '修復証跡未確認'));
   }
   const context = node('div', 'rs-context');
   context.append(labeledLine('問題', reasonText(record), 'rs-problem-line'));
-  context.append(labeledLine(complete ? '結果' : record.lease ? '対応中' : '現在', record.currentAction || labels[record.state] || record.state));
+  context.append(labeledLine(complete ? '結果' : record.lease ? '対応中' : '現在', record.currentAction || stateLabel(record)));
   context.append(labeledLine('次', nextAction(record)));
   c.append(context);
   if (record.lease || record.returnedAt || ['MERGED','DEV'].includes(record.state)) c.append(rail(record));
@@ -107,20 +113,23 @@ function card(record, now, staleMs) {
   if (record.lease) {
     c.append(node('p', `rs-timing ${stale ? 'danger' : ''}`, `稼働 ${age(record.claimedAt, now)} · Heartbeat ${age(record.heartbeatAt, now)} ago`));
     if (stale) c.append(node('p', 'rs-note', '旧Actions実行の終了を確認してから別Workerへ引き継ぎます'));
-  } else if (['QUEUED','DETECTED','FAILED_RETRYABLE','BLOCKED_BY_RESCUE'].includes(record.state)) {
+  } else if (['QUEUED','DETECTED','FAILED_RETRYABLE','BLOCKED_BY_RESCUE'].includes(record.state) || recoverable) {
     c.append(node('p', 'rs-timing', `待機 ${age(record.detectedAt, now)} · Priority ${record.priority?.label || '未評価'}`));
-    if (!record.blockedBy?.length) c.append(node('p', 'rs-note', 'Next candidate · 次Waveで再評価'));
+    if (!record.blockedBy?.length) c.append(node('p', 'rs-note', recoverable ? 'AI repair candidate · 次のWork実行で再取得' : 'Next candidate · 次Waveで再評価'));
   }
   if (record.state === 'VALIDATING') c.append(node('p', 'rs-test', 'Fast verification 実行中 · 完了後に結果を記録'));
   if (record.validation?.status === 'passed') c.append(node('p', 'rs-test', 'Fast verification PASSED'));
-  c.append(node('p', 'rs-note', `Attempt ${record.attempt || 0} / ${record.maxAttempts || '—'}`));
+  c.append(node('p', 'rs-note', `Actions attempt ${record.attempt || 0} / ${record.maxAttempts || '—'}`));
+  if (manual) c.append(node('p', 'rs-note', `Work repair ${record.workRepairAttempts || 0} / ${record.maxWorkRepairAttempts || '—'} · baseline churn ${record.baselineChurns || 0} / ${record.maxBaselineChurns || '—'}`));
   if (record.failureReason) c.append(node('p', 'rs-failure', `Previous failure: ${record.failureReason}`));
-  if (manual) c.append(node('strong', 'rs-human', 'Human review required · PRで仕様と診断を確認'));
+  if (recoverable) c.append(node('strong', 'rs-human', 'AI repair queued · 仕様両立とfast検証をWorkが担当'));
+  else if (manual && record.manualKind === 'human-required') c.append(node('strong', 'rs-human', 'Human decision required · 仕様選択が必要'));
+  else if (manual) c.append(node('strong', 'rs-human', 'Manual hold · 自動解除しない安全条件'));
   if (record.stagedSha && !record.pushedSha) c.append(link(`Staged ${record.stagedSha.slice(0, 8)} · branch未反映`, `commit/${record.stagedSha}`));
   if (record.pushWorkerId) c.append(node('p', 'rs-note', `Push relay: ${record.pushWorkerId}`));
   if (record.heartbeatCount) c.append(node('p', 'rs-note', `Recorded worker heartbeats: ${record.heartbeatCount}`));
   if (record.pushedSha && /^[0-9a-f]{40}$/.test(record.pushedSha)) c.append(link(`Commit ${record.pushedSha.slice(0, 8)}`, `commit/${record.pushedSha}`));
-  if (record.returnedAt) c.append(node('p', 'rs-resolution', `Result: ${labels[record.state] || record.state}${record.resolution ? ' · ' + record.resolution : ''}`));
+  if (record.returnedAt) c.append(node('p', 'rs-resolution', `Result: ${stateLabel(record)}${record.resolution ? ' · ' + record.resolution : ''}`));
   const details = node('div', 'rs-details');
   details.append(node('p', '', `Rescue ID: ${record.rescueId || '未claim'}`), node('p', '', record.riskReason || '変更領域を比較して処理順を決定'));
   if (record.priority?.explanation) details.append(node('p', '', record.priority.explanation));
@@ -146,36 +155,14 @@ function problemSummary(records, now, staleMs) {
   const list = node('div', 'rs-problem-list');
   for (const record of records.slice(0, 6)) {
     const stale = record.lease && (record.state === 'STALE' || now - Date.parse(record.heartbeatAt || record.claimedAt) > staleMs);
-    const row = node('article', `rs-problem-row ${stale || record.state === 'FAILED_MANUAL' ? 'attention' : record.lease ? 'working' : 'waiting'}`);
-    const head = node('div', 'rs-problem-head'); head.append(link(`#${record.pr}`, `pull/${record.pr}`), pill(stale ? 'WORKER STALE' : labels[record.state] || record.state, stale || record.state === 'FAILED_MANUAL' ? 'danger' : record.lease ? 'live' : ''));
+    const recoverable=aiRecoverable(record);
+    const row = node('article', `rs-problem-row ${stale || record.state === 'FAILED_MANUAL' && !recoverable ? 'attention' : record.lease ? 'working' : 'waiting'}`);
+    const head = node('div', 'rs-problem-head'); head.append(link(`#${record.pr}`, `pull/${record.pr}`), pill(stale ? 'WORKER STALE' : stateLabel(record), stale || record.state === 'FAILED_MANUAL' && !recoverable ? 'danger' : record.lease ? 'live' : ''));
     row.append(head, node('strong', 'rs-problem-name', record.title || `PR #${record.pr}`), node('p', 'rs-problem-text', reasonText(record)), node('p', 'rs-problem-next', `次: ${nextAction(record)}`));
     list.append(row);
   }
   section.append(list);
   if (records.length > 6) section.append(node('p', 'rs-note', `ほか ${records.length - 6}件は下の対応中・対応待ち一覧に表示`));
-  return section;
-}
-function controlPlaneSummary(view) {
-  const performance = view.performance || {};
-  const control = view.controlPlane || {};
-  const section = node('section', 'rs-control-health');
-  section.append(node('h3', 'rs-group-title', '速度・Control Plane Health'));
-  const metrics = node('div', 'rs-metrics');
-  metrics.append(
-    summaryCard('最古待ち', metric(performance.oldestWaitingMinutes, 'm'), `検知→claim p50 ${metric(performance.detectedToClaimP50Minutes, 'm')}`, performance.oldestWaitingMinutes > 30 ? 'attention' : 'neutral'),
-    summaryCard('Merge p50', metric(performance.detectedToMergeP50Minutes, 'm'), `p95 ${metric(performance.detectedToMergeP95Minutes, 'm')}`, 'working'),
-    summaryCard('修復成功率', metric(performance.repairSuccessRatePct, '%'), `Retry率 ${metric(performance.retryRatePct, '%')}`, 'done'),
-    summaryCard('Actions 24h', control.workflow?.runs24h ?? '—', `cancel ${control.workflow?.cancelled ?? '—'} · 重複 ${control.workflow?.duplicateRuns ?? '—'}`, (control.workflow?.cancelled || control.workflow?.duplicateRuns) ? 'waiting' : 'neutral')
-  );
-  section.append(metrics);
-  const health = node('p', 'rs-diagnostics');
-  health.append(
-    document.createTextNode('Notification '), pill(control.notification?.label || 'UNKNOWN', control.notification?.label === 'HEALTHY' ? 'success' : control.notification?.label === 'MISCONFIGURED' || control.notification?.label === 'FAILED' ? 'danger' : ''),
-    document.createTextNode(' · Canary '), pill(control.canary?.label || 'UNKNOWN', control.canary?.label === 'HEALTHY' ? 'success' : control.canary?.label === 'FAILED' ? 'danger' : ''),
-    document.createTextNode(' · Wake '), pill(control.wakeup?.label || 'UNKNOWN', control.wakeup?.label === 'COALESCED' ? 'live' : control.wakeup?.label === 'FAILED' ? 'danger' : '')
-  );
-  section.append(health);
-  if (control.observationError) section.append(node('p', 'rs-configuration', `Control health取得: ${control.observationError}`));
   return section;
 }
 export function renderRescue(view, now = Date.now()) {
@@ -187,16 +174,19 @@ export function renderRescue(view, now = Date.now()) {
   const c = view.counts, staleObservation = now - Date.parse(view.generatedAt) > 12 * 60000;
   const staleWorkers = view.workers.filter(r => r.state === 'STALE' || now - Date.parse(r.heartbeatAt || r.claimedAt) > view.staleMs).length;
   const downstreamWaiting = view.recent.filter(r => waitingStates.has(r.state));
+  const recoverableManual=view.recoverableManual || view.manual.filter(aiRecoverable);
+  const humanManual=view.humanManual || view.manual.filter(r=>r.manualKind==='human-required');
+  const manualHold=view.manualHold || view.manual.filter(r=>!recoverableManual.includes(r)&&!humanManual.includes(r));
   const unresolvedRecords = uniqueByPr([...view.manual, ...view.workers, ...view.queue, ...downstreamWaiting]);
   const unresolved = c.unresolved ?? unresolvedRecords.length;
   const handling = c.handling ?? c.active;
-  const waiting = c.waiting ?? uniqueByPr([...view.queue, ...downstreamWaiting]).length;
+  const waiting = c.waiting ?? uniqueByPr([...view.queue, ...recoverableManual, ...downstreamWaiting]).length;
   const completed = c.completed ?? view.recent.filter(r => completeStates.has(r.state)).length;
-  const attention = c.attention ?? c.manual + staleWorkers;
+  const attention = c.attention ?? humanManual.length + manualHold.length + staleWorkers;
   const top = node('div', 'rs-overview');
   const status = staleObservation || view.observationError ? 'OBSERVATION DELAYED' : staleWorkers ? 'WORKER STALE' : view.status.replaceAll('_', ' ');
-  const caption = staleObservation || view.observationError ? '状態取得が遅延しています' : status === 'ALL CLEAR' ? '現在のRescue問題はありません' : status === 'ACTIVE' ? 'Rescue Workerが対応中です' : status === 'WAITING' ? '対応待ちがあります' : status === 'ATTENTION' ? '確認が必要な問題があります' : 'Rescue設定を確認してください';
-  const statusBox = node('div', 'rs-status-stack'); statusBox.append(node('strong', `rs-status ${view.status === 'ALL_CLEAR' ? 'green' : staleWorkers || c.manual ? 'yellow' : ''}`, status), node('span', 'rs-status-caption', caption));
+  const caption = staleObservation || view.observationError ? '状態取得が遅延しています' : status === 'ALL CLEAR' ? '現在のRescue問題はありません' : status === 'ACTIVE' ? 'Rescue Workerが対応中です' : status === 'WAITING' ? 'AI修復・対応待ちがあります' : status === 'ATTENTION' ? '人または運用の確認が必要です' : 'Rescue設定を確認してください';
+  const statusBox = node('div', 'rs-status-stack'); statusBox.append(node('strong', `rs-status ${view.status === 'ALL_CLEAR' ? 'green' : staleWorkers || humanManual.length || manualHold.length ? 'yellow' : ''}`, status), node('span', 'rs-status-caption', caption));
   top.append(statusBox, node('p', 'rs-note', `状態更新 ${age(view.generatedAt, now)} ago · GitHub state`));
   root.append(top);
   if (view.coordinator?.reason) root.append(node('p', 'rs-configuration', view.coordinator.reason));
@@ -204,28 +194,29 @@ export function renderRescue(view, now = Date.now()) {
 
   const metrics = node('div', 'rs-metrics');
   metrics.append(
-    summaryCard('未解決', unresolved, `要確認 ${attention} · すべての未完了Rescue`, attention ? 'attention' : 'neutral'),
+    summaryCard('未解決', unresolved, `要確認 ${attention} · AI修復待ち ${recoverableManual.length}`, attention ? 'attention' : 'neutral'),
     summaryCard('対応中', handling, `${c.active} / ${c.max} ACTIVE · Worker確保 ${view.workers.length}`, 'working', 'rs-workers-total'),
-    summaryCard('対応待ち', waiting, `Queue ${view.queue.length} · push待ち ${c.awaitingPush || 0}`, waiting ? 'waiting' : 'neutral'),
+    summaryCard('対応待ち', waiting, `Queue ${view.queue.length} · AI修復 ${recoverableManual.length} · push待ち ${c.awaitingPush || 0}`, waiting ? 'waiting' : 'neutral'),
     summaryCard('完了', completed, `保持中 · 24h修復 ${view.throughput.rescued} / 統合 ${view.throughput.merged}`, 'done')
   );
   root.append(metrics);
-  const diagnostics = node('p', 'rs-diagnostics', `検証中 ${c.validating} · 再試行 ${c.retry} · Manual ${c.manual} · Stale ${staleWorkers}`); root.append(diagnostics);
-  root.append(controlPlaneSummary(view));
+  const diagnostics = node('p', 'rs-diagnostics', `検証中 ${c.validating} · 再試行 ${c.retry} · AI修復待ち ${c.recoverableManual ?? recoverableManual.length} · 人判断 ${c.humanManual ?? humanManual.length} · 手動保留 ${c.manualHold ?? manualHold.length} · Stale ${staleWorkers}`); root.append(diagnostics);
   if (view.coordinator?.errors?.length) root.append(node('p', 'rs-configuration', `Coordinator: ${view.coordinator.errors.map(e => `${e.pr ? '#' + e.pr + ' ' : ''}${e.reason}`).join(' · ')}`));
 
   if (unresolvedRecords.length) root.append(problemSummary(unresolvedRecords, now, view.staleMs));
   else root.append(node('p', 'rs-empty rs-all-clear', '現在の問題はありません。Integration RescueはALL CLEARです。'));
 
   if (view.workers.length) root.append(group('対応中 · Worker Pool', view.workers, now, view.staleMs, 'rs-worker-pool'));
-  if (view.manual.length) root.append(group('人の確認が必要', view.manual, now, view.staleMs, 'rs-manual-list'));
+  if (recoverableManual.length) root.append(group('AI修復待ち · Work Repair', recoverableManual, now, view.staleMs, 'rs-queue'));
+  if (humanManual.length) root.append(group('人の判断が必要', humanManual, now, view.staleMs, 'rs-manual-list'));
+  if (manualHold.length) root.append(group('手動保留 · 自動解除しない条件', manualHold, now, view.staleMs, 'rs-manual-list'));
   if (view.queue.length) root.append(group('対応待ち · Queue / 順番待ち', view.queue, now, view.staleMs, 'rs-queue'));
   if (!view.workers.length && !view.queue.length && !view.manual.length && !downstreamWaiting.length) root.append(node('p', 'rs-empty', '実行中・対応待ちのRescueはありません'));
 
   if (view.recent.length) root.append(group('修復後・Integration進行 / 完了履歴', view.recent, now, view.staleMs, 'rs-recent'));
   const t = view.throughput;
   const stats = node('section', 'rs-throughput'); stats.append(node('h3', 'rs-group-title', '直近24時間 · 保持記録内'));
-  stats.append(node('p', '', `Rescued ${t.rescued} · Merged ${t.merged} · Manual ${t.manual} · Retrying ${t.retrying}`)); root.append(stats);
+  stats.append(node('p', '', `Rescued ${t.rescued} · Merged ${t.merged} · Manual events ${t.manual} · Retrying ${t.retrying}`)); root.append(stats);
   stats.append(node('p', 'rs-note', 'Rescued / Mergedは同じWorkerの検証・修復push・復帰を確認できた件数。証跡未保持の履歴は含みません。'));
   stats.append(node('p', 'rs-note', `修復証跡なしの観測: merge ${view.observed?.merged ?? 0} · DEV ${view.observed?.dev ?? 0}`));
 
