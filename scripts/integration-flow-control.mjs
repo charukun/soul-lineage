@@ -178,14 +178,14 @@ export function compactRescueState(state, now = Date.now(), { terminalRetentionM
   state.activity = (state.activity || []).filter(e => now - Date.parse(e.at) < 24 * HOUR_MS).slice(-400);
   state.outbox = (state.outbox || []).filter(n => !n.sentAt || now - Date.parse(n.sentAt) < 24 * HOUR_MS).slice(-maxOutbox);
   state.flowControl ||= {};
-  const deliveries = Object.values(state.flowControl.deliveries || {})
-    .filter(item => {
+  const deliveries = Object.entries(state.flowControl.deliveries || {})
+    .filter(([, item]) => {
       const anchor = Date.parse(item.devAt || item.mergedAt || item.readyAt || item.implementationStartedAt || 0);
       return !Number.isFinite(anchor) || now - anchor < deliveryRetentionMs;
     })
-    .sort((a, b) => Date.parse(b.devAt || b.mergedAt || b.readyAt || 0) - Date.parse(a.devAt || a.mergedAt || a.readyAt || 0))
+    .sort(([, a], [, b]) => Date.parse(b.devAt || b.mergedAt || b.readyAt || 0) - Date.parse(a.devAt || a.mergedAt || a.readyAt || 0))
     .slice(0, maxDeliveries);
-  state.flowControl.deliveries = Object.fromEntries(deliveries.map(item => [String(item.pr), item]));
+  state.flowControl.deliveries = Object.fromEntries(deliveries);
   state.history.lastCompactedAt = new Date(now).toISOString();
   return state;
 }

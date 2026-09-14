@@ -28,6 +28,7 @@
     "context:excerpt": "node scripts/context-excerpt.mjs",
     "preview": "npm run preview --workspace @soul/rinne",
     "app:add": "node scripts/add-app.mjs",
+    "characters:production:check": "node scripts/check-character-production.mjs",
     "push:route": "node scripts/check-push-route.mjs"
   },
   "devDependencies": {

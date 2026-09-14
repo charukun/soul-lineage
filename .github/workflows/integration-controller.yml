@@ -12,6 +12,22 @@ on:
         type: string
         required: false
         default: '0'
+    outputs:
+      sha:
+        description: 'Final develop SHA evaluated by the controller'
+        value: ${{ jobs.integrate.outputs.sha }}
+      verify:
+        description: 'Whether DEV publication is required'
+        value: ${{ jobs.integrate.outputs.verify }}
+      retry:
+        description: 'Whether another bounded Ready evaluation is required'
+        value: ${{ jobs.integrate.outputs.retry }}
+      cursor:
+        description: 'Next bounded Ready evaluation cursor'
+        value: ${{ jobs.integrate.outputs.cursor }}
+      merged_count:
+        description: 'Number of exact heads merged by this controller run'
+        value: ${{ jobs.integrate.outputs.merged_count }}
 permissions:
   contents: read
 concurrency:
@@ -142,24 +158,6 @@ jobs:
       actions: write
       statuses: write
     secrets: inherit
-
-  continuation:
-    name: Continue bounded Ready scan
-    needs: integrate
-    if: needs.integrate.result == 'success' && needs.integrate.outputs.retry == 'true' && needs.integrate.outputs.verify == 'false'
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - uses: actions/github-script@v8
-        env:
-          CURSOR: ${{ needs.integrate.outputs.cursor }}
-        with:
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              ...context.repo, workflow_id: 'deploy.yml', ref: 'develop',
-              inputs: { integration_cursor: process.env.CURSOR || '0' }
-            });
 
   publisher-handoff:
     name: Wake DEV Publisher for merged or unverified develop

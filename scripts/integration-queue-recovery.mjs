@@ -24,10 +24,15 @@ export function exactDevelopAncestor(comparison, head, develop) {
 export function rescueRuntimeAudit(state, develop) {
   if (!state || state.schema !== 1 || state.repository !== REPOSITORY) return { ok: false, pending: true, reason: 'Rescue state unavailable', expected: RESCUE_RUNTIME_TARGET, actual: null, mismatches: [] };
   const actual = Object.fromEntries(Object.keys(RESCUE_RUNTIME_TARGET).map(key => [key, state.config?.[key] ?? null]));
+  const legacySpecSnapshot = Object.values(actual).some(value => value && typeof value === 'object');
   const mismatches = [];
   for (const [key, spec] of Object.entries(RESCUE_RUNTIME_TARGET)) {
     const value = actual[key];
-    const ok = spec.exact !== undefined ? value === spec.exact : Number.isFinite(value) && value >= spec.min && value <= spec.max;
+    const ok = legacySpecSnapshot
+      ? JSON.stringify(value) === JSON.stringify(spec)
+      : spec.exact !== undefined
+        ? value === spec.exact
+        : Number.isFinite(value) && value >= spec.min && value <= spec.max;
     if (!ok) mismatches.push({ key, expected: spec, actual: value });
   }
   const observedDevelop = state.coordinator?.develop || null;

@@ -1,0 +1,27 @@
+{
+  "schema": "character-production",
+  "version": 2,
+  "id": "shino.reference.v2",
+  "stage": "BLOCKOUT",
+  "modelingMode": "runtime-procedural",
+  "source": {
+    "referencePaths": [
+      "docs/characters/references/shino/shino-character-reference-sheet-v2.png"
+    ]
+  },
+  "evidence": {
+    "reference": {
+      "intentLocked": true,
+      "views": ["front", "side", "back"]
+    },
+    "blockout": {
+      "views": ["front", "side", "back", "three-quarter"],
+      "proportionsReviewed": true,
+      "silhouetteReviewed": true
+    }
+  },
+  "status": {
+    "visualApproval": "changes-requested",
+    "note": "The dedicated runtime-procedural reference geometry is a reviewed BLOCKOUT, not a production-ready 3D asset. A DCC-authored model must advance through the remaining production stages."
+  }
+}

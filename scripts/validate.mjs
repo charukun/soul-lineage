@@ -17,6 +17,7 @@ const selected = full ? [...nodes.keys()] : [...new Set([
 console.log(JSON.stringify({ mode: full ? 'full' : 'fast', workspaces: selected, plan }, null, 2));
 if (!selected.length && !plan?.infrastructure) process.exit(0);
 run(process.execPath, ['scripts/check.mjs', ...selected]);
+if (full || selected.includes('@soul/characters')) run(process.execPath, ['scripts/check-character-production.mjs']);
 if (!full && !deploy) run(process.execPath, ['scripts/code-health.mjs', 'guard', process.argv[3], process.argv[4]]);
 const tests = selected.flatMap(name => {
   const dir = `${nodes.get(name).dir}/tests`;

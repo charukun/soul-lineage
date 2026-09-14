@@ -117,7 +117,7 @@ async function signalWorkRepair(c, item, record, message, state) {
 export async function notifyOutbox(c, store, { url = '', token = '', request = fetch } = {}) {
   const { state } = await store.read();
   for (const item of state.outbox.filter(n => !n.sentAt && (n.notificationAttempts || 0) < 3 && (!n.nextNotificationAt || Date.parse(n.nextNotificationAt) <= Date.now())).slice(0, 5)) {
-    const record = state.records[item.pr];
+    const record = state.records?.[item.pr];
     const eligibility = item.type === 'manual' ? workRepairEligibility(record) : { eligible: false };
     const aiRepair = Boolean(eligibility.eligible);
     const message = item.type === 'manual' ? aiRepair
