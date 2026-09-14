@@ -13,7 +13,7 @@ const DCC_SHINO=Object.freeze({
   label:'SHINO_REF_V2_DCC',
   name:'Shino Reference v2 / DCC PRIMARY',
   portrait:'SHINO',
-  portraitUrl:`${DCC_REVIEW_ROOT}front.png`,
+  portraitPath:`${DCC_REVIEW_ROOT}front.png`,
   kind:'character',
   productionStage:'PRIMARY',
   modelingMode:'dcc-blender'
