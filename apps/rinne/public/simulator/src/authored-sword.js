@@ -11,7 +11,7 @@ export function swordClipInSeconds(clip,kind){
 }
 export const AUTHORED_SWORD_KINDS=Object.freeze(['back','uppercut','thrust','heavy']);
 // Presentation step distances; the combat controller continues to own collision/root movement.
-export const SWORD_STEPS=Object.freeze({slash:[.14,.46],back:[-.12,.40],thrust:[.02,.56],uppercut:[.06,.36],heavy:[-.02,.46]});
+export const SWORD_STEPS=Object.freeze({slash:[.14,.46],back:[-.18,.44],thrust:[.02,.56],uppercut:[.06,.36],heavy:[-.02,.46]});
 const guard=sampleSlashPose(0);
 const curve=(name,rows,p)=>poseCurve([[0,...guard[name]],...rows,[1,...guard[name]]],p);
 // Each existing technique owns its full-body accents, rather than borrowing the
