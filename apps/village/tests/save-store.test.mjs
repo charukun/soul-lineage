@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { World, initial } from '../src/game/core.js';
 import { createSaveStore, SAVE_KEY } from '../src/game/save-store.js';
-const JOURNAL_KEY=`${SAVE_KEY}.journal.v1`;
+const JOURNAL_KEY=`${SAVE_KEY}.journal.v1`,COMPACT_KEY=`${SAVE_KEY}.compact.v1`;
 function fixture(initialEntries = []) {
   const data = new Map(initialEntries);
   const platform = { clock: { now: () => 123456 }, storage: {
@@ -24,6 +24,12 @@ test('invalid saved data is not replaced by a fresh village', async () => {
   await assert.rejects(f.store.load(),/上書きしていません/);
   await assert.rejects(f.store.save(new World()));
   assert.equal(f.data.get(SAVE_KEY),'{broken');assert.equal(f.store.blocked,true);
+});
+test('a corrupt compact shadow cannot hide a valid canonical base snapshot', async()=>{
+ const f=fixture(),w=new World();w.gain('wood',3);await f.store.save(w);f.data.set(COMPACT_KEY,'{broken');const fresh=createSaveStore(f.platform),loaded=await fresh.load();assert.equal(loaded.stock.wood,initial().stock.wood+3);assert.equal(fresh.blocked,false);
+});
+test('a valid compact shadow can recover when the canonical base copy is corrupt', async()=>{
+ const f=fixture(),w=new World();w.gain('wood',4);await f.store.save(w);const full=f.data.get(SAVE_KEY);f.data.set(COMPACT_KEY,full);f.data.set(SAVE_KEY,'{broken');const fresh=createSaveStore(f.platform),loaded=await fresh.load();assert.equal(loaded.stock.wood,initial().stock.wood+4);assert.equal(fresh.blocked,false);
 });
 test('foreign game/player and unknown envelope schema fail closed', async () => {
   for (const patch of [{gameId:'demon'},{playerId:'another-player'},{schemaVersion:99},{revision:-1}]) {
