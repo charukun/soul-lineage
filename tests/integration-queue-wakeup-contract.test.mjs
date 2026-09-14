@@ -7,5 +7,6 @@ const recovery = readFileSync(new URL('../scripts/integration-queue-recovery.mjs
 test('queue recovery scans the current Ready backlog in one bounded window', () => {
   assert.match(recovery, /limit = 24/);
   assert.match(recovery, /develop verification is running/);
-  assert.match(recovery, /inputs: \{ rescue_mode: 'scan' \}/);
+  assert.match(recovery, /actions\/workflows\/deploy\.yml\/dispatches`, \{ ref: 'develop' \}/);
+  assert.doesNotMatch(recovery, /rescue_mode:\s*'scan'/);
 });
