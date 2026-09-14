@@ -79,6 +79,8 @@ export function buildReconciliationPlan({
   scopeByPr = new Map(),
   dependencyStateByPr = new Map(),
   recordsByPr = new Map(),
+  preflightByPr = new Map(),
+  requirePreflight = false,
   deferred = [],
   maxTrainSize = 5,
   now = Date.now(),
@@ -86,9 +88,11 @@ export function buildReconciliationPlan({
   const scopes = values(scopeByPr);
   const dependencyStates = values(dependencyStateByPr);
   const records = values(recordsByPr);
+  const preflights = values(preflightByPr);
   const blocked = [];
   const repair = [];
   const active = [];
+  const validating = [];
   const candidates = [];
 
   for (const pr of ready) {
@@ -124,6 +128,28 @@ export function buildReconciliationPlan({
       blocked.push(entry(pr, { ...disposition, kind: 'repair-blocked' }));
       continue;
     }
+
+    const preflight = preflights.get(Number(pr.number));
+    if (requirePreflight && !preflight) {
+      validating.push(entry(pr, { reason: 'preflight evidence unavailable', kind: 'preflight' }));
+      continue;
+    }
+    if (preflight?.error) {
+      validating.push(entry(pr, { reason: preflight.error, kind: 'preflight' }));
+      continue;
+    }
+    if (preflight?.reviewRejected || preflight?.unresolved) {
+      blocked.push(entry(pr, { reason: preflight.reviewRejected ? 'Changes requested on current head' : 'unresolved review thread', kind: 'review' }));
+      continue;
+    }
+    if (preflight?.mergeable === false || preflight?.mergeableState === 'dirty') {
+      repair.push(entry(pr, { reason: 'merge conflict / mergeability requires repair', kind: 'repair', repairKind: 'merge' }));
+      continue;
+    }
+    if (requirePreflight && preflight?.checksPassed !== true) {
+      validating.push(entry(pr, { reason: 'exact-head fast/browser/check evidence pending or failed', kind: 'validation' }));
+      continue;
+    }
     candidates.push(pr);
   }
 
@@ -135,7 +161,7 @@ export function buildReconciliationPlan({
     controlPlane: Boolean(scopes.get(Number(pr.number))?.control),
   }));
   const pressure = flowPressure({ ready: ready.length });
-  const pending = writer.length + repair.length + active.length + blocked.length + deferred.length;
+  const pending = writer.length + repair.length + active.length + validating.length + blocked.length + deferred.length;
   const actionable = writer.length + repair.length;
 
   return {
@@ -150,6 +176,7 @@ export function buildReconciliationPlan({
       trainMembers: trainMembers.size,
       repair: repair.length,
       active: active.length,
+      validating: validating.length,
       blocked: blocked.length,
       deferred: deferred.length,
     },
@@ -159,6 +186,7 @@ export function buildReconciliationPlan({
     singles: grouped.singles.map(pr => entry(pr)),
     repair,
     active,
+    validating,
     blocked,
     deferred: deferred.map(item => ({ ...item, pr: Number(item.pr) })),
     wakeAgain: actionable > 0,
