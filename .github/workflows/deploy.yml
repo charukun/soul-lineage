@@ -323,7 +323,7 @@ jobs:
         if: github.ref == 'refs/heads/main' && steps.assemble.outputs.changed == 'true'
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
-        run: node sources/dev/scripts/verify-browser.mjs "$SITE_URL" _site .deploy-state .deploy-state/changed.json
+        run: node sources/dev/scripts/verify-browser.mjs "$SITE_URL" _site .deploy-state/changed.json
       - name: Keep the exact deployed snapshot for optional diagnostics
         uses: actions/upload-artifact@v4
         if: always()
