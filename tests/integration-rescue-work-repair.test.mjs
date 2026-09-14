@@ -27,6 +27,7 @@ test('all repairable manual classes are routed to Work',()=>{
   ['overlap','FAILED_MANUAL:OVERLAPPING_CHANGES:AGENTS.md'],
   ['related','FAILED_MANUAL:RELATED_CODE_RECONCILIATION'],
   ['control','FAILED_MANUAL:CONTROL_OR_CONTRACT_RECONCILIATION'],
+  ['assertion','FAILED_MANUAL:ASSERTION_REMOVAL:apps/demon/tests/hunt-presentation.test.mjs'],
   ['transport','GitHub POST /repos/charukun/soul-lineage/git/trees: HTTP 422'],
  ];
  for(const [kind,reason] of cases){const f=fixture();f.r.failureReason=reason;assert.equal(workRepairClass(f.r),kind);assert.equal(workRepairEligibility(f.r).eligible,true);}
@@ -38,7 +39,6 @@ for(const [name,change]of [
  ['external',f=>f.evidence.pr.head.repo.full_name='someone/fork'],['protected',f=>f.evidence.pr.head.ref='develop'],
  ['unknown files',f=>f.evidence.filesComplete=false],['new head',f=>f.evidence.pr.head.sha=head],
  ['manual decision',f=>f.r.failureReason='DEPENDENCY_CYCLE'],['Work repair cap',f=>f.r.workRepairAttempts=2],['Actions ownership',f=>f.r.lease='actions-lease'],
- ['contract',f=>f.evidence.files=[{filename:'packages/raid/save-format.js'}]],
  ['dependency',f=>f.evidence.pr.body='Depends-On: #90'],
  ['browser repair',f=>f.evidence.issues=[{number:9,body:'<!-- browser-repair:v1\n'+JSON.stringify({schema:1,sourcePr:121,state:'working'})+'\n-->'}]],
  ])test(`automatic Work repair refuses ${name}`,()=>{const f=fixture();change(f);assert.throws(()=>verifyWorkRepair(f.r,f.evidence));});
@@ -50,6 +50,22 @@ test('control-plane reconciliation requires explicit gate-preservation evidence'
  claimWorkRepair(f.state,121,worker,f.evidence,now);
  assert.throws(()=>prepareWorkRepairPush(f.state,121,worker,f.evidence,f.result,now+1),/CONTROL_GATES_NOT_PROVEN/);
  f.result.decision.controlReview={preservesGates:true,governingSources:['AGENTS.md','docs/DEVELOPMENT.md','docs/INTEGRATION.md']};
+ assert.deepEqual(prepareWorkRepairPush(f.state,121,worker,f.evidence,f.result,now+2),{branch:'feat/hunt',sha:head,force:false});
+});
+test('contract-named scopes may be inspected but cannot push without compatibility and no-product-choice proof',()=>{
+ const f=fixture();f.evidence.files=[{filename:'packages/raid/save-format.js'}];f.r.scope=conflictScope(['packages/raid/save-format.js']);f.result.changedPaths=['packages/raid/save-format.js'];
+ claimWorkRepair(f.state,121,worker,f.evidence,now);
+ assert.equal(f.r.workRepair.scope.contract,true);
+ assert.throws(()=>prepareWorkRepairPush(f.state,121,worker,f.evidence,f.result,now+1),/CONTRACT_PRODUCT_DECISION_REQUIRED/);
+ f.result.decision.contractReview={noProductChoiceRequired:true,preservesCompatibility:true,governingSources:['packages/raid/save-format.js','packages/raid/tests/core.test.mjs']};
+ assert.deepEqual(prepareWorkRepairPush(f.state,121,worker,f.evidence,f.result,now+2),{branch:'feat/hunt',sha:head,force:false});
+});
+test('assertion-removal stops require explicit proof that test coverage was preserved and removed assertions reconciled',()=>{
+ const f=fixture(),path='apps/demon/tests/hunt-presentation.test.mjs';f.r.failureReason=`FAILED_MANUAL:ASSERTION_REMOVAL:${path}`;f.evidence.files=[{filename:path}];f.r.scope=conflictScope([path]);f.result.changedPaths=[path];
+ claimWorkRepair(f.state,121,worker,f.evidence,now);
+ assert.equal(f.r.workRepair.repairKind,'assertion');
+ assert.throws(()=>prepareWorkRepairPush(f.state,121,worker,f.evidence,f.result,now+1),/ASSERTION_COVERAGE_NOT_PROVEN/);
+ f.result.decision.assertionReview={preservesCoverage:true,removedAssertionsReconciled:true,governingTests:[path]};
  assert.deepEqual(prepareWorkRepairPush(f.state,121,worker,f.evidence,f.result,now+2),{branch:'feat/hunt',sha:head,force:false});
 });
 test('one worker owns the reservation; stale worker cannot push after another claim',()=>{
