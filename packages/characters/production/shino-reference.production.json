@@ -1,0 +1,22 @@
+{
+  "schema": "character-production",
+  "version": 2,
+  "id": "shino.reference.v2",
+  "stage": "REFERENCE",
+  "modelingMode": "reference-only",
+  "source": {
+    "referencePaths": [
+      "docs/characters/references/shino/shino-character-reference-sheet-v2.png"
+    ]
+  },
+  "evidence": {
+    "reference": {
+      "intentLocked": true,
+      "views": ["front", "side", "back"]
+    }
+  },
+  "status": {
+    "visualApproval": "changes-requested",
+    "note": "Reference sheet exists, but this is not a dedicated production 3D asset. A new DCC-authored model must advance through the production pipeline."
+  }
+}
