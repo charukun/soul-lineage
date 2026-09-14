@@ -4,6 +4,7 @@ import {verifyVillageDirectorPolish} from './director-polish.browser.mjs';
 const STARTUP_TIMEOUT_MS = 15_000;
 const NATIVE_TAP_TIMEOUT_MS = 8_000;
 const NATIVE_TAP_STABILITY_PX = 1;
+const CAMERA_DRAG_STEPS = 3;
 async function expectVillageReady(page, expect) {
   await expect(page.locator('#loading')).toBeHidden({timeout:STARTUP_TIMEOUT_MS});
   await expect(page.locator('#game')).toHaveAttribute('data-renderer','ready',{timeout:STARTUP_TIMEOUT_MS});
@@ -79,8 +80,12 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
       return {x,y,dx:Math.max(-rect.width*.32,Math.min(rect.width*.32,dx)),dy:Math.max(-rect.height*.23,Math.min(rect.height*.23,dy)),distance:Math.hypot(dx,dy)};
     },facility.id);
     if(drag.distance<12)break;
+    // One public DEV trace spent ~5s on a 12-step native drag because every
+    // intermediate pointermove runs the real renderer/input path. Keep a real
+    // pointer drag, but use a small bounded number of moves; endpoint and all
+    // post-drag selection/persistence assertions remain unchanged.
     await page.mouse.move(drag.x,drag.y);await page.mouse.down();
-    await page.mouse.move(drag.x+drag.dx,drag.y+drag.dy,{steps:12});await page.mouse.up();
+    await page.mouse.move(drag.x+drag.dx,drag.y+drag.dy,{steps:CAMERA_DRAG_STEPS});await page.mouse.up();
     await page.waitForTimeout(150);
   }
   if (captureMilestones) await page.screenshot({path:testInfo.outputPath('first-storehouse-in-view.png')});
