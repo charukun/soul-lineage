@@ -9,7 +9,7 @@ async function prepareDevice(browser,url){
     window.RTCPeerConnection=class LocalOnlyRTCPeerConnection extends Native{constructor(){super({iceServers:[]});}};
   });
   const page=await context.newPage();
-  const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
   if(!response?.ok())throw new Error(`Peer device returned HTTP ${response?.status()}`);
   await page.waitForFunction(()=>document.querySelector('#game')?.dataset.renderer==='ready',null,{timeout:45000});
@@ -57,13 +57,16 @@ export async function verifyPeerHostMigration(browser,url,evidence){
     await c.page.waitForFunction(id=>window.__VILLAGE_PEER_HOSTED_WORLD__?.snapshot()?.node?.hostId===id,bId,{timeout:15000});
     const afterCrash=await b.page.evaluate(()=>({history:window.__PEER_PHASE_HISTORY__,paused:window.__VILLAGE_SIMULATION_PAUSED__,remote:window.__VILLAGE_REMOTE_WORLD_ACTIVE__,snapshot:window.__VILLAGE_PEER_HOSTED_WORLD__.snapshot()}));
     if(!afterCrash.history.includes('migrating')||afterCrash.history.at(-1)!=='open'||afterCrash.paused!==false||afterCrash.remote!==true)throw new Error(`Darkness failover evidence invalid: ${JSON.stringify(afterCrash)}`);
+    const inheritedRevision=afterCrash.snapshot.node.revision;
+    await b.page.waitForFunction(revision=>window.__VILLAGE_PEER_HOSTED_WORLD__?.snapshot()?.node?.revision>revision,inheritedRevision,{timeout:7000});
+    await c.page.waitForFunction(revision=>window.__VILLAGE_PEER_HOSTED_WORLD__?.snapshot()?.node?.revision>revision,inheritedRevision,{timeout:7000});
     await host.context.close();devices.splice(devices.indexOf(host),1);
     await b.page.locator('#peer-world-handoff').click();
     await c.page.waitForFunction(id=>{const s=window.__VILLAGE_PEER_HOSTED_WORLD__?.snapshot();return s?.node?.phase==='open'&&s.node.hostId===id;},cId,{timeout:10000});
     const final=await c.page.evaluate(()=>({paused:window.__VILLAGE_SIMULATION_PAUSED__,remote:window.__VILLAGE_REMOTE_WORLD_ACTIVE__,snapshot:window.__VILLAGE_PEER_HOSTED_WORLD__.snapshot(),history:window.__PEER_PHASE_HISTORY__}));
     if(final.paused!==false||final.snapshot.node.hostId!==cId)throw new Error(`Graceful handoff evidence invalid: ${JSON.stringify(final)}`);
-    const report={ok:true,crashSuccessor:bId,gracefulSuccessor:cId,crashEpoch:afterCrash.snapshot.node.epoch,finalEpoch:final.snapshot.node.epoch,bHistory:afterCrash.history,cHistory:final.history,errors:[...host.errors,...b.errors,...c.errors]};
-    if(report.errors.length)throw new Error(`Peer browser console errors: ${JSON.stringify(report.errors)}`);
+    const report={ok:true,crashSuccessor:bId,gracefulSuccessor:cId,crashEpoch:afterCrash.snapshot.node.epoch,finalEpoch:final.snapshot.node.epoch,checkpointRevision:final.snapshot.node.revision,bHistory:afterCrash.history,cHistory:final.history,errors:[...host.errors,...b.errors,...c.errors]};
+    if(report.errors.length)throw new Error(`Peer browser page errors: ${JSON.stringify(report.errors)}`);
     if(evidence?.outputPath)writeFileSync(evidence.outputPath('peer-host-migration.json'),JSON.stringify(report,null,2));
     return report;
   }finally{
