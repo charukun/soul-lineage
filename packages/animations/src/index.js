@@ -5,4 +5,5 @@ export * from './motion-normalization.js';
 export * from './pose-sanity.js';
 export * from './intersection-risk.js';
 export * from './weapon-calibration.js';
+export * from './motion-reference-benchmark.js';
 export * from './motion-qa.js';
