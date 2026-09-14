@@ -26,8 +26,14 @@ export async function nativeTap(page, expect, locator) {
 
 export async function enterVillageForBrowser(page, expect) {
   await expectVillageReady(page, expect);
-  await nativeTap(page,expect,page.locator('#muraEnterVillage'));
-  await expect(page.locator('#muraEntry')).toBeHidden();
+  const enter=page.locator('#muraEnterVillage');
+  if(await enter.count()&&await enter.isVisible()){
+    await nativeTap(page,expect,enter);
+    await expect(page.locator('#muraEntry')).toBeHidden();
+  }else{
+    // Returning villages resume directly after the first acknowledged entry.
+    await expect(page.locator('#muraEntry')).toHaveCount(0);
+  }
 }
 
 export async function verifyVillageFirstBuild(page, expect, testInfo, beforeReload = async () => {}, { captureMilestones = true, verifyDirector = true } = {}) {
@@ -36,11 +42,13 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   const settings=await page.locator('#muraSettingsButton').boundingBox();
   expect(settings.width).toBeGreaterThanOrEqual(44);expect(settings.height).toBeGreaterThanOrEqual(44);
   const before=await page.evaluate(()=>({count:window.village.world.objects.length,beds:window.village.world.population().openBeds}));
-  await nativeTap(page,expect,page.locator('#build'));
-  await nativeTap(page,expect,page.locator('[data-kind="tent"]'));
+  // The authored first objective now enters placement directly. The catalog is
+  // still available for freeform play, but the first build no longer requires it.
+  await nativeTap(page,expect,page.locator('#tutorialAction'));
+  await expect(page.locator('#drawer')).toBeHidden();
   await expect(page.locator('#placement')).toBeVisible();
   await expect(page.locator('#cancelPlace')).toHaveText('ここに建てる');
-  await nativeTap(page,expect,page.locator('#muraFindPlacement'));
+  await expect(page.locator('#muraFindPlacement')).toHaveText('別の候補');
   expect(await page.evaluate(()=>window.village.world.objects.length)).toBe(before.count);
   await expect(page.locator('#cancelPlace')).toBeEnabled();
   await nativeTap(page,expect,page.locator('#cancelPlace'));
@@ -49,6 +57,7 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   expect(tent).toBeTruthy();expect(tent.phase).toBe('built');
   expect(await page.evaluate(()=>window.village.world.population().openBeds)).toBe(before.beds+2);
   await expect(page.locator('#toastText')).toContainText('寝床が2床増えました');
+  await expect(page.locator('#muraMilestone')).toContainText('寝床が2床増えました');
   if (captureMilestones) await page.screenshot({path:testInfo.outputPath('first-tent-built.png')});
 
   await nativeTap(page,expect,page.locator('#deselect'));
@@ -73,8 +82,9 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
     point=await page.evaluate(id=>{
       const {world,view}=window.village,host=world.object(id),rect=view.canvas.getBoundingClientRect();
       const center=view.project(host.x,1.4,host.z),cx=rect.left+center.x,cy=rect.top+center.y,offsets=[];
-      for(let dy=-108;dy<=108;dy+=12)for(let dx=-144;dx<=144;dx+=12)offsets.push({dx,dy,d:dx*dx+dy*dy});
-      offsets.sort((a,b)=>a.d-b.d);
+      // Start outside the most likely central mesh pixels. A forgiving pick is
+      // expected to snap to the visible building instead of requiring pixel hunting.
+      for(const [dx,dy] of [[28,8],[-28,8],[0,28],[20,-18],[-20,-18],[0,0]])offsets.push({dx,dy});
       for(const {dx,dy} of offsets){
         const x=cx+dx,y=cy+dy;
         if(x<=10||x>=innerWidth-10||y<=100||y>=innerHeight-140)continue;
@@ -85,6 +95,7 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
     return !!point;
   },{timeout:5000}).toBe(true);
   await page.mouse.click(point.x,point.y);
+  await expect.poll(id=>page.evaluate(expected=>window.village.ui.selected===expected, id),facility.id).toBe(true);
   await nativeTap(page,expect,page.locator('#enter'));
   await expect.poll(()=>page.evaluate(()=>window.village.view.roomId)).toBe(facility.id);
   await nativeTap(page,expect,page.locator('#build'));
@@ -108,8 +119,8 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   await expect.poll(()=>page.evaluate(()=>window.village.view.roomId)).toBe(null);
   await beforeReload();
   await page.reload({waitUntil:'domcontentloaded'});
-  await expectVillageReady(page, expect);
-  await nativeTap(page,expect,page.locator('#muraEnterVillage'));
+  await enterVillageForBrowser(page, expect);
+  await expect(page.locator('#muraEntry')).toHaveCount(0);
   const restored=await page.evaluate(id=>window.village.world.object(id),tent.id);
   for(const key of ['id','kind','x','z','rot','phase'])expect(restored[key]).toBe(tent[key]);
   const restoredFacility=await page.evaluate(id=>window.village.world.object(id),facility.id);
