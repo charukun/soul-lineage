@@ -8,6 +8,7 @@ on:
       - .github/workflows/shino-reference-dcc.yml
       - scripts/blender/build-shino-reference-v2.py
       - scripts/blender/refine-shino-reference-v2-v8.py
+      - scripts/blender/refine-shino-reference-v2-v9.py
       - scripts/blender/normalize-shino-reference-v2-transforms.py
       - scripts/blender/character-production-audit.py
       - scripts/patch-vrm-humanoid.py
@@ -67,6 +68,13 @@ jobs:
             --python scripts/blender/refine-shino-reference-v2-v8.py -- \
             --out generated/shino-reference-v2
 
+      - name: Polish clean PRIMARY silhouette and accessories
+        run: |
+          xvfb-run -a blender --background --python-exit-code 1 \
+            generated/shino-reference-v2/source/ShinoReferenceV2.blend \
+            --python scripts/blender/refine-shino-reference-v2-v9.py -- \
+            --out generated/shino-reference-v2
+
       - name: Normalize authored detail transforms and re-export
         run: |
           xvfb-run -a blender --background --python-exit-code 1 \
@@ -112,7 +120,7 @@ jobs:
 
       - name: Fast generated-asset sanity
         run: |
-          python3 -m py_compile scripts/blender/build-shino-reference-v2.py scripts/blender/refine-shino-reference-v2-v8.py scripts/blender/normalize-shino-reference-v2-transforms.py scripts/patch-vrm-humanoid.py scripts/finalize-shino-reference-v2.py
+          python3 -m py_compile scripts/blender/build-shino-reference-v2.py scripts/blender/refine-shino-reference-v2-v8.py scripts/blender/refine-shino-reference-v2-v9.py scripts/blender/normalize-shino-reference-v2-transforms.py scripts/patch-vrm-humanoid.py scripts/finalize-shino-reference-v2.py
           test -s apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm
           test -s apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json
           test -s assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend
