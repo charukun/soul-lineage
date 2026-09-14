@@ -3,6 +3,7 @@
 This repository contains 輪廻転焦 (formerly 魂の系譜), village housing, and demon-army apps.
 
 - Read README.md and docs/MONOREPO.md before build/deployment changes; read docs/PLATFORMS.md for gameplay/platform work.
+- Keep session context lean per `docs/CONTEXT_EFFICIENCY.md`: do not preload past chats, closed/merged PR histories, all docs, whole diffs, or all CI logs. Start from latest develop/current GitHub state, run `npm run context:plan -- --task "<short task summary>"` when a checkout is available, and retrieve additional files/logs only when the task actually needs them.
 - The latest develop is the implementation base. Keep each game's entry point under apps/<id>; do not recreate a single root game.
 - Tidebreak integration belongs to apps/rinne. Reconcile parallel work against current develop; preserve app/package boundaries and selective deployment.
 - Shared code belongs to packages with explicit workspace dependencies. Apps must not import one another. Packages must not import apps.
@@ -15,9 +16,9 @@ This repository contains 輪廻転焦 (formerly 魂の系譜), village housing, 
 
 ## WORK roles (current operation)
 
-- Read `docs/DEVELOPMENT.md` and `docs/INTEGRATION.md` for the current delivery flow.
+- Select delivery references instead of loading all delivery docs: routine code-changing implementation normally needs `docs/DEVELOPMENT.md`; explicit Integration work needs `docs/INTEGRATION.md`; load both only when the task crosses that boundary. `context:plan` encodes this routing.
 - For normal code-changing tasks, push a work branch and open a Draft PR before code edits; follow the first-two-body-lines, lightweight Draft CI and recovery contract in `docs/DEVELOPMENT.md`. Read-only and writing-only tasks are exempt.
-- Mandatory delivery boundary: read `docs/RINNE_PROJECT_EXECUTION_POLICY.md`. Implementation WORK ends at Ready for review → `READY_FOR_INTEGRATION` handoff → final response. Running / Queued / Pending CI or browser checks must never keep the session alive; no watch, sleep/polling or repeated completion checks. Integration owns asynchronous monitoring and repair. Explicitly assigned Integration work retains its separate responsibility.
+- Mandatory delivery boundary is summarized here and defined in `docs/RINNE_PROJECT_EXECUTION_POLICY.md`; do not fetch the full policy unconditionally when this summary is sufficient. Implementation WORK ends at Ready for review → `READY_FOR_INTEGRATION` handoff → final response. Running / Queued / Pending CI or browser checks must never keep the session alive; no watch, sleep/polling or repeated completion checks. Integration owns asynchronous monitoring and repair. Read the full policy when changing or diagnosing handoff, notification, recovery, watchdog, or delivery-boundary behavior. Explicitly assigned Integration work retains its separate responsibility.
 - Integration owns dependency/review/check/conflict decisions, develop merges, affected fast verification, DEV deployment and public HTTP/source verification. Focused affected browser verification is a delivery gate; heavy full regression and P2P checks remain separate opt-in diagnostics. Never equate Ready with DEV publication; preserve Production quality gates.
 - Keep PRs focused. State changed apps/packages, checks actually run, shared impacts and `Depends-On: #N` (or `none`). Use draft or `integration:hold` for unfinished work/undecided semantics. Never clear holds or resolve review objections to make automation proceed.
 - Automation/control changes require Integration review of the exact head; no policy/protection bypass. Normal work uses no sub-agents.
