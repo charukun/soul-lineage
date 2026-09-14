@@ -1,7 +1,6 @@
 import * as T from 'three';
 import {estimateCenterOfMass,qaSequenceAt,createSemanticMotionTimeline,motionDebugOverlayData} from '@soul/animations';
 
-const review=window.masterCharacterReview;
 const stage=document.getElementById('stage');
 const host=stage?.closest('.canvas-wrap');
 let slash=null,lastKey='';
@@ -18,7 +17,7 @@ function semanticFor(snapshot){if(!slash)return[];const row=qaSequenceAt(snapsho
 function drawLine(ctx,a,b,stroke,width=1.5){if(!a||!b)return;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.stroke();}
 function drawPoint(ctx,p,fill,r=4){if(!p)return;ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();}
 function render(){
- const qa=review?.motionQA,active=Boolean(qa?.active&&stage&&host);overlay.hidden=!active;badge.hidden=!active;if(!active){lastKey='';requestAnimationFrame(render);return;}
+ const review=window.masterCharacterReview,qa=review?.motionQA,active=Boolean(qa?.active&&stage&&host);overlay.hidden=!active;badge.hidden=!active;if(!active){lastKey='';requestAnimationFrame(render);return;}
  const snapshot=qa.snapshot(),actor=review.actors?.[review.settings?.selected??0];if(!actor){requestAnimationFrame(render);return;}actor.root.updateWorldMatrix(true,true);
  const points={hips:world(actor,'hips'),chest:world(actor,'chest'),head:world(actor,'head'),leftHand:world(actor,'leftHand'),rightHand:world(actor,'rightHand'),leftFoot:world(actor,'leftFoot'),rightFoot:world(actor,'rightFoot')};let com=null;try{com=estimateCenterOfMass(points);}catch{}
  const semantic=semanticFor(snapshot),data=motionDebugOverlayData({centerOfMass:com,supports:[points.leftFoot,points.rightFoot].filter(Boolean),semanticEvents:semantic});
