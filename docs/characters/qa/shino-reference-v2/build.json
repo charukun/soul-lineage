@@ -3,7 +3,7 @@
   "version": 1,
   "blender": "4.0.2",
   "sourceVrm": "apps/rinne/public/simulator/assets/SHINO_review.vrm",
-  "meshObjects": 78,
+  "meshObjects": 71,
   "surfaces": {
     "skin": 14,
     "face": 8,
@@ -20,17 +20,14 @@
   "productionStageRequested": "PRIMARY",
   "visualApproval": "pending",
   "refinement": {
-    "version": 7,
-    "auditedFaceDonor": true,
-    "auditedBodyBasemesh": false,
-    "bodyStrategy": "dedicated-stylized-primary-visible-skin",
-    "bodyDonorRetargetRejected": "v5-v6 visual review: adult-proportion donor produced disconnected or stretched limbs",
-    "hairStrategy": "open-cap-short-bangs",
-    "faceSkinning": "pending-deformation-stage",
-    "bodyBlendSkinning": "pending-deformation-stage",
-    "authoredPrimaryObjects": 25,
-    "sourceHairReused": false,
-    "sourceClothingReused": false,
+    "version": 8,
+    "strategy": "clean-dedicated-stylized-primary",
+    "legacyVisibleMeshesRetained": false,
+    "auditedArmatureRetained": true,
+    "auditedFaceDonorRetained": false,
+    "primaryGeometryBinding": "static-unbound",
+    "deformationBinding": "pending-deformation-stage",
+    "authoredPrimaryObjects": 114,
     "visualApproval": "pending"
   }
 }

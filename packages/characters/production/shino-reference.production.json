@@ -14,7 +14,7 @@
       "tool": "Blender",
       "version": "4.0.2",
       "sourcePath": "assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend",
-      "sourceSha256": "e5b1d39c0ee09f6c2d9e916b687eb6b8b0c01f74a081d0d34fb78706320b60bb"
+      "sourceSha256": "39fbb31130e835aa58c03276ee83aecc22ca128edb5b5e5420085d8f3e96c7b7"
     }
   },
   "evidence": {
@@ -46,8 +46,8 @@
         "clothing"
       ],
       "auditPath": "docs/characters/qa/shino-reference-v2/blender-audit.json",
-      "meshObjects": 121,
-      "triangles": 45468,
+      "meshObjects": 114,
+      "triangles": 45568,
       "materials": 17
     }
   },
