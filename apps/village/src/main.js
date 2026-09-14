@@ -2,6 +2,14 @@
 // errors remain visible and retryable rather than stranding the loading screen.
 import {installMusicLibrary} from '@soul/shared-ui/music';
 
+const serviceEnvironment = __BUILD_INFO__.environment;
+document.title = `MURAAAAAAA | 輪廻転焦 Village${serviceEnvironment === 'prod' ? '' : ` | ${serviceEnvironment.toUpperCase()}`}`;
+if (!document.querySelector('link[rel="manifest"]')) {
+  const manifest = document.createElement('link');
+  manifest.rel = 'manifest';
+  manifest.href = './manifest.webmanifest';
+  document.head.append(manifest);
+}
 const canvas = document.querySelector('#game');
 const loading = document.querySelector('#loading');
 const progress = document.querySelector('#progress');
@@ -37,17 +45,18 @@ try {
   progress.value = 10;
   message.textContent = '村の資産と暮らしの仕組みを読み込んでいます。';
   await import('./mura-patch.js');
-  await import('./asset-visuals.js');
-  await import('./authored-visual-lod.js');
-  await import('./stylized-visual-target.js');
-  await import('./adaptive-visual-performance.js');
-  await import('./runtime-resilience.js');
-  await import('./shared-world-scale.js');
-  await import('./simulation-scale.js');
+  await Promise.all([
+    import('./asset-visuals.js'),
+    import('./authored-visual-lod.js'),
+    import('./stylized-visual-target.js'),
+    import('./adaptive-visual-performance.js'),
+    import('./runtime-resilience.js'),
+    import('./shared-world-scale.js'),
+    import('./simulation-scale.js'),
+  ]);
   const { boot } = await import('./web/main.js');
   await boot({ onProgress(value, text) { progress.value = value; message.textContent = text; } });
   await import('./mura-enhancements.js');
-  document.title = document.title.replace(/^星継ぎの庭/, 'MURAAAAAAA');
   clearTimeout(watchdog);
   finished = true;
   progress.value = 100;
