@@ -6,7 +6,7 @@ import { manualReason, REPOSITORY } from './integration-rescue-policy.mjs';
 
 // The existing external watchdog dispatches deploy.yml rescue_mode=scan. This
 // observer recovers delivery events without claiming a Rescue worker or merging.
-export async function recoverQueue(c, { now = Date.now(), limit = 12, budgetMs = 150000 } = {}) {
+export async function recoverQueue(c, { now = Date.now(), limit = 24, budgetMs = 150000 } = {}) {
   const started = Date.now();
   const report = { checked: [], ciRecovery: [], wake: [], errors: [], dispatched: false };
   const all = await c.pages('/pulls?state=open&base=develop&sort=created&direction=asc', undefined, { maxPages: 6 });
