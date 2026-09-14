@@ -30,7 +30,14 @@ export function rescueView(state, now = Date.now()) {
   }));
   const workers = records.filter(r => r.lease), queue = records.filter(r => ['DETECTED', 'QUEUED', 'BLOCKED_BY_RESCUE', 'FAILED_RETRYABLE'].includes(r.state));
   const manual = records.filter(r => r.state === 'FAILED_MANUAL');
+  const waitingStates = new Set(['DETECTED', 'QUEUED', 'BLOCKED_BY_RESCUE', 'FAILED_RETRYABLE', ...RETURNED]);
+  const completedStates = new Set(['MERGED', 'DEV']);
   const counts = { active: workers.filter(r => !r.heartbeatStale && ACTIVE.has(r.state)).length, reserved: workers.length, max: config.maxConcurrency,
+    handling: records.filter(r => ACTIVE.has(r.state) && !r.heartbeatStale).length,
+    waiting: records.filter(r => waitingStates.has(r.state)).length,
+    unresolved: records.filter(r => r.state !== 'CLOSED' && !completedStates.has(r.state)).length,
+    completed: records.filter(r => completedStates.has(r.state)).length,
+    attention: records.filter(r => r.state === 'FAILED_MANUAL' || r.state === 'STALE' || r.heartbeatStale).length,
     queued: queue.filter(r => r.state !== 'BLOCKED_BY_RESCUE').length, blocked: queue.filter(r => r.state === 'BLOCKED_BY_RESCUE').length,
     validating: records.filter(r => r.state === 'VALIDATING').length, awaitingPush: records.filter(r => r.state === 'AWAITING_PUSH').length,
     returned: records.filter(r => RETURNED.has(r.state) && r.state !== 'AWAITING_PUSH' && r.returnedAt).length,
