@@ -11,10 +11,12 @@ on:
       - 'ops-board/**'
       - 'scripts/application-catalog.mjs'
       - 'scripts/integration-rescue-*.mjs'
+      - 'scripts/repository-governance-audit.mjs'
       - 'wrangler.rescue-watchdog.jsonc'
       - 'tests/fixtures/integration-rescue-state.mjs'
       - 'apps/*/package.json'
       - 'tests/pulse-*.test.mjs'
+      - 'tests/repository-governance-audit.test.mjs'
       - 'wrangler.ops.jsonc'
       - '.github/workflows/ops-board.yml'
       - 'tests/ops-*.test.mjs'
@@ -52,7 +54,8 @@ jobs:
       - name: Fast PULSE verification
         run: |
           for file in ops-board/*.mjs ops-board/public/*.js ops-board/public/*.mjs; do node --check "$file"; done
-          node --test tests/ops-*.test.mjs tests/pulse-*.test.mjs
+          node --check scripts/repository-governance-audit.mjs
+          node --test tests/ops-*.test.mjs tests/pulse-*.test.mjs tests/repository-governance-audit.test.mjs
           grep -q '<title>PULSE</title>' ops-board/public/index.html
           grep -q 'favicon.svg' ops-board/public/index.html
           grep -q '要対応タスク' ops-board/public/index.html
@@ -175,6 +178,12 @@ jobs:
           OPS_URL: ${{ steps.public.outputs.url }}
           OPS_REPORT_DIR: ops-review-results/public
         run: node ops-board/browser-check.mjs
+      - name: Audit develop/main branch protection
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/repository-governance-audit.mjs
       - name: Record public Ops Board status
         if: ${{ !cancelled() && github.ref == 'refs/heads/develop' && steps.deploy.outcome != 'skipped' }}
         env:
