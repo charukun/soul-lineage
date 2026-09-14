@@ -1,7 +1,10 @@
 import {RaidSession as SingleRaidSession} from './session.js';
 import {cancelDevour} from './devour.js';
+import {villagerBehavior} from './world.js';
 
-const JOIN_DISTANCE=4.8;
+const AGGRO_DISTANCE=9.2;
+const RALLY_DISTANCE=8.0;
+const JOIN_DISTANCE=6.4;
 const LEAVE_DISTANCE=5.8;
 const HARD_LEAVE_DISTANCE=8.2;
 const MAX_SIMULTANEOUS=6;
@@ -17,30 +20,42 @@ export class RaidSession extends SingleRaidSession {
   if(type==='disengage'&&this.combatants.length)return;
   return super.emit(type,data);
  }
+ isAggressive(npc){return (npc?.behavior||villagerBehavior(npc?.role))==='fight';}
  combatantCount(){return (this.fight?1:0)+this.combatants.filter(f=>!f.npc.dead&&!f.npc.eaten).length;}
  isCombatant(npc){return this.fight?.npc===npc||this.combatants.some(f=>f.npc===npc);}
  engage(npc){
   if(this.finished||npc.dead||npc.eaten||this.isCombatant(npc))return;
   if(!this.fight){super.engage(npc);return;}
-  if(this.combatantCount()>=MAX_SIMULTANEOUS){npc.state='pursue';return;}
+  if(this.combatantCount()>=MAX_SIMULTANEOUS){npc.state=this.isAggressive(npc)?'pursue':'flee';return;}
   const record={npc,retreat:0,learned:false,attackCooldown:.35+this.rng()*.45};
   this.combatants.push(record);npc.state='combat';npc.pose=null;npc.speed=0;
   this.alarm=Math.min(100,this.alarm+4*(this.has('bellkeeper')?.5:1));
   this.resetIdle();this.emit('engage',{npc,group:true,count:this.combatantCount()});
  }
+ _rallyAggressors(){
+  if(this.finished||this.devour)return;
+  const p=this.player,focus=this.fight?.npc;
+  for(const n of this.village.npcs){
+   if(n.dead||n.eaten||this.isCombatant(n)||!this.isAggressive(n))continue;
+   const playerDistance=Math.hypot(n.x-p.x,n.z-p.z);
+   const sees=playerDistance<AGGRO_DISTANCE&&!this.lineBlocked(p,n);
+   const hears=!!focus&&Math.hypot(n.x-focus.x,n.z-focus.z)<RALLY_DISTANCE;
+   if(sees||hears){n.fear=0;n.state='pursue';}
+  }
+ }
  _joinNearby(){
   if(this.finished||this.devour||(!this.fight&&this.safeTime>0))return;
-  const p=this.player;
+  const p=this.player,radius=this.fight?JOIN_DISTANCE:4.8;
   const candidates=this.village.npcs
-   .filter(n=>!n.dead&&!n.eaten&&!this.isCombatant(n))
+   .filter(n=>!n.dead&&!n.eaten&&!this.isCombatant(n)&&this.isAggressive(n))
    .map(n=>({n,d:Math.hypot(n.x-p.x,n.z-p.z)}))
-   .filter(({n,d})=>d<JOIN_DISTANCE&&!this.lineBlocked(p,n))
+   .filter(({n,d})=>d<radius&&!this.lineBlocked(p,n))
    .sort((a,b)=>a.d-b.d);
   for(const {n} of candidates){if(this.combatantCount()>=MAX_SIMULTANEOUS)break;this.engage(n);}
  }
  _releaseSecondary(record){
   const i=this.combatants.indexOf(record);if(i<0)return;
-  this.rememberFight(record);record.npc.state='pursue';record.npc.pose=null;record.npc.speed=0;
+  this.rememberFight(record);record.npc.state=this.isAggressive(record.npc)?'pursue':'flee';record.npc.pose=null;record.npc.speed=0;
   this.combatants.splice(i,1);this.emit('combatant-disengage',{npc:record.npc,count:this.combatantCount()});
  }
  _tickSecondaries(dt,input={}){
@@ -87,17 +102,21 @@ export class RaidSession extends SingleRaidSession {
  shadowStep(v){if(this.combatants.length)return;return super.shadowStep(v);}
  finish(status){for(const record of this.combatants)this.rememberFight(record);return super.finish(status);}
  clearCombat(){
-  if(this.fight){this.fight.npc.state='pursue';this.fight.npc.pose=null;}
-  for(const record of this.combatants){record.npc.state='pursue';record.npc.pose=null;record.npc.speed=0;}
+  if(this.fight){this.fight.npc.state=this.isAggressive(this.fight.npc)?'pursue':'flee';this.fight.npc.pose=null;}
+  for(const record of this.combatants){record.npc.state=this.isAggressive(record.npc)?'pursue':'flee';record.npc.pose=null;record.npc.speed=0;}
   this.fight=null;this.combatants=[];
  }
  tick(dt,input){
   if(this.finished)return;
+  this._rallyAggressors();
   this._joinNearby();
   const primary=this.fight?.npc||null;
   super.tick(dt,input);
   if(this.finished)return;
+  const released=primary&&!this.fight&&!primary.dead&&!primary.eaten;
+  if(released&&!this.isAggressive(primary)){primary.state='flee';primary.fear=Math.max(primary.fear||0,3);}
   if(primary&&!this.fight&&this.combatants.length)this.promoteNextCombatant();
+  this._rallyAggressors();
   if(this.fight&&!this.devour)this._joinNearby();
   this._tickSecondaries(Math.min(Math.max(Number(dt)||0,0),1/30),input||{});
   if(!this.fight&&this.combatants.length)this.promoteNextCombatant();
