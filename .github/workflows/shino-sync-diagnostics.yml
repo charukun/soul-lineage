@@ -20,6 +20,8 @@ jobs:
           fetch-depth: 0
       - name: Reproduce merge conflicts
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin develop
           set +e
           git merge --no-commit --no-ff origin/develop
