@@ -35,9 +35,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RESCUE_CONFIGURED: 'true'
-          # Throughput v2 raises the repository baseline from the legacy stored value 4.
-          # Future tuning can still change the source default deliberately in one reviewed PR.
-          MAX_RESCUE_CONCURRENCY: '6'
+          # v2 has an independent tuning key so the legacy repository value 4 does not pin the new baseline.
+          MAX_RESCUE_CONCURRENCY: ${{ vars.MAX_RESCUE_CONCURRENCY_V2 || '6' }}
           MAX_RESCUE_ATTEMPTS: ${{ vars.MAX_RESCUE_ATTEMPTS }}
           RESCUE_DIAGNOSTICS_PATH: .deploy-state/rescue-api.json
           RESCUE_COORDINATOR: 'true'
