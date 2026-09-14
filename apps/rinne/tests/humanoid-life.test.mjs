@@ -44,11 +44,12 @@ test('combo carry keeps every returned world sample aligned and uses sampled roo
  assert.match(source,/Array\.isArray\(value\)\|\|ArrayBuffer\.isView\(value\)/);
 });
 
-test('life runtime keeps secondary work commit-only and LOD-bounded',async()=>{
+test('life runtime keeps secondary work commit-only, LOD-bounded and shadows synchronized',async()=>{
  const source=await readFile(new URL('../public/simulator/src/humanoid-life.js',import.meta.url),'utf8');
  assert.match(source,/if\(!commit\|\|!lod\.secondaryBones\)return/);
  assert.match(source,/this\.secondaryNodes\(c,lod\.secondaryBones\)/);
  assert.match(source,/if\(!lod\.fingers/);
  assert.match(source,/if\(!lod\.gaze/);
  assert.match(source,/perceptualQA/);
+ assert.match(source,/for\(const proxy of c\.shadowMeshes\)/);
 });
