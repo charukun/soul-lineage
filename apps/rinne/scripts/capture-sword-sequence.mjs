@@ -5,6 +5,8 @@ import {resolve} from 'node:path';
 const outDir=resolve(process.argv[2]||'/tmp/rinne-sword-sequence');await mkdir(outDir,{recursive:true});
 
 
+import {MASTER_STANCES} from '../public/simulator/src/posture-motion.js';
+import {applyPostureReview,POSTURE_REVIEW_SECONDS} from '../public/simulator/src/posture-sequence.js';
 import {createReviewSword} from '../public/simulator/src/review-sword.js';
 import {SHORT_SWORD_SEQUENCE,applySwordSequence,swordSequenceTravel} from '../public/simulator/src/sword-sequence.js';
 const runtime=await loadRuntime(),c=runtime.current,meshes=[];
@@ -16,11 +18,13 @@ const actor={id:'review',hero:true,weapon:'sword',weaponDraw:1,lifeAgeYears:22,x
 const kind=process.argv[3]||'combination';
 const {SWORD_MOVES}=await import('../public/simulator/src/authored-sword.js');
 const {applyPerformance}=await import('../public/simulator/src/sword-performance.js');
-const seconds=SWORD_MOVES[kind]?.seconds??(kind==='performance'?30:4);
-const frameCount=Math.round(seconds*30)+1,vertices=new Float32Array(frameCount*count*3),points=[],v=new T.Vector3();
+const seconds=SWORD_MOVES[kind]?.seconds??(kind==='stances'?MASTER_STANCES.length:kind==='posture'?POSTURE_REVIEW_SECONDS:kind==='performance'?30:4);
+const frameCount=kind==='stances'?MASTER_STANCES.length+1:Math.round(seconds*Number(process.argv[4]||30))+1,vertices=new Float32Array(frameCount*count*3),points=[],v=new T.Vector3();
 for(let i=0;i<frameCount;i++){
  const p=i/(frameCount-1),t=p*seconds;actor._humanoidClock=t;
- if(SWORD_MOVES[kind])actor.attack={id:kind,kind,t,duration:seconds};
+ if(kind==='stances'){const stance=i?MASTER_STANCES[i-1].id:'normal';Object.assign(actor,{stanceId:stance,weaponDraw:i?1:0,combatReady:i>0});c.state=null;c.lastActual=null;c.blending=null;c.footLocks={};}
+ else if(kind==='posture')applyPostureReview(actor,t,c.locomotion);
+ else if(SWORD_MOVES[kind])actor.attack={id:kind,kind,t,duration:seconds};
  else if(kind==='performance')applyPerformance(actor,t,c.locomotion,c.unit*c.legLength/.82);
  else {applySwordSequence(actor,SHORT_SWORD_SEQUENCE,t,{start:.3});Object.assign(actor,swordSequenceTravel(SHORT_SWORD_SEQUENCE,t-.3,c.unit*c.legLength/.82));}
  const result=runtime.render(actor);sword.matrix.fromArray(result.sm);sword.updateMatrixWorld(true);

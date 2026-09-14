@@ -1,4 +1,6 @@
 import * as T from '../vendor/three.js';
+import {applyPostureReview,POSTURE_REVIEW_SECONDS} from './posture-sequence.js';
+import {POSTURE_REVISION} from './posture-motion.js';
 import {OrbitControls} from '../vendor/OrbitControls.js';
 import {HumanoidRuntime} from './humanoid.js';
 import {SLASH_SECONDS} from './authored-slash.js';
@@ -9,11 +11,11 @@ import {createReviewSword} from './review-sword.js';
 const $=id=>document.getElementById(id),canvas=$('motion-stage');
 let renderer,runtime,controls,shadow,frame=0,playing=true,last=0,elapsed=0;
 const requestedMode=new URLSearchParams(location.search).get('mode');
-let mode=requestedMode==='flow'?'combination':['combination','baseline','sequence','single'].includes(requestedMode)?requestedMode:'single';
+let mode=requestedMode==='flow'?'combination':['combination','baseline','sequence','single','posture'].includes(requestedMode)?requestedMode:'single';
 let singleKind='slash';
 const completeSequence=createSwordSequence(SHORT_SWORD_SEQUENCE.entries.map(row=>row.kind),{connected:false});
 const shortMode=()=>mode==='combination'||mode==='baseline';
-const duration=()=>mode==='baseline'?Math.max(SHORT_SWORD_SECONDS,completeSequence.duration+.3):mode==='combination'?SHORT_SWORD_SECONDS:mode==='sequence'?PERFORMANCE_SECONDS:SWORD_MOVES[singleKind].seconds;
+const duration=()=>mode==='posture'?POSTURE_REVIEW_SECONDS:mode==='baseline'?Math.max(SHORT_SWORD_SECONDS,completeSequence.duration+.3):mode==='combination'?SHORT_SWORD_SECONDS:mode==='sequence'?PERFORMANCE_SECONDS:SWORD_MOVES[singleKind].seconds;
 const scene=new T.Scene();scene.background=new T.Color('#25343c');scene.fog=new T.Fog('#25343c',8,16);
 const camera=new T.PerspectiveCamera(35,1,.05,30),focus=new T.Vector3(0,1.13,.3);
 const actor={id:'motion-review-shino',hero:true,weapon:'sword',weaponDraw:1,lifeAgeYears:22,x:0,z:0,yaw:0,air:0,vx:0,vz:0,combatReady:true,_humanoidClock:0,attack:null};
@@ -52,8 +54,9 @@ function toggleReference(){
 }
 function phaseLabel(p){return p<.12?'構え':p<.34?'溜め':p<.46?'踏み込み':p<.60?'斬撃':p<.82?'振り抜き':'構えへ';}
 function pose(time){
- let label;
- if(shortMode()){
+ let label;Object.assign(actor,{weaponDraw:1,combatReady:true,weaponTransition:false});
+ if(mode==='posture')label=applyPostureReview(actor,time,runtime.current.locomotion);
+ else if(shortMode()){
   Object.assign(actor,{x:0,z:0,yaw:0,vx:0,vz:0,_humanoidClock:time,_humanoidPhase:0});
   const sequence=mode==='combination'?SHORT_SWORD_SEQUENCE:completeSequence;
   const f=applySwordSequence(actor,sequence,time,{start:.3});Object.assign(actor,swordSequenceTravel(sequence,time-.3,runtime.current.unit*runtime.current.legLength/.82));label=f.current.label+(f.previous?' · '+f.previous.label+'から接続':'');
@@ -89,8 +92,8 @@ function view(id){if(!controls)return;const distance=fittedDistance(),yaw=({thre
 function resize(){if(!renderer)return;const box=canvas.parentElement.getBoundingClientRect();renderer.setSize(box.width,box.height,false);camera.aspect=box.width/Math.max(1,box.height);camera.updateProjectionMatrix();if(controls){const offset=camera.position.clone().sub(controls.target).normalize();camera.position.copy(controls.target).addScaledVector(offset,fittedDistance());controls.update();}render();}
 function configure(){
  $('mode').value=mode;$('single-kind').value=singleKind;$('single-kind-row').hidden=mode!=='single';$('timeline').max=String(duration());$('trail').disabled=mode==='single';$('compare-reference').disabled=!shortMode();if(!shortMode())$('compare-reference').checked=false;toggleReference();
- $('motion-version').textContent=`${SWORD_REVISION} · `+(shortMode()?`既存7連撃 / ${duration().toFixed(1)}秒`:mode==='sequence'?'既存5技・29撃 / 30秒':SWORD_MOVES[singleKind].label);
- if(runtime?.ready)status(shortMode()?'既存の技を接続。単体モーションにも同じ改善が反映されています。':mode==='sequence'?'既存の技・歩行・走行を組み合わせた30秒演武。':'技構成と同じ共有モーションを単体で確認できます。');
+ $('motion-version').textContent=`${SWORD_REVISION} / ${POSTURE_REVISION} · `+(mode==='posture'?'構え・移動 / 18秒':shortMode()?`既存7連撃 / ${duration().toFixed(1)}秒`:mode==='sequence'?'既存5技・29撃 / 30秒':SWORD_MOVES[singleKind].label);
+ if(runtime?.ready)status(mode==='posture'?'自然体・抜刀・歩行・走行・停止・攻撃・納刀を続けて確認できます。':shortMode()?'既存の技を接続。単体モーションにも同じ改善が反映されています。':mode==='sequence'?'既存の技・歩行・走行を組み合わせた30秒演武。':'技構成と同じ共有モーションを単体で確認できます。');
 }
 function restart(){elapsed=0;prepareAt(0);playing=true;last=0;syncPlay();render();}
 function loop(now){const dt=last?Math.min(.25,(now-last)/1000):0;last=now;

@@ -7,6 +7,7 @@ import { bakePosturePreview } from './posture-preview.js';
 import { rawClipFromNormalized } from './pose-transfer.js';
 import { createMartialClips, STRAIGHT_PUNCH } from './martial-motion.js';
 import { REVIEW_MOTION_INTEGRITY } from './review-motion-integrity.js';
+import {MASTER_STANCES,POSTURE_REVISION} from '../../public/simulator/src/posture-motion.js';
 import {SWORD_MOVES,swordClipInSeconds} from '../../public/simulator/src/authored-sword.js';
 import {applyReviewSwordTravel} from './sword-travel.js';
 const sourceVRMForBones = new WeakMap();
@@ -50,19 +51,7 @@ const MASTER_DEFENSE=Object.freeze([
   {kind:'ward',label:'守りの結界',weapon:'sword',defense:'ward'},{kind:'slip',label:'身をかわして返す',weapon:'sword',defense:'slip'},{kind:'brace',label:'踏ん張って受ける',weapon:'sword',defense:'brace'},
   {kind:'ready',label:'構えを整える',weapon:'sword'}
 ]);
-const MASTER_STANCES=Object.freeze([
-  {id:'none',label:'未設定',cfg:{}},{id:'balanced',label:'自然体',cfg:{}},{id:'assault',label:'攻め主体',cfg:{lean:.07,lower:.025,weight:.07,stepTime:.88,stepSize:1.10,rest:.83}},
-  {id:'defensive',label:'守り主体',cfg:{lean:-.04,lower:.05,weight:-.06,high:true,stepTime:1.12,stepSize:.78,rest:1.25}},
-  {id:'patient',label:'後の先',cfg:{lean:-.015,lower:.025,weight:-.04,half:.16,stepTime:1.07,stepSize:.84,rest:1.18}},
-  {id:'counter',label:'見切り重視',cfg:{lean:-.03,lower:.05,weight:-.03,half:.23,high:true,stepTime:1.03,stepSize:.86,rest:1.12}},
-  {id:'elusive',label:'回避重視',cfg:{lower:.02,half:.18,light:true,stepTime:.83,stepSize:.90,rest:.91}},
-  {id:'steadfast',label:'不動',cfg:{lower:.085,wide:.055,stepTime:1.22,stepSize:.65,rest:1.35}},
-  {id:'survival',label:'生存優先',cfg:{lean:-.04,lower:.035,weight:-.07,high:true,stepTime:1.06,stepSize:.90,rest:1.18}},
-  {id:'escort',label:'護衛優先',cfg:{lower:.065,wide:.04,high:true,stepTime:1.03,stepSize:.82,rest:1.10}},
-  {id:'boxer',label:'拳闘のリズム',cfg:{lower:.025,half:.12,light:true,boxing:true,stepTime:.76,stepSize:.83,rest:.72}},
-  {id:'sideways',label:'半身の構え',cfg:{lower:.065,half:.24,stepTime:1.05,stepSize:.87,rest:1.12}},
-  {id:'draw',label:'静の構え',cfg:{lower:.04,draw:true,stepTime:1.10,stepSize:.85,rest:1.28}}
-]);
+
 const bytesCache=new Map(),inflight=new Map();
 let preloadStarted=false,preloadPromise=null,externalManifest=null;
 
@@ -97,21 +86,6 @@ function remapClip(sourceClip,sourceBones,targetBones,name=sourceClip.name){
   const vrm=sourceVRMForBones.get(sourceBones);
   if(!vrm)throw new Error('Missing normalized source VRM registration');
   return rawClipFromNormalized(sourceClip,sourceBones,vrm,targetBones,name);
-}
-function poseClip(name,bones){
-  const tracks=[];for(const [human,bone] of Object.entries(bones)){if(!bone)continue;const q=bone.quaternion.toArray();tracks.push(new THREE.QuaternionKeyframeTrack(`${bone.uuid}.quaternion`,[0,1],[...q,...q]));if(human==='hips'){const p=bone.position.toArray();tracks.push(new THREE.VectorKeyframeTrack(`${bone.uuid}.position`,[0,1],[...p,...p]));}}
-  return new THREE.AnimationClip(name,1,tracks);
-}
-function applyStance(runtime,c,row){
-  runtime.resetRoot(c);runtime.resetBones(c);runtime.combatPose(c,row.id==='boxer'?'fist':'sword',null,0,0);const b=c.bones,m=row.cfg||{},unit=Math.max(.7,c.legLength||1);
-  if(b.hips){b.hips.position.y-=(m.lower||0)*unit;b.hips.position.x+=(m.weight||0)*unit;}
-  if(b.spine)b.spine.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler((m.lean||0),m.half||0,0)));
-  if(m.wide){b.leftUpperLeg?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,m.wide)));b.rightUpperLeg?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,-m.wide)));}
-  if(m.high)for(const side of ['left','right'])b[side+'UpperArm']?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-.35,0,side==='left'?.28:-.28)));
-  if(m.boxing){b.leftUpperArm?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-.65,0,.55)));b.rightUpperArm?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-.58,0,-.52)));b.leftLowerArm?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-.78,0,0)));b.rightLowerArm?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-.72,0,0)));}
-  if(m.draw){b.spine?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,-.18,0)));b.rightUpperArm?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(.20,-.15,-.55)));b.leftUpperArm?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(.12,.15,.38)));}
-  if(m.light)b.hips?.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,.10,0)));
-  c.root.updateMatrixWorld(true);
 }
 async function visibleHumanoidBones(gltf){
   const json=gltf.parser?.json,vrm1=json?.extensions?.VRMC_vrm?.humanoid?.humanBones;
@@ -173,6 +147,17 @@ async function loadAllSources({scene,rootUrl,assetUrl,signal,onProgress,presetId
       window.assetBuffer=async id=>{const modelKey='model:'+id;if(bytesCache.has(modelKey))return bytesCache.get(modelKey);if(id===model.runtimeId&&bytesCache.has(modelCacheKey(model)))return bytesCache.get(modelCacheKey(model));const motionId=String(id).replace(/^motion:/,'');if(bytesCache.has('motion:'+motionId))return bytesCache.get('motion:'+motionId);const row=motionCatalog.find(x=>x.id===motionId);if(row)return cachedBytes('motion:'+motionId,new URL(row.file,simBase),{sha256:row.reviewSHA256,expectedSize:row.bytes});throw new Error(`Review asset not found: ${id}`);};
       const strikeMeta=Object.fromEntries([...MASTER_TECHNIQUES,...MASTER_DEFENSE].map(row=>[row.kind,row.defense?{defense:row.defense}:{}]));
       const runtime=new humanoidModule.HumanoidRuntime({weapons:{},strikes:strikeMeta,clips:{},windows:{},progress:()=>0,window:()=>null,hand:()=> 'right',echo:()=>{},status:()=>{},attach:()=>{}});await runtime.load(model.runtimeId||model.label);sourceVRMForBones.set(runtime.current.bones,runtime.current.vrm);if(disposed||signal.aborted){runtime.dispose(runtime.current);return;}
+      // Replace every existing basic-motion alias with the same shared runtime pose.
+      // Raw VRMA remains the source; the Lab now includes the runtime's full-body polish.
+      for(const [kind,values]of [
+        ['normal',['通常 / 自然体']],['balanced',['Tidebreak / Idle']],
+        ['walk',['Tidebreak / Walk','体 / 歩行','共有VRMA / Walk / 歩行']],
+        ['run',['Tidebreak / Run','体 / ダッシュ','共有VRMA / Run / 軽い走行']]
+      ]){
+        const move=['walk','run'].includes(kind),source=move?runtime.bakeLocomotion(runtime.current,kind):runtime.bakeStanding(runtime.current,kind);
+        const mapped=remapClip(source,runtime.current.bones,targetBones,values[0]);
+        for(const value of values){clips.set(value,mapped);register(value,{category:move?'move':kind==='normal'?'life':'defense',posture:kind==='balanced'?'combat':'normal',loop:true,sharedPosture:POSTURE_REVISION});}
+      }
       try{
         body.posturePreviews=new Map();
         for(const row of bakePosturePreview(runtime)){
@@ -184,8 +169,9 @@ async function loadAllSources({scene,rootUrl,assetUrl,signal,onProgress,presetId
       }catch(error){failed++;failAsset('Posture previews',error);console.error('Posture preview generation failed',error);}
       if(model.runtimeId==='SHINO'){body.swordPoseScale=runtime.current.unit*runtime.current.legLength/.82;body.swordDisplayScale=(model.appearanceScale||[1,1,1]).map(n=>n/runtime.current.unit);}
       for(const row of MASTER_TECHNIQUES){let source;if(row.weapon==='fist'&&typeof runtime.bakeFist==='function')source=runtime.bakeFist(runtime.current,row.kind);else source=runtime.bakeArmed(runtime.current,row.weapon,row.kind);const move=row.weapon==='sword'?SWORD_MOVES[row.kind]:null;if(move)source=swordClipInSeconds(source,row.kind);const value=`技 / ${row.label}`;clips.set(value,remapClip(source,runtime.current.bones,targetBones,value));register(value,{category:row.weapon==='fist'?'unarmed':'blade',posture:'combat',weapon:row.weapon==='fist'?'none':row.weapon,kind:row.kind,loop:false,phases:move?[['構え',0],['打ち出し',.27*move.seconds],['打点',.5*move.seconds],['戻り',.84*move.seconds]]:null});body.clipNames.push(value);appendClip('MasterCharacter共有Humanoid / 技',value,row.label);loaded++;}
-      for(const row of MASTER_DEFENSE){const source=runtime.bakeArmed(runtime.current,row.weapon,row.kind),value=`技 / ${row.label}`,mapped=remapClip(source,runtime.current.bones,targetBones,value);clips.set(value,mapped);register(value,{category:'defense',posture:'combat',kind:row.kind,loop:false});body.clipNames.push(value);appendClip('MasterCharacter共有Humanoid / 防御',value,row.label);loaded++;if(row.defense){const alias=`パリィ / ${row.label}`;clips.set(alias,mapped);register(alias,{category:'defense',posture:'combat',loop:false});body.clipNames.push(alias);appendClip('パリィ候補',alias,row.label);loaded++;}}
-      for(const row of MASTER_STANCES){applyStance(runtime,runtime.current,row);const source=poseClip(`stance:${row.id}`,runtime.current.bones),mapped=remapClip(source,runtime.current.bones,targetBones,`構え / ${row.label}`),value=`構え / ${row.label}`;clips.set(value,mapped);register(value,{category:'defense',posture:'combat',loop:true});body.clipNames.push(value);appendClip('MasterCharacter共有Humanoid / 構え',value,row.label);const mind=`心 / ${row.label}`;clips.set(mind,mapped);register(mind,{category:'defense',posture:'combat',loop:true});body.clipNames.push(mind);appendClip('心技体 / 心',mind,row.label);loaded++;}
+      for(const row of MASTER_DEFENSE){const source=runtime.bakeArmed(runtime.current,row.weapon,row.kind),value=`技 / ${row.label}`,mapped=remapClip(source,runtime.current.bones,targetBones,value);clips.set(value,mapped);register(value,{category:'defense',posture:'combat',kind:row.kind,loop:false,sharedPosture:row.kind==='ready'?POSTURE_REVISION:null});body.clipNames.push(value);appendClip('MasterCharacter共有Humanoid / 防御',value,row.label);loaded++;if(row.defense){const alias=`パリィ / ${row.label}`;clips.set(alias,mapped);register(alias,{category:'defense',posture:'combat',loop:false});body.clipNames.push(alias);appendClip('パリィ候補',alias,row.label);loaded++;}}
+      for(const row of MASTER_STANCES){const source=runtime.bakeStanding(runtime.current,row.id),mapped=remapClip(source,runtime.current.bones,targetBones,`構え / ${row.label}`),value=`構え / ${row.label}`;clips.set(value,mapped);register(value,{category:'defense',posture:'combat',loop:true,sharedPosture:POSTURE_REVISION,weapon:row.id==='boxer'?'none':'sword'});body.clipNames.push(value);appendClip('MasterCharacter共有Humanoid / 構え',value,row.label);const mind=`心 / ${row.label}`;clips.set(mind,mapped);register(mind,{category:'defense',posture:'combat',loop:true,sharedPosture:POSTURE_REVISION,weapon:row.id==='boxer'?'none':'sword'});body.clipNames.push(mind);appendClip('心技体 / 心',mind,row.label);loaded++;}
+      document.dispatchEvent(new CustomEvent('review-clips-updated',{detail:{body}}));
       runtime.dispose(runtime.current);progressUI('MasterCharacter共有Humanoid 技・構え',1,1,`${MASTER_TECHNIQUES.length}技 / ${MASTER_STANCES.length}構え追加済み`);
     }catch(error){failed++;failAsset('MasterCharacter techniques',error);console.error('MasterCharacter shared Humanoid motion generation failed',error);progressUI('MasterCharacter共有Humanoidの生成に失敗',0,1,error.message);}finally{window.assetBuffer=previousAssetBuffer;updateSummary(loaded,null,failed);}
     if(disposed||signal.aborted)return;

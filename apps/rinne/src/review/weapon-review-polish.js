@@ -99,7 +99,7 @@ export function installWeaponReviewPolish(body){
   const shoulder=local(body.bones.rightUpperArm),hip=local(body.bones.hips),normal=state.mode==='normal';
   // Idle grip constraints only. Combat clips retain their shared authored hands.
   // An explicitly mismatched motion remains visible and labelled, not silently replaced.
-  if(clip==='通常 / 自然体'||clip==='Tidebreak / Idle'||meta?.kind==='ready'){
+  if(!meta?.sharedPosture&&(clip==='通常 / 自然体'||clip==='Tidebreak / Idle'||meta?.kind==='ready')){
     if(normal){target=vec(.19*unit,hip.y+.04*unit,-.12*unit);q=bladeQ(vec(.12,-.48,-.87),spec.axis);}
     else {target=vec(.08*unit,shoulder.y-(active==='crossbow'?.13:.25)*unit,-(active==='crossbow'?.17:active==='staff'?.19:.28)*unit);q=bladeQ(active==='crossbow'?vec(0,0,-1):vec(.02,.68,-.73),spec.axis);}
     handAt('right',toWorld(target),q);

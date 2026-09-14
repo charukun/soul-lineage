@@ -171,6 +171,10 @@ async function startReview() {
     const url=URL.createObjectURL(file);try{await loadManual(url,file.name);}finally{URL.revokeObjectURL(url);q('#model-file').value='';}
   }));
   q('#clip').addEventListener('change',wrap(()=>{state.shared=false;state.time=0;playClip(q('#clip').value);}));
+  document.addEventListener('review-clips-updated',wrap(event=>{
+    if(event.detail?.body!==body||!sequenceNames.length||sequenceNames.every((name,i)=>body.getClip(name)===sequence[i]))return;
+    const time=clock.time,playing=clock.playing;playSequence([...sequenceNames],playing,true);clock.time=Math.min(time,clock.duration);sample();
+  }));
   new MutationObserver(()=>{if(body&&!activeClip)restoreSelection();}).observe(q('#clip'),{childList:true,subtree:true});
   document.addEventListener('review-play-sequence',wrap(event=>{state.shared=false;playSequence(event.detail?.names);}));
   q('#rest-pose').addEventListener('click',wrap(()=>playClip('',false)));

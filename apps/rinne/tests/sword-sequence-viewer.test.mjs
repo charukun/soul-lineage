@@ -9,6 +9,8 @@ import {SLASH_SECONDS,SLASH_REVISION} from '../public/simulator/src/authored-sla
 import {PERFORMANCE_SECONDS,PERFORMANCE_REVISION,SWORD_TIMINGS,applyPerformance} from '../public/simulator/src/sword-performance.js';
 import {SWORD_MOVES,SWORD_REVISION} from '../public/simulator/src/authored-sword.js';
 import {SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence,swordSequenceTravel} from '../public/simulator/src/sword-sequence.js';
+import {applyPostureReview,POSTURE_REVIEW_SECONDS} from '../public/simulator/src/posture-sequence.js';
+import {POSTURE_REVISION} from '../public/simulator/src/posture-motion.js';
 import {createReviewSword} from '../public/simulator/src/review-sword.js';
 
 // Exercise the actual viewer handlers and real model/rig. Only browser surfaces,
@@ -34,7 +36,7 @@ test('existing-motion viewer composes clips, selects individual techniques and s
  const parse=GLTFLoader.prototype.parseAsync;
  GLTFLoader.prototype.parseAsync=function(data,path){this.register(()=>({name:'CpuViewerTextureStub',loadTexture:()=>Promise.resolve(new Three.Texture())}));return parse.call(this,data,path);};
  globalThis.window=window;globalThis.self=globalThis;
- const context={T:{...Three,WebGLRenderer:Renderer},OrbitControls,HumanoidRuntime,SLASH_SECONDS,SLASH_REVISION,PERFORMANCE_SECONDS,PERFORMANCE_REVISION,SWORD_TIMINGS,applyPerformance,SWORD_MOVES,SWORD_REVISION,SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence,swordSequenceTravel,createReviewSword,document,window,location,URL,URLSearchParams,devicePixelRatio:1,requestAnimationFrame:fn=>{nextFrame=fn;return 1;},cancelAnimationFrame(){}};
+ const context={T:{...Three,WebGLRenderer:Renderer},OrbitControls,HumanoidRuntime,SLASH_SECONDS,SLASH_REVISION,PERFORMANCE_SECONDS,PERFORMANCE_REVISION,SWORD_TIMINGS,applyPerformance,SWORD_MOVES,SWORD_REVISION,SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence,swordSequenceTravel,createReviewSword,applyPostureReview,POSTURE_REVIEW_SECONDS,POSTURE_REVISION,document,window,location,URL,URLSearchParams,devicePixelRatio:1,requestAnimationFrame:fn=>{nextFrame=fn;return 1;},cancelAnimationFrame(){}};
  try{
   await vm.runInNewContext('(async()=>{'+source+'})()',context);
   assert.equal(ids.play.disabled,false,ids['motion-status'].textContent);
@@ -52,6 +54,9 @@ test('existing-motion viewer composes clips, selects individual techniques and s
   assert.equal(ids.timeline.value,'4');assert.equal(ids.play.textContent,'再生');assert.equal(ids['reference-video'].paused,true);
   ids.mode.onchange({target:{value:'single'}});assert.equal(ids.timeline.max,'0.66');assert.equal(ids['compare-reference'].disabled,true);assert.equal(ids['reference-panel'].hidden,true);
   for(const [kind,move] of Object.entries(SWORD_MOVES)){ids['single-kind'].onchange({target:{value:kind}});assert.equal(ids.timeline.max,String(move.seconds));assert.match(ids['motion-version'].textContent,new RegExp(move.label));}
+  ids.mode.onchange({target:{value:'sequence'}});assert.equal(ids.timeline.max,'30');
+  ids.mode.onchange({target:{value:'posture'}});assert.equal(ids.timeline.max,'18');assert.match(ids['motion-version'].textContent,/構え・移動/);
+  ids.timeline.oninput({target:{value:'8'}});assert.equal(ids.timeline.value,'8');assert.match(ids['phase-label'].textContent,/走行/);
   ids.mode.onchange({target:{value:'sequence'}});assert.equal(ids.timeline.max,'30');
   console.log('Actual viewer handlers: load, autoplay, pause, speed, seek, frame step, reference sync, mode switch and once endpoint passed.');
  }finally{window.listeners.pagehide?.({persisted:false});GLTFLoader.prototype.parseAsync=parse;delete globalThis.window;delete globalThis.self;}

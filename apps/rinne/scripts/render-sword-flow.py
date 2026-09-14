@@ -46,7 +46,8 @@ forward=np.array([-np.sin(angle),-.22,-np.cos(angle)]);forward/=np.linalg.norm(f
 requested=[int(a) for a in args[1:] if not a.startswith('--')]
 defaults=[round(p*(meta['frameCount']-1)) for p in [0,.08,.14,.20,.26,.34,.43,.53,.64,.73,.86,1]]
 frames=list(range(meta['frameCount'])) if '--all' in args else requested or defaults
-frames=[i for i in frames if 0<=i<meta['frameCount']]
+every=next((int(a.split('=')[1]) for a in args if a.startswith('--every=')),1)
+frames=[i for i in frames if 0<=i<meta['frameCount'] and i%every==0]
 name=view+('-follow' if follow else '');out=root/name;out.mkdir(exist_ok=True)
 target=np.array([0.,1.05,1.4]);scale=165.
 if not follow:
@@ -61,7 +62,7 @@ for idx in frames:
   for line in [[[k,.02,-3],[k,.02,5]],[[-4,.02,k],[4,.02,k]]]:
    pts=(np.array(line)-target)@basis;pts[:,:2]*=scale;pts[:,0]+=256;pts[:,1]+=325;gd.line([tuple(pts[0,:2]),tuple(pts[1,:2])],fill=(54,73,79),width=1)
  im=np.array(grid);z=np.full((620,512),np.inf);raster(screen,world,triangles,uvs,material,tex,im,z);img=Image.fromarray(im);d=ImageDraw.Draw(img);d.text((20,20),f'SHINO | {view} | {idx/(meta["frameCount"]-1)*meta.get("seconds",4):.2f} s',fill='#ead6ab');img.save(out/f'{idx:03}.png')
-selected=frames if len(frames)<=15 else defaults
+selected=frames if len(frames)<=15 else [min(frames,key=lambda f:abs(f-d)) for d in defaults]
 strip=Image.new('RGB',(512*3,620*((len(selected)+2)//3)),(20,30,35))
 for i,idx in enumerate(selected):strip.paste(Image.open(out/f'{idx:03}.png'),((i%3)*512,(i//3)*620))
 strip.save(root/f'{name}-strip.jpg',quality=88)

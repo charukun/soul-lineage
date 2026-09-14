@@ -21,7 +21,7 @@ export function bakePosturePreview(runtime) {
       const actor = {id: 'lab-posture', hero: true, lifeAgeYears: 22, weapon: 'sword', combatReady: true, weaponTransition: true, x: 0, z: 0, yaw: 0, _humanoidClock: 0, _humanoidPhase: 0};
       for (let frame = 0; frame <= 84; frame++) {
         const time = frame / 84 * POSTURE_DURATION;
-        actor.weaponDraw = postureAmount(kind, time);
+        actor.weaponDraw = postureAmount(kind, time);actor._humanoidClock=time;
         current.state = null; current.lastActual = null; current.blending = null;
         runtime.sample(actor, null, 0, 0, false);
         times.push(time);

@@ -1,4 +1,5 @@
 /** Deterministic 30-second choreography using the shared sword/locomotion rig. */
+import {gaitMix} from './posture-motion.js';
 import {SLASH_SECONDS} from './authored-slash.js';
 import {SWORD_MOVES} from './authored-sword.js';
 import {createSwordSequence,applySwordSequence,swordSequenceTravel} from './sword-sequence.js';
@@ -24,13 +25,11 @@ const score=[
  [24.76,'slash','一閃'],[25.45,'back','斬り返し'],[26.19,'uppercut','斬り上げ'],[27.17,'heavy','大きく振り抜く'],
  [28.80,'move','構えへ戻る',[0,0],0],[30.00,'guard','残心'],
 ];
-// Split traveled distance at the runtime's walk/run threshold without resetting
-// gait phase at a speed transition. Signed distance also supports backward steps.
+// Integrate continuous walk/run weights, preserving exact traveled distance.
 function gait(e,p){
- const D=e.distance,u=ease(p),q=D?Math.sqrt(2.4*e.duration/(30*D)):1;
- let run=0;
- if(q<.25){const a=(1-Math.sqrt(1-4*q))/2,b=1-a;run=D*Math.max(0,ease(Math.min(p,b))-ease(a));}
- return {walk:(D*u-run)*e.direction,run:run*e.direction};
+ const distance=e.distance*ease(p);let run=0,total=0;
+ for(let i=0;i<48;i++){const phase=p*(i+.5)/48,ds=e.distance*velocity(phase)*p/48;total+=ds;run+=ds*gaitMix(e.distance*velocity(phase)/e.duration);}
+ run=total>0?distance*run/total:0;return {walk:(distance-run)*e.direction,run:run*e.direction};
 }
 // Existing techniques, composed into distinct phrases. Their cut speed stays
 // native; added cuts occupy time previously spent returning to the same guard.

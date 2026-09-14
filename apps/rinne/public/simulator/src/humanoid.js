@@ -1,6 +1,7 @@
 import * as T from '../vendor/three.js';
 import {applyAuthoredSlash,slashSupport,SLASH_REVISION} from './authored-slash.js';
 import {AUTHORED_SWORD_KINDS,applyAuthoredSword} from './authored-sword.js';
+import {applyStandingPose,polishGait,relaxHeldArms,gaitMix,gaitDistance,POSTURE_REVISION} from './posture-motion.js';
 import {prepareAgeAppearance,applyAgePosture,finishAgeAppearance,disposeAgeAppearance} from './life-appearance.js';
 import {clone as cloneSkeleton} from '../vendor/SkeletonUtils.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
@@ -91,21 +92,7 @@ export class HumanoidRuntime{
  }
  // Reference motion pass: the supplied clips favor a quiet upper body in locomotion and
  // compact, low-centre attacks with a late burst of blade speed. Keep gameplay timing intact.
- applyReferenceLocomotion(c,d,weapon){if(!['walk','run'].includes(d.type))return;const run=d.type==='run',phase=((d.time%1)+1)%1*TAU,s=c.legLength/.82,flip=c.vrm.meta.metaVersion==='1'?-1:1;
-  // Master-motion pass: keep the authored leg cycle intact. Previous revisions were
-  // rotating hips/spine on top of the source clip, which made the knees look rubbery.
-  const damp=(name,k)=>{const b=c.bones[name],r=c.rest[name];if(b&&r)b.quaternion.slerp(r.q,k);};
-  const add=(name,e)=>{const b=c.bones[name];if(b)b.quaternion.multiply(Q().setFromEuler(e)).normalize();};
-  const counter=Math.cos(phase),sway=Math.sin(phase);
-  // Quiet, readable torso. Only tiny counter-rotation remains.
-  damp('spine',run?.18:.12);damp('chest',run?.22:.16);damp('upperChest',run?.26:.20);damp('neck',.28);damp('head',.34);
-  add('spine',new T.Euler((run?-.018:-.006)*flip,counter*(run?.030:.022),-sway*.008*flip,'YXZ'));
-  add('chest',new T.Euler((run?.012:.006)*flip,-counter*(run?.018:.014),sway*.006*flip,'YXZ'));
-  add('head',new T.Euler(.010*flip,-counter*.010,0,'YXZ'));
-  // Preserve the source pelvis translation/rotation. Do not procedurally sway it.
-  if(weapon==='fist'){add('leftUpperArm',new T.Euler(counter*(run?.10:.06)*flip,0,0));add('rightUpperArm',new T.Euler(-counter*(run?.10:.06)*flip,0,0));}
-  c.root.updateMatrixWorld(true);
- }
+ applyReferenceLocomotion(c,d,weapon){if(['walk','run'].includes(d.type))polishGait(this,c,d);}
  applyCombatBody(c,weapon,p,row,attack){const s=c.legLength/.82,flip=c.vrm.meta.metaVersion==='1'?-1:1;const guard=this.guard(c,weapon,c.shoulderY,s),stance=guard.stance;
   const contact=row?.contact??.52,heavy=['great','axe'].includes(weapon),thrust=!!row?.isThrust,twist=row?.twist||0;
   // Master Reference timing extracted from 1000003046.mp4.
@@ -130,13 +117,14 @@ export class HumanoidRuntime{
   c.root.updateMatrixWorld(true);const spread=(heavy?.155:weapon==='spear'?.125:.095)*s,step=(attack?(heavy?.125:.100)*drive:0)*s,pivot=(attack?.020*follow:0)*s;
   // Keep the rear foot quiet during loading, then transfer support to the front foot.
   // IK is eased by phase instead of forcing both legs to their final targets every frame.
-  for(const side of ['left','right']){const base=this.point(c,side+'Foot'),target=c.neutralPoints[side+'Foot'].clone();target.x+=(side==='left'?-spread:spread);target.z+=(side==='left'?step:-step*.22);target.x+=(side==='right'?pivot:-pivot*.10);const w=attack?(side==='right'?load*(1-.72*drive):drive):stance*.55;target.lerp(base,1-clamp(w,0,1));this.solve(c,side,'leg',target,v(0,0,1));}
+  for(const side of ['left','right']){const base=this.point(c,side+'Foot'),target=c.neutralPoints[side+'Foot'].clone();target.x+=(side==='left'?spread:-spread);target.z+=(side==='left'?step:-step*.22);target.x+=(side==='right'?pivot:-pivot*.10);const w=attack?(side==='right'?load*(1-.72*drive):drive):stance*.55;target.lerp(base,1-clamp(w,0,1));this.solve(c,side,'leg',target,v(0,0,1));}
  }
  combatPose(c,weapon,kind,p,baseTime=0){const H=c.shoulderY,L=c.legLength,s=L/.82,def=!!this.api.strikes[kind]?.defense||['none','ready','retreat'].includes(kind),attack=!!kind&&!def;
   // Armed attacks no longer inherit the old jab/cross body. Start from a neutral moving guard,
   // then author the whole-body cut around the weapon path.
   const authored=c.id==='SHINO'&&weapon==='sword'&&(kind==='slash'||AUTHORED_SWORD_KINDS.includes(kind));
-  evaluateTracks(c.shared['idle-01'],attack?(authored?0:(p*.42)%c.shared['idle-01'].duration):baseTime%c.shared['idle-01'].duration,c.byName);
+  evaluateTracks(c.shared['idle-01'],(weapon==='sword'&&(!kind||['none','ready'].includes(kind)))?0:attack?(authored?0:(p*.42)%c.shared['idle-01'].duration):baseTime%c.shared['idle-01'].duration,c.byName);
+  if(weapon==='sword'&&(!kind||['none','ready'].includes(kind))){applyStandingPose(this,c,'balanced',baseTime);return;}
   if(authored){if(kind==='slash')applyAuthoredSlash(this,c,p,this.api.clips.slash);else applyAuthoredSword(this,c,kind,p,this.api.clips[kind]);return;}
   c.root.updateMatrixWorld(true);
   if(weapon==='fist')return;
@@ -166,20 +154,26 @@ export class HumanoidRuntime{
  normalSocket(c,side){const b=c.bones[side+'Hand'],s=c.sockets[side];return b.matrixWorld.clone().multiply(M().compose(s.normOffset,s.normRotation,v(1,1,1)));}
  descriptor(a,at){const c=this.current,offset=at!=null&&a.attack?at-a.attack.t:0;let clock=(a._humanoidClock||0)+offset;if(this.testOverride)return{...this.testOverride,key:'test:'+this.testOverride.key,clock};if(a.dead)return{key:'death:'+a.id,type:'death',time:a.deadTime||0,clock};if(a.reaction)return{key:'hit:'+a.id+':'+(a._hitSerial||0),type:'hit',time:a.reaction.t/Math.max(.1,a.reaction.duration)*1.3,clock};if(a.recovery)return{key:'recover:'+a.recovery.recipe.receive,type:'recovery',time:a.recovery.t/a.recovery.duration*1.8,clock};if(a.attack)return{key:'attack:'+a.attack.id,type:'attack',kind:a.attack.kind,time:this.api.progress(a,at),clock};if(a.parryMotion)return{key:'parry:'+a.parryMotion.sourceId,type:'parry',time:a.parryMotion.t/a.parryMotion.duration,clock};if(a.zanshin)return{key:'zanshin:'+a.zanshin.id,type:'zanshin',emote:a.zanshin.id,time:a.zanshin.t/a.zanshin.duration,clock};const speed=Math.hypot(a.vx||0,a.vz||0);if(speed>.10)return{key:'move',type:speed>2.4?'run':'walk',time:a._humanoidPhase||0,clock,speed};return{key:a.combatReady||a.weaponTransition?'combat':'idle',type:a.combatReady||a.weaponTransition?'combat':'idle',time:clock,clock};}
  action(c,clip){if(!c.actions.has(clip.uuid)){const a=c.mixer.clipAction(clip);a.setLoop(T.LoopOnce,1);a.clampWhenFinished=true;c.actions.set(clip.uuid,a);}return c.actions.get(clip.uuid);}
- sample(a,at=null,px=a.x,pz=a.z,commit=false){const c=this.current;if(!c||!a.hero)return null;this.resetRoot(c);this.resetBones(c);const descriptor=this.descriptor(a,at),weapon=a.weapon||'sword',d={...descriptor,key:descriptor.key+':'+weapon+':'+descriptor.type};if(c.lastActorId!==a.id){this.clearEchoes(c);c.state=null;c.lastActual=null;c.footLocks={};c.lastActorId=a.id;c.resetSpring=true;}let clip,time=0;
+ sample(a,at=null,px=a.x,pz=a.z,commit=false){const c=this.current;if(!c||!a.hero)return null;this.resetRoot(c);this.resetBones(c);const descriptor=this.descriptor(a,at),weapon=a.weapon||'sword',d={...descriptor,key:descriptor.key+':'+weapon+':'+(['walk','run'].includes(descriptor.type)?'gait':descriptor.type)};if(c.lastActorId!==a.id){this.clearEchoes(c);c.state=null;c.lastActual=null;c.footLocks={};c.lastActorId=a.id;c.resetSpring=true;}let clip,time=0;
   if(d.type==='death'){clip=c.generated.Death;time=Math.min(d.time,clip.duration);}
   else if(d.type==='hit'||d.type==='recovery'){clip=c.review.clips['Hit Reaction'];time=d.time;}
-  else if(d.type==='walk'||d.type==='run'){clip=c.shared[d.type==='run'?'run-slow':'walk'];time=((d.time%1+1)%1)*clip.duration;}
+  else if(d.type==='walk'||d.type==='run'){clip=c.shared.walk;time=((d.time%1+1)%1)*clip.duration;}
   else if(d.type==='attack'){if(weapon==='fist'){clip=c.generated['fist:'+d.kind]??=this.bakeFist(c,d.kind);time=d.time;}
    else{const k=weapon+':'+d.kind;clip=c.generated[k]??=this.bakeArmed(c,weapon,d.kind);time=d.time;}}
   else if(d.type==='parry'){clip=c.generated[weapon+':parry']??=this.bakeArmed(c,weapon,'parry');time=d.time;}
   else if(d.type==='zanshin'){const id=d.emote||'quiet';clip=c.generated['emote:'+weapon+':'+id]??=this.bakeEmote(c,weapon,id);time=clamp(d.time,0,1);}
   else if(weapon==='fist'&&d.type==='combat'){clip=c.review.clips.Attack;time=.23+.012*Math.sin(d.clock*2.1);}
+  else if(d.type==='idle'||(d.type==='combat'&&weapon==='sword')){const stance=d.type==='idle'?'normal':a.stanceId||'balanced';clip=c.generated['standing:'+stance]??=this.bakeStanding(c,stance);time=d.time%clip.duration;}
   else{clip=c.shared['idle-01'];time=d.time%clip.duration;}
+  if(d.type==='combat'&&weapon==='sword')c.generated['standing:normal']??=this.bakeStanding(c,'normal');
+  const stationaryStance=a.combatReady&&weapon==='sword'?'balanced':'normal';
+  if(['walk','run'].includes(d.type))c.generated['standing:'+stationaryStance]??=this.bakeStanding(c,stationaryStance);
   if(!clip)throw Error('Animation Clip未解決: '+d.type);
   if(c.state!==d.key){if(c.blending){c.mixer.uncacheClip(c.blending.clip);c.actions.delete(c.blending.clip.uuid);}c.blending=!a.motionSequence&&c.lastActual?{pose:c.lastActual,clip:poseClip('Transition:'+d.key,c.bones,c.lastActual),start:(a._humanoidClock||0)-(d.type==='attack'?(a.attack?.t||0):d.type==='hit'?(a.reaction?.t||0):d.type==='recovery'?(a.recovery?.t||0):0),duration:d.type==='hit'?.065:d.type==='death'?.12:d.type==='attack'?.070:['walk','run','combat'].includes(d.type)?.115:.16}:null;c.state=d.key;}
   if(a.motionSequence&&d.type==='attack'&&a.motionBlend){const k=weapon+':'+a.motionBlend.kind;c.generated[k]??=this.bakeArmed(c,weapon,a.motionBlend.kind);}
-  c.mixer.stopAllAction();this.resetBones(c);const action=this.action(c,clip);action.reset().play();action.paused=true;action.time=clamp(time,0,clip.duration);let weight=c.blending?smooth((d.clock-c.blending.start)/c.blending.duration):1;action.setEffectiveWeight(weight);
+  c.mixer.stopAllAction();this.resetBones(c);const action=this.action(c,clip);action.reset().play();action.paused=true;action.time=clamp(time,0,clip.duration);let weight=c.blending?smooth((d.clock-c.blending.start)/c.blending.duration):1;const moving=['walk','run'].includes(d.type),gaitAmount=moving?smooth((d.speed??1)/.85):1,runMix=moving?gaitMix(d.speed??(d.type==='run'?3.9:1.65)):0;action.setEffectiveWeight(weight*(1-runMix)*gaitAmount);
+  if(moving&&gaitAmount<1){const standing=c.generated['standing:'+stationaryStance],idle=this.action(c,standing);idle.reset().play();idle.paused=true;idle.time=d.clock%standing.duration;idle.setEffectiveWeight(weight*(1-gaitAmount));}
+  if(moving&&runMix>0){const running=this.action(c,c.shared['run-slow']);running.reset().play();running.paused=true;running.time=((d.time%1+1)%1)*c.shared['run-slow'].duration;running.setEffectiveWeight(weight*runMix*gaitAmount);}
   if(c.blending&&weight<1){const old=this.action(c,c.blending.clip);old.reset().play();old.paused=true;old.time=0;old.setEffectiveWeight(1-weight);}c.mixer.update(0);
   if(a.motionSequence&&d.type==='attack'&&a.motionBlend){
    const blend=a.motionBlend,k=weapon+':'+blend.kind;
@@ -188,13 +182,14 @@ export class HumanoidRuntime{
   }
   c.root.updateMatrixWorld(true);
   this.applyReferenceLocomotion(c,d,weapon);
+  if(d.type==='combat'&&weapon==='sword'&&(a.weaponDraw??1)<1){const normal=c.generated['standing:normal'];evaluateTracks(normal,d.clock%normal.duration,c.byName,1-smooth(a.weaponDraw??1));c.root.updateMatrixWorld(true);}
   if(d.type==='hit'||d.type==='recovery'){const hp=clamp(d.time/(d.type==='hit'?1.3:1.8),0,1),kick=Math.sin(Math.min(1,hp)*PI),flip=c.vrm.meta.metaVersion==='1'?-1:1;const add=(name,e)=>{const b=c.bones[name];if(b)b.quaternion.multiply(Q().setFromEuler(e)).normalize();};add('hips',new T.Euler(.10*kick*flip,-.10*kick,.05*kick*flip,'YXZ'));add('spine',new T.Euler(.14*kick*flip,-.14*kick,.08*kick*flip,'YXZ'));add('chest',new T.Euler(.10*kick*flip,-.10*kick,.05*kick*flip,'YXZ'));c.bones.hips.position.z-=.055*c.legLength*kick;c.bones.hips.position.y-=.025*c.legLength*kick;c.root.updateMatrixWorld(true);}
   // Armed clip already contains both gripping hands. Non-attack layers retain source legs/torso.
-  if(!['attack','death','zanshin'].includes(d.type)&&weapon!=='fist'&&((a.weaponDraw??1)>0||d.type==='combat')){
+  if(!['attack','death','zanshin'].includes(d.type)&&!(weapon==='sword'&&d.type==='combat'&&(a.weaponDraw??1)>=1)&&weapon!=='fist'&&((a.weaponDraw??1)>0||d.type==='combat')){
    const srcPose=trackPose(c.bones),H=c.shoulderY,s=c.legLength/.82,ready=d.type==='combat'||d.type==='parry'||d.type==='recovery'||a.combatReady;
    const guard=this.guard(c,weapon,H,s);let grip=ready?guard.grip.clone():v(-.20*s,H-.65*s,.13*s),dir=ready?guard.dir.clone():v(.1,-.75,.50);
    if(!ready&&weaponSockets[weapon].two){grip=v(-.03*s,H-.58*s,.18*s);dir=v(.02,-.35,.94);}
-   if(d.type==='walk'||d.type==='run'){grip.y+=Math.sin((a._humanoidPhase||0)*TAU*2)*.018*s;grip.z+=Math.sin((a._humanoidPhase||0)*TAU)*.025*s;}
+   if(moving){const phase=(a._humanoidPhase||0)*TAU;grip.y+=Math.sin(phase*2)*.012*s;grip.z+=Math.sin(phase)*.025*s;if(weapon==='sword'){grip.y-=(.02+.085*runMix)*s;grip.z-=(.025+.09*runMix)*s;dir.lerp(v(.15,.50,.88).normalize(),runMix*.85).normalize();}}
    let desiredQ=null,supportWeight=1;const draw=clamp(a.weaponDraw??1,0,1);
    if(draw<1&&!['hit','recovery','parry','zanshin'].includes(d.type)){
     // Reach to the hip socket first. Only then transfer the weapon to the hand.
@@ -204,7 +199,10 @@ export class HumanoidRuntime{
     else{const lift=smooth((draw-.25)/.75),combatQ=socketOrientation(dir);grip=carryGrip.lerp(grip,lift);grip.y+=Math.sin(lift*PI)*.13*s;desiredQ=carryQ.slerp(combatQ,lift);}
     supportWeight=smooth((draw-.30)/.45);
    }
-   this.attachHands(c,weapon,grip,dir,0,1,desiredQ,supportWeight);
+   this.attachHands(c,weapon,grip,dir,0,1,desiredQ,supportWeight,draw<1?T.MathUtils.lerp(.965,.82,smooth((draw-.65)/.35)):.86);
+   if(weapon==='sword'&&(moving||draw<1)){for(const name of ['leftUpperArm','leftLowerArm','leftHand'])c.bones[name].quaternion.copy(srcPose[name].q);}
+   relaxHeldArms(this,c,weapon);
+   if(moving&&gaitAmount<1)for(const part of ['UpperArm','LowerArm','Hand']){const n='right'+part,target=c.bones[n].quaternion.clone();c.bones[n].quaternion.copy(srcPose[n].q).slerp(target,gaitAmount);}
    // Preserve snapshot transition on the upper body as well (IK never pops at the state boundary).
    if((a.weaponDraw??1)>=1&&c.blending&&weight<1)for(const side of ['left','right'])for(const bone of ['UpperArm','LowerArm','Hand']){const n=side+bone;const targetQ=c.bones[n].quaternion.clone();c.bones[n].quaternion.copy(c.blending.pose?.[n]?.q||srcPose[n].q).slerp(targetQ,weight);}
   }else if(weapon==='fist'){this.curl(c,'right',1);this.curl(c,'left',1);}
@@ -259,7 +257,7 @@ export class HumanoidRuntime{
   };
   const authoredPlant=d.type==='attack'&&c.id==='SHINO'&&a.weapon==='sword'&&(d.kind==='slash'||AUTHORED_SWORD_KINDS.includes(d.kind));
   for(const side of ['left','right']){const toeName=c.bones[side+'Toes']?side+'Toes':side+'Foot',toe=this.point(c,toeName),ankle=this.point(c,side+'Foot'),input=world(toe),height=.065+c.neutralPoints[toeName].y*ageUnit,previous=c.footLocks[side],locked=stance(side);const {state,target}=footContact(previous,input,d.clock,locked,{height,maxSpeed:d.type==='run'?.82:.62,commit,authoredPlant});if(commit)c.footLocks[side]=state;if(!a.air&&(locked||authoredPlant)&&target.distanceToSquared(input)>1e-10){const footQ=c.bones[side+'Foot'].getWorldQuaternion(Q()),heelTarget=local(target).add(ankle.clone().sub(toe));this.solve(c,side,'leg',heelTarget,v(0,0,1));this.setWorldQ(c,side+'Foot',footQ);}}
-  if(['idle','combat','parry'].includes(d.type)&&!a.air){for(const side of ['left','right']){const target=c.neutralPoints[side+'Foot'].clone();target.z+=side==='left'?.10:-.10;this.solve(c,side,'leg',target,v(0,0,1));}}
+  if(['idle','combat','parry'].includes(d.type)&&!a.air){for(const side of ['left','right']){const target=this.point(c,side+'Foot'),q=c.bones[side+'Foot'].getWorldQuaternion(Q());target.y=c.neutralPoints[side+'Foot'].y;this.solve(c,side,'leg',target,v(side==='left'?.12:-.12,0,1),true);this.setWorldQ(c,side+'Foot',q);}}
  }
  // Preserve the Review's authored jab/cross trajectories. In multi-hit skills, blend
  // the end and anticipation POSES in the gaps, never rewind source time across a punch.
@@ -274,9 +272,22 @@ export class HumanoidRuntime{
   }const tracks=Object.entries(c.bones).map(([n,b])=>new T.QuaternionKeyframeTrack(b.uuid+'.quaternion',times,data[n]));tracks.push(new T.VectorKeyframeTrack(c.bones.hips.uuid+'.position',times,hips));return new T.AnimationClip('Expanded Review Attack / hit-window blend / '+kind,1,tracks);
  }
 
+ bakeLocomotion(c,type='walk'){
+  const speed=type==='run'?3.9:1.65,duration=gaitDistance(c.locomotion,speed)/speed,count=90,times=[],hips=[],data=Object.fromEntries(Object.keys(c.bones).map(n=>[n,[]]));
+  const actor={id:'shared-gait-bake',hero:true,weapon:'sword',weaponDraw:0,lifeAgeYears:22,combatReady:false,x:0,z:0,yaw:0,vx:0,vz:speed,air:0};
+  for(let i=0;i<=count;i++){const time=i/count*duration;Object.assign(actor,{_humanoidClock:time,_humanoidPhase:i/count,z:speed*time});c.state=null;c.lastActual=null;c.blending=null;c.footLocks={};this.sample(actor,null,actor.x,actor.z,false);times.push(time);for(const [n,b]of Object.entries(c.bones))data[n].push(...b.quaternion.toArray());hips.push(...c.bones.hips.position.toArray());}
+  const tracks=Object.entries(c.bones).map(([n,b])=>new T.QuaternionKeyframeTrack(b.uuid+'.quaternion',times,data[n]));tracks.push(new T.VectorKeyframeTrack(c.bones.hips.uuid+'.position',times,hips));this.resetRoot(c);this.resetBones(c);c.state=null;return new T.AnimationClip(POSTURE_REVISION+' / '+type,duration,tracks);
+ }
+
+ bakeStanding(c,id='balanced'){
+  this.resetRoot(c);const times=[],data=Object.fromEntries(Object.keys(c.bones).map(n=>[n,[]])),hips=[],duration=4;
+  for(let i=0;i<=120;i++){const t=i/120*duration;times.push(t);this.resetBones(c);evaluateTracks(c.shared['idle-01'],0,c.byName);applyStandingPose(this,c,id,t);for(const [n,b]of Object.entries(c.bones))data[n].push(...b.quaternion.toArray());hips.push(...c.bones.hips.position.toArray());}
+  const tracks=Object.entries(c.bones).map(([n,b])=>new T.QuaternionKeyframeTrack(b.uuid+'.quaternion',times,data[n]));tracks.push(new T.VectorKeyframeTrack(c.bones.hips.uuid+'.position',times,hips));return new T.AnimationClip(POSTURE_REVISION+' / '+id,duration,tracks);
+ }
+
  bakeArmed(c,weapon,kind){this.resetRoot(c);const times=[],data={},hips=[],count=90;for(const n of Object.keys(c.bones))data[n]=[];for(let i=0;i<=count;i++){times.push(i/count);this.resetBones(c);this.combatPose(c,weapon,kind,i/count);for(const[n,b]of Object.entries(c.bones)){const q=b.quaternion.toArray(),out=data[n];if(out.length&&q.reduce((sum,x,k)=>sum+x*out[out.length-4+k],0)<0)for(let k=0;k<4;k++)q[k]*=-1;out.push(...q);}hips.push(...c.bones.hips.position.toArray());}const tracks=Object.entries(c.bones).map(([n,b])=>new T.QuaternionKeyframeTrack(b.uuid+'.quaternion',times,data[n]));tracks.push(new T.VectorKeyframeTrack(c.bones.hips.uuid+'.position',times,hips));return new T.AnimationClip('Tidebreak armed / '+weapon+' / '+kind,1,tracks);}
  measureLocomotion(c){this.resetRoot(c);const out={};for(const [name,id]of [['walk','walk'],['run','run-slow']]){const clip=c.shared[id],samples=[];for(let i=0;i<=96;i++){this.resetBones(c);evaluateTracks(clip,clip.duration*i/96,c.byName);c.root.updateMatrixWorld(true);samples.push(['left','right'].map(side=>this.point(c,side+'Foot').toArray()));}const floor=Math.min(...samples.flatMap(x=>x.map(p=>p[1]))),slopes=[];for(let i=1;i<samples.length;i++)for(let side=0;side<2;side++){const a=samples[i-1][side],b=samples[i][side];if(Math.min(a[1],b[1])<floor+.04&&b[2]<a[2]-.0001)slopes.push((a[2]-b[2])*96*c.unit);}slopes.sort((a,b)=>a-b);const cycleDistance=clamp(slopes[Math.floor(slopes.length/2)]||1.1,.45,3.0);out[name]={clip:id,duration:clip.duration,cycleDistance,method:'measured low-foot backward velocity; distance-matched phase; bounded world support IK'};}return out;}
- tick(a,dt){if(!a?.hero)return;this.clock+=dt;this.updateEchoes();a._humanoidClock=(a._humanoidClock||0)+dt;const speed=Math.hypot(a.vx||0,a.vz||0);if(!a.attack&&!a.dead&&!a.recovery)a._humanoidPhase=(a._humanoidPhase||0)+speed*dt/(this.current?.locomotion[speed>2.4?'run':'walk'].cycleDistance||1.16)*((a.vx||0)*Math.sin(a.yaw)+(a.vz||0)*Math.cos(a.yaw)<-.07?-1:1);}
+ tick(a,dt){if(!a?.hero)return;this.clock+=dt;this.updateEchoes();a._humanoidClock=(a._humanoidClock||0)+dt;const speed=Math.hypot(a.vx||0,a.vz||0);if(!a.attack&&!a.dead&&!a.recovery)a._humanoidPhase=(a._humanoidPhase||0)+speed*dt/gaitDistance(this.current?.locomotion,speed)*((a.vx||0)*Math.sin(a.yaw)+(a.vz||0)*Math.cos(a.yaw)<-.07?-1:1);}
  checkSocket(c,result,weapon){const world=c.sockets.right.node.getWorldPosition(v()),expected=new T.Vector3().setFromMatrixPosition(new T.Matrix4().fromArray(result.rightSocket));c.socketError=world.distanceTo(expected);const spec=weaponSockets[weapon];if(spec?.two&&result.supportAttached&&result.attachment!=='hips'){const l=c.sockets.left.node.getWorldPosition(v()),grip=v(...spec.left).applyMatrix4(new T.Matrix4().fromArray(result.sm));c.secondaryGripError=l.distanceTo(grip);}else c.secondaryGripError=null;c.finite=Object.values(c.bones).every(b=>b.position.toArray().concat(b.quaternion.toArray()).every(Number.isFinite));}
  render(a){const c=this.current;if(!c)return;const r=this.sample(a,null,a.x,a.z,true);c.root.visible=!(a.dead&&!a.lifeExpired&&a.deadTime>1.55);return r;}
  // Original game triggers/lifetimes still drive afterimages. Meshes and textures are shared;
