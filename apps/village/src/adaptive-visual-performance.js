@@ -63,14 +63,17 @@ function governorFor(view) {
 const render = View.prototype.render;
 if (typeof render === 'function' && !render.__adaptiveVisualPerformance) {
   const wrapped = function adaptiveVillageRender(time,dt,...rest) {
-    const state = governorFor(this), level = state.governor.snapshot().level;
+    const state = governorFor(this), snapshot = state.governor.snapshot(), level = snapshot.level;
     for (const actor of this.actors?.children || []) {
       actor.userData.presentationDistance = Math.hypot((actor.position?.x||0)-this.target.x,(actor.position?.z||0)-this.target.z);
       actor.userData.visualQualityLevel = level;
     }
     state.stream = state.plan.update(this.target.x,this.target.z);
-    applyAdaptiveVegetation(this,state.governor.snapshot().profile.vegetationScale);
     const result = render.call(this,time,dt,...rest);
+    // The base Stylized bridge refreshes its normal distance density inside the
+    // wrapped render. Apply the adaptive multiplier afterwards so it cannot be
+    // overwritten; these matrices become the next frame's presentation state.
+    applyAdaptiveVegetation(this,snapshot.profile.vegetationScale);
     state.governor.observeFrame(dt);
     return result;
   };
