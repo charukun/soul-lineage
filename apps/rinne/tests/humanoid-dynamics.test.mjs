@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {localImpactBeat,localDirectionalReaction,localWeaponInertiaStep,localTerrainAdjustments,HUMANOID_DYNAMICS_REVISION} from '../public/simulator/src/humanoid-dynamics.js';
+import {localImpactBeat,localDirectionalReaction,localWeaponInertiaStep,localTerrainAdjustments,weaponInertiaEnvelope,HUMANOID_DYNAMICS_REVISION} from '../public/simulator/src/humanoid-dynamics.js';
 import {createImpactBeat,directionalHitReaction,weaponInertiaStep,terrainFootAdjustments} from '@soul/animations';
 
 const close=(a,b,eps=1e-12)=>assert.ok(Math.abs(a-b)<=eps,`${a} != ${b}`);
@@ -28,6 +28,15 @@ test('Rinne weapon inertia adapter matches shared bounded spring',()=>{
  assert.ok(Math.abs(local.offset)<=local.maxAngle+1e-12);
 });
 
+test('authored attack inertia returns exactly to both authored seam poses',()=>{
+ assert.equal(weaponInertiaEnvelope(0),0);
+ assert.equal(weaponInertiaEnvelope(1),0);
+ assert.equal(weaponInertiaEnvelope(.5),1);
+ for(const phase of [0,.01,.04,.08,.5,.84,.92,.99,1]){
+  const weight=weaponInertiaEnvelope(phase);assert.ok(Number.isFinite(weight));assert.ok(weight>=0&&weight<=1);
+ }
+});
+
 test('Rinne terrain adapter matches shared pelvis/foot split',()=>{
  const input={left:{currentY:.04,groundY:.20,normal:{x:.2,y:.95,z:.1}},right:{currentY:.03,groundY:-.05,normal:{x:0,y:1,z:0}}};
  const local=localTerrainAdjustments(input),shared=terrainFootAdjustments(input);
@@ -46,6 +55,8 @@ test('humanoid entry keeps dynamics and life layers below the operational runtim
  assert.match(source,/writePoint\(result\.b,newB\)/);
  assert.match(source,/if\(result\.weaponTip\)writePoint\(result\.weaponTip,newB\)/);
  assert.match(source,/if\(!commit\|\|a\?\.air\|\|a\?\.dead\|\|a\?\.attack\|\|a\?\.recovery\)return/);
+ assert.match(source,/weaponInertiaEnvelope\(phase\)/);
+ assert.match(source,/endReset/);
  assert.match(source,/__RINNE_IMPACT_BEAT__/);
  assert.match(source,/__RINNE_IMPACT_CHANNELS__/);
  assert.match(source,/dynamicsBalance/);
