@@ -24,6 +24,15 @@ test('character reference becomes a provider-neutral production request', () => 
   assert.equal(request.handoff.fallbackPolicy, 'retain-current-master-until-candidate-accepted');
 });
 
+test('runtime blockout references keep the audited MasterCharacter as fallback', () => {
+  const request = createCharacterModelBuildRequest('guard.reference.v1');
+  assert.equal(request.reference.id, 'guard.reference.v1');
+  assert.equal(request.reference.fallbackAssetId, request.reference.masterId);
+  assert.notEqual(request.reference.fallbackAssetId, 'runtime.guard.reference.v1');
+  assert.deepEqual(request.authority.proposedParts, []);
+  assert.equal(request.requirements.fallbackPolicy, 'retain-current-master-until-candidate-accepted');
+});
+
 test('provider adapter can generate a concrete candidate without entering runtime code', async () => {
   const request = createCharacterModelBuildRequest('shino.reference.v2', { provider: 'test-provider' });
   const provider = createCharacterModelProvider('test-provider', async received => {

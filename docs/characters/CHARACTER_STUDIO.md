@@ -46,3 +46,11 @@ The flow is:
 The builder contract must keep concept evidence separate from implementation authority. `CURRENT MASTER` and `IMPLEMENTED MODULAR PARTS` may resolve to existing repository parts/assets. `PROPOSED PARTS` become unresolved production requirements until an implementation/provider supplies them. `GAME EQUIPMENT` remains game-owned and must not be baked into the shared character asset unless a later reviewed contract explicitly changes that boundary.
 
 Model-generation providers are adapters outside game/runtime code. A build request may be exported for a local tool, Codex/Astra-class worker, Blender pipeline, or future model-generation service without changing MasterCharacter consumers. Candidate artifacts only become distributable after source/provenance validation plus Workshop quality gates for identity, silhouette, topology/rig compatibility, clipping, materials, motion, and performance. Existing audited assets remain the fallback until a candidate is accepted.
+
+## Production stage contract
+
+Character Workshop is a review surface, not an automatic promotion mechanism. Character asset status follows [Character Production Pipeline v2](CHARACTER_PRODUCTION_PIPELINE.md): `REFERENCE -> BLOCKOUT -> PRIMARY -> SECONDARY -> DEFORMATION -> MOTION -> POLISH -> RUNTIME_READY`.
+
+Reference presets and runtime-procedural models must expose an honest stage in the shared character catalog. A model loading successfully, playing the common humanoid motions or appearing in the Workshop/Lab does not advance its stage. In particular, runtime-generated primitive/reference geometry is `BLOCKOUT` at most. Dedicated production geometry requires a DCC/reviewed-import source for `PRIMARY` and later stages.
+
+Workshop motion and visual evidence can satisfy parts of DEFORMATION/MOTION/POLISH review, but promotion is decided by the executable production manifest and `npm run characters:production:check`. The UI/report must not rename a lower-stage asset as production/game-ready. Generated crowd variants are quality previews of an underlying asset and are not individually promoted production assets.

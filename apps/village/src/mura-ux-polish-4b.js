@@ -17,7 +17,8 @@ function syncFacilityMode(){
  if(title)title.textContent='施設内装';
  if(text)text.textContent='村長が整えられます';
  if(build)build.hidden=false;
- for(const card of document.querySelectorAll('#catalog .card')){const kind=card.dataset.kind;if(defs[kind]?.furniture)card.hidden=false;}
+ // Keep the renderer's furniture unlock visibility; this timer only labels
+ // facility mode and enables the existing room-editor control.
 }
 setInterval(syncFacilityMode,120);
 window.__MURA_UX_POLISH_4B__={version:1};

@@ -95,7 +95,9 @@ export function createCharacterModelBuildRequest(referenceId, options = {}) {
       label: reference.label,
       characterId: reference.characterId,
       masterId: reference.masterId,
-      fallbackAssetId: reference.assetId,
+      // A runtime reference model is BLOCKOUT evidence, never the production
+      // fallback. Keep the audited MasterCharacter active until every gate passes.
+      fallbackAssetId: reference.masterId,
       referencePath: reference.referencePath,
       profile: clone(reference.profile)
     },
