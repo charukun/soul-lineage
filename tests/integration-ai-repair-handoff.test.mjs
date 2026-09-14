@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { aiRepairEnvelope, aiRepairEnvelopeMarker, parseAiRepairEnvelope } from '../scripts/integration-ai-repair-envelope.mjs';
 
 const head = 'a'.repeat(40), develop = 'b'.repeat(40);
@@ -39,6 +42,16 @@ test('queue-recovery evidence import stays independent from PULSE runtime files'
   const store = readFileSync('scripts/integration-rescue-store.mjs', 'utf8');
   assert.doesNotMatch(store, /^import .*integration-rescue-pulse\.mjs/m);
   assert.match(store, /await import\('\.\/integration-rescue-pulse\.mjs'\)/);
+});
+
+test('queue-recovery module loads from the same scripts-only checkout used by the scan job', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'rinne-queue-recovery-'));
+  try {
+    cpSync('scripts', join(root, 'scripts'), { recursive: true });
+    await import(`${pathToFileURL(join(root, 'scripts/integration-queue-recovery.mjs')).href}?test=${Date.now()}`);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('repair worker can write the statuses used by return and AI repair signaling', () => {
