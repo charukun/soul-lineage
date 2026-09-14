@@ -1,9 +1,9 @@
-# Active 100-pass batch — 24 / 100 (2026-09-14)
+# Active 100-pass batch — 38 / 100 (2026-09-14)
 
 This unfinished batch starts at Lab commit
 `f2da2524a627e5e4057be1cd9a18e03a22b32282`. It does not reuse the fourteen
-completed passes below. Six further source changes were made after reconciling the
-latest remote Lab head, bringing this unfinished batch to twenty-four. Each new revision
+completed passes below. Fourteen further source changes were made after reconciling the
+latest remote Lab head, bringing this unfinished batch to thirty-eight. Each new revision
 was captured with the actual skinned SHINO rig at 30 fps from front-three-quarter
 and side views. The final state was also captured as a 30 fps four-second combination
 and a six-fps temporal sample of the full 30-second performance. The available reference was
@@ -35,13 +35,26 @@ and a six-fps temporal sample of the full 30-second performance. The available r
 | 22 | `5a02f89` → `3f2d417` | 3.5–5.5 s original | The thrust arm extended too early and flattened the speed contrast. A later reach hold preserves the bent loading arm to phase .45 and reaches full extension at the unchanged .50 contact. |
 | 23 | `3f2d417` → `9acb4eb` | 4.0–6.5 s original | The heavy blade began falling evenly from overhead. Grip and blade now hold the overhead pose through phase .46, leaving a shorter fall into the unchanged .50 contact. |
 | 24 | `9acb4eb` → `6a8a277` | 2.5–6.5 s original | Composed cuts still returned too close to neutral between techniques. Source recovery is carried to phase .84 with 180 ms overlap; front-three-quarter and side sequences retain more of the preceding low/high recovery while loading the next native cut. |
+| 25 | `67c9e6e` → `43a2df9` | 2.5–3.5 s original | Deepened the slash support-side pelvis load; the actual mesh reaches a lower, wider anticipation. |
+| 26 | `43a2df9` → `f3fc89c` | 2.5–3.5 s original | Increased hip, spine and chest pitch at the unchanged contact; the side view reads as torso-driven rather than arm-led. |
+| 27 | `f3fc89c` → `4271ac8` | 3.16–4.0 s original | Lowered and coiled the uppercut preload so the rise starts from bent supporting legs. |
+| 28 | `4271ac8` → `109bc5f` | 4.0–6.5 s original | Rejected: deeper heavy body keys caused a 0.1144 m high-to-low step. The body-key portion was restored in pass 37; this candidate was not adopted. |
+| 29 | `109bc5f` → `1766697` | 3.0–4.0 s original | Widened reverse-cut hip yaw and counterstep; front frames show a broader left-right phrase. |
+| 30 | `1766697` → `2a1917b` | 3.5–5.5 s original | Rejected: the deeper thrust body load produced 0.2363 m planted-toe slip. The load keys were restored in pass 37; this candidate was not adopted. |
+| 31 | `2a1917b` → `45d3861` | 2.5–6.5 s original | Continued the four-second phrase with the same existing slash/back clips, removing most of the long neutral tail. |
+| 32 | `45d3861` → `cbe1bac` | 2.5–3.5 s original | Preserved slash hip pitch and lowered pelvis into late recovery for a stronger handoff. |
+| 33 | `cbe1bac` → `8b00598` | 3.16–4.0 s original | Expanded the uppercut grip/blade path from the hip to the overhead finish. |
+| 34 | `8b00598` → `f831dc2` | 4.0–6.5 s original | Widened the heavy overhead and downward follow-through arc. |
+| 35 | `f831dc2` → `96323bb` | 4.0–6.5 s original | Kept heavy recovery loaded so the next lateral cut inherits a lower centre of mass. |
+| 36 | `96323bb` → `1fdb9a8` | 2.5–6.5 s original | Reduced head counter-rotation so the head follows full-body torque without losing the forward read. |
+| 37 | `8ecd032` → `54b804d` | 3.5–6.5 s original | Restored the grounded heavy/thrust body keys after the regression; toe drift returned to `3.11e-8 m` and the high-to-low step to `0.090075 m`. |
+| 38 | `54b804d` → `018714e` | 2.5–6.5 s original | Reapplied the longer existing-technique phrase after the grounded fix; it now passes at `5.40e-8 m` toe drift with no new attack IDs. |
 
-New reproduction evidence for this run is in `/tmp/rinne-pass19-*` through
-`/tmp/rinne-pass24-*` (`capture.json`, `three-follow-strip.jpg`,
-`side-follow-strip.jpg`). The final sequence is `/tmp/rinne-batch-final-1413/`
-for an earlier checkpoint and `/tmp/rinne-batch-final-1612/` for this checkpoint;
-the latter contains `combination-three-30fps.mp4`. The 30-second sample is
-`/tmp/rinne-performance-final-1612/`. These are transient
+New reproduction evidence for this run is in `/tmp/rinne-pass25-*` through
+`/tmp/rinne-pass38-*` (`capture.json`, `three-follow-strip.jpg`,
+`side-follow-strip.jpg`). The final sequence is `/tmp/rinne-batch-final-1709/`,
+including `combination-three-30fps.mp4` and half/quarter-speed encodes. The
+30-second sample is `/tmp/rinne-performance-final-1709/`. These are transient
 WORK artifacts, not shipped application assets. Every pass has a reconstructible
 Git parent/commit diff; no source-neutral replay is counted.
 
@@ -50,16 +63,16 @@ attempted, but Chrome reported `THREE.WebGLRenderer: Error creating WebGL contex
 the local MP4 could not be opened by the authenticated cloud browser's URL policy.
 Therefore normal-speed actual-model playback remains unconfirmed and the primary stage
 remains **revise**, the changes are not yet eligible for the three-app adoption PR,
-and this batch remains 76 passes short. The generated 30 fps MP4 is not
+and this batch remains 62 passes short. The generated 30 fps MP4 is not
 treated as proof of normal-speed review or as human approval. Remaining work
 is the reference's much larger lateral travel, whole-body rotation, release-speed
 contrast and momentum transfer; WebGL/MToon, cloth collision and physical-device
 fps also remain unverified.
 
-Focused result at revision `shared-sword-9`: 13 actual-rig/viewer tests passed;
-maximum final-combination socket error `1.3001927e-7 m`, moving planted-toe drift
-`2.2119659e-8 m`, maximum 30 Hz pelvis-height step `0.0728624 m`, and minimum
-blade-tip height `0.192740 m`. `npm run build:review` also passed.
+Focused result at revision `shared-sword-10`: 13 actual-rig/viewer tests passed;
+maximum final-combination socket error `1.3371319e-7 m`, moving planted-toe drift
+`5.4002867e-8 m`, maximum 30 Hz pelvis-height step `0.0900750 m`, and minimum
+blade-tip height `0.0561865 m`. `npm run build:review` also passed.
 These are continuity diagnostics, not artistic scores.
 
 # Fourteen further reference-driven corrections

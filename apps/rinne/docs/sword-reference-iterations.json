@@ -3,14 +3,20 @@
     "id": "2026-09-14-full-body-authoring-100",
     "status": "incomplete",
     "target": 100,
-    "completed": 24,
-    "remaining": 76,
+    "completed": 38,
+    "remaining": 62,
     "baseline_commit": "f2da2524a627e5e4057be1cd9a18e03a22b32282",
-    "latest_commit": "76ff5560665c28677c4cc98c3fad4b93cff9eac3",
+    "latest_commit": "018714ef261ba82f87a24cea98ba6417bbc61267",
     "reference": {
       "asset": "apps/rinne/public/simulator/assets/review/reference-sword-4s.mp4",
-      "range": [0, 4],
-      "original_range": [2.5, 6.5]
+      "range": [
+        0,
+        4
+      ],
+      "original_range": [
+        2.5,
+        6.5
+      ]
     },
     "model": "SHINO_review.vrm",
     "rig": "canonical HumanoidRuntime raw VRM rig",
@@ -22,13 +28,16 @@
     ],
     "evidence": {
       "renderer": "actual skinned/source-textured CPU mesh with simplified lighting",
-      "views": ["three-quarter follow", "side follow"],
+      "views": [
+        "three-quarter follow",
+        "side follow"
+      ],
       "per_pass_fps": 30,
       "final_fps": 30,
-      "transient_root": "/tmp/rinne-pass19-* through /tmp/rinne-pass24-*",
-      "final_comparison": "/tmp/rinne-batch-final-1612/combination-three-30fps.mp4",
-      "performance_sample": "/tmp/rinne-performance-final-1612 (30 seconds captured at 6 fps; overview rendered every sixth frame)",
-      "normal_speed_review": "30 fps encode generated, but local playback was blocked by cloud-browser URL policy; primary remains revise",
+      "transient_root": "/tmp/rinne-pass25-* through /tmp/rinne-pass38-*",
+      "final_comparison": "/tmp/rinne-batch-final-1709/combination-three-30fps.mp4",
+      "performance_sample": "/tmp/rinne-performance-final-1709 (30 seconds at 6 fps)",
+      "normal_speed_review": "30 fps encode generated; direct media playback unavailable in this execution environment, so primary remains revise",
       "webgl": "public Lab attempted; THREE.WebGLRenderer failed to create a WebGL context",
       "physical_device_fps": "not verified"
     },
@@ -36,12 +45,12 @@
       "blocking": {
         "status": "reviewed",
         "outcome": "improved",
-        "observation": "Knee plane, free-arm silhouette, opponent focus, rotation, weight shifts, uppercut support and recovery were compared in actual-mesh three-quarter and side sequences."
+        "observation": "Support-side loads, contact torso drive, uppercut/heavy compression, reverse counterstep, thrust coil, recovery and head follow-through were compared in actual-mesh front, three-quarter and side sequences."
       },
       "primary": {
         "status": "revise",
         "outcome": "unverified",
-        "observation": "Slash lateral weight transfer and torso drive, thrust pelvis/chest sequencing and release compression, heavy overhead hold, and recovery carry between cuts were improved in sequential captures. Browser WebGL failed and the local 30 fps encode could not be opened by the cloud-browser URL policy, so normal-speed actual-model review remains incomplete."
+        "observation": "Fourteen further full-body corrections improved load/contact/recovery contrast and kept the four-second phrase active; two regressing candidates were explicitly reverted. Direct normal-speed playback remains unavailable, so primary remains revise."
       },
       "polish": {
         "status": "pending",
@@ -313,6 +322,164 @@
         "evidence": "/tmp/rinne-pass24-{before,after}/{capture.json,three-follow-strip.jpg,side-follow-strip.jpg}",
         "result": "Front-three-quarter and side sequences preserve more preceding recovery while entering the next native load; boundary attachment remains finite.",
         "remaining": "Momentum transfer still trails the reference and normal-speed playback remains unconfirmed."
+      },
+      {
+        "iteration": 25,
+        "reference_interval": "2.5–3.5 s original",
+        "finding": "Slash loaded too near the centre line.",
+        "correction": "Deepen the support-side pelvis drop and lateral load.",
+        "before": "67c9e6ee1d1a786cc6117896cd7bafb29bb9aaba",
+        "after": "43a2df9f8ac6492107ef06de6915713ac3ce163b",
+        "evidence": "/tmp/rinne-pass25-after/{capture.json,three-follow-strip.jpg}",
+        "result": "The actual SHINO mesh reaches a lower, wider load while the support silhouette remains finite.",
+        "remaining": "Reference still travels farther across the screen."
+      },
+      {
+        "iteration": 26,
+        "reference_interval": "2.5–3.5 s original",
+        "finding": "Slash contact still read as an arm reach.",
+        "correction": "Increase hip, spine and chest pitch through the unchanged contact.",
+        "before": "43a2df9f8ac6492107ef06de6915713ac3ce163b",
+        "after": "f3fc89c8481bc777f207964516eed8413079f01f",
+        "evidence": "/tmp/rinne-pass26-after/{capture.json,side-follow-strip.jpg}",
+        "result": "Side frames show the ribcage and pelvis driving through the sword line.",
+        "remaining": "Normal-speed acceleration and cloth clearance remain unverified."
+      },
+      {
+        "iteration": 27,
+        "reference_interval": "3.16–4.0 s original",
+        "finding": "Uppercut preload remained too upright.",
+        "correction": "Lower and coil hips/spine before the existing release and overhead finish.",
+        "before": "f3fc89c8481bc777f207964516eed8413079f01f",
+        "after": "4271ac82a0bcf9831f055a35e19b65be8ea306f3",
+        "evidence": "/tmp/rinne-pass27-after/{capture.json,three-follow-strip.jpg}",
+        "result": "The rising cut begins from a deeper leg-loaded silhouette.",
+        "remaining": "Reference has greater travel and faster rise."
+      },
+      {
+        "iteration": 28,
+        "reference_interval": "4.0–6.5 s original",
+        "finding": "Heavy overhead hold stored little weight in the legs.",
+        "correction": "Lower the pelvis and retain counter-rotation before the native contact.",
+        "before": "4271ac82a0bcf9831f055a35e19b65be8ea306f3",
+        "after": "109bc5fe8e89d087e7816c692bfd76ef0d94959a",
+        "evidence": "/tmp/rinne-pass28-after/{capture.json,side-follow-strip.jpg}",
+        "result": "Rejected: actual-rig regression raised the maximum 30 Hz high-to-low pelvis step to 0.1144 m; the heavy body-key portion was restored in pass 37.",
+        "remaining": "Candidate not adopted; keep the later blade-arc improvement separately.",
+        "adopted": false,
+        "reverted_by": "54b804d"
+      },
+      {
+        "iteration": 29,
+        "reference_interval": "3.0–4.0 s original",
+        "finding": "Reverse cut rotation and counterstep were narrow.",
+        "correction": "Widen hip yaw, lateral pelvis travel and recovery counterbalance.",
+        "before": "109bc5fe8e89d087e7816c692bfd76ef0d94959a",
+        "after": "1766697b1e0c4367d0117966a57c77b768165f2a",
+        "evidence": "/tmp/rinne-pass29-after/{capture.json,front-follow-strip.jpg}",
+        "result": "Front frames show a broader left-right phrase without losing sword attachment.",
+        "remaining": "The target still rotates and displaces more."
+      },
+      {
+        "iteration": 30,
+        "reference_interval": "3.5–5.5 s original",
+        "finding": "Thrust preload and extension were too similar.",
+        "correction": "Pull grip and torso deeper into the load, then extend at the unchanged .50 contact.",
+        "before": "1766697b1e0c4367d0117966a57c77b768165f2a",
+        "after": "2a1917b22e85d3b8c1165c208a6c778a921f4675",
+        "evidence": "/tmp/rinne-pass30-after/{capture.json,side-follow-strip.jpg}",
+        "result": "Rejected: actual-rig regression moved the planted support toe by 0.2363 m during thrust; the load body keys were restored in pass 37.",
+        "remaining": "Candidate not adopted; redesign thrust compression without breaking the foot lock.",
+        "adopted": false,
+        "reverted_by": "54b804d"
+      },
+      {
+        "iteration": 31,
+        "reference_interval": "2.5–6.5 s original",
+        "finding": "The four-second review phrase returned to neutral for more than one second.",
+        "correction": "Continue the composition with the same existing slash/back clips after heavy recovery.",
+        "before": "2a1917b22e85d3b8c1165c208a6c778a921f4675",
+        "after": "45d3861950cd459edacdea1665dfae12f19938b7",
+        "evidence": "/tmp/rinne-pass31-after/{capture.json,three-follow-strip.jpg}",
+        "result": "The actual model remains active through most of the reference window and tests the heavy-to-lateral handoff.",
+        "remaining": "Final guard still occupies the last part of the window."
+      },
+      {
+        "iteration": 32,
+        "reference_interval": "2.5–3.5 s original",
+        "finding": "Slash recovery shed torso drive before the next load.",
+        "correction": "Retain hip pitch and lowered pelvis through late recovery.",
+        "before": "45d3861950cd459edacdea1665dfae12f19938b7",
+        "after": "cbe1bacdad91e9919b29fac94b1960a1c432160c",
+        "evidence": "/tmp/rinne-pass32-after/{capture.json,three-follow-strip.jpg}",
+        "result": "Recovery stays loaded longer before blending to the next existing technique.",
+        "remaining": "Momentum transfer remains weaker than the target."
+      },
+      {
+        "iteration": 33,
+        "reference_interval": "3.16–4.0 s original",
+        "finding": "Uppercut sword arc was compact beside the torso.",
+        "correction": "Widen the low hip load and overhead blade/grip endpoints.",
+        "before": "cbe1bacdad91e9919b29fac94b1960a1c432160c",
+        "after": "8b005988e277c9a087a651d3e7746c22ef94f5ea",
+        "evidence": "/tmp/rinne-pass33-after/{capture.json,front-follow-strip.jpg}",
+        "result": "Front frames show a broader low-to-high weapon path with stable grip.",
+        "remaining": "The target reaches a larger screen-space arc."
+      },
+      {
+        "iteration": 34,
+        "reference_interval": "4.0–6.5 s original",
+        "finding": "Heavy sword travel stopped short above and below contact.",
+        "correction": "Raise and draw back the held blade, then extend the downward follow-through.",
+        "before": "8b005988e277c9a087a651d3e7746c22ef94f5ea",
+        "after": "f831dc21e1ea9364cf867d13734bd5ea4e7583f0",
+        "evidence": "/tmp/rinne-pass34-after/{capture.json,side-follow-strip.jpg}",
+        "result": "Side frames show a wider overhead-to-low blade path.",
+        "remaining": "WebGL cloth and shoulder clearance remain unverified."
+      },
+      {
+        "iteration": 35,
+        "reference_interval": "4.0–6.5 s original",
+        "finding": "Heavy recovery stood up before the next lateral load.",
+        "correction": "Keep hip pitch and pelvis displacement through late recovery.",
+        "before": "f831dc21e1ea9364cf867d13734bd5ea4e7583f0",
+        "after": "96323bb060a9e3a6ab562e2dc5afcd93300b1d2a",
+        "evidence": "/tmp/rinne-pass35-after/{capture.json,three-follow-strip.jpg}",
+        "result": "The heavy finish hands a lower centre of mass into the following slash.",
+        "remaining": "The target transfers more translational speed."
+      },
+      {
+        "iteration": 36,
+        "reference_interval": "2.5–6.5 s original",
+        "finding": "Strong opponent-focus compensation made the head look pinned during torque.",
+        "correction": "Reduce counter-rotation while retaining target awareness.",
+        "before": "96323bb060a9e3a6ab562e2dc5afcd93300b1d2a",
+        "after": "1fdb9a82f0fd372749ac84fe0f15438a45af253b",
+        "evidence": "/tmp/rinne-pass36-after/{capture.json,three-follow-strip.jpg}",
+        "result": "Head and hair follow the full-body turn more naturally without losing the forward read.",
+        "remaining": "Normal-speed readability and physical-device playback remain unverified."
+      },
+      {
+        "iteration": 37,
+        "reference_interval": "3.5–6.5 s original",
+        "finding": "Final regression checks found the heavy body load and thrust compression exceeded grounded transition limits.",
+        "correction": "Restore the last passing heavy body and thrust load keys while retaining later uppercut, reverse, slash, blade-arc and recovery changes.",
+        "before": "8ecd032",
+        "after": "54b804d",
+        "evidence": "/tmp/rinne-pass37-after/{capture.json,side-follow-strip.jpg}",
+        "result": "Actual-rig test returned to 0.090075 m maximum 30 Hz pelvis step and 3.11e-8 m planted-toe drift.",
+        "remaining": "Thrust still needs a new grounded acceleration design; direct 1x playback remains unavailable."
+      },
+      {
+        "iteration": 38,
+        "reference_interval": "2.5–6.5 s original",
+        "finding": "After grounded body keys were restored, the four-second phrase again left a long neutral tail.",
+        "correction": "Reapply the same-existing-technique slash/back continuation and verify it against the corrected grounded poses.",
+        "before": "54b804d",
+        "after": "018714e",
+        "evidence": "/tmp/rinne-pass38-after/{capture.json,three-follow-strip.jpg}",
+        "result": "The longer phrase now passes with 5.40e-8 m planted-toe drift, 0.090075 m maximum 30 Hz pelvis step and no new attack IDs.",
+        "remaining": "The final guard and overall travel still trail the reference; 1x device review remains required."
       }
     ]
   },
