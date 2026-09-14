@@ -1,5 +1,7 @@
 # 実装セッションの非同期handoffポリシー
 
+Policy-Version: `2026-09-14-async-handoff-v2`
+
 Chat / WORK / Codexは一時的な実装環境であり、永続CI監視Workerではない。実装の正本は `charukun/soul-lineage` の最新developとGitHub上のbranch・commit・PRである。
 
 通常の実装セッションは、実装 → 必要最低限の高速検証 → commit → push → PR更新 → Ready for review → Integrationへhandoff → 結果報告・終了までを担当する。
@@ -11,6 +13,19 @@ Ready後のCI監視、develop統合、DEV公開、browser gate、失敗時のInt
 実装成功は `READY_FOR_INTEGRATION`、統合成功は `INTEGRATED`、DEVの公開検証成功は `DEV_DEPLOYED` と区別する。ReadyはCI成功・merge・公開成功を保証しない。通知やhandoffは既存GitHub PR・Integration・Rescue・PULSEの仕組みに統合し、独自Task-IDや別キューを作らない。
 
 main / Productionは通常実装とdevelop Integrationの対象外。明示hold、review、exact-head gate、browser assertion、Rescueのclaim/attempt制限は維持する。
+
+## Project Sources / 添付コピーとの優先順位
+
+このRepository版が実行ポリシーの正本である。Project Sources、添付ファイル、過去Chat、古いhandoffに同名ポリシーが残っていても、内容が異なる場合は本ファイルを優先する。
+
+外部コピーを同期するときは `Policy-Version: 2026-09-14-async-handoff-v2` を含む本ファイル全文へ置き換える。旧版の次の前提は退役済みであり、現在の実装契約として再導入しない。
+
+- push / PR更新だけを最終 `SUCCESS` と呼ぶ運用。現在は実装完了を `READY_FOR_INTEGRATION`、統合を `INTEGRATED`、DEV公開を `DEV_DEPLOYED` と分離する。
+- 通常Chat / WORK全体に常駐heartbeat daemonが存在するという前提。現行のheartbeat/watchdogはRescue等の明示的なlive leaseに限定される。
+- 実装WorkerがCI / browser完了まで同期待機する運用。
+- GitHub連携/APIの失敗だけでpush不能と結論付ける運用。
+
+Project Sourceの更新遅延はRepository実装を巻き戻す理由にしない。外部コピーを自動で更新できない実行環境では、差異を明示してRepository版を参照し続ける。
 
 ## 短時間確認と失敗の差し戻し
 
