@@ -8,6 +8,7 @@
     "./peer": "./src/peer.js",
     "./peer-mesh": "./src/peer-mesh.js",
     "./peer-hosted-world": "./src/peer-hosted-world.js",
+    "./peer-world-client": "./src/peer-world-client.js",
     "./raid-host": "./src/raid-host.js",
     "./presence-lod": "./src/presence-lod.js",
     "./transport-lod": "./src/transport-lod.js",
