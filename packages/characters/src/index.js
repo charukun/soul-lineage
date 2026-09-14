@@ -7,3 +7,5 @@ export * from './appearance-parts.js';
 export * from './character-sync.js';
 export * from './visual-identity.js';
 export * from './reference-models.js';
+export * from './art-direction.js';
+export * from './material-library.js';
