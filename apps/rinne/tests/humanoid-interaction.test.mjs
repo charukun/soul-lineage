@@ -42,7 +42,7 @@ test('interaction layer never owns authoritative actor world state or damage',as
  assert.match(source,/if\(!commit\)return null;const spec=interactionFor/);
  assert.match(source,/if\(!commit\|\|!a\?\.reaction/);
  assert.match(source,/if\(commit\)\{[\s\S]*this\._interaction\.history\.set/,'history only advances after a successful committed sample');
- assert.doesNotMatch(source,/prepareInteractionState[\s\S]*history\.set/,'preparation must remain side-effect free');
+ const prepare=source.match(/prepareInteractionState\(a\)\{([\s\S]*?)\n \}/)?.[1];assert.ok(prepare);assert.doesNotMatch(prepare,/history\.set/,'preparation must remain side-effect free');
 });
 
 test('paired and interaction rigid offsets keep all returned samples and shadows aligned',async()=>{
