@@ -88,6 +88,10 @@ function countMatches(source, pattern) {
   return [...source.matchAll(pattern)].length;
 }
 
+function stripRegexLiterals(source) {
+  return source.replace(/\/(?:\\.|[^\/\n])+\/[dgimsuvy]*/g, match => ' '.repeat(match.length));
+}
+
 function looksLikeFunctionStart(line) {
   if (/\bfunction\b[^{};]*\{/.test(line) || /=>\s*\{/.test(line)) return true;
   const method = line.match(/^\s*(?:async\s+)?(?:get\s+|set\s+)?([A-Za-z_$][\w$]*)\s*\([^;{}]*\)\s*\{/);
@@ -96,7 +100,8 @@ function looksLikeFunctionStart(line) {
 }
 
 function braceDelta(line) {
-  return countMatches(line, /\{/g) - countMatches(line, /\}/g);
+  const structural = stripRegexLiterals(line);
+  return countMatches(structural, /\{/g) - countMatches(structural, /\}/g);
 }
 
 export function functionSpans(sanitized) {
@@ -124,7 +129,7 @@ export function functionSpans(sanitized) {
 }
 
 export function analyzeSource(source, path = 'source.js') {
-  const sanitized = sanitizeSource(source);
+  const sanitized = stripRegexLiterals(sanitizeSource(source));
   const lines = sanitized.split('\n');
   const loc = lines.filter(line => line.trim()).length;
   const spans = functionSpans(sanitized);

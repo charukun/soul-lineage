@@ -34,6 +34,12 @@ test('analysis detects long functions and decision density', () => {
   assert.ok(metric.decisionDensity > 50);
 });
 
+test('regex literals containing braces do not inflate function spans', () => {
+  const source = `export function sample(value) {\n  const braces = /[{}]/g;\n  if (value) return braces.test(value);\n  return false;\n}\n\nexport function second() { return /foo\\/bar/.test('foo/bar'); }\n`;
+  const metric = analyzeSource(source, 'scripts/sample.mjs');
+  assert.ok(metric.maxFunctionSpan <= 5);
+});
+
 test('duplicate detector finds substantial cross-file clones but ignores tiny snippets', () => {
   const shared = Array.from({ length: 12 }, (_, index) => `if (state.step${index}) total += state.value${index};`).join('\n');
   const groups = duplicateGroups([
