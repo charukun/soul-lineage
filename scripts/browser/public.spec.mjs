@@ -78,7 +78,7 @@ for (const target of targets) {
       await page.setViewportSize({ width: 1280, height: 800 });
     } else if (target.app === 'demon' && !target.legacy) {
       await expect(canvas).toHaveAttribute('data-app', 'demon');
-      await expect(canvas).toHaveAttribute('data-world', 'night-hunt.v2');
+      await expect(canvas).toHaveAttribute('data-world', 'night-hunt.v3');
       await expect(canvas).toHaveAttribute('data-asset', 'kaykit.floor_tile_small');
       await expect(canvas).toHaveAttribute('data-platform', 'web');
       await expect(page.getByRole('heading', { level: 1 })).toHaveText('尽喰廻遊');
