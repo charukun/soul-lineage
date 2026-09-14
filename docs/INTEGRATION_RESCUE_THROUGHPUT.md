@@ -44,6 +44,8 @@ Integration Rescueの安全条件を維持したまま、検知からReady復帰
 
 `integration:hold` / `integration:manual` / `do-not-merge`、Draft、外部Repository、untrusted author等は従来どおり自動cleanupしない。意味的に後続PRへ置換された可能性だけがあるPRは人間またはSemantic Workで判断する。
 
+Queue Recoveryは通常PRのbranch内容を修正したりmergeしたりしない。唯一のPR mutationは、上記exact-ancestor proofが成立した冗長PRのcloseであり、close直前にmutable stateを再取得する。
+
 ## Runtime config監査
 
 Queue Recoveryは `automation/integration-rescue-state` の `rescue-state.json` を読み、現在developに対するCoordinator観測とruntime configを照合する。
