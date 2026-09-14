@@ -86,6 +86,7 @@ test('invalid timing/coordinates fail closed and integration keeps one transform
   assert.match(source,/humanoid\.tick=function\(actor,dt\)\{advanceControllerSlashMotionWarp\(actor\)/);
   assert.match(source,/actor\.yaw=sample\.yaw;actor\.x=sample\.x;actor\.z=sample\.z/);
   assert.match(source,/\(actor\.weapon\|\|'sword'\)==='sword'&&actor\.attack\?\.kind==='slash'/);
+  assert.match(source,/gazeTarget:actor=>slashMotionWarpStates\.get\(actor\)\?\.target\?\?null/);
   assert.doesNotMatch(source,/humanoid\.current\.root\.position.*motionWarp/);
   const slash=await readFile(new URL('../public/simulator/src/authored-slash.js',import.meta.url),'utf8');
   assert.match(slash,/export const SLASH_SECONDS = \.66;/);
