@@ -11,7 +11,7 @@ function reconciliationBlock(plan){
   const counts=plan.counts||{};
   const headline=node('p','rs-note',`Reconcile: Ready ${plan.totalReady||counts.ready||0} · writer ${counts.writer||0} · validating ${counts.validating||0} · Train ${counts.trains||0}/${counts.trainMembers||0} PR · repair ${counts.repair||0} · active ${counts.active||0} · blocked ${counts.blocked||0} · deferred ${counts.deferred||0}`);
   wrap.append(headline);
-  if(plan.actionableIdle)wrap.append(node('p','rs-note','実行可能な仕事があるのに executor が0です。次のreconcileで再配分します。'));
+  if(plan.actionableIdle)wrap.append(node('p','rs-note','repair可能な仕事があるのに repair executor が0です。次のreconcileで再配分します。'));
   const lanes=node('div','rs-flow-knowledge');
   for(const train of (plan.trains||[]).slice(0,4))lanes.append(node('span','rs-pill',`${train.id||'Train'} ${(train.members||[]).map(item=>`#${item.pr}`).join(' ')}`));
   for(const item of (plan.validating||[]).slice(0,3))lanes.append(node('span','rs-pill',`validating #${item.pr}`));
