@@ -15,7 +15,7 @@ const number = (env, key, fallback, min, max) => {
 };
 export function rescueConfig(env = {}) {
   return {
-    maxConcurrency: number(env, 'MAX_RESCUE_CONCURRENCY', 6, 1, 16),
+    maxConcurrency: number(env, 'MAX_RESCUE_CONCURRENCY', 4, 1, 16),
     maxAttempts: number(env, 'MAX_RESCUE_ATTEMPTS', 3, 1, 10),
     heartbeatMs: number(env, 'RESCUE_HEARTBEAT_SECONDS', 120, 60, 300) * 1000,
     staleMs: number(env, 'RESCUE_STALE_SECONDS', 600, 360, 3600) * 1000,

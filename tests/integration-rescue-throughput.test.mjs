@@ -6,15 +6,17 @@ import { reusableRescueFastEvidence } from '../scripts/integration-rescue-fast-e
 
 const sha = char => char.repeat(40);
 
-test('throughput defaults increase bounded scan capacity without removing safety limits', () => {
-  const config = rescueConfig({});
-  assert.equal(config.maxConcurrency, 6);
-  assert.equal(config.maxEvaluations, 24);
-  assert.equal(config.scanMinMs, 60_000);
-  assert.equal(config.retryMs, 120_000);
-  assert.equal(config.queueStallMs, 300_000);
-  assert.equal(config.maxAttempts, 3);
-  assert.ok(config.apiReserve >= 100);
+test('throughput v2 raises production worker capacity through an explicit bounded override', () => {
+  const base = rescueConfig({});
+  const v2 = rescueConfig({ MAX_RESCUE_CONCURRENCY: '6' });
+  assert.equal(base.maxConcurrency, 4);
+  assert.equal(v2.maxConcurrency, 6);
+  assert.equal(v2.maxEvaluations, 24);
+  assert.equal(v2.scanMinMs, 60_000);
+  assert.equal(v2.retryMs, 120_000);
+  assert.equal(v2.queueStallMs, 300_000);
+  assert.equal(v2.maxAttempts, 3);
+  assert.ok(v2.apiReserve >= 100);
 });
 
 test('mutable observation races do not consume a repair attempt', () => {
