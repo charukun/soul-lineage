@@ -9,8 +9,8 @@ const SHA = /^[0-9a-f]{40}$/;
 export function chooseLastKnownGood(artifacts = [], currentSha = '') {
   return artifacts
     .filter(artifact => !artifact.expired && String(artifact.name || '').startsWith(PREFIX))
-    .map(artifact => ({ ...artifact, sourceSha: String(artifact.name).slice(PREFIX.length) }))
-    .filter(artifact => SHA.test(artifact.sourceSha) && artifact.sourceSha !== currentSha)
+    .map(artifact => ({ ...artifact, sourceSha: String(artifact.name).slice(PREFIX.length), runId: artifact.workflow_run?.id || null }))
+    .filter(artifact => SHA.test(artifact.sourceSha) && artifact.sourceSha !== currentSha && Number.isSafeInteger(artifact.runId))
     .sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0))[0] || null;
 }
 
@@ -39,8 +39,11 @@ async function locate() {
     if ((payload.artifacts || []).length < 100) break;
   }
   const selected = chooseLastKnownGood(artifacts, currentSha);
-  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `found=${Boolean(selected)}\nartifact_id=${selected?.id || ''}\nsource_sha=${selected?.sourceSha || ''}\nname=${selected?.name || ''}\n`);
-  console.log(JSON.stringify(selected ? { found:true, artifactId:selected.id, sourceSha:selected.sourceSha, name:selected.name } : { found:false }));
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT,
+    `found=${Boolean(selected)}\nartifact_id=${selected?.id || ''}\nrun_id=${selected?.runId || ''}\nsource_sha=${selected?.sourceSha || ''}\nname=${selected?.name || ''}\n`);
+  console.log(JSON.stringify(selected
+    ? { found:true, artifactId:selected.id, runId:selected.runId, sourceSha:selected.sourceSha, name:selected.name }
+    : { found:false }));
 }
 
 async function main() {
