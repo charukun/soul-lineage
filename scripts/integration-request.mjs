@@ -3,14 +3,15 @@ import { controlPlaneScope } from './integration-control-plane.mjs';
 
 export const WAKE_CONTEXT = 'integration/wakeup';
 const ACTIVE = new Set(['queued', 'in_progress', 'waiting', 'pending', 'requested']);
+const CONTROL_WORKFLOWS = new Set(['Deploy DEV and PROD', 'Integration Controller']);
 
-export function activeDeployRuns(runs = [], currentRunId = null) {
-  return runs.filter(run => run?.name === 'Deploy DEV and PROD' && run?.head_branch === 'develop' &&
+export function activeControlRuns(runs = [], currentRunId = null) {
+  return runs.filter(run => CONTROL_WORKFLOWS.has(run?.name) && run?.head_branch === 'develop' &&
     ACTIVE.has(run.status) && String(run.id) !== String(currentRunId || ''));
 }
 
 export function requestDecision({ runs = [], currentRunId = null, control = false } = {}) {
-  const active = activeDeployRuns(runs, currentRunId);
+  const active = activeControlRuns(runs, currentRunId);
   return { action: active.length ? 'coalesce' : 'dispatch', active: active.map(run => run.id), control };
 }
 
@@ -49,21 +50,21 @@ async function main() {
   }
   const branch = await api('GET', '/branches/develop');
   const develop = branch.commit.sha;
-  const runs = await api('GET', '/actions/workflows/deploy.yml/runs?branch=develop&per_page=50');
+  const runs = await api('GET', '/actions/runs?branch=develop&per_page=100');
   const decision = requestDecision({ runs: runs.workflow_runs || [], currentRunId: process.env.GITHUB_RUN_ID, control: scope.trusted });
   if (decision.action === 'coalesce') {
     const active = decision.active[0];
     await api('POST', `/statuses/${develop}`, {
       state: 'pending', context: WAKE_CONTEXT,
-      description: `Ready queue changed; coalesced behind active deploy run ${active}`.slice(0, 140),
+      description: `Ready queue changed; coalesced behind active control run ${active}`.slice(0, 140),
       target_url: `https://github.com/${repository}/actions/runs/${active}`,
     });
   } else {
-    await api('POST', '/actions/workflows/deploy.yml/dispatches', { ref: 'develop', inputs: { integration_only: 'true' } });
+    await api('POST', '/actions/workflows/integration-controller.yml/dispatches', { ref: 'develop' });
     await api('POST', `/statuses/${develop}`, {
       state: 'success', context: WAKE_CONTEXT,
-      description: 'Integration controller dispatched for latest Ready queue',
-      target_url: `https://github.com/${repository}/actions/workflows/deploy.yml`,
+      description: 'Integration Controller dispatched for latest Ready queue',
+      target_url: `https://github.com/${repository}/actions/workflows/integration-controller.yml`,
     });
   }
   console.log(JSON.stringify({ ...decision, pr: prNumber, head: expectedHead, develop, scope }, null, 2));
