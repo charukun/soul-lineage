@@ -1,8 +1,8 @@
 import {validateMotionReviewPlan} from './motion-review-planner.js';
 
 const freeze=value=>Object.freeze(value);
-const finite=(...values)=>values.every(Number.isFinite);
 const slug=value=>String(value).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,48)||'motion';
+const canonicalNumber=value=>Math.round(value*1e6)/1e6;
 
 export const MOTION_REPAIR_ALLOWLIST=freeze({
  'foot-slide':freeze({target:'ground-contact',parameter:'footLockDamping',range:[.72,1],step:.04,requiresRecapture:true}),
@@ -26,7 +26,7 @@ export function proposeMotionRepair(plan,{revision=plan?.revision,parameterSnaps
  validateMotionReviewPlan(plan);if(typeof revision!=='string'||!revision||!parameterSnapshot||typeof parameterSnapshot!=='object')throw Error('Invalid motion repair proposal input');const task=plan.next;if(!task)return freeze({schema:'motion-repair-proposal',version:1,action:'none',reason:'no-diagnostic-findings',visualApprovalRequired:true,autoApproveAllowed:false});
  const policy=MOTION_REPAIR_ALLOWLIST[task.kind];if(!policy)return freeze({schema:'motion-repair-proposal',version:1,action:'human-review',reason:'task-not-safe-for-parameter-repair',task,visualApprovalRequired:true,autoApproveAllowed:false});
  const current=parameterSnapshot[policy.parameter]??null;let proposed=current;
- if(Array.isArray(policy.range)&&policy.range.every(Number.isFinite)&&Number.isFinite(current)){const [lo,hi]=policy.range,step=policy.step??0;proposed=Math.min(hi,Math.max(lo,current+(task.kind==='foot-slide'||task.kind==='motion-jerk'||task.kind==='trajectory-jitter'?step:-step)));}
+ if(Array.isArray(policy.range)&&policy.range.every(Number.isFinite)&&Number.isFinite(current)){const [lo,hi]=policy.range,step=policy.step??0;proposed=canonicalNumber(Math.min(hi,Math.max(lo,current+(task.kind==='foot-slide'||task.kind==='motion-jerk'||task.kind==='trajectory-jitter'?step:-step))));}
  else if(policy.parameter==='presentationTier'){const tiers=policy.range,index=Math.max(0,tiers.indexOf(String(current)));proposed=tiers[Math.min(tiers.length-1,index+1)];}
  else if(current===null&&policy.parameter==='footLockDamping')proposed=.88;
  else if(current===null&&policy.parameter==='inertializationDamping')proposed=1.08;
@@ -36,9 +36,7 @@ export function proposeMotionRepair(plan,{revision=plan?.revision,parameterSnaps
  return freeze({schema:'motion-repair-proposal',version:1,action:'parameter-repair',revision,task,change:freeze({target:policy.target,parameter:policy.parameter,before:current,after:proposed}),requiresRecapture:true,draftOnly:true,mayEditSource:true,mayEditGameplay:false,mayChangeContactTiming:false,visualApprovalRequired:true,autoApproveAllowed:false});
 }
 
-export function compareMotionRepairEvidence(before,after){
- if(!before||!after||typeof before!=='object'||typeof after!=='object')throw Error('Motion repair comparison evidence required');const a=metricScore(before),b=metricScore(after);if(!a.known||!b.known)throw Error('Motion repair comparison needs comparable diagnostics');const improvement=a.score-b.score,improved=improvement>1e-6;return freeze({version:1,beforeScore:a.score,afterScore:b.score,improvement,improved,regressed:improvement<0,visualApprovalRequired:true});
-}
+export function compareMotionRepairEvidence(before,after){if(!before||!after||typeof before!=='object'||typeof after!=='object')throw Error('Motion repair comparison evidence required');const a=metricScore(before),b=metricScore(after);if(!a.known||!b.known)throw Error('Motion repair comparison needs comparable diagnostics');const improvement=a.score-b.score,improved=improvement>1e-6;return freeze({version:1,beforeScore:a.score,afterScore:b.score,improvement,improved,regressed:improvement<0,visualApprovalRequired:true});}
 
 export function createMotionRepairDispatch({proposal,beforeEvidence,afterEvidence,sourceRevision,afterRevision}={}){
  if(!proposal||proposal.schema!=='motion-repair-proposal'||proposal.action!=='parameter-repair'||proposal.draftOnly!==true||proposal.mayChangeContactTiming!==false)throw Error('Invalid repair proposal');if(typeof sourceRevision!=='string'||!sourceRevision||typeof afterRevision!=='string'||!afterRevision||sourceRevision===afterRevision)throw Error('Distinct repair revisions required');const comparison=compareMotionRepairEvidence(beforeEvidence,afterEvidence);if(!comparison.improved)throw Error('Repair evidence did not improve');
