@@ -11,7 +11,8 @@ test('queue recovery scans the current Ready backlog in one bounded window', () 
   assert.match(recovery, /limit = 24/);
   assert.match(recovery, /develop verification is running/);
   assert.match(recovery, /actions\/workflows\/deploy\.yml\/dispatches`, \{ ref: 'develop' \}/);
-  assert.doesNotMatch(recovery, /rescue_mode:\s*'scan'/);
+  assert.doesNotMatch(recovery, /rescue_mode:\s*'scan'/,
+    'queue recovery must wake normal Integration, not recursively dispatch another recovery-only scan');
 });
 
 test('verified develop immediately requests one rescue scan when no bounded continuation is already queued', () => {
@@ -45,4 +46,6 @@ test('queue recovery owns only bounded safe cleanup permissions', () => {
   assert.match(deploy, /queue-recovery:[\s\S]*?pull-requests: write[\s\S]*?statuses: write/);
   assert.match(recovery, /SUPERSEDED: exact PR head is already contained in develop/);
   assert.match(recovery, /context: 'integration-rescue\/config'/);
+  assert.match(recovery, /fresh\.head\.sha !== pr\.head\.sha \|\| branch\.commit\.sha !== develop \|\| manualReason\(fresh\)/,
+    'close must re-read mutable PR/develop state and respect holds before mutation');
 });
