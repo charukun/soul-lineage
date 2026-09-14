@@ -1,4 +1,4 @@
-# Integration Rescue: existing Work push and watchdog
+# Integration Rescue: existing Work push, Semantic Rescue and watchdog
 
 追加API課金なし。既存ChatGPT Work / GitHub接続で1回分の復旧を処理し、GitHubを正本に終了する。新しいモデルAPI、PAT、常駐server、独自queueは作らない。利用枠不足時に追加課金へfallbackしない。
 
@@ -9,6 +9,29 @@
 通常実装WorkerのCI待機は禁止。このタスクはIntegrationの1回分だけを担当する。数十秒おきのpoll、watch、sleep待機はしない。実stateに未完了を記録し、次のイベント/タスクへ引き継ぐ。手順やファイルが最新developに未統合ならコードの有効化を推測せず止める。
 
 この未統合gateは、定期復旧タスクがclaim・pushなどの実稼働操作を行う前提条件。導入PR自体の実装・検証・push・Ready化を停止する条件ではない。導入PRは通常の実装手順で仕上げ、trusted Integrationのレビュー・CIを経て統合する。定期タスクの条件を緩めて未統合コードを実稼働させない。
+
+## 処理順
+
+1回のWork復旧では、最新stateを再取得したうえで次の順に処理する。
+
+1. `AWAITING_SEMANTIC_WORK`。Actionsの機械的base更新では意味保証できない競合を既存ChatGPT Workで解消する。
+2. `AWAITING_PUSH`。Actionsが検証・staging済みのcommitを既存GitHub接続から元PRへ通常pushする。
+3. 未処理イベント・死亡Worker・孤立queue向けのscanを1回起動する。
+
+同一PRをSemantic WorkとActions Workerで同時に触らない。stateのlease/CAS/PR headを毎工程で再確認し、古いclaimからpushしない。
+
+## AWAITING_SEMANTIC_WORKの処理
+
+機械的base更新が `SEMANTIC_CONFLICT`、`OVERLAPPING_CHANGES`、`RELATED_CODE_RECONCILIATION`、`CONTROL_OR_CONTRACT_RECONCILIATION` を検出した場合、即座に最終manualへ捨てず `AWAITING_SEMANTIC_WORK` へ移す。これは安全条件を弱める経路ではなく、既存ChatGPT WorkがRepositoryの仕様と両側の意図を読める第2レーンである。
+
+1. stateの現在blob SHA、実PR、reviews、全review threads、open browser repair issues、Depends-On、最新developを取得する。`scripts/integration-rescue-semantic-work.mjs` の `verifySemanticWork` を実データへ適用し、Draft/hold/Changes requested/未解決thread/外部PR/browser repair所有中/依存未統合ならclaimしない。
+2. 実WORKを識別する `work/<actual-session-or-task-run>` を使い `claimSemanticWork` を適用する。stateをCAS保存し、`SEMANTIC_WORKING` をPULSEへ反映する。1時間のsemantic leaseを超えた古い予約だけ再取得可能とし、古いWorkは最新stateのfenceを再読込せずpushしない。
+3. 元PR branchを最新developと照合する。PR title/body/diff、merge-base、関連仕様、変更されたテスト、最新developの同領域変更を読み、**現在developの契約とPRの目的の両方**を保つ。`ours`/`theirs`の丸ごと採用、機能削除、assertion削除、検証条件弱体化、hold/review解除、force pushは禁止。
+4. 意味を保った最小修正後、通常の実装Workerと同等に影響範囲の高速検証を行う。通常gitが利用可能なら元PR branchへ通常push。通常gitの認証/通信だけが失敗した場合は接続済みGitHub API、転送制約ならCodespaces + 通常gitへ切り替える。新しい別PRを作らず同じ元PRを復旧する。
+5. push後にPR head、安全条件、依存を再取得し、`finishSemanticWork` を現在stateへ適用してCAS保存する。これで `RETURNED_TO_INTEGRATION`。Semantic Workが編集したheadはActionsの旧fast証拠を再利用せず、通常CIが新しいexact headを検証する。
+6. 人間の仕様判断が不可欠、両意図を同時に保てない、検証が安全に通らない場合のみ `failSemanticWork` で `FAILED_MANUAL` にする。理由・branch/head・到達工程を残し、成功扱いしない。
+
+Semantic Workはpush後のCI/browser完了を同期的に待たない。Ready状態の元PRを通常CI / Integrationへ返した時点でその回を終了する。
 
 ## AWAITING_PUSHの反映
 
@@ -21,6 +44,8 @@
 
 `pushLease`は10分で再予約可能。古いWorkは最後のCAS fenceを再読込しない限りpushしない。fast-forwardのみなので、第三者が先に別commitへ進めたbranchを巻き戻さない。staged commitと同じheadは二重pushせずstateのみ復旧する。安全条件が不明ならFAILED/理由を残す。
 
+Actionsのsafe base-update Workerが実施したfast検証は、push後CIのtrusted develop側が `scripts/integration-rescue-fast-evidence.mjs` で実state、commit tree、Actions run/job/stepを再取得し、exact head / tested treeが完全一致した場合のみ再利用できる。再利用してもbrowser smoke、review、hold、Depends-On、Integration最終判定は省略しない。証拠が欠ける、Semantic Workが編集した、headが動いた場合は通常fastを再実行する。
+
 ## 独立watchdogの1回分
 
 既存PRのReady/synchronize/reviewイベントは通常CIの `Request Rescue observation` から `deploy.yml ref=develop rescue_mode=scan` を起動する。競合PRのイベント欠落・死亡Worker・滞留queueはWorkの1時間周期の復旧タスクで補完する。これはWorkの対応する最短周期であり、10分監視と表示しない。
@@ -29,7 +54,7 @@
 - 明示dispatchツール/通常ghが利用できれば `deploy.yml ref=develop rescue_mode=scan` を1回起動する。
 - 現在のGitHub接続にdispatch操作が無い場合は、**実際に取得した**同RepositoryのCI run内の `Request Rescue observation` jobを `rerun_workflow_job` で1回だけ再実行する。このjobはtrusted developをcheckoutし、標準GITHUB_TOKENで既存scan入口をdispatchする。GitHubから返ったjob IDを使い、推測しない。最新のdevelop向けReady PRのrunを優先。別jobやProduction runは再実行しない。
 - 同じjobを新しいイベントなしで反復retryしない。起動不能はGitHubにFAILED/原因/次の経路を残す。認証が使える場合のGitHub Actions UIでのref=develop手動dispatchも既存の復旧経路。
-- AWAITING_PUSHを上記手順で処理。未完了CIは待たない。Coordinator/ReturnがmergeとDEVを追跡する。PULSE `/api/state` とGitHub stateの時刻/Worker/queue/retry/manual/stale/staged/push/merge/DEVを照合し、観測遅延を成功ゼロで隠さない。
+- `AWAITING_SEMANTIC_WORK`と`AWAITING_PUSH`を上記手順で処理。未完了CIは待たない。Coordinator/ReturnがmergeとDEVを追跡する。PULSE `/api/state` とGitHub stateの時刻/Worker/Semantic Work/queue/retry/manual/stale/staged/push/merge/DEVを照合し、観測遅延を成功ゼロで隠さない。
 - 既存外部通知先が利用できれば実結果を通知。ntfy未設定、送信失敗、スマホ到達未確認を別々に記録し、ChatGPTアプリ通知を外部到達と扱わない。
 
-通常pushと独立scanが実行できることを実稼働受入で確認するまで、この文書とタスク登録だけでSUCCESSとしない。
+通常push、Semantic Rescue、独立scanが実行できることを実稼働受入で確認するまで、この文書とタスク登録だけでSUCCESSとしない。
