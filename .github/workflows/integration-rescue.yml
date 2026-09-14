@@ -81,6 +81,7 @@ jobs:
           node-version: '24'
       - name: Assemble independent exact-head PRs on an ephemeral branch
         id: plan
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           MAX_RESCUE_CONCURRENCY: ${{ needs.coordinator.outputs.max_parallel }}
@@ -126,7 +127,8 @@ jobs:
           TRAIN_HEAD: ${{ steps.plan.outputs.commit }}
         run: node scripts/browser/pr-smoke.mjs "$TRAIN_BASE" "$TRAIN_HEAD"
       - name: Record exact synthetic-tree evidence and remove ephemeral branch
-        if: always()
+        if: always() && hashFiles('.deploy-state/virtual-train.json') != ''
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           TRAIN_FAST: ${{ steps.fast.outcome || 'skipped' }}
@@ -194,10 +196,7 @@ jobs:
           sudo chown -R root:root control
           sudo chmod -R a-w control
           rescue_parent="$GITHUB_WORKSPACE"
-          while [ "$rescue_parent" != / ]; do
-            sudo chmod o+x "$rescue_parent"
-            rescue_parent="$(dirname "$rescue_parent")"
-          done
+          while [ "$rescue_parent" != / ]; do sudo chmod o+x "$rescue_parent"; rescue_parent="$(dirname "$rescue_parent")"; done
           chmod a+rx "$RUNNER_TEMP" "$RUNNER_TEMP/rescue"
           chmod a+r "$RUNNER_TEMP/rescue/"*
       - name: Heartbeat the live worker lease
@@ -254,7 +253,7 @@ jobs:
       pull-requests: write
       issues: write
       actions: write
-      statuses: read
+      statuses: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -270,6 +269,12 @@ jobs:
           NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: node scripts/integration-rescue-return.mjs
+      - name: Signal quarantined exact heads for deep AI repair
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/integration-quarantine-signal.mjs
       - name: Record verified DEV delivery latency for all tracked PRs
         if: always()
         continue-on-error: true
