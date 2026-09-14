@@ -18,3 +18,11 @@ test('reference model selection stays review-only and is scoped to the selected 
   assert.match(workspace, /actor\.id === selectedId/);
   assert.match(workspace, /modelId = null/);
 });
+
+test('Character Workshop exports a provider-neutral model build request for the selected reference', () => {
+  assert.match(main, /createCharacterModelBuildRequest/);
+  assert.match(main, /モデル生成仕様JSON/);
+  assert.match(main, /data-character-build-request|characterBuildRequest/);
+  assert.match(main, /model-build-request\.json/);
+  assert.match(workspace, /downloadWorkspace\(text, filename = 'shino-workspace\.json'\)/);
+});
