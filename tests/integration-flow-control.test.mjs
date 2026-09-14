@@ -80,6 +80,8 @@ test('workflow contracts coalesce CI and pause Code Health PR creation under pre
 test('AI-repair signal and PULSE latency surface are wired without weakening gates',()=>{
   const returns=readFileSync('scripts/integration-rescue-return.mjs','utf8');
   const flow=readFileSync('ops-board/public/flow-board.js','utf8');
+  const index=readFileSync('ops-board/public/index.html','utf8');
   assert.match(returns,/AI_REPAIR_REQUIRED/);assert.match(returns,/integration-rescue\/work-repair/);assert.match(returns,/workRepairEligibility/);
   assert.match(flow,/Ready→Merge/);assert.match(flow,/Merge→DEV/);assert.match(flow,/Ready→DEV/);assert.doesNotMatch(flow,/innerHTML/);
+  assert.match(index,/id="integration-flow"/);assert.match(index,/src="\.\/flow-board\.js"/);
 });
