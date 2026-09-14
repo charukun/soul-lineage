@@ -49,7 +49,7 @@ try{
   await frame.locator('[data-action="gift:bell"]').click();await frame.locator('[data-action="gift:stone"]').click();assert.equal(await frame.locator('[data-action="gift:feather"]').isEnabled(),false);
   const birth=await save();assert.deepEqual(birth.story.gifts,['bell','stone']);assert.equal(birth.runtime.enemies.length,0);
   await page.screenshot({path:output+'/birth-desktop.png'});
-  await frame.locator('[data-action="release"]').click();await frame.locator('[data-action="activity:care:home"]').click();
+  await frame.locator('[data-action="release"]').click();await frame.locator('#story-more').click();await turnTo('[data-action="activity:care:home"]');await frame.locator('[data-action="activity:care:home"]').click();
   await frame.waitForFunction(()=>JSON.parse(localStorage.getItem('soul.local.rinne.story.v1')).story.experiences.care===1,null,{timeout:15000});
   // Real touch input through the exposed playfield, not a position setter.
   await page.setViewportSize({width:390,height:844});

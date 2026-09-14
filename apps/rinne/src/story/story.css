@@ -122,3 +122,14 @@ body[data-story] .story-page-dialog #story-close{min-width:46px;width:46px;paddi
  body[data-story] #story-ended h2{font-size:20px}
  body[data-story] #story-ended select{margin:5px 0;min-height:44px}
 }
+
+/* The journey uses the same paper, brass and fixed page controls as the notebook. */
+body[data-story] #story-journey-open{pointer-events:auto;text-align:left;color:inherit;cursor:pointer;min-height:44px;border:0;font:inherit}
+body[data-story] #story-journey-open:focus-visible{outline:2px solid #f9d992;outline-offset:3px}
+body[data-story] #story-objective{font-size:12px;line-height:1.6;margin:0;flex:1}
+body[data-story] #story-journey .journey-lead{font-size:18px;font-weight:bold;color:#5b341c;border-bottom:1px solid #9e7544;padding-bottom:8px}
+body[data-story] #story-journey p{margin:0;line-height:1.8;font-size:14px}
+body[data-story] #story-journey small{font-size:12px}
+body[data-story] #story-journey .journey-control{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:bold}
+body[data-story] #story-journey .journey-control select{width:100%;min-width:0;min-height:48px;padding:8px 32px 8px 10px;font:inherit;color:#402c1b;border:1px solid #92703f;border-radius:5px;background:linear-gradient(#f6e7c6,#d6be91);box-shadow:inset 0 2px 4px #59402538,0 1px #fff4d8}
+body[data-story] #story-journey :is(p,label,small){color:#4b3825}
