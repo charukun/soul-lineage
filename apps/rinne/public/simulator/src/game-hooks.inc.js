@@ -1,7 +1,64 @@
 // Expanded integration boundary: actor movement/AI/skill logic is not replaced.
 function initialHumanoidId(){try{const id=localStorage.getItem('tidebreak.expanded.model');return ['A','B','C','SHINO','TSUKU'].includes(id)?id:'A';}catch{return 'A';}}
 function installNativeRenderer(){const T=THREE;renderer.scene.add(new T.HemisphereLight(0xe9f0ff,0x63676c,.80));for(const[col,intensity,x,y,z]of[[0xfff4e6,1.15,-3,4,4],[0xd5e7ff,.43,3,2,2],[0xd1e6ed,1.25,0,3,-3]]){const light=new T.DirectionalLight(col,intensity);light.position.set(x,y,z);renderer.scene.add(light);}renderer.name+=' / Expanded Humanoid';}
+
+// SLASH_MOTION_WARP_PURE_BEGIN
+const RINNE_SLASH_MOTION_WARP_VERSION=1;
+const RINNE_SLASH_MOTION_WARP_DEFAULTS=Object.freeze({standoff:1.05,maxDistance:.55,maxAcquireDistance:2.60,maxAcquireAngle:Math.PI*.75,turnEnd:.14,warpStart:.18});
+function warpClamp(x,a=0,b=1){return Math.max(a,Math.min(b,x));}
+function warpSmooth01(x){x=warpClamp(x);return x*x*(3-2*x);}
+function warpFinite(...values){return values.every(Number.isFinite);}
+function warpAngleDelta(from,to){let d=(to-from)%(Math.PI*2);if(d>Math.PI)d-=Math.PI*2;if(d<-Math.PI)d+=Math.PI*2;return d;}
+function validSlashMotionWarpTarget(actor,target){return !!target&&target!==actor&&warpFinite(target.x,target.z)&&!target.dead&&!target.lifeExpired&&!(Number.isFinite(target.hp)&&target.hp<=0);}
+function chooseSlashMotionWarpTarget(actor,candidates,{maxAcquireDistance=RINNE_SLASH_MOTION_WARP_DEFAULTS.maxAcquireDistance,maxAcquireAngle=RINNE_SLASH_MOTION_WARP_DEFAULTS.maxAcquireAngle}={}){
+ if(!actor||!warpFinite(actor.x,actor.z,actor.yaw,maxAcquireDistance,maxAcquireAngle)||maxAcquireDistance<0||maxAcquireAngle<0||maxAcquireAngle>Math.PI)throw Error('Invalid slash motion warp target query');
+ const list=Array.isArray(candidates)?candidates:[];
+ const explicitRaw=actor.attack?.target??actor.attack?.targetActor??actor.target??null;
+ const explicitId=actor.attack?.targetId??actor.targetId??(typeof explicitRaw==='string'||typeof explicitRaw==='number'?explicitRaw:null);
+ const explicit=typeof explicitRaw==='object'&&explicitRaw?explicitRaw:list.find(target=>String(target?.id)===String(explicitId));
+ if(validSlashMotionWarpTarget(actor,explicit))return explicit;
+ const forwardX=Math.sin(actor.yaw),forwardZ=Math.cos(actor.yaw),cosLimit=Math.cos(maxAcquireAngle);
+ return list.map((target,index)=>{if(!validSlashMotionWarpTarget(actor,target))return null;const dx=target.x-actor.x,dz=target.z-actor.z,distance=Math.hypot(dx,dz);if(distance>maxAcquireDistance)return null;const facing=distance>1e-6?(dx*forwardX+dz*forwardZ)/distance:1;if(facing<cosLimit)return null;return{target,index,distanceSquared:dx*dx+dz*dz,key:String(target.id??index)};}).filter(Boolean).sort((a,b)=>a.distanceSquared-b.distanceSquared||a.key.localeCompare(b.key)||a.index-b.index)[0]?.target??null;
+}
+function createSlashMotionWarpPlan({actor,target,standoff=RINNE_SLASH_MOTION_WARP_DEFAULTS.standoff,maxDistance=RINNE_SLASH_MOTION_WARP_DEFAULTS.maxDistance,turnEnd=RINNE_SLASH_MOTION_WARP_DEFAULTS.turnEnd,warpStart=RINNE_SLASH_MOTION_WARP_DEFAULTS.warpStart,contact=.5}={}){
+ if(!actor||!target||!warpFinite(actor.x,actor.z,actor.yaw,target.x,target.z,standoff,maxDistance,turnEnd,warpStart,contact)||standoff<0||maxDistance<0||turnEnd<0||warpStart<turnEnd||contact<=warpStart||contact>1)throw Error('Invalid slash motion warp plan');
+ const dx=target.x-actor.x,dz=target.z-actor.z,distance=Math.hypot(dx,dz),yaw=distance>1e-6?Math.atan2(dx,dz):actor.yaw;
+ const travel=Math.min(maxDistance,Math.max(0,distance-standoff)),scale=distance>1e-6?travel/distance:0;
+ return Object.freeze({version:RINNE_SLASH_MOTION_WARP_VERSION,from:Object.freeze({x:actor.x,z:actor.z,yaw:actor.yaw}),target:Object.freeze({x:target.x,z:target.z}),to:Object.freeze({x:actor.x+dx*scale,z:actor.z+dz*scale,yaw}),distance,travel,standoff,maxDistance,turnEnd,warpStart,contact});
+}
+function sampleSlashMotionWarpPlan(plan,phase){
+ if(!plan||plan.version!==RINNE_SLASH_MOTION_WARP_VERSION||!Number.isFinite(phase))throw Error('Invalid slash motion warp sample');
+ const p=warpClamp(phase),turn=warpSmooth01(p/Math.max(1e-6,plan.turnEnd)),approach=p<=plan.warpStart?0:warpSmooth01((p-plan.warpStart)/(plan.contact-plan.warpStart));
+ return{x:plan.from.x+(plan.to.x-plan.from.x)*approach,z:plan.from.z+(plan.to.z-plan.from.z)*approach,yaw:plan.from.yaw+warpAngleDelta(plan.from.yaw,plan.to.yaw)*turn,turn,approach,contactReached:p>=plan.contact};
+}
+// SLASH_MOTION_WARP_PURE_END
+
+// SLASH_MOTION_WARP_CONTROLLER_BEGIN
+const slashMotionWarpStates=new WeakMap();
+function slashMotionWarpAttackEligible(actor){return !!actor?.hero&&!actor.dead&&!actor.recovery&&(actor.weapon||'sword')==='sword'&&actor.attack?.kind==='slash';}
+function clearSlashMotionWarp(actor){if(actor&&typeof actor==='object')slashMotionWarpStates.delete(actor);}
+function advanceControllerSlashMotionWarp(actor){
+ if(!slashMotionWarpAttackEligible(actor)){clearSlashMotionWarp(actor);return null;}
+ const attack=actor.attack,contact=POSE_CLIPS?.slash?.contact??.5,phase=attackProgress(actor);
+ if(!Number.isFinite(phase)){clearSlashMotionWarp(actor);return null;}
+ let state=slashMotionWarpStates.get(actor);
+ if(!state||state.attack!==attack){
+  const target=chooseSlashMotionWarpTarget(actor,enemies,RINNE_SLASH_MOTION_WARP_DEFAULTS);
+  if(!target){clearSlashMotionWarp(actor);return null;}
+  state={attack,target,plan:createSlashMotionWarpPlan({actor,target,contact}),contactApplied:false};slashMotionWarpStates.set(actor,state);
+ }
+ if(!validSlashMotionWarpTarget(actor,state.target)){clearSlashMotionWarp(actor);return null;}
+ if(state.contactApplied)return state.plan;
+ const sample=sampleSlashMotionWarpPlan(state.plan,phase);
+ // This integration layer is the only writer. HumanoidRuntime only consumes actor position.
+ actor.yaw=sample.yaw;actor.x=sample.x;actor.z=sample.z;
+ if(sample.contactReached)state.contactApplied=true;
+ return state.plan;
+}
+// SLASH_MOTION_WARP_CONTROLLER_END
+
 humanoid=new HumanoidRuntime({weapons:WEAPONS,strikes:STRIKES,clips:POSE_CLIPS,windows:HIT_WINDOWS,progress:attackProgress,window:(kind,p)=>contactWindow(kind,p),hand:(kind,p)=>activeHandSide({kind,p}),echo:node=>renderer.scene.add(node),status:message=>{if($('humanoidStatus'))$('humanoidStatus').textContent=message;},attach:c=>{renderer.scene.add(c.root);for(const p of c.shadowMeshes)renderer.shadowScene.add(p);renderer.renderer.renderLists.dispose();}});
+const controllerHumanoidTick=humanoid.tick.bind(humanoid);humanoid.tick=function(actor,dt){advanceControllerSlashMotionWarp(actor);return controllerHumanoidTick(actor,dt);};
 const expandedOldPose=actorPose,expandedOldSample=sampleWeapon,expandedOldDraw=drawActor,expandedOldParts=actorParts;
 // Same sampler drives the renderer, 240 Hz swept-capsule checks and VFX.
 actorPose=function(a,at=null,px=a.x,pz=a.z){if(!a.hero||!humanoid.current)return expandedOldPose(a,at,px,pz);const p=expandedOldPose(a,at,px,pz),h=humanoid.sample(a,at,px,pz);return {...p,...h,sm:new Float32Array(h.sm),expanded:true};};
@@ -26,7 +83,7 @@ const applyExpanded=applyNotebook;applyNotebook=function(v,...args){applyExpande
 function installHumanoidLab(){refreshHumanoidUI();window.__HUMANOID_LAB__={runtime:humanoid,report:()=>humanoid.report(),models:()=>humanoid.catalog.map(m=>({id:m.id,name:m.name})),select:chooseHumanoid,
  actors:()=>[hero,...enemies],renderer:()=>renderer,
  setCamera:(angle=.0,pitch=.17,near=1.45)=>{camAngle=angle;camPitch=pitch;zoom=near;camera(0);drawFrame();},
- sample:(t=null)=>humanoid.sample(hero,t),render:()=>{camera(0);drawFrame();},
+ sample:(t=null)=>humanoid.sample(hero,t),render:()=>{camera(0);drawFrame();},motionWarp:()=>slashMotionWarpStates.get(hero)?.plan??null,
  isolated:(type,t=0)=>{humanoid.testOverride={key:type,type,time:t,clock:(hero._humanoidClock||0)+t,kind:type==='attack'?'slash':null};humanoid.current.state=null;humanoid.current.lastActual=null;camera(0);drawFrame();},clearOverride:()=>{humanoid.testOverride=null;},
  advance:(seconds=.2)=>{const dt=1/60;for(let i=0;i<Math.round(seconds/dt);i++){update(dt);}camera(0);drawFrame();updateLiveUI();},
  normalizedPoints:()=>Object.fromEntries(Object.entries(humanoid.current.bones).map(([n,b])=>[n,b.getWorldPosition(new THREE.Vector3()).toArray()])),
