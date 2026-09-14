@@ -16,6 +16,9 @@ const ports = { rinne: 5273, village: 5274, demon: 5275 };
 const viteBin = resolve(root, 'node_modules/vite/bin/vite.js');
 mkdirSync(resolve(root, 'test-results/pr-browser'), { recursive: true });
 
+// PULSE Rescue has a dedicated fixture-rich browser contract that is stricter than the
+// generic game smoke below. Run it on the PR head whenever the Rescue cockpit or its
+// state adapters change so failures cannot first appear only after Integration.
 if (/^(ops-board\/|scripts\/integration-rescue-(?:pulse|policy)\.mjs|tests\/fixtures\/integration-rescue-state\.mjs)/m.test(changedFiles)) {
   execFileSync(process.execPath, ['ops-board/rescue-browser-check.mjs'], {
     cwd: root,
@@ -57,6 +60,8 @@ for (const app of apps) {
     stdio: 'inherit',
     env: { ...process.env, APP_ENV: 'dev', APP_BRANCH: process.env.GITHUB_HEAD_REF || 'pr' },
   });
+  // Spawn Vite directly rather than through npm. Killing npm can orphan its Vite child and
+  // leave inherited stdio handles open, which makes the CI step appear to hang after success.
   const preview = spawn(process.execPath, [viteBin, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], {
     cwd: resolve(root, 'apps', app),
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -78,6 +83,8 @@ for (const app of apps) {
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     page.on('requestfailed', request => { rawRequests.push(request); failedRequests.push({ url: request.url(), failure: request.failure()?.errorText || 'failed' }); });
+    // Games can keep media/WebRTC/network activity alive indefinitely. DOM readiness plus the
+    // renderer contract below is the deterministic gate; waiting for networkidle only adds stalls.
     const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     if (!response?.ok()) throw new Error(`${app} returned HTTP ${response?.status()}`);
     const canvas = page.locator('#game');
@@ -96,6 +103,7 @@ for (const app of apps) {
     if (renderer !== 'ready' || appId !== app || !widthOk || !webgl?.version?.includes('WebGL 2.0') || errors.length || failedRequests.length) {
       throw new Error(`Browser smoke failed for ${app}: ${JSON.stringify(report)}`);
     }
+    // Exercise changed controls before Integration, using the same assertions as public DEV.
     const evidence = { outputPath: name => resolve(root, `test-results/pr-browser/${app}-${name}`) };
     if (app === 'rinne') {
       await page.locator('#start-simulator').click();
@@ -110,6 +118,10 @@ for (const app of apps) {
       await verifyHuntClarity(page, expect, evidence);
     } else if (app === 'village') {
       const {verifyVillageFirstBuild} = await import('../../apps/village/tests/first-build.browser.mjs');
+      // PR smoke already preserves a full-page screenshot and a screenshot-rich
+      // Playwright trace. Keep every gameplay/Director assertion, but avoid the
+      // extra milestone captures here; deployed DEV/public verification still
+      // uses the default captureMilestones=true evidence path.
       await verifyVillageFirstBuild(page, expect, evidence, () => capturePlayedAudio(page, playedSources), {captureMilestones:false});
     }
     await capturePlayedAudio(page, playedSources);
@@ -119,6 +131,7 @@ for (const app of apps) {
     await context.tracing.stop({ path: resolve(root, `test-results/pr-browser/${app}-trace.zip`) });
     await context.close();
     console.log('PR BROWSER VERIFIED', JSON.stringify(report));
+    // Additional targeted editor gate. It does not replace or weaken the game smoke above.
     const changed = execFileSync('git', ['diff', '--name-only', base, head], { cwd: root, encoding: 'utf8' });
     if (app === 'rinne' && /apps\/rinne\/(characters|src\/character-|tests\/character-)|scripts\/browser\/pr-smoke/.test(changed)) {
       const { verifyCharacterStudio } = await import('../../apps/rinne/tests/character-studio.browser.mjs');
