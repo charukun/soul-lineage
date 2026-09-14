@@ -15,3 +15,6 @@ export * from './motion-orchestration.js';
 export * from './motion-review-planner.js';
 export * from './motion-operationalization.js';
 export * from './motion-kinematics-qa.js';
+export * from './motion-database.js';
+export * from './motion-contact.js';
+export * from './motion-repair.js';
