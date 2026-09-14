@@ -1,5 +1,5 @@
 import './character-review.js';
-import { VISUAL_ROLES, APPEARANCE_PARTS, CHARACTER_REFERENCE_MODELS, YEAR_MS } from '@soul/characters';
+import { VISUAL_ROLES, APPEARANCE_PARTS, CHARACTER_REFERENCE_MODELS, YEAR_MS, createCharacterModelBuildRequest } from '@soul/characters';
 import { createCharacterWorkspace, downloadWorkspace } from './character-workspace.js';
 
 const el = id => document.getElementById(id);
@@ -22,6 +22,14 @@ function buildModelOptions() {
     const b = button(model.label, () => { studio.workspace.configure({ view: 'single' }); studio.workspace.selectModel(model.id); studio.review.aim('front'); });
     b.dataset.characterModel = model.id; row.append(b);
   }
+  const buildRequest = button('モデル生成仕様JSON', () => {
+    const model = studio.workspace.model;
+    if (!model) throw new Error('先にキャラクターリファレンスを選択してください');
+    const request = createCharacterModelBuildRequest(model.id, { requestedBy: 'character-workshop' });
+    downloadWorkspace(`${JSON.stringify(request, null, 2)}\n`, `${model.characterId}-model-build-request.json`);
+    toast('モデル生成仕様JSONを保存しました');
+  });
+  buildRequest.dataset.characterBuildRequest = 'true'; row.append(buildRequest);
   panel.prepend(note); panel.prepend(row); panel.prepend(heading);
 }
 function buildOptions() {
@@ -61,9 +69,11 @@ function render() {
   el('selection-summary').textContent = `${modelLabel ? `${modelLabel} · ` : ''}個体 ${String(settings.selected + 1).padStart(2, '0')} · ${record.ageMs / YEAR_MS}歳`;
   const p = w.getProfile();
   for (const b of document.querySelectorAll('[data-character-model]')) b.setAttribute('aria-pressed', String(b.dataset.characterModel === (w.modelId ?? '')));
+  const buildRequest = document.querySelector('[data-character-build-request]');
+  if (buildRequest) buildRequest.disabled = !w.model;
   if (el('character-model-note')) el('character-model-note').textContent = w.model
-    ? `${w.model.note} リファレンス画像は ${w.model.referencePath}。手動で部位を変更するとカスタム編集へ戻ります。`
-    : '通常の量産モデルです。seed・遺伝・役割から見た目を生成します。';
+    ? `${w.model.note} リファレンス画像は ${w.model.referencePath}。生成仕様JSONはこの正本と未実装/ゲーム装備の境界を保持します。`
+    : '通常の量産モデルです。seed・遺伝・役割から見た目を生成します。リファレンスを選ぶとモデル生成仕様JSONを出力できます。';
   for (const b of document.querySelectorAll('[data-modular-value]')) b.setAttribute('aria-pressed', String(p[slot] === b.dataset.modularValue));
   el('original-preview').setAttribute('aria-pressed', String(w.previewing));
   el('original-preview').textContent = w.previewing ? '編集した姿に戻す' : '元のパーツと比較'; el('preview-label').hidden = !w.previewing;
