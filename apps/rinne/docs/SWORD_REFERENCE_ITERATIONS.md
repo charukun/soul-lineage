@@ -1,9 +1,9 @@
-# Active 100-pass batch — 18 / 100 (2026-09-14)
+# Active 100-pass batch — 24 / 100 (2026-09-14)
 
 This unfinished batch starts at Lab commit
 `f2da2524a627e5e4057be1cd9a18e03a22b32282`. It does not reuse the fourteen
 completed passes below. Six further source changes were made after reconciling the
-latest remote Lab head, bringing this unfinished batch to eighteen. Each new revision
+latest remote Lab head, bringing this unfinished batch to twenty-four. Each new revision
 was captured with the actual skinned SHINO rig at 30 fps from front-three-quarter
 and side views. The final state was also captured as a 30 fps four-second combination
 and a six-fps temporal sample of the full 30-second performance. The available reference was
@@ -29,13 +29,19 @@ and a six-fps temporal sample of the full 30-second performance. The available r
 | 16 | `85ec4a3` → `45abfc2` | 3.16–4.0 s original | Uppercut hips and chest unwound together. Intermediate chest keys retain the coil after the pelvis turns, then overtake through the overhead finish; support and sword attachment remain stable in both views. |
 | 17 | `45abfc2` → `7dac4f4` | 4.0–6.5 s original | The heavy-cut chest fell with the hips and lost stored weight. The chest now holds back through phase .48 and drops after the pelvis, clarifying the whole-body downward chain. |
 | 18 | `7dac4f4` → `5711c7b` | 2.5–6.5 s original | The reverse step did not counterbalance the preceding lateral slash. Review composition travel was widened from -0.12/-0.40 m to -0.18/-0.44 m; front frames show a clearer left-right phrase without changing gameplay movement. |
+| 19 | `05930f4` → `6d29a74` | 2.5–3.5 s original | The slash centre of mass remained too centred through load and contact. Wider lateral pelvis offsets deepen the support-side load and carry the body farther across the strike; actual-mesh front and side sequences retain support contact. |
+| 20 | `6d29a74` → `26bbb47` | 2.5–3.5 s original | Contact still read as an arm-led reach. Additional hip, spine and chest pitch drives the torso through the strike; the side sequence shows a deeper whole-body contact pose without changing the contact phase. |
+| 21 | `26bbb47` → `5a02f89` | 3.5–5.5 s original | Thrust hips, spine and chest unwound together. New intermediate spine/chest keys retain the upper-body coil after pelvis release, then release it into extension; the actual-mesh comparison shows a modest pelvis-first sequence. |
+| 22 | `5a02f89` → `3f2d417` | 3.5–5.5 s original | The thrust arm extended too early and flattened the speed contrast. A later reach hold preserves the bent loading arm to phase .45 and reaches full extension at the unchanged .50 contact. |
+| 23 | `3f2d417` → `9acb4eb` | 4.0–6.5 s original | The heavy blade began falling evenly from overhead. Grip and blade now hold the overhead pose through phase .46, leaving a shorter fall into the unchanged .50 contact. |
+| 24 | `9acb4eb` → `6a8a277` | 2.5–6.5 s original | Composed cuts still returned too close to neutral between techniques. Source recovery is carried to phase .84 with 180 ms overlap; front-three-quarter and side sequences retain more of the preceding low/high recovery while loading the next native cut. |
 
-New reproduction evidence for this run is in `/tmp/rinne-pass13-*` through
-`/tmp/rinne-pass18-*` (`capture.json`, `three-follow-strip.jpg`,
+New reproduction evidence for this run is in `/tmp/rinne-pass19-*` through
+`/tmp/rinne-pass24-*` (`capture.json`, `three-follow-strip.jpg`,
 `side-follow-strip.jpg`). The final sequence is `/tmp/rinne-batch-final-1413/`
-for the preceding checkpoint and `/tmp/rinne-batch-final-1515/` for this checkpoint;
+for an earlier checkpoint and `/tmp/rinne-batch-final-1612/` for this checkpoint;
 the latter contains `combination-three-30fps.mp4`. The 30-second sample is
-`/tmp/rinne-performance-final-1515/`. These are transient
+`/tmp/rinne-performance-final-1612/`. These are transient
 WORK artifacts, not shipped application assets. Every pass has a reconstructible
 Git parent/commit diff; no source-neutral replay is counted.
 
@@ -44,16 +50,16 @@ attempted, but Chrome reported `THREE.WebGLRenderer: Error creating WebGL contex
 the local MP4 could not be opened by the authenticated cloud browser's URL policy.
 Therefore normal-speed actual-model playback remains unconfirmed and the primary stage
 remains **revise**, the changes are not yet eligible for the three-app adoption PR,
-and this batch remains 82 passes short. The generated 30 fps MP4 is not
+and this batch remains 76 passes short. The generated 30 fps MP4 is not
 treated as proof of normal-speed review or as human approval. Remaining work
 is the reference's much larger lateral travel, whole-body rotation, release-speed
 contrast and momentum transfer; WebGL/MToon, cloth collision and physical-device
 fps also remain unverified.
 
-Focused result at revision `shared-sword-8`: 13 actual-rig/viewer tests passed;
-maximum socket error `1.3206843e-7 m`, moving planted-toe drift `2.8809913e-8 m`,
-maximum 30 Hz pelvis-height step `0.0728591 m`, and minimum blade-tip height
-`0.192740 m`. `npm run build:review` also passed.
+Focused result at revision `shared-sword-9`: 13 actual-rig/viewer tests passed;
+maximum final-combination socket error `1.3001927e-7 m`, moving planted-toe drift
+`2.2119659e-8 m`, maximum 30 Hz pelvis-height step `0.0728624 m`, and minimum
+blade-tip height `0.192740 m`. `npm run build:review` also passed.
 These are continuity diagnostics, not artistic scores.
 
 # Fourteen further reference-driven corrections
