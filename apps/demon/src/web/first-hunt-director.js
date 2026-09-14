@@ -84,7 +84,7 @@ function showGain(root,role){
  root.querySelector('b').textContent=prey.power;
  root.querySelector('span').textContent=prey.desc;
  root.hidden=false;
- navigator.vibrate?.([18,34,30]);
+ try{navigator.vibrate?.([18,34,30]);}catch{}
  return performance.now()+3600;
 }
 
@@ -111,7 +111,12 @@ export function installFirstHuntDirector(){
     for(const row of state.choices||[])document.querySelector(`.nameplate[data-npc="${CSS.escape(row.id)}"]`)?.classList.add('first-hunt-choice-prey');
    }else renderChoices(ui.choices,[]);
    const unlocked=new Set(snapshot.profile?.unlocked||[]),eaten=Number(snapshot.eaten)||0;
-   if(eaten>previousEaten){const added=[...unlocked].filter(role=>!previousUnlocked.has(role));const role=added.at(-1)||(snapshot.profile?.unlocked||[]).at(-1);gainUntil=showGain(ui.gain,role)||gainUntil;}
+   if(eaten>previousEaten){
+    const added=[...unlocked].filter(role=>!previousUnlocked.has(role));
+    const freshlyEaten=(snapshot.npcs||[]).find(n=>n.eaten&&!previous?.npcs?.find(old=>old.id===n.id)?.eaten);
+    const role=freshlyEaten?.role||added.at(-1)||(snapshot.profile?.unlocked||[]).at(-1);
+    gainUntil=showGain(ui.gain,role)||gainUntil;
+   }
    previousEaten=eaten;previousUnlocked=unlocked;previous=snapshot;
   }
   if(ui.gain&&!ui.gain.hidden&&now>gainUntil)ui.gain.hidden=true;
