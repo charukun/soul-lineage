@@ -12,25 +12,44 @@ export const PREY={
 export const FORMS={hollow:{name:'虚ろ仔',desc:'狩りを覚えたばかりの異形。',need:0},stalker:{name:'夜這い',desc:'足が伸び、移動と追跡に優れる。',need:2},brute:{name:'骸喰い',desc:'骨の鎧をまとう。生命と重い爪に優れる。',need:4},wraith:{name:'喪の翼',desc:'裂けた翼を持つ、影を渡る異形。',need:6}};
 export function random(seed){let a=seed|0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 export function hash(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+export const RAID_SCALES=Object.freeze({
+ small:Object.freeze({label:'小規模の村',houses:6,residents:8}),
+ medium:Object.freeze({label:'中規模の村',houses:10,residents:12}),
+ large:Object.freeze({label:'大規模の村',houses:14,residents:16})
+});
+const scaleKeys=Object.keys(RAID_SCALES);
+const isHouse=e=>ITEMS[e.type]?.house||e.type==='bakery';
+function scaleFor(v){return !v.entities&&Object.hasOwn(RAID_SCALES,v.raidScale)?RAID_SCALES[v.raidScale]:RAID_SCALES.medium;}
 const namesA=['霧鐘','黒楡','白骸','灰雨','夜葦','落月','哭石','薄灯','赤沼','骨霜','錆羽','葬花'];
 const namesB=['の里','の谷','の宿場','の門前','の集落','の渡し'];
-export function offerVillages(store){let offers;store.change(p=>{if(p.offers.length){offers=p.offers;return;}offers=[];const unlearned=Object.keys(PREY).filter(k=>!p.unlocked.includes(k));for(let i=0;i<3;i++){const n=++p.sequence,seed=hash(p.id+':'+n),r=random(seed),target=unlearned[(n-1)%Math.max(1,unlearned.length)]||Object.keys(PREY)[n%8];offers.push({id:`demo:${p.id}:${n}`,seed,name:namesA[Math.floor(r()*namesA.length)]+namesB[Math.floor(r()*namesB.length)]+`・${String(n).padStart(3,'0')}`,target,level:Math.min(4,1+Math.floor(p.unlocked.length/2)),weather:i===1?'rain':'fog',source:'generated',serial:n});}p.offers=offers;});return offers;}
-export function makeVillage(v){const r=random(v.seed||hash(v.id)),entities=[],colliders=[],npcs=[],width=23,depth=31;
+export function offerVillages(store){let offers;store.change(p=>{if(p.offers.length){for(const [i,v] of p.offers.entries())if(v.source==='generated'&&!v.raidScale)v.raidScale=scaleKeys[i%scaleKeys.length];offers=p.offers;return;}offers=[];const unlearned=Object.keys(PREY).filter(k=>!p.unlocked.includes(k));for(let i=0;i<3;i++){const n=++p.sequence,seed=hash(p.id+':'+n),r=random(seed),target=unlearned[(n-1)%Math.max(1,unlearned.length)]||Object.keys(PREY)[n%8];offers.push({id:`demo:${p.id}:${n}`,seed,name:namesA[Math.floor(r()*namesA.length)]+namesB[Math.floor(r()*namesB.length)]+`・${String(n).padStart(3,'0')}`,target,level:Math.min(4,1+Math.floor(p.unlocked.length/2)),weather:i===1?'rain':'fog',source:'generated',serial:n,raidScale:scaleKeys[i]});}p.offers=offers;});return offers;}
+export function makeVillage(v){const r=random(v.seed||hash(v.id)),entities=[],colliders=[],npcs=[],scale=scaleFor(v);
  function place(type,x,z,scale=1,rn=0,more={}){const it=ITEMS[type];const e={id:'e'+entities.length,type,x,z,r:rn,scale,palette:1,floors:1,...more};entities.push(e);if(it&&!it.overlap&&!['path','garden','pond','flower'].includes(type)){colliders.push({x,z,r:Math.max(it.w,it.d)*scale*.39,type,entityId:e.id});}return e;}
  if(v.entities){for(const e of v.entities){if(e.room>0||!ITEMS[e.type])continue;place(e.type,e.x,e.z,1,e.r||0,e);}}
- else{const shift=(r()-.5)*2;for(let side of [-1,1])for(let i=0;i<5;i++){const z=-21+i*9+(r()-.5)*3,x=side*(6.1+r()*1.4)+shift;place(['cottage','tallhouse','manor','bakery'][Math.floor(r()*4)],x,z,1.35+r()*.3,side<0?Math.PI/2:-Math.PI/2,{floors:i===0?2:1});}
+ else{const shift=(r()-.5)*2;for(let side of [-1,1])for(let i=0;i<scale.houses/2;i++){const outer=i>=5,z=(outer?-12+(i-5)*18:scale.houses===6?-18+i*18:-21+i*9)+(r()-.5)*3,x=side*((outer?15:6.1)+r()*1.4)+shift;place(['cottage','tallhouse','manor','bakery'][Math.floor(r()*4)],x,z,1.35+r()*.3,side<0?Math.PI/2:-Math.PI/2,{floors:i===0?2:1});}
  place('well',-5,-3,1.4);place('market',6,6,1.4,.2);place('fountain',5,-18,1.4);}
  const ext=v.entities?Math.max(27,...v.entities.map(e=>Math.abs(e.x)+4),...v.entities.map(e=>Math.abs(e.z)+6)):31;
  const bell={x:0,z:-17},chapel={x:0,z:-23};
  const entry={x:0,z:v.entities?ext-3:20};
- let positions=[[1,entry.z-5],[-3,entry.z-12],[3,7],[-4,-3],[5,-10],[-2,-16],[0,-23],[8,-22],[-9,13],[8,17],[-13,-6],[12,-14]];
- const trade=r()<.5?'smith':'hunter';const keys=['traveller','bellkeeper',trade,'traveller','bellkeeper','traveller',v.target,trade,'traveller','traveller',trade,'bellkeeper'];
+ let positions=[[1,entry.z-5],[-3,entry.z-12],[3,7],[-4,-3],[5,-10],[-2,-16],[0,-23],[8,-22],[-9,13],[8,17],[-13,-6],[12,-14],[-12,20],[12,20],[-19,-16],[19,2]].slice(0,scale.residents);
+ const trade=r()<.5?'smith':'hunter';const keys=['traveller','bellkeeper',trade,'traveller','bellkeeper','traveller',v.target,trade,'traveller','traveller',trade,'bellkeeper','traveller',trade,'bellkeeper',trade];
  function blocked(x,z){return colliders.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+.6);}
  for(let i=0;i<positions.length;i++){let [x,z]=positions[i];for(let tries=0;blocked(x,z)&&tries<50;tries++){x=(r()-.5)*35;z=(r()-.5)*40;}
  const role=i===6?v.target:keys[i],d=PREY[role];if(i===6){x=-3;z=role==='traveller'?10:['arcanist','acolyte'].includes(role)?-18:-12;}
  const names=['イェル','ルッツ','サラ','エッダ','グラム','ノア','ヴェラ','クルト'];npcs.push({id:`${v.id}:human:${i}`,kind:'human',adult:true,role,name:i===6?d.name+' '+names[Math.floor(r()*names.length)]:d.name,x,z,homeX:x,homeZ:z,yaw:r()*6.28,hp:d.hp+(i===6?18:0),maxhp:d.hp+(i===6?18:0),state:'idle',clock:r()*5,walk:0,marked:i===6,dead:false,eaten:false,fear:0});}
  if(v.source!=='imported-local')colliders.push({x:0,z:-26,r:3.2,type:'chapel'});
  return{...v,entities,colliders,npcs,entry,bell,chapel,bounds:ext,gate:{x:0,z:1.5,r:2.05,broken:false},shelter:{x:0,z:-23,r:3.1}};
+}
+export function describeVillage(v){
+ const world=makeVillage(v),homes=world.entities.filter(isHouse).length;
+ const residents=world.npcs.length,armed=world.npcs.filter(n=>PREY[n.role].weapon!=='fist').length;
+ const strongest=Math.max(...world.npcs.map(n=>n.maxhp));
+ const danger=Math.max(residents>=16?3:residents>=12?2:1,strongest>=120?3:strongest>=90?2:1);
+ const size=homes<=6?'small':homes<=10?'medium':'large';
+ return{size,label:RAID_SCALES[size].label,homes,residents,armed,danger,
+  dangerLabel:['','低','中','高'][danger],
+  reason:strongest>=120?'強力な獲物が潜む':danger===3?'目撃者と武装者が多い':danger===2?'武装した住人に注意':'住人が少なく、目撃されにくい',
+  imported:v.source==='imported-local'};
 }
 export function importHousing(data){if(!data||data.gameId!=='village'||!data.payload||!Array.isArray(data.payload.entities))throw Error('ハウジングの村セーブJSONを選んでください。');
  const owner=data.ownerId||data.playerId;if(typeof owner!=='string'||!owner.trim())throw Error('所有者IDのない村は読み込めません。');

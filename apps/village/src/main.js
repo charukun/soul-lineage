@@ -1,11 +1,14 @@
 // Keep this bootstrap independent of large modules so download/initialization
 // errors remain visible and retryable rather than stranding the loading screen.
+import {installMusicLibrary} from '@soul/shared-ui/music';
+
 const canvas = document.querySelector('#game');
 const loading = document.querySelector('#loading');
 const progress = document.querySelector('#progress');
 const message = document.querySelector('#loadText');
 const retry = document.querySelector('#retry');
 const recover = document.querySelector('#recover');
+const disposeMusic=installMusicLibrary({game:'village',environment:__BUILD_INFO__.environment,defaultTrack:'v01',autoStart:false,preferDefault:true,trigger:'hidden'});
 let finished = false;
 const watchdog = setTimeout(() => {
   if (finished) return;
@@ -33,10 +36,16 @@ window.addEventListener('village:fatal', event => reportError(event.detail));
 try {
   progress.value = 10;
   message.textContent = '村の資産と暮らしの仕組みを読み込んでいます。';
+  await import('./mura-patch.js');
+  await import('./asset-visuals.js');
   const { boot } = await import('./web/main.js');
   await boot({
     onProgress(value, text) { progress.value = value; message.textContent = text; },
   });
+  // Preserve the historical side-effect order, but let Vite/browser fetch the
+  // post-boot layer as one module graph instead of 14 serial dynamic imports.
+  await import('./mura-enhancements.js');
+  document.title = document.title.replace(/^星継ぎの庭/, 'MURAAAAAAA');
   clearTimeout(watchdog);
   finished = true;
   progress.value = 100;
@@ -45,8 +54,7 @@ try {
   console.error(error);
   reportError(error);
 }
-if (import.meta.hot) import.meta.hot.accept(() => location.reload());
-
-import {installMusicLibrary} from '@soul/shared-ui/music';
-const disposeMusic=installMusicLibrary({game:'village',environment:__BUILD_INFO__.environment});
-if(import.meta.hot)import.meta.hot.dispose(disposeMusic);
+if (import.meta.hot) {
+  import.meta.hot.accept(() => location.reload());
+  import.meta.hot.dispose(disposeMusic);
+}

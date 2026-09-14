@@ -1,0 +1,26 @@
+{
+  "title": "WAYFINDER",
+  "subtitle": "PULSE PUBLIC PATHS",
+  "version": 3,
+  "source": "fallback",
+  "repository": "charukun/soul-lineage",
+  "items": [
+    {
+      "id": "ops-board",
+      "room": "SYSTEM",
+      "title": "PULSE",
+      "description": "WAYFINDERがPULSEと同期できない場合の復旧入口です。公開状況の正本はPULSEで確認できます。",
+      "accent": "#77d6e8",
+      "previewUrl": "https://rinne-ops.c-okamoto.workers.dev/",
+      "links": [
+        {
+          "label": "PULSE · PUBLIC",
+          "url": "https://rinne-ops.c-okamoto.workers.dev/",
+          "kind": "tool",
+          "state": "fallback",
+          "environment": "tool"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+Pirate Kit (1.1)
+Created/distributed by Kenney (www.kenney.nl)
+License: Creative Commons Zero (CC0)
+http://creativecommons.org/publicdomain/zero/1.0/
+This content is free to use in personal, educational and commercial projects.
+Credit to Kenney is appreciated but not mandatory.
+Source: https://github.com/ETdoFresh/kenney.nl/blob/master/kenney_piratekit_1.1/License.txt
+License source blob: 16055217985f2035f2896f0927c1de6a4165d51e
+Acquired boat hull only. Masts, sails and rigging are locally authored accessories.

@@ -3,13 +3,14 @@ import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { graph, appNode, inputHash } from './workspaces.mjs';
+import { GAME_ENVIRONMENTS } from './application-catalog.mjs';
 
 export function appConfig(app, configUrl) {
   const root = fileURLToPath(new URL('../..', configUrl));
   const nodes = graph(root);
   const node = appNode(nodes, app);
   const environment = process.env.APP_ENV || 'local';
-  if (!['local', 'dev', 'prod'].includes(environment)) throw new Error('Invalid APP_ENV');
+  if (environment !== 'local' && !GAME_ENVIRONMENTS.some(item => item.id === environment)) throw new Error('Invalid APP_ENV');
   const git = args => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
   const info = {
     name: node.pkg.displayName, app, environment,

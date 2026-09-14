@@ -1,0 +1,58 @@
+name: Browser Repair Recorder
+on:
+  workflow_dispatch:
+    inputs:
+      repair_scope:
+        description: 'Repair recorder scope'
+        type: string
+        required: true
+      repair_conclusion:
+        description: 'Browser result'
+        type: string
+        required: true
+      repair_head_sha:
+        description: 'Browser-tested head SHA'
+        type: string
+        required: true
+      repair_pr_number:
+        description: 'Source PR number'
+        type: string
+        required: true
+      repair_run_url:
+        description: 'Source Actions run URL'
+        type: string
+        required: true
+      repair_artifact:
+        description: 'Browser artifact name'
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: browser-repair-pr-${{ inputs.repair_pr_number }}
+  cancel-in-progress: true
+jobs:
+  repair-ticket:
+    name: Record PR browser repair state
+    if: inputs.repair_scope == 'pr'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.repair_head_sha }}
+          persist-credentials: false
+      - name: Create/update machine-readable repair ticket
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPAIR_SCOPE: ${{ inputs.repair_scope }}
+          REPAIR_CONCLUSION: ${{ inputs.repair_conclusion }}
+          REPAIR_HEAD_SHA: ${{ inputs.repair_head_sha }}
+          REPAIR_PR_NUMBER: ${{ inputs.repair_pr_number }}
+          REPAIR_RUN_URL: ${{ inputs.repair_run_url }}
+          REPAIR_ARTIFACT: ${{ inputs.repair_artifact }}
+        run: node scripts/browser-repair-ticket.mjs

@@ -1,0 +1,21 @@
+# PULSE
+
+スマホブラウザから、公開環境・PR・Integration・CI/CDの状態を確認するための運用ダッシュボードです。
+
+- GitHub APIと公開deployment metadataを正本として利用
+- branch mergeと実deployを分離して表示
+- 5分Cron + merge/deploy後の即時同期
+- SecretsはWorker側のみで保持し、ブラウザには露出しない
+- 一般公開リンクギャラリー `WAYFINDER` の専用Cloudflareデプロイ状態も追跡する
+- `WAYFINDER` はPULSEの公開状況に掲載される輪廻転焦Repository内の公開先を案内する導線として扱い、別Repository・別プロジェクト（例: GUILTY'S GARDEN / YARE）を混在させない
+- ゲームは公開manifestで確認できた開発・検証・本番URLのみを掲載し、Visual Review Labなどの公開ツールはPULSEでURLが確認できるものだけを掲載する
+
+## Integration Rescue表示契約
+
+Integration Rescueは運用者がスマホで開いた直後に「何が問題で、どれが対応中・対応待ち・完了なのか」を判断できることを最優先にする。
+
+- 最上段では未解決件数、対応中、対応待ち、直近24時間の完了を主要指標として要約する
+- 対応中カードは問題の理由、現在の作業、次の工程、Worker状態を同じ視線上で確認できるようにする
+- 対応待ちカードは待機理由、依存PR、待機時間、優先度を明示する
+- 完了履歴は対応中・対応待ちから視覚的に分離し、直近の完了件数と結果を確認できるようにする
+- Rescueによる修復成功と、単なるIntegration / DEV状態観測を混同しない。既存の修復証跡判定を維持する

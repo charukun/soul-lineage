@@ -1,20 +1,109 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>MasterCharacter Review — 輪廻転焦</title>
-<style>
-*{box-sizing:border-box}body{margin:0;background:#131a1c;color:#eee6d4;font:15px/1.55 system-ui,sans-serif}header{padding:18px 24px;border-bottom:1px solid #435056}h1{margin:0;font-size:24px}p{margin:6px 0;color:#c2c8c3}.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;min-height:80vh}#stage{width:100%;height:80vh;display:block}aside{padding:20px;background:#20292a}label{display:block;margin:16px 0 6px}button,select,input{font:inherit;max-width:100%}button,select{padding:8px;background:#334244;color:#fff;border:1px solid #849286;border-radius:4px}input[type=range]{width:100%}#status{padding:12px;border-left:3px solid #bcad77;overflow-wrap:anywhere}pre{white-space:pre-wrap;font-size:13px}small{color:#b3bdb7}progress{width:100%}footer{padding:16px 24px;color:#b5bdb9}@media(max-width:700px){.layout{display:block}#stage{height:58vh}aside{padding:16px}header{padding:12px 16px}h1{font-size:20px}}
-</style>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#142226"><title>キャラクター工房 | 輪廻転焦 DEV</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23172428'/%3E%3Cpath d='M16 47V17h11l5 12 5-12h11v30H38V32l-6 13-6-13v15z' fill='%23dcc493'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="./src/character-review-main.css">
 </head>
-<body><header><a href="./">〈 タイトルへ</a><h1>MasterCharacter / Sendagaya_Shino</h1><p>輪廻転焦 · 独立レビュー環境。本編・セーブ・通信接続は変更しません。</p></header>
-<div class="layout"><canvas id="stage"></canvas><aside>
-<div id="status" role="status">キャラクターを読み込んでいます。</div><progress id="progress" max="1" value="0"></progress>
-<label>モデルファイル <input id="file" type="file" accept=".vrm,.glb"></label><button id="retry" disabled>再試行</button>
-<label>同時表示 <select id="count"><option value="1" selected>1体</option><option value="30">30体</option></select></label>
-<label>年齢 <select id="ages"><option value="mixed">年齢混在 0 / 7 / 22 / 55 / 85</option><option value="fixed">全員同じ年齢</option></select></label>
-<input id="age" aria-label="年齢" type="range" min="0" max="90" value="22"><output id="age-label">22歳</output>
-<label>衣装配色 <select id="outfit"><option value="mixed">3配色</option><option value="original">Original</option><option value="moss">Moss</option><option value="ember">Ember</option></select></label>
-<label><input id="motion" type="checkbox" checked> レビュー用の呼吸・重心移動</label>
-<label><input id="rotate" type="checkbox"> 全員を回転</label>
-<button id="measure">フレーム計測をリセット</button><pre id="metrics">未計測</pre>
-<small>配色バリエーションです。新しい衣装形状・完成版モーションではありません。FPSはこの端末・この場面での測定値で、実機性能の合格判定ではありません。</small>
-</aside></div><footer>原作: VRoid Project / pixiv Inc.（CC0） · VRM 1.0 conversion: Coatie（coati）。元モデルのメタデータ・利用条件を保持します。</footer>
-<script type="module" src="./src/character-review.js"></script></body></html>
+<body class="review-main">
+<main class="review-app" data-studio-version="3">
+<section class="stage-shell" aria-label="モデル表示">
+<header class="stage-head"><a href="./" class="back-link" aria-label="ゲームへ戻る">‹</a><h1>キャラクター工房 <small>SHINO</small></h1><a id="advanced-link" href="./characters-advanced.html">詳細調整</a></header>
+<div class="canvas-wrap"><canvas id="stage" aria-label="モデル。ドラッグで回転、ピンチで拡大"></canvas>
+<a class="slash-review-link" href="./simulator/motion-review.html">▶ 斬撃モーションを確認</a>
+<div class="subject-row"><button id="hero-previous" type="button" aria-label="前の個体">‹</button><span id="subject">モデル準備中</span><button id="hero-next" type="button" aria-label="次の個体">›</button></div>
+<div id="preview-label" hidden>元のパーツを表示中</div>
+<button id="frame-model" type="button" title="モデルを画面に収める">全身に戻す</button>
+</div>
+<div class="stage-actions" aria-label="カメラと表示"><button data-camera="front" type="button">正面</button><button data-camera="side" type="button">横</button><button data-camera="back" type="button">背面</button><button data-camera="face" type="button">顔</button><button id="pause" type="button" aria-pressed="false">一時停止</button><button id="capture" type="button">撮影</button><button data-camera="overview" type="button" hidden>全体</button></div>
+<div class="stage-status"><span id="status" role="status" aria-live="polite">モデルを読み込んでいます。</span><button id="retry" type="button" disabled>再試行</button><progress id="progress" max="1" value="0" aria-label="モデル読込状況"></progress></div>
+</section>
+<section class="editor-dock" aria-label="キャラクター編集">
+<nav class="mode-tabs" role="tablist" aria-label="編集・確認"><button type="button" role="tab" id="tab-parts" data-tab="parts" aria-controls="panel-parts" aria-selected="true">見た目</button><button type="button" role="tab" id="tab-colors" data-tab="colors" aria-controls="panel-colors" aria-selected="false" tabindex="-1">色・年齢</button><button type="button" role="tab" id="tab-motion" data-tab="motion" aria-controls="panel-motion" aria-selected="false" tabindex="-1">動き</button><button type="button" role="tab" id="tab-qa" data-tab="qa" aria-controls="panel-qa" aria-selected="false" tabindex="-1">Motion QA</button><button type="button" role="tab" id="tab-compare" data-tab="compare" aria-controls="panel-compare" aria-selected="false" tabindex="-1">比較</button></nav>
+<div class="review-controls" tabindex="0" aria-label="編集項目。ここだけスクロールします">
+<fieldset id="editor-fields" disabled><legend class="sr-only">選択した個体の編集</legend>
+<section id="panel-parts" class="studio-panel" role="tabpanel" aria-labelledby="tab-parts">
+<div id="slot-tabs" class="slot-tabs" role="group" aria-label="変更する部位"></div>
+<div class="panel-heading"><h2 id="slot-title">髪型</h2><span class="scope-label">選択中の1体だけ</span></div>
+<div id="part-options" class="part-options" role="group" aria-label="部位の候補"></div>
+<div class="part-actions"><button id="original-preview" type="button" aria-pressed="false">元のパーツと比較</button><button id="random-one" type="button">別の組み合わせ</button></div>
+<p class="hint" id="slot-hint">候補を押すとその場で切り替わります。</p>
+</section>
+<section id="panel-colors" class="studio-panel" role="tabpanel" aria-labelledby="tab-colors" hidden>
+<div class="panel-heading"><h2>色と年齢</h2><span class="scope-label">選択中の1体だけ</span></div><div id="color-options"></div>
+<h3>年齢</h3><div id="age-options" class="choice-row"></div><p class="hint">身長や細かな体格は「詳細調整」で変更できます。</p>
+</section>
+<section id="panel-motion" class="studio-panel" role="tabpanel" aria-labelledby="tab-motion" hidden>
+<h2>動かして確認</h2><h3>動き</h3><div class="choice-row"><button data-motion="rest" type="button">基本姿勢</button><button data-motion="idle" type="button">呼吸</button><button data-motion="walk" type="button">歩行</button></div>
+<h3>表情</h3><div id="expression-grid" class="choice-row"></div>
+<h3>揺れ・全周</h3><div class="choice-row"><button id="spring-toggle" type="button" aria-pressed="true">揺れ ON</button><button id="rotate-toggle" type="button" aria-pressed="false">自動回転 OFF</button></div><p class="hint">現在の動きは骨格確認用。衣装パーツ自体の品質は変わりません。</p>
+</section>
+<section id="panel-qa" class="studio-panel" role="tabpanel" aria-labelledby="tab-qa" hidden>
+<div id="motion-qa"><h2>Motion QA</h2>
+<div class="choice-row"><button id="qa-start" type="button" class="primary">▶ 30秒レビュー</button><button id="qa-play" type="button">再開</button><button id="qa-stop" type="button">終了</button></div>
+<p id="qa-status" role="status">同じフレーム・カメラで動きと個体差を確認します。</p>
+<output id="qa-frame">Idle · 0秒</output>
+<input id="qa-time" type="range" min="0" max="30" step="0.016666666667" value="0" aria-label="Motion QA時刻">
+<div class="choice-row"><button id="qa-prev" type="button">−1コマ</button><button id="qa-next" type="button">＋1コマ</button><button id="qa-before" type="button" aria-pressed="false">補正前を見る</button></div>
+<label>確認する動き<select id="qa-motion"></select></label>
+<div id="qa-cameras" class="qa-cameras" aria-label="Motion QAカメラ"></div>
+<label><input id="qa-tour" type="checkbox">8方向を自動巡回</label>
+<div class="choice-row"><button data-qa-count="1" type="button">1体</button><button data-qa-count="6" type="button">6体</button><button data-qa-count="12" type="button">12体</button><button data-qa-count="30" type="button">30体・負荷確認</button></div>
+<details><summary>数値診断・見た目の指摘</summary>
+<pre id="qa-diagnostics" class="qa-diagnostics">再生後に警告を表示します。</pre>
+<p class="hint">めり込みは簡易形状によるリスク判定です。衣服・髪・スキニング・シルエットは画像で確認してください。</p>
+<label>原因分類<select id="qa-category"></select></label><label>重大度<select id="qa-severity"><option>warning</option><option>error</option><option>info</option></select></label>
+<label>状態<select id="qa-issue-status"><option>open</option><option>needs-review</option><option>resolved</option><option>accepted</option></select></label>
+<label>対象ボーン<input id="qa-bones" type="text" maxlength="512" placeholder="rightUpperArm rightLowerArm"></label>
+<label>指摘<textarea id="qa-note" maxlength="4000" rows="3"></textarea></label>
+<div class="choice-row"><button id="qa-capture" type="button">現在の画像を保存</button><button id="qa-record" type="button">この問題を記録</button></div>
+<p class="hint">同じコマで補正前・補正後の画像を保存してから記録すると、比較用の画像名も残ります。</p>
+</details>
+<output id="qa-record-count">記録 0件 · Visual Approval: pending</output>
+<div class="choice-row"><button id="qa-export" type="button">QA JSONを保存</button><label>QA JSONを読む<input id="qa-import" type="file" accept=".json,application/json"></label></div>
+<p class="hint">技・VFXの細かな演出確認は<a href="./simulator/motion-review.html">斬撃レビュー</a>へ。</p>
+</div></section>
+<section id="panel-compare" class="studio-panel" role="tabpanel" aria-labelledby="tab-compare" hidden>
+<h2>量産キャラクターの品質確認</h2><div class="choice-row compare-counts"><button data-count="1" type="button">1体</button><button data-count="6" type="button">6体</button><button data-count="12" type="button">12体</button><button data-count="30" type="button">30体</button></div>
+<p class="hint">同じseedの個体を比較。表示の切替では遺伝データを変更しません。</p>
+<div class="quality-controls">
+<label>固定seed<input id="quality-seed" type="number" min="0" max="4294967295" step="1" value="1000"></label>
+<button id="quality-generate" type="button">seedから再生成</button>
+<label>想定<select id="quality-context"><option value="village">MURAAAAAAA</option><option value="demon">尽喰廻遊</option><option value="studio">工房</option></select></label>
+<label>役割<select id="quality-role"><option value="mixed">役割を混在</option></select></label>
+<label>年齢<select id="quality-age"><option value="mixed">年齢を混在</option><option value="7">7歳</option><option value="22">22歳</option><option value="75">75歳</option></select></label>
+<button id="quality-family" type="button">親2体と子世代を生成</button>
+<label class="quality-reference"><input id="quality-reference" type="checkbox" checked>先頭にShino基準を保持</label>
+<button id="quality-baseline" type="button" aria-pressed="false">旧方式と比較</button>
+<button id="quality-camera" type="button">ゲーム内の通常距離</button>
+</div><p class="hint">再生成はこの工房の編集を初期化します。「戻す」で復元できます。本編の保存には触れません。</p>
+<output id="quality-identity" class="quality-identity"></output><button id="quality-mark" type="button" aria-pressed="false">この個体を要修正にする</button>
+<pre id="quality-report" class="quality-report" aria-live="polite"></pre><h3>編集する個体</h3><div id="individuals" class="individuals" role="group" aria-label="個体を選ぶ"></div>
+<button id="edit-one" class="wide-button" type="button">選んだ1体を編集</button><details class="diagnostics"><summary>負荷・診断</summary><pre id="metrics-live">計測準備中</pre><button id="full-springs" type="button" aria-pressed="false">全員の揺れ更新</button></details>
+</section>
+</fieldset>
+<details class="about"><summary>この工房について</summary><p>本編・セーブ・通信には接続しません。遺伝由来の顔立ちと身体比率、seed由来の髪、役割に沿う上着・装備を比較します。基礎衣装と骨格は維持し、同じ生成方式を両ゲームで利用します。編集内容はこのブラウザに保存します。</p><a href="./simulator/licenses/MODEL_LICENSE_SUMMARY_JA.txt">モデル利用条件</a></details>
+</div>
+<footer class="editor-footer"><div class="save-line"><output id="save-state" aria-live="polite">準備中</output><span id="selection-summary"></span></div><div class="footer-actions"><button id="undo" type="button" disabled>戻す</button><button id="redo" type="button" disabled>やり直す</button><button id="save-workspace" type="button" class="primary" disabled>データ保存</button></div></footer>
+</section>
+</main>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<div id="compat-controls" hidden aria-hidden="true">
+<select id="view"><option value="crowd">crowd</option><option value="single">single</option></select>
+<select id="count"><option value="1">1</option><option value="6" selected>6</option><option value="12">12</option><option value="30">30</option></select>
+<input id="seed" type="number" value="1000"><button id="regenerate" type="button">regenerate</button><button id="next-seed" type="button">next</button>
+<select id="ancestry"><option value="independent">independent</option><option value="family">family</option></select>
+<select id="ages"><option value="mixed">mixed</option><option value="fixed">fixed</option></select><input id="age" type="range" min="0" max="90" value="22"><output id="age-label"></output>
+<select id="outfit"><option value="mixed">mixed</option><option value="original">original</option><option value="moss">moss</option><option value="ember">ember</option></select>
+<button id="previous" type="button">previous</button><select id="selected"></select><button id="next" type="button">next</button>
+<select id="motion"><option value="rest">rest</option><option value="idle">idle</option><option value="walk">walk</option></select>
+<select id="expression"><option value="">neutral</option></select><input id="expression-weight" type="range" min="0" max="1" step="0.05" value="1"><output id="expression-label"></output>
+<select id="expression-mode"><option value="selected">selected</option><option value="all">all</option><option value="mixed">mixed</option></select>
+<input id="blink" type="checkbox" checked><select id="springs"><option value="auto">auto</option><option value="all">all</option><option value="off">off</option></select><input id="rotate" type="checkbox">
+<pre id="identity"></pre><input id="gene-height" type="range" min="0" max="1" step="0.01"><input id="gene-build" type="range" min="0" max="1" step="0.01"><input id="gene-hair" type="range" min="0" max="1" step="0.01"><input id="gene-eyes" type="range" min="0" max="1" step="0.01"><input id="gene-skin" type="range" min="0" max="1" step="0.01">
+<select id="background"><option value="slate">slate</option><option value="white">white</option><option value="black">black</option></select><pre id="metrics"></pre><button id="measure" type="button">measure</button>
+<textarea id="note"></textarea><button id="export" type="button">export</button><input id="session-file" type="file" accept=".json,application/json"><input id="file" type="file" accept=".vrm,.glb"><pre id="capabilities"></pre>
+</div>
+<script type="module" src="./src/character-review-main.js"></script>
+</body></html>

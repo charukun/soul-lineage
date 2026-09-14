@@ -9,13 +9,31 @@ This repository contains 輪廻転焦 (formerly 魂の系譜), village housing, 
 - Game/domain logic must use injected platform ports. Browser APIs, SDK calls, renderer/UI setup and device storage belong in adapters/bootstrap.
 - Keep production source on main. Reuse existing GitHub Pages/OIDC infrastructure, retain unchanged app artifacts, and do not silently promote develop game code to production.
 - Validate affected apps and shared packages. Deployment changes also require infrastructure tests and public URL verification.
-- For smartphone-only development, follow `docs/MOBILE_HYBRID_DEVELOPMENT.md`: normal WORK/GitHub connector is the default; when connector transport cannot handle changed files, switch the same work branch to GitHub Codespaces and normal `git push`. Do not split/Base64-retry large binaries through the connector.
+- Source bloat and structural debt follow `docs/CODE_HEALTH.md`. Fast validation rejects material new size/complexity regressions without retroactively blocking existing hotspots; scheduled Code Health may bootstrap at most one focused RINNE Dispatch refactor PR at a time. Do not weaken its thresholds, tests, browser assertions, or Integration gates merely to make a change pass.
+- For smartphone-only development, follow `docs/MOBILE_HYBRID_DEVELOPMENT.md`: normal git from Chat/WORK/Codex is the first route, then the connected GitHub API; when connector transport cannot handle changed files, switch the same work branch to GitHub Codespaces and normal `git push`. Do not split/Base64-retry large binaries through the connector.
+- Browser verification failures follow `docs/BROWSER_SELF_HEALING.md`. End-to-end repair verification is not complete until the relevant browser gate succeeds; Integration owns that asynchronous verification, not a waiting implementation worker. Claim machine-readable repair tickets before editing code, never create parallel repairs for the same ticket, and stop automation at the configured attempt limit instead of weakening assertions.
 
 ## WORK roles (current operation)
 
 - Read `docs/DEVELOPMENT.md` and `docs/INTEGRATION.md` for the current delivery flow.
-- Implementation WORK ends at implementation, affected fast verification and a Ready for review PR to develop. It does not merge, run the heavy full regression, or wait for DEV publication unless the user explicitly assigns Integration work.
-- Integration owns dependency/review/check/conflict decisions, develop merges, the final full regression, DEV deployment and public real-browser verification. Never equate Ready or a green fast gate with final DEV verification.
+- For normal code-changing tasks, push a work branch and open a Draft PR before code edits; follow the first-two-body-lines, lightweight Draft CI and recovery contract in `docs/DEVELOPMENT.md`. Read-only and writing-only tasks are exempt.
+- Mandatory delivery boundary: read `docs/RINNE_PROJECT_EXECUTION_POLICY.md`. Implementation WORK ends at Ready for review → `READY_FOR_INTEGRATION` handoff → final response. Running / Queued / Pending CI or browser checks must never keep the session alive; no watch, sleep/polling or repeated completion checks. Integration owns asynchronous monitoring and repair. Explicitly assigned Integration work retains its separate responsibility.
+- Integration owns dependency/review/check/conflict decisions, develop merges, affected fast verification, DEV deployment and public HTTP/source verification. Focused affected browser verification is a delivery gate; heavy full regression and P2P checks remain separate opt-in diagnostics. Never equate Ready with DEV publication; preserve Production quality gates.
 - Keep PRs focused. State changed apps/packages, checks actually run, shared impacts and `Depends-On: #N` (or `none`). Use draft or `integration:hold` for unfinished work/undecided semantics. Never clear holds or resolve review objections to make automation proceed.
 - Automation/control changes require Integration review of the exact head; no policy/protection bypass. Normal work uses no sub-agents.
 - Do not modify main or Production as part of develop Integration. Explicit user scope supersedes older handoff instructions that assign merge/deploy to every WORK.
+
+## Motion authoring and review
+
+- For character motion, stance, locomotion or motion-transition changes, read `docs/characters/MOTION_AUTHORING.md` and `docs/characters/MOTION_QUALITY.md` before editing. Design full-body key poses first, then weight/timing and normal-speed playback, then detail/transition polish. Return to the earliest weak stage when a correction regresses it.
+- Use the existing Motion QA report's `authoring` record and existing Lab iteration notes. Record reference seconds, before/after source revisions, actual model/rig evidence and remaining differences. Numeric tests, rendered stills, exported-but-unwatched video and iteration counts cannot stand in for normal-speed visual evaluation or human approval.
+- Preserve native gameplay/contact timing, shared sources and independent Lab Draft operation. This authoring contract does not change Integration/hold/approval gates or require a Lab merge. See the authoring guide for per-app adoption and CPU/WebGL evidence limits.
+
+## RINNE Dispatch
+
+- Read `docs/DISPATCHER.md` before using or modifying the dispatch route.
+- When the user explicitly says `派生して`, `別セッションで`, or otherwise asks to hand a self-contained implementation task to a dedicated worker, the initiating Chat/WORK may bootstrap a RINNE Dispatch instead of implementing the code itself.
+- Dispatch is for tasks that can complete without repeated human visual/semantic decisions. Ambiguous specifications, large visual iteration, and tasks that need repeated human feedback stay in normal Chat/WORK.
+- Bootstrap from the current latest `develop`: create `dispatch/<short-slug>`, add a temporary `.task-start/<short-slug>.md` scope marker as the meaningful initial diff, and open a develop-targeting Draft PR. Its first two body lines follow the normal PR contract, followed by `RINNE-Dispatch: implementation` and a non-empty `## Request` section. Do not make the requested implementation edits during bootstrap.
+- The `RINNE Dispatch` GitHub workflow owns the isolated Codex implementation, fast validation, push and Ready transition. The Draft PR / branch / commit remain the recovery source of truth; do not add a separate task ID, task database, or second Integration queue.
+- After the dispatch PR becomes Ready, the existing Integration flow owns CI, merge and DEV publication exactly as for any other Ready PR.
