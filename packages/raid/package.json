@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./group-session.js",
-    "./single-session": "./session.js",
+    ".": "./session.js",
+    "./group-session": "./group-session.js",
     "./profile": "./profile.js",
     "./world": "./world.js"
   },
