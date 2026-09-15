@@ -41,18 +41,37 @@ test('static roles use static Blender mode and support compression-only GLB plan
   assert.throws(() => buildAssetOptimizationPlan({ input: 'assets/tree.glb', role: 'prop', skipLod: true, skipCompress: true }), /At least one optimization stage/);
 });
 
-test('evaluation keeps soft budget violations as review and DCC errors as fail', () => {
+test('evaluation applies triangle, material and draw-call budgets as review gates', () => {
   const plan = buildAssetOptimizationPlan({ input: 'assets/npc.glb', role: 'npc', outputDir: 'generated/test-npc' });
   const audit = {
     errors: [],
-    objects: [{ triangles: 60000, lods: [{ level: 1, triangles: 30000 }, { level: 2, triangles: 15000 }] }],
+    summary: { materialCount: 17, estimatedDrawCalls: 24 },
+    objects: [{
+      source: 'npc_LOD0',
+      triangles: 60000,
+      materialSlots: 17,
+      uvLayers: 1,
+      vertexGroups: 42,
+      silhouette: { front: 1, side: .5, diag: .8 },
+      lods: [
+        { level: 1, ratio: .58, triangles: 30000, materialSlots: 17, uvLayers: 1, vertexGroups: 42, silhouette: { front: .96 } },
+        { level: 2, ratio: .30, triangles: 15000, materialSlots: 17, uvLayers: 1, vertexGroups: 42, silhouette: { front: .90 } },
+      ],
+    }],
   };
   const review = evaluateAssetOptimization({ plan, audit, sourceBytes: 10, lodBytes: 8, optimizedBytes: 4 });
   assert.equal(review.gate, 'review');
   assert.equal(review.triangles.lod0, 60000);
-  assert.ok(review.warnings.some(message => message.includes('soft budget')));
+  assert.equal(review.materials, 17);
+  assert.equal(review.estimatedDrawCalls, 24);
+  assert.equal(review.bytes.compressionRatio, .5);
+  assert.equal(review.lodQuality.silhouetteGuard, true);
+  assert.ok(review.warnings.some(message => message.includes('LOD0 triangles')));
+  assert.ok(review.warnings.some(message => message.includes('materials')));
+  assert.ok(review.warnings.some(message => message.includes('draw calls')));
   const failed = evaluateAssetOptimization({ plan, audit: { ...audit, errors: ['shape keys require authored LOD'] } });
   assert.equal(failed.gate, 'fail');
+  assert.equal(failed.lodQuality.silhouetteGuard, false);
   assert.ok(failed.errors[0].includes('shape keys'));
 });
 
@@ -64,7 +83,11 @@ test('runner emits a single machine-readable report and verifies stage artifacts
   const exec = (_command, args) => {
     if (args[0].endsWith('generate-lods.mjs')) {
       writeFileSync(plan.outputs.lod, 'lod');
-      writeFileSync(plan.outputs.audit, JSON.stringify({ errors: [], objects: [{ triangles: 5000, lods: [{ level: 1, triangles: 2400 }, { level: 2, triangles: 1000 }] }] }));
+      writeFileSync(plan.outputs.audit, JSON.stringify({
+        errors: [],
+        summary: { materialCount: 3, estimatedDrawCalls: 4 },
+        objects: [{ source: 'tree_LOD0', triangles: 5000, materialSlots: 3, lods: [{ level: 1, triangles: 2400 }, { level: 2, triangles: 1000 }] }],
+      }));
     } else if (args[0].endsWith('compress-gltf.mjs')) {
       writeFileSync(plan.outputs.optimized, 'optimized');
     }
@@ -76,4 +99,5 @@ test('runner emits a single machine-readable report and verifies stage artifacts
   assert.equal(report.schema, 'soul-asset-optimization');
   assert.equal(report.plan.role, 'prop');
   assert.equal(report.evaluation.triangles.lod2, 1000);
+  assert.equal(report.evaluation.materials, 3);
 });
