@@ -3163,6 +3163,14 @@
       "workerId": "work/866e55ef0f5e/20260915T1018Z-pr229",
       "type": "WORK_REPAIR_CLAIMED",
       "action": "work/866e55ef0f5e/20260915T1018Z-pr229: semantic repair 1/2"
+    },
+    {
+      "id": "wave-34952605763-1-pr-229-a1:RETURNED_TO_INTEGRATION:1789469083775:1231",
+      "at": "2026-09-15T10:44:43.775Z",
+      "pr": 229,
+      "workerId": "work/866e55ef0f5e/20260915T1018Z-pr229",
+      "type": "RETURNED_TO_INTEGRATION",
+      "action": "Workの仕様確認・fast検証・元PRへのpushを確認。通常Integrationへ返却"
     }
   ],
   "config": {
@@ -14344,14 +14352,14 @@
       "claimedAt": "2026-09-15T09:28:30.613Z",
       "claimedBy": "34952605763/pr-229/a1",
       "contractFingerprint": "9e1f55e74c8298b07fa6f71905bc29e42b21de6c113afc133271b1628901d0bb",
-      "currentAction": "既存ChatGPT Workがsemantic停止を再評価し両側の仕様を保って修復",
-      "currentStep": "RESOLVING",
+      "currentAction": "Workの仕様確認・fast検証・元PRへのpushを確認。通常Integrationへ返却",
+      "currentStep": "RETURNED_TO_INTEGRATION",
       "dependencies": [
         226
       ],
       "detail": "",
       "detectedAt": "2026-09-14T09:02:54.475Z",
-      "developSha": "75f5e1dfc00a1970b5163465331b03426b22d232",
+      "developSha": "90da2b79a2219bfb9bee0699886cf6cf596cf782",
       "failureReason": "FAILED_MANUAL:SEMANTIC_CONFLICT:apps/demon/src/adaptive-visual-performance.js,apps/demon/tests/stylized-performance.test.mjs,apps/village/src/adaptive-visual-performance.js,apps/village/src/asset-visuals.js,apps/village/tests/stylized-performance.test.",
       "failures": [
         {
@@ -14363,7 +14371,7 @@
           "workerId": "34952605763/pr-229/a1"
         }
       ],
-      "headSha": "f1a7f593ae094acf043700c44460ae52ebe6a8fe",
+      "headSha": "9b8a0d273739cf568f7e7c54a8649492d0657d2e",
       "heartbeatAt": "2026-09-15T09:28:30.613Z",
       "lastFailureFingerprint": "other:8ac4d6b1fc54c147",
       "lease": null,
@@ -14536,15 +14544,15 @@
         "headSha": "f1a7f593ae094acf043700c44460ae52ebe6a8fe",
         "mergeBaseSha": "45e58cf970947a1c4c3a41ff139e73c1b844daf7"
       },
-      "state": "FAILED_MANUAL",
+      "state": "RETURNED_TO_INTEGRATION",
       "title": "feat(world): complete shared-world scale architecture",
-      "updatedAt": "2026-09-15T10:21:50.488Z",
+      "updatedAt": "2026-09-15T10:44:43.775Z",
       "waitingReason": null,
       "wave": "wave-34952605763-1",
       "workRepairAttempts": 1,
       "workRepair": {
         "workerId": "work/866e55ef0f5e/20260915T1018Z-pr229",
-        "status": "working",
+        "status": "returned",
         "attempt": 1,
         "maxAttempts": 2,
         "repairKind": "semantic",
@@ -14769,8 +14777,20 @@
             }
           }
         },
-        "pushPreparedAt": "2026-09-15T10:43:03.134Z"
-      }
+        "pushPreparedAt": "2026-09-15T10:43:03.134Z",
+        "finishedAt": "2026-09-15T10:44:43.775Z"
+      },
+      "pushedSha": "9b8a0d273739cf568f7e7c54a8649492d0657d2e",
+      "validation": {
+        "status": "passed",
+        "tree": "7f3a1761d0e3a889789c735af6c987cbce8a1865",
+        "testedTree": "7f3a1761d0e3a889789c735af6c987cbce8a1865",
+        "command": "npm ci; focused 63/63; node scripts/validate.mjs fast 90da2b79a2219bfb9bee0699886cf6cf596cf782 b251796dc2a687c2980fd79b9a2deda8e71eeff6 (1020 passed, 1 skipped); builds demon/rinne/village",
+        "head": "9b8a0d273739cf568f7e7c54a8649492d0657d2e"
+      },
+      "returnedAt": "2026-09-15T10:44:43.775Z",
+      "pushedAt": "2026-09-15T10:44:43.775Z",
+      "pendingIntegration": true
     },
     "231": {
       "attempt": 1,
@@ -19424,9 +19444,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1231,
+  "revision": 1232,
   "schema": 1,
-  "updatedAt": "2026-09-15T10:43:03.134Z",
+  "updatedAt": "2026-09-15T10:44:44.824Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
