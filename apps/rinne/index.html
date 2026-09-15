@@ -25,6 +25,7 @@
       <button id="continue-life" class="primary" type="button" hidden><strong>つづきから</strong><small id="continue-detail"></small></button>
       <button id="new-life" class="primary" type="button"><strong>新しい人生</strong><small>0歳から100歳まで、一つの生を歩く</small></button>
       <a class="secondary" href="./simulator/index.html"><strong>稽古場</strong><small>技と装備の調整</small></a>
+      <button id="open-village" class="secondary" type="button"><strong>村へ参加</strong><small>村長の参加コードでつながる</small></button>
     </div>
     <p id="boot-status" class="boot-status" role="status" aria-live="polite">準備できています</p>
     <footer><span id="build-label">LOCAL</span><span>輪廻転焦</span></footer>
@@ -46,6 +47,11 @@
     <p id="move-hint" class="move-hint">スワイプした方向へ歩く</p>
   </section>
 </main>
+<dialog id="village-dialog" aria-labelledby="village-dialog-title">
+  <form method="dialog"><button id="close-village" type="button" aria-label="村への参加を閉じる">閉じる</button></form>
+  <h2 id="village-dialog-title">村へ参加</h2>
+  <div id="village-panel"></div>
+</dialog>
 <noscript>100年人生を開くにはJavaScriptを有効にしてください。</noscript>
 <script type="module" src="./src/main.js"></script>
 </body>
