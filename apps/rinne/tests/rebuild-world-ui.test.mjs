@@ -48,7 +48,7 @@ test('actor status is reusable and birth teaches through the mother instead of a
 test('runtime preboots renderer/world once and session disposal preserves prepared resources',()=>{
   assert.match(runtime,/export async function prepareRuntime/);assert.match(runtime,/createWorldRenderer\(\{canvas,document,layout,stations\}\)/);assert.match(runtime,/canvas\.dataset\.runtime=['"]prepared['"]/);
   assert.match(runtime,/prepared\|\|await prepareRuntime/);assert.match(runtime,/host\.active=true/);assert.match(runtime,/host\.active=false/);assert.match(runtime,/if\(ownsPrepared\)host\.dispose\(\)/);
-  assert.match(runtime,/\$\(['"]back-title['"]\)\.onclick=async\(\)=>\{await save\(\);dispose\(\);onExit\?\.\(\);\}/);
+  assert.match(runtime,/\$\(['"]back-title['"]\)\.onclick=async\(\)=>\{await save\(\);dispose\(\);await onExit\?\.\(\);\}/,'exit must await room disposal before another session can start');
 });
 
 test('Rinne lowers only its procedural textile startup density while shared default quality stays intact',()=>{

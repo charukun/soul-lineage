@@ -39,7 +39,8 @@ export function createBirthExperience({document,canvas,gameScreen,view,stations,
   }
   function afterRender(dt,{carrierMoving=false}={}){
     motionTime+=dt;
-    if(mother){
+    if(view.setCarrierMotion)view.setCarrierMotion({active:active(),moving:carrierMoving,speed:carrierSpeed});
+    else if(mother){
       const legs=mother.userData.legs||[],cadence=Math.min(11.5,6.2+carrierSpeed*.72);
       if(active()&&carrierMoving)legs.forEach((leg,i)=>leg.rotation.x=Math.sin(motionTime*cadence+(i%2)*Math.PI)*.38);else legs.forEach(leg=>leg.rotation.x*=.72);
       const body=mother.userData.body;if(body)body.rotation.z=active()?Math.sin(motionTime*(carrierMoving?2.6:1.15))*.01:0;
@@ -50,7 +51,7 @@ export function createBirthExperience({document,canvas,gameScreen,view,stations,
     if(!active())return;tour.reset();stuck=0;carrierSpeed=0;introRemaining=2.5;gameScreen.dataset.birthTour='true';status.show('抱っこされている…');
     clearTimeout(introTimer);introTimer=setTimeout(()=>{const state=getState();if(active())dialogue('母',`${state.name}、お外は初めてだね。今日は一緒に村を見てまわろう。`);},650);
   }
-  function release(){clearTimeout(introTimer);introRemaining=0;carrierSpeed=0;gameScreen.dataset.birthTour='false';status.show('自分の足で歩けるようになった');dialogue('母','さあ、地面へ。今日からは自分の足で歩けるよ。');}
-  function dispose(){clearTimeout(introTimer);introRemaining=0;carrierSpeed=0;status.dispose();gameScreen.dataset.birthTour='false';}
+  function release(){clearTimeout(introTimer);introRemaining=0;carrierSpeed=0;view.setCarrierMotion?.({active:false,moving:false,speed:0});gameScreen.dataset.birthTour='false';status.show('自分の足で歩けるようになった');dialogue('母','さあ、地面へ。今日からは自分の足で歩けるよ。');}
+  function dispose(){clearTimeout(introTimer);introRemaining=0;carrierSpeed=0;view.setCarrierMotion?.({active:false,moving:false,speed:0});status.dispose();gameScreen.dataset.birthTour='false';}
   return{active,step,afterRender,showIntro,release,floatStatus:status.show,dispose,tour,pace};
 }

@@ -21,15 +21,16 @@ function placeState(state,layout){
   return state;
 }
 
-export async function prepareRuntime({buildInfo,onProgress}={}){
+export async function prepareRuntime({buildInfo,onProgress,layoutOverride}={}){
   const progress=async message=>{onProgress?.(message);await nextPaint();};
   const environment=String(buildInfo?.environment||'local'),platform=createWebPlatform({gameId:'rinne',environment,playerId:'local'}),saveKey='life-v2';
   await progress('村の地図をひらいています');
   const channel=createSharedWorldChannel({environment,validate:validateMuraLayout});
   let layout=defaultMuraLayout();try{layout=normalizeLayout(channel.read()||layout);}catch(error){console.warn('shared world:',error);}
+  if(layoutOverride)layout=normalizeLayout(validateMuraLayout(layoutOverride));
   const stations=buildStations(layout),canvas=$('game'),loading=$('loading-card'),gameScreen=$('game-screen');
   await progress('景色を描いています');
-  const view=createWorldRenderer({canvas,document,layout,stations});
+  const view=await createWorldRenderer({canvas,document,layout,stations});
   await progress('旅人を迎えています');
   const preview=placeState(createLife({name:'旅人',seed:0x51f15e,villageIds:[layout.id]}),layout);
   view.syncFront(null);view.renderState(preview,.016);canvas.dataset.runtime='prepared';
@@ -38,7 +39,7 @@ export async function prepareRuntime({buildInfo,onProgress}={}){
   return host;
 }
 
-export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepared}){
+export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepared,coop=null}){
   const ownsPrepared=!prepared,host=prepared||await prepareRuntime({buildInfo,onProgress});
   if(host.disposed)throw Error('描画世界は終了済みです');
   if(host.active)throw Error('人生はすでに始まっています');
@@ -46,7 +47,8 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   const {platform,saveKey,channel,layout,stations,canvas,loading,gameScreen,view}=host;
   let state=null;
   try{
-    if(mode==='continue'){
+    if(coop)state=structuredClone(coop.snapshot().view.me);
+    else if(mode==='continue'){
       const raw=await platform.storage.read(saveKey);if(raw)state=deserializeLife(raw);
     }
     if(!state)state=createLife({name,seed:(Date.now()>>>0),villageIds:[layout.id]});
@@ -54,11 +56,12 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   }catch(error){host.active=false;if(ownsPrepared)host.dispose();throw error;}
 
   let active=true,raf=0,last=performance.now(),saveElapsed=0,uiElapsed=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval,toastTimer=0,endDialog=null,pointer=null,keyboard={x:0,y:0},axis={x:0,y:0},portDwell=0,movementHint=true,movementHintTimer=0,chapterTimer=0,hurtTimer=0,lastChapter='';
-  let front=state.zone==='frontier'?normalizeFront(state.frontState,state.front,state.seed):null;if(front)state.frontState=front;
+  let front=coop?coop.snapshot().view.front:state.zone==='frontier'?normalizeFront(state.frontState,state.front,state.seed):null;if(front)state.frontState=front;
+  let coopTick=-1,coopEpoch=0,rebirthPending=false,inputElapsed=0;
   const birth=createBirthExperience({document,canvas,gameScreen,view,stations,getState:()=>state,dialogue});
 
   const toast=text=>{if(!text)return;$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1800);};
-  const save=async()=>{if(!active||!state)return false;try{state.frontState=front;await platform.storage.write(saveKey,serializeLife(state));return true;}catch(error){toast('保存失敗');console.error(error);return false;}};
+  const save=async()=>{if(!active||!state)return false;try{if(coop)return await coop.save();state.frontState=front;await platform.storage.write(saveKey,serializeLife(state));return true;}catch(error){toast('保存失敗');console.error(error);return false;}};
   function worldTone(guide){if(state.ended||guide.tone==='rebirth')return'rebirth';if(state.zone==='frontier')return'frontier';if(guide.tone==='home')return'home';return'village';}
   function showChapter(stage){
     if(!stage||stage===lastChapter)return;lastChapter=stage;
@@ -96,6 +99,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     if(state.homelands.includes(layout.id)){const o=document.createElement('option');o.value=layout.id;o.textContent=`故郷 · ${layout.name}`;select.append(o);}
     document.body.append(endDialog);
     endDialog.addEventListener('close',async()=>{if(endDialog.returnValue==='rebirth'){
+      if(coop){rebirthPending=true;void Promise.resolve(coop.rebirth(select.value||null)).catch(error=>{rebirthPending=false;toast(error.message);});endDialog.remove();endDialog=null;return;}
       state=rebirth(state,{villageId:select.value||null,villageIds:[layout.id]});front=null;state.frontState=null;view.syncFront(null);state.position=safeMuraPosition(layout,state.position);lastChapter='';await save();endDialog.remove();endDialog=null;syncUI();armMovementHint();showBirthIntro();toast(`${state.generation}代目 · 0歳`);
     }else endDialog.showModal();});endDialog.showModal();
   }
@@ -118,16 +122,31 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   function onPointerMove(event){if(!pointer||pointer.id!==event.pointerId||!active)return;const dx=event.clientX-pointer.x,dy=event.clientY-pointer.y,len=Math.hypot(dx,dy);if(len<12)setAxis({x:0,y:0});else setAxis({x:dx/Math.max(42,len),y:dy/Math.max(42,len)});event.preventDefault();}
   function onPointerUp(event){if(!pointer||pointer.id!==event.pointerId)return;pointer=null;setAxis(keyboard);event.preventDefault();}
   const keys=new Set();function syncKeys(){keyboard={x:(keys.has('ArrowRight')||keys.has('KeyD')?1:0)-(keys.has('ArrowLeft')||keys.has('KeyA')?1:0),y:(keys.has('ArrowDown')||keys.has('KeyS')?1:0)-(keys.has('ArrowUp')||keys.has('KeyW')?1:0)};if(!pointer)setAxis(keyboard);}
-  function keydown(e){if(!active)return;if(['ArrowRight','ArrowLeft','ArrowUp','ArrowDown','KeyW','KeyA','KeyS','KeyD'].includes(e.code)){keys.add(e.code);syncKeys();e.preventDefault();}}
+  function keydown(e){if(!active||document.querySelector('dialog[open]')||e.target?.closest?.('input,textarea,select'))return;if(['ArrowRight','ArrowLeft','ArrowUp','ArrowDown','KeyW','KeyA','KeyS','KeyD'].includes(e.code)){keys.add(e.code);syncKeys();e.preventDefault();}}
   function keyup(e){keys.delete(e.code);syncKeys();}
   canvas.addEventListener('pointerdown',onPointerDown,{passive:false});canvas.addEventListener('pointermove',onPointerMove,{passive:false});canvas.addEventListener('pointerup',onPointerUp,{passive:false});canvas.addEventListener('pointercancel',onPointerUp,{passive:false});
   window.addEventListener('keydown',keydown);window.addEventListener('keyup',keyup);
-  $('clock-rate').onchange=e=>{try{setClockRate(state,Number(e.target.value));void save();}catch(error){toast(error.message);}};
-  $('back-title').onclick=async()=>{await save();dispose();onExit?.();};
+  $('clock-rate').disabled=coop?.role==='guest';
+  $('clock-rate').onchange=e=>{try{if(coop)void Promise.resolve(coop.setRate(Number(e.target.value))).catch(error=>toast(error.message));else{setClockRate(state,Number(e.target.value));void save();}}catch(error){toast(error.message);}};
+  $('back-title').onclick=async()=>{await save();dispose();await onExit?.();};
   const unsubscribeWorld=channel.subscribe(next=>{if(!next||next.id!==layout.id)return;toast('村更新 · 次回起動');},error=>console.warn(error));
+
+  function renderCoopFrame(dt){
+    const snapshot=coop.snapshot(),shared=snapshot.view,open=snapshot.phase==='open';$('coop-darkness').hidden=open;
+    inputElapsed+=dt;if(inputElapsed>=.05){inputElapsed=0;const direction=open&&!document.hidden&&!document.querySelector('dialog[open]')?view.cameraVector(axis):{x:0,z:0};coop.input({x:direction.x*Math.min(1,Math.hypot(axis.x,axis.y)),z:direction.z*Math.min(1,Math.hypot(axis.x,axis.y))});}
+    if(shared&&(shared.tick!==coopTick||shared.epoch!==coopEpoch)){
+      coopTick=shared.tick;coopEpoch=shared.epoch;Object.assign(canvas.dataset,{coopWorld:coop.worldId,coopPlayer:coop.selfId,coopTick:String(shared.tick),coopEpoch:String(shared.epoch),coopSeconds:String(shared.worldSeconds),coopPosition:JSON.stringify(shared.me.position),coopPeers:JSON.stringify(shared.peers.map(peer=>({id:peer.playerId,position:peer.position})))});const oldId=state.id;const previousStage=front?.stage;state=shared.me;front=shared.front;
+      if(oldId!==state.id){rebirthPending=false;lastChapter='';showBirthIntro();}
+      if(previousStage!==front?.stage)view.syncFront(front);else view.updateFront(front);view.syncPeers(shared.peers);handleEvents(shared.events||[]);
+      $('coop-people').textContent=`接続 ${shared.connected||1}人 · ${shared.peers.map(peer=>peer.name).join(' / ')}`;
+    }
+    uiElapsed+=dt;if(uiElapsed>=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval){uiElapsed=0;syncUI();}
+    if(Math.hypot(axis.x,axis.y)>.08&&open&&movementHint){movementHint=false;$('move-hint').hidden=true;}if(state.ended&&!rebirthPending)endLife();view.renderState(state,open?dt:0);birth.afterRender(open?dt:0,{carrierMoving:open&&Math.hypot(axis.x,axis.y)>.08});
+  }
 
   function frame(now){
     if(!active)return;raf=requestAnimationFrame(frame);const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
+    if(coop){renderCoopFrame(dt);return;}
     let moved=false,carrierMoving=false;const mag=Math.hypot(axis.x,axis.y),birthStep=birth.step(dt,axis);
     if(birthStep.handled){moved=birthStep.moved;carrierMoving=birthStep.carrierMoving;}
     else if(mag>.08&&!state.ended&&!state.down){const direction=view.cameraVector(axis),speed=speedForAge(state.ageYears)*(state.combat?.72:1),nx=state.position.x+direction.x*speed*dt,nz=state.position.z+direction.z*speed*dt;
@@ -150,6 +169,8 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   }
 
   function pagehide(){void save();}
+  function visibility(){coop?.pause(document.hidden);if(document.hidden){keys.clear();pointer=null;setAxis({x:0,y:0});}}
+  document.addEventListener('visibilitychange',visibility);
   window.addEventListener('pagehide',pagehide);
   if(front)view.syncFront(front);else view.syncFront(null);view.renderState(state,.016);birth.afterRender(.016,{carrierMoving:false});syncUI();uiElapsed=0;loading.hidden=true;canvas.dataset.runtime='active';
   armMovementHint();showBirthIntro();raf=requestAnimationFrame(frame);void save();
@@ -157,6 +178,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   function dispose(){
     if(!active)return;active=false;host.active=false;cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);birth.dispose();unsubscribeWorld();
     window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('pagehide',pagehide);canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);
+    document.removeEventListener('visibilitychange',visibility);for(const key of Object.keys(canvas.dataset))if(key.startsWith('coop'))delete canvas.dataset[key];view.syncPeers([]);$('coop-darkness').hidden=true;$('coop-people').textContent='';$('clock-rate').disabled=false;
     keys.clear();pointer=null;setAxis({x:0,y:0});endDialog?.remove();endDialog=null;$('dialogue').hidden=true;$('toast').hidden=true;canvas.dataset.runtime='prepared';
     if(ownsPrepared)host.dispose();
   }

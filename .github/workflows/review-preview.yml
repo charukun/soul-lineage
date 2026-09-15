@@ -1,0 +1,83 @@
+name: Visual Review Preview
+
+on:
+  workflow_run:
+    workflows: ["Deploy DEV and PROD"]
+    types: [completed]
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: visual-review-develop
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Publish latest develop review
+    if: vars.REVIEW_PREVIEW_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Resolve exact develop head
+        id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Mark Visual Review pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$SOURCE_SHA" \
+            -f state=pending \
+            -f context=visual-review/public \
+            -f description="Visual Review: building latest develop" \
+            -f target_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+      - run: npm ci
+      - run: npm run build:review
+      - name: Confirm develop did not move before publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/branches/develop" --jq .commit.sha)
+          test "$latest" = "$SOURCE_SHA"
+      - name: Deploy fixed Visual Review URL
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --yes wrangler@4 deploy --config wrangler.review.jsonc
+      - name: Record Visual Review result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+        run: |
+          state=failure
+          description="Visual Review publication failed"
+          target_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [ "$DEPLOY_OUTCOME" = "success" ]; then
+            state=success
+            description="Visual Review is live from latest develop"
+            target_url="https://rinne-visual-review.c-okamoto.workers.dev/"
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$SOURCE_SHA" \
+            -f state="$state" \
+            -f context=visual-review/public \
+            -f description="$description" \
+            -f target_url="$target_url"

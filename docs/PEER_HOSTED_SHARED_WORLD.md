@@ -2,6 +2,8 @@
 
 ## Rinne DEV cooperative play acceptance
 
+現在の本編接続、友達への招待手順、検証と制限は [友達とのDEV試遊](../apps/rinne/docs/FRIEND_PLAY.md) を参照。
+
 Rinne's current rebuilt game must expose an explicit private friend-play entry connected to its actual renderer, life progression and shared frontier. The standalone text-only online panel is not proof of playable multiplayer. This opt-in entry is separate from MURAAAAAAA's exterior-only sightseeing invitation and must not expand sightseeing permissions.
 
 - Keep the shared-room limit at 30 participants; measure support rather than claim 30-device certification.

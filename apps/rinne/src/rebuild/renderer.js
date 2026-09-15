@@ -4,18 +4,14 @@ import { createMuraModels } from '@soul/rendering/mura';
 import { createMuraTerrain, flattenMuraModel } from '@soul/rendering/mura/terrain';
 import { createAdaptiveQualityGovernor } from '@soul/rendering/adaptive-quality';
 import { applyStylizedShading } from '@soul/rendering/stylized-shading';
+import { createRinneCharacterStage } from './runtime-character-stage.js';
 import { renderPixelRatio, targetFpsForView } from './performance.js';
 import { cameraOffsetForPosition, createCameraPositionControl } from './camera-position-control.js';
+import { rinneCombatCameraFrame } from './combat-camera.js';
 import './camera-position-control.css';
 
-const disposeObject=root=>root.traverse?.(o=>{if(o.geometry?.dispose)o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])if(m?.dispose)m.dispose();});
-const ageScale=years=>{
-  const rows=[[0,.4],[3,.49],[7,.64],[12,.8],[18,.98],[22,1],[50,1],[65,.985],[80,.955],[90,.935],[100,.91]];
-  for(let i=1;i<rows.length;i++)if(years<=rows[i][0]){const[a,x]=rows[i-1],[b,y]=rows[i],t=Math.max(0,Math.min(1,(years-a)/(b-a)));return x+(y-x)*(t*t*(3-2*t));}
-  return .91;
-};
-
-export function createWorldRenderer({canvas,document:doc,layout,stations}){
+const disposeObject=root=>root?.traverse?.(o=>{if(o.geometry?.dispose)o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])if(m?.dispose)m.dispose();});
+export async function createWorldRenderer({canvas,document:doc,layout,stations}){
   const renderWindow=doc.defaultView||globalThis,basePixelRatio=Number(renderWindow?.devicePixelRatio)||1,targetFps=targetFpsForView(renderWindow);
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance',alpha:false});
   renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.06;
@@ -27,8 +23,7 @@ export function createWorldRenderer({canvas,document:doc,layout,stations}){
   const sun=new THREE.DirectionalLight(0xffd493,2.65);sun.position.set(-12,25,15);scene.add(sun);
 
   const root=new THREE.Group(),land=new THREE.Group(),objects=new THREE.Group(),stationsRoot=new THREE.Group(),frontRoot=new THREE.Group();root.add(land,objects,stationsRoot);scene.add(root,frontRoot);frontRoot.visible=false;
-  // The shared renderer keeps the full 14k-fiber default. Rinne's phone-first runtime uses a lighter
-  // microtexture because silhouette, lighting and authored geometry carry the visible style here.
+  // Mura models are environment-only in Rinne. Runtime humanoids are exclusively created by the Character Presentation pool below.
   const models=createMuraModels(THREE,{createCanvas:()=>doc.createElement('canvas'),textileFibers:2800,textileBlotches:72}),cache=new Map();
   const getProp=kind=>{if(!cache.has('prop:'+kind))cache.set('prop:'+kind,flattenMuraModel(THREE,models.prop(kind,14)));return cache.get('prop:'+kind);};
   const terrain=createMuraTerrain({THREE,scene,outside:land,getProp,mat:models.mat,createCanvas:()=>doc.createElement('canvas')});
@@ -68,43 +63,13 @@ export function createWorldRenderer({canvas,document:doc,layout,stations}){
   for(const x of[-2.2,0,2.2])box(frontRoot,[1.4,.25,.7],[x,.12,-6.25],0xa47768);
   const rescuePad=new THREE.Mesh(new THREE.RingGeometry(.8,1.0,32),new THREE.MeshBasicMaterial({color:0xffd470,side:THREE.DoubleSide}));rescuePad.rotation.x=-Math.PI/2;rescuePad.position.set(0,.03,5.2);frontRoot.add(rescuePad);
   applyStylizedShading(root,'environment');applyStylizedShading(frontRoot,'environment');
-  const enemyMeshes=new Map();let enemyRosterKey='';
-  function updateFront(front){
-    for(const enemy of front?.enemies||[]){const node=enemyMeshes.get(enemy.id);if(!node)continue;node.position.set(enemy.x,0,enemy.z);node.visible=!enemy.dead;const body=node.userData.body;if(body)body.rotation.z=enemy.flash?Math.sin(elapsed*30)*.08:0;}
-  }
-  function syncFront(front){
-    const enemies=front?.enemies||[],rosterKey=`${front?.stage??'none'}:${enemies.map(e=>e.id).join('|')}`;
-    if(rosterKey!==enemyRosterKey){
-      enemyRosterKey=rosterKey;const liveIds=new Set(enemies.map(e=>e.id));
-      // createMuraModels shares geometry/material caches between people. Removing a stage actor must not dispose shared GPU resources still used by the hero/mother/new stage.
-      for(const[id,node]of enemyMeshes)if(!liveIds.has(id)){node.removeFromParent();enemyMeshes.delete(id);}
-      for(const enemy of enemies)if(!enemyMeshes.has(enemy.id)){const node=models.person(enemy.id.length+11,true,'resident');node.scale.setScalar(front?.stage>=5?1.35:1.05);applyStylizedShading(node,'enemy');enemyMeshes.set(enemy.id,node);frontRoot.add(node);}
-    }
-    updateFront(front);
-  }
 
-  const hero=models.person(5,false,'player');hero.name='Player';applyStylizedShading(hero,'hero');scene.add(hero);
-  const mother=models.person(23,false,'resident');mother.name='Mother';applyStylizedShading(mother,'npc');scene.add(mother);
-  const equipmentRoot=new THREE.Group();hero.add(equipmentRoot);let equipmentWeapon=null,equipmentArmor=null,equipmentShield=null;
-  function syncEquipment(equipment){
-    if(equipment.weapon===equipmentWeapon&&equipment.armor===equipmentArmor&&equipment.shield===equipmentShield)return;
-    equipmentWeapon=equipment.weapon;equipmentArmor=equipment.armor;equipmentShield=equipment.shield;
-    for(const child of [...equipmentRoot.children]){equipmentRoot.remove(child);disposeObject(child);}
-    const armor=equipment.armor;
-    if(armor!=='cloth'){
-      const c=armor==='heavy'?0x69747b:0x839493;
-      box(equipmentRoot,[.82,.72,.28],[0,1.05,-.02],c);
-      box(equipmentRoot,[.24,.18,.34],[-.47,1.28,0],c);box(equipmentRoot,[.24,.18,.34],[.47,1.28,0],c);
-      if(armor==='heavy')box(equipmentRoot,[.72,.18,.34],[0,.72,0],0x59636a);
-    }
-    if(equipment.weapon!=='fist'){
-      const w=weaponVisual(equipment.weapon);w.position.set(.48,.60,.12);w.rotation.set(.1,0,-.2);equipmentRoot.add(w);
-    }
-    if(equipment.shield){const shield=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.09,14),mat(0x78919c,{metalness:.35,roughness:.48}));shield.rotation.x=Math.PI/2;shield.position.set(-.48,1.04,.18);equipmentRoot.add(shield);}
-    applyStylizedShading(equipmentRoot,'hero');
-  }
+  const characterStage=await createRinneCharacterStage({renderer,scene,frontRoot,weaponVisual,mat,disposeObject});
+  const {syncEquipment,setCarrierMotion,syncPeers}=characterStage;let currentFront=null;
+  function syncFront(front){currentFront=front||null;characterStage.syncFront(front);}
+  function updateFront(front){currentFront=front||null;characterStage.updateFront(front);}
 
-  const target=new THREE.Vector3(),desired=new THREE.Vector3(),moveVector=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),camOffset=new THREE.Vector3(10.5,11.5,14.5);let elapsed=0;
+  const target=new THREE.Vector3(),cameraLook=new THREE.Vector3(),desired=new THREE.Vector3(),moveVector=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),camOffset=new THREE.Vector3(10.5,11.5,14.5);let elapsed=0,cameraLookReady=false;
   const cameraControl=createCameraPositionControl({document:doc,container:canvas.parentElement,onChange:position=>{camOffset.set(...cameraOffsetForPosition(position));canvas.dataset.cameraPosition=String(Math.round(position*100));}});
   function resize(){const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
@@ -119,16 +84,18 @@ export function createWorldRenderer({canvas,document:doc,layout,stations}){
   }
   function canMoveTo(x,z,radius=.32,zone='village'){if(zone==='frontier')return Math.abs(x)<7.15-radius&&z>-6.45+radius&&z<6.1-radius;return !muraBlocked(layout,x,z,radius);}
   function renderState(state,dt=0){
-    elapsed+=dt;if(dt>0&&!doc.hidden)qualityGovernor.observeFrame(dt);syncEquipment(state.equipment);const s=ageScale(state.ageYears),birth=state.phase==='birth',village=state.zone==='village';root.visible=village;frontRoot.visible=!village;
-    hero.scale.setScalar(s);hero.rotation.y=state.yaw;mother.rotation.y=state.yaw;
-    if(birth&&village){mother.visible=true;mother.position.set(state.position.x,0,state.position.z);hero.position.set(state.position.x+Math.sin(state.yaw)*.24,1.02,state.position.z+Math.cos(state.yaw)*.24);}
-    else{mother.visible=false;hero.position.set(state.position.x,0,state.position.z);}
-    const legs=hero.userData.legs||[];if(state.moving)legs.forEach((leg,i)=>leg.rotation.x=Math.sin(elapsed*8+(i%2)*Math.PI)*.48);else legs.forEach(leg=>leg.rotation.x*=.72);
-    const body=hero.userData.body;if(body)body.rotation.z=Math.sin(elapsed*1.4)*.012;
-    target.set(state.position.x,1.15,state.position.z);desired.copy(target).add(camOffset);camera.position.lerp(desired,1-Math.pow(.001,Math.min(.05,dt||.016)));camera.lookAt(target);
+    elapsed+=dt;if(dt>0&&!doc.hidden)qualityGovernor.observeFrame(dt);characterStage.render(state,dt);
+    const village=state.zone==='village';root.visible=village;frontRoot.visible=!village;
+    const combatFrame=rinneCombatCameraFrame({player:state.position,enemies:currentFront?.enemies,targetId:state.combat?.targetId,active:!!state.combat});cameraControl.setCombat(!!combatFrame);canvas.dataset.combatCamera=String(!!combatFrame);
+    if(combatFrame){target.set(combatFrame.look.x,combatFrame.look.y,combatFrame.look.z);desired.set(target.x+combatFrame.offset.x,target.y+combatFrame.offset.y,target.z+combatFrame.offset.z);}
+    else{target.set(state.position.x,1.15,state.position.z);desired.copy(target).add(camOffset);}
+    const step=Math.min(.05,dt||.016),positionBlend=1-Math.exp(-(combatFrame?5.6:6.9)*step),lookBlend=1-Math.exp(-(combatFrame?7.2:9.2)*step);camera.position.lerp(desired,positionBlend);if(!cameraLookReady){cameraLook.copy(target);cameraLookReady=true;}else cameraLook.lerp(target,lookBlend);camera.lookAt(cameraLook);
     if(village){terrain.waterMat.uniforms.time.value=elapsed;terrain.motes.position.y=Math.sin(elapsed*.35)*.15;}
     renderer.render(scene,camera);
   }
-  function dispose(){observer.disconnect();cameraControl.dispose();disposeObject(hero);disposeObject(mother);root.removeFromParent();frontRoot.removeFromParent();hero.removeFromParent();mother.removeFromParent();for(const v of cache.values())disposeObject(v);for(const n of enemyMeshes.values())disposeObject(n);renderer.dispose();}
-  return{THREE,scene,camera,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,updateFront,resize,qualitySnapshot:()=>qualityGovernor.snapshot(),dispose};
+  function dispose(){
+    observer.disconnect();cameraControl.dispose();characterStage.dispose();
+    root.removeFromParent();frontRoot.removeFromParent();for(const v of cache.values())disposeObject(v);renderer.dispose();
+  }
+  return{THREE,scene,camera,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,updateFront,setCarrierMotion,syncPeers,resize,qualitySnapshot:()=>qualityGovernor.snapshot(),dispose};
 }
