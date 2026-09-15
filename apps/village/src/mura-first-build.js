@@ -7,6 +7,7 @@ const {world,view,ui}=village,$=id=>document.getElementById(id);
 const panel=$('placement'),done=$('cancelPlace'),label=$('placementText'),canvas=view.canvas||$('game');
 const actions=panel.querySelector('.actions'),rotateRight=$('rotate'),cancel=$('muraCancelPlacement');
 const originalCanvasLabel=canvas.getAttribute('aria-label')||'村';
+label.setAttribute('role','status');label.setAttribute('aria-live','polite');
 
 const rotateLeft=document.createElement('button');
 rotateLeft.id='muraRotateLeft';rotateLeft.type='button';rotateLeft.textContent='↺';rotateLeft.setAttribute('aria-label','左へ90度回転');
@@ -140,11 +141,12 @@ async function commitCurrentPlacement(){
  village.cancelPlacement();
  if(id)village.selection(id,room);
  world.notify(result.message,'life');
+ showUndo(snapshot);refresh();
  try{
   const saved=await village.save();
   notice(saved===false?`${result.message}。保存できません。設定から書き出してください`:result.message,3000);
  }catch(error){notice(`${result.message}。保存できません：${error.message}`,4000);}
- finally{busy=false;showUndo(snapshot);refresh();}
+ finally{busy=false;refresh();}
  return true;
 }
 done.onclick=()=>void commitCurrentPlacement();
