@@ -6,25 +6,25 @@ const fallbackSquare=layout=>built(layout,['campfire'])||built(layout,['mayor','
 const FALLBACK_OFFSETS=Object.freeze({home:[-4,-4],garden:[0,0],school:[-5,2],library:[-3,5],chapel:[0,6],dojo:[3,5],smith:[6,2],clinic:[5,-3]});
 const LOCAL_OFFSETS=Object.freeze({school:[-1.2,0],library:[1.2,0]});
 
-function place(layout,id,kinds,label,activity=null,radius=2.4){
+function place(layout,id,kinds,label,activity=null,radius=2.4,topicId=null){
   const object=built(layout,kinds),fallback=fallbackSquare(layout),anchor=object||fallback;
   let position=anchor?muraEntry(anchor):{x:0,z:0};
   const [dx,dz]=object?(LOCAL_OFFSETS[id]||[0,0]):(FALLBACK_OFFSETS[id]||[0,0]);position={x:position.x+dx,z:position.z+dz};
-  return {id,entityId:object?.id||fallback?.id||null,label:object?defs[object.kind]?.label||label:label,x:position.x,z:position.z,activity,actionLabel:label,radius,fallback:!object};
+  return {id,entityId:object?.id||fallback?.id||null,facilityKind:object?.kind||kinds[0]||null,topicId,label:object?defs[object.kind]?.label||label:label,x:position.x,z:position.z,activity,actionLabel:label,radius,fallback:!object};
 }
 
 export function normalizeLayout(raw){return raw?validateMuraLayout(raw):defaultMuraLayout();}
 
 export function buildStations(layout){
   layout=normalizeLayout(layout);
-  const home=place(layout,'home',['home','tent','clanManor','mayor'],'暮らしを手伝う','care');
-  const garden=place(layout,'garden',['campfire'],'広場で遊ぶ','play',3.0);
-  const school=place(layout,'school',['school'],'文字を学ぶ','study');
-  const library=place(layout,'library',['school'],'本を読む','read',1.0);
-  const chapel=place(layout,'chapel',['chapel'],'祈る','pray',2.0);
-  const dojo=place(layout,'dojo',['dojo'],'稽古を見る','train',2.1);
-  const smith=place(layout,'smith',['smith','weapons'],'鍛冶を見る','forge',2.0);
-  const clinic=place(layout,'clinic',['clinic'],'看護を手伝う','care',2.0);
+  const home=place(layout,'home',['home','tent','clanManor','mayor'],'暮らしを手伝う','care',2.4,'home-life');
+  const garden=place(layout,'garden',['campfire'],'広場で遊ぶ','play',3.0,'village-square');
+  const school=place(layout,'school',['school'],'文字を学ぶ','study',2.4,'school-learning');
+  const library=place(layout,'library',['school'],'本を読む','read',1.0,'books');
+  const chapel=place(layout,'chapel',['chapel'],'祈る','pray',2.0,'prayer');
+  const dojo=place(layout,'dojo',['dojo'],'稽古を見る','train',2.1,'training');
+  const smith=place(layout,'smith',['smith','weapons'],'鍛冶を見る','forge',2.0,'smithing');
+  const clinic=place(layout,'clinic',['clinic'],'看護を手伝う','care',2.0,'healing');
   const port=built(layout,['harbor']);
   const portEntry=port?muraEntry(port):{x:166,z:0};
   const stations=[home,garden,school,library,chapel,dojo,smith,clinic,
