@@ -26,4 +26,3 @@ export async function nativeTap(page, expect, locator) {
   await page.mouse.down();
   await page.mouse.up();
 }
-
