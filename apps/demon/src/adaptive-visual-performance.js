@@ -12,7 +12,7 @@ import { auditTransparency, combineTransparencyAudits } from '@soul/rendering/tr
 import { createThermalTrendGovernor } from '@soul/rendering/thermal-governor';
 import { applyVisualQualityFloor, markVisualQualityPriority } from '@soul/rendering/visual-quality-floor';
 import { deviceCapabilityProfile, saveDeviceCapability } from '@soul/platform-web/device-capability';
-import { demonEffectivePixelRatio, demonSceneQualityKey } from './runtime-visual-performance.js';
+import { demonEffectivePixelRatio, demonRenderQualityKey, demonSceneQualityKey } from './runtime-visual-performance.js';
 import { NightView } from './web/view.js';
 
 const governors = new WeakMap(), enemyFx = stylizedArtProfile('enemy').effects;
@@ -58,14 +58,20 @@ function occlusionRoots(view) {
 }
 
 function apply(view,snapshot,state=governors.get(view),{forceScene=false}={}) {
-  const q=snapshot.profile,sceneRevision=state?.sceneRevision||0,key=demonSceneQualityKey(snapshot,sceneRevision);
+  const q=snapshot.profile,sceneRevision=state?.sceneRevision||0,renderKey=demonRenderQualityKey(snapshot),sceneKey=demonSceneQualityKey(snapshot,sceneRevision);
   view.__stylizedQuality=snapshot;
-  if(!forceScene&&state?.appliedSceneKey===key)return false;
+  if(forceScene||state?.appliedRenderKey!==renderKey){
+    const enemyQuality=applyVisualQualityFloor(q,'enemy');
+    const dpr=state?.device?.dpr ?? globalThis.devicePixelRatio ?? view.renderer.getPixelRatio();
+    const ratio=demonEffectivePixelRatio(dpr,q.renderScale);
+    if (Math.abs(view.renderer.getPixelRatio()-ratio)>.01) { view.renderer.setPixelRatio(ratio); view.resize(); }
+    setShadowSize(view,q.shadowScale);
+    const vfxScale=Math.max(enemyQuality.vfxScale,enemyFx.scale*q.vfxScale);
+    view.stylizedVfxBudget={...enemyFx,scale:vfxScale,maxParticles:Math.max(120,Math.floor(enemyFx.maxParticles*vfxScale)),trailSegments:Math.max(12,Math.floor(enemyFx.trailSegments*vfxScale))};
+    if(state)state.appliedRenderKey=renderKey;
+  }
+  if(!forceScene&&state?.appliedSceneKey===sceneKey)return false;
   const enemyQuality=applyVisualQualityFloor(q,'enemy'),heroQuality=applyVisualQualityFloor(q,'hero');
-  const dpr=state?.device?.dpr ?? globalThis.devicePixelRatio ?? view.renderer.getPixelRatio();
-  const ratio=demonEffectivePixelRatio(dpr,q.renderScale);
-  if (Math.abs(view.renderer.getPixelRatio()-ratio)>.01) { view.renderer.setPixelRatio(ratio); view.resize(); }
-  setShadowSize(view,q.shadowScale);
   if(view.environment){
     view.environment.userData.visualQualityLevel=snapshot.level;
     applyTextureQuality(view.environment,{anisotropy:q.textureAnisotropy});
@@ -76,10 +82,8 @@ function apply(view,snapshot,state=governors.get(view),{forceScene=false}={}) {
     for(const child of view.actors.children||[]){child.userData.visualQualityLevel=snapshot.level;const profileId=child.userData?.stylizedArt?.profileId;if(profileId)applyStylizedShading(child,profileId);}
   }
   if(view.reaper?.root){view.reaper.root.userData.visualQualityLevel=snapshot.level;applyTextureQuality(view.reaper.root,{anisotropy:heroQuality.textureAnisotropy});applyStylizedShading(view.reaper.root,'hero');}
-  const vfxScale=Math.max(enemyQuality.vfxScale,enemyFx.scale*q.vfxScale);
-  view.stylizedVfxBudget={...enemyFx,scale:vfxScale,maxParticles:Math.max(120,Math.floor(enemyFx.maxParticles*vfxScale)),trailSegments:Math.max(12,Math.floor(enemyFx.trailSegments*vfxScale))};
   view.__estimatedTextureBytes=textureBytes(view);
-  if(state){state.appliedSceneKey=key;state.occlusionRoots=occlusionRoots(view);state.actorCount=view.actors?.children?.length||0;state.reaperReady=Boolean(view.reaper?.root);}
+  if(state){state.appliedSceneKey=sceneKey;state.occlusionRoots=occlusionRoots(view);state.actorCount=view.actors?.children?.length||0;state.reaperReady=Boolean(view.reaper?.root);}
   return true;
 }
 
@@ -91,14 +95,14 @@ function governorFor(view) {
   const gpu=createGpuTimer(view.renderer),recorder=createPerformanceRecorder({label:'demon'}),occlusion=createConservativeOcclusionCuller({maxChecksPerUpdate:6,minDistance:18,hiddenConfirmations:2});
   const thermal=createThermalTrendGovernor({sampleEverySeconds:5,baselineSamples:6,windowSamples:12});
   const governor=createGpuAwareQualityGovernor({targetFps:device.targetFps,initialLevel:device.initialQuality,onChange:s=>apply(view,s,governors.get(view))});
-  const state={governor,streamer,gpu,recorder,occlusion,thermal,device,sceneRevision:0,appliedSceneKey:null,actorCount:0,reaperReady:false,occlusionRoots:{occluders:[],candidates:[]},occlusionFrame:0,transparencyFrame:0,transparency:combineTransparencyAudits([]),staticBatch:null,stream:null};governors.set(view,state);
+  const state={governor,streamer,gpu,recorder,occlusion,thermal,device,sceneRevision:0,appliedRenderKey:null,appliedSceneKey:null,actorCount:0,reaperReady:false,occlusionRoots:{occluders:[],candidates:[]},occlusionFrame:0,transparencyFrame:0,transparency:combineTransparencyAudits([]),staticBatch:null,stream:null};governors.set(view,state);
   if(typeof window!=='undefined')window.__DEMON_ADAPTIVE_QUALITY__={snapshot:()=>({quality:governor.snapshot(),device,gpu:gpu.snapshot(),thermal:thermal.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),transparency:state.transparency,scene:performanceScene(view),staticBatch:state.staticBatch?{batches:state.staticBatch.batches,instances:state.staticBatch.instances}:null,stream:state.stream,vfx:view.stylizedVfxBudget,textureBytes:view.__estimatedTextureBytes||0})};
   return state;
 }
 
 const build=NightView.prototype.build;
 if(typeof build==='function'&&!build.__adaptiveVisualPerformance){
- const wrapped=function adaptiveDemonBuild(...args){const result=build.apply(this,args),state=governorFor(this);state.sceneRevision++;state.appliedSceneKey=null;markCritical(this);state.staticBatch=batchStaticMeshes(this.environment,{minInstances:3,maxInstances:256});apply(this,state.governor.snapshot(),state,{forceScene:true});return result;};
+ const wrapped=function adaptiveDemonBuild(...args){const result=build.apply(this,args),state=governorFor(this);state.sceneRevision++;state.appliedRenderKey=null;state.appliedSceneKey=null;markCritical(this);state.staticBatch=batchStaticMeshes(this.environment,{minInstances:3,maxInstances:256});apply(this,state.governor.snapshot(),state,{forceScene:true});return result;};
  wrapped.__adaptiveVisualPerformance=true;NightView.prototype.build=wrapped;
 }
 
@@ -108,7 +112,7 @@ if(typeof update==='function'&&!update.__adaptiveVisualPerformance){
   const state=governorFor(this);state.gpu.begin('demon-frame');
   const result=update.call(this,game,dt,...rest);state.gpu.end();const gpu=state.gpu.poll(),snapshot=state.governor.snapshot(),focus=game?.player||this.player?.position||{x:0,z:0};
   const actorCount=this.actors?.children?.length||0,reaperReady=Boolean(this.reaper?.root);
-  if(actorCount!==state.actorCount||reaperReady!==state.reaperReady){state.sceneRevision++;state.appliedSceneKey=null;markCritical(this);apply(this,snapshot,state,{forceScene:true});}
+  if(actorCount!==state.actorCount||reaperReady!==state.reaperReady){state.sceneRevision++;state.appliedRenderKey=null;state.appliedSceneKey=null;markCritical(this);apply(this,snapshot,state,{forceScene:true});}
   for(const actor of this.actors?.children||[])actor.userData.presentationDistance=Math.hypot((actor.position?.x||0)-(focus.x||0),(actor.position?.z||0)-(focus.z||0));
   if(this.reaper?.root)this.reaper.root.userData.presentationDistance=0;
   state.stream=state.streamer.update(this.environment,focus,snapshot.profile.streamDistanceScale);
