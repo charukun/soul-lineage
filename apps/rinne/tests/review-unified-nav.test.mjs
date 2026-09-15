@@ -11,6 +11,7 @@ test('Visual Review Lab navigation stays task-oriented and motion selection is c
   const cssV2 = await read('src/review/unified-review-nav-v2.css');
   const notebook = await read('src/review/notebook.js');
   const legacy = await read('motion-library.html');
+  const performanceHub = nav.slice(nav.indexOf('function renderPerformanceHub()'), nav.indexOf('function renderBattleHub()'));
   assert.match(ux, /import '.\/unified-review-nav\.js';/);
   assert.match(nav, /\['model', 'モデル'\]/);
   assert.match(nav, /\['skill', '技'\]/);
@@ -27,6 +28,8 @@ test('Visual Review Lab navigation stays task-oriented and motion selection is c
   assert.match(nav, /function renderSkillHub\(\)/);
   assert.match(nav, /function renderPerformanceHub\(\)/);
   assert.match(nav, /function renderBattleHub\(\)/);
+  assert.match(performanceHub, /querySelectorAll\('\[data-performance-mode\]'\)/);
+  assert.doesNotMatch(performanceHub, /stage-(?:jo|ha|kyu)/);
   assert.match(nav, /url\.searchParams\.set\('tab', 'battle-motion'\)/);
   assert.match(nav, /review-tool-grid/);
   assert.doesNotMatch(nav, /\['motion', 'モーション'\]/);
@@ -43,6 +46,10 @@ test('Visual Review Lab navigation stays task-oriented and motion selection is c
   assert.match(cssV2, /\.review-category-grid\{[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
   assert.match(cssV2, /\.unified-review-navigation \.picker-list\{[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
   assert.match(cssV2, /\.unified-review-navigation \.model-picker-list\{[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
+  assert.match(cssV2, /body\[data-review-section="skill"\] \.review-controls-dock \.review-page\[data-review-page="skill"\]\{[\s\S]*display:grid!important;[\s\S]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
+  assert.match(cssV2, /body\[data-review-section="skill"\] \.review-controls-dock \.review-category-hub\{display:none!important\}/);
+  assert.match(cssV2, /body:not\(\[data-review-section="skill"\]\) \.review-controls-dock \.review-page\[data-review-page="skill"\],[\s\S]*display:none!important/);
+  assert.match(cssV2, /body\[data-review-section="performance"\][\s\S]*review-page\[data-review-page="演舞"\][\s\S]*display:none!important/);
   assert.match(cssV2, /body\[data-review-section="battle"\][\s\S]*review-page\[data-review-page="battle"\][\s\S]*display:none!important/);
   assert.match(notebook, /id = 'picker-search'/);
   assert.match(notebook, /placeholder = 'モーションを検索'/);

@@ -1,4 +1,4 @@
-/* Follow-up shell rules: one visible selector surface, five columns at every phone width. */
+/* Follow-up shell rules: one visible selector surface. Catalog pickers stay five columns; the 序破急 composer owns three equal columns. */
 .unified-review-navigation .review-controls-dock:not([data-open="true"]){
   visibility:hidden!important;
   opacity:0!important;
@@ -13,8 +13,14 @@
 .unified-review-navigation .battle-quick-link,
 .unified-review-navigation .review-primary-switch{display:none!important}
 
-/* Top-level buttons own their content. Legacy pages never sit underneath those menus. */
-body[data-review-section="skill"] .review-controls-dock .review-page[data-review-page="skill"],
+/* 技 owns the 序破急 composer. 演舞 / 戦闘 own category hubs and never inherit that composer. */
+body[data-review-section="skill"] .review-controls-dock .review-page[data-review-page="skill"]{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:8px!important;
+}
+body[data-review-section="skill"] .review-controls-dock .review-category-hub{display:none!important}
+body:not([data-review-section="skill"]) .review-controls-dock .review-page[data-review-page="skill"],
 body[data-review-section="performance"] .review-controls-dock .review-page[data-review-page="演舞"],
 body[data-review-section="battle"] .review-controls-dock .review-page[data-review-page="battle"]{
   display:none!important;
@@ -162,6 +168,14 @@ body[data-review-section="battle"] .review-controls-dock .review-page[data-revie
 }
 
 @media(max-width:430px){
+  body[data-review-section="skill"] .review-controls-dock .review-page[data-review-page="skill"]{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:5px!important;
+  }
+  body[data-review-section="skill"] .review-controls-dock .review-page[data-review-page="skill"] .stage-row{padding:6px!important}
+  body[data-review-section="skill"] .review-controls-dock .review-page[data-review-page="skill"] .stage-mark{padding:4px 7px!important;font-size:9px!important}
+  body[data-review-section="skill"] .review-controls-dock .review-page[data-review-page="skill"] .picker-trigger{min-height:44px!important;padding-left:5px!important;padding-right:16px!important;font-size:8px!important}
+  body[data-review-section="skill"] .review-controls-dock .review-page[data-review-page="skill"] .play-slot{min-height:36px!important;font-size:8px!important}
   .review-category-grid,
   .unified-review-navigation .picker-list,
   .unified-review-navigation .model-picker-list,
