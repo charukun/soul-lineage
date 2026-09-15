@@ -1,80 +1,94 @@
-import { expect } from '@playwright/test';
-import { writeFileSync } from 'node:fs';
+import {installPrivateSignalingHarness} from './private-signaling-harness.mjs';
+import {expect} from '@playwright/test';
+import {writeFileSync} from 'node:fs';
+import {installPeerNetworkHarness} from './peer-network-harness.mjs';
 const DETECTION_SLO_MS=4500,REOPEN_SLO_MS=6000;
 
-async function prepareDevice(browser,url){
-  const context=await browser.newContext({viewport:{width:390,height:844}});
+async function device(browser,url){
+  const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage(),errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
   await context.addInitScript(()=>{
     const Native=window.RTCPeerConnection;
-    if(!Native)return;
-    window.RTCPeerConnection=class LocalOnlyRTCPeerConnection extends Native{constructor(){super({iceServers:[]});}};
+    window.RTCPeerConnection=class extends Native{constructor(){super({iceServers:[]});}};
+    const send=RTCDataChannel.prototype.send;
+    RTCDataChannel.prototype.send=function(data){
+      if(typeof data==='string'){try{const message=JSON.parse(data);if(message.type==='friend-village')window.__FRIEND_VISIT_MESSAGE__=message;}catch{}}
+      return send.call(this,data);
+    };
   });
-  const page=await context.newPage();
-  const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
-  if(!response?.ok())throw new Error(`Peer device returned HTTP ${response?.status()}`);
-  await page.waitForFunction(()=>document.querySelector('#game')?.dataset.renderer==='ready',null,{timeout:45000});
+  if(url){const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});if(!response?.ok())throw new Error(`Peer device returned HTTP ${response?.status()}`);}
   return{context,page,errors};
 }
 
-async function openOnline(page){
-  await page.locator('#more').click();
-  await expect(page.locator('#dialog')).toBeVisible();
-  await page.locator('#onlineOpen').click();
-  await expect(page.locator('#onlineDialog')).toBeVisible();
-  await page.waitForSelector('#peer-world-host',{timeout:10000});
+export async function friendVisit(browser,url,{automatic=false}={}){
+  const host=await device(browser,url),guest=await device(browser);
+  const signaling=await installPrivateSignalingHarness([host.context,guest.context],{available:automatic});
+  try{
+    await host.page.waitForFunction(()=>document.querySelector('#game')?.dataset.renderer==='ready',null,{timeout:45000});
+    await host.page.locator('#muraEnterVillage').click();
+    await host.page.locator('#muraSettingsButton').click();await host.page.locator('#onlineOpen').click();
+    await expect(host.page.locator('#onlineDialog')).toBeVisible();
+    await host.page.locator('#make-offer').click();
+    await host.page.waitForFunction(()=>document.querySelector('#invite')?.value?.includes('friend-village'),null,{timeout:20000});
+    if(automatic)await host.page.waitForFunction(()=>{const hash=new URL(document.querySelector('#invite').value).hash.slice(1),value=new URLSearchParams(hash).get('friend-village');return JSON.parse(decodeURIComponent(value)).signaling?.version===1;},null,{timeout:10000});
+    const invitation=await host.page.locator('#invite').inputValue();
+    await guest.page.goto(invitation,{waitUntil:'domcontentloaded'});
+    await guest.page.locator('#friend-connect').click();
+    await guest.page.waitForFunction(()=>document.querySelector('#friend-answer')?.value?.length>20,null,{timeout:20000});
+    if(!automatic){await host.page.locator('#answer').fill(await guest.page.locator('#friend-answer').inputValue());await host.page.locator('#accept-answer').click();}
+    else await expect(host.page.locator('#answer')).toHaveValue('');
+    await guest.page.waitForFunction(()=>document.body.classList.contains('visiting'),null,{timeout:20000});
+    await expect(guest.page.locator('.soul-world-darkness')).toHaveAttribute('data-phase','open');
+    const shared=await host.page.evaluate(()=>window.__FRIEND_VISIT_MESSAGE__);
+    expect(Object.keys(shared.snapshot).sort()).toEqual(['clock','name','objects','version','villageId']);
+    expect(shared.snapshot.objects.every(o=>Array.isArray(o.room)&&o.room.length===0)).toBe(true);
+    expect(shared.welcome.authority.members[shared.welcome.selfId].eligible).toBe(false);
+    expect(shared.welcome.authority.checkpoint).toBeNull();
+    await host.context.close();
+    await expect(guest.page.locator('.soul-world-darkness')).toHaveAttribute('data-phase','closed',{timeout:15000});
+    const errors=[...host.errors,...guest.errors];if(errors.length)throw new Error(`Friend visit errors: ${JSON.stringify(errors)}`);
+    if(automatic){expect(signaling.calls().some(call=>call.path.endsWith('/answer'))).toBe(true);expect(signaling.snapshot().rooms.every(room=>!room.roomId&&!room.worldId)).toBe(true);}
+    return {automaticAnswer:automatic,inviteOnly:true,exteriorOnly:true,visitorHostEligible:false,ownerLoss:'closed',errors};
+  }catch(error){error.message+='\nFriend evidence: '+JSON.stringify(await Promise.all([host,guest].map(d=>d.page.evaluate(()=>({url:location.href.split('#')[0],status:document.querySelector('#net-state')?.textContent||document.querySelector('#friend-state')?.textContent,phase:document.querySelector('.soul-world-darkness')?.dataset.phase,visiting:document.body.classList.contains('visiting')})).catch(()=>null))));throw error;}finally{await host.context.close().catch(()=>{});await guest.context.close();}
 }
 
-async function joinStandby(host,guest){
-  await host.page.locator('#peer-world-host-offer').evaluate(el=>{el.value='';});
-  await guest.page.locator('#peer-world-answer').evaluate(el=>{el.value='';});
-  await host.page.locator('#peer-world-make-offer').click();
-  await host.page.waitForFunction(()=>document.querySelector('#peer-world-host-offer')?.value?.length>20,null,{timeout:20000});
-  const offer=await host.page.locator('#peer-world-host-offer').inputValue();
-  await guest.page.locator('#peer-world-offer').fill(offer);
-  await guest.page.locator('#peer-world-join').click();
-  await guest.page.waitForFunction(()=>document.querySelector('#peer-world-answer')?.value?.length>20,null,{timeout:20000});
-  const answer=await guest.page.locator('#peer-world-answer').inputValue();
-  await host.page.locator('#peer-world-host-answer').fill(answer);
-  await host.page.locator('#peer-world-accept').click();
-  await guest.page.waitForFunction(()=>window.__VILLAGE_PEER_HOSTED_WORLD__?.snapshot()?.node?.phase==='open',null,{timeout:20000});
+export async function eligiblePeerMigration(browser){
+  const devices=[];
+  try{
+    for(const id of ['a','b','c']){const d=await device(browser);devices.push(d);await installPeerNetworkHarness(d.page,id);}
+    const [a,b,c]=devices;
+    for(const [id,d]of [['b',b],['c',c]]){
+      const offer=await a.page.evaluate(id=>window.__PEER_NETWORK_TEST__.offer(id),id);
+      const answer=await d.page.evaluate(offer=>window.__PEER_NETWORK_TEST__.answer('a',offer),offer);
+      await a.page.evaluate(({id,answer})=>window.__PEER_NETWORK_TEST__.accept(id,answer),{id,answer});
+      await a.page.waitForFunction(id=>window.__PEER_NETWORK_TEST__.ready(id),id);
+    }
+    await a.page.evaluate(()=>window.__PEER_NETWORK_TEST__.start());
+    for(const d of [b,c])await d.page.waitForFunction(()=>window.__PEER_NETWORK_TEST__.snapshot().mesh.connected.length===1,null,{timeout:20000});
+    const crashAt=await b.page.evaluate(()=>performance.now());
+    await a.page.evaluate(()=>window.__PEER_NETWORK_TEST__.crash());
+    for(const d of [b,c])await d.page.waitForFunction(()=>{const s=window.__PEER_NETWORK_TEST__.snapshot();return s.node.phase==='open'&&s.node.hostId==='b';},null,{timeout:15000});
+    const afterCrash=await b.page.evaluate(()=>window.__PEER_NETWORK_TEST__.snapshot());
+    const migrating=afterCrash.phaseTimes.find(event=>event.phase==='migrating'&&event.at>=crashAt),opened=afterCrash.phaseTimes.find(event=>migrating&&event.phase==='open'&&event.at>=migrating.at);
+    const detectionMs=migrating?migrating.at-crashAt:Infinity,reopenMs=opened?opened.at-migrating.at:Infinity;
+    expect(detectionMs).toBeLessThanOrEqual(DETECTION_SLO_MS);expect(reopenMs).toBeLessThanOrEqual(REOPEN_SLO_MS);
+    expect(afterCrash.history).toContain('migrating');expect(afterCrash.restored).toContain(7);expect(afterCrash.node.epoch).toBe(2);
+    await b.page.evaluate(()=>window.__PEER_NETWORK_TEST__.checkpoint(8));
+    await c.page.waitForFunction(()=>window.__PEER_NETWORK_TEST__.snapshot().node.checkpointRevision>=2);
+    expect(await b.page.evaluate(()=>window.__PEER_NETWORK_TEST__.handoff())).toBe(true);
+    await c.page.waitForFunction(()=>{const s=window.__PEER_NETWORK_TEST__.snapshot();return s.node.phase==='open'&&s.node.hostId==='c';},null,{timeout:10000});
+    const final=await c.page.evaluate(()=>window.__PEER_NETWORK_TEST__.snapshot());
+    expect(final.node.epoch).toBe(3);expect(final.restored).toContain(8);
+    const errors=devices.flatMap(d=>d.errors);if(errors.length)throw new Error(`Peer browser errors: ${JSON.stringify(errors)}`);
+    return {detectionMs,reopenMs,slo:{detectionMs:DETECTION_SLO_MS,reopenMs:REOPEN_SLO_MS,pass:true},crashSuccessor:'b',gracefulSuccessor:'c',crashEpoch:afterCrash.node.epoch,finalEpoch:final.node.epoch,checkpointRevision:final.node.checkpointRevision,bHistory:afterCrash.history,cHistory:final.history,errors};
+  }catch(error){error.message+='\nPeer evidence: '+JSON.stringify(await Promise.all(devices.map(d=>d.page.evaluate(()=>window.__PEER_NETWORK_TEST__?.snapshot()).catch(()=>null))));throw error;}finally{for(const d of devices)await d.context.close();}
 }
 
 export async function verifyPeerHostMigration(browser,url,evidence){
-  const devices=[];
-  try{
-    const host=await prepareDevice(browser,url),b=await prepareDevice(browser,url),c=await prepareDevice(browser,url);devices.push(host,b,c);
-    await Promise.all(devices.map(d=>openOnline(d.page)));
-    await host.page.locator('#peer-world-host').click();
-    await host.page.waitForFunction(()=>window.__VILLAGE_PEER_HOSTED_WORLD__?.snapshot()?.node?.hostId===window.__VILLAGE_PEER_HOSTED_WORLD__?.snapshot()?.selfId,null,{timeout:10000});
-    await joinStandby(host,b);await joinStandby(host,c);
-    await host.page.waitForFunction(()=>Object.keys(window.__VILLAGE_PEER_HOSTED_WORLD__?.snapshot()?.node?.authority?.members||{}).length===3,null,{timeout:10000});
-    await Promise.all([b.page,c.page].map(page=>page.waitForFunction(()=>window.__VILLAGE_PEER_HOSTED_WORLD__?.snapshot()?.mesh?.connected?.length>=1,null,{timeout:20000})));
-    for(const device of [b,c])await device.page.evaluate(()=>{window.__PEER_PHASE_HISTORY__=[];window.__PEER_CRASH_MARK__=null;const root=document.querySelector('.soul-world-darkness');const record=()=>window.__PEER_PHASE_HISTORY__.push({phase:root?.dataset.phase||'open',at:performance.now()});record();if(root)new MutationObserver(record).observe(root,{attributes:true,attributeFilter:['data-phase']});});
-    const bId=await b.page.evaluate(()=>window.__VILLAGE_PEER_HOSTED_WORLD__.snapshot().selfId);
-    const cId=await c.page.evaluate(()=>window.__VILLAGE_PEER_HOSTED_WORLD__.snapshot().selfId);
-    await Promise.all([b.page,c.page].map(page=>page.evaluate(()=>{window.__PEER_CRASH_MARK__=performance.now();})));
-    await host.page.evaluate(()=>window.__VILLAGE_PEER_HOSTED_WORLD__.crashForDiagnostics());
-    await b.page.waitForFunction(id=>{const s=window.__VILLAGE_PEER_HOSTED_WORLD__?.snapshot();return s?.node?.phase==='open'&&s.node.hostId===id;},bId,{timeout:15000});
-    await c.page.waitForFunction(id=>window.__VILLAGE_PEER_HOSTED_WORLD__?.snapshot()?.node?.hostId===id,bId,{timeout:15000});
-    const afterCrash=await b.page.evaluate(()=>({history:window.__PEER_PHASE_HISTORY__,crashAt:window.__PEER_CRASH_MARK__,paused:window.__VILLAGE_SIMULATION_PAUSED__,remote:window.__VILLAGE_REMOTE_WORLD_ACTIVE__,snapshot:window.__VILLAGE_PEER_HOSTED_WORLD__.snapshot()}));
-    const migrating=afterCrash.history.find(row=>row.phase==='migrating'&&row.at>=afterCrash.crashAt),opened=afterCrash.history.find(row=>migrating&&row.phase==='open'&&row.at>migrating.at);
-    const detectionMs=migrating?migrating.at-afterCrash.crashAt:Infinity,reopenMs=migrating&&opened?opened.at-migrating.at:Infinity;
-    if(!migrating||!opened||afterCrash.paused!==false||afterCrash.remote!==true)throw new Error(`Darkness failover evidence invalid: ${JSON.stringify(afterCrash)}`);
-    if(detectionMs>DETECTION_SLO_MS||reopenMs>REOPEN_SLO_MS)throw new Error(`Host migration SLO exceeded: ${JSON.stringify({detectionMs,reopenMs,targets:{detectionMs:DETECTION_SLO_MS,reopenMs:REOPEN_SLO_MS}})}`);
-    const inheritedRevision=afterCrash.snapshot.node.revision;
-    await b.page.waitForFunction(revision=>window.__VILLAGE_PEER_HOSTED_WORLD__?.snapshot()?.node?.revision>revision,inheritedRevision,{timeout:7000});
-    await c.page.waitForFunction(revision=>window.__VILLAGE_PEER_HOSTED_WORLD__?.snapshot()?.node?.revision>revision,inheritedRevision,{timeout:7000});
-    await host.context.close();devices.splice(devices.indexOf(host),1);
-    await b.page.locator('#peer-world-handoff').click();
-    await c.page.waitForFunction(id=>{const s=window.__VILLAGE_PEER_HOSTED_WORLD__?.snapshot();return s?.node?.phase==='open'&&s.node.hostId===id;},cId,{timeout:10000});
-    const final=await c.page.evaluate(()=>({paused:window.__VILLAGE_SIMULATION_PAUSED__,remote:window.__VILLAGE_REMOTE_WORLD_ACTIVE__,snapshot:window.__VILLAGE_PEER_HOSTED_WORLD__.snapshot(),history:window.__PEER_PHASE_HISTORY__}));
-    if(final.paused!==false||final.snapshot.node.hostId!==cId)throw new Error(`Graceful handoff evidence invalid: ${JSON.stringify(final)}`);
-    const report={ok:true,crashSuccessor:bId,gracefulSuccessor:cId,crashEpoch:afterCrash.snapshot.node.epoch,finalEpoch:final.snapshot.node.epoch,checkpointRevision:final.snapshot.node.revision,detectionMs:Math.round(detectionMs),reopenMs:Math.round(reopenMs),slo:{detectionMs:DETECTION_SLO_MS,reopenMs:REOPEN_SLO_MS,pass:true},bHistory:afterCrash.history,cHistory:final.history,errors:[...host.errors,...b.errors,...c.errors]};
-    if(report.errors.length)throw new Error(`Peer browser page errors: ${JSON.stringify(report.errors)}`);
-    if(evidence?.outputPath)writeFileSync(evidence.outputPath('peer-host-migration.json'),JSON.stringify(report,null,2));
-    return report;
-  }finally{
-    for(const device of devices)await device.context.close().catch(()=>{});
-  }
+  const friend=await friendVisit(browser,url);
+  const automaticFriend=await friendVisit(browser,url,{automatic:true});
+  const migration=await eligiblePeerMigration(browser);
+  const report={ok:true,friend,automaticFriend,migration,scope:'Real friend UI + exact shared-network sources over native WebRTC in independent Chromium contexts; no physical-device claim'};
+  if(evidence?.outputPath)writeFileSync(evidence.outputPath('peer-host-migration.json'),JSON.stringify(report,null,2));
+  return report;
 }

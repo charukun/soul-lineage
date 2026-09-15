@@ -1,70 +1,80 @@
-import {createPeerSignalingClient,sampleBrowserHostCapability} from '@soul/platform-web/peer-signaling';
+import {assertFriendVillageInviteActive} from '@soul/network/friend-invite';
+import {createPeerSignalingClient, sampleBrowserHostCapability} from '@soul/platform-web/peer-signaling';
 import {normalizeHostCapability} from '@soul/network';
 
-const wait=async(test,{timeoutMs=20_000,intervalMs=80}={})=>{const until=performance.now()+timeoutMs;while(performance.now()<until){const value=await test();if(value)return value;await new Promise(r=>setTimeout(r,intervalMs));}throw new Error('接続処理が時間切れになりました。');};
-const short=value=>String(value||'').slice(0,8);
-const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+function signalingDetails(invite) {
+  assertFriendVillageInviteActive(invite);
+  const signal = invite.signaling;
+  if (signal?.version !== 1 || !/^[a-f0-9]{14}$/.test(signal.roomId) || !/^[a-f0-9]{64}$/.test(signal.inviteToken)) {
+    throw new Error('自動接続の招待情報が不正です。手動の参加返事を利用してください。');
+  }
+  return signal;
+}
 
-export function installPeerAutoSignaling({root,client=createPeerSignalingClient()}={}){
-  if(!root||root.querySelector('.peer-auto-signaling'))return null;
-  const box=document.createElement('section');box.className='peer-auto-signaling';box.innerHTML=`
-    <h3>かんたん接続</h3>
-    <p class="peer-auto-note">通常はこちらを使います。接続コード欄は通信障害時の手動fallbackです。</p>
-    <div class="peer-auto-actions"><button type="button" data-auto-host>この村を自動公開</button><button type="button" data-auto-refresh>公開中の村を探す</button></div>
-    <p data-auto-state>接続先を確認できます。</p><div data-auto-rooms></div>`;
-  root.prepend(box);
-  const stateNode=box.querySelector('[data-auto-state]'),roomsNode=box.querySelector('[data-auto-rooms]');
-  let stopped=false,room=null,hostCursor=0,hostLoop=null,telemetryLoop=null,serial=Promise.resolve(),lastPhase='open',migrationStart=null,lastMigrationMs=null,splitBrainPrevented=0;
-  let joinQueue=[],activeJoin=null;
-  const state=text=>{stateNode.textContent=text;};
-  const session=()=>window.__VILLAGE_PEER_HOSTED_WORLD__;
-  const snapshot=()=>session()?.snapshot?.()||null;
-  async function capability(){return normalizeHostCapability(await sampleBrowserHostCapability());}
-  async function renderRooms(){
-    state('公開中の村を確認しています。');
-    try{const data=await client.listRooms(),rooms=data.rooms||[];roomsNode.replaceChildren();if(!rooms.length){roomsNode.textContent='いま参加できる共通村はありません。';state('この端末の村を公開できます。');return;}
-      for(const item of rooms){const row=document.createElement('article');row.className='peer-auto-room';row.innerHTML=`<strong>${escape(item.label||'共通村')}</strong><small>${item.peers||1}端末 · Host ${escape(item.hostRef||'-')} · score ${item.hostScore??'--'}</small><button type="button">この村へ参加</button>`;row.querySelector('button').onclick=()=>joinRoom(item.roomId).catch(error=>state(error.message));roomsNode.append(row);}state(`${rooms.length}件の共通村を確認しました。`);
-    }catch(error){state(`自動検索を利用できません。手動コード接続は利用できます: ${error.message}`);}
+// The owner creates a room only after explicitly creating a friend invitation.
+// The optional descriptor leaves the existing SDP/manual-answer route usable.
+export async function createFriendAutoSignaling({invite, acceptAnswer, snapshot = () => null, onStatus = () => {}, client = createPeerSignalingClient(), sample = sampleBrowserHostCapability, schedule = setInterval, cancel = clearInterval} = {}) {
+  assertFriendVillageInviteActive(invite);
+  const created = await client.createRoom({worldId: invite.villageId, label: invite.villageName, hostId: crypto.randomUUID(), purpose: 'visitor', capability: normalizeHostCapability(await sample())});
+  const signal = {version: 1, roomId: created.room.roomId, inviteToken: created.inviteToken};
+  const linkedInvite = {...invite, signaling: signal};
+  signalingDetails(linkedInvite);
+  let cursor = 0, stopped = false, accepted = false, busy = false, timer;
+  const offered = new Set();
+  async function close() {
+    if (stopped) return;
+    stopped = true;
+    cancel(timer);
+    await client.closeRoom(signal.roomId, created.hostToken).catch(() => {});
   }
-  async function startHosting(){
-    if(room){state('この村はすでに公開中です。');return;}
-    const hostButton=root.querySelector('#peer-world-host');if(!hostButton)throw new Error('Host操作を準備できません。');
-    if(!snapshot()?.node?.hostId){hostButton.click();await wait(()=>snapshot()?.node?.hostId===snapshot()?.selfId);}
-    const snap=snapshot(),hostCapability=await capability();const created=await client.createRoom({worldId:snap.node.worldId,label:'星継ぎの庭',hostId:snap.selfId,capability:hostCapability});room={...created.room,hostToken:created.hostToken,originalHost:true};state('共通村を公開しました。参加者を自動で迎えます。');startHostLoop();startTelemetry();
+  async function tick() {
+    if (stopped || busy) return;
+    busy = true;
+    try {
+      assertFriendVillageInviteActive(linkedInvite);
+      if (!accepted) {
+        const data = await client.pollHost(signal.roomId, created.hostToken, cursor);
+        if (stopped) return;
+        assertFriendVillageInviteActive(linkedInvite);
+        cursor = data.next ?? cursor;
+        for (const event of data.events || []) {
+          if (event.type === 'join' && event.hostEligible === false && !offered.size) {
+            await client.postOffer(signal.roomId, event.joinId, created.hostToken, invite.offer);
+            offered.add(event.joinId);
+          } else if (event.type === 'answer' && offered.has(event.joinId) && !accepted) {
+            await acceptAnswer(event.answer);
+            accepted = true;
+            onStatus('友人の参加返事を自動で受け取りました。');
+          }
+        }
+      }
+      const state = snapshot();
+      if (state) await client.telemetry(signal.roomId, created.hostToken, {phase: state.phase, peers: Object.keys(state.authority?.members || {}).length || 1, epoch: state.epoch, checkpointRevision: 0});
+    } catch (error) {
+      onStatus(`自動接続を終了しました。参加返事を手動で受け取れます: ${error.message}`);
+      await close();
+    } finally { busy = false; }
   }
-  function startHostLoop(){if(hostLoop)return;hostLoop=setInterval(()=>{if(stopped||!room)return;const snap=snapshot();if(!snap?.node||snap.node.hostId!==snap.selfId)return;serial=serial.then(processHostEvents).catch(error=>state(`自動接続を継続できません: ${error.message}`));},350);}
-  async function processHostEvents(){
-    const data=await client.pollHost(room.roomId,room.hostToken,hostCursor);hostCursor=data.next??hostCursor;
-    for(const event of data.events||[]){if(event.type==='join')queueJoin(event);else if(event.type==='answer')await acceptAnswer(event);}
-    await startNextJoin();
+  timer = schedule(() => { void tick(); }, 700);
+  return {invite: linkedInvite, tick, close};
+}
+
+export async function sendFriendAutoAnswer(invite, answer, {client = createPeerSignalingClient(), pause = ms => new Promise(resolve => setTimeout(resolve, ms))} = {}) {
+  const signal = signalingDetails(invite);
+  const joined = await client.joinRoom(signal.roomId, {inviteToken: signal.inviteToken, peerId: crypto.randomUUID(), app: 'village', hostEligible: false});
+  let cursor = 0;
+  for (let attempt = 0; attempt < 40; attempt++) {
+    assertFriendVillageInviteActive(invite);
+    const data = await client.pollGuest(signal.roomId, joined.joinId, joined.guestToken, cursor);
+    cursor = data.next ?? cursor;
+    const offer = data.events?.find(event => event.type === 'offer');
+    if (offer) {
+      if (offer.offer !== invite.offer) throw new Error('招待と異なる接続情報を受信しました。');
+      assertFriendVillageInviteActive(invite);
+      await client.postAnswer(signal.roomId, joined.joinId, joined.guestToken, answer);
+      return true;
+    }
+    await pause(250);
   }
-  function queueJoin(event){if(activeJoin?.joinId===event.joinId||joinQueue.some(row=>row.joinId===event.joinId))return;joinQueue.push(event);}
-  async function startNextJoin(){if(activeJoin||!joinQueue.length)return;activeJoin=joinQueue.shift();await makeOffer(activeJoin);}
-  async function makeOffer(event){
-    const make=root.querySelector('#peer-world-make-offer'),field=root.querySelector('#peer-world-host-offer');if(!make||!field)throw new Error('Host接続UIがありません。');
-    field.value='';make.click();const offer=await wait(()=>field.value.length>20&&field.value);await client.postOffer(room.roomId,event.joinId,room.hostToken,offer);state(`${short(event.peerId)} の接続を準備しています。`);
-  }
-  async function acceptAnswer(event){
-    if(!activeJoin||event.joinId!==activeJoin.joinId)return;
-    const answer=root.querySelector('#peer-world-host-answer'),accept=root.querySelector('#peer-world-accept');if(!answer||!accept)throw new Error('Host応答UIがありません。');answer.value=event.answer;accept.click();await new Promise(r=>setTimeout(r,80));state(`${short(event.peerId)} を共通村へ迎えています。`);activeJoin=null;await startNextJoin();
-  }
-  async function joinRoom(roomId){
-    if(snapshot()?.node?.hostId)throw new Error('すでに共通村へ接続しています。');
-    state('共通村との接続を自動で準備しています。');const selfId=localStorage.getItem('soul.village.peer.v1')||crypto.randomUUID();localStorage.setItem('soul.village.peer.v1',selfId);const joined=await client.joinRoom(roomId,{peerId:selfId,app:'village',hostEligible:true,capability:await capability()});let cursor=0;
-    const offerEvent=await wait(async()=>{const data=await client.pollGuest(roomId,joined.joinId,joined.guestToken,cursor);cursor=data.next??cursor;return(data.events||[]).find(e=>e.type==='offer')||null;},{timeoutMs:25_000,intervalMs:250});
-    const offer=root.querySelector('#peer-world-offer'),join=root.querySelector('#peer-world-join'),answer=root.querySelector('#peer-world-answer');offer.value=offerEvent.offer;join.click();const answerCode=await wait(()=>answer.value.length>20&&answer.value,{timeoutMs:20_000});const answered=await client.postAnswer(roomId,joined.joinId,joined.guestToken,answerCode);await wait(()=>snapshot()?.node?.phase==='open',{timeoutMs:25_000});
-    room={...joined.room,hostToken:joined.guestToken,originalHost:false};hostCursor=answered.hostCursor??hostCursor;state('共通村へ接続しました。Host交代も自動で追従します。');startHostLoop();startTelemetry();
-  }
-  function startTelemetry(){if(telemetryLoop)return;telemetryLoop=setInterval(()=>sendTelemetry().catch(()=>{}),1000);sendTelemetry().catch(()=>{});}
-  async function sendTelemetry(){
-    if(!room)return;const snap=snapshot(),node=snap?.node;if(!node)return;const now=performance.now();
-    if(node.phase!==lastPhase){if(node.phase==='migrating')migrationStart=now;if(lastPhase==='migrating'&&node.phase==='open'&&migrationStart!==null){lastMigrationMs=now-migrationStart;migrationStart=null;}if(node.phase==='closed'&&lastPhase==='migrating')splitBrainPrevented++;lastPhase=node.phase;}
-    const isHost=node.hostId===snap.selfId;if(node.phase==='open'&&!isHost)return;if(!room.originalHost&&!['migrating','closed'].includes(node.phase)&&!isHost)return;
-    const members=Object.values(node.authority?.members||{}).filter(m=>m.connected),total=members.length,required=Math.floor(total/2)+1,hostMember=node.hostId?node.authority?.members?.[node.hostId]:null,score=hostMember?.meta?.hostCapability?.score??(isHost?(await capability()).score:null);
-    await client.telemetry(room.roomId,room.hostToken,{phase:node.phase,hostId:node.hostId||'',hostRef:node.hostId?short(node.hostId):'',hostScore:score,peers:Math.max(1,total),checkpointRevision:node.checkpointRevision,epoch:node.epoch,quorum:{acked:node.phase==='open'?required:0,total},migrationMs:lastMigrationMs,sloPass:lastMigrationMs===null||lastMigrationMs<=6000,splitBrainPrevented});
-  }
-  box.querySelector('[data-auto-host]').onclick=()=>startHosting().catch(error=>state(`自動公開できません。手動接続は利用できます: ${error.message}`));
-  box.querySelector('[data-auto-refresh]').onclick=()=>renderRooms();
-  const onHide=()=>{};window.addEventListener('pagehide',onHide,{once:true});renderRooms();
-  const api={refresh:renderRooms,host:startHosting,close:async()=>{stopped=true;clearInterval(hostLoop);clearInterval(telemetryLoop);window.removeEventListener('pagehide',onHide);box.remove();},snapshot:()=>({room:room?.roomId||null,lastMigrationMs,splitBrainPrevented,controller:!!room,activeJoin:activeJoin?.joinId||null,queued:joinQueue.length})};window.__VILLAGE_AUTO_SIGNALING__=api;return api;
+  throw new Error('自動接続が時間切れになりました。参加返事を友人へ送ってください。');
 }

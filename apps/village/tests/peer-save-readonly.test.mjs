@@ -13,3 +13,10 @@ test('remote authority cannot overwrite the personal local village save',async()
  world.gain('wood',9);setVillageSaveReadOnly(true);const result=await f.store.save(world);assert.equal(result.skipped,'peer-read-only');assert.equal(f.data.get(SAVE_KEY),original);assert.equal(f.store.readOnly,true);
  setVillageSaveReadOnly(false);await f.store.save(world);const loaded=await f.store.load();assert.equal(loaded.stock.wood,9);assert.equal(f.store.readOnly,false);
 });
+
+test('authority lost before a queued save runs preserves the last personal snapshot',async()=>{
+ const f=fixture(),world=new World();setVillageSaveReadOnly(false);await f.store.save(world);const original=f.data.get(SAVE_KEY);
+ world.gain('wood',3);const pending=f.store.save(world);setVillageSaveReadOnly(true);
+ try{assert.equal((await pending).skipped,'peer-read-only');assert.equal(f.data.get(SAVE_KEY),original);await assert.rejects(f.store.recover(),/個人ローカル保存/);assert.equal(f.data.get(SAVE_KEY),original);}
+ finally{setVillageSaveReadOnly(false);}
+});

@@ -55,7 +55,7 @@ Use the reliable lane for join/reject, battle result and other state that must a
 - monitors `bufferedAmount` and drops stale replaceable presence before allowing transport queues to grow without bound;
 - never drops the reliable battle-state transition because presence is congested.
 
-The village host advances `RaidHost` authority once per fixed tick and then derives observer-specific snapshots for each connection. It never advances gameplay separately per peer.
+The shared `RaidHost` exposes observer-specific snapshots without advancing gameplay per observer. This reusable infrastructure does not enable a player-village raid entry. The Village app preserves its explicit, invite-only exterior sightseeing snapshot and visitor role; the Demon online adapter remains disabled under `VILLAGE_VISUAL_AND_FRIEND_INVITE.md`.
 
 ## Snapshot interpolation and reconciliation
 
@@ -63,7 +63,7 @@ Remote presentation is buffered and interpolated at a short delay. A bounded ext
 
 A generic prediction reconciler distinguishes ordinary local error from teleport-class divergence. Small error is consumed as a decaying presentation correction; large error requests a snap.
 
-The current demon online bridge uses this reconciliation as diagnostics and does not rewrite the local game's authoritative player position from the network path. That boundary remains intentional until the shared online authority itself owns player movement.
+Prediction reconciliation remains reusable shared infrastructure; the disabled Demon online adapter does not connect it to gameplay. World-scale presentation uses interpolation without rewriting authoritative player movement.
 
 ## Allocation and event-loop pressure
 

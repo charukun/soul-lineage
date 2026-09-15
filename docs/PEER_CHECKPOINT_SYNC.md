@@ -2,6 +2,8 @@
 
 Peer-hosted共通世界のAuthorityとHost Migrationは、復元可能な完全checkpointを正本として維持する。通信だけを `full base + bounded delta journal + revision catch-up` にする。
 
+通常の友人招待は引き続き外観のみを共有する見学専用であり、完全checkpointやsaveを訪問者へ送らない。この差分同期は明示的にhost eligibleなpeer共通世界・その検証経路に適用する。
+
 ## 目的
 
 MURAAAAAAA Hostは通常約2秒ごとにcheckpointを更新する。毎回full snapshotを全peerへ送らず、最初の完全checkpoint以降は変更分だけを送る。packet lossや一時切断でrevisionを取り逃したpeerは、保持している最後のrevisionから追いつく。
@@ -20,7 +22,8 @@ MURAAAAAAA Hostは通常約2秒ごとにcheckpointを更新する。毎回full s
 Network journalはlocal save journalと別責務である。
 
 - Entity IDを持つ配列はentity単位で `set / patch / delete` する。
-- 一般objectは再帰merge patchを使う。
+- 一般objectは再帰merge patchを使う。継承propertyを辿らず、受信patchでprototypeを変更しない。
+- Entityの並び替え・途中挿入・重複IDでentity操作だけでは順序を再現できない場合は、その配列を置き換えて完全なround-tripを維持する。
 - revisionは必ず連続する。
 - base/result digestで取り違えや破損を検知する。
 - digestは通信整合性チェックであり、暗号学的署名・認証の代替ではない。
@@ -30,7 +33,8 @@ Network journalはlocal save journalと別責務である。
 
 1. deltaの `fromRevision` が手元のrevisionと一致すれば適用する。
 2. revision gap、base digest不一致、result digest不一致では状態を推測しない。
-3. peerは現在Hostへ `world-sync-request` を送る。
+3. peerは現在Hostへ `world-sync-request` を送る。Hostは同じworldへ参加済みの接続peerだけに返し、終了済みnodeは応答しない。
+   delta/catch-upのepochと現在のauthorityが一致しない場合はjournalを更新しない。
 4. Hostがknown revisionをjournal内に保持していれば連続deltaだけを返す。
 5. known revisionがcompact済み、cold start、または安全に再構成できなければfull checkpointへfallbackする。
 

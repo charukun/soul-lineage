@@ -1,0 +1,35 @@
+@import url("https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700&family=Yuji+Syuku&display=swap");
+
+:root {
+  --font-demon-display: "Yuji Syuku", serif;
+  --font-demon-body: "Shippori Mincho", serif;
+  font-synthesis: none;
+}
+
+body,
+body * {
+  font-family: var(--font-demon-body) !important;
+  font-kerning: normal;
+}
+
+#boot .sigil,
+.brand h1,
+.brand-curse,
+.phases span,
+#skill-name,
+.seal b,
+h2,
+.route-card strong,
+.memory-chip b,
+.result-stats b {
+  font-family: var(--font-demon-display) !important;
+}
+
+.life small,
+.location,
+.danger,
+#objective,
+.footer-status,
+.build {
+  font-variant-numeric: tabular-nums;
+}

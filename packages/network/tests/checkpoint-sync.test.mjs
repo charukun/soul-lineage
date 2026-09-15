@@ -53,3 +53,37 @@ test('unknown or future revision never guesses a baseline',()=>{
  assert.equal(payload.kind,'full');
  assert.throws(()=>applyCatchupPayload(cp(0),{revision:3},{...payload,kind:'delta',baseRevision:3,entries:[]}),/base mismatch|result mismatch/);
 });
+
+
+test('checkpoint deltas preserve entity order and fall back for duplicate identifiers',()=>{
+ const a=cp(1);a.characters=[{id:'first',hp:10},{id:'second',hp:9}];
+ for(const characters of [
+  [a.characters[1],a.characters[0]],
+  [{id:'new',hp:8},...a.characters],
+  [a.characters[1],{id:'middle',hp:8},a.characters[0]],
+  [{id:'first',hp:8},{id:'first',hp:7}],
+ ]){
+  const b={...a,characters};
+  const delta=createCheckpointDelta(a,b,{epoch:1,fromRevision:1,toRevision:2});
+  assert.deepEqual(applyCheckpointDelta(a,delta),b);
+ }
+});
+
+test('untrusted checkpoint paths cannot mutate inherited prototypes',()=>{
+ const base=cp(1),key='rinneCheckpointPollution';
+ const entry={version:1,epoch:1,fromRevision:1,toRevision:2,baseDigest:checkpointDigest(base),resultDigest:checkpointDigest(base)};
+ try{
+  for(const path of [['__proto__',key],['constructor','prototype',key]]){
+   assert.throws(()=>applyCheckpointDelta(base,{...entry,ops:[{op:'set',path,value:true}]}),/own property/);
+   assert.equal(Object.hasOwn(Object.prototype,key),false);
+  }
+ }finally{delete Object.prototype[key];}
+});
+
+test('nested merge patches preserve own keys without changing prototypes',()=>{
+ const a=cp(1),b=cp(1);b.characters[0].metadata=JSON.parse('{"__proto__":{"safeData":true},"constructor":{"label":"data"}}');
+ const delta=createCheckpointDelta(a,b,{epoch:1,fromRevision:1,toRevision:2});
+ const restored=applyCheckpointDelta(a,delta);
+ assert.deepEqual(restored,b);
+ assert.equal(Object.hasOwn(Object.prototype,'safeData'),false);
+});

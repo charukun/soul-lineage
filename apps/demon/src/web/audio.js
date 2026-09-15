@@ -1,7 +1,7 @@
-import {createAudioWorkletCategoryMixer} from '@soul/platform-web/audio-worklet-mixer';
 import {BITE_BEATS} from './feast-state.js';
+import {createAudioWorkletCategoryMixer} from '@soul/platform-web/audio-worklet-mixer';
 export class NightAudio {
- constructor(){this.enabled=true;this.ctx=null;this.steps=0;this.mixer=null;this.mixerPromise=null;this.feedProgress=null;}
+ constructor(){this.enabled=true;this.ctx=null;this.steps=0;this.feedProgress=null;this.mixer=null;this.mixerPromise=null;}
  async installMixer(){if(!this.ctx||this.mixerPromise)return this.mixerPromise;this.mixerPromise=createAudioWorkletCategoryMixer(this.ctx,{categories:['ambient','effects'],destination:this.master}).then(mixer=>{this.mixer=mixer;if(mixer.supported){try{this.ambientBus.disconnect(this.master);this.fxBus.disconnect(this.master);}catch{}mixer.connect(this.ambientBus,{category:'ambient'});mixer.connect(this.fxBus,{category:'effects'});}if(typeof window!=='undefined')window.__DEMON_AUDIO_WORKLET__={snapshot:()=>mixer.snapshot()};return mixer;}).catch(error=>{console.warn('[尽喰廻遊 AudioWorklet]',error);return null;});return this.mixerPromise;}
  start(){if(!this.ctx){const C=globalThis.AudioContext||globalThis.webkitAudioContext;if(!C)return;try{this.ctx=new C();this.master=this.ctx.createGain();this.master.gain.value=.16;this.master.connect(this.ctx.destination);this.ambientBus=this.ctx.createGain();this.fxBus=this.ctx.createGain();this.ambientBus.connect(this.master);this.fxBus.connect(this.master);
  const osc=this.ctx.createOscillator(),gain=this.ctx.createGain();osc.type='sine';osc.frequency.value=49;gain.gain.value=.065;osc.connect(gain).connect(this.ambientBus);osc.start();
@@ -10,7 +10,17 @@ export class NightAudio {
  pause(v){if(!this.ctx)return;v?this.ctx.suspend().catch(()=>{}):this.ctx.resume().catch(()=>{});}
  tone(f,d=.2,volume=.2,type='sine',end=null,delay=0){if(!this.ctx||!this.enabled)return;const t=this.ctx.currentTime+delay,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.value=f;if(end)o.frequency.exponentialRampToValueAtTime(end,t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(this.fxBus||this.master);o.start(t);o.stop(t+d+.04);o.onended=()=>{o.disconnect();g.disconnect();};}
  event(e){if(e.type==='impact'){this.tone(e.guard?220:82,.18,.5,'triangle',e.guard?110:35);this.tone(1050,.05,.08,'square',430);}if(e.type==='consume'){this.tone(78,.52,.65,'triangle',29);const fresh=e.reward?.memoryNew;for(const [i,f] of (fresh?[196,247,330]:[165,220]).entries())this.tone(f,.65,.12,'sine',f*1.5,.045+i*.07);}if(e.type==='scent'||e.type==='shadow')this.tone(150,1.2,.11,'sine',650);if(e.type==='guardian')for(const f of [155,155*2.71,155*5.08])this.tone(f,3.0,f===155?.3:.055,'sine');if(e.type==='gate')this.tone(43,.5,.5,'sawtooth',20);}
- feed(progress){if(!Number.isFinite(progress)){this.feedProgress=null;return;}const previous=this.feedProgress??0;this.feedProgress=progress;if(progress<previous)return;if(previous<.3&&progress>=.3)this.tone(58,.28,.2,'triangle',128);for(const at of BITE_BEATS)if(previous<at&&progress>=at){this.crunch();this.tone(105,.16,.42,'triangle',34);}}
- crunch(){if(!this.ctx||!this.enabled)return;if(!this.biteBuffer){const count=Math.floor(this.ctx.sampleRate*.11);this.biteBuffer=this.ctx.createBuffer(1,count,this.ctx.sampleRate);const data=this.biteBuffer.getChannelData(0);for(let i=0;i<count;i++)data[i]=(Math.random()*2-1)*Math.pow(1-i/count,2);}const source=this.ctx.createBufferSource(),filter=this.ctx.createBiquadFilter(),gain=this.ctx.createGain();source.buffer=this.biteBuffer;filter.type='lowpass';filter.frequency.value=1200;gain.gain.value=.24;source.connect(filter).connect(gain).connect(this.fxBus||this.master);source.start();source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();};}
+ feed(progress){
+  if(!Number.isFinite(progress)){this.feedProgress=null;return;}
+  const previous=this.feedProgress??0;this.feedProgress=progress;
+  if(progress<previous)return;
+  if(previous<.3&&progress>=.3)this.tone(58,.28,.2,'triangle',128);
+  for(const at of BITE_BEATS)if(previous<at&&progress>=at){this.crunch();this.tone(105,.16,.42,'triangle',34);}
+ }
+ crunch(){
+  if(!this.ctx||!this.enabled)return;
+  if(!this.biteBuffer){const count=Math.floor(this.ctx.sampleRate*.11);this.biteBuffer=this.ctx.createBuffer(1,count,this.ctx.sampleRate);const data=this.biteBuffer.getChannelData(0);for(let i=0;i<count;i++)data[i]=(Math.random()*2-1)*Math.pow(1-i/count,2);}
+  const source=this.ctx.createBufferSource(),filter=this.ctx.createBiquadFilter(),gain=this.ctx.createGain();source.buffer=this.biteBuffer;filter.type='lowpass';filter.frequency.value=1200;gain.gain.value=.24;source.connect(filter).connect(gain).connect(this.fxBus||this.master);source.start();source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();};
+ }
  tick(dt,moving){this.steps+=dt;if(moving&&this.steps>.31){this.steps=0;this.tone(65,.075,.15,'triangle',24);}}
 }

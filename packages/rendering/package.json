@@ -22,6 +22,7 @@
     "./occlusion": "./src/occlusion.js",
     "./instance-atlas": "./src/instance-atlas.js",
     "./performance-lab": "./src/performance-lab.js",
+    "./transparency-audit": "./src/transparency-audit.js",
     "./shader-warmup": "./src/shader-warmup.js",
     "./resource-lifetime": "./src/resource-lifetime.js",
     "./context-recovery": "./src/context-recovery.js",
@@ -36,7 +37,8 @@
     "./mura/asset-data": "./src/mura/asset-data.js",
     "./mura/nature-data": "./src/mura/nature-data.js",
     "./mura/terrain": "./src/mura/terrain.js",
-    "./motion-quality": "./src/motion-quality.js"
+    "./motion-quality": "./src/motion-quality.js",
+    "./motion-runtime": "./src/motion-runtime.js"
   },
   "dependencies": {
     "three": "0.186.0",

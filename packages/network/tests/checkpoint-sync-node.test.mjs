@@ -44,3 +44,29 @@ test('three peers still migrate safely after a delta checkpoint history',()=>{
  assert.equal(net.nodes.b.snapshot().phase,'open');assert.equal(net.nodes.b.snapshot().hostId,'b');assert.equal(net.nodes.c.snapshot().hostId,'b');assert.equal(net.applied.b,3);
  assert.equal(net.nodes.b.snapshot().checkpointSync.latestRevision,3);
 });
+
+
+test('checkpoint catch-up rejects outsiders, wrong worlds and closed nodes',()=>{
+ const net=network(['a','b']);net.nodes.a.seedHost();net.nodes.a.hostAdmit('b',{eligible:true});net.nodes.a.publishCheckpoint(checkpoint(1));net.deliver();
+ const message={type:'world-sync-request',worldId:'world-sync',knownRevision:0};
+ assert.equal(net.nodes.a.receive('outsider',message),false);
+ assert.equal(net.nodes.a.receive('b',{...message,worldId:'other-world'}),false);
+ assert.equal(net.nodes.a.syncPeer('outsider'),false);
+ assert.equal(net.queue.length,0);
+ net.nodes.a.close();
+ assert.equal(net.nodes.a.receive('b',message),false);
+ assert.equal(net.nodes.a.syncPeer('b'),false);
+ assert.equal(net.queue.length,0);
+});
+
+test('mismatched checkpoint epochs cannot change the retained journal',()=>{
+ const net=network(['a','b']);net.nodes.a.seedHost();net.nodes.a.hostAdmit('b',{eligible:true});net.nodes.a.publishCheckpoint(checkpoint(1));net.deliver();
+ net.nodes.a.publishCheckpoint(checkpoint(2));
+ const delta=net.queue.find(event=>event.message.type==='world-checkpoint-delta').message;
+ const before=net.nodes.b.snapshot().checkpointSync;
+ assert.equal(net.nodes.b.receive('a',{...delta,epoch:delta.epoch+1}),false);
+ const payload=net.nodes.a.catchupPayload(0);
+ assert.equal(net.nodes.b.receive('a',{type:'world-checkpoint-catchup',worldId:'world-sync',hostId:'a',epoch:1,payload:{...payload,epoch:2}}),false);
+ assert.deepEqual(net.nodes.b.snapshot().checkpointSync,before);
+ net.deliver();assert.equal(net.nodes.b.snapshot().checkpointRevision,2);
+});

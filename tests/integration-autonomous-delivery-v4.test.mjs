@@ -9,6 +9,7 @@ import { chooseLastKnownGood, verifyLastKnownGood } from '../scripts/dev-last-kn
 import { candidatePath } from '../scripts/dev-candidate-server.mjs';
 import { supersededNumbers } from '../scripts/integration-control-consolidation.mjs';
 import { adaptiveFlowTuning, deliveryLatencyMetrics } from '../scripts/integration-flow-control.mjs';
+import { evaluateCanary } from '../scripts/integration-control-canary.mjs';
 
 const sha = c => c.repeat(40);
 
@@ -86,23 +87,51 @@ test('adaptive throughput remains bounded from normal operation through burn-dow
   assert.deepEqual([unstable.trainSize,unstable.rescueConcurrency,unstable.maxEvaluations],[2,3,12]);
 });
 
-test('workflow contracts keep exact-head validation, candidate promotion, LKG fallback and no paid model API', async () => {
+test('control canary treats notification as advisory while preserving delivery gates', () => {
+  const head = sha('a');
+  const base = {
+    sha: head,
+    manifest: { validatedDevelop: head },
+    pulse: { repository: 'charukun/soul-lineage', generatedAt: '2026-09-15T00:00:00Z' },
+    statuses: [
+      { context: 'integration/develop', state: 'success' },
+      { context: 'ops-board/public', state: 'success' },
+      { context: 'notification/ntfy', state: 'error' },
+    ],
+  };
+  const advisory = evaluateCanary(base);
+  assert.equal(advisory.ok, true);
+  assert.equal(advisory.checks.notification, false);
+  assert.equal(advisory.advisory.notification, false);
+  const broken = evaluateCanary({ ...base, statuses: [{ context: 'integration/develop', state: 'failure' }, { context: 'ops-board/public', state: 'success' }] });
+  assert.equal(broken.ok, false);
+});
+
+test('workflow contracts keep exact-head fast merge, asynchronous browser repair, DEV verification, LKG fallback and no paid model API', async () => {
   const { readFileSync } = await import('node:fs');
   const ci = readFileSync('.github/workflows/ci.yml','utf8');
   const deploy = readFileSync('.github/workflows/deploy.yml','utf8');
   const controller = readFileSync('.github/workflows/integration-controller.yml','utf8');
-  const rescue = readFileSync('.github/workflows/integration-rescue.yml','utf8');
+  const coalescer = readFileSync('.github/workflows/dev-publisher-coalescer.yml','utf8');
+  const repair = readFileSync('.github/workflows/integration-rescue.yml','utf8');
   assert.match(ci,/Validate and build/);
   assert.match(ci,/Affected browser smoke/);
   assert.match(ci,/integration-stack-ci\.mjs/);
   assert.match(ci,/integration-gate-cost\.mjs/);
+  assert.match(ci,/integration-request:[\s\S]*needs: \[readiness, build\]/);
+  assert.doesNotMatch(ci,/integration-request:[\s\S]*needs: \[readiness, build, browser\]/);
   assert.match(deploy,/Validate exact DEV candidate before public promotion/);
   assert.match(deploy,/Promote candidate to DEV Pages/);
   assert.match(deploy,/Restore Last Known Good DEV/);
   assert.match(deploy,/integration\/dev-fallback/);
   assert.match(controller,/integration-controller-develop/);
-  assert.match(controller,/publisher-handoff:[\s\S]*publish_only: 'true'/);
-  assert.match(rescue,/Observe flow pressure and repair knowledge/);
-  assert.match(rescue,/Validate Virtual Integration Train/);
-  assert.doesNotMatch(`${ci}\n${deploy}\n${controller}\n${rescue}`,/OPENAI_API_KEY|openai\/codex-action|RINNE_CODEX_MODEL/);
+  assert.match(controller,/Integration Fast Lane/);
+  assert.match(controller,/integration-fast-lane\.mjs/);
+  assert.doesNotMatch(controller,/Validate planned Virtual Integration Train/);
+  assert.doesNotMatch(controller,/publisher-handoff:/);
+  assert.match(coalescer,/run\.event === 'push' && run\.head_sha !== latestSha/);
+  assert.match(repair,/Fast Repair/);
+  assert.match(repair,/integration-repair-fast\.mjs/);
+  assert.doesNotMatch(repair,/Observe repair pressure and knowledge|Plan repair executor wave|AWAITING_PUSH/);
+  assert.doesNotMatch(`${ci}\n${deploy}\n${controller}\n${coalescer}\n${repair}`,/OPENAI_API_KEY|openai\/codex-action|RINNE_CODEX_MODEL/);
 });

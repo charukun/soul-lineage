@@ -6,6 +6,8 @@
 対象可否は最新developの `scripts/integration-rescue-work-repair.mjs` にある `workRepairEligibility(record)` を正本とし、prompt側へ理由一覧を複製しない。現行実装は `SEMANTIC_CONFLICT`、`OVERLAPPING_CHANGES`、`RELATED_CODE_RECONCILIATION`、安全条件を満たすcontrol-plane reconciliation、`ASSERTION_REMOVAL`、git tree staging HTTP 422等のrecoverable transport停止をWorkへ引き継げる。
 明示hold・Changes requested・未解決thread・browser repair所有権・data/save/schema/protocol契約の真の選択・追加API課金禁止は維持する。`contract` と判定されたpathはWorkが調査してよいが、互換性維持かつプロダクト判断不要を証明できない限りpushしない。assertion削除停止もテスト網羅性維持と削除assertionの再調停を証明できる場合だけ復旧する。
 Actions側attemptと独立した有限 `workRepairAttempts` を使い、元PRを修復して通常Integrationへ戻す。仕様を決められない案件はhuman-requiredとして具体的理由を残し、同じheadを無限再試行しない。
+
+仕様判断の範囲は [DEVで実物を確認する標準開発](RINNE_PROJECT_EXECUTION_POLICY.md#devで実物を確認する標準開発) に従う。確定仕様への適応と可逆的な細部はAIへ委任済みであり、それだけでhuman-requiredにしない。以下の `noProductChoiceRequired` は、委任範囲外の未解決の契約選択がないことを示す証拠として扱い、互換性・gate・網羅性の証明を省略しない。
 導入コードがdevelopへ統合されるまで、定期Workはこの修復経路を実稼働させない。
 
 追加API課金なし。既存ChatGPT Work / GitHub接続で1回分の復旧を処理し、GitHubを正本に終了する。新しいモデルAPI、PAT、常駐server、独自queueは作らない。利用枠不足時に追加課金へfallbackしない。

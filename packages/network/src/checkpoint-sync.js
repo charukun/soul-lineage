@@ -1,14 +1,16 @@
 const clone=value=>structuredClone(value);
 const encoder=new TextEncoder();
 const isObject=value=>Boolean(value)&&typeof value==='object'&&!Array.isArray(value);
-const entityArray=value=>Array.isArray(value)&&value.every(item=>isObject(item)&&('id'in item));
+const entityArray=value=>Array.isArray(value)&&value.every(item=>isObject(item)&&Object.hasOwn(item,'id'))&&new Set(value.map(item=>String(item.id))).size===value.length;
+const own=(target,key)=>Object.hasOwn(target,key)?target[key]:undefined;
+function setOwn(target,key,value){Object.defineProperty(target,key,{value,writable:true,enumerable:true,configurable:true});}
 const same=(a,b)=>Object.is(a,b)||JSON.stringify(a)===JSON.stringify(b);
 const bytes=value=>encoder.encode(JSON.stringify(value??null)).byteLength;
 
 function stable(value){
  if(Array.isArray(value))return value.map(stable);
  if(!isObject(value))return value;
- const out={};for(const key of Object.keys(value).sort())out[key]=stable(value[key]);return out;
+ const out=Object.create(null);for(const key of Object.keys(value).sort())out[key]=stable(value[key]);return out;
 }
 export function checkpointDigest(value){
  const text=JSON.stringify(stable(value));let hash=0x811c9dc5;
@@ -20,30 +22,32 @@ function mergePatch(before,after){
  if(!isObject(before)||!isObject(after))return{$set:clone(after)};
  const patch={};let changed=false;
  for(const key of new Set([...Object.keys(before),...Object.keys(after)])){
-  if(!(key in after)){patch[key]={$delete:true};changed=true;continue;}
-  const child=mergePatch(before[key],after[key]);if(child!==null){patch[key]=child;changed=true;}
+  if(!Object.hasOwn(after,key)){setOwn(patch,key,{$delete:true});changed=true;continue;}
+  const child=mergePatch(own(before,key),after[key]);if(child!==null){setOwn(patch,key,child);changed=true;}
  }
  return changed?patch:null;
 }
 function applyMerge(target,patch){
- if(patch&&'$set'in patch)return clone(patch.$set);
- if(patch?.$delete)return undefined;
+ if(patch&&Object.hasOwn(patch,'$set'))return clone(patch.$set);
+ if(patch&&Object.hasOwn(patch,'$delete')&&patch.$delete)return undefined;
  const out=isObject(target)?target:{};
- for(const[key,child]of Object.entries(patch||{})){const value=applyMerge(out[key],child);if(value===undefined&&child?.$delete)delete out[key];else out[key]=value;}
+ for(const[key,child]of Object.entries(patch||{})){const value=applyMerge(own(out,key),child);if(value===undefined&&child&&Object.hasOwn(child,'$delete')&&child.$delete)delete out[key];else setOwn(out,key,value);}
  return out;
 }
-function atPath(root,path){let node=root;for(const key of path)node=node[key];return node;}
+function atPath(root,path){if(!Array.isArray(path))throw new Error('Invalid checkpoint path');let node=root;for(const key of path){if((typeof key!=='string'&&!Number.isSafeInteger(key))||node===null||typeof node!=='object'||!Object.hasOwn(node,key))throw new Error('Checkpoint path is not an own property');node=node[key];}return node;}
 function createOps(before,after){
  const ops=[];
  function walk(a,b,path){
   if(same(a,b))return;
   if(entityArray(a)&&entityArray(b)){
    const left=new Map(a.map(v=>[String(v.id),v])),right=new Map(b.map(v=>[String(v.id),v]));
+   const replayOrder=[...left.keys()].filter(id=>right.has(id)).concat([...right.keys()].filter(id=>!left.has(id)));
+   if(!same(replayOrder,[...right.keys()])){ops.push({op:'set',path,value:clone(b)});return;}
    for(const[id,value]of right){if(!left.has(id)){ops.push({op:'entity-set',path,id,value:clone(value)});continue;}const patch=mergePatch(left.get(id),value);if(patch)ops.push({op:'entity-patch',path,id,patch});}
    for(const id of left.keys())if(!right.has(id))ops.push({op:'entity-delete',path,id});return;
   }
   if(isObject(a)&&isObject(b)){
-   for(const key of new Set([...Object.keys(a),...Object.keys(b)])){if(!(key in b))ops.push({op:'delete',path:[...path,key]});else if(!(key in a))ops.push({op:'set',path:[...path,key],value:clone(b[key])});else walk(a[key],b[key],[...path,key]);}
+   for(const key of new Set([...Object.keys(a),...Object.keys(b)])){if(!Object.hasOwn(b,key))ops.push({op:'delete',path:[...path,key]});else if(!Object.hasOwn(a,key))ops.push({op:'set',path:[...path,key],value:clone(b[key])});else walk(a[key],b[key],[...path,key]);}
    return;
   }
   ops.push({op:'set',path,value:clone(b)});
@@ -61,8 +65,10 @@ function applyOps(base,ops){
    if(op.op==='entity-set'){if(index>=0)list[index]=clone(op.value);else list.push(clone(op.value));continue;}
    if(index<0)throw new Error(`Checkpoint entity missing: ${op.id}`);list[index]=applyMerge(list[index],op.patch);continue;
   }
-  const parent=op.path.slice(0,-1).reduce((node,key)=>node[key],root),key=op.path.at(-1);
-  if(op.op==='delete')delete parent[key];else if(op.op==='set')parent[key]=clone(op.value);else throw new Error(`Unknown checkpoint op: ${op.op}`);
+  if(!Array.isArray(op.path)||!op.path.length)throw new Error('Invalid checkpoint path');
+  const parent=atPath(root,op.path.slice(0,-1)),key=op.path.at(-1);
+  if(parent===null||typeof parent!=='object'||(typeof key!=='string'&&!Number.isSafeInteger(key)))throw new Error('Invalid checkpoint target');
+  if(op.op==='delete')delete parent[key];else if(op.op==='set')setOwn(parent,key,clone(op.value));else throw new Error(`Unknown checkpoint op: ${op.op}`);
  }
  return root;
 }

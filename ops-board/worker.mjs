@@ -22,6 +22,11 @@ function publicState(state, env) { return state ? { ...state, buildCommit: env.O
 const bearer=request=>{const value=request.headers.get('authorization')||'';return value.startsWith('Bearer ')?value.slice(7):'';};
 async function peerBody(request,max=110000){const text=await request.text();if(text.length>max)throw new Error('payload_too_large');return text?JSON.parse(text):{};}
 function peerErrorStatus(message){return message==='unauthorized'?401:message==='room_not_found'||message==='join_not_found'?404:message==='room_limit'||message==='join_limit'?429:400;}
+const EVENT_REASONS = new Set(['prime', 'pr-event', 'integration', 'deployment']);
+function eventReason(request) {
+  const reason = (request.headers.get('x-ops-refresh-reason') || '').trim().toLowerCase();
+  return EVENT_REASONS.has(reason) ? `github-event:${reason}` : 'github-event';
+}
 
 export class OpsState extends DurableObject {
   constructor(ctx, env) { super(ctx, env); this.ctx = ctx; this.env = env; this.inflight = null; this.inflightAuthenticated = false; }
@@ -44,7 +49,7 @@ export class OpsState extends DurableObject {
   async peerSnapshot(){return publicPeerWorldSnapshot(await this.peerRegistry(),Date.now());}
   async peerList(){return this.peerApply(listPeerWorldRooms);}
   async peerCreate(input){return this.peerApply(createPeerWorldRoom,input);}
-  async peerJoin(roomId,input){return this.peerApply(joinPeerWorldRoom,roomId,input);}
+  async peerJoin(roomId,input,token){return this.peerApply(joinPeerWorldRoom,roomId,{...input,inviteToken:token});}
   async peerHostEvents(roomId,token,after){return this.peerApply(readHostEvents,roomId,token,after);}
   async peerOffer(roomId,joinId,token,offer){return this.peerApply(postPeerWorldOffer,roomId,joinId,token,offer);}
   async peerGuestEvents(roomId,joinId,token,after){return this.peerApply(readGuestEvents,roomId,joinId,token,after);}
@@ -54,6 +59,7 @@ export class OpsState extends DurableObject {
   async refresh(source = 'manual', requestToken = '') {
     if (this.inflight) {
       if (!requestToken || this.inflightAuthenticated) return this.inflight;
+      // Do not mistake an anonymous Cron result for the explicitly authenticated prime/event refresh.
       await this.inflight.catch(() => {});
       return this.refresh(source, requestToken);
     }
@@ -62,7 +68,7 @@ export class OpsState extends DurableObject {
       const previous = await this.getState();
       try {
         const token = requestToken || this.env.OPS_GITHUB_TOKEN || '';
-        const state = await buildState(previous, { storage: this.ctx.storage, token });
+        const state = await buildState(previous, { storage: this.ctx.storage, token, reason: source });
         state.refreshReason = source;
         await writeStored(this.ctx.storage, STATE_KEY, state);
         return state;
@@ -87,7 +93,7 @@ async function handlePeerWorld(request,url,stub){
     if(segments[2]!=='rooms'||!segments[3])return peerJson({error:'not_found'},404);
     const roomId=segments[3],token=bearer(request);
     if(segments.length===4&&request.method==='DELETE')return peerJson(await stub.peerDelete(roomId,token));
-    if(segments[4]==='join'&&segments.length===5&&request.method==='POST')return peerJson(await stub.peerJoin(roomId,await peerBody(request)),201);
+    if(segments[4]==='join'&&segments.length===5&&request.method==='POST')return peerJson(await stub.peerJoin(roomId,await peerBody(request),token),201);
     if(segments[4]==='host-events'&&request.method==='GET')return peerJson(await stub.peerHostEvents(roomId,token,Number(url.searchParams.get('after')||0)));
     if(segments[4]==='telemetry'&&request.method==='POST')return peerJson(await stub.peerTelemetry(roomId,token,await peerBody(request)));
     if(segments[4]==='joins'&&segments[5]){
@@ -103,10 +109,10 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
-      const stub=env.OPS_STATE.getByName('global');
-      if(url.pathname.startsWith('/api/peer-world/'))return handlePeerWorld(request,url,stub);
+      if(url.pathname.startsWith('/api/peer-world/'))return handlePeerWorld(request,url,env.OPS_STATE.getByName('global'));
       if (url.pathname === '/api/version' && request.method === 'GET') return json({ app: 'ops-board', commit: env.OPS_BUILD_SHA || null });
       if (url.pathname === '/api/state' && request.method === 'GET') {
+        const stub = env.OPS_STATE.getByName('global');
         const state = await stub.getState() || await stub.refresh('cold-start');
         return json({ ...publicState(state, env), sharedWorld: await stub.peerSnapshot() });
       }
@@ -114,7 +120,8 @@ export default {
         if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
         const token = request.headers.get('x-ops-github-token') || '';
         if (token.length > 1024) return json({ error: 'invalid_credential' }, 400);
-        return json(publicState(await stub.refresh('github-event', token), env));
+        const stub = env.OPS_STATE.getByName('global');
+        return json(publicState(await stub.refresh(eventReason(request), token), env));
       }
       if (url.pathname === '/api/rescue-observation' && request.method === 'POST') {
         if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
@@ -122,7 +129,7 @@ export default {
         if (body.length > 900000) return json({ error: 'snapshot_too_large' }, 413);
         const snapshot = JSON.parse(body);
         if (!snapshot.available || !Number.isFinite(Date.parse(snapshot.generatedAt)) || !Array.isArray(snapshot.workers) || !Array.isArray(snapshot.queue)) return json({ error: 'invalid_snapshot' }, 400);
-        return json(await stub.observeRescue(snapshot));
+        return json(await env.OPS_STATE.getByName('global').observeRescue(snapshot));
       }
       if (url.pathname.startsWith('/api/')) return json({ error: 'not_found' }, 404);
       return env.ASSETS.fetch(request);

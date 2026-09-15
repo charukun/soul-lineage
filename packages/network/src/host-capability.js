@@ -1,6 +1,6 @@
 export const HOST_CAPABILITY_VERSION = 1;
 const clamp=(n,min,max)=>Math.min(max,Math.max(min,n));
-const finite=(value,fallback=null)=>Number.isFinite(Number(value))?Number(value):fallback;
+const finite=(value,fallback=null)=>typeof value==='number'&&Number.isFinite(value)?value:fallback;
 
 export function normalizeHostCapability(input={}){
   const foreground=input.foreground!==false;

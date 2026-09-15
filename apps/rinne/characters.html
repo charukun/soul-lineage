@@ -47,6 +47,7 @@
 <input id="qa-time" type="range" min="0" max="30" step="0.016666666667" value="0" aria-label="Motion QA時刻">
 <div class="choice-row"><button id="qa-prev" type="button">−1コマ</button><button id="qa-next" type="button">＋1コマ</button><button id="qa-before" type="button" aria-pressed="false">補正前を見る</button></div>
 <label>確認する動き<select id="qa-motion"></select></label>
+<div class="choice-row qa-playback"><label>再生速度<select id="qa-speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select></label><label><input id="qa-loop" type="checkbox">この動きを反復</label></div>
 <div id="qa-cameras" class="qa-cameras" aria-label="Motion QAカメラ"></div>
 <label><input id="qa-tour" type="checkbox">8方向を自動巡回</label>
 <div class="choice-row"><button data-qa-count="1" type="button">1体</button><button data-qa-count="6" type="button">6体</button><button data-qa-count="12" type="button">12体</button><button data-qa-count="30" type="button">30体・負荷確認</button></div>
@@ -106,4 +107,5 @@
 <textarea id="note"></textarea><button id="export" type="button">export</button><input id="session-file" type="file" accept=".json,application/json"><input id="file" type="file" accept=".vrm,.glb"><pre id="capabilities"></pre>
 </div>
 <script type="module" src="./src/character-review-main.js"></script>
+<script type="module" src="./src/character-motion-debug.js"></script>
 </body></html>

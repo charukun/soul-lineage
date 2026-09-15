@@ -103,3 +103,13 @@ test('returning old host resynchronizes from a newer host migration proof',()=>{
   for(let i=0;i<4;i++){net.advance(30);net.deliver();}
   assert.equal(net.nodes.a.snapshot().phase,'open');assert.equal(net.nodes.a.snapshot().hostId,'b');assert.equal(net.nodes.a.snapshot().epoch,2);
 });
+
+
+test('delayed authority metadata cannot erase a newer checkpoint or admitted cohort',()=>{
+  const net=network(['a','b','c']);net.nodes.a.seedHost();const stale=structuredClone(net.nodes.a.authority);
+  net.nodes.a.hostAdmit('b',{eligible:true});net.nodes.a.hostAdmit('c',{eligible:true});net.nodes.a.publishCheckpoint(checkpoint(12));net.deliver();
+  assert.equal(net.nodes.b.receive('a',{type:'world-authority',authority:stale}),false);
+  assert.equal(net.nodes.b.snapshot().revision,1);
+  assert.equal(net.nodes.b.snapshot().authority.checkpoint.revision,1);
+  assert.equal(Object.keys(net.nodes.b.snapshot().authority.members).length,3);
+});

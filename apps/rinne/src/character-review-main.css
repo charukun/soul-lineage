@@ -25,3 +25,4 @@
 
 #tab-qa{white-space:nowrap;font-size:.75rem}
 #motion-qa select,#motion-qa input[type=text],#motion-qa textarea{background:#20383e;color:#f1e9d9;border:1px solid #45616a;border-radius:7px;padding:9px;font:inherit}
+.qa-playback{align-items:center}.qa-playback>label{flex:1;min-width:0}

@@ -1,6 +1,8 @@
 import { targetAppsFromFiles } from './pulls.mjs';
 import { FAILED_CONCLUSIONS } from './public/health.mjs';
 
+const MAX_TARGET_FILE_PAGES = 5;
+
 export function targetRevision(pr) {
   if (!pr?.head?.sha || !pr?.base?.sha) return null;
   const base = pr.state === 'closed' ? `closed:${pr.merged_at || pr.closed_at || ''}:${pr.merge_commit_sha || pr.base.sha}` : pr.base.sha;
@@ -10,32 +12,35 @@ export function targetRevision(pr) {
 export async function enrichTargets(pulls, client, storage, limit = 2, now = Date.now()) {
   const result = pulls.map(pr => ({ ...pr, targetApps: [], targetAppsComplete: false, targetAppsStatus: 'pending' }));
   const pending = [];
+  const deepAllowed = () => client.deepAllowed !== false;
   for (const pr of result) {
     const saved = await storage?.get(`ops-targets:${pr.number}`);
     const revision = targetRevision(pr);
     if (revision && saved?.revision === revision && saved.complete) {
       Object.assign(pr, { targetApps: saved.targets, targetAppsComplete: true, targetAppsStatus: 'ready', targetAppsUpdatedAt: saved.updatedAt });
+    } else if (pr.state !== 'open') {
+      // Historical rows keep existing attribution, but never spend API budget to backfill it.
+      pr.targetAppsStatus = 'skipped';
     } else pending.push({ pr, saved, revision });
   }
-  // Open work first; historical PRs are then warmed once, not on every filter click.
-  pending.sort((a, b) => Number(b.pr.state === 'open') - Number(a.pr.state === 'open') || (a.saved?.attemptAt || 0) - (b.saved?.attemptAt || 0));
+  pending.sort((a, b) => (a.saved?.attemptAt || 0) - (b.saved?.attemptAt || 0));
   let attempted = 0;
   for (const { pr, revision, saved } of pending) {
-    if (!revision || attempted >= limit || client.available < 3) continue;
+    if (!revision || attempted >= limit || client.available < 3 || !deepAllowed()) continue;
     if (saved?.revision === revision && saved.retryAt > now) { pr.targetAppsStatus = 'unavailable'; continue; }
     attempted++;
     try {
       const files = [];
       let complete = false;
-      for (let page = 1; page <= 30 && client.available > 1; page++) {
-        const { data, response } = await client.get(`/pulls/${pr.number}/files?per_page=100&page=${page}`);
+      for (let page = 1; page <= MAX_TARGET_FILE_PAGES && client.available > 1 && deepAllowed(); page++) {
+        const { data, response } = await client.get(`/pulls/${pr.number}/files?per_page=100&page=${page}`, { maxAgeMs: 60_000 });
         if (!Array.isArray(data)) throw new Error('変更ファイルの形式が不正です');
         files.push(...data);
         if (!/rel="next"/.test(response.headers.get('link') || '')) { complete = true; break; }
       }
-      const { data: confirmed } = await client.get(`/pulls/${pr.number}`);
+      if (!deepAllowed() || client.available < 1) throw Object.assign(new Error('GitHub API残量保護のため対象判定を次回へ延期'), { budgetLimited: true });
+      const { data: confirmed } = await client.get(`/pulls/${pr.number}`, { maxAgeMs: 60_000 });
       if (targetRevision(confirmed) !== revision) throw new Error('取得中にPRの版が更新されました');
-      // REST returns at most 3,000 changed files. Never claim complete coverage beyond it.
       complete = complete && Number.isInteger(confirmed.changed_files) && files.length === confirmed.changed_files;
       const paths = files.flatMap(file => [file.filename, file.previous_filename].filter(Boolean));
       const targets = targetAppsFromFiles(paths);
@@ -52,7 +57,7 @@ export async function enrichTargets(pulls, client, storage, limit = 2, now = Dat
     unavailable: result.filter(pr => ['unavailable', 'partial'].includes(pr.targetAppsStatus)).length };
 }
 
-export function actionProblems(runs = [], pulls = []) {
+export function actionProblems(runs = [], pulls = [], { verifiedDevelopSha = null } = {}) {
   const open = new Map(pulls.filter(pr => pr.state === 'open').map(pr => [pr.head?.ref, pr.head?.sha]));
   const closed = new Set(pulls.filter(pr => pr.state === 'closed').map(pr => pr.head?.ref));
   const ordered = [...runs].sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0) || b.id - a.id);
@@ -68,6 +73,9 @@ export function actionProblems(runs = [], pulls = []) {
     else if (last?.id !== run.id) historyLabel = last?.conclusion === 'success' ? '後続の成功で解消' : '過去の実行';
     else if (open.has(run.head_branch) && open.get(run.head_branch) !== run.head_sha) historyLabel = '旧版の失敗';
     else if (!open.has(run.head_branch) && closed.has(run.head_branch) && !['develop', 'main'].includes(run.head_branch)) historyLabel = '終了済みPRの記録';
+    else if (verifiedDevelopSha && run.name === 'Deploy DEV and PROD' && run.head_branch === 'develop' && run.head_sha === verifiedDevelopSha) {
+      historyLabel = 'DEV公開検証済み・補助処理の記録';
+    }
     if (historyLabel) history.push({ ...run, historyLabel }); else current.push(run);
   }
   return { current: current.slice(0, 10), history: history.slice(0, 20) };

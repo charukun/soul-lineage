@@ -24,9 +24,10 @@ Simulation.prototype.step=function scaledVillageStep(dt){const state=stateFor(th
  this.constructionTimer+=dt;if(this.constructionTimer>=.5){this.construction(this.constructionTimer);this.constructionTimer=0;}
  this.ship(dt);this.updateRaid(dt);const focus=focusFor(this),activeIds=state.activeIds;activeIds.clear();
  for(const p of w.people){activeIds.add(String(p.id));if(p.downed||p.remoteControlled)continue;const d=distance(p,focus),important=isGuard(p)||isPlayer(p)||p.role==='mayor'||p.task==='defending'||(this.raid?.phase==='active'&&d<80),decision=state.cadence.consume(p.id,dt,d,{important,combat:p.task==='defending'});p.simulationTier=decision.tier;p.simulationHz=decision.hz;
+  if(isGuard(p)){if(decision.due){p.hunger=Math.max(0,(p.hunger??80)-decision.delta*.34);p.decorateRetry=Math.max(0,(p.decorateRetry||0)-decision.delta);this.guardStep(p,decision.delta);}continue;}
   // Path following stays at the fixed 30 Hz authority step so lower AI cadence does not create visible teleporting.
   if(p.task==='walk'){if(decision.due){p.hunger=Math.max(0,(p.hunger??80)-decision.delta*.34);p.decorateRetry=Math.max(0,(p.decorateRetry||0)-decision.delta);}this.walk(p,dt);continue;}
-  if(!decision.due)continue;const pdt=decision.delta;p.hunger=Math.max(0,(p.hunger??80)-pdt*.34);p.decorateRetry=Math.max(0,(p.decorateRetry||0)-pdt);if(isGuard(p)){this.guardStep(p,pdt);continue;}if(p.bubble&&p.bubble.until<this.elapsed)p.bubble=null;p.moving=false;p.timer-=pdt;if(p.timer>0)continue;if(p.task==='idle')this.decide(p);else this.finish(p);}
+  if(!decision.due)continue;const pdt=decision.delta;p.hunger=Math.max(0,(p.hunger??80)-pdt*.34);p.decorateRetry=Math.max(0,(p.decorateRetry||0)-pdt);if(p.bubble&&p.bubble.until<this.elapsed)p.bubble=null;p.moving=false;p.timer-=pdt;if(p.timer>0)continue;if(p.task==='idle')this.decide(p);else this.finish(p);}
  if(state.ticks%300===0)state.cadence.sweep(activeIds);rebuildIndexes(this,state);this.updateWildlife(dt);this.rescueAndRecovery(dt);this.momentTimer-=dt;if(this.momentTimer<=0){this.momentTimer=22+this.random()*15;this.quietMoments();}this.decayTimer+=dt;if(this.decayTimer>8){const factor=Math.pow(.98,this.decayTimer/60);for(const[k,v]of Object.entries(s.traffic)){if(v*factor<.02)delete s.traffic[k];else s.traffic[k]=v*factor;}this.decayTimer=0;this.trafficRevision++;}
 };
 

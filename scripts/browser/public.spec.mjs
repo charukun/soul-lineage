@@ -1,21 +1,36 @@
+import {nativeTap} from '@soul/platform-web/testing/native-input';
 import { test, expect } from '@playwright/test';
 import { appendFileSync } from 'node:fs';
 import {registerClarityTests} from './public-clarity.mjs';
 import {registerMusicTests} from './public-music.mjs';
 import {capturePlayedAudio} from './media-diagnostics.mjs';
-import { isVerifiedAudioRangeAbort, describeFailedRequest } from './media-request-contract.mjs';
+import { isVerifiedAudioRangeAbort, isVerifiedLifecycleAssetAbort, describeFailedRequest } from './media-request-contract.mjs';
 const base = process.env.BROWSER_SITE_URL?.replace(/\/?$/, '/');
 const targets = JSON.parse(process.env.BROWSER_TARGETS || '[]');
 if (!base || !targets.length) throw new Error('Pass a published URL and exact manifest targets');
 for (const target of targets) {
   test(`${target.path} starts WebGL2 from the deployed commit`, async ({ page }, testInfo) => {
     test.setTimeout(target.app === 'rinne' && !target.legacy ? 180000 : 60000);
-    const errors = [], rawFailedRequests = [], simulatorRequests = [], playedSources = new Set();
+    const errors = [], rawFailedRequests = [], lifecycleFailedRequests = [], simulatorRequests = [], playedSources = new Set();
+    let lifecycleTeardown = false;
+    const withLifecycleTeardown = async action => {
+      lifecycleTeardown = true;
+      try { return await action(); }
+      finally {
+        // requestfailed is dispatched asynchronously from the consumer teardown.
+        await page.waitForTimeout(50);
+        lifecycleTeardown = false;
+      }
+    };
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    page.on('requestfailed', request => rawFailedRequests.push(request));
+    page.on('requestfailed', request => (lifecycleTeardown ? lifecycleFailedRequests : rawFailedRequests).push(request));
     page.on('request', request => { if (request.url().includes('/simulator/')) simulatorRequests.push(request.url()); });
     const url = new URL(`${target.path}/`, base).href;
+    // Native demon interactions use the mobile viewport from boot. Avoid a
+    // redundant desktop render-target allocation before the same mobile checks.
+    // The independent music scenario retains desktop boot coverage.
+    if (target.app === 'demon' && !target.legacy) await page.setViewportSize({width:390, height:844});
     const response = await page.goto(url, { waitUntil: 'networkidle' });
     expect(response.status()).toBe(200);
     const canvas = page.locator('#game');
@@ -47,7 +62,7 @@ for (const target of targets) {
       expect(frame).toBeTruthy();
       const ready = await frame.evaluate(() => ({ ready: window.__ATELIER__?.snapshot().ready, model: window.__HUMANOID_LAB__?.report().id, finite: window.__HUMANOID_LAB__?.report().finite }));
       expect(ready.ready).toBe(true); expect(ready.finite).toBe(true); expect(ready.model).toBe('SHINO');
-      await frame.evaluate(() => window.__ATELIER__.stop());
+      await withLifecycleTeardown(() => frame.evaluate(() => window.__ATELIER__.stop()));
       const combat = await frame.evaluate(() => {
         const app = window.__ATELIER__;
         window.__LIFE_LAB__.advance(Math.max(0, 22 - window.__LIFE_LAB__.snapshot().ageYears) * 60);
@@ -70,8 +85,10 @@ for (const target of targets) {
       await simulator.locator('#lifeResume').click();
       const life = await frame.evaluate(() => window.__LIFE_LAB__.snapshot());
       expect(life.rate).toBe(20); expect(life.enemiesEnabled).toBe(false);
-      await page.locator('#back-title').click();
-      await expect(page.locator('#simulator-frame')).toHaveCount(0);
+      await withLifecycleTeardown(async () => {
+        await page.locator('#back-title').click();
+        await expect(page.locator('#simulator-frame')).toHaveCount(0);
+      });
       await expect(page.locator('#title-screen')).toBeVisible();
       await expect(canvas).toHaveAttribute('data-renderer', 'ready');
       await testInfo.attach('simulator.json', { body: JSON.stringify({ ready, combat }, null, 2), contentType: 'application/json' });
@@ -83,12 +100,12 @@ for (const target of targets) {
       await expect(canvas).toHaveAttribute('data-platform', 'web');
       await expect(page.getByRole('heading', { level: 1 })).toHaveText('尽喰廻遊');
       expect(await page.locator('#emblem').evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
-      await page.setViewportSize({ width: 390, height: 844 });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await page.screenshot({ path: testInfo.outputPath('demon-title-mobile.png') });
-      await page.locator('#begin').click();
+      // Retain the hunt screenshot and automatic success/failure screenshots;
+      // do not spend the interaction deadline on a second title capture.
+      await nativeTap(page, expect, page.locator('#begin'));
       await expect(page.locator('[data-village]')).toHaveCount(3);
-      await page.locator('[data-village]').first().click();
+      await nativeTap(page, expect, page.locator('[data-village]').first());
       await expect(page.locator('#hud')).toBeVisible();
       const started = await page.evaluate(() => window.__NIGHT_HUNT__.snapshot());
       expect(started.profile.visits[started.village].status).toBe('entered');
@@ -121,17 +138,18 @@ for (const target of targets) {
       await other.goto(url);
       await expect(other.locator('#boot-detail')).toContainText('別のタブ');
       await other.close();
-      // Reload destroys the first document's blob URLs. Preserve demonstrated
-      // playback before navigation; unknown/failed media still fail diagnostics.
+      // Reload destroys the first document's blob URLs and cancels optional model
+      // consumers. Record that cancellation separately; only proven successful
+      // same-origin lifecycle aborts may be excluded from ordinary failures.
       await capturePlayedAudio(page, playedSources);
-      await page.reload();
+      await withLifecycleTeardown(() => page.reload());
       await expect(canvas).toHaveAttribute('data-renderer', 'ready');
       const resumed = await page.evaluate(() => window.__NIGHT_HUNT__.snapshot());
       expect(resumed.profile.visits[started.village].status).toBe('abandoned');
-      await page.locator('#begin').click();
+      await nativeTap(page, expect, page.locator('#begin'));
       const nextIDs = await page.locator('[data-village]').evaluateAll(nodes => nodes.map(n => n.dataset.village));
       expect(nextIDs).not.toContain(started.village);
-      await page.locator('#sheet-close').click();
+      await nativeTap(page, expect, page.locator('#sheet-close'));
       await page.setViewportSize({ width: 1280, height: 800 });
     } else if (target.app === 'village' && !target.legacy && await page.locator('#build').count()) {
       await expect(canvas).toHaveAttribute('data-game-world', 'hoshitsugi.life-and-guard.v5');
@@ -166,11 +184,19 @@ for (const target of targets) {
       await page.setViewportSize({ width: 1280, height: 800 });
     }
     await capturePlayedAudio(page,playedSources);
+    const origin = new URL(url).origin;
     const requestFailures = await Promise.all(rawFailedRequests.map(describeFailedRequest));
-    const expectedMediaAborts = requestFailures.filter(record => isVerifiedAudioRangeAbort(record, playedSources, new URL(url).origin));
-    const failedRequests = requestFailures.filter(record => !isVerifiedAudioRangeAbort(record, playedSources, new URL(url).origin));
+    const lifecycleRequestFailures = await Promise.all(lifecycleFailedRequests.map(describeFailedRequest));
+    const expectedMediaAborts = requestFailures.filter(record => isVerifiedAudioRangeAbort(record, playedSources, origin));
+    const ordinaryFailures = requestFailures.filter(record => !isVerifiedAudioRangeAbort(record, playedSources, origin));
+    const expectedLifecycleAborts = lifecycleRequestFailures.filter(record =>
+      isVerifiedLifecycleAssetAbort(record, origin, true) || isVerifiedAudioRangeAbort(record, playedSources, origin));
+    const invalidLifecycleAborts = lifecycleRequestFailures.filter(record =>
+      !isVerifiedLifecycleAssetAbort(record, origin, true) && !isVerifiedAudioRangeAbort(record, playedSources, origin));
+    const failedRequests = [...ordinaryFailures, ...invalidLifecycleAborts];
     const record = { url, commit: target.version.commit, inputHash: target.version.inputHash, webgl: gpu,
-      errors, failedRequests, expectedMediaAborts, requestFailures, verifiedAudioSources: [...playedSources] };
+      errors, failedRequests, expectedMediaAborts, expectedLifecycleAborts, requestFailures,
+      lifecycleRequestFailures, verifiedAudioSources: [...playedSources] };
     await testInfo.attach('request-diagnostics.json', { body: JSON.stringify(record, null, 2), contentType: 'application/json' });
     expect(errors).toEqual([]); expect(failedRequests).toEqual([]);
     await testInfo.attach('verified-browser.json', { body: JSON.stringify(record, null, 2), contentType: 'application/json' });

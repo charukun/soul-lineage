@@ -1,141 +1,50 @@
 # Peer-hosted Shared World / Darkness Host Migration
 
-## Goal
+## Current application contract
 
-The shared world stays peer-hosted. Host ownership is allowed to move between eligible MURAAAAAAA peers and that technical migration is represented in-world as darkness covering the village until a safe checkpoint is restored.
+The latest `docs/VILLAGE_VISUAL_AND_FRIEND_INVITE.md` governs the application entry points. Village owners deliberately issue a 15-minute friend invitation. The dedicated guest page receives exterior presentation only: no people, progression, room contents, personal save, raid state or rewards. Demon keeps its disabled `friend-invite-only` online adapter. There is no public village directory or ordinary online-raid entry.
 
-This design deliberately does **not** make a dedicated server mandatory and does **not** require an ECS rewrite. Performance-oriented data layouts may still be introduced locally when measurement justifies them, but they are not an authority prerequisite.
+`@soul/network/friend-visit-authority` connects the real friend invitation flow to the shared peer-hosted authority implementation. The existing WebRTC offer/answer and the single active invitation remain unchanged. A `friend-village` message contains the existing exterior snapshot plus bounded authority metadata; subsequent `friend-world` frames carry only authority and heartbeat control. The adapter rejects checkpoint and migration-grant frames and validates invitation world, peer identity, host identity and visitor ineligibility.
 
-## Runtime roles
+The owner remains the only eligible simulation host. The visitor acknowledges the host lease with `hostEligible: false`. After host loss the guest becomes closed and the shared darkness overlay blocks view controls. The owner's local village and personal saves continue independently: a sightseeing visitor never controls the owner's simulation or persistence.
 
-### MURAAAAAAA peer
+**The current appearance-only friend visitor cannot take over a village.** Full simulation migration is supported and tested for explicitly eligible peers by the shared network runtime, but no current friend UI grants that capability. In the current one-guest star, no guest-to-guest mesh edge exists to form. Mesh signalling and promotion retention are exercised with eligible peers in the network browser verification below.
 
-A MURAAAAAAA peer owns the full village `World` / `Simulation` runtime and is therefore `hostEligible: true`.
+## Shared authority and migration runtime
 
-- The initial village owner starts as Host.
-- A second MURAAAAAAA device may join as a standby Host candidate.
-- Standby candidates participate in quorum but are represented as `standby` in `RaidHost`; they never become phantom human combatants.
-- A standby stores checkpoints without applying them to its personal local village.
-- Only when it wins a migration does it restore the shared checkpoint into memory and resume authority.
-- Remote/shared authority is read-only against the device's personal `living-v5` save. Losing Host authority also makes local persistence read-only until that peer owns the open world again.
+Peer-hosted failover works without replacing existing game runtimes with mandatory dedicated servers. It does not require an ECS rewrite. Gameplay and simulation rules remain with their app owners.
 
-### 輪廻転焦 / 尽喰廻遊 peer
+`createPeerHostedWorldNode` tracks world/host/mayor IDs, epoch, revision, open/migrating/closed phase, bounded host lease, deterministic member order, host eligibility, checkpoint revision and migration proof. Plain authority messages cannot advance an epoch. An eligible host can reopen only after a graceful grant or a majority-quorum migration proof.
 
-These applications participate in the peer mesh, checkpoint replication and quorum voting but are currently `hostEligible: false` because they do not embed the complete MURAAAAAAA village simulation runtime.
+- Three eligible peers: after A fails, B+C can form a majority and choose a successor.
+- Two eligible peers, sudden partition: neither side may continue authoritative progression.
+- Two eligible peers, explicit graceful handoff: the successor restores a validated checkpoint before reopening.
+- Ineligible peers can acknowledge/vote but are never elected.
+- A returning old host must synchronize from the accepted newer migration proof.
 
-They follow the current Host automatically after migration and continue to send presence over the new peer connection. They do not pretend to become a village Host.
+Heartbeat intervals derive from the configured lease; shortened deterministic test leases also retain multiple heartbeat opportunities within one lease.
 
-## Authority state
+`createPeerMeshCoordinator` uses lower stable peer ID to initiate each link. Control, authority, checkpoints and migration proof use reliable ordered delivery; replaceable presence uses the unordered zero-retransmission lane. Existing mesh edges survive promotion, and transient `disconnected` does not eject a peer before terminal failure or lease expiry.
 
-The shared `@soul/network/peer-hosted-world` runtime owns only migration metadata:
+## Checkpoints and personal persistence
 
-- `worldId`
-- `hostId`
-- `mayorId`
-- `epoch`
-- `revision`
-- `open / migrating / closed`
-- deterministic member join order and host eligibility
-- bounded Host lease
-- latest validated checkpoint revision
-- last migration proof
+The generic checkpoint schema keeps bounded world state, time/RNG, entity positions and optional bounded session data. Eligible simulation hosts restore it in memory before reopening. Generic `RaidHost` checkpoint support remains a library capability and is not exposed by the current non-hostile friend entry.
 
-Gameplay rules, combat/damage rules and the village simulation remain with their existing owners.
-
-A plain `world-authority` message cannot advance `epoch`. A higher epoch becomes authoritative only through a validated `world-migration-open` carrying either:
-
-1. an explicit graceful Host grant, or
-2. a majority-quorum migration proof from the previous connected cohort.
-
-This prevents an arbitrary peer from claiming a newer epoch through an ordinary state message.
-
-## Quorum lease and split-brain safety
-
-The Host does not renew its lease merely because its own timer is running. It sends heartbeat messages and renews the lease only after receiving a majority of acknowledgements from the last connected cohort.
-
-Consequences:
-
-- 3 peers: if Host A disappears, B + C form the majority and one eligible peer can reopen the world.
-- 4 peers: Host needs a majority of the four-member cohort; a minority partition cannot continue authority.
-- 2 peers, sudden partition: neither side has a majority, so both remain in darkness rather than creating two worlds.
-- 2 peers, graceful handoff: the current Host can explicitly grant authority to the other eligible peer before leaving, so normal planned handoff still works.
-
-Fail-closed darkness is preferable to split-brain world progression.
-
-## Preformed WebRTC mesh
-
-The original Host remains the initial manual signalling relay only while it is alive.
-
-After peers join, eligible/session peers preform direct WebRTC links with each other. The lower stable peer ID deterministically initiates each mesh edge to avoid double offers.
-
-Each direct edge keeps the existing two-lane transport:
-
-- reliable / ordered: authority, checkpoint, migration proof, join/battle control
-- unordered / `maxRetransmits: 0`: replaceable presence/state
-
-When a former client becomes Host, its already-established mesh edge is retained and becomes the new Host transport. `syncMembers()` may skip creating a duplicate edge to the current star Host, but it never closes an already-established edge merely because that peer was promoted.
-
-Transient WebRTC `disconnected` states are not treated as terminal. `failed`, `closed` or explicit send failure can remove an edge; ordinary radio/network wobble is left to the lease/quorum timer.
-
-## Checkpoint contents
-
-`createVillageCheckpoint()` remains bounded and validated. The checkpoint now may include a `session` payload in addition to the village world, NPC/character positions, random state and world time.
-
-MURAAAAAAA stores `RaidHost.checkpoint()` inside that session. It contains:
-
-- online peer state
-- demon visit ledger
-- current HP/position state
-- compact battle envelope
-
-On migration an unfinished Tidebreak battle is reconstructed using the same village/player seed and the checkpointed HP/positions. The exact animation/action sub-frame is intentionally not serialized. The darkness interval is the safe boundary where combat presentation can settle into a new stance without duplicating damage events.
-
-## Darkness experience
-
-`@soul/shared-ui/world-darkness` is the common presentation layer.
-
-- `open`: 「闇が晴れていく」
-- `migrating`: 「闇が村へ迫っている」
-- `closed`: 「村は闇に閉ざされている」
-
-During `migrating` / `closed`, the overlay blocks interaction. MURAAAAAAA pauses authority simulation; 尽喰廻遊 pauses `RaidSession.tick`. Rendering may continue underneath so the transition is a world event rather than a loading screen.
-
-After a valid checkpoint is restored and `world-migration-open` is accepted, the overlay clears and gameplay resumes.
-
-## Returning old Host
-
-A peer that returns after a partition cannot simply publish its stale state.
-
-If it sees a heartbeat from a valid Host with a newer epoch, or the same epoch while its local state is still `migrating`, it requests synchronization. The new Host resends the stored migration proof. The returning peer validates that proof before adopting the new Host.
-
-## Existing rehearsal
-
-`apps/rinne/src/village-link.js?villageHostLab=...` remains an opt-in same-browser BroadcastChannel rehearsal/diagnostic. It is not the production cross-device authority route.
-
-The formal route is the WebRTC peer mesh implemented in `@soul/network` and consumed by the three game applications.
+Personal `living-v5` persistence retains the current incremental journal, first-run detection, ordered writes, retries and recoverable backup semantics. The peer read-only guard prevents writes and recovery in a remote authority context, including a save queued before authority is lost. The friend guest has no personal-save adapter at all; it never imports a remote world into an owner's local save.
 
 ## Verification
 
-Focused automated coverage includes:
+Focused tests preserve election, three-peer recovery, two-peer fail-closed behavior, graceful grants, stale epoch rejection, old-host recovery, mesh retention, checkpoint restoration and personal-save read-only protection. Friend-path tests additionally verify invite expiry, non-hostile role filtering, exterior-only privacy, visitor ineligibility and closed viewing after a partition.
 
-- deterministic candidate election
-- 3-peer sudden Host loss and quorum recovery
-- 2-peer sudden partition fail-closed behavior
-- 2-peer graceful handoff
-- non-host-eligible peer voting without election
-- stale/higher epoch rejection without migration proof
-- returning old Host resynchronization
-- mesh offer/answer determinism
-- established mesh edge retention after Host promotion
-- RaidHost checkpoint/restore
-- standby candidate exclusion from combat
-- personal local-save read-only guard during remote/non-authority operation
-- shared darkness/pause wiring across all three apps
+`npm run world:host-chaos` exercises a deterministic delayed/lossy host-loss replay.
 
-`npm run world:host-chaos` runs a deterministic delayed/lossy Host-loss/recovery replay and emits a machine-readable report.
+The normal PR browser gate executes two distinct real-WebRTC checks:
 
-## Dependency and deployment boundary
+1. Actual Village friend UI: owner issues the invitation, visitor returns an answer, exterior viewing opens, and owner loss closes viewing with darkness. This is the currently shipped application behavior.
+2. Three independent Chromium contexts load the exact shared network module sources. Native WebRTC DataChannels preform a direct peer mesh, A crashes, B+C recover via quorum and checkpoint, then B gracefully grants C the next epoch. No transport mock is used. This verifies the eligible-peer library capability, not a claim that current sightseeing guests own simulation.
 
-This phase consumes PR #236 and should integrate after `#203 → #220 → #226 → #229 → #236`.
+Neither test is physical multi-device certification. Browser assertions remain asynchronous Integration gates and are not replaced by local numeric tests.
 
-`main` / Production are not changed by the implementation session. Ready exact-head fast/browser validation, Integration, DEV publication and real multi-device browser evidence remain on the normal repository handoff path.
+## Dependency and delivery
+
+Depends-On: #236. The repaired branch merges forward the dependency and current develop while retaining the current friend invitation/privacy contracts. Main / Production remain untouched. Ready exact-head checks and the existing single Fast Lane own develop integration and DEV publication.
