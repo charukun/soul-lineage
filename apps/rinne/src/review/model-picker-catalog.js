@@ -1,3 +1,5 @@
+import './model-picker-portraits.css';
+
 const DEVELOP_REFERENCE_REVISION='d8bc6d3814bca199d33c53783b1d1386405d8614';
 const KAYKIT_REVISION='672074b73ba276876a19e8816ecdc5241817ab47';
 const KAYKIT_REPOSITORY='KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0';
