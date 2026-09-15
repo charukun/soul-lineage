@@ -133,19 +133,21 @@ test('finalized compatibility plan records outcomes but never manufactures merge
   assert.equal(final.counts.merged, 1);
 });
 
-test('runtime topology uses Fast Lane directly while Rescue remains an optional executor', () => {
+test('runtime topology is Fast Lane plus an optional stateless Repair executor', () => {
   const controller = readFileSync('.github/workflows/integration-controller.yml', 'utf8');
-  const rescue = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');
+  const repair = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');
   assert.match(controller, /Integration Fast Lane/);
   assert.match(controller, /integration-fast-lane\.mjs/);
   assert.match(controller, /group: integration-controller-develop/);
-  assert.match(controller, /Repair executor pool/);
+  assert.match(controller, /Fast Repair executor/);
   assert.doesNotMatch(controller, /Reconcile current GitHub reality/);
   assert.doesNotMatch(controller, /Validate planned Virtual Integration Train/);
   assert.doesNotMatch(controller, /needs: \[reconcile, virtual-train\]/);
-  assert.doesNotMatch(rescue, /Validate Virtual Integration Train/);
-  assert.match(rescue, /Integration Repair Executors/);
-  assert.match(rescue, /Repair PR \$\{\{ matrix\.pr \}\}/);
+  assert.match(repair, /Integration Repair Executors/);
+  assert.match(repair, /Fast Repair/);
+  assert.match(repair, /integration-repair-fast\.mjs/);
+  assert.doesNotMatch(repair, /flow-observer:|coordinator:|worker:|return:/);
+  assert.doesNotMatch(repair, /AWAITING_PUSH|integration-rescue-work-push|integration-rescue-return\.mjs/);
 });
 
 test('PULSE keeps legacy planner lanes as diagnostics rather than merge authority', () => {
