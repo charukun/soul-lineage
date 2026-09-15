@@ -3275,6 +3275,30 @@
       "workerId": "work/866e55ef0f5e/20260915T1213Z-blocked",
       "type": "WORK_REPAIR_NOTIFICATION",
       "action": "FAILED Gmail self notification sent; dedupe work-cycle-866e55ef0f5e-20260915T1213Z:watchdog-non-convergence:aa506f92; message 1a0a4fdfead9f922"
+    },
+    {
+      "id": "deep-cycle-866e55ef0f5e-20260915T1327Z:INTEGRATION_DEEP_REPAIR_RETURNED",
+      "at": "2026-09-15T13:26:34.000Z",
+      "pr": 157,
+      "workerId": "work/866e55ef0f5e/20260915T1327Z-pr157-deep",
+      "type": "INTEGRATION_DEEP_REPAIR_RETURNED",
+      "action": "Canonical Deep Repair Issue #297 claimed pending->working at attempt 1/2; PR #157 exact head c94b53af reconciled with develop f15e8d99; validated tree 86122388; merge commit 4c1c00f1 pushed to feat/character-reference-archetypes with force=false; Issue closed as returned and normal exact-head CI/Fast Lane owns re-evaluation."
+    },
+    {
+      "id": "deep-cycle-866e55ef0f5e-20260915T1327Z:INTEGRATION_DEEP_REPAIR_CYCLE_SUMMARY",
+      "at": "2026-09-15T13:26:34.000Z",
+      "pr": null,
+      "workerId": "work/866e55ef0f5e/20260915T1327Z-pr157-deep",
+      "type": "INTEGRATION_DEEP_REPAIR_CYCLE_SUMMARY",
+      "action": "eligible_before=5 open pending canonical Deep Repair Issues; claimable_before=1 verified candidate; claimed=1; returned=1; human_required=0; eligible_after=4 open pending Deep Repair Issues. Legacy Rescue diagnostic helper remained eligible_before=4, claimable_before=0, claimed=0, returned=0, human_required=0, eligible_after=4 and was not used as a second authority, per develop f15e8d99."
+    },
+    {
+      "id": "deep-cycle-866e55ef0f5e-20260915T1327Z:INTEGRATION_DEEP_REPAIR_NOTIFICATION",
+      "at": "2026-09-15T13:26:34.000Z",
+      "pr": 157,
+      "workerId": "work/866e55ef0f5e/20260915T1327Z-pr157-deep",
+      "type": "INTEGRATION_DEEP_REPAIR_NOTIFICATION",
+      "action": "SUCCESS Gmail self notification sent; dedupe pr-157:4c1c00f1:deep-repair-returned; message 1a0a53e6e710b20b."
     }
   ],
   "config": {
@@ -19554,9 +19578,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1237,
+  "revision": 1238,
   "schema": 1,
-  "updatedAt": "2026-09-15T12:15:15.989Z",
+  "updatedAt": "2026-09-15T13:26:34.000Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
