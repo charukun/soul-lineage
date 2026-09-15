@@ -28,7 +28,7 @@ export function deepRepairSafety({ pr, repository, dependenciesMerged, unresolve
   return null;
 }
 
-export function deepRepairIssueState({ pr, develop, reason, repairKind = 'semantic' }) {
+export function deepRepairIssueState({ pr, develop, reason, repairKind = 'semantic', ciFailure }) {
   const sourceKey = `pr:${pr.number}:head:${pr.head.sha}`;
   return {
     schema: deepRepairSchema,
@@ -41,6 +41,7 @@ export function deepRepairIssueState({ pr, develop, reason, repairKind = 'semant
     head: pr.head.sha,
     develop,
     repairKind,
+    ...(ciFailure ? { ciFailure } : {}),
     reason: String(reason || '').replace(/\s+/g, ' ').trim().slice(0, 800),
   };
 }
@@ -61,17 +62,24 @@ export function parseDeepRepairIssue(body = '') {
   }
 }
 
-export async function signalDeepRepair(c, { pr, repository, develop, reason, repairKind = 'semantic', dependenciesMerged,
+export async function signalDeepRepair(c, { pr, repository, develop, reason, repairKind = 'semantic', ciFailure, dependenciesMerged,
   unresolved, reviews = [] }) {
   const blocked = deepRepairSafety({ pr, repository, dependenciesMerged, unresolved, reviews });
   if (blocked) return { signaled: false, blocked };
   assert.match(develop || '', /^[0-9a-f]{40}$/i, 'DEEP_REPAIR_DEVELOP_REQUIRED');
   assert.match(pr.head.sha || '', /^[0-9a-f]{40}$/i, 'DEEP_REPAIR_HEAD_REQUIRED');
 
-  const state = deepRepairIssueState({ pr, develop, reason, repairKind });
+  if (ciFailure) assert.equal(ciFailure.head, pr.head.sha, 'DEEP_REPAIR_FAILURE_HEAD_MISMATCH');
+  const state = deepRepairIssueState({ pr, develop, reason, repairKind, ciFailure });
   const marker = deepRepairIssueMarker(state);
-  const openIssues = await c.pages('/issues?state=open&sort=created&direction=desc&per_page=100', undefined, { maxPages: 3 });
-  let issue = openIssues.find(item => !item.pull_request && String(item.body || '').includes(`\"sourceKey\":\"${state.sourceKey}\"`));
+  // Closed/exhausted tickets still own this exact head; never reset its finite attempts.
+  const issues = await c.pages('/issues?state=all&sort=created&direction=desc&per_page=100', undefined, { maxPages: 3 });
+  let issue = issues.find(item => !item.pull_request && parseDeepRepairIssue(item.body)?.sourceKey === state.sourceKey);
+  const existing = issue && parseDeepRepairIssue(issue.body);
+  if (existing && (issue.state === 'closed' || !['pending', 'working'].includes(existing.state) ||
+      existing.attempt >= existing.maxAttempts)) {
+    return { signaled: false, blocked: `Deep Repair #${issue.number} already owns this head in ${existing.state}`, issue: issue.number };
+  }
 
   if (!issue) {
     const envelope = aiRepairEnvelope({
@@ -88,14 +96,14 @@ export async function signalDeepRepair(c, { pr, repository, develop, reason, rep
     });
     issue = await c.api('POST', `${c.root}/issues`, {
       title: `Deep Repair #${pr.number} ${pr.head.sha.slice(0, 12)}`,
-      body: `${marker}\n${aiRepairEnvelopeMarker(envelope)}\nAI_DEEP_REPAIR_REQUIRED\n\nFast Lane found a current exact-head conflict that cannot be repaired mechanically.\n\nPR: ${pr.html_url}\nDevelop: \`${develop}\`\nReason: ${state.reason}\n\nChatGPT Work must re-read current GitHub state before claiming this issue. Repair the existing PR branch only, preserve both sides where compatible, fast-validate, and return the new exact head to the same Fast Lane. Do not clear holds/review objections or change main/Production.`,
+      body: `${marker}\n${aiRepairEnvelopeMarker(envelope)}\nAI_DEEP_REPAIR_REQUIRED\n\nFast Lane found a current exact-head ${ciFailure ? 'CI failure' : 'conflict'} that requires source repair.\n\nPR: ${pr.html_url}\nDevelop: \`${develop}\`\nReason: ${state.reason}\n${ciFailure ? `\nFailed validation: ${ciFailure.jobUrl}\nRun: ${ciFailure.runId}, attempt: ${ciFailure.runAttempt}, job: ${ciFailure.jobId} (${ciFailure.jobName})\nRead the failed job steps/log excerpt before editing; do not weaken assertions.\n` : ''}\nChatGPT Work must re-read current GitHub state before claiming this issue. Repair the existing PR branch only, preserve both sides where compatible, fast-validate, and return the new exact head to the same Fast Lane. Do not clear holds/review objections or change main/Production.`,
     });
   }
 
   await c.api('POST', `${c.root}/statuses/${pr.head.sha}`, {
     state: 'pending',
     context: deepRepairStatus,
-    description: 'Exact-head conflict handed to AI Deep Repair',
+    description: `Exact-head ${ciFailure ? 'CI failure' : 'conflict'} handed to AI Deep Repair`,
     target_url: issue.html_url || pr.html_url,
   });
 

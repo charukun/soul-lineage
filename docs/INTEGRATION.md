@@ -95,7 +95,7 @@ explicit hold、dependency、review objection、merge conflict、exact-head fast
 
 ## Draft / Ready
 
-Draftでは lightweight checkのみ。Readyになると `Validate and build` とbrowser smokeを開始する。**Request Integrationはbuild成功直後に起動し、browser完了を待たない。** browserは並行してrepair evidenceを残す。
+Draftでは lightweight checkのみ。Readyになると `Validate and build` とbrowser smokeを開始する。**Request Integrationはbuild成功・失敗の直後に起動し、browser完了を待たない。失敗はcurrent exact-headのDeep Repairへ送る。** browserは並行してrepair evidenceを残す。
 
 ## main / Production
 
