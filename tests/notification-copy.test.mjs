@@ -44,15 +44,17 @@ test('lifecycle DEV copy stays generic and does not carry the requested change t
   assert.doesNotMatch(deployed, /DEVで確認できます/);
 });
 
-test('development email copy shows the associated PR title and DEV entry point', () => {
+test('development email copy is short and shows the associated PR title and DEV entry point', () => {
   const email = devChangeEmailMessage({
     locale: 'ja', repository: 'charukun/soul-lineage', runUrl: 'https://github.com/run', sha,
     pr: { number: 348, title: '戦闘テンポを少し遅くする修正' },
   });
-  assert.match(email, /結果: 戦闘テンポを少し遅くする修正 をDEVへ反映しました。/);
-  assert.match(email, /次: DEVで確認できます。/);
+  assert.match(email, /^DEV反映完了\n/);
+  assert.match(email, /修正内容: 戦闘テンポを少し遅くする修正/);
+  assert.match(email, /DEVで確認できます。/);
+  assert.match(email, /https:\/\/charukun\.github\.io\/soul-lineage\/dev\//);
   assert.match(email, /PR: https:\/\/github\.com\/charukun\/soul-lineage\/pull\/348/);
-  assert.match(email, /DEV: https:\/\/charukun\.github\.io\/soul-lineage\/dev\//);
+  assert.doesNotMatch(email, /\[DEV_DEPLOYED\]/);
 });
 
 test('associated develop PR lookup selects the newest merged develop PR', async () => {
@@ -118,7 +120,8 @@ test('verified DEV publication creates one deduplicatable PR comment that trigge
   assert.equal(result, 'github-pr-comment');
   assert.match(posted, /dev-delivery-receipt:/);
   assert.match(posted, /@charukun/);
-  assert.match(posted, /戦闘テンポを少し遅くする修正 をDEVへ反映しました。/);
+  assert.match(posted, /DEV反映完了/);
+  assert.match(posted, /修正内容: 戦闘テンポを少し遅くする修正/);
   assert.match(posted, /GitHub PR subscription\/mention provides the email notification/);
 });
 
