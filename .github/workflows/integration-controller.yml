@@ -3,7 +3,7 @@ on:
   workflow_call:
     inputs:
       rescue_mode:
-        description: 'scan also runs the repair executor; the Fast Lane itself is always event-driven'
+        description: 'legacy scan input; scan runs the lightweight Repair executor while Fast Lane remains event-driven'
         type: string
         required: false
         default: ''
@@ -42,7 +42,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      actions: read
+      actions: write
       checks: read
       statuses: write
       issues: read
@@ -67,9 +67,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-diagnostics.json
         run: node scripts/integration-fast-lane.mjs
+      - name: Request latest DEV and PULSE publication without waiting
+        if: ${{ !cancelled() && steps.fast-lane.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/integration-publication.mjs .deploy-state/integration.json
       - name: Notify integrated PRs separately from DEV delivery
         id: notify
-        if: steps.fast-lane.outputs.merged_count != '0'
+        if: ${{ !cancelled() && steps.fast-lane.outputs.merged_count != '' && steps.fast-lane.outputs.merged_count != '0' }}
         continue-on-error: true
         env:
           NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
@@ -124,14 +129,37 @@ jobs:
           retention-days: 14
 
   repair:
-    name: Repair executor pool
+    name: Fast Repair executor
     if: inputs.rescue_mode == 'scan'
     uses: ./.github/workflows/integration-rescue.yml
     permissions:
       contents: write
-      pull-requests: write
-      issues: write
+      pull-requests: read
       actions: write
-      checks: read
       statuses: write
     secrets: inherit
+
+  continue-dependent-chain:
+    name: Wake next dependent Repair scan
+    needs: [integrate, repair]
+    if: always() && needs.integrate.result == 'success' && needs.integrate.outputs.merged_count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Wake Fast Repair on the latest develop after a successful merge batch
+        uses: actions/github-script@v8
+        env:
+          MERGED_COUNT: ${{ needs.integrate.outputs.merged_count }}
+        with:
+          script: |
+            const { data: branch } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
+            core.info(`Fast Lane merged ${process.env.MERGED_COUNT}; wake dependent scan at ${branch.commit.sha}`);
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo,
+              workflow_id: 'deploy.yml',
+              ref: 'develop',
+              inputs: { rescue_mode: 'scan', integration_cursor: '0' },
+            });
