@@ -19,6 +19,7 @@
     "asset:optimize": "node scripts/asset-optimize.mjs",
     "asset:inspect": "node scripts/asset-inspect.mjs",
     "asset:inventory": "node scripts/asset-inventory.mjs",
+    "characters:references": "node scripts/character-reference-report.mjs",
     "performance:browser": "node scripts/browser/performance-smoke.mjs",
     "performance:compare": "node scripts/performance-regression.mjs",
     "world-scale:replay": "node scripts/world-scale-replay.mjs",
