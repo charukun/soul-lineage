@@ -171,3 +171,27 @@ npm run review:local -- --mode sequence --times 1.98,4.98,5.9,8.16,14.8,28.1 --p
 It records all four views at each time, the displayed revision and source
 hashes, and fails if any observed motion source changes during the run. Inspect
 the actual frames and report playback recording separately from human viewing.
+
+### Weapon adaptation and grip observation
+
+Keep the learned action and 序 / 破 / 急 recipe shared. Apply weapon-family pose
+adjustments before anatomical IK; do not replace a selected weapon's animation
+with an unrelated generic clip. The current Shino review supports sword, great,
+katana, spear and axe through `weapon-motion.js`. Native gameplay clocks and
+weapon speed remain owned by combat, not the review score.
+
+Inspect a full-body pose and the hands when changing equipment or grip math:
+
+```sh
+npm run review:local -- --mode single --weapon great --kind slash --times 0.165,0.33 --detail hands --out /tmp/review-great-grip
+npm run review:local -- --mode sequence --weapon great --times 1.98,4.98,5.9,8.16,14.8,28.1 --playback --out /tmp/review-great-body
+node --test apps/rinne/tests/weapon-grip.test.mjs
+```
+
+Both the embedded Lab and standalone viewer expose weapon selection and hand
+detail. Keep weapon/profile/finger-closure modules in the observation hashes.
+Validate the mesh-space grip transformed by the actual weapon matrix against
+the visible raw palm: normalized/raw socket agreement alone misses a misplaced
+mesh. Check support-hand spacing at the same mesh scale and inspect thumbs for
+handle penetration. A numerical socket pass does not certify skin contact or
+normal-speed appearance. See [WEAPON_MOTION_LAB.md](WEAPON_MOTION_LAB.md).

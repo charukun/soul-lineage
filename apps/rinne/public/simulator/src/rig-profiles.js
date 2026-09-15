@@ -9,10 +9,10 @@ export const profiles={
 };
 // Geometry-space points. Mesh +Y is the cutting axis (+Z for fists).
 export const weaponSockets={
- sword:{grip:[0,-.065,0],left:[0,-.065,0],scale:1,two:false},
- great:{grip:[0,-.085,0],left:[0,-.30,0],scale:1,two:true},
- katana:{grip:[0,-.07,0],left:[0,-.25,0],scale:1,two:true},
- spear:{grip:[0,.35,0],left:[0,.83,0],scale:1,two:true},
- axe:{grip:[0,-.035,0],left:[0,-.24,0],scale:1,two:true},
+ sword:{grip:[0,-.065,0],left:[0,-.065,0],scale:.5,two:false},
+ great:{grip:[0,-.085,0],left:[0,-.30,0],scale:.5,two:true},
+ katana:{grip:[0,-.07,0],left:[0,-.25,0],scale:.5,two:true},
+ spear:{grip:[0,.35,0],left:[0,.83,0],scale:.5,two:true},
+ axe:{grip:[0,-.035,0],left:[0,-.24,0],scale:.5,two:true},
  fist:{grip:[0,0,.08],left:[0,0,.08],scale:.76,two:false}
 };

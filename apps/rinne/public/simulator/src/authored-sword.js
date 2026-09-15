@@ -1,7 +1,8 @@
+import {weaponPose} from './weapon-motion.js';
 /** Companion cuts for Shino. Same canonical rig/IK as the approved slash. */
 import * as T from '../vendor/three.js';
 import {poseCurve,sampleSlashPose,slashTime,applySwordPose,SLASH_SECONDS,SLASH_TIMING} from './authored-slash.js';
-export const SWORD_REVISION='shared-sword-14';
+export const SWORD_REVISION='shared-sword-15';
 export const SWORD_MOVES=Object.freeze(Object.fromEntries([
  ['slash','流し斬り',SLASH_SECONDS],['back','斬り返し',.69],['thrust','刺し貫く',.67],['uppercut','斬り上げる',.74],['heavy','叩き斬る',.98],['sweep','足元を薙ぐ',.78],['round','一回転の大薙ぎ',.87],['leap','飛び込み斬り',1.10],['dash','駆け抜け斬り',.86],
 ].map(([kind,label,seconds])=>[kind,Object.freeze({kind,label,seconds,timing:SLASH_TIMING})])));
@@ -111,10 +112,10 @@ export function sampleSwordPose(kind,phase,contact=.5){
  if(kind==='round')pose.turn=[poseCurve([[0,0],[.16,0],[.40,1.35],[.64,4.8],[.86,Math.PI*2],[1,Math.PI*2]],p)[0]];
  return pose;
 }
-export function applyAuthoredSword(runtime,c,kind,phase,definition){
+export function applyAuthoredSword(runtime,c,kind,phase,definition,weapon='sword'){
  const contact=definition?.contact??.5;
  const p=slashTime(phase,contact),pose=sampleSwordPose(kind,phase,contact);
- applySwordPose(runtime,c,pose,p);
+ applySwordPose(runtime,c,weaponPose(pose,weapon,kind,p),p,weapon);
  if(kind==='leap')applyAirborneSword(runtime,c,swordAirHeight(kind,phase));
  if(pose.turn){
   // Rotate the normalized hips after limb IK so the whole body, sword and feet

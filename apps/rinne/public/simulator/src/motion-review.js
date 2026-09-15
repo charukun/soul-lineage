@@ -7,24 +7,28 @@ import {SLASH_SECONDS} from './authored-slash.js';
 import {PERFORMANCE_SECONDS,PERFORMANCE_REVISION,SWORD_TIMINGS,applyPerformance} from './sword-performance.js';
 import {SWORD_MOVES,SWORD_REVISION,swordAirHeight} from './authored-sword.js';
 import {SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence,swordSequenceTravel} from './sword-sequence.js';
-import {createReviewSword} from './review-sword.js';
+import {createReviewWeapon,REVIEW_WEAPONS} from './review-sword.js';
+import {WEAPON_MOTION_PROFILES,WEAPON_MOTION_REVISION} from './weapon-motion.js';
 const $=id=>document.getElementById(id),canvas=$('motion-stage');
 let renderer,runtime,controls,shadow,frame=0,playing=true,last=0,elapsed=0;
 const requestedMode=new URLSearchParams(location.search).get('mode');
 let mode=requestedMode==='flow'?'combination':['combination','baseline','sequence','single','posture'].includes(requestedMode)?requestedMode:'single';
 let singleKind='slash';
+const requestedWeapon=new URLSearchParams(location.search).get('weapon');
+const initialWeapon=Object.hasOwn(REVIEW_WEAPONS,requestedWeapon)?requestedWeapon:'sword';
 const completeSequence=createSwordSequence(SHORT_SWORD_SEQUENCE.entries.map(row=>row.kind),{connected:false});
 const shortMode=()=>mode==='combination'||mode==='baseline';
 const duration=()=>mode==='posture'?POSTURE_REVIEW_SECONDS:mode==='baseline'?Math.max(SHORT_SWORD_SECONDS,completeSequence.duration+.3):mode==='combination'?SHORT_SWORD_SECONDS:mode==='sequence'?PERFORMANCE_SECONDS:SWORD_MOVES[singleKind].seconds;
 const scene=new T.Scene();scene.background=new T.Color('#25343c');scene.fog=new T.Fog('#25343c',8,16);
 const camera=new T.PerspectiveCamera(35,1,.05,30),focus=new T.Vector3(0,1.13,.3);
-const actor={id:'motion-review-shino',hero:true,weapon:'sword',weaponDraw:1,lifeAgeYears:22,x:0,z:0,yaw:0,air:0,vx:0,vz:0,combatReady:true,_humanoidClock:0,attack:null};
+const actor={id:'motion-review-shino',hero:true,weapon:initialWeapon,weaponDraw:1,lifeAgeYears:22,x:0,z:0,yaw:0,air:0,vx:0,vz:0,combatReady:true,_humanoidClock:0,attack:null};
 const status=message=>{$('motion-status').textContent=message;};
-const api={weapons:{sword:{base:.21,tip:1.62,width:.065}},strikes:{slash:{},back:{},uppercut:{},thrust:{},heavy:{}},clips:SWORD_TIMINGS,windows:{},
+const api={weapons:REVIEW_WEAPONS,strikes:{slash:{},back:{},uppercut:{},thrust:{},heavy:{}},clips:SWORD_TIMINGS,windows:{},
  progress:(a,t)=>Math.min(1,Math.max(0,(t??a.attack?.t??0)/(a.attack?.duration||SLASH_SECONDS))),
  window:(kind,p)=>{const active=SWORD_TIMINGS[kind]?.active;return active&&p>=active[0]&&p<=active[1]?0:-1;},
  attach:c=>scene.add(c.root),status};
-const sword=createReviewSword();sword.matrixAutoUpdate=false;scene.add(sword);
+const weaponMeshes=new Map();
+function activeWeapon(){if(!weaponMeshes.has(actor.weapon)){const mesh=createReviewWeapon(actor.weapon);mesh.matrixAutoUpdate=false;scene.add(mesh);weaponMeshes.set(actor.weapon,mesh);}for(const[id,mesh]of weaponMeshes)mesh.visible=id===actor.weapon;return weaponMeshes.get(actor.weapon);}
 // A short ribbon follows the actual blade sockets, never a canned effect clip.
 const trailSamples=[],ribbonGeometry=new T.BufferGeometry(),positions=new Float32Array(17*18),colors=new Float32Array(17*18);
 ribbonGeometry.setAttribute('position',new T.BufferAttribute(positions,3).setUsage(T.DynamicDrawUsage));
@@ -64,7 +68,7 @@ function pose(time){
  else{Object.assign(actor,{x:0,z:0,yaw:0,vx:0,vz:0,_humanoidClock:time,_humanoidPhase:0,motionBlend:null,motionSequence:false,attack:{id:'single-'+singleKind,kind:singleKind,t:time,duration:SWORD_MOVES[singleKind].seconds}});actor.air=swordAirHeight(singleKind,time/SWORD_MOVES[singleKind].seconds);label=SWORD_MOVES[singleKind].label+' · '+phaseLabel(time/SWORD_MOVES[singleKind].seconds);}
  return {result:runtime.render(actor),label};
 }
-function focusTarget(){const hips=runtime?.current?.raw?.hips?.getWorldPosition(new T.Vector3());return new T.Vector3(hips?.x??actor.x,1.13,(hips?.z??actor.z)+.25);}
+function focusTarget(){if($('hand-detail').checked&&runtime?.ready)return runtime.current.sockets.right.node.getWorldPosition(new T.Vector3());const hips=runtime?.current?.raw?.hips?.getWorldPosition(new T.Vector3());return new T.Vector3(hips?.x??actor.x,1.13,(hips?.z??actor.z)+.25);}
 function follow(snap=false){
  const target=focusTarget(),next=snap?target:focus.clone().lerp(target,.18),delta=next.clone().sub(focus);
  camera.position.add(delta);controls.target.add(delta);focus.copy(next);
@@ -72,7 +76,7 @@ function follow(snap=false){
 function render(){
  if(!runtime?.ready||!renderer)return;
  const time=Math.min(duration(),elapsed),{result,label}=pose(time);
- sword.matrix.fromArray(result.sm);sword.matrixWorldNeedsUpdate=true;shadow.position.set(actor.x,.025,actor.z);
+ const sword=activeWeapon();sword.matrix.fromArray(result.sm);sword.matrixWorldNeedsUpdate=true;shadow.position.set(actor.x,.025,actor.z);
  updateTrail(result,time);syncReference(time);follow();controls.update();renderer.render(scene,camera);
  $('timeline').value=String(time);$('phase-label').textContent=label;$('time-label').textContent=`${time.toFixed(1)} / ${duration().toFixed(1)} 秒`;
 }
@@ -87,12 +91,13 @@ function prepareAt(time){
 }
 function seek(time){playing=false;elapsed=Math.min(duration(),Math.max(0,time));prepareAt(elapsed);syncPlay();render();}
 function syncPlay(){$('play').textContent=playing?'一時停止':'再生';$('play').setAttribute('aria-pressed',String(playing));syncReference(Math.min(duration(),elapsed),true);}
-function fittedDistance(){const margin=shortMode()?1.7:mode==='sequence'?2.35:2.1;return Math.max(shortMode()?5.8:6.5,margin/(Math.tan(T.MathUtils.degToRad(camera.fov/2))*camera.aspect)+.65);}
+function fittedDistance(){if($('hand-detail').checked)return .70;const margin=shortMode()?1.7:mode==='sequence'?2.35:2.1;return Math.max(shortMode()?5.8:6.5,margin/(Math.tan(T.MathUtils.degToRad(camera.fov/2))*camera.aspect)+.65);}
 function view(id){if(!controls)return;const distance=fittedDistance(),yaw=({three:.72,front:0,side:Math.PI/2,back:Math.PI})[id]??.72;focus.copy(focusTarget());camera.position.set(focus.x+Math.sin(yaw)*distance,focus.y+distance*.16,focus.z+Math.cos(yaw)*distance);controls.target.copy(focus);controls.update();for(const b of document.querySelectorAll('[data-view]'))b.setAttribute('aria-pressed',String(b.dataset.view===id));render();}
 function resize(){if(!renderer)return;const box=canvas.parentElement.getBoundingClientRect();renderer.setSize(box.width,box.height,false);camera.aspect=box.width/Math.max(1,box.height);camera.updateProjectionMatrix();if(controls){const offset=camera.position.clone().sub(controls.target).normalize();camera.position.copy(controls.target).addScaledVector(offset,fittedDistance());controls.update();}render();}
 function configure(){
+ $('weapon-kind').value=actor.weapon;
  $('mode').value=mode;$('single-kind').value=singleKind;$('single-kind-row').hidden=mode!=='single';$('timeline').max=String(duration());$('trail').disabled=mode==='single';$('compare-reference').disabled=!shortMode();if(!shortMode())$('compare-reference').checked=false;toggleReference();
- $('motion-version').textContent=`${SWORD_REVISION} / ${POSTURE_REVISION} · `+(mode==='posture'?'構え・移動 / 18秒':shortMode()?`既存9連撃 / ${duration().toFixed(1)}秒`:mode==='sequence'?`序破急 — 9基礎動作・3構成・27撃 / 30秒 · ${PERFORMANCE_REVISION}`:SWORD_MOVES[singleKind].label);
+ $('motion-version').textContent=`${SWORD_REVISION} / ${POSTURE_REVISION} / ${WEAPON_MOTION_REVISION} · ${WEAPON_MOTION_PROFILES[actor.weapon].label} · `+(mode==='posture'?'構え・移動 / 18秒':shortMode()?`既存9連撃 / ${duration().toFixed(1)}秒`:mode==='sequence'?`序破急 — 9基礎動作・3構成・27撃 / 30秒 · ${PERFORMANCE_REVISION}`:SWORD_MOVES[singleKind].label);
  if(runtime?.ready)status(mode==='posture'?'自然体・抜刀・歩行・走行・停止・攻撃・納刀を続けて確認できます。':shortMode()?'既存の技を接続。単体モーションにも同じ改善が反映されています。':mode==='sequence'?'基本技を三つずつ組んだ技を、序・破・急で実行。3種類の構成を続けて確認できます。':'技構成と同じ共有モーションを単体で確認できます。');
 }
 function restart(){elapsed=0;prepareAt(0);playing=true;last=0;syncPlay();render();}
@@ -110,14 +115,15 @@ async function start(){try{
  const floor=new T.Mesh(new T.PlaneGeometry(30,30),new T.MeshStandardMaterial({color:'#263a40',roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=.02;scene.add(floor);
  const grid=new T.GridHelper(12,24,'#637779','#364f55');grid.position.y=.022;scene.add(grid);
  shadow=new T.Mesh(new T.CircleGeometry(.48,48),new T.MeshBasicMaterial({color:'#0c1a20',transparent:true,opacity:.32,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.scale.y=.65;scene.add(shadow);
- controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.minDistance=2.5;controls.maxDistance=16;controls.maxPolarAngle=Math.PI*.49;controls.enablePan=false;controls.addEventListener('change',()=>{if(!playing&&runtime?.ready)renderer.render(scene,camera);});
+ controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.minDistance=.30;controls.maxDistance=16;controls.maxPolarAngle=Math.PI*.49;controls.enablePan=false;controls.addEventListener('change',()=>{if(!playing&&runtime?.ready)renderer.render(scene,camera);});
  runtime=new HumanoidRuntime(api);await runtime.load('SHINO');
  // Bake before playback so a new cut never stalls its first attack frame.
- for(const kind of Object.keys(api.clips))runtime.current.generated['sword:'+kind]??=runtime.bakeArmed(runtime.current,'sword',kind);
- for(const id of ['play','restart','previous-frame','next-frame','timeline'])$(id).disabled=false;
+ for(const kind of Object.keys(api.clips))runtime.current.generated[actor.weapon+':'+kind]??=runtime.bakeArmed(runtime.current,actor.weapon,kind);
+ for(const id of ['play','restart','previous-frame','next-frame','timeline','weapon-kind'])$(id).disabled=false;
  configure();view('three');resize();syncPlay();frame=requestAnimationFrame(loop);
 }catch(e){status(`表示できませんでした：${e.message}`);$('retry').hidden=false;}}
 $('mode').onchange=e=>{mode=e.target.value;$('repeat').checked=!(shortMode()||mode==='sequence');if(mode==='sequence')$('trail').checked=true;const url=new URL(location.href);url.searchParams.set('mode',mode);window.history.replaceState(null,'',url);configure();restart();};
+$('weapon-kind').onchange=e=>{actor.weapon=e.target.value;for(const kind of Object.keys(api.clips))runtime.current.generated[actor.weapon+':'+kind]??=runtime.bakeArmed(runtime.current,actor.weapon,kind);const url=new URL(location.href);url.searchParams.set('weapon',actor.weapon);window.history.replaceState(null,'',url);configure();prepareAt(elapsed);render();};
 $('single-kind').onchange=e=>{singleKind=e.target.value;configure();restart();};
 $('play').onclick=()=>{playing=!playing;if(playing&&elapsed>=duration()){elapsed=0;prepareAt(0);}last=0;syncPlay();};
 $('restart').onclick=restart;$('timeline').oninput=e=>seek(Number(e.target.value));
@@ -126,6 +132,7 @@ $('compare-reference').onchange=toggleReference;$('speed').onchange=()=>syncRefe
 $('reference-video').onloadedmetadata=()=>syncReference(Math.min(duration(),elapsed),true);
 $('reference-video').onerror=()=>{$('reference-error').hidden=false;};
 $('trail').onchange=()=>{clearTrail();render();};
+$('hand-detail').onchange=()=>{prepareAt(elapsed);resize();};
 for(const b of document.querySelectorAll('[data-view]'))b.onclick=()=>view(b.dataset.view);
 $('retry').onclick=()=>location.reload();window.addEventListener('resize',resize);
 document.addEventListener('visibilitychange',()=>{last=0;});

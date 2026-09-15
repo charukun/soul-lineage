@@ -11,7 +11,8 @@ import {SWORD_MOVES,SWORD_REVISION,swordAirHeight} from '../public/simulator/src
 import {SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence,swordSequenceTravel} from '../public/simulator/src/sword-sequence.js';
 import {applyPostureReview,POSTURE_REVIEW_SECONDS} from '../public/simulator/src/posture-sequence.js';
 import {POSTURE_REVISION} from '../public/simulator/src/posture-motion.js';
-import {createReviewSword} from '../public/simulator/src/review-sword.js';
+import {createReviewWeapon,REVIEW_WEAPONS} from '../public/simulator/src/review-sword.js';
+import {WEAPON_MOTION_PROFILES,WEAPON_MOTION_REVISION} from '../public/simulator/src/weapon-motion.js';
 
 // Exercise the actual viewer handlers and real model/rig. Only browser surfaces,
 // texture decoding and GPU drawing are substituted; this does not assert visuals.
@@ -28,7 +29,7 @@ test('existing-motion viewer composes clips, selects individual techniques and s
  ids.speed.value='1';ids.repeat.checked=true;ids.trail.checked=true;
  const views=['three','front','side','back'].map(view=>Object.assign(new Element(),{dataset:{view}}));
  const document={hidden:false,listeners:{},getElementById:id=>ids[id],querySelectorAll:()=>views,addEventListener(k,v){this.listeners[k]=v;}};
- const location={href:'https://example.test/simulator/motion-review.html?mode=flow',search:'?mode=flow'};
+ const location={origin:'https://example.test',href:'https://example.test/simulator/motion-review.html?mode=flow',search:'?mode=flow'};
  const window={listeners:{},history:{replaceState(_a,_b,url){location.href=String(url);}},addEventListener(k,v){this.listeners[k]=v;},assetBuffer:async id=>{const path=id.startsWith('motion:')?'motions/'+id.slice(7)+'.vrma':id+'_review.vrm';const b=await readFile(new URL('../public/simulator/assets/'+path,import.meta.url));return b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);}};
  class Renderer{setPixelRatio(){}setSize(){}render(){}dispose(){}}
  class OrbitControls{constructor(){this.target=new Three.Vector3();}update(){}addEventListener(){}dispose(){}}
@@ -36,7 +37,7 @@ test('existing-motion viewer composes clips, selects individual techniques and s
  const parse=GLTFLoader.prototype.parseAsync;
  GLTFLoader.prototype.parseAsync=function(data,path){this.register(()=>({name:'CpuViewerTextureStub',loadTexture:()=>Promise.resolve(new Three.Texture())}));return parse.call(this,data,path);};
  globalThis.window=window;globalThis.self=globalThis;
- const context={T:{...Three,WebGLRenderer:Renderer},OrbitControls,HumanoidRuntime,SLASH_SECONDS,SLASH_REVISION,PERFORMANCE_SECONDS,PERFORMANCE_REVISION,SWORD_TIMINGS,applyPerformance,SWORD_MOVES,SWORD_REVISION,swordAirHeight,SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence,swordSequenceTravel,createReviewSword,applyPostureReview,POSTURE_REVIEW_SECONDS,POSTURE_REVISION,document,window,location,URL,URLSearchParams,devicePixelRatio:1,requestAnimationFrame:fn=>{nextFrame=fn;return 1;},cancelAnimationFrame(){}};
+ const context={T:{...Three,WebGLRenderer:Renderer},OrbitControls,HumanoidRuntime,SLASH_SECONDS,SLASH_REVISION,PERFORMANCE_SECONDS,PERFORMANCE_REVISION,SWORD_TIMINGS,applyPerformance,SWORD_MOVES,SWORD_REVISION,swordAirHeight,SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence,swordSequenceTravel,createReviewWeapon,REVIEW_WEAPONS,WEAPON_MOTION_PROFILES,WEAPON_MOTION_REVISION,applyPostureReview,POSTURE_REVIEW_SECONDS,POSTURE_REVISION,document,window,location,URL,URLSearchParams,devicePixelRatio:1,requestAnimationFrame:fn=>{nextFrame=fn;return 1;},cancelAnimationFrame(){}};
  try{
   await vm.runInNewContext('(async()=>{'+source+'})()',context);
   assert.equal(ids.play.disabled,false,ids['motion-status'].textContent);
@@ -58,6 +59,16 @@ test('existing-motion viewer composes clips, selects individual techniques and s
   ids.mode.onchange({target:{value:'posture'}});assert.equal(ids.timeline.max,'18');assert.match(ids['motion-version'].textContent,/構え・移動/);
   ids.timeline.oninput({target:{value:'8'}});assert.equal(ids.timeline.value,'8');assert.match(ids['phase-label'].textContent,/走行/);
   ids.mode.onchange({target:{value:'sequence'}});assert.equal(ids.timeline.max,'30');
+  ids['hand-detail'].checked=true;ids['hand-detail'].onchange();
+  for(const weapon of Object.keys(REVIEW_WEAPONS)){ids['weapon-kind'].onchange({target:{value:weapon}});assert.match(location.href,new RegExp('weapon='+weapon));assert.match(ids['motion-version'].textContent,new RegExp(WEAPON_MOTION_PROFILES[weapon].label));assert.equal(ids.timeline.max,'30');}
+  // Exercise the real same-origin iframe bridge against these live handlers.
+  location.search='?mode=sequence&embed=1';const posted=[];context.parent={postMessage:value=>posted.push(value)};context.performance={now:()=>1000};
+  const bridge=await readFile(new URL('../public/simulator/src/motion-review-embed.js',import.meta.url),'utf8');
+  document.documentElement={classList:{add(){}}};await vm.runInNewContext(bridge,context);
+  const message=(command,value,source=context.parent)=>window.listeners.message({origin:location.origin,source,data:{type:'visual-review-performance-control',command,value}});
+  message('weapon','spear');assert.equal(ids['weapon-kind'].value,'spear');assert.match(ids['motion-version'].textContent,/槍/);
+  message('hand-detail',false);assert.equal(ids['hand-detail'].checked,false);assert.equal(posted.at(-1).state.weapon,'spear');
+  message('weapon','great',{});assert.equal(ids['weapon-kind'].value,'spear','untrusted sender cannot change equipment');
   console.log('Actual viewer handlers: load, autoplay, pause, speed, seek, frame step, reference sync, mode switch and once endpoint passed.');
  }finally{window.listeners.pagehide?.({persisted:false});GLTFLoader.prototype.parseAsync=parse;delete globalThis.window;delete globalThis.self;}
 });
