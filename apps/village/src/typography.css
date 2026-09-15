@@ -1,0 +1,31 @@
+@import url("https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@300;400;500&display=swap");
+
+:root {
+  --font-village: "Kiwi Maru", serif;
+  font-synthesis: none;
+}
+
+body,
+body * {
+  font-family: var(--font-village) !important;
+  font-kerning: normal;
+}
+
+h1,
+.loadingTitle,
+.drawerHeader,
+#objectLabel,
+dialog h2,
+#idleMood,
+.idleFacts b,
+#idleMoment,
+.personStatus {
+  font-weight: 500;
+}
+
+#calendar,
+.idleFacts,
+#placementCost,
+#stockTray {
+  font-variant-numeric: tabular-nums;
+}

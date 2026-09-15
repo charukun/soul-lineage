@@ -14,7 +14,8 @@ export const APPEARANCE_PARTS = Object.freeze({
     { id: 'original', label: 'Shino' },
     { id: 'bob', label: 'ボブ' },
     { id: 'crop', label: 'ショート' },
-    { id: 'tail', label: 'テール' }
+    { id: 'tail', label: 'テール' },
+    { id: 'bun', label: 'お団子' }
   ]),
   body: freezeCatalog([
     { id: 'balanced', label: '標準' },
@@ -32,7 +33,8 @@ export const APPEARANCE_PARTS = Object.freeze({
     { id: 'none', label: 'なし' },
     { id: 'glasses', label: '眼鏡' },
     { id: 'headband', label: 'ヘッドバンド' },
-    { id: 'scarf', label: 'スカーフ' }
+    { id: 'scarf', label: 'スカーフ' },
+    { id: 'ribbon', label: 'リボン' }
   ])
 });
 
@@ -43,6 +45,16 @@ export const BASE_APPEARANCE_PARTS = Object.freeze({
 
 const SLOT_NAMES = Object.freeze(Object.keys(APPEARANCE_PARTS));
 const allowed = Object.freeze(Object.fromEntries(SLOT_NAMES.map(slot => [slot, new Set(APPEARANCE_PARTS[slot].map(row => row.id))])));
+// Keep the original v1 seed generator stable. Newly authored reference-derived
+// parts are selected by visual identity/reference rules until a versioned seed
+// contract explicitly adopts them.
+const GENERATED_APPEARANCE_PARTS = Object.freeze({
+  face: APPEARANCE_PARTS.face,
+  hair: Object.freeze(APPEARANCE_PARTS.hair.filter(row => row.id !== 'bun')),
+  body: APPEARANCE_PARTS.body,
+  outfit: APPEARANCE_PARTS.outfit,
+  accessory: Object.freeze(APPEARANCE_PARTS.accessory.filter(row => row.id !== 'ribbon'))
+});
 
 function mix(seed, salt) {
   let x = (seed ^ salt) >>> 0;
@@ -74,7 +86,7 @@ export function appearancePartsForSeed(seed) {
   integer(seed, 0, 0xffffffff, 'appearance seed');
   const result = { version: APPEARANCE_PARTS_VERSION };
   SLOT_NAMES.forEach((slot, index) => {
-    const rows = APPEARANCE_PARTS[slot];
+    const rows = GENERATED_APPEARANCE_PARTS[slot];
     result[slot] = rows[mix(seed, 0x9e3779b9 + index * 0x45d9f3b) % rows.length].id;
   });
   return canonicalAppearanceParts(result);

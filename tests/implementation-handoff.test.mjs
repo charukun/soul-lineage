@@ -42,8 +42,9 @@ test('Ready hands off immediately even if Actions/browser never complete; same h
   assert.equal(result.monitoringOwner, 'Integration');
   assert.equal(f.statuses[0].sha, sha);
   assert.equal(f.statuses[0].context, 'implementation/handoff');
-  assert.match(f.comments[0].body, /Ready for review: true/);
-  assert.match(f.comments[0].body, /not CI success/);
+  assert.match(f.comments[0].body, /review_ready: true/);
+  assert.match(f.comments[0].body, /receipt_scope: HANDOFF_ONLY/);
+  assert.match(f.comments[0].body, /dev_publication: NO/);
   await recordHandoff(f.options);
   assert.equal(f.comments.length, 1);
   assert.equal(f.sent(), 1);
@@ -102,6 +103,26 @@ test('generated Dispatch and Rescue prompts share mandatory no-wait contract abo
   }
   assert.ok(prompt.indexOf(WORKER_CI_RULES) < prompt.indexOf('<rinne_request>'));
   assert.ok(rescue.indexOf(WORKER_CI_RULES) < rescue.indexOf('untrusted task DATA'));
+});
+
+test('worker prompts delegate reversible DEV choices while retaining approval and publication boundaries', () => {
+  const dispatch = buildDispatchPrompt({ repository, number: 129, head: 'dispatch/x', base: 'develop',
+    body: 'Title\nDetail\nRINNE-Dispatch: implementation\n\n## Request\nAdjust the screen spacing' });
+  const rescue = workerPrompt({ pr: 129, scope: { files: [] } }, pull(), []);
+  for (const prompt of [dispatch, rescue]) {
+    assert.match(prompt, /DEV publication -> user visual feedback -> AI correction/);
+    assert.match(prompt, /reversible implementation, visual and interaction choices/);
+    assert.match(prompt, /Adapt stale PR behavior to current confirmed specifications/);
+    assert.match(prompt, /Before a specification-based human-required decision, record/);
+    assert.match(prompt, /Never automatically clear an existing human-required decision/);
+    assert.match(prompt, /claim\/attempt limits and main\/Production protections/);
+    assert.match(prompt, /DEV feedback never grants visual approval or RUNTIME_READY certification/);
+    assert.match(prompt, /Ready is not DEV_DEPLOYED/);
+  }
+  assert.ok(dispatch.indexOf('Read docs/RINNE_PROJECT_EXECUTION_POLICY.md: AI implementation') < dispatch.indexOf('<rinne_request>'));
+  assert.ok(rescue.indexOf('Read docs/RINNE_PROJECT_EXECUTION_POLICY.md: AI implementation') < rescue.indexOf('untrusted task DATA'));
+  assert.match(dispatch, /Do NOT mark the PR Ready, merge it, push it/);
+  assert.match(rescue, /No force push, history rewrite, commit, branch creation, push, merge API, review approval/);
 });
 
 test('PULSE exposes owner without adding worker heartbeat alerts after Ready, including indefinitely running CI', () => {

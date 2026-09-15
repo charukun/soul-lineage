@@ -4,7 +4,7 @@
 
 The shared-world runtime remains peer hosted. `rinne-ops` is used only as a short-lived signalling rendezvous and operations surface. It does not own village simulation, combat authority, checkpoints, saves or inventory.
 
-The manual SDP offer/answer UI remains the failure fallback. Normal players use the automatic room flow.
+Normal gameplay preserves the explicit, non-hostile friend invitation contract. Creating an invitation may attach an optional private signaling descriptor so the guest's answer is returned automatically. The existing SDP invitation and manual answer controls remain usable if signaling is unavailable.
 
 ## Automatic signalling
 
@@ -13,14 +13,14 @@ The manual SDP offer/answer UI remains the failure fallback. Normal players use 
 The Durable Object registry retains only:
 
 - room/world identifiers and a short display label;
-- host/guest authentication tokens on the server side;
+- private invitation and host/guest authentication tokens on the server side;
 - short-lived SDP offer/answer events;
 - bounded host capability metadata;
 - public operational telemetry.
 
-Rooms expire after 10 minutes without activity. The registry is bounded by room, join, event and signal-size limits. PULSE public state never includes tokens or SDP payloads.
+Rooms expire after 10 minutes without activity. The registry is bounded by room, join, event and signal-size limits. Joining requires the private invitation token in the Authorization header. Public discovery returns no rooms. PULSE exposes anonymous operational telemetry without room IDs, world IDs, village names, invitation tokens or SDP payloads. A visitor cannot claim host eligibility or acquire signaling controller access. Standby capability is restricted to an explicitly created standby room and is not granted by the normal friend-visit flow.
 
-After WebRTC connects, gameplay continues through the peer mesh from `docs`/`packages/network`; Cloudflare is not in the gameplay data path.
+The owner creates the signaling room only after deliberately issuing an invitation. The guest accepts only the same offer embedded in that active invitation. Automatic answers are accepted only for a guest to whom that owner offered the connection; malformed answers cannot grant controller access. After WebRTC connects, friend visitors receive only the existing exterior snapshot and read-only authority heartbeat. Cloudflare is not in the gameplay data path and never stores checkpoints or private save data. The shared peer mesh and full-checkpoint migration core remain available to explicit eligible-peer tests, separate from friend sightseeing.
 
 ## Host capability policy
 
@@ -32,7 +32,7 @@ MURAAAAAAA peers remain the only host-eligible devices. Candidate ranking uses a
 - Network Information API RTT/downlink/save-data when exposed;
 - learned frame/GPU p95 from the existing adaptive-performance layer.
 
-Missing signals are neutral. A capable mayor receives a small preference, but an obviously unstable mayor cannot override a substantially healthier host candidate. If any stable candidate exists, unstable/background/critically constrained candidates are excluded. Equal candidates fall back to join order then peer ID.
+Missing signals, including explicit null values returned by browsers without battery/network APIs, are neutral. A capable mayor receives a small preference, but an obviously unstable mayor cannot override a substantially healthier host candidate. If any stable candidate exists, unstable/background/critically constrained candidates are excluded. Equal candidates fall back to join order then peer ID.
 
 No fake temperature, battery or network reading is invented when the browser does not expose it.
 
@@ -59,7 +59,7 @@ PULSE exposes only operational state:
 - last migration duration and SLO status;
 - split-brain prevention count.
 
-The panel is read-only. It cannot elect a Host or modify world state.
+The panel is read-only and anonymous. It cannot discover/join a village, elect a Host or modify world state. The normal friend session has no shared full checkpoint, so its checkpoint revision is zero; no quorum ACKs are invented for telemetry.
 
 ## Cost boundary
 

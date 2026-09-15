@@ -145,3 +145,91 @@ The existing Character Studio browser gate additionally invokes
 `character-motion-qa.browser.mjs`; PNG/JSON evidence joins its existing artifact.
 Physical Pixel Fold performance and final aesthetic approval remain separate.
 Implementation delivery ends at Ready; Integration owns CI, merge and DEV publication.
+
+## Continuity review v2
+
+The first clearance solver sometimes switched between elbow swivel and forward
+hand clearance on adjacent frames. In the merged develop sequence, the right
+upper arm changed by .8956 radians in one 60 Hz frame at 17.55 seconds. This was a
+presentation correction discontinuity, not a reason to weaken the authored slash.
+
+`createCorrectionSampler` now averages **correction offsets and twist transfer**
+over a symmetric cosine window (default ±3 source frames at 60 Hz). The target's
+original hand/elbow points receive those offsets; `applyCorrection` reconstructs
+the measured limb lengths and retains the authored world palm orientation. The
+source pose bank, hips/feet, action duration and contact clocks are not filtered.
+
+Integer-frame evaluation and a bounded 96-frame cache make arbitrary seeking,
+reverse review and different playback rates reproducible. Each actor/profile owns
+its cache, which is replaced on appearance/identity changes. The evaluation hook
+must be a pure function of source time and that rig/profile; it temporarily samples
+the rig, so callers restore the requested base pose before applying the result.
+This is bounded sampling around the current review time, not a 30-character bake
+of every possible body/age combination at startup.
+
+The shared sword profile additionally describes its existing root-aligned carry
+socket and reach/transfer/release progress (.10/.25/.40). `matchWeaponTransfer`
+matches the palm to that socket at ownership transfer, including body/age offsets.
+`calibrateCarriedWeapon` and hand calibration use the same geometry grip/scale.
+The correction fades to zero outside that range; authored skills at full draw are
+untouched. No interpolation of a detached sword is used to conceal a hand gap.
+
+Workshop adds 0.5×/0.25× playback and a loop of the selected existing motion range.
+The 30-second start resets to 1× with looping off. QA expressions/blink use review
+time; normal Workshop expression timing stays unchanged. Reports now also retain
+correction revision, presentation selection/expression settings, playback speed
+and loop range. Existing v1 reports remain readable. Snapshots expose weapon
+ownership, grip position and transfer error for external reviewers.
+
+See [the v2 report](qa/shino-continuity-v2.json) and
+[same-camera 0.25× comparison](qa/shino-continuity-v2.mp4). The movie compares the
+**previously corrected develop** against v2 (37 actual WebGL frames per side,
+17.15–17.75 seconds), not the original uncorrected motion. Its blink is disabled on
+both sides. The reference maximum arm-joint step drops .8956 → .6796 rad; maximum
+arm/torso capsule risk drops .01725 → .01438 source metres. These remain screening
+metrics, not aesthetic approval. Twelve body/height/7–75-year variants improve in
+the sampled windows; their maximum carry/palm gap drops from .02646 metres to
+less than 1e-5 metres at transfer.
+
+Original skirt geometry can still pierce the rigid modular tunic on an elderly
+variant. That clothing/attachment issue is recorded with an image rather than
+claimed fixed by arm correction. Cloth/hair/skinning and physical Pixel Fold
+performance remain visual/performance review work. The ongoing PR #156 owns
+source stance naturalization; this change does not reauthor its runtime or the
+independent Lab branch. Integration owns combined-source checks and publication.
+
+## External motion reference benchmark scope
+
+Public implementations are **technique references**, not runtime dependencies and not
+sources for wholesale code or asset copying. The primary reference for this batch is
+`achrefelouafi/SoldierThirdPersonThreeJS` (MIT): its documented locomotion phase
+synchronization, real-speed playback scaling, root-motion ownership, motion-warped
+approach and coordinated impact beat are useful comparison points for this Three.js
+pipeline. Secondary references may explain alternative design choices, but they do
+not override this repository's gameplay, rig, MasterCharacter, licensing or visual
+approval contracts.
+
+This batch must add an executable, provider-neutral benchmark under
+`@soul/animations` and connect it to Motion QA as diagnostic evidence. The benchmark
+must cover, at minimum: locomotion gait phase continuity; animation playback matched
+to actual travel speed; explicit ownership/extraction of horizontal root motion;
+attack phases that distinguish turn, approach, contact and recovery; bounded target
+alignment/motion warping without transform-authority conflicts; and a single impact
+beat that can coordinate hit-stop, camera impulse and hit reaction. Weapon/body
+intersection and eight-view human visual review remain existing gates rather than
+being replaced by the benchmark.
+
+Acceptance criteria for the implementation are:
+
+- reference metadata records repository URL, pinned revision when available, license,
+  observed technique and adoption policy, while copying no external assets;
+- benchmark inputs/outputs reject non-finite, impossible or ambiguous timing and
+  ownership data rather than manufacturing a score;
+- diagnostics expose individual criteria and actionable gaps instead of one opaque
+  aesthetic score, and never set `visualApproval`;
+- tests prove passing and failing locomotion, root-motion, attack-phase, warp and
+  impact-beat cases, including stable deterministic output;
+- current QA report serialization remains backward compatible; benchmark evidence is
+  optional extension metadata until a later schema revision is deliberately chosen;
+- no current gameplay timings, damage/contact authority, multiplayer authority,
+  Visual Review Lab branch, `main` or Production are changed by this task.

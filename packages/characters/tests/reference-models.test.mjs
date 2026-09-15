@@ -19,13 +19,12 @@ const EXPECTED = [
   'arcanist.reference.v1'
 ];
 
-test('reference catalog exposes every Character References page model as runtime 3D identity', () => {
+test('reference catalog keeps runtime identities and upgrades Shino to audited DCC PRIMARY', () => {
   assert.deepEqual(Object.keys(CHARACTER_REFERENCE_MODELS), EXPECTED);
   const assets = new Set();
   for (const id of EXPECTED) {
     const model = characterReferenceModel(id);
     assert.equal(model.masterId, MASTER_ID);
-    assert.equal(model.kind, 'runtime-reference-model');
     assert.equal(model.id, id);
     assert.equal(model.profile, model.parts);
     assert.doesNotThrow(() => validateVisualIdentity(model));
@@ -34,16 +33,28 @@ test('reference catalog exposes every Character References page model as runtime
     assert.equal(Object.isFrozen(model), true);
     assert.equal(Object.isFrozen(model.profile), true);
     assert.equal(Object.isFrozen(model.referenceStyle), true);
+    if (id === 'shino.reference.v2') {
+      assert.equal(model.kind, 'dcc-character-model');
+      assert.equal(model.assetId, 'character.shino-reference-v2.dcc.v1');
+      assert.equal(model.productionStage, 'PRIMARY');
+      assert.equal(model.modelingMode, 'dcc-blender');
+      assert.equal(model.productionReady, false);
+      assert.match(model.assetPath, /SHINO_REFERENCE_V2\.vrm$/);
+      assert.match(model.integrityPath, /SHINO_REFERENCE_V2\.asset\.json$/);
+    } else {
+      assert.equal(model.kind, 'runtime-reference-model');
+    }
     assert.ok(!assets.has(model.assetId), `duplicate runtime asset id: ${model.assetId}`);
     assets.add(model.assetId);
   }
 });
 
-test('every runtime reference model points at a committed reference sheet', () => {
+test('every reference model points at a committed sheet and declares its runtime/DCC contract', () => {
   for (const model of Object.values(CHARACTER_REFERENCE_MODELS)) {
     const sheet = new URL(`../../../${model.referencePath}`, import.meta.url);
     assert.ok(statSync(sheet).size > 0, model.referencePath);
-    assert.match(model.note, /ランタイム3D/);
+    if (model.kind === 'dcc-character-model') assert.match(model.note, /DCC PRIMARY/);
+    else assert.match(model.note, /ランタイム3D/);
   }
   assert.throws(() => characterReferenceModel('unknown.reference'), /Unknown character reference model/);
 });

@@ -13,7 +13,7 @@ export function createPeerSignalingClient({endpoint=DEFAULT_ENDPOINT,fetchImpl=f
     endpoint:base.href,
     listRooms:()=>request('api/peer-world/rooms'),
     createRoom:payload=>request('api/peer-world/rooms',{method:'POST',body:payload}),
-    joinRoom:(roomId,payload)=>request(`api/peer-world/rooms/${encodeURIComponent(roomId)}/join`,{method:'POST',body:payload}),
+    joinRoom:(roomId,{inviteToken,...payload})=>request(`api/peer-world/rooms/${encodeURIComponent(roomId)}/join`,{method:'POST',token:inviteToken,body:payload}),
     pollHost:(roomId,token,after=0)=>request(`api/peer-world/rooms/${encodeURIComponent(roomId)}/host-events?after=${Math.max(0,after|0)}`,{token}),
     postOffer:(roomId,joinId,token,offer)=>request(`api/peer-world/rooms/${encodeURIComponent(roomId)}/joins/${encodeURIComponent(joinId)}/offer`,{method:'POST',token,body:{offer}}),
     pollGuest:(roomId,joinId,token,after=0)=>request(`api/peer-world/rooms/${encodeURIComponent(roomId)}/joins/${encodeURIComponent(joinId)}/events?after=${Math.max(0,after|0)}`,{token}),

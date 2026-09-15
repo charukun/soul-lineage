@@ -48,6 +48,15 @@ test('conservative occlusion requires repeated full-ray blocking and preserves e
   assert.equal(externallyHidden.visible, false);
 });
 
+test('conservative occlusion supplies the active camera to nested sprite raycasts', () => {
+  const camera = new THREE.PerspectiveCamera(50, 1, .1, 100); camera.position.set(0, 0, 8); camera.lookAt(0, 0, 0); camera.updateMatrixWorld(true);
+  const occluder = new THREE.Group(), sprite = new THREE.Sprite(new THREE.SpriteMaterial()); sprite.scale.set(8, 8, 1); sprite.position.z = 1; occluder.add(sprite); occluder.updateMatrixWorld(true);
+  const candidate = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial()); candidate.position.z = -5; candidate.updateMatrixWorld(true);
+  const culler = createConservativeOcclusionCuller({ maxChecksPerUpdate: 1, minDistance: 1, hiddenConfirmations: 1 });
+  assert.doesNotThrow(() => culler.update({ camera, candidates: [candidate], occluders: [occluder] }));
+  assert.equal(culler.snapshot().tested, 1);
+});
+
 test('distance streaming and occlusion never resurrect each others hidden state', () => {
   const root=new THREE.Group(), candidate=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial()); candidate.position.z=-30; root.add(candidate); root.updateMatrixWorld(true);
   const streamer=createVisualDistanceStreamer({baseDistance:5,hysteresis:1});

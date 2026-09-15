@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { REPOSITORY, manualReason, rescueConfig } from './integration-rescue-policy.mjs';
@@ -10,7 +10,19 @@ const sha = value => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value);
 const safeRef = value => String(value).replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 80);
 const TRAIN_PREFIX = 'automation/integration-train-';
 
-export async function virtualTrainCandidates(c, state, develop, { max = 5, inspect = 8 } = {}) {
+export async function virtualTrainCandidates(c, state, develop, { max = 5, inspect = 8, planned = null } = {}) {
+  if (Array.isArray(planned) && planned.length >= 2) {
+    const exact = [];
+    for (const item of planned.slice(0, max)) {
+      const pr = await c.api('GET', `${c.root}/pulls/${item.pr}`);
+      const record = state?.records?.[item.pr];
+      if (pr.head.sha !== item.head || pr.draft || pr.head?.repo?.full_name !== REPOSITORY || manualReason(pr) || quarantineDecision(record).quarantined) return [];
+      if (!await recoveryReady(c, pr) || !await fastGate(c, pr, { cache: true })) return [];
+      exact.push(pr);
+    }
+    return exact;
+  }
+
   const open = await c.pages('/pulls?state=open&base=develop&sort=created&direction=asc', undefined, { maxPages: 6 });
   const scopeByPr = new Map(Object.values(state?.records || {}).filter(record => record.scope?.files?.length).map(record => [Number(record.pr), record.scope]));
   const eligible = [];
@@ -45,10 +57,10 @@ export async function cleanupOrphanedVirtualTrains(c, { limit = 8 } = {}) {
   return removed;
 }
 
-export async function buildVirtualTrain(c, state, develop, { runId = Date.now(), max = 5, keepRef = false } = {}) {
+export async function buildVirtualTrain(c, state, develop, { runId = Date.now(), max = 5, keepRef = false, planned = null } = {}) {
   if (!sha(develop)) throw new Error('VIRTUAL_TRAIN_DEVELOP_SHA_REQUIRED');
-  const candidates = await virtualTrainCandidates(c, state, develop, { max });
-  if (candidates.length < 2) return { status: 'skipped', reason: 'fewer than two safe independent candidates', base: develop, candidates: candidates.map(pr => ({ pr: pr.number, head: pr.head.sha })) };
+  const candidates = await virtualTrainCandidates(c, state, develop, { max, planned });
+  if (candidates.length < 2) return { status: 'skipped', reason: planned ? 'planned train is stale or no longer safe' : 'fewer than two safe independent candidates', base: develop, candidates: candidates.map(pr => ({ pr: pr.number, head: pr.head.sha })) };
   const branch = `${TRAIN_PREFIX}${safeRef(runId)}-${develop.slice(0, 8)}`;
   const ref = `refs/heads/${branch}`;
   let current = develop, created = false;
@@ -85,7 +97,7 @@ export async function recordVirtualTrain(store, proof, now = Date.now()) {
   return proof;
 }
 
-export async function planVirtualTrain(c, store, { runId = Date.now() } = {}) {
+export async function planVirtualTrain(c, store, { runId = Date.now(), reconciliation = null } = {}) {
   await cleanupOrphanedVirtualTrains(c).catch(error => console.warn(`Virtual Train orphan cleanup skipped: ${error.message}`));
   const { state } = await store.read();
   const develop = (await c.api('GET', `${c.root}/branches/develop`)).commit.sha;
@@ -94,9 +106,11 @@ export async function planVirtualTrain(c, store, { runId = Date.now() } = {}) {
   const fallbackLatency = deliveryLatencyMetrics(deliveries.length ? deliveries : records);
   const failureRate = records.filter(record => (record.failures || []).length).length / Math.max(1, records.length);
   const tuning = state.flowControl?.tuning?.pressure?.mode ? state.flowControl.tuning : adaptiveFlowTuning({ ready: records.filter(record => !['DEV', 'CLOSED'].includes(record.state)).length, latency: fallbackLatency, failureRate, rateRemaining: c.metrics?.().rateRemaining });
-  if (tuning.pressure.mode === 'NORMAL') return { status: 'skipped', reason: 'normal queue pressure', base: develop, candidates: [], tuning };
-  const proof = await buildVirtualTrain(c, state, develop, { runId, max: tuning.trainSize, keepRef: true });
-  return { ...proof, tuning };
+  const planned = reconciliation?.develop === develop && Array.isArray(reconciliation?.trains?.[0]?.members) ? reconciliation.trains[0].members : null;
+  if (!planned && tuning.pressure.mode === 'NORMAL') return { status: 'skipped', reason: 'normal queue pressure', base: develop, candidates: [], tuning };
+  if (reconciliation && !planned) return { status: 'skipped', reason: 'reconciliation train proof is stale or empty', base: develop, candidates: [], tuning };
+  const proof = await buildVirtualTrain(c, state, develop, { runId, max: planned?.length || tuning.trainSize, keepRef: true, planned });
+  return { ...proof, tuning, reconciliationGeneratedAt: reconciliation?.generatedAt || null };
 }
 
 export async function finalizeVirtualTrain(c, store, proof, { fast, browser, now = Date.now() } = {}) {
@@ -109,13 +123,20 @@ export async function finalizeVirtualTrain(c, store, proof, { fast, browser, now
   return result;
 }
 
+function readReconciliationPlan() {
+  const file = process.env.INTEGRATION_RECONCILIATION_PLAN;
+  if (!file || !existsSync(file)) return null;
+  const plan = JSON.parse(readFileSync(file, 'utf8'));
+  return plan?.schema === 1 && plan?.repository === REPOSITORY ? plan : null;
+}
+
 async function main() {
   if (process.env.GITHUB_REPOSITORY !== REPOSITORY || process.env.GITHUB_REF !== 'refs/heads/develop') throw new Error('VIRTUAL_TRAIN_TRUSTED_DEVELOP_ONLY');
   const config = rescueConfig(process.env), c = rescueClient(process.env.GH_TOKEN, config), store = new RescueStore(c, config);
   const mode = process.argv[2], file = process.argv[3] || '.deploy-state/virtual-train.json';
   mkdirSync(resolve(file, '..'), { recursive: true });
   if (mode === 'plan') {
-    const proof = await planVirtualTrain(c, store, { runId: process.env.GITHUB_RUN_ID });
+    const proof = await planVirtualTrain(c, store, { runId: process.env.GITHUB_RUN_ID, reconciliation: readReconciliationPlan() });
     writeFileSync(file, JSON.stringify(proof, null, 2));
     if (process.env.GITHUB_OUTPUT) writeFileSync(process.env.GITHUB_OUTPUT, `has_train=${proof.status === 'assembled'}\nbranch=${proof.branch || ''}\ncommit=${proof.syntheticCommit || ''}\nbase=${proof.base || ''}\n`, { flag: 'a' });
     console.log(JSON.stringify(proof)); return;

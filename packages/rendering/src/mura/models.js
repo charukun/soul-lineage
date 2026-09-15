@@ -3,12 +3,12 @@ import {NATURE} from './nature-data.js';
 import {defs} from '@soul/world/mura/catalog';
 
 /** Inject the host renderer's Three instance; no second engine or DOM globals. */
-export function createMuraModels(T,{createCanvas}){
+export function createMuraModels(T,{createCanvas,textileFibers=14000,textileBlotches=160}){
 const mats=new Map(),templates=new Map();
 const unitBox=new T.BoxGeometry(1,1,1),sphereGeo=new T.SphereGeometry(1,10,8),cylGeo=new T.CylinderGeometry(1,1,1,10),coneGeo=new T.ConeGeometry(1,1,10);
 const rnd=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x);};
 let textile;
-function cloth(){if(textile)return textile;const c=createCanvas();c.width=c.height=256;const x=c.getContext('2d');x.fillStyle='#f1eee8';x.fillRect(0,0,256,256);for(let j=0;j<160;j++){const v=Math.floor(204+rnd(j+13)*48);x.fillStyle=`rgba(${v},${v},${v},.14)`;x.beginPath();x.ellipse(rnd(j+2)*256,rnd(j+33)*256,8+rnd(j)*20,7+rnd(j+5)*20,0,0,6.283);x.fill();}for(let i=0;i<14000;i++){let px=rnd(i)*256,py=rnd(i+41)*256,v=Math.floor(160+rnd(i+78)*94);x.strokeStyle=`rgba(${v},${v},${v},.32)`;x.lineWidth=.3+rnd(i+95);x.beginPath();x.moveTo(px,py);x.lineTo(px+Math.cos(i)*3,py+2+rnd(i+52)*6);x.stroke();}textile=new T.CanvasTexture(c);textile.wrapS=textile.wrapT=T.RepeatWrapping;textile.anisotropy=4;return textile;}
+function cloth(){if(textile)return textile;const c=createCanvas();c.width=c.height=256;const x=c.getContext('2d');x.fillStyle='#f1eee8';x.fillRect(0,0,256,256);for(let j=0;j<textileBlotches;j++){const v=Math.floor(204+rnd(j+13)*48);x.fillStyle=`rgba(${v},${v},${v},.14)`;x.beginPath();x.ellipse(rnd(j+2)*256,rnd(j+33)*256,8+rnd(j)*20,7+rnd(j+5)*20,0,0,6.283);x.fill();}for(let i=0;i<textileFibers;i++){let px=rnd(i)*256,py=rnd(i+41)*256,v=Math.floor(160+rnd(i+78)*94);x.strokeStyle=`rgba(${v},${v},${v},.32)`;x.lineWidth=.3+rnd(i+95);x.beginPath();x.moveTo(px,py);x.lineTo(px+Math.cos(i)*3,py+2+rnd(i+52)*6);x.stroke();}textile=new T.CanvasTexture(c);textile.wrapS=textile.wrapT=T.RepeatWrapping;textile.anisotropy=4;return textile;}
 function mat(c,textured=true,extra={}){const k=c+'|'+textured+'|'+JSON.stringify(extra);if(!mats.has(k))mats.set(k,new T.MeshStandardMaterial({color:c,roughness:.94,metalness:0,...(textured?{map:cloth(),bumpMap:cloth(),bumpScale:.10}:{}),...extra}));return mats.get(k);}
 function mesh(g,geo,m,x=0,y=0,z=0,sx=1,sy=1,sz=1){const o=new T.Mesh(geo,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.castShadow=true;o.receiveShadow=true;g.add(o);return o;}
 const box=(g,x,y,z,w,h,d,c)=>mesh(g,unitBox,mat(c),x,y,z,w,h,d);

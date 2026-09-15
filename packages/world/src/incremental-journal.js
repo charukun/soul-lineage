@@ -3,11 +3,21 @@ const isObject=value=>value&&typeof value==='object'&&!Array.isArray(value);
 const entityArray=value=>Array.isArray(value)&&value.every(item=>isObject(item)&&('id'in item));
 const same=(a,b)=>Object.is(a,b)||JSON.stringify(a)===JSON.stringify(b);
 
+// Entity operations preserve existing positions and append new IDs. Other ordering
+// changes (or ambiguous duplicate IDs) require an exact array snapshot.
+function preservesEntityOrder(before, after) {
+ const left=before.map(value=>String(value.id)),right=after.map(value=>String(value.id));
+ const oldIds=new Set(left),newIds=new Set(right);
+ if(oldIds.size!==left.length||newIds.size!==right.length)return false;
+ const replayOrder=[...left.filter(id=>newIds.has(id)),...right.filter(id=>!oldIds.has(id))];
+ return replayOrder.length===right.length&&replayOrder.every((id,index)=>id===right[index]);
+}
+
 function mergePatch(before,after){if(same(before,after))return null;if(!isObject(before)||!isObject(after))return{$set:clone(after)};const patch={};let changed=false;for(const key of new Set([...Object.keys(before),...Object.keys(after)])){if(!(key in after)){patch[key]={$delete:true};changed=true;continue;}const child=mergePatch(before[key],after[key]);if(child!==null){patch[key]=child;changed=true;}}return changed?patch:null;}
 function applyMerge(target,patch){if(patch&&'$set'in patch)return clone(patch.$set);if(patch?.$delete)return undefined;const out=isObject(target)?target:{};for(const[key,child]of Object.entries(patch||{})){const value=applyMerge(out[key],child);if(value===undefined&&child?.$delete)delete out[key];else out[key]=value;}return out;}
 function atPath(root,path){let node=root;for(const key of path)node=node[key];return node;}
 
-export function createIncrementalPatch(before,after){const ops=[];function walk(a,b,path){if(same(a,b))return;if(entityArray(a)&&entityArray(b)){const left=new Map(a.map(v=>[String(v.id),v])),right=new Map(b.map(v=>[String(v.id),v]));for(const[id,value]of right){if(!left.has(id)){ops.push({op:'entity-set',path,id,value:clone(value)});continue;}const patch=mergePatch(left.get(id),value);if(patch)ops.push({op:'entity-patch',path,id,patch});}for(const id of left.keys())if(!right.has(id))ops.push({op:'entity-delete',path,id});return;}if(isObject(a)&&isObject(b)){for(const key of new Set([...Object.keys(a),...Object.keys(b)])){if(!(key in b))ops.push({op:'delete',path:[...path,key]});else if(!(key in a))ops.push({op:'set',path:[...path,key],value:clone(b[key])});else walk(a[key],b[key],[...path,key]);}return;}ops.push({op:'set',path,value:clone(b)});}walk(before,after,[]);return ops;}
+export function createIncrementalPatch(before,after){const ops=[];function walk(a,b,path){if(same(a,b))return;if(entityArray(a)&&entityArray(b)){if(!preservesEntityOrder(a,b)){ops.push({op:'set',path,value:clone(b)});return;}const left=new Map(a.map(v=>[String(v.id),v])),right=new Map(b.map(v=>[String(v.id),v]));for(const[id,value]of right){if(!left.has(id)){ops.push({op:'entity-set',path,id,value:clone(value)});continue;}const patch=mergePatch(left.get(id),value);if(patch)ops.push({op:'entity-patch',path,id,patch});}for(const id of left.keys())if(!right.has(id))ops.push({op:'entity-delete',path,id});return;}if(isObject(a)&&isObject(b)){for(const key of new Set([...Object.keys(a),...Object.keys(b)])){if(!(key in b))ops.push({op:'delete',path:[...path,key]});else if(!(key in a))ops.push({op:'set',path:[...path,key],value:clone(b[key])});else walk(a[key],b[key],[...path,key]);}return;}ops.push({op:'set',path,value:clone(b)});}walk(before,after,[]);return ops;}
 
 export function applyIncrementalPatch(base,ops){let root=clone(base);for(const op of ops||[]){if(!op.path?.length&&op.op==='set'){root=clone(op.value);continue;}if(op.op==='entity-set'||op.op==='entity-patch'||op.op==='entity-delete'){const list=atPath(root,op.path);if(!Array.isArray(list))throw new Error('Journal entity path is not an array');const index=list.findIndex(item=>String(item?.id)===String(op.id));if(op.op==='entity-delete'){if(index>=0)list.splice(index,1);continue;}if(op.op==='entity-set'){if(index>=0)list[index]=clone(op.value);else list.push(clone(op.value));continue;}if(index<0)throw new Error(`Journal entity missing: ${op.id}`);list[index]=applyMerge(list[index],op.patch);continue;}const parent=op.path.slice(0,-1).reduce((node,key)=>node[key],root),key=op.path.at(-1);if(op.op==='delete')delete parent[key];else if(op.op==='set')parent[key]=clone(op.value);else throw new Error(`Unknown journal op: ${op.op}`);}return root;}
 

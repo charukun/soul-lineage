@@ -29,3 +29,15 @@ test('ties remain deterministic by join order and peer id',()=>{
   const members={old:{connected:true,eligible:true,joinOrder:0},z:{connected:true,eligible:true,joinOrder:5,meta:{hostCapability:cap}},b:{connected:true,eligible:true,joinOrder:3,meta:{hostCapability:cap}},a:{connected:true,eligible:true,joinOrder:3,meta:{hostCapability:cap}}};
   assert.deepEqual(rankHostCandidates(members,{currentHostId:'old'}).map(row=>row.id),['a','b','z']);
 });
+
+
+test('unavailable browser metrics remain neutral instead of becoming zero',()=>{
+ const defaults=normalizeHostCapability({});
+ const unavailable=normalizeHostCapability({batteryLevel:null,rttMs:null,downlinkMbps:null,frameP95Ms:null,gpuP95Ms:null});
+ assert.equal(unavailable.stable,true);
+ assert.equal(unavailable.score,defaults.score);
+ assert.equal(unavailable.batteryLevel,null);
+ assert.equal(unavailable.rttMs,null);
+ assert.equal(unavailable.frameP95Ms,null);
+ assert.equal(normalizeHostCapability({batteryLevel:0}).stable,false);
+});
