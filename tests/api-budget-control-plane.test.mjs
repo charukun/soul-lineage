@@ -44,3 +44,12 @@ test('PULSE retries rate limits exactly and rejects anonymous event refreshes', 
   assert.match(worker, /if \(!token && !env\.OPS_GITHUB_TOKEN\)/);
   assert.match(worker, /await stub\.getState\(\) \|\| await stub\.refresh\(eventReason\(request\)\)/);
 });
+
+test('PULSE exposes the API budget used by the current snapshot', () => {
+  const app = text('ops-board/public/app.js');
+  assert.match(app, /api\.requests/);
+  assert.match(app, /api\.maxRequests/);
+  assert.match(app, /api\.cacheHits/);
+  assert.match(app, /api\.remaining/);
+  assert.match(app, /API \$\{api\.scope === 'authenticated' \? '認証' : '公開'\}/);
+});
