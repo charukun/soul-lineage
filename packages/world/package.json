@@ -6,6 +6,10 @@
   "exports": {
     ".": "./src/index.js",
     "./scale-policy": "./src/scale-policy.js",
+    "./spatial-index": "./src/spatial-index.js",
+    "./flow-field": "./src/flow-field.js",
+    "./simulation-scheduler": "./src/simulation-scheduler.js",
+    "./incremental-journal": "./src/incremental-journal.js",
     "./mura": "./src/mura/index.js",
     "./mura/catalog": "./src/mura/catalog.js",
     "./mura/terrain": "./src/mura/terrain.js"

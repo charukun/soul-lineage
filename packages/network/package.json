@@ -8,7 +8,9 @@
     "./peer": "./src/peer.js",
     "./raid-host": "./src/raid-host.js",
     "./presence-lod": "./src/presence-lod.js",
-    "./friend-invite": "./src/friend-invite.js"
+    "./friend-invite": "./src/friend-invite.js",
+    "./transport-lod": "./src/transport-lod.js",
+    "./interpolation": "./src/interpolation.js"
   },
   "dependencies": {
     "@soul/platform": "*",
