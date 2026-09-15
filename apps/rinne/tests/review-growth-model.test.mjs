@@ -22,6 +22,8 @@ test('growth model review uses the existing life clock, model picker and fixed a
   assert.match(js, /import \{ LIFE_RULES, appearanceForAge \} from '\.\.\/\.\.\/public\/simulator\/src\/life-clock\.js';/);
   assert.match(js, /const GROWTH_MODELS = Object\.freeze\(\[/);
   for (const id of ['SHINO', 'SHINO_SLENDER', 'SHINO_STURDY', 'SHINO_COMPACT', 'A', 'B', 'C', 'TSUKU']) assert.match(js, new RegExp(`id:'${id}'`));
+  assert.match(js, /params\.has\('age'\)\?Number\(params\.get\('age'\)\):NaN/);
+  assert.match(js, /22\*LIFE_RULES\.secondsPerYear/);
   assert.match(js, /seconds\/LIFE_RULES\.secondsPerYear/);
   assert.match(js, /root\.scale\.copy\(base\.rootScale\)\.multiply\(new THREE\.Vector3\(\.\.\.model\.appearanceScale\)\)\.multiplyScalar\(appearance\.scale\)/);
   assert.match(js, /bones\.head\.scale\.copy\(base\.headScale\)\.multiplyScalar\(appearance\.headScale\)/);
