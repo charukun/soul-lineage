@@ -34,7 +34,8 @@ export const REVIEW_REFERENCE_MODELS=Object.freeze([
   make({id:'blacksmith.reference.v1',label:'BLACKSMITH',name:'Blacksmith',referencePath:npc('blacksmith'),hair:'crop',front:'open',back:'close',design:'blacksmith',scale:.91,palette:'blacksmith',armStyle:'rolled',legStyle:'pants',footwear:'boots',prop:'hammer'}),
   make({id:'laborer.reference.v1',label:'LABORER',name:'Laborer',referencePath:npc('laborer'),hair:'crop',front:'open',back:'layered',design:'laborer',scale:.89,palette:'laborer',armStyle:'rolled',legStyle:'pants',footwear:'boots',prop:'toolbelt'}),
   make({id:'hunter.reference.v1',label:'HUNTER',name:'Hunter',referencePath:npc('hunter'),hair:'crop',front:'swept',back:'layered',design:'hunter',scale:.88,palette:'hunter',armStyle:'shirt',legStyle:'pants',footwear:'boots',prop:'bow'}),
-  make({id:'arcanist.reference.v1',label:'ARCANIST',name:'Arcanist',referencePath:npc('arcanist'),hair:'tail',front:'parted',back:'tied',design:'arcanist',scale:.86,palette:'arcanist',armStyle:'robe',legStyle:'robe',footwear:'boots',prop:'staff-book'})
+  make({id:'arcanist.reference.v1',label:'ARCANIST',name:'Arcanist',referencePath:npc('arcanist'),hair:'tail',front:'parted',back:'tied',design:'arcanist',scale:.86,palette:'arcanist',armStyle:'robe',legStyle:'robe',footwear:'boots',prop:'staff-book'}),
+  make({id:'arcanist.atlas-study.v1',label:'ARCANIST_ATLAS_STUDY',name:'Arcanist Atlas Study',referencePath:npc('arcanist'),hair:'tail',front:'parted',back:'tied',design:'arcanist',scale:.86,palette:'arcanist',armStyle:'robe',legStyle:'robe',footwear:'boots',prop:'staff-book',productionStage:'BLOCKOUT',modelingMode:'runtime-procedural',productionReady:false,detailProfile:'arcanist-atlas-v1'})
 ]);
 export const REVIEW_REFERENCE_BY_ID=Object.freeze(Object.fromEntries(REVIEW_REFERENCE_MODELS.map(row=>[row.id,row])));
 export function reviewReferenceModel(id){return REVIEW_REFERENCE_BY_ID[id]||null;}

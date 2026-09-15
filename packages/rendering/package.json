@@ -7,7 +7,8 @@
     ".": "./src/index.js",
     "./quaternius-retarget": "./src/quaternius-retarget.js",
     "./review-effects": "./src/review-effects.js",
-    "./master-character-reference": "./src/master-character-reference.js"
+    "./master-character-reference": "./src/master-character-reference.js",
+    "./arcanist-atlas-study": "./src/arcanist-atlas-study.js"
   },
   "dependencies": {
     "three": "0.186.0",
