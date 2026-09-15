@@ -14,7 +14,7 @@
       "tool": "Blender",
       "version": "4.0.2",
       "sourcePath": "assets/characters/arcanist/atlas-dcc/source/ArcanistAtlasDCC.blend",
-      "sourceSha256": "65cec89524194ccf6bc199a3414f6b75d0204e661c764ed209e04deebd85e6b5"
+      "sourceSha256": "cefd5ce71c3e274ebd7d47fd1e520963c69cb804769275d5abe57709918340f3"
     }
   },
   "evidence": {
@@ -55,6 +55,6 @@
   "status": {
     "visualApproval": "pending",
     "productionReady": false,
-    "note": "Blender-authored Arcanist Atlas PRIMARY comparison candidate. Existing runtime Arcanist and Atlas blockout remain separate. Deformation, motion, polish, physical-device performance and explicit visual approval remain open gates."
+    "note": "Character DCC Carrier output. Export/audit does not grant deformation, motion, polish, device performance, RUNTIME_READY, or human visual approval."
   }
 }
