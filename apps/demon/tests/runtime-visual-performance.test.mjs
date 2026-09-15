@@ -13,6 +13,11 @@ test('high-DPI hunt keeps a readable render floor across adaptive tiers',()=>{
   assert.equal(demonEffectivePixelRatio(1,.68),1);
 });
 
+test('hunt starts full quality and lets measured sustained pressure degrade later',()=>{
+  assert.match(adaptive,/createGpuAwareQualityGovernor\(\{targetFps:device\.targetFps,initialLevel:0,/);
+  assert.doesNotMatch(adaptive,/initialLevel:device\.initialQuality/);
+});
+
 test('render pressure changes lightweight quality while scene traversal keys stay stable',()=>{
   assert.equal(demonRenderQualityKey({level:1,bottleneck:'gpu'}),'1:gpu');
   assert.notEqual(demonRenderQualityKey({level:1,bottleneck:'cpu'}),demonRenderQualityKey({level:1,bottleneck:'gpu'}));
