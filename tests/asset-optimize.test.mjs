@@ -31,12 +31,15 @@ test('character plan uses authored profile ratios and existing wrappers', () => 
   assert.equal(plan.outputs.final, plan.outputs.optimized);
 });
 
-test('static roles use static Blender mode and support compression-only GLB plans', () => {
+test('static roles use static Blender mode and mark compression-only budgets unmeasured', () => {
   const plan = buildAssetOptimizationPlan({ input: 'assets/tree.glb', role: 'environment', skipLod: true });
   assert.equal(plan.mode, 'static');
   assert.equal(plan.stages.lod, null);
   assert.equal(plan.stages.compress.args.at(-4), '--input');
   assert.match(plan.stages.compress.args.at(-3), /tree\.glb$/);
+  const evaluation=evaluateAssetOptimization({ plan, sourceBytes: 100, optimizedBytes: 60 });
+  assert.equal(evaluation.gate, 'review');
+  assert.ok(evaluation.warnings.some(message=>message.includes('compression-only')));
   assert.throws(() => buildAssetOptimizationPlan({ input: 'art/shino.blend', role: 'hero', skipLod: true }), /requires LOD\/export/);
   assert.throws(() => buildAssetOptimizationPlan({ input: 'assets/tree.glb', role: 'prop', skipLod: true, skipCompress: true }), /At least one optimization stage/);
 });
@@ -45,7 +48,7 @@ test('evaluation applies triangle, material and draw-call budgets as review gate
   const plan = buildAssetOptimizationPlan({ input: 'assets/npc.glb', role: 'npc', outputDir: 'generated/test-npc' });
   const audit = {
     errors: [],
-    summary: { materialCount: 17, estimatedDrawCalls: 24 },
+    summary: { sourceTriangles: 60020, lodSkippedObjects: 2, lodSkippedTriangles: 20, materialCount: 17, estimatedDrawCalls: 24 },
     objects: [{
       source: 'npc_LOD0',
       triangles: 60000,
@@ -61,11 +64,14 @@ test('evaluation applies triangle, material and draw-call budgets as review gate
   };
   const review = evaluateAssetOptimization({ plan, audit, sourceBytes: 10, lodBytes: 8, optimizedBytes: 4 });
   assert.equal(review.gate, 'review');
-  assert.equal(review.triangles.lod0, 60000);
+  assert.equal(review.triangles.lod0, 60020);
+  assert.equal(review.triangles.lod1, 30020);
+  assert.equal(review.triangles.lod2, 15020);
   assert.equal(review.materials, 17);
   assert.equal(review.estimatedDrawCalls, 24);
   assert.equal(review.bytes.compressionRatio, .5);
   assert.equal(review.lodQuality.silhouetteGuard, true);
+  assert.equal(review.lodQuality.skippedTriangles, 20);
   assert.ok(review.warnings.some(message => message.includes('LOD0 triangles')));
   assert.ok(review.warnings.some(message => message.includes('materials')));
   assert.ok(review.warnings.some(message => message.includes('draw calls')));
@@ -85,7 +91,7 @@ test('runner emits a single machine-readable report and verifies stage artifacts
       writeFileSync(plan.outputs.lod, 'lod');
       writeFileSync(plan.outputs.audit, JSON.stringify({
         errors: [],
-        summary: { materialCount: 3, estimatedDrawCalls: 4 },
+        summary: { sourceTriangles: 5000, lodSkippedObjects: 0, lodSkippedTriangles: 0, materialCount: 3, estimatedDrawCalls: 4 },
         objects: [{ source: 'tree_LOD0', triangles: 5000, materialSlots: 3, lods: [{ level: 1, triangles: 2400 }, { level: 2, triangles: 1000 }] }],
       }));
     } else if (args[0].endsWith('compress-gltf.mjs')) {
