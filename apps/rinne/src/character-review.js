@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { createWorkshopMotionQA } from './character-motion-qa.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { appearanceForCharacter, auditShinoDocument, crowdPlan, PoseSchedule, GENES, YEAR_MS } from '@soul/characters';
+import { appearanceForCharacter, auditCharacterRuntimeDocument, auditShinoDocument, crowdPlan, PoseSchedule, GENES, YEAR_MS } from '@soul/characters';
 import { createShinoProductionPool, shinoProductionRigFromGLTF } from '@soul/rendering/master-character-production';
 import { reviewSettings, createReviewCohort, editReviewCharacter, serializeReviewSession, deserializeReviewSession,
   reviewGlbDocument, MAX_MODEL_BYTES, MAX_SESSION_BYTES } from './character-review-state.js';
@@ -28,8 +28,8 @@ function disposeTemplate(root) {
   geometry.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); textures.forEach(t => t.dispose());
   skeletons.forEach(s => s.dispose()); images.forEach(i => i.close());
 }
-async function defaultBytes() {
-  const response = await fetch(new URL('./simulator/assets/SHINO_review.vrm', location.href), { signal: AbortSignal.timeout(60000) });
+async function modelBytes(path) {
+  const response = await fetch(new URL(path, location.href), { signal: AbortSignal.timeout(60000) });
   if (!response.ok) throw new Error(`モデル取得 HTTP ${response.status}`);
   if (Number(response.headers.get('content-length')) > MAX_MODEL_BYTES) throw new Error('モデルが大きすぎます');
   if (!response.body) return response.arrayBuffer();
@@ -40,6 +40,16 @@ async function defaultBytes() {
   } catch (error) { await reader.cancel().catch(() => {}); throw error; } finally { reader.releaseLock(); }
   const bytes = new Uint8Array(length); let offset = 0; for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
   return bytes.buffer;
+}
+const defaultBytes = () => modelBytes('./simulator/assets/SHINO_review.vrm');
+async function referenceRuntimeSource(model) {
+  const response = await fetch(new URL(model.integrityPath, location.href), { signal: AbortSignal.timeout(15000) });
+  if (!response.ok) throw new Error(`DCC整合性情報取得 HTTP ${response.status}`);
+  const integrity = await response.json();
+  return Object.freeze({
+    getBytes: () => modelBytes(model.assetPath),
+    audit: (document, sha256, byteLength) => auditCharacterRuntimeDocument(document, sha256, byteLength, integrity)
+  });
 }
 
 function start() {
@@ -58,7 +68,7 @@ function start() {
   const marker = new THREE.Mesh(new THREE.RingGeometry(.48, .51, 48), new THREE.MeshBasicMaterial({ color: '#dcc493', side: THREE.DoubleSide }));
   marker.rotation.x = -Math.PI / 2; marker.position.y = .004; scene.add(marker);
   let settings = reviewSettings(), records = createReviewCohort(settings), actors = [], schedules = [], appearances = [];
-  let pool = null, template = null, loading = false, retry = defaultBytes, alive = true, frameId = 0;
+  let pool = null, template = null, loading = false, retry = defaultBytes, retryAudit = auditShinoDocument, loadSequence = 0, modelRequestSequence = 0, alive = true, frameId = 0;
   let elapsed = 0, last = performance.now(), warmup = 60, frames = [], lastMetrics = 0, physicsActors = 0, drawnActors = 0;
   let motionQA = null;
   const events = new AbortController(), on = (target, type, handler) => target.addEventListener(type, handler, { signal: events.signal });
@@ -194,16 +204,16 @@ function start() {
     else refreshLooks();
     background();
   }
-  async function load(getBytes) {
-    if (loading || !alive) return; loading = true; retry = getBytes; review.ready = false; el('retry').disabled = true; el('progress').value = .1;
+  async function load(getBytes, auditDocument = auditShinoDocument) {
+    if (!alive) return; const sequence = ++loadSequence; loading = true; retry = getBytes; retryAudit = auditDocument; review.ready = false; el('retry').disabled = true; el('progress').value = .1;
     status('モデル取得・ハッシュと利用条件を確認中…'); let nextTemplate = null, nextPool = null, installed = false;
     try {
-      const bytes = await getBytes(); if (!alive) return;
+      const bytes = await getBytes(); if (!alive || sequence !== loadSequence) return;
       const json = reviewGlbDocument(bytes), hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(x => x.toString(16).padStart(2, '0')).join('');
-      const audit = auditShinoDocument(json, hash); if (!audit.approved) throw new Error(`モデル監査不合格: ${audit.errors.join(', ')}`);
+      const audit = auditDocument(json, hash, bytes.byteLength); if (!audit.approved) throw new Error(`モデル監査不合格: ${audit.errors.join(', ')}`);
       status('モデル・表情・揺れ物の準備中…'); el('progress').value = .4;
       const gltf = await new GLTFLoader().parseAsync(bytes, ''); nextTemplate = gltf.scene;
-      const rig = await shinoProductionRigFromGLTF(gltf); if (!alive) return;
+      const rig = await shinoProductionRigFromGLTF(gltf); if (!alive || sequence !== loadSequence) return;
       nextPool = createShinoProductionPool({ template: nextTemplate, rig });
       // Check every required actor before replacing a working pool.
       const preflight = records.slice(0, settings.count).map(record => nextPool.spawn(record.id)); preflight.forEach(a => nextPool.despawn(a.id));
@@ -214,8 +224,8 @@ function start() {
       el('capabilities').textContent = `SHA-256 ${hash}\n表情 ${capabilities.expressionNames.length}種\n揺れ ${capabilities.springChains}チェーン / ${capabilities.springJoints}関節\n${capabilities.warnings.join('\n') || 'PBR・モーフ・標準球/カプセル衝突の範囲で表示'}`;
       rebuild(); el('progress').value = .8; renderer.compile(scene, camera); renderer.render(scene, camera);
       review.ready = true; el('progress').value = 1; status('監査済みモデルを表示中。個体差・表情・揺れ・共有状態を検査できます。');
-    } catch (error) { review.ready = !installed && Boolean(pool); retry = defaultBytes; report(error); }
-    finally { nextPool?.dispose(); disposeTemplate(nextTemplate); loading = false; el('retry').disabled = !alive; window.dispatchEvent(new Event('character-review-change')); }
+    } catch (error) { if (sequence === loadSequence) { review.ready = !installed && Boolean(pool); report(error); } }
+    finally { nextPool?.dispose(); disposeTemplate(nextTemplate); if (sequence === loadSequence) { loading = false; el('retry').disabled = !alive; window.dispatchEvent(new Event('character-review-change')); } }
   }
   for (const id of ['view', 'count']) on(el(id), 'change', guard(() => update({ [id]: id === 'count' ? Number(el(id).value) : el(id).value }, id === 'count' ? 'rebuild' : 'arrange')));
   function regenerate() { settings = reviewSettings({ ...settings, seed: Number(el('seed').value) }); records = createReviewCohort(settings); rebuild(); }
@@ -244,9 +254,9 @@ function start() {
   }));
   for (const button of document.querySelectorAll('[data-camera]')) on(button, 'click', guard(() => aim(button.dataset.camera)));
   on(el('measure'), 'click', resetMeasure);
-  on(el('retry'), 'click', () => { void load(retry); });
+  on(el('retry'), 'click', () => { void load(retry, retryAudit); });
   on(el('file'), 'change', () => { const file = el('file').files[0]; if (!file) return;
-    if (file.size > MAX_MODEL_BYTES) report(new Error('モデルが大きすぎます')); else void load(() => file.arrayBuffer()); el('file').value = ''; });
+    if (file.size > MAX_MODEL_BYTES) report(new Error('モデルが大きすぎます')); else void load(() => file.arrayBuffer(), auditShinoDocument); el('file').value = ''; });
   on(el('export'), 'click', guard(() => download(new Blob([serializeReviewSession({ settings, records, note: el('note').value, metrics: measure() })], { type: 'application/json' }), `shino-review-${settings.seed}.json`)));
   let importSequence = 0;
   on(el('session-file'), 'change', async () => {
@@ -266,7 +276,7 @@ function start() {
   function suspend() { last = performance.now(); resetMeasure(); actors.forEach(a => a.resetSecondary()); }
   on(document, 'visibilitychange', suspend);
   on(canvas, 'webglcontextlost', event => { event.preventDefault(); review.ready = false; report(new Error('GPU接続が失われました。復旧後に再試行してください')); });
-  on(canvas, 'webglcontextrestored', () => { void load(retry); });
+  on(canvas, 'webglcontextrestored', () => { void load(retry, retryAudit); });
   function frame(now) {
     if (!alive) return; frameId = requestAnimationFrame(frame);
     const actual = (now - last) / 1000; last = now;
@@ -293,6 +303,16 @@ function start() {
       }
     } catch (error) { review.ready = false; report(error); }
   }
+  review.loadDefaultModel = () => { modelRequestSequence++; return load(defaultBytes, auditShinoDocument); };
+  review.loadReferenceModel = async model => {
+    const request = ++modelRequestSequence;
+    try {
+      if (!model?.assetPath || !model?.integrityPath) throw new Error('DCCモデルのassetPath / integrityPathがありません');
+      const source = await referenceRuntimeSource(model);
+      if (!alive || request !== modelRequestSequence) return;
+      return await load(source.getBytes, source.audit);
+    } catch (error) { if (request === modelRequestSequence) report(error); }
+  };
   review.sample = age => { settings = reviewSettings({ ...settings, age, ages: 'fixed' }); records = records.map(r => editReviewCharacter(r, { age })); refreshLooks(); };
   // Explicit inspection API. Never touches game saves, inventories or network authority.
   review.session = () => serializeReviewSession({ settings, records, note: el('note').value });
