@@ -169,10 +169,11 @@ test('validation cannot replace its pinned commit even by making a clean worktre
     assert.throws(() => assertValidationUnchanged(work, head, config), /VALIDATION_REWROTE_HISTORY/);
   } finally { rmSync(work, { recursive: true, force: true }); }
 });
-test('Rescue has no paid API action or PAT prerequisite and preserves the original CI validation path', () => {
+test('active Repair workflow has no paid API or PAT prerequisite and no normal Work relay', () => {
   const workflow = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');
   assert.doesNotMatch(workflow, /OPENAI_API_KEY|RESCUE_GITHUB_TOKEN|openai\/codex-action|RINNE_CODEX_MODEL/);
-  assert.match(workflow, /RESCUE_VALIDATION_USER: rescue-agent/);
-  assert.match(workflow, /sudo chown -R root:root control/);
+  assert.match(workflow, /integration-repair-fast\.mjs/);
+  assert.match(workflow, /Fast verification \(shared tests run once\)/);
+  assert.doesNotMatch(workflow, /RESCUE_VALIDATION_USER|AWAITING_PUSH|integration-rescue-work-push|integration-rescue-return\.mjs/);
   assert.doesNotMatch(readFileSync('scripts/integration-rescue-work-push.mjs', 'utf8'), /integration\/trusted-review|APPROVE|checksPassed: true/);
 });

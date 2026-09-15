@@ -48,7 +48,9 @@ test('playback captured before reload survives a new document without accepting 
  assert.deepEqual(result.expectedMediaAborts.map(x=>x.url),[old]);
  assert.deepEqual(result.failedRequests.map(x=>x.url),[next]);
  const source=readFileSync(new URL('../scripts/browser/public.spec.mjs',import.meta.url),'utf8');
- assert.match(source,/await capturePlayedAudio\(page, playedSources\);\s+await page.reload\(\)/);
+ assert.match(source,/await capturePlayedAudio\(page, playedSources\);\s+await withLifecycleTeardown\(\(\) => page\.reload\(\)\)/);
+ assert.ok(source.includes('const failedRequests = [...ordinaryFailures, ...invalidLifecycleAborts];'));
+ assert.ok(source.includes('lifecycleRequestFailures'));
 });
 test('separated audio case retains 150 tracks, decoding, progress, pause and Production absence checks',()=>{
  const source=readFileSync(new URL('../scripts/browser/public-music.mjs',import.meta.url),'utf8');

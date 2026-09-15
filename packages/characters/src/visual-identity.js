@@ -13,8 +13,6 @@ export const HAIR_BACKS = Object.freeze(['close', 'layered', 'tied']);
 const OUTFITS = Object.freeze({ resident: 'tunic', mayor: 'mantle', guard: 'tunic', artisan: 'apron',
   laborer: 'tunic', elder: 'mantle', child: 'tunic', knight: 'mantle', hunter: 'tunic', arcanist: 'mantle',
   smith: 'apron', acolyte: 'mantle', gravekeeper: 'tunic', bellkeeper: 'mantle', traveller: 'tunic' });
-// Village roles need to read at the game's normal orthographic distance, not only in the close Workshop camera.
-// The mayor gets a broad ceremonial front sash and guards use the full shoulder/chest armor silhouette.
 const GEAR = Object.freeze({ resident: 'belt', mayor: 'stole', guard: 'armor', artisan: 'tools', laborer: 'pack',
   elder: 'shawl', child: 'none', knight: 'armor', hunter: 'quiver', arcanist: 'cowl', smith: 'tools',
   acolyte: 'stole', gravekeeper: 'pack', bellkeeper: 'chain', traveller: 'satchel' });
@@ -35,9 +33,8 @@ const channel = (seed, salt) => mix(seed, salt) / 4294967296;
 const bin = (x, n) => Math.min(n - 1, Math.floor(x * n));
 const mean = (c, key) => (c.genome[key][0] + c.genome[key][1]) / 131070;
 const round = x => Math.round(x * 100000) / 100000;
-// A short crop cannot expose a tied tail. Normalize the unused back channel so
-// identical rendered geometry is not advertised or cached as an extra haircut.
-const coherentHairBack = (hair, back) => hair === 'crop' && back === 'tied' ? 'close' : back;
+const coherentHairBack = (hair, back) => hair === 'crop' && back === 'tied' ? 'close'
+  : hair === 'bun' && back !== 'layered' ? 'tied' : back;
 const visibleHairKey = identity => identity.parts.hair === 'original' ? 'original'
   : [identity.parts.hair, identity.front, coherentHairBack(identity.parts.hair, identity.back)].join('/');
 
@@ -51,10 +48,7 @@ export function visualRole(role = 'resident', workplace = '', years = 22) {
   return years >= 65 && value === 'resident' ? 'elder' : value;
 }
 
-/** Named independent channels keep identity stable when unrelated features are added.
- * Shape uses existing allele means, not clothing or role; grooming uses the persisted seed.
- * Explicit v1 part choices always win. The original v1 generator/catalog is unchanged.
- */
+/** Named independent channels keep identity stable when unrelated features are added. */
 export function visualIdentityForCharacter(character, { role = 'resident', workplace = '', parts = null } = {}) {
   validateCharacter(character);
   const years = character.ageMs / YEAR_MS, seed = character.seed, occupation = visualRole(role, workplace, years);
@@ -64,10 +58,11 @@ export function visualIdentityForCharacter(character, { role = 'resident', workp
   const generated = {
     version: 1,
     face: ['round','classic','sharp','long'][bin((height + build) * .5, 4)],
-    hair: ['bob','crop','tail'][mix(seed, 0x5821) % 3],
+    hair: ['bob','crop','tail','bun'][mix(seed, 0x5821) % 4],
     body: height < .32 ? 'compact' : build > .64 ? 'sturdy' : build < .37 ? 'slender' : 'balanced',
     outfit: OUTFITS[occupation],
-    accessory: occupation === 'child' ? 'none' : occupation === 'artisan' || occupation === 'smith' ? 'headband'
+    accessory: occupation === 'child' ? (mix(seed, 0x7199) % 2 === 0 ? 'ribbon' : 'none')
+      : occupation === 'artisan' || occupation === 'smith' ? 'headband'
       : occupation === 'elder' || occupation === 'arcanist' ? 'glasses' : mix(seed, 0x7199) % 4 === 0 ? 'scarf' : 'none'
   };
   const profile = canonicalAppearanceParts(parts ?? generated);

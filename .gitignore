@@ -9,3 +9,4 @@ _site/
 .deploy-state/
 test-results/
 ops-review-results/
+apps/*/public/basis/

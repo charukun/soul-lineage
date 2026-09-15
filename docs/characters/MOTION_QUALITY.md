@@ -1,5 +1,9 @@
 # Character Motion Quality Pipeline v1
 
+Motion-changing WORK must first follow [Motion authoring](MOTION_AUTHORING.md):
+full-body key poses → weight/timing with observed 1x playback → detail and joins.
+The checks below diagnose mechanical defects; they do not establish dynamic acting.
+
 The portable contract is `@soul/animations`; the Three.js adapter is
 `@soul/rendering/motion-quality`. Character Workshop owns character, rig, body
 variation and Motion QA. The independent Visual Review Lab branch owns detailed
@@ -85,6 +89,19 @@ Schema: `character-motion-qa`, version `1`. `createQAReport`, `serializeQAReport
 `deserializeQAReport` are the authoritative executable validators. Imports reject
 unknown categories/statuses, invalid frame/camera data, malformed JSON, duplicate
 IDs, non-finite numbers, excess nesting and documents over 1,000,000 characters.
+
+New reports include `authoring` version 1, so the existing Workshop JSON export
+and import carry the authoring record without a second report store or game state.
+Older v1 reports remain readable; absent authoring data is **not assessed**, not passed.
+External workers fill this section following [the authoring guide](MOTION_AUTHORING.md).
+`validateAuthoringReview` enforces stage order and evidence metadata when a stage is
+marked `reviewed`; `authoringProgress` gives the earliest unfinished stage. Primary
+and polish need observed 1x before/after/reference videos. Blocking needs major
+full-body poses, actual front/side images and observed reference evidence.
+Reviewed evidence must match the report's source revision. Regression reopens the
+affected stage and later stages. Pending or revise records can be saved for recovery.
+These are record checks, not media playback, image analysis, verified URL retrieval,
+or automated artistic/human approval. No CI/Integration gate is replaced or relaxed.
 
 | Field | Meaning |
 | --- | --- |
@@ -180,3 +197,39 @@ claimed fixed by arm correction. Cloth/hair/skinning and physical Pixel Fold
 performance remain visual/performance review work. The ongoing PR #156 owns
 source stance naturalization; this change does not reauthor its runtime or the
 independent Lab branch. Integration owns combined-source checks and publication.
+
+## External motion reference benchmark scope
+
+Public implementations are **technique references**, not runtime dependencies and not
+sources for wholesale code or asset copying. The primary reference for this batch is
+`achrefelouafi/SoldierThirdPersonThreeJS` (MIT): its documented locomotion phase
+synchronization, real-speed playback scaling, root-motion ownership, motion-warped
+approach and coordinated impact beat are useful comparison points for this Three.js
+pipeline. Secondary references may explain alternative design choices, but they do
+not override this repository's gameplay, rig, MasterCharacter, licensing or visual
+approval contracts.
+
+This batch must add an executable, provider-neutral benchmark under
+`@soul/animations` and connect it to Motion QA as diagnostic evidence. The benchmark
+must cover, at minimum: locomotion gait phase continuity; animation playback matched
+to actual travel speed; explicit ownership/extraction of horizontal root motion;
+attack phases that distinguish turn, approach, contact and recovery; bounded target
+alignment/motion warping without transform-authority conflicts; and a single impact
+beat that can coordinate hit-stop, camera impulse and hit reaction. Weapon/body
+intersection and eight-view human visual review remain existing gates rather than
+being replaced by the benchmark.
+
+Acceptance criteria for the implementation are:
+
+- reference metadata records repository URL, pinned revision when available, license,
+  observed technique and adoption policy, while copying no external assets;
+- benchmark inputs/outputs reject non-finite, impossible or ambiguous timing and
+  ownership data rather than manufacturing a score;
+- diagnostics expose individual criteria and actionable gaps instead of one opaque
+  aesthetic score, and never set `visualApproval`;
+- tests prove passing and failing locomotion, root-motion, attack-phase, warp and
+  impact-beat cases, including stable deterministic output;
+- current QA report serialization remains backward compatible; benchmark evidence is
+  optional extension metadata until a later schema revision is deliberately chosen;
+- no current gameplay timings, damage/contact authority, multiplayer authority,
+  Visual Review Lab branch, `main` or Production are changed by this task.

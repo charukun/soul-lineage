@@ -1,4 +1,6 @@
 import { clamp } from './quality-math.js';
+import { validateMotionReferenceBenchmark } from './motion-reference-benchmark.js';
+import { createAuthoringReview, validateAuthoringReview, AUTHORING_STAGES, AUTHORING_GUIDE } from './motion-authoring.js';
 export const MOTION_QA_VERSION=1;
 export const QA_FPS=60;
 export const QA_CATEGORIES=Object.freeze(['model','rig','skinning / weight','motion','transition','weapon grip','body variation','clothing','hair','self intersection','silhouette','unknown']);
@@ -37,6 +39,11 @@ export function validateQAReport(report) {
   if(!report||report.schema!=='character-motion-qa'||report.version!==1||!boundedString(report.reviewer,160)||!boundedString(report.build,160)||!Array.isArray(report.issues)||report.issues.length>500||!report.review||report.review.fps!==60||!boundedString(report.review.sequence,160)||!Array.isArray(report.review.characters)||report.review.characters.length>30)throw new Error('Invalid QA report');
   if(!['pending','approved','changes-requested'].includes(report.visualApproval))throw new Error('Invalid visual approval');
   if(!vector(report.review.viewport,2)||report.review.viewport.some(v=>v<=0)||!Number.isFinite(report.review.dpr)||report.review.dpr<=0||!boundedString(report.review.lighting,160)||!boundedString(report.review.motionRevision,160))throw new Error('Invalid QA review conditions');
+  // Optional for old v1 reports; missing authoring evidence is never a visual pass.
+  if(report.authoring!==undefined) {
+    validateAuthoringReview(report.authoring);
+    if(AUTHORING_STAGES.some(id=>report.authoring.stages[id].status==='reviewed')&&report.authoring.source.after!==report.review.motionRevision)throw new Error('Stale authoring source revision');
+  }
   const ids=new Set();
   for(const issue of report.issues) {
     if(!boundedString(issue.id,160)||ids.has(issue.id)||!boundedString(issue.character,160)||!boundedString(issue.motion,160)||!Number.isFinite(issue.timestamp)||issue.timestamp<0||!Number.isInteger(issue.frame)||issue.frame<0||!Object.hasOwn(QA_CAMERAS,issue.camera)||!Array.isArray(issue.affectedBones)||issue.affectedBones.length>64||!issue.affectedBones.every(x=>boundedString(x,96))||!['info','warning','error'].includes(issue.severity)||!QA_CATEGORIES.includes(issue.category)||!boundedString(issue.note,4000)||!['open','needs-review','resolved','accepted'].includes(issue.status))throw new Error('Invalid QA issue');
@@ -53,7 +60,11 @@ export function deserializeQAReport(text) {
   if(typeof text!=='string'||text.length>1_000_000)throw new Error('QA report too large');return validateQAReport(JSON.parse(text));
 }
 export function createQAReport({build='',reviewer='human',review}) {
-  return validateQAReport({schema:'character-motion-qa',version:1,build,reviewer,visualApproval:'pending',review,issues:[]});
+  return validateQAReport({schema:'character-motion-qa',version:1,build,reviewer,visualApproval:'pending',review,issues:[],authoring:createAuthoringReview()});
+}
+export function attachMotionReferenceBenchmark(report,evidence) {
+  const valid=validateQAReport(report),benchmark=validateMotionReferenceBenchmark(evidence);
+  return validateQAReport({...valid,review:{...valid.review,motionReferenceBenchmark:benchmark}});
 }
 // External workers implement this contract; the game contains no model API/client.
-export const QA_WORKER_CONTRACT=Object.freeze({version:1,input:'review conditions + deterministic frames + previous character-motion-qa report',output:'character-motion-qa report',repairTargets:['motion','normalization','rig adapter','weapon calibration','appearance assets'],approval:'explicit visual review; numeric diagnostics cannot approve'});
+export const QA_WORKER_CONTRACT=Object.freeze({version:1,input:'review conditions + deterministic frames + previous character-motion-qa report + observed reference and before/after 1x video',output:'character-motion-qa report with authoring evidence and optional motion-reference-benchmark evidence',referenceBenchmark:'optional motion-reference-benchmark evidence; criteria are diagnostics and never visual approval',repairTargets:['motion','normalization','rig adapter','weapon calibration','locomotion timing','root motion ownership','motion warp','impact coordination','appearance assets'],authoringGuide:AUTHORING_GUIDE,authoringStages:AUTHORING_STAGES,approval:'explicit visual review; numeric/reference diagnostics and record completeness cannot approve'});

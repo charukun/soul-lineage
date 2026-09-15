@@ -5,12 +5,13 @@ import { pathToFileURL } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { contextName, dependencies, eligibility, reviewDecision } from './integration-policy.mjs';
 import { integrationRescueReason } from './integration-rescue-policy.mjs';
+import { returnedPriorityHeads, prioritizeReturnedReady } from './integration-rescue-priority.mjs';
 
 export const queueContext = 'integration/queue';
 export const trustedReviewContext = 'integration/trusted-review';
 export const validationEvents = ['pull_request'];
 export const trustedReviewPrefix = 'Trusted Integration Review: exact head ';
-export const maxReadyEvaluationsPerRun = 12;
+export const maxReadyEvaluationsPerRun = 24;
 export const maxMergesPerRun = 8;
 export const defaultIntegrationBudgetMs = 6 * 60 * 1000;
 const trustedReviewReason = 'automation/deployment change requires approval of this head by a maintainer';
@@ -354,7 +355,7 @@ export async function activeDevelopVerification(c, status) {
 export async function integrate(c, repository, wait = delay, options = {}) {
   const startedMs = Date.now();
   const timeBudgetMs = Number(options.timeBudgetMs || process.env.INTEGRATION_TIME_BUDGET_MS || defaultIntegrationBudgetMs);
-  const report = { startedAt: new Date(startedMs).toISOString(), merged: [], held: [], trustedReviewed: [], ciRecovery: [], deferred: [], budgetExhausted: false, evaluationCursor: 0, nextCursor: null, retryCursor: 0 };
+  const report = { startedAt: new Date(startedMs).toISOString(), merged: [], held: [], trustedReviewed: [], ciRecovery: [], deferred: [], budgetExhausted: false, evaluationCursor: 0, nextCursor: null, retryCursor: 0, rescuePriority: [] };
   const branch = () => c.api('GET', `${c.root}/branches/develop`);
   c.mark?.('baseline');
   const current = await branch(); let expected = current.commit.sha;
@@ -381,7 +382,10 @@ export async function integrate(c, repository, wait = delay, options = {}) {
     if (reason) report.held.push({ pr: snapshot.number, head: snapshot.head?.sha || null, reason });
     else expensive.push(snapshot);
   }
-  const window = selectEvaluationWindow(expensive, Number(options.maxReadyEvaluationsPerRun || maxReadyEvaluationsPerRun), options.evaluationCursor);
+  const returnedHeads = await returnedPriorityHeads(c);
+  const prioritized = prioritizeReturnedReady(expensive, returnedHeads);
+  report.rescuePriority = prioritized.filter(p => returnedHeads.get(p.number) === p.head?.sha).map(p => p.number);
+  const window = selectEvaluationWindow(prioritized, Number(options.maxReadyEvaluationsPerRun || maxReadyEvaluationsPerRun), options.evaluationCursor);
   report.evaluationCursor = window.start;
   report.nextCursor = window.nextCursor;
   const pending = [...window.selected];
@@ -537,6 +541,7 @@ async function main() {
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,
       `## Integration\nFinal develop: ${report.sha || 'unknown'}\n\nMerged: ${(report.merged || []).map(x => `#${x.pr}`).join(', ') || 'none'}\n\n` +
       `Trusted reviewed: ${(report.trustedReviewed || []).map(x => `#${x.pr}`).join(', ') || 'none'}\n\n` +
+      `Rescue priority: ${(report.rescuePriority || []).map(x => `#${x}`).join(', ') || 'none'}\n\n` +
       `API requests: ${report.api?.requests ?? 'n/a'}; cache hits: ${report.api?.cacheHits ?? 'n/a'}; retries: ${report.api?.retries ?? 'n/a'}; throttles: ${report.api?.throttleResponses ?? 'n/a'}\n\n` +
       `Duration: ${report.durationMs ?? report.api?.elapsedMs ?? 'n/a'} ms; deferred: ${(report.deferred || []).length}; phase: ${report.api?.phase || 'unknown'}; cursor: ${report.evaluationCursor ?? 0} -> ${report.retryCursor ?? 0}\n\n` +
       (report.held || []).map(x => `- #${x.pr}: ${x.reason}\n`).join('') + (report.verified ? '\nAlready verified; no duplicate build or deploy.\n' : '') +

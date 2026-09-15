@@ -3,19 +3,28 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=24 <25"
-  },
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "engines": {"node": ">=24 <25"},
+  "workspaces": ["apps/*","packages/*"],
   "scripts": {
     "dev": "npm run dev --workspace @soul/rinne",
     "dev:rinne": "npm run dev --workspace @soul/rinne",
     "dev:village": "npm run dev --workspace @soul/village",
     "dev:demon": "npm run dev --workspace @soul/demon",
     "check": "node scripts/check.mjs",
+    "health": "node scripts/code-health.mjs audit",
+    "visual:budget": "node scripts/visual-budget.mjs audit",
+    "rendering:transcoders": "node scripts/prepare-basis-assets.mjs",
+    "lod:generate": "node scripts/generate-lods.mjs",
+    "gltf:compress": "node scripts/compress-gltf.mjs",
+    "asset:optimize": "node scripts/asset-optimize.mjs",
+    "asset:inspect": "node scripts/asset-inspect.mjs",
+    "asset:inventory": "node scripts/asset-inventory.mjs",
+    "performance:browser": "node scripts/browser/performance-smoke.mjs",
+    "performance:compare": "node scripts/performance-regression.mjs",
+    "world-scale:replay": "node scripts/world-scale-replay.mjs",
+    "performance:evidence": "node scripts/performance-evidence.mjs ingest",
+    "performance:evidence:validate": "node scripts/performance-evidence.mjs validate",
+    "performance:evidence:compare": "node scripts/performance-evidence.mjs compare",
     "test": "node --test tests/*.test.mjs",
     "test:app": "node scripts/test-app.mjs",
     "build": "npm run build --workspaces --if-present",
@@ -23,12 +32,12 @@
     "build:village": "npm run build --workspace @soul/village",
     "build:demon": "npm run build --workspace @soul/demon",
     "affected": "node scripts/affected.mjs",
+    "context:plan": "node scripts/context-plan.mjs",
+    "context:excerpt": "node scripts/context-excerpt.mjs",
     "preview": "npm run preview --workspace @soul/rinne",
     "app:add": "node scripts/add-app.mjs",
+    "characters:production:check": "node scripts/check-character-production.mjs",
     "push:route": "node scripts/check-push-route.mjs"
   },
-  "devDependencies": {
-    "@playwright/test": "1.63.0",
-    "vite": "8.2.2"
-  }
+  "devDependencies": {"@playwright/test":"1.63.0","vite":"8.2.2"}
 }

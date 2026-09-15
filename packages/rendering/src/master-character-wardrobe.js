@@ -2,8 +2,6 @@ import { BufferGeometry, Float32BufferAttribute, SphereGeometry, CylinderGeometr
   CatmullRomCurve3, Vector3, Matrix4, Euler, Quaternion } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
-// Immutable procedural geometry is shared across every actor and released only after the
-// last lease. Parts are built on demand, not 36 haircuts and every outfit per resident.
 const cache = new Map();
 export function wardrobeCacheStats() { return { geometries: cache.size, leases: [...cache.values()].reduce((n, e) => n + e.refs, 0) }; }
 export function leaseWardrobeGeometry(key, factory) {
@@ -30,7 +28,6 @@ function cylinder(position,r1,r2,height,rotation=[0,0,0],segments=10) { return t
 function box(position,scale,rotation=[0,0,0]) { return transform(new BoxGeometry(1,1,1),position,scale,rotation); }
 function ring(position,radius,thickness,scale=[1,1,1],rotation=[Math.PI/2,0,0]) { return transform(new TorusGeometry(radius,thickness,5,16),position,scale,rotation); }
 
-/** Closed, tapered, curved lock. Longitudinal ridges read as sculpted hair, not cylinders. */
 function lock(points, width, depth, segments=9, sides=6) {
   const curve = new CatmullRomCurve3(points.map(p=>new Vector3(...p))), positions=[],indices=[];
   const up=new Vector3(0,0,1), side=new Vector3(), normal=new Vector3();
@@ -45,18 +42,13 @@ function lock(points, width, depth, segments=9, sides=6) {
   const g=new BufferGeometry();g.setAttribute('position',new Float32BufferAttribute(positions,3));g.setIndex(indices);g.computeVertexNormals();return g;
 }
 
-/** Head-local coordinates fitted to the audited bind pose (head pivot y=1.4224m).
- * Crown clears the scalp; front locks finish above or beside the eye, never through it.
- */
 export function hairGeometry(family, front='parted', back='close') {
   const pieces=[];
   const crown=transform(new SphereGeometry(1,18,10,0,Math.PI*2,0,Math.PI*.57),[0,.112,-.014],[.116,.115,.106]);pieces.push(crown);
-  const short=family==='crop', bob=family==='bob';
-  // Nape/sides follow the skull; layered bob is a different volume from a short crop.
-  const length=short?(back==='layered'?.065:.043):bob?(back==='layered'?.17:.125):.07;
+  const short=family==='crop', bob=family==='bob', bun=family==='bun';
+  const length=short?(back==='layered'?.065:.043):bob?(back==='layered'?.17:.125):bun?.085:.07;
   for(let i=0;i<11;i++){
     const angle=.18+i/10*(Math.PI*2-.36),x=Math.sin(angle)*.104,z=-Math.cos(angle)*.091-.014;
-    // The front 70 degrees are reserved for explicit front locks.
     if(z>.060&&Math.abs(x)<.085)continue;
     pieces.push(lock([[x*.62,.205,z*.64-.014],[x,.145,z],[x*(bob?1.10:1.01),.07,z*(bob?1.06:1)],
       [x*(bob?.97:.90),.06-length,z*.96]],short?.037:.040,.018,8));
@@ -80,13 +72,18 @@ export function hairGeometry(family, front='parted', back='close') {
       for(let i=0;i<5;i++){const x=(i-2)*.021;pieces.push(lock([[x*.6,start,-.094],[x*1.1,start-.045,-.17],[x*1.15,start-.20,-.19],[x*.65,start-.33,-.155]],.031,.020,12));}
     }
   }else if(bob&&back==='tied'){
-    // Half-up bob, preserving the bob's shorter nape instead of an incompatible long tail.
     pieces.push(ellipsoid([0,.103,-.131],[.050,.045,.036]));
+  }else if(bun){
+    const y=back==='layered'?.135:.105,z=-.142;
+    pieces.push(ellipsoid([0,y,z],[.070,.064,.055],14));
+    for(let i=0;i<6;i++){
+      const a=i/6*Math.PI*2,x=Math.sin(a)*.044;
+      pieces.push(lock([[x*.55,y+.035,z+.012],[x,y+.008,z-.035],[x*.62,y-.028,z-.018]],.018,.012,6));
+    }
   }
   return merged(pieces);
 }
 
-/** Elliptical tailored shell, with sewn hem/collar geometry supplied separately. */
 function shell(rows, start=0, arc=Math.PI*2, segments=20) {
   const p=[],idx=[];
   rows.forEach(([y,x,z],r)=>{for(let i=0;i<=segments;i++){const a=start+i/segments*arc;p.push(Math.sin(a)*x,y,Math.cos(a)*z);}});
@@ -141,5 +138,9 @@ export function accessoryGeometry(accessory) {
   if(accessory==='glasses')return merged([ring([-.048,.055,.075],.036,.0048,[1,.74,1],[0,0,0]),ring([.048,.055,.075],.036,.0048,[1,.74,1],[0,0,0]),box([0,.055,.075],[.027,.005,.006])]);
   if(accessory==='headband')return ring([0,.114,-.005],.113,.010,[1,1,.85]);
   if(accessory==='scarf')return ring([0,.352,0],.079,.023,[1,1,.83]);
+  if(accessory==='ribbon')return merged([
+    ellipsoid([-.045,.105,-.128],[.052,.031,.013],10),ellipsoid([.045,.105,-.128],[.052,.031,.013],10),
+    box([0,.105,-.126],[.028,.034,.018]),box([-.035,.060,-.128],[.025,.060,.010],[0,0,.18]),box([.035,.060,-.128],[.025,.060,.010],[0,0,-.18])
+  ]);
   throw new Error('Unsupported accessory');
 }
