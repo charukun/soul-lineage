@@ -10,6 +10,7 @@ import { guidanceFor } from './guidance.js';
 const $=id=>document.getElementById(id);
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
 const speedForAge=age=>age<4?1.2:age<7?2.15:age<65?4.15:Math.max(2.3,4.15-(age-65)*.035);
+const chapterName=stage=>String(stage||'').replace(/^\d+\/6\s*/, '').trim();
 
 export async function startRuntime({mode,buildInfo,name,onExit}){
   const environment=String(buildInfo.environment||'local'), platform=createWebPlatform({gameId:'rinne',environment,playerId:'local'}), saveKey='life-v2';
@@ -23,19 +24,30 @@ export async function startRuntime({mode,buildInfo,name,onExit}){
   let layout=defaultMuraLayout();try{layout=normalizeLayout(channel.read()||layout);}catch(error){console.warn('shared world:',error);}
   if(state.zone==='village')state.position=safeMuraPosition(layout,state.position);
   else state.position={x:clamp(state.position.x,-6.8,6.8),z:clamp(state.position.z,-5.9,5.7)};
-  const stations=buildStations(layout),canvas=$('game'),loading=$('loading-card');
+  const stations=buildStations(layout),canvas=$('game'),loading=$('loading-card'),gameScreen=$('game-screen');
   $('loading-message').textContent='村を描画中';
   const view=createWorldRenderer({canvas,document,layout,stations});
-  let alive=true,raf=0,last=performance.now(),saveElapsed=0,toastTimer=0,endDialog=null,pointer=null,keyboard={x:0,y:0},axis={x:0,y:0},portDwell=0,movementHint=true,movementHintTimer=0;
+  let alive=true,raf=0,last=performance.now(),saveElapsed=0,toastTimer=0,endDialog=null,pointer=null,keyboard={x:0,y:0},axis={x:0,y:0},portDwell=0,movementHint=true,movementHintTimer=0,chapterTimer=0,hurtTimer=0,lastChapter='';
   let front=state.zone==='frontier'?normalizeFront(state.frontState,state.front,state.seed):null;
 
   const toast=text=>{if(!text)return;$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1800);};
   const save=async()=>{if(!alive)return false;try{state.frontState=front?structuredClone(front):null;await platform.storage.write(saveKey,serializeLife(state));return true;}catch(error){toast('保存失敗');console.error(error);return false;}};
   function talkContext(){return state.zone==='village'&&!state.down&&!state.ended&&state.phase==='birth'?{speaker:'母',text:'焦らなくていいよ。あなたの歩幅で大きくなりなさい。'}:null;}
+  function worldTone(guide){if(state.ended||guide.tone==='rebirth')return'rebirth';if(state.zone==='frontier')return'frontier';if(guide.tone==='home')return'home';return'village';}
+  function showChapter(stage){
+    if(!stage||stage===lastChapter)return;lastChapter=stage;
+    const mark=$('chapter-mark');$('chapter-title').textContent=chapterName(stage);mark.hidden=false;
+    clearTimeout(chapterTimer);chapterTimer=setTimeout(()=>{mark.hidden=true;},2200);
+  }
+  function pulseHurt(){
+    gameScreen.classList.remove('hurt-pulse');void gameScreen.offsetWidth;gameScreen.classList.add('hurt-pulse');
+    clearTimeout(hurtTimer);hurtTimer=setTimeout(()=>gameScreen.classList.remove('hurt-pulse'),460);
+  }
   function syncUI(){
     $('generation').textContent=`${state.generation}代目`;$('age').textContent=`${Math.min(LIFE_YEARS,Math.floor(state.ageYears))}歳`;
     $('hp-bar').style.width=`${clamp(state.hp/state.maxHp*100,0,100)}%`;$('stamina-bar').style.width=`${clamp(state.stamina/100*100,0,100)}%`;
     const guide=guidanceFor({state,stations,front});$('life-stage').textContent=guide.stage;$('objective').textContent=guide.objective;$('objective-badge').textContent=guide.badge||'';
+    gameScreen.dataset.worldTone=worldTone(guide);gameScreen.style.setProperty('--wound',String(clamp(1-state.hp/state.maxHp,0,.85)));showChapter(guide.stage);
     const waypoint=$('waypoint');waypoint.dataset.tone=guide.tone||'';
     if(guide.target){
       const direction=view.screenDirection(state.position,guide.target),angle=Math.atan2(direction.x,-direction.y)*180/Math.PI;
@@ -55,7 +67,7 @@ export async function startRuntime({mode,buildInfo,name,onExit}){
     for(const id of choices.length?choices:['']){const o=document.createElement('option');o.value=id;o.textContent=id||'村で過ごした日々';select.append(o);}
     document.body.append(endDialog);
     endDialog.addEventListener('close',async()=>{if(endDialog.returnValue==='rebirth'){
-      state=rebirth(state,{memento:select.value||null});front=null;state.frontState=null;state.position=safeMuraPosition(layout,state.position);await save();endDialog.remove();endDialog=null;toast(`${state.generation}代目`);
+      state=rebirth(state,{memento:select.value||null});front=null;state.frontState=null;state.position=safeMuraPosition(layout,state.position);lastChapter='';await save();endDialog.remove();endDialog=null;toast(`${state.generation}代目`);
     }else endDialog.showModal();});endDialog.showModal();
   }
   function handleEvents(events){for(const event of events){
@@ -66,8 +78,10 @@ export async function startRuntime({mode,buildInfo,name,onExit}){
     if(event.type==='skills'&&event.ids.length)toast('技 閃き');
     if(event.type==='birthday'&&[7,15,50,80].includes(event.age))toast(`${event.age}歳`);
     if(event.type==='life-end')endLife();
+    if(event.type==='player-hit')gameScreen.classList.add('strike-mark');
+    if(event.type==='enemy-hit')pulseHurt();
     if(event.type==='enemy-down')toast('撃破');
-    if(event.type==='downed')toast('行動不能 · 救助待ち');
+    if(event.type==='downed'){pulseHurt();toast('行動不能 · 救助待ち');}
     if(event.type==='rescued')toast('救助 · 村');
   }}
   function setAxis(next){axis=next;const len=Math.hypot(axis.x,axis.y);if(len>1){axis={x:axis.x/len,y:axis.y/len};}}
@@ -103,6 +117,6 @@ export async function startRuntime({mode,buildInfo,name,onExit}){
   if(front)view.syncFront(front);view.renderState(state,.016);syncUI();loading.hidden=true;movementHintTimer=setTimeout(()=>{movementHint=false;$('move-hint').hidden=true;},5000);raf=requestAnimationFrame(frame);void save();
   function pagehide(){void save();}
   window.addEventListener('pagehide',pagehide);
-  function dispose(){if(!alive)return;alive=false;cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);unsubscribeWorld();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('pagehide',pagehide);canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);view.dispose();endDialog?.remove();endDialog=null;}
+  function dispose(){if(!alive)return;alive=false;cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);unsubscribeWorld();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('pagehide',pagehide);canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);view.dispose();endDialog?.remove();endDialog=null;}
   return{dispose,save:()=>save(),snapshot:()=>structuredClone(state)};
 }
