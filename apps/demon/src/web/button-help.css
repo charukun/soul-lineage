@@ -1,0 +1,13 @@
+#swipe-hint{
+  appearance:none;
+  width:max-content;
+  min-height:32px;
+  margin:auto;
+  padding:6px 10px;
+  border-bottom:1px solid #93ad8477;
+  background:#0b1619b8;
+  pointer-events:auto;
+}
+#swipe-hint[style*="opacity: 0"]{
+  pointer-events:none;
+}

@@ -24,6 +24,14 @@ Web Adapterだけを実装しています。iOS / Android / PS5 / Nintendo Switc
 
 既存の汎用・端末依存スタックを新しいゲームUIへ再導入しません。特に `system-ui`, `-apple-system`, `Noto Sans JP`, `Noto Serif CJK JP`, `Yu Mincho`, `Hiragino Mincho ProN`, `Georgia`, `Arial` を作品固有書体の代用として追加しないでください。既存CSSに残る宣言は専用typography stylesheetを最後に読み込んで無効化し、回帰チェックでは禁止スタックの追加と専用stylesheetの読み込み順を検証します。外部書体が取得できない場合も、ゲーム固有のfallback familyから汎用generic familyへ落とし、禁止した旧指定へ戻しません。
 
+## 操作説明の集約
+
+3ゲームの通常プレイ画面では、操作そのものを説明できる内容を常時表示の文章として散在させません。原則として操作の意味は、各アプリの世界観に沿った短い動詞中心のボタン名、必要な `aria-label` / `title`、およびフォーカス・押下・長押しなど利用者がその操作へ関心を向けた時だけ開く短い補助説明へ集約します。
+
+常時表示を残すのは、現在状態、物語上の情報、取り消し不能または高リスク操作の警告、操作対象を識別するために不可欠な情報に限定します。単なる「このボタンを押すと〜できます」「〜するには〜してください」のような説明は、ボタン自体の語彙と必要時だけ出る補助表示で理解できる形へ畳み込みます。説明を減らすために意味を曖昧な記号や汎用 `?` ボタンへ退避させず、初見でも行為が読めるラベルを優先します。
+
+この原則は共通の無機質なヘルプUIを3ゲームへ導入するものではありません。`rinne` / `village` / `demon` はそれぞれ既存のHUD・パネル・演出語彙の中で説明を集約し、タッチ端末では hover 前提にせず、押下対象の最小サイズとキーボード/スクリーンリーダー向けの意味を維持します。
+
 ## クロスプレイ
 
 全Platform共通のbackend player IDを使用し、各ストアのaccount IDは認証層でリンクします。クライアント申告だけで所有権や認証を確定しません。server authoritativeな状態と検証を用意し、gameId、protocolVersion、contentVersion、region、必要に応じinputPoolをmatchmakingに渡す設計です。version非互換なクライアントを同じsessionへ参加させない判定はserver側で行います。

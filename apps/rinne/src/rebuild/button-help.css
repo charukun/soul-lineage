@@ -1,0 +1,17 @@
+#move-hint{
+  appearance:none;
+  border:0;
+  border-bottom:1px solid rgba(192,157,84,.27);
+  cursor:pointer;
+  pointer-events:auto;
+  font-size:0;
+}
+#move-hint::after{
+  content:'動きかた';
+  font:700 9px/1.2 var(--rinne-ui-font, sans-serif);
+  letter-spacing:.08em;
+}
+#move-hint:focus-visible{
+  outline:1px solid var(--brass-hi);
+  outline-offset:3px;
+}

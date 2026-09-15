@@ -64,6 +64,12 @@ document.getElementById('open-village').addEventListener('click',async()=>{
   }catch(error){console.error(error);$('boot-status').textContent=`村接続失敗：${error?.message||error}`;}
 });
 document.getElementById('close-village').addEventListener('click',()=>villageDialog.close());
+let movementHelpTimer=0;
+$('move-hint').addEventListener('click',()=>{
+  const held=$('move-hint').textContent.includes('母'),node=$('toast');
+  node.textContent=held?'抱っこ中も画面をスワイプすると、母に抱かれたまま村を見て回れます。':'画面をスワイプすると、その方向へ移動します。';
+  node.hidden=false;clearTimeout(movementHelpTimer);movementHelpTimer=setTimeout(()=>{node.hidden=true;},3200);
+});
 
 if(new URLSearchParams(location.search).has('villageHostLab')){
   void (async()=>{

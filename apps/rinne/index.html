@@ -10,6 +10,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./src/rebuild/app.css">
   <link rel="stylesheet" href="./src/rebuild/pop.css">
+  <link rel="stylesheet" href="./src/rebuild/button-help.css">
   <link rel="stylesheet" href="./src/typography.css">
 </head>
 <body>
@@ -59,7 +60,7 @@
     <div id="dialogue" class="dialogue ornate" hidden><span id="speaker">母</span><p id="dialogue-text"></p></div>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
     <button id="talk" class="talk-button" type="button" data-context-action="talk" hidden><span>話</span><small>話す</small></button>
-    <p id="move-hint" class="move-hint">スワイプで移動</p>
+    <button id="move-hint" class="move-hint" type="button" aria-label="動きかた。押すと移動操作の説明を表示します">スワイプで移動</button>
   </section>
 </main>
 <dialog id="village-dialog" aria-labelledby="village-dialog-title">
