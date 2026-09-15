@@ -1,14 +1,6 @@
 {
   "activity": [
     {
-      "action": "Isolated Actions Worker reserved; preparing PR analysis",
-      "at": "2026-09-14T09:55:31.548Z",
-      "id": "wave-34830363323-1-pr-234-a1:CLAIMED:1789379731548:582",
-      "pr": 234,
-      "type": "CLAIMED",
-      "workerId": "34830363323/pr-234/a1"
-    },
-    {
       "action": "Waiting for #192, #234 to merge into develop",
       "at": "2026-09-14T09:55:31.548Z",
       "id": "pr-197:BLOCKED_BY_RESCUE:1789379731548:582",
@@ -3194,6 +3186,14 @@
       "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
       "type": "WORK_REPAIR_BASELINE_ADVANCED",
       "action": "attempt 1/2 preserved; baseline churn 1/8: Latest develop advanced from 75f5e1dfc00a1970b5163465331b03426b22d232 to bda52082c637b80201bf95705f19f65db856f55d; no push"
+    },
+    {
+      "id": "wave-34837832648-1-pr-197-a1:WORK_REPAIR_CLAIMED:1789465743149:1216",
+      "at": "2026-09-15T09:49:03.149Z",
+      "pr": 197,
+      "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
+      "type": "WORK_REPAIR_CLAIMED",
+      "action": "work/866e55ef0f5e/20260915T0933Z-pr197: semantic repair 1/2; baseline resume 1/8"
     }
   ],
   "config": {
@@ -11631,8 +11631,8 @@
       "claimedAt": "2026-09-14T11:23:54.329Z",
       "claimedBy": "34837832648/pr-197/a1",
       "contractFingerprint": "7a6d78e17141603409300813deab12b0f530f949f60a0ea6728e73541cf2f0a3",
-      "currentAction": "最新developでAI修復を再開予定 · baseline churn 1/8",
-      "currentStep": "FAILED_MANUAL",
+      "currentAction": "既存ChatGPT Workがsemantic停止を再評価し両側の仕様を保って修復",
+      "currentStep": "RESOLVING",
       "dependencies": [
         192
       ],
@@ -11756,24 +11756,26 @@
       },
       "state": "FAILED_MANUAL",
       "title": "feat(characters): rebuild Shino Reference v2 as DCC model",
-      "updatedAt": "2026-09-15T09:43:36.109Z",
+      "updatedAt": "2026-09-15T09:49:03.149Z",
       "waitingReason": null,
       "wave": "wave-34837832648-1",
       "workRepairAttempts": 1,
       "workRepair": {
         "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
-        "status": "baseline-advanced",
+        "status": "working",
         "attempt": 1,
         "maxAttempts": 2,
         "repairKind": "semantic",
         "baselineChurns": 1,
         "maxBaselineChurns": 8,
-        "resumedFromBaselineAdvance": false,
+        "resumedFromBaselineAdvance": true,
         "sourceHead": "5bf10fe7f34017f0357c19dc655365360c0cdbe6",
-        "develop": "75f5e1dfc00a1970b5163465331b03426b22d232",
+        "develop": "bda52082c637b80201bf95705f19f65db856f55d",
         "contract": "7a6d78e17141603409300813deab12b0f530f949f60a0ea6728e73541cf2f0a3",
-        "evidenceKey": "5ff334dff49e6dcd4eebcc2fefe7ba2f06d696af7dbeaf3766ffaa3784f03c93",
+        "evidenceKey": "cb13e844a4e9b9c6ded3ae183ff6371622d892f9699ece621a5ade454e7395a4",
         "scope": {
+          "contract": false,
+          "control": true,
           "files": [
             ".github/workflows/shino-reference-dcc.yml",
             "AGENTS.md",
@@ -11825,13 +11827,16 @@
             "tests/blender-character-audit.test.mjs",
             "tests/character-production-gate.test.mjs"
           ],
-          "scopes": [
+          "related": [
             "repository",
             "apps/rinne",
             "docs",
-            "packages/characters"
+            "packages/characters",
+            "apps/demon",
+            "apps/village",
+            "packages/rendering"
           ],
-          "related": [
+          "scopes": [
             "repository",
             "apps/rinne",
             "docs",
@@ -11840,16 +11845,12 @@
           "shared": [
             "packages/characters"
           ],
-          "control": true,
-          "contract": false,
           "specs": [],
           "repairKind": "semantic"
         },
-        "startedAt": "2026-09-15T09:32:22.303Z",
-        "heartbeatAt": "2026-09-15T09:32:22.303Z",
-        "expiresAt": "2026-09-15T10:17:22.303Z",
-        "reason": "WORK_REPAIR_BASELINE_ADVANCED: Latest develop advanced from 75f5e1dfc00a1970b5163465331b03426b22d232 to bda52082c637b80201bf95705f19f65db856f55d after trusted fast; verified tree was not pushed",
-        "finishedAt": "2026-09-15T09:43:36.109Z"
+        "startedAt": "2026-09-15T09:49:03.149Z",
+        "heartbeatAt": "2026-09-15T09:49:03.149Z",
+        "expiresAt": "2026-09-15T10:34:03.149Z"
       },
       "workRepairBaselineChurns": 1
     },
@@ -19060,9 +19061,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1216,
+  "revision": 1217,
   "schema": 1,
-  "updatedAt": "2026-09-15T09:43:36.109Z",
+  "updatedAt": "2026-09-15T09:49:03.149Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
