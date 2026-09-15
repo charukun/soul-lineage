@@ -1,3 +1,4 @@
+import {normalizeHostCapability,selectHostCandidate} from './host-capability.js';
 export const VILLAGE_PHASE = Object.freeze({ OPEN: 'open', MIGRATING: 'migrating', CLOSED: 'closed' });
 const defaults = Object.freeze({ hostLeaseMs: 4_000, migrationTimeoutMs: 10_000, recoveryNoticeMs: 30_000 });
 const clone = value => structuredClone(value);
@@ -25,12 +26,7 @@ export function createVillageAuthority({ villageId, mayorId, now = 0, timings = 
 }
 
 function elect(state) {
-  const candidates = Object.entries(state.members)
-    .filter(([id, member]) => id !== state.hostId && member.connected && member.eligible);
-  const mayor = candidates.find(([id]) => id === state.mayorId);
-  if (mayor) return mayor[0];
-  return candidates
-    .sort((a, b) => (a[1].joinOrder ?? Number.MAX_SAFE_INTEGER) - (b[1].joinOrder ?? Number.MAX_SAFE_INTEGER) || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
+  return selectHostCandidate(state.members, { currentHostId: state.hostId, mayorId: state.mayorId });
 }
 
 function close(state, reason) {
@@ -75,6 +71,13 @@ export function advanceVillageAuthority(current, event) {
         joinOrder: previous?.joinOrder ?? state.nextMemberOrder++,
         ...(previous?.meta ? { meta: clone(previous.meta) } : {}),
       };
+      break;
+    }
+    case 'capability': {
+      const target = member(event.playerId);
+      if (!target || !target.connected) return state;
+      target.meta = { ...(target.meta || {}), hostCapability: normalizeHostCapability(event.capability || {}) };
+      target.lastSeenAt = now;
       break;
     }
     case 'heartbeat':
