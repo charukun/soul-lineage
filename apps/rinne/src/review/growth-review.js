@@ -79,10 +79,10 @@ async function start(){
   function groundModel(){if(!current)return;current.root.position.copy(current.base.rootPosition);current.root.updateMatrixWorld(true);const box=bounds();if(Number.isFinite(box.min.y))current.root.position.y+=-box.min.y;current.root.updateMatrixWorld(true);}
   function resetAgeParts(){if(!current)return;const{bones,base,materials}=current;if(bones.head&&base.headScale)bones.head.scale.copy(base.headScale);if(bones.spine&&base.spineQ)bones.spine.quaternion.copy(base.spineQ);if(bones.chest&&base.chestQ)bones.chest.quaternion.copy(base.chestQ);if(bones.head&&base.headQ)bones.head.quaternion.copy(base.headQ);for(const row of materials)row.material.color.copy(row.color);}
   function applyAppearance(age){
-    const appearance=appearanceForAge(age);if(!current)return appearance;resetAgeParts();const{root,bones,base,materials,model}=current;
+    const appearance=appearanceForAge(age);if(!current)return appearance;resetAgeParts();const{root,bones,base,materials,model,direction}=current;
     root.scale.copy(base.rootScale).multiply(new THREE.Vector3(...model.appearanceScale)).multiplyScalar(appearance.scale);
     if(bones.head&&base.headScale)bones.head.scale.copy(base.headScale).multiplyScalar(appearance.headScale);
-    if(appearance.stoop>0){const axis=new THREE.Vector3(1,0,0);if(bones.spine)bones.spine.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(axis,appearance.stoop*.62));if(bones.chest)bones.chest.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(axis,appearance.stoop*.38));if(bones.head)bones.head.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(axis,-appearance.stoop*.38));}
+    if(appearance.stoop>0){const axis=new THREE.Vector3(1,0,0);if(bones.spine)bones.spine.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(axis,direction*appearance.stoop*.62));if(bones.chest)bones.chest.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(axis,direction*appearance.stoop*.38));if(bones.head)bones.head.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(axis,-direction*appearance.stoop*.38));}
     for(const row of materials){row.material.color.copy(row.color);if(row.hair&&appearance.gray>0)row.material.color.lerp(grayTarget,appearance.gray*.72);if(row.skin&&appearance.skinAge>0)row.material.color.lerp(skinTarget,appearance.skinAge*.08).multiplyScalar(1-.045*appearance.skinAge);}
     groundModel();return appearance;
   }
@@ -110,9 +110,10 @@ async function start(){
     let gltf;
     try{
       gltf=await new GLTFLoader().loadAsync(new URL(model.path,location.href).href);if(token!==generation){disposeRoot(gltf.scene);return;}
-      const root=gltf.scene;root.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;}});const bones=await humanoidBones(gltf);if(token!==generation){disposeRoot(root);return;}
+      const root=gltf.scene,isVRM0=Boolean(gltf.parser?.json?.extensions?.VRM&&!gltf.parser?.json?.extensions?.VRMC_vrm);if(isVRM0)root.rotation.y=Math.PI;
+      root.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;}});const bones=await humanoidBones(gltf);if(token!==generation){disposeRoot(root);return;}
       const materials=snapshotMaterials(root),base={rootScale:root.scale.clone(),rootPosition:root.position.clone(),headScale:bones.head?.scale.clone(),spineQ:bones.spine?.quaternion.clone(),chestQ:bones.chest?.quaternion.clone(),headQ:bones.head?.quaternion.clone()};
-      const previous=current;current={root,bones,materials,base,model};selectedModel=model;scene.add(root);
+      const previous=current;current={root,bones,materials,base,model,direction:isVRM0?-1:1};selectedModel=model;scene.add(root);
       applyAppearance(22);adultFrame=bounds().clone();renderAge(Number(seek.value),{sync:false});frame(currentView);syncModelCopy();renderModelPicker();syncURL(Number(seek.value)/LIFE_RULES.secondsPerYear);q('#growth-status').textContent='世界時間を動かして成長を確認';if(previous)disposeRoot(previous.root);
     }catch(error){if(gltf?.scene&&token===generation)disposeRoot(gltf.scene);if(token===generation){console.error(error);q('#growth-status').textContent=`モデル読込失敗: ${error.message}`;q('#growth-status').classList.add('growth-error');}}
   }
