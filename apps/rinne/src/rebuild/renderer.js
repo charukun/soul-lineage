@@ -24,7 +24,7 @@ const armorDye=Object.freeze({cloth:[1,1,1],light:[.72,.84,.78],heavy:[.68,.73,.
 
 async function createRuntimeCharacterPool(renderer){
   const loader=new GLTFLoader();
-  loader.useCompressedTextures?.(renderer,{transcoderPath:'/basis/'});
+  loader.useCompressedTextures?.(renderer,{transcoderPath:'./basis/'});
   const gltf=await loader.loadAsync(RINNE_RUNTIME_CHARACTER_ASSET.url);
   const humanoid=await shinoHumanoidFromGLTF(gltf);
   const pool=createMasterCharacterPool({template:gltf.scene,humanoid,capacity:8});
