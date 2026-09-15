@@ -70,7 +70,7 @@ const presentation = Object.freeze({
   apps: ['village'], ageBands: ['adult'], bodyArchetypes: ['adult.sturdy'], roles: ['guard'], renderTiers: ['full']
 });
 
-test('external references are pinned and consensus counts independent sources, not files', () => {
+test('external references are pinned and consensus counts independent repositories, not files', () => {
   const source = getExternalCharacterReference('sendagaya-shino-yui');
   assert.match(source.revision, /^[0-9a-f]{40}$/);
   assert.equal(source.copyPolicy, 'never-wholesale-copy');
@@ -121,13 +121,17 @@ test('coverage requires explicit presentation selectors and never promotes BLOCK
   assert.equal(withSelector.rows[0].nextAction, 'advance-production-stage');
 });
 
-test('golden baselines require RUNTIME_READY plus visual approval', () => {
+test('golden baselines require RUNTIME_READY plus visual approval and matching production evidence', () => {
   assert.throws(() => createCharacterGoldenBaseline({ id: 'guard.golden', target, manifest: blockoutManifest() }));
   const manifest = runtimeReadyManifest();
   const golden = createCharacterGoldenBaseline({ id: 'guard.golden', target, manifest });
   assert.equal(golden.productionStage, 'RUNTIME_READY');
   assert.equal(golden.visualApproval, 'approved');
   assert.equal(golden.metrics.triangles, 30000);
+
+  const unbacked = buildCharacterCoverageMatrix([target], { goldenBaselines: [golden] });
+  assert.equal(unbacked.rows[0].status, 'reference-only');
+  assert.equal(unbacked.rows[0].golden.length, 0);
 
   const matrix = buildCharacterCoverageMatrix([target], {
     productionAssets: [{ manifest, presentation }], goldenBaselines: [golden]
