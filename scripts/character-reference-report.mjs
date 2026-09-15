@@ -5,7 +5,8 @@ import {
   EXTERNAL_CHARACTER_REFERENCE_REGISTRY,
   buildCharacterCoverageMatrix,
   defaultCharacterCoverageTargets,
-  externalReferenceConsensusSet
+  externalReferenceConsensusSet,
+  validateCharacterGoldenBaseline
 } from '../packages/characters/src/reference-intelligence.js';
 
 function parseArgs(argv) {
@@ -20,14 +21,22 @@ function parseArgs(argv) {
   return values;
 }
 
-export function loadCharacterProductionCandidates(root = process.cwd()) {
-  const dir = resolve(root, 'packages/characters/production');
+function loadJsonFiles(dir, suffix) {
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
-    .filter(name => name.endsWith('.production.json'))
+    .filter(name => name.endsWith(suffix))
     .sort()
-    .map(name => JSON.parse(readFileSync(resolve(dir, name), 'utf8')))
+    .map(name => JSON.parse(readFileSync(resolve(dir, name), 'utf8')));
+}
+
+export function loadCharacterProductionCandidates(root = process.cwd()) {
+  return loadJsonFiles(resolve(root, 'packages/characters/production'), '.production.json')
     .map(manifest => manifest.presentation ? { manifest, presentation: manifest.presentation } : manifest);
+}
+
+export function loadCharacterGoldenBaselines(root = process.cwd()) {
+  return loadJsonFiles(resolve(root, 'packages/characters/golden'), '.golden.json')
+    .map(validateCharacterGoldenBaseline);
 }
 
 export function buildCharacterReferenceReport({ root = process.cwd(), apps, renderTiers } = {}) {
@@ -36,7 +45,8 @@ export function buildCharacterReferenceReport({ root = process.cwd(), apps, rend
     ...(renderTiers ? { renderTiers } : {})
   });
   const productionAssets = loadCharacterProductionCandidates(root);
-  const matrix = buildCharacterCoverageMatrix(targets, { productionAssets });
+  const goldenBaselines = loadCharacterGoldenBaselines(root);
+  const matrix = buildCharacterCoverageMatrix(targets, { productionAssets, goldenBaselines });
   const externalReferenceIds = Object.keys(EXTERNAL_CHARACTER_REFERENCE_REGISTRY).sort();
   const consensus = externalReferenceConsensusSet(externalReferenceIds);
   return {
@@ -45,6 +55,7 @@ export function buildCharacterReferenceReport({ root = process.cwd(), apps, rend
     externalReferences: externalReferenceIds.map(id => EXTERNAL_CHARACTER_REFERENCE_REGISTRY[id]),
     consensus,
     productionManifestCount: productionAssets.length,
+    goldenBaselineCount: goldenBaselines.length,
     coverage: matrix
   };
 }
@@ -60,7 +71,7 @@ if (isMain) {
   mkdirSync(dirname(output), { recursive: true });
   writeFileSync(output, `${JSON.stringify(report, null, 2)}\n`);
   const summary = report.coverage.summary;
-  console.log(`[character-references] references=${report.externalReferences.length} consensus=${report.consensus.length} manifests=${report.productionManifestCount}`);
+  console.log(`[character-references] references=${report.externalReferences.length} consensus=${report.consensus.length} manifests=${report.productionManifestCount} goldens=${report.goldenBaselineCount}`);
   console.log(`[character-references] coverage missing=${summary.missing} reference=${summary['reference-only']} production=${summary['in-production']} runtime=${summary['runtime-ready']} golden=${summary.golden}`);
   console.log(`[character-references] report=${output}`);
   if (args.json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
