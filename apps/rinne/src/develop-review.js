@@ -48,15 +48,16 @@ qa('[data-view]').forEach(button=>button.addEventListener('click',()=>openPanel(
 
 const memory=new Map();
 const storage={getItem:key=>memory.has(key)?memory.get(key):null,setItem:(key,value)=>memory.set(key,String(value))};
-let host=null,playing=true,last=performance.now();
+let host=null,playing=true,last=performance.now(),lastCore=null;
 function resetBattle() {
-  memory.clear();
+  memory.clear();lastCore=null;
   host=new RaidHost({villageId:'develop-visual-review',storage,now:()=>Date.now()});
   host.join('demon',{type:'join',app:'demon',role:'demon',playerId:'review-demon',name:'Demon'});
   host.join('human',{type:'join',app:'rinne',role:'human',playerId:'review-human',name:'Human'});
   host.input('demon',{type:'state',x:-1.2,z:0,yaw:Math.PI/2,state:'combat',action:null});
   host.input('human',{type:'state',x:1.2,z:0,yaw:-Math.PI/2,state:'combat',action:null});
   host.tick(1/60);
+  lastCore=host.battle?.core?.state?.() || null;
   playing=true;q('#battle-toggle').textContent='一時停止';last=performance.now();
 }
 resetBattle();
@@ -71,9 +72,11 @@ function drawFighter(ctx,actor,x,y,label,side) {
   if(actor.attack){ctx.beginPath();ctx.arc(0,0,36,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.max(0,Math.min(1,actor.progress||0)));ctx.strokeStyle='#f4f1e8';ctx.lineWidth=3;ctx.stroke();}
   ctx.restore();
 }
-function drawBattle(state) {
+function drawBattle() {
   const canvas=q('#battle-canvas'),ctx=canvas.getContext('2d');
-  const battle=host.battle,core=battle?.core?.state?.();
+  const battle=host.battle,currentCore=battle?.core?.state?.();
+  if(currentCore) lastCore=currentCore;
+  const core=currentCore || lastCore;
   ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#111716';ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.strokeStyle='#3b4440';ctx.lineWidth=2;ctx.strokeRect(28,28,canvas.width-56,canvas.height-56);
   if(!core){ctx.fillStyle='#d9d4c4';ctx.font='18px system-ui,sans-serif';ctx.fillText('戦闘を開始しています…',48,64);return;}
