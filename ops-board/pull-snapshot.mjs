@@ -4,7 +4,8 @@ const SNAPSHOT_KEY = 'ops-pulls-v1';
 export const FULL_PULL_RECONCILE_MS = 2 * 60 * 60 * 1000;
 const MAX_PAGES = 6;
 const PAGE_SIZE = 100;
-const updatedAt = pr => Date.parse(pr?.updated_at || pr?.created_at || 0) || 0;
+const time = value => value ? (Date.parse(value) || 0) : 0;
+const updatedAt = pr => time(pr?.updated_at || pr?.created_at);
 
 function compact(pr) {
   return {
@@ -38,8 +39,8 @@ async function page(client, number) {
 
 export async function syncPullSnapshot(client, storage, { now = Date.now(), forceFull = false } = {}) {
   const previous = await readStored(storage, SNAPSHOT_KEY);
-  const previousWatermark = Date.parse(previous?.watermark || 0) || 0;
-  const fullAge = now - (Date.parse(previous?.fullAt || 0) || 0);
+  const previousWatermark = time(previous?.watermark);
+  const fullAge = now - time(previous?.fullAt);
   const full = forceFull || !previous?.complete || !Array.isArray(previous?.pulls) || fullAge >= FULL_PULL_RECONCILE_MS;
   const fetched = [];
   let pages = 0;
