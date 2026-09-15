@@ -1,4 +1,5 @@
 import './character-art-qa.css';
+import { CHARACTER_REFINEMENT_CHECKS, CHARACTER_REFINEMENT_MAX_ROUNDS, CHARACTER_REFINEMENT_POLICY, CHARACTER_REFINEMENT_VIEWS, createCharacterRefinementRound } from '@soul/characters';
 import { stylizedArtAudit, compareStylizedSilhouettes } from '@soul/rendering/stylized-art';
 import { auditTextureBudget } from '@soul/rendering/texture-quality';
 import { productionArtProfileForActorId } from '@soul/rendering/master-character-production';
@@ -64,14 +65,73 @@ function install() {
   const grid = text('div', '', 'art-qa-grid');
   grid.append(metricCard('Profile', 'art-qa-profile'), metricCard('Triangles', 'art-qa-triangles'), metricCard('Materials', 'art-qa-materials'), metricCard('Textures', 'art-qa-textures'), metricCard('LOD', 'art-qa-lod'), metricCard('Motion LOD', 'art-qa-motion-lod'), metricCard('Silhouette', 'art-qa-silhouette'), metricCard('Frame', 'art-qa-frame'));
   section.append(grid);
+
+  const refinementSessions = new Map();
+  const refinement = text('section', '', 'art-refinement'); refinement.setAttribute('aria-label', '局所改善チェック');
+  const refinementHead = text('div', '', 'art-refinement-head');
+  refinementHead.append(text('h3', `形状リファイン · 最大${CHARACTER_REFINEMENT_MAX_ROUNDS}回`));
+  const refinementRound = text('output', '1 / 3', 'art-refinement-round'); refinementRound.id = 'art-refinement-round'; refinementHead.append(refinementRound); refinement.append(refinementHead);
+  refinement.append(text('p', `固定確認: ${CHARACTER_REFINEMENT_VIEWS.join(' / ')}。PASS領域は固定し、FAIL部位だけ修正します。`, 'art-refinement-note'));
+  const checklist = text('div', '', 'art-refinement-list'); refinement.append(checklist);
+  const refinementSummary = text('p', '6項目を確認してください。', 'art-refinement-summary'); refinementSummary.id = 'art-refinement-summary'; refinement.append(refinementSummary);
+  const refinementActions = text('div', '', 'art-refinement-actions');
+  const nextRound = text('button', 'FAILだけ次のラウンドへ'); nextRound.type = 'button'; nextRound.id = 'art-refinement-next';
+  const resetRefinement = text('button', '判定をリセット'); resetRefinement.type = 'button'; resetRefinement.id = 'art-refinement-reset';
+  refinementActions.append(nextRound, resetRefinement); refinement.append(refinementActions);
+  section.append(refinement);
+
   const actions = text('div', '', 'art-qa-actions');
   const selected = text('button', '選択個体を再監査'); selected.type = 'button'; selected.id = 'art-qa-selected';
   const cohort = text('button', '全個体シルエット比較'); cohort.type = 'button'; cohort.id = 'art-qa-cohort';
   const front = text('button', '正面で確認'); front.type = 'button'; front.addEventListener('click', () => review.aim?.('front'));
   const side = text('button', '横で確認'); side.type = 'button'; side.addEventListener('click', () => review.aim?.('side'));
-  actions.append(selected, cohort, front, side); section.append(actions);
+  const back = text('button', '背面で確認'); back.type = 'button'; back.addEventListener('click', () => review.aim?.('back'));
+  actions.append(selected, cohort, front, side, back); section.append(actions);
   const report = text('pre', 'モデル読み込み後に自動監査します。', 'art-qa-report'); report.id = 'art-qa-report'; section.append(report);
   panel.prepend(section);
+
+  const blankResults = () => Object.fromEntries(CHARACTER_REFINEMENT_CHECKS.map(check => [check.id, 'pending']));
+  const refinementKey = () => review.actors?.[review.settings?.selected ?? 0]?.id ?? 'unloaded';
+  function refinementSession() {
+    const key = refinementKey();
+    if (!refinementSessions.has(key)) refinementSessions.set(key, { round: 1, results: blankResults() });
+    return refinementSessions.get(key);
+  }
+  function refinementPlan() {
+    const current = refinementSession();
+    return createCharacterRefinementRound(current.round, current.results);
+  }
+  function setRefinement(id, status) {
+    const current = refinementSession(); current.results[id] = status; renderRefinement();
+  }
+  function renderRefinement() {
+    const current = refinementSession(), plan = refinementPlan();
+    refinementRound.textContent = `${current.round} / ${CHARACTER_REFINEMENT_MAX_ROUNDS}`;
+    checklist.replaceChildren(...CHARACTER_REFINEMENT_CHECKS.map(check => {
+      const row = text('div', '', 'art-refinement-row');
+      row.dataset.status = current.results[check.id];
+      row.append(text('span', check.label, 'art-refinement-label'));
+      const pass = text('button', 'PASS'); pass.type = 'button'; pass.dataset.refinementCheck = check.id; pass.dataset.refinementStatus = 'pass'; pass.setAttribute('aria-pressed', String(current.results[check.id] === 'pass')); pass.addEventListener('click', () => setRefinement(check.id, 'pass'));
+      const fail = text('button', 'FAIL'); fail.type = 'button'; fail.dataset.refinementCheck = check.id; fail.dataset.refinementStatus = 'fail'; fail.setAttribute('aria-pressed', String(current.results[check.id] === 'fail')); fail.addEventListener('click', () => setRefinement(check.id, 'fail'));
+      row.append(pass, fail); return row;
+    }));
+    const passCount = plan.preserveChecks.length, failCount = plan.failedChecks.length, pendingCount = plan.pendingChecks.length;
+    refinementSummary.textContent = plan.state === 'pass'
+      ? '6項目 PASS。形状チェック完了。Visual Approvalは従来どおり別判定です。'
+      : plan.state === 'escalate'
+        ? `3回到達 · FAIL ${failCount}。未解決部位だけ外部参照/置換を検討し、出典・ライセンスを確認してください。`
+        : `PASS ${passCount} / FAIL ${failCount} / 未確認 ${pendingCount}。PASSは保持し、FAILだけ局所修正します。`;
+    nextRound.disabled = plan.state === 'pass' || plan.pendingChecks.length > 0 || current.round >= CHARACTER_REFINEMENT_MAX_ROUNDS;
+    window.__CHARACTER_REFINEMENT_STATE__ = plan;
+  }
+  nextRound.addEventListener('click', () => {
+    const current = refinementSession(), plan = refinementPlan();
+    if (plan.pendingChecks.length || !plan.failedChecks.length || current.round >= CHARACTER_REFINEMENT_MAX_ROUNDS) return;
+    const failed = new Set(plan.failedChecks);
+    for (const id of Object.keys(current.results)) if (failed.has(id)) current.results[id] = 'pending';
+    current.round += 1; renderRefinement();
+  });
+  resetRefinement.addEventListener('click', () => { refinementSessions.set(refinementKey(), { round: 1, results: blankResults() }); renderRefinement(); });
 
   let pending = false;
   function renderPerf() {
@@ -81,6 +141,7 @@ function install() {
   function renderSelected() {
     pending = false;
     const actor = review.actors?.[review.settings?.selected ?? 0], audit = actorAudit(actor, review);
+    renderRefinement();
     if (!audit) { renderPerf(); return; }
     const body = audit.body;
     el('art-qa-profile').textContent = audit.profileId === 'hero' ? 'hero · SHINO GATE' : audit.profileId;
@@ -111,7 +172,9 @@ function install() {
   window.addEventListener('character-review-change', schedule);
   window.addEventListener('character-workspace-change', schedule);
   const observer = new MutationObserver(renderPerf); if (el('metrics')) observer.observe(el('metrics'), { childList: true, characterData: true, subtree: true });
-  window.__CHARACTER_ART_QA__ = Object.freeze({ selected: renderSelected, cohort: renderCohort, actorAudit: actor => actorAudit(actor, review) });
+  window.__CHARACTER_REFINEMENT_POLICY__ = CHARACTER_REFINEMENT_POLICY;
+  window.__CHARACTER_ART_QA__ = Object.freeze({ selected: renderSelected, cohort: renderCohort, actorAudit: actor => actorAudit(actor, review), refinement: () => refinementPlan() });
+  renderRefinement();
   schedule();
 }
 
