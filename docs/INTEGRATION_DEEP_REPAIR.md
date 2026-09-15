@@ -23,41 +23,26 @@ Deep Repairは人への差し戻しと同義ではない。[実行ポリシー](
 
 ## ChatGPT Work GitHub event trigger
 
-Repository codeはChatGPTアカウント/ProjectのWork event trigger自体を登録できない。Browser self-healingと同じく、Repositoryは安全なmachine-readable GitHub eventを作り、ChatGPT側のevent triggerがそれをclaimする。
+WorkのGitHub triggerはPR opened / ready_for_review / closedに対応し、synchronizeとhuman reviewを追加選択できる。Issue opened/edited、CI completed、botのPRコメントは起動条件にできない。Issue発行だけで自動修復が稼働していると扱わない。
 
-`charukun/soul-lineage` の GitHub Issue opened/edited eventに対し、次の条件のWork triggerを1つ設定する。
+通常起動は `charukun/soul-lineage` のPR event triggerを1つ登録し、`enable_commit_updates=true`・`enable_reviews=true` とする。IssueのsourceKey/state/attemptを修復の正本として維持し、PR eventはIntegration担当を起こす信号にだけ使う。Draft/外部PR/main/Productionは対象外。closed eventでは新たにdependencyを満たしたReady PRを再評価する。
 
-- Issue body contains `<!-- integration-deep-repair:v1`
-- parsed state is exactly `pending`
-- `attempt < maxAttempts`
-- Issue is open
-- repository is exactly `charukun/soul-lineage`
+Ready/更新eventはCI結果より早く届くため、ここから起動するWORKは**Integration役**として当該current headのValidate and buildを有限に確認する。観測は最大15分、API取得間隔は最低60秒、1回のtool waitは60秒以下とし、独立した処理可能PRを先に進める。head変更時は旧観測を停止する。期限超過を成功扱いせず既存PR/Issueへ記録する。通常の実装WORKは引き続きReadyで終了し、修復担当も修復push後は次のevent/Fast Laneへ返す。
 
-Work prompt:
+RepositoryのFast Laneが作成した修復Issueを再取得し、open・pending・attempt<maxAttempts・source PR/head一致・hold/review/thread/dependencyを確認する。着手可能なら同じIssueをclaimして実際の修復に進む。現PR/headの失敗が確定してIssueがまだない場合だけ、current developのhandoff契約で冪等に作成する。他のworking claim、closed、human-required、試行上限を新しいIssueで迂回しない。
 
-```text
-You are the Integration Deep Repair worker for charukun/soul-lineage.
+旧Integration Rescueの定期タスクは、旧queue/Work relayを走らせず、現Ready PRとDeep Repair Issueを読む取りこぼし回収へ更新する。通常起動はPR event、1時間のfallbackはevent取りこぼし・有限観測の期限超過だけを回収する。新しいTask-ID/queue/DB、有料API/PATは追加しない。アカウント側のtrigger登録と有効化はRepository外の設定なので、文書追加だけで設定済みとは報告しない。
 
-Read latest develop, AGENTS.md, docs/DEVELOPMENT.md, docs/RINNE_PROJECT_EXECUTION_POLICY.md, docs/INTEGRATION.md, docs/INTEGRATION_RECONCILIATION.md and docs/INTEGRATION_DEEP_REPAIR.md. Treat current GitHub state as canonical.
+Workerの実行契約は次のとおり。
 
-The triggering GitHub Issue contains an integration-deep-repair:v1 JSON block and a rinne-ai-repair:v1 envelope. Re-read the Issue and source PR before acting. Continue only if the issue is open, state=pending, attempt<maxAttempts, the PR is open/non-Draft/develop/same-repository, and the PR exact head still matches the recorded head.
-
-Claim this Issue before editing by changing state from pending to working, incrementing attempt by one, and setting claimedBy/claimedAt. If the Issue or PR is no longer eligible, mark the Issue stale or human-required as appropriate and stop without changing code.
-
-Repair the existing PR branch only. Re-read current develop and both sides of every true conflict. Preserve both intents when compatible. Never resolve by unconditional ours/theirs, never clear integration holds or review objections, never weaken tests/browser/Production gates, never force-push, and never modify main/Production.
-
-Follow the DEV feedback development policy: AI implementation -> fast validation -> Ready -> Integration -> DEV publication -> user visual feedback -> AI correction. Within explicit requirements and current develop contracts, make and record reversible choices without waiting for pre-DEV visual approval. Adapt superseded PR behavior to current confirmed specifications while preserving compatible improvement intent. Technical difficulty or same-file conflicts alone do not require human-required.
-
-For contract/control/assertion-sensitive conflicts, read the governing Repository sources and demonstrate compatibility and gate preservation. Before a specification-based human-required decision, record the current requirements, conflict, attempted compatible repair, why a reversible DEV candidate cannot resolve it, and the exact missing authorization or incompatible contract choice. Preserve existing hold/review/thread decisions, approval/certification rules and attempt limits; this policy does not automatically reopen existing human-required tickets.
-
-Run the repository fast validation against the current develop baseline. Push only the validated repair to the same source PR branch. Record assumptions and DEV review steps in the PR. After push, update the Issue state so normal CI/Fast Lane owns re-evaluation. Do not merge the PR yourself unless explicitly assigned Integration. Ready is not DEV_DEPLOYED; user visual feedback follows actual DEV publication.
-
-The worker ends after repair, fast validation and push. It does not wait for CI/browser/DEV. Browser and DEV repair remain independent asynchronous lanes.
-```
-
-このtriggerはPRごとに独立Issueを受け取れるため、ChatGPT Work側が並列セッションを許す範囲で複数Deep Repairを並列実行できる。同じexact headは1 Issueだけで、各Workは自分のsource PR branchだけを変更する。関連PR同士が並行して進んでも、Fast Laneのcurrent develop/head再読、overlap review、expected-head mergeが最終fenceになる。
-
-Repository側はWorkの実行完了を待たず、Deep Repair Issue発行後も次のReady PRを評価し続ける。Work側のアカウント同時実行上限が低い場合はWork側で待ち行列になるが、Integration Fast Laneを停止させない。
+- latest develop・AGENTS・Integration/実行ポリシーを読み、現在のPR/head/Issueを再取得する。
+- pendingからworkingへ変更しattemptを1増やしてclaimedBy/claimedAt/repairDevelopを記録し、再取得で自分のclaimを確認する。他のclaimを奪わない。
+- 両側の確定仕様と差分を読み、元PR branchへ互換修復する。無条件ours/theirs、assertion削除、hold/review/thread解除、force pushは禁止。
+- fast validationとpushするsource treeの同一性を確認する。merge-forwardは元headと検証したdevelopを両親に持つcommitとする。
+- push後はIssueへrepairHead・検証結果・ready-for-integrationを記録し、既存single-writer Fast Laneへ戻す。独自の成功statusや自己承認でreview gateを通さない。
+- 古いhuman-requiredは現仕様・現在の権限・残attemptを個別に再評価し、適応できる根拠なしに解除しない。
+- 登録成功、実起動、claim、修復push、再検証、merge/DEVを別の証拠として記録する。未着手のまま「自動修復完了」と報告しない。
+- GitHubの既存PR/Issueへ成果を残す。追加のGmail/Slack/ntfy直接送信やChatGPT通知を作らない。
 
 ## browser / DEVとの並列性
 
