@@ -15,8 +15,8 @@ test('camera seek keeps the existing default view while allowing near and far po
   assert.deepEqual(cameraOffsetForPosition(4),[15,18.5,21]);
 });
 
-test('camera seek is a vertical center-left range control wired into the follow camera offset',()=>{
-  assert.match(control,/slider\.type=['"]range['"]/);assert.match(control,/aria-orientation['"],['"]vertical['"]/);assert.match(control,/addEventListener\(['"]input['"]/);
-  assert.match(css,/\.camera-position-control\{/);assert.match(css,/left:max\(/);assert.match(css,/top:50%/);assert.match(css,/transform:rotate\(-90deg\)/);
-  assert.match(renderer,/createCameraPositionControl/);assert.match(renderer,/camOffset\.set\(\.\.\.cameraOffsetForPosition\(position\)\)/);assert.match(renderer,/desired\.copy\(target\)\.add\(camOffset\)/);
+test('camera control is a compact upper-left camera icon with an on-demand vertical slider',()=>{
+  assert.match(control,/camera-position-trigger/);assert.match(control,/<svg viewBox=/);assert.match(control,/aria-label','カメラ位置'/);assert.match(control,/panel\.hidden=true/);assert.match(control,/button\.addEventListener\('click'/);
+  assert.match(css,/top:max\(54px/);assert.match(css,/width:44px;height:44px/);assert.doesNotMatch(css,/top:50%/);assert.match(css,/\.camera-position-panel\[hidden\]\{display:none\}/);assert.match(css,/transform:rotate\(-90deg\)/);
+  assert.match(renderer,/createCameraPositionControl/);assert.match(renderer,/camOffset\.set\(\.\.\.cameraOffsetForPosition\(position\)\)/);assert.match(renderer,/cameraControl\.setCombat\(!!combatFrame\)/);
 });

@@ -6,6 +6,7 @@ import { createAdaptiveQualityGovernor } from '@soul/rendering/adaptive-quality'
 import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { renderPixelRatio, targetFpsForView } from './performance.js';
 import { cameraOffsetForPosition, createCameraPositionControl } from './camera-position-control.js';
+import { rinneCombatCameraFrame } from './combat-camera.js';
 import './camera-position-control.css';
 
 const disposeObject=root=>root.traverse?.(o=>{if(o.geometry?.dispose)o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])if(m?.dispose)m.dispose();});
@@ -68,11 +69,13 @@ export function createWorldRenderer({canvas,document:doc,layout,stations}){
   for(const x of[-2.2,0,2.2])box(frontRoot,[1.4,.25,.7],[x,.12,-6.25],0xa47768);
   const rescuePad=new THREE.Mesh(new THREE.RingGeometry(.8,1.0,32),new THREE.MeshBasicMaterial({color:0xffd470,side:THREE.DoubleSide}));rescuePad.rotation.x=-Math.PI/2;rescuePad.position.set(0,.03,5.2);frontRoot.add(rescuePad);
   applyStylizedShading(root,'environment');applyStylizedShading(frontRoot,'environment');
-  const enemyMeshes=new Map();let enemyRosterKey='';
+  const enemyMeshes=new Map();let enemyRosterKey='',currentFront=null;
   function updateFront(front){
+    currentFront=front||null;
     for(const enemy of front?.enemies||[]){const node=enemyMeshes.get(enemy.id);if(!node)continue;node.position.set(enemy.x,0,enemy.z);node.visible=!enemy.dead;const body=node.userData.body;if(body)body.rotation.z=enemy.flash?Math.sin(elapsed*30)*.08:0;}
   }
   function syncFront(front){
+    currentFront=front||null;
     const enemies=front?.enemies||[],rosterKey=`${front?.stage??'none'}:${enemies.map(e=>e.id).join('|')}`;
     if(rosterKey!==enemyRosterKey){
       enemyRosterKey=rosterKey;const liveIds=new Set(enemies.map(e=>e.id));
@@ -104,7 +107,7 @@ export function createWorldRenderer({canvas,document:doc,layout,stations}){
     applyStylizedShading(equipmentRoot,'hero');
   }
 
-  const target=new THREE.Vector3(),desired=new THREE.Vector3(),moveVector=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),camOffset=new THREE.Vector3(10.5,11.5,14.5);let elapsed=0;
+  const target=new THREE.Vector3(),cameraLook=new THREE.Vector3(),desired=new THREE.Vector3(),moveVector=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),camOffset=new THREE.Vector3(10.5,11.5,14.5);let elapsed=0,cameraLookReady=false;
   const cameraControl=createCameraPositionControl({document:doc,container:canvas.parentElement,onChange:position=>{camOffset.set(...cameraOffsetForPosition(position));canvas.dataset.cameraPosition=String(Math.round(position*100));}});
   function resize(){const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
@@ -125,7 +128,10 @@ export function createWorldRenderer({canvas,document:doc,layout,stations}){
     else{mother.visible=false;hero.position.set(state.position.x,0,state.position.z);}
     const legs=hero.userData.legs||[];if(state.moving)legs.forEach((leg,i)=>leg.rotation.x=Math.sin(elapsed*8+(i%2)*Math.PI)*.48);else legs.forEach(leg=>leg.rotation.x*=.72);
     const body=hero.userData.body;if(body)body.rotation.z=Math.sin(elapsed*1.4)*.012;
-    target.set(state.position.x,1.15,state.position.z);desired.copy(target).add(camOffset);camera.position.lerp(desired,1-Math.pow(.001,Math.min(.05,dt||.016)));camera.lookAt(target);
+    const combatFrame=rinneCombatCameraFrame({player:state.position,enemies:currentFront?.enemies,targetId:state.combat?.targetId,active:!!state.combat});cameraControl.setCombat(!!combatFrame);canvas.dataset.combatCamera=String(!!combatFrame);
+    if(combatFrame){target.set(combatFrame.look.x,combatFrame.look.y,combatFrame.look.z);desired.set(target.x+combatFrame.offset.x,target.y+combatFrame.offset.y,target.z+combatFrame.offset.z);}
+    else{target.set(state.position.x,1.15,state.position.z);desired.copy(target).add(camOffset);}
+    const step=Math.min(.05,dt||.016),positionBlend=1-Math.exp(-(combatFrame?5.6:6.9)*step),lookBlend=1-Math.exp(-(combatFrame?7.2:9.2)*step);camera.position.lerp(desired,positionBlend);if(!cameraLookReady){cameraLook.copy(target);cameraLookReady=true;}else cameraLook.lerp(target,lookBlend);camera.lookAt(cameraLook);
     if(village){terrain.waterMat.uniforms.time.value=elapsed;terrain.motes.position.y=Math.sin(elapsed*.35)*.15;}
     renderer.render(scene,camera);
   }
