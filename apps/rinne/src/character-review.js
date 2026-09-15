@@ -180,7 +180,7 @@ function start() {
     if (settings.expressionMode === 'mixed') { const emotions = names.filter(n => !category.test(n) && n !== 'neutral'); name = emotions.length ? emotions[i % emotions.length] : ''; }
     if (name && names.includes(name) && (settings.expressionMode !== 'selected' || i === settings.selected)) weights[name] = settings.expressionWeight;
     if (settings.blink && names.includes('blink')) {
-      const phase = (elapsed + i * .37) % (3.1 + i % 3 * .27), blink = phase < .2 ? Math.sin(Math.PI * phase / .2) : 0;
+      const phase = ((motionQA?.active ? motionQA.time : elapsed) + i * .37) % (3.1 + i % 3 * .27), blink = phase < .2 ? Math.sin(Math.PI * phase / .2) : 0;
       weights.blink = Math.max(weights.blink ?? 0, blink);
     }
     actor.setExpressions(weights);
