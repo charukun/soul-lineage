@@ -19,6 +19,8 @@ export const CHARACTER_PRESENTATION_APPS = Object.freeze(['rinne', 'village', 'd
 export const CHARACTER_PRESENTATION_AGE_BANDS = Object.freeze(['child', 'adult', 'elder']);
 
 const APP_IDS = new Set(CHARACTER_PRESENTATION_APPS);
+const AGE_BAND_IDS = new Set(CHARACTER_PRESENTATION_AGE_BANDS);
+const RENDER_TIER_IDS = new Set(['full', 'mid', 'far', 'hidden']);
 const REFERENCE_MODELS = Object.freeze(Object.values(CHARACTER_REFERENCE_MODELS));
 
 function freezeRecord(value) {
@@ -124,11 +126,22 @@ export function resolveCharacterBodyArchetype(character, parts = null) {
   });
 }
 
-function candidateMatches(candidate, { app, role, ageBand, renderTier }) {
+function validateAssetContext(context) {
+  invariant(context && typeof context === 'object' && !Array.isArray(context), 'Missing character asset context');
+  validateApp(context.app);
+  validateRole(context.role);
+  invariant(AGE_BAND_IDS.has(context.ageBand), `Unknown character age band: ${context.ageBand}`);
+  identifier(context.bodyArchetype, 'character body archetype');
+  invariant(RENDER_TIER_IDS.has(context.renderTier), `Unknown character render tier: ${context.renderTier}`);
+  return context;
+}
+
+function candidateMatches(candidate, { app, role, ageBand, bodyArchetype, renderTier }) {
   const matches = (field, value) => candidate[field] == null ||
     (Array.isArray(candidate[field]) && candidate[field].includes(value));
   return matches('apps', app) && matches('roles', role) &&
-    matches('ageBands', ageBand) && matches('renderTiers', renderTier);
+    matches('ageBands', ageBand) && matches('bodyArchetypes', bodyArchetype) &&
+    matches('renderTiers', renderTier);
 }
 
 function candidateRuntimeReady(candidate) {
@@ -145,7 +158,8 @@ function candidateRuntimeReady(candidate) {
 
 export function selectCharacterProductionAsset(candidates = [], context) {
   invariant(Array.isArray(candidates), 'Character asset candidates must be an array');
-  const selected = candidates.find(candidate => candidateRuntimeReady(candidate) && candidateMatches(candidate, context));
+  const resolvedContext = validateAssetContext(context);
+  const selected = candidates.find(candidate => candidateRuntimeReady(candidate) && candidateMatches(candidate, resolvedContext));
   if (!selected) return null;
   const selectedId = selected.id || selected.assetId || selected.manifest?.id;
   const assetId = selected.assetId || selected.id || selected.manifest?.id;
@@ -169,6 +183,7 @@ function resolveOne(actor, app, render, assetCandidates) {
     app,
     role: roleAppearance.role,
     ageBand: bodyArchetype.ageBand,
+    bodyArchetype: bodyArchetype.id,
     renderTier: render.tier
   });
 
