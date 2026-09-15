@@ -30,9 +30,10 @@ test('village frontier homecoming and rebirth stay distinct without green or can
   assert.match(renderer,/scene\.background=new THREE\.Color\(0x91d7f5\)/);assert.match(renderer,/FogExp2\(0xcfe6ef/);assert.doesNotMatch(renderer,/scene\.background=new THREE\.Color\(0x91a88b\)/);
 });
 
-test('state changes read as game feedback without adding action buttons',()=>{
+test('state changes read as game feedback without legacy talk or attack action buttons',()=>{
   assert.match(pop,/\.chapter-mark/);assert.match(pop,/\.game-screen\.hurt-pulse \.world-vignette/);assert.match(runtime,/event\.type===['"]enemy-hit['"]\)pulseHurt\(\)/);
-  assert.equal((html.match(/data-context-action=/g)||[]).length,1);assert.match(html,/data-context-action="talk"/);assert.doesNotMatch(html,/>攻撃</);
+  assert.equal((html.match(/data-context-action=/g)||[]).length,0);assert.doesNotMatch(html,/id="talk"/);assert.doesNotMatch(html,/>話す</);assert.doesNotMatch(html,/>攻撃</);
+  assert.doesNotMatch(runtime,/talkContext/);assert.doesNotMatch(runtime,/\$\(['"]talk['"]\)/);
 });
 
 test('actor status is reusable and birth teaches through the mother instead of a destination waypoint',()=>{
