@@ -49,6 +49,8 @@ Fast Repairが扱うのは、依存PRのmerge後に最新developを取り込む�
 
 CI成功でもdevelop進行後のscope重複が残るPRは、Fast Laneが既存Deep Repairへ渡す。Workは両側の変更をレビューして元PRを現行仕様へ調整し、高速検証後の新headを同じFast Laneへ戻す。重複だけを理由に承認を作ったりreview gateを省略したりしない。
 
+Fast Repairのmerge成功直後はPR情報に旧headが残ることがある。この場合だけ、元headから変わっていないPRの安全条件と実際のGit branch refを照合し、返却されたmerge SHAへの更新を確認できたら既存Stack Validateへ渡す。別writerのhead・Draft・hold・依存本文変更は採用しない。検証jobとmerge直前のcurrent head再確認は維持する。GitHubのbot由来PR CIが承認待ちでも、trusted runner内の同じheadに対する検証を失わない。
+
 同一fileや契約の意味衝突、真のプロダクト判断、明示hold、Changes requested、未解決threadは自動修復しない。必要な場合だけ既存deep repair / human-requiredへ送る。追加の有料モデルAPIやPATを通常Repairの前提にしない。
 
 ここでの自動修復は機械的なFast Repairを指す。意味衝突はDeep Repairの調査対象であり、人待ちとは限らない。[DEVで実物を確認する標準開発](RINNE_PROJECT_EXECUTION_POLICY.md#devで実物を確認する標準開発) に従い、確定仕様への適応と可逆的な判断はAIが行う。任意の見た目・操作感の確認はDEV公開後に行い、既存gateに新しい目視承認待ちを追加しない。

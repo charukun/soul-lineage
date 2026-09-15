@@ -74,7 +74,19 @@ export async function reconcileStackFast(c, expected, develop, { repository = 'c
     if (!result) return { state: 'already-current' };
     if (!/^[0-9a-f]{40}$/.test(result.sha || '')) throw new Error('FAST_REPAIR_RESULT_INVALID');
     const after = await c.api('GET', `${c.root}/pulls/${pr.number}`);
-    if (after.head.sha !== result.sha) return { state: 'changed', reason: 'FAST_REPAIR_HEAD_NOT_OBSERVED' };
+    if (!fastRepairCandidate(after, repository) || explicitHold(after) || after.body !== pr.body || after.head.ref !== pr.head.ref) {
+      return { state: 'changed', reason: 'PR_CHANGED_AFTER_FAST_REPAIR' };
+    }
+    if (after.head.sha !== result.sha) {
+      // The PR representation can lag a successful merge. Confirm the actual ref
+      // only when it still reports our original head; never accept a third writer.
+      if (after.head.sha !== pr.head.sha) return { state: 'changed', reason: 'FAST_REPAIR_HEAD_NOT_OBSERVED' };
+      const refPath = pr.head.ref.split('/').map(encodeURIComponent).join('/');
+      const ref = await c.api('GET', `${c.root}/git/ref/heads/${refPath}`);
+      if (ref.object?.type !== 'commit' || ref.object.sha !== result.sha) {
+        return { state: 'changed', reason: 'FAST_REPAIR_HEAD_NOT_OBSERVED' };
+      }
+    }
     return { state: 'merged-forward', sha: result.sha, previousHead: pr.head.sha, develop, dependencies: deps };
   } catch (error) {
     if (/HTTP 409\b/.test(error.message)) return { state: 'conflict', reason: 'STACK_RECONCILE_CONFLICT' };
