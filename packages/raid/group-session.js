@@ -9,6 +9,7 @@ const LEAVE_DISTANCE=5.8;
 const HARD_LEAVE_DISTANCE=8.2;
 const MAX_SIMULTANEOUS=6;
 const RETREAT_AWAY_DOT=.32;
+const GROUP_ESCAPE_DOT=.18;
 
 export class RaidSession extends SingleRaidSession {
  constructor(village,profile,ports={}){
@@ -26,16 +27,22 @@ export class RaidSession extends SingleRaidSession {
  combatantCount(){return (this.fight?1:0)+this.combatants.filter(f=>!f.npc.dead&&!f.npc.eaten).length;}
  isCombatant(npc){return this.fight?.npc===npc||this.combatants.some(f=>f.npc===npc);}
  _inputHeld(input={}){return !!input.active||Math.max(0,Number(input.amount)||0)>.05;}
- _heldAwayFromPrimary(input={}){
-  const npc=this.fight?.npc,p=this.player;if(!npc||!p||!this._inputHeld(input))return false;
+ _heldEscapeIntent(input={}){
+  const p=this.player;if(!p||!this._inputHeld(input))return false;
   const ix=Number(input.x)||0,iz=Number(input.z)||0,im=Math.hypot(ix,iz);if(im<.001)return false;
-  const dx=p.x-npc.x,dz=p.z-npc.z,d=Math.hypot(dx,dz)||1;
-  return(ix*dx/d+iz*dz/d)/im>RETREAT_AWAY_DOT;
+  const threats=[this.fight?.npc,...this.combatants.map(record=>record.npc)].filter(n=>n&&!n.dead&&!n.eaten);
+  if(!threats.length)return false;
+  let ax=0,az=0,total=0,nearest=null,near=Infinity;
+  for(const n of threats){const dx=p.x-n.x,dz=p.z-n.z,d=Math.hypot(dx,dz)||.001,w=1/Math.max(1,d);ax+=dx/d*w;az+=dz/d*w;total+=w;if(d<near){near=d;nearest={dx:dx/d,dz:dz/d};}}
+  ax/=total||1;az/=total||1;let am=Math.hypot(ax,az);
+  if(am<.08&&nearest){ax=nearest.dx;az=nearest.dz;am=1;}
+  const away=(ix*ax+iz*az)/(im*(am||1));
+  return away>(threats.length>1?GROUP_ESCAPE_DOT:RETREAT_AWAY_DOT);
  }
  _combatInput(input={}){
   if(!this.fight||!this.combatInputLatched)return input;
   if(!this._inputHeld(input)){this.combatInputLatched=false;return input;}
-  if(this._heldAwayFromPrimary(input)){this.combatInputLatched=false;return input;}
+  if(this._heldEscapeIntent(input)){this.combatInputLatched=false;return input;}
   return{...input,x:0,z:0,amount:0,active:false,dash:false};
  }
  consume(n){
