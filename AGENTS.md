@@ -34,11 +34,10 @@ This repository contains 輪廻転焦 (formerly 魂の系譜), village housing, 
 
 ## Motion authoring and review
 
-- Before reporting that visual motion review is unavailable, try the actual internal Lab, not only a remote cloud browser. For the independent 30-second Lab, read the current `work/visual-review-lab-v2` branch's `apps/rinne/docs/VISUAL_REVIEW_PREVIEW.md` local-observation section and use `npm run review:local:setup` → `npm run review:local -- --mode sequence --time 3.33 --playback` there. Server and browser must share the worker execution environment. Record setup/HTTP/browser/WebGL/capture/playback separately; an exported video is not observed 1x playback. Preserve sandbox controls and Lab Draft/normal Ready boundaries.
-
+- Visual motion review uses the current develop tree. Run `npm run dev:rinne` and open `/review.html` for the unified entry or `/characters.html?review=motion` for the existing 30-second motion review. After Integration publishes develop, use the fixed Visual Review URL. Do not create or revive a long-lived review branch merely to observe motion; the Review page must consume the same shared packages, character sources and runtimes as develop.
 - For character motion, stance, locomotion or motion-transition changes, read `docs/characters/MOTION_AUTHORING.md` and `docs/characters/MOTION_QUALITY.md` before editing. Design full-body key poses first, then weight/timing and normal-speed playback, then detail/transition polish. Return to the earliest weak stage when a correction regresses it.
-- Use the existing Motion QA report's `authoring` record and existing Lab iteration notes. Record reference seconds, before/after source revisions, actual model/rig evidence and remaining differences. Numeric tests, rendered stills, exported-but-unwatched video and iteration counts cannot stand in for normal-speed visual evaluation or human approval.
-- Preserve native gameplay/contact timing, shared sources and independent Lab Draft operation. This authoring contract does not change Integration/hold/approval gates or require a Lab merge. See the authoring guide for per-app adoption and CPU/WebGL evidence limits.
+- Use the existing Motion QA report's `authoring` record and relevant iteration notes. Record reference seconds, before/after source revisions, actual model/rig evidence and remaining differences. Numeric tests, rendered stills, exported-but-unwatched video and iteration counts cannot stand in for normal-speed visual evaluation or human approval.
+- Preserve native gameplay/contact timing and shared sources. Visual Review is an observation surface on develop, not a separate source of gameplay or motion truth. This authoring contract does not change Integration/hold/approval gates. See the authoring guide for per-app adoption and CPU/WebGL evidence limits.
 
 ## RINNE Dispatch
 
