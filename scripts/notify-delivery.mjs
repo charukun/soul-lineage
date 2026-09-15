@@ -21,7 +21,8 @@ export function deliveryMessage(stage, { report, sha, repository, runUrl, locale
   return lifecycleMessage('DEV_DEPLOYED', { locale, lines: [
     'branch: develop',
     `commit: ${sha}`,
-    'Fast checks / DEV / HTTP-source / focused browser passed.',
+    'Fast checks / DEV publication / HTTP-source verification passed.',
+    'Browser diagnostics are asynchronous and only gate active repair verification or Production.',
     `Run: ${runUrl}`,
   ] });
 }
@@ -40,6 +41,22 @@ async function githubJson(request, url, { token, method = 'GET', body } = {}) {
   });
   if (!response.ok) throw new Error(`GITHUB_DELIVERY_RECEIPT_FAILED:${response.status}:${method}:${url}`);
   return response.status === 204 ? null : response.json();
+}
+
+export async function recordDevelopDeliveryStatus({ token = '', repository, sha, runUrl, request = fetch }) {
+  if (!token) return 'not-configured';
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repository || '') || !/^[a-f0-9]{40}$/.test(sha || '')) throw new Error('INVALID_GITHUB_DELIVERY_STATUS');
+  await githubJson(request, `https://api.github.com/repos/${repository}/statuses/${sha}`, {
+    token,
+    method: 'POST',
+    body: {
+      state: 'success',
+      context: 'integration/develop',
+      description: 'DEV published; HTTP/source verified; browser diagnostics are asynchronous',
+      target_url: runUrl,
+    },
+  });
+  return 'recorded';
 }
 
 export async function recordGithubDeliveryReceipt({ token = '', repository, sha, runUrl, message, request = fetch }) {
@@ -97,6 +114,17 @@ async function main() {
     throw error;
   }
   if (stage === 'DEV_DEPLOYED') {
+    try {
+      const status = await recordDevelopDeliveryStatus({
+        token: process.env.GITHUB_TOKEN,
+        repository: process.env.GITHUB_REPOSITORY,
+        sha: process.env.FINAL_SHA,
+        runUrl,
+      });
+      console.log(`GitHub DEV delivery status: ${status}`);
+    } catch (error) {
+      console.warn(`::warning::GitHub DEV delivery status failed: ${error.message}`);
+    }
     try {
       const receipt = await recordGithubDeliveryReceipt({
         token: process.env.GITHUB_TOKEN,
