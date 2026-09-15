@@ -40,3 +40,19 @@ export function benchmarkVerdict(snapshot, preset) {
     meetsFrameTarget: finite(frameP95) ? frameP95 <= preset.targetFrameMs : null,
   });
 }
+
+export function validateBenchmarkCompatibility(baseline, current) {
+  const mismatches = [];
+  const compare = (label, before, after) => {
+    if (before == null || after == null) return;
+    if (before !== after) mismatches.push({ field: label, baseline: before, current: after });
+  };
+  compare('app', baseline?.app, current?.app);
+  compare('preset.id', baseline?.preset?.id, current?.preset?.id);
+  compare('preset.deviceClass', baseline?.preset?.deviceClass, current?.preset?.deviceClass);
+  compare('viewport.width', baseline?.viewport?.width, current?.viewport?.width);
+  compare('viewport.height', baseline?.viewport?.height, current?.viewport?.height);
+  compare('scene.id', baseline?.scene?.id, current?.scene?.id);
+  compare('scene.signature', baseline?.scene?.signature, current?.scene?.signature);
+  return Object.freeze({ comparable: mismatches.length === 0, mismatches });
+}
