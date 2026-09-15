@@ -24,9 +24,9 @@ test('character plan uses authored profile ratios and existing wrappers', () => 
   assert.equal(plan.mode, 'character');
   assert.match(plan.stages.lod.args[0], /scripts\/generate-lods\.mjs$/);
   assert.equal(plan.stages.lod.args.at(-4), '--lod1');
-  assert.equal(plan.stages.lod.args.at(-3), '.72');
+  assert.equal(plan.stages.lod.args.at(-3), '0.72');
   assert.equal(plan.stages.lod.args.at(-2), '--lod2');
-  assert.equal(plan.stages.lod.args.at(-1), '.42');
+  assert.equal(plan.stages.lod.args.at(-1), '0.42');
   assert.match(plan.stages.compress.args[0], /scripts\/compress-gltf\.mjs$/);
   assert.equal(plan.outputs.final, plan.outputs.optimized);
 });
