@@ -4,20 +4,17 @@ import { existsSync, readFileSync } from 'node:fs';
 import { MOTION_LIBRARY_MODELS, motionLibraryModel, motionLibraryModelURL } from '../src/review/motion-library-models.js';
 
 const adapter=readFileSync(new URL('../src/review/review-adapter.js',import.meta.url),'utf8');
-const renderingPackage=JSON.parse(readFileSync(new URL('../../../packages/rendering/package.json',import.meta.url),'utf8'));
-const retiredFiles=[
-  new URL('../src/review/reference-character-models.js',import.meta.url),
-  new URL('../../../packages/rendering/src/master-character-reference.js',import.meta.url),
-  new URL('../../../packages/rendering/src/master-character-wardrobe.js',import.meta.url),
-  new URL('../../../packages/rendering/src/arcanist-atlas-study.js',import.meta.url)
-];
+const retiredReferenceCatalog=new URL('../src/review/reference-character-models.js',import.meta.url);
 
-test('Visual Review Lab keeps retired procedural character bodies out of the public runtime',()=>{
-  for(const file of retiredFiles)assert.equal(existsSync(file),false,`${file.pathname} must stay retired`);
-  assert.doesNotMatch(adapter,/REVIEW_REFERENCE_MODELS|reference-character-models|attachReferenceCharacterController|attachArcanistAtlasStudy/);
+test('Visual Review Lab keeps the retired generic procedural catalog out while preserving the explicit Atlas study',()=>{
+  assert.equal(existsSync(retiredReferenceCatalog),false,`${retiredReferenceCatalog.pathname} must stay retired`);
+  assert.doesNotMatch(adapter,/REVIEW_REFERENCE_MODELS|reference-character-models/);
+  assert.match(adapter,/arcanist\.atlas-study\.v1|ARCANIST_ATLAS_STUDY_ID/);
+  assert.match(adapter,/ARCANIST_ATLAS_STUDY \/ BLOCKOUT/);
+  assert.match(adapter,/modelingMode:'runtime-procedural'/);
+  assert.match(adapter,/productionReady:false/);
+  assert.match(adapter,/attachArcanistAtlasStudy/);
   assert.match(adapter,/\.\.\.baseReviewPresets/);
-  assert.equal(renderingPackage.exports['./master-character-reference'],undefined);
-  assert.equal(renderingPackage.exports['./arcanist-atlas-study'],undefined);
 });
 
 test('Visual Review Lab keeps the five real Motion Library characters', () => {

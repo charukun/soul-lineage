@@ -1,22 +1,60 @@
 import './machine-review.js';
 import { GLTFLoader } from '@soul/rendering';
+import { attachReferenceCharacterController } from '@soul/rendering/master-character-reference';
+import { ARCANIST_ATLAS_STUDY_ID, ARCANIST_ATLAS_STUDY_STAGE, attachArcanistAtlasStudy } from '@soul/rendering/arcanist-atlas-study';
 import { installPostureWeaponPreview } from './posture-preview.js';
 import { installWeaponReviewPolish } from './weapon-review-polish.js';
 import { reviewPresets as baseReviewPresets, reviewWeapons, disposeLoaded, installReviewExtensions as installBase } from './review-adapter-base.js';
 import { MOTION_LIBRARY_MODELS, MOTION_LIBRARY_RAW_BASE, motionLibraryModel, motionLibraryModelURL } from './motion-library-models.js';
 
+const ARCANIST_REFERENCE_PATH='docs/characters/references/npc-role-set/arcanist.avif';
+const ARCANIST_REFERENCE_URL='https://raw.githubusercontent.com/charukun/soul-lineage/develop/'+ARCANIST_REFERENCE_PATH;
+const ARCANIST_PALETTE=Object.freeze({
+  skin:Object.freeze([.86,.70,.62]),hair:Object.freeze([.36,.30,.35]),eyes:Object.freeze([.38,.31,.52]),
+  primary:Object.freeze([.30,.24,.42]),secondary:Object.freeze([.64,.58,.70]),accent:Object.freeze([.65,.54,.32]),
+  dark:Object.freeze([.13,.11,.16]),metal:Object.freeze([.55,.52,.61]),leather:Object.freeze([.25,.18,.23]),wood:Object.freeze([.31,.23,.29])
+});
+const ARCANIST_ATLAS_REFERENCE=Object.freeze({
+  id:ARCANIST_ATLAS_STUDY_ID,
+  parts:Object.freeze({hair:'tail'}),front:'parted',back:'tied',referencePath:ARCANIST_REFERENCE_PATH,
+  referenceStyle:Object.freeze({version:1,design:'arcanist',scale:.86,palette:ARCANIST_PALETTE,armStyle:'robe',legStyle:'robe',footwear:'boots',prop:'staff-book',productionStage:ARCANIST_ATLAS_STUDY_STAGE,modelingMode:'runtime-procedural',productionReady:false})
+});
+const ARCANIST_ATLAS_PRESET=Object.freeze({
+  id:ARCANIST_ATLAS_STUDY_ID,
+  label:'ARCANIST_ATLAS_STUDY / BLOCKOUT',
+  name:'Arcanist Atlas Study / BLOCKOUT',
+  kind:'character',
+  portraitPath:ARCANIST_REFERENCE_URL,
+  source:'explicit-review-blockout'
+});
+
 const MOTION_LIBRARY_PRESETS=Object.freeze(MOTION_LIBRARY_MODELS.map(row=>Object.freeze({
   id:row.presetId,label:`Motion Library / ${row.label}`,name:`Motion Library / ${row.label}`,kind:'character',source:'motion-library'
 })));
 
-// Public review presets must be backed by actual review assets. The retired
-// runtime-procedural reference bodies hid the audited VRM and replaced it with
-// disconnected primitive meshes, so they are intentionally not registered here.
+// Generic runtime-procedural reference bodies remain retired. The single Atlas
+// study below is an explicit user-requested comparison artifact and is labeled
+// BLOCKOUT so it cannot be confused with an audited production character.
 export const reviewPresets=Object.freeze([
   ...baseReviewPresets,
+  ARCANIST_ATLAS_PRESET,
   ...MOTION_LIBRARY_PRESETS
 ]);
 export { reviewWeapons, disposeLoaded };
+
+function installArcanistAtlasStudy(loaded){
+  const actor={root:loaded.root,visual:loaded.root,bones:loaded.bones,sample(){},destroy(){}};
+  const controller=attachReferenceCharacterController(actor);
+  controller.setIdentity(ARCANIST_ATLAS_REFERENCE);
+  const study=attachArcanistAtlasStudy(actor,ARCANIST_ATLAS_REFERENCE);
+  const dispose=loaded.dispose.bind(loaded);let disposed=false;
+  loaded.dispose=()=>{if(disposed)return;disposed=true;study.destroy();controller.destroy();dispose();};
+  loaded.label='Arcanist Atlas Study / BLOCKOUT / 全モーションソース';
+  loaded.summary='ユーザー指定で保存したruntime-procedural比較個体。既存ArcanistやDCC候補とは別物で、BLOCKOUTのまま全周・モーション比較できます。';
+  loaded.referenceModel=ARCANIST_ATLAS_REFERENCE;
+  loaded.referenceDiagnostics=()=>({...controller.diagnostics(),study:{id:study.id,stage:study.stage,modelingMode:study.modelingMode,productionReady:study.productionReady,meshCount:study.meshCount}});
+  return loaded;
+}
 
 function installMotionLibraryPickerPolish(){
   const list=document.querySelector('.model-picker-list');
@@ -70,6 +108,10 @@ export async function installReviewExtensions(options){
   installMotionLibraryPickerPolish();
   return {...base,async loadPreset(args){
     if(motionLibraryModel(args?.presetId))return loadMotionLibraryPreset(args);
+    if(args?.presetId===ARCANIST_ATLAS_STUDY_ID){
+      const loaded=await base.loadPreset({...args,presetId:'model.SHINO'});
+      return installPostureWeaponPreview(installWeaponReviewPolish(installArcanistAtlasStudy(loaded)));
+    }
     const loaded=await base.loadPreset(args);
     return installPostureWeaponPreview(installWeaponReviewPolish(loaded));
   }};

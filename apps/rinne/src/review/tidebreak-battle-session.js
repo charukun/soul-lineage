@@ -7,6 +7,12 @@ export const AUTO_BATTLE_IDS = Object.freeze({
   demonPlayer: 'visual-review-demon-player',
   humanPlayer: 'visual-review-human-player',
 });
+export const AUTO_BATTLE_LOADOUT = Object.freeze({
+  weapon: 'sword',
+  enemyWeapon: 'sword',
+  enemyStyle: 'balanced',
+  mindset: 'balanced',
+});
 
 function memoryStorage() {
   const values = new Map();
@@ -36,6 +42,24 @@ function actorState(player, core) {
   };
 }
 
+function applyReviewLoadout(host, ids, snapshot) {
+  const core = host.battle?.core;
+  const demon = snapshot?.players?.[ids.demonPeer];
+  const human = snapshot?.players?.[ids.humanPeer];
+  if (!core?.configure || !demon || !human) return false;
+  core.configure({
+    ...AUTO_BATTLE_LOADOUT,
+    hp: demon.hp,
+    maxhp: demon.maxhp,
+    enemyHp: human.hp,
+    positions: {
+      hero: { x: demon.x, z: demon.z },
+      enemy: { x: human.x, z: human.z },
+    },
+  });
+  return true;
+}
+
 export function createTidebreakBattleSession({
   villageId = 'visual-review-lab',
   demonName = '魔物側',
@@ -60,6 +84,8 @@ export function createTidebreakBattleSession({
   host.input(ids.humanPeer, { type: 'state', x: 1.45, z: 0 });
 
   let snapshot = host.tick(0);
+  applyReviewLoadout(host, ids, snapshot);
+  snapshot = host.tick(0);
   let lastCoreState = host.battle?.core?.state?.() ?? null;
   let sourceVersion = host.battle?.core?.sourceVersion ?? 'Tidebreak';
 
