@@ -30,17 +30,24 @@ export function deliveryMessage(stage, { report, sha, repository, runUrl, locale
 export function devChangeEmailMessage({ pr, sha, repository, runUrl, locale = 'ja' }) {
   if (!pr?.number || !pr?.title) return null;
   const language = normalizeNotificationLocale(locale);
-  return lifecycleMessage('DEV_DEPLOYED', {
-    locale,
-    result: language === 'ja' ? `${pr.title} をDEVへ反映しました。` : `DEV now includes: ${pr.title}`,
-    next: language === 'ja' ? 'DEVで確認できます。' : 'Review the change on DEV.',
-    lines: [
-      `PR: https://github.com/${repository}/pull/${pr.number}`,
-      'DEV: https://charukun.github.io/soul-lineage/dev/',
-      `commit: ${sha}`,
-      `Run: ${runUrl}`,
-    ],
-  });
+  if (language === 'ja') return [
+    'DEV反映完了',
+    `修正内容: ${pr.title}`,
+    'DEVで確認できます。',
+    'https://charukun.github.io/soul-lineage/dev/',
+    `PR: https://github.com/${repository}/pull/${pr.number}`,
+    `commit: ${sha}`,
+    `Run: ${runUrl}`,
+  ].join('\n');
+  return [
+    'DEV deployment complete',
+    `Change: ${pr.title}`,
+    'Review it on DEV:',
+    'https://charukun.github.io/soul-lineage/dev/',
+    `PR: https://github.com/${repository}/pull/${pr.number}`,
+    `commit: ${sha}`,
+    `Run: ${runUrl}`,
+  ].join('\n');
 }
 
 async function githubJson(request, url, { token, method = 'GET', body } = {}) {
