@@ -11,6 +11,7 @@ config.build = {
     input: {
       app: resolve(appRoot, 'index.html'),
       review: resolve(appRoot, 'review.html'),
+      motionLibrary: resolve(appRoot, 'motion-library.html'),
     },
   },
 };
