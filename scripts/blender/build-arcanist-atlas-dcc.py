@@ -344,8 +344,14 @@ def setup_scene() -> None:
     scene.render.resolution_percentage = 100
     scene.render.image_settings.file_format = "PNG"
     scene.world.color = (0.035, 0.040, 0.050)
-    engines = {item.identifier for item in scene.bl_rna.properties["render_engine"].enum_items}
-    scene.render.engine = "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in engines else "BLENDER_EEVEE"
+    for engine in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE", "BLENDER_WORKBENCH"):
+        try:
+            scene.render.engine = engine
+            break
+        except TypeError:
+            continue
+    else:
+        raise RuntimeError("No supported Blender render engine is available")
 
 
 def look_at(obj, target: Vector) -> None:
