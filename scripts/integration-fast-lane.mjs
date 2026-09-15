@@ -10,6 +10,7 @@ import {
   reviewsWithTrustedStatus,
   validationRuns,
 } from './integration.mjs';
+import { trustedStackFastEvidence } from './integration-stack-fast-evidence.mjs';
 import { dependencies, eligibility } from './integration-policy.mjs';
 
 export const maxFastLaneMerges = 24;
@@ -52,8 +53,7 @@ async function unresolvedThreads(c, pr) {
   return false;
 }
 
-export async function exactHeadFastGate(c, pr, options = {}) {
-  const cache = options.cache === true;
+async function normalExactHeadFastGate(c, pr, cache) {
   const runs = await validationRuns(c, pr, { cache });
   const run = runs.find(isValidationRun);
   if (!run) return false;
@@ -64,6 +64,12 @@ export async function exactHeadFastGate(c, pr, options = {}) {
   const artifact = artifacts.some(item => item.name === `pr-fast-${pr.number}-${pr.head.sha}` && !item.expired);
   const build = jobs.find(job => job.name === 'Validate and build');
   return artifact && build?.status === 'completed' && build.conclusion === 'success';
+}
+
+export async function exactHeadFastGate(c, pr, options = {}) {
+  const cache = options.cache === true;
+  if (await normalExactHeadFastGate(c, pr, cache)) return true;
+  return Boolean(await trustedStackFastEvidence(c, pr, { cache }));
 }
 
 async function queueStatus(c, item, state, description, targetUrl) {

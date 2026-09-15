@@ -122,6 +122,28 @@ npm run asset:optimize -- --input assets/world/tree.glb --role environment
 
 The compiler complements, rather than replaces, runtime Performance Lab evidence and the Character Production Pipeline. Human visual approval remains required where that pipeline requires it. A generated file is not automatically `RUNTIME_READY`.
 
+## Physical-device performance evidence
+
+Synthetic `pixel-fold-class` captures remain useful regression references, but physical device acceptance must be represented separately and fail closed when provenance is incomplete.
+
+A physical evidence record must carry:
+
+- `evidenceKind=physical-device`;
+- app and exact build/revision identifier;
+- device model and device class;
+- operating system and browser/runtime description;
+- capture timestamp;
+- viewport/screen dimensions used for the run;
+- the same benchmark scene id/signature emitted by the runtime;
+- sample count and actual Performance Lab snapshot;
+- explicit capture origin declaring that the measurement came from a physical device.
+
+`npm run performance:evidence` validates and normalises such a record. It may calculate the repository 30 fps / 33.34 ms mobile target verdict, but it must never invent missing device/build/scene provenance, relabel browser emulation as physical evidence, or convert a synthetic capture into a physical one.
+
+Physical evidence can be regression-compared only with another compatible physical capture from the same app, device class, viewport and benchmark scene. Synthetic-versus-physical differences may be reported descriptively but must not be treated as a same-hardware regression gate.
+
+The evidence intake path does not itself operate a phone or prove that a physical run happened. Human/device-side capture remains required. The validator only ensures that stored evidence is explicit, comparable and cannot silently masquerade as a stronger measurement class.
+
 ## Verification
 
 The fast PR gate covers adaptive-quality transitions, GPU/CPU pressure classification, animation throttling, authored LOD selection, compression wiring, texture budgeting, shading hook stability, streaming hysteresis, conservative occlusion, static batching/atlas UV remap and per-app bridge ordering. Asset compiler and transparency telemetry have focused Node coverage. Character Workshop remains the human-facing Art / Performance QA surface.

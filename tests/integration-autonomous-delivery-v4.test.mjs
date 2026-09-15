@@ -113,7 +113,7 @@ test('workflow contracts keep exact-head fast merge, asynchronous browser repair
   const deploy = readFileSync('.github/workflows/deploy.yml','utf8');
   const controller = readFileSync('.github/workflows/integration-controller.yml','utf8');
   const coalescer = readFileSync('.github/workflows/dev-publisher-coalescer.yml','utf8');
-  const rescue = readFileSync('.github/workflows/integration-rescue.yml','utf8');
+  const repair = readFileSync('.github/workflows/integration-rescue.yml','utf8');
   assert.match(ci,/Validate and build/);
   assert.match(ci,/Affected browser smoke/);
   assert.match(ci,/integration-stack-ci\.mjs/);
@@ -130,7 +130,8 @@ test('workflow contracts keep exact-head fast merge, asynchronous browser repair
   assert.doesNotMatch(controller,/Validate planned Virtual Integration Train/);
   assert.doesNotMatch(controller,/publisher-handoff:/);
   assert.match(coalescer,/run\.event === 'push' && run\.head_sha !== latestSha/);
-  assert.match(rescue,/Observe repair pressure and knowledge/);
-  assert.match(rescue,/Plan repair executor wave/);
-  assert.doesNotMatch(`${ci}\n${deploy}\n${controller}\n${coalescer}\n${rescue}`,/OPENAI_API_KEY|openai\/codex-action|RINNE_CODEX_MODEL/);
+  assert.match(repair,/Fast Repair/);
+  assert.match(repair,/integration-repair-fast\.mjs/);
+  assert.doesNotMatch(repair,/Observe repair pressure and knowledge|Plan repair executor wave|AWAITING_PUSH/);
+  assert.doesNotMatch(`${ci}\n${deploy}\n${controller}\n${coalescer}\n${repair}`,/OPENAI_API_KEY|openai\/codex-action|RINNE_CODEX_MODEL/);
 });

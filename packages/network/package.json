@@ -7,6 +7,7 @@
     ".": "./src/index.js",
     "./peer": "./src/peer.js",
     "./raid-host": "./src/raid-host.js",
+    "./presence-lod": "./src/presence-lod.js",
     "./friend-invite": "./src/friend-invite.js"
   },
   "dependencies": {

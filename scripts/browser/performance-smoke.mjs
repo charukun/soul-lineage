@@ -23,9 +23,16 @@ try{
  const context=await browser.newContext({viewport:preset.viewport}),page=await context.newPage();await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
  await page.waitForFunction(()=>document.querySelector('#game')?.dataset.renderer==='ready',null,{timeout:45000});
  if(app==='demon'){await page.locator('#begin').click();await page.locator('[data-village]').first().click();await page.locator('#hud').waitFor({state:'visible',timeout:30000});}
- const globalName=app==='village'?'__VILLAGE_ADAPTIVE_QUALITY__':'__DEMON_ADAPTIVE_QUALITY__';
+ const globalName=app==='village'?'__VILLAGE_ADAPTIVE_QUALITY__':'__DEMON_ADAPTIVE_QUALITY__',scaleName=app==='village'?'__VILLAGE_WORLD_SCALE__':'__DEMON_WORLD_SCALE__';
  await page.waitForFunction(({name,minSamples})=>window[name]?.snapshot?.().performance?.samples>=minSamples,{name:globalName,minSamples:preset.minSamples},{timeout:45000});
- const snapshot=await page.evaluate(name=>window[name].snapshot(),globalName);const verdict=benchmarkVerdict(snapshot,preset);const report={app,preset,viewport:preset.viewport,capturedAt:new Date().toISOString(),benchmark:verdict,...snapshot};
- const suffix=preset.id==='quick'?'':`.${preset.id}`;writeFileSync(resolve(output,`${app}${suffix}.json`),JSON.stringify(report,null,2));console.log('PERFORMANCE LAB CAPTURED',JSON.stringify({app,preset:preset.id,samples:report.performance.samples,frameP95:report.performance.frame.p95Ms,gpuP95:report.performance.gpu.p95Ms,drawCalls:report.performance.drawCalls.p95,transparentDrawCalls:report.performance.transparency?.drawCalls?.p95,meetsFrameTarget:verdict.meetsFrameTarget}));
+ await page.waitForFunction(name=>Boolean(window[name]?.snapshot),scaleName,{timeout:10000}).catch(()=>{});
+ const snapshot=await page.evaluate(name=>window[name].snapshot(),globalName);
+ const scale=await page.evaluate(async name=>{const api=window[name];return api?.replay?await api.replay():null;},scaleName);
+ const verdict=benchmarkVerdict(snapshot,preset);
+ const report={app,preset,viewport:preset.viewport,capturedAt:new Date().toISOString(),benchmark:verdict,...snapshot,worldScale:await page.evaluate(name=>window[name]?.snapshot?.()||null,scaleName)};
+ const suffix=preset.id==='quick'?'':`.${preset.id}`;
+ writeFileSync(resolve(output,`${app}${suffix}.json`),JSON.stringify(report,null,2));
+ if(scale)writeFileSync(resolve(output,`${app}${suffix}-world-scale.json`),JSON.stringify(scale,null,2));
+ console.log('PERFORMANCE LAB CAPTURED',JSON.stringify({app,preset:preset.id,samples:report.performance.samples,frameP95:report.performance.frame.p95Ms,gpuP95:report.performance.gpu.p95Ms,drawCalls:report.performance.drawCalls.p95,transparentDrawCalls:report.performance.transparency?.drawCalls?.p95,scaleAverageMs:scale?.averageMs??null,meetsFrameTarget:verdict.meetsFrameTarget}));
  await context.close();
 }finally{if(browser)await browser.close().catch(()=>{});await stop();}

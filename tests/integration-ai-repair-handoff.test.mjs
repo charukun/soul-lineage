@@ -54,19 +54,18 @@ test('queue-recovery module loads from the same scripts-only checkout used by th
   }
 });
 
-test('repair worker can write the statuses used by return and AI repair signaling', () => {
-  const rescue = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');
-  const worker = rescue.match(/\n  worker:\n[\s\S]*?\n  return:/)?.[0] || '';
-  assert.match(worker, /permissions:[\s\S]*?statuses: write/);
-  assert.match(worker, /integration-rescue-return\.mjs/);
+test('normal Repair path no longer depends on staged Work push or return state', () => {
+  const workflow = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');
+  assert.match(workflow, /integration-repair-fast\.mjs/);
+  assert.doesNotMatch(workflow, /integration-rescue-worker\.mjs|integration-rescue-return\.mjs|AWAITING_PUSH|RESCUE_VALIDATION_USER/);
 });
 
-test('Integration and Rescue keep AI as a bounded repair consumer without paid model execution in the control plane', () => {
+test('Integration and Repair keep AI as a bounded deep-repair fallback without paid model execution in the control plane', () => {
   const controller = readFileSync('.github/workflows/integration-controller.yml', 'utf8');
-  const rescue = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');
+  const repair = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');
   const returns = readFileSync('scripts/integration-rescue-return.mjs', 'utf8');
   const quarantine = readFileSync('scripts/integration-quarantine-signal.mjs', 'utf8');
   assert.match(returns, /aiRepairEnvelopeMarker/);
   assert.match(quarantine, /aiRepairEnvelopeMarker/);
-  assert.doesNotMatch(`${controller}\n${rescue}`, /OPENAI_API_KEY|openai\/codex-action|RINNE_CODEX_MODEL/);
+  assert.doesNotMatch(`${controller}\n${repair}`, /OPENAI_API_KEY|openai\/codex-action|RINNE_CODEX_MODEL/);
 });
