@@ -1,193 +1,476 @@
+import './mura-first-run-guide.css';
 import {consumeFreshVillageLoad} from './game/save-store.js';
 import {markFirstRunAutoplaySeen,markFirstRunAutoplayStarted,shouldRunFirstRunAutoplay} from './game/first-run-onboarding.js';
 
-const STEPS=[
- {id:'b1',title:'まず、暮らしの中心を置きます',before:'「つくる」で施設を選び、置きたい場所へ運びます。',after:'村長の住まいができました。施設には、それぞれ役割があります。',span:34},
- {id:'b2',title:'次に、みんなが集まる灯り',before:'半透明の見本で場所を確かめてから、そこへ配置します。',after:'焚き火が灯りました。人が集まる場所が、村の中心になります。',span:30},
- {id:'b3',title:'最後に、暮らしを守る拠点',before:'住まいだけでなく、守りや仕事の施設も同じように配置できます。',after:'護衛の住まいができました。これで最初の暮らしを始められます。',span:34},
-];
+const GUIDE_KIND='tent';
+const DRAG_DISTANCE=32;
+const STAGES={
+ welcome:{
+  number:0,
+  title:'ここからは、あなたの指で。',
+  text:'最初の空きテントをひとつ置きながら、村の基本操作を覚えます。勝手には進みません。',
+  cue:'まず流れを見る',
+ },
+ build:{
+  number:1,
+  title:'「つくる」を押す',
+  text:'画面下の「つくる」を、短く1回タップしてください。',
+  cue:'つくる をタップ',
+ },
+ catalog:{
+  number:2,
+  title:'空きテントを選ぶ',
+  text:'住まいの一覧から「空きテント」を1回タップします。すると実際の配置モードに入ります。',
+  cue:'空きテント をタップ',
+ },
+ drag:{
+  number:3,
+  title:'1本指で、場所を動かす',
+  text:'画面を1本指でゆっくりなぞってください。指の動きと同じだけ地面が動き、中央のテント候補の場所が変わります。',
+  cue:'1本指でなぞる',
+ },
+ place:{
+  number:4,
+  title:'短くタップして置く',
+  text:'置きたい場所になったら、画面を短く1回タップ。いま見えている候補の位置へ、そのまま配置されます。',
+  cue:'画面を短くタップ',
+ },
+ done:{
+  number:4,
+  title:'これで、村を自分で動かせます。',
+  text:'「選ぶ → 指で場所を動かす → タップで置く」が基本です。ここから先は、あなたの村です。',
+  cue:'完了',
+ },
+};
 
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-const clamp01=value=>Math.max(0,Math.min(1,value));
-const easeOut=value=>1-Math.pow(1-clamp01(value),3);
+const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 
 function install(){
  const village=window.village;
  if(!village)return;
  const freshLoad=consumeFreshVillageLoad();
  if(!shouldRunFirstRunAutoplay(village.world.state,{freshLoad}))return;
- const steps=STEPS.map(step=>({...step,object:village.world.object(step.id)})).filter(step=>step.object);
- if(!steps.length)return;
 
- const {world,view}=village;
- const canvas=document.getElementById('game');
- const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
- const timing=reduced?{settle:90,ghost:180,reveal:180,after:180,final:260}:{settle:360,ghost:760,reveal:620,after:780,final:1100};
- const hiddenIds=new Set(steps.map(step=>step.id));
- const previousAutoOrbit=view.autoOrbit;
- let active=true,finishing=false,lockFrame=0;
-
- const style=document.createElement('style');
- style.dataset.muraFirstRun='true';
- style.textContent=`
- body.mura-first-run-autoplay #tutorial{display:none!important}
- body.mura-first-run-autoplay #build{outline:2px solid rgba(255,225,154,.92);outline-offset:3px;box-shadow:0 0 0 5px rgba(83,54,28,.18),0 0 24px rgba(255,210,116,.34)}
- #muraFirstRunTutorial{position:fixed;inset:0;z-index:1200;display:flex;align-items:flex-end;justify-content:center;padding:12px 12px calc(14px + env(safe-area-inset-bottom));box-sizing:border-box;background:radial-gradient(circle at 50% 42%,rgba(21,31,25,0) 20%,rgba(15,20,17,.18) 58%,rgba(8,12,10,.52) 100%);pointer-events:auto}
- #muraFirstRunTutorial .mura-first-run-card{position:relative;width:min(560px,calc(100vw - 24px));min-height:132px;max-height:min(34dvh,250px);box-sizing:border-box;padding:15px 16px 14px;border:1px solid rgba(226,194,132,.62);border-radius:14px;background:linear-gradient(145deg,rgba(47,38,26,.96),rgba(24,29,24,.97));box-shadow:0 12px 40px rgba(0,0,0,.46),inset 0 0 0 3px rgba(255,239,195,.055);color:#fff4d7;overflow:hidden}
- #muraFirstRunTutorial .mura-first-run-card:before{content:'';position:absolute;inset:6px;border:1px solid rgba(255,225,164,.13);border-radius:9px;pointer-events:none}
- #muraFirstRunTutorial .eyebrow{display:block;margin:0 82px 4px 0;font-size:10px;letter-spacing:.16em;color:#d9bd84}
- #muraFirstRunTutorial strong{display:block;margin-right:68px;font:700 clamp(16px,4.4vw,20px)/1.3 ui-serif,serif;color:#fff8e8}
- #muraFirstRunTutorial p{margin:7px 0 10px;font-size:clamp(12px,3.3vw,14px);line-height:1.5;color:#e9dfc7}
- #muraFirstRunSkip{position:absolute;top:10px;right:10px;min-width:64px;min-height:40px;padding:7px 10px;border:1px solid rgba(238,211,158,.36);border-radius:999px;background:rgba(10,14,12,.42);color:#f4e8cc;font-size:11px}
- #muraFirstRunProgress{display:flex;align-items:center;gap:7px;min-height:18px;color:#cbb98f;font-size:10px}
- #muraFirstRunProgress i{display:block;width:7px;height:7px;border-radius:50%;background:rgba(246,222,170,.22);box-shadow:inset 0 0 0 1px rgba(246,222,170,.24)}
- #muraFirstRunProgress i.done{background:#f2d28f;box-shadow:0 0 10px rgba(242,210,143,.4)}
- #muraFirstRunProgress span{margin-left:3px}
- #build.mura-first-run-ready{animation:mura-first-run-ready 1.2s ease-in-out 4}
- @keyframes mura-first-run-ready{50%{transform:translateY(-2px) scale(1.035);filter:brightness(1.2)}}
- @media(max-height:520px){#muraFirstRunTutorial{padding-bottom:8px}#muraFirstRunTutorial .mura-first-run-card{min-height:110px;max-height:44dvh;padding:10px 13px}#muraFirstRunTutorial p{margin:4px 0 6px;line-height:1.35}}
- @media(prefers-reduced-motion:reduce){#build.mura-first-run-ready{animation:none}}
- `;
- document.head.append(style);
-
- const overlay=document.createElement('div');
- overlay.id='muraFirstRunTutorial';
- overlay.setAttribute('role','dialog');
- overlay.setAttribute('aria-modal','true');
- overlay.setAttribute('aria-labelledby','muraFirstRunTitle');
- overlay.innerHTML=`<section class="mura-first-run-card"><span class="eyebrow">はじめての村 · 自動案内</span><strong id="muraFirstRunTitle">何もない場所から、村を始めます</strong><p id="muraFirstRunText">最初の施設がどう置かれるかを、そのまま見てみましょう。</p><div id="muraFirstRunProgress" aria-label="導入の進行"></div><button id="muraFirstRunSkip" type="button">スキップ</button></section>`;
- document.body.append(overlay);
- document.body.classList.add('mura-first-run-autoplay');
- canvas?.setAttribute('data-first-run-tutorial','running');
-
- const title=overlay.querySelector('#muraFirstRunTitle');
- const text=overlay.querySelector('#muraFirstRunText');
- const progress=overlay.querySelector('#muraFirstRunProgress');
- const skip=overlay.querySelector('#muraFirstRunSkip');
- function progressAt(index,label='自動で進みます'){
-  progress.innerHTML=steps.map((_,i)=>`<i class="${i<index?'done':''}" aria-hidden="true"></i>`).join('')+`<span>${Math.min(index+1,steps.length)} / ${steps.length} · ${label}</span>`;
- }
- progressAt(0);
-
- view.autoOrbit=false;
- view.clearGhost();
- for(const id of hiddenIds){const node=view.objectNodes.get(id);if(node)node.visible=false;}
- view.actors.visible=false;
- if(view.foundation)view.foundation.visible=false;
-
- function keepIntroHidden(){
-  if(!active)return;
-  for(const id of hiddenIds){const node=view.objectNodes.get(id);if(node)node.visible=false;}
-  view.actors.visible=false;
-  if(view.foundation)view.foundation.visible=false;
-  lockFrame=requestAnimationFrame(keepIntroHidden);
- }
- lockFrame=requestAnimationFrame(keepIntroHidden);
-
- function blockKeys(event){
-  if(!active)return;
-  if(event.key==='Escape'){event.preventDefault();void finish(true);return;}
-  if(event.key==='Tab'){event.preventDefault();skip.focus();}
- }
- document.addEventListener('keydown',blockKeys,true);
- skip.addEventListener('click',()=>void finish(true));
- skip.focus({preventScroll:true});
+ const {world,view,ui}=village;
+ const canvas=view.canvas||document.getElementById('game');
+ if(!canvas)return;
 
  markFirstRunAutoplayStarted(world.state);
  void village.save().catch(error=>console.warn('First-run tutorial start could not be persisted',error));
 
- async function animateObject(step){
-  const object=step.object;
-  title.textContent=step.title;
-  text.textContent=step.before;
-  view.focus(object.x,object.z,step.span);
-  view.setGhost(object.kind,object.x,object.z,object.rot,true,object.material||'base');
-  await wait(timing.ghost);
-  if(!active)return false;
-  view.clearGhost();
-  hiddenIds.delete(object.id);
-  let node=view.objectNodes.get(object.id);
-  if(node){
-   const baseY=node.position.y;
-   node.visible=true;
-   node.scale.setScalar(.06);
-   node.position.y=baseY-.5;
-   const start=performance.now();
-   await new Promise(resolve=>{
-    const frame=now=>{
-     if(!active){node?.scale.setScalar(1);if(node)node.position.y=baseY;resolve();return;}
-     const value=easeOut((now-start)/timing.reveal);
-     const current=view.objectNodes.get(object.id);
-     if(current!==node){node=current;if(!node){resolve();return;}}
-     node.visible=true;
-     node.scale.setScalar(.06+.94*value);
-     node.position.y=baseY-.5*(1-value);
-     if(value<.999)requestAnimationFrame(frame);else{node.scale.setScalar(1);node.position.y=baseY;resolve();}
-    };
-    requestAnimationFrame(frame);
-   });
-  }
-  if(!active)return false;
-  view.renderer.shadowMap.needsUpdate=true;
-  text.textContent=step.after;
-  return true;
+ // A reload can happen after the normal placement path succeeded but before the
+ // tutorial completion marker was saved. Do not force the player to place a
+ // second tutorial tent in that recovery case.
+ if(world.objects.some(object=>object.kind===GUIDE_KIND)){
+  markFirstRunAutoplaySeen(world.state);
+  void village.save().catch(error=>console.warn('First-run tutorial recovery could not be persisted',error));
+  return;
  }
 
- function revealEverything(){
-  hiddenIds.clear();
-  for(const step of steps){const node=view.objectNodes.get(step.id);if(node){node.visible=true;node.scale.setScalar(1);}}
-  view.actors.visible=true;
-  if(view.foundation)view.foundation.visible=true;
-  view.clearGhost();
-  view.renderer.shadowMap.needsUpdate=true;
+ const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+ const timing=reduced?{read:420,tap:520,drag:760,confirm:520}:{read:1050,tap:900,drag:1650,confirm:900};
+ const previousAutoOrbit=view.autoOrbit;
+ view.autoOrbit=false;
+
+ const layer=document.createElement('div');
+ layer.id='muraFirstRunGuide';
+ layer.dataset.stage='welcome';
+ layer.innerHTML=`
+  <section class="muraFirstRunGuideCard" aria-labelledby="muraFirstRunGuideTitle" aria-describedby="muraFirstRunGuideText">
+   <div class="muraFirstRunGuideTop">
+    <span class="muraFirstRunGuideEyebrow">はじめての村</span>
+    <button type="button" class="muraFirstRunSkip" aria-label="チュートリアルをスキップ">スキップ</button>
+   </div>
+   <strong id="muraFirstRunGuideTitle"></strong>
+   <p id="muraFirstRunGuideText"></p>
+   <div class="muraFirstRunGuideFooter">
+    <div class="muraFirstRunProgress" aria-label="チュートリアル進行"></div>
+    <span class="muraFirstRunCue"></span>
+    <button type="button" class="muraFirstRunReplay">もう一度見る</button>
+    <button type="button" class="muraFirstRunStart">やってみる</button>
+    <button type="button" class="muraFirstRunFinish">村を始める</button>
+   </div>
+  </section>
+  <div class="muraFirstRunFinger" aria-hidden="true"><i></i><b></b></div>
+  <div class="muraFirstRunRipple" aria-hidden="true"></div>
+  <div class="muraFirstRunDragStart" aria-hidden="true"></div>
+  <div class="muraFirstRunDragEnd" aria-hidden="true"></div>`;
+ layer.hidden=ui.entryOpen;
+ document.body.append(layer);
+ canvas.dataset.firstRunTutorial='running';
+
+ const title=layer.querySelector('#muraFirstRunGuideTitle');
+ const text=layer.querySelector('#muraFirstRunGuideText');
+ const cue=layer.querySelector('.muraFirstRunCue');
+ const progress=layer.querySelector('.muraFirstRunProgress');
+ const replay=layer.querySelector('.muraFirstRunReplay');
+ const start=layer.querySelector('.muraFirstRunStart');
+ const finishButton=layer.querySelector('.muraFirstRunFinish');
+ const skip=layer.querySelector('.muraFirstRunSkip');
+ const finger=layer.querySelector('.muraFirstRunFinger');
+ const ripple=layer.querySelector('.muraFirstRunRipple');
+ const dragStart=layer.querySelector('.muraFirstRunDragStart');
+ const dragEnd=layer.querySelector('.muraFirstRunDragEnd');
+
+ let active=true;
+ let finishing=false;
+ let stage='welcome';
+ let demoTimer=0;
+ let demoRun=0;
+ let transitionRun=0;
+ let gesture=null;
+ let hintTimer=0;
+ let target=null;
+ let entryListener=null;
+
+ function setProgress(number){
+  progress.replaceChildren(...[1,2,3,4].map(index=>{
+   const mark=document.createElement('i');
+   mark.className=stage==='done'||index<number?'done':index===number?'current':'';
+   mark.setAttribute('aria-hidden','true');
+   return mark;
+  }));
+  progress.setAttribute('aria-label',stage==='done'?'4 / 4 · 完了':number?`${number} / 4`:'導入');
+ }
+
+ function clearTarget(){
+  target?.classList?.remove('mura-first-run-target');
+  target=null;
+  document.body.classList.remove('mura-first-run-canvas-target');
+ }
+
+ function resolveTarget(){
+  if(stage==='build')return document.getElementById('build');
+  if(stage==='catalog')return document.querySelector('#catalog .card[data-kind="tent"]');
+  if(stage==='drag'||stage==='place')return canvas;
+  return null;
+ }
+
+ function targetPoint(element,offset={x:0,y:0}){
+  const rect=element?.getBoundingClientRect?.();
+  if(!rect)return{x:innerWidth/2,y:innerHeight/2};
+  return{x:rect.left+rect.width/2+offset.x,y:rect.top+rect.height/2+offset.y};
+ }
+
+ function positionMarker(node,point){
+  node.style.left=`${Math.round(point.x)}px`;
+  node.style.top=`${Math.round(point.y)}px`;
+ }
+
+ function updateTarget(){
+  clearTarget();
+  target=resolveTarget();
+  if(!target)return;
+  if(target===canvas)document.body.classList.add('mura-first-run-canvas-target');
+  else{
+   target.classList.add('mura-first-run-target');
+   if(stage==='catalog')target.scrollIntoView({block:'nearest',inline:'nearest'});
+  }
+ }
+
+ function setHint(message,ms=3200){
+  if(!active)return;
+  clearTimeout(hintTimer);
+  text.textContent=message;
+  layer.classList.add('mura-first-run-hint');
+  hintTimer=setTimeout(()=>{
+   if(!active)return;
+   layer.classList.remove('mura-first-run-hint');
+   text.textContent=STAGES[stage].text;
+  },ms);
+ }
+
+ async function demoTap(element,token){
+  if(!element||token!==demoRun||!active)return;
+  const point=targetPoint(element,element===canvas?{x:0,y:42}:{x:0,y:0});
+  positionMarker(finger,{x:point.x+18,y:point.y+24});
+  positionMarker(ripple,point);
+  finger.hidden=false;
+  ripple.hidden=false;
+  if(reduced){
+   finger.animate([{opacity:0},{opacity:1},{opacity:1},{opacity:0}],{duration:timing.tap,easing:'ease-in-out'});
+   ripple.animate([{opacity:0,transform:'translate(-50%,-50%) scale(.7)'},{opacity:.75,transform:'translate(-50%,-50%) scale(1)'},{opacity:0,transform:'translate(-50%,-50%) scale(1.35)'}],{duration:timing.tap,easing:'ease-out'});
+  }else{
+   finger.animate([
+    {opacity:0,transform:'translate(-50%,-50%) translateY(18px) scale(1.04)'},
+    {opacity:1,transform:'translate(-50%,-50%) translateY(0) scale(1)',offset:.3},
+    {opacity:1,transform:'translate(-50%,-50%) translateY(3px) scale(.9)',offset:.58},
+    {opacity:1,transform:'translate(-50%,-50%) translateY(0) scale(1)',offset:.73},
+    {opacity:0,transform:'translate(-50%,-50%) translateY(-5px) scale(1)',offset:1},
+   ],{duration:timing.tap,easing:'ease-in-out'});
+   ripple.animate([
+    {opacity:0,transform:'translate(-50%,-50%) scale(.5)'},
+    {opacity:0,transform:'translate(-50%,-50%) scale(.5)',offset:.5},
+    {opacity:.85,transform:'translate(-50%,-50%) scale(.75)',offset:.58},
+    {opacity:0,transform:'translate(-50%,-50%) scale(1.55)'},
+   ],{duration:timing.tap,easing:'ease-out'});
+  }
+  await wait(timing.tap);
+  if(token===demoRun){finger.hidden=true;ripple.hidden=true;}
+ }
+
+ async function demoDrag(token){
+  if(token!==demoRun||!active)return;
+  const rect=canvas.getBoundingClientRect();
+  const startPoint={x:rect.left+rect.width*.64,y:rect.top+rect.height*.58};
+  const endPoint={x:rect.left+rect.width*.37,y:rect.top+rect.height*.43};
+  positionMarker(finger,{x:startPoint.x+16,y:startPoint.y+22});
+  positionMarker(dragStart,startPoint);
+  positionMarker(dragEnd,endPoint);
+  finger.hidden=false;dragStart.hidden=false;dragEnd.hidden=false;
+  if(reduced){
+   finger.animate([{opacity:0},{opacity:1},{opacity:1},{opacity:0}],{duration:timing.drag,easing:'ease-in-out'});
+   dragStart.animate([{opacity:0},{opacity:.65},{opacity:.25}],{duration:timing.drag});
+   dragEnd.animate([{opacity:0},{opacity:.2},{opacity:.75}],{duration:timing.drag});
+  }else{
+   const dx=endPoint.x-startPoint.x,dy=endPoint.y-startPoint.y;
+   finger.animate([
+    {opacity:0,transform:'translate(-50%,-50%) scale(1)'},
+    {opacity:1,transform:'translate(-50%,-50%) scale(1)',offset:.18},
+    {opacity:1,transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.92)`,offset:.82},
+    {opacity:0,transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(1)`,offset:1},
+   ],{duration:timing.drag,easing:'cubic-bezier(.25,.68,.35,1)'});
+   dragStart.animate([{opacity:0},{opacity:.65,offset:.18},{opacity:0}],{duration:timing.drag});
+   dragEnd.animate([{opacity:0},{opacity:0,offset:.55},{opacity:.75,offset:.82},{opacity:0}],{duration:timing.drag});
+  }
+  await wait(timing.drag);
+  if(token===demoRun){finger.hidden=true;dragStart.hidden=true;dragEnd.hidden=true;}
+ }
+
+ async function playDemo({immediate=false}={}){
+  const token=++demoRun;
+  clearTimeout(demoTimer);
+  finger.hidden=true;ripple.hidden=true;dragStart.hidden=true;dragEnd.hidden=true;
+  if(stage==='welcome'||stage==='done')return;
+  updateTarget();
+  await wait(immediate?120:timing.read);
+  if(token!==demoRun||!active)return;
+  if(stage==='drag')await demoDrag(token);
+  else await demoTap(resolveTarget(),token);
+ }
+
+ function scheduleDemo(){
+  clearTimeout(demoTimer);
+  const token=++demoRun;
+  demoTimer=setTimeout(()=>{
+   if(token!==demoRun||!active)return;
+   // playDemo increments the token once more so stale animation callbacks lose ownership.
+   void playDemo();
+  },80);
+ }
+
+ function setStage(next,{message=null}={}){
+  if(!active)return;
+  stage=next;
+  layer.dataset.stage=next;
+  const config=STAGES[next];
+  title.textContent=config.title;
+  text.textContent=message||config.text;
+  cue.textContent=config.cue;
+  setProgress(config.number);
+  start.hidden=next!=='welcome';
+  finishButton.hidden=next!=='done';
+  replay.hidden=next==='welcome'||next==='done';
+  cue.hidden=next==='welcome'||next==='done';
+  updateTarget();
+  scheduleDemo();
+ }
+
+ async function accept(next,message){
+  if(!active)return;
+  const token=++transitionRun;
+  ++demoRun;
+  clearTimeout(demoTimer);
+  finger.hidden=true;ripple.hidden=true;dragStart.hidden=true;dragEnd.hidden=true;
+  layer.classList.add('mura-first-run-accepted');
+  if(message)text.textContent=message;
+  await wait(timing.confirm);
+  if(!active||token!==transitionRun)return;
+  layer.classList.remove('mura-first-run-accepted');
+  setStage(next);
+ }
+
+ function onClick(event){
+  if(!active)return;
+  const button=event.target.closest?.('button');
+  if(!button)return;
+
+  if(button===skip||button===replay||button===start||button===finishButton)return;
+
+  if(stage==='catalog'){
+   const card=event.target.closest?.('#catalog .card');
+   if(card&&card.dataset.kind!==GUIDE_KIND){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    setHint('今回は「空きテント」を選びます。光っている住まいをタップしてください。');
+    void playDemo({immediate:true});
+    return;
+   }
+  }
+
+  if(stage==='build'&&button.id==='build'){
+   requestAnimationFrame(()=>{
+    if(active&&ui.drawer)void accept('catalog','そうです。次は、実際の住まいを選びます。');
+   });
+   return;
+  }
+
+  if(stage==='catalog'&&button.matches('#catalog .card[data-kind="tent"]')){
+   requestAnimationFrame(()=>{
+    if(active&&ui.pending?.kind===GUIDE_KIND)void accept('drag','配置モードに入りました。次は場所を自分の指で動かします。');
+   });
+   return;
+  }
+
+  if(stage==='catalog'&&button.id==='build'){
+   requestAnimationFrame(()=>{
+    if(active&&!ui.drawer)setStage('build',{message:'閉じても大丈夫です。もう一度「つくる」をタップしてください。'});
+   });
+   return;
+  }
+
+  if((stage==='drag'||stage==='place')&&button.id==='cancelPlace'){
+   event.preventDefault();
+   event.stopImmediatePropagation();
+   setHint(stage==='drag'?'まず1本指で画面をなぞって、テントの場所を動かしてみてください。':'今回は画面そのものを短くタップして置いてみましょう。');
+   void playDemo({immediate:true});
+   return;
+  }
+
+  if((stage==='drag'||stage==='place')&&button.id==='muraCancelPlacement'){
+   requestAnimationFrame(()=>{
+    if(active&&!ui.pending)setStage('build',{message:'配置をやめました。もう一度「つくる」から試せます。'});
+   });
+  }
+ }
+
+ function onPointerDown(event){
+  if(!active||!['drag','place'].includes(stage)||ui.pending?.kind!==GUIDE_KIND||event.target!==canvas)return;
+  if(event.button!==undefined&&event.button!==0)return;
+  if(gesture){gesture.multi=true;return;}
+  gesture={id:event.pointerId,start:{x:event.clientX,y:event.clientY},last:{x:event.clientX,y:event.clientY},max:0,multi:false,stage};
+ }
+
+ function onPointerMove(event){
+  if(!gesture||event.pointerId!==gesture.id)return;
+  gesture.last={x:event.clientX,y:event.clientY};
+  gesture.max=Math.max(gesture.max,distance(gesture.start,gesture.last));
+ }
+
+ function finishGesture(event){
+  if(!gesture||event.pointerId!==gesture.id)return;
+  const completed=gesture;
+  gesture=null;
+
+  if(completed.stage==='drag'){
+   if(!completed.multi&&completed.max>=DRAG_DISTANCE&&active&&stage==='drag'&&ui.pending?.kind===GUIDE_KIND){
+    void accept('place','場所を動かせました。最後は、画面を短くタップして置きます。');
+    return;
+   }
+   if(!completed.multi&&completed.max<7&&active&&stage==='drag'){
+    // The placement layer normally treats a short pointer release as commit.
+    // During this one teaching step only, stop that release before it reaches
+    // the normal handler. The next real drag remains completely native.
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    setHint('いまは置かずに、指を画面につけたまま少し大きくなぞってみてください。');
+    void playDemo({immediate:true});
+   }
+   return;
+  }
+
+  if(completed.stage==='place'&&!completed.multi&&completed.max<7&&active&&stage==='place'){
+   requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(!active||stage!=='place')return;
+    const placed=world.objects.some(object=>object.kind===GUIDE_KIND);
+    if(placed&&!ui.pending){
+     setStage('done');
+     return;
+    }
+    if(ui.pending?.error)setHint(`そこには置けません。「${ui.pending.error}」と出ているので、もう一度なぞって場所をずらしてから短くタップしてください。`,4300);
+    else setHint('短く1回だけタップすると、中央の候補をその場所へ置けます。');
+   }));
+  }
+ }
+
+ function onKey(event){
+  if(!active||layer.hidden)return;
+  if(event.key==='Escape'){
+   event.preventDefault();
+   void complete(true);
+  }
+ }
+
+ async function complete(skipped=false){
+  if(finishing)return;
+  finishing=true;
+  active=false;
+  ++demoRun;++transitionRun;
+  clearTimeout(demoTimer);clearTimeout(hintTimer);
+  if(skipped){
+   if(ui.pending)village.cancelPlacement();
+   if(ui.drawer)village.closeDrawer();
+  }
+  markFirstRunAutoplaySeen(world.state);
+  try{
+   await village.save();
+   canvas.dataset.firstRunTutorial='seen';
+  }catch(error){
+   console.warn('First-run tutorial completion could not be persisted',error);
+   canvas.dataset.firstRunTutorial='save-error';
+  }
+  cleanup();
  }
 
  function cleanup(){
-  cancelAnimationFrame(lockFrame);
-  revealEverything();
+  clearTarget();
   view.autoOrbit=previousAutoOrbit;
-  document.removeEventListener('keydown',blockKeys,true);
-  document.body.classList.remove('mura-first-run-autoplay');
-  overlay.remove();
-  const build=document.getElementById('build');
-  build?.classList.add('mura-first-run-ready');
-  const cleanupDelay=reduced?1000:5200;
-  setTimeout(()=>{build?.classList.remove('mura-first-run-ready');style.remove();},cleanupDelay);
+  document.body.classList.remove('mura-first-run-active');
+  document.removeEventListener('click',onClick,true);
+  document.removeEventListener('pointerdown',onPointerDown,true);
+  document.removeEventListener('pointermove',onPointerMove,true);
+  document.removeEventListener('pointerup',finishGesture,true);
+  document.removeEventListener('pointercancel',finishGesture,true);
+  document.removeEventListener('keydown',onKey,true);
+  window.removeEventListener('resize',updateTarget);
+  if(entryListener)document.removeEventListener('click',entryListener,true);
+  layer.remove();
   village.activity();
   village.updateTutorial();
  }
 
- async function finish(skipped=false){
-  if(finishing)return;
-  finishing=true;
-  active=false;
-  cancelAnimationFrame(lockFrame);
-  revealEverything();
-  title.textContent=skipped?'案内を終わります':'できあがり。次はあなたの番です';
-  text.textContent=skipped?'いつでも「つくる」から、施設や庭を増やせます。':'画面の「つくる」から施設を選び、場所を決めて村を育ててください。';
-  progressAt(steps.length,skipped?'案内を終了':'ここから操作できます');
-  markFirstRunAutoplaySeen(world.state);
-  try{await village.save();canvas?.setAttribute('data-first-run-tutorial','seen');}
-  catch(error){console.warn('First-run tutorial completion could not be persisted',error);canvas?.setAttribute('data-first-run-tutorial','save-error');}
-  if(!skipped)await wait(timing.final);
-  cleanup();
- }
+ skip.onclick=()=>void complete(true);
+ replay.onclick=()=>void playDemo({immediate:true});
+ start.onclick=()=>setStage('build');
+ finishButton.onclick=()=>void complete(false);
 
- async function run(){
-  await wait(timing.settle);
-  for(let index=0;index<steps.length;index++){
-   if(!active)return;
-   progressAt(index);
-   if(!await animateObject(steps[index]))return;
-   await wait(timing.after);
-  }
+ document.addEventListener('click',onClick,true);
+ document.addEventListener('pointerdown',onPointerDown,true);
+ document.addEventListener('pointermove',onPointerMove,true);
+ document.addEventListener('pointerup',finishGesture,true);
+ document.addEventListener('pointercancel',finishGesture,true);
+ document.addEventListener('keydown',onKey,true);
+ window.addEventListener('resize',updateTarget,{passive:true});
+
+ // The entry screen owns focus first. Start the hands-on guide only after the
+ // player has entered the village, so two onboarding surfaces never compete.
+ const begin=()=>{
   if(!active)return;
-  view.actors.visible=true;
-  if(view.foundation)view.foundation.visible=true;
-  view.focus(1,1,46);
-  await finish(false);
- }
- void run().catch(error=>{console.error('First-run tutorial failed',error);void finish(true);});
+  layer.hidden=false;
+  document.body.classList.add('mura-first-run-active');
+  setStage('welcome');
+  start.focus({preventScroll:true});
+ };
+ if(ui.entryOpen){
+  entryListener=event=>{
+   if(!event.target.closest?.('#muraEnterVillage'))return;
+   document.removeEventListener('click',entryListener,true);
+   entryListener=null;
+   requestAnimationFrame(()=>requestAnimationFrame(begin));
+  };
+  document.addEventListener('click',entryListener,true);
+ }else begin();
 }
 
 install();
