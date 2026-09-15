@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+
+const source=readFileSync(new URL('../src/mura-first-build.js',import.meta.url),'utf8');
+const requirements=readFileSync(new URL('../docs/REQUIREMENTS.md',import.meta.url),'utf8');
+
+test('center-follow placement keeps the ghost on the camera target and taps to commit',()=>{
+ for(const contract of [
+  'centerCandidate()',
+  'view.pan=(dx,dy)=>',
+  'commitPlacement(world,p)',
+  'queueMicrotask',
+  'スワイプで場所を調整 · タップで配置',
+  'muraRotateLeft',
+  'muraPlacementUndo',
+  'world.undo()',
+ ])assert.ok(source.includes(contract),contract);
+ assert.equal(source.includes('muraFindPlacement'),false);
+});
+
+test('placement contract makes one-finger movement primary and keeps undo explicit',()=>{
+ for(const contract of [
+  'ゴーストを画面中央の照準位置に保ちます',
+  '1本指スワイプ',
+  '短いタップ',
+  '取り消す',
+  '二本指操作を建築配置の必須操作にはしません',
+ ])assert.ok(requirements.includes(contract),contract);
+});
