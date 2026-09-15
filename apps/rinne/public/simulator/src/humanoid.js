@@ -1,6 +1,6 @@
 import * as T from '../vendor/three.js';
 import {applyAuthoredSlash,slashSupport,SLASH_REVISION} from './authored-slash.js';
-import {AUTHORED_SWORD_KINDS,applyAuthoredSword} from './authored-sword.js';
+import {applyAirborneSword,AUTHORED_SWORD_KINDS,applyAuthoredSword} from './authored-sword.js';
 import {applyStandingPose,polishGait,relaxHeldArms,gaitMix,gaitDistance,POSTURE_REVISION} from './posture-motion.js';
 import {prepareAgeAppearance,applyAgePosture,finishAgeAppearance,disposeAgeAppearance} from './life-appearance.js';
 import {clone as cloneSkeleton} from '../vendor/SkeletonUtils.js';
@@ -211,6 +211,7 @@ export class HumanoidRuntime{
   const ageNeutralPose=trackPose(c.bones),lifeProfile=applyAgePosture(c,a,d);
   // Keep soles above the ground; this only moves visual hips, never actor/collision root.
   if(d.type!=='death')this.ground(c,a,d,commit);else{this.curl(c,'right',1);c.root.updateMatrixWorld(true);const low=Math.min(...['head','hips','leftHand','rightHand','leftFoot','rightFoot','leftLowerLeg','rightLowerLeg'].map(n=>this.point(c,n).y-(n==='head'?.10:n==='hips'?.085:.025)));c.bones.hips.position.y+=(.025-low)*smooth((d.time-.25)/.60);c.root.updateMatrixWorld(true);}
+  if(a.air>0&&weapon==='sword'&&d.type==='attack'&&d.kind!=='leap')applyAirborneSword(this,c,a.air);
   c.root.position.set(px,.065+(a.air||0),pz);c.root.rotation.set(0,a.yaw,0);c.root.scale.setScalar(c.unit*lifeProfile.scale);c.root.updateMatrixWorld(true);
   const spec=weaponSockets[weapon]||weaponSockets.sword,right=this.normalSocket(c,'right'),left=this.normalSocket(c,'left');const sp=v(),sq=Q(),ss=v();right.decompose(sp,sq,ss);let sm=gripMatrix(M().compose(sp,sq,v(lifeProfile.scale,lifeProfile.scale,lifeProfile.scale)),spec);if(weapon!=='fist')sm.multiply(M().makeScale(WEAPON_SCALE,WEAPON_SCALE,WEAPON_SCALE));
   if(weapon==='fist'){const active=this.api.hand(d.kind,d.time)==='left'?left:right;const b=c.bones[(this.api.hand(d.kind,d.time)==='left'?'left':'right')+'Hand'],el=c.bones[(this.api.hand(d.kind,d.time)==='left'?'left':'right')+'LowerArm'];const forward=b.getWorldPosition(v()).sub(el.getWorldPosition(v())).normalize(),X=v(0,1,0).cross(forward).normalize(),Y=forward.clone().cross(X).normalize();sm=M().makeBasis(X,Y,forward).setPosition(new T.Vector3().setFromMatrixPosition(active));}
@@ -249,13 +250,14 @@ export class HumanoidRuntime{
       return q<.43; // one planted foot, brief aerial/transfer window, then the other foot
     }
     if(d.type==='attack'){
+      if(d.kind==='round')return d.time<.12||d.time>.90;
       if(c.id==='SHINO'&&a.weapon==='sword'&&(d.kind==='slash'||AUTHORED_SWORD_KINDS.includes(d.kind)))return slashSupport(side,d.time,this.api.clips[d.kind]?.contact);
       // Reference master motion: rear foot loads first, front foot owns impact/follow-through.
       return side==='right'?d.time>=0&&d.time<.43:d.time>.28&&d.time<.96;
     }
     return false;
   };
-  const authoredPlant=d.type==='attack'&&c.id==='SHINO'&&a.weapon==='sword'&&(d.kind==='slash'||AUTHORED_SWORD_KINDS.includes(d.kind));
+  const authoredPlant=d.type==='attack'&&d.kind!=='round'&&c.id==='SHINO'&&a.weapon==='sword'&&(d.kind==='slash'||AUTHORED_SWORD_KINDS.includes(d.kind));
   for(const side of ['left','right']){const toeName=c.bones[side+'Toes']?side+'Toes':side+'Foot',toe=this.point(c,toeName),ankle=this.point(c,side+'Foot'),input=world(toe),height=.065+c.neutralPoints[toeName].y*ageUnit,previous=c.footLocks[side],locked=stance(side);const {state,target}=footContact(previous,input,d.clock,locked,{height,maxSpeed:d.type==='run'?.82:.62,commit,authoredPlant});if(commit)c.footLocks[side]=state;if(!a.air&&(locked||authoredPlant)&&target.distanceToSquared(input)>1e-10){const footQ=c.bones[side+'Foot'].getWorldQuaternion(Q()),heelTarget=local(target).add(ankle.clone().sub(toe));this.solve(c,side,'leg',heelTarget,v(0,0,1));this.setWorldQ(c,side+'Foot',footQ);}}
   if(['idle','combat','parry'].includes(d.type)&&!a.air){for(const side of ['left','right']){const target=this.point(c,side+'Foot'),q=c.bones[side+'Foot'].getWorldQuaternion(Q());target.y=c.neutralPoints[side+'Foot'].y;this.solve(c,side,'leg',target,v(side==='left'?.12:-.12,0,1),true);this.setWorldQ(c,side+'Foot',q);}}
  }

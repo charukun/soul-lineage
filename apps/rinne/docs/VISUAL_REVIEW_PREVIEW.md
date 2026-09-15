@@ -144,3 +144,30 @@ Codespaces remain fallback-only for Git transport or asset operations that canno
 ## Heavy verification
 
 Heavy browser verification remains available as an explicit tool, but it is not part of the default fast loop. Use it only when specifically needed for runtime debugging, promotion readiness, or Production-grade verification. Software WebGL at a mobile viewport is not physical Pixel Fold performance approval.
+
+
+## Technique-first choreography (user clarification, 2026-09-15)
+
+For sword performance work, preserve the game concept: learned basic actions
+are composed into techniques (up to three actions), and techniques occupy the
+序 / 破 / 急 slots used by automatic combat. A 30-second performance is a
+composition/observation example, not a single bespoke animation to split later.
+
+When spectacle is missing, add or improve a reusable basic action in the shared
+motion source and expose it in single-action and composed review. Existing IDs
+such as sweep, round, leap and dash already have gameplay definitions; improve
+their real body/weapon motion rather than simulating the effect only in the long
+score. A turn/flight that belongs to an action must not exist only at one hard
+coded performance timestamp. Verify an alternative order as well as the demo.
+Keep combat scheduling, discovery, damage and input ownership explicit; recipe
+field compatibility alone does not establish exact auto-combat timing parity.
+
+For multiple significant poses, the local Lab supports one stable observation:
+
+```sh
+npm run review:local -- --mode sequence --times 1.98,4.98,5.9,8.16,14.8,28.1 --playback
+```
+
+It records all four views at each time, the displayed revision and source
+hashes, and fails if any observed motion source changes during the run. Inspect
+the actual frames and report playback recording separately from human viewing.

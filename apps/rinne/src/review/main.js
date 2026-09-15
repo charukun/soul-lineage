@@ -100,7 +100,7 @@ async function startReview() {
     // Resolve every stage before touching current playback; never skip missing stages.
     const clips=names.map(name=>{const clip=body.getClip(name,{inPlace:state.inPlace});if(!clip)throw new Error(`Source animation not found: ${name}`);return clip;});
     const kinds=names.map(name=>metaFor(name)?.weapon==='sword'?metaFor(name)?.kind:null);
-    const nextSwordSequence=names.length>1&&kinds.every(kind=>SWORD_MOVES[kind])?createSwordSequence(kinds):null;
+    const nextSwordSequence=(names.length>1||kinds[0]==='leap')&&kinds.every(kind=>SWORD_MOVES[kind])?createSwordSequence(kinds):null;
     const duration=nextSwordSequence?.duration??sequenceDuration(clips);
     if(!restore){Object.assign(state,applyMotionPolicy(state,metaFor(names[0])));clock.loop=names.length>1?false:state.loop;state.loop=clock.loop;}
     mixer.stopAllAction();action=null;activeClip=null;sequence=clips;swordSequence=nextSwordSequence;sequenceNames=[...names];sequenceIndex=-1;

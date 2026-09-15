@@ -829,6 +829,213 @@
         "Physical Pixel Fold performance"
       ],
       "counter_policy": "Existing 54/100 remains unchanged; this follow-up is not counted as completed normal-speed authoring passes."
+    },
+    "joha_kyu_followup": {
+      "baseline_commit": "ccc94da7ca544e03959441cfadc92da1055134dd",
+      "develop_contracts": "c24b9cebff3b347e91c27099b81de77f19fbc872",
+      "intent": "Reusable spectacular basic motions -> three-action techniques -> jo/ha/kyu loadouts -> 30-second observation. No monolithic performance animation.",
+      "source_revision": "shared-sword-14",
+      "performance_revision": "joha-kyu-sword-1",
+      "new_authored_basics": [
+        "sweep",
+        "round",
+        "leap",
+        "dash"
+      ],
+      "existing_basics_changed": [
+        "slash",
+        "heavy"
+      ],
+      "loadouts": 3,
+      "techniques_per_loadout": 3,
+      "basics_per_technique": 3,
+      "cuts": 27,
+      "seconds": 30,
+      "architecture": "Existing gameplay technique IDs now use the shared authored rig. Review recipes preserve the game field shape. The stage score supplies observation approaches; it does not replace the automatic combat scheduler or claim combat/controller parity.",
+      "local_lab": {
+        "schema": "rinne-local-motion-review",
+        "version": 1,
+        "revision": "ccc94da7ca544e03959441cfadc92da1055134dd",
+        "sourceHashes": {
+          "authored-slash.js": "36180cf2425254155e91e46f17f0ff700b06730ffd2e60ba49b32af150821c77",
+          "authored-sword.js": "5c58f26e0b232500e4f5854ee64470394ad080bb20ea431bdb3fa81f42f57c14",
+          "sword-sequence.js": "0ea8da1e67a7fac19895f19c25b86423ff5d02847ad2e6113673059be41e3c49",
+          "sword-performance.js": "99270db145420a7510c779213ef5fce4dbd542e22ea4bbab68633a29e633c23c",
+          "sword-techniques.js": "dce0862a7a0238507a774ec92c0f6dd13720d4725a67bb6a3733716987f62144",
+          "humanoid.js": "205e167b9b4d25db47577a5e46313ff6db4bacbc3a86865771e1b52fa8c0d9ae",
+          "motion-review.js": "515fef1e50a421ee4461cd77c73ecaec2cca4bd9fefbd68fa1d2989b3a575d7a"
+        },
+        "mode": "sequence",
+        "time": 1.98,
+        "model": "SHINO_review.vrm",
+        "renderer": "software-WebGL",
+        "stage": "complete",
+        "passed": true,
+        "visualApproval": "pending",
+        "normalSpeedReview": "recorded-not-observed",
+        "physicalDeviceFps": "not-measured",
+        "captures": [
+          {
+            "file": "front-1.980.png",
+            "view": "front",
+            "time": 1.98
+          },
+          {
+            "file": "side-1.980.png",
+            "view": "side",
+            "time": 1.98
+          },
+          {
+            "file": "three-1.980.png",
+            "view": "three",
+            "time": 1.98
+          },
+          {
+            "file": "back-1.980.png",
+            "view": "back",
+            "time": 1.98
+          },
+          {
+            "file": "front-4.980.png",
+            "view": "front",
+            "time": 4.98
+          },
+          {
+            "file": "side-4.980.png",
+            "view": "side",
+            "time": 4.98
+          },
+          {
+            "file": "three-4.980.png",
+            "view": "three",
+            "time": 4.98
+          },
+          {
+            "file": "back-4.980.png",
+            "view": "back",
+            "time": 4.98
+          },
+          {
+            "file": "front-5.900.png",
+            "view": "front",
+            "time": 5.9
+          },
+          {
+            "file": "side-5.900.png",
+            "view": "side",
+            "time": 5.9
+          },
+          {
+            "file": "three-5.900.png",
+            "view": "three",
+            "time": 5.9
+          },
+          {
+            "file": "back-5.900.png",
+            "view": "back",
+            "time": 5.9
+          },
+          {
+            "file": "front-8.160.png",
+            "view": "front",
+            "time": 8.16
+          },
+          {
+            "file": "side-8.160.png",
+            "view": "side",
+            "time": 8.16
+          },
+          {
+            "file": "three-8.160.png",
+            "view": "three",
+            "time": 8.16
+          },
+          {
+            "file": "back-8.160.png",
+            "view": "back",
+            "time": 8.16
+          },
+          {
+            "file": "front-14.800.png",
+            "view": "front",
+            "time": 14.8
+          },
+          {
+            "file": "side-14.800.png",
+            "view": "side",
+            "time": 14.8
+          },
+          {
+            "file": "three-14.800.png",
+            "view": "three",
+            "time": 14.8
+          },
+          {
+            "file": "back-14.800.png",
+            "view": "back",
+            "time": 14.8
+          },
+          {
+            "file": "front-28.100.png",
+            "view": "front",
+            "time": 28.1
+          },
+          {
+            "file": "side-28.100.png",
+            "view": "side",
+            "time": 28.1
+          },
+          {
+            "file": "three-28.100.png",
+            "view": "three",
+            "time": 28.1
+          },
+          {
+            "file": "back-28.100.png",
+            "view": "back",
+            "time": 28.1
+          }
+        ],
+        "errors": [],
+        "url": "http://127.0.0.1:36209/simulator/motion-review.html?mode=sequence",
+        "webgl": {
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+          "renderer": "WebKit WebGL",
+          "width": 960,
+          "height": 606,
+          "lost": false
+        },
+        "displayedRevision": "shared-sword-14 / shared-posture-1 · 序破急 — 9基礎動作・3構成・27撃 / 30秒 · joha-kyu-sword-1",
+        "playback": {
+          "file": "playback.webm",
+          "speed": 1,
+          "timelineSeconds": 30,
+          "wallSeconds": 30.622,
+          "observed": false
+        }
+      },
+      "observed_stills": [
+        "three-1.980.png",
+        "three-5.900.png",
+        "three-8.160.png",
+        "side-4.980.png"
+      ],
+      "video": "rinne-joha-kyu-30s.mp4",
+      "discarded_candidate": "Performance-only 360-degree aerial phrases were replaced with reusable round/leap basic actions after user clarification.",
+      "tests": {
+        "real_rig_and_viewer": 11,
+        "new_basic_max_grip_error_m": 1.1562652645229219e-07,
+        "new_basic_min_blade_y_m": 0.5633860734024045,
+        "max_air_m": 0.8997985945275766,
+        "full_turn_radians": 6.283185307179586,
+        "review_build": "passed: 27 focused checks, workspace syntax/boundaries, 103 asset limit checks"
+      },
+      "reference_review": "not-viewed-this-followup",
+      "human_approval": "pending",
+      "normal_speed": "recorded-not-observed",
+      "device_fps": "not-measured",
+      "pass_counter": "not-incremented",
+      "rebased_onto": "affed0735af24c5f5590d9c4b7642817feb5dd76"
     }
   },
   "baseline_commit": "40dd14d92ac1cf69c357db563fb548476b578fc3",

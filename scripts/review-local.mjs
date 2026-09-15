@@ -9,14 +9,16 @@ import {parseArgs} from 'node:util';
 import {createServer} from 'vite';
 import {chromium} from '@playwright/test';
 
-const {values}=parseArgs({options:{mode:{type:'string',default:'sequence'},time:{type:'string',default:'3.33'},out:{type:'string',default:'artifacts/review-local-motion'},playback:{type:'boolean',default:false}}});
+const {values}=parseArgs({options:{mode:{type:'string',default:'sequence'},time:{type:'string',default:'3.33'},times:{type:'string'},out:{type:'string',default:'artifacts/review-local-motion'},playback:{type:'boolean',default:false}}});
 const durations={sequence:30,combination:4,single:.66,posture:18};
 assert.ok(Object.hasOwn(durations,values.mode),'Use sequence, combination, single or posture');
-const time=Number(values.time);assert.ok(Number.isFinite(time)&&time>=0&&time<=durations[values.mode],'time is outside the selected motion');
+const times=(values.times||values.time).split(',').map(Number),time=times[0];
+assert.ok(times.length&&times.every(t=>Number.isFinite(t)&&t>=0&&t<=durations[values.mode]),'time is outside the selected motion');
 const output=resolve(values.out);await mkdir(output,{recursive:true});
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
-const paths=['authored-slash.js','authored-sword.js','sword-sequence.js','sword-performance.js','humanoid.js','motion-review.js'];
-const hashes=Object.fromEntries(await Promise.all(paths.map(async path=>[path,createHash('sha256').update(await readFile(resolve('apps/rinne/public/simulator/src',path))).digest('hex')])));
+const paths=['authored-slash.js','authored-sword.js','sword-sequence.js','sword-performance.js','sword-techniques.js','humanoid.js','motion-review.js'];
+const sourceHashes=async()=>Object.fromEntries(await Promise.all(paths.map(async path=>[path,createHash('sha256').update(await readFile(resolve('apps/rinne/public/simulator/src',path))).digest('hex')])));
+const hashes=await sourceHashes();
 const report={schema:'rinne-local-motion-review',version:1,revision,sourceHashes:hashes,mode:values.mode,time,model:'SHINO_review.vrm',renderer:'software-WebGL',stage:'start',passed:false,visualApproval:'pending',normalSpeedReview:'not-observed',physicalDeviceFps:'not-measured',captures:[],errors:[]};
 let server,browser,context;
 try{
@@ -41,8 +43,8 @@ try{
   report.stage='webgl';
   report.webgl=await page.locator('#motion-stage').evaluate(canvas=>{const gl=canvas.getContext('webgl2');return gl?{version:gl.getParameter(gl.VERSION),renderer:gl.getParameter(gl.RENDERER),width:canvas.width,height:canvas.height,lost:gl.isContextLost()}:null;});
   assert.ok(report.webgl&&!report.webgl.lost&&report.webgl.width>0,'The actual Lab canvas must have a live WebGL2 context');
-  report.stage='capture';
-  for(const view of ['front','side','three','back']){
+  report.stage='capture';report.displayedRevision=await page.locator('#motion-version').textContent();
+  for(const time of times)for(const view of ['front','side','three','back']){
     await page.locator(`[data-view="${view}"]`).click();
     await page.locator('#timeline').evaluate((node,time)=>{node.value=String(time);node.dispatchEvent(new Event('input',{bubbles:true}));},time);
     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
@@ -65,6 +67,7 @@ try{
     report.playback={file:'playback.webm',speed:1,timelineSeconds:durations[values.mode],wallSeconds:(Date.now()-started)/1000,observed:false};
     report.normalSpeedReview='recorded-not-observed';
   }
+  assert.deepEqual(await sourceHashes(),hashes,'Motion source changed during observation; rerun against a stable candidate');
   assert.deepEqual(report.errors,[],'Lab browser errors');report.passed=true;report.stage='complete';
 }catch(error){report.failure=error.stack||String(error);process.exitCode=1;}
 finally{

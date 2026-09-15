@@ -1,17 +1,18 @@
 /** Companion cuts for Shino. Same canonical rig/IK as the approved slash. */
+import * as T from '../vendor/three.js';
 import {poseCurve,sampleSlashPose,slashTime,applySwordPose,SLASH_SECONDS,SLASH_TIMING} from './authored-slash.js';
-export const SWORD_REVISION='shared-sword-13';
+export const SWORD_REVISION='shared-sword-14';
 export const SWORD_MOVES=Object.freeze(Object.fromEntries([
- ['slash','流し斬り',SLASH_SECONDS],['back','斬り返し',.69],['thrust','刺し貫く',.67],['uppercut','斬り上げる',.74],['heavy','叩き斬る',.98],
+ ['slash','流し斬り',SLASH_SECONDS],['back','斬り返し',.69],['thrust','刺し貫く',.67],['uppercut','斬り上げる',.74],['heavy','叩き斬る',.98],['sweep','足元を薙ぐ',.78],['round','一回転の大薙ぎ',.87],['leap','飛び込み斬り',1.10],['dash','駆け抜け斬り',.86],
 ].map(([kind,label,seconds])=>[kind,Object.freeze({kind,label,seconds,timing:SLASH_TIMING})])));
 export function swordClipInSeconds(clip,kind){
  const move=SWORD_MOVES[kind];if(!move)return clip;
  const result=clip.clone();for(const track of result.tracks)track.scale(move.seconds/clip.duration);
  result.resetDuration();return result;
 }
-export const AUTHORED_SWORD_KINDS=Object.freeze(['back','uppercut','thrust','heavy']);
+export const AUTHORED_SWORD_KINDS=Object.freeze(['back','uppercut','thrust','heavy','sweep','round','leap','dash']);
 // Presentation step distances; the combat controller continues to own collision/root movement.
-export const SWORD_STEPS=Object.freeze({slash:[.14,.46],back:[-.18,.44],thrust:[.02,.56],uppercut:[.06,.36],heavy:[-.02,.46]});
+export const SWORD_STEPS=Object.freeze({slash:[.14,.46],back:[-.18,.44],thrust:[.02,.56],uppercut:[.06,.36],heavy:[-.02,.46],sweep:[.26,.42],round:[-.18,.62],leap:[.08,1.60],dash:[-.30,1.70]});
 const guard=sampleSlashPose(0);
 const curve=(name,rows,p)=>poseCurve([[0,...guard[name]],...rows,[1,...guard[name]]],p);
 // Each existing technique owns its full-body accents, rather than borrowing the
@@ -61,8 +62,8 @@ const motions={
  },
  heavy:{
   hips:[[.24,.04,-.30,-.025],[.38,.065,-.28,-.025],[.48,-.19,0,0],[.57,-.36,.22,.04],[.67,-.25,.26,.05],[.83,-.13,.17,.02]],
-  spine:[[.28,.12,-.08,0],[.40,.13,-.06,0],[.52,-.26,.045,0],[.64,-.18,.065,0],[.83,-.035,.02,0]],
-  chest:[[.28,.08,-.04,0],[.41,.13,-.06,0],[.48,.09,-.10,0],[.54,-.18,-.02,0],[.60,-.13,.10,0],[.68,-.09,.14,0]],
+  spine:[[.28,.12,-.08,0],[.40,.13,-.06,0],[.52,-.38,.045,-.06],[.64,-.29,.065,-.035],[.83,-.035,.02,0]],
+  chest:[[.28,.08,-.04,0],[.41,.13,-.06,0],[.48,.09,-.10,0],[.54,-.26,-.02,-.045],[.60,-.23,.10,-.035],[.68,-.09,.14,0]],
   head:[[.35,-.07,.15,0],[.51,.14,-.08,0],[.65,.18,-.15,0]],
   offset:[[.24,-.025,-.10,-.045],[.38,-.02,-.12,-.005],[.46,.005,-.18,.10],[.50,.025,-.26,.25],[.61,.04,-.30,.35],[.72,.03,-.23,.31],[.86,.025,-.12,.20]],
   grip:[[.25,-.25,.31,.04],[.41,-.22,.38,.03],[.46,-.20,.37,.05],[.50,-.08,-.25,.59],[.64,.04,-.53,.52],[.79,-.04,-.46,.37]],
@@ -71,13 +72,72 @@ const motions={
   rear:[[.35,-.065,0,-.10],[.55,-.12,.035,.05],[.72,-.12,0,.22],[.79,-.12,0,.22],[.91,-.08,.085,.08]],
   shield:[[.30,.35,-.24,-.04],[.50,.36,-.28,-.12],[.67,.34,-.34,.05],[.82,.29,-.32,.15]],
  },
+ sweep:{
+  hips:[[.24,-.24,-.65,-.10],[.36,-.34,-.72,-.13],[.50,-.43,.36,-.10],[.65,-.27,1.02,.17],[.82,-.12,.54,.09]],
+  spine:[[.27,-.10,-.23,.12],[.39,-.22,-.28,.14],[.50,-.26,.13,-.15],[.66,-.18,.31,-.19],[.82,-.06,.10,-.06]],
+  chest:[[.29,-.04,-.16,.08],[.40,-.12,-.20,.10],[.53,-.17,.12,-.10],[.68,-.09,.35,-.12]],
+  offset:[[.23,-.20,-.29,-.06],[.35,-.21,-.36,0],[.50,.16,-.35,.26],[.65,.23,-.29,.35],[.82,.10,-.18,.24]],
+  grip:[[.25,-.38,-.43,.12],[.38,-.40,-.45,.15],[.50,-.02,-.48,.61],[.64,.36,-.47,.35],[.80,.25,-.44,.25]],
+  blade:[[.25,-2.20,-.10,-.50],[.38,-2.35,-.15,-.48],[.50,0,-.10,-.12],[.64,2.34,-.12,.50],[.80,1.90,.20,.28]],
+  lead:[[.16,.045,0,.10],[.31,.24,.055,.28],[.46,.32,0,.56],[.73,.32,0,.56],[.87,.13,.07,.32]],
+  rear:[[.35,-.16,0,-.15],[.55,-.20,.045,.015],[.74,-.12,0,.17],[.90,-.08,.06,.06]],
+  shield:[[.30,.41,-.15,.02],[.50,.43,-.12,-.18],[.68,.45,-.17,-.07],[.82,.30,-.25,.10]],
+ },
+ dash:{
+  hips:[[.24,-.23,-.48,-.09],[.37,-.31,-.56,-.12],[.50,-.42,.41,-.10],[.64,-.30,.94,.13],[.83,-.13,.43,.06]],
+  spine:[[.27,-.14,-.17,.06],[.39,-.23,-.20,.09],[.50,-.30,.12,-.12],[.65,-.21,.28,-.13],[.82,-.08,.12,-.04]],
+  chest:[[.30,-.07,-.13,.05],[.40,-.13,-.17,.07],[.52,-.20,.08,-.10],[.68,-.14,.32,-.12]],
+  offset:[[.24,-.10,-.26,-.12],[.36,-.12,-.31,-.05],[.50,.10,-.30,.48],[.63,.17,-.26,.60],[.80,.10,-.18,.37]],
+  grip:[[.24,-.35,-.25,.11],[.38,-.40,-.23,.11],[.50,-.04,-.27,.66],[.64,.36,-.40,.40],[.82,.19,-.39,.27]],
+  blade:[[.25,-1.90,.65,-.46],[.38,-2.14,.55,-.49],[.50,0,.04,-.13],[.64,2.12,-.47,.40],[.82,1.55,.25,.28]],
+  lead:[[.16,.045,0,.10],[.31,.17,.065,.35],[.46,.22,0,.78],[.73,.22,0,.78],[.87,.12,.09,.40]],
+  rear:[[.35,-.12,0,-.17],[.55,-.16,.07,.04],[.73,-.08,0,.33],[.90,-.06,.08,.10]],
+  shield:[[.30,.37,-.22,-.08],[.50,.41,-.20,-.24],[.65,.44,-.25,-.15],[.82,.29,-.28,.08]],
+ },
+ round:{
+  hips:[[.24,-.16,-.34,-.07],[.36,-.19,-.38,-.09],[.50,-.22,.12,-.06],[.68,-.13,.38,.09],[.84,-.07,.18,.04]],
+  offset:[[.24,-.08,-.21,-.02],[.38,-.11,-.26,.06],[.50,.09,-.24,.22],[.67,.12,-.20,.31],[.84,.05,-.13,.18]],
+  grip:[[.25,-.37,-.30,.10],[.38,-.41,-.28,.12],[.50,-.03,-.25,.64],[.65,.37,-.27,.32],[.82,.22,-.33,.25]],
+  blade:[[.25,-1.60,.12,-.35],[.38,-1.85,.10,-.37],[.50,0,.06,-.10],[.65,1.60,.10,.34],[.82,1.72,.37,.25]],
+  lead:[[.16,.045,0,.10],[.31,.10,.13,.24],[.46,.15,.025,.38],[.62,.09,.12,.30],[.78,.11,0,.28],[.91,.07,.035,.17]],
+  rear:[[.18,-.06,0,-.10],[.36,-.08,.035,-.02],[.52,-.12,.14,.08],[.68,-.09,.025,.17],[.82,-.06,.07,.10]],
+  shield:[[.30,.40,-.18,.03],[.50,.44,-.15,-.16],[.65,.44,-.23,-.02],[.82,.29,-.28,.13]],
+ },
+
 };
 export function sampleSwordPose(kind,phase,contact=.5){
  const p=slashTime(phase,contact),pose=sampleSlashPose(p);
- for(const [name,rows]of Object.entries(motions[kind]||{}))pose[name]=curve(name,rows,p);
+ for(const [name,rows]of Object.entries(motions[kind==='leap'?'heavy':kind]||{}))pose[name]=curve(name,rows,p);
+ if(kind==='round')pose.turn=[poseCurve([[0,0],[.16,0],[.40,1.35],[.64,4.8],[.86,Math.PI*2],[1,Math.PI*2]],p)[0]];
  return pose;
 }
 export function applyAuthoredSword(runtime,c,kind,phase,definition){
  const contact=definition?.contact??.5;
- applySwordPose(runtime,c,sampleSwordPose(kind,phase,contact),slashTime(phase,contact));
+ const p=slashTime(phase,contact),pose=sampleSwordPose(kind,phase,contact);
+ applySwordPose(runtime,c,pose,p);
+ if(kind==='leap')applyAirborneSword(runtime,c,swordAirHeight(kind,phase));
+ if(pose.turn){
+  // Rotate the normalized hips after limb IK so the whole body, sword and feet
+  // share the authored turn. Baked single clips and every composition inherit it.
+  c.bones.hips.quaternion.premultiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),pose.turn[0]));
+  c.root.updateMatrixWorld(true);
+ }
+}
+
+/** Air belongs to the leap basic action, not to one particular choreography. */
+export function swordAirHeight(kind,phase){
+ if(kind!=='leap')return 0;
+ const t=Math.max(0,Math.min(1,(phase-.18)/.70));
+ return .90*Math.sin(Math.PI*t)**2;
+}
+/** Shared airborne leg IK; the combat controller still owns actor height. */
+export function applyAirborneSword(runtime,c,height){
+ const u=Math.max(0,Math.min(1,height/.65)),weight=u*u*(3-2*u),scale=c.legLength/.82;
+ if(!weight)return;
+ for(const side of ['left','right']){
+  const foot=runtime.point(c,side+'Foot'),lead=side==='left',target=c.neutralPoints[side+'Foot'].clone();
+  target.x+=(lead?.11:-.10)*scale;target.y+=(lead?.46:.28)*scale;target.z+=(lead?.28:-.27)*scale;
+  runtime.solve(c,side,'leg',foot.lerp(target,weight),new T.Vector3(lead?.16:-.16,.12,1),true);
+ }
+ c.root.updateMatrixWorld(true);
 }

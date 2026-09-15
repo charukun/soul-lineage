@@ -1,3 +1,41 @@
+## Reusable basics and 序破急 reconstruction — 2026-09-15
+
+The user clarified that spectacle must come from learned basic actions composed
+into techniques, with techniques assigned to 序 / 破 / 急. A preliminary
+performance-only aerial-spin candidate was discarded before publication.
+
+- Added authored `sweep`, `round`, `leap`, `dash` to the real shared Shino rig,
+  using existing gameplay action IDs. Round turns the whole normalized body;
+  leap owns its flight envelope and folded-leg pose. No new attack clock, damage
+  rule or discovery rule was introduced into the combat controller.
+- Expanded slash counterbalance/follow-through and the heavy cut's torso hinge.
+- `sword-techniques.js` defines three recipes per loadout and three basic actions
+  per recipe using the game recipe field shape. The 30-second observation plays
+  three alternative loadouts (27 actions), labelled 序 / 破 / 急. Charging holds
+  the first source pose; native swing playback resumes afterwards.
+- Review stage approaches remain observation controller placement. This is not
+  a claim that the manual review score runs the gameplay tactical scheduler or
+  exactly reproduces its automatic charge/footwork/recovery decisions.
+- Single-action selection exposes all nine basics. The regular Lab can also
+  select the new existing action IDs and compose them. Leap height follows the
+  same basic-action envelope in the review transport.
+
+Observed actual WebGL stills: dash lean/counterarm at 1.98 s, whole-body round at
+5.90 s, folded airborne leap at 8.16 s, low sweep preparation at 4.98 s. The
+same local Lab recorded the full 30 seconds at 1x, 30.622 s wall time, zero
+browser/asset errors. The worker inspected stills, **not uninterrupted video**.
+11 real-rig/viewer checks pass; original grip/contact/slip thresholds remain.
+The source hash check now rejects observations if code changes during capture.
+The prior 54/100 counter is not increased. Human approval and device fps remain
+pending. See `active_batch.joha_kyu_followup` for exact source hashes/evidence.
+
+The branch's pre-existing four-tab navigation assertions conflicted with its
+new five-tab navigation. Concurrent Lab commits fixed those checks while this
+candidate was being prepared. The final rebase retains the remote tests exactly;
+the four navigation checks pass and all seven observed motion hashes still match.
+
+---
+
 ## Internal Lab follow-up — 2026-09-15
 
 Baseline `73d323ee917c5a592c808a7ad5fc1cd8b7e1c520`; current develop contracts

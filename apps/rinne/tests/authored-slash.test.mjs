@@ -2,7 +2,7 @@ import test from 'node:test';
 import {applyReviewSwordTravel} from '../src/review/sword-travel.js';
 import {footContact} from '../public/simulator/src/contact-motion.js';
 import {rawClipFromNormalized,sampleRawClip} from '../src/review/pose-transfer.js';
-import {SHORT_SWORD_SEQUENCE,createSwordSequence,swordSequenceFrame,applySwordSequence,swordSequenceTravel} from '../public/simulator/src/sword-sequence.js';
+import {SHORT_SWORD_SEQUENCE,createSwordSequence,swordSequenceFrame,applySwordSequence,swordSequenceTravel,swordSequenceContactTime,swordSequenceAir} from '../public/simulator/src/sword-sequence.js';
 import {SWORD_MOVES,swordClipInSeconds} from '../public/simulator/src/authored-sword.js';
 import {AUTHORED_SWORD_KINDS,sampleSwordPose} from '../public/simulator/src/authored-sword.js';
 import {PERFORMANCE_SECONDS,PERFORMANCE_EVENTS,PERFORMANCE_PHRASES,SWORD_TIMINGS,samplePerformance,applyPerformance} from '../public/simulator/src/sword-performance.js';
@@ -83,11 +83,11 @@ test('actual Shino slash keeps knees forward, grip attached and support planted'
 });
 
 
-test('30-second score covers five cuts and preserves root/gait continuity',()=>{
+test('30-second score composes nine basics into three jo-ha-kyu loadouts with continuous travel',()=>{
  assert.equal(PERFORMANCE_SECONDS,30);
  assert.equal(PERFORMANCE_EVENTS.at(-1).end,30);
  const cuts=PERFORMANCE_EVENTS.filter(e=>!['move','guard'].includes(e.kind));
- assert.equal(cuts.length,29);assert.equal(new Set(cuts.map(e=>e.kind)).size,5);
+ assert.equal(cuts.length,27);assert.equal(new Set(cuts.map(e=>e.kind)).size,9);
  for(const e of PERFORMANCE_EVENTS){
   const a=samplePerformance(e.start-1e-7),b=samplePerformance(e.start+1e-7);
   for(const k of ['x','z','yaw','vx','vz','walk','run'])assert.ok(Math.abs(a[k]-b[k])<1e-4,`${k} jumps at ${e.start}`);
@@ -99,7 +99,7 @@ test('30-second score covers five cuts and preserves root/gait continuity',()=>{
  assert.equal(samplePerformance(-3).time,0);assert.equal(samplePerformance(100).time,30);
  for(const kind of AUTHORED_SWORD_KINDS){
   const a=sampleSwordPose(kind,0),b=sampleSwordPose(kind,1);
-  for(const k of Object.keys(a))for(let j=0;j<a[k].length;j++)assert.ok(Math.abs(a[k][j]-b[k][j])<1e-10,`${kind} guard seam`);
+  for(const k of Object.keys(a))for(let j=0;j<a[k].length;j++)assert.ok(Math.abs(k==='turn'?Math.sin(a[k][j]-b[k][j]):a[k][j]-b[k][j])<1e-10,`${kind} guard seam`);
  }
 });
 
@@ -144,7 +144,7 @@ test('real rig joins approaches and cuts without a boundary pop or loose grip',a
    const jump=new T.Vector3(...a.weaponTip).distanceTo(new T.Vector3(...b.weaponTip));
    maxBoundary=Math.max(maxBoundary,jump);assert.ok(jump<.02,`blade jumps ${jump}m at ${e.start}`);
   }
-  for(const kind of AUTHORED_SWORD_KINDS){
+  for(const kind of ['back','uppercut','thrust','heavy']){
    const e=PERFORMANCE_EVENTS.find(e=>e.kind===kind);reset();
    for(const phase of [0,.27,.38,.5,.64,.8,1]){
     const result=sample(e.start+phase*e.duration);
@@ -157,7 +157,7 @@ test('real rig joins approaches and cuts without a boundary pop or loose grip',a
 
    }
   }
-  console.log(JSON.stringify({performanceSeconds:30,strikes:29,maxBoundaryBladeJump:maxBoundary}));
+  console.log(JSON.stringify({performanceSeconds:30,strikes:27,maxBoundaryBladeJump:maxBoundary}));
  }finally{runtime.dispose(c);delete globalThis.window;delete globalThis.self;}
 });
 
@@ -183,7 +183,7 @@ test('existing clips drive both single attacks and composed phrases without a ne
   assert.ok(!Object.keys(c.generated).some(key=>key.endsWith(':flow')));
   // Every hit remains inside its original active interval; no blend suppresses it.
   for(const phrase of PERFORMANCE_PHRASES)for(const row of phrase.sequence.entries){
-   const t=row.start+(.5-row.enter)*row.seconds;
+   const t=swordSequenceContactTime(row);
    const f=swordSequenceFrame(phrase.sequence,t);
    assert.equal(f.current.kind,row.kind);assert.ok(Math.abs(f.current.phase-.5)<1e-10);assert.equal(f.previous,null);
   }
@@ -195,7 +195,7 @@ test('existing clips drive both single attacks and composed phrases without a ne
 
 
 test('Lab raw-rig composition reproduces the shared normalized clips at forward and reverse seeks',async()=>{
- const runtime=await loadRig(),c=runtime.current,kinds=['slash','back','uppercut'];
+ const runtime=await loadRig(),c=runtime.current,kinds=['slash','back','uppercut','sweep','round','leap','dash','thrust','heavy'];
  const plan=createSwordSequence(kinds),normalized={},rawClips={};
  try{
   for(const kind of kinds){
@@ -215,11 +215,11 @@ test('Lab raw-rig composition reproduces the shared normalized clips at forward 
    };
    runtime.resetBones(c);c.root.scale.setScalar(c.unit);sample(normalized,c.root);c.vrm.humanoid.update();
    const expected=Object.fromEntries(Object.entries(c.raw).map(([name,b])=>[name,b.quaternion.clone()]));
-   c.root.updateMatrixWorld(true);const expectedHips=c.raw.hips.getWorldPosition(new T.Vector3()),move=swordSequenceTravel(plan,time,poseScale);expectedHips.x+=move.x;expectedHips.z+=move.z;
+   c.root.updateMatrixWorld(true);const expectedHips=c.raw.hips.getWorldPosition(new T.Vector3()),move=swordSequenceTravel(plan,time,poseScale);expectedHips.x+=move.x;expectedHips.y+=swordSequenceAir(plan,time);expectedHips.z+=move.z;
    for(const b of Object.values(c.raw))b.quaternion.identity();
    sample(rawClips,c.root);
    applyReviewSwordTravel(c.vrm.scene,origin,plan,time,{poseScale,displayScale:[1/c.unit,1/c.unit,1/c.unit]});
-   const actualHips=c.raw.hips.getWorldPosition(new T.Vector3());maxTranslation=Math.max(maxTranslation,Math.hypot(actualHips.x-expectedHips.x,actualHips.z-expectedHips.z));
+   const actualHips=c.raw.hips.getWorldPosition(new T.Vector3());maxTranslation=Math.max(maxTranslation,actualHips.distanceTo(expectedHips));
    for(const name of Object.keys(c.raw))maxAngle=Math.max(maxAngle,c.raw[name].quaternion.clone().normalize().angleTo(expected[name].normalize()));
   }
   assert.ok(maxAngle<.00005,`Lab/runtime pose mismatch ${maxAngle}`);
@@ -274,4 +274,32 @@ test('authored fast foot plants preserve height, reach and discontinuity guards'
   assert.equal(r.state.locked,false,'height, reach, lift-off or discontinuity releases contact');
   assert.ok(r.target.toArray().every(Number.isFinite));
  }
+});
+
+
+test('new reusable basics retain their rig, full turn, leap and alternative recipe joins',async()=>{
+ const runtime=await loadRig(),c=runtime.current;
+ const actor={id:'expanded-basics',hero:true,weapon:'sword',weaponDraw:1,lifeAgeYears:22,x:0,z:0,yaw:0,air:0,vx:0,vz:0,combatReady:true};
+ let minBlade=Infinity,maxGrip=0,maxTurn=0,maxAir=0;
+ try{
+  for(const kind of ['sweep','round','leap','dash']){
+   c.state=null;c.lastActual=null;c.blending=null;c.footLocks={};
+   const sequence=createSwordSequence([kind]);
+   for(let i=0;i<=120;i++){
+    const t=sequence.duration*i/120;applySwordSequence(actor,sequence,t);actor._humanoidClock=t;
+    const result=runtime.render(actor);assert.ok(c.finite);maxGrip=Math.max(maxGrip,c.socketError);minBlade=Math.min(minBlade,result.weaponTip[1]);maxAir=Math.max(maxAir,actor.air);
+    assert.ok(c.socketError<1e-5,'basic action must retain the sword socket');
+    const turn=sampleSwordPose(kind,i/120).turn?.[0]||0;maxTurn=Math.max(maxTurn,turn);
+    for(const side of ['left','right']){
+     const hip=runtime.point(c,side+'UpperLeg'),knee=runtime.point(c,side+'LowerLeg'),ankle=runtime.point(c,side+'Foot'),axis=ankle.clone().sub(hip).normalize(),bend=knee.sub(hip);bend.addScaledVector(axis,-bend.dot(axis));
+     assert.ok(bend.dot(new T.Vector3(Math.sin(turn),0,Math.cos(turn)))>-1e-4,`${kind} ${side} knee at ${i}`);
+    }
+   }
+  }
+  assert.ok(minBlade>-.02,`new basics pierce the floor: ${minBlade}`);assert.ok(maxTurn>=Math.PI*2-1e-8);assert.ok(maxAir>.85);
+  assert.deepEqual(PERFORMANCE_PHRASES.map(p=>p.slot),['jo','ha','kyu','jo','ha','kyu','jo','ha','kyu']);
+  for(const phrase of PERFORMANCE_PHRASES){assert.equal(phrase.recipe.steps.length,3);assert.deepEqual(phrase.sequence.entries.map(e=>e.kind),phrase.recipe.steps.map(s=>s.kind));}
+  for(const e of PERFORMANCE_EVENTS){const a=samplePerformance(e.start-1e-7),b=samplePerformance(e.start+1e-7);assert.ok(Math.abs(a.air-b.air)<1e-4,'air continuity at a technique boundary');}
+  console.log(JSON.stringify({newBasicKinds:4,minBlade,maxGrip,maxTurn,maxAir,loadouts:3}));
+ }finally{runtime.dispose(c);delete globalThis.window;delete globalThis.self;}
 });
