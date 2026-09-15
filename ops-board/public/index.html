@@ -9,6 +9,9 @@
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="./pr-board.css">
   <link rel="stylesheet" href="./app-board.css">
+  <link rel="stylesheet" href="./review-polish.css">
+  <link rel="stylesheet" href="./rescue-board.css">
+  <link rel="stylesheet" href="./flow-board.css">
 </head>
 <body>
   <main class="shell">
@@ -17,11 +20,13 @@
         <p class="eyebrow">DEVELOPMENT / OPERATIONS</p>
         <h1 class="pulse-wordmark">PULSE</h1>
       </div>
-      <button id="reload" class="reload" type="button">最新に更新</button>
+      <div class="refresh-area"><button id="reload" class="reload" type="button">最新に更新</button>
+        <p id="sync-freshness" class="sync-freshness" role="status">最終取得 未取得</p></div>
     </header>
 
     <nav class="section-tabs" aria-label="画面内ナビゲーション">
       <a href="#alert-section">要対応</a>
+      <a href="#rescue-section">自動統合</a>
       <a href="#tasks-section">開発タスク</a>
       <a href="#apps-section">アプリ</a>
       <a href="#details-section">公開・自動処理</a>
@@ -29,8 +34,15 @@
 
     <section id="alert-section" class="board-section" hidden>
       <div class="section-head"><h2>要対応タスク</h2><span id="alert-count" class="muted"></span></div>
-      <p class="section-description">止まっている統合や失敗だけを表示します。ここが空なら、いま緊急対応はありません。</p>
+      <p class="section-description">同期の遅れ、統合の滞留、現在のCI失敗を表示します。最終取得時刻も確認してください。</p>
       <div id="alerts" class="alerts"></div>
+    </section>
+
+    <section id="rescue-section" class="board-section">
+      <div class="section-head"><h2>自動統合と修復</h2></div>
+      <p class="section-description">PRが何件たまっているか、どこで時間がかかっているか、あなたの確認が必要かを先に表示します。</p>
+      <div id="integration-flow" class="card"><p class="empty">自動統合の状態を確認中</p></div>
+      <div id="integration-rescue" class="card"><p class="empty">修復Workerの状態を確認中</p></div>
     </section>
 
     <section id="tasks-section" class="board-section">
@@ -56,10 +68,11 @@
       <summary>使い方を見る</summary>
       <ol>
         <li><strong>要対応タスク</strong>が出ていれば、まずそこを確認します。</li>
+        <li><strong>自動統合と修復</strong>では、待機件数・主な詰まり・自分の確認が必要かだけを先に見ます。技術情報は必要なときだけ開きます。</li>
         <li><strong>開発タスク</strong>で作業中 / 統合待ち / 完了のPRを確認します。</li>
-        <li><strong>アプリ</strong>ではアイコンと公開状態を3列で見比べ、タップすると公開先を開けます。</li>
+        <li><strong>アプリ</strong>ではアイコンと公開状態を3列で見比べ、環境名で公開先を開き、「公開の詳細」でSHAと日時を確認できます。</li>
         <li><strong>公開・自動処理の状態</strong>は、公開済みSHA・本番との差・自動統合・Actions失敗を確認する場所です。</li>
-        <li>データは自動で<strong>5分ごと</strong>に取り直します。「最新に更新」でもすぐ再表示できます。</li>
+        <li>サーバーは<strong>5分ごと</strong>に同期します。「最新に更新」は保存済みの最新結果を読み込みます。</li>
       </ol>
     </details>
 
@@ -73,7 +86,7 @@
             <div><p class="diagnostic-kicker">PUBLICATION</p><h3>実際に公開されている状態</h3></div>
             <span id="env-count" class="muted"></span>
           </div>
-          <p class="diagnostic-help">公開済みcommit SHA・deploy日時・反映済みPRを表示します。branchにmerge済みでも、まだ公開されていなければここでは未公開として区別します。</p>
+          <p class="diagnostic-help">公開済みcommit SHA・deploy日時・反映済みPRを表示します。branchにmerge済みでも、まだ公開されていなければ未公開として区別します。</p>
           <div id="environments" class="stack"></div>
         </section>
 
@@ -91,7 +104,7 @@
 
         <section class="diagnostic-panel diagnostic-wide">
           <div class="diagnostic-head"><div><p class="diagnostic-kicker">GITHUB ACTIONS</p><h3>自動処理の失敗</h3></div></div>
-          <p class="diagnostic-help">直近のGitHub Actions失敗だけを表示します。何もなければ正常です。</p>
+          <p class="diagnostic-help">未解消の失敗を先に表示し、中断・後続成功で解消された実行は履歴へ分けます。取得範囲外は判定しません。</p>
           <div id="failures" class="card diagnostic-content"></div>
         </section>
       </div>
@@ -105,5 +118,7 @@
   <script type="module" src="./app.js"></script>
   <script type="module" src="./app-board.js"></script>
   <script type="module" src="./pull-board.js"></script>
+  <script type="module" src="./flow-board.js"></script>
+  <script type="module" src="./rescue-board.js"></script>
 </body>
 </html>

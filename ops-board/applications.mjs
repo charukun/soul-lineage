@@ -10,7 +10,7 @@ const runState = run => {
   if (!run) return 'unknown';
   if (['queued', 'in_progress', 'waiting', 'requested', 'pending'].includes(run.status)) return 'deploying';
   if (run.status === 'completed' && run.conclusion === 'success') return 'success';
-  if (run.status === 'completed' && ['failure', 'cancelled', 'timed_out', 'action_required', 'startup_failure', 'stale'].includes(run.conclusion)) return 'failed';
+  if (run.status === 'completed' && ['failure', 'timed_out', 'action_required', 'startup_failure', 'stale'].includes(run.conclusion)) return 'failed';
   return 'unknown';
 };
 
@@ -76,7 +76,7 @@ export function buildApplications(manifest = {}, environments = [], runs = []) {
     commit: portalRun?.head_sha || null, deployedAt: portalRun?.updated_at || null, source: 'Wayfinder Public Gallery workflow',
   }] });
   // Keep the workflow/Worker IDs stable; they are machine-facing integration keys.
-  const opsRun = runs.find(run => run.name === 'Rinne Ops Board') || null;
+  const opsRun = runs.find(run => run.name === 'Rinne Ops Board' && run.head_branch === 'develop') || null;
   groups.set('ops-board', { id: 'ops-board', name: BOARD_NAME, kind: 'tool', targets: [{
     id: 'ops-board', label: 'この画面', environment: 'tool', state: runState(opsRun), url: OPS_PUBLIC_URL,
     commit: opsRun?.head_sha || null, deployedAt: opsRun?.updated_at || null, source: 'Rinne Ops Board workflow',

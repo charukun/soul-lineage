@@ -1,0 +1,26 @@
+body .menu-page-dialog[open],body .soul-music .menu-page-dialog[open]{display:flex;flex-direction:column;gap:10px;box-sizing:border-box;width:min(600px,calc(100vw - 20px));height:calc(100dvh - 24px);max-height:740px;padding:14px;inset:0;margin:auto;overflow:hidden;border:2px solid #ba995e;border-bottom:5px solid #51351d;border-radius:4px;background:repeating-linear-gradient(0deg,#ffffff04 0 1px,transparent 1px 4px),linear-gradient(120deg,#4a3b29,#20241b);box-shadow:inset 0 0 0 3px #241b12,0 15px 55px #000a;color:#f2e1bd;text-align:left;font:13px/1.6 var(--serif,serif)}
+.menu-page-dialog>.menu-page-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex:none;border-bottom:1px solid #b4965844;padding-bottom:6px}
+.menu-page-dialog .menu-page-head h2{margin:0;font-size:23px;letter-spacing:.08em}
+.menu-page-dialog .menu-page-head form{margin:0;flex:none}
+.menu-page-dialog .menu-page-head button{position:static;height:44px;min-width:44px;margin:0}
+.menu-page-dialog>.menu-page-body{flex:1;min-height:0;min-width:0}
+body .menu-page-dialog .book-flow{gap:8px}
+body .menu-page-dialog button{min-height:44px;border:1px solid #b5965d;border-bottom:3px solid #2d1e0f;border-radius:4px;background:linear-gradient(#78603d,#38291c);box-shadow:inset 0 1px #f1d4a277,0 2px 4px #0005;color:#f6e4bd;padding:8px 12px;font:13px var(--serif,serif)}
+body .menu-page-dialog input[type=search],body .menu-page-dialog select{min-height:44px;box-sizing:border-box;max-width:100%;color:#f2e2c0;background:#211d15;border:1px solid #aa8d54;border-radius:3px;font-size:14px;padding:6px}
+body .menu-page-dialog .setting-row{min-height:60px;padding:10px 0;margin:0}
+body .menu-page-dialog .book-flow>p{font-size:13px;line-height:1.7;margin:0}
+body .soul-music .menu-page-dialog label{min-height:44px;display:flex;align-items:center;gap:8px;margin:0}
+body .soul-music .menu-page-dialog label input[type=search]{flex:1;width:0;max-width:none;margin:0}
+body .soul-music .menu-page-dialog label select{flex:1;margin:0}
+body .soul-music .menu-page-dialog input[type=range]{flex:1;min-height:44px;min-width:0}
+body .soul-music [data-tracks]>div{padding:0;border:0;gap:6px;min-height:54px}
+body .soul-music [data-tracks] button{margin:0;line-height:1.5}
+body .soul-music [data-tracks] button:last-child{min-width:44px;flex:none}
+body .soul-music .menu-page-dialog audio{width:100%;height:44px;min-height:44px}
+body .soul-music .menu-page-dialog .book-viewport{flex-shrink:1}
+body .soul-music .menu-page-dialog details{max-height:none;overflow:visible}
+body #village-dialog textarea{height:110px;min-height:80px;resize:none;margin:0;width:100%;font-size:13px}
+body #village-dialog [data-page-away]{display:none!important}
+body #village-dialog .peer-movement{display:flex;gap:8px;justify-content:center}
+body #village-dialog .peer-movement button{min-width:52px;min-height:52px;margin:0}
+@media(max-height:480px){body .menu-page-dialog[open],body .soul-music .menu-page-dialog[open]{padding:10px;height:calc(100dvh - 16px)}.menu-page-dialog .menu-page-head h2{font-size:20px}body #village-dialog textarea{height:80px}}

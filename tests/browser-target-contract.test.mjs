@@ -18,7 +18,11 @@ test('focused mode preserves exact changed-app selection',()=>{
 test('full DEV mode checks all DEV apps; explicit local lists retain staging',()=>{
  assert.deepEqual(selectBrowserTargets(entries,{full:true}).map(e=>e.path),all.slice(0,3));
  assert.deepEqual(selectBrowserTargets(entries,{changed:['staging/village']}).map(e=>e.path),['staging/village']);
- assert.deepEqual(selectBrowserTargets(entries,{changed:[],ref:'refs/heads/develop'}),[]);
+});
+test('verification-required DEV retry checks reused assets instead of reporting an empty browser success',()=>{
+ for(const changed of [[],['staging/rinne']])assert.deepEqual(selectBrowserTargets(entries,{changed,ref:'refs/heads/develop'}).map(e=>e.path),all.slice(0,3));
+ assert.throws(()=>selectBrowserTargets([],{ref:'refs/heads/develop'}),/No DEV browser targets/);
+ assert.deepEqual(selectBrowserTargets(entries,{changed:[],ref:'refs/heads/main'}),[]);
 });
 test('successful playback evidence requires progress, decoded data and no media error',async()=>{
  const players=[{currentSrc:'good',currentTime:1,readyState:2,error:null},{currentSrc:'unplayed',currentTime:0,readyState:4,error:null},{currentSrc:'undecoded',currentTime:1,readyState:1,error:null},{currentSrc:'bad',currentTime:1,readyState:4,error:{code:3}}];
@@ -31,6 +35,22 @@ test('diagnostics reuse exact range-abort contract and retain all unexpected fai
  const result=await mediaDiagnostics([request(),request({url:()=>`${origin}/missing.ogg`}),request({response:async()=>null})],new Set([url]),origin);
  assert.equal(result.requestFailures.length,3);assert.equal(result.expectedMediaAborts.length,1);assert.equal(result.failedRequests.length,2);
  assert.equal((await mediaDiagnostics([request()],new Set(),origin)).failedRequests.length,1);
+});
+test('playback captured before reload survives a new document without accepting unplayed blobs',async()=>{
+ const origin='https://local.test',old=`blob:${origin}/old`,next=`blob:${origin}/new`,sources=new Set();
+ let players=[{currentSrc:old,currentTime:3,readyState:4,error:null}];
+ const page={locator:()=>({evaluateAll:async fn=>fn(players)})};
+ await capturePlayedAudio(page,sources);
+ players=[{currentSrc:next,currentTime:0,readyState:4,error:null}];
+ await capturePlayedAudio(page,sources);
+ const request=url=>({url:()=>url,method:()=> 'GET',resourceType:()=> 'media',failure:()=>({errorText:'net::ERR_ABORTED'}),response:async()=>({status:()=>206,headers:()=>({'content-type':'audio/ogg'})})});
+ const result=await mediaDiagnostics([request(old),request(next)],sources,origin);
+ assert.deepEqual(result.expectedMediaAborts.map(x=>x.url),[old]);
+ assert.deepEqual(result.failedRequests.map(x=>x.url),[next]);
+ const source=readFileSync(new URL('../scripts/browser/public.spec.mjs',import.meta.url),'utf8');
+ assert.match(source,/await capturePlayedAudio\(page, playedSources\);\s+await withLifecycleTeardown\(\(\) => page\.reload\(\)\)/);
+ assert.ok(source.includes('const failedRequests = [...ordinaryFailures, ...invalidLifecycleAborts];'));
+ assert.ok(source.includes('lifecycleRequestFailures'));
 });
 test('separated audio case retains 150 tracks, decoding, progress, pause and Production absence checks',()=>{
  const source=readFileSync(new URL('../scripts/browser/public-music.mjs',import.meta.url),'utf8');

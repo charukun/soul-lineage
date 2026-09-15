@@ -1,9 +1,10 @@
+import { qualitySettings } from './character-quality-state.js';
 import { canonicalAppearanceParts } from '@soul/characters';
 import { serializeReviewSession, deserializeReviewSession } from './character-review-state.js';
 export const WORKSPACE_KEY = 'rinne.character-studio.workspace.v1';
 export const MAX_WORKSPACE_BYTES = 128 * 1024;
 const check = (ok, message) => { if (!ok) throw new Error(message); };
-export function serializeWorkspace(session, profiles = []) {
+export function serializeWorkspace(session, profiles = [], quality = null) {
   const canonical = deserializeReviewSession(typeof session === 'string' ? session : serializeReviewSession(session));
   const ids = new Set(canonical.records.map(record => record.id)), seen = new Set();
   check(Array.isArray(profiles) && profiles.length <= 30, '外見データは30体までです');
@@ -11,7 +12,8 @@ export function serializeWorkspace(session, profiles = []) {
     check(Array.isArray(row) && row.length === 2 && ids.has(row[0]) && !seen.has(row[0]), '外見データの個体IDが不正です');
     seen.add(row[0]); return [row[0], canonicalAppearanceParts(row[1])];
   });
-  const text = JSON.stringify({ format: 'shino-character-workspace', version: 1, session: JSON.parse(serializeReviewSession(canonical)), parts });
+  const text = JSON.stringify({ format: 'shino-character-workspace', version: 1, session: JSON.parse(serializeReviewSession(canonical)), parts,
+    ...(quality === null ? {} : { quality: qualitySettings(quality, ids) }) });
   check(new TextEncoder().encode(text).length <= MAX_WORKSPACE_BYTES, '編集データが大きすぎます');
   return text;
 }
@@ -21,7 +23,7 @@ export function deserializeWorkspace(text) {
   // Old review JSON remains readable; it never contained modular parts.
   if (data?.format === undefined) return JSON.parse(serializeWorkspace(text));
   check(data.format === 'shino-character-workspace' && data.version === 1, '未対応の編集データです');
-  return JSON.parse(serializeWorkspace(data.session, data.parts));
+  return JSON.parse(serializeWorkspace(data.session, data.parts, data.quality ?? null));
 }
 export function createEditHistory(limit = 40) {
   check(Number.isInteger(limit) && limit >= 1 && limit <= 100, 'Invalid history limit');

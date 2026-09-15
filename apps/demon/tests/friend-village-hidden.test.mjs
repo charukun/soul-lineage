@@ -26,9 +26,9 @@ test('latest settings still open and retain music and non-network actions',()=>{
  const elements=new Map();
  function element(id){const e={id,hidden:true,style:{},textContent:'',onclick:null,addEventListener(){}};let html='';
   Object.defineProperty(e,'innerHTML',{get:()=>html,set:value=>{html=value;for(const [,child]of value.matchAll(/id="([^"]+)"/g))if(!elements.has(child))elements.set(child,element(child));}});return e;}
- for(const id of ['move-pad','dash-stop','sheet','sheet-kicker','sheet-title','sheet-body'])elements.set(id,element(id));
+ for(const id of ['move-pad','dash-stop','sheet','sheet-kicker','sheet-title','sheet-body','title-character'])elements.set(id,element(id));
  let musicOpened=0;
- const context={document:{getElementById:id=>elements.get(id)||null},window:{__SOUL_MUSIC__:{open:()=>musicOpened++}},SwipeInput:class{cancel(){}},NightAudio:class{enabled=true},console};
+ const context={document:{getElementById:id=>elements.get(id)||null},window:{__SOUL_MUSIC__:{open:()=>musicOpened++}},activeCharacter:()=>({name:'夜の怪物'}),SwipeInput:class{cancel(){}},NightAudio:class{enabled=true},console};
  const source=main.replace(/^import .*;\n/gm,'').replace('export async function boot','async function boot').replaceAll('import.meta.env.DEV','false');
  vm.runInNewContext(source+"\nstore={read:()=>({visits:{}})};settings();",context);
  assert.equal(elements.get('sheet').hidden,false);assert.equal(elements.get('sheet-title').textContent,'記録と連携');
@@ -40,7 +40,7 @@ test('latest settings still open and retain music and non-network actions',()=>{
 });
 
 test('browser gate enforces absent player-village entry instead of reopening it',()=>{
- const browser=readFileSync(new URL('../../../scripts/browser/play-clarity.mjs',import.meta.url),'utf8');
+ const browser=readFileSync('scripts/browser/play-clarity.mjs','utf8');
  assert.match(browser,/locator\('#online-settings'\)\)\.toHaveCount\(0\)/);
  assert.match(browser,/locator\('#online-box'\)\)\.toHaveCount\(0\)/);
  assert.doesNotMatch(browser,/locator\('#online-settings'\)\.click/);

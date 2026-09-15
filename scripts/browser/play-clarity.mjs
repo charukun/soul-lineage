@@ -58,7 +58,8 @@ async function assertHuntGuideState(page, expect, sensed) {
   expect(state.finished).toBe(false);
   expect(typeof state.devouring).toBe('boolean');
   const nearPrey = state.npcs.some(n => n.dead && !n.eaten && Math.hypot(n.x-state.player.x,n.z-state.player.z)<2.5);
-  const expected = state.devouring ? 'devour' : state.combat ? 'combat' : state.eaten>0 ? 'memory' : nearPrey ? 'stop' : sensed ? 'approach' : 'sense';
+  const expected = state.devouring ? 'devour' : state.combat ? 'combat' : state.eaten>0 ? 'lineage' : nearPrey ? 'stop' : sensed ? 'approach' : 'sense';
   await expect(page.locator('#first-hunt-guide')).toHaveAttribute('data-step', expected);
+  await expect(page.locator('#hud')).toHaveAttribute('data-guide', expected);
   await expect(page.locator('#first-hunt-guide')).toBeVisible();
 }

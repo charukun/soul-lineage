@@ -1,0 +1,201 @@
+{
+  "release": "life-and-guard-v5",
+  "author_of_third_party_meshes": "Kenney",
+  "repository": "ETdoFresh/kenney.nl",
+  "acquisition": "Imported unchanged converted mesh arrays from the supplied Hoshitsugi_Village_LifeAndGuard_Package.zip; upstream sources and blob identities below are the handoff provenance, not new downloads in this WORK.",
+  "visual_limit": "Stylized low-poly assets with local textile-like shading, not a finished felt-model pack or a visual match to the supplied plush poster.",
+  "packs": [
+    {
+      "asset_pack": "Kenney Fantasy Town Kit 1.0",
+      "repository": "ETdoFresh/kenney.nl",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "license_source_blob_sha": "bb0461805e80ede4aa47ecc71a0a6ae9e6a24ea4",
+      "acquisition": "GitHub text read of existing OBJ mesh vertex positions, triangle face indices and material groups; converted to indexed JSON. Full original OBJ bytes are not packaged.",
+      "adaptations": [
+        "Original vertices and face indices retained",
+        "Explicit OBJ normals and UVs omitted",
+        "Renderer computes normals and new UVs",
+        "Existing modular parts scaled and assembled into buildings",
+        "Surface textile shading added locally"
+      ],
+      "visual_match": "Not a felt asset pack. The supplied felt reference aesthetic is not achieved.",
+      "assets": [
+        {
+          "name": "wall",
+          "sourceURL": "https://github.com/ETdoFresh/kenney.nl/blob/master/fantasy-town-kit-1.0/Models/OBJ%20format/wall.obj",
+          "sourceBlobSHA": "63f84e963f4c9beaeb03f58464fb39ecf1a3c589",
+          "author": "Kenney",
+          "license": "CC0-1.0",
+          "vertices": 24,
+          "triangles": 44,
+          "material_groups": [
+            "wood",
+            "stone"
+          ]
+        },
+        {
+          "name": "roofGable",
+          "sourceURL": "https://github.com/ETdoFresh/kenney.nl/blob/master/fantasy-town-kit-1.0/Models/OBJ%20format/roofGable.obj",
+          "sourceBlobSHA": "1c5827bb49de89fe67204d9f307aeb01e1585540",
+          "author": "Kenney",
+          "license": "CC0-1.0",
+          "vertices": 38,
+          "triangles": 72,
+          "material_groups": [
+            "roof",
+            "wood",
+            "stone",
+            "roofLight"
+          ]
+        },
+        {
+          "name": "wallWindowSmall",
+          "sourceURL": "https://github.com/ETdoFresh/kenney.nl/blob/master/fantasy-town-kit-1.0/Models/OBJ%20format/wallWindowSmall.obj",
+          "sourceBlobSHA": "5cf4cf72542f57def3bc14183deb80c947386e3f",
+          "author": "Kenney",
+          "license": "CC0-1.0",
+          "vertices": 58,
+          "triangles": 116,
+          "material_groups": [
+            "wood",
+            "stone"
+          ]
+        },
+        {
+          "name": "wallDoorwaySquareWide",
+          "sourceURL": "https://github.com/ETdoFresh/kenney.nl/blob/master/fantasy-town-kit-1.0/Models/OBJ%20format/wallDoorwaySquareWide.obj",
+          "sourceBlobSHA": "5d67e5802c8f989aeb713a4e095cc3fde30b97c3",
+          "author": "Kenney",
+          "license": "CC0-1.0",
+          "vertices": 32,
+          "triangles": 60,
+          "material_groups": [
+            "wood",
+            "stone",
+            "stoneDark"
+          ]
+        },
+        {
+          "name": "roofPoint",
+          "sourceURL": "https://github.com/ETdoFresh/kenney.nl/blob/master/fantasy-town-kit-1.0/Models/OBJ%20format/roofPoint.obj",
+          "sourceBlobSHA": "5bd711b0ef5a20f6a1d8e174e03484ed4d029d99",
+          "author": "Kenney",
+          "license": "CC0-1.0",
+          "vertices": 28,
+          "triangles": 52,
+          "material_groups": [
+            "roofLight",
+            "roof"
+          ]
+        },
+        {
+          "name": "chimney",
+          "sourceURL": "https://github.com/ETdoFresh/kenney.nl/blob/master/fantasy-town-kit-1.0/Models/OBJ%20format/chimney.obj",
+          "sourceBlobSHA": "766d5e5792a92e10a571d7936faa5dc4f1ad3c9c",
+          "author": "Kenney",
+          "license": "CC0-1.0",
+          "vertices": 24,
+          "triangles": 44,
+          "material_groups": [
+            "stoneDark",
+            "stone"
+          ]
+        }
+      ],
+      "handoff_converted_file": "assets/kenney-converted.json",
+      "handoff_converted_file_sha256": "431acfdae38f10017ca94b97237c0b5bb275b773c23d777feb96d8b382f81cd6",
+      "runtime_file": "src/web/asset-data.js",
+      "runtime_file_sha256": "806031cea8ef77ffb41f7d2303b1bcddef9ab0af43b63cb10e9d9b73595f679e"
+    }
+  ],
+  "new_assets": [
+    {
+      "key": "tent",
+      "name": "tent_smallOpen",
+      "pack": "kenney_natureKit_2.1",
+      "source_url": "https://github.com/ETdoFresh/kenney.nl/blob/master/kenney_natureKit_2.1/Models/OBJ%20format/tent_smallOpen.obj",
+      "source_blob_sha": "80fd8a828745ef9e30cf12cf851a43d33e37a02a",
+      "license": "CC0-1.0",
+      "author": "Kenney",
+      "converted_vertices": 69,
+      "converted_triangles": 117,
+      "adaptations": "Normals and UVs regenerated; selected duplicate inward and underside faces omitted. Dimensions and colors adapted at runtime. Source blob SHA identifies the original, not the converted bytes."
+    },
+    {
+      "key": "campfire",
+      "name": "campfire_logs",
+      "pack": "kenney_natureKit_2.1",
+      "source_url": "https://github.com/ETdoFresh/kenney.nl/blob/master/kenney_natureKit_2.1/Models/OBJ%20format/campfire_logs.obj",
+      "source_blob_sha": "2db41edcdb14cebfab451619593cb9c6122a846a",
+      "license": "CC0-1.0",
+      "author": "Kenney",
+      "converted_vertices": 57,
+      "converted_triangles": 90,
+      "adaptations": "Normals and UVs regenerated; selected duplicate inward and underside faces omitted. Dimensions and colors adapted at runtime. Source blob SHA identifies the original, not the converted bytes."
+    },
+    {
+      "key": "boat",
+      "name": "boat_large",
+      "pack": "kenney_piratekit_1.1",
+      "source_url": "https://github.com/ETdoFresh/kenney.nl/blob/master/kenney_piratekit_1.1/Models/OBJ%20format/boat_large.obj",
+      "source_blob_sha": "b2d275136939ed8d8f0ce90a74089025dd7c7853",
+      "license": "CC0-1.0",
+      "author": "Kenney",
+      "converted_vertices": 52,
+      "converted_triangles": 100,
+      "adaptations": "Normals and UVs regenerated; selected duplicate inward and underside faces omitted. Dimensions and colors adapted at runtime. Source blob SHA identifies the original, not the converted bytes."
+    },
+    {
+      "key": "soil",
+      "name": "crops_dirtSingle",
+      "pack": "kenney_natureKit_2.1",
+      "source_url": "https://github.com/ETdoFresh/kenney.nl/blob/master/kenney_natureKit_2.1/Models/OBJ%20format/crops_dirtSingle.obj",
+      "source_blob_sha": "29d4d7c066ebd9276d2f1d5f3c4fd165cc4e0e0c",
+      "license": "CC0-1.0",
+      "author": "Kenney",
+      "converted_vertices": 18,
+      "converted_triangles": 32,
+      "adaptations": "Normals and UVs regenerated; selected duplicate inward and underside faces omitted. Dimensions and colors adapted at runtime. Source blob SHA identifies the original, not the converted bytes."
+    },
+    {
+      "key": "stone",
+      "name": "stone_smallA",
+      "pack": "kenney_natureKit_2.1",
+      "source_url": "https://github.com/ETdoFresh/kenney.nl/blob/master/kenney_natureKit_2.1/Models/OBJ%20format/stone_smallA.obj",
+      "source_blob_sha": "19b5598667bbdbd8b5f21f59ec7da5a78669b7da",
+      "license": "CC0-1.0",
+      "author": "Kenney",
+      "converted_vertices": 10,
+      "converted_triangles": 16,
+      "adaptations": "Normals and UVs regenerated; selected duplicate inward and underside faces omitted. Dimensions and colors adapted at runtime. Source blob SHA identifies the original, not the converted bytes."
+    },
+    {
+      "key": "pier",
+      "name": "bridge_center_wood",
+      "pack": "kenney_natureKit_2.1",
+      "source_url": "https://github.com/ETdoFresh/kenney.nl/blob/master/kenney_natureKit_2.1/Models/OBJ%20format/bridge_center_wood.obj",
+      "source_blob_sha": "e1c35d34d3a1697502a675725426ca72929e8133",
+      "license": "CC0-1.0",
+      "author": "Kenney",
+      "converted_vertices": 28,
+      "converted_triangles": 52,
+      "adaptations": "Normals and UVs regenerated; selected duplicate inward and underside faces omitted. Dimensions and colors adapted at runtime. Source blob SHA identifies the original, not the converted bytes."
+    }
+  ],
+  "converted_files": {
+    "assets/kenney-converted.json": "431acfdae38f10017ca94b97237c0b5bb275b773c23d777feb96d8b382f81cd6",
+    "assets/kenney-nature-pirate-converted.json": "43777826732e560f1d00ec884268e1b335fc670550de31989342bc3f2904bb23",
+    "src/asset-data.js": "806031cea8ef77ffb41f7d2303b1bcddef9ab0af43b63cb10e9d9b73595f679e",
+    "src/nature-data.js": "2247946f4e1e5e112fafed0797a590981fb1f22ba7765fdf18bcbf408bc06d54"
+  },
+  "locally_authored": [
+    "Gameplay, UI, navigation, traffic heat and simulation",
+    "Furniture, characters, vegetation and simple decorative props retained from prior prototype",
+    "Ground, water, light and fire effects, textile surface textures",
+    "Sailing ship masts, sails and rigging around an acquired Kenney hull",
+    "Arrangement and scaling of acquired modular building parts; no claim of twenty distinct premade facility models"
+  ],
+  "v5_asset_policy": "No new facility assets were acquired in this revision. All building silhouettes reuse the previously converted Kenney modules and tents. Material variants recolor existing material groups; upgrades assemble additional stories from the same acquired modules. Local NPC/animal rigs, shield/sword accessories, terrain, post-process effects, paths and UI are locally authored.",
+  "source_archive_sha256": "f4fc4edc44a6666da3b88b367d3511dd9d53dc4c8085f029cb67e963fa5a4b8e"
+}

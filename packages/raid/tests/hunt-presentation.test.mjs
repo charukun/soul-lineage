@@ -28,7 +28,9 @@ test('all three scale choices persist without changing village identities',()=>{
 test('claim, finish, and reload never permit a second visit after scale migration',()=>{
  const s=store(),v=offerVillages(s)[0];s.claim(v);s.finish(v.id,'escaped',0);
  const next=offerVillages(s);assert.ok(next.every(n=>n.id!==v.id));
- assert.throws(()=>s.claim({...v,raidScale:'large'}),/再び入れません/);
+ const before=s.read();
+ assert.throws(()=>s.claim({...v,raidScale:'large'}),/喰痕が残っている/);
+ assert.deepEqual(s.read(),before);
  assert.equal(s.read().visits[v.id].name,v.name);
 });
 test('small villages with a powerful target are not mislabeled low risk',()=>{

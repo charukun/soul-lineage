@@ -1,7 +1,16 @@
 /* Auxiliary tools never cover pause, movement, scent or the return command. */
 #hud header{grid-template-columns:1fr 1.5fr 44px}
 #pause,#sheet-close{min-width:44px;min-height:44px;padding:0}
-#first-hunt-guide{font-size:11px;line-height:1.65;margin:7px 0 0;color:#c1ccba;letter-spacing:.025em;max-width:260px}
+#first-hunt-guide{font-size:11px;line-height:1.65;margin:7px 0 0;color:#c1ccba;letter-spacing:.025em;max-width:280px}
+#hud[data-guide="sense"] #scent:not(:disabled),#hud[data-guide="memory"] #memory:not(:disabled),#hud[data-guide="return"] #return:not(:disabled),#hud[data-guide="escape"] #return:not(:disabled){filter:brightness(1.28);text-shadow:0 0 12px #c6d7b788}
+#hud[data-guide="sense"] #scent:not(:disabled)::before,#hud[data-guide="memory"] #memory:not(:disabled)::before,#hud[data-guide="return"] #return:not(:disabled)::before{content:'次';position:absolute;top:-10px;right:-5px;min-width:22px;height:22px;display:grid;place-items:center;border:1px solid #c5b98588;background:#132321e8;color:#e5d7ad;font-size:9px;line-height:1;letter-spacing:.05em;border-radius:50%}
+.controls .seal:disabled{opacity:.28;filter:saturate(.45);cursor:default}
+#return.locked:not(:disabled){opacity:.5}
+#return.locked #return-arrow{font-size:21px;color:#8f9589}
+#enemy-name{min-height:17px;margin-top:8px;font-size:10px;letter-spacing:.16em;color:#d4c8ae;text-shadow:0 2px 8px #000}
+#enemy-health-track{width:min(180px,48vw);height:3px;margin:6px auto 0;background:#553a384f;overflow:hidden;transform:skewX(-18deg)}
+#enemy-health{height:100%;width:0;max-width:none;margin:0;background:linear-gradient(90deg,#723b35,var(--blood));transition:width .15s}
+#battle{bottom:calc(165px + env(safe-area-inset-bottom))}
 #online-box{box-sizing:border-box;width:min(430px,calc(100vw - 28px));max-height:88dvh;overflow:auto;background:linear-gradient(140deg,#172625,#0b181b);color:#d1d0b7;border:1px solid #b9b28a77;padding:18px}
 #online-box:not([open]){display:none}
 #online-box::backdrop{background:#02090cc9}
@@ -9,3 +18,25 @@
 #online-box button{min-height:44px;padding:8px 14px}
 #online-box textarea{box-sizing:border-box;width:100%;height:80px;display:block;margin:8px 0;background:#071316;color:#c1ccba;border:1px solid #84947e66}
 #online-box label,#online-box p{font-size:12px;line-height:1.7}
+
+/* First-hunt direction stays inside the play HUD instead of becoming a tutorial sheet. */
+#first-hunt-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:9px;max-width:360px}
+#first-hunt-choices[hidden]{display:none}
+.first-hunt-choice{min-width:0;padding:7px 8px;border:1px solid #927d6666;background:linear-gradient(135deg,#21191be8,#111b1be8);box-shadow:inset 0 0 0 1px #09070899,0 8px 18px #0005;transform:skewX(-2deg)}
+.first-hunt-choice b,.first-hunt-choice span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.first-hunt-choice b{font-size:10px;letter-spacing:.035em;color:#e0c8a7}
+.first-hunt-choice span{margin-top:3px;font-size:9px;color:#95a79a;letter-spacing:.06em}
+#first-hunt-gain{position:fixed;z-index:16;left:50%;top:43%;width:min(330px,calc(100vw - 44px));box-sizing:border-box;pointer-events:none;transform:translate(-50%,-50%);padding:14px 16px 13px;border:1px solid #b28b6f88;background:radial-gradient(circle at 50% 0,#5d323046 0,transparent 48%),linear-gradient(155deg,#211517f5,#0b1515f2);box-shadow:0 22px 60px #000c,inset 0 0 28px #8f463322;animation:first-hunt-gain-in .28s ease-out both;text-align:center}
+#first-hunt-gain[hidden]{display:none}
+#first-hunt-gain small,#first-hunt-gain b,#first-hunt-gain span{display:block}
+#first-hunt-gain small{font-size:8px;letter-spacing:.28em;color:#8f9d91}
+#first-hunt-gain b{margin-top:5px;font-size:23px;letter-spacing:.08em;color:#e2c2a5;text-shadow:0 0 22px #b5533f55}
+#first-hunt-gain span{margin:7px auto 0;max-width:285px;font-size:10px;line-height:1.65;color:#b9c2b4}
+.first-hunt-active #memory{opacity:.58}
+.nameplate.first-hunt-prey{filter:brightness(1.34);text-shadow:0 0 7px #e8d49e,0 0 18px #a65e48}
+.nameplate.first-hunt-prey::before{content:'獲物 ';color:#dcae83;font-size:.78em;letter-spacing:.08em}
+.nameplate.first-hunt-choice-prey{text-shadow:0 0 8px #b6d0b5,0 0 15px #7c9b87}
+@keyframes first-hunt-gain-in{from{opacity:0;transform:translate(-50%,-44%) scale(.94)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@media(max-width:430px){#first-hunt-choices{max-width:300px}.first-hunt-choice{padding:6px}.first-hunt-choice b{font-size:9px}#first-hunt-gain b{font-size:21px}}
+@media(max-height:650px){#battle{bottom:calc(143px + env(safe-area-inset-bottom))}#first-hunt-guide{max-width:230px;font-size:10px}#first-hunt-choices{margin-top:5px}.first-hunt-choice{padding:5px 6px}#first-hunt-gain{top:39%;padding:10px 13px}}
+@media(prefers-reduced-motion:reduce){#first-hunt-gain{animation:none}}
