@@ -6,6 +6,7 @@ import { buildStations, nearestStation, normalizeLayout } from './locations.js';
 import { createWorldRenderer } from './renderer.js';
 import { createFront, normalizeFront, tickFront } from './combat.js';
 import { guidanceFor } from './guidance.js';
+import { RINNE_RUNTIME_PERFORMANCE } from './performance.js';
 
 const $=id=>document.getElementById(id);
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
@@ -27,11 +28,11 @@ export async function startRuntime({mode,buildInfo,name,onExit}){
   const stations=buildStations(layout),canvas=$('game'),loading=$('loading-card'),gameScreen=$('game-screen');
   $('loading-message').textContent='村を描画中';
   const view=createWorldRenderer({canvas,document,layout,stations});
-  let alive=true,raf=0,last=performance.now(),saveElapsed=0,toastTimer=0,endDialog=null,pointer=null,keyboard={x:0,y:0},axis={x:0,y:0},portDwell=0,movementHint=true,movementHintTimer=0,chapterTimer=0,hurtTimer=0,lastChapter='';
-  let front=state.zone==='frontier'?normalizeFront(state.frontState,state.front,state.seed):null;
+  let alive=true,raf=0,last=performance.now(),saveElapsed=0,uiElapsed=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval,toastTimer=0,endDialog=null,pointer=null,keyboard={x:0,y:0},axis={x:0,y:0},portDwell=0,movementHint=true,movementHintTimer=0,chapterTimer=0,hurtTimer=0,lastChapter='';
+  let front=state.zone==='frontier'?normalizeFront(state.frontState,state.front,state.seed):null;if(front)state.frontState=front;
 
   const toast=text=>{if(!text)return;$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1800);};
-  const save=async()=>{if(!alive)return false;try{state.frontState=front?structuredClone(front):null;await platform.storage.write(saveKey,serializeLife(state));return true;}catch(error){toast('保存失敗');console.error(error);return false;}};
+  const save=async()=>{if(!alive)return false;try{state.frontState=front;await platform.storage.write(saveKey,serializeLife(state));return true;}catch(error){toast('保存失敗');console.error(error);return false;}};
   function talkContext(){return state.zone==='village'&&!state.down&&!state.ended&&state.phase==='birth'?{speaker:'母',text:'焦らなくていいよ。あなたの歩幅で大きくなりなさい。'}:null;}
   function worldTone(guide){if(state.ended||guide.tone==='rebirth')return'rebirth';if(state.zone==='frontier')return'frontier';if(guide.tone==='home')return'home';return'village';}
   function showChapter(stage){
@@ -67,7 +68,7 @@ export async function startRuntime({mode,buildInfo,name,onExit}){
     for(const id of choices.length?choices:['']){const o=document.createElement('option');o.value=id;o.textContent=id||'村で過ごした日々';select.append(o);}
     document.body.append(endDialog);
     endDialog.addEventListener('close',async()=>{if(endDialog.returnValue==='rebirth'){
-      state=rebirth(state,{memento:select.value||null});front=null;state.frontState=null;state.position=safeMuraPosition(layout,state.position);lastChapter='';await save();endDialog.remove();endDialog=null;toast(`${state.generation}代目`);
+      state=rebirth(state,{memento:select.value||null});front=null;state.frontState=null;view.syncFront(null);state.position=safeMuraPosition(layout,state.position);lastChapter='';await save();endDialog.remove();endDialog=null;toast(`${state.generation}代目`);
     }else endDialog.showModal();});endDialog.showModal();
   }
   function handleEvents(events){for(const event of events){
@@ -105,16 +106,18 @@ export async function startRuntime({mode,buildInfo,name,onExit}){
       if(view.canMoveTo(nx,nz,state.phase==='birth'?.42:.32,state.zone)){state.position.x=nx;state.position.z=nz;state.yaw=Math.atan2(direction.x,direction.z);moved=true;}}
     if(moved&&movementHint){movementHint=false;$('move-hint').hidden=true;}
     setMoving(state,moved,state.yaw);const station=state.zone==='village'?nearestStation(stations,state.position):null,events=tickLife(state,{realDelta:dt,station,paused:document.hidden});handleEvents(events);
-    if(state.zone==='village'&&station?.port&&canDepart(state)&&!moved){portDwell+=dt;if(portDwell>=1.5&&depart(state)){front=createFront(0,state.seed);state.frontState=structuredClone(front);view.syncFront(front);toast('出航 · 前線');portDwell=0;}}else portDwell=0;
+    if(state.zone==='village'&&station?.port&&canDepart(state)&&!moved){portDwell+=dt;if(portDwell>=1.5&&depart(state)){front=createFront(0,state.seed);state.frontState=front;view.syncFront(front);toast('出航 · 前線');portDwell=0;}}else portDwell=0;
     if(state.zone==='frontier'){
-      front??=normalizeFront(state.frontState,state.front,state.seed);const battle=tickFront(state,front,dt);handleEvents(battle);view.syncFront(front);state.frontState=structuredClone(front);
-      if(front.cleared&&state.position.z<=-5.85&&state.front<5&&advanceFront(state)){front=createFront(state.front,state.seed);state.frontState=structuredClone(front);view.syncFront(front);toast(`第${state.front+1}前線`);}
-      else if(front.cleared&&state.front>=5&&state.position.z>=4.8&&returnHome(state)){state.position=safeMuraPosition(layout,{x:166,z:0});front=null;state.frontState=null;toast('凱旋');}
-      if(state.zone==='village'&&battle.some(e=>e.type==='rescued')){state.position=safeMuraPosition(layout,{x:0,z:0});front=null;state.frontState=null;}
+      if(!front){front=normalizeFront(state.frontState,state.front,state.seed);state.frontState=front;view.syncFront(front);}
+      const battle=tickFront(state,front,dt);handleEvents(battle);view.updateFront(front);
+      if(front.cleared&&state.position.z<=-5.85&&state.front<5&&advanceFront(state)){front=createFront(state.front,state.seed);state.frontState=front;view.syncFront(front);toast(`第${state.front+1}前線`);}
+      else if(front.cleared&&state.front>=5&&state.position.z>=4.8&&returnHome(state)){state.position=safeMuraPosition(layout,{x:166,z:0});front=null;state.frontState=null;view.syncFront(null);toast('凱旋');}
+      if(state.zone==='village'&&battle.some(e=>e.type==='rescued')){state.position=safeMuraPosition(layout,{x:0,z:0});front=null;state.frontState=null;view.syncFront(null);}
     }
-    view.renderState(state,dt);syncUI();saveElapsed+=dt;if(saveElapsed>=2.5){saveElapsed=0;void save();}
+    view.renderState(state,dt);uiElapsed+=dt;if(uiElapsed>=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval){uiElapsed=0;syncUI();}
+    saveElapsed+=dt;if(saveElapsed>=2.5){saveElapsed=0;void save();}
   }
-  if(front)view.syncFront(front);view.renderState(state,.016);syncUI();loading.hidden=true;movementHintTimer=setTimeout(()=>{movementHint=false;$('move-hint').hidden=true;},5000);raf=requestAnimationFrame(frame);void save();
+  if(front)view.syncFront(front);view.renderState(state,.016);syncUI();uiElapsed=0;loading.hidden=true;movementHintTimer=setTimeout(()=>{movementHint=false;$('move-hint').hidden=true;},5000);raf=requestAnimationFrame(frame);void save();
   function pagehide(){void save();}
   window.addEventListener('pagehide',pagehide);
   function dispose(){if(!alive)return;alive=false;cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);unsubscribeWorld();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('pagehide',pagehide);canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);view.dispose();endDialog?.remove();endDialog=null;}
