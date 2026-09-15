@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   attachMotionReferenceBenchmark,
+  attachMotionDeviceCalibration,
+  createMotionDeviceCalibration,
   createQAReport,
   deserializeQAReport,
   evaluateMotionReferenceBenchmark,
@@ -71,4 +73,22 @@ test('optional benchmark evidence round trips through v1 QA without changing vis
   assert.deepEqual(deserializeQAReport(serializeQAReport(attached)),attached);
   const tampered=structuredClone(benchmark);tampered.result='gaps';
   assert.throws(()=>attachMotionReferenceBenchmark(report,tampered));
+});
+
+test('reference and device evidence coexist without approving visuals or inventing hardware measurements',()=>{
+  const report=createQAReport({review:{sequence:'combined-evidence',fps:60,viewport:[390,420],dpr:1,lighting:'fixed',motionRevision:'source1',characters:[]}});
+  report.visualApproval='changes-requested';
+  const benchmark=evaluateMotionReferenceBenchmark(passingInput());
+  const device=createMotionDeviceCalibration({deviceClass:'pixel-fold-class-30',physicalDevice:false,cohort:12,sampleCount:0,layers:[]});
+  const referenceFirst=attachMotionDeviceCalibration(attachMotionReferenceBenchmark(report,benchmark),device);
+  const deviceFirst=attachMotionReferenceBenchmark(attachMotionDeviceCalibration(report,device),benchmark);
+  assert.deepEqual(referenceFirst,deviceFirst);
+  const decoded=deserializeQAReport(serializeQAReport(referenceFirst));
+  assert.equal(decoded.visualApproval,'changes-requested');
+  assert.equal(decoded.review.motionReferenceBenchmark.visualApprovalRequired,true);
+  assert.equal(decoded.deviceCalibration.measuredHardware,false);
+  assert.equal(report.review.motionReferenceBenchmark,undefined);
+  assert.equal(report.deviceCalibration,undefined);
+  const tampered=structuredClone(decoded);tampered.deviceCalibration.measuredHardware=true;
+  assert.throws(()=>serializeQAReport(tampered),/Invalid measured motion device calibration/);
 });
