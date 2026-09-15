@@ -86,8 +86,10 @@ export function buildAssetOptimizationPlan({
 }
 
 function sumAuditTriangles(audit, level = 0) {
-  if (!audit?.objects?.length) return null;
-  let total = 0;
+  if (level === 0 && finitePositive(audit?.summary?.sourceTriangles)) return audit.summary.sourceTriangles;
+  const skipped = finiteNonNegative(audit?.summary?.lodSkippedTriangles) ? audit.summary.lodSkippedTriangles : 0;
+  if (!audit?.objects?.length) return skipped || null;
+  let total = skipped;
   for (const row of audit.objects) {
     const value = level === 0 ? row.triangles : row.lods?.find(item => item.level === level)?.triangles;
     if (!finitePositive(value)) return null;
@@ -145,6 +147,7 @@ export function evaluateAssetOptimization({ plan, audit = null, sourceBytes = nu
   if (finitePositive(ratios.lod1) && ratios.lod1 > plan.budget.lodRatios[1] + ratioTolerance) warnings.push(`LOD1 ratio ${ratios.lod1.toFixed(3)} is above target ${plan.budget.lodRatios[1].toFixed(3)}`);
   if (finitePositive(ratios.lod2) && ratios.lod2 > plan.budget.lodRatios[2] + ratioTolerance) warnings.push(`LOD2 ratio ${ratios.lod2.toFixed(3)} is above target ${plan.budget.lodRatios[2].toFixed(3)}`);
   if (!audit && plan.stages.lod) warnings.push('LOD audit was not measured');
+  if (!audit && !plan.stages.lod) warnings.push('Role geometry/material budget was not measured in compression-only mode');
   const bytes = {
     source: sourceBytes,
     lod: lodBytes,
@@ -153,6 +156,8 @@ export function evaluateAssetOptimization({ plan, audit = null, sourceBytes = nu
   };
   const lodQuality = {
     silhouetteGuard: audit ? audit.errors?.length === 0 : null,
+    skippedObjects: audit?.summary?.lodSkippedObjects ?? null,
+    skippedTriangles: audit?.summary?.lodSkippedTriangles ?? null,
     objects: lodQualityRows(audit),
   };
   const gate = errors.length ? 'fail' : warnings.length ? 'review' : 'pass';
