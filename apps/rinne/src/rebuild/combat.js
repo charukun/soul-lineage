@@ -2,6 +2,7 @@ import { WEAPONS, ARMORS, spendStamina } from './domain.js';
 
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
+const finite=(n,lo,hi)=>typeof n==='number'&&Number.isFinite(n)&&n>=lo&&n<=hi;
 
 export function createFront(stage=0,seed=1){
   const boss=stage>=5,count=boss?1:3+Math.min(2,stage),rows=[];
@@ -10,6 +11,18 @@ export function createFront(stage=0,seed=1){
     rows.push({id:`front-${stage}-${i}`,x:Math.sin(angle)*ring,z:-1.2-Math.cos(angle)*ring,hp:boss?180:42+stage*9,maxHp:boss?180:42+stage*9,dead:false,cooldown:.4+i*.18,flash:0});
   }
   return{stage,enemies:rows,cleared:false,clearSeconds:0};
+}
+
+export function normalizeFront(raw,stage=0,seed=1){
+  if(!raw)return createFront(stage,seed);
+  if(!Number.isInteger(raw.stage)||raw.stage<0||raw.stage>5||raw.stage!==stage||!Array.isArray(raw.enemies)||raw.enemies.length<1||raw.enemies.length>6)throw Error('前線の保存データが不正です。');
+  const ids=new Set(),enemies=raw.enemies.map(e=>{
+    if(!e||typeof e.id!=='string'||e.id.length>80||ids.has(e.id)||!finite(e.x,-20,20)||!finite(e.z,-20,20)||!finite(e.maxHp,1,1000)||!finite(e.hp,0,e.maxHp)||typeof e.dead!=='boolean'||!finite(e.cooldown,-30,30))throw Error('前線の敵データが不正です。');
+    ids.add(e.id);return{id:e.id,x:e.x,z:e.z,hp:e.hp,maxHp:e.maxHp,dead:e.dead,cooldown:e.cooldown,flash:finite(e.flash,0,1)?e.flash:0};
+  });
+  const cleared=typeof raw.cleared==='boolean'?raw.cleared:enemies.every(e=>e.dead),clearSeconds=finite(raw.clearSeconds,0,3600)?raw.clearSeconds:0;
+  if(cleared!==enemies.every(e=>e.dead))throw Error('前線の撃破状態が不正です。');
+  return{stage,enemies,cleared,clearSeconds};
 }
 
 function chooseSkill(state,phase){
