@@ -27,10 +27,10 @@ export async function verifyRebuildPlaythrough(browser,url,output){
   async function expectTone(tone){assert.equal(await page.locator('#game-screen').getAttribute('data-world-tone'),tone);}
   async function waitGame(){
     await page.locator('#game-screen').waitFor({state:'visible'});await page.locator('#loading-card').waitFor({state:'hidden'});
-    await page.locator('#objective').waitFor({state:'visible'});assert.equal(await page.locator('#waypoint-arrow').count(),1);await compactHud();
+    await page.locator('#objective').waitFor({state:'visible'});assert.equal(await page.locator('#waypoint-arrow').count(),1);assert.equal(await page.locator('#game').getAttribute('data-runtime'),'active');await compactHud();
   }
   async function backToTitle(){
-    if(await page.locator('#game-screen').isVisible().catch(()=>false)){await page.locator('#back-title').click();await page.locator('#title-screen').waitFor({state:'visible'});}
+    if(await page.locator('#game-screen').isVisible().catch(()=>false)){await page.locator('#back-title').click();await page.locator('#title-screen').waitFor({state:'visible'});assert.equal(await page.locator('#game').getAttribute('data-runtime'),'prepared');}
   }
   async function saveKey(){
     const label=(await text(page.locator('#build-label'))).split('·')[0].trim().toLowerCase();return `soul:v1:${label||'local'}:rinne:local:life-v2`;
@@ -39,12 +39,14 @@ export async function verifyRebuildPlaythrough(browser,url,output){
   async function load(state){
     await backToTitle();if(!key)key=await saveKey();const value=serializeLife(state);
     await page.evaluate(({key,value})=>localStorage.setItem(key,value),{key,value});await page.reload({waitUntil:'domcontentloaded'});
+    await page.locator('#title-screen').waitFor({state:'visible'});assert.equal(await page.locator('#game').getAttribute('data-runtime'),'prepared');
     await page.locator('#continue-life').waitFor({state:'visible'});await page.locator('#continue-life').click();await waitGame();
   }
-  const stateAt=(age,seed=41)=>{const state=createLife({name:'導線テスト',seed});state.ageYears=age;state.ageSeconds=age*60;if(age>=4)state.phase='living';return state;};
+  const stateAt=(age,seed=41)=>{const state=createLife({name:'導線テスト',seed,villageIds:[defaultMuraLayout().id]});state.ageYears=age;state.ageSeconds=age*60;if(age>=4)state.phase='living';return state;};
 
   try{
     const response=await page.goto(url,{waitUntil:'domcontentloaded'});assert.ok(response?.ok(),'rinne preview must answer successfully');
+    await page.locator('#title-screen').waitFor({state:'visible'});assert.equal(await page.locator('#game').getAttribute('data-runtime'),'prepared');
     assert.match(await text(page.locator('.tagline')),/暮らし、戦い、遺し/);assert.equal(await page.locator('.crest-ring').count(),1);key=await saveKey();
 
     await page.locator('#new-life').click();await waitGame();await expectTone('village');
@@ -83,8 +85,8 @@ export async function verifyRebuildPlaythrough(browser,url,output){
     assert.equal(await text(page.locator('#objective')),'救助待ち');assert.match(await text(page.locator('#objective-badge')),/秒/);assert.equal(await page.locator('#talk').isHidden(),true);await page.waitForFunction(()=>!document.getElementById('life-stage')?.textContent.includes('救助'),null,{timeout:4000});await expectTone('home').catch(async()=>expectTone('village'));
 
     const old=stateAt(99.99,48);old.ageSeconds=LIFE_SECONDS-.35;old.ageYears=old.ageSeconds/60;old.clockRate=20;old.lastDepartureCycle=20;old.equipment={weapon:'spear',armor:'light',shield:true};old.knownSkills.push('basic.spear','skill.step');old.defeats=12;old.returns=3;await load(old);
-    await page.locator('.life-end-dialog[open]').waitFor({state:'visible',timeout:5000});await page.waitForFunction(()=>document.getElementById('game-screen')?.dataset.worldTone==='rebirth');await expectTone('rebirth');assert.match(await text(page.locator('.life-end-summary')),/12撃破/);assert.equal(await text(page.locator('.life-end-help')),'技・装備 継承');await page.screenshot({path:join(output,'05-life-end.png')});
-    await page.locator('#rebirth').click();await page.waitForFunction(()=>document.getElementById('generation')?.textContent==='2代目',null,{timeout:5000});await expectTone('village');assert.equal(await text(page.locator('#life-stage')),'1/6 誕生');assert.equal(await text(page.locator('#toast')),'2代目');await page.screenshot({path:join(output,'06-rebirth.png')});
+    await page.locator('.life-end-dialog[open]').waitFor({state:'visible',timeout:5000});await page.waitForFunction(()=>document.getElementById('game-screen')?.dataset.worldTone==='rebirth');await expectTone('rebirth');assert.match(await text(page.locator('.life-end-summary')),/12撃破/);assert.match(await text(page.locator('.life-end-help')),/次の人生は0歳/);assert.equal(await page.locator('#rebirth-village').count(),1);await page.screenshot({path:join(output,'05-life-end.png')});
+    await page.locator('#rebirth').click();await page.waitForFunction(()=>document.getElementById('generation')?.textContent==='2代目',null,{timeout:5000});await expectTone('village');assert.equal(await text(page.locator('#life-stage')),'1/6 誕生');assert.equal(await text(page.locator('#toast')),'2代目 · 0歳');await page.screenshot({path:join(output,'06-rebirth.png')});
 
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
   } finally {await context.close();}
