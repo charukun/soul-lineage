@@ -30,8 +30,13 @@ const openDisclosure=async key=>{
   return details;
 };
 try{
-  await page.goto(base);await page.waitForSelector('.rs-summary');
-  assert.equal(await page.locator('#rescue-section h2').textContent(),'自動統合と修復');
+  await page.goto(base);
+  await page.waitForSelector('#overview-task-card');
+  assert.equal(await page.locator('#tasks-section').getAttribute('open'),null);
+  await page.locator('#overview-task-card').click();
+  await openDisclosure('section:rescue');
+  await page.waitForSelector('.rs-summary');
+  assert.match(await page.locator('#rescue-section > summary').innerText(),/自動統合と修復/);
   const flowText=await page.locator('#integration-flow').innerText();
   assert.match(flowText,/FAST LANE[\s\S]*FAST CHECK[\s\S]*MERGE LANE[\s\S]*MERGED → DEV[\s\S]*REPAIR/);
   assert.match(flowText,/あなたの判断が必要なPR|あなたの操作は不要/);
@@ -84,13 +89,15 @@ try{
 
   const cardDetails=page.locator('.rs-card[data-pr="120"] details');await cardDetails.locator('summary').click();
   await page.locator('#reload').click();await page.waitForFunction(()=>!document.querySelector('#reload').disabled);
+  assert.equal(await page.locator('details[data-disclosure="section:tasks"]').getAttribute('open'),'');
+  assert.equal(await page.locator('details[data-disclosure="section:rescue"]').getAttribute('open'),'');
   assert.equal(await page.locator('details[data-disclosure="flow:technical"]').getAttribute('open'),'');
   assert.equal(await page.locator('details[data-disclosure="rescue:details"]').getAttribute('open'),'');
   assert.equal(await page.locator('details[data-disclosure="rescue:workers"]').getAttribute('open'),'');
   assert.equal(await page.locator('.rs-card[data-pr="120"] details').getAttribute('open'),'');check('drilldown and card disclosure survive snapshot refresh');
 
   for(const width of [320,390,673,1100]){
-    await page.setViewportSize({width,height:844});await page.locator('a[href="#rescue-section"]').click();await page.waitForTimeout(200);
+    await page.setViewportSize({width,height:844});await openDisclosure('section:tasks');await openDisclosure('section:rescue');await page.waitForTimeout(200);
     const dimensions=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
     assert.ok(dimensions.scroll<=width+1,JSON.stringify(dimensions));
     await page.screenshot({path:`${out}/rescue-${width}.png`});check(`mobile/desktop no overflow ${width}px`);

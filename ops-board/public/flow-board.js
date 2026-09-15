@@ -29,7 +29,8 @@ function legacyDiagnostics(view){
   const reconciliation=view?.flowControl?.reconciliation;
   if(reconciliation){
     const counts=reconciliation.counts||{};
-    detail.append(node('p','rs-note',`旧Reconciliation診断: Ready ${reconciliation.totalReady||counts.ready||0} · writer ${counts.writer||0} · validating ${counts.validating||0} · blocked ${counts.blocked||0}`));
+    detail.append(node('p','rs-note',`旧Reconciliation診断: Ready ${reconciliation.totalReady||counts.ready||0} · writer ${counts.writer||0} · validating ${counts.validating||0} · repair ${counts.repair||0} · blocked ${counts.blocked||0}`));
+    if(reconciliation.actionableIdle) detail.append(node('p','rs-note','旧診断では修復待ちに対して稼働executorが0でした。現在の修復状況はREPAIR LANEを確認してください。'));
   }
   const proof=view?.flowControl?.trainProof;
   detail.append(node('p','rs-note',proof ? `旧Virtual Train診断: ${proof.status||'unknown'} · ${(proof.candidates||[]).map(item=>`#${item.pr}`).join(' ')||'候補なし'}` : '旧Virtual Train診断: 証跡なし'));
@@ -44,22 +45,25 @@ function render(state){
   root.replaceChildren();
   if(!state){root.append(node('p','empty','Fast Laneの状態を取得できていません'));return;}
   const integration=state.integration||{};
-  const queue=Array.isArray(integration.queue)?integration.queue:[];
+  const queue=(Array.isArray(integration.queue)?integration.queue:[]).filter(item=>!(item.stage==='READY_WAIT'&&item.label==='作業中'));
   const rescue=state.integrationRescue||{};
   const counts=rescue.counts||{};
   const fastCheck=queue.filter(item=>FAST_STAGES.has(item.stage));
   const mergeLane=queue.filter(item=>MERGE_STAGES.has(item.stage));
   const holds=queue.filter(item=>item.stage==='HOLD');
+  const failedChecks=fastCheck.filter(item=>item.stage==='CI_FAILED'||item.stage==='FAST_CHECK_FAILED').length;
   const humanRequired=humanRequiredCount(rescue);
+  const configurationRequired=rescue.status==='CONFIGURATION_REQUIRED';
+  const needsHuman=humanRequired>0||configurationRequired;
   const recoverable=recoverableCount(rescue);
   const repairWaiting=Number(counts.queued||0)+Number(counts.blocked||0)+Number(counts.retry||0)+recoverable;
   const repairActive=Number(counts.active||0);
   const dev=(state.environments||[]).find(item=>item.id==='dev')||{};
   const devAhead=Number(dev.deployQueue?.commitsAhead||0);
   const devFollowing=devAhead>0||dev.deployState==='deploying';
-  const readyCount=queue.filter(item=>item.stage!=='READY_WAIT'||item.label!=='作業中').length;
-  const tone=humanRequired?'burn_down':mergeLane.length||fastCheck.length?'busy':'normal';
-  const headline=humanRequired?'人の確認が必要':mergeLane.length?'Fast Lane処理中':fastCheck.length?'Fast check中':devFollowing?'DEV追従中':repairWaiting||repairActive?'Repair後追い中':'ALL CLEAR';
+  const readyCount=queue.length;
+  const tone=needsHuman?'burn_down':mergeLane.length||fastCheck.length?'busy':'normal';
+  const headline=configurationRequired?'設定確認が必要':humanRequired?'人の確認が必要':mergeLane.length?'Fast Lane処理中':failedChecks?'Fast checkに失敗あり':fastCheck.length?'Fast check中':devFollowing?'DEV追従中':repairWaiting||repairActive?'Repair後追い中':'ALL CLEAR';
 
   const overview=node('section',`rs-flow-overview mode-${tone}`);
   const head=node('div','rs-flow-simple-head');
@@ -69,7 +73,7 @@ function render(state){
 
   const facts=node('div','rs-flow-facts');
   facts.append(
-    fact('FAST CHECK',`${fastCheck.length}件`,fastCheck.length?'対象PRだけ確認中。失敗しても他PRは進みます':'待ちなし',fastCheck.some(item=>item.stage==='CI_FAILED'||item.stage==='FAST_CHECK_FAILED')?'attention':''),
+    fact('FAST CHECK',`${fastCheck.length}件`,failedChecks?`失敗 ${failedChecks}件 · 対象PRの修復待ち。独立PRは進みます`:fastCheck.length?'対象PRだけ確認中。失敗しても他PRは進みます':'待ちなし',failedChecks?'attention':''),
     fact('MERGE LANE',`${mergeLane.length}件`,mergeLane.length?'single writerが順次developへ反映':'待ちなし'),
     fact('MERGED → DEV',`${devAhead} commit`,devFollowing?'最新developだけを公開へ追従':'DEVはdevelopに追従済み'),
     fact('REPAIR',`${repairWaiting}件`,`${repairActive} worker active · 通常mergeとは別レーン`,humanRequired?'attention':'')
@@ -77,7 +81,7 @@ function render(state){
   overview.append(facts);
   const blockedNote=holds.length?` 明示保留は ${holds.length}件あり、そのPRだけ停止しています。`:'';
   overview.append(node('p','rs-flow-explain',`Fast LaneはPR単位です。browser・DEV公開・Repairは後追いし、独立したReady PRのmergeを止めません。${blockedNote}`));
-  overview.append(node('p',`rs-flow-action ${humanRequired?'needs-human':'auto-ok'}`,humanRequired?`あなたの判断が必要なPRが ${humanRequired}件あります。`:'いまはあなたの操作は不要です。通るPRから自動で流します。'));
+  overview.append(node('p',`rs-flow-action ${needsHuman?'needs-human':'auto-ok'}`,configurationRequired?'自動修復の設定確認が必要です。':humanRequired?`あなたの判断が必要なPRが ${humanRequired}件あります。`:'いまはあなたの操作は不要です。通るPRから自動で流します。'));
   root.append(overview);
 
   root.append(disclosure('flow:technical','詳しい処理情報（開発用）',legacyDiagnostics(rescue),'rs-flow-disclosure'));

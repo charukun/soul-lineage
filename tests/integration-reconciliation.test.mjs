@@ -157,6 +157,8 @@ test('PULSE keeps legacy planner lanes as diagnostics rather than merge authorit
   assert.match(client, /validating/);
   assert.match(client, /repair/);
   assert.match(client, /blocked/);
-  assert.match(client, /次のreconcileで再配分/);
+  assert.match(client, /reconciliation\.actionableIdle/);
+  assert.match(client, /旧診断では修復待ち[\s\S]*現在の修復状況はREPAIR LANE/);
+  assert.doesNotMatch(client, /次のreconcileで再配分/);
   assert.doesNotMatch(client, /innerHTML/);
 });
