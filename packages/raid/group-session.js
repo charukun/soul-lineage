@@ -8,6 +8,7 @@ const JOIN_DISTANCE=6.4;
 const LEAVE_DISTANCE=5.8;
 const HARD_LEAVE_DISTANCE=8.2;
 const MAX_SIMULTANEOUS=6;
+const RETREAT_AWAY_DOT=.32;
 
 export class RaidSession extends SingleRaidSession {
  constructor(village,profile,ports={}){
@@ -25,9 +26,16 @@ export class RaidSession extends SingleRaidSession {
  combatantCount(){return (this.fight?1:0)+this.combatants.filter(f=>!f.npc.dead&&!f.npc.eaten).length;}
  isCombatant(npc){return this.fight?.npc===npc||this.combatants.some(f=>f.npc===npc);}
  _inputHeld(input={}){return !!input.active||Math.max(0,Number(input.amount)||0)>.05;}
+ _heldAwayFromPrimary(input={}){
+  const npc=this.fight?.npc,p=this.player;if(!npc||!p||!this._inputHeld(input))return false;
+  const ix=Number(input.x)||0,iz=Number(input.z)||0,im=Math.hypot(ix,iz);if(im<.001)return false;
+  const dx=p.x-npc.x,dz=p.z-npc.z,d=Math.hypot(dx,dz)||1;
+  return(ix*dx/d+iz*dz/d)/im>RETREAT_AWAY_DOT;
+ }
  _combatInput(input={}){
   if(!this.fight||!this.combatInputLatched)return input;
   if(!this._inputHeld(input)){this.combatInputLatched=false;return input;}
+  if(this._heldAwayFromPrimary(input)){this.combatInputLatched=false;return input;}
   return{...input,x:0,z:0,amount:0,active:false,dash:false};
  }
  consume(n){
@@ -132,11 +140,12 @@ export class RaidSession extends SingleRaidSession {
   const rawInput=input||{},fightAtStart=!!this.fight;
   this._rallyAggressors();
   this._joinNearby();
-  if(!fightAtStart&&this.fight&&this._inputHeld(rawInput))this.combatInputLatched=true;
+  const fightBeforeCore=!!this.fight;
+  if(!fightAtStart&&fightBeforeCore&&this._inputHeld(rawInput))this.combatInputLatched=true;
   const combatInput=this._combatInput(rawInput);
   const primary=this.fight?.npc||null;
   super.tick(dt,combatInput);
-  if(!fightAtStart&&this.fight&&this._inputHeld(rawInput))this.combatInputLatched=true;
+  if(!fightBeforeCore&&this.fight&&this._inputHeld(rawInput))this.combatInputLatched=true;
   if(this.finished)return;
   const released=primary&&!this.fight&&!primary.dead&&!primary.eaten;
   if(released&&!this.isAggressive(primary)){primary.state='flee';primary.fear=Math.max(primary.fear||0,3);}
