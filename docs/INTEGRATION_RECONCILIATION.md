@@ -65,6 +65,12 @@ merge-forwardされたheadは最大4件を並列にfast validationする。各wo
 
 この経路はGitHubの`GITHUB_TOKEN`で作られた`pull_request/synchronize`がapproval-requiredになる仕様を迂回して承認するものではない。approval-required runはそのまま残してよく、trusted Repair runのexact-head evidenceを別経路で作る。PAT・別GitHub App・人間の空commitは不要。
 
+## merge後のdependent chain wake
+
+Fast Laneが1件以上mergeしたpassは、そのmergeで新たにdependency条件を満たしたReady PRを取りこぼさないため、current `develop` に対して `rescue_mode=scan` を1回だけ即時dispatchする。次のscanは通常のFast LaneとFast Repairを再評価し、stacked PRならmerge-forward・exact-head fast validation・Fast Lane wakeまで進める。
+
+この継続wakeは永続queueやpollingではない。各passでmergeが0件なら連鎖を終了し、mergeが続く間だけ次のbounded scanを生成する。これにより `#parent -> #child -> #grandchild` のような依存列を定期watchdog待ちにせずイベント駆動で連続消化する。single develop writer、current state再読、hold/review/dependency/exact-head gateはそのまま維持する。
+
 ## browser / repair
 
 `Affected browser smoke` はFast Laneと並行して実行する。失敗結果は既存browser repair ticketへ記録する。assertion削除、検証条件の弱体化、無制限retryは禁止。
@@ -121,6 +127,7 @@ workflow_dispatchのIntegration/repair runはcoalescer対象外。publish step�
 - DEV/browserが数分かかってもmerge laneは前進する
 - normal Integration topologyはFast Lane writer + optional Repair executorだけ
 - repairableなstack/base更新は同じtrusted Repair runで更新・exact-head fast validation・Fast Lane wakeまで完結する
+- Fast Laneがmergeしたら次の`rescue_mode=scan`を即時wakeし、mergeが0件になるまで新たにunblockされた依存列をboundedに再評価する
 - `AWAITING_PUSH` や1時間watchdogが通常Repairの待ち時間にならない
 - stale DEV push publicationはlatest developへcoalesceする
 - current head/review/dependency/hold/mergeabilityの再読を省略しない

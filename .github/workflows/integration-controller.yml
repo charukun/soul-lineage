@@ -114,3 +114,28 @@ jobs:
       actions: write
       statuses: write
     secrets: inherit
+
+  continue-dependent-chain:
+    name: Wake next dependent Repair scan
+    needs: [integrate, repair]
+    if: always() && needs.integrate.result == 'success' && needs.integrate.outputs.merged_count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Wake Fast Repair on the latest develop after a successful merge batch
+        uses: actions/github-script@v8
+        env:
+          MERGED_COUNT: ${{ needs.integrate.outputs.merged_count }}
+        with:
+          script: |
+            const { data: branch } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
+            core.info(`Fast Lane merged ${process.env.MERGED_COUNT}; wake dependent scan at ${branch.commit.sha}`);
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo,
+              workflow_id: 'deploy.yml',
+              ref: 'develop',
+              inputs: { rescue_mode: 'scan', integration_cursor: '0' },
+            });
