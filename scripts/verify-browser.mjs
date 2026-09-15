@@ -9,7 +9,7 @@ const devPublisherFastPath = process.env.GITHUB_JOB === 'publish'
   && process.env.GITHUB_REF === 'refs/heads/develop'
   && process.env.DEV_BROWSER_GATE !== 'true';
 if (devPublisherFastPath) {
-  console.log('DEV Publisher fast path: browser diagnostics are not a publication gate; repair verification runs separately when needed.');
+  console.log('DEV Publisher fast path: browser diagnostics are not a publication gate; PR browser evidence remains asynchronous.');
   process.exit(0);
 }
 
