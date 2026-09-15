@@ -17,11 +17,16 @@
   <section class="growth-viewport">
     <canvas id="growth-canvas"></canvas>
     <div class="stage-header growth-stage-header"><span class="eyebrow">GROWTH REVIEW</span><strong id="growth-stage-name">22.0歳 / 青年期</strong><span id="growth-stage-meta">同一人物の成長を世界時間で確認</span></div>
-    <div class="growth-hud"><span class="badge" id="growth-source">SHINOを読み込み中</span><span class="badge" id="growth-status" role="status">準備中</span></div>
+    <div class="growth-hud"><span class="badge" id="growth-source">モデルを読み込み中</span><span class="badge" id="growth-status" role="status">準備中</span></div>
   </section>
 
   <aside class="growth-panel">
     <div class="growth-panel-head"><div><span class="growth-kicker">WORLD TIME</span><h1>成長モデル</h1></div><div class="growth-age"><strong id="growth-age">22.0</strong><span>歳</span></div></div>
+
+    <section class="growth-card growth-model-card">
+      <div class="growth-section-title"><strong>モデル</strong><span>Lab共通候補</span></div>
+      <button id="growth-model-trigger" class="growth-model-trigger" type="button"><img id="growth-model-thumb" src="./simulator/assets/portrait_SHINO.webp" alt=""/><span><strong id="growth-model-name">Sendagaya Shino</strong><small id="growth-model-label">SHINO</small></span><b aria-hidden="true">⌄</b></button>
+    </section>
 
     <section class="growth-card timeline-card">
       <div class="growth-section-title"><strong>世界時間</strong><output id="growth-world-time">22:00 / 90:00</output></div>
@@ -56,10 +61,18 @@
         <button type="button" data-growth-view="back">背面</button>
         <button type="button" data-growth-view="face">顔</button>
       </div>
-      <p class="growth-note">同じカメラ・照明・実VRMで比較します。この画面だけではProduction stageやVisual Approvalは変更しません。</p>
+      <p class="growth-note">同じカメラ・照明・実モデルで比較します。この画面だけではProduction stageやVisual Approvalは変更しません。</p>
     </section>
   </aside>
 </main>
+
+<div id="growth-model-picker" class="growth-model-picker" hidden>
+  <section class="growth-model-sheet" role="dialog" aria-modal="true" aria-labelledby="growth-model-picker-title">
+    <header><strong id="growth-model-picker-title">成長を確認するモデル</strong><button id="growth-model-close" type="button">閉じる</button></header>
+    <div id="growth-model-list" class="growth-model-list"></div>
+  </section>
+</div>
+
 <script type="module" src="./src/review/growth-review.js"></script>
 </body>
 </html>
