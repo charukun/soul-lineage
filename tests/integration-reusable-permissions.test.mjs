@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-test('Integration Controller grants Fast Lane and optional repair only their required permissions', () => {
+test('Integration Controller grants Fast Lane and optional Repair only their required permissions', () => {
   const controller = readFileSync('.github/workflows/integration-controller.yml', 'utf8');
-  const rescue = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');
+  const repair = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');
   const fastLane = controller.match(/\n  integrate:\n[\s\S]*?\n  repair:/)?.[0] || '';
   const caller = controller.match(/\n  repair:\n[\s\S]*$/)?.[0] || '';
-  const worker = rescue.match(/\n  worker:\n[\s\S]*?\n  return:/)?.[0] || '';
+  const repairJob = repair.match(/\n  repair:\n[\s\S]*?\n  stack-fast:/)?.[0] || '';
 
   assert.match(fastLane, /permissions:[\s\S]*?contents: write/);
   assert.match(fastLane, /permissions:[\s\S]*?pull-requests: write/);
@@ -16,11 +16,14 @@ test('Integration Controller grants Fast Lane and optional repair only their req
   assert.doesNotMatch(fastLane, /pages: write/);
 
   assert.match(caller, /permissions:[\s\S]*?contents: write/);
-  assert.match(caller, /permissions:[\s\S]*?pull-requests: write/);
-  assert.match(caller, /permissions:[\s\S]*?issues: write/);
+  assert.match(caller, /permissions:[\s\S]*?pull-requests: read/);
   assert.match(caller, /permissions:[\s\S]*?actions: write/);
-  assert.match(caller, /permissions:[\s\S]*?checks: read/);
   assert.match(caller, /permissions:[\s\S]*?statuses: write/);
-  assert.match(worker, /permissions:[\s\S]*?statuses: write/);
+  assert.doesNotMatch(caller, /issues: write/);
+  assert.doesNotMatch(caller, /checks: read/);
+
+  assert.match(repairJob, /permissions:[\s\S]*?contents: write/);
+  assert.match(repairJob, /permissions:[\s\S]*?pull-requests: read/);
+  assert.doesNotMatch(repairJob, /statuses: write/);
   assert.doesNotMatch(controller, /\n  virtual-train:/);
 });
