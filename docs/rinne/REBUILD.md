@@ -47,6 +47,7 @@ Repositoryで provenance と利用条件が確定した資産だけを使う。K
 3. タイトル表示中にidle prefetchしてよいが、prefetch完了を操作可能条件にしない。
 4. 本編開始後は `shell -> world -> avatar -> simulation` の段階起動とし、各段階が失敗しても戻る/再試行を提供する。
 5. 低性能端末では描画品質を自動的に落としても、ゲームruleとworld stateを変えない。
+6. 既存の村参加UIと `villageHostLab` 診断は削除せず、必要時だけdynamic importしてcold startを重くしない。
 
 ## 最初の縦切り受入条件
 
