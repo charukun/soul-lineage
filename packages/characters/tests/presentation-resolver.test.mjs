@@ -65,19 +65,22 @@ test('crowd resolution delegates full/mid/far/hidden policy to crowdPlan', () =>
 });
 
 test('BLOCKOUT/reference candidates can never masquerade as production assets', () => {
-  const context = { app: 'rinne', role: 'knight', ageBand: 'adult', renderTier: 'full' };
+  const context = { app: 'rinne', role: 'knight', ageBand: 'adult', bodyArchetype: 'adult.sturdy', renderTier: 'full' };
   assert.equal(selectCharacterProductionAsset([
     { id: 'runtime.knight', productionStage: 'BLOCKOUT', productionReady: true }
   ], context), null);
 
   const selected = selectCharacterProductionAsset([
     { id: 'adult.knight.v1', assetId: 'character.adult.knight.v1', productionStage: 'RUNTIME_READY', productionReady: true,
-      apps: ['rinne'], roles: ['knight'], ageBands: ['adult'], renderTiers: ['full'] }
+      apps: ['rinne'], roles: ['knight'], ageBands: ['adult'], bodyArchetypes: ['adult.sturdy'], renderTiers: ['full'] }
   ], context);
   assert.equal(selected.assetId, 'character.adult.knight.v1');
   assert.equal(selected.productionStage, 'RUNTIME_READY');
   assert.equal(selectCharacterProductionAsset([
     { id: 'adult.knight.v1', productionStage: 'RUNTIME_READY', productionReady: true, apps: ['demon'] }
+  ], context), null);
+  assert.equal(selectCharacterProductionAsset([
+    { id: 'adult.knight.slim.v1', productionStage: 'RUNTIME_READY', productionReady: true, bodyArchetypes: ['adult.slender'] }
   ], context), null);
 });
 
