@@ -1,3 +1,4 @@
+import './visual-repair.js';
 import { installPostureWeaponPreview } from './posture-preview.js';
 import { installWeaponReviewPolish } from './weapon-review-polish.js';
 import { reviewPresets as baseReviewPresets, reviewWeapons, disposeLoaded, installReviewExtensions as installBase } from './review-adapter-base.js';

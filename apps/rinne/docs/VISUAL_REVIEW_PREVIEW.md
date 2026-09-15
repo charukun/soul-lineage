@@ -56,6 +56,21 @@ A normal Visual Review Lab handoff requires successful build and Worker deployme
 
 If Cloudflare deployment is temporarily unavailable, source work and normal CI can continue; the stable preview URL remains on the previous successful revision. Report that the preview is stale rather than asking the user to review it. Preview failure must never block unrelated ordinary development.
 
+## Target-image visual repair handoff
+
+Visual Review Lab provides a local-first target comparison flow for reference-driven repair. This adopts the useful comparison/judge loop without importing Dream Loop, Fal, or an external generation backend.
+
+1. Select the real model in the Lab.
+2. Choose a TARGET image for that model. The image is stored only in the browser's IndexedDB under the selected model key.
+3. Capture CURRENT from the Lab's displayed runtime canvas. TARGET and CURRENT are composed client-side into one comparison PNG.
+4. `Astraへ修正依頼` uses the browser Web Share API to hand the comparison PNG plus a fixed repository-aware implementation prompt to an explicitly chosen share target. On Android this can be ChatGPT when the installed app accepts the share. If file sharing is unavailable, the Lab downloads the PNG and copies the prompt for manual attachment.
+5. The repair worker starts from latest `develop`, follows `AGENTS.md`, edits the actual production model/source, validates it and leaves durable state in the normal branch/commit/PR path. It must not create a review-only replacement asset or claim that tests prove visual quality.
+6. `AI判定へ共有` produces a separate diagnostic judge prompt. A returned JSON score can be pasted back into the Lab to display blockers, next actions and preserve notes. AI scoring is diagnostic only and never replaces human visual approval.
+
+The Lab has no AI API key and makes no direct AI network request. Selecting or storing a TARGET image does not upload it. External transmission happens only after an explicit user share action. The feature must not add `FAL_KEY`, `FAL_API_KEY`, `fal.ai`, `queue.fal.run`, paid image/3D generation, hidden upload endpoints or another secret-bearing backend. A future fully automatic AI transport would require a separately reviewed authenticated architecture and is outside this Lab contract.
+
+Reference images are local review input, not automatically repository assets. Do not commit third-party references without confirming provenance and repository suitability. The durable implementation record is GitHub; browser IndexedDB is convenience state and may be cleared by browser/site-data cleanup.
+
 ## Review scope and environment separation
 
 The Visual Review Worker is a disposable review surface for the Draft branch, not DEV and not Production. Changes visible there do not imply that `develop`, normal DEV, `main`, or Production has changed. Promotion happens only through the normal Ready PR and Integration flow after visual approval.
