@@ -1,4 +1,5 @@
 import {
+  GENES,
   YEAR_MS,
   appearanceForCharacter,
   characterData,
@@ -48,7 +49,7 @@ function identityData(character) {
     masterId: character.masterId,
     seed: character.seed,
     parents: [...character.parents],
-    genome: Object.fromEntries(Object.entries(character.genome).map(([gene, alleles]) => [gene, [...alleles]]))
+    genome: Object.fromEntries(GENES.map(gene => [gene, [...character.genome[gene]]]))
   };
 }
 
