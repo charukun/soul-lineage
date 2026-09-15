@@ -18,6 +18,12 @@ Web Adapterだけを実装しています。iOS / Android / PS5 / Nintendo Switc
 
 表示エンジンを交換する場合も、world座標、entity ID、asset ID、animation ID、ゲーム状態をportableに保ちます。今の表示Adapterはプレビュー用WebGLです。ネイティブ側の描画・Asset変換・controller mapping・認証・実績・commerce・entitlement・invite・認定対応は対象SDK決定時に実装します。機密SDKを公開Repositoryへ置きません。
 
+## アプリ固有タイポグラフィ
+
+3ゲームの文字表現は共通の汎用UIフォントへ寄せず、`rinne` / `village` / `demon` がそれぞれの世界観に合わせたWebタイポグラフィを所有します。Web版では各appの入口から専用書体を明示し、本文・HUDと作品名/章見出しの役割をapp内のtypography stylesheetで固定します。
+
+既存の汎用・端末依存スタックを新しいゲームUIへ再導入しません。特に `system-ui`, `-apple-system`, `Noto Sans JP`, `Noto Serif CJK JP`, `Yu Mincho`, `Hiragino Mincho ProN`, `Georgia`, `Arial` を作品固有書体の代用として追加しないでください。既存CSSに残る宣言は専用typography stylesheetを最後に読み込んで無効化し、回帰チェックでは禁止スタックの追加と専用stylesheetの読み込み順を検証します。外部書体が取得できない場合も、ゲーム固有のfallback familyから汎用generic familyへ落とし、禁止した旧指定へ戻しません。
+
 ## クロスプレイ
 
 全Platform共通のbackend player IDを使用し、各ストアのaccount IDは認証層でリンクします。クライアント申告だけで所有権や認証を確定しません。server authoritativeな状態と検証を用意し、gameId、protocolVersion、contentVersion、region、必要に応じinputPoolをmatchmakingに渡す設計です。version非互換なクライアントを同じsessionへ参加させない判定はserver側で行います。
