@@ -56,7 +56,7 @@ async function start(){
   const params=new URLSearchParams(location.search);
   const seek=q('#growth-seek');
   seek.max=String(LIFE_RULES.lifespanYears*LIFE_RULES.secondsPerYear);
-  const paramAge=Number(params.get('age'));
+  const paramAge=params.has('age')?Number(params.get('age')):NaN;
   seek.value=String(Number.isFinite(paramAge)?clamp(paramAge,0,LIFE_RULES.lifespanYears)*LIFE_RULES.secondsPerYear:22*LIFE_RULES.secondsPerYear);
   let selectedModel=MODEL_BY_ID.get(params.get('model'))||GROWTH_MODELS[0];
 
