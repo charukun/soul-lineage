@@ -48,10 +48,12 @@ test('signalDeepRepair creates one issue per exact head and records pending stat
   const c = {
     root: '/repos/charukun/soul-lineage',
     async pages(path) {
-      assert.match(path, /^\/issues\?/);
+      assert.match(path, /\/statuses$/);
       return [];
     },
     async api(method, path, body) {
+      if (method === 'GET' && path.startsWith('/search/issues?')) return { items: [], total_count: 0, incomplete_results: false };
+      if (method === 'GET' && path.includes('/issues?state=open')) return [];
       calls.push({ method, path, body });
       if (method === 'POST' && path === '/repos/charukun/soul-lineage/issues') {
         return { number: 501, html_url: 'https://github.com/charukun/soul-lineage/issues/501', body: body.body };
@@ -91,8 +93,11 @@ test('signalDeepRepair reuses an existing exact-head issue instead of duplicatin
   let created = 0;
   const c = {
     root: '/repos/charukun/soul-lineage',
-    async pages() { return [existing]; },
+    async pages() { return []; },
     async api(method, path) {
+      if (method === 'GET' && path.startsWith('/search/issues?')) return { items: [existing], total_count: 1, incomplete_results: false };
+      if (method === 'GET' && path.includes('/issues?state=open')) return [existing];
+      if (method === 'GET' && path.endsWith('/issues/501')) return existing;
       if (path === '/repos/charukun/soul-lineage/issues') created++;
       if (path.endsWith(`/statuses/${head}`)) return {};
       throw new Error(`unexpected ${method} ${path}`);

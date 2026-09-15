@@ -75,7 +75,7 @@ Fast Laneが`GITHUB_TOKEN`でmergeした更新は`push` workflowを連鎖起動�
 
 自動公開要求には専用の識別子を付け、同じSHAの実行中publisherへ重複要求しない。古い自動publisherはlatest developへまとめるが、通常のIntegration、repair、人が開始した公開、main/Productionの実行は取り消さない。公開完了の待機はmerge laneへ持ち込まない。
 
-旧Controllerからの移行時は、mergeが0件でも最新SHAに公開要求の記録がなくDEV/PULSE両方の公開成功もなければ、次のFast Laneで1回補完する。`integration/publisher-wake`は公開要求だけの状態であり、`integration/develop`・`ops-board/public`の公開検証結果とは別物。失敗した要求を無制限に再送せず、失敗runをIntegrationへ返す。
+旧Controllerからの移行時は、mergeが0件でも最新SHAに公開要求の記録がなくDEV/PULSE両方の公開成功もなければ、次のFast Laneで1回補完する。`integration/publisher-wake`は公開要求だけの状態であり、`integration/develop`・`ops-board/public`の公開検証結果とは別物。`integration/publisher-wake` の既存statusだけを公開済み・実行中の証拠にせず、同一SHAの自動publisherが稼働しておらず公開成功証拠もない場合は補完dispatchを許可する。失敗した要求を無制限に再送せず、失敗runをIntegrationへ返す。
 
 develop pushごとに `deploy.yml` は起動するが、`DEV Publisher Coalescer` が古い **push由来** publisher runを取消し、最新developへ収束させる。Integrationのworkflow_dispatchやrepair runは巻き込まない。
 
@@ -95,7 +95,7 @@ explicit hold、dependency、review objection、merge conflict、exact-head fast
 
 ## Draft / Ready
 
-Draftでは lightweight checkのみ。Readyになると `Validate and build` とbrowser smokeを開始する。**Request Integrationはbuild成功直後に起動し、browser完了を待たない。** browserは並行してrepair evidenceを残す。
+Draftでは lightweight checkのみ。Readyになると `Validate and build` とbrowser smokeを開始する。**Request Integrationはbuild成功・失敗の直後に起動し、browser完了を待たない。失敗はcurrent exact-headのDeep Repairへ送る。** browserは並行してrepair evidenceを残す。
 
 ## main / Production
 
@@ -104,6 +104,10 @@ Draftでは lightweight checkのみ。Readyになると `Validate and build` と
 ## 通知とPULSE
 
 `INTEGRATED` と `DEV_DEPLOYED` は別イベントとして扱う。通知失敗はadvisoryでありmerge/publication判定を変更しない。PULSEはmerge状態とDEV delivery healthを混同せず表示する。旧Rescue stateを表示する場合も診断情報であり、通常Repairの権限・待ち条件にはしない。
+
+ユーザーが修正依頼した内容のDEV反映連絡は、ゲーム本体やエンドユーザー向け通知から分離した開発者メールとする。公開されたdevelop SHAに直接対応するdevelop向けPRを特定し、GitHub Actions botがそのPRへ `DEV反映完了` 相当のコメントを1件記録する。PRタイトルを修正内容として含め、DEV確認URLを付ける。GitHubの既存PR購読/mentionメール経路を利用し、ゲーム側push/ntfy、独自SMTP、新規外部メールサービス、通知queueはこの連絡には使わない。同一SHAは既存receipt markerで重複送信を防ぐ。詳細は [開発中のDEV反映メール通知](DEV_NOTIFICATION.md) を参照する。
+
+PRを特定できないpublish-only実行では誤った修正内容を通知せず、DEV delivery statusだけを残す。既存の基盤ライフサイクル通知が別経路に存在しても、この開発者向け修正内容メールとは混同しない。
 
 ## 受入条件
 

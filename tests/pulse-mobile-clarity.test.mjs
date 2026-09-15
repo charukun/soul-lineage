@@ -17,8 +17,8 @@ test('PULSE puts DEV publication first in the mobile overview', () => {
 });
 
 test('DEV publication card spans the overview width and uses larger text', () => {
-  assert.match(css, /\.overview-card-primary\s*\{[^}]*grid-column:\s*1\s*\/\s*-1;/s);
-  assert.match(css, /\.overview-card-primary strong\s*\{[^}]*font-size:\s*clamp\(/s);
+  assert.match(css, /\.overview-publication-card\s*\{[^}]*grid-column:\s*1\s*\/\s*-1;/s);
+  assert.match(css, /\.overview-publication-card > strong\s*\{[^}]*font-size:\s*clamp\(/s);
 });
 
 test('overview status and ETA text are allowed to wrap instead of being ellipsized', () => {

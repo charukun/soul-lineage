@@ -18,10 +18,11 @@
   background: color-mix(in srgb, var(--panel) 94%, transparent);
   transition: border-color .15s ease, background .15s ease, transform .08s ease;
 }
-.section-tabs .overview-card-primary {
+.section-tabs .overview-publication-card {
   grid-column: 1 / -1;
-  min-height: 108px;
-  padding: 14px;
+  min-height: 154px;
+  padding: 13px 14px;
+  gap: 4px;
   background: color-mix(in srgb, var(--panel-2) 88%, transparent);
 }
 .overview-card .overview-label {
@@ -39,7 +40,7 @@
   white-space: normal;
   overflow-wrap: anywhere;
 }
-.overview-card-primary strong {
+.overview-publication-card > strong {
   font-size: clamp(19px, 5.8vw, 23px);
   line-height: 1.18;
 }
@@ -52,9 +53,41 @@
   white-space: normal;
   overflow-wrap: anywhere;
 }
-.overview-card-primary .overview-detail {
+.overview-publication-card .overview-detail {
   font-size: 12px;
   line-height: 1.45;
+}
+.overview-publication-availability {
+  margin-top: 1px;
+  font-size: 11px;
+  font-weight: 750;
+  white-space: normal;
+}
+.overview-publication-grid {
+  display: grid;
+  width: 100%;
+  gap: 5px;
+  margin-top: 6px;
+  padding-top: 7px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 76%, transparent);
+}
+.overview-publication-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.overview-step-label {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .04em;
+}
+.overview-publication-row #overview-app-eta {
+  font-weight: 850;
 }
 .overview-card.ok { border-color: color-mix(in srgb, var(--ok) 36%, var(--line)); }
 .overview-card.progress { border-color: color-mix(in srgb, var(--progress) 50%, var(--line)); }
@@ -169,13 +202,21 @@
 
 @media (max-width: 350px) {
   .section-tabs .overview-card { min-height: 82px; padding: 10px; }
-  .section-tabs .overview-card-primary { min-height: 102px; padding: 12px; }
+  .section-tabs .overview-publication-card { min-height: 148px; padding: 12px; }
   .overview-card strong { font-size: 15px; }
-  .overview-card-primary strong { font-size: 19px; }
+  .overview-publication-card > strong { font-size: 19px; }
   .overview-detail { font-size: 10px; }
-  .overview-card-primary .overview-detail { font-size: 11px; }
+  .overview-publication-availability { font-size: 11px; }
+  .overview-publication-row { grid-template-columns: 80px minmax(0, 1fr); gap: 6px; font-size: 10px; }
+  .overview-step-label { font-size: 8px; }
   .board-disclosure > summary { padding-inline: 11px; }
   .disclosure-meta { max-width: 43%; }
+}
+
+@media (min-width: 620px) {
+  .section-tabs .overview-publication-card { min-height: 142px; }
+  .overview-publication-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .overview-publication-row { grid-template-columns: 78px minmax(0, 1fr); }
 }
 
 @media (prefers-reduced-motion: no-preference) {

@@ -149,9 +149,9 @@ test('public dashboard prioritizes action items/tasks and uses a 3-column icon a
 
   assert.doesNotMatch(index, /summary-grid|いまの状態/);
   assert.match(index, /要対応タスク/);
-  assert.match(index, /開発タスク/);
-  assert.match(index, /アプリ別の公開状況/);
-  assert.match(index, /公開・自動処理の状態/);
+  assert.match(index, /開発中のタスク/);
+  assert.match(index, /アプリの公開状況/);
+  assert.match(index, /技術詳細/);
   assert.match(index, /diagnostic-grid/);
   assert.doesNotMatch(index, /rel="manifest"/);
 

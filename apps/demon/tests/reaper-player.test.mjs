@@ -18,18 +18,18 @@ async function model(){
   const geometry=new BoxGeometry(.5,1.62,.3);geometry.translate(0,.81,0);const material=new MeshStandardMaterial();material.name='Tops_CLOTH';scene.add(new Mesh(geometry,material));
   return {gltf:{scene},rig:{humanoid,expressions:[],springs:[],warnings:[]}};
 }
-test('MasterCharacter rig carries the wardrobe through locomotion, combat, devour and death without mutating source',async()=>{
+test('MasterCharacter rig carries the wardrobe through locomotion, blended combat, devour and death without mutating source',async()=>{
   const template=await model(),sourceMaterials=[];template.gltf.scene.traverse(n=>{if(n.isMesh)sourceMaterials.push(n.material);});
   const sourceVisibility=sourceMaterials.map(m=>m.visible),reaper=createReaperPlayer(template);
   const p={x:2,z:3,yaw:.4,speed:2,walk:1.4,hp:230};
   function finite(){reaper.root.traverse(n=>assert.ok(n.matrixWorld.elements.every(Number.isFinite),n.name));}
   reaper.update(p,1,1/60);finite();
-  assert.equal(reaper.wardrobe.scythe.visible,true);
+  assert.equal(reaper.wardrobe.scythe.visible,true);assert.equal(reaper.root.userData.combatBlend,0);
   assert.ok(reaper.wardrobe.scythe.getWorldPosition(new Vector3()).distanceTo(reaper.actor.bones.leftHand.getWorldPosition(new Vector3()))<1e-5);
   const core=createTidebreakRuntime({seed:3});core.configure({weapon:'fist',hp:230,enemyHp:120});
-  let poses=0;
-  for(let i=0;i<240;i++){const state=core.step(1/60);if(state.hero.pose){const hero={...p,pose:state.hero.pose};const before=JSON.stringify(hero);reaper.update(hero,i/60,1/60);finite();assert.equal(JSON.stringify(hero),before);poses++;}}
-  assert.ok(poses>0,'sampled actual combat poses');
+  let poses=0,firstBlend=null,maxBlend=0;
+  for(let i=0;i<240;i++){const state=core.step(1/60);if(state.hero.pose){const hero={...p,pose:state.hero.pose};const before=JSON.stringify(hero);reaper.update(hero,i/60,1/60);finite();assert.equal(JSON.stringify(hero),before);poses++;if(firstBlend===null)firstBlend=reaper.root.userData.combatBlend;maxBlend=Math.max(maxBlend,reaper.root.userData.combatBlend);}}
+  assert.ok(poses>0,'sampled actual combat poses');assert.ok(firstBlend>0&&firstBlend<1,'first combat frame is blended');assert.equal(maxBlend,1);
   for(const devourProgress of [0,.2,.5,.8,1]){reaper.update({...p,devourProgress},5+devourProgress,1/60,{eating:true});finite();assert.equal(reaper.wardrobe.scythe.visible,false);}
   reaper.update(p,7,1/60);assert.equal(reaper.wardrobe.scythe.visible,true);
   reaper.update(p,8,1/60,{dead:true});finite();assert.equal(reaper.wardrobe.scythe.visible,false);

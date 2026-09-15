@@ -46,15 +46,24 @@ export function estimatePublicationDuration(runs = []) {
   return { expectedMs: Math.max(60_000, ordered[index]), sampleSize: samples.length, source: 'recent-success-p75' };
 }
 
+function expectedMinutes(estimate) {
+  const expectedMs = Number(estimate?.expectedMs) > 0 ? Number(estimate.expectedMs) : PUBLICATION_GUIDE_MS;
+  return Math.max(1, Math.ceil(expectedMs / 60000));
+}
+
 function durationGuide(elapsedMs, estimate) {
   const expectedMs = Number(estimate?.expectedMs) > 0 ? Number(estimate.expectedMs) : PUBLICATION_GUIDE_MS;
-  const expectedMinutes = Math.max(1, Math.ceil(expectedMs / 60000));
-  if (!Number.isFinite(elapsedMs)) return `目安 約${expectedMinutes}分`;
+  const minutes = expectedMinutes(estimate);
+  if (!Number.isFinite(elapsedMs)) return `目安 約${minutes}分`;
   if (elapsedMs < expectedMs) {
     const remaining = Math.max(1, Math.ceil((expectedMs - elapsedMs) / 60000));
     return `あと約${remaining}分目安`;
   }
-  return `${expectedMinutes}分目安を超えて処理中`;
+  return `${minutes}分目安を超えて処理中`;
+}
+
+function startGuide(estimate) {
+  return `公開開始後 約${expectedMinutes(estimate)}分が目安`;
 }
 
 function elapsedSince(value, now) {
@@ -62,7 +71,18 @@ function elapsedSince(value, now) {
   return Number.isFinite(at) ? Math.max(0, now - at) : null;
 }
 
-export function devPublicationSummary(state, now = Date.now()) {
+function progressBase({ state, tone, value, detail, current, next, eta, dev, run }) {
+  return {
+    state, tone, value, detail, current, next, eta,
+    currentCommit: dev?.deployedCommit || null,
+    nextCommit: dev?.branchCommit || null,
+    currentVersionAvailable: Boolean(dev?.deployedCommit && dev?.url),
+    currentUrl: dev?.url || null,
+    logUrl: run?.url || null,
+  };
+}
+
+export function devPublicationProgress(state, now = Date.now()) {
   const dev = (state?.environments || []).find(env => env.id === 'dev');
   if (!dev) return null;
   const integration = state?.integration || {};
@@ -81,52 +101,87 @@ export function devPublicationSummary(state, now = Date.now()) {
 
   if (active && runMatchesHead) {
     if (Number.isFinite(updateAge) && updateAge >= PUBLICATION_GUIDE_MS) {
-      return {
+      return progressBase({
         state: 'stalled', tone: 'danger', value: 'DEV 公開遅延',
         detail: `マージ済み · ${elapsedText || '経過時間未取得'} · 10分以上更新なし`,
-      };
+        current: '公開処理の更新が10分以上止まっています',
+        next: '自動復旧を待ち、続く場合は実行ログを確認します',
+        eta: `${expectedMinutes(integration.deliveryEstimate)}分の通常目安を超過`, dev, run,
+      });
     }
     if (integration.recovering) {
-      return {
+      return progressBase({
         state: 'recovering', tone: 'progress', value: 'DEV 解消中',
         detail: `前回失敗から再試行中 · ${elapsedText ? `${elapsedText} · ` : ''}${guide}`,
-      };
+        current: '前回の公開失敗から自動で再試行しています',
+        next: '公開版を作り直し、公開URLの反映元を確認します',
+        eta: guide, dev, run,
+      });
     }
     if (QUEUED_RUN_STATES.has(run.status)) {
-      return {
+      return progressBase({
         state: 'queued', tone: 'progress', value: 'DEV 公開待機中',
         detail: `マージ済み · ${elapsedText ? `${elapsedText} · ` : ''}${guide}`,
-      };
+        current: '最新developの公開処理が順番待ちです',
+        next: '公開用データを作成してDEVへ反映します',
+        eta: guide, dev, run,
+      });
     }
-    return {
+    return progressBase({
       state: 'publishing', tone: 'progress', value: 'DEV 公開検証中',
       detail: `マージ済み · ${elapsedText ? `${elapsedText} · ` : ''}${guide}`,
-    };
+      current: '最新developの公開用データを作成・反映しています',
+      next: '公開URLが最新developを指しているか確認します',
+      eta: guide, dev, run,
+    });
   }
 
   if (runMatchesHead && run?.status === 'completed' && FAILED_CONCLUSIONS.has(run?.conclusion)) {
-    return {
+    return progressBase({
       state: 'failed', tone: 'danger', value: 'DEV 公開で問題',
       detail: 'マージ済み · 公開検証に失敗 · 再試行待ち',
-    };
+      current: '公開処理で問題を検出しました',
+      next: '自動復旧または再試行で同じdevelopを再公開します',
+      eta: `復旧開始後 ${startGuide(integration.deliveryEstimate).replace('公開開始後 ', '')}`, dev, run,
+    });
   }
 
   if (runMatchesHead && run?.status === 'completed' && run?.conclusion === 'success') {
     const since = elapsedSince(run.updatedAt, now);
-    return {
+    return progressBase({
       state: 'reflecting', tone: 'progress', value: 'DEV 公開反映待ち',
       detail: `公開処理は完了 · 反映確認中${Number.isFinite(since) ? ` · ${elapsedLabel(since)}経過` : ''}`,
-    };
+      current: '公開処理は完了し、公開URLへの反映を確認しています',
+      next: '公開元のSHAが一致すれば、その時点で確認できます',
+      eta: Number.isFinite(since) ? `公開処理完了から${elapsedLabel(since)}経過 · 反映確認中` : '反映確認中', dev, run,
+    });
   }
 
   if ((active && commitsAhead > 0) || commitsAhead > 0 || dev.deployState === 'waiting') {
-    return {
-      state: active ? 'coalescing' : 'waiting', tone: active ? 'progress' : 'warning',
-      value: active ? 'DEV 公開待機中' : 'DEV 公開待ち',
-      detail: active ? '最新developはマージ済み · 直前の公開処理を整理中' : 'マージ済み · 公開処理の開始待ち',
-    };
+    if (active) {
+      return progressBase({
+        state: 'coalescing', tone: 'progress', value: 'DEV 公開待機中',
+        detail: '最新developはマージ済み · 直前の公開処理を整理中',
+        current: '直前の公開処理を整理し、最新developへ追従しています',
+        next: '最新developをまとめて次の公開へ進めます',
+        eta: startGuide(integration.deliveryEstimate), dev, run,
+      });
+    }
+    return progressBase({
+      state: 'waiting', tone: 'warning', value: 'DEV 公開待ち',
+      detail: 'マージ済み · 公開処理の開始待ち',
+      current: '最新developはマージ済みで、公開処理の開始待ちです',
+      next: 'Publisherが起動してDEVへ反映します',
+      eta: startGuide(integration.deliveryEstimate), dev, run,
+    });
   }
   return null;
+}
+
+export function devPublicationSummary(state, now = Date.now()) {
+  const progress = devPublicationProgress(state, now);
+  if (!progress) return null;
+  return { state: progress.state, tone: progress.tone, value: progress.value, detail: progress.detail };
 }
 
 export function appHealth(app) {

@@ -91,6 +91,25 @@ When performance is measured, record the model/build revision and enough environ
 
 ## 8. Review feedback format
 
+### Internal Lab before a rendering-unavailable conclusion
+
+For requested character/motion inspection, first start the actual Lab inside the
+worker. A remote cloud browser's missing WebGL context or blocked localhost is
+not evidence that a locally launched Chromium/SwiftShader cannot render it.
+For the independent 30-second sword viewer, use the current Lab branch
+`work/visual-review-lab-v2` and its `apps/rinne/docs/VISUAL_REVIEW_PREVIEW.md`:
+`npm run review:local:setup`, then `npm run review:local -- --mode sequence --time 3.33 --playback`.
+Keep the server and its browser client in the same process tree when execution
+calls have isolated networks. Do not weaken sandbox/network policy to connect them.
+Retain exact source hashes and distinguish browser preparation, local HTTP,
+WebGL2 rendering, captures, recorded playback, observed 1x review and physical
+device evidence. Try another authorized local browser preparation route before
+falling back to CPU mesh captures; neither fallback grants visual approval.
+This is a bounded authoring check, not a requirement to wait for public CI or
+run unrelated full E2E. The Lab remains independently published and Draft.
+
+### Findings
+
 When possible, convert feedback into four pieces:
 
 - **target**: exact part or action;

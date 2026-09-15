@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { defs, muraBlocked } from '@soul/world/mura';
 import { createMuraModels } from '@soul/rendering/mura';
 import { createMuraTerrain, flattenMuraModel } from '@soul/rendering/mura/terrain';
+import { createAdaptiveQualityGovernor } from '@soul/rendering/adaptive-quality';
+import { applyStylizedShading } from '@soul/rendering/stylized-shading';
+import { renderPixelRatio, targetFpsForView } from './performance.js';
 
 const disposeObject=root=>root.traverse?.(o=>{if(o.geometry?.dispose)o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])if(m?.dispose)m.dispose();});
 const ageScale=years=>{
@@ -11,9 +14,11 @@ const ageScale=years=>{
 };
 
 export function createWorldRenderer({canvas,document:doc,layout,stations}){
-  const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance',alpha:false});
+  const renderWindow=doc.defaultView||globalThis,basePixelRatio=Number(renderWindow?.devicePixelRatio)||1,targetFps=targetFpsForView(renderWindow);
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance',alpha:false});
   renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.04;
-  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.35));
+  const applyQuality=profile=>{const ratio=renderPixelRatio(basePixelRatio,profile.renderScale);renderer.setPixelRatio(ratio);canvas.dataset.renderQuality=profile.id;canvas.dataset.renderPixelRatio=String(ratio);};
+  const qualityGovernor=createAdaptiveQualityGovernor({targetFps,onChange:snapshot=>applyQuality(snapshot.profile)});applyQuality(qualityGovernor.snapshot().profile);
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x91a88b);scene.fog=new THREE.FogExp2(0x9aa895,.0045);
   const camera=new THREE.PerspectiveCamera(43,1,.08,650);camera.position.set(12,13,17);
   scene.add(new THREE.HemisphereLight(0xeef3d9,0x40545b,2.1));
@@ -58,19 +63,28 @@ export function createWorldRenderer({canvas,document:doc,layout,stations}){
   for(const x of[-7.2,7.2])for(let z=-5.5;z<=5.5;z+=2.2)box(frontRoot,[.7,1.2,.7],[x,.6,z],0x5f655e);
   for(const x of[-2.2,0,2.2])box(frontRoot,[1.4,.25,.7],[x,.12,-6.25],0x786a5b);
   const rescuePad=new THREE.Mesh(new THREE.RingGeometry(.8,1.0,32),new THREE.MeshBasicMaterial({color:0xb5c9bc,side:THREE.DoubleSide}));rescuePad.rotation.x=-Math.PI/2;rescuePad.position.set(0,.03,5.2);frontRoot.add(rescuePad);
-  const enemyMeshes=new Map();
+  applyStylizedShading(root,'environment');applyStylizedShading(frontRoot,'environment');
+  const enemyMeshes=new Map();let enemyRosterKey='';
+  function updateFront(front){
+    for(const enemy of front?.enemies||[]){const node=enemyMeshes.get(enemy.id);if(!node)continue;node.position.set(enemy.x,0,enemy.z);node.visible=!enemy.dead;const body=node.userData.body;if(body)body.rotation.z=enemy.flash?Math.sin(elapsed*30)*.08:0;}
+  }
   function syncFront(front){
-    const liveIds=new Set((front?.enemies||[]).map(e=>e.id));
-    // createMuraModels shares geometry/material caches between people. Removing a stage actor must not dispose shared GPU resources still used by the hero/mother/new stage.
-    for(const[id,node]of enemyMeshes)if(!liveIds.has(id)){node.removeFromParent();enemyMeshes.delete(id);}
-    for(const enemy of front?.enemies||[]){let node=enemyMeshes.get(enemy.id);if(!node){node=models.person(enemy.id.length+11,true,'resident');node.scale.setScalar(front?.stage>=5?1.35:1.05);enemyMeshes.set(enemy.id,node);frontRoot.add(node);}node.position.set(enemy.x,0,enemy.z);node.visible=!enemy.dead;const body=node.userData.body;if(body)body.rotation.z=enemy.flash?Math.sin(elapsed*30)*.08:0;}
+    const enemies=front?.enemies||[],rosterKey=`${front?.stage??'none'}:${enemies.map(e=>e.id).join('|')}`;
+    if(rosterKey!==enemyRosterKey){
+      enemyRosterKey=rosterKey;const liveIds=new Set(enemies.map(e=>e.id));
+      // createMuraModels shares geometry/material caches between people. Removing a stage actor must not dispose shared GPU resources still used by the hero/mother/new stage.
+      for(const[id,node]of enemyMeshes)if(!liveIds.has(id)){node.removeFromParent();enemyMeshes.delete(id);}
+      for(const enemy of enemies)if(!enemyMeshes.has(enemy.id)){const node=models.person(enemy.id.length+11,true,'resident');node.scale.setScalar(front?.stage>=5?1.35:1.05);applyStylizedShading(node,'enemy');enemyMeshes.set(enemy.id,node);frontRoot.add(node);}
+    }
+    updateFront(front);
   }
 
-  const hero=models.person(5,false,'player');hero.name='Player';scene.add(hero);
-  const mother=models.person(23,false,'resident');mother.name='Mother';scene.add(mother);
-  const equipmentRoot=new THREE.Group();hero.add(equipmentRoot);let equipmentKey='';
+  const hero=models.person(5,false,'player');hero.name='Player';applyStylizedShading(hero,'hero');scene.add(hero);
+  const mother=models.person(23,false,'resident');mother.name='Mother';applyStylizedShading(mother,'npc');scene.add(mother);
+  const equipmentRoot=new THREE.Group();hero.add(equipmentRoot);let equipmentWeapon=null,equipmentArmor=null,equipmentShield=null;
   function syncEquipment(equipment){
-    const key=JSON.stringify(equipment);if(key===equipmentKey)return;equipmentKey=key;
+    if(equipment.weapon===equipmentWeapon&&equipment.armor===equipmentArmor&&equipment.shield===equipmentShield)return;
+    equipmentWeapon=equipment.weapon;equipmentArmor=equipment.armor;equipmentShield=equipment.shield;
     for(const child of [...equipmentRoot.children]){equipmentRoot.remove(child);disposeObject(child);}
     const armor=equipment.armor;
     if(armor!=='cloth'){
@@ -83,27 +97,33 @@ export function createWorldRenderer({canvas,document:doc,layout,stations}){
       const w=weaponVisual(equipment.weapon);w.position.set(.48,.60,.12);w.rotation.set(.1,0,-.2);equipmentRoot.add(w);
     }
     if(equipment.shield){const shield=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.09,14),mat(0x78919c,{metalness:.35,roughness:.48}));shield.rotation.x=Math.PI/2;shield.position.set(-.48,1.04,.18);equipmentRoot.add(shield);}
+    applyStylizedShading(equipmentRoot,'hero');
   }
 
-  const target=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),camOffset=new THREE.Vector3(10.5,11.5,14.5);let elapsed=0;
+  const target=new THREE.Vector3(),desired=new THREE.Vector3(),moveVector=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),camOffset=new THREE.Vector3(10.5,11.5,14.5);let elapsed=0;
   function resize(){const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
   function cameraVector(axis){
-    camera.getWorldDirection(forward);forward.y=0;forward.normalize();right.crossVectors(forward,new THREE.Vector3(0,1,0)).normalize();
-    return new THREE.Vector3().addScaledVector(right,axis.x).addScaledVector(forward,-axis.y).normalize();
+    camera.getWorldDirection(forward);forward.y=0;forward.normalize();right.crossVectors(forward,up).normalize();
+    return moveVector.set(0,0,0).addScaledVector(right,axis.x).addScaledVector(forward,-axis.y).normalize();
+  }
+  function screenDirection(from,to){
+    const dx=to.x-from.x,dz=to.z-from.z,len=Math.hypot(dx,dz);if(len<.001)return{x:0,y:-1,distance:0};
+    camera.getWorldDirection(forward);forward.y=0;forward.normalize();right.crossVectors(forward,up).normalize();
+    return{x:(dx*right.x+dz*right.z)/len,y:-(dx*forward.x+dz*forward.z)/len,distance:len};
   }
   function canMoveTo(x,z,radius=.32,zone='village'){if(zone==='frontier')return Math.abs(x)<7.15-radius&&z>-6.45+radius&&z<6.1-radius;return !muraBlocked(layout,x,z,radius);}
   function renderState(state,dt=0){
-    elapsed+=dt;syncEquipment(state.equipment);const s=ageScale(state.ageYears),birth=state.phase==='birth',village=state.zone==='village';root.visible=village;frontRoot.visible=!village;
+    elapsed+=dt;if(dt>0&&!doc.hidden)qualityGovernor.observeFrame(dt);syncEquipment(state.equipment);const s=ageScale(state.ageYears),birth=state.phase==='birth',village=state.zone==='village';root.visible=village;frontRoot.visible=!village;
     hero.scale.setScalar(s);hero.rotation.y=state.yaw;mother.rotation.y=state.yaw;
     if(birth&&village){mother.visible=true;mother.position.set(state.position.x,0,state.position.z);hero.position.set(state.position.x+Math.sin(state.yaw)*.24,1.02,state.position.z+Math.cos(state.yaw)*.24);}
     else{mother.visible=false;hero.position.set(state.position.x,0,state.position.z);}
     const legs=hero.userData.legs||[];if(state.moving)legs.forEach((leg,i)=>leg.rotation.x=Math.sin(elapsed*8+(i%2)*Math.PI)*.48);else legs.forEach(leg=>leg.rotation.x*=.72);
     const body=hero.userData.body;if(body)body.rotation.z=Math.sin(elapsed*1.4)*.012;
-    target.set(state.position.x,1.15,state.position.z);const desired=target.clone().add(camOffset);camera.position.lerp(desired,1-Math.pow(.001,Math.min(.05,dt||.016)));camera.lookAt(target);
+    target.set(state.position.x,1.15,state.position.z);desired.copy(target).add(camOffset);camera.position.lerp(desired,1-Math.pow(.001,Math.min(.05,dt||.016)));camera.lookAt(target);
     if(village){terrain.waterMat.uniforms.time.value=elapsed;terrain.motes.position.y=Math.sin(elapsed*.35)*.15;}
     renderer.render(scene,camera);
   }
   function dispose(){observer.disconnect();disposeObject(hero);disposeObject(mother);root.removeFromParent();frontRoot.removeFromParent();hero.removeFromParent();mother.removeFromParent();for(const v of cache.values())disposeObject(v);for(const n of enemyMeshes.values())disposeObject(n);renderer.dispose();}
-  return{THREE,scene,camera,renderState,cameraVector,canMoveTo,syncEquipment,syncFront,resize,dispose};
+  return{THREE,scene,camera,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,updateFront,resize,qualitySnapshot:()=>qualityGovernor.snapshot(),dispose};
 }

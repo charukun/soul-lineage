@@ -3,6 +3,7 @@ import {createShinoProductionPool} from '@soul/rendering/master-character-produc
 import {loadDemonMasterModel} from '../master-model.js';
 import {dressReaper} from './reaper-wardrobe.js';
 import {sampleDevourMotion} from './devour-motion.js';
+import {blendPoint,stepCombatPresentation} from '../combat-presentation.js';
 
 const X=new T.Vector3(1,0,0),Y=new T.Vector3(0,1,0),Z=new T.Vector3(0,0,1);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -38,39 +39,42 @@ export function createReaperPlayer({gltf,rig}) {
   const pool=createShinoProductionPool({template:gltf.scene,humanoid:rig.humanoid,rig,capacity:1});
   const actor=pool.spawn('demon.silver-reaper'),root=new T.Group();root.name='demon-silver-reaper';root.add(actor.root);
   const wardrobe=dressReaper(actor);root.add(wardrobe.scythe);
-  const rotation=new T.Quaternion(),hand=new T.Vector3(),direction=new T.Vector3(),neutral=new T.Vector3(.22,.97,.12).normalize();
-  let previousYaw=null;
+  const rotation=new T.Quaternion(),hand=new T.Vector3(),direction=new T.Vector3(),combatDirection=new T.Vector3(),neutral=new T.Vector3(.22,.97,.12).normalize();
+  let previousYaw=null,combatPresentation={weight:0,pose:null};
   function update(player,time,dt,{eating=false,preview=false,dead=false}={}) {
-    const q=preview?null:player.pose,moving=!q&&!preview&&(player.speed||0)>.05;
-    const phase=player.walk||0,stride=moving?Math.sin(phase)*.38:0;
+    const q=preview?null:player.pose;
     const devour=eating&&Number.isFinite(player.devourProgress)?sampleDevourMotion(player.devourProgress):null;
+    combatPresentation=stepCombatPresentation(combatPresentation,!devour&&!preview&&!dead?q:null,dt);root.userData.combatBlend=combatPresentation.eased;
+    const pose=combatPresentation.pose,cw=combatPresentation.eased,moving=!preview&&(player.speed||0)>.05;
+    const phase=player.walk||0,stride=moving?Math.sin(phase)*.38*(1-cw):0;
     root.position.set(player.x,0,player.z);root.rotation.set(0,player.yaw||0,0);
     actor.sample({...appearance,dead},Math.max(0,time),bones=>{
       const turn=(bone,axis,value)=>bone.quaternion.multiply(rotation.setFromAxisAngle(axis,value));
       turn(bones.leftUpperLeg,X,stride);turn(bones.rightUpperLeg,X,-stride);
       turn(bones.leftLowerLeg,X,Math.max(0,-stride)*1.2);turn(bones.rightLowerLeg,X,Math.max(0,stride)*1.2);
-      turn(bones.spine,X,clamp(devour?devour.pitch*.65:q?.pitch||0,-.65,.8));
-      turn(bones.spine,Y,clamp(devour?devour.twist:q?.twist||0,-1.1,1.1));
-      turn(bones.spine,Z,clamp(q?.roll||0,-.45,.45));
+      turn(bones.spine,X,clamp(devour?devour.pitch*.65:(pose?.pitch||0)*cw,-.65,.8));
+      turn(bones.spine,Y,clamp(devour?devour.twist:(pose?.twist||0)*cw,-1.1,1.1));
+      turn(bones.spine,Z,clamp((pose?.roll||0)*cw,-.45,.45));
       if(!devour)for(const finger of ['Index','Middle','Ring','Little'])for(const joint of ['Proximal','Intermediate','Distal']){const b=bones['left'+finger+joint];if(b)turn(b,Z,joint==='Proximal'?-.65:-.8);}
       turn(bones.head,X,devour?devour.headPitch*.5:-.04);
       turn(bones.head,Y,devour?devour.headYaw:Math.sin(time*.6)*.035);
-      bones.hips.position.y+=(q?.crouch||0)*.18+(q?.lift||0)*.5+(moving?Math.abs(Math.sin(phase))*.012:Math.sin(time*1.5)*.004);
+      bones.hips.position.y+=(pose?.crouch||0)*.18*cw+(pose?.lift||0)*.5*cw+(moving?Math.abs(Math.sin(phase))*.012*(1-cw):Math.sin(time*1.5)*.004);
       if(devour){bones.hips.position.y+=devour.drop*.28;turn(bones.leftUpperLeg,X,-.2);turn(bones.rightUpperLeg,X,-.2);turn(bones.leftLowerLeg,X,.35);turn(bones.rightLowerLeg,X,.35);}
     });
-    const right=devour?[.32,devour.handY,devour.handZ]:q?.hand||[.43,1.02,.14];
-    const left=devour?[-.32,devour.handY+.04,devour.handZ]:q?.left||[-.33,1.08,.12-Math.sin(phase)*Number(moving)*.15];
+    const baseRight=[.43,1.02,.14],baseLeft=[-.33,1.08,.12-Math.sin(phase)*Number(moving)*(1-cw)*.15];
+    const right=devour?[.32,devour.handY,devour.handZ]:blendPoint(baseRight,pose?.hand||baseRight,combatPresentation.weight);
+    const left=devour?[-.32,devour.handY+.04,devour.handZ]:blendPoint(baseLeft,pose?.left||baseLeft,combatPresentation.weight);
     // Legacy +X weapon hand maps to the raw VRM left-side chain.
     armIK(actor,root,'left',right);armIK(actor,root,'right',left);
     if(actor.expressionNames.includes('blink')){const blink=time%4;actor.setExpression('blink',blink<.15?Math.sin(blink/.15*Math.PI):0);}
     if(actor.expressionNames.includes('aa'))actor.setExpression('aa',devour?clamp(-devour.jaw*.65,0,.7):0);
     const yaw=player.yaw||0,yawDelta=previousYaw===null?0:Math.atan2(Math.sin(yaw-previousYaw),Math.cos(yaw-previousYaw));previousYaw=yaw;
-    wardrobe.hair.rotation.set(.03+Number(moving)*.10+Math.sin(time*1.8)*.022,clamp(-yawDelta*3,-.3,.3),Math.sin(time*1.1)*.025);
-    wardrobe.skirt.rotation.set(Number(moving)*.018,clamp(-yawDelta*1.8,-.1,.1),Math.sin(phase*2)*Number(moving)*.025);
+    wardrobe.hair.rotation.set(.03+Number(moving)*(1-cw)*.10+Math.sin(time*1.8)*.022,clamp(-yawDelta*3,-.3,.3),Math.sin(time*1.1)*.025);
+    wardrobe.skirt.rotation.set(Number(moving)*(1-cw)*.018,clamp(-yawDelta*1.8,-.1,.1),Math.sin(phase*2)*Number(moving)*(1-cw)*.025);
     root.updateWorldMatrix(true,true);
     root.worldToLocal(actor.bones.leftHand.getWorldPosition(hand));wardrobe.scythe.position.copy(hand);
-    if(q?.tip){direction.set(q.tip[0]-q.hand[0],q.tip[1]-q.hand[1],q.tip[2]-q.hand[2]);if(direction.lengthSq()<1e-8)direction.copy(neutral);direction.normalize();}
-    else direction.copy(neutral);
+    direction.copy(neutral);
+    if(pose?.tip&&pose?.hand){combatDirection.set(pose.tip[0]-pose.hand[0],pose.tip[1]-pose.hand[1],pose.tip[2]-pose.hand[2]);if(combatDirection.lengthSq()>1e-8){combatDirection.normalize();direction.lerp(combatDirection,cw).normalize();}}
     wardrobe.scythe.quaternion.setFromUnitVectors(Y,direction);
     wardrobe.scythe.visible=!dead&&!devour;
     if(dead){root.rotation.z=1.35;root.position.y=.14;}
