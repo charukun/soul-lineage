@@ -7,8 +7,11 @@ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
 const css=await readFile(new URL('../src/rebuild/app.css',import.meta.url),'utf8');
 const pop=await readFile(new URL('../src/rebuild/pop.css',import.meta.url),'utf8');
 const birthCss=await readFile(new URL('../src/rebuild/birth-tour.css',import.meta.url),'utf8');
+const speechCss=await readFile(new URL('../src/rebuild/conversation-input.css',import.meta.url),'utf8');
 const actorStatus=await readFile(new URL('../src/rebuild/actor-status.js',import.meta.url),'utf8');
+const birthTour=await readFile(new URL('../src/rebuild/birth-tour.js',import.meta.url),'utf8');
 const birthExperience=await readFile(new URL('../src/rebuild/birth-experience.js',import.meta.url),'utf8');
+const conversationInput=await readFile(new URL('../src/rebuild/conversation-input.js',import.meta.url),'utf8');
 const runtime=await readFile(new URL('../src/rebuild/runtime.js',import.meta.url),'utf8');
 const renderer=await readFile(new URL('../src/rebuild/renderer.js',import.meta.url),'utf8');
 const models=createMuraModels.toString();
@@ -36,10 +39,19 @@ test('state changes read as game feedback without legacy talk or attack action b
   assert.doesNotMatch(runtime,/talkContext/);assert.doesNotMatch(runtime,/\$\(['"]talk['"]\)/);
 });
 
-test('actor status is reusable and birth teaches through the mother instead of a destination waypoint',()=>{
+test('active player speech uses microphone plus a preset phrase fan after self-reliance',()=>{
+  assert.match(html,/conversation-input\.css/);assert.match(html,/id="speech-dock"/);assert.match(html,/id="speech-fan-toggle"/);assert.match(html,/id="speech-mic"/);
+  assert.match(speechCss,/\.speech-fan/);assert.match(speechCss,/\.speech-phrase/);assert.match(speechCss,/\.speech-mic/);
+  assert.match(conversationInput,/muraSpeechPhrases/);assert.match(conversationInput,/SpeechRecognition/);assert.match(conversationInput,/webkitSpeechRecognition/);
+  assert.match(conversationInput,/Number\(state\.ageYears\)>=4/);assert.match(conversationInput,/state\.zone===['"]village['"]/);assert.match(conversationInput,/button\.tabIndex=-1/);assert.match(conversationInput,/button\.tabIndex=open\?0:-1/);
+  assert.match(runtime,/createConversationInput/);assert.match(runtime,/onSpeak:\(\{text\}\)=>dialogue\(state\.name,text\)/);assert.match(runtime,/speech\.sync\(\)/);assert.match(runtime,/speech\.dispose\(\)/);
+});
+
+test('actor status is reusable and birth teaches through shared village facts instead of a destination waypoint',()=>{
   assert.match(html,/id="actor-status-layer"/);assert.match(html,/birth-tour\.css/);assert.doesNotMatch(html,/id="waypoint"/);
   assert.match(birthCss,/\.actor-status-text/);assert.match(birthCss,/@keyframes rinne-actor-status-rise/);assert.match(birthCss,/data-birth-tour="true".*\.objective-card/s);
   assert.match(actorStatus,/export function createActorStatus/);assert.match(actorStatus,/actorName=['"]Player['"]/);assert.match(actorStatus,/localToWorld/);assert.match(actorStatus,/function show\(text/);
+  assert.match(birthTour,/@soul\/world\/mura\/dialogue/);assert.match(birthTour,/muraDialogueTopic/);assert.doesNotMatch(birthTour,/BIRTH_TOUR_LINES/);
   assert.match(birthExperience,/createActorStatus/);assert.match(birthExperience,/status\.show\('抱っこされている…'\)/);assert.match(birthExperience,/\$\{state\.name\}、お外は初めてだね/);
   assert.match(birthExperience,/getObjectByName\('Mother'\)/);assert.match(birthExperience,/tour\.tick/);assert.match(birthExperience,/tour\.observe/);
   assert.match(runtime,/createBirthExperience/);assert.match(runtime,/birth\.step\(dt,axis\)/);assert.match(runtime,/birth\.afterRender/);assert.match(runtime,/birth\.release\(\)/);assert.match(runtime,/スワイプで母を動かせる/);
