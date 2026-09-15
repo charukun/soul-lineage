@@ -65,7 +65,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   applyStylizedShading(root,'environment');applyStylizedShading(frontRoot,'environment');
 
   const characterStage=await createRinneCharacterStage({renderer,scene,frontRoot,weaponVisual,mat,disposeObject});
-  const {syncEquipment,setCarrierMotion}=characterStage;let currentFront=null;
+  const {syncEquipment,setCarrierMotion,syncPeers}=characterStage;let currentFront=null;
   function syncFront(front){currentFront=front||null;characterStage.syncFront(front);}
   function updateFront(front){currentFront=front||null;characterStage.updateFront(front);}
 
@@ -97,5 +97,5 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     observer.disconnect();cameraControl.dispose();characterStage.dispose();
     root.removeFromParent();frontRoot.removeFromParent();for(const v of cache.values())disposeObject(v);renderer.dispose();
   }
-  return{THREE,scene,camera,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,updateFront,setCarrierMotion,resize,qualitySnapshot:()=>qualityGovernor.snapshot(),dispose};
+  return{THREE,scene,camera,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,updateFront,setCarrierMotion,syncPeers,resize,qualitySnapshot:()=>qualityGovernor.snapshot(),dispose};
 }

@@ -31,7 +31,7 @@
       <button id="continue-life" class="primary" type="button" hidden><strong>つづきから</strong><small id="continue-detail"></small></button>
       <button id="new-life" class="primary" type="button"><strong>新しい人生</strong><small>0歳</small></button>
       <a class="secondary" href="./simulator/index.html"><strong>稽古場</strong><small>技・装備</small></a>
-      <button id="open-village" class="secondary" type="button"><strong>村へ参加</strong><small>参加コード</small></button>
+      <button id="open-village" class="secondary" type="button"><strong>友達と遊ぶ</strong><small>試遊の村</small></button>
     </div>
     <p id="boot-status" class="boot-status" role="status" aria-live="polite">世界を準備しています</p>
     <footer><span id="build-label">LOCAL</span><span>輪廻転焦</span></footer>
@@ -51,6 +51,7 @@
     </div>
     <header class="hud-top">
       <button id="back-title" class="icon-button" type="button" aria-label="タイトルへ戻る">‹</button>
+      <button id="open-coop-game" class="icon-button" type="button" hidden>友達</button>
       <div class="life-chip ornate"><span id="generation">1代目</span><strong id="age">0歳</strong></div>
       <div class="bars ornate"><label><span>命</span><i><b id="hp-bar"></b></i></label><label><span>息</span><i><b id="stamina-bar"></b></i></label></div>
       <label class="clock-rate ornate"><span>時</span><select id="clock-rate" aria-label="世界時計の速さ"><option value="1">1×</option><option value="5">5×</option><option value="10">10×</option><option value="20">20×</option></select></label>
@@ -62,11 +63,13 @@
     <div id="dialogue" class="dialogue ornate" hidden><span id="speaker">母</span><p id="dialogue-text"></p></div>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
     <button id="move-hint" class="move-hint" type="button" aria-label="動きかた。押すと移動操作の説明を表示します">スワイプで移動</button>
+    <p id="coop-people" aria-live="polite"></p>
+    <div id="coop-darkness" hidden role="status"><p>世界は闇に包まれています</p><span>村とのつながりを待っています</span><button id="coop-leave" type="button">タイトルへ</button></div>
   </section>
 </main>
 <dialog id="village-dialog" aria-labelledby="village-dialog-title">
   <form method="dialog"><button id="close-village" type="button" aria-label="村への参加を閉じる">閉じる</button></form>
-  <h2 id="village-dialog-title">村へ参加</h2>
+  <h2 id="village-dialog-title">友達と遊ぶ</h2>
   <div id="village-panel"></div>
 </dialog>
 <noscript>100年人生を開くにはJavaScriptを有効にしてください。</noscript>

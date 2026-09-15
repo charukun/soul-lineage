@@ -3,6 +3,7 @@ import { PoseSchedule } from '@soul/characters';
 import { GLTFLoader } from '@soul/rendering';
 import { createMasterCharacterPool, shinoHumanoidFromGLTF } from '@soul/rendering/master-character';
 import { applyStylizedShading } from '@soul/rendering/stylized-shading';
+import { createCoopActors } from './coop-actors.js';
 import {
   RINNE_RUNTIME_CHARACTER_ASSET,
   createRinneEnemyCharacter,
@@ -19,7 +20,7 @@ async function createRuntimeCharacterPool(renderer){
   loader.useCompressedTextures?.(renderer,{transcoderPath:'./basis/'});
   const gltf=await loader.loadAsync(RINNE_RUNTIME_CHARACTER_ASSET.url);
   const humanoid=await shinoHumanoidFromGLTF(gltf);
-  return{loader,pool:createMasterCharacterPool({template:gltf.scene,humanoid,capacity:8})};
+  return{loader,pool:createMasterCharacterPool({template:gltf.scene,humanoid,capacity:8}),peerPool:createMasterCharacterPool({template:gltf.scene,humanoid,capacity:30}),motherPool:createMasterCharacterPool({template:gltf.scene,humanoid,capacity:30})};
 }
 
 function poseHumanoid(bones,{moving=false,speed=0,combat=false,flash=0,carrier=false}={},time=0){
@@ -88,7 +89,8 @@ function createEquipmentController({heroActor,weaponVisual,mat,disposeObject}){
       }
     }
   }
-  return{syncEquipment};
+  function dispose(){for(const id of ['weapon','shield']){const old=heroActor.detachWeapon(id);if(old)disposeObject(old);}}
+  return{syncEquipment,dispose};
 }
 
 function sampleSlot(actor,schedule,presentation,dt,pose){
@@ -120,9 +122,10 @@ function renderActors({roster,heroSchedule,motherSchedule,motherMotion},life,dt)
 export async function createRinneCharacterStage({renderer,scene,frontRoot,weaponVisual,mat,disposeObject}){
   const runtime=await createRuntimeCharacterPool(renderer),roster=createActorRoster({scene,frontRoot,characterPool:runtime.pool});
   const equipment=createEquipmentController({heroActor:roster.heroActor,weaponVisual,mat,disposeObject});
+  const peers=createCoopActors({pool:runtime.peerPool,motherPool:runtime.motherPool,scene,sampleSlot,poseHumanoid,armorDye,createEquipment:heroActor=>createEquipmentController({heroActor,weaponVisual,mat,disposeObject})});
   const animation={roster,heroSchedule:new PoseSchedule(),motherSchedule:new PoseSchedule(),motherMotion:{active:false,moving:false,speed:0}};
-  function render(life,dt=0){roster.bindLife(life);equipment.syncEquipment(life.equipment);renderActors(animation,life,dt);}
+  function render(life,dt=0){roster.bindLife(life);equipment.syncEquipment(life.equipment);renderActors(animation,life,dt);peers.render(life,dt);}
   function setCarrierMotion({active=false,moving=false,speed=0}={}){animation.motherMotion={active:Boolean(active),moving:Boolean(moving),speed:Math.max(0,Number(speed)||0)};}
-  function dispose(){roster.dispose();runtime.pool.dispose();runtime.loader.disposeCompressedTextures?.();}
-  return{render,syncEquipment:equipment.syncEquipment,syncFront:roster.syncFront,updateFront:roster.updateFront,setCarrierMotion,dispose};
+  function dispose(){peers.dispose();roster.dispose();runtime.pool.dispose();runtime.peerPool.dispose();runtime.motherPool.dispose();runtime.loader.disposeCompressedTextures?.();}
+  return{render,syncPeers:peers.sync,syncEquipment:equipment.syncEquipment,syncFront:roster.syncFront,updateFront:roster.updateFront,setCarrierMotion,dispose};
 }

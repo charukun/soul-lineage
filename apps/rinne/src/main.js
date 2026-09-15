@@ -4,7 +4,7 @@ const $=id=>document.getElementById(id),app=$('app'),title=$('title-screen'),gam
 $('build-label').textContent=info.commit==='UNBUILT'?'LOCAL':`${String(info.environment).toUpperCase()} · ${String(info.commit).slice(0,7)}`;
 const storageKey=`soul:v1:${info.environment}:rinne:local:life-v2`;
 const afterVisiblePaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false;
+let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null;
 
 function refreshContinue(){
   let saved=null;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
@@ -29,20 +29,37 @@ async function boot(){
     await afterVisiblePaint();
     runtimeModule=await import('./rebuild/runtime.js');
     prepared=await runtimeModule.prepareRuntime({buildInfo:info,onProgress:message=>setLoading(message)});
-    game.dataset.runtime='prepared';showTitle();
+    game.dataset.runtime='prepared';showTitle();if(new URLSearchParams(location.hash.slice(1)).has('rinne-coop'))$('open-village').click();
   }catch(error){showBootFailure(error);}
 }
 
-async function launch(mode){
+async function enterCoop(coop){
+  if(JSON.stringify(coop.layout)!==JSON.stringify(prepared.layout)){
+    booting=true;setLoading('友達の村を開いています');
+    try{prepared.dispose();prepared=await runtimeModule.prepareRuntime({buildInfo:info,layoutOverride:coop.layout,onProgress:message=>setLoading(message)});}
+    catch(error){showBootFailure(error);throw error;}finally{booting=false;}
+  }
+  return launch('coop',coop);
+}
+async function exitGame(coop){
+  runtime=null;$('open-coop-game').hidden=true;
+  try{await coopMenu?.leave();if(coop){prepared.dispose();prepared=await runtimeModule.prepareRuntime({buildInfo:info,onProgress:message=>setLoading(message)});}game.dataset.runtime='prepared';showTitle();}
+  catch(error){showBootFailure(error);}
+}
+
+async function launch(mode,coop=null){
+  if(runtime)throw Error('いったんタイトルへ戻ってから参加してください。');
+  if(!coop&&coopMenu?.session)await coopMenu.leave();
   if(launching||booting||!prepared||!runtimeModule)return;launching=true;app.dataset.screen='game';title.hidden=true;game.hidden=false;game.classList.remove('is-loading');game.removeAttribute('aria-busy');loading.hidden=true;
   try{
     runtime=await runtimeModule.startRuntime({
-      mode,buildInfo:info,name:$('life-name').value,prepared,
-      onExit(){runtime=null;game.dataset.runtime='prepared';showTitle();},
+      mode,buildInfo:info,name:$('life-name').value,prepared,coop,
+      onExit:()=>exitGame(coop),
     });
+    $('open-coop-game').hidden=!coop;villageDialog.close();
     game.dataset.runtime='active';launching=false;
   }catch(error){
-    console.error(error);runtime?.dispose?.();runtime=null;game.dataset.runtime='prepared';showTitle(`開始できませんでした：${error?.message||error}`);
+    console.error(error);runtime?.dispose?.();runtime=null;if(coop){await coopMenu?.leave().catch(console.error);prepared?.dispose();prepared=null;launching=false;void boot();return;}game.dataset.runtime='prepared';showTitle(`開始できませんでした：${error?.message||error}`);
   }
 }
 
@@ -56,14 +73,16 @@ const villageDialog=document.getElementById('village-dialog');
 document.getElementById('open-village').addEventListener('click',async()=>{
   try{
     if(!villageInstalled){
-      const {installOnlinePlayer}=await import('./online.js');
-      installOnlinePlayer(document.getElementById('village-panel'));
+      const {installCoopMenu}=await import('./coop/menu.js');
+      coopMenu=installCoopMenu({container:document.getElementById('village-panel'),buildInfo:info,getPrepared:()=>prepared,getName:()=>$('life-name').value,onPlay:enterCoop,onLeave:async()=>{villageDialog.close();if(runtime)await $('back-title').onclick();else await coopMenu.leave();}});
       villageInstalled=true;
     }
     villageDialog.showModal();
   }catch(error){console.error(error);$('boot-status').textContent=`村接続失敗：${error?.message||error}`;}
 });
 document.getElementById('close-village').addEventListener('click',()=>villageDialog.close());
+$('open-coop-game').addEventListener('click',()=>villageDialog.showModal());
+$('coop-leave').addEventListener('click',()=>{$('back-title').click();});
 let movementHelpTimer=0;
 $('move-hint').addEventListener('click',()=>{
   const held=$('move-hint').textContent.includes('母'),node=$('toast');
@@ -87,4 +106,4 @@ if(new URLSearchParams(location.search).has('villageHostLab')){
 }
 
 // Session disposal keeps the prebooted renderer/world alive. Only page/HMR teardown destroys it.
-if(import.meta.hot)import.meta.hot.dispose(()=>{runtime?.dispose?.();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});
+if(import.meta.hot)import.meta.hot.dispose(()=>{runtime?.dispose?.();void coopMenu?.leave();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});

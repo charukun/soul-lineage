@@ -90,4 +90,6 @@ export async function verifyRebuildPlaythrough(browser,url,output){
 
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
   } finally {await context.close();}
+  const {verifyCoopPlay}=await import('./coop-play.browser.mjs');
+  await verifyCoopPlay(browser,url,join(output,'friend-play'));
 }

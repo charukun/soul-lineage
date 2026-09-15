@@ -126,17 +126,17 @@ function enemyAttackCandidates(state,living){
   }));
 }
 
-export function tickFront(state,front,dt){
+export function tickFront(state,front,dt,{advanceEnemies=true,incomingEnemyIds=null}={}){
   const events=[];if(state.zone!=='frontier'||state.ended)return events;
-  for(const enemy of front.enemies){enemy.flash=Math.max(0,enemy.flash-dt*4);enemy.attackWindow=Math.max(0,(enemy.attackWindow||0)-dt);if(!enemy.dead)enemy.cooldown-=dt;else enemy.moving=false;}
+  if(advanceEnemies)advanceEnemyClock(front,dt);
   let living=front.enemies.filter(enemy=>!enemy.dead);
-  if(!living.length){front.cleared=true;front.clearSeconds+=dt;state.combat=null;return[{type:'front-cleared',stage:front.stage}];}
+  if(!living.length){front.cleared=true;if(advanceEnemies)front.clearSeconds+=dt;state.combat=null;return[{type:'front-cleared',stage:front.stage}];}
   if(state.down){
-    for(const enemy of living)enemy.moving=false;
+    if(advanceEnemies)for(const enemy of living)enemy.moving=false;
     state.down.elapsed+=dt;if(state.down.elapsed>=40){state.down=null;state.zone='village';state.front=0;state.hp=Math.max(30,state.maxHp*.3);state.stamina=state.staminaCap*.6;state.combat=null;events.push({type:'rescued'});}return events;
   }
 
-  advanceEnemyFormation(state,living,dt,front.stage);
+  if(advanceEnemies)advanceEnemyFormation(state,living,dt,front.stage);
   let nearest=nearestEnemy(state.position,living);
   if(!state.combat&&nearest.distance<=3.25)state.combat={targetId:nearest.enemy.id,phase:'jo',attackCooldown:0};
   if(state.combat&&nearest.distance>4.6){state.combat=null;events.push({type:'disengage'});}
@@ -170,12 +170,33 @@ export function tickFront(state,front,dt){
   }
   if(!living.length){front.cleared=true;state.combat=null;return events;}
 
-  const attackers=enemyAttackCandidates(state,living),armor=ARMORS[state.equipment.armor]||ARMORS.cloth,shield=state.equipment.shield?.12:0,simultaneousScale=attackers.length>1?1/Math.sqrt(attackers.length):1;
+  const attackers=enemyAttackCandidates(state,incomingEnemyIds?living.filter(enemy=>incomingEnemyIds.has(enemy.id)):living),armor=ARMORS[state.equipment.armor]||ARMORS.cloth,shield=state.equipment.shield?.12:0,simultaneousScale=attackers.length>1?1/Math.sqrt(attackers.length):1;
   for(const row of attackers){
     if(state.hp<=0)break;const enemy=row.enemy,damage=(8+front.stage*1.6)*(1-armor.guard-shield)*simultaneousScale;
     state.hp=clamp(state.hp-damage,0,state.maxHp);enemy.cooldown=1.05+front.stage*.04+hash01(`${enemy.id}:recovery`)*.22;enemy.attackWindow=.32;events.push({type:'enemy-hit',sourceId:enemy.id,damage});
     if(!state.combat)state.combat={targetId:enemy.id,phase:'jo',attackCooldown:0};
     if(state.hp<=0){state.down={elapsed:0};state.combat=null;events.push({type:'downed'});break;}
   }
+  return events;
+}
+
+function advanceEnemyClock(front,dt){
+  for(const enemy of front.enemies){enemy.flash=Math.max(0,enemy.flash-dt*4);enemy.attackWindow=Math.max(0,(enemy.attackWindow||0)-dt);if(!enemy.dead)enemy.cooldown-=dt;else enemy.moving=false;}
+}
+
+/** One shared frontier: enemy clocks/formation run once, with stable character order, never packet order. */
+export function tickSharedFront(states,front,dt){
+  const ordered=[...states].sort((a,b)=>a.id.localeCompare(b.id)),events=new Map();
+  if(ordered.length===1){events.set(ordered[0].id,tickFront(ordered[0],front,dt));return events;}
+  if(!ordered.length)return events;
+  advanceEnemyClock(front,dt);
+  const eligible=ordered.filter(state=>!state.down&&!state.ended),targets=new Map(ordered.map(state=>[state.id,new Set()]));
+  for(const enemy of front.enemies.filter(row=>!row.dead)){
+    const target=[...eligible].sort((a,b)=>dist(enemy,a.position)-dist(enemy,b.position)||a.id.localeCompare(b.id))[0];
+    if(target)targets.get(target.id).add(enemy.id);else enemy.moving=false;
+  }
+  for(const state of eligible)advanceEnemyFormation(state,front.enemies.filter(enemy=>targets.get(state.id).has(enemy.id)),dt,front.stage);
+  if(front.enemies.every(enemy=>enemy.dead))front.clearSeconds+=dt;
+  for(const state of ordered)events.set(state.id,tickFront(state,front,dt,{advanceEnemies:false,incomingEnemyIds:targets.get(state.id)}));
   return events;
 }
