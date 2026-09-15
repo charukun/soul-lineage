@@ -43,8 +43,9 @@ export function createCreature(monster=false,role='traveller'){
 }
 export function animateCreature(g,a,time,options={}){
  const u=g.userData,m=u.monster,rawPose=a.dead?null:a.pose;
- const transition=stepCombatPresentation(u.combatPresentation,rawPose,options.dt??1/60);u.combatPresentation=transition;u.combatBlend=transition.eased;
- const q=transition.pose,cw=transition.eased,locomotion=(a.speed||0)>.05||a.state==='flee'||a.state==='pursue'||a.state==='idle'&&Math.sin((a.clock||0)*.45)>.35,phase=q?.phase??a.walk??time*3,step=locomotion?.24*(1-cw):0;
+ const frameDt=Number.isFinite(options.dt)?options.dt:Number.isFinite(u.combatTime)?Math.max(0,time-u.combatTime):1/60;u.combatTime=time;
+ const transition=stepCombatPresentation(u.combatPresentation,rawPose,frameDt);u.combatPresentation=transition;u.combatBlend=transition.eased;
+ const q=transition.pose,cw=transition.eased,locomotion=(a.speed||0)>.05||a.state==='flee'||a.state==='pursue'||a.state==='idle'&&Math.sin((a.clock||0)*.45)>.35,phase=a.walk??time*3,step=locomotion?.24*(1-cw):0;
  const crouch=(q?.crouch||0)*cw,lift=(q?.lift||0)*cw;
  g.position.set(a.x,lift*.8,a.z);g.rotation.y=a.yaw||0;g.scale.setScalar(m?(options.form==='brute'?1.12:options.form==='stalker'?1.04:1):1);
  const basePitch=m?.16:0,baseTwist=Math.cos(phase)*step*.25,baseRoll=Math.sin(time)*.012;
