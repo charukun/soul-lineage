@@ -31,4 +31,5 @@ test('benchmark comparison rejects a different app, preset, viewport or scene si
   assert.ok(result.mismatches.some(row=>row.field==='scene.signature'));
   const legacy=validateBenchmarkCompatibility({performance:{}},{performance:{}});
   assert.equal(legacy.comparable,true);
+  assert.equal(validateBenchmarkCompatibility(baseline,{performance:{}}).comparable,false);
 });
