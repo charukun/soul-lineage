@@ -7,6 +7,7 @@ const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
 const css=await readFile(new URL('../src/rebuild/app.css',import.meta.url),'utf8');
 const pop=await readFile(new URL('../src/rebuild/pop.css',import.meta.url),'utf8');
 const birthCss=await readFile(new URL('../src/rebuild/birth-tour.css',import.meta.url),'utf8');
+const actorStatus=await readFile(new URL('../src/rebuild/actor-status.js',import.meta.url),'utf8');
 const birthExperience=await readFile(new URL('../src/rebuild/birth-experience.js',import.meta.url),'utf8');
 const runtime=await readFile(new URL('../src/rebuild/runtime.js',import.meta.url),'utf8');
 const renderer=await readFile(new URL('../src/rebuild/renderer.js',import.meta.url),'utf8');
@@ -34,11 +35,12 @@ test('state changes read as game feedback without adding action buttons',()=>{
   assert.equal((html.match(/data-context-action=/g)||[]).length,1);assert.match(html,/data-context-action="talk"/);assert.doesNotMatch(html,/>攻撃</);
 });
 
-test('birth teaches through the mother and floating actor status instead of a destination waypoint',()=>{
+test('actor status is reusable and birth teaches through the mother instead of a destination waypoint',()=>{
   assert.match(html,/id="actor-status-layer"/);assert.match(html,/birth-tour\.css/);assert.doesNotMatch(html,/id="waypoint"/);
   assert.match(birthCss,/\.actor-status-text/);assert.match(birthCss,/@keyframes rinne-actor-status-rise/);assert.match(birthCss,/data-birth-tour="true".*\.objective-card/s);
-  assert.match(birthExperience,/floatStatus\('抱っこされている…'\)/);assert.match(birthExperience,/\$\{state\.name\}、お外は初めてだね/);
-  assert.match(birthExperience,/getObjectByName\('Player'\)/);assert.match(birthExperience,/getObjectByName\('Mother'\)/);assert.match(birthExperience,/tour\.tick/);assert.match(birthExperience,/tour\.observe/);
+  assert.match(actorStatus,/export function createActorStatus/);assert.match(actorStatus,/actorName=['"]Player['"]/);assert.match(actorStatus,/localToWorld/);assert.match(actorStatus,/function show\(text/);
+  assert.match(birthExperience,/createActorStatus/);assert.match(birthExperience,/status\.show\('抱っこされている…'\)/);assert.match(birthExperience,/\$\{state\.name\}、お外は初めてだね/);
+  assert.match(birthExperience,/getObjectByName\('Mother'\)/);assert.match(birthExperience,/tour\.tick/);assert.match(birthExperience,/tour\.observe/);
   assert.match(runtime,/createBirthExperience/);assert.match(runtime,/birth\.step\(dt,axis\)/);assert.match(runtime,/birth\.afterRender/);assert.match(runtime,/birth\.release\(\)/);assert.match(runtime,/スワイプで母を動かせる/);
 });
 
