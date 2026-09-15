@@ -1,4 +1,5 @@
 import './performance-shell.css';
+import './battle-shell.js';
 
 const q = selector => document.querySelector(selector);
 const frame = q('#performance-stage');
