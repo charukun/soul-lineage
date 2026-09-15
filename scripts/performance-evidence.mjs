@@ -1,5 +1,5 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   buildPhysicalPerformanceEvidence,
@@ -27,7 +27,11 @@ function readJson(file, label = 'input') {
 
 function outputJson(value, file = null) {
   const json = `${JSON.stringify(value, null, 2)}\n`;
-  if (file) writeFileSync(resolve(file), json);
+  if (file) {
+    const target = resolve(file);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, json);
+  }
   process.stdout.write(json);
 }
 
