@@ -42,7 +42,7 @@ function readCandidates(){
   try{const value=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');return Array.isArray(value)?value.filter(v=>typeof v==='string'):[];}catch{return [];}
 }
 function saveCandidates(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify([...candidates]));}catch{}}
-function candidateKey(){return currentClip?`${modelId}:${currentClip}`:'';}
+function candidateKey(name=currentClip){return name?`${modelId}:${name}`:'';}
 function updateCandidate(){const key=candidateKey(),on=key&&candidates.has(key);q('#library-candidate').textContent=on?'★ 候補':'☆ 候補';q('#library-candidate').setAttribute('aria-pressed',String(Boolean(on)));}
 function setStatus(text,error=false){const node=q('#library-status');node.textContent=text;node.dataset.error=error?'true':'false';}
 function disposeRoot(){
@@ -67,9 +67,10 @@ function filteredClips(){const keyword=normalize(q('#library-search').value).tri
 function renderList(){
   const rows=filteredClips();q('#library-count').textContent=`${rows.length} motions`;
   q('#library-list').replaceChildren(...rows.map(clip=>{
-    const button=document.createElement('button');button.type='button';button.className='motion-row'+(clip.name===currentClip?' active':'');button.dataset.motion=clip.name;
-    const copy=document.createElement('span');copy.className='motion-row-copy';const name=document.createElement('strong');name.textContent=clip.name||'Unnamed';const meta=document.createElement('small');meta.textContent=`${clip.duration.toFixed(2)}s · CC0`;copy.append(name,meta);
-    const play=document.createElement('span');play.className='motion-row-play';play.textContent=clip.name===currentClip?'再生中':'▶';button.append(copy,play);button.onclick=()=>playClip(clip.name,true);return button;
+    const candidate=candidates.has(candidateKey(clip.name));
+    const button=document.createElement('button');button.type='button';button.className='motion-row'+(clip.name===currentClip?' active':'')+(candidate?' candidate':'');button.dataset.motion=clip.name;
+    const copy=document.createElement('span');copy.className='motion-row-copy';const name=document.createElement('strong');name.textContent=clip.name||'Unnamed';const meta=document.createElement('small');meta.textContent=`${clip.duration.toFixed(2)}s`;copy.append(name,meta);
+    const play=document.createElement('span');play.className='motion-row-play';play.textContent=candidate?'★':clip.name===currentClip?'●':'▶';button.append(copy,play);button.onclick=()=>playClip(clip.name,true);return button;
   }));
   if(!rows.length){const empty=document.createElement('p');empty.className='library-empty';empty.textContent='見つかりません';q('#library-list').replaceChildren(empty);}
 }
@@ -96,7 +97,7 @@ q('#library-search').addEventListener('input',renderList);
 q('#library-play').onclick=()=>{if(!action)return;playing=!playing;action.paused=!playing;q('#library-play').textContent=playing?'一時停止':'再生';};
 q('#library-speed').onclick=()=>{speed=speed===1?0.5:1;q('#library-speed').textContent=`${speed}×`;};
 q('#library-restart').onclick=()=>{if(!action)return;action.reset().play();action.paused=!playing;};
-q('#library-candidate').onclick=()=>{const key=candidateKey();if(!key)return;if(candidates.has(key))candidates.delete(key);else candidates.add(key);saveCandidates();updateCandidate();};
+q('#library-candidate').onclick=()=>{const key=candidateKey();if(!key)return;if(candidates.has(key))candidates.delete(key);else candidates.add(key);saveCandidates();updateCandidate();renderList();};
 
 const resize=()=>{const rect=canvas.getBoundingClientRect(),w=Math.max(1,Math.round(rect.width)),h=Math.max(1,Math.round(rect.height));renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();};
 new ResizeObserver(resize).observe(canvas);resize();
