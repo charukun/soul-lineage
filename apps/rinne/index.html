@@ -40,7 +40,12 @@
       <div class="bars"><label><span>命</span><i><b id="hp-bar"></b></i></label><label><span>息</span><i><b id="stamina-bar"></b></i></label></div>
       <label class="clock-rate"><span>時</span><select id="clock-rate" aria-label="世界時計の速さ"><option value="1">1×</option><option value="5">5×</option><option value="10">10×</option><option value="20">20×</option></select></label>
     </header>
-    <aside class="objective-card"><span>今すること</span><strong id="objective">母と村を歩く</strong><small id="place">MURAAAAAAA</small></aside>
+    <aside class="objective-card" aria-live="polite">
+      <div class="objective-meta"><span id="life-stage">人生 1/6 · 誕生</span><small id="place">MURAAAAAAA</small></div>
+      <strong id="objective">母と村を歩き、世界を知る</strong>
+      <small id="objective-detail">4歳になると自分の足で村の暮らしが始まります</small>
+      <div id="waypoint" class="waypoint" hidden><b id="waypoint-arrow" aria-hidden="true">↑</b><span><strong id="waypoint-label"></strong><small id="waypoint-distance"></small></span></div>
+    </aside>
     <div id="dialogue" class="dialogue" hidden><span id="speaker">母</span><p id="dialogue-text"></p></div>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
     <button id="talk" class="talk-button" type="button"><span>話</span><small>話す</small></button>
