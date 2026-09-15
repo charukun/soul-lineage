@@ -50,6 +50,16 @@ Visual Review Lab is a separate fast human-review lane with its own long-lived b
 
 A good review surface should make the real asset easy to inspect rather than decorate it: stable viewport, predictable camera controls, explicit selected actor/variant, deterministic comparison, clear pose/expression controls and no hidden randomization of the subject under review.
 
+### Machine review consumer
+
+Automated modeling workers may reuse the same Lab render contract as a machine-observation surface. Machine review must load the same real asset, renderer/material path, pose or motion state, camera recipe and neutral presentation used for human review rather than creating a separate flattering renderer.
+
+Machine review is not the Lab UI controlling an AI worker. The worker owns the repair loop and may request deterministic captures for fixed views, compare them with task references, repair the real source asset, and repeat locally before publishing a candidate. The public Lab remains the final human inspection surface.
+
+Machine review evidence must be reproducible from explicit inputs such as model/preset, clip or pose, time/frame, camera view and build/source revision. Self-scores or image comparisons are diagnostic only and cannot set `visualApproval=approved` or promote a character stage by themselves.
+
+Do not put AI credentials, paid generation clients, device-local target storage, hidden uploads or external image-to-3D calls into the Lab solely to support this loop. Reference Intelligence, provenance/license rules, the Character Production Pipeline and model-specific contracts remain authoritative.
+
 ## 6. Deformation and animation probes
 
 Repeat the exact pose/action after a local rig/weight correction. For frame-specific animation defects, record action/clip and frame or time, then verify the same point after repair. Preserve unrelated actions.
@@ -80,6 +90,25 @@ Do not upgrade one category into another. In particular:
 When performance is measured, record the model/build revision and enough environment detail to make the result meaningful. Follow any stricter model-specific acceptance contract.
 
 ## 8. Review feedback format
+
+### Internal Lab before a rendering-unavailable conclusion
+
+For requested character/motion inspection, first start the actual Lab inside the
+worker. A remote cloud browser's missing WebGL context or blocked localhost is
+not evidence that a locally launched Chromium/SwiftShader cannot render it.
+For the independent 30-second sword viewer, use the current Lab branch
+`work/visual-review-lab-v2` and its `apps/rinne/docs/VISUAL_REVIEW_PREVIEW.md`:
+`npm run review:local:setup`, then `npm run review:local -- --mode sequence --time 3.33 --playback`.
+Keep the server and its browser client in the same process tree when execution
+calls have isolated networks. Do not weaken sandbox/network policy to connect them.
+Retain exact source hashes and distinguish browser preparation, local HTTP,
+WebGL2 rendering, captures, recorded playback, observed 1x review and physical
+device evidence. Try another authorized local browser preparation route before
+falling back to CPU mesh captures; neither fallback grants visual approval.
+This is a bounded authoring check, not a requirement to wait for public CI or
+run unrelated full E2E. The Lab remains independently published and Draft.
+
+### Findings
 
 When possible, convert feedback into four pieces:
 

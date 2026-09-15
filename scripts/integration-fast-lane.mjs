@@ -11,6 +11,7 @@ import {
   validationRuns,
 } from './integration.mjs';
 import { signalDeepRepair } from './integration-deep-repair-handoff.mjs';
+import { exactHeadFastFailure } from './integration-ci-failure.mjs';
 import { trustedStackFastEvidence } from './integration-stack-fast-evidence.mjs';
 import { dependencies, eligibility } from './integration-policy.mjs';
 import { comparison as completeComparison } from './integration-rescue-store.mjs';
@@ -162,6 +163,28 @@ export async function integrateFastLane(c, repository, options = {}) {
           report.held.push({ pr: pr.number, head: pr.head.sha, reason: `deep repair requested in issue #${deep.issue}` });
           await queueStatus(c, pr, 'pending', `Deep Repair #${deep.issue}: merge conflict`, deep.url || targetUrl);
           continue;
+        }
+      }
+
+      if (!checksPassed) {
+        const failure = await exactHeadFastFailure(c, pr);
+        if (failure) {
+          const fresh = await c.api('GET', `${c.root}/pulls/${pr.number}`);
+          if (fresh.head.sha !== pr.head.sha) throw new Error('PR head changed before CI failure handoff');
+          const develop = (await branch()).commit.sha;
+          const deep = await signalDeepRepair(c, {
+            pr: fresh, repository, develop, repairKind: 'ci-failure', ciFailure: failure,
+            reason: `CI_FAILURE: ${failure.jobName} ${failure.conclusion}; ${failure.jobUrl}`,
+            dependenciesMerged: await dependencyState(c, fresh),
+            unresolved: await unresolvedThreads(c, fresh),
+            reviews: await c.pages(`/pulls/${fresh.number}/reviews`, undefined, { maxPages: 10 }),
+          });
+          if (deep.signaled) {
+            report.deepRepair.push({ pr: fresh.number, head: fresh.head.sha, issue: deep.issue, reason: 'CI failure' });
+            report.held.push({ pr: fresh.number, head: fresh.head.sha, reason: `deep repair requested in issue #${deep.issue}` });
+            await queueStatus(c, fresh, 'pending', `Deep Repair #${deep.issue}: CI failure`, deep.url || targetUrl);
+            continue;
+          }
         }
       }
 

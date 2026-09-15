@@ -4,6 +4,7 @@ export const YEAR_SECONDS = 60;
 export const LIFE_SECONDS = LIFE_YEARS * YEAR_SECONDS;
 export const ACTIVITY_SECONDS = 8;
 export const CLOCK_RATES = Object.freeze([1, 5, 10, 20]);
+export const DEFAULT_VILLAGE_ID = 'local-hoshitsugi';
 
 export const WEAPONS = Object.freeze({
   fist: { id:'fist', label:'素手', skill:'basic.fist', reach:1.05, stamina:5, power:8 },
@@ -38,24 +39,47 @@ const clone = value => structuredClone(value);
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 const cleanName = value => String(value || '旅人').trim().slice(0, 12) || '旅人';
 const nowId = seed => `life-${seed >>> 0}-${Math.random().toString(36).slice(2, 9)}`;
+const VILLAGE_ID=/^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/;
+const validVillageId=value=>typeof value==='string'&&VILLAGE_ID.test(value);
+function normalizeVillageIds(values,fallback=true){
+  const list=Array.isArray(values)?values:[];
+  const ids=[...new Set(list.filter(validVillageId))];
+  if(ids.length>64)throw Error('出生可能な村が多すぎます。');
+  if(!ids.length&&fallback)return [DEFAULT_VILLAGE_ID];
+  return ids;
+}
+export function chooseBirthVillage(seed=1,villageIds=[DEFAULT_VILLAGE_ID]){
+  seed=Number.isSafeInteger(seed)?seed>>>0:1;
+  const ids=normalizeVillageIds(villageIds);
+  return ids[seed%ids.length];
+}
 
-export function createLife({name='旅人', seed=1, generation=1, inheritance=null}={}) {
+export function createLife({name='旅人', seed=1, generation=1, lineage=[], homelands=[], villageIds=[DEFAULT_VILLAGE_ID], birthVillageId=null}={}) {
   seed = Number.isSafeInteger(seed) ? seed >>> 0 : 1;
-  const known = ['basic.fist'];
-  if (inheritance?.skill && typeof inheritance.skill === 'string') known.push(`memory:${inheritance.skill}`);
+  generation=Math.max(1,generation|0);
+  const available=normalizeVillageIds(villageIds),unlocked=normalizeVillageIds(homelands,false);
+  let village;
+  if(birthVillageId!==null){
+    if(!validVillageId(birthVillageId))throw Error('出生村IDが不正です。');
+    if(generation<=1)throw Error('最初の人生の出生村はランダムに決まります。');
+    if(!unlocked.includes(birthVillageId))throw Error('帰還していない村には生まれ直せません。');
+    if(!available.includes(birthVillageId))throw Error('その故郷は現在の出生先に選べません。');
+    village=birthVillageId;
+  }else village=chooseBirthVillage(seed,available);
   return {
     schemaVersion:SAVE_SCHEMA,
-    id:nowId(seed), name:cleanName(name), seed, generation:Math.max(1, generation|0),
+    id:nowId(seed), name:cleanName(name), seed, generation,
     phase:'birth', zone:'village', front:0, lastDepartureCycle:2, ended:false,
+    birthVillageId:village, homelands:unlocked,
     ageSeconds:0, ageYears:0, clockRate:1,
     position:{x:-7,z:-1}, yaw:Math.PI, moving:false, resting:true, idleSeconds:0,
     hp:100, maxHp:100, stamina:100, staminaCap:100, lastSpendSeconds:999,
     equipment:{weapon:'fist',armor:'cloth',shield:false},
-    knownSkills:known, skillWeights:{jo:{'basic.fist':100},ha:{},kyu:{}},
+    knownSkills:['basic.fist'], skillWeights:{jo:{'basic.fist':100},ha:{},kyu:{}},
     experiences:{}, experienceRecent:{}, pendingDiscoveries:[], activity:null,
     combat:null, defeats:0, returns:0,
-    history:[], lineage:inheritance?.lineage ? clone(inheritance.lineage) : [],
-    events:[{type:'born',worldSecond:0,text:`${cleanName(name)}が生まれた。`}],
+    history:[], lineage:Array.isArray(lineage)?clone(lineage):[],
+    events:[{type:'born',worldSecond:0,text:`${cleanName(name)}が${village}に生まれた。`}],
   };
 }
 
@@ -66,7 +90,11 @@ export function validateLife(raw) {
   if (!raw.position || !Number.isFinite(raw.position.x) || !Number.isFinite(raw.position.z)) throw Error('位置データが不正です。');
   if (!WEAPONS[raw.equipment?.weapon] || !ARMORS[raw.equipment?.armor] || typeof raw.equipment.shield !== 'boolean') throw Error('装備データが不正です。');
   if (!Array.isArray(raw.knownSkills) || raw.knownSkills.length > 256 || !raw.experiences || typeof raw.experiences !== 'object') throw Error('人生データが不正です。');
-  const state=clone(raw); state.name=cleanName(state.name); state.ageYears=state.ageSeconds/YEAR_SECONDS; return state;
+  const state=clone(raw);
+  state.birthVillageId??=DEFAULT_VILLAGE_ID;state.homelands??=[];
+  if(!validVillageId(state.birthVillageId))throw Error('出生村IDが不正です。');
+  if(!Array.isArray(state.homelands)||state.homelands.length>64||new Set(state.homelands).size!==state.homelands.length||state.homelands.some(id=>!validVillageId(id)))throw Error('故郷の記録が不正です。');
+  state.name=cleanName(state.name); state.ageYears=state.ageSeconds/YEAR_SECONDS; return state;
 }
 
 export function serializeLife(state) { return JSON.stringify(validateLife(state)); }
@@ -211,7 +239,13 @@ export function depart(state){
   if(!canDepart(state))return false;state.lastDepartureCycle=departureCycle(state);state.zone='frontier';state.front=0;state.position={x:0,z:5.2};state.resting=false;state.activity=null;pushEvent(state,'depart','前線へ向けて出航した。');return true;
 }
 export function advanceFront(state){if(state.zone!=='frontier'||state.front>=5)return false;state.front++;state.position={x:0,z:5.2};state.combat=null;pushEvent(state,'front',`第${state.front+1}前線へ進んだ。`);return true;}
-export function returnHome(state){if(state.zone!=='frontier')return false;state.zone='village';state.front=0;state.position={x:166,z:0};state.combat=null;state.returns++;pushEvent(state,'return','村へ帰還した。');return true;}
+export function returnHome(state){
+  if(state.zone!=='frontier')return false;
+  state.zone='village';state.front=0;state.position={x:166,z:0};state.combat=null;state.returns++;
+  const firstReturn=!state.homelands.includes(state.birthVillageId);
+  if(firstReturn)state.homelands.push(state.birthVillageId);
+  pushEvent(state,'return',firstReturn?'村へ帰還した。この村が一族の故郷として刻まれた。':'村へ帰還した。');return true;
+}
 
 export function objectiveFor(state) {
   if(state.ended)return 'この100年を記録し、次の人生へ';
@@ -224,13 +258,10 @@ export function objectiveFor(state) {
 }
 
 export function lineageRecord(state,memento=null) {
-  return {generation:state.generation,name:state.name,age:Math.floor(state.ageYears),memento:memento||null,defeats:state.defeats,equipment:clone(state.equipment),experiences:clone(state.experiences),skills:[...state.knownSkills]};
+  return {generation:state.generation,name:state.name,age:Math.floor(state.ageYears),birthVillageId:state.birthVillageId,returnedHome:state.returns>0,memento:memento||null,defeats:state.defeats,equipment:clone(state.equipment),experiences:clone(state.experiences),skills:[...state.knownSkills]};
 }
 
-export function rebirth(state,{name=state.name,memento=null,seed=(state.seed+0x9e3779b9)>>>0}={}) {
+export function rebirth(state,{name=state.name,memento=null,seed=(state.seed+0x9e3779b9)>>>0,villageId=null,villageIds=[state.birthVillageId]}={}) {
   const record=lineageRecord(state,memento);
-  const next=createLife({name,seed,generation:state.generation+1,inheritance:{skill:memento,lineage:[...state.lineage,record]}});
-  next.knownSkills=[...new Set([...state.knownSkills,...next.knownSkills])];
-  next.skillWeights=clone(state.skillWeights);next.equipment=clone(state.equipment);
-  return next;
+  return createLife({name,seed,generation:state.generation+1,lineage:[...state.lineage,record],homelands:state.homelands,villageIds,birthVillageId:villageId});
 }

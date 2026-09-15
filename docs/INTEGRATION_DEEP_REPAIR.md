@@ -2,7 +2,7 @@
 
 Fast Laneは通常Ready PRの唯一のmerge入口であり、Fast RepairはGitで機械的に安全なmerge-forwardだけを処理する。
 
-Fast Laneが真のmerge conflictを検出した場合、旧Rescue queueや1時間watchdogを通常の起動条件にせず、そのcurrent exact headに対するDeep Repair handoffを同じIntegration passで即時に記録する。large-base reconciliationはcomplete fail-closed comparisonでFast Laneに残し、サイズだけを理由にDeep Repairへ落とさない。
+Fast Laneが真のmerge conflictまたはcurrent exact-headのCI failureを検出した場合、旧Rescue queueや1時間watchdogを通常の起動条件にせず、そのcurrent exact headに対するDeep Repair handoffを同じIntegration passで即時に記録する。large-base reconciliationはcomplete fail-closed comparisonでFast Laneに残し、サイズだけを理由にDeep Repairへ落とさない。
 
 ## Repository側の即時handoff
 
@@ -18,6 +18,8 @@ Deep Repair handoffは次を満たす。
 - 旧periodic Work/watchdogは取りこぼし復旧のfallbackとして残してよいが、Deep Repair要求の発見や状態生成を担当しない。
 
 Fast Repair可能な `behind` / dependency追従は従来どおり軽量executorで処理し、Deep Repair Issueを作らない。
+
+Deep Repairは人への差し戻しと同義ではない。[実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md#devで実物を確認する標準開発) に従い、確定仕様への適応と可逆的な実装判断をAIが行い、通常gateを通してDEV公開後のユーザーフィードバックへつなぐ。同file競合・技術的難しさ・目視未確認だけでhuman-requiredにしない。仕様判断で止める場合は、根拠の契約、互換修復の検討結果、可逆的なDEV候補では解決できない理由と必要な判断を残す。
 
 ## ChatGPT Work GitHub event trigger
 
@@ -36,7 +38,7 @@ Work prompt:
 ```text
 You are the Integration Deep Repair worker for charukun/soul-lineage.
 
-Read latest develop, AGENTS.md, docs/DEVELOPMENT.md, docs/INTEGRATION.md, docs/INTEGRATION_RECONCILIATION.md and docs/INTEGRATION_DEEP_REPAIR.md. Treat current GitHub state as canonical.
+Read latest develop, AGENTS.md, docs/DEVELOPMENT.md, docs/RINNE_PROJECT_EXECUTION_POLICY.md, docs/INTEGRATION.md, docs/INTEGRATION_RECONCILIATION.md and docs/INTEGRATION_DEEP_REPAIR.md. Treat current GitHub state as canonical.
 
 The triggering GitHub Issue contains an integration-deep-repair:v1 JSON block and a rinne-ai-repair:v1 envelope. Re-read the Issue and source PR before acting. Continue only if the issue is open, state=pending, attempt<maxAttempts, the PR is open/non-Draft/develop/same-repository, and the PR exact head still matches the recorded head.
 
@@ -44,9 +46,11 @@ Claim this Issue before editing by changing state from pending to working, incre
 
 Repair the existing PR branch only. Re-read current develop and both sides of every true conflict. Preserve both intents when compatible. Never resolve by unconditional ours/theirs, never clear integration holds or review objections, never weaken tests/browser/Production gates, never force-push, and never modify main/Production.
 
-For contract/control/assertion-sensitive conflicts, read the governing Repository sources and only proceed when compatibility and gate preservation can be demonstrated without a product decision. Otherwise mark human-required with the exact decision needed.
+Follow the DEV feedback development policy: AI implementation -> fast validation -> Ready -> Integration -> DEV publication -> user visual feedback -> AI correction. Within explicit requirements and current develop contracts, make and record reversible choices without waiting for pre-DEV visual approval. Adapt superseded PR behavior to current confirmed specifications while preserving compatible improvement intent. Technical difficulty or same-file conflicts alone do not require human-required.
 
-Run the repository fast validation against the current develop baseline. Push only the validated repair to the same source PR branch. After push, update the Issue state so normal CI/Fast Lane owns re-evaluation. Do not merge the PR yourself unless explicitly assigned Integration.
+For contract/control/assertion-sensitive conflicts, read the governing Repository sources and demonstrate compatibility and gate preservation. Before a specification-based human-required decision, record the current requirements, conflict, attempted compatible repair, why a reversible DEV candidate cannot resolve it, and the exact missing authorization or incompatible contract choice. Preserve existing hold/review/thread decisions, approval/certification rules and attempt limits; this policy does not automatically reopen existing human-required tickets.
+
+Run the repository fast validation against the current develop baseline. Push only the validated repair to the same source PR branch. Record assumptions and DEV review steps in the PR. After push, update the Issue state so normal CI/Fast Lane owns re-evaluation. Do not merge the PR yourself unless explicitly assigned Integration. Ready is not DEV_DEPLOYED; user visual feedback follows actual DEV publication.
 
 The worker ends after repair, fast validation and push. It does not wait for CI/browser/DEV. Browser and DEV repair remain independent asynchronous lanes.
 ```
@@ -72,3 +76,17 @@ DEV publicationは各Fast Lane pass後に最新develop SHAへ明示dispatchさ�
 7. Browser/DEV repair/publication中でも新しい独立Ready PRはFast Laneへ入れる。
 8. main / Production gate、review/hold/thread/dependency gate、exact-head validationを弱めない。
 9. 追加OpenAI API/PAT/有料fallbackをRepositoryの通常制御面へ追加しない。
+
+## Ready CI failureの修復契約
+
+Ready PRのcurrent exact-head `Validate and build` がfailure/timed_outで完了した場合も、失敗run/jobを特定して既存Deep Repair Issueへ送る。CIはbuild成功・失敗の両方でIntegrationをwakeし、開始時点の観測だけで停止させない。自身のwake jobが実行中でもbuild jobの完了を根拠にできる。
+
+最新validation runのjobだけを調べ、成功したobservation/Draft run、旧head、実行中・skipped・cancelledの検証、旧rerun attemptは失敗の根拠にしない。`repairKind=ci-failure` と `ciFailure` にhead/runId/runAttempt/jobId/jobName/conclusion/runUrl/jobUrlを記録する。Workはその失敗jobのstepsと必要なlog範囲から調査する。
+
+handoff直前にcurrent PR/head/developとhold/review/thread/dependencyを再取得する。同じheadのclosed・上限到達・human-required Issueも再生成せず、claim/attempt制限を維持する。修復中も独立PRのIntegrationは継続する。
+
+## Issue件数に依存しないhandoff
+
+同じexact headの修復Issue確認にRepository全体のopen/closed PR・Issue一覧走査を使わない。exact-head検索、既存statusのIssue参照、検索index反映待ちを補う直近open 100件から候補を取得し、Issue本体を再取得してsourceKey・state・attemptを確認する。closed/上限到達/human-requiredは維持する。検索結果が不完全なら修復Issueを新規作成せず、不完全な検索を「既存なし」と扱わない。
+
+同じheadの重複Issueが既に存在する場合は、human-requiredや試行上限などの停止判断を優先する。停止判断がなければ既存working claim、open pendingの順に再利用し、閉じた未着手の重複Issueで進行中のclaimを隠さない。closed Issueしか残っていない場合も新規生成や再openは行わない。

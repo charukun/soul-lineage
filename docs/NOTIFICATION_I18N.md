@@ -4,7 +4,7 @@ Notifications must remain understandable without requiring repository owners or 
 
 ## Canonical transport contract
 
-GitHub comments/email previews and the shared ntfy topic are broadcast transports. They do not expose a reliable per-recipient locale to the sender. Therefore transport payloads must not choose a human language through repository variables, secrets, environment variables, or per-user setup.
+Generic lifecycle GitHub comments and the shared ntfy topic are broadcast transports. They do not expose a reliable per-recipient locale to the sender. Therefore transport payloads must not choose a human language through repository variables, secrets, environment variables, or per-user setup.
 
 The first line is a locale-neutral lifecycle token:
 
@@ -27,3 +27,7 @@ Localization belongs at this presentation boundary. It must not alter lifecycle 
 ## Delivery semantics
 
 `READY_FOR_INTEGRATION`, `INTEGRATED`, and `DEV_DEPLOYED` remain distinct. `FAILED` always carries a machine-readable reason/action when available. GitHub/ntfy delivery failure remains advisory and must not overwrite a verified implementation, Integration, or DEV result.
+
+## Developer DEV change email
+
+The current `docs/DEV_NOTIFICATION.md` contract separately requires a human-readable DEV change receipt on the associated PR, with its title, author mention and DEV URL. Preserve that Japanese developer notice and its deduplication; the locale-neutral lifecycle payload does not replace it. No repository locale variable is needed. Browser diagnostics remain asynchronous and the generic DEV receipt must not claim focused browser success.

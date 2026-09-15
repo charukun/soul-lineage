@@ -4,7 +4,7 @@ import { buildApplications } from './applications.mjs';
 import { createGithubClient } from './github-client.mjs';
 import { syncPullSnapshot } from './pull-snapshot.mjs';
 import { enrichTargets, actionProblems } from './review-model.mjs';
-import { FAILED_CONCLUSIONS } from './public/health.mjs';
+import { FAILED_CONCLUSIONS, estimatePublicationDuration } from './public/health.mjs';
 import { collectRescue } from './rescue.mjs';
 const RUNNING = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
 const stamp = () => new Date().toISOString();
@@ -87,8 +87,9 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     const runs = Array.isArray(actions?.workflow_runs) ? actions.workflow_runs : [];
     const developRuns = runs.filter(run => run.name === 'Deploy DEV and PROD' && run.head_branch === 'develop');
     const mainRuns = runs.filter(run => run.name === 'Deploy DEV and PROD' && run.head_branch === 'main');
+    const latestDevelopRun = developRuns[0] || null;
     const previousById = new Map((previous?.environments || []).map(env => [env.id, env]));
-    let dev = environmentFromManifest('dev', manifest, branches.get('develop')?.commit?.sha || null, developRuns[0]);
+    let dev = environmentFromManifest('dev', manifest, branches.get('develop')?.commit?.sha || null, latestDevelopRun);
     let prod = environmentFromManifest('prod', manifest, branches.get('main')?.commit?.sha || null, mainRuns[0]);
     dev = await withHistory(dev, previousById.get('dev'), client);
     prod = await withHistory(prod, previousById.get('prod'), client);
@@ -109,17 +110,21 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     const reconciled = reconcileIntegrationQueue(baseIntegrationQueue, plan, developSha);
     const integrationQueue = reconciled.queue;
     const deliveryVerified = dev.deployState === 'success' && dev.deployedCommit === developSha && dev.exactCommit !== false;
-    const integration = overallIntegration(integrationQueue, developRuns[0], [dev.deployQueue, prod.deployQueue], Date.now(), {
+    const integration = overallIntegration(integrationQueue, latestDevelopRun, [dev.deployQueue, prod.deployQueue], Date.now(), {
       deliveryVerified,
       reconciliationFresh: reconciled.fresh,
       actionableIdle: reconciled.actionableIdle,
     });
+    const recoveryFrom = RUNNING.has(latestDevelopRun?.status) && latestDevelopRun?.head_sha === developSha
+      ? developRuns.slice(1).find(run => run.head_sha === developSha && workflowFailure(run)) || null
+      : null;
+    const deliveryEstimate = estimatePublicationDuration(developRuns);
     const alerts = [];
     for (const env of [dev, prod]) {
-      if (env.deployQueue?.warning) alerts.push({ type: 'branch-diverged', tone: 'danger', title: `${env.name} の公開版とブランチの系譜を確認`, detail: `${env.deployQueue.state}: ahead ${env.deployQueue.commitsAhead}, behind ${env.deployQueue.commitsBehind}`, url: env.url });
-      else if ((env.deployQueue?.commitsAhead || 0) > 0) alerts.push({ type: 'deploy-wait', tone: 'warning', title: `${env.name} 公開待ち`, detail: `${env.deployQueue.commitsAhead} commit 未公開`, url: env.url });
+      if (env.deployQueue?.warning) alerts.push({ type: 'branch-diverged', environment: env.id, tone: 'danger', title: `${env.name} の公開版とブランチの系譜を確認`, detail: `${env.deployQueue.state}: ahead ${env.deployQueue.commitsAhead}, behind ${env.deployQueue.commitsBehind}`, url: env.url });
+      else if ((env.deployQueue?.commitsAhead || 0) > 0 && env.id !== 'dev') alerts.push({ type: 'deploy-wait', environment: env.id, tone: 'warning', title: `${env.name} 公開待ち`, detail: `${env.deployQueue.commitsAhead} commit 未公開`, url: env.url });
     }
-    if (workflowFailure(developRuns[0]) && !deliveryVerified) alerts.push({ type: 'integration-failed', tone: 'danger', title: 'DEV公開・検証処理が失敗', detail: developRuns[0].conclusion, url: developRuns[0].html_url });
+    if (workflowFailure(latestDevelopRun) && !deliveryVerified) alerts.push({ type: 'integration-failed', tone: 'danger', title: 'DEV公開で問題を検出', detail: '公開・検証処理が失敗しています。再試行が始まるまで要確認です。', url: latestDevelopRun.html_url });
     if (reconciled.actionableIdle) alerts.push({ type: 'reconciliation-idle', tone: 'warning', title: '自動統合の再配分待ち', detail: '処理可能なReady PRがありますが、現在のexecutor割当が0です。次のreconcileで再配分します。' });
 
     const targetLimit = client.deepAllowed ? (token ? 4 : 1) : 0;
@@ -135,7 +140,8 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
       pullSync: { mode: pullSync.mode, pages: pullSync.pages, complete: pullSync.complete, watermark: pullSync.watermark, fullAt: pullSync.fullAt },
       pullRequests: { ...pullRequests, total: allPulls.length, truncated: !pullSync.complete, targetLookup: { ready: targets.ready, pending: targets.pending, unavailable: targets.unavailable, attempted: targets.attempted } },
       applications, applicationsUpdatedAt: now, applicationsSource: 'public-manifest', environments: [dev, staging, prod, ...previews], environmentDiff: environmentDiff(dev, prod),
-      integration: { ...integration, queue: integrationQueue, latestRun: runView(developRuns[0]), deployWaiting: dev.deployQueue?.pulls || [],
+      integration: { ...integration, queue: integrationQueue, latestRun: runView(latestDevelopRun), deployWaiting: dev.deployQueue?.pulls || [],
+        recovering: Boolean(recoveryFrom), recoveryFrom: runView(recoveryFrom), deliveryEstimate,
         watchdog: { reconciliationFresh: reconciled.fresh, reconciliationReason: reconciled.reason, actionableIdle: reconciled.actionableIdle,
           readyCount: reconciled.readyCount, planGeneratedAt: reconciled.generatedAt, deliveryVerified } },
       integrationRescue,

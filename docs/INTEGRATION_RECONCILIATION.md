@@ -25,7 +25,7 @@ Integrationの正本はGitHub current stateだけにする。Planner、通常Vir
    - Fast Laneで通らないPRのうち、機械的に安全に直せるものだけをRepairへ渡す。
    - Repairは独自queue、Wave、priority、AWAITING_PUSH、Work push relay、Return待ちを通常経路に持たない。
    - 修復後は同じtrusted runでcurrent exact-headを再検証し、Fast Laneを再度wakeする。
-   - 仕様判断が必要な衝突だけをdeep repair / human-requiredへ送る。
+   - 機械的に解けない衝突はdeep repairへ送り、AIが確定仕様への適応を検討する。human-requiredは実行ポリシーの例外条件に限定する。
 
 ## 最小トポロジー
 
@@ -81,9 +81,9 @@ DEV公開後のfocused browserも同様にdelivery health / repair evidenceと�
 
 ## deep repair / human-required
 
-同一fileや関連契約の意味衝突など、機械的なmerge-forwardだけでは安全を証明できないものはFast Lane内で無理に直さない。既存ChatGPT Work等のdeep repairへhandoffし、両側の確定仕様・review・test coverageを確認できた場合だけ元PR branchを修復する。
+同一fileや関連契約の意味衝突など、機械的なmerge-forwardだけでは安全を証明できないものはFast Lane内で無理に直さない。既存ChatGPT Work等のdeep repairへhandoffし、両側の確定仕様・review・test coverageを調べて元PR branchを修復する。最新の確定仕様に古いPRの改善意図を適応し、可逆的な細部はAIが決めて通常gateを通す。DEV公開後にユーザーが実物を確認する流れを標準とし、技術的難しさや目視未確認だけで人待ちにしない。
 
-明示hold、Changes requested、未解決thread、schema/save/protocol等の真のプロダクト判断、main / Productionは自動Repairで解除・変更しない。deep repairが使えない場合はGitHub上にhuman-requiredの理由を残し、正常PRのmerge laneは継続する。
+明示hold、Changes requested、未解決thread、未承認の不可逆な変更や互換性を壊すschema/save/protocol選択、main / Productionは自動Repairで解除・変更しない。仕様によるhuman-requiredは [実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md#devで実物を確認する標準開発) の根拠記録を満たす場合に限定する。deep repairの実行手段がない場合は実行経路の障害として根拠と復旧手段を記録し、仕様の承認待ちと混同しない。正常PRのmerge laneは継続する。
 
 ## DEV Publisher
 

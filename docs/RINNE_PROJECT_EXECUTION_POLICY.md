@@ -12,6 +12,29 @@ Ready後のCI監視、develop統合、DEV公開、browser gate、失敗時のInt
 
 main / Productionは通常実装とdevelop Integrationの対象外。明示hold、review、exact-head gate、browser assertion、Rescueのclaim/attempt制限は維持する。
 
+## DEVで実物を確認する標準開発
+
+通常の開発は **AIが実装 → 高速検証 → Ready → Integrationがdevelopへ統合・DEV公開 → ユーザーが実物を目視確認 → 指摘をAIが修正** の反復とする。ユーザーの目視確認は原則としてDEV公開後の改善入力であり、公開前に毎回要求する承認工程を追加しない。実装WORKはReadyで終了し、公開と結果通知は既存Integrationが非同期で担当する。
+
+明示された要件・禁止事項と最新developの確定仕様を守る範囲で、AIは見た目、操作感、文言、実装方法などの可逆的な選択を行う。未指定の細部は妥当な仮定をPRに短く記録して進める。「見てもらってから決めたい」「技術的に難しい」「同じfileが競合した」だけでDraft・hold・human-requiredへ止めない。未実装や高速検証失敗は修復対象であり、完成したものとしてReadyにしない。
+
+古いPRが現在の確定仕様と違う場合は、最新developと現在のユーザー指示から優先関係を調べ、現仕様を維持しつつPRの改善意図を適応する。古い挙動の復活をユーザーへ二択で戻す前に、この適応を検討・検証する。両側の差分を読み、無条件のours/theirs採用やテスト削除で解決しない。
+
+| 状況 | 対応 |
+| --- | --- |
+| 可逆的な見た目・操作感・文言などの細部 | AIが選択を記録して実装し、通常gateを通してDEVで確認する |
+| 確定仕様に適応できる古いPR・技術的な競合 | AI Repairで修復・高速検証し、通常Integrationへ戻す |
+| ユーザーのDEV上の指摘 | 公開SHA・対象画面・再現条件を現在のGitHub状態と照合し、AIが次の修正へ反映する |
+| 明示hold・Changes requested・未解決thread・未完了dependency | 既存の対象PRの制御を維持する。DEV先行を解除権限にしない |
+| 未承認の不可逆なデータ変更、互換性を壊すsave/schema/protocol変更、既存要件から決められない重大な契約選択 | その対象だけhuman-requiredとし、必要な判断を具体化する |
+| Repairのattempt上限到達 | 有限retryを維持してその修復を停止し、技術的な原因・試行結果・次の復旧手段を残す。目視承認不足と混同しない |
+
+human-requiredを仕様判断で付ける前に、根拠となる現在の要件・契約、衝突箇所、検討した互換修復、DEVで試して戻せる案では解決できない理由、必要な判断を記録する。可逆的な選択と確定仕様への適応は、この開発方針でAIへ委任済みである。明示的な権限不足、実際の互換性破壊、既存のreview/holdは推測で解除しない。既存human-requiredの記録も一括解除せず、現在の権限・判断とclaim/attempt条件を確認する。
+
+DEV公開後の目視確認と、自動browser検証・Production品質認定は別である。テスト、browser assertion、exact-head review、claim/attempt、main / Production保護を弱めない。キャラクター等の明示的なvisual approvalやRUNTIME_READYの条件も維持し、未承認候補を承認済みと扱わない。既存規約で許されるDEV候補は、その未承認状態を保って確認に出す。
+
+PR本文にはAIが採用した仮定、DEVで見てほしい画面・操作、残る見た目の調整点を簡潔に残す。DEV_DEPLOYEDの既存通知と公開URLを確認の入口とし、Readyを公開済みと報告しない。指摘時にGitHub情報やスクリーンショットが不足していても取得可能な情報はAIが先に調べ、ユーザーにIssue作成や技術的な調査を必須要求しない。未mergeなら同じPR/branch、merge後なら最新developから修正PRを作り、同じ公開・確認ループへ戻す。独自の承認キュー、常駐セッション、新たな有料APIは追加しない。
+
 ## 短時間確認と失敗の差し戻し
 
 push直後の確認は原則1回、リクエスト単位の短いtimeoutを設ける。workflowの起動・即時失敗・明白な設定誤りだけを確認し、同一headが未完了なら追加確認を予定せず終了する。`gh run watch`、`gh pr checks --watch`、Actions APIを一定間隔で取得する処理、Playwright完了までのセッション保持は禁止する。確認を省略した場合はCI未確認と正直に報告する。

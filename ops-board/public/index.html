@@ -26,6 +26,16 @@
     </header>
 
     <nav class="section-tabs pulse-overview" aria-label="現在の状況">
+      <a id="overview-app-card" class="overview-card overview-publication-card info" href="#apps-section" data-open-disclosure="apps-section">
+        <span class="overview-label">DEV公開</span>
+        <strong id="overview-app-value">確認中</strong>
+        <span id="overview-app-detail" class="overview-detail overview-publication-availability">公開状態を確認中</span>
+        <span class="overview-publication-grid" aria-label="DEV公開の進捗">
+          <span class="overview-publication-row"><span class="overview-step-label">いま</span><span id="overview-app-now">公開状態を確認しています</span></span>
+          <span class="overview-publication-row"><span class="overview-step-label">次</span><span id="overview-app-next">次の工程を確認しています</span></span>
+          <span class="overview-publication-row"><span class="overview-step-label">確認できる目安</span><span id="overview-app-eta">目安を確認しています</span></span>
+        </span>
+      </a>
       <a id="overview-alert-card" class="overview-card info" href="#alert-section">
         <span class="overview-label">要対応</span>
         <strong id="overview-alert-value">確認中</strong>
@@ -35,11 +45,6 @@
         <span class="overview-label">開発</span>
         <strong id="overview-task-value">確認中</strong>
         <span id="overview-task-detail" class="overview-detail">作業と統合</span>
-      </a>
-      <a id="overview-app-card" class="overview-card info" href="#apps-section" data-open-disclosure="apps-section">
-        <span class="overview-label">公開</span>
-        <strong id="overview-app-value">確認中</strong>
-        <span id="overview-app-detail" class="overview-detail">アプリ状態</span>
       </a>
     </nav>
 
