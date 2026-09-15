@@ -43,5 +43,8 @@ return {
  decodeNotebook:(data)=>copy(decodeNotebook(data,false)),
  exportNotebook:()=>copy(exportData()),
  sourceVersion:'Tidebreak 10.0 / shared-inspiration catalog',
- _test:{hit(who,damage){const t=who==='hero'?hero:enemies[0],src=who==='hero'?enemies[0]:hero;t.invuln=0;registerHit(src,t,{id:++attackSerial,kind:'slash',damage,element:'steel',damaged:new Set(),power:1,hitCount:0},{point:[t.x,1.2,t.z]});return state();}}
+ _test:{
+  generateSkill(weapon='sword',slot='jo',automatic=true){const before=equippedWeapon;equippedWeapon=weapon;try{return copy(generateSkill(slot,automatic));}finally{equippedWeapon=before;}},
+  hit(who,damage){const t=who==='hero'?hero:enemies[0],src=who==='hero'?enemies[0]:hero;t.invuln=0;registerHit(src,t,{id:++attackSerial,kind:'slash',damage,element:'steel',damaged:new Set(),power:1,hitCount:0},{point:[t.x,1.2,t.z]});return state();}
+ }
 };
