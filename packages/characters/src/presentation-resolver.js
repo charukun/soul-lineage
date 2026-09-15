@@ -145,15 +145,12 @@ function candidateMatches(candidate, { app, role, ageBand, bodyArchetype, render
 }
 
 function candidateRuntimeReady(candidate) {
-  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return false;
-  if (candidate.manifest) {
-    try {
-      return evaluateCharacterProduction(candidate.manifest, 'RUNTIME_READY').productionReady;
-    } catch {
-      return false;
-    }
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate) || !candidate.manifest) return false;
+  try {
+    return evaluateCharacterProduction(candidate.manifest, 'RUNTIME_READY').productionReady;
+  } catch {
+    return false;
   }
-  return candidate.productionStage === 'RUNTIME_READY' && candidate.productionReady === true;
 }
 
 export function selectCharacterProductionAsset(candidates = [], context) {

@@ -47,7 +47,6 @@ const MODEL_BUILD_PRODUCTION = deepFreeze({
  * be mistaken for a finished production model.
  */
 const PALETTE = Object.freeze({
-  shino: { skin: [.96,.80,.72], hair: [.62,.39,.27], eyes: [.36,.23,.16], primary: [.20,.32,.16], secondary: [.83,.78,.68], accent: [.64,.49,.25], dark: [.16,.12,.10], metal: [.55,.55,.50], leather: [.29,.18,.12], wood: [.32,.20,.11] },
   villageBoy: { skin: [.88,.69,.58], hair: [.30,.20,.14], eyes: [.30,.24,.18], primary: [.34,.39,.28], secondary: [.67,.58,.45], accent: [.48,.35,.22], dark: [.15,.13,.11], metal: [.48,.50,.48], leather: [.28,.19,.13], wood: [.34,.23,.13] },
   villageGirl: { skin: [.94,.76,.67], hair: [.48,.30,.20], eyes: [.30,.38,.30], primary: [.38,.46,.34], secondary: [.78,.69,.57], accent: [.62,.42,.34], dark: [.16,.13,.11], metal: [.52,.53,.50], leather: [.31,.21,.14], wood: [.36,.24,.14] },
   elderMan: { skin: [.76,.61,.53], hair: [.62,.62,.58], eyes: [.28,.25,.22], primary: [.34,.31,.27], secondary: [.54,.50,.42], accent: [.42,.35,.26], dark: [.14,.13,.12], metal: [.46,.47,.45], leather: [.27,.20,.15], wood: [.31,.24,.17] },
@@ -114,58 +113,9 @@ function model(spec) {
   return Object.freeze(value);
 }
 
-function dccModel(spec) {
-  const profile = parts(...spec.parts);
-  const value = {
-    version: 1,
-    seed: spec.seed,
-    role: spec.role,
-    ageBand: spec.ageBand,
-    parts: profile,
-    front: spec.front,
-    back: spec.back,
-    face: Object.freeze({ ...FACE[spec.face] }),
-    proportions: spec.proportions,
-    gear: spec.gear,
-    cloth: Object.freeze([...spec.referenceStyle.palette.primary]),
-    trim: Object.freeze([...spec.referenceStyle.palette.accent]),
-    hairValue: 1,
-    id: spec.id,
-    label: spec.label,
-    kind: 'dcc-character-model',
-    characterId: spec.characterId,
-    masterId: MASTER_ID,
-    assetId: spec.assetId,
-    productionStage: 'PRIMARY',
-    modelingMode: 'dcc-blender',
-    productionReady: false,
-    assetPath: spec.assetPath,
-    integrityPath: spec.integrityPath,
-    dccSourcePath: spec.dccSourcePath,
-    referencePath: spec.referencePath,
-    profile,
-    referenceStyle: spec.referenceStyle,
-    production: spec.production ?? MODEL_BUILD_PRODUCTION,
-    note: 'キャラクターリファレンスを正本にBlenderで専用造形したDCC PRIMARYモデル。旧Shinoの色替え/primitive blockoutではない。DEFORMATION以降と明示Visual Approvalは未完了。'
-  };
-  validateVisualIdentity(value);
-  Object.freeze(value.face); Object.freeze(value.proportions); Object.freeze(value.parts); Object.freeze(value.profile);
-  return Object.freeze(value);
-}
-
 const npcPath = name => `docs/characters/references/npc-role-set/${name}.avif`;
 
 export const CHARACTER_REFERENCE_MODELS = Object.freeze({
-  'shino.reference.v2': dccModel({
-    id: 'shino.reference.v2', label: 'Shino Reference v2 / DCC', characterId: 'Sendagaya_Shino', seed: 0x5348494e, role: 'traveller', ageBand: 'child',
-    parts: ['round','bob','compact','mantle','none'], front: 'fringe', back: 'layered', face: 'soft', proportions: proportions(.94,.97,.94,1.08), gear: 'satchel',
-    assetId: 'character.shino-reference-v2.dcc.v1',
-    assetPath: './simulator/assets/SHINO_REFERENCE_V2.vrm',
-    integrityPath: './simulator/assets/SHINO_REFERENCE_V2.asset.json',
-    dccSourcePath: 'assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend',
-    referencePath: 'docs/characters/references/shino/shino-character-reference-sheet-v2.png',
-    referenceStyle: style('shino', .70, 'shino', { armStyle: 'blouse', legStyle: 'bare', footwear: 'boots', prop: 'satchel' })
-  }),
   'child-boy.reference.v1': model({
     id: 'child-boy.reference.v1', label: 'Child Boy', characterId: 'Reference_Child_Boy', seed: 0x43484231, role: 'child', ageBand: 'child',
     parts: ['round','crop','compact','tunic','none'], front: 'open', back: 'close', face: 'child', proportions: proportions(.92,.94,.91,1.12), gear: 'none',

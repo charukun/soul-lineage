@@ -74,42 +74,44 @@ This request is the handoff to a modeling worker. Editing a generated/quantity m
 
 ## CLI / worker flow
 
-Create a request:
+Create a request from a current reference catalog entry, for example the knight role target:
 
 ```sh
-node scripts/character-model-builder.mjs request shino.reference.v2 generated/shino/request.json astra-3d
+node scripts/character-model-builder.mjs request knight.reference.v1 generated/knight/request.json astra-3d
 ```
 
 After an external provider produces a concrete asset, wrap it as a candidate using its real SHA-256:
 
 ```sh
 node scripts/character-model-builder.mjs candidate \
-  generated/shino/request.json \
+  generated/knight/request.json \
   vrm \
-  generated/shino/shino.vrm \
+  generated/knight/knight.vrm \
   <64-char-sha256> \
   astra-3d \
-  generated/shino/candidate.json
+  generated/knight/candidate.json
 ```
 
 Apply a gate-results JSON:
 
 ```sh
 node scripts/character-model-builder.mjs review \
-  generated/shino/candidate.json \
-  generated/shino/gates.json \
-  generated/shino/reviewed.json
+  generated/knight/candidate.json \
+  generated/knight/gates.json \
+  generated/knight/reviewed.json
 ```
 
 Only when `acceptance.status` is `accepted` may a distribution manifest be emitted:
 
 ```sh
 node scripts/character-model-builder.mjs distribute \
-  generated/shino/reviewed.json \
-  generated/shino/distribution.json
+  generated/knight/reviewed.json \
+  generated/knight/distribution.json
 ```
 
 The manifest is an Integration handoff, not permission to mutate `main` or Production and not a game-save operation.
+
+Retired catalog IDs such as `shino.reference.v2` are intentionally invalid inputs. Git history preserves their experiments; a future Shino rebuild must be introduced as a current catalog/manifest candidate rather than reviving an abandoned production ID.
 
 ## Current provider boundary
 

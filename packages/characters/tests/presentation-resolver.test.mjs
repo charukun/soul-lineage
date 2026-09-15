@@ -12,6 +12,30 @@ import {
 
 const make = (id = 'hero', seed = 7, age = 20) => createCharacter({ id, seed, ageMs: age * YEAR_MS });
 
+function readyManifest() {
+  return {
+    schema: 'character-production', version: 2, id: 'adult.knight.v1', stage: 'RUNTIME_READY', modelingMode: 'dcc-blender',
+    source: {
+      referencePaths: ['docs/characters/references/test/front.png'], meshPath: 'assets/characters/adult-knight.v1.vrm',
+      dcc: { tool: 'Blender', version: '4.x', sourcePath: 'assets/characters/adult-knight.v1.blend' }
+    },
+    evidence: {
+      reference: { intentLocked: true, views: ['front','side','back'] },
+      blockout: { views: ['front','side','back','three-quarter'], proportionsReviewed: true, silhouetteReviewed: true },
+      primary: { topologyReviewed: true, uvReviewed: true, separateSurfaces: ['skin','hair','clothing'] },
+      secondary: { hairFormsReviewed: true, clothingFormsReviewed: true, accessoriesReviewed: true },
+      deformation: { poses: ['neutral','head-turn','arm-raise','elbow-bend','knee-bend','crouch'], weightsReviewed: true, selfIntersectionReviewed: true, clothingHairCollisionReviewed: true },
+      motion: {
+        clips: ['relaxed-idle','combat-idle','relaxed-to-combat','walk','run','attack','hit-small','hit-large','weapon-draw','weapon-sheathe'],
+        viewCount: 8, returnsToStablePose: true,
+        principles: { centerOfGravity: true, silhouette: true, lineOfAction: true, anticipation: true, timingSpacing: true, gameplayExaggeration: true, cameraVersatility: true }
+      },
+      polish: { expressions: ['neutral','blink','smile','mouth-open'], materials: { baseColor: true, roughness: true, metallic: true, normal: true }, secondaryMotionReviewed: true, visualApproval: 'approved' },
+      runtime: { format: 'vrm', webgl2: true, assetHash: 'sha256:approved', provenanceReviewed: true, licenseReviewed: true, desktopP95Ms: 15, mobileP95Ms: 30, triangles: 48000, drawCalls: 18, textureMemoryBytes: 33554432, mobileDeviceClass: 'pixel-fold-class', reviewViewCount: 8 }
+    }
+  };
+}
+
 test('age and body archetype are deterministic presentation data, not saved state', () => {
   const child = make('child', 1, 7), adult = make('adult', 2, 18), elder = make('elder', 3, 65);
   assert.equal(characterPresentationAgeBand(child), 'child');
@@ -64,24 +88,34 @@ test('crowd resolution delegates full/mid/far/hidden policy to crowdPlan', () =>
   assert.equal(rows.find(row => row.characterId === 'actor-9').render.animationHz, 5);
 });
 
-test('BLOCKOUT/reference candidates can never masquerade as production assets', () => {
+test('production selection fails closed without a complete RUNTIME_READY manifest', () => {
   const context = { app: 'rinne', role: 'knight', ageBand: 'adult', bodyArchetype: 'adult.sturdy', renderTier: 'full' };
+
   assert.equal(selectCharacterProductionAsset([
     { id: 'runtime.knight', productionStage: 'BLOCKOUT', productionReady: true }
   ], context), null);
 
-  const selected = selectCharacterProductionAsset([
-    { id: 'adult.knight.v1', assetId: 'character.adult.knight.v1', productionStage: 'RUNTIME_READY', productionReady: true,
-      apps: ['rinne'], roles: ['knight'], ageBands: ['adult'], bodyArchetypes: ['adult.sturdy'], renderTiers: ['full'] }
-  ], context);
+  assert.equal(selectCharacterProductionAsset([
+    { id: 'spoofed.ready', productionStage: 'RUNTIME_READY', productionReady: true }
+  ], context), null);
+
+  const pending = readyManifest();
+  pending.evidence.polish.visualApproval = 'pending';
+  assert.equal(selectCharacterProductionAsset([{ id: 'pending.knight', manifest: pending }], context), null);
+
+  const selected = selectCharacterProductionAsset([{
+    id: 'adult.knight.v1', assetId: 'character.adult.knight.v1', manifest: readyManifest(),
+    apps: ['rinne'], roles: ['knight'], ageBands: ['adult'], bodyArchetypes: ['adult.sturdy'], renderTiers: ['full']
+  }], context);
   assert.equal(selected.assetId, 'character.adult.knight.v1');
   assert.equal(selected.productionStage, 'RUNTIME_READY');
-  assert.equal(selectCharacterProductionAsset([
-    { id: 'adult.knight.v1', productionStage: 'RUNTIME_READY', productionReady: true, apps: ['demon'] }
-  ], context), null);
-  assert.equal(selectCharacterProductionAsset([
-    { id: 'adult.knight.slim.v1', productionStage: 'RUNTIME_READY', productionReady: true, bodyArchetypes: ['adult.slender'] }
-  ], context), null);
+
+  assert.equal(selectCharacterProductionAsset([{
+    id: 'wrong-app', manifest: readyManifest(), apps: ['demon']
+  }], context), null);
+  assert.equal(selectCharacterProductionAsset([{
+    id: 'wrong-body', manifest: readyManifest(), bodyArchetypes: ['adult.slender']
+  }], context), null);
 });
 
 test('resolver rejects unknown app, invalid distance and invalid role identifiers', () => {

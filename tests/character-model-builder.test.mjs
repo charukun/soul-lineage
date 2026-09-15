@@ -9,13 +9,13 @@ import {
 } from '../packages/characters/src/model-builder.js';
 
 test('reference-to-model handoff keeps current MasterCharacter until every gate passes', () => {
-  const request = createCharacterModelBuildRequest('shino.reference.v2');
+  const request = createCharacterModelBuildRequest('knight.reference.v1');
   assert.equal(request.reference.fallbackAssetId, request.reference.masterId);
   assert.equal(request.handoff.fallbackPolicy, 'retain-current-master-until-candidate-accepted');
 
   const candidate = createCharacterModelCandidate(request, {
     format: 'vrm',
-    path: 'generated/shino.vrm',
+    path: 'generated/knight.vrm',
     sha256: 'e'.repeat(64),
     provider: 'test'
   });
@@ -28,4 +28,8 @@ test('reference-to-model handoff keeps current MasterCharacter until every gate 
   const manifest = createCharacterDistributionManifest(accepted);
   assert.equal(manifest.candidateId, accepted.id);
   assert.equal(manifest.artifact.sha256, candidate.artifact.sha256);
+});
+
+test('retired Shino prototype id cannot create a new model-build request', () => {
+  assert.throws(() => createCharacterModelBuildRequest('shino.reference.v2'), /Unknown character reference model/);
 });

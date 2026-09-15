@@ -6,7 +6,6 @@ import { validateVisualIdentity } from '../src/visual-identity.js';
 import { CHARACTER_REFERENCE_MODELS, characterReferenceModel } from '../src/reference-models.js';
 
 const EXPECTED = [
-  'shino.reference.v2',
   'child-boy.reference.v1',
   'child-girl.reference.v1',
   'elderly-man.reference.v1',
@@ -19,7 +18,7 @@ const EXPECTED = [
   'arcanist.reference.v1'
 ];
 
-test('reference catalog keeps runtime identities and upgrades Shino to audited DCC PRIMARY', () => {
+test('reference catalog contains current review-only runtime identities', () => {
   assert.deepEqual(Object.keys(CHARACTER_REFERENCE_MODELS), EXPECTED);
   const assets = new Set();
   for (const id of EXPECTED) {
@@ -33,28 +32,22 @@ test('reference catalog keeps runtime identities and upgrades Shino to audited D
     assert.equal(Object.isFrozen(model), true);
     assert.equal(Object.isFrozen(model.profile), true);
     assert.equal(Object.isFrozen(model.referenceStyle), true);
-    if (id === 'shino.reference.v2') {
-      assert.equal(model.kind, 'dcc-character-model');
-      assert.equal(model.assetId, 'character.shino-reference-v2.dcc.v1');
-      assert.equal(model.productionStage, 'PRIMARY');
-      assert.equal(model.modelingMode, 'dcc-blender');
-      assert.equal(model.productionReady, false);
-      assert.match(model.assetPath, /SHINO_REFERENCE_V2\.vrm$/);
-      assert.match(model.integrityPath, /SHINO_REFERENCE_V2\.asset\.json$/);
-    } else {
-      assert.equal(model.kind, 'runtime-reference-model');
-    }
+    assert.equal(model.kind, 'runtime-reference-model');
+    assert.equal(model.productionStage, 'BLOCKOUT');
+    assert.equal(model.modelingMode, 'runtime-procedural');
+    assert.equal(model.productionReady, false);
     assert.ok(!assets.has(model.assetId), `duplicate runtime asset id: ${model.assetId}`);
     assets.add(model.assetId);
   }
+  assert.equal(CHARACTER_REFERENCE_MODELS['shino.reference.v2'], undefined);
 });
 
-test('every reference model points at a committed sheet and declares its runtime/DCC contract', () => {
+test('every reference model points at a committed sheet and declares its review-only contract', () => {
   for (const model of Object.values(CHARACTER_REFERENCE_MODELS)) {
     const sheet = new URL(`../../../${model.referencePath}`, import.meta.url);
     assert.ok(statSync(sheet).size > 0, model.referencePath);
-    if (model.kind === 'dcc-character-model') assert.match(model.note, /DCC PRIMARY/);
-    else assert.match(model.note, /ランタイム3D/);
+    assert.match(model.note, /ランタイム3D/);
   }
+  assert.throws(() => characterReferenceModel('shino.reference.v2'), /Unknown character reference model/);
   assert.throws(() => characterReferenceModel('unknown.reference'), /Unknown character reference model/);
 });

@@ -250,9 +250,11 @@ Fixed cameras and before/after evidence should be reused across revisions. The p
 
 ## Current reference-derived characters
 
-The existing reference-derived runtime/procedural characters are **BLOCKOUTS**. Their ability to appear in Visual Review Lab, use the common rig or play motion does not make them PRIMARY/POLISH/RUNTIME_READY. They must be rebuilt through a DCC-authored mesh path and promoted through this pipeline before being treated as finished game characters.
+The active reference-derived runtime/procedural characters are **BLOCKOUTS**. Their ability to appear in Visual Review Lab, use the common rig or play motion does not make them PRIMARY/POLISH/RUNTIME_READY. They must be rebuilt through a DCC-authored mesh path and promoted through this pipeline before being treated as finished game characters.
 
-`shino.reference.v2` is the first reference-derived character rebuilt as a dedicated Blender DCC model. Its explicit repository stage is `PRIMARY` with `dcc-blender` modeling mode, exact runtime-asset integrity, editable-source, topology and UV evidence. It remains `productionReady=false` until secondary-form, deformation, motion, polish, device-performance and explicit visual-approval gates pass. `scripts/check-character-production.mjs` keeps every remaining runtime reference character at `runtime-procedural` + `BLOCKOUT`, preventing the old "procedural geometry == production model" classification from returning.
+`shino.reference.v2` was a dedicated Blender `PRIMARY` experiment. It never reached deformation, motion, polish, device-performance or explicit visual approval, and visible geometry defects made it unsuitable as an active candidate. Its exported VRM, editable source, dedicated build/refinement scripts, QA outputs and production manifest are retired from the active tree and remain recoverable through Git history. The audited `apps/rinne/public/simulator/assets/SHINO_review.vrm` remains the current MasterCharacter review/runtime source. Any future Shino DCC candidate must enter under a new/current manifest, retain source and provenance, and independently pass all stages through explicit `RUNTIME_READY` approval before gameplay/default production selection.
+
+`scripts/check-character-production.mjs` keeps the active runtime reference characters at `runtime-procedural` + `BLOCKOUT`, and gameplay/default production resolution additionally requires a complete `character-production` v2 manifest that passes the `RUNTIME_READY` gate. Self-declared ready flags without that manifest are rejected.
 
 ## Validation commands
 
