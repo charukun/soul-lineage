@@ -11,14 +11,21 @@ const saveGuard=read('apps/village/src/peer-save-guard.js');
 const villagePause=read('apps/village/src/peer-authority-pause.js');
 const demonPause=read('apps/demon/src/peer-authority-pause.js');
 
-test('MURAAAAAAA is the recoverable world-host candidate and checkpoints real village state',()=>{
- for(const token of ['createPeerHostedWorldNode','createPeerMeshCoordinator','createVillageCheckpoint','hostEligible:true','raidHost.checkpoint()','applyRemoteCheckpoint','gracefulHandoff'])assert.match(village,new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
- assert.match(village,/__VILLAGE_REMOTE_WORLD_ACTIVE__/);assert.match(village,/__VILLAGE_SIMULATION_PAUSED__/);
+test('current Village friend visits consume peer authority without exporting private simulation',()=>{
+ assert.match(village,/createFriendVisitHost/);
+ assert.match(village,/m\.role!==['"]visitor['"]/);
+ assert.match(village,/visualSnapshot/);
+ assert.doesNotMatch(village,/RaidHost|raidHost|createVillageCheckpoint|applyRemoteCheckpoint/);
+ const guest=read('apps/village/src/friend-visit.js');
+ assert.match(guest,/createFriendVisitGuest/);
+ assert.match(guest,/installWorldDarknessOverlay/);
+ assert.doesNotMatch(guest,/createSaveStore|localStorage\.setItem/);
 });
 
-test('rinne and demon participate in quorum and mesh without pretending to own village simulation',()=>{
- for(const source of [rinne,demon]){assert.match(source,/connectPeerHostedWorld/);assert.match(source,/hostEligible:false/);assert.match(source,/installWorldDarknessOverlay/);}
- assert.doesNotMatch(rinne,/createPeerHostedWorldNode/);assert.doesNotMatch(demon,/createPeerHostedWorldNode/);
+test('Demon keeps the current friend-invite-only disabled adapter',()=>{
+ assert.match(demon,/enabled: false/);
+ assert.match(demon,/friend-invite-only/);
+ assert.doesNotMatch(demon,/connectPeerHostedWorld|createPeerHostedWorldNode|document\.createElement/);
 });
 
 test('darkness overlay and app pause bridges freeze authority during migration',()=>{

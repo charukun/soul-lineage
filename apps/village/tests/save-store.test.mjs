@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { World, initial } from '../src/game/core.js';
-import { createSaveStore, SAVE_KEY } from '../src/game/save-store.js';
+import { createSaveStore, consumeFreshVillageLoad, SAVE_KEY } from '../src/game/save-store.js';
 const JOURNAL_KEY=`${SAVE_KEY}.journal.v1`,COMPACT_KEY=`${SAVE_KEY}.compact.v1`;
 function fixture(initialEntries = []) {
   const data = new Map(initialEntries);
@@ -94,4 +94,62 @@ test('the real Web platform keeps DEV saves separate from Production', async () 
     if (old) Object.defineProperty(globalThis, 'localStorage', old);
     else delete globalThis.localStorage;
   }
+});
+
+test('first-run signal distinguishes empty saves from journal and shadow recovery', async()=>{
+  const f=fixture();assert.equal(await f.store.load(),null);
+  assert.equal(consumeFreshVillageLoad(),true);assert.equal(consumeFreshVillageLoad(),false);
+  const world=new World();await f.store.save(world);world.gain('wood',4);await f.store.save(world);
+  await f.store.load();assert.equal(consumeFreshVillageLoad(),false);
+  f.data.set(COMPACT_KEY,f.data.get(SAVE_KEY));f.data.delete(SAVE_KEY);
+  await f.store.load();assert.equal(consumeFreshVillageLoad(),false);
+});
+test('orphan journal is protected and cannot be mistaken for a first-run village', async()=>{
+  const f=fixture([[JOURNAL_KEY,JSON.stringify({version:1,baseRevision:1,entries:[]})]]);
+  await assert.rejects(f.store.load());assert.equal(consumeFreshVillageLoad(),false);
+  await assert.rejects(f.store.save(new World()));assert.equal(f.data.has(JOURNAL_KEY),true);
+});
+test('recovery preserves earlier backups when the clock has not advanced', async()=>{
+  const f=fixture([[SAVE_KEY,'first'],[JOURNAL_KEY,'journal-1'],[COMPACT_KEY,'shadow-1']]);
+  await f.store.recover();f.data.set(SAVE_KEY,'second');f.data.set(JOURNAL_KEY,'journal-2');
+  await f.store.recover();
+  assert.equal(f.data.get(`${SAVE_KEY}.recovery.123456.base`),'first');
+  assert.equal(f.data.get(`${SAVE_KEY}.recovery.123456.journal`),'journal-1');
+  assert.equal(f.data.get(`${SAVE_KEY}.recovery.123456.compact`),'shadow-1');
+  assert.equal(f.data.get(`${SAVE_KEY}.recovery.123456.1.base`),'second');
+  assert.equal(f.data.get(`${SAVE_KEY}.recovery.123456.1.journal`),'journal-2');
+});
+test('a journal backup failure preserves all original persistence parts', async()=>{
+  const f=fixture([[SAVE_KEY,'base'],[JOURNAL_KEY,'journal'],[COMPACT_KEY,'shadow']]);
+  const write=f.platform.storage.write;
+  f.platform.storage.write=async(key,value)=>{if(key.endsWith('.journal'))throw Error('backup quota');await write(key,value);};
+  await assert.rejects(f.store.recover(),/backup quota/);
+  assert.equal(f.data.get(SAVE_KEY),'base');assert.equal(f.data.get(JOURNAL_KEY),'journal');assert.equal(f.data.get(COMPACT_KEY),'shadow');
+});
+
+test('save reload preserves reordered people and an entity inserted before existing entities',async()=>{
+ const f=fixture(),world=new World();await f.store.save(world);
+ world.state.people.reverse();
+ const inserted={...structuredClone(world.people[0]),id:'journal-first-resident'};
+ world.state.people.unshift(inserted);
+ const expected=world.people.map(person=>person.id);
+ await f.store.save(world);
+ const loaded=await createSaveStore(f.platform).load();
+ assert.deepEqual(loaded.people.map(person=>person.id),expected);
+});
+
+test('a successful save after interrupted compaction supersedes every stale shadow',async()=>{
+ for(const failedKey of [COMPACT_KEY,SAVE_KEY,JOURNAL_KEY]) {
+  const f=fixture(),world=new World();await f.store.save(world);
+  world.state.debugBlob='x'.repeat(910000);world.gain('wood',5);
+  const write=f.platform.storage.write;
+  f.platform.storage.write=async(key,value)=>{if(key===failedKey)throw Error('compaction quota');await write(key,value);};
+  await assert.rejects(f.store.save(world),/compaction quota/);
+  delete world.state.debugBlob;world.gain('wood',2);
+  f.platform.storage.write=write;
+  await f.store.save(world);
+  const restored=await createSaveStore(f.platform).load();
+  assert.equal(restored.stock.wood,7,failedKey);
+  assert.equal(Object.hasOwn(restored,'debugBlob'),false,failedKey);
+ }
 });

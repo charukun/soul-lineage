@@ -8,6 +8,7 @@ import { rescueClient, RescueStore, pullEvidence, comparison, browserRepairFor, 
 import { workspaceConsumers } from './integration-rescue-coordinator.mjs';
 import { createHash } from 'node:crypto';
 import { WORKER_CI_RULES } from './implementation-handoff.mjs';
+import { DEV_FEEDBACK_RULES } from './dev-feedback-policy.mjs';
 
 const cleanEnv = () => Object.fromEntries(Object.entries(process.env).filter(([key]) => !/TOKEN|SECRET|API_KEY|AUTHORIZATION|PASSWORD/.test(key)));
 export const git = (args, cwd, options = {}) => execFileSync('git', ['-c', 'core.hooksPath=/dev/null', '-c', `safe.directory=${resolve(cwd)}`, ...args], { cwd, env: cleanEnv(), encoding: 'utf8', ...options }).trim();
@@ -30,12 +31,14 @@ Previous attempt diagnostics: ${priorEvidence || record.runUrl || 'none'}
 
 Required semantic reconciliation:
 1. Read PR title/body/diff, git merge-base, latest develop changes, relevant tests and specifications.
-2. Preserve current develop interfaces/contracts and BOTH intended behaviors. Port the PR purpose onto current APIs. Never select an entire side with ours/theirs, restore the old branch wholesale, delete a feature to pass CI, weaken assertions/validation, or change product specifications.
+2. Preserve current develop interfaces/contracts and BOTH intended behaviors where compatible with confirmed specifications. Port the PR purpose onto current APIs and preserve its compatible improvement intent; do not revive superseded behavior merely to preserve old code. Never select an entire side with ours/theirs, restore the old branch wholesale, delete a feature to pass CI, weaken assertions/validation, or change confirmed product specifications.
 3. Integrate both implementations where required without copying large parallel implementations. Remove conflict markers only after reconciling intent. Do not remove tests or assertions.
 4. Do not touch unrelated apps, main, Production, workflow credentials, GitHub state, protections or holds. No force push, history rewrite, commit, branch creation, push, merge API, review approval, or sub-agents. The wrapper alone stages, validates, commits and pushes the original PR branch.
-5. If semantics require a human specification decision or functionality cannot safely be preserved, return decision FAILED_MANUAL. Never guess to unblock a gate.
+5. Apply the DEV feedback policy below before escalating a specification conflict. Reversible choices within confirmed requirements are delegated to AI. Only unresolved incompatible requirements, missing authorization or functionality that cannot safely be preserved require decision FAILED_MANUAL; record sources, attempted compatible repair and the exact blocker. Never guess to unblock a gate.
 6. While working update .rescue-progress.json with ONLY {currentStep:"ANALYZING"|"RESOLVING",currentAction:"short factual Japanese sentence (max 240 characters)",currentFile:"exact changed file or null"}. Do not include logs, secrets or speculative test counts. This is progress, never authorization.
 7. Leave resolved source changes in the working tree. Return JSON matching the supplied schema: decision READY or FAILED_MANUAL, summary, purposePreserved, validationPreserved, inspectedFiles, tests (focused checks actually run). Do not claim test success without execution. The wrapper will run mandatory trusted fast verification separately.
+
+${DEV_FEEDBACK_RULES}
 
 ${WORKER_CI_RULES}
 For this already-Ready repair PR the wrapper returns the pushed head to Integration and releases the worker slot. CHECKING is owned by the Coordinator, not a live repair worker.

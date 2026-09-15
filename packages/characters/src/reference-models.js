@@ -1,5 +1,5 @@
 import { canonicalAppearanceParts } from './appearance-parts.js';
-import { MASTER_ID } from './master-character.js';
+import { MASTER_ID, deepFreeze } from './master-character.js';
 import { validateVisualIdentity } from './visual-identity.js';
 
 export const CHARACTER_REFERENCE_MODEL_VERSION = 2;
@@ -11,6 +11,32 @@ const FACE = Object.freeze({
   sturdy: Object.freeze({ jaw: 1.10, cheek: 1.02, nose: 1.04, eyeWidth: .96, eyeHeight: .94, eyeSpacing: 1, browWeight: 1.12, browSlant: .04, chin: 1.07 }),
   sharp: Object.freeze({ jaw: .96, cheek: .96, nose: 1.05, eyeWidth: 1.01, eyeHeight: .93, eyeSpacing: .98, browWeight: 1.08, browSlant: .06, chin: 1.08 }),
   elder: Object.freeze({ jaw: 1.02, cheek: .94, nose: 1.10, eyeWidth: .95, eyeHeight: .88, eyeSpacing: 1, browWeight: 1.02, browSlant: 0, chin: 1.04 })
+});
+
+const MODEL_BUILD_PRODUCTION = deepFreeze({
+  sourceSections: ['CURRENT MASTER', 'IMPLEMENTED MODULAR PARTS', 'PROPOSED PARTS', 'GAME EQUIPMENT'],
+  authority: {
+    currentMaster: ['identity', 'base-mesh', 'base-rig', 'base-materials', 'expressions', 'spring-bones'],
+    implementedModularParts: ['face', 'hair', 'body', 'outfit', 'accessory'],
+    proposedParts: [],
+    gameEquipment: []
+  },
+  target: {
+    formats: ['vrm', 'glb'],
+    primaryFormat: 'vrm',
+    rigId: 'humanoid.shino-vrm1.v2',
+    materialProfiles: ['mtoon-compatible', 'stylized-pbr-fallback'],
+    preserveExpressions: true,
+    preserveSpringBones: true
+  },
+  requirements: {
+    topology: 'humanoid-production',
+    modularCompatibility: true,
+    sourceProvenanceRequired: true,
+    gameEquipmentPolicy: 'exclude-from-shared-character-asset',
+    weaponSocketPolicy: 'preserve-runtime-owned-sockets',
+    fallbackPolicy: 'retain-current-master-until-candidate-accepted'
+  }
 });
 
 /**
@@ -71,16 +97,56 @@ function model(spec) {
     id: spec.id,
     label: spec.label,
     kind: 'runtime-reference-model',
-    productionStage: 'BLOCKOUT',
-    modelingMode: 'runtime-procedural',
-    productionReady: false,
     characterId: spec.characterId,
     masterId: MASTER_ID,
     assetId: `runtime.${spec.id}`,
+    productionStage: 'BLOCKOUT',
+    modelingMode: 'runtime-procedural',
+    productionReady: false,
     referencePath: spec.referencePath,
     profile,
     referenceStyle: spec.referenceStyle,
+    production: spec.production ?? MODEL_BUILD_PRODUCTION,
     note: 'リファレンス専用ランタイム3D。監査済み共通リグに専用形状を装着し、Visual Review Labでモーション・全周確認できる。'
+  };
+  validateVisualIdentity(value);
+  Object.freeze(value.face); Object.freeze(value.proportions); Object.freeze(value.parts); Object.freeze(value.profile);
+  return Object.freeze(value);
+}
+
+function dccModel(spec) {
+  const profile = parts(...spec.parts);
+  const value = {
+    version: 1,
+    seed: spec.seed,
+    role: spec.role,
+    ageBand: spec.ageBand,
+    parts: profile,
+    front: spec.front,
+    back: spec.back,
+    face: Object.freeze({ ...FACE[spec.face] }),
+    proportions: spec.proportions,
+    gear: spec.gear,
+    cloth: Object.freeze([...spec.referenceStyle.palette.primary]),
+    trim: Object.freeze([...spec.referenceStyle.palette.accent]),
+    hairValue: 1,
+    id: spec.id,
+    label: spec.label,
+    kind: 'dcc-character-model',
+    characterId: spec.characterId,
+    masterId: MASTER_ID,
+    assetId: spec.assetId,
+    productionStage: 'PRIMARY',
+    modelingMode: 'dcc-blender',
+    productionReady: false,
+    assetPath: spec.assetPath,
+    integrityPath: spec.integrityPath,
+    dccSourcePath: spec.dccSourcePath,
+    referencePath: spec.referencePath,
+    profile,
+    referenceStyle: spec.referenceStyle,
+    production: spec.production ?? MODEL_BUILD_PRODUCTION,
+    note: 'キャラクターリファレンスを正本にBlenderで専用造形したDCC PRIMARYモデル。旧Shinoの色替え/primitive blockoutではない。DEFORMATION以降と明示Visual Approvalは未完了。'
   };
   validateVisualIdentity(value);
   Object.freeze(value.face); Object.freeze(value.proportions); Object.freeze(value.parts); Object.freeze(value.profile);
@@ -90,9 +156,13 @@ function model(spec) {
 const npcPath = name => `docs/characters/references/npc-role-set/${name}.avif`;
 
 export const CHARACTER_REFERENCE_MODELS = Object.freeze({
-  'shino.reference.v2': model({
-    id: 'shino.reference.v2', label: 'Shino', characterId: 'Sendagaya_Shino', seed: 0x5348494e, role: 'traveller', ageBand: 'child',
+  'shino.reference.v2': dccModel({
+    id: 'shino.reference.v2', label: 'Shino Reference v2 / DCC', characterId: 'Sendagaya_Shino', seed: 0x5348494e, role: 'traveller', ageBand: 'child',
     parts: ['round','bob','compact','mantle','none'], front: 'fringe', back: 'layered', face: 'soft', proportions: proportions(.94,.97,.94,1.08), gear: 'satchel',
+    assetId: 'character.shino-reference-v2.dcc.v1',
+    assetPath: './simulator/assets/SHINO_REFERENCE_V2.vrm',
+    integrityPath: './simulator/assets/SHINO_REFERENCE_V2.asset.json',
+    dccSourcePath: 'assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend',
     referencePath: 'docs/characters/references/shino/shino-character-reference-sheet-v2.png',
     referenceStyle: style('shino', .70, 'shino', { armStyle: 'blouse', legStyle: 'bare', footwear: 'boots', prop: 'satchel' })
   }),

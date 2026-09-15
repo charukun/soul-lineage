@@ -1,0 +1,35 @@
+{
+  "schema": "character-dcc-audit",
+  "version": 1,
+  "characterId": "shino.reference.v2",
+  "dcc": {
+    "tool": "Blender",
+    "version": "4.0.2"
+  },
+  "scene": {
+    "unitSystem": "METRIC",
+    "scaleLength": 1.0,
+    "meshObjects": 109,
+    "armatures": 1,
+    "vertices": 23276,
+    "triangles": 45908,
+    "materials": 17,
+    "uvMeshCount": 109,
+    "shapeKeys": [],
+    "bones": 134
+  },
+  "checks": {
+    "hasMesh": true,
+    "singleArmature": true,
+    "hasUVs": true,
+    "transformsApplied": true,
+    "noDegeneratePolygons": true
+  },
+  "diagnostics": {
+    "unappliedTransforms": [],
+    "meshesWithoutUV": [],
+    "degeneratePolygonMeshes": []
+  },
+  "visualApproval": "pending",
+  "note": "Objective DCC audit only. Topology quality, silhouette, deformation, materials, animation appeal and visual approval remain separate production gates."
+}

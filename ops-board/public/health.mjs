@@ -1,5 +1,9 @@
 export const STALE_SNAPSHOT_MS = 10 * 60 * 1000;
+export const PUBLICATION_GUIDE_MS = 10 * 60 * 1000;
 export const FAILED_CONCLUSIONS = new Set(['failure', 'timed_out', 'action_required', 'startup_failure', 'stale']);
+const ACTIVE_RUN_STATES = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
+const QUEUED_RUN_STATES = new Set(['queued', 'waiting', 'requested', 'pending']);
+const MAX_ESTIMATE_SAMPLE_MS = 60 * 60 * 1000;
 
 export function snapshotAge(state, now = Date.now()) {
   const date = Date.parse(state?.generatedAt || '');
@@ -13,6 +17,171 @@ export function ageLabel(ms) {
   if (minutes < 60) return `${minutes}分前`;
   if (minutes < 1440) return `${Math.floor(minutes / 60)}時間${minutes % 60}分前`;
   return `${Math.floor(minutes / 1440)}日前`;
+}
+
+export function elapsedLabel(ms) {
+  if (!Number.isFinite(ms)) return '経過時間未取得';
+  const minutes = Math.floor(Math.max(0, ms) / 60000);
+  if (minutes < 1) return '1分未満';
+  if (minutes < 60) return `${minutes}分`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours}時間${rest}分` : `${hours}時間`;
+}
+
+export function estimatePublicationDuration(runs = []) {
+  const samples = [];
+  for (const run of runs) {
+    if (run?.status !== 'completed' || run?.conclusion !== 'success') continue;
+    const started = Date.parse(run.created_at || '');
+    const ended = Date.parse(run.updated_at || '');
+    const duration = ended - started;
+    if (!Number.isFinite(duration) || duration <= 0 || duration > MAX_ESTIMATE_SAMPLE_MS) continue;
+    samples.push(duration);
+    if (samples.length >= 12) break;
+  }
+  if (samples.length < 3) return { expectedMs: PUBLICATION_GUIDE_MS, sampleSize: samples.length, source: 'fallback' };
+  const ordered = [...samples].sort((a, b) => a - b);
+  const index = Math.max(0, Math.min(ordered.length - 1, Math.ceil(ordered.length * 0.75) - 1));
+  return { expectedMs: Math.max(60_000, ordered[index]), sampleSize: samples.length, source: 'recent-success-p75' };
+}
+
+function expectedMinutes(estimate) {
+  const expectedMs = Number(estimate?.expectedMs) > 0 ? Number(estimate.expectedMs) : PUBLICATION_GUIDE_MS;
+  return Math.max(1, Math.ceil(expectedMs / 60000));
+}
+
+function durationGuide(elapsedMs, estimate) {
+  const expectedMs = Number(estimate?.expectedMs) > 0 ? Number(estimate.expectedMs) : PUBLICATION_GUIDE_MS;
+  const minutes = expectedMinutes(estimate);
+  if (!Number.isFinite(elapsedMs)) return `目安 約${minutes}分`;
+  if (elapsedMs < expectedMs) {
+    const remaining = Math.max(1, Math.ceil((expectedMs - elapsedMs) / 60000));
+    return `あと約${remaining}分目安`;
+  }
+  return `${minutes}分目安を超えて処理中`;
+}
+
+function startGuide(estimate) {
+  return `公開開始後 約${expectedMinutes(estimate)}分が目安`;
+}
+
+function elapsedSince(value, now) {
+  const at = Date.parse(value || '');
+  return Number.isFinite(at) ? Math.max(0, now - at) : null;
+}
+
+function progressBase({ state, tone, value, detail, current, next, eta, dev, run }) {
+  return {
+    state, tone, value, detail, current, next, eta,
+    currentCommit: dev?.deployedCommit || null,
+    nextCommit: dev?.branchCommit || null,
+    currentVersionAvailable: Boolean(dev?.deployedCommit && dev?.url),
+    currentUrl: dev?.url || null,
+    logUrl: run?.url || null,
+  };
+}
+
+export function devPublicationProgress(state, now = Date.now()) {
+  const dev = (state?.environments || []).find(env => env.id === 'dev');
+  if (!dev) return null;
+  const integration = state?.integration || {};
+  const run = integration.latestRun || dev.latestRun || null;
+  const currentHead = dev.branchCommit || null;
+  const runMatchesHead = Boolean(currentHead && run?.sha && currentHead === run.sha);
+  const exactPublished = Boolean(currentHead && dev.deployedCommit === currentHead && dev.exactCommit !== false);
+  if (exactPublished) return null;
+
+  const commitsAhead = Number(dev.deployQueue?.commitsAhead || 0);
+  const active = ACTIVE_RUN_STATES.has(run?.status);
+  const elapsed = elapsedSince(run?.createdAt, now);
+  const updateAge = elapsedSince(run?.updatedAt || run?.createdAt, now);
+  const guide = durationGuide(elapsed, integration.deliveryEstimate);
+  const elapsedText = Number.isFinite(elapsed) ? `${elapsedLabel(elapsed)}経過` : null;
+
+  if (active && runMatchesHead) {
+    if (Number.isFinite(updateAge) && updateAge >= PUBLICATION_GUIDE_MS) {
+      return progressBase({
+        state: 'stalled', tone: 'danger', value: 'DEV 公開遅延',
+        detail: `マージ済み · ${elapsedText || '経過時間未取得'} · 10分以上更新なし`,
+        current: '公開処理の更新が10分以上止まっています',
+        next: '自動復旧を待ち、続く場合は実行ログを確認します',
+        eta: `${expectedMinutes(integration.deliveryEstimate)}分の通常目安を超過`, dev, run,
+      });
+    }
+    if (integration.recovering) {
+      return progressBase({
+        state: 'recovering', tone: 'progress', value: 'DEV 解消中',
+        detail: `前回失敗から再試行中 · ${elapsedText ? `${elapsedText} · ` : ''}${guide}`,
+        current: '前回の公開失敗から自動で再試行しています',
+        next: '公開版を作り直し、公開URLの反映元を確認します',
+        eta: guide, dev, run,
+      });
+    }
+    if (QUEUED_RUN_STATES.has(run.status)) {
+      return progressBase({
+        state: 'queued', tone: 'progress', value: 'DEV 公開待機中',
+        detail: `マージ済み · ${elapsedText ? `${elapsedText} · ` : ''}${guide}`,
+        current: '最新developの公開処理が順番待ちです',
+        next: '公開用データを作成してDEVへ反映します',
+        eta: guide, dev, run,
+      });
+    }
+    return progressBase({
+      state: 'publishing', tone: 'progress', value: 'DEV 公開検証中',
+      detail: `マージ済み · ${elapsedText ? `${elapsedText} · ` : ''}${guide}`,
+      current: '最新developの公開用データを作成・反映しています',
+      next: '公開URLが最新developを指しているか確認します',
+      eta: guide, dev, run,
+    });
+  }
+
+  if (runMatchesHead && run?.status === 'completed' && FAILED_CONCLUSIONS.has(run?.conclusion)) {
+    return progressBase({
+      state: 'failed', tone: 'danger', value: 'DEV 公開で問題',
+      detail: 'マージ済み · 公開検証に失敗 · 再試行待ち',
+      current: '公開処理で問題を検出しました',
+      next: '自動復旧または再試行で同じdevelopを再公開します',
+      eta: `復旧開始後 ${startGuide(integration.deliveryEstimate).replace('公開開始後 ', '')}`, dev, run,
+    });
+  }
+
+  if (runMatchesHead && run?.status === 'completed' && run?.conclusion === 'success') {
+    const since = elapsedSince(run.updatedAt, now);
+    return progressBase({
+      state: 'reflecting', tone: 'progress', value: 'DEV 公開反映待ち',
+      detail: `公開処理は完了 · 反映確認中${Number.isFinite(since) ? ` · ${elapsedLabel(since)}経過` : ''}`,
+      current: '公開処理は完了し、公開URLへの反映を確認しています',
+      next: '公開元のSHAが一致すれば、その時点で確認できます',
+      eta: Number.isFinite(since) ? `公開処理完了から${elapsedLabel(since)}経過 · 反映確認中` : '反映確認中', dev, run,
+    });
+  }
+
+  if ((active && commitsAhead > 0) || commitsAhead > 0 || dev.deployState === 'waiting') {
+    if (active) {
+      return progressBase({
+        state: 'coalescing', tone: 'progress', value: 'DEV 公開待機中',
+        detail: '最新developはマージ済み · 直前の公開処理を整理中',
+        current: '直前の公開処理を整理し、最新developへ追従しています',
+        next: '最新developをまとめて次の公開へ進めます',
+        eta: startGuide(integration.deliveryEstimate), dev, run,
+      });
+    }
+    return progressBase({
+      state: 'waiting', tone: 'warning', value: 'DEV 公開待ち',
+      detail: 'マージ済み · 公開処理の開始待ち',
+      current: '最新developはマージ済みで、公開処理の開始待ちです',
+      next: 'Publisherが起動してDEVへ反映します',
+      eta: startGuide(integration.deliveryEstimate), dev, run,
+    });
+  }
+  return null;
+}
+
+export function devPublicationSummary(state, now = Date.now()) {
+  const progress = devPublicationProgress(state, now);
+  if (!progress) return null;
+  return { state: progress.state, tone: progress.tone, value: progress.value, detail: progress.detail };
 }
 
 export function appHealth(app) {
@@ -32,8 +201,15 @@ export function appSummary(apps = []) {
 }
 
 export function boardAlerts(state, now = Date.now(), loadError = null) {
-  // Always derive transient warnings; never keep a resolved sync error in stored alerts.
-  const alerts = (state?.alerts || []).filter(item => !['sync-failed', 'sync-stale', 'sync-unavailable', 'client-fetch', 'github-sync-degraded', 'delivery-stalled', 'ci-failed'].includes(item.type));
+  // Normal DEV publication lag belongs in the publication card, not in "needs action".
+  const alerts = (state?.alerts || []).filter(item => {
+    if ([
+      'sync-failed', 'sync-stale', 'sync-unavailable', 'client-fetch', 'github-sync-degraded',
+      'delivery-stalled', 'ci-failed', 'stalled-ready-pr',
+    ].includes(item.type)) return false;
+    if (item.type === 'deploy-wait' && (item.environment === 'dev' || /^DEV\b/.test(item.title || ''))) return false;
+    return true;
+  });
   const age = snapshotAge(state, now);
   if (loadError || state?.syncStatus === 'degraded') {
     alerts.unshift({ type: loadError ? 'client-fetch' : 'sync-failed', tone: 'danger', title: '最新情報を取得できていません',
@@ -49,10 +225,14 @@ export function boardAlerts(state, now = Date.now(), loadError = null) {
     alerts.push({ type: 'ci-failed', prNumber: item.number, tone: 'danger', title: `#${item.number} の自動テストが失敗`,
       detail: `${item.title || ''}${item.reason ? ` / ${item.reason}` : ''}`, url: item.ci?.url || item.url });
   }
-  if (state?.integration?.stalled) {
-    alerts.push({ type: 'delivery-stalled', tone: 'danger', title: '開発版の公開処理が停止している可能性があります',
-      detail: 'GitHub上の公開処理の更新が10分以上ありません。実行ログを確認してください。',
-      since: state.integration.heartbeatAt, url: state.integration.latestRun?.url });
+  const publication = devPublicationSummary(state, now);
+  const legacyStalled = state?.integration?.stalled === true;
+  if ((publication?.state === 'stalled' || legacyStalled) && !alerts.some(alert => alert.type === 'delivery-stalled')) {
+    alerts.push({ type: 'delivery-stalled', tone: 'danger', title: 'DEV公開の更新が止まっています',
+      detail: publication?.detail
+        ? `${publication.detail}。実行ログを確認してください。`
+        : 'GitHub上の公開処理の更新が10分以上ありません。実行ログを確認してください。',
+      since: state?.integration?.latestRun?.updatedAt || state?.integration?.heartbeatAt, url: state?.integration?.latestRun?.url });
   }
   return alerts;
 }

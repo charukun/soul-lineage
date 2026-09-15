@@ -1,5 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { WORKER_CI_RULES } from './implementation-handoff.mjs';
+import { DEV_FEEDBACK_RULES } from './dev-feedback-policy.mjs';
 
 export const DISPATCH_MARKER = 'RINNE-Dispatch: implementation';
 export const DISPATCH_BRANCH_PREFIX = 'dispatch/';
@@ -70,6 +71,8 @@ Implementation rules:
 - You may run focused local checks while working. The wrapper will run the repository fast validation before Ready.
 - Leave all implementation changes in the working tree. Do not commit or push.
 - If the request is already satisfied, make no artificial change and explain that in your final message.
+
+${DEV_FEEDBACK_RULES}
 
 ${WORKER_CI_RULES}
 

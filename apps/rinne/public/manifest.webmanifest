@@ -1,12 +1,12 @@
 {
   "id": "./",
-  "name": "輪廻転焦",
-  "short_name": "輪廻転焦",
-  "description": "めぐる、いのち。また、どこかで。",
+  "name": "100年人生 — 輪廻転焦",
+  "short_name": "100年人生",
+  "description": "暮らし、戦い、遺し、また生まれる。",
   "lang": "ja",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0b151b",
-  "theme_color": "#0b151b",
+  "background_color": "#101816",
+  "theme_color": "#101816",
   "icons": [{ "src": "./icons/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
 }
