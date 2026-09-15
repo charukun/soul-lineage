@@ -71,11 +71,13 @@ const presentation = Object.freeze({
   apps: ['village'], ageBands: ['adult'], bodyArchetypes: ['adult.sturdy'], roles: ['guard'], renderTiers: ['full']
 });
 
-test('external references are pinned and consensus counts independent provenance families', () => {
+test('external references are pinned, verified and consensus counts independent provenance families', () => {
   const source = getExternalCharacterReference('sendagaya-shino-yui');
   assert.match(source.revision, /^[0-9a-f]{40}$/);
+  assert.match(source.verifiedOn, /^\d{4}-\d{2}-\d{2}$/);
   assert.equal(source.copyPolicy, 'never-wholesale-copy');
   assert.equal(source.sourceFamily, 'vroid-project');
+  assert.ok(source.evidence.includes('resources/vrms/Sendagaya_Shino.PROVENANCE.md'));
 
   const sameFamily = evaluateExternalReferenceConsensus(
     ['sendagaya-shino-yui', 'vroid-sample-a-voxavatar', 'vroid-sample-b-voxavatar'], 'vrm-humanoid'
@@ -94,12 +96,13 @@ test('unversioned, unlicensed or ambiguous public references are rejected', () =
   const base = {
     id: 'bad.reference', kind: 'character-reference', repository: 'https://github.com/example/repo',
     revision: 'a'.repeat(40), sourceFamily: 'example-family', license: 'MIT', adoptionPolicy: 'reference-only',
-    evidence: ['README.md'], observations: ['stylized-humanoid']
+    evidence: ['README.md'], observations: ['stylized-humanoid'], verifiedOn: '2026-09-15'
   };
   assert.throws(() => defineExternalCharacterReference({ ...base, revision: 'main' }));
   assert.throws(() => defineExternalCharacterReference({ ...base, license: 'unknown' }));
   assert.throws(() => defineExternalCharacterReference({ ...base, evidence: ['../escape.glb'] }));
   assert.throws(() => defineExternalCharacterReference({ ...base, sourceFamily: '' }));
+  assert.throws(() => defineExternalCharacterReference({ ...base, verifiedOn: 'today' }));
 });
 
 test('default coverage uses latest archetype app contexts and links Shino source evidence', () => {
