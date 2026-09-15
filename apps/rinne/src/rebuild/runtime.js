@@ -2,7 +2,7 @@ import { createWebPlatform } from '@soul/platform-web';
 import { createSharedWorldChannel } from '@soul/platform-web/shared-world';
 import { defaultMuraLayout, validateMuraLayout, safeMuraPosition } from '@soul/world/mura';
 import { createLife, deserializeLife, serializeLife, setClockRate, setMoving, tickLife, rebirth, LIFE_YEARS, canDepart, depart, advanceFront, returnHome } from './domain.js';
-import { buildStations, nearestStation, nearestNamedPlace, normalizeLayout } from './locations.js';
+import { buildStations, nearestStation, normalizeLayout } from './locations.js';
 import { createWorldRenderer } from './renderer.js';
 import { createFront, normalizeFront, tickFront } from './combat.js';
 import { guidanceFor } from './guidance.js';
@@ -10,16 +10,6 @@ import { guidanceFor } from './guidance.js';
 const $=id=>document.getElementById(id);
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
 const speedForAge=age=>age<4?1.2:age<7?2.15:age<65?4.15:Math.max(2.3,4.15-(age-65)*.035);
-const TALK_LINES=Object.freeze({
-  home:['家族','手を貸しておくれ。'],
-  garden:['村人','火のそばには誰かがいる。'],
-  school:['先生','知ったことは身体に残る。'],
-  library:['司書','本は先に戦う。'],
-  chapel:['祈り手','心を整えな。'],
-  dojo:['師範','足を見ろ。'],
-  smith:['鍛冶師','刃は力の通り道だ。'],
-  clinic:['治療師','生きて帰れ。'],
-});
 
 export async function startRuntime({mode,buildInfo,name,onExit}){
   const environment=String(buildInfo.environment||'local'), platform=createWebPlatform({gameId:'rinne',environment,playerId:'local'}), saveKey='life-v2';
@@ -41,12 +31,7 @@ export async function startRuntime({mode,buildInfo,name,onExit}){
 
   const toast=text=>{if(!text)return;$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1800);};
   const save=async()=>{if(!alive)return false;try{state.frontState=front?structuredClone(front):null;await platform.storage.write(saveKey,serializeLife(state));return true;}catch(error){toast('保存失敗');console.error(error);return false;}};
-  function talkContext(){
-    if(state.zone!=='village'||state.down||state.ended)return null;
-    if(state.phase==='birth')return {speaker:'母',text:'焦らなくていいよ。あなたの歩幅で大きくなりなさい。'};
-    const near=nearestNamedPlace(stations,state.position),line=near&&near.distance<=2.8?TALK_LINES[near.id]:null;
-    return line?{speaker:line[0],text:line[1]}:null;
-  }
+  function talkContext(){return state.zone==='village'&&!state.down&&!state.ended&&state.phase==='birth'?{speaker:'母',text:'焦らなくていいよ。あなたの歩幅で大きくなりなさい。'}:null;}
   function syncUI(){
     $('generation').textContent=`${state.generation}代目`;$('age').textContent=`${Math.min(LIFE_YEARS,Math.floor(state.ageYears))}歳`;
     $('hp-bar').style.width=`${clamp(state.hp/state.maxHp*100,0,100)}%`;$('stamina-bar').style.width=`${clamp(state.stamina/100*100,0,100)}%`;
