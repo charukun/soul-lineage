@@ -9,8 +9,9 @@ const src=path.resolve(here,'../src');
 const read=name=>fs.readFileSync(path.join(src,name),'utf8');
 
 test('village v2 boots scalable world and UI layers',()=>{
- const main=read('main.js');
- for(const module of ['mura-world-systems.js','mura-performance.js','mura-v2-ui.js','mura-entry-polish.js'])assert.match(main,new RegExp(module.replace('.','\\.')));
+ const main=read('main.js'),enhancements=read('mura-enhancements.js');
+ assert.match(main,/mura-enhancements\.js/);
+ for(const module of ['mura-world-systems.js','mura-performance.js','mura-v2-ui.js','mura-entry-polish.js'])assert.match(enhancements,new RegExp(module.replace('.','\\.')));
  assert.match(main,/defaultTrack:'v01'/);
  assert.match(main,/preferDefault:true/);
 });

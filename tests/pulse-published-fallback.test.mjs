@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { publishedFallback } from '../ops-board/published-fallback.mjs';
 const options = { now: '2026-09-12T10:00:00Z', source: 'test', error: new Error('GitHub /branches: HTTP 403') };
 const published = (environment, commit) => ({ app: 'demon', environment, path: `${environment}/demon`, version: { commit, name: '暗い喰らいCry' } });
+const rinnePublished = (commit, deployedAt = null) => ({
+  app: 'rinne', environment: 'dev', path: 'dev/rinne', deployedAt,
+  version: { commit, name: '輪廻転焦' },
+});
 
 test('GitHub 403 cannot retain retired names or the old two-environment matrix', () => {
   const old = { generatedAt: '2026-09-12T09:00:00Z', applications: [{ id: 'demon', name: '暗い喰らいCry', kind: 'game', targets: [] }] };
@@ -32,6 +36,24 @@ test('fresh public staging metadata invalidates stale reflected-PR history and l
   assert.equal(staging.commitCountScanned, 0);
   const repeated = publishedFallback(state, manifest, options).environments.find(env => env.id === 'staging');
   assert.equal(Array.isArray(repeated.reflectedPrs), false, 'normal refresh must not reuse an unfetched history');
+});
+
+test('character studio keeps fresh manifest publication data during GitHub sync failure', () => {
+  const old = {
+    applications: [{
+      id: 'character-studio', name: 'キャラクター工房', kind: 'tool',
+      targets: [{ state: 'success', url: 'https://charukun.github.io/soul-lineage/dev/rinne/characters.html', commit: 'old' }],
+    }],
+  };
+  const manifest = { schemaVersion: 1, entries: [rinnePublished('new', '2026-09-12T09:30:00Z')] };
+  const state = publishedFallback(old, manifest, options);
+  const studio = state.applications.find(app => app.id === 'character-studio');
+  assert.equal(studio.kind, 'tool');
+  assert.equal(studio.targets[0].state, 'success');
+  assert.equal(studio.targets[0].commit, 'new');
+  assert.equal(studio.targets[0].deployedAt, '2026-09-12T09:30:00Z');
+  assert.equal(studio.targets[0].url, 'https://charukun.github.io/soul-lineage/dev/rinne/characters.html');
+  assert.match(studio.targets[0].source, /DEV 公開manifest/);
 });
 
 test('cached tool URLs survive but their old names and freshness claims do not', () => {

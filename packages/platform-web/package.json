@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./shared-world": "./src/shared-world.js",
+    "./testing/native-input": "./testing/native-input.mjs"
   },
   "dependencies": {
     "@soul/platform": "*"

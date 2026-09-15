@@ -153,6 +153,7 @@ function renderRoom(item, index) {
 function renderCatalog(data) {
   items = Array.isArray(data.items) ? data.items : [];
   roomsRoot.replaceChildren();
+  if (data.degraded) showToast('PULSE同期に失敗したため、復旧入口を表示しています');
   if (!items.length) {
     const section = el('section', 'room loading-room');
     const stage = el('div', 'room-stage');
@@ -178,7 +179,7 @@ async function loadCatalog() {
       const response = await fetch(`./catalog.json?v=${Date.now()}`, { cache: 'no-store' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       renderCatalog(await response.json());
-      showToast('プレビュー情報は簡易表示です');
+      showToast('PULSEへ接続できないため、復旧入口を表示しています');
     } catch {
       roomsRoot.innerHTML = '<section class="room loading-room"><div class="room-stage"><p>DIRECTORY OFFLINE</p></div></section>';
       counter.textContent = '00 / 00';
@@ -326,7 +327,7 @@ function tick(time) {
   requestAnimationFrame(tick);
 }
 
-$('#share-page').addEventListener('click', () => shareLink('WAYFINDER — A Moving Directory', location.href));
+$('#share-page').addEventListener('click', () => shareLink('WAYFINDER — PULSE Public Paths', location.href));
 $('#copy-page').addEventListener('click', () => copyText(location.href));
 addEventListener('resize', resizeCanvas, { passive: true });
 resizeCanvas();

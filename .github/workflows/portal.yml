@@ -40,27 +40,23 @@ jobs:
           node --check portal/legacy-redirect.mjs
           node --test tests/portal.test.mjs
           grep -q 'WAYFINDER' portal/public/index.html
+          grep -q 'PULSE SYNC' portal/public/index.html
           grep -q 'share-page' portal/public/index.html
           grep -q 'copy-page' portal/public/index.html
           grep -q 'favicon.svg' portal/public/index.html
           ! grep -q 'rel="manifest"' portal/public/index.html
 
-      - name: Probe external destinations without blocking gallery deploy
+      - name: Verify fallback catalog boundary
         run: |
-          node --input-type=module <<'JS' > /tmp/portal-urls.txt
+          node --input-type=module <<'JS'
           import fs from 'node:fs';
           const catalog = JSON.parse(fs.readFileSync('portal/catalog.json', 'utf8'));
-          const urls = catalog.items.flatMap(item => item.links || []).map(link => link.url);
-          for (const url of [...new Set(urls)]) console.log(url);
+          const text = JSON.stringify(catalog).toLowerCase();
+          if (catalog.repository !== 'charukun/soul-lineage') process.exit(1);
+          if (catalog.source !== 'fallback') process.exit(2);
+          if (catalog.items?.length !== 1 || catalog.items[0].id !== 'ops-board') process.exit(3);
+          if (/guilty|doit-yare|gg-sites/.test(text)) process.exit(4);
           JS
-          while IFS= read -r url; do
-            echo "CHECK $url"
-            code=$(curl -L -sS --retry 2 --retry-delay 1 --connect-timeout 8 --max-time 20 -o /dev/null -w '%{http_code}' "$url" || true)
-            case "$code" in
-              2*|3*) echo "OK $code" ;;
-              *) echo "::warning::Destination currently unavailable ($code): $url" ;;
-            esac
-          done < /tmp/portal-urls.txt
 
       - name: Prepare static catalog
         run: cp portal/catalog.json portal/public/catalog.json
@@ -82,15 +78,16 @@ jobs:
           echo "url=https://wayfinder-gallery.c-okamoto.workers.dev/" >> "$GITHUB_OUTPUT"
           echo "WAYFINDER: https://wayfinder-gallery.c-okamoto.workers.dev/" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify deployed gallery after propagation
+      - name: Verify deployed WAYFINDER against PULSE
         if: steps.public.outputs.url != ''
         env:
           PORTAL_URL: ${{ steps.public.outputs.url }}
+          PULSE_STATE_URL: https://rinne-ops.c-okamoto.workers.dev/api/state
         run: |
           ready=false
           for attempt in $(seq 1 15); do
             code=$(curl -L -sS --connect-timeout 10 --max-time 20 -o /tmp/portal-index.html -w '%{http_code}' "$PORTAL_URL" || true)
-            if [ "$code" = "200" ] && grep -q 'WAYFINDER' /tmp/portal-index.html; then
+            if [ "$code" = "200" ] && grep -q 'PULSE SYNC' /tmp/portal-index.html; then
               ready=true
               break
             fi
@@ -98,19 +95,39 @@ jobs:
             sleep 2
           done
           if [ "$ready" != "true" ]; then
-            echo "::error::Wayfinder root did not become ready"
+            echo "::error::WAYFINDER root did not become ready"
             exit 1
           fi
 
-          curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "${PORTAL_URL}catalog.json" > /tmp/catalog.json
+          curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "${PORTAL_URL}catalog.json" > /tmp/fallback-catalog.json
+          curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "$PULSE_STATE_URL" > /tmp/pulse-state.json
+          curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "${PORTAL_URL}api/catalog" > /tmp/live-catalog.json
+
           node --input-type=module <<'JS'
           import fs from 'node:fs';
-          const x=JSON.parse(fs.readFileSync('/tmp/catalog.json','utf8'));
-          const text=JSON.stringify(x).toLowerCase();
-          if(!Array.isArray(x.items)||x.items.length<2) process.exit(1);
-          if(/soul-lineage|bloodline-legacy|rinne-/.test(text)) process.exit(2);
+          const fallback = JSON.parse(fs.readFileSync('/tmp/fallback-catalog.json', 'utf8'));
+          const pulse = JSON.parse(fs.readFileSync('/tmp/pulse-state.json', 'utf8'));
+          const live = JSON.parse(fs.readFileSync('/tmp/live-catalog.json', 'utf8'));
+          const text = JSON.stringify(live).toLowerCase();
+
+          if (fallback.items?.length !== 1 || fallback.items[0].id !== 'ops-board') process.exit(1);
+          if (pulse.repository !== 'charukun/soul-lineage' || !Array.isArray(pulse.applications)) process.exit(2);
+          if (live.degraded || live.source !== 'PULSE' || live.repository !== 'charukun/soul-lineage') process.exit(3);
+          if (!Array.isArray(live.items) || live.items.length < 1) process.exit(4);
+          if (live.items.some(item => item.id === 'portal')) process.exit(5);
+          if (/guilty|doit-yare|gg-sites/.test(text)) process.exit(6);
+          if (!live.items.every(item => Array.isArray(item.links) && item.links.length > 0 && 'preview' in item)) process.exit(7);
+
+          const expected = pulse.applications
+            .filter(app => app?.id !== 'portal')
+            .flatMap(app => app.targets || [])
+            .map(target => target?.url)
+            .filter(url => typeof url === 'string' && /^https:\/\//.test(url));
+          const actual = live.items.flatMap(item => item.links || []).map(link => link.url);
+          const normalize = values => [...new Set(values)].sort();
+          if (JSON.stringify(normalize(actual)) !== JSON.stringify(normalize(expected))) process.exit(8);
           JS
-          curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "${PORTAL_URL}api/catalog" | node --input-type=module -e "let s='';for await(const c of process.stdin)s+=c;const x=JSON.parse(s);if(!Array.isArray(x.items)||!x.items.some(i=>i.id==='guiltys-garden')||!x.items.every(i=>'preview' in i))process.exit(1)"
+
           curl -fsS --retry 6 --retry-delay 2 --retry-all-errors "${PORTAL_URL}favicon.svg" | grep -q '<svg'
 
       - name: Redirect legacy portal URL to Wayfinder

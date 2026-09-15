@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
-  STALL_WARNING_MS,
   classifyPull,
   environmentDiff,
   parseMergePulls,
   publishedCommit,
+  reconcileIntegrationQueue,
 } from '../ops-board/model.mjs';
 import {
   STALE_DRAFT_MS,
@@ -68,15 +68,30 @@ test('DEV vs Production diff fails closed while either public history is incompl
   assert.deepEqual(diff.pulls, []);
 });
 
-test('ready PR with successful CI becomes red after the stall threshold', () => {
+test('old successful CI never becomes a red Integration stall by elapsed time alone', () => {
   const now = Date.parse('2026-09-12T01:00:00Z');
-  const ciTime = new Date(now - STALL_WARNING_MS - 1000).toISOString();
+  const ciTime = new Date(now - 60 * 60 * 1000).toISOString();
   const pr = { number: 33, title: 'Ready PR', html_url: 'https://github.com/x/y/pull/33', draft: false, head: { sha: 'head' }, updated_at: ciTime };
   const runs = [{ name: 'CI', head_sha: 'head', status: 'completed', conclusion: 'success', updated_at: ciTime, created_at: ciTime, html_url: 'https://github.com/actions/1' }];
   const state = classifyPull(pr, runs, [], now);
-  assert.equal(state.stage, 'MERGE_WAIT');
-  assert.equal(state.warning, true);
-  assert.equal(state.tone, 'danger');
+  assert.equal(state.stage, 'READY_RECONCILE');
+  assert.equal(state.warning, undefined);
+  assert.equal(state.tone, 'info');
+});
+
+test('fresh reconciliation maps the exact PR head while stale plans fail unknown', () => {
+  const base = [{ number: 33, headSha: 'h'.repeat(40), stage: 'READY_RECONCILE', label: 'pending', tone: 'info', reason: 'pending' }];
+  const develop = 'd'.repeat(40);
+  const plan = { schema: 1, develop, generatedAt: '2026-09-15T00:00:00Z', counts: { ready: 1, writer: 1 }, totalReady: 1,
+    writer: [{ pr: 33, head: 'h'.repeat(40), reason: 'exact-head ready' }], validating: [], repair: [], active: [], blocked: [], deferred: [], trains: [] };
+  const current = reconcileIntegrationQueue(base, plan, develop);
+  assert.equal(current.fresh, true);
+  assert.equal(current.queue[0].stage, 'INTEGRATING');
+  assert.equal(current.queue[0].reconciliationLane, 'writer');
+  const stale = reconcileIntegrationQueue(base, plan, 'e'.repeat(40));
+  assert.equal(stale.fresh, false);
+  assert.equal(stale.queue[0].stage, 'RECONCILE_UNKNOWN');
+  assert.equal(stale.queue[0].tone, 'info');
 });
 
 test('PR board reads title and detail from the first two body lines', () => {
@@ -146,14 +161,16 @@ test('public dashboard prioritizes action items/tasks and uses a 3-column icon a
   assert.ok(alertPosition >= 0 && taskPosition > alertPosition && appPosition > taskPosition);
 
   assert.match(appBoard, /APP_ICONS/);
+  assert.match(appBoard, /character-studio\.svg/);
   assert.match(appBoard, /app-icon/);
   assert.match(appBoard, /ゲーム \/ 専用開発版/);
   assert.match(appBoard, /開発ツール/);
   assert.match(appCss, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.match(pullBoard, /pulls\/\$\{number\}\/files/);
+  assert.doesNotMatch(pullBoard, /api\.github\.com|changedFiles\(/);
+  assert.match(pullBoard, /subscribe/);
   assert.match(pullBoard, /対象確認中/);
 
-  for (const name of ['rinne', 'village', 'demon', 'lanternfell', 'visual-review', 'wayfinder', 'ops-board', 'default']) {
+  for (const name of ['rinne', 'village', 'demon', 'lanternfell', 'character-studio', 'visual-review', 'wayfinder', 'ops-board', 'default']) {
     const svg = await readFile(new URL(`../ops-board/public/icons/${name}.svg`, import.meta.url), 'utf8');
     assert.match(svg, /<svg/);
   }

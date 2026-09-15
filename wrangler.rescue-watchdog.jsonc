@@ -1,0 +1,8 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "rinne-integration-rescue-watchdog",
+  "main": "scripts/integration-rescue-watchdog-worker.mjs",
+  "compatibility_date": "2026-09-13",
+  "workers_dev": false,
+  "triggers": { "crons": ["*/10 * * * *"] }
+}

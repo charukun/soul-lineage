@@ -1,5 +1,6 @@
 import { chromium, expect } from '@playwright/test';
 import {verifySoloClarity, verifyHuntClarity} from './play-clarity.mjs';
+import {capturePlayedAudio,mediaDiagnostics} from './media-diagnostics.mjs';
 import { execFileSync, spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -10,9 +11,22 @@ const base = process.argv[2];
 const head = process.argv[3] || 'HEAD';
 const plan = JSON.parse(execFileSync(process.execPath, ['scripts/affected.mjs', base, head], { cwd: root, encoding: 'utf8' }));
 const apps = plan.infrastructure ? plan.allApps : plan.apps;
+const changedFiles = execFileSync('git', ['diff', '--name-only', base, head], { cwd: root, encoding: 'utf8' });
 const ports = { rinne: 5273, village: 5274, demon: 5275 };
 const viteBin = resolve(root, 'node_modules/vite/bin/vite.js');
 mkdirSync(resolve(root, 'test-results/pr-browser'), { recursive: true });
+
+// PULSE Rescue has a dedicated fixture-rich browser contract that is stricter than the
+// generic game smoke below. Run it on the PR head whenever the Rescue cockpit or its
+// state adapters change so failures cannot first appear only after Integration.
+if (/^(ops-board\/|scripts\/integration-rescue-(?:pulse|policy)\.mjs|tests\/fixtures\/integration-rescue-state\.mjs)/m.test(changedFiles)) {
+  execFileSync(process.execPath, ['ops-board/rescue-browser-check.mjs'], {
+    cwd: root,
+    stdio: 'inherit',
+    env: { ...process.env, OPS_RESCUE_REPORT_DIR: resolve(root, 'test-results/pr-browser/rescue') },
+  });
+}
+
 if (!apps.length) {
   console.log('No affected app browser targets.');
   process.exit(0);
@@ -65,10 +79,10 @@ for (const app of apps) {
     await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
     const page = await context.newPage();
     const errors = [];
-    const failedRequests = [];
+    const failedRequests = [], rawRequests = [], playedSources = new Set();
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    page.on('requestfailed', request => failedRequests.push({ url: request.url(), failure: request.failure()?.errorText || 'failed' }));
+    page.on('requestfailed', request => { rawRequests.push(request); failedRequests.push({ url: request.url(), failure: request.failure()?.errorText || 'failed' }); });
     // Games can keep media/WebRTC/network activity alive indefinitely. DOM readiness plus the
     // renderer contract below is the deterministic gate; waiting for networkidle only adds stalls.
     const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
@@ -102,8 +116,18 @@ for (const app of apps) {
       await page.locator('[data-village]').first().click();
       await expect(page.locator('#hud')).toBeVisible();
       await verifyHuntClarity(page, expect, evidence);
+    } else if (app === 'village') {
+      const {verifyVillageFirstBuild} = await import('../../apps/village/tests/first-build.browser.mjs');
+      // PR smoke already preserves a full-page screenshot and a screenshot-rich
+      // Playwright trace. Keep every gameplay/Director assertion, but avoid the
+      // extra milestone captures here; deployed DEV/public verification still
+      // uses the default captureMilestones=true evidence path.
+      await verifyVillageFirstBuild(page, expect, evidence, () => capturePlayedAudio(page, playedSources), {captureMilestones:false});
     }
-    if (errors.length || failedRequests.length) throw new Error(`Play clarity failed: ${JSON.stringify({errors,failedRequests})}`);
+    await capturePlayedAudio(page, playedSources);
+    const media = await mediaDiagnostics(rawRequests, playedSources, new URL(url).origin);
+    writeFileSync(resolve(root, `test-results/pr-browser/${app}-media.json`), JSON.stringify(media, null, 2));
+    if (errors.length || media.failedRequests.length) throw new Error(`Play clarity failed: ${JSON.stringify({errors,...media})}`);
     await context.tracing.stop({ path: resolve(root, `test-results/pr-browser/${app}-trace.zip`) });
     await context.close();
     console.log('PR BROWSER VERIFIED', JSON.stringify(report));

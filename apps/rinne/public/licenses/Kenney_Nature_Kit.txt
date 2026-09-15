@@ -1,0 +1,10 @@
+Nature Kit (2.1)
+Created/distributed by Kenney (www.kenney.nl)
+Creation date: 29-04-2020
+License: Creative Commons Zero (CC0)
+http://creativecommons.org/publicdomain/zero/1.0/
+This content is free to use in personal, educational and commercial projects.
+Credit to Kenney is appreciated but not mandatory.
+Source: https://github.com/ETdoFresh/kenney.nl/blob/master/kenney_natureKit_2.1/License.txt
+License source blob: f4c0bb6a1f398882e6a0b4417f69e5fc84ba53bc
+Geometry is converted; see ASSET_PROVENANCE.json for modifications.

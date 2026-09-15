@@ -1,3 +1,5 @@
+import {projectMuraLayout,validateMuraLayout} from '@soul/world/mura';
+import {createSharedWorldChannel} from '@soul/platform-web/shared-world';
 import {World,defs,BUILDINGS,GARDEN,FURNITURE,ready,entry,worldToLocal,localToWorld,DAYS_YEAR,DAY_SECONDS,RESOURCE_NAMES,unlocked,capacityOf,jobsOf,materialOptions,recipe,MATERIALS,TUTORIAL,terrainHint,isGuard,isPlayer} from '../game/core.js';
 import {View} from './view.js';
 import {availableFurniture,canEditRoom} from '../game/housing-access.js';
@@ -14,6 +16,8 @@ const info=__BUILD_INFO__;
 const platform=createWebPlatform({gameId:'village',environment:info.environment,playerId:'local'});
 const foundation=createApp(platform);
 const store=createSaveStore(platform);
+const worldChannel=createSharedWorldChannel({environment:info.environment,writer:true,validate:validateMuraLayout});
+function publishLayout(){try{worldChannel.publish(projectMuraLayout(world.state));}catch(error){$('status').textContent='村は保存済みですが、共通マップを更新できません：'+error.message;}}
 window.__VILLAGE_BOOT__={recover:()=>store.recover(),canRecover:()=>store.blocked};
 const canvas=$('scene');
 Object.assign(canvas.dataset,{app:info.app,commit:info.commit,environment:info.environment,platform:platform.id,contentVersion:String(foundation.contentVersion),gameWorld:'hoshitsugi.life-and-guard.v5'});
@@ -21,7 +25,7 @@ document.title=`星継ぎの庭 | ${info.environment.toUpperCase()}`;
 $('emblem').src=sharedEmblemUrl;
 onProgress(35,'保存した村を確かめています。');
 const saved=await store.load();
-const world=new World(saved||undefined);
+const world=new World(saved||undefined);publishLayout();
 let storageOK=true,resetting=false;
 const frameHooks=new Set(),eventHooks=new Set();
 onProgress(55,'地形と建物を用意しています。');
@@ -37,7 +41,7 @@ let toastTimer=null,renderDirty=true,last=performance.now(),elapsed=0,lastUI=0,l
 function toast(text,ms=3500){$('toastText').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,ms);}
 async function save(){
  if(resetting)return false;
- try{await store.save(world);storageOK=true;$('status').textContent='';$('status').dataset.state='ready';return true;}
+ try{await store.save(world);storageOK=true;publishLayout();$('status').textContent='';$('status').dataset.state='ready';return true;}
  catch(error){storageOK=false;$('status').dataset.state='warning';$('status').textContent='保存できません。設定の開発者ページからバックアップできます。';return false;}
 }
 // Keep the current world intact until backup succeeds; block every autosave

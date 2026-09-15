@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "pack": "Lucide Icons",
+  "repository": "lucide-icons/lucide",
+  "commit": "a79b2d131dab2bf20cb224bd0937b439a9c4fa99",
+  "license": "ISC with MIT notice for Feather-derived glyphs",
+  "licenseFile": "LICENSE.txt",
+  "files": [
+    "menu.svg",
+    "sword.svg",
+    "heart.svg",
+    "sparkles.svg",
+    "flask-conical.svg",
+    "book-open.svg",
+    "backpack.svg",
+    "hammer.svg",
+    "map.svg",
+    "house.svg",
+    "settings-2.svg",
+    "compass.svg",
+    "chevron-right.svg",
+    "shield.svg",
+    "crosshair.svg",
+    "x.svg",
+    "moon.svg"
+  ]
+}
