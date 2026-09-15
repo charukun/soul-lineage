@@ -12,27 +12,51 @@ const $=id=>document.getElementById(id);
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
 const speedForAge=age=>age<4?1.2:age<7?2.15:age<65?4.15:Math.max(2.3,4.15-(age-65)*.035);
 const chapterName=stage=>String(stage||'').replace(/^\d+\/6\s*/, '').trim();
+const nextPaint=()=>new Promise(resolve=>document.hidden?setTimeout(resolve,0):requestAnimationFrame(()=>resolve()));
 
-export async function startRuntime({mode,buildInfo,name,onExit}){
-  const environment=String(buildInfo.environment||'local'), platform=createWebPlatform({gameId:'rinne',environment,playerId:'local'}), saveKey='life-v2';
-  const channel=createSharedWorldChannel({environment,validate:validateMuraLayout});
-  let layout=defaultMuraLayout();try{layout=normalizeLayout(channel.read()||layout);}catch(error){console.warn('shared world:',error);}
-  let state=null;
-  if(mode==='continue'){
-    const raw=await platform.storage.read(saveKey);if(raw)state=deserializeLife(raw);
-  }
-  if(!state)state=createLife({name,seed:(Date.now()>>>0),villageIds:[layout.id]});
-
+function placeState(state,layout){
   if(state.zone==='village')state.position=safeMuraPosition(layout,state.position);
   else state.position={x:clamp(state.position.x,-6.8,6.8),z:clamp(state.position.z,-5.9,5.7)};
+  return state;
+}
+
+export async function prepareRuntime({buildInfo,onProgress}={}){
+  const progress=async message=>{onProgress?.(message);await nextPaint();};
+  const environment=String(buildInfo?.environment||'local'),platform=createWebPlatform({gameId:'rinne',environment,playerId:'local'}),saveKey='life-v2';
+  await progress('村の地図をひらいています');
+  const channel=createSharedWorldChannel({environment,validate:validateMuraLayout});
+  let layout=defaultMuraLayout();try{layout=normalizeLayout(channel.read()||layout);}catch(error){console.warn('shared world:',error);}
   const stations=buildStations(layout),canvas=$('game'),loading=$('loading-card'),gameScreen=$('game-screen');
-  $('loading-message').textContent='村を描画中';
+  await progress('景色を描いています');
   const view=createWorldRenderer({canvas,document,layout,stations});
-  let alive=true,raf=0,last=performance.now(),saveElapsed=0,uiElapsed=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval,toastTimer=0,endDialog=null,pointer=null,keyboard={x:0,y:0},axis={x:0,y:0},portDwell=0,movementHint=true,movementHintTimer=0,chapterTimer=0,hurtTimer=0,lastChapter='';
+  await progress('旅人を迎えています');
+  const preview=placeState(createLife({name:'旅人',seed:0x51f15e,villageIds:[layout.id]}),layout);
+  view.syncFront(null);view.renderState(preview,.016);canvas.dataset.runtime='prepared';
+  const host={environment,platform,saveKey,channel,layout,stations,canvas,loading,gameScreen,view,active:false,disposed:false};
+  host.dispose=()=>{if(host.disposed)return;host.disposed=true;host.active=false;canvas.dataset.runtime='disposed';view.dispose();};
+  return host;
+}
+
+export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepared}){
+  const ownsPrepared=!prepared,host=prepared||await prepareRuntime({buildInfo,onProgress});
+  if(host.disposed)throw Error('描画世界は終了済みです');
+  if(host.active)throw Error('人生はすでに始まっています');
+  host.active=true;
+  const {platform,saveKey,channel,layout,stations,canvas,loading,gameScreen,view}=host;
+  let state=null;
+  try{
+    if(mode==='continue'){
+      const raw=await platform.storage.read(saveKey);if(raw)state=deserializeLife(raw);
+    }
+    if(!state)state=createLife({name,seed:(Date.now()>>>0),villageIds:[layout.id]});
+    placeState(state,layout);
+  }catch(error){host.active=false;if(ownsPrepared)host.dispose();throw error;}
+
+  let active=true,raf=0,last=performance.now(),saveElapsed=0,uiElapsed=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval,toastTimer=0,endDialog=null,pointer=null,keyboard={x:0,y:0},axis={x:0,y:0},portDwell=0,movementHint=true,movementHintTimer=0,chapterTimer=0,hurtTimer=0,lastChapter='';
   let front=state.zone==='frontier'?normalizeFront(state.frontState,state.front,state.seed):null;if(front)state.frontState=front;
 
   const toast=text=>{if(!text)return;$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1800);};
-  const save=async()=>{if(!alive)return false;try{state.frontState=front;await platform.storage.write(saveKey,serializeLife(state));return true;}catch(error){toast('保存失敗');console.error(error);return false;}};
+  const save=async()=>{if(!active||!state)return false;try{state.frontState=front;await platform.storage.write(saveKey,serializeLife(state));return true;}catch(error){toast('保存失敗');console.error(error);return false;}};
   function talkContext(){return state.zone==='village'&&!state.down&&!state.ended&&state.phase==='birth'?{speaker:'母',text:'焦らなくていいよ。あなたの歩幅で大きくなりなさい。'}:null;}
   function worldTone(guide){if(state.ended||guide.tone==='rebirth')return'rebirth';if(state.zone==='frontier')return'frontier';if(guide.tone==='home')return'home';return'village';}
   function showChapter(stage){
@@ -86,11 +110,11 @@ export async function startRuntime({mode,buildInfo,name,onExit}){
     if(event.type==='rescued')toast('救助 · 村');
   }}
   function setAxis(next){axis=next;const len=Math.hypot(axis.x,axis.y);if(len>1){axis={x:axis.x/len,y:axis.y/len};}}
-  function onPointerDown(event){if(pointer)return;pointer={id:event.pointerId,x:event.clientX,y:event.clientY};canvas.setPointerCapture?.(event.pointerId);setAxis({x:0,y:0});event.preventDefault();}
-  function onPointerMove(event){if(!pointer||pointer.id!==event.pointerId)return;const dx=event.clientX-pointer.x,dy=event.clientY-pointer.y,len=Math.hypot(dx,dy);if(len<12)setAxis({x:0,y:0});else setAxis({x:dx/Math.max(42,len),y:dy/Math.max(42,len)});event.preventDefault();}
+  function onPointerDown(event){if(pointer||!active)return;pointer={id:event.pointerId,x:event.clientX,y:event.clientY};canvas.setPointerCapture?.(event.pointerId);setAxis({x:0,y:0});event.preventDefault();}
+  function onPointerMove(event){if(!pointer||pointer.id!==event.pointerId||!active)return;const dx=event.clientX-pointer.x,dy=event.clientY-pointer.y,len=Math.hypot(dx,dy);if(len<12)setAxis({x:0,y:0});else setAxis({x:dx/Math.max(42,len),y:dy/Math.max(42,len)});event.preventDefault();}
   function onPointerUp(event){if(!pointer||pointer.id!==event.pointerId)return;pointer=null;setAxis(keyboard);event.preventDefault();}
   const keys=new Set();function syncKeys(){keyboard={x:(keys.has('ArrowRight')||keys.has('KeyD')?1:0)-(keys.has('ArrowLeft')||keys.has('KeyA')?1:0),y:(keys.has('ArrowDown')||keys.has('KeyS')?1:0)-(keys.has('ArrowUp')||keys.has('KeyW')?1:0)};if(!pointer)setAxis(keyboard);}
-  function keydown(e){if(['ArrowRight','ArrowLeft','ArrowUp','ArrowDown','KeyW','KeyA','KeyS','KeyD'].includes(e.code)){keys.add(e.code);syncKeys();e.preventDefault();}}
+  function keydown(e){if(!active)return;if(['ArrowRight','ArrowLeft','ArrowUp','ArrowDown','KeyW','KeyA','KeyS','KeyD'].includes(e.code)){keys.add(e.code);syncKeys();e.preventDefault();}}
   function keyup(e){keys.delete(e.code);syncKeys();}
   canvas.addEventListener('pointerdown',onPointerDown,{passive:false});canvas.addEventListener('pointermove',onPointerMove,{passive:false});canvas.addEventListener('pointerup',onPointerUp,{passive:false});canvas.addEventListener('pointercancel',onPointerUp,{passive:false});
   window.addEventListener('keydown',keydown);window.addEventListener('keyup',keyup);
@@ -100,7 +124,7 @@ export async function startRuntime({mode,buildInfo,name,onExit}){
   const unsubscribeWorld=channel.subscribe(next=>{if(!next||next.id!==layout.id)return;toast('村更新 · 次回起動');},error=>console.warn(error));
 
   function frame(now){
-    if(!alive)return;raf=requestAnimationFrame(frame);const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
+    if(!active)return;raf=requestAnimationFrame(frame);const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
     let moved=false;const mag=Math.hypot(axis.x,axis.y);
     if(mag>.08&&!state.ended&&!state.down){const direction=view.cameraVector(axis),speed=speedForAge(state.ageYears)*(state.combat?.72:1),nx=state.position.x+direction.x*speed*dt,nz=state.position.z+direction.z*speed*dt;
       if(view.canMoveTo(nx,nz,state.phase==='birth'?.42:.32,state.zone)){state.position.x=nx;state.position.z=nz;state.yaw=Math.atan2(direction.x,direction.z);moved=true;}}
@@ -120,9 +144,17 @@ export async function startRuntime({mode,buildInfo,name,onExit}){
     view.renderState(state,dt);uiElapsed+=dt;if(uiElapsed>=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval){uiElapsed=0;syncUI();}
     saveElapsed+=dt;if(saveElapsed>=2.5){saveElapsed=0;void save();}
   }
-  if(front)view.syncFront(front);view.renderState(state,.016);syncUI();uiElapsed=0;loading.hidden=true;movementHintTimer=setTimeout(()=>{movementHint=false;$('move-hint').hidden=true;},5000);raf=requestAnimationFrame(frame);void save();
+
   function pagehide(){void save();}
   window.addEventListener('pagehide',pagehide);
-  function dispose(){if(!alive)return;alive=false;cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);unsubscribeWorld();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('pagehide',pagehide);canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);view.dispose();endDialog?.remove();endDialog=null;}
-  return{dispose,save:()=>save(),snapshot:()=>structuredClone(state)};
+  if(front)view.syncFront(front);else view.syncFront(null);view.renderState(state,.016);syncUI();uiElapsed=0;loading.hidden=true;canvas.dataset.runtime='active';
+  movementHintTimer=setTimeout(()=>{movementHint=false;$('move-hint').hidden=true;},5000);raf=requestAnimationFrame(frame);void save();
+
+  function dispose(){
+    if(!active)return;active=false;host.active=false;cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);unsubscribeWorld();
+    window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('pagehide',pagehide);canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);
+    keys.clear();pointer=null;setAxis({x:0,y:0});endDialog?.remove();endDialog=null;$('dialogue').hidden=true;$('toast').hidden=true;canvas.dataset.runtime='prepared';
+    if(ownsPrepared)host.dispose();
+  }
+  return{dispose,save:()=>save(),snapshot:()=>structuredClone(state),prepared:host};
 }

@@ -1,4 +1,4 @@
-import { lifecycleMessage, normalizeNotificationLocale, notificationTitle } from './notification-copy.mjs';
+import { lifecycleMessage, notificationTitle } from './notification-copy.mjs';
 
 // Ready is the worker's terminal boundary, independent of CI/browser completion.
 // Run only from trusted develop in the existing immediate CI observation job.
@@ -54,17 +54,19 @@ export async function recordHandoff({ github, repo, number, expectedHead, runUrl
   }
   // Ready/Draft/head can change while reading receipts; never record a stale event.
   if (!handoffSnapshot(await readPull(), repository, expectedHead)) return { skipped: true };
-  const locale = normalizeNotificationLocale(notification?.locale || process.env.NOTIFY_LOCALE || 'ja');
-  const message = lifecycleMessage(READY, { locale, lines: [
-    `PR title: ${pr.title}`,
-    `branch: ${snapshot.branch}`,
-    `commit: ${snapshot.commit}`,
-    `PR: ${snapshot.url}`,
-    'Ready for review: true',
-    'CI / browser / retry owner: Integration',
-    'Implementation worker: ended; no CI wait',
-    `Run: ${runUrl}`,
-  ] });
+  const message = lifecycleMessage(READY, { fields: {
+    phase: 'IMPLEMENTATION',
+    outcome: 'READY',
+    pr_title: pr.title,
+    branch: snapshot.branch,
+    commit: snapshot.commit,
+    pr_url: snapshot.url,
+    review_ready: true,
+    monitoring_owner: 'INTEGRATION',
+    worker: 'ENDED',
+    ci_wait: 'NO',
+    run_url: runUrl,
+  } });
   await github.rest.repos.createCommitStatus({ ...repo, sha: snapshot.commit, context: HANDOFF_CONTEXT,
     state: 'success', description: `${READY}; worker ended; CI owned by Integration`, target_url: snapshot.url });
   let channel = previous?.body?.includes('notification: ntfy') ? 'ntfy' : 'not-configured';
@@ -73,7 +75,7 @@ export async function recordHandoff({ github, repo, number, expectedHead, runUrl
     catch (error) { channel = 'failed'; warn(error.message); }
   }
   if (channel === 'not-configured') warn('NTFY_TOPIC_URL is not configured; GitHub handoff recorded, smartphone delivery unconfirmed.');
-  const body = `${marker}\n${message}\nnotification: ${channel}\n\nThis receipt is not CI success, merge approval, or DEV publication. Holds and all Integration gates remain applicable.`;
+  const body = `${marker}\n${message}\nnotification: ${channel}\nreceipt_scope: HANDOFF_ONLY\nmerge_authority: NO\ndev_publication: NO`;
   if (!previous) await github.rest.issues.createComment({ ...repo, issue_number: number, body });
   else if (previous.body !== body) await github.rest.issues.updateComment({ ...repo, comment_id: previous.id, body });
   return { ...snapshot, notification: channel };
