@@ -121,7 +121,11 @@ test('workflow contracts coalesce CI and pause Code Health PR creation under pre
   assert.match(ci,/group: ci-\$\{\{ github\.event\.pull_request\.number \}\}-/); assert.match(ci,/cancel-in-progress: true/); assert.match(health,/Measure Integration backlog pressure/); assert.match(health,/steps\.pressure\.outputs\.pause != 'true'/); assert.match(health,/41898282\+github-actions\[bot\]@users\.noreply\.github\.com/);
 });
 
-test('AI repair and PULSE still expose delivery and repair diagnostics without weakening gates', () => {
-  const returns=readFileSync('scripts/integration-rescue-return.mjs','utf8'),flow=readFileSync('ops-board/public/flow-board.js','utf8'),index=readFileSync('ops-board/public/index.html','utf8'),quarantine=readFileSync('scripts/integration-quarantine-signal.mjs','utf8');
-  assert.match(returns,/AI_REPAIR_REQUIRED/); assert.match(quarantine,/AI_DEEP_REPAIR_REQUIRED/); assert.match(flow,/Draft→Ready/); assert.match(flow,/実装開始 → DEV公開/); assert.match(flow,/latency\.implementationToDev/); assert.match(flow,/Virtual Train/); assert.match(flow,/自動修復用に隔離/); assert.match(flow,/view\.counts\?\.quarantine/); assert.doesNotMatch(flow,/innerHTML/); assert.match(index,/id="integration-flow"/);
+test('PULSE default surface reflects Fast Lane while legacy train/latency remain diagnostics only', () => {
+  const returns=readFileSync('scripts/integration-rescue-return.mjs','utf8'),flow=readFileSync('ops-board/public/flow-board.js','utf8'),rescue=readFileSync('ops-board/public/rescue-board.js','utf8'),index=readFileSync('ops-board/public/index.html','utf8'),quarantine=readFileSync('scripts/integration-quarantine-signal.mjs','utf8');
+  assert.match(returns,/AI_REPAIR_REQUIRED/); assert.match(quarantine,/AI_DEEP_REPAIR_REQUIRED/);
+  assert.match(flow,/FAST LANE/); assert.match(flow,/FAST CHECK/); assert.match(flow,/MERGE LANE/); assert.match(flow,/MERGED → DEV/); assert.match(flow,/REPAIR/);
+  assert.match(flow,/browser・DEV公開・Repairは後追い/); assert.match(flow,/latency\.implementationToDev/); assert.match(flow,/旧Virtual Train診断/); assert.match(flow,/自動修復用に隔離/);
+  assert.match(rescue,/REPAIR LANE/); assert.match(rescue,/REPAIR WAITING/); assert.match(rescue,/AUTO HOLD/); assert.match(rescue,/HUMAN/); assert.match(rescue,/通常のFast Lane mergeは止まりません/);
+  assert.doesNotMatch(`${flow}\n${rescue}`,/innerHTML/); assert.match(index,/id="integration-flow"/);
 });
