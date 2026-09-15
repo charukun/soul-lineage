@@ -3147,6 +3147,14 @@
       "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
       "type": "WORK_REPAIR_NOTIFICATION_SENT",
       "action": "FAILED notification sent: Gmail 1a0a48788c717d19; head d01569b7; attempt 1/2; baseline churn 3/8"
+    },
+    {
+      "action": "Public PULSE last verified successful publish source dcdb07f11cfeb52c13e607aa24765a4e749b69cf differs from current develop 90da2b79a2219bfb9bee0699886cf6cf596cf782. Existing publish-only route could not be dispatched through the connected GitHub mutation surface in this runner; no duplicate or stale-source rerun was started. Next route: Coordinator dispatch deploy.yml on develop with publish_only=true once.",
+      "at": "2026-09-15T10:10:37.785Z",
+      "id": "work-cycle-866e55ef0f5e-20260915T0933Z:PULSE_PUBLISH_BLOCKED:197",
+      "pr": 197,
+      "type": "PULSE_PUBLISH_BLOCKED",
+      "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197"
     }
   ],
   "config": {
@@ -19178,9 +19186,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1227,
+  "revision": 1228,
   "schema": 1,
-  "updatedAt": "2026-09-15T10:07:34.554Z",
+  "updatedAt": "2026-09-15T10:10:37.785Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
