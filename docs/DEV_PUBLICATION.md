@@ -29,14 +29,13 @@ The repair path must keep assertion quality, exact-head evidence, hold/review/de
 
 ## PULSE semantics
 
-PULSE distinguishes publication from quality repair:
+PULSE publication health follows the exact public DEV snapshot, not browser-repair state:
 
 - publication pending: the exact develop snapshot is not public yet
 - published: public HTTP/source identity is verified
-- repair pending/working: DEV is already visible, but asynchronous browser diagnostics found a defect and self-repair is in progress
-- repair exhausted: configured automatic attempts are exhausted and the ticket requires explicit follow-up
+- browser repair: tracked through the existing repair/Rescue diagnostics and must not keep an already published DEV snapshot in `DEV 公開待ち`
 
-A failed asynchronous browser diagnostic must never be presented merely as an indefinitely growing `DEV 公開待ち` state.
+If automatic repair exhausts its configured attempts, the repair ticket remains the authoritative escalation record. PULSE may surface that existing diagnostic state, but it must not rewrite it as publication latency.
 
 ## Production
 
