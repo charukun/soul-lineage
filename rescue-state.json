@@ -3202,6 +3202,14 @@
       "pr": 107,
       "type": "WORK_REPAIR_CLAIMED",
       "workerId": "work/866e55ef0f5e/20260915T0632Z-pr107-r2"
+    },
+    {
+      "id": "pr-107:WORK_REPAIR_PUSH_PREPARED:1789454389431:1142",
+      "at": "2026-09-15T06:39:49.431Z",
+      "pr": 107,
+      "workerId": "work/866e55ef0f5e/20260915T0632Z-pr107-r2",
+      "type": "WORK_REPAIR_PUSH_PREPARED",
+      "action": "npm ci・trusted fast 920/921（1 skip）・demon/rinne/village build成功。two-parent mergeをforce=false push前にprepared"
     }
   ],
   "config": {
@@ -7596,7 +7604,7 @@
       "claimedAt": "2026-09-13T04:32:07.350Z",
       "claimedBy": "34738107940/pr-107/a1",
       "contractFingerprint": "c6aea44e80bac77dcc1576c67b7b63075def4a4a0ef6b1a4e0aba9bd09b29173",
-      "currentAction": "既存ChatGPT Workがoverlap停止を再評価し両側の仕様を保って修復",
+      "currentAction": "検証済みmerge commitをpush直前fenceで再確認",
       "currentStep": "RESOLVING",
       "dependencies": [],
       "detail": "Astraを含む実装ワーカー向けにモデリング・Visual Reviewの参照規約をRepositoryへ追加",
@@ -7663,7 +7671,7 @@
       },
       "state": "FAILED_MANUAL",
       "title": "docs: add RINNE 3D production standards",
-      "updatedAt": "2026-09-15T06:33:51.381Z",
+      "updatedAt": "2026-09-15T06:39:49.431Z",
       "waitingReason": null,
       "wave": "wave-34738107940-1",
       "workRepairAttempts": 2,
@@ -7702,8 +7710,76 @@
           "repairKind": "overlap"
         },
         "startedAt": "2026-09-15T06:33:51.381Z",
-        "heartbeatAt": "2026-09-15T06:33:51.381Z",
-        "expiresAt": "2026-09-15T07:18:51.381Z"
+        "heartbeatAt": "2026-09-15T06:39:49.431Z",
+        "expiresAt": "2026-09-15T07:24:49.431Z",
+        "result": {
+          "changedPaths": [
+            "AGENTS.md",
+            "docs/art/CHARACTER_MODELING.md",
+            "docs/art/README.md",
+            "docs/art/VISUAL_REVIEW.md"
+          ],
+          "changedPathsComplete": true,
+          "commit": {
+            "parents": [
+              {
+                "sha": "c6342951d983d97ac7436fcc97481fea9e50748f"
+              },
+              {
+                "sha": "333d18354a0f7f5b82d50ef321f2f50419e0ea19"
+              }
+            ],
+            "sha": "aab83fbac6f580b29aabc90e4bd1a5e92bcb30f2",
+            "tree": {
+              "sha": "3d8f7f3d373ddcbf0dd66356519d257de63e14b0"
+            }
+          },
+          "decision": {
+            "preservesBoth": true,
+            "sources": [
+              {
+                "path": "docs/art/README.md",
+                "commit": "c6342951d983d97ac7436fcc97481fea9e50748f"
+              },
+              {
+                "path": "AGENTS.md",
+                "commit": "333d18354a0f7f5b82d50ef321f2f50419e0ea19"
+              },
+              {
+                "path": "docs/characters/CHARACTER_PRODUCTION_PIPELINE.md",
+                "commit": "333d18354a0f7f5b82d50ef321f2f50419e0ea19"
+              }
+            ],
+            "summary": "PR #107のrepository-level 3D production/visual-review routingを保持し、最新developのCode Health、現行character production pipeline、DCC/visual approval規約を同時に保持。AGENTS.mdの競合箇所のみ両側の規約を併記し、品質gateは変更・弱体化していない。",
+            "controlReview": {
+              "preservesGates": true,
+              "governingSources": [
+                "AGENTS.md",
+                "docs/DEVELOPMENT.md",
+                "docs/INTEGRATION.md",
+                "docs/RINNE_PROJECT_EXECUTION_POLICY.md",
+                "docs/INTEGRATION_RESCUE.md",
+                "docs/INTEGRATION_RESCUE_WORK.md",
+                "scripts/integration-rescue-work-repair.mjs",
+                "scripts/integration-rescue-work-repair-policy.mjs"
+              ]
+            }
+          },
+          "head": "aab83fbac6f580b29aabc90e4bd1a5e92bcb30f2",
+          "tree": "3d8f7f3d373ddcbf0dd66356519d257de63e14b0",
+          "validation": {
+            "status": "passed",
+            "tree": "3d8f7f3d373ddcbf0dd66356519d257de63e14b0",
+            "npmCi": "passed",
+            "focused": "docs/control reconciliation inspected against current character production pipeline",
+            "trustedFast": "passed: 920/921, 1 skipped",
+            "builds": "passed: demon/rinne/village",
+            "markers": "passed",
+            "scope": "passed",
+            "command": "npm ci && node scripts/validate.mjs fast 333d18354a0f7f5b82d50ef321f2f50419e0ea19 c6342951d983d97ac7436fcc97481fea9e50748f"
+          }
+        },
+        "pushPreparedAt": "2026-09-15T06:39:49.431Z"
       }
     },
     "121": {
@@ -18883,9 +18959,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1141,
+  "revision": 1142,
   "schema": 1,
-  "updatedAt": "2026-09-15T06:33:51.381Z",
+  "updatedAt": "2026-09-15T06:39:49.431Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:13:12.416Z",
