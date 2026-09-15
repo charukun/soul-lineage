@@ -29,6 +29,11 @@ export function shouldRunFirstRunAutoplay(state,{freshLoad=false}={}){
  return !status.seen&&(freshLoad||status.started);
 }
 
+export function shouldRecoverFirstRunAutoplay(state,{resetReplay=false,guidePlaced=false}={}){
+ const status=current(state);
+ return !resetReplay&&status.started&&!status.seen&&guidePlaced;
+}
+
 export function markFirstRunAutoplayStarted(state){
  state.onboarding={...(state.onboarding||{}),firstRunAutoplay:{version:FIRST_RUN_AUTOPLAY_VERSION,started:true,seen:false}};
  return state.onboarding.firstRunAutoplay;
