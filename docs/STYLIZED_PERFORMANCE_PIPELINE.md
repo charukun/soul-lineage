@@ -64,16 +64,86 @@ The shared atlas helper validates atlas manifests, can build small runtime Canva
 
 MeshStandardMaterial surfaces can receive a restrained profile-dependent rim contribution. Hero/enemy readability gets slightly more rim separation; environment/props remain subtle. The effect is additive to the existing Cool Ambient × Warm Local PBR direction and is not a flat/unlit replacement.
 
+## Transparency / overdraw pressure
+
+Mobile scenes can become GPU-heavy even after polygon reduction because hair cards, vegetation, smoke, spell VFX and other alpha-blended surfaces still consume fill and blending bandwidth.
+
+`@soul/rendering/transparency-audit` therefore provides a low-frequency QA estimate for:
+
+- blended material count;
+- cutout material count;
+- blended draw calls;
+- cutout draw calls;
+- transparent triangle upper bound;
+- cutout triangle upper bound.
+
+This is deliberately described as a **pressure estimate**, not physical GPU overdraw or screen coverage. A mesh using mixed materials contributes its full triangle count as a conservative upper bound. MURAAAAAAA and 尽喰廻遊 refresh the audit only periodically, then attach the latest values to Performance Lab samples and diagnostics.
+
+Transparency regressions are review warnings. Actual frame/GPU regressions remain the hard runtime evidence.
+
 ## Performance Regression Lab
 
-Village and demon continuously retain bounded rolling telemetry for frame p50/p95/p99, GPU p95 when available, long frames, draw calls, triangles and estimated texture bytes.
+Village and demon continuously retain bounded rolling telemetry for frame p50/p95/p99, GPU p95 when available, long frames, draw calls, triangles, estimated texture bytes and transparency pressure.
 
 - `npm run performance:browser -- village`
 - `npm run performance:browser -- demon`
+- `npm run performance:browser -- village --preset pixel-fold-class`
+- `npm run performance:browser -- demon --preset pixel-fold-class`
 - `npm run performance:compare -- --baseline before.json --current after.json`
+
+The `pixel-fold-class` preset is a deterministic synthetic browser reference with a 30 fps / 33.34 ms target and a fixed mobile viewport/sample count. Its report explicitly identifies itself as synthetic. It must not be cited as physical Pixel Fold evidence. Real-device evidence remains a separate measurement under the Character Production / runtime readiness rules.
 
 Comparisons are ratio-based and must use the same benchmark scenario/device class. Captures from unrelated hardware are not treated as valid regressions.
 
+## Asset compiler
+
+`npm run asset:optimize -- --input <source> --role <role>` is the normal one-command authoring entry point for low/mid-poly runtime assets.
+
+It:
+
+- resolves canonical role budgets from `STYLIZED_ART_PROFILES` rather than duplicating numbers;
+- generates authored `_LOD0/_LOD1/_LOD2` output through the existing Blender route when LOD generation is enabled;
+- compresses the generated runtime GLB through the existing Meshopt/KTX2 wrapper when compression is enabled;
+- preserves the fail-closed character rules for Shape Keys, skin groups and production-stage evidence;
+- audits source triangles, material count, estimated draw calls, UV/skin preservation and silhouette/extent drift;
+- emits one JSON report containing source/output paths, executed/skipped stages, DCC audit evidence, file sizes, compression ratio, LOD evidence and budget verdicts;
+- supports `--plan` so CI/workers can review the intended commands without requiring Blender or `gltfpack`;
+- never claims a DCC or compression stage succeeded when the required executable/artifact is missing.
+
+Budgets are role-specific authoring review gates for `hero`, `npc`, `enemy`, `environment`, `prop` and `distant`. A soft budget overage returns `review`; DCC safety failures return `fail`.
+
+For example:
+
+```sh
+npm run asset:optimize -- --input art/characters/shino.blend --role hero --plan
+npm run asset:optimize -- --input art/characters/shino.blend --role hero
+npm run asset:optimize -- --input assets/world/tree.glb --role environment
+```
+
+The compiler complements, rather than replaces, runtime Performance Lab evidence and the Character Production Pipeline. Human visual approval remains required where that pipeline requires it. A generated file is not automatically `RUNTIME_READY`.
+
+## Physical-device performance evidence
+
+Synthetic `pixel-fold-class` captures remain useful regression references, but physical device acceptance must be represented separately and fail closed when provenance is incomplete.
+
+A physical evidence record must carry:
+
+- `evidenceKind=physical-device`;
+- app and exact build/revision identifier;
+- device model and device class;
+- operating system and browser/runtime description;
+- capture timestamp;
+- viewport/screen dimensions used for the run;
+- the same benchmark scene id/signature emitted by the runtime;
+- sample count and actual Performance Lab snapshot;
+- explicit capture origin declaring that the measurement came from a physical device.
+
+`npm run performance:evidence` validates and normalises such a record. It may calculate the repository 30 fps / 33.34 ms mobile target verdict, but it must never invent missing device/build/scene provenance, relabel browser emulation as physical evidence, or convert a synthetic capture into a physical one.
+
+Physical evidence can be regression-compared only with another compatible physical capture from the same app, device class, viewport and benchmark scene. Synthetic-versus-physical differences may be reported descriptively but must not be treated as a same-hardware regression gate.
+
+The evidence intake path does not itself operate a phone or prove that a physical run happened. Human/device-side capture remains required. The validator only ensures that stored evidence is explicit, comparable and cannot silently masquerade as a stronger measurement class.
+
 ## Verification
 
-The fast PR gate covers adaptive-quality transitions, GPU/CPU pressure classification, animation throttling, authored LOD selection, compression wiring, texture budgeting, shading hook stability, streaming hysteresis, conservative occlusion, static batching/atlas UV remap and per-app bridge ordering. Character Workshop remains the human-facing Art / Performance QA surface.
+The fast PR gate covers adaptive-quality transitions, GPU/CPU pressure classification, animation throttling, authored LOD selection, compression wiring, texture budgeting, shading hook stability, streaming hysteresis, conservative occlusion, static batching/atlas UV remap and per-app bridge ordering. Asset compiler and transparency telemetry have focused Node coverage. Character Workshop remains the human-facing Art / Performance QA surface.

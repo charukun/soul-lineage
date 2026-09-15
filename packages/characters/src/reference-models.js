@@ -13,6 +13,13 @@ const FACE = Object.freeze({
   elder: Object.freeze({ jaw: 1.02, cheek: .94, nose: 1.10, eyeWidth: .95, eyeHeight: .88, eyeSpacing: 1, browWeight: 1.02, browSlant: 0, chin: 1.04 })
 });
 
+/**
+ * Character Workshop reference-model catalog.
+ * Reference sheets align review with implementation; they never replace the
+ * audited MasterCharacter asset or authorize proposed/game-owned parts.
+ * Production status is deliberately explicit so runtime review geometry cannot
+ * be mistaken for a finished production model.
+ */
 const PALETTE = Object.freeze({
   shino: { skin: [.96,.80,.72], hair: [.62,.39,.27], eyes: [.36,.23,.16], primary: [.20,.32,.16], secondary: [.83,.78,.68], accent: [.64,.49,.25], dark: [.16,.12,.10], metal: [.55,.55,.50], leather: [.29,.18,.12], wood: [.32,.20,.11] },
   villageBoy: { skin: [.88,.69,.58], hair: [.30,.20,.14], eyes: [.30,.24,.18], primary: [.34,.39,.28], secondary: [.67,.58,.45], accent: [.48,.35,.22], dark: [.15,.13,.11], metal: [.48,.50,.48], leather: [.28,.19,.13], wood: [.34,.23,.13] },
@@ -67,6 +74,9 @@ function model(spec) {
     characterId: spec.characterId,
     masterId: MASTER_ID,
     assetId: `runtime.${spec.id}`,
+    productionStage: 'BLOCKOUT',
+    modelingMode: 'runtime-procedural',
+    productionReady: false,
     referencePath: spec.referencePath,
     profile,
     referenceStyle: spec.referenceStyle,
@@ -77,12 +87,54 @@ function model(spec) {
   return Object.freeze(value);
 }
 
+function dccModel(spec) {
+  const profile = parts(...spec.parts);
+  const value = {
+    version: 1,
+    seed: spec.seed,
+    role: spec.role,
+    ageBand: spec.ageBand,
+    parts: profile,
+    front: spec.front,
+    back: spec.back,
+    face: Object.freeze({ ...FACE[spec.face] }),
+    proportions: spec.proportions,
+    gear: spec.gear,
+    cloth: Object.freeze([...spec.referenceStyle.palette.primary]),
+    trim: Object.freeze([...spec.referenceStyle.palette.accent]),
+    hairValue: 1,
+    id: spec.id,
+    label: spec.label,
+    kind: 'dcc-character-model',
+    characterId: spec.characterId,
+    masterId: MASTER_ID,
+    assetId: spec.assetId,
+    productionStage: 'PRIMARY',
+    modelingMode: 'dcc-blender',
+    productionReady: false,
+    assetPath: spec.assetPath,
+    integrityPath: spec.integrityPath,
+    dccSourcePath: spec.dccSourcePath,
+    referencePath: spec.referencePath,
+    profile,
+    referenceStyle: spec.referenceStyle,
+    note: 'キャラクターリファレンスを正本にBlenderで専用造形したDCC PRIMARYモデル。旧Shinoの色替え/primitive blockoutではない。DEFORMATION以降と明示Visual Approvalは未完了。'
+  };
+  validateVisualIdentity(value);
+  Object.freeze(value.face); Object.freeze(value.proportions); Object.freeze(value.parts); Object.freeze(value.profile);
+  return Object.freeze(value);
+}
+
 const npcPath = name => `docs/characters/references/npc-role-set/${name}.avif`;
 
 export const CHARACTER_REFERENCE_MODELS = Object.freeze({
-  'shino.reference.v2': model({
-    id: 'shino.reference.v2', label: 'Shino', characterId: 'Sendagaya_Shino', seed: 0x5348494e, role: 'traveller', ageBand: 'child',
+  'shino.reference.v2': dccModel({
+    id: 'shino.reference.v2', label: 'Shino Reference v2 / DCC', characterId: 'Sendagaya_Shino', seed: 0x5348494e, role: 'traveller', ageBand: 'child',
     parts: ['round','bob','compact','mantle','none'], front: 'fringe', back: 'layered', face: 'soft', proportions: proportions(.94,.97,.94,1.08), gear: 'satchel',
+    assetId: 'character.shino-reference-v2.dcc.v1',
+    assetPath: './simulator/assets/SHINO_REFERENCE_V2.vrm',
+    integrityPath: './simulator/assets/SHINO_REFERENCE_V2.asset.json',
+    dccSourcePath: 'assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend',
     referencePath: 'docs/characters/references/shino/shino-character-reference-sheet-v2.png',
     referenceStyle: style('shino', .70, 'shino', { armStyle: 'blouse', legStyle: 'bare', footwear: 'boots', prop: 'satchel' })
   }),

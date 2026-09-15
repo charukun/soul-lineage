@@ -30,12 +30,6 @@ const time = value => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '未記録' : fmt.format(date);
 };
-const duration = ms => {
-  if (!Number.isFinite(ms)) return '';
-  const minutes = Math.floor(ms / 60000);
-  if (minutes < 60) return `${minutes}分`;
-  return `${Math.floor(minutes / 60)}時間${minutes % 60}分`;
-};
 const shortSha = value => value ? String(value).slice(0, 12) : '確定不能';
 const badge = (label, tone = 'info') => el('span', `badge ${tone}`, label);
 const deployLabel = state => ({ success:'公開済み', deploying:'公開処理中', waiting:'公開待ち', failed:'失敗', unknown:'不明' })[state] || state || '不明';
@@ -119,11 +113,23 @@ function renderIntegration(integration = {}) {
   root.replaceChildren();
   const top = el('div', 'integration-summary');
   const desc = el('div');
-  const label = ({delivery: integration.stalled ? '公開処理の停止疑い' : '開発版を公開・検証中',
-    integration: '変更を統合中', hold: '意図的な保留あり', 'deploy-wait': '次の公開待ち',
-    'ready-queue': '統合待ちを確認', failed: '処理の失敗を確認', idle: '自動処理は待機中'})[integration.phase] || overallLabel(integration);
+  const label = ({
+    delivery: integration.stalled ? '公開処理の停止疑い' : '開発版を公開・検証中',
+    reconciliation: '自動統合で処理中',
+    'reconciliation-idle': '自動統合の再配分待ち',
+    repair: '修復待ち',
+    blocked: '依存・保留あり',
+    'reconcile-wait': '現在状態を再評価中',
+    'ready-wait': 'CI・Ready状態を確認中',
+    hold: '意図的な保留あり',
+    'deploy-wait': '次の公開待ち',
+    failed: '処理の失敗を確認',
+    idle: '自動処理は待機中',
+  })[integration.phase] || overallLabel(integration);
   desc.append(el('strong', '', label));
-  desc.append(el('p', 'muted', `統合待ち警告 ${integration.watchdog?.staleReadyCount ?? 0}件 / 判定 ${integration.watchdog?.stalledThresholdMinutes ?? 10}分`));
+  const watchdog = integration.watchdog || {};
+  const freshness = watchdog.reconciliationFresh ? 'current state' : watchdog.reconciliationReason ? 'snapshot確認中' : '未取得';
+  desc.append(el('p', 'muted', `Reconcile ${freshness} · Ready ${watchdog.readyCount ?? 0}件${watchdog.actionableIdle ? ' · executor再配分待ち' : ''}`));
   top.append(desc, badge(label, integration.tone || 'info'));
   root.append(top);
   if (integration.heartbeatAt) root.append(el('p', 'muted', `処理の最終更新 ${time(integration.heartbeatAt)}`));
@@ -136,7 +142,8 @@ function renderIntegration(integration = {}) {
     row.dataset.viewKey = `queue:${item.number}`;
     const head = el('div', 'queue-head');
     head.append(link(`#${item.number} ${item.title}`, item.url), badge(item.label, item.tone));
-    row.append(head, el('p', '', `${item.reason || ''}${Number.isFinite(item.stalledMs) ? ` / 滞留 ${duration(item.stalledMs)}` : ''}`));
+    const lane = item.reconciliationLane ? ` / ${item.reconciliationLane}` : '';
+    row.append(head, el('p', '', `${item.reason || ''}${lane}`));
     list.append(row);
   }
   root.append(list);
@@ -208,5 +215,4 @@ subscribe((state, error) => {
   if (error) { currentState = state; currentError = error; renderFreshness(); }
   else if (state) render(state);
 });
-// Refresh age labels even while the same saved snapshot is being shown.
 setInterval(() => preserveView(renderFreshness), 15000);

@@ -49,6 +49,10 @@ export function createConservativeOcclusionCuller({ maxChecksPerUpdate = 8, minD
     return true;
   }
 
+  function snapshot() {
+    return Object.freeze({ tested, hidden, visible, cursor });
+  }
+
   return {
     update({ camera, candidates = [], occluders = [] } = {}) {
       if (!camera || !candidates.length || !occluders.length) return snapshot();
@@ -82,6 +86,6 @@ export function createConservativeOcclusionCuller({ maxChecksPerUpdate = 8, minD
         if (object && row?.ownedHidden) { object.visible = streamAllows(object); row.ownedHidden = false; row.blocked = 0; if (object.userData) object.userData.occluded = false; }
       }
     },
-    snapshot() { return Object.freeze({ tested, hidden, visible, cursor }); },
+    snapshot,
   };
 }

@@ -37,6 +37,14 @@ def triangles(obj):
     return sum(max(0, len(poly.vertices) - 2) for poly in obj.data.polygons)
 
 
+def material_names(obj):
+    names = []
+    for slot in obj.material_slots:
+        material = slot.material
+        names.append(material.name if material else '<empty>')
+    return names
+
+
 def hull(points):
     pts = sorted(set((round(a, 8), round(b, 8)) for a, b in points))
     if len(pts) <= 2: return pts
@@ -115,7 +123,36 @@ def duplicate_lod(source, base_name, level, ratio, mode):
         bpy.data.objects.remove(clone, do_unlink=True)
         raise RuntimeError(f'{source.name} LOD{level}: ' + ', '.join(errors))
     clone['soul_lod_level']=level; clone['soul_lod_source']=source.name; clone['soul_lod_ratio']=ratio
-    return clone, {'name':clone.name,'level':level,'ratio':ratio,'sourceTriangles':source_triangles,'triangles':triangles(clone),'silhouette':after}
+    return clone, {
+        'name':clone.name,
+        'level':level,
+        'ratio':ratio,
+        'sourceTriangles':source_triangles,
+        'triangles':triangles(clone),
+        'materialSlots':len(clone.material_slots),
+        'uvLayers':len(clone.data.uv_layers),
+        'vertexGroups':len(clone.vertex_groups),
+        'silhouette':after,
+    }
+
+
+def audit_summary(sources):
+    materials = set()
+    for source in sources:
+        materials.update(material_names(source))
+    eligible = [source for source in sources if triangles(source) >= 64]
+    skipped = [source for source in sources if triangles(source) < 64]
+    return {
+        'sourceObjects': len(sources),
+        'sourceTriangles': sum(triangles(source) for source in sources),
+        'lodEligibleObjects': len(eligible),
+        'lodSkippedObjects': len(skipped),
+        'lodSkippedTriangles': sum(triangles(source) for source in skipped),
+        'materialCount': len(materials),
+        'estimatedDrawCalls': sum(max(1, len(source.material_slots)) for source in sources),
+        'uvLayerCount': sum(len(source.data.uv_layers) for source in sources),
+        'vertexGroupCount': sum(len(source.vertex_groups) for source in sources),
+    }
 
 
 def main():
@@ -123,12 +160,21 @@ def main():
     meshes=[o for o in bpy.context.scene.objects if o.type=='MESH' and not o.name.endswith(('_LOD1','_LOD2'))]
     explicit=[o for o in meshes if o.name.endswith('_LOD0')]
     sources=explicit or meshes
-    audit={'version':1,'mode':args['mode'],'input':args['input'],'output':args['output'],'objects':[],'errors':[]}
+    audit={'version':2,'mode':args['mode'],'input':args['input'],'output':args['output'],'summary':audit_summary(sources),'objects':[],'errors':[]}
     for source in sources:
         if triangles(source) < 64: continue
         base=source.name[:-5] if source.name.endswith('_LOD0') else source.name
         if not source.name.endswith('_LOD0'): source.name=f'{base}_LOD0'
-        row={'source':source.name,'triangles':triangles(source),'silhouette':silhouette(source),'lods':[]}
+        row={
+            'source':source.name,
+            'triangles':triangles(source),
+            'materialSlots':len(source.material_slots),
+            'materials':material_names(source),
+            'uvLayers':len(source.data.uv_layers),
+            'vertexGroups':len(source.vertex_groups),
+            'silhouette':silhouette(source),
+            'lods':[],
+        }
         try:
             for level,ratio in ((1,args['lod1']),(2,args['lod2'])):
                 _,info=duplicate_lod(source,base,level,ratio,args['mode']); row['lods'].append(info)
@@ -142,7 +188,7 @@ def main():
     os.makedirs(os.path.dirname(os.path.abspath(args['output'])), exist_ok=True)
     bpy.ops.export_scene.gltf(filepath=os.path.abspath(args['output']),export_format='GLB',export_extras=True,export_yup=True)
     with open(args['audit'],'w',encoding='utf-8') as f: json.dump(audit,f,ensure_ascii=False,indent=2)
-    print(json.dumps({'output':args['output'],'audit':args['audit'],'objects':len(audit['objects'])}))
+    print(json.dumps({'output':args['output'],'audit':args['audit'],'objects':len(audit['objects']),'summary':audit['summary']}))
 
 
 if __name__ == '__main__': main()

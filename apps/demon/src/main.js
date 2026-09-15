@@ -1,3 +1,12 @@
+// Keep service identity explicit without replacing the current in-game title or favicon.
+const serviceEnvironment = __BUILD_INFO__.environment;
+document.title = `尽喰廻遊 | 人間狩りの夜${serviceEnvironment === 'prod' ? '' : ` | ${serviceEnvironment.toUpperCase()}`}`;
+if (!document.querySelector('link[rel="manifest"]')) {
+  const manifest = document.createElement('link');
+  manifest.rel = 'manifest';
+  manifest.href = './manifest.webmanifest';
+  document.head.append(manifest);
+}
 // Catch module download/initialization errors before the game owns its loading UI.
 const boot = document.querySelector('#boot');
 const progress = document.querySelector('#boot-progress');
@@ -12,6 +21,8 @@ try {
   const game = await import('./web/main.js');
   progress.value = 2;
   await game.boot();
+  const {installFirstHuntDirector} = await import('./web/first-hunt-director.js');
+  installFirstHuntDirector();
   progress.value = 3;
 } catch (error) {
   console.error(error);

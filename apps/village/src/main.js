@@ -2,6 +2,14 @@
 // errors remain visible and retryable rather than stranding the loading screen.
 import {installMusicLibrary} from '@soul/shared-ui/music';
 
+const serviceEnvironment = __BUILD_INFO__.environment;
+document.title = `MURAAAAAAA | 輪廻転焦 Village${serviceEnvironment === 'prod' ? '' : ` | ${serviceEnvironment.toUpperCase()}`}`;
+if (!document.querySelector('link[rel="manifest"]')) {
+  const manifest = document.createElement('link');
+  manifest.rel = 'manifest';
+  manifest.href = './manifest.webmanifest';
+  document.head.append(manifest);
+}
 const canvas = document.querySelector('#game');
 const loading = document.querySelector('#loading');
 const progress = document.querySelector('#progress');
@@ -44,9 +52,15 @@ try {
   await import('./runtime-resilience.js');
   await import('./shared-world-scale.js');
   const { boot } = await import('./web/main.js');
-  await boot({ onProgress(value, text) { progress.value = value; message.textContent = text; } });
+  await boot({
+    onProgress(value, text) { progress.value = value; message.textContent = text; },
+  });
+  // Preserve the single enhancement graph introduced on develop. Retired
+  // entries are side-effect-free compatibility modules after consolidation.
   await import('./mura-enhancements.js');
-  document.title = document.title.replace(/^星継ぎの庭/, 'MURAAAAAAA');
+  const {installInterface}=await import('./web/interface.js');
+  installInterface(window.village);
+  await import('./mura-village-visual-language.js');
   clearTimeout(watchdog);
   finished = true;
   progress.value = 100;
