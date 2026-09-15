@@ -12,6 +12,7 @@ import {
 } from './integration.mjs';
 import { trustedStackFastEvidence } from './integration-stack-fast-evidence.mjs';
 import { dependencies, eligibility } from './integration-policy.mjs';
+import { comparison as completeComparison } from './integration-rescue-store.mjs';
 
 export const maxFastLaneMerges = 24;
 const trustedReviewReason = 'automation/deployment change requires approval of this head by a maintainer';
@@ -144,9 +145,9 @@ export async function integrateFastLane(c, repository, options = {}) {
         await c.pages(`/pulls/${pr.number}/reviews`, undefined, { maxPages: 10, cache: true }), { cache: true });
 
       const ownDiff = await c.api('GET', `${c.root}/compare/${expected}...${pr.head.sha}`, null, { cache: true });
-      const base = ownDiff.merge_base_commit.sha;
-      const comparison = base === expected ? { files: [] } : await c.api('GET', `${c.root}/compare/${base}...${expected}`, null, { cache: true });
-      if ((comparison.files || []).length >= 300) throw new Error('Large base comparison needs manual Integration review');
+      const base = ownDiff.merge_base_commit?.sha;
+      if (!/^[0-9a-f]{40}$/.test(base || '')) throw new Error('INCOMPLETE_BASE_COMPARISON');
+      const baseComparison = base === expected ? { files: [] } : await completeComparison(c, base, expected);
       const criteria = () => ({
         pr,
         repository,
@@ -155,7 +156,7 @@ export async function integrateFastLane(c, repository, options = {}) {
         unresolved,
         dependenciesMerged: dependencyMerged,
         checksPassed,
-        baseChanges: (comparison.files || []).flatMap(file => [file.filename, file.previous_filename].filter(Boolean)),
+        baseChanges: baseComparison.files,
         recovery: false,
       });
 

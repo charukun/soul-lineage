@@ -66,6 +66,14 @@ test('Fast Lane has no develop-delivery global lock and keeps expected-head seri
   assert.doesNotMatch(controller, /virtual-train:/);
 });
 
+test('Fast Lane reuses complete fail-closed tree comparison instead of holding every 300-file base drift', () => {
+  const source = readFileSync('scripts/integration-fast-lane.mjs', 'utf8');
+  assert.match(source, /comparison as completeComparison/);
+  assert.match(source, /completeComparison\(c, base, expected\)/);
+  assert.match(source, /baseChanges: baseComparison\.files/);
+  assert.doesNotMatch(source, /Large base comparison needs manual Integration review/);
+});
+
 test('DEV coalescer only cancels stale push publishers and keeps Production gates', () => {
   const coalescer = readFileSync('.github/workflows/dev-publisher-coalescer.yml', 'utf8');
   const deploy = readFileSync('.github/workflows/deploy.yml', 'utf8');
