@@ -18,7 +18,7 @@ function glb(document) {
 
 const baseDocument = overrides => ({ asset:{version:'2.0',generator:'test'}, accessors:[], meshes:[], materials:[], textures:[], images:[], nodes:[], skins:[], animations:[], ...overrides });
 
-test('GLB inspector measures triangles and detects compression plus complete authored LOD', () => {
+test('GLB inspector separates packed LOD total from near budget and detects compression', () => {
   const document = baseDocument({
     extensionsUsed:['EXT_meshopt_compression','KHR_texture_basisu'],
     accessors:[{count:30000},{count:12000},{count:6000}],
@@ -29,10 +29,16 @@ test('GLB inspector measures triangles and detects compression plus complete aut
       {name:'Tree_LOD2',primitives:[{attributes:{POSITION:2},material:1}]},
     ],
   });
-  const row=inspectAssetBuffer(glb(document),{file:'assets/world/Tree.glb'});
+  const budget={role:'environment',styleId:'stylized-low-mid-poly.v1',softTriangleBudget:12000,softMaterialBudget:10,softDrawCallBudget:14};
+  const row=inspectAssetBuffer(glb(document),{file:'assets/world/Tree.glb',roleBudget:budget});
   assert.equal(row.metrics.triangles,16000);
+  assert.equal(row.metrics.nearTriangles,10000);
   assert.equal(row.metrics.triangleEvidence,'measured');
+  assert.equal(row.metrics.nearTriangleEvidence,'measured');
   assert.equal(row.metrics.primitiveCount,3);
+  assert.equal(row.metrics.nearPrimitiveCount,1);
+  assert.equal(row.budget.checks.triangles,'pass');
+  assert.equal(row.budget.measured.triangleBasis,'near-or-lod0');
   assert.equal(row.compression.meshopt,true);
   assert.equal(row.compression.ktx2,true);
   assert.equal(row.lod.hasCompleteAuthoredLod,true);
@@ -52,6 +58,7 @@ test('review VRM is read-only and routes skinned morph work to canonical source 
   assert.equal(row.vrm.isVrm,true);
   assert.equal(row.vrm.flavor,'VRM1');
   assert.equal(row.metrics.triangles,20000);
+  assert.equal(row.metrics.nearTriangles,20000);
   assert.equal(row.metrics.skins,1);
   assert.equal(row.metrics.joints,55);
   assert.equal(row.metrics.morphTargets,2);
@@ -63,10 +70,10 @@ test('review VRM is read-only and routes skinned morph work to canonical source 
 
 test('role budgets keep missing evidence unknown and measurable overages as review',()=>{
   const budget={role:'npc',styleId:'stylized-low-mid-poly.v1',softTriangleBudget:50000,softMaterialBudget:14,softDrawCallBudget:20};
-  const unknown=compareRoleBudget({triangles:null,materials:null,primitiveCount:null},budget);
+  const unknown=compareRoleBudget({triangles:null,nearTriangles:null,materials:null,nearPrimitiveCount:null},budget);
   assert.equal(unknown.gate,'unknown');
   assert.equal(unknown.checks.triangles,'unknown');
-  const review=compareRoleBudget({triangles:70000,materials:10,primitiveCount:10},budget);
+  const review=compareRoleBudget({triangles:70000,nearTriangles:70000,materials:10,nearPrimitiveCount:10},budget);
   assert.equal(review.gate,'review');
   assert.equal(review.checks.triangles,'review');
 });
