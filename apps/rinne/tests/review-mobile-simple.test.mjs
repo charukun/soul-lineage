@@ -24,13 +24,17 @@ test('review drawer closes after selecting a model or motion target',()=>{
   assert.match(controls,/\[data-play-select\],\.sequence-review-action/);
 });
 
-test('phone navigation exposes four review tasks while motions open contextually',()=>{
+test('phone navigation exposes five task routes while tools and motions stay contextual',()=>{
   assert.match(nav,/\['model', 'モデル'\]/);
-  assert.match(nav,/\['posture', '姿勢'\]/);
-  assert.match(nav,/\['skill', '技構成'\]/);
+  assert.match(nav,/\['skill', '技'\]/);
   assert.match(nav,/\['performance', '演舞'\]/);
+  assert.match(nav,/\['battle', '戦闘'\]/);
+  assert.match(nav,/\['other', 'その他'\]/);
+  assert.match(nav,/\['posture', '姿勢',/);
+  assert.match(nav,/review-tool-grid/);
   assert.doesNotMatch(nav,/\['motion', 'モーション'\]/);
-  assert.match(navCss,/grid-template-columns:repeat\(4/);
+  assert.match(navCss,/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(navCss,/\.picker-list\{[^}]*grid-template-columns:repeat\(5/mins);
   assert.match(notebook,/placeholder = 'モーションを検索'/);
   assert.match(notebook,/picker-item/);
 });
