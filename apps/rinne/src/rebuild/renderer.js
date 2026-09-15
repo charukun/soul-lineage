@@ -5,6 +5,8 @@ import { createMuraTerrain, flattenMuraModel } from '@soul/rendering/mura/terrai
 import { createAdaptiveQualityGovernor } from '@soul/rendering/adaptive-quality';
 import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { renderPixelRatio, targetFpsForView } from './performance.js';
+import { cameraOffsetForPosition, createCameraPositionControl } from './camera-position-control.js';
+import './camera-position-control.css';
 
 const disposeObject=root=>root.traverse?.(o=>{if(o.geometry?.dispose)o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])if(m?.dispose)m.dispose();});
 const ageScale=years=>{
@@ -103,6 +105,7 @@ export function createWorldRenderer({canvas,document:doc,layout,stations}){
   }
 
   const target=new THREE.Vector3(),desired=new THREE.Vector3(),moveVector=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),camOffset=new THREE.Vector3(10.5,11.5,14.5);let elapsed=0;
+  const cameraControl=createCameraPositionControl({document:doc,container:canvas.parentElement,onChange:position=>{camOffset.set(...cameraOffsetForPosition(position));canvas.dataset.cameraPosition=String(Math.round(position*100));}});
   function resize(){const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
   function cameraVector(axis){
@@ -126,6 +129,6 @@ export function createWorldRenderer({canvas,document:doc,layout,stations}){
     if(village){terrain.waterMat.uniforms.time.value=elapsed;terrain.motes.position.y=Math.sin(elapsed*.35)*.15;}
     renderer.render(scene,camera);
   }
-  function dispose(){observer.disconnect();disposeObject(hero);disposeObject(mother);root.removeFromParent();frontRoot.removeFromParent();hero.removeFromParent();mother.removeFromParent();for(const v of cache.values())disposeObject(v);for(const n of enemyMeshes.values())disposeObject(n);renderer.dispose();}
+  function dispose(){observer.disconnect();cameraControl.dispose();disposeObject(hero);disposeObject(mother);root.removeFromParent();frontRoot.removeFromParent();hero.removeFromParent();mother.removeFromParent();for(const v of cache.values())disposeObject(v);for(const n of enemyMeshes.values())disposeObject(n);renderer.dispose();}
   return{THREE,scene,camera,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,updateFront,resize,qualitySnapshot:()=>qualityGovernor.snapshot(),dispose};
 }
