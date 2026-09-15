@@ -44,8 +44,8 @@ export function benchmarkVerdict(snapshot, preset) {
 export function validateBenchmarkCompatibility(baseline, current) {
   const mismatches = [];
   const compare = (label, before, after) => {
-    if (before == null || after == null) return;
-    if (before !== after) mismatches.push({ field: label, baseline: before, current: after });
+    if (before == null && after == null) return;
+    if (before !== after) mismatches.push({ field: label, baseline: before ?? null, current: after ?? null });
   };
   compare('app', baseline?.app, current?.app);
   compare('preset.id', baseline?.preset?.id, current?.preset?.id);
