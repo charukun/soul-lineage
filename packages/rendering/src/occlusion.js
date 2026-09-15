@@ -33,6 +33,9 @@ export function createConservativeOcclusionCuller({ maxChecksPerUpdate = 8, minD
 
   function blocked(camera, object, occluders) {
     camera.getWorldPosition(cameraPosition);
+    // Raycaster#set configures only the ray. Recursive occluder groups may
+    // contain Sprites, whose raycast contract also requires the active camera.
+    raycaster.camera = camera;
     const samples = candidateSamples(object);
     if (!samples.length) return false;
     object.getWorldPosition(center);
