@@ -69,6 +69,8 @@ test('Repair workflow updates stacks directly, validates exact heads in parallel
   assert.match(workflow, /stack-browser:[\s\S]*continue-on-error: true/);
   assert.match(fastLane, /trustedStackFastEvidence/);
   assert.match(repair, /repairValidationMatrix/);
-  assert.match(repair, /reconcile\(c, pr, develop, \{ write: true \}\)/);
+  assert.match(repair, /reconcileStackFast/);
+  assert.match(repair, /REPAIRABLE_MERGE_STATES[\s\S]*behind/);
+  assert.doesNotMatch(repair, /integration-rescue-store|integration-rescue-worker|integration-rescue-return/);
   assert.doesNotMatch(workflow, /flow-observer:|coordinator:|AWAITING_PUSH|integration-rescue-work-push|integration-rescue-return\.mjs/);
 });
