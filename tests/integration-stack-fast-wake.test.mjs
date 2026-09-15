@@ -15,7 +15,7 @@ function fixture() {
   const status = { context: stackFastContext, state: 'success', target_url: `https://github.com/${repository}/actions/runs/99` };
   const run = { id: 99, event: 'workflow_dispatch', head_branch: 'develop', path: '.github/workflows/deploy.yml', repository: { full_name: repository } };
   const artifacts = [{ name: `pr-fast-220-${head}`, expired: false }];
-  const jobs = [{ name: 'Recover missed Ready CI and Integration requests / Repair executor pool / Stack Validate and build #220', status: 'completed', conclusion: 'success' }];
+  const jobs = [{ name: 'Recover missed Ready CI and Integration requests / Fast Repair executor / Stack Validate and build #220', status: 'completed', conclusion: 'success' }];
   const c = {
     root: `/repos/${repository}`,
     async pages(path) {
@@ -35,7 +35,7 @@ function fixture() {
 
 test('trusted stack evidence is bound to exact PR head, trusted deploy run, artifact and completed build job', async () => {
   const f = fixture();
-  assert.deepEqual(await trustedStackFastEvidence(f.c, pr), { pr: 220, head, runId: '99', source: 'integration-rescue-stack' });
+  assert.deepEqual(await trustedStackFastEvidence(f.c, pr), { pr: 220, head, runId: '99', source: 'integration-repair-stack' });
 });
 
 test('stale, untrusted or incomplete stack evidence fails closed', async () => {
@@ -56,18 +56,18 @@ test('stale, untrusted or incomplete stack evidence fails closed', async () => {
   }
 });
 
-test('Rescue workflow validates reconciled stack heads in parallel, publishes exact-head evidence and keeps browser asynchronous', () => {
+test('Repair workflow updates stacks directly, validates exact heads in parallel and keeps browser asynchronous', () => {
   const workflow = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');
   const fastLane = readFileSync('scripts/integration-fast-lane.mjs', 'utf8');
-  const returned = readFileSync('scripts/integration-rescue-return.mjs', 'utf8');
+  const repair = readFileSync('scripts/integration-repair-fast.mjs', 'utf8');
+  assert.match(workflow, /repair:[\s\S]*Fast Repair[\s\S]*integration-repair-fast\.mjs/);
   assert.match(workflow, /stack-fast:[\s\S]*Stack Validate and build[\s\S]*max-parallel: 4/);
   assert.match(workflow, /pr-fast-\$\{\{ matrix\.pr \}\}-\$\{\{ matrix\.head \}\}/);
   assert.match(workflow, /context: 'integration\/stack-fast'/);
   assert.match(workflow, /stack-browser:[\s\S]*continue-on-error: true/);
   assert.match(workflow, /stack-integration-request:[\s\S]*createWorkflowDispatch/);
   assert.match(fastLane, /trustedStackFastEvidence/);
-  assert.match(returned, /stackValidationMatrix/);
-  assert.match(returned, /RESCUE_STACK_RECONCILE === 'true'/);
-  assert.match(returned, /stack_matrix=/);
-  assert.match(workflow, /RESCUE_STACK_RECONCILE: 'true'/);
+  assert.match(repair, /repairValidationMatrix/);
+  assert.match(repair, /reconcile\(c, pr, develop, \{ write: true \}\)/);
+  assert.doesNotMatch(workflow, /flow-observer:|coordinator:|AWAITING_PUSH|integration-rescue-work-push|integration-rescue-return\.mjs/);
 });
