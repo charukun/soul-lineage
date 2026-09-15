@@ -19,6 +19,13 @@ test('center-follow placement keeps the ghost on the camera target and taps to c
  assert.equal(source.includes('muraFindPlacement'),false);
 });
 
+test('placement UI sync cannot observe and rewrite its own child text forever',()=>{
+ assert.ok(source.includes("observer.observe(panel,{attributes:true,attributeFilter:['hidden']})"));
+ assert.equal(source.includes('observer.observe(panel,{childList:true'),false);
+ assert.ok(source.includes('if(label.textContent!==instruction)label.textContent=instruction;'));
+ assert.ok(source.includes("paragraph.textContent!==HELP_TEXT"));
+});
+
 test('placement contract makes one-finger movement primary and keeps undo explicit',()=>{
  for(const contract of [
   'ゴーストを画面中央の照準位置に保ちます',
@@ -26,5 +33,6 @@ test('placement contract makes one-finger movement primary and keeps undo explic
   '短いタップ',
   '取り消す',
   '二本指操作を建築配置の必須操作にはしません',
+  '配置UIの状態同期は冪等',
  ])assert.ok(requirements.includes(contract),contract);
 });

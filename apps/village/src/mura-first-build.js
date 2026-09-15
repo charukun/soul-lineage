@@ -51,6 +51,7 @@ document.head.append(css);
 let busy=false,toastTimer=0,undoTimer=0,activePending=null,lastCommit=null;
 const nativePan=view.pan.bind(view),nativeFocus=view.focus.bind(view);
 const tracked=new Map();
+const HELP_TEXT='つくるで施設や家具を選ぶと、画面中央にゴーストが出ます。1本指でなぞって場所を動かし、短くタップするとその位置へ配置します。置けない場所では理由が表示され、配置されません。回転はゴースト上のボタンを使います。間違えた場合は直後の「取り消す」で戻せます。';
 
 function notice(text,ms=3500){
  $('toastText').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,ms);
@@ -70,11 +71,26 @@ function setCameraCenter(x,z,span=null){
  if(Number.isFinite(span))view.span=span;
  view.lastInteraction=performance.now();view.updateCamera();
 }
+function placementInstruction(p,error){
+ const title=defs[p.kind]?.label||'配置物';
+ return error?`${title} · ${error}`:`${title} · スワイプで場所を調整 · タップで配置`;
+}
+function syncPendingPresentation(p=ui.pending){
+ if(!p)return;
+ const error=world.canPlace(p.kind,p.x,p.z,p.rot,p.roomId,p.moveId);
+ p.error=error;done.disabled=busy||!!error;
+ panel.classList.toggle('invalid',!!error);
+ const instruction=placementInstruction(p,error);
+ if(label.textContent!==instruction)label.textContent=instruction;
+ const fallback=p.moveId?'ここへ移す':p.roomId?'ここに置く':'ここに建てる';
+ if(done.textContent!==fallback){done.textContent=fallback;done.dataset.muraIcon='native';}
+ if(done.getAttribute('aria-describedby')!=='placementText')done.setAttribute('aria-describedby','placementText');
+}
 function centerCandidate(){
  if(!ui.pending)return false;
  const r=canvas.getBoundingClientRect(),point=view.ground(r.left+r.width/2,r.top+r.height/2);
  if(!point)return false;
- village.previewAt(point.x,point.z);return true;
+ village.previewAt(point.x,point.z);syncPendingPresentation();return true;
 }
 function centerPending(p,site,span=null){
  const point=worldPoint(p,site);if(!point)return false;
@@ -95,47 +111,39 @@ function syncHousingExit(){
  const housing=$('housingMode'),leave=$('leaveRoom');
  if(housing&&leave&&leave.parentElement!==housing)housing.append(leave);
 }
-function placementInstruction(p,error){
- const title=defs[p.kind]?.label||'配置物';
- return error?`${title} · ${error}`:`${title} · スワイプで場所を調整 · タップで配置`;
-}
 function refresh(){
  syncHousingExit();
  const p=ui.pending,active=!!p;
  document.body.classList.toggle('mura-placement-active',active);
- canvas.dataset.placement=active?'center-follow':'off';
- canvas.setAttribute('aria-label',active?'建築配置。1本指でなぞって場所を調整し、短くタップして配置します。回転は建物上のボタンを使います。':originalCanvasLabel);
+ const placementMode=active?'center-follow':'off';
+ if(canvas.dataset.placement!==placementMode)canvas.dataset.placement=placementMode;
+ const ariaLabel=active?'建築配置。1本指でなぞって場所を調整し、短くタップして配置します。回転は建物上のボタンを使います。':originalCanvasLabel;
+ if(canvas.getAttribute('aria-label')!==ariaLabel)canvas.setAttribute('aria-label',ariaLabel);
  if(!p){activePending=null;done.disabled=false;return;}
  if(p!==activePending){
   activePending=p;hideUndo();
   const site=findPlacementSite(world,p);
   if(site){p.x=site.x;p.z=site.z;p.error=null;centerPending(p,site);}
  }
- const error=world.canPlace(p.kind,p.x,p.z,p.rot,p.roomId,p.moveId);
- p.error=error;done.disabled=busy||!!error;
- panel.classList.toggle('invalid',!!error);
- label.textContent=placementInstruction(p,error);
- const fallback=p.moveId?'ここへ移す':p.roomId?'ここに置く':'ここに建てる';
- if(done.textContent!==fallback){done.textContent=fallback;done.dataset.muraIcon='native';}
- done.setAttribute('aria-describedby','placementText');
+ syncPendingPresentation(p);
 }
 
 function rotate(delta){
  const p=ui.pending;if(!p||busy)return;
  p.rot=(p.rot+delta+Math.PI*2)%(Math.PI*2);
  $('muraRotation').value=String(Math.round(p.rot*180/Math.PI));
- village.refreshPreview();refresh();
+ village.refreshPreview();syncPendingPresentation(p);
 }
 rotateLeft.onclick=()=>rotate(-Math.PI/2);
 rotateRight.onclick=()=>rotate(Math.PI/2);
-$('muraRotation').addEventListener('input',()=>queueMicrotask(refresh));
+$('muraRotation').addEventListener('input',()=>queueMicrotask(()=>syncPendingPresentation()));
 
 async function commitCurrentPlacement(){
  const p=ui.pending;if(!p||busy)return false;
  centerCandidate();
  const snapshot={kind:p.kind,x:p.x,z:p.z,rot:p.rot,moveId:p.moveId||null,roomId:p.roomId||null,material:p.material};
  const result=commitPlacement(world,p);
- if(result.error){notice(result.error);refresh();return false;}
+ if(result.error){notice(result.error);syncPendingPresentation(p);return false;}
  busy=true;
  const id=p.moveId||result.object?.id,room=p.roomId;
  village.cancelPlacement();
@@ -190,10 +198,10 @@ function syncHelp(){
  const host=$('dialogContent');if(!host)return;
  const heading=[...host.querySelectorAll('h3')].find(node=>node.textContent.trim()==='建築と内装');
  const paragraph=heading?.nextElementSibling;
- if(paragraph&&paragraph.tagName==='P')paragraph.textContent='つくるで施設や家具を選ぶと、画面中央にゴーストが出ます。1本指でなぞって場所を動かし、短くタップするとその位置へ配置します。置けない場所では理由が表示され、配置されません。回転はゴースト上のボタンを使います。間違えた場合は直後の「取り消す」で戻せます。';
+ if(paragraph&&paragraph.tagName==='P'&&paragraph.textContent!==HELP_TEXT)paragraph.textContent=HELP_TEXT;
 }
 const helpObserver=new MutationObserver(syncHelp);helpObserver.observe($('dialogContent'),{childList:true,subtree:true});
-const observer=new MutationObserver(refresh);observer.observe(panel,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class']});
+const observer=new MutationObserver(refresh);observer.observe(panel,{attributes:true,attributeFilter:['hidden']});
 refresh();
 window.__MURA_CENTER_PLACEMENT__={version:1,centerCandidate,commit:commitCurrentPlacement};
 window.addEventListener('pagehide',()=>{
