@@ -41,6 +41,12 @@ function transparencyAudit(view) {
   return combineTransparencyAudits([view.objects,view.outside,view.inside,view.actors].map(root=>auditTransparency(root)));
 }
 
+function performanceScene(view) {
+  const vegetationInstances=[...(view.forestMeshes||[]),...(view.flowerMeshes||[])].reduce((sum,mesh)=>sum+(Number(mesh?.count)||0),0);
+  const actors=view.actors?.children?.length||0,outsideRoots=view.outside?.children?.length||0,insideRoots=view.inside?.children?.length||0,objectRoots=view.objects?.children?.length||0;
+  return Object.freeze({id:'village-runtime-v1',actors,outsideRoots,insideRoots,objectRoots,vegetationInstances,signature:`a${actors}-o${outsideRoots}-i${insideRoots}-r${objectRoots}-v${vegetationInstances}`});
+}
+
 function apply(view, snapshot) {
   const q = snapshot.profile;
   view.__stylizedQuality = snapshot;
@@ -81,7 +87,7 @@ function governorFor(view) {
   const governor = createGpuAwareQualityGovernor({targetFps:isMobileTarget()?30:60,initialLevel:view.softwareGPU?2:0,onChange:s=>apply(view,s)});
   const state = { governor, plan, gpu, recorder, occlusion, occlusionFrame:0, transparencyFrame:0, transparency:combineTransparencyAudits([]), stream: plan.update(view.target.x,view.target.z) };
   governors.set(view,state); apply(view,governor.snapshot());
-  if (typeof window !== 'undefined') window.__VILLAGE_ADAPTIVE_QUALITY__ = { snapshot:()=>({quality:governor.snapshot(),gpu:gpu.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),transparency:state.transparency,stream:state.stream,textureBytes:view.__estimatedTextureBytes||0}) };
+  if (typeof window !== 'undefined') window.__VILLAGE_ADAPTIVE_QUALITY__ = { snapshot:()=>({quality:governor.snapshot(),gpu:gpu.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),transparency:state.transparency,scene:performanceScene(view),stream:state.stream,textureBytes:view.__estimatedTextureBytes||0}) };
   return state;
 }
 
