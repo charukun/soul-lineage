@@ -11768,7 +11768,7 @@
       },
       "state": "FAILED_MANUAL",
       "title": "feat(characters): rebuild Shino Reference v2 as DCC model",
-      "updatedAt": "2026-09-15T09:58:52.173Z",
+      "updatedAt": "2026-09-15T10:00:40.636Z",
       "waitingReason": null,
       "wave": "wave-34837832648-1",
       "workRepairAttempts": 1,
@@ -11861,13 +11861,13 @@
           "repairKind": "semantic"
         },
         "startedAt": "2026-09-15T09:55:47.639Z",
-        "heartbeatAt": "2026-09-15T09:58:52.173Z",
-        "expiresAt": "2026-09-15T10:43:52.173Z",
+        "heartbeatAt": "2026-09-15T10:00:40.636Z",
+        "expiresAt": "2026-09-15T10:45:40.636Z",
         "result": {
-          "head": "ff9502060af51cac5116707633533b92ca31c73e",
+          "head": "d01569b7092ec2f6dc23cc137376df7185e57794",
           "tree": "24bc7befcc3c3fc9b8edca78d21adb221e6fc769",
           "commit": {
-            "sha": "ff9502060af51cac5116707633533b92ca31c73e",
+            "sha": "d01569b7092ec2f6dc23cc137376df7185e57794",
             "tree": {
               "sha": "24bc7befcc3c3fc9b8edca78d21adb221e6fc769"
             },
@@ -11954,8 +11954,10 @@
             "builds": "passed: demon/rinne/village",
             "markers": "passed",
             "scope": "passed",
-            "command": "node scripts/validate.mjs fast cdbdea445bb44fdc5911d3523860606d0d5d5c3a ff9502060af51cac5116707633533b92ca31c73e"
-          }
+            "command": "node scripts/validate.mjs fast cdbdea445bb44fdc5911d3523860606d0d5d5c3a ff9502060af51cac5116707633533b92ca31c73e",
+            "head": "d01569b7092ec2f6dc23cc137376df7185e57794"
+          },
+          "localCommit": "ff9502060af51cac5116707633533b92ca31c73e"
         },
         "pushPreparedAt": "2026-09-15T09:58:52.173Z"
       },
@@ -19204,9 +19206,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1222,
+  "revision": 1223,
   "schema": 1,
-  "updatedAt": "2026-09-15T09:58:52.173Z",
+  "updatedAt": "2026-09-15T10:00:40.636Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
