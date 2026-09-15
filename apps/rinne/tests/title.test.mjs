@@ -37,10 +37,10 @@ test('clean bootstrap prewarms renderer/world and start buttons only bind a life
  assert.doesNotMatch(main,/setTimeout\([^)]*3800/);assert.doesNotMatch(main,/setTimeout\([^)]*650/);
 });
 
-test('automatic play shell keeps contextual buttons to optional nearby talk only',async()=>{
+test('automatic play shell omits legacy contextual action buttons',async()=>{
  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
- assert.match(html,/id="talk"[^>]*data-context-action="talk"[^>]*hidden/);
- assert.equal([...html.matchAll(/data-context-action=/g)].length,1);
+ assert.doesNotMatch(html,/id="talk"/);assert.doesNotMatch(html,/data-context-action="talk"/);
+ assert.equal([...html.matchAll(/data-context-action=/g)].length,0);
  assert.doesNotMatch(html,/id="rest"/);assert.doesNotMatch(html,/id="objective-detail"/);assert.doesNotMatch(html,/>攻撃</);
  assert.doesNotMatch(html,/>装備する</);assert.doesNotMatch(html,/>出航する</);assert.doesNotMatch(html,/>救助する</);
 });
