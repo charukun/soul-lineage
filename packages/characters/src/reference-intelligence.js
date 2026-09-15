@@ -17,6 +17,7 @@ const RENDER_TIER_IDS = new Set(['full', 'mid', 'far']);
 const EXTERNAL_REFERENCE_KINDS = new Set(['character-source', 'character-reference', 'runtime-technique']);
 const ADOPTION_POLICIES = new Set(['source-audit', 'reference-only', 'technique-only']);
 const SHA40 = /^[0-9a-f]{40}$/i;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const GITHUB_REPOSITORY = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/?$/;
 const OBSERVATION_ID = /^[a-z0-9][a-z0-9._:-]{1,95}$/;
 const LICENSE_PLACEHOLDER = /^(unknown|unspecified|none|n\/a)$/i;
@@ -54,6 +55,8 @@ export function defineExternalCharacterReference(input) {
   invariant(ADOPTION_POLICIES.has(input.adoptionPolicy), `Unknown external reference adoption policy: ${input.adoptionPolicy}`);
   const evidence = stringList(input.evidence, 'external reference evidence', { min: 1 }).map(repositoryEvidencePath);
   const observations = stringList(input.observations, 'external reference observation', { min: 1, pattern: OBSERVATION_ID });
+  const verifiedOn = nonEmptyString(input.verifiedOn, 'external reference verification date');
+  invariant(ISO_DATE.test(verifiedOn), 'External reference verification date must be YYYY-MM-DD');
   const licenseUrl = input.licenseUrl == null ? null : nonEmptyString(input.licenseUrl, 'external reference license URL');
   if (licenseUrl) invariant(/^https:\/\//.test(licenseUrl), 'External reference license URL must use HTTPS');
 
@@ -71,6 +74,7 @@ export function defineExternalCharacterReference(input) {
     adoptionPolicy: input.adoptionPolicy,
     evidence,
     observations,
+    verifiedOn,
     copyPolicy: 'never-wholesale-copy'
   });
 }
@@ -85,8 +89,9 @@ const externalReferences = [
     license: 'CC0-1.0 source / VRM-Public-License-1.0 conversion',
     licenseUrl: 'https://vrm.dev/licenses/1.0/',
     adoptionPolicy: 'source-audit',
-    evidence: ['resources/vrms/Sendagaya_Shino.vrm'],
-    observations: ['stylized-humanoid', 'vrm-humanoid', 'auditable-character-source']
+    evidence: ['resources/vrms/Sendagaya_Shino.vrm', 'resources/vrms/Sendagaya_Shino.PROVENANCE.md'],
+    observations: ['stylized-humanoid', 'vrm-humanoid', 'auditable-character-source'],
+    verifiedOn: '2026-09-15'
   }),
   defineExternalCharacterReference({
     id: 'vroid-sample-a-voxavatar',
@@ -98,7 +103,8 @@ const externalReferences = [
     licenseUrl: 'https://vroid.pixiv.help/hc/en-us/articles/4402394424089-VRoidPreset-A-Z',
     adoptionPolicy: 'reference-only',
     evidence: ['public/assets/models/AvatarSample_A.vrm'],
-    observations: ['stylized-humanoid', 'vrm-humanoid', 'multi-material-avatar']
+    observations: ['stylized-humanoid', 'vrm-humanoid', 'multi-material-avatar'],
+    verifiedOn: '2026-09-15'
   }),
   defineExternalCharacterReference({
     id: 'vroid-sample-b-voxavatar',
@@ -110,7 +116,8 @@ const externalReferences = [
     licenseUrl: 'https://vroid.pixiv.help/hc/en-us/articles/4402394424089-VRoidPreset-A-Z',
     adoptionPolicy: 'reference-only',
     evidence: ['public/assets/models/AvatarSample_B.vrm'],
-    observations: ['stylized-humanoid', 'vrm-humanoid', 'multi-material-avatar']
+    observations: ['stylized-humanoid', 'vrm-humanoid', 'multi-material-avatar'],
+    verifiedOn: '2026-09-15'
   }),
   defineExternalCharacterReference({
     id: 'pixiv-three-vrm-runtime',
@@ -121,8 +128,9 @@ const externalReferences = [
     license: 'MIT',
     licenseUrl: 'https://github.com/pixiv/three-vrm/blob/1b4fc0cc7ef39a49d62bb7a66dcfeca8f65316f7/LICENSE',
     adoptionPolicy: 'technique-only',
-    evidence: ['packages/three-vrm/README.md'],
-    observations: ['vrm-humanoid', 'threejs-vrm-runtime']
+    evidence: ['packages/three-vrm/README.md', 'LICENSE'],
+    observations: ['vrm-humanoid', 'threejs-vrm-runtime'],
+    verifiedOn: '2026-09-15'
   })
 ];
 
