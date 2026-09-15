@@ -40,8 +40,9 @@ def main() -> None:
             raise SystemExit(f"required artifact missing: {path}")
 
     audit = json.loads(audit_path.read_text(encoding="utf-8"))
-    if audit.get("characterId") != CHARACTER_ID:
-        raise SystemExit("audit character id mismatch")
+    build = json.loads(build_path.read_text(encoding="utf-8"))
+    if audit.get("characterId") != CHARACTER_ID or build.get("characterId") != CHARACTER_ID:
+        raise SystemExit("Arcanist DCC character id mismatch")
     if not all(audit.get("checks", {}).values()):
         raise SystemExit("DCC audit contains a failed check")
     scene = audit["scene"]
@@ -55,8 +56,8 @@ def main() -> None:
         "version": 1,
         "id": CHARACTER_ID,
         "assetId": "character.arcanist-atlas-dcc.v1",
-        "format": "vrm",
-        "path": "./simulator/assets/ARCANIST_ATLAS_DCC.vrm",
+        "format": "glb",
+        "path": "./simulator/assets/ARCANIST_ATLAS_DCC.glb",
         "sha256": model_sha,
         "bytes": model.stat().st_size,
         "productionStage": "PRIMARY",
