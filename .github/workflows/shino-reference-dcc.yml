@@ -55,6 +55,19 @@ jobs:
           cp apps/rinne/public/simulator/assets/SHINO_review.vrm generated/arcanist-atlas-dcc/SHINO_review.glb
           test "$(sha256sum docs/characters/references/npc-role-set/arcanist.avif | cut -d' ' -f1)" = "5930816e59424bcc17530ba9029d1231fb24ac88ee35ee5818f96e05e0978bd0"
 
+      - name: Patch Blender 4 render-engine compatibility
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/blender/build-arcanist-atlas-dcc.py')
+          source = path.read_text(encoding='utf-8')
+          old = '''    engines = {item.identifier for item in scene.bl_rna.properties["render_engine"].enum_items}\n    scene.render.engine = "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in engines else "BLENDER_EEVEE"'''
+          new = '''    for engine in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE", "BLENDER_WORKBENCH"):\n        try:\n            scene.render.engine = engine\n            break\n        except TypeError:\n            continue\n    else:\n        raise RuntimeError("No supported Blender render engine is available")'''
+          if old not in source:
+              raise SystemExit('Expected render-engine compatibility block not found')
+          path.write_text(source.replace(old, new), encoding='utf-8')
+          PY
+
       - name: Build Arcanist Atlas in Blender
         run: |
           xvfb-run -a blender --background --python-exit-code 1 \
@@ -62,6 +75,23 @@ jobs:
             --source generated/arcanist-atlas-dcc/SHINO_review.glb \
             --source-vrm apps/rinne/public/simulator/assets/SHINO_review.vrm \
             --out generated/arcanist-atlas-dcc
+
+      - name: Restore Arcanist humanoid metadata
+        run: |
+          python3 scripts/patch-arcanist-atlas-vrm.py \
+            --source-vrm apps/rinne/public/simulator/assets/SHINO_review.vrm \
+            --input generated/arcanist-atlas-dcc/export/ArcanistAtlasDCC.glb \
+            --output generated/arcanist-atlas-dcc/export/ArcanistAtlasDCC.glb
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          model = Path('generated/arcanist-atlas-dcc/export/ArcanistAtlasDCC.glb')
+          build_path = Path('generated/arcanist-atlas-dcc/build.json')
+          build = json.loads(build_path.read_text(encoding='utf-8'))
+          build['glbSha256'] = hashlib.sha256(model.read_bytes()).hexdigest()
+          build['humanoidMetadata'] = 'VRMC_vrm/1.0 restored from audited SHINO_review.vrm by bone name'
+          build_path.write_text(json.dumps(build, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
 
       - name: Audit generated Blender source
         run: |
@@ -94,7 +124,7 @@ jobs:
 
       - name: Verify generated candidate
         run: |
-          python3 -m py_compile scripts/blender/build-arcanist-atlas-dcc.py scripts/blender/character-production-audit.py scripts/finalize-arcanist-atlas-dcc.py
+          python3 -m py_compile scripts/blender/build-arcanist-atlas-dcc.py scripts/blender/character-production-audit.py scripts/finalize-arcanist-atlas-dcc.py scripts/patch-arcanist-atlas-vrm.py
           test -s assets/characters/arcanist/atlas-dcc/source/ArcanistAtlasDCC.blend
           test -s apps/rinne/public/simulator/assets/ARCANIST_ATLAS_DCC.glb
           test -s apps/rinne/public/simulator/assets/ARCANIST_ATLAS_DCC.asset.json
