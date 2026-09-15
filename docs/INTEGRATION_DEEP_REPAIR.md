@@ -87,4 +87,6 @@ handoff直前にcurrent PR/head/developとhold/review/thread/dependencyを再取
 
 ## Issue件数に依存しないhandoff
 
-同じexact headの修復Issue確認にRepository全体のopen/closed PR・Issue一覧走査を使わない。exact-head検索と既存statusのIssue参照から候補を取得し、Issue本体を再取得してsourceKey・state・attemptを確認する。closed/上限到達/human-requiredは維持する。検索結果が不完全なら修復Issueを新規作成せず、不完全な検索を「既存なし」と扱わない。
+同じexact headの修復Issue確認にRepository全体のopen/closed PR・Issue一覧走査を使わない。exact-head検索、既存statusのIssue参照、検索index反映待ちを補う直近open 100件から候補を取得し、Issue本体を再取得してsourceKey・state・attemptを確認する。closed/上限到達/human-requiredは維持する。検索結果が不完全なら修復Issueを新規作成せず、不完全な検索を「既存なし」と扱わない。
+
+同じheadの重複Issueが既に存在する場合は、human-requiredや試行上限などの停止判断を優先する。停止判断がなければ既存working claim、open pendingの順に再利用し、閉じた未着手の重複Issueで進行中のclaimを隠さない。closed Issueしか残っていない場合も新規生成や再openは行わない。

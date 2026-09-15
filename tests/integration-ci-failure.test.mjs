@@ -45,6 +45,9 @@ function fixture({ runs = [run()], jobs = [job()], independent = false, fresh = 
       throw new Error(`Unexpected pages ${path}`);
     },
     async api(method, path, body) {
+      if (method === 'GET' && path.startsWith('/search/issues?')) return { items: issues, total_count: issues.length, incomplete_results: false };
+      if (method === 'GET' && path.includes('/issues?state=open')) return issues.filter(issue => issue.state !== 'closed');
+      if (method === 'GET' && /\/issues\/\d+$/.test(path)) return issues.find(issue => path.endsWith(`/issues/${issue.number}`));
       if (method === 'GET' && path.endsWith('/branches/develop')) return { commit: { sha: currentDevelop } };
       if (method === 'GET' && path.endsWith('/pulls/336')) {
         this.prReads = (this.prReads || 0) + 1;
