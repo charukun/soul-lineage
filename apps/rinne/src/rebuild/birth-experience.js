@@ -9,7 +9,7 @@ const magnitude=axis=>Math.hypot(axis?.x||0,axis?.y||0);
 export function createBirthExperience({document,canvas,gameScreen,view,stations,getState,dialogue}){
   const tour=createBirthTour(stations),layer=document.getElementById('actor-status-layer'),items=new Set(),point=new view.THREE.Vector3();
   const hero=view.scene.getObjectByName('Player'),mother=view.scene.getObjectByName('Mother');
-  let introTimer=0,stuck=0,motionTime=0;
+  let introTimer=0,introRemaining=0,stuck=0,motionTime=0;
 
   const active=()=>{const state=getState();return state?.zone==='village'&&!state?.down&&!state?.ended&&state?.phase==='birth';};
   function move(direction,speed,dt){
@@ -25,15 +25,17 @@ export function createBirthExperience({document,canvas,gameScreen,view,stations,
   }
   function speakStation(station){const line=tour.observe(station);if(line)dialogue('母',line);}
   function step(dt,axis){
-    if(!active()||document.hidden)return{handled:false,moved:false,carrierMoving:false};
-    const state=getState(),manual=magnitude(axis)>.08;let moved=false;
+    if(!active())return{handled:false,moved:false,carrierMoving:false};
+    if(document.hidden)return{handled:true,moved:false,carrierMoving:false};
+    const state=getState(),manual=magnitude(axis)>.08;let moved=false;introRemaining=Math.max(0,introRemaining-dt);
     if(manual){tour.tick(dt,state.position,true);moved=move(view.cameraVector(axis),MANUAL_SPEED,dt);stuck=0;}
+    else if(introRemaining>0)return{handled:true,moved:false,carrierMoving:false,manual:false};
     else{
       const next=tour.tick(dt,state.position,false);if(next.line)dialogue('母',next.line);
       if(next.mode==='travel'&&next.target){moved=toward(next.target,dt);if(moved)stuck=0;else if((stuck+=dt)>=1.6){tour.advance();stuck=0;}}
       else stuck=0;
     }
-    speakStation(nearestStation(stations,state.position));
+    if(introRemaining<=0)speakStation(nearestStation(stations,state.position));
     return{handled:true,moved,carrierMoving:moved,manual};
   }
   function actorPoint(actor=hero){
@@ -58,11 +60,11 @@ export function createBirthExperience({document,canvas,gameScreen,view,stations,
     syncStatuses();
   }
   function showIntro(){
-    if(!active())return;tour.reset();stuck=0;gameScreen.dataset.birthTour='true';floatStatus('抱っこされている…');
+    if(!active())return;tour.reset();stuck=0;introRemaining=2.5;gameScreen.dataset.birthTour='true';floatStatus('抱っこされている…');
     clearTimeout(introTimer);introTimer=setTimeout(()=>{const state=getState();if(active())dialogue('母',`${state.name}、お外は初めてだね。今日は一緒に村を見てまわろう。`);},650);
   }
-  function release(){clearTimeout(introTimer);gameScreen.dataset.birthTour='false';floatStatus('自分の足で歩けるようになった');dialogue('母','さあ、地面へ。今日からは自分の足で歩けるよ。');}
+  function release(){clearTimeout(introTimer);introRemaining=0;gameScreen.dataset.birthTour='false';floatStatus('自分の足で歩けるようになった');dialogue('母','さあ、地面へ。今日からは自分の足で歩けるよ。');}
   function clear(){for(const item of items){clearTimeout(item.timer);item.node.remove();}items.clear();}
-  function dispose(){clearTimeout(introTimer);clear();gameScreen.dataset.birthTour='false';}
+  function dispose(){clearTimeout(introTimer);introRemaining=0;clear();gameScreen.dataset.birthTour='false';}
   return{active,step,afterRender,showIntro,release,floatStatus,dispose,tour};
 }
