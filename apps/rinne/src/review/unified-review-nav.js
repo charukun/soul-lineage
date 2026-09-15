@@ -4,15 +4,15 @@ const q = selector => document.querySelector(selector);
 const NAV_ITEMS = [
   ['model', 'モデル'],
   ['posture', '姿勢'],
-  ['motion', 'モーション'],
   ['skill', '技構成'],
   ['performance', '演舞']
 ];
+const DRAWER_LABELS = {model:'モデル', posture:'姿勢', skill:'技構成', performance:'演舞'};
+const EYEBROWS = {model:'MODEL REVIEW', posture:'POSTURE REVIEW', skill:'SKILL REVIEW', performance:'PERFORMANCE REVIEW'};
 
 let currentSection = 'skill';
 let previousSection = 'skill';
 let installed = false;
-let libraryActive = false;
 
 function createBottomNav() {
   let nav = q('#review-bottom-nav');
@@ -34,71 +34,30 @@ function createBottomNav() {
   return nav;
 }
 
-function ensureLibraryFrame() {
-  let frame = q('#motion-library-stage');
-  if (frame) return frame;
-  const viewport = q('.viewport');
-  if (!viewport) return null;
-  frame = document.createElement('iframe');
-  frame.id = 'motion-library-stage';
-  frame.className = 'motion-library-stage';
-  frame.title = 'モーションライブラリ';
-  frame.dataset.src = './motion-library.html?embed=1';
-  frame.hidden = true;
-  viewport.append(frame);
-  return frame;
-}
-
 function dock() { return q('#review-controls-dock'); }
 function dockOpen() { return dock()?.dataset.open === 'true'; }
-function openDock() {
-  if (!dockOpen()) q('#review-controls-toggle')?.click();
-}
-function closeDock() {
-  if (dockOpen()) q('.review-controls-close')?.click();
-}
+function openDock() { if (!dockOpen()) q('#review-controls-toggle')?.click(); }
+function closeDock() { if (dockOpen()) q('.review-controls-close')?.click(); }
 
 function setURL(section) {
   const url = new URL(location.href);
-  if (section === 'motion') {
-    url.searchParams.set('tab', 'motion');
-    url.searchParams.delete('performance');
-  } else if (section === 'performance') {
-    url.searchParams.set('tab', 'performance');
-  } else if (section === 'posture') {
-    url.searchParams.set('tab', 'posture');
-    url.searchParams.delete('performance');
-  } else {
-    url.searchParams.delete('tab');
-    url.searchParams.delete('performance');
-  }
+  if (section === 'performance') url.searchParams.set('tab', 'performance');
+  else if (section === 'posture') url.searchParams.set('tab', 'posture');
+  else url.searchParams.delete('tab');
+  if (section !== 'performance') url.searchParams.delete('performance');
   history.replaceState(null, '', url);
 }
 
-function syncNav() {
+function syncContext() {
   document.querySelectorAll('[data-review-nav]').forEach(button => {
     const on = button.dataset.reviewNav === currentSection;
     button.classList.toggle('active', on);
     button.setAttribute('aria-pressed', String(on));
   });
-}
-
-function setLibraryActive(on) {
-  const frame = ensureLibraryFrame();
-  if (!frame) return;
-  libraryActive = on;
-  document.body.classList.toggle('motion-library-active', on);
-  frame.hidden = !on;
-  if (on) {
-    if (!frame.getAttribute('src')) frame.src = frame.dataset.src;
-    q('[data-review-tab="skill"]')?.click();
-    q('#review-canvas').hidden = true;
-    closeDock();
-  } else if (!document.body.classList.contains('performance-review-active')) {
-    q('#review-canvas').hidden = false;
-  }
-  const feedback = q('.review-feedback-toggle');
-  if (feedback) feedback.hidden = on;
+  const drawerTitle = q('.review-drawer-head strong');
+  if (drawerTitle) drawerTitle.textContent = DRAWER_LABELS[currentSection] || '確認';
+  const eyebrow = q('.stage-header .eyebrow');
+  if (eyebrow) eyebrow.textContent = EYEBROWS[currentSection] || 'MOTION REVIEW';
 }
 
 function preparePostureArea() {
@@ -107,18 +66,16 @@ function preparePostureArea() {
   secondary.hidden = false;
   secondary.open = true;
 }
-
 function hidePostureArea() {
   const secondary = q('.review-secondary-disclosure');
   if (secondary) secondary.hidden = true;
 }
 
 function openModelPicker() {
-  setLibraryActive(false);
   closeDock();
   previousSection = currentSection === 'model' ? previousSection : currentSection;
   currentSection = 'model';
-  syncNav();
+  syncContext();
   q('.model-select-trigger')?.click();
 }
 
@@ -126,16 +83,6 @@ function selectSection(section, {toggle = false, fromURL = false} = {}) {
   if (!NAV_ITEMS.some(([id]) => id === section)) section = 'skill';
   if (section === 'model') return openModelPicker();
 
-  if (section === 'motion') {
-    currentSection = 'motion';
-    hidePostureArea();
-    setLibraryActive(true);
-    syncNav();
-    if (!fromURL) setURL('motion');
-    return;
-  }
-
-  if (libraryActive) setLibraryActive(false);
   const sameOpen = section === currentSection && dockOpen();
   currentSection = section;
   if (section === 'posture') {
@@ -148,7 +95,7 @@ function selectSection(section, {toggle = false, fromURL = false} = {}) {
 
   if (toggle && sameOpen) closeDock();
   else openDock();
-  syncNav();
+  syncContext();
   if (!fromURL) setURL(section);
 }
 
@@ -157,19 +104,30 @@ function watchModelPicker() {
   if (!picker || picker.dataset.unifiedNavBound) return;
   picker.dataset.unifiedNavBound = 'true';
   const sync = () => {
-    if (!picker.hidden) return;
-    if (currentSection !== 'model') return;
+    if (!picker.hidden || currentSection !== 'model') return;
     const restore = previousSection || 'skill';
     currentSection = restore;
-    if (restore === 'motion') setLibraryActive(true);
-    else {
-      setLibraryActive(false);
-      if (restore === 'posture') { preparePostureArea(); q('[data-review-tab="posture"]')?.click(); }
-      else { hidePostureArea(); q(restore === 'performance' ? '[data-review-tab="演舞"]' : '[data-review-tab="skill"]')?.click(); }
+    if (restore === 'posture') {
+      preparePostureArea();
+      q('[data-review-tab="posture"]')?.click();
+    } else {
+      hidePostureArea();
+      q(restore === 'performance' ? '[data-review-tab="演舞"]' : '[data-review-tab="skill"]')?.click();
     }
-    syncNav();
+    syncContext();
   };
   new MutationObserver(sync).observe(picker, {attributes: true, attributeFilter: ['hidden']});
+}
+
+function installContextPlayback() {
+  document.addEventListener('change', event => {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement) || !['move-select','dash-select'].includes(select.id) || !select.value) return;
+    const master = q('#clip');
+    if (!master || master.value === select.value) return;
+    master.value = select.value;
+    master.dispatchEvent(new Event('change', {bubbles:true}));
+  }, true);
 }
 
 function install() {
@@ -177,24 +135,19 @@ function install() {
   installed = true;
   document.body.classList.add('unified-review-navigation');
   createBottomNav();
-  ensureLibraryFrame();
   watchModelPicker();
-
+  installContextPlayback();
   q('.review-primary-switch')?.setAttribute('hidden', '');
-  q('.review-motion-link')?.addEventListener('click', event => {
-    event.preventDefault();
-    selectSection('motion');
-  });
 
   const requested = new URLSearchParams(location.search).get('tab');
-  if (requested === 'motion') selectSection('motion', {fromURL: true});
-  else if (requested === 'performance') selectSection('performance', {fromURL: true});
+  if (requested === 'performance') selectSection('performance', {fromURL: true});
   else if (requested === 'posture') selectSection('posture', {fromURL: true});
   else {
     hidePostureArea();
     currentSection = 'skill';
-    syncNav();
+    syncContext();
     closeDock();
+    if (requested === 'motion') setURL('skill');
   }
   return true;
 }

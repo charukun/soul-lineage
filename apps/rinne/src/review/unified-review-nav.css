@@ -1,11 +1,13 @@
 .unified-review-navigation .review-controls-toggle{display:none!important}
 .unified-review-navigation .review-primary-switch{display:none!important}
 .unified-review-navigation .review-motion-link{display:none!important}
-.review-bottom-nav{position:fixed;z-index:50;left:50%;bottom:max(8px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(680px,calc(100vw - 16px));height:58px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:5px;border:1px solid #ffffff18;border-radius:18px;background:#090c10e8;box-shadow:0 12px 44px #000b;backdrop-filter:blur(22px) saturate(130%)}
+.unified-review-navigation .review-controls-dock .notebook-head{display:none!important}
+.unified-review-navigation .review-drawer-head small{display:none!important}
+.review-bottom-nav{position:fixed;z-index:50;left:50%;bottom:max(8px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(540px,calc(100vw - 16px));height:58px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:5px;border:1px solid #ffffff18;border-radius:18px;background:#090c10e8;box-shadow:0 12px 44px #000b;backdrop-filter:blur(22px) saturate(130%)}
 .review-bottom-nav button{min-width:0;border:0;border-radius:13px;background:transparent;color:#7f8992;font:700 10px/1.1 Inter,ui-sans-serif,system-ui,-apple-system,"Yu Gothic",sans-serif;letter-spacing:.01em;padding:0 4px;touch-action:manipulation}
 .review-bottom-nav button.active{background:#c9ff6714;color:#ddff9c;box-shadow:inset 0 0 0 1px #c9ff6736}
 .review-bottom-nav button:active{transform:scale(.97)}
-.unified-review-navigation .review-controls-dock{bottom:74px!important;max-height:min(67dvh,650px)!important}
+.unified-review-navigation .review-controls-dock{bottom:74px!important;max-height:min(64dvh,620px)!important}
 .unified-review-navigation .review-feedback-toggle{z-index:52!important;right:max(14px,env(safe-area-inset-right))!important;bottom:max(78px,calc(env(safe-area-inset-bottom) + 72px))!important;min-width:70px!important}
 .unified-review-navigation .review-controls-scrim{z-index:20!important}
 .unified-review-navigation .review-controls-dock{z-index:30!important}
@@ -14,9 +16,6 @@
 .unified-review-navigation .review-secondary-disclosure:not([hidden]){display:block!important;margin-top:0!important;border-top:0!important}
 .unified-review-navigation .review-secondary-disclosure:not([hidden])>summary{display:none!important}
 .unified-review-navigation .review-secondary-disclosure:not([hidden]) .review-tabs{margin-top:0!important}
-.motion-library-stage{position:absolute;z-index:5;left:0;right:0;top:0;bottom:72px;width:100%;height:calc(100% - 72px);border:0;background:#07090d}
-.motion-library-active .review-shell .stage-header,.motion-library-active .review-shell .hud,.motion-library-active .review-shell>.load-progress{display:none!important}
-.motion-library-active .review-feedback-toggle{display:none!important}
-.motion-library-active .review-controls-scrim{pointer-events:none!important;opacity:0!important}
-.motion-library-active .review-controls-dock{transform:translateY(calc(100% + 100px))!important}
-@media(max-width:430px){.review-bottom-nav{left:8px;right:8px;bottom:max(6px,env(safe-area-inset-bottom));transform:none;width:auto;height:56px;border-radius:16px}.review-bottom-nav button{font-size:9px}.unified-review-navigation .review-controls-dock{left:6px!important;right:6px!important;bottom:70px!important;max-height:min(62dvh,560px)!important}.unified-review-navigation .review-feedback-toggle{bottom:max(72px,calc(env(safe-area-inset-bottom) + 68px))!important}.motion-library-stage{bottom:68px;height:calc(100% - 68px)}}
+.unified-review-navigation .review-library-nav{margin-left:auto!important}
+.unified-review-navigation .review-reference-link{min-height:28px!important;padding:0 9px!important;font-size:9px!important}
+@media(max-width:430px){.review-bottom-nav{left:8px;right:8px;bottom:max(6px,env(safe-area-inset-bottom));transform:none;width:auto;height:56px;border-radius:16px}.review-bottom-nav button{font-size:9px}.unified-review-navigation .review-controls-dock{left:6px!important;right:6px!important;bottom:70px!important;max-height:min(60dvh,540px)!important}.unified-review-navigation .review-feedback-toggle{bottom:max(72px,calc(env(safe-area-inset-bottom) + 68px))!important}}

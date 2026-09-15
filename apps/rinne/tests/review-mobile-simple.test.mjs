@@ -4,7 +4,9 @@ import { readFileSync } from 'node:fs';
 
 const controls=readFileSync(new URL('../src/review/review-controls.js',import.meta.url),'utf8');
 const css=readFileSync(new URL('../src/review/review-mobile-simple.css',import.meta.url),'utf8');
-const ux=readFileSync(new URL('../src/review/review-ux.js',import.meta.url),'utf8');
+const nav=readFileSync(new URL('../src/review/unified-review-nav.js',import.meta.url),'utf8');
+const navCss=readFileSync(new URL('../src/review/unified-review-nav.css',import.meta.url),'utf8');
+const notebook=readFileSync(new URL('../src/review/notebook.js',import.meta.url),'utf8');
 
 test('phone review keeps primary controls focused and hides secondary density',()=>{
   assert.match(controls,/button\('動作'/);
@@ -22,8 +24,13 @@ test('review drawer closes after selecting a model or motion target',()=>{
   assert.match(controls,/\[data-play-select\],\.sequence-review-action/);
 });
 
-test('Visual Review Lab exposes one-tap Motion Library navigation',()=>{
-  assert.match(ux,/href='\.\/motion-library\.html'/);
-  assert.match(ux,/review-motion-link/);
-  assert.match(ux,/Motions/);
+test('phone navigation exposes four review tasks while motions open contextually',()=>{
+  assert.match(nav,/\['model', 'モデル'\]/);
+  assert.match(nav,/\['posture', '姿勢'\]/);
+  assert.match(nav,/\['skill', '技構成'\]/);
+  assert.match(nav,/\['performance', '演舞'\]/);
+  assert.doesNotMatch(nav,/\['motion', 'モーション'\]/);
+  assert.match(navCss,/grid-template-columns:repeat\(4/);
+  assert.match(notebook,/placeholder = 'モーションを検索'/);
+  assert.match(notebook,/picker-item/);
 });

@@ -21,7 +21,6 @@ const selections = () => Object.fromEntries(STAGES.map(id => [id, q(`#${id}`).va
 const playValue = value => {
   if (!value || !allOptions().some(o => o.value === value)) { status('対応するモーションは読み込み中、または未収録です。', true); return; }
   if (/^姿勢 \/ (抜刀|納刀)/.test(value)) {
-    // Native posture clips are sampled from the game's one-handed sword transition.
     q('#weapon-select').value = 'sword'; q('#weapon-toggle').checked = true;
     q('#weapon-toggle').dispatchEvent(new Event('input', {bubbles: true}));
     document.querySelectorAll('.weapon-chip').forEach(button => button.classList.toggle('active', button.dataset.weapon === 'sword'));
@@ -35,6 +34,11 @@ function syncTrigger(select) {
   const trigger = q(`[data-picker-for="${select.id}"]`);
   if (trigger) { trigger.textContent = select.selectedOptions[0]?.textContent || '選択'; trigger.disabled = select.disabled; }
 }
+function copyOption(source) {
+  const option = new Option(source.textContent, source.value);
+  option.dataset.group = source.closest('optgroup')?.label || source.dataset.group || '収録モーション';
+  return option;
+}
 function refreshSelectors() {
   const all = allOptions();
   document.querySelectorAll('.review-select').forEach(select => {
@@ -42,8 +46,7 @@ function refreshSelectors() {
     const candidates = all.filter(o => kind === 'draw' || kind === 'sheathe'
       ? isPostureMotion(kind, `${o.value} ${o.textContent}`)
       : filters[kind]?.test(`${o.value} ${o.textContent}`));
-    // Do not substitute an unrelated motion when a category is empty.
-    select.replaceChildren(...candidates.map(o => new Option(o.textContent, o.value)));
+    select.replaceChildren(...candidates.map(copyOption));
     select.disabled = !candidates.length;
     if (!candidates.length) select.add(new Option('読み込み中／対応モーション未収録', ''));
     else if (candidates.some(o => o.value === current)) select.value = current;
@@ -65,24 +68,59 @@ function modeMotion(mode) {
   return allOptions().find(o=>o.value===(mode==='combat'?'Tidebreak / Idle':'通常 / 自然体'))?.value;
 }
 
-// Keep the existing motion picker; never insert asset-provided labels as HTML.
 const backdrop = q('#picker-backdrop'), list = q('#picker-list');
-let pickerOrigin = null;
-function closePicker() { backdrop.hidden = true; pickerOrigin?.focus(); }
-function openPicker(select) {
-  if (select.disabled) return;
-  pickerOrigin = q(`[data-picker-for="${select.id}"]`);
-  q('#picker-title').textContent = `${select.getAttribute('aria-label') || select.closest('.stage-row,.single-review,.motion-pair>div')?.querySelector('.stage-mark,label')?.textContent || 'モーション'}を選択`;
-  list.replaceChildren(...[...select.options].filter(o => !o.disabled && o.value).map(option => {
+const sheet = backdrop.querySelector('.picker-sheet');
+const pickerTools = document.createElement('div'); pickerTools.className = 'picker-tools';
+const pickerSearch = document.createElement('input'); pickerSearch.id = 'picker-search'; pickerSearch.type = 'search'; pickerSearch.placeholder = 'モーションを検索'; pickerSearch.autocomplete = 'off'; pickerSearch.spellcheck = false;
+const pickerCount = document.createElement('span'); pickerCount.id = 'picker-count'; pickerCount.setAttribute('aria-live', 'polite');
+pickerTools.append(pickerSearch, pickerCount); list.before(pickerTools);
+let pickerOrigin = null, pickerSelect = null;
+const normalize = value => String(value || '').toLocaleLowerCase('ja').replace(/[\s_\-]+/g, ' ').trim();
+function closePicker() { backdrop.hidden = true; pickerSelect = null; pickerSearch.value = ''; pickerOrigin?.focus(); }
+function pickerRows(select, query = '') {
+  const keyword = normalize(query);
+  return [...select.options].filter(option => !option.disabled && option.value).filter(option => {
+    if (!keyword) return true;
+    return normalize(`${option.textContent} ${option.value} ${option.dataset.group || ''}`).includes(keyword);
+  });
+}
+function renderPickerList() {
+  if (!pickerSelect) return;
+  const rows = pickerRows(pickerSelect, pickerSearch.value);
+  pickerCount.textContent = `${rows.length}件`;
+  list.replaceChildren(...rows.map(option => {
     const button = document.createElement('button'); button.type = 'button';
-    button.className = `picker-item${option.value === select.value ? ' active' : ''}`;
-    const label = document.createElement('span'), code = document.createElement('small');
-    label.textContent = option.textContent; code.textContent = option.value; button.append(label, code);
-    button.onclick = () => { select.value = option.value; select.dispatchEvent(new Event('change', {bubbles: true})); syncTrigger(select); closePicker(); };
+    button.className = `picker-item${option.value === pickerSelect.value ? ' active' : ''}`;
+    const label = document.createElement('span'), meta = document.createElement('small');
+    label.textContent = option.textContent;
+    meta.textContent = option.dataset.group || option.value;
+    button.append(label, meta);
+    button.onclick = () => {
+      const select = pickerSelect;
+      select.value = option.value;
+      select.dispatchEvent(new Event('change', {bubbles: true}));
+      syncTrigger(select);
+      if (STAGES.includes(select.id)) playValue(option.value);
+      closePicker();
+    };
     return button;
   }));
+  if (!rows.length) {
+    const empty = document.createElement('p'); empty.className = 'picker-empty'; empty.textContent = '該当するモーションがありません';
+    list.replaceChildren(empty);
+  }
+}
+function openPicker(select) {
+  if (select.disabled) return;
+  pickerSelect = select;
+  pickerOrigin = q(`[data-picker-for="${select.id}"]`);
+  const target = select.getAttribute('aria-label') || select.closest('.stage-row,.single-review,.motion-pair>div')?.querySelector('.stage-mark,label')?.textContent || 'モーション';
+  q('#picker-title').textContent = `${target}のモーション`;
+  pickerSearch.value = '';
+  renderPickerList();
   backdrop.hidden = false; q('#picker-close').focus();
 }
+pickerSearch.addEventListener('input', renderPickerList);
 q('#picker-close').onclick = closePicker;
 backdrop.addEventListener('click', event => { if (event.target === backdrop) closePicker(); });
 backdrop.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); closePicker(); } });
@@ -93,7 +131,6 @@ document.querySelectorAll('.review-select').forEach(select => {
   trigger.dataset.pickerFor = select.id; trigger.textContent = '選択'; trigger.onclick = () => openPicker(select); select.after(trigger);
   select.addEventListener('change', () => {
     syncTrigger(select); refreshSelectors();
-    // Stance/reaction/axis instant playback is owned by review-ux.js.
     if (['draw', 'sheathe'].includes(select.dataset.filter)) playValue(select.value);
   });
 });
@@ -144,14 +181,13 @@ dialog.addEventListener('close', () => { drafts.set(draftKey, editor.value); fee
 async function copyFeedback(value) {
   feedbackStatus.textContent = '';
   try {
-    // Keep the clipboard call inside the user's button gesture (mobile Safari too).
     if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
     await navigator.clipboard.writeText(value);
   } catch {
     const manual = q('#review-feedback-manual');
     manual.hidden = false; manual.value = value; manual.focus(); manual.select(); manual.setSelectionRange(0, value.length);
     let copied = false;
-    try { copied = document.execCommand('copy'); } catch { /* Leave selectable text visible. */ }
+    try { copied = document.execCommand('copy'); } catch {}
     if (!copied) { feedbackStatus.textContent = '自動コピーが許可されませんでした。下の選択済みテキストを長押ししてコピーしてください。'; return; }
     manual.hidden = true; editor.focus();
   }

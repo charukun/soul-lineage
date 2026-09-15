@@ -4,50 +4,8 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
   <meta name="theme-color" content="#07090d"/>
-  <title>Motion Library | Visual Review Lab</title>
-  <script>
-    (() => {
-      const params = new URLSearchParams(location.search);
-      if (params.get('embed') === '1') document.documentElement.dataset.embed = 'true';
-      else location.replace('./?tab=motion');
-    })();
-  </script>
-  <link rel="stylesheet" href="./src/review/motion-library-embed.css"/>
+  <title>Visual Review Lab</title>
+  <script>location.replace('./');</script>
 </head>
-<body>
-<main class="motion-library-shell">
-  <header class="library-topbar">
-    <a class="back-link" href="./?tab=motion">‹ Review</a>
-    <div class="library-brand"><strong>Visual Review Lab</strong><small>Motion Library</small></div>
-    <a class="source-link" href="https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0" target="_blank" rel="noreferrer">CC0</a>
-  </header>
-
-  <section class="library-viewer" aria-label="モーションプレビュー">
-    <canvas id="motion-library-canvas"></canvas>
-    <div class="viewer-copy">
-      <span id="library-model-name">Knight</span>
-      <strong id="library-motion-name">読み込み中</strong>
-      <small id="library-status" role="status">CC0モーションを準備しています</small>
-    </div>
-    <div class="viewer-controls" aria-label="再生操作">
-      <button id="library-play" type="button">一時停止</button>
-      <button id="library-speed" type="button">1×</button>
-      <button id="library-restart" type="button">先頭</button>
-      <button id="library-candidate" type="button" aria-pressed="false">採用</button>
-    </div>
-  </section>
-
-  <section class="library-browser">
-    <div id="library-models" class="library-models" aria-label="モデル"></div>
-    <label class="library-search">
-      <span class="sr-only">キーワード検索</span>
-      <input id="library-search" type="search" placeholder="キーワード検索" autocomplete="off" spellcheck="false"/>
-    </label>
-    <div class="library-count" id="library-count">読込中</div>
-    <div id="library-list" class="library-list" aria-live="polite"></div>
-  </section>
-</main>
-<script type="module" src="./src/review/motion-library.js"></script>
-<script type="module" src="./src/review/motion-library-actions.js"></script>
-</body>
+<body><p>Visual Review Labへ移動します。</p></body>
 </html>
