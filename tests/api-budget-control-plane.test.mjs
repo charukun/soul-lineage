@@ -53,3 +53,15 @@ test('PULSE exposes the API budget used by the current snapshot', () => {
   assert.match(app, /api\.remaining/);
   assert.match(app, /API \$\{api\.scope === 'authenticated' \? '認証' : '公開'\}/);
 });
+
+test('normal develop delivery refreshes state without redeploying an unchanged PULSE runtime', () => {
+  const workflow = text('.github/workflows/ops-board.yml');
+  const branchBlock = workflow.split('  push:')[1].split('    paths:')[0];
+  assert.doesNotMatch(branchBlock, /- develop/);
+  assert.match(workflow, /name: Plan PULSE publication/);
+  assert.match(workflow, /node ops-board\/publication-plan\.mjs/);
+  assert.match(workflow, /name: Refresh existing PULSE state/);
+  assert.match(workflow, /needs\.plan\.outputs\.deploy_required == 'false'/);
+  assert.match(workflow, /x-ops-github-token: \$GH_TOKEN/);
+  assert.match(workflow, /PULSE runtime unchanged; authenticated state refresh passed/);
+});
