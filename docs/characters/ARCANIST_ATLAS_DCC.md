@@ -16,7 +16,8 @@ The comparison set is intentionally three-way:
 - Author dedicated skin, hair, clothing and accessory surfaces in Blender rather than promoting Three.js primitives.
 - Preserve the Arcanist reference cues already recorded by the repository: refined scholar/magic silhouette, mantle, book, glasses, tied long hair, scroll/satchel vocabulary and staff/book review prop.
 - Keep gameplay equipment ownership separate. Visible staff/book forms are review presentation and do not grant combat or inventory behavior.
-- Save the editable `.blend`, exported VRM/GLB candidate, four fixed-view review renders, Blender audit and exact hashes.
+- Save the editable `.blend`, exported GLB candidate, four fixed-view review renders, Blender audit and exact hashes.
+- Pin the committed Arcanist reference SHA before Blender execution so the build cannot silently switch concept input.
 - Do not claim `RUNTIME_READY`, visual approval, deformation approval or device performance from the DCC build alone.
 
 ## Review integration
@@ -24,6 +25,10 @@ The comparison set is intentionally three-way:
 The existing `ARCANIST_ATLAS_STUDY` must remain selectable. The DCC model receives its own distinct preset and must never silently replace either existing Arcanist entry.
 
 Visual Review Lab remains the independent Draft review surface. The DCC work uses its own implementation branch and does not overwrite concurrent Lab work.
+
+## Execution route
+
+The branch includes a dedicated headless GitHub Actions Blender build. This is the same authorized execution class already proven by the Shino DCC pipeline, but the Arcanist source, outputs and concurrency group are isolated. The workflow generates and audits the real editable Blender source rather than promoting the runtime-procedural Atlas mesh.
 
 ## Baseline
 
