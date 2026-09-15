@@ -27,8 +27,10 @@ test('growth model review uses the existing life clock, model picker and fixed a
   assert.match(js, /seconds\/LIFE_RULES\.secondsPerYear/);
   assert.match(js, /root\.scale\.copy\(base\.rootScale\)\.multiply\(new THREE\.Vector3\(\.\.\.model\.appearanceScale\)\)\.multiplyScalar\(appearance\.scale\)/);
   assert.match(js, /bones\.head\.scale\.copy\(base\.headScale\)\.multiplyScalar\(appearance\.headScale\)/);
+  assert.match(js, /if\(isVRM0\)root\.rotation\.y=Math\.PI/);
+  assert.match(js, /direction:isVRM0\?-1:1/);
+  assert.match(js, /direction\*appearance\.stoop/);
   assert.match(js, /appearance\.gray/);
-  assert.match(js, /appearance\.stoop/);
   assert.match(js, /appearance\.skinAge/);
   assert.match(js, /url\.searchParams\.set\('model',selectedModel\.id\)/);
   assert.doesNotMatch(js, /visualApproval\s*=|productionStage\s*=/);
