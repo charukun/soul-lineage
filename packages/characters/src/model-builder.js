@@ -142,7 +142,7 @@ export function validateCharacterModelBuildRequest(request) {
   stringValue(target.primaryFormat, 'primary format');
   invariant(formats.includes(target.primaryFormat), 'Primary format must be in target formats');
   const requirements = plainObject(request.requirements, 'requirements');
-  validateCharacterRefinementPolicy(plainObject(requirements.refinement, 'requirements refinement'));
+  if (requirements.refinement != null) validateCharacterRefinementPolicy(plainObject(requirements.refinement, 'requirements refinement'));
   const acceptance = plainObject(request.acceptance, 'acceptance');
   invariant(acceptance.rule === 'all-required-gates-pass', 'Invalid acceptance rule');
   const gates = stringList(acceptance.requiredGates, 'acceptance gates');
