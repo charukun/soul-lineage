@@ -13,6 +13,7 @@ import {
 import { signalDeepRepair } from './integration-deep-repair-handoff.mjs';
 import { trustedStackFastEvidence } from './integration-stack-fast-evidence.mjs';
 import { dependencies, eligibility } from './integration-policy.mjs';
+import { comparison as completeComparison } from './integration-rescue-store.mjs';
 
 export const maxFastLaneMerges = 24;
 const trustedReviewReason = 'automation/deployment change requires approval of this head by a maintainer';
@@ -165,27 +166,9 @@ export async function integrateFastLane(c, repository, options = {}) {
       }
 
       const ownDiff = await c.api('GET', `${c.root}/compare/${expected}...${pr.head.sha}`, null, { cache: true });
-      const base = ownDiff.merge_base_commit.sha;
-      const comparison = base === expected ? { files: [] } : await c.api('GET', `${c.root}/compare/${base}...${expected}`, null, { cache: true });
-      if ((comparison.files || []).length >= 300) {
-        const deep = await signalDeepRepair(c, {
-          pr,
-          repository,
-          develop: expected,
-          reason: 'LARGE_BASE_RECONCILIATION: develop advanced across 300 or more changed files since the PR merge base',
-          repairKind: 'large-base',
-          dependenciesMerged: dependencyMerged,
-          unresolved,
-          reviews,
-        });
-        if (deep.signaled) {
-          report.deepRepair.push({ pr: pr.number, head: pr.head.sha, issue: deep.issue, reason: 'large base reconciliation' });
-          report.held.push({ pr: pr.number, head: pr.head.sha, reason: `deep repair requested in issue #${deep.issue}` });
-          await queueStatus(c, pr, 'pending', `Deep Repair #${deep.issue}: large base reconciliation`, deep.url || targetUrl);
-          continue;
-        }
-        throw new Error('Large base comparison needs manual Integration review');
-      }
+      const base = ownDiff.merge_base_commit?.sha;
+      if (!/^[0-9a-f]{40}$/.test(base || '')) throw new Error('INCOMPLETE_BASE_COMPARISON');
+      const baseComparison = base === expected ? { files: [] } : await completeComparison(c, base, expected);
       const criteria = () => ({
         pr,
         repository,
@@ -194,7 +177,7 @@ export async function integrateFastLane(c, repository, options = {}) {
         unresolved,
         dependenciesMerged: dependencyMerged,
         checksPassed,
-        baseChanges: (comparison.files || []).flatMap(file => [file.filename, file.previous_filename].filter(Boolean)),
+        baseChanges: baseComparison.files,
         recovery: false,
       });
 
