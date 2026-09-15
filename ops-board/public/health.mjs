@@ -171,9 +171,12 @@ export function boardAlerts(state, now = Date.now(), loadError = null) {
       detail: `${item.title || ''}${item.reason ? ` / ${item.reason}` : ''}`, url: item.ci?.url || item.url });
   }
   const publication = devPublicationSummary(state, now);
-  if (publication?.state === 'stalled' && !alerts.some(alert => alert.type === 'delivery-stalled')) {
+  const legacyStalled = state?.integration?.stalled === true;
+  if ((publication?.state === 'stalled' || legacyStalled) && !alerts.some(alert => alert.type === 'delivery-stalled')) {
     alerts.push({ type: 'delivery-stalled', tone: 'danger', title: 'DEV公開の更新が止まっています',
-      detail: `${publication.detail}。実行ログを確認してください。`,
+      detail: publication?.detail
+        ? `${publication.detail}。実行ログを確認してください。`
+        : 'GitHub上の公開処理の更新が10分以上ありません。実行ログを確認してください。',
       since: state?.integration?.latestRun?.updatedAt || state?.integration?.heartbeatAt, url: state?.integration?.latestRun?.url });
   }
   return alerts;
