@@ -18,7 +18,7 @@ export function createConversationInput({document,window:windowLike=globalThis.w
 
   fan.replaceChildren(...phrases.map((phrase,index)=>{
     const button=document.createElement('button');
-    button.type='button';button.className='speech-phrase';button.dataset.intent=phrase.id;button.textContent=phrase.text;button.title=phrase.label;
+    button.type='button';button.className='speech-phrase';button.dataset.intent=phrase.id;button.textContent=phrase.text;button.title=phrase.label;button.tabIndex=-1;
     button.setAttribute('aria-label',`${phrase.label}：${phrase.text}`);
     const angle=(200+(index*(80/Math.max(1,phrases.length-1))))*Math.PI/180,radius=94;
     button.style.setProperty('--fan-x',`${Math.cos(angle)*radius}px`);button.style.setProperty('--fan-y',`${Math.sin(angle)*radius}px`);
@@ -35,6 +35,7 @@ export function createConversationInput({document,window:windowLike=globalThis.w
   }
   function setOpen(next){
     open=Boolean(next)&&conversationAvailable(getState?.());dock.classList.toggle('is-fan-open',open);fan.setAttribute('aria-hidden',String(!open));toggle.setAttribute('aria-expanded',String(open));
+    for(const button of fan.querySelectorAll('.speech-phrase'))button.tabIndex=open?0:-1;
   }
   function closeFan(){setOpen(false);}
   function stopRecognition(){try{recognition?.abort?.();}catch{}recognition=null;listening=false;dock.classList.remove('is-listening');mic.setAttribute('aria-pressed','false');}
