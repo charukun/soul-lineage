@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { parseAiRepairEnvelope } from '../scripts/integration-ai-repair-envelope.mjs';
 import {
   deepRepairIssueMarker,
   deepRepairIssueState,
@@ -71,6 +72,14 @@ test('signalDeepRepair creates one issue per exact head and records pending stat
   assert.match(issue.body.body, /integration-deep-repair:v1/);
   assert.match(issue.body.body, /rinne-ai-repair:v1/);
   assert.match(issue.body.body, /AI_DEEP_REPAIR_REQUIRED/);
+  const envelope = parseAiRepairEnvelope(issue.body.body);
+  assert.equal(envelope.attempt, 0);
+  assert.equal(envelope.maxAttempts, 2);
+  assert.equal(envelope.head, head);
+  assert.match(envelope.constraints.join('\n'), /DEV publication -> user visual feedback -> AI correction/);
+  assert.match(envelope.constraints.join('\n'), /Adapt stale PR behavior to current confirmed specifications/);
+  assert.match(envelope.constraints.join('\n'), /Never automatically clear an existing human-required decision/);
+  assert.match(envelope.constraints.join('\n'), /preserve exact-head, review, thread, check, browser and Production gates/);
   const status = calls.find(call => call.path.endsWith(`/statuses/${head}`));
   assert.equal(status.body.context, 'integration/deep-repair');
   assert.equal(status.body.state, 'pending');

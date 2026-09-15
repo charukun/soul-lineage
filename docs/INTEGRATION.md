@@ -49,6 +49,8 @@ Fast Repairが扱うのは、依存PRのmerge後に最新developを取り込む�
 
 同一fileや契約の意味衝突、真のプロダクト判断、明示hold、Changes requested、未解決threadは自動修復しない。必要な場合だけ既存deep repair / human-requiredへ送る。追加の有料モデルAPIやPATを通常Repairの前提にしない。
 
+ここでの自動修復は機械的なFast Repairを指す。意味衝突はDeep Repairの調査対象であり、人待ちとは限らない。[DEVで実物を確認する標準開発](RINNE_PROJECT_EXECUTION_POLICY.md#devで実物を確認する標準開発) に従い、確定仕様への適応と可逆的な判断はAIが行う。任意の見た目・操作感の確認はDEV公開後に行い、既存gateに新しい目視承認待ちを追加しない。
+
 旧Rescue state/scriptsは移行・診断・deep-repair互換のため残せるが、通常Fast Repairの進行条件やmerge権限には使わない。
 
 ## browserはmerge laneを止めない
