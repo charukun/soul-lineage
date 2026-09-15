@@ -7,7 +7,8 @@ import {
   defaultCharacterCoverageTargets,
   defineExternalCharacterReference,
   evaluateExternalReferenceConsensus,
-  getExternalCharacterReference
+  getExternalCharacterReference,
+  validateCharacterGoldenBaseline
 } from '../src/reference-intelligence.js';
 import {
   REQUIRED_DEFORMATION_POSES,
@@ -70,33 +71,35 @@ const presentation = Object.freeze({
   apps: ['village'], ageBands: ['adult'], bodyArchetypes: ['adult.sturdy'], roles: ['guard'], renderTiers: ['full']
 });
 
-test('external references are pinned and consensus counts independent repositories, not files', () => {
+test('external references are pinned and consensus counts independent provenance families', () => {
   const source = getExternalCharacterReference('sendagaya-shino-yui');
   assert.match(source.revision, /^[0-9a-f]{40}$/);
   assert.equal(source.copyPolicy, 'never-wholesale-copy');
+  assert.equal(source.sourceFamily, 'vroid-project');
 
-  const sameRepo = evaluateExternalReferenceConsensus(
-    ['vroid-sample-a-voxavatar', 'vroid-sample-b-voxavatar'], 'multi-material-avatar'
+  const sameFamily = evaluateExternalReferenceConsensus(
+    ['sendagaya-shino-yui', 'vroid-sample-a-voxavatar', 'vroid-sample-b-voxavatar'], 'vrm-humanoid'
   );
-  assert.equal(sameRepo.status, 'insufficient');
-  assert.equal(sameRepo.independentSourceCount, 1);
+  assert.equal(sameFamily.status, 'insufficient');
+  assert.equal(sameFamily.independentSourceCount, 1);
 
   const independent = evaluateExternalReferenceConsensus(
     ['sendagaya-shino-yui', 'vroid-sample-a-voxavatar', 'pixiv-three-vrm-runtime'], 'vrm-humanoid'
   );
   assert.equal(independent.status, 'consensus');
-  assert.equal(independent.independentSourceCount, 3);
+  assert.equal(independent.independentSourceCount, 2);
 });
 
-test('unversioned or ambiguous public references are rejected', () => {
-  assert.throws(() => defineExternalCharacterReference({
-    id: 'bad.reference', kind: 'character-reference', repository: 'https://github.com/example/repo', revision: 'main',
-    license: 'MIT', adoptionPolicy: 'reference-only', evidence: ['README.md'], observations: ['stylized-humanoid']
-  }));
-  assert.throws(() => defineExternalCharacterReference({
-    id: 'bad.path', kind: 'character-reference', repository: 'https://github.com/example/repo', revision: 'a'.repeat(40),
-    license: 'MIT', adoptionPolicy: 'reference-only', evidence: ['../escape.glb'], observations: ['stylized-humanoid']
-  }));
+test('unversioned, unlicensed or ambiguous public references are rejected', () => {
+  const base = {
+    id: 'bad.reference', kind: 'character-reference', repository: 'https://github.com/example/repo',
+    revision: 'a'.repeat(40), sourceFamily: 'example-family', license: 'MIT', adoptionPolicy: 'reference-only',
+    evidence: ['README.md'], observations: ['stylized-humanoid']
+  };
+  assert.throws(() => defineExternalCharacterReference({ ...base, revision: 'main' }));
+  assert.throws(() => defineExternalCharacterReference({ ...base, license: 'unknown' }));
+  assert.throws(() => defineExternalCharacterReference({ ...base, evidence: ['../escape.glb'] }));
+  assert.throws(() => defineExternalCharacterReference({ ...base, sourceFamily: '' }));
 });
 
 test('default coverage uses latest archetype app contexts and links Shino source evidence', () => {
@@ -138,6 +141,13 @@ test('golden baselines require RUNTIME_READY plus visual approval and matching p
   });
   assert.equal(matrix.rows[0].status, 'golden');
   assert.equal(matrix.rows[0].nextAction, 'monitor');
+});
+
+test('hand-authored invalid golden evidence fails closed', () => {
+  const valid = createCharacterGoldenBaseline({ id: 'guard.golden', target, manifest: runtimeReadyManifest() });
+  assert.throws(() => validateCharacterGoldenBaseline({ ...valid, visualApproval: 'pending' }));
+  assert.throws(() => validateCharacterGoldenBaseline({ ...valid, metrics: { ...valid.metrics, triangles: -1 } }));
+  assert.throws(() => buildCharacterCoverageMatrix([target], { goldenBaselines: [{ ...valid, productionStage: 'PRIMARY' }] }));
 });
 
 test('golden comparison stays diagnostic and cannot grant visual approval', () => {
