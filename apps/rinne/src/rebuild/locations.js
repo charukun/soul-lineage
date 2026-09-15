@@ -3,14 +3,13 @@ import { defaultMuraLayout, muraEntry, defs, validateMuraLayout } from '@soul/wo
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const built=(layout,kinds)=>layout.objects.find(o=>o.phase==='built'&&kinds.includes(o.kind));
 const fallbackSquare=layout=>built(layout,['campfire'])||built(layout,['mayor','home','tent','clanManor']);
-const FALLBACK_OFFSETS=Object.freeze({
-  home:[-4,-4],garden:[0,0],school:[-5,2],library:[-3,5],chapel:[0,6],dojo:[3,5],smith:[6,2],clinic:[5,-3],
-});
+const FALLBACK_OFFSETS=Object.freeze({home:[-4,-4],garden:[0,0],school:[-5,2],library:[-3,5],chapel:[0,6],dojo:[3,5],smith:[6,2],clinic:[5,-3]});
+const LOCAL_OFFSETS=Object.freeze({school:[-1.2,0],library:[1.2,0]});
 
 function place(layout,id,kinds,label,activity=null,radius=2.4){
   const object=built(layout,kinds),fallback=fallbackSquare(layout),anchor=object||fallback;
   let position=anchor?muraEntry(anchor):{x:0,z:0};
-  if(!object&&fallback){const [dx,dz]=FALLBACK_OFFSETS[id]||[0,0];position={x:position.x+dx,z:position.z+dz};}
+  const [dx,dz]=object?(LOCAL_OFFSETS[id]||[0,0]):(FALLBACK_OFFSETS[id]||[0,0]);position={x:position.x+dx,z:position.z+dz};
   return {id,entityId:object?.id||fallback?.id||null,label:object?defs[object.kind]?.label||label:label,x:position.x,z:position.z,activity,actionLabel:label,radius,fallback:!object};
 }
 
@@ -21,7 +20,7 @@ export function buildStations(layout){
   const home=place(layout,'home',['home','tent','clanManor','mayor'],'暮らしを手伝う','care');
   const garden=place(layout,'garden',['campfire'],'広場で遊ぶ','play',3.0);
   const school=place(layout,'school',['school'],'文字を学ぶ','study');
-  const library=place(layout,'library',['school'],'本を読む','read',1.8);
+  const library=place(layout,'library',['school'],'本を読む','read',1.0);
   const chapel=place(layout,'chapel',['chapel'],'祈る','pray',2.0);
   const dojo=place(layout,'dojo',['dojo'],'稽古を見る','train',2.1);
   const smith=place(layout,'smith',['smith','weapons'],'鍛冶を見る','forge',2.0);
