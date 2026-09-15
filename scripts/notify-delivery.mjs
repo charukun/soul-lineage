@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { notifyStage } from './implementation-handoff.mjs';
 import { lifecycleMessage, normalizeNotificationLocale, notificationTitle } from './notification-copy.mjs';
 
-export function deliveryMessage(stage, { report, sha, repository, runUrl, locale = 'en', pr = null }) {
+export function deliveryMessage(stage, { report, sha, repository, runUrl, locale = 'en' }) {
   if (stage === 'INTEGRATED') {
     if (!report?.merged?.length) return null;
     return lifecycleMessage('INTEGRATED', { locale, lines: [
@@ -18,28 +18,36 @@ export function deliveryMessage(stage, { report, sha, repository, runUrl, locale
     ] });
   }
   if (stage !== 'DEV_DEPLOYED' || !/^[a-f0-9]{40}$/.test(sha || '')) throw new Error('INVALID_DELIVERY_RESULT');
+  return lifecycleMessage('DEV_DEPLOYED', { locale, lines: [
+    'branch: develop',
+    `commit: ${sha}`,
+    'Fast checks / DEV publication / HTTP-source verification passed.',
+    'Browser diagnostics are asynchronous and only gate active repair verification or Production.',
+    `Run: ${runUrl}`,
+  ] });
+}
+
+export function devChangeEmailMessage({ pr, sha, repository, runUrl, locale = 'ja' }) {
+  if (!pr?.number || !pr?.title) return null;
   const language = normalizeNotificationLocale(locale);
-  const hasChange = Boolean(pr?.number && pr?.title);
-  return lifecycleMessage('DEV_DEPLOYED', {
-    locale,
-    result: hasChange
-      ? (language === 'ja' ? `${pr.title} をDEVへ反映しました。` : `DEV now includes: ${pr.title}`)
-      : undefined,
-    next: hasChange
-      ? (language === 'ja' ? 'DEVで確認できます。' : 'Review the change on DEV.')
-      : undefined,
-    lines: [
-      ...(hasChange ? [
-        `PR: https://github.com/${repository}/pull/${pr.number}`,
-        'DEV: https://charukun.github.io/soul-lineage/dev/',
-      ] : []),
-      'branch: develop',
-      `commit: ${sha}`,
-      'Fast checks / DEV publication / HTTP-source verification passed.',
-      'Browser diagnostics are asynchronous and only gate active repair verification or Production.',
-      `Run: ${runUrl}`,
-    ],
-  });
+  if (language === 'ja') return [
+    'DEV反映完了',
+    `修正内容: ${pr.title}`,
+    'DEVで確認できます。',
+    'https://charukun.github.io/soul-lineage/dev/',
+    `PR: https://github.com/${repository}/pull/${pr.number}`,
+    `commit: ${sha}`,
+    `Run: ${runUrl}`,
+  ].join('\n');
+  return [
+    'DEV deployment complete',
+    `Change: ${pr.title}`,
+    'Review it on DEV:',
+    'https://charukun.github.io/soul-lineage/dev/',
+    `PR: https://github.com/${repository}/pull/${pr.number}`,
+    `commit: ${sha}`,
+    `Run: ${runUrl}`,
+  ].join('\n');
 }
 
 async function githubJson(request, url, { token, method = 'GET', body } = {}) {
@@ -98,10 +106,11 @@ export async function recordGithubDeliveryReceipt({ token = '', repository, sha,
     if (comments.length < 100) break;
     if (page === 3) throw new Error('GITHUB_DELIVERY_RECEIPT_COMMENT_PAGE_LIMIT');
   }
+  const mention = pr.user?.login ? `@${pr.user.login}\n` : '';
   await githubJson(request, `${root}/issues/${pr.number}/comments`, {
     token,
     method: 'POST',
-    body: { body: `${marker}\n${message}\n\nGitHub delivery receipt: verified DEV publication.\n${runUrl}` },
+    body: { body: `${marker}\n${mention}${message}\n\nDevelopment DEV delivery receipt. GitHub PR subscription/mention provides the email notification.\n${runUrl}` },
   });
   return 'github-pr-comment';
 }
@@ -133,15 +142,16 @@ async function main() {
         sha: process.env.FINAL_SHA,
       });
     } catch (error) {
-      console.warn(`::warning::DEV change lookup failed; using generic notification: ${error.message}`);
+      console.warn(`::warning::DEV change lookup failed; no development email receipt will be created: ${error.message}`);
     }
   }
 
   const message = deliveryMessage(stage, { report, sha: process.env.FINAL_SHA,
-    repository: process.env.GITHUB_REPOSITORY, locale, runUrl, pr: associatedPr });
+    repository: process.env.GITHUB_REPOSITORY, locale, runUrl });
   if (!message) { writeOutput('skipped'); return; }
 
-  // GitHub is the delivery source of truth. Record it before the advisory smartphone notification.
+  // GitHub is the delivery source of truth. The human-facing DEV change notice is a PR comment,
+  // which is delivered through the developer's existing GitHub email subscription/mention route.
   if (stage === 'DEV_DEPLOYED') {
     try {
       const status = await recordDevelopDeliveryStatus({
@@ -155,20 +165,28 @@ async function main() {
       console.warn(`::warning::GitHub DEV delivery status failed: ${error.message}`);
     }
     try {
+      const emailMessage = devChangeEmailMessage({
+        pr: associatedPr,
+        sha: process.env.FINAL_SHA,
+        repository: process.env.GITHUB_REPOSITORY,
+        locale,
+        runUrl,
+      });
       const receipt = await recordGithubDeliveryReceipt({
         token: process.env.GITHUB_TOKEN,
         repository: process.env.GITHUB_REPOSITORY,
         sha: process.env.FINAL_SHA,
         runUrl,
-        message,
+        message: emailMessage || message,
         pr: associatedPr,
       });
-      console.log(`GitHub delivery receipt: ${receipt}`);
+      console.log(`GitHub development email receipt: ${receipt}`);
     } catch (error) {
-      console.warn(`::warning::GitHub delivery receipt failed: ${error.message}`);
+      console.warn(`::warning::GitHub development email receipt failed: ${error.message}`);
     }
   }
 
+  // Preserve the pre-existing lifecycle channel, but do not put the requested change title/DEV review copy in it.
   let channel = 'failed';
   try {
     channel = await notifyStage(message, {

@@ -105,7 +105,9 @@ Draftでは lightweight checkのみ。Readyになると `Validate and build` と
 
 `INTEGRATED` と `DEV_DEPLOYED` は別イベントとして扱う。通知失敗はadvisoryでありmerge/publication判定を変更しない。PULSEはmerge状態とDEV delivery healthを混同せず表示する。旧Rescue stateを表示する場合も診断情報であり、通常Repairの権限・待ち条件にはしない。
 
-`DEV_DEPLOYED` のスマホ通知は開発基盤の状態通知だけで終わらせず、公開されたdevelop SHAに直接対応するdevelop向けPRを特定できる場合はPRタイトルを「DEVへ反映された修正内容」として表示し、ユーザーがそのままDEV確認へ進める入口を付ける。既存の`NTFY_TOPIC_URL` / `NTFY_TOKEN`を再利用し、新しいqueue・Task-ID・外部サービスは追加しない。PRを特定できない公開では従来の汎用`DEV_DEPLOYED`通知へ安全にfallbackする。
+ユーザーが修正依頼した内容のDEV反映連絡は、ゲーム本体やエンドユーザー向け通知から分離した開発者メールとする。公開されたdevelop SHAに直接対応するdevelop向けPRを特定し、GitHub Actions botがそのPRへ `DEV反映完了` 相当のコメントを1件記録する。PRタイトルを修正内容として含め、DEV確認URLを付ける。GitHubの既存PR購読/mentionメール経路を利用し、ゲーム側push/ntfy、独自SMTP、新規外部メールサービス、通知queueはこの連絡には使わない。同一SHAは既存receipt markerで重複送信を防ぐ。詳細は [開発中のDEV反映メール通知](DEV_NOTIFICATION.md) を参照する。
+
+PRを特定できないpublish-only実行では誤った修正内容を通知せず、DEV delivery statusだけを残す。既存の基盤ライフサイクル通知が別経路に存在しても、この開発者向け修正内容メールとは混同しない。
 
 ## 受入条件
 
