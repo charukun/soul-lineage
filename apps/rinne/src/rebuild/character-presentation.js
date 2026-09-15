@@ -1,6 +1,5 @@
 import {
   LIFESPAN_MS,
-  SHINO_MASTER,
   YEAR_MS,
   appearanceForCharacter,
   createCharacter,
@@ -8,10 +7,12 @@ import {
 } from '@soul/characters';
 
 export const RINNE_RUNTIME_CHARACTER_ASSET=Object.freeze({
-  id:'character.sendagaya-shino.v1.audited-master-fallback',
-  url:'./simulator/assets/SHINO_review.vrm',
-  sha256:SHINO_MASTER.source.reviewSha256,
-  productionStage:'AUDITED_MASTER_FALLBACK',
+  id:'character.shino-reference-v2.dcc.v1',
+  url:'./simulator/assets/SHINO_REFERENCE_V2.vrm',
+  sha256:'5f730603f1cd32f743ecbcdd279cf1d3233839fcf36277876a185abbf8eb3e2e',
+  productionStage:'PRIMARY',
+  modelingMode:'dcc-blender',
+  visualApproval:'pending',
   productionReady:false,
   procedural:false
 });
