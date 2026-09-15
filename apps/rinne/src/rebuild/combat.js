@@ -20,8 +20,9 @@ export function normalizeFront(raw,stage=0,seed=1){
     if(!e||typeof e.id!=='string'||e.id.length>80||ids.has(e.id)||!finite(e.x,-20,20)||!finite(e.z,-20,20)||!finite(e.maxHp,1,1000)||!finite(e.hp,0,e.maxHp)||typeof e.dead!=='boolean'||!finite(e.cooldown,-30,30))throw Error('前線の敵データが不正です。');
     ids.add(e.id);return{id:e.id,x:e.x,z:e.z,hp:e.hp,maxHp:e.maxHp,dead:e.dead,cooldown:e.cooldown,flash:finite(e.flash,0,1)?e.flash:0};
   });
-  const cleared=typeof raw.cleared==='boolean'?raw.cleared:enemies.every(e=>e.dead),clearSeconds=finite(raw.clearSeconds,0,3600)?raw.clearSeconds:0;
-  if(cleared!==enemies.every(e=>e.dead))throw Error('前線の撃破状態が不正です。');
+  const allDead=enemies.every(e=>e.dead);
+  if(raw.cleared===true&&!allDead)throw Error('前線の撃破状態が不正です。');
+  const cleared=allDead,clearSeconds=finite(raw.clearSeconds,0,3600)?raw.clearSeconds:0;
   return{stage,enemies,cleared,clearSeconds};
 }
 
