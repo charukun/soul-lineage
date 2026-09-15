@@ -34,7 +34,7 @@ test('phone navigation exposes five task routes while tools and motions stay con
   assert.match(nav,/review-tool-grid/);
   assert.doesNotMatch(nav,/\['motion', 'モーション'\]/);
   assert.match(navCss,/grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
-  assert.match(navCss,/\.picker-list\{[^}]*grid-template-columns:repeat\(5/mins);
+  assert.match(navCss,/\.picker-list\{[^}]*grid-template-columns:repeat\(5/s);
   assert.match(notebook,/placeholder = 'モーションを検索'/);
   assert.match(notebook,/picker-item/);
 });
