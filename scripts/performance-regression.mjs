@@ -15,6 +15,8 @@ const report = comparePerformanceSnapshots(baseline.performance || baseline, cur
   drawCallRatio: Number(args.calls || 1.12),
   triangleRatio: Number(args.triangles || 1.18),
   textureRatio: Number(args.texture || 1.15),
+  transparencyDrawCallRatio: Number(args.transparentCalls || 1.18),
+  transparencyTriangleRatio: Number(args.transparentTriangles || 1.22),
   longFrameDelta: Number(args.longFrames || 3),
 });
 console.log(JSON.stringify(report, null, 2));
