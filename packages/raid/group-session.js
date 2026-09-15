@@ -8,12 +8,15 @@ const JOIN_DISTANCE=6.4;
 const LEAVE_DISTANCE=5.8;
 const HARD_LEAVE_DISTANCE=8.2;
 const MAX_SIMULTANEOUS=6;
+const RETREAT_AWAY_DOT=.32;
+const GROUP_ESCAPE_DOT=.18;
 
 export class RaidSession extends SingleRaidSession {
  constructor(village,profile,ports={}){
   super(village,profile,ports);
   this.combatants=[];
   this._promoting=false;
+  this.combatInputLatched=false;
  }
  emit(type,data={}){
   if(type==='engage'&&this._promoting)return;
@@ -23,6 +26,25 @@ export class RaidSession extends SingleRaidSession {
  isAggressive(npc){return (npc?.behavior||villagerBehavior(npc?.role))==='fight';}
  combatantCount(){return (this.fight?1:0)+this.combatants.filter(f=>!f.npc.dead&&!f.npc.eaten).length;}
  isCombatant(npc){return this.fight?.npc===npc||this.combatants.some(f=>f.npc===npc);}
+ _inputHeld(input={}){return !!input.active||Math.max(0,Number(input.amount)||0)>.05;}
+ _heldEscapeIntent(input={}){
+  const p=this.player;if(!p||!this._inputHeld(input))return false;
+  const ix=Number(input.x)||0,iz=Number(input.z)||0,im=Math.hypot(ix,iz);if(im<.001)return false;
+  const threats=[this.fight?.npc,...this.combatants.map(record=>record.npc)].filter(n=>n&&!n.dead&&!n.eaten);
+  if(!threats.length)return false;
+  let ax=0,az=0,total=0,nearest=null,near=Infinity;
+  for(const n of threats){const dx=p.x-n.x,dz=p.z-n.z,d=Math.hypot(dx,dz)||.001,w=1/Math.max(1,d);ax+=dx/d*w;az+=dz/d*w;total+=w;if(d<near){near=d;nearest={dx:dx/d,dz:dz/d};}}
+  ax/=total||1;az/=total||1;let am=Math.hypot(ax,az);
+  if(am<.08&&nearest){ax=nearest.dx;az=nearest.dz;am=1;}
+  const away=(ix*ax+iz*az)/(im*(am||1));
+  return away>(threats.length>1?GROUP_ESCAPE_DOT:RETREAT_AWAY_DOT);
+ }
+ _combatInput(input={}){
+  if(!this.fight||!this.combatInputLatched)return input;
+  if(!this._inputHeld(input)){this.combatInputLatched=false;return input;}
+  if(this._heldEscapeIntent(input)){this.combatInputLatched=false;return input;}
+  return{...input,x:0,z:0,amount:0,active:false,dash:false};
+ }
  consume(n){
   if(n.eaten)return;
   const before={hp:this.player.hp,maxhp:this.player.maxhp,unlocked:this.profile.unlocked.length,known:this.profile.unlocked.includes(n.role)};
@@ -114,25 +136,31 @@ export class RaidSession extends SingleRaidSession {
   return !!this.fight;
  }
  shadowStep(v){if(this.combatants.length)return;return super.shadowStep(v);}
- finish(status){for(const record of this.combatants)this.rememberFight(record);return super.finish(status);}
+ finish(status){this.combatInputLatched=false;for(const record of this.combatants)this.rememberFight(record);return super.finish(status);}
  clearCombat(){
   if(this.fight){this.fight.npc.state=this.isAggressive(this.fight.npc)?'pursue':'flee';this.fight.npc.pose=null;}
   for(const record of this.combatants){record.npc.state=this.isAggressive(record.npc)?'pursue':'flee';record.npc.pose=null;record.npc.speed=0;}
-  this.fight=null;this.combatants=[];
+  this.fight=null;this.combatants=[];this.combatInputLatched=false;
  }
  tick(dt,input){
   if(this.finished)return;
+  const rawInput=input||{},fightAtStart=!!this.fight;
   this._rallyAggressors();
   this._joinNearby();
+  const fightBeforeCore=!!this.fight;
+  if(!fightAtStart&&fightBeforeCore&&this._inputHeld(rawInput))this.combatInputLatched=true;
+  const combatInput=this._combatInput(rawInput);
   const primary=this.fight?.npc||null;
-  super.tick(dt,input);
+  super.tick(dt,combatInput);
+  if(!fightBeforeCore&&this.fight&&this._inputHeld(rawInput))this.combatInputLatched=true;
   if(this.finished)return;
   const released=primary&&!this.fight&&!primary.dead&&!primary.eaten;
   if(released&&!this.isAggressive(primary)){primary.state='flee';primary.fear=Math.max(primary.fear||0,3);}
   if(primary&&!this.fight&&this.combatants.length)this.promoteNextCombatant();
   this._rallyAggressors();
   if(this.fight&&!this.devour)this._joinNearby();
-  this._tickSecondaries(Math.min(Math.max(Number(dt)||0,0),1/30),input||{});
+  this._tickSecondaries(Math.min(Math.max(Number(dt)||0,0),1/30),combatInput);
   if(!this.fight&&this.combatants.length)this.promoteNextCombatant();
+  if(!this.fight)this.combatInputLatched=false;
  }
 }
