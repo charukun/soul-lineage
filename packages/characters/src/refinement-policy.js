@@ -18,6 +18,7 @@ export const CHARACTER_REFINEMENT_CHECKS = Object.freeze([
 ]);
 
 const CHECK_IDS = Object.freeze(CHARACTER_REFINEMENT_CHECKS.map(check => check.id));
+const CHECK_STATUSES = new Set(['pending', 'pass', 'fail']);
 
 export const CHARACTER_REFINEMENT_POLICY = Object.freeze({
   version: CHARACTER_REFINEMENT_POLICY_VERSION,
@@ -59,4 +60,36 @@ export function validateCharacterRefinementPolicy(policy) {
 
 export function createCharacterRefinementPolicy() {
   return JSON.parse(JSON.stringify(CHARACTER_REFINEMENT_POLICY));
+}
+
+export function createCharacterRefinementRound(round = 1, results = {}) {
+  assert(Number.isInteger(round) && round >= 1 && round <= CHARACTER_REFINEMENT_MAX_ROUNDS, 'round must be between 1 and 3');
+  assert(results && typeof results === 'object' && !Array.isArray(results), 'results must be an object');
+  const unknown = Object.keys(results).filter(id => !CHECK_IDS.includes(id));
+  assert(unknown.length === 0, `unknown checks: ${unknown.join(', ')}`);
+
+  const checks = CHARACTER_REFINEMENT_CHECKS.map(check => {
+    const status = results[check.id] ?? 'pending';
+    assert(CHECK_STATUSES.has(status), `${check.id} has invalid status ${status}`);
+    return Object.freeze({ ...check, status });
+  });
+  const failed = checks.filter(check => check.status === 'fail').map(check => check.id);
+  const passed = checks.filter(check => check.status === 'pass').map(check => check.id);
+  const pending = checks.filter(check => check.status === 'pending').map(check => check.id);
+  const state = failed.length
+    ? (round === CHARACTER_REFINEMENT_MAX_ROUNDS ? 'escalate' : 'repair')
+    : pending.length ? 'review' : 'pass';
+
+  return Object.freeze({
+    round,
+    maxRounds: CHARACTER_REFINEMENT_MAX_ROUNDS,
+    state,
+    checks: Object.freeze(checks),
+    failedChecks: Object.freeze(failed),
+    preserveChecks: Object.freeze(passed),
+    pendingChecks: Object.freeze(pending),
+    repairMode: 'failed-regions-only',
+    externalReference: state === 'escalate' ? 'unresolved-failed-parts-only' : 'not-needed',
+    visualApproval: 'unchanged'
+  });
 }
