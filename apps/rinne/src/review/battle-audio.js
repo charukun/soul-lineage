@@ -6,14 +6,15 @@ export function createBattleAudio() {
   let context = null;
   let master = null;
   let noiseBuffer = null;
-  let wanted = true;
+  let wanted = new URLSearchParams(globalThis.location?.search || '').get('audio') !== 'off';
+  let unlockArmed = true;
 
   function ensureContext() {
     if (!AudioContextCtor) return null;
     if (context) return context;
     context = new AudioContextCtor({ latencyHint: 'interactive' });
     master = context.createGain();
-    master.gain.value = 0.28;
+    master.gain.value = wanted ? 0.28 : 0.0001;
     master.connect(context.destination);
     return context;
   }
@@ -73,9 +74,10 @@ export function createBattleAudio() {
 
   async function unlock() {
     const ctx = ensureContext();
-    if (!ctx) return false;
+    if (!ctx || !wanted) return false;
     try {
       if (ctx.state === 'suspended') await ctx.resume();
+      if (ctx.state === 'running') unlockArmed = false;
       return ctx.state === 'running';
     } catch {
       return false;
@@ -85,6 +87,7 @@ export function createBattleAudio() {
   function setEnabled(next) {
     wanted = Boolean(next);
     if (master && context) master.gain.setTargetAtTime(wanted ? 0.28 : 0.0001, context.currentTime, 0.012);
+    if (wanted) void unlock();
   }
 
   function attack(kind = '') {
@@ -117,9 +120,19 @@ export function createBattleAudio() {
     noise({ duration: 0.2, gain: 0.06, frequency: 420, q: 0.5, delay: 0.03 });
   }
 
+  const autoUnlock = () => {
+    if (!unlockArmed || !wanted) return;
+    void unlock();
+  };
+  for (const type of ['pointerdown', 'touchstart', 'keydown']) {
+    globalThis.addEventListener?.(type, autoUnlock, { capture: true, passive: type !== 'keydown' });
+  }
+  queueMicrotask(autoUnlock);
+
   return {
     get supported() { return Boolean(AudioContextCtor); },
-    get enabled() { return available(); },
+    get enabled() { return Boolean(AudioContextCtor) && wanted; },
+    get audible() { return available(); },
     get wanted() { return wanted; },
     unlock,
     setEnabled,
