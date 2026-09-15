@@ -54,8 +54,3 @@ export function resolveBrowserPlaytestTargets(affectedApps = [], request = parse
   }
   return canonicalApps([...affected, ...request.apps]);
 }
-
-export function browserPlaytestMarker(body = '') {
-  const matches = [...String(body ?? '').matchAll(markerPattern)];
-  return matches.map(match => `Browser-Playtest: ${match[1].trim().toLowerCase()}`).join('\n');
-}
