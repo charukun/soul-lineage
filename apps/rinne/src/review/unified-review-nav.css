@@ -18,4 +18,8 @@
 .unified-review-navigation .review-secondary-disclosure:not([hidden]) .review-tabs{margin-top:0!important}
 .unified-review-navigation .review-library-nav{margin-left:auto!important}
 .unified-review-navigation .review-reference-link{min-height:28px!important;padding:0 9px!important;font-size:9px!important}
-@media(max-width:430px){.review-bottom-nav{left:8px;right:8px;bottom:max(6px,env(safe-area-inset-bottom));transform:none;width:auto;height:56px;border-radius:16px}.review-bottom-nav button{font-size:9px}.unified-review-navigation .review-controls-dock{left:6px!important;right:6px!important;bottom:70px!important;max-height:min(60dvh,540px)!important}.unified-review-navigation .review-feedback-toggle{bottom:max(72px,calc(env(safe-area-inset-bottom) + 68px))!important}}
+.unified-review-navigation .review-shell .hud{left:16px!important;right:96px!important;bottom:78px!important;pointer-events:none!important}
+.unified-review-navigation .review-shell #source-label{display:none!important}
+.unified-review-navigation .review-shell #review-status{display:none!important;max-width:min(520px,100%)!important}
+.unified-review-navigation .review-shell #review-status[data-kind=error]{display:inline-flex!important}
+@media(max-width:430px){.review-bottom-nav{left:8px;right:8px;bottom:max(6px,env(safe-area-inset-bottom));transform:none;width:auto;height:56px;border-radius:16px}.review-bottom-nav button{font-size:9px}.unified-review-navigation .review-controls-dock{left:6px!important;right:6px!important;bottom:70px!important;max-height:min(60dvh,540px)!important}.unified-review-navigation .review-feedback-toggle{bottom:max(72px,calc(env(safe-area-inset-bottom) + 68px))!important}.unified-review-navigation .review-shell .hud{right:86px!important;bottom:72px!important}}
