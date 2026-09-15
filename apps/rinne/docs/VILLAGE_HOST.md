@@ -22,7 +22,7 @@ __VILLAGE_HOST_LAB__.state() で hostId、phase、epoch、revision を確認で�
 
 ## RRPの軽量比較実験
 
-独立した `reality-lab.html` で、既存の権限状態機械・Checkpoint・presence方針を使った比較実験を行う。本編のルール・保存・接続先は変更しない。
+独立した `reality-lab.html` で、既存の権限状態機械・Checkpoint・presence方針を使った比較実験を行う。本編のルール・保存・接続先は変更しない。実行方法と証拠の限界は [RRP実験室](REALITY_LAB.md) を参照。
 
 - 同じseed・参加者配置・通信障害条件で全体配信、Interest配信、Cell分散を再実行できること。
 - Host切断、世界時間停止、Epoch更新、Checkpoint復旧、不一致と再同期を観察できること。
