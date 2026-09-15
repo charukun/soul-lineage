@@ -1,3 +1,5 @@
+import './review-mobile-simple.css';
+
 const q=s=>document.querySelector(s);
 const make=(tag,text='',className='')=>{const n=document.createElement(tag);n.textContent=text;n.className=className;return n;};
 function button(label,action,className=''){const b=make('button',label,className);b.type='button';b.addEventListener('click',action);return b;}
@@ -5,16 +7,16 @@ export function installFocusedReviewUI(){
  if(q('#review-controls-toggle'))return;
  const viewport=q('.viewport'),panel=q('.panel'),notebook=q('.notebook-scroll'),head=q('.notebook-head');
  if(!viewport||!panel||!notebook||!head)return;
- const dock=make('section','','review-controls-dock');dock.id='review-controls-dock';dock.dataset.open='false';dock.setAttribute('aria-hidden','true');dock.setAttribute('aria-label','動作をセット');
+ const dock=make('section','','review-controls-dock');dock.id='review-controls-dock';dock.dataset.open='false';dock.setAttribute('aria-hidden','true');dock.setAttribute('aria-label','動作を選ぶ');
  const scrim=button('',()=>setOpen(false),'review-controls-scrim');scrim.setAttribute('aria-label','操作を閉じる');scrim.tabIndex=-1;
- const toggle=button('操作',()=>setOpen(true),'review-controls-toggle');toggle.id='review-controls-toggle';toggle.setAttribute('aria-controls',dock.id);toggle.setAttribute('aria-expanded','false');
- const drawerHead=make('header','','review-drawer-head');const title=make('div');title.append(make('strong','動作をセット'),make('small','SET → REVIEW → REPEAT'));
- const feedback=q('#copy-motion');if(feedback){feedback.textContent='指摘する';feedback.classList.add('review-feedback-short');}
+ const toggle=button('動作',()=>setOpen(true),'review-controls-toggle');toggle.id='review-controls-toggle';toggle.setAttribute('aria-controls',dock.id);toggle.setAttribute('aria-expanded','false');
+ const drawerHead=make('header','','review-drawer-head');const title=make('div');title.append(make('strong','確認'),make('small','MOTION'));
+ const feedback=q('#copy-motion');if(feedback){feedback.textContent='指摘';feedback.classList.add('review-feedback-short');}
  const feedbackFloat=feedback?button('指摘',()=>feedback.click(),'review-feedback-toggle'):null;
  if(feedbackFloat){feedbackFloat.setAttribute('aria-label','現在の確認内容を指摘する');feedbackFloat.title='現在のモーション情報を付けて指摘する';}
  const close=button('閉じる',()=>setOpen(false),'review-controls-close');drawerHead.append(title);if(feedback)drawerHead.append(feedback);drawerHead.append(close);
  const overlays=[scrim];if(feedbackFloat)overlays.push(feedbackFloat);overlays.push(toggle,dock);viewport.after(...overlays);dock.append(drawerHead,panel);
- function setOpen(open){dock.dataset.open=String(open);dock.setAttribute('aria-hidden',String(!open));scrim.dataset.open=String(open);toggle.setAttribute('aria-expanded',String(open));toggle.textContent=open?'操作中':'操作';document.body.classList.toggle('review-controls-open',open);if(open)close.focus();else toggle.focus();}
+ function setOpen(open){dock.dataset.open=String(open);dock.setAttribute('aria-hidden',String(!open));scrim.dataset.open=String(open);toggle.setAttribute('aria-expanded',String(open));toggle.textContent=open?'操作中':'動作';document.body.classList.toggle('review-controls-open',open);if(open)close.focus();else toggle.focus();}
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&dock.dataset.open==='true'){event.preventDefault();setOpen(false);}},true);
  head.querySelector('.book-title')?.setAttribute('hidden','');head.querySelector('.transport-mini')?.setAttribute('hidden','');
  const footer=q('.panel-footer');if(footer)footer.hidden=true;
@@ -24,7 +26,7 @@ export function installFocusedReviewUI(){
  if(skillPage)notebook.prepend(skillPage);
  const forceRepeat=()=>queueMicrotask(()=>{const loop=q('#loop-toggle');if(!loop)return;loop.checked=true;loop.dispatchEvent(new Event('change',{bubbles:true}));});
  for(const play of skillPage?.querySelectorAll('[data-play-select]')||[]){
-  play.textContent='↻ 確認';play.setAttribute('title','この段だけを繰り返し確認');
+  play.textContent='確認';play.setAttribute('title','この段だけを繰り返し確認');
   play.addEventListener('click',event=>{
    const id=play.dataset.playSelect,select=q(`#${id}`),master=q('#clip'),value=select?.value;
    if(!value||!master)return;
@@ -34,9 +36,9 @@ export function installFocusedReviewUI(){
  }
  for(const copy of skillPage?.querySelectorAll('.copy-slot')||[])copy.hidden=true;
  skillPage?.querySelector('.stage-titles')?.setAttribute('hidden','');
- const help=skillPage?.querySelector('.sequence-help');if(help)help.textContent='各段の「確認」は単体再生。下の「序破急を通しで確認」で3段を一連再生します。';
+ const help=skillPage?.querySelector('.sequence-help');if(help)help.textContent='序・破・急を選び、確認だけ行います。';
  if(skillPage){
-  const full=button('↻ 序破急を通しで確認',()=>{
+  const full=button('序破急を通しで確認',()=>{
    const names=['stage-jo','stage-ha','stage-kyu'].map(id=>q(`#${id}`)?.value||'');
    if(names.some(name=>!name)){const status=q('#review-status');if(status){status.textContent='序・破・急をすべて選択してください';status.dataset.kind='error';}return;}
    document.dispatchEvent(new CustomEvent('review-play-sequence',{detail:{names}}));forceRepeat();
@@ -44,10 +46,10 @@ export function installFocusedReviewUI(){
   full.style.width='100%';full.style.minHeight='48px';full.style.margin='4px 0 2px';full.setAttribute('aria-label','序破急を一連で繰り返し確認');
   skillPage.append(full);
  }
- const secondary=make('details','','review-secondary-disclosure');secondary.append(make('summary','その他の動作'));
+ const secondary=make('details','','review-secondary-disclosure');secondary.append(make('summary','その他'));
  if(tabs){secondary.append(tabs);for(const page of [...document.querySelectorAll('.review-page')])if(!['skill','advanced'].includes(page.dataset.reviewPage))secondary.append(page);notebook.append(secondary);}
- secondary.addEventListener('toggle',()=>{if(!secondary.open&&skillTab&&!skillTab.classList.contains('active'))skillTab.click();});
- const advancedDetails=make('details','','review-advanced-disclosure');advancedDetails.append(make('summary','詳細設定'));
+ secondary.addEventListener('toggle',()=>{if(!secondary.open&&skillTab&&!skillTab.classList.contains('active'))skillTab.click();syncDrawerScroll();});
+ const advancedDetails=make('details','','review-advanced-disclosure');advancedDetails.append(make('summary','再生・視点・詳細'));
  const quick=make('section','','quick-review');quick.id='focused-review';quick.setAttribute('aria-label','再生と確認');
  const transport=make('div','','quick-transport');
  for(const id of ['play-toggle','restart','speed']){const n=document.getElementById(id);if(n){if(id==='restart'){n.textContent='先頭';n.setAttribute('aria-label','先頭へ戻す');}if(id==='speed')n.setAttribute('aria-label','再生速度');transport.append(n);}}
@@ -57,9 +59,11 @@ export function installFocusedReviewUI(){
  const camera=q('.camera-strip');if(camera){quick.append(camera);camera.setAttribute('aria-label','確認角度');}
  advancedDetails.append(quick);if(advanced)advancedDetails.append(advanced);notebook.append(advancedDetails);
  const equipment=make('div','','review-equipment');equipment.append(make('label','武器'));equipment.querySelector('label').htmlFor='weapon-select';
- const weaponSelect=q('#weapon-select'),weaponToggle=q('#weapon-toggle')?.closest('label');if(weaponSelect)equipment.append(weaponSelect);if(weaponToggle)equipment.append(weaponToggle);head.after(equipment);
+ const weaponSelect=q('#weapon-select'),weaponToggle=q('#weapon-toggle')?.closest('label');if(weaponSelect)equipment.append(weaponSelect);if(weaponToggle)equipment.append(weaponToggle);advancedDetails.prepend(equipment);
  const notice=make('p','','compatibility-notice');notice.id='compatibility-notice';equipment.after(notice);
  const availability=make('details','','asset-readiness');availability.append(make('summary','素材の準備状況'));const issues=make('div');availability.append(issues);availability.append(button('素材を再読込',()=>q('#retry')?.click()));advanced?.prepend(availability);
+ function syncDrawerScroll(){document.body.classList.toggle('review-drawer-scroll',secondary.open||advancedDetails.open);}
+ advancedDetails.addEventListener('toggle',syncDrawerScroll);syncDrawerScroll();
  let problemKey='',phaseKey='';
  document.addEventListener('review-state-change',event=>{const{state,meta,problems=[]}=event.detail;
   const name=q('#motion-name'),desc=q('#motion-meta');if(name)name.textContent=state.clip||'元モデル';if(desc)desc.textContent=state.sequence?.length>1?`${state.sequence.length}段を${state.loop?'繰り返し確認':'連続再生'}`:(state.clip?(state.loop?'繰り返し確認':'選択中'):'静止比較');
