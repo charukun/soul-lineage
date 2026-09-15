@@ -8,7 +8,12 @@ import {
   notificationHeadline,
   notificationTitle,
 } from '../scripts/notification-copy.mjs';
-import { deliveryMessage, findAssociatedDevelopPr, recordGithubDeliveryReceipt } from '../scripts/notify-delivery.mjs';
+import {
+  deliveryMessage,
+  devChangeEmailMessage,
+  findAssociatedDevelopPr,
+  recordGithubDeliveryReceipt,
+} from '../scripts/notify-delivery.mjs';
 
 const sha = 'a'.repeat(40);
 
@@ -28,31 +33,26 @@ test('lifecycle copy keeps stable machine status codes while localizing the huma
   assert.equal(notificationTitle('FAILED'), 'RINNE [WARN] FAILED');
 });
 
-test('delivery copy explicitly separates develop merge from verified DEV publication', () => {
-  const integrated = deliveryMessage('INTEGRATED', {
-    locale: 'ja', repository: 'charukun/soul-lineage', runUrl: 'https://github.com/run',
-    report: { merged: [{ pr: 260, merge: sha }] }, sha,
-  });
-  const deployed = deliveryMessage('DEV_DEPLOYED', {
-    locale: 'ja', repository: 'charukun/soul-lineage', runUrl: 'https://github.com/run',
-    report: { merged: [] }, sha,
-  });
-  assert.match(integrated, /developへ統合済み \/ DEV公開は未確認/);
-  assert.match(integrated, /\nINTEGRATED\n/);
-  assert.match(deployed, /DEV反映・検証済み/);
-  assert.match(deployed, /\nDEV_DEPLOYED\n/);
-  assert.doesNotMatch(deployed, /DEVで確認できます/);
-});
-
-test('verified DEV notification shows the associated PR title and DEV entry point', () => {
+test('lifecycle DEV copy stays generic and does not carry the requested change title', () => {
   const deployed = deliveryMessage('DEV_DEPLOYED', {
     locale: 'ja', repository: 'charukun/soul-lineage', runUrl: 'https://github.com/run', sha,
     pr: { number: 348, title: '戦闘テンポを少し遅くする修正' },
   });
-  assert.match(deployed, /結果: 戦闘テンポを少し遅くする修正 をDEVへ反映しました。/);
-  assert.match(deployed, /次: DEVで確認できます。/);
-  assert.match(deployed, /PR: https:\/\/github\.com\/charukun\/soul-lineage\/pull\/348/);
-  assert.match(deployed, /DEV: https:\/\/charukun\.github\.io\/soul-lineage\/dev\//);
+  assert.match(deployed, /DEV反映・検証済み/);
+  assert.match(deployed, /\nDEV_DEPLOYED\n/);
+  assert.doesNotMatch(deployed, /戦闘テンポ/);
+  assert.doesNotMatch(deployed, /DEVで確認できます/);
+});
+
+test('development email copy shows the associated PR title and DEV entry point', () => {
+  const email = devChangeEmailMessage({
+    locale: 'ja', repository: 'charukun/soul-lineage', runUrl: 'https://github.com/run', sha,
+    pr: { number: 348, title: '戦闘テンポを少し遅くする修正' },
+  });
+  assert.match(email, /結果: 戦闘テンポを少し遅くする修正 をDEVへ反映しました。/);
+  assert.match(email, /次: DEVで確認できます。/);
+  assert.match(email, /PR: https:\/\/github\.com\/charukun\/soul-lineage\/pull\/348/);
+  assert.match(email, /DEV: https:\/\/charukun\.github\.io\/soul-lineage\/dev\//);
 });
 
 test('associated develop PR lookup selects the newest merged develop PR', async () => {
@@ -72,9 +72,12 @@ test('associated develop PR lookup selects the newest merged develop PR', async 
   assert.equal(pr.title, 'new');
 });
 
-test('ntfy receives an ASCII status title while localized detail remains in the body', async () => {
+test('pre-existing ntfy lifecycle path remains generic', async () => {
   let request;
-  const result = await notifyStage('[OK][DEV_DEPLOYED] DEV反映・検証済み', {
+  const body = deliveryMessage('DEV_DEPLOYED', {
+    locale: 'ja', repository: 'charukun/soul-lineage', runUrl: 'https://github.com/run', sha,
+  });
+  const result = await notifyStage(body, {
     url: 'https://ntfy.example/topic',
     title: notificationTitle('DEV_DEPLOYED'),
     request: async (_url, options) => { request = options; return { ok: true }; },
@@ -82,13 +85,21 @@ test('ntfy receives an ASCII status title while localized detail remains in the 
   assert.equal(result, 'ntfy');
   assert.equal(request.headers.Title, 'RINNE [OK] DEV_DEPLOYED');
   assert.match(request.body, /DEV反映・検証済み/);
+  assert.doesNotMatch(request.body, /DEVで確認できます/);
 });
 
-test('verified DEV publication creates one deduplicatable GitHub PR receipt', async () => {
+test('verified DEV publication creates one deduplicatable PR comment that triggers developer email', async () => {
   let posted = '';
+  const pr = {
+    number: 311,
+    title: '戦闘テンポを少し遅くする修正',
+    merged_at: '2026-09-15T14:00:00Z',
+    base: { ref: 'develop' },
+    user: { login: 'charukun' },
+  };
   const response = (payload, status = 200) => ({ ok: true, status, json: async () => payload });
   const request = async (url, options = {}) => {
-    if (url.includes(`/commits/${sha}/pulls`)) return response([{ number: 311, title: 'DEV fix', merged_at: '2026-09-15T14:00:00Z', base: { ref: 'develop' } }]);
+    if (url.includes(`/commits/${sha}/pulls`)) return response([pr]);
     if (url.includes('/issues/311/comments?')) return response([]);
     if (url.endsWith('/issues/311/comments') && options.method === 'POST') {
       posted = JSON.parse(options.body).body;
@@ -96,14 +107,19 @@ test('verified DEV publication creates one deduplicatable GitHub PR receipt', as
     }
     throw new Error(`unexpected request: ${options.method || 'GET'} ${url}`);
   };
-  const message = lifecycleMessage('DEV_DEPLOYED', { locale: 'ja' });
+  const message = devChangeEmailMessage({
+    pr, sha, repository: 'charukun/soul-lineage',
+    runUrl: 'https://github.com/charukun/soul-lineage/actions/runs/1', locale: 'ja',
+  });
   const result = await recordGithubDeliveryReceipt({
     token: 'token', repository: 'charukun/soul-lineage', sha,
     runUrl: 'https://github.com/charukun/soul-lineage/actions/runs/1', message, request,
   });
   assert.equal(result, 'github-pr-comment');
   assert.match(posted, /dev-delivery-receipt:/);
-  assert.match(posted, /\[OK\]\[DEV_DEPLOYED\] DEV反映・検証済み/);
+  assert.match(posted, /@charukun/);
+  assert.match(posted, /戦闘テンポを少し遅くする修正 をDEVへ反映しました。/);
+  assert.match(posted, /GitHub PR subscription\/mention provides the email notification/);
 });
 
 test('browser repair comments and issue titles use the same visible status vocabulary', () => {
