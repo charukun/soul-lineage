@@ -1,9 +1,12 @@
 import { stylizedDensityForDistance } from '@soul/characters';
 import { THREE as T } from '@soul/rendering';
-import { createAdaptiveQualityGovernor } from '@soul/rendering/adaptive-quality';
-import { applyTextureQuality } from '@soul/rendering/texture-quality';
+import { createGpuAwareQualityGovernor } from '@soul/rendering/gpu-aware-quality';
+import { createGpuTimer } from '@soul/rendering/gpu-timer';
+import { applyTextureQuality, auditTextureBudget } from '@soul/rendering/texture-quality';
 import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { createWorldCellStreamingPlan } from '@soul/rendering/world-streaming';
+import { createConservativeOcclusionCuller } from '@soul/rendering/occlusion';
+import { createPerformanceRecorder } from '@soul/rendering/performance-lab';
 import { View } from './web/view.js';
 
 const governors = new WeakMap(), densityMatrix = new T.Matrix4(), hiddenMatrix = new T.Matrix4().makeScale(0,0,0), densityPosition = new T.Vector3();
@@ -13,8 +16,8 @@ const isMobileTarget = () => (typeof innerWidth === 'number' && innerWidth < 800
 function applyAdaptiveVegetation(view, scale) {
   const target=view.target;if(!target)return;
   const last=view.__adaptiveDensityTarget;
-  if(last&&last.level===view.__stylizedQuality?.level&&Math.hypot(target.x-last.x,target.z-last.z)<5)return;
-  view.__adaptiveDensityTarget={x:target.x,z:target.z,level:view.__stylizedQuality?.level??0};
+  if(last&&last.level===view.__stylizedQuality?.level&&last.scale===scale&&Math.hypot(target.x-last.x,target.z-last.z)<5)return;
+  view.__adaptiveDensityTarget={x:target.x,z:target.z,level:view.__stylizedQuality?.level??0,scale};
   for(const instanced of [...(view.forestMeshes||[]),...(view.flowerMeshes||[])]){
     const base=instanced.userData.stylizedDensityBase;if(!base?.length)continue;
     for(let i=0;i<base.length;i++){densityMatrix.copy(base[i]);densityPosition.setFromMatrixPosition(densityMatrix);const distance=Math.hypot(densityPosition.x-target.x,densityPosition.z-target.z);const density=stylizedDensityForDistance('environment',distance)*scale;instanced.setMatrixAt(i,densityHash(i+instanced.id*31)<=density?base[i]:hiddenMatrix);}
@@ -27,6 +30,10 @@ function setShadowSize(view, scale) {
   if (view.sun?.shadow?.mapSize?.x === next) return;
   view.sun.shadow.mapSize.set(next,next);
   view.sun.shadow.map?.dispose?.(); view.sun.shadow.map = null; view.renderer.shadowMap.needsUpdate = true;
+}
+
+function textureBytes(view) {
+  return [view.objects,view.outside,view.inside,view.actors].reduce((sum,root)=>sum+auditTextureBudget(root).estimatedBytes,0);
 }
 
 function apply(view, snapshot) {
@@ -48,15 +55,28 @@ function apply(view, snapshot) {
   view.__stylizedDensityTarget = null; view.__adaptiveDensityTarget = null;
   window.__VILLAGE_STYLIZED_TARGET__?.refreshDensity?.();
   applyAdaptiveVegetation(view,q.vegetationScale);
+  view.__estimatedTextureBytes = textureBytes(view);
+}
+
+function occlusionRoots(view) {
+  const occluders=[],candidates=[];
+  for(const child of view.outside?.children||[]){
+    if(child.isInstancedMesh||child.userData?.streamingCritical||child.userData?.occlusionDisabled)continue;
+    const box=new T.Box3().setFromObject(child);if(box.isEmpty())continue;const size=box.getSize(new T.Vector3()),horizontal=Math.max(size.x,size.z);
+    if(size.y>2.5&&horizontal>4&&horizontal<120)occluders.push(child);
+    else if(size.y>.15&&horizontal<30)candidates.push(child);
+  }
+  return {occluders,candidates};
 }
 
 function governorFor(view) {
   if (governors.has(view)) return governors.get(view);
   const plan = createWorldCellStreamingPlan({cellSize:32,preloadRadius:2,retainRadius:3});
-  const governor = createAdaptiveQualityGovernor({targetFps:isMobileTarget()?30:60,initialLevel:view.softwareGPU?2:0,onChange:s=>apply(view,s)});
-  const state = { governor, plan, stream: plan.update(view.target.x,view.target.z) };
+  const gpu=createGpuTimer(view.renderer),recorder=createPerformanceRecorder({label:'village'}),occlusion=createConservativeOcclusionCuller({maxChecksPerUpdate:5,minDistance:24,hiddenConfirmations:2});
+  const governor = createGpuAwareQualityGovernor({targetFps:isMobileTarget()?30:60,initialLevel:view.softwareGPU?2:0,onChange:s=>apply(view,s)});
+  const state = { governor, plan, gpu, recorder, occlusion, occlusionFrame:0, stream: plan.update(view.target.x,view.target.z) };
   governors.set(view,state); apply(view,governor.snapshot());
-  if (typeof window !== 'undefined') window.__VILLAGE_ADAPTIVE_QUALITY__ = { snapshot:()=>({quality:governor.snapshot(),stream:state.stream}) };
+  if (typeof window !== 'undefined') window.__VILLAGE_ADAPTIVE_QUALITY__ = { snapshot:()=>({quality:governor.snapshot(),gpu:gpu.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),stream:state.stream,textureBytes:view.__estimatedTextureBytes||0}) };
   return state;
 }
 
@@ -69,12 +89,14 @@ if (typeof render === 'function' && !render.__adaptiveVisualPerformance) {
       actor.userData.visualQualityLevel = level;
     }
     state.stream = state.plan.update(this.target.x,this.target.z);
+    state.gpu.begin('village-frame');
     const result = render.call(this,time,dt,...rest);
-    // The base Stylized bridge refreshes its normal distance density inside the
-    // wrapped render. Apply the adaptive multiplier afterwards so it cannot be
-    // overwritten; these matrices become the next frame's presentation state.
+    state.gpu.end(); const gpu=state.gpu.poll();
     applyAdaptiveVegetation(this,snapshot.profile.vegetationScale);
-    state.governor.observeFrame(dt);
+    const next=state.governor.observeFrame(dt,gpu.emaMs);
+    state.recorder.sample({frameMs:dt*1000,gpuMs:gpu.emaMs,drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,textureBytes:this.__estimatedTextureBytes||0});
+    if((state.occlusionFrame++%12)===0){const roots=occlusionRoots(this);state.occlusion.update({camera:this.camera,...roots});}
+    if(next.profile.vegetationScale!==snapshot.profile.vegetationScale)applyAdaptiveVegetation(this,next.profile.vegetationScale);
     return result;
   };
   wrapped.__adaptiveVisualPerformance = true;
