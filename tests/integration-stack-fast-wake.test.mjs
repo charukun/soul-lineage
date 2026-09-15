@@ -56,7 +56,7 @@ test('stale, untrusted or incomplete stack evidence fails closed', async () => {
   }
 });
 
-test('Repair workflow updates stacks directly, validates exact heads in parallel and keeps browser asynchronous', () => {
+test('Repair workflow updates stacks directly, validates exact heads in parallel and wakes Fast Lane per successful head', () => {
   const workflow = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');
   const fastLane = readFileSync('scripts/integration-fast-lane.mjs', 'utf8');
   const repair = readFileSync('scripts/integration-repair-fast.mjs', 'utf8');
@@ -64,8 +64,9 @@ test('Repair workflow updates stacks directly, validates exact heads in parallel
   assert.match(workflow, /stack-fast:[\s\S]*Stack Validate and build[\s\S]*max-parallel: 4/);
   assert.match(workflow, /pr-fast-\$\{\{ matrix\.pr \}\}-\$\{\{ matrix\.head \}\}/);
   assert.match(workflow, /context: 'integration\/stack-fast'/);
+  assert.match(workflow, /Wake Fast Lane immediately for this validated head[\s\S]*createWorkflowDispatch/);
+  assert.doesNotMatch(workflow, /stack-integration-request:/);
   assert.match(workflow, /stack-browser:[\s\S]*continue-on-error: true/);
-  assert.match(workflow, /stack-integration-request:[\s\S]*createWorkflowDispatch/);
   assert.match(fastLane, /trustedStackFastEvidence/);
   assert.match(repair, /repairValidationMatrix/);
   assert.match(repair, /reconcile\(c, pr, develop, \{ write: true \}\)/);
