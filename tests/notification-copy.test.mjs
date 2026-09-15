@@ -4,7 +4,6 @@ import { readFileSync } from 'node:fs';
 import { notifyStage } from '../scripts/implementation-handoff.mjs';
 import {
   lifecycleMessage,
-  normalizeNotificationLocale,
   notificationHeadline,
   notificationTitle,
 } from '../scripts/notification-copy.mjs';
@@ -17,35 +16,37 @@ import {
 
 const sha = 'a'.repeat(40);
 
-test('notification locale accepts Japanese variants and safely falls back to English', () => {
-  assert.equal(normalizeNotificationLocale('ja-JP'), 'ja');
-  assert.equal(normalizeNotificationLocale('ja_JP'), 'ja');
-  assert.equal(normalizeNotificationLocale('en-US'), 'en');
-  assert.equal(normalizeNotificationLocale('fr-FR'), 'en');
-});
-
-test('lifecycle copy keeps stable machine status codes while localizing the human headline', () => {
-  const ja = lifecycleMessage('DEV_DEPLOYED', { locale: 'ja-JP' });
-  const en = lifecycleMessage('DEV_DEPLOYED', { locale: 'en-US' });
-  assert.match(ja, /^\[OK\]\[DEV_DEPLOYED\] DEV反映・検証済み\nDEV_DEPLOYED\n/);
-  assert.match(en, /^\[OK\]\[DEV_DEPLOYED\] DEV published and verified\nDEV_DEPLOYED\n/);
-  assert.equal(notificationHeadline('INTEGRATED', 'ja'), '[INFO][INTEGRATED] developへ統合済み / DEV公開は未確認');
+test('broadcast notification contract is locale-neutral and status-first', () => {
+  const message = lifecycleMessage('DEV_DEPLOYED', { fields: {
+    phase: 'DELIVERY', outcome: 'VERIFIED', action: 'NONE',
+  } });
+  assert.match(message, /^\[OK\]\[DEV_DEPLOYED\]\nDEV_DEPLOYED\nseverity: OK\n/);
+  assert.match(message, /phase: DELIVERY/);
+  assert.match(message, /outcome: VERIFIED/);
+  assert.equal(notificationHeadline('INTEGRATED'), '[INFO][INTEGRATED]');
   assert.equal(notificationTitle('FAILED'), 'RINNE [WARN] FAILED');
 });
 
-test('delivery copy still separates develop merge from verified DEV publication', () => {
+test('delivery contract explicitly separates develop merge from verified DEV publication', () => {
   const integrated = deliveryMessage('INTEGRATED', {
-    locale: 'ja', repository: 'charukun/soul-lineage', runUrl: 'https://github.com/run',
+    repository: 'charukun/soul-lineage', runUrl: 'https://github.com/run',
     report: { merged: [{ pr: 260, merge: sha }] }, sha,
   });
   const deployed = deliveryMessage('DEV_DEPLOYED', {
     locale: 'ja', repository: 'charukun/soul-lineage', runUrl: 'https://github.com/run', sha,
     pr: { number: 348, title: '戦闘テンポを少し遅くする修正' },
   });
-  assert.match(integrated, /developへ統合済み \/ DEV公開は未確認/);
+  assert.match(integrated, /^\[INFO\]\[INTEGRATED\]/);
   assert.match(integrated, /\nINTEGRATED\n/);
-  assert.match(deployed, /DEV反映・検証済み/);
+  assert.match(integrated, /dev_publication: PENDING/);
+  assert.match(integrated, /next: DEV_DEPLOYED\|FAILED/);
+  assert.match(deployed, /^\[OK\]\[DEV_DEPLOYED\]/);
   assert.match(deployed, /\nDEV_DEPLOYED\n/);
+  assert.match(deployed, /outcome: VERIFIED/);
+  assert.match(deployed, /action: NONE/);
+  assert.match(deployed, /verification: FAST_CHECKS\+DEV_PUBLIC\+HTTP_SOURCE/);
+  assert.match(deployed, /browser: ASYNC_DIAGNOSTICS/);
+  assert.doesNotMatch(deployed, /FOCUSED_BROWSER/);
   assert.doesNotMatch(deployed, /戦闘テンポ/);
   assert.doesNotMatch(deployed, /DEVで確認できます/);
 });
@@ -80,7 +81,7 @@ test('associated develop PR lookup selects the newest merged develop PR', async 
   assert.equal(pr.title, 'new');
 });
 
-test('pre-existing ntfy lifecycle path remains generic', async () => {
+test('ntfy receives the same locale-neutral status contract in title and body', async () => {
   let request;
   const body = deliveryMessage('DEV_DEPLOYED', {
     locale: 'ja', repository: 'charukun/soul-lineage', runUrl: 'https://github.com/run', sha,
@@ -92,7 +93,7 @@ test('pre-existing ntfy lifecycle path remains generic', async () => {
   });
   assert.equal(result, 'ntfy');
   assert.equal(request.headers.Title, 'RINNE [OK] DEV_DEPLOYED');
-  assert.match(request.body, /DEV反映・検証済み/);
+  assert.match(request.body, /^\[OK\]\[DEV_DEPLOYED\]/);
   assert.doesNotMatch(request.body, /DEVで確認できます/);
 });
 
@@ -129,10 +130,21 @@ test('verified DEV publication creates one deduplicatable PR comment that trigge
   assert.match(posted, /DEV反映完了/);
   assert.match(posted, /修正内容: 戦闘テンポを少し遅くする修正/);
   assert.match(posted, /GitHub PR subscription\/mention provides the email notification/);
+  assert.match(posted, /receipt: VERIFIED_DEV_PUBLICATION/);
 });
 
-test('browser repair comments and issue titles use the same visible status vocabulary', () => {
+test('browser repair comments and issue titles use the same locale-neutral status vocabulary', () => {
   const source = readFileSync('scripts/browser-repair-ticket.mjs', 'utf8');
-  assert.match(source, /notificationHeadline\(issueStage, notificationLocale\)/);
-  assert.match(source, /notificationHeadline\(conclusion === 'failure' \? 'FAILED' : 'BROWSER_VERIFIED'/);
+  assert.match(source, /notificationHeadline\(issueStage\)/);
+  assert.match(source, /lifecycleMessage\(visibleStage/);
+  assert.doesNotMatch(source, /NOTIFY_LOCALE|normalizeNotificationLocale/);
+});
+
+test('workflow exposes no broadcast locale setting', () => {
+  const ci = readFileSync('.github/workflows/ci.yml', 'utf8');
+  const handoff = readFileSync('scripts/implementation-handoff.mjs', 'utf8');
+  const delivery = readFileSync('scripts/notify-delivery.mjs', 'utf8');
+  assert.doesNotMatch(ci, /NOTIFY_LOCALE/);
+  assert.doesNotMatch(handoff, /NOTIFY_LOCALE|normalizeNotificationLocale/);
+  assert.doesNotMatch(delivery, /NOTIFY_LOCALE|normalizeNotificationLocale/);
 });
