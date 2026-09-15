@@ -1,12 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {dirname,resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 
-const root=new URL('../../../',import.meta.url);
-const read=path=>readFile(new URL(path,root),'utf8');
+const appRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+const read=path=>readFile(resolve(appRoot,path),'utf8');
 
 test('Visual Review reads canonical develop sources instead of a Lab-owned catalog',async()=>{
-  const js=await read('apps/rinne/src/develop-review.js');
+  const js=await read('src/develop-review.js');
   assert.match(js,/from '@soul\/game-data'/);
   assert.match(js,/INSPIRATION_WEAPON_ARTS/);
   assert.match(js,/INSPIRATION_MOTION_IDS/);
@@ -16,7 +18,7 @@ test('Visual Review reads canonical develop sources instead of a Lab-owned catal
 });
 
 test('Visual Review reuses current develop character and motion review pages',async()=>{
-  const html=await read('apps/rinne/review.html');
+  const html=await read('review.html');
   assert.match(html,/\.\/characters\.html\?review=motion/);
   assert.match(html,/\.\/characters\.html/);
   assert.match(html,/data-panel="inspiration"/);
@@ -24,6 +26,6 @@ test('Visual Review reuses current develop character and motion review pages',as
 });
 
 test('RINNE build includes the review entry',async()=>{
-  const vite=await read('apps/rinne/vite.config.js');
+  const vite=await read('vite.config.js');
   assert.match(vite,/review:fileURLToPath\(new URL\('\.\/review\.html'/);
 });

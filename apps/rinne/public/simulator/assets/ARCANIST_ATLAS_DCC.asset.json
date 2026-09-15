@@ -1,0 +1,20 @@
+{
+  "schema": "character-asset-integrity",
+  "version": 1,
+  "id": "arcanist.atlas-dcc.v1",
+  "assetId": "character.arcanist-atlas-dcc.v1",
+  "format": "glb",
+  "path": "./simulator/assets/ARCANIST_ATLAS_DCC.glb",
+  "sha256": "e61b1a9950c2c515579ee3a602bd4cd1961c114aca8f9619b1e1b29283f916db",
+  "bytes": 717248,
+  "productionStage": "PRIMARY",
+  "modelingMode": "dcc-blender",
+  "sourceBlendSha256": "65cec89524194ccf6bc199a3414f6b75d0204e661c764ed209e04deebd85e6b5",
+  "humanoidRig": "humanoid.shino-vrm1.v2",
+  "referencePath": "docs/characters/references/npc-role-set/arcanist.avif",
+  "visualApproval": "pending",
+  "license": {
+    "rigProvenance": "Sendagaya_Shino audited source / VRM Public License 1.0 metadata",
+    "surfaceAuthorship": "RINNE Character Production Pipeline original Arcanist DCC surfaces"
+  }
+}

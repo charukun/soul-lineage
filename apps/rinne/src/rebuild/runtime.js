@@ -29,7 +29,7 @@ export async function prepareRuntime({buildInfo,onProgress}={}){
   let layout=defaultMuraLayout();try{layout=normalizeLayout(channel.read()||layout);}catch(error){console.warn('shared world:',error);}
   const stations=buildStations(layout),canvas=$('game'),loading=$('loading-card'),gameScreen=$('game-screen');
   await progress('景色を描いています');
-  const view=createWorldRenderer({canvas,document,layout,stations});
+  const view=await createWorldRenderer({canvas,document,layout,stations});
   await progress('旅人を迎えています');
   const preview=placeState(createLife({name:'旅人',seed:0x51f15e,villageIds:[layout.id]}),layout);
   view.syncFront(null);view.renderState(preview,.016);canvas.dataset.runtime='prepared';
