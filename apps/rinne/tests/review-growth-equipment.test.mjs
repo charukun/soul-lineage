@@ -2,9 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { THREE } from '@soul/rendering';
-import { REVIEW_DOWNLOADS, REVIEW_KAYKIT_EQUIPMENT, REVIEW_KAYKIT_EQUIPMENT_SOURCE } from '@soul/assets/review-catalog';
+import {
+  REVIEW_DOWNLOADS,
+  REVIEW_KAYKIT_EQUIPMENT,
+  REVIEW_KAYKIT_EQUIPMENT_SOURCE,
+  REVIEW_KAYKIT_EXTRA_MODELS,
+  REVIEW_KAYKIT_SKELETON_SOURCE,
+} from '@soul/assets/review-catalog';
 import { EQUIPMENT_CATALOG, EQUIPMENT_REFERENCE, equipmentForSlot } from '../src/review/equipment-catalog.js';
 import { createGrowthEquipmentController } from '../src/review/growth-equipment.js';
+import { MOTION_LIBRARY_MODELS, motionLibraryModelURL } from '../src/review/motion-library-models.js';
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -36,10 +43,14 @@ test('equipment geometry is pinned, bundled and exposes every review slot', () =
   assert.match(REVIEW_KAYKIT_EQUIPMENT_SOURCE.commit,/^[0-9a-f]{40}$/);
   assert.equal(REVIEW_KAYKIT_EQUIPMENT_SOURCE.repository,'KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0');
   assert.equal(REVIEW_KAYKIT_EQUIPMENT_SOURCE.license,'CC0-1.0');
+  assert.match(REVIEW_KAYKIT_SKELETON_SOURCE.commit,/^[0-9a-f]{40}$/);
+  assert.equal(REVIEW_KAYKIT_SKELETON_SOURCE.repository,'KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0');
+  assert.equal(REVIEW_KAYKIT_SKELETON_SOURCE.license,'CC0-1.0');
   assert.equal(EQUIPMENT_REFERENCE.attachmentCommit,'83347159f70103c887768fc0aa0e6aff0d030e8d');
   assert.equal(EQUIPMENT_REFERENCE.attachmentLicense,'MIT');
-  assert.ok(EQUIPMENT_CATALOG.length>=20);
-  for(const slot of ['main','off','back'])assert.ok(equipmentForSlot(slot).length>=3,`${slot} should have equipment`);
+  assert.ok(EQUIPMENT_CATALOG.length>=34,'equipment picker must visibly grow beyond the original 25');
+  assert.equal(EQUIPMENT_CATALOG.filter(row=>row.source==='skeletons').length,9);
+  for(const slot of ['main','off','back'])assert.ok(equipmentForSlot(slot).length>=5,`${slot} should have expanded equipment`);
   for(const item of REVIEW_KAYKIT_EQUIPMENT){
     assert.match(item.publicPath,/^asset-review\/equipment\/[\w-]+\.gltf$/);
     assert.ok(REVIEW_DOWNLOADS.some(row=>row.output===`equipment/${item.file}.gltf`));
@@ -48,10 +59,21 @@ test('equipment geometry is pinned, bundled and exposes every review slot', () =
   assert.ok(REVIEW_DOWNLOADS.every(row=>!row.commit||/^[0-9a-f]{40}$/.test(row.commit)));
 });
 
+test('model picker gains four real bundled Skeletons characters', () => {
+  assert.equal(REVIEW_KAYKIT_EXTRA_MODELS.length,4);
+  const expected=['Skeleton Warrior','Skeleton Rogue','Skeleton Mage','Skeleton Minion'];
+  for(const label of expected)assert.ok(MOTION_LIBRARY_MODELS.some(row=>row.label===label),`missing ${label}`);
+  assert.ok(MOTION_LIBRARY_MODELS.length>=9,'model picker must visibly grow from five KayKit models to at least nine');
+  for(const row of MOTION_LIBRARY_MODELS.filter(row=>row.source==='skeletons')){
+    assert.match(motionLibraryModelURL(row),/^\.\/asset-review\/models\/kaykit-skeletons\/Skeleton_/);
+    assert.ok(REVIEW_DOWNLOADS.some(download=>download.output===`models/kaykit-skeletons/${row.file}`));
+  }
+});
+
 test('all-model growth UI preserves equipment selection in URL state', async () => {
-  const [html,js,css,prepare,doc] = await Promise.all([
+  const [html,js,css,prepare,doc,motionModels] = await Promise.all([
     read('growth-review.html'),read('src/review/growth-review.js'),read('src/review/growth-review.css'),
-    read('../../scripts/prepare-review-assets.mjs'),read('docs/GROWTH_EQUIPMENT_REVIEW.md'),
+    read('../../scripts/prepare-review-assets.mjs'),read('docs/GROWTH_EQUIPMENT_REVIEW.md'),read('src/review/motion-library-models.js'),
   ]);
   assert.match(html,/id="growth-equipment-picker"/);
   assert.match(html,/data-equipment-trigger="main"/);
@@ -66,8 +88,12 @@ test('all-model growth UI preserves equipment selection in URL state', async () 
   assert.match(css,/growth-equipment-slots/);
   assert.match(css,/growth-equipment-picker/);
   assert.match(prepare,/verifyEquipmentBundle/);
-  assert.match(prepare,/equipmentSource:REVIEW_KAYKIT_EQUIPMENT_SOURCE/);
-  assert.match(doc,/Every model selectable in Growth Review can use the same equipment UI/);
+  assert.match(prepare,/verifyGrowthModelBundle/);
+  assert.match(prepare,/growthModels/);
+  assert.match(prepare,/skeletonSource:REVIEW_KAYKIT_SKELETON_SOURCE/);
+  assert.match(motionModels,/motion-library\.skeleton-warrior/);
+  assert.match(motionModels,/motion-library\.skeleton-minion/);
+  assert.match(doc,/Model picker count increases by at least four real character models/);
   assert.doesNotMatch(js+doc,/visualApproval\s*=|productionStage\s*=/);
 });
 
