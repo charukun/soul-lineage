@@ -28,16 +28,32 @@ const ARCANIST_ATLAS_PRESET=Object.freeze({
   source:'explicit-review-blockout'
 });
 
+export const ARCANIST_ATLAS_DCC_ID='arcanist.atlas-dcc.v1';
+const ARCANIST_ATLAS_DCC_PATH='./simulator/assets/ARCANIST_ATLAS_DCC.glb';
+const ARCANIST_ATLAS_DCC_SIZE=717248;
+const ARCANIST_ATLAS_DCC_SHA256='e61b1a9950c2c515579ee3a602bd4cd1961c114aca8f9619b1e1b29283f916db';
+const ARCANIST_ATLAS_DCC_PRESET=Object.freeze({
+  id:ARCANIST_ATLAS_DCC_ID,
+  label:'ARCANIST_ATLAS_DCC / PRIMARY',
+  name:'Arcanist Atlas / Blender PRIMARY',
+  kind:'character',
+  portraitPath:'./simulator/assets/portrait_ARCANIST_ATLAS_DCC.png',
+  source:'blender-dcc-primary',
+  productionStage:'PRIMARY',
+  productionReady:false
+});
+
 const MOTION_LIBRARY_PRESETS=Object.freeze(MOTION_LIBRARY_MODELS.map(row=>Object.freeze({
   id:row.presetId,label:`Motion Library / ${row.label}`,name:`Motion Library / ${row.label}`,kind:'character',source:'motion-library'
 })));
 
 // Generic runtime-procedural reference bodies remain retired. The single Atlas
-// study below is an explicit user-requested comparison artifact and is labeled
-// BLOCKOUT so it cannot be confused with an audited production character.
+// study is an explicit BLOCKOUT comparison, while the DCC preset is the exact
+// Blender-authored PRIMARY candidate. Neither one replaces the other.
 export const reviewPresets=Object.freeze([
   ...baseReviewPresets,
   ARCANIST_ATLAS_PRESET,
+  ARCANIST_ATLAS_DCC_PRESET,
   ...MOTION_LIBRARY_PRESETS
 ]);
 export { reviewWeapons, disposeLoaded };
@@ -54,6 +70,68 @@ function installArcanistAtlasStudy(loaded){
   loaded.referenceModel=ARCANIST_ATLAS_REFERENCE;
   loaded.referenceDiagnostics=()=>({...controller.diagnostics(),study:{id:study.id,stage:study.stage,modelingMode:study.modelingMode,productionReady:study.productionReady,meshCount:study.meshCount}});
   return loaded;
+}
+
+async function exactDCCBytes(signal,onProgress){
+  onProgress?.('Arcanist Atlas / Blender PRIMARY を読み込み中');
+  const response=await fetch(ARCANIST_ATLAS_DCC_PATH,{cache:'force-cache',signal});
+  if(!response.ok)throw new Error(`Arcanist DCC HTTP ${response.status}`);
+  const bytes=await response.arrayBuffer();
+  if(bytes.byteLength!==ARCANIST_ATLAS_DCC_SIZE)throw new Error(`Arcanist DCC size mismatch: ${bytes.byteLength}/${ARCANIST_ATLAS_DCC_SIZE}`);
+  const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
+  if(digest!==ARCANIST_ATLAS_DCC_SHA256)throw new Error('Arcanist DCC SHA-256 mismatch');
+  return bytes;
+}
+
+async function dccHumanoidBones(gltf){
+  const rows=gltf.parser?.json?.extensions?.VRMC_vrm?.humanoid?.humanBones;
+  if(!rows)throw new Error('Arcanist DCC VRMC_vrm humanoid metadata missing');
+  return Object.fromEntries(await Promise.all(Object.entries(rows).map(async([name,row])=>[name,await gltf.parser.getDependency('node',row.node)])));
+}
+
+async function loadArcanistAtlasDCC(base,args){
+  // Reuse the Lab's already-validated shared motion source, then replace only the
+  // displayed humanoid with the exact Blender candidate. Both assets use the
+  // audited Shino bone-name contract, so Three.js clips bind to the DCC bones.
+  const loaded=await base.loadPreset({...args,presetId:'model.SHINO'});
+  let gltf;
+  try{
+    const bytes=await exactDCCBytes(args?.signal,args?.onProgress);
+    if(args?.signal?.aborted)throw new DOMException('Model load aborted','AbortError');
+    gltf=await new GLTFLoader().parseAsync(bytes,new URL('./simulator/assets/',location.href).href);
+    const bones=await dccHumanoidBones(gltf);
+    const rest=[];
+    gltf.scene.name='ArcanistAtlasDCCReviewVisible';
+    gltf.scene.traverse(node=>{
+      rest.push({node,p:node.position.clone(),q:node.quaternion.clone(),s:node.scale.clone()});
+      if(node.isMesh){node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;}
+    });
+    gltf.scene.updateMatrixWorld(true);
+    const disposeBase=loaded.dispose.bind(loaded);let disposed=false;
+    loaded.root=gltf.scene;
+    loaded.bones=bones;
+    loaded.label='Arcanist Atlas / Blender PRIMARY / 全モーションソース';
+    loaded.summary='Blender 4.0.2で実生成・監査したDCC PRIMARY比較候補。productionReady=false / visualApproval=pending。Atlas BLOCKOUTとは別個体です。';
+    loaded.weaponReview=false;
+    loaded.resetPose=()=>{for(const row of rest){row.node.position.copy(row.p);row.node.quaternion.copy(row.q);row.node.scale.copy(row.s);}};
+    loaded.afterSample=()=>gltf.scene.updateMatrixWorld(true);
+    loaded.applySwordTravel=()=>{};
+    loaded.setWeapon=async()=>{};
+    loaded.sampleEffects=()=>{};
+    loaded.referenceDiagnostics=()=>({
+      id:ARCANIST_ATLAS_DCC_ID,
+      stage:'PRIMARY',modelingMode:'dcc-blender',productionReady:false,visualApproval:'pending',
+      bytes:ARCANIST_ATLAS_DCC_SIZE,sha256:ARCANIST_ATLAS_DCC_SHA256,
+      humanoidBones:Object.keys(bones).length
+    });
+    loaded.dispose=()=>{if(disposed)return;disposed=true;disposeLoaded(gltf.scene);disposeBase();};
+    args?.onProgress?.('Arcanist Atlas / Blender PRIMARY を表示中');
+    return loaded;
+  }catch(error){
+    if(gltf?.scene)disposeLoaded(gltf.scene);
+    loaded.dispose();
+    throw error;
+  }
 }
 
 function installMotionLibraryPickerPolish(){
@@ -111,6 +189,10 @@ export async function installReviewExtensions(options){
     if(args?.presetId===ARCANIST_ATLAS_STUDY_ID){
       const loaded=await base.loadPreset({...args,presetId:'model.SHINO'});
       return installPostureWeaponPreview(installWeaponReviewPolish(installArcanistAtlasStudy(loaded)));
+    }
+    if(args?.presetId===ARCANIST_ATLAS_DCC_ID){
+      const loaded=await loadArcanistAtlasDCC(base,args);
+      return installPostureWeaponPreview(installWeaponReviewPolish(loaded));
     }
     const loaded=await base.loadPreset(args);
     return installPostureWeaponPreview(installWeaponReviewPolish(loaded));
