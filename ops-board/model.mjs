@@ -51,7 +51,8 @@ export function workflowFailure(run) {
 }
 
 export function latestRunForSha(runs, sha, workflowName = 'CI') {
-  return (runs || []).find(run => run?.name === workflowName && run?.head_sha === sha) || null;
+  return (runs || []).find(run => run?.head_sha === sha &&
+    (run?.name === workflowName || (workflowName === 'CI' && /^CI validation #/.test(run?.name || '')))) || null;
 }
 
 function explicitIntegrationHold(pr) {
@@ -66,6 +67,8 @@ export function classifyPull(pr, runs = [], developRuns = [], now = Date.now()) 
     title: pr.title,
     url: pr.html_url || `https://github.com/${REPOSITORY}/pull/${pr.number}`,
     headSha: pr?.head?.sha || null,
+    monitoringOwner: pr.draft ? 'Implementation' : 'Integration',
+    workerEnded: !pr.draft,
     updatedAt: pr.updated_at || pr.created_at || null,
     ci: ci ? {
       status: ci.status,
@@ -82,7 +85,7 @@ export function classifyPull(pr, runs = [], developRuns = [], now = Date.now()) 
     return { ...base, stage: 'HOLD', label: 'Integration保留', tone: 'info', reason: '明示的なIntegration hold' };
   }
   if (!ci || ci.status !== 'completed') {
-    return { ...base, stage: 'READY_WAIT', label: ci ? '自動テスト中' : '自動テスト待ち', tone: 'info', reason: ci ? 'CI実行中' : 'CI待ち' };
+    return { ...base, stage: 'READY_WAIT', label: ci ? '自動テスト中' : '自動テスト待ち', tone: 'info', reason: `${ci ? 'CI実行中' : 'CI待ち'} / Integrationが監視・実装Worker終了` };
   }
   if (FAILURE_CONCLUSIONS.has(ci.conclusion)) {
     return { ...base, stage: 'CI_FAILED', label: 'CI失敗', tone: 'danger', reason: ci.conclusion || 'failure' };
@@ -92,16 +95,83 @@ export function classifyPull(pr, runs = [], developRuns = [], now = Date.now()) 
   }
 
   const ciTime = Date.parse(ci.updated_at || ci.created_at || pr.updated_at || pr.created_at || 0) || now;
-  const stalledMs = Math.max(0, now - ciTime);
   return {
     ...base,
-    stage: 'MERGE_WAIT',
-    label: '統合待ち',
-    tone: stalledMs >= STALL_WARNING_MS ? 'danger' : 'warning',
-    reason: '自動テストは成功していますが、まだ統合されていません',
-    stalledMs,
-    warning: stalledMs >= STALL_WARNING_MS,
+    stage: 'READY_RECONCILE',
+    label: '自動統合で評価中',
+    tone: 'info',
+    reason: '自動テスト成功 / Reconciliationのcurrent-state分類を待っています',
     eligibleSince: new Date(ciTime).toISOString(),
+  };
+}
+
+const RECONCILIATION_LANES = [
+  ['writer', 'INTEGRATING', 'develop統合候補', 'progress'],
+  ['validating', 'VALIDATING', 'exact-head検証中', 'info'],
+  ['repair', 'REPAIR', '修復待ち', 'warning'],
+  ['active', 'REPAIR_ACTIVE', '修復中', 'progress'],
+  ['blocked', 'BLOCKED', '保留・依存待ち', 'info'],
+  ['deferred', 'DEFERRED', '次回評価待ち', 'info'],
+];
+
+function reconciliationEntries(plan) {
+  const entries = [];
+  for (const [lane, stage, label, tone] of RECONCILIATION_LANES) {
+    for (const item of plan?.[lane] || []) entries.push({ lane, stage, label, tone, item });
+  }
+  for (const train of plan?.trains || []) {
+    for (const item of train?.members || []) entries.push({ lane: 'train', stage: 'TRAIN', label: 'Train検証候補', tone: 'progress', item, trainId: train.id || null });
+  }
+  return entries;
+}
+
+export function reconcileIntegrationQueue(queue = [], plan = null, developSha = null) {
+  const fresh = Boolean(plan && typeof developSha === 'string' && plan.develop === developSha);
+  const exact = new Map();
+  if (fresh) {
+    for (const entry of reconciliationEntries(plan)) {
+      const pr = Number(entry.item?.pr);
+      const head = entry.item?.head || null;
+      if (Number.isInteger(pr) && head) exact.set(`${pr}:${head}`, entry);
+    }
+  }
+  const reconciled = queue.map(item => {
+    if (item.stage !== 'READY_RECONCILE') return item;
+    if (!fresh) return {
+      ...item,
+      stage: 'RECONCILE_UNKNOWN',
+      label: '現在状態を再確認中',
+      tone: 'info',
+      reason: plan ? 'Reconciliation snapshotのdevelopが現在値と一致しません' : 'Reconciliation snapshotをまだ取得していません',
+    };
+    const entry = exact.get(`${item.number}:${item.headSha}`);
+    if (!entry) return {
+      ...item,
+      stage: 'RECONCILE_UNKNOWN',
+      label: '現在状態を再確認中',
+      tone: 'info',
+      reason: 'fresh Reconciliation planに現在のexact headがまだ収載されていません',
+    };
+    const task = entry.item || {};
+    const reason = task.reason || item.reason;
+    return {
+      ...item,
+      stage: entry.stage,
+      label: entry.label,
+      tone: entry.tone,
+      reason,
+      reconciliationLane: entry.lane,
+      blockedBy: task.blockedBy || [],
+      trainId: entry.trainId || null,
+    };
+  });
+  return {
+    queue: reconciled,
+    fresh,
+    reason: fresh ? null : plan ? 'develop-mismatch' : 'unavailable',
+    generatedAt: plan?.generatedAt || null,
+    actionableIdle: fresh && Boolean(plan?.actionableIdle),
+    readyCount: fresh ? Number(plan?.totalReady || plan?.counts?.ready || 0) : reconciled.filter(item => !['READY_WAIT', 'HOLD'].includes(item.stage)).length,
   };
 }
 
@@ -145,12 +215,13 @@ export function deploymentQueue(compare) {
   };
 }
 
-export function overallIntegration(queue = [], latestDevelopRun = null, deployQueues = [], now = Date.now()) {
-  if (queue.some(item => item.stage === 'FAILED' || item.stage === 'CI_FAILED') || workflowFailure(latestDevelopRun)) {
+export function overallIntegration(queue = [], latestDevelopRun = null, deployQueues = [], now = Date.now(), options = {}) {
+  const deliveryVerified = options.deliveryVerified === true;
+  if (queue.some(item => item.stage === 'FAILED' || item.stage === 'CI_FAILED') || (workflowFailure(latestDevelopRun) && !deliveryVerified)) {
     return { label: 'Failed', tone: 'danger', phase: 'failed', heartbeatAt: latestDevelopRun?.updated_at || null };
   }
   if (deployQueues.some(item => item?.warning)) return { label: 'Failed', tone: 'danger', phase: 'branch-diverged', heartbeatAt: latestDevelopRun?.updated_at || null };
-  if (latestDevelopRun && ACTIVE_RUN_STATES.has(latestDevelopRun.status)) {
+  if (!deliveryVerified && latestDevelopRun && ACTIVE_RUN_STATES.has(latestDevelopRun.status)) {
     const heartbeatAt = latestDevelopRun.updated_at || latestDevelopRun.created_at || null;
     const heartbeatMs = Date.parse(heartbeatAt || 0) || now;
     const stalledMs = Math.max(0, now - heartbeatMs);
@@ -159,11 +230,15 @@ export function overallIntegration(queue = [], latestDevelopRun = null, deployQu
     }
     return { label: 'DEV delivery中', tone: 'progress', phase: 'delivery', heartbeatAt, stalled: false, stalledMs };
   }
-  if (queue.some(item => item.stage === 'INTEGRATING')) return { label: 'Integration中', tone: 'progress', phase: 'integration', heartbeatAt: null };
-  if (queue.some(item => item.warning)) return { label: '滞留あり', tone: 'danger', phase: 'ready-queue', heartbeatAt: latestDevelopRun?.updated_at || null };
+  if (queue.some(item => ['INTEGRATING', 'TRAIN', 'VALIDATING', 'REPAIR_ACTIVE'].includes(item.stage))) {
+    return { label: '自動統合中', tone: 'progress', phase: 'reconciliation', heartbeatAt: latestDevelopRun?.updated_at || null };
+  }
+  if (options.actionableIdle) return { label: '再配分待ち', tone: 'warning', phase: 'reconciliation-idle', heartbeatAt: latestDevelopRun?.updated_at || null };
+  if (queue.some(item => item.stage === 'REPAIR')) return { label: '修復待ち', tone: 'warning', phase: 'repair', heartbeatAt: latestDevelopRun?.updated_at || null };
   if (deployQueues.some(item => (item?.commitsAhead || 0) > 0)) return { label: 'deploy待ち', tone: 'warning', phase: 'deploy-wait', heartbeatAt: latestDevelopRun?.updated_at || null };
-  if (queue.some(item => item.stage === 'MERGE_WAIT')) return { label: '統合待ち', tone: 'warning', phase: 'ready-queue', heartbeatAt: latestDevelopRun?.updated_at || null };
-  if (queue.some(item => item.stage === 'READY_WAIT')) return { label: 'Ready待ち', tone: 'info', phase: 'ready-wait', heartbeatAt: latestDevelopRun?.updated_at || null };
+  if (queue.some(item => item.stage === 'BLOCKED')) return { label: '依存・保留あり', tone: 'info', phase: 'blocked', heartbeatAt: latestDevelopRun?.updated_at || null };
   if (queue.some(item => item.stage === 'HOLD')) return { label: '保留あり', tone: 'info', phase: 'hold', heartbeatAt: latestDevelopRun?.updated_at || null };
+  if (queue.some(item => ['DEFERRED', 'RECONCILE_UNKNOWN', 'READY_RECONCILE'].includes(item.stage))) return { label: '再評価待ち', tone: 'info', phase: 'reconcile-wait', heartbeatAt: latestDevelopRun?.updated_at || null };
+  if (queue.some(item => item.stage === 'READY_WAIT')) return { label: 'Ready待ち', tone: 'info', phase: 'ready-wait', heartbeatAt: latestDevelopRun?.updated_at || null };
   return { label: '正常', tone: 'ok', phase: 'idle', heartbeatAt: latestDevelopRun?.updated_at || null };
 }

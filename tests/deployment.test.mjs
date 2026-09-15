@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, readFile } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { digest, safeFile, restoreEntry } from '../scripts/deployment-files.mjs';
+import { digest, safeFile, inventory, fetchBytes, restoreEntry } from '../scripts/deployment-files.mjs';
 import { needsBuild } from '../scripts/deploy.mjs';
 test('unchanged app retains its original version even when repository head advances', () => {
   const previous = { inputHash: 'same', legacy: false, version: { commit: 'previous' } };
@@ -20,5 +20,69 @@ test('restore preserves bytes and rejects corrupted outputs or path traversal', 
     assert.deepEqual(await readFile(join(root, 'prod/rinne/index.html')), bytes);
     await assert.rejects(restoreEntry(entry, root, 'https://example.com/', async () => new Response('corrupted')));
     for (const path of ['../escape', '/absolute', 'dev/../prod', 'https://other.com', 'dev//file']) assert.throws(() => safeFile(path));
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+test('retained asset fetch retries only transient failures with a finite backoff', async () => {
+  const expected = Buffer.from('retained asset');
+  const waits = [];
+  let calls = 0;
+  const bytes = await fetchBytes('https://example.com/asset.ogg', async () => {
+    calls++;
+    if (calls === 1) return new Response(null, { status: 503 });
+    if (calls === 2) return new Response(null, { status: 429, headers: { 'retry-after': '1' } });
+    return new Response(expected);
+  }, async ms => waits.push(ms));
+  assert.deepEqual(bytes, expected);
+  assert.equal(calls, 3);
+  assert.deepEqual(waits, [250, 1000]);
+
+  let notFoundCalls = 0;
+  await assert.rejects(fetchBytes('https://example.com/missing.ogg', async () => {
+    notFoundCalls++;
+    return new Response(null, { status: 404 });
+  }, async () => {}), /HTTP 404/);
+  assert.equal(notFoundCalls, 1, 'permanent client errors are not retried');
+
+  let unavailableCalls = 0;
+  await assert.rejects(fetchBytes('https://example.com/unavailable.ogg', async () => {
+    unavailableCalls++;
+    return new Response(null, { status: 503 });
+  }, async () => {}), /HTTP 503/);
+  assert.equal(unavailableCalls, 4, 'transient HTTP retries remain finite');
+});
+test('inventory and legacy restore omit hidden files but keep visible integrity checks', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'soul-deploy-hidden-'));
+  const source = join(root, 'source');
+  const restoredRoot = join(root, 'restored');
+  const visible = Buffer.from('visible app');
+  const hidden = Buffer.from('git metadata');
+  try {
+    await mkdir(join(source, '.hidden'), { recursive: true });
+    await writeFile(join(source, 'index.html'), visible);
+    await writeFile(join(source, '.gitattributes'), hidden);
+    await writeFile(join(source, '.hidden', 'secret.txt'), hidden);
+    const listed = await inventory(source);
+    assert.deepEqual(listed.map(file => file.path), ['index.html']);
+
+    const entry = { path: 'dev/rinne', files: [
+      { path: '.gitattributes', sha256: digest(hidden), size: hidden.length },
+      { path: 'index.html', sha256: digest(visible), size: visible.length },
+    ] };
+    const requested = [];
+    const retained = await restoreEntry(entry, restoredRoot, 'https://example.com/', async url => {
+      requested.push(new URL(url).pathname);
+      return new Response(visible);
+    });
+    assert.deepEqual(requested, ['/dev/rinne/index.html']);
+    assert.deepEqual(retained.files.map(file => file.path), ['index.html']);
+    assert.deepEqual(entry.files.map(file => file.path), ['index.html']);
+    assert.deepEqual(await readFile(join(restoredRoot, 'dev/rinne/index.html')), visible);
+
+    await assert.rejects(restoreEntry(
+      { path: 'dev/rinne', files: [{ path: 'missing.js', sha256: digest(visible), size: visible.length }] },
+      restoredRoot,
+      'https://example.com/',
+      async () => new Response(null, { status: 404 }),
+    ), /HTTP 404/);
   } finally { await rm(root, { recursive: true, force: true }); }
 });

@@ -54,6 +54,7 @@ function row(pr) {
   const time = el('time', '', `更新 ${updated}`);
   if (Number.isFinite(date)) { time.dateTime = new Date(date).toISOString(); time.title = ageLabel(Math.max(0, Date.now() - date)); }
   meta.append(targets, el('span', 'pull-number', `#${pr.number}`), time);
+  if (pr.monitoringOwner === 'Integration') meta.append(el('span', 'pull-target', 'CI監視: Integration'));
   if (pr.staleDraft && !pr.visualReview) meta.append(el('span', 'stale-note', 'しばらく更新なし'));
   bottom.append(meta); link.append(top, bottom);
   return link;

@@ -1,3 +1,4 @@
+import './nature-visuals.js';
 import { THREE as T, GLTFLoader } from '@soul/rendering';
 import { View } from './web/view.js';
 

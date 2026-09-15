@@ -1,0 +1,118 @@
+name: Integration Controller
+on:
+  workflow_call:
+    inputs:
+      rescue_mode:
+        description: 'scan also runs the repair executor; the Fast Lane itself is always event-driven'
+        type: string
+        required: false
+        default: ''
+      integration_cursor:
+        description: 'legacy compatibility input; Fast Lane does not maintain a queue cursor'
+        type: string
+        required: false
+        default: '0'
+    outputs:
+      sha:
+        description: 'Final develop SHA after this serialized Fast Lane pass'
+        value: ${{ jobs.integrate.outputs.sha }}
+      verify:
+        description: 'Legacy compatibility output; DEV verification never blocks Fast Lane'
+        value: ${{ jobs.integrate.outputs.verify }}
+      retry:
+        description: 'Whether another external wake may be useful'
+        value: ${{ jobs.integrate.outputs.retry }}
+      cursor:
+        description: 'Legacy compatibility cursor'
+        value: ${{ jobs.integrate.outputs.cursor }}
+      merged_count:
+        description: 'Number of exact heads merged by Fast Lane'
+        value: ${{ jobs.integrate.outputs.merged_count }}
+permissions:
+  contents: read
+concurrency:
+  group: integration-controller-develop
+  cancel-in-progress: false
+
+jobs:
+  integrate:
+    name: Integration Fast Lane
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+      checks: read
+      statuses: write
+      issues: read
+    outputs:
+      sha: ${{ steps.fast-lane.outputs.sha }}
+      verify: ${{ steps.fast-lane.outputs.verify }}
+      retry: ${{ steps.fast-lane.outputs.retry }}
+      cursor: ${{ steps.fast-lane.outputs.cursor }}
+      merged_count: ${{ steps.fast-lane.outputs.merged_count }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Merge every independently eligible exact head without waiting for DEV/browser
+        id: fast-lane
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-diagnostics.json
+        run: node scripts/integration-fast-lane.mjs
+      - name: Notify integrated PRs separately from DEV delivery
+        id: notify
+        if: steps.fast-lane.outputs.merged_count != '0'
+        continue-on-error: true
+        env:
+          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+        run: node scripts/notify-delivery.mjs INTEGRATED .deploy-state/integration.json
+      - name: Record notification health without affecting merge success
+        if: always() && steps.fast-lane.outputs.merged_count != '0'
+        uses: actions/github-script@v8
+        env:
+          FINAL_SHA: ${{ steps.fast-lane.outputs.sha }}
+          CHANNEL: ${{ steps.notify.outputs.channel }}
+          NOTIFY_OUTCOME: ${{ steps.notify.outcome }}
+        with:
+          script: |
+            const channel = process.env.CHANNEL || (process.env.NOTIFY_OUTCOME === 'failure' ? 'failed' : 'not-configured');
+            const state = channel === 'ntfy' ? 'success' : channel === 'not-configured' ? 'error' : 'failure';
+            const description = channel === 'ntfy' ? 'ntfy smartphone delivery confirmed' : channel === 'not-configured'
+              ? 'NTFY_TOPIC_URL is not configured; smartphone delivery unconfirmed'
+              : 'ntfy delivery failed; GitHub remains authoritative';
+            if (/^[0-9a-f]{40}$/.test(process.env.FINAL_SHA || '')) await github.rest.repos.createCommitStatus({
+              ...context.repo, sha: process.env.FINAL_SHA, context: 'notification/ntfy', state, description,
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-fast-lane-report
+          path: |
+            .deploy-state/integration.json
+            .deploy-state/integration-diagnostics.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+
+  repair:
+    name: Repair executor pool
+    if: inputs.rescue_mode == 'scan'
+    uses: ./.github/workflows/integration-rescue.yml
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: write
+      checks: read
+      statuses: write
+    secrets: inherit

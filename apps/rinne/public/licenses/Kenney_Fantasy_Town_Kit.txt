@@ -1,0 +1,24 @@
+Fantasy Town Kit (1.0)
+Created/distributed by Kenney (www.kenney.nl)
+Creation date: 05-08-2019 20:16
+License: (Creative Commons Zero, CC0)
+http://creativecommons.org/publicdomain/zero/1.0/
+This content is free to use in personal, educational and commercial projects.
+Support us by crediting Kenney or www.kenney.nl (this is not mandatory)
+Donate: http://support.kenney.nl
+Request: http://request.kenney.nl
+Patreon: http://patreon.com/kenney/
+Follow on Twitter for updates: http://twitter.com/KenneyNL
+
+Source license: https://github.com/ETdoFresh/kenney.nl/blob/master/fantasy-town-kit-1.0/License.txt
+Source license blob SHA: bb0461805e80ede4aa47ecc71a0a6ae9e6a24ea4
+
+Acquisition in this package:
+The vertex positions, triangle indices and material groups of six existing OBJ
+files were retrieved through GitHub and converted to indexed JSON. Unused OBJ
+UVs and explicit normals were removed; renderer normals are recalculated.
+The exterior facility meshes are assemblies of these supplied modular asset
+meshes, not newly modelled primitives. The stock geometry is NOT a felt model.
+Procedural textile surface detail is a rendering adaptation added in this demo.
+Original vertices and face index order are preserved in the conversion.
+See assets/kenney-converted.json for individual source URLs and blob SHAs.

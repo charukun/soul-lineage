@@ -30,18 +30,24 @@ const reload = async () => {
 };
 try {
   await page.goto(base, { waitUntil:'domcontentloaded', timeout:45000 });
-  await page.waitForSelector('.app-summary-card');
-  await page.waitForSelector('.pull-filter');
+  await page.waitForSelector('#overview-task-card');
+  await page.waitForFunction(() => document.querySelector('#overview-task-value')?.textContent !== '確認中');
+  assert.equal(await page.locator('#tasks-section').getAttribute('open'), null);
+  assert.equal(await page.locator('#apps-section').getAttribute('open'), null);
+  assert.equal(await page.locator('#details-section').getAttribute('open'), null);
+  check('summary-first sections are collapsed by default');
   if (!fixtureMode) {
     const versionResponse = await context.request.get(new URL('version.json', base).href);
     assert.equal(versionResponse.status(), 200);
     const version = await versionResponse.json();
-    if (process.env.GITHUB_SHA) assert.equal(version.commit, process.env.GITHUB_SHA);
+    if ((process.env.OPS_SOURCE_SHA || process.env.GITHUB_SHA)) assert.equal(version.commit, (process.env.OPS_SOURCE_SHA || process.env.GITHUB_SHA));
     report.version = version;
     assert.equal(latestState?.schemaVersion, 2);
     assert.equal(latestState?.syncStatus, 'ok');
     check('live snapshot and exact deployed SHA', version.commit);
   }
+  await page.locator('#overview-task-card').click();
+  await page.waitForSelector('.pull-filter');
   const requestsBeforeFilters = report.githubRequests.length;
   for (const state of ['Draft','Ready','Merged','Closed','all']) {
     await page.locator(`.pull-filter[data-state="${state}"]`).click();
@@ -50,14 +56,20 @@ try {
   assert.equal(report.githubRequests.length, requestsBeforeFilters);
   check('all state filters without GitHub requests');
   await page.locator('#pulls .completed-pulls > summary').click();
+  await page.locator('#details-section > summary').click();
   await page.locator('#environments details > summary').first().click();
   await reload();
+  assert.notEqual(await page.locator('#tasks-section').getAttribute('open'), null);
+  assert.notEqual(await page.locator('#details-section').getAttribute('open'), null);
   assert.notEqual(await page.locator('#pulls .completed-pulls').getAttribute('open'), null);
   assert.notEqual(await page.locator('#environments details').first().getAttribute('open'), null);
-  check('manual refresh preserves completed/publication disclosures');
+  check('manual refresh preserves outer and inner disclosures');
   await page.locator('.pull-filter[data-state="Draft"]').click(); await reload();
   assert.equal(await page.locator('.pull-filter.active').getAttribute('data-state'), 'Draft');
   check('manual refresh preserves selected state');
+
+  await page.locator('.section-tabs a[href="#apps-section"]').click();
+  await page.waitForSelector('.app-summary-card');
   await page.locator('.app-more').first().click();
   assert.equal(await page.locator('#app-dialog').isVisible(), true);
   assert.match(await page.locator('#app-dialog').innerText(), /公開済みの版/);
@@ -98,6 +110,7 @@ try {
   assert.match(await page.locator('#alerts').innerText(), /#85/);
   assert.match(await page.locator('#sync-freshness').innerText(), /更新失敗/);
   assert.doesNotMatch(await page.locator('#app-summary').innerText(), /正常/);
+  assert.match(await page.locator('#overview-alert-value').innerText(), /[1-9]/);
   await page.evaluate(() => scrollTo(0,0)); await page.screenshot({path:`${out}/simulated-alerts.png`});
   check('simulated stale sync and CI failure are visible; unknown app is not healthy');
   const cards = await page.locator('.app-summary-card').count();

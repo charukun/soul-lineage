@@ -17,7 +17,6 @@ export async function enrichTargets(pulls, client, storage, limit = 2, now = Dat
       Object.assign(pr, { targetApps: saved.targets, targetAppsComplete: true, targetAppsStatus: 'ready', targetAppsUpdatedAt: saved.updatedAt });
     } else pending.push({ pr, saved, revision });
   }
-  // Open work first; historical PRs are then warmed once, not on every filter click.
   pending.sort((a, b) => Number(b.pr.state === 'open') - Number(a.pr.state === 'open') || (a.saved?.attemptAt || 0) - (b.saved?.attemptAt || 0));
   let attempted = 0;
   for (const { pr, revision, saved } of pending) {
@@ -35,7 +34,6 @@ export async function enrichTargets(pulls, client, storage, limit = 2, now = Dat
       }
       const { data: confirmed } = await client.get(`/pulls/${pr.number}`);
       if (targetRevision(confirmed) !== revision) throw new Error('取得中にPRの版が更新されました');
-      // REST returns at most 3,000 changed files. Never claim complete coverage beyond it.
       complete = complete && Number.isInteger(confirmed.changed_files) && files.length === confirmed.changed_files;
       const paths = files.flatMap(file => [file.filename, file.previous_filename].filter(Boolean));
       const targets = targetAppsFromFiles(paths);
@@ -52,11 +50,11 @@ export async function enrichTargets(pulls, client, storage, limit = 2, now = Dat
     unavailable: result.filter(pr => ['unavailable', 'partial'].includes(pr.targetAppsStatus)).length };
 }
 
-export function actionProblems(runs = [], pulls = []) {
+export function actionProblems(runs = [], pulls = [], { verifiedDevelopSha = null } = {}) {
   const open = new Map(pulls.filter(pr => pr.state === 'open').map(pr => [pr.head?.ref, pr.head?.sha]));
   const closed = new Set(pulls.filter(pr => pr.state === 'closed').map(pr => pr.head?.ref));
   const ordered = [...runs].sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0) || b.id - a.id);
-  const key = run => `${run.workflow_id || run.name}:${run.head_branch}:${run.event || ''}`;
+  const key = run => `${run.workflow_id || run.name}:${run.head_branch}:${run.event || ''}:${/^CI observation #/.test(run.name || '') ? 'observation' : 'validation'}`;
   const latest = new Map();
   const current = [], history = [];
   for (const run of ordered) { if (!latest.has(key(run))) latest.set(key(run), run); }
@@ -68,6 +66,9 @@ export function actionProblems(runs = [], pulls = []) {
     else if (last?.id !== run.id) historyLabel = last?.conclusion === 'success' ? '後続の成功で解消' : '過去の実行';
     else if (open.has(run.head_branch) && open.get(run.head_branch) !== run.head_sha) historyLabel = '旧版の失敗';
     else if (!open.has(run.head_branch) && closed.has(run.head_branch) && !['develop', 'main'].includes(run.head_branch)) historyLabel = '終了済みPRの記録';
+    else if (verifiedDevelopSha && run.name === 'Deploy DEV and PROD' && run.head_branch === 'develop' && run.head_sha === verifiedDevelopSha) {
+      historyLabel = 'DEV公開検証済み・補助処理の記録';
+    }
     if (historyLabel) history.push({ ...run, historyLabel }); else current.push(run);
   }
   return { current: current.slice(0, 10), history: history.slice(0, 20) };

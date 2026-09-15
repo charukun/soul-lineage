@@ -37,13 +37,16 @@ async function fetchJson(url) {
 }
 export async function waitForPublication(base, expected) {
   let last;
-  // Bounded CDN/Worker propagation check, not CI or Integration polling.
-  for (let attempt = 0; attempt < 15; attempt++) {
+  // Worker code and Static Assets can propagate independently. Keep the check
+  // finite and exact-source strict, but allow up to one minute for the slower
+  // side to converge before declaring publication failure.
+  const attempts = 30;
+  for (let attempt = 0; attempt < attempts; attempt++) {
     try {
       const [assets, worker] = await Promise.all(['version.json', 'api/version'].map(path => fetchJson(new URL(`${path}?verify=${expected}`, base))));
       assertVersion(assets, expected, 'Static Assets'); assertVersion(worker, expected, 'Worker');
       console.log(`PUBLICATION_SOURCE_VERIFIED ${expected}`); return;
-    } catch (error) { last = error; if (attempt < 14) await new Promise(resolve => setTimeout(resolve, 2000)); }
+    } catch (error) { last = error; if (attempt < attempts - 1) await new Promise(resolve => setTimeout(resolve, 2000)); }
   }
   throw last;
 }
@@ -59,6 +62,6 @@ export async function verifyPublicSnapshot(base, expected) {
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const base = process.env.OPS_URL || 'https://rinne-ops.c-okamoto.workers.dev/';
-  if (process.argv[2] === 'version') await waitForPublication(base, process.env.GITHUB_SHA);
-  else await verifyPublicSnapshot(base, process.env.GITHUB_SHA);
+  if (process.argv[2] === 'version') await waitForPublication(base, (process.env.OPS_SOURCE_SHA || process.env.GITHUB_SHA));
+  else await verifyPublicSnapshot(base, (process.env.OPS_SOURCE_SHA || process.env.GITHUB_SHA));
 }

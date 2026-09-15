@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { onBrowserFailure, onDevelopBrowserSuccess, onPrBrowserSuccess, parseRepairState, replaceRepairState, linkedIssueNumber, DEFAULT_MAX_ATTEMPTS } from './browser-repair-state.mjs';
+import { onBrowserFailure, onDevelopBrowserSuccess, onPrBrowserSuccess, parseRepairState, replaceRepairState, linkedIssueNumber, DEFAULT_MAX_ATTEMPTS, currentPrRepair } from './browser-repair-state.mjs';
 
 const repository = process.env.GITHUB_REPOSITORY;
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
@@ -19,6 +19,7 @@ async function api(method, path, body) {
     method,
     headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
     ...(body ? { body: JSON.stringify(body) } : {}),
+    signal: AbortSignal.timeout(15000),
   });
   if (!response.ok) throw new Error(`${method} ${path}: HTTP ${response.status} ${await response.text()}`);
   return response.status === 204 ? null : response.json();
@@ -31,18 +32,39 @@ async function associatedPr() {
   const merged = prs.filter(pr => pr.merged_at && pr.base?.ref === 'develop').sort((a, b) => new Date(b.merged_at) - new Date(a.merged_at));
   return merged.find(pr => linkedIssueNumber(pr.body || '')) || merged[0] || null;
 }
-
 async function getIssue(number) {
   if (!number) return null;
   const issue = await api('GET', `/issues/${number}`);
   return issue.pull_request ? null : issue;
 }
-
 async function findIssue(sourceKey) {
   const issues = await api('GET', '/issues?state=all&per_page=100&sort=updated&direction=desc');
   return issues.find(issue => !issue.pull_request && parseRepairState(issue.body || '')?.sourceKey === sourceKey) || null;
 }
-
+async function ancestorOfCurrent(sha) {
+  if (!/^[0-9a-f]{40}$/.test(sha || '') || sha === headSha) return false;
+  const comparison = await api('GET', `/compare/${sha}...${headSha}`);
+  return comparison?.base_commit?.sha === sha && comparison?.merge_base_commit?.sha === sha && comparison?.head_commit?.sha === headSha && ['ahead', 'identical'].includes(comparison?.status);
+}
+async function retireOlderDevelopTickets() {
+  if (scope !== 'develop') return [];
+  const issues = await api('GET', '/issues?state=open&per_page=100&sort=updated&direction=desc');
+  const retired = [];
+  for (const candidate of issues) {
+    if (candidate.pull_request) continue;
+    const state = parseRepairState(candidate.body || '');
+    if (!state || state.scope !== 'develop' || state.state === 'working' || state.createdFromSha === headSha) continue;
+    if (!await ancestorOfCurrent(state.createdFromSha)) continue;
+    const now = new Date().toISOString();
+    const next = conclusion === 'success'
+      ? { ...state, state: 'verified', verifiedAt: now, verifiedBySha: headSha }
+      : { ...state, state: 'superseded', supersededAt: now, supersededBySha: headSha };
+    await api('PATCH', `/issues/${candidate.number}`, { body: replaceRepairState(candidate.body || '', next), state: 'closed' });
+    await api('POST', `/issues/${candidate.number}/comments`, { body: `<!-- browser-repair-generation:${headSha} -->\nA newer develop verification at \`${headSha}\` ${conclusion === 'success' ? 'verified the descendant baseline' : 'superseded this older failure generation'}.` });
+    retired.push(candidate.number);
+  }
+  return retired;
+}
 async function commentOnce(number, body, marker) {
   if (!number) return;
   const comments = await api('GET', `/issues/${number}/comments?per_page=100`);
@@ -51,6 +73,11 @@ async function commentOnce(number, body, marker) {
 }
 
 const sourcePr = await associatedPr();
+if (scope === 'pr' && !currentPrRepair(sourcePr, headSha)) {
+  console.log(JSON.stringify({ action: 'noop-stale-pr-result', pr: prNumber, headSha }));
+  process.exit(0);
+}
+const retired = await retireOlderDevelopTickets();
 const sourcePrBody = sourcePr?.body || '';
 let issue = await getIssue(linkedIssueNumber(sourcePrBody));
 let existingState = issue ? parseRepairState(issue.body || '') : null;
@@ -58,16 +85,7 @@ const sourceKey = existingState?.sourceKey || (scope === 'pr' ? `pr:${sourcePr?.
 if (!issue) issue = await findIssue(sourceKey);
 if (issue) existingState = parseRepairState(issue.body || '');
 
-const baseState = existingState || {
-  schema: 1,
-  scope,
-  sourceKey,
-  state: 'pending',
-  attempt: 0,
-  maxAttempts: DEFAULT_MAX_ATTEMPTS,
-  sourcePr: sourcePr?.number || prNumber,
-  createdFromSha: headSha,
-};
+const baseState = existingState || { schema: 1, scope, sourceKey, state: 'pending', attempt: 0, maxAttempts: DEFAULT_MAX_ATTEMPTS, sourcePr: sourcePr?.number || prNumber, createdFromSha: headSha };
 const details = { headSha, runUrl, artifact, sourcePr: sourcePr?.number || prNumber, lastConclusion: conclusion };
 let nextState = baseState;
 if (conclusion === 'failure') nextState = onBrowserFailure(baseState, details);
@@ -75,40 +93,25 @@ else if (scope === 'develop') nextState = onDevelopBrowserSuccess(baseState, det
 else nextState = onPrBrowserSuccess(baseState, details);
 
 if (!issue && conclusion === 'success') {
-  console.log(JSON.stringify({ action: 'noop-success', sourceKey, state: nextState }, null, 2));
+  console.log(JSON.stringify({ action: 'noop-success', sourceKey, retired, state: nextState }, null, 2));
   process.exit(0);
 }
 
 const titleSubject = scope === 'pr' ? `PR #${sourcePr?.number || prNumber}` : `develop ${headSha.slice(0, 12)}`;
 const human = nextState.state === 'human-required';
 const summary = [
-  '# Browser self-healing ticket',
-  '',
-  `Source: ${titleSubject}`,
-  `Run: ${runUrl}`,
-  `Artifacts: ${artifact}`,
-  sourcePr ? `Related PR: #${sourcePr.number}` : null,
-  '',
-  human ? '**Automatic repair stopped: human review is required.**' : 'This issue is the machine-readable handoff for ChatGPT Work browser self-repair.',
-  '',
+  '# Browser self-healing ticket','',`Source: ${titleSubject}`,`Run: ${runUrl}`,`Artifacts: ${artifact}`,sourcePr ? `Related PR: #${sourcePr.number}` : null,'',
+  human ? '**Automatic repair stopped: human review is required.**' : 'This issue is the machine-readable handoff for ChatGPT Work browser self-repair.','',
   'Work must claim the ticket by changing `state` from `pending` to `working` and incrementing `attempt` before editing code. It must not touch main/Production.',
 ].filter(Boolean).join('\n');
 const body = replaceRepairState(issue?.body || summary, nextState);
-if (!issue) {
-  issue = await api('POST', '/issues', { title: `[AUTO-REPAIR] Browser verification: ${titleSubject}`, body });
-} else {
-  issue = await api('PATCH', `/issues/${issue.number}`, { body, state: nextState.state === 'verified' ? 'closed' : 'open' });
-}
+if (!issue) issue = await api('POST', '/issues', { title: `[AUTO-REPAIR] Browser verification: ${titleSubject}`, body });
+else issue = await api('PATCH', `/issues/${issue.number}`, { body, state: nextState.state === 'verified' ? 'closed' : 'open' });
 
 const runMarker = `<!-- browser-repair-run:${process.env.GITHUB_RUN_ID || headSha}:${conclusion} -->`;
 if (sourcePr) {
   const stateText = nextState.state === 'verified' ? 'verified' : nextState.state === 'ready-for-integration' ? 'browser-fixed; returning to Integration' : nextState.state;
-  await commentOnce(sourcePr.number,
-    `Browser verification **${conclusion}**. Repair ticket #${issue.number} is now **${stateText}**.\n\nArtifacts: \`${artifact}\` · ${runUrl}`,
-    runMarker);
+  await commentOnce(sourcePr.number, `Browser verification **${conclusion}**. Repair ticket #${issue.number} is now **${stateText}**.\n\nArtifacts: \`${artifact}\` · ${runUrl}`, runMarker);
 }
-await commentOnce(issue.number,
-  `Browser verification **${conclusion}** for \`${headSha}\`. State: **${nextState.state}**.\n\n${runUrl}`,
-  runMarker);
-
-console.log(JSON.stringify({ issue: issue.number, sourceKey, state: nextState }, null, 2));
+await commentOnce(issue.number, `Browser verification **${conclusion}** for \`${headSha}\`. State: **${nextState.state}**.\n\n${runUrl}`, runMarker);
+console.log(JSON.stringify({ issue: issue.number, sourceKey, retired, state: nextState }, null, 2));

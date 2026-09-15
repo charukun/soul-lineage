@@ -3,6 +3,9 @@ import {makeModel,optimizeGroup,box,cyl,beam,mesh} from '@soul/housing-assets';
 import {KAYKIT} from '@soul/night-assets';
 import {random,hash} from '@soul/raid/world';
 import {createCreature,animateCreature} from './creatures.js';
+import {activeCharacter,CHARACTER_SELECTION_ENABLED} from '../characters.js';
+import {loadReaperPlayer} from './reaper-player.js';
+import {FeastEffects} from './feast-effects.js';
 const look=new T.Vector3(),temp=new T.Vector3(),modelCache=new Map();
 const palette=new Map();
 function material(color,opts={}){const k=color+JSON.stringify(opts);if(!palette.has(k))palette.set(k,new T.MeshStandardMaterial({color,roughness:.82,...opts}));return palette.get(k);}
@@ -18,10 +21,16 @@ export class NightView {
  this.warm=new T.PointLight(0xe59647,32,13,2);this.scene.add(this.warm);this.rim=new T.PointLight(0x93b9b6,15,10,2);this.scene.add(this.rim);
  this.environment=new T.Group();this.scene.add(this.environment);this.actors=new T.Group();this.scene.add(this.actors);this.effects=new T.Group();this.scene.add(this.effects);this.labels=document.getElementById('labels');this.npcs=new Map();this.fx=[];this.flames=[];this.player=createCreature(true);this.actors.add(this.player);this.pulse=0;this.glow=glowTexture();this.assetInstances={floor:0,banner:0};this.prevPos=new T.Vector3();this.quality='standard';this.batchRoot=new T.Group();this.scene.add(this.batchRoot);this.batchDirty=true;this.batches=[];this.elapsed=0;this.cameraLook=new T.Vector3(0,0,20);
  this.contactShadow=new T.InstancedMesh(new T.PlaneGeometry(2.3,2.3),new T.MeshBasicMaterial({map:this.glow,color:0x000000,transparent:true,opacity:.48,depthWrite:false}),32);this.contactShadow.frustumCulled=false;this.scene.add(this.contactShadow);
+ this.feast=new FeastEffects(this.scene,this.glow);this.motionPreference=globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');this.feastTarget=null;
  this.groundTex=texture();this.resize();this.frameCount=0;this.fps=0;this.fpsClock=0;
  }
+ async prepareCharacter(id){
+  if(!CHARACTER_SELECTION_ENABLED||id!=='silver-reaper'||this.reaper)return;
+  if(!this.reaperLoading)this.reaperLoading=loadReaperPlayer().then(reaper=>{this.reaper=reaper;reaper.root.visible=false;this.scene.add(reaper.root);}).finally(()=>{this.reaperLoading=null;});
+  await this.reaperLoading;
+ }
  resize(){const w=innerWidth,h=innerHeight;this.renderer.setSize(w,h,false);this.camera.aspect=w/h;this.camera.updateProjectionMatrix();}
- clear(){this.environment.traverse(o=>{if(o.geometry)o.geometry.dispose();});this.scene.remove(this.environment);this.environment=new T.Group();this.scene.add(this.environment);for(const [,g] of this.npcs)this.actors.remove(g);this.npcs.clear();this.labels.innerHTML='';this.flames=[];this.batchDirty=true;this.fx.forEach(f=>{this.effects.remove(f.mesh);f.mesh.geometry?.dispose();f.mesh.material?.dispose();});this.fx=[];this.assetInstances={floor:0,banner:0};}
+ clear(){this.feast.reset();this.feastTarget=null;this.environment.traverse(o=>{if(o.geometry)o.geometry.dispose();});this.scene.remove(this.environment);this.environment=new T.Group();this.scene.add(this.environment);for(const [,g] of this.npcs)this.actors.remove(g);this.npcs.clear();this.labels.innerHTML='';this.flames=[];this.batchDirty=true;this.fx.forEach(f=>{this.effects.remove(f.mesh);f.mesh.geometry?.dispose();f.mesh.material?.dispose();});this.fx=[];this.assetInstances={floor:0,banner:0};}
  build(w){this.clear();this.world=w;const r=random(w.seed||hash(w.id));const root=this.environment,architecture=new T.Group();
  const ground=new T.Mesh(new T.PlaneGeometry(260,260),material(0x839284,{map:this.groundTex,roughness:.84}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;root.add(ground);
  const floorPositions=[];for(let z=-29;z<=w.entry.z+2;z+=1.95)for(let x of [-1.94,0,1.94])floorPositions.push([x+Math.sin(z*.11)*.30,z]);for(let x=-17;x<=17;x+=1.95)for(let z of [6,7.95])floorPositions.push([x,z]);
@@ -29,13 +38,10 @@ export class NightView {
  const floors=new T.InstancedMesh(kay.floor,material(0x555e5b,{roughness:.44,metalness:.14}),floorPositions.length);const mx=new T.Matrix4();floorPositions.forEach(([x,z],i)=>{mx.makeTranslation(x,.004,z);floors.setMatrixAt(i,mx);});floors.receiveShadow=true;root.add(floors);this.assetInstances.floor=floorPositions.length;
  for(const e of w.entities){if(e.type==='path'||e.type==='woodpath')continue;const obj=darkModel(e.type,e.floors);obj.position.set(e.x,0,e.z);obj.rotation.y=e.r;obj.scale.setScalar(e.scale||1);architecture.add(obj);
  if(['cottage','tallhouse','manor','bakery','roundhouse'].includes(e.type)){const sc=e.scale||1,cs=Math.cos(e.r||0),sn=Math.sin(e.r||0);this.lantern(e.x+(-.35*cs+1.53*sn)*sc,1.65*sc,e.z+(.35*sn+1.53*cs)*sc,root);}}
-
- // Chapel silhouette reuses the housing manor, with spire / stone frame dressing.
  const church=darkModel('manor',2);church.position.set(0,0,-26);church.scale.set(1.45,1.45,1.35);if(w.source!=='imported-local')architecture.add(church);
  const facade=new T.Group();box(facade,1.1,7,1.1,material(0x424d4b),0,3.5,-28);const spire=cyl(facade,0,1,3,material(0x1b3235),0,8.5,-28,4);spire.rotation.y=Math.PI/4;box(facade,.12,1.5,.12,material(0x8a9279),0,10.5,-28);box(facade,.8,.11,.11,material(0x8a9279),0,10.75,-28);
  const bellG=new T.Group();for(const x of [-.65,.65])box(bellG,.13,3.8,.15,material(0x484c40),x,1.9,0);box(bellG,1.55,.14,.2,material(0x6e7262),0,3.75,0);cyl(bellG,.24,.43,.55,material(0x947e4b,{metalness:.65,roughness:.3}),0,3.21,0,10);bellG.position.set(w.bell.x,0,w.bell.z);facade.add(bellG);architecture.add(optimizeGroup(facade));
  const bannerMat=material(0x613d3a,{side:T.DoubleSide});for(const [x,z] of [[-3.2,-22],[3.2,-22],[-3.2,0],[3.2,0]]){const b=new T.Mesh(kay.banner,bannerMat);b.position.set(x,0,z);b.castShadow=true;root.add(b);this.assetInstances.banner++;}
- // Desaturated dead trees grouped into one mesh per material, rather than many primitives.
  const forestChunks=new Map();for(let i=0;i<100;i++){const x=(r()-.5)*110,z=(r()-.5)*120;if(Math.abs(x)<13&&Math.abs(z)<w.bounds+2)continue;const key=Math.floor(x/16)+':'+Math.floor(z/16);if(!forestChunks.has(key))forestChunks.set(key,new T.Group());const forest=forestChunks.get(key);const h=3+r()*7;beam(forest,[x,0,z],[x+.18,h,z],.12,material(0x253733));for(let j=0;j<4;j++){const a=r()*6.28,yy=h*(.35+j*.14),len=1+r()*1.8;const tip=[x+Math.cos(a)*len,yy+len*.65,z+Math.sin(a)*len];beam(forest,[x,yy,z],tip,.05,material(0x33463d));beam(forest,tip,[tip[0]+Math.cos(a+.7)*.8,tip[1]+.9,tip[2]+Math.sin(a+.7)*.8],.024,material(0x33463d));}}
  for(const chunk of forestChunks.values())root.add(optimizeGroup(chunk));
  const graves=new T.Group();for(let i=0;i<15;i++){const x=-12+(i%3)*1.8,z=-18-Math.floor(i/3)*2.1;const stone=box(graves,.50,.8,.16,material(0x758278),x,.38,z);stone.rotation.z=(r()-.5)*.15;box(graves,.72,.14,.22,material(0x758278),x,.60,z);box(graves,.7,.04,1.25,material(0x334740),x,.04,z+.4);}architecture.add(optimizeGroup(graves));const chunks=new Map();for(const child of [...architecture.children]){const key=Math.floor(child.position.x/12)+':'+Math.floor(child.position.z/12);if(!chunks.has(key))chunks.set(key,new T.Group());chunks.get(key).add(child);}for(const chunk of chunks.values())root.add(optimizeGroup(chunk));
@@ -51,8 +57,7 @@ export class NightView {
  exitRing(x,z,c){const g=new T.Group();for(const r of [1.6,2.2]){const ring=new T.Mesh(new T.TorusGeometry(r,.022,5,80),new T.MeshBasicMaterial({color:c,transparent:true,opacity:.5}));ring.rotation.x=Math.PI/2;ring.position.y=.05;g.add(ring);}for(let j=0;j<8;j++){const a=j*Math.PI/4;const cmesh=new T.Mesh(new T.OctahedronGeometry(.1),material(c,{emissive:c,emissiveIntensity:.6}));cmesh.position.set(Math.cos(a)*2.2,.10,Math.sin(a)*2.2);g.add(cmesh);}g.position.set(x,0,z);return g;}
  lantern(x,y,z,root){const sp=new T.Sprite(new T.SpriteMaterial({map:this.glow,color:0xf6a853,transparent:true,opacity:.64,depthWrite:false,blending:T.AdditiveBlending}));sp.position.set(x,y,z);sp.scale.setScalar(3.1);root.add(sp);const point=new T.Mesh(new T.OctahedronGeometry(.095),new T.MeshBasicMaterial({color:0xffd597}));point.position.set(x,y,z);root.add(point);this.flames.push({sprite:sp,point,x,y,z,phase:x+z});}
  addHuman(n){const g=createCreature(false,n.role);this.npcs.set(n.id,g);this.batchDirty=true;this.actors.add(g);const el=document.createElement('div');el.className='nameplate'+(n.marked?' marked':'');el.textContent=n.marked?'◆ '+n.name:n.name;el.dataset.npc=n.id;this.labels.append(el);g.userData.label=el;}
- event(e){if(e.type==='impact'){this.spark(e.x,e.y||1,e.z,e.guard?0xe5c88a:0xdac5a0,16);this.slash(e.x,e.z,e.yaw||0);this.pulse=Math.max(this.pulse,.11);}
- if(e.type==='consume'){this.spark(e.npc.x,.6,e.npc.z,0x956976,32,true);this.pulse=.26;}
+ event(e){this.feast.event(e);if(e.type==='impact'){this.spark(e.x,e.y||1,e.z,e.guard?0xe5c88a:0xdac5a0,16);this.slash(e.x,e.z,e.yaw||0);this.pulse=Math.max(this.pulse,.11);}
  if(e.type==='gate')this.spark(e.x,1,e.z,0x927b60,28);
  if(e.type==='shadow'){this.spark(e.x,1,e.z,0x83bdba,20);this.spark(e.tx,1,e.tz,0x83bdba,20);}
  if(e.type==='scent')this.pulse=.3;
@@ -61,14 +66,21 @@ export class NightView {
  slash(x,z,yaw){const geo=new T.TorusGeometry(.9,.017,3,38,Math.PI*1.2),mesh=new T.Mesh(geo,new T.MeshBasicMaterial({color:0xe8ddbe,transparent:true,opacity:1,depthWrite:false,blending:T.AdditiveBlending}));mesh.rotation.set(.65,yaw,.4);mesh.position.set(x,1.2,z);this.effects.add(mesh);this.fx.push({mesh,age:0,life:.20});}
  update(g,dt,title=false){this.elapsed+=dt;const realNow=performance.now();this.fpsClock+=(realNow-(this.fpsLast||realNow))/1000;this.fpsLast=realNow;this.frameCount++;if(this.fpsClock>1){this.fps=this.frameCount/this.fpsClock;this.frameCount=0;this.fpsClock=0;}this.pulse=Math.max(0,this.pulse-dt);
  const p=g.player,time=g.time||this.elapsed,w=g.village;
- animateCreature(this.player,p,time,{form:g.profile.form,eating:!!g.devour});
- for(const n of w.npcs){if(!this.npcs.has(n.id))this.addHuman(n);const o=this.npcs.get(n.id);o.visible=!n.eaten;animateCreature(o,n,time);const el=o.userData.label,d=Math.hypot(n.x-p.x,n.z-p.z),show=!title&&!n.eaten&&d<29&&(d<7||g.scent>0||g.has('hunter')||n.marked&&d<15);el.hidden=!show;if(show){temp.set(n.x,n.dead?.4:2.15,n.z).project(this.camera);el.style.transform=`translate(${(temp.x*.5+.5)*innerWidth}px,${(-temp.y*.5+.5)*innerHeight}px) translate(-50%,-100%)`;el.style.opacity=n.dead?.65:1;el.classList.toggle('afraid',n.state==='flee');}}
+ const feast=this.feast.update(g,{reducedMotion:!!this.motionPreference?.matches,target:this.feastTarget,active:!title&&!this.characterPreview});
+ const requested=(CHARACTER_SELECTION_ENABLED&&this.previewCharacter)||activeCharacter(g.profile).id;
+ this.characterId=requested==='silver-reaper'&&this.reaper?'silver-reaper':'night-creature';
+ this.canvas.dataset.character=this.characterId;
+ const displayPlayer=this.characterPreview?{...p,pose:null,speed:0,walk:0,yaw:this.characterPreviewYaw||0}:p;
+ animateCreature(this.player,displayPlayer,this.characterPreview?this.elapsed:time,{form:g.profile.form,eating:!this.characterPreview&&!!g.devour,feast:g.fight?0:feast.body});
+ this.player.visible=this.characterId==='night-creature';
+ if(this.reaper){this.reaper.root.visible=this.characterId==='silver-reaper';if(this.reaper.root.visible)this.reaper.update(displayPlayer,this.characterPreview?this.elapsed:time,dt,{preview:!!this.characterPreview,eating:!this.characterPreview&&!!g.devour,dead:!this.characterPreview&&p.hp<=0});}
+ for(const n of w.npcs){if(!this.npcs.has(n.id))this.addHuman(n);const o=this.npcs.get(n.id);o.visible=!n.eaten;animateCreature(o,n,time);const el=o.userData.label,d=Math.hypot(n.x-p.x,n.z-p.z),show=!title&&!n.eaten&&d<29&&(d<7||g.scent>0||g.has('hunter')||n.marked&&d<15||this.feastTarget?.npc.id===n.id);el.hidden=!show;if(show){temp.set(n.x,n.dead?.4:2.15,n.z).project(this.camera);el.style.transform=`translate(${(temp.x*.5+.5)*innerWidth}px,${(-temp.y*.5+.5)*innerHeight}px) translate(-50%,-100%)`;el.style.opacity=n.dead?.65:1;el.classList.toggle('afraid',n.state==='flee');el.classList.toggle('next-prey',this.feastTarget?.npc.id===n.id);}}
  this.gate.visible=!w.gate.broken;this.back.visible=g.has('gravekeeper');this.ward.visible=!g.has('acolyte');this.entry.rotation.y=time*.05;
- if(title){this.camera.position.lerp(new T.Vector3(p.x+4.2,3.5,p.z+8.0),1-Math.exp(-dt*3));this.cameraLook.lerp(new T.Vector3(p.x,1.25,p.z),1-Math.exp(-dt*3));}
- else{const wide=innerWidth/innerHeight>1.3,zoom=wide?15:19;look.set(p.x+Math.sin(.33)*zoom*.88,zoom,p.z+Math.cos(.33)*zoom*.88);this.camera.position.lerp(look,1-Math.exp(-dt*5));this.cameraLook.lerp(new T.Vector3(p.x,.1,p.z-2.6),1-Math.exp(-dt*5));}
+ if(this.characterPreview){const wide=innerWidth>innerHeight;this.camera.setViewOffset(innerWidth,innerHeight,wide?innerWidth*.18:0,wide?0:innerHeight*.22,innerWidth,innerHeight);this.camera.position.lerp(new T.Vector3(p.x+.25,2.1,p.z+(wide?4.7:6.5)),1-Math.exp(-dt*8));this.cameraLook.lerp(new T.Vector3(p.x,1.0,p.z),1-Math.exp(-dt*8));}
+ else if(title){this.camera.clearViewOffset();this.camera.position.lerp(new T.Vector3(p.x+4.2,3.5,p.z+8.0),1-Math.exp(-dt*3));this.cameraLook.lerp(new T.Vector3(p.x,1.25,p.z),1-Math.exp(-dt*3));}
+ else{this.camera.clearViewOffset();const wide=innerWidth/innerHeight>1.3,zoom=(wide?15:19)*(1-feast.camera);look.set(p.x+Math.sin(.33)*zoom*.88,zoom,p.z+Math.cos(.33)*zoom*.88);this.camera.position.lerp(look,1-Math.exp(-dt*5));this.cameraLook.lerp(new T.Vector3(p.x,.1,p.z-2.6),1-Math.exp(-dt*5));}
  this.camera.lookAt(this.cameraLook);this.warm.position.set(p.x-3,2.5,p.z+1);this.warm.intensity=19+Math.sin(time*8)*2;this.rim.position.set(p.x+1.6,3,p.z-2.4);
  let nearest=null,near=999;for(const f of this.flames){let d=Math.hypot(f.x-p.x,f.z-p.z);if(d<near){nearest=f;near=d;}f.sprite.material.opacity=.38+Math.sin(time*7+f.phase)*.04;}if(nearest&&near<9){this.warm.position.set(nearest.x,2.3,nearest.z);this.warm.intensity=34;}
- // Static environment shadows, inexpensive animated contact shadows below creatures.
  this.moon.position.set(-14,25,-16);this.moon.target.position.set(0,0,0);
  if(this.rain){this.rain.position.set(p.x,0,p.z);const pos=this.rain.geometry.attributes.position,show=this.rain.userData.rain;for(let i=0;i<pos.count;i+=2){const y=pos.getY(i)-dt*(show?10:.35),ny=y<0?20:y;pos.setY(i,ny);pos.setY(i+1,ny+(show?.45:.02));}pos.needsUpdate=true;}
  for(let i=this.fx.length-1;i>=0;i--){const f=this.fx[i];f.age+=dt;f.mesh.material.opacity=1-f.age/f.life;if(f.vel){const a=f.mesh.geometry.attributes.position;for(let j=0;j<f.vel.length;j++){const v=f.vel[j];a.setXYZ(j,a.getX(j)+v[0]*dt,a.getY(j)+v[1]*dt,a.getZ(j)+v[2]*dt);v[1]-=dt*5;}a.needsUpdate=true;}if(f.age>f.life){this.effects.remove(f.mesh);f.mesh.geometry.dispose();f.mesh.material.dispose();this.fx.splice(i,1);}}
@@ -76,5 +88,5 @@ export class NightView {
  }
  snapCamera(p){const zoom=innerWidth/innerHeight>1.3?15:19;this.camera.position.set(p.x+Math.sin(.33)*zoom*.88,zoom,p.z+Math.cos(.33)*zoom*.88);this.cameraLook.set(p.x,.1,p.z-2.6);this.camera.lookAt(this.cameraLook);}
  updateBatches(){if(this.batchDirty){for(const b of this.batches){this.batchRoot.remove(b.mesh);b.mesh.dispose();}this.batches=[];const map=new Map();this.actors.traverse(o=>{if(!o.isMesh)return;o.layers.set(1);const key=o.geometry.uuid+o.material.uuid;if(!map.has(key))map.set(key,[]);map.get(key).push(o);});for(const list of map.values()){const first=list[0],m=new T.InstancedMesh(first.geometry,first.material,list.length);m.castShadow=false;m.receiveShadow=true;m.frustumCulled=false;this.batchRoot.add(m);this.batches.push({mesh:m,list});}this.batchDirty=false;}this.actors.updateMatrixWorld(true);const zero=new T.Matrix4().makeScale(0,0,0);for(const b of this.batches){let i=0;for(const o of b.list){let visible=true,n=o;while(n&&n!==this.actors){if(!n.visible){visible=false;break;}n=n.parent;}b.mesh.setMatrixAt(i++,visible?o.matrixWorld:zero);}b.mesh.instanceMatrix.needsUpdate=true;}}
- metrics(){return{renderer:'Three.js WebGL',fps:Math.round(this.fps),drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,assets:this.assetInstances,webgl2:true,camera:this.camera.position.toArray(),look:this.cameraLook.toArray(),viewport:[innerWidth,innerHeight]};}
+ metrics(){return{character:this.characterId||'night-creature',characterReady:!!this.reaper,renderer:'Three.js WebGL',fps:Math.round(this.fps),drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,assets:this.assetInstances,webgl2:true,camera:this.camera.position.toArray(),look:this.cameraLook.toArray(),viewport:[innerWidth,innerHeight],feast:{visible:this.feast.root.visible,particles:this.feast.souls.geometry.attributes.position.count,phase:this.feast.state.feeding?'feeding':this.feast.state.release?'release':'idle',target:this.feastTarget?.npc.id||null}};}
 }

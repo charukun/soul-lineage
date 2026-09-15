@@ -76,7 +76,7 @@ export function buildApplications(manifest = {}, environments = [], runs = []) {
     commit: portalRun?.head_sha || null, deployedAt: portalRun?.updated_at || null, source: 'Wayfinder Public Gallery workflow',
   }] });
   // Keep the workflow/Worker IDs stable; they are machine-facing integration keys.
-  const opsRun = runs.find(run => run.name === 'Rinne Ops Board') || null;
+  const opsRun = runs.find(run => run.name === 'Rinne Ops Board' && run.head_branch === 'develop') || null;
   groups.set('ops-board', { id: 'ops-board', name: BOARD_NAME, kind: 'tool', targets: [{
     id: 'ops-board', label: 'この画面', environment: 'tool', state: runState(opsRun), url: OPS_PUBLIC_URL,
     commit: opsRun?.head_sha || null, deployedAt: opsRun?.updated_at || null, source: 'Rinne Ops Board workflow',

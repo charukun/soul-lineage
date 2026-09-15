@@ -2,9 +2,13 @@ import {verifySoloClarity, verifyHuntClarity} from './play-clarity.mjs';
 import {capturePlayedAudio,mediaDiagnostics} from './media-diagnostics.mjs';
 
 /** Independent contexts prevent UI review steps from changing a gameplay fixture. */
+export function clarityScenarios(targets) {
+  return targets.filter(t => !t.legacy && t.version.environment !== 'prod' && ['rinne', 'demon', 'village'].includes(t.app))
+    .flatMap(t => t.app === 'village' ? [{...t, scenario:'build'}, {...t, scenario:'director'}] : [t]);
+}
 export function registerClarityTests({test, expect, targets, base}) {
-  for (const target of targets.filter(t => !t.legacy && t.version.environment !== 'prod' && ['rinne', 'demon', 'village'].includes(t.app))) {
-    test(`${target.path} preserves native play clarity on the deployed commit`, async ({page}, testInfo) => {
+  for (const target of clarityScenarios(targets)) {
+    test(`${target.path} preserves ${target.scenario === 'director' ? 'resident observation' : 'native play clarity'} on the deployed commit`, async ({page}, testInfo) => {
       // Same per-app deadlines as the original smoke, with no retries or relaxed assertions.
       test.setTimeout(target.app === 'rinne' ? 180000 : 60000);
       const errors = [], rawRequests = [], playedSources = new Set();
@@ -14,7 +18,10 @@ export function registerClarityTests({test, expect, targets, base}) {
       page.on('requestfailed', r => rawRequests.push(r));
       const url = new URL(`${target.path}/`, base).href;
       await page.setViewportSize({width:390, height:844});
-      const response = await page.goto(url, {waitUntil:'domcontentloaded'});
+      // Candidate verification serves the assembled static snapshot directly.
+      // Wait for its initial model/motion fetches to settle before clarity actions
+      // so intentional later UI transitions are not confused with boot failures.
+      const response = await page.goto(url, {waitUntil:'networkidle'});
       expect(response.status()).toBe(200);
       const canvas = page.locator('#game');
       await expect(canvas).toHaveAttribute('data-renderer', 'ready');
@@ -28,8 +35,19 @@ export function registerClarityTests({test, expect, targets, base}) {
           expect(frame).toBeTruthy();
           await verifySoloClarity(page, frame, expect, testInfo);
         } else if (target.app === 'village') {
-          const {verifyVillageFirstBuild} = await import('../../apps/village/tests/first-build.browser.mjs');
-          await verifyVillageFirstBuild(page, expect, testInfo, () => capturePlayedAudio(page, playedSources));
+          const {verifyVillageFirstBuild, enterVillageForBrowser} = await import('../../apps/village/tests/first-build.browser.mjs');
+          // Intermediate screenshots took 17s in the #145 trace. Keep every
+          // interaction/persistence assertion and the same 60s budget, with the
+          // final screenshot and automatic failure screenshot/trace retained.
+          if (target.scenario === 'director') {
+            // New resident-camera coverage has its own context and unchanged
+            // per-scenario deadline, independent of construction/save/reload.
+            await enterVillageForBrowser(page, expect);
+            const {verifyVillageDirectorPolish} = await import('../../apps/village/tests/director-polish.browser.mjs');
+            await verifyVillageDirectorPolish(page, expect, testInfo);
+          } else {
+            await verifyVillageFirstBuild(page, expect, testInfo, () => capturePlayedAudio(page, playedSources), { captureMilestones: false, verifyDirector: false });
+          }
         } else {
           await page.locator('#begin').click();
           await page.locator('[data-village]').first().click();

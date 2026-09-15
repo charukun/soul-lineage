@@ -2,6 +2,14 @@
 // errors remain visible and retryable rather than stranding the loading screen.
 import {installMusicLibrary} from '@soul/shared-ui/music';
 
+const serviceEnvironment = __BUILD_INFO__.environment;
+document.title = `MURAAAAAAA | 輪廻転焦 Village${serviceEnvironment === 'prod' ? '' : ` | ${serviceEnvironment.toUpperCase()}`}`;
+if (!document.querySelector('link[rel="manifest"]')) {
+  const manifest = document.createElement('link');
+  manifest.rel = 'manifest';
+  manifest.href = './manifest.webmanifest';
+  document.head.append(manifest);
+}
 const canvas = document.querySelector('#game');
 const loading = document.querySelector('#loading');
 const progress = document.querySelector('#progress');
@@ -38,25 +46,17 @@ try {
   message.textContent = '村の資産と暮らしの仕組みを読み込んでいます。';
   await import('./mura-patch.js');
   await import('./asset-visuals.js');
+  await import('./authored-visual-lod.js');
+  await import('./stylized-visual-target.js');
+  await import('./adaptive-visual-performance.js');
   const { boot } = await import('./web/main.js');
   await boot({
     onProgress(value, text) { progress.value = value; message.textContent = text; },
   });
-  await import('./mura-world-systems.js');
-  await import('./mura-performance.js');
-  await import('./mura-experience.js');
-  await import('./mura-rotation-fix.js');
-  await import('./mura-v2-ui.js');
-  await import('./mura-entry-polish.js');
-  await import('./mura-housing-ui-polish.js');
-  await import('./mura-mobile-feedback-fix.js');
-  await import('./mura-mobile-feedback-fix-2.js');
-  await import('./mura-mobile-feedback-fix-3.js');
-  await import('./mura-ux-polish-4.js');
-  await import('./mura-ux-polish-4b.js');
-  await import('./mura-background-bgm.js');
-  await import('./mura-first-build.js');
-  document.title = document.title.replace(/^星継ぎの庭/, 'MURAAAAAAA');
+  // Preserve the historical side-effect order, but let Vite/browser fetch the
+  // post-boot layer as one module graph instead of serial dynamic imports.
+  await import('./mura-enhancements.js');
+  await import('./mura-village-visual-language.js');
   clearTimeout(watchdog);
   finished = true;
   progress.value = 100;
