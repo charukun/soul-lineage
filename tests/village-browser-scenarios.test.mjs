@@ -10,7 +10,7 @@ test('public DEV keeps independent construction/persistence and resident-observa
   assert.deepEqual(scenarios.map(t=>[t.app,t.scenario]),[['village','build'],['village','director'],['rinne',undefined],['demon',undefined]]);
 });
 
-test('CI repair outcomes dispatch the trusted recorder and success may also emit one compatibility wake',async()=>{
+test('CI repair outcomes dispatch only the trusted recorder without a compatibility wake',async()=>{
   const deploy=readFileSync(new URL('../.github/workflows/deploy.yml',import.meta.url),'utf8').split('  repair-ticket:')[1].split('  integrate:')[0];
   assert.match(deploy,/ref: develop/);assert.doesNotMatch(deploy,/ref:.*inputs.repair_head_sha/);
   const source=readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8');
@@ -23,11 +23,8 @@ test('CI repair outcomes dispatch the trusted recorder and success may also emit
     const recorder=calls.find(call=>call.inputs?.repair_scope==='pr');
     assert.ok(recorder);assert.equal(recorder.workflow_id,'deploy.yml');assert.equal(recorder.ref,'develop');
     assert.equal(recorder.inputs.repair_scope,'pr');assert.equal(recorder.inputs.repair_conclusion,outcome);assert.equal(recorder.inputs.repair_head_sha,'current');
-    if(outcome==='success'){
-      assert.equal(calls.length,2);
-      const wake=calls.find(call=>!call.inputs);
-      assert.ok(wake);assert.equal(wake.workflow_id,'deploy.yml');assert.equal(wake.ref,'develop');
-    }else assert.equal(calls.length,1);
+    assert.equal(calls.length,1);
+    assert.equal(calls.some(call=>!call.inputs),false);
     github.rest.actions.createWorkflowDispatch=async()=>{throw Object.assign(new Error('missing registered route'),{status:404});};
     await assert.rejects(execute(github,{repo:{}},{notice:()=>{}},{env}),/missing registered route/);
   }
