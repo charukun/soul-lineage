@@ -6,7 +6,7 @@ import { client } from './integration.mjs';
 
 export const automaticPublisherTitle = 'DEV Publisher (automatic)';
 export const publicationWakeContext = 'integration/publisher-wake';
-const activeStates = ['queued', 'in_progress', 'waiting', 'requested', 'pending'];
+const activeStates = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
 const terminalPublisherConclusions = new Set(['success', 'failure']);
 const recoveryReceipt = 'DEV/PULSE publication recovery requested; public verification pending';
 
@@ -39,10 +39,10 @@ export async function requestDevelopPublication(c, report, { targetUrl } = {}) {
     ...(targetUrl ? { target_url: targetUrl } : {}),
   });
   try {
-    const groups = await Promise.all(activeStates.map(state =>
-      c.pages(`/actions/workflows/deploy.yml/runs?branch=develop&status=${state}`, 'workflow_runs', { maxPages: 3 })));
-    const active = [...new Map(groups.flat().map(run => [run.id, run])).values()]
-      .filter(run => activeStates.includes(run.status) && isAutomaticPublisher(run));
+    // One bounded workflow-run snapshot replaces five status-specific list calls. Current state
+    // is still filtered locally and every mutation keeps the same exact-SHA safety checks.
+    const runs = await c.pages('/actions/workflows/deploy.yml/runs?branch=develop', 'workflow_runs', { maxPages: 1 });
+    const active = runs.filter(run => activeStates.has(run.status) && isAutomaticPublisher(run));
     const cancelled = [];
     for (const run of active.filter(item => item.head_sha !== sha)) {
       try {
@@ -59,17 +59,19 @@ export async function requestDevelopPublication(c, report, { targetUrl } = {}) {
     }
 
     // A wake receipt proves only that dispatch was attempted. For an idle pass, require a real
-    // exact-SHA publisher run (active above, or completed here) before suppressing recovery.
-    // One orphaned receipt gets one bounded recovery dispatch; a second orphan is left visible
-    // for Integration repair instead of retrying forever.
+    // exact-SHA publisher run before suppressing recovery. The shared snapshot normally contains
+    // it; only a saturated first page spends one extra completed-run lookup.
     let recoveringOrphan = false;
     if (!report.merged.length && wake) {
-      const completed = await c.pages(
-        '/actions/workflows/deploy.yml/runs?branch=develop&status=completed',
-        'workflow_runs', { maxPages: 3 });
-      const terminalPublisher = completed.find(run => run.head_sha === sha &&
-        run.status === 'completed' && isAutomaticPublisher(run) &&
-        terminalPublisherConclusions.has(run.conclusion));
+      let terminalPublisher = runs.find(run => run.head_sha === sha && run.status === 'completed' &&
+        isAutomaticPublisher(run) && terminalPublisherConclusions.has(run.conclusion));
+      if (!terminalPublisher && runs.length >= 100) {
+        const completed = await c.pages(
+          '/actions/workflows/deploy.yml/runs?branch=develop&status=completed',
+          'workflow_runs', { maxPages: 1 });
+        terminalPublisher = completed.find(run => run.head_sha === sha && run.status === 'completed' &&
+          isAutomaticPublisher(run) && terminalPublisherConclusions.has(run.conclusion));
+      }
       if (terminalPublisher || wake.description === recoveryReceipt) {
         return { state: 'already-requested-or-published', sha };
       }
