@@ -11,45 +11,44 @@ const stations=[
   {id:'port-prayer',label:'船上で祈る',x:166,z:0,activity:'voyage',port:true},
 ];
 const atAge=(age,seed=1)=>{const state=createLife({seed});state.ageYears=age;state.ageSeconds=age*60;if(age>=4)state.phase='living';return state;};
+const compact=guide=>{assert.equal('detail' in guide,false);assert.ok(guide.objective.length<=10,guide.objective);assert.ok((guide.badge||'').length<=10,guide.badge);};
 
-test('birth guidance explains the first unlock and points into the village',()=>{
-  const state=atAge(0);
-  const guide=guidanceFor({state,stations});
-  assert.match(guide.stage,/誕生/);assert.match(guide.detail,/4歳/);assert.equal(guide.target.label,'村の広場');
-  assert.ok(guidanceDistance(state,guide)>0);
+test('birth uses short status plus waypoint instead of explanation copy',()=>{
+  const state=atAge(0),guide=guidanceFor({state,stations});compact(guide);
+  assert.equal(guide.stage,'1/6 誕生');assert.equal(guide.objective,'村を知る');assert.equal(guide.badge,'自立 4歳');assert.equal(guide.target.label,'広場');assert.ok(guidanceDistance(state,guide)>0);
 });
 
-test('childhood and preparation never become age-only waiting states',()=>{
-  const child=atAge(5),childGuide=guidanceFor({state:child,stations});
-  assert.match(childGuide.objective,/暮らし/);assert.ok(childGuide.target);assert.match(childGuide.detail,/8秒/);
-  const prep=atAge(9),prepGuide=guidanceFor({state:prep,stations});
-  assert.match(prepGuide.objective,/武具/);assert.equal(prepGuide.target.label,'片手剣');assert.match(prepGuide.detail,/15歳/);
+test('childhood and preparation point at automatic actions without action buttons',()=>{
+  const child=atAge(5),childGuide=guidanceFor({state:child,stations});compact(childGuide);
+  assert.match(childGuide.stage,/村/);assert.ok(childGuide.target);assert.equal(childGuide.badge,'武具 7歳');
+  const prep=atAge(9),prepGuide=guidanceFor({state:prep,stations});compact(prepGuide);
+  assert.equal(prepGuide.objective,'武具を選ぶ');assert.equal(prepGuide.target.label,'片手剣');assert.equal(prepGuide.badge,'出航 15歳');
 });
 
-test('departure guidance points to the port and explains automatic combat',()=>{
+test('departure guidance is only a destination because departure and combat are automatic',()=>{
   const state=atAge(15);state.equipment.weapon='sword';
-  const guide=guidanceFor({state,stations});
-  assert.match(guide.stage,/出立/);assert.equal(guide.target.label,'港');assert.match(guide.detail,/1\.5秒/);assert.match(guide.detail,/自動戦闘/);
+  const guide=guidanceFor({state,stations});compact(guide);
+  assert.equal(guide.stage,'4/6 出立');assert.equal(guide.objective,'港へ');assert.equal(guide.badge,'出航');assert.equal(guide.target.label,'港');
 });
 
-test('frontier guidance points at enemies then exposes both hidden exits',()=>{
+test('frontier guidance is enemy then depth then return with no instruction paragraphs',()=>{
   const state=atAge(20);state.zone='frontier';state.front=0;state.position={x:0,z:5.2};
-  const front=createFront(0,state.seed);let guide=guidanceFor({state,stations,front});
-  assert.match(guide.objective,/敵へ近づき/);assert.equal(guide.target.label,'最寄りの敵');
-  for(const enemy of front.enemies){enemy.dead=true;enemy.hp=0;}front.cleared=true;
-  guide=guidanceFor({state,stations,front});assert.equal(guide.target.label,'次の前線');assert.ok(guide.target.z<0);assert.match(guide.objective,/奥の門/);
-  state.front=5;front.stage=5;
-  guide=guidanceFor({state,stations,front});assert.equal(guide.target.label,'帰還地点');assert.ok(guide.target.z>0);assert.match(guide.objective,/凱旋/);
+  const front=createFront(0,state.seed);let guide=guidanceFor({state,stations,front});compact(guide);
+  assert.equal(guide.objective,'敵へ');assert.equal(guide.target.label,'敵');assert.match(guide.badge,/敵 /);
+  state.combat={targetId:front.enemies[0].id,phase:'jo',attackCooldown:0};guide=guidanceFor({state,stations,front});assert.equal(guide.objective,'戦闘');
+  state.combat=null;for(const enemy of front.enemies){enemy.dead=true;enemy.hp=0;}front.cleared=true;
+  guide=guidanceFor({state,stations,front});compact(guide);assert.equal(guide.objective,'奥へ');assert.equal(guide.target.label,'次の前線');assert.ok(guide.target.z<0);
+  state.front=5;front.stage=5;guide=guidanceFor({state,stations,front});compact(guide);assert.equal(guide.objective,'帰還へ');assert.equal(guide.target.label,'帰還地点');assert.ok(guide.target.z>0);
 });
 
-test('downed state has an explicit rescue countdown and return destination',()=>{
+test('rescue is an automatic countdown, not a prompt',()=>{
   const state=atAge(30);state.zone='frontier';state.down={elapsed:34.2};
-  const guide=guidanceFor({state,stations,front:createFront(1,state.seed)});
-  assert.match(guide.stage,/救助/);assert.match(guide.detail,/6秒/);assert.match(guide.detail,/村へ戻/);
+  const guide=guidanceFor({state,stations,front:createFront(1,state.seed)});compact(guide);
+  assert.equal(guide.objective,'救助待ち');assert.equal(guide.badge,'6秒');assert.equal(guide.target,null);
 });
 
-test('return and end-of-life guidance close the loop into reincarnation',()=>{
+test('return and life end stay compact while irreversible reincarnation remains explicit elsewhere',()=>{
   const state=atAge(20);state.equipment.weapon='sword';state.lastDepartureCycle=4;state.returns=1;
-  let guide=guidanceFor({state,stations});assert.match(guide.stage,/凱旋/);assert.match(guide.detail,/25歳/);assert.ok(guide.target);
-  state.ended=true;state.phase='ended';guide=guidanceFor({state,stations});assert.match(guide.stage,/輪廻/);assert.match(guide.detail,/次の人生/);assert.equal(guide.target,null);
+  let guide=guidanceFor({state,stations});compact(guide);assert.match(guide.stage,/凱旋/);assert.equal(guide.badge,'次 25歳');assert.ok(guide.target);
+  state.ended=true;state.phase='ended';guide=guidanceFor({state,stations});compact(guide);assert.equal(guide.stage,'6/6 輪廻');assert.equal(guide.objective,'記憶を選ぶ');assert.equal(guide.target,null);
 });
