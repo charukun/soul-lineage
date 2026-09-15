@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs><radialGradient id="night" cx="32%" cy="24%"><stop stop-color="#49677a"/><stop offset=".55" stop-color="#142630"/><stop offset="1" stop-color="#091317"/></radialGradient><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0bf"/><stop offset=".5" stop-color="#d8a65d"/><stop offset="1" stop-color="#7a4c22"/></linearGradient></defs>
+  <rect width="512" height="512" rx="110" fill="url(#night)"/>
+  <g fill="none" stroke="url(#gold)" transform="translate(256 256)"><circle r="156" stroke-width="10"/><circle r="125" stroke-width="5" stroke-dasharray="3 18"/><circle r="84" stroke-width="9"/><path d="M0-190v53M0 137v53M-190 0h53M137 0h53M-134-134l37 37M97 97l37 37M134-134-97-97M-134 134l37-37" stroke-width="10" stroke-linecap="round"/></g>
+  <path d="m256 151 30 72 75 3-58 48 20 76-67-41-67 41 20-76-58-48 75-3Z" fill="url(#gold)"/>
+</svg>

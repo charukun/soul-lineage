@@ -27,5 +27,5 @@ test('DCC reference model loads its authored VRM through exact integrity audit',
   assert.match(review, /loadReferenceModel/);
   assert.match(workspace, /loadReferenceModel/);
   assert.match(workspace, /loadDefaultModel/);
-  assert.match(workspace, /selectedReference\?\.kind === 'dcc-character-model'/);
+  assert.match(workspace, /referenceModel\?\.kind === 'dcc-character-model'/);
 });

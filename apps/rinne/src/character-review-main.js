@@ -1,4 +1,5 @@
 import './character-review.js';
+import './character-art-qa.js';
 import { VISUAL_ROLES, APPEARANCE_PARTS, CHARACTER_REFERENCE_MODELS, YEAR_MS } from '@soul/characters';
 import { createCharacterWorkspace, downloadWorkspace } from './character-workspace.js';
 

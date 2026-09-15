@@ -1,0 +1,12 @@
+{
+  "id": "./",
+  "name": "MURAAAAAAA",
+  "short_name": "MURAAAAAAA",
+  "description": "暮らしと守りが、道をつくる。",
+  "lang": "ja",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#879a7a",
+  "theme_color": "#879a7a",
+  "icons": [{ "src": "./icons/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
