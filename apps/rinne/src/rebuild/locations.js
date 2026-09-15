@@ -3,11 +3,15 @@ import { defaultMuraLayout, muraEntry, defs, validateMuraLayout } from '@soul/wo
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const built=(layout,kinds)=>layout.objects.find(o=>o.phase==='built'&&kinds.includes(o.kind));
 const fallbackSquare=layout=>built(layout,['campfire'])||built(layout,['mayor','home','tent','clanManor']);
+const FALLBACK_OFFSETS=Object.freeze({
+  home:[-4,-4],garden:[0,0],school:[-5,2],library:[-3,5],chapel:[0,6],dojo:[3,5],smith:[6,2],clinic:[5,-3],
+});
 
 function place(layout,id,kinds,label,activity=null,radius=2.4){
-  const object=built(layout,kinds)||fallbackSquare(layout);
-  const position=object?muraEntry(object):{x:0,z:0};
-  return {id,entityId:object?.id||null,label:object?defs[object.kind]?.label||label:label,x:position.x,z:position.z,activity,actionLabel:label,radius};
+  const object=built(layout,kinds),fallback=fallbackSquare(layout),anchor=object||fallback;
+  let position=anchor?muraEntry(anchor):{x:0,z:0};
+  if(!object&&fallback){const [dx,dz]=FALLBACK_OFFSETS[id]||[0,0];position={x:position.x+dx,z:position.z+dz};}
+  return {id,entityId:object?.id||fallback?.id||null,label:object?defs[object.kind]?.label||label:label,x:position.x,z:position.z,activity,actionLabel:label,radius,fallback:!object};
 }
 
 export function normalizeLayout(raw){return raw?validateMuraLayout(raw):defaultMuraLayout();}
@@ -19,13 +23,13 @@ export function buildStations(layout){
   const school=place(layout,'school',['school'],'文字を学ぶ','study');
   const library=place(layout,'library',['school'],'本を読む','read',1.8);
   const chapel=place(layout,'chapel',['chapel'],'祈る','pray',2.0);
-  const dojo=place(layout,'dojo',['dojo','guardhome'],'稽古を見る','train',2.1);
-  const smith=place(layout,'smith',['smith','weapons','guardhome'],'鍛冶を見る','forge',2.0);
+  const dojo=place(layout,'dojo',['dojo'],'稽古を見る','train',2.1);
+  const smith=place(layout,'smith',['smith','weapons'],'鍛冶を見る','forge',2.0);
   const clinic=place(layout,'clinic',['clinic'],'看護を手伝う','care',2.0);
   const port=built(layout,['harbor']);
   const portEntry=port?muraEntry(port):{x:166,z:0};
   const stations=[home,garden,school,library,chapel,dojo,smith,clinic,
-    {id:'port-prayer',label:'船上で祈る',x:portEntry.x,z:portEntry.z,activity:'voyage',actionLabel:'船上で祈る',radius:2.2,port:true},
+    {id:'port-prayer',label:'船上で祈る',x:portEntry.x,z:portEntry.z,activity:'voyage',actionLabel:'船上で祈る',radius:2.2,port:true,fallback:!port},
   ];
 
   const a=smith, weaponRows=[
