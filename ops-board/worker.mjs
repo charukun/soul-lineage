@@ -2,6 +2,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { buildState } from './collector.mjs';
 import { readStored, writeStored } from './github-client.mjs';
 import { degradedState } from './fallback-state.mjs';
+import { reconcileRetryAlarm } from './retry-alarm.mjs';
 import { boardAlerts } from './public/health.mjs';
 export { buildState } from './collector.mjs';
 const STATE_KEY = 'ops-state-v2';
@@ -45,15 +46,21 @@ export class OpsState extends DurableObject {
         const token = requestToken || this.env.OPS_GITHUB_TOKEN || '';
         const state = await buildState(previous, { storage: this.ctx.storage, token, reason: source });
         state.refreshReason = source;
+        state.nextRetryAt = null;
         await writeStored(this.ctx.storage, STATE_KEY, state);
+        await reconcileRetryAlarm(this.ctx.storage, state);
         return state;
       } catch (error) {
         const state = await degradedState(previous, error, { source });
         await writeStored(this.ctx.storage, STATE_KEY, state);
+        await reconcileRetryAlarm(this.ctx.storage, state);
         return state;
       } finally { this.inflight = null; this.inflightAuthenticated = false; }
     })();
     return this.inflight;
+  }
+  async alarm() {
+    await this.refresh('rate-limit-retry');
   }
 }
 function authorized(request, env) { return Boolean(env.OPS_REFRESH_TOKEN) && request.headers.get('authorization') === `Bearer ${env.OPS_REFRESH_TOKEN}`; }
