@@ -3,42 +3,20 @@ import { GLTFLoader } from '@soul/rendering';
 import { installPostureWeaponPreview } from './posture-preview.js';
 import { installWeaponReviewPolish } from './weapon-review-polish.js';
 import { reviewPresets as baseReviewPresets, reviewWeapons, disposeLoaded, installReviewExtensions as installBase } from './review-adapter-base.js';
-import { REVIEW_REFERENCE_MODELS, reviewReferenceModel } from './reference-character-models.js';
 import { MOTION_LIBRARY_MODELS, MOTION_LIBRARY_RAW_BASE, motionLibraryModel, motionLibraryModelURL } from './motion-library-models.js';
-import { attachReferenceCharacterController } from '@soul/rendering/master-character-reference';
-import { ARCANIST_ATLAS_STUDY_ID, attachArcanistAtlasStudy } from '@soul/rendering/arcanist-atlas-study';
 
 const MOTION_LIBRARY_PRESETS=Object.freeze(MOTION_LIBRARY_MODELS.map(row=>Object.freeze({
   id:row.presetId,label:`Motion Library / ${row.label}`,name:`Motion Library / ${row.label}`,kind:'character',source:'motion-library'
 })));
 
+// Public review presets must be backed by actual review assets. The retired
+// runtime-procedural reference bodies hid the audited VRM and replaced it with
+// disconnected primitive meshes, so they are intentionally not registered here.
 export const reviewPresets=Object.freeze([
-  baseReviewPresets[0],
-  ...REVIEW_REFERENCE_MODELS,
-  ...baseReviewPresets.slice(1),
+  ...baseReviewPresets,
   ...MOTION_LIBRARY_PRESETS
 ]);
 export { reviewWeapons, disposeLoaded };
-
-function sourcePresetId(presetId){
-  return reviewReferenceModel(presetId)?.sourcePresetId||presetId;
-}
-
-function installRuntimeReference(loaded,reference){
-  const actor={root:loaded.root,visual:loaded.root,bones:loaded.bones,sample(){},destroy(){}};
-  const controller=attachReferenceCharacterController(actor);
-  controller.setIdentity(reference);
-  const study=reference.id===ARCANIST_ATLAS_STUDY_ID?attachArcanistAtlasStudy(actor,reference):null;
-  const dispose=loaded.dispose.bind(loaded);let disposed=false;
-  loaded.dispose=()=>{if(disposed)return;disposed=true;study?.destroy();controller.destroy();dispose();};
-  loaded.label=study?`${reference.name} / BLOCKOUT Study / 全モーションソース`:`${reference.name} / Runtime Reference / 全モーションソース`;
-  loaded.referenceModel=reference;
-  loaded.referenceDiagnostics=()=>({
-    ...controller.diagnostics(),
-    ...(study?{study:{id:study.id,stage:study.stage,modelingMode:study.modelingMode,productionReady:study.productionReady,meshCount:study.meshCount}}:{})
-  });
-  return loaded;
-}
 
 function installMotionLibraryPickerPolish(){
   const list=document.querySelector('.model-picker-list');
@@ -92,9 +70,7 @@ export async function installReviewExtensions(options){
   installMotionLibraryPickerPolish();
   return {...base,async loadPreset(args){
     if(motionLibraryModel(args?.presetId))return loadMotionLibraryPreset(args);
-    const reference=reviewReferenceModel(args?.presetId);
-    let loaded=await base.loadPreset({...args,presetId:sourcePresetId(args?.presetId)});
-    if(reference)loaded=installRuntimeReference(loaded,reference);
+    const loaded=await base.loadPreset(args);
     return installPostureWeaponPreview(installWeaponReviewPolish(loaded));
   }};
 }
