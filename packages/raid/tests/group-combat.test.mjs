@@ -53,17 +53,17 @@ test('held approach input is suppressed but reversing the same pointer to retrea
  assert.deepEqual(seen.at(-1),[0,-1,.8]);assert.equal(session.combatInputLatched,false);
 });
 
-test('held retreat stays live when several attackers start combat around the player',()=>{
+test('held escape through a crowd gap stays live even when it is sideways to the primary target',()=>{
  const session=makeSession(),[a,b,c]=session.village.npcs;
  for(const n of [a,b,c])n.behavior='fight';
- a.x=0;a.z=3.2;b.x=1.1;b.z=3.3;c.x=-1.1;c.z=3.5;
- const retreat={x:0,z:-1,amount:1,active:true,dash:false};
- session.tick(1/60,retreat);
- assert.equal(session.combatantCount(),3);assert.equal(session.combatInputLatched,false);
+ a.x=0;a.z=3.2;b.x=3;b.z=1.4;c.x=3.2;c.z=-1.5;
+ const escape={x:-1,z:0,amount:1,active:true,dash:false};
+ session.tick(1/60,escape);
+ assert.equal(session.fight?.npc,a);assert.equal(session.combatantCount(),3);assert.equal(session.combatInputLatched,false);
  const seen=[],core=session.fight.core,originalInput=core.input.bind(core);
  core.input=(x,z,amount,...rest)=>{seen.push([x,z,amount]);return originalInput(x,z,amount,...rest);};
- session.tick(1/60,retreat);
- assert.deepEqual(seen.at(-1),[0,-1,1]);assert.equal(session.combatInputLatched,false);
+ session.tick(1/60,escape);
+ assert.deepEqual(seen.at(-1),[-1,0,1]);assert.equal(session.combatInputLatched,false);
 });
 
 test('group simulation delegates the same gated input to primary and secondary combat',t=>{
