@@ -36,9 +36,11 @@ test('missed-wake watchdog is hourly and dispatches only after a Ready scan', ()
   assert.match(worker, /if \(!ready\.length\) return \{ dispatched: false, ready: 0 \}/);
 });
 
-test('PULSE has an exact retry path instead of waiting for the next reconciliation cron', () => {
+test('PULSE retries rate limits exactly and rejects anonymous event refreshes', () => {
   const worker = text('ops-board/worker.mjs');
   assert.match(worker, /reconcileRetryAlarm/);
   assert.match(worker, /async alarm\(\)/);
   assert.match(worker, /refresh\('rate-limit-retry'\)/);
+  assert.match(worker, /if \(!token && !env\.OPS_GITHUB_TOKEN\)/);
+  assert.match(worker, /await stub\.getState\(\) \|\| await stub\.refresh\(eventReason\(request\)\)/);
 });
