@@ -1,0 +1,131 @@
+/* Consumer-game finish for 100年人生.
+ * Keep the world and the player in front; UI should feel like equipment from that world,
+ * never a stack of browser cards. Typography remains owned by typography.css, loaded last.
+ */
+:root{
+  --console-brass:#b68f4e;
+  --console-brass-hi:#ead8a6;
+  --console-ink:#3e3740;
+  --console-paper:#e9dcc0;
+  --console-paper-hi:#f8f0df;
+  --console-leather:#685245;
+  --console-depth:#55443d;
+  --console-focus:#fff1ba;
+}
+
+:is(button,a,input,select):focus-visible{
+  outline:0;
+  filter:brightness(1.06);
+  box-shadow:0 0 0 2px #473a3b,0 0 0 4px var(--console-focus),0 8px 22px rgba(47,37,42,.2);
+}
+
+/* Title controls read as a small command plate, not a web form. */
+.title-screen::after{
+  border-radius:0;
+  clip-path:polygon(14px 0,calc(100% - 14px) 0,100% 14px,100% calc(100% - 14px),calc(100% - 14px) 100%,14px 100%,0 calc(100% - 14px),0 14px);
+  box-shadow:inset 0 0 0 1px rgba(99,72,53,.22),inset 0 0 34px rgba(66,52,45,.07);
+}
+.crest-ring{
+  border-radius:3px;
+  clip-path:polygon(19% 0,81% 0,100% 19%,100% 81%,81% 100%,19% 100%,0 81%,0 19%);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.48),inset 0 -4px 0 rgba(82,59,44,.17),0 4px 0 #6f584a,0 10px 22px rgba(51,41,46,.2);
+}
+.title-actions{gap:8px 7px}
+.name-field,.title-actions .primary,.title-actions .secondary{
+  border-radius:3px;
+  clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px);
+  border:1px solid rgba(92,72,57,.65);
+  box-shadow:inset 0 1px rgba(255,255,255,.5),inset 0 -3px rgba(71,53,45,.16),0 3px 0 var(--console-depth),0 9px 18px rgba(49,40,45,.16);
+}
+.name-field{background:linear-gradient(180deg,var(--console-paper-hi),#dcc9a6)}
+.title-actions .primary{
+  border-color:#7d4f48;
+  background:linear-gradient(180deg,#ca8272 0%,#ad6259 72%,#925049 100%);
+}
+.title-actions .secondary{
+  border-color:#51626c;
+  background:linear-gradient(180deg,#7d929f 0%,#647986 72%,#50636e 100%);
+}
+#open-village{background:linear-gradient(180deg,#79758b,#615e76 72%,#514e64)}
+.title-actions :is(.primary,.secondary)::after{
+  content:"";position:absolute;left:11px;right:11px;bottom:5px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,245,214,.5),transparent);pointer-events:none;
+}
+.title-actions :is(.primary,.secondary):active{transform:translateY(2px);box-shadow:inset 0 1px rgba(255,255,255,.28),0 1px 0 var(--console-depth),0 4px 9px rgba(49,40,45,.13)}
+
+/* Loading and HUD are framed instruments at the edge of the world. */
+.loading-card{
+  border-radius:2px;
+  clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);
+  border:1px solid #917348;
+  background:linear-gradient(180deg,#f3e8d1 0%,#ddc8a1 73%,#c6a66c 100%);
+  box-shadow:inset 0 0 0 2px rgba(255,250,231,.4),0 4px 0 #655247,0 18px 42px rgba(48,39,44,.25);
+}
+.loading-emblem{box-shadow:inset 0 0 0 2px rgba(93,73,54,.16),0 3px 0 #6f5849,0 7px 15px rgba(50,40,44,.16)}
+.icon-button,.life-chip,.bars,.clock-rate,.objective-card,.dialogue{
+  border-radius:2px;
+  border-color:#9d8257;
+  box-shadow:inset 0 1px rgba(255,255,255,.43),inset 0 -2px rgba(72,55,47,.13),0 2px 0 #675449,0 6px 12px rgba(45,37,41,.14);
+}
+.life-chip,.bars,.clock-rate,.objective-card{
+  background-image:repeating-linear-gradient(105deg,rgba(92,69,50,.025) 0 1px,transparent 1px 6px),linear-gradient(180deg,#efe4ce,#dac5a1);
+}
+.icon-button{
+  clip-path:polygon(50% 0,88% 13%,100% 50%,88% 87%,50% 100%,12% 87%,0 50%,12% 13%);
+  background:linear-gradient(180deg,#d0aa65,#ad8248);
+}
+.objective-card{
+  border-right:3px solid var(--console-brass);
+  clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,9px 100%,0 calc(100% - 9px));
+}
+.bars i{border-radius:1px}
+.bars b{border-radius:0}
+.clock-rate select{cursor:pointer}
+
+.dialogue{
+  border-width:1px 1px 3px;
+  background-image:repeating-linear-gradient(9deg,rgba(91,67,48,.025) 0 1px,transparent 1px 5px),linear-gradient(180deg,#f4ead7,#ddc7a1);
+  clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%,0 8px);
+}
+.toast{
+  border-radius:2px;
+  clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px);
+}
+.talk-button{
+  border-radius:50%;
+  border:1px solid #8c5c52;
+  box-shadow:inset 0 2px rgba(255,255,255,.32),inset 0 -4px rgba(89,49,45,.2),0 3px 0 #704b48,0 8px 17px rgba(44,36,41,.2);
+}
+.move-hint{
+  padding:5px 12px;
+  border:0;
+  border-radius:0;
+  background:linear-gradient(90deg,transparent,rgba(54,49,54,.54) 18%,rgba(54,49,54,.54) 82%,transparent);
+  text-shadow:0 1px 3px rgba(0,0,0,.75);
+}
+
+/* Village join is a game menu panel rather than a browser dialog. */
+#village-dialog{
+  width:min(520px,calc(100vw - 28px));max-height:calc(100dvh - 34px);padding:24px 22px 22px;
+  border:1px solid #8f724d;border-radius:2px;color:var(--console-ink);
+  background-image:repeating-linear-gradient(11deg,rgba(92,67,47,.035) 0 1px,transparent 1px 7px),linear-gradient(145deg,#f2e6ce,#d9c29d 70%,#c6a875);
+  clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);
+  box-shadow:inset 0 0 0 3px rgba(255,247,222,.34),0 5px 0 #5f4d43,0 28px 80px rgba(37,31,36,.35);
+}
+#village-dialog::backdrop{background:rgba(26,25,29,.58);backdrop-filter:blur(3px)}
+#village-dialog h2{margin:4px 0 18px;letter-spacing:.12em}
+#close-village{
+  float:right;min-height:36px;padding:6px 12px;border:1px solid #8e795b;border-radius:2px;
+  background:linear-gradient(#eee2cb,#d4bd99);color:var(--console-ink);box-shadow:0 2px 0 #765f50;
+}
+
+@media(max-width:600px){
+  .title-screen{padding-inline:14px}
+  .hud-top{left:7px;right:7px;gap:4px}
+  .objective-card{right:7px}
+  #village-dialog{padding:20px 16px 18px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .title-actions :is(.primary,.secondary),.talk-button{transition:none}
+}
