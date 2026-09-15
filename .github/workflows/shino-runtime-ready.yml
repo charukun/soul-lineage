@@ -1,0 +1,128 @@
+name: Shino Reference Runtime Ready
+
+on:
+  push:
+    branches:
+      - feat/shino-reference-v2-runtime-ready
+    paths:
+      - .github/workflows/shino-runtime-ready.yml
+      - scripts/blender/finish-shino-reference-v2-runtime.py
+      - scripts/patch-vrm-runtime-ready.py
+      - scripts/write-shino-runtime-integrity.py
+      - scripts/browser/shino-runtime-ready.mjs
+      - packages/characters/tests/runtime-asset-audit.test.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: shino-reference-v2-runtime-ready
+  cancel-in-progress: true
+
+env:
+  LIBGL_ALWAYS_SOFTWARE: "1"
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install JS dependencies
+        run: npm ci
+      - name: Install Blender runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy xvfb libegl1 libgl1-mesa-dri libglx-mesa0
+          blender --version
+      - name: Bind DCC surfaces and render deformation evidence
+        run: |
+          rm -rf generated/shino-runtime test-results/shino-runtime-ready
+          mkdir -p generated/shino-runtime
+          xvfb-run -a blender --background --python-exit-code 1 \
+            assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend \
+            --python scripts/blender/finish-shino-reference-v2-runtime.py -- \
+            --source-vrm apps/rinne/public/simulator/assets/SHINO_review.vrm \
+            --out generated/shino-runtime
+      - name: Export self-contained review VRM with expressions
+        run: |
+          python3 scripts/patch-vrm-runtime-ready.py \
+            --source-vrm apps/rinne/public/simulator/assets/SHINO_review.vrm \
+            --input generated/shino-runtime/export/ShinoReferenceV2Runtime.glb \
+            --output generated/shino-runtime/export/ShinoReferenceV2Runtime.vrm \
+            --stage DEFORMATION --visual-approval pending
+      - name: Audit skinned Blender source
+        run: |
+          xvfb-run -a blender --background --python-exit-code 1 \
+            generated/shino-runtime/source/ShinoReferenceV2Runtime.blend \
+            --python scripts/blender/character-production-audit.py -- \
+            --out generated/shino-runtime/blender-audit.json --character-id shino.reference.v2
+      - name: Install exact runtime asset for browser review
+        run: |
+          cp generated/shino-runtime/source/ShinoReferenceV2Runtime.blend assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend
+          cp generated/shino-runtime/export/ShinoReferenceV2Runtime.vrm apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm
+          python3 scripts/write-shino-runtime-integrity.py \
+            --model apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm \
+            --blend assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend \
+            --out apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json \
+            --stage DEFORMATION --visual-approval pending
+          mkdir -p docs/characters/qa/shino-reference-v2/deformation docs/characters/qa/shino-reference-v2/reactions
+          cp generated/shino-runtime/deformation/*.png docs/characters/qa/shino-reference-v2/deformation/
+          cp generated/shino-runtime/reactions/*.png docs/characters/qa/shino-reference-v2/reactions/
+          cp generated/shino-runtime/runtime-dcc-evidence.json docs/characters/qa/shino-reference-v2/runtime-dcc-evidence.json
+          cp generated/shino-runtime/blender-audit.json docs/characters/qa/shino-reference-v2/blender-audit.json
+      - name: Fast asset contract checks
+        run: |
+          python3 -m py_compile scripts/blender/finish-shino-reference-v2-runtime.py scripts/patch-vrm-runtime-ready.py scripts/write-shino-runtime-integrity.py
+          node --check scripts/browser/shino-runtime-ready.mjs
+          node --test packages/characters/tests/runtime-asset-audit.test.mjs packages/characters/tests/reference-production-status.test.mjs
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start Character Studio
+        run: |
+          npm run dev:rinne > "$RUNNER_TEMP/rinne-vite.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/rinne-vite.pid"
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/characters.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/rinne-vite.log"; exit 1
+      - name: Run exact-asset WebGL2, Motion QA and performance evidence
+        run: node scripts/browser/shino-runtime-ready.mjs http://127.0.0.1:5173/ test-results/shino-runtime-ready
+      - name: Preserve runtime evidence in repository
+        run: |
+          mkdir -p docs/characters/qa/shino-reference-v2/runtime-browser
+          cp test-results/shino-runtime-ready/* docs/characters/qa/shino-reference-v2/runtime-browser/
+      - name: Commit generated skinned DCC and review outputs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend \
+            apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm \
+            apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json \
+            docs/characters/qa/shino-reference-v2
+          if git diff --cached --quiet; then echo 'Runtime evidence unchanged.'; else
+            git commit -m "build(characters): generate Shino deformation and runtime evidence"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
+      - name: Upload review bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shino-runtime-ready-review
+          path: |
+            generated/shino-runtime/deformation/*.png
+            generated/shino-runtime/reactions/*.png
+            generated/shino-runtime/runtime-dcc-evidence.json
+            generated/shino-runtime/blender-audit.json
+            test-results/shino-runtime-ready/
+            ${{ runner.temp }}/rinne-vite.log
+          if-no-files-found: warn
+          retention-days: 14

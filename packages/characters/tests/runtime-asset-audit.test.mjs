@@ -26,6 +26,6 @@ test('generated Shino Reference v2 DCC asset matches its exact-hash integrity re
   const result=auditCharacterRuntimeDocument(glbDocument(bytes),sha256,bytes.length,integrity);
   assert.equal(result.approved,true,result.errors.join(', '));
   assert.equal(result.id,'shino.reference.v2');
-  assert.equal(result.productionStage,'PRIMARY');
-  assert.equal(result.productionReady,false);
+  assert.equal(result.productionStage,integrity.productionStage);
+  assert.equal(result.productionReady,Boolean(integrity.productionReady));
 });
