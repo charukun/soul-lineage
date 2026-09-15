@@ -6,8 +6,8 @@
 <p id="idleMoment"></p><div id="speechLayer" aria-hidden="true"></div>
 <div id="tutorial" hidden><button id="tutorialAction"><small id="tutorialCount"></small><span id="tutorialText"></span><span class="tutorialArrow">›</span></button><button id="dismissTutorial" aria-label="はじめの案内を閉じる">×</button></div>
 <div id="muraModeControls"><button id="leaveRoom" hidden>村へ戻る</button><button id="muraEndObservation" hidden>俯瞰</button></div>
-<div id="drawer" class="glass" hidden><p id="stockTray"></p><div id="tabs"></div><div id="catalog"></div><footer><small>タップで選択 · 長押しで移動</small><div><button id="undo">取り消す</button></div></footer></div>
-<button id="build" class="glass" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="m14 3 7 7-3 3-3-3-9 10-3-3 10-9-2-2z"/></svg><span>つくる</span></button>
+<div id="drawer" class="glass" hidden><p id="stockTray"></p><div id="tabs"></div><div id="catalog"></div><footer><div><button id="undo">取り消す</button></div></footer></div>
+<button id="build" class="glass" aria-expanded="false" aria-label="つくる。建物や家具を選ぶ" title="建物や家具を選ぶ。長押しするとそのまま配置できます"><svg viewBox="0 0 24 24"><path d="m14 3 7 7-3 3-3-3-9 10-3-3 10-9-2-2z"/></svg><span>つくる</span></button>
 <div id="context" class="glass" hidden><div class="contextTop"><span id="objectLabel"></span><button id="deselect" aria-label="選択を解除">×</button></div><p id="objectInfo"></p><div class="actions"><button id="move">移動</button><button id="enter">内装</button><button id="details">詳細</button></div></div>
 <div id="placement" class="glass" hidden><span id="placementText"></span><div id="materialChoices"></div><small id="placementCost"></small><div class="rotationControl"><label for="muraRotation">回転</label><output id="muraRotationValue">0°</output><input id="muraRotation" type="range" min="0" max="360" step="1" value="0"></div><div class="actions"><button id="rotate" aria-label="90度回転">90°</button><button id="muraCancelPlacement">取消</button><button id="cancelPlace">配置</button></div></div>
 <div id="toast" hidden><span id="toastText"></span></div>

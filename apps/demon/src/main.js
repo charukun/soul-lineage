@@ -20,6 +20,7 @@ try {
   const game = await import('./web/main.js');
   progress.value = 2;
   await game.boot();
+  document.querySelector('#swipe-hint').onclick = () => document.querySelector('#pause')?.click();
   const {installFirstHuntDirector} = await import('./web/first-hunt-director.js');
   installFirstHuntDirector();
   progress.value = 3;
