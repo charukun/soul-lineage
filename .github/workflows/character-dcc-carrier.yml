@@ -5,13 +5,8 @@ on:
     branches:
       - 'dcc/**'
     paths:
-      - '.dcc/character-dcc-request.json'
-      - 'scripts/blender/**'
-      - 'scripts/character-dcc-request.mjs'
-      - 'scripts/finalize-character-dcc.py'
-      - 'docs/characters/references/**'
-      - '.github/workflows/character-dcc-carrier.yml'
-  workflow_dispatch:
+      - 'assets/characters/**/build.py'
+      - 'assets/characters/**/reference.*'
 
 permissions:
   contents: write
@@ -23,7 +18,6 @@ concurrency:
 
 env:
   LIBGL_ALWAYS_SOFTWARE: '1'
-  DCC_REQUEST_FILE: .dcc/character-dcc-request.json
 
 jobs:
   build-dcc:
@@ -31,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - name: Checkout exact DCC request head
+      - name: Checkout exact DCC head
         uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
@@ -45,17 +39,45 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
             -f state=pending \
             -f context='character-dcc/build' \
-            -f description='Character DCC Carrier is building the requested Blender asset' \
+            -f description='Character DCC Carrier is building the Blender candidate' \
             -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
 
-      - name: Validate request before installing Blender
+      - name: Discover two-file DCC input before installing Blender
         run: |
-          test -f "$DCC_REQUEST_FILE"
-          node --check scripts/character-dcc-request.mjs
-          python3 -m py_compile scripts/finalize-character-dcc.py scripts/blender/character-production-audit.py
-          node scripts/character-dcc-request.mjs validate "$DCC_REQUEST_FILE"
-          node scripts/character-dcc-request.mjs emit-env "$DCC_REQUEST_FILE" "$GITHUB_ENV"
-          echo "DCC_REQUEST_SHA=$(sha256sum "$DCC_REQUEST_FILE" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          slug="${GITHUB_REF_NAME#dcc/}"
+          if [ "$slug" = "$GITHUB_REF_NAME" ] || [[ ! "$slug" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
+            echo "dcc branch must be exactly dcc/<lowercase-slug>" >&2
+            exit 1
+          fi
+          dir="assets/characters/$slug"
+          builder="$dir/build.py"
+          rig="apps/rinne/public/simulator/assets/SHINO_review.vrm"
+          test -s "$builder"
+          test -s "$rig"
+          mapfile -t references < <(find "$dir" -maxdepth 1 -type f -name 'reference.*' -print | sort)
+          if [ "${#references[@]}" -ne 1 ]; then
+            echo "$dir must contain exactly one non-empty reference.* file" >&2
+            exit 1
+          fi
+          reference="${references[0]}"
+          test -s "$reference"
+          python3 -m py_compile "$builder" scripts/finalize-character-dcc.py scripts/blender/character-production-audit.py
+          reference_sha=$(sha256sum "$reference" | cut -d' ' -f1)
+          builder_sha=$(sha256sum "$builder" | cut -d' ' -f1)
+          rig_sha=$(sha256sum "$rig" | cut -d' ' -f1)
+          runtime_base=$(printf '%s' "$slug" | tr '[:lower:]-' '[:upper:]_')_DCC
+          {
+            echo "DCC_SLUG=$slug"
+            echo "DCC_DIR=$dir"
+            echo "DCC_REFERENCE=$reference"
+            echo "DCC_REFERENCE_SHA=$reference_sha"
+            echo "DCC_BUILDER=$builder"
+            echo "DCC_BUILDER_SHA=$builder_sha"
+            echo "DCC_RIG=$rig"
+            echo "DCC_RIG_SHA=$rig_sha"
+            echo "DCC_GENERATED_DIR=generated/${slug}-dcc"
+            echo "DCC_RUNTIME_BASE=$runtime_base"
+          } >> "$GITHUB_ENV"
 
       - name: Install headless Blender runtime
         run: |
@@ -64,58 +86,87 @@ jobs:
           blender --version
           xvfb-run -a blender --background --python-exit-code 1 --python-expr "import numpy; print('Blender numpy', numpy.__version__)"
 
-      - name: Prepare audited rig input
+      - name: Execute character-specific Blender builder
         run: |
           rm -rf "$DCC_GENERATED_DIR"
           mkdir -p "$DCC_GENERATED_DIR/input"
           cp "$DCC_RIG" "$DCC_GENERATED_DIR/input/source-rig.glb"
-          python3 -m py_compile "$DCC_BUILDER"
-
-      - name: Execute character-specific Blender builder
-        run: |
           xvfb-run -a blender --background --python-exit-code 1 \
             --python "$DCC_BUILDER" -- \
             --source "$DCC_GENERATED_DIR/input/source-rig.glb" \
             --source-vrm "$DCC_RIG" \
             --out "$DCC_GENERATED_DIR"
 
+      - name: Discover generated outputs
+        run: |
+          mapfile -t blends < <(find "$DCC_GENERATED_DIR/source" -maxdepth 1 -type f -name '*.blend' -print | sort)
+          mapfile -t models < <(find "$DCC_GENERATED_DIR/export" -maxdepth 1 -type f \( -name '*.glb' -o -name '*.vrm' \) -print | sort)
+          if [ "${#blends[@]}" -ne 1 ] || [ "${#models[@]}" -ne 1 ]; then
+            echo 'builder must emit exactly one .blend and one .glb|.vrm' >&2
+            exit 1
+          fi
+          test -s "$DCC_GENERATED_DIR/build.json"
+          character_id=$(python3 -c 'import json,sys; v=json.load(open(sys.argv[1], encoding="utf-8")).get("characterId"); assert isinstance(v,str) and v.strip(); print(v)' "$DCC_GENERATED_DIR/build.json")
+          model_ext="${models[0]##*.}"
+          qa_dir="docs/characters/qa/${DCC_SLUG}-dcc"
+          {
+            echo "DCC_CHARACTER_ID=$character_id"
+            echo "DCC_BUILD_BLEND=${blends[0]}"
+            echo "DCC_BUILD_MODEL=${models[0]}"
+            echo "DCC_MODEL_EXT=$model_ext"
+            echo "DCC_CANONICAL_BLEND=$DCC_DIR/model.blend"
+            echo "DCC_CANONICAL_MODEL=apps/rinne/public/simulator/assets/${DCC_RUNTIME_BASE}.${model_ext}"
+            echo "DCC_QA_DIR=$qa_dir"
+          } >> "$GITHUB_ENV"
+
       - name: Audit generated Blender source
         run: |
           xvfb-run -a blender --background --python-exit-code 1 \
-            "$DCC_GENERATED_DIR/source/$DCC_BLEND_NAME" \
+            "$DCC_BUILD_BLEND" \
             --python scripts/blender/character-production-audit.py -- \
             --out "$DCC_GENERATED_DIR/blender-audit.json" \
-            --character-id "$DCC_ID"
+            --character-id "$DCC_CHARACTER_ID"
 
       - name: Require generated DCC evidence
         run: |
-          test -s "$DCC_GENERATED_DIR/source/$DCC_BLEND_NAME"
-          test -s "$DCC_GENERATED_DIR/export/$DCC_MODEL_NAME"
+          test -s "$DCC_BUILD_BLEND"
+          test -s "$DCC_BUILD_MODEL"
           test -s "$DCC_GENERATED_DIR/build.json"
           test -s "$DCC_GENERATED_DIR/blender-audit.json"
           for view in front three-quarter side back; do
             test -s "$DCC_GENERATED_DIR/review/$view.png"
           done
 
-      - name: Install canonical source, runtime candidate and QA evidence
+      - name: Install canonical DCC candidate and evidence
         run: |
-          mkdir -p "$(dirname "$DCC_CANONICAL_BLEND")" "$(dirname "$DCC_CANONICAL_MODEL")" "$DCC_QA_DIR"
-          cp "$DCC_GENERATED_DIR/source/$DCC_BLEND_NAME" "$DCC_CANONICAL_BLEND"
-          cp "$DCC_GENERATED_DIR/export/$DCC_MODEL_NAME" "$DCC_CANONICAL_MODEL"
+          mkdir -p "$DCC_DIR" "$(dirname "$DCC_CANONICAL_MODEL")" "$DCC_QA_DIR"
+          rm -f "apps/rinne/public/simulator/assets/${DCC_RUNTIME_BASE}.glb" "apps/rinne/public/simulator/assets/${DCC_RUNTIME_BASE}.vrm"
+          cp "$DCC_BUILD_BLEND" "$DCC_CANONICAL_BLEND"
+          cp "$DCC_BUILD_MODEL" "$DCC_CANONICAL_MODEL"
           cp "$DCC_GENERATED_DIR/blender-audit.json" "$DCC_QA_DIR/blender-audit.json"
           cp "$DCC_GENERATED_DIR/build.json" "$DCC_QA_DIR/build.json"
           for view in front three-quarter side back; do
             cp "$DCC_GENERATED_DIR/review/$view.png" "$DCC_QA_DIR/$view.png"
           done
-          python3 scripts/finalize-character-dcc.py --request "$DCC_REQUEST_FILE"
+          python3 scripts/finalize-character-dcc.py \
+            --slug "$DCC_SLUG" \
+            --reference "$DCC_REFERENCE" \
+            --rig "$DCC_RIG" \
+            --builder "$DCC_BUILDER" \
+            --blend "$DCC_CANONICAL_BLEND" \
+            --model "$DCC_CANONICAL_MODEL" \
+            --audit "$DCC_QA_DIR/blender-audit.json" \
+            --build "$DCC_QA_DIR/build.json" \
+            --qa-dir "$DCC_QA_DIR" \
+            --public-path "./simulator/assets/${DCC_RUNTIME_BASE}.${DCC_MODEL_EXT}" \
+            --out "$DCC_QA_DIR/integrity.json"
 
-      - name: Verify production truth and patch hygiene
+      - name: Verify carrier contract and patch hygiene
         run: |
-          node scripts/check-character-production.mjs
           node --test tests/character-dcc-carrier.test.mjs
           git diff --check
 
-      - name: Commit generated canonical assets to the same DCC branch
+      - name: Commit generated candidate to the same DCC branch
         id: generated
         run: |
           git config user.name 'github-actions[bot]'
@@ -123,27 +174,25 @@ jobs:
           git stash push --include-untracked -m character-dcc-generated-output
           git fetch origin "$GITHUB_REF_NAME"
           git rebase "origin/$GITHUB_REF_NAME"
-          current_request_sha=$(sha256sum "$DCC_REQUEST_FILE" | cut -d' ' -f1)
-          if [ "$current_request_sha" != "$DCC_REQUEST_SHA" ]; then
-            echo 'DCC request changed while Blender was running; discard stale generated output and let the newer push own the build.' >&2
+          if [ "$(sha256sum "$DCC_REFERENCE" | cut -d' ' -f1)" != "$DCC_REFERENCE_SHA" ] || \
+             [ "$(sha256sum "$DCC_BUILDER" | cut -d' ' -f1)" != "$DCC_BUILDER_SHA" ]; then
+            echo 'reference/build.py changed while Blender was running; discard stale output and let the newer push build it.' >&2
             git stash drop || true
             exit 1
           fi
           git stash pop
-          git add -- \
+          git add -A -- \
             "$DCC_CANONICAL_BLEND" \
-            "$DCC_CANONICAL_MODEL" \
-            "$DCC_CANONICAL_INTEGRITY" \
-            "$DCC_CANONICAL_PRODUCTION" \
+            "apps/rinne/public/simulator/assets/${DCC_RUNTIME_BASE}.glb" \
+            "apps/rinne/public/simulator/assets/${DCC_RUNTIME_BASE}.vrm" \
             "$DCC_QA_DIR"
           if git diff --cached --quiet; then
-            echo 'Generated canonical DCC assets are unchanged.'
+            echo 'Generated DCC candidate is unchanged.'
           else
-            git commit -m "build(characters): generate $DCC_ID DCC assets"
+            git commit -m "build(characters): generate $DCC_CHARACTER_ID DCC candidate"
             git push origin "HEAD:$GITHUB_REF_NAME"
           fi
-          generated_sha=$(git rev-parse HEAD)
-          echo "sha=$generated_sha" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Record successful exact generated head
         env:
@@ -153,7 +202,7 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/statuses/$GENERATED_SHA" \
             -f state=success \
             -f context='character-dcc/build' \
-            -f description='Real Blender build, audit, hashes and canonical DCC outputs passed' \
+            -f description='Real Blender build, audit, fixed views and hashes passed' \
             -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
 
       - name: Upload review/debug evidence
@@ -162,8 +211,8 @@ jobs:
         with:
           name: character-dcc-${{ github.ref_name }}-${{ github.run_attempt }}
           path: |
-            .dcc/character-dcc-request.json
             generated/**
+            docs/characters/qa/**/integrity.json
           if-no-files-found: warn
           retention-days: 14
 
@@ -176,5 +225,5 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/statuses/$failed_sha" \
             -f state=failure \
             -f context='character-dcc/build' \
-            -f description='Character DCC Carrier failed; inspect the exact run and retained evidence' \
+            -f description='Character DCC Carrier failed; inspect the exact run' \
             -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null || true
