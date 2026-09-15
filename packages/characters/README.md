@@ -28,5 +28,5 @@ Three.js primitives / runtime procedural geometryは確認用の `BLOCKOUT` ま�
 - Body Archetypeは年齢と既存body appearanceから決定論的に導出し、Character schemaへ新しい永続フィールドを追加しない。
 - Role Appearanceは職業・役割の見た目だけを選び、AI・戦闘・衝突・装備解禁を変更しない。
 - Render Tierは既存`crowdPlan()`の`full / mid / far / hidden`を正本とし、距離や重要度で重い表現を制限する。
-- Production Assetはproduction manifestとcatalogの状態を尊重し、`BLOCKOUT`参照モデルを完成品として自動採用しない。
+- Production Assetはapp / role / age band / body archetype / render tierで候補を絞り、production manifestとcatalogの状態を尊重する。`BLOCKOUT`参照モデルを完成品として自動採用しない。
 - 輪廻転焦・MURAAAAAAA・尽喰廻遊は同じ人間表現基盤を利用できるが、人物IDそのものをアプリ間で同一人物と仮定しない。
