@@ -1,7 +1,8 @@
-import { REVIEW_KAYKIT_EQUIPMENT, REVIEW_KAYKIT_EQUIPMENT_SOURCE } from '@soul/assets/review-catalog';
+import { REVIEW_KAYKIT_EQUIPMENT, REVIEW_KAYKIT_EQUIPMENT_SOURCE, REVIEW_KAYKIT_SKELETON_SOURCE } from '@soul/assets/review-catalog';
 
 export const EQUIPMENT_REFERENCE = Object.freeze({
   geometry: REVIEW_KAYKIT_EQUIPMENT_SOURCE,
+  skeletonGeometry: REVIEW_KAYKIT_SKELETON_SOURCE,
   attachmentRepository: 'levy-street/world-of-claudecraft',
   attachmentCommit: '83347159f70103c887768fc0aa0e6aff0d030e8d',
   attachmentLicense: 'MIT',
@@ -15,6 +16,9 @@ const LABELS = Object.freeze({
   'shield-square':'角盾','shield-square-color':'角盾・彩色','shield-badge':'紋章盾','shield-badge-color':'紋章盾・彩色',
   'shield-spikes':'棘盾','shield-spikes-color':'棘盾・彩色','quiver':'矢筒',
   'spellbook-closed':'魔導書・閉','spellbook-open':'魔導書・開','smokebomb':'煙玉','mug-empty':'空のマグ','mug-full':'飲み物入りマグ',
+  'skeleton-blade':'骨剣','skeleton-axe':'骨斧','skeleton-staff':'骨杖','skeleton-crossbow':'骨クロスボウ',
+  'skeleton-shield-large-a':'骨大盾 A','skeleton-shield-large-b':'骨大盾 B',
+  'skeleton-shield-small-a':'骨小盾 A','skeleton-shield-small-b':'骨小盾 B','skeleton-quiver':'骨矢筒',
 });
 
 export const EQUIPMENT_CATALOG = Object.freeze(REVIEW_KAYKIT_EQUIPMENT.map(row => Object.freeze({
