@@ -6,6 +6,7 @@ const browser = readFileSync('scripts/verify-browser.mjs', 'utf8');
 const recorder = readFileSync('scripts/browser-repair-ticket.mjs', 'utf8');
 const deploy = readFileSync('.github/workflows/deploy.yml', 'utf8');
 const repairWorkflow = readFileSync('.github/workflows/dev-browser-repair.yml', 'utf8');
+const prRecorderWorkflow = readFileSync('.github/workflows/browser-repair.yml', 'utf8');
 const contract = readFileSync('docs/DEV_PUBLICATION.md', 'utf8');
 
 test('normal develop publication bypasses heavy browser work without weakening Production verification', () => {
@@ -23,14 +24,23 @@ test('a skipped DEV publisher browser step cannot manufacture repair success', (
   assert.match(recorder, /REPAIR_ISSUE_NUMBER/);
 });
 
-test('only an active ready develop repair launches final heavy browser verification', () => {
+test('only an active merged ready develop repair launches final heavy browser verification', () => {
   assert.match(repairWorkflow, /browser-repair:v1/);
   assert.match(repairWorkflow, /state === 'ready-for-integration'/);
-  assert.match(repairWorkflow, /No develop browser repair is ready for final verification; normal DEV publication stays browser-free/);
+  assert.match(repairWorkflow, /compareCommits/);
+  assert.match(repairWorkflow, /merge_base_commit/);
+  assert.match(repairWorkflow, /No merged develop browser repair is ready for final verification; normal DEV publication stays browser-free/);
   assert.match(repairWorkflow, /INTEGRATION_FULL: 'true'/);
   assert.match(repairWorkflow, /REPAIR_VERIFIED: 'true'/);
   assert.match(repairWorkflow, /REPAIR_ISSUE_NUMBER/);
   assert.match(repairWorkflow, /Keep failed repair verification visible without blocking DEV publication/);
+});
+
+test('repair PR browser success explicitly wakes final DEV verification without waking for normal PRs', () => {
+  assert.match(prRecorderWorkflow, /actions: write/);
+  assert.match(prRecorderWorkflow, /Auto-Repair-Issue\|Browser-Repair-Issue/);
+  assert.match(prRecorderWorkflow, /dev-browser-repair\.yml/);
+  assert.match(prRecorderWorkflow, /Normal PR browser success needs no DEV repair verification wake/);
 });
 
 test('late repair PR browser success reconnects to the develop repair ticket after merge', () => {
