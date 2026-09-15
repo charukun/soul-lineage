@@ -14,21 +14,21 @@ GitHub event
           -> PR branch merge-forward
           -> exact-head fast validation
           -> Fast Lane wake
-       true conflict / large-base -> Deep Repair Issue -> ChatGPT Work -> Fast Lane
+       true conflict -> Deep Repair Issue -> ChatGPT Work -> Fast Lane
        product decision required -> HUMAN_REQUIRED
 ```
 
-正常PRはRepairを通らない。1件の失敗PR、browser failure、DEV delivery failureは独立PRをglobal blockしない。
+正常PRはRepairを通らない。1件の失敗PR、browser failure、DEV delivery failureは独立PRをglobal blockしない。large-base reconciliationはcomplete fail-closed comparisonでFast Laneに残し、変更量だけを理由にDeep Repairへ落とさない。
 
 ## 実装
 
 | 構成 | 実装 | 責任 |
 | --- | --- | --- |
-| Fast Lane | `scripts/integration-fast-lane.mjs` | current Ready PR再取得、exact-head gate、expected-head merge、真のconflictの即時Deep Repair handoff |
+| Fast Lane | `scripts/integration-fast-lane.mjs` | current Ready PR再取得、complete base comparison、exact-head gate、expected-head merge、真のconflictの即時Deep Repair handoff |
 | Fast Repair / Stack reconciliation | `scripts/integration-repair-fast.mjs` の `reconcileStackFast` | current stacked Ready PRをbounded再取得し、Depends-On・review・hold・thread・head・developを再確認して元PR branchを安全にmerge-forward |
 | Repair workflow | `.github/workflows/integration-rescue.yml` | compatibility file名。Fast Repair、最大4並列exact-head fast validation、成功headごとの即時Fast Lane wake、非blocking browser smoke |
 | Trusted stack evidence | `scripts/integration-stack-fast-evidence.mjs` | trusted `deploy.yml/develop/workflow_dispatch` run、exact artifact、成功jobを再検証 |
-| Immediate Deep Repair | `scripts/integration-deep-repair-handoff.mjs`, `docs/INTEGRATION_DEEP_REPAIR.md` | exact-head conflict/large-baseをmachine-readable Issue + `integration/deep-repair` statusへ即時handoff |
+| Immediate Deep Repair | `scripts/integration-deep-repair-handoff.mjs`, `docs/INTEGRATION_DEEP_REPAIR.md` | exact-head true conflictをmachine-readable Issue + `integration/deep-repair` statusへ即時handoff |
 | Deep repair compatibility | `scripts/integration-rescue-*`, `scripts/integration-quarantine-signal.mjs` | 旧stateの移行・診断・fallback。通常Fast Repair/Deep Repair検出の待ち条件ではない |
 | PULSE | `ops-board/rescue.mjs` 等 | 観測のみ。merge/Repair権限を持たない |
 
@@ -116,6 +116,7 @@ PULSEが旧stateを表示しても、それは観測・移行情報であり制�
 - 正常Ready PRは旧Rescue stateを一度も通らずmergeできる
 - stacked PRは依存merge後、1回のtrusted Repair runでmerge-forward → exact-head validation → Fast Lane wakeまで進む
 - 各repaired headは他worker完了を待たずFast Laneへ戻る
+- large-baseはcomplete comparisonでFast Laneに残り、サイズだけでDeep Repairへ落ちない
 - 真のconflictは同じFast Lane passでDeep Repair Issue/statusへhandoffされる
 - 同じexact headでDeep Repair Issueを重複生成しない
 - Deep Repair/Browser/DEV repair中でも独立eligible PRはmergeできる
