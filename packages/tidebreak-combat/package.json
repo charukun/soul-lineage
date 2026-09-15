@@ -6,5 +6,10 @@
   "exports": {
     ".": "./index.js"
   },
-  "dependencies": {}
+  "scripts": {
+    "test": "node --test ./test/*.test.mjs"
+  },
+  "dependencies": {
+    "@soul/game-data": "0.1.0"
+  }
 }
