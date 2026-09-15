@@ -1,102 +1,6 @@
 {
   "activity": [
     {
-      "action": "developの公開・focused browser gate成功を確認",
-      "at": "2026-09-14T09:56:25.873Z",
-      "id": "pr-227:DEV:1789379785873:584",
-      "pr": 227,
-      "type": "DEV",
-      "workerId": null
-    },
-    {
-      "action": "Live Actions worker heartbeat observed",
-      "at": "2026-09-14T09:56:48.135Z",
-      "id": "wave-34830363323-1-pr-234-a1:WORKER_HEARTBEAT:1789379808135:585",
-      "pr": 234,
-      "type": "WORKER_HEARTBEAT",
-      "workerId": "34830363323/pr-234/a1"
-    },
-    {
-      "action": "通常Integrationのexact-head checks・review・baseline再評価待ち",
-      "at": "2026-09-14T09:56:50.994Z",
-      "id": "wave-34830363323-1-pr-234-a1:RETURNED_TO_INTEGRATION:1789379810994:586",
-      "pr": 234,
-      "type": "RETURNED_TO_INTEGRATION",
-      "workerId": "34830363323/pr-234/a1"
-    },
-    {
-      "action": "Integrationへ再評価を依頼済み。Rescue返却PRを優先して現在headの通常gateを確認",
-      "at": "2026-09-14T09:56:52.769Z",
-      "id": "wave-34830363323-1-pr-234-a1:CHECKING:1789379812769:588",
-      "pr": 234,
-      "type": "CHECKING",
-      "workerId": "34830363323/pr-234/a1"
-    },
-    {
-      "action": "Normal Integration merged this PR into develop",
-      "at": "2026-09-14T09:59:26.128Z",
-      "id": "wave-34739929914-1-pr-31-a1:MERGED:1789379966128:592",
-      "pr": 31,
-      "type": "MERGED",
-      "workerId": "34739929914/pr-31/a1"
-    },
-    {
-      "action": "Detected DEVELOP_ADVANCED",
-      "at": "2026-09-14T09:59:26.128Z",
-      "id": "pr-231:DETECTED:1789379966128:592",
-      "pr": 231,
-      "type": "DETECTED",
-      "workerId": null
-    },
-    {
-      "action": "Waiting for #234 to merge into develop",
-      "at": "2026-09-14T09:59:26.128Z",
-      "id": "pr-231:BLOCKED_BY_RESCUE:1789379966128:592",
-      "pr": 231,
-      "type": "BLOCKED_BY_RESCUE",
-      "workerId": null
-    },
-    {
-      "action": "INTEGRATION_RETURN_STALLED",
-      "at": "2026-09-14T10:02:38.468Z",
-      "id": "wave-34830363323-1-pr-234-a1:FAILED_RETRYABLE:1789380158468:594",
-      "pr": 234,
-      "type": "FAILED_RETRYABLE",
-      "workerId": "34830363323/pr-234/a1"
-    },
-    {
-      "action": "Eligible for next Wave",
-      "at": "2026-09-14T10:02:38.468Z",
-      "id": "pr-231:QUEUED:1789380158468:594",
-      "pr": 231,
-      "type": "QUEUED",
-      "workerId": null
-    },
-    {
-      "action": "Isolated Actions Worker reserved; preparing PR analysis",
-      "at": "2026-09-14T10:02:38.468Z",
-      "id": "wave-34831092861-1-pr-231-a1:CLAIMED:1789380158468:594",
-      "pr": 231,
-      "type": "CLAIMED",
-      "workerId": "34831092861/pr-231/a1"
-    },
-    {
-      "action": "PRの目的・developの契約・関連テストを確認中",
-      "at": "2026-09-14T10:03:26.777Z",
-      "id": "wave-34831092861-1-pr-231-a1:ANALYZING:1789380206777:595",
-      "pr": 231,
-      "type": "ANALYZING",
-      "workerId": "34831092861/pr-231/a1"
-    },
-    {
-      "action": "FAILED_MANUAL:RELATED_CODE_RECONCILIATION",
-      "at": "2026-09-14T10:03:29.329Z",
-      "id": "wave-34831092861-1-pr-231-a1:FAILED_MANUAL:1789380209329:596",
-      "pr": 231,
-      "type": "FAILED_MANUAL",
-      "workerId": "34831092861/pr-231/a1"
-    },
-    {
       "action": "Eligible for next Wave",
       "at": "2026-09-14T10:12:09.399Z",
       "id": "wave-34830363323-1-pr-234-a1:QUEUED:1789380729399:599",
@@ -3194,6 +3098,14 @@
       "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
       "type": "WORK_REPAIR_CLAIMED",
       "action": "work/866e55ef0f5e/20260915T0933Z-pr197: semantic repair 1/2; baseline resume 2/8"
+    },
+    {
+      "id": "wave-34837832648-1-pr-197-a1:WORK_REPAIR_BASELINE_ADVANCED:1789466610336:1223",
+      "at": "2026-09-15T10:03:30.336Z",
+      "pr": 197,
+      "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
+      "type": "WORK_REPAIR_BASELINE_ADVANCED",
+      "action": "attempt 1/2 preserved; baseline churn 3/8; pushed head d01569b7; develop cdbdea44 -> 90da2b79; Coordinator head sync required"
     }
   ],
   "config": {
@@ -11643,8 +11555,8 @@
       "claimedAt": "2026-09-14T11:23:54.329Z",
       "claimedBy": "34837832648/pr-197/a1",
       "contractFingerprint": "7a6d78e17141603409300813deab12b0f530f949f60a0ea6728e73541cf2f0a3",
-      "currentAction": "既存ChatGPT Workがsemantic停止を再評価し両側の仕様を保って修復",
-      "currentStep": "RESOLVING",
+      "currentAction": "実head d01569b7をCoordinator同期後、最新developで再開 · baseline churn 3/8",
+      "currentStep": "FAILED_MANUAL",
       "dependencies": [
         192
       ],
@@ -11768,17 +11680,17 @@
       },
       "state": "FAILED_MANUAL",
       "title": "feat(characters): rebuild Shino Reference v2 as DCC model",
-      "updatedAt": "2026-09-15T10:00:40.636Z",
+      "updatedAt": "2026-09-15T10:03:30.336Z",
       "waitingReason": null,
       "wave": "wave-34837832648-1",
       "workRepairAttempts": 1,
       "workRepair": {
         "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
-        "status": "working",
+        "status": "baseline-advanced",
         "attempt": 1,
         "maxAttempts": 2,
         "repairKind": "semantic",
-        "baselineChurns": 2,
+        "baselineChurns": 3,
         "maxBaselineChurns": 8,
         "resumedFromBaselineAdvance": true,
         "sourceHead": "5bf10fe7f34017f0357c19dc655365360c0cdbe6",
@@ -11959,9 +11871,11 @@
           },
           "localCommit": "ff9502060af51cac5116707633533b92ca31c73e"
         },
-        "pushPreparedAt": "2026-09-15T09:58:52.173Z"
+        "pushPreparedAt": "2026-09-15T09:58:52.173Z",
+        "reason": "WORK_REPAIR_BASELINE_ADVANCED: Latest develop advanced from cdbdea445bb44fdc5911d3523860606d0d5d5c3a to 90da2b79a2219bfb9bee0699886cf6cf596cf782 immediately after verified force=false push; actual PR head d01569b7092ec2f6dc23cc137376df7185e57794 requires Coordinator head sync before resume",
+        "finishedAt": "2026-09-15T10:03:30.336Z"
       },
-      "workRepairBaselineChurns": 2
+      "workRepairBaselineChurns": 3
     },
     "198": {
       "attempt": 1,
@@ -19206,9 +19120,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1223,
+  "revision": 1224,
   "schema": 1,
-  "updatedAt": "2026-09-15T10:00:40.636Z",
+  "updatedAt": "2026-09-15T10:03:30.336Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
