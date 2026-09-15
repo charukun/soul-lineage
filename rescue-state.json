@@ -3106,6 +3106,38 @@
       "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
       "type": "WORK_REPAIR_BASELINE_ADVANCED",
       "action": "attempt 1/2 preserved; baseline churn 3/8; pushed head d01569b7; develop cdbdea44 -> 90da2b79; Coordinator head sync required"
+    },
+    {
+      "id": "pr-197:WORK_REPAIR_BLOCKED:1789466710655:1224:197",
+      "at": "2026-09-15T10:05:10.655Z",
+      "pr": 197,
+      "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
+      "type": "WORK_REPAIR_BLOCKED",
+      "action": "exact-head mismatch: state 5bf10fe7 vs actual d01569b7 after verified push; develop advanced to 90da2b79; browser smoke failed in run 34955661107; Coordinator sync then latest-baseline restage"
+    },
+    {
+      "id": "pr-157:WORK_REPAIR_BLOCKED:1789466710655:1224:157",
+      "at": "2026-09-15T10:05:10.655Z",
+      "pr": 157,
+      "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
+      "type": "WORK_REPAIR_BLOCKED",
+      "action": "exact-head mismatch: state 28b994d4 vs actual b5111969; Coordinator must sync before claim"
+    },
+    {
+      "id": "pr-260:WORK_REPAIR_BLOCKED:1789466710655:1224:260",
+      "at": "2026-09-15T10:05:10.655Z",
+      "pr": 260,
+      "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
+      "type": "WORK_REPAIR_BLOCKED",
+      "action": "RED scope remains serialized behind PR #197 post-push exact-head/browser handoff; do not claim until #197 ownership is normalized"
+    },
+    {
+      "id": "coordinator:WORK_REPAIR_CYCLE_SUMMARY:1789466710655:1224",
+      "at": "2026-09-15T10:05:10.655Z",
+      "pr": null,
+      "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
+      "type": "WORK_REPAIR_CYCLE_SUMMARY",
+      "action": "eligible_before=3; claimable_before=2; claimed=1; returned=0; human_required=0; eligible_after=3"
     }
   ],
   "config": {
@@ -11555,7 +11587,7 @@
       "claimedAt": "2026-09-14T11:23:54.329Z",
       "claimedBy": "34837832648/pr-197/a1",
       "contractFingerprint": "7a6d78e17141603409300813deab12b0f530f949f60a0ea6728e73541cf2f0a3",
-      "currentAction": "実head d01569b7をCoordinator同期後、最新developで再開 · baseline churn 3/8",
+      "currentAction": "実head d01569b7とstate head 5bf10fe7の同期待ち。fast/build成功、Affected browser smoke失敗。最新develop 90da2b79で再stage",
       "currentStep": "FAILED_MANUAL",
       "dependencies": [
         192
@@ -11680,7 +11712,7 @@
       },
       "state": "FAILED_MANUAL",
       "title": "feat(characters): rebuild Shino Reference v2 as DCC model",
-      "updatedAt": "2026-09-15T10:03:30.336Z",
+      "updatedAt": "2026-09-15T10:05:10.655Z",
       "waitingReason": null,
       "wave": "wave-34837832648-1",
       "workRepairAttempts": 1,
@@ -11873,7 +11905,18 @@
         },
         "pushPreparedAt": "2026-09-15T09:58:52.173Z",
         "reason": "WORK_REPAIR_BASELINE_ADVANCED: Latest develop advanced from cdbdea445bb44fdc5911d3523860606d0d5d5c3a to 90da2b79a2219bfb9bee0699886cf6cf596cf782 immediately after verified force=false push; actual PR head d01569b7092ec2f6dc23cc137376df7185e57794 requires Coordinator head sync before resume",
-        "finishedAt": "2026-09-15T10:03:30.336Z"
+        "finishedAt": "2026-09-15T10:03:30.336Z",
+        "postPushObservation": {
+          "actualHead": "d01569b7092ec2f6dc23cc137376df7185e57794",
+          "develop": "90da2b79a2219bfb9bee0699886cf6cf596cf782",
+          "ciRunId": 34955661107,
+          "ciUrl": "https://github.com/charukun/soul-lineage/actions/runs/34955661107",
+          "fast": "passed",
+          "builds": "passed",
+          "browserSmoke": "failed",
+          "browserRepairDispatch": "noop-stale-pr-result",
+          "nextRoute": "Coordinator exact-head sync, then resume on latest develop; Browser Repair must own any reproducible browser failure"
+        }
       },
       "workRepairBaselineChurns": 3
     },
@@ -19120,9 +19163,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1224,
+  "revision": 1225,
   "schema": 1,
-  "updatedAt": "2026-09-15T10:03:30.336Z",
+  "updatedAt": "2026-09-15T10:05:10.655Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
