@@ -13,9 +13,16 @@ const progress = document.querySelector('#boot-progress');
 try {
   progress.value = 1;
   await import('./asset-visuals.js');
+  await import('./authored-visual-lod.js');
+  await import('./stylized-visual-target.js');
+  await import('./adaptive-visual-performance.js');
+  await import('./runtime-resilience.js');
+  await import('./shared-world-scale.js');
   const game = await import('./web/main.js');
   progress.value = 2;
   await game.boot();
+  const {installFirstHuntDirector} = await import('./web/first-hunt-director.js');
+  installFirstHuntDirector();
   progress.value = 3;
 } catch (error) {
   console.error(error);

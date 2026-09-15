@@ -3,6 +3,7 @@ import { World, defs, FURNITURE, isPlayer, isGuard } from './game/core.js';
 import { Simulation } from './game/simulation.js';
 import { View } from './web/view.js';
 import { threeWorlds150 } from '@soul/audio';
+import {canEditRoom,isFurnitureUnlocked} from './game/housing-access.js';
 
 const EFFECT_LABELS={rest:'休息',comfort:'快適',meal:'食事',skill:'技能',social:'交流'};
 const FURNITURE_RULES={
@@ -31,31 +32,27 @@ function installFurnitureRules(){
 }
 installFurnitureRules();
 
-export function furnitureUnlocked(state,kind){
- const d=defs[kind];
- return !!d?.furniture&&(d.unlock||[]).every(key=>state.known.includes(key));
-}
+export const furnitureUnlocked=isFurnitureUnlocked;
 export function furnitureEffectText(kind){
  const e=defs[kind]?.effects||{};
  return Object.entries(e).map(([key,value])=>`${EFFECT_LABELS[key]||key}+${value}`).join(' · ');
 }
-function clanRoom(world,roomId){const host=world.object(roomId);return !!host&&!!defs[host.kind]?.clanOnly;}
-function roomDenied(world,roomId){return roomId&&!clanRoom(world,roomId);}
+function roomDenied(world,roomId){return roomId&&!canEditRoom(world,roomId);}
 
 const originalAdd=World.prototype.add;
 World.prototype.add=function(kind,x,z,rot=0,roomId=null,options={}){
- if(roomDenied(this,roomId))return{error:'NPCの住まいは住人自身がハウジングします'};
+ if(roomDenied(this,roomId))return{error:'この場所は編集できません'};
  if(roomId&&!furnitureUnlocked(this.state,kind))return{error:'まだ作れない家具です。素材との出会いを待ちましょう'};
  return originalAdd.call(this,kind,x,z,rot,roomId,options);
 };
 const originalMove=World.prototype.move;
 World.prototype.move=function(id,x,z,rot,roomId=null){
- if(roomDenied(this,roomId))return{error:'NPCの住まいは住人自身が整えます'};
+ if(roomDenied(this,roomId))return{error:'この場所は編集できません'};
  return originalMove.call(this,id,x,z,rot,roomId);
 };
 const originalRemove=World.prototype.remove;
 World.prototype.remove=function(id,roomId=null){
- if(roomDenied(this,roomId))return{error:'NPCの家具は住人自身の持ち物です'};
+ if(roomDenied(this,roomId))return{error:'この場所は編集できません'};
  return originalRemove.call(this,id,roomId);
 };
 World.prototype.roomEffects=function(homeId,ownerId=null){
@@ -138,37 +135,6 @@ View.prototype.syncActor=function(p,time,monster=false){
  if(!monster&&isGuard(p))guardArmor(node);else if(node&&!node.userData.muraGuardArmor)node.scale.setScalar(1);
  return result;
 };
-
-let lastView=null;
-function ensureModeUi(){
- if(document.getElementById('focusMode'))return;
- document.body.insertAdjacentHTML('beforeend',`<aside id="focusMode" class="muraMode glass" hidden><span class="muraModeDot"></span><span><b>住人に注目中</b><small id="focusModeName"></small></span><button id="focusStop" aria-label="注目をやめる">×</button></aside><aside id="housingMode" class="muraMode glass" hidden><span class="muraModeDot"></span><span><b id="housingModeTitle"></b><small id="housingModeText"></small></span></aside>`);
- document.getElementById('focusStop').onclick=()=>{if(lastView){lastView.followId=null;lastView.lastInteraction=performance.now();}};
-}
-function refreshCatalog(view){
- const roomId=view.roomId,host=roomId?view.world.object(roomId):null,editable=!!host&&!!defs[host.kind]?.clanOnly;
- for(const card of document.querySelectorAll('#catalog .card')){
-  const kind=card.dataset.kind;if(!kind||!defs[kind]?.furniture)continue;
-  const unlocked=furnitureUnlocked(view.world.state,kind);
-  card.hidden=!!roomId&&(!editable||!unlocked);
-  if(editable&&unlocked){const small=card.querySelector('small');if(small)small.textContent=furnitureEffectText(kind)||defs[kind].trait;card.title=defs[kind].trait||'';}
- }
-}
-function refreshModes(view){
- ensureModeUi();lastView=view;
- const focus=document.getElementById('focusMode'),name=document.getElementById('focusModeName');
- const p=view.followId?view.world.people.find(person=>person.id===view.followId):null;
- focus.hidden=!p;if(p)name.textContent=p.name||'住人';
- const housing=document.getElementById('housingMode'),build=document.getElementById('build'),host=view.roomId?view.world.object(view.roomId):null;
- if(!host){housing.hidden=true;if(build)build.hidden=false;return;}
- housing.hidden=false;const editable=!!defs[host.kind]?.clanOnly;
- document.getElementById('housingModeTitle').textContent=editable?'一族の住まい':'住人の住まい';
- document.getElementById('housingModeText').textContent=editable?'ハウジング可能':'見学のみ · 住人が自分で整えます';
- housing.classList.toggle('readonly',!editable);if(build)build.hidden=!editable;
- refreshCatalog(view);
-}
-const originalRender=View.prototype.render;
-View.prototype.render=function(time,dt){const result=originalRender.call(this,time,dt);refreshModes(this);return result;};
 
 // Runtime contract for the shared soundtrack. Playback/UI are provided by the
 // repository-wide shared music library installed by the village bootstrap.

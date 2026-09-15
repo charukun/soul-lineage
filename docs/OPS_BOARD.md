@@ -24,9 +24,11 @@ Cloudflare Cron Trigger が5分ごとに Durable Object のスナップショッ
 
 UI は1分ごとに保存済みスナップショットを再取得します。これは GitHub API の再同期ではないため、閲覧数で GitHub API 呼び出しが増えません。
 
-## Integration 滞留
+## Integration の状態
 
-Open develop PR の CI と Integration workflow を照合し、Ready + 必要 CI 成功後も10分以上 open の PR を赤警告にします。状態は Ready for review待ち / Integration中 / CI失敗 / merge待ち / deploy待ち / Failed に分類します。既存 Integration の merge/retry ロジックを変更せず、Board は監視専用です。
+Open develop PR はCI経過時間だけでは判定せず、`docs/INTEGRATION_RECONCILIATION.md` の current-state planを正本として `writer / validating / train / repair / active / blocked / deferred` を表示します。CI失敗、DEV公開失敗、branch divergenceなど実際の異常は従来どおり要対応ですが、CI成功後に一定時間openであることだけを理由に赤い「Integration滞留」へ分類しません。
+
+Reconciliation snapshotが未取得、developが進んだ、またはPR headがplanと一致しない場合は古い判定へ戻さず「現在状態を再確認中」とします。PULSEは監視専用であり、既存Integrationのmerge/retry、安全gateを変更しません。
 
 ## Secrets
 
@@ -46,7 +48,7 @@ Cloudflare deploy は既存 Repository Secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFL
 
 ## 名称と3環境
 
-ゲーム名は各workspaceのdisplayNameを正本とし、古い公開manifestの名前で上書きしません。各ゲームに開発・検証・本番を常に表示し、未登録は「未公開」、情報の重複や不正なパスは「確認中」としてリンクを有効化しません。環境全体が混在SHAでも各アプリの実公開SHAを表示します。検証版は固定リリースであり、DEVの次の更新で自動上書きしません。詳しくは GAME_ENVIRONMENTS.md を参照してください。Worker名rinne-ops、URL、workflow名は互換性のため維持します。
+ゲーム名は各workspaceのdisplayNameを正本とし、古い公開manifestの名前で上書きしません。各ゲームに開発・検証・本番を常に表示し、未登録は「未公開」、情報の重複や不正なパスは「確認中」としてリンクを有効化しません。環境全体が混在SHAでも各アプリの実公開SHAを表示します。検証版は固定リリースであり、DEVの次の更新で自動上書きしません。詳しくは GAME_ENVIRONMENTS.md を参照してください。
 
 ## 公開後検証と復旧
 
@@ -64,3 +66,29 @@ Rescueの初期表示は、スマートフォンで一目で状況を把握で�
 - 実行中PRはサマリ直下にNOWとして最大3件表示し、PR番号と現在工程を読み取れるようにする。
 - 状態ラベル、最終更新、KPI、NOW、詳細を見るの順序を維持し、320px幅でも横スクロールさせない。
 - 詳細の既存disclosure、Rescue stateの意味、Integration gate、main / Productionの挙動は変更しない。
+
+## Integration Flow の平易表示（2026-09-14）
+
+Integration Flow の初期表示は内部用語を避け、「何件たまっているか」「どこで時間がかかっているか」「ユーザーの操作が必要か」を日本語で先に示します。BURN_DOWN、Demand、Quarantine、p95、Virtual Train、Auto tuning などの技術情報は削除せず、詳細表示へ退避します。
+
+- `BURN_DOWN` は「滞留を解消中」、`BUSY` は「やや混雑」、`NORMAL` は「順調」と表示する。
+- `Draft→Ready` は「実装開始 → 統合待ち」、`Ready→Merge` は「統合待ち → develop反映」、`Merge→DEV` は「develop反映 → DEV公開」と言い換える。
+- p50 は「通常」、p95 は「遅いケース」、samples は「実績件数」として表示し、統計用語を初期画面から外す。
+- ボトルネックに応じて「主な遅れは実装側 / Integration / DEV公開」の短い説明を出す。
+- 人の判断が必要な案件が0件なら「いまはあなたの操作は不要」と明示し、必要な場合だけ件数を警告する。
+- 技術的な処理速度、Virtual Train、自動調整、failure knowledge は折りたたみの「詳しい処理情報」に残す。
+- 既存の状態計算、Rescue/Integrationの動作、品質gate、main / Productionは変更しない。
+
+## Reconciliation Control Planeとの整合（2026-09-15）
+
+PULSEのIntegration状態は `docs/INTEGRATION_RECONCILIATION.md` のcontrol planeを正本として説明します。旧来の「CI成功後10分openなら滞留」という単独判定は廃止し、Reconcilerが生成するcurrent-state分類と矛盾する警告を出しません。
+
+- Ready PRの主分類は `writer / validating / train / repair / active / blocked / deferred` とし、同じPRを別の旧状態機械で二重判定しない。
+- `blocked` は依存・hold・review・semantic conflictなどの理由を表示し、単なる「Integration滞留」へ潰さない。
+- `validating` はexact-head CI/browser証拠待ちとして扱い、経過時間だけで失敗扱いしない。
+- `repair / active` はRescue executorの担当として表示し、第二のIntegration queueとして扱わない。
+- `writer` はdevelop writer候補、`train` はcombined validation候補であり、いずれもmerge済みを意味しない。
+- `deferred` はbounded evaluationの次回評価待ちであり、異常とは限らない。
+- Reconciliation snapshotが未取得またはdevelop/head不一致でfreshnessを証明できない場合は、旧判定へ断定的にfallbackせず「状態未確定」として表示する。
+- 通知チャネルの未設定・送信失敗は delivery observability の問題として別表示し、`integration/develop=success` やReconciliationの成功を上書きして「Integration失敗」とは表示しない。
+- PULSE自身の公開失敗、current CI/browser gate失敗、develop publication失敗は引き続き要対応として扱う。品質gateは弱めない。

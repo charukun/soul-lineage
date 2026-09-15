@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { CHARACTER_REFERENCE_MODELS } from '../src/reference-models.js';
 import {
   CHARACTER_MODEL_DISTRIBUTION_TARGETS,
   CHARACTER_MODEL_REQUIRED_GATES,
@@ -10,6 +11,20 @@ import {
   createCharacterModelProvider,
   reviewCharacterModelCandidate
 } from '../src/model-builder.js';
+
+test('all Workshop references export build requests without promoting their current production stage', () => {
+  for (const [id, reference] of Object.entries(CHARACTER_REFERENCE_MODELS)) {
+    const before = JSON.stringify(reference);
+    const request = createCharacterModelBuildRequest(id);
+    assert.equal(request.reference.id, id);
+    assert.equal(request.reference.referencePath, reference.referencePath);
+    assert.deepEqual(request.reference.profile, reference.profile);
+    assert.equal(request.reference.fallbackAssetId, reference.masterId);
+    assert.equal(JSON.stringify(reference), before);
+    assert.equal(reference.productionStage, reference.kind === 'dcc-character-model' ? 'PRIMARY' : 'BLOCKOUT');
+    assert.equal(reference.productionReady, false);
+  }
+});
 
 test('character reference becomes a provider-neutral production request', () => {
   const request = createCharacterModelBuildRequest('shino.reference.v2');
