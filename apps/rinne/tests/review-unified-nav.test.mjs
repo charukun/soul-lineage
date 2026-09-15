@@ -19,6 +19,10 @@ test('Visual Review Lab navigation stays task-oriented and motion selection is c
   assert.doesNotMatch(nav, /motion-library-stage|motion-library\.html\?embed=1/);
   assert.match(css, /grid-template-columns:repeat\(4/);
   assert.match(css, /review-controls-dock \.notebook-head\{display:none!important\}/);
+  assert.match(css, /review-shell #source-label\{display:none!important\}/);
+  assert.match(css, /review-shell #review-status\{display:none!important/);
+  assert.match(css, /review-status\[data-kind=error\]\{display:inline-flex!important\}/);
+  assert.match(css, /review-shell \.hud\{[^}]*bottom:78px!important/);
   assert.match(notebook, /id = 'picker-search'/);
   assert.match(notebook, /placeholder = 'モーションを検索'/);
   assert.match(notebook, /option\.dataset\.group/);
