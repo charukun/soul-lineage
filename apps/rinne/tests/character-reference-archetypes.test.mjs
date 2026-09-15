@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { access, readFile } from 'node:fs/promises';
-import { CHARACTER_REFERENCE_ARCHETYPES } from '../../../packages/characters/src/index.js';
+import { CHARACTER_REFERENCE_ARCHETYPES } from '@soul/characters';
 import { createReviewCohort, reviewSettings } from '../src/character-review-state.js';
 import { qualityIdentity, qualityReport, qualitySettings } from '../src/character-quality-state.js';
 
