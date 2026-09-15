@@ -6,9 +6,9 @@
 .camera-position-trigger{
   position:absolute;inset:0;width:44px;height:44px;padding:0;border:0;background:radial-gradient(circle,rgba(39,38,31,.88) 0 31%,rgba(18,22,19,.74) 33% 41%,transparent 43%);color:#d9c083;display:grid;place-items:center;opacity:.78;transition:opacity .16s ease,transform .16s ease;
 }
-.camera-position-trigger svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.55;stroke-linejoin:round}
+.camera-position-trigger svg{width:19px;height:17px;fill:none;stroke:currentColor;stroke-width:1.55;stroke-linejoin:round;stroke-linecap:round}
 .camera-position-trigger:focus-visible,.camera-position-trigger:active,.camera-position-control.is-open .camera-position-trigger{opacity:1;transform:scale(1.04)}
-.camera-position-trigger:disabled{opacity:.28;transform:none}
+.camera-position-trigger:disabled{opacity:.62;transform:none}
 .camera-position-panel{
   position:absolute;left:13px;top:38px;width:18px;height:94px;background:transparent;border:0;box-shadow:none;clip-path:none;pointer-events:auto;
 }
