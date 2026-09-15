@@ -168,7 +168,7 @@ canvas.addEventListener('pointerdown',onPointerDown,{passive:true});
 canvas.addEventListener('pointermove',onPointerMove,{passive:true});
 canvas.addEventListener('pointerup',event=>finishPointer(event),{passive:true});
 canvas.addEventListener('pointercancel',event=>finishPointer(event,true),{passive:true});
-canvas.addEventListener('lostpointercapture',event=>finishPointer(event,true),{passive:true});
+canvas.addEventListener('lostpointercapture',event=>queueMicrotask(()=>tracked.delete(event.pointerId)),{passive:true});
 
 undo.onclick=()=>{
  const snapshot=lastCommit;if(!snapshot)return;
