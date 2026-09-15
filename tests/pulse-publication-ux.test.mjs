@@ -140,6 +140,7 @@ test('application UI uses concrete progress language instead of the ambiguous ne
   assert.doesNotMatch(source, /次の更新/);
   assert.match(source, /確認できる目安/);
   assert.match(source, /現在見えている版/);
-  assert.match(source, /反映予定の版/);
+  assert.match(source, /DEV全体の反映予定SHA/);
   assert.match(source, /いま公開中の版はそのまま開けます/);
+  assert.match(source, /このアプリに変更がなければ内容は変わりません/);
 });
