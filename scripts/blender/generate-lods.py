@@ -140,9 +140,14 @@ def audit_summary(sources):
     materials = set()
     for source in sources:
         materials.update(material_names(source))
+    eligible = [source for source in sources if triangles(source) >= 64]
+    skipped = [source for source in sources if triangles(source) < 64]
     return {
         'sourceObjects': len(sources),
         'sourceTriangles': sum(triangles(source) for source in sources),
+        'lodEligibleObjects': len(eligible),
+        'lodSkippedObjects': len(skipped),
+        'lodSkippedTriangles': sum(triangles(source) for source in skipped),
         'materialCount': len(materials),
         'estimatedDrawCalls': sum(max(1, len(source.material_slots)) for source in sources),
         'uvLayerCount': sum(len(source.data.uv_layers) for source in sources),
