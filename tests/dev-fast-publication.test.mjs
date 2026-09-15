@@ -26,11 +26,12 @@ test('DEV delivery cannot fake browser evidence but may complete an already-gree
   assert.match(recorder, /noop-dev-delivery-without-ready-repair/);
 });
 
-test('late repair PR browser success reconnects to the develop repair ticket after merge', () => {
+test('post-merge repair browser results stay on the linked develop repair generation', () => {
   assert.match(recorder, /late-merged-repair-success/);
   assert.match(recorder, /ready-for-integration/);
   assert.match(recorder, /currentDevelopContainingMergedPr/);
   assert.match(recorder, /close when the repaired head is confirmed in published DEV/);
+  assert.match(recorder, /repairIssueNumber \|\|= linkedIssueNumber/);
 });
 
 test('DEV_DEPLOYED copy and final status do not claim browser certification', () => {
@@ -38,12 +39,15 @@ test('DEV_DEPLOYED copy and final status do not claim browser certification', ()
   assert.match(notify, /Browser diagnostics are asynchronous/);
   assert.match(notify, /DEV published; HTTP\/source verified; browser diagnostics are asynchronous/);
   assert.doesNotMatch(notify, /focused browser passed/);
+  assert.ok(notify.indexOf('recordDevelopDeliveryStatus({') < notify.indexOf('channel = await notifyStage('),
+    'GitHub delivery status must be recorded before advisory smartphone notification');
 });
 
 test('the focused DEV contract keeps publication and repair as separate state machines', () => {
   assert.match(contract, /Browser\/WebGL\/gameplay scenarios are not a prerequisite for DEV visibility/);
   assert.match(contract, /Normal DEV publication does not launch a second all-app browser sweep/);
   assert.match(contract, /repair PR's browser verification is green/);
+  assert.match(contract, /PULSE publication health follows the exact public DEV snapshot/);
   assert.match(contract, /configured finite attempt limit/);
   assert.match(contract, /Production remains unchanged/);
 });
