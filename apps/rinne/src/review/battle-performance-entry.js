@@ -19,12 +19,14 @@ function installAutoBattlePerformanceEntry() {
       }
       return;
     }
-    battleTab.click();
+    // The unified 演舞 picker first activates the performance tab. That queues
+    // cleanup for the previous battle view. Open Tidebreak in the next microtask
+    // so that stale cleanup runs first and cannot immediately close the new battle.
+    queueMicrotask(() => battleTab.click());
   });
   grid.append(button);
 }
 
-// Add the entry after performance-shell has bound its four choreography modes.
-// This keeps Tidebreak on the battle shell while letting the shared performance
-// picker discover it through the same data-performance-mode contract.
+// Add the entry after performance-shell has bound its choreography modes.
+// Tidebreak remains owned by the battle shell while sharing the 演舞 picker.
 queueMicrotask(installAutoBattlePerformanceEntry);
