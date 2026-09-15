@@ -16,7 +16,7 @@ const clamp = (x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 // overshooting anatomical targets. Only intentional holds have zero tangents.
 export function poseCurve(rows, t) {
   if(t<=rows[0][0])return rows[0].slice(1);
-  if(t>=rows.at(-1)[0])return rows.at(-1].slice(1);
+  if(t>=rows.at(-1)[0])return rows.at(-1).slice(1);
   let i=0;while(t>rows[i+1][0])i++;
   const a=rows[i],b=rows[i+1],h=b[0]-a[0],u=(t-a[0])/h;
   const slope=(k,j)=>{
