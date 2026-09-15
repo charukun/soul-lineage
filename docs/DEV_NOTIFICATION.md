@@ -6,6 +6,8 @@ DEV Publisher が公開・HTTP/source・focused browser verificationまで成功
 
 通知先はGitHubの既存PR購読メールを利用する。ゲーム側のpush/ntfy、独自SMTP、外部メール配信サービス、新規Task-IDや通知queueは使わない。GitHub側で同一SHAのreceipt markerを使い重複コメントを防ぐ。
 
+このコメントはPR Conversationへの書き込みなので、DEV Publisherの最終結果jobには `pull-requests: write` を明示する。`pull-requests: read` のままでは `POST /issues/{pr}/comments` が403になり、DEV公開成功でもメール通知だけ欠落するため、権限契約テストで固定する。
+
 PRを特定できないpublish-only実行では、誤った修正内容をメールしない。GitHubのDEV delivery statusだけを残す。
 
 このメール通知はadvisoryであり、Integration gate、DEV公開成否、browser repair、main / Production品質判定を変更しない。
