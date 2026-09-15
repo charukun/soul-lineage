@@ -54,7 +54,7 @@ function automate(now=performance.now()){
   }
   if(snap.paused)return;
 
-  if(now-lastSenseAt>=SENSE_REFRESH_MS){
+  if(!snap.player?.autoRoam&&now-lastSenseAt>=SENSE_REFRESH_MS){
     const scent=byId('scent');
     if(scent&&!scent.disabled){
       scent.click();
@@ -72,10 +72,8 @@ function automate(now=performance.now()){
 }
 
 export function installMovementOnlyPlay(){
-  for(const id of ['return']){
-    const el=byId(id);
-    if(el){el.tabIndex=-1;el.setAttribute('aria-hidden','true');}
-  }
+  const returnButton=byId('return');
+  if(returnButton){returnButton.tabIndex=-1;returnButton.setAttribute('aria-hidden','true');}
   compactReturnHint();
   const returnHint=byId('return-hint');
   if(returnHint)new MutationObserver(compactReturnHint).observe(returnHint,{childList:true,characterData:true,subtree:true});
