@@ -2,8 +2,10 @@ import { platformContractVersion } from '@soul/platform';
 export { createVillageAuthority, advanceVillageAuthority, VILLAGE_PHASE } from './village-authority.js';
 export { createVillageCheckpoint, validateVillageCheckpoint } from './village-checkpoint.js';
 export { createPeerHostedWorldNode } from './peer-hosted-world.js';
+export { createCheckpointSyncedWorldNode } from './checkpoint-sync-node.js';
 export { createPeerMeshCoordinator } from './peer-mesh.js';
 export { HOST_CAPABILITY_VERSION, normalizeHostCapability, rankHostCandidates, selectHostCandidate } from './host-capability.js';
+export { checkpointDigest, createCheckpointDelta, applyCheckpointDelta, createCheckpointJournal, rebaseCheckpointJournal, appendCheckpoint, createCatchupPayload, applyCatchupPayload, checkpointJournalDiagnostics } from './checkpoint-sync.js';
 // HTTP transport is injected. No browser, console SDK, region or account is hardcoded.
 export function createApiClient(platform, endpoint) {
   if (platform.contractVersion !== platformContractVersion) throw new Error('Incompatible platform');

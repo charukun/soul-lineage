@@ -1,6 +1,6 @@
 import {acceptHostOffer} from './peer.js';
 import {createPeerMeshCoordinator} from './peer-mesh.js';
-import {createPeerHostedWorldNode} from './peer-hosted-world.js';
+import {createCheckpointSyncedWorldNode} from './checkpoint-sync-node.js';
 import {createPresenceTransport} from './transport-lod.js';
 
 const CLOSED=new Set(['closed','failed','error']);
@@ -33,7 +33,7 @@ export async function connectPeerHostedWorld({
   function phase(info){onPhase(info);syncMesh();}
   function createNode(message){
     if(node)return node;
-    node=createPeerHostedWorldNode({selfId,worldId:message.worldId,mayorId:message.mayorId,hostEligible,now,emit,applyCheckpoint,onPhase:phase});
+    node=createCheckpointSyncedWorldNode({selfId,worldId:message.worldId,mayorId:message.mayorId,hostEligible,now,emit,applyCheckpoint,onPhase:phase});
     mesh=createPeerMeshCoordinator({selfId,RTCPeerConnection,relay:event=>{const hostId=node?.snapshot().hostId;if(hostId&&hostId!==selfId)sendTo(hostId,{type:'mesh-relay',from:selfId,...event});},onMessage:(peerId,payload,kind)=>handle(peerId,payload,kind),onState:(peerId,state)=>onState(`mesh:${state}`,{peerId})});
     node.adoptAuthority(message.authority.hostId||message.mayorId,message.authority);
     if(message.checkpoint?.checkpoint)node.receive(message.authority.hostId||message.mayorId,{type:'world-checkpoint',worldId:message.worldId,hostId:message.authority.hostId||message.mayorId,epoch:message.checkpoint.epoch,revision:message.checkpoint.revision,checkpoint:message.checkpoint.checkpoint});
