@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="./src/rebuild/app.css">
   <link rel="stylesheet" href="./src/rebuild/pop.css">
   <link rel="stylesheet" href="./src/rebuild/birth-tour.css">
+  <link rel="stylesheet" href="./src/rebuild/conversation-input.css">
   <link rel="stylesheet" href="./src/consumer-game-ui.css">
   <link rel="stylesheet" href="./src/rebuild/button-help.css">
   <link rel="stylesheet" href="./src/typography.css">
@@ -61,6 +62,13 @@
     </aside>
     <div id="dialogue" class="dialogue ornate" hidden><span id="speaker">母</span><p id="dialogue-text"></p></div>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <div id="speech-dock" class="speech-dock" hidden>
+      <div id="speech-fan" class="speech-fan" aria-label="定型文" aria-hidden="true"></div>
+      <div class="speech-controls">
+        <button id="speech-fan-toggle" class="speech-fan-toggle" type="button" aria-label="定型文を開く" aria-controls="speech-fan" aria-expanded="false"><span aria-hidden="true">言</span></button>
+        <button id="speech-mic" class="speech-mic" type="button" aria-label="マイクで発話" aria-pressed="false"></button>
+      </div>
+    </div>
     <button id="move-hint" class="move-hint" type="button" aria-label="動きかた。押すと移動操作の説明を表示します">スワイプで移動</button>
   </section>
 </main>
