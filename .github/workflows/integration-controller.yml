@@ -67,6 +67,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-diagnostics.json
         run: node scripts/integration-fast-lane.mjs
+      - name: Finalize Deep Repair issues for merged PRs
+        if: ${{ !cancelled() && steps.fast-lane.outcome == 'success' && steps.fast-lane.outputs.merged_count != '' && steps.fast-lane.outputs.merged_count != '0' }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-finalization-api.json
+        run: node scripts/integration-deep-repair-finalize.mjs .deploy-state/integration.json
       - name: Request latest DEV and PULSE publication without waiting
         if: ${{ !cancelled() && steps.fast-lane.outcome == 'success' }}
         env:
@@ -124,6 +131,8 @@ jobs:
           path: |
             .deploy-state/integration.json
             .deploy-state/integration-diagnostics.json
+            .deploy-state/deep-repair-finalization.json
+            .deploy-state/integration-finalization-api.json
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 14
