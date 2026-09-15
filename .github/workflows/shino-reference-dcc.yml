@@ -1,4 +1,4 @@
-name: Shino Reference DCC Build
+name: Arcanist Atlas DCC Carrier
 
 on:
   push:
@@ -6,166 +6,121 @@ on:
       - feat/shino-reference-v2-dcc
     paths:
       - .github/workflows/shino-reference-dcc.yml
-      - scripts/blender/build-shino-reference-v2.py
-      - scripts/blender/refine-shino-reference-v2-v8.py
-      - scripts/blender/refine-shino-reference-v2-v9.py
-      - scripts/blender/refine-shino-reference-v2-v10.py
-      - scripts/blender/normalize-shino-reference-v2-transforms.py
-      - scripts/blender/character-production-audit.py
-      - scripts/patch-vrm-humanoid.py
-      - scripts/finalize-shino-reference-v2.py
-  workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: shino-reference-v2-dcc
+  group: arcanist-atlas-dcc-carrier
   cancel-in-progress: true
 
 env:
   LIBGL_ALWAYS_SOFTWARE: "1"
+  TARGET_BRANCH: dispatch/arcanist-atlas-dcc-run
+  SOURCE_BRANCH: feat/arcanist-atlas-dcc
 
 jobs:
   build-dcc:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout feature branch
+      - name: Checkout target work branch
         uses: actions/checkout@v4
         with:
+          ref: ${{ env.TARGET_BRANCH }}
           fetch-depth: 0
 
-      - name: Reconcile latest branch head before DCC build
+      - name: Reconcile latest develop and DCC authoring source
         run: |
-          git fetch origin "${GITHUB_REF_NAME}"
-          git checkout -B "${GITHUB_REF_NAME}" "origin/${GITHUB_REF_NAME}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin develop "${SOURCE_BRANCH}" "${TARGET_BRANCH}"
+          git checkout -B "${TARGET_BRANCH}" "origin/${TARGET_BRANCH}"
+          git merge --no-edit origin/develop
+          git merge --no-edit "origin/${SOURCE_BRANCH}"
+          rm -f .github/workflows/arcanist-atlas-dcc.yml
+          rm -f .task-start/arcanist-atlas-dcc-run.md
 
       - name: Install Blender headless runtime
         run: |
           sudo apt-get update
           sudo apt-get install -y blender python3-numpy xvfb libegl1 libgl1-mesa-dri libglx-mesa0
           blender --version
-          xvfb-run -a blender --background --python-exit-code 1 --python-expr "import numpy; print('Blender numpy', numpy.__version__)"
+          xvfb-run -a blender --background --python-exit-code 1 --python-expr "import bpy; print('Blender runtime', bpy.app.version_string)"
 
       - name: Prepare audited rig input
         run: |
-          rm -rf generated/shino-reference-v2
-          mkdir -p generated/shino-reference-v2
-          cp apps/rinne/public/simulator/assets/SHINO_review.vrm generated/shino-reference-v2/SHINO_review.glb
+          rm -rf generated/arcanist-atlas-dcc
+          mkdir -p generated/arcanist-atlas-dcc
+          cp apps/rinne/public/simulator/assets/SHINO_review.vrm generated/arcanist-atlas-dcc/SHINO_review.glb
+          test "$(sha256sum docs/characters/references/npc-role-set/arcanist.avif | cut -d' ' -f1)" = "5930816e59424bcc17530ba9029d1231fb24ac88ee35ee5818f96e05e0978bd0"
 
-      - name: Build audited Shino humanoid rig and material vocabulary
+      - name: Build Arcanist Atlas in Blender
         run: |
           xvfb-run -a blender --background --python-exit-code 1 \
-            --python scripts/blender/run-shino-reference-v2.py -- \
-            --source generated/shino-reference-v2/SHINO_review.glb \
+            --python scripts/blender/build-arcanist-atlas-dcc.py -- \
+            --source generated/arcanist-atlas-dcc/SHINO_review.glb \
             --source-vrm apps/rinne/public/simulator/assets/SHINO_review.vrm \
-            --out generated/shino-reference-v2
+            --out generated/arcanist-atlas-dcc
 
-      - name: Rebuild clean stylized PRIMARY mesh
+      - name: Audit generated Blender source
         run: |
           xvfb-run -a blender --background --python-exit-code 1 \
-            generated/shino-reference-v2/source/ShinoReferenceV2.blend \
-            --python scripts/blender/refine-shino-reference-v2-v8.py -- \
-            --out generated/shino-reference-v2
-
-      - name: Polish clean PRIMARY silhouette and accessories
-        run: |
-          xvfb-run -a blender --background --python-exit-code 1 \
-            generated/shino-reference-v2/source/ShinoReferenceV2.blend \
-            --python scripts/blender/refine-shino-reference-v2-v9.py -- \
-            --out generated/shino-reference-v2
-
-      - name: Close final waist silhouette seams
-        run: |
-          xvfb-run -a blender --background --python-exit-code 1 \
-            generated/shino-reference-v2/source/ShinoReferenceV2.blend \
-            --python scripts/blender/refine-shino-reference-v2-v10.py -- \
-            --out generated/shino-reference-v2
-
-      - name: Normalize authored detail transforms and re-export
-        run: |
-          xvfb-run -a blender --background --python-exit-code 1 \
-            generated/shino-reference-v2/source/ShinoReferenceV2.blend \
-            --python scripts/blender/normalize-shino-reference-v2-transforms.py -- \
-            --blend generated/shino-reference-v2/source/ShinoReferenceV2.blend \
-            --glb generated/shino-reference-v2/export/ShinoReferenceV2.glb
-
-      - name: Restore VRM humanoid metadata
-        run: |
-          python3 scripts/patch-vrm-humanoid.py \
-            --source-vrm apps/rinne/public/simulator/assets/SHINO_review.vrm \
-            --input generated/shino-reference-v2/export/ShinoReferenceV2.glb \
-            --output generated/shino-reference-v2/export/ShinoReferenceV2.vrm
-
-      - name: Audit Blender source
-        run: |
-          xvfb-run -a blender --background --python-exit-code 1 generated/shino-reference-v2/source/ShinoReferenceV2.blend \
+            generated/arcanist-atlas-dcc/source/ArcanistAtlasDCC.blend \
             --python scripts/blender/character-production-audit.py -- \
-            --out generated/shino-reference-v2/blender-audit.json \
-            --character-id shino.reference.v2
+            --out generated/arcanist-atlas-dcc/blender-audit.json \
+            --character-id arcanist.atlas-dcc.v1
 
-      - name: Install generated review assets
+      - name: Install generated DCC assets
         run: |
-          mkdir -p assets/characters/shino/reference-v2/source
+          mkdir -p assets/characters/arcanist/atlas-dcc/source
           mkdir -p apps/rinne/public/simulator/assets
-          mkdir -p docs/characters/qa/shino-reference-v2
-          cp generated/shino-reference-v2/source/ShinoReferenceV2.blend assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend
-          cp generated/shino-reference-v2/export/ShinoReferenceV2.vrm apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm
-          cp generated/shino-reference-v2/review/*.png docs/characters/qa/shino-reference-v2/
-          cp generated/shino-reference-v2/blender-audit.json docs/characters/qa/shino-reference-v2/blender-audit.json
-          cp generated/shino-reference-v2/build.json docs/characters/qa/shino-reference-v2/build.json
+          mkdir -p docs/characters/qa/arcanist-atlas-dcc
+          cp generated/arcanist-atlas-dcc/source/ArcanistAtlasDCC.blend assets/characters/arcanist/atlas-dcc/source/ArcanistAtlasDCC.blend
+          cp generated/arcanist-atlas-dcc/export/ArcanistAtlasDCC.glb apps/rinne/public/simulator/assets/ARCANIST_ATLAS_DCC.glb
+          cp generated/arcanist-atlas-dcc/review/*.png docs/characters/qa/arcanist-atlas-dcc/
+          cp generated/arcanist-atlas-dcc/blender-audit.json docs/characters/qa/arcanist-atlas-dcc/blender-audit.json
+          cp generated/arcanist-atlas-dcc/build.json docs/characters/qa/arcanist-atlas-dcc/build.json
 
-      - name: Finalize exact hash and production manifest
+      - name: Finalize hashes and Production Pipeline manifest
         run: |
-          python3 scripts/finalize-shino-reference-v2.py \
-            --model apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm \
-            --blend assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend \
-            --audit docs/characters/qa/shino-reference-v2/blender-audit.json \
-            --build docs/characters/qa/shino-reference-v2/build.json \
-            --integrity-out apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json \
-            --production-out packages/characters/production/shino-reference.production.json
+          python3 scripts/finalize-arcanist-atlas-dcc.py \
+            --model apps/rinne/public/simulator/assets/ARCANIST_ATLAS_DCC.glb \
+            --blend assets/characters/arcanist/atlas-dcc/source/ArcanistAtlasDCC.blend \
+            --audit docs/characters/qa/arcanist-atlas-dcc/blender-audit.json \
+            --build docs/characters/qa/arcanist-atlas-dcc/build.json \
+            --integrity-out apps/rinne/public/simulator/assets/ARCANIST_ATLAS_DCC.asset.json \
+            --production-out packages/characters/production/arcanist-atlas-dcc.production.json
 
-      - name: Fast generated-asset sanity
+      - name: Verify generated candidate
         run: |
-          python3 -m py_compile scripts/blender/build-shino-reference-v2.py scripts/blender/refine-shino-reference-v2-v8.py scripts/blender/refine-shino-reference-v2-v9.py scripts/blender/refine-shino-reference-v2-v10.py scripts/blender/normalize-shino-reference-v2-transforms.py scripts/patch-vrm-humanoid.py scripts/finalize-shino-reference-v2.py
-          test -s apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm
-          test -s apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json
-          test -s assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend
-          test -s docs/characters/qa/shino-reference-v2/front.png
-          test -s docs/characters/qa/shino-reference-v2/side.png
-          test -s docs/characters/qa/shino-reference-v2/back.png
-          test -s docs/characters/qa/shino-reference-v2/three-quarter.png
+          python3 -m py_compile scripts/blender/build-arcanist-atlas-dcc.py scripts/blender/character-production-audit.py scripts/finalize-arcanist-atlas-dcc.py
+          test -s assets/characters/arcanist/atlas-dcc/source/ArcanistAtlasDCC.blend
+          test -s apps/rinne/public/simulator/assets/ARCANIST_ATLAS_DCC.glb
+          test -s apps/rinne/public/simulator/assets/ARCANIST_ATLAS_DCC.asset.json
+          test -s docs/characters/qa/arcanist-atlas-dcc/front.png
+          test -s docs/characters/qa/arcanist-atlas-dcc/side.png
+          test -s docs/characters/qa/arcanist-atlas-dcc/back.png
+          test -s docs/characters/qa/arcanist-atlas-dcc/three-quarter.png
+          node scripts/check-character-production.mjs
+          git diff --check
 
-      - name: Commit generated DCC source and review outputs
+      - name: Commit real Blender outputs to target branch
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git stash push --include-untracked -m dcc-generated-output
-          git fetch origin "${GITHUB_REF_NAME}"
-          git rebase "origin/${GITHUB_REF_NAME}"
-          git stash pop
-          git add \
-            assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend \
-            apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm \
-            apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json \
-            packages/characters/production/shino-reference.production.json \
-            docs/characters/qa/shino-reference-v2
-          if git diff --cached --quiet; then
-            echo "Generated DCC assets are unchanged."
-          else
-            git commit -m "build(characters): refine Shino Reference v2 DCC assets v10"
-            git push origin HEAD:${GITHUB_REF_NAME}
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "feat(characters): generate Arcanist Atlas Blender DCC candidate"
           fi
+          git push origin "HEAD:${TARGET_BRANCH}"
 
-      - name: Upload DCC review bundle
+      - name: Upload DCC review evidence
         uses: actions/upload-artifact@v4
         with:
-          name: shino-reference-v2-dcc-review
+          name: arcanist-atlas-dcc-review
           path: |
-            generated/shino-reference-v2/review/*.png
-            generated/shino-reference-v2/blender-audit.json
-            generated/shino-reference-v2/build.json
-            apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json
+            generated/arcanist-atlas-dcc/review/*.png
+            generated/arcanist-atlas-dcc/blender-audit.json
+            generated/arcanist-atlas-dcc/build.json
+            apps/rinne/public/simulator/assets/ARCANIST_ATLAS_DCC.asset.json
           if-no-files-found: error
           retention-days: 14
