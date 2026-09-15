@@ -81,21 +81,27 @@ test('Visual Review Lab exposes a real-model Tidebreak battle as a first-class r
 });
 
 test('Visual Review Lab uses one obvious five-way nav and grid-first selection UI', async () => {
-  const [nav, navCss, ux] = await Promise.all([
+  const [nav, navCss, navV2Css, ux] = await Promise.all([
     read('apps/rinne/src/review/unified-review-nav.js'),
     read('apps/rinne/src/review/unified-review-nav.css'),
+    read('apps/rinne/src/review/unified-review-nav-v2.css'),
     read('apps/rinne/src/review/review-ux.js'),
   ]);
 
   assert.match(nav, /\['battle', '戦闘'\]/);
   assert.match(nav, /\['other', 'その他'\]/);
-  assert.match(nav, /review-tool-grid/);
-  assert.match(nav, /\['posture', '姿勢'/);
+  assert.match(nav, /const BATTLE_MOTION_ITEMS = \[/);
+  assert.match(nav, /\['posture-draw', '抜刀'/);
+  assert.match(nav, /\['reaction-select', '被弾'/);
   assert.match(nav, /\['advanced', '詳細調整'/);
+  assert.match(nav, /function renderBattleHub\(\)/);
+  assert.match(nav, /url\.searchParams\.set\('tab', 'battle-motion'\)/);
   assert.match(nav, /dataset\.reviewSection = currentSection/);
   assert.match(navCss, /review-bottom-nav[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
-  assert.match(navCss, /\.picker-list\{[^}]*repeat\(5,minmax\(0,1fr\)\)/s);
-  assert.match(navCss, /data-review-section="battle"/);
-  assert.match(navCss, /review-tool-grid/);
+  assert.match(navV2Css, /\.review-category-grid\{[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
+  assert.match(navV2Css, /\.unified-review-navigation \.picker-list\{[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
+  assert.match(navV2Css, /\.unified-review-navigation \.model-picker-list\{[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
+  assert.match(navV2Css, /body\[data-review-section="battle"\][\s\S]*review-page\[data-review-page="battle"\][\s\S]*display:none!important/);
+  assert.match(navV2Css, /\.battle-quick-link,[\s\S]*\.review-primary-switch\{display:none!important\}/);
   assert.match(ux, /model-picker-list\{[^}]*repeat\(5,minmax\(0,1fr\)\)/s);
 });
