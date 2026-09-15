@@ -20,5 +20,5 @@ async function launch(mode){
 }
 $('new-life').addEventListener('click',()=>launch('new'));
 $('continue-life').addEventListener('click',()=>launch('continue'));
-window.addEventListener('pagehide',()=>runtime?.dispose?.());
+// The runtime owns pagehide persistence so a save cannot be cancelled by an eager dispose here.
 if(import.meta.hot)import.meta.hot.dispose(()=>runtime?.dispose?.());
