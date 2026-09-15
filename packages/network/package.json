@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.js",
     "./peer": "./src/peer.js",
-    "./raid-host": "./src/raid-host.js"
+    "./raid-host": "./src/raid-host.js",
+    "./friend-invite": "./src/friend-invite.js"
   },
   "dependencies": {
     "@soul/platform": "*",
