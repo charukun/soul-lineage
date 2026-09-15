@@ -31,7 +31,7 @@ export function parseAssetDocument(buffer, { file = '' } = {}) {
   while (offset + 8 <= declaredBytes) {
     const length = bytes.readUInt32LE(offset), type = bytes.readUInt32LE(offset + 4);
     offset += 8;
-    if (length < 0 || offset + length > declaredBytes) throw new Error('Invalid GLB chunk length');
+    if (offset + length > declaredBytes) throw new Error('Invalid GLB chunk length');
     if (type === JSON_CHUNK && document == null) document = JSON.parse(decodeJsonChunk(bytes.subarray(offset, offset + length)));
     offset += length;
   }
@@ -55,23 +55,43 @@ function primitiveTriangles(document, primitive) {
   return null;
 }
 
+function evidenceFor(total, measured) {
+  if (total === 0) return 'not-applicable';
+  if (measured === total) return 'measured';
+  if (measured > 0) return 'partial';
+  return 'unavailable';
+}
+
 function inspectGeometry(document) {
   let primitiveCount = 0, triangleCount = 0, measuredPrimitives = 0, morphTargetCount = 0;
+  let nearPrimitiveCount = 0, nearTriangleCount = 0, measuredNearPrimitives = 0;
   const materialBindings = new Set();
   for (const mesh of array(document.meshes)) {
+    const lodMatch = String(mesh?.name || '').match(/_LOD([012])$/i);
+    const near = !lodMatch || Number(lodMatch[1]) === 0;
     for (const primitive of array(mesh?.primitives)) {
       primitiveCount++;
+      if (near) nearPrimitiveCount++;
       if (Number.isInteger(primitive?.material)) materialBindings.add(primitive.material);
       morphTargetCount += array(primitive?.targets).length;
       const triangles = primitiveTriangles(document, primitive);
-      if (finiteNonNegative(triangles)) { triangleCount += triangles; measuredPrimitives++; }
+      if (finiteNonNegative(triangles)) {
+        triangleCount += triangles;
+        measuredPrimitives++;
+        if (near) { nearTriangleCount += triangles; measuredNearPrimitives++; }
+      }
     }
   }
+  const triangleEvidence = evidenceFor(primitiveCount, measuredPrimitives);
+  const nearTriangleEvidence = evidenceFor(nearPrimitiveCount, measuredNearPrimitives);
   return {
     primitiveCount,
-    triangles: primitiveCount > 0 && measuredPrimitives === primitiveCount ? triangleCount : null,
-    triangleEvidence: primitiveCount === 0 ? 'not-applicable' : measuredPrimitives === primitiveCount ? 'measured' : measuredPrimitives ? 'partial' : 'unavailable',
+    triangles: triangleEvidence === 'measured' ? triangleCount : null,
+    triangleEvidence,
     measuredPrimitives,
+    nearPrimitiveCount,
+    nearTriangles: nearTriangleEvidence === 'measured' ? nearTriangleCount : null,
+    nearTriangleEvidence,
     materialBindings: materialBindings.size,
     morphTargetCount,
   };
@@ -111,7 +131,7 @@ function inspectVrm(document, extension) {
   return { isVrm: extension === '.vrm' || Boolean(flavor), flavor };
 }
 
-function inspectRisk({ file, extension, geometry, skins, vrm }) {
+function inspectRisk({ file, extension, geometry, skins }) {
   const normalized = String(file).replaceAll('\\', '/');
   const reviewArtifact = /(?:^|[/_.-])review(?:[/. _-]|$)/i.test(normalized) || /\/simulator\/assets\//i.test(normalized) && extension === '.vrm';
   const hasSkin = skins.count > 0;
@@ -130,12 +150,20 @@ function inspectRisk({ file, extension, geometry, skins, vrm }) {
 
 export function compareRoleBudget(metrics, budget = null) {
   if (!budget) return null;
+  const budgetTriangles = metrics.nearTriangles ?? metrics.triangles;
   const checks = {
-    triangles: metrics.triangles == null ? 'unknown' : metrics.triangles <= budget.softTriangleBudget ? 'pass' : 'review',
+    triangles: budgetTriangles == null ? 'unknown' : budgetTriangles <= budget.softTriangleBudget ? 'pass' : 'review',
     materials: metrics.materials == null ? 'unknown' : metrics.materials <= budget.softMaterialBudget ? 'pass' : 'review',
-    estimatedDrawCalls: metrics.primitiveCount == null ? 'unknown' : metrics.primitiveCount <= budget.softDrawCallBudget ? 'pass' : 'review',
+    estimatedDrawCalls: metrics.nearPrimitiveCount == null ? 'unknown' : metrics.nearPrimitiveCount <= budget.softDrawCallBudget ? 'pass' : 'review',
   };
-  return { role: budget.role, styleId: budget.styleId, budget, checks, gate: Object.values(checks).includes('review') ? 'review' : Object.values(checks).every(value => value === 'unknown') ? 'unknown' : 'pass' };
+  return {
+    role: budget.role,
+    styleId: budget.styleId,
+    budget,
+    measured: { triangles: budgetTriangles, estimatedDrawCalls: metrics.nearPrimitiveCount, triangleBasis: metrics.nearTriangles != null ? 'near-or-lod0' : metrics.triangles != null ? 'container-total-fallback' : 'unknown' },
+    checks,
+    gate: Object.values(checks).includes('review') ? 'review' : Object.values(checks).every(value => value === 'unknown') ? 'unknown' : 'pass',
+  };
 }
 
 export function prioritiseAsset(row) {
@@ -147,16 +175,17 @@ export function prioritiseAsset(row) {
   score += Math.min(8, row.metrics.primitiveCount * .2);
   if (!row.compression.geometryCompressed) score += 8;
   if (!row.compression.ktx2 && row.metrics.images > 0) score += 5;
-  if (!row.lod.hasCompleteAuthoredLod && finiteNonNegative(row.metrics.triangles) && row.metrics.triangles >= 10000) score += 8;
+  if (!row.lod.hasCompleteAuthoredLod && finiteNonNegative(row.metrics.nearTriangles ?? row.metrics.triangles) && (row.metrics.nearTriangles ?? row.metrics.triangles) >= 10000) score += 8;
   if (row.risk.reviewArtifact) score += 4;
   if (row.risk.hasSkin || row.risk.hasMorphTargets) score += 4;
   score = Math.round(clamp(score, 0, 100) * 10) / 10;
 
   let action = 'monitor';
   let reason = 'No high-priority optimisation evidence detected';
+  const nearTriangles = row.metrics.nearTriangles ?? row.metrics.triangles;
   if (row.risk.reviewArtifact) { action = 'locate-canonical-source'; reason = 'Review/runtime artifact is not an editable canonical source'; }
   else if (row.risk.hasMorphTargets || row.risk.hasSkin) { action = 'author-dcc-lod'; reason = 'Skinned or morphed assets require authored DCC optimisation'; }
-  else if (!row.lod.hasCompleteAuthoredLod && finiteNonNegative(row.metrics.triangles) && row.metrics.triangles >= 10000) { action = 'generate-authored-lod'; reason = 'Large static geometry has no complete LOD0/1/2 evidence'; }
+  else if (!row.lod.hasCompleteAuthoredLod && finiteNonNegative(nearTriangles) && nearTriangles >= 10000) { action = 'generate-authored-lod'; reason = 'Large static geometry has no complete LOD0/1/2 evidence'; }
   else if (!row.compression.geometryCompressed || (!row.compression.ktx2 && row.metrics.images > 0)) { action = 'compress-runtime-asset'; reason = 'Runtime compression evidence is incomplete'; }
   if (row.budget?.gate === 'review' && row.risk.hasSkin) { action = 'author-dcc-lod'; reason = 'Role budget is exceeded on a skinned asset'; }
   return { score, action, reason };
@@ -175,8 +204,11 @@ export function inspectAssetBuffer(buffer, { file = '', bytes = null, roleBudget
   const metrics = {
     meshes: array(document.meshes).length,
     primitiveCount: geometry.primitiveCount,
+    nearPrimitiveCount: geometry.nearPrimitiveCount,
     triangles: geometry.triangles,
     triangleEvidence: geometry.triangleEvidence,
+    nearTriangles: geometry.nearTriangles,
+    nearTriangleEvidence: geometry.nearTriangleEvidence,
     materials: array(document.materials).length,
     materialBindings: geometry.materialBindings,
     textures: array(document.textures).length,
@@ -190,7 +222,7 @@ export function inspectAssetBuffer(buffer, { file = '', bytes = null, roleBudget
   const compression = inspectCompression(document);
   const lod = inspectLod(document);
   const vrm = inspectVrm(document, extension);
-  const risk = inspectRisk({ file, extension, geometry, skins, vrm });
+  const risk = inspectRisk({ file, extension, geometry, skins });
   const row = {
     schema: 'soul-asset-inspection',
     version: ASSET_INSPECTION_VERSION,
@@ -207,7 +239,7 @@ export function inspectAssetBuffer(buffer, { file = '', bytes = null, roleBudget
     risk,
     evidence: {
       measured: ['bytes', 'container', 'meshes', 'primitives', 'materials', 'textures', 'images', 'animations', 'skins', 'joints', 'morphTargets', 'extensions', 'lodNames'],
-      unavailable: geometry.triangleEvidence === 'measured' || geometry.triangleEvidence === 'not-applicable' ? [] : ['completeTriangleCount'],
+      unavailable: [geometry.triangleEvidence === 'measured' || geometry.triangleEvidence === 'not-applicable' ? null : 'completeContainerTriangleCount', geometry.nearTriangleEvidence === 'measured' || geometry.nearTriangleEvidence === 'not-applicable' ? null : 'completeNearTriangleCount'].filter(Boolean),
       inferred: ['reviewArtifact', 'destructiveOptimizationSafe', 'priority', 'recommendedAction'],
     },
     budget: null,
