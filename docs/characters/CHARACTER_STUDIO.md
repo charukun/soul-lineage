@@ -35,6 +35,18 @@ before/after, frame stepping, 1/6/12/30 comparison and structured issue JSON.
 See [Motion Quality Pipeline](MOTION_QUALITY.md) for the implementation, first case,
 validation and remaining visual/device gates.
 
+## Reference-to-model production contract
+
+Character reference sheets are promoted from passive review images to production inputs through a provider-neutral model-build request. The repository still does not claim that an image alone becomes an approved VRM/GLB automatically. Instead, the reference catalog declares identity, implementation authority, visible/proposed/game-owned parts, target formats, rig and material requirements, and acceptance gates in machine-readable form.
+
+The flow is:
+
+`Character Reference -> Model Build Request -> candidate asset -> MasterCharacter validation -> Character Workshop QA -> game distribution`
+
+The builder contract must keep concept evidence separate from implementation authority. `CURRENT MASTER` and `IMPLEMENTED MODULAR PARTS` may resolve to existing repository parts/assets. `PROPOSED PARTS` become unresolved production requirements until an implementation/provider supplies them. `GAME EQUIPMENT` remains game-owned and must not be baked into the shared character asset unless a later reviewed contract explicitly changes that boundary.
+
+Model-generation providers are adapters outside game/runtime code. A build request may be exported for a local tool, Codex/Astra-class worker, Blender pipeline, or future model-generation service without changing MasterCharacter consumers. Candidate artifacts only become distributable after source/provenance validation plus Workshop quality gates for identity, silhouette, topology/rig compatibility, clipping, materials, motion, and performance. Existing audited assets remain the fallback until a candidate is accepted.
+
 ## NPC role-reference integration
 
 The ten sheets under `docs/characters/references/npc-role-set/` are `CONCEPT TARGET / PARTIALLY MAPPED` design targets for diversity, not replacements for runtime truth. Character Workshop exposes them as reference cards and reports which visible traits are already representable by the current modular kit versus which remain proposed.

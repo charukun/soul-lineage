@@ -11,6 +11,12 @@ This directory stores visual character reference sheets used to keep concept art
 - Update the reference sheet or runtime descriptor when an approved model or modular-part contract changes materially.
 - New characters should use the same structure so references can be generated, implemented and reviewed as a consistent production set.
 
+## Reference-to-model builder
+
+A reference can now be registered with a machine-readable `production` contract in `packages/characters/src/reference-models.js`. Character Workshop can export a provider-neutral model-build request that preserves the four authority buckets above. An external modeling provider may then return a VRM/GLB candidate, but the current MasterCharacter remains active until provenance, identity, silhouette, topology, rig, materials, clipping, motion, and performance gates all pass.
+
+See `docs/characters/MODEL_BUILDER.md` for the provider adapter, CLI, candidate review and game-distribution manifest flow. The builder does not treat a concept/reference image as proof that proposed parts or game equipment are implemented.
+
 ## Shino
 
 `shino/shino-character-reference-sheet-v2.png` is the repository reference sheet for the new Shino visual target. `shino.reference.v2` is now a dedicated runtime reference model on the common audited humanoid rig and is selectable in Character Workshop / Visual Review Lab. The legacy audited VRM remains the rig/animation source contract; selecting the reference model hides its render meshes and uses the dedicated Shino reference geometry instead.

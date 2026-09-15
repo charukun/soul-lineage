@@ -1,5 +1,5 @@
 import { canonicalAppearanceParts } from './appearance-parts.js';
-import { MASTER_ID } from './master-character.js';
+import { MASTER_ID, deepFreeze } from './master-character.js';
 import { validateVisualIdentity } from './visual-identity.js';
 
 export const CHARACTER_REFERENCE_MODEL_VERSION = 2;
@@ -11,6 +11,32 @@ const FACE = Object.freeze({
   sturdy: Object.freeze({ jaw: 1.10, cheek: 1.02, nose: 1.04, eyeWidth: .96, eyeHeight: .94, eyeSpacing: 1, browWeight: 1.12, browSlant: .04, chin: 1.07 }),
   sharp: Object.freeze({ jaw: .96, cheek: .96, nose: 1.05, eyeWidth: 1.01, eyeHeight: .93, eyeSpacing: .98, browWeight: 1.08, browSlant: .06, chin: 1.08 }),
   elder: Object.freeze({ jaw: 1.02, cheek: .94, nose: 1.10, eyeWidth: .95, eyeHeight: .88, eyeSpacing: 1, browWeight: 1.02, browSlant: 0, chin: 1.04 })
+});
+
+const MODEL_BUILD_PRODUCTION = deepFreeze({
+  sourceSections: ['CURRENT MASTER', 'IMPLEMENTED MODULAR PARTS', 'PROPOSED PARTS', 'GAME EQUIPMENT'],
+  authority: {
+    currentMaster: ['identity', 'base-mesh', 'base-rig', 'base-materials', 'expressions', 'spring-bones'],
+    implementedModularParts: ['face', 'hair', 'body', 'outfit', 'accessory'],
+    proposedParts: [],
+    gameEquipment: []
+  },
+  target: {
+    formats: ['vrm', 'glb'],
+    primaryFormat: 'vrm',
+    rigId: 'humanoid.shino-vrm1.v2',
+    materialProfiles: ['mtoon-compatible', 'stylized-pbr-fallback'],
+    preserveExpressions: true,
+    preserveSpringBones: true
+  },
+  requirements: {
+    topology: 'humanoid-production',
+    modularCompatibility: true,
+    sourceProvenanceRequired: true,
+    gameEquipmentPolicy: 'exclude-from-shared-character-asset',
+    weaponSocketPolicy: 'preserve-runtime-owned-sockets',
+    fallbackPolicy: 'retain-current-master-until-candidate-accepted'
+  }
 });
 
 /**
@@ -80,6 +106,7 @@ function model(spec) {
     referencePath: spec.referencePath,
     profile,
     referenceStyle: spec.referenceStyle,
+    production: spec.production ?? MODEL_BUILD_PRODUCTION,
     note: 'リファレンス専用ランタイム3D。監査済み共通リグに専用形状を装着し、Visual Review Labでモーション・全周確認できる。'
   };
   validateVisualIdentity(value);
@@ -118,6 +145,7 @@ function dccModel(spec) {
     referencePath: spec.referencePath,
     profile,
     referenceStyle: spec.referenceStyle,
+    production: spec.production ?? MODEL_BUILD_PRODUCTION,
     note: 'キャラクターリファレンスを正本にBlenderで専用造形したDCC PRIMARYモデル。旧Shinoの色替え/primitive blockoutではない。DEFORMATION以降と明示Visual Approvalは未完了。'
   };
   validateVisualIdentity(value);
