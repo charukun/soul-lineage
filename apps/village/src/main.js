@@ -56,6 +56,7 @@ try {
   // Preserve the historical side-effect order, but let Vite/browser fetch the
   // post-boot layer as one module graph instead of serial dynamic imports.
   await import('./mura-enhancements.js');
+  await import('./mura-village-visual-language.js');
   clearTimeout(watchdog);
   finished = true;
   progress.value = 100;

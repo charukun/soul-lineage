@@ -39,3 +39,4 @@ export function createWorldPreview(canvas, world) {
 export * as THREE from 'three';
 export { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 export { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+export {applyVillageVisualPreset,gradeVillageMaterial,VILLAGE_VISUAL_PRESETS} from './village-visuals.js';
