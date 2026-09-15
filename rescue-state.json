@@ -3218,6 +3218,22 @@
       "workerId": "work/866e55ef0f5e/20260915T011700Z-pr93",
       "type": "WORK_REPAIR_GMAIL_RECEIPT",
       "action": "SUCCESS notification sent to authenticated Gmail self; messageId 1a0a2b799890da04; SHA 155992bf60e582d4c9cd537a571a75a64715abd5"
+    },
+    {
+      "id": "work/866e55ef0f5e/20260915T011700Z-pr93:POST_RETURN_BROWSER_BLOCKED:1789436431427:989",
+      "at": "2026-09-15T01:40:31.427Z",
+      "pr": 93,
+      "workerId": "work/866e55ef0f5e/20260915T011700Z-pr93",
+      "type": "POST_RETURN_BROWSER_BLOCKED",
+      "action": "Exact-head fast/build succeeded; Affected browser smoke failed in run 34917853498. Browser Repair #273 owns PR #93; next route is #273 without bypassing ownership."
+    },
+    {
+      "id": "work/866e55ef0f5e/20260915T011700Z-pr93:WORK_REPAIR_GMAIL_RECEIPT:1789436431428:989",
+      "at": "2026-09-15T01:40:31.427Z",
+      "pr": 93,
+      "workerId": "work/866e55ef0f5e/20260915T011700Z-pr93",
+      "type": "WORK_REPAIR_GMAIL_RECEIPT",
+      "action": "FAILED browser notification sent to authenticated Gmail self; messageId 1a0a2b8d153f5291; run 34917853498; Browser Repair #273"
     }
   ],
   "config": {
@@ -18836,9 +18852,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 989,
+  "revision": 990,
   "schema": 1,
-  "updatedAt": "2026-09-15T01:39:18.347Z",
+  "updatedAt": "2026-09-15T01:40:31.427Z",
   "waves": [
     {
       "completedAt": "2026-09-13T22:16:08.163Z",
