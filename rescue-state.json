@@ -3299,6 +3299,30 @@
       "workerId": "work/866e55ef0f5e/20260915T1327Z-pr157-deep",
       "type": "INTEGRATION_DEEP_REPAIR_NOTIFICATION",
       "action": "SUCCESS Gmail self notification sent; dedupe pr-157:4c1c00f1:deep-repair-returned; message 1a0a53e6e710b20b."
+    },
+    {
+      "id": "deep-cycle-866e55ef0f5e-20260915T1327Z:INTEGRATED",
+      "at": "2026-09-15T13:28:02.026Z",
+      "pr": 157,
+      "workerId": "work/866e55ef0f5e/20260915T1327Z-pr157-deep",
+      "type": "INTEGRATION_DEEP_REPAIR_INTEGRATED",
+      "action": "Normal Integration Fast Lane merged repaired PR #157 head 4c1c00f1 into develop as 66f24f5f at 2026-09-15T13:25:09Z; no Work-side merge authority was used."
+    },
+    {
+      "id": "deep-cycle-866e55ef0f5e-20260915T1327Z:BROWSER_REPAIR_HANDOFF",
+      "at": "2026-09-15T13:28:02.026Z",
+      "pr": 157,
+      "workerId": "integration/browser",
+      "type": "BROWSER_REPAIR_HANDOFF",
+      "action": "Exact-head CI run 34974719904 passed Resolve, Validate and build, and Request Integration; Affected browser smoke failed. Trusted recorder created pending develop-scoped Browser Repair Issue #303 for develop 66f24f5f. Work repair did not bypass or claim Browser ownership."
+    },
+    {
+      "id": "deep-cycle-866e55ef0f5e-20260915T1327Z:BROWSER_FAILED_NOTIFICATION",
+      "at": "2026-09-15T13:28:02.026Z",
+      "pr": 157,
+      "workerId": "integration/browser",
+      "type": "BROWSER_REPAIR_NOTIFICATION",
+      "action": "New browser FAILED Gmail self notification sent; dedupe browser-issue-303:run-34974719904; message 1a0a54094eca1e4d."
     }
   ],
   "config": {
@@ -19578,9 +19602,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1238,
+  "revision": 1239,
   "schema": 1,
-  "updatedAt": "2026-09-15T13:26:34.000Z",
+  "updatedAt": "2026-09-15T13:28:02.026Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
