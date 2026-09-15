@@ -3202,6 +3202,14 @@
       "pr": 220,
       "type": "WORK_REPAIR_CLAIMED",
       "workerId": "work/866e55ef0f5e/20260915T052011Z-pr220-r2"
+    },
+    {
+      "action": "Workの仕様確認・fast検証・元PRへのpushを確認。通常Integrationへ返却",
+      "at": "2026-09-15T05:30:02.020Z",
+      "id": "pr-220:RETURNED_TO_INTEGRATION:1789450202020:1067",
+      "pr": 220,
+      "type": "RETURNED_TO_INTEGRATION",
+      "workerId": "work/866e55ef0f5e/20260915T052011Z-pr220-r2"
     }
   ],
   "config": {
@@ -13807,8 +13815,8 @@
       "claimedAt": "2026-09-15T04:34:52.631Z",
       "claimedBy": "34929309618/pr-220/a3",
       "contractFingerprint": "37ba2a8c4fdd1aa7a46d037cf53c0790d34aee3f30d59954257e1ba2b6591228",
-      "currentAction": "既存ChatGPT Workがoverlap停止を再評価し両側の仕様を保って修復",
-      "currentStep": "RESOLVING",
+      "currentAction": "Workの仕様確認・fast検証・元PRへのpushを確認。通常Integrationへ返却",
+      "currentStep": "RETURNED_TO_INTEGRATION",
       "dependencies": [
         203
       ],
@@ -13852,7 +13860,7 @@
           "rescueId": "wave-34929309618-1-pr-220-a3"
         }
       ],
-      "headSha": "30d861b2e237020da84e0a61a38796575c1da540",
+      "headSha": "607248bb3e4ad76817989387ccdabf347a36d5b3",
       "heartbeatAt": "2026-09-15T04:36:26.148Z",
       "lastFailureFingerprint": "other:e1c0e76a7c1ef8f6",
       "lease": null,
@@ -13940,14 +13948,14 @@
         "developSha": "dcdb07f11cfeb52c13e607aa24765a4e749b69cf",
         "mergeBaseSha": "dcdb07f11cfeb52c13e607aa24765a4e749b69cf"
       },
-      "state": "FAILED_MANUAL",
+      "state": "RETURNED_TO_INTEGRATION",
       "title": "feat(rendering): complete GPU-aware compression and performance pipeline",
-      "updatedAt": "2026-09-15T05:29:13.969Z",
+      "updatedAt": "2026-09-15T05:30:02.020Z",
       "waitingReason": null,
       "wave": "wave-34929309618-1",
       "workRepair": {
         "workerId": "work/866e55ef0f5e/20260915T052011Z-pr220-r2",
-        "status": "working",
+        "status": "returned",
         "attempt": 2,
         "maxAttempts": 2,
         "repairKind": "overlap",
@@ -14111,16 +14119,30 @@
             "command": "npm ci && node scripts/validate.mjs fast dcdb07f11cfeb52c13e607aa24765a4e749b69cf 30d861b2e237020da84e0a61a38796575c1da540"
           }
         },
-        "pushPreparedAt": "2026-09-15T05:29:13.969Z"
+        "pushPreparedAt": "2026-09-15T05:29:13.969Z",
+        "finishedAt": "2026-09-15T05:30:02.020Z"
       },
       "workRepairAttempts": 2,
       "baseChanges": [],
       "currentFile": null,
       "resolution": "Re-evaluated current PR without source changes",
       "heartbeatCount": 1,
-      "returnedAt": "2026-09-15T04:36:28.255Z",
-      "pendingIntegration": false,
-      "integrationRequestedAt": "2026-09-15T04:36:29.879Z"
+      "returnedAt": "2026-09-15T05:30:02.020Z",
+      "pendingIntegration": true,
+      "integrationRequestedAt": "2026-09-15T04:36:29.879Z",
+      "pushedSha": "607248bb3e4ad76817989387ccdabf347a36d5b3",
+      "validation": {
+        "status": "passed",
+        "tree": "d7c961f72e4ada44947293f9de51d03497d4feae",
+        "npmCi": "passed",
+        "focused": "exact-head CI passed",
+        "trustedFast": "passed: 903/904, 1 skipped",
+        "builds": "passed: demon/rinne/village",
+        "browser": "passed: exact-head affected browser smoke run 34929289219",
+        "command": "npm ci && node scripts/validate.mjs fast dcdb07f11cfeb52c13e607aa24765a4e749b69cf 30d861b2e237020da84e0a61a38796575c1da540",
+        "head": "607248bb3e4ad76817989387ccdabf347a36d5b3"
+      },
+      "pushedAt": "2026-09-15T05:30:02.020Z"
     },
     "222": {
       "attempt": 1,
@@ -18601,9 +18623,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1066,
+  "revision": 1067,
   "schema": 1,
-  "updatedAt": "2026-09-15T05:29:13.969Z",
+  "updatedAt": "2026-09-15T05:30:02.020Z",
   "waves": [
     {
       "completedAt": "2026-09-13T22:20:18.454Z",
