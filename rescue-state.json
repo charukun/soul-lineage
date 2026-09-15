@@ -3210,6 +3210,14 @@
       "workerId": "work/866e55ef0f5e/20260915T011700Z-pr93",
       "type": "WORK_REPAIR_RUN_SUMMARY",
       "action": "eligible_before 6; claimable_before 5; claimed 1; returned 1; human_required 0; eligible_after 5"
+    },
+    {
+      "id": "work/866e55ef0f5e/20260915T011700Z-pr93:WORK_REPAIR_GMAIL_RECEIPT:1789436358347:988",
+      "at": "2026-09-15T01:39:18.347Z",
+      "pr": 93,
+      "workerId": "work/866e55ef0f5e/20260915T011700Z-pr93",
+      "type": "WORK_REPAIR_GMAIL_RECEIPT",
+      "action": "SUCCESS notification sent to authenticated Gmail self; messageId 1a0a2b799890da04; SHA 155992bf60e582d4c9cd537a571a75a64715abd5"
     }
   ],
   "config": {
@@ -18828,9 +18836,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 988,
+  "revision": 989,
   "schema": 1,
-  "updatedAt": "2026-09-15T01:38:05.664Z",
+  "updatedAt": "2026-09-15T01:39:18.347Z",
   "waves": [
     {
       "completedAt": "2026-09-13T22:16:08.163Z",
