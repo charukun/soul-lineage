@@ -66,14 +66,37 @@ async function retireOlderDevelopTickets() {
   return retired;
 }
 async function commentOnce(number, body, marker) {
-  if (!number) return;
+  if (!number) return false;
   const comments = await api('GET', `/issues/${number}/comments?per_page=100`);
-  if (comments.some(comment => (comment.body || '').includes(marker))) return;
+  if (comments.some(comment => (comment.body || '').includes(marker))) return false;
   await api('POST', `/issues/${number}/comments`, { body: `${marker}\n${body}` });
+  return true;
+}
+async function currentDevelopContainingMergedPr(pr, testedHead) {
+  if (!pr?.merged_at || pr.head?.sha !== testedHead || pr.base?.ref !== 'develop' || !/^[0-9a-f]{40}$/.test(pr.merge_commit_sha || '')) return null;
+  const branch = await api('GET', '/branches/develop');
+  const current = branch?.commit?.sha;
+  if (!/^[0-9a-f]{40}$/.test(current || '')) return null;
+  if (current === pr.merge_commit_sha) return current;
+  const comparison = await api('GET', `/compare/${pr.merge_commit_sha}...${current}`);
+  const contains = comparison?.merge_base_commit?.sha === pr.merge_commit_sha && comparison?.head_commit?.sha === current && ['ahead', 'identical'].includes(comparison?.status);
+  return contains ? current : null;
 }
 
 const sourcePr = await associatedPr();
 if (scope === 'pr' && !currentPrRepair(sourcePr, headSha)) {
+  const currentDevelop = conclusion === 'failure' ? await currentDevelopContainingMergedPr(sourcePr, headSha) : null;
+  if (currentDevelop) {
+    const marker = `<!-- browser-repair-post-merge:${headSha}:develop:${currentDevelop} -->`;
+    const first = await commentOnce(sourcePr.number,
+      `PR browser verification failed after this PR had already merged. The failure is being re-verified against current develop \`${currentDevelop}\` in the independent DEV/public browser lane. Fast Lane remains nonblocking.\n\nArtifacts: \`${artifact}\` · ${runUrl}`,
+      marker);
+    if (first) {
+      await api('POST', '/actions/workflows/deploy.yml/dispatches', { ref: 'develop', inputs: { full_verification: 'true' } });
+    }
+    console.log(JSON.stringify({ action: 'escalated-post-merge-pr-failure', pr: sourcePr.number, testedHead: headSha, currentDevelop, dispatched: first }));
+    process.exit(0);
+  }
   console.log(JSON.stringify({ action: 'noop-stale-pr-result', pr: prNumber, headSha }));
   process.exit(0);
 }
