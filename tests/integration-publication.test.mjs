@@ -29,9 +29,12 @@ function fixture({ runs = [], statuses = [], dispatchError, cancelError } = {}) 
       throw new Error(`Unexpected API ${method} ${path}`);
     },
     async pages(path) {
+      calls.push({ method: 'PAGES', path });
       if (path === `/commits/${sha}/statuses`) return statuses;
-      const state = path.match(/&status=([^&]+)/)?.[1];
-      if (state) return runs.filter(item => item.status === state);
+      if (path === '/actions/workflows/deploy.yml/runs?branch=develop') return runs;
+      if (path === '/actions/workflows/deploy.yml/runs?branch=develop&status=completed') {
+        return runs.filter(item => item.status === 'completed');
+      }
       throw new Error(`Unexpected pages ${path}`);
     },
   };
@@ -51,6 +54,7 @@ test('a merged batch explicitly requests one existing DEV/PULSE publisher using 
   assert.deepEqual(recorded.map(item => item.body.state), ['pending', 'success']);
   assert.ok(recorded.every(item => item.body.context === publicationWakeContext));
   assert.match(recorded.at(-1).body.description, /public verification pending/);
+  assert.equal(f.calls.filter(item => item.method === 'PAGES' && item.path.startsWith('/actions/workflows/deploy.yml/runs')).length, 1);
 });
 
 test('an idle pass bootstraps the unpublished SHA left by the previous Controller', async () => {
@@ -83,7 +87,7 @@ test('an already verified public source does not redispatch', async () => {
   assert.deepEqual(f.writes(), []);
 });
 
-test('a completed exact-source publisher proves the wake was consumed', async () => {
+test('a completed exact-source publisher proves the wake was consumed from the shared snapshot', async () => {
   for (const conclusion of ['success', 'failure']) {
     const f = fixture({
       statuses: [{ context: publicationWakeContext, state: 'success', description: initialWakeDescription }],
@@ -91,6 +95,7 @@ test('a completed exact-source publisher proves the wake was consumed', async ()
     });
     assert.equal((await requestDevelopPublication(f.c, idle)).state, 'already-requested-or-published');
     assert.deepEqual(f.writes(), []);
+    assert.equal(f.calls.filter(item => item.method === 'PAGES' && item.path.startsWith('/actions/workflows/deploy.yml/runs')).length, 1);
   }
 });
 
@@ -104,6 +109,16 @@ test('a cancelled exact-source publisher can be recovered once', async () => {
   assert.equal(f.writes().filter(item => item.path.includes('/statuses/')).at(-1).body.description, recoveryWakeDescription);
 });
 
+test('a saturated first workflow page may spend one completed fallback lookup', async () => {
+  const filler = Array.from({ length: 100 }, (_, i) => run(i + 1, { head_sha: oldSha, status: 'completed', conclusion: 'cancelled' }));
+  const f = fixture({
+    statuses: [{ context: publicationWakeContext, state: 'success', description: initialWakeDescription }],
+    runs: filler,
+  });
+  assert.equal((await requestDevelopPublication(f.c, idle)).state, 'requested');
+  assert.equal(f.calls.filter(item => item.method === 'PAGES' && item.path.startsWith('/actions/workflows/deploy.yml/runs')).length, 2);
+});
+
 test('a second orphan after the bounded recovery does not create an unbounded dispatch loop', async () => {
   const f = fixture({ statuses: [{
     context: publicationWakeContext, state: 'success', description: recoveryWakeDescription,
@@ -114,7 +129,7 @@ test('a second orphan after the bounded recovery does not create an unbounded di
 
 test('an active same-source publisher absorbs duplicate requests while superseded publishers coalesce', async () => {
   const f = fixture({ runs: [run(1, { head_sha: oldSha }), run(2), run(3, { event: 'push', head_sha: oldSha, status: 'queued' })] });
-  assert.deepEqual(await requestDevelopPublication(f.c, report), { state: 'already-active', sha, run: 2, cancelled: [3, 1] });
+  assert.deepEqual(await requestDevelopPublication(f.c, report), { state: 'already-active', sha, run: 2, cancelled: [1, 3] });
   assert.equal(f.writes().filter(item => item.path.endsWith('/cancel')).length, 2);
   assert.equal(f.writes().filter(item => item.path.endsWith('/dispatches')).length, 0);
 });
