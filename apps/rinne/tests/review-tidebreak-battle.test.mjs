@@ -39,7 +39,7 @@ test('Visual Review Lab exposes battle as a primary embedded review mode without
   assert.match(sessionSource, /new RaidHost/);
   assert.match(sessionSource, /@soul\/network\/raid-host/);
   assert.doesNotMatch(sessionSource, /createTidebreakRuntime/);
-  assert.match(shell, /dataPrimaryReview = 'battle'/);
+  assert.match(shell, /dataset\.primaryReview = 'battle'/);
   assert.match(shell, /visual-review-battle-control/);
   assert.match(shell, /secondary\?\.contains\(page\)/);
   assert.match(viewer, /createTidebreakBattleSession/);
