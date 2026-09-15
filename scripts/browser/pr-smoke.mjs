@@ -148,9 +148,23 @@ for (const app of apps) {
     if (!rendererOk || appId !== app || !widthOk || !webgl?.version?.includes('WebGL 2.0') || errors.length || failedRequests.length) {
       throw new Error(`Browser smoke failed for ${app}: ${JSON.stringify(report)}`);
     }
+
+    const finishProbe = async () => {
+      await capturePlayedAudio(page, playedSources);
+      const media = await mediaDiagnostics(rawRequests, playedSources, new URL(url).origin);
+      writeFileSync(resolve(root, `test-results/pr-browser/${app}-media.json`), JSON.stringify(media, null, 2));
+      if (errors.length || media.failedRequests.length) throw new Error(`Play clarity failed: ${JSON.stringify({errors,...media})}`);
+      await context.tracing.stop({ path: resolve(root, `test-results/pr-browser/${app}-trace.zip`) });
+      await context.close();
+    };
+
     // Exercise changed or explicitly requested controls before Integration, using the same assertions as public DEV.
     const evidence = { outputPath: name => resolve(root, `test-results/pr-browser/${app}-${name}`) };
     if (app === 'rinne') {
+      // The probe above owns a live Rinne runtime. Dispose that complete BrowserContext before
+      // launching the independent title-to-rebirth playthrough so two heavyweight runtimes do
+      // not contend for renderer/startup resources or lifecycle state.
+      await finishProbe();
       const {verifyRebuildPlaythrough}=await import('../../apps/rinne/tests/rebuild-playthrough.browser.mjs');
       await verifyRebuildPlaythrough(browser,url,resolve(root,'test-results/pr-browser/rinne-playthrough'));
     } else if (app === 'demon') {
@@ -170,12 +184,7 @@ for (const app of apps) {
         await verifyPeerHostMigration(browser, url, evidence);
       }
     }
-    await capturePlayedAudio(page, playedSources);
-    const media = await mediaDiagnostics(rawRequests, playedSources, new URL(url).origin);
-    writeFileSync(resolve(root, `test-results/pr-browser/${app}-media.json`), JSON.stringify(media, null, 2));
-    if (errors.length || media.failedRequests.length) throw new Error(`Play clarity failed: ${JSON.stringify({errors,...media})}`);
-    await context.tracing.stop({ path: resolve(root, `test-results/pr-browser/${app}-trace.zip`) });
-    await context.close();
+    if (app !== 'rinne') await finishProbe();
     console.log('PR BROWSER VERIFIED', JSON.stringify(report));
     // Additional targeted editor/motion gates. They supplement, never replace, the game smoke above.
     const changed = execFileSync('git', ['diff', '--name-only', base, head], { cwd: root, encoding: 'utf8' });
