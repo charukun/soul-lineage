@@ -9,7 +9,7 @@ let scope = process.env.REPAIR_SCOPE;
 const conclusion = process.env.REPAIR_CONCLUSION;
 let headSha = process.env.REPAIR_HEAD_SHA;
 const prNumber = Number(process.env.REPAIR_PR_NUMBER || 0) || null;
-const repairIssueNumber = Number(process.env.REPAIR_ISSUE_NUMBER || 0) || null;
+let repairIssueNumber = Number(process.env.REPAIR_ISSUE_NUMBER || 0) || null;
 const runUrl = process.env.REPAIR_RUN_URL;
 const artifact = process.env.REPAIR_ARTIFACT || 'browser-verification';
 const verifiedDevelopEvidence = process.env.REPAIR_VERIFIED === 'true';
@@ -90,6 +90,7 @@ async function finalizeReadyDevelopRepairFromDelivery() {
   const candidates = repairIssueNumber
     ? [await getIssue(repairIssueNumber)].filter(Boolean)
     : (await api('GET', '/issues?state=open&per_page=100&sort=updated&direction=desc')).filter(issue => !issue.pull_request);
+  const verified = [];
   for (const candidate of candidates) {
     const state = parseRepairState(candidate.body || '');
     if (!state || state.scope !== 'develop' || state.state !== 'ready-for-integration') continue;
@@ -108,7 +109,10 @@ async function finalizeReadyDevelopRepairFromDelivery() {
     const marker = `<!-- browser-repair-delivery:${headSha} -->`;
     await commentOnce(candidate.number,
       `${notificationHeadline('BROWSER_VERIFIED', notificationLocale)}\nRepair PR browser verification was already green, and the repaired head is now contained in publicly verified DEV \`${headSha}\`. State: **verified**.`, marker);
-    console.log(JSON.stringify({ action: 'verified-by-repair-pr-browser-and-dev-delivery', issue: candidate.number, state: next }, null, 2));
+    verified.push(candidate.number);
+  }
+  if (verified.length) {
+    console.log(JSON.stringify({ action: 'verified-by-repair-pr-browser-and-dev-delivery', issues: verified, headSha }, null, 2));
     return true;
   }
   console.log(JSON.stringify({ action: 'noop-dev-delivery-without-ready-repair', headSha, artifact }));
@@ -154,6 +158,7 @@ if (scope === 'pr' && !currentPrRepair(sourcePr, headSha)) {
   promotedFromPrHead = headSha;
   scope = 'develop';
   headSha = currentDevelop;
+  repairIssueNumber ||= linkedIssueNumber(sourcePr?.body || '');
 }
 
 const retired = await retireOlderDevelopTickets(repairIssueNumber);
