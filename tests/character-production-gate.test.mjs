@@ -9,7 +9,8 @@ test('repository character production manifests and catalog classifications pass
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.ok(result.manifests.some(row =>
     row.id === 'shino.reference.v2' &&
-    row.declaredStage === 'BLOCKOUT' &&
-    row.modelingMode === 'runtime-procedural'
+    row.declaredStage === 'PRIMARY' &&
+    row.modelingMode === 'dcc-blender' &&
+    row.productionReady === false
   ));
 });
