@@ -85,7 +85,7 @@ export async function requestDevelopPublication(c, report, { targetUrl } = {}) {
     await record('success', recoveringOrphan
       ? recoveryReceipt
       : 'DEV/PULSE publication requested; public verification pending');
-    return { state: recoveringOrphan ? 'recovery-requested' : 'requested', sha, cancelled };
+    return { state: 'requested', sha, cancelled };
   } catch (error) {
     await record('failure', 'DEV/PULSE publication request failed; inspect Integration run').catch(() => {});
     throw error;
