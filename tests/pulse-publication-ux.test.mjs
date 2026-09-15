@@ -157,7 +157,7 @@ test('top overview makes DEV publication understandable without opening details'
   assert.match(html, /id="overview-app-eta"/);
   assert.match(html, />いま</);
   assert.match(html, />次</);
-  assert.match(html, />確認</);
+  assert.match(html, />確認できる目安</);
 
   assert.match(overview, /devPublicationProgress/);
   assert.match(overview, /DEVは最新です/);
