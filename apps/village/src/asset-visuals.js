@@ -1,5 +1,7 @@
 import './nature-visuals.js';
-import { THREE as T, GLTFLoader } from '@soul/rendering';
+import { THREE as T } from '@soul/rendering';
+import { createCompressedGLTFLoader } from '@soul/rendering/compressed-gltf';
+import { createAssetResidencyCache } from '@soul/platform-web/asset-residency';
 import { View } from './web/view.js';
 
 // Visual-only candidates. Gameplay IDs, unlock rules, room effects and placement
@@ -22,19 +24,30 @@ const CANDIDATES = Object.freeze({
   chest: { file: 'chest.glb', size: [1.35, 1.0, 0.95] },
 });
 
-const loader = new GLTFLoader();
+const buildVersion=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__.commit:SOURCE.commit;
+const residency=createAssetResidencyCache({version:buildVersion});
 const templates = new Map();
 const failures = new Set();
-
-function candidateUrl(file) {
-  return `${LOCAL_ROOT}/${file}`;
+const loaderByRenderer = new WeakMap();
+function compressedLoader(view) {
+  if (!loaderByRenderer.has(view.renderer)) {
+    loaderByRenderer.set(view.renderer, createCompressedGLTFLoader({
+      renderer: view.renderer,
+      transcoderPath: `${import.meta.env.BASE_URL}basis/`,
+      residencyCache: residency,
+      assetHashForUrl: url => `${SOURCE.commit}:${String(url).split('/').pop()}`,
+    }));
+  }
+  return loaderByRenderer.get(view.renderer);
 }
 
-function loadTemplate(kind) {
+function candidateUrl(file) { return `${LOCAL_ROOT}/${file}`; }
+
+function loadTemplate(kind, view) {
   if (failures.has(kind)) return Promise.reject(new Error(`asset disabled after load failure: ${kind}`));
   if (templates.has(kind)) return templates.get(kind);
   const candidate = CANDIDATES[kind];
-  const pending = loader.loadAsync(candidateUrl(candidate.file))
+  const pending = compressedLoader(view).loadAsync(candidateUrl(candidate.file))
     .then(gltf => {
       if (!gltf.scene) throw new Error(`KayKit scene missing: ${candidate.file}`);
       return gltf.scene;
@@ -75,25 +88,28 @@ function prepare(node, candidate) {
   return node;
 }
 
-function visualCandidate(kind, fallback) {
+function visualCandidate(kind, fallback, view) {
   const candidate = CANDIDATES[kind];
   if (!candidate) return fallback;
   const root = new T.Group();
+  const fallbackNode = fallback?.clone?.(true) || fallback;
   root.name = `MURAAAAAAA_${kind}`;
   root.userData.assetSource = SOURCE;
   root.userData.assetCandidate = candidate.file;
   root.userData.assetUrl = candidateUrl(candidate.file);
-  if (fallback) root.add(fallback);
-  loadTemplate(kind).then(template => {
+  if (fallbackNode) root.add(fallbackNode);
+  loadTemplate(kind, view).then(template => {
     const model = prepare(template.clone(true), candidate);
-    if (fallback) fallback.visible = false;
+    // Never hide or reparent the shared procedural cache. Each consumer owns
+    // its fallback clone until the session-cached authored template is ready.
+    if (fallbackNode) root.remove(fallbackNode);
     root.add(model);
     root.userData.assetLoaded = true;
+    root.userData.compression = { meshopt: true, ktx2: true };
+    root.userData.residency = 'cache-storage';
   }).catch(error => {
     root.userData.assetLoaded = false;
     root.userData.assetError = error?.message || String(error);
-    // The procedural model remains visible, so a missing/corrupt local asset
-    // never removes furniture or blocks gameplay.
     console.warn(`[MURAAAAAAA] local visual asset failed: ${kind}`, error);
   });
   return root;
@@ -101,12 +117,14 @@ function visualCandidate(kind, fallback) {
 
 const originalGetProp = View.prototype.getProp;
 View.prototype.getProp = function getPropWithAssetCandidate(kind) {
-  return visualCandidate(kind, originalGetProp.call(this, kind));
+  return visualCandidate(kind, originalGetProp.call(this, kind), this);
 };
 
 window.__MURAAAAAAA_ASSETS__ = Object.freeze({
   source: SOURCE,
   root: LOCAL_ROOT,
   candidates: CANDIDATES,
+  compression: Object.freeze({ meshopt: true, ktx2: true, transcoder: `${import.meta.env.BASE_URL}basis/` }),
+  residency: () => residency.snapshot(),
   mode: 'repository-local-with-procedural-fallback',
 });

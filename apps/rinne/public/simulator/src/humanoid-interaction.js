@@ -1,5 +1,6 @@
 import * as T from '../vendor/three.js';
 import {HumanoidRuntime as BaseHumanoidRuntime} from './humanoid-life.js';
+import {weaponInertiaEnvelope} from './humanoid-dynamics.js';
 import {localPersonality,localLocomotion,localInteraction,localCondition,localMicro,localPairedImpact,localAdaptation,localSyncFrame,localReconcile} from './motion-interaction-math.js';
 
 export const HUMANOID_INTERACTION_REVISION='motion-interaction-1';
@@ -43,9 +44,12 @@ export class HumanoidRuntime extends BaseHumanoidRuntime{
  ground(c,a,d,commit){
   const state=this._interaction.active;if(state&&d.type!=='death'){
    const {personality,condition,adaptation,locomotion,micro}=state,add=(name,e)=>{const b=c.bones[name];if(b)b.quaternion.multiply(q().setFromEuler(e)).normalize();},limpSign=condition.limpSide==='left'?-1:condition.limpSide==='right'?1:0,moveScale=adaptation.strideScale*personality.stride*condition.speedScale;
-   add('hips',new T.Euler(locomotion.pelvisLean*.16+micro.breath*.16,locomotion.turnLean*.22*personality.turnSharpness,limpSign*condition.limp+micro.swayX*.35,'YXZ'));
-   add('spine',new T.Euler(personality.posture*.24+condition.torsoGuard*.30+micro.breath*.32,locomotion.turnLean*.12,micro.swayX*.42,'YXZ'));
-   add('head',new T.Euler(micro.headPitch,0,micro.headYaw*.35,'YXZ'));
+   // Clock-driven micro motion must meet the authored attack's exact endpoint poses.
+   // Use descriptor time so speculative weapon samples obey the same boundary.
+   const microWeight=d.type==='attack'?weaponInertiaEnvelope(d.time):1;
+   add('hips',new T.Euler(locomotion.pelvisLean*.16+micro.breath*.16*microWeight,locomotion.turnLean*.22*personality.turnSharpness,limpSign*condition.limp+micro.swayX*.35*microWeight,'YXZ'));
+   add('spine',new T.Euler(personality.posture*.24+condition.torsoGuard*.30+micro.breath*.32*microWeight,locomotion.turnLean*.12,micro.swayX*.42*microWeight,'YXZ'));
+   add('head',new T.Euler(micro.headPitch*microWeight,0,micro.headYaw*.35*microWeight,'YXZ'));
    if(['walk','run'].includes(d.type)){const left=c.bones.leftUpperLeg,right=c.bones.rightUpperLeg;if(left)left.quaternion.multiply(q().setFromEuler(new T.Euler((moveScale-1)*.05*condition.strideLeft,0,0,'YXZ'))).normalize();if(right)right.quaternion.multiply(q().setFromEuler(new T.Euler((moveScale-1)*.05*condition.strideRight,0,0,'YXZ'))).normalize();}
    if(d.type==='attack'||d.type==='combat'){if(c.bones.leftShoulder)c.bones.leftShoulder.quaternion.multiply(q().setFromEuler(new T.Euler(0,0,condition.shoulderDropLeft,'YXZ'))).normalize();if(c.bones.rightShoulder)c.bones.rightShoulder.quaternion.multiply(q().setFromEuler(new T.Euler(0,0,-condition.shoulderDropRight,'YXZ'))).normalize();const sag=condition.weaponSag*(a.weapon==='great'||a.weapon==='axe'?1.15:1)*adaptation.weaponArcScale;if(c.bones.rightUpperArm)c.bones.rightUpperArm.quaternion.multiply(q().setFromEuler(new T.Euler(sag*.18,0,0,'YXZ'))).normalize();}
    c.root.updateMatrixWorld(true);

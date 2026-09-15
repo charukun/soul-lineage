@@ -35,6 +35,28 @@ before/after, frame stepping, 1/6/12/30 comparison and structured issue JSON.
 See [Motion Quality Pipeline](MOTION_QUALITY.md) for the implementation, first case,
 validation and remaining visual/device gates.
 
+## Reference-to-model production contract
+
+Character reference sheets are promoted from passive review images to production inputs through a provider-neutral model-build request. The repository still does not claim that an image alone becomes an approved VRM/GLB automatically. Instead, the reference catalog declares identity, implementation authority, visible/proposed/game-owned parts, target formats, rig and material requirements, and acceptance gates in machine-readable form.
+
+The flow is:
+
+`Character Reference -> Model Build Request -> candidate asset -> MasterCharacter validation -> Character Workshop QA -> game distribution`
+
+The builder contract must keep concept evidence separate from implementation authority. `CURRENT MASTER` and `IMPLEMENTED MODULAR PARTS` may resolve to existing repository parts/assets. `PROPOSED PARTS` become unresolved production requirements until an implementation/provider supplies them. `GAME EQUIPMENT` remains game-owned and must not be baked into the shared character asset unless a later reviewed contract explicitly changes that boundary.
+
+Model-generation providers are adapters outside game/runtime code. A build request may be exported for a local tool, Codex/Astra-class worker, Blender pipeline, or future model-generation service without changing MasterCharacter consumers. Candidate artifacts only become distributable after source/provenance validation plus Workshop quality gates for identity, silhouette, topology/rig compatibility, clipping, materials, motion, and performance. Existing audited assets remain the fallback until a candidate is accepted.
+
+## NPC role-reference integration
+
+The ten sheets under `docs/characters/references/npc-role-set/` are `CONCEPT TARGET / PARTIALLY MAPPED` design targets for diversity, not replacements for runtime truth. Character Workshop exposes them as reference cards and reports which visible traits are already representable by the current modular kit versus which remain proposed.
+
+The runtime-facing contract is metadata-first. `@soul/characters` describes each reference archetype with age, visual role, existing modular slots, reference image and coverage boundaries. Existing implemented slots influence deterministic generation only when the mapping uses a runtime part that actually exists. The Child Girl and Elderly Woman targets add two approved low-cost modular pieces, `hair:bun` and `accessory:ribbon`; normal seed-based visual identity generation can also produce these additions. A concept-only prop, armor detail, body feature, hairstyle, garment or gameplay item remains explicitly proposed or game-owned until separately authored and approved.
+
+Workshop comparison lets a reviewer choose a target archetype, regenerate 1/6/12/30 deterministic characters for that target, inspect the sheet beside the 3D stage, and see a coverage report split into `IMPLEMENTED MODULAR PARTS`, `PROPOSED PARTS`, and `GAME EQUIPMENT`. The existing free/mixed generation mode remains available and is not replaced by reference-targeted generation.
+
+Initial archetypes: child boy, child girl, elderly man, elderly woman, guard, knight, blacksmith, laborer, hunter and arcanist. Child/elder references constrain age bands; role references map to existing display roles and existing role gear where possible. This integration does not change Character save/schema, combat stats, hitboxes, inventory, network authority, lifecycle rules, or the audited Shino MasterCharacter.
+
 ## Production stage contract
 
 Character Workshop is a review surface, not an automatic promotion mechanism. Character asset status follows [Character Production Pipeline v2](CHARACTER_PRODUCTION_PIPELINE.md): `REFERENCE -> BLOCKOUT -> PRIMARY -> SECONDARY -> DEFORMATION -> MOTION -> POLISH -> RUNTIME_READY`.

@@ -14,7 +14,6 @@ import {RaidSession} from '@soul/raid';
 import {PREY,FORMS,offerVillages,importHousing} from '@soul/raid/world';
 import {SwipeInput} from '@soul/input';
 import {createTidebreakRuntime} from '@soul/tidebreak-combat';
-import {installOnlineRaid} from './online.js';
 import {firstHuntGuide} from './first-hunt-guide.js';
 import {renderLineage} from './lineage.js';
 
@@ -22,7 +21,7 @@ const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"']/g,c=>(
 let view,game,store,profile,error=null,mode='title',paused=false,sheetKind='',toastUntil=0,last=0,acc=0,returnMode=false,lastHud=0,feastHud;
 const swipe=new SwipeInput(),audio=new NightAudio();
 let disposeCharacterSelection=null;
-let onlineRaid,guideState={sensed:false,lineageSeen:false};
+let guideState={sensed:false,lineageSeen:false};
 
 function safe(fn){try{return fn();}catch(e){console.error(e);showError(e.message||String(e));}}
 function showError(text){pauseInput();$('sheet').hidden=false;$('sheet-kicker').textContent='NOTICE';$('sheet-title').textContent='確認が必要です';$('sheet-body').innerHTML='<p class="error">'+esc(text)+'</p><p class="muted">保存データの削除や上書きによる初期化はしていません。</p>';sheetKind='error';}
@@ -67,10 +66,10 @@ function lineage(){if(game?.eaten>0)guideState.memorySeen=true;guideState.lineag
 function settings(){
   refresh();
   let html='<p>滑らせて歩く。素早く弾けば走る。接敵後も敵からじりじり距離を取れば、戦いの輪はほどける。</p><button class="inline-action" id="sound-toggle">環境音・効果音：'+(audio.enabled?'入':'切')+'<small>風、足音、警鐘、捕食、戦闘音</small></button><button class="inline-action" id="visit-log">喰痕<small>'+Object.keys(profile.visits).length+'か所</small></button><button class="inline-action" id="load-village">ハウジングの村を読み込む<small>村ゲームのセーブJSON。配置は再利用し、元のデータは変更しない。</small></button><button class="inline-action" id="load-echo">守護者の戦型を読み込む<small>輪廻転焦の技目録から、敵側の構成をオフラインで再現する。</small></button><button class="inline-action" id="credits">アセットと接続状況<small>GitHub取得素材・共通戦闘コード・実装範囲</small></button>';
-  html+='<button class="inline-action" id="music-library">音楽室・BGM音量<small>曲の選択とBGM音量。環境音・効果音とは別の設定です。</small></button><button class="inline-action" id="online-settings">実プレイヤーの村<small>村長から受け取った参加コードで接続する。</small></button>';
+  html+='<button class="inline-action" id="music-library">音楽室・BGM音量<small>曲の選択とBGM音量。環境音・効果音とは別の設定です。</small></button>';
   if(mode==='hunt')html+='<button class="inline-action" id="give-up">この夜から離れる<small>喰痕だけを残して闇へ戻る。</small></button>';
   sheet(mode==='hunt'?'闇で、ひと息。':'記録と連携','THE NIGHT REMEMBERS',html,'settings');
-  $('music-library').hidden=!window.__SOUL_MUSIC__;$('music-library').onclick=()=>window.__SOUL_MUSIC__?.open();$('online-settings').onclick=()=>onlineRaid.open();$('sound-toggle').onclick=()=>{audio.start();audio.toggle();settings();};$('visit-log').onclick=visits;$('load-village').onclick=()=>importFile('village');$('load-echo').onclick=()=>importFile('echo');$('credits').onclick=credits;
+  $('music-library').hidden=!window.__SOUL_MUSIC__;$('music-library').onclick=()=>window.__SOUL_MUSIC__?.open();$('sound-toggle').onclick=()=>{audio.start();audio.toggle();settings();};$('visit-log').onclick=visits;$('load-village').onclick=()=>importFile('village');$('load-echo').onclick=()=>importFile('echo');$('credits').onclick=credits;
   $('give-up')?.addEventListener('click',()=>{sheet('夜を抜ける。','LEAVE THE SCAR','<p>ここには喰痕だけが残る。</p><button class="primary" id="confirm-leave">闇へ戻る</button>','leave');$('confirm-leave').onclick=()=>game.finish('escaped');});
 }
 function visits(){refresh();const rows=Object.values(profile.visits).reverse();sheet('喰痕','SCARS ON THE NIGHT',rows.length?rows.map(v=>`<div class="visit-row">${esc(v.name)}<span>${({entered:'夜の中',escaped:'離脱',defeated:'死亡',abandoned:'途絶',completed:'喰い抜け'})[v.status]} · 閉</span></div>`).join(''):'<p>まだ、地図に傷はない。</p>','visits');}
@@ -130,6 +129,5 @@ export async function boot(){
   $('sheet-close').onclick=dismissSheet;
   window.addEventListener('resize',()=>view.resize());installInput();requestAnimationFrame(frame);
   window.__NIGHT_HUNT__={snapshot:()=>({mode,paused:!$('sheet').hidden||paused,source:game.village.source,village:game.village.id,visited:Object.keys(store.read().visits),profile:store.read(),player:JSON.parse(JSON.stringify(game.player)),npcs:game.village.npcs.map(n=>({id:n.id,kind:n.kind,adult:n.adult,role:n.role,hp:n.hp,dead:n.dead,eaten:n.eaten,x:n.x,z:n.z,marked:n.marked,state:n.state})),devouring:!!game.devour,combat:game.fight?{...game.fight.core.state(),retreat:game.fight.retreat,count:game.combatantCount?.()||1}:null,eaten:game.eaten,alarm:game.alarm,time:game.time,finished:game.finished,metrics:view.metrics(),input:{id:swipe.id,dx:swipe.dx,dy:swipe.dy,amount:swipe.amount,dash:swipe.dash}}),openRoutes:routes};
-  onlineRaid=installOnlineRaid(()=>window.__NIGHT_HUNT__.snapshot());
   if(import.meta.env.DEV&&new URLSearchParams(location.search).has('review'))window.__NIGHT_REVIEW__={enter:async(i=0)=>{await claimAndEnter(offerVillages(store)[i]);},nearHuman(i=0){const n=game.village.npcs[i];game.player.x=n.x;game.player.z=n.z+2.5;game.player.yaw=Math.PI;},setPosition(x,z){game.clearCombat?.();game.devour=null;game.player.x=x;game.player.z=z;game.player.pose=null;},step(n=1){for(let i=0;i<Math.min(n,36000)&&!game.finished;i++)game.tick(1/60,{x:0,z:0,amount:0});},unlock(k){store.unlock(k);refresh();},finish(s='escaped'){game.finish(s);},retry(id){return store.claim({id,name:'再訪テスト'});},read:()=>store.read(),screenshot(){view.update(game,1/60,false);hud(performance.now());},ready:()=>!!game};
 }

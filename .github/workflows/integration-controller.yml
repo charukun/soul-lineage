@@ -3,42 +3,42 @@ on:
   workflow_call:
     inputs:
       rescue_mode:
-        description: 'scan runs recovery observation without merging'
+        description: 'legacy scan input; scan runs the lightweight Repair executor while Fast Lane remains event-driven'
         type: string
         required: false
         default: ''
       integration_cursor:
-        description: 'bounded Ready queue cursor'
+        description: 'legacy compatibility input; Fast Lane does not maintain a queue cursor'
         type: string
         required: false
         default: '0'
     outputs:
       sha:
-        description: 'Final develop SHA evaluated by the controller'
+        description: 'Final develop SHA after this serialized Fast Lane pass'
         value: ${{ jobs.integrate.outputs.sha }}
       verify:
-        description: 'Whether DEV publication is required'
+        description: 'Legacy compatibility output; DEV verification never blocks Fast Lane'
         value: ${{ jobs.integrate.outputs.verify }}
       retry:
-        description: 'Whether another bounded Ready evaluation is required'
+        description: 'Whether another external wake may be useful'
         value: ${{ jobs.integrate.outputs.retry }}
       cursor:
-        description: 'Next bounded Ready evaluation cursor'
+        description: 'Legacy compatibility cursor'
         value: ${{ jobs.integrate.outputs.cursor }}
       merged_count:
-        description: 'Number of exact heads merged by this controller run'
+        description: 'Number of exact heads merged by Fast Lane'
         value: ${{ jobs.integrate.outputs.merged_count }}
 permissions:
   contents: read
 concurrency:
   group: integration-controller-develop
   cancel-in-progress: false
+
 jobs:
   integrate:
-    name: Integrate Ready PRs
-    if: inputs.rescue_mode != 'scan'
+    name: Integration Fast Lane
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
     permissions:
       contents: write
       pull-requests: write
@@ -47,49 +47,44 @@ jobs:
       statuses: write
       issues: write
     outputs:
-      sha: ${{ steps.queue.outputs.sha }}
-      verify: ${{ steps.queue.outputs.verify }}
-      retry: ${{ steps.queue.outputs.retry }}
-      cursor: ${{ steps.queue.outputs.cursor }}
-      merged_count: ${{ steps.queue.outputs.merged_count }}
+      sha: ${{ steps.fast-lane.outputs.sha }}
+      verify: ${{ steps.fast-lane.outputs.verify }}
+      retry: ${{ steps.fast-lane.outputs.retry }}
+      cursor: ${{ steps.fast-lane.outputs.cursor }}
+      merged_count: ${{ steps.fast-lane.outputs.merged_count }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: develop
           persist-credentials: false
+          sparse-checkout: scripts
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Record admitted controller wake
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const { data } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
-            await github.rest.repos.createCommitStatus({ ...context.repo, sha: data.commit.sha,
-              context: 'integration/wakeup', state: 'success',
-              description: 'Integration Controller admitted; duplicate wakeups are coalesced by concurrency',
-              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
-      - name: Evaluate Ready PRs and merge eligible heads as one batch
-        id: queue
+      - name: Merge every independently eligible exact head without waiting for DEV/browser
+        id: fast-lane
         env:
           GH_TOKEN: ${{ github.token }}
           INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-diagnostics.json
-          INTEGRATION_TIME_BUDGET_MS: '360000'
-          INTEGRATION_EVALUATION_CURSOR: ${{ inputs.integration_cursor || '0' }}
-        run: node scripts/integration-controller.mjs
+        run: node scripts/integration-fast-lane.mjs
+      - name: Request latest DEV and PULSE publication without waiting
+        if: ${{ !cancelled() && steps.fast-lane.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/integration-publication.mjs .deploy-state/integration.json
       - name: Notify integrated PRs separately from DEV delivery
         id: notify
-        if: steps.queue.outputs.merged_count != '0'
+        if: ${{ !cancelled() && steps.fast-lane.outputs.merged_count != '' && steps.fast-lane.outputs.merged_count != '0' }}
         continue-on-error: true
         env:
           NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
           NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
         run: node scripts/notify-delivery.mjs INTEGRATED .deploy-state/integration.json
-      - name: Record notification health
-        if: always() && steps.queue.outputs.merged_count != '0'
+      - name: Record notification health without affecting merge success
+        if: always() && steps.fast-lane.outputs.merged_count != '0'
         uses: actions/github-script@v8
         env:
-          FINAL_SHA: ${{ steps.queue.outputs.sha }}
+          FINAL_SHA: ${{ steps.fast-lane.outputs.sha }}
           CHANNEL: ${{ steps.notify.outputs.channel }}
           NOTIFY_OUTCOME: ${{ steps.notify.outcome }}
         with:
@@ -103,10 +98,29 @@ jobs:
               ...context.repo, sha: process.env.FINAL_SHA, context: 'notification/ntfy', state, description,
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             });
+      - name: Refresh PULSE from this existing Integration runner
+        if: always()
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo 'PULSE refresh skipped: CLOUDFLARE_API_TOKEN is not configured'
+            exit 0
+          fi
+          refresh_token=$(printf '%s' "$CLOUDFLARE_API_TOKEN|$GITHUB_REPOSITORY|rinne-ops-refresh-v1" | sha256sum | awk '{print $1}')
+          curl --fail-with-body --silent --show-error --max-time 120 \
+            -X POST 'https://rinne-ops.c-okamoto.workers.dev/api/refresh' \
+            -H "Authorization: Bearer $refresh_token" \
+            -H "x-ops-github-token: $GH_TOKEN" \
+            -H 'x-ops-refresh-reason: integration' \
+            -o /tmp/pulse-refresh.json
+          node --input-type=module -e "import fs from 'node:fs';const s=JSON.parse(fs.readFileSync('/tmp/pulse-refresh.json'));console.log('PULSE refresh:',s.pullSync?.mode||'unknown',s.githubApi?.requests??'?','GitHub requests');"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: integration-report
+          name: integration-fast-lane-report
           path: |
             .deploy-state/integration.json
             .deploy-state/integration-diagnostics.json
@@ -114,65 +128,38 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  queue-recovery:
-    name: Recover missed Ready CI and Integration requests
+  repair:
+    name: Fast Repair executor
     if: inputs.rescue_mode == 'scan'
-    runs-on: ubuntu-latest
-    timeout-minutes: 4
-    permissions:
-      contents: read
-      pull-requests: write
-      actions: write
-      checks: read
-      statuses: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: develop
-          persist-credentials: false
-          sparse-checkout: scripts
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-      - name: Re-evaluate current Ready heads without merging or editing branches
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: node scripts/integration-queue-recovery.mjs
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: integration-queue-recovery
-          path: .deploy-state/queue-recovery.json
-          include-hidden-files: true
-          retention-days: 7
-
-  rescue:
-    name: Parallel Integration Rescue
-    needs: [integrate, queue-recovery]
-    if: always()
     uses: ./.github/workflows/integration-rescue.yml
     permissions:
       contents: write
-      pull-requests: write
-      issues: write
+      pull-requests: read
       actions: write
-      checks: read
       statuses: write
     secrets: inherit
 
-  publisher-handoff:
-    name: Wake DEV Publisher for merged or unverified develop
-    needs: integrate
-    if: >-
-      needs.integrate.result == 'success' &&
-      (needs.integrate.outputs.merged_count != '0' || needs.integrate.outputs.verify == 'true')
+  continue-dependent-chain:
+    name: Wake next dependent Repair scan
+    needs: [integrate, repair]
+    if: always() && needs.integrate.result == 'success' && needs.integrate.outputs.merged_count != '0'
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     permissions:
       actions: write
+      contents: read
     steps:
-      - uses: actions/github-script@v8
+      - name: Wake Fast Repair on the latest develop after a successful merge batch
+        uses: actions/github-script@v8
+        env:
+          MERGED_COUNT: ${{ needs.integrate.outputs.merged_count }}
         with:
           script: |
+            const { data: branch } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
+            core.info(`Fast Lane merged ${process.env.MERGED_COUNT}; wake dependent scan at ${branch.commit.sha}`);
             await github.rest.actions.createWorkflowDispatch({
-              ...context.repo, workflow_id: 'deploy.yml', ref: 'develop', inputs: { publish_only: 'true' }
+              ...context.repo,
+              workflow_id: 'deploy.yml',
+              ref: 'develop',
+              inputs: { rescue_mode: 'scan', integration_cursor: '0' },
             });

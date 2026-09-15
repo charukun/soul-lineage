@@ -63,7 +63,10 @@ export function animateCreature(g,a,time,options={}){
 const pivot=new T.Vector3(0,.91,0),inverse=new T.Quaternion(),point=new T.Vector3();
 function applyFeastPose(g,strength){
  const k=Math.max(0,Math.min(1,strength)),p=sampleDevourMotion(0);
- Object.assign(p,{drop:-.04*k,pitch:.16-.32*k,headPitch:-.096-.25*k,jaw:.52*k,handX:.47+.30*k,handY:.71+.41*k,handZ:.05+.14*k,stance:k,throat:k});
+ // Open the chest and claws after swallowing; feet use the same planted solve.
+ Object.assign(p,{drop:-.04*k,pitch:.16-.32*k,headPitch:-.096-.25*k,
+  jaw:.52*k,handX:.47+.30*k,handY:.71+.41*k,handZ:.05+.14*k,
+  stance:k,throat:k});
  applyDevourPose(g,p);
  g.userData.torso.scale.x*=1+k*.10;
 }

@@ -1,4 +1,5 @@
 import { clamp } from './quality-math.js';
+import { validateMotionReferenceBenchmark } from './motion-reference-benchmark.js';
 import { createAuthoringReview, validateAuthoringReview, AUTHORING_STAGES, AUTHORING_GUIDE } from './motion-authoring.js';
 import { summarizeFrameComparisons } from './motion-frame-qa.js';
 export const MOTION_QA_VERSION=1;
@@ -68,11 +69,22 @@ export function validateQAReport(report) {
   const scan=(value,depth=0)=>{if(depth>24)throw new Error('QA nesting limit');if(typeof value==='number'&&!Number.isFinite(value))throw new Error('Non-finite QA data');if(value&&typeof value==='object')for(const v of Object.values(value))scan(v,depth+1);};scan(report);
   return report;
 }
-export function serializeQAReport(report) {const text=JSON.stringify(validateQAReport(report),null,2);if(text.length>1_000_000)throw new Error('QA report too large');return text;}
-export function deserializeQAReport(text) {if(typeof text!=='string'||text.length>1_000_000)throw new Error('QA report too large');return validateQAReport(JSON.parse(text));}
-export function createQAReport({build='',reviewer='human',review}) {return validateQAReport({schema:'character-motion-qa',version:1,build,reviewer,visualApproval:'pending',review,issues:[],authoring:createAuthoringReview()});}
+export function serializeQAReport(report) {
+  const text=JSON.stringify(validateQAReport(report),null,2);if(text.length>1_000_000)throw new Error('QA report too large');return text;
+}
+export function deserializeQAReport(text) {
+  if(typeof text!=='string'||text.length>1_000_000)throw new Error('QA report too large');return validateQAReport(JSON.parse(text));
+}
+export function createQAReport({build='',reviewer='human',review}) {
+  return validateQAReport({schema:'character-motion-qa',version:1,build,reviewer,visualApproval:'pending',review,issues:[],authoring:createAuthoringReview()});
+}
+export function attachMotionReferenceBenchmark(report,evidence) {
+  const valid=validateQAReport(report),benchmark=validateMotionReferenceBenchmark(evidence);
+  return validateQAReport({...valid,review:{...valid.review,motionReferenceBenchmark:benchmark}});
+}
 export function attachMotionPerceptionQA(report,evidence){validateQAReport(report);validateMotionPerceptionEvidence(evidence);const next={...report,motionPerception:evidence};validateQAReport(next);if(next.visualApproval!==report.visualApproval)throw new Error('Motion perception cannot approve visual quality');return next;}
 export function attachFrameComparisonQA(report,evidence){validateQAReport(report);validateFrameComparisons(evidence);const next={...report,frameComparisons:evidence};validateQAReport(next);if(next.visualApproval!==report.visualApproval)throw new Error('Frame comparison cannot approve visual quality');return next;}
 export function attachMotionKinematicsQA(report,evidence){validateQAReport(report);validateMotionKinematicsEvidence(evidence);const next={...report,motionKinematics:evidence};validateQAReport(next);if(next.visualApproval!==report.visualApproval)throw new Error('Motion kinematics cannot approve visual quality');return next;}
 export function attachMotionDeviceCalibration(report,evidence){validateQAReport(report);validateMotionDeviceCalibration(evidence);const next={...report,deviceCalibration:evidence};validateQAReport(next);if(next.visualApproval!==report.visualApproval)throw new Error('Device calibration cannot approve visual quality');return next;}
-export const QA_WORKER_CONTRACT=Object.freeze({version:1,input:'review conditions + deterministic frames + previous character-motion-qa report + observed reference and before/after 1x video + optional device evidence',output:'character-motion-qa report with authoring + optional motion-perception/frame-comparison/kinematics/device evidence',repairTargets:['motion','normalization','rig adapter','weapon calibration','appearance assets','anticipation / recovery','gaze','grip','secondary motion','pose corrective','combo continuity','silhouette readability','trajectory continuity','foot sliding','linear / angular jerk','motion LOD','paired interaction','locomotion transition','personality','fatigue / injury','frame regression','device motion budget'],authoringGuide:AUTHORING_GUIDE,authoringStages:AUTHORING_STAGES,approval:'explicit visual review; numeric diagnostics, device timings, frame comparisons and record completeness cannot approve'});
+// External workers implement this contract; the game contains no model API/client.
+export const QA_WORKER_CONTRACT=Object.freeze({version:1,input:'review conditions + deterministic frames + previous character-motion-qa report + observed reference and before/after 1x video + optional device evidence',output:'character-motion-qa report with authoring + optional motion-perception/frame-comparison/kinematics/device and motion-reference-benchmark evidence',referenceBenchmark:'optional motion-reference-benchmark evidence; criteria are diagnostics and never visual approval',repairTargets:['motion','normalization','rig adapter','weapon calibration','locomotion timing','root motion ownership','motion warp','impact coordination','appearance assets','anticipation / recovery','gaze','grip','secondary motion','pose corrective','combo continuity','silhouette readability','trajectory continuity','foot sliding','linear / angular jerk','motion LOD','paired interaction','locomotion transition','personality','fatigue / injury','frame regression','device motion budget'],authoringGuide:AUTHORING_GUIDE,authoringStages:AUTHORING_STAGES,approval:'explicit visual review; numeric/reference diagnostics, device timings, frame comparisons and record completeness cannot approve'});

@@ -13,6 +13,11 @@ const progress = document.querySelector('#boot-progress');
 try {
   progress.value = 1;
   await import('./asset-visuals.js');
+  await import('./authored-visual-lod.js');
+  await import('./stylized-visual-target.js');
+  await import('./adaptive-visual-performance.js');
+  await import('./runtime-resilience.js');
+  await import('./shared-world-scale.js');
   // Install shared human motion presentation before the game creates NightView.
   await import('./master-humans.js');
   await import('./motion-interactions.js');
