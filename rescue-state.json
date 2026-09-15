@@ -3323,6 +3323,46 @@
       "workerId": "integration/browser",
       "type": "BROWSER_REPAIR_NOTIFICATION",
       "action": "New browser FAILED Gmail self notification sent; dedupe browser-issue-303:run-34974719904; message 1a0a54094eca1e4d."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T1417Z:BROWSER_REPAIR_CLAIMED",
+      "at": "2026-09-15T14:35:30.000Z",
+      "pr": 312,
+      "workerId": "work/866e55ef0f5e/20260915T1417Z-browser303-a1",
+      "type": "BROWSER_REPAIR_CLAIMED",
+      "action": "Canonical Browser Repair Issue #303 claimed pending->working at attempt 1/3 by chatgpt-work:866e55ef0f5e. Source develop 66f24f5f is an ancestor of latest develop; created repair/browser-issue-303-a1 and Draft PR #312 before implementation."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T1417Z:BROWSER_REPAIR_RETURNED",
+      "at": "2026-09-15T14:35:30.000Z",
+      "pr": 312,
+      "workerId": "work/866e55ef0f5e/20260915T1417Z-browser303-a1",
+      "type": "BROWSER_REPAIR_RETURNED",
+      "action": "Artifact run 34974719904 identified nested Sprite raycast without active camera as the fatal renderer error. Set raycaster.camera and added regression coverage. npm ci, focused 8/8, trusted fast 775/775, and demon/rinne/village builds passed on develop eaf5f49c; merge commit 5bbef44d (tree c5476dfa; parents a09cf2f6 + eaf5f49c) pushed force=false and PR #312 marked Ready. Issue #303 remains working; GitHub browser verification exclusively owns the next state transition."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T1417Z:BROWSER_REPAIR_CYCLE_SUMMARY",
+      "at": "2026-09-15T14:35:30.000Z",
+      "pr": null,
+      "workerId": "work/866e55ef0f5e/20260915T1417Z-browser303-a1",
+      "type": "BROWSER_REPAIR_CYCLE_SUMMARY",
+      "action": "eligible_before=1; claimable_before=1; claimed=1; returned=1; human_required=0; eligible_after=0 for the current canonical Browser Repair generation. Integration Deep Repair pending duplicates #304/#305/#306 were not claimed: their recorded heads are stale relative to actual/merged PR heads; #299/#300/#302 are already owned/ready and #301 is human-required. ACTIVE 0 after handoff means no idle claimable canonical candidate, not that no repair lifecycle exists."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T1417Z:PULSE_CURRENT",
+      "at": "2026-09-15T14:35:30.000Z",
+      "pr": null,
+      "workerId": "work/866e55ef0f5e/20260915T1417Z-browser303-a1",
+      "type": "PULSE_CURRENT",
+      "action": "Latest develop eaf5f49c already has successful deploy/PULSE run 34982584241 and additional current runs; no duplicate publish-only trigger was started."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T1417Z:BROWSER_REPAIR_NOTIFICATION",
+      "at": "2026-09-15T14:35:30.000Z",
+      "pr": 312,
+      "workerId": "work/866e55ef0f5e/20260915T1417Z-browser303-a1",
+      "type": "BROWSER_REPAIR_NOTIFICATION",
+      "action": "SUCCESS Gmail self notification sent; dedupe browser-issue-303:pr-312:5bbef44d; message 1a0a57ef21ce8a6f."
     }
   ],
   "config": {
@@ -6143,6 +6183,22 @@
       "reason": "FAILED_MANUAL:CONTROL_OR_CONTRACT_RECONCILIATION",
       "sentAt": "2026-09-15T09:31:41.207Z",
       "type": "manual"
+    },
+    {
+      "attempt": 1,
+      "branch": "repair/browser-issue-303-a1",
+      "channel": "gmail-self",
+      "commit": "5bbef44d0bd86f5c9e17f2cebaae7c2a0446aa56",
+      "id": "gmail:1a0a57ef21ce8a6f",
+      "messageId": "1a0a57ef21ce8a6f",
+      "next": "GitHub exact-head CI/browser verification; browser-repair:v1 owns ready-for-integration/verified or retry transition",
+      "pr": 312,
+      "receiptSource": "Gmail send_email accepted message; smartphone delivery unverified",
+      "sentAt": "2026-09-15T14:35:30.000Z",
+      "stage": "artifact diagnosis + latest-develop merge-forward + npm ci + focused 8/8 + trusted fast 775/775 + 3 app builds + final fences + force=false push + Ready",
+      "status": "RETURNED_TO_INTEGRATION",
+      "type": "browser-repair-notice",
+      "workerId": "work/866e55ef0f5e/20260915T1417Z-browser303-a1"
     }
   ],
   "records": {
@@ -19602,9 +19658,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1239,
+  "revision": 1240,
   "schema": 1,
-  "updatedAt": "2026-09-15T13:28:02.026Z",
+  "updatedAt": "2026-09-15T14:35:30.000Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
