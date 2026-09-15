@@ -119,7 +119,7 @@ test('PULSE feature runs cannot be shown as public publication', () => {
   assert.equal(buildApplications({}, [], runs).find(a => a.id === 'ops-board').targets[0].commit, 'published');
 });
 
-test('workflow contract separates observation/validation and routes queue recovery through the reusable Controller', () => {
+test('workflow contract separates observation/validation and keeps rescue scan outside the Fast Lane writer', () => {
   const pulse = readFileSync('.github/workflows/ops-board.yml', 'utf8');
   const ci = readFileSync('.github/workflows/ci.yml', 'utf8');
   const deploy = readFileSync('.github/workflows/deploy.yml', 'utf8');
@@ -131,7 +131,8 @@ test('workflow contract separates observation/validation and routes queue recove
   assert.match(pulse, /group: rinne-ops-board-\$\{\{ github.ref \}\}/);
   assert.match(ci, /group: ci-.*'validation' \|\| 'observation'/);
   assert.match(deploy, /uses: \.\/\.github\/workflows\/integration-controller\.yml/);
-  assert.match(controller, /queue-recovery:[\s\S]*?inputs.rescue_mode == 'scan'[\s\S]*?integration-queue-recovery\.mjs/);
+  assert.match(controller, /repair:[\s\S]*?if: inputs\.rescue_mode == 'scan'[\s\S]*?uses: \.\/\.github\/workflows\/integration-rescue\.yml/);
+  assert.doesNotMatch(controller, /integration-queue-recovery\.mjs/);
 });
 
 test('live PR readiness wins over stale event Draft data; moved/closed heads do not validate', async () => {
@@ -166,14 +167,18 @@ test('PULSE CI display and failure history do not let observation success hide v
   assert.equal(actionProblems(runs, [f.pr]).current[0].id, 1);
 });
 
-test('bot merge hands off to Publisher, which publishes PULSE from the exact current develop source', () => {
+test('develop push drives Publisher, which coalesces stale pushes and publishes PULSE from the exact source', () => {
   const pulse = readFileSync('.github/workflows/ops-board.yml', 'utf8');
   const deploy = readFileSync('.github/workflows/deploy.yml', 'utf8');
   const controller = readFileSync('.github/workflows/integration-controller.yml', 'utf8');
+  const coalescer = readFileSync('.github/workflows/dev-publisher-coalescer.yml', 'utf8');
   assert.match(pulse, /workflow_call:[\s\S]*source_sha:/);
   assert.match(pulse, /ref: \$\{\{ env.OPS_SOURCE_SHA \}\}/);
   assert.match(pulse, /statuses\/\$OPS_SOURCE_SHA/);
-  assert.match(controller, /publisher-handoff:[\s\S]*publish_only: 'true'/);
+  assert.doesNotMatch(controller, /publisher-handoff:/);
+  assert.match(coalescer, /push:[\s\S]*branches: \[develop\]/);
+  assert.match(coalescer, /run\.event === 'push'/);
+  assert.match(coalescer, /cancelWorkflowRun/);
   assert.match(deploy, /uses: \.\/\.github\/workflows\/ops-board\.yml/);
   assert.match(deploy, /source_sha: \$\{\{ github\.sha \}\}/);
   const result = deploy.split('  result:')[1].split('  canary:')[0];

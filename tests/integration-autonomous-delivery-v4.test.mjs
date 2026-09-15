@@ -107,27 +107,30 @@ test('control canary treats notification as advisory while preserving delivery g
   assert.equal(broken.ok, false);
 });
 
-test('workflow contracts keep exact-head validation, reconciliation topology, candidate promotion, LKG fallback and no paid model API', async () => {
+test('workflow contracts keep exact-head fast merge, asynchronous browser repair, DEV verification, LKG fallback and no paid model API', async () => {
   const { readFileSync } = await import('node:fs');
   const ci = readFileSync('.github/workflows/ci.yml','utf8');
   const deploy = readFileSync('.github/workflows/deploy.yml','utf8');
   const controller = readFileSync('.github/workflows/integration-controller.yml','utf8');
+  const coalescer = readFileSync('.github/workflows/dev-publisher-coalescer.yml','utf8');
   const rescue = readFileSync('.github/workflows/integration-rescue.yml','utf8');
   assert.match(ci,/Validate and build/);
   assert.match(ci,/Affected browser smoke/);
   assert.match(ci,/integration-stack-ci\.mjs/);
   assert.match(ci,/integration-gate-cost\.mjs/);
+  assert.match(ci,/integration-request:[\s\S]*needs: \[readiness, build\]/);
+  assert.doesNotMatch(ci,/integration-request:[\s\S]*needs: \[readiness, build, browser\]/);
   assert.match(deploy,/Validate exact DEV candidate before public promotion/);
   assert.match(deploy,/Promote candidate to DEV Pages/);
   assert.match(deploy,/Restore Last Known Good DEV/);
   assert.match(deploy,/integration\/dev-fallback/);
   assert.match(controller,/integration-controller-develop/);
-  assert.match(controller,/Reconcile current GitHub reality/);
-  assert.match(controller,/Validate planned Virtual Integration Train/);
-  assert.match(controller,/Serialized expected-head writer/);
-  assert.match(controller,/publisher-handoff:[\s\S]*publish_only: 'true'/);
+  assert.match(controller,/Integration Fast Lane/);
+  assert.match(controller,/integration-fast-lane\.mjs/);
+  assert.doesNotMatch(controller,/Validate planned Virtual Integration Train/);
+  assert.doesNotMatch(controller,/publisher-handoff:/);
+  assert.match(coalescer,/run\.event === 'push' && run\.head_sha !== latestSha/);
   assert.match(rescue,/Observe repair pressure and knowledge/);
   assert.match(rescue,/Plan repair executor wave/);
-  assert.doesNotMatch(rescue,/Validate (planned )?Virtual Integration Train/);
-  assert.doesNotMatch(`${ci}\n${deploy}\n${controller}\n${rescue}`,/OPENAI_API_KEY|openai\/codex-action|RINNE_CODEX_MODEL/);
+  assert.doesNotMatch(`${ci}\n${deploy}\n${controller}\n${coalescer}\n${rescue}`,/OPENAI_API_KEY|openai\/codex-action|RINNE_CODEX_MODEL/);
 });
