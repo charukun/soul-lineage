@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {
   BROWSER_PLAYTEST_APPS,
-  browserPlaytestMarker,
   parseBrowserPlaytest,
   parseBrowserPlaytestValue,
   resolveBrowserPlaytestTargets,
@@ -44,12 +43,6 @@ test('invalid or ambiguous Browser-Playtest declarations fail closed', () => {
   );
 });
 
-test('marker comparison ignores unrelated PR body edits', () => {
-  const before = 'Title A\nBrowser-Playtest: RINNE, demon\nnotes';
-  const after = 'Title B\nBrowser-Playtest: RINNE, demon\nother notes';
-  assert.equal(browserPlaytestMarker(before), browserPlaytestMarker(after));
-});
-
 test('PR smoke reads explicit intent and writes a machine-readable receipt', async () => {
   const source = await read('scripts/browser/pr-smoke.mjs');
   assert.match(source, /GITHUB_EVENT_PATH/);
@@ -58,10 +51,15 @@ test('PR smoke reads explicit intent and writes a machine-readable receipt', asy
   assert.match(source, /resolveBrowserPlaytestTargets\(affectedApps, request\)/);
 });
 
-test('manual Browser Playtest workflow reuses the canonical PR playthrough runner', async () => {
-  const workflow = await read('.github/workflows/browser-playtest.yml');
-  assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /BROWSER_PLAYTEST:/);
-  assert.match(workflow, /node scripts\/browser\/pr-smoke\.mjs/);
-  assert.match(workflow, /browser-playtest-\$\{\{ steps\.target\.outputs\.sha \}\}/);
+test('no-code develop playtest reuses the existing full verification route', async () => {
+  const [deploy, verify, targets] = await Promise.all([
+    read('.github/workflows/deploy.yml'),
+    read('scripts/verify-browser.mjs'),
+    read('scripts/browser/target-contract.mjs'),
+  ]);
+  assert.match(deploy, /full_verification:/);
+  assert.match(deploy, /INTEGRATION_FULL: 'true'/);
+  assert.match(deploy, /node scripts\/verify-browser\.mjs/);
+  assert.match(verify, /full:process\.env\.INTEGRATION_FULL === 'true'/);
+  assert.match(targets, /const selected=available\.filter\(e=>full\|\|changed\.includes\(e\.path\)\)/);
 });
