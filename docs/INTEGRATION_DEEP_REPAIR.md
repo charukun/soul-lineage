@@ -2,7 +2,7 @@
 
 Fast Laneは通常Ready PRの唯一のmerge入口であり、Fast RepairはGitで機械的に安全なmerge-forwardだけを処理する。
 
-Fast Laneが真のmerge conflictまたはlarge-base reconciliationを検出した場合、旧Rescue queueや1時間watchdogを通常の起動条件にせず、そのcurrent exact headに対するDeep Repair handoffを同じIntegration passで即時に記録する。
+Fast Laneが真のmerge conflictを検出した場合、旧Rescue queueや1時間watchdogを通常の起動条件にせず、そのcurrent exact headに対するDeep Repair handoffを同じIntegration passで即時に記録する。large-base reconciliationはcomplete fail-closed comparisonでFast Laneに残し、サイズだけを理由にDeep Repairへ落とさない。
 
 ## Repository側の即時handoff
 
@@ -67,7 +67,8 @@ DEV publicationは各Fast Lane pass後に最新develop SHAへ明示dispatchさ�
 2. 同じheadを再評価してもIssueを重複生成しない。
 3. headが変わった場合は新しいexact headとして再評価する。
 4. Fast Repair可能なbehind/stack更新はDeep Repairへ送らない。
-5. Deep Repair要求中でも他のeligible PRはmergeされる。
-6. Browser/DEV repair/publication中でも新しい独立Ready PRはFast Laneへ入れる。
-7. main / Production gate、review/hold/thread/dependency gate、exact-head validationを弱めない。
-8. 追加OpenAI API/PAT/有料fallbackをRepositoryの通常制御面へ追加しない。
+5. large-baseはcomplete comparisonでFast Laneに残し、サイズだけでDeep Repairへ送らない。
+6. Deep Repair要求中でも他のeligible PRはmergeされる。
+7. Browser/DEV repair/publication中でも新しい独立Ready PRはFast Laneへ入れる。
+8. main / Production gate、review/hold/thread/dependency gate、exact-head validationを弱めない。
+9. 追加OpenAI API/PAT/有料fallbackをRepositoryの通常制御面へ追加しない。
