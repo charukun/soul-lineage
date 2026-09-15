@@ -28,9 +28,9 @@ test('Motion Library matches Lab styling and uses dense responsive motion grid',
   assert.match(html,/Visual Review Lab/);
   assert.match(css,/container-type:inline-size/);
   assert.match(css,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.match(css,/@container\(min-width:470px\).*repeat\(4/mins);
-  assert.match(css,/@container\(min-width:610px\).*repeat\(5/mins);
-  assert.match(css,/@container\(min-width:760px\).*repeat\(6/mins);
+  assert.ok(css.includes('@container(min-width:470px){.library-list{grid-template-columns:repeat(4,minmax(0,1fr))'));
+  assert.ok(css.includes('@container(min-width:610px){.library-list{grid-template-columns:repeat(5,minmax(0,1fr))'));
+  assert.ok(css.includes('@container(min-width:760px){.library-list{grid-template-columns:repeat(6,minmax(0,1fr))'));
   assert.match(css,/\.library-list\{[^}]*overflow-y:auto/);
   assert.match(script,/candidate\?'★'/);
 });
