@@ -1,11 +1,13 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const SHA256 = /^[0-9a-f]{64}$/;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const FORMAT = new Set(['glb', 'vrm']);
-const STAGE = new Set(['BLOCKOUT', 'PRIMARY']);
+const STAGE = new Set(['REFERENCE', 'BLOCKOUT', 'PRIMARY']);
+const REQUIRED_REFERENCE_VIEWS = ['front', 'side', 'back'];
 
 function fail(message) {
   throw new Error(`Character DCC request: ${message}`);
@@ -47,6 +49,11 @@ function arrayOfStrings(value, name) {
   return value.map((entry, index) => string(entry, `${name}[${index}]`));
 }
 
+function requireValues(actual, required, name) {
+  const values = new Set(actual);
+  for (const value of required) if (!values.has(value)) fail(`${name} must include ${value}`);
+}
+
 export function loadCharacterDccRequest(requestPath, { verifyFiles = false } = {}) {
   const relativeRequest = repoPath(requestPath, 'request path');
   let raw;
@@ -62,8 +69,10 @@ export function loadCharacterDccRequest(requestPath, { verifyFiles = false } = {
 
   const reference = {
     path: repoPath(raw.reference?.path, 'reference.path'),
-    sha256: sha(raw.reference?.sha256, 'reference.sha256')
+    sha256: sha(raw.reference?.sha256, 'reference.sha256'),
+    views: arrayOfStrings(raw.reference?.views, 'reference.views')
   };
+  requireValues(reference.views, REQUIRED_REFERENCE_VIEWS, 'reference.views');
   const rig = {
     path: repoPath(raw.rig?.path, 'rig.path'),
     sha256: sha(raw.rig?.sha256, 'rig.sha256'),
@@ -96,6 +105,7 @@ export function loadCharacterDccRequest(requestPath, { verifyFiles = false } = {
   for (const [key, value] of Object.entries(canonical)) {
     if (value.startsWith('generated/')) fail(`canonical.${key} cannot point into generated/`);
     if (value.startsWith('.github/')) fail(`canonical.${key} cannot modify workflow control files`);
+    if (value === '.dcc' || value.startsWith('.dcc/')) fail(`canonical.${key} cannot overwrite the DCC request`);
   }
 
   const license = {
@@ -107,12 +117,14 @@ export function loadCharacterDccRequest(requestPath, { verifyFiles = false } = {
     minMeshObjects: integer(raw.primary?.minMeshObjects, 'primary.minMeshObjects'),
     minMaterials: integer(raw.primary?.minMaterials, 'primary.minMaterials')
   };
+  requireValues(primary.separateSurfaces, ['skin', 'hair', 'clothing'], 'primary.separateSurfaces');
+
   const production = {
-    stage: string(raw.production?.stage ?? 'BLOCKOUT', 'production.stage').toUpperCase(),
+    stage: string(raw.production?.stage ?? 'REFERENCE', 'production.stage').toUpperCase(),
     productionReady: raw.production?.productionReady ?? false,
     visualApproval: string(raw.production?.visualApproval ?? 'pending', 'production.visualApproval')
   };
-  if (!STAGE.has(production.stage)) fail('production.stage may only be BLOCKOUT or PRIMARY in the carrier');
+  if (!STAGE.has(production.stage)) fail('production.stage may only be REFERENCE, BLOCKOUT or PRIMARY in the carrier');
   if (production.productionReady !== false) fail('productionReady must remain false in the carrier');
   if (production.visualApproval !== 'pending') fail('visualApproval must remain pending in the carrier');
 
@@ -123,11 +135,13 @@ export function loadCharacterDccRequest(requestPath, { verifyFiles = false } = {
     topologyReviewed: raw.review?.topologyReviewed ?? false
   };
   for (const [key, value] of Object.entries(review)) boolean(value, `review.${key}`);
-  if (production.stage === 'PRIMARY') {
-    for (const key of ['intentLocked', 'proportionsReviewed', 'silhouetteReviewed', 'topologyReviewed']) {
-      if (!review[key]) fail(`PRIMARY requires review.${key}=true`);
+  if (!review.intentLocked) fail('all carrier stages require review.intentLocked=true');
+  if (production.stage === 'BLOCKOUT' || production.stage === 'PRIMARY') {
+    for (const key of ['proportionsReviewed', 'silhouetteReviewed']) {
+      if (!review[key]) fail(`${production.stage} requires review.${key}=true`);
     }
   }
+  if (production.stage === 'PRIMARY' && !review.topologyReviewed) fail('PRIMARY requires review.topologyReviewed=true');
 
   const request = Object.freeze({
     requestPath: relativeRequest,
@@ -188,9 +202,10 @@ function summary(request) {
 }
 
 const [command, requestPath = '.dcc/character-dcc-request.json', outputPath] = process.argv.slice(2);
-if (import.meta.url === `file://${process.argv[1]}`) {
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain) {
   try {
-    const request = loadCharacterDccRequest(requestPath, { verifyFiles: command !== 'schema' });
+    const request = loadCharacterDccRequest(requestPath, { verifyFiles: true });
     if (command === 'validate') {
       console.log(JSON.stringify(summary(request), null, 2));
     } else if (command === 'emit-env') {
