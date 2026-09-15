@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {birthTourLine,birthTourPace,birthTourStops,createBirthTour} from '../src/rebuild/birth-tour.js';
+import {BIRTH_TOUR_PACE,birthTourLine,birthTourPace,birthTourStops,createBirthTour} from '../src/rebuild/birth-tour.js';
 
 const stations=[
   {id:'home',x:-4,z:-4,radius:2,label:'家'},{id:'garden',x:0,z:0,radius:3,label:'広場'},{id:'school',x:-5,z:2,radius:2,label:'学校'},
@@ -13,11 +13,12 @@ test('birth tour uses village life facilities and skips port or equipment racks'
   assert.deepEqual(birthTourStops(stations).map(row=>row.id),['garden','home','school','library','chapel','dojo','smith','clinic']);
 });
 
-test('tour pace scales with village spread while keeping manual movement slightly faster',()=>{
+test('tour pace scales with village spread but passive travel stays within village guard pace',()=>{
   const compact=birthTourPace(stations),wide=birthTourPace(stations.map(row=>({...row,x:row.x*3,z:row.z*3})));
+  assert.deepEqual(BIRTH_TOUR_PACE,{autoMin:3.6,autoMax:4.6,manualMin:4.25,manualMax:5.2,manualRatio:1.13});
   assert.equal(compact.autoSpeed,3.6);assert.equal(compact.manualSpeed,4.25);
+  assert.equal(wide.autoSpeed,4.6);assert.equal(wide.manualSpeed,5.2);
   assert.ok(wide.autoSpeed>compact.autoSpeed);assert.ok(wide.manualSpeed>wide.autoSpeed);
-  assert.ok(wide.autoSpeed<=5.8);assert.ok(wide.manualSpeed<=6.85);
 });
 
 test('facility narration belongs only to tour facilities',()=>{
