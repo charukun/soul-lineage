@@ -41,7 +41,16 @@ export async function verifyVillagePlaythrough(browser,url,out){
   await check('title fits 320, 390 and 820 CSS pixel widths',async()=>{
    const boxes=[];for(const width of [320,390,820]){await page.setViewportSize({width,height:844});await page.waitForTimeout(100);const r=await page.evaluate(()=>{const h=document.querySelector('#muraEntryCard h2'),p=h.parentElement;return{left:h.getBoundingClientRect().left,right:h.getBoundingClientRect().right,parentRight:p.getBoundingClientRect().right,textFits:h.scrollWidth<=h.clientWidth,pageFits:document.documentElement.scrollWidth<=innerWidth};});assert.ok(r.textFits&&r.pageFits&&r.right<=r.parentRight);boxes.push({width,...r});}await page.setViewportSize({width:390,height:844});await screenshot('01-title');return boxes;
   });
-  await tap('#muraEnterVillage');await tap('#muraSettingsButton');await tap('#muraDeveloperOpen');await page.selectOption('#muraDevSpeed','0');await tap('#muraDialogBack');
+  await tap('#muraEnterVillage');
+  // The dedicated first-build smoke walks the complete first-run guide with real
+  // touch/pointer input. This broader regression isolates its own controls.
+  const guide=page.locator('#muraFirstRunGuide');
+  if(await guide.count()){
+   await guide.waitFor({state:'visible'});
+   await tap('.muraFirstRunSkip');
+   await guide.waitFor({state:'detached'});
+  }
+  await tap('#muraSettingsButton');await tap('#muraDeveloperOpen');await page.selectOption('#muraDevSpeed','0');await tap('#muraDialogBack');
   await check('settings retain the same actions after help and developer back',async()=>{
    const buttons=()=>page.locator('.settingsGrid button').allTextContents(),before=await buttons();
    assert.equal(await page.locator('#exportSave,#loadSave,#muraDevSpeed,#muraDevTilt').count(),0);

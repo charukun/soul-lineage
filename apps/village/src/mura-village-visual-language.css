@@ -3,4 +3,14 @@ body:before,body:after{content:"";position:fixed;inset:0;pointer-events:none}
 body:before{z-index:3;background:radial-gradient(ellipse at 50% 44%,transparent 55%,rgba(53,73,62,.035) 74%,rgba(35,52,45,.12) 100%);mix-blend-mode:multiply}
 body:after{z-index:3;opacity:.07;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 4px),radial-gradient(circle at 23% 31%,rgba(255,236,188,.10) 0 1px,transparent 1.8px);background-size:100% 4px,43px 47px}
 #game{filter:saturate(1.025) contrast(1.018)}
+
+/* The persistent village hints use the same paper/wood language as the world.
+   Avoid the generic floating-pill look after the first-run guide hands off. */
+#tutorial{border-radius:6px!important;clip-path:polygon(2% 0,98% 1%,100% 14%,99% 88%,96% 100%,3% 99%,0 84%,1% 10%);border:1px solid rgba(91,78,52,.38)!important;background:radial-gradient(circle at 12% 18%,rgba(255,255,255,.42),transparent 24%),repeating-linear-gradient(92deg,rgba(89,73,45,.025) 0 1px,transparent 1px 5px),linear-gradient(145deg,rgba(248,239,213,.96),rgba(222,212,177,.95))!important;box-shadow:0 8px 24px rgba(46,60,40,.18),inset 0 0 0 3px rgba(255,250,230,.28)!important}
+#tutorialAction{border-radius:4px!important;font-family:"Yu Mincho","Hiragino Mincho ProN",serif;font-weight:650;letter-spacing:.035em}
+#tutorialCount{border-radius:2px!important;background:rgba(105,116,80,.08);border-color:rgba(105,91,58,.34)!important}
+#dismissTutorial{border-radius:3px!important}
+.card.recommended{border-color:rgba(139,116,72,.58)!important;background:radial-gradient(circle at 50% 12%,rgba(255,248,220,.7),transparent 52%),linear-gradient(180deg,rgba(237,225,192,.86),rgba(218,210,177,.58))!important;box-shadow:inset 0 0 0 2px rgba(255,250,229,.24),0 5px 14px rgba(75,82,56,.08)}
+.card.muraTutorialTarget{outline:2px solid rgba(139,116,72,.72);outline-offset:3px}
+
 @media(prefers-reduced-motion:reduce){#game{filter:saturate(1.012) contrast(1.012)}}
