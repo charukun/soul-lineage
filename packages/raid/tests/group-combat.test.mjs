@@ -37,6 +37,23 @@ test('nearby attacking villagers enter one combat without waiting for the first 
  assert.ok([a,b,c].every(n=>n.state==='combat'));
 });
 
+test('held approach input is released from automatic combat until the pointer is lifted',()=>{
+ const session=makeSession(),runner=session.village.npcs[0];
+ runner.behavior='flee';runner.x=0;runner.z=3.2;
+ const held={x:0,z:1,amount:1,active:true,dash:false};
+ session.tick(1/60,held);
+ assert.equal(session.fight?.npc,runner);assert.equal(session.combatInputLatched,true);
+ const seen=[],core=session.fight.core,originalInput=core.input.bind(core);
+ core.input=(x,z,amount,...rest)=>{seen.push([x,z,amount]);return originalInput(x,z,amount,...rest);};
+ session.tick(1/60,held);
+ assert.deepEqual(seen.at(-1),[0,0,0]);assert.equal(session.combatInputLatched,true);
+ session.tick(1/60,input);
+ assert.equal(session.combatInputLatched,false);
+ const retreat={x:0,z:-1,amount:.8,active:true,dash:false};
+ session.tick(1/60,retreat);
+ assert.deepEqual(seen.at(-1),[0,-1,.8]);
+});
+
 test('attacking villagers rally from outside join range while fleeing villagers keep running',()=>{
  const session=makeSession(),[primary,fighter,runner]=session.village.npcs;
  primary.behavior='fight';fighter.behavior='fight';runner.behavior='flee';
