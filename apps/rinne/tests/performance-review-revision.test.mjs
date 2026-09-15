@@ -19,8 +19,11 @@ test('30-second score visibly draws, performs, then sheathes inside the fixed du
 });
 
 test('directional movement is pinned, left-foot synchronized and covers back/side steps',()=>{
-  assert.equal(DIRECTIONAL_STEP_REFERENCE.repository,'J-Ponzo/gltf-universal-animation-library');
-  assert.match(DIRECTIONAL_STEP_REFERENCE.repositoryRevision,/^[0-9a-f]{40}$/);
+  assert.equal(DIRECTIONAL_STEP_REFERENCE.repository,'norio/vrm-game-starter');
+  assert.equal(DIRECTIONAL_STEP_REFERENCE.repositoryRevision,'b14c236fd8150855348ad085b7820c298eac4b30');
+  assert.equal(DIRECTIONAL_STEP_REFERENCE.repositoryPath,'src/assets/AnimationLibrary.glb');
+  assert.equal(DIRECTIONAL_STEP_REFERENCE.repositoryBlob,'8ce67624ba3bb4d2ca20a4ac188fe38ceaaab97e');
+  assert.match(DIRECTIONAL_STEP_REFERENCE.guidanceRevision,/^[0-9a-f]{40}$/);
   assert.equal(DIRECTIONAL_STEP_REFERENCE.license,'CC0-1.0');
   const samples=[0,.1,.2,.35,.5,.7,.85,1].map(p=>sampleDirectionalStep({step:'back-left'},p));
   assert.ok(samples.every(sample=>sample.leadFoot==='left'));
