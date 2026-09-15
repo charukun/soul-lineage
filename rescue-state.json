@@ -3419,6 +3419,22 @@
       "workerId": "work/866e55ef0f5e/20260915T151530Z-browser328-a1",
       "type": "BROWSER_REPAIR_NOTIFICATION",
       "action": "SUCCESS Gmail self notification sent; dedupe browser-issue-328:pr-331:876751ca; message 1a0a5afb09830beb."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T151530Z:POST_RETURN_MERGED",
+      "at": "2026-09-15T15:30:42.268Z",
+      "pr": 331,
+      "workerId": "work/866e55ef0f5e/20260915T151530Z-browser328-a1",
+      "type": "POST_RETURN_MERGED",
+      "action": "Final source-of-truth re-read found PR #331 merged into develop at 2026-09-15T15:29:10Z as 425f171d02934a86e0f014b86967803c18e540e6. This occurred after Ready handoff; issue #328 remains open/working pending its browser-owned transition."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T151530Z:POST_MERGE_PULSE",
+      "at": "2026-09-15T15:30:42.268Z",
+      "pr": 331,
+      "workerId": "work/866e55ef0f5e/20260915T151530Z-browser328-a1",
+      "type": "POST_MERGE_PULSE",
+      "action": "Develop advanced to merge 425f171d02934a86e0f014b86967803c18e540e6. Existing exact-head DEV/PULSE runs 34988769893, 34988794847, and 34988884864 were already in progress/pending; no duplicate publish-only trigger was started."
     }
   ],
   "config": {
@@ -19730,9 +19746,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1242,
+  "revision": 1243,
   "schema": 1,
-  "updatedAt": "2026-09-15T15:29:52.555Z",
+  "updatedAt": "2026-09-15T15:30:42.268Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
