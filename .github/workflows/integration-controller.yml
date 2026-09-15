@@ -123,6 +123,7 @@ jobs:
     timeout-minutes: 2
     permissions:
       actions: write
+      contents: read
     steps:
       - name: Wake Fast Repair on the latest develop after a successful merge batch
         uses: actions/github-script@v8
