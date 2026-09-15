@@ -3,7 +3,7 @@ import {verifyHuntClarity} from './play-clarity.mjs';
 import {capturePlayedAudio,mediaDiagnostics} from './media-diagnostics.mjs';
 import {parseBrowserPlaytest,parseBrowserPlaytestValue,resolveBrowserPlaytestTargets} from './playtest-routing.mjs';
 import { execFileSync, spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
@@ -14,9 +14,17 @@ const plan = JSON.parse(execFileSync(process.execPath, ['scripts/affected.mjs', 
 const changedFiles = execFileSync('git', ['diff', '--name-only', base, head], { cwd: root, encoding: 'utf8' });
 const wantsPeerHostMigration = /^(?:apps\/village\/src\/(?:online\.js|friend-visit\.js|peer-|runtime-scale-stack\.js)|apps\/rinne\/src\/online\.js|apps\/demon\/src\/(?:web\/online\.js|peer-authority-pause\.js)|packages\/network\/src\/(?:peer(?:-|\.)|village-|friend-visit-authority|raid-host)|packages\/shared-ui\/src\/world-darkness\.js|scripts\/peer-host-chaos\.mjs|scripts\/browser\/peer-(?:host-migration-smoke|network-harness)\.mjs|tests\/peer-host)/m.test(changedFiles);
 const plannedApps = plan.infrastructure ? plan.allApps : plan.apps;
+
+function eventPullRequestBody() {
+  if (process.env.PR_BODY) return process.env.PR_BODY;
+  if (!process.env.GITHUB_EVENT_PATH) return '';
+  const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+  return event?.pull_request?.body || '';
+}
+
 const request = process.env.BROWSER_PLAYTEST
   ? parseBrowserPlaytestValue(process.env.BROWSER_PLAYTEST)
-  : parseBrowserPlaytest(process.env.PR_BODY || '');
+  : parseBrowserPlaytest(eventPullRequestBody());
 const affectedApps = [...new Set([...plannedApps, ...(wantsPeerHostMigration ? ['village'] : [])])];
 const apps = resolveBrowserPlaytestTargets(affectedApps, request);
 const ports = { rinne: 5273, village: 5274, demon: 5275 };
