@@ -4,11 +4,11 @@ import {storyPlaces} from './story-world.js';
 export const GIFTS = {bell:'小さな鈴', stone:'丸い石', feather:'白い羽根'};
 export const PLACES = storyPlaces();
 export const EXPERIENCES = {study:'学び',read:'読書',pray:'祈り',care:'世話',play:'運動',observe:'観察',track:'追跡'};
-const DISCOVERIES = [
-  {id:'attention',name:'観察からの閃き',needs:{observe:2,study:2}},
-  {id:'compassion',name:'守りの閃き',needs:{care:2,pray:2}},
-  {id:'footwork',name:'足運びの閃き',needs:{play:2,track:2}},
-  {id:'understanding',name:'読書からの閃き',needs:{read:3,study:2}},
+export const DISCOVERIES = [
+  {id:'attention',name:'見切りの一閃',needs:{observe:2,study:2}},
+  {id:'compassion',name:'守り手の一撃',needs:{care:2,pray:2}},
+  {id:'footwork',name:'踏み込みの一閃',needs:{play:2,track:2}},
+  {id:'understanding',name:'識者の一撃',needs:{read:3,study:2}},
 ];
 const copy = value => JSON.parse(JSON.stringify(value));
 const finite = (n,min=0,max=1e12) => typeof n==='number' && Number.isFinite(n) && n>=min && n<=max;
@@ -17,7 +17,7 @@ function newborn(generation=1,worldSeconds=0){
   return {version:1,generation,phase:'birth',zone:'village',bornAt:worldSeconds,lastWorld:worldSeconds,
     gifts:[],experiences:Object.fromEntries(Object.keys(EXPERIENCES).map(k=>[k,0])),discoveries:[],pendingDiscoveries:[],
     activity:null,resting:false,downedSeconds:0,front:0,cleared:false,departedAt:null,returnAt:0,
-    rescue:null,rescued:0,victories:0,history:[],events:[],residents:names.map((name,i)=>({id:`resident-${i}`,name,bornAt:worldSeconds-(12+i*5)*60}))};
+    rescue:null,rescued:0,victories:0,returns:0,skillUses:[],history:[],events:[],residents:names.map((name,i)=>({id:`resident-${i}`,name,bornAt:worldSeconds-(12+i*5)*60}))};
 }
 export class Story {
   constructor(saved=null,layout){this.state=saved?Story.validate(saved):newborn();this.places=storyPlaces(layout);}
@@ -38,8 +38,12 @@ export class Story {
     if(!Array.isArray(s.events)||s.events.length>40||s.events.some(e=>typeof e!=='string'||e.length>200))throw Error('出来事の記録が不正です。');
     if(!Array.isArray(s.residents)||s.residents.length>30||s.residents.some(r=>typeof r.id!=='string'||typeof r.name!=='string'||r.name.length>30||!finite(r.bornAt,-10000)))throw Error('村人の記録が不正です。');
     if(s.phase==='birth'&&s.zone!=='village')throw Error('出生場所が不正です。');
+    s.returns ??= 0;s.skillUses ??= [];
+    if(!Number.isInteger(s.returns)||s.returns<0||s.returns>1e7||!Array.isArray(s.skillUses)||s.skillUses.length>60||new Set(s.skillUses).size!==s.skillUses.length||s.skillUses.some(id=>typeof id!=='string'||!/^story-\d+-(attention|compassion|footwork|understanding)$/.test(id)))throw Error('旅と技の記録が不正です。');
     return s;
   }
+  learning(){return DISCOVERIES.map(d=>({...d,progress:Object.entries(d.needs).map(([kind,needed])=>({kind,needed,count:this.state.experiences[kind]})),pending:this.state.pendingDiscoveries.includes(d.id),learned:this.state.discoveries.includes(d.id)&&!this.state.pendingDiscoveries.includes(d.id)}));}
+  recordSkill(id){const s=this.state;if(s.zone!=='frontier'||s.phase!=='living'||typeof id!=='string'||!/^story-\d+-(attention|compassion|footwork|understanding)$/.test(id)||s.skillUses.includes(id)||s.skillUses.length>=60)return false;s.skillUses.push(id);this.log('暮らしで覚えた技を、前線で使った。');return true;}
   snapshot(){return copy(this.state);}
   log(text){this.state.events.unshift(text);this.state.events.length=Math.min(40,this.state.events.length);return text;}
   nearest(position){return this.places.reduce((a,p)=>Math.hypot(p.x-position.x,p.z-position.z)<Math.hypot(a.x-position.x,a.z-position.z)?p:a);}
@@ -54,7 +58,7 @@ export class Story {
   }
   travel(frame){const s=this.state;if(frame.hero.dead||s.phase!=='living')return false;const port=this.places.find(p=>p.id==='port');
     if(s.zone==='village'){if(!this.canDepart(frame.life)||!this.near(port,frame.hero))return false;s.zone='frontier';s.front=0;s.cleared=false;s.departedAt=frame.life.worldSeconds;s.rescue={status:'waiting',x:1,z:-3};this.log('船に乗り、第一前線へ向かった。');}
-    else {if(!this.near({x:-5,z:3},frame.hero))return false;s.zone='village';s.returnAt=frame.life.worldSeconds+60;s.rescue=null;this.log('村へ帰還した。次の出航まで少なくとも一年を過ごす。');}
+    else {if(!this.near({x:-5,z:3},frame.hero))return false;s.zone='village';s.returnAt=frame.life.worldSeconds+60;s.rescue=null;s.returns++;this.log('村へ帰還した。次の出航まで少なくとも一年を過ごす。');}
     s.activity=null;s.resting=false;return true;
   }
   nextFront(frame){const s=this.state;if(s.zone!=='frontier'||!s.cleared||frame.hero.dead||s.front>=5||s.rescue?.status==='carried')return false;s.front++;s.cleared=false;s.rescue={status:'waiting',x:1,z:-3};this.log(s.front===5?'最終前線へ。将との戦いが始まる。':`第${s.front+1}前線へ進んだ。`);return true;}
@@ -72,7 +76,7 @@ export class Story {
     if(s.activity){const p=this.places.find(p=>p.id===s.activity.place);if(p&&!this.near(p,frame.hero)){s.activity=null;this.log('移動したので、生活行動を中断した。');}
       else if((s.activity.remaining-=realSeconds)<=0){const k=s.activity.kind;s.experiences[k]++;s.activity=null;this.log(`${EXPERIENCES[k]}の経験を得た。`);}}
     if(s.resting){effects.push(this.near(this.places.find(p=>p.id==='clinic'),frame.hero)?'heal-clinic':'heal');}
-    for(const d of DISCOVERIES)if(!s.discoveries.includes(d.id)&&Object.entries(d.needs).every(([k,n])=>s.experiences[k]>=n)){s.discoveries.push(d.id);s.pendingDiscoveries.push(d.id);this.log(`${d.name}。技目録で受け取れる。`);}
+    for(const d of DISCOVERIES)if(!s.discoveries.includes(d.id)&&Object.entries(d.needs).every(([k,n])=>s.experiences[k]>=n)){s.discoveries.push(d.id);s.pendingDiscoveries.push(d.id);this.log(`「${d.name}」を閃いた。暮らしと支度で受け取ろう。`);}
     if(s.zone==='frontier'&&!s.cleared&&frame.enemies.length>0&&frame.enemies.every(e=>e.dead)){s.cleared=true;s.victories++;this.log(s.front===5?'将を退けた。村へ帰る船が待っている。':`第${s.front+1}前線を突破した。`);}
     // Residents share the world clock, but are not invented biological parents.
     s.residents=s.residents.filter(r=>frame.life.worldSeconds-r.bornAt<5400);

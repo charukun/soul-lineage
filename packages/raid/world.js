@@ -9,6 +9,7 @@ export const PREY={
  arcanist:{name:'術師',power:'影渡り',glyph:'影',desc:'素早いスワイプで影を跳ぶ。壁の向こうへは移動しない。',hp:110,weapon:'sword',color:0x757a9c},
  knight:{name:'守護騎士',power:'刃骨',glyph:'骨',desc:'爪を骨刃へ変える。輪廻転焦の刀の技で戦う。',hp:145,weapon:'katana',color:0xabbcc4}
 };
+export function villagerBehavior(role){return PREY[role]?.weapon==='fist'?'flee':'fight';}
 export const FORMS={hollow:{name:'虚ろ仔',desc:'狩りを覚えたばかりの異形。',need:0},stalker:{name:'夜這い',desc:'足が伸び、移動と追跡に優れる。',need:2},brute:{name:'骸喰い',desc:'骨の鎧をまとう。生命と重い爪に優れる。',need:4},wraith:{name:'喪の翼',desc:'裂けた翼を持つ、影を渡る異形。',need:6}};
 export function random(seed){let a=seed|0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 export function hash(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
@@ -36,7 +37,7 @@ export function makeVillage(v){const r=random(v.seed||hash(v.id)),entities=[],co
  function blocked(x,z){return colliders.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+.6);}
  for(let i=0;i<positions.length;i++){let [x,z]=positions[i];for(let tries=0;blocked(x,z)&&tries<50;tries++){x=(r()-.5)*35;z=(r()-.5)*40;}
  const role=i===6?v.target:keys[i],d=PREY[role];if(i===6){x=-3;z=role==='traveller'?10:['arcanist','acolyte'].includes(role)?-18:-12;}
- const names=['イェル','ルッツ','サラ','エッダ','グラム','ノア','ヴェラ','クルト'];npcs.push({id:`${v.id}:human:${i}`,kind:'human',adult:true,role,name:i===6?d.name+' '+names[Math.floor(r()*names.length)]:d.name,x,z,homeX:x,homeZ:z,yaw:r()*6.28,hp:d.hp+(i===6?18:0),maxhp:d.hp+(i===6?18:0),state:'idle',clock:r()*5,walk:0,marked:i===6,dead:false,eaten:false,fear:0});}
+ const names=['イェル','ルッツ','サラ','エッダ','グラム','ノア','ヴェラ','クルト'];npcs.push({id:`${v.id}:human:${i}`,kind:'human',adult:true,role,behavior:villagerBehavior(role),name:i===6?d.name+' '+names[Math.floor(r()*names.length)]:d.name,x,z,homeX:x,homeZ:z,yaw:r()*6.28,hp:d.hp+(i===6?18:0),maxhp:d.hp+(i===6?18:0),state:'idle',clock:r()*5,walk:0,marked:i===6,dead:false,eaten:false,fear:0});}
  if(v.source!=='imported-local')colliders.push({x:0,z:-26,r:3.2,type:'chapel'});
  return{...v,entities,colliders,npcs,entry,bell,chapel,bounds:ext,gate:{x:0,z:1.5,r:2.05,broken:false},shelter:{x:0,z:-23,r:3.1}};
 }

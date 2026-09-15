@@ -8,6 +8,8 @@ export const SLASH_SECONDS = .66;
 export const SLASH_TIMING = Object.freeze({active:Object.freeze([.35,.64]),contact:.50,launch:.34,plant:.49,chain:.86,lead:1});
 export const SLASH_REVISION = 'shino-slash-1';
 export const SWORD_FREE_GUARD = Object.freeze([.16,-.29,.20]);
+export const SLASH_ROOT_TRAVEL = Object.freeze({forward:.55,standoff:1.05,source:'controller-owned-bounded-warp',units:'world-metres',authoritative:false});
+export const SLASH_WARP_WINDOW = Object.freeze({turnEnd:.14,warpStart:.18,contact:SLASH_TIMING.contact,maxDistance:.55,maxAcquireDistance:2.60,maxAcquireAngle:Math.PI*.75});
 const clamp = (x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 
 // Monotone cubic interpolation keeps momentum through intermediate poses without
@@ -33,19 +35,13 @@ export function poseCurve(rows, t) {
 }
 
 const body = {
-  // Hips lead the chest; the weapon stays loaded until the forward foot lands.
   hips:[[0,0,0,0],[.22,-.04,-.32,-.035],[.34,-.09,-.36,-.045],[.44,-.12,.04,-.035],[.50,-.14,.35,-.02],[.62,-.10,.53,.025],[.78,-.055,.38,.015],[1,0,0,0]],
   spine:[[0,0,0,0],[.26,.025,-.16,.045],[.38,-.015,-.20,.04],[.50,-.10,.15,-.07],[.62,-.085,.27,-.06],[.80,-.03,.16,-.025],[1,0,0,0]],
   chest:[[0,0,0,0],[.30,.04,-.14,.03],[.40,.015,-.16,.015],[.50,-.05,.08,-.06],[.62,-.07,.19,-.045],[.80,-.015,.09,-.015],[1,0,0,0]],
   head:[[0,0,0,0],[.34,-.015,.33,0],[.50,.055,-.28,.04],[.66,.04,-.44,.025],[.82,.02,-.22,0],[1,0,0,0]],
   offset:[[0,0,-.028,0],[.24,-.040,-.135,-.040],[.35,-.030,-.145,-.015],[.47,.035,-.115,.13],[.55,.045,-.115,.16],[.70,.025,-.070,.115],[.84,.013,-.048,.055],[1,0,-.028,0]],
-  // These are hand targets, not a generic circular blade orbit.
   grip:[[0,-.19,-.37,.35],[.22,-.36,-.15,.075],[.35,-.42,-.10,.005],[.44,-.40,-.14,.25],[.50,-.055,-.27,.49],[.59,.32,-.44,.36],[.72,.31,-.52,.10],[.84,.15,-.44,.20],[1,-.19,-.37,.35]],
-  // Blade direction is spherical (yaw/elevation), with the cutting plane rolling
-  // through the wrist instead of a direction-vector lerp collapsing at opposition.
   blade:[[0,.398,1.15,0],[.25,-1.68,.94,-.38],[.37,-1.83,.82,-.52],[.44,-1.40,.38,-.48],[.50,0,.02,-.15],[.59,1.47,-.30,.25],[.72,1.94,-.40,.46],[.84,1.50,.30,.36],[1,.398,1.15,0]],
-  // Match the relaxed one-handed guard at both seams. The free hand can then lead the
-  // cut without teleporting between two different targets at attack start/end.
   shield:[[0,...SWORD_FREE_GUARD],[.30,.22,-.25,.18],[.50,.29,-.29,.19],[.65,.34,-.28,.14],[.84,.24,-.27,.17],[1,...SWORD_FREE_GUARD]],
   lead:[[0,.045,0,.10],[.16,.045,0,.10],[.31,.070,.065,.19],[.46,.10,0,.34],[.73,.10,0,.34],[.87,.070,.045,.22],[1,.045,0,.10]],
   rear:[[0,-.045,0,-.10],[.35,-.070,0,-.10],[.56,-.075,.010,-.105],[.72,-.045,.018,-.06],[.88,-.045,0,-.045],[1,-.045,0,-.10]],
@@ -77,7 +73,6 @@ export function applyAuthoredSlash(runtime,c,phase,definition=SLASH_TIMING) {
   for(const [side,key]of [['left','lead'],['right','rear']]){
     const target=c.neutralPoints[side+'Foot'].clone().add(new T.Vector3(...pose[key]).multiplyScalar(s));
     runtime.solve(c,side,'leg',target,new T.Vector3(side==='left'?.15:-.15,0,1),true);
-    // Keep the sole level during support, while the rear heel pivots into the cut.
     const p=slashTime(phase,definition.contact),yaw=pose.hips[1]*(side==='right'?.70:.20);
     const heel=side==='right'?poseCurve([[0,0],[.35,0],[.60,.16],[.78,.08],[1,0]],p)[0]:0;
     runtime.setWorldQ(c,side+'Foot',new T.Quaternion().setFromEuler(new T.Euler(-heel,yaw,0,'YXZ')));
@@ -86,9 +81,6 @@ export function applyAuthoredSlash(runtime,c,phase,definition=SLASH_TIMING) {
   const grip=new T.Vector3(x*s,c.shoulderY+y*s,z*s);
   const dir=new T.Vector3(Math.sin(yaw)*Math.cos(elevation),Math.sin(elevation),Math.cos(yaw)*Math.cos(elevation));
   runtime.attachHands(c,'sword',grip,dir,roll,1);
-  // attachHands gives the sword free hand its neutral guard orientation. Moving that
-  // arm to the authored shield target must not make the wrist inherit the parent-arm
-  // rotation; otherwise the wrist snaps back by ~90 degrees when the attack ends.
   const freeHandQ=c.bones.leftHand?.getWorldQuaternion(new T.Quaternion());
   const [lx,ly,lz]=pose.shield;
   runtime.solve(c,'left','arm',new T.Vector3(lx*s,c.shoulderY+ly*s,lz*s),new T.Vector3(.6,-1,0));

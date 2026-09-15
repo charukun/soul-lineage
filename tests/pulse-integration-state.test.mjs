@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { STALL_WARNING_MS, classifyPull, overallIntegration } from '../ops-board/model.mjs';
+import { actionProblems } from '../ops-board/review-model.mjs';
 
 const ciRun = (sha, time) => ({
   name: 'CI', head_sha: sha, status: 'completed', conclusion: 'success',
@@ -37,4 +38,24 @@ test('PULSE flags a delivery workflow whose heartbeat is stale', () => {
   assert.equal(state.label, 'DEV delivery停止疑い');
   assert.equal(state.tone, 'danger');
   assert.equal(state.stalled, true);
+});
+
+test('verified exact DEV publication is not overwritten by a later advisory workflow failure', () => {
+  const run = { status: 'completed', conclusion: 'failure', updated_at: '2026-09-15T00:00:00Z' };
+  const verified = overallIntegration([], run, [], Date.parse('2026-09-15T00:01:00Z'), { deliveryVerified: true });
+  assert.equal(verified.label, '正常');
+  assert.equal(verified.tone, 'ok');
+  const unverified = overallIntegration([], run, [], Date.parse('2026-09-15T00:01:00Z'), { deliveryVerified: false });
+  assert.equal(unverified.label, 'Failed');
+  assert.equal(unverified.tone, 'danger');
+});
+
+test('failed develop workflow moves to history when the exact SHA is already publicly verified', () => {
+  const sha = 'a'.repeat(40);
+  const run = { id: 1, workflow_id: 2, name: 'Deploy DEV and PROD', head_branch: 'develop', head_sha: sha,
+    event: 'push', status: 'completed', conclusion: 'failure', created_at: '2026-09-15T00:00:00Z' };
+  const result = actionProblems([run], [], { verifiedDevelopSha: sha });
+  assert.equal(result.current.length, 0);
+  assert.equal(result.history.length, 1);
+  assert.equal(result.history[0].historyLabel, 'DEV公開検証済み・補助処理の記録');
 });

@@ -25,7 +25,23 @@ export class RaidSession {
  engage(npc){if(this.finished||npc.dead||npc.eaten)return;const p=this.player,ox=p.x,oz=p.z,d=PREY[npc.role];this.fight={npc,ox,oz,core:null,lastHp:p.hp,lastEnemyHp:npc.hp,events:0,retreat:0,learned:false};const c=createTidebreakRuntime({seed:hash(npc.id),onImpact:e=>this.emit('impact',{...e,x:e.x+ox,z:e.z+oz})});this.fight.core=c;
  const skill=this.skillSet(npc);c.configure({...skill,hp:p.hp,maxhp:p.maxhp,enemyHp:npc.hp,enemyWeapon:npc.echo?.weapon||d.weapon,enemyStyle:npc.role==='knight'?'counter':['traveller','bellkeeper','gravekeeper'].includes(npc.role)?'cautious':'balanced',mindset:this.profile.form==='stalker'?'elusive':this.profile.form==='brute'?'steadfast':'balanced',positions:{hero:{x:0,z:0},enemy:{x:npc.x-ox,z:npc.z-oz}},enemyLoadout:npc.echo?.loadout,colliders:[...this.village.colliders,...(!this.village.gate.broken?[-1.7,0,1.7].map(x=>({x,z:this.village.gate.z,r:.7})):[]),...(!this.has('acolyte')?[{...this.village.shelter}]:[])].filter(o=>Math.hypot(o.x-ox,o.z-oz)<11).map(o=>({...o,x:o.x-ox,z:o.z-oz}))});
  npc.state='combat';this.alarm=Math.min(100,this.alarm+8*(this.has('bellkeeper')?.5:1));this.idleFor=0;this.player.autoRoam=false;this.emit('engage',{npc});}
- consume(n){if(n.eaten)return;n.eaten=true;n.dead=true;this.eaten++;this.targetEaten||=n.marked;this.player.hp=Math.min(this.player.maxhp,this.player.hp+(this.has('traveller')?75:42));this.alarm=Math.min(100,this.alarm+(n.role==='bellkeeper'?0:12)*(this.has('bellkeeper')?.5:1));if(n.role==='bellkeeper'){this.alarm=Math.max(0,this.alarm-18);this.emit('bell-silenced');}this.ports.consume?.(n.role);this.emit('consume',{npc:n,role:n.role,goal:!!n.marked});}
+ consume(n){
+  if(n.eaten)return;
+  const before={hp:this.player.hp,maxhp:this.player.maxhp,unlocked:this.profile.unlocked.length,known:this.profile.unlocked.includes(n.role)};
+  n.eaten=true;n.dead=true;this.eaten++;this.targetEaten||=n.marked;
+  this.player.hp=Math.min(this.player.maxhp,this.player.hp+(this.has('traveller')?75:42));
+  this.alarm=Math.min(100,this.alarm+(n.role==='bellkeeper'?0:12)*(this.has('bellkeeper')?.5:1));
+  if(n.role==='bellkeeper'){this.alarm=Math.max(0,this.alarm-18);this.emit('bell-silenced');}
+  this.ports.consume?.(n.role);
+  // Snapshot after the persistence port refreshes the permanent-power profile.
+  // Presentation must not award a second, imaginary gain.
+  this.emit('consume',{npc:n,role:n.role,goal:!!n.marked,at:this.time,reward:{
+   healed:Math.max(0,this.player.hp-before.hp),maxHpGain:Math.max(0,this.player.maxhp-before.maxhp),
+   memoryNew:!before.known&&this.profile.unlocked.includes(n.role),equipped:this.has(n.role),
+   unlockedBefore:before.unlocked,unlockedCount:this.profile.unlocked.length
+  }});
+ }
+
  finish(status){if(this.finished)return;this.finished=true;if(this.fight)this.rememberFight(this.fight);cancelDevour(this);this.player.speed=0;this.player.autoRoam=false;this.ports.finish?.(status,this.eaten);this.emit('finish',{status,eaten:this.eaten,target:this.targetEaten});}
  addGuard(){if(this.guardSent)return;this.guardSent=true;const echo=this.profile.echo,n={id:this.village.id+':guardian',kind:'human',adult:true,role:'knight',name:echo?'読み込んだ守護者':'夜警の討伐騎士',x:2,z:-22,homeX:2,homeZ:-22,yaw:0,hp:echo?220:175,maxhp:echo?220:175,state:'pursue',clock:0,walk:0,marked:false,dead:false,eaten:false,echo};this.village.npcs.push(n);this.emit('guardian',{echo:!!echo});}
  tick(dt,input){if(this.finished)return;dt=Math.min(dt,1/30);this.time+=dt;for(const k of ['scent','scentCooldown','shadowCooldown','wardCooldown','safeTime'])this[k]=Math.max(0,this[k]-dt);const p=this.player,w=this.village;let v=input||{x:0,z:0,amount:0,screenX:0,screenY:0};
