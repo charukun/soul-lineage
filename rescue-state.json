@@ -3137,7 +3137,8 @@
       "pr": null,
       "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
       "type": "WORK_REPAIR_CYCLE_SUMMARY",
-      "action": "eligible_before=3; claimable_before=2; claimed=1; returned=0; human_required=0; eligible_after=3"
+      "action": "eligible_before=3; claimable_before=2; claimed=1; returned=0; human_required=0; eligible_after=5; PR #197 pushed at d01569b7092ec2f6dc23cc137376df7185e57794 but baseline advanced to 90da2b79a2219bfb9bee0699886cf6cf596cf782; state/head resync and revalidation required",
+      "correctedAt": "2026-09-15T10:07:34.554Z"
     },
     {
       "id": "pr-197:WORK_REPAIR_NOTIFICATION_SENT:1789466752315:1225",
@@ -19177,9 +19178,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1226,
+  "revision": 1227,
   "schema": 1,
-  "updatedAt": "2026-09-15T10:05:52.315Z",
+  "updatedAt": "2026-09-15T10:07:34.554Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
