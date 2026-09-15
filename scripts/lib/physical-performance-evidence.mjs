@@ -33,6 +33,7 @@ function isoTimestamp(value) {
 export function classifyCaptureSource(capture) {
   if (!plain(capture)) return 'unknown';
   const syntheticSignals = [
+    capture.sourceClassification,
     capture.evidenceKind,
     capture.captureOrigin,
     capture.preset?.deviceClass,
