@@ -48,7 +48,7 @@ function setStatus(text,error=false){const node=q('#library-status');node.textCo
 function disposeRoot(){
   if(!root)return;
   root.traverse(node=>{node.geometry?.dispose?.();for(const material of Array.isArray(node.material)?node.material:node.material?[node.material]:[]){for(const value of Object.values(material))if(value?.isTexture)value.dispose?.();material.dispose?.();}});
-  root.removeFromParent();root=null;mixer=null;action=null;clips=[];currentClip='';
+  root.removeFromParent();root=null;mixer=null;action=null;clips=[];currentClip='';updateCandidate();
 }
 function frame(){
   if(!root)return;
@@ -94,7 +94,7 @@ async function loadModel(id){
 
 q('#library-search').addEventListener('input',renderList);
 q('#library-play').onclick=()=>{if(!action)return;playing=!playing;action.paused=!playing;q('#library-play').textContent=playing?'一時停止':'再生';};
-q('#library-speed').onclick=()=>{speed=speed===1?.5:1;q('#library-speed').textContent=`${speed}×`;};
+q('#library-speed').onclick=()=>{speed=speed===1?0.5:1;q('#library-speed').textContent=`${speed}×`;};
 q('#library-restart').onclick=()=>{if(!action)return;action.reset().play();action.paused=!playing;};
 q('#library-candidate').onclick=()=>{const key=candidateKey();if(!key)return;if(candidates.has(key))candidates.delete(key);else candidates.add(key);saveCandidates();updateCandidate();};
 
