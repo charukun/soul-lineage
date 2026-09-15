@@ -19,8 +19,8 @@ let active = false;
 let frameReady = false;
 let mainWasPlaying = false;
 let previousStage = null;
-let previousModelStates = [];
-let latestState = {mode: 'sequence'};
+const previousModelStates = new Map();
+let latestState = {mode: 'sequence', model: 'compact'};
 
 function targetOrigin() {
   return location.origin;
@@ -33,9 +33,10 @@ function send(command, value) {
 
 function ensureFrame() {
   if (frame.getAttribute('src')) return;
-  const url=new URL(frame.dataset.src,location.href);
-  const weapon=new URLSearchParams(location.search).get('performanceWeapon');
+  const url=new URL(frame.dataset.src,location.href),params=new URLSearchParams(location.search);
+  const weapon=params.get('performanceWeapon'),model=params.get('performanceModel');
   if(weapon)url.searchParams.set('weapon',weapon);
+  url.searchParams.set('model',model==='shino'?'shino':'compact');
   frame.src=url.href;
 }
 
@@ -44,29 +45,54 @@ function writeURL() {
   if (active) {
     url.searchParams.set('tab', 'performance');
     url.searchParams.set('performance', latestState.mode || 'sequence');
+    url.searchParams.set('performanceModel',latestState.model==='shino'?'shino':'compact');
     if(latestState.weapon)url.searchParams.set('performanceWeapon',latestState.weapon);
   } else {
     url.searchParams.delete('tab');
-    url.searchParams.delete('performance');url.searchParams.delete('performanceWeapon');
+    url.searchParams.delete('performance');
+    url.searchParams.delete('performanceModel');
+    url.searchParams.delete('performanceWeapon');
   }
   history.replaceState(null, '', url);
+}
+
+function performanceChipId() {
+  return latestState.model === 'shino' ? 'SHINO' : 'motion-library.knight';
 }
 
 function setPerformanceModelState(on) {
   const chips = [...document.querySelectorAll('.model-chip')];
   if (on) {
-    previousModelStates = chips.map(chip => [chip, chip.classList.contains('active'), chip.disabled]);
     for (const chip of chips) {
-      chip.classList.toggle('active', chip.dataset.model === 'SHINO');
-      chip.disabled = chip.dataset.model !== 'SHINO';
+      if (!previousModelStates.has(chip)) previousModelStates.set(chip,{active:chip.classList.contains('active'),disabled:chip.disabled});
+      const selected=chip.dataset.model===performanceChipId();
+      chip.classList.toggle('active',selected);
+      chip.disabled=!selected;
     }
   } else {
-    for (const [chip, wasActive, wasDisabled] of previousModelStates) {
-      chip.classList.toggle('active', wasActive);
-      chip.disabled = wasDisabled;
+    for (const [chip,state] of previousModelStates) {
+      if(!chip.isConnected)continue;
+      chip.classList.toggle('active',state.active);
+      chip.disabled=state.disabled;
     }
-    previousModelStates = [];
+    previousModelStates.clear();
   }
+}
+
+function installPerformanceModelControl() {
+  const page=q('[data-review-page="演舞"]'),weapon=q('#performance-weapon');
+  if(!page||!weapon)return false;
+  const help=page.querySelector('.sequence-help');
+  if(help)help.textContent='30秒演舞は既存のデフォルメKnightを主表示し、SHINOを比較用に残します。抜刀→序破急→納刀は同じ30秒スコアです。';
+  if(q('#performance-model'))return true;
+  const label=document.createElement('label');label.className='performance-field';label.textContent='演舞のキャラ';
+  const select=document.createElement('select');select.id='performance-model';select.disabled=true;
+  select.append(new Option('2頭身候補 / Knight','compact'),new Option('SHINO / 比較','shino'));
+  select.value=latestState.model||'compact';select.addEventListener('change',event=>{
+    latestState.model=event.target.value==='shino'?'shino':'compact';
+    setPerformanceModelState(active);writeURL();send('model',latestState.model);
+  });
+  label.append(select);weapon.closest('label')?.before(label);return true;
 }
 
 function setActive(next) {
@@ -76,6 +102,7 @@ function setActive(next) {
   viewport.classList.toggle('performance-active', active);
   frame.hidden = !active;
   canvas.hidden = active;
+  installPerformanceModelControl();
   setPerformanceModelState(active);
   if (active) {
     previousStage = {
@@ -128,6 +155,7 @@ function installPrimarySwitch() {
   const skillPage = q('[data-review-page="skill"]');
   const performancePage = q('[data-review-page="演舞"]');
   if (!notebook || !skillPage || !performancePage) return false;
+  installPerformanceModelControl();
   const secondary = q('.review-secondary-disclosure');
   if (secondary?.contains(performancePage)) notebook.insertBefore(performancePage, secondary);
   if (performanceTab) performanceTab.hidden = true;
@@ -158,8 +186,9 @@ queueMicrotask(installPrimarySwitch);
 
 frame.addEventListener('load', () => {
   frameReady = true;
-  const requested = new URLSearchParams(location.search).get('performance');
+  const params=new URLSearchParams(location.search),requested=params.get('performance'),model=params.get('performanceModel');
   if (requested && modeLabels[requested]) send('mode', requested);
+  send('model',model==='shino'?'shino':'compact');
   send('state');
 });
 
@@ -175,14 +204,16 @@ function updateControls(state) {
     button.classList.toggle('active', on);
     button.setAttribute('aria-pressed', String(on));
   });
+  installPerformanceModelControl();
   const ready = Boolean(latestState.ready);
-  for (const id of ['#performance-play','#performance-restart','#performance-prev','#performance-next','#performance-seek','#performance-weapon','#performance-detail']) q(id).disabled = !ready;
+  for (const id of ['#performance-play','#performance-restart','#performance-prev','#performance-next','#performance-seek','#performance-weapon','#performance-detail','#performance-model']) q(id).disabled = !ready;
   q('#performance-play').textContent = latestState.playing ? '一時停止' : '再生';
   q('#performance-speed').value = String(latestState.speed || 1);
   q('#performance-repeat').checked = Boolean(latestState.repeat);
   q('#performance-compare').checked = Boolean(latestState.compare);
   q('#performance-compare').disabled = !latestState.canCompare;
   q('#performance-weapon').value=latestState.weapon||'sword';
+  q('#performance-model').value=latestState.model==='shino'?'shino':'compact';
   q('#performance-detail').checked=Boolean(latestState.handDetail);
   q('#performance-trail').checked = Boolean(latestState.trail);
   q('#performance-seek').max = String(latestState.duration || 1);
@@ -191,8 +222,9 @@ function updateControls(state) {
   q('#performance-time').textContent = latestState.timeLabel || `${Number(latestState.time || 0).toFixed(1)} / ${Number(latestState.duration || 0).toFixed(1)} 秒`;
   q('#performance-status').textContent = latestState.status || (ready ? '演舞を確認できます。' : '演舞を読み込んでいます。');
   if (active) {
+    setPerformanceModelState(true);
     q('#motion-name').textContent = latestState.label || modeLabels[latestState.mode] || '演舞';
-    q('#motion-meta').textContent = `${modeLabels[latestState.mode] || '演舞'} / ${q('#performance-time').textContent}`;
+    q('#motion-meta').textContent = `${latestState.model==='shino'?'SHINO':'Knight'} / ${modeLabels[latestState.mode] || '演舞'} / ${q('#performance-time').textContent}`;
     q('#review-status').textContent = latestState.status || '演舞を確認できます';
     q('#review-status').dataset.kind = latestState.error ? 'error' : '';
   }
@@ -225,6 +257,7 @@ q('#performance-next').addEventListener('click', () => send('step', 1));
 document.querySelectorAll('[data-performance-view]').forEach(button => button.addEventListener('click', () => send('view', button.dataset.performanceView)));
 
 const initial = new URLSearchParams(location.search);
+latestState.model=initial.get('performanceModel')==='shino'?'shino':'compact';
 if (initial.get('tab') === 'performance') {
   const mode = initial.get('performance');
   if (modeLabels[mode]) latestState.mode = mode;
