@@ -30,7 +30,7 @@ test('100年人生 boots the world before revealing the title',async()=>{
 test('clean bootstrap prewarms renderer/world and start buttons only bind a life state',async()=>{
  const main=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
  const boot=main.slice(main.indexOf('async function boot'),main.indexOf('async function launch'));
- const launch=main.slice(main.indexOf('async function launch'),main.indexOf('refreshContinue();'));
+ const launch=main.slice(main.indexOf('async function launch'),main.indexOf('retry.addEventListener'));
  assert.match(boot,/import\('\.\/rebuild\/runtime\.js'\)/);assert.match(boot,/prepareRuntime\(/);assert.match(main,/void boot\(\)/);
  assert.match(launch,/startRuntime\(/);assert.match(launch,/prepared,/);assert.doesNotMatch(launch,/import\(/);assert.doesNotMatch(launch,/prepareRuntime\(/);
  assert.match(main,/prepared\?\.dispose\?\.\(\)/);assert.doesNotMatch(main,/from ['"]\.\/title\/controller\.js['"]/);assert.doesNotMatch(main,/from ['"]\.\/story\/controller\.js['"]/);
