@@ -82,14 +82,17 @@ function visualCandidate(kind, fallback, view) {
   const candidate = CANDIDATES[kind];
   if (!candidate) return fallback;
   const root = new T.Group();
+  const fallbackNode = fallback?.clone?.(true) || fallback;
   root.name = `MURAAAAAAA_${kind}`;
   root.userData.assetSource = SOURCE;
   root.userData.assetCandidate = candidate.file;
   root.userData.assetUrl = candidateUrl(candidate.file);
-  if (fallback) root.add(fallback);
+  if (fallbackNode) root.add(fallbackNode);
   loadTemplate(kind, view).then(template => {
     const model = prepare(template.clone(true), candidate);
-    if (fallback) fallback.visible = false;
+    // Never hide or reparent the shared procedural cache. Each consumer owns
+    // its fallback clone until the session-cached authored template is ready.
+    if (fallbackNode) root.remove(fallbackNode);
     root.add(model);
     root.userData.assetLoaded = true;
     root.userData.compression = { meshopt: true, ktx2: true };

@@ -1,32 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import vm from 'node:vm';
+import fs from 'node:fs';
+import {World,FURNITURE} from '../src/game/core.js';
+import {availableFurniture,canEditRoom} from '../src/game/housing-access.js';
 
-// Execute the real legacy UI timer bodies without booting their WebGL decoration.
-// The renderer has already applied unlock visibility when either interval fires.
-for(const file of ['mura-ux-polish-4.js','mura-ux-polish-4b.js']){
- test(`${file}: facility timer preserves furniture visibility between render frames`,()=>{
-  const cards=[{dataset:{kind:'dirtbed'},hidden:false},{dataset:{kind:'bed'},hidden:true}];
-  const nodes={housingModeTitle:{},housingModeText:{},build:{hidden:true}};
-  const defs={storage:{building:true,capacity:0},dirtbed:{furniture:true},bed:{furniture:true,unlock:['plank','cloth']}};
-  const world={object:id=>id==='store'?{kind:'storage'}:null,state:{known:[]}};
-  const view={roomId:'store'},timers=[];
-  class World {add(){} move(){} remove(){}}
-  const context={World,defs,world,view,window:{village:{world,view}},document:{getElementById:id=>nodes[id],querySelectorAll:()=>cards},setInterval:fn=>timers.push(fn)};
-  context.$=context.document.getElementById;
-  const source=readFileSync(new URL(`../src/${file}`,import.meta.url),'utf8');
-  const code=file.endsWith('4b.js')?source.replace(/^import .*;\n/gm,''):source.slice(source.indexOf('function enableMayorFacilityHousing(){'),source.indexOf('\nfunction protectClanHomes(){'))+'\nenableMayorFacilityHousing();';
-  vm.runInNewContext(code,context);
-  assert.equal(timers.length,1);
-  for(let tick=0;tick<6;tick++){
-   timers[0]();
-   assert.equal(nodes.build.hidden,false,'mayor can still open facility interiors');
-   assert.equal(cards[0].hidden,false,'starter bed remains available');
-   assert.equal(cards[1].hidden,true,'locked furniture must not reappear between render frames');
-  }
-  // A later renderer frame may unlock a new furnishing; timers also preserve it.
-  world.state.known.push('plank','cloth');cards[1].hidden=false;
-  timers[0]();assert.equal(cards[1].hidden,false);
- });
-}
+test('consolidated catalog preserves furniture visibility between render frames',()=>{
+ const world=new World();world.objects.push({id:'store',kind:'storage',phase:'built',room:[],x:80,z:30,rot:0});
+ assert.equal(canEditRoom(world,'store'),true);
+ const before=availableFurniture(world,'store',FURNITURE).map(d=>d.id);
+ for(let frame=0;frame<6;frame++)assert.deepEqual(availableFurniture(world,'store',FURNITURE).map(d=>d.id),before);
+ world.state.known.push('plank','cloth');
+ const after=availableFurniture(world,'store',FURNITURE).map(d=>d.id);
+ for(let frame=0;frame<6;frame++)assert.deepEqual(availableFurniture(world,'store',FURNITURE).map(d=>d.id),after);
+ assert.ok(after.length>=before.length);
+});
+
+test('retired compatibility modules cannot overwrite renderer visibility',()=>{
+ const main=fs.readFileSync(new URL('../src/web/main.js',import.meta.url),'utf8');
+ assert.match(main,/availableFurniture\(world,view\.roomId,FURNITURE\)/);
+ for(const file of ['mura-ux-polish-4.js','mura-ux-polish-4b.js']){
+  const source=fs.readFileSync(new URL(`../src/${file}`,import.meta.url),'utf8');
+  assert.ok(!source.includes('setInterval('));
+  assert.ok(!source.includes('card.hidden='));
+ }
+});
