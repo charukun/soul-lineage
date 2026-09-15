@@ -137,7 +137,7 @@ export function evaluateExternalReferenceConsensus(referenceIds, observation, { 
   const references = ids.map(getExternalCharacterReference);
   const independent = new Map();
   for (const reference of references) {
-    if (reference.observations.includes(observed)) independent.set(reference.sourceKey, reference.id);
+    if (reference.observations.includes(observed)) independent.set(reference.repository, reference.id);
   }
   const supportingReferenceIds = [...independent.values()].sort();
   return deepFreeze({
@@ -344,7 +344,8 @@ export function buildCharacterCoverageMatrix(targets, {
     }
     const externalReferences = [...linkedExternalIds].map(getExternalCharacterReference);
     const production = productionAssets.map(candidate => productionRecord(candidate, target)).filter(Boolean);
-    const golden = goldenBaselines.filter(item => goldenMatches(item, target));
+    const golden = goldenBaselines.filter(item =>
+      goldenMatches(item, target) && production.some(row => row.productionReady && row.id === item.assetId));
     const ready = production.some(item => item.productionReady);
     const hasReference = localReferences.length > 0 || externalReferences.length > 0;
     const status = golden.length ? 'golden' : ready ? 'runtime-ready' : production.length ? 'in-production' : hasReference ? 'reference-only' : 'missing';
