@@ -7,6 +7,7 @@ import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { createRinneCharacterStage } from './runtime-character-stage.js';
 import { renderPixelRatio, targetFpsForView } from './performance.js';
 import { cameraOffsetForPosition, createCameraPositionControl } from './camera-position-control.js';
+import { rinneCombatCameraFrame } from './combat-camera.js';
 import './camera-position-control.css';
 
 const disposeObject=root=>root?.traverse?.(o=>{if(o.geometry?.dispose)o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])if(m?.dispose)m.dispose();});
@@ -64,9 +65,11 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   applyStylizedShading(root,'environment');applyStylizedShading(frontRoot,'environment');
 
   const characterStage=await createRinneCharacterStage({renderer,scene,frontRoot,weaponVisual,mat,disposeObject});
-  const {syncEquipment,syncFront,updateFront,setCarrierMotion}=characterStage;
+  const {syncEquipment,setCarrierMotion}=characterStage;let currentFront=null;
+  function syncFront(front){currentFront=front||null;characterStage.syncFront(front);}
+  function updateFront(front){currentFront=front||null;characterStage.updateFront(front);}
 
-  const target=new THREE.Vector3(),desired=new THREE.Vector3(),moveVector=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),camOffset=new THREE.Vector3(10.5,11.5,14.5);let elapsed=0;
+  const target=new THREE.Vector3(),cameraLook=new THREE.Vector3(),desired=new THREE.Vector3(),moveVector=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),camOffset=new THREE.Vector3(10.5,11.5,14.5);let elapsed=0,cameraLookReady=false;
   const cameraControl=createCameraPositionControl({document:doc,container:canvas.parentElement,onChange:position=>{camOffset.set(...cameraOffsetForPosition(position));canvas.dataset.cameraPosition=String(Math.round(position*100));}});
   function resize(){const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
@@ -82,8 +85,11 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   function canMoveTo(x,z,radius=.32,zone='village'){if(zone==='frontier')return Math.abs(x)<7.15-radius&&z>-6.45+radius&&z<6.1-radius;return !muraBlocked(layout,x,z,radius);}
   function renderState(state,dt=0){
     elapsed+=dt;if(dt>0&&!doc.hidden)qualityGovernor.observeFrame(dt);characterStage.render(state,dt);
-    const birth=state.phase==='birth',village=state.zone==='village';root.visible=village;frontRoot.visible=!village;
-    target.set(state.position.x,1.15,state.position.z);desired.copy(target).add(camOffset);camera.position.lerp(desired,1-Math.pow(.001,Math.min(.05,dt||.016)));camera.lookAt(target);
+    const village=state.zone==='village';root.visible=village;frontRoot.visible=!village;
+    const combatFrame=rinneCombatCameraFrame({player:state.position,enemies:currentFront?.enemies,targetId:state.combat?.targetId,active:!!state.combat});cameraControl.setCombat(!!combatFrame);canvas.dataset.combatCamera=String(!!combatFrame);
+    if(combatFrame){target.set(combatFrame.look.x,combatFrame.look.y,combatFrame.look.z);desired.set(target.x+combatFrame.offset.x,target.y+combatFrame.offset.y,target.z+combatFrame.offset.z);}
+    else{target.set(state.position.x,1.15,state.position.z);desired.copy(target).add(camOffset);}
+    const step=Math.min(.05,dt||.016),positionBlend=1-Math.exp(-(combatFrame?5.6:6.9)*step),lookBlend=1-Math.exp(-(combatFrame?7.2:9.2)*step);camera.position.lerp(desired,positionBlend);if(!cameraLookReady){cameraLook.copy(target);cameraLookReady=true;}else cameraLook.lerp(target,lookBlend);camera.lookAt(cameraLook);
     if(village){terrain.waterMat.uniforms.time.value=elapsed;terrain.motes.position.y=Math.sin(elapsed*.35)*.15;}
     renderer.render(scene,camera);
   }
