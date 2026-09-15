@@ -1,5 +1,6 @@
 name: CI
-# Metadata/review wakeups have no authority to cancel a required validation run.
+# Validation and browser diagnostics are independent. Fast Lane may merge after the
+# exact-head fast artifact succeeds; browser smoke continues asynchronously.
 run-name: >-
   CI ${{ (github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review","converted_to_draft"]'), github.event.action)) && 'validation' || 'observation' }} #${{ github.event.pull_request.number }} ${{ github.event.pull_request.head.sha }}
 on:
@@ -237,11 +238,37 @@ jobs:
           overwrite: true
           retention-days: 14
 
+  integration-request:
+    name: Request Integration
+    needs: [readiness, build]
+    if: >-
+      always() && !cancelled() &&
+      (needs.build.result == 'success' ||
+      (needs.build.result == 'skipped' && (github.event_name == 'pull_request_review' ||
+      contains(fromJSON('["edited","labeled","unlabeled"]'), github.event.action)))) &&
+      github.event.pull_request.base.ref == 'develop' &&
+      needs.readiness.outputs.ready == 'true' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      actions: write
+      pull-requests: read
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: context.payload.pull_request.number });
+            if (pr.state !== 'open' || pr.draft || pr.base.ref !== 'develop' ||
+                pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+                pr.head.sha !== context.payload.pull_request.head.sha) return;
+            await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'deploy.yml', ref: 'develop' });
+
   browser:
     name: Affected browser smoke
     needs: build
     if: >-
-      github.event_name == 'pull_request' &&
+      github.event_name == 'pull_request' && needs.build.result == 'success' &&
       github.event.pull_request.base.ref == 'develop' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
@@ -313,36 +340,3 @@ jobs:
                 repair_artifact: process.env.ARTIFACT
               }
             });
-
-  integration-request:
-    name: Request Integration
-    needs: [readiness, build, browser]
-    if: >-
-      always() && !cancelled() &&
-      ((needs.build.result == 'success' && needs.browser.result == 'success') ||
-      (needs.build.result == 'skipped' && (github.event_name == 'pull_request_review' ||
-      contains(fromJSON('["edited","labeled","unlabeled"]'), github.event.action)))) &&
-      github.event.pull_request.base.ref == 'develop' &&
-      needs.readiness.outputs.ready == 'true' &&
-      github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-      pull-requests: read
-    steps:
-      - uses: actions/github-script@v8
-        with:
-          script: |
-            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: context.payload.pull_request.number });
-            if (pr.state !== 'open' || pr.draft || pr.base.ref !== 'develop' ||
-                pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
-                pr.head.sha !== context.payload.pull_request.head.sha) return;
-            for (let attempt = 0; attempt < 3; attempt++) {
-              try {
-                await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'deploy.yml', ref: 'develop' });
-                return;
-              } catch (error) {
-                if (attempt === 2 || (error.status && error.status < 500 && error.status !== 429)) throw error;
-                await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
-              }
-            }
