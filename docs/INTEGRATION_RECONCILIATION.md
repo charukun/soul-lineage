@@ -58,9 +58,9 @@ DEV公開後のfocused browserも同様にdelivery health / repair evidenceと�
 
 ## DEV Publisher
 
-Fast Lane mergeでdevelopが進むとpushがPublisherを起こす。`DEV Publisher Coalescer`は古いpush由来`deploy.yml` runだけを取消し、最新develop SHAへ収束させる。
+Fast Laneのbot merge後は`GITHUB_TOKEN`によるpush連鎖を期待せず、最新developへ`deploy.yml`の`publish_only=true`・`automatic_publish=true`を明示dispatchする。公開要求処理は古いpush/自動公開runを取り消し、同じSHAの稼働中publisherへ重複要求しない。通常pushの`DEV Publisher Coalescer`も維持する。
 
-workflow_dispatchのIntegration/repair runはcoalescer対象外。publish step自身も公開前にcurrent developを確認し、古いsnapshotを昇格させない。
+workflow_dispatchのIntegration/repair/手動公開runはcoalescer対象外。自動公開は専用run titleで識別する。publish step自身も公開前にcurrent developを確認し、古いsnapshotを昇格させない。公開要求の記録がない既存の未公開SHAは次回Fast Laneで補完し、要求失敗は専用statusとrun失敗へ記録する。
 
 ## 廃止した通常経路
 

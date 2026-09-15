@@ -42,7 +42,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      actions: read
+      actions: write
       checks: read
       statuses: write
       issues: read
@@ -67,9 +67,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-diagnostics.json
         run: node scripts/integration-fast-lane.mjs
+      - name: Request latest DEV and PULSE publication without waiting
+        if: ${{ !cancelled() && steps.fast-lane.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/integration-publication.mjs .deploy-state/integration.json
       - name: Notify integrated PRs separately from DEV delivery
         id: notify
-        if: steps.fast-lane.outputs.merged_count != '0'
+        if: ${{ !cancelled() && steps.fast-lane.outputs.merged_count != '' && steps.fast-lane.outputs.merged_count != '0' }}
         continue-on-error: true
         env:
           NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
