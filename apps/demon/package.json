@@ -1,11 +1,13 @@
 {
   "name": "@soul/demon",
-  "displayName": "暗い喰らいCry",
+  "displayName": "尽喰廻遊",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node ../../scripts/prepare-basis-assets.mjs demon",
     "dev": "vite --host 0.0.0.0 --port 5175 --strictPort",
+    "prebuild": "node ../../scripts/prepare-basis-assets.mjs demon",
     "build": "vite build && node ../../scripts/verify-build.mjs ../../dist/demon demon",
     "preview": "vite preview --host 0.0.0.0 --port 5275 --strictPort"
   },
@@ -22,6 +24,7 @@
     "@soul/input": "*",
     "@soul/tidebreak-combat": "*",
     "@soul/housing-assets": "*",
-    "@soul/night-assets": "*"
+    "@soul/night-assets": "*",
+    "@soul/characters": "*"
   }
 }

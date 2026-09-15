@@ -1,3 +1,21 @@
 // Shared Animation descriptors. Add licensed assets here; gameplay belongs in apps.
 export const catalogVersion = 1;
 export const catalog = Object.freeze({});
+export * from './motion-normalization.js';
+export * from './pose-sanity.js';
+export * from './intersection-risk.js';
+export * from './weapon-calibration.js';
+export * from './motion-reference-benchmark.js';
+export * from './motion-qa.js';
+export * from './motion-authoring.js';
+export * from './gameplay-motion-quality.js';
+export * from './motion-life.js';
+export * from './motion-runtime.js';
+export * from './motion-frame-qa.js';
+export * from './motion-orchestration.js';
+export * from './motion-review-planner.js';
+export * from './motion-operationalization.js';
+export * from './motion-kinematics-qa.js';
+export * from './motion-database.js';
+export * from './motion-contact.js';
+export * from './motion-repair.js';

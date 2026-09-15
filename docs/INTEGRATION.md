@@ -1,58 +1,123 @@
-# develop Integration
+# develop Integration Fast Lane
 
-## 起動と集約
+## 目的
 
-PRの `Validate and build` 成功後、`Request Integration` が既存 `deploy.yml` を **developを指定してworkflow_dispatch** します。developへの通常pushも復旧・初回検証の入口です。mainに存在する既存workflowを利用するため、default branch変更やmainへの新workflow追加は不要です。
+通常の develop Integration は **PRで最低限守り、通るものから即流す**。DEV公開/browserの遅さや、別PRの失敗を通常merge laneへ伝播させない。
 
-全Integration・Pages配信は既存の `pages` concurrency groupで直列化します。pendingイベントがまとめられても、各実行が現在の全Ready PRを再走査するため、特定イベントのPR番号に依存しません。上限8PR/バッチ、依存順を再評価します。残りは成功後に次のバッチを要求します。
+実装セッションの終了条件は [実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md)。通常実装は Draft PR → 実装 → 高速検証 → push → Ready → `READY_FOR_INTEGRATION` で終了し、CI/DEV完了を待機・pollingしない。
 
-mergeはGitHubのPR merge APIと実行のGITHUB_TOKENを使用します。途中のmergeからpush Workflowを発火させず、同じ実行で最終developを明示checkoutして検証・公開します。PAT・追加サービス・常駐pollingは不要です。
+## 通常経路
 
-## 自動merge条件
+```text
+Ready PR
+  -> Validate and build
+  -> exact-head pr-fast artifact
+  -> Fast Lane
+       success -> serialized expected-head merge
+       mechanically repairable -> Fast Repair -> exact-head fast validation -> Fast Lane wake
+       semantic/unsafe -> deep repair / HUMAN_REQUIRED
+  -> develop push
+  -> DEV Publisher
+  -> public/browser smoke
+       failure -> repair ticket
+```
 
-- 同一Repositoryの信頼された寄稿者によるopen・非draft・develop向けPR。
-- 現在のhead SHAに対応する `ci.yml` の最新runで `Validate and build` が成功。PR番号/headの検証artifactを照合。ほかのChecks/statusの失敗や未完了も保留。
-- `Depends-On` の全PRがdevelopへmerge済み。曖昧・他repo参照は保留。
-- GitHubがmerge可能と判定し、保護ルールが許可。未解決review threadとChanges requestedなし。
-- 明示holdなし。基盤・自動化・運用制御ファイルの変更には、現在headへのmaintainer approvalが必要。
-- PR分岐点からdevelopに入った変更と同じファイル/共有packageが重なる場合、Integration reviewが必要。
-- merge直前にhead・Ready状態・label・body・review・Checks・develop SHAを再取得。head指定merge APIを使い、force pushや保護設定の緩和は行わない。
+正常PRはFast Repairを通らない。Fast Repairは第二のmerge queueではなく、Fast Laneの横にある短命executorだけとする。
 
-保護ルールはGitHub APIが最終的に強制します。現在のdevelopはbranch APIでは未保護と表示されており、管理権限がないため設定変更は行っていません。自動化独自の検証を実施しますが、管理者による手動pushを技術的に禁止するものではありません。
+### merge前の必須条件
 
-## 一人開発の所有者承認・手動Integration
+Fast Laneはmerge直前にcurrent GitHub stateを再取得し、次をすべて満たすPRだけをmergeする。
 
-共同maintainerがいない場合、所有者 `charukun` 自身のPRはGitHubの自己Approve制約により自動merge条件を満たせません。所有者が明示的に依頼したIntegrationでは、以下を正式な手動承認・統合経路とします。この手順の導入は、所有者がWORK上で承認した運用変更に基づきます。
+- open / non-Draft / base=`develop`
+- same repository、trusted author
+- `integration:hold` / `integration:manual` / `do-not-merge` / `Integration-Hold:` なし
+- `Depends-On` 完了
+- GitHub mergeable
+- Changes requestedなし、未解決review threadなし
+- **current exact head** の `Validate and build` が成功
+- 同じPR/headの `pr-fast-<PR>-<SHA>` artifactが存在
+- `.github/**` / `scripts/**` / Integration文書などcontrol-plane変更はcurrent exact-head trusted review条件を維持
+- develop進行後に重複scopeが生じた場合も既存review条件を維持
 
-1. 所有者が対象PRのdevelop統合を明示承認し、Integration担当が実際の差分をレビューする。既存セッションの明示承認は有効であり、同じ範囲について再確認を繰り返さない。
-2. PRへ所有者承認の根拠、対象PR番号・完全なhead SHA、確認したCI run、差分レビュー結果を記録する。担当が代理記録したことを明記し、GitHubのAPPROVEDレビューや独立した他者レビューとして扱わない。
-3. 同一Repository・所有者作成・非draft・develop向けであること、最新headのfast gateと検証artifact、他のChecks/status、依存PR、未解決thread・Changes requested・明示hold・競合を確認する。失敗や未完了を承認で無視しない。developの直前Integration成功を確認し、失敗中は既存の修復手順に従う。
-4. developがPR分岐点以降に変更されていれば差分を照合する。merge直前にhead・base・Ready状態・label・body・review・Checksを再取得し、変更があれば再評価する。head変更前の確認記録を新しいheadへ流用しない。
-5. Integration担当が通常のPR merge APIに `expected head SHA` を指定してdevelopへmergeする。GitHubが要求する保護ルールはそのまま適用し、拒否されたら停止する。force push、admin bypass、保護設定の緩和は行わない。
-6. developへのpushで既存Deployを起動する。起動しなければ既存CIの `Request Integration` jobを再実行してdevelopへのdispatchを要求する。最終SHAの `integration/develop=success` と該当runのDEV配信・公開検証結果まで確認する。main / Productionは変更しない。
+merge APIにはcurrent exact head SHAを渡す。develop writerは単一laneで、force pushやhistory rewriteをしない。
 
-自動Integrationの `reviewDecision` と自動merge条件は変更しません。所有者のコメント・labelだけで自動承認を生成しません。通常の実装WORKは引き続きReady PRまで、所有者承認を受けたIntegration WORKがこの手動経路を担当します。今回の手順追加PRも、所有者の導入承認を記録し、同じCI・差分確認・head指定merge・公開検証を経て統合します。
+## Fast Repair
 
-## 最終検証と配信
+`rescue_mode=scan` は既定branch互換のwake入力として残すが、通常経路では旧RescueのCoordinator/Wave/claim/heartbeat/`AWAITING_PUSH`/Work push relay/Return queueを使わない。
 
-1. 現在SHAに成功した最終結果がなければ、最初にそのdevelopを検証して基準を確立。失敗後は `integration:repair` を付けた修復PRだけが自動統合候補となり、通常の安全条件も満たす必要があります。
-2. 最終SHAをcheckout。installは1回、全workspaceの構文/境界検証、全root/共有/appテストを重複なく実行。
-3. 既存inputHashで変更appのみbuild。変更なしはSHA-256検証して公開済み成果物を復元。統合テストで使ったbuildをPagesへ配信し、再buildしない。
-4. DEV-only配信ではProductionの公開manifest・全ファイルをそのまま保持し、mainのコードをbuild/昇格しません。Productionの基準manifestが取得できなければ停止。
-5. 配信直前にdevelopが進んでいないことを確認。公開HTTP・assets・commitを検証し、最終DEVの全ゲームを実Chromium/WebGL2で確認。スクリーンショットと結果を14日保持。
-6. **全部成功した時だけ** 最終SHAの `integration/develop` をsuccessにします。同じSHAを再要求された場合、重複する全体検証・build・公開を省略。
+Fast Repairが扱うのは、依存PRのmerge後に最新developを取り込むなど **機械的に安全性を証明できるstack/base更新** だけ。実行直前にcurrent PR/head/develop、Draft、repository、author、hold、review thread、Depends-Onを再確認し、元PR branchへ通常のmerge-forwardを行う。更新後は同じtrusted runでexact-head fast validationを行い、`integration/stack-fast` と `pr-fast-<PR>-<SHA>` の実証拠を作ってFast Laneを即wakeする。
 
-appが無変更ならversion.jsonの元のbuild SHAを保持します。最終developとの整合はinputHashとdeployment-manifest.jsonのvalidatedDevelopで追跡します。manifestは配信時の記録であり、ブラウザを含めた成功証明は `integration/develop` statusです。SwiftShaderは機能検証でありPixel Fold等の性能測定ではありません。
+同一fileや契約の意味衝突、真のプロダクト判断、明示hold、Changes requested、未解決threadは自動修復しない。必要な場合だけ既存deep repair / human-requiredへ送る。追加の有料モデルAPIやPATを通常Repairの前提にしない。
 
-## 停止・復旧
+ここでの自動修復は機械的なFast Repairを指す。意味衝突はDeep Repairの調査対象であり、人待ちとは限らない。[DEVで実物を確認する標準開発](RINNE_PROJECT_EXECUTION_POLICY.md#devで実物を確認する標準開発) に従い、確定仕様への適応と可逆的な判断はAIが行う。任意の見た目・操作感の確認はDEV公開後に行い、既存gateに新しい目視承認待ちを追加しない。
 
-- 個別PRの保留理由: Actions summaryおよび `integration-report` artifact。自動化はレビュー解決・label削除・仕様変更を代行しません。
-- 全体検証が失敗: 通常の自動mergeを停止。原因修正PRへ `integration:repair` を付けるか、Integration担当が修正をレビューして統合。基盤変更は自動merge条件を満たさなければ担当者が直接PR merge。
-- CI成功後のdispatchだけが失敗: 権限エラーを直した後 `Request Integration` を再実行。既存Deploy workflowのRun workflowでbranch **develop** を選ぶ操作でも回復可能。
-- 一時的なネットワーク/公開後ブラウザ失敗: 同じDeploy runの全jobを再実行。失敗SHAでは検証・公開・ブラウザを再実施し、古いmanifestだけでsuccessへ変えません。
-- 実行が中断されpendingのまま: 同様に全jobを再実行。pendingも通常merge停止として扱います。
-- 公開前失敗は公開済みsnapshotを維持。公開後失敗は既に公開済みなので、復旧PRで正常状態へ戻します。自動で未知のrollbackを実行しません。
+旧Rescue state/scriptsは移行・診断・deep-repair互換のため残せるが、通常Fast Repairの進行条件やmerge権限には使わない。
 
-main/Productionを変更する別作業はこの運用の対象外です。既存main側workflowは変更していません。
+## browserはmerge laneを止めない
 
-公式仕様: [GITHUB_TOKENのイベント抑止とdispatch](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)、[Workflowイベントのdefault branch条件](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)。
+`Affected browser smoke` は削除しない。CIで継続実行し、成功/失敗をbrowser repairへ記録する。ただし通常develop mergeの前提にはしない。
+
+したがってPR Aのbrowser失敗・timeout中でも、PR Bがexact-head fast条件を満たすならBはmergeできる。assertionを削除したりtimeoutを恣意的に伸ばして通すことは禁止のまま。
+
+## DEV deliveryはmerge healthと分離する
+
+`integration/develop` は **DEV delivery health** であり、通常PRのglobal merge lockではない。
+
+- `pending`: DEV公開・検証中
+- `success`: そのdevelop SHAのDEV公開/source/browser確認成功
+- `failure`: そのdevelop SHAのDEV delivery/browser失敗。repair対象だが、独立Ready PRのmergeは止めない
+
+DEV側の公開・HTTP/source照合・focused browser・LKG rollbackは維持する。失敗時はmachine-readable repair ticketを更新する。
+
+## latest-only DEV Publisher
+
+Fast Laneが`GITHUB_TOKEN`でmergeした更新は`push` workflowを連鎖起動しない。mergeしたbatchの完了時に、最新developを対象とする`deploy.yml`の`publish_only=true`を明示的にdispatchし、DEVとPULSEを非同期で公開する。公開要求の受理と公開検証の成功は区別し、dispatch失敗を黙って成功扱いしない。
+
+自動公開要求には専用の識別子を付け、同じSHAの実行中publisherへ重複要求しない。古い自動publisherはlatest developへまとめるが、通常のIntegration、repair、人が開始した公開、main/Productionの実行は取り消さない。公開完了の待機はmerge laneへ持ち込まない。
+
+旧Controllerからの移行時は、mergeが0件でも最新SHAに公開要求の記録がなくDEV/PULSE両方の公開成功もなければ、次のFast Laneで1回補完する。`integration/publisher-wake`は公開要求だけの状態であり、`integration/develop`・`ops-board/public`の公開検証結果とは別物。`integration/publisher-wake` の既存statusだけを公開済み・実行中の証拠にせず、同一SHAの自動publisherが稼働しておらず公開成功証拠もない場合は補完dispatchを許可する。失敗した要求を無制限に再送せず、失敗runをIntegrationへ返す。
+
+develop pushごとに `deploy.yml` は起動するが、`DEV Publisher Coalescer` が古い **push由来** publisher runを取消し、最新developへ収束させる。Integrationのworkflow_dispatchやrepair runは巻き込まない。
+
+publish自身も公開直前にdevelop SHAを再確認するため、superseded snapshotをpublicへ昇格させない。
+
+## 1件の失敗で全体を止めない
+
+Fast LaneはReady PRをPR単位で評価する。
+
+```text
+A: exact-head fast failure -> Aだけdeep repair/保留
+B: exact-head fast success -> merge
+C: exact-head fast success -> merge
+```
+
+explicit hold、dependency、review objection、merge conflict、exact-head fast failureは対象PRだけを止める。developが外部writerで予期せず移動した場合のみ、そのFast Lane passを停止してcurrent stateから再評価する。
+
+## Draft / Ready
+
+Draftでは lightweight checkのみ。Readyになると `Validate and build` とbrowser smokeを開始する。**Request Integrationはbuild成功・失敗の直後に起動し、browser完了を待たない。失敗はcurrent exact-headのDeep Repairへ送る。** browserは並行してrepair evidenceを残す。
+
+## main / Production
+
+このFast Laneはdevelop専用。main / Productionのblocking browser、full regression、public source確認などの品質gateは変更しない。Productionへの昇格は明示許可がある場合のみ。
+
+## 通知とPULSE
+
+`INTEGRATED` と `DEV_DEPLOYED` は別イベントとして扱う。通知失敗はadvisoryでありmerge/publication判定を変更しない。PULSEはmerge状態とDEV delivery healthを混同せず表示する。旧Rescue stateを表示する場合も診断情報であり、通常Repairの権限・待ち条件にはしない。
+
+ユーザーが修正依頼した内容のDEV反映連絡は、ゲーム本体やエンドユーザー向け通知から分離した開発者メールとする。公開されたdevelop SHAに直接対応するdevelop向けPRを特定し、GitHub Actions botがそのPRへ `DEV反映完了` 相当のコメントを1件記録する。PRタイトルを修正内容として含め、DEV確認URLを付ける。GitHubの既存PR購読/mentionメール経路を利用し、ゲーム側push/ntfy、独自SMTP、新規外部メールサービス、通知queueはこの連絡には使わない。同一SHAは既存receipt markerで重複送信を防ぐ。詳細は [開発中のDEV反映メール通知](DEV_NOTIFICATION.md) を参照する。
+
+PRを特定できないpublish-only実行では誤った修正内容を通知せず、DEV delivery statusだけを残す。既存の基盤ライフサイクル通知が別経路に存在しても、この開発者向け修正内容メールとは混同しない。
+
+## 受入条件
+
+- 正常Ready PRはRepair stateを経由せず `Validate and build -> Fast Lane -> merge` で流れる
+- `integration/develop=pending|failure` 中でもeligible Ready PRをmergeできる
+- Aのfast/browser失敗がB/Cを止めない
+- exact-head `Validate and build` とartifactなしではmergeしない
+- mechanically repairableなstack/base更新は1回のtrusted Repair runで更新・検証・Fast Lane wakeまで進む
+- `AWAITING_PUSH` / Work relay / 1時間watchdogを通常Repairの待ち時間にしない
+- browser test自体は維持し、失敗をrepairへ送る
+- develop writerはsingle expected-head writer
+- stale DEV push publisherはcancelされ、最新developへ収束する
+- main / Production品質gateは不変

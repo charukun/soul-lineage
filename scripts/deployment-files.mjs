@@ -7,10 +7,19 @@ export function safeFile(path) {
   assert.ok(typeof path === 'string' && /^[a-zA-Z0-9_./-]+$/.test(path) && !path.startsWith('/') && !path.split('/').some(p => p === '..' || p === '.' || !p), `Unsafe deployment path: ${path}`);
   return path;
 }
+export function isPublishableFile(path) {
+  safeFile(path);
+  return path.split('/').every(part => !part.startsWith('.'));
+}
+export function publishableFiles(files) {
+  assert.ok(Array.isArray(files), 'Deployment files must be an array');
+  return files.filter(file => file && isPublishableFile(file.path));
+}
 export async function inventory(root) {
   const files = [];
   async function walk(dir = '') {
     for (const entry of await readdir(resolve(root, dir), { withFileTypes: true })) {
+      if (entry.name.startsWith('.')) continue;
       const path = safeFile(dir ? `${dir}/${entry.name}` : entry.name);
       assert.ok(!entry.isSymbolicLink(), 'Symlinks are not publishable');
       if (entry.isDirectory()) await walk(path);
@@ -19,18 +28,49 @@ export async function inventory(root) {
   }
   await walk(); return files.sort((a, b) => a.path.localeCompare(b.path));
 }
-export async function fetchBytes(url, request = fetch) {
-  const response = await request(url, { signal: AbortSignal.timeout(60000), cache: 'no-store' });
-  assert.equal(response.status, 200, `HTTP ${response.status}: ${url}`);
-  return Buffer.from(await response.arrayBuffer());
+const transientStatus = status => status === 429 || (status >= 500 && status <= 599);
+const transientNetworkError = error => ['AbortError', 'TimeoutError'].includes(error?.name) || error instanceof TypeError;
+function retryDelayMs(response, attempt) {
+  const value = response?.headers?.get?.('retry-after');
+  if (value) {
+    const seconds = Number(value);
+    if (Number.isFinite(seconds) && seconds >= 0) return Math.min(5000, Math.round(seconds * 1000));
+    const at = Date.parse(value);
+    if (Number.isFinite(at)) return Math.min(5000, Math.max(0, at - Date.now()));
+  }
+  return Math.min(2000, 250 * (2 ** attempt));
+}
+export async function fetchBytes(url, request = fetch, wait = ms => new Promise(resolve => setTimeout(resolve, ms))) {
+  const attempts = 4;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    let response;
+    try {
+      response = await request(url, { signal: AbortSignal.timeout(60000), cache: 'no-store' });
+    } catch (error) {
+      if (!transientNetworkError(error) || attempt === attempts - 1) throw error;
+      await wait(Math.min(2000, 250 * (2 ** attempt)));
+      continue;
+    }
+    if (response.status === 200) return Buffer.from(await response.arrayBuffer());
+    if (!transientStatus(response.status) || attempt === attempts - 1) {
+      assert.equal(response.status, 200, `HTTP ${response.status}: ${url}`);
+    }
+    const delay = retryDelayMs(response, attempt);
+    if (delay > 0) await wait(delay);
+  }
+  throw new Error(`Transient deployment fetch retry exhausted: ${url}`);
 }
 export async function restoreEntry(entry, root, baseUrl, request = fetch) {
   safeFile(entry.path);
-  assert.ok(Array.isArray(entry.files) && entry.files.length > 0);
+  const files = publishableFiles(entry.files);
+  assert.ok(files.length > 0, `Deployment entry has no publishable files: ${entry.path}`);
+  // Persist the sanitized legacy inventory so the next manifest permanently drops
+  // hidden paths that GitHub Pages never exposed (for example .gitattributes).
+  entry.files = files;
   let cursor = 0;
-  await Promise.all(Array.from({ length: Math.min(4, entry.files.length) }, async () => {
-    while (cursor < entry.files.length) {
-      const file = entry.files[cursor++]; safeFile(file.path);
+  await Promise.all(Array.from({ length: Math.min(4, files.length) }, async () => {
+    while (cursor < files.length) {
+      const file = files[cursor++];
       const url = new URL(`${entry.path}/${file.path}`, baseUrl);
       url.searchParams.set('content', file.sha256);
       const bytes = await fetchBytes(url, request);
@@ -40,4 +80,5 @@ export async function restoreEntry(entry, root, baseUrl, request = fetch) {
       await mkdir(dirname(target), { recursive: true }); await writeFile(target, bytes);
     }
   }));
+  return entry;
 }

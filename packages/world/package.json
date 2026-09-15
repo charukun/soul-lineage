@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./scale-policy": "./src/scale-policy.js",
+    "./mura": "./src/mura/index.js",
+    "./mura/catalog": "./src/mura/catalog.js",
+    "./mura/terrain": "./src/mura/terrain.js"
   },
-  "dependencies": {
-    "@soul/assets": "*"
-  }
+  "dependencies": {"@soul/assets": "*"}
 }

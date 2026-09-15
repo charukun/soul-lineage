@@ -1,0 +1,59 @@
+{
+  "schema": "character-production",
+  "version": 2,
+  "id": "shino.reference.v2",
+  "stage": "PRIMARY",
+  "modelingMode": "dcc-blender",
+  "source": {
+    "referencePaths": [
+      "docs/characters/references/shino/shino-character-reference-sheet-v2.png"
+    ],
+    "meshPath": "apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm",
+    "integrityPath": "apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json",
+    "dcc": {
+      "tool": "Blender",
+      "version": "4.0.2",
+      "sourcePath": "assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend",
+      "sourceSha256": "47e5859ba492d40b71c83835ad05b913e04b9433cefd44d18d300f71c7e9ccdc"
+    }
+  },
+  "evidence": {
+    "reference": {
+      "intentLocked": true,
+      "views": [
+        "front",
+        "side",
+        "back"
+      ]
+    },
+    "blockout": {
+      "views": [
+        "front",
+        "side",
+        "back",
+        "three-quarter"
+      ],
+      "proportionsReviewed": true,
+      "silhouetteReviewed": true,
+      "reviewEvidence": "docs/characters/qa/shino-reference-v2/"
+    },
+    "primary": {
+      "topologyReviewed": true,
+      "uvReviewed": true,
+      "separateSurfaces": [
+        "skin",
+        "hair",
+        "clothing"
+      ],
+      "auditPath": "docs/characters/qa/shino-reference-v2/blender-audit.json",
+      "meshObjects": 109,
+      "triangles": 45908,
+      "materials": 17
+    }
+  },
+  "status": {
+    "visualApproval": "pending",
+    "productionReady": false,
+    "note": "Dedicated Blender DCC PRIMARY asset. Secondary-form, deformation, motion, polish, device performance and explicit visual approval remain open gates."
+  }
+}

@@ -1,0 +1,249 @@
+name: Integration Repair Executors
+on:
+  workflow_call:
+permissions:
+  contents: read
+
+jobs:
+  repair:
+    name: Fast Repair
+    if: github.repository == 'charukun/soul-lineage' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: integration-repair-fast
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: read
+    outputs:
+      stack_has_work: ${{ steps.plan.outputs.stack_has_work }}
+      stack_matrix: ${{ steps.plan.outputs.stack_matrix }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Reconcile only mechanically safe stacked Ready PRs
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-repair-api.json
+        run: node scripts/integration-repair-fast.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-repair-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .deploy-state/integration-repair*.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
+
+  stack-fast:
+    name: Stack Validate and build #${{ matrix.pr }}
+    needs: repair
+    if: needs.repair.outputs.stack_has_work == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.repair.outputs.stack_matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      # Keep the legacy group key during rollout so an older Rescue run cannot overlap this same PR.
+      group: integration-rescue-pr-${{ matrix.pr }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: write
+      statuses: write
+    env:
+      APP_ENV: dev
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          path: control
+          persist-credentials: false
+          sparse-checkout: |
+            scripts
+            ops-board
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ matrix.head }}
+          path: work
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: work/package-lock.json
+      - name: Keep trusted validation controls immutable from PR code
+        run: |
+          sudo chown -R root:root control
+          sudo chmod -R a-w control
+      - name: Recheck exact stack target
+        uses: actions/github-script@v8
+        env:
+          PR_NUMBER: ${{ matrix.pr }}
+          HEAD_SHA: ${{ matrix.head }}
+          BASE_SHA: ${{ matrix.base }}
+        with:
+          script: |
+            const number = Number(process.env.PR_NUMBER);
+            if (!Number.isSafeInteger(number) || !/^[0-9a-f]{40}$/i.test(process.env.HEAD_SHA || '') || !/^[0-9a-f]{40}$/i.test(process.env.BASE_SHA || '')) {
+              core.setFailed('Invalid stack validation identity'); return;
+            }
+            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: number });
+            const trusted = ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.author_association);
+            if (pr.state !== 'open' || pr.draft || pr.base.ref !== 'develop' ||
+                pr.base.repo.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+                pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+                pr.head.sha !== process.env.HEAD_SHA || !trusted) core.setFailed('Stack validation target is stale or untrusted');
+      - name: Prove reconciled develop is an ancestor of the exact head
+        working-directory: work
+        env:
+          BASE_SHA: ${{ matrix.base }}
+          HEAD_SHA: ${{ matrix.head }}
+        run: git merge-base --is-ancestor "$BASE_SHA" "$HEAD_SHA"
+      - name: Mark exact-head stack validation pending
+        uses: actions/github-script@v8
+        env:
+          HEAD_SHA: ${{ matrix.head }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({ ...context.repo, sha: process.env.HEAD_SHA,
+              context: 'integration/stack-fast', state: 'pending', description: 'Trusted stack fast validation is running',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
+      - name: Cheap gate-cost preflight before dependency install
+        id: gate-cost
+        env:
+          BASE_SHA: ${{ matrix.base }}
+          HEAD_SHA: ${{ matrix.head }}
+        run: node control/scripts/integration-gate-cost.mjs work "$BASE_SHA" "$HEAD_SHA"
+      - name: Resolve exact PR head and affected workspaces
+        id: plan
+        working-directory: work
+        env:
+          BASE_SHA: ${{ matrix.base }}
+          HEAD_SHA: ${{ matrix.head }}
+        run: node scripts/affected.mjs "$BASE_SHA" "$HEAD_SHA"
+      - run: npm ci
+        working-directory: work
+        if: steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.has_packages == 'true' || steps.plan.outputs.infrastructure == 'true'
+      - name: Fast verification (shared tests run once)
+        working-directory: work
+        env:
+          BASE_SHA: ${{ matrix.base }}
+          HEAD_SHA: ${{ matrix.head }}
+        run: node scripts/validate.mjs fast "$BASE_SHA" "$HEAD_SHA"
+      - name: Record exact stack fast evidence for Integration
+        working-directory: work
+        env:
+          PR_NUMBER: ${{ matrix.pr }}
+          HEAD_SHA: ${{ matrix.head }}
+          BASE_SHA: ${{ matrix.base }}
+        run: |
+          mkdir -p .deploy-state
+          node --input-type=module -e "import fs from 'node:fs'; fs.writeFileSync('.deploy-state/pr-fast.json', JSON.stringify({pr:process.env.PR_NUMBER,head:process.env.HEAD_SHA,base:process.env.BASE_SHA,eventBase:process.env.BASE_SHA,source:'integration-repair-stack',run:process.env.GITHUB_RUN_ID||null}));"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr-fast-${{ matrix.pr }}-${{ matrix.head }}
+          path: work/.deploy-state/pr-fast.json
+          overwrite: true
+          retention-days: 14
+      - name: Mark exact-head stack validation successful
+        if: success()
+        uses: actions/github-script@v8
+        env:
+          HEAD_SHA: ${{ matrix.head }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({ ...context.repo, sha: process.env.HEAD_SHA,
+              context: 'integration/stack-fast', state: 'success', description: 'Trusted exact-head stack fast validation passed',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
+      - name: Wake Fast Lane immediately for this validated head
+        if: success()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'deploy.yml', ref: 'develop' });
+      - name: Mark exact-head stack validation failed
+        if: failure() || cancelled()
+        uses: actions/github-script@v8
+        env:
+          HEAD_SHA: ${{ matrix.head }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({ ...context.repo, sha: process.env.HEAD_SHA,
+              context: 'integration/stack-fast', state: 'failure', description: 'Trusted exact-head stack fast validation failed',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
+
+  stack-browser:
+    name: Stack browser smoke #${{ matrix.pr }}
+    needs: repair
+    if: needs.repair.outputs.stack_has_work == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.repair.outputs.stack_matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: write
+      pull-requests: read
+    env:
+      APP_ENV: dev
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ matrix.head }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run affected mobile/WebGL browser smoke
+        id: smoke
+        continue-on-error: true
+        env:
+          BASE_SHA: ${{ matrix.base }}
+          HEAD_SHA: ${{ matrix.head }}
+        run: node scripts/browser/pr-smoke.mjs "$BASE_SHA" "$HEAD_SHA"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-browser-${{ matrix.pr }}-${{ matrix.head }}
+          path: test-results/pr-browser/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Record browser result for the normal repair lane
+        if: always() && (steps.smoke.outcome == 'success' || steps.smoke.outcome == 'failure')
+        uses: actions/github-script@v8
+        env:
+          CONCLUSION: ${{ steps.smoke.outcome }}
+          HEAD_SHA: ${{ matrix.head }}
+          PR_NUMBER: ${{ matrix.pr }}
+          ARTIFACT: pr-browser-${{ matrix.pr }}-${{ matrix.head }}
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo, workflow_id: 'deploy.yml', ref: 'develop',
+              inputs: {
+                repair_scope: 'pr', repair_conclusion: process.env.CONCLUSION,
+                repair_head_sha: process.env.HEAD_SHA, repair_pr_number: process.env.PR_NUMBER,
+                repair_run_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                repair_artifact: process.env.ARTIFACT
+              }
+            });

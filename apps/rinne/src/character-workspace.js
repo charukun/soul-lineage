@@ -1,0 +1,166 @@
+import './character-reference-workshop.js';
+import { qualitySettings, qualityIdentity, qualityProfile, qualityReport } from './character-quality-state.js';
+import { BASE_APPEARANCE_PARTS, canonicalAppearanceParts, mergeAppearanceParts, nextAppearanceParts,
+  characterReferenceModel, characterReferenceArchetype } from '@soul/characters';
+import { attachModularAppearanceController } from '@soul/rendering/master-character-modular';
+import { attachReferenceCharacterController } from '@soul/rendering/master-character-reference';
+import { createReviewCohort, editReviewCharacter, reviewSettings, serializeReviewSession } from './character-review-state.js';
+import { WORKSPACE_KEY, serializeWorkspace, deserializeWorkspace, createEditHistory } from './character-workspace-state.js';
+
+/** One isolated editor workspace shared by the simple and advanced pages. */
+export function createCharacterWorkspace(review) {
+  const profiles = new Map(), controllers = new WeakMap(), referenceControllers = new WeakMap(), history = createEditHistory();
+  let quality = qualitySettings(), modelId = null;
+  let syncing = false, restoring = false, previewId = null, generation = 0, saveMessage = 'このブラウザに保存', timer;
+  const selected = () => review.records[review.settings.selected];
+  const model = () => modelId ? characterReferenceModel(modelId) : null;
+  const target = () => quality.archetype === 'mixed' ? null : characterReferenceArchetype(quality.archetype);
+  const profile = id => { const index = review.records.findIndex(r => r.id === id); return qualityProfile(review.records[index], index, quality, profiles.get(id)); };
+  const snapshot = () => serializeWorkspace(review.session(), [...profiles].filter(([id]) => review.records.some(r => r.id === id)), quality);
+  const emit = () => window.dispatchEvent(new Event('character-workspace-change'));
+  function clearModelSelection() {
+    const previous = model(); modelId = null;
+    if (previous?.kind === 'dcc-character-model') void review.loadDefaultModel?.();
+  }
+  function save() {
+    try { localStorage.setItem(WORKSPACE_KEY, snapshot()); saveMessage = 'このブラウザに保存済み'; }
+    catch { saveMessage = '端末保存できません。データ保存を使用'; }
+    emit();
+  }
+  function sync() {
+    if (syncing || restoring) return;
+    syncing = true;
+    try {
+      const ids = new Set(review.records.map(r => r.id));
+      for (const id of profiles.keys()) if (!ids.has(id)) profiles.delete(id);
+      quality.marked = quality.marked.filter(id => ids.has(id));
+      let attached = false;
+      const selectedId = selected()?.id, referenceModel = model();
+      for (const actor of review.actors) {
+        const index = review.records.findIndex(r => r.id === actor.id);
+        const selectedReference = referenceModel && actor.id === selectedId ? referenceModel : null;
+        // A DCC reference swaps the whole audited template/pool. Do not layer the
+        // procedural modular/reference controllers back over that authored mesh.
+        if (referenceModel?.kind === 'dcc-character-model') continue;
+        let controller = controllers.get(actor);
+        if (!controller) {
+          controller = attachModularAppearanceController(actor);
+          controllers.set(actor, controller);
+          referenceControllers.set(actor, attachReferenceCharacterController(actor));
+          attached = true;
+        }
+        const referenceController = referenceControllers.get(actor);
+        const identity = selectedReference ?? (actor.id === previewId ? null : qualityIdentity(review.records[index], index, quality, profiles.get(actor.id)));
+        const next = selectedReference ? selectedReference.profile : actor.id === previewId || quality.mode === 'baseline' ? BASE_APPEARANCE_PARTS : profile(actor.id);
+        if (JSON.stringify(controller.identity) !== JSON.stringify(identity)) controller.setIdentity(identity);
+        if (JSON.stringify(controller.profile) !== JSON.stringify(next)) controller.setProfile(next);
+        referenceController.setIdentity(selectedReference);
+      }
+      if (attached) review.refresh();
+    } finally { syncing = false; }
+    emit();
+  }
+  function install(text) {
+    const document = deserializeWorkspace(text);
+    restoring = true;
+    try {
+      review.restore(serializeReviewSession(document.session));
+      quality = qualitySettings(document.quality ?? {});
+      profiles.clear(); document.parts.forEach(([id, p]) => profiles.set(id, p)); previewId = null; modelId = null;
+    } finally { restoring = false; }
+    sync(); review.refresh();
+  }
+  function perform(action) {
+    if (!review.ready) return;
+    previewId = null; const before = snapshot(); action(); sync();
+    history.record(before, snapshot()); save();
+  }
+  const api = {
+    history, snapshot, save,
+    get quality() { return qualitySettings(quality); },
+    get modelId() { return modelId; },
+    get model() { return model(); },
+    get target() { return target(); },
+    getIdentity(index = review.settings.selected) { return modelId && index === review.settings.selected ? null : qualityIdentity(review.records[index], index, quality, profiles.get(review.records[index].id)); },
+    qualityReport() {
+      const indices = review.settings.view === 'single'
+        ? [review.settings.selected]
+        : Array.from({ length: review.settings.count }, (_, index) => index);
+      return qualityReport(indices.map(index => review.records[index]), quality, profiles, indices);
+    },
+    selectModel(id = null) {
+      const next = id === null || id === '' ? null : characterReferenceModel(id).id;
+      if (modelId === next) return;
+      const previous = model(); modelId = next; previewId = null; const selectedModel = model();
+      if (selectedModel?.kind === 'dcc-character-model') void review.loadReferenceModel?.(selectedModel);
+      else if (previous?.kind === 'dcc-character-model') void review.loadDefaultModel?.();
+      sync(); emit();
+    },
+    selectArchetype(id = 'mixed') {
+      const key = id || 'mixed', ref = key === 'mixed' ? null : characterReferenceArchetype(key);
+      if (quality.archetype === key) return;
+      perform(() => {
+        modelId = null; profiles.clear(); quality.marked = [];
+        quality = qualitySettings({ ...quality, archetype: key, ...(ref ? { role: ref.role } : {}) });
+        if (ref) {
+          const settings = reviewSettings({ ...review.settings, ages: 'fixed', age: ref.age, selected: 0 });
+          review.restore(serializeReviewSession({ settings, records: createReviewCohort(settings) }));
+        }
+      });
+    },
+    setQuality(patch) { perform(() => { quality = qualitySettings({ ...quality, ...patch }); }); },
+    markSelected() { const id = selected().id; perform(() => { quality.marked = quality.marked.includes(id) ? quality.marked.filter(x => x !== id) : [...quality.marked, id]; }); },
+    generate(seed, ancestry = review.settings.ancestry) {
+      perform(() => {
+        clearModelSelection(); const ref = target();
+        const settings = reviewSettings({ ...review.settings, seed, ancestry, selected: 0, ...(ref ? { ages: 'fixed', age: ref.age } : {}) });
+        profiles.clear(); quality.marked = [];
+        review.restore(serializeReviewSession({ settings, records: createReviewCohort(settings) }));
+      });
+    },
+    setAges(age) {
+      perform(() => {
+        clearModelSelection();
+        quality = qualitySettings({ ...quality, archetype: 'mixed' });
+        const settings = reviewSettings({ ...review.settings, ages: age === 'mixed' ? 'mixed' : 'fixed', ...(age === 'mixed' ? {} : { age }) });
+        const records = review.records.map((r, i) => editReviewCharacter(r, { age: age === 'mixed' ? [7,22,35,55,75][i % 5] : age }));
+        review.restore(serializeReviewSession({ settings, records }));
+      });
+    },
+    get saveMessage() { return saveMessage; },
+    get selected() { return selected(); },
+    get previewing() { return previewId !== null; },
+    getProfile(id = selected().id) { return modelId && id === selected().id ? canonicalAppearanceParts(model().profile) : canonicalAppearanceParts(profile(id)); },
+    change(slot, value) { perform(() => { clearModelSelection(); const id = selected().id; profiles.set(id, mergeAppearanceParts(profile(id), { [slot]: value })); review.refresh(); }); },
+    edit(changes) { perform(() => { clearModelSelection(); review.editSelected(changes); }); },
+    randomize() { perform(() => { clearModelSelection(); generation = generation % 65535 + 1; profiles.set(selected().id, nextAppearanceParts(selected(), generation)); review.refresh(); }); },
+    configure(patch) { previewId = null; review.configure(patch); sync(); },
+    previewOriginal() { clearModelSelection(); previewId = previewId ? null : selected().id; sync(); },
+    undo() { const next = history.undo(snapshot()); if (next) { install(next); save(); } },
+    redo() { const next = history.redo(snapshot()); if (next) { install(next); save(); } },
+    import(text) { const next = deserializeWorkspace(text); perform(() => install(JSON.stringify(next))); },
+    refresh: sync
+  };
+  let stored;
+  try { stored = localStorage.getItem(WORKSPACE_KEY); } catch { saveMessage = '端末保存できません。データ保存を使用'; }
+  try {
+    if (stored) install(stored);
+    else {
+      const settings = reviewSettings({ view: 'single', ages: 'fixed', age: 22, outfit: 'original', count: 6 });
+      review.restore(serializeReviewSession({ settings, records: createReviewCohort(settings) }));
+    }
+  } catch (error) { saveMessage = `保存データ読込不可: ${error.message}`; }
+  window.addEventListener('character-review-change', () => {
+    if (restoring || syncing) return;
+    sync(); clearTimeout(timer); timer = setTimeout(save, 180);
+  });
+  window.addEventListener('pagehide', () => { clearTimeout(timer); save(); });
+  for (const link of document.querySelectorAll('a[href*="characters"]')) link.addEventListener('click', save);
+  sync();
+  return api;
+}
+export function downloadWorkspace(text, filename = 'shino-workspace.json') {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  const link = document.createElement('a'); link.href = url; link.download = filename;
+  document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
