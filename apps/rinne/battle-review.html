@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <meta name="theme-color" content="#0b0d10"/>
+  <title>Tidebreak 自動戦闘 | Visual Review Lab</title>
+  <link rel="stylesheet" href="./src/review/battle-review.css"/>
+</head>
+<body class="battle-review">
+  <main class="battle-root">
+    <canvas id="battle-canvas" aria-label="Tidebreak自動戦闘"></canvas>
+    <div class="battle-overlay">
+      <div class="battle-top">
+        <section class="fighter-card hero" aria-label="魔物側">
+          <div class="fighter-name"><strong id="hero-name">魔物側</strong><span id="hero-hp">230 / 230</span></div>
+          <div class="hp-track"><div id="hero-hp-fill" class="hp-fill"></div></div>
+          <small id="hero-action">接敵中</small>
+        </section>
+        <div id="battle-clock" class="battle-clock">0.0 秒</div>
+        <section class="fighter-card enemy" aria-label="人間側">
+          <div class="fighter-name"><strong id="enemy-name">人間側</strong><span id="enemy-hp">180 / 180</span></div>
+          <div class="hp-track"><div id="enemy-hp-fill" class="hp-fill"></div></div>
+          <small id="enemy-action">接敵中</small>
+        </section>
+      </div>
+      <div class="battle-center">
+        <div id="battle-result" class="battle-result" hidden></div>
+        <div id="battle-status" class="battle-status" role="status">Tidebreakを起動しています</div>
+        <div id="battle-source" class="battle-source">Tidebreak</div>
+      </div>
+      <div class="battle-bottom">
+        <div class="battle-actions" aria-label="自動戦闘操作">
+          <button id="battle-play" type="button">一時停止</button>
+          <button id="battle-restart" type="button">再戦</button>
+          <select id="battle-speed" aria-label="再生速度">
+            <option value="0.25">1/4</option>
+            <option value="0.5">1/2</option>
+            <option value="1" selected>通常</option>
+            <option value="2">2倍</option>
+          </select>
+          <button type="button" data-battle-view="three" class="active">斜め</button>
+          <button type="button" data-battle-view="front">正面</button>
+          <button type="button" data-battle-view="side">横</button>
+        </div>
+      </div>
+    </div>
+    <a class="battle-back" href="./">Labへ戻る</a>
+  </main>
+  <script type="module" src="./src/review/battle-review.js"></script>
+</body>
+</html>
