@@ -8,6 +8,7 @@ import { createVisualDistanceStreamer } from '@soul/rendering/world-streaming';
 import { createConservativeOcclusionCuller } from '@soul/rendering/occlusion';
 import { batchStaticMeshes } from '@soul/rendering/instance-atlas';
 import { createPerformanceRecorder } from '@soul/rendering/performance-lab';
+import { auditTransparency, combineTransparencyAudits } from '@soul/rendering/transparency-audit';
 import { NightView } from './web/view.js';
 
 const governors = new WeakMap(), enemyFx = stylizedArtProfile('enemy').effects;
@@ -29,6 +30,10 @@ function markCritical(view) {
 
 function textureBytes(view) {
   return [view.environment,view.actors,view.reaper?.root].filter(Boolean).reduce((sum,root)=>sum+auditTextureBudget(root).estimatedBytes,0);
+}
+
+function transparencyAudit(view) {
+  return combineTransparencyAudits([view.environment,view.actors,view.reaper?.root].filter(Boolean).map(root=>auditTransparency(root)));
 }
 
 function apply(view,snapshot) {
@@ -62,8 +67,8 @@ function governorFor(view) {
   const streamer=createVisualDistanceStreamer({baseDistance:138,hysteresis:14});
   const gpu=createGpuTimer(view.renderer),recorder=createPerformanceRecorder({label:'demon'}),occlusion=createConservativeOcclusionCuller({maxChecksPerUpdate:6,minDistance:18,hiddenConfirmations:2});
   const governor=createGpuAwareQualityGovernor({targetFps:isMobileTarget()?30:60,onChange:s=>apply(view,s)});
-  const state={governor,streamer,gpu,recorder,occlusion,occlusionFrame:0,staticBatch:null,stream:null};governors.set(view,state);markCritical(view);apply(view,governor.snapshot());
-  if(typeof window!=='undefined')window.__DEMON_ADAPTIVE_QUALITY__={snapshot:()=>({quality:governor.snapshot(),gpu:gpu.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),staticBatch:state.staticBatch?{batches:state.staticBatch.batches,instances:state.staticBatch.instances}:null,stream:state.stream,vfx:view.stylizedVfxBudget,textureBytes:view.__estimatedTextureBytes||0})};
+  const state={governor,streamer,gpu,recorder,occlusion,occlusionFrame:0,transparencyFrame:0,transparency:combineTransparencyAudits([]),staticBatch:null,stream:null};governors.set(view,state);markCritical(view);apply(view,governor.snapshot());
+  if(typeof window!=='undefined')window.__DEMON_ADAPTIVE_QUALITY__={snapshot:()=>({quality:governor.snapshot(),gpu:gpu.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),transparency:state.transparency,staticBatch:state.staticBatch?{batches:state.staticBatch.batches,instances:state.staticBatch.instances}:null,stream:state.stream,vfx:view.stylizedVfxBudget,textureBytes:view.__estimatedTextureBytes||0})};
   return state;
 }
 
@@ -83,7 +88,8 @@ if(typeof update==='function'&&!update.__adaptiveVisualPerformance){
   this.environment.userData.visualQualityLevel=snapshot.level;for(const child of this.environment.children||[])child.userData.visualQualityLevel=snapshot.level;
   state.stream=state.streamer.update(this.environment,focus,snapshot.profile.streamDistanceScale);
   const next=state.governor.observeFrame(dt,gpu.emaMs);apply(this,next);
-  state.recorder.sample({frameMs:dt*1000,gpuMs:gpu.emaMs,drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,textureBytes:this.__estimatedTextureBytes||0});
+  if((state.transparencyFrame++%120)===0)state.transparency=transparencyAudit(this);
+  state.recorder.sample({frameMs:dt*1000,gpuMs:gpu.emaMs,drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,textureBytes:this.__estimatedTextureBytes||0,transparentDrawCalls:state.transparency.blendedDrawCalls,transparentTriangleUpperBound:state.transparency.transparentTriangleUpperBound});
   if((state.occlusionFrame++%10)===0){const roots=occlusionRoots(this);state.occlusion.update({camera:this.camera,...roots});}
   return result;
  };
