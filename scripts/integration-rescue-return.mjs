@@ -198,28 +198,28 @@ export async function notifyOutbox(c, store, { url = '', token = '', request = f
     const item = state.outbox.find(n => n.id === id);
     if (!item || item.sentAt || item.suppressedAt || (item.notificationAttempts || 0) >= 3 ||
       (item.nextNotificationAt && Date.parse(item.nextNotificationAt) > Date.now())) continue;
-    let record = state.records?.[item.pr], wave = null;
-    if (item.type === 'manual') {
-      const freshness = await prepareManualNotification(c, state, item);
-      if (!freshness.send) {
-        await suppressNotification(store, item.id, freshness.reason, freshness.liveHead);
-        continue;
-      }
-      record = freshness.record;
-    } else if (item.type === 'wave') {
-      wave = await prepareWaveNotification(c, state, item);
-      if (!wave.send) {
-        await suppressNotification(store, item.id, wave.reason);
-        continue;
-      }
-    }
-    const eligibility = item.type === 'manual' ? workRepairEligibility(record) : { eligible: false };
-    const aiRepair = Boolean(eligibility.eligible);
-    const message = item.type === 'manual' ? aiRepair
-      ? `Integration Rescue\nAI_REPAIR_REQUIRED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: existing ChatGPT Work repair lane; periodic Work remains fallback`
-      : `Integration Rescue\nFAILED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: human or approved Work review required`
-      : `Integration Rescue\nREADY_FOR_INTEGRATION\nWave: ${item.wave}\nReturned to Integration: ${wave.prs.map(n => '#' + n).join(' ')}\nManual: ${wave.manual.map(n => '#' + n).join(' ') || 'none'}\nCI/browser monitoring: Integration; repair workers ended`;
     try {
+      let record = state.records?.[item.pr], wave = null;
+      if (item.type === 'manual') {
+        const freshness = await prepareManualNotification(c, state, item);
+        if (!freshness.send) {
+          await suppressNotification(store, item.id, freshness.reason, freshness.liveHead);
+          continue;
+        }
+        record = freshness.record;
+      } else if (item.type === 'wave') {
+        wave = await prepareWaveNotification(c, state, item);
+        if (!wave.send) {
+          await suppressNotification(store, item.id, wave.reason);
+          continue;
+        }
+      }
+      const eligibility = item.type === 'manual' ? workRepairEligibility(record) : { eligible: false };
+      const aiRepair = Boolean(eligibility.eligible);
+      const message = item.type === 'manual' ? aiRepair
+        ? `Integration Rescue\nAI_REPAIR_REQUIRED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: existing ChatGPT Work repair lane; periodic Work remains fallback`
+        : `Integration Rescue\nFAILED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: human or approved Work review required`
+        : `Integration Rescue\nREADY_FOR_INTEGRATION\nWave: ${item.wave}\nReturned to Integration: ${wave.prs.map(n => '#' + n).join(' ')}\nManual: ${wave.manual.map(n => '#' + n).join(' ') || 'none'}\nCI/browser monitoring: Integration; repair workers ended`;
       if (aiRepair) await signalWorkRepair(c, item, record, message, state);
       if (url) {
         if (item.type === 'manual') {
