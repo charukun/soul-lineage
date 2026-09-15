@@ -2,7 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
-const source=readFileSync(new URL('../src/mura-first-run-autoplay.js',import.meta.url),'utf8');
+const bootstrap=readFileSync(new URL('../src/mura-first-run-autoplay.js',import.meta.url),'utf8');
+const controller=readFileSync(new URL('../src/mura-first-run-guide-controller.js',import.meta.url),'utf8');
+const view=readFileSync(new URL('../src/mura-first-run-guide-view.js',import.meta.url),'utf8');
+const source=[bootstrap,controller,view].join('\n');
 const style=readFileSync(new URL('../src/mura-first-run-guide.css',import.meta.url),'utf8');
 const contract=readFileSync(new URL('../docs/FIRST_RUN_GUIDED_INTERACTION.md',import.meta.url),'utf8');
 const browser=readFileSync(new URL('./first-build.browser.mjs',import.meta.url),'utf8');
@@ -14,10 +17,10 @@ test('first-run guide observes the real build gesture path instead of mutating t
   "stage==='catalog'",
   "stage==='drag'",
   "stage==='place'",
-  "DRAG_DISTANCE=32",
-  "event.stopImmediatePropagation()",
-  "ui.pending?.kind===GUIDE_KIND",
-  "world.objects.some(object=>object.kind===GUIDE_KIND)",
+  'DRAG_DISTANCE=32',
+  'event.stopImmediatePropagation()',
+  'ctx.ui.pending?.kind===GUIDE_KIND',
+  'ctx.world.objects.some(object=>object.kind===GUIDE_KIND)',
   'もう一度見る',
   '村を始める',
  ])assert.ok(source.includes(required),required);
@@ -30,6 +33,15 @@ test('first-run guide observes the real build gesture path instead of mutating t
   '.click()',
   'dispatchEvent(new PointerEvent',
  ])assert.equal(source.includes(forbidden),false,forbidden);
+});
+
+test('first-run guide remains split into bootstrap, input control and presentation responsibilities',()=>{
+ assert.ok(bootstrap.length<2500,`bootstrap grew to ${bootstrap.length} chars`);
+ assert.ok(controller.includes("from './mura-first-run-guide-view.js'"));
+ assert.ok(view.includes('function animateTap'));
+ assert.ok(view.includes('function animateDrag'));
+ assert.equal(controller.includes('layer.innerHTML='),false);
+ assert.equal(view.includes('markFirstRunAutoplaySeen'),false);
 });
 
 test('first-run guide is non-blocking and tactile rather than a full-screen flat modal',()=>{
