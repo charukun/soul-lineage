@@ -68,6 +68,20 @@ test('current exact-head manual failure still uses the existing external notific
   assert.equal(state.outbox[0].suppressedAt,undefined);
 });
 
+test('transient GitHub freshness read keeps the existing finite retry path instead of suppressing the notice',async()=>{
+  const state=failedState(),store=memoryStore(state),c={root:`/repos/${REPOSITORY}`,
+    async api(){throw new Error('GitHub GET /pulls/220: HTTP 502');},
+    async pages(path){throw new Error(`Unexpected pages ${path}`);},
+  };
+  let deliveries=0;
+  await notifyOutbox(c,store,{url:'https://notify.example.test',request:async()=>{deliveries++;return{ok:true};}});
+  assert.equal(deliveries,0);
+  assert.equal(state.outbox[0].suppressedAt,undefined);
+  assert.equal(state.outbox[0].notificationAttempts,1);
+  assert.match(state.outbox[0].notificationError,/HTTP 502/);
+  assert.ok(state.outbox[0].nextNotificationAt);
+});
+
 test('wave summary omits returned members whose live head has already been superseded',async()=>{
   const state=newState();
   state.waves=[{id:'wave-1',rescueIds:['r1','r2'],completedAt:now}];
