@@ -1,0 +1,8 @@
+html[data-embed="true"] .library-topbar{display:none!important}
+html[data-embed="true"] .motion-library-shell{grid-template-rows:minmax(0,46dvh) minmax(0,1fr)}
+html[data-embed="true"] .library-browser{padding-bottom:10px}
+html[data-embed="true"] .viewer-controls{grid-template-columns:1fr .72fr 1fr 1fr}
+html[data-embed="true"] #library-reject{border-color:#ff8f7640;background:#ff8f760c;color:#ffc2b5}
+html[data-embed="true"] .motion-row.rejected{opacity:.48;filter:saturate(.45)}
+html[data-embed="true"] .motion-row.rejected .motion-row-play{color:#ff9d86}
+@media(min-width:760px){html[data-embed="true"] .motion-library-shell{grid-template-columns:minmax(0,1fr) 420px;grid-template-rows:minmax(0,1fr)}html[data-embed="true"] .library-viewer{grid-column:1;grid-row:1}html[data-embed="true"] .library-browser{grid-column:2;grid-row:1}}

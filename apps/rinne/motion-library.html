@@ -5,11 +5,19 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
   <meta name="theme-color" content="#07090d"/>
   <title>Motion Library | Visual Review Lab</title>
+  <script>
+    (() => {
+      const params = new URLSearchParams(location.search);
+      if (params.get('embed') === '1') document.documentElement.dataset.embed = 'true';
+      else location.replace('./?tab=motion');
+    })();
+  </script>
+  <link rel="stylesheet" href="./src/review/motion-library-embed.css"/>
 </head>
 <body>
 <main class="motion-library-shell">
   <header class="library-topbar">
-    <a class="back-link" href="./">‹ Review</a>
+    <a class="back-link" href="./?tab=motion">‹ Review</a>
     <div class="library-brand"><strong>Visual Review Lab</strong><small>Motion Library</small></div>
     <a class="source-link" href="https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0" target="_blank" rel="noreferrer">CC0</a>
   </header>
@@ -25,7 +33,7 @@
       <button id="library-play" type="button">一時停止</button>
       <button id="library-speed" type="button">1×</button>
       <button id="library-restart" type="button">先頭</button>
-      <button id="library-candidate" type="button" aria-pressed="false">☆ 候補</button>
+      <button id="library-candidate" type="button" aria-pressed="false">採用</button>
     </div>
   </section>
 
@@ -40,5 +48,6 @@
   </section>
 </main>
 <script type="module" src="./src/review/motion-library.js"></script>
+<script type="module" src="./src/review/motion-library-actions.js"></script>
 </body>
 </html>

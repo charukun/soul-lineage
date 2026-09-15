@@ -1,3 +1,5 @@
+import './unified-review-nav.js';
+
 export function installReviewUX({reviewPresets,reviewWeapons}){
   const q=s=>document.querySelector(s);
   const style=document.createElement('style');
