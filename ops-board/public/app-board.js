@@ -49,7 +49,7 @@ function progressPanel(progress, target) {
     progressRow('確認できる目安', progress.eta),
   );
   if (target?.state === 'success' && safeHref(target.url)) {
-    panel.append(el('p', 'app-progress-note', 'いま公開中の版はそのまま開けます。更新完了後に新しい版へ切り替わります。'));
+    panel.append(el('p', 'app-progress-note', 'いま公開中の版はそのまま開けます。これはDEV全体の更新で、このアプリに変更がなければ内容は変わりません。'));
   }
   const logUrl = safeHref(progress.logUrl);
   if (logUrl && ['danger', 'warning'].includes(progress.tone)) {
@@ -71,7 +71,7 @@ function fillDialog(app) {
     detailPair(values, '公開日時', time(target.deployedAt));
     detailPair(values, '取得元', target.source || '取得元未記録');
     if (target.environment === 'dev' && currentProgress) {
-      detailPair(values, '反映予定の版（SHA）', shortSha(currentProgress.nextCommit), true);
+      detailPair(values, 'DEV全体の反映予定SHA', shortSha(currentProgress.nextCommit), true);
     } else if (target.updateState && target.updateState !== 'success') {
       detailPair(values, '更新状況', stateView(target.updateState)[0]);
     }
@@ -98,12 +98,12 @@ function iconFor(app) {
 }
 function compactProgress(progress) {
   if (!progress) return null;
-  if (progress.state === 'failed') return '公開で問題 · 自動復旧待ち';
-  if (progress.state === 'stalled') return '公開遅延 · 通常目安を超過';
-  if (progress.state === 'reflecting') return '公開済み · 反映確認中';
-  if (progress.state === 'waiting') return `公開開始待ち · ${progress.eta}`;
+  if (progress.state === 'failed') return 'DEV全体 · 公開で問題 · 自動復旧待ち';
+  if (progress.state === 'stalled') return 'DEV全体 · 公開遅延 · 通常目安を超過';
+  if (progress.state === 'reflecting') return 'DEV全体 · 公開済み · 反映確認中';
+  if (progress.state === 'waiting') return `DEV全体 · 公開開始待ち · ${progress.eta}`;
   const remaining = String(progress.eta || '').match(/あと約\d+分目安/)?.[0];
-  return remaining ? `更新中 · ${remaining}` : `更新中 · ${progress.eta || '処理中'}`;
+  return remaining ? `DEV全体 · 更新中 · ${remaining}` : `DEV全体 · 更新中 · ${progress.eta || '処理中'}`;
 }
 function targetSummary(target, app) {
   const [label, tone] = stateView(target.state);
