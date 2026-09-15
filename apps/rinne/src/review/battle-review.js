@@ -72,7 +72,7 @@ function makeActor(placeholderOptions) {
   anchor.add(placeholder); scene.add(anchor);
   return { anchor, placeholder, body: null, mixer: null, action: null, clipName: '', weaponId: 'fist' };
 }
-const heroActor = makeActor();
+const heroActor = makeActor({ weapon: true });
 const enemyActor = makeActor({ weapon: true });
 
 const audio = createBattleAudio();
@@ -130,8 +130,8 @@ function findClip(body, actor) {
     }
     return names.find(name => /Tidebreak\s*\/\s*Attack|Attack|Slash|Punch|Kick|Strike|攻撃|技\s*\//i.test(name)) || null;
   }
-  if (actor.guarding) return names.find(name => /Guard|Parry|Block|防御|パリィ/i.test(name)) || null;
-  return names.find(name => name === 'Tidebreak / Idle') || names.find(name => /Idle|Ready|Stance|構え|待機/i.test(name)) || names[0] || null;
+  if (actor.guarding) return names.find(name => name === '技 / 堅く防ぐ') || names.find(name => /Guard|Parry|Block|防御|パリィ/i.test(name)) || null;
+  return names.find(name => name === '構え / 自然体') || names.find(name => name === 'Tidebreak / Idle') || names.find(name => /Idle|Ready|Stance|構え|待機/i.test(name)) || names[0] || null;
 }
 
 function sampleActor(target, actor, elapsed) {
@@ -354,9 +354,9 @@ async function loadModels() {
     const extensions = await extensionsPromise;
     if (signal.aborted) return;
     status('SHINOを読み込んでいます');
-    await loadBody(heroActor, 'model.SHINO', 'fist', extensions, signal);
+    await loadBody(heroActor, 'model.SHINO', 'sword', extensions, signal);
     status('Aを読み込んでいます');
-    await loadBody(enemyActor, 'model.A', 'katana', extensions, signal);
+    await loadBody(enemyActor, 'model.A', 'sword', extensions, signal);
     if (signal.aborted) return;
     ready = true;
     modelError = '';
