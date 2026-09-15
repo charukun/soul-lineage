@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFile, writeFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { resolve, dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { REVIEW_DOWNLOADS, REVIEW_ASSET_REVISION, REVIEW_MOTION_FAMILIES, SHINO_REVIEW, sourceUrl } from '../packages/assets/src/review-catalog.js';
+import { REVIEW_DOWNLOADS, REVIEW_ASSET_REVISION, REVIEW_MOTION_FAMILIES, REVIEW_KAYKIT_EQUIPMENT, REVIEW_KAYKIT_EQUIPMENT_SOURCE, SHINO_REVIEW, sourceUrl } from '../packages/assets/src/review-catalog.js';
 export function digest(bytes) { return createHash('sha256').update(bytes).digest('hex'); }
 export function verifyBytes(row, bytes) {
   if (!bytes.length || bytes.length > 25 * 1024 * 1024) throw new Error(`Invalid asset byte count: ${row.id}`);
@@ -52,6 +52,21 @@ async function download(row) {
   }
   throw last;
 }
+async function verifyEquipmentBundle(root) {
+  const rows = [];
+  for (const item of REVIEW_KAYKIT_EQUIPMENT) {
+    const document = JSON.parse(await readFile(join(root,'equipment',`${item.file}.gltf`),'utf8'));
+    if (document.asset?.version !== '2.0') throw new Error(`Equipment is not glTF 2.0: ${item.id}`);
+    const resources = [...(document.buffers || []),...(document.images || [])].map(row => row.uri).filter(Boolean);
+    if (!resources.length) throw new Error(`Equipment has no external resource declaration: ${item.id}`);
+    for (const uri of resources) {
+      if (typeof uri !== 'string' || uri.includes('/') || uri.includes('\\') || /^https?:/i.test(uri) || uri === '.' || uri === '..') throw new Error(`Unsafe equipment dependency: ${item.id}: ${uri}`);
+      await readFile(join(root,'equipment',uri));
+    }
+    rows.push({...item,resources});
+  }
+  return rows;
+}
 export async function prepareReviewAssets() {
   const root = await mkdtemp(join(tmpdir(),'rinne-review-assets-'));
   try {
@@ -78,10 +93,11 @@ export async function prepareReviewAssets() {
     const weapon = JSON.parse(await readFile(join(root,'weapon/sword_2handed.gltf'),'utf8'));
     const resources = [...(weapon.buffers || []),...(weapon.images || [])].map(row => row.uri);
     if (resources.length !== 2 || !resources.includes('sword_2handed.bin') || !resources.includes('knight_texture.png')) throw new Error('Unexpected sword dependencies');
+    const equipment = await verifyEquipmentBundle(root);
     const families = REVIEW_MOTION_FAMILIES.map(row => ({id:row.id,label:row.label,clips:names.filter(name => new RegExp(row.pattern,'i').test(name))}));
     const manifest = {revision:REVIEW_ASSET_REVISION,buildCommit:process.env.GITHUB_SHA || execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
-      status:'visual-approval-pending',shino:SHINO_REVIEW,files,animationNames:names,families,
-      limitations:['No automatic gameplay replacement','No foot IK approval','Weapon socket requires visual fitting','Preview marker is not a confirmed gameplay hit','No new sound source installed']};
+      status:'visual-approval-pending',shino:SHINO_REVIEW,files,equipmentSource:REVIEW_KAYKIT_EQUIPMENT_SOURCE,equipment,animationNames:names,families,
+      limitations:['No automatic gameplay replacement','No foot IK approval','Equipment try-on is review-only and does not grant inventory ownership','Preview marker is not a confirmed gameplay hit','No new sound source installed']};
     await writeFile(join(root,'manifest.json'),JSON.stringify(manifest,null,2));
     await writeFile(join(root,'CREDITS.txt'),[
       'Lanternfell asset review candidates. Visual approval pending.',
@@ -91,10 +107,10 @@ export async function prepareReviewAssets() {
       'https://quaternius.com/packs/universalanimationlibrary.html',
       'norio rest-space retarget approach adapted for raw VRM 1 bones; MIT copyright/license retained in licenses/norio-MIT.txt.',
       'Kenney: Particle Pack, CC0; sprite composition and timing modified in the renderer.',
-      'Kay Lousberg: KayKit Adventurers sword, CC0; original geometry/texture, preview scale 0.5; socket unapproved.',
+      'Kay Lousberg: KayKit Adventurers equipment, CC0; pinned original geometry/textures are bundled under asset-review/equipment for all-model try-on.',
       'All source URLs, pinned revisions and resulting SHA-256 values: manifest.json.',
     ].join('\n')+'\n');
-    console.log('REVIEW_ASSET_INVENTORY '+JSON.stringify({files:files.length,bytes:files.reduce((n,row)=>n+row.size,0),families}));
+    console.log('REVIEW_ASSET_INVENTORY '+JSON.stringify({files:files.length,bytes:files.reduce((n,row)=>n+row.size,0),equipment:equipment.length,families}));
     return {root,manifest};
   } catch (error) { await rm(root,{recursive:true,force:true}); throw error; }
 }
