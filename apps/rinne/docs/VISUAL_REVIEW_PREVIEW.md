@@ -83,6 +83,21 @@ Reference discovery, vetted public-GitHub evidence, internal Golden baselines, t
 
 Do not add Fal/fal.ai or another hidden image-to-3D backend to the Review Lab. The Lab should remain device-independent beyond ordinary browser rendering and should not require browser-local state to continue a modeling task on another machine.
 
+### Machine observation mode
+
+The AI implementation worker may reuse the Lab as a deterministic observation surface without making the Lab the AI control plane. Open the normal review route with `machine=1` plus the existing state parameters, for example `?machine=1&preset=model.SHINO&clip=通常%20/%20自然体&t=0&camera=front&playing=0`.
+
+When the real model is loaded the page exposes `window.__reviewMachine`. The worker may call:
+
+- `ready()` to confirm the real Lab model is loaded;
+- `recipe()` to record the selected preset/source/clip/time/camera/build and actual canvas dimensions;
+- `capture({ view, time })` for one deterministic Lab-canvas PNG;
+- `captureSet({ views, time })` for the default `front / three / right / back` comparison set or an explicit supported view list.
+
+Machine capture temporarily pauses playback, uses the existing `window.__reviewLab` camera/seek path, waits for rendered frames, captures the actual Lab canvas, and restores the previous review state. It does not invoke an AI provider, acquire references, upload images, store targets in the browser, or grant visual approval. `visualApproval` in the emitted recipe remains `pending`.
+
+An Astra/implementation-worker self-repair loop should therefore be `reference intelligence + explicit target -> edit real source -> local Lab machine capture -> compare/judge -> repair -> repeat`. Push one completed candidate batch to the Lab branch for public human review rather than publishing each internal repair iteration.
+
 ## Codespaces
 
 Codespaces remain fallback-only for Git transport or asset operations that cannot be handled through the normal connector. Do not auto-start Review Lab in Codespaces and do not leave a Codespace running for visual review.
