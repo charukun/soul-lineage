@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="./review-polish.css">
   <link rel="stylesheet" href="./rescue-board.css">
   <link rel="stylesheet" href="./flow-board.css">
+  <link rel="stylesheet" href="./world-board.css">
   <link rel="stylesheet" href="./progressive-disclosure.css">
 </head>
 <body>
@@ -111,6 +112,7 @@
         <div class="board-disclosure-body diagnostics-section">
           <p class="section-description diagnostics-intro">公開済みSHA、本番との差、自動統合、Actions失敗などの運用詳細です。</p>
 
+          <section id="world-section" class="diagnostic-panel"><h3>共有セッションの運用</h3><div id="shared-world" class="card"></div></section>
           <div class="diagnostic-grid">
             <section class="diagnostic-panel diagnostic-wide">
               <div class="diagnostic-head">
@@ -161,5 +163,6 @@
   <script type="module" src="./flow-board.js"></script>
   <script type="module" src="./rescue-board.js"></script>
   <script type="module" src="./overview.js"></script>
+  <script type="module" src="./world-board.js"></script>
 </body>
 </html>
