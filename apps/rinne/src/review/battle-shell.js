@@ -1,4 +1,5 @@
 import './battle-shell.css';
+import { createBattleAudio } from './battle-audio.js';
 
 const q = selector => document.querySelector(selector);
 const viewport = q('.viewport');
@@ -8,12 +9,14 @@ const notebook = q('.notebook-scroll');
 const performanceTab = q('[data-review-tab="演舞"]');
 const mainPlay = q('#play-toggle');
 const telemetry = q('.topbar .telemetry');
+const shellAudio = createBattleAudio();
 
 const frame = document.createElement('iframe');
 frame.id = 'battle-stage';
 frame.className = 'battle-stage';
 frame.title = 'Tidebreak自動戦闘';
-frame.dataset.src = './battle-review.html?embed=1';
+frame.dataset.src = './battle-review.html?embed=1&audio=off';
+frame.allow = 'autoplay';
 frame.hidden = true;
 performanceFrame?.after(frame);
 
@@ -47,7 +50,8 @@ page.innerHTML = `
     <button class="btn primary" id="battle-shell-play" type="button" disabled>再生</button>
     <button class="btn" id="battle-shell-restart" type="button" disabled>再戦</button>
     <select id="battle-shell-speed" aria-label="戦闘速度" disabled><option value="0.25">1/4</option><option value="0.5">1/2</option><option value="1" selected>通常</option><option value="2">2倍</option></select>
-    <label class="toggle"><input id="battle-shell-repeat" type="checkbox" checked/>決着後に再戦</label>
+    <button class="btn sound" id="battle-shell-sound" type="button" aria-pressed="true">音 ON</button>
+    <label class="toggle"><input id="battle-shell-repeat" type="checkbox" checked/>自動再戦</label>
   </div>
   <div class="battle-views" role="group" aria-label="戦闘視点">
     <button class="btn tiny active" type="button" data-battle-shell-view="three">斜め</button>
@@ -70,6 +74,7 @@ let mainWasPlaying = false;
 let previousStage = null;
 let previousModelStates = [];
 let latest = { speed: 1, repeat: true, view: 'three' };
+let soundSnapshot = { heroHp: null, enemyHp: null, heroAction: '', enemyAction: '', finished: false };
 
 function send(command, value) {
   if (!frameReady || !frame.contentWindow) return;
@@ -80,13 +85,53 @@ function ensureFrame() {
   if (!frame.getAttribute('src')) frame.src = frame.dataset.src;
 }
 
+function syncSoundButton() {
+  const button = q('#battle-shell-sound');
+  if (!button) return;
+  button.disabled = !shellAudio.supported;
+  button.setAttribute('aria-pressed', String(shellAudio.enabled));
+  button.textContent = shellAudio.supported ? (shellAudio.enabled ? '音 ON' : '音 OFF') : '音非対応';
+}
+
+function unlockShellAudio() {
+  if (!shellAudio.enabled) return;
+  void shellAudio.unlock().finally(syncSoundButton);
+}
+
+function combatSoundKind(label = '', side = '') {
+  if (/防御|パリィ|受け流/.test(label)) return 'guard';
+  if (/被弾|接敵|間合い|モデル読込中|戦闘不能/.test(label) || !label) return '';
+  if (side === 'hero' || /拳|寸勁|腹打|双拳|突き上げ/.test(label)) return 'jab';
+  return 'slash';
+}
+
+function updateShellAudio(state) {
+  const next = {
+    heroHp: Number(state.heroHp), enemyHp: Number(state.enemyHp),
+    heroAction: state.heroAction || '', enemyAction: state.enemyAction || '',
+    finished: Boolean(state.finished),
+  };
+  if (Number.isFinite(soundSnapshot.heroHp) && Number.isFinite(next.heroHp) && next.heroHp < soundSnapshot.heroHp - 0.01) shellAudio.hit(soundSnapshot.heroHp - next.heroHp > 20);
+  if (Number.isFinite(soundSnapshot.enemyHp) && Number.isFinite(next.enemyHp) && next.enemyHp < soundSnapshot.enemyHp - 0.01) shellAudio.hit(soundSnapshot.enemyHp - next.enemyHp > 20);
+  for (const side of ['hero', 'enemy']) {
+    const key = `${side}Action`;
+    if (next[key] && next[key] !== soundSnapshot[key]) {
+      const kind = combatSoundKind(next[key], side);
+      if (kind === 'guard') shellAudio.guard();
+      else if (kind) shellAudio.attack(kind);
+    }
+  }
+  if (next.finished && !soundSnapshot.finished) shellAudio.knockout();
+  soundSnapshot = next;
+}
+
 function setModelsLocked(on) {
-  const chips = [...document.querySelectorAll('.model-chip')];
+  const controls = [...document.querySelectorAll('.model-chip,.model-select-trigger')];
   if (on) {
-    previousModelStates = chips.map(chip => [chip, chip.disabled]);
-    chips.forEach(chip => { chip.disabled = true; });
+    previousModelStates = controls.map(control => [control, control.disabled]);
+    controls.forEach(control => { control.disabled = true; });
   } else {
-    for (const [chip, disabled] of previousModelStates) chip.disabled = disabled;
+    for (const [control, disabled] of previousModelStates) control.disabled = disabled;
     previousModelStates = [];
   }
 }
@@ -164,6 +209,7 @@ function setActive(next) {
 }
 
 function activateBattleTab() {
+  unlockShellAudio();
   document.querySelectorAll('[data-review-tab]').forEach(tab => {
     tab.classList.toggle('active', tab === battleTab);
     tab.setAttribute('aria-selected', String(tab === battleTab));
@@ -206,6 +252,7 @@ primaryObserver.observe(document.body, { childList: true, subtree: true });
 queueMicrotask(installPrimaryButton);
 
 function update(state) {
+  updateShellAudio(state);
   latest = { ...latest, ...state };
   ready = Boolean(latest.ready && latest.modelReady !== false);
   q('#battle-shell-play').disabled = !ready;
@@ -223,6 +270,7 @@ function update(state) {
   q('#battle-shell-status').textContent = statusText;
   q('#battle-shell-status').dataset.kind = latest.error ? 'error' : '';
   document.querySelectorAll('[data-battle-shell-view]').forEach(button => button.classList.toggle('active', button.dataset.battleShellView === latest.view));
+  syncSoundButton();
   if (active) {
     q('#motion-name').textContent = latest.finished ? `${latest.winner === 'demon' ? '魔物側' : '人間側'} 勝利` : 'Tidebreak 自動戦闘';
     q('#motion-meta').textContent = ready
@@ -248,11 +296,17 @@ window.addEventListener('message', event => {
   update(event.data.state || {});
 });
 
-q('#battle-shell-play').addEventListener('click', () => send('play-toggle'));
-q('#battle-shell-restart').addEventListener('click', () => send('restart'));
-q('#battle-shell-speed').addEventListener('change', event => send('speed', Number(event.target.value)));
+q('#battle-shell-play').addEventListener('click', () => { unlockShellAudio(); send('play-toggle'); });
+q('#battle-shell-restart').addEventListener('click', () => { unlockShellAudio(); send('restart'); });
+q('#battle-shell-speed').addEventListener('change', event => { unlockShellAudio(); send('speed', Number(event.target.value)); });
 q('#battle-shell-repeat').addEventListener('change', event => send('repeat', event.target.checked));
-document.querySelectorAll('[data-battle-shell-view]').forEach(button => button.addEventListener('click', () => send('view', button.dataset.battleShellView)));
+q('#battle-shell-sound').addEventListener('click', () => {
+  shellAudio.setEnabled(!shellAudio.enabled);
+  if (shellAudio.enabled) unlockShellAudio();
+  syncSoundButton();
+});
+document.querySelectorAll('[data-battle-shell-view]').forEach(button => button.addEventListener('click', () => { unlockShellAudio(); send('view', button.dataset.battleShellView); }));
 
+syncSoundButton();
 const initial = new URLSearchParams(location.search);
 if (initial.get('tab') === 'battle') queueMicrotask(() => battleTab.click());
