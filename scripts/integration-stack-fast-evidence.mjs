@@ -25,5 +25,5 @@ export async function trustedStackFastEvidence(c, pr, options = {}) {
   const suffix = `Stack Validate and build #${pr.number}`;
   const job = jobs.find(item => item.name === suffix || item.name?.endsWith(` / ${suffix}`));
   if (job?.status !== 'completed' || job.conclusion !== 'success') return null;
-  return { pr: pr.number, head: pr.head.sha, runId: String(runId), source: 'integration-rescue-stack' };
+  return { pr: pr.number, head: pr.head.sha, runId: String(runId), source: 'integration-repair-stack' };
 }
