@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGithubClient } from '../ops-board/github-client.mjs';
 import { FULL_PULL_RECONCILE_MS, syncPullSnapshot } from '../ops-board/pull-snapshot.mjs';
+import { enrichTargets } from '../ops-board/review-model.mjs';
 
 function memoryStorage() {
   const map = new Map();
@@ -98,4 +99,20 @@ test('PR snapshot is incremental between bounded full reconciliations', async ()
   assert.equal(reconciled.complete, true);
   assert.deepEqual(reconciled.pulls.map(item => item.number), [4, 3, 1]);
   assert.equal(calls.filter(call => call.phase === 'incremental').length, 1);
+});
+
+test('historical PR rows never trigger new target-file API backfill', async () => {
+  const storage = memoryStorage();
+  let calls = 0;
+  const client = {
+    available: 18,
+    deepAllowed: true,
+    async get() { calls++; throw new Error('historical target lookup must not run'); },
+  };
+  const result = await enrichTargets([pr(9, '2026-09-14T08:00:00Z', 'closed')], client, storage, 4);
+  assert.equal(calls, 0);
+  assert.equal(result.attempted, 0);
+  assert.equal(result.pending, 0);
+  assert.equal(result.unavailable, 0);
+  assert.equal(result.pulls[0].targetAppsStatus, 'skipped');
 });
