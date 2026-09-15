@@ -3267,6 +3267,14 @@
       "workerId": "work/866e55ef0f5e/20260915T1213Z-blocked",
       "type": "WORK_REPAIR_CYCLE_SUMMARY",
       "action": "eligible_before=4; claimable_before=0; claimed=0; returned=0; human_required=0; eligible_after=4. Blockers unchanged: #157 state 28b994d4 vs actual c94b53af; #260 state bbaf947a vs actual 41d50d9a; merged #197/#229/#283 remain stale owners. Next route: a trusted develop Coordinator scan/state-normalization path must run; unmerged control PRs are not authority."
+    },
+    {
+      "id": "work-cycle-866e55ef0f5e-20260915T1213Z:WORK_REPAIR_NOTIFICATION:1237",
+      "at": "2026-09-15T12:15:15.989Z",
+      "pr": null,
+      "workerId": "work/866e55ef0f5e/20260915T1213Z-blocked",
+      "type": "WORK_REPAIR_NOTIFICATION",
+      "action": "FAILED Gmail self notification sent; dedupe work-cycle-866e55ef0f5e-20260915T1213Z:watchdog-non-convergence:aa506f92; message 1a0a4fdfead9f922"
     }
   ],
   "config": {
@@ -19546,9 +19554,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1236,
+  "revision": 1237,
   "schema": 1,
-  "updatedAt": "2026-09-15T12:14:44.947Z",
+  "updatedAt": "2026-09-15T12:15:15.989Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
