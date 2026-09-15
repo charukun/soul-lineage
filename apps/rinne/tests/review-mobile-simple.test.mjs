@@ -45,7 +45,7 @@ test('phone navigation exposes five task routes while tools and motions stay con
   assert.match(navV2Css,/\.review-category-grid\{[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
   assert.match(navV2Css,/\.unified-review-navigation \.picker-list\{[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
   assert.match(navV2Css,/\.unified-review-navigation \.model-picker-list\{[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
-  assert.doesNotMatch(navV2Css,/grid-template-columns:repeat\([1-4],minmax\(0,1fr\)\)/);
+  assert.match(navV2Css,/body\[data-review-section="skill"\][\s\S]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
   assert.match(notebook,/placeholder = 'モーションを検索'/);
   assert.match(notebook,/picker-item/);
 });
