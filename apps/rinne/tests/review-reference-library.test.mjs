@@ -8,7 +8,7 @@ const ux=readFileSync(new URL('../src/review/review-ux.js',import.meta.url),'utf
 
 test('Visual Review Lab exposes a character reference library entry point',()=>{
   assert.match(ux,/href='\.\/references\.html'/);
-  assert.match(ux,/リファレンス/);
+  assert.match(ux,/参考資料/);
   assert.match(html,/キャラクターリファレンス/);
   assert.match(html,/\.\/references\.js/);
 });
