@@ -3,248 +3,59 @@ on:
   workflow_call:
 permissions:
   contents: read
+
 jobs:
-  flow-observer:
-    name: Observe repair pressure and knowledge
+  repair:
+    name: Fast Repair
     if: github.repository == 'charukun/soul-lineage' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     concurrency:
-      group: integration-rescue-flow-observer
+      group: integration-repair-fast
       cancel-in-progress: false
     permissions:
       contents: write
       pull-requests: read
-      actions: read
     outputs:
-      max_parallel: ${{ steps.flow.outputs.max_parallel }}
-      max_evaluations: ${{ steps.flow.outputs.max_evaluations }}
+      stack_has_work: ${{ steps.plan.outputs.stack_has_work }}
+      stack_matrix: ${{ steps.plan.outputs.stack_matrix }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: develop
           persist-credentials: false
+          sparse-checkout: scripts
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Update bounded repair tuning, delivery ledger and failure fingerprints
-        id: flow
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RESCUE_COORDINATOR: 'true'
-        run: node scripts/integration-flow-observer.mjs
-
-  coordinator:
-    name: Plan repair executor wave
-    needs: flow-observer
-    if: needs.flow-observer.result == 'success'
-    runs-on: ubuntu-latest
-    timeout-minutes: 6
-    concurrency:
-      group: integration-rescue-coordinator
-      cancel-in-progress: false
-    permissions:
-      contents: write
-      pull-requests: read
-      actions: read
-      issues: read
-      statuses: read
-    outputs:
-      matrix: ${{ steps.plan.outputs.matrix }}
-      has_workers: ${{ steps.plan.outputs.has_workers }}
-      max_parallel: ${{ steps.plan.outputs.max_parallel }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: develop
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-      - name: Bound repair scan and atomically reserve independent executors
+      - name: Reconcile only mechanically safe stacked Ready PRs
         id: plan
         env:
           GH_TOKEN: ${{ github.token }}
-          RESCUE_CONFIGURED: 'true'
-          MAX_RESCUE_CONCURRENCY: ${{ needs.flow-observer.outputs.max_parallel || '4' }}
-          RESCUE_MAX_EVALUATIONS: ${{ needs.flow-observer.outputs.max_evaluations || '16' }}
-          MAX_RESCUE_ATTEMPTS: ${{ vars.MAX_RESCUE_ATTEMPTS }}
-          RESCUE_DIAGNOSTICS_PATH: .deploy-state/rescue-api.json
-          RESCUE_COORDINATOR: 'true'
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: node scripts/integration-rescue-coordinator.mjs
-      - name: Notify Coordinator failure without depending on GitHub state availability
-        if: failure()
-        env:
-          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
-          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
-        run: node scripts/integration-rescue-return.mjs --coordinator-failure
+          INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-repair-api.json
+        run: node scripts/integration-repair-fast.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: integration-rescue-coordinator-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .deploy-state/rescue-*.json
-          include-hidden-files: true
-          retention-days: 7
-
-  worker:
-    name: Repair PR ${{ matrix.pr }}
-    needs: coordinator
-    if: needs.coordinator.outputs.has_workers == 'true'
-    strategy:
-      fail-fast: false
-      max-parallel: ${{ fromJSON(needs.coordinator.outputs.max_parallel) }}
-      matrix: ${{ fromJSON(needs.coordinator.outputs.matrix) }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    concurrency:
-      group: integration-rescue-pr-${{ matrix.pr }}
-      cancel-in-progress: false
-    permissions:
-      contents: write
-      pull-requests: write
-      actions: write
-      issues: write
-      statuses: write
-    env:
-      RESCUE_PR: ${{ matrix.pr }}
-      RESCUE_ID: ${{ matrix.rescueId }}
-      RESCUE_WORKER_ID: ${{ matrix.workerId }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: develop
-          path: control
-          persist-credentials: false
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ matrix.head }}
-          path: work
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-      - name: Recheck claim, head, develop, reviews and dependencies
-        id: prepare
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: node control/scripts/integration-rescue-worker.mjs prepare work "$RUNNER_TEMP/rescue/context.json"
-      - name: Isolate validation from the immutable trusted wrapper
-        run: |
-          sudo useradd --create-home rescue-agent
-          sudo chown -R "rescue-agent:$(id -gn)" work
-          sudo chmod -R g+rwX work
-          sudo chown -R root:root control
-          sudo chmod -R a-w control
-          rescue_parent="$GITHUB_WORKSPACE"
-          while [ "$rescue_parent" != / ]; do
-            sudo chmod o+x "$rescue_parent"
-            rescue_parent="$(dirname "$rescue_parent")"
-          done
-          chmod a+rx "$RUNNER_TEMP" "$RUNNER_TEMP/rescue"
-          chmod a+r "$RUNNER_TEMP/rescue/"*
-      - name: Heartbeat the live repair lease
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          node control/scripts/integration-rescue-worker.mjs heartbeat work "$RUNNER_TEMP/rescue/context.json" > "$RUNNER_TEMP/rescue/heartbeat.log" 2>&1 &
-          echo "$!" > "$RUNNER_TEMP/rescue/heartbeat.pid"
-      - name: Verify the safe base update and stage its exact commit for Work push
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RESCUE_VALIDATION_USER: rescue-agent
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: node control/scripts/integration-rescue-worker.mjs finish work "$RUNNER_TEMP/rescue/context.json"
-      - name: Preserve failure state and fence this lease
-        if: failure() || cancelled()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: node control/scripts/integration-rescue-worker.mjs fail work "$RUNNER_TEMP/rescue/context.json"
-      - name: Stop heartbeat
-        if: always()
-        run: |
-          if [ -f "$RUNNER_TEMP/rescue/heartbeat.pid" ]; then
-            kill "$(cat "$RUNNER_TEMP/rescue/heartbeat.pid")" 2>/dev/null || true
-          fi
-      - name: Return this executor and wake reconciliation
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
-          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: node control/scripts/integration-rescue-return.mjs
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: integration-rescue-pr-${{ matrix.pr }}-${{ matrix.rescueId }}
-          path: ${{ runner.temp }}/rescue/
+          name: integration-repair-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .deploy-state/integration-repair*.json
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 7
 
-  return:
-    name: Aggregate repair results and wake reconciliation
-    needs: [coordinator, worker]
-    if: always() && needs.coordinator.result == 'success'
-    runs-on: ubuntu-latest
-    timeout-minutes: 7
-    concurrency:
-      group: integration-rescue-return
-      cancel-in-progress: false
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: write
-      actions: write
-      statuses: write
-    outputs:
-      stack_has_work: ${{ steps.aggregate.outputs.stack_has_work }}
-      stack_matrix: ${{ steps.aggregate.outputs.stack_matrix }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: develop
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-      - name: Aggregate repair returns, reconcile dependency stacks and notify actionable failures
-        id: aggregate
-        env:
-          GH_TOKEN: ${{ github.token }}
-          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
-          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          RESCUE_STACK_RECONCILE: 'true'
-        run: node scripts/integration-rescue-return.mjs
-      - name: Signal quarantined exact heads for deep AI repair
-        if: always()
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: node scripts/integration-quarantine-signal.mjs
-      - name: Record verified DEV delivery latency for all tracked PRs
-        if: always()
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: node scripts/integration-flow-delivery.mjs
-
   stack-fast:
     name: Stack Validate and build #${{ matrix.pr }}
-    needs: return
-    if: needs.return.outputs.stack_has_work == 'true'
+    needs: repair
+    if: needs.repair.outputs.stack_has_work == 'true'
     strategy:
       fail-fast: false
       max-parallel: 4
-      matrix: ${{ fromJSON(needs.return.outputs.stack_matrix) }}
+      matrix: ${{ fromJSON(needs.repair.outputs.stack_matrix) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    concurrency:
+      group: integration-repair-pr-${{ matrix.pr }}
+      cancel-in-progress: false
     permissions:
       contents: read
       pull-requests: read
@@ -335,7 +146,7 @@ jobs:
           BASE_SHA: ${{ matrix.base }}
         run: |
           mkdir -p .deploy-state
-          node --input-type=module -e "import fs from 'node:fs'; fs.writeFileSync('.deploy-state/pr-fast.json', JSON.stringify({pr:process.env.PR_NUMBER,head:process.env.HEAD_SHA,base:process.env.BASE_SHA,eventBase:process.env.BASE_SHA,source:'integration-rescue-stack',run:process.env.GITHUB_RUN_ID||null}));"
+          node --input-type=module -e "import fs from 'node:fs'; fs.writeFileSync('.deploy-state/pr-fast.json', JSON.stringify({pr:process.env.PR_NUMBER,head:process.env.HEAD_SHA,base:process.env.BASE_SHA,eventBase:process.env.BASE_SHA,source:'integration-repair-stack',run:process.env.GITHUB_RUN_ID||null}));"
       - uses: actions/upload-artifact@v4
         with:
           name: pr-fast-${{ matrix.pr }}-${{ matrix.head }}
@@ -365,8 +176,8 @@ jobs:
 
   stack-integration-request:
     name: Wake Fast Lane after stack validation
-    needs: [return, stack-fast]
-    if: always() && needs.return.outputs.stack_has_work == 'true' && !cancelled()
+    needs: [repair, stack-fast]
+    if: always() && needs.repair.outputs.stack_has_work == 'true' && !cancelled()
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions:
@@ -379,12 +190,12 @@ jobs:
 
   stack-browser:
     name: Stack browser smoke #${{ matrix.pr }}
-    needs: return
-    if: needs.return.outputs.stack_has_work == 'true'
+    needs: repair
+    if: needs.repair.outputs.stack_has_work == 'true'
     strategy:
       fail-fast: false
       max-parallel: 4
-      matrix: ${{ fromJSON(needs.return.outputs.stack_matrix) }}
+      matrix: ${{ fromJSON(needs.repair.outputs.stack_matrix) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
