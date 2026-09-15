@@ -1,10 +1,11 @@
 import { createWebPlatform } from '@soul/platform-web';
 import { createSharedWorldChannel } from '@soul/platform-web/shared-world';
 import { defaultMuraLayout, validateMuraLayout, safeMuraPosition } from '@soul/world/mura';
-import { createLife, deserializeLife, serializeLife, setClockRate, setMoving, tickLife, objectiveFor, rebirth, LIFE_YEARS, canDepart, depart, advanceFront, returnHome } from './domain.js';
+import { createLife, deserializeLife, serializeLife, setClockRate, setMoving, tickLife, rebirth, LIFE_YEARS, canDepart, depart, advanceFront, returnHome } from './domain.js';
 import { buildStations, nearestStation, nearestNamedPlace, normalizeLayout } from './locations.js';
 import { createWorldRenderer } from './renderer.js';
 import { createFront, normalizeFront, tickFront } from './combat.js';
+import { guidanceFor } from './guidance.js';
 
 const $=id=>document.getElementById(id);
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
@@ -33,12 +34,19 @@ export async function startRuntime({mode,buildInfo,name,onExit}){
   function syncUI(){
     $('generation').textContent=`${state.generation}代目`;$('age').textContent=`${Math.min(LIFE_YEARS,Math.floor(state.ageYears))}歳`;
     $('hp-bar').style.width=`${clamp(state.hp/state.maxHp*100,0,100)}%`;$('stamina-bar').style.width=`${clamp(state.stamina/100*100,0,100)}%`;
-    $('objective').textContent=objectiveFor(state);const near=state.zone==='village'?nearestNamedPlace(stations,state.position):null;$('place').textContent=state.zone==='village'?(near&&near.distance<18?`${near.label}まで ${near.distance.toFixed(0)}m`:'MURAAAAAAA'):`第${state.front+1}前線`;
-    $('clock-rate').value=String(state.clockRate);
-    $('move-hint').textContent=state.down?'救助を待っています':state.combat?'接触戦闘中 · 離れると解除':state.activity?`${state.activity.label} · 動けば中断`:(state.resting?'休息中 · スワイプで歩く':'スワイプした方向へ歩く');
+    const guide=guidanceFor({state,stations,front});$('life-stage').textContent=guide.stage;$('objective').textContent=guide.objective;$('objective-detail').textContent=guide.detail;
+    const near=state.zone==='village'?nearestNamedPlace(stations,state.position):null;$('place').textContent=state.zone==='village'?(near&&near.distance<18?`${near.label}まで ${near.distance.toFixed(0)}m`:'MURAAAAAAA'):`第${state.front+1}前線`;
+    const waypoint=$('waypoint');waypoint.dataset.tone=guide.tone||'';
+    if(guide.target){
+      const direction=view.screenDirection(state.position,guide.target),angle=Math.atan2(direction.x,-direction.y)*180/Math.PI;
+      waypoint.hidden=false;$('waypoint-label').textContent=guide.target.label;$('waypoint-distance').textContent=direction.distance<1.2?'ここ':`${Math.ceil(direction.distance)}m先`;$('waypoint-arrow').style.transform=`rotate(${angle.toFixed(1)}deg)`;
+    }else waypoint.hidden=true;
+    $('clock-rate').value=String(state.clockRate);$('talk').hidden=state.zone!=='village'||Boolean(state.down)||state.ended;
+    $('move-hint').textContent=state.down?'救助を待っています':state.combat?'接触戦闘中 · 離れると解除':state.zone==='frontier'&&front?.cleared?`${guide.target?.label||'帰還地点'}へ · スワイプで進む`:state.activity?`${state.activity.label} · 動けば中断`:(state.resting?'休息中 · スワイプで歩く':'スワイプした方向へ歩く');
   }
   function dialogue(speaker,text){$('speaker').textContent=speaker;$('dialogue-text').textContent=text;$('dialogue').hidden=false;clearTimeout(dialogue.timer);dialogue.timer=setTimeout(()=>$('dialogue').hidden=true,5200);}
   function talk(){
+    if(state.zone!=='village'||state.down||state.ended)return;
     if(state.phase==='birth'){dialogue('母','焦らなくていいよ。景色を見て、音を聞いて、あなたの歩幅で大きくなりなさい。');return;}
     const near=nearestNamedPlace(stations,state.position);
     const words={garden:'火のそばには誰かがいる。遊びも技になる。',school:'知ったことは、いつか身体の動きに変わる。',chapel:'祈りは逃げじゃない。心を整える時間だ。',smith:'刃を作る手を見ていると、力の通し方が見えてくる。',dojo:'上手い人の足は、止まって見えても止まっていない。',clinic:'生きて帰ることも強さだ。'};
@@ -47,14 +55,14 @@ export async function startRuntime({mode,buildInfo,name,onExit}){
   function endLife(){
     if(endDialog?.open)return;
     endDialog=document.createElement('dialog');endDialog.className='life-end-dialog';
-    endDialog.innerHTML='<form method="dialog"><p>100年人生</p><h2 id="life-end-name"></h2><p><span id="life-end-generation"></span>代目は100歳を迎えました。</p><label>次の生へ遺す記憶<select id="memento"></select></label><button value="rebirth" id="rebirth">次の人生へ</button></form>';
+    endDialog.innerHTML='<form method="dialog"><p>100年人生</p><h2 id="life-end-name"></h2><p><span id="life-end-generation"></span>代目は100歳を迎えました。</p><p class="life-end-summary"><span id="life-end-defeats"></span>体の敵を退け、<span id="life-end-returns"></span>回村へ凱旋。<span id="life-end-skills"></span>個の技が次の生へ残ります。</p><label>次の生へ遺す記憶<select id="memento"></select></label><p class="life-end-help">覚えた技と装備はそのまま受け継がれます。ここで選ぶ記憶は、この生を表す印として系譜へ残ります。</p><button value="rebirth" id="rebirth">次の人生へ</button></form>';
     endDialog.querySelector('#life-end-name').textContent=`${state.name}の生涯`;
-    endDialog.querySelector('#life-end-generation').textContent=String(state.generation);
+    endDialog.querySelector('#life-end-generation').textContent=String(state.generation);endDialog.querySelector('#life-end-defeats').textContent=String(state.defeats);endDialog.querySelector('#life-end-returns').textContent=String(state.returns);endDialog.querySelector('#life-end-skills').textContent=String(state.knownSkills.length);
     const choices=state.knownSkills.filter(x=>!x.startsWith('memory:')).slice(-10),select=endDialog.querySelector('#memento');
     for(const id of choices.length?choices:['']){const o=document.createElement('option');o.value=id;o.textContent=id||'村で過ごした日々';select.append(o);}
     document.body.append(endDialog);
     endDialog.addEventListener('close',async()=>{if(endDialog.returnValue==='rebirth'){
-      state=rebirth(state,{memento:select.value||null});front=null;state.frontState=null;state.position=safeMuraPosition(layout,state.position);await save();endDialog.remove();endDialog=null;toast('また、生まれた。');
+      state=rebirth(state,{memento:select.value||null});front=null;state.frontState=null;state.position=safeMuraPosition(layout,state.position);await save();endDialog.remove();endDialog=null;toast('また、生まれた。村を知るところから始まる。');
     }else endDialog.showModal();});endDialog.showModal();
   }
   function handleEvents(events){for(const event of events){
