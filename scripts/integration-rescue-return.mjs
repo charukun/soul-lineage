@@ -129,19 +129,129 @@ async function signalWorkRepair(c, item, record, message, state) {
   return true;
 }
 
+function currentPr(pr, expectedHead) {
+  return [
+    Boolean(pr),
+    pr?.state === 'open',
+    pr?.draft === false,
+    pr?.base?.ref === 'develop',
+    pr?.base?.repo?.full_name === REPOSITORY,
+    pr?.head?.repo?.full_name === REPOSITORY,
+    pr?.head?.sha === expectedHead,
+  ].every(Boolean);
+}
+
+function manualIdentity(record, item) {
+  const rescue = record?.rescueId ? record.rescueId : `pr-${record?.pr}`;
+  return [
+    Boolean(record),
+    record?.state === 'FAILED_MANUAL',
+    record?.failureReason === item.reason,
+    Boolean(record?.headSha),
+    item.id === `${rescue}:manual:${item.attempt}`,
+  ].every(Boolean);
+}
+
+async function prepareManualNotification(c, state, item) {
+  const record = state.records?.[item.pr];
+  if (!manualIdentity(record, item)) return { send: false, reason: 'manual-state-superseded', record };
+  const pr = await c.api('GET', `${c.root}/pulls/${item.pr}`);
+  return currentPr(pr, record.headSha)
+    ? { send: true, record, pr }
+    : { send: false, reason: 'manual-head-superseded', record, liveHead: pr?.head?.sha };
+}
+
+async function prepareWaveNotification(c, state, item) {
+  const wave = state.waves?.find(w => w.id === item.wave);
+  if (!wave) return { send: false, reason: 'wave-superseded', prs: [], manual: [] };
+  const rescueIds = new Set(wave.rescueIds ? wave.rescueIds : []);
+  const fresh = async (number, kind) => {
+    const record = state.records?.[number];
+    const head = record?.pushedSha ? record.pushedSha : record?.headSha;
+    const stateMatches = kind === 'returned'
+      ? [RETURNED.has(record?.state), record?.state !== 'AWAITING_PUSH'].every(Boolean)
+      : record?.state === 'FAILED_MANUAL';
+    const eligible = [Boolean(record), rescueIds.has(record?.rescueId), stateMatches, Boolean(head)].every(Boolean);
+    return eligible ? currentPr(await c.api('GET', `${c.root}/pulls/${number}`), head) : false;
+  };
+  const prNumbers = item.prs ? item.prs : [];
+  const manualNumbers = item.manual ? item.manual : [];
+  const [prFreshness, manualFreshness] = await Promise.all([
+    Promise.all(prNumbers.map(number => fresh(number, 'returned'))),
+    Promise.all(manualNumbers.map(number => fresh(number, 'manual'))),
+  ]);
+  const prs = prNumbers.filter((_number, index) => prFreshness[index]);
+  const manual = manualNumbers.filter((_number, index) => manualFreshness[index]);
+  return prs.length
+    ? { send: true, prs, manual }
+    : { send: false, reason: 'wave-returned-heads-superseded', prs, manual };
+}
+
+async function suppressNotification(store, id, reason, liveHead = null) {
+  await store.mutate(state => {
+    const entry = state.outbox.find(n => n.id === id);
+    const mutable = [Boolean(entry), !entry?.sentAt, !entry?.suppressedAt].every(Boolean);
+    return mutable ? Object.assign(entry, {
+      suppressedAt: new Date().toISOString(),
+      channel: 'suppressed-stale',
+      suppressionReason: reason,
+      nextNotificationAt: null,
+      ...(liveHead ? { liveHead } : {}),
+    }) : undefined;
+  });
+}
+
 export async function notifyOutbox(c, store, { url = '', token = '', request = fetch } = {}) {
-  const { state } = await store.read();
-  for (const item of state.outbox.filter(n => !n.sentAt && (n.notificationAttempts || 0) < 3 && (!n.nextNotificationAt || Date.parse(n.nextNotificationAt) <= Date.now())).slice(0, 5)) {
-    const record = state.records?.[item.pr];
-    const eligibility = item.type === 'manual' ? workRepairEligibility(record) : { eligible: false };
-    const aiRepair = Boolean(eligibility.eligible);
-    const message = item.type === 'manual' ? aiRepair
-      ? `Integration Rescue\nAI_REPAIR_REQUIRED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: existing ChatGPT Work repair lane; periodic Work remains fallback`
-      : `Integration Rescue\nFAILED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: human or approved Work review required`
-      : `Integration Rescue\nREADY_FOR_INTEGRATION\nWave: ${item.wave}\nReturned to Integration: ${item.prs.map(n => '#' + n).join(' ')}\nManual: ${item.manual.map(n => '#' + n).join(' ') || 'none'}\nCI/browser monitoring: Integration; repair workers ended`;
+  const initial = await store.read();
+  const due = initial.state.outbox.filter(n => [
+    !n.sentAt,
+    !n.suppressedAt,
+    (n.notificationAttempts ? n.notificationAttempts : 0) < 3,
+    n.nextNotificationAt ? Date.parse(n.nextNotificationAt) <= Date.now() : true,
+  ].every(Boolean)).slice(0, 5).map(n => n.id);
+  for (const id of due) {
+    const { state } = await store.read();
+    const item = state.outbox.find(n => n.id === id);
+    const actionable = [
+      Boolean(item),
+      !item?.sentAt,
+      !item?.suppressedAt,
+      (item?.notificationAttempts ? item.notificationAttempts : 0) < 3,
+      item?.nextNotificationAt ? Date.parse(item.nextNotificationAt) <= Date.now() : true,
+    ].every(Boolean);
+    if (!actionable) continue;
     try {
+      const legacyFreshness = {
+        send: true,
+        record: state.records?.[item.pr],
+        prs: item.prs ? item.prs : [],
+        manual: item.manual ? item.manual : [],
+      };
+      const freshness = item.type === 'manual' && state.records
+        ? await prepareManualNotification(c, state, item)
+        : item.type === 'wave' && state.waves
+          ? await prepareWaveNotification(c, state, item)
+          : legacyFreshness;
+      if (!freshness.send) {
+        await suppressNotification(store, item.id, freshness.reason, freshness.liveHead);
+        continue;
+      }
+      const record = freshness.record ? freshness.record : state.records?.[item.pr];
+      const wave = item.type === 'wave' ? freshness : null;
+      const eligibility = item.type === 'manual' ? workRepairEligibility(record) : { eligible: false };
+      const aiRepair = Boolean(eligibility.eligible);
+      const message = item.type === 'manual' ? aiRepair
+        ? `Integration Rescue\nAI_REPAIR_REQUIRED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: existing ChatGPT Work repair lane; periodic Work remains fallback`
+        : `Integration Rescue\nFAILED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: human or approved Work review required`
+        : `Integration Rescue\nREADY_FOR_INTEGRATION\nWave: ${item.wave}\nReturned to Integration: ${wave.prs.map(n => '#' + n).join(' ')}\nManual: ${wave.manual.map(n => '#' + n).join(' ') || 'none'}\nCI/browser monitoring: Integration; repair workers ended`;
       if (aiRepair) await signalWorkRepair(c, item, record, message, state);
       if (url) {
+        const latest = item.type === 'manual' ? await store.read() : null;
+        const recheck = latest?.state?.records ? await prepareManualNotification(c, latest.state, item) : { send: true };
+        if (!recheck.send) {
+          await suppressNotification(store, item.id, recheck.reason, recheck.liveHead);
+          continue;
+        }
         if (!url.startsWith('https://')) throw new Error('NTFY_HTTPS_REQUIRED');
         const response = await request(url, { method: 'POST', headers: { 'Content-Type': 'text/plain; charset=utf-8', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: message, signal: AbortSignal.timeout(10000) });
         if (!response.ok) throw new Error(`NTFY_FAILED:${response.status}`);
@@ -152,7 +262,7 @@ export async function notifyOutbox(c, store, { url = '', token = '', request = f
       }
       await store.mutate(state => {
         const entry = state.outbox.find(n => n.id === item.id);
-        if (entry) {
+        if ([Boolean(entry), !entry?.suppressedAt].every(Boolean)) {
           entry.sentAt = new Date().toISOString();
           entry.channel = aiRepair ? 'github-pr+work-signal' : url ? 'ntfy' : item.type === 'manual' ? 'github-pr' : 'pulse-summary';
         }
@@ -160,7 +270,7 @@ export async function notifyOutbox(c, store, { url = '', token = '', request = f
     } catch (error) {
       await store.mutate(state => {
         const entry = state.outbox.find(n => n.id === item.id);
-        if (!entry || entry.sentAt) return;
+        if (![Boolean(entry), !entry?.sentAt, !entry?.suppressedAt].every(Boolean)) return;
         entry.notificationAttempts = (entry.notificationAttempts || 0) + 1;
         entry.notificationError = String(error.message).slice(0, 400);
         entry.nextNotificationAt = new Date(Date.now() + entry.notificationAttempts * 300000).toISOString();
@@ -182,7 +292,10 @@ export async function finalize(c, store, now = Date.now()) {
       wave.returned = prs; wave.manual = manual;
       if (prs.length) state.outbox.push({ id: `${wave.id}:summary`, type: 'wave', wave: wave.id, prs, manual });
     }
-    state.outbox = state.outbox.filter(n => !n.sentAt || now - Date.parse(n.sentAt) < 86400000).slice(-100);
+    state.outbox = state.outbox.filter(n => {
+      const finalizedAt = n.sentAt ? n.sentAt : n.suppressedAt;
+      return finalizedAt ? now - Date.parse(finalizedAt) < 86400000 : true;
+    }).slice(-100);
   });
   await collectDelivery(c, store, now);
   return returned;
