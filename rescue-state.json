@@ -3371,6 +3371,54 @@
       "workerId": "work/866e55ef0f5e/20260915T1417Z-browser303-a1",
       "type": "POST_RETURN_BASELINE_CHURN",
       "action": "After force=false push and Ready return, develop advanced from verified eaf5f49c to 2b0d7943. This occurred after ownership handoff and does not consume a semantic attempt. Current latest-develop publish run 34982768400 is already in progress and run 34982799675 is pending, so no duplicate PULSE dispatch was created."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T151530Z:BROWSER_REPAIR_CLAIMED",
+      "at": "2026-09-15T15:15:30.000Z",
+      "pr": 331,
+      "workerId": "work/866e55ef0f5e/20260915T151530Z-browser328-a1",
+      "type": "BROWSER_REPAIR_CLAIMED",
+      "action": "Claimed canonical exact-current develop Browser Repair issue #328 (source PR #322, failing run 34984634010) at attempt 1/3. Issue ownership moved pending -> working for chatgpt-work:866e55ef0f5e; Draft PR #331 and branch repair/browser-issue-328-a1 were created from exact develop eac48e87 before edits."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T151530Z:BROWSER_REPAIR_RETURNED",
+      "at": "2026-09-15T15:29:52.555Z",
+      "pr": 331,
+      "workerId": "work/866e55ef0f5e/20260915T151530Z-browser328-a1",
+      "type": "BROWSER_REPAIR_RETURNED",
+      "action": "Artifact/trace diagnosis found a stale play-clarity assertion expecting sense/lineage after the canonical first-hunt director had moved to approach/choice/free; renderer, requests, pause input, and pause UI were healthy. Updated the assertion to derive its expected stage from firstHuntDirectorState and added governing contract coverage without removing or weakening checks. npm ci, focused 34/34, trusted fast, and demon/rinne/village builds passed. Merge commit 876751ca (tree e494f00c; parents 0de8913f + validated develop eac48e87) pushed force=false and PR #331 marked Ready. Issue #328 remains working; GitHub exact-head browser verification exclusively owns the next state transition."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T151530Z:ASSERTION_REVIEW",
+      "at": "2026-09-15T15:29:52.555Z",
+      "pr": 331,
+      "workerId": "work/866e55ef0f5e/20260915T151530Z-browser328-a1",
+      "type": "ASSERTION_REVIEW",
+      "action": "Assertion repair review: coveragePreserved=true; removedAssertionsReconciled=true. Governing production/test contract read together: apps/demon/src/web/first-hunt-director.js, apps/demon/tests/first-hunt-director.test.mjs, apps/demon/tests/friend-village-hidden.test.mjs, and scripts/browser/play-clarity.mjs. No timeout, gate, or quality threshold was weakened."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T151530Z:BROWSER_REPAIR_CYCLE_SUMMARY",
+      "at": "2026-09-15T15:29:52.555Z",
+      "pr": null,
+      "workerId": "work/866e55ef0f5e/20260915T151530Z-browser328-a1",
+      "type": "BROWSER_REPAIR_CYCLE_SUMMARY",
+      "action": "eligible_before=1; claimable_before=1; claimed=1; returned=1; human_required=0; eligible_after=0 for the current canonical exact-develop Browser Repair generation. Open older Browser issues and Deep Repair issues were stale-generation duplicates, already owned/ready, or human-required and were not bypassed. ACTIVE 0 after return means no idle claimable current-generation candidate, while issue #328 continues in Integration verification."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T151530Z:PULSE_CURRENT",
+      "at": "2026-09-15T15:29:52.555Z",
+      "pr": null,
+      "workerId": "work/866e55ef0f5e/20260915T151530Z-browser328-a1",
+      "type": "PULSE_CURRENT",
+      "action": "Latest develop remains eac48e8701bc7b7d88fb85d01b753926513c4bed. Existing deploy/PULSE run 34988660108 already targets that exact SHA and is pending, so no duplicate publish-only trigger was started."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T151530Z:BROWSER_REPAIR_NOTIFICATION",
+      "at": "2026-09-15T15:29:52.555Z",
+      "pr": 331,
+      "workerId": "work/866e55ef0f5e/20260915T151530Z-browser328-a1",
+      "type": "BROWSER_REPAIR_NOTIFICATION",
+      "action": "SUCCESS Gmail self notification sent; dedupe browser-issue-328:pr-331:876751ca; message 1a0a5afb09830beb."
     }
   ],
   "config": {
@@ -6207,6 +6255,22 @@
       "status": "RETURNED_TO_INTEGRATION",
       "type": "browser-repair-notice",
       "workerId": "work/866e55ef0f5e/20260915T1417Z-browser303-a1"
+    },
+    {
+      "attempt": 1,
+      "branch": "repair/browser-issue-328-a1",
+      "channel": "gmail-self",
+      "commit": "876751cacdb2e995b93aa7959205e910986ac489",
+      "id": "gmail:1a0a5afb09830beb",
+      "messageId": "1a0a5afb09830beb",
+      "next": "GitHub exact-head CI/browser verification -> Integration -> DEV publication -> public DEV browser verification; browser-repair:v1 owns the next issue transition",
+      "pr": 331,
+      "receiptSource": "Gmail send_email accepted message; smartphone delivery unverified",
+      "sentAt": "2026-09-15T15:29:52.555Z",
+      "stage": "artifact diagnosis + canonical assertion reconciliation + npm ci + focused 34/34 + trusted fast + 3 app builds + final fences + force=false push + Ready",
+      "status": "RETURNED_TO_INTEGRATION",
+      "type": "browser-repair-notice",
+      "workerId": "work/866e55ef0f5e/20260915T151530Z-browser328-a1"
     }
   ],
   "records": {
@@ -19666,9 +19730,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1241,
+  "revision": 1242,
   "schema": 1,
-  "updatedAt": "2026-09-15T14:36:40.000Z",
+  "updatedAt": "2026-09-15T15:29:52.555Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
