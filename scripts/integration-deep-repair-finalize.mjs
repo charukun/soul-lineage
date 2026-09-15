@@ -31,13 +31,12 @@ function normalizeMerges(merges = []) {
   return result;
 }
 
-function issueMatchesMergedPr(issue, mergedByPr) {
-  if (!issue || issue.pull_request || issue.state === 'closed') return false;
-  const state = parseDeepRepairIssue(issue.body);
-  return Boolean(state && mergedByPr.has(Number(state.pr)));
+function openDeepRepairState(issue) {
+  if (!issue || issue.pull_request || issue.state === 'closed') return null;
+  return parseDeepRepairIssue(issue.body);
 }
 
-async function discoverOpenDeepRepairIssues(c, repository, mergedByPr) {
+async function discoverOpenDeepRepairIssues(c, repository, targetPrs = null) {
   const query = `repo:${repository} is:issue is:open in:body "integration-deep-repair:v1"`;
   const encoded = encodeURIComponent(query);
   const [search, recent] = await Promise.all([
@@ -57,30 +56,64 @@ async function discoverOpenDeepRepairIssues(c, repository, mergedByPr) {
 
   const numbers = new Set();
   for (const issue of [...searched, ...recent]) {
-    if (issueMatchesMergedPr(issue, mergedByPr)) numbers.add(Number(issue.number));
+    const state = openDeepRepairState(issue);
+    if (state && (!targetPrs || targetPrs.has(Number(state.pr)))) numbers.add(Number(issue.number));
   }
-  return Promise.all([...numbers].map(number => {
+  const current = await Promise.all([...numbers].map(number => {
     assert.ok(Number.isSafeInteger(number) && number > 0, 'INVALID_DEEP_REPAIR_FINALIZATION_ISSUE_NUMBER');
     return c.api('GET', `${c.root}/issues/${number}`);
   }));
+  return current.filter(issue => {
+    const state = openDeepRepairState(issue);
+    return Boolean(state && (!targetPrs || targetPrs.has(Number(state.pr))));
+  });
+}
+
+function mergeFromClosedPr(pr, repository) {
+  if (pr?.state !== 'closed' || !pr.merged_at || pr.base?.ref !== 'develop' ||
+      pr.base?.repo?.full_name !== repository || pr.head?.repo?.full_name !== repository ||
+      !validSha(pr.head?.sha) || !validSha(pr.merge_commit_sha)) return null;
+  return { pr: Number(pr.number), head: pr.head.sha, merge: pr.merge_commit_sha };
+}
+
+async function recoverMergedPrEvidence(c, repository, issues, mergedByPr) {
+  const numbers = new Set();
+  for (const issue of issues) {
+    const state = openDeepRepairState(issue);
+    if (!state || !FINALIZABLE_STATES.has(state.state) || mergedByPr.has(Number(state.pr))) continue;
+    numbers.add(Number(state.pr));
+  }
+  const prs = await Promise.all([...numbers].map(number => {
+    assert.ok(Number.isSafeInteger(number) && number > 0, 'INVALID_DEEP_REPAIR_SOURCE_PR');
+    return c.api('GET', `${c.root}/pulls/${number}`);
+  }));
+  for (const pr of prs) {
+    const merged = mergeFromClosedPr(pr, repository);
+    if (merged) mergedByPr.set(merged.pr, merged);
+  }
 }
 
 export async function finalizeMergedDeepRepairs(c, {
   repository,
   merges,
+  reconcileMerged = false,
   completedAt = new Date().toISOString(),
 } = {}) {
   assert.match(repository || '', /^[\w.-]+\/[\w.-]+$/, 'DEEP_REPAIR_FINALIZATION_REPOSITORY_REQUIRED');
   const mergedByPr = normalizeMerges(merges);
   const result = { finalized: [], skipped: [], errors: [] };
-  if (!mergedByPr.size) return result;
+  if (!mergedByPr.size && !reconcileMerged) return result;
 
-  const issues = await discoverOpenDeepRepairIssues(c, repository, mergedByPr);
+  const targetPrs = reconcileMerged ? null : new Set(mergedByPr.keys());
+  const issues = await discoverOpenDeepRepairIssues(c, repository, targetPrs);
+  if (reconcileMerged) await recoverMergedPrEvidence(c, repository, issues, mergedByPr);
+
   for (const issue of issues) {
     try {
-      if (!issueMatchesMergedPr(issue, mergedByPr)) continue;
-      const state = parseDeepRepairIssue(issue.body);
+      const state = openDeepRepairState(issue);
+      if (!state) continue;
       const merged = mergedByPr.get(Number(state.pr));
+      if (!merged) continue;
       if (!FINALIZABLE_STATES.has(state.state)) {
         result.skipped.push({ issue: issue.number, pr: state.pr, state: state.state });
         continue;
@@ -137,7 +170,11 @@ export async function main() {
   const c = client(repository, token, fetch, {
     diagnosticsPath: process.env.INTEGRATION_DIAGNOSTICS_PATH || '.deploy-state/integration-finalization-api.json',
   });
-  const result = await finalizeMergedDeepRepairs(c, { repository, merges: report.merged || [] });
+  const result = await finalizeMergedDeepRepairs(c, {
+    repository,
+    merges: report.merged || [],
+    reconcileMerged: process.env.DEEP_REPAIR_RECONCILE_MERGED === 'true',
+  });
   mkdirSync('.deploy-state', { recursive: true });
   writeFileSync('.deploy-state/deep-repair-finalization.json', JSON.stringify(result, null, 2));
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
