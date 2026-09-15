@@ -6,9 +6,14 @@ import { MOTION_LIBRARY_MODELS, motionLibraryModel, motionLibraryModelURL } from
 const adapter=readFileSync(new URL('../src/review/review-adapter.js',import.meta.url),'utf8');
 const retiredReferenceCatalog=new URL('../src/review/reference-character-models.js',import.meta.url);
 
-test('Visual Review Lab keeps retired procedural character bodies out of the public runtime',()=>{
+test('Visual Review Lab keeps the retired generic procedural catalog out while preserving the explicit Atlas study',()=>{
   assert.equal(existsSync(retiredReferenceCatalog),false,`${retiredReferenceCatalog.pathname} must stay retired`);
-  assert.doesNotMatch(adapter,/REVIEW_REFERENCE_MODELS|reference-character-models|attachReferenceCharacterController|attachArcanistAtlasStudy|master-character-reference|arcanist-atlas-study/);
+  assert.doesNotMatch(adapter,/REVIEW_REFERENCE_MODELS|reference-character-models/);
+  assert.match(adapter,/arcanist\.atlas-study\.v1|ARCANIST_ATLAS_STUDY_ID/);
+  assert.match(adapter,/ARCANIST_ATLAS_STUDY \/ BLOCKOUT/);
+  assert.match(adapter,/modelingMode:'runtime-procedural'/);
+  assert.match(adapter,/productionReady:false/);
+  assert.match(adapter,/attachArcanistAtlasStudy/);
   assert.match(adapter,/\.\.\.baseReviewPresets/);
 });
 
