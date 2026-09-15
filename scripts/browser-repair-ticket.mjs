@@ -18,11 +18,6 @@ assert.ok(token && repository && scope && conclusion && headSha && runUrl);
 assert.ok(['pr', 'develop'].includes(scope));
 assert.ok(['success', 'failure'].includes(conclusion));
 
-if (scope === 'develop' && conclusion === 'success' && !verifiedDevelopEvidence) {
-  console.log(JSON.stringify({ action: 'noop-unverified-develop-success', headSha, artifact }));
-  process.exit(0);
-}
-
 async function api(method, path, body) {
   const response = await fetch(`https://api.github.com/repos/${repository}${path}`, {
     method,
@@ -90,6 +85,38 @@ async function currentDevelopContainingMergedPr(pr, testedHead) {
   const contains = comparison?.merge_base_commit?.sha === pr.merge_commit_sha && comparison?.head_commit?.sha === current && ['ahead', 'identical'].includes(comparison?.status);
   return contains ? current : null;
 }
+async function finalizeReadyDevelopRepairFromDelivery() {
+  if (scope !== 'develop' || conclusion !== 'success' || verifiedDevelopEvidence) return false;
+  const candidates = repairIssueNumber
+    ? [await getIssue(repairIssueNumber)].filter(Boolean)
+    : (await api('GET', '/issues?state=open&per_page=100&sort=updated&direction=desc')).filter(issue => !issue.pull_request);
+  for (const candidate of candidates) {
+    const state = parseRepairState(candidate.body || '');
+    if (!state || state.scope !== 'develop' || state.state !== 'ready-for-integration') continue;
+    const repairHead = state.repairPrHead || state.headSha;
+    const mergedIntoCurrent = repairHead === headSha || await ancestorOfCurrent(repairHead);
+    if (!mergedIntoCurrent) continue;
+    const next = onDevelopBrowserSuccess(state, {
+      headSha,
+      runUrl,
+      artifact,
+      lastConclusion: conclusion,
+      verificationMode: 'repair-pr-browser+dev-delivery',
+      verifiedBySha: headSha,
+    });
+    await api('PATCH', `/issues/${candidate.number}`, { body: replaceRepairState(candidate.body || '', next), state: 'closed' });
+    const marker = `<!-- browser-repair-delivery:${headSha} -->`;
+    await commentOnce(candidate.number,
+      `${notificationHeadline('BROWSER_VERIFIED', notificationLocale)}\nRepair PR browser verification was already green, and the repaired head is now contained in publicly verified DEV \`${headSha}\`. State: **verified**.`, marker);
+    console.log(JSON.stringify({ action: 'verified-by-repair-pr-browser-and-dev-delivery', issue: candidate.number, state: next }, null, 2));
+    return true;
+  }
+  console.log(JSON.stringify({ action: 'noop-dev-delivery-without-ready-repair', headSha, artifact }));
+  return false;
+}
+
+if (await finalizeReadyDevelopRepairFromDelivery()) process.exit(0);
+if (scope === 'develop' && conclusion === 'success' && !verifiedDevelopEvidence) process.exit(0);
 
 const sourcePr = await associatedPr();
 let promotedFromPrHead = null;
@@ -118,8 +145,8 @@ if (scope === 'pr' && !currentPrRepair(sourcePr, headSha)) {
     });
     await api('PATCH', `/issues/${linkedIssue.number}`, { body: replaceRepairState(linkedIssue.body || '', next), state: 'open' });
     const marker = `<!-- browser-repair-run:${process.env.GITHUB_RUN_ID || headSha}:${conclusion} -->`;
-    await commentOnce(sourcePr.number, `${notificationHeadline('BROWSER_VERIFIED', notificationLocale)}\nPost-merge browser verification succeeded. Repair ticket #${linkedIssue.number} is **ready-for-integration** and will receive final DEV repair verification asynchronously.\n\nArtifacts: \`${artifact}\` · ${runUrl}`, marker);
-    await commentOnce(linkedIssue.number, `${notificationHeadline('BROWSER_VERIFIED', notificationLocale)}\nRepair PR browser verification succeeded after merge into \`${currentDevelop}\`. State: **ready-for-integration**.`, marker);
+    await commentOnce(sourcePr.number, `${notificationHeadline('BROWSER_VERIFIED', notificationLocale)}\nPost-merge browser verification succeeded. Repair ticket #${linkedIssue.number} is **ready-for-integration** and will close when the repaired head is confirmed in published DEV.\n\nArtifacts: \`${artifact}\` · ${runUrl}`, marker);
+    await commentOnce(linkedIssue.number, `${notificationHeadline('BROWSER_VERIFIED', notificationLocale)}\nRepair PR browser verification succeeded after merge into \`${currentDevelop}\`. State: **ready-for-integration** until DEV publication/source verification confirms the repaired head.`, marker);
     console.log(JSON.stringify({ action: 'late-merged-repair-success', issue: linkedIssue.number, state: next, currentDevelop }, null, 2));
     process.exit(0);
   }
