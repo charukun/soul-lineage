@@ -7,6 +7,7 @@ import {
 } from './master-character.js';
 import {
   appearancePartsForCharacter,
+  canonicalAppearanceParts,
   mergeAppearanceParts
 } from './appearance-parts.js';
 import { crowdPlan } from './character-sync.js';
@@ -102,7 +103,7 @@ export function resolveCharacterRoleAppearance(character, {
 
 export function resolveCharacterBodyArchetype(character, parts = null) {
   validateCharacter(character);
-  const resolvedParts = parts || appearancePartsForCharacter(character);
+  const resolvedParts = canonicalAppearanceParts(parts || appearancePartsForCharacter(character));
   const appearance = appearanceForCharacter(character);
   const ageBand = characterPresentationAgeBand(character);
   const heightMetres = appearance.adultHeightMetres * appearance.height * appearance.scale;
@@ -146,9 +147,11 @@ export function selectCharacterProductionAsset(candidates = [], context) {
   invariant(Array.isArray(candidates), 'Character asset candidates must be an array');
   const selected = candidates.find(candidate => candidateRuntimeReady(candidate) && candidateMatches(candidate, context));
   if (!selected) return null;
+  const selectedId = selected.id || selected.assetId || selected.manifest?.id;
+  const assetId = selected.assetId || selected.id || selected.manifest?.id;
   return freezeRecord({
-    id: identifier(selected.id || selected.assetId, 'character production asset id'),
-    assetId: identifier(selected.assetId || selected.id, 'character production asset id'),
+    id: identifier(selectedId, 'character production asset id'),
+    assetId: identifier(assetId, 'character production asset id'),
     productionStage: 'RUNTIME_READY',
     productionReady: true
   });
