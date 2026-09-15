@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.js",
     "./style.css": "./src/style.css",
-    "./music": "./src/music.js"
+    "./music": "./src/music.js",
+    "./world-darkness": "./src/world-darkness.js"
   },
   "dependencies": {
     "@soul/audio": "*"

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import * as invites from '@soul/network/friend-invite';
+import {createFriendVisitHost} from '@soul/network/friend-visit-authority';
 const hostSource=readFileSync(new URL('../src/online.js',import.meta.url),'utf8');
 const guestSource=readFileSync(new URL('../src/friend-visit.js',import.meta.url),'utf8');
 const saved=()=>({name:'友人の村',villageId:'village-7',clock:420,news:['private-news'],ledger:{secret:true},progress:{gold:77},objects:[{id:'house-1',kind:'house',x:1,z:2,rot:0,material:'wood',level:2,phase:'built',room:[{secret:'private-room'}],owner:'private-owner'},{id:'plan',kind:'house',x:0,z:0,rot:0,phase:'planned'}]});
@@ -10,7 +11,7 @@ function harness(){
  const clock={now:1_700_000_000_000},elements=new Map(),connections=[],listeners=new Map(),reads=[];
  const root={style:{},querySelector:q=>elements.get(q.slice(1)),querySelectorAll:()=>[]};
  Object.defineProperty(root,'innerHTML',{set:html=>{for(const [,id]of html.matchAll(/id="([^"]+)"/g))elements.set(id,{id,value:'',disabled:false,textContent:'',style:{}});}});
- const context={URL,console,RTCPeerConnection:class{},__BUILD_INFO__:{environment:'dev'},location:{href:'https://example.test/dev/village/'},navigator:{clipboard:{writeText:async()=>{}}},window:{addEventListener:(name,fn)=>listeners.set(name,fn)},document:{getElementById:()=>({append(){}}),createElement:()=>root},
+ const context={URL,console,setInterval:()=>1,clearInterval(){},createFriendVisitHost,RTCPeerConnection:class{},__BUILD_INFO__:{environment:'dev'},location:{href:'https://example.test/dev/village/'},navigator:{clipboard:{writeText:async()=>{}}},window:{addEventListener:(name,fn)=>listeners.set(name,fn)},document:{getElementById:()=>({append(){}}),createElement:()=>root},
   createWebPlatform:()=>({}),createSaveStore:()=>({load:async()=>{const value=saved();reads.push(value);return value;}}),
   createHostOffer:async callbacks=>{const connection={...callbacks,code:'offer-'+connections.length,sent:[],answers:[],closed:false,send(m){this.sent.push(structuredClone(m));},close(){this.closed=true;},async accept(a){this.answers.push(a);}};connections.push(connection);return connection;},
   createFriendVillageInvite:options=>invites.createFriendVillageInvite({...options,issuedAt:clock.now}),friendVillageInviteUrl:invites.friendVillageInviteUrl,

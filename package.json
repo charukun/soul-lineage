@@ -23,6 +23,7 @@
     "performance:browser": "node scripts/browser/performance-smoke.mjs",
     "performance:compare": "node scripts/performance-regression.mjs",
     "world-scale:replay": "node scripts/world-scale-replay.mjs",
+    "world:host-chaos": "node scripts/peer-host-chaos.mjs",
     "performance:evidence": "node scripts/performance-evidence.mjs ingest",
     "performance:evidence:validate": "node scripts/performance-evidence.mjs validate",
     "performance:evidence:compare": "node scripts/performance-evidence.mjs compare",
