@@ -9,12 +9,19 @@ let scope = process.env.REPAIR_SCOPE;
 const conclusion = process.env.REPAIR_CONCLUSION;
 let headSha = process.env.REPAIR_HEAD_SHA;
 const prNumber = Number(process.env.REPAIR_PR_NUMBER || 0) || null;
+const repairIssueNumber = Number(process.env.REPAIR_ISSUE_NUMBER || 0) || null;
 const runUrl = process.env.REPAIR_RUN_URL;
 const artifact = process.env.REPAIR_ARTIFACT || 'browser-verification';
+const verifiedDevelopEvidence = process.env.REPAIR_VERIFIED === 'true';
 const notificationLocale = normalizeNotificationLocale(process.env.NOTIFY_LOCALE || 'ja');
 assert.ok(token && repository && scope && conclusion && headSha && runUrl);
 assert.ok(['pr', 'develop'].includes(scope));
 assert.ok(['success', 'failure'].includes(conclusion));
+
+if (scope === 'develop' && conclusion === 'success' && !verifiedDevelopEvidence) {
+  console.log(JSON.stringify({ action: 'noop-unverified-develop-success', headSha, artifact }));
+  process.exit(0);
+}
 
 async function api(method, path, body) {
   const response = await fetch(`https://api.github.com/repos/${repository}${path}`, {
@@ -48,12 +55,12 @@ async function ancestorOfCurrent(sha) {
   const comparison = await api('GET', `/compare/${sha}...${headSha}`);
   return comparison?.base_commit?.sha === sha && comparison?.merge_base_commit?.sha === sha && comparison?.head_commit?.sha === headSha && ['ahead', 'identical'].includes(comparison?.status);
 }
-async function retireOlderDevelopTickets() {
+async function retireOlderDevelopTickets(protectedIssueNumber = null) {
   if (scope !== 'develop') return [];
   const issues = await api('GET', '/issues?state=open&per_page=100&sort=updated&direction=desc');
   const retired = [];
   for (const candidate of issues) {
-    if (candidate.pull_request) continue;
+    if (candidate.pull_request || candidate.number === protectedIssueNumber) continue;
     const state = parseRepairState(candidate.body || '');
     if (!state || state.scope !== 'develop' || state.state === 'working' || state.createdFromSha === headSha) continue;
     if (!await ancestorOfCurrent(state.createdFromSha)) continue;
@@ -87,19 +94,44 @@ async function currentDevelopContainingMergedPr(pr, testedHead) {
 const sourcePr = await associatedPr();
 let promotedFromPrHead = null;
 if (scope === 'pr' && !currentPrRepair(sourcePr, headSha)) {
-  const currentDevelop = conclusion === 'failure' ? await currentDevelopContainingMergedPr(sourcePr, headSha) : null;
+  const currentDevelop = await currentDevelopContainingMergedPr(sourcePr, headSha);
   if (!currentDevelop) {
     console.log(JSON.stringify({ action: 'noop-stale-pr-result', pr: prNumber, headSha }));
     process.exit(0);
   }
+
+  if (conclusion === 'success') {
+    const linked = linkedIssueNumber(sourcePr?.body || '');
+    const linkedIssue = await getIssue(linked);
+    const linkedState = linkedIssue ? parseRepairState(linkedIssue.body || '') : null;
+    if (!linkedIssue || linkedState?.scope !== 'develop') {
+      console.log(JSON.stringify({ action: 'noop-stale-pr-success', pr: prNumber, headSha, currentDevelop }));
+      process.exit(0);
+    }
+    const next = onPrBrowserSuccess(linkedState, {
+      headSha: currentDevelop,
+      repairPrHead: headSha,
+      runUrl,
+      artifact,
+      sourcePr: sourcePr.number,
+      lastConclusion: conclusion,
+    });
+    await api('PATCH', `/issues/${linkedIssue.number}`, { body: replaceRepairState(linkedIssue.body || '', next), state: 'open' });
+    const marker = `<!-- browser-repair-run:${process.env.GITHUB_RUN_ID || headSha}:${conclusion} -->`;
+    await commentOnce(sourcePr.number, `${notificationHeadline('BROWSER_VERIFIED', notificationLocale)}\nPost-merge browser verification succeeded. Repair ticket #${linkedIssue.number} is **ready-for-integration** and will receive final DEV repair verification asynchronously.\n\nArtifacts: \`${artifact}\` · ${runUrl}`, marker);
+    await commentOnce(linkedIssue.number, `${notificationHeadline('BROWSER_VERIFIED', notificationLocale)}\nRepair PR browser verification succeeded after merge into \`${currentDevelop}\`. State: **ready-for-integration**.`, marker);
+    console.log(JSON.stringify({ action: 'late-merged-repair-success', issue: linkedIssue.number, state: next, currentDevelop }, null, 2));
+    process.exit(0);
+  }
+
   promotedFromPrHead = headSha;
   scope = 'develop';
   headSha = currentDevelop;
 }
 
-const retired = await retireOlderDevelopTickets();
+const retired = await retireOlderDevelopTickets(repairIssueNumber);
 const sourcePrBody = sourcePr?.body || '';
-let issue = scope === 'pr' ? await getIssue(linkedIssueNumber(sourcePrBody)) : null;
+let issue = scope === 'pr' ? await getIssue(linkedIssueNumber(sourcePrBody)) : await getIssue(repairIssueNumber);
 let existingState = issue ? parseRepairState(issue.body || '') : null;
 const sourceKey = existingState?.sourceKey || (scope === 'pr' ? `pr:${sourcePr?.number || prNumber}` : `develop:${headSha}`);
 if (!issue) issue = await findIssue(sourceKey);
