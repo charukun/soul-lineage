@@ -14,12 +14,15 @@ Ready PR
   -> exact-head pr-fast artifact
   -> Fast Lane
        success -> serialized expected-head merge
-       failure -> そのPRだけ保留/repair
+       mechanically repairable -> Fast Repair -> exact-head fast validation -> Fast Lane wake
+       semantic/unsafe -> deep repair / HUMAN_REQUIRED
   -> develop push
   -> DEV Publisher
   -> public/browser smoke
        failure -> repair ticket
 ```
+
+正常PRはFast Repairを通らない。Fast Repairは第二のmerge queueではなく、Fast Laneの横にある短命executorだけとする。
 
 ### merge前の必須条件
 
@@ -37,6 +40,16 @@ Fast Laneはmerge直前にcurrent GitHub stateを再取得し、次をすべて�
 - develop進行後に重複scopeが生じた場合も既存review条件を維持
 
 merge APIにはcurrent exact head SHAを渡す。develop writerは単一laneで、force pushやhistory rewriteをしない。
+
+## Fast Repair
+
+`rescue_mode=scan` は既定branch互換のwake入力として残すが、通常経路では旧RescueのCoordinator/Wave/claim/heartbeat/`AWAITING_PUSH`/Work push relay/Return queueを使わない。
+
+Fast Repairが扱うのは、依存PRのmerge後に最新developを取り込むなど **機械的に安全性を証明できるstack/base更新** だけ。実行直前にcurrent PR/head/develop、Draft、repository、author、hold、review thread、Depends-Onを再確認し、元PR branchへ通常のmerge-forwardを行う。更新後は同じtrusted runでexact-head fast validationを行い、`integration/stack-fast` と `pr-fast-<PR>-<SHA>` の実証拠を作ってFast Laneを即wakeする。
+
+同一fileや契約の意味衝突、真のプロダクト判断、明示hold、Changes requested、未解決threadは自動修復しない。必要な場合だけ既存deep repair / human-requiredへ送る。追加の有料モデルAPIやPATを通常Repairの前提にしない。
+
+旧Rescue state/scriptsは移行・診断・deep-repair互換のため残せるが、通常Fast Repairの進行条件やmerge権限には使わない。
 
 ## browserはmerge laneを止めない
 
@@ -65,16 +78,12 @@ publish自身も公開直前にdevelop SHAを再確認するため、superseded 
 Fast LaneはReady PRをPR単位で評価する。
 
 ```text
-A: exact-head fast failure -> Aだけ保留/repair
+A: exact-head fast failure -> Aだけdeep repair/保留
 B: exact-head fast success -> merge
 C: exact-head fast success -> merge
 ```
 
 explicit hold、dependency、review objection、merge conflict、exact-head fast failureは対象PRだけを止める。developが外部writerで予期せず移動した場合のみ、そのFast Lane passを停止してcurrent stateから再評価する。
-
-## Rescue
-
-Rescueは第二のmerge queueではなくrepair executorとして扱う。通常merge判定はFast LaneがGitHub current stateから行う。`rescue_mode=scan` は修復executorを起動できるが、修復中PRが他の独立PRをglobal lockしない。
 
 ## Draft / Ready
 
@@ -86,13 +95,16 @@ Draftでは lightweight checkのみ。Readyになると `Validate and build` と
 
 ## 通知とPULSE
 
-`INTEGRATED` と `DEV_DEPLOYED` は別イベントとして扱う。通知失敗はadvisoryでありmerge/publication判定を変更しない。PULSEはmerge状態とDEV delivery healthを混同せず表示する。
+`INTEGRATED` と `DEV_DEPLOYED` は別イベントとして扱う。通知失敗はadvisoryでありmerge/publication判定を変更しない。PULSEはmerge状態とDEV delivery healthを混同せず表示する。旧Rescue stateを表示する場合も診断情報であり、通常Repairの権限・待ち条件にはしない。
 
 ## 受入条件
 
+- 正常Ready PRはRepair stateを経由せず `Validate and build -> Fast Lane -> merge` で流れる
 - `integration/develop=pending|failure` 中でもeligible Ready PRをmergeできる
 - Aのfast/browser失敗がB/Cを止めない
 - exact-head `Validate and build` とartifactなしではmergeしない
+- mechanically repairableなstack/base更新は1回のtrusted Repair runで更新・検証・Fast Lane wakeまで進む
+- `AWAITING_PUSH` / Work relay / 1時間watchdogを通常Repairの待ち時間にしない
 - browser test自体は維持し、失敗をrepairへ送る
 - develop writerはsingle expected-head writer
 - stale DEV push publisherはcancelされ、最新developへ収束する
