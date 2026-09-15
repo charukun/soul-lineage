@@ -4,10 +4,8 @@ const q = selector => document.querySelector(selector);
 const viewport = q('.viewport');
 const canvas = q('#review-canvas');
 const performanceFrame = q('#performance-stage');
-const tabs = q('.review-tabs');
 const notebook = q('.notebook-scroll');
 const performanceTab = q('[data-review-tab="演舞"]');
-const skillTab = q('[data-review-tab="skill"]');
 const mainPlay = q('#play-toggle');
 
 const frame = document.createElement('iframe');
@@ -150,6 +148,9 @@ function activateBattleTab() {
   });
   document.querySelectorAll('[data-review-page]').forEach(item => item.classList.toggle('active', item === page));
   setActive(true);
+  // Performance shell also reacts to the shared tab click in a microtask. Re-assert
+  // the third primary mode after that bookkeeping finishes.
+  queueMicrotask(() => queueMicrotask(syncPrimary));
 }
 battleTab.addEventListener('click', activateBattleTab);
 document.querySelectorAll('[data-review-tab]').forEach(tab => {
@@ -159,6 +160,8 @@ document.querySelectorAll('[data-review-tab]').forEach(tab => {
 function installPrimaryButton() {
   const switcher = q('.review-primary-switch');
   if (!switcher) return false;
+  const secondary = q('.review-secondary-disclosure');
+  if (secondary?.contains(page)) notebook.insertBefore(page, secondary);
   let button = switcher.querySelector('[data-primary-review="battle"]');
   if (!button) {
     button = document.createElement('button');
@@ -167,7 +170,7 @@ function installPrimaryButton() {
     switcher.append(button);
   }
   syncPrimary();
-  return true;
+  return Boolean(secondary && !secondary.contains(page));
 }
 const primaryObserver = new MutationObserver(() => { if (installPrimaryButton()) primaryObserver.disconnect(); });
 primaryObserver.observe(document.body, { childList: true, subtree: true });
