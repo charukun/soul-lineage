@@ -3,13 +3,8 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=24 <25"
-  },
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "engines": {"node": ">=24 <25"},
+  "workspaces": ["apps/*","packages/*"],
   "scripts": {
     "dev": "npm run dev --workspace @soul/rinne",
     "dev:rinne": "npm run dev --workspace @soul/rinne",
@@ -26,6 +21,7 @@
     "asset:inventory": "node scripts/asset-inventory.mjs",
     "performance:browser": "node scripts/browser/performance-smoke.mjs",
     "performance:compare": "node scripts/performance-regression.mjs",
+    "world-scale:replay": "node scripts/world-scale-replay.mjs",
     "performance:evidence": "node scripts/performance-evidence.mjs ingest",
     "performance:evidence:validate": "node scripts/performance-evidence.mjs validate",
     "performance:evidence:compare": "node scripts/performance-evidence.mjs compare",
@@ -43,8 +39,5 @@
     "characters:production:check": "node scripts/check-character-production.mjs",
     "push:route": "node scripts/check-push-route.mjs"
   },
-  "devDependencies": {
-    "@playwright/test": "1.63.0",
-    "vite": "8.2.2"
-  }
+  "devDependencies": {"@playwright/test":"1.63.0","vite":"8.2.2"}
 }

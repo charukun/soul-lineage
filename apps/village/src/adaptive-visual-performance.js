@@ -10,11 +10,11 @@ import { createPerformanceRecorder } from '@soul/rendering/performance-lab';
 import { auditTransparency, combineTransparencyAudits } from '@soul/rendering/transparency-audit';
 import { createThermalTrendGovernor } from '@soul/rendering/thermal-governor';
 import { applyVisualQualityFloor } from '@soul/rendering/visual-quality-floor';
+import { deviceCapabilityProfile, saveDeviceCapability } from '@soul/platform-web/device-capability';
 import { View } from './web/view.js';
 
 const governors = new WeakMap(), densityMatrix = new T.Matrix4(), hiddenMatrix = new T.Matrix4().makeScale(0,0,0), densityPosition = new T.Vector3();
 const densityHash = index => { const x = Math.sin((index + 1) * 73.173 + 11.7) * 43758.5453; return x - Math.floor(x); };
-const isMobileTarget = () => (typeof innerWidth === 'number' && innerWidth < 800) || /Android|iPhone|iPad/i.test(globalThis.navigator?.userAgent || '');
 
 function applyAdaptiveVegetation(view, scale) {
   const target=view.target;if(!target)return;
@@ -86,13 +86,15 @@ function occlusionRoots(view) {
 
 function governorFor(view) {
   if (governors.has(view)) return governors.get(view);
+  const device=deviceCapabilityProfile({renderer:view.renderer});
+  saveDeviceCapability(device);
   const plan = createWorldCellStreamingPlan({cellSize:32,preloadRadius:2,retainRadius:3});
   const gpu=createGpuTimer(view.renderer),recorder=createPerformanceRecorder({label:'village'}),occlusion=createConservativeOcclusionCuller({maxChecksPerUpdate:5,minDistance:24,hiddenConfirmations:2});
   const thermal=createThermalTrendGovernor({sampleEverySeconds:5,baselineSamples:6,windowSamples:12});
-  const governor = createGpuAwareQualityGovernor({targetFps:isMobileTarget()?30:60,initialLevel:view.softwareGPU?2:0,onChange:s=>apply(view,s)});
-  const state = { governor, plan, gpu, recorder, occlusion, thermal, occlusionFrame:0, transparencyFrame:0, transparency:combineTransparencyAudits([]), stream: plan.update(view.target.x,view.target.z) };
+  const governor = createGpuAwareQualityGovernor({targetFps:device.targetFps,initialLevel:Math.max(view.softwareGPU?2:0,device.initialQuality),onChange:s=>apply(view,s)});
+  const state = { governor, plan, gpu, recorder, occlusion, thermal, device, occlusionFrame:0, transparencyFrame:0, transparency:combineTransparencyAudits([]), stream: plan.update(view.target.x,view.target.z) };
   governors.set(view,state); apply(view,governor.snapshot());
-  if (typeof window !== 'undefined') window.__VILLAGE_ADAPTIVE_QUALITY__ = { snapshot:()=>({quality:governor.snapshot(),gpu:gpu.snapshot(),thermal:thermal.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),transparency:state.transparency,scene:performanceScene(view),stream:state.stream,textureBytes:view.__estimatedTextureBytes||0}) };
+  if (typeof window !== 'undefined') window.__VILLAGE_ADAPTIVE_QUALITY__ = { snapshot:()=>({quality:governor.snapshot(),device,gpu:gpu.snapshot(),thermal:thermal.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),transparency:state.transparency,scene:performanceScene(view),stream:state.stream,textureBytes:view.__estimatedTextureBytes||0}) };
   return state;
 }
 

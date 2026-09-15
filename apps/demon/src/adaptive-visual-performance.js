@@ -11,10 +11,10 @@ import { createPerformanceRecorder } from '@soul/rendering/performance-lab';
 import { auditTransparency, combineTransparencyAudits } from '@soul/rendering/transparency-audit';
 import { createThermalTrendGovernor } from '@soul/rendering/thermal-governor';
 import { applyVisualQualityFloor, markVisualQualityPriority } from '@soul/rendering/visual-quality-floor';
+import { deviceCapabilityProfile, saveDeviceCapability } from '@soul/platform-web/device-capability';
 import { NightView } from './web/view.js';
 
 const governors = new WeakMap(), enemyFx = stylizedArtProfile('enemy').effects;
-const isMobileTarget = () => (typeof innerWidth === 'number' && innerWidth < 800) || /Android|iPhone|iPad/i.test(globalThis.navigator?.userAgent || '');
 
 function setShadowSize(view, scale) {
   const base = innerWidth < 700 ? 512 : 1024, next = Math.max(256,Math.round(base*scale/256)*256);
@@ -78,12 +78,14 @@ function occlusionRoots(view) {
 
 function governorFor(view) {
   if (governors.has(view)) return governors.get(view);
+  const device=deviceCapabilityProfile({renderer:view.renderer});
+  saveDeviceCapability(device);
   const streamer=createVisualDistanceStreamer({baseDistance:138,hysteresis:14});
   const gpu=createGpuTimer(view.renderer),recorder=createPerformanceRecorder({label:'demon'}),occlusion=createConservativeOcclusionCuller({maxChecksPerUpdate:6,minDistance:18,hiddenConfirmations:2});
   const thermal=createThermalTrendGovernor({sampleEverySeconds:5,baselineSamples:6,windowSamples:12});
-  const governor=createGpuAwareQualityGovernor({targetFps:isMobileTarget()?30:60,onChange:s=>apply(view,s)});
-  const state={governor,streamer,gpu,recorder,occlusion,thermal,occlusionFrame:0,transparencyFrame:0,transparency:combineTransparencyAudits([]),staticBatch:null,stream:null};governors.set(view,state);markCritical(view);apply(view,governor.snapshot());
-  if(typeof window!=='undefined')window.__DEMON_ADAPTIVE_QUALITY__={snapshot:()=>({quality:governor.snapshot(),gpu:gpu.snapshot(),thermal:thermal.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),transparency:state.transparency,scene:performanceScene(view),staticBatch:state.staticBatch?{batches:state.staticBatch.batches,instances:state.staticBatch.instances}:null,stream:state.stream,vfx:view.stylizedVfxBudget,textureBytes:view.__estimatedTextureBytes||0})};
+  const governor=createGpuAwareQualityGovernor({targetFps:device.targetFps,initialLevel:device.initialQuality,onChange:s=>apply(view,s)});
+  const state={governor,streamer,gpu,recorder,occlusion,thermal,device,occlusionFrame:0,transparencyFrame:0,transparency:combineTransparencyAudits([]),staticBatch:null,stream:null};governors.set(view,state);markCritical(view);apply(view,governor.snapshot());
+  if(typeof window!=='undefined')window.__DEMON_ADAPTIVE_QUALITY__={snapshot:()=>({quality:governor.snapshot(),device,gpu:gpu.snapshot(),thermal:thermal.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),transparency:state.transparency,scene:performanceScene(view),staticBatch:state.staticBatch?{batches:state.staticBatch.batches,instances:state.staticBatch.instances}:null,stream:state.stream,vfx:view.stylizedVfxBudget,textureBytes:view.__estimatedTextureBytes||0})};
   return state;
 }
 

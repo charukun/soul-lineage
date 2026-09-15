@@ -6,15 +6,17 @@ const main=fs.readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
 const adaptive=fs.readFileSync(new URL('../src/adaptive-visual-performance.js',import.meta.url),'utf8');
 const assets=fs.readFileSync(new URL('../src/asset-visuals.js',import.meta.url),'utf8');
 const resilience=fs.readFileSync(new URL('../src/runtime-resilience.js',import.meta.url),'utf8');
+const scale=fs.readFileSync(new URL('../src/shared-world-scale.js',import.meta.url),'utf8');
 
-test('village installs authored LOD, stylized, adaptive and resilience bridges in order',()=>{
+test('village installs authored LOD, adaptive, resilience and shared-world scale bridges in order',()=>{
   assert.ok(main.indexOf("./authored-visual-lod.js")<main.indexOf("./stylized-visual-target.js"));
   assert.ok(main.indexOf("./stylized-visual-target.js")<main.indexOf("./adaptive-visual-performance.js"));
   assert.ok(main.indexOf("./adaptive-visual-performance.js")<main.indexOf("./runtime-resilience.js"));
+  assert.ok(main.indexOf("./runtime-resilience.js")<main.indexOf("./shared-world-scale.js"));
 });
 
-test('village GPU-aware bridge controls mobile render costs, transparency and thermal pressure without hiding gameplay objects',()=>{
-  for(const token of ['createGpuAwareQualityGovernor','createGpuTimer','createPerformanceRecorder','createConservativeOcclusionCuller','createThermalTrendGovernor','applyVisualQualityFloor','auditTransparency','combineTransparencyAudits','transparentDrawCalls','transparentTriangleUpperBound','village-runtime-v1','signature','renderScale','shadowScale','applyTextureQuality','vegetationScale','presentationDistance','createWorldCellStreamingPlan'])assert.match(adaptive,new RegExp(token));
+test('village GPU-aware bridge controls learned device, mobile render costs, transparency and thermal pressure without hiding gameplay objects',()=>{
+  for(const token of ['deviceCapabilityProfile','createGpuAwareQualityGovernor','createGpuTimer','createPerformanceRecorder','createConservativeOcclusionCuller','createThermalTrendGovernor','applyVisualQualityFloor','auditTransparency','combineTransparencyAudits','transparentDrawCalls','transparentTriangleUpperBound','village-runtime-v1','signature','renderScale','shadowScale','applyTextureQuality','vegetationScale','presentationDistance','createWorldCellStreamingPlan'])assert.match(adaptive,new RegExp(token));
   assert.doesNotMatch(adaptive,/objectNodes.*visible\s*=\s*false/);
   assert.match(adaptive,/transparencyFrame\+\+%120/);
 });
@@ -29,4 +31,9 @@ test('village repository assets use Meshopt/KTX2-capable loader with local Basis
   assert.match(assets,/createCompressedGLTFLoader/);
   assert.match(assets,/basis\//);
   assert.match(assets,/meshopt:\s*true,\s*ktx2:\s*true/);
+});
+
+test('village shared-world scale offloads planning and exposes crowd audio cache and replay diagnostics',()=>{
+  for(const token of ['createWorldScaleWorker','createCrowdPresenceRenderer','createAudioVoiceBudget','createAssetResidencyCache','runScaleReplay','probeExperimentalWebGPU','__VILLAGE_WORLD_SCALE__'])assert.match(scale,new RegExp(token));
+  assert.doesNotMatch(scale,/world\.(state|people|objects)\s*=/);
 });

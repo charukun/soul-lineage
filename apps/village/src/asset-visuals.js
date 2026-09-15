@@ -1,6 +1,7 @@
 import './nature-visuals.js';
 import { THREE as T } from '@soul/rendering';
 import { createCompressedGLTFLoader } from '@soul/rendering/compressed-gltf';
+import { createAssetResidencyCache } from '@soul/platform-web/asset-residency';
 import { View } from './web/view.js';
 
 // Visual-only candidates. Gameplay IDs, unlock rules, room effects and placement
@@ -23,11 +24,20 @@ const CANDIDATES = Object.freeze({
   chest: { file: 'chest.glb', size: [1.35, 1.0, 0.95] },
 });
 
+const buildVersion=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__.commit:SOURCE.commit;
+const residency=createAssetResidencyCache({version:buildVersion});
 const templates = new Map();
 const failures = new Set();
 const loaderByRenderer = new WeakMap();
 function compressedLoader(view) {
-  if (!loaderByRenderer.has(view.renderer)) loaderByRenderer.set(view.renderer, createCompressedGLTFLoader({ renderer: view.renderer, transcoderPath: `${import.meta.env.BASE_URL}basis/` }));
+  if (!loaderByRenderer.has(view.renderer)) {
+    loaderByRenderer.set(view.renderer, createCompressedGLTFLoader({
+      renderer: view.renderer,
+      transcoderPath: `${import.meta.env.BASE_URL}basis/`,
+      residencyCache: residency,
+      assetHashForUrl: url => `${SOURCE.commit}:${String(url).split('/').pop()}`,
+    }));
+  }
   return loaderByRenderer.get(view.renderer);
 }
 
@@ -96,6 +106,7 @@ function visualCandidate(kind, fallback, view) {
     root.add(model);
     root.userData.assetLoaded = true;
     root.userData.compression = { meshopt: true, ktx2: true };
+    root.userData.residency = 'cache-storage';
   }).catch(error => {
     root.userData.assetLoaded = false;
     root.userData.assetError = error?.message || String(error);
@@ -114,5 +125,6 @@ window.__MURAAAAAAA_ASSETS__ = Object.freeze({
   root: LOCAL_ROOT,
   candidates: CANDIDATES,
   compression: Object.freeze({ meshopt: true, ktx2: true, transcoder: `${import.meta.env.BASE_URL}basis/` }),
+  residency: () => residency.snapshot(),
   mode: 'repository-local-with-procedural-fallback',
 });
