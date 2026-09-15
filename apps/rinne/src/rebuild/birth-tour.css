@@ -1,0 +1,6 @@
+.actor-status-layer{position:absolute;inset:0;z-index:8;pointer-events:none;overflow:hidden}
+.actor-status-anchor{position:absolute;left:0;top:0;will-change:left,top}
+.actor-status-text{display:block;max-width:min(78vw,24rem);white-space:nowrap;transform:translate(-50%,-100%);font-size:clamp(.86rem,2.8vw,1.05rem);font-weight:700;letter-spacing:.04em;color:#fff8e7;text-shadow:0 2px 2px rgba(30,24,24,.82),0 0 8px rgba(30,24,24,.46);animation:rinne-actor-status-rise 2.6s cubic-bezier(.2,.7,.2,1) forwards}
+.game-screen[data-birth-tour="true"] .objective-card{display:none}
+@keyframes rinne-actor-status-rise{0%{opacity:0;transform:translate(-50%,calc(-100% + 10px)) scale(.96)}16%{opacity:1;transform:translate(-50%,-100%) scale(1)}72%{opacity:1}100%{opacity:0;transform:translate(-50%,calc(-100% - 38px)) scale(1)}}
+@media (prefers-reduced-motion:reduce){.actor-status-text{animation-duration:1.8s;animation-timing-function:linear}}

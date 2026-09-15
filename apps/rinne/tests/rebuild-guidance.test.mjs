@@ -13,9 +13,9 @@ const stations=[
 const atAge=(age,seed=1)=>{const state=createLife({seed});state.ageYears=age;state.ageSeconds=age*60;if(age>=4)state.phase='living';return state;};
 const compact=guide=>{assert.equal('detail' in guide,false);assert.ok(guide.objective.length<=10,guide.objective);assert.ok((guide.badge||'').length<=10,guide.badge);};
 
-test('birth makes the held state explicit while mother can still carry the child toward the village',()=>{
+test('birth is mother-led and exposes no destination waypoint',()=>{
   const state=atAge(0),guide=guidanceFor({state,stations});compact(guide);
-  assert.equal(guide.stage,'1/6 誕生');assert.equal(guide.objective,'母の腕の中');assert.equal(guide.badge,'自立 4歳');assert.equal(guide.target.label,'母と広場へ');assert.ok(guidanceDistance(state,guide)>0);
+  assert.equal(guide.stage,'1/6 誕生');assert.equal(guide.objective,'母と村巡り');assert.equal(guide.badge,'自立 4歳');assert.equal(guide.target,null);assert.equal(guidanceDistance(state,guide),null);
 });
 
 test('childhood and preparation point at automatic actions without action buttons',()=>{

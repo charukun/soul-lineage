@@ -10,6 +10,8 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./src/rebuild/app.css">
   <link rel="stylesheet" href="./src/rebuild/pop.css">
+  <link rel="stylesheet" href="./src/rebuild/birth-tour.css">
+  <link rel="stylesheet" href="./src/consumer-game-ui.css">
   <link rel="stylesheet" href="./src/typography.css">
 </head>
 <body>
@@ -37,6 +39,7 @@
   <section id="game-screen" class="game-screen is-loading" data-world-tone="village" aria-busy="true" aria-label="100年人生 本編">
     <canvas id="game" aria-label="村と旅人の世界"></canvas>
     <div class="world-vignette" aria-hidden="true"></div>
+    <div id="actor-status-layer" class="actor-status-layer" aria-hidden="true"></div>
     <div id="chapter-mark" class="chapter-mark" hidden aria-hidden="true"><span>輪廻転焦</span><strong id="chapter-title"></strong><i></i></div>
     <div id="loading-card" class="loading-card" aria-live="polite">
       <div class="loading-emblem" aria-hidden="true"><span></span><i></i></div>
@@ -54,7 +57,6 @@
     <aside class="objective-card ornate">
       <div class="objective-meta"><span id="life-stage">1/6 誕生</span><small id="objective-badge">自立 4歳</small></div>
       <strong id="objective">村を知る</strong>
-      <div id="waypoint" class="waypoint" hidden><b id="waypoint-arrow" aria-hidden="true">▲</b><span><strong id="waypoint-label"></strong><small id="waypoint-distance"></small></span></div>
     </aside>
     <div id="dialogue" class="dialogue ornate" hidden><span id="speaker">母</span><p id="dialogue-text"></p></div>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

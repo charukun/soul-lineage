@@ -4,6 +4,7 @@ import { defaultMuraLayout, validateMuraLayout, safeMuraPosition } from '@soul/w
 import { createLife, deserializeLife, serializeLife, setClockRate, setMoving, tickLife, rebirth, LIFE_YEARS, canDepart, depart, advanceFront, returnHome } from './domain.js';
 import { buildStations, nearestStation, normalizeLayout } from './locations.js';
 import { createWorldRenderer } from './renderer.js';
+import { createBirthExperience } from './birth-experience.js';
 import { createFront, normalizeFront, tickFront } from './combat.js';
 import { guidanceFor } from './guidance.js';
 import { RINNE_RUNTIME_PERFORMANCE } from './performance.js';
@@ -54,10 +55,11 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
 
   let active=true,raf=0,last=performance.now(),saveElapsed=0,uiElapsed=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval,toastTimer=0,endDialog=null,pointer=null,keyboard={x:0,y:0},axis={x:0,y:0},portDwell=0,movementHint=true,movementHintTimer=0,chapterTimer=0,hurtTimer=0,lastChapter='';
   let front=state.zone==='frontier'?normalizeFront(state.frontState,state.front,state.seed):null;if(front)state.frontState=front;
+  const birth=createBirthExperience({document,canvas,gameScreen,view,stations,getState:()=>state,dialogue});
 
   const toast=text=>{if(!text)return;$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1800);};
   const save=async()=>{if(!active||!state)return false;try{state.frontState=front;await platform.storage.write(saveKey,serializeLife(state));return true;}catch(error){toast('保存失敗');console.error(error);return false;}};
-  function talkContext(){return state.zone==='village'&&!state.down&&!state.ended&&state.phase==='birth'?{speaker:'母',text:'いまは私の腕の中。抱っこしたまま村を見て回ろうね。4歳になったら、自分の足で歩けるよ。'}:null;}
+  function talkContext(){return birth.active()?{speaker:'母',text:`${state.name}、気になるところへ行ってみようか。`}:null;}
   function worldTone(guide){if(state.ended||guide.tone==='rebirth')return'rebirth';if(state.zone==='frontier')return'frontier';if(guide.tone==='home')return'home';return'village';}
   function showChapter(stage){
     if(!stage||stage===lastChapter)return;lastChapter=stage;
@@ -69,8 +71,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     clearTimeout(hurtTimer);hurtTimer=setTimeout(()=>gameScreen.classList.remove('hurt-pulse'),460);
   }
   function syncMovementHint(){
-    const held=state.zone==='village'&&state.phase==='birth';
-    $('move-hint').textContent=held?'母に抱かれたままスワイプ':'スワイプで移動';
+    $('move-hint').textContent=birth.active()?'スワイプで母を動かせる':'スワイプで移動';
     $('move-hint').hidden=!movementHint||state.down||state.ended;
   }
   function armMovementHint(){
@@ -81,17 +82,12 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     $('generation').textContent=`${state.generation}代目`;$('age').textContent=`${Math.min(LIFE_YEARS,Math.floor(state.ageYears))}歳`;
     $('hp-bar').style.width=`${clamp(state.hp/state.maxHp*100,0,100)}%`;$('stamina-bar').style.width=`${clamp(state.stamina/100*100,0,100)}%`;
     const guide=guidanceFor({state,stations,front});$('life-stage').textContent=guide.stage;$('objective').textContent=guide.objective;$('objective-badge').textContent=guide.badge||'';
-    gameScreen.dataset.worldTone=worldTone(guide);gameScreen.style.setProperty('--wound',String(clamp(1-state.hp/state.maxHp,0,.85)));showChapter(guide.stage);
-    const waypoint=$('waypoint');waypoint.dataset.tone=guide.tone||'';
-    if(guide.target){
-      const direction=view.screenDirection(state.position,guide.target),angle=Math.atan2(direction.x,-direction.y)*180/Math.PI;
-      waypoint.hidden=false;$('waypoint-label').textContent=guide.target.label;$('waypoint-distance').textContent=direction.distance<1.2?'ここ':`${Math.ceil(direction.distance)}m`;$('waypoint-arrow').style.transform=`rotate(${angle.toFixed(1)}deg)`;
-    }else waypoint.hidden=true;
+    gameScreen.dataset.worldTone=worldTone(guide);gameScreen.dataset.birthTour=String(birth.active());gameScreen.style.setProperty('--wound',String(clamp(1-state.hp/state.maxHp,0,.85)));showChapter(guide.stage);
     $('clock-rate').value=String(state.clockRate);$('talk').hidden=!talkContext();syncMovementHint();
   }
   function dialogue(speaker,text){$('speaker').textContent=speaker;$('dialogue-text').textContent=text;$('dialogue').hidden=false;clearTimeout(dialogue.timer);dialogue.timer=setTimeout(()=>$('dialogue').hidden=true,4200);}
   function talk(){const context=talkContext();if(context)dialogue(context.speaker,context.text);}
-  function showBirthIntro(){const context=talkContext();if(context)dialogue(context.speaker,context.text);}
+  function showBirthIntro(){birth.showIntro();}
   function endLife(){
     if(endDialog?.open)return;
     endDialog=document.createElement('dialog');endDialog.className='life-end-dialog';
@@ -106,7 +102,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     }else endDialog.showModal();});endDialog.showModal();
   }
   function handleEvents(events){for(const event of events){
-    if(event.type==='release'){toast('4歳 · 自立');dialogue('母','さあ、地面へ。今日からは自分の足で歩けるよ。');armMovementHint();}
+    if(event.type==='release'){toast('4歳 · 自立');birth.release();armMovementHint();}
     if(event.type==='equipment')toast(`${event.station.label} 装備`);
     if(event.type==='activity-start')toast(event.station.actionLabel||event.station.label);
     if(event.type==='activity-complete')toast('経験 +1');
@@ -135,11 +131,12 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
 
   function frame(now){
     if(!active)return;raf=requestAnimationFrame(frame);const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
-    let moved=false;const mag=Math.hypot(axis.x,axis.y);
-    if(mag>.08&&!state.ended&&!state.down){const direction=view.cameraVector(axis),speed=speedForAge(state.ageYears)*(state.combat?.72:1),nx=state.position.x+direction.x*speed*dt,nz=state.position.z+direction.z*speed*dt;
-      if(view.canMoveTo(nx,nz,state.phase==='birth'?.42:.32,state.zone)){state.position.x=nx;state.position.z=nz;state.yaw=Math.atan2(direction.x,direction.z);moved=true;}}
+    let moved=false,carrierMoving=false;const mag=Math.hypot(axis.x,axis.y),birthStep=birth.step(dt,axis);
+    if(birthStep.handled){moved=birthStep.moved;carrierMoving=birthStep.carrierMoving;}
+    else if(mag>.08&&!state.ended&&!state.down){const direction=view.cameraVector(axis),speed=speedForAge(state.ageYears)*(state.combat?.72:1),nx=state.position.x+direction.x*speed*dt,nz=state.position.z+direction.z*speed*dt;
+      if(view.canMoveTo(nx,nz,.32,state.zone)){state.position.x=nx;state.position.z=nz;state.yaw=Math.atan2(direction.x,direction.z);moved=true;}}
     if(moved&&movementHint){movementHint=false;$('move-hint').hidden=true;}
-    setMoving(state,state.phase==='birth'?false:moved,state.yaw);const station=state.zone==='village'?nearestStation(stations,state.position):null,events=tickLife(state,{realDelta:dt,station,paused:document.hidden});handleEvents(events);
+    setMoving(state,birthStep.handled?false:moved,state.yaw);const station=state.zone==='village'?nearestStation(stations,state.position):null,events=tickLife(state,{realDelta:dt,station,paused:document.hidden});handleEvents(events);
     if(state.zone==='village'&&station?.port&&canDepart(state)&&!moved){portDwell+=dt;if(portDwell>=1.5&&depart(state)){front=createFront(0,state.seed);state.frontState=front;view.syncFront(front);toast('出航 · 前線');portDwell=0;}}else portDwell=0;
     if(state.zone==='frontier'){
       if(!front){front=normalizeFront(state.frontState,state.front,state.seed);state.frontState=front;view.syncFront(front);}
@@ -151,17 +148,17 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
       }
       if(state.zone==='village'&&battle.some(e=>e.type==='rescued')){state.position=safeMuraPosition(layout,{x:0,z:0});front=null;state.frontState=null;view.syncFront(null);}
     }
-    view.renderState(state,dt);uiElapsed+=dt;if(uiElapsed>=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval){uiElapsed=0;syncUI();}
+    view.renderState(state,dt);birth.afterRender(dt,{carrierMoving});uiElapsed+=dt;if(uiElapsed>=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval){uiElapsed=0;syncUI();}
     saveElapsed+=dt;if(saveElapsed>=2.5){saveElapsed=0;void save();}
   }
 
   function pagehide(){void save();}
   window.addEventListener('pagehide',pagehide);
-  if(front)view.syncFront(front);else view.syncFront(null);view.renderState(state,.016);syncUI();uiElapsed=0;loading.hidden=true;canvas.dataset.runtime='active';
+  if(front)view.syncFront(front);else view.syncFront(null);view.renderState(state,.016);birth.afterRender(.016,{carrierMoving:false});syncUI();uiElapsed=0;loading.hidden=true;canvas.dataset.runtime='active';
   armMovementHint();showBirthIntro();raf=requestAnimationFrame(frame);void save();
 
   function dispose(){
-    if(!active)return;active=false;host.active=false;cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);unsubscribeWorld();
+    if(!active)return;active=false;host.active=false;cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);birth.dispose();unsubscribeWorld();
     window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('pagehide',pagehide);canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);
     keys.clear();pointer=null;setAxis({x:0,y:0});endDialog?.remove();endDialog=null;$('dialogue').hidden=true;$('toast').hidden=true;canvas.dataset.runtime='prepared';
     if(ownsPrepared)host.dispose();
