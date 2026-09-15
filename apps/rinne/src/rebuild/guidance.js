@@ -38,10 +38,7 @@ export function guidanceFor({state,stations=[],front=null}){
     if(front?.cleared&&state.front<5)return {stage:`4/6 第${state.front+1}前線`,objective:'奥へ',badge:'突破',target:{x:0,z:-6.05,label:'次の前線'},tone:'clear'};
     return {stage:'5/6 帰還',objective:'帰還へ',badge:'突破',target:{x:0,z:5.2,label:'帰還地点'},tone:'clear'};
   }
-  if(state.phase==='birth'){
-    const garden=stationById(stations,'garden');
-    return {stage:'1/6 誕生',objective:'母の腕の中',badge:'自立 4歳',target:target(garden,'母と広場へ'),tone:'calm'};
-  }
+  if(state.phase==='birth')return {stage:'1/6 誕生',objective:'母と村巡り',badge:'自立 4歳',target:null,tone:'calm'};
   if(state.activity){
     const station=stationById(stations,state.activity.stationId),remain=Math.max(0,8-Number(state.activity.elapsed||0));
     return {stage:villageStage(state,age),objective:state.activity.label,badge:`${Math.ceil(remain)}秒`,target:target(station,state.activity.label),tone:'activity'};
