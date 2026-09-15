@@ -10,42 +10,53 @@
 <body class="battle-review">
   <main class="battle-root">
     <canvas id="battle-canvas" aria-label="Tidebreak自動戦闘"></canvas>
+    <div id="battle-flash" class="battle-flash" aria-hidden="true"></div>
+
+    <a class="battle-back" href="./" aria-label="Visual Review Labへ戻る">← Lab</a>
+    <button id="battle-sound" class="battle-sound" type="button" aria-pressed="false">音をON</button>
+
     <div class="battle-overlay">
       <div class="battle-top">
         <section class="fighter-card hero" aria-label="魔物側">
           <div class="fighter-name"><strong id="hero-name">魔物側</strong><span id="hero-hp">230 / 230</span></div>
           <div class="hp-track"><div id="hero-hp-fill" class="hp-fill"></div></div>
-          <small id="hero-action">接敵中</small>
+          <small id="hero-action">準備中</small>
         </section>
         <div id="battle-clock" class="battle-clock">0.0 秒</div>
         <section class="fighter-card enemy" aria-label="人間側">
           <div class="fighter-name"><strong id="enemy-name">人間側</strong><span id="enemy-hp">180 / 180</span></div>
           <div class="hp-track"><div id="enemy-hp-fill" class="hp-fill"></div></div>
-          <small id="enemy-action">接敵中</small>
+          <small id="enemy-action">準備中</small>
         </section>
       </div>
+
       <div class="battle-center">
         <div id="battle-result" class="battle-result" hidden></div>
-        <div id="battle-status" class="battle-status" role="status">Tidebreakを起動しています</div>
+        <div id="battle-status" class="battle-status" role="status">実モデルを読み込んでいます</div>
+        <button id="battle-retry" class="battle-retry" type="button" hidden>モデルを再読込</button>
         <div id="battle-source" class="battle-source">Tidebreak</div>
       </div>
+
       <div class="battle-bottom">
         <div class="battle-actions" aria-label="自動戦闘操作">
-          <button id="battle-play" type="button">一時停止</button>
-          <button id="battle-restart" type="button">再戦</button>
-          <select id="battle-speed" aria-label="再生速度">
-            <option value="0.25">1/4</option>
-            <option value="0.5">1/2</option>
-            <option value="1" selected>通常</option>
-            <option value="2">2倍</option>
-          </select>
-          <button type="button" data-battle-view="three" class="active">斜め</button>
-          <button type="button" data-battle-view="front">正面</button>
-          <button type="button" data-battle-view="side">横</button>
+          <div class="battle-transport" role="group" aria-label="再生操作">
+            <button id="battle-play" type="button" disabled>再生</button>
+            <button id="battle-restart" type="button" disabled>再戦</button>
+            <select id="battle-speed" aria-label="再生速度" disabled>
+              <option value="0.25">1/4</option>
+              <option value="0.5">1/2</option>
+              <option value="1" selected>通常</option>
+              <option value="2">2倍</option>
+            </select>
+          </div>
+          <div class="battle-view-switch" role="group" aria-label="視点">
+            <button type="button" data-battle-view="three" class="active">斜め</button>
+            <button type="button" data-battle-view="front">正面</button>
+            <button type="button" data-battle-view="side">横</button>
+          </div>
         </div>
       </div>
     </div>
-    <a class="battle-back" href="./">Labへ戻る</a>
   </main>
   <script type="module" src="./src/review/battle-review.js"></script>
 </body>
