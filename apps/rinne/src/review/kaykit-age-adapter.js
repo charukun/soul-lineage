@@ -2,7 +2,7 @@ import { THREE } from '@soul/rendering';
 
 const REQUIRED_BONES = Object.freeze(['hips', 'spine', 'chest', 'head']);
 const HAIR_SURFACE = /hair|beard|moustache|mustache|brow|eyebrow/i;
-const SKIN_SURFACE = /face|head|skin|body/i;
+const SKIN_SURFACE = /face|head|skin/i;
 const GRAY = new THREE.Color('#b9bab6');
 const SKIN_AGE = new THREE.Color('#d1b8a6');
 
