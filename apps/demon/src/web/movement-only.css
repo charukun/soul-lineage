@@ -24,17 +24,17 @@
 #hud #enemy-name{margin-top:0;font-size:9px;opacity:.85}
 #hud #enemy-health-track{width:min(170px,44vw);height:3px;margin-top:5px}
 
-/* The former return button is now a non-interactive compass that appears only after feeding. */
+/* The former return command is presentation-only: a bare bearing mark, not a button. */
 #hud .controls{
   left:auto;
   right:18px;
   bottom:calc(18px + env(safe-area-inset-bottom));
-  width:56px;
+  width:44px;
   display:block;
 }
 #hud #return{
-  width:56px;
-  height:56px;
+  width:44px;
+  height:44px;
   padding:0;
   pointer-events:none!important;
   opacity:.88;
@@ -42,17 +42,20 @@
 #hud #return.locked{visibility:hidden}
 #hud #return span{display:none}
 #hud #return b{
-  width:48px;
-  height:48px;
-  font-size:30px;
-  border-color:#d1c49455;
-  background:radial-gradient(#788f7b22,transparent 70%);
+  width:44px;
+  height:44px;
+  border:0;
+  clip-path:none;
+  background:none;
+  font-size:32px;
+  color:#c3d4bf;
+  text-shadow:0 0 14px #8ab39b88,0 2px 8px #000;
 }
 #hud #return-hint{
   left:auto;
-  right:83px;
-  bottom:calc(34px + env(safe-area-inset-bottom));
-  width:min(210px,52vw);
+  right:69px;
+  bottom:calc(32px + env(safe-area-inset-bottom));
+  width:min(210px,55vw);
   text-align:right;
   font-size:9px;
   color:#b8cdbb;
@@ -66,5 +69,5 @@
 
 @media(max-height:650px){
   #hud #battle{bottom:calc(74px + env(safe-area-inset-bottom))}
-  #hud #return-hint{bottom:calc(29px + env(safe-area-inset-bottom))}
+  #hud #return-hint{bottom:calc(27px + env(safe-area-inset-bottom))}
 }
