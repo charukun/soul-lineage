@@ -70,7 +70,7 @@
 }
 .overview-publication-row {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-columns: 92px minmax(0, 1fr);
   gap: 8px;
   align-items: start;
   color: var(--text);
@@ -204,7 +204,7 @@
   .overview-publication-card > strong { font-size: 18px; }
   .overview-detail { font-size: 8.5px; }
   .overview-publication-availability { font-size: 10px; }
-  .overview-publication-row { grid-template-columns: 36px minmax(0, 1fr); gap: 6px; font-size: 10px; }
+  .overview-publication-row { grid-template-columns: 80px minmax(0, 1fr); gap: 6px; font-size: 10px; }
   .overview-step-label { font-size: 8px; }
   .board-disclosure > summary { padding-inline: 11px; }
   .disclosure-meta { max-width: 43%; }
@@ -213,7 +213,7 @@
 @media (min-width: 620px) {
   .section-tabs .overview-publication-card { min-height: 142px; }
   .overview-publication-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-  .overview-publication-row { grid-template-columns: 34px minmax(0, 1fr); }
+  .overview-publication-row { grid-template-columns: 78px minmax(0, 1fr); }
 }
 
 @media (prefers-reduced-motion: no-preference) {
