@@ -1,3 +1,5 @@
+import { cloneInspirationWeaponArts } from '@soul/game-data';
+
 /* Extracted Tidebreak authored runtime. See provenance.json. */
 export function createTidebreakRuntime(ports={}) {
 
@@ -767,12 +769,7 @@ const GROUNDED_REACH={slash:.58,back:.48,thrust:.82,heavy:.78,dash:1.72,spin:.60
 for(const [k,v] of Object.entries(GROUNDED_REACH)) STRIKES[k].lunge=v;
 const RX_DISTANCE={basic:.42,backroll:1.12,leftroll:.95,rightroll:.95,spring:.62,cat:.62,airturn:1.05,backspring:1.35,flow:.70,iron:0,shield:.55,backcounter:.82,turncounter:.86,thrustcounter:0,rising:.50,fireburst:.64,thunder:1.12,mist:1.28,frost:.88,breath:.54};
 for(const [k,v] of Object.entries(RX_DISTANCE)){RECEIVES[k].distance=v;RECEIVES[k].air=Math.min(.42,RECEIVES[k].air||.05);RECEIVES[k].duration=Math.max(.40,RECEIVES[k].duration);}
-const WEAPON_ARTS={
- sword:{open:['slash','diagonal','thrust','back','parry'],middle:['back','crosscut','uppercut','bash','guard','counter'],finish:['heavy','crosscut','round','dash'],tag:'太刀',desc:'片手剣と盾。斬り返し、刺し込み、盾受け、カウンターを軸に閃きます。'},
- great:{open:['slash','back','diagonal','pommel','brace'],middle:['sweep','crosscut','back','guard','parry'],finish:['heavy','round','leap','crosscut'],tag:'断ち',desc:'大剣。広い薙ぎと重い打ち下ろしが中心。強い技ほど構えを深く取り、重さを乗せます。'},
- spear:{open:['thrust','thrust','sweep','parry','pommel'],middle:['thrust','sky','ward','parry','counter'],finish:['pierce','thrust','sky','sweep'],tag:'穿ち',desc:'槍。長い間合いからの突き、穂先の払い、渾身の貫きを軸に閃きます。'},
- axe:{open:['diagonal','slash','sweep','pommel','brace'],middle:['back','bash','sweep','guard','brace'],finish:['heavy','round','diagonal','leap'],tag:'砕き',desc:'戦斧。袈裟斬りと押し崩しが得意。振り出しは慎重に、命中の瞬間は力強く。'}
-};
+const WEAPON_ARTS=cloneInspirationWeaponArts();
 function duplicateClip(id,base,patch={}){POSE_CLIPS[id]={...JSON.parse(JSON.stringify(POSE_CLIPS[base])),...patch};}
 duplicateClip('uppercut','back',{contact:.52,active:[.33,.74],hand:[[0,READY_HAND],[.25,[.50,.82,-.04]],[.48,[.35,1.15,.62]],[.68,[-.19,1.79,.25]],[1,READY_HAND]],tip:[[0,READY_TIP],[.25,[1.05,.25,-.76]],[.48,[.35,.95,2.25]],[.68,[-.85,3.12,.58]],[1,READY_TIP]]});
 duplicateClip('sweep','slash',{hand:[[0,READY_HAND],[.27,[.50,.75,-.11]],[.48,[.40,.79,.55]],[.68,[-.36,.80,.29]],[1,READY_HAND]],tip:[[0,READY_TIP],[.27,[1.7,.55,-.55]],[.48,[.05,.47,2.23]],[.68,[-1.8,.52,.40]],[1,READY_TIP]],crouch:[[0,0],[.3,-.32],[.68,-.29],[1,0]]});
@@ -899,8 +896,6 @@ Object.assign(RHYTHMS,{none:'未設定（自然な戻り）',elastic:'緩急を�
 Object.assign(CHARGES,{focus:{label:'凝縮の溜め',time:.55,power:1.34},overdrive:{label:'極限の集中',time:.85,power:1.55}});CHARGES.none.label='未設定（大技の予備動作は残る）';
 RECEIVES.none={label:'未設定',desc:'被弾時専用技を使いません。通常のひるみと吹き飛びを受けます。',duration:0,distance:0,move:'stay',inv:0,knock:1,kind:'brace'};
 WEAPONS.fist={label:'拳',mesh:'gauntlet',tip:.22,base:.035,width:.15,power:.92,speed:1.10,ideal:.93,two:true,fist:true};
-WEAPON_ARTS.fist={open:['jab','straight','bodyblow','guard','parry'],middle:['straight','hook','bodyblow','risingfist','counter','slip'],finish:['hook','risingfist','oneinch','barrage','rushfist'],tag:'拳',desc:'両拳で戦う近接武器。左の牽制、正拳、腹打ち、回し拳、突き上げ、連環双拳。剣や盾は持ちません。'};
-for(const w of ['sword','great','spear','axe']){WEAPON_ARTS[w].finish.push('bullrush','meteor');}
 const BIG_FEET=new Set(['comet','flashstep','skybound','farback']);
 const COMPONENT_RARITY={
  kind:{none:0,ready:0,slash:0,thrust:0,back:1,heavy:1,retreat:0,diagonal:1,sweep:1,pommel:0,bash:1,guard:0,brace:0,parry:2,counter:3,ward:3,slip:3,uppercut:2,crosscut:2,round:2,spin:3,pierce:2,sky:3,dash:3,leap:3,bullrush:4,meteor:4,jab:0,straight:0,bodyblow:1,hook:1,risingfist:2,oneinch:3,barrage:3,rushfist:4},
@@ -961,10 +956,6 @@ Object.assign(STRIKES,{
  spearwheel:{label:'風車の連旋',duration:1.48,damage:16,lunge:.78,multi:true,weaponOnly:'spear'}
 });
 Object.assign(COMPONENT_RARITY.kind,{katanaDraw:2,katanaKesa:0,katanaReturn:1,katanaThrust:0,spearwheel:3});
-WEAPON_ARTS.katana={open:['katanaKesa','katanaThrust','katanaDraw'],middle:['katanaReturn','crosscut','katanaThrust'],finish:['katanaDraw','round','diagonal','bullrush','meteor'],tag:'一閃',desc:'刀。中段からの袈裟、逆袈裟、切っ先の突き、腰元からの居合い抜き。'};
-WEAPON_ARTS.spear.middle.push('spearwheel');WEAPON_ARTS.spear.finish.push('spearwheel');
-for(const arts of Object.values(WEAPON_ARTS))for(const group of ['open','middle','finish'])arts[group]=arts[group].filter(k=>STRIKES[k]?.damage>0);
-WEAPON_ARTS.sword.desc='片手剣と盾。斬り返し、刺し込み、十字斬り、盾での押し崩し。防御は心・技で設定。';
 Object.assign(MINDS,{
  boxer:{label:'拳闘のリズム',rank:1,desc:'前後の小刻みなステップと、踵を軽く浮かせる構え。拳では前手で距離を測り、後ろ手で顎を守る。',attack:.64,opening:.90,guard:.52,home:-.07,pace:.88},
  sideways:{label:'半身の構え',rank:1,desc:'腰を落として半身になり、前手と切っ先を相手へ向ける。長めの間合いから小さく踏み込む。',attack:.48,opening:.87,guard:.64,home:.18,pace:1.04},
@@ -3537,10 +3528,13 @@ return {
  templates:()=>copy(TEMPLATES),
  loadout:()=>copy(loadout),
  weapons:()=>Object.keys(WEAPONS),
+ inspirationCatalog:()=>copy(WEAPON_ARTS),
  decodeNotebook:(data)=>copy(decodeNotebook(data,false)),
  exportNotebook:()=>copy(exportData()),
- sourceVersion:'Tidebreak 10.0 / expanded-humanoid source',
- _test:{hit(who,damage){const t=who==='hero'?hero:enemies[0],src=who==='hero'?enemies[0]:hero;t.invuln=0;registerHit(src,t,{id:++attackSerial,kind:'slash',damage,element:'steel',damaged:new Set(),power:1,hitCount:0},{point:[t.x,1.2,t.z]});return state();}}
+ sourceVersion:'Tidebreak 10.0 / shared-inspiration catalog',
+ _test:{
+  generateSkill(weapon='sword',slot='jo',automatic=true){const before=equippedWeapon;equippedWeapon=weapon;try{return copy(generateSkill(slot,automatic));}finally{equippedWeapon=before;}},
+  hit(who,damage){const t=who==='hero'?hero:enemies[0],src=who==='hero'?enemies[0]:hero;t.invuln=0;registerHit(src,t,{id:++attackSerial,kind:'slash',damage,element:'steel',damaged:new Set(),power:1,hitCount:0},{point:[t.x,1.2,t.z]});return state();}}
 };
 
 })();
