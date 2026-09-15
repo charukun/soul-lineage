@@ -9,6 +9,39 @@ import {
   cloneInspirationWeaponArts,
 } from '../src/inspiration-catalog.js';
 
+const EXPECTED_PHASES = {
+  sword: {
+    open: ['slash', 'diagonal', 'thrust', 'back'],
+    middle: ['back', 'crosscut', 'uppercut', 'bash'],
+    finish: ['heavy', 'crosscut', 'round', 'dash', 'bullrush', 'meteor'],
+  },
+  great: {
+    open: ['slash', 'back', 'diagonal', 'pommel'],
+    middle: ['sweep', 'crosscut', 'back'],
+    finish: ['heavy', 'round', 'leap', 'crosscut', 'bullrush', 'meteor'],
+  },
+  spear: {
+    open: ['thrust', 'thrust', 'sweep', 'pommel'],
+    middle: ['thrust', 'sky', 'spearwheel'],
+    finish: ['pierce', 'thrust', 'sky', 'sweep', 'bullrush', 'meteor', 'spearwheel'],
+  },
+  axe: {
+    open: ['diagonal', 'slash', 'sweep', 'pommel'],
+    middle: ['back', 'bash', 'sweep'],
+    finish: ['heavy', 'round', 'diagonal', 'leap', 'bullrush', 'meteor'],
+  },
+  fist: {
+    open: ['jab', 'straight', 'bodyblow'],
+    middle: ['straight', 'hook', 'bodyblow', 'risingfist'],
+    finish: ['hook', 'risingfist', 'oneinch', 'barrage', 'rushfist'],
+  },
+  katana: {
+    open: ['katanaKesa', 'katanaThrust', 'katanaDraw'],
+    middle: ['katanaReturn', 'crosscut', 'katanaThrust'],
+    finish: ['katanaDraw', 'round', 'diagonal', 'bullrush', 'meteor'],
+  },
+};
+
 test('shared inspiration catalog owns every current weapon family', () => {
   assert.equal(inspirationCatalogRevision, 'inspiration-catalog-1');
   assert.deepEqual(INSPIRATION_WEAPONS, ['sword', 'great', 'spear', 'axe', 'fist', 'katana']);
@@ -22,6 +55,7 @@ test('shared inspiration catalog owns every current weapon family', () => {
       assert.ok(Array.isArray(arts[phase]));
       assert.ok(arts[phase].length > 0);
       assert.ok(arts[phase].every(id => typeof id === 'string' && id.length > 0));
+      assert.deepEqual(arts[phase], EXPECTED_PHASES[weapon][phase], `${weapon}/${phase} candidate parity changed`);
     }
   }
 });
@@ -43,7 +77,7 @@ test('catalog retains representative discoveries beyond a Tidebreak demo subset'
 test('weighted phase entries are preserved while the global motion universe is unique', () => {
   assert.equal(INSPIRATION_WEAPON_ARTS.spear.open.filter(id => id === 'thrust').length, 2);
   assert.equal(new Set(INSPIRATION_MOTION_IDS).size, INSPIRATION_MOTION_IDS.length);
-  assert.ok(INSPIRATION_MOTION_IDS.length > 9);
+  assert.equal(INSPIRATION_MOTION_IDS.length, 30);
 });
 
 test('catalog is immutable and runtimes can request an isolated mutable clone', () => {
