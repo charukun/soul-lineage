@@ -3363,6 +3363,14 @@
       "workerId": "work/866e55ef0f5e/20260915T1417Z-browser303-a1",
       "type": "BROWSER_REPAIR_NOTIFICATION",
       "action": "SUCCESS Gmail self notification sent; dedupe browser-issue-303:pr-312:5bbef44d; message 1a0a57ef21ce8a6f."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T1417Z:POST_RETURN_BASELINE_CHURN",
+      "at": "2026-09-15T14:36:40.000Z",
+      "pr": 312,
+      "workerId": "work/866e55ef0f5e/20260915T1417Z-browser303-a1",
+      "type": "POST_RETURN_BASELINE_CHURN",
+      "action": "After force=false push and Ready return, develop advanced from verified eaf5f49c to 2b0d7943. This occurred after ownership handoff and does not consume a semantic attempt. Current latest-develop publish run 34982768400 is already in progress and run 34982799675 is pending, so no duplicate PULSE dispatch was created."
     }
   ],
   "config": {
@@ -19658,9 +19666,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1240,
+  "revision": 1241,
   "schema": 1,
-  "updatedAt": "2026-09-15T14:35:30.000Z",
+  "updatedAt": "2026-09-15T14:36:40.000Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
