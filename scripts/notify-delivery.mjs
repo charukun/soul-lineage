@@ -26,6 +26,45 @@ export function deliveryMessage(stage, { report, sha, repository, runUrl, locale
   ] });
 }
 
+async function githubJson(request, url, { token, method = 'GET', body } = {}) {
+  const response = await request(url, {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new Error(`GITHUB_DELIVERY_RECEIPT_FAILED:${response.status}:${method}:${url}`);
+  return response.status === 204 ? null : response.json();
+}
+
+export async function recordGithubDeliveryReceipt({ token = '', repository, sha, runUrl, message, request = fetch }) {
+  if (!token) return 'not-configured';
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repository || '') || !/^[a-f0-9]{40}$/.test(sha || '')) throw new Error('INVALID_GITHUB_DELIVERY_RECEIPT');
+  const root = `https://api.github.com/repos/${repository}`;
+  const prs = await githubJson(request, `${root}/commits/${sha}/pulls?per_page=100`, { token });
+  const pr = prs.filter(item => item.merged_at && item.base?.ref === 'develop')
+    .sort((a, b) => new Date(b.merged_at) - new Date(a.merged_at))[0];
+  if (!pr) return 'no-associated-pr';
+  const marker = `<!-- dev-delivery-receipt:${sha} -->`;
+  for (let page = 1; page <= 3; page++) {
+    const comments = await githubJson(request, `${root}/issues/${pr.number}/comments?per_page=100&page=${page}`, { token });
+    if (comments.some(comment => (comment.body || '').includes(marker))) return 'existing';
+    if (comments.length < 100) break;
+    if (page === 3) throw new Error('GITHUB_DELIVERY_RECEIPT_COMMENT_PAGE_LIMIT');
+  }
+  await githubJson(request, `${root}/issues/${pr.number}/comments`, {
+    token,
+    method: 'POST',
+    body: { body: `${marker}\n${message}\n\nGitHub delivery receipt: verified DEV publication.\n${runUrl}` },
+  });
+  return 'github-pr-comment';
+}
+
 export function notificationStatus(channel) {
   return channel === 'ntfy' ? { state: 'success', description: 'ntfy smartphone delivery confirmed' } :
     channel === 'not-configured' ? { state: 'error', description: 'NTFY_TOPIC_URL is not configured; smartphone delivery unconfirmed' } :
@@ -42,9 +81,9 @@ async function main() {
   const [stage, reportPath] = process.argv.slice(2);
   const report = reportPath && existsSync(reportPath) ? JSON.parse(readFileSync(reportPath, 'utf8')) : null;
   const locale = normalizeNotificationLocale(process.env.NOTIFY_LOCALE || 'ja');
+  const runUrl = `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
   const message = deliveryMessage(stage, { report, sha: process.env.FINAL_SHA,
-    repository: process.env.GITHUB_REPOSITORY, locale,
-    runUrl: `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}` });
+    repository: process.env.GITHUB_REPOSITORY, locale, runUrl });
   if (!message) { writeOutput('skipped'); return; }
   let channel = 'failed';
   try {
@@ -56,6 +95,20 @@ async function main() {
   } catch (error) {
     writeOutput(channel);
     throw error;
+  }
+  if (stage === 'DEV_DEPLOYED') {
+    try {
+      const receipt = await recordGithubDeliveryReceipt({
+        token: process.env.GITHUB_TOKEN,
+        repository: process.env.GITHUB_REPOSITORY,
+        sha: process.env.FINAL_SHA,
+        runUrl,
+        message,
+      });
+      console.log(`GitHub delivery receipt: ${receipt}`);
+    } catch (error) {
+      console.warn(`::warning::GitHub delivery receipt failed: ${error.message}`);
+    }
   }
   writeOutput(channel);
   console.log(message);

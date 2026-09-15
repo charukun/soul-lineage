@@ -71,6 +71,8 @@ RepositoryはこのGitHub eventを作るところまでを責任範囲とする�
 
 次は速度のために安全条件を下げず、そのPRだけをdeep repair / human-requiredへ送る。
 
+この節のFast Repair対象外とhuman-requiredは同義ではない。同file競合はDeep Repairで確定仕様への適応を検討する。可逆的な細部はAIが判断しDEV公開後に確認する。仕様によるhuman-requiredの条件と記録は [実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md#devで実物を確認する標準開発) に従う。
+
 - 明示hold、`integration:manual`、`do-not-merge`
 - Changes requested、未解決review thread
 - external/untrusted PR
