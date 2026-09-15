@@ -3435,6 +3435,54 @@
       "workerId": "work/866e55ef0f5e/20260915T151530Z-browser328-a1",
       "type": "POST_MERGE_PULSE",
       "action": "Develop advanced to merge 425f171d02934a86e0f014b86967803c18e540e6. Existing exact-head DEV/PULSE runs 34988769893, 34988794847, and 34988884864 were already in progress/pending; no duplicate publish-only trigger was started."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T161324Z:BROWSER_REPAIR_CLAIMED",
+      "at": "2026-09-15T16:28:00.658Z",
+      "pr": 343,
+      "workerId": "work/866e55ef0f5e/20260915T161324Z-browser341-a1",
+      "type": "BROWSER_REPAIR_CLAIMED",
+      "action": "Claimed canonical exact-current develop Browser Repair issue #341 (source PR #338, failing run 34992764236) at attempt 1/3. Issue ownership moved pending -> working for chatgpt-work:866e55ef0f5e; branch repair/browser-issue-341-a1 and Draft PR #343 were created from develop 0cdf0304 before edits."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T161324Z:BROWSER_REPAIR_BASELINE_ADVANCED",
+      "at": "2026-09-15T16:28:00.658Z",
+      "pr": 343,
+      "workerId": "work/866e55ef0f5e/20260915T161324Z-browser341-a1",
+      "type": "BROWSER_REPAIR_BASELINE_ADVANCED",
+      "action": "Develop advanced from 0cdf0304 to ea1b6781 during repair. Attempt 1/3 was preserved; the minimal hidden-state repair was reapplied to and validated against latest develop. Candidate a0269bb5 has parents original PR head 0f2c79d8 + validated develop ea1b6781."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T161324Z:BROWSER_REPAIR_FAILED_RETRYABLE",
+      "at": "2026-09-15T16:28:00.658Z",
+      "pr": 343,
+      "workerId": "work/866e55ef0f5e/20260915T161324Z-browser341-a1",
+      "type": "BROWSER_REPAIR_FAILED_RETRYABLE",
+      "action": "Root cause fixed locally: rebuild author display rules overrode hidden title/loading overlays. npm ci, focused 32/32, trusted fast 483/483, and demon/rinne/village builds passed; pre-push exact-head/review/thread/ownership fences passed. Normal git push was rejected by execution permission review; remote head remains 0f2c79d8, no ref moved, no force/API fallback attempted. Next route: authorize non-force update of the repair PR branch to validated candidate a0269bb5 or apply the same two-file patch via repository-owner route, then rerun fast and mark Ready. humanRequired=false."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T161324Z:BROWSER_REPAIR_CYCLE_SUMMARY",
+      "at": "2026-09-15T16:28:00.658Z",
+      "pr": null,
+      "workerId": "work/866e55ef0f5e/20260915T161324Z-browser341-a1",
+      "type": "BROWSER_REPAIR_CYCLE_SUMMARY",
+      "action": "eligible_before=1; claimable_before=1; claimed=1; returned=0; human_required=0; eligible_after=0. ACTIVE 0 after failure does not mean no repair exists: issue #341 remains working and blocked at the push permission fence; PR #343 remains Draft at remote head 0f2c79d8."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T161324Z:PULSE_UNCHANGED",
+      "at": "2026-09-15T16:28:00.658Z",
+      "pr": null,
+      "workerId": "work/866e55ef0f5e/20260915T161324Z-browser341-a1",
+      "type": "PULSE_UNCHANGED",
+      "action": "Latest develop is ea1b6781. Public deployment-manifest read timed out and the connected GitHub surface exposed no safe workflow-dispatch action, so PULSE mismatch was not established and no stale run was rerun or duplicate publication triggered."
+    },
+    {
+      "id": "browser-cycle-866e55ef0f5e-20260915T161324Z:BROWSER_REPAIR_NOTIFICATION",
+      "at": "2026-09-15T16:28:00.658Z",
+      "pr": 343,
+      "workerId": "work/866e55ef0f5e/20260915T161324Z-browser341-a1",
+      "type": "BROWSER_REPAIR_NOTIFICATION",
+      "action": "FAILED Gmail self notification sent; dedupe browser-issue-341:pr-343:a0269bb5:push-permission; message 1a0a5e3b98151c07."
     }
   ],
   "config": {
@@ -6287,6 +6335,23 @@
       "status": "RETURNED_TO_INTEGRATION",
       "type": "browser-repair-notice",
       "workerId": "work/866e55ef0f5e/20260915T151530Z-browser328-a1"
+    },
+    {
+      "id": "gmail:1a0a5e3b98151c07",
+      "messageId": "1a0a5e3b98151c07",
+      "type": "browser-repair-notice",
+      "channel": "gmail-self",
+      "status": "FAILED",
+      "pr": 343,
+      "branch": "repair/browser-issue-341-a1",
+      "commit": "a0269bb53eadafca77807736fee1834222cd8ffb",
+      "remoteHead": "0f2c79d874d24670fe01df4cb6a7f6fb943ee421",
+      "workerId": "work/866e55ef0f5e/20260915T161324Z-browser341-a1",
+      "attempt": 1,
+      "sentAt": "2026-09-15T16:28:00.658Z",
+      "receiptSource": "Gmail send_email accepted message; smartphone delivery unverified",
+      "stage": "artifact diagnosis + latest-develop rebase + npm ci + focused 32/32 + trusted fast 483/483 + 3 app builds + final fences; push permission rejected; no remote ref movement",
+      "next": "Authorize force=false update of repair/browser-issue-341-a1 to validated candidate a0269bb5 or apply the same two-file patch through repository-owner route; rerun fast; mark PR #343 Ready; GitHub browser/Integration/DEV owns subsequent transitions"
     }
   ],
   "records": {
@@ -19746,9 +19811,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1243,
+  "revision": 1244,
   "schema": 1,
-  "updatedAt": "2026-09-15T15:30:42.268Z",
+  "updatedAt": "2026-09-15T16:28:00.658Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
