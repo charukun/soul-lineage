@@ -74,6 +74,15 @@ export function installFocusedReviewUI(){
  });
  let returnFocus=null;
  document.addEventListener('click',event=>{if(event.target.closest('[data-picker-for],.model-select-trigger'))returnFocus=event.target.closest('button');});
+ document.addEventListener('change',event=>{
+  if(dock.dataset.open!=='true')return;
+  const target=event.target;
+  if(target instanceof HTMLSelectElement&&(target.classList.contains('review-select')||target.id==='preset'))queueMicrotask(()=>setOpen(false));
+ },true);
+ document.addEventListener('click',event=>{
+  if(dock.dataset.open!=='true')return;
+  if(event.target.closest('[data-play-select],.sequence-review-action'))queueMicrotask(()=>setOpen(false));
+ },true);
  document.addEventListener('keydown',event=>{
   const modal=[...document.querySelectorAll('.picker-backdrop,.model-picker-backdrop')].find(n=>!n.hidden);if(!modal)return;
   if(event.key==='Escape'){event.preventDefault();modal.hidden=true;returnFocus?.focus();}
