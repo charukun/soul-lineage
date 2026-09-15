@@ -12,6 +12,7 @@ export function targetRevision(pr) {
 export async function enrichTargets(pulls, client, storage, limit = 2, now = Date.now()) {
   const result = pulls.map(pr => ({ ...pr, targetApps: [], targetAppsComplete: false, targetAppsStatus: 'pending' }));
   const pending = [];
+  const deepAllowed = () => client.deepAllowed !== false;
   for (const pr of result) {
     const saved = await storage?.get(`ops-targets:${pr.number}`);
     const revision = targetRevision(pr);
@@ -25,19 +26,19 @@ export async function enrichTargets(pulls, client, storage, limit = 2, now = Dat
   pending.sort((a, b) => (a.saved?.attemptAt || 0) - (b.saved?.attemptAt || 0));
   let attempted = 0;
   for (const { pr, revision, saved } of pending) {
-    if (!revision || attempted >= limit || client.available < 3 || !client.deepAllowed) continue;
+    if (!revision || attempted >= limit || client.available < 3 || !deepAllowed()) continue;
     if (saved?.revision === revision && saved.retryAt > now) { pr.targetAppsStatus = 'unavailable'; continue; }
     attempted++;
     try {
       const files = [];
       let complete = false;
-      for (let page = 1; page <= MAX_TARGET_FILE_PAGES && client.available > 1 && client.deepAllowed; page++) {
+      for (let page = 1; page <= MAX_TARGET_FILE_PAGES && client.available > 1 && deepAllowed(); page++) {
         const { data, response } = await client.get(`/pulls/${pr.number}/files?per_page=100&page=${page}`, { maxAgeMs: 60_000 });
         if (!Array.isArray(data)) throw new Error('変更ファイルの形式が不正です');
         files.push(...data);
         if (!/rel="next"/.test(response.headers.get('link') || '')) { complete = true; break; }
       }
-      if (!client.deepAllowed || client.available < 1) throw Object.assign(new Error('GitHub API残量保護のため対象判定を次回へ延期'), { budgetLimited: true });
+      if (!deepAllowed() || client.available < 1) throw Object.assign(new Error('GitHub API残量保護のため対象判定を次回へ延期'), { budgetLimited: true });
       const { data: confirmed } = await client.get(`/pulls/${pr.number}`, { maxAgeMs: 60_000 });
       if (targetRevision(confirmed) !== revision) throw new Error('取得中にPRの版が更新されました');
       complete = complete && Number.isInteger(confirmed.changed_files) && files.length === confirmed.changed_files;
