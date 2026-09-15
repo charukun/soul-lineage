@@ -3146,6 +3146,22 @@
       "pr": 90,
       "type": "WORK_REPAIR_PUSH_PREPARED",
       "workerId": "work/866e55ef0f5e/20260915T0820Z-pr90"
+    },
+    {
+      "action": "Workの仕様確認・fast検証・元PRへのpushを確認。通常Integrationへ返却",
+      "at": "2026-09-15T08:45:22.957Z",
+      "id": "work/866e55ef0f5e/20260915T0820Z-pr90:RETURNED_TO_INTEGRATION:1789461922957:1186",
+      "pr": 90,
+      "type": "RETURNED_TO_INTEGRATION",
+      "workerId": "work/866e55ef0f5e/20260915T0820Z-pr90"
+    },
+    {
+      "action": "eligible_before=4; claimable_before=3; claimed=1; returned=1; human_required=0; eligible_after=3",
+      "at": "2026-09-15T08:45:22.957Z",
+      "id": "work/866e55ef0f5e/20260915T0820Z-pr90:WORK_REPAIR_RUN_SUMMARY:1789461922957:1186",
+      "pr": 90,
+      "type": "WORK_REPAIR_RUN_SUMMARY",
+      "workerId": "work/866e55ef0f5e/20260915T0820Z-pr90"
     }
   ],
   "config": {
@@ -6999,12 +7015,12 @@
       "claimedAt": "2026-09-13T07:20:12.009Z",
       "claimedBy": "34744962794/pr-90/a1",
       "contractFingerprint": "57b8022b071e6d6e6c563d8078d6e5fd752197731a6022ce08535888dbda425e",
-      "currentAction": "検証成功。exact-head・review・所有権・developを再確認して元PR branchへ非force push",
-      "currentStep": "PUSHING",
+      "currentAction": "Workの仕様確認・fast検証・元PRへのpushを確認。通常Integrationへ返却",
+      "currentStep": "RETURNED_TO_INTEGRATION",
       "dependencies": [],
       "detail": "家具一覧・配置・退出・住民カメラ・設定遷移の競合を統合し、UIと施設表現を改善",
       "detectedAt": "2026-09-13T02:37:03.415Z",
-      "developSha": "fa6c8bc5a9955fec0d78929092ad3dd7ebe009df",
+      "developSha": "ee21e019fa1112ff2e85da58d9758dbafdb53f68",
       "failureReason": "FAILED_MANUAL:SEMANTIC_CONFLICT:apps/village/src/game/catalog.js,apps/village/src/main.js,apps/village/src/mura-mobile-feedback-fix-3.js,apps/village/src/mura-ux-polish-4.js,apps/village/src/web/main.js,apps/village/src/web/models.js,apps/village/tests",
       "failures": [
         {
@@ -7016,7 +7032,7 @@
           "workerId": "34744962794/pr-90/a1"
         }
       ],
-      "headSha": "b6c43134fb6675c7dfad770b1cda21d49adef9a8",
+      "headSha": "8acbdc97174483bc6993532d33b140a353adbc5b",
       "heartbeatAt": "2026-09-13T07:20:12.009Z",
       "lastFailureFingerprint": "other:e7f6ca0f4808d3a6",
       "lease": null,
@@ -7091,15 +7107,15 @@
         "headSha": "b6c43134fb6675c7dfad770b1cda21d49adef9a8",
         "mergeBaseSha": "568ae450c02bf5c66ab0582a38a5b09293a68818"
       },
-      "state": "FAILED_MANUAL",
+      "state": "RETURNED_TO_INTEGRATION",
       "title": "fix(village): consolidate playthrough interactions and tactile UI",
-      "updatedAt": "2026-09-15T08:44:10.410Z",
+      "updatedAt": "2026-09-15T08:45:22.957Z",
       "waitingReason": null,
       "wave": "wave-34744962794-1",
       "workRepairAttempts": 1,
       "workRepair": {
         "workerId": "work/866e55ef0f5e/20260915T0820Z-pr90",
-        "status": "working",
+        "status": "returned",
         "attempt": 1,
         "maxAttempts": 2,
         "repairKind": "semantic",
@@ -7280,9 +7296,26 @@
             "command": "node scripts/validate.mjs fast <exact ee21e019 tree> <candidate d60d07f4 tree>"
           }
         },
-        "pushPreparedAt": "2026-09-15T08:44:10.410Z"
+        "pushPreparedAt": "2026-09-15T08:44:10.410Z",
+        "finishedAt": "2026-09-15T08:45:22.957Z"
       },
-      "workRepairBaselineChurns": 1
+      "workRepairBaselineChurns": 1,
+      "pushedSha": "8acbdc97174483bc6993532d33b140a353adbc5b",
+      "validation": {
+        "status": "passed",
+        "tree": "d60d07f493aa7244c3a28b9cc8444d8c45cbbcbb",
+        "npmCi": "passed",
+        "focused": "passed: village 146/146",
+        "trustedFast": "passed",
+        "builds": "passed: demon/rinne/village",
+        "markers": "passed",
+        "scope": "passed",
+        "command": "node scripts/validate.mjs fast <exact ee21e019 tree> <candidate d60d07f4 tree>",
+        "head": "8acbdc97174483bc6993532d33b140a353adbc5b"
+      },
+      "pushedAt": "2026-09-15T08:45:22.957Z",
+      "returnedAt": "2026-09-15T08:45:22.957Z",
+      "pendingIntegration": true
     },
     "93": {
       "attempt": 1,
@@ -19588,9 +19621,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1185,
+  "revision": 1186,
   "schema": 1,
-  "updatedAt": "2026-09-15T08:44:10.410Z",
+  "updatedAt": "2026-09-15T08:45:22.957Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:13:12.416Z",
