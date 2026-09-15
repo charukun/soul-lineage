@@ -341,6 +341,7 @@ select[data-rarity="1"],[data-rarity="1"].book-name{color:#bce2c9}select[data-ra
 <div aria-labelledby="tab-saved" data-panel="saved" hidden="" id="panel-saved" role="tabpanel"><h2 class="panel-title">閃きを、次の戦いへ。</h2><div class="book-target">セット先 <strong id="bookTarget">序</strong><span id="bookHint">攻撃技と足運び</span></div><p class="fineprint">「セット」は選択枠に直接装備。「調整」は構成画面へ読み込みます。被弾後の型は、防の「技」に装備できます。</p><div id="savedList"></div><div class="export-row"><button id="exportBtn">技目録を書き出す</button><button id="importBtn">技目録を読み込む</button></div><input accept="application/json,.json" hidden="" id="importFile" type="file"/><p class="fineprint">最大60件をこのブラウザに保存。書き出しには4枠の装備・心構え・抽選モードも含まれます。旧版の技目録も読み込めます。<br/>ブラウザによってはHTMLの保存場所を変えると別の保存領域になります。</p><p class="fineprint" id="storageNotice"></p><details class="review-details"><summary>稽古の記録</summary><div class="session-log" id="sessionLog"></div><div class="metrics"><div class="metric"><dt>命中</dt><dd id="hitMetric">0</dd></div><div class="metric" hidden=""><dt>与ダメージ</dt><dd id="damageMetric">0</dd></div><div class="metric"><dt>受け・反撃</dt><dd id="chainMetric">0</dd></div><div class="metric"><dt>移動距離</dt><dd id="travelMetric">0</dd></div><div class="metric" hidden=""><dt>被ダメージ</dt><dd id="takenMetric">0</dd></div></div></details></div></div><div class="modal-footer"><span>TIDEBREAK · 成長と寿命 / <span id="studyNumber">001</span></span><button aria-label="遊び方" class="text-button" id="helpBtn" title="遊び方">使い方</button></div></aside></dialog><script type="module">
 import * as THREE from "three";
 import {HumanoidRuntime} from "./src/humanoid.js";
+import {createStorySkills} from "./src/story-skills.js";
 import {LifeClock,appearanceForAge} from "./src/life-clock.js";
 const STORY_MODE=new URL(location.href).searchParams.get('experience')==='story'||window.__RINNE_EMBED__?.experience==='story';
 // Main-game persistence is one atomic envelope owned by its platform adapter.
@@ -3936,6 +3937,8 @@ function installStoryPort(){
  const restoreActor=(a,s)=>{a.x=s.x;a.z=s.z;a.hp=s.hp;a.maxhp=s.maxhp;a.dead=s.dead;a.deadTime=s.dead?2:0;a.weapon=s.weapon;initFeet(a);};
  window.__RINNE_GAME_PORT__={
   version:1, snapshot, stopMove:releaseMove,position,
+  ...createStorySkills({readLibrary:()=>library,readPools:()=>attackPools,weights:effectiveWeights,identity:skillIdentity,
+   assign:setGridCell,active:()=>hero?.run,canEdit:()=>!hero.dead&&!lifeClock.expired}),
   session:()=>({mode:'solo',phase:'open',members:[],epoch:0,revision:0}),
   blockInput(value){storySession.inputBlocked=!!value;if(value)releaseMove();},
   camera({angle=camAngle,pitch=camPitch,scale=zoom}={}){camAngle=Number.isFinite(angle)?angle:camAngle;camPitch=clamp(pitch,.25,1.1);zoom=clamp(scale,.7,1.45);camera(0);},

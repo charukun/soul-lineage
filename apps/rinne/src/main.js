@@ -1,35 +1,53 @@
-import {sharedEmblemUrl} from '@soul/assets';
-import { createWebPlatform } from '@soul/platform-web';
-import { createApp } from './app.js';
-import { installVillageHostRehearsal } from './village-link.js';
-import { installOnlinePlayer } from './online.js';
-import { mountTitle } from './title/controller.js';
-import {installMusicLibrary} from '@soul/shared-ui/music';
-import {acquireSoloPause} from './title/solo-pause.js';
-
-// Build information is injected by the existing monorepo Vite plugin. A standalone
-// preview must never claim to be a deployed commit.
-const info = typeof __BUILD_INFO__ !== 'undefined' ? __BUILD_INFO__ : {
-  name:'輪廻転焦',app:'rinne',environment:'local',commit:'UNBUILT',inputHash:null,
-};
-const dialog = document.getElementById('village-dialog');
-installOnlinePlayer(document.getElementById('village-panel'));
-document.getElementById('open-village').addEventListener('click', () => dialog.showModal());
-const dispose = mountTitle(info,{emblemURL:sharedEmblemUrl});
-// Preserve the existing opt-in host migration rehearsal alongside the title.
-let lab, clock;
-if (new URLSearchParams(location.search).has('villageHostLab')) {
-  const app = createApp(createWebPlatform({gameId:'rinne', environment:info.environment}));
-  const canvas = document.getElementById('game');
-  let worldTimeMs = 0, last = performance.now();
-  const tick = now => { if (!window.__VILLAGE_WORLD_PAUSED__) worldTimeMs += Math.max(0,now-last); last=now; canvas.dataset.worldTimeMs=String(Math.round(worldTimeMs)); clock=requestAnimationFrame(tick); };
-  clock=requestAnimationFrame(tick);
-  lab=installVillageHostRehearsal({capture:()=>({worldTimeMs:Math.round(worldTimeMs),world:app.world,characters:[],npcs:[],randomState:null}),apply:checkpoint=>{worldTimeMs=checkpoint.worldTimeMs;canvas.dataset.worldRevision=String(checkpoint.world?.revision??'');}});
+const info=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__:{name:'100年人生',app:'rinne',environment:'local',commit:'UNBUILT'};
+document.title=`100年人生 — 輪廻転焦${info.environment==='prod'?'':` | ${String(info.environment).toUpperCase()}`}`;
+const $=id=>document.getElementById(id), title=$('title-screen'), game=$('game-screen');
+$('build-label').textContent=info.commit==='UNBUILT'?'LOCAL':`${String(info.environment).toUpperCase()} · ${String(info.commit).slice(0,7)}`;
+const storageKey=`soul:v1:${info.environment}:rinne:local:life-v2`;
+let runtime=null,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false;
+function refreshContinue(){
+  let saved=null;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
+  hasSave=Boolean(saved);const button=$('continue-life');button.hidden=!saved;
+  if(saved){const age=Math.max(0,Math.min(100,Math.floor(Number(saved.ageYears)||0)));$('continue-detail').textContent=`${saved.name||'旅人'} · ${age}歳 · ${saved.generation||1}代目`;}
 }
-if (import.meta.hot) import.meta.hot.dispose(()=>{cancelAnimationFrame(clock);lab?.then(link=>link.dispose());});
-if (import.meta.hot) import.meta.hot.dispose(dispose);
+refreshContinue();
+async function launch(mode){
+  if(launching)return;launching=true;$('boot-status').textContent='世界を開いています…';
+  try{
+    const mod=await import('./rebuild/runtime.js');
+    runtime=await mod.startRuntime({mode,buildInfo:info,name:$('life-name').value,onExit(){runtime=null;game.hidden=true;title.hidden=false;launching=false;$('boot-status').textContent='準備できています';refreshContinue();}});
+    title.hidden=true;game.hidden=false;$('boot-status').textContent='';
+  }catch(error){console.error(error);launching=false;$('boot-status').textContent=`開けませんでした：${error?.message||error}`;game.hidden=true;title.hidden=false;}
+}
+$('new-life').addEventListener('click',()=>{if(hasSave&&!confirm('今の人生を終えて、0歳から新しく始めます。現在の100年人生の保存は置き換わります。続けますか？'))return;void launch('new');});
+$('continue-life').addEventListener('click',()=>{void launch('continue');});
 
-let releaseMusicPause=()=>{};
-const disposeMusic=installMusicLibrary({game:'rinne',environment:info.environment,defaultTrack:'r01',autoStart:true,trigger:'hidden',contextNote:'音楽室では単独稽古を一時停止します。効果音は稽古場のサウンド設定から。',onOpen(){releaseMusicPause=acquireSoloPause(document.getElementById('simulator-frame'));},onClose(){releaseMusicPause();releaseMusicPause=()=>{};}});
-for(const id of ['title-music','simulator-music']){const button=document.getElementById(id);button.hidden=info.environment==='prod';button.onclick=()=>window.__SOUL_MUSIC__?.open();}
-if(import.meta.hot)import.meta.hot.dispose(disposeMusic);
+const villageDialog=document.getElementById('village-dialog');
+document.getElementById('open-village').addEventListener('click',async()=>{
+  try{
+    if(!villageInstalled){
+      const {installOnlinePlayer}=await import('./online.js');
+      installOnlinePlayer(document.getElementById('village-panel'));
+      villageInstalled=true;
+    }
+    villageDialog.showModal();
+  }catch(error){console.error(error);$('boot-status').textContent=`村へ接続できません：${error?.message||error}`;}
+});
+document.getElementById('close-village').addEventListener('click',()=>villageDialog.close());
+
+if(new URLSearchParams(location.search).has('villageHostLab')){
+  void (async()=>{
+    const [{installVillageHostRehearsal},{createApp},{createWebPlatform}]=await Promise.all([
+      import('./village-link.js'),import('./app.js'),import('@soul/platform-web'),
+    ]);
+    const app=createApp(createWebPlatform({gameId:'rinne',environment:info.environment}));
+    const canvas=document.getElementById('game');
+    let worldTimeMs=0,last=performance.now();
+    const tick=now=>{if(!window.__VILLAGE_WORLD_PAUSED__)worldTimeMs+=Math.max(0,now-last);last=now;canvas.dataset.worldTimeMs=String(Math.round(worldTimeMs));labClock=requestAnimationFrame(tick);};
+    labClock=requestAnimationFrame(tick);
+    lab=installVillageHostRehearsal({capture:()=>({worldTimeMs:Math.round(worldTimeMs),world:app.world,characters:[],npcs:[],randomState:null}),apply:checkpoint=>{worldTimeMs=checkpoint.worldTimeMs;canvas.dataset.worldRevision=String(checkpoint.world?.revision??'');}});
+    await lab;
+  })().catch(error=>{console.error(error);$('boot-status').textContent=`村診断を開始できません：${error?.message||error}`;});
+}
+
+// The runtime owns pagehide persistence so a save cannot be cancelled by an eager dispose here.
+if(import.meta.hot)import.meta.hot.dispose(()=>{runtime?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});

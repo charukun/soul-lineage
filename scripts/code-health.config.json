@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "roots": [
+    "apps/",
+    "packages/",
+    "scripts/",
+    "ops-board/"
+  ],
+  "extensions": [
+    ".js",
+    ".mjs",
+    ".cjs",
+    ".jsx",
+    ".ts",
+    ".tsx"
+  ],
+  "excludeSegments": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "vendor",
+    "generated",
+    "fixtures",
+    "test",
+    "tests",
+    "__tests__"
+  ],
+  "thresholds": {
+    "fileLocSoft": 600,
+    "fileLocHard": 1200,
+    "functionLinesSoft": 110,
+    "functionLinesHard": 220,
+    "decisionDensitySoft": 14,
+    "decisionDensityHard": 26,
+    "duplicateLinesSoft": 64,
+    "duplicateLinesHard": 240,
+    "dispatchScore": 55,
+    "hardActionFileLoc": 1500,
+    "hardActionFunctionLines": 260,
+    "hardActionDuplicateLines": 320,
+    "duplicateWindowLines": 8,
+    "duplicateMinChars": 180,
+    "maxDuplicateGroups": 96,
+    "maxCandidates": 20
+  },
+  "guard": {
+    "existingLocIncrease": 120,
+    "existingFunctionIncrease": 40,
+    "existingDecisionIncrease": 18,
+    "newFileLoc": 900,
+    "newFileFunctionLines": 180,
+    "hardFileLoc": 1800,
+    "hardFunctionLines": 300
+  }
+}

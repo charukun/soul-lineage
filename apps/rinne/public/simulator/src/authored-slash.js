@@ -7,6 +7,7 @@ import * as T from '../vendor/three.js';
 export const SLASH_SECONDS = .66;
 export const SLASH_TIMING = Object.freeze({active:Object.freeze([.35,.64]),contact:.50,launch:.34,plant:.49,chain:.86,lead:1});
 export const SLASH_REVISION = 'shino-slash-1';
+export const SWORD_FREE_GUARD = Object.freeze([.16,-.29,.20]);
 const clamp = (x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 
 // Monotone cubic interpolation keeps momentum through intermediate poses without
@@ -43,7 +44,9 @@ const body = {
   // Blade direction is spherical (yaw/elevation), with the cutting plane rolling
   // through the wrist instead of a direction-vector lerp collapsing at opposition.
   blade:[[0,.398,1.15,0],[.25,-1.68,.94,-.38],[.37,-1.83,.82,-.52],[.44,-1.40,.38,-.48],[.50,0,.02,-.15],[.59,1.47,-.30,.25],[.72,1.94,-.40,.46],[.84,1.50,.30,.36],[1,.398,1.15,0]],
-  shield:[[0,.25,-.32,.17],[.30,.24,-.28,.21],[.50,.29,-.29,.19],[.65,.34,-.28,.14],[.84,.29,-.31,.17],[1,.25,-.32,.17]],
+  // Match the relaxed one-handed guard at both seams. The free hand can then lead the
+  // cut without teleporting between two different targets at attack start/end.
+  shield:[[0,...SWORD_FREE_GUARD],[.30,.22,-.25,.18],[.50,.29,-.29,.19],[.65,.34,-.28,.14],[.84,.24,-.27,.17],[1,...SWORD_FREE_GUARD]],
   lead:[[0,.045,0,.10],[.16,.045,0,.10],[.31,.070,.065,.19],[.46,.10,0,.34],[.73,.10,0,.34],[.87,.070,.045,.22],[1,.045,0,.10]],
   rear:[[0,-.045,0,-.10],[.35,-.070,0,-.10],[.56,-.075,.010,-.105],[.72,-.045,.018,-.06],[.88,-.045,0,-.045],[1,-.045,0,-.10]],
 };
@@ -83,7 +86,12 @@ export function applyAuthoredSlash(runtime,c,phase,definition=SLASH_TIMING) {
   const grip=new T.Vector3(x*s,c.shoulderY+y*s,z*s);
   const dir=new T.Vector3(Math.sin(yaw)*Math.cos(elevation),Math.sin(elevation),Math.cos(yaw)*Math.cos(elevation));
   runtime.attachHands(c,'sword',grip,dir,roll,1);
+  // attachHands gives the sword free hand its neutral guard orientation. Moving that
+  // arm to the authored shield target must not make the wrist inherit the parent-arm
+  // rotation; otherwise the wrist snaps back by ~90 degrees when the attack ends.
+  const freeHandQ=c.bones.leftHand?.getWorldQuaternion(new T.Quaternion());
   const [lx,ly,lz]=pose.shield;
   runtime.solve(c,'left','arm',new T.Vector3(lx*s,c.shoulderY+ly*s,lz*s),new T.Vector3(.6,-1,0));
+  if(freeHandQ)runtime.setWorldQ(c,'leftHand',freeHandQ);
   c.root.updateMatrixWorld(true);
 }

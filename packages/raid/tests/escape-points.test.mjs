@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {RaidSession} from '../session.js';
 const village={id:'escape-test',name:'escape-test',seed:77,target:'traveller',raidScale:'small',source:'generated',weather:'fog'};
-const profile=equipped=>({equipped,form:'hollow',echo:null});
+const profile=equipped=>({equipped,unlocked:[...equipped],form:'hollow',echo:null});
 test('ordinary raids expose the authored entry as the only return point',()=>{
  const g=new RaidSession(village,profile([]));
  assert.deepEqual(g.escapePoints(),[{id:'entry',label:'村口',x:g.village.entry.x,z:g.village.entry.z}]);

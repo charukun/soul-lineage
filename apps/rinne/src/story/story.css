@@ -96,3 +96,41 @@ body[data-story] dialog .sheet-close{width:46px;height:46px;display:flex;align-i
 #story-companions{border-top:1px solid #8f714777;margin-top:20px;padding-top:10px;color:#5f472a;font-size:12px}#story-companions h3{font-size:16px}#story-companions ul{padding-left:20px}
 @media(min-width:761px){#story-session-status{top:92px;right:28px}}
 @media(max-height:500px) and (min-width:600px){#story-session-status{top:77px;right:20px}}
+
+/* Page turns replace long vertical sheets; the close button never leaves the frame. */
+body[data-story] .story-page-dialog[open]{display:flex;flex-direction:column;gap:10px;width:min(620px,calc(100vw - 20px));height:calc(100dvh - 24px - var(--story-safe-top) - var(--story-safe-bottom));max-height:760px;padding:14px;overflow:hidden}
+body[data-story] .story-page-dialog>.sheet-heading{flex:none;min-height:48px;margin:0;padding:0 0 8px;gap:8px}
+body[data-story] .story-page-dialog>.sheet-heading small{display:none}
+body[data-story] .story-page-dialog>.sheet-heading h2{font-size:23px;letter-spacing:.05em}
+body[data-story] .story-page-dialog>.book-flex-body{flex:1;min-height:0;min-width:0}
+body[data-story] .story-page-dialog .book-pages{padding-top:8px}
+body[data-story] .story-page-dialog .book-pages button{height:44px;min-height:44px}
+body[data-story] .story-page-dialog .book-flow button[data-book-unit]{min-height:56px;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;padding:10px 12px;text-align:left;width:100%;font-size:13px}
+body[data-story] .story-page-dialog .book-flow button[data-book-unit] span{flex:1;min-width:0}
+body[data-story] .story-page-dialog .book-flow button[data-book-unit] small{display:block;font-size:11px;opacity:.8}
+body[data-story] .story-page-dialog #story-exit{grid-column:auto}
+body[data-story] .story-page-dialog #story-map-surface{width:100%;height:clamp(140px,42dvh,360px)}
+body[data-story] .story-page-dialog #story-map-surface svg{width:100%;height:100%;object-fit:contain}
+body[data-story] .story-page-dialog #story-dialog-content p{font-size:13px;line-height:1.8;margin:0}
+body[data-story] .story-page-dialog #story-close{min-width:46px;width:46px;padding:4px;font-size:24px}
+@media(max-height:480px){
+ body[data-story] .story-page-dialog[open]{padding:10px;height:calc(100dvh - 16px)}
+ body[data-story] .story-page-dialog>.sheet-heading{min-height:44px;padding-bottom:4px}
+ body[data-story] .story-page-dialog>.sheet-heading h2{font-size:19px}
+ body[data-story] .story-page-dialog #story-map-surface{height:160px}
+ body[data-story] #story-ended{padding:12px;font-size:12px;line-height:1.5}
+ body[data-story] #story-ended h2{font-size:20px}
+ body[data-story] #story-ended select{margin:5px 0;min-height:44px}
+}
+
+/* The journey uses the same paper, brass and fixed page controls as the notebook. */
+body[data-story] #story-journey-open{pointer-events:auto;text-align:left;cursor:pointer;min-height:44px;font:inherit;padding:6px 8px;color:#f7e5bd;border:1px solid #907345;border-radius:3px;background:linear-gradient(105deg,#493a2bec,#241e17d9);box-shadow:inset 0 1px #d3b67566,inset 0 -2px #17100d99,0 2px 5px #0005}
+body[data-story] #story-journey-open:focus-visible{outline:2px solid #f9d992;outline-offset:3px}
+body[data-story] #story-objective{font-size:12px;line-height:1.6;margin:0;flex:1}
+body[data-story] #story-journey .journey-lead{font-size:18px;font-weight:bold;color:#5b341c;border-bottom:1px solid #9e7544;padding-bottom:8px}
+body[data-story] #story-journey p{margin:0;line-height:1.8;font-size:14px}
+body[data-story] #story-journey small{font-size:12px}
+body[data-story] #story-journey .journey-control{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:bold}
+body[data-story] #story-journey .journey-control select{width:100%;min-width:0;min-height:48px;padding:8px 32px 8px 10px;font:inherit;color:#402c1b;border:1px solid #92703f;border-radius:5px;background:linear-gradient(#f6e7c6,#d6be91);box-shadow:inset 0 2px 4px #59402538,0 1px #fff4d8}
+body[data-story] #story-journey :is(p,label,small){color:#4b3825}
+@media(max-height:500px) and (min-width:600px){body[data-story] #story-waypoint{top:116px}}

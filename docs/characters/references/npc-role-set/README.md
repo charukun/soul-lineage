@@ -1,14 +1,15 @@
 # NPC Role Concept Set
 
-Status: `CONCEPT TARGET / PARTIALLY MAPPED`
+Status: `RUNTIME 3D IMPLEMENTED / VISUAL QA REQUIRED`
 
 Generated/reviewed: 2026-09-13
+Runtime implementation: 2026-09-14
 
 ## Purpose
 
-This set expands the visual design space available to Character Workshop authoring, MURAAAAAAA residents, and human NPC generation. It covers age and role silhouettes that are weak when every character is derived only from Shino-like adult proportions and the initial modular kit.
+This set expands the visual design space available to Character Workshop authoring, MURAAAAAAA residents, and human NPC generation. It intentionally covers age and role silhouettes that are weak when every character is derived only from Shino-like adult proportions and the initial modular kit.
 
-Implementation truth remains the audited MasterCharacter plus the current `packages/characters` and `packages/rendering` contracts. A picture in this directory does not make a depicted part available at runtime.
+The reference sheets remain the visual targets. Runtime implementation is defined by `packages/characters/src/reference-models.js` and `packages/rendering/src/master-character-reference.js`: each sheet now has a selectable code-authored 3D model on the audited common humanoid rig, so it can be inspected with the existing Visual Review Lab camera, motion, expression, and Motion QA flow. These runtime models are implementation assets, but rendered visual approval is still required before treating a model as final art quality.
 
 ## Runtime mapping status
 
@@ -44,11 +45,23 @@ The Workshop must continue to show three separate buckets for every target:
 | Hunter | field-ready layered silhouette, quiver/satchel target | 500×375 | 4,818 | `cf0da4fd2823df028c7c940c85d492098b4245ef5aee3e7e8e04fc7ef4bfff4b` |
 | Arcanist | refined scholar/magic silhouette, mantle and book target | 500×375 | 4,665 | `5930816e59424bcc17530ba9029d1231fb24ac88ee35ee5818f96e05e0978bd0` |
 
+## Runtime coverage
+
+All ten NPC sheets are registered in `CHARACTER_REFERENCE_MODELS` alongside the dedicated Shino reference model. Selecting one in Character Workshop / Visual Review Lab switches the selected actor from the source Shino render meshes to reference-specific runtime geometry while retaining the audited humanoid skeleton and animation contract.
+
+The runtime models provide distinct age/body scaling, face proportions, hair silhouette, clothing geometry, role gear, palette, footwear and the reference-defining prop where applicable. Guard, Knight, Blacksmith, Hunter and Arcanist therefore no longer resolve to a Shino color variant in review.
+
 ## Adoption boundary
 
 Reference-only overlay geometry is presentation-only. It follows the current humanoid bone hierarchy and shares cached immutable geometry, but it does not grant inventory, alter hitboxes, change combat stats, or add persistent character fields.
 
 Before promoting a reference-only detail into a reusable character slot, classify and review it separately. Exact textures, material wear, printed patterns, weapons, tools and other gameplay props shown in the sheets are not implied by the geometry overlay.
+
+- `RUNTIME REFERENCE MODEL`: implemented 3D review geometry on the common rig and selectable in Visual Review Lab.
+- `FINAL ART APPROVED`: requires rendered human/Visual QA approval against the corresponding sheet.
+- `GAME EQUIPMENT`: gameplay behavior and combat ownership remain with the game-specific equipment contract even when a visual prop is present on the review model.
+
+A runtime reference model does not silently change gameplay stats, collision, inventory, combat rules, or the audited source VRM license contract. The exact concept-sheet illustration remains a target for visual refinement rather than a claim that the code-authored mesh is pixel-identical to the 2D art.
 
 ## Source handling
 

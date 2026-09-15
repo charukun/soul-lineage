@@ -1,11 +1,13 @@
 {
   "name": "@soul/rinne",
-  "displayName": "\u8f2a\u5efb\u8ee2\u7126",
+  "displayName": "100年人生 — 輪廻転焦",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node ../../scripts/prepare-basis-assets.mjs rinne",
     "dev": "vite --host 0.0.0.0 --port 5173 --strictPort",
+    "prebuild": "node ../../scripts/prepare-basis-assets.mjs rinne",
     "build": "vite build && node ../../scripts/verify-build.mjs ../../dist/rinne rinne",
     "preview": "vite preview --host 0.0.0.0 --port 5273 --strictPort"
   },
