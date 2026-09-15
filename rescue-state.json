@@ -3171,6 +3171,22 @@
       "workerId": "work/866e55ef0f5e/20260915T1018Z-pr229",
       "type": "RETURNED_TO_INTEGRATION",
       "action": "Workの仕様確認・fast検証・元PRへのpushを確認。通常Integrationへ返却"
+    },
+    {
+      "id": "work-cycle-866e55ef0f5e-20260915T1018Z:WORK_REPAIR_CYCLE_SUMMARY:229:1232",
+      "at": "2026-09-15T10:47:43.288Z",
+      "pr": 229,
+      "workerId": "work/866e55ef0f5e/20260915T1018Z-pr229",
+      "type": "WORK_REPAIR_CYCLE_SUMMARY",
+      "action": "eligible_before=5; claimable_before=3; claimed=1; returned=1; human_required=0; eligible_after=4. PR #229 returned and then merged as develop 082d0c6318a8db69fa8cca4fe6b2940c80ec2f3c. Remaining: #157 exact-head mismatch; #197 actual merged/stale state; #283/#260 wait for #229 Integration ownership reconciliation before independent scope claim."
+    },
+    {
+      "id": "work-cycle-866e55ef0f5e-20260915T1018Z:WORK_REPAIR_NOTIFICATION:229:1232",
+      "at": "2026-09-15T10:47:43.288Z",
+      "pr": 229,
+      "workerId": "work/866e55ef0f5e/20260915T1018Z-pr229",
+      "type": "WORK_REPAIR_NOTIFICATION",
+      "action": "success Gmail self notification sent; dedupe pr-229:9b8a0d273739cf568f7e7c54a8649492d0657d2e:work-repair-success; message 1a0a4ad7f2362071"
     }
   ],
   "config": {
@@ -14778,7 +14794,13 @@
           }
         },
         "pushPreparedAt": "2026-09-15T10:43:03.134Z",
-        "finishedAt": "2026-09-15T10:44:43.775Z"
+        "finishedAt": "2026-09-15T10:44:43.775Z",
+        "notification": {
+          "dedupeKey": "pr-229:9b8a0d273739cf568f7e7c54a8649492d0657d2e:work-repair-success",
+          "kind": "success",
+          "messageId": "1a0a4ad7f2362071",
+          "sentAt": "2026-09-15T10:47:43.288Z"
+        }
       },
       "pushedSha": "9b8a0d273739cf568f7e7c54a8649492d0657d2e",
       "validation": {
@@ -19444,9 +19466,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1232,
+  "revision": 1233,
   "schema": 1,
-  "updatedAt": "2026-09-15T10:44:44.824Z",
+  "updatedAt": "2026-09-15T10:47:43.288Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
