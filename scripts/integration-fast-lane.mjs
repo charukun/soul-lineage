@@ -18,6 +18,7 @@ import { comparison as completeComparison } from './integration-rescue-store.mjs
 
 export const maxFastLaneMerges = 24;
 const trustedReviewReason = 'automation/deployment change requires approval of this head by a maintainer';
+const overlapReviewReason = 'overlapping changes since PR base require Integration review';
 
 function labels(pr) {
   return (pr.labels || []).map(item => item.name);
@@ -208,6 +209,24 @@ export async function integrateFastLane(c, repository, options = {}) {
       if (reason === trustedReviewReason) {
         reviews = await ensureTrustedReview(c, pr);
         reason = eligibility(criteria());
+      }
+      if (reason === overlapReviewReason) {
+        const fresh = await c.api('GET', `${c.root}/pulls/${pr.number}`);
+        if (fresh.head.sha !== pr.head.sha) throw new Error('PR head changed before overlap repair handoff');
+        if ((await branch()).commit.sha !== expected) throw new Error('develop moved before overlap repair handoff');
+        const deep = await signalDeepRepair(c, {
+          pr: fresh, repository, develop: expected, repairKind: 'semantic',
+          reason: 'DEVELOP_OVERLAP: review both current scopes and reconcile the source branch before returning to Fast Lane',
+          dependenciesMerged: await dependencyState(c, fresh),
+          unresolved: await unresolvedThreads(c, fresh),
+          reviews: await c.pages(`/pulls/${fresh.number}/reviews`, undefined, { maxPages: 10 }),
+        });
+        if (deep.signaled) {
+          report.deepRepair.push({ pr: fresh.number, head: fresh.head.sha, issue: deep.issue, reason: 'develop scope overlap' });
+          report.held.push({ pr: fresh.number, head: fresh.head.sha, reason: `deep repair requested in issue #${deep.issue}` });
+          await queueStatus(c, fresh, 'pending', `Deep Repair #${deep.issue}: develop scope overlap`, deep.url || targetUrl);
+          continue;
+        }
       }
       if (reason) {
         report.held.push({ pr: pr.number, head: pr.head.sha, reason });
