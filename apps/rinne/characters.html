@@ -11,7 +11,6 @@
 <section class="stage-shell" aria-label="モデル表示">
 <header class="stage-head"><a href="./" class="back-link" aria-label="ゲームへ戻る">‹</a><h1>キャラクター工房 <small>SHINO</small></h1><a id="advanced-link" href="./characters-advanced.html">詳細調整</a></header>
 <div class="canvas-wrap"><canvas id="stage" aria-label="モデル。ドラッグで回転、ピンチで拡大"></canvas>
-<a class="slash-review-link" href="./simulator/motion-review.html">▶ 斬撃モーションを確認</a>
 <div class="subject-row"><button id="hero-previous" type="button" aria-label="前の個体">‹</button><span id="subject">モデル準備中</span><button id="hero-next" type="button" aria-label="次の個体">›</button></div>
 <div id="preview-label" hidden>元のパーツを表示中</div>
 <button id="frame-model" type="button" title="モデルを画面に収める">全身に戻す</button>
@@ -20,7 +19,7 @@
 <div class="stage-status"><span id="status" role="status" aria-live="polite">モデルを読み込んでいます。</span><button id="retry" type="button" disabled>再試行</button><progress id="progress" max="1" value="0" aria-label="モデル読込状況"></progress></div>
 </section>
 <section class="editor-dock" aria-label="キャラクター編集">
-<nav class="mode-tabs" role="tablist" aria-label="編集・確認"><button type="button" role="tab" id="tab-parts" data-tab="parts" aria-controls="panel-parts" aria-selected="true">見た目</button><button type="button" role="tab" id="tab-colors" data-tab="colors" aria-controls="panel-colors" aria-selected="false" tabindex="-1">色・年齢</button><button type="button" role="tab" id="tab-motion" data-tab="motion" aria-controls="panel-motion" aria-selected="false" tabindex="-1">動き</button><button type="button" role="tab" id="tab-qa" data-tab="qa" aria-controls="panel-qa" aria-selected="false" tabindex="-1">Motion QA</button><button type="button" role="tab" id="tab-compare" data-tab="compare" aria-controls="panel-compare" aria-selected="false" tabindex="-1">比較</button></nav>
+<nav class="mode-tabs" role="tablist" aria-label="編集・確認"><button type="button" role="tab" id="tab-parts" data-tab="parts" aria-controls="panel-parts" aria-selected="true">見た目</button><button type="button" role="tab" id="tab-colors" data-tab="colors" aria-controls="panel-colors" aria-selected="false" tabindex="-1">色・年齢</button><button type="button" role="tab" id="tab-motion" data-tab="motion" aria-controls="panel-motion" aria-selected="false" tabindex="-1">動き</button><button type="button" role="tab" id="tab-qa" data-tab="qa" aria-controls="panel-qa" aria-selected="false" tabindex="-1">演舞レビュー</button><button type="button" role="tab" id="tab-compare" data-tab="compare" aria-controls="panel-compare" aria-selected="false" tabindex="-1">比較</button></nav>
 <div class="review-controls" tabindex="0" aria-label="編集項目。ここだけスクロールします">
 <fieldset id="editor-fields" disabled><legend class="sr-only">選択した個体の編集</legend>
 <section id="panel-parts" class="studio-panel" role="tabpanel" aria-labelledby="tab-parts">
@@ -40,15 +39,15 @@
 <h3>揺れ・全周</h3><div class="choice-row"><button id="spring-toggle" type="button" aria-pressed="true">揺れ ON</button><button id="rotate-toggle" type="button" aria-pressed="false">自動回転 OFF</button></div><p class="hint">現在の動きは骨格確認用。衣装パーツ自体の品質は変わりません。</p>
 </section>
 <section id="panel-qa" class="studio-panel" role="tabpanel" aria-labelledby="tab-qa" hidden>
-<div id="motion-qa"><h2>Motion QA</h2>
-<div class="choice-row"><button id="qa-start" type="button" class="primary">▶ 30秒レビュー</button><button id="qa-play" type="button">再開</button><button id="qa-stop" type="button">終了</button></div>
-<p id="qa-status" role="status">同じフレーム・カメラで動きと個体差を確認します。</p>
+<div id="motion-qa"><h2>演舞レビュー</h2>
+<div class="choice-row"><button id="qa-start" type="button" class="primary">▶ 30秒演舞</button><button id="qa-play" type="button">再開</button><button id="qa-stop" type="button">終了</button></div>
+<p id="qa-status" role="status">30秒演舞と技単体を、同じフレーム・カメラで確認します。</p>
 <output id="qa-frame">Idle · 0秒</output>
-<input id="qa-time" type="range" min="0" max="30" step="0.016666666667" value="0" aria-label="Motion QA時刻">
+<input id="qa-time" type="range" min="0" max="30" step="0.016666666667" value="0" aria-label="演舞レビュー時刻">
 <div class="choice-row"><button id="qa-prev" type="button">−1コマ</button><button id="qa-next" type="button">＋1コマ</button><button id="qa-before" type="button" aria-pressed="false">補正前を見る</button></div>
 <label>確認する動き<select id="qa-motion"></select></label>
 <div class="choice-row qa-playback"><label>再生速度<select id="qa-speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select></label><label><input id="qa-loop" type="checkbox">この動きを反復</label></div>
-<div id="qa-cameras" class="qa-cameras" aria-label="Motion QAカメラ"></div>
+<div id="qa-cameras" class="qa-cameras" aria-label="演舞レビューカメラ"></div>
 <label><input id="qa-tour" type="checkbox">8方向を自動巡回</label>
 <div class="choice-row"><button data-qa-count="1" type="button">1体</button><button data-qa-count="6" type="button">6体</button><button data-qa-count="12" type="button">12体</button><button data-qa-count="30" type="button">30体・負荷確認</button></div>
 <details><summary>数値診断・見た目の指摘</summary>
@@ -63,7 +62,7 @@
 </details>
 <output id="qa-record-count">記録 0件 · Visual Approval: pending</output>
 <div class="choice-row"><button id="qa-export" type="button">QA JSONを保存</button><label>QA JSONを読む<input id="qa-import" type="file" accept=".json,application/json"></label></div>
-<p class="hint">技・VFXの細かな演出確認は<a href="./simulator/motion-review.html">斬撃レビュー</a>へ。</p>
+<p class="hint">技単体も「確認する動き」から選択し、30秒演舞と同じタイムライン・カメラで確認します。</p>
 </div></section>
 <section id="panel-compare" class="studio-panel" role="tabpanel" aria-labelledby="tab-compare" hidden>
 <h2>量産キャラクターの品質確認</h2><div class="choice-row compare-counts"><button data-count="1" type="button">1体</button><button data-count="6" type="button">6体</button><button data-count="12" type="button">12体</button><button data-count="30" type="button">30体</button></div>
@@ -108,4 +107,5 @@
 </div>
 <script type="module" src="./src/character-review-main.js"></script>
 <script type="module" src="./src/character-motion-debug.js"></script>
+<script type="module" src="./src/motion-review-entrypoint.js"></script>
 </body></html>
