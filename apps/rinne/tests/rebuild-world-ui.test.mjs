@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {createMuraModels} from '@soul/rendering/mura';
 
 const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
 const css=await readFile(new URL('../src/rebuild/app.css',import.meta.url),'utf8');
 const pop=await readFile(new URL('../src/rebuild/pop.css',import.meta.url),'utf8');
 const runtime=await readFile(new URL('../src/rebuild/runtime.js',import.meta.url),'utf8');
 const renderer=await readFile(new URL('../src/rebuild/renderer.js',import.meta.url),'utf8');
-const models=await readFile(new URL('../../../packages/rendering/src/mura/models.js',import.meta.url),'utf8');
+const models=createMuraModels.toString();
 
 test('game shell keeps the world HUD layers but the visible skin is dimensional and pop',()=>{
   assert.match(html,/class="world-vignette"/);assert.match(html,/id="chapter-mark"/);assert.match(html,/class="life-chip ornate"/);assert.match(html,/class="objective-card ornate"/);
