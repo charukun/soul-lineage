@@ -8,6 +8,7 @@ export * from './character-sync.js';
 export * from './presentation-resolver.js';
 export * from './visual-identity.js';
 export * from './reference-models.js';
+export * from './reference-archetypes.js';
 export * from './production-pipeline.js';
 export * from './runtime-asset-audit.js';
 export * from './art-direction.js';
