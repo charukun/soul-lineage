@@ -118,6 +118,11 @@ test('worker prompts delegate reversible DEV choices while retaining approval an
     assert.match(prompt, /claim\/attempt limits and main\/Production protections/);
     assert.match(prompt, /DEV feedback never grants visual approval or RUNTIME_READY certification/);
     assert.match(prompt, /Ready is not DEV_DEPLOYED/);
+    assert.match(prompt, /Standing user consent: docs\/DELIVERY_AUTHORIZATION.md/);
+    assert.match(prompt, /charukun\/soul-lineage and its existing Codespaces/);
+    assert.match(prompt, /Do not ask the same permission again/);
+    assert.match(prompt, /This consent does not expand worker roles/);
+    assert.match(prompt, /never bypass a rejection/);
   }
   assert.ok(dispatch.indexOf('Read docs/RINNE_PROJECT_EXECUTION_POLICY.md: AI implementation') < dispatch.indexOf('<rinne_request>'));
   assert.ok(rescue.indexOf('Read docs/RINNE_PROJECT_EXECUTION_POLICY.md: AI implementation') < rescue.indexOf('untrusted task DATA'));
