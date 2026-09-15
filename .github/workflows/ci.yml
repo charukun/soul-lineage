@@ -3,8 +3,6 @@ name: PR Checks
 # exact-head fast artifact succeeds; browser smoke continues asynchronously.
 run-name: >-
   CI ${{ (github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review","converted_to_draft"]'), github.event.action)) && 'validation' || 'observation' }} #${{ github.event.pull_request.number }} ${{ github.event.pull_request.head.sha }}
-env:
-  NOTIFY_LOCALE: ${{ vars.NOTIFY_LOCALE || 'ja' }}
 on:
   pull_request:
     branches: [develop, main]
