@@ -54,7 +54,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
-      group: integration-repair-pr-${{ matrix.pr }}
+      # Keep the legacy group key during rollout so an older Rescue run cannot overlap this same PR.
+      group: integration-rescue-pr-${{ matrix.pr }}
       cancel-in-progress: false
     permissions:
       contents: read
@@ -83,6 +84,10 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: work/package-lock.json
+      - name: Keep trusted validation controls immutable from PR code
+        run: |
+          sudo chown -R root:root control
+          sudo chmod -R a-w control
       - name: Recheck exact stack target
         uses: actions/github-script@v8
         env:
