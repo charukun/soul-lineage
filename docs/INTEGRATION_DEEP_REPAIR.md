@@ -84,3 +84,7 @@ Ready PRのcurrent exact-head `Validate and build` がfailure/timed_outで完了
 最新validation runのjobだけを調べ、成功したobservation/Draft run、旧head、実行中・skipped・cancelledの検証、旧rerun attemptは失敗の根拠にしない。`repairKind=ci-failure` と `ciFailure` にhead/runId/runAttempt/jobId/jobName/conclusion/runUrl/jobUrlを記録する。Workはその失敗jobのstepsと必要なlog範囲から調査する。
 
 handoff直前にcurrent PR/head/developとhold/review/thread/dependencyを再取得する。同じheadのclosed・上限到達・human-required Issueも再生成せず、claim/attempt制限を維持する。修復中も独立PRのIntegrationは継続する。
+
+## Issue件数に依存しないhandoff
+
+同じexact headの修復Issue確認にRepository全体のopen/closed PR・Issue一覧走査を使わない。exact-head検索と既存statusのIssue参照から候補を取得し、Issue本体を再取得してsourceKey・state・attemptを確認する。closed/上限到達/human-requiredは維持する。検索結果が不完全なら修復Issueを新規作成せず、不完全な検索を「既存なし」と扱わない。
