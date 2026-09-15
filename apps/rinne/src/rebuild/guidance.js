@@ -19,6 +19,11 @@ function nextDepartureAge(state){
 }
 
 function yearsUntil(age,targetAge){return Math.max(0,targetAge-age);}
+function villageStage(state,age){
+  if(age<7)return '人生 2/6 · 村で育つ';
+  if(age<15)return '人生 3/6 · 旅支度';
+  return Number(state.returns||0)>0?'人生 5/6 · 凱旋':'人生 3/6 · 旅支度';
+}
 
 export function guidanceFor({state,stations=[],front=null}){
   const age=Number(state.ageYears)||0;
@@ -53,7 +58,7 @@ export function guidanceFor({state,stations=[],front=null}){
   if(state.activity){
     const station=stationById(stations,state.activity.stationId);
     const remain=Math.max(0,8-Number(state.activity.elapsed||0));
-    return {stage:'人生 2/6 · 村で育つ',objective:`${state.activity.label}を続ける`,detail:`あと${Math.ceil(remain)}秒 · 動くと中断します。`,target:target(station,state.activity.label),tone:'activity'};
+    return {stage:villageStage(state,age),objective:`${state.activity.label}を続ける`,detail:`あと${Math.ceil(remain)}秒 · 動くと中断します。`,target:target(station,state.activity.label),tone:'activity'};
   }
   const practice=practiceStation(state,stations);
   if(age<7){
