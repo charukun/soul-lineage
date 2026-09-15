@@ -20,7 +20,9 @@ PULSE の「開発ツール」には、独立した公開先だけでなくゲ�
 
 ## 更新
 
-Cloudflare Cron Trigger が5分ごとに Durable Object のスナップショットを更新します。GitHub Actions の Integration / DEV deploy 完了時にも、Worker 内だけが知る refresh token を使って再同期します。ブラウザへ GitHub/Cloudflare の認証情報は渡しません。
+PULSEはイベント同期を優先します。IntegrationやPULSE公開時はGitHub Actionsの一時`GITHUB_TOKEN`をserver-to-server refreshへ渡し、ブラウザやWorkerへ永続化しません。Cloudflare Cron Triggerは30分ごとのbounded reconciliationとして残し、閲覧や通常イベントに追従する主経路にはしません。
+
+GitHubのrate limit / retry-afterを受けた場合は、Durable Object alarmへGitHubが示した次回許可時刻を登録し、次の30分Cronまで待たずに1回だけ再同期します。成功後はretry alarmを解除します。匿名定期同期を5分周期へ戻してprimary rate limitへ近づける運用は行いません。
 
 UI は1分ごとに保存済みスナップショットを再取得します。これは GitHub API の再同期ではないため、閲覧数で GitHub API 呼び出しが増えません。
 

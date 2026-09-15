@@ -91,6 +91,18 @@ Fast Laneのbot merge後は`GITHUB_TOKEN`によるpush連鎖を期待せず、�
 
 workflow_dispatchのIntegration/repair/手動公開runはcoalescer対象外。自動公開は専用run titleで識別する。publish step自身も公開前にcurrent developを確認し、古いsnapshotを昇格させない。公開要求の記録がない既存の未公開SHAは次回Fast Laneで補完し、要求失敗は専用statusとrun失敗へ記録する。
 
+## API予算とwakeの集約
+
+GitHub APIは安全確認のためのcurrent-state再取得へ使い、同じ状態に対する重複wake・重複一覧取得には使わない。Fast Laneのmerge直前再確認やexact-head gateは削減対象にしない。
+
+- Ready時はhandoff記録と通常Fast Lane起動を正規経路とし、同じReadyイベントから互換Rescue scanを重ねてdispatchしない。
+- browser結果はrepair recorderへ渡すが、Fast Laneがbrowser非blockingになった後の互換Integration wakeは追加しない。
+- workflow run一覧はstatusごとに同じendpointを複数回読むのではなく、boundedな1回の一覧を取得してローカルでactive stateを分類する。
+- DEV Publisherのcoalescerも同じ一覧再利用を行い、古いpush由来runだけを取消す既存安全条件を維持する。
+- 定期watchdogは通常処理の起点にしない。イベント取りこぼしの復旧時計として低頻度に限定し、依存列はmerge後の即時bounded wakeで消化する。
+- PULSEのGitHub同期はブラウザ閲覧数から独立させ、Actionsから渡せる一時`GITHUB_TOKEN`をイベント同期で優先する。匿名定期同期だけを高頻度化してprimary rate limitへ近づけない。
+- PULSEの古さは固定短周期Cronの不在だけで異常扱いせず、イベント同期失敗・rate-limit/backoff・期待される更新の欠落を区別する。公開データの正本性を推測で上書きしない。
+
 ## 廃止した通常経路
 
 以下は通常merge critical pathに置かない。
@@ -130,5 +142,9 @@ workflow_dispatchのIntegration/repair/手動公開runはcoalescer対象外。�
 - Fast Laneがmergeしたら次の`rescue_mode=scan`を即時wakeし、mergeが0件になるまで新たにunblockされた依存列をboundedに再評価する
 - `AWAITING_PUSH` や1時間watchdogが通常Repairの待ち時間にならない
 - stale DEV push publicationはlatest developへcoalesceする
+- Ready/browser互換wakeは通常Fast Laneへ重複dispatchしない
+- active publisher/coalescerのworkflow run一覧はstatus別の重複取得をしない
+- 定期watchdogは低頻度の復旧時計に限定する
+- PULSEは匿名GitHub APIの高頻度全量同期に依存せず、イベント同期と失敗状態を区別する
 - current head/review/dependency/hold/mergeabilityの再読を省略しない
 - Actions botがdependency reconciliationでReady PR headを更新しても、人間の空commitやApprove-and-runなしでcurrent exact-head fast validationが開始される
