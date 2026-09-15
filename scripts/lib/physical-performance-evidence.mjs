@@ -5,6 +5,7 @@ export const PHYSICAL_PERFORMANCE_EVIDENCE_VERSION = 1;
 export const PHYSICAL_EVIDENCE_KIND = 'physical-device';
 export const PHYSICAL_CAPTURE_ORIGIN = 'physical-device';
 const SUPPORTED_APPS = new Set(['rinne', 'village', 'demon']);
+const VALID_SOURCE_CLASSIFICATIONS = new Set(['physical-device', 'unclassified-runtime-capture']);
 const targetPreset = performancePreset('pixel-fold-class');
 
 const finitePositive = value => typeof value === 'number' && Number.isFinite(value) && value > 0;
@@ -68,6 +69,29 @@ function snapshotFromCapture(capture) {
   return { performance, scene, samples };
 }
 
+function targetForSnapshot(snapshot) {
+  const verdict = benchmarkVerdict({ performance: snapshot.performance }, targetPreset);
+  const sampleTargetMet = snapshot.samples >= targetPreset.minSamples;
+  return Object.freeze({
+    class: 'mobile-30fps',
+    fps: targetPreset.targetFps,
+    frameMs: targetPreset.targetFrameMs,
+    minimumSamples: targetPreset.minSamples,
+    sampleTargetMet,
+    frameP95Ms: verdict.frameP95Ms,
+    gpuP95Ms: verdict.gpuP95Ms,
+    meetsFrameTarget: verdict.meetsFrameTarget,
+    gate: !sampleTargetMet ? 'review' : verdict.meetsFrameTarget === true ? 'pass' : 'fail',
+  });
+}
+
+function validateTargetIntegrity(target, expected) {
+  if (!plain(target)) throw new Error('Physical performance evidence target verdict is missing');
+  for (const field of ['class','fps','frameMs','minimumSamples','sampleTargetMet','frameP95Ms','gpuP95Ms','meetsFrameTarget','gate']) {
+    if (target[field] !== expected[field]) throw new Error(`Physical performance evidence target verdict was modified: ${field}`);
+  }
+}
+
 export function buildPhysicalPerformanceEvidence(capture, metadata = {}) {
   const sourceClassification = ensureCaptureNotSynthetic(capture);
   const attestation = requirePhysicalAttestation(capture, metadata);
@@ -77,6 +101,7 @@ export function buildPhysicalPerformanceEvidence(capture, metadata = {}) {
   const buildRevision = requiredString(metadata.buildRevision ?? capture.build?.revision ?? capture.buildRevision, 'build revision');
   const deviceModel = requiredString(metadata.deviceModel ?? capture.device?.model, 'device model');
   const deviceClass = requiredString(metadata.deviceClass ?? capture.device?.deviceClass, 'device class');
+  if (deviceClass.toLowerCase().includes('synthetic')) throw new Error('Physical performance evidence device class cannot be synthetic');
   const os = requiredString(metadata.os ?? capture.device?.os, 'device OS');
   const runtime = requiredString(metadata.runtime ?? capture.device?.runtime, 'browser/runtime');
   const capturedAt = isoTimestamp(metadata.capturedAt ?? capture.capturedAt);
@@ -88,9 +113,7 @@ export function buildPhysicalPerformanceEvidence(capture, metadata = {}) {
     id: requiredString(snapshot.scene.id, 'scene.id'),
     signature: requiredString(snapshot.scene.signature, 'scene.signature'),
   };
-  const target = benchmarkVerdict({ performance: snapshot.performance }, targetPreset);
-  const sampleTargetMet = snapshot.samples >= targetPreset.minSamples;
-  const performanceGate = !sampleTargetMet ? 'review' : target.meetsFrameTarget === true ? 'pass' : 'fail';
+  const target = targetForSnapshot(snapshot);
   return Object.freeze({
     schema: 'soul-physical-performance-evidence',
     version: PHYSICAL_PERFORMANCE_EVIDENCE_VERSION,
@@ -104,17 +127,7 @@ export function buildPhysicalPerformanceEvidence(capture, metadata = {}) {
     capturedAt,
     scene,
     performance: copy(snapshot.performance),
-    target: {
-      class: 'mobile-30fps',
-      fps: targetPreset.targetFps,
-      frameMs: targetPreset.targetFrameMs,
-      minimumSamples: targetPreset.minSamples,
-      sampleTargetMet,
-      frameP95Ms: target.frameP95Ms,
-      gpuP95Ms: target.gpuP95Ms,
-      meetsFrameTarget: target.meetsFrameTarget,
-      gate: performanceGate,
-    },
+    target,
     provenance: {
       explicitPhysicalOrigin: true,
       captureAttestation: 'caller-supplied',
@@ -127,18 +140,23 @@ export function buildPhysicalPerformanceEvidence(capture, metadata = {}) {
 export function validatePhysicalEvidenceRecord(record) {
   if (!plain(record) || record.schema !== 'soul-physical-performance-evidence' || record.version !== PHYSICAL_PERFORMANCE_EVIDENCE_VERSION) throw new Error('Unsupported physical performance evidence record');
   if (record.evidenceKind !== PHYSICAL_EVIDENCE_KIND || record.captureOrigin !== PHYSICAL_CAPTURE_ORIGIN) throw new Error('Physical performance evidence kind/origin is invalid');
-  if (record.sourceClassification === 'synthetic-browser') throw new Error('Synthetic/browser capture cannot be physical evidence');
-  snapshotFromCapture(record);
+  if (!VALID_SOURCE_CLASSIFICATIONS.has(record.sourceClassification)) throw new Error('Physical performance evidence source classification is invalid');
+  const snapshot = snapshotFromCapture(record);
   const app = requiredString(record.app, 'app');
   if (!SUPPORTED_APPS.has(app)) throw new Error(`Unsupported app for physical performance evidence: ${app}`);
   requiredString(record.build?.revision, 'build revision');
   requiredString(record.device?.model, 'device model');
-  requiredString(record.device?.deviceClass, 'device class');
+  const deviceClass = requiredString(record.device?.deviceClass, 'device class');
+  if (deviceClass.toLowerCase().includes('synthetic')) throw new Error('Physical performance evidence device class cannot be synthetic');
   requiredString(record.device?.os, 'device OS');
   requiredString(record.device?.runtime, 'browser/runtime');
   positiveInteger(record.viewport?.width, 'viewport width');
   positiveInteger(record.viewport?.height, 'viewport height');
   isoTimestamp(record.capturedAt);
+  requiredString(record.scene?.id, 'scene.id');
+  requiredString(record.scene?.signature, 'scene.signature');
+  validateTargetIntegrity(record.target, targetForSnapshot(snapshot));
+  if (record.provenance?.explicitPhysicalOrigin !== true || record.provenance?.validatorDoesNotProveDevicePossession !== true || record.provenance?.syntheticPromotionRejected !== true) throw new Error('Physical performance evidence provenance contract is invalid');
   return record;
 }
 
