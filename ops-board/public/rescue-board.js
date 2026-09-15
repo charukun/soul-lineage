@@ -127,32 +127,33 @@ export function renderRescue(view, now = Date.now()) {
   if (!root) return;
   root.replaceChildren();
   if (!view?.available) {
-    root.append(node('p', 'rs-empty', 'RESCUE · 状態未取得'), node('p', 'rs-note', view?.observationError || '最初のCoordinator実行と状態取得を待っています。稼働数はまだ未確認です。')); return;
+    root.append(node('p', 'rs-empty', 'REPAIR · 状態未取得'), node('p', 'rs-note', view?.observationError || '最初のCoordinator実行と状態取得を待っています。稼働数はまだ未確認です。')); return;
   }
   const c = view.counts, staleObservation = now - Date.parse(view.generatedAt) > 12 * 60000;
   const staleWorkers = view.workers.filter(r => r.state === 'STALE' || now - Date.parse(r.heartbeatAt || r.claimedAt) > view.staleMs).length;
   const recoverableManual = view.recoverableManual || view.manual.filter(aiRecoverable);
   const humanManual = view.humanManual || view.manual.filter(r => r.manualKind === 'human-required');
   const manualHold = view.manualHold || view.manual.filter(r => !recoverableManual.includes(r) && !humanManual.includes(r));
-  const attention = humanManual.length + manualHold.length + (c.retry || 0) + staleWorkers;
-  const waiting = (c.queued || 0) + (c.blocked || 0) + recoverableManual.length;
+  const repairWaiting = (c.queued || 0) + (c.blocked || 0) + recoverableManual.length;
+  const autoHold = manualHold.length + (c.retry || 0) + staleWorkers;
   const configurationRequired = view.status === 'CONFIGURATION_REQUIRED';
-  const state = staleObservation || view.observationError ? 'delayed' : configurationRequired || attention ? 'attention' : c.active ? 'working' : waiting ? 'waiting' : 'healthy';
-  const summaryStateLabel = configurationRequired && state === 'attention' ? '設定確認が必要' : { delayed: '状態取得に遅延', attention: '確認が必要', working: 'Rescue稼働中', waiting: 'Rescue待機中', healthy: 'ALL CLEAR' }[state];
+  const needsHuman = configurationRequired || humanManual.length > 0;
+  const state = staleObservation || view.observationError ? 'delayed' : needsHuman ? 'attention' : c.active ? 'working' : repairWaiting || autoHold ? 'waiting' : 'healthy';
+  const summaryStateLabel = configurationRequired ? '設定確認が必要' : humanManual.length ? '人の判断が必要' : staleObservation || view.observationError ? '状態取得に遅延' : c.active ? '修復処理中' : repairWaiting ? '自動修復待ち' : autoHold ? '自動修復に保留あり' : 'ALL CLEAR';
   const summary = node('section', `rs-summary state-${state}`);
   const summaryHead = node('div', 'rs-summary-head');
   const headline = node('div', 'rs-summary-status');
   headline.append(node('span', 'rs-summary-dot'), node('div', 'rs-summary-status-copy'));
-  headline.lastElementChild.append(node('span', 'rs-summary-eyebrow', 'INTEGRATION RESCUE'), node('strong', '', summaryStateLabel));
+  headline.lastElementChild.append(node('span', 'rs-summary-eyebrow', 'REPAIR LANE'), node('strong', '', summaryStateLabel));
   const updated = node('div', 'rs-summary-updated');
   updated.append(node('span', '', `更新 ${age(view.generatedAt, now)} ago`), node('span', '', 'GitHub state'));
   summaryHead.append(headline, updated);
   const metrics = node('div', 'rs-summary-grid');
   metrics.append(
-    summaryMetric('ACTIVE', `${c.active} / ${c.max}`, c.active ? 'workers running' : 'worker idle', c.active ? 'active' : ''),
-    summaryMetric('WAITING', waiting, `${c.queued || 0} queue · ${c.blocked || 0} blocked · ${recoverableManual.length} AI修復`, waiting ? 'waiting' : ''),
-    summaryMetric('ATTENTION', attention, `${humanManual.length} 人判断 · ${manualHold.length} 保留 · ${c.retry || 0} retry · ${staleWorkers} stale`, attention ? 'attention' : ''),
-    summaryMetric('RETURNED', c.returned || 0, `${c.validating || 0} validating · ${c.awaitingPush || 0} push待ち`, c.returned ? 'returned' : '')
+    summaryMetric('ACTIVE', `${c.active} / ${c.max}`, c.active ? 'repair workers running' : 'repair worker idle', c.active ? 'active' : ''),
+    summaryMetric('REPAIR WAITING', repairWaiting, `${c.queued || 0} queue · ${c.blocked || 0} dependency · ${recoverableManual.length} AI修復`, repairWaiting ? 'waiting' : ''),
+    summaryMetric('AUTO HOLD', autoHold, `${manualHold.length} policy hold · ${c.retry || 0} retry · ${staleWorkers} stale`, autoHold ? 'waiting' : ''),
+    summaryMetric('HUMAN', humanManual.length, humanManual.length ? 'あなたの判断が必要' : 'あなたの操作は不要', humanManual.length ? 'attention' : '')
   );
   summary.append(summaryHead, metrics);
   if (view.workers.length) {
@@ -165,10 +166,14 @@ export function renderRescue(view, now = Date.now()) {
     }
     if (view.workers.length > 3) glance.append(node('span', 'rs-summary-more', `+${view.workers.length - 3}`));
     summary.append(glance);
+  } else if (humanManual.length) {
+    summary.append(node('p', 'rs-summary-empty', `人の判断が必要なPRが ${humanManual.length}件あります。`));
   } else if (recoverableManual.length) {
-    summary.append(node('p', 'rs-summary-empty', `AI修復待ち ${recoverableManual.length}件 · 次のWork Repairで処理します。`));
+    summary.append(node('p', 'rs-summary-empty', `AI修復待ち ${recoverableManual.length}件 · Fast Laneとは別に後追い処理します。`));
+  } else if (autoHold) {
+    summary.append(node('p', 'rs-summary-empty', `自動修復の保留が ${autoHold}件あります。通常のFast Lane mergeは止まりません。`));
   } else {
-    summary.append(node('p', 'rs-summary-empty', view.status === 'ALL_CLEAR' ? '修復待ちはありません。Integrationは平常です。' : '実行中のWorkerはありません。'));
+    summary.append(node('p', 'rs-summary-empty', view.status === 'ALL_CLEAR' ? 'Repair待ちはありません。Fast Laneは平常です。' : '実行中のRepair Workerはありません。'));
   }
   if (configurationRequired && view.coordinator?.reason) summary.append(node('p', 'rs-summary-warning', view.coordinator.reason));
   if (staleObservation || view.observationError) summary.append(node('p', 'rs-summary-warning', '最新状態を取得できていません。前回の記録を表示しています。'));
@@ -186,19 +191,19 @@ export function renderRescue(view, now = Date.now()) {
     const tone = Number(value) > 0 && ['HUMAN','MANUAL HOLD','FAILED / RETRY','STALE'].includes(name) ? ['HUMAN','MANUAL HOLD'].includes(name) ? 'red' : 'yellow' : '';
     const box = node('div', `rs-metric ${cls}`); box.append(node('span', '', name), node('strong', tone, value)); fullMetrics.append(box);
   }
-  detail.append(detailDisclosure('metrics', '全ステータス', fullMetrics));
-  if (view.workers.length) detail.append(detailDisclosure('workers', `Worker Pool (${view.workers.length})`, group('', view.workers, now, view.staleMs, 'rs-worker-pool')));
+  detail.append(detailDisclosure('metrics', '全Repairステータス', fullMetrics));
+  if (view.workers.length) detail.append(detailDisclosure('workers', `Repair Worker Pool (${view.workers.length})`, group('', view.workers, now, view.staleMs, 'rs-worker-pool')));
   if (recoverableManual.length) detail.append(detailDisclosure('ai-repair', `AI修復待ち (${recoverableManual.length})`, group('', recoverableManual, now, view.staleMs, 'rs-queue')));
   if (humanManual.length) detail.append(detailDisclosure('human', `人の判断が必要 (${humanManual.length})`, group('', humanManual, now, view.staleMs, 'rs-manual-list')));
-  if (manualHold.length) detail.append(detailDisclosure('manual-hold', `手動保留 (${manualHold.length})`, group('', manualHold, now, view.staleMs, 'rs-manual-list')));
-  if (view.waves.length) detail.append(detailDisclosure('waves', `Rescue Waves (${view.waves.length})`, waveList(view)));
-  if (view.queue.length) detail.append(detailDisclosure('queue', `Queue / 順番待ち (${view.queue.length})`, group('', view.queue, now, view.staleMs, 'rs-queue')));
-  if (view.recent.length) detail.append(detailDisclosure('recent', `修復・Integration / DEV観測 (${view.recent.length})`, group('', view.recent, now, view.staleMs, 'rs-recent')));
-  detail.append(detailDisclosure('throughput', 'Last 24h / throughput', throughput(view)));
-  detail.append(detailDisclosure('activity', `Recent activity (${Math.min(view.activity.length, 12)})`, activityFeed(view)));
+  if (manualHold.length) detail.append(detailDisclosure('manual-hold', `自動保留 (${manualHold.length})`, group('', manualHold, now, view.staleMs, 'rs-manual-list')));
+  if (view.waves.length) detail.append(detailDisclosure('waves', `過去のRescue Waves (${view.waves.length})`, waveList(view)));
+  if (view.queue.length) detail.append(detailDisclosure('queue', `Repair Queue / 依存待ち (${view.queue.length})`, group('', view.queue, now, view.staleMs, 'rs-queue')));
+  if (view.recent.length) detail.append(detailDisclosure('recent', `Repair・Integration / DEV観測 (${view.recent.length})`, group('', view.recent, now, view.staleMs, 'rs-recent')));
+  detail.append(detailDisclosure('throughput', 'Last 24h / repair throughput', throughput(view)));
+  detail.append(detailDisclosure('activity', `Recent repair activity (${Math.min(view.activity.length, 12)})`, activityFeed(view)));
   detail.append(detailDisclosure('risk-info', 'GREEN / YELLOW / RED の意味', riskLegend()));
 
-  const detailTitle = `詳細を見る · Worker ${view.workers.length} · Queue ${view.queue.length} · AI修復 ${recoverableManual.length} · Attention ${attention}`;
+  const detailTitle = `Repair詳細 · Worker ${view.workers.length} · 待ち ${repairWaiting} · AI修復 ${recoverableManual.length} · Human ${humanManual.length}`;
   root.append(disclosure('rescue:details', detailTitle, detail, 'rs-drilldown'));
 }
 let latest = null;
