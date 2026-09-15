@@ -62,3 +62,31 @@ characters keep their existing motion fallback. Unrelated raw-asset inspection
 clips in the main Lab retain their explicitly selected source/weapon metadata.
 This is not exact auto-battle scheduler parity, new learning logic or a promise
 that every specialized technique is interchangeable with every weapon.
+
+## 30-second compact-character follow-up
+
+This follow-up keeps the technique-first contract above and changes the review
+presentation rather than turning the full score into one bespoke clip.
+
+Acceptance criteria:
+
+- remove visible upper-arm / torso penetration during the 30-second score,
+  including compact-body proportions; preserve hand target, weapon contact
+  clocks and the reusable nine-action source bank;
+- start the 30-second score from a sheathed/rest state, perform a visible draw,
+  execute the existing 序 / 破 / 急 composition, then visibly sheathe and settle
+  before the 30.0-second boundary;
+- replace ad-hoc retreat/lateral travel with reusable step mechanics informed by
+  a pinned public-GitHub / CC0 reference. Reference data is technique evidence,
+  not copied runtime animation or a new hidden dependency;
+- make the existing compact fantasy character the primary 30-second review
+  subject while retaining Shino as an explicit comparison option. The compact
+  model must consume the same score semantics rather than a separate show-only
+  performance;
+- keep the independent Lab branch / Draft boundary. No `develop`, `main`, game
+  combat authority, damage timing, save schema or Production promotion changes.
+
+The external movement reference must record repository/revision/license and the
+observed facts that are actually adopted. Current official Quaternius guidance
+is used only for directional-step timing/phase and root-motion ownership; exact
+asset redistribution is not required for this review implementation.
