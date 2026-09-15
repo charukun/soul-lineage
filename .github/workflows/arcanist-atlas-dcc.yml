@@ -36,6 +36,10 @@ jobs:
           git fetch origin "${GITHUB_REF_NAME}"
           git checkout -B "${GITHUB_REF_NAME}" "origin/${GITHUB_REF_NAME}"
 
+      - name: Verify Arcanist reference input
+        run: |
+          echo "5930816e59424bcc17530ba9029d1231fb24ac88ee35ee5818f96e05e0978bd0  docs/characters/references/npc-role-set/arcanist.avif" | sha256sum -c -
+
       - name: Install Blender headless runtime
         run: |
           sudo apt-get update
