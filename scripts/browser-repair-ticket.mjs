@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { onBrowserFailure, onDevelopBrowserSuccess, onPrBrowserSuccess, parseRepairState, replaceRepairState, linkedIssueNumber, DEFAULT_MAX_ATTEMPTS, currentPrRepair } from './browser-repair-state.mjs';
+import { normalizeNotificationLocale, notificationHeadline } from './notification-copy.mjs';
 
 const repository = process.env.GITHUB_REPOSITORY;
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
@@ -9,6 +10,7 @@ let headSha = process.env.REPAIR_HEAD_SHA;
 const prNumber = Number(process.env.REPAIR_PR_NUMBER || 0) || null;
 const runUrl = process.env.REPAIR_RUN_URL;
 const artifact = process.env.REPAIR_ARTIFACT || 'browser-verification';
+const notificationLocale = normalizeNotificationLocale(process.env.NOTIFY_LOCALE || 'ja');
 assert.ok(token && repository && scope && conclusion && headSha && runUrl);
 assert.ok(['pr', 'develop'].includes(scope));
 assert.ok(['success', 'failure'].includes(conclusion));
@@ -130,14 +132,17 @@ const summary = [
   'Work must claim the ticket by changing `state` from `pending` to `working` and incrementing `attempt` before editing code. It must not touch main/Production.',
 ].filter(Boolean).join('\n');
 const body = replaceRepairState(issue?.body || summary, nextState);
-if (!issue) issue = await api('POST', '/issues', { title: `[AUTO-REPAIR] Browser verification: ${titleSubject}`, body });
-else issue = await api('PATCH', `/issues/${issue.number}`, { body, state: nextState.state === 'verified' ? 'closed' : 'open' });
+const issueStage = ['verified', 'ready-for-integration'].includes(nextState.state) ? 'BROWSER_VERIFIED' : 'FAILED';
+const issueTitle = `${notificationHeadline(issueStage, notificationLocale)} · Browser verification: ${titleSubject}`;
+if (!issue) issue = await api('POST', '/issues', { title: issueTitle, body });
+else issue = await api('PATCH', `/issues/${issue.number}`, { title: issueTitle, body, state: nextState.state === 'verified' ? 'closed' : 'open' });
 
 const runMarker = `<!-- browser-repair-run:${process.env.GITHUB_RUN_ID || headSha}:${conclusion} -->`;
+const visibleHeadline = notificationHeadline(conclusion === 'failure' ? 'FAILED' : 'BROWSER_VERIFIED', notificationLocale);
 if (sourcePr) {
   const stateText = nextState.state === 'verified' ? 'verified' : nextState.state === 'ready-for-integration' ? 'browser-fixed; returning to Integration' : nextState.state;
   const prefix = promotedFromPrHead ? `Post-merge PR browser failure was promoted to current develop \`${headSha}\`. ` : '';
-  await commentOnce(sourcePr.number, `${prefix}Browser verification **${conclusion}**. Repair ticket #${issue.number} is now **${stateText}**.\n\nArtifacts: \`${artifact}\` · ${runUrl}`, runMarker);
+  await commentOnce(sourcePr.number, `${visibleHeadline}\n${prefix}Browser verification **${conclusion}**. Repair ticket #${issue.number} is now **${stateText}**.\n\nArtifacts: \`${artifact}\` · ${runUrl}`, runMarker);
 }
-await commentOnce(issue.number, `Browser verification **${conclusion}** for \`${headSha}\`. State: **${nextState.state}**.\n\n${runUrl}`, runMarker);
+await commentOnce(issue.number, `${visibleHeadline}\nBrowser verification **${conclusion}** for \`${headSha}\`. State: **${nextState.state}**.\n\n${runUrl}`, runMarker);
 console.log(JSON.stringify({ issue: issue.number, sourceKey, retired, state: nextState, promotedFromPrHead }, null, 2));
