@@ -22,6 +22,8 @@
     "lod:generate": "node scripts/generate-lods.mjs",
     "gltf:compress": "node scripts/compress-gltf.mjs",
     "asset:optimize": "node scripts/asset-optimize.mjs",
+    "asset:inspect": "node scripts/asset-inspect.mjs",
+    "asset:inventory": "node scripts/asset-inventory.mjs",
     "performance:browser": "node scripts/browser/performance-smoke.mjs",
     "performance:compare": "node scripts/performance-regression.mjs",
     "performance:evidence": "node scripts/performance-evidence.mjs ingest",
