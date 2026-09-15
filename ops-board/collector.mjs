@@ -2,6 +2,7 @@ import { API_HISTORY_PAGE_LIMIT, PAGES_ROOT, REPOSITORY, classifyPull, deploymen
 import { splitPulls, isVisualReviewPull } from './pulls.mjs';
 import { buildApplications } from './applications.mjs';
 import { createGithubClient } from './github-client.mjs';
+import { syncPullSnapshot } from './pull-snapshot.mjs';
 import { enrichTargets, actionProblems } from './review-model.mjs';
 import { FAILED_CONCLUSIONS } from './public/health.mjs';
 import { collectRescue } from './rescue.mjs';
@@ -55,7 +56,8 @@ async function previewEnvironment(candidate, branches, previous, client) {
   const prior = (previous?.environments || []).find(env => env.kind === 'preview' && env.workflow === candidate.name);
   let publicStatus = prior?.deployedCommit === success.head_sha ? prior.publicStatus : null;
   if (!publicStatus?.targetUrl) {
-    const { data } = await client.get(`/commits/${success.head_sha}/status`);
+    if (!client.deepAllowed) return prior || null;
+    const { data } = await client.get(`/commits/${success.head_sha}/status`, { maxAgeMs: 60_000 });
     const selected = (data.statuses || []).find(status => status.state === 'success' && /\/public$/.test(status.context || '') && /^https:\/\//.test(status.target_url || ''));
     if (!selected) return null;
     publicStatus = { state: selected.state, context: selected.context, targetUrl: selected.target_url, updatedAt: selected.updated_at || selected.created_at || null };
@@ -68,7 +70,7 @@ async function previewEnvironment(candidate, branches, previous, client) {
   return withHistory(env, prior, client);
 }
 
-export async function buildState(previous = null, { storage, token = '', fetchImpl = fetch } = {}) {
+export async function buildState(previous = null, { storage, token = '', fetchImpl = fetch, reason = 'manual' } = {}) {
   const startedAt = stamp();
   const client = createGithubClient({ storage, token, fetchImpl });
   try {
@@ -77,18 +79,11 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     if (!response.ok) throw new Error(`公開manifest取得: HTTP ${response.status}`);
     const manifest = await response.json();
     if (manifest?.schemaVersion !== 1 || !Array.isArray(manifest.entries)) throw new Error('公開manifestの形式が不正です');
-    const branchesResult = await client.get('/branches?per_page=100');
+    const branchesResult = await client.get('/branches?per_page=100', { maxAgeMs: 30_000 });
     const branches = new Map((branchesResult.data || []).map(branch => [branch.name, branch]));
-    const pulls = [];
-    let pullsComplete = false;
-    for (let page = 1; page <= 6; page++) {
-      const { data, response } = await client.get(`/pulls?state=all&base=develop&sort=updated&direction=desc&per_page=100&page=${page}`);
-      if (!Array.isArray(data)) throw new Error('GitHub PR一覧の形式が不正です');
-      pulls.push(...data);
-      if (!/rel="next"/.test(response.headers.get('link') || '')) { pullsComplete = true; break; }
-    }
-    const allPulls = [...new Map(pulls.map(pr => [pr.number, pr])).values()];
-    const { data: actions } = await client.get('/actions/runs?per_page=100');
+    const pullSync = await syncPullSnapshot(client, storage);
+    const allPulls = pullSync.pulls;
+    const { data: actions } = await client.get('/actions/runs?per_page=100', { maxAgeMs: 30_000 });
     const runs = Array.isArray(actions?.workflow_runs) ? actions.workflow_runs : [];
     const developRuns = runs.filter(run => run.name === 'Deploy DEV and PROD' && run.head_branch === 'develop');
     const mainRuns = runs.filter(run => run.name === 'Deploy DEV and PROD' && run.head_branch === 'main');
@@ -127,13 +122,18 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     if (workflowFailure(developRuns[0]) && !deliveryVerified) alerts.push({ type: 'integration-failed', tone: 'danger', title: 'DEV公開・検証処理が失敗', detail: developRuns[0].conclusion, url: developRuns[0].html_url });
     if (reconciled.actionableIdle) alerts.push({ type: 'reconciliation-idle', tone: 'warning', title: '自動統合の再配分待ち', detail: '処理可能なReady PRがありますが、現在のexecutor割当が0です。次のreconcileで再配分します。' });
 
-    const targets = await enrichTargets(allPulls, client, storage, token ? 16 : 2);
+    const targetLimit = client.deepAllowed ? (token ? 4 : 1) : 0;
+    const targets = await enrichTargets(allPulls, client, storage, targetLimit);
     const pullRequests = splitPulls(targets.pulls);
     const failures = actionProblems(runs, allPulls, { verifiedDevelopSha: deliveryVerified ? developSha : null });
     const now = stamp();
     return { schemaVersion: 2, repository: REPOSITORY, generatedAt: now, lastAttemptAt: now, startedAt, syncStatus: 'ok',
-      syncSource: 'GitHub API + published deployment manifests/statuses', githubRateRemaining: client.remaining,
-      pullRequests: { ...pullRequests, total: allPulls.length, truncated: !pullsComplete, targetLookup: { ready: targets.ready, pending: targets.pending, unavailable: targets.unavailable, attempted: targets.attempted } },
+      syncSource: 'GitHub API incremental snapshot + published deployment manifests/statuses', syncReason: reason,
+      githubRateRemaining: client.remaining,
+      githubApi: { scope: client.scope, requests: client.requests, cacheHits: client.cacheHits, maxRequests: client.maxRequests,
+        remaining: client.remaining, deepEnrichment: client.deepAllowed ? 'enabled' : 'deferred' },
+      pullSync: { mode: pullSync.mode, pages: pullSync.pages, complete: pullSync.complete, watermark: pullSync.watermark, fullAt: pullSync.fullAt },
+      pullRequests: { ...pullRequests, total: allPulls.length, truncated: !pullSync.complete, targetLookup: { ready: targets.ready, pending: targets.pending, unavailable: targets.unavailable, attempted: targets.attempted } },
       applications, applicationsUpdatedAt: now, applicationsSource: 'public-manifest', environments: [dev, staging, prod, ...previews], environmentDiff: environmentDiff(dev, prod),
       integration: { ...integration, queue: integrationQueue, latestRun: runView(developRuns[0]), deployWaiting: dev.deployQueue?.pulls || [],
         watchdog: { reconciliationFresh: reconciled.fresh, reconciliationReason: reconciled.reason, actionableIdle: reconciled.actionableIdle,
