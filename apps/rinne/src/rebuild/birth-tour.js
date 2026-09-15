@@ -13,12 +13,25 @@ export const BIRTH_TOUR_LINES=Object.freeze({
 
 const distance=(a,b)=>Math.hypot((a?.x||0)-(b?.x||0),(a?.z||0)-(b?.z||0));
 const finite=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
+const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
+const rounded=value=>Math.round(value*100)/100;
 
 export function birthTourLine(station){return station?.id&&Object.hasOwn(BIRTH_TOUR_LINES,station.id)?BIRTH_TOUR_LINES[station.id]:null;}
 
 export function birthTourStops(stations=[]){
   const byId=new Map((Array.isArray(stations)?stations:[]).filter(row=>row&&typeof row.id==='string').map(row=>[row.id,row]));
   return BIRTH_TOUR_ORDER.map(id=>byId.get(id)).filter(row=>row&&Number.isFinite(row.x)&&Number.isFinite(row.z));
+}
+
+export function birthTourPace(stations=[]){
+  const stops=birthTourStops(stations),legs=[];
+  if(stops.length>1)for(let index=0;index<stops.length;index++){
+    const leg=distance(stops[index],stops[(index+1)%stops.length]);if(leg>.8)legs.push(leg);
+  }
+  legs.sort((a,b)=>a-b);
+  const representativeDistance=legs.length?legs[Math.min(legs.length-1,Math.floor((legs.length-1)*.65))]:0;
+  const autoSpeed=clamp(representativeDistance/2.4,3.6,5.8),manualSpeed=clamp(autoSpeed*1.18,4.25,6.85);
+  return{autoSpeed:rounded(autoSpeed),manualSpeed:rounded(manualSpeed),representativeDistance:rounded(representativeDistance)};
 }
 
 export function createBirthTour(stations,{resumeDelay=1.4,dwellSeconds=3.0,arrivalRadius=.82}={}){
