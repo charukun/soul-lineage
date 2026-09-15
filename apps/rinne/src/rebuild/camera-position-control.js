@@ -14,7 +14,7 @@ export function cameraOffsetForPosition(value){
 export function createCameraPositionControl({document:doc,container,onChange,initial=.5}={}){
   if(!doc)throw new TypeError('document is required');
   const root=doc.createElement('div');root.className='camera-position-control';root.dataset.combat='false';
-  const button=doc.createElement('button');button.type='button';button.className='camera-position-trigger';button.setAttribute('aria-label','カメラ位置');button.setAttribute('aria-expanded','false');button.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.2 7.2 9.5 5h5l1.3 2.2H19a2 2 0 0 1 2 2v8.3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9.2a2 2 0 0 1 2-2h3.2Z"/><circle cx="12" cy="13.1" r="3.2"/></svg>';
+  const button=doc.createElement('button');button.type='button';button.className='camera-position-trigger';button.dataset.icon='camcorder';button.setAttribute('aria-label','カメラ位置');button.setAttribute('aria-expanded','false');button.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="7.4" width="11.5" height="9.2" rx="2"/><path d="M15 10.1 20.5 7.8v8.4L15 13.9Z"/></svg>';
   const panel=doc.createElement('div');panel.className='camera-position-panel';panel.id='camera-position-panel';panel.hidden=true;
   const rail=doc.createElement('span');rail.className='camera-position-rail';rail.setAttribute('aria-hidden','true');
   const knob=doc.createElement('span');knob.className='camera-position-knob';knob.setAttribute('aria-hidden','true');
