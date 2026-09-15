@@ -52,7 +52,9 @@ export async function syncPullSnapshot(client, storage, { now = Date.now(), forc
     pages++;
     fetched.push(...data);
     const hasNext = /rel="next"/.test(response.headers.get('link') || '');
-    if (!full && previousWatermark && data.some(pr => updatedAt(pr) <= previousWatermark)) reachedWatermark = true;
+    const oldestOnPage = data.length ? updatedAt(data.at(-1)) : 0;
+    // Stop only after crossing the old watermark. Equality may straddle a page boundary.
+    if (!full && previousWatermark && (!data.length || oldestOnPage < previousWatermark)) reachedWatermark = true;
     if (!hasNext) { complete = true; reachedWatermark = true; break; }
     if (!full && reachedWatermark) break;
   }
