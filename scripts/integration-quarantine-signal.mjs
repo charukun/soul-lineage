@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { quarantineDecision } from './integration-flow-control.mjs';
+import { quarantineDecision, returnedRepairHead } from './integration-flow-control.mjs';
 import { REPOSITORY, rescueConfig } from './integration-rescue-policy.mjs';
 import { rescueClient, RescueStore } from './integration-rescue-store.mjs';
 import { workRepairClass } from './integration-rescue-work-repair-policy.mjs';
@@ -8,12 +8,33 @@ import { aiRepairEnvelope, aiRepairEnvelopeMarker } from './integration-ai-repai
 
 export async function signalQuarantine(c, store, { limit = 4 } = {}) {
   const { state } = await store.read();
-  const candidates = Object.values(state.records || {}).filter(record => quarantineDecision(record).quarantined && record.headSha).slice(0, limit);
+  const candidates = Object.values(state.records || {}).filter(record => {
+    if (!record.headSha) return false;
+    const decision = quarantineDecision(record);
+    return decision.quarantined || returnedRepairHead(record);
+  }).slice(0, limit);
   const signaled = [];
+  let released = 0;
   const develop = candidates.length ? (await c.api('GET', `${c.root}/branches/develop`)).commit.sha : null;
   for (const record of candidates) {
     const pr = await c.api('GET', `${c.root}/pulls/${record.pr}`);
     if (pr.state !== 'open' || pr.draft || pr.head?.sha !== record.headSha || pr.head?.repo?.full_name !== REPOSITORY || pr.base?.ref !== 'develop') continue;
+    const decision = quarantineDecision(record);
+    if (!decision.quarantined && returnedRepairHead(record, pr.head.sha)) {
+      const statuses = await c.pages(`/commits/${record.headSha}/statuses`, undefined, { maxPages: 3 });
+      const quarantine = statuses.find(status => status.context === 'integration/quarantine');
+      if (quarantine?.state === 'pending') {
+        await c.api('POST', `${c.root}/statuses/${record.headSha}`, {
+          state: 'success',
+          context: 'integration/quarantine',
+          description: 'Returned AI repair is on this exact head; normal Integration re-evaluation resumed',
+          target_url: pr.html_url,
+        });
+        released++;
+      }
+      continue;
+    }
+    if (!decision.quarantined) continue;
     const marker = `<!-- integration-quarantine:${record.headSha} -->`;
     const comments = await c.pages(`/issues/${record.pr}/comments`, undefined, { maxPages: 3 });
     if (!comments.some(comment => comment.body?.includes(marker))) {
@@ -36,6 +57,7 @@ export async function signalQuarantine(c, store, { limit = 4 } = {}) {
     await c.api('POST', `${c.root}/statuses/${record.headSha}`, { state: 'pending', context: 'integration/quarantine', description: 'AI deep repair requested; normal Integration train isolated', target_url: pr.html_url });
     signaled.push(record.pr);
   }
+  if (released) await c.api('POST', `${c.root}/actions/workflows/deploy.yml/dispatches`, { ref: 'develop' });
   return signaled;
 }
 
