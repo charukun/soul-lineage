@@ -24,9 +24,8 @@ GitHub event
 | 構成 | 実装 | 責任 |
 | --- | --- | --- |
 | Fast Lane | `scripts/integration-fast-lane.mjs` | current Ready PR再取得、exact-head gate、expected-head merge |
-| Fast Repair planner | `scripts/integration-repair-fast.mjs` | current stacked Ready PRだけをbounded再取得し、安全なmerge-forwardを依頼 |
-| Stack reconciliation | `scripts/integration-queue-recovery.mjs` の `reconcileStack` | Depends-On完了、review/hold/thread/head/develop再確認後の元PR branch更新 |
-| Repair workflow | `.github/workflows/integration-rescue.yml` | compatibility file名。Fast Repair、最大4並列exact-head fast validation、Fast Lane wake、非blocking browser smoke |
+| Fast Repair / Stack reconciliation | `scripts/integration-repair-fast.mjs` の `reconcileStackFast` | current stacked Ready PRをbounded再取得し、Depends-On・review・hold・thread・head・developを再確認して元PR branchを安全にmerge-forward |
+| Repair workflow | `.github/workflows/integration-rescue.yml` | compatibility file名。Fast Repair、最大4並列exact-head fast validation、成功headごとの即時Fast Lane wake、非blocking browser smoke |
 | Trusted stack evidence | `scripts/integration-stack-fast-evidence.mjs` | trusted `deploy.yml/develop/workflow_dispatch` run、exact artifact、成功jobを再検証 |
 | Deep repair compatibility | `scripts/integration-rescue-*`, `scripts/integration-quarantine-signal.mjs` | 意味競合や旧stateの移行・診断。通常Fast Repairの待ち条件ではない |
 | PULSE | `ops-board/rescue.mjs` 等 | 観測のみ。merge/Repair権限を持たない |
@@ -44,12 +43,13 @@ Ready/synchronize/review等はCIの既存 `Request Rescue observation` からこ
 1. current open/non-Draft develop PRをGitHubから再取得する。
 2. same repository / trusted author / `Depends-On` ありだけを見る。
 3. 依存PRがdevelopへmerge済みであることを確認する。
-4. `recoveryReady` でhold、Changes requested、unresolved thread、head変更、dependency、mergeabilityを再確認する。
-5. develop SHAとPR exact headを直前に再取得する。
+4. Fast Repair自身がhold、Changes requested、unresolved thread、head変更、dependency、mergeabilityを再確認する。stack更新で正常に発生する `mergeable_state=behind` は許可するが、conflict/unknown等は自動修復しない。
+5. develop SHAとPR exact headをmutation直前に再取得する。
 6. 元PR branchへ最新developを通常merge-forwardする。force push/history rewriteはしない。
-7. 更新headを最大4件並列でfast validationする。
-8. `pr-fast-<PR>-<SHA>` artifactと `integration/stack-fast` statusを作る。
-9. Fast Laneを即wakeする。Fast Laneはstatus文字列だけでなくrun identity、artifact、job successを再検証する。
+7. 更新後のPR headがGitHub上で実際にmerge commit SHAへ進んだことを再確認する。
+8. 更新headを最大4件並列でfast validationする。
+9. `pr-fast-<PR>-<SHA>` artifactと `integration/stack-fast` statusを作る。
+10. 各headが成功した瞬間にFast Laneを即wakeする。他のRepair worker完了を待たない。Fast Laneはstatus文字列だけでなくrun identity、artifact、job successを再検証する。
 
 Fast Repairは `AWAITING_PUSH` を作らず、通常Work push relayを待たず、独自Waveの完了を待たない。
 
@@ -99,6 +99,7 @@ PULSEが旧stateを表示しても、それは観測・移行情報であり制�
 
 - 正常Ready PRは旧Rescue stateを一度も通らずmergeできる
 - stacked PRは依存merge後、1回のtrusted Repair runでmerge-forward → exact-head validation → Fast Lane wakeまで進む
+- 各repaired headは他worker完了を待たずFast Laneへ戻る
 - `AWAITING_PUSH` / Work relay / 1時間watchdogが通常修復の待ち時間にならない
 - Repair失敗中でも独立eligible PRはmergeできる
 - stale/missing evidenceでmergeしない
