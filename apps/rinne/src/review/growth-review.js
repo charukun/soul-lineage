@@ -2,6 +2,8 @@ import { THREE, GLTFLoader, OrbitControls } from '@soul/rendering';
 import { SHINO_REVIEW, REVIEW_ASSET_REVISION } from '@soul/assets/review-catalog';
 import { LIFE_RULES, appearanceForAge } from '../../public/simulator/src/life-clock.js';
 import { createKayKitAgeAdapter } from './kaykit-age-adapter.js';
+import { EQUIPMENT_BY_ID, equipmentForSlot } from './equipment-catalog.js';
+import { createGrowthEquipmentController, EQUIPMENT_SLOTS } from './growth-equipment.js';
 import {
   MOTION_LIBRARY_MODELS,
   MOTION_LIBRARY_RAW_BASE,
@@ -18,6 +20,9 @@ const VIEW_OFFSETS = Object.freeze({
   side: [1, .12, 0],
   back: [0, .12, -1],
 });
+const VIEW_IDS = new Set([...Object.keys(VIEW_OFFSETS),'face']);
+const EQUIPMENT_QUERY = Object.freeze({main:'eqMain',off:'eqOff',back:'eqBack'});
+const EQUIPMENT_SLOT_LABEL = Object.freeze({main:'右手',off:'左手',back:'背中'});
 const SHINO_PATH = SHINO_REVIEW.publicPath;
 const LOCAL_GROWTH_MODELS = [
   {id:'SHINO',label:'SHINO',name:'Sendagaya Shino',path:SHINO_PATH,portrait:'SHINO',appearanceScale:[1,1,1],kind:'vrm'},
@@ -121,6 +126,13 @@ async function start() {
   const paramAge = params.has('age') ? Number(params.get('age')) : NaN;
   seek.value = String(Number.isFinite(paramAge) ? clamp(paramAge, 0, LIFE_RULES.lifespanYears) * LIFE_RULES.secondsPerYear : 22 * LIFE_RULES.secondsPerYear);
   let selectedModel = MODEL_BY_ID.get(params.get('model')) || GROWTH_MODELS[0];
+  const equipmentState = Object.fromEntries(EQUIPMENT_SLOTS.map(slot => {
+    const id=params.get(EQUIPMENT_QUERY[slot]);
+    const spec=EQUIPMENT_BY_ID.get(id);
+    return [slot,spec?.slots.includes(slot)?id:null];
+  }));
+  const requestedView = params.get('view');
+  const initialView = VIEW_IDS.has(requestedView) ? requestedView : 'three';
 
   const canvas = q('#growth-canvas');
   const renderer = new THREE.WebGLRenderer({canvas, antialias:true, preserveDrawingBuffer:true, powerPreference:'high-performance'});
@@ -149,18 +161,29 @@ async function start() {
   };
   new ResizeObserver(resize).observe(canvas); resize();
 
-  let current = null, currentView = 'three', adultFrame = null, generation = 0;
+  let current = null, currentView = initialView, adultFrame = null, generation = 0, equipmentPickerSlot = 'main';
 
-  function bounds() {
-    if (!current) return new THREE.Box3();
-    current.root.updateMatrixWorld(true);
-    return new THREE.Box3().setFromObject(current.root);
+  function equipmentNodes(root) {
+    const rows=[];
+    root?.traverse(node=>{if(/^GrowthEquipment:|^EquipmentPayload:/.test(node.name||''))rows.push(node);});
+    return rows;
   }
+  function bodyBounds() {
+    if (!current) return new THREE.Box3();
+    const hidden=equipmentNodes(current.root).map(node=>[node,node.visible]);
+    hidden.forEach(([node])=>{node.visible=false;});
+    current.root.updateMatrixWorld(true);
+    const box=new THREE.Box3().setFromObject(current.root);
+    hidden.forEach(([node,visible])=>{node.visible=visible;});
+    current.root.updateMatrixWorld(true);
+    return box;
+  }
+  function bounds() { return bodyBounds(); }
   function groundModel() {
     if (!current) return;
     current.root.position.copy(current.base.rootPosition);
     current.root.updateMatrixWorld(true);
-    const box = bounds();
+    const box = bodyBounds();
     if (Number.isFinite(box.min.y)) current.root.position.y += -box.min.y;
     current.root.updateMatrixWorld(true);
   }
@@ -201,25 +224,30 @@ async function start() {
   }
   function frame(view = currentView) {
     if (!current) return;
-    currentView = view;
+    currentView = VIEW_IDS.has(view) ? view : 'three';
     current.root.updateMatrixWorld(true);
-    const box = adultFrame?.clone() || bounds(), sphere = box.getBoundingSphere(new THREE.Sphere());
+    const box = adultFrame?.clone() || bodyBounds(), sphere = box.getBoundingSphere(new THREE.Sphere());
     if (!Number.isFinite(sphere.radius) || sphere.radius <= 0) return;
-    if (view === 'face' && current.bones.head) {
+    if (currentView === 'face' && current.bones.head) {
       const head = current.bones.head.getWorldPosition(new THREE.Vector3()), d = Math.max(.46, sphere.radius * .58);
       camera.position.set(head.x + d * .56, head.y + d * .08, head.z + d); controls.target.copy(head);
     } else {
-      const dir = VIEW_OFFSETS[view] || VIEW_OFFSETS.three, d = Math.max(sphere.radius * 3.15, 1.4), center = sphere.center;
+      const dir = VIEW_OFFSETS[currentView] || VIEW_OFFSETS.three, d = Math.max(sphere.radius * 3.15, 1.4), center = sphere.center;
       camera.position.set(center.x + dir[0] * d, center.y + dir[1] * d, center.z + dir[2] * d); controls.target.copy(center);
     }
     camera.near = .01; camera.far = 100; camera.updateProjectionMatrix(); controls.update();
-    document.querySelectorAll('[data-growth-view]').forEach(button => button.classList.toggle('active', button.dataset.growthView === view));
+    document.querySelectorAll('[data-growth-view]').forEach(button => button.classList.toggle('active', button.dataset.growthView === currentView));
   }
   function metric(id,value,bar,barValue) { q(id).textContent = value; q(bar).style.width = percent(barValue); }
   function syncURL(age) {
     const url = new URL(location.href);
     url.searchParams.set('model', selectedModel.id);
     url.searchParams.set('age', age.toFixed(2).replace(/\.00$/, ''));
+    url.searchParams.set('view', currentView);
+    for(const slot of EQUIPMENT_SLOTS){
+      const key=EQUIPMENT_QUERY[slot],id=equipmentState[slot];
+      if(id)url.searchParams.set(key,id);else url.searchParams.delete(key);
+    }
     history.replaceState(null, '', url);
   }
   function renderAge(seconds, {sync = true} = {}) {
@@ -262,6 +290,44 @@ async function start() {
   q('#growth-model-close').addEventListener('click', () => picker.hidden = true);
   picker.addEventListener('click', event => { if (event.target === picker) picker.hidden = true; });
 
+  const equipmentPicker=q('#growth-equipment-picker'),equipmentList=q('#growth-equipment-list');
+  function syncEquipmentCopy(){
+    for(const slot of EQUIPMENT_SLOTS){
+      const spec=EQUIPMENT_BY_ID.get(equipmentState[slot]);
+      const node=document.querySelector(`[data-equipment-label="${slot}"]`);
+      if(node)node.textContent=spec?.label||'なし';
+    }
+  }
+  function renderEquipmentPicker(slot){
+    equipmentPickerSlot=slot;
+    q('#growth-equipment-picker-title').textContent=`${EQUIPMENT_SLOT_LABEL[slot]}の装備`;
+    const active=equipmentState[slot];
+    const none=document.createElement('button');none.type='button';none.className='growth-equipment-option'+(!active?' active':'');none.dataset.none='true';none.innerHTML='<span>なし<small>このスロットを外す</small></span>';none.addEventListener('click',()=>chooseEquipment(slot,null));
+    const rows=equipmentForSlot(slot).map(spec=>{const button=document.createElement('button');button.type='button';button.className='growth-equipment-option'+(spec.id===active?' active':'');button.innerHTML=`<span>${spec.label}<small>${spec.file}.gltf</small></span>`;button.addEventListener('click',()=>chooseEquipment(slot,spec.id));return button;});
+    equipmentList.replaceChildren(none,...rows);
+  }
+  async function chooseEquipment(slot,id){
+    equipmentPicker.hidden=true;
+    equipmentState[slot]=id;
+    syncEquipmentCopy();syncURL(Number(seek.value)/LIFE_RULES.secondsPerYear);
+    if(!current?.equipment)return;
+    q('#growth-status').classList.remove('growth-error');
+    q('#growth-status').textContent=id?`${EQUIPMENT_BY_ID.get(id)?.label||id}を装備中`:`${EQUIPMENT_SLOT_LABEL[slot]}を解除中`;
+    try{
+      const result=await current.equipment.set(slot,id);
+      q('#growth-status').textContent=result?`${result.label} / ${result.method}`:'装備を外しました';
+    }catch(error){
+      console.error(error);q('#growth-status').textContent=`装備失敗: ${error.message}`;q('#growth-status').classList.add('growth-error');
+    }
+  }
+  document.querySelectorAll('[data-equipment-trigger]').forEach(button=>button.addEventListener('click',()=>{renderEquipmentPicker(button.dataset.equipmentTrigger);equipmentPicker.hidden=false;}));
+  q('#growth-equipment-close').addEventListener('click',()=>equipmentPicker.hidden=true);
+  equipmentPicker.addEventListener('click',event=>{if(event.target===equipmentPicker)equipmentPicker.hidden=true;});
+  q('#growth-equipment-clear').addEventListener('click',()=>{
+    for(const slot of EQUIPMENT_SLOTS)equipmentState[slot]=null;
+    current?.equipment?.clearAll();syncEquipmentCopy();syncURL(Number(seek.value)/LIFE_RULES.secondsPerYear);q('#growth-status').textContent='装備を全解除しました';
+  });
+
   async function loadModel(model) {
     const token = ++generation;
     q('#growth-status').textContent = `${model.name}を読み込み中`;
@@ -294,21 +360,29 @@ async function start() {
         headQ: bones.head?.quaternion.clone(),
       };
       const previous = current;
-      current = {root, bones, materials, base, model, direction, ageAdapter, ageDiagnostics: null};
+      current = {root, bones, materials, base, model, direction, ageAdapter, ageDiagnostics: null, equipment:null};
       selectedModel = model;
       scene.add(root);
       applyAppearance(22);
-      adultFrame = bounds().clone();
+      adultFrame = bodyBounds().clone();
       renderAge(Number(seek.value), {sync:false});
       frame(currentView);
+      const equipment=createGrowthEquipmentController({root,bones,model});
+      current.equipment=equipment;
+      const equipmentResults=await equipment.applyState(equipmentState);
+      if(token!==generation){equipment.dispose();disposeRoot(root);return;}
       syncModelCopy();
+      syncEquipmentCopy();
       renderModelPicker();
       syncURL(Number(seek.value) / LIFE_RULES.secondsPerYear);
+      const equipmentErrors=equipmentResults.filter(row=>row.error);
       const diagnostics = current.ageDiagnostics;
-      q('#growth-status').textContent = diagnostics
-        ? `KayKit aging / hair ${diagnostics.hairSurfaces}・skin ${diagnostics.skinSurfaces}`
-        : '世界時間を動かして成長を確認';
-      if (previous) disposeRoot(previous.root);
+      q('#growth-status').textContent = equipmentErrors.length
+        ? `モデル表示 / 装備${equipmentErrors.length}件未対応`
+        : diagnostics
+          ? `KayKit aging / hair ${diagnostics.hairSurfaces}・skin ${diagnostics.skinSurfaces} / 装備ready`
+          : '世界時間・装備を切り替えて確認';
+      if(previous){previous.equipment?.dispose();disposeRoot(previous.root);}
     } catch (error) {
       if (gltf?.scene && token === generation) disposeRoot(gltf.scene);
       if (token === generation) {
@@ -323,9 +397,11 @@ async function start() {
   document.querySelectorAll('[data-age]').forEach(button => button.addEventListener('click', () => {
     seek.value = String(Number(button.dataset.age) * LIFE_RULES.secondsPerYear); renderAge(Number(seek.value));
   }));
-  document.querySelectorAll('[data-growth-view]').forEach(button => button.addEventListener('click', () => frame(button.dataset.growthView)));
+  document.querySelectorAll('[data-growth-view]').forEach(button => button.addEventListener('click', () => {
+    frame(button.dataset.growthView);syncURL(Number(seek.value)/LIFE_RULES.secondsPerYear);
+  }));
 
-  syncModelCopy();
+  syncModelCopy();syncEquipmentCopy();
   renderAge(Number(seek.value), {sync:false});
   await loadModel(selectedModel);
   renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });

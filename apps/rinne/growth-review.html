@@ -28,6 +28,16 @@
       <button id="growth-model-trigger" class="growth-model-trigger" type="button"><img id="growth-model-thumb" src="./simulator/assets/portrait_SHINO.webp" alt=""/><span><strong id="growth-model-name">Sendagaya Shino</strong><small id="growth-model-label">SHINO</small></span><b aria-hidden="true">⌄</b></button>
     </section>
 
+    <section class="growth-card growth-equipment-card">
+      <div class="growth-section-title"><strong>装備</strong><button id="growth-equipment-clear" class="growth-equipment-clear" type="button">全解除</button></div>
+      <div class="growth-equipment-slots" role="group" aria-label="装備スロット">
+        <button type="button" data-equipment-trigger="main"><span>右手</span><strong data-equipment-label="main">なし</strong><i>›</i></button>
+        <button type="button" data-equipment-trigger="off"><span>左手</span><strong data-equipment-label="off">なし</strong><i>›</i></button>
+        <button type="button" data-equipment-trigger="back"><span>背中</span><strong data-equipment-label="back">なし</strong><i>›</i></button>
+      </div>
+      <p class="growth-equipment-source">KayKit Adventurers / CC0 / fixed GitHub revision</p>
+    </section>
+
     <section class="growth-card timeline-card">
       <div class="growth-section-title"><strong>世界時間</strong><output id="growth-world-time">22:00 / 90:00</output></div>
       <input id="growth-seek" type="range" min="0" max="5400" step="1" value="1320" aria-label="世界時間を移動"/>
@@ -70,6 +80,13 @@
   <section class="growth-model-sheet" role="dialog" aria-modal="true" aria-labelledby="growth-model-picker-title">
     <header><strong id="growth-model-picker-title">成長を確認するモデル</strong><button id="growth-model-close" type="button">閉じる</button></header>
     <div id="growth-model-list" class="growth-model-list"></div>
+  </section>
+</div>
+
+<div id="growth-equipment-picker" class="growth-equipment-picker" hidden>
+  <section class="growth-equipment-sheet" role="dialog" aria-modal="true" aria-labelledby="growth-equipment-picker-title">
+    <header><strong id="growth-equipment-picker-title">装備を選ぶ</strong><button id="growth-equipment-close" type="button">閉じる</button></header>
+    <div id="growth-equipment-list" class="growth-equipment-list"></div>
   </section>
 </div>
 

@@ -17,6 +17,64 @@ const remote = (id, source, path, output, size, gitBlob = null) => Object.freeze
   id, repository: source[0], commit: source[1], path, output, size, gitBlob,
 });
 const weapon = 'addons/kaykit_character_pack_adventures/Assets/gltf/';
+
+export const REVIEW_KAYKIT_EQUIPMENT_SOURCE = Object.freeze({
+  repository: kaykit[0],
+  commit: kaykit[1],
+  license: 'CC0-1.0',
+  sourceRoot: weapon,
+  publicRoot: 'asset-review/equipment/',
+});
+
+const equipment = (id, file, family, slots, targetFraction) => Object.freeze({
+  id,
+  file,
+  family,
+  slots: Object.freeze(slots),
+  targetFraction,
+  publicPath: `${REVIEW_KAYKIT_EQUIPMENT_SOURCE.publicRoot}${file}.gltf`,
+});
+
+/**
+ * Real KayKit Adventurers equipment models included in the built Review Lab.
+ * These are presentation assets only; they do not create gameplay inventory.
+ */
+export const REVIEW_KAYKIT_EQUIPMENT = Object.freeze([
+  equipment('sword-1h', 'sword_1handed', '1H_Sword', ['main','off','back'], .47),
+  equipment('sword-2h', 'sword_2handed', '2H_Sword', ['main','back'], .78),
+  equipment('sword-2h-color', 'sword_2handed_color', '2H_Sword', ['main','back'], .78),
+  equipment('axe-1h', 'axe_1handed', '1H_Axe', ['main','off','back'], .42),
+  equipment('axe-2h', 'axe_2handed', '2H_Axe', ['main','back'], .68),
+  equipment('dagger', 'dagger', 'Knife', ['main','off','back'], .30),
+  equipment('staff', 'staff', '2H_Staff', ['main','back'], .92),
+  equipment('wand', 'wand', '1H_Wand', ['main','off','back'], .30),
+  equipment('crossbow-1h', 'crossbow_1handed', '1H_Crossbow', ['main','off','back'], .42),
+  equipment('crossbow-2h', 'crossbow_2handed', '2H_Crossbow', ['main','back'], .66),
+  equipment('shield-round', 'shield_round', 'Round_Shield', ['off','back'], .38),
+  equipment('shield-round-barbarian', 'shield_round_barbarian', 'Round_Shield', ['off','back'], .38),
+  equipment('shield-round-color', 'shield_round_color', 'Round_Shield', ['off','back'], .38),
+  equipment('shield-square', 'shield_square', 'Rectangle_Shield', ['off','back'], .42),
+  equipment('shield-square-color', 'shield_square_color', 'Rectangle_Shield', ['off','back'], .42),
+  equipment('shield-badge', 'shield_badge', 'Badge_Shield', ['off','back'], .38),
+  equipment('shield-badge-color', 'shield_badge_color', 'Badge_Shield', ['off','back'], .38),
+  equipment('shield-spikes', 'shield_spikes', 'Round_Shield', ['off','back'], .40),
+  equipment('shield-spikes-color', 'shield_spikes_color', 'Round_Shield', ['off','back'], .40),
+  equipment('quiver', 'quiver', 'Quiver', ['back'], .46),
+  equipment('spellbook-closed', 'spellbook_closed', 'Held_Book', ['off','back'], .30),
+  equipment('spellbook-open', 'spellbook_open', 'Held_Book', ['off'], .34),
+  equipment('smokebomb', 'smokebomb', 'Held_Small', ['main','off'], .16),
+  equipment('mug-empty', 'mug_empty', 'Held_Small', ['main','off'], .20),
+  equipment('mug-full', 'mug_full', 'Held_Small', ['main','off'], .20),
+]);
+
+const reviewEquipmentDownloads = REVIEW_KAYKIT_EQUIPMENT.flatMap(row => [
+  remote(`equipment.kaykit.${row.file}`, kaykit, weapon + `${row.file}.gltf`, `equipment/${row.file}.gltf`, null),
+  remote(`equipment.kaykit.${row.file}.buffer`, kaykit, weapon + `${row.file}.bin`, `equipment/${row.file}.bin`, null),
+]);
+const reviewEquipmentTextures = ['knight_texture.png','barbarian_texture.png','mage_texture.png','rogue_texture.png'].map(file =>
+  remote(`equipment.kaykit.texture.${file.replace('.png','')}`, kaykit, weapon + file, `equipment/${file}`, null),
+);
+
 export const REVIEW_DOWNLOADS = Object.freeze([
   remote('animation.quaternius.library', norio, 'src/assets/AnimationLibrary.glb', 'AnimationLibrary.glb', 6671104, '8ce67624ba3bb4d2ca20a4ac188fe38ceaaab97e'),
   remote('source.norio.license', norio, 'LICENSE', 'licenses/norio-MIT.txt', 1142, 'bc92046795821947d385f35a7446a5a2b4570825'),
@@ -29,6 +87,8 @@ export const REVIEW_DOWNLOADS = Object.freeze([
   remote('weapon.kaykit.greatsword.buffer', kaykit, weapon + 'sword_2handed.bin', 'weapon/sword_2handed.bin', 19912),
   remote('weapon.kaykit.knight.texture', kaykit, weapon + 'knight_texture.png', 'weapon/knight_texture.png', 14172, 'a56eae7514f908862e304620b89dc2d0cb9f362f'),
   remote('source.kaykit.license', kaykit, 'LICENSE.txt', 'licenses/KayKit-CC0.txt', 891, '877e44735b5869c10e17a59e3b757905aa390626'),
+  ...reviewEquipmentDownloads,
+  ...reviewEquipmentTextures,
 ]);
 export const REVIEW_MOTION_FAMILIES = Object.freeze([
   { id: 'idle', label: '待機', pattern: '^Idle' },
