@@ -129,19 +129,107 @@ async function signalWorkRepair(c, item, record, message, state) {
   return true;
 }
 
+function currentPr(pr, expectedHead) {
+  return Boolean(
+    pr &&
+    pr.state === 'open' &&
+    !pr.draft &&
+    pr.base?.ref === 'develop' &&
+    pr.base?.repo?.full_name === REPOSITORY &&
+    pr.head?.repo?.full_name === REPOSITORY &&
+    pr.head?.sha === expectedHead
+  );
+}
+
+function manualIdentity(record, item) {
+  if (!record || record.state !== 'FAILED_MANUAL' || record.failureReason !== item.reason || !record.headSha) return false;
+  const rescue = record.rescueId || `pr-${record.pr}`;
+  return item.id === `${rescue}:manual:${item.attempt}`;
+}
+
+async function prepareManualNotification(c, state, item) {
+  const record = state.records?.[item.pr];
+  if (!manualIdentity(record, item)) return { send: false, reason: 'manual-state-superseded', record };
+  const pr = await c.api('GET', `${c.root}/pulls/${item.pr}`);
+  if (!currentPr(pr, record.headSha)) return { send: false, reason: 'manual-head-superseded', record, liveHead: pr?.head?.sha || null };
+  return { send: true, record, pr };
+}
+
+async function prepareWaveNotification(c, state, item) {
+  const wave = state.waves?.find(w => w.id === item.wave);
+  if (!wave) return { send: false, reason: 'wave-superseded', prs: [], manual: [] };
+  const rescueIds = new Set(wave.rescueIds || []);
+  const fresh = async (number, kind) => {
+    const record = state.records?.[number];
+    if (!record || !rescueIds.has(record.rescueId)) return false;
+    if (kind === 'returned' && (!RETURNED.has(record.state) || record.state === 'AWAITING_PUSH')) return false;
+    if (kind === 'manual' && record.state !== 'FAILED_MANUAL') return false;
+    const head = record.pushedSha || record.headSha;
+    if (!head) return false;
+    const pr = await c.api('GET', `${c.root}/pulls/${number}`);
+    return currentPr(pr, head);
+  };
+  const prs = [];
+  for (const number of item.prs || []) if (await fresh(number, 'returned')) prs.push(number);
+  const manual = [];
+  for (const number of item.manual || []) if (await fresh(number, 'manual')) manual.push(number);
+  if (!prs.length) return { send: false, reason: 'wave-returned-heads-superseded', prs, manual };
+  return { send: true, prs, manual };
+}
+
+async function suppressNotification(store, id, reason, liveHead = null) {
+  await store.mutate(state => {
+    const entry = state.outbox.find(n => n.id === id);
+    if (!entry || entry.sentAt || entry.suppressedAt) return;
+    entry.suppressedAt = new Date().toISOString();
+    entry.channel = 'suppressed-stale';
+    entry.suppressionReason = reason;
+    if (liveHead) entry.liveHead = liveHead;
+    entry.nextNotificationAt = null;
+  });
+}
+
 export async function notifyOutbox(c, store, { url = '', token = '', request = fetch } = {}) {
-  const { state } = await store.read();
-  for (const item of state.outbox.filter(n => !n.sentAt && (n.notificationAttempts || 0) < 3 && (!n.nextNotificationAt || Date.parse(n.nextNotificationAt) <= Date.now())).slice(0, 5)) {
-    const record = state.records?.[item.pr];
+  const initial = await store.read();
+  const due = initial.state.outbox.filter(n => !n.sentAt && !n.suppressedAt && (n.notificationAttempts || 0) < 3 &&
+    (!n.nextNotificationAt || Date.parse(n.nextNotificationAt) <= Date.now())).slice(0, 5).map(n => n.id);
+  for (const id of due) {
+    const { state } = await store.read();
+    const item = state.outbox.find(n => n.id === id);
+    if (!item || item.sentAt || item.suppressedAt || (item.notificationAttempts || 0) >= 3 ||
+      (item.nextNotificationAt && Date.parse(item.nextNotificationAt) > Date.now())) continue;
+    let record = state.records?.[item.pr], wave = null;
+    if (item.type === 'manual') {
+      const freshness = await prepareManualNotification(c, state, item);
+      if (!freshness.send) {
+        await suppressNotification(store, item.id, freshness.reason, freshness.liveHead);
+        continue;
+      }
+      record = freshness.record;
+    } else if (item.type === 'wave') {
+      wave = await prepareWaveNotification(c, state, item);
+      if (!wave.send) {
+        await suppressNotification(store, item.id, wave.reason);
+        continue;
+      }
+    }
     const eligibility = item.type === 'manual' ? workRepairEligibility(record) : { eligible: false };
     const aiRepair = Boolean(eligibility.eligible);
     const message = item.type === 'manual' ? aiRepair
       ? `Integration Rescue\nAI_REPAIR_REQUIRED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: existing ChatGPT Work repair lane; periodic Work remains fallback`
       : `Integration Rescue\nFAILED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: human or approved Work review required`
-      : `Integration Rescue\nREADY_FOR_INTEGRATION\nWave: ${item.wave}\nReturned to Integration: ${item.prs.map(n => '#' + n).join(' ')}\nManual: ${item.manual.map(n => '#' + n).join(' ') || 'none'}\nCI/browser monitoring: Integration; repair workers ended`;
+      : `Integration Rescue\nREADY_FOR_INTEGRATION\nWave: ${item.wave}\nReturned to Integration: ${wave.prs.map(n => '#' + n).join(' ')}\nManual: ${wave.manual.map(n => '#' + n).join(' ') || 'none'}\nCI/browser monitoring: Integration; repair workers ended`;
     try {
       if (aiRepair) await signalWorkRepair(c, item, record, message, state);
       if (url) {
+        if (item.type === 'manual') {
+          const latest = await store.read();
+          const recheck = await prepareManualNotification(c, latest.state, item);
+          if (!recheck.send) {
+            await suppressNotification(store, item.id, recheck.reason, recheck.liveHead);
+            continue;
+          }
+        }
         if (!url.startsWith('https://')) throw new Error('NTFY_HTTPS_REQUIRED');
         const response = await request(url, { method: 'POST', headers: { 'Content-Type': 'text/plain; charset=utf-8', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: message, signal: AbortSignal.timeout(10000) });
         if (!response.ok) throw new Error(`NTFY_FAILED:${response.status}`);
@@ -152,7 +240,7 @@ export async function notifyOutbox(c, store, { url = '', token = '', request = f
       }
       await store.mutate(state => {
         const entry = state.outbox.find(n => n.id === item.id);
-        if (entry) {
+        if (entry && !entry.suppressedAt) {
           entry.sentAt = new Date().toISOString();
           entry.channel = aiRepair ? 'github-pr+work-signal' : url ? 'ntfy' : item.type === 'manual' ? 'github-pr' : 'pulse-summary';
         }
@@ -160,7 +248,7 @@ export async function notifyOutbox(c, store, { url = '', token = '', request = f
     } catch (error) {
       await store.mutate(state => {
         const entry = state.outbox.find(n => n.id === item.id);
-        if (!entry || entry.sentAt) return;
+        if (!entry || entry.sentAt || entry.suppressedAt) return;
         entry.notificationAttempts = (entry.notificationAttempts || 0) + 1;
         entry.notificationError = String(error.message).slice(0, 400);
         entry.nextNotificationAt = new Date(Date.now() + entry.notificationAttempts * 300000).toISOString();
@@ -182,7 +270,10 @@ export async function finalize(c, store, now = Date.now()) {
       wave.returned = prs; wave.manual = manual;
       if (prs.length) state.outbox.push({ id: `${wave.id}:summary`, type: 'wave', wave: wave.id, prs, manual });
     }
-    state.outbox = state.outbox.filter(n => !n.sentAt || now - Date.parse(n.sentAt) < 86400000).slice(-100);
+    state.outbox = state.outbox.filter(n => {
+      const finalizedAt = n.sentAt || n.suppressedAt;
+      return !finalizedAt || now - Date.parse(finalizedAt) < 86400000;
+    }).slice(-100);
   });
   await collectDelivery(c, store, now);
   return returned;
