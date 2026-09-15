@@ -23,7 +23,7 @@
     <div class="title-actions" aria-label="ゲーム開始">
       <label class="name-field"><span>名</span><input id="life-name" maxlength="12" autocomplete="off" value="旅人"></label>
       <button id="continue-life" class="primary" type="button" hidden><strong>つづきから</strong><small id="continue-detail"></small></button>
-      <button id="new-life" class="primary" type="button"><strong>新しい人生</strong><small>0歳から、この世界に生まれる</small></button>
+      <button id="new-life" class="primary" type="button"><strong>新しい人生</strong><small>0歳から100歳まで、一つの生を歩く</small></button>
       <a class="secondary" href="./simulator/index.html"><strong>稽古場</strong><small>技と装備の調整</small></a>
     </div>
     <p id="boot-status" class="boot-status" role="status" aria-live="polite">準備できています</p>
@@ -35,19 +35,15 @@
     <div id="loading-card" class="loading-card" aria-live="polite"><strong id="loading-title">世界を開いています</strong><small id="loading-message">共有の村を読み込んでいます</small></div>
     <header class="hud-top">
       <button id="back-title" class="icon-button" type="button" aria-label="タイトルへ戻る">‹</button>
-      <div class="life-chip"><span id="generation">一代目</span><strong id="age">0歳</strong></div>
+      <div class="life-chip"><span id="generation">1代目</span><strong id="age">0歳</strong></div>
       <div class="bars"><label><span>命</span><i><b id="hp-bar"></b></i></label><label><span>息</span><i><b id="stamina-bar"></b></i></label></div>
       <label class="clock-rate"><span>時</span><select id="clock-rate" aria-label="世界時計の速さ"><option value="1">1×</option><option value="5">5×</option><option value="10">10×</option><option value="20">20×</option></select></label>
     </header>
-    <aside class="objective-card"><span>今すること</span><strong id="objective">母の腕の中で、世界を知る</strong><small id="place">MURAAAAAAA</small></aside>
+    <aside class="objective-card"><span>今すること</span><strong id="objective">母と村を歩く</strong><small id="place">MURAAAAAAA</small></aside>
     <div id="dialogue" class="dialogue" hidden><span id="speaker">母</span><p id="dialogue-text"></p></div>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-    <nav class="action-dock" aria-label="行動">
-      <button id="talk" type="button"><span>話</span><small>話す</small></button>
-      <button id="context-action" class="context-action" type="button"><span>行</span><small id="context-label">調べる</small></button>
-      <button id="rest" type="button"><span>休</span><small>休む</small></button>
-    </nav>
-    <p id="move-hint" class="move-hint">地面をタップして歩く · なぞって移動 · 長押しで休む</p>
+    <button id="talk" class="talk-button" type="button"><span>話</span><small>話す</small></button>
+    <p id="move-hint" class="move-hint">スワイプした方向へ歩く</p>
   </section>
 </main>
 <noscript>100年人生を開くにはJavaScriptを有効にしてください。</noscript>
