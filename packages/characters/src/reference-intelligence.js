@@ -19,6 +19,8 @@ const ADOPTION_POLICIES = new Set(['source-audit', 'reference-only', 'technique-
 const SHA40 = /^[0-9a-f]{40}$/i;
 const GITHUB_REPOSITORY = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/?$/;
 const OBSERVATION_ID = /^[a-z0-9][a-z0-9._:-]{1,95}$/;
+const LICENSE_PLACEHOLDER = /^(unknown|unspecified|none|n\/a)$/i;
+const GOLDEN_METRICS = Object.freeze(['triangles', 'drawCalls', 'textureMemoryBytes', 'desktopP95Ms', 'mobileP95Ms']);
 
 function nonEmptyString(value, name) {
   invariant(typeof value === 'string' && value.trim().length > 0, `Invalid ${name}`);
@@ -46,7 +48,9 @@ export function defineExternalCharacterReference(input) {
   const repository = nonEmptyString(input.repository, 'external reference repository').replace(/\/$/, '');
   invariant(GITHUB_REPOSITORY.test(repository), 'External reference repository must be a public GitHub repository URL');
   invariant(SHA40.test(input.revision || ''), 'External reference revision must be a full commit SHA');
+  const sourceFamily = identifier(input.sourceFamily, 'external reference source family');
   const license = nonEmptyString(input.license, 'external reference license');
+  invariant(!LICENSE_PLACEHOLDER.test(license), 'External reference license must be explicit');
   invariant(ADOPTION_POLICIES.has(input.adoptionPolicy), `Unknown external reference adoption policy: ${input.adoptionPolicy}`);
   const evidence = stringList(input.evidence, 'external reference evidence', { min: 1 }).map(repositoryEvidencePath);
   const observations = stringList(input.observations, 'external reference observation', { min: 1, pattern: OBSERVATION_ID });
@@ -61,6 +65,7 @@ export function defineExternalCharacterReference(input) {
     repository,
     revision: input.revision.toLowerCase(),
     sourceKey: `${repository}@${input.revision.toLowerCase()}`,
+    sourceFamily,
     license,
     licenseUrl,
     adoptionPolicy: input.adoptionPolicy,
@@ -76,6 +81,7 @@ const externalReferences = [
     kind: 'character-source',
     repository: 'https://github.com/yw0nam/YUI',
     revision: '9bce6c36d28f58693db3ce6f4203871ab1c11b76',
+    sourceFamily: 'vroid-project',
     license: 'CC0-1.0 source / VRM-Public-License-1.0 conversion',
     licenseUrl: 'https://vrm.dev/licenses/1.0/',
     adoptionPolicy: 'source-audit',
@@ -87,6 +93,7 @@ const externalReferences = [
     kind: 'character-reference',
     repository: 'https://github.com/SanHsien/voxavatar',
     revision: '448e505e2ce7d436660c339ddb4b5b908f471bbe',
+    sourceFamily: 'vroid-project',
     license: 'VRoid sample model terms',
     licenseUrl: 'https://vroid.pixiv.help/hc/en-us/articles/4402394424089-VRoidPreset-A-Z',
     adoptionPolicy: 'reference-only',
@@ -98,6 +105,7 @@ const externalReferences = [
     kind: 'character-reference',
     repository: 'https://github.com/SanHsien/voxavatar',
     revision: '448e505e2ce7d436660c339ddb4b5b908f471bbe',
+    sourceFamily: 'vroid-project',
     license: 'VRoid sample model terms',
     licenseUrl: 'https://vroid.pixiv.help/hc/en-us/articles/4402394424089-VRoidPreset-A-Z',
     adoptionPolicy: 'reference-only',
@@ -109,6 +117,7 @@ const externalReferences = [
     kind: 'runtime-technique',
     repository: 'https://github.com/pixiv/three-vrm',
     revision: '1b4fc0cc7ef39a49d62bb7a66dcfeca8f65316f7',
+    sourceFamily: 'pixiv-three-vrm',
     license: 'MIT',
     licenseUrl: 'https://github.com/pixiv/three-vrm/blob/1b4fc0cc7ef39a49d62bb7a66dcfeca8f65316f7/LICENSE',
     adoptionPolicy: 'technique-only',
@@ -137,7 +146,7 @@ export function evaluateExternalReferenceConsensus(referenceIds, observation, { 
   const references = ids.map(getExternalCharacterReference);
   const independent = new Map();
   for (const reference of references) {
-    if (reference.observations.includes(observed)) independent.set(reference.repository, reference.id);
+    if (reference.observations.includes(observed)) independent.set(reference.sourceFamily, reference.id);
   }
   const supportingReferenceIds = [...independent.values()].sort();
   return deepFreeze({
@@ -246,10 +255,36 @@ function productionRecord(candidate, target) {
 }
 
 function goldenMatches(golden, target) {
-  return golden?.schema === 'character-golden-baseline' && golden.version === CHARACTER_GOLDEN_BASELINE_VERSION &&
-    golden.target.app === target.app && golden.target.ageBand === target.ageBand &&
+  return golden.target.app === target.app && golden.target.ageBand === target.ageBand &&
     golden.target.bodyArchetype === target.bodyArchetype && golden.target.role === target.role &&
     golden.target.renderTier === target.renderTier;
+}
+
+export function validateCharacterGoldenBaseline(input) {
+  invariant(input && typeof input === 'object' && !Array.isArray(input), 'Invalid golden baseline');
+  invariant(input.schema === 'character-golden-baseline' && input.version === CHARACTER_GOLDEN_BASELINE_VERSION, 'Invalid golden baseline schema');
+  const id = identifier(input.id, 'golden baseline id');
+  const assetId = identifier(input.assetId, 'golden baseline asset id');
+  const assetHash = nonEmptyString(input.assetHash, 'golden baseline asset hash');
+  const target = normalizeTarget(input.target);
+  invariant(input.visualApproval === 'approved', 'Golden baseline requires visual approval');
+  invariant(input.productionStage === 'RUNTIME_READY', 'Golden baseline requires RUNTIME_READY');
+  const metrics = Object.fromEntries(GOLDEN_METRICS.map(metric => {
+    const value = input.metrics?.[metric];
+    invariant(Number.isFinite(value) && value >= 0, `Invalid golden metric: ${metric}`);
+    return [metric, value];
+  }));
+  return deepFreeze({
+    schema: 'character-golden-baseline',
+    version: CHARACTER_GOLDEN_BASELINE_VERSION,
+    id,
+    assetId,
+    assetHash,
+    target,
+    metrics,
+    visualApproval: 'approved',
+    productionStage: 'RUNTIME_READY'
+  });
 }
 
 export function createCharacterGoldenBaseline({ id, target, manifest }) {
@@ -259,7 +294,7 @@ export function createCharacterGoldenBaseline({ id, target, manifest }) {
   invariant(evaluation.productionReady, 'Golden baseline requires a RUNTIME_READY production manifest');
   invariant(manifest.evidence?.polish?.visualApproval === 'approved', 'Golden baseline requires explicit visual approval');
   const runtime = manifest.evidence.runtime;
-  return deepFreeze({
+  return validateCharacterGoldenBaseline({
     schema: 'character-golden-baseline',
     version: CHARACTER_GOLDEN_BASELINE_VERSION,
     id: goldenId,
@@ -278,28 +313,26 @@ export function createCharacterGoldenBaseline({ id, target, manifest }) {
   });
 }
 
-const GOLDEN_METRICS = Object.freeze(['triangles', 'drawCalls', 'textureMemoryBytes', 'desktopP95Ms', 'mobileP95Ms']);
-
 export function compareCharacterRuntimeToGolden(runtime, golden) {
-  invariant(golden?.schema === 'character-golden-baseline' && golden.version === CHARACTER_GOLDEN_BASELINE_VERSION, 'Invalid golden baseline');
+  const baseline = validateCharacterGoldenBaseline(golden);
   invariant(runtime && typeof runtime === 'object' && !Array.isArray(runtime), 'Invalid runtime evidence');
   const comparisons = GOLDEN_METRICS.map(metric => {
-    const baseline = golden.metrics[metric], candidate = runtime[metric];
-    const measured = Number.isFinite(candidate) && candidate >= 0 && Number.isFinite(baseline) && baseline >= 0;
+    const baselineValue = baseline.metrics[metric], candidate = runtime[metric];
+    const measured = Number.isFinite(candidate) && candidate >= 0;
     return deepFreeze({
       metric,
       status: measured ? 'measured' : 'unavailable',
-      baseline: measured ? baseline : null,
+      baseline: measured ? baselineValue : null,
       candidate: measured ? candidate : null,
-      delta: measured ? candidate - baseline : null,
-      ratio: measured && baseline > 0 ? candidate / baseline : null
+      delta: measured ? candidate - baselineValue : null,
+      ratio: measured && baselineValue > 0 ? candidate / baselineValue : null
     });
   });
   return deepFreeze({
     schema: 'character-golden-comparison',
     version: 1,
-    goldenId: golden.id,
-    assetId: golden.assetId,
+    goldenId: baseline.id,
+    assetId: baseline.assetId,
     result: comparisons.every(row => row.status === 'measured') ? 'complete' : 'partial',
     comparisons,
     visualApprovalRequired: true
@@ -336,6 +369,7 @@ export function buildCharacterCoverageMatrix(targets, {
   invariant(Array.isArray(targets), 'Character coverage targets must be an array');
   invariant(Array.isArray(productionAssets), 'Production assets must be an array');
   invariant(Array.isArray(goldenBaselines), 'Golden baselines must be an array');
+  const validatedGoldens = goldenBaselines.map(validateCharacterGoldenBaseline);
   const rows = targets.map(normalizeTarget).map(target => {
     const localReferences = localReferencesForTarget(target);
     const linkedExternalIds = new Set(target.externalReferenceIds);
@@ -344,7 +378,7 @@ export function buildCharacterCoverageMatrix(targets, {
     }
     const externalReferences = [...linkedExternalIds].map(getExternalCharacterReference);
     const production = productionAssets.map(candidate => productionRecord(candidate, target)).filter(Boolean);
-    const golden = goldenBaselines.filter(item =>
+    const golden = validatedGoldens.filter(item =>
       goldenMatches(item, target) && production.some(row => row.productionReady && row.id === item.assetId));
     const ready = production.some(item => item.productionReady);
     const hasReference = localReferences.length > 0 || externalReferences.length > 0;
