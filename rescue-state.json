@@ -3154,6 +3154,14 @@
       "pr": 90,
       "type": "WORK_REPAIR_HEARTBEAT",
       "workerId": "work/866e55ef0f5e/20260915T0820Z-pr90"
+    },
+    {
+      "action": "attempt 1/2 preserved; baseline churn 1/8: develop advanced d6c63204→ee21e019; reconciled the sole overlapping file apps/village/src/asset-visuals.js against the compressed-loader contract",
+      "at": "2026-09-15T08:37:15.314Z",
+      "id": "work/866e55ef0f5e/20260915T0820Z-pr90:WORK_REPAIR_BASELINE_ADVANCED:1789461435314:1182",
+      "pr": 90,
+      "type": "WORK_REPAIR_BASELINE_ADVANCED",
+      "workerId": "work/866e55ef0f5e/20260915T0820Z-pr90"
     }
   ],
   "config": {
@@ -7109,7 +7117,7 @@
       },
       "state": "FAILED_MANUAL",
       "title": "fix(village): consolidate playthrough interactions and tactile UI",
-      "updatedAt": "2026-09-15T08:35:07.500Z",
+      "updatedAt": "2026-09-15T08:37:15.314Z",
       "waitingReason": null,
       "wave": "wave-34744962794-1",
       "workRepairAttempts": 1,
@@ -7119,11 +7127,11 @@
         "attempt": 1,
         "maxAttempts": 2,
         "repairKind": "semantic",
-        "baselineChurns": 0,
+        "baselineChurns": 1,
         "maxBaselineChurns": 8,
-        "resumedFromBaselineAdvance": false,
+        "resumedFromBaselineAdvance": true,
         "sourceHead": "b6c43134fb6675c7dfad770b1cda21d49adef9a8",
-        "develop": "d6c632041fd83bce18eb1c899a89d8eb679f2498",
+        "develop": "ee21e019fa1112ff2e85da58d9758dbafdb53f68",
         "contract": "57b8022b071e6d6e6c563d8078d6e5fd752197731a6022ce08535888dbda425e",
         "evidenceKey": "8f0ce00a971e027cd6caea1203ae4ccf61888ff99e3e2357d73986eb0b71fa90",
         "scope": {
@@ -7175,8 +7183,8 @@
           "repairKind": "semantic"
         },
         "startedAt": "2026-09-15T08:17:33.022Z",
-        "heartbeatAt": "2026-09-15T08:35:07.500Z",
-        "expiresAt": "2026-09-15T09:20:07.500Z"
+        "heartbeatAt": "2026-09-15T08:37:15.314Z",
+        "expiresAt": "2026-09-15T09:22:15.314Z"
       }
     },
     "93": {
@@ -19312,9 +19320,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1181,
+  "revision": 1182,
   "schema": 1,
-  "updatedAt": "2026-09-15T08:35:07.500Z",
+  "updatedAt": "2026-09-15T08:37:15.314Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:13:12.416Z",
