@@ -1,6 +1,8 @@
 import { targetAppsFromFiles } from './pulls.mjs';
 import { FAILED_CONCLUSIONS } from './public/health.mjs';
 
+const MAX_TARGET_FILE_PAGES = 5;
+
 export function targetRevision(pr) {
   if (!pr?.head?.sha || !pr?.base?.sha) return null;
   const base = pr.state === 'closed' ? `closed:${pr.merged_at || pr.closed_at || ''}:${pr.merge_commit_sha || pr.base.sha}` : pr.base.sha;
@@ -20,19 +22,20 @@ export async function enrichTargets(pulls, client, storage, limit = 2, now = Dat
   pending.sort((a, b) => Number(b.pr.state === 'open') - Number(a.pr.state === 'open') || (a.saved?.attemptAt || 0) - (b.saved?.attemptAt || 0));
   let attempted = 0;
   for (const { pr, revision, saved } of pending) {
-    if (!revision || attempted >= limit || client.available < 3) continue;
+    if (!revision || attempted >= limit || client.available < 3 || !client.deepAllowed) continue;
     if (saved?.revision === revision && saved.retryAt > now) { pr.targetAppsStatus = 'unavailable'; continue; }
     attempted++;
     try {
       const files = [];
       let complete = false;
-      for (let page = 1; page <= 30 && client.available > 1; page++) {
-        const { data, response } = await client.get(`/pulls/${pr.number}/files?per_page=100&page=${page}`);
+      for (let page = 1; page <= MAX_TARGET_FILE_PAGES && client.available > 1 && client.deepAllowed; page++) {
+        const { data, response } = await client.get(`/pulls/${pr.number}/files?per_page=100&page=${page}`, { maxAgeMs: 60_000 });
         if (!Array.isArray(data)) throw new Error('変更ファイルの形式が不正です');
         files.push(...data);
         if (!/rel="next"/.test(response.headers.get('link') || '')) { complete = true; break; }
       }
-      const { data: confirmed } = await client.get(`/pulls/${pr.number}`);
+      if (!client.deepAllowed || client.available < 1) throw Object.assign(new Error('GitHub API残量保護のため対象判定を次回へ延期'), { budgetLimited: true });
+      const { data: confirmed } = await client.get(`/pulls/${pr.number}`, { maxAgeMs: 60_000 });
       if (targetRevision(confirmed) !== revision) throw new Error('取得中にPRの版が更新されました');
       complete = complete && Number.isInteger(confirmed.changed_files) && files.length === confirmed.changed_files;
       const paths = files.flatMap(file => [file.filename, file.previous_filename].filter(Boolean));
