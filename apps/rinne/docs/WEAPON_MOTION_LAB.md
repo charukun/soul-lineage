@@ -86,7 +86,13 @@ Acceptance criteria:
 - keep the independent Lab branch / Draft boundary. No `develop`, `main`, game
   combat authority, damage timing, save schema or Production promotion changes.
 
-The external movement reference must record repository/revision/license and the
-observed facts that are actually adopted. Current official Quaternius guidance
-is used only for directional-step timing/phase and root-motion ownership; exact
-asset redistribution is not required for this review implementation.
+The exact locomotion-data pin is the repo's already audited Quaternius bundle
+from public GitHub `norio/vrm-game-starter` at
+`b14c236fd8150855348ad085b7820c298eac4b30`,
+`src/assets/AnimationLibrary.glb`, blob
+`8ce67624ba3bb4d2ca20a4ac188fe38ceaaab97e` (CC0 upstream). Current directional
+behavior is additionally checked against `J-Ponzo/gltf-universal-animation-library`
+at `e24c23cf2a1323488a3faa226ea7ea21f644b73e`: eight-direction locomotion,
+controller-owned root movement and synchronized left-foot starts. The review
+implementation reuses those facts as deterministic step phase/travel data and
+does not add another external animation binary.
