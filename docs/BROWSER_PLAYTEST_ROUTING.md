@@ -31,6 +31,10 @@ PR browser artifactには対象・要求・実行結果を示す `playtest-recei
 
 `Browser-Playtest:` はReady前に確定する。Ready後に対象を変える場合は、同じPRで新headをpushするかDraft→Readyをやり直して通常browser runを再起動し、本文だけを書き換えて検証済みと扱わない。
 
+### playthroughのブラウザ隔離
+
+同じアプリで「起動/WebGLの軽量probe」と「保存・タイトル復帰を含むfull playthrough」を連続実行する場合、probe用BrowserContextを閉じてからfull playthroughを開始する。二つのruntimeを同時に生かしたまま同一originの保存・exclusive-tab・lifecycle状態を競合させない。これは検証を弱めるためではなく、各playthroughを実ユーザーの単一タブ起動に近い独立セッションとして成立させるための隔離条件である。
+
 ## PRを伴わない現在developの確認
 
 コード変更なしで現在のdevelopを実際に触って確認する場合は、新しいworkflowを増やさず既存の `Deploy DEV and PROD` workflowを `ref=develop`, `full_verification=true` でdispatchする。この経路は現在のdevelopをDEVへ整合させたうえで、`INTEGRATION_FULL=true` のpublic Chromium / WebGL2検証を全DEV targetへ実行し、既存artifactとstatusへ証拠を残す。必要なP2P診断も既存full verificationに含まれる。
