@@ -4,9 +4,8 @@ import { readFileSync } from 'node:fs';
 
 const browser = readFileSync('scripts/verify-browser.mjs', 'utf8');
 const recorder = readFileSync('scripts/browser-repair-ticket.mjs', 'utf8');
+const notify = readFileSync('scripts/notify-delivery.mjs', 'utf8');
 const deploy = readFileSync('.github/workflows/deploy.yml', 'utf8');
-const repairWorkflow = readFileSync('.github/workflows/dev-browser-repair.yml', 'utf8');
-const prRecorderWorkflow = readFileSync('.github/workflows/browser-repair.yml', 'utf8');
 const contract = readFileSync('docs/DEV_PUBLICATION.md', 'utf8');
 
 test('normal develop publication bypasses heavy browser work without weakening Production verification', () => {
@@ -18,40 +17,33 @@ test('normal develop publication bypasses heavy browser work without weakening P
   assert.match(deploy, /github\.ref == 'refs\/heads\/main'.*verify-browser/s);
 });
 
-test('a skipped DEV publisher browser step cannot manufacture repair success', () => {
+test('DEV delivery cannot fake browser evidence but may complete an already-green repair', () => {
   assert.match(recorder, /REPAIR_VERIFIED === 'true'/);
-  assert.match(recorder, /noop-unverified-develop-success/);
-  assert.match(recorder, /REPAIR_ISSUE_NUMBER/);
-});
-
-test('only an active merged ready develop repair launches final heavy browser verification', () => {
-  assert.match(repairWorkflow, /browser-repair:v1/);
-  assert.match(repairWorkflow, /state === 'ready-for-integration'/);
-  assert.match(repairWorkflow, /compareCommits/);
-  assert.match(repairWorkflow, /merge_base_commit/);
-  assert.match(repairWorkflow, /No merged develop browser repair is ready for final verification; normal DEV publication stays browser-free/);
-  assert.match(repairWorkflow, /INTEGRATION_FULL: 'true'/);
-  assert.match(repairWorkflow, /REPAIR_VERIFIED: 'true'/);
-  assert.match(repairWorkflow, /REPAIR_ISSUE_NUMBER/);
-  assert.match(repairWorkflow, /Keep failed repair verification visible without blocking DEV publication/);
-});
-
-test('repair PR browser success explicitly wakes final DEV verification without waking for normal PRs', () => {
-  assert.match(prRecorderWorkflow, /actions: write/);
-  assert.match(prRecorderWorkflow, /Auto-Repair-Issue\|Browser-Repair-Issue/);
-  assert.match(prRecorderWorkflow, /dev-browser-repair\.yml/);
-  assert.match(prRecorderWorkflow, /Normal PR browser success needs no DEV repair verification wake/);
+  assert.match(recorder, /finalizeReadyDevelopRepairFromDelivery/);
+  assert.match(recorder, /state\.state !== 'ready-for-integration'/);
+  assert.match(recorder, /repairPrHead \|\| state\.headSha/);
+  assert.match(recorder, /verificationMode: 'repair-pr-browser\+dev-delivery'/);
+  assert.match(recorder, /noop-dev-delivery-without-ready-repair/);
 });
 
 test('late repair PR browser success reconnects to the develop repair ticket after merge', () => {
   assert.match(recorder, /late-merged-repair-success/);
   assert.match(recorder, /ready-for-integration/);
   assert.match(recorder, /currentDevelopContainingMergedPr/);
+  assert.match(recorder, /close when the repaired head is confirmed in published DEV/);
+});
+
+test('DEV_DEPLOYED copy and final status do not claim browser certification', () => {
+  assert.match(notify, /Fast checks \/ DEV publication \/ HTTP-source verification passed/);
+  assert.match(notify, /Browser diagnostics are asynchronous/);
+  assert.match(notify, /DEV published; HTTP\/source verified; browser diagnostics are asynchronous/);
+  assert.doesNotMatch(notify, /focused browser passed/);
 });
 
 test('the focused DEV contract keeps publication and repair as separate state machines', () => {
   assert.match(contract, /Browser\/WebGL\/gameplay scenarios are not a prerequisite for DEV visibility/);
   assert.match(contract, /Normal DEV publication does not launch a second all-app browser sweep/);
+  assert.match(contract, /repair PR's browser verification is green/);
   assert.match(contract, /configured finite attempt limit/);
   assert.match(contract, /Production remains unchanged/);
 });
