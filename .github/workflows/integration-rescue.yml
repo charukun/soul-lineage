@@ -59,7 +59,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
-      actions: read
+      actions: write
       statuses: write
     env:
       APP_ENV: dev
@@ -163,6 +163,12 @@ jobs:
             await github.rest.repos.createCommitStatus({ ...context.repo, sha: process.env.HEAD_SHA,
               context: 'integration/stack-fast', state: 'success', description: 'Trusted exact-head stack fast validation passed',
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
+      - name: Wake Fast Lane immediately for this validated head
+        if: success()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'deploy.yml', ref: 'develop' });
       - name: Mark exact-head stack validation failed
         if: failure() || cancelled()
         uses: actions/github-script@v8
@@ -173,20 +179,6 @@ jobs:
             await github.rest.repos.createCommitStatus({ ...context.repo, sha: process.env.HEAD_SHA,
               context: 'integration/stack-fast', state: 'failure', description: 'Trusted exact-head stack fast validation failed',
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
-
-  stack-integration-request:
-    name: Wake Fast Lane after stack validation
-    needs: [repair, stack-fast]
-    if: always() && needs.repair.outputs.stack_has_work == 'true' && !cancelled()
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    permissions:
-      actions: write
-    steps:
-      - uses: actions/github-script@v8
-        with:
-          script: |
-            await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'deploy.yml', ref: 'develop' });
 
   stack-browser:
     name: Stack browser smoke #${{ matrix.pr }}
