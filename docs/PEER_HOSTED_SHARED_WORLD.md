@@ -1,5 +1,17 @@
 # Peer-hosted Shared World / Darkness Host Migration
 
+## Rinne DEV cooperative play acceptance
+
+Rinne's current rebuilt game must expose an explicit private friend-play entry connected to its actual renderer, life progression and shared frontier. The standalone text-only online panel is not proof of playable multiplayer. This opt-in entry is separate from MURAAAAAAA's exterior-only sightseeing invitation and must not expand sightseeing permissions.
+
+- Keep the shared-room limit at 30 participants; measure support rather than claim 30-device certification.
+- The room Host processes bounded player intentions and advances one common world clock. Guests display the resulting state; a shared enemy must not lose HP in independent copies of a fight.
+- Invitations and replies use the existing WebRTC transport. Provide a shareable invitation URL and a usable manual answer fallback; no new paid infrastructure is required for this DEV slice.
+- Host loss or suspension stops guest progression and displays darkness. Do not promote a client through unverified majority claims; same-Host reconnect must recover from the room's accepted state.
+- Use a separate cooperative save namespace. Joining, leaving and testing cannot replace a player's existing `life-v2` single-player save.
+- This first DEV slice trusts its invited Host. It is not cloud-verified irreversible history, arbitrary-host cheat resistance, automatic distributed migration, or physical Pixel Fold/NAT/TURN certification. These remain explicit RRP gates.
+
+
 ## Current application contract
 
 The latest `docs/VILLAGE_VISUAL_AND_FRIEND_INVITE.md` governs the application entry points. Village owners deliberately issue a 15-minute friend invitation. The dedicated guest page receives exterior presentation only: no people, progression, room contents, personal save, raid state or rewards. Demon keeps its disabled `friend-invite-only` online adapter. There is no public village directory or ordinary online-raid entry.
