@@ -39,7 +39,7 @@ test('DEV_DEPLOYED copy and final status do not claim browser certification', ()
   assert.match(notify, /Browser diagnostics are asynchronous/);
   assert.match(notify, /DEV published; HTTP\/source verified; browser diagnostics are asynchronous/);
   assert.doesNotMatch(notify, /focused browser passed/);
-  assert.ok(notify.indexOf('recordDevelopDeliveryStatus({') < notify.indexOf('channel = await notifyStage('),
+  assert.ok(notify.indexOf('const status = await recordDevelopDeliveryStatus({') < notify.indexOf('channel = await notifyStage('),
     'GitHub delivery status must be recorded before advisory smartphone notification');
 });
 
