@@ -10,19 +10,19 @@ async function expectVillageReady(page, expect) {
   await expect(page.locator('#game')).toHaveAttribute('data-renderer','ready',{timeout:STARTUP_TIMEOUT_MS});
 }
 
-async function finishFirstRunAutoplay(page, expect) {
-  const intro=page.locator('#muraFirstRunTutorial');
-  if(!(await intro.count())||!(await intro.isVisible()))return false;
+async function finishFirstRunGuide(page, expect) {
+  const guide=page.locator('#muraFirstRunGuide');
+  if(!(await guide.count()))return false;
+  await expect(guide).toBeVisible();
   await expect(page.locator('#game')).toHaveAttribute('data-first-run-tutorial','running');
-  await nativeTap(page,expect,page.locator('#muraFirstRunSkip'));
-  await expect(intro).toHaveCount(0);
+  await nativeTap(page,expect,page.locator('.muraFirstRunSkip'));
+  await expect(guide).toHaveCount(0);
   await expect(page.locator('#game')).toHaveAttribute('data-first-run-tutorial','seen');
   return true;
 }
 
 export async function enterVillageForBrowser(page, expect) {
   await expectVillageReady(page, expect);
-  await finishFirstRunAutoplay(page,expect);
   const entry=page.locator('#muraEntry'),enter=page.locator('#muraEnterVillage');
   if(await enter.count()&&await enter.isVisible()){
     await nativeTap(page,expect,enter);
@@ -30,6 +30,7 @@ export async function enterVillageForBrowser(page, expect) {
   }else{
     await expect(entry).toHaveCount(0);
   }
+  await finishFirstRunGuide(page,expect);
 }
 
 async function placementCenter(page){
