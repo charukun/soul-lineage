@@ -11,6 +11,7 @@ Integrationの正本はGitHub current stateだけにする。Planner、通常Vir
 1. **Events are wake signals**
    - Ready、exact-head fast CI完了、review/label変更、repair scanなどはFast Laneを起こすだけ。
    - event payloadをmerge可否の正本にせず、PR/develop/review/checkをGitHubから再取得する。
+   - GitHub Actionsの`GITHUB_TOKEN`でstacked Ready PRのheadを更新した場合は、再帰的な`pull_request/synchronize`起動に依存しない。更新直後のcurrent PR/headを再取得して、trustedなexact-head fast validationを明示的に起動する。
 2. **One failed PR never freezes independent PRs**
    - fast failure、browser failure、hold、dependency、review objectionはそのPRだけを保留する。
 3. **Single develop writer**
@@ -71,6 +72,7 @@ workflow_dispatchのIntegration/repair runはcoalescer対象外。publish step�
 - dependency未完了はmergeしない
 - current exact-head fast evidenceなしではmergeしない
 - control-plane / overlapping scopeはexact-head trusted reviewを維持
+- automated stack reconciliation後のvalidationはPR番号・expected headを入力として受けても、実行直前にcurrent open/non-Draft/base/same-repository/head一致を再確認する
 - developが外部更新されたらそのpassを停止してcurrent stateから再開
 - main / Production gateは変更しない
 
@@ -81,3 +83,4 @@ workflow_dispatchのIntegration/repair runはcoalescer対象外。publish step�
 - normal Integration topologyはFast Lane writer + optional repair executorだけ
 - stale DEV push publicationはlatest developへcoalesceする
 - current head/review/dependency/hold/mergeabilityの再読を省略しない
+- Actions botがdependency reconciliationでReady PR headを更新しても、人間の空commitやApprove-and-runなしでcurrent exact-head fast validationが開始される
