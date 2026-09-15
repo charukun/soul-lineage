@@ -1,8 +1,14 @@
 import { stylizedArtProfile } from '@soul/characters';
-import { createAdaptiveQualityGovernor } from '@soul/rendering/adaptive-quality';
-import { applyTextureQuality } from '@soul/rendering/texture-quality';
+import { THREE as T } from '@soul/rendering';
+import { createGpuAwareQualityGovernor } from '@soul/rendering/gpu-aware-quality';
+import { createGpuTimer } from '@soul/rendering/gpu-timer';
+import { applyTextureQuality, auditTextureBudget } from '@soul/rendering/texture-quality';
 import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { createVisualDistanceStreamer } from '@soul/rendering/world-streaming';
+import { createConservativeOcclusionCuller } from '@soul/rendering/occlusion';
+import { batchStaticMeshes } from '@soul/rendering/instance-atlas';
+import { createPerformanceRecorder } from '@soul/rendering/performance-lab';
+import { auditTransparency, combineTransparencyAudits } from '@soul/rendering/transparency-audit';
 import { NightView } from './web/view.js';
 
 const governors = new WeakMap(), enemyFx = stylizedArtProfile('enemy').effects;
@@ -15,11 +21,24 @@ function setShadowSize(view, scale) {
 }
 
 function markCritical(view) {
-  for (const node of [view.gate,view.entry,view.back,view.ward]) if (node?.userData) node.userData.streamingCritical=true;
+  for (const root of [view.gate,view.entry,view.back,view.ward]) if (root) root.traverse?.(node=>{node.userData=node.userData||{};node.userData.streamingCritical=true;node.userData.noBatch=true;});
   for (const child of view.environment?.children || []) {
     const geometry = child.geometry;
-    if (geometry?.parameters?.width >= 100 || geometry?.parameters?.height >= 100) child.userData.streamingCritical=true;
+    if (geometry?.parameters?.width >= 100 || geometry?.parameters?.height >= 100) { child.userData.streamingCritical=true; child.userData.noBatch=true; }
   }
+}
+
+function textureBytes(view) {
+  return [view.environment,view.actors,view.reaper?.root].filter(Boolean).reduce((sum,root)=>sum+auditTextureBudget(root).estimatedBytes,0);
+}
+
+function transparencyAudit(view) {
+  return combineTransparencyAudits([view.environment,view.actors,view.reaper?.root].filter(Boolean).map(root=>auditTransparency(root)));
+}
+
+function performanceScene(view) {
+  const actors=view.actors?.children?.length||0,environmentRoots=view.environment?.children?.length||0,reaper=Boolean(view.reaper?.root),staticBatches=view.environment?.children?.filter?.(child=>child.userData?.staticBatch)?.length||0;
+  return Object.freeze({id:'demon-first-village-v1',actors,environmentRoots,reaper,staticBatches,signature:`a${actors}-e${environmentRoots}-r${reaper?1:0}-b${staticBatches}`});
 }
 
 function apply(view,snapshot) {
@@ -34,32 +53,50 @@ function apply(view,snapshot) {
     for(const child of root.children||[]){const profileId=child.userData?.stylizedArt?.profileId;if(profileId)applyStylizedShading(child,profileId);}
   }
   view.stylizedVfxBudget={...enemyFx,scale:enemyFx.scale*q.vfxScale,maxParticles:Math.max(80,Math.floor(enemyFx.maxParticles*q.vfxScale)),trailSegments:Math.max(8,Math.floor(enemyFx.trailSegments*q.vfxScale))};
+  view.__estimatedTextureBytes=textureBytes(view);
+}
+
+function occlusionRoots(view) {
+  const occluders=[],candidates=[];
+  for(const child of view.environment?.children||[]){
+    if(child.userData?.streamingCritical||child.userData?.occlusionDisabled||child.userData?.staticBatch)continue;
+    const box=new T.Box3().setFromObject(child);if(box.isEmpty())continue;const size=box.getSize(new T.Vector3()),horizontal=Math.max(size.x,size.z);
+    if(size.y>2.5&&horizontal>3.5&&horizontal<90)occluders.push(child);
+    else if(size.y>.1&&horizontal<35)candidates.push(child);
+  }
+  return {occluders,candidates};
 }
 
 function governorFor(view) {
   if (governors.has(view)) return governors.get(view);
   const streamer=createVisualDistanceStreamer({baseDistance:138,hysteresis:14});
-  const governor=createAdaptiveQualityGovernor({targetFps:isMobileTarget()?30:60,onChange:s=>apply(view,s)});
-  const state={governor,streamer,stream:null};governors.set(view,state);markCritical(view);apply(view,governor.snapshot());
-  if(typeof window!=='undefined')window.__DEMON_ADAPTIVE_QUALITY__={snapshot:()=>({quality:governor.snapshot(),stream:state.stream,vfx:view.stylizedVfxBudget})};
+  const gpu=createGpuTimer(view.renderer),recorder=createPerformanceRecorder({label:'demon'}),occlusion=createConservativeOcclusionCuller({maxChecksPerUpdate:6,minDistance:18,hiddenConfirmations:2});
+  const governor=createGpuAwareQualityGovernor({targetFps:isMobileTarget()?30:60,onChange:s=>apply(view,s)});
+  const state={governor,streamer,gpu,recorder,occlusion,occlusionFrame:0,transparencyFrame:0,transparency:combineTransparencyAudits([]),staticBatch:null,stream:null};governors.set(view,state);markCritical(view);apply(view,governor.snapshot());
+  if(typeof window!=='undefined')window.__DEMON_ADAPTIVE_QUALITY__={snapshot:()=>({quality:governor.snapshot(),gpu:gpu.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),transparency:state.transparency,scene:performanceScene(view),staticBatch:state.staticBatch?{batches:state.staticBatch.batches,instances:state.staticBatch.instances}:null,stream:state.stream,vfx:view.stylizedVfxBudget,textureBytes:view.__estimatedTextureBytes||0})};
   return state;
 }
 
 const build=NightView.prototype.build;
 if(typeof build==='function'&&!build.__adaptiveVisualPerformance){
- const wrapped=function adaptiveDemonBuild(...args){const result=build.apply(this,args);markCritical(this);const state=governorFor(this);apply(this,state.governor.snapshot());return result;};
+ const wrapped=function adaptiveDemonBuild(...args){const result=build.apply(this,args);markCritical(this);const state=governorFor(this);if(!state.staticBatch)state.staticBatch=batchStaticMeshes(this.environment,{minInstances:3,maxInstances:256});apply(this,state.governor.snapshot());return result;};
  wrapped.__adaptiveVisualPerformance=true;NightView.prototype.build=wrapped;
 }
 
 const update=NightView.prototype.update;
 if(typeof update==='function'&&!update.__adaptiveVisualPerformance){
  const wrapped=function adaptiveDemonUpdate(game,dt,...rest){
-  const result=update.call(this,game,dt,...rest),state=governorFor(this),snapshot=state.governor.snapshot(),focus=game?.player||this.player?.position||{x:0,z:0};
+  const state=governorFor(this);state.gpu.begin('demon-frame');
+  const result=update.call(this,game,dt,...rest);state.gpu.end();const gpu=state.gpu.poll(),snapshot=state.governor.snapshot(),focus=game?.player||this.player?.position||{x:0,z:0};
   for(const actor of this.actors?.children||[]){actor.userData.presentationDistance=Math.hypot((actor.position?.x||0)-(focus.x||0),(actor.position?.z||0)-(focus.z||0));actor.userData.visualQualityLevel=snapshot.level;}
   if(this.reaper?.root){this.reaper.root.userData.presentationDistance=0;this.reaper.root.userData.visualQualityLevel=snapshot.level;}
   this.environment.userData.visualQualityLevel=snapshot.level;for(const child of this.environment.children||[])child.userData.visualQualityLevel=snapshot.level;
   state.stream=state.streamer.update(this.environment,focus,snapshot.profile.streamDistanceScale);
-  apply(this,snapshot);state.governor.observeFrame(dt);return result;
+  const next=state.governor.observeFrame(dt,gpu.emaMs);apply(this,next);
+  if((state.transparencyFrame++%120)===0)state.transparency=transparencyAudit(this);
+  state.recorder.sample({frameMs:dt*1000,gpuMs:gpu.emaMs,drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,textureBytes:this.__estimatedTextureBytes||0,transparentDrawCalls:state.transparency.blendedDrawCalls,transparentTriangleUpperBound:state.transparency.transparentTriangleUpperBound});
+  if((state.occlusionFrame++%10)===0){const roots=occlusionRoots(this);state.occlusion.update({camera:this.camera,...roots});}
+  return result;
  };
  wrapped.__adaptiveVisualPerformance=true;NightView.prototype.update=wrapped;
 }

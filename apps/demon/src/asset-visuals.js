@@ -1,6 +1,6 @@
 import './master-humans.js';
-import * as T from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { THREE as T } from '@soul/rendering';
+import { createCompressedGLTFLoader } from '@soul/rendering/compressed-gltf';
 import { NightView } from './web/view.js';
 
 // Visual-only pass. No NPC state, combat hitbox, navigation or raid rules are changed.
@@ -28,13 +28,16 @@ const LOCAL = Object.freeze({
   dungeon: `${import.meta.env.BASE_URL}assets/vendor/kaykit-dungeon`,
   particles: `${import.meta.env.BASE_URL}assets/vendor/kenney-particles`,
 });
-const loader = new GLTFLoader();
+const loaderByRenderer = new WeakMap();
 const textureLoader = new T.TextureLoader();
 const cache = new Map();
 const particleTextures = new Map();
-
-function load(url) {
-  if (!cache.has(url)) cache.set(url, loader.loadAsync(url).catch(error => { cache.delete(url); throw error; }));
+function loaderFor(view) {
+  if (!loaderByRenderer.has(view.renderer)) loaderByRenderer.set(view.renderer, createCompressedGLTFLoader({ renderer: view.renderer, transcoderPath: `${import.meta.env.BASE_URL}basis/` }));
+  return loaderByRenderer.get(view.renderer);
+}
+function load(url, view) {
+  if (!cache.has(url)) cache.set(url, loaderFor(view).loadAsync(url).catch(error => { cache.delete(url); throw error; }));
   return cache.get(url);
 }
 function particleTexture(file) {
@@ -45,12 +48,11 @@ function particleTexture(file) {
     loaded.needsUpdate = true;
   }, undefined, error => console.warn(`[尽喰廻遊] local particle texture failed: ${file}`, error));
   texture.colorSpace = T.SRGBColorSpace;
+  texture.userData.source = url;
   particleTextures.set(file, texture);
   return texture;
 }
-function primeParticleTextures() {
-  for (const file of PARTICLE_SOURCE.files) particleTexture(file);
-}
+function primeParticleTextures() { for (const file of PARTICLE_SOURCE.files) particleTexture(file); }
 function shadows(root) {
   root.traverse(node => {
     if (!node.isMesh) return;
@@ -77,7 +79,7 @@ function fitHeight(root, height) {
 async function addSkeletonSentinel(view, generation) {
   const url = `${LOCAL.skeletons}/Skeleton_Minion.glb`;
   try {
-    const gltf = await load(url);
+    const gltf = await load(url, view);
     if (view.__assetPassGeneration !== generation || !view.environment?.parent) return;
     const root = new T.Group();
     const skeleton = fitHeight(shadows(gltf.scene.clone(true)), 2.15);
@@ -88,6 +90,7 @@ async function addSkeletonSentinel(view, generation) {
     root.userData.visualOnly = true;
     root.userData.source = SKELETON_SOURCE;
     root.userData.assetUrl = url;
+    root.userData.compression = { meshopt: true, ktx2: true };
     view.environment.add(root);
     if (gltf.animations?.length) {
       const mixer = new T.AnimationMixer(skeleton);
@@ -111,7 +114,7 @@ async function addDungeonProps(view, generation) {
   await Promise.all(PROP_LAYOUT.map(async ([file, x, z, scale, rotation]) => {
     const url = `${LOCAL.dungeon}/${file}`;
     try {
-      const gltf = await load(url);
+      const gltf = await load(url, view);
       if (view.__assetPassGeneration !== generation || !view.environment?.parent) return;
       const prop = shadows(gltf.scene.clone(true));
       prop.scale.setScalar(scale);
@@ -121,6 +124,7 @@ async function addDungeonProps(view, generation) {
       prop.userData.visualOnly = true;
       prop.userData.source = DUNGEON_SOURCE;
       prop.userData.assetUrl = url;
+      prop.userData.compression = { meshopt: true, ktx2: true };
       view.environment.add(prop);
     } catch (error) {
       console.warn(`[尽喰廻遊] local dungeon prop failed: ${file}`, error);
@@ -235,6 +239,7 @@ window.__DEMON_ASSET_PASS__ = Object.freeze({
   dungeon: DUNGEON_SOURCE,
   particles: PARTICLE_SOURCE,
   roots: LOCAL,
+  compression: Object.freeze({ meshopt: true, ktx2: true, transcoder: `${import.meta.env.BASE_URL}basis/` }),
   mode: 'repository-local-visual-only',
   note: 'Sourced particles replace only the visual material layer; combat and NPC semantics are unchanged. Skeleton remains ambient-only.',
 });

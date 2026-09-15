@@ -1,3 +1,4 @@
+import { appendFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { randomUUID } from 'node:crypto';
@@ -71,6 +72,13 @@ export async function reconcileReadyStacks(c, { limit = 4 } = {}) {
     }
   }
   return result;
+}
+
+export function stackValidationMatrix(stacks = []) {
+  return stacks
+    .filter(item => item?.state === 'merged-forward' && Number.isSafeInteger(Number(item.pr)) &&
+      /^[0-9a-f]{40}$/i.test(item.sha || '') && /^[0-9a-f]{40}$/i.test(item.develop || ''))
+    .map(item => ({ pr: Number(item.pr), head: item.sha, base: item.develop }));
 }
 
 export async function collectDelivery(c, store, now = Date.now()) {
@@ -314,8 +322,13 @@ async function main() {
   }
   const config = rescueConfig(process.env), c = rescueClient(process.env.GH_TOKEN, config), store = new RescueStore(c, config);
   const returned = await finalize(c, store);
-  const stacks = await reconcileReadyStacks(c);
+  const stacks = process.env.RESCUE_STACK_RECONCILE === 'true' ? await reconcileReadyStacks(c) : [];
+  const matrix = stackValidationMatrix(stacks);
+  if (process.env.GITHUB_OUTPUT) {
+    appendFileSync(process.env.GITHUB_OUTPUT, `stack_has_work=${matrix.length > 0}\n`);
+    appendFileSync(process.env.GITHUB_OUTPUT, `stack_matrix=${JSON.stringify({ include: matrix })}\n`);
+  }
   await notifyOutbox(c, store, { url: process.env.NTFY_TOPIC_URL, token: process.env.NTFY_TOKEN });
-  console.log(JSON.stringify({ returned, stackReconciliation: stacks }));
+  console.log(JSON.stringify({ returned, stackReconciliation: stacks, stackValidation: matrix }));
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) await main();
