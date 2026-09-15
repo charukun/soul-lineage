@@ -3138,6 +3138,14 @@
       "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
       "type": "WORK_REPAIR_CYCLE_SUMMARY",
       "action": "eligible_before=3; claimable_before=2; claimed=1; returned=0; human_required=0; eligible_after=3"
+    },
+    {
+      "id": "pr-197:WORK_REPAIR_NOTIFICATION_SENT:1789466752315:1225",
+      "at": "2026-09-15T10:05:52.315Z",
+      "pr": 197,
+      "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
+      "type": "WORK_REPAIR_NOTIFICATION_SENT",
+      "action": "FAILED notification sent: Gmail 1a0a48788c717d19; head d01569b7; attempt 1/2; baseline churn 3/8"
     }
   ],
   "config": {
@@ -11712,7 +11720,7 @@
       },
       "state": "FAILED_MANUAL",
       "title": "feat(characters): rebuild Shino Reference v2 as DCC model",
-      "updatedAt": "2026-09-15T10:05:10.655Z",
+      "updatedAt": "2026-09-15T10:05:52.315Z",
       "waitingReason": null,
       "wave": "wave-34837832648-1",
       "workRepairAttempts": 1,
@@ -11916,6 +11924,12 @@
           "browserSmoke": "failed",
           "browserRepairDispatch": "noop-stale-pr-result",
           "nextRoute": "Coordinator exact-head sync, then resume on latest develop; Browser Repair must own any reproducible browser failure"
+        },
+        "notification": {
+          "kind": "failed",
+          "messageId": "1a0a48788c717d19",
+          "sentAt": "2026-09-15T10:05:52.315Z",
+          "dedupeKey": "pr-197:d01569b7092ec2f6dc23cc137376df7185e57794:post-push-baseline-browser-failed"
         }
       },
       "workRepairBaselineChurns": 3
@@ -19163,9 +19177,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1225,
+  "revision": 1226,
   "schema": 1,
-  "updatedAt": "2026-09-15T10:05:10.655Z",
+  "updatedAt": "2026-09-15T10:05:52.315Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
