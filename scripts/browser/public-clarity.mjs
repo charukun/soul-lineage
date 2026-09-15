@@ -1,3 +1,4 @@
+import {nativeTap} from '@soul/platform-web/testing/native-input';
 import {verifySoloClarity, verifyHuntClarity} from './play-clarity.mjs';
 import {capturePlayedAudio,mediaDiagnostics} from './media-diagnostics.mjs';
 
@@ -49,8 +50,8 @@ export function registerClarityTests({test, expect, targets, base}) {
             await verifyVillageFirstBuild(page, expect, testInfo, () => capturePlayedAudio(page, playedSources), { captureMilestones: false, verifyDirector: false });
           }
         } else {
-          await page.locator('#begin').click();
-          await page.locator('[data-village]').first().click();
+          await nativeTap(page, expect, page.locator('#begin'));
+          await nativeTap(page, expect, page.locator('[data-village]').first());
           await expect(page.locator('#hud')).toBeVisible();
           await verifyHuntClarity(page, expect, testInfo);
         }
