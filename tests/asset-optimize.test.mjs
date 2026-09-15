@@ -23,11 +23,10 @@ test('character plan uses authored profile ratios and existing wrappers', () => 
   const plan = buildAssetOptimizationPlan({ input: 'art/shino.blend', role: 'hero', outputDir: 'generated/test-shino' });
   assert.equal(plan.mode, 'character');
   assert.match(plan.stages.lod.args[0], /scripts\/generate-lods\.mjs$/);
-  assert.equal(plan.stages.lod.args.at(-3), '--lod1');
-  assert.equal(plan.stages.lod.args.at(-2), '.72');
-  assert.equal(plan.stages.lod.args.at(-1), '--lod2');
-  assert.equal(plan.stages.lod.args.at(-0), undefined);
-  assert.ok(plan.stages.lod.args.includes('.42'));
+  assert.equal(plan.stages.lod.args.at(-4), '--lod1');
+  assert.equal(plan.stages.lod.args.at(-3), '.72');
+  assert.equal(plan.stages.lod.args.at(-2), '--lod2');
+  assert.equal(plan.stages.lod.args.at(-1), '.42');
   assert.match(plan.stages.compress.args[0], /scripts\/compress-gltf\.mjs$/);
   assert.equal(plan.outputs.final, plan.outputs.optimized);
 });
@@ -36,8 +35,8 @@ test('static roles use static Blender mode and support compression-only GLB plan
   const plan = buildAssetOptimizationPlan({ input: 'assets/tree.glb', role: 'environment', skipLod: true });
   assert.equal(plan.mode, 'static');
   assert.equal(plan.stages.lod, null);
-  assert.equal(plan.stages.compress.args.at(-3), '--input');
-  assert.match(plan.stages.compress.args.at(-2), /tree\.glb$/);
+  assert.equal(plan.stages.compress.args.at(-4), '--input');
+  assert.match(plan.stages.compress.args.at(-3), /tree\.glb$/);
   assert.throws(() => buildAssetOptimizationPlan({ input: 'art/shino.blend', role: 'hero', skipLod: true }), /requires LOD\/export/);
   assert.throws(() => buildAssetOptimizationPlan({ input: 'assets/tree.glb', role: 'prop', skipLod: true, skipCompress: true }), /At least one optimization stage/);
 });
