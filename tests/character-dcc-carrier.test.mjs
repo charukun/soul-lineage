@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test, { after, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -54,8 +54,8 @@ function request(overrides = {}) {
 
 function clean() { rmSync(ROOT, { recursive: true, force: true }); }
 
-test.afterEach(clean);
-test.after(clean);
+afterEach(clean);
+after(clean);
 
 test('request validation pins reference/rig hashes and safe repository paths', () => {
   const value = request();
