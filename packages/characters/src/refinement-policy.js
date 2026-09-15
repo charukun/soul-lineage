@@ -76,9 +76,9 @@ export function createCharacterRefinementRound(round = 1, results = {}) {
   const failed = checks.filter(check => check.status === 'fail').map(check => check.id);
   const passed = checks.filter(check => check.status === 'pass').map(check => check.id);
   const pending = checks.filter(check => check.status === 'pending').map(check => check.id);
-  const state = failed.length
-    ? (round === CHARACTER_REFINEMENT_MAX_ROUNDS ? 'escalate' : 'repair')
-    : pending.length ? 'review' : 'pass';
+  const state = pending.length
+    ? 'review'
+    : failed.length ? (round === CHARACTER_REFINEMENT_MAX_ROUNDS ? 'escalate' : 'repair') : 'pass';
 
   return Object.freeze({
     round,
