@@ -1,3 +1,4 @@
+import {nativeTap} from '@soul/platform-web/testing/native-input';
 import { test, expect } from '@playwright/test';
 import { appendFileSync } from 'node:fs';
 import {registerClarityTests} from './public-clarity.mjs';
@@ -26,6 +27,10 @@ for (const target of targets) {
     page.on('requestfailed', request => (lifecycleTeardown ? lifecycleFailedRequests : rawFailedRequests).push(request));
     page.on('request', request => { if (request.url().includes('/simulator/')) simulatorRequests.push(request.url()); });
     const url = new URL(`${target.path}/`, base).href;
+    // Native demon interactions use the mobile viewport from boot. Avoid a
+    // redundant desktop render-target allocation before the same mobile checks.
+    // The independent music scenario retains desktop boot coverage.
+    if (target.app === 'demon' && !target.legacy) await page.setViewportSize({width:390, height:844});
     const response = await page.goto(url, { waitUntil: 'networkidle' });
     expect(response.status()).toBe(200);
     const canvas = page.locator('#game');
@@ -95,12 +100,12 @@ for (const target of targets) {
       await expect(canvas).toHaveAttribute('data-platform', 'web');
       await expect(page.getByRole('heading', { level: 1 })).toHaveText('尽喰廻遊');
       expect(await page.locator('#emblem').evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
-      await page.setViewportSize({ width: 390, height: 844 });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await page.screenshot({ path: testInfo.outputPath('demon-title-mobile.png') });
-      await page.locator('#begin').click();
+      // Retain the hunt screenshot and automatic success/failure screenshots;
+      // do not spend the interaction deadline on a second title capture.
+      await nativeTap(page, expect, page.locator('#begin'));
       await expect(page.locator('[data-village]')).toHaveCount(3);
-      await page.locator('[data-village]').first().click();
+      await nativeTap(page, expect, page.locator('[data-village]').first());
       await expect(page.locator('#hud')).toBeVisible();
       const started = await page.evaluate(() => window.__NIGHT_HUNT__.snapshot());
       expect(started.profile.visits[started.village].status).toBe('entered');
@@ -141,10 +146,10 @@ for (const target of targets) {
       await expect(canvas).toHaveAttribute('data-renderer', 'ready');
       const resumed = await page.evaluate(() => window.__NIGHT_HUNT__.snapshot());
       expect(resumed.profile.visits[started.village].status).toBe('abandoned');
-      await page.locator('#begin').click();
+      await nativeTap(page, expect, page.locator('#begin'));
       const nextIDs = await page.locator('[data-village]').evaluateAll(nodes => nodes.map(n => n.dataset.village));
       expect(nextIDs).not.toContain(started.village);
-      await page.locator('#sheet-close').click();
+      await nativeTap(page, expect, page.locator('#sheet-close'));
       await page.setViewportSize({ width: 1280, height: 800 });
     } else if (target.app === 'village' && !target.legacy && await page.locator('#build').count()) {
       await expect(canvas).toHaveAttribute('data-game-world', 'hoshitsugi.life-and-guard.v5');
