@@ -99,7 +99,69 @@ test('merged source PR finalizes old-head Deep Repair issues without clearing hu
   assert.ok(!patches.some(item => item.path.endsWith('/issues/424')));
 });
 
-test('no merge batch performs no GitHub discovery', async () => {
+test('rescue reconciliation backfills already-merged source PRs and preserves human-required', async () => {
+  const staleHead = '2'.repeat(40);
+  const staleRepairHead = '3'.repeat(40);
+  const staleMerge = '4'.repeat(40);
+  const stale = issue(365, repairState({ pr: 329, head: staleHead, state: 'ready-for-integration' }));
+  const human = issue(366, repairState({ pr: 330, head: '5'.repeat(40), state: 'human-required' }));
+  const all = [stale, human];
+  const patches = [];
+  const pullReads = [];
+  const c = {
+    root: '/repos/charukun/soul-lineage',
+    async pages() { throw new Error('pagination should not be needed for this fixture'); },
+    async api(method, path, body) {
+      if (method === 'GET' && path.startsWith('/search/issues?')) {
+        return { items: all, total_count: all.length, incomplete_results: false };
+      }
+      if (method === 'GET' && path.includes('/issues?state=open')) return all;
+      if (method === 'GET' && /\/issues\/\d+$/.test(path)) {
+        return all.find(item => path.endsWith(`/issues/${item.number}`));
+      }
+      if (method === 'GET' && path === '/repos/charukun/soul-lineage/pulls/329') {
+        pullReads.push(329);
+        return {
+          number: 329,
+          state: 'closed',
+          merged_at: '2026-09-15T18:01:00Z',
+          merge_commit_sha: staleMerge,
+          base: { ref: 'develop', repo: { full_name: repository } },
+          head: { sha: staleRepairHead, repo: { full_name: repository } },
+        };
+      }
+      if (method === 'GET' && path.startsWith('/repos/charukun/soul-lineage/pulls/')) {
+        pullReads.push(Number(path.split('/').at(-1)));
+        throw new Error(`unexpected source PR read ${path}`);
+      }
+      if (method === 'PATCH' && path.endsWith('/issues/365')) {
+        patches.push({ path, body });
+        return {};
+      }
+      if (method === 'POST' && path.endsWith(`/statuses/${staleHead}`)) return {};
+      throw new Error(`unexpected ${method} ${path}`);
+    },
+  };
+
+  const result = await finalizeMergedDeepRepairs(c, {
+    repository,
+    merges: [],
+    reconcileMerged: true,
+    completedAt: '2026-09-15T19:50:00.000Z',
+  });
+
+  assert.deepEqual(pullReads, [329]);
+  assert.deepEqual(result.finalized.map(item => item.issue), [365]);
+  assert.equal(result.skipped.length, 0);
+  assert.equal(result.errors.length, 0);
+  assert.equal(patches.length, 1);
+  const state = parseDeepRepairIssue(patches[0].body.body);
+  assert.equal(state.state, 'completed');
+  assert.equal(state.repairHead, staleRepairHead);
+  assert.equal(state.mergeCommit, staleMerge);
+});
+
+test('no merge batch performs no GitHub discovery outside reconciliation mode', async () => {
   let called = false;
   const c = { async api() { called = true; }, async pages() { called = true; } };
   const result = await finalizeMergedDeepRepairs(c, { repository, merges: [] });
@@ -107,7 +169,7 @@ test('no merge batch performs no GitHub discovery', async () => {
   assert.equal(called, false);
 });
 
-test('Integration runs finalization after Fast Lane and keeps it nonblocking before publication', () => {
+test('Integration finalization is nonblocking and rescue scan enables stale reconciliation', () => {
   const workflow = readFileSync('.github/workflows/integration-controller.yml', 'utf8');
   const merge = workflow.indexOf('id: fast-lane');
   const finalize = workflow.indexOf('Finalize Deep Repair issues for merged PRs');
@@ -116,5 +178,7 @@ test('Integration runs finalization after Fast Lane and keeps it nonblocking bef
   const finalizerStep = workflow.slice(finalize, publish);
   assert.match(finalizerStep, /continue-on-error: true/);
   assert.match(finalizerStep, /merged_count != '0'/);
+  assert.match(finalizerStep, /inputs\.rescue_mode == 'scan'/);
+  assert.match(finalizerStep, /DEEP_REPAIR_RECONCILE_MERGED: \$\{\{ inputs\.rescue_mode == 'scan' \}\}/);
   assert.match(finalizerStep, /integration-deep-repair-finalize\.mjs \.deploy-state\/integration\.json/);
 });
