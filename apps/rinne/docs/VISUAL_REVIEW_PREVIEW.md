@@ -56,23 +56,6 @@ A normal Visual Review Lab handoff requires successful build and Worker deployme
 
 If Cloudflare deployment is temporarily unavailable, source work and normal CI can continue; the stable preview URL remains on the previous successful revision. Report that the preview is stale rather than asking the user to review it. Preview failure must never block unrelated ordinary development.
 
-## Target-image visual repair handoff
-
-Visual Review Lab provides a local-first target comparison flow for reference-driven repair. This adopts the useful comparison/judge loop without importing Dream Loop, Fal, or an external generation backend.
-
-1. Select the real model in the Lab.
-2. Choose a TARGET image for that model. The image is stored only in the browser's IndexedDB under the selected model key.
-3. Capture CURRENT from the Lab's displayed runtime canvas. TARGET and CURRENT are composed client-side into one comparison PNG.
-4. `Astraへ修正依頼` uses the browser Web Share API to hand the comparison PNG plus a fixed repository-aware implementation prompt to an explicitly chosen share target. On Android this can be ChatGPT when the installed app accepts the share. If file sharing is unavailable, the Lab downloads the PNG and copies the prompt for manual attachment.
-5. The repair worker re-fetches latest `develop` for current contracts, then performs the visual correction on the existing `work/visual-review-lab-v2` branch / Draft PR #23. It edits the actual shared model/source, runs the Lab's focused validation, pushes one completed correction batch, and stops without polling publication. It must not create a review-only replacement asset or claim that tests prove visual quality.
-6. The dedicated Lab workflow asynchronously republishes the stable Worker URL. The user visually checks the result there and either approves it or starts another TARGET/CURRENT correction pass. PR #23 remains Draft throughout this loop.
-7. `AI判定へ共有` produces a separate diagnostic judge prompt. A returned JSON score can be pasted back into the Lab to display blockers, next actions and preserve notes. AI scoring is diagnostic only and never replaces human visual approval.
-8. After explicit human visual approval, the approved source delta is promoted from latest `develop` through the normal short-lived implementation / Integration path as a separate step. The visual repair worker itself does not modify `develop`, `main` or Production.
-
-The Lab has no AI API key and makes no direct AI network request. Selecting or storing a TARGET image does not upload it. External transmission happens only after an explicit user share action. The feature must not add `FAL_KEY`, `FAL_API_KEY`, `fal.ai`, `queue.fal.run`, paid image/3D generation, hidden upload endpoints or another secret-bearing backend. A future fully automatic AI transport would require a separately reviewed authenticated architecture and is outside this Lab contract.
-
-Reference images are local review input, not automatically repository assets. Do not commit third-party references without confirming provenance and repository suitability. The durable implementation record is GitHub; browser IndexedDB is convenience state and may be cleared by browser/site-data cleanup.
-
 ## Review scope and environment separation
 
 The Visual Review Worker is a disposable review surface for the Draft branch, not DEV and not Production. Changes visible there do not imply that `develop`, normal DEV, `main`, or Production has changed. Promotion happens only through the normal Ready PR and Integration flow after visual approval.
@@ -91,6 +74,14 @@ Assets at or above 20 MiB emit a warning so they can be moved before they become
 ## Source-of-truth rule
 
 The Review Lab must consume the same character/model/motion/VFX source modules and assets used by the game. Do not create review-only copies of production assets or animation logic. `review-adapter.js` is the review integration surface for wiring the production sources into the Lab.
+
+## AI repair boundary
+
+Visual Review Lab is the presentation and human-approval surface, not the AI modeling control plane. It must not own target-image persistence, model-provider invocation, API keys, paid generation, outbound reference acquisition, or the correction-loop state machine.
+
+Reference discovery, vetted public-GitHub evidence, internal Golden baselines, target-image interpretation, render/judge/repair iteration, and edits to the real shared model source belong to the implementation-worker and character-production/reference-intelligence layers. Those layers may prepare a candidate using the task's explicit target plus permitted reference evidence, then publish that real candidate into the Lab for fixed-view comparison and human approval.
+
+Do not add Fal/fal.ai or another hidden image-to-3D backend to the Review Lab. The Lab should remain device-independent beyond ordinary browser rendering and should not require browser-local state to continue a modeling task on another machine.
 
 ## Codespaces
 
