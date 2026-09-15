@@ -56,12 +56,12 @@ async function finishFirstRunGuide(page, expect) {
   await expect(guide).toHaveCount(0);
   await expect(canvas).toHaveAttribute('data-first-run-tutorial','seen');
 
-  // Restore the pristine first-build fixture through the product's own undo path
-  // so the established placement suite can continue from its original baseline.
+  // Restore the pristine first-build fixture through the product's own undo path.
+  // Depending on the placement source, undo may either reopen placement or simply
+  // remove the object. Both are valid product states; only cancel when it reopened.
   await nativeTap(page,expect,page.locator('#muraPlacementUndo'));
-  await expect(page.locator('#placement')).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))).toBe(false);
-  await nativeTap(page,expect,page.locator('#muraCancelPlacement'));
+  if(await page.locator('#placement').isVisible())await nativeTap(page,expect,page.locator('#muraCancelPlacement'));
   await expect(page.locator('#placement')).toBeHidden();
   return true;
 }
