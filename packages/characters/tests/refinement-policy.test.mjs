@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createCharacterModelBuildRequest } from '../src/model-builder.js';
+import { createCharacterModelBuildRequest, validateCharacterModelBuildRequest } from '../src/model-builder.js';
 import {
   CHARACTER_REFINEMENT_CHECKS,
   CHARACTER_REFINEMENT_MAX_ROUNDS,
@@ -29,6 +29,12 @@ test('build requests carry the same refinement contract used by review', () => {
   assert.deepEqual(request.requirements.refinement, createCharacterRefinementPolicy());
   assert.equal(request.requirements.refinement.maxRounds, 3);
   assert.deepEqual(request.requirements.refinement.checks, CHARACTER_REFINEMENT_CHECKS.map(check => check.id));
+});
+
+test('pre-refinement v1 build requests remain valid', () => {
+  const legacy = JSON.parse(JSON.stringify(createCharacterModelBuildRequest('guard.reference.v1')));
+  delete legacy.requirements.refinement;
+  assert.equal(validateCharacterModelBuildRequest(legacy), legacy);
 });
 
 test('a refinement round preserves passes and repairs only failed checks', () => {
