@@ -66,10 +66,11 @@ test('Rinne main runtime cannot reintroduce Mura resident people as gameplay hum
     if(/\bmodels\.person\s*\(/.test(source))offenders.push(name);
   }
   assert.deepEqual(offenders,[]);
-  const renderer=readFileSync(join(rebuild,'renderer.js'),'utf8'),runtime=readFileSync(join(rebuild,'runtime.js'),'utf8');
-  assert.match(renderer,/createMasterCharacterPool/);
-  assert.match(renderer,/createRinneEnemyCharacter/);
-  assert.match(renderer,/RINNE_RUNTIME_CHARACTER_ASSET\.url/);
+  const renderer=readFileSync(join(rebuild,'renderer.js'),'utf8'),stage=readFileSync(join(rebuild,'runtime-character-stage.js'),'utf8'),runtime=readFileSync(join(rebuild,'runtime.js'),'utf8');
+  assert.match(renderer,/createRinneCharacterStage/);
+  assert.match(stage,/createMasterCharacterPool/);
+  assert.match(stage,/createRinneEnemyCharacter/);
+  assert.match(stage,/RINNE_RUNTIME_CHARACTER_ASSET\.url/);
   assert.match(runtime,/await createWorldRenderer/);
 });
 
