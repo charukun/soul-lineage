@@ -3146,6 +3146,14 @@
       "workerId": "work/866e55ef0f5e/20260915T0820Z-pr90",
       "type": "WORK_REPAIR_CLAIMED",
       "action": "work/866e55ef0f5e/20260915T0820Z-pr90: semantic repair 1/2"
+    },
+    {
+      "action": "Live Work Repair heartbeat; latest develop baseline reconciliation in progress (semantic attempt preserved)",
+      "at": "2026-09-15T08:35:07.500Z",
+      "id": "work/866e55ef0f5e/20260915T0820Z-pr90:WORK_REPAIR_HEARTBEAT:1789461307500:1181",
+      "pr": 90,
+      "type": "WORK_REPAIR_HEARTBEAT",
+      "workerId": "work/866e55ef0f5e/20260915T0820Z-pr90"
     }
   ],
   "config": {
@@ -7101,7 +7109,7 @@
       },
       "state": "FAILED_MANUAL",
       "title": "fix(village): consolidate playthrough interactions and tactile UI",
-      "updatedAt": "2026-09-15T08:30:04.557Z",
+      "updatedAt": "2026-09-15T08:35:07.500Z",
       "waitingReason": null,
       "wave": "wave-34744962794-1",
       "workRepairAttempts": 1,
@@ -7167,8 +7175,8 @@
           "repairKind": "semantic"
         },
         "startedAt": "2026-09-15T08:17:33.022Z",
-        "heartbeatAt": "2026-09-15T08:30:04.557Z",
-        "expiresAt": "2026-09-15T09:15:04.557Z"
+        "heartbeatAt": "2026-09-15T08:35:07.500Z",
+        "expiresAt": "2026-09-15T09:20:07.500Z"
       }
     },
     "93": {
@@ -19304,9 +19312,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1180,
+  "revision": 1181,
   "schema": 1,
-  "updatedAt": "2026-09-15T08:30:04.557Z",
+  "updatedAt": "2026-09-15T08:35:07.500Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:13:12.416Z",
