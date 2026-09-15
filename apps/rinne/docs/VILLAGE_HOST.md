@@ -19,3 +19,12 @@
 5. 村長側の __VILLAGE_HOST_LAB__.reconnect() で安全に復帰する。
 
 __VILLAGE_HOST_LAB__.state() で hostId、phase、epoch、revision を確認できます。この入口はquery指定時だけ有効で、通常のゲーム起動にはlocal通信や演出を追加しません。
+
+## RRPの軽量比較実験
+
+独立した `reality-lab.html` で、既存の権限状態機械・Checkpoint・presence方針を使った比較実験を行う。本編のルール・保存・接続先は変更しない。実行方法と証拠の限界は [RRP実験室](REALITY_LAB.md) を参照。
+
+- 同じseed・参加者配置・通信障害条件で全体配信、Interest配信、Cell分散を再実行できること。
+- Host切断、世界時間停止、Epoch更新、Checkpoint復旧、不一致と再同期を観察できること。
+- 仮説・条件・コード版・結果を持ち出し、議論→条件変更→再検証の材料にすること。
+- 初版は単一端末内の模擬通信。payload量とモデル上の遅延を、実WebRTC・NAT/TURN・CPU・電池・不正耐性の実測と混同しないこと。

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { auditCharacterRuntimeDocument } from '../src/runtime-asset-audit.js';
 
 function glbDocument(bytes){
@@ -18,8 +19,8 @@ function glbDocument(bytes){
 }
 
 test('generated Shino Reference v2 DCC asset matches its exact-hash integrity record',()=>{
-  const asset=new URL('../../../apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm',import.meta.url);
-  const integrityURL=new URL('../../../apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json',import.meta.url);
+  const asset=resolve('apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm');
+  const integrityURL=resolve('apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json');
   const bytes=readFileSync(asset),integrity=JSON.parse(readFileSync(integrityURL,'utf8'));
   const sha256=createHash('sha256').update(bytes).digest('hex');
   const result=auditCharacterRuntimeDocument(glbDocument(bytes),sha256,bytes.length,integrity);

@@ -20,3 +20,25 @@ Three.js primitives / runtime procedural geometryは確認用の `BLOCKOUT` ま�
 - 合格した共通描画をMURAAAAAAA住民と尽喰廻遊の人間NPCに接続する。近距離モデルの上限、既存軽量LOD / fallbackを維持し、全NPCを重いVRMへ置換しない。
 - 個体数別のdraw calls / triangles / frame timeと共有資源を計測する。Pixel Fold実機の性能承認とソフトウェアブラウザ測定を混同しない。
 - 必要な局所テスト、実ブラウザ、CI、develop Integration、DEVのsource照合を別々の証跡で記録する。main / Productionは変更しない。
+
+## Character presentation resolution
+
+3アプリは人物の保存・遺伝・年齢を共有Character契約で扱い、見た目の選択だけを描画ポリシーとして解決します。解決順序は `Character -> Body Archetype -> Role Appearance -> Render Tier -> Production Asset` とし、アプリ固有ゲームロジックや保存形式をこの層へ持ち込みません。
+
+- Body Archetypeは年齢と既存body appearanceから決定論的に導出し、Character schemaへ新しい永続フィールドを追加しない。
+- Role Appearanceは職業・役割の見た目だけを選び、AI・戦闘・衝突・装備解禁を変更しない。
+- Render Tierは既存`crowdPlan()`の`full / mid / far / hidden`を正本とし、距離や重要度で重い表現を制限する。
+- Production Assetはapp / role / age band / body archetype / render tierで候補を絞り、production manifestとcatalogの状態を尊重する。`BLOCKOUT`参照モデルを完成品として自動採用しない。
+- 輪廻転焦・MURAAAAAAA・尽喰廻遊は同じ人間表現基盤を利用できるが、人物IDそのものをアプリ間で同一人物と仮定しない。
+
+## Reference intelligence
+
+公開GitHubや既存資産は「正解そのもの」としてコピーせず、固定revision・license・evidence・観測した技法を持つ参照証拠として扱います。参照証拠、現在のproduction stage、内部Golden baselineを同じCoverage Matrixへ投影し、次に埋めるべき身体規格・役割・描画tierの穴を機械的に特定します。
+
+- External Reference RegistryはGitHub repositoryと完全commit SHAを必須にし、license不明・revision未固定の情報を正解データへ昇格しない。
+- Reference Consensusは異なるprovenance familyで同じ観測が再現された場合だけ合意として返す。同じ上流資産の別repo・別ファイル・別revisionで票を水増ししない。
+- Coverage Matrixは`app / age band / body archetype / role / render tier`ごとにreference、production、goldenの有無を分離して表示する。coverage不足を理由にBLOCKOUTをRUNTIME_READYへ昇格しない。
+- Golden BaselineはProduction Pipelineの`RUNTIME_READY`を通過し、明示visual approvalとruntime evidenceを持つ内部資産だけから生成する。外部referenceをGoldenへ直接登録しない。永続Goldenも対応するRUNTIME_READY production evidenceが無ければCoverageへ採用しない。
+- Golden比較はtriangles / draw calls / texture memory等の測定可能な差分を診断するが、数値だけでvisual approvalを自動付与しない。
+- `npm run characters:references` はregistry、consensus、production manifest、永続GoldenとCoverage Matrixを `test-results/character-reference-report.json` へまとめる。
+- この層は評価・優先順位付け専用で、Character保存、遺伝、AI、戦闘、衝突、装備解禁を変更しない。

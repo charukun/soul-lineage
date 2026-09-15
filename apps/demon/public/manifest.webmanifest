@@ -1,0 +1,12 @@
+{
+  "id": "./",
+  "name": "尽喰廻遊",
+  "short_name": "尽喰廻遊",
+  "description": "喰らい尽くせ。夜は、まだ廻る。",
+  "lang": "ja",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#090708",
+  "theme_color": "#090708",
+  "icons": [{ "src": "./icons/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

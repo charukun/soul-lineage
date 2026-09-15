@@ -20,6 +20,14 @@ test('reference model selection stays review-only and is scoped to the selected 
   assert.match(workspace, /modelId = null/);
 });
 
+test('Character Workshop exports a provider-neutral model build request for the selected reference', () => {
+  assert.match(main, /createCharacterModelBuildRequest/);
+  assert.match(main, /モデル生成仕様JSON/);
+  assert.match(main, /data-character-build-request|characterBuildRequest/);
+  assert.match(main, /model-build-request\.json/);
+  assert.match(workspace, /downloadWorkspace\(text, filename = 'shino-workspace\.json'\)/);
+});
+
 
 test('DCC reference model loads its authored VRM through exact integrity audit', () => {
   assert.match(review, /auditCharacterRuntimeDocument/);
@@ -27,5 +35,5 @@ test('DCC reference model loads its authored VRM through exact integrity audit',
   assert.match(review, /loadReferenceModel/);
   assert.match(workspace, /loadReferenceModel/);
   assert.match(workspace, /loadDefaultModel/);
-  assert.match(workspace, /selectedReference\?\.kind === 'dcc-character-model'/);
+  assert.match(workspace, /referenceModel\?\.kind === 'dcc-character-model'/);
 });

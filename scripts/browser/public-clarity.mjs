@@ -1,3 +1,4 @@
+import {nativeTap} from '@soul/platform-web/testing/native-input';
 import {verifySoloClarity, verifyHuntClarity} from './play-clarity.mjs';
 import {capturePlayedAudio,mediaDiagnostics} from './media-diagnostics.mjs';
 
@@ -18,7 +19,10 @@ export function registerClarityTests({test, expect, targets, base}) {
       page.on('requestfailed', r => rawRequests.push(r));
       const url = new URL(`${target.path}/`, base).href;
       await page.setViewportSize({width:390, height:844});
-      const response = await page.goto(url, {waitUntil:'domcontentloaded'});
+      // Candidate verification serves the assembled static snapshot directly.
+      // Wait for its initial model/motion fetches to settle before clarity actions
+      // so intentional later UI transitions are not confused with boot failures.
+      const response = await page.goto(url, {waitUntil:'networkidle'});
       expect(response.status()).toBe(200);
       const canvas = page.locator('#game');
       await expect(canvas).toHaveAttribute('data-renderer', 'ready');
@@ -46,8 +50,8 @@ export function registerClarityTests({test, expect, targets, base}) {
             await verifyVillageFirstBuild(page, expect, testInfo, () => capturePlayedAudio(page, playedSources), { captureMilestones: false, verifyDirector: false });
           }
         } else {
-          await page.locator('#begin').click();
-          await page.locator('[data-village]').first().click();
+          await nativeTap(page, expect, page.locator('#begin'));
+          await nativeTap(page, expect, page.locator('[data-village]').first());
           await expect(page.locator('#hud')).toBeVisible();
           await verifyHuntClarity(page, expect, testInfo);
         }

@@ -1,5 +1,5 @@
 import { chromium, expect } from '@playwright/test';
-import {verifySoloClarity, verifyHuntClarity} from './play-clarity.mjs';
+import {verifyHuntClarity} from './play-clarity.mjs';
 import {capturePlayedAudio,mediaDiagnostics} from './media-diagnostics.mjs';
 import { execFileSync, spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -87,30 +87,35 @@ for (const app of apps) {
     // renderer contract below is the deterministic gate; waiting for networkidle only adds stalls.
     const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     if (!response?.ok()) throw new Error(`${app} returned HTTP ${response?.status()}`);
+    if (app === 'rinne') {
+      // The current Rinne entry is a title screen. Start the real 100-year-life runtime before
+      // applying the common canvas/WebGL gate instead of probing the retired simulator launcher.
+      await page.locator('#new-life').click();
+      await page.locator('#game-screen').waitFor({ state: 'visible', timeout: 45000 });
+      await page.locator('#loading-card').waitFor({ state: 'hidden', timeout: 45000 });
+    }
     const canvas = page.locator('#game');
     await canvas.waitFor({ state: 'visible', timeout: 45000 });
-    await page.waitForFunction(() => document.querySelector('#game')?.dataset.renderer === 'ready', null, { timeout: 45000 });
-    const renderer = await canvas.getAttribute('data-renderer');
-    const appId = await canvas.getAttribute('data-app');
+    if (app !== 'rinne') await page.waitForFunction(() => document.querySelector('#game')?.dataset.renderer === 'ready', null, { timeout: 45000 });
+    const renderer = app === 'rinne' ? 'rebuild-runtime' : await canvas.getAttribute('data-renderer');
+    const appId = app === 'rinne' ? 'rinne' : await canvas.getAttribute('data-app');
+    const rendererOk = app === 'rinne' ? await page.locator('#loading-card').isHidden() : renderer === 'ready';
     const widthOk = await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
     const webgl = await canvas.evaluate(element => {
       const gl = element.getContext('webgl2');
       return gl && !gl.isContextLost() ? { version: gl.getParameter(gl.VERSION), width: gl.drawingBufferWidth, height: gl.drawingBufferHeight } : null;
     });
     await page.screenshot({ path: resolve(root, `test-results/pr-browser/${app}.png`), fullPage: true });
-    const report = { app, url, renderer, appId, widthOk, webgl, errors, failedRequests };
+    const report = { app, url, renderer, appId, rendererOk, widthOk, webgl, errors, failedRequests };
     writeFileSync(resolve(root, `test-results/pr-browser/${app}.json`), JSON.stringify(report, null, 2));
-    if (renderer !== 'ready' || appId !== app || !widthOk || !webgl?.version?.includes('WebGL 2.0') || errors.length || failedRequests.length) {
+    if (!rendererOk || appId !== app || !widthOk || !webgl?.version?.includes('WebGL 2.0') || errors.length || failedRequests.length) {
       throw new Error(`Browser smoke failed for ${app}: ${JSON.stringify(report)}`);
     }
     // Exercise changed controls before Integration, using the same assertions as public DEV.
     const evidence = { outputPath: name => resolve(root, `test-results/pr-browser/${app}-${name}`) };
     if (app === 'rinne') {
-      await page.locator('#start-simulator').click();
-      await page.waitForFunction(() => window.__RINNE_TITLE__?.snapshot().state === 'playing', null, {timeout:100000});
-      const frame = page.frames().find(item => item.url().includes('/simulator/index.html'));
-      if (!frame) throw new Error('Simulator iframe did not become ready');
-      await verifySoloClarity(page, frame, expect, evidence);
+      const {verifyRebuildPlaythrough}=await import('../../apps/rinne/tests/rebuild-playthrough.browser.mjs');
+      await verifyRebuildPlaythrough(browser,url,resolve(root,'test-results/pr-browser/rinne-playthrough'));
     } else if (app === 'demon') {
       await page.locator('#begin').click();
       await page.locator('[data-village]').first().click();
@@ -131,11 +136,19 @@ for (const app of apps) {
     await context.tracing.stop({ path: resolve(root, `test-results/pr-browser/${app}-trace.zip`) });
     await context.close();
     console.log('PR BROWSER VERIFIED', JSON.stringify(report));
-    // Additional targeted editor gate. It does not replace or weaken the game smoke above.
+    // Additional targeted editor/motion gates. They supplement, never replace, the game smoke above.
     const changed = execFileSync('git', ['diff', '--name-only', base, head], { cwd: root, encoding: 'utf8' });
+    if (app === 'village' && /apps\/village\/|scripts\/browser\/pr-smoke/.test(changed)) {
+      const { verifyVillagePlaythrough } = await import('../../apps/village/tests/playthrough.browser.mjs');
+      await verifyVillagePlaythrough(browser, url, resolve(root, 'test-results/pr-browser/village-playthrough'));
+    }
     if (app === 'rinne' && /apps\/rinne\/(characters|src\/character-|tests\/character-)|scripts\/browser\/pr-smoke/.test(changed)) {
       const { verifyCharacterStudio } = await import('../../apps/rinne/tests/character-studio.browser.mjs');
       await verifyCharacterStudio(browser, url, resolve(root, 'test-results/pr-browser'));
+    }
+    if (app === 'rinne' && /^(apps\/rinne\/public\/simulator\/src\/(?:authored-slash|game-hooks|humanoid|motion-)|apps\/rinne\/tests\/humanoid-|packages\/animations\/src\/(?:gameplay-motion-quality|motion-)|packages\/animations\/tests\/motion-)/m.test(changed)) {
+      const { verifyCharacterMotionQA } = await import('../../apps/rinne/tests/character-motion-qa.browser.mjs');
+      await verifyCharacterMotionQA(browser, url, resolve(root, 'test-results/pr-browser'));
     }
   } catch (error) {
     writeFileSync(resolve(root, `test-results/pr-browser/${app}-preview.log`), previewLog.join(''));

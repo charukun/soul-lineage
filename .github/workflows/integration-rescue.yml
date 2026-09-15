@@ -1,90 +1,78 @@
-name: Integration Rescue
+name: Integration Repair Executors
 on:
   workflow_call:
 permissions:
   contents: read
+
 jobs:
-  coordinator:
-    name: Plan Rescue Wave
+  repair:
+    name: Fast Repair
     if: github.repository == 'charukun/soul-lineage' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 5
     concurrency:
-      group: integration-rescue-coordinator
+      group: integration-repair-fast
       cancel-in-progress: false
     permissions:
       contents: write
       pull-requests: read
-      actions: read
-      issues: read
-      statuses: read
     outputs:
-      matrix: ${{ steps.plan.outputs.matrix }}
-      has_workers: ${{ steps.plan.outputs.has_workers }}
-      max_parallel: ${{ steps.plan.outputs.max_parallel }}
+      stack_has_work: ${{ steps.plan.outputs.stack_has_work }}
+      stack_matrix: ${{ steps.plan.outputs.stack_matrix }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: develop
           persist-credentials: false
+          sparse-checkout: scripts
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Bound queue scan and atomically reserve independent workers
+      - name: Reconcile only mechanically safe stacked Ready PRs
         id: plan
         env:
           GH_TOKEN: ${{ github.token }}
-          RESCUE_CONFIGURED: 'true'
-          # v2 has an independent tuning key so the legacy repository value 4 does not pin the new baseline.
-          MAX_RESCUE_CONCURRENCY: ${{ vars.MAX_RESCUE_CONCURRENCY_V2 || '6' }}
-          MAX_RESCUE_ATTEMPTS: ${{ vars.MAX_RESCUE_ATTEMPTS }}
-          RESCUE_DIAGNOSTICS_PATH: .deploy-state/rescue-api.json
-          RESCUE_COORDINATOR: 'true'
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: node scripts/integration-rescue-coordinator.mjs
-      - name: Notify Coordinator failure without depending on GitHub state availability
-        if: failure()
-        env:
-          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
-          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
-        run: node scripts/integration-rescue-return.mjs --coordinator-failure
+          INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-repair-api.json
+        run: node scripts/integration-repair-fast.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: integration-rescue-coordinator-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .deploy-state/rescue-*.json
+          name: integration-repair-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .deploy-state/integration-repair*.json
           include-hidden-files: true
+          if-no-files-found: warn
           retention-days: 7
 
-  worker:
-    name: Rescue PR ${{ matrix.pr }}
-    needs: coordinator
-    if: needs.coordinator.outputs.has_workers == 'true'
+  stack-fast:
+    name: Stack Validate and build #${{ matrix.pr }}
+    needs: repair
+    if: needs.repair.outputs.stack_has_work == 'true'
     strategy:
       fail-fast: false
-      max-parallel: ${{ fromJSON(needs.coordinator.outputs.max_parallel) }}
-      matrix: ${{ fromJSON(needs.coordinator.outputs.matrix) }}
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.repair.outputs.stack_matrix) }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 15
     concurrency:
+      # Keep the legacy group key during rollout so an older Rescue run cannot overlap this same PR.
       group: integration-rescue-pr-${{ matrix.pr }}
       cancel-in-progress: false
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
+      pull-requests: read
       actions: write
-      issues: write
-      statuses: read
+      statuses: write
     env:
-      RESCUE_PR: ${{ matrix.pr }}
-      RESCUE_ID: ${{ matrix.rescueId }}
-      RESCUE_WORKER_ID: ${{ matrix.workerId }}
+      APP_ENV: dev
     steps:
       - uses: actions/checkout@v6
         with:
           ref: develop
           path: control
           persist-credentials: false
+          sparse-checkout: |
+            scripts
+            ops-board
       - uses: actions/checkout@v6
         with:
           ref: ${{ matrix.head }}
@@ -94,97 +82,168 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Recheck claim, head, develop, reviews and dependencies
-        id: prepare
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: node control/scripts/integration-rescue-worker.mjs prepare work "$RUNNER_TEMP/rescue/context.json"
-      - name: Isolate validation from the immutable trusted wrapper
+          cache: npm
+          cache-dependency-path: work/package-lock.json
+      - name: Keep trusted validation controls immutable from PR code
         run: |
-          sudo useradd --create-home rescue-agent
-          sudo chown -R "rescue-agent:$(id -gn)" work
-          sudo chmod -R g+rwX work
           sudo chown -R root:root control
           sudo chmod -R a-w control
-          # Only directory traversal is needed through the runner-owned ancestors.
-          # Keep the wrapper immutable and grant no ancestor read/write access.
-          rescue_parent="$GITHUB_WORKSPACE"
-          while [ "$rescue_parent" != / ]; do
-            sudo chmod o+x "$rescue_parent"
-            rescue_parent="$(dirname "$rescue_parent")"
-          done
-          chmod a+rx "$RUNNER_TEMP" "$RUNNER_TEMP/rescue"
-          chmod a+r "$RUNNER_TEMP/rescue/"*
-      - name: Heartbeat the live worker lease
+      - name: Recheck exact stack target
+        uses: actions/github-script@v8
         env:
-          GH_TOKEN: ${{ github.token }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          node control/scripts/integration-rescue-worker.mjs heartbeat work "$RUNNER_TEMP/rescue/context.json" > "$RUNNER_TEMP/rescue/heartbeat.log" 2>&1 &
-          echo "$!" > "$RUNNER_TEMP/rescue/heartbeat.pid"
-      - name: Verify the safe base update and stage its exact commit for Work push
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RESCUE_VALIDATION_USER: rescue-agent
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: node control/scripts/integration-rescue-worker.mjs finish work "$RUNNER_TEMP/rescue/context.json"
-      - name: Preserve failure state and fence this lease
-        if: failure() || cancelled()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: node control/scripts/integration-rescue-worker.mjs fail work "$RUNNER_TEMP/rescue/context.json"
-      - name: Stop heartbeat
-        if: always()
-        run: |
-          if [ -f "$RUNNER_TEMP/rescue/heartbeat.pid" ]; then
-            kill "$(cat "$RUNNER_TEMP/rescue/heartbeat.pid")" 2>/dev/null || true
-          fi
-      - name: Return this worker immediately and notify actionable failures
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
-          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: node control/scripts/integration-rescue-return.mjs
-      - uses: actions/upload-artifact@v4
-        if: always()
+          PR_NUMBER: ${{ matrix.pr }}
+          HEAD_SHA: ${{ matrix.head }}
+          BASE_SHA: ${{ matrix.base }}
         with:
-          name: integration-rescue-pr-${{ matrix.pr }}-${{ matrix.rescueId }}
-          path: ${{ runner.temp }}/rescue/
-          include-hidden-files: true
-          if-no-files-found: warn
-          retention-days: 7
+          script: |
+            const number = Number(process.env.PR_NUMBER);
+            if (!Number.isSafeInteger(number) || !/^[0-9a-f]{40}$/i.test(process.env.HEAD_SHA || '') || !/^[0-9a-f]{40}$/i.test(process.env.BASE_SHA || '')) {
+              core.setFailed('Invalid stack validation identity'); return;
+            }
+            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: number });
+            const trusted = ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.author_association);
+            if (pr.state !== 'open' || pr.draft || pr.base.ref !== 'develop' ||
+                pr.base.repo.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+                pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+                pr.head.sha !== process.env.HEAD_SHA || !trusted) core.setFailed('Stack validation target is stale or untrusted');
+      - name: Prove reconciled develop is an ancestor of the exact head
+        working-directory: work
+        env:
+          BASE_SHA: ${{ matrix.base }}
+          HEAD_SHA: ${{ matrix.head }}
+        run: git merge-base --is-ancestor "$BASE_SHA" "$HEAD_SHA"
+      - name: Mark exact-head stack validation pending
+        uses: actions/github-script@v8
+        env:
+          HEAD_SHA: ${{ matrix.head }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({ ...context.repo, sha: process.env.HEAD_SHA,
+              context: 'integration/stack-fast', state: 'pending', description: 'Trusted stack fast validation is running',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
+      - name: Cheap gate-cost preflight before dependency install
+        id: gate-cost
+        env:
+          BASE_SHA: ${{ matrix.base }}
+          HEAD_SHA: ${{ matrix.head }}
+        run: node control/scripts/integration-gate-cost.mjs work "$BASE_SHA" "$HEAD_SHA"
+      - name: Resolve exact PR head and affected workspaces
+        id: plan
+        working-directory: work
+        env:
+          BASE_SHA: ${{ matrix.base }}
+          HEAD_SHA: ${{ matrix.head }}
+        run: node scripts/affected.mjs "$BASE_SHA" "$HEAD_SHA"
+      - run: npm ci
+        working-directory: work
+        if: steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.has_packages == 'true' || steps.plan.outputs.infrastructure == 'true'
+      - name: Fast verification (shared tests run once)
+        working-directory: work
+        env:
+          BASE_SHA: ${{ matrix.base }}
+          HEAD_SHA: ${{ matrix.head }}
+        run: node scripts/validate.mjs fast "$BASE_SHA" "$HEAD_SHA"
+      - name: Record exact stack fast evidence for Integration
+        working-directory: work
+        env:
+          PR_NUMBER: ${{ matrix.pr }}
+          HEAD_SHA: ${{ matrix.head }}
+          BASE_SHA: ${{ matrix.base }}
+        run: |
+          mkdir -p .deploy-state
+          node --input-type=module -e "import fs from 'node:fs'; fs.writeFileSync('.deploy-state/pr-fast.json', JSON.stringify({pr:process.env.PR_NUMBER,head:process.env.HEAD_SHA,base:process.env.BASE_SHA,eventBase:process.env.BASE_SHA,source:'integration-repair-stack',run:process.env.GITHUB_RUN_ID||null}));"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr-fast-${{ matrix.pr }}-${{ matrix.head }}
+          path: work/.deploy-state/pr-fast.json
+          overwrite: true
+          retention-days: 14
+      - name: Mark exact-head stack validation successful
+        if: success()
+        uses: actions/github-script@v8
+        env:
+          HEAD_SHA: ${{ matrix.head }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({ ...context.repo, sha: process.env.HEAD_SHA,
+              context: 'integration/stack-fast', state: 'success', description: 'Trusted exact-head stack fast validation passed',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
+      - name: Wake Fast Lane immediately for this validated head
+        if: success()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'deploy.yml', ref: 'develop' });
+      - name: Mark exact-head stack validation failed
+        if: failure() || cancelled()
+        uses: actions/github-script@v8
+        env:
+          HEAD_SHA: ${{ matrix.head }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({ ...context.repo, sha: process.env.HEAD_SHA,
+              context: 'integration/stack-fast', state: 'failure', description: 'Trusted exact-head stack fast validation failed',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
 
-  return:
-    name: Return repaired heads to normal Integration
-    needs: [coordinator, worker]
-    if: always() && needs.coordinator.result == 'success'
+  stack-browser:
+    name: Stack browser smoke #${{ matrix.pr }}
+    needs: repair
+    if: needs.repair.outputs.stack_has_work == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.repair.outputs.stack_matrix) }}
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    concurrency:
-      group: integration-rescue-return
-      cancel-in-progress: false
+    timeout-minutes: 15
     permissions:
-      contents: write
-      pull-requests: write
-      issues: write
+      contents: read
       actions: write
-      statuses: read
+      pull-requests: read
+    env:
+      APP_ENV: dev
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: develop
+          ref: ${{ matrix.head }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Aggregate return, delivery tracking and actionable notifications
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run affected mobile/WebGL browser smoke
+        id: smoke
+        continue-on-error: true
         env:
-          GH_TOKEN: ${{ github.token }}
-          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
-          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: node scripts/integration-rescue-return.mjs
+          BASE_SHA: ${{ matrix.base }}
+          HEAD_SHA: ${{ matrix.head }}
+        run: node scripts/browser/pr-smoke.mjs "$BASE_SHA" "$HEAD_SHA"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-browser-${{ matrix.pr }}-${{ matrix.head }}
+          path: test-results/pr-browser/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Record browser result for the normal repair lane
+        if: always() && (steps.smoke.outcome == 'success' || steps.smoke.outcome == 'failure')
+        uses: actions/github-script@v8
+        env:
+          CONCLUSION: ${{ steps.smoke.outcome }}
+          HEAD_SHA: ${{ matrix.head }}
+          PR_NUMBER: ${{ matrix.pr }}
+          ARTIFACT: pr-browser-${{ matrix.pr }}-${{ matrix.head }}
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo, workflow_id: 'deploy.yml', ref: 'develop',
+              inputs: {
+                repair_scope: 'pr', repair_conclusion: process.env.CONCLUSION,
+                repair_head_sha: process.env.HEAD_SHA, repair_pr_number: process.env.PR_NUMBER,
+                repair_run_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                repair_artifact: process.env.ARTIFACT
+              }
+            });
