@@ -3162,6 +3162,22 @@
       "workerId": "34936995656/pr-274/a3",
       "type": "MERGED",
       "action": "Normal Integration merged this PR into develop"
+    },
+    {
+      "id": "wave-34786319725-1-pr-157-a1:WORK_REPAIR_CLAIM_BLOCKED:1789460253022:1176",
+      "at": "2026-09-15T08:17:33.022Z",
+      "pr": 157,
+      "workerId": null,
+      "type": "WORK_REPAIR_CLAIM_BLOCKED",
+      "action": "priority #1 exact-head mismatch: state 28b994d473dfc8415e3872447947d1bdec616e5e, actual b5111969be868bc36d717e86cf5026dd635c6d03; Coordinator must refresh state head before claim"
+    },
+    {
+      "id": "wave-34744962794-1-pr-90-a1:WORK_REPAIR_CLAIMED:1789460253022:1176",
+      "at": "2026-09-15T08:17:33.022Z",
+      "pr": 90,
+      "workerId": "work/866e55ef0f5e/20260915T0820Z-pr90",
+      "type": "WORK_REPAIR_CLAIMED",
+      "action": "work/866e55ef0f5e/20260915T0820Z-pr90: semantic repair 1/2"
     }
   ],
   "config": {
@@ -7031,8 +7047,8 @@
       "claimedAt": "2026-09-13T07:20:12.009Z",
       "claimedBy": "34744962794/pr-90/a1",
       "contractFingerprint": "57b8022b071e6d6e6c563d8078d6e5fd752197731a6022ce08535888dbda425e",
-      "currentAction": "BLOCKED: #220 e92839ab remains CHECKING and owns apps/village/src/main.js/rendering. Next: release #220, then re-fetch and claim #90.",
-      "currentStep": "FAILED_MANUAL",
+      "currentAction": "既存ChatGPT Workがsemantic停止を再評価し両側の仕様を保って修復",
+      "currentStep": "RESOLVING",
       "dependencies": [],
       "detail": "家具一覧・配置・退出・住民カメラ・設定遷移の競合を統合し、UIと施設表現を改善",
       "detectedAt": "2026-09-13T02:37:03.415Z",
@@ -7125,9 +7141,75 @@
       },
       "state": "FAILED_MANUAL",
       "title": "fix(village): consolidate playthrough interactions and tactile UI",
-      "updatedAt": "2026-09-15T01:15:53.295Z",
+      "updatedAt": "2026-09-15T08:17:33.022Z",
       "waitingReason": null,
-      "wave": "wave-34744962794-1"
+      "wave": "wave-34744962794-1",
+      "workRepairAttempts": 1,
+      "workRepair": {
+        "workerId": "work/866e55ef0f5e/20260915T0820Z-pr90",
+        "status": "working",
+        "attempt": 1,
+        "maxAttempts": 2,
+        "repairKind": "semantic",
+        "baselineChurns": 0,
+        "maxBaselineChurns": 8,
+        "resumedFromBaselineAdvance": false,
+        "sourceHead": "b6c43134fb6675c7dfad770b1cda21d49adef9a8",
+        "develop": "d6c632041fd83bce18eb1c899a89d8eb679f2498",
+        "contract": "57b8022b071e6d6e6c563d8078d6e5fd752197731a6022ce08535888dbda425e",
+        "evidenceKey": "8f0ce00a971e027cd6caea1203ae4ccf61888ff99e3e2357d73986eb0b71fa90",
+        "scope": {
+          "contract": true,
+          "control": true,
+          "files": [
+            "apps/village/docs/PLAYTHROUGH_REPAIR.md",
+            "apps/village/docs/PLAYTHROUGH_REPAIR_RESULTS_20260912.md",
+            "apps/village/index.html",
+            "apps/village/src/asset-visuals.js",
+            "apps/village/src/game/catalog.js",
+            "apps/village/src/game/housing-access.js",
+            "apps/village/src/main.js",
+            "apps/village/src/mura-entry-polish.js",
+            "apps/village/src/mura-experience.js",
+            "apps/village/src/mura-housing-ui-polish.js",
+            "apps/village/src/mura-mobile-feedback-fix-2.js",
+            "apps/village/src/mura-mobile-feedback-fix-3.js",
+            "apps/village/src/mura-mobile-feedback-fix.js",
+            "apps/village/src/mura-patch.js",
+            "apps/village/src/mura-rotation-fix.js",
+            "apps/village/src/mura-ux-polish-4.js",
+            "apps/village/src/mura-ux-polish-4b.js",
+            "apps/village/src/mura-v2-ui.js",
+            "apps/village/src/mura.css",
+            "apps/village/src/web/interface.js",
+            "apps/village/src/web/main.js",
+            "apps/village/src/web/models.js",
+            "apps/village/src/web/pointer-input.js",
+            "apps/village/src/web/tactile.css",
+            "apps/village/src/web/view.js",
+            "apps/village/tests/built-browser.py",
+            "apps/village/tests/mura-v2-contract.test.mjs",
+            "apps/village/tests/playthrough.browser.mjs",
+            "apps/village/tests/pointer-input.test.mjs",
+            "apps/village/tests/ux-polish-4.test.mjs",
+            "scripts/browser/pr-smoke.mjs"
+          ],
+          "related": [
+            "apps/village",
+            "repository"
+          ],
+          "scopes": [
+            "apps/village",
+            "repository"
+          ],
+          "shared": [],
+          "specs": [],
+          "repairKind": "semantic"
+        },
+        "startedAt": "2026-09-15T08:17:33.022Z",
+        "heartbeatAt": "2026-09-15T08:17:33.022Z",
+        "expiresAt": "2026-09-15T09:02:33.022Z"
+      }
     },
     "93": {
       "attempt": 1,
@@ -9219,7 +9301,7 @@
       "claimedAt": "2026-09-13T22:17:07.620Z",
       "claimedBy": "34786319725/pr-157/a1",
       "contractFingerprint": "a6eb7f76ecdc7e61ec15e4fed7760a5a38c1b849e00421bb807731a743c3dbd4",
-      "currentAction": "BLOCKED: exact-head mismatch (state 28b994d4, actual b5111969); #220 CHECKING also owns packages/characters/rendering. Next: Coordinator refreshes #157 after #220 release.",
+      "currentAction": "BLOCKED: exact-head mismatch (state 28b994d4, actual b5111969). Next: Coordinator refreshes #157 state head from current PR before Work claim.",
       "currentStep": "FAILED_MANUAL",
       "dependencies": [],
       "detail": "Character Workshopで参照・目標生成・実装済み/未実装差分を確認できるようにする",
@@ -9317,7 +9399,7 @@
       },
       "state": "FAILED_MANUAL",
       "title": "feat(characters): connect NPC references to Character Workshop",
-      "updatedAt": "2026-09-15T01:15:53.295Z",
+      "updatedAt": "2026-09-15T08:17:33.022Z",
       "waitingReason": null,
       "wave": "wave-34786319725-1"
     },
@@ -19245,9 +19327,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1176,
+  "revision": 1177,
   "schema": 1,
-  "updatedAt": "2026-09-15T08:16:38.922Z",
+  "updatedAt": "2026-09-15T08:17:33.022Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:13:12.416Z",
