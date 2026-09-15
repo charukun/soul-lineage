@@ -53,9 +53,11 @@ try {
   await boot({
     onProgress(value, text) { progress.value = value; message.textContent = text; },
   });
-  // Preserve the historical side-effect order, but let Vite/browser fetch the
-  // post-boot layer as one module graph instead of serial dynamic imports.
+  // Preserve the single enhancement graph introduced on develop. Retired
+  // entries are side-effect-free compatibility modules after consolidation.
   await import('./mura-enhancements.js');
+  const {installInterface}=await import('./web/interface.js');
+  installInterface(window.village);
   await import('./mura-village-visual-language.js');
   clearTimeout(watchdog);
   finished = true;
