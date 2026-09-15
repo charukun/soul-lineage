@@ -105,6 +105,8 @@ Draftでは lightweight checkのみ。Readyになると `Validate and build` と
 
 `INTEGRATED` と `DEV_DEPLOYED` は別イベントとして扱う。通知失敗はadvisoryでありmerge/publication判定を変更しない。PULSEはmerge状態とDEV delivery healthを混同せず表示する。旧Rescue stateを表示する場合も診断情報であり、通常Repairの権限・待ち条件にはしない。
 
+`DEV_DEPLOYED` のスマホ通知は開発基盤の状態通知だけで終わらせず、公開されたdevelop SHAに直接対応するdevelop向けPRを特定できる場合はPRタイトルを「DEVへ反映された修正内容」として表示し、ユーザーがそのままDEV確認へ進める入口を付ける。既存の`NTFY_TOPIC_URL` / `NTFY_TOKEN`を再利用し、新しいqueue・Task-ID・外部サービスは追加しない。PRを特定できない公開では従来の汎用`DEV_DEPLOYED`通知へ安全にfallbackする。
+
 ## 受入条件
 
 - 正常Ready PRはRepair stateを経由せず `Validate and build -> Fast Lane -> merge` で流れる

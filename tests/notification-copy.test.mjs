@@ -8,7 +8,7 @@ import {
   notificationHeadline,
   notificationTitle,
 } from '../scripts/notification-copy.mjs';
-import { deliveryMessage, recordGithubDeliveryReceipt } from '../scripts/notify-delivery.mjs';
+import { deliveryMessage, findAssociatedDevelopPr, recordGithubDeliveryReceipt } from '../scripts/notify-delivery.mjs';
 
 const sha = 'a'.repeat(40);
 
@@ -41,6 +41,35 @@ test('delivery copy explicitly separates develop merge from verified DEV publica
   assert.match(integrated, /\nINTEGRATED\n/);
   assert.match(deployed, /DEV反映・検証済み/);
   assert.match(deployed, /\nDEV_DEPLOYED\n/);
+  assert.doesNotMatch(deployed, /DEVで確認できます/);
+});
+
+test('verified DEV notification shows the associated PR title and DEV entry point', () => {
+  const deployed = deliveryMessage('DEV_DEPLOYED', {
+    locale: 'ja', repository: 'charukun/soul-lineage', runUrl: 'https://github.com/run', sha,
+    pr: { number: 348, title: '戦闘テンポを少し遅くする修正' },
+  });
+  assert.match(deployed, /結果: 戦闘テンポを少し遅くする修正 をDEVへ反映しました。/);
+  assert.match(deployed, /次: DEVで確認できます。/);
+  assert.match(deployed, /PR: https:\/\/github\.com\/charukun\/soul-lineage\/pull\/348/);
+  assert.match(deployed, /DEV: https:\/\/charukun\.github\.io\/soul-lineage\/dev\//);
+});
+
+test('associated develop PR lookup selects the newest merged develop PR', async () => {
+  const response = payload => ({ ok: true, status: 200, json: async () => payload });
+  const request = async url => {
+    assert.match(url, new RegExp(`/commits/${sha}/pulls\\?per_page=100$`));
+    return response([
+      { number: 10, title: 'old', merged_at: '2026-09-15T10:00:00Z', base: { ref: 'develop' } },
+      { number: 11, title: 'main only', merged_at: '2026-09-15T13:00:00Z', base: { ref: 'main' } },
+      { number: 12, title: 'new', merged_at: '2026-09-15T12:00:00Z', base: { ref: 'develop' } },
+    ]);
+  };
+  const pr = await findAssociatedDevelopPr({
+    token: 'token', repository: 'charukun/soul-lineage', sha, request,
+  });
+  assert.equal(pr.number, 12);
+  assert.equal(pr.title, 'new');
 });
 
 test('ntfy receives an ASCII status title while localized detail remains in the body', async () => {
@@ -59,7 +88,7 @@ test('verified DEV publication creates one deduplicatable GitHub PR receipt', as
   let posted = '';
   const response = (payload, status = 200) => ({ ok: true, status, json: async () => payload });
   const request = async (url, options = {}) => {
-    if (url.includes(`/commits/${sha}/pulls`)) return response([{ number: 311, merged_at: '2026-09-15T14:00:00Z', base: { ref: 'develop' } }]);
+    if (url.includes(`/commits/${sha}/pulls`)) return response([{ number: 311, title: 'DEV fix', merged_at: '2026-09-15T14:00:00Z', base: { ref: 'develop' } }]);
     if (url.includes('/issues/311/comments?')) return response([]);
     if (url.endsWith('/issues/311/comments') && options.method === 'POST') {
       posted = JSON.parse(options.body).body;
