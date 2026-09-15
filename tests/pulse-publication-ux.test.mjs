@@ -144,3 +144,29 @@ test('application UI uses concrete progress language instead of the ambiguous ne
   assert.match(source, /いま公開中の版はそのまま開けます/);
   assert.match(source, /このアプリに変更がなければ内容は変わりません/);
 });
+
+test('top overview makes DEV publication understandable without opening details', () => {
+  const html = readFileSync(new URL('../ops-board/public/index.html', import.meta.url), 'utf8');
+  const overview = readFileSync(new URL('../ops-board/public/overview.js', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../ops-board/public/progressive-disclosure.css', import.meta.url), 'utf8');
+
+  assert.ok(html.indexOf('id="overview-app-card"') < html.indexOf('id="overview-alert-card"'));
+  assert.match(html, /class="overview-card overview-publication-card info"/);
+  assert.match(html, /id="overview-app-now"/);
+  assert.match(html, /id="overview-app-next"/);
+  assert.match(html, /id="overview-app-eta"/);
+  assert.match(html, />いま</);
+  assert.match(html, />次</);
+  assert.match(html, />確認</);
+
+  assert.match(overview, /devPublicationProgress/);
+  assert.match(overview, /DEVは最新です/);
+  assert.match(overview, /今すぐ確認できます/);
+  assert.match(overview, /現在のDEVは今すぐ開けます/);
+  assert.match(overview, /publication\.current/);
+  assert.match(overview, /publication\.next/);
+  assert.match(overview, /publication\.eta/);
+
+  assert.match(css, /\.overview-publication-card\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/s);
+  assert.match(css, /\.pulse-overview\s*\{[^}]*grid-template-columns:\s*repeat\(2,/s);
+});
