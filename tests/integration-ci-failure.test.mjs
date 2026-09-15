@@ -24,7 +24,7 @@ const job = (values = {}) => ({
   head_sha: head, run_attempt: 1, ...values,
 });
 
-function fixture({ runs = [run()], jobs = [job()], independent = false, fresh = {}, reviews = [], unresolved = false } = {}) {
+function fixture({ runs = [run()], jobs = [job()], independent = false, fresh = {}, reviews = [], unresolved = false, overlap = false } = {}) {
   const writes = [], issues = [];
   const other = { ...pr, number: 337, head: { ...pr.head, sha: otherHead, ref: 'fix/independent' }, mergeable_state: 'clean' };
   let currentDevelop = develop;
@@ -39,7 +39,7 @@ function fixture({ runs = [run()], jobs = [job()], independent = false, fresh = 
       if (path.endsWith('/reviews')) return path.includes('/337/') ? [] : reviews;
       if (path.endsWith('/files')) return [{ filename: 'packages/raid/group-session.js' }];
       if (path === '/actions/runs/22/artifacts') return [{ name: `pr-fast-337-${otherHead}`, expired: false }];
-      if (path.endsWith('/artifacts')) return [];
+      if (path.endsWith('/artifacts')) return overlap ? [{ name: `pr-fast-336-${head}`, expired: false }] : [];
       if (path === '/actions/runs/22/jobs?filter=latest') return [job({ head_sha: otherHead, conclusion: 'success' })];
       if (path.endsWith('/jobs?filter=latest')) return jobs;
       throw new Error(`Unexpected pages ${path}`);
@@ -54,7 +54,12 @@ function fixture({ runs = [run()], jobs = [job()], independent = false, fresh = 
         return this.prReads > 1 ? { ...pr, ...fresh } : pr;
       }
       if (method === 'GET' && path.endsWith('/pulls/337')) return other;
-      if (method === 'GET' && path.includes('/compare/')) return { merge_base_commit: { sha: currentDevelop } };
+      if (method === 'GET' && path.includes('/compare/')) {
+        const oldBase = 'e'.repeat(40);
+        if (overlap && path.endsWith(`...${head}`)) return { merge_base_commit: { sha: oldBase } };
+        if (overlap && path.endsWith(`/compare/${oldBase}...${currentDevelop}`)) return { merge_base_commit: { sha: oldBase }, files: [{ filename: 'packages/raid/new-feature.js' }] };
+        return { merge_base_commit: { sha: currentDevelop } };
+      }
       if (path === '/graphql') return { data: { repository: { pullRequest: { reviewThreads: {
         nodes: body.variables.number === 336 && unresolved ? [{ isResolved: false }] : [],
         pageInfo: { hasNextPage: false },
@@ -180,4 +185,45 @@ test('CI dispatch predicate wakes on build failure without waiting for browser o
   assert.equal(check('failure', 'false'), false); assert.equal(check('failure', 'true', github, true), false);
   assert.equal(check('failure', 'true', { ...github, event: { ...github.event, pull_request: { ...github.event.pull_request, base: { ref: 'main' } } } }), false);
   assert.doesNotMatch(block, /needs\.browser/);
+});
+
+// A green PR can still need source reconciliation after develop changes the same package.
+test('green scope overlap enters existing Deep Repair and leaves an independent PR free to merge', async () => {
+  const f = fixture({ overlap: true, jobs: [job({ conclusion: 'success' })], independent: true });
+  const report = await integrateFastLane(f.c, repository, { wait: async () => {} });
+  assert.deepEqual(report.deepRepair.map(item => item.pr), [336]);
+  assert.deepEqual(report.merged.map(item => item.pr), [337]);
+  const state = parseDeepRepairIssue(f.issues[0].body);
+  assert.equal(state.repairKind, 'semantic');
+  assert.match(state.reason, /^DEVELOP_OVERLAP:/);
+  assert.equal(state.head, head); assert.equal(state.develop, develop);
+  assert.equal(state.attempt, 0); assert.equal(state.maxAttempts, 2);
+  assert.ok(!f.writes.some(item => item.path.endsWith('/pulls/336/merge') || item.path.endsWith('/reviews')));
+});
+
+test('overlap handoff rechecks head, Ready, holds, dependency and review objections', async () => {
+  for (const config of [
+    { fresh: { head: { ...pr.head, sha: otherHead } } },
+    { fresh: { draft: true } }, { fresh: { state: 'closed' } },
+    { fresh: { labels: [{ name: 'integration:hold' }] } },
+    { fresh: { body: 'Depends-On: #337' } },
+    { reviews: [{ id: 1, state: 'CHANGES_REQUESTED', user: { login: 'reviewer' } }] },
+    { unresolved: true },
+  ]) {
+    const f = fixture({ overlap: true, jobs: [job({ conclusion: 'success' })], ...config });
+    await integrateFastLane(f.c, repository, { wait: async () => {} });
+    assert.equal(f.issues.length, 0, JSON.stringify(config));
+    assert.ok(!f.writes.some(item => item.path.endsWith('/merge') || item.path.endsWith('/reviews')));
+  }
+});
+
+test('overlap scans preserve active claims and terminal repair decisions', async () => {
+  for (const values of [{ state: 'working', attempt: 1 }, { state: 'human-required' }, { attempt: 2 }, { closed: true }]) {
+    const f = fixture({ overlap: true, jobs: [job({ conclusion: 'success' })] });
+    const state = { ...deepRepairIssueState({ pr, develop, reason: 'DEVELOP_OVERLAP' }), ...values };
+    f.issues.push({ number: 601, state: values.closed ? 'closed' : 'open', body: deepRepairIssueMarker(state) });
+    await integrateFastLane(f.c, repository, { wait: async () => {} });
+    assert.equal(f.issues.length, 1); assert.deepEqual(parseDeepRepairIssue(f.issues[0].body), state);
+    assert.ok(!f.writes.some(item => item.path.endsWith('/merge') || item.path.endsWith('/reviews')));
+  }
 });
