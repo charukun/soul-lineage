@@ -11,6 +11,10 @@ export const BIRTH_TOUR_LINES=Object.freeze({
   clinic:'けがをしたらここへ。戻って休むことも、暮らしの大事な一部よ。',
 });
 
+// The shared village is measured in metres. Village residents walk at 2.8m/s and guards at 4.6m/s;
+// keep the passive mother tour inside that life-scale while allowing a small manual-control premium.
+export const BIRTH_TOUR_PACE=Object.freeze({autoMin:3.6,autoMax:4.6,manualMin:4.25,manualMax:5.2,manualRatio:1.13});
+
 const distance=(a,b)=>Math.hypot((a?.x||0)-(b?.x||0),(a?.z||0)-(b?.z||0));
 const finite=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -30,7 +34,7 @@ export function birthTourPace(stations=[]){
   }
   legs.sort((a,b)=>a-b);
   const representativeDistance=legs.length?legs[Math.min(legs.length-1,Math.floor((legs.length-1)*.65))]:0;
-  const autoSpeed=clamp(representativeDistance/2.4,3.6,5.8),manualSpeed=clamp(autoSpeed*1.18,4.25,6.85);
+  const autoSpeed=clamp(representativeDistance/2.4,BIRTH_TOUR_PACE.autoMin,BIRTH_TOUR_PACE.autoMax),manualSpeed=clamp(autoSpeed*BIRTH_TOUR_PACE.manualRatio,BIRTH_TOUR_PACE.manualMin,BIRTH_TOUR_PACE.manualMax);
   return{autoSpeed:rounded(autoSpeed),manualSpeed:rounded(manualSpeed),representativeDistance:rounded(representativeDistance)};
 }
 
