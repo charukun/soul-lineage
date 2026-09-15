@@ -48,7 +48,9 @@ test('Visual Review Lab exposes a real-model Tidebreak battle as a first-class r
   assert.match(shell, /classList\.add\('has-battle'\)/);
   assert.match(shell, /visual-review-battle-control/);
   assert.match(shell, /secondary\?\.contains\(page\)/);
-  assert.match(shell, /battle-review\.html/);
+  assert.match(shell, /battle-review\.html\?embed=1&audio=off/);
+  assert.match(shell, /createBattleAudio/);
+  assert.match(shell, /battle-shell-sound/);
   assert.match(shellCss, /review-primary-switch\.has-battle/);
   assert.match(shellCss, /battle-quick-link/);
 
@@ -63,6 +65,9 @@ test('Visual Review Lab exposes a real-model Tidebreak battle as a first-class r
   assert.doesNotMatch(viewer, /軽量表示で戦闘を継続/);
 
   assert.match(audio, /AudioContext/);
+  assert.match(audio, /let wanted = .*audio.*!== 'off'/);
+  assert.match(audio, /get enabled\(\) \{ return Boolean\(AudioContextCtor\) && wanted; \}/);
+  assert.match(audio, /\['pointerdown', 'touchstart', 'keydown'\]/);
   assert.match(audio, /function attack/);
   assert.match(audio, /function hit/);
   assert.match(audio, /function knockout/);
@@ -73,4 +78,24 @@ test('Visual Review Lab exposes a real-model Tidebreak battle as a first-class r
   assert.match(viewerCss, /safe-area-inset-bottom/);
   assert.match(viewerCss, /100dvh/);
   assert.match(vite, /battleReview/);
+});
+
+test('Visual Review Lab uses one obvious five-way nav and grid-first selection UI', async () => {
+  const [nav, navCss, ux] = await Promise.all([
+    read('apps/rinne/src/review/unified-review-nav.js'),
+    read('apps/rinne/src/review/unified-review-nav.css'),
+    read('apps/rinne/src/review/review-ux.js'),
+  ]);
+
+  assert.match(nav, /\['battle', '戦闘'\]/);
+  assert.match(nav, /\['other', 'その他'\]/);
+  assert.match(nav, /review-tool-grid/);
+  assert.match(nav, /\['posture', '姿勢'/);
+  assert.match(nav, /\['advanced', '詳細調整'/);
+  assert.match(nav, /data\.reviewSection = currentSection/);
+  assert.match(navCss, /review-bottom-nav[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(navCss, /\.picker-list\{[^}]*repeat\(5,minmax\(0,1fr\)\)/s);
+  assert.match(navCss, /data-review-section="battle"/);
+  assert.match(navCss, /review-tool-grid/);
+  assert.match(ux, /model-picker-list\{[^}]*repeat\(5,minmax\(0,1fr\)\)/s);
 });
