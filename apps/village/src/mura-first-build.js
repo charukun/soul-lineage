@@ -126,6 +126,8 @@ function rotate(delta){
  village.refreshPreview();refresh();
 }
 rotateLeft.onclick=()=>rotate(-Math.PI/2);
+rotateRight.onclick=()=>rotate(Math.PI/2);
+$('muraRotation').addEventListener('input',()=>queueMicrotask(refresh));
 
 async function commitCurrentPlacement(){
  const p=ui.pending;if(!p||busy)return false;
