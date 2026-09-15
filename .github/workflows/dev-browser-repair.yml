@@ -57,13 +57,28 @@ jobs:
             let issues;
             if (context.eventName === 'issues') issues = [context.payload.issue];
             else issues = await github.paginate(github.rest.issues.listForRepo, { ...context.repo, state: 'open', per_page: 100 });
-            const eligible = issues
+            const candidates = issues
               .filter(issue => !issue.pull_request && issue.state === 'open')
               .map(issue => ({ issue, state: parse(issue.body) }))
               .filter(item => item.state?.scope === 'develop' && item.state?.state === 'ready-for-integration')
               .sort((a, b) => new Date(b.issue.updated_at) - new Date(a.issue.updated_at));
+            const eligible = [];
+            for (const item of candidates) {
+              const repairHead = item.state.repairPrHead || item.state.headSha;
+              if (!/^[0-9a-f]{40}$/.test(repairHead || '')) continue;
+              if (repairHead === sha) {
+                eligible.push(item);
+                continue;
+              }
+              try {
+                const { data: comparison } = await github.rest.repos.compareCommits({ ...context.repo, base: repairHead, head: sha });
+                if (comparison.merge_base_commit?.sha === repairHead && ['ahead', 'identical'].includes(comparison.status)) eligible.push(item);
+              } catch (error) {
+                core.notice(`Repair #${item.issue.number} is not yet in current develop: ${error.message}`);
+              }
+            }
             if (!eligible.length) {
-              core.notice('No develop browser repair is ready for final verification; normal DEV publication stays browser-free.');
+              core.notice('No merged develop browser repair is ready for final verification; normal DEV publication stays browser-free.');
               core.setOutput('needed', 'false');
               return;
             }
