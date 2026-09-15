@@ -1,0 +1,216 @@
+import './battle-shell.css';
+
+const q = selector => document.querySelector(selector);
+const viewport = q('.viewport');
+const canvas = q('#review-canvas');
+const performanceFrame = q('#performance-stage');
+const tabs = q('.review-tabs');
+const notebook = q('.notebook-scroll');
+const performanceTab = q('[data-review-tab="演舞"]');
+const skillTab = q('[data-review-tab="skill"]');
+const mainPlay = q('#play-toggle');
+
+const frame = document.createElement('iframe');
+frame.id = 'battle-stage';
+frame.className = 'battle-stage';
+frame.title = 'Tidebreak自動戦闘';
+frame.dataset.src = './battle-review.html?embed=1';
+frame.hidden = true;
+performanceFrame?.after(frame);
+
+const battleTab = document.createElement('button');
+battleTab.type = 'button';
+battleTab.className = 'tab';
+battleTab.dataset.reviewTab = 'battle';
+battleTab.textContent = '戦闘';
+battleTab.hidden = true;
+performanceTab?.after(battleTab);
+
+const page = document.createElement('section');
+page.className = 'review-page battle-page';
+page.dataset.reviewPage = 'battle';
+page.innerHTML = `
+  <div class="section-heading">Tidebreak 自動戦闘 <small>実戦観戦</small></div>
+  <p class="sequence-help">RaidHostと同じTidebreak自動戦闘を、手入力なしで決着まで再生します。HP・位置・攻撃進行は実戦ロジック、表示はLabの実モデルへ同期します。</p>
+  <div class="battle-summary">
+    <div class="battle-side"><strong>魔物側</strong><span id="battle-hero-hp">230 / 230</span><small id="battle-hero-action">接敵</small></div>
+    <div class="battle-side"><strong>人間側</strong><span id="battle-enemy-hp">180 / 180</span><small id="battle-enemy-action">接敵</small></div>
+  </div>
+  <div class="battle-transport">
+    <button class="btn primary" id="battle-shell-play" type="button" disabled>一時停止</button>
+    <button class="btn" id="battle-shell-restart" type="button" disabled>再戦</button>
+    <select id="battle-shell-speed" aria-label="戦闘速度"><option value="0.25">1/4</option><option value="0.5">1/2</option><option value="1" selected>通常</option><option value="2">2倍</option></select>
+    <label class="toggle"><input id="battle-shell-repeat" type="checkbox" checked/>決着後に再戦</label>
+  </div>
+  <div class="battle-views" role="group" aria-label="戦闘視点">
+    <button class="btn tiny active" type="button" data-battle-shell-view="three">斜め</button>
+    <button class="btn tiny" type="button" data-battle-shell-view="front">正面</button>
+    <button class="btn tiny" type="button" data-battle-shell-view="side">横</button>
+  </div>
+  <span class="source-pill" id="battle-shell-source">Tidebreak</span>
+  <p class="battle-hint" id="battle-shell-status">戦闘ビューを開くと実モデルを読み込みます。</p>`;
+const advanced = q('[data-review-page="advanced"]');
+if (advanced?.parentElement === notebook) notebook.insertBefore(page, advanced);
+else notebook?.append(page);
+
+let active = false;
+let ready = false;
+let frameReady = false;
+let mainWasPlaying = false;
+let previousStage = null;
+let previousModelStates = [];
+let latest = { speed: 1, repeat: true, view: 'three' };
+
+function send(command, value) {
+  if (!frameReady || !frame.contentWindow) return;
+  frame.contentWindow.postMessage({ type: 'visual-review-battle-control', command, value }, location.origin);
+}
+function ensureFrame() {
+  if (!frame.getAttribute('src')) frame.src = frame.dataset.src;
+}
+function setModelsLocked(on) {
+  const chips = [...document.querySelectorAll('.model-chip')];
+  if (on) {
+    previousModelStates = chips.map(chip => [chip, chip.disabled]);
+    chips.forEach(chip => { chip.disabled = true; });
+  } else {
+    for (const [chip, disabled] of previousModelStates) chip.disabled = disabled;
+    previousModelStates = [];
+  }
+}
+function writeURL() {
+  const url = new URL(location.href);
+  if (active) {
+    url.searchParams.set('tab', 'battle');
+    url.searchParams.set('battleSpeed', String(latest.speed || 1));
+  } else if (url.searchParams.get('tab') === 'battle') {
+    url.searchParams.delete('tab');
+    url.searchParams.delete('battleSpeed');
+  }
+  history.replaceState(null, '', url);
+}
+function syncPrimary() {
+  const buttons = [...document.querySelectorAll('[data-primary-review]')];
+  const battleButton = buttons.find(button => button.dataset.primaryReview === 'battle');
+  if (active) {
+    buttons.forEach(button => {
+      const on = button === battleButton;
+      button.classList.toggle('active', on);
+      button.setAttribute('aria-pressed', String(on));
+    });
+  } else if (battleButton) {
+    battleButton.classList.remove('active');
+    battleButton.setAttribute('aria-pressed', 'false');
+  }
+}
+function setActive(next) {
+  if (active === next) return;
+  active = next;
+  document.body.classList.toggle('battle-review-active', active);
+  viewport?.classList.toggle('battle-active', active);
+  frame.hidden = !active;
+  if (active) {
+    if (performanceFrame) performanceFrame.hidden = true;
+    if (canvas) canvas.hidden = true;
+    setModelsLocked(true);
+    previousStage = {
+      name: q('#motion-name')?.textContent || '',
+      meta: q('#motion-meta')?.textContent || '',
+      status: q('#review-status')?.textContent || '',
+      statusKind: q('#review-status')?.dataset.kind || '',
+    };
+    mainWasPlaying = mainPlay?.textContent === '一時停止';
+    if (mainWasPlaying) mainPlay.click();
+    ensureFrame();
+    q('#motion-name').textContent = 'Tidebreak 自動戦闘';
+    q('#motion-meta').textContent = '実戦ロジックを観戦中';
+    q('#review-status').textContent = 'Tidebreakを準備しています';
+    q('#review-status').dataset.kind = '';
+    send('state');
+  } else {
+    send('pause');
+    setModelsLocked(false);
+    const performanceActive = performanceTab?.classList.contains('active');
+    if (canvas) canvas.hidden = Boolean(performanceActive);
+    if (previousStage && !performanceActive) {
+      q('#motion-name').textContent = previousStage.name;
+      q('#motion-meta').textContent = previousStage.meta;
+      q('#review-status').textContent = previousStage.status;
+      q('#review-status').dataset.kind = previousStage.statusKind;
+    }
+    if (mainWasPlaying && !performanceActive && mainPlay?.textContent !== '一時停止') mainPlay.click();
+    mainWasPlaying = false;
+  }
+  writeURL(); syncPrimary();
+}
+function activateBattleTab() {
+  document.querySelectorAll('[data-review-tab]').forEach(tab => {
+    tab.classList.toggle('active', tab === battleTab);
+    tab.setAttribute('aria-selected', String(tab === battleTab));
+  });
+  document.querySelectorAll('[data-review-page]').forEach(item => item.classList.toggle('active', item === page));
+  setActive(true);
+}
+battleTab.addEventListener('click', activateBattleTab);
+document.querySelectorAll('[data-review-tab]').forEach(tab => {
+  if (tab !== battleTab) tab.addEventListener('click', () => queueMicrotask(() => setActive(false)));
+});
+
+function installPrimaryButton() {
+  const switcher = q('.review-primary-switch');
+  if (!switcher) return false;
+  let button = switcher.querySelector('[data-primary-review="battle"]');
+  if (!button) {
+    button = document.createElement('button');
+    button.type = 'button'; button.dataset.primaryReview = 'battle'; button.textContent = '戦闘';
+    button.addEventListener('click', () => battleTab.click());
+    switcher.append(button);
+  }
+  syncPrimary();
+  return true;
+}
+const primaryObserver = new MutationObserver(() => { if (installPrimaryButton()) primaryObserver.disconnect(); });
+primaryObserver.observe(document.body, { childList: true, subtree: true });
+queueMicrotask(installPrimaryButton);
+
+function update(state) {
+  latest = { ...latest, ...state }; ready = Boolean(latest.ready);
+  q('#battle-shell-play').disabled = !ready;
+  q('#battle-shell-restart').disabled = !ready;
+  q('#battle-shell-play').textContent = latest.playing ? '一時停止' : '再生';
+  q('#battle-shell-speed').value = String(latest.speed || 1);
+  q('#battle-shell-repeat').checked = Boolean(latest.repeat);
+  q('#battle-hero-hp').textContent = `${Math.max(0, Math.round(latest.heroHp || 0))} / ${Math.round(latest.heroMaxHp || 0)}`;
+  q('#battle-enemy-hp').textContent = `${Math.max(0, Math.round(latest.enemyHp || 0))} / ${Math.round(latest.enemyMaxHp || 0)}`;
+  q('#battle-hero-action').textContent = latest.heroAction || '接敵';
+  q('#battle-enemy-action').textContent = latest.enemyAction || '接敵';
+  q('#battle-shell-source').textContent = latest.sourceVersion || 'Tidebreak';
+  q('#battle-shell-status').textContent = latest.status || (ready ? '自動戦闘を観戦できます。' : '実モデルを読み込んでいます。');
+  document.querySelectorAll('[data-battle-shell-view]').forEach(button => button.classList.toggle('active', button.dataset.battleShellView === latest.view));
+  if (active) {
+    q('#motion-name').textContent = latest.finished ? `${latest.winner === 'demon' ? '魔物側' : '人間側'} 勝利` : 'Tidebreak 自動戦闘';
+    q('#motion-meta').textContent = `${Number(latest.time || 0).toFixed(1)}秒 / ${latest.heroAction || '接敵'} × ${latest.enemyAction || '接敵'}`;
+    q('#review-status').textContent = latest.status || 'Tidebreak自動戦闘を観戦中';
+    q('#review-status').dataset.kind = latest.error ? 'error' : '';
+    writeURL(); syncPrimary();
+  }
+}
+frame.addEventListener('load', () => {
+  frameReady = true;
+  const requested = Number(new URLSearchParams(location.search).get('battleSpeed'));
+  if ([0.25, 0.5, 1, 2].includes(requested)) send('speed', requested);
+  send('repeat', q('#battle-shell-repeat').checked);
+  send('state');
+});
+window.addEventListener('message', event => {
+  if (event.origin !== location.origin || event.source !== frame.contentWindow || event.data?.type !== 'visual-review-battle-state') return;
+  update(event.data.state || {});
+});
+q('#battle-shell-play').addEventListener('click', () => send('play-toggle'));
+q('#battle-shell-restart').addEventListener('click', () => send('restart'));
+q('#battle-shell-speed').addEventListener('change', event => send('speed', Number(event.target.value)));
+q('#battle-shell-repeat').addEventListener('change', event => send('repeat', event.target.checked));
+document.querySelectorAll('[data-battle-shell-view]').forEach(button => button.addEventListener('click', () => send('view', button.dataset.battleShellView)));
+
+const initial = new URLSearchParams(location.search);
+if (initial.get('tab') === 'battle') queueMicrotask(() => battleTab.click());
