@@ -40,7 +40,7 @@ export function guidanceFor({state,stations=[],front=null}){
   }
   if(state.phase==='birth'){
     const garden=stationById(stations,'garden');
-    return {stage:'1/6 誕生',objective:'村を知る',badge:'自立 4歳',target:target(garden,'広場'),tone:'calm'};
+    return {stage:'1/6 誕生',objective:'母の腕の中',badge:'自立 4歳',target:target(garden,'母と広場へ'),tone:'calm'};
   }
   if(state.activity){
     const station=stationById(stations,state.activity.stationId),remain=Math.max(0,8-Number(state.activity.elapsed||0));

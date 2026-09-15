@@ -57,7 +57,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
 
   const toast=text=>{if(!text)return;$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1800);};
   const save=async()=>{if(!active||!state)return false;try{state.frontState=front;await platform.storage.write(saveKey,serializeLife(state));return true;}catch(error){toast('保存失敗');console.error(error);return false;}};
-  function talkContext(){return state.zone==='village'&&!state.down&&!state.ended&&state.phase==='birth'?{speaker:'母',text:'焦らなくていいよ。あなたの歩幅で大きくなりなさい。'}:null;}
+  function talkContext(){return state.zone==='village'&&!state.down&&!state.ended&&state.phase==='birth'?{speaker:'母',text:'いまは私の腕の中。抱っこしたまま村を見て回ろうね。4歳になったら、自分の足で歩けるよ。'}:null;}
   function worldTone(guide){if(state.ended||guide.tone==='rebirth')return'rebirth';if(state.zone==='frontier')return'frontier';if(guide.tone==='home')return'home';return'village';}
   function showChapter(stage){
     if(!stage||stage===lastChapter)return;lastChapter=stage;
@@ -67,6 +67,15 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   function pulseHurt(){
     gameScreen.classList.remove('hurt-pulse');void gameScreen.offsetWidth;gameScreen.classList.add('hurt-pulse');
     clearTimeout(hurtTimer);hurtTimer=setTimeout(()=>gameScreen.classList.remove('hurt-pulse'),460);
+  }
+  function syncMovementHint(){
+    const held=state.zone==='village'&&state.phase==='birth';
+    $('move-hint').textContent=held?'母に抱かれたままスワイプ':'スワイプで移動';
+    $('move-hint').hidden=!movementHint||state.down||state.ended;
+  }
+  function armMovementHint(){
+    movementHint=true;syncMovementHint();clearTimeout(movementHintTimer);
+    movementHintTimer=setTimeout(()=>{movementHint=false;$('move-hint').hidden=true;},5000);
   }
   function syncUI(){
     $('generation').textContent=`${state.generation}代目`;$('age').textContent=`${Math.min(LIFE_YEARS,Math.floor(state.ageYears))}歳`;
@@ -78,10 +87,11 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
       const direction=view.screenDirection(state.position,guide.target),angle=Math.atan2(direction.x,-direction.y)*180/Math.PI;
       waypoint.hidden=false;$('waypoint-label').textContent=guide.target.label;$('waypoint-distance').textContent=direction.distance<1.2?'ここ':`${Math.ceil(direction.distance)}m`;$('waypoint-arrow').style.transform=`rotate(${angle.toFixed(1)}deg)`;
     }else waypoint.hidden=true;
-    $('clock-rate').value=String(state.clockRate);$('talk').hidden=!talkContext();$('move-hint').hidden=!movementHint||state.down||state.ended;
+    $('clock-rate').value=String(state.clockRate);$('talk').hidden=!talkContext();syncMovementHint();
   }
   function dialogue(speaker,text){$('speaker').textContent=speaker;$('dialogue-text').textContent=text;$('dialogue').hidden=false;clearTimeout(dialogue.timer);dialogue.timer=setTimeout(()=>$('dialogue').hidden=true,4200);}
   function talk(){const context=talkContext();if(context)dialogue(context.speaker,context.text);}
+  function showBirthIntro(){const context=talkContext();if(context)dialogue(context.speaker,context.text);}
   function endLife(){
     if(endDialog?.open)return;
     endDialog=document.createElement('dialog');endDialog.className='life-end-dialog';
@@ -92,11 +102,11 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     if(state.homelands.includes(layout.id)){const o=document.createElement('option');o.value=layout.id;o.textContent=`故郷 · ${layout.name}`;select.append(o);}
     document.body.append(endDialog);
     endDialog.addEventListener('close',async()=>{if(endDialog.returnValue==='rebirth'){
-      state=rebirth(state,{villageId:select.value||null,villageIds:[layout.id]});front=null;state.frontState=null;view.syncFront(null);state.position=safeMuraPosition(layout,state.position);lastChapter='';await save();endDialog.remove();endDialog=null;toast(`${state.generation}代目 · 0歳`);
+      state=rebirth(state,{villageId:select.value||null,villageIds:[layout.id]});front=null;state.frontState=null;view.syncFront(null);state.position=safeMuraPosition(layout,state.position);lastChapter='';await save();endDialog.remove();endDialog=null;syncUI();armMovementHint();showBirthIntro();toast(`${state.generation}代目 · 0歳`);
     }else endDialog.showModal();});endDialog.showModal();
   }
   function handleEvents(events){for(const event of events){
-    if(event.type==='release')toast('4歳 · 自立');
+    if(event.type==='release'){toast('4歳 · 自立');dialogue('母','さあ、地面へ。今日からは自分の足で歩けるよ。');armMovementHint();}
     if(event.type==='equipment')toast(`${event.station.label} 装備`);
     if(event.type==='activity-start')toast(event.station.actionLabel||event.station.label);
     if(event.type==='activity-complete')toast('経験 +1');
@@ -129,7 +139,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     if(mag>.08&&!state.ended&&!state.down){const direction=view.cameraVector(axis),speed=speedForAge(state.ageYears)*(state.combat?.72:1),nx=state.position.x+direction.x*speed*dt,nz=state.position.z+direction.z*speed*dt;
       if(view.canMoveTo(nx,nz,state.phase==='birth'?.42:.32,state.zone)){state.position.x=nx;state.position.z=nz;state.yaw=Math.atan2(direction.x,direction.z);moved=true;}}
     if(moved&&movementHint){movementHint=false;$('move-hint').hidden=true;}
-    setMoving(state,moved,state.yaw);const station=state.zone==='village'?nearestStation(stations,state.position):null,events=tickLife(state,{realDelta:dt,station,paused:document.hidden});handleEvents(events);
+    setMoving(state,state.phase==='birth'?false:moved,state.yaw);const station=state.zone==='village'?nearestStation(stations,state.position):null,events=tickLife(state,{realDelta:dt,station,paused:document.hidden});handleEvents(events);
     if(state.zone==='village'&&station?.port&&canDepart(state)&&!moved){portDwell+=dt;if(portDwell>=1.5&&depart(state)){front=createFront(0,state.seed);state.frontState=front;view.syncFront(front);toast('出航 · 前線');portDwell=0;}}else portDwell=0;
     if(state.zone==='frontier'){
       if(!front){front=normalizeFront(state.frontState,state.front,state.seed);state.frontState=front;view.syncFront(front);}
@@ -148,7 +158,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   function pagehide(){void save();}
   window.addEventListener('pagehide',pagehide);
   if(front)view.syncFront(front);else view.syncFront(null);view.renderState(state,.016);syncUI();uiElapsed=0;loading.hidden=true;canvas.dataset.runtime='active';
-  movementHintTimer=setTimeout(()=>{movementHint=false;$('move-hint').hidden=true;},5000);raf=requestAnimationFrame(frame);void save();
+  armMovementHint();showBirthIntro();raf=requestAnimationFrame(frame);void save();
 
   function dispose(){
     if(!active)return;active=false;host.active=false;cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);unsubscribeWorld();
