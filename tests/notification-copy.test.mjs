@@ -8,7 +8,7 @@ import {
   notificationHeadline,
   notificationTitle,
 } from '../scripts/notification-copy.mjs';
-import { deliveryMessage } from '../scripts/notify-delivery.mjs';
+import { deliveryMessage, recordGithubDeliveryReceipt } from '../scripts/notify-delivery.mjs';
 
 const sha = 'a'.repeat(40);
 
@@ -53,6 +53,28 @@ test('ntfy receives an ASCII status title while localized detail remains in the 
   assert.equal(result, 'ntfy');
   assert.equal(request.headers.Title, 'RINNE [OK] DEV_DEPLOYED');
   assert.match(request.body, /DEV反映・検証済み/);
+});
+
+test('verified DEV publication creates one deduplicatable GitHub PR receipt', async () => {
+  let posted = '';
+  const response = (payload, status = 200) => ({ ok: true, status, json: async () => payload });
+  const request = async (url, options = {}) => {
+    if (url.includes(`/commits/${sha}/pulls`)) return response([{ number: 311, merged_at: '2026-09-15T14:00:00Z', base: { ref: 'develop' } }]);
+    if (url.includes('/issues/311/comments?')) return response([]);
+    if (url.endsWith('/issues/311/comments') && options.method === 'POST') {
+      posted = JSON.parse(options.body).body;
+      return response({ id: 1 }, 201);
+    }
+    throw new Error(`unexpected request: ${options.method || 'GET'} ${url}`);
+  };
+  const message = lifecycleMessage('DEV_DEPLOYED', { locale: 'ja' });
+  const result = await recordGithubDeliveryReceipt({
+    token: 'token', repository: 'charukun/soul-lineage', sha,
+    runUrl: 'https://github.com/charukun/soul-lineage/actions/runs/1', message, request,
+  });
+  assert.equal(result, 'github-pr-comment');
+  assert.match(posted, /dev-delivery-receipt:/);
+  assert.match(posted, /\[OK\]\[DEV_DEPLOYED\] DEV反映・検証済み/);
 });
 
 test('browser repair comments and issue titles use the same visible status vocabulary', () => {
