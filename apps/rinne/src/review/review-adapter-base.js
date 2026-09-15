@@ -2,6 +2,7 @@ import { THREE, GLTFLoader } from '@soul/rendering';
 import { createQuaterniusRetargeter } from '@soul/rendering/quaternius-retarget';
 import { createReviewEffects } from '@soul/rendering/review-effects';
 import { SHINO_REVIEW, REVIEW_ASSET_REVISION } from '@soul/assets/review-catalog';
+import { ELDER_REFERENCE_MODEL } from '@soul/assets/elder-reference';
 import { installReviewUX } from './review-ux.js';
 import { bakePosturePreview } from './posture-preview.js';
 import { rawClipFromNormalized } from './pose-transfer.js';
@@ -15,6 +16,7 @@ const sourceVRMForBones = new WeakMap();
 const SHINO_BASE={path:SHINO_REVIEW.publicPath,size:SHINO_REVIEW.size,sha256:SHINO_REVIEW.sha256,runtimeId:'SHINO',cacheId:'SHINO',portrait:'SHINO'};
 const MODELS=Object.freeze({
   SHINO:{id:'model.SHINO',label:'SHINO',name:'Sendagaya Shino',...SHINO_BASE,appearanceScale:[1,1,1]},
+  ELDER_DCC:ELDER_REFERENCE_MODEL,
   SHINO_SLENDER:{id:'model.SHINO_SLENDER',label:'SHINO_SLENDER',name:'Shino / 細身',...SHINO_BASE,appearanceScale:[.9,1.02,.92]},
   SHINO_STURDY:{id:'model.SHINO_STURDY',label:'SHINO_STURDY',name:'Shino / がっしり',...SHINO_BASE,appearanceScale:[1.1,.98,1.08]},
   SHINO_COMPACT:{id:'model.SHINO_COMPACT',label:'SHINO_COMPACT',name:'Shino / 小柄',...SHINO_BASE,appearanceScale:[1.04,.94,1.03]},
@@ -144,9 +146,11 @@ async function loadAllSources({scene,rootUrl,assetUrl,signal,onProgress,presetId
     const previousAssetBuffer=window.assetBuffer;
     try{
       progressUI('MasterCharacter共有Humanoid 技・構え',0,1,'実戦Humanoidから生成中');
-      window.assetBuffer=async id=>{const modelKey='model:'+id;if(bytesCache.has(modelKey))return bytesCache.get(modelKey);if(id===model.runtimeId&&bytesCache.has(modelCacheKey(model)))return bytesCache.get(modelCacheKey(model));const motionId=String(id).replace(/^motion:/,'');if(bytesCache.has('motion:'+motionId))return bytesCache.get('motion:'+motionId);const row=motionCatalog.find(x=>x.id===motionId);if(row)return cachedBytes('motion:'+motionId,new URL(row.file,simBase),{sha256:row.reviewSHA256,expectedSize:row.bytes});throw new Error(`Review asset not found: ${id}`);};
+      // Build motions on the displayed character's rest axes and proportions.
+      // A warm SHINO cache must not replace a DCC candidate using that runtime profile.
+      window.assetBuffer=async id=>{if(id===model.runtimeId&&bytesCache.has(modelCacheKey(model)))return bytesCache.get(modelCacheKey(model));const modelKey='model:'+id;if(bytesCache.has(modelKey))return bytesCache.get(modelKey);const motionId=String(id).replace(/^motion:/,'');if(bytesCache.has('motion:'+motionId))return bytesCache.get('motion:'+motionId);const row=motionCatalog.find(x=>x.id===motionId);if(row)return cachedBytes('motion:'+motionId,new URL(row.file,simBase),{sha256:row.reviewSHA256,expectedSize:row.bytes});throw new Error(`Review asset not found: ${id}`);};
       const strikeMeta=Object.fromEntries([...MASTER_TECHNIQUES,...MASTER_DEFENSE].map(row=>[row.kind,row.defense?{defense:row.defense}:{}]));
-      const runtime=new humanoidModule.HumanoidRuntime({weapons:{},strikes:strikeMeta,clips:{},windows:{},progress:()=>0,window:()=>null,hand:()=> 'right',echo:()=>{},status:()=>{},attach:()=>{}});await runtime.load(model.runtimeId||model.label);sourceVRMForBones.set(runtime.current.bones,runtime.current.vrm);if(disposed||signal.aborted){runtime.dispose(runtime.current);return;}
+      const runtime=new humanoidModule.HumanoidRuntime({weapons:{sword:{base:.21,tip:1.62,width:.065}},strikes:strikeMeta,clips:{},windows:{},progress:()=>0,window:()=>null,hand:()=> 'right',echo:()=>{},status:()=>{},attach:()=>{}});await runtime.load(model.runtimeId||model.label);sourceVRMForBones.set(runtime.current.bones,runtime.current.vrm);if(disposed||signal.aborted){runtime.dispose(runtime.current);return;}
       // Replace every existing basic-motion alias with the same shared runtime pose.
       // Raw VRMA remains the source; the Lab now includes the runtime's full-body polish.
       for(const [kind,values]of [

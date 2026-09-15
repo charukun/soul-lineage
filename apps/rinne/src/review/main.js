@@ -26,7 +26,9 @@ async function startReview() {
   const camera=new THREE.PerspectiveCamera(36,1,.01,300);camera.position.set(3.2,2.2,5.2);
   const controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.minDistance=.4;controls.maxDistance=30;
   scene.add(new THREE.HemisphereLight('#dfe8ff','#312b24',1.7));
-  const key=new THREE.DirectionalLight('#fff4da',3.2);key.position.set(4,7,4);key.castShadow=true;scene.add(key);
+  const key=new THREE.DirectionalLight('#fff4da',3.2);key.position.set(4,7,4);key.castShadow=true;
+  // Meter-scale smooth DCC surfaces need a small normal offset to avoid self-shadow banding.
+  key.shadow.normalBias=.015;scene.add(key);
   const rim=new THREE.DirectionalLight('#8aa7ff',1.2);rim.position.set(-5,3,-4);scene.add(rim);
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(30,30),new THREE.MeshStandardMaterial({color:'#22262c',roughness:.95}));
   ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);

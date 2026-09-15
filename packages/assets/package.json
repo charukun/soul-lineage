@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.js",
-    "./review-catalog": "./src/review-catalog.js"
+    "./review-catalog": "./src/review-catalog.js",
+    "./elder-reference": "./src/elder-reference.js"
   },
   "dependencies": {}
 }

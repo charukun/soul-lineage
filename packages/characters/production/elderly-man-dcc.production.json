@@ -1,0 +1,66 @@
+{
+  "schema": "character-production",
+  "version": 2,
+  "id": "elderly-man.dcc.v1",
+  "stage": "PRIMARY",
+  "modelingMode": "dcc-blender",
+  "source": {
+    "referencePaths": [
+      "docs/characters/references/npc-role-set/elderly-man.avif"
+    ],
+    "meshPath": "apps/rinne/public/simulator/assets/ELDER_REFERENCE_V1.vrm",
+    "dcc": {
+      "tool": "Blender",
+      "version": "4.3.2",
+      "sourcePath": "assets/characters/elderly-man/dcc-v1/ElderlyMan.blend"
+    },
+    "sourceHash": "f69c9f37312654870c5dccb1eba169462a85c7f79fd308a060109543fa600bbc"
+  },
+  "evidence": {
+    "reference": {
+      "intentLocked": true,
+      "views": [
+        "front",
+        "side",
+        "back"
+      ],
+      "notes": "Elder male, gray hair, olive wrap, brown scarf, linen tunic, short dark trousers. Cane remains separate equipment."
+    },
+    "blockout": {
+      "views": [
+        "front",
+        "side",
+        "back",
+        "three-quarter"
+      ],
+      "proportionsReviewed": true,
+      "silhouetteReviewed": true,
+      "record": "docs/characters/qa/elderly-man-dcc/front.png"
+    },
+    "primary": {
+      "topologyReviewed": true,
+      "uvReviewed": true,
+      "separateSurfaces": [
+        "skin",
+        "hair",
+        "clothing",
+        "accessories"
+      ],
+      "audit": "docs/characters/qa/elderly-man-dcc/blender-audit.json",
+      "notes": "Original quad strips and sculpted continuous head; UV seams welded topologically. Per-object parametric UVs retained, deliberately overlapping in material batches because this candidate uses material colors; no painted atlas claim."
+    },
+    "polish": {
+      "visualApproval": "pending"
+    },
+    "runtime": {
+      "format": "vrm",
+      "assetHash": "37cfd944eb12cbbc60385a853513f606879d475dbb8ab1bcc6ae56e2fd21db3b",
+      "webgl2": true,
+      "triangles": 80151,
+      "reviewViewCount": 4,
+      "observation": "docs/characters/qa/elderly-man-dcc/lab-observation.json",
+      "devicePerformance": "not-measured"
+    }
+  },
+  "productionReady": false
+}

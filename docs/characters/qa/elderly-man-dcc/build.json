@@ -1,0 +1,22 @@
+{
+  "schema": "elder-reference-dcc-build",
+  "version": 1,
+  "blender": "4.3.2",
+  "meshComponents": 163,
+  "triangles": 80151,
+  "materials": 16,
+  "humanoidBones": 54,
+  "bytes": 2679924,
+  "assetSha256": "37cfd944eb12cbbc60385a853513f606879d475dbb8ab1bcc6ae56e2fd21db3b",
+  "sourceSha256": "f69c9f37312654870c5dccb1eba169462a85c7f79fd308a060109543fa600bbc",
+  "visualApproval": "pending",
+  "productionReady": false,
+  "renderedViews": [
+    "front",
+    "three-quarter",
+    "side",
+    "back",
+    "face",
+    "deformation"
+  ]
+}

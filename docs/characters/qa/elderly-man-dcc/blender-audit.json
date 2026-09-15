@@ -1,0 +1,35 @@
+{
+  "schema": "character-dcc-audit",
+  "version": 1,
+  "characterId": "elderly-man.dcc.v1",
+  "dcc": {
+    "tool": "Blender",
+    "version": "4.3.2"
+  },
+  "scene": {
+    "unitSystem": "METRIC",
+    "scaleLength": 1.0,
+    "meshObjects": 163,
+    "armatures": 1,
+    "vertices": 40864,
+    "triangles": 80151,
+    "materials": 16,
+    "uvMeshCount": 163,
+    "shapeKeys": [],
+    "bones": 54
+  },
+  "checks": {
+    "hasMesh": true,
+    "singleArmature": true,
+    "hasUVs": true,
+    "transformsApplied": true,
+    "noDegeneratePolygons": true
+  },
+  "diagnostics": {
+    "unappliedTransforms": [],
+    "meshesWithoutUV": [],
+    "degeneratePolygonMeshes": []
+  },
+  "visualApproval": "pending",
+  "note": "Objective DCC audit only. Topology quality, silhouette, deformation, materials, animation appeal and visual approval remain separate production gates."
+}

@@ -1,0 +1,2856 @@
+{
+  "schema": "elder-lab-observation",
+  "version": 1,
+  "asset": "apps/rinne/public/simulator/assets/ELDER_REFERENCE_V1.vrm",
+  "assetSha256": "37cfd944eb12cbbc60385a853513f606879d475dbb8ab1bcc6ae56e2fd21db3b",
+  "visualApproval": "pending",
+  "physicalDevicePerformance": "not-measured",
+  "errors": [],
+  "captures": [
+    {
+      "file": "idle-front.png",
+      "clip": "通常 / 自然体",
+      "time": 0,
+      "recipe": {
+        "schema": "visual-machine-review",
+        "version": 1,
+        "renderer": "visual-review-lab",
+        "renderContract": "lab-real-asset-v1",
+        "preset": "model.ELDER_DCC",
+        "source": "老人男性（リファレンス造形） / 全モーションソース",
+        "clip": "通常 / 自然体",
+        "sequence": [
+          "通常 / 自然体"
+        ],
+        "time": 0,
+        "camera": "front",
+        "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+        "width": 960,
+        "height": 960,
+        "stateURL": "http://127.0.0.1:45767/review.html?state=2&preset=model.ELDER_DCC&clip=%E9%80%9A%E5%B8%B8+%2F+%E8%87%AA%E7%84%B6%E4%BD%93&mode=normal&weaponId=katana&weapon=0&weaponScale=0.5&weaponX=0&weaponY=0&weaponZ=0&camera=front&inPlace=1&vfx=0&marker=0.42&t=0&speed=1&loop=1&playing=0&stage=%E9%80%9A%E5%B8%B8+%2F+%E8%87%AA%E7%84%B6%E4%BD%93&machine=1",
+        "visualApproval": "pending"
+      }
+    },
+    {
+      "file": "idle-three.png",
+      "clip": "通常 / 自然体",
+      "time": 0,
+      "recipe": {
+        "schema": "visual-machine-review",
+        "version": 1,
+        "renderer": "visual-review-lab",
+        "renderContract": "lab-real-asset-v1",
+        "preset": "model.ELDER_DCC",
+        "source": "老人男性（リファレンス造形） / 全モーションソース",
+        "clip": "通常 / 自然体",
+        "sequence": [
+          "通常 / 自然体"
+        ],
+        "time": 0,
+        "camera": "three",
+        "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+        "width": 960,
+        "height": 960,
+        "stateURL": "http://127.0.0.1:45767/review.html?state=2&preset=model.ELDER_DCC&clip=%E9%80%9A%E5%B8%B8+%2F+%E8%87%AA%E7%84%B6%E4%BD%93&mode=normal&weaponId=katana&weapon=0&weaponScale=0.5&weaponX=0&weaponY=0&weaponZ=0&camera=three&inPlace=1&vfx=0&marker=0.42&t=0&speed=1&loop=1&playing=0&stage=%E9%80%9A%E5%B8%B8+%2F+%E8%87%AA%E7%84%B6%E4%BD%93&machine=1",
+        "visualApproval": "pending"
+      }
+    },
+    {
+      "file": "idle-right.png",
+      "clip": "通常 / 自然体",
+      "time": 0,
+      "recipe": {
+        "schema": "visual-machine-review",
+        "version": 1,
+        "renderer": "visual-review-lab",
+        "renderContract": "lab-real-asset-v1",
+        "preset": "model.ELDER_DCC",
+        "source": "老人男性（リファレンス造形） / 全モーションソース",
+        "clip": "通常 / 自然体",
+        "sequence": [
+          "通常 / 自然体"
+        ],
+        "time": 0,
+        "camera": "right",
+        "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+        "width": 960,
+        "height": 960,
+        "stateURL": "http://127.0.0.1:45767/review.html?state=2&preset=model.ELDER_DCC&clip=%E9%80%9A%E5%B8%B8+%2F+%E8%87%AA%E7%84%B6%E4%BD%93&mode=normal&weaponId=katana&weapon=0&weaponScale=0.5&weaponX=0&weaponY=0&weaponZ=0&camera=right&inPlace=1&vfx=0&marker=0.42&t=0&speed=1&loop=1&playing=0&stage=%E9%80%9A%E5%B8%B8+%2F+%E8%87%AA%E7%84%B6%E4%BD%93&machine=1",
+        "visualApproval": "pending"
+      }
+    },
+    {
+      "file": "idle-back.png",
+      "clip": "通常 / 自然体",
+      "time": 0,
+      "recipe": {
+        "schema": "visual-machine-review",
+        "version": 1,
+        "renderer": "visual-review-lab",
+        "renderContract": "lab-real-asset-v1",
+        "preset": "model.ELDER_DCC",
+        "source": "老人男性（リファレンス造形） / 全モーションソース",
+        "clip": "通常 / 自然体",
+        "sequence": [
+          "通常 / 自然体"
+        ],
+        "time": 0,
+        "camera": "back",
+        "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+        "width": 960,
+        "height": 960,
+        "stateURL": "http://127.0.0.1:45767/review.html?state=2&preset=model.ELDER_DCC&clip=%E9%80%9A%E5%B8%B8+%2F+%E8%87%AA%E7%84%B6%E4%BD%93&mode=normal&weaponId=katana&weapon=0&weaponScale=0.5&weaponX=0&weaponY=0&weaponZ=0&camera=back&inPlace=1&vfx=0&marker=0.42&t=0&speed=1&loop=1&playing=0&stage=%E9%80%9A%E5%B8%B8+%2F+%E8%87%AA%E7%84%B6%E4%BD%93&machine=1",
+        "visualApproval": "pending"
+      }
+    },
+    {
+      "file": "walk-front.png",
+      "clip": "体 / 歩行",
+      "time": 0.35,
+      "recipe": {
+        "schema": "visual-machine-review",
+        "version": 1,
+        "renderer": "visual-review-lab",
+        "renderContract": "lab-real-asset-v1",
+        "preset": "model.ELDER_DCC",
+        "source": "老人男性（リファレンス造形） / 全モーションソース",
+        "clip": "Tidebreak / Walk",
+        "sequence": [
+          "体 / 歩行"
+        ],
+        "time": 0.35,
+        "camera": "front",
+        "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+        "width": 960,
+        "height": 960,
+        "stateURL": "http://127.0.0.1:45767/review.html?state=2&preset=model.ELDER_DCC&clip=%E4%BD%93+%2F+%E6%AD%A9%E8%A1%8C&mode=normal&weaponId=katana&weapon=0&weaponScale=0.5&weaponX=0&weaponY=0&weaponZ=0&camera=front&inPlace=1&vfx=0&marker=0.42&t=0.35&speed=1&loop=1&playing=0&stage=%E4%BD%93+%2F+%E6%AD%A9%E8%A1%8C&machine=1",
+        "visualApproval": "pending"
+      }
+    },
+    {
+      "file": "walk-three.png",
+      "clip": "体 / 歩行",
+      "time": 0.35,
+      "recipe": {
+        "schema": "visual-machine-review",
+        "version": 1,
+        "renderer": "visual-review-lab",
+        "renderContract": "lab-real-asset-v1",
+        "preset": "model.ELDER_DCC",
+        "source": "老人男性（リファレンス造形） / 全モーションソース",
+        "clip": "Tidebreak / Walk",
+        "sequence": [
+          "体 / 歩行"
+        ],
+        "time": 0.35,
+        "camera": "three",
+        "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+        "width": 960,
+        "height": 960,
+        "stateURL": "http://127.0.0.1:45767/review.html?state=2&preset=model.ELDER_DCC&clip=%E4%BD%93+%2F+%E6%AD%A9%E8%A1%8C&mode=normal&weaponId=katana&weapon=0&weaponScale=0.5&weaponX=0&weaponY=0&weaponZ=0&camera=three&inPlace=1&vfx=0&marker=0.42&t=0.35&speed=1&loop=1&playing=0&stage=%E4%BD%93+%2F+%E6%AD%A9%E8%A1%8C&machine=1",
+        "visualApproval": "pending"
+      }
+    },
+    {
+      "file": "walk-right.png",
+      "clip": "体 / 歩行",
+      "time": 0.35,
+      "recipe": {
+        "schema": "visual-machine-review",
+        "version": 1,
+        "renderer": "visual-review-lab",
+        "renderContract": "lab-real-asset-v1",
+        "preset": "model.ELDER_DCC",
+        "source": "老人男性（リファレンス造形） / 全モーションソース",
+        "clip": "Tidebreak / Walk",
+        "sequence": [
+          "体 / 歩行"
+        ],
+        "time": 0.35,
+        "camera": "right",
+        "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+        "width": 960,
+        "height": 960,
+        "stateURL": "http://127.0.0.1:45767/review.html?state=2&preset=model.ELDER_DCC&clip=%E4%BD%93+%2F+%E6%AD%A9%E8%A1%8C&mode=normal&weaponId=katana&weapon=0&weaponScale=0.5&weaponX=0&weaponY=0&weaponZ=0&camera=right&inPlace=1&vfx=0&marker=0.42&t=0.35&speed=1&loop=1&playing=0&stage=%E4%BD%93+%2F+%E6%AD%A9%E8%A1%8C&machine=1",
+        "visualApproval": "pending"
+      }
+    },
+    {
+      "file": "walk-back.png",
+      "clip": "体 / 歩行",
+      "time": 0.35,
+      "recipe": {
+        "schema": "visual-machine-review",
+        "version": 1,
+        "renderer": "visual-review-lab",
+        "renderContract": "lab-real-asset-v1",
+        "preset": "model.ELDER_DCC",
+        "source": "老人男性（リファレンス造形） / 全モーションソース",
+        "clip": "Tidebreak / Walk",
+        "sequence": [
+          "体 / 歩行"
+        ],
+        "time": 0.35,
+        "camera": "back",
+        "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+        "width": 960,
+        "height": 960,
+        "stateURL": "http://127.0.0.1:45767/review.html?state=2&preset=model.ELDER_DCC&clip=%E4%BD%93+%2F+%E6%AD%A9%E8%A1%8C&mode=normal&weaponId=katana&weapon=0&weaponScale=0.5&weaponX=0&weaponY=0&weaponZ=0&camera=back&inPlace=1&vfx=0&marker=0.42&t=0.35&speed=1&loop=1&playing=0&stage=%E4%BD%93+%2F+%E6%AD%A9%E8%A1%8C&machine=1",
+        "visualApproval": "pending"
+      }
+    },
+    {
+      "file": "run-front.png",
+      "clip": "体 / ダッシュ",
+      "time": 0.24,
+      "recipe": {
+        "schema": "visual-machine-review",
+        "version": 1,
+        "renderer": "visual-review-lab",
+        "renderContract": "lab-real-asset-v1",
+        "preset": "model.ELDER_DCC",
+        "source": "老人男性（リファレンス造形） / 全モーションソース",
+        "clip": "Tidebreak / Run",
+        "sequence": [
+          "体 / ダッシュ"
+        ],
+        "time": 0.24,
+        "camera": "front",
+        "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+        "width": 960,
+        "height": 960,
+        "stateURL": "http://127.0.0.1:45767/review.html?state=2&preset=model.ELDER_DCC&clip=%E4%BD%93+%2F+%E3%83%80%E3%83%83%E3%82%B7%E3%83%A5&mode=normal&weaponId=katana&weapon=0&weaponScale=0.5&weaponX=0&weaponY=0&weaponZ=0&camera=front&inPlace=1&vfx=0&marker=0.42&t=0.24&speed=1&loop=1&playing=0&stage=%E4%BD%93+%2F+%E3%83%80%E3%83%83%E3%82%B7%E3%83%A5&machine=1",
+        "visualApproval": "pending"
+      }
+    },
+    {
+      "file": "run-three.png",
+      "clip": "体 / ダッシュ",
+      "time": 0.24,
+      "recipe": {
+        "schema": "visual-machine-review",
+        "version": 1,
+        "renderer": "visual-review-lab",
+        "renderContract": "lab-real-asset-v1",
+        "preset": "model.ELDER_DCC",
+        "source": "老人男性（リファレンス造形） / 全モーションソース",
+        "clip": "Tidebreak / Run",
+        "sequence": [
+          "体 / ダッシュ"
+        ],
+        "time": 0.24,
+        "camera": "three",
+        "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+        "width": 960,
+        "height": 960,
+        "stateURL": "http://127.0.0.1:45767/review.html?state=2&preset=model.ELDER_DCC&clip=%E4%BD%93+%2F+%E3%83%80%E3%83%83%E3%82%B7%E3%83%A5&mode=normal&weaponId=katana&weapon=0&weaponScale=0.5&weaponX=0&weaponY=0&weaponZ=0&camera=three&inPlace=1&vfx=0&marker=0.42&t=0.24&speed=1&loop=1&playing=0&stage=%E4%BD%93+%2F+%E3%83%80%E3%83%83%E3%82%B7%E3%83%A5&machine=1",
+        "visualApproval": "pending"
+      }
+    },
+    {
+      "file": "run-right.png",
+      "clip": "体 / ダッシュ",
+      "time": 0.24,
+      "recipe": {
+        "schema": "visual-machine-review",
+        "version": 1,
+        "renderer": "visual-review-lab",
+        "renderContract": "lab-real-asset-v1",
+        "preset": "model.ELDER_DCC",
+        "source": "老人男性（リファレンス造形） / 全モーションソース",
+        "clip": "Tidebreak / Run",
+        "sequence": [
+          "体 / ダッシュ"
+        ],
+        "time": 0.24,
+        "camera": "right",
+        "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+        "width": 960,
+        "height": 960,
+        "stateURL": "http://127.0.0.1:45767/review.html?state=2&preset=model.ELDER_DCC&clip=%E4%BD%93+%2F+%E3%83%80%E3%83%83%E3%82%B7%E3%83%A5&mode=normal&weaponId=katana&weapon=0&weaponScale=0.5&weaponX=0&weaponY=0&weaponZ=0&camera=right&inPlace=1&vfx=0&marker=0.42&t=0.24&speed=1&loop=1&playing=0&stage=%E4%BD%93+%2F+%E3%83%80%E3%83%83%E3%82%B7%E3%83%A5&machine=1",
+        "visualApproval": "pending"
+      }
+    },
+    {
+      "file": "run-back.png",
+      "clip": "体 / ダッシュ",
+      "time": 0.24,
+      "recipe": {
+        "schema": "visual-machine-review",
+        "version": 1,
+        "renderer": "visual-review-lab",
+        "renderContract": "lab-real-asset-v1",
+        "preset": "model.ELDER_DCC",
+        "source": "老人男性（リファレンス造形） / 全モーションソース",
+        "clip": "Tidebreak / Run",
+        "sequence": [
+          "体 / ダッシュ"
+        ],
+        "time": 0.24,
+        "camera": "back",
+        "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+        "width": 960,
+        "height": 960,
+        "stateURL": "http://127.0.0.1:45767/review.html?state=2&preset=model.ELDER_DCC&clip=%E4%BD%93+%2F+%E3%83%80%E3%83%83%E3%82%B7%E3%83%A5&mode=normal&weaponId=katana&weapon=0&weaponScale=0.5&weaponX=0&weaponY=0&weaponZ=0&camera=back&inPlace=1&vfx=0&marker=0.42&t=0.24&speed=1&loop=1&playing=0&stage=%E4%BD%93+%2F+%E3%83%80%E3%83%83%E3%82%B7%E3%83%A5&machine=1",
+        "visualApproval": "pending"
+      }
+    },
+    {
+      "file": "slash-front.png",
+      "clip": "技 / 流し斬り",
+      "time": 0.3,
+      "recipe": {
+        "schema": "visual-machine-review",
+        "version": 1,
+        "renderer": "visual-review-lab",
+        "renderContract": "lab-real-asset-v1",
+        "preset": "model.ELDER_DCC",
+        "source": "老人男性（リファレンス造形） / 全モーションソース",
+        "clip": "技 / 流し斬り",
+        "sequence": [
+          "技 / 流し斬り"
+        ],
+        "time": 0.3,
+        "camera": "front",
+        "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+        "width": 960,
+        "height": 960,
+        "stateURL": "http://127.0.0.1:45767/review.html?state=2&preset=model.ELDER_DCC&clip=%E6%8A%80+%2F+%E6%B5%81%E3%81%97%E6%96%AC%E3%82%8A&mode=combat&weaponId=katana&weapon=1&weaponScale=0.5&weaponX=0&weaponY=0&weaponZ=0&camera=front&inPlace=1&vfx=0&marker=0.42&t=0.3&speed=1&loop=0&playing=0&stage=%E6%8A%80+%2F+%E6%B5%81%E3%81%97%E6%96%AC%E3%82%8A&machine=1",
+        "visualApproval": "pending"
+      }
+    },
+    {
+      "file": "slash-three.png",
+      "clip": "技 / 流し斬り",
+      "time": 0.3,
+      "recipe": {
+        "schema": "visual-machine-review",
+        "version": 1,
+        "renderer": "visual-review-lab",
+        "renderContract": "lab-real-asset-v1",
+        "preset": "model.ELDER_DCC",
+        "source": "老人男性（リファレンス造形） / 全モーションソース",
+        "clip": "技 / 流し斬り",
+        "sequence": [
+          "技 / 流し斬り"
+        ],
+        "time": 0.3,
+        "camera": "three",
+        "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+        "width": 960,
+        "height": 960,
+        "stateURL": "http://127.0.0.1:45767/review.html?state=2&preset=model.ELDER_DCC&clip=%E6%8A%80+%2F+%E6%B5%81%E3%81%97%E6%96%AC%E3%82%8A&mode=combat&weaponId=katana&weapon=1&weaponScale=0.5&weaponX=0&weaponY=0&weaponZ=0&camera=three&inPlace=1&vfx=0&marker=0.42&t=0.3&speed=1&loop=0&playing=0&stage=%E6%8A%80+%2F+%E6%B5%81%E3%81%97%E6%96%AC%E3%82%8A&machine=1",
+        "visualApproval": "pending"
+      }
+    },
+    {
+      "file": "slash-right.png",
+      "clip": "技 / 流し斬り",
+      "time": 0.3,
+      "recipe": {
+        "schema": "visual-machine-review",
+        "version": 1,
+        "renderer": "visual-review-lab",
+        "renderContract": "lab-real-asset-v1",
+        "preset": "model.ELDER_DCC",
+        "source": "老人男性（リファレンス造形） / 全モーションソース",
+        "clip": "技 / 流し斬り",
+        "sequence": [
+          "技 / 流し斬り"
+        ],
+        "time": 0.3,
+        "camera": "right",
+        "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+        "width": 960,
+        "height": 960,
+        "stateURL": "http://127.0.0.1:45767/review.html?state=2&preset=model.ELDER_DCC&clip=%E6%8A%80+%2F+%E6%B5%81%E3%81%97%E6%96%AC%E3%82%8A&mode=combat&weaponId=katana&weapon=1&weaponScale=0.5&weaponX=0&weaponY=0&weaponZ=0&camera=right&inPlace=1&vfx=0&marker=0.42&t=0.3&speed=1&loop=0&playing=0&stage=%E6%8A%80+%2F+%E6%B5%81%E3%81%97%E6%96%AC%E3%82%8A&machine=1",
+        "visualApproval": "pending"
+      }
+    },
+    {
+      "file": "slash-back.png",
+      "clip": "技 / 流し斬り",
+      "time": 0.3,
+      "recipe": {
+        "schema": "visual-machine-review",
+        "version": 1,
+        "renderer": "visual-review-lab",
+        "renderContract": "lab-real-asset-v1",
+        "preset": "model.ELDER_DCC",
+        "source": "老人男性（リファレンス造形） / 全モーションソース",
+        "clip": "技 / 流し斬り",
+        "sequence": [
+          "技 / 流し斬り"
+        ],
+        "time": 0.3,
+        "camera": "back",
+        "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+        "width": 960,
+        "height": 960,
+        "stateURL": "http://127.0.0.1:45767/review.html?state=2&preset=model.ELDER_DCC&clip=%E6%8A%80+%2F+%E6%B5%81%E3%81%97%E6%96%AC%E3%82%8A&mode=combat&weaponId=katana&weapon=1&weaponScale=0.5&weaponX=0&weaponY=0&weaponZ=0&camera=back&inPlace=1&vfx=0&marker=0.42&t=0.3&speed=1&loop=0&playing=0&stage=%E6%8A%80+%2F+%E6%B5%81%E3%81%97%E6%96%AC%E3%82%8A&machine=1",
+        "visualApproval": "pending"
+      }
+    }
+  ],
+  "url": "http://127.0.0.1:45767/review.html?machine=1&preset=model.ELDER_DCC&clip=%E9%80%9A%E5%B8%B8%20%2F%20%E8%87%AA%E7%84%B6%E4%BD%93&playing=0&camera=front",
+  "webgl": {
+    "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "WebKit WebGL",
+    "lost": false,
+    "width": 960,
+    "height": 960
+  },
+  "pickerRoundTrip": true,
+  "final": {
+    "loaded": true,
+    "clip": "技 / 流し斬り",
+    "time": 0.3,
+    "source": "老人男性（リファレンス造形） / 全モーションソース",
+    "build": "5a7ac5db0a775bc83c75a3477c37f26499044b2c",
+    "state": {
+      "version": 2,
+      "sequence": [
+        "技 / 流し斬り"
+      ],
+      "preset": "model.ELDER_DCC",
+      "clip": "技 / 流し斬り",
+      "mode": "combat",
+      "weaponId": "katana",
+      "weaponEnabled": true,
+      "weaponScale": 0.5,
+      "weaponX": 0,
+      "weaponY": 0,
+      "weaponZ": 0,
+      "camera": "back",
+      "inPlace": true,
+      "vfx": false,
+      "marker": 0.42,
+      "time": 0.3,
+      "speed": 1,
+      "loop": false,
+      "playing": false,
+      "shared": false
+    },
+    "metadata": [
+      [
+        "通常 / 自然体",
+        {
+          "id": "通常 / 自然体",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "life",
+          "posture": "normal",
+          "loop": true,
+          "sharedPosture": "shared-posture-1"
+        }
+      ],
+      [
+        "Tidebreak / Idle",
+        {
+          "id": "Tidebreak / Idle",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1"
+        }
+      ],
+      [
+        "Tidebreak / Attack",
+        {
+          "id": "Tidebreak / Attack",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "unarmed",
+          "posture": "combat",
+          "loop": false,
+          "weapon": "none",
+          "duration": 1.45,
+          "phases": [
+            [
+              "構え",
+              0
+            ],
+            [
+              "打ち出し",
+              0.36
+            ],
+            [
+              "打点",
+              0.56
+            ],
+            [
+              "戻り",
+              0.98
+            ]
+          ]
+        }
+      ],
+      [
+        "Tidebreak / Walk",
+        {
+          "id": "Tidebreak / Walk",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "move",
+          "posture": "normal",
+          "loop": true,
+          "sharedPosture": "shared-posture-1"
+        }
+      ],
+      [
+        "Tidebreak / Run",
+        {
+          "id": "Tidebreak / Run",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "move",
+          "posture": "normal",
+          "loop": true,
+          "sharedPosture": "shared-posture-1"
+        }
+      ],
+      [
+        "体 / 歩行",
+        {
+          "id": "体 / 歩行",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "move",
+          "posture": "normal",
+          "loop": true,
+          "sharedPosture": "shared-posture-1"
+        }
+      ],
+      [
+        "体 / ダッシュ",
+        {
+          "id": "体 / ダッシュ",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "move",
+          "posture": "normal",
+          "loop": true,
+          "sharedPosture": "shared-posture-1"
+        }
+      ],
+      [
+        "Tidebreak / Hit Reaction",
+        {
+          "id": "Tidebreak / Hit Reaction",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "loop": false
+        }
+      ],
+      [
+        "体 / 被弾",
+        {
+          "id": "体 / 被弾",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "loop": false
+        }
+      ],
+      [
+        "共有VRMA / Speaking / 会話",
+        {
+          "id": "共有VRMA / Speaking / 会話",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "life",
+          "loop": true
+        }
+      ],
+      [
+        "共有VRMA / Run / 軽い走行",
+        {
+          "id": "共有VRMA / Run / 軽い走行",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "move",
+          "posture": "normal",
+          "loop": true,
+          "sharedPosture": "shared-posture-1"
+        }
+      ],
+      [
+        "共有VRMA / Walk / 歩行",
+        {
+          "id": "共有VRMA / Walk / 歩行",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "move",
+          "posture": "normal",
+          "loop": true,
+          "sharedPosture": "shared-posture-1"
+        }
+      ],
+      [
+        "共有VRMA / 踏み台昇降",
+        {
+          "id": "共有VRMA / 踏み台昇降",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "life",
+          "loop": true
+        }
+      ],
+      [
+        "共有VRMA / Idle / ゆったり待機",
+        {
+          "id": "共有VRMA / Idle / ゆったり待機",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "life",
+          "loop": true
+        }
+      ],
+      [
+        "共有VRMA / お詫び",
+        {
+          "id": "共有VRMA / お詫び",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "life",
+          "loop": true
+        }
+      ],
+      [
+        "共有VRMA / Airplane 02",
+        {
+          "id": "共有VRMA / Airplane 02",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "life",
+          "loop": true
+        }
+      ],
+      [
+        "共有VRMA / スマートフォン",
+        {
+          "id": "共有VRMA / スマートフォン",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "life",
+          "loop": true
+        }
+      ],
+      [
+        "共有VRMA / 驚く",
+        {
+          "id": "共有VRMA / 驚く",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "life",
+          "loop": true
+        }
+      ],
+      [
+        "共有VRMA / ポーズ",
+        {
+          "id": "共有VRMA / ポーズ",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "life",
+          "loop": true
+        }
+      ],
+      [
+        "共有VRMA / 励ます",
+        {
+          "id": "共有VRMA / 励ます",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "life",
+          "loop": true
+        }
+      ],
+      [
+        "共有VRMA / 水を飲む",
+        {
+          "id": "共有VRMA / 水を飲む",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "life",
+          "loop": true
+        }
+      ],
+      [
+        "共有VRMA / Airplane 05",
+        {
+          "id": "共有VRMA / Airplane 05",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "life",
+          "loop": true
+        }
+      ],
+      [
+        "姿勢 / 抜刀（ゲーム共通）",
+        {
+          "id": "姿勢 / 抜刀（ゲーム共通）",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "draw",
+          "loop": false,
+          "phases": [
+            [
+              "開始",
+              0
+            ],
+            [
+              "持ち替え",
+              0.42500000000000004
+            ],
+            [
+              "収まり",
+              1.25
+            ],
+            [
+              "完了",
+              1.4
+            ]
+          ]
+        }
+      ],
+      [
+        "姿勢 / 納刀（ゲーム共通）",
+        {
+          "id": "姿勢 / 納刀（ゲーム共通）",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "normal",
+          "weapon": "sword",
+          "kind": "sheathe",
+          "loop": false,
+          "phases": [
+            [
+              "開始",
+              0
+            ],
+            [
+              "持ち替え",
+              0.9750000000000001
+            ],
+            [
+              "収まり",
+              1.25
+            ],
+            [
+              "完了",
+              1.4
+            ]
+          ]
+        }
+      ],
+      [
+        "技 / 流し斬り",
+        {
+          "id": "技 / 流し斬り",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "slash",
+          "loop": false,
+          "phases": [
+            [
+              "構え",
+              0
+            ],
+            [
+              "打ち出し",
+              0.17820000000000003
+            ],
+            [
+              "打点",
+              0.33
+            ],
+            [
+              "戻り",
+              0.5544
+            ]
+          ]
+        }
+      ],
+      [
+        "技 / 斬り返し",
+        {
+          "id": "技 / 斬り返し",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "back",
+          "loop": false,
+          "phases": [
+            [
+              "構え",
+              0
+            ],
+            [
+              "打ち出し",
+              0.1863
+            ],
+            [
+              "打点",
+              0.345
+            ],
+            [
+              "戻り",
+              0.5795999999999999
+            ]
+          ]
+        }
+      ],
+      [
+        "技 / 刺し貫く",
+        {
+          "id": "技 / 刺し貫く",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "thrust",
+          "loop": false,
+          "phases": [
+            [
+              "構え",
+              0
+            ],
+            [
+              "打ち出し",
+              0.18090000000000003
+            ],
+            [
+              "打点",
+              0.335
+            ],
+            [
+              "戻り",
+              0.5628
+            ]
+          ]
+        }
+      ],
+      [
+        "技 / 叩き斬る",
+        {
+          "id": "技 / 叩き斬る",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "heavy",
+          "loop": false,
+          "phases": [
+            [
+              "構え",
+              0
+            ],
+            [
+              "打ち出し",
+              0.2646
+            ],
+            [
+              "打点",
+              0.49
+            ],
+            [
+              "戻り",
+              0.8231999999999999
+            ]
+          ]
+        }
+      ],
+      [
+        "技 / 駆け抜け斬り",
+        {
+          "id": "技 / 駆け抜け斬り",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "dash",
+          "loop": false,
+          "phases": [
+            [
+              "構え",
+              0
+            ],
+            [
+              "打ち出し",
+              0.23220000000000002
+            ],
+            [
+              "打点",
+              0.43
+            ],
+            [
+              "戻り",
+              0.7223999999999999
+            ]
+          ]
+        }
+      ],
+      [
+        "技 / 旋回斬り",
+        {
+          "id": "技 / 旋回斬り",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "spin",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 飛び込み斬り",
+        {
+          "id": "技 / 飛び込み斬り",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "leap",
+          "loop": false,
+          "phases": [
+            [
+              "構え",
+              0
+            ],
+            [
+              "打ち出し",
+              0.29700000000000004
+            ],
+            [
+              "打点",
+              0.55
+            ],
+            [
+              "戻り",
+              0.924
+            ]
+          ]
+        }
+      ],
+      [
+        "技 / 退いて構える",
+        {
+          "id": "技 / 退いて構える",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "retreat",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 斬り上げる",
+        {
+          "id": "技 / 斬り上げる",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "uppercut",
+          "loop": false,
+          "phases": [
+            [
+              "構え",
+              0
+            ],
+            [
+              "打ち出し",
+              0.1998
+            ],
+            [
+              "打点",
+              0.37
+            ],
+            [
+              "戻り",
+              0.6215999999999999
+            ]
+          ]
+        }
+      ],
+      [
+        "技 / 足元を薙ぐ",
+        {
+          "id": "技 / 足元を薙ぐ",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "sweep",
+          "loop": false,
+          "phases": [
+            [
+              "構え",
+              0
+            ],
+            [
+              "打ち出し",
+              0.2106
+            ],
+            [
+              "打点",
+              0.39
+            ],
+            [
+              "戻り",
+              0.6552
+            ]
+          ]
+        }
+      ],
+      [
+        "技 / 袈裟に断つ",
+        {
+          "id": "技 / 袈裟に断つ",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "diagonal",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 十字に斬り結ぶ",
+        {
+          "id": "技 / 十字に斬り結ぶ",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "crosscut",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 一回転の大薙ぎ",
+        {
+          "id": "技 / 一回転の大薙ぎ",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "round",
+          "loop": false,
+          "phases": [
+            [
+              "構え",
+              0
+            ],
+            [
+              "打ち出し",
+              0.23490000000000003
+            ],
+            [
+              "打点",
+              0.435
+            ],
+            [
+              "戻り",
+              0.7308
+            ]
+          ]
+        }
+      ],
+      [
+        "技 / 渾身の貫き",
+        {
+          "id": "技 / 渾身の貫き",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "pierce",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 跳躍突き",
+        {
+          "id": "技 / 跳躍突き",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "spear",
+          "kind": "sky",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 柄で打ち崩す",
+        {
+          "id": "技 / 柄で打ち崩す",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "pommel",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 盾・鍔で押し返す",
+        {
+          "id": "技 / 盾・鍔で押し返す",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "bash",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 猛進・吹き飛ばし",
+        {
+          "id": "技 / 猛進・吹き飛ばし",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "bullrush",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 流星の強襲",
+        {
+          "id": "技 / 流星の強襲",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "sword",
+          "kind": "meteor",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 左の牽制拳",
+        {
+          "id": "技 / 左の牽制拳",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "unarmed",
+          "posture": "combat",
+          "weapon": "none",
+          "kind": "jab",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 右の正拳",
+        {
+          "id": "技 / 右の正拳",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "unarmed",
+          "posture": "combat",
+          "weapon": "none",
+          "kind": "straight",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 回し拳",
+        {
+          "id": "技 / 回し拳",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "unarmed",
+          "posture": "combat",
+          "weapon": "none",
+          "kind": "hook",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 腹打ち",
+        {
+          "id": "技 / 腹打ち",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "unarmed",
+          "posture": "combat",
+          "weapon": "none",
+          "kind": "bodyblow",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 突き上げ拳",
+        {
+          "id": "技 / 突き上げ拳",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "unarmed",
+          "posture": "combat",
+          "weapon": "none",
+          "kind": "risingfist",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 寸勁",
+        {
+          "id": "技 / 寸勁",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "unarmed",
+          "posture": "combat",
+          "weapon": "none",
+          "kind": "oneinch",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 連環双拳",
+        {
+          "id": "技 / 連環双拳",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "unarmed",
+          "posture": "combat",
+          "weapon": "none",
+          "kind": "barrage",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 崩山・突進拳",
+        {
+          "id": "技 / 崩山・突進拳",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "unarmed",
+          "posture": "combat",
+          "weapon": "none",
+          "kind": "rushfist",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 居合い抜き",
+        {
+          "id": "技 / 居合い抜き",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "katana",
+          "kind": "katanaDraw",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 袈裟の一太刀",
+        {
+          "id": "技 / 袈裟の一太刀",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "katana",
+          "kind": "katanaKesa",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 逆袈裟の返し",
+        {
+          "id": "技 / 逆袈裟の返し",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "katana",
+          "kind": "katanaReturn",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 切っ先で貫く",
+        {
+          "id": "技 / 切っ先で貫く",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "katana",
+          "kind": "katanaThrust",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 風車の連旋",
+        {
+          "id": "技 / 風車の連旋",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "blade",
+          "posture": "combat",
+          "weapon": "spear",
+          "kind": "spearwheel",
+          "loop": false,
+          "phases": null
+        }
+      ],
+      [
+        "技 / 堅く防ぐ",
+        {
+          "id": "技 / 堅く防ぐ",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "kind": "guard",
+          "loop": false,
+          "sharedPosture": null
+        }
+      ],
+      [
+        "パリィ / 堅く防ぐ",
+        {
+          "id": "パリィ / 堅く防ぐ",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": false
+        }
+      ],
+      [
+        "技 / 刃を弾く",
+        {
+          "id": "技 / 刃を弾く",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "kind": "parry",
+          "loop": false,
+          "sharedPosture": null
+        }
+      ],
+      [
+        "パリィ / 刃を弾く",
+        {
+          "id": "パリィ / 刃を弾く",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": false
+        }
+      ],
+      [
+        "技 / 受け流して反撃",
+        {
+          "id": "技 / 受け流して反撃",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "kind": "counter",
+          "loop": false,
+          "sharedPosture": null
+        }
+      ],
+      [
+        "パリィ / 受け流して反撃",
+        {
+          "id": "パリィ / 受け流して反撃",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": false
+        }
+      ],
+      [
+        "技 / 守りの結界",
+        {
+          "id": "技 / 守りの結界",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "kind": "ward",
+          "loop": false,
+          "sharedPosture": null
+        }
+      ],
+      [
+        "パリィ / 守りの結界",
+        {
+          "id": "パリィ / 守りの結界",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": false
+        }
+      ],
+      [
+        "技 / 身をかわして返す",
+        {
+          "id": "技 / 身をかわして返す",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "kind": "slip",
+          "loop": false,
+          "sharedPosture": null
+        }
+      ],
+      [
+        "パリィ / 身をかわして返す",
+        {
+          "id": "パリィ / 身をかわして返す",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": false
+        }
+      ],
+      [
+        "技 / 踏ん張って受ける",
+        {
+          "id": "技 / 踏ん張って受ける",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "kind": "brace",
+          "loop": false,
+          "sharedPosture": null
+        }
+      ],
+      [
+        "パリィ / 踏ん張って受ける",
+        {
+          "id": "パリィ / 踏ん張って受ける",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": false
+        }
+      ],
+      [
+        "技 / 構えを整える",
+        {
+          "id": "技 / 構えを整える",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "kind": "ready",
+          "loop": false,
+          "sharedPosture": "shared-posture-1"
+        }
+      ],
+      [
+        "構え / 未設定",
+        {
+          "id": "構え / 未設定",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "心 / 未設定",
+        {
+          "id": "心 / 未設定",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "構え / 自然体",
+        {
+          "id": "構え / 自然体",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "心 / 自然体",
+        {
+          "id": "心 / 自然体",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "構え / 攻め主体",
+        {
+          "id": "構え / 攻め主体",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "心 / 攻め主体",
+        {
+          "id": "心 / 攻め主体",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "構え / 守り主体",
+        {
+          "id": "構え / 守り主体",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "心 / 守り主体",
+        {
+          "id": "心 / 守り主体",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "構え / 後の先",
+        {
+          "id": "構え / 後の先",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "心 / 後の先",
+        {
+          "id": "心 / 後の先",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "構え / 見切り重視",
+        {
+          "id": "構え / 見切り重視",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "心 / 見切り重視",
+        {
+          "id": "心 / 見切り重視",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "構え / 回避重視",
+        {
+          "id": "構え / 回避重視",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "心 / 回避重視",
+        {
+          "id": "心 / 回避重視",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "構え / 不動",
+        {
+          "id": "構え / 不動",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "心 / 不動",
+        {
+          "id": "心 / 不動",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "構え / 生存優先",
+        {
+          "id": "構え / 生存優先",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "心 / 生存優先",
+        {
+          "id": "心 / 生存優先",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "構え / 護衛優先",
+        {
+          "id": "構え / 護衛優先",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "心 / 護衛優先",
+        {
+          "id": "心 / 護衛優先",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "構え / 拳闘のリズム",
+        {
+          "id": "構え / 拳闘のリズム",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "none"
+        }
+      ],
+      [
+        "心 / 拳闘のリズム",
+        {
+          "id": "心 / 拳闘のリズム",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "none"
+        }
+      ],
+      [
+        "構え / 半身の構え",
+        {
+          "id": "構え / 半身の構え",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "心 / 半身の構え",
+        {
+          "id": "心 / 半身の構え",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "構え / 静の構え",
+        {
+          "id": "構え / 静の構え",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "心 / 静の構え",
+        {
+          "id": "心 / 静の構え",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "defense",
+          "posture": "combat",
+          "loop": true,
+          "sharedPosture": "shared-posture-1",
+          "weapon": "sword"
+        }
+      ],
+      [
+        "外部 / Crouch_Fwd_Loop",
+        {
+          "id": "外部 / Crouch_Fwd_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Crouch_Idle_Loop",
+        {
+          "id": "外部 / Crouch_Idle_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Dance_Loop",
+        {
+          "id": "外部 / Dance_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Death01",
+        {
+          "id": "外部 / Death01",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Driving_Loop",
+        {
+          "id": "外部 / Driving_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Fixing_Kneeling",
+        {
+          "id": "外部 / Fixing_Kneeling",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Hit_Chest",
+        {
+          "id": "外部 / Hit_Chest",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Hit_Head",
+        {
+          "id": "外部 / Hit_Head",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Idle_Loop",
+        {
+          "id": "外部 / Idle_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Idle_Talking_Loop",
+        {
+          "id": "外部 / Idle_Talking_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Idle_Torch_Loop",
+        {
+          "id": "外部 / Idle_Torch_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Interact",
+        {
+          "id": "外部 / Interact",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Jog_Fwd_Loop",
+        {
+          "id": "外部 / Jog_Fwd_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Jump_Land",
+        {
+          "id": "外部 / Jump_Land",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Jump_Loop",
+        {
+          "id": "外部 / Jump_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Jump_Start",
+        {
+          "id": "外部 / Jump_Start",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / PickUp_Table",
+        {
+          "id": "外部 / PickUp_Table",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Pistol_Aim_Down",
+        {
+          "id": "外部 / Pistol_Aim_Down",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Pistol_Aim_Neutral",
+        {
+          "id": "外部 / Pistol_Aim_Neutral",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Pistol_Aim_Up",
+        {
+          "id": "外部 / Pistol_Aim_Up",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Pistol_Idle_Loop",
+        {
+          "id": "外部 / Pistol_Idle_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Pistol_Reload",
+        {
+          "id": "外部 / Pistol_Reload",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Pistol_Shoot",
+        {
+          "id": "外部 / Pistol_Shoot",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Punch_Cross",
+        {
+          "id": "外部 / Punch_Cross",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Punch_Enter",
+        {
+          "id": "外部 / Punch_Enter",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Punch_Jab",
+        {
+          "id": "外部 / Punch_Jab",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Push_Loop",
+        {
+          "id": "外部 / Push_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Roll",
+        {
+          "id": "外部 / Roll",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Roll_RM",
+        {
+          "id": "外部 / Roll_RM",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Sitting_Enter",
+        {
+          "id": "外部 / Sitting_Enter",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Sitting_Exit",
+        {
+          "id": "外部 / Sitting_Exit",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Sitting_Idle_Loop",
+        {
+          "id": "外部 / Sitting_Idle_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Sitting_Talking_Loop",
+        {
+          "id": "外部 / Sitting_Talking_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Spell_Simple_Enter",
+        {
+          "id": "外部 / Spell_Simple_Enter",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Spell_Simple_Exit",
+        {
+          "id": "外部 / Spell_Simple_Exit",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Spell_Simple_Idle_Loop",
+        {
+          "id": "外部 / Spell_Simple_Idle_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Spell_Simple_Shoot",
+        {
+          "id": "外部 / Spell_Simple_Shoot",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Sprint_Loop",
+        {
+          "id": "外部 / Sprint_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Swim_Fwd_Loop",
+        {
+          "id": "外部 / Swim_Fwd_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Swim_Idle_Loop",
+        {
+          "id": "外部 / Swim_Idle_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Sword_Attack",
+        {
+          "id": "外部 / Sword_Attack",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Sword_Attack_RM",
+        {
+          "id": "外部 / Sword_Attack_RM",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Sword_Idle",
+        {
+          "id": "外部 / Sword_Idle",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Walk_Formal_Loop",
+        {
+          "id": "外部 / Walk_Formal_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ],
+      [
+        "外部 / Walk_Loop",
+        {
+          "id": "外部 / Walk_Loop",
+          "source": "老人男性（リファレンス造形） / 全モーションソース",
+          "category": "external",
+          "loop": true
+        }
+      ]
+    ],
+    "assetProblems": [],
+    "weapon": {
+      "id": "katana",
+      "grip": [
+        0,
+        -0.04,
+        0
+      ],
+      "support": [
+        0,
+        -0.215,
+        0
+      ],
+      "supportError": 4.090833732209102e-8,
+      "sourceScale": 0.8273743597526592,
+      "pose": "combat"
+    },
+    "poseTransfer": "official-normalized-to-raw",
+    "worldPose": {
+      "rightHand": [
+        -0.24522931088771277,
+        0.9156151489090566,
+        0.5148205757648027
+      ],
+      "leftHand": [
+        -0.07193800206599565,
+        0.9729441282220925,
+        0.54859834721992
+      ],
+      "rightLowerArm": [
+        -0.248622601473459,
+        0.8821908298939638,
+        0.2872875124016236
+      ],
+      "rightUpperArm": [
+        -0.1268666435803683,
+        1.0928199893910966,
+        0.3161979704450713
+      ],
+      "leftFoot": [
+        0.33318522755304253,
+        0.1599573775815029,
+        0.5196600082161233
+      ],
+      "rightFoot": [
+        -0.2324575012149565,
+        0.17311176762166497,
+        -0.03142602306537762
+      ]
+    },
+    "sequence": [
+      "技 / 流し斬り"
+    ],
+    "sequenceIndex": 0,
+    "playing": false,
+    "duration": 0.6600000262260437,
+    "loop": false,
+    "speed": 1,
+    "localTime": 0.3,
+    "posture": null,
+    "animations": [
+      "Tidebreak / Idle",
+      "Tidebreak / Walk",
+      "Tidebreak / Run",
+      "Tidebreak / Attack",
+      "Tidebreak / Hit Reaction",
+      "Tidebreak / T-Pose",
+      "通常 / 自然体",
+      "体 / 歩行",
+      "体 / ダッシュ",
+      "体 / 被弾",
+      "共有VRMA / Speaking / 会話",
+      "共有VRMA / Run / 軽い走行",
+      "共有VRMA / Walk / 歩行",
+      "共有VRMA / 踏み台昇降",
+      "共有VRMA / Idle / ゆったり待機",
+      "共有VRMA / お詫び",
+      "共有VRMA / Airplane 02",
+      "共有VRMA / スマートフォン",
+      "共有VRMA / 驚く",
+      "共有VRMA / ポーズ",
+      "共有VRMA / 励ます",
+      "共有VRMA / 水を飲む",
+      "共有VRMA / Airplane 05",
+      "姿勢 / 抜刀（ゲーム共通）",
+      "姿勢 / 納刀（ゲーム共通）",
+      "技 / 流し斬り",
+      "技 / 斬り返し",
+      "技 / 刺し貫く",
+      "技 / 叩き斬る",
+      "技 / 駆け抜け斬り",
+      "技 / 旋回斬り",
+      "技 / 飛び込み斬り",
+      "技 / 退いて構える",
+      "技 / 斬り上げる",
+      "技 / 足元を薙ぐ",
+      "技 / 袈裟に断つ",
+      "技 / 十字に斬り結ぶ",
+      "技 / 一回転の大薙ぎ",
+      "技 / 渾身の貫き",
+      "技 / 跳躍突き",
+      "技 / 柄で打ち崩す",
+      "技 / 盾・鍔で押し返す",
+      "技 / 猛進・吹き飛ばし",
+      "技 / 流星の強襲",
+      "技 / 左の牽制拳",
+      "技 / 右の正拳",
+      "技 / 回し拳",
+      "技 / 腹打ち",
+      "技 / 突き上げ拳",
+      "技 / 寸勁",
+      "技 / 連環双拳",
+      "技 / 崩山・突進拳",
+      "技 / 居合い抜き",
+      "技 / 袈裟の一太刀",
+      "技 / 逆袈裟の返し",
+      "技 / 切っ先で貫く",
+      "技 / 風車の連旋",
+      "技 / 堅く防ぐ",
+      "パリィ / 堅く防ぐ",
+      "技 / 刃を弾く",
+      "パリィ / 刃を弾く",
+      "技 / 受け流して反撃",
+      "パリィ / 受け流して反撃",
+      "技 / 守りの結界",
+      "パリィ / 守りの結界",
+      "技 / 身をかわして返す",
+      "パリィ / 身をかわして返す",
+      "技 / 踏ん張って受ける",
+      "パリィ / 踏ん張って受ける",
+      "技 / 構えを整える",
+      "構え / 未設定",
+      "心 / 未設定",
+      "構え / 自然体",
+      "心 / 自然体",
+      "構え / 攻め主体",
+      "心 / 攻め主体",
+      "構え / 守り主体",
+      "心 / 守り主体",
+      "構え / 後の先",
+      "心 / 後の先",
+      "構え / 見切り重視",
+      "心 / 見切り重視",
+      "構え / 回避重視",
+      "心 / 回避重視",
+      "構え / 不動",
+      "心 / 不動",
+      "構え / 生存優先",
+      "心 / 生存優先",
+      "構え / 護衛優先",
+      "心 / 護衛優先",
+      "構え / 拳闘のリズム",
+      "心 / 拳闘のリズム",
+      "構え / 半身の構え",
+      "心 / 半身の構え",
+      "構え / 静の構え",
+      "心 / 静の構え",
+      "外部 / Crouch_Fwd_Loop",
+      "外部 / Crouch_Idle_Loop",
+      "外部 / Dance_Loop",
+      "外部 / Death01",
+      "外部 / Driving_Loop",
+      "外部 / Fixing_Kneeling",
+      "外部 / Hit_Chest",
+      "外部 / Hit_Head",
+      "外部 / Idle_Loop",
+      "外部 / Idle_Talking_Loop",
+      "外部 / Idle_Torch_Loop",
+      "外部 / Interact",
+      "外部 / Jog_Fwd_Loop",
+      "外部 / Jump_Land",
+      "外部 / Jump_Loop",
+      "外部 / Jump_Start",
+      "外部 / PickUp_Table",
+      "外部 / Pistol_Aim_Down",
+      "外部 / Pistol_Aim_Neutral",
+      "外部 / Pistol_Aim_Up",
+      "外部 / Pistol_Idle_Loop",
+      "外部 / Pistol_Reload",
+      "外部 / Pistol_Shoot",
+      "外部 / Punch_Cross",
+      "外部 / Punch_Enter",
+      "外部 / Punch_Jab",
+      "外部 / Push_Loop",
+      "外部 / Roll",
+      "外部 / Roll_RM",
+      "外部 / Sitting_Enter",
+      "外部 / Sitting_Exit",
+      "外部 / Sitting_Idle_Loop",
+      "外部 / Sitting_Talking_Loop",
+      "外部 / Spell_Simple_Enter",
+      "外部 / Spell_Simple_Exit",
+      "外部 / Spell_Simple_Idle_Loop",
+      "外部 / Spell_Simple_Shoot",
+      "外部 / Sprint_Loop",
+      "外部 / Swim_Fwd_Loop",
+      "外部 / Swim_Idle_Loop",
+      "外部 / Sword_Attack",
+      "外部 / Sword_Attack_RM",
+      "外部 / Sword_Idle",
+      "外部 / Walk_Formal_Loop",
+      "外部 / Walk_Loop"
+    ],
+    "calls": 54,
+    "triangles": 162872,
+    "pose": {
+      "hips": [
+        0.09361400455236435,
+        0.6376638412475586,
+        0.2106606513261795,
+        0.13908547981178404,
+        0.06767905921599592,
+        0.01776687715049218,
+        0.9878051995841503
+      ],
+      "spine": [
+        0,
+        0.11000001430511475,
+        0,
+        -0.011851465184111546,
+        -0.0938056621366534,
+        -0.011007576114477979,
+        0.9954591271328911
+      ],
+      "chest": [
+        0,
+        0.18039953708648682,
+        3.725290298461914e-9,
+        0.010156254436954537,
+        -0.0695771212917693,
+        -0.015444449381540123,
+        0.9974053056164598
+      ],
+      "upperChest": [
+        0,
+        0.13024592399597168,
+        -1.862645149230957e-9,
+        0.13960739029657224,
+        0,
+        0,
+        0.9902069362383706
+      ],
+      "neck": [
+        0,
+        0.09219551086425781,
+        2.798403286874418e-8,
+        0.026135995741871594,
+        -5.4610212071764343e-17,
+        -1.134191717181138e-15,
+        0.9996583965168206
+      ],
+      "head": [
+        0,
+        0.09340774267911911,
+        1.1175870895385742e-8,
+        -0.15248855037054612,
+        0.03606395932810819,
+        -0.022456335756096166,
+        0.9873916881500874
+      ],
+      "leftEye": [
+        0.07999999821186066,
+        0.21442660689353943,
+        0.13836997747421265,
+        3.04220755347127e-8,
+        -0.718065083246847,
+        -0.6959759595141896,
+        3.138762140049183e-8
+      ],
+      "rightEye": [
+        -0.07999999821186066,
+        0.21442660689353943,
+        0.13836997747421265,
+        3.04220755347127e-8,
+        -0.718065083246847,
+        -0.6959759595141896,
+        3.138762140049183e-8
+      ],
+      "leftUpperLeg": [
+        0.10499999672174454,
+        0,
+        0,
+        0.7689373015931334,
+        0.07624030230994021,
+        0.022782639020953573,
+        0.6343530514481666
+      ],
+      "leftLowerLeg": [
+        -8.847564458847046e-9,
+        0.380648136138916,
+        -4.6566128730773926e-9,
+        0.5262894131990681,
+        -0.005392215314673079,
+        0.028820662362426395,
+        0.8497998276003425
+      ],
+      "leftFoot": [
+        -1.4319456731470837e-9,
+        0.3205120265483856,
+        1.693980955508323e-9,
+        -0.4989018383292055,
+        0.004420437799594455,
+        0.0926068042077525,
+        0.8616852065898695
+      ],
+      "leftToes": [
+        3.3689928624625054e-10,
+        0.18607765436172485,
+        1.0553407037150464e-9,
+        -0.19041139816375294,
+        -9.841924762668028e-10,
+        -4.2802207737936624e-10,
+        0.9817043849598129
+      ],
+      "rightUpperLeg": [
+        -0.10499999672174454,
+        0,
+        0,
+        0.95263990047941,
+        -0.270812130462188,
+        -0.012759105606199538,
+        0.13775055438451367
+      ],
+      "rightLowerLeg": [
+        8.847564458847046e-9,
+        0.380648136138916,
+        -4.6566128730773926e-9,
+        0.5671746973716697,
+        0.009910751558619523,
+        -0.1387625545088527,
+        0.8117632617525112
+      ],
+      "rightFoot": [
+        1.4319456731470837e-9,
+        0.3205120265483856,
+        1.693980955508323e-9,
+        -0.8976525081079721,
+        -0.02924466323551214,
+        -0.1308143885808405,
+        0.4198241537833783
+      ],
+      "rightToes": [
+        -3.3689928624625054e-10,
+        0.18607765436172485,
+        1.0553407037150464e-9,
+        -0.19041139816375294,
+        9.841924762668028e-10,
+        4.2802207737936624e-10,
+        0.9817043849598129
+      ],
+      "leftShoulder": [
+        0.04500000178813934,
+        0.04078305512666702,
+        -0.0008677197620272636,
+        -0.5329121506449762,
+        -0.5696224695114321,
+        -0.45693512951376314,
+        0.4274870399659903
+      ],
+      "leftUpperArm": [
+        5.880650411071997e-10,
+        0.1803995668888092,
+        1.2061711629485217e-7,
+        -0.7904328453915447,
+        -0.21948807913805185,
+        -0.39975672777682764,
+        0.408944322175621
+      ],
+      "leftLowerArm": [
+        2.10306170879075e-16,
+        0.24500000476837158,
+        -2.220446049250313e-16,
+        -0.3229518794666728,
+        0.039271655560244444,
+        -0.30905471198485224,
+        0.8936694051037336
+      ],
+      "leftHand": [
+        8.881788961561581e-17,
+        0.23000004887580872,
+        1.1920928955078125e-7,
+        0.0115496001693306,
+        -0.19363668189017044,
+        -0.7322213306864966,
+        -0.6528578444425628
+      ],
+      "rightShoulder": [
+        -0.04500000178813934,
+        0.04078305512666702,
+        -0.0008677197620272636,
+        -0.5329121506449762,
+        0.5696224695114321,
+        0.45693512951376314,
+        0.4274870399659903
+      ],
+      "rightUpperArm": [
+        -5.880650411071997e-10,
+        0.1803995668888092,
+        1.2061711629485217e-7,
+        -0.5164944589148885,
+        0.09328726041703866,
+        0.08096844796415521,
+        0.8473340966751994
+      ],
+      "rightLowerArm": [
+        -2.10306170879075e-16,
+        0.24500000476837158,
+        -2.220446049250313e-16,
+        0.03533376590841189,
+        -3.4968603959484533e-7,
+        0.7894641034211918,
+        0.6127788788755542
+      ],
+      "rightHand": [
+        -8.881788961561581e-17,
+        0.23000004887580872,
+        1.1920928955078125e-7,
+        0.33824442136464256,
+        -0.683492925201298,
+        -0.4003288601665944,
+        -0.5080993370721775
+      ],
+      "leftThumbMetacarpal": [
+        0.025000005960464478,
+        0.020000100135803223,
+        -0.009999989531934261,
+        -0.2043897193595614,
+        -0.2319914663328682,
+        -0.07348577442345183,
+        0.948158553790573
+      ],
+      "leftThumbProximal": [
+        0.0009222999215126038,
+        0.036663129925727844,
+        0.003868107683956623,
+        0.05000503956701816,
+        -0.2364419720110315,
+        -0.07859271691617818,
+        0.9671700340359854
+      ],
+      "leftThumbDistal": [
+        0.0009223334491252899,
+        0.03666311874985695,
+        0.003868156112730503,
+        -0.1969682513779608,
+        -0.16882993619950962,
+        0.02813790155824584,
+        0.9653539321194127
+      ],
+      "leftIndexProximal": [
+        0.047000009566545486,
+        0.08800005912780762,
+        1.2133617133258667e-7,
+        -0.32185578521317015,
+        -0.039738760498182285,
+        0.013522292649690616,
+        0.945857711368695
+      ],
+      "leftIndexIntermediate": [
+        0.00025074370205402374,
+        0.03551429510116577,
+        0.0029790010303258896,
+        -0.6027738317468188,
+        -0.0680165195955985,
+        0.10350348958684752,
+        0.7882414171294683
+      ],
+      "leftIndexDistal": [
+        0.0017155669629573822,
+        0.025858014822006226,
+        0.006550908088684082,
+        -0.4772990221158754,
+        -0.11826988913890915,
+        0.1988501202239954,
+        0.8477360689900961
+      ],
+      "leftMiddleProximal": [
+        0.015000002458691597,
+        0.08800005912780762,
+        1.198880852371076e-7,
+        -0.3160944507093206,
+        -0.03397743520677895,
+        0.011328597810461204,
+        0.9480514104094137
+      ],
+      "leftMiddleIntermediate": [
+        0.00021420186385512352,
+        0.04169289022684097,
+        0.0029846476390957832,
+        -0.5956361626616885,
+        -0.05904859150885038,
+        0.08738301593242133,
+        0.7963008728980429
+      ],
+      "leftMiddleDistal": [
+        0.0014888094738125801,
+        0.03059658408164978,
+        0.006667641922831535,
+        -0.4745783263751232,
+        -0.10627513516034735,
+        0.16949978595617507,
+        0.8571760805785624
+      ],
+      "leftRingProximal": [
+        -0.01900000125169754,
+        0.08800005912780762,
+        1.1834948310252003e-7,
+        -0.31916435962502604,
+        -0.03704732275257262,
+        0.012487373440886225,
+        0.9468926993378115
+      ],
+      "leftRingIntermediate": [
+        0.0002336832694709301,
+        0.038163043558597565,
+        0.002981881145387888,
+        -0.5995242596929379,
+        -0.0638726577013986,
+        0.09594058866619032,
+        0.7920141006215013
+      ],
+      "leftRingDistal": [
+        0.0016110092401504517,
+        0.02789294719696045,
+        0.006607182789593935,
+        -0.4764076108876497,
+        -0.11290070907565067,
+        0.18527113545767748,
+        0.8520350892614231
+      ],
+      "leftLittleProximal": [
+        -0.047000009566545486,
+        0.08800005912780762,
+        1.1708240066354847e-7,
+        -0.33139013132070105,
+        -0.0492730900488561,
+        0.017333144895575824,
+        0.9420469260862837
+      ],
+      "leftLittleIntermediate": [
+        0.00031126290559768677,
+        0.028443975374102592,
+        0.0029674600809812546,
+        -0.6130533004662341,
+        -0.08202369279809663,
+        0.13065525064874756,
+        0.7748335075466656
+      ],
+      "leftLittleDistal": [
+        0.0020645521581172943,
+        0.020391670987010002,
+        0.0063264453783631325,
+        -0.4756020475462719,
+        -0.13416214333623477,
+        0.2445263308142787,
+        0.834272200549021
+      ],
+      "rightThumbMetacarpal": [
+        -0.025000005960464478,
+        0.020000100135803223,
+        -0.009999989531934261,
+        -0.2043897277821462,
+        0.2319914671470986,
+        0.07348578507339892,
+        0.9481585509503268
+      ],
+      "rightThumbProximal": [
+        -0.0009222999215126038,
+        0.036663129925727844,
+        0.003868107683956623,
+        0.050005055200350985,
+        0.23644197809850845,
+        0.0785927173561332,
+        0.9671700317037606
+      ],
+      "rightThumbDistal": [
+        -0.0009223334491252899,
+        0.03666311874985695,
+        0.003868156112730503,
+        -0.1969682513779608,
+        0.16882993619950962,
+        -0.02813790155824584,
+        0.9653539321194127
+      ],
+      "rightIndexProximal": [
+        -0.047000009566545486,
+        0.08800005912780762,
+        1.2133617133258667e-7,
+        -0.32185578521317015,
+        0.039738760498182285,
+        -0.013522292649690616,
+        0.945857711368695
+      ],
+      "rightIndexIntermediate": [
+        -0.00025074370205402374,
+        0.03551429510116577,
+        0.0029790010303258896,
+        -0.6027738317468188,
+        0.0680165195955985,
+        -0.10350348958684752,
+        0.7882414171294683
+      ],
+      "rightIndexDistal": [
+        -0.0017155669629573822,
+        0.025858014822006226,
+        0.006550908088684082,
+        -0.4772990221158754,
+        0.11826988913890915,
+        -0.1988501202239954,
+        0.8477360689900961
+      ],
+      "rightMiddleProximal": [
+        -0.015000002458691597,
+        0.08800005912780762,
+        1.198880852371076e-7,
+        -0.3160944507093206,
+        0.03397743520677895,
+        -0.011328597810461204,
+        0.9480514104094137
+      ],
+      "rightMiddleIntermediate": [
+        -0.00021420186385512352,
+        0.04169289022684097,
+        0.0029846476390957832,
+        -0.5956361626616885,
+        0.05904859150885038,
+        -0.08738301593242133,
+        0.7963008728980429
+      ],
+      "rightMiddleDistal": [
+        -0.0014888094738125801,
+        0.03059658408164978,
+        0.006667641922831535,
+        -0.4745783263751232,
+        0.10627513516034735,
+        -0.16949978595617507,
+        0.8571760805785624
+      ],
+      "rightRingProximal": [
+        0.01900000125169754,
+        0.08800005912780762,
+        1.1834948310252003e-7,
+        -0.31916435962502604,
+        0.03704732275257262,
+        -0.012487373440886225,
+        0.9468926993378115
+      ],
+      "rightRingIntermediate": [
+        -0.0002336832694709301,
+        0.038163043558597565,
+        0.002981881145387888,
+        -0.5995242596929379,
+        0.0638726577013986,
+        -0.09594058866619032,
+        0.7920141006215013
+      ],
+      "rightRingDistal": [
+        -0.0016110092401504517,
+        0.02789294719696045,
+        0.006607182789593935,
+        -0.4764076108876497,
+        0.11290070907565067,
+        -0.18527113545767748,
+        0.8520350892614231
+      ],
+      "rightLittleProximal": [
+        0.047000009566545486,
+        0.08800005912780762,
+        1.1708240066354847e-7,
+        -0.33139013132070105,
+        0.0492730900488561,
+        -0.017333144895575824,
+        0.9420469260862837
+      ],
+      "rightLittleIntermediate": [
+        -0.00031126290559768677,
+        0.028443975374102592,
+        0.0029674600809812546,
+        -0.6130533004662341,
+        0.08202369279809663,
+        -0.13065525064874756,
+        0.7748335075466656
+      ],
+      "rightLittleDistal": [
+        -0.0020645521581172943,
+        0.020391670987010002,
+        0.0063264453783631325,
+        -0.4756020475462719,
+        0.13416214333623477,
+        -0.2445263308142787,
+        0.834272200549021
+      ]
+    }
+  },
+  "passed": true
+}
