@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { notifyStage } from './implementation-handoff.mjs';
 import { lifecycleMessage, normalizeNotificationLocale, notificationTitle } from './notification-copy.mjs';
 
-export function deliveryMessage(stage, { report, sha, repository, runUrl, locale = 'en' }) {
+export function deliveryMessage(stage, { report, sha, repository, runUrl, locale = 'en', pr = null }) {
   if (stage === 'INTEGRATED') {
     if (!report?.merged?.length) return null;
     return lifecycleMessage('INTEGRATED', { locale, lines: [
@@ -18,13 +18,28 @@ export function deliveryMessage(stage, { report, sha, repository, runUrl, locale
     ] });
   }
   if (stage !== 'DEV_DEPLOYED' || !/^[a-f0-9]{40}$/.test(sha || '')) throw new Error('INVALID_DELIVERY_RESULT');
-  return lifecycleMessage('DEV_DEPLOYED', { locale, lines: [
-    'branch: develop',
-    `commit: ${sha}`,
-    'Fast checks / DEV publication / HTTP-source verification passed.',
-    'Browser diagnostics are asynchronous and only gate active repair verification or Production.',
-    `Run: ${runUrl}`,
-  ] });
+  const language = normalizeNotificationLocale(locale);
+  const hasChange = Boolean(pr?.number && pr?.title);
+  return lifecycleMessage('DEV_DEPLOYED', {
+    locale,
+    result: hasChange
+      ? (language === 'ja' ? `${pr.title} をDEVへ反映しました。` : `DEV now includes: ${pr.title}`)
+      : undefined,
+    next: hasChange
+      ? (language === 'ja' ? 'DEVで確認できます。' : 'Review the change on DEV.')
+      : undefined,
+    lines: [
+      ...(hasChange ? [
+        `PR: https://github.com/${repository}/pull/${pr.number}`,
+        'DEV: https://charukun.github.io/soul-lineage/dev/',
+      ] : []),
+      'branch: develop',
+      `commit: ${sha}`,
+      'Fast checks / DEV publication / HTTP-source verification passed.',
+      'Browser diagnostics are asynchronous and only gate active repair verification or Production.',
+      `Run: ${runUrl}`,
+    ],
+  });
 }
 
 async function githubJson(request, url, { token, method = 'GET', body } = {}) {
@@ -43,6 +58,15 @@ async function githubJson(request, url, { token, method = 'GET', body } = {}) {
   return response.status === 204 ? null : response.json();
 }
 
+export async function findAssociatedDevelopPr({ token = '', repository, sha, request = fetch }) {
+  if (!token) return null;
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repository || '') || !/^[a-f0-9]{40}$/.test(sha || '')) throw new Error('INVALID_GITHUB_DELIVERY_PR');
+  const root = `https://api.github.com/repos/${repository}`;
+  const prs = await githubJson(request, `${root}/commits/${sha}/pulls?per_page=100`, { token });
+  return prs.filter(item => item.merged_at && item.base?.ref === 'develop')
+    .sort((a, b) => new Date(b.merged_at) - new Date(a.merged_at))[0] || null;
+}
+
 export async function recordDevelopDeliveryStatus({ token = '', repository, sha, runUrl, request = fetch }) {
   if (!token) return 'not-configured';
   if (!/^[\w.-]+\/[\w.-]+$/.test(repository || '') || !/^[a-f0-9]{40}$/.test(sha || '')) throw new Error('INVALID_GITHUB_DELIVERY_STATUS');
@@ -59,13 +83,13 @@ export async function recordDevelopDeliveryStatus({ token = '', repository, sha,
   return 'recorded';
 }
 
-export async function recordGithubDeliveryReceipt({ token = '', repository, sha, runUrl, message, request = fetch }) {
+export async function recordGithubDeliveryReceipt({ token = '', repository, sha, runUrl, message, pr: associatedPr, request = fetch }) {
   if (!token) return 'not-configured';
   if (!/^[\w.-]+\/[\w.-]+$/.test(repository || '') || !/^[a-f0-9]{40}$/.test(sha || '')) throw new Error('INVALID_GITHUB_DELIVERY_RECEIPT');
   const root = `https://api.github.com/repos/${repository}`;
-  const prs = await githubJson(request, `${root}/commits/${sha}/pulls?per_page=100`, { token });
-  const pr = prs.filter(item => item.merged_at && item.base?.ref === 'develop')
-    .sort((a, b) => new Date(b.merged_at) - new Date(a.merged_at))[0];
+  const pr = associatedPr === undefined
+    ? await findAssociatedDevelopPr({ token, repository, sha, request })
+    : associatedPr;
   if (!pr) return 'no-associated-pr';
   const marker = `<!-- dev-delivery-receipt:${sha} -->`;
   for (let page = 1; page <= 3; page++) {
@@ -99,8 +123,22 @@ async function main() {
   const report = reportPath && existsSync(reportPath) ? JSON.parse(readFileSync(reportPath, 'utf8')) : null;
   const locale = normalizeNotificationLocale(process.env.NOTIFY_LOCALE || 'ja');
   const runUrl = `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+
+  let associatedPr = null;
+  if (stage === 'DEV_DEPLOYED') {
+    try {
+      associatedPr = await findAssociatedDevelopPr({
+        token: process.env.GITHUB_TOKEN,
+        repository: process.env.GITHUB_REPOSITORY,
+        sha: process.env.FINAL_SHA,
+      });
+    } catch (error) {
+      console.warn(`::warning::DEV change lookup failed; using generic notification: ${error.message}`);
+    }
+  }
+
   const message = deliveryMessage(stage, { report, sha: process.env.FINAL_SHA,
-    repository: process.env.GITHUB_REPOSITORY, locale, runUrl });
+    repository: process.env.GITHUB_REPOSITORY, locale, runUrl, pr: associatedPr });
   if (!message) { writeOutput('skipped'); return; }
 
   // GitHub is the delivery source of truth. Record it before the advisory smartphone notification.
@@ -123,6 +161,7 @@ async function main() {
         sha: process.env.FINAL_SHA,
         runUrl,
         message,
+        pr: associatedPr,
       });
       console.log(`GitHub delivery receipt: ${receipt}`);
     } catch (error) {
