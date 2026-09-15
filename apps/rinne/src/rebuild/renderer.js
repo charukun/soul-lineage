@@ -16,16 +16,18 @@ const ageScale=years=>{
 export function createWorldRenderer({canvas,document:doc,layout,stations}){
   const renderWindow=doc.defaultView||globalThis,basePixelRatio=Number(renderWindow?.devicePixelRatio)||1,targetFps=targetFpsForView(renderWindow);
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance',alpha:false});
-  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.04;
+  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.06;
   const applyQuality=profile=>{const ratio=renderPixelRatio(basePixelRatio,profile.renderScale);renderer.setPixelRatio(ratio);canvas.dataset.renderQuality=profile.id;canvas.dataset.renderPixelRatio=String(ratio);};
   const qualityGovernor=createAdaptiveQualityGovernor({targetFps,onChange:snapshot=>applyQuality(snapshot.profile)});applyQuality(qualityGovernor.snapshot().profile);
-  const scene=new THREE.Scene();scene.background=new THREE.Color(0x91a88b);scene.fog=new THREE.FogExp2(0x9aa895,.0045);
+  const scene=new THREE.Scene();scene.background=new THREE.Color(0x91d7f5);scene.fog=new THREE.FogExp2(0xcfe6ef,.0042);
   const camera=new THREE.PerspectiveCamera(43,1,.08,650);camera.position.set(12,13,17);
-  scene.add(new THREE.HemisphereLight(0xeef3d9,0x40545b,2.1));
-  const sun=new THREE.DirectionalLight(0xffd7a6,2.5);sun.position.set(-12,25,15);scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0xfff0cb,0x7b6fa5,2.15));
+  const sun=new THREE.DirectionalLight(0xffd493,2.65);sun.position.set(-12,25,15);scene.add(sun);
 
   const root=new THREE.Group(),land=new THREE.Group(),objects=new THREE.Group(),stationsRoot=new THREE.Group(),frontRoot=new THREE.Group();root.add(land,objects,stationsRoot);scene.add(root,frontRoot);frontRoot.visible=false;
-  const models=createMuraModels(THREE,{createCanvas:()=>doc.createElement('canvas')}),cache=new Map();
+  // The shared renderer keeps the full 14k-fiber default. Rinne's phone-first runtime uses a lighter
+  // microtexture because silhouette, lighting and authored geometry carry the visible style here.
+  const models=createMuraModels(THREE,{createCanvas:()=>doc.createElement('canvas'),textileFibers:2800,textileBlotches:72}),cache=new Map();
   const getProp=kind=>{if(!cache.has('prop:'+kind))cache.set('prop:'+kind,flattenMuraModel(THREE,models.prop(kind,14)));return cache.get('prop:'+kind);};
   const terrain=createMuraTerrain({THREE,scene,outside:land,getProp,mat:models.mat,createCanvas:()=>doc.createElement('canvas')});
   for(const o of layout.objects){
@@ -59,10 +61,10 @@ export function createWorldRenderer({canvas,document:doc,layout,stations}){
   }
   stations.filter(s=>s.equipment).forEach(rack);
 
-  const frontGround=new THREE.Mesh(new THREE.PlaneGeometry(17,14),mat(0x827b6a));frontGround.rotation.x=-Math.PI/2;frontRoot.add(frontGround);
-  for(const x of[-7.2,7.2])for(let z=-5.5;z<=5.5;z+=2.2)box(frontRoot,[.7,1.2,.7],[x,.6,z],0x5f655e);
-  for(const x of[-2.2,0,2.2])box(frontRoot,[1.4,.25,.7],[x,.12,-6.25],0x786a5b);
-  const rescuePad=new THREE.Mesh(new THREE.RingGeometry(.8,1.0,32),new THREE.MeshBasicMaterial({color:0xb5c9bc,side:THREE.DoubleSide}));rescuePad.rotation.x=-Math.PI/2;rescuePad.position.set(0,.03,5.2);frontRoot.add(rescuePad);
+  const frontGround=new THREE.Mesh(new THREE.PlaneGeometry(17,14),mat(0x8d7ca8));frontGround.rotation.x=-Math.PI/2;frontRoot.add(frontGround);
+  for(const x of[-7.2,7.2])for(let z=-5.5;z<=5.5;z+=2.2)box(frontRoot,[.7,1.2,.7],[x,.6,z],0x6e6682);
+  for(const x of[-2.2,0,2.2])box(frontRoot,[1.4,.25,.7],[x,.12,-6.25],0xa47768);
+  const rescuePad=new THREE.Mesh(new THREE.RingGeometry(.8,1.0,32),new THREE.MeshBasicMaterial({color:0xffd470,side:THREE.DoubleSide}));rescuePad.rotation.x=-Math.PI/2;rescuePad.position.set(0,.03,5.2);frontRoot.add(rescuePad);
   applyStylizedShading(root,'environment');applyStylizedShading(frontRoot,'environment');
   const enemyMeshes=new Map();let enemyRosterKey='';
   function updateFront(front){

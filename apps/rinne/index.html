@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#101816">
+  <meta name="theme-color" content="#86cfff">
   <meta name="description" content="100年人生 — 輪廻転焦。暮らし、戦い、遺し、また生まれる。">
   <title>100年人生 — 輪廻転焦</title>
   <link rel="icon" href="./title-assets/crest.svg" type="image/svg+xml">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./src/rebuild/app.css">
+  <link rel="stylesheet" href="./src/rebuild/pop.css">
 </head>
 <body>
-<main id="app" data-screen="title">
-  <section id="title-screen" class="title-screen" aria-labelledby="title-mark">
+<main id="app" data-screen="loading">
+  <section id="title-screen" class="title-screen" aria-labelledby="title-mark" hidden>
     <div class="title-rune" aria-hidden="true"></div>
     <div class="title-lockup">
       <div class="crest-ring"><img class="crest" src="./title-assets/crest.svg" alt=""></div>
@@ -28,15 +29,21 @@
       <a class="secondary" href="./simulator/index.html"><strong>稽古場</strong><small>技・装備</small></a>
       <button id="open-village" class="secondary" type="button"><strong>村へ参加</strong><small>参加コード</small></button>
     </div>
-    <p id="boot-status" class="boot-status" role="status" aria-live="polite">準備完了</p>
+    <p id="boot-status" class="boot-status" role="status" aria-live="polite">世界を準備しています</p>
     <footer><span id="build-label">LOCAL</span><span>輪廻転焦</span></footer>
   </section>
 
-  <section id="game-screen" class="game-screen" data-world-tone="village" hidden aria-label="100年人生 本編">
+  <section id="game-screen" class="game-screen is-loading" data-world-tone="village" aria-busy="true" aria-label="100年人生 本編">
     <canvas id="game" aria-label="村と旅人の世界"></canvas>
     <div class="world-vignette" aria-hidden="true"></div>
     <div id="chapter-mark" class="chapter-mark" hidden aria-hidden="true"><span>輪廻転焦</span><strong id="chapter-title"></strong><i></i></div>
-    <div id="loading-card" class="loading-card" aria-live="polite"><strong id="loading-title">世界を開いています</strong><small id="loading-message">村を読み込み中</small></div>
+    <div id="loading-card" class="loading-card" aria-live="polite">
+      <div class="loading-emblem" aria-hidden="true"><span></span><i></i></div>
+      <strong id="loading-title">世界をつくっています</strong>
+      <small id="loading-message">人生の入口を開いています</small>
+      <div class="loading-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+      <button id="boot-retry" class="primary loading-retry" type="button" hidden><strong>もう一度</strong><small>世界を開き直す</small></button>
+    </div>
     <header class="hud-top">
       <button id="back-title" class="icon-button" type="button" aria-label="タイトルへ戻る">‹</button>
       <div class="life-chip ornate"><span id="generation">1代目</span><strong id="age">0歳</strong></div>
