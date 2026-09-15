@@ -45,7 +45,7 @@ jobs:
       actions: write
       checks: read
       statuses: write
-      issues: read
+      issues: write
     outputs:
       sha: ${{ steps.fast-lane.outputs.sha }}
       verify: ${{ steps.fast-lane.outputs.verify }}
