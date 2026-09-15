@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { parseAiRepairEnvelope } from '../scripts/integration-ai-repair-envelope.mjs';
 import {
   deepRepairIssueMarker,
   deepRepairIssueState,
@@ -47,10 +48,12 @@ test('signalDeepRepair creates one issue per exact head and records pending stat
   const c = {
     root: '/repos/charukun/soul-lineage',
     async pages(path) {
-      assert.match(path, /^\/issues\?/);
+      assert.match(path, /\/statuses$/);
       return [];
     },
     async api(method, path, body) {
+      if (method === 'GET' && path.startsWith('/search/issues?')) return { items: [], total_count: 0, incomplete_results: false };
+      if (method === 'GET' && path.includes('/issues?state=open')) return [];
       calls.push({ method, path, body });
       if (method === 'POST' && path === '/repos/charukun/soul-lineage/issues') {
         return { number: 501, html_url: 'https://github.com/charukun/soul-lineage/issues/501', body: body.body };
@@ -71,6 +74,14 @@ test('signalDeepRepair creates one issue per exact head and records pending stat
   assert.match(issue.body.body, /integration-deep-repair:v1/);
   assert.match(issue.body.body, /rinne-ai-repair:v1/);
   assert.match(issue.body.body, /AI_DEEP_REPAIR_REQUIRED/);
+  const envelope = parseAiRepairEnvelope(issue.body.body);
+  assert.equal(envelope.attempt, 0);
+  assert.equal(envelope.maxAttempts, 2);
+  assert.equal(envelope.head, head);
+  assert.match(envelope.constraints.join('\n'), /DEV publication -> user visual feedback -> AI correction/);
+  assert.match(envelope.constraints.join('\n'), /Adapt stale PR behavior to current confirmed specifications/);
+  assert.match(envelope.constraints.join('\n'), /Never automatically clear an existing human-required decision/);
+  assert.match(envelope.constraints.join('\n'), /preserve exact-head, review, thread, check, browser and Production gates/);
   const status = calls.find(call => call.path.endsWith(`/statuses/${head}`));
   assert.equal(status.body.context, 'integration/deep-repair');
   assert.equal(status.body.state, 'pending');
@@ -82,8 +93,11 @@ test('signalDeepRepair reuses an existing exact-head issue instead of duplicatin
   let created = 0;
   const c = {
     root: '/repos/charukun/soul-lineage',
-    async pages() { return [existing]; },
+    async pages() { return []; },
     async api(method, path) {
+      if (method === 'GET' && path.startsWith('/search/issues?')) return { items: [existing], total_count: 1, incomplete_results: false };
+      if (method === 'GET' && path.includes('/issues?state=open')) return [existing];
+      if (method === 'GET' && path.endsWith('/issues/501')) return existing;
       if (path === '/repos/charukun/soul-lineage/issues') created++;
       if (path.endsWith(`/statuses/${head}`)) return {};
       throw new Error(`unexpected ${method} ${path}`);

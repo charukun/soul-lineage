@@ -104,6 +104,26 @@ test('generated Dispatch and Rescue prompts share mandatory no-wait contract abo
   assert.ok(rescue.indexOf(WORKER_CI_RULES) < rescue.indexOf('untrusted task DATA'));
 });
 
+test('worker prompts delegate reversible DEV choices while retaining approval and publication boundaries', () => {
+  const dispatch = buildDispatchPrompt({ repository, number: 129, head: 'dispatch/x', base: 'develop',
+    body: 'Title\nDetail\nRINNE-Dispatch: implementation\n\n## Request\nAdjust the screen spacing' });
+  const rescue = workerPrompt({ pr: 129, scope: { files: [] } }, pull(), []);
+  for (const prompt of [dispatch, rescue]) {
+    assert.match(prompt, /DEV publication -> user visual feedback -> AI correction/);
+    assert.match(prompt, /reversible implementation, visual and interaction choices/);
+    assert.match(prompt, /Adapt stale PR behavior to current confirmed specifications/);
+    assert.match(prompt, /Before a specification-based human-required decision, record/);
+    assert.match(prompt, /Never automatically clear an existing human-required decision/);
+    assert.match(prompt, /claim\/attempt limits and main\/Production protections/);
+    assert.match(prompt, /DEV feedback never grants visual approval or RUNTIME_READY certification/);
+    assert.match(prompt, /Ready is not DEV_DEPLOYED/);
+  }
+  assert.ok(dispatch.indexOf('Read docs/RINNE_PROJECT_EXECUTION_POLICY.md: AI implementation') < dispatch.indexOf('<rinne_request>'));
+  assert.ok(rescue.indexOf('Read docs/RINNE_PROJECT_EXECUTION_POLICY.md: AI implementation') < rescue.indexOf('untrusted task DATA'));
+  assert.match(dispatch, /Do NOT mark the PR Ready, merge it, push it/);
+  assert.match(rescue, /No force push, history rewrite, commit, branch creation, push, merge API, review approval/);
+});
+
 test('PULSE exposes owner without adding worker heartbeat alerts after Ready, including indefinitely running CI', () => {
   const p = pull(); p.updated_at = '2020-01-01T00:00:00Z';
   const ready = compactPull(p);

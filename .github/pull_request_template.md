@@ -17,6 +17,12 @@ Depends-On: none
 - 実行した検証と結果:
 - 残るリスク・仕様判断:
 
+## DEVでの確認
+
+- AIが採用した仮定・可逆的な選択:
+- 公開後に見てほしい画面・操作:
+- 目視で調整したい点（任意の確認。公開前の承認待ちにはしない）:
+
 ## Integration handoff
 
 - branch / commit SHA:
@@ -24,4 +30,4 @@ Depends-On: none
 - Worker結果: 未完了（完了時 `READY_FOR_INTEGRATION`）
 - CI/browser監視担当: Integration
 
-[実行ポリシー](../docs/RINNE_PROJECT_EXECUTION_POLICY.md)に従い、Ready化後はCIのRunning/Queued/Pendingを待たず結果を返して終了する。未完了・未決定はdraftまたはintegration:hold。
+[実行ポリシー](../docs/RINNE_PROJECT_EXECUTION_POLICY.md)に従い、Ready化後はCIのRunning/Queued/Pendingを待たず結果を返して終了する。未完了・未解決の重大な契約/権限判断はdraftまたはintegration:hold。確定要件内の可逆的な細部はAIが決め、通常gateを通してDEV公開後のフィードバックで改善する。

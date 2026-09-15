@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { REPOSITORY } from './integration-rescue-policy.mjs';
+import { DEV_FEEDBACK_CONSTRAINTS } from './dev-feedback-policy.mjs';
 
 const sha = value => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value);
 const compact = value => String(value || '').replace(/\s+/g, ' ').trim().slice(0, 800);
@@ -11,6 +12,7 @@ export const AI_REPAIR_CONSTRAINTS = Object.freeze([
   'preserve exact-head, review, thread, check, browser and Production gates',
   'run repository fast validation before returning the PR to Integration',
   'no force push and no main or Production changes',
+  ...DEV_FEEDBACK_CONSTRAINTS,
 ]);
 
 export function aiRepairEnvelope({ repository = REPOSITORY, pr, branch, head, develop, repairKind, reason,

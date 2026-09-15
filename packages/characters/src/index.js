@@ -10,6 +10,7 @@ export * from './visual-identity.js';
 export * from './reference-models.js';
 export * from './model-builder.js';
 export * from './reference-archetypes.js';
+export * from './reference-intelligence.js';
 export * from './production-pipeline.js';
 export * from './runtime-asset-audit.js';
 export * from './art-direction.js';

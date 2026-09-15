@@ -1,8 +1,10 @@
-name: CI
+name: PR Checks
 # Validation and browser diagnostics are independent. Fast Lane may merge after the
 # exact-head fast artifact succeeds; browser smoke continues asynchronously.
 run-name: >-
   CI ${{ (github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review","converted_to_draft"]'), github.event.action)) && 'validation' || 'observation' }} #${{ github.event.pull_request.number }} ${{ github.event.pull_request.head.sha }}
+env:
+  NOTIFY_LOCALE: ${{ vars.NOTIFY_LOCALE || 'ja' }}
 on:
   pull_request:
     branches: [develop, main]
@@ -243,7 +245,7 @@ jobs:
     needs: [readiness, build]
     if: >-
       always() && !cancelled() &&
-      (needs.build.result == 'success' ||
+      (needs.build.result == 'success' || needs.build.result == 'failure' ||
       (needs.build.result == 'skipped' && (github.event_name == 'pull_request_review' ||
       contains(fromJSON('["edited","labeled","unlabeled"]'), github.event.action)))) &&
       github.event.pull_request.base.ref == 'develop' &&

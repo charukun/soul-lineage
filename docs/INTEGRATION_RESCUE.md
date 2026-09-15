@@ -24,7 +24,7 @@ GitHub event
 
 | 構成 | 実装 | 責任 |
 | --- | --- | --- |
-| Fast Lane | `scripts/integration-fast-lane.mjs` | current Ready PR再取得、complete base comparison、exact-head gate、expected-head merge、真のconflictの即時Deep Repair handoff |
+| Fast Lane | `scripts/integration-fast-lane.mjs` | current Ready PR再取得、complete base comparison、exact-head gate、expected-head merge、真のconflict・exact-head CI failureの即時Deep Repair handoff |
 | Fast Repair / Stack reconciliation | `scripts/integration-repair-fast.mjs` の `reconcileStackFast` | current stacked Ready PRをbounded再取得し、Depends-On・review・hold・thread・head・developを再確認して元PR branchを安全にmerge-forward |
 | Repair workflow | `.github/workflows/integration-rescue.yml` | compatibility file名。Fast Repair、最大4並列exact-head fast validation、成功headごとの即時Fast Lane wake、非blocking browser smoke |
 | Trusted stack evidence | `scripts/integration-stack-fast-evidence.mjs` | trusted `deploy.yml/develop/workflow_dispatch` run、exact artifact、成功jobを再検証 |
@@ -59,6 +59,8 @@ Fast Repairは `AWAITING_PUSH` を作らず、通常Work push relayを待たず�
 
 Fast Laneがcurrent PRを再取得し、依存がdevelopへmerge済みで、hold・Changes requested・未解決threadがないにもかかわらず `mergeable=false / mergeable_state=dirty` を確認した場合、そのpass内で `integration-deep-repair:v1` Issueを作る。
 
+CIの `Validate and build` が失敗したReady PRも、最新validation runの失敗jobを根拠に同じDeep Repairへ送る。CI完了時のIntegration wakeと失敗証拠の契約は `docs/INTEGRATION_DEEP_REPAIR.md` を参照。
+
 IssueはPR番号、元branch、exact head、current develop、reason、attempt上限を固定し、同じexact headの`sourceKey`で重複しない。既存 `rinne-ai-repair:v1` envelopeも同梱する。
 
 RepositoryはこのGitHub eventを作るところまでを責任範囲とする。ChatGPT WorkのGitHub Issue opened/edited event triggerはChatGPTアカウント/Project側の設定であり、Repositoryから登録できない。trigger条件・prompt・claim手順は `docs/INTEGRATION_DEEP_REPAIR.md` を正本とする。
@@ -70,6 +72,8 @@ RepositoryはこのGitHub eventを作るところまでを責任範囲とする�
 ## 自動Repairしないもの
 
 次は速度のために安全条件を下げず、そのPRだけをdeep repair / human-requiredへ送る。
+
+この節のFast Repair対象外とhuman-requiredは同義ではない。同file競合はDeep Repairで確定仕様への適応を検討する。可逆的な細部はAIが判断しDEV公開後に確認する。仕様によるhuman-requiredの条件と記録は [実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md#devで実物を確認する標準開発) に従う。
 
 - 明示hold、`integration:manual`、`do-not-merge`
 - Changes requested、未解決review thread

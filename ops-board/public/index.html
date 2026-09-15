@@ -18,7 +18,7 @@
   <main class="shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">DEVELOPMENT / OPERATIONS</p>
+        <p class="eyebrow">いまの開発状況</p>
         <h1 class="pulse-wordmark">PULSE</h1>
       </div>
       <div class="refresh-area"><button id="reload" class="reload" type="button">最新に更新</button>
@@ -26,20 +26,25 @@
     </header>
 
     <nav class="section-tabs pulse-overview" aria-label="現在の状況">
+      <a id="overview-app-card" class="overview-card overview-publication-card info" href="#apps-section" data-open-disclosure="apps-section">
+        <span class="overview-label">DEV公開</span>
+        <strong id="overview-app-value">確認中</strong>
+        <span id="overview-app-detail" class="overview-detail overview-publication-availability">公開状態を確認中</span>
+        <span class="overview-publication-grid" aria-label="DEV公開の進捗">
+          <span class="overview-publication-row"><span class="overview-step-label">いま</span><span id="overview-app-now">公開状態を確認しています</span></span>
+          <span class="overview-publication-row"><span class="overview-step-label">次</span><span id="overview-app-next">次の工程を確認しています</span></span>
+          <span class="overview-publication-row"><span class="overview-step-label">確認できる目安</span><span id="overview-app-eta">目安を確認しています</span></span>
+        </span>
+      </a>
       <a id="overview-alert-card" class="overview-card info" href="#alert-section">
-        <span class="overview-label">要対応</span>
+        <span class="overview-label">今やること</span>
         <strong id="overview-alert-value">確認中</strong>
-        <span id="overview-alert-detail" class="overview-detail">異常を優先表示</span>
+        <span id="overview-alert-detail" class="overview-detail">止まっているものだけ表示</span>
       </a>
       <a id="overview-task-card" class="overview-card info" href="#tasks-section" data-open-disclosure="tasks-section">
-        <span class="overview-label">開発</span>
+        <span class="overview-label">開発中</span>
         <strong id="overview-task-value">確認中</strong>
-        <span id="overview-task-detail" class="overview-detail">作業と統合</span>
-      </a>
-      <a id="overview-app-card" class="overview-card info" href="#apps-section" data-open-disclosure="apps-section">
-        <span class="overview-label">公開</span>
-        <strong id="overview-app-value">確認中</strong>
-        <span id="overview-app-detail" class="overview-detail">アプリ状態</span>
+        <span id="overview-task-detail" class="overview-detail">作業中と統合待ち</span>
       </a>
     </nav>
 
@@ -51,15 +56,15 @@
     <section class="detail-zone" aria-labelledby="detail-zone-title">
       <div class="detail-zone-head">
         <div>
-          <p class="detail-zone-kicker">DRILL DOWN</p>
-          <h2 id="detail-zone-title">詳しく見る</h2>
+          <p class="detail-zone-kicker">必要なときだけ</p>
+          <h2 id="detail-zone-title">詳細</h2>
         </div>
-        <span class="muted">必要な場所だけ開く</span>
+        <span class="muted">タップして開く</span>
       </div>
 
       <details id="tasks-section" class="board-section board-disclosure" data-disclosure="section:tasks">
         <summary>
-          <span class="disclosure-heading"><span class="disclosure-kicker">DEVELOPMENT</span><strong>開発タスク</strong></span>
+          <span class="disclosure-heading"><span class="disclosure-kicker">作業</span><strong>開発中のタスク</strong></span>
           <span id="task-summary" class="disclosure-meta">確認中</span>
         </summary>
         <div class="board-disclosure-body">
@@ -75,7 +80,7 @@
 
           <details id="rescue-section" class="nested-disclosure" data-disclosure="section:rescue">
             <summary>
-              <span class="disclosure-heading"><span class="disclosure-kicker">RECOVERY</span><strong>自動統合と修復</strong></span>
+              <span class="disclosure-heading"><span class="disclosure-kicker">自動修復</span><strong>自動統合と修復</strong></span>
               <span class="disclosure-meta">Worker・修復工程</span>
             </summary>
             <div class="nested-disclosure-body">
@@ -89,7 +94,7 @@
 
       <details id="apps-section" class="board-section board-disclosure" data-disclosure="section:apps">
         <summary>
-          <span class="disclosure-heading"><span class="disclosure-kicker">PUBLICATION</span><strong>アプリ別の公開状況</strong></span>
+          <span class="disclosure-heading"><span class="disclosure-kicker">公開</span><strong>アプリの公開状況</strong></span>
           <span id="app-summary" class="disclosure-meta">確認中</span>
         </summary>
         <div class="board-disclosure-body">
@@ -100,8 +105,8 @@
 
       <details id="details-section" class="board-section board-disclosure" data-disclosure="section:operations">
         <summary>
-          <span class="disclosure-heading"><span class="disclosure-kicker">OPERATIONS</span><strong>公開・自動処理の状態</strong></span>
-          <span class="disclosure-meta">必要なときだけ</span>
+          <span class="disclosure-heading"><span class="disclosure-kicker">運用</span><strong>技術詳細</strong></span>
+          <span class="disclosure-meta">SHA・Actions・自動処理</span>
         </summary>
         <div class="board-disclosure-body diagnostics-section">
           <p class="section-description diagnostics-intro">公開済みSHA、本番との差、自動統合、Actions失敗などの運用詳細です。</p>
@@ -135,10 +140,10 @@
           <details class="usage-guide nested-disclosure" data-disclosure="section:guide">
             <summary>使い方</summary>
             <ol>
-              <li><strong>要対応</strong>が0件なら、まず開発・公開の要約だけ見れば十分です。</li>
-              <li><strong>開発タスク</strong>を開くと作業中・統合待ち・完了PRとRescue詳細を確認できます。</li>
-              <li><strong>アプリ公開状況</strong>を開くと環境別の公開先を確認できます。</li>
-              <li><strong>公開・自動処理</strong>はSHA、Actions、Integrationなどの診断が必要なときだけ開きます。</li>
+              <li><strong>今やること</strong>が0件なら、まず開発・公開の要約だけ見れば十分です。</li>
+              <li><strong>開発中のタスク</strong>を開くと作業中・統合待ち・完了PRとRescue詳細を確認できます。</li>
+              <li><strong>アプリの公開状況</strong>を開くと環境別の公開先を確認できます。</li>
+              <li><strong>技術詳細</strong>はSHA、Actions、Integrationなどの診断が必要なときだけ開きます。</li>
             </ol>
           </details>
         </div>

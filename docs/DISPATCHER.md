@@ -16,7 +16,7 @@ A project Chat may treat requests such as these as dispatch requests when the wo
 - `別セッションで。faviconの不具合を直して`
 - `この小修正を並列で進めて`
 
-Interactive design work, ambiguous specification work, large visual iteration, and tasks that need repeated human feedback remain normal Chat / WORK sessions.
+One bounded DEV review candidate can be dispatched when AI can choose reversible details within confirmed requirements under the [DEV feedback policy](RINNE_PROJECT_EXECUTION_POLICY.md#devで実物を確認する標準開発). Optional visual feedback follows DEV publication and does not require the worker to wait. Explicitly requested discussion-first design, unresolved blocking contract/authorization decisions, and tasks that require repeated direction during implementation remain normal Chat / WORK sessions.
 
 ## Bootstrap contract
 
@@ -79,7 +79,7 @@ When substantive changes exist:
 
 Existing Integration then owns CI monitoring, merge, DEV deploy and public/browser verification. Dispatcher never polls CI waiting for completion.
 
-The canonical boundary is [RINNE_PROJECT_EXECUTION_POLICY.md](RINNE_PROJECT_EXECUTION_POLICY.md). Both Dispatch and Rescue prompts embed the same no-wait instruction. The wrapper records `READY_FOR_INTEGRATION` only after Ready succeeds; result-recording failure after Ready does not send the worker back into implementation. The existing immediate CI observation job owns the durable handoff and external notification, independently of build/browser completion.
+The canonical boundary is [RINNE_PROJECT_EXECUTION_POLICY.md](RINNE_PROJECT_EXECUTION_POLICY.md). Both Dispatch and Rescue prompts embed the same DEV feedback and no-wait instructions. The wrapper records `READY_FOR_INTEGRATION` only after Ready succeeds; result-recording failure after Ready does not send the worker back into implementation. The existing immediate CI observation job owns the durable handoff and external notification, independently of build/browser completion.
 
 If the worker finds the request already satisfied and produces no substantive diff, the Draft PR is commented and closed without merge rather than manufacturing a meaningless change.
 

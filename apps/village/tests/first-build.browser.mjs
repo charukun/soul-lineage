@@ -2,7 +2,7 @@ import {nativeTap} from '@soul/platform-web/testing/native-input';
 export {nativeTap};
 import {verifyVillageDirectorPolish} from './director-polish.browser.mjs';
 
-/** User-facing placement help is exercised with native input, never world mutation. */
+/** User-facing placement help is exercised with pointer input, never world mutation. */
 const STARTUP_TIMEOUT_MS = 15_000;
 const CAMERA_DRAG_STEPS = 3;
 async function expectVillageReady(page, expect) {
@@ -32,6 +32,20 @@ export async function enterVillageForBrowser(page, expect) {
   }
 }
 
+async function placementCenter(page){
+  return page.evaluate(()=>{
+    const r=window.village.view.canvas.getBoundingClientRect();
+    return{x:r.left+r.width/2,y:r.top+r.height/2};
+  });
+}
+async function tapPlacement(page){
+  const p=await placementCenter(page);await page.mouse.click(p.x,p.y);
+}
+async function dragPlacement(page,dx=54,dy=34){
+  const p=await placementCenter(page);await page.mouse.move(p.x,p.y);await page.mouse.down();
+  await page.mouse.move(p.x+dx,p.y+dy,{steps:CAMERA_DRAG_STEPS});await page.mouse.up();
+}
+
 export async function verifyVillageFirstBuild(page, expect, testInfo, beforeReload = async () => {}, { captureMilestones = true, verifyDirector = true } = {}) {
   page.setDefaultTimeout(8000);
   await enterVillageForBrowser(page, expect);
@@ -39,24 +53,54 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   expect(settings.width).toBeGreaterThanOrEqual(44);expect(settings.height).toBeGreaterThanOrEqual(44);
   const before=await page.evaluate(()=>({count:window.village.world.objects.length,beds:window.village.world.population().openBeds}));
 
-  // Latest playability contract: the first tutorial action enters placement directly,
-  // without detouring through the build catalogue.
+  // The first tutorial action enters center-follow placement directly. The scene
+  // moves under the ghost with one finger and a short tap commits the candidate.
   await expect(page.locator('#tutorialAction')).toBeVisible();
   await nativeTap(page,expect,page.locator('#tutorialAction'));
   await expect(page.locator('#drawer')).toBeHidden();
   await expect(page.locator('#placement')).toBeVisible();
-  await expect(page.locator('#cancelPlace')).toHaveText('ここに建てる');
-  if(!(await page.locator('#cancelPlace').isEnabled()))await nativeTap(page,expect,page.locator('#muraFindPlacement'));
+  await expect(page.locator('#game')).toHaveAttribute('data-placement','center-follow');
+  await expect(page.locator('#placementText')).toContainText('スワイプで場所を調整');
+  await expect(page.locator('#placementText')).toContainText('タップで配置');
+  await expect(page.locator('#muraRotateLeft')).toBeVisible();
+  expect(await page.locator('#muraFindPlacement').count()).toBe(0);
+  await expect.poll(()=>page.evaluate(()=>window.village.ui.pending?.error||null)).toBe(null);
   expect(await page.evaluate(()=>window.village.world.objects.length)).toBe(before.count);
-  await expect(page.locator('#cancelPlace')).toBeEnabled();
-  await nativeTap(page,expect,page.locator('#cancelPlace'));
+
+  const candidateBefore=await page.evaluate(()=>({x:window.village.ui.pending.x,z:window.village.ui.pending.z}));
+  await dragPlacement(page);
+  await expect.poll(()=>page.evaluate(({x,z})=>{
+    const p=window.village.ui.pending;return p?Math.hypot(p.x-x,p.z-z):0;
+  },candidateBefore)).toBeGreaterThan(.2);
+  const centered=await page.evaluate(()=>{
+    const {view}=window.village,p=view.project(view.ghost.position.x,.15,view.ghost.position.z);
+    return{dx:Math.abs(p.x-view.w/2),dy:Math.abs(p.y-view.h/2)};
+  });
+  expect(centered.dx).toBeLessThan(4);expect(centered.dy).toBeLessThan(4);
+  await expect(page.locator('#placement')).toBeVisible();
+
+  await tapPlacement(page);
   await expect(page.locator('#placement')).toBeHidden();
-  const tent=await page.evaluate(()=>window.village.world.objects.find(o=>o.kind==='tent'));
+  await expect(page.locator('#muraPlacementUndo')).toBeVisible();
+  let tent=await page.evaluate(()=>window.village.world.objects.find(o=>o.kind==='tent'));
   expect(tent).toBeTruthy();expect(tent.phase).toBe('built');
   expect(await page.evaluate(()=>window.village.world.population().openBeds)).toBe(before.beds+2);
   await expect(page.locator('#toastText')).toContainText('寝床が2床増えました');
   await expect(page.locator('#muraMilestone')).toHaveClass(/visible/);
   if (captureMilestones) await page.screenshot({path:testInfo.outputPath('first-tent-built.png')});
+
+  // Mistakes are recoverable without a confirmation dialog: undo re-enters the
+  // same center-follow placement mode so the player can correct the position.
+  await nativeTap(page,expect,page.locator('#muraPlacementUndo'));
+  await expect(page.locator('#placement')).toBeVisible();
+  expect(await page.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))).toBe(false);
+  expect(await page.evaluate(()=>window.village.world.population().openBeds)).toBe(before.beds);
+  await expect(page.locator('#placementText')).toContainText('タップで配置');
+  await tapPlacement(page);
+  await expect(page.locator('#placement')).toBeHidden();
+  tent=await page.evaluate(()=>window.village.world.objects.find(o=>o.kind==='tent'));
+  expect(tent).toBeTruthy();expect(tent.phase).toBe('built');
+  expect(await page.evaluate(()=>window.village.world.population().openBeds)).toBe(before.beds+2);
 
   await nativeTap(page,expect,page.locator('#deselect'));
   const facility=await page.evaluate(()=>window.village.world.objects.find(o=>o.kind==='storage'));
@@ -96,9 +140,9 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   await expect.poll(()=>page.evaluate(()=>window.village.view.roomId)).toBe(facility.id);
   await nativeTap(page,expect,page.locator('#build'));
   await nativeTap(page,expect,page.locator('[data-kind="dirtbed"]'));
-  await nativeTap(page,expect,page.locator('#muraFindPlacement'));
-  await expect(page.locator('#cancelPlace')).toHaveText('ここに置く');
-  await nativeTap(page,expect,page.locator('#cancelPlace'));
+  await expect(page.locator('#placementText')).toContainText('タップで配置');
+  await expect.poll(()=>page.evaluate(()=>window.village.ui.pending?.error||null)).toBe(null);
+  await tapPlacement(page);
   await expect(page.locator('#placement')).toBeHidden();
   const furnished=await page.evaluate(id=>window.village.world.object(id),facility.id);
   const bed=furnished.room.find(o=>o.kind==='dirtbed');expect(bed).toBeTruthy();

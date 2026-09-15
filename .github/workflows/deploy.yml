@@ -458,6 +458,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      issues: write
+      pull-requests: write
       statuses: write
       actions: write
     steps:
@@ -495,6 +497,7 @@ jobs:
         continue-on-error: true
         env:
           FINAL_SHA: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
           NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
           NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
         run: node scripts/notify-delivery.mjs DEV_DEPLOYED
