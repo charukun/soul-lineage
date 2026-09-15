@@ -16,6 +16,8 @@ import {
   rinneRuntimeAgeMs
 } from './character-presentation.js';
 import { renderPixelRatio, targetFpsForView } from './performance.js';
+import { cameraOffsetForPosition, createCameraPositionControl } from './camera-position-control.js';
+import './camera-position-control.css';
 
 const disposeObject=root=>root?.traverse?.(o=>{if(o.geometry?.dispose)o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])if(m?.dispose)m.dispose();});
 const armorDye=Object.freeze({cloth:[1,1,1],light:[.72,.84,.78],heavy:[.68,.73,.82]});
@@ -156,6 +158,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   }
 
   const target=new THREE.Vector3(),desired=new THREE.Vector3(),moveVector=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),camOffset=new THREE.Vector3(10.5,11.5,14.5);let elapsed=0;
+  const cameraControl=createCameraPositionControl({document:doc,container:canvas.parentElement,onChange:position=>{camOffset.set(...cameraOffsetForPosition(position));canvas.dataset.cameraPosition=String(Math.round(position*100));}});
   function resize(){const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
   function cameraVector(axis){
@@ -193,7 +196,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   }
   function setCarrierMotion({active=false,moving=false,speed=0}={}){motherMotion={active:Boolean(active),moving:Boolean(moving),speed:Math.max(0,Number(speed)||0)};}
   function dispose(){
-    observer.disconnect();for(const id of [...enemyActors.keys()])removeEnemy(id);characterPool.dispose();runtimeCharacters.loader.disposeCompressedTextures?.();
+    observer.disconnect();cameraControl.dispose();for(const id of [...enemyActors.keys()])removeEnemy(id);characterPool.dispose();runtimeCharacters.loader.disposeCompressedTextures?.();
     root.removeFromParent();frontRoot.removeFromParent();heroActor.root.removeFromParent();heroActor.attachments.removeFromParent();motherActor.root.removeFromParent();motherActor.attachments.removeFromParent();for(const v of cache.values())disposeObject(v);renderer.dispose();
   }
   return{THREE,scene,camera,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,updateFront,setCarrierMotion,resize,qualitySnapshot:()=>qualityGovernor.snapshot(),dispose};
