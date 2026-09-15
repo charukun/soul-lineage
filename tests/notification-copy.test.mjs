@@ -33,11 +33,17 @@ test('lifecycle copy keeps stable machine status codes while localizing the huma
   assert.equal(notificationTitle('FAILED'), 'RINNE [WARN] FAILED');
 });
 
-test('lifecycle DEV copy stays generic and does not carry the requested change title', () => {
+test('delivery copy still separates develop merge from verified DEV publication', () => {
+  const integrated = deliveryMessage('INTEGRATED', {
+    locale: 'ja', repository: 'charukun/soul-lineage', runUrl: 'https://github.com/run',
+    report: { merged: [{ pr: 260, merge: sha }] }, sha,
+  });
   const deployed = deliveryMessage('DEV_DEPLOYED', {
     locale: 'ja', repository: 'charukun/soul-lineage', runUrl: 'https://github.com/run', sha,
     pr: { number: 348, title: '戦闘テンポを少し遅くする修正' },
   });
+  assert.match(integrated, /developへ統合済み \/ DEV公開は未確認/);
+  assert.match(integrated, /\nINTEGRATED\n/);
   assert.match(deployed, /DEV反映・検証済み/);
   assert.match(deployed, /\nDEV_DEPLOYED\n/);
   assert.doesNotMatch(deployed, /戦闘テンポ/);
