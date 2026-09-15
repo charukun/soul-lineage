@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {LIFE_YEARS,YEAR_SECONDS,LIFE_SECONDS,createLife,validateLife,setClockRate,setMoving,tickLife,applyEquipmentStation,rebirth} from '../src/rebuild/domain.js';
-import {createFront,tickFront} from '../src/rebuild/combat.js';
+import {LIFE_YEARS,YEAR_SECONDS,LIFE_SECONDS,createLife,validateLife,serializeLife,deserializeLife,setClockRate,setMoving,tickLife,applyEquipmentStation,rebirth} from '../src/rebuild/domain.js';
+import {createFront,normalizeFront,tickFront} from '../src/rebuild/combat.js';
 
 test('100年人生 is exactly 100 minutes at 1x',()=>{
   assert.equal(LIFE_YEARS,100);assert.equal(YEAR_SECONDS,60);assert.equal(LIFE_SECONDS,6000);
@@ -47,4 +47,16 @@ test('contact combat is automatic and never needs an attack button',()=>{
   const front=createFront(0,6);front.enemies[0].x=.5;front.enemies[0].z=.5;
   let hit=false;for(let i=0;i<20;i++){const events=tickFront(s,front,.1);if(events.some(e=>e.type==='player-hit'))hit=true;}
   assert.equal(hit,true);assert.ok(s.stamina<100);assert.ok(front.enemies[0].hp<front.enemies[0].maxHp);
+});
+
+test('frontier enemy progress survives save and restore',()=>{
+  const s=createLife({seed:7});s.phase='living';s.ageSeconds=25*60;s.ageYears=25;s.zone='frontier';s.front=2;
+  const front=createFront(2,7);front.enemies[0].hp=11;front.enemies[1].hp=0;front.enemies[1].dead=true;s.frontState=structuredClone(front);
+  const restored=deserializeLife(serializeLife(s)),restoredFront=normalizeFront(restored.frontState,2,7);
+  assert.equal(restoredFront.enemies[0].hp,11);assert.equal(restoredFront.enemies[1].dead,true);
+});
+
+test('corrupt frontier state is rejected instead of silently resetting progress',()=>{
+  const broken=createFront(1,8);broken.enemies[0].hp=-1;
+  assert.throws(()=>normalizeFront(broken,1,8),/前線の敵データ/);
 });
