@@ -1,15 +1,6 @@
-export const BIRTH_TOUR_ORDER=Object.freeze(['garden','home','school','library','chapel','dojo','smith','clinic']);
+import {muraDialogueTopic} from '@soul/world/mura/dialogue';
 
-export const BIRTH_TOUR_LINES=Object.freeze({
-  garden:'ここは広場。遊んだり、村のみんなが顔を合わせたりする場所よ。',
-  home:'ここが家。朝も夜も、みんなここへ帰ってくるのよ。',
-  school:'ここは学び舎。文字や、昔のことを教わるの。',
-  library:'本には、会ったことのない人の知恵まで残っているのよ。',
-  chapel:'ここでは旅の無事を祈るの。遠くへ出る人も、帰ってきた人もね。',
-  dojo:'ここは稽古場。身体の使い方を覚える場所よ。',
-  smith:'ここは鍛冶場。七歳になれば、あなたもここで武具を手にできるわ。',
-  clinic:'けがをしたらここへ。戻って休むことも、暮らしの大事な一部よ。',
-});
+export const BIRTH_TOUR_ORDER=Object.freeze(['garden','home','school','library','chapel','dojo','smith','clinic']);
 
 // The shared village is measured in metres. Village residents walk at 2.8m/s and guards at 4.6m/s;
 // keep the passive mother tour inside that life-scale while allowing a small manual-control premium.
@@ -20,7 +11,11 @@ const finite=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fa
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
 const rounded=value=>Math.round(value*100)/100;
 
-export function birthTourLine(station){return station?.id&&Object.hasOwn(BIRTH_TOUR_LINES,station.id)?BIRTH_TOUR_LINES[station.id]:null;}
+export function birthTourLine(station){
+  const topic=muraDialogueTopic(station?.topicId,{kind:station?.facilityKind||null});
+  if(!topic||topic.compatible===false)return null;
+  return topic.form==='thing'?`${topic.label}にはね、${topic.fact}よ。`:`ここは${topic.label}。${topic.fact}よ。`;
+}
 
 export function birthTourStops(stations=[]){
   const byId=new Map((Array.isArray(stations)?stations:[]).filter(row=>row&&typeof row.id==='string').map(row=>[row.id,row]));
