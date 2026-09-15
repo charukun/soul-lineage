@@ -23,8 +23,14 @@ test('Motion Library previews pinned CC0 KayKit GLBs instead of placeholder moti
   assert.match(script,/raw\.githubusercontent\.com/);
 });
 
-test('Motion Library layout keeps viewer visible while the motion list scrolls',()=>{
-  assert.match(css,/grid-template-rows:46px minmax\(0,48dvh\) minmax\(0,1fr\)/);
+test('Motion Library matches Lab styling and uses dense responsive motion grid',()=>{
+  assert.match(html,/class="library-brand"/);
+  assert.match(html,/Visual Review Lab/);
+  assert.match(css,/container-type:inline-size/);
+  assert.match(css,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(css,/@container\(min-width:470px\).*repeat\(4/mins);
+  assert.match(css,/@container\(min-width:610px\).*repeat\(5/mins);
+  assert.match(css,/@container\(min-width:760px\).*repeat\(6/mins);
   assert.match(css,/\.library-list\{[^}]*overflow-y:auto/);
-  assert.match(css,/@media\(min-width:760px\)/);
+  assert.match(script,/candidate\?'★'/);
 });
