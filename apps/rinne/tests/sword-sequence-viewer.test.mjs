@@ -7,6 +7,7 @@ import {GLTFLoader} from '../public/simulator/vendor/GLTFLoader.js';
 import {HumanoidRuntime} from '../public/simulator/src/humanoid.js';
 import {SLASH_SECONDS,SLASH_REVISION} from '../public/simulator/src/authored-slash.js';
 import {PERFORMANCE_SECONDS,PERFORMANCE_REVISION,SWORD_TIMINGS,applyPerformance} from '../public/simulator/src/sword-performance.js';
+import {DIRECTIONAL_STEP_REVISION} from '../public/simulator/src/directional-step.js';
 import {SWORD_MOVES,SWORD_REVISION,swordAirHeight} from '../public/simulator/src/authored-sword.js';
 import {SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence,swordSequenceTravel} from '../public/simulator/src/sword-sequence.js';
 import {applyPostureReview,POSTURE_REVIEW_SECONDS} from '../public/simulator/src/posture-sequence.js';
@@ -37,11 +38,11 @@ test('existing-motion viewer composes clips, selects individual techniques and s
  const parse=GLTFLoader.prototype.parseAsync;
  GLTFLoader.prototype.parseAsync=function(data,path){this.register(()=>({name:'CpuViewerTextureStub',loadTexture:()=>Promise.resolve(new Three.Texture())}));return parse.call(this,data,path);};
  globalThis.window=window;globalThis.self=globalThis;
- const context={T:{...Three,WebGLRenderer:Renderer},OrbitControls,HumanoidRuntime,SLASH_SECONDS,SLASH_REVISION,PERFORMANCE_SECONDS,PERFORMANCE_REVISION,SWORD_TIMINGS,applyPerformance,SWORD_MOVES,SWORD_REVISION,swordAirHeight,SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence,swordSequenceTravel,createReviewWeapon,REVIEW_WEAPONS,WEAPON_MOTION_PROFILES,WEAPON_MOTION_REVISION,applyPostureReview,POSTURE_REVIEW_SECONDS,POSTURE_REVISION,document,window,location,URL,URLSearchParams,devicePixelRatio:1,requestAnimationFrame:fn=>{nextFrame=fn;return 1;},cancelAnimationFrame(){}};
+ const context={T:{...Three,WebGLRenderer:Renderer},OrbitControls,HumanoidRuntime,SLASH_SECONDS,SLASH_REVISION,PERFORMANCE_SECONDS,PERFORMANCE_REVISION,SWORD_TIMINGS,applyPerformance,DIRECTIONAL_STEP_REVISION,SWORD_MOVES,SWORD_REVISION,swordAirHeight,SHORT_SWORD_SECONDS,SHORT_SWORD_SEQUENCE,createSwordSequence,applySwordSequence,swordSequenceTravel,createReviewWeapon,REVIEW_WEAPONS,WEAPON_MOTION_PROFILES,WEAPON_MOTION_REVISION,applyPostureReview,POSTURE_REVIEW_SECONDS,POSTURE_REVISION,document,window,location,URL,URLSearchParams,devicePixelRatio:1,requestAnimationFrame:fn=>{nextFrame=fn;return 1;},cancelAnimationFrame(){}};
  try{
   await vm.runInNewContext('(async()=>{'+source+'})()',context);
   assert.equal(ids.play.disabled,false,ids['motion-status'].textContent);
-  assert.equal(ids.mode.value,'combination');assert.equal(ids.timeline.max,'4');assert.equal(ids.repeat.checked,false);assert.equal(ids.trail.checked,false);
+  assert.equal(ids.mode.value,'combination');assert.equal(ids.timeline.max,'4');assert.equal(ids.repeat.checked,false);assert.equal(ids.trail.checked,false);assert.equal(ids['performance-model'].value,'shino');
   tick(0);tick(100);assert.ok(Number(ids.timeline.value)>.09);
   ids.play.onclick();const paused=ids.timeline.value;tick(100);assert.equal(ids.timeline.value,paused);
   ids.speed.value='.5';ids.play.onclick();tick(100);tick(200);assert.ok(Math.abs(Number(ids.timeline.value)-.2)<1e-6);
@@ -55,7 +56,7 @@ test('existing-motion viewer composes clips, selects individual techniques and s
   assert.equal(ids.timeline.value,'4');assert.equal(ids.play.textContent,'再生');assert.equal(ids['reference-video'].paused,true);
   ids.mode.onchange({target:{value:'single'}});assert.equal(ids.timeline.max,'0.66');assert.equal(ids['compare-reference'].disabled,true);assert.equal(ids['reference-panel'].hidden,true);
   for(const [kind,move] of Object.entries(SWORD_MOVES)){ids['single-kind'].onchange({target:{value:kind}});assert.equal(ids.timeline.max,String(move.seconds));assert.match(ids['motion-version'].textContent,new RegExp(move.label));}
-  ids.mode.onchange({target:{value:'sequence'}});assert.equal(ids.timeline.max,'30');
+  ids.mode.onchange({target:{value:'sequence'}});assert.equal(ids.timeline.max,'30');assert.equal(ids['performance-model'].disabled,false);assert.equal(ids['performance-model'].value,'shino');
   ids.mode.onchange({target:{value:'posture'}});assert.equal(ids.timeline.max,'18');assert.match(ids['motion-version'].textContent,/構え・移動/);
   ids.timeline.oninput({target:{value:'8'}});assert.equal(ids.timeline.value,'8');assert.match(ids['phase-label'].textContent,/走行/);
   ids.mode.onchange({target:{value:'sequence'}});assert.equal(ids.timeline.max,'30');
@@ -67,7 +68,7 @@ test('existing-motion viewer composes clips, selects individual techniques and s
   document.documentElement={classList:{add(){}}};await vm.runInNewContext(bridge,context);
   const message=(command,value,source=context.parent)=>window.listeners.message({origin:location.origin,source,data:{type:'visual-review-performance-control',command,value}});
   message('weapon','spear');assert.equal(ids['weapon-kind'].value,'spear');assert.match(ids['motion-version'].textContent,/槍/);
-  message('hand-detail',false);assert.equal(ids['hand-detail'].checked,false);assert.equal(posted.at(-1).state.weapon,'spear');
+  message('hand-detail',false);assert.equal(ids['hand-detail'].checked,false);assert.equal(posted.at(-1).state.weapon,'spear');assert.equal(posted.at(-1).state.model,'shino');
   message('weapon','great',{});assert.equal(ids['weapon-kind'].value,'spear','untrusted sender cannot change equipment');
   console.log('Actual viewer handlers: load, autoplay, pause, speed, seek, frame step, reference sync, mode switch and once endpoint passed.');
  }finally{window.listeners.pagehide?.({persisted:false});GLTFLoader.prototype.parseAsync=parse;delete globalThis.window;delete globalThis.self;}
