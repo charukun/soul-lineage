@@ -37,6 +37,7 @@ export function classifyCaptureSource(capture) {
     capture.captureOrigin,
     capture.preset?.deviceClass,
     capture.preset?.id,
+    capture.device?.deviceClass,
   ].filter(nonEmpty).map(value => value.toLowerCase());
   if (syntheticSignals.some(value => value.startsWith('synthetic-') || value.includes('synthetic') || value === 'pixel-fold-class')) return 'synthetic-browser';
   if (capture.evidenceKind === PHYSICAL_EVIDENCE_KIND || capture.captureOrigin === PHYSICAL_CAPTURE_ORIGIN) return 'physical-device';
@@ -47,6 +48,13 @@ function ensureCaptureNotSynthetic(capture) {
   const classification = classifyCaptureSource(capture);
   if (classification === 'synthetic-browser') throw new Error('Synthetic/browser capture cannot be promoted to physical-device evidence');
   return classification;
+}
+
+function requirePhysicalAttestation(capture, metadata) {
+  const evidenceKind = requiredString(metadata.evidenceKind ?? capture?.evidenceKind, 'evidenceKind=physical-device');
+  const captureOrigin = requiredString(metadata.captureOrigin ?? capture?.captureOrigin, 'captureOrigin=physical-device');
+  if (evidenceKind !== PHYSICAL_EVIDENCE_KIND || captureOrigin !== PHYSICAL_CAPTURE_ORIGIN) throw new Error('Physical performance evidence requires explicit physical-device kind and origin');
+  return { evidenceKind, captureOrigin };
 }
 
 function snapshotFromCapture(capture) {
@@ -61,6 +69,7 @@ function snapshotFromCapture(capture) {
 
 export function buildPhysicalPerformanceEvidence(capture, metadata = {}) {
   const sourceClassification = ensureCaptureNotSynthetic(capture);
+  const attestation = requirePhysicalAttestation(capture, metadata);
   const snapshot = snapshotFromCapture(capture);
   const app = requiredString(metadata.app ?? capture.app, 'app');
   if (!SUPPORTED_APPS.has(app)) throw new Error(`Unsupported app for physical performance evidence: ${app}`);
@@ -84,8 +93,8 @@ export function buildPhysicalPerformanceEvidence(capture, metadata = {}) {
   return Object.freeze({
     schema: 'soul-physical-performance-evidence',
     version: PHYSICAL_PERFORMANCE_EVIDENCE_VERSION,
-    evidenceKind: PHYSICAL_EVIDENCE_KIND,
-    captureOrigin: PHYSICAL_CAPTURE_ORIGIN,
+    evidenceKind: attestation.evidenceKind,
+    captureOrigin: attestation.captureOrigin,
     sourceClassification,
     app,
     build: { revision: buildRevision },
@@ -107,6 +116,7 @@ export function buildPhysicalPerformanceEvidence(capture, metadata = {}) {
     },
     provenance: {
       explicitPhysicalOrigin: true,
+      captureAttestation: 'caller-supplied',
       validatorDoesNotProveDevicePossession: true,
       syntheticPromotionRejected: true,
     },
@@ -118,7 +128,8 @@ export function validatePhysicalEvidenceRecord(record) {
   if (record.evidenceKind !== PHYSICAL_EVIDENCE_KIND || record.captureOrigin !== PHYSICAL_CAPTURE_ORIGIN) throw new Error('Physical performance evidence kind/origin is invalid');
   if (record.sourceClassification === 'synthetic-browser') throw new Error('Synthetic/browser capture cannot be physical evidence');
   snapshotFromCapture(record);
-  requiredString(record.app, 'app');
+  const app = requiredString(record.app, 'app');
+  if (!SUPPORTED_APPS.has(app)) throw new Error(`Unsupported app for physical performance evidence: ${app}`);
   requiredString(record.build?.revision, 'build revision');
   requiredString(record.device?.model, 'device model');
   requiredString(record.device?.deviceClass, 'device class');
