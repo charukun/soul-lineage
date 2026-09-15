@@ -34,7 +34,7 @@ test('Visual Review Lab keeps performance review inside the shared shell', async
   assert.match(battleEntry, /button\.dataset\.performanceMode = 'battle'/);
   assert.match(battleEntry, /<span>自動戦闘<\/span><small>Tidebreak<\/small>/);
   assert.match(battleEntry, /data-review-tab="battle"/);
-  assert.match(battleEntry, /battleTab\.click\(\)/);
+  assert.match(battleEntry, /queueMicrotask\(\(\) => battleTab\.click\(\)\)/);
   assert.match(nav, /querySelectorAll\('\[data-performance-mode\]'\)/);
   assert.match(shellCss, /\.performance-stage/);
   assert.match(childHtml, /motion-review-embed\.css/);
