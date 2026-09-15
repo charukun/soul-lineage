@@ -14700,7 +14700,76 @@
         },
         "startedAt": "2026-09-15T10:21:50.488Z",
         "heartbeatAt": "2026-09-15T10:21:50.488Z",
-        "expiresAt": "2026-09-15T11:06:50.488Z"
+        "expiresAt": "2026-09-15T11:06:50.488Z",
+        "result": {
+          "head": "b251796dc2a687c2980fd79b9a2deda8e71eeff6",
+          "tree": "7f3a1761d0e3a889789c735af6c987cbce8a1865",
+          "commit": {
+            "sha": "b251796dc2a687c2980fd79b9a2deda8e71eeff6",
+            "tree": {
+              "sha": "7f3a1761d0e3a889789c735af6c987cbce8a1865"
+            },
+            "parents": [
+              {
+                "sha": "f1a7f593ae094acf043700c44460ae52ebe6a8fe"
+              },
+              {
+                "sha": "90da2b79a2219bfb9bee0699886cf6cf596cf782"
+              }
+            ]
+          },
+          "changedPaths": [
+            "apps/demon/src/adaptive-visual-performance.js",
+            "apps/demon/src/asset-visuals.js",
+            "apps/demon/tests/stylized-performance.test.mjs",
+            "apps/village/src/adaptive-visual-performance.js",
+            "apps/village/src/asset-visuals.js",
+            "apps/village/tests/stylized-performance.test.mjs",
+            "package.json",
+            "packages/audio/src/audio-lod.js",
+            "packages/network/package.json",
+            "packages/platform-web/package.json",
+            "scripts/browser/performance-smoke.mjs"
+          ],
+          "changedPathsComplete": true,
+          "validation": {
+            "status": "passed",
+            "tree": "7f3a1761d0e3a889789c735af6c987cbce8a1865",
+            "testedTree": "7f3a1761d0e3a889789c735af6c987cbce8a1865",
+            "command": "npm ci; focused 63/63; node scripts/validate.mjs fast 90da2b79a2219bfb9bee0699886cf6cf596cf782 b251796dc2a687c2980fd79b9a2deda8e71eeff6 (1020 passed, 1 skipped); builds demon/rinne/village"
+          },
+          "decision": {
+            "preservesBoth": true,
+            "summary": "Preserved #229 world-scale, residency, device-capability and deterministic replay contracts while retaining develop transparency audit, performance evidence, package exports, friend-invite/native-input contracts and every existing quality gate; no gameplay, network, save or Production authority changed.",
+            "sources": [
+              {
+                "path": "docs/SHARED_WORLD_SCALE.md",
+                "commit": "f1a7f593ae094acf043700c44460ae52ebe6a8fe"
+              },
+              {
+                "path": "docs/INTEGRATION_RESCUE_WORK.md",
+                "commit": "90da2b79a2219bfb9bee0699886cf6cf596cf782"
+              }
+            ],
+            "controlReview": {
+              "preservesGates": true,
+              "governingSources": [
+                "AGENTS.md@90da2b79a2219bfb9bee0699886cf6cf596cf782",
+                "docs/DEVELOPMENT.md@90da2b79a2219bfb9bee0699886cf6cf596cf782",
+                "scripts/validate.mjs@90da2b79a2219bfb9bee0699886cf6cf596cf782"
+              ]
+            },
+            "contractReview": {
+              "noProductChoiceRequired": true,
+              "preservesCompatibility": true,
+              "governingSources": [
+                "docs/SHARED_WORLD_SCALE.md@f1a7f593ae094acf043700c44460ae52ebe6a8fe",
+                "package export maps and contract tests@90da2b79a2219bfb9bee0699886cf6cf596cf782"
+              ]
+            }
+          }
+        },
+        "pushPreparedAt": "2026-09-15T10:39:57.149Z"
       }
     },
     "231": {
@@ -19355,9 +19424,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1229,
+  "revision": 1230,
   "schema": 1,
-  "updatedAt": "2026-09-15T10:21:50.488Z",
+  "updatedAt": "2026-09-15T10:39:57.149Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
