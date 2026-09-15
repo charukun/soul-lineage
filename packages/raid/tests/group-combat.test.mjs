@@ -37,21 +37,32 @@ test('nearby attacking villagers enter one combat without waiting for the first 
  assert.ok([a,b,c].every(n=>n.state==='combat'));
 });
 
-test('held approach input is released from automatic combat until the pointer is lifted',()=>{
+test('held approach input is suppressed but reversing the same pointer to retreat is immediate',()=>{
  const session=makeSession(),runner=session.village.npcs[0];
  runner.behavior='flee';runner.x=0;runner.z=3.2;
- const held={x:0,z:1,amount:1,active:true,dash:false};
- session.tick(1/60,held);
+ const approach={x:0,z:1,amount:1,active:true,dash:false};
+ session.tick(1/60,approach);
  assert.equal(session.fight?.npc,runner);assert.equal(session.combatInputLatched,true);
  const seen=[],core=session.fight.core,originalInput=core.input.bind(core);
  core.input=(x,z,amount,...rest)=>{seen.push([x,z,amount]);return originalInput(x,z,amount,...rest);};
- session.tick(1/60,held);
+ session.tick(1/60,approach);
  assert.deepEqual(seen.at(-1),[0,0,0]);assert.equal(session.combatInputLatched,true);
- session.tick(1/60,input);
- assert.equal(session.combatInputLatched,false);
  const retreat={x:0,z:-1,amount:.8,active:true,dash:false};
  session.tick(1/60,retreat);
- assert.deepEqual(seen.at(-1),[0,-1,.8]);
+ assert.deepEqual(seen.at(-1),[0,-1,.8]);assert.equal(session.combatInputLatched,false);
+});
+
+test('held retreat stays live when several attackers start combat around the player',()=>{
+ const session=makeSession(),[a,b,c]=session.village.npcs;
+ for(const n of [a,b,c])n.behavior='fight';
+ a.x=0;a.z=3.2;b.x=1.1;b.z=3.3;c.x=-1.1;c.z=3.5;
+ const retreat={x:0,z:-1,amount:1,active:true,dash:false};
+ session.tick(1/60,retreat);
+ assert.equal(session.combatantCount(),3);assert.equal(session.combatInputLatched,false);
+ const seen=[],core=session.fight.core,originalInput=core.input.bind(core);
+ core.input=(x,z,amount,...rest)=>{seen.push([x,z,amount]);return originalInput(x,z,amount,...rest);};
+ session.tick(1/60,retreat);
+ assert.deepEqual(seen.at(-1),[0,-1,1]);assert.equal(session.combatInputLatched,false);
 });
 
 test('attacking villagers rally from outside join range while fleeing villagers keep running',()=>{
