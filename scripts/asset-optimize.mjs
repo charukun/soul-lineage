@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { basename, dirname, extname, resolve } from 'node:path';
+import { basename, extname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { STYLIZED_ART_PROFILES } from '../packages/characters/src/art-direction.js';
 
@@ -10,6 +10,7 @@ const CHARACTER_ROLES = new Set(['hero', 'npc', 'enemy']);
 const SOURCE_EXTENSIONS = new Set(['.blend', '.glb', '.gltf']);
 
 const finitePositive = value => typeof value === 'number' && Number.isFinite(value) && value > 0;
+const finiteNonNegative = value => typeof value === 'number' && Number.isFinite(value) && value >= 0;
 const boolValue = value => value === true || value === 'true' || value === '1';
 
 function slugFor(input) {
@@ -95,6 +96,27 @@ function sumAuditTriangles(audit, level = 0) {
   return total || null;
 }
 
+function lodQualityRows(audit) {
+  return (audit?.objects || []).map(row => ({
+    source: row.source,
+    lod0Triangles: row.triangles ?? null,
+    materialSlots: row.materialSlots ?? null,
+    uvLayers: row.uvLayers ?? null,
+    vertexGroups: row.vertexGroups ?? null,
+    silhouette: row.silhouette ?? null,
+    lods: (row.lods || []).map(lod => ({
+      level: lod.level,
+      ratio: lod.ratio,
+      triangles: lod.triangles,
+      materialSlots: lod.materialSlots ?? null,
+      uvLayers: lod.uvLayers ?? null,
+      vertexGroups: lod.vertexGroups ?? null,
+      silhouette: lod.silhouette ?? null,
+    })),
+    error: row.error ?? null,
+  }));
+}
+
 export function evaluateAssetOptimization({ plan, audit = null, sourceBytes = null, lodBytes = null, optimizedBytes = null } = {}) {
   if (!plan?.budget) throw new Error('Asset optimization evaluation requires a plan');
   const triangles = {
@@ -106,18 +128,35 @@ export function evaluateAssetOptimization({ plan, audit = null, sourceBytes = nu
     lod1: finitePositive(triangles.lod0) && finitePositive(triangles.lod1) ? triangles.lod1 / triangles.lod0 : null,
     lod2: finitePositive(triangles.lod0) && finitePositive(triangles.lod2) ? triangles.lod2 / triangles.lod0 : null,
   };
+  const materials = finiteNonNegative(audit?.summary?.materialCount) ? audit.summary.materialCount : null;
+  const estimatedDrawCalls = finiteNonNegative(audit?.summary?.estimatedDrawCalls) ? audit.summary.estimatedDrawCalls : null;
   const warnings = [], errors = [];
   if (audit?.errors?.length) errors.push(...audit.errors.map(message => `DCC: ${message}`));
   if (finitePositive(triangles.lod0) && triangles.lod0 > plan.budget.softTriangleBudget) {
     warnings.push(`LOD0 triangles ${triangles.lod0} exceed ${plan.role} soft budget ${plan.budget.softTriangleBudget}`);
   }
+  if (finiteNonNegative(materials) && materials > plan.budget.softMaterialBudget) {
+    warnings.push(`materials ${materials} exceed ${plan.role} soft budget ${plan.budget.softMaterialBudget}`);
+  }
+  if (finiteNonNegative(estimatedDrawCalls) && estimatedDrawCalls > plan.budget.softDrawCallBudget) {
+    warnings.push(`estimated draw calls ${estimatedDrawCalls} exceed ${plan.role} soft budget ${plan.budget.softDrawCallBudget}`);
+  }
   const ratioTolerance = .08;
   if (finitePositive(ratios.lod1) && ratios.lod1 > plan.budget.lodRatios[1] + ratioTolerance) warnings.push(`LOD1 ratio ${ratios.lod1.toFixed(3)} is above target ${plan.budget.lodRatios[1].toFixed(3)}`);
   if (finitePositive(ratios.lod2) && ratios.lod2 > plan.budget.lodRatios[2] + ratioTolerance) warnings.push(`LOD2 ratio ${ratios.lod2.toFixed(3)} is above target ${plan.budget.lodRatios[2].toFixed(3)}`);
   if (!audit && plan.stages.lod) warnings.push('LOD audit was not measured');
-  const bytes = { source: sourceBytes, lod: lodBytes, optimized: optimizedBytes };
+  const bytes = {
+    source: sourceBytes,
+    lod: lodBytes,
+    optimized: optimizedBytes,
+    compressionRatio: finitePositive(lodBytes) && finiteNonNegative(optimizedBytes) ? optimizedBytes / lodBytes : null,
+  };
+  const lodQuality = {
+    silhouetteGuard: audit ? audit.errors?.length === 0 : null,
+    objects: lodQualityRows(audit),
+  };
   const gate = errors.length ? 'fail' : warnings.length ? 'review' : 'pass';
-  return Object.freeze({ gate, warnings, errors, triangles, ratios, bytes, budget: plan.budget });
+  return Object.freeze({ gate, warnings, errors, triangles, ratios, materials, estimatedDrawCalls, bytes, lodQuality, budget: plan.budget });
 }
 
 function readJson(file) {
