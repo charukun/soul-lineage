@@ -12,7 +12,6 @@ async function expectVillageReady(page, expect) {
 
 async function finishFirstRunGuide(page, expect) {
   const guide=page.locator('#muraFirstRunGuide');
-  if(!(await guide.count()))return false;
   const canvas=page.locator('#game');
   await expect(guide).toBeVisible();
   await expect(canvas).toHaveAttribute('data-first-run-tutorial','running');
@@ -44,6 +43,11 @@ async function finishFirstRunGuide(page, expect) {
     const p=window.village.ui.pending;return p?Math.hypot(p.x-x,p.z-z):0;
   },candidateBefore)).toBeGreaterThan(.2);
 
+  // The first real drag can legitimately land on an occupied tile. Follow the
+  // same recovery the guide teaches: keep dragging until the normal placement
+  // validator reports a usable spot, then confirm with a real short tap.
+  if(await page.evaluate(()=>!!window.village.ui.pending?.error))await dragPlacement(page,-58,-38);
+  await expect.poll(()=>page.evaluate(()=>window.village.ui.pending?.error||null)).toBe(null);
   await tapPlacement(page);
   await expect(guide).toHaveAttribute('data-stage','done');
   await expect.poll(()=>page.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))).toBe(true);
