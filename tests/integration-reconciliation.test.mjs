@@ -27,19 +27,11 @@ const pr = (number, {
 
 const scopes = entries => new Map(entries.map(([number, files, body = '']) => [number, conflictScope(files, body)]));
 
-test('planner keeps independent progress when another PR is dependency-blocked', () => {
-  const items = [
-    pr(1),
-    pr(2, { body: 'Depends-On: #99' }),
-    pr(3),
-  ];
+test('legacy planner keeps independent progress when another PR is dependency-blocked', () => {
+  const items = [pr(1), pr(2, { body: 'Depends-On: #99' }), pr(3)];
   const plan = buildReconciliationPlan({
     ready: items,
-    scopeByPr: scopes([
-      [1, ['apps/rinne/src/a.js']],
-      [2, ['apps/rinne/src/b.js']],
-      [3, ['apps/village/src/a.js']],
-    ]),
+    scopeByPr: scopes([[1, ['apps/rinne/src/a.js']], [2, ['apps/rinne/src/b.js']], [3, ['apps/village/src/a.js']]]),
     dependencyStateByPr: new Map([[99, { merged: false }]]),
   });
   assert.deepEqual(plan.blocked.map(item => item.pr), [2]);
@@ -48,16 +40,11 @@ test('planner keeps independent progress when another PR is dependency-blocked',
   assert.equal(plan.actionableIdle, false);
 });
 
-test('bounded preflight separates validation, review blocks, repair and writer candidates', () => {
+test('legacy bounded planner still separates validation, review blocks, repair and writer candidates for diagnostics', () => {
   const items = [pr(1), pr(2), pr(3), pr(4)];
   const plan = buildReconciliationPlan({
     ready: items,
-    scopeByPr: scopes([
-      [1, ['apps/rinne/src/a.js']],
-      [2, ['apps/village/src/a.js']],
-      [3, ['apps/demon/src/a.js']],
-      [4, ['apps/lanternfell/src/a.js']],
-    ]),
+    scopeByPr: scopes([[1, ['apps/rinne/src/a.js']], [2, ['apps/village/src/a.js']], [3, ['apps/demon/src/a.js']], [4, ['apps/lanternfell/src/a.js']]]),
     preflightByPr: new Map([
       [1, { checksPassed:true, mergeable:true, mergeableState:'clean', reviewRejected:false, unresolved:false }],
       [2, { checksPassed:false, mergeable:true, mergeableState:'clean', reviewRejected:false, unresolved:false }],
@@ -73,16 +60,13 @@ test('bounded preflight separates validation, review blocks, repair and writer c
   assert.equal(plan.counts.validating, 1);
 });
 
-test('planner groups only GREEN scopes and never batches same-package YELLOW or control-plane RED', () => {
+test('legacy planner groups only GREEN scopes and never batches same-package YELLOW or control-plane RED', () => {
   const items = [pr(1), pr(2), pr(3), pr(4), pr(5)];
   const plan = buildReconciliationPlan({
     ready: items,
     scopeByPr: scopes([
-      [1, ['apps/rinne/src/a.js']],
-      [2, ['apps/village/src/a.js']],
-      [3, ['apps/demon/src/a.js']],
-      [4, ['apps/rinne/src/b.js']],
-      [5, ['scripts/integration.mjs']],
+      [1, ['apps/rinne/src/a.js']], [2, ['apps/village/src/a.js']], [3, ['apps/demon/src/a.js']],
+      [4, ['apps/rinne/src/b.js']], [5, ['scripts/integration.mjs']],
     ]),
     maxTrainSize: 5,
   });
@@ -91,7 +75,7 @@ test('planner groups only GREEN scopes and never batches same-package YELLOW or 
   assert.deepEqual(plan.singles.map(item => item.pr).sort((a,b)=>a-b), [4, 5]);
 });
 
-test('repair is an executor lane rather than a second Integration queue', () => {
+test('repair remains an executor lane in legacy diagnostic state', () => {
   const items = [pr(1), pr(2), pr(3)];
   const records = new Map([
     [1, { pr:1, state:'FAILED_RETRYABLE', failureReason:'MERGE_CONFLICT' }],
@@ -100,11 +84,7 @@ test('repair is an executor lane rather than a second Integration queue', () => 
   ]);
   const plan = buildReconciliationPlan({
     ready: items,
-    scopeByPr: scopes([
-      [1, ['apps/rinne/src/a.js']],
-      [2, ['apps/village/src/a.js']],
-      [3, ['apps/demon/src/a.js']],
-    ]),
+    scopeByPr: scopes([[1, ['apps/rinne/src/a.js']], [2, ['apps/village/src/a.js']], [3, ['apps/demon/src/a.js']]]),
     recordsByPr: records,
   });
   assert.deepEqual(plan.repair.map(item => item.pr), [1, 2]);
@@ -126,21 +106,17 @@ test('repair backlog with no active repair executor is explicitly idle and actio
   assert.equal(plan.actionableIdle, true);
 });
 
-test('integration:repair writer candidates are prioritized without bypassing writer safety', () => {
+test('integration:repair remains prioritized in compatibility planner without bypassing safety', () => {
   const items = [pr(1), pr(2, { labels:['integration:repair'] }), pr(3)];
   const plan = buildReconciliationPlan({
     ready: items,
-    scopeByPr: scopes([
-      [1, ['apps/rinne/src/a.js']],
-      [2, ['apps/village/src/a.js']],
-      [3, ['apps/demon/src/a.js']],
-    ]),
+    scopeByPr: scopes([[1, ['apps/rinne/src/a.js']], [2, ['apps/village/src/a.js']], [3, ['apps/demon/src/a.js']]]),
   });
   assert.equal(plan.writerOrder[0], 2);
   assert.equal(plan.writer.length, 3);
 });
 
-test('finalized plan records writer outcomes but never manufactures merge evidence', () => {
+test('finalized compatibility plan records outcomes but never manufactures merge evidence', () => {
   const base = buildReconciliationPlan({
     ready: [pr(1), pr(2)],
     scopeByPr: scopes([[1, ['apps/rinne/src/a.js']], [2, ['apps/village/src/a.js']]]),
@@ -157,21 +133,22 @@ test('finalized plan records writer outcomes but never manufactures merge eviden
   assert.equal(final.counts.merged, 1);
 });
 
-test('workflow topology makes reconciliation the planner, Rescue only a repair executor, and writer serialized', () => {
+test('runtime topology uses Fast Lane directly while Rescue remains an optional executor', () => {
   const controller = readFileSync('.github/workflows/integration-controller.yml', 'utf8');
   const rescue = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');
-  assert.match(controller, /Reconcile current GitHub reality/);
-  assert.match(controller, /Serialized expected-head writer/);
-  assert.match(controller, /needs: \[reconcile, virtual-train\]/);
-  assert.match(controller, /Validate planned Virtual Integration Train/);
+  assert.match(controller, /Integration Fast Lane/);
+  assert.match(controller, /integration-fast-lane\.mjs/);
+  assert.match(controller, /group: integration-controller-develop/);
   assert.match(controller, /Repair executor pool/);
-  assert.match(controller, /INTEGRATION_PREFLIGHT_CONCURRENCY: '6'/);
+  assert.doesNotMatch(controller, /Reconcile current GitHub reality/);
+  assert.doesNotMatch(controller, /Validate planned Virtual Integration Train/);
+  assert.doesNotMatch(controller, /needs: \[reconcile, virtual-train\]/);
   assert.doesNotMatch(rescue, /Validate Virtual Integration Train/);
   assert.match(rescue, /Integration Repair Executors/);
   assert.match(rescue, /Repair PR \$\{\{ matrix\.pr \}\}/);
 });
 
-test('PULSE exposes planner lanes instead of only one backlog number', () => {
+test('PULSE keeps legacy planner lanes as diagnostics rather than merge authority', () => {
   const server = readFileSync('ops-board/rescue.mjs', 'utf8');
   const client = readFileSync('ops-board/public/flow-board.js', 'utf8');
   assert.match(server, /reconciliationView/);
