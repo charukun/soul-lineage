@@ -39,8 +39,9 @@ return {
  templates:()=>copy(TEMPLATES),
  loadout:()=>copy(loadout),
  weapons:()=>Object.keys(WEAPONS),
+ inspirationCatalog:()=>copy(WEAPON_ARTS),
  decodeNotebook:(data)=>copy(decodeNotebook(data,false)),
  exportNotebook:()=>copy(exportData()),
- sourceVersion:'Tidebreak 10.0 / expanded-humanoid source',
+ sourceVersion:'Tidebreak 10.0 / shared-inspiration catalog',
  _test:{hit(who,damage){const t=who==='hero'?hero:enemies[0],src=who==='hero'?enemies[0]:hero;t.invuln=0;registerHit(src,t,{id:++attackSerial,kind:'slash',damage,element:'steel',damaged:new Set(),power:1,hitCount:0},{point:[t.x,1.2,t.z]});return state();}}
 };
