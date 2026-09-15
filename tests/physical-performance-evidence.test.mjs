@@ -63,9 +63,18 @@ test('insufficient samples stay review and slow physical measurements are retain
 test('missing physical attestation and synthetic relabeling fail closed',()=>{
   assert.throws(()=>buildPhysicalPerformanceEvidence(capture(),metadata({evidenceKind:null})),/evidenceKind=physical-device/);
   assert.throws(()=>buildPhysicalPerformanceEvidence(capture(),metadata({captureOrigin:'browser'})),/explicit physical-device kind and origin/);
+  assert.throws(()=>buildPhysicalPerformanceEvidence(capture(),metadata({deviceClass:'synthetic-pixel-fold-class'})),/device class cannot be synthetic/);
   const synthetic={...capture(),preset:{id:'pixel-fold-class',deviceClass:'synthetic-pixel-fold-class'}};
   assert.equal(classifyCaptureSource(synthetic),'synthetic-browser');
   assert.throws(()=>buildPhysicalPerformanceEvidence(synthetic,metadata()),/cannot be promoted/);
+  const persistedSynthetic={...capture(),sourceClassification:'synthetic-browser'};
+  assert.throws(()=>buildPhysicalPerformanceEvidence(persistedSynthetic,metadata()),/cannot be promoted/);
+});
+
+test('stored target verdict is recomputed and tampering is rejected',()=>{
+  const evidence=buildPhysicalPerformanceEvidence(capture({frameP95Ms:42}),metadata());
+  const tampered={...evidence,target:{...evidence.target,gate:'pass',meetsFrameTarget:true}};
+  assert.throws(()=>validatePhysicalEvidenceRecord(tampered),/target verdict was modified/);
 });
 
 test('physical comparisons allow build changes but guard hardware viewport and scene identity',()=>{
