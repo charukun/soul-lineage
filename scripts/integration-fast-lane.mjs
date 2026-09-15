@@ -10,6 +10,7 @@ import {
   reviewsWithTrustedStatus,
   validationRuns,
 } from './integration.mjs';
+import { signalDeepRepair } from './integration-deep-repair-handoff.mjs';
 import { trustedStackFastEvidence } from './integration-stack-fast-evidence.mjs';
 import { dependencies, eligibility } from './integration-policy.mjs';
 
@@ -109,6 +110,7 @@ export async function integrateFastLane(c, repository, options = {}) {
     mode: 'FAST_LANE',
     startedAt: new Date().toISOString(),
     merged: [],
+    deepRepair: [],
     held: [],
     evaluated: 0,
     browserBlocking: false,
@@ -143,10 +145,47 @@ export async function integrateFastLane(c, repository, options = {}) {
       let reviews = await reviewsWithTrustedStatus(c, pr,
         await c.pages(`/pulls/${pr.number}/reviews`, undefined, { maxPages: 10, cache: true }), { cache: true });
 
+      if (pr.mergeable === false && pr.mergeable_state === 'dirty') {
+        const deep = await signalDeepRepair(c, {
+          pr,
+          repository,
+          develop: expected,
+          reason: 'MERGE_CONFLICT: current PR head cannot be merged cleanly into current develop',
+          repairKind: 'semantic',
+          dependenciesMerged: dependencyMerged,
+          unresolved,
+          reviews,
+        });
+        if (deep.signaled) {
+          report.deepRepair.push({ pr: pr.number, head: pr.head.sha, issue: deep.issue, reason: 'merge conflict' });
+          report.held.push({ pr: pr.number, head: pr.head.sha, reason: `deep repair requested in issue #${deep.issue}` });
+          await queueStatus(c, pr, 'pending', `Deep Repair #${deep.issue}: merge conflict`, deep.url || targetUrl);
+          continue;
+        }
+      }
+
       const ownDiff = await c.api('GET', `${c.root}/compare/${expected}...${pr.head.sha}`, null, { cache: true });
       const base = ownDiff.merge_base_commit.sha;
       const comparison = base === expected ? { files: [] } : await c.api('GET', `${c.root}/compare/${base}...${expected}`, null, { cache: true });
-      if ((comparison.files || []).length >= 300) throw new Error('Large base comparison needs manual Integration review');
+      if ((comparison.files || []).length >= 300) {
+        const deep = await signalDeepRepair(c, {
+          pr,
+          repository,
+          develop: expected,
+          reason: 'LARGE_BASE_RECONCILIATION: develop advanced across 300 or more changed files since the PR merge base',
+          repairKind: 'large-base',
+          dependenciesMerged: dependencyMerged,
+          unresolved,
+          reviews,
+        });
+        if (deep.signaled) {
+          report.deepRepair.push({ pr: pr.number, head: pr.head.sha, issue: deep.issue, reason: 'large base reconciliation' });
+          report.held.push({ pr: pr.number, head: pr.head.sha, reason: `deep repair requested in issue #${deep.issue}` });
+          await queueStatus(c, pr, 'pending', `Deep Repair #${deep.issue}: large base reconciliation`, deep.url || targetUrl);
+          continue;
+        }
+        throw new Error('Large base comparison needs manual Integration review');
+      }
       const criteria = () => ({
         pr,
         repository,
