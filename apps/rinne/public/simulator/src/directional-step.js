@@ -14,7 +14,7 @@
 export const DIRECTIONAL_STEP_REVISION='directional-step-1';
 export const DIRECTIONAL_STEP_REFERENCE=Object.freeze({
   repository:'J-Ponzo/gltf-universal-animation-library',
-  repositoryRevision:'main',
+  repositoryRevision:'e24c23cf2a1323488a3faa226ea7ea21f644b73e',
   upstream:'Quaternius Universal Animation Library',
   upstreamUpdate:'2026-06-16',
   license:'CC0-1.0',
