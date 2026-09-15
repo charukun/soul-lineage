@@ -19,6 +19,7 @@ if (!full && !deploy) run(process.execPath, ['scripts/visual-budget.mjs', 'guard
 if (full) run(process.execPath, ['scripts/visual-budget.mjs', 'audit']);
 if (!selected.length && !plan?.infrastructure) process.exit(0);
 run(process.execPath, ['scripts/check.mjs', ...selected]);
+if (full || selected.includes('@soul/characters')) run(process.execPath, ['scripts/check-character-production.mjs']);
 if (!full && !deploy) run(process.execPath, ['scripts/code-health.mjs', 'guard', process.argv[3], process.argv[4]]);
 const tests = selected.flatMap(name => {
   const dir = `${nodes.get(name).dir}/tests`;

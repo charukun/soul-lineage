@@ -13,6 +13,13 @@ const FACE = Object.freeze({
   elder: Object.freeze({ jaw: 1.02, cheek: .94, nose: 1.10, eyeWidth: .95, eyeHeight: .88, eyeSpacing: 1, browWeight: 1.02, browSlant: 0, chin: 1.04 })
 });
 
+/**
+ * Character Workshop reference-model catalog.
+ * Reference sheets align review with implementation; they never replace the
+ * audited MasterCharacter asset or authorize proposed/game-owned parts.
+ * Production status is deliberately explicit so runtime review geometry cannot
+ * be mistaken for a finished production model.
+ */
 const PALETTE = Object.freeze({
   shino: { skin: [.96,.80,.72], hair: [.62,.39,.27], eyes: [.36,.23,.16], primary: [.20,.32,.16], secondary: [.83,.78,.68], accent: [.64,.49,.25], dark: [.16,.12,.10], metal: [.55,.55,.50], leather: [.29,.18,.12], wood: [.32,.20,.11] },
   villageBoy: { skin: [.88,.69,.58], hair: [.30,.20,.14], eyes: [.30,.24,.18], primary: [.34,.39,.28], secondary: [.67,.58,.45], accent: [.48,.35,.22], dark: [.15,.13,.11], metal: [.48,.50,.48], leather: [.28,.19,.13], wood: [.34,.23,.13] },
@@ -64,6 +71,9 @@ function model(spec) {
     id: spec.id,
     label: spec.label,
     kind: 'runtime-reference-model',
+    productionStage: 'BLOCKOUT',
+    modelingMode: 'runtime-procedural',
+    productionReady: false,
     characterId: spec.characterId,
     masterId: MASTER_ID,
     assetId: `runtime.${spec.id}`,

@@ -11,6 +11,7 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
   page.on('response',r=>{if(r.status()>=400)network.push({url:r.url(),status:r.status()});});
   const qa=()=>page.evaluate(()=>window.masterCharacterReview.motionQA.snapshot());
   const seek=t=>page.evaluate(t=>window.masterCharacterReview.motionQA.seek(t),t);
+  const toggleBasis=()=>page.evaluate(()=>document.querySelector('#qa-before').click());
   try{
     await page.goto(new URL('./characters.html',baseURL).href,{waitUntil:'domcontentloaded'});
     await page.waitForFunction(()=>window.characterStudio?.review.ready,null,{timeout:60000});
@@ -18,7 +19,16 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
     await page.waitForFunction(()=>window.masterCharacterReview.motionQA.active,null,{timeout:60000});
     const started=await qa();await page.waitForFunction(t=>window.masterCharacterReview.motionQA.time>t+.05,started.time);
     assert.deepEqual(await page.evaluate(()=>window.masterCharacterReview.motionQA.sources),['idle-01','walk','run-slow','runtime.weaponDraw','runtime.guard','runtime.naturalWeaponStance','authored-slash']);
-    checks.push('one-tap review starts actual source animation');
+    assert.equal((await qa()).liveCompare,true);
+    await page.waitForFunction(()=>{const layer=document.querySelector('#motion-live-compare');const panes=layer?.querySelectorAll('canvas');return layer&&!layer.hidden&&panes?.length===2&&[...panes].every(c=>c.width>0&&c.height>0);});
+    assert.deepEqual(await page.locator('#motion-live-compare .live-label').allTextContents(),['基盤 OFF','基盤 ON']);
+    await page.locator('.canvas-wrap').screenshot({path:resolve(output,'motion-qa-live-split.png')});
+    checks.push('one-tap review starts synchronized live basis-off / basis-on split view');
+
+    const beforeToggle=await qa();assert.equal(beforeToggle.playing,true);await toggleBasis();const toggled=await qa();assert.equal(toggled.playing,true);
+    await page.waitForFunction(t=>window.masterCharacterReview.motionQA.time>t+.08,beforeToggle.time);await toggleBasis();
+    checks.push('single-view basis toggle preserves playback instead of pausing');
+
     for(const t of [2.97,6.97,10.97,13.97,16.97,22.97,26.97]){
       await seek(t);await page.locator('#qa-play').click();await page.waitForFunction(t=>window.masterCharacterReview.motionQA.time>t+.1,t);
       snapshots.push(await qa());
@@ -29,30 +39,40 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
     const cameras={};for(const id of cameraNames){await page.locator(`[data-qa-camera="${id}"]`).click();cameras[id]=(await qa()).cameraPosition;}
     assert.equal(new Set(Object.values(cameras).map(p=>p.join(','))).size,8);
     await page.locator('[data-qa-camera="front"]').click();assert.deepEqual((await qa()).cameraPosition,cameras.front);
-    await page.locator('#qa-tour').check();await seek(10);await page.locator('#qa-play').click();await page.waitForFunction(()=>window.masterCharacterReview.motionQA.camera==='left');
+    await page.locator('.qa-more > summary').click();await page.locator('#qa-tour').check();await seek(10);await page.locator('#qa-play').click();await page.waitForFunction(()=>window.masterCharacterReview.motionQA.camera==='left');
     await page.locator('#qa-tour').uncheck();checks.push('eight repeatable camera presets and clock-driven tour');
 
-    // This PR changes the live draw/guard silhouette. Preserve raw (pre-QA-correction)
-    // visual evidence at the exact end-of-draw and settled-guard frames from two views.
+    // Preserve raw draw/guard evidence. qa-before lives under display options now,
+    // but its state change must remain testable without pausing playback.
     await page.setViewportSize({width:900,height:900});
-    await page.locator('#qa-before').click();
+    await toggleBasis();
     for(const [time,label]of [[13.97,'draw-end'],[16.97,'guard']])for(const camera of ['front-left','left']){
       await seek(time);await page.locator(`[data-qa-camera="${camera}"]`).click();
       const stance=await qa();assert.equal(stance.frame,Math.round(time*60));snapshots.push({stance:label,camera,snapshot:stance});
       await page.screenshot({path:resolve(output,`motion-qa-${label}-raw-${camera}.png`)});
     }
-    await page.locator('#qa-before').click();
+    await toggleBasis();
     checks.push('raw draw-end and guard stance evidence captured from front-left and side');
 
     await seek(17.475);await page.locator('[data-qa-camera="front-left"]').click();
-    await page.locator('#qa-before').click();const before=await qa();
+    await toggleBasis();const before=await qa();
     await page.screenshot({path:resolve(output,'motion-qa-before.png')});
-    await page.locator('#qa-before').click();const after=await qa();
+    await toggleBasis();const after=await qa();
     await page.screenshot({path:resolve(output,'motion-qa-after.png')});
     assert.equal(before.frame,after.frame);assert.deepEqual(before.cameraPosition,after.cameraPosition);
     const penetration=s=>s.diagnostics.filter(i=>i.category==='self intersection').reduce((m,i)=>Math.max(m,i.penetration??0),0);
     assert.ok(penetration(after)<penetration(before),'source arm penetration case must improve');
     snapshots.push({before,after});checks.push('same frame before/after visible arm clearance improvement');
+
+    await seek(5);await page.evaluate(()=>document.querySelector('#qa-ab-known').click());
+    await page.waitForFunction(()=>window.masterCharacterReview.motionQA.comparison?.frame===1049);
+    const comparison=await page.evaluate(()=>window.masterCharacterReview.motionQA.comparison);
+    assert.equal(comparison.frame,1049);assert.equal(comparison.camera,'front-left');assert.equal(comparison.before.frame,comparison.after.frame);assert.equal(comparison.before.camera,comparison.after.camera);
+    assert.ok(penetration(comparison.after)<penetration(comparison.before),'saved A/B panel must use the improving basis-on result');
+    for(const id of ['qa-ab-before','qa-ab-after'])assert.match(await page.locator(`#${id}`).getAttribute('src'),/^data:image\/jpeg/);
+    assert.match(await page.locator('#qa-ab-summary').textContent(),/合否は左右の実画像/);
+    snapshots.push({comparison});checks.push('optional static A/B evidence remains aligned with the live comparison');
+
     for(const count of [6,12]){
       await page.locator(`[data-qa-count="${count}"]`).click();await seek(17.475);
       assert.equal(await page.evaluate(()=>window.masterCharacterReview.actors.length),count);
@@ -65,7 +85,7 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
       await seek(17.475);snapshots.push(await qa());await page.screenshot({path:resolve(output,`motion-qa-variant-${index}.png`)});
     }
     checks.push('6/12 cohort preserves records; body, height and child/elder presentation shown');
-    await page.locator('#motion-qa details summary').click();
+    await page.locator('.qa-diagnostics-panel > summary').click();
     await page.locator('#qa-category').selectOption('self intersection');await page.locator('#qa-bones').fill('rightUpperArm rightLowerArm');await page.locator('#qa-note').fill('検証用の指摘。Visual Approvalとは別。');
     await page.locator('#qa-record').click();const downloadPromise=page.waitForEvent('download');await page.locator('#qa-export').click();
     const download=await downloadPromise,path=resolve(output,'character-motion-qa.json');await download.saveAs(path);
@@ -76,14 +96,15 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
     assert.equal(await page.evaluate(()=>window.masterCharacterReview.motionQA.report.issues.length),1);
     checks.push('QA JSON export/import roundtrip and malformed import retention');
     for(const [width,height]of [[320,568],[390,844],[412,892],[844,390]]){
-      await page.setViewportSize({width,height});await seek(14);
-      const bounds=await page.evaluate(()=>{const r=document.querySelector('#stage').getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,bottom:r.bottom,docWidth:document.documentElement.scrollWidth,docHeight:document.documentElement.scrollHeight};});
-      assert.ok(bounds.h>=150&&bounds.x>=0&&bounds.x+bounds.w<=width+1&&bounds.bottom<=height+1&&bounds.docWidth<=width+1&&bounds.docHeight<=height+1,JSON.stringify(bounds));
+      await page.setViewportSize({width,height});await seek(14);await page.waitForTimeout(120);
+      const bounds=await page.evaluate(()=>{const r=document.querySelector('#stage').getBoundingClientRect(),live=document.querySelector('#motion-live-compare').getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,bottom:r.bottom,liveW:live.width,liveH:live.height,docWidth:document.documentElement.scrollWidth,docHeight:document.documentElement.scrollHeight};});
+      assert.ok(bounds.h>=150&&bounds.x>=0&&bounds.x+bounds.w<=width+1&&bounds.bottom<=height+1&&bounds.liveW===bounds.w&&bounds.liveH===bounds.h&&bounds.docWidth<=width+1&&bounds.docHeight<=height+1,JSON.stringify(bounds));
       await page.screenshot({path:resolve(output,`motion-qa-${width}x${height}.png`)});
     }
     await page.locator('#qa-stop').click();assert.equal(await page.evaluate(()=>window.masterCharacterReview.motionQA.active),false);
+    await page.waitForFunction(()=>document.querySelector('#motion-live-compare').hidden===true);
     assert.deepEqual(errors,[]);assert.deepEqual(network,[]);assert.equal(await page.evaluate(()=>window.masterCharacterReview.ready),true);
-    checks.push('portrait/landscape UI bounds and clean console/network');
+    checks.push('portrait/landscape live-compare bounds and clean console/network');
     writeFileSync(resolve(output,'motion-qa-browser.json'),JSON.stringify({success:true,checks,snapshots,errors,network},null,2));
   }catch(error){await page.screenshot({path:resolve(output,'motion-qa-failure.png')}).catch(()=>{});writeFileSync(resolve(output,'motion-qa-browser.json'),JSON.stringify({success:false,error:String(error),checks,errors,network},null,2));throw error;}
   finally{await context.close();}

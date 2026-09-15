@@ -1,12 +1,43 @@
-name: Integration Rescue
+name: Integration Repair Executors
 on:
   workflow_call:
 permissions:
   contents: read
 jobs:
-  coordinator:
-    name: Plan Rescue Wave
+  flow-observer:
+    name: Observe repair pressure and knowledge
     if: github.repository == 'charukun/soul-lineage' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: integration-rescue-flow-observer
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: read
+    outputs:
+      max_parallel: ${{ steps.flow.outputs.max_parallel }}
+      max_evaluations: ${{ steps.flow.outputs.max_evaluations }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Update bounded repair tuning, delivery ledger and failure fingerprints
+        id: flow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESCUE_COORDINATOR: 'true'
+        run: node scripts/integration-flow-observer.mjs
+
+  coordinator:
+    name: Plan repair executor wave
+    needs: flow-observer
+    if: needs.flow-observer.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 6
     concurrency:
@@ -30,13 +61,13 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Bound queue scan and atomically reserve independent workers
+      - name: Bound repair scan and atomically reserve independent executors
         id: plan
         env:
           GH_TOKEN: ${{ github.token }}
           RESCUE_CONFIGURED: 'true'
-          # v2 has an independent tuning key so the legacy repository value 4 does not pin the new baseline.
-          MAX_RESCUE_CONCURRENCY: ${{ vars.MAX_RESCUE_CONCURRENCY_V2 || '6' }}
+          MAX_RESCUE_CONCURRENCY: ${{ needs.flow-observer.outputs.max_parallel || '4' }}
+          RESCUE_MAX_EVALUATIONS: ${{ needs.flow-observer.outputs.max_evaluations || '16' }}
           MAX_RESCUE_ATTEMPTS: ${{ vars.MAX_RESCUE_ATTEMPTS }}
           RESCUE_DIAGNOSTICS_PATH: .deploy-state/rescue-api.json
           RESCUE_COORDINATOR: 'true'
@@ -57,7 +88,7 @@ jobs:
           retention-days: 7
 
   worker:
-    name: Rescue PR ${{ matrix.pr }}
+    name: Repair PR ${{ matrix.pr }}
     needs: coordinator
     if: needs.coordinator.outputs.has_workers == 'true'
     strategy:
@@ -74,7 +105,7 @@ jobs:
       pull-requests: write
       actions: write
       issues: write
-      statuses: read
+      statuses: write
     env:
       RESCUE_PR: ${{ matrix.pr }}
       RESCUE_ID: ${{ matrix.rescueId }}
@@ -107,8 +138,6 @@ jobs:
           sudo chmod -R g+rwX work
           sudo chown -R root:root control
           sudo chmod -R a-w control
-          # Only directory traversal is needed through the runner-owned ancestors.
-          # Keep the wrapper immutable and grant no ancestor read/write access.
           rescue_parent="$GITHUB_WORKSPACE"
           while [ "$rescue_parent" != / ]; do
             sudo chmod o+x "$rescue_parent"
@@ -116,7 +145,7 @@ jobs:
           done
           chmod a+rx "$RUNNER_TEMP" "$RUNNER_TEMP/rescue"
           chmod a+r "$RUNNER_TEMP/rescue/"*
-      - name: Heartbeat the live worker lease
+      - name: Heartbeat the live repair lease
         env:
           GH_TOKEN: ${{ github.token }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -141,7 +170,7 @@ jobs:
           if [ -f "$RUNNER_TEMP/rescue/heartbeat.pid" ]; then
             kill "$(cat "$RUNNER_TEMP/rescue/heartbeat.pid")" 2>/dev/null || true
           fi
-      - name: Return this worker immediately and notify actionable failures
+      - name: Return this executor and wake reconciliation
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -159,11 +188,11 @@ jobs:
           retention-days: 7
 
   return:
-    name: Return repaired heads to normal Integration
+    name: Aggregate repair results and wake reconciliation
     needs: [coordinator, worker]
     if: always() && needs.coordinator.result == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 7
     concurrency:
       group: integration-rescue-return
       cancel-in-progress: false
@@ -172,7 +201,7 @@ jobs:
       pull-requests: write
       issues: write
       actions: write
-      statuses: read
+      statuses: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -181,10 +210,22 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Aggregate return, delivery tracking and actionable notifications
+      - name: Aggregate repair returns, reconcile dependency stacks and notify actionable failures
         env:
           GH_TOKEN: ${{ github.token }}
           NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
           NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: node scripts/integration-rescue-return.mjs
+      - name: Signal quarantined exact heads for deep AI repair
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/integration-quarantine-signal.mjs
+      - name: Record verified DEV delivery latency for all tracked PRs
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/integration-flow-delivery.mjs

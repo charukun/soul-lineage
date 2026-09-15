@@ -54,18 +54,25 @@ export function animateCreature(g,a,time,options={}){
  const shoulder=[s*.28,1.47,-.025],elbow=[s*(m?.58:.38),(1.47+hand[1])*.5-.1,hand[2]*.47-.10];connect(arm.upper,shoulder,elbow);connect(arm.lower,elbow,hand);arm.hand.position.set(...hand);for(let j=0;j<arm.claws.length;j++){let c=arm.claws[j];c.position.set(hand[0]+(j-1)*.066,hand[1]-.12,hand[2]+.085);c.rotation.x=Math.PI*.83;}
  if(s===1){const tip=q?.tip||[hand[0],hand[1]+.9,hand[2]+.3];u.weapon.position.set(...hand);u.weapon.quaternion.setFromUnitVectors(up,temp.set(tip[0]-hand[0],tip[1]-hand[1],tip[2]-hand[2]).normalize());}}
  if(m&&!a.dead&&options.eating&&Number.isFinite(a.devourProgress))applyDevourPose(g,sampleDevourMotion(a.devourProgress));
+ else if(m&&!a.dead&&!q&&!walking&&options.feast>0)applyFeastPose(g,options.feast);
  u.weapon.visible=!a.dead;
  if(a.dead){g.rotation.z=m?.35:1.45;g.position.y=.13;u.body.rotation.x=.12;}else g.rotation.z=0;
  if(!m&&a.dead&&a.capturedBy)applyCapturedPose(g,a.capturedBy);
 }
 
-
 const pivot=new T.Vector3(0,.91,0),inverse=new T.Quaternion(),point=new T.Vector3();
+function applyFeastPose(g,strength){
+ const k=Math.max(0,Math.min(1,strength)),p=sampleDevourMotion(0);
+ // Open the chest and claws after swallowing; feet use the same planted solve.
+ Object.assign(p,{drop:-.04*k,pitch:.16-.32*k,headPitch:-.096-.25*k,
+  jaw:.52*k,handX:.47+.30*k,handY:.71+.41*k,handZ:.05+.14*k,
+  stance:k,throat:k});
+ applyDevourPose(g,p);
+ g.userData.torso.scale.x*=1+k*.10;
+}
 function bodyLocal(body,x,y,z){return point.set(x,y,z).sub(body.position).applyQuaternion(inverse).toArray();}
 function applyDevourPose(g,p){
  const u=g.userData;
- // Pivot at the pelvis, not the ground. Solve feet back into body space so
- // the crouch never drags the soles below the terrain or swings them in air.
  u.body.rotation.set(p.pitch,p.twist,p.roll);
  u.body.position.copy(pivot).sub(point.copy(pivot).applyQuaternion(u.body.quaternion));
  u.body.position.y+=p.drop;inverse.copy(u.body.quaternion).invert();
@@ -92,8 +99,6 @@ function applyCapturedPose(g,capture){
  const p=sampleDevourMotion(capture.progress),k=p.hold;
  const size=capture.form==='brute'?1.12:capture.form==='stalker'?1.04:1;
  const yaw=capture.yaw||0,cs=Math.cos(yaw),sn=Math.sin(yaw);
- // Present the prone torso between the hands. This only moves the render
- // group; NPC/world coordinates and collision geometry remain unchanged.
  const forward=(.66-p.preyLift*.35)*size;
  const tx=capture.x+cs*1.15+sn*forward,tz=capture.z-sn*1.15+cs*forward;
  g.position.x+=(tx-g.position.x)*k;g.position.z+=(tz-g.position.z)*k;
