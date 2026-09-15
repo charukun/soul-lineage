@@ -61,6 +61,7 @@ DEV publicationは各Fast Lane pass後に最新develop SHAへ明示dispatchさ�
 7. Browser/DEV repair/publication中でも新しい独立Ready PRはFast Laneへ入れる。
 8. main / Production gate、review/hold/thread/dependency gate、exact-head validationを弱めない。
 9. 追加OpenAI API/PAT/有料fallbackをRepositoryの通常制御面へ追加しない。
+10. Deep Repair対象PRが検証済みの修復headでdevelopへmergeされたら、同じsource PRに紐づくopenなDeep Repair Issueをmachine-readable `completed` へ更新してcloseする。処理は冪等で、未merge PR、別PR、`human-required`、試行上限到達などの停止判断を誤って完了扱いしない。
 
 ## Ready CI failureの修復契約
 
