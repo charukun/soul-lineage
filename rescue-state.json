@@ -3210,6 +3210,22 @@
       "workerId": "work/866e55ef0f5e/20260915T0632Z-pr107-r2",
       "type": "WORK_REPAIR_PUSH_PREPARED",
       "action": "npm ci・trusted fast 920/921（1 skip）・demon/rinne/village build成功。two-parent mergeをforce=false push前にprepared"
+    },
+    {
+      "id": "pr-107:RETURNED_TO_INTEGRATION:1789454440454:1143",
+      "at": "2026-09-15T06:40:40.454Z",
+      "pr": 107,
+      "workerId": "work/866e55ef0f5e/20260915T0632Z-pr107-r2",
+      "type": "RETURNED_TO_INTEGRATION",
+      "action": "通常Integrationのexact-head checks・review・baseline再評価待ち"
+    },
+    {
+      "id": "pr-107:WORK_REPAIR_RUN_SUMMARY:1789454440454:1143",
+      "at": "2026-09-15T06:40:40.454Z",
+      "pr": 107,
+      "workerId": "work/866e55ef0f5e/20260915T0632Z-pr107-r2",
+      "type": "WORK_REPAIR_RUN_SUMMARY",
+      "action": "eligible_before=7; claimable_before=6; claimed=1; returned=1; human_required=0; eligible_after=6"
     }
   ],
   "config": {
@@ -7604,12 +7620,12 @@
       "claimedAt": "2026-09-13T04:32:07.350Z",
       "claimedBy": "34738107940/pr-107/a1",
       "contractFingerprint": "c6aea44e80bac77dcc1576c67b7b63075def4a4a0ef6b1a4e0aba9bd09b29173",
-      "currentAction": "検証済みmerge commitをpush直前fenceで再確認",
-      "currentStep": "RESOLVING",
+      "currentAction": "通常Integrationのexact-head checks・review・baseline再評価待ち",
+      "currentStep": "RETURNED_TO_INTEGRATION",
       "dependencies": [],
-      "detail": "Astraを含む実装ワーカー向けにモデリング・Visual Reviewの参照規約をRepositoryへ追加",
+      "detail": "PR #107の3D production/visual-review規約と最新developのCode Health・character production/DCC規約を保持し、競合を最小調停して検証・返却",
       "detectedAt": "2026-09-13T02:37:03.415Z",
-      "developSha": "9e65227c354af92291f4820294384bfe11213cdb",
+      "developSha": "333d18354a0f7f5b82d50ef321f2f50419e0ea19",
       "failureReason": "FAILED_MANUAL:OVERLAPPING_CHANGES:AGENTS.md",
       "failures": [
         {
@@ -7621,7 +7637,7 @@
           "workerId": "34738107940/pr-107/a1"
         }
       ],
-      "headSha": "c6342951d983d97ac7436fcc97481fea9e50748f",
+      "headSha": "aab83fbac6f580b29aabc90e4bd1a5e92bcb30f2",
       "heartbeatAt": "2026-09-13T04:32:07.350Z",
       "lastFailureFingerprint": "other:a7d5de13130d75ce",
       "lease": null,
@@ -7669,15 +7685,15 @@
         "headSha": "c6342951d983d97ac7436fcc97481fea9e50748f",
         "mergeBaseSha": "6ef80c6badbdb0357fdc080449a2180ecb0b8671"
       },
-      "state": "FAILED_MANUAL",
+      "state": "RETURNED_TO_INTEGRATION",
       "title": "docs: add RINNE 3D production standards",
-      "updatedAt": "2026-09-15T06:39:49.431Z",
+      "updatedAt": "2026-09-15T06:40:40.454Z",
       "waitingReason": null,
       "wave": "wave-34738107940-1",
       "workRepairAttempts": 2,
       "workRepair": {
         "workerId": "work/866e55ef0f5e/20260915T0632Z-pr107-r2",
-        "status": "working",
+        "status": "returned",
         "attempt": 2,
         "maxAttempts": 2,
         "repairKind": "overlap",
@@ -7710,7 +7726,7 @@
           "repairKind": "overlap"
         },
         "startedAt": "2026-09-15T06:33:51.381Z",
-        "heartbeatAt": "2026-09-15T06:39:49.431Z",
+        "heartbeatAt": "2026-09-15T06:40:40.454Z",
         "expiresAt": "2026-09-15T07:24:49.431Z",
         "result": {
           "changedPaths": [
@@ -7779,8 +7795,25 @@
             "command": "npm ci && node scripts/validate.mjs fast 333d18354a0f7f5b82d50ef321f2f50419e0ea19 c6342951d983d97ac7436fcc97481fea9e50748f"
           }
         },
-        "pushPreparedAt": "2026-09-15T06:39:49.431Z"
-      }
+        "pushPreparedAt": "2026-09-15T06:39:49.431Z",
+        "finishedAt": "2026-09-15T06:40:40.454Z"
+      },
+      "pushedSha": "aab83fbac6f580b29aabc90e4bd1a5e92bcb30f2",
+      "validation": {
+        "status": "passed",
+        "tree": "3d8f7f3d373ddcbf0dd66356519d257de63e14b0",
+        "npmCi": "passed",
+        "focused": "docs/control reconciliation inspected against current character production pipeline",
+        "trustedFast": "passed: 920/921, 1 skipped",
+        "builds": "passed: demon/rinne/village",
+        "markers": "passed",
+        "scope": "passed",
+        "command": "npm ci && node scripts/validate.mjs fast 333d18354a0f7f5b82d50ef321f2f50419e0ea19 c6342951d983d97ac7436fcc97481fea9e50748f",
+        "head": "aab83fbac6f580b29aabc90e4bd1a5e92bcb30f2"
+      },
+      "pushedAt": "2026-09-15T06:40:40.454Z",
+      "returnedAt": "2026-09-15T06:40:40.454Z",
+      "pendingIntegration": true
     },
     "121": {
       "attempt": 1,
@@ -18959,9 +18992,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1142,
+  "revision": 1143,
   "schema": 1,
-  "updatedAt": "2026-09-15T06:39:49.431Z",
+  "updatedAt": "2026-09-15T06:40:40.454Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:13:12.416Z",
