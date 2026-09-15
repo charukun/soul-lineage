@@ -17,7 +17,7 @@ async function refreshOnce() {
   for (let attempt = 1; attempt <= maxRefreshAttempts; attempt++) {
     let response;
     try {
-      response = await fetch(new URL('api/refresh', url), { method: 'POST', headers: { authorization: `Bearer ${refreshToken}`, 'x-ops-github-token': githubToken }, signal: AbortSignal.timeout(120000) });
+      response = await fetch(new URL('api/refresh', url), { method: 'POST', headers: { authorization: `Bearer ${refreshToken}`, 'x-ops-github-token': githubToken, 'x-ops-refresh-reason': 'prime' }, signal: AbortSignal.timeout(120000) });
     } catch (error) {
       lastError = error;
       if (attempt === maxRefreshAttempts) throw error;
@@ -35,11 +35,11 @@ async function refreshOnce() {
   throw lastError || new Error('Ops refresh failed without a response');
 }
 let previousReady = -1;
-for (let batch = 0; batch < 12; batch++) {
+for (let batch = 0; batch < 3; batch++) {
   const response = await refreshOnce();
   const state = assertSnapshot(await response.json(), (process.env.OPS_SOURCE_SHA || process.env.GITHUB_SHA));
   const lookup = state.pullRequests.targetLookup;
-  console.log(`Target batch ${batch + 1}: ready=${lookup.ready}, pending=${lookup.pending}, unavailable=${lookup.unavailable}`);
+  console.log(`Target batch ${batch + 1}: ready=${lookup.ready}, pending=${lookup.pending}, unavailable=${lookup.unavailable}, api=${state.githubApi?.requests ?? '?'} requests`);
   if (!lookup.pending || lookup.ready === previousReady) {
     if (lookup.pending || lookup.unavailable) console.log('::warning::Some PR target attribution remains explicitly pending or unavailable; the board does not invent results.');
     break;
