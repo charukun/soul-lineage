@@ -3187,6 +3187,62 @@
       "workerId": "work/866e55ef0f5e/20260915T1018Z-pr229",
       "type": "WORK_REPAIR_NOTIFICATION",
       "action": "success Gmail self notification sent; dedupe pr-229:9b8a0d273739cf568f7e7c54a8649492d0657d2e:work-repair-success; message 1a0a4ad7f2362071"
+    },
+    {
+      "id": "work-cycle-866e55ef0f5e-20260915T1114Z:WORK_REPAIR_BLOCKED:157:1234",
+      "at": "2026-09-15T11:20:35.462Z",
+      "pr": 157,
+      "workerId": "work/866e55ef0f5e/20260915T1114Z-blocked",
+      "type": "WORK_REPAIR_BLOCKED",
+      "action": "state head 28b994d473dfc8415e3872447947d1bdec616e5e differs from actual PR head c94b53affe20685f9dbbf7923f9bcb4840aaf4fd; exact-head fence requires Coordinator observation to refresh the record before claim"
+    },
+    {
+      "id": "work-cycle-866e55ef0f5e-20260915T1114Z:WORK_REPAIR_BLOCKED:197:1234",
+      "at": "2026-09-15T11:20:35.462Z",
+      "pr": 197,
+      "workerId": "work/866e55ef0f5e/20260915T1114Z-blocked",
+      "type": "WORK_REPAIR_BLOCKED",
+      "action": "actual PR is merged at d01569b7092ec2f6dc23cc137376df7185e57794 into develop commit 90da2b79a2219bfb9bee0699886cf6cf596cf782 while state remains FAILED_MANUAL at 5bf10fe7f34017f0357c19dc655365360c0cdbe6; Coordinator must normalize merged state"
+    },
+    {
+      "id": "work-cycle-866e55ef0f5e-20260915T1114Z:WORK_REPAIR_BLOCKED:283:1234",
+      "at": "2026-09-15T11:20:35.462Z",
+      "pr": 283,
+      "workerId": "work/866e55ef0f5e/20260915T1114Z-blocked",
+      "type": "WORK_REPAIR_BLOCKED",
+      "action": "actual PR is merged at 83bcaeb550477b2ad57ce633a9559ce626b8cf2b into develop commit aa506f922e456b479e7555e319c3a26e7b14b2fb while state remains FAILED_MANUAL at 2d88e4ef25f25ad9920b19d3740a86ce4a72f2e1; Coordinator must normalize merged state"
+    },
+    {
+      "id": "work-cycle-866e55ef0f5e-20260915T1114Z:WORK_REPAIR_BLOCKED:260:1234",
+      "at": "2026-09-15T11:20:35.462Z",
+      "pr": 260,
+      "workerId": "work/866e55ef0f5e/20260915T1114Z-blocked",
+      "type": "WORK_REPAIR_BLOCKED",
+      "action": "state head bbaf947af9d04ca3018da37f784bf0702ddfd5f1 differs from actual PR head 41d50d9a0a13d72d0159dd01498cbc2c222ee571; exact-head fence blocks claim, and RED repository scope remains serialized until merged #229/#197/#283 ownership is normalized"
+    },
+    {
+      "id": "work-cycle-866e55ef0f5e-20260915T1114Z:WORK_REPAIR_BLOCKED:229-owner:1234",
+      "at": "2026-09-15T11:20:35.462Z",
+      "pr": 229,
+      "workerId": "work/866e55ef0f5e/20260915T1114Z-blocked",
+      "type": "WORK_REPAIR_BLOCKED",
+      "action": "actual PR is merged at 9b8a0d273739cf568f7e7c54a8649492d0657d2e into develop commit 082d0c6318a8db69fa8cca4fe6b2940c80ec2f3c, but RETURNED_TO_INTEGRATION RED repository ownership remains in state; Coordinator must release it"
+    },
+    {
+      "id": "work-cycle-866e55ef0f5e-20260915T1114Z:WORK_REPAIR_WATCHDOG_TRIGGERED:watchdog:1234",
+      "at": "2026-09-15T11:20:35.462Z",
+      "pr": null,
+      "workerId": "work/866e55ef0f5e/20260915T1114Z-blocked",
+      "type": "WORK_REPAIR_WATCHDOG_TRIGGERED",
+      "action": "No active Rescue scan existed. Re-ran canonical Request Rescue observation job 104357252290 from CI run 34961900994 exactly once; do not poll or duplicate. Latest develop aa506f922e456b479e7555e319c3a26e7b14b2fb already has successful publish/refresh runs 34962077647 and 34962162788."
+    },
+    {
+      "id": "work-cycle-866e55ef0f5e-20260915T1114Z:WORK_REPAIR_CYCLE_SUMMARY:summary:1234",
+      "at": "2026-09-15T11:20:35.462Z",
+      "pr": null,
+      "workerId": "work/866e55ef0f5e/20260915T1114Z-blocked",
+      "type": "WORK_REPAIR_CYCLE_SUMMARY",
+      "action": "eligible_before=4; claimable_before=0; claimed=0; returned=0; human_required=0; eligible_after=4. ACTIVE 0 means all current helper-eligible candidates are blocked by exact-head/state normalization fences, not that no targets exist. Next: Coordinator reconcile merged #197/#229/#283 and refresh #157/#260 heads; then re-evaluate #260 against latest develop."
     }
   ],
   "config": {
@@ -19466,9 +19522,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1233,
+  "revision": 1234,
   "schema": 1,
-  "updatedAt": "2026-09-15T10:47:43.288Z",
+  "updatedAt": "2026-09-15T11:20:35.462Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
