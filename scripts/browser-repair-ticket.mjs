@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { onBrowserFailure, onDevelopBrowserSuccess, onPrBrowserSuccess, parseRepairState, replaceRepairState, linkedIssueNumber, DEFAULT_MAX_ATTEMPTS, currentPrRepair } from './browser-repair-state.mjs';
 import { normalizeNotificationLocale, notificationHeadline } from './notification-copy.mjs';
+import { DEV_FEEDBACK_RULES } from './dev-feedback-policy.mjs';
 
 const repository = process.env.GITHUB_REPOSITORY;
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
@@ -130,6 +131,7 @@ const summary = [
   promotedFromPrHead ? `Promoted from merged PR browser failure: \`${promotedFromPrHead}\`` : null,'',
   human ? '**Automatic repair stopped: human review is required.**' : 'This issue is the machine-readable handoff for ChatGPT Work browser self-repair.','',
   'Work must claim the ticket by changing `state` from `pending` to `working` and incrementing `attempt` before editing code. It must not touch main/Production.',
+  '', DEV_FEEDBACK_RULES,
 ].filter(Boolean).join('\n');
 const body = replaceRepairState(issue?.body || summary, nextState);
 const issueStage = ['verified', 'ready-for-integration'].includes(nextState.state) ? 'BROWSER_VERIFIED' : 'FAILED';

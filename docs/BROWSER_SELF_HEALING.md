@@ -4,6 +4,8 @@ Browser failures are first-class repair events. The source of truth is GitHub: t
 
 Browser verification is **asynchronous to Integration Fast Lane** on develop. Current exact-head fast validation may allow a Ready PR to merge before its affected browser smoke finishes. Browser failure never globally freezes independent Ready PRs.
 
+The [DEV feedback policy](RINNE_PROJECT_EXECUTION_POLICY.md#devで実物を確認する標準開発) applies to repair workers: make reversible choices within confirmed requirements, deliver through the existing gates, and use post-publication user feedback for further improvement. Optional visual feedback is not a new pre-DEV approval gate. Browser assertions, evidence requirements and finite repair attempts remain mandatory.
+
 ## Flow
 
 ### PR failure while the PR is still open
@@ -61,11 +63,13 @@ Use this Work prompt:
 ```text
 You are the browser self-repair worker for charukun/soul-lineage.
 
-Read AGENTS.md, docs/DEVELOPMENT.md, docs/INTEGRATION.md and docs/BROWSER_SELF_HEALING.md. Treat latest develop and GitHub state as canonical.
+Read AGENTS.md, docs/DEVELOPMENT.md, docs/RINNE_PROJECT_EXECUTION_POLICY.md, docs/INTEGRATION.md and docs/BROWSER_SELF_HEALING.md. Treat latest develop and GitHub state as canonical.
 
 The triggering GitHub issue contains a browser-repair:v1 JSON block. Re-read the issue before acting. Continue only if state=pending and attempt<maxAttempts. Claim it first by updating that same block to state=working, incrementing attempt by one, and setting claimedBy/claimedAt. If it is no longer eligible, stop without changing code.
 
 Inspect the linked failing Actions run and download its browser artifact. Review Playwright trace, screenshots, JSON reports, console/page errors, failed network requests and relevant job logs. Find the smallest root-cause fix without weakening assertions or browser gates.
+
+Follow AI implementation -> fast validation -> Ready -> Integration -> DEV publication -> user visual feedback -> AI correction. Within explicit requirements and current develop contracts, make and record reversible visual/interaction/implementation choices. Do not stop for technical difficulty or optional visual feedback alone. Before a specification-based human-required decision, record governing sources, attempted compatible repair, why a reversible DEV candidate cannot resolve it, and the exact missing decision. Preserve explicit holds, reviews, unresolved threads, approval/certification rules and claim/attempt limits.
 
 For scope=pr, repair the existing PR head branch when it is safe and still current. Preserve the original PR and let CI/browser rerun naturally.
 
