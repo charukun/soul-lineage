@@ -2,6 +2,9 @@ const DEVELOP_REFERENCE_REVISION='d8bc6d3814bca199d33c53783b1d1386405d8614';
 const KAYKIT_REVISION='672074b73ba276876a19e8816ecdc5241817ab47';
 const KAYKIT_REPOSITORY='KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0';
 const KAYKIT_SAMPLE_BASE=`https://raw.githubusercontent.com/${KAYKIT_REPOSITORY}/${KAYKIT_REVISION}/addons/kaykit_character_pack_adventures/Samples`;
+const KAYKIT_SKELETON_REVISION='15b62b9bad122f72926c10fb14d622c73819fa54';
+const KAYKIT_SKELETON_REPOSITORY='KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0';
+const KAYKIT_SKELETON_SAMPLE_BASE=`https://raw.githubusercontent.com/${KAYKIT_SKELETON_REPOSITORY}/${KAYKIT_SKELETON_REVISION}/addons/kaykit_character_pack_skeletons/Samples`;
 const RINNE_REFERENCE_BASE=`https://raw.githubusercontent.com/charukun/soul-lineage/${DEVELOP_REFERENCE_REVISION}`;
 let pickerStyleInstalled=false;
 
@@ -18,7 +21,11 @@ export const MODEL_PICKER_PRESENTATION=Object.freeze({
   'motion-library.barbarian':Object.freeze({pickerLabel:'KayKit CC0 / Barbarian',portraitPath:`${KAYKIT_SAMPLE_BASE}/barbarian.png`,portraitFocus:'face'}),
   'motion-library.mage':Object.freeze({pickerLabel:'KayKit CC0 / Mage',portraitPath:`${KAYKIT_SAMPLE_BASE}/mage.png`,portraitFocus:'face'}),
   'motion-library.rogue':Object.freeze({pickerLabel:'KayKit CC0 / Rogue',portraitPath:`${KAYKIT_SAMPLE_BASE}/rogue.png`,portraitFocus:'face'}),
-  'motion-library.rogue-hooded':Object.freeze({pickerHidden:true,pickerCanonicalId:'motion-library.rogue'})
+  'motion-library.rogue-hooded':Object.freeze({pickerHidden:true,pickerCanonicalId:'motion-library.rogue'}),
+  'motion-library.skeleton-warrior':Object.freeze({pickerLabel:'KayKit Skeletons / Warrior',portraitPath:`${KAYKIT_SKELETON_SAMPLE_BASE}/warrior.png`,portraitFocus:'face'}),
+  'motion-library.skeleton-rogue':Object.freeze({pickerLabel:'KayKit Skeletons / Rogue',portraitPath:`${KAYKIT_SKELETON_SAMPLE_BASE}/rogue.png`,portraitFocus:'face'}),
+  'motion-library.skeleton-mage':Object.freeze({pickerLabel:'KayKit Skeletons / Mage',portraitPath:`${KAYKIT_SKELETON_SAMPLE_BASE}/mage.png`,portraitFocus:'face'}),
+  'motion-library.skeleton-minion':Object.freeze({pickerLabel:'KayKit Skeletons / Minion',portraitPath:`${KAYKIT_SKELETON_SAMPLE_BASE}/minion.png`,portraitFocus:'face'})
 });
 
 function installPickerPortraitStyle(){

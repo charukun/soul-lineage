@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('growth model review uses the existing life clock, KayKit model picker and fixed age probes', async () => {
+test('growth model review uses the existing life clock, expanded KayKit model picker and fixed age probes', async () => {
   const [html, js, adapter, motionModels, css, ux, vite] = await Promise.all([
     read('growth-review.html'),
     read('src/review/growth-review.js'),
@@ -31,7 +31,11 @@ test('growth model review uses the existing life clock, KayKit model picker and 
   assert.match(js, /fetch\(model\.path, \{cache: 'force-cache'\}\)/);
   assert.match(js, /loader\.parseAsync\(bytes, `\$\{MOTION_LIBRARY_RAW_BASE\}\/`\)/);
   for (const id of ['SHINO', 'SHINO_SLENDER', 'SHINO_STURDY', 'SHINO_COMPACT', 'A', 'B', 'C', 'TSUKU']) assert.match(js, new RegExp(`id:'${id}'`));
-  for (const file of ['Knight.glb','Barbarian.glb','Mage.glb','Rogue.glb','Rogue_Hooded.glb']) assert.match(motionModels, new RegExp(file.replace('.', '\\.')));
+  for (const file of ['Knight.glb','Barbarian.glb','Mage.glb','Rogue.glb','Rogue_Hooded.glb','Skeleton_Warrior.glb','Skeleton_Rogue.glb','Skeleton_Mage.glb','Skeleton_Minion.glb']) {
+    assert.match(motionModels, new RegExp(file.replace('.', '\\.')));
+  }
+  assert.match(motionModels,/SKELETON_LIBRARY_PUBLIC_BASE/);
+  assert.match(motionModels,/asset-review\/models\/kaykit-skeletons/);
 
   assert.match(js, /params\.has\('age'\) \? Number\(params\.get\('age'\)\) : NaN/);
   assert.match(js, /22 \* LIFE_RULES\.secondsPerYear/);

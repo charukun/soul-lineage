@@ -3,7 +3,17 @@ import { execFileSync } from 'node:child_process';
 import { readFile, writeFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { resolve, dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { REVIEW_DOWNLOADS, REVIEW_ASSET_REVISION, REVIEW_MOTION_FAMILIES, REVIEW_KAYKIT_EQUIPMENT, REVIEW_KAYKIT_EQUIPMENT_SOURCE, SHINO_REVIEW, sourceUrl } from '../packages/assets/src/review-catalog.js';
+import {
+  REVIEW_DOWNLOADS,
+  REVIEW_ASSET_REVISION,
+  REVIEW_MOTION_FAMILIES,
+  REVIEW_KAYKIT_EQUIPMENT,
+  REVIEW_KAYKIT_EQUIPMENT_SOURCE,
+  REVIEW_KAYKIT_EXTRA_MODELS,
+  REVIEW_KAYKIT_SKELETON_SOURCE,
+  SHINO_REVIEW,
+  sourceUrl,
+} from '../packages/assets/src/review-catalog.js';
 export function digest(bytes) { return createHash('sha256').update(bytes).digest('hex'); }
 export function verifyBytes(row, bytes) {
   if (!bytes.length || bytes.length > 25 * 1024 * 1024) throw new Error(`Invalid asset byte count: ${row.id}`);
@@ -67,6 +77,19 @@ async function verifyEquipmentBundle(root) {
   }
   return rows;
 }
+async function verifyGrowthModelBundle(root) {
+  const rows=[];
+  for(const item of REVIEW_KAYKIT_EXTRA_MODELS){
+    const bytes=await readFile(join(root,'models','kaykit-skeletons',item.file));
+    const document=parseGlb(bytes);
+    const external=[...(document.buffers||[]),...(document.images||[])].map(row=>row.uri).filter(Boolean);
+    if(external.length)throw new Error(`Bundled growth model unexpectedly has external resources: ${item.id}`);
+    const nodeNames=(document.nodes||[]).map(row=>String(row.name||'').toLowerCase().replace(/[^a-z0-9]/g,''));
+    for(const required of ['hips','spine','chest','head'])if(!nodeNames.some(name=>name===required||name.endsWith(required)))throw new Error(`Growth model missing ${required}: ${item.id}`);
+    rows.push({...item,sha256:digest(bytes),nodes:nodeNames.length,animations:(document.animations||[]).length});
+  }
+  return rows;
+}
 export async function prepareReviewAssets() {
   const root = await mkdtemp(join(tmpdir(),'rinne-review-assets-'));
   try {
@@ -94,10 +117,11 @@ export async function prepareReviewAssets() {
     const resources = [...(weapon.buffers || []),...(weapon.images || [])].map(row => row.uri);
     if (resources.length !== 2 || !resources.includes('sword_2handed.bin') || !resources.includes('knight_texture.png')) throw new Error('Unexpected sword dependencies');
     const equipment = await verifyEquipmentBundle(root);
+    const growthModels = await verifyGrowthModelBundle(root);
     const families = REVIEW_MOTION_FAMILIES.map(row => ({id:row.id,label:row.label,clips:names.filter(name => new RegExp(row.pattern,'i').test(name))}));
     const manifest = {revision:REVIEW_ASSET_REVISION,buildCommit:process.env.GITHUB_SHA || execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
-      status:'visual-approval-pending',shino:SHINO_REVIEW,files,equipmentSource:REVIEW_KAYKIT_EQUIPMENT_SOURCE,equipment,animationNames:names,families,
-      limitations:['No automatic gameplay replacement','No foot IK approval','Equipment try-on is review-only and does not grant inventory ownership','Preview marker is not a confirmed gameplay hit','No new sound source installed']};
+      status:'visual-approval-pending',shino:SHINO_REVIEW,files,equipmentSource:REVIEW_KAYKIT_EQUIPMENT_SOURCE,skeletonSource:REVIEW_KAYKIT_SKELETON_SOURCE,equipment,growthModels,animationNames:names,families,
+      limitations:['No automatic gameplay replacement','No foot IK approval','Equipment try-on is review-only and does not grant inventory ownership','Skeleton growth is a review deformation of the shared rig, not biological aging','Preview marker is not a confirmed gameplay hit','No new sound source installed']};
     await writeFile(join(root,'manifest.json'),JSON.stringify(manifest,null,2));
     await writeFile(join(root,'CREDITS.txt'),[
       'Lanternfell asset review candidates. Visual approval pending.',
@@ -108,9 +132,10 @@ export async function prepareReviewAssets() {
       'norio rest-space retarget approach adapted for raw VRM 1 bones; MIT copyright/license retained in licenses/norio-MIT.txt.',
       'Kenney: Particle Pack, CC0; sprite composition and timing modified in the renderer.',
       'Kay Lousberg: KayKit Adventurers equipment, CC0; pinned original geometry/textures are bundled under asset-review/equipment for all-model try-on.',
+      'Kay Lousberg: KayKit Skeletons characters/equipment, CC0; four character GLBs and nine equipment models are pinned and bundled for review.',
       'All source URLs, pinned revisions and resulting SHA-256 values: manifest.json.',
     ].join('\n')+'\n');
-    console.log('REVIEW_ASSET_INVENTORY '+JSON.stringify({files:files.length,bytes:files.reduce((n,row)=>n+row.size,0),equipment:equipment.length,families}));
+    console.log('REVIEW_ASSET_INVENTORY '+JSON.stringify({files:files.length,bytes:files.reduce((n,row)=>n+row.size,0),equipment:equipment.length,growthModels:growthModels.length,families}));
     return {root,manifest};
   } catch (error) { await rm(root,{recursive:true,force:true}); throw error; }
 }
