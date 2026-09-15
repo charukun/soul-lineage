@@ -12,7 +12,7 @@ test('demon installs authored LOD before stylized and adaptive runtime bridges',
 });
 
 test('demon GPU-aware bridge controls render, VFX, streaming, occlusion, alpha pressure and static batching',()=>{
-  for(const token of ['createGpuAwareQualityGovernor','createGpuTimer','createPerformanceRecorder','createConservativeOcclusionCuller','batchStaticMeshes','auditTransparency','combineTransparencyAudits','transparentDrawCalls','transparentTriangleUpperBound','shadowScale','applyTextureQuality','vfxScale','createVisualDistanceStreamer','presentationDistance'])assert.match(adaptive,new RegExp(token));
+  for(const token of ['createGpuAwareQualityGovernor','createGpuTimer','createPerformanceRecorder','createConservativeOcclusionCuller','batchStaticMeshes','auditTransparency','combineTransparencyAudits','transparentDrawCalls','transparentTriangleUpperBound','demon-first-village-v1','signature','shadowScale','applyTextureQuality','vfxScale','createVisualDistanceStreamer','presentationDistance'])assert.match(adaptive,new RegExp(token));
   assert.match(adaptive,/transparencyFrame\+\+%120/);
 });
 
