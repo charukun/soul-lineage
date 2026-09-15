@@ -63,6 +63,8 @@ test('PULSE exposes a mobile-safe button, dialog and copy action for the resume 
   assert.match(board, /work-resume-prompt-dialog/);
   assert.match(board, /プロンプトをコピー/);
   assert.match(board, /navigator\.clipboard/);
+  assert.match(board, /drafts\.length > 0 \|\| Boolean\(data\?\.truncated\)/);
+  assert.match(board, /AI再開プロンプト 全件確認/);
   assert.match(css, /\.work-resume-action/);
   assert.match(css, /\.work-resume-button/);
   assert.match(css, /\.work-prompt-text/);
