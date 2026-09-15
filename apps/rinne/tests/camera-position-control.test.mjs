@@ -15,8 +15,8 @@ test('camera seek keeps the existing default view while allowing near and far po
   assert.deepEqual(cameraOffsetForPosition(4),[15,18.5,21]);
 });
 
-test('camera control is a compact upper-left camera icon with an on-demand vertical slider',()=>{
-  assert.match(control,/camera-position-trigger/);assert.match(control,/<svg viewBox=/);assert.match(control,/aria-label','カメラ位置'/);assert.match(control,/panel\.hidden=true/);assert.match(control,/button\.addEventListener\('click'/);
-  assert.match(css,/top:max\(54px/);assert.match(css,/width:44px;height:44px/);assert.doesNotMatch(css,/top:50%/);assert.match(css,/\.camera-position-panel\[hidden\]\{display:none\}/);assert.match(css,/transform:rotate\(-90deg\)/);
+test('camera control stays compact and renders its own readable rail and knob',()=>{
+  assert.match(control,/camera-position-trigger/);assert.match(control,/camera-position-rail/);assert.match(control,/camera-position-knob/);assert.match(control,/knob\.style\.top/);assert.match(control,/panel\.hidden=true/);assert.match(control,/button\.addEventListener\('click'/);
+  assert.match(css,/top:max\(54px/);assert.match(css,/width:44px;height:44px/);assert.match(css,/\.camera-position-panel\{[\s\S]*background:transparent;border:0;box-shadow:none/);assert.match(css,/\.camera-position-rail\{/);assert.match(css,/\.camera-position-knob\{/);assert.match(css,/opacity:0/);assert.doesNotMatch(css,/\.camera-position-panel\{[\s\S]{0,220}linear-gradient/);
   assert.match(renderer,/createCameraPositionControl/);assert.match(renderer,/camOffset\.set\(\.\.\.cameraOffsetForPosition\(position\)\)/);assert.match(renderer,/cameraControl\.setCombat\(!!combatFrame\)/);
 });
