@@ -3243,6 +3243,14 @@
       "workerId": "work/866e55ef0f5e/20260915T1114Z-blocked",
       "type": "WORK_REPAIR_CYCLE_SUMMARY",
       "action": "eligible_before=4; claimable_before=0; claimed=0; returned=0; human_required=0; eligible_after=4. ACTIVE 0 means all current helper-eligible candidates are blocked by exact-head/state normalization fences, not that no targets exist. Next: Coordinator reconcile merged #197/#229/#283 and refresh #157/#260 heads; then re-evaluate #260 against latest develop."
+    },
+    {
+      "id": "work-cycle-866e55ef0f5e-20260915T1114Z:WORK_REPAIR_NOTIFICATION:1235",
+      "at": "2026-09-15T11:21:06.586Z",
+      "pr": null,
+      "workerId": "work/866e55ef0f5e/20260915T1114Z-blocked",
+      "type": "WORK_REPAIR_NOTIFICATION",
+      "action": "FAILED Gmail self notification sent; dedupe work-cycle-866e55ef0f5e-20260915T1114Z:blocked:aa506f92; message 1a0a4cc6b4da2f2f"
     }
   ],
   "config": {
@@ -19522,9 +19530,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1234,
+  "revision": 1235,
   "schema": 1,
-  "updatedAt": "2026-09-15T11:20:35.462Z",
+  "updatedAt": "2026-09-15T11:21:06.586Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
