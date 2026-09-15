@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { aiRepairEnvelope, aiRepairEnvelopeMarker } from './integration-ai-repair-envelope.mjs';
 import { reviewDecision } from './integration-policy.mjs';
+import { deepRepairSchema, findDeepRepairIssue, parseDeepRepairIssue } from './integration-deep-repair-lookup.mjs';
+export { deepRepairSchema, parseDeepRepairIssue } from './integration-deep-repair-lookup.mjs';
 
 const TRUSTED = new Set(['OWNER', 'MEMBER', 'COLLABORATOR']);
 const HOLD_LABELS = new Set(['integration:hold', 'integration:manual', 'do-not-merge']);
 export const deepRepairStatus = 'integration/deep-repair';
-export const deepRepairSchema = 1;
 export const deepRepairMaxAttempts = 2;
 
 function labels(pr) {
@@ -50,18 +51,6 @@ export function deepRepairIssueMarker(state) {
   return `<!-- integration-deep-repair:v1\n${JSON.stringify(state)}\n-->`;
 }
 
-export function parseDeepRepairIssue(body = '') {
-  const match = String(body).match(/<!-- integration-deep-repair:v1\n([^\n]+)\n-->/);
-  if (!match) return null;
-  try {
-    const state = JSON.parse(match[1]);
-    if (state?.schema !== deepRepairSchema || !state.sourceKey || !state.head || !state.pr) return null;
-    return state;
-  } catch {
-    return null;
-  }
-}
-
 export async function signalDeepRepair(c, { pr, repository, develop, reason, repairKind = 'semantic', ciFailure, dependenciesMerged,
   unresolved, reviews = [] }) {
   const blocked = deepRepairSafety({ pr, repository, dependenciesMerged, unresolved, reviews });
@@ -72,9 +61,7 @@ export async function signalDeepRepair(c, { pr, repository, develop, reason, rep
   if (ciFailure) assert.equal(ciFailure.head, pr.head.sha, 'DEEP_REPAIR_FAILURE_HEAD_MISMATCH');
   const state = deepRepairIssueState({ pr, develop, reason, repairKind, ciFailure });
   const marker = deepRepairIssueMarker(state);
-  // Closed/exhausted tickets still own this exact head; never reset its finite attempts.
-  const issues = await c.pages('/issues?state=all&sort=created&direction=desc&per_page=100', undefined, { maxPages: 3 });
-  let issue = issues.find(item => !item.pull_request && parseDeepRepairIssue(item.body)?.sourceKey === state.sourceKey);
+  let issue = await findDeepRepairIssue(c, { repository, pr });
   const existing = issue && parseDeepRepairIssue(issue.body);
   if (existing && (issue.state === 'closed' || !['pending', 'working'].includes(existing.state) ||
       existing.attempt >= existing.maxAttempts)) {
