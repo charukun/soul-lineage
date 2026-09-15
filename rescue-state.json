@@ -3,14 +3,6 @@
     {
       "action": "developの公開・focused browser gate成功を確認",
       "at": "2026-09-14T09:56:25.873Z",
-      "id": "pr-217:DEV:1789379785873:584",
-      "pr": 217,
-      "type": "DEV",
-      "workerId": null
-    },
-    {
-      "action": "developの公開・focused browser gate成功を確認",
-      "at": "2026-09-14T09:56:25.873Z",
       "id": "pr-227:DEV:1789379785873:584",
       "pr": 227,
       "type": "DEV",
@@ -3194,6 +3186,14 @@
       "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
       "type": "WORK_REPAIR_BASELINE_ADVANCED",
       "action": "attempt 1/2 preserved; baseline churn 2/8: Latest develop advanced from bda52082c637b80201bf95705f19f65db856f55d to cdbdea445bb44fdc5911d3523860606d0d5d5c3a; no push"
+    },
+    {
+      "id": "wave-34837832648-1-pr-197-a1:WORK_REPAIR_CLAIMED:1789466147639:1220",
+      "at": "2026-09-15T09:55:47.639Z",
+      "pr": 197,
+      "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
+      "type": "WORK_REPAIR_CLAIMED",
+      "action": "work/866e55ef0f5e/20260915T0933Z-pr197: semantic repair 1/2; baseline resume 2/8"
     }
   ],
   "config": {
@@ -11643,8 +11643,8 @@
       "claimedAt": "2026-09-14T11:23:54.329Z",
       "claimedBy": "34837832648/pr-197/a1",
       "contractFingerprint": "7a6d78e17141603409300813deab12b0f530f949f60a0ea6728e73541cf2f0a3",
-      "currentAction": "最新developでAI修復を再開予定 · baseline churn 2/8",
-      "currentStep": "FAILED_MANUAL",
+      "currentAction": "既存ChatGPT Workがsemantic停止を再評価し両側の仕様を保って修復",
+      "currentStep": "RESOLVING",
       "dependencies": [
         192
       ],
@@ -11768,13 +11768,13 @@
       },
       "state": "FAILED_MANUAL",
       "title": "feat(characters): rebuild Shino Reference v2 as DCC model",
-      "updatedAt": "2026-09-15T09:52:41.880Z",
+      "updatedAt": "2026-09-15T09:55:47.639Z",
       "waitingReason": null,
       "wave": "wave-34837832648-1",
       "workRepairAttempts": 1,
       "workRepair": {
         "workerId": "work/866e55ef0f5e/20260915T0933Z-pr197",
-        "status": "baseline-advanced",
+        "status": "working",
         "attempt": 1,
         "maxAttempts": 2,
         "repairKind": "semantic",
@@ -11782,9 +11782,9 @@
         "maxBaselineChurns": 8,
         "resumedFromBaselineAdvance": true,
         "sourceHead": "5bf10fe7f34017f0357c19dc655365360c0cdbe6",
-        "develop": "bda52082c637b80201bf95705f19f65db856f55d",
+        "develop": "cdbdea445bb44fdc5911d3523860606d0d5d5c3a",
         "contract": "7a6d78e17141603409300813deab12b0f530f949f60a0ea6728e73541cf2f0a3",
-        "evidenceKey": "cb13e844a4e9b9c6ded3ae183ff6371622d892f9699ece621a5ade454e7395a4",
+        "evidenceKey": "4900895b66c83301f55ea1d207d15e4f328901038d08120bcc5a233872ce674b",
         "scope": {
           "contract": false,
           "control": true,
@@ -11860,11 +11860,9 @@
           "specs": [],
           "repairKind": "semantic"
         },
-        "startedAt": "2026-09-15T09:49:03.149Z",
-        "heartbeatAt": "2026-09-15T09:49:03.149Z",
-        "expiresAt": "2026-09-15T10:34:03.149Z",
-        "reason": "WORK_REPAIR_BASELINE_ADVANCED: Latest develop advanced from bda52082c637b80201bf95705f19f65db856f55d to cdbdea445bb44fdc5911d3523860606d0d5d5c3a after trusted fast; verified tree was not pushed",
-        "finishedAt": "2026-09-15T09:52:41.880Z"
+        "startedAt": "2026-09-15T09:55:47.639Z",
+        "heartbeatAt": "2026-09-15T09:55:47.639Z",
+        "expiresAt": "2026-09-15T10:40:47.639Z"
       },
       "workRepairBaselineChurns": 2
     },
@@ -19111,9 +19109,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1220,
+  "revision": 1221,
   "schema": 1,
-  "updatedAt": "2026-09-15T09:52:41.880Z",
+  "updatedAt": "2026-09-15T09:55:47.639Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
