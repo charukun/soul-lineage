@@ -9,11 +9,20 @@ export const publicationWakeContext = 'integration/publisher-wake';
 const activeStates = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
 const terminalPublisherConclusions = new Set(['success', 'failure']);
 const recoveryReceipt = 'DEV/PULSE publication recovery requested; public verification pending';
+const failedRecoveryReceipt = 'DEV/PULSE publication recovery failed; repair required';
 
 export function isAutomaticPublisher(run) {
   return run.head_branch === 'develop' &&
     (run.event === 'push' ||
       (run.event === 'workflow_dispatch' && run.display_title === automaticPublisherTitle));
+}
+
+// This is intentionally a bounded recent snapshot, not a complete history scan.
+// client.pages must keep its fail-closed contract for callers requiring all pages.
+async function recentPublisherRuns(c, filter = '') {
+  const data = await c.api('GET', `${c.root}/actions/workflows/deploy.yml/runs?branch=develop${filter}&per_page=100&page=1`);
+  assert.ok(Array.isArray(data?.workflow_runs), 'PUBLICATION_RUN_SNAPSHOT_INVALID');
+  return data.workflow_runs;
 }
 
 export async function requestDevelopPublication(c, report, { targetUrl } = {}) {
@@ -28,9 +37,10 @@ export async function requestDevelopPublication(c, report, { targetUrl } = {}) {
   const publicVerified = status('integration/develop')?.state === 'success' &&
     status('ops-board/public')?.state === 'success';
 
-  // Public verification is authoritative. A failed request receipt is also terminal here:
-  // repair owns that failure rather than an idle scan creating an unbounded retry loop.
-  if (!report.merged.length && (publicVerified || wake?.state === 'failure')) {
+  // A failed initial request may recover once after the underlying fault is fixed.
+  // A failed recovery is terminal for idle scans; public verification stays authoritative.
+  const exhaustedRecovery = wake?.state === 'failure' && wake.description === failedRecoveryReceipt;
+  if (!report.merged.length && (publicVerified || exhaustedRecovery)) {
     return { state: 'already-requested-or-published', sha };
   }
 
@@ -38,10 +48,11 @@ export async function requestDevelopPublication(c, report, { targetUrl } = {}) {
     state, context: publicationWakeContext, description,
     ...(targetUrl ? { target_url: targetUrl } : {}),
   });
+  let recoveringOrphan = !report.merged.length && wake?.state === 'failure';
   try {
     // One bounded workflow-run snapshot replaces five status-specific list calls. Current state
     // is still filtered locally and every mutation keeps the same exact-SHA safety checks.
-    const runs = await c.pages('/actions/workflows/deploy.yml/runs?branch=develop', 'workflow_runs', { maxPages: 1 });
+    const runs = await recentPublisherRuns(c);
     const active = runs.filter(run => activeStates.has(run.status) && isAutomaticPublisher(run));
     const cancelled = [];
     for (const run of active.filter(item => item.head_sha !== sha)) {
@@ -61,14 +72,11 @@ export async function requestDevelopPublication(c, report, { targetUrl } = {}) {
     // A wake receipt proves only that dispatch was attempted. For an idle pass, require a real
     // exact-SHA publisher run before suppressing recovery. The shared snapshot normally contains
     // it; only a saturated first page spends one extra completed-run lookup.
-    let recoveringOrphan = false;
     if (!report.merged.length && wake) {
       let terminalPublisher = runs.find(run => run.head_sha === sha && run.status === 'completed' &&
         isAutomaticPublisher(run) && terminalPublisherConclusions.has(run.conclusion));
       if (!terminalPublisher && runs.length >= 100) {
-        const completed = await c.pages(
-          '/actions/workflows/deploy.yml/runs?branch=develop&status=completed',
-          'workflow_runs', { maxPages: 1 });
+        const completed = await recentPublisherRuns(c, `&status=completed&head_sha=${sha}`);
         terminalPublisher = completed.find(run => run.head_sha === sha && run.status === 'completed' &&
           isAutomaticPublisher(run) && terminalPublisherConclusions.has(run.conclusion));
       }
@@ -89,7 +97,7 @@ export async function requestDevelopPublication(c, report, { targetUrl } = {}) {
       : 'DEV/PULSE publication requested; public verification pending');
     return { state: 'requested', sha, cancelled };
   } catch (error) {
-    await record('failure', 'DEV/PULSE publication request failed; inspect Integration run').catch(() => {});
+    await record('failure', recoveringOrphan ? failedRecoveryReceipt : 'DEV/PULSE publication request failed; inspect Integration run').catch(() => {});
     throw error;
   }
 }
