@@ -1,4 +1,5 @@
 import { CHARACTER_REFERENCE_MODELS } from './reference-models.js';
+import { CHARACTER_REFERENCE_ARCHETYPES } from './reference-archetypes.js';
 import { evaluateCharacterProduction } from './production-pipeline.js';
 import {
   CHARACTER_PRESENTATION_AGE_BANDS,
@@ -173,39 +174,75 @@ export function characterCoverageTargetId(target) {
   return `${row.app}:${row.ageBand}:${row.bodyArchetype}:${row.role}:${row.renderTier}`;
 }
 
-function localReferenceBody(model) {
-  return `${model.ageBand}.${model.parts.body}`;
+function ageBandForAge(age) {
+  if (age < 18) return 'child';
+  if (age < 65) return 'adult';
+  return 'elder';
 }
 
+function localReferenceDescriptors() {
+  const rows = Object.values(CHARACTER_REFERENCE_ARCHETYPES).map(reference => {
+    const ageBand = ageBandForAge(reference.age);
+    return deepFreeze({
+      id: reference.id,
+      ageBand,
+      bodyArchetype: `${ageBand}.${reference.profile.body}`,
+      role: reference.role,
+      apps: reference.contexts.filter(context => APP_IDS.has(context)),
+      externalReferenceIds: []
+    });
+  });
+  const shino = CHARACTER_REFERENCE_MODELS['shino.reference.v2'];
+  if (shino) rows.push(deepFreeze({
+    id: shino.id,
+    ageBand: shino.ageBand,
+    bodyArchetype: `${shino.ageBand}.${shino.parts.body}`,
+    role: shino.role,
+    apps: ['rinne'],
+    externalReferenceIds: CHARACTER_REFERENCE_EXTERNAL_LINKS[shino.id] || []
+  }));
+  return rows;
+}
+
+const LOCAL_REFERENCE_DESCRIPTORS = Object.freeze(localReferenceDescriptors());
+
 function localReferencesForTarget(target) {
-  return Object.values(CHARACTER_REFERENCE_MODELS).filter(model =>
-    model.ageBand === target.ageBand && model.role === target.role && localReferenceBody(model) === target.bodyArchetype);
+  return LOCAL_REFERENCE_DESCRIPTORS.filter(reference =>
+    reference.apps.includes(target.app) && reference.ageBand === target.ageBand &&
+    reference.role === target.role && reference.bodyArchetype === target.bodyArchetype);
+}
+
+function explicitPresentationSelector(candidate) {
+  const selector = candidate?.presentation || candidate;
+  if (!selector || typeof selector !== 'object' || Array.isArray(selector)) return null;
+  const fields = ['apps', 'ageBands', 'bodyArchetypes', 'roles', 'renderTiers'];
+  if (!fields.every(name => Array.isArray(selector[name]) && selector[name].length > 0)) return null;
+  return selector;
 }
 
 function selectorMatches(candidate, target) {
-  const matches = (name, value) => candidate[name] == null ||
-    (Array.isArray(candidate[name]) && candidate[name].includes(value));
-  return matches('apps', target.app) && matches('ageBands', target.ageBand) &&
-    matches('bodyArchetypes', target.bodyArchetype) && matches('roles', target.role) &&
-    matches('renderTiers', target.renderTier);
+  const selector = explicitPresentationSelector(candidate);
+  return !!selector && selector.apps.includes(target.app) && selector.ageBands.includes(target.ageBand) &&
+    selector.bodyArchetypes.includes(target.bodyArchetype) && selector.roles.includes(target.role) &&
+    selector.renderTiers.includes(target.renderTier);
 }
 
 function productionRecord(candidate, target) {
   if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return null;
   const manifest = candidate.manifest || (candidate.schema === 'character-production' ? candidate : null);
   if (!manifest || !selectorMatches(candidate, target)) return null;
-  let evaluation;
   try {
-    evaluation = evaluateCharacterProduction(manifest, manifest.stage);
+    const declared = evaluateCharacterProduction(manifest, manifest.stage);
+    const runtimeReady = evaluateCharacterProduction(manifest, 'RUNTIME_READY');
+    return deepFreeze({
+      id: manifest.id,
+      stage: manifest.stage,
+      highestEligibleStage: declared.highestEligibleStage,
+      productionReady: runtimeReady.productionReady
+    });
   } catch {
     return null;
   }
-  return deepFreeze({
-    id: manifest.id,
-    stage: manifest.stage,
-    highestEligibleStage: evaluation.highestEligibleStage,
-    productionReady: evaluateCharacterProduction(manifest, 'RUNTIME_READY').productionReady
-  });
 }
 
 function goldenMatches(golden, target) {
@@ -272,19 +309,22 @@ export function compareCharacterRuntimeToGolden(runtime, golden) {
 export function defaultCharacterCoverageTargets({ apps = CHARACTER_PRESENTATION_APPS, renderTiers = ['full', 'mid', 'far'] } = {}) {
   invariant(Array.isArray(apps) && apps.length > 0 && apps.every(app => APP_IDS.has(app)), 'Invalid coverage apps');
   invariant(Array.isArray(renderTiers) && renderTiers.length > 0 && renderTiers.every(tier => RENDER_TIER_IDS.has(tier)), 'Invalid coverage render tiers');
-  const archetypes = new Map();
-  for (const model of Object.values(CHARACTER_REFERENCE_MODELS)) {
-    const key = `${model.ageBand}:${localReferenceBody(model)}:${model.role}`;
-    if (!archetypes.has(key)) archetypes.set(key, {
-      ageBand: model.ageBand,
-      bodyArchetype: localReferenceBody(model),
-      role: model.role,
-      externalReferenceIds: CHARACTER_REFERENCE_EXTERNAL_LINKS[model.id] || []
-    });
-  }
+  const allowedApps = new Set(apps);
   const targets = [];
-  for (const app of apps) for (const archetype of archetypes.values()) for (const renderTier of renderTiers) {
-    targets.push(normalizeTarget({ app, renderTier, ...archetype }));
+  const seen = new Set();
+  for (const reference of LOCAL_REFERENCE_DESCRIPTORS) {
+    for (const app of reference.apps.filter(item => allowedApps.has(item))) for (const renderTier of renderTiers) {
+      const target = normalizeTarget({
+        app,
+        renderTier,
+        ageBand: reference.ageBand,
+        bodyArchetype: reference.bodyArchetype,
+        role: reference.role,
+        externalReferenceIds: reference.externalReferenceIds
+      });
+      const id = characterCoverageTargetId(target);
+      if (!seen.has(id)) { seen.add(id); targets.push(target); }
+    }
   }
   return Object.freeze(targets);
 }
@@ -300,7 +340,7 @@ export function buildCharacterCoverageMatrix(targets, {
     const localReferences = localReferencesForTarget(target);
     const linkedExternalIds = new Set(target.externalReferenceIds);
     for (const reference of localReferences) {
-      for (const id of CHARACTER_REFERENCE_EXTERNAL_LINKS[reference.id] || []) linkedExternalIds.add(id);
+      for (const id of reference.externalReferenceIds) linkedExternalIds.add(id);
     }
     const externalReferences = [...linkedExternalIds].map(getExternalCharacterReference);
     const production = productionAssets.map(candidate => productionRecord(candidate, target)).filter(Boolean);
