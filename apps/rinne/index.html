@@ -3,76 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0b151b">
-  <meta name="description" content="輪廻転焦。めぐる、いのち。また、どこかで。">
-  <title>輪廻転焦</title>
+  <meta name="theme-color" content="#101816">
+  <meta name="description" content="100年人生 — 輪廻転焦。暮らし、戦い、遺し、また生まれる。">
+  <title>100年人生 — 輪廻転焦</title>
   <link rel="icon" href="./title-assets/crest.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./src/title/title.css">
-<link rel="stylesheet" href="./src/title/play-clarity.css">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./src/rebuild/app.css">
 </head>
 <body>
-  <main id="title-screen" aria-label="輪廻転焦 タイトル画面" data-phase="intro">
-    <div class="world-fallback" aria-hidden="true"></div>
-    <canvas id="game" aria-label="光と霧が流れる黄昏の村" data-renderer="loading"></canvas>
-    <div class="world-shade" aria-hidden="true"></div>
-    <div class="sun-shaft" aria-hidden="true"></div>
-    <canvas id="soul-particles" aria-hidden="true"></canvas>
-    <div class="edge-frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-    <header class="topline">
-      <span class="chapter-mark"><img id="emblem" class="shared-emblem" alt="世界の紋章"> 魂のゆくえ</span>
-      <button id="sound-toggle" class="sound-toggle" type="button" aria-label="音をオンにする" aria-pressed="false">
-        <span class="sound-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span id="sound-label">音なし</span>
-      </button>
-    </header>
-    <section class="title-lockup" aria-label="輪廻転焦">
-      <div class="astral-seal" aria-hidden="true">
-        <svg viewBox="0 0 320 320" role="presentation"><defs><linearGradient id="gold"><stop stop-color="#f6dfaa"/><stop offset=".48" stop-color="#bb8e51"/><stop offset="1" stop-color="#edd49b"/></linearGradient></defs><g fill="none" stroke="url(#gold)"><circle cx="160" cy="160" r="141" stroke-width=".7"/><circle cx="160" cy="160" r="134" stroke-width=".4" stroke-dasharray="2 13"/><path d="M160 7 170 21 160 35 150 21Z M160 285 170 299 160 313 150 299Z" stroke-width=".8"/><path d="M18 160H45 M275 160H302 M160 34V72 M160 248V286"/><circle cx="160" cy="160" r="105" stroke-width=".4" stroke-dasharray="160 120 55 40"/></g></svg>
-        <span class="orbit-star"></span>
-      </div>
-      <p class="logo-prelude">REINCARNATION OF SOULS</p>
-      <h1 id="app-title"><span>輪廻</span><span>転焦</span></h1>
-      <p class="roman-title">RINNE TENKOU</p>
-      <div class="title-flourish" aria-hidden="true"><i></i><span>✧</span><i></i></div>
-    </section>
-    <p class="world-poem">めぐる、いのち。<br><span>また、どこかで。</span></p>
-    <section class="title-menu" aria-label="タイトルメニュー">
-      <p class="menu-invitation"><span></span> その一太刀が、次の生へ。 <span></span></p>
-      <button id="start-story" class="main-button" type="button" aria-describedby="story-detail"><span class="button-words"><strong>物語をはじめる</strong><small>めぐりつづける、ひとつの生</small></span><span class="button-arrow" aria-hidden="true">›</span></button>
-      <p id="story-detail">村で暮らし、技を磨き、次の生へ。</p>
-      <button id="start-simulator" class="main-button" type="button" aria-describedby="simulator-detail">
-        <span class="button-flare" aria-hidden="true"></span>
-        <svg class="sword-icon" viewBox="0 0 40 40" aria-hidden="true"><path d="m27 5 8-1-1 8-16 16-6-6ZM10 20l12 12M12 28l-7 7M4 31l5 5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m32 7-17 18" stroke="currentColor" stroke-width=".6"/></svg>
-        <span class="button-words"><strong>稽古場で技を磨く</strong><small>SKILL SIMULATOR</small></span>
-        <span class="button-arrow" aria-hidden="true">›</span>
-      </button>
-      <p id="simulator-detail">技を閃き、自分だけの戦いを。<br><small>年齢・技構成は保存。入り直すと体力・稽古結果はリセット。</small></p>
-      <div class="secondary-menu"><button id="open-village" type="button">村へ参加</button><span aria-hidden="true">◇</span><button id="open-settings" type="button">設定</button><span aria-hidden="true">◇</span><button id="replay-intro" type="button">序幕を観る</button></div>
-    </section>
-    <footer class="bottomline"><span id="version">LOCAL PREVIEW</span><span>めぐりつづける物語</span></footer>
-    <button id="skip-intro" class="skip-intro" type="button">演出をスキップ <span aria-hidden="true">›</span></button>
-    <p id="status" class="sr-only" role="status" aria-live="polite"></p>
-    <div id="renderer-warning" class="renderer-warning" role="alert" hidden>WebGL2を利用できません。背景は静止表示です。シミュレーターの起動にはWebGL2が必要です。</div>
-  </main>
-  <section id="simulator-shell" aria-label="スキルシミュレーター" hidden>
-    <header class="simulator-top"><button id="back-title" type="button">〈 タイトルへ</button><span id="experience-title">スキルシミュレーター</span><small id="simulator-version"></small><button id="simulator-music" type="button" aria-haspopup="dialog">音楽室</button></header>
-    <div id="frame-slot"></div>
-    <div id="game-loading" aria-busy="true">
-      <span class="loading-rune" aria-hidden="true">✧</span><h2 id="loading-heading">稽古場へ</h2>
-      <p id="loading-stage">1 / 6　起動データ</p>
-      <p id="loading-message" role="status" aria-live="polite">起動データを準備しています</p>
-      <div class="loading-meter"><div class="loading-meter-top"><span>この工程の進捗</span><strong id="loading-value">処理中</strong></div>
-        <progress id="loading-progress" max="1" aria-label="この工程の進捗"></progress>
-        <div class="loading-meter-bottom"><span id="loading-count"></span><span id="loading-time">経過 0秒</span></div>
-      </div>
-      <p id="loading-wait" role="status"></p><p id="loading-error" role="alert" hidden></p>
-      <small id="loading-hint">左上から読み込みを中止してタイトルに戻れます。</small>
-      <button id="retry-load" type="button" hidden>もう一度読み込む</button>
-      <details id="loading-details"><summary>読み込みの詳細</summary><pre id="loading-technical"></pre></details>
+<main id="app" data-screen="title">
+  <section id="title-screen" class="title-screen" aria-labelledby="title-mark">
+    <div class="title-lockup">
+      <img class="crest" src="./title-assets/crest.svg" alt="">
+      <p class="eyebrow">A LIFE, THEN ANOTHER</p>
+      <h1 id="title-mark">100年人生</h1>
+      <p class="subtitle">輪廻転焦</p>
+      <p class="tagline">暮らし、戦い、遺し、また生まれる。</p>
     </div>
+    <div class="title-actions" aria-label="ゲーム開始">
+      <label class="name-field"><span>名</span><input id="life-name" maxlength="12" autocomplete="off" value="旅人"></label>
+      <button id="continue-life" class="primary" type="button" hidden><strong>つづきから</strong><small id="continue-detail"></small></button>
+      <button id="new-life" class="primary" type="button"><strong>新しい人生</strong><small>0歳から100歳まで、一つの生を歩く</small></button>
+      <a class="secondary" href="./simulator/index.html"><strong>稽古場</strong><small>技と装備の調整</small></a>
+    </div>
+    <p id="boot-status" class="boot-status" role="status" aria-live="polite">準備できています</p>
+    <footer><span id="build-label">LOCAL</span><span>輪廻転焦</span></footer>
   </section>
-  <dialog id="settings-dialog" aria-labelledby="settings-title"><form method="dialog"><button class="dialog-close" aria-label="設定を閉じる">×</button></form><span class="dialog-star" aria-hidden="true">✧</span><h2 id="settings-title">旅の支度</h2><p>タイトル画面の設定</p><label class="setting-row"><span>タイトルの環境音<small>タップしてから音が流れます</small></span><input id="setting-sound" type="checkbox"></label><label class="setting-row"><span>演出を控えめに<small>カメラ移動と粒子の変化を抑えます</small></span><input id="setting-motion" type="checkbox"></label><p><button id="title-music" type="button" aria-haspopup="dialog">音楽室・BGM音量</button></p><p><a href="./characters.html">キャラクターを確認する</a></p><p class="settings-note">シミュレーターの音量・画質は、<br>稽古場の設定から変更できます。</p></dialog>
-  <dialog id="village-dialog" aria-label="村へ参加"><form method="dialog"><button aria-label="村への参加画面を閉じる">タイトルへ戻る</button></form><div id="village-panel"></div></dialog>
-  <noscript><p class="noscript">このゲームを開くにはJavaScriptを有効にしてください。</p></noscript>
-  <script type="module" src="./src/main.js"></script>
+
+  <section id="game-screen" class="game-screen" hidden aria-label="100年人生 本編">
+    <canvas id="game" aria-label="村と旅人の世界"></canvas>
+    <div id="loading-card" class="loading-card" aria-live="polite"><strong id="loading-title">世界を開いています</strong><small id="loading-message">共有の村を読み込んでいます</small></div>
+    <header class="hud-top">
+      <button id="back-title" class="icon-button" type="button" aria-label="タイトルへ戻る">‹</button>
+      <div class="life-chip"><span id="generation">1代目</span><strong id="age">0歳</strong></div>
+      <div class="bars"><label><span>命</span><i><b id="hp-bar"></b></i></label><label><span>息</span><i><b id="stamina-bar"></b></i></label></div>
+      <label class="clock-rate"><span>時</span><select id="clock-rate" aria-label="世界時計の速さ"><option value="1">1×</option><option value="5">5×</option><option value="10">10×</option><option value="20">20×</option></select></label>
+    </header>
+    <aside class="objective-card"><span>今すること</span><strong id="objective">母と村を歩く</strong><small id="place">MURAAAAAAA</small></aside>
+    <div id="dialogue" class="dialogue" hidden><span id="speaker">母</span><p id="dialogue-text"></p></div>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <button id="talk" class="talk-button" type="button"><span>話</span><small>話す</small></button>
+    <p id="move-hint" class="move-hint">スワイプした方向へ歩く</p>
+  </section>
+</main>
+<noscript>100年人生を開くにはJavaScriptを有効にしてください。</noscript>
+<script type="module" src="./src/main.js"></script>
 </body>
 </html>
