@@ -79,11 +79,20 @@ test('browser smoke completes the new guide with real pointer input instead of s
   "toHaveAttribute('data-stage','place')",
   "toHaveAttribute('data-stage','done')",
   "page.locator('.muraFirstRunFinish')",
-  "page.locator('#muraPlacementUndo')",
-  "page.locator('#muraCancelPlacement')",
+  'window.village.world.export()',
+  'village.world.load(fixture)',
+  'village.world.state.onboarding=onboarding',
+  "page.reload({waitUntil:'domcontentloaded'})",
+  "page.locator('#muraFirstRunGuide')",
  ])assert.ok(browser.includes(required),required);
  assert.equal(browser.includes("page.locator('.muraFirstRunSkip')"),false);
  const enterTap=browser.indexOf('nativeTap(page,expect,enter)');
  const finishGuide=browser.indexOf('finishFirstRunGuide(page,expect)');
  assert.ok(enterTap>=0&&finishGuide>enterTap,{enterTap,finishGuide});
+
+ const guideStart=browser.indexOf('async function finishFirstRunGuide');
+ const guideEnd=browser.indexOf('export async function enterVillageForBrowser');
+ const guideSource=browser.slice(guideStart,guideEnd);
+ assert.equal(guideSource.includes("nativeTap(page,expect,page.locator('#muraPlacementUndo'))"),false);
+ assert.equal(guideSource.includes("nativeTap(page,expect,page.locator('#muraCancelPlacement'))"),false);
 });

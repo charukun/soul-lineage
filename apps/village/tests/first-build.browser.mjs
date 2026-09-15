@@ -16,6 +16,7 @@ async function finishFirstRunGuide(page, expect) {
   await expect(guide).toBeVisible();
   await expect(canvas).toHaveAttribute('data-first-run-tutorial','running');
   await expect(guide).toHaveAttribute('data-stage','welcome');
+  const pristineFixture=await page.evaluate(()=>window.village.world.export());
 
   // Walk the same path a first-time player uses. Nothing below invokes world.add,
   // placement helpers or synthetic dispatchEvent shortcuts.
@@ -56,13 +57,26 @@ async function finishFirstRunGuide(page, expect) {
   await expect(guide).toHaveCount(0);
   await expect(canvas).toHaveAttribute('data-first-run-tutorial','seen');
 
-  // Restore the pristine first-build fixture through the product's own undo path.
-  // Depending on the placement source, undo may either reopen placement or simply
-  // remove the object. Both are valid product states; only cancel when it reopened.
-  await nativeTap(page,expect,page.locator('#muraPlacementUndo'));
-  await expect.poll(()=>page.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))).toBe(false);
-  if(await page.locator('#placement').isVisible())await nativeTap(page,expect,page.locator('#muraCancelPlacement'));
+  // The guide itself is now fully verified. Restore the pristine browser fixture
+  // explicitly instead of abusing product Undo as test setup. Preserve the seen
+  // marker so the reload cannot start a second first-run guide.
+  const restored=await page.evaluate(async fixture=>{
+    const village=window.village;
+    const onboarding=structuredClone(village.world.state.onboarding||{});
+    if(village.ui.pending)village.cancelPlacement();
+    village.deselect();
+    const loaded=village.world.load(fixture);
+    if(loaded.error)return{ok:false,error:loaded.error};
+    village.world.state.onboarding=onboarding;
+    const saved=await village.save();
+    return{ok:saved!==false,error:saved===false?'fixture save failed':null};
+  },pristineFixture);
+  expect(restored).toEqual({ok:true,error:null});
+  await page.reload({waitUntil:'domcontentloaded'});
+  await expectVillageReady(page,expect);
+  await expect(page.locator('#muraFirstRunGuide')).toHaveCount(0);
   await expect(page.locator('#placement')).toBeHidden();
+  expect(await page.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))).toBe(false);
   return true;
 }
 
