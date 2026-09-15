@@ -10,15 +10,20 @@ This document is the focused contract for normal DEV publication. Where older In
 
 Blocking DEV publication checks are limited to work needed to prove that the generated snapshot is structurally valid and that the published public files belong to the intended develop SHA. Browser/WebGL/gameplay scenarios are not a prerequisite for DEV visibility.
 
-The shared `verify-browser.mjs` keeps its assertions for PR, repair, optional full verification, and Production use. The `publish` job on `refs/heads/develop` takes the fast path and does not execute those heavy scenarios.
+The shared `verify-browser.mjs` keeps its assertions for PR, optional full verification, and Production use. The `publish` job on `refs/heads/develop` takes the fast path and does not execute those heavy scenarios.
 
 ## Browser verification and repair
 
-Normal DEV publication does not launch a second all-app browser sweep. Browser failures normally originate from the existing asynchronous PR affected-browser smoke. If such a result arrives after merge, the recorder promotes the failure to the current develop repair generation instead of discarding it.
+Normal DEV publication does not launch a second all-app browser sweep. Browser failures originate from the existing asynchronous PR affected-browser smoke. If a failed PR browser result arrives after merge, the recorder promotes it to the current develop repair generation instead of discarding it.
 
-A separate DEV browser run is reserved for an active develop repair ticket after its repair PR browser result reaches `ready-for-integration` and the repaired develop SHA is already public. That final repair verification may be heavy because it is outside publication latency. Its result must not roll back or hide an otherwise valid DEV snapshot.
+A `browser-repair:v1` ticket is claimed by a separate repair worker. The worker fixes latest develop through a repair PR and returns it to Integration. The repair PR must obtain real browser success through the existing PR browser path. For a develop-scoped repair, that browser success moves the same ticket to `ready-for-integration`.
 
-A repair failure is recorded on the same machine-readable `browser-repair:v1` ticket so a separate repair worker can claim it, fix latest develop through a repair PR, return it to Integration, and repeat until verified or the configured finite attempt limit is reached. A successful final repair browser run closes the same ticket.
+Final repair completion requires both pieces of evidence, without adding another heavy DEV browser pass:
+
+1. the repair PR's browser verification is green; and
+2. the repaired head is contained in a successfully published DEV SHA whose public HTTP/source identity is verified.
+
+When both are true the same ticket becomes `verified`. If PR browser verification fails again, the same ticket returns to `pending` until the configured finite attempt limit is reached. This preserves the existing self-healing loop without putting browser latency back into DEV publication.
 
 The repair path must keep assertion quality, exact-head evidence, hold/review/dependency rules, and `maxAttempts`. It must not weaken Production gates or modify `main`.
 
