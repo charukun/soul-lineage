@@ -53,7 +53,10 @@ function applyObservation(dt){
  const p=resident();if(!p){stopObservation({restore:false});return;}
  const goal=targetFor(p,observation.mode),t=1-Math.exp(-Math.max(.016,dt||.016)*8);
  view.target.x+=(p.x-view.target.x)*t;view.target.z+=(p.z-view.target.z)*t;view.target.y+=(1.05-view.target.y)*t;
- view.span+=(goal.span-view.span)*t;view.pitch+=(goal.pitch-view.pitch)*t;view.yaw+=shortestAngle(view.yaw,goal.yaw)*t;
+ view.span+=(goal.span-view.span)*t;view.pitch+=(goal.pitch-view.pitch)*t;
+ // Front/side/back are authored resident-relative views. Keep their yaw locked
+ // to the resident's current facing while the framing itself continues to ease.
+ if(observation.mode==='top')view.yaw+=shortestAngle(view.yaw,goal.yaw)*t;else view.yaw=goal.yaw;
  view.cameraGoal=null;view.followId=null;
  // View.render normally starts a slow orbit after inactivity. Observation is a
  // deliberate camera state, so keep it stationary while still following the resident.

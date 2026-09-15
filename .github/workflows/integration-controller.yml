@@ -306,16 +306,26 @@ jobs:
   publisher-handoff:
     name: Wake DEV Publisher for merged or unverified develop
     needs: integrate
-    if: >-
-      needs.integrate.result == 'success' &&
-      (needs.integrate.outputs.merged_count != '0' || needs.integrate.outputs.verify == 'true')
+    if: needs.integrate.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       actions: write
+      contents: read
+      statuses: read
     steps:
       - uses: actions/github-script@v8
         with:
           script: |
+            const { data: branch } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
+            const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
+              ...context.repo, ref: branch.commit.sha, per_page: 100
+            });
+            const latest = statuses.find(status => status.context === 'integration/develop');
+            const controllerUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            if (latest?.state !== 'pending' || latest.target_url !== controllerUrl) {
+              core.info('DEV Publisher handoff not owned by this Controller run; no duplicate dispatch');
+              return;
+            }
             await github.rest.actions.createWorkflowDispatch({
               ...context.repo, workflow_id: 'deploy.yml', ref: 'develop', inputs: { publish_only: 'true' }
             });
