@@ -85,12 +85,17 @@ export function createWorldRenderer({canvas,document:doc,layout,stations}){
     if(equipment.shield){const shield=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.09,14),mat(0x78919c,{metalness:.35,roughness:.48}));shield.rotation.x=Math.PI/2;shield.position.set(-.48,1.04,.18);equipmentRoot.add(shield);}
   }
 
-  const target=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),camOffset=new THREE.Vector3(10.5,11.5,14.5);let elapsed=0;
+  const target=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),camOffset=new THREE.Vector3(10.5,11.5,14.5);let elapsed=0;
   function resize(){const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
   function cameraVector(axis){
-    camera.getWorldDirection(forward);forward.y=0;forward.normalize();right.crossVectors(forward,new THREE.Vector3(0,1,0)).normalize();
+    camera.getWorldDirection(forward);forward.y=0;forward.normalize();right.crossVectors(forward,up).normalize();
     return new THREE.Vector3().addScaledVector(right,axis.x).addScaledVector(forward,-axis.y).normalize();
+  }
+  function screenDirection(from,to){
+    const dx=to.x-from.x,dz=to.z-from.z,len=Math.hypot(dx,dz);if(len<.001)return{x:0,y:-1,distance:0};
+    camera.getWorldDirection(forward);forward.y=0;forward.normalize();right.crossVectors(forward,up).normalize();
+    return{x:(dx*right.x+dz*right.z)/len,y:-(dx*forward.x+dz*forward.z)/len,distance:len};
   }
   function canMoveTo(x,z,radius=.32,zone='village'){if(zone==='frontier')return Math.abs(x)<7.15-radius&&z>-6.45+radius&&z<6.1-radius;return !muraBlocked(layout,x,z,radius);}
   function renderState(state,dt=0){
@@ -105,5 +110,5 @@ export function createWorldRenderer({canvas,document:doc,layout,stations}){
     renderer.render(scene,camera);
   }
   function dispose(){observer.disconnect();disposeObject(hero);disposeObject(mother);root.removeFromParent();frontRoot.removeFromParent();hero.removeFromParent();mother.removeFromParent();for(const v of cache.values())disposeObject(v);for(const n of enemyMeshes.values())disposeObject(n);renderer.dispose();}
-  return{THREE,scene,camera,renderState,cameraVector,canMoveTo,syncEquipment,syncFront,resize,dispose};
+  return{THREE,scene,camera,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,resize,dispose};
 }
