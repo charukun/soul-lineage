@@ -59,7 +59,6 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
 
   const toast=text=>{if(!text)return;$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1800);};
   const save=async()=>{if(!active||!state)return false;try{state.frontState=front;await platform.storage.write(saveKey,serializeLife(state));return true;}catch(error){toast('保存失敗');console.error(error);return false;}};
-  function talkContext(){return birth.active()?{speaker:'母',text:`${state.name}、気になるところへ行ってみようか。`}:null;}
   function worldTone(guide){if(state.ended||guide.tone==='rebirth')return'rebirth';if(state.zone==='frontier')return'frontier';if(guide.tone==='home')return'home';return'village';}
   function showChapter(stage){
     if(!stage||stage===lastChapter)return;lastChapter=stage;
@@ -83,10 +82,9 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     $('hp-bar').style.width=`${clamp(state.hp/state.maxHp*100,0,100)}%`;$('stamina-bar').style.width=`${clamp(state.stamina/100*100,0,100)}%`;
     const guide=guidanceFor({state,stations,front});$('life-stage').textContent=guide.stage;$('objective').textContent=guide.objective;$('objective-badge').textContent=guide.badge||'';
     gameScreen.dataset.worldTone=worldTone(guide);gameScreen.dataset.birthTour=String(birth.active());gameScreen.style.setProperty('--wound',String(clamp(1-state.hp/state.maxHp,0,.85)));showChapter(guide.stage);
-    $('clock-rate').value=String(state.clockRate);$('talk').hidden=!talkContext();syncMovementHint();
+    $('clock-rate').value=String(state.clockRate);syncMovementHint();
   }
   function dialogue(speaker,text){$('speaker').textContent=speaker;$('dialogue-text').textContent=text;$('dialogue').hidden=false;clearTimeout(dialogue.timer);dialogue.timer=setTimeout(()=>$('dialogue').hidden=true,4200);}
-  function talk(){const context=talkContext();if(context)dialogue(context.speaker,context.text);}
   function showBirthIntro(){birth.showIntro();}
   function endLife(){
     if(endDialog?.open)return;
@@ -124,7 +122,6 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   function keyup(e){keys.delete(e.code);syncKeys();}
   canvas.addEventListener('pointerdown',onPointerDown,{passive:false});canvas.addEventListener('pointermove',onPointerMove,{passive:false});canvas.addEventListener('pointerup',onPointerUp,{passive:false});canvas.addEventListener('pointercancel',onPointerUp,{passive:false});
   window.addEventListener('keydown',keydown);window.addEventListener('keyup',keyup);
-  $('talk').onclick=talk;
   $('clock-rate').onchange=e=>{try{setClockRate(state,Number(e.target.value));void save();}catch(error){toast(error.message);}};
   $('back-title').onclick=async()=>{await save();dispose();onExit?.();};
   const unsubscribeWorld=channel.subscribe(next=>{if(!next||next.id!==layout.id)return;toast('村更新 · 次回起動');},error=>console.warn(error));
