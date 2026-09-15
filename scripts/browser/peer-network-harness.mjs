@@ -17,7 +17,7 @@ export async function installPeerNetworkHarness(page,selfId){
     const {createHostOffer,acceptHostOffer}=await import(modules.peer);
     const Native=RTCPeerConnection;
     const LocalRTC=class extends Native{constructor(){super({iceServers:[]});}};
-    const direct=new Map(),history=[],restored=[];
+    const direct=new Map(),history=[],phaseTimes=[],restored=[];
     let node,mesh,closed=false;
     const connection=id=>direct.get(id)||mesh?.connection(id);
     const send=(id,message)=>{try{connection(id)?.send(message);return true;}catch{return false;}};
@@ -29,7 +29,7 @@ export async function installPeerNetworkHarness(page,selfId){
       if(message.type==='mesh-signal'){mesh.handleSignal(message.from,message.signal);return;}
       node.receive(from,message);sync();
     }
-    node=createPeerHostedWorldNode({selfId,worldId:'browser-world',mayorId:'a',hostEligible:true,emit,now:()=>performance.now(),timings:{hostLeaseMs:1800,migrationTimeoutMs:6000},applyCheckpoint:cp=>restored.push(cp.world.value),onPhase:info=>{history.push(info.phase);sync();}});
+    node=createPeerHostedWorldNode({selfId,worldId:'browser-world',mayorId:'a',hostEligible:true,emit,now:()=>performance.now(),timings:{hostLeaseMs:1800,migrationTimeoutMs:6000},applyCheckpoint:cp=>restored.push(cp.world.value),onPhase:info=>{history.push(info.phase);phaseTimes.push({phase:info.phase,at:performance.now()});sync();}});
     mesh=createPeerMeshCoordinator({selfId,RTCPeerConnection:LocalRTC,relay:event=>send(node.snapshot().hostId,{type:'mesh-relay',...event}),onMessage:handle});
     const timer=setInterval(()=>node.tick(),40);
     window.__PEER_NETWORK_TEST__={
@@ -40,7 +40,7 @@ export async function installPeerNetworkHarness(page,selfId){
       start(){node.seedHost();node.hostAdmit('b',{eligible:true});node.hostAdmit('c',{eligible:true});this.checkpoint(7);},
       checkpoint:value=>node.publishCheckpoint({schemaVersion:1,worldTimeMs:value,world:{value},characters:[],npcs:[],randomState:null,session:null}),
       handoff:()=>node.gracefulHandoff(),
-      snapshot:()=>({node:node.snapshot(),mesh:mesh.snapshot(),history:[...history],restored:[...restored],direct:[...direct].map(([id,p])=>({id,connection:p.pc.connectionState,ice:p.pc.iceConnectionState,gathering:p.pc.iceGatheringState,channel:p.channel?.readyState,localCandidates:(p.pc.localDescription?.sdp.match(/a=candidate:/g)||[]).length,remoteCandidates:(p.pc.remoteDescription?.sdp.match(/a=candidate:/g)||[]).length}))}),
+      snapshot:()=>({node:node.snapshot(),mesh:mesh.snapshot(),history:[...history],phaseTimes:[...phaseTimes],restored:[...restored],direct:[...direct].map(([id,p])=>({id,connection:p.pc.connectionState,ice:p.pc.iceConnectionState,gathering:p.pc.iceGatheringState,channel:p.channel?.readyState,localCandidates:(p.pc.localDescription?.sdp.match(/a=candidate:/g)||[]).length,remoteCandidates:(p.pc.remoteDescription?.sdp.match(/a=candidate:/g)||[]).length}))}),
       crash(){closed=true;clearInterval(timer);node.close();mesh.close();for(const peer of direct.values())peer.close();},
     };
   },{selfId,modules});

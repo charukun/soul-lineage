@@ -146,7 +146,9 @@ test('workflow boundary is independent of build/browser; Dispatch ends after Rea
   assert.match(immediate, /needs: readiness/);
   assert.match(immediate, /ref: develop/);
   assert.match(immediate, /recordHandoff/);
-  assert.match(immediate, /workflow_id: 'deploy.yml'.*rescue_mode: 'scan'/);
+  assert.match(immediate, /name: Record Ready handoff/);
+  assert.match(immediate, /\["opened","synchronize","reopened","ready_for_review"\]/);
+  assert.doesNotMatch(immediate, /actions: write|createWorkflowDispatch|rescue_mode/);
   const dispatch = readFileSync('.github/workflows/rinne-dispatch.yml', 'utf8');
   assert.match(dispatch, /secrets.DISPATCH_GITHUB_TOKEN \|\| secrets.RESCUE_GITHUB_TOKEN/);
   assert.ok(dispatch.indexOf('gh pr ready') < dispatch.indexOf("echo 'handed_off=true'"));

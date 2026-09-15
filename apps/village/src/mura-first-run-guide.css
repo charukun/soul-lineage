@@ -1,0 +1,64 @@
+/* First-run guide: tactile village notice, not a blocking flat modal. */
+body.mura-first-run-active #tutorial{display:none!important}
+#muraFirstRunGuide{position:fixed;inset:0;z-index:118;pointer-events:none;color:#394334}
+#muraFirstRunGuide[hidden]{display:none!important}
+.muraFirstRunGuideCard{position:fixed;z-index:3;top:max(14px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(520px,calc(100vw - 28px));min-height:142px;padding:17px 18px 14px;pointer-events:auto;overflow:hidden;clip-path:polygon(1.4% 0,97.8% .8%,100% 8%,99% 93%,96.5% 100%,2.2% 99%,0 91%,.7% 7%);border:1px solid rgba(83,70,48,.58);background:radial-gradient(circle at 9% 8%,rgba(255,255,255,.48),transparent 22%),radial-gradient(circle at 88% 82%,rgba(114,92,54,.09),transparent 26%),repeating-linear-gradient(94deg,rgba(88,72,43,.028) 0 1px,transparent 1px 5px),linear-gradient(145deg,rgba(248,239,211,.98),rgba(224,211,170,.98));box-shadow:0 12px 36px rgba(38,48,34,.25),inset 0 0 0 4px rgba(255,250,229,.34),inset 0 -7px 16px rgba(86,67,38,.08)}
+.muraFirstRunGuideCard:before{content:"";position:absolute;inset:7px 8px;border:1px solid rgba(105,86,53,.22);clip-path:polygon(1% 0,99% 1%,100% 95%,97% 100%,1% 99%,0 5%);pointer-events:none}
+.muraFirstRunGuideCard:after{content:"";position:absolute;left:15px;right:15px;bottom:8px;height:1px;background:linear-gradient(90deg,transparent,rgba(98,80,49,.3),transparent);pointer-events:none}
+.muraFirstRunGuideTop{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px}
+.muraFirstRunGuideEyebrow{font:700 9px/1.2 "Yu Mincho","Hiragino Mincho ProN",serif;letter-spacing:.22em;color:#796747}
+.muraFirstRunGuideCard strong{position:relative;z-index:1;display:block;margin:1px 0 7px;font:600 clamp(17px,4.2vw,22px)/1.36 "Yu Mincho","Hiragino Mincho ProN",serif;letter-spacing:.035em;color:#34452f;text-wrap:balance}
+.muraFirstRunGuideCard p{position:relative;z-index:1;margin:0;max-width:48em;font-size:clamp(11px,2.9vw,13px);font-weight:560;line-height:1.68;color:#556049}
+.muraFirstRunGuideFooter{position:relative;z-index:1;display:flex;align-items:center;gap:9px;margin-top:10px;min-height:36px}
+.muraFirstRunProgress{display:flex;align-items:center;gap:5px;flex:0 0 auto}
+.muraFirstRunProgress i{width:7px;height:7px;transform:rotate(45deg);border:1px solid rgba(80,92,61,.42);background:rgba(255,250,230,.48);box-shadow:inset 0 0 0 1px rgba(255,255,255,.28)}
+.muraFirstRunProgress i.current{background:#86966d;box-shadow:0 0 0 3px rgba(134,150,109,.12)}
+.muraFirstRunProgress i.done{background:#5d7654;border-color:#5d7654}
+.muraFirstRunCue{min-width:0;flex:1;font:700 10px/1.35 "Yu Mincho","Hiragino Mincho ProN",serif;letter-spacing:.08em;color:#59684c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.muraFirstRunGuideCard button{position:relative;z-index:2;min-height:34px;border:1px solid rgba(84,93,65,.24);border-radius:5px;padding:7px 10px;background:linear-gradient(180deg,rgba(255,252,237,.72),rgba(218,211,177,.58));box-shadow:0 2px 0 rgba(94,76,47,.11);font-size:10px;font-weight:700;letter-spacing:.03em;color:#45543d}
+.muraFirstRunGuideCard button:active{transform:translateY(1px);box-shadow:none}
+.muraFirstRunSkip{flex:0 0 auto;background:transparent!important;border-color:transparent!important;box-shadow:none!important;opacity:.7}
+.muraFirstRunReplay{flex:0 0 auto}
+.muraFirstRunStart,.muraFirstRunFinish{margin-left:auto;min-width:106px!important;background:linear-gradient(180deg,#6f825f,#566e4e)!important;border-color:#516749!important;color:#fff9e9!important;box-shadow:0 3px 0 rgba(44,58,39,.24)!important}
+#muraFirstRunGuide[data-stage="welcome"] .muraFirstRunGuideCard,#muraFirstRunGuide[data-stage="done"] .muraFirstRunGuideCard{top:50%;transform:translate(-50%,-50%);width:min(500px,calc(100vw - 30px))}
+#muraFirstRunGuide.mura-first-run-hint .muraFirstRunGuideCard{animation:mura-first-run-hint .24s ease-out}
+#muraFirstRunGuide.mura-first-run-accepted .muraFirstRunGuideCard{box-shadow:0 13px 38px rgba(38,48,34,.24),inset 0 0 0 4px rgba(255,250,229,.4),0 0 0 3px rgba(113,138,92,.14)}
+@keyframes mura-first-run-hint{0%{transform:translateX(-50%)}45%{transform:translateX(calc(-50% - 4px))}100%{transform:translateX(-50%)}}
+
+/* Highlight without changing the target's layout/positioning contract. */
+.mura-first-run-target{outline:2px solid rgba(238,215,154,.95)!important;outline-offset:4px!important;box-shadow:0 0 0 7px rgba(78,94,62,.2),0 0 26px rgba(248,224,158,.34)!important;animation:mura-first-run-target 1.55s ease-in-out infinite}
+#build.mura-first-run-target{z-index:119!important}
+@keyframes mura-first-run-target{50%{filter:brightness(1.12);outline-offset:7px}}
+body.mura-first-run-canvas-target #muraFirstRunGuide:before{content:"";position:fixed;z-index:1;left:50%;top:54%;width:min(220px,46vw);aspect-ratio:1.45;transform:translate(-50%,-50%);border:1px dashed rgba(242,222,167,.72);border-radius:50%;box-shadow:0 0 0 999vmax rgba(25,35,28,.055),inset 0 0 28px rgba(255,243,196,.08);pointer-events:none}
+
+.muraFirstRunFinger,.muraFirstRunRipple,.muraFirstRunDragStart,.muraFirstRunDragEnd{position:fixed;z-index:4;pointer-events:none;transform:translate(-50%,-50%)}
+.muraFirstRunFinger[hidden],.muraFirstRunRipple[hidden],.muraFirstRunDragStart[hidden],.muraFirstRunDragEnd[hidden]{display:none!important}
+.muraFirstRunFinger{width:38px;height:54px;filter:drop-shadow(0 4px 6px rgba(33,42,31,.28));transform-origin:50% 72%}
+.muraFirstRunFinger i{position:absolute;left:12px;top:0;width:20px;height:39px;border:2px solid rgba(83,68,47,.8);border-radius:12px 12px 10px 10px;background:linear-gradient(90deg,#f8e1bc,#e8c79c);box-shadow:inset 3px 0 0 rgba(255,255,255,.2)}
+.muraFirstRunFinger i:after{content:"";position:absolute;left:4px;top:5px;width:9px;height:12px;border:1px solid rgba(120,88,61,.34);border-radius:6px;background:rgba(255,236,210,.52)}
+.muraFirstRunFinger b{position:absolute;left:1px;bottom:0;width:34px;height:25px;border:2px solid rgba(83,68,47,.8);border-radius:18px 15px 10px 12px;background:linear-gradient(150deg,#f4d8ae,#ddb88b)}
+.muraFirstRunRipple{width:42px;height:42px;border:2px solid rgba(255,231,161,.9);border-radius:50%;box-shadow:0 0 14px rgba(255,231,161,.4)}
+.muraFirstRunDragStart,.muraFirstRunDragEnd{width:18px;height:18px;border:1px solid rgba(255,234,171,.76);border-radius:50%;box-shadow:0 0 0 5px rgba(67,84,56,.14)}
+.muraFirstRunDragEnd{width:24px;height:24px;border-style:dashed}
+
+@media(max-width:600px){
+ .muraFirstRunGuideCard{top:max(9px,env(safe-area-inset-top));width:calc(100vw - 20px);padding:14px 14px 12px;min-height:132px}
+ .muraFirstRunGuideCard strong{font-size:17px;margin-bottom:5px}
+ .muraFirstRunGuideCard p{font-size:11px;line-height:1.58}
+ .muraFirstRunGuideFooter{gap:7px;margin-top:8px}
+ .muraFirstRunCue{font-size:9px}
+ .muraFirstRunReplay{padding-inline:8px!important}
+}
+@media(max-height:560px) and (orientation:landscape){
+ .muraFirstRunGuideCard{top:max(8px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));transform:none;width:min(330px,44vw);min-height:0;padding:11px 12px 9px}
+ #muraFirstRunGuide[data-stage="welcome"] .muraFirstRunGuideCard,#muraFirstRunGuide[data-stage="done"] .muraFirstRunGuideCard{top:50%;left:max(10px,env(safe-area-inset-left));transform:translateY(-50%);width:min(340px,46vw)}
+ .muraFirstRunGuideCard strong{font-size:15px;line-height:1.28;margin-bottom:4px}
+ .muraFirstRunGuideCard p{font-size:10px;line-height:1.42}
+ .muraFirstRunGuideFooter{margin-top:5px;min-height:30px}
+ .muraFirstRunCue{display:none}
+ .muraFirstRunGuideCard button{min-height:30px;padding:5px 8px}
+ @keyframes mura-first-run-hint{0%,100%{transform:none}45%{transform:translateX(-4px)}}
+}
+@media(prefers-reduced-motion:reduce){
+ .mura-first-run-target,#muraFirstRunGuide.mura-first-run-hint .muraFirstRunGuideCard{animation:none!important}
+}

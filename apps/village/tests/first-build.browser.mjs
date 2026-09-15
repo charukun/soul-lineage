@@ -10,19 +10,60 @@ async function expectVillageReady(page, expect) {
   await expect(page.locator('#game')).toHaveAttribute('data-renderer','ready',{timeout:STARTUP_TIMEOUT_MS});
 }
 
-async function finishFirstRunAutoplay(page, expect) {
-  const intro=page.locator('#muraFirstRunTutorial');
-  if(!(await intro.count())||!(await intro.isVisible()))return false;
-  await expect(page.locator('#game')).toHaveAttribute('data-first-run-tutorial','running');
-  await nativeTap(page,expect,page.locator('#muraFirstRunSkip'));
-  await expect(intro).toHaveCount(0);
-  await expect(page.locator('#game')).toHaveAttribute('data-first-run-tutorial','seen');
+async function finishFirstRunGuide(page, expect) {
+  const guide=page.locator('#muraFirstRunGuide');
+  if(!(await guide.count()))return false;
+  const canvas=page.locator('#game');
+  await expect(guide).toBeVisible();
+  await expect(canvas).toHaveAttribute('data-first-run-tutorial','running');
+  await expect(guide).toHaveAttribute('data-stage','welcome');
+
+  // Walk the same path a first-time player uses. Nothing below invokes world.add,
+  // placement helpers or synthetic dispatchEvent shortcuts.
+  await nativeTap(page,expect,page.locator('.muraFirstRunStart'));
+  await expect(guide).toHaveAttribute('data-stage','build');
+  await nativeTap(page,expect,page.locator('#build'));
+  await expect(guide).toHaveAttribute('data-stage','catalog');
+  const tentCard=page.locator('#catalog .card[data-kind="tent"]');
+  await expect(tentCard).toBeVisible();
+  await expect(tentCard).toHaveClass(/mura-first-run-target/);
+  await nativeTap(page,expect,tentCard);
+  await expect(guide).toHaveAttribute('data-stage','drag');
+  await expect(page.locator('#placement')).toBeVisible();
+  await expect(canvas).toHaveAttribute('data-placement','center-follow');
+
+  // A premature tap must be taught, not interpreted as a placement shortcut.
+  await tapPlacement(page);
+  await expect(guide).toHaveAttribute('data-stage','drag');
+  expect(await page.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))).toBe(false);
+
+  const candidateBefore=await page.evaluate(()=>({x:window.village.ui.pending.x,z:window.village.ui.pending.z}));
+  await dragPlacement(page,58,38);
+  await expect(guide).toHaveAttribute('data-stage','place');
+  await expect.poll(()=>page.evaluate(({x,z})=>{
+    const p=window.village.ui.pending;return p?Math.hypot(p.x-x,p.z-z):0;
+  },candidateBefore)).toBeGreaterThan(.2);
+
+  await tapPlacement(page);
+  await expect(guide).toHaveAttribute('data-stage','done');
+  await expect.poll(()=>page.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))).toBe(true);
+  await expect(page.locator('#muraPlacementUndo')).toBeVisible();
+  await nativeTap(page,expect,page.locator('.muraFirstRunFinish'));
+  await expect(guide).toHaveCount(0);
+  await expect(canvas).toHaveAttribute('data-first-run-tutorial','seen');
+
+  // Restore the pristine first-build fixture through the product's own undo path
+  // so the established placement suite can continue from its original baseline.
+  await nativeTap(page,expect,page.locator('#muraPlacementUndo'));
+  await expect(page.locator('#placement')).toBeVisible();
+  await expect.poll(()=>page.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))).toBe(false);
+  await nativeTap(page,expect,page.locator('#muraCancelPlacement'));
+  await expect(page.locator('#placement')).toBeHidden();
   return true;
 }
 
 export async function enterVillageForBrowser(page, expect) {
   await expectVillageReady(page, expect);
-  await finishFirstRunAutoplay(page,expect);
   const entry=page.locator('#muraEntry'),enter=page.locator('#muraEnterVillage');
   if(await enter.count()&&await enter.isVisible()){
     await nativeTap(page,expect,enter);
@@ -30,6 +71,7 @@ export async function enterVillageForBrowser(page, expect) {
   }else{
     await expect(entry).toHaveCount(0);
   }
+  await finishFirstRunGuide(page,expect);
 }
 
 async function placementCenter(page){
