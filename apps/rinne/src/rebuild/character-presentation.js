@@ -9,7 +9,7 @@ import {
 
 export const RINNE_RUNTIME_CHARACTER_ASSET=Object.freeze({
   id:'character.sendagaya-shino.v1.audited-master-fallback',
-  url:'/simulator/assets/SHINO_review.vrm',
+  url:'./simulator/assets/SHINO_review.vrm',
   sha256:SHINO_MASTER.source.reviewSha256,
   productionStage:'AUDITED_MASTER_FALLBACK',
   productionReady:false,
