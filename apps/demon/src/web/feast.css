@@ -1,0 +1,21 @@
+/* Reward sits above the actor and yields to combat. The canvas stays interactive. */
+#feast-feedback{position:absolute;top:25%;left:50%;width:min(360px,90vw);transform:translate(-50%,var(--feast-rise,0px));text-align:center;padding:12px 15px 10px;pointer-events:none;color:#dcffe9;opacity:var(--feast-opacity,1);background:radial-gradient(ellipse,#082923e8, #08201cbc 50%,transparent 74%);text-shadow:0 2px 5px #000,0 0 15px #8df8bc55;}
+#feast-feedback::before,#feast-feedback::after{content:'';position:absolute;left:17%;right:17%;height:1px;background:linear-gradient(90deg,transparent,#b5f5c7bb,transparent)}
+#feast-feedback::before{top:1px}#feast-feedback::after{bottom:0}
+#feast-feedback small{display:block;font-size:10px;letter-spacing:.13em;color:#afd6bc;line-height:1.5}
+#feast-feedback strong{display:block;font-size:clamp(21px,6vw,29px);font-weight:500;letter-spacing:.09em;line-height:1.5;margin:2px 0}
+#feast-feedback span{display:block;font-size:11px;line-height:1.6;letter-spacing:.015em;overflow-wrap:anywhere}
+#feast-feedback [data-feast="progress"]{font-size:10px;color:#d2e6cc}
+.feast-track{height:3px;margin:9px 22px 5px;background:#8aa38f33;transform:skewX(-22deg);overflow:hidden}
+.feast-track i{display:block;height:100%;background:linear-gradient(90deg,#79a88e,#d8ffac);box-shadow:0 0 10px #b2ffbe;transition:width .65s ease-out}
+#feast-feedback[data-kind="form"]{color:#ffe6b0;text-shadow:0 2px 5px #000,0 0 19px #ffbf6777;background:radial-gradient(ellipse,#2e2116e8,#181c13bc 50%,transparent 74%)}
+#feast-feedback[data-kind="form"] .feast-track i{background:linear-gradient(90deg,#aa7939,#ffe4a0)}
+#feast-feedback[data-kind="restore"] strong{font-size:22px}
+#hud[data-feasting="reward"] #toast{visibility:hidden}
+#prey-bearing{display:flex;align-items:center;gap:9px;margin-top:5px;color:#dfca98;font-size:11px;text-shadow:0 2px 6px #000}
+#prey-bearing b{font:24px Georgia,serif;display:block;width:24px;text-align:center}
+#prey-bearing span{font-size:11px;letter-spacing:.02em}
+.nameplate.next-prey{color:#ffe1a2;text-shadow:0 0 8px #c6934c,0 2px 5px #000;border-bottom:1px solid #dfbd7088}
+@media(max-height:650px){#feast-feedback{top:29%;padding:7px 12px;width:min(330px,72vw)}#feast-feedback small{display:none}#feast-feedback strong{font-size:21px;line-height:1.25}.feast-track{margin-top:5px}#prey-bearing{margin-top:2px}}
+@media(orientation:landscape) and (max-height:550px){#feast-feedback{top:105px;left:62%;width:min(290px,42vw)}#feast-feedback strong{font-size:20px}#feast-feedback span{font-size:10px}#feast-feedback [data-feast="progress"],#feast-feedback .feast-track{display:none}#hud[data-feasting="reward"] #objective{max-width:36%}}
+@media(prefers-reduced-motion:reduce){#feast-feedback{transform:translateX(-50%)}.feast-track i{transition:none}}

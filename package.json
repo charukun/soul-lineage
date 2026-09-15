@@ -21,6 +21,7 @@
     "rendering:transcoders": "node scripts/prepare-basis-assets.mjs",
     "lod:generate": "node scripts/generate-lods.mjs",
     "gltf:compress": "node scripts/compress-gltf.mjs",
+    "asset:optimize": "node scripts/asset-optimize.mjs",
     "performance:browser": "node scripts/browser/performance-smoke.mjs",
     "performance:compare": "node scripts/performance-regression.mjs",
     "test": "node --test tests/*.test.mjs",
@@ -31,8 +32,10 @@
     "build:demon": "npm run build --workspace @soul/demon",
     "affected": "node scripts/affected.mjs",
     "context:plan": "node scripts/context-plan.mjs",
+    "context:excerpt": "node scripts/context-excerpt.mjs",
     "preview": "npm run preview --workspace @soul/rinne",
     "app:add": "node scripts/add-app.mjs",
+    "characters:production:check": "node scripts/check-character-production.mjs",
     "push:route": "node scripts/check-push-route.mjs"
   },
   "devDependencies": {

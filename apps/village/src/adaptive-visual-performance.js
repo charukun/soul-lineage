@@ -7,6 +7,7 @@ import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { createWorldCellStreamingPlan } from '@soul/rendering/world-streaming';
 import { createConservativeOcclusionCuller } from '@soul/rendering/occlusion';
 import { createPerformanceRecorder } from '@soul/rendering/performance-lab';
+import { auditTransparency, combineTransparencyAudits } from '@soul/rendering/transparency-audit';
 import { createThermalTrendGovernor } from '@soul/rendering/thermal-governor';
 import { applyVisualQualityFloor } from '@soul/rendering/visual-quality-floor';
 import { View } from './web/view.js';
@@ -36,6 +37,16 @@ function setShadowSize(view, scale) {
 
 function textureBytes(view) {
   return [view.objects,view.outside,view.inside,view.actors].reduce((sum,root)=>sum+auditTextureBudget(root).estimatedBytes,0);
+}
+
+function transparencyAudit(view) {
+  return combineTransparencyAudits([view.objects,view.outside,view.inside,view.actors].map(root=>auditTransparency(root)));
+}
+
+function performanceScene(view) {
+  const vegetationInstances=[...(view.forestMeshes||[]),...(view.flowerMeshes||[])].reduce((sum,mesh)=>sum+(Number(mesh?.count)||0),0);
+  const actors=view.actors?.children?.length||0,outsideRoots=view.outside?.children?.length||0,insideRoots=view.inside?.children?.length||0,objectRoots=view.objects?.children?.length||0;
+  return Object.freeze({id:'village-runtime-v1',actors,outsideRoots,insideRoots,objectRoots,vegetationInstances,signature:`a${actors}-o${outsideRoots}-i${insideRoots}-r${objectRoots}-v${vegetationInstances}`});
 }
 
 function apply(view, snapshot) {
@@ -79,9 +90,9 @@ function governorFor(view) {
   const gpu=createGpuTimer(view.renderer),recorder=createPerformanceRecorder({label:'village'}),occlusion=createConservativeOcclusionCuller({maxChecksPerUpdate:5,minDistance:24,hiddenConfirmations:2});
   const thermal=createThermalTrendGovernor({sampleEverySeconds:5,baselineSamples:6,windowSamples:12});
   const governor = createGpuAwareQualityGovernor({targetFps:isMobileTarget()?30:60,initialLevel:view.softwareGPU?2:0,onChange:s=>apply(view,s)});
-  const state = { governor, plan, gpu, recorder, occlusion, thermal, occlusionFrame:0, stream: plan.update(view.target.x,view.target.z) };
+  const state = { governor, plan, gpu, recorder, occlusion, thermal, occlusionFrame:0, transparencyFrame:0, transparency:combineTransparencyAudits([]), stream: plan.update(view.target.x,view.target.z) };
   governors.set(view,state); apply(view,governor.snapshot());
-  if (typeof window !== 'undefined') window.__VILLAGE_ADAPTIVE_QUALITY__ = { snapshot:()=>({quality:governor.snapshot(),gpu:gpu.snapshot(),thermal:thermal.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),stream:state.stream,textureBytes:view.__estimatedTextureBytes||0}) };
+  if (typeof window !== 'undefined') window.__VILLAGE_ADAPTIVE_QUALITY__ = { snapshot:()=>({quality:governor.snapshot(),gpu:gpu.snapshot(),thermal:thermal.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),transparency:state.transparency,scene:performanceScene(view),stream:state.stream,textureBytes:view.__estimatedTextureBytes||0}) };
   return state;
 }
 
@@ -101,7 +112,8 @@ if (typeof render === 'function' && !render.__adaptiveVisualPerformance) {
     let next=state.governor.observeFrame(dt,gpu.emaMs);
     const thermal=state.thermal.observe(dt,dt*1000,gpu.emaMs);
     if(thermal.recommendedMinLevel>next.level)next=state.governor.setLevel(thermal.recommendedMinLevel);
-    state.recorder.sample({frameMs:dt*1000,gpuMs:gpu.emaMs,drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,textureBytes:this.__estimatedTextureBytes||0});
+    if((state.transparencyFrame++%120)===0)state.transparency=transparencyAudit(this);
+    state.recorder.sample({frameMs:dt*1000,gpuMs:gpu.emaMs,drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,textureBytes:this.__estimatedTextureBytes||0,transparentDrawCalls:state.transparency.blendedDrawCalls,transparentTriangleUpperBound:state.transparency.transparentTriangleUpperBound});
     if((state.occlusionFrame++%12)===0){const roots=occlusionRoots(this);state.occlusion.update({camera:this.camera,...roots});}
     if(next.profile.vegetationScale!==snapshot.profile.vegetationScale)applyAdaptiveVegetation(this,next.profile.vegetationScale);
     return result;

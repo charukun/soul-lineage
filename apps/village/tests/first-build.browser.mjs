@@ -1,51 +1,35 @@
+import {nativeTap} from '@soul/platform-web/testing/native-input';
+export {nativeTap};
 import {verifyVillageDirectorPolish} from './director-polish.browser.mjs';
 
 /** User-facing placement help is exercised with native input, never world mutation. */
 const STARTUP_TIMEOUT_MS = 15_000;
-const NATIVE_TAP_TIMEOUT_MS = 8_000;
 const CAMERA_DRAG_STEPS = 3;
 async function expectVillageReady(page, expect) {
   await expect(page.locator('#loading')).toBeHidden({timeout:STARTUP_TIMEOUT_MS});
   await expect(page.locator('#game')).toHaveAttribute('data-renderer','ready',{timeout:STARTUP_TIMEOUT_MS});
 }
-async function sampleNativeTapPoint(locator) {
-  return locator.evaluate(element=>{
-    const r=element.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
-    return{x,y,width:r.width,height:r.height,hit:element.contains(document.elementFromPoint(x,y))};
-  });
-}
-async function nativeTapPointStillHits(locator, point) {
-  return locator.evaluate((element,{x,y})=>element.contains(document.elementFromPoint(x,y)),point);
-}
-export async function nativeTap(page, expect, locator) {
-  await expect(locator).toBeVisible({timeout:NATIVE_TAP_TIMEOUT_MS});
-  await expect(locator).toBeEnabled({timeout:NATIVE_TAP_TIMEOUT_MS});
-  await locator.scrollIntoViewIfNeeded({timeout:NATIVE_TAP_TIMEOUT_MS});
-  let point;
-  // Dynamic drawers can re-render between sampling a card and the native press.
-  // Move the real pointer to the candidate, then verify that exact pointer point
-  // still resolves inside the current same locator. A hover transform may move
-  // the element center without making the user's actual pointer stale; a sibling
-  // moving under the pointer still fails this same-element hit test and retries.
-  await expect.poll(async()=>{
-    const candidate=await sampleNativeTapPoint(locator);
-    if(!(candidate.width>0&&candidate.height>0&&candidate.hit))return false;
-    await page.mouse.move(candidate.x,candidate.y);
-    if(!(await nativeTapPointStillHits(locator,candidate)))return false;
-    point=candidate;
-    return true;
-  },{timeout:NATIVE_TAP_TIMEOUT_MS}).toBe(true);
-  expect(point.width).toBeGreaterThan(0);expect(point.height).toBeGreaterThan(0);expect(point.hit).toBe(true);
-  // Keep the pointer at the verified point. mouse.click(x,y) performs another
-  // implicit move and would reopen the stale-coordinate race fenced above.
-  await page.mouse.down();
-  await page.mouse.up();
+
+async function finishFirstRunAutoplay(page, expect) {
+  const intro=page.locator('#muraFirstRunTutorial');
+  if(!(await intro.count())||!(await intro.isVisible()))return false;
+  await expect(page.locator('#game')).toHaveAttribute('data-first-run-tutorial','running');
+  await nativeTap(page,expect,page.locator('#muraFirstRunSkip'));
+  await expect(intro).toHaveCount(0);
+  await expect(page.locator('#game')).toHaveAttribute('data-first-run-tutorial','seen');
+  return true;
 }
 
 export async function enterVillageForBrowser(page, expect) {
   await expectVillageReady(page, expect);
-  await nativeTap(page,expect,page.locator('#muraEnterVillage'));
-  await expect(page.locator('#muraEntry')).toBeHidden();
+  await finishFirstRunAutoplay(page,expect);
+  const entry=page.locator('#muraEntry'),enter=page.locator('#muraEnterVillage');
+  if(await enter.count()&&await enter.isVisible()){
+    await nativeTap(page,expect,enter);
+    await expect(entry).toBeHidden();
+  }else{
+    await expect(entry).toHaveCount(0);
+  }
 }
 
 export async function verifyVillageFirstBuild(page, expect, testInfo, beforeReload = async () => {}, { captureMilestones = true, verifyDirector = true } = {}) {
@@ -54,11 +38,15 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   const settings=await page.locator('#muraSettingsButton').boundingBox();
   expect(settings.width).toBeGreaterThanOrEqual(44);expect(settings.height).toBeGreaterThanOrEqual(44);
   const before=await page.evaluate(()=>({count:window.village.world.objects.length,beds:window.village.world.population().openBeds}));
-  await nativeTap(page,expect,page.locator('#build'));
-  await nativeTap(page,expect,page.locator('[data-kind="tent"]'));
+
+  // Latest playability contract: the first tutorial action enters placement directly,
+  // without detouring through the build catalogue.
+  await expect(page.locator('#tutorialAction')).toBeVisible();
+  await nativeTap(page,expect,page.locator('#tutorialAction'));
+  await expect(page.locator('#drawer')).toBeHidden();
   await expect(page.locator('#placement')).toBeVisible();
   await expect(page.locator('#cancelPlace')).toHaveText('ここに建てる');
-  await nativeTap(page,expect,page.locator('#muraFindPlacement'));
+  if(!(await page.locator('#cancelPlace').isEnabled()))await nativeTap(page,expect,page.locator('#muraFindPlacement'));
   expect(await page.evaluate(()=>window.village.world.objects.length)).toBe(before.count);
   await expect(page.locator('#cancelPlace')).toBeEnabled();
   await nativeTap(page,expect,page.locator('#cancelPlace'));
@@ -67,6 +55,7 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   expect(tent).toBeTruthy();expect(tent.phase).toBe('built');
   expect(await page.evaluate(()=>window.village.world.population().openBeds)).toBe(before.beds+2);
   await expect(page.locator('#toastText')).toContainText('寝床が2床増えました');
+  await expect(page.locator('#muraMilestone')).toHaveClass(/visible/);
   if (captureMilestones) await page.screenshot({path:testInfo.outputPath('first-tent-built.png')});
 
   await nativeTap(page,expect,page.locator('#deselect'));
@@ -81,10 +70,6 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
       return {x,y,dx:Math.max(-rect.width*.32,Math.min(rect.width*.32,dx)),dy:Math.max(-rect.height*.23,Math.min(rect.height*.23,dy)),distance:Math.hypot(dx,dy)};
     },facility.id);
     if(drag.distance<12)break;
-    // One public DEV trace spent ~5s on a 12-step native drag because every
-    // intermediate pointermove runs the real renderer/input path. Keep a real
-    // pointer drag, but use a small bounded number of moves; endpoint and all
-    // post-drag selection/persistence assertions remain unchanged.
     await page.mouse.move(drag.x,drag.y);await page.mouse.down();
     await page.mouse.move(drag.x+drag.dx,drag.y+drag.dy,{steps:CAMERA_DRAG_STEPS});await page.mouse.up();
     await page.waitForTimeout(150);
@@ -131,14 +116,13 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   await beforeReload();
   await page.reload({waitUntil:'domcontentloaded'});
   await expectVillageReady(page, expect);
-  await nativeTap(page,expect,page.locator('#muraEnterVillage'));
+  // Entry acknowledgement is device-local; returning play resumes directly in-world.
+  await expect(page.locator('#muraEntry')).toHaveCount(0);
   const restored=await page.evaluate(id=>window.village.world.object(id),tent.id);
   for(const key of ['id','kind','x','z','rot','phase'])expect(restored[key]).toBe(tent[key]);
   const restoredFacility=await page.evaluate(id=>window.village.world.object(id),facility.id);
   expect(restoredFacility.room.find(o=>o.id===bed.id)).toEqual(bed);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-  // Public Playwright cases already capture the final page automatically.
-  // Do not spend the interaction deadline taking the same final picture twice.
   if (captureMilestones) await page.screenshot({path:testInfo.outputPath('first-build-reloaded.png')});
   if (verifyDirector) await verifyVillageDirectorPolish(page, expect, testInfo, {captureEvidence:captureMilestones});
 }

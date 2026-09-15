@@ -4,6 +4,7 @@ import {describeFailedRequest, isVerifiedAudioRangeAbort} from './media-request-
 
 const root=resolve(new URL('../..',import.meta.url).pathname);
 async function capturePerformanceSnapshot(page){
+  if (typeof page?.evaluate !== 'function') return;
   const result=await page.evaluate(()=>{
     const app=document.querySelector('#game')?.dataset.app||null;
     const source=window.__VILLAGE_ADAPTIVE_QUALITY__||window.__DEMON_ADAPTIVE_QUALITY__;
