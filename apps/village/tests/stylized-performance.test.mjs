@@ -12,8 +12,9 @@ test('village installs authored LOD before stylized and adaptive runtime bridges
 });
 
 test('village GPU-aware bridge controls mobile render costs without hiding gameplay objects',()=>{
-  for(const token of ['createGpuAwareQualityGovernor','createGpuTimer','createPerformanceRecorder','createConservativeOcclusionCuller','renderScale','shadowScale','applyTextureQuality','vegetationScale','presentationDistance','createWorldCellStreamingPlan'])assert.match(adaptive,new RegExp(token));
+  for(const token of ['createGpuAwareQualityGovernor','createGpuTimer','createPerformanceRecorder','createConservativeOcclusionCuller','auditTransparency','combineTransparencyAudits','transparentDrawCalls','transparentTriangleUpperBound','renderScale','shadowScale','applyTextureQuality','vegetationScale','presentationDistance','createWorldCellStreamingPlan'])assert.match(adaptive,new RegExp(token));
   assert.doesNotMatch(adaptive,/objectNodes.*visible\s*=\s*false/);
+  assert.match(adaptive,/transparencyFrame\+\+%120/);
 });
 
 test('village repository assets use Meshopt/KTX2-capable loader with local Basis transcoder',()=>{
