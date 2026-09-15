@@ -42,8 +42,9 @@ test('Ready hands off immediately even if Actions/browser never complete; same h
   assert.equal(result.monitoringOwner, 'Integration');
   assert.equal(f.statuses[0].sha, sha);
   assert.equal(f.statuses[0].context, 'implementation/handoff');
-  assert.match(f.comments[0].body, /Ready for review: true/);
-  assert.match(f.comments[0].body, /not CI success/);
+  assert.match(f.comments[0].body, /review_ready: true/);
+  assert.match(f.comments[0].body, /receipt_scope: HANDOFF_ONLY/);
+  assert.match(f.comments[0].body, /dev_publication: NO/);
   await recordHandoff(f.options);
   assert.equal(f.comments.length, 1);
   assert.equal(f.sent(), 1);
