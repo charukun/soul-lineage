@@ -1,5 +1,5 @@
 import { subscribe } from './view-state.js';
-import { appHealth, boardAlerts } from './health.mjs';
+import { appHealth, boardAlerts, devPublicationSummary } from './health.mjs';
 
 const $ = selector => document.querySelector(selector);
 const toneNames = ['ok', 'progress', 'warning', 'danger', 'info'];
@@ -39,6 +39,11 @@ function renderDevelopment(state) {
 }
 
 function renderApplications(state) {
+  const publication = devPublicationSummary(state, Date.now());
+  if (publication) {
+    setCard('overview-app', publication.value, publication.detail, publication.tone);
+    return;
+  }
   const apps = state?.applications || [];
   if (!apps.length) {
     setCard('overview-app', '未確認', '公開情報なし', 'info');
