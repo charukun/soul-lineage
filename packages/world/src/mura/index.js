@@ -2,6 +2,7 @@ import {defs} from './catalog.js';
 import {LIMIT,inWater} from './terrain.js';
 export {defs} from './catalog.js';
 export * from './terrain.js';
+export * from './dialogue.js';
 export const MURA_WORLD_SCHEMA=1;
 export const MURA_TERRAIN_ID='terrain.mura.v1';
 export const initialMuraObjects=()=>[
