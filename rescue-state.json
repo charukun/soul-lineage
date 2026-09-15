@@ -13942,7 +13942,7 @@
       },
       "state": "FAILED_MANUAL",
       "title": "feat(rendering): complete GPU-aware compression and performance pipeline",
-      "updatedAt": "2026-09-15T05:25:16.405Z",
+      "updatedAt": "2026-09-15T05:29:13.969Z",
       "waitingReason": null,
       "wave": "wave-34929309618-1",
       "workRepair": {
@@ -14018,8 +14018,100 @@
           "repairKind": "overlap"
         },
         "startedAt": "2026-09-15T05:25:16.405Z",
-        "heartbeatAt": "2026-09-15T05:25:16.405Z",
-        "expiresAt": "2026-09-15T06:10:16.405Z"
+        "heartbeatAt": "2026-09-15T05:29:13.969Z",
+        "expiresAt": "2026-09-15T06:14:13.969Z",
+        "result": {
+          "changedPaths": [
+            ".gitignore",
+            "apps/demon/package.json",
+            "apps/demon/src/adaptive-visual-performance.js",
+            "apps/demon/src/asset-visuals.js",
+            "apps/demon/src/master-model.js",
+            "apps/demon/tests/stylized-performance.test.mjs",
+            "apps/rinne/package.json",
+            "apps/village/package.json",
+            "apps/village/src/adaptive-visual-performance.js",
+            "apps/village/src/asset-visuals.js",
+            "apps/village/tests/stylized-performance.test.mjs",
+            "docs/GPU_RENDERING_PERFORMANCE.md",
+            "docs/STYLIZED_PERFORMANCE_PIPELINE.md",
+            "package.json",
+            "packages/rendering/package.json",
+            "packages/rendering/src/compressed-gltf.js",
+            "packages/rendering/src/gpu-aware-quality.js",
+            "packages/rendering/src/gpu-timer.js",
+            "packages/rendering/src/index.js",
+            "packages/rendering/src/instance-atlas.js",
+            "packages/rendering/src/occlusion.js",
+            "packages/rendering/src/performance-lab.js",
+            "packages/rendering/src/world-streaming.js",
+            "packages/rendering/tests/gpu-performance.test.mjs",
+            "scripts/blender/generate-lods.py",
+            "scripts/browser/media-diagnostics.mjs",
+            "scripts/browser/performance-smoke.mjs",
+            "scripts/compress-gltf.mjs",
+            "scripts/generate-lods.mjs",
+            "scripts/performance-regression.mjs",
+            "scripts/prepare-basis-assets.mjs",
+            "tests/rendering-performance-pipeline.test.mjs"
+          ],
+          "changedPathsComplete": true,
+          "commit": {
+            "parents": [
+              {
+                "sha": "30d861b2e237020da84e0a61a38796575c1da540"
+              },
+              {
+                "sha": "dcdb07f11cfeb52c13e607aa24765a4e749b69cf"
+              }
+            ],
+            "sha": "607248bb3e4ad76817989387ccdabf347a36d5b3",
+            "tree": {
+              "sha": "d7c961f72e4ada44947293f9de51d03497d4feae"
+            }
+          },
+          "decision": {
+            "preservesBoth": true,
+            "sources": [
+              {
+                "path": "docs/STYLIZED_PERFORMANCE_PIPELINE.md",
+                "commit": "30d861b2e237020da84e0a61a38796575c1da540"
+              },
+              {
+                "path": "docs/INTEGRATION_RESCUE_WORK.md",
+                "commit": "dcdb07f11cfeb52c13e607aa24765a4e749b69cf"
+              }
+            ],
+            "summary": "Preserve PR #220 GPU-aware rendering and performance behavior together with the latest develop Integration contracts. The exact-head tree already passed CI and local trusted-fast validation, so this minimal same-tree merge commit changes no product code and only refreshes the fenced Work return metadata.",
+            "controlReview": {
+              "preservesGates": true,
+              "governingSources": [
+                "AGENTS.md",
+                "docs/DEVELOPMENT.md",
+                "docs/INTEGRATION.md",
+                "docs/RINNE_PROJECT_EXECUTION_POLICY.md",
+                "docs/INTEGRATION_RESCUE.md",
+                "docs/INTEGRATION_RESCUE_WORK.md",
+                "scripts/integration-rescue-work-repair.mjs",
+                "scripts/integration-rescue-work-repair-policy.mjs",
+                "exact-head CI run 34929289219"
+              ]
+            }
+          },
+          "head": "607248bb3e4ad76817989387ccdabf347a36d5b3",
+          "tree": "d7c961f72e4ada44947293f9de51d03497d4feae",
+          "validation": {
+            "status": "passed",
+            "tree": "d7c961f72e4ada44947293f9de51d03497d4feae",
+            "npmCi": "passed",
+            "focused": "exact-head CI passed",
+            "trustedFast": "passed: 903/904, 1 skipped",
+            "builds": "passed: demon/rinne/village",
+            "browser": "passed: exact-head affected browser smoke run 34929289219",
+            "command": "npm ci && node scripts/validate.mjs fast dcdb07f11cfeb52c13e607aa24765a4e749b69cf 30d861b2e237020da84e0a61a38796575c1da540"
+          }
+        },
+        "pushPreparedAt": "2026-09-15T05:29:13.969Z"
       },
       "workRepairAttempts": 2,
       "baseChanges": [],
@@ -18509,9 +18601,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1065,
+  "revision": 1066,
   "schema": 1,
-  "updatedAt": "2026-09-15T05:25:16.405Z",
+  "updatedAt": "2026-09-15T05:29:13.969Z",
   "waves": [
     {
       "completedAt": "2026-09-13T22:20:18.454Z",
