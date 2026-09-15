@@ -10,15 +10,17 @@ const runtime=await readFile(new URL('../src/rebuild/runtime.js',import.meta.url
 const renderer=await readFile(new URL('../src/rebuild/renderer.js',import.meta.url),'utf8');
 const models=createMuraModels.toString();
 
-test('game shell keeps the world HUD layers but the visible skin is dimensional and pop',()=>{
+test('game shell keeps tactile depth while the visible skin is restrained casual fantasy',()=>{
   assert.match(html,/class="world-vignette"/);assert.match(html,/id="chapter-mark"/);assert.match(html,/class="life-chip ornate"/);assert.match(html,/class="objective-card ornate"/);
   assert.match(css,/\.ornate::before/);assert.doesNotMatch(css,/backdrop-filter/);
-  for(const token of ['--pop-cream:','--pop-honey:','--pop-coral:','--pop-sky:','--pop-violet:'])assert.match(pop,new RegExp(token));
-  assert.match(pop,/box-shadow:[^;]*inset[^;]*0 6px 0/);assert.match(pop,/transform:translateY\(5px\)/);assert.match(pop,/border-radius:16px/);
-  assert.doesNotMatch(pop,/--pop-green:/);
+  for(const token of ['--pop-cream:','--pop-honey:','--pop-coral:','--pop-sky:','--pop-violet:','--pop-leather:'])assert.match(pop,new RegExp(token));
+  assert.match(pop,/box-shadow:[^;]*inset[^;]*0 3px 0/);assert.match(pop,/transform:translateY\(2px\)/);assert.match(pop,/border-radius:9px/);
+  assert.match(pop,/\.loading-dots\{display:none\}/);assert.match(pop,/repeating-conic-gradient/);
+  assert.doesNotMatch(pop,/--pop-green:/);assert.doesNotMatch(pop,/--pop-pink:/);assert.doesNotMatch(pop,/#ff9ecb/i);assert.doesNotMatch(pop,/border-radius:26px/);
+  assert.match(html,/theme-color" content="#7896a1"/);
 });
 
-test('village frontier homecoming and rebirth use bright distinct tones instead of green wash',()=>{
+test('village frontier homecoming and rebirth stay distinct without green or candy wash',()=>{
   for(const tone of ['frontier','home','rebirth'])assert.match(pop,new RegExp(`data-world-tone=["']${tone}["']`));
   assert.match(runtime,/gameScreen\.dataset\.worldTone=worldTone\(guide\)/);
   assert.match(runtime,/state\.zone===['"]frontier['"]\)return['"]frontier['"]/);assert.match(runtime,/guide\.tone===['"]home['"]\)return['"]home['"]/);assert.match(runtime,/guide\.tone===['"]rebirth['"]\)return['"]rebirth['"]/);
