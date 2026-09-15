@@ -4,20 +4,30 @@
 }
 .game-screen.is-loading .camera-position-control{display:none}
 .camera-position-trigger{
-  position:absolute;inset:0;width:44px;height:44px;padding:0;border:0;background:radial-gradient(circle,rgba(39,38,31,.9) 0 35%,rgba(18,22,19,.82) 37% 49%,transparent 51%);color:#d9c083;display:grid;place-items:center;opacity:.68;transition:opacity .16s ease,transform .16s ease;
+  position:absolute;inset:0;width:44px;height:44px;padding:0;border:0;background:radial-gradient(circle,rgba(39,38,31,.88) 0 31%,rgba(18,22,19,.74) 33% 41%,transparent 43%);color:#d9c083;display:grid;place-items:center;opacity:.78;transition:opacity .16s ease,transform .16s ease;
 }
-.camera-position-trigger svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.55;stroke-linejoin:round}
+.camera-position-trigger svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.55;stroke-linejoin:round}
 .camera-position-trigger:focus-visible,.camera-position-trigger:active,.camera-position-control.is-open .camera-position-trigger{opacity:1;transform:scale(1.04)}
 .camera-position-trigger:disabled{opacity:.28;transform:none}
 .camera-position-panel{
-  position:absolute;left:6px;top:36px;width:32px;height:108px;display:grid;place-items:center;border:1px solid rgba(184,149,81,.32);background:linear-gradient(180deg,rgba(33,32,26,.88),rgba(14,18,15,.82));box-shadow:0 7px 17px rgba(0,0,0,.32);clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px);
+  position:absolute;left:13px;top:38px;width:18px;height:94px;background:transparent;border:0;box-shadow:none;clip-path:none;pointer-events:auto;
 }
 .camera-position-panel[hidden]{display:none}
-.camera-position-panel input{
-  width:88px;height:28px;margin:0;transform:rotate(-90deg);transform-origin:center;appearance:none;-webkit-appearance:none;background:transparent;outline:none;cursor:ns-resize;touch-action:none;
+.camera-position-rail{
+  position:absolute;left:50%;top:7px;bottom:7px;width:2px;transform:translateX(-50%);border-radius:99px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(231,202,130,.94),rgba(126,102,58,.82));
+  box-shadow:0 0 0 1px rgba(12,14,11,.44),0 1px 5px rgba(0,0,0,.3);
 }
-.camera-position-panel input::-webkit-slider-runnable-track{height:3px;border-radius:99px;background:linear-gradient(90deg,rgba(95,78,48,.76),rgba(211,176,93,.9));box-shadow:0 0 0 1px rgba(8,10,8,.72)}
-.camera-position-panel input::-webkit-slider-thumb{width:16px;height:16px;margin-top:-7px;-webkit-appearance:none;border:1px solid rgba(225,196,124,.78);border-radius:50%;background:#342f23;box-shadow:0 2px 6px rgba(0,0,0,.5),inset 0 0 0 3px #8c7444}
-.camera-position-panel input::-moz-range-track{height:3px;border-radius:99px;background:linear-gradient(90deg,rgba(95,78,48,.76),rgba(211,176,93,.9));box-shadow:0 0 0 1px rgba(8,10,8,.72)}
-.camera-position-panel input::-moz-range-thumb{width:16px;height:16px;border:1px solid rgba(225,196,124,.78);border-radius:50%;background:#342f23;box-shadow:0 2px 6px rgba(0,0,0,.5),inset 0 0 0 3px #8c7444}
-@media(prefers-reduced-motion:reduce){.camera-position-trigger{transition:none}}
+.camera-position-knob{
+  position:absolute;left:50%;top:50%;width:14px;height:14px;transform:translate(-50%,-50%);border:1px solid rgba(237,210,145,.92);border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle at 38% 32%,#e0c98d 0 18%,#846b3f 24% 52%,#29271f 58% 100%);
+  box-shadow:0 2px 6px rgba(0,0,0,.48),0 0 0 1px rgba(15,16,13,.58);
+  transition:top .08s linear;
+}
+.camera-position-panel input{
+  position:absolute;left:50%;top:50%;z-index:2;width:82px;height:44px;margin:0;transform:translate(-50%,-50%) rotate(-90deg);transform-origin:center;
+  appearance:none;-webkit-appearance:none;background:transparent;border:0;outline:none;cursor:ns-resize;touch-action:none;opacity:0;
+}
+.camera-position-panel:focus-within .camera-position-rail{box-shadow:0 0 0 1px rgba(12,14,11,.5),0 0 7px rgba(225,196,124,.28)}
+.camera-position-panel:focus-within .camera-position-knob{box-shadow:0 2px 6px rgba(0,0,0,.48),0 0 0 2px rgba(225,196,124,.28)}
+@media(prefers-reduced-motion:reduce){.camera-position-trigger,.camera-position-knob{transition:none}}

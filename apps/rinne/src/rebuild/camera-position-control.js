@@ -15,13 +15,15 @@ export function createCameraPositionControl({document:doc,container,onChange,ini
   if(!doc)throw new TypeError('document is required');
   const root=doc.createElement('div');root.className='camera-position-control';root.dataset.combat='false';
   const button=doc.createElement('button');button.type='button';button.className='camera-position-trigger';button.setAttribute('aria-label','カメラ位置');button.setAttribute('aria-expanded','false');button.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.2 7.2 9.5 5h5l1.3 2.2H19a2 2 0 0 1 2 2v8.3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9.2a2 2 0 0 1 2-2h3.2Z"/><circle cx="12" cy="13.1" r="3.2"/></svg>';
-  const panel=doc.createElement('div');panel.className='camera-position-panel';panel.hidden=true;
+  const panel=doc.createElement('div');panel.className='camera-position-panel';panel.id='camera-position-panel';panel.hidden=true;
+  const rail=doc.createElement('span');rail.className='camera-position-rail';rail.setAttribute('aria-hidden','true');
+  const knob=doc.createElement('span');knob.className='camera-position-knob';knob.setAttribute('aria-hidden','true');
   const slider=doc.createElement('input');slider.id='camera-position';slider.type='range';slider.min='0';slider.max='100';slider.step='1';slider.setAttribute('aria-label','カメラ位置');slider.setAttribute('aria-orientation','vertical');
-  panel.append(slider);root.append(button,panel);container?.append(root);
+  button.setAttribute('aria-controls',panel.id);panel.append(rail,knob,slider);root.append(button,panel);container?.append(root);
   let current=.5,open=false,combat=false;
   const setOpen=value=>{open=Boolean(value)&&!combat;panel.hidden=!open;button.setAttribute('aria-expanded',String(open));root.classList.toggle('is-open',open);return open;};
   const apply=value=>{
-    current=clamp01(value);const percent=Math.round(current*100);slider.value=String(percent);slider.setAttribute('aria-valuetext',`${percent}%`);onChange?.(current);return current;
+    current=clamp01(value);const percent=Math.round(current*100),visualTop=8+(100-percent)*.84;slider.value=String(percent);slider.setAttribute('aria-valuetext',`${percent}%`);knob.style.top=`${visualTop}%`;panel.dataset.value=String(percent);onChange?.(current);return current;
   };
   const input=()=>apply(Number(slider.value)/100);
   const toggle=()=>setOpen(!open);
