@@ -31,6 +31,7 @@ function fakeClient({ artifact = true, build = 'success', browser = 'failure' } 
           { name: 'Affected browser smoke', status: 'completed', conclusion: browser },
         ];
       }
+      if (path.endsWith('/statuses')) return [];
       throw new Error(`Unexpected pages route ${path} ${key || ''}`);
     },
   };
