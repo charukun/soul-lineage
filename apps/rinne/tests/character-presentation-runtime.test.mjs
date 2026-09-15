@@ -17,7 +17,7 @@ import {
 
 const here=dirname(fileURLToPath(import.meta.url)),rebuild=join(here,'../src/rebuild');
 
-test('main-game humanoids resolve through one audited Character Presentation asset',()=>{
+test('main-game humanoids resolve through one explicit DCC Character Presentation candidate',()=>{
   const state=createLife({seed:41});state.phase='living';state.ageSeconds=24*60;state.ageYears=24;
   const front=createFront(0,state.seed),hero=createRinneHeroCharacter(state),mother=createRinneMotherCharacter(state);
   const enemies=front.enemies.map((enemy,index)=>createRinneEnemyCharacter(enemy,{lifeSeed:state.seed,stage:0,index}));
@@ -25,13 +25,16 @@ test('main-game humanoids resolve through one audited Character Presentation ass
   assert.equal(new Set(ids).size,ids.length);
   assert.equal(RINNE_RUNTIME_CHARACTER_ASSET.procedural,false);
   assert.equal(RINNE_RUNTIME_CHARACTER_ASSET.productionReady,false);
-  assert.match(RINNE_RUNTIME_CHARACTER_ASSET.url,/SHINO_review\.vrm$/);
+  assert.equal(RINNE_RUNTIME_CHARACTER_ASSET.productionStage,'PRIMARY');
+  assert.equal(RINNE_RUNTIME_CHARACTER_ASSET.modelingMode,'dcc-blender');
+  assert.equal(RINNE_RUNTIME_CHARACTER_ASSET.visualApproval,'pending');
+  assert.match(RINNE_RUNTIME_CHARACTER_ASSET.url,/SHINO_REFERENCE_V2\.vrm$/);
   for(const actor of [hero,mother,...enemies]){
     const presentation=resolveRinneRuntimeCharacter({...actor,distance:1,visible:true,important:actor.kind==='hero'});
     assert.equal(presentation.app,'rinne');
     assert.equal(presentation.runtimeAsset.id,RINNE_RUNTIME_CHARACTER_ASSET.id);
     assert.equal(presentation.runtimeAsset.procedural,false);
-    assert.equal(presentation.productionAsset,null,'no unapproved asset may be promoted to RUNTIME_READY implicitly');
+    assert.equal(presentation.productionAsset,null,'PRIMARY DEV candidate must not be promoted to RUNTIME_READY implicitly');
   }
 });
 
