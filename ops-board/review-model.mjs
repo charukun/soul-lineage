@@ -17,9 +17,12 @@ export async function enrichTargets(pulls, client, storage, limit = 2, now = Dat
     const revision = targetRevision(pr);
     if (revision && saved?.revision === revision && saved.complete) {
       Object.assign(pr, { targetApps: saved.targets, targetAppsComplete: true, targetAppsStatus: 'ready', targetAppsUpdatedAt: saved.updatedAt });
+    } else if (pr.state !== 'open') {
+      // Historical rows keep existing attribution, but never spend API budget to backfill it.
+      pr.targetAppsStatus = 'skipped';
     } else pending.push({ pr, saved, revision });
   }
-  pending.sort((a, b) => Number(b.pr.state === 'open') - Number(a.pr.state === 'open') || (a.saved?.attemptAt || 0) - (b.saved?.attemptAt || 0));
+  pending.sort((a, b) => (a.saved?.attemptAt || 0) - (b.saved?.attemptAt || 0));
   let attempted = 0;
   for (const { pr, revision, saved } of pending) {
     if (!revision || attempted >= limit || client.available < 3 || !client.deepAllowed) continue;
