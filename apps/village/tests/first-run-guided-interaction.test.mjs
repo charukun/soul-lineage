@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('../src/mura-first-run-autoplay.js',import.meta.url),'utf8');
 const style=readFileSync(new URL('../src/mura-first-run-guide.css',import.meta.url),'utf8');
 const contract=readFileSync(new URL('../docs/FIRST_RUN_GUIDED_INTERACTION.md',import.meta.url),'utf8');
+const browser=readFileSync(new URL('./first-build.browser.mjs',import.meta.url),'utf8');
 
 test('first-run guide observes the real build gesture path instead of mutating the world',()=>{
  for(const required of [
@@ -53,4 +54,13 @@ test('first-run acceptance contract requires user input and no direct placement 
   '直接 `world.add` / `world.move` / `commitPlacement` を呼んで建築を成立させない',
   'Pixel Fold級',
  ])assert.ok(contract.includes(required),required);
+});
+
+test('browser placement gate enters the village before skipping the new guide',()=>{
+ assert.ok(browser.includes("page.locator('#muraFirstRunGuide')"));
+ assert.ok(browser.includes("page.locator('.muraFirstRunSkip')"));
+ assert.equal(browser.includes('#muraFirstRunTutorial'),false);
+ const enterTap=browser.indexOf('nativeTap(page,expect,enter)');
+ const finishGuide=browser.indexOf('finishFirstRunGuide(page,expect)');
+ assert.ok(enterTap>=0&&finishGuide>enterTap,{enterTap,finishGuide});
 });
