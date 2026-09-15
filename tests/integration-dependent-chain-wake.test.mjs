@@ -10,6 +10,7 @@ test('Fast Lane merge wakes one bounded Repair scan for newly-unblocked dependen
   assert.match(wake, /needs: \[integrate, repair\]/);
   assert.match(wake, /needs\.integrate\.outputs\.merged_count != '0'/);
   assert.match(wake, /permissions:[\s\S]*?actions: write/);
+  assert.match(wake, /permissions:[\s\S]*?contents: read/);
   assert.match(wake, /createWorkflowDispatch/);
   assert.match(wake, /workflow_id: 'deploy\.yml'/);
   assert.match(wake, /ref: 'develop'/);
