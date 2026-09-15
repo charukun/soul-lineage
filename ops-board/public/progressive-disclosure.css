@@ -1,0 +1,224 @@
+/* PULSE information hierarchy: make the first viewport answer "what is happening now?" on mobile. */
+.pulse-overview {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.section-tabs .overview-card {
+  display: flex;
+  min-height: 86px;
+  padding: 12px;
+  place-items: initial;
+  align-items: flex-start;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 14px;
+  text-align: left;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  transition: border-color .15s ease, background .15s ease, transform .08s ease;
+}
+.section-tabs .overview-publication-card {
+  grid-column: 1 / -1;
+  min-height: 154px;
+  padding: 13px 14px;
+  gap: 4px;
+  background: color-mix(in srgb, var(--panel-2) 88%, transparent);
+}
+.overview-card .overview-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .06em;
+}
+.overview-card strong {
+  display: block;
+  max-width: 100%;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.overview-publication-card > strong {
+  font-size: clamp(19px, 5.8vw, 23px);
+  line-height: 1.18;
+}
+.overview-detail {
+  display: block;
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.overview-publication-card .overview-detail {
+  font-size: 12px;
+  line-height: 1.45;
+}
+.overview-publication-availability {
+  margin-top: 1px;
+  font-size: 11px;
+  font-weight: 750;
+  white-space: normal;
+}
+.overview-publication-grid {
+  display: grid;
+  width: 100%;
+  gap: 5px;
+  margin-top: 6px;
+  padding-top: 7px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 76%, transparent);
+}
+.overview-publication-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.overview-step-label {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .04em;
+}
+.overview-publication-row #overview-app-eta {
+  font-weight: 850;
+}
+.overview-card.ok { border-color: color-mix(in srgb, var(--ok) 36%, var(--line)); }
+.overview-card.progress { border-color: color-mix(in srgb, var(--progress) 50%, var(--line)); }
+.overview-card.warning { border-color: color-mix(in srgb, var(--warning) 52%, var(--line)); }
+.overview-card.danger { border-color: color-mix(in srgb, var(--danger) 62%, var(--line)); background: color-mix(in srgb, var(--danger) 9%, var(--panel)); }
+.overview-card.info { border-color: var(--line); }
+
+.attention-section {
+  margin: 2px 0 14px;
+  padding: 0 2px;
+}
+.attention-section .section-head { margin-top: 8px; }
+
+.detail-zone {
+  margin-top: 16px;
+}
+.detail-zone-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 2px 8px;
+}
+.detail-zone-head h2 { font-size: 14px; }
+.detail-zone-kicker,
+.disclosure-kicker {
+  margin: 0;
+  color: #7f91aa;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.board-disclosure {
+  margin: 8px 0 0;
+  padding: 0;
+  overflow: clip;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  box-shadow: 0 8px 22px rgba(0,0,0,.09);
+}
+.board-disclosure > summary {
+  min-height: 64px;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+}
+.board-disclosure > summary::after {
+  content: '＋';
+  margin-left: 4px;
+  color: var(--muted);
+  font-size: 18px;
+}
+.board-disclosure[open] > summary::after { content: '−'; }
+.board-disclosure[open] > summary {
+  border-bottom: 1px solid var(--line);
+  background: rgba(255,255,255,.012);
+}
+.disclosure-heading {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.disclosure-heading strong {
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.disclosure-meta {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.board-disclosure-body {
+  padding: 12px;
+}
+.board-disclosure-body > .card:first-child { margin-top: 0; }
+
+.nested-disclosure {
+  margin-top: 10px;
+  padding: 0;
+  overflow: clip;
+  border: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+  border-radius: 13px;
+  background: rgba(8,12,18,.32);
+}
+.nested-disclosure > summary {
+  min-height: 52px;
+  padding: 9px 11px;
+  border: 0;
+  font-size: 12px;
+}
+.nested-disclosure > summary::after { margin-left: 4px; }
+.nested-disclosure[open] > summary { border-bottom: 1px solid color-mix(in srgb, var(--line) 78%, transparent); }
+.nested-disclosure-body { padding: 10px; }
+.nested-disclosure-body > .card + .card { margin-top: 10px; }
+
+.board-disclosure .diagnostics-section { margin-top: 0; }
+.board-disclosure .diagnostic-help { margin-bottom: 8px; }
+.board-disclosure .usage-guide { margin-top: 10px; }
+.board-disclosure .usage-guide ol { margin: 0; padding: 8px 10px 12px 28px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.board-disclosure .section-head { margin-top: 12px; }
+
+@media (max-width: 350px) {
+  .section-tabs .overview-card { min-height: 82px; padding: 10px; }
+  .section-tabs .overview-publication-card { min-height: 148px; padding: 12px; }
+  .overview-card strong { font-size: 15px; }
+  .overview-publication-card > strong { font-size: 19px; }
+  .overview-detail { font-size: 10px; }
+  .overview-publication-availability { font-size: 11px; }
+  .overview-publication-row { grid-template-columns: 80px minmax(0, 1fr); gap: 6px; font-size: 10px; }
+  .overview-step-label { font-size: 8px; }
+  .board-disclosure > summary { padding-inline: 11px; }
+  .disclosure-meta { max-width: 43%; }
+}
+
+@media (min-width: 620px) {
+  .section-tabs .overview-publication-card { min-height: 142px; }
+  .overview-publication-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .overview-publication-row { grid-template-columns: 78px minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .section-tabs .overview-card:active { transform: scale(.98); }
+}

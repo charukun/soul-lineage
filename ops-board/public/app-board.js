@@ -1,5 +1,5 @@
 import { subscribe } from './view-state.js';
-import { appHealth, appSummary } from './health.mjs';
+import { appHealth, appSummary, devPublicationProgress } from './health.mjs';
 const $ = selector => document.querySelector(selector);
 const fmt = new Intl.DateTimeFormat('ja-JP', { dateStyle: 'medium', timeStyle: 'short' });
 const el = (tag, className, text) => {
@@ -13,7 +13,9 @@ const DEFAULT_ICON = './icons/default.svg';
 const stateView = state => ({ success: ['公開中', 'ok'], deploying: ['更新中', 'progress'], waiting: ['公開待ち', 'warning'], failed: ['要対応', 'danger'], unknown: ['未確認', 'info'], missing: ['未公開', 'info'] })[state] || ['未確認', 'info'];
 const safeHref = value => { try { const u = new URL(value); return u.protocol === 'https:' ? u.href : null; } catch { return null; } };
 const time = value => { const d = Date.parse(value || ''); return Number.isFinite(d) ? `${fmt.format(d)}（端末時刻）` : '記録なし'; };
+const shortSha = value => value ? String(value).slice(0, 12) : '未確定';
 let currentApps = [];
+let currentProgress = null;
 let selectedApp = null;
 let returnFocusKey = null;
 
@@ -34,6 +36,28 @@ dialog.addEventListener('close', () => {
 function detailPair(root, title, value, mono = false) {
   root.append(el('dt', '', title), el('dd', mono ? 'sha' : '', value));
 }
+function progressRow(label, value) {
+  const row = el('div', 'app-progress-row');
+  row.append(el('span', 'app-progress-label', label), el('strong', '', value));
+  return row;
+}
+function progressPanel(progress, target) {
+  const panel = el('div', `app-update-progress ${progress.tone || 'info'}`);
+  panel.append(
+    progressRow('いま', progress.current),
+    progressRow('次', progress.next),
+    progressRow('確認できる目安', progress.eta),
+  );
+  if (target?.state === 'success' && safeHref(target.url)) {
+    panel.append(el('p', 'app-progress-note', 'いま公開中の版はそのまま開けます。これはDEV全体の更新で、このアプリに変更がなければ内容は変わりません。'));
+  }
+  const logUrl = safeHref(progress.logUrl);
+  if (logUrl && ['danger', 'warning'].includes(progress.tone)) {
+    const log = el('a', 'app-progress-log', '処理ログを見る ↗');
+    log.href = logUrl; log.target = '_blank'; log.rel = 'noreferrer'; panel.append(log);
+  }
+  return panel;
+}
 function fillDialog(app) {
   const scroll = dialog.scrollTop;
   dialogTitle.textContent = app.name || app.id;
@@ -43,13 +67,16 @@ function fillDialog(app) {
     const [label, tone] = stateView(target.state);
     section.append(el('h3', '', `${target.label || '公開先'} / ${label}`));
     const values = el('dl');
-    detailPair(values, '公開済みの版（SHA）', target.commit || '未確定', true);
+    detailPair(values, '現在見えている版（SHA）', target.commit || '未確定', true);
     detailPair(values, '公開日時', time(target.deployedAt));
     detailPair(values, '取得元', target.source || '取得元未記録');
-    if (target.updateState && target.updateState !== 'success') {
-      detailPair(values, '次の更新', stateView(target.updateState)[0]);
+    if (target.environment === 'dev' && currentProgress) {
+      detailPair(values, 'DEV全体の反映予定SHA', shortSha(currentProgress.nextCommit), true);
+    } else if (target.updateState && target.updateState !== 'success') {
+      detailPair(values, '更新状況', stateView(target.updateState)[0]);
     }
     section.append(values);
+    if (target.environment === 'dev' && currentProgress) section.append(progressPanel(currentProgress, target));
     if (target.note) section.append(el('p', 'empty', target.note));
     const url = safeHref(target.url);
     if (url) {
@@ -69,6 +96,15 @@ function iconFor(app) {
   image.addEventListener('error', () => { if (!image.src.endsWith('/icons/default.svg')) image.src = DEFAULT_ICON; }, { once: true });
   return image;
 }
+function compactProgress(progress) {
+  if (!progress) return null;
+  if (progress.state === 'failed') return 'DEV全体 · 公開で問題 · 自動復旧待ち';
+  if (progress.state === 'stalled') return 'DEV全体 · 公開遅延 · 通常目安を超過';
+  if (progress.state === 'reflecting') return 'DEV全体 · 公開済み · 反映確認中';
+  if (progress.state === 'waiting') return `DEV全体 · 公開開始待ち · ${progress.eta}`;
+  const remaining = String(progress.eta || '').match(/あと約\d+分目安/)?.[0];
+  return remaining ? `DEV全体 · 更新中 · ${remaining}` : `DEV全体 · 更新中 · ${progress.eta || '処理中'}`;
+}
 function targetSummary(target, app) {
   const [label, tone] = stateView(target.state);
   const url = safeHref(target.url);
@@ -80,9 +116,12 @@ function targetSummary(target, app) {
   const state = el('span', `mini-state ${tone}`);
   state.append(el('span', 'mini-dot'), el('span', '', label));
   top.append(el('strong', '', target.label || '公開先'), state); node.append(top);
-  if (target.state === 'success' && ['failed', 'deploying', 'waiting'].includes(target.updateState)) {
-    node.append(el('span', `app-update-note ${stateView(target.updateState)[1]}`,
-      target.updateState === 'failed' ? '次の更新に失敗' : target.updateState === 'deploying' ? '次の更新中' : '次の更新待ち'));
+  if (target.environment === 'dev' && currentProgress) {
+    const progress = compactProgress(currentProgress);
+    if (progress) node.append(el('span', `app-update-note ${currentProgress.tone || 'progress'}`, progress));
+  } else if (target.state === 'success' && ['failed', 'deploying', 'waiting'].includes(target.updateState)) {
+    const updateLabel = target.updateState === 'failed' ? '更新で問題' : target.updateState === 'deploying' ? '更新処理中' : '公開開始待ち';
+    node.append(el('span', `app-update-note ${stateView(target.updateState)[1]}`, updateLabel));
   }
   return node;
 }
@@ -107,8 +146,9 @@ function groupSection(title, items) {
   const grid = el('div', 'app-grid'); items.forEach(app => grid.append(appCard(app)));
   section.append(head, grid); return section;
 }
-function render(apps) {
+function render(apps, state) {
   currentApps = apps;
+  currentProgress = devPublicationProgress(state, Date.now());
   const root = $('#applications'); root.replaceChildren();
   $('#app-summary').textContent = appSummary(apps);
   if (!apps.length) { root.append(el('p', 'card empty', '管理対象アプリを確認できませんでした')); return; }
@@ -121,6 +161,6 @@ function render(apps) {
   }
 }
 subscribe((state, error) => {
-  if (state && !error) render(state.applications || []);
+  if (state && !error) render(state.applications || [], state);
   else if (!state) $('#applications').replaceChildren(el('p', 'card empty', 'アプリ情報を取得できません。上部の取得状態を確認してください。'));
 });

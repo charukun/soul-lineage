@@ -108,11 +108,14 @@ test('ready-body support blends through draw and guard seams without touching th
   assert.equal(readyBodyStrength({...base,weapon:'fist'}),0,'unarmed combat is outside this weapon stance layer');
 });
 
-test('the live humanoid entrypoint exports the natural-stance runtime',async()=>{
+test('the live humanoid entrypoint retains natural stance in the final runtime chain',async()=>{
   const stance=await stanceModule();
   const live=await import('../public/simulator/src/humanoid.js');
-  assert.equal(live.HumanoidRuntime,stance.HumanoidRuntime,'simulator import must not bypass stance correction');
-  assert.equal(Object.hasOwn(live.HumanoidRuntime.prototype,'sample'),true,'live runtime must naturalize the shared renderer/collision sampler');
+  let ctor=live.HumanoidRuntime,found=false;
+  while(typeof ctor==='function'&&ctor!==Function.prototype){if(ctor===stance.HumanoidRuntime){found=true;break;}ctor=Object.getPrototypeOf(ctor);}
+  assert.equal(found,true,'final simulator runtime must inherit the natural-stance correction layer');
+  assert.equal(Object.hasOwn(stance.HumanoidRuntime.prototype,'sample'),true,'natural-stance layer must still own its renderer/collision sampler correction');
+  assert.equal(typeof live.HumanoidRuntime.prototype.sample,'function','final runtime must expose the composed sampler');
 });
 
 test.after(()=>{delete globalThis.window;});

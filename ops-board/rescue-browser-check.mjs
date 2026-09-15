@@ -13,7 +13,7 @@ const publicRoot=resolve('ops-board/public');
 const server=createServer(async(req,res)=>{
   try {
     const path=new URL(req.url,'http://localhost').pathname;
-    if(path==='/api/state') {res.setHeader('content-type','application/json');res.end(JSON.stringify({repository:'charukun/soul-lineage',generatedAt:new Date().toISOString(),syncStatus:'ok',environments:[],applications:[],integration:{},pullRequests:{normal:[],visualReview:[]},integrationRescue:rescueView(fixture)}));return;}
+    if(path==='/api/state') {res.setHeader('content-type','application/json');res.end(JSON.stringify({repository:'charukun/soul-lineage',generatedAt:new Date().toISOString(),syncStatus:'ok',environments:[{id:'dev',deployState:'success',deployQueue:{commitsAhead:0}}],applications:[],integration:{queue:[]},pullRequests:{normal:[],visualReview:[]},integrationRescue:rescueView(fixture)}));return;}
     const file=resolve(publicRoot,'.'+(path==='/'?'/index.html':path));if(!file.startsWith(publicRoot+'/'))throw new Error('path');
     res.setHeader('content-type',({'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.svg':'image/svg+xml'})[extname(file)]||'application/octet-stream');res.end(await readFile(file));
   }catch{res.statusCode=404;res.end('not found');}
@@ -24,32 +24,85 @@ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,
 page.on('pageerror',e=>errors.push(e.message));
 page.on('request',r=>{if(new URL(r.url()).hostname==='api.github.com')errors.push('Browser called GitHub API');});
 const checks=[]; const check=(name)=>{checks.push(name);console.log('PASS '+name);};
+const openDisclosure=async key=>{
+  const details=page.locator(`details[data-disclosure="${key}"]`);
+  if(await details.count() && await details.getAttribute('open')===null) await details.locator(':scope > summary').click();
+  return details;
+};
 try{
-  await page.goto(base);await page.waitForSelector('.rs-worker-pool .rs-card');
-  assert.equal(await page.locator('#rescue-section h2').textContent(),'INTEGRATION RESCUE');
-  assert.match(await page.locator('.rs-workers-total').innerText(),/4 \/ 6 ACTIVE/);check('section and active count');
+  await page.goto(base);
+  await page.waitForSelector('#overview-task-card');
+  assert.equal(await page.locator('#tasks-section').getAttribute('open'),null);
+  await page.locator('#overview-task-card').click();
+  await openDisclosure('section:rescue');
+  await page.waitForSelector('.rs-summary');
+  assert.match(await page.locator('#rescue-section > summary').innerText(),/自動統合と修復/);
+  const flowText=await page.locator('#integration-flow').innerText();
+  assert.match(flowText,/FAST LANE[\s\S]*FAST CHECK[\s\S]*MERGE LANE[\s\S]*MERGED → DEV[\s\S]*REPAIR/);
+  assert.match(flowText,/あなたの判断が必要なPR|あなたの操作は不要/);
+  assert.match(flowText,/browser・DEV公開・Repairは後追い/);
+  assert.doesNotMatch(flowText,/BURN_DOWN|p95|Virtual Train|Auto tuning|主な詰まり/);
+  const flowDetails=page.locator('details[data-disclosure="flow:technical"]');
+  assert.equal(await flowDetails.getAttribute('open'),null);check('Fast Lane summary hides legacy traffic jargon by default');
+  await openDisclosure('flow:technical');
+  assert.match(await flowDetails.innerText(),/履歴: Draft→Ready[\s\S]*過去の遅いケース/);
+  assert.match(await flowDetails.innerText(),/旧Virtual Train診断/);check('legacy diagnostics remain available only on demand');
+
+  const summaryText=await page.locator('.rs-summary').innerText();
+  assert.match(summaryText,/REPAIR LANE/);
+  assert.doesNotMatch(summaryText,/INTEGRATION RESCUE/);
+  assert.match(summaryText,/4 \/ 6/);
+  assert.equal(await page.locator('.rs-summary-live-item').count(),3);check('repair summary is separate from Fast Lane and keeps bounded NOW list');
+
+  const drilldown=await openDisclosure('rescue:details');
+  assert.equal(await drilldown.getAttribute('open'),'');
+  await openDisclosure('rescue:metrics');
+  await openDisclosure('rescue:workers');
+  await page.waitForSelector('.rs-worker-pool .rs-card',{state:'visible'});
+  assert.match(await page.locator('.rs-workers-total').innerText(),/4 \/ 6 ACTIVE/);check('full repair metrics disclosure');
   assert.equal(await page.locator('.rs-worker-pool .rs-card').count(),5);
-  assert.match(await page.locator('.rs-card[data-pr="124"]').innerText(),/1400\/pr-124\/a1[\s\S]*VALIDATING/);check('real worker IDs and validation stage');
-  const technical=page.locator('details[data-disclosure="rescue:technical"]');
-  await technical.locator(':scope > summary').click();
-  assert.equal(await technical.getAttribute('open'),'');
+  const validatingCard=await page.locator('.rs-card[data-pr="124"]').innerText();
+  assert.match(validatingCard,/1400\/pr-124\/a1/);
+  assert.match(validatingCard,/検証中[\s\S]*VALIDATE/);check('real worker IDs and validation stage');
+
+  await openDisclosure('rescue:waves');
   assert.match(await page.locator('.rs-wave-list').innerText(),/wave-14[\s\S]*#125.*#120/);check('wave and dependency order');
-  assert.match(await page.locator('.rs-queue').innerText(),/#125 WAITING FOR #120[\s\S]*FAILED_RETRYABLE/);check('queue, blocked reason and retry');
-  assert.match(await page.locator('.rs-manual-list').innerText(),/save schema[\s\S]*(?:Human decision required|Manual hold|人の判断が必要)/);check('manual failure visible');
+  await openDisclosure('rescue:queue');
+  const queueText=await page.locator('details[data-disclosure="rescue:queue"] .rs-queue').innerText();
+  assert.match(queueText,/#125 WAITING FOR #120/);
+  assert.match(queueText,/#140[\s\S]*再試行待ち/);check('repair queue, blocked reason and retry');
+
+  const human=page.locator('details[data-disclosure="rescue:human"]');
+  const hold=page.locator('details[data-disclosure="rescue:manual-hold"]');
+  if(await human.count()) await openDisclosure('rescue:human');
+  if(await hold.count()) await openDisclosure('rescue:manual-hold');
+  assert.match(await page.locator('.rs-manual-list').first().innerText(),/save schema[\s\S]*(?:Human decision required|Manual hold|人の判断が必要)/);check('manual repair failure visible');
   assert.match(await page.locator('.rs-stale').innerText(),/WORKER STALE[\s\S]*Heartbeat 12m/);check('stale heartbeat visible');
   assert.equal(await page.locator('.rs-card[data-pr="120"] .rs-card-head a').getAttribute('href'),'https://github.com/charukun/soul-lineage/pull/120');
+
+  await openDisclosure('rescue:recent');
   assert.equal(await page.locator('.rs-recent .rs-card[data-pr="119"] a[href*="/commit/"]').getAttribute('href'),'https://github.com/charukun/soul-lineage/commit/'+'d'.repeat(40));check('PR and resolution commit links');
-  assert.match(await page.locator('.rs-throughput').innerText(),/Rescued 2.*Merged 1/);check('throughput and post-Rescue merge tracking');
+  await openDisclosure('rescue:throughput');
+  assert.match(await page.locator('.rs-throughput').innerText(),/Rescued 2.*Merged 1/);check('repair throughput and post-Rescue merge tracking');
+  await openDisclosure('rescue:activity');
   assert.match(await page.locator('.rs-activity').innerText(),/Recovered by/);check('recovery activity');
-  const details=page.locator('.rs-card[data-pr="120"] details');await details.locator('summary').click();
+
+  const cardDetails=page.locator('.rs-card[data-pr="120"] details');await cardDetails.locator('summary').click();
   await page.locator('#reload').click();await page.waitForFunction(()=>!document.querySelector('#reload').disabled);
-  assert.equal(await page.locator('.rs-card[data-pr="120"] details').getAttribute('open'),'');check('disclosure survives snapshot refresh');
+  assert.equal(await page.locator('details[data-disclosure="section:tasks"]').getAttribute('open'),'');
+  assert.equal(await page.locator('details[data-disclosure="section:rescue"]').getAttribute('open'),'');
+  assert.equal(await page.locator('details[data-disclosure="flow:technical"]').getAttribute('open'),'');
+  assert.equal(await page.locator('details[data-disclosure="rescue:details"]').getAttribute('open'),'');
+  assert.equal(await page.locator('details[data-disclosure="rescue:workers"]').getAttribute('open'),'');
+  assert.equal(await page.locator('.rs-card[data-pr="120"] details').getAttribute('open'),'');check('drilldown and card disclosure survive snapshot refresh');
+
   for(const width of [320,390,673,1100]){
-    await page.setViewportSize({width,height:844});await page.locator('a[href="#rescue-section"]').click();await page.waitForTimeout(200);
+    await page.setViewportSize({width,height:844});await openDisclosure('section:tasks');await openDisclosure('section:rescue');await page.waitForTimeout(200);
     const dimensions=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
     assert.ok(dimensions.scroll<=width+1,JSON.stringify(dimensions));
     await page.screenshot({path:`${out}/rescue-${width}.png`});check(`mobile/desktop no overflow ${width}px`);
   }
+
   fixture.records[119].mode='reevaluate';
   Object.assign(fixture.records[118],{attempt:0,rescueId:null,claimedBy:null,returnedAt:null,state:'DEV',currentStep:'DEV'});
   event(fixture,fixture.records[118],'DEV','DEV observed without Rescue repair',Date.now());
@@ -63,8 +116,9 @@ try{
   assert.doesNotMatch(await page.locator('.rs-card[data-pr="118"] .rs-rail').innerText(),/PUSH|RETURN/);
   assert.match(await page.locator('.rs-card[data-pr="199"]').innerText(),/commit準備済み・push待ち/);
   check('observed delivery, reevaluation and staged commits do not imply repair success');
-  fixture=rescueFixture(Date.now(),true);await page.locator('#reload').click();await page.waitForFunction(()=>document.querySelector('.rs-status')?.textContent==='ALL CLEAR');
-  assert.match(await page.locator('.rs-workers-total').innerText(),/0 \/ 6 ACTIVE/);assert.equal(await page.locator('.rs-worker-pool .rs-card').count(),0);check('normal empty ALL CLEAR');
+
+  fixture=rescueFixture(Date.now(),true);await page.locator('#reload').click();await page.waitForFunction(()=>document.querySelector('.rs-summary-status strong')?.textContent==='ALL CLEAR');
+  assert.match(await page.locator('.rs-summary').innerText(),/0 \/ 6/);assert.equal(await page.locator('.rs-worker-pool .rs-card').count(),0);check('normal empty ALL CLEAR');
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:`${out}/empty-390.png`});
   assert.deepEqual(errors,[]);
   await writeFile(`${out}/report.json`,JSON.stringify({result:'success',checks,errors},null,2));

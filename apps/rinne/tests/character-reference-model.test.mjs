@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const main = readFileSync(new URL('../src/character-review-main.js', import.meta.url), 'utf8');
 const workspace = readFileSync(new URL('../src/character-workspace.js', import.meta.url), 'utf8');
+const review = readFileSync(new URL('../src/character-review.js', import.meta.url), 'utf8');
 
 test('Character Workshop builds selectable model controls from the shared catalog', () => {
   assert.match(main, /CHARACTER_REFERENCE_MODELS/);
@@ -17,4 +18,22 @@ test('reference model selection stays review-only and is scoped to the selected 
   assert.match(workspace, /selectedReference/);
   assert.match(workspace, /actor\.id === selectedId/);
   assert.match(workspace, /modelId = null/);
+});
+
+test('Character Workshop exports a provider-neutral model build request for the selected reference', () => {
+  assert.match(main, /createCharacterModelBuildRequest/);
+  assert.match(main, /モデル生成仕様JSON/);
+  assert.match(main, /data-character-build-request|characterBuildRequest/);
+  assert.match(main, /model-build-request\.json/);
+  assert.match(workspace, /downloadWorkspace\(text, filename = 'shino-workspace\.json'\)/);
+});
+
+
+test('DCC reference model loads its authored VRM through exact integrity audit', () => {
+  assert.match(review, /auditCharacterRuntimeDocument/);
+  assert.match(review, /referenceRuntimeSource/);
+  assert.match(review, /loadReferenceModel/);
+  assert.match(workspace, /loadReferenceModel/);
+  assert.match(workspace, /loadDefaultModel/);
+  assert.match(workspace, /referenceModel\?\.kind === 'dcc-character-model'/);
 });

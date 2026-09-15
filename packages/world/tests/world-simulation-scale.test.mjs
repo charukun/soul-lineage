@@ -34,3 +34,17 @@ test('incremental journal patches id arrays without replacing unrelated entities
 test('journal rejects revision gaps and requests compaction at bounded entry count',()=>{
  assert.throws(()=>replayJournal({}, {version:1,baseRevision:1,entries:[{revision:3,ops:[]}]},{baseRevision:1}),/revision gap/);const journal={version:1,baseRevision:0,entries:Array.from({length:24},(_,i)=>({revision:i+1,ops:[]}))};assert.equal(shouldCompactJournal(journal),true);
 });
+
+test('journal round-trips entity order, insertions, removals and duplicate IDs exactly',()=>{
+ const before={people:[{id:'a',hp:10},{id:'b',hp:20},{id:'c',hp:30}]};
+ const rows=Object.fromEntries(before.people.map(row=>[row.id,row]));
+ for(const ids of [['c','b','a'],['new','a','b','c'],['a','new','b','c'],['b','c','new'],['c','new','a'],['a','a','b']]) {
+  const after={people:ids.map(id=>structuredClone(rows[id]||{id,hp:40}))};
+  const ops=createIncrementalPatch(before,after);
+  assert.deepEqual(applyIncrementalPatch(before,ops),after,ids.join(','));
+  const journal=appendJournalEntry({version:1,baseRevision:3,entries:[]},{revision:4,updatedAt:1,ops});
+  assert.deepEqual(replayJournal(before,journal,{baseRevision:3}).payload,after);
+ }
+ const duplicates={people:[{id:'a',hp:1},{id:'a',hp:2}]},unique={people:[{id:'a',hp:3}]};
+ assert.deepEqual(applyIncrementalPatch(duplicates,createIncrementalPatch(duplicates,unique)),unique);
+});

@@ -33,6 +33,9 @@ export function createConservativeOcclusionCuller({ maxChecksPerUpdate = 8, minD
 
   function blocked(camera, object, occluders) {
     camera.getWorldPosition(cameraPosition);
+    // Raycaster#set configures only the ray. Recursive occluder groups may
+    // contain Sprites, whose raycast contract also requires the active camera.
+    raycaster.camera = camera;
     const samples = candidateSamples(object);
     if (!samples.length) return false;
     object.getWorldPosition(center);
@@ -47,6 +50,10 @@ export function createConservativeOcclusionCuller({ maxChecksPerUpdate = 8, minD
       if (!hits.some(hit => hit.object?.visible !== false)) return false;
     }
     return true;
+  }
+
+  function snapshot() {
+    return Object.freeze({ tested, hidden, visible, cursor });
   }
 
   return {
@@ -82,6 +89,6 @@ export function createConservativeOcclusionCuller({ maxChecksPerUpdate = 8, minD
         if (object && row?.ownedHidden) { object.visible = streamAllows(object); row.ownedHidden = false; row.blocked = 0; if (object.userData) object.userData.occluded = false; }
       }
     },
-    snapshot() { return Object.freeze({ tested, hidden, visible, cursor }); },
+    snapshot,
   };
 }

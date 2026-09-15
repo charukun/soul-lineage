@@ -47,8 +47,15 @@ try {
   await import('./mura-patch.js');
   await import('./runtime-scale-stack.js');
   const { boot } = await import('./web/main.js');
-  await boot({ onProgress(value, text) { progress.value = value; message.textContent = text; } });
+  await boot({
+    onProgress(value, text) { progress.value = value; message.textContent = text; },
+  });
+  // Preserve the single enhancement graph introduced on develop. Retired
+  // entries are side-effect-free compatibility modules after consolidation.
   await import('./mura-enhancements.js');
+  const {installInterface}=await import('./web/interface.js');
+  installInterface(window.village);
+  await import('./mura-village-visual-language.js');
   clearTimeout(watchdog);
   finished = true;
   progress.value = 100;

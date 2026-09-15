@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   claimForWork,
   onBrowserFailure,
@@ -72,4 +73,13 @@ test('machine marker round-trips without duplicating blocks', () => {
   const twice = replaceRepairState(once, { ...state, state: 'working' });
   assert.equal((twice.match(/browser-repair:v1/g) || []).length, 1);
   assert.equal(parseRepairState(twice).state, 'working');
+});
+
+test('late PR browser failure is promoted to current develop repair instead of being discarded after merge', () => {
+  const recorder = readFileSync('scripts/browser-repair-ticket.mjs', 'utf8');
+  assert.match(recorder, /currentDevelopContainingMergedPr/);
+  assert.match(recorder, /promotedFromPrHead/);
+  assert.match(recorder, /scope = 'develop'/);
+  assert.match(recorder, /sourceKey.*develop:/s);
+  assert.doesNotMatch(recorder, /automatic normal merges paused/i);
 });

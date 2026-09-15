@@ -39,7 +39,8 @@ test('renderer and visible shell remain isolated from game saves and authority',
   assert.match(main, /本編・セーブ・通信には接続しません/);
 });
 test('model audit, bounded loads and GPU recovery are preserved', () => {
-  assert.match(engine, /new URL\('\.\/simulator\/assets\/SHINO_review\.vrm', location\.href\)/);
+  assert.match(engine, /new URL\(path, location\.href\)/);
+  assert.match(engine, /modelBytes\('\.\/simulator\/assets\/SHINO_review\.vrm'\)/);
   assert.ok(engine.indexOf('auditShinoDocument(json, hash)') < engine.indexOf('new GLTFLoader().parseAsync(bytes'));
   for (const expression of [/if \(!audit\.approved\) throw/, /length > MAX_MODEL_BYTES/, /file\.size > MAX_SESSION_BYTES/, /webglcontextlost/, /webglcontextrestored/]) assert.match(engine, expression);
 });

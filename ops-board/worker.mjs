@@ -5,8 +5,13 @@ import { degradedState } from './fallback-state.mjs';
 import { boardAlerts } from './public/health.mjs';
 export { buildState } from './collector.mjs';
 const STATE_KEY = 'ops-state-v2';
+const EVENT_REASONS = new Set(['prime', 'pr-event', 'integration', 'deployment']);
 function json(data, status = 200) { return new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } }); }
 function publicState(state, env) { return state ? { ...state, buildCommit: env.OPS_BUILD_SHA || null, alerts: boardAlerts(state) } : state; }
+function eventReason(request) {
+  const reason = (request.headers.get('x-ops-refresh-reason') || '').trim().toLowerCase();
+  return EVENT_REASONS.has(reason) ? `github-event:${reason}` : 'github-event';
+}
 
 export class OpsState extends DurableObject {
   constructor(ctx, env) { super(ctx, env); this.ctx = ctx; this.env = env; this.inflight = null; this.inflightAuthenticated = false; }
@@ -28,7 +33,7 @@ export class OpsState extends DurableObject {
   async refresh(source = 'manual', requestToken = '') {
     if (this.inflight) {
       if (!requestToken || this.inflightAuthenticated) return this.inflight;
-      // Do not mistake an anonymous Cron result for the explicitly authenticated prime.
+      // Do not mistake an anonymous Cron result for the explicitly authenticated prime/event refresh.
       await this.inflight.catch(() => {});
       return this.refresh(source, requestToken);
     }
@@ -38,7 +43,7 @@ export class OpsState extends DurableObject {
       try {
         // An Actions token is used for this request only, never persisted or sent to browsers.
         const token = requestToken || this.env.OPS_GITHUB_TOKEN || '';
-        const state = await buildState(previous, { storage: this.ctx.storage, token });
+        const state = await buildState(previous, { storage: this.ctx.storage, token, reason: source });
         state.refreshReason = source;
         await writeStored(this.ctx.storage, STATE_KEY, state);
         return state;
@@ -69,7 +74,7 @@ export default {
         const token = request.headers.get('x-ops-github-token') || '';
         if (token.length > 1024) return json({ error: 'invalid_credential' }, 400);
         const stub = env.OPS_STATE.getByName('global');
-        return json(publicState(await stub.refresh('github-event', token), env));
+        return json(publicState(await stub.refresh(eventReason(request), token), env));
       }
       if (url.pathname === '/api/rescue-observation' && request.method === 'POST') {
         if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
