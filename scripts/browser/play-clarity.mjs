@@ -1,3 +1,4 @@
+import {nativeTap} from '@soul/platform-web/testing/native-input';
 /** Native UI regressions shared by candidate and deployed DEV checks. */
 export async function verifySoloClarity(page, frame, expect, testInfo) {
   const snapshot = () => frame.evaluate(() => { const s=window.__ATELIER__.snapshot();return {paused:s.paused,time:s.time,age:s.life.ageYears}; });
@@ -30,23 +31,23 @@ export async function verifyHuntClarity(page, expect, testInfo) {
   await expect(page.locator('#online-open')).toHaveCount(0);
   await expect(page.locator('.soul-music [data-open]')).toBeHidden();
   const bounds=await page.locator('#pause').boundingBox();expect(bounds.width).toBeGreaterThanOrEqual(44);expect(bounds.height).toBeGreaterThanOrEqual(44);
-  await page.locator('#pause').click();
+  await nativeTap(page, expect, page.locator('#pause'));
   await assertHuntGuideState(page, expect, false);
   // Friend visits use Village invitations; normal hunts expose no player-village entry.
   await expect(page.locator('#online-settings')).toHaveCount(0);
   await expect(page.locator('#online-box')).toHaveCount(0);
   await expect(page.locator('#sheet')).toBeVisible();
-  await page.locator('#music-library').click();
+  await nativeTap(page, expect, page.locator('#music-library'));
   const time=await page.evaluate(()=>window.__NIGHT_HUNT__.snapshot().time);
   await page.waitForTimeout(350);expect(await page.evaluate(()=>window.__NIGHT_HUNT__.snapshot().time)).toBe(time);
-  await page.locator('.soul-music form button').click();
+  await nativeTap(page, expect, page.locator('.soul-music form button'));
   await expect(page.locator('#sheet')).toBeVisible();
-  await page.locator('#sheet-close').click();
-  await page.locator('#scent').click();
+  await nativeTap(page, expect, page.locator('#sheet-close'));
+  await nativeTap(page, expect, page.locator('#scent'));
   await expect(page.locator('#scent')).toBeDisabled();
-  await page.locator('#pause').click();
+  await nativeTap(page, expect, page.locator('#pause'));
   await assertHuntGuideState(page, expect, true);
-  await page.locator('#sheet-close').click();
+  await nativeTap(page, expect, page.locator('#sheet-close'));
   await page.screenshot({path:testInfo.outputPath('first-hunt-guide.png')});
 }
 
