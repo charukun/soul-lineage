@@ -36,6 +36,11 @@ function transparencyAudit(view) {
   return combineTransparencyAudits([view.environment,view.actors,view.reaper?.root].filter(Boolean).map(root=>auditTransparency(root)));
 }
 
+function performanceScene(view) {
+  const actors=view.actors?.children?.length||0,environmentRoots=view.environment?.children?.length||0,reaper=Boolean(view.reaper?.root),staticBatches=view.environment?.children?.filter?.(child=>child.userData?.staticBatch)?.length||0;
+  return Object.freeze({id:'demon-first-village-v1',actors,environmentRoots,reaper,staticBatches,signature:`a${actors}-e${environmentRoots}-r${reaper?1:0}-b${staticBatches}`});
+}
+
 function apply(view,snapshot) {
   const q=snapshot.profile; view.__stylizedQuality=snapshot;
   const base=view.__stylizedBasePixelRatio ?? (view.__stylizedBasePixelRatio=view.renderer.getPixelRatio());
@@ -68,7 +73,7 @@ function governorFor(view) {
   const gpu=createGpuTimer(view.renderer),recorder=createPerformanceRecorder({label:'demon'}),occlusion=createConservativeOcclusionCuller({maxChecksPerUpdate:6,minDistance:18,hiddenConfirmations:2});
   const governor=createGpuAwareQualityGovernor({targetFps:isMobileTarget()?30:60,onChange:s=>apply(view,s)});
   const state={governor,streamer,gpu,recorder,occlusion,occlusionFrame:0,transparencyFrame:0,transparency:combineTransparencyAudits([]),staticBatch:null,stream:null};governors.set(view,state);markCritical(view);apply(view,governor.snapshot());
-  if(typeof window!=='undefined')window.__DEMON_ADAPTIVE_QUALITY__={snapshot:()=>({quality:governor.snapshot(),gpu:gpu.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),transparency:state.transparency,staticBatch:state.staticBatch?{batches:state.staticBatch.batches,instances:state.staticBatch.instances}:null,stream:state.stream,vfx:view.stylizedVfxBudget,textureBytes:view.__estimatedTextureBytes||0})};
+  if(typeof window!=='undefined')window.__DEMON_ADAPTIVE_QUALITY__={snapshot:()=>({quality:governor.snapshot(),gpu:gpu.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),transparency:state.transparency,scene:performanceScene(view),staticBatch:state.staticBatch?{batches:state.staticBatch.batches,instances:state.staticBatch.instances}:null,stream:state.stream,vfx:view.stylizedVfxBudget,textureBytes:view.__estimatedTextureBytes||0})};
   return state;
 }
 
