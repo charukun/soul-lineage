@@ -15,7 +15,7 @@ export function installReviewUX({reviewPresets,reviewWeapons}){
     @media(max-width:430px){.model-picker-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:8px}.model-picker-item{min-height:104px;grid-template-rows:54px auto;padding:7px}.model-picker-portrait{width:50px;height:50px}}
   `;
   document.head.append(style);
-  if(!q('.review-library-nav')){const nav=document.createElement('nav');nav.className='review-library-nav';nav.setAttribute('aria-label','参考資料');const reference=document.createElement('a');reference.className='review-reference-link';reference.href='./references.html';reference.textContent='参考';reference.setAttribute('aria-label','キャラクター参考資料を開く');nav.append(reference);q('.topbar')?.append(nav);}
+  if(!q('.review-library-nav')){const nav=document.createElement('nav');nav.className='review-library-nav';nav.setAttribute('aria-label','レビュー資料');const growth=document.createElement('a');growth.className='review-reference-link';growth.href='./growth-review.html';growth.textContent='成長';growth.setAttribute('aria-label','成長モデル確認を開く');const reference=document.createElement('a');reference.className='review-reference-link';reference.href='./references.html';reference.textContent='参考';reference.setAttribute('aria-label','キャラクター参考資料を開く');nav.append(growth,reference);q('.topbar')?.append(nav);}
   const preset=q('#preset'),strip=q('.model-strip');
   if(strip&&preset){
     const trigger=document.createElement('button');trigger.type='button';trigger.className='model-select-trigger';trigger.textContent='キャラ: Sendagaya Shino';strip.append(trigger);

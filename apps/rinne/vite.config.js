@@ -13,6 +13,7 @@ config.build = {
       review: resolve(appRoot, 'review.html'),
       battleReview: resolve(appRoot, 'battle-review.html'),
       motionLibrary: resolve(appRoot, 'motion-library.html'),
+      growthReview: resolve(appRoot, 'growth-review.html'),
     },
   },
 };

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <meta name="theme-color" content="#152a2b"/>
+  <link rel="icon" href="./review-icons/app-icon.svg" type="image/svg+xml"/>
+  <title>成長モデル確認 | 輪廻転焦 Visual Review Lab</title>
+</head>
+<body>
+<main class="growth-shell">
+  <header class="topbar growth-topbar">
+    <div class="title"><strong>Visual Review Lab</strong><span id="growth-build-label">GROWTH MODEL</span></div>
+    <nav class="review-library-nav growth-nav" aria-label="レビュー画面"><a class="review-reference-link" href="./references.html">参考</a><button class="review-reference-link" id="growth-back" type="button">技帳へ戻る</button></nav>
+  </header>
+
+  <section class="growth-viewport">
+    <canvas id="growth-canvas"></canvas>
+    <div class="stage-header growth-stage-header"><span class="eyebrow">GROWTH REVIEW</span><strong id="growth-stage-name">22.0歳 / 青年期</strong><span id="growth-stage-meta">同一人物の成長を世界時間で確認</span></div>
+    <div class="growth-hud"><span class="badge" id="growth-source">モデルを読み込み中</span><span class="badge" id="growth-status" role="status">準備中</span></div>
+  </section>
+
+  <aside class="growth-panel">
+    <div class="growth-panel-head"><div><span class="growth-kicker">WORLD TIME</span><h1>成長モデル</h1></div><div class="growth-age"><strong id="growth-age">22.0</strong><span>歳</span></div></div>
+
+    <section class="growth-card growth-model-card">
+      <div class="growth-section-title"><strong>モデル</strong><span>Lab共通候補</span></div>
+      <button id="growth-model-trigger" class="growth-model-trigger" type="button"><img id="growth-model-thumb" src="./simulator/assets/portrait_SHINO.webp" alt=""/><span><strong id="growth-model-name">Sendagaya Shino</strong><small id="growth-model-label">SHINO</small></span><b aria-hidden="true">⌄</b></button>
+    </section>
+
+    <section class="growth-card timeline-card">
+      <div class="growth-section-title"><strong>世界時間</strong><output id="growth-world-time">22:00 / 90:00</output></div>
+      <input id="growth-seek" type="range" min="0" max="5400" step="1" value="1320" aria-label="世界時間を移動"/>
+      <div class="timeline-legend"><span>誕生</span><span>60秒 = 1年</span><span>90歳</span></div>
+      <div class="growth-probes" role="group" aria-label="年齢の固定確認点">
+        <button type="button" data-age="4"><strong>4</strong><span>幼少</span></button>
+        <button type="button" data-age="12"><strong>12</strong><span>少年</span></button>
+        <button type="button" data-age="22" class="active"><strong>22</strong><span>青年</span></button>
+        <button type="button" data-age="50"><strong>50</strong><span>壮年</span></button>
+        <button type="button" data-age="75"><strong>75</strong><span>老年</span></button>
+      </div>
+    </section>
+
+    <section class="growth-card">
+      <div class="growth-section-title"><strong>変化</strong><span id="growth-period">青年期</span></div>
+      <div class="growth-metrics">
+        <div><span>身長比</span><strong id="metric-scale">100%</strong><i><b id="bar-scale"></b></i></div>
+        <div><span>頭部比</span><strong id="metric-head">100%</strong><i><b id="bar-head"></b></i></div>
+        <div><span>白髪</span><strong id="metric-gray">0%</strong><i><b id="bar-gray"></b></i></div>
+        <div><span>前傾</span><strong id="metric-stoop">0%</strong><i><b id="bar-stoop"></b></i></div>
+        <div><span>肌年齢</span><strong id="metric-skin">0%</strong><i><b id="bar-skin"></b></i></div>
+      </div>
+    </section>
+
+    <section class="growth-card">
+      <div class="growth-section-title"><strong>視点</strong><span>固定比較</span></div>
+      <div class="growth-views" role="group" aria-label="成長モデルの視点">
+        <button type="button" data-growth-view="front">正面</button>
+        <button type="button" data-growth-view="three" class="active">斜め</button>
+        <button type="button" data-growth-view="side">横</button>
+        <button type="button" data-growth-view="back">背面</button>
+        <button type="button" data-growth-view="face">顔</button>
+      </div>
+      <p class="growth-note">同じカメラ・照明・実モデルで比較します。この画面だけではProduction stageやVisual Approvalは変更しません。</p>
+    </section>
+  </aside>
+</main>
+
+<div id="growth-model-picker" class="growth-model-picker" hidden>
+  <section class="growth-model-sheet" role="dialog" aria-modal="true" aria-labelledby="growth-model-picker-title">
+    <header><strong id="growth-model-picker-title">成長を確認するモデル</strong><button id="growth-model-close" type="button">閉じる</button></header>
+    <div id="growth-model-list" class="growth-model-list"></div>
+  </section>
+</div>
+
+<script type="module" src="./src/review/growth-review.js"></script>
+</body>
+</html>
