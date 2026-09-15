@@ -76,3 +76,7 @@ DEV publicationは各Fast Lane pass後に最新develop SHAへ明示dispatchさ�
 7. Browser/DEV repair/publication中でも新しい独立Ready PRはFast Laneへ入れる。
 8. main / Production gate、review/hold/thread/dependency gate、exact-head validationを弱めない。
 9. 追加OpenAI API/PAT/有料fallbackをRepositoryの通常制御面へ追加しない。
+
+## Ready CI failureの修復契約
+
+Ready PRのcurrent exact-head `Validate and build` が失敗した場合も、失敗run/jobを特定して既存Deep Repair Issueへ送る。CI完了後にIntegrationをwakeし、開始時点の観測だけで停止させない。成功したobservation/Draft run、旧head、実行中・skippedの検証は失敗の根拠にしない。hold/review/thread/dependency、exact-head gate、Issueのclaim/attempt制限を維持し、独立PRのIntegrationは継続する。
