@@ -10,8 +10,8 @@ if (source.includes(importLine)) {
 }
 
 function replaceOnce(label, pattern, replacement) {
-  const matches = source.match(pattern);
-  if (!matches) throw new Error(`Migration anchor missing: ${label}`);
+  const found = typeof pattern === 'string' ? source.includes(pattern) : pattern.test(source);
+  if (!found) throw new Error(`Migration anchor missing: ${label}`);
   source = source.replace(pattern, replacement);
 }
 
