@@ -15,9 +15,10 @@ test('camera seek keeps the existing default view while allowing near and far po
   assert.deepEqual(cameraOffsetForPosition(4),[15,18.5,21]);
 });
 
-test('camera control keeps a persistent camcorder icon and renders its own readable rail and knob',()=>{
-  assert.match(control,/camera-position-trigger/);assert.match(control,/dataset\.icon='camcorder'/);assert.match(control,/<rect x="3\.5"/);assert.match(control,/M15 10\.1 20\.5 7\.8v8\.4L15 13\.9Z/);assert.doesNotMatch(control,/<circle cx="12" cy="13\.1"/);
-  assert.match(control,/camera-position-rail/);assert.match(control,/camera-position-knob/);assert.match(control,/knob\.style\.top/);assert.match(control,/panel\.hidden=true/);assert.match(control,/button\.addEventListener\('click'/);
-  assert.match(css,/top:max\(54px/);assert.match(css,/width:44px;height:44px/);assert.match(css,/\.camera-position-trigger svg\{width:19px;height:17px/);assert.match(css,/\.camera-position-trigger:disabled\{opacity:\.62/);assert.match(css,/\.camera-position-panel\{[\s\S]*background:transparent;border:0;box-shadow:none/);assert.match(css,/\.camera-position-rail\{/);assert.match(css,/\.camera-position-knob\{/);assert.match(css,/opacity:0/);assert.doesNotMatch(css,/\.camera-position-panel\{[\s\S]{0,220}linear-gradient/);
+test('camera control is one persistent rail whose moving thumb is the camcorder itself',()=>{
+  assert.doesNotMatch(control,/camera-position-trigger/);assert.doesNotMatch(control,/camera-position-knob/);assert.doesNotMatch(control,/panel\.hidden=true/);assert.doesNotMatch(control,/button\.addEventListener/);
+  assert.match(control,/camera-position-rail/);assert.match(control,/camera-position-thumb/);assert.match(control,/thumb\.dataset\.icon='camcorder'/);assert.match(control,/<rect x="3" y="6\.4"/);assert.match(control,/M17\.5 9\.4 24\.5 6\.8v10\.4l-7-2\.6Z/);assert.match(control,/thumb\.style\.top/);
+  assert.match(control,/slider\.disabled=combat/);assert.match(control,/aria-disabled/);
+  assert.match(css,/top:max\(54px/);assert.match(css,/width:44px;height:44px/);assert.match(css,/\.camera-position-panel\{[\s\S]*height:94px[\s\S]*background:transparent;border:0;box-shadow:none/);assert.match(css,/\.camera-position-rail\{/);assert.match(css,/\.camera-position-thumb\{/);assert.match(css,/\.camera-position-thumb svg\{/);assert.match(css,/opacity:0/);assert.doesNotMatch(css,/\.camera-position-trigger/);assert.doesNotMatch(css,/\.camera-position-knob/);
   assert.match(renderer,/createCameraPositionControl/);assert.match(renderer,/camOffset\.set\(\.\.\.cameraOffsetForPosition\(position\)\)/);assert.match(renderer,/cameraControl\.setCombat\(!!combatFrame\)/);
 });

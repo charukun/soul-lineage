@@ -1,8 +1,9 @@
 import { chromium, expect } from '@playwright/test';
 import {verifyHuntClarity} from './play-clarity.mjs';
 import {capturePlayedAudio,mediaDiagnostics} from './media-diagnostics.mjs';
+import {parseBrowserPlaytest,parseBrowserPlaytestValue,resolveBrowserPlaytestTargets} from './playtest-routing.mjs';
 import { execFileSync, spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
@@ -13,10 +14,44 @@ const plan = JSON.parse(execFileSync(process.execPath, ['scripts/affected.mjs', 
 const changedFiles = execFileSync('git', ['diff', '--name-only', base, head], { cwd: root, encoding: 'utf8' });
 const wantsPeerHostMigration = /^(?:apps\/village\/src\/(?:online\.js|friend-visit\.js|peer-|runtime-scale-stack\.js)|apps\/rinne\/src\/online\.js|apps\/demon\/src\/(?:web\/online\.js|peer-authority-pause\.js)|packages\/network\/src\/(?:peer(?:-|\.)|village-|friend-visit-authority|raid-host)|packages\/shared-ui\/src\/world-darkness\.js|scripts\/peer-host-chaos\.mjs|scripts\/browser\/peer-(?:host-migration-smoke|network-harness)\.mjs|tests\/peer-host)/m.test(changedFiles);
 const plannedApps = plan.infrastructure ? plan.allApps : plan.apps;
-const apps = [...new Set([...plannedApps, ...(wantsPeerHostMigration ? ['village'] : [])])];
+
+function eventPullRequestBody() {
+  if (process.env.PR_BODY) return process.env.PR_BODY;
+  if (!process.env.GITHUB_EVENT_PATH) return '';
+  const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+  return event?.pull_request?.body || '';
+}
+
+const request = process.env.BROWSER_PLAYTEST
+  ? parseBrowserPlaytestValue(process.env.BROWSER_PLAYTEST)
+  : parseBrowserPlaytest(eventPullRequestBody());
+const affectedApps = [...new Set([...plannedApps, ...(wantsPeerHostMigration ? ['village'] : [])])];
+const apps = resolveBrowserPlaytestTargets(affectedApps, request);
 const ports = { rinne: 5273, village: 5274, demon: 5275 };
 const viteBin = resolve(root, 'node_modules/vite/bin/vite.js');
-mkdirSync(resolve(root, 'test-results/pr-browser'), { recursive: true });
+const resultDir = resolve(root, 'test-results/pr-browser');
+const receiptPath = resolve(resultDir, 'playtest-receipt.json');
+mkdirSync(resultDir, { recursive: true });
+
+const receipt = {
+  schema: 1,
+  base,
+  head,
+  request: {
+    declared: request.declared,
+    mode: request.mode,
+    raw: request.raw,
+    apps: request.apps,
+    source: process.env.BROWSER_PLAYTEST ? 'workflow-input' : request.declared ? 'pr-body' : 'affected-diff',
+  },
+  affectedApps,
+  executedApps: apps,
+  completedApps: [],
+  failed: null,
+  viewport: { width: 390, height: 844 },
+};
+const writeReceipt = () => writeFileSync(receiptPath, JSON.stringify(receipt, null, 2));
+writeReceipt();
 
 // PULSE Rescue has a dedicated fixture-rich browser contract that is stricter than the
 // generic game smoke below. Run it on the PR head whenever the Rescue cockpit or its
@@ -30,7 +65,7 @@ if (/^(ops-board\/|scripts\/integration-rescue-(?:pulse|policy)\.mjs|tests\/fixt
 }
 
 if (!apps.length) {
-  console.log('No affected app browser targets.');
+  console.log('No affected or requested app browser targets.');
   process.exit(0);
 }
 
@@ -113,7 +148,7 @@ for (const app of apps) {
     if (!rendererOk || appId !== app || !widthOk || !webgl?.version?.includes('WebGL 2.0') || errors.length || failedRequests.length) {
       throw new Error(`Browser smoke failed for ${app}: ${JSON.stringify(report)}`);
     }
-    // Exercise changed controls before Integration, using the same assertions as public DEV.
+    // Exercise changed or explicitly requested controls before Integration, using the same assertions as public DEV.
     const evidence = { outputPath: name => resolve(root, `test-results/pr-browser/${app}-${name}`) };
     if (app === 'rinne') {
       const {verifyRebuildPlaythrough}=await import('../../apps/rinne/tests/rebuild-playthrough.browser.mjs');
@@ -144,7 +179,7 @@ for (const app of apps) {
     console.log('PR BROWSER VERIFIED', JSON.stringify(report));
     // Additional targeted editor/motion gates. They supplement, never replace, the game smoke above.
     const changed = execFileSync('git', ['diff', '--name-only', base, head], { cwd: root, encoding: 'utf8' });
-    if (app === 'village' && /apps\/village\/|scripts\/browser\/pr-smoke/.test(changed)) {
+    if (app === 'village' && (/apps\/village\/|scripts\/browser\/pr-smoke/.test(changed) || request.apps.includes('village'))) {
       const { verifyVillagePlaythrough } = await import('../../apps/village/tests/playthrough.browser.mjs');
       await verifyVillagePlaythrough(browser, url, resolve(root, 'test-results/pr-browser/village-playthrough'));
     }
@@ -156,7 +191,11 @@ for (const app of apps) {
       const { verifyCharacterMotionQA } = await import('../../apps/rinne/tests/character-motion-qa.browser.mjs');
       await verifyCharacterMotionQA(browser, url, resolve(root, 'test-results/pr-browser'));
     }
+    receipt.completedApps.push(app);
+    writeReceipt();
   } catch (error) {
+    receipt.failed = { app, message: error instanceof Error ? error.message : String(error) };
+    writeReceipt();
     writeFileSync(resolve(root, `test-results/pr-browser/${app}-preview.log`), previewLog.join(''));
     if (browser) {
       try {

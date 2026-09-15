@@ -1,0 +1,73 @@
+/* Normal hunt interaction is movement-only. Keep system access and momentary state, not a dashboard. */
+#hud header{grid-template-columns:minmax(0,1fr) 44px;align-items:center}
+#hud .location,
+#hud .life>span,
+#hud #life-text,
+#hud .danger span,
+#hud #objective,
+#hud #first-hunt-guide,
+#hud #swipe-hint,
+#hud #scent,
+#hud #memory,
+#hud #dash-stop,
+#hud .footer-status{display:none!important}
+
+#hud .life{width:min(150px,40vw)}
+#hud .life-track{height:4px;margin:0;max-width:none}
+#hud .danger{top:calc(62px + env(safe-area-inset-top));left:19px;right:74px;height:2px}
+#hud #pause{justify-self:end}
+
+/* Auto combat remains readable, but does not look like another control panel. */
+#hud #battle{bottom:calc(84px + env(safe-area-inset-bottom))}
+#hud #battle .phases,
+#hud #skill-name{display:none}
+#hud #enemy-name{margin-top:0;font-size:9px;opacity:.85}
+#hud #enemy-health-track{width:min(170px,44vw);height:3px;margin-top:5px}
+
+/* The former return command is presentation-only: a bare bearing mark, not a button. */
+#hud .controls{
+  left:auto;
+  right:18px;
+  bottom:calc(18px + env(safe-area-inset-bottom));
+  width:44px;
+  display:block;
+}
+#hud #return{
+  width:44px;
+  height:44px;
+  padding:0;
+  pointer-events:none!important;
+  opacity:.88;
+}
+#hud #return.locked{visibility:hidden}
+#hud #return span{display:none}
+#hud #return b{
+  width:44px;
+  height:44px;
+  border:0;
+  clip-path:none;
+  background:none;
+  font-size:32px;
+  color:#c3d4bf;
+  text-shadow:0 0 14px #8ab39b88,0 2px 8px #000;
+}
+#hud #return-hint{
+  left:auto;
+  right:69px;
+  bottom:calc(32px + env(safe-area-inset-bottom));
+  width:min(210px,55vw);
+  text-align:right;
+  font-size:9px;
+  color:#b8cdbb;
+  letter-spacing:.08em;
+}
+
+/* Transient feedback may speak; it should never become permanent chrome. */
+#hud #toast{top:25%;max-width:min(330px,82vw);padding:9px 14px;font-size:11px}
+#hud[data-feasting="reward"] #return,
+#hud[data-feasting="feeding"] #return{opacity:.35}
+
+@media(max-height:650px){
+  #hud #battle{bottom:calc(74px + env(safe-area-inset-bottom))}
+  #hud #return-hint{bottom:calc(27px + env(safe-area-inset-bottom))}
+}
