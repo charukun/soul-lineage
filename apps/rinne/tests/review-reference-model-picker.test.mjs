@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { REVIEW_REFERENCE_MODELS, reviewReferenceModel } from '../src/review/reference-character-models.js';
 import { MOTION_LIBRARY_MODELS, motionLibraryModel, motionLibraryModelURL } from '../src/review/motion-library-models.js';
+
+const adapter=readFileSync(new URL('../src/review/review-adapter.js',import.meta.url),'utf8');
 
 test('Visual Review Lab exposes all eleven runtime reference models', () => {
   assert.equal(REVIEW_REFERENCE_MODELS.length, 11);
@@ -25,4 +28,8 @@ test('Visual Review Lab restores all five Motion Library characters', () => {
     assert.equal(motionLibraryModel(row.id), row);
     assert.ok(motionLibraryModelURL(row).endsWith('/' + row.file));
   }
+  assert.ok(adapter.includes('...MOTION_LIBRARY_PRESETS'));
+  assert.ok(adapter.includes('loadMotionLibraryPreset'));
+  assert.ok(adapter.includes('motionLibraryModel(args?.presetId)'));
+  assert.ok(adapter.includes('Motion Library / 埋め込みモーション'));
 });
