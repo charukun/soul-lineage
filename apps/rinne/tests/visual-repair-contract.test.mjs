@@ -8,14 +8,17 @@ test('visual repair rubric is repository-oriented and totals ten points',()=>{
   assert.deepEqual(VISUAL_REPAIR_RUBRIC.map(row=>row.id),['form','identity','materials','intersections','presentation','deformation']);
 });
 
-test('Astra repair handoff protects the production asset path and bans Fal',()=>{
+test('Astra repair handoff stays in the Lab loop, protects real sources and bans Fal',()=>{
   const prompt=buildVisualRepairPrompt({model:'SHINO',motion:'Idle',view:'three',build:'abc123'});
   assert.match(prompt,/latest develop/);
-  assert.match(prompt,/actual production model\/source/);
-  assert.match(prompt,/Draft PR/);
+  assert.match(prompt,/work\/visual-review-lab-v2/);
+  assert.match(prompt,/Draft PR #23/);
+  assert.match(prompt,/Keep PR #23 Draft/);
+  assert.match(prompt,/actual shared production model\/source/);
   assert.match(prompt,/Fal, fal\.ai, FAL_KEY, FAL_API_KEY, queue\.fal\.run/);
   assert.match(prompt,/external image-to-3D generation API/);
   assert.match(prompt,/human visual approval remains separate/);
+  assert.match(prompt,/stop without polling CI\/deployment/);
 });
 
 test('judge handoff is diagnostic and parses bounded scores',()=>{
