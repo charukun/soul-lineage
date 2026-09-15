@@ -9,9 +9,11 @@ const sha = 'b'.repeat(40);
 const oldSha = 'a'.repeat(40);
 const report = { mode: 'FAST_LANE', sha: oldSha, merged: [{ pr: 277 }, { pr: 281 }] };
 const idle = { ...report, merged: [] };
+const initialWakeDescription = 'DEV/PULSE publication requested; public verification pending';
+const recoveryWakeDescription = 'DEV/PULSE publication recovery requested; public verification pending';
 const run = (id, fields = {}) => ({
   id, head_sha: sha, head_branch: 'develop', event: 'workflow_dispatch',
-  display_title: automaticPublisherTitle, status: 'in_progress', ...fields,
+  display_title: automaticPublisherTitle, status: 'in_progress', conclusion: null, ...fields,
 });
 
 function fixture({ runs = [], statuses = [], dispatchError, cancelError } = {}) {
@@ -57,14 +59,57 @@ test('an idle pass bootstraps the unpublished SHA left by the previous Controlle
   assert.equal(f.writes().filter(item => item.path.endsWith('/dispatches')).length, 1);
 });
 
-test('idle wakes do not repeatedly dispatch accepted/failed requests or an already verified source', async () => {
-  const cases = ['pending', 'success', 'failure'].map(state => [{ context: publicationWakeContext, state }]);
-  cases.push([{ context: 'integration/develop', state: 'success' }, { context: 'ops-board/public', state: 'success' }]);
-  for (const statuses of cases) {
-    const f = fixture({ statuses });
+test('an orphaned accepted wake receipt gets one bounded recovery dispatch', async () => {
+  for (const state of ['pending', 'success']) {
+    const f = fixture({ statuses: [{ context: publicationWakeContext, state, description: initialWakeDescription }] });
+    assert.equal((await requestDevelopPublication(f.c, idle)).state, 'requested');
+    assert.equal(f.writes().filter(item => item.path.endsWith('/dispatches')).length, 1);
+    assert.equal(f.writes().filter(item => item.path.includes('/statuses/')).at(-1).body.description, recoveryWakeDescription);
+  }
+});
+
+test('a failed wake receipt stays repair-owned instead of retrying forever', async () => {
+  const f = fixture({ statuses: [{ context: publicationWakeContext, state: 'failure' }] });
+  assert.equal((await requestDevelopPublication(f.c, idle)).state, 'already-requested-or-published');
+  assert.deepEqual(f.writes(), []);
+});
+
+test('an already verified public source does not redispatch', async () => {
+  const f = fixture({ statuses: [
+    { context: 'integration/develop', state: 'success' },
+    { context: 'ops-board/public', state: 'success' },
+  ] });
+  assert.equal((await requestDevelopPublication(f.c, idle)).state, 'already-requested-or-published');
+  assert.deepEqual(f.writes(), []);
+});
+
+test('a completed exact-source publisher proves the wake was consumed', async () => {
+  for (const conclusion of ['success', 'failure']) {
+    const f = fixture({
+      statuses: [{ context: publicationWakeContext, state: 'success', description: initialWakeDescription }],
+      runs: [run(7, { status: 'completed', conclusion })],
+    });
     assert.equal((await requestDevelopPublication(f.c, idle)).state, 'already-requested-or-published');
     assert.deepEqual(f.writes(), []);
   }
+});
+
+test('a cancelled exact-source publisher can be recovered once', async () => {
+  const f = fixture({
+    statuses: [{ context: publicationWakeContext, state: 'success', description: initialWakeDescription }],
+    runs: [run(7, { status: 'completed', conclusion: 'cancelled' })],
+  });
+  assert.equal((await requestDevelopPublication(f.c, idle)).state, 'requested');
+  assert.equal(f.writes().filter(item => item.path.endsWith('/dispatches')).length, 1);
+  assert.equal(f.writes().filter(item => item.path.includes('/statuses/')).at(-1).body.description, recoveryWakeDescription);
+});
+
+test('a second orphan after the bounded recovery does not create an unbounded dispatch loop', async () => {
+  const f = fixture({ statuses: [{
+    context: publicationWakeContext, state: 'success', description: recoveryWakeDescription,
+  }] });
+  assert.equal((await requestDevelopPublication(f.c, idle)).state, 'already-requested-or-published');
+  assert.deepEqual(f.writes(), []);
 });
 
 test('an active same-source publisher absorbs duplicate requests while superseded publishers coalesce', async () => {
@@ -81,7 +126,7 @@ test('manual publication, Integration, repair, Production and completed runs are
     run(3, { display_title: 'Repair executor pool', head_sha: oldSha }),
     run(4, { head_branch: 'main', event: 'push', head_sha: oldSha }),
     run(5, { event: 'pull_request', head_sha: oldSha }),
-    run(6, { status: 'completed', head_sha: oldSha }),
+    run(6, { status: 'completed', head_sha: oldSha, conclusion: 'success' }),
   ];
   const f = fixture({ runs: protectedRuns });
   await requestDevelopPublication(f.c, report);
