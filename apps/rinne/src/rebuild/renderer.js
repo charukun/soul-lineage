@@ -60,7 +60,9 @@ export function createWorldRenderer({canvas,document:doc,layout,stations}){
   const rescuePad=new THREE.Mesh(new THREE.RingGeometry(.8,1.0,32),new THREE.MeshBasicMaterial({color:0xb5c9bc,side:THREE.DoubleSide}));rescuePad.rotation.x=-Math.PI/2;rescuePad.position.set(0,.03,5.2);frontRoot.add(rescuePad);
   const enemyMeshes=new Map();
   function syncFront(front){
-    const liveIds=new Set((front?.enemies||[]).map(e=>e.id));for(const[id,node]of enemyMeshes)if(!liveIds.has(id)){node.removeFromParent();disposeObject(node);enemyMeshes.delete(id);}
+    const liveIds=new Set((front?.enemies||[]).map(e=>e.id));
+    // createMuraModels shares geometry/material caches between people. Removing a stage actor must not dispose shared GPU resources still used by the hero/mother/new stage.
+    for(const[id,node]of enemyMeshes)if(!liveIds.has(id)){node.removeFromParent();enemyMeshes.delete(id);}
     for(const enemy of front?.enemies||[]){let node=enemyMeshes.get(enemy.id);if(!node){node=models.person(enemy.id.length+11,true,'resident');node.scale.setScalar(front?.stage>=5?1.35:1.05);enemyMeshes.set(enemy.id,node);frontRoot.add(node);}node.position.set(enemy.x,0,enemy.z);node.visible=!enemy.dead;const body=node.userData.body;if(body)body.rotation.z=enemy.flash?Math.sin(elapsed*30)*.08:0;}
   }
 
