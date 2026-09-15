@@ -133,7 +133,9 @@ function ensureToolHub() {
     advancedBack.className = 'review-advanced-back';
     advancedBack.textContent = '‹ その他へ戻る';
     advancedBack.addEventListener('click', showToolHub);
-    details.append(advancedBack);
+    const summary = details.querySelector(':scope>summary');
+    if (summary) summary.after(advancedBack);
+    else details.prepend(advancedBack);
   }
 }
 
