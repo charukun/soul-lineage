@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { client } from '../scripts/integration.mjs';
 import {
   automaticPublisherTitle, isAutomaticPublisher, publicationWakeContext, requestDevelopPublication,
 } from '../scripts/integration-publication.mjs';
@@ -23,6 +24,11 @@ function fixture({ runs = [], statuses = [], dispatchError, cancelError } = {}) 
     async api(method, path, body) {
       calls.push({ method, path, body });
       if (method === 'GET' && path.endsWith('/branches/develop')) return { commit: { sha } };
+      if (method === 'GET' && path.includes('/actions/workflows/deploy.yml/runs?')) {
+        const completed = path.includes('status=completed');
+        if (completed) assert.ok(path.includes(`head_sha=${sha}`));
+        return { workflow_runs: completed ? runs.filter(item => item.status === 'completed') : runs };
+      }
       if (path.endsWith('/dispatches') && dispatchError) throw new Error(dispatchError);
       if (path.endsWith('/cancel') && cancelError) throw new Error(cancelError);
       if (method === 'POST') return null;
@@ -31,10 +37,6 @@ function fixture({ runs = [], statuses = [], dispatchError, cancelError } = {}) 
     async pages(path) {
       calls.push({ method: 'PAGES', path });
       if (path === `/commits/${sha}/statuses`) return statuses;
-      if (path === '/actions/workflows/deploy.yml/runs?branch=develop') return runs;
-      if (path === '/actions/workflows/deploy.yml/runs?branch=develop&status=completed') {
-        return runs.filter(item => item.status === 'completed');
-      }
       throw new Error(`Unexpected pages ${path}`);
     },
   };
@@ -54,7 +56,7 @@ test('a merged batch explicitly requests one existing DEV/PULSE publisher using 
   assert.deepEqual(recorded.map(item => item.body.state), ['pending', 'success']);
   assert.ok(recorded.every(item => item.body.context === publicationWakeContext));
   assert.match(recorded.at(-1).body.description, /public verification pending/);
-  assert.equal(f.calls.filter(item => item.method === 'PAGES' && item.path.startsWith('/actions/workflows/deploy.yml/runs')).length, 1);
+  assert.equal(f.calls.filter(item => item.method === 'GET' && item.path.includes('/actions/workflows/deploy.yml/runs?')).length, 1);
 });
 
 test('an idle pass bootstraps the unpublished SHA left by the previous Controller', async () => {
@@ -72,8 +74,8 @@ test('an orphaned accepted wake receipt gets one bounded recovery dispatch', asy
   }
 });
 
-test('a failed wake receipt stays repair-owned instead of retrying forever', async () => {
-  const f = fixture({ statuses: [{ context: publicationWakeContext, state: 'failure' }] });
+test('a failed recovery receipt stays repair-owned instead of retrying forever', async () => {
+  const f = fixture({ statuses: [{ context: publicationWakeContext, state: 'failure', description: 'DEV/PULSE publication recovery failed; repair required' }] });
   assert.equal((await requestDevelopPublication(f.c, idle)).state, 'already-requested-or-published');
   assert.deepEqual(f.writes(), []);
 });
@@ -95,7 +97,7 @@ test('a completed exact-source publisher proves the wake was consumed from the s
     });
     assert.equal((await requestDevelopPublication(f.c, idle)).state, 'already-requested-or-published');
     assert.deepEqual(f.writes(), []);
-    assert.equal(f.calls.filter(item => item.method === 'PAGES' && item.path.startsWith('/actions/workflows/deploy.yml/runs')).length, 1);
+    assert.equal(f.calls.filter(item => item.method === 'GET' && item.path.includes('/actions/workflows/deploy.yml/runs?')).length, 1);
   }
 });
 
@@ -116,7 +118,7 @@ test('a saturated first workflow page may spend one completed fallback lookup', 
     runs: filler,
   });
   assert.equal((await requestDevelopPublication(f.c, idle)).state, 'requested');
-  assert.equal(f.calls.filter(item => item.method === 'PAGES' && item.path.startsWith('/actions/workflows/deploy.yml/runs')).length, 2);
+  assert.equal(f.calls.filter(item => item.method === 'GET' && item.path.includes('/actions/workflows/deploy.yml/runs?')).length, 2);
 });
 
 test('a second orphan after the bounded recovery does not create an unbounded dispatch loop', async () => {
@@ -183,4 +185,46 @@ test('workflow connects the bot merge to a permitted asynchronous publication wa
     assert.match(source, /inputs\.publish_only == true/);
   }
   assert.match(deploy, /Preserve blocking Production browser verification/);
+});
+
+
+test('a full recent-run snapshot uses the real API client without a pagination failure or duplicate publisher', async () => {
+  for (const existing of [false, true]) {
+    const requests = [];
+    const runs = Array.from({ length: 100 }, (_, i) => run(i + 1, { head_sha: oldSha, status: 'completed', conclusion: 'cancelled' }));
+    if (existing) runs[0] = run(101);
+    const c = client('charukun/soul-lineage', 'fixture-token', async (url, init) => {
+      const u = new URL(url); requests.push({ method: init.method, url: u });
+      let data = {};
+      if (u.pathname.endsWith('/branches/develop')) data = { commit: { sha } };
+      else if (u.pathname.endsWith('/statuses') && init.method === 'GET') data = [];
+      else if (u.pathname.endsWith('/runs')) data = { total_count: 1000, workflow_runs: runs };
+      else assert.equal(init.method, 'POST');
+      return new Response(JSON.stringify(data), { status: 200, headers: { 'content-type': 'application/json' } });
+    });
+    assert.equal((await requestDevelopPublication(c, report)).state, existing ? 'already-active' : 'requested');
+    assert.equal(requests.filter(r => r.url.pathname.endsWith('/runs')).length, 1);
+    assert.equal(requests.filter(r => r.url.pathname.endsWith('/dispatches')).length, existing ? 0 : 1);
+    assert.ok(requests.every(r => !r.url.searchParams.has('page') || r.url.searchParams.get('page') === '1'));
+  }
+});
+
+
+test('an initial failed wake recovers once and records a terminal receipt if that retry fails', async () => {
+  for (const dispatchError of [undefined, 'GitHub dispatch: HTTP 403']) {
+    const f = fixture({ statuses: [{ context: publicationWakeContext, state: 'failure' }], dispatchError });
+    if (dispatchError) {
+      await assert.rejects(requestDevelopPublication(f.c, idle), /HTTP 403/);
+      const receipt = f.writes().at(-1).body;
+      assert.equal(receipt.description, 'DEV/PULSE publication recovery failed; repair required');
+      const retry = fixture({ statuses: [receipt] });
+      assert.equal((await requestDevelopPublication(retry.c, idle)).state, 'already-requested-or-published');
+      assert.deepEqual(retry.writes(), []);
+    } else {
+      assert.equal((await requestDevelopPublication(f.c, idle)).state, 'requested');
+      assert.equal(f.writes().at(-1).body.description, recoveryWakeDescription);
+    }
+    assert.equal(f.writes().filter(item => item.path.endsWith('/dispatches')).length, 1);
+    assert.ok(f.writes().every(item => !['integration/develop', 'ops-board/public'].includes(item.body?.context)));
+  }
 });
