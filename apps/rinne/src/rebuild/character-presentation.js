@@ -1,5 +1,6 @@
 import {
   LIFESPAN_MS,
+  SHINO_MASTER,
   YEAR_MS,
   appearanceForCharacter,
   createCharacter,
@@ -7,14 +8,15 @@ import {
 } from '@soul/characters';
 
 export const RINNE_RUNTIME_CHARACTER_ASSET=Object.freeze({
-  id:'character.shino-reference-v2.dcc.v1',
-  url:'./simulator/assets/SHINO_REFERENCE_V2.vrm',
-  sha256:'5f730603f1cd32f743ecbcdd279cf1d3233839fcf36277876a185abbf8eb3e2e',
-  productionStage:'PRIMARY',
-  modelingMode:'dcc-blender',
-  visualApproval:'pending',
+  id:'character.sendagaya-shino.v1.audited-runtime-fallback',
+  url:'./simulator/assets/SHINO_review.vrm',
+  sha256:SHINO_MASTER.source.reviewSha256,
+  productionStage:'REFERENCE',
+  modelingMode:'imported-reviewed',
+  usage:'dev-runtime-fallback',
   productionReady:false,
-  procedural:false
+  procedural:false,
+  runtimeMetrics:Object.freeze({meshes:3,triangles:37097,sharedGpuRgbaEstimateMB:115.334})
 });
 
 const ROLE_SEQUENCE=Object.freeze(['guard','knight','hunter']);
