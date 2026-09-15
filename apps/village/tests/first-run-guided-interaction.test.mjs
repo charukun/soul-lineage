@@ -56,10 +56,21 @@ test('first-run acceptance contract requires user input and no direct placement 
  ])assert.ok(contract.includes(required),required);
 });
 
-test('browser placement gate enters the village before skipping the new guide',()=>{
- assert.ok(browser.includes("page.locator('#muraFirstRunGuide')"));
- assert.ok(browser.includes("page.locator('.muraFirstRunSkip')"));
- assert.equal(browser.includes('#muraFirstRunTutorial'),false);
+test('browser smoke completes the new guide with real pointer input instead of skipping it',()=>{
+ for(const required of [
+  "page.locator('.muraFirstRunStart')",
+  "toHaveAttribute('data-stage','build')",
+  "toHaveAttribute('data-stage','catalog')",
+  "toHaveAttribute('data-stage','drag')",
+  'tapPlacement(page)',
+  'dragPlacement(page,58,38)',
+  "toHaveAttribute('data-stage','place')",
+  "toHaveAttribute('data-stage','done')",
+  "page.locator('.muraFirstRunFinish')",
+  "page.locator('#muraPlacementUndo')",
+  "page.locator('#muraCancelPlacement')",
+ ])assert.ok(browser.includes(required),required);
+ assert.equal(browser.includes("page.locator('.muraFirstRunSkip')"),false);
  const enterTap=browser.indexOf('nativeTap(page,expect,enter)');
  const finishGuide=browser.indexOf('finishFirstRunGuide(page,expect)');
  assert.ok(enterTap>=0&&finishGuide>enterTap,{enterTap,finishGuide});
