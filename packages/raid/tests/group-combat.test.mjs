@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {RaidSession} from '../group-session.js';
+import {RaidSession as SingleRaidSession} from '../session.js';
 import {freshProfile} from '../profile.js';
 import {makeVillage,villagerBehavior} from '../world.js';
 
@@ -63,6 +64,27 @@ test('held retreat stays live when several attackers start combat around the pla
  core.input=(x,z,amount,...rest)=>{seen.push([x,z,amount]);return originalInput(x,z,amount,...rest);};
  session.tick(1/60,retreat);
  assert.deepEqual(seen.at(-1),[0,-1,1]);assert.equal(session.combatInputLatched,false);
+});
+
+test('group simulation delegates the same gated input to primary and secondary combat',t=>{
+ const session=makeSession(),npc=session.village.npcs[0];
+ npc.behavior='fight';npc.x=0;npc.z=3;
+ session.engage(npc);session.combatInputLatched=true;
+ const primary=[],secondary=[];
+ t.mock.method(SingleRaidSession.prototype,'tick',function(dt,value){primary.push({dt,value});});
+ t.mock.method(session,'_tickSecondaries',function(dt,value){secondary.push({dt,value});});
+ const held={x:0,z:1,amount:1,active:true,dash:true};
+ session.tick(1/60,held);
+ assert.equal(primary.length,1);assert.equal(secondary.length,1);
+ assert.equal(primary[0].dt,1/60);assert.equal(secondary[0].dt,1/60);
+ for(const {value} of [primary[0],secondary[0]]){
+  assert.deepEqual([value.x,value.z,value.amount,value.active,value.dash],[0,0,0,false,false]);
+ }
+ assert.deepEqual(held,{x:0,z:1,amount:1,active:true,dash:true});
+ session.tick(1/60,input);
+ const retreat={x:0,z:-1,amount:.8,active:true,dash:false};
+ session.tick(1/60,retreat);
+ assert.deepEqual(primary.at(-1).value,retreat);assert.deepEqual(secondary.at(-1).value,retreat);
 });
 
 test('attacking villagers rally from outside join range while fleeing villagers keep running',()=>{
