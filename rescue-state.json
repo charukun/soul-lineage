@@ -11768,7 +11768,7 @@
       },
       "state": "FAILED_MANUAL",
       "title": "feat(characters): rebuild Shino Reference v2 as DCC model",
-      "updatedAt": "2026-09-15T09:55:47.639Z",
+      "updatedAt": "2026-09-15T09:58:52.173Z",
       "waitingReason": null,
       "wave": "wave-34837832648-1",
       "workRepairAttempts": 1,
@@ -11861,8 +11861,103 @@
           "repairKind": "semantic"
         },
         "startedAt": "2026-09-15T09:55:47.639Z",
-        "heartbeatAt": "2026-09-15T09:55:47.639Z",
-        "expiresAt": "2026-09-15T10:40:47.639Z"
+        "heartbeatAt": "2026-09-15T09:58:52.173Z",
+        "expiresAt": "2026-09-15T10:43:52.173Z",
+        "result": {
+          "head": "ff9502060af51cac5116707633533b92ca31c73e",
+          "tree": "24bc7befcc3c3fc9b8edca78d21adb221e6fc769",
+          "commit": {
+            "sha": "ff9502060af51cac5116707633533b92ca31c73e",
+            "tree": {
+              "sha": "24bc7befcc3c3fc9b8edca78d21adb221e6fc769"
+            },
+            "parents": [
+              {
+                "sha": "5bf10fe7f34017f0357c19dc655365360c0cdbe6"
+              },
+              {
+                "sha": "cdbdea445bb44fdc5911d3523860606d0d5d5c3a"
+              }
+            ]
+          },
+          "changedPaths": [
+            ".github/workflows/shino-reference-dcc.yml",
+            "apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json",
+            "apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm",
+            "apps/rinne/src/character-review.js",
+            "apps/rinne/src/character-workspace.js",
+            "apps/rinne/tests/character-reference-model.test.mjs",
+            "apps/rinne/tests/character-review-ui.test.mjs",
+            "assets/characters/shino/reference-v2/source/ShinoReferenceV2.blend",
+            "docs/characters/CHARACTER_PRODUCTION_PIPELINE.md",
+            "docs/characters/SHINO_REFERENCE_V2_DCC.md",
+            "docs/characters/qa/shino-reference-v2/back.png",
+            "docs/characters/qa/shino-reference-v2/blender-audit.json",
+            "docs/characters/qa/shino-reference-v2/build.json",
+            "docs/characters/qa/shino-reference-v2/front.png",
+            "docs/characters/qa/shino-reference-v2/side.png",
+            "docs/characters/qa/shino-reference-v2/three-quarter.png",
+            "packages/characters/production/shino-reference.production.json",
+            "packages/characters/src/index.js",
+            "packages/characters/src/reference-models.js",
+            "packages/characters/src/runtime-asset-audit.js",
+            "packages/characters/tests/reference-models.test.mjs",
+            "packages/characters/tests/runtime-asset-audit.test.mjs",
+            "scripts/blender/build-shino-reference-v2.py",
+            "scripts/blender/normalize-shino-reference-v2-transforms.py",
+            "scripts/blender/refine-shino-reference-v2-v10.py",
+            "scripts/blender/refine-shino-reference-v2-v3.py",
+            "scripts/blender/refine-shino-reference-v2-v4.py",
+            "scripts/blender/refine-shino-reference-v2-v5.py",
+            "scripts/blender/refine-shino-reference-v2-v6.py",
+            "scripts/blender/refine-shino-reference-v2-v7.py",
+            "scripts/blender/refine-shino-reference-v2-v8.py",
+            "scripts/blender/refine-shino-reference-v2-v9.py",
+            "scripts/blender/refine-shino-reference-v2.py",
+            "scripts/blender/run-shino-reference-v2.py",
+            "scripts/finalize-shino-reference-v2.py",
+            "scripts/patch-vrm-humanoid.py",
+            "tests/character-production-gate.test.mjs"
+          ],
+          "changedPathsComplete": true,
+          "decision": {
+            "preservesBoth": true,
+            "summary": "Preserved PR #197's audited Shino DCC PRIMARY asset and pending later gates while retaining latest develop's character presentation resolver, art/material exports, and Integration safety controls.",
+            "sources": [
+              {
+                "path": "docs/characters/SHINO_REFERENCE_V2_DCC.md",
+                "commit": "5bf10fe7f34017f0357c19dc655365360c0cdbe6"
+              },
+              {
+                "path": "docs/characters/CHARACTER_PRODUCTION_PIPELINE.md",
+                "commit": "cdbdea445bb44fdc5911d3523860606d0d5d5c3a"
+              }
+            ],
+            "controlReview": {
+              "preservesGates": true,
+              "governingSources": [
+                "AGENTS.md",
+                "docs/DEVELOPMENT.md",
+                "docs/INTEGRATION.md",
+                "docs/RINNE_PROJECT_EXECUTION_POLICY.md",
+                "docs/INTEGRATION_RESCUE.md",
+                "docs/INTEGRATION_RESCUE_WORK.md"
+              ]
+            }
+          },
+          "validation": {
+            "status": "passed",
+            "tree": "24bc7befcc3c3fc9b8edca78d21adb221e6fc769",
+            "npmCi": "passed",
+            "focused": "passed: 20/20",
+            "trustedFast": "passed",
+            "builds": "passed: demon/rinne/village",
+            "markers": "passed",
+            "scope": "passed",
+            "command": "node scripts/validate.mjs fast cdbdea445bb44fdc5911d3523860606d0d5d5c3a ff9502060af51cac5116707633533b92ca31c73e"
+          }
+        },
+        "pushPreparedAt": "2026-09-15T09:58:52.173Z"
       },
       "workRepairBaselineChurns": 2
     },
@@ -19109,9 +19204,9 @@
     }
   },
   "repository": "charukun/soul-lineage",
-  "revision": 1221,
+  "revision": 1222,
   "schema": 1,
-  "updatedAt": "2026-09-15T09:55:47.639Z",
+  "updatedAt": "2026-09-15T09:58:52.173Z",
   "waves": [
     {
       "completedAt": "2026-09-13T23:45:03.122Z",
