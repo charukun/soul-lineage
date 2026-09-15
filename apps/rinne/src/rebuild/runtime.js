@@ -15,14 +15,14 @@ const chapterName=stage=>String(stage||'').replace(/^\d+\/6\s*/, '').trim();
 
 export async function startRuntime({mode,buildInfo,name,onExit}){
   const environment=String(buildInfo.environment||'local'), platform=createWebPlatform({gameId:'rinne',environment,playerId:'local'}), saveKey='life-v2';
+  const channel=createSharedWorldChannel({environment,validate:validateMuraLayout});
+  let layout=defaultMuraLayout();try{layout=normalizeLayout(channel.read()||layout);}catch(error){console.warn('shared world:',error);}
   let state=null;
   if(mode==='continue'){
     const raw=await platform.storage.read(saveKey);if(raw)state=deserializeLife(raw);
   }
-  if(!state)state=createLife({name,seed:(Date.now()>>>0)});
+  if(!state)state=createLife({name,seed:(Date.now()>>>0),villageIds:[layout.id]});
 
-  const channel=createSharedWorldChannel({environment,validate:validateMuraLayout});
-  let layout=defaultMuraLayout();try{layout=normalizeLayout(channel.read()||layout);}catch(error){console.warn('shared world:',error);}
   if(state.zone==='village')state.position=safeMuraPosition(layout,state.position);
   else state.position={x:clamp(state.position.x,-6.8,6.8),z:clamp(state.position.z,-5.9,5.7)};
   const stations=buildStations(layout),canvas=$('game'),loading=$('loading-card'),gameScreen=$('game-screen');
@@ -61,14 +61,14 @@ export async function startRuntime({mode,buildInfo,name,onExit}){
   function endLife(){
     if(endDialog?.open)return;
     endDialog=document.createElement('dialog');endDialog.className='life-end-dialog';
-    endDialog.innerHTML='<form method="dialog"><p>100年</p><h2 id="life-end-name"></h2><p class="life-end-summary"><span id="life-end-defeats"></span>撃破 · 凱旋<span id="life-end-returns"></span>回 · 技<span id="life-end-skills"></span></p><label>系譜に刻む記憶<select id="memento"></select></label><p class="life-end-help">技・装備 継承</p><button value="rebirth" id="rebirth">次の人生へ</button></form>';
+    endDialog.innerHTML='<form method="dialog"><p>100年</p><h2 id="life-end-name"></h2><p class="life-end-summary"><span id="life-end-defeats"></span>撃破 · 凱旋<span id="life-end-returns"></span>回 · 技<span id="life-end-skills"></span></p><label>次の出生<select id="rebirth-village"></select></label><p class="life-end-help">次の人生は0歳・基礎装備から。残るのは一族の記録と、帰還して刻んだ故郷だけ。</p><button value="rebirth" id="rebirth">次の人生へ</button></form>';
     endDialog.querySelector('#life-end-name').textContent=`${state.name} · ${state.generation}代`;
     endDialog.querySelector('#life-end-defeats').textContent=String(state.defeats);endDialog.querySelector('#life-end-returns').textContent=String(state.returns);endDialog.querySelector('#life-end-skills').textContent=String(state.knownSkills.length);
-    const choices=state.knownSkills.filter(x=>!x.startsWith('memory:')).slice(-10),select=endDialog.querySelector('#memento');
-    for(const id of choices.length?choices:['']){const o=document.createElement('option');o.value=id;o.textContent=id||'村で過ごした日々';select.append(o);}
+    const select=endDialog.querySelector('#rebirth-village'),random=document.createElement('option');random.value='';random.textContent='ランダムな村';select.append(random);
+    if(state.homelands.includes(layout.id)){const o=document.createElement('option');o.value=layout.id;o.textContent=`故郷 · ${layout.name}`;select.append(o);}
     document.body.append(endDialog);
     endDialog.addEventListener('close',async()=>{if(endDialog.returnValue==='rebirth'){
-      state=rebirth(state,{memento:select.value||null});front=null;state.frontState=null;view.syncFront(null);state.position=safeMuraPosition(layout,state.position);lastChapter='';await save();endDialog.remove();endDialog=null;toast(`${state.generation}代目`);
+      state=rebirth(state,{villageId:select.value||null,villageIds:[layout.id]});front=null;state.frontState=null;view.syncFront(null);state.position=safeMuraPosition(layout,state.position);lastChapter='';await save();endDialog.remove();endDialog=null;toast(`${state.generation}代目 · 0歳`);
     }else endDialog.showModal();});endDialog.showModal();
   }
   function handleEvents(events){for(const event of events){
@@ -111,7 +111,10 @@ export async function startRuntime({mode,buildInfo,name,onExit}){
       if(!front){front=normalizeFront(state.frontState,state.front,state.seed);state.frontState=front;view.syncFront(front);}
       const battle=tickFront(state,front,dt);handleEvents(battle);view.updateFront(front);
       if(front.cleared&&state.position.z<=-5.85&&state.front<5&&advanceFront(state)){front=createFront(state.front,state.seed);state.frontState=front;view.syncFront(front);toast(`第${state.front+1}前線`);}
-      else if(front.cleared&&state.front>=5&&state.position.z>=4.8&&returnHome(state)){state.position=safeMuraPosition(layout,{x:166,z:0});front=null;state.frontState=null;view.syncFront(null);toast('凱旋');}
+      else if(front.cleared&&state.front>=5&&state.position.z>=4.8){
+        const wasHomeland=state.homelands.includes(state.birthVillageId);
+        if(returnHome(state)){state.position=safeMuraPosition(layout,{x:166,z:0});front=null;state.frontState=null;view.syncFront(null);toast(wasHomeland?'凱旋':'凱旋 · 故郷解放');}
+      }
       if(state.zone==='village'&&battle.some(e=>e.type==='rescued')){state.position=safeMuraPosition(layout,{x:0,z:0});front=null;state.frontState=null;view.syncFront(null);}
     }
     view.renderState(state,dt);uiElapsed+=dt;if(uiElapsed>=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval){uiElapsed=0;syncUI();}
