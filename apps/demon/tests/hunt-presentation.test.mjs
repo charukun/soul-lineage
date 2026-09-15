@@ -73,7 +73,8 @@ test('real adapter and grouped session preserve devour, escape and route contrac
  const index=readFileSync(new URL('../index.html',import.meta.url),'utf8');
  assert.match(creature,/Number\.isFinite\(a\.devourProgress\)/);assert.match(creature,/applyCapturedPose\(g,a\.capturedBy\)/);
  assert.match(creature,/foot\.quaternion\.copy\(inverse\)/);assert.ok(!creature.includes('Math.sin(time*10)'));
- assert.match(grouped,/extends SingleRaidSession/);assert.match(grouped,/super\.tick\(dt,input\)/);assert.match(grouped,/combatants/);
+ // Input delegation is exercised behaviorally in packages/raid/tests/group-combat.test.mjs.
+ assert.match(grouped,/extends SingleRaidSession/);assert.match(grouped,/combatants/);
  assert.match(single,/advanceDevour\(this,dt,v\.amount\)/);assert.match(single,/cancelDevour\(this\)/);assert.match(single,/escapePoints\(\)/);
  assert.match(main,/renderRaidRoutes\(offers,profile\)/);assert.match(main,/huntUiState\(game/);assert.match(main,/game\.nearestEscape\?\.\(\)/);assert.match(main,/if\(game\?\.eaten>0\)guideState\.memorySeen=true/);assert.match(main,/import '\.\/raid-routes\.css'/);
  for(const id of ['enemy-name','enemy-health-track','return-label'])assert.ok(index.includes(`id="${id}"`));
