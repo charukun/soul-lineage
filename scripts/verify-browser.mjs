@@ -4,6 +4,15 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import {selectBrowserTargets} from './browser/target-contract.mjs';
 const root = fileURLToPath(new URL('..', import.meta.url));
+
+const devPublisherFastPath = process.env.GITHUB_JOB === 'publish'
+  && process.env.GITHUB_REF === 'refs/heads/develop'
+  && process.env.DEV_BROWSER_GATE !== 'true';
+if (devPublisherFastPath) {
+  console.log('DEV Publisher fast path: browser diagnostics are not a publication gate; PR browser evidence remains asynchronous.');
+  process.exit(0);
+}
+
 const siteRoot = resolve(process.argv[3]);
 const siteUrl = process.argv[2];
 const manifest = JSON.parse(readFileSync(resolve(siteRoot, 'deployment-manifest.json'), 'utf8'));
