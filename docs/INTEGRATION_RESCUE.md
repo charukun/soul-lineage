@@ -14,20 +14,22 @@ GitHub event
           -> PR branch merge-forward
           -> exact-head fast validation
           -> Fast Lane wake
-       semantic / unsafe -> deep repair or HUMAN_REQUIRED
+       true conflict -> Deep Repair Issue -> ChatGPT Work -> Fast Lane
+       product decision required -> HUMAN_REQUIRED
 ```
 
-正常PRはRepairを通らない。1件の失敗PR、browser failure、DEV delivery failureは独立PRをglobal blockしない。
+正常PRはRepairを通らない。1件の失敗PR、browser failure、DEV delivery failureは独立PRをglobal blockしない。large-base reconciliationはcomplete fail-closed comparisonでFast Laneに残し、変更量だけを理由にDeep Repairへ落とさない。
 
 ## 実装
 
 | 構成 | 実装 | 責任 |
 | --- | --- | --- |
-| Fast Lane | `scripts/integration-fast-lane.mjs` | current Ready PR再取得、exact-head gate、expected-head merge |
+| Fast Lane | `scripts/integration-fast-lane.mjs` | current Ready PR再取得、complete base comparison、exact-head gate、expected-head merge、真のconflictの即時Deep Repair handoff |
 | Fast Repair / Stack reconciliation | `scripts/integration-repair-fast.mjs` の `reconcileStackFast` | current stacked Ready PRをbounded再取得し、Depends-On・review・hold・thread・head・developを再確認して元PR branchを安全にmerge-forward |
 | Repair workflow | `.github/workflows/integration-rescue.yml` | compatibility file名。Fast Repair、最大4並列exact-head fast validation、成功headごとの即時Fast Lane wake、非blocking browser smoke |
 | Trusted stack evidence | `scripts/integration-stack-fast-evidence.mjs` | trusted `deploy.yml/develop/workflow_dispatch` run、exact artifact、成功jobを再検証 |
-| Deep repair compatibility | `scripts/integration-rescue-*`, `scripts/integration-quarantine-signal.mjs` | 意味競合や旧stateの移行・診断。通常Fast Repairの待ち条件ではない |
+| Immediate Deep Repair | `scripts/integration-deep-repair-handoff.mjs`, `docs/INTEGRATION_DEEP_REPAIR.md` | exact-head true conflictをmachine-readable Issue + `integration/deep-repair` statusへ即時handoff |
+| Deep repair compatibility | `scripts/integration-rescue-*`, `scripts/integration-quarantine-signal.mjs` | 旧stateの移行・診断・fallback。通常Fast Repair/Deep Repair検出の待ち条件ではない |
 | PULSE | `ops-board/rescue.mjs` 等 | 観測のみ。merge/Repair権限を持たない |
 
 ## 起動
@@ -53,6 +55,18 @@ Ready/synchronize/review等はCIの既存 `Request Rescue observation` からこ
 
 Fast Repairは `AWAITING_PUSH` を作らず、通常Work push relayを待たず、独自Waveの完了を待たない。
 
+## Deep Repairの即時handoff
+
+Fast Laneがcurrent PRを再取得し、依存がdevelopへmerge済みで、hold・Changes requested・未解決threadがないにもかかわらず `mergeable=false / mergeable_state=dirty` を確認した場合、そのpass内で `integration-deep-repair:v1` Issueを作る。
+
+IssueはPR番号、元branch、exact head、current develop、reason、attempt上限を固定し、同じexact headの`sourceKey`で重複しない。既存 `rinne-ai-repair:v1` envelopeも同梱する。
+
+RepositoryはこのGitHub eventを作るところまでを責任範囲とする。ChatGPT WorkのGitHub Issue opened/edited event triggerはChatGPTアカウント/Project側の設定であり、Repositoryから登録できない。trigger条件・prompt・claim手順は `docs/INTEGRATION_DEEP_REPAIR.md` を正本とする。
+
+別PRは別IssueなのでWork側が並列セッションを許す範囲で並列修復できる。同じIssueは `pending -> working` claimで二重修復を防ぐ。Workが修復して元PR branchへpushした後は通常CI/Fast Laneへ戻る。Deep Repair IssueやWorkの完了待ちは独立Ready PRのFast Laneを止めない。
+
+旧periodic Work/watchdogはevent triggerの取りこぼしを拾うfallbackとして残してよいが、真のconflictを発見してhandoffを作る通常経路には使わない。
+
 ## 自動Repairしないもの
 
 次は速度のために安全条件を下げず、そのPRだけをdeep repair / human-requiredへ送る。
@@ -69,19 +83,21 @@ Fast Repairは `AWAITING_PUSH` を作らず、通常Work push relayを待たず�
 
 ## 追加API課金なし
 
-通常Repair workflowは標準 `GITHUB_TOKEN` とGitHub Actionsだけを使う。`openai/codex-action`、`OPENAI_API_KEY`、`RINNE_CODEX_MODEL`、専用PATを要求しない。有料モデルAPIへのfallbackはない。
+通常Repair workflowとDeep Repair handoffは標準 `GITHUB_TOKEN` とGitHub Actions/GitHub Issueだけを使う。`openai/codex-action`、`OPENAI_API_KEY`、`RINNE_CODEX_MODEL`、専用PATを要求しない。有料モデルAPIへのfallbackはない。
 
-意味判断が必要なdeep repairは既存ChatGPT Work等の別経路で扱い、利用できない場合はそのPRだけ停止する。独立Ready PRのFast Laneは継続する。
+意味判断が必要なdeep repairは既存ChatGPT Work等の別実行面で扱い、利用できない場合はそのPRだけ停止する。独立Ready PRのFast Laneは継続する。
 
 ## browser / DEV
 
 stack更新後のbrowser smokeはfast validationと並行して走り、Fast Laneを待たせない。失敗結果は通常browser repair ticketへ返す。
 
-DEV PublisherもFast Laneと分離する。`integration/develop` pending/failureはDEV delivery healthであり、独立Ready PRのmerge lockではない。
+PR browser failureがmerge後に到着した場合、失敗したPR mergeがcurrent developの祖先なら、その失敗をcurrent developの`browser-repair:v1` generationへ昇格し、捨てない。これによりmerge非blocking化後もbrowser self-healingを維持する。
+
+DEV PublisherもFast Laneと分離する。`integration/develop` pending/failureはDEV delivery healthであり、独立Ready PRのmerge lockではない。古いautomatic publisherは最新developへcoalesceし、公開中でも新しいeligible PRのFast Laneは進む。
 
 ## 旧Rescue stateの扱い
 
-`automation/integration-rescue-state`、`rescue-state.json`、Wave、claim、heartbeat、`AWAITING_PUSH`、Work relay、outbox等は旧Rescue/deep-repair互換の診断データとして扱う。**current Ready PRのmerge可否や通常Fast Repairの進行権限には使わない。**
+`automation/integration-rescue-state`、`rescue-state.json`、Wave、claim、heartbeat、`AWAITING_PUSH`、Work relay、outbox等は旧Rescue/deep-repair互換の診断データとして扱う。**current Ready PRのmerge可否や通常Fast Repair、Deep Repair handoffの進行権限には使わない。**
 
 PULSEが旧stateを表示しても、それは観測・移行情報であり制御面ではない。
 
@@ -91,7 +107,7 @@ PULSEが旧stateを表示しても、それは観測・移行情報であり制�
 - explicit hold / review objection / unresolved threadをRepairが解除しない
 - current PR/head/developをmutation直前に再取得する
 - Fast Laneのsingle develop writerを維持する
-- PR branch更新は通常merge-forwardのみ。force push禁止
+- PR branch更新は通常merge-forward/validated Deep Repairのみ。force push禁止
 - browser assertionsやProduction gateを弱めない
 - main / Productionを自動Repair対象にしない
 
@@ -100,8 +116,12 @@ PULSEが旧stateを表示しても、それは観測・移行情報であり制�
 - 正常Ready PRは旧Rescue stateを一度も通らずmergeできる
 - stacked PRは依存merge後、1回のtrusted Repair runでmerge-forward → exact-head validation → Fast Lane wakeまで進む
 - 各repaired headは他worker完了を待たずFast Laneへ戻る
+- large-baseはcomplete comparisonでFast Laneに残り、サイズだけでDeep Repairへ落ちない
+- 真のconflictは同じFast Lane passでDeep Repair Issue/statusへhandoffされる
+- 同じexact headでDeep Repair Issueを重複生成しない
+- Deep Repair/Browser/DEV repair中でも独立eligible PRはmergeできる
+- merge後に届いたPR browser failureをcurrent develop repairへ昇格できる
 - `AWAITING_PUSH` / Work relay / 1時間watchdogが通常修復の待ち時間にならない
-- Repair失敗中でも独立eligible PRはmergeできる
 - stale/missing evidenceでmergeしない
 - 追加有料API/PATなし
 - main / Production gate不変

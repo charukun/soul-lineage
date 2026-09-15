@@ -3,10 +3,9 @@ import { onBrowserFailure, onDevelopBrowserSuccess, onPrBrowserSuccess, parseRep
 
 const repository = process.env.GITHUB_REPOSITORY;
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
-const [owner, repo] = repository.split('/');
-const scope = process.env.REPAIR_SCOPE;
+let scope = process.env.REPAIR_SCOPE;
 const conclusion = process.env.REPAIR_CONCLUSION;
-const headSha = process.env.REPAIR_HEAD_SHA;
+let headSha = process.env.REPAIR_HEAD_SHA;
 const prNumber = Number(process.env.REPAIR_PR_NUMBER || 0) || null;
 const runUrl = process.env.REPAIR_RUN_URL;
 const artifact = process.env.REPAIR_ARTIFACT || 'browser-verification';
@@ -71,22 +70,47 @@ async function commentOnce(number, body, marker) {
   if (comments.some(comment => (comment.body || '').includes(marker))) return;
   await api('POST', `/issues/${number}/comments`, { body: `${marker}\n${body}` });
 }
+async function currentDevelopContainingMergedPr(pr, testedHead) {
+  if (!pr?.merged_at || pr.head?.sha !== testedHead || pr.base?.ref !== 'develop' || !/^[0-9a-f]{40}$/.test(pr.merge_commit_sha || '')) return null;
+  const branch = await api('GET', '/branches/develop');
+  const current = branch?.commit?.sha;
+  if (!/^[0-9a-f]{40}$/.test(current || '')) return null;
+  if (current === pr.merge_commit_sha) return current;
+  const comparison = await api('GET', `/compare/${pr.merge_commit_sha}...${current}`);
+  const contains = comparison?.merge_base_commit?.sha === pr.merge_commit_sha && comparison?.head_commit?.sha === current && ['ahead', 'identical'].includes(comparison?.status);
+  return contains ? current : null;
+}
 
 const sourcePr = await associatedPr();
+let promotedFromPrHead = null;
 if (scope === 'pr' && !currentPrRepair(sourcePr, headSha)) {
-  console.log(JSON.stringify({ action: 'noop-stale-pr-result', pr: prNumber, headSha }));
-  process.exit(0);
+  const currentDevelop = conclusion === 'failure' ? await currentDevelopContainingMergedPr(sourcePr, headSha) : null;
+  if (!currentDevelop) {
+    console.log(JSON.stringify({ action: 'noop-stale-pr-result', pr: prNumber, headSha }));
+    process.exit(0);
+  }
+  promotedFromPrHead = headSha;
+  scope = 'develop';
+  headSha = currentDevelop;
 }
+
 const retired = await retireOlderDevelopTickets();
 const sourcePrBody = sourcePr?.body || '';
-let issue = await getIssue(linkedIssueNumber(sourcePrBody));
+let issue = scope === 'pr' ? await getIssue(linkedIssueNumber(sourcePrBody)) : null;
 let existingState = issue ? parseRepairState(issue.body || '') : null;
 const sourceKey = existingState?.sourceKey || (scope === 'pr' ? `pr:${sourcePr?.number || prNumber}` : `develop:${headSha}`);
 if (!issue) issue = await findIssue(sourceKey);
 if (issue) existingState = parseRepairState(issue.body || '');
 
 const baseState = existingState || { schema: 1, scope, sourceKey, state: 'pending', attempt: 0, maxAttempts: DEFAULT_MAX_ATTEMPTS, sourcePr: sourcePr?.number || prNumber, createdFromSha: headSha };
-const details = { headSha, runUrl, artifact, sourcePr: sourcePr?.number || prNumber, lastConclusion: conclusion };
+const details = {
+  headSha,
+  runUrl,
+  artifact,
+  sourcePr: sourcePr?.number || prNumber,
+  lastConclusion: conclusion,
+  ...(promotedFromPrHead ? { promotedFromPrHead } : {}),
+};
 let nextState = baseState;
 if (conclusion === 'failure') nextState = onBrowserFailure(baseState, details);
 else if (scope === 'develop') nextState = onDevelopBrowserSuccess(baseState, details);
@@ -100,7 +124,8 @@ if (!issue && conclusion === 'success') {
 const titleSubject = scope === 'pr' ? `PR #${sourcePr?.number || prNumber}` : `develop ${headSha.slice(0, 12)}`;
 const human = nextState.state === 'human-required';
 const summary = [
-  '# Browser self-healing ticket','',`Source: ${titleSubject}`,`Run: ${runUrl}`,`Artifacts: ${artifact}`,sourcePr ? `Related PR: #${sourcePr.number}` : null,'',
+  '# Browser self-healing ticket','',`Source: ${titleSubject}`,`Run: ${runUrl}`,`Artifacts: ${artifact}`,sourcePr ? `Related PR: #${sourcePr.number}` : null,
+  promotedFromPrHead ? `Promoted from merged PR browser failure: \`${promotedFromPrHead}\`` : null,'',
   human ? '**Automatic repair stopped: human review is required.**' : 'This issue is the machine-readable handoff for ChatGPT Work browser self-repair.','',
   'Work must claim the ticket by changing `state` from `pending` to `working` and incrementing `attempt` before editing code. It must not touch main/Production.',
 ].filter(Boolean).join('\n');
@@ -111,7 +136,8 @@ else issue = await api('PATCH', `/issues/${issue.number}`, { body, state: nextSt
 const runMarker = `<!-- browser-repair-run:${process.env.GITHUB_RUN_ID || headSha}:${conclusion} -->`;
 if (sourcePr) {
   const stateText = nextState.state === 'verified' ? 'verified' : nextState.state === 'ready-for-integration' ? 'browser-fixed; returning to Integration' : nextState.state;
-  await commentOnce(sourcePr.number, `Browser verification **${conclusion}**. Repair ticket #${issue.number} is now **${stateText}**.\n\nArtifacts: \`${artifact}\` · ${runUrl}`, runMarker);
+  const prefix = promotedFromPrHead ? `Post-merge PR browser failure was promoted to current develop \`${headSha}\`. ` : '';
+  await commentOnce(sourcePr.number, `${prefix}Browser verification **${conclusion}**. Repair ticket #${issue.number} is now **${stateText}**.\n\nArtifacts: \`${artifact}\` · ${runUrl}`, runMarker);
 }
 await commentOnce(issue.number, `Browser verification **${conclusion}** for \`${headSha}\`. State: **${nextState.state}**.\n\n${runUrl}`, runMarker);
-console.log(JSON.stringify({ issue: issue.number, sourceKey, retired, state: nextState }, null, 2));
+console.log(JSON.stringify({ issue: issue.number, sourceKey, retired, state: nextState, promotedFromPrHead }, null, 2));

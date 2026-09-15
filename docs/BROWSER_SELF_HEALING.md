@@ -2,19 +2,35 @@
 
 Browser failures are first-class repair events. The source of truth is GitHub: the failing run, its artifacts, a machine-readable repair issue, the repair branch/PR, and the final browser result. main / Production are never modified by this flow.
 
+Browser verification is **asynchronous to Integration Fast Lane** on develop. Current exact-head fast validation may allow a Ready PR to merge before its affected browser smoke finishes. Browser failure never globally freezes independent Ready PRs.
+
 ## Flow
 
-### PR failure
+### PR failure while the PR is still open
 
-`PR -> Validate and build -> Affected browser smoke -> failure -> repair issue(state=pending) -> ChatGPT Work -> same PR branch repair -> CI/browser rerun -> success -> Integration`
+`PR -> Validate and build -> Fast Lane may merge independently -> Affected browser smoke -> failure -> repair issue(state=pending) -> ChatGPT Work -> same PR branch repair -> CI/browser rerun -> success`
 
-The PR browser job only checks affected apps (or all apps for infrastructure changes). It stores screenshots, Playwright trace, JSON console/network diagnostics and preview logs in the `pr-browser-<pr>-<sha>` artifact. Integration is not requested until the browser job succeeds.
+The PR browser job only checks affected apps (or all apps for infrastructure changes). It stores screenshots, Playwright trace, JSON console/network diagnostics and preview logs in the `pr-browser-<pr>-<sha>` artifact.
+
+If the PR is still open when browser failure arrives, the failure is owned by that PR's repair ticket. The Work worker repairs the same PR branch and normal CI/Fast Lane re-evaluates the new exact head.
+
+### PR browser failure arriving after the PR already merged
+
+A browser result may finish after Fast Lane has already merged the exact PR head. A failed result is **not discarded as stale** when that merged PR is still an ancestor of current develop.
+
+The recorder promotes that failure into the current develop repair generation:
+
+`merged PR browser failure -> current develop contains merge -> browser-repair:v1(scope=develop) -> ChatGPT Work -> repair PR -> Fast Lane -> DEV/public browser verification`
+
+The promoted ticket records `promotedFromPrHead` so the original artifact remains traceable. If the PR is no longer current and was not merged into the current develop ancestry, the stale result is ignored.
 
 ### develop/DEV failure
 
-`Ready PR -> Integration -> develop -> DEV publish/HTTP verification -> focused public browser verification -> failure -> repair issue(state=pending) -> ChatGPT Work -> repair/browser-issue-<N>-a<attempt> -> Ready PR -> PR browser success -> Integration -> DEV browser success -> issue verified/closed`
+`Ready PR -> Fast Lane -> develop -> DEV publish/HTTP verification -> focused public browser verification -> failure -> repair issue(state=pending) -> ChatGPT Work -> repair/browser-issue-<N>-a<attempt> -> Ready PR -> Fast Lane -> DEV browser success -> issue verified/closed`
 
 The public DEV browser artifact is `dev-browser-<develop-sha>`. A repair PR created for a develop ticket MUST contain `Auto-Repair-Issue: #N` in its body so the post-merge DEV verification reconnects to the same ticket.
+
+DEV/browser repair runs independently from the merge lane. New independently eligible Ready PRs can continue through Fast Lane while an older browser/DEV repair is pending. DEV publication coalesces toward latest develop; an older published candidate must not become authority after develop advances.
 
 ## Machine-readable issue block
 
