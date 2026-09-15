@@ -32,6 +32,13 @@ test('state changes read as game feedback without adding action buttons',()=>{
   assert.equal((html.match(/data-context-action=/g)||[]).length,1);assert.match(html,/data-context-action="talk"/);assert.doesNotMatch(html,/>攻撃</);
 });
 
+test('birth immediately identifies being carried and release restores self-movement wording',()=>{
+  assert.match(runtime,/母に抱かれたままスワイプ/);assert.match(runtime,/いまは私の腕の中/);assert.match(runtime,/抱っこしたまま村を見て回ろうね/);
+  assert.match(runtime,/showBirthIntro\(\)/);assert.match(runtime,/event\.type===['"]release['"][^{]*\{[^}]*地面へ。今日からは自分の足で歩けるよ。[^}]*armMovementHint\(\)/s);
+  assert.match(runtime,/held\?['"]母に抱かれたままスワイプ['"]:['"]スワイプで移動['"]/);
+  assert.match(runtime,/setMoving\(state,state\.phase===['"]birth['"]\?false:moved,state\.yaw\)/);
+});
+
 test('runtime preboots renderer/world once and session disposal preserves prepared resources',()=>{
   assert.match(runtime,/export async function prepareRuntime/);assert.match(runtime,/createWorldRenderer\(\{canvas,document,layout,stations\}\)/);assert.match(runtime,/canvas\.dataset\.runtime=['"]prepared['"]/);
   assert.match(runtime,/prepared\|\|await prepareRuntime/);assert.match(runtime,/host\.active=true/);assert.match(runtime,/host\.active=false/);assert.match(runtime,/if\(ownsPrepared\)host\.dispose\(\)/);
