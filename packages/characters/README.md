@@ -36,8 +36,9 @@ Three.js primitives / runtime procedural geometryは確認用の `BLOCKOUT` ま�
 公開GitHubや既存資産は「正解そのもの」としてコピーせず、固定revision・license・evidence・観測した技法を持つ参照証拠として扱います。参照証拠、現在のproduction stage、内部Golden baselineを同じCoverage Matrixへ投影し、次に埋めるべき身体規格・役割・描画tierの穴を機械的に特定します。
 
 - External Reference RegistryはGitHub repositoryと完全commit SHAを必須にし、license不明・revision未固定の情報を正解データへ昇格しない。
-- Reference Consensusは複数参照で同じ観測が再現された場合だけ合意として返す。単独リポジトリの実装を世界標準とみなさない。
+- Reference Consensusは異なるprovenance familyで同じ観測が再現された場合だけ合意として返す。同じ上流資産の別repo・別ファイル・別revisionで票を水増ししない。
 - Coverage Matrixは`app / age band / body archetype / role / render tier`ごとにreference、production、goldenの有無を分離して表示する。coverage不足を理由にBLOCKOUTをRUNTIME_READYへ昇格しない。
-- Golden BaselineはProduction Pipelineの`RUNTIME_READY`を通過し、明示visual approvalとruntime evidenceを持つ内部資産だけから生成する。外部referenceをGoldenへ直接登録しない。
+- Golden BaselineはProduction Pipelineの`RUNTIME_READY`を通過し、明示visual approvalとruntime evidenceを持つ内部資産だけから生成する。外部referenceをGoldenへ直接登録しない。永続Goldenも対応するRUNTIME_READY production evidenceが無ければCoverageへ採用しない。
 - Golden比較はtriangles / draw calls / texture memory等の測定可能な差分を診断するが、数値だけでvisual approvalを自動付与しない。
+- `npm run characters:references` はregistry、consensus、production manifest、永続GoldenとCoverage Matrixを `test-results/character-reference-report.json` へまとめる。
 - この層は評価・優先順位付け専用で、Character保存、遺伝、AI、戦闘、衝突、装備解禁を変更しない。
