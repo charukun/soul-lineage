@@ -1,4 +1,5 @@
 import {nativeTap} from '@soul/platform-web/testing/native-input';
+import {firstHuntDirectorState} from '../../apps/demon/src/web/first-hunt-director.js';
 /** Native UI regressions shared by candidate and deployed DEV checks. */
 export async function verifySoloClarity(page, frame, expect, testInfo) {
   const snapshot = () => frame.evaluate(() => { const s=window.__ATELIER__.snapshot();return {paused:s.paused,time:s.time,age:s.life.ageYears}; });
@@ -32,7 +33,7 @@ export async function verifyHuntClarity(page, expect, testInfo) {
   await expect(page.locator('.soul-music [data-open]')).toBeHidden();
   const bounds=await page.locator('#pause').boundingBox();expect(bounds.width).toBeGreaterThanOrEqual(44);expect(bounds.height).toBeGreaterThanOrEqual(44);
   await nativeTap(page, expect, page.locator('#pause'));
-  await assertHuntGuideState(page, expect, false);
+  await assertHuntGuideState(page, expect);
   // Friend visits use Village invitations; normal hunts expose no player-village entry.
   await expect(page.locator('#online-settings')).toHaveCount(0);
   await expect(page.locator('#online-box')).toHaveCount(0);
@@ -46,20 +47,19 @@ export async function verifyHuntClarity(page, expect, testInfo) {
   await nativeTap(page, expect, page.locator('#scent'));
   await expect(page.locator('#scent')).toBeDisabled();
   await nativeTap(page, expect, page.locator('#pause'));
-  await assertHuntGuideState(page, expect, true);
+  await assertHuntGuideState(page, expect);
   await nativeTap(page, expect, page.locator('#sheet-close'));
   await page.screenshot({path:testInfo.outputPath('first-hunt-guide.png')});
 }
 
 // The village is generated, so a real encounter may start before the first click.
 // Inspect the paused engine, not the guide itself, to determine the exact instruction.
-async function assertHuntGuideState(page, expect, sensed) {
+async function assertHuntGuideState(page, expect) {
   const state = await page.evaluate(() => window.__NIGHT_HUNT__.snapshot());
   expect(state.paused).toBe(true);
   expect(state.finished).toBe(false);
   expect(typeof state.devouring).toBe('boolean');
-  const nearPrey = state.npcs.some(n => n.dead && !n.eaten && Math.hypot(n.x-state.player.x,n.z-state.player.z)<2.5);
-  const expected = state.devouring ? 'devour' : state.combat ? 'combat' : state.eaten>0 ? 'lineage' : nearPrey ? 'stop' : sensed ? 'approach' : 'sense';
+  const expected = firstHuntDirectorState(state).stage;
   await expect(page.locator('#first-hunt-guide')).toHaveAttribute('data-step', expected);
   await expect(page.locator('#hud')).toHaveAttribute('data-guide', expected);
   await expect(page.locator('#first-hunt-guide')).toBeVisible();
