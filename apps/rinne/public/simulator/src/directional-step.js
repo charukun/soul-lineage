@@ -1,20 +1,26 @@
 /**
  * Directional review travel for the 30-second score.
  *
- * Public reference facts adopted here:
- * - Quaternius Universal Animation Library exposes eight-direction locomotion.
- * - The 2026-06-16 update gives locomotion root motion and synchronizes the
- *   directional steps so every direction starts on the left foot.
+ * Public reference data / behavior used here:
+ * - The repo's already-audited Quaternius bundle comes from the public
+ *   norio/vrm-game-starter repository at an immutable revision.
+ * - Current Quaternius guidance exposes eight-direction locomotion; its
+ *   2026-06-16 update gives movement root motion and synchronizes directional
+ *   steps so every direction starts on the left foot.
  *
- * We deliberately do not redistribute the external animation binary. The game
- * controller remains owner of collision/root movement; this module only gives
- * the deterministic review score a reference-informed step phase and travel
- * curve which can be reused by compact and humanoid review actors.
+ * We do not add another external animation binary. The game controller remains
+ * owner of collision/root movement; this module turns those pinned reference
+ * facts into a deterministic step phase/travel curve shared by compact and
+ * humanoid review actors.
  */
 export const DIRECTIONAL_STEP_REVISION='directional-step-1';
 export const DIRECTIONAL_STEP_REFERENCE=Object.freeze({
-  repository:'J-Ponzo/gltf-universal-animation-library',
-  repositoryRevision:'e24c23cf2a1323488a3faa226ea7ea21f644b73e',
+  repository:'norio/vrm-game-starter',
+  repositoryRevision:'b14c236fd8150855348ad085b7820c298eac4b30',
+  repositoryPath:'src/assets/AnimationLibrary.glb',
+  repositoryBlob:'8ce67624ba3bb4d2ca20a4ac188fe38ceaaab97e',
+  guidanceRepository:'J-Ponzo/gltf-universal-animation-library',
+  guidanceRevision:'e24c23cf2a1323488a3faa226ea7ea21f644b73e',
   upstream:'Quaternius Universal Animation Library',
   upstreamUpdate:'2026-06-16',
   license:'CC0-1.0',
