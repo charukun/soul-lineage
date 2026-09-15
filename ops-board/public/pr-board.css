@@ -26,7 +26,23 @@
 .completed-pulls summary { min-height: 34px; font-size: 11px; color: var(--muted); }
 .visual-review-card { border-style: dashed; background: color-mix(in srgb, var(--panel) 90%, #15253d 10%); }
 .visual-review-note { margin: 0 0 5px; color: var(--muted); font-size: 10px; }
+.work-resume-action { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:center; margin:0 0 10px; padding:10px; border:1px solid color-mix(in srgb,var(--progress) 32%,var(--line)); border-radius:12px; background:color-mix(in srgb,var(--progress) 7%,var(--panel-2)); }
+.work-resume-copy { display:grid; gap:3px; min-width:0; }
+.work-resume-copy strong { font-size:11px; line-height:1.4; }
+.work-resume-copy span { color:var(--muted); font-size:9.5px; line-height:1.45; overflow-wrap:anywhere; }
+.work-resume-copy .work-resume-warning { color:var(--warning); }
+.work-resume-button { min-height:42px; padding:8px 11px; border:1px solid color-mix(in srgb,var(--progress) 52%,var(--line)); border-radius:10px; background:color-mix(in srgb,var(--progress) 18%,var(--panel-2)); color:var(--text); font:inherit; font-size:10px; font-weight:800; line-height:1.25; white-space:nowrap; cursor:pointer; }
+.work-resume-button:disabled { opacity:.45; cursor:default; }
+.work-prompt-dialog { width:min(96vw,680px); }
+.work-prompt-lead { margin:2px 0 10px; color:var(--muted); font-size:11px; line-height:1.55; }
+.work-prompt-text { width:100%; min-height:52dvh; max-height:62dvh; resize:vertical; padding:12px; border:1px solid var(--line); border-radius:12px; background:#0b1018; color:var(--text); font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; overflow:auto; }
+.work-prompt-dialog-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px; }
+.work-prompt-copy { min-height:44px; padding:8px 14px; border:1px solid color-mix(in srgb,var(--progress) 55%,var(--line)); border-radius:10px; background:var(--progress); color:white; font:inherit; font-size:12px; font-weight:800; cursor:pointer; }
+.work-prompt-status { margin:0; color:var(--muted); font-size:10px; line-height:1.4; }
 @media (max-width: 430px) {
   .pull-row-bottom { grid-template-columns: minmax(0,1fr); gap: 4px; }
   .pull-meta { justify-content: flex-start; flex-wrap: wrap; }
+  .work-resume-action { grid-template-columns:minmax(0,1fr); }
+  .work-resume-button { width:100%; white-space:normal; }
+  .work-prompt-text { min-height:48dvh; }
 }
