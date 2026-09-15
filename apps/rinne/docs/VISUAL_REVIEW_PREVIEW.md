@@ -75,6 +75,45 @@ Assets at or above 20 MiB emit a warning so they can be moved before they become
 
 The Review Lab must consume the same character/model/motion/VFX source modules and assets used by the game. Do not create review-only copies of production assets or animation logic. `review-adapter.js` is the review integration surface for wiring the production sources into the Lab.
 
+## Internal observation before declaring a rendering limitation
+
+For requested model/motion inspection, start the actual local Lab before falling
+back to CPU mesh evidence. Run from the repository root:
+
+```sh
+npm ci
+npm run review:local:setup
+npm run review:local -- --mode sequence --time 3.33 --playback
+```
+
+`review:local` starts Vite on loopback and Chromium/SwiftShader in the same process
+tree. It loads the real 30-second viewer and shipped Shino, checks WebGL2, captures
+front/side/three/back at the specified time, and optionally records uninterrupted
+normal-speed playback. It writes source hashes, failure stage, captures and the
+honest observation/approval state to `artifacts/review-local-motion/report.json`.
+Use `--out` for separate before/after evidence; `--mode combination`, `single` or
+`posture` narrows the inspection. No deployment, paid provider or remote asset
+generation is involved. Browser errors fail the command instead of becoming a pass.
+
+Do not point a remote cloud browser at worker localhost and conclude the Lab is
+broken when the networks are isolated. Do not change the sandbox/network policy.
+Binding to `127.0.0.1` also avoids the network-interface enumeration used by a
+wildcard Vite listener in restricted workers. If concurrent Playwright installs
+hold a shared cache lock, use one per-worker `PLAYWRIGHT_BROWSERS_PATH` for both
+installation and review. `REVIEW_CHROMIUM_PATH` can select an already-installed
+compatible browser. Setup first tries Playwright, then a pinned npm-distributed
+Linux x64 Chromium/SwiftShader bundle if that download fails. `-- --bundled` selects
+that path directly. The bundle stays in the checkout's ignored dependency cache;
+archive ownership is not restored. Canvas recording uses MediaRecorder, so no
+separate FFmpeg download is needed. Missing browser/download/launch/WebGL failures are distinct
+stages; preserve the report and use another authorized execution route if needed.
+
+Inspect the PNGs and view the video at 1x before claiming visual improvement.
+A recording is not proof it was watched, and software rendering is not physical
+Pixel Fold performance. CPU evidence remains available with those limits after
+the internal path has actually been attempted. This bounded authoring check does
+not require unrelated full E2E traversal or CI polling on each correction.
+
 ## AI repair boundary
 
 Visual Review Lab is the presentation and human-approval surface, not the AI modeling control plane. It must not own target-image persistence, model-provider invocation, API keys, paid generation, outbound reference acquisition, or the correction-loop state machine.

@@ -657,7 +657,179 @@
         "result": "Front, three-quarter and side sequences retain grounding and show a clearer pelvis-to-chest release.",
         "remaining": "Direct 1x playback, WebGL/MToon, cloth/hair clearance and device fps remain unverified."
       }
-    ]
+    ],
+    "local_lab_followup": {
+      "baseline_commit": "73d323ee917c5a592c808a7ad5fc1cd8b7e1c520",
+      "develop_inspected": "a7a71862aa60b9f47ef4f42f05b0cc528585ed48",
+      "source_after": {
+        "slash": "shino-slash-12",
+        "sword": "shared-sword-13"
+      },
+      "changes": [
+        "Wider support base and lateral loading in slash/reverse",
+        "Pelvis leads delayed chest rotation in lateral cuts",
+        "Opposed counterarm on thrust; stronger high-to-low heavy torso hinge"
+      ],
+      "key_poses": [
+        {
+          "time": 0.23,
+          "support": "rear/right",
+          "intent": "lateral compression and blade load"
+        },
+        {
+          "time": 0.5,
+          "support": "lead/left",
+          "intent": "forward contact with wider base; native contact clock unchanged"
+        },
+        {
+          "time": 0.68,
+          "support": "lead/left",
+          "intent": "chest follows pelvis rotation and passes momentum into recovery"
+        }
+      ],
+      "reference": {
+        "asset": "apps/rinne/public/simulator/assets/review/reference-sword-4s.mp4",
+        "viewed_this_followup": false,
+        "range": null
+      },
+      "before": {
+        "schema": "rinne-local-motion-review",
+        "version": 1,
+        "revision": "73d323ee917c5a592c808a7ad5fc1cd8b7e1c520",
+        "sourceHashes": {
+          "authored-slash.js": "37ee709117d78e5a804487e9ae634f8ce58bf9d727cf00b1feaf72ffc605b98d",
+          "authored-sword.js": "39023a2656fc4b8719db92cc9c723f7963b1530ef0be0a5c1feeedd6d2470b8f",
+          "sword-sequence.js": "45da0a814c42dc6aa2f89dea34ea2890f86ae91f3f38dd400be0a8e31ecda9db",
+          "sword-performance.js": "8f8903d5630d0917ce74bb0ab60d51dcc0748f5a0ebfaf55293c635c48fa18d3",
+          "humanoid.js": "60041fc48c7614dde2095542657d3b00a994ddc0ff8565f58382947cab55635b",
+          "motion-review.js": "014132aea99d68ec20921e45185aae98b777204178415e152af6e23c03144a60"
+        },
+        "mode": "sequence",
+        "time": 3.33,
+        "model": "SHINO_review.vrm",
+        "renderer": "software-WebGL",
+        "stage": "complete",
+        "passed": true,
+        "visualApproval": "pending",
+        "normalSpeedReview": "recorded-not-observed",
+        "physicalDeviceFps": "not-measured",
+        "captures": [
+          {
+            "file": "front-3.330.png",
+            "view": "front",
+            "time": 3.33
+          },
+          {
+            "file": "side-3.330.png",
+            "view": "side",
+            "time": 3.33
+          },
+          {
+            "file": "three-3.330.png",
+            "view": "three",
+            "time": 3.33
+          },
+          {
+            "file": "back-3.330.png",
+            "view": "back",
+            "time": 3.33
+          }
+        ],
+        "errors": [],
+        "webgl": {
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+          "renderer": "WebKit WebGL",
+          "width": 960,
+          "height": 606,
+          "lost": false
+        },
+        "playback": {
+          "file": "playback.webm",
+          "speed": 1,
+          "timelineSeconds": 30,
+          "wallSeconds": 30.178,
+          "observed": false
+        }
+      },
+      "after": {
+        "schema": "rinne-local-motion-review",
+        "version": 1,
+        "revision": "73d323ee917c5a592c808a7ad5fc1cd8b7e1c520",
+        "sourceHashes": {
+          "authored-slash.js": "b4d1e17a67fd4d96673ac47cc6c99a07f435d66bad0a321eccd4190e35ce092d",
+          "authored-sword.js": "ef90d778e764df88b56e1bea8331abfdd7702a4758a70b7cc7f3fee30809f351",
+          "sword-sequence.js": "45da0a814c42dc6aa2f89dea34ea2890f86ae91f3f38dd400be0a8e31ecda9db",
+          "sword-performance.js": "8f8903d5630d0917ce74bb0ab60d51dcc0748f5a0ebfaf55293c635c48fa18d3",
+          "humanoid.js": "60041fc48c7614dde2095542657d3b00a994ddc0ff8565f58382947cab55635b",
+          "motion-review.js": "014132aea99d68ec20921e45185aae98b777204178415e152af6e23c03144a60"
+        },
+        "mode": "sequence",
+        "time": 3.33,
+        "model": "SHINO_review.vrm",
+        "renderer": "software-WebGL",
+        "stage": "complete",
+        "passed": true,
+        "visualApproval": "pending",
+        "normalSpeedReview": "recorded-not-observed",
+        "physicalDeviceFps": "not-measured",
+        "captures": [
+          {
+            "file": "front-3.330.png",
+            "view": "front",
+            "time": 3.33
+          },
+          {
+            "file": "side-3.330.png",
+            "view": "side",
+            "time": 3.33
+          },
+          {
+            "file": "three-3.330.png",
+            "view": "three",
+            "time": 3.33
+          },
+          {
+            "file": "back-3.330.png",
+            "view": "back",
+            "time": 3.33
+          }
+        ],
+        "errors": [],
+        "webgl": {
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+          "renderer": "WebKit WebGL",
+          "width": 960,
+          "height": 606,
+          "lost": false
+        },
+        "playback": {
+          "file": "playback.webm",
+          "speed": 1,
+          "timelineSeconds": 30,
+          "wallSeconds": 30.189,
+          "observed": false
+        }
+      },
+      "observation": "At 3.33 seconds, matched front/side WebGL captures show a wider support base with the blade contact direction preserved. CPU 4-second samples show stronger reverse rotation and thrust counterarm separation. Not a reference-equivalence or normal-speed aesthetic approval.",
+      "stages": {
+        "blocking": "reviewed candidate poses",
+        "primary": "recorded-not-observed; remains revise",
+        "polish": "pending"
+      },
+      "verification": {
+        "actual_rig_and_viewer_tests": 10,
+        "build_review": "passed; 102 files within existing limits",
+        "local_webgl2": "passed before and after",
+        "normal_speed_playback_seconds": 30,
+        "human_approval": "pending"
+      },
+      "remaining": [
+        "Continuous 1x visual assessment",
+        "Hair/clothing mesh collision review",
+        "Physical Pixel Fold performance"
+      ],
+      "counter_policy": "Existing 54/100 remains unchanged; this follow-up is not counted as completed normal-speed authoring passes."
+    }
   },
   "baseline_commit": "40dd14d92ac1cf69c357db563fb548476b578fc3",
   "source_order": [

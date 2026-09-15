@@ -1,3 +1,44 @@
+## Internal Lab follow-up — 2026-09-15
+
+Baseline `73d323ee917c5a592c808a7ad5fc1cd8b7e1c520`; current develop contracts
+inspected at `a7a71862aa60b9f47ef4f42f05b0cc528585ed48`.
+
+The existing five techniques / 29 cuts / 30 seconds now use a wider slash/reverse
+support base, stronger lateral pelvis loading, delayed chest follow-through,
+thrust counterarm opposition and a stronger heavy-cut torso hinge. Native clip
+lengths, contacts, root/controller ownership and reviewed asset identity remain.
+Source revisions: `shino-slash-12` / `shared-sword-13`.
+
+The worker first hit the remote browser's WebGL failure and isolated localhost.
+The actual internal Lab subsequently passed with Chromium 153/SwiftShader using
+`review:local:setup -- --bundled` and `review:local`. Standard Playwright CDN
+preparation timed out; the pinned npm bundle supplied a local browser without
+changing sandbox/network policy. Vite and Chromium run in the same process tree.
+Browser-native canvas recording avoids a second FFmpeg download. This procedure
+is now routed from AGENTS and the Lab preview guide.
+
+Before/after actual WebGL2 captures use the same model, lighting, 960x900 viewport,
+3.33-second seek and front/side/three/back cameras. Both uninterrupted 1x playback
+runs reached 30 seconds in about 30.2 wall seconds with no page/asset errors.
+The matched front view shows the wider supporting silhouette; contact blade
+direction remains stable in side view. CPU 4-second mesh samples additionally
+show stronger reverse torso rotation and thrust counterarm separation.
+
+Ten existing real-rig/viewer checks and the dedicated Lab build passed without
+relaxing assertions. Source hashes, actual reports and remaining limitations are
+in `sword-reference-iterations.json` → `active_batch.local_lab_followup`.
+The reproducible evidence bundle is `rinne-motion-evidence.zip`; the after video
+is `rinne-30s-dynamic.mp4`. Generated captures are not included in the game bundle.
+
+Continuous video was **recorded, not observed** by the worker. The reference
+excerpt was not re-viewed in this follow-up. Primary remains revise, polish and
+human approval remain pending; the earlier 54/100 counter is not increased.
+Physical-device fps, hair/cloth collisions and reference-level artistic quality
+are not certified by a local software-WebGL success. Keep Lab PR #23 Draft and
+use its existing asynchronous publication route; no CI polling or main promotion.
+
+---
+
 # Active 100-pass batch — 54 / 100 (2026-09-14)
 
 This unfinished batch starts at Lab commit

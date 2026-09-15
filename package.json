@@ -23,6 +23,8 @@
     "check:review-assets": "node scripts/check-review-assets.mjs",
     "build:review": "node scripts/build-review.mjs && npm run check:review-assets",
     "test:review-browser": "node scripts/verify-review-browser.mjs",
+    "review:local": "node scripts/review-local.mjs",
+    "review:local:setup": "node scripts/review-local-setup.mjs",
     "build:village": "npm run build --workspace @soul/village",
     "build:demon": "npm run build --workspace @soul/demon",
     "affected": "node scripts/affected.mjs",

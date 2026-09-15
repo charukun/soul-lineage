@@ -14,6 +14,8 @@ This repository contains 輪廻転焦 (formerly 魂の系譜), village housing, 
 
 ## WORK roles (current operation)
 
+- Before concluding that character/motion review is unavailable, run the internal Lab with `npm run review:local -- --mode sequence --time 3.33 --playback`. Follow the local observation section in `apps/rinne/docs/VISUAL_REVIEW_PREVIEW.md`; a cloud-browser WebGL or localhost failure is not a local-renderer result. Keep video recording, actual viewing and human approval distinct.
+
 - Read `docs/DEVELOPMENT.md` and `docs/INTEGRATION.md` for the current delivery flow.
 - Implementation WORK ends at implementation, affected fast verification and a Ready for review PR to develop. It does not merge, run the heavy full regression, or wait for DEV publication unless the user explicitly assigns Integration work.
 - Integration owns dependency/review/check/conflict decisions, develop merges, the final full regression, DEV deployment and public real-browser verification. Never equate Ready or a green fast gate with final DEV verification.
