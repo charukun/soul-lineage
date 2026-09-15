@@ -102,17 +102,8 @@ async function main() {
   const message = deliveryMessage(stage, { report, sha: process.env.FINAL_SHA,
     repository: process.env.GITHUB_REPOSITORY, locale, runUrl });
   if (!message) { writeOutput('skipped'); return; }
-  let channel = 'failed';
-  try {
-    channel = await notifyStage(message, {
-      url: process.env.NTFY_TOPIC_URL,
-      token: process.env.NTFY_TOKEN,
-      title: notificationTitle(stage),
-    });
-  } catch (error) {
-    writeOutput(channel);
-    throw error;
-  }
+
+  // GitHub is the delivery source of truth. Record it before the advisory smartphone notification.
   if (stage === 'DEV_DEPLOYED') {
     try {
       const status = await recordDevelopDeliveryStatus({
@@ -137,6 +128,18 @@ async function main() {
     } catch (error) {
       console.warn(`::warning::GitHub delivery receipt failed: ${error.message}`);
     }
+  }
+
+  let channel = 'failed';
+  try {
+    channel = await notifyStage(message, {
+      url: process.env.NTFY_TOPIC_URL,
+      token: process.env.NTFY_TOKEN,
+      title: notificationTitle(stage),
+    });
+  } catch (error) {
+    writeOutput(channel);
+    throw error;
   }
   writeOutput(channel);
   console.log(message);
