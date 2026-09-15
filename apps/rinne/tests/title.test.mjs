@@ -31,9 +31,12 @@ test('clean bootstrap lazy-loads gameplay and has no fixed intro delay',async()=
  assert.doesNotMatch(main,/from ['"]\.\/title\/controller\.js['"]/);assert.doesNotMatch(main,/from ['"]\.\/story\/controller\.js['"]/);
  assert.doesNotMatch(main,/setTimeout\([^)]*3800/);assert.doesNotMatch(main,/setTimeout\([^)]*650/);
 });
-test('swipe-first shell exposes conversation but no persistent attack/rest/action dock',async()=>{
+test('automatic play shell keeps contextual buttons to optional nearby talk only',async()=>{
  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
- assert.match(html,/id="talk"/);assert.doesNotMatch(html,/id="rest"/);assert.doesNotMatch(html,/id="context-action"/);assert.doesNotMatch(html,/>攻撃</);
+ assert.match(html,/id="talk"[^>]*data-context-action="talk"[^>]*hidden/);
+ assert.equal([...html.matchAll(/data-context-action=/g)].length,1);
+ assert.doesNotMatch(html,/id="rest"/);assert.doesNotMatch(html,/id="objective-detail"/);assert.doesNotMatch(html,/>攻撃</);
+ assert.doesNotMatch(html,/>装備する</);assert.doesNotMatch(html,/>出航する</);assert.doesNotMatch(html,/>救助する</);
 });
 
 test('all five bundled characters and thirteen clips remain available to the separate training surface',async()=>{const base=new URL('../public/simulator/',import.meta.url);const models=JSON.parse(await readFile(new URL('./assets/manifest.json',base),'utf8'));const motions=JSON.parse(await readFile(new URL('./assets/motions.json',base),'utf8'));assert.equal(models.length,5);assert.equal(motions.length,13);for(const asset of [...models,...motions]){const bytes=await readFile(new URL(asset.file,base));assert.equal(bytes.subarray(0,4).toString(),'glTF');}});
