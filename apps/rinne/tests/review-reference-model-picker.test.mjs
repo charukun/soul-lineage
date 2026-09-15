@@ -1,26 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { REVIEW_REFERENCE_MODELS, reviewReferenceModel } from '../src/review/reference-character-models.js';
+import { existsSync, readFileSync } from 'node:fs';
 import { MOTION_LIBRARY_MODELS, motionLibraryModel, motionLibraryModelURL } from '../src/review/motion-library-models.js';
 
 const adapter=readFileSync(new URL('../src/review/review-adapter.js',import.meta.url),'utf8');
+const renderingPackage=JSON.parse(readFileSync(new URL('../../../packages/rendering/package.json',import.meta.url),'utf8'));
+const retiredFiles=[
+  new URL('../src/review/reference-character-models.js',import.meta.url),
+  new URL('../../../packages/rendering/src/master-character-reference.js',import.meta.url),
+  new URL('../../../packages/rendering/src/master-character-wardrobe.js',import.meta.url),
+  new URL('../../../packages/rendering/src/arcanist-atlas-study.js',import.meta.url)
+];
 
-test('Visual Review Lab exposes all eleven runtime reference models', () => {
-  assert.equal(REVIEW_REFERENCE_MODELS.length, 11);
-  assert.deepEqual(REVIEW_REFERENCE_MODELS.map(row => row.id), [
-    'shino.reference.v2','child-boy.reference.v1','child-girl.reference.v1','elderly-man.reference.v1','elderly-woman.reference.v1',
-    'guard.reference.v1','knight.reference.v1','blacksmith.reference.v1','laborer.reference.v1','hunter.reference.v1','arcanist.reference.v1'
-  ]);
-  for (const row of REVIEW_REFERENCE_MODELS) {
-    assert.equal(row.sourcePresetId, 'model.SHINO');
-    assert.ok(row.referenceStyle?.design);
-    assert.ok(row.referenceStyle?.palette);
-    assert.equal(reviewReferenceModel(row.id), row);
-  }
+test('Visual Review Lab keeps retired procedural character bodies out of the public runtime',()=>{
+  for(const file of retiredFiles)assert.equal(existsSync(file),false,`${file.pathname} must stay retired`);
+  assert.doesNotMatch(adapter,/REVIEW_REFERENCE_MODELS|reference-character-models|attachReferenceCharacterController|attachArcanistAtlasStudy/);
+  assert.match(adapter,/\.\.\.baseReviewPresets/);
+  assert.equal(renderingPackage.exports['./master-character-reference'],undefined);
+  assert.equal(renderingPackage.exports['./arcanist-atlas-study'],undefined);
 });
 
-test('Visual Review Lab restores all five Motion Library characters', () => {
+test('Visual Review Lab keeps the five real Motion Library characters', () => {
   assert.equal(MOTION_LIBRARY_MODELS.length, 5);
   assert.deepEqual(MOTION_LIBRARY_MODELS.map(row => row.label), ['Knight','Barbarian','Mage','Rogue','Rogue Hooded']);
   for (const row of MOTION_LIBRARY_MODELS) {
