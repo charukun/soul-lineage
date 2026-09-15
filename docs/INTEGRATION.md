@@ -69,6 +69,12 @@ DEV側の公開・HTTP/source照合・focused browser・LKG rollbackは維持す
 
 ## latest-only DEV Publisher
 
+Fast Laneが`GITHUB_TOKEN`でmergeした更新は`push` workflowを連鎖起動しない。mergeしたbatchの完了時に、最新developを対象とする`deploy.yml`の`publish_only=true`を明示的にdispatchし、DEVとPULSEを非同期で公開する。公開要求の受理と公開検証の成功は区別し、dispatch失敗を黙って成功扱いしない。
+
+自動公開要求には専用の識別子を付け、同じSHAの実行中publisherへ重複要求しない。古い自動publisherはlatest developへまとめるが、通常のIntegration、repair、人が開始した公開、main/Productionの実行は取り消さない。公開完了の待機はmerge laneへ持ち込まない。
+
+旧Controllerからの移行時は、mergeが0件でも最新SHAに公開要求の記録がなくDEV/PULSE両方の公開成功もなければ、次のFast Laneで1回補完する。`integration/publisher-wake`は公開要求だけの状態であり、`integration/develop`・`ops-board/public`の公開検証結果とは別物。失敗した要求を無制限に再送せず、失敗runをIntegrationへ返す。
+
 develop pushごとに `deploy.yml` は起動するが、`DEV Publisher Coalescer` が古い **push由来** publisher runを取消し、最新developへ収束させる。Integrationのworkflow_dispatchやrepair runは巻き込まない。
 
 publish自身も公開直前にdevelop SHAを再確認するため、superseded snapshotをpublicへ昇格させない。
