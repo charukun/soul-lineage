@@ -137,16 +137,17 @@ function filterBar(items) {
 }
 function resumePromptAction(data) {
   const drafts = draftWorkItems(data);
+  const auditAvailable = drafts.length > 0 || Boolean(data?.truncated);
   const root = el('div', 'work-resume-action');
   const copy = el('div', 'work-resume-copy');
   copy.append(
     el('strong', '', '作業中が本当に動いているかAIで全件確認'),
-    el('span', '', drafts.length ? `${drafts.length}件のDraftを手掛かりに、停止・待機・稼働中を再判定します。` : '現在の通常Draftはありません。'),
+    el('span', '', drafts.length ? `${drafts.length}件のDraftを手掛かりに、停止・待機・稼働中を再判定します。` : data?.truncated ? '表示外も含め、GitHub側の通常Draftを全件再確認します。' : '現在の通常Draftはありません。'),
   );
   if (data?.truncated) copy.append(el('span', 'work-resume-warning', '表示外があるため、プロンプトはGitHub側の全Draft列挙を必須にします。'));
-  const button = el('button', 'work-resume-button', drafts.length ? `AI再開プロンプト ${drafts.length}件` : 'AI再開プロンプト');
+  const button = el('button', 'work-resume-button', drafts.length ? `AI再開プロンプト ${drafts.length}件` : data?.truncated ? 'AI再開プロンプト 全件確認' : 'AI再開プロンプト');
   button.type = 'button';
-  button.disabled = drafts.length === 0;
+  button.disabled = !auditAvailable;
   button.dataset.viewKey = 'work-resume-prompt';
   button.setAttribute('aria-haspopup', 'dialog');
   button.addEventListener('click', () => {
