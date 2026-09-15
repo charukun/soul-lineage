@@ -1,0 +1,24 @@
+@media(max-width:899px){
+  .review-controls-dock{left:6px!important;right:6px!important;bottom:6px!important;max-height:min(68dvh,610px)!important;border-radius:20px!important}
+  .review-drawer-head{min-height:54px!important;padding:11px 10px 7px 14px!important;grid-template-columns:minmax(0,1fr) auto auto!important}
+  .review-drawer-head strong{font-size:14px!important}.review-drawer-head small{display:none!important}.review-drawer-head button{min-height:36px!important;padding:0 10px!important}
+  .review-controls-dock .notebook-head{padding:6px 10px 4px!important}.review-controls-dock .model-select-trigger{min-height:38px!important;border-radius:10px!important;font-size:10px!important}
+  .review-controls-dock .weapon-quick{display:none!important}.review-controls-dock .review-equipment{margin:4px 0 10px;padding:0!important}
+  .review-controls-dock .notebook-scroll{overflow:hidden!important;padding:5px 10px 12px!important}
+  .review-drawer-scroll .review-controls-dock .notebook-scroll{overflow:auto!important;padding-bottom:22px!important}
+  .review-controls-dock .review-page[data-review-page="skill"] .section-heading{display:none!important}
+  .review-controls-dock .review-page[data-review-page="skill"] .sequence-help{display:none!important}
+  .review-controls-dock .stage-row{grid-template-columns:28px minmax(0,1fr) 64px!important;gap:6px!important;margin-bottom:6px!important;padding:6px!important;border-radius:11px!important}
+  .review-controls-dock .stage-mark{width:26px!important;height:26px!important;font-size:11px!important}
+  .review-controls-dock .picker-trigger{min-height:40px!important;font-size:10px!important;padding-top:7px!important;padding-bottom:7px!important}
+  .review-controls-dock .play-slot{min-height:40px!important;font-size:10px!important}
+  .review-controls-dock .sequence-review-action{position:sticky!important;bottom:0!important;z-index:3!important;min-height:44px!important;margin:7px 0 0!important;box-shadow:0 -8px 22px #0a0d12!important}
+  .review-secondary-disclosure,.review-advanced-disclosure{margin-top:7px!important}.review-secondary-disclosure>summary,.review-advanced-disclosure>summary{min-height:42px!important;font-size:10px!important}
+  .review-controls-toggle,.review-feedback-toggle{min-height:46px!important;padding:0 15px!important;font-size:12px!important}.review-controls-toggle{min-width:78px!important}.review-feedback-toggle{right:max(100px,calc(env(safe-area-inset-right) + 100px))!important;min-width:70px!important}
+}
+@media(max-width:430px){
+  .review-shell>.topbar{height:40px!important;padding:0 10px!important}.review-shell>.topbar .title span{display:none!important}.review-shell>.topbar .title strong{font-size:9px!important}
+  .review-library-nav{gap:4px!important}.review-library-nav a{min-height:28px!important;padding:0 8px!important;font-size:8px!important}
+  .review-shell .stage-header{left:12px!important;right:12px!important;bottom:64px!important}.review-shell .stage-header strong{font-size:20px!important}
+  .review-shell .hud{left:12px!important;right:12px!important}.review-shell .badge{max-width:68%!important}
+}
