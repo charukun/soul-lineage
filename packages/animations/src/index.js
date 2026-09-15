@@ -7,6 +7,7 @@ export * from './intersection-risk.js';
 export * from './weapon-calibration.js';
 export * from './motion-reference-benchmark.js';
 export * from './motion-qa.js';
+export { createCorrectionSampler } from './correction-sampler.js';
 export * from './motion-authoring.js';
 export * from './gameplay-motion-quality.js';
 export * from './motion-life.js';

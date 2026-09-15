@@ -146,6 +146,58 @@ The existing Character Studio browser gate additionally invokes
 Physical Pixel Fold performance and final aesthetic approval remain separate.
 Implementation delivery ends at Ready; Integration owns CI, merge and DEV publication.
 
+## Continuity review v2
+
+The first clearance solver sometimes switched between elbow swivel and forward
+hand clearance on adjacent frames. In the merged develop sequence, the right
+upper arm changed by .8956 radians in one 60 Hz frame at 17.55 seconds. This was a
+presentation correction discontinuity, not a reason to weaken the authored slash.
+
+`createCorrectionSampler` now averages **correction offsets and twist transfer**
+over a symmetric cosine window (default ±3 source frames at 60 Hz). The target's
+original hand/elbow points receive those offsets; `applyCorrection` reconstructs
+the measured limb lengths and retains the authored world palm orientation. The
+source pose bank, hips/feet, action duration and contact clocks are not filtered.
+
+Integer-frame evaluation and a bounded 96-frame cache make arbitrary seeking,
+reverse review and different playback rates reproducible. Each actor/profile owns
+its cache, which is replaced on appearance/identity changes. The evaluation hook
+must be a pure function of source time and that rig/profile; it temporarily samples
+the rig, so callers restore the requested base pose before applying the result.
+This is bounded sampling around the current review time, not a 30-character bake
+of every possible body/age combination at startup.
+
+The shared sword profile additionally describes its existing root-aligned carry
+socket and reach/transfer/release progress (.10/.25/.40). `matchWeaponTransfer`
+matches the palm to that socket at ownership transfer, including body/age offsets.
+`calibrateCarriedWeapon` and hand calibration use the same geometry grip/scale.
+The correction fades to zero outside that range; authored skills at full draw are
+untouched. No interpolation of a detached sword is used to conceal a hand gap.
+
+Workshop adds 0.5×/0.25× playback and a loop of the selected existing motion range.
+The 30-second start resets to 1× with looping off. QA expressions/blink use review
+time; normal Workshop expression timing stays unchanged. Reports now also retain
+correction revision, presentation selection/expression settings, playback speed
+and loop range. Existing v1 reports remain readable. Snapshots expose weapon
+ownership, grip position and transfer error for external reviewers.
+
+See [the v2 report](qa/shino-continuity-v2.json) and
+[same-camera 0.25× comparison](qa/shino-continuity-v2.mp4). The movie compares the
+**previously corrected develop** against v2 (37 actual WebGL frames per side,
+17.15–17.75 seconds), not the original uncorrected motion. Its blink is disabled on
+both sides. The reference maximum arm-joint step drops .8956 → .6796 rad; maximum
+arm/torso capsule risk drops .01725 → .01438 source metres. These remain screening
+metrics, not aesthetic approval. Twelve body/height/7–75-year variants improve in
+the sampled windows; their maximum carry/palm gap drops from .02646 metres to
+less than 1e-5 metres at transfer.
+
+Original skirt geometry can still pierce the rigid modular tunic on an elderly
+variant. That clothing/attachment issue is recorded with an image rather than
+claimed fixed by arm correction. Cloth/hair/skinning and physical Pixel Fold
+performance remain visual/performance review work. The ongoing PR #156 owns
+source stance naturalization; this change does not reauthor its runtime or the
+independent Lab branch. Integration owns combined-source checks and publication.
+
 ## External motion reference benchmark scope
 
 Public implementations are **technique references**, not runtime dependencies and not
