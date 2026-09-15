@@ -92,7 +92,7 @@ test('Visual Review Lab uses one obvious five-way nav and grid-first selection U
   assert.match(nav, /review-tool-grid/);
   assert.match(nav, /\['posture', '姿勢'/);
   assert.match(nav, /\['advanced', '詳細調整'/);
-  assert.match(nav, /data\.reviewSection = currentSection/);
+  assert.match(nav, /dataset\.reviewSection = currentSection/);
   assert.match(navCss, /review-bottom-nav[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
   assert.match(navCss, /\.picker-list\{[^}]*repeat\(5,minmax\(0,1fr\)\)/s);
   assert.match(navCss, /data-review-section="battle"/);
