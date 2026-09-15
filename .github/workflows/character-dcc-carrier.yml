@@ -1,0 +1,180 @@
+name: Character DCC Carrier
+
+on:
+  push:
+    branches:
+      - 'dcc/**'
+    paths:
+      - '.dcc/character-dcc-request.json'
+      - 'scripts/blender/**'
+      - 'scripts/character-dcc-request.mjs'
+      - 'scripts/finalize-character-dcc.py'
+      - 'docs/characters/references/**'
+      - '.github/workflows/character-dcc-carrier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  statuses: write
+
+concurrency:
+  group: character-dcc-${{ github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  LIBGL_ALWAYS_SOFTWARE: '1'
+  DCC_REQUEST_FILE: .dcc/character-dcc-request.json
+
+jobs:
+  build-dcc:
+    if: startsWith(github.ref, 'refs/heads/dcc/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact DCC request head
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Record pending DCC status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state=pending \
+            -f context='character-dcc/build' \
+            -f description='Character DCC Carrier is building the requested Blender asset' \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
+
+      - name: Validate request before installing Blender
+        run: |
+          test -f "$DCC_REQUEST_FILE"
+          node --check scripts/character-dcc-request.mjs
+          python3 -m py_compile scripts/finalize-character-dcc.py scripts/blender/character-production-audit.py
+          node scripts/character-dcc-request.mjs validate "$DCC_REQUEST_FILE"
+          node scripts/character-dcc-request.mjs emit-env "$DCC_REQUEST_FILE" "$GITHUB_ENV"
+          echo "DCC_REQUEST_SHA=$(sha256sum "$DCC_REQUEST_FILE" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+
+      - name: Install headless Blender runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy xvfb libegl1 libgl1-mesa-dri libglx-mesa0
+          blender --version
+          xvfb-run -a blender --background --python-exit-code 1 --python-expr "import numpy; print('Blender numpy', numpy.__version__)"
+
+      - name: Prepare audited rig input
+        run: |
+          rm -rf "$DCC_GENERATED_DIR"
+          mkdir -p "$DCC_GENERATED_DIR/input"
+          cp "$DCC_RIG" "$DCC_GENERATED_DIR/input/source-rig.glb"
+          python3 -m py_compile "$DCC_BUILDER"
+
+      - name: Execute character-specific Blender builder
+        run: |
+          xvfb-run -a blender --background --python-exit-code 1 \
+            --python "$DCC_BUILDER" -- \
+            --source "$DCC_GENERATED_DIR/input/source-rig.glb" \
+            --source-vrm "$DCC_RIG" \
+            --out "$DCC_GENERATED_DIR"
+
+      - name: Audit generated Blender source
+        run: |
+          xvfb-run -a blender --background --python-exit-code 1 \
+            "$DCC_GENERATED_DIR/source/$DCC_BLEND_NAME" \
+            --python scripts/blender/character-production-audit.py -- \
+            --out "$DCC_GENERATED_DIR/blender-audit.json" \
+            --character-id "$DCC_ID"
+
+      - name: Require generated DCC evidence
+        run: |
+          test -s "$DCC_GENERATED_DIR/source/$DCC_BLEND_NAME"
+          test -s "$DCC_GENERATED_DIR/export/$DCC_MODEL_NAME"
+          test -s "$DCC_GENERATED_DIR/build.json"
+          test -s "$DCC_GENERATED_DIR/blender-audit.json"
+          for view in front three-quarter side back; do
+            test -s "$DCC_GENERATED_DIR/review/$view.png"
+          done
+
+      - name: Install canonical source, runtime candidate and QA evidence
+        run: |
+          mkdir -p "$(dirname "$DCC_CANONICAL_BLEND")" "$(dirname "$DCC_CANONICAL_MODEL")" "$DCC_QA_DIR"
+          cp "$DCC_GENERATED_DIR/source/$DCC_BLEND_NAME" "$DCC_CANONICAL_BLEND"
+          cp "$DCC_GENERATED_DIR/export/$DCC_MODEL_NAME" "$DCC_CANONICAL_MODEL"
+          cp "$DCC_GENERATED_DIR/blender-audit.json" "$DCC_QA_DIR/blender-audit.json"
+          cp "$DCC_GENERATED_DIR/build.json" "$DCC_QA_DIR/build.json"
+          for view in front three-quarter side back; do
+            cp "$DCC_GENERATED_DIR/review/$view.png" "$DCC_QA_DIR/$view.png"
+          done
+          python3 scripts/finalize-character-dcc.py --request "$DCC_REQUEST_FILE"
+
+      - name: Verify production truth and patch hygiene
+        run: |
+          node scripts/check-character-production.mjs
+          node --test tests/character-dcc-carrier.test.mjs
+          git diff --check
+
+      - name: Commit generated canonical assets to the same DCC branch
+        id: generated
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git stash push --include-untracked -m character-dcc-generated-output
+          git fetch origin "$GITHUB_REF_NAME"
+          git rebase "origin/$GITHUB_REF_NAME"
+          current_request_sha=$(sha256sum "$DCC_REQUEST_FILE" | cut -d' ' -f1)
+          if [ "$current_request_sha" != "$DCC_REQUEST_SHA" ]; then
+            echo 'DCC request changed while Blender was running; discard stale generated output and let the newer push own the build.' >&2
+            git stash drop || true
+            exit 1
+          fi
+          git stash pop
+          git add -- \
+            "$DCC_CANONICAL_BLEND" \
+            "$DCC_CANONICAL_MODEL" \
+            "$DCC_CANONICAL_INTEGRITY" \
+            "$DCC_CANONICAL_PRODUCTION" \
+            "$DCC_QA_DIR"
+          if git diff --cached --quiet; then
+            echo 'Generated canonical DCC assets are unchanged.'
+          else
+            git commit -m "build(characters): generate $DCC_ID DCC assets"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
+          generated_sha=$(git rev-parse HEAD)
+          echo "sha=$generated_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Record successful exact generated head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GENERATED_SHA: ${{ steps.generated.outputs.sha }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$GENERATED_SHA" \
+            -f state=success \
+            -f context='character-dcc/build' \
+            -f description='Real Blender build, audit, hashes and canonical DCC outputs passed' \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null
+
+      - name: Upload review/debug evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: character-dcc-${{ github.ref_name }}-${{ github.run_attempt }}
+          path: |
+            .dcc/character-dcc-request.json
+            generated/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Record failed DCC status
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          failed_sha=$(git rev-parse HEAD)
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$failed_sha" \
+            -f state=failure \
+            -f context='character-dcc/build' \
+            -f description='Character DCC Carrier failed; inspect the exact run and retained evidence' \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >/dev/null || true
