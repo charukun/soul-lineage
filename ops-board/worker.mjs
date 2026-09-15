@@ -81,6 +81,10 @@ export default {
         const token = request.headers.get('x-ops-github-token') || '';
         if (token.length > 1024) return json({ error: 'invalid_credential' }, 400);
         const stub = env.OPS_STATE.getByName('global');
+        if (!token && !env.OPS_GITHUB_TOKEN) {
+          const state = await stub.getState() || await stub.refresh(eventReason(request));
+          return json(publicState(state, env));
+        }
         return json(publicState(await stub.refresh(eventReason(request), token), env));
       }
       if (url.pathname === '/api/rescue-observation' && request.method === 'POST') {
