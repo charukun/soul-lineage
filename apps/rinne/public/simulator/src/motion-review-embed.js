@@ -11,6 +11,8 @@ if (params.get('embed') === '1') {
     const status = $('motion-status')?.textContent || '';
     return {
       ready: !play?.disabled,
+      weapon: $('weapon-kind')?.value || 'sword',
+      handDetail: Boolean($('hand-detail')?.checked),
       mode: $('mode')?.value || 'sequence',
       playing: play?.getAttribute('aria-pressed') === 'true',
       speed: Number($('speed')?.value || 1),
@@ -54,6 +56,8 @@ if (params.get('embed') === '1') {
     if (data?.type !== 'visual-review-performance-control') return;
     switch (data.command) {
       case 'state': break;
+      case 'weapon': {const select=$('weapon-kind');if(select&&!select.disabled&&['sword','great','katana','spear','axe'].includes(data.value)){select.value=data.value;select.onchange?.({target:select});}break;}
+      case 'hand-detail': if($('hand-detail')){$('hand-detail').checked=Boolean(data.value);$('hand-detail').onchange?.();}break;
       case 'mode': setMode(data.value); break;
       case 'play-toggle': $('play')?.click(); break;
       case 'play': setPlaying(true); break;

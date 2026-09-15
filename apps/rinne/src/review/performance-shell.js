@@ -33,7 +33,10 @@ function send(command, value) {
 
 function ensureFrame() {
   if (frame.getAttribute('src')) return;
-  frame.src = frame.dataset.src;
+  const url=new URL(frame.dataset.src,location.href);
+  const weapon=new URLSearchParams(location.search).get('performanceWeapon');
+  if(weapon)url.searchParams.set('weapon',weapon);
+  frame.src=url.href;
 }
 
 function writeURL() {
@@ -41,9 +44,10 @@ function writeURL() {
   if (active) {
     url.searchParams.set('tab', 'performance');
     url.searchParams.set('performance', latestState.mode || 'sequence');
+    if(latestState.weapon)url.searchParams.set('performanceWeapon',latestState.weapon);
   } else {
     url.searchParams.delete('tab');
-    url.searchParams.delete('performance');
+    url.searchParams.delete('performance');url.searchParams.delete('performanceWeapon');
   }
   history.replaceState(null, '', url);
 }
@@ -172,12 +176,14 @@ function updateControls(state) {
     button.setAttribute('aria-pressed', String(on));
   });
   const ready = Boolean(latestState.ready);
-  for (const id of ['#performance-play','#performance-restart','#performance-prev','#performance-next','#performance-seek']) q(id).disabled = !ready;
+  for (const id of ['#performance-play','#performance-restart','#performance-prev','#performance-next','#performance-seek','#performance-weapon','#performance-detail']) q(id).disabled = !ready;
   q('#performance-play').textContent = latestState.playing ? '一時停止' : '再生';
   q('#performance-speed').value = String(latestState.speed || 1);
   q('#performance-repeat').checked = Boolean(latestState.repeat);
   q('#performance-compare').checked = Boolean(latestState.compare);
   q('#performance-compare').disabled = !latestState.canCompare;
+  q('#performance-weapon').value=latestState.weapon||'sword';
+  q('#performance-detail').checked=Boolean(latestState.handDetail);
   q('#performance-trail').checked = Boolean(latestState.trail);
   q('#performance-seek').max = String(latestState.duration || 1);
   q('#performance-seek').value = String(latestState.time || 0);
@@ -205,6 +211,8 @@ document.querySelectorAll('[data-performance-mode]').forEach(button => button.ad
   updateControls(latestState);
   send('mode', mode);
 }));
+q('#performance-weapon').addEventListener('change',event=>send('weapon',event.target.value));
+q('#performance-detail').addEventListener('change',event=>send('hand-detail',event.target.checked));
 q('#performance-play').addEventListener('click', () => send('play-toggle'));
 q('#performance-restart').addEventListener('click', () => send('restart'));
 q('#performance-speed').addEventListener('change', event => send('speed', Number(event.target.value)));

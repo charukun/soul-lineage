@@ -1,3 +1,4 @@
+import {weaponPose,twoHandedWeapon} from './weapon-motion.js';
 /** Original sword/slash choreography. +Z forward, +X anatomical left.
  * Pose times share the game's contact clock; no actor displacement or game state.
  * Source: visual study of user reference 1000003098.mp4, not extracted motion data.
@@ -64,13 +65,13 @@ export function sampleSlashPose(phase, contact) {
   return Object.fromEntries(Object.entries(body).map(([name,rows])=>[name,poseCurve(rows,p)]));
 }
 
-export function applyAuthoredSlash(runtime,c,phase,definition=SLASH_TIMING) {
+export function applyAuthoredSlash(runtime,c,phase,definition=SLASH_TIMING,weapon='sword') {
   const pose=sampleSlashPose(phase,definition.contact);
-  return applySwordPose(runtime,c,pose,slashTime(phase,definition.contact));
+  return applySwordPose(runtime,c,weaponPose(pose,weapon,'slash',slashTime(phase,definition.contact)),slashTime(phase,definition.contact),weapon);
 }
 
 /** Shared rig application: authored keys choose the pose, IK keeps anatomy/grip. */
-export function applySwordPose(runtime,c,pose,p) {
+export function applySwordPose(runtime,c,pose,p,weapon='sword') {
   const s=c.legLength/.82;
   const flip=c.vrm.meta.metaVersion==='1'?-1:1;
   for(const name of ['hips','spine','chest','head']){
@@ -117,7 +118,8 @@ export function applySwordPose(runtime,c,pose,p) {
   // Load with a bent elbow, extend through contact, then fold into recovery.
   // A phase-specific reach cap avoids hitting the same IK limit for every pose.
   const reach=pose.reach?.[0]??.965;
-  runtime.attachHands(c,'sword',grip,dir,roll,1,null,1,reach);
+  runtime.attachHands(c,weapon,grip,dir,roll,1,null,1,reach);
+  if(twoHandedWeapon(weapon)){c.root.updateMatrixWorld(true);return;}
   // Preserve the canonical neutral free-hand orientation through arm IK, as on
   // current develop. Rest-local wrist rotation inherits the twisting forearm and
   // turns the palm upward in recovery, then snaps back at the guard seam.

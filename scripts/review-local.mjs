@@ -7,16 +7,21 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {parseArgs} from 'node:util';
 import {createServer} from 'vite';
+import {SWORD_MOVES} from '../apps/rinne/public/simulator/src/authored-sword.js';
+import {REVIEW_WEAPONS} from '../apps/rinne/public/simulator/src/review-sword.js';
 import {chromium} from '@playwright/test';
 
-const {values}=parseArgs({options:{mode:{type:'string',default:'sequence'},time:{type:'string',default:'3.33'},times:{type:'string'},out:{type:'string',default:'artifacts/review-local-motion'},playback:{type:'boolean',default:false}}});
-const durations={sequence:30,combination:4,single:.66,posture:18};
+const {values}=parseArgs({options:{mode:{type:'string',default:'sequence'},time:{type:'string',default:'3.33'},times:{type:'string'},detail:{type:'string',default:'body'},weapon:{type:'string',default:'sword'},kind:{type:'string',default:'slash'},out:{type:'string',default:'artifacts/review-local-motion'},playback:{type:'boolean',default:false}}});
+const durations={sequence:30,combination:4,single:SWORD_MOVES[values.kind]?.seconds??.66,posture:18};
 assert.ok(Object.hasOwn(durations,values.mode),'Use sequence, combination, single or posture');
+assert.ok(Object.hasOwn(REVIEW_WEAPONS,values.weapon),'Unknown weapon');
+assert.ok(Object.hasOwn(SWORD_MOVES,values.kind),'Unknown basic action');
+assert.ok(['body','hands'].includes(values.detail),'Use --detail body or hands');
 const times=(values.times||values.time).split(',').map(Number),time=times[0];
 assert.ok(times.length&&times.every(t=>Number.isFinite(t)&&t>=0&&t<=durations[values.mode]),'time is outside the selected motion');
 const output=resolve(values.out);await mkdir(output,{recursive:true});
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
-const paths=['authored-slash.js','authored-sword.js','sword-sequence.js','sword-performance.js','sword-techniques.js','humanoid.js','motion-review.js'];
+const paths=['authored-slash.js','authored-sword.js','sword-sequence.js','sword-performance.js','sword-techniques.js','humanoid.js','motion-review.js','rig-profiles.js','quality-math.js','review-sword.js','weapon-motion.js','hand-grip.js','limb-ik.js'];
 const sourceHashes=async()=>Object.fromEntries(await Promise.all(paths.map(async path=>[path,createHash('sha256').update(await readFile(resolve('apps/rinne/public/simulator/src',path))).digest('hex')])));
 const hashes=await sourceHashes();
 const report={schema:'rinne-local-motion-review',version:1,revision,sourceHashes:hashes,mode:values.mode,time,model:'SHINO_review.vrm',renderer:'software-WebGL',stage:'start',passed:false,visualApproval:'pending',normalSpeedReview:'not-observed',physicalDeviceFps:'not-measured',captures:[],errors:[]};
@@ -27,7 +32,7 @@ try{
   report.stage='server';
   server=await createServer({configFile:resolve('apps/rinne/vite.config.js'),root:resolve('apps/rinne'),base:'/',logLevel:'error',server:{host:'127.0.0.1',port:0,strictPort:false,open:false}});
   await server.listen();const base=`http://127.0.0.1:${server.httpServer.address().port}`;
-  report.url=`${base}/simulator/motion-review.html?mode=${values.mode}`;
+  report.url=`${base}/simulator/motion-review.html?mode=${values.mode}&weapon=${values.weapon}`;
   assert.equal((await fetch(report.url)).status,200,'Local Lab HTTP entry did not load');
   report.stage='browser';
   const executable=[process.env.REVIEW_CHROMIUM_PATH,chromium.executablePath(),resolve('node_modules/.cache/rinne-review-browser/chromium'),'/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/opt/google/chrome/chrome'].find(path=>path&&existsSync(path));
@@ -40,6 +45,11 @@ try{
   await page.waitForFunction(()=>!document.querySelector('#play').disabled||document.querySelector('#motion-status').textContent.includes('表示できませんでした'),null,{timeout:90000});
   assert.equal(await page.locator('#play').isEnabled(),true,await page.locator('#motion-status').textContent());
   await page.locator('#play').click();
+  report.detail=values.detail;report.weapon=values.weapon;report.kind=values.kind;
+  if(values.mode==='single')await page.locator('#single-kind').selectOption(values.kind);
+  // Selecting a basic restarts playback; observation always seeks while paused.
+  if(await page.locator('#play').getAttribute('aria-pressed')==='true')await page.locator('#play').click();
+  if(values.detail==='hands')await page.locator('#hand-detail').check();
   report.stage='webgl';
   report.webgl=await page.locator('#motion-stage').evaluate(canvas=>{const gl=canvas.getContext('webgl2');return gl?{version:gl.getParameter(gl.VERSION),renderer:gl.getParameter(gl.RENDERER),width:canvas.width,height:canvas.height,lost:gl.isContextLost()}:null;});
   assert.ok(report.webgl&&!report.webgl.lost&&report.webgl.width>0,'The actual Lab canvas must have a live WebGL2 context');
