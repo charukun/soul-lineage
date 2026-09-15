@@ -10,7 +10,7 @@ on:
         default: develop
         type: string
       apps:
-        description: all, affected, or comma-separated rinne,village,demon
+        description: all or comma-separated rinne,village,demon
         required: true
         default: all
         type: string
@@ -45,7 +45,12 @@ jobs:
         env:
           BROWSER_PLAYTEST: ${{ inputs.apps }}
           HEAD_SHA: ${{ steps.target.outputs.sha }}
-        run: node scripts/browser/pr-smoke.mjs "$HEAD_SHA" "$HEAD_SHA"
+        run: |
+          if [ "${BROWSER_PLAYTEST,,}" = "affected" ]; then
+            echo '::error::Manual Browser Playtest needs an explicit app list or all; affected has no comparison base.'
+            exit 1
+          fi
+          node scripts/browser/pr-smoke.mjs "$HEAD_SHA" "$HEAD_SHA"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
