@@ -2,7 +2,7 @@
 
 Fast Laneは通常Ready PRの唯一のmerge入口であり、Fast RepairはGitで機械的に安全なmerge-forwardだけを処理する。
 
-Fast Laneが真のmerge conflictを検出した場合、旧Rescue queueや1時間watchdogを通常の起動条件にせず、そのcurrent exact headに対するDeep Repair handoffを同じIntegration passで即時に記録する。large-base reconciliationはcomplete fail-closed comparisonでFast Laneに残し、サイズだけを理由にDeep Repairへ落とさない。
+Fast Laneが真のmerge conflictまたはcurrent exact-headのCI failureを検出した場合、旧Rescue queueや1時間watchdogを通常の起動条件にせず、そのcurrent exact headに対するDeep Repair handoffを同じIntegration passで即時に記録する。large-base reconciliationはcomplete fail-closed comparisonでFast Laneに残し、サイズだけを理由にDeep Repairへ落とさない。
 
 ## Repository側の即時handoff
 
@@ -79,4 +79,8 @@ DEV publicationは各Fast Lane pass後に最新develop SHAへ明示dispatchさ�
 
 ## Ready CI failureの修復契約
 
-Ready PRのcurrent exact-head `Validate and build` が失敗した場合も、失敗run/jobを特定して既存Deep Repair Issueへ送る。CI完了後にIntegrationをwakeし、開始時点の観測だけで停止させない。成功したobservation/Draft run、旧head、実行中・skippedの検証は失敗の根拠にしない。hold/review/thread/dependency、exact-head gate、Issueのclaim/attempt制限を維持し、独立PRのIntegrationは継続する。
+Ready PRのcurrent exact-head `Validate and build` がfailure/timed_outで完了した場合も、失敗run/jobを特定して既存Deep Repair Issueへ送る。CIはbuild成功・失敗の両方でIntegrationをwakeし、開始時点の観測だけで停止させない。自身のwake jobが実行中でもbuild jobの完了を根拠にできる。
+
+最新validation runのjobだけを調べ、成功したobservation/Draft run、旧head、実行中・skipped・cancelledの検証、旧rerun attemptは失敗の根拠にしない。`repairKind=ci-failure` と `ciFailure` にhead/runId/runAttempt/jobId/jobName/conclusion/runUrl/jobUrlを記録する。Workはその失敗jobのstepsと必要なlog範囲から調査する。
+
+handoff直前にcurrent PR/head/developとhold/review/thread/dependencyを再取得する。同じheadのclosed・上限到達・human-required Issueも再生成せず、claim/attempt制限を維持する。修復中も独立PRのIntegrationは継続する。
