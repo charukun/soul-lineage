@@ -75,7 +75,7 @@ Fast Laneが`GITHUB_TOKEN`でmergeした更新は`push` workflowを連鎖起動�
 
 自動公開要求には専用の識別子を付け、同じSHAの実行中publisherへ重複要求しない。古い自動publisherはlatest developへまとめるが、通常のIntegration、repair、人が開始した公開、main/Productionの実行は取り消さない。公開完了の待機はmerge laneへ持ち込まない。
 
-旧Controllerからの移行時は、mergeが0件でも最新SHAに公開要求の記録がなくDEV/PULSE両方の公開成功もなければ、次のFast Laneで1回補完する。`integration/publisher-wake`は公開要求だけの状態であり、`integration/develop`・`ops-board/public`の公開検証結果とは別物。失敗した要求を無制限に再送せず、失敗runをIntegrationへ返す。
+旧Controllerからの移行時は、mergeが0件でも最新SHAに公開要求の記録がなくDEV/PULSE両方の公開成功もなければ、次のFast Laneで1回補完する。`integration/publisher-wake`は公開要求だけの状態であり、`integration/develop`・`ops-board/public`の公開検証結果とは別物。`integration/publisher-wake` の既存statusだけを公開済み・実行中の証拠にせず、同一SHAの自動publisherが稼働しておらず公開成功証拠もない場合は補完dispatchを許可する。失敗した要求を無制限に再送せず、失敗runをIntegrationへ返す。
 
 develop pushごとに `deploy.yml` は起動するが、`DEV Publisher Coalescer` が古い **push由来** publisher runを取消し、最新developへ収束させる。Integrationのworkflow_dispatchやrepair runは巻き込まない。
 
@@ -95,7 +95,7 @@ explicit hold、dependency、review objection、merge conflict、exact-head fast
 
 ## Draft / Ready
 
-Draftでは lightweight checkのみ。Readyになると `Validate and build` とbrowser smokeを開始する。**Request Integrationはbuild成功直後に起動し、browser完了を待たない。** browserは並行してrepair evidenceを残す。
+Draftでは lightweight checkのみ。Readyになると `Validate and build` とbrowser smokeを開始する。**Request Integrationはbuild成功・失敗の直後に起動し、browser完了を待たない。失敗はcurrent exact-headのDeep Repairへ送る。** browserは並行してrepair evidenceを残す。
 
 ## main / Production
 

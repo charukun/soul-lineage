@@ -13,8 +13,9 @@
 <body>
 <main id="app" data-screen="title">
   <section id="title-screen" class="title-screen" aria-labelledby="title-mark">
+    <div class="title-rune" aria-hidden="true"></div>
     <div class="title-lockup">
-      <img class="crest" src="./title-assets/crest.svg" alt="">
+      <div class="crest-ring"><img class="crest" src="./title-assets/crest.svg" alt=""></div>
       <p class="eyebrow">A LIFE, THEN ANOTHER</p>
       <h1 id="title-mark">100年人生</h1>
       <p class="subtitle">輪廻転焦</p>
@@ -23,33 +24,34 @@
     <div class="title-actions" aria-label="ゲーム開始">
       <label class="name-field"><span>名</span><input id="life-name" maxlength="12" autocomplete="off" value="旅人"></label>
       <button id="continue-life" class="primary" type="button" hidden><strong>つづきから</strong><small id="continue-detail"></small></button>
-      <button id="new-life" class="primary" type="button"><strong>新しい人生</strong><small>0歳から100歳まで、一つの生を歩く</small></button>
-      <a class="secondary" href="./simulator/index.html"><strong>稽古場</strong><small>技と装備の調整</small></a>
-      <button id="open-village" class="secondary" type="button"><strong>村へ参加</strong><small>村長の参加コードでつながる</small></button>
+      <button id="new-life" class="primary" type="button"><strong>新しい人生</strong><small>0歳</small></button>
+      <a class="secondary" href="./simulator/index.html"><strong>稽古場</strong><small>技・装備</small></a>
+      <button id="open-village" class="secondary" type="button"><strong>村へ参加</strong><small>参加コード</small></button>
     </div>
-    <p id="boot-status" class="boot-status" role="status" aria-live="polite">準備できています</p>
+    <p id="boot-status" class="boot-status" role="status" aria-live="polite">準備完了</p>
     <footer><span id="build-label">LOCAL</span><span>輪廻転焦</span></footer>
   </section>
 
-  <section id="game-screen" class="game-screen" hidden aria-label="100年人生 本編">
+  <section id="game-screen" class="game-screen" data-world-tone="village" hidden aria-label="100年人生 本編">
     <canvas id="game" aria-label="村と旅人の世界"></canvas>
-    <div id="loading-card" class="loading-card" aria-live="polite"><strong id="loading-title">世界を開いています</strong><small id="loading-message">共有の村を読み込んでいます</small></div>
+    <div class="world-vignette" aria-hidden="true"></div>
+    <div id="chapter-mark" class="chapter-mark" hidden aria-hidden="true"><span>輪廻転焦</span><strong id="chapter-title"></strong><i></i></div>
+    <div id="loading-card" class="loading-card" aria-live="polite"><strong id="loading-title">世界を開いています</strong><small id="loading-message">村を読み込み中</small></div>
     <header class="hud-top">
       <button id="back-title" class="icon-button" type="button" aria-label="タイトルへ戻る">‹</button>
-      <div class="life-chip"><span id="generation">1代目</span><strong id="age">0歳</strong></div>
-      <div class="bars"><label><span>命</span><i><b id="hp-bar"></b></i></label><label><span>息</span><i><b id="stamina-bar"></b></i></label></div>
-      <label class="clock-rate"><span>時</span><select id="clock-rate" aria-label="世界時計の速さ"><option value="1">1×</option><option value="5">5×</option><option value="10">10×</option><option value="20">20×</option></select></label>
+      <div class="life-chip ornate"><span id="generation">1代目</span><strong id="age">0歳</strong></div>
+      <div class="bars ornate"><label><span>命</span><i><b id="hp-bar"></b></i></label><label><span>息</span><i><b id="stamina-bar"></b></i></label></div>
+      <label class="clock-rate ornate"><span>時</span><select id="clock-rate" aria-label="世界時計の速さ"><option value="1">1×</option><option value="5">5×</option><option value="10">10×</option><option value="20">20×</option></select></label>
     </header>
-    <aside class="objective-card">
-      <div class="objective-meta"><span id="life-stage">人生 1/6 · 誕生</span><small id="place">MURAAAAAAA</small></div>
-      <strong id="objective">母と村を歩き、世界を知る</strong>
-      <small id="objective-detail">4歳になると自分の足で村の暮らしが始まります</small>
-      <div id="waypoint" class="waypoint" hidden><b id="waypoint-arrow" aria-hidden="true">↑</b><span><strong id="waypoint-label"></strong><small id="waypoint-distance"></small></span></div>
+    <aside class="objective-card ornate">
+      <div class="objective-meta"><span id="life-stage">1/6 誕生</span><small id="objective-badge">自立 4歳</small></div>
+      <strong id="objective">村を知る</strong>
+      <div id="waypoint" class="waypoint" hidden><b id="waypoint-arrow" aria-hidden="true">▲</b><span><strong id="waypoint-label"></strong><small id="waypoint-distance"></small></span></div>
     </aside>
-    <div id="dialogue" class="dialogue" hidden><span id="speaker">母</span><p id="dialogue-text"></p></div>
+    <div id="dialogue" class="dialogue ornate" hidden><span id="speaker">母</span><p id="dialogue-text"></p></div>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-    <button id="talk" class="talk-button" type="button"><span>話</span><small>話す</small></button>
-    <p id="move-hint" class="move-hint">スワイプした方向へ歩く</p>
+    <button id="talk" class="talk-button" type="button" data-context-action="talk" hidden><span>話</span><small>話す</small></button>
+    <p id="move-hint" class="move-hint">スワイプで移動</p>
   </section>
 </main>
 <dialog id="village-dialog" aria-labelledby="village-dialog-title">
