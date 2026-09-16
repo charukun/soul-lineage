@@ -5,18 +5,28 @@ import {readFile} from 'node:fs/promises';
 const root=new URL('../',import.meta.url);
 const read=path=>readFile(new URL(path,root),'utf8');
 
-test('Visual Review publication follows develop delivery rather than a long-lived Lab branch',async()=>{
-  const workflow=await read('.github/workflows/review-preview.yml');
-  assert.match(workflow,/workflow_run:/);
-  assert.match(workflow,/workflows: \["Deploy DEV and PROD"\]/);
-  assert.match(workflow,/branches: \[develop\]/);
-  assert.match(workflow,/ref: develop/);
-  assert.match(workflow,/git rev-parse HEAD/);
-  assert.match(workflow,/branches\/develop/);
+test('Visual Review publication follows exact develop delivery rather than a default-branch event',async()=>{
+  const [workflow,opsBoard]=await Promise.all([
+    read('.github/workflows/review-preview.yml'),
+    read('.github/workflows/ops-board.yml'),
+  ]);
+  assert.match(workflow,/workflow_call:/);
+  assert.match(workflow,/source_sha:[\s\S]*required: true/);
+  assert.match(workflow,/ref: \$\{\{ inputs\.source_sha \}\}/);
+  assert.match(workflow,/REVIEW_PREVIEW_ENABLED != 'false'/);
+  assert.match(workflow,/repos\.getBranch\(\{ \.\.\.context\.repo, branch: 'develop' \}\)/);
   assert.match(workflow,/npm run build:review/);
   assert.match(workflow,/wrangler@4 deploy --config wrangler\.review\.jsonc/);
+  assert.match(workflow,/curl -fsS[\s\S]*rinne-visual-review\.c-okamoto\.workers\.dev/);
+  assert.match(workflow,/DEPLOY_OUTCOME: \$\{\{ steps\.deploy\.outcome \}\}/);
+  assert.match(workflow,/PUBLIC_OUTCOME: \$\{\{ steps\.public\.outcome \}\}/);
   assert.match(workflow,/visual-review\/public/);
+  assert.doesNotMatch(workflow,/workflow_run:/);
   assert.doesNotMatch(workflow,/work\/visual-review-lab-v2/);
+
+  assert.match(opsBoard,/visual-review:[\s\S]*uses: \.\/\.github\/workflows\/review-preview\.yml/);
+  assert.match(opsBoard,/source_sha: \$\{\{ inputs\.source_sha \|\| github\.sha \}\}/);
+  assert.match(opsBoard,/secrets: inherit/);
 });
 
 test('Review build promotes review.html only inside the dedicated Review bundle',async()=>{
