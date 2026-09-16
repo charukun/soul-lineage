@@ -1,0 +1,143 @@
+/* Cinematic title atmosphere layered on the existing authored world image. */
+.title-screen{
+  --title-parallax-x:0px;
+  --title-parallax-y:0px;
+  --title-parallax-x-soft:0px;
+  --title-parallax-y-soft:0px;
+}
+.title-world{
+  inset:-7%;
+  transform:translate3d(var(--title-parallax-x-soft),var(--title-parallax-y-soft),0) scale(1.035);
+  transition:transform .7s cubic-bezier(.2,.7,.2,1);
+  will-change:transform;
+}
+.title-world-base{
+  position:absolute;
+  inset:0;
+  z-index:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:51% 50%;
+  transform-origin:52% 56%;
+  animation:title-rich-camera 30s ease-in-out infinite alternate!important;
+  will-change:transform,filter;
+}
+.title-world-rays,.title-world-clouds,.title-world-motes,.title-world-lens{
+  position:absolute;
+  pointer-events:none;
+  will-change:opacity,background-position,transform;
+}
+.title-world-rays{
+  z-index:3;
+  inset:-24%;
+  opacity:.46;
+  background:
+    conic-gradient(from 214deg at 78% 8%,transparent 0 6deg,rgba(255,226,157,.19) 8deg 13deg,transparent 15deg 24deg,rgba(255,240,190,.10) 27deg 31deg,transparent 33deg 360deg),
+    radial-gradient(ellipse at 82% 7%,rgba(255,238,187,.34),transparent 31%);
+  filter:blur(7px);
+  mix-blend-mode:screen;
+  transform:translate3d(var(--title-parallax-x),var(--title-parallax-y),0) rotate(-1deg);
+  animation:title-rich-rays 9s ease-in-out infinite alternate;
+}
+.title-world-clouds{
+  z-index:4;
+  inset:-16%;
+  background-repeat:repeat;
+  mix-blend-mode:screen;
+}
+.title-world-clouds-back{
+  opacity:.21;
+  filter:blur(24px);
+  background-image:
+    radial-gradient(ellipse at 18% 42%,rgba(214,229,236,.36) 0 7%,transparent 22%),
+    radial-gradient(ellipse at 63% 58%,rgba(231,228,212,.26) 0 8%,transparent 24%),
+    radial-gradient(ellipse at 86% 32%,rgba(210,225,233,.28) 0 6%,transparent 20%);
+  background-size:540px 290px,620px 350px,470px 260px;
+  transform:translate3d(var(--title-parallax-x-soft),var(--title-parallax-y-soft),0);
+  animation:title-rich-clouds-back 38s linear infinite;
+}
+.title-world-clouds-front{
+  z-index:6;
+  left:-18%;right:-18%;top:48%;bottom:-18%;
+  opacity:.16;
+  filter:blur(33px);
+  background-image:
+    radial-gradient(ellipse at 15% 62%,rgba(255,245,221,.31) 0 8%,transparent 29%),
+    radial-gradient(ellipse at 54% 72%,rgba(205,223,231,.25) 0 10%,transparent 31%),
+    radial-gradient(ellipse at 90% 55%,rgba(239,226,200,.28) 0 7%,transparent 26%);
+  background-size:620px 330px,760px 390px,560px 310px;
+  transform:translate3d(var(--title-parallax-x),var(--title-parallax-y),0);
+  animation:title-rich-clouds-front 27s linear infinite reverse;
+}
+.title-world-motes{
+  z-index:7;
+  inset:-8%;
+  opacity:.58;
+  background-image:
+    radial-gradient(circle,rgba(255,232,171,.88) 0 1px,transparent 1.7px),
+    radial-gradient(circle,rgba(224,238,242,.66) 0 1px,transparent 1.6px),
+    radial-gradient(circle,rgba(255,205,124,.52) 0 1.2px,transparent 2px);
+  background-size:84px 108px,137px 151px,191px 173px;
+  background-position:13px 29px,61px 11px,3px 79px;
+  filter:drop-shadow(0 0 4px rgba(255,222,151,.45));
+  mix-blend-mode:screen;
+  transform:translate3d(var(--title-parallax-x),var(--title-parallax-y),0);
+  animation:title-rich-motes 20s linear infinite;
+}
+.title-world-lens{
+  z-index:8;
+  inset:-10%;
+  opacity:.34;
+  background:
+    radial-gradient(circle at 76% 15%,rgba(255,236,185,.33) 0 1.5%,rgba(255,207,129,.08) 4%,transparent 13%),
+    radial-gradient(circle at 64% 42%,rgba(255,190,111,.10),transparent 18%),
+    linear-gradient(108deg,transparent 0 57%,rgba(255,226,166,.055) 63%,transparent 72%);
+  mix-blend-mode:screen;
+  animation:title-rich-lens 11s ease-in-out infinite alternate;
+}
+.title-actions{top:60%}
+.title-command[data-available="false"]{opacity:.42}
+
+@keyframes title-rich-camera{
+  0%{transform:scale(1.075) translate3d(-.7%,.15%,0);filter:saturate(.96) contrast(1.035) brightness(.80) hue-rotate(4deg)}
+  45%{transform:scale(1.105) translate3d(.1%,-.25%,0);filter:saturate(1.01) contrast(1.045) brightness(.84) hue-rotate(3deg)}
+  100%{transform:scale(1.13) translate3d(.8%,-.55%,0);filter:saturate(.98) contrast(1.04) brightness(.82) hue-rotate(5deg)}
+}
+@keyframes title-rich-rays{from{opacity:.30}to{opacity:.62}}
+@keyframes title-rich-clouds-back{to{background-position:170px 24px,-140px 18px,120px -12px}}
+@keyframes title-rich-clouds-front{to{background-position:-210px 17px,170px -13px,-140px 19px}}
+@keyframes title-rich-motes{
+  0%{background-position:13px 29px,61px 11px,3px 79px;opacity:.42}
+  50%{opacity:.66}
+  100%{background-position:58px -121px,8px -188px,-61px -147px;opacity:.46}
+}
+@keyframes title-rich-lens{from{opacity:.22;background-position:0 0}to{opacity:.44;background-position:-12px 9px}}
+
+@media(max-width:700px){
+  .title-world{inset:-8%}
+  .title-world-base{object-position:51% 50%}
+  .title-world-rays{opacity:.38;filter:blur(9px)}
+  .title-world-clouds-back{opacity:.18}
+  .title-world-clouds-front{opacity:.13}
+  .title-world-motes{opacity:.52}
+  .title-actions{top:auto;bottom:calc(env(safe-area-inset-bottom) + 17vh)}
+}
+
+.title-screen[data-motion="off"] .title-world,
+.title-screen[data-motion="off"] .title-world-base,
+.title-screen[data-motion="off"] .title-world-rays,
+.title-screen[data-motion="off"] .title-world-clouds,
+.title-screen[data-motion="off"] .title-world-motes,
+.title-screen[data-motion="off"] .title-world-lens{
+  animation:none!important;
+  transition:none!important;
+}
+.title-screen[data-motion="off"] .title-world{transform:none!important}
+.title-screen[data-motion="off"] .title-world-base{transform:scale(1.08)!important}
+
+@media(prefers-reduced-motion:reduce){
+  .title-world,.title-world-base,.title-world-rays,.title-world-clouds,.title-world-motes,.title-world-lens{animation:none!important;transition:none!important}
+  .title-world{transform:none!important}
+  .title-world-base{transform:scale(1.08)!important}
+}
