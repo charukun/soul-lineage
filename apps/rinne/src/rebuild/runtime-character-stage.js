@@ -3,6 +3,7 @@ import { PoseSchedule } from '@soul/characters';
 import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { createCoopActors } from './coop-actors.js';
 import { createKaykitCharacterPools } from './kaykit-character-pool.js';
+import { hideCarrierCombatProps, newbornCarryTransform } from './newborn-carry-presentation.js';
 import {
   createRinneEnemyCharacter,
   createRinneHeroCharacter,
@@ -22,7 +23,13 @@ function poseHumanoid(bones,{moving=false,speed=0,combat=false,flash=0,carrier=f
   if(bones.leftUpperArm)bones.leftUpperArm.rotation.x-=stride*.42;
   if(bones.rightUpperArm)bones.rightUpperArm.rotation.x+=stride*.42;
   if(combat&&bones.spine)bones.spine.rotation.x-=.06;
-  if(carrier&&bones.leftUpperArm&&bones.rightUpperArm){bones.leftUpperArm.rotation.z-=.18;bones.rightUpperArm.rotation.z+=.18;}
+  if(carrier){
+    if(bones.spine)bones.spine.rotation.x-=.035;
+    if(bones.leftUpperArm){bones.leftUpperArm.rotation.x-=.48;bones.leftUpperArm.rotation.z-=.34;}
+    if(bones.rightUpperArm){bones.rightUpperArm.rotation.x-=.48;bones.rightUpperArm.rotation.z+=.34;}
+    if(bones.leftLowerArm){bones.leftLowerArm.rotation.x-=.58;bones.leftLowerArm.rotation.y-=.18;}
+    if(bones.rightLowerArm){bones.rightLowerArm.rotation.x-=.58;bones.rightLowerArm.rotation.y+=.18;}
+  }
   if(flash&&bones.spine)bones.spine.rotation.z+=Math.sin(time*32)*.12*flash;
 }
 
@@ -30,6 +37,7 @@ function createActorRoster({scene,frontRoot,characterPool}){
   const heroActor=characterPool.spawn('rinne-runtime-hero'),motherActor=characterPool.spawn('rinne-runtime-mother');
   const enemyActors=new Map(),state={lifeKey:'',front:null,enemyRosterKey:'',heroDescriptor:null,motherDescriptor:null};
   heroActor.root.name='Player';motherActor.root.name='Mother';
+  hideCarrierCombatProps(motherActor.root);
   scene.add(heroActor.root,heroActor.attachments,motherActor.root,motherActor.attachments);
   applyStylizedShading(heroActor.root,'hero');applyStylizedShading(motherActor.root,'npc');
 
@@ -90,16 +98,19 @@ function sampleSlot(actor,schedule,presentation,dt,pose){
 }
 
 function renderActors({roster,heroSchedule,motherSchedule,motherMotion},life,dt){
-  const {heroActor,motherActor,enemyActors,state}=roster,birth=life.phase==='birth',village=life.zone==='village';
+  const {heroActor,motherActor,enemyActors,state}=roster,birth=life.phase==='birth',village=life.zone==='village',carried=birth&&village;
   state.heroDescriptor.character.ageMs=rinneRuntimeAgeMs(life.ageSeconds);state.heroDescriptor.character.lifeState='alive';
-  heroActor.root.rotation.y=life.yaw;motherActor.root.rotation.y=life.yaw;
-  if(birth&&village){motherActor.setVisible(true);motherActor.root.position.set(life.position.x,0,life.position.z);heroActor.root.position.set(life.position.x+Math.sin(life.yaw)*.24,1.02,life.position.z+Math.cos(life.yaw)*.24);}
-  else{motherActor.setVisible(false);heroActor.root.position.set(life.position.x,0,life.position.z);}
+  heroActor.root.rotation.y=life.yaw;heroActor.root.rotation.z=0;motherActor.root.rotation.y=life.yaw;heroActor.attachments.visible=true;
+  if(carried){
+    const carry=newbornCarryTransform(life.position,life.yaw);
+    motherActor.setVisible(true);motherActor.root.position.set(life.position.x,0,life.position.z);
+    heroActor.root.position.set(carry.x,carry.y,carry.z);heroActor.root.rotation.y=carry.yaw;heroActor.root.rotation.z=carry.roll;heroActor.attachments.visible=false;
+  }else{motherActor.setVisible(false);heroActor.root.position.set(life.position.x,0,life.position.z);}
   const heroPresentation=resolveRinneRuntimeCharacter({...state.heroDescriptor,distance:0,visible:true,important:true});
   heroPresentation.appearance.dye=[...(armorDye[life.equipment.armor]||armorDye.cloth)];
-  sampleSlot(heroActor,heroSchedule,heroPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:life.moving,speed:life.moving?4.1:0,combat:Boolean(life.combat)},time));
-  const motherPresentation=resolveRinneRuntimeCharacter({...state.motherDescriptor,distance:.3,visible:birth&&village,important:true});
-  sampleSlot(motherActor,motherSchedule,motherPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:motherMotion.active&&motherMotion.moving,speed:motherMotion.speed,carrier:true},time));
+  sampleSlot(heroActor,heroSchedule,heroPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:carried?false:life.moving,speed:carried?0:(life.moving?4.1:0),combat:carried?false:Boolean(life.combat)},time));
+  const motherPresentation=resolveRinneRuntimeCharacter({...state.motherDescriptor,distance:.3,visible:carried,important:true});
+  sampleSlot(motherActor,motherSchedule,motherPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:motherMotion.active&&motherMotion.moving,speed:motherMotion.speed,carrier:carried},time));
   for(const enemy of state.front?.enemies||[]){
     const slot=enemyActors.get(enemy.id);if(!slot)continue;
     const distance=Math.hypot(enemy.x-life.position.x,enemy.z-life.position.z),presentation=resolveRinneRuntimeCharacter({...slot.descriptor,distance,visible:!enemy.dead,important:(state.front?.stage??0)>=5});

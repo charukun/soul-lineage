@@ -44,17 +44,20 @@ test('first-run guide remains split into bootstrap, input control and presentati
  assert.equal(view.includes('markFirstRunAutoplaySeen'),false);
 });
 
-test('first-run guide is non-blocking and tactile rather than a full-screen flat modal',()=>{
+test('first-run guide is non-blocking and uses a neutral touch cursor',()=>{
  for(const required of [
   '#muraFirstRunGuide{position:fixed;inset:0',
   'pointer-events:none',
   '.muraFirstRunGuideCard',
   'clip-path:polygon',
   'repeating-linear-gradient',
-  'muraFirstRunFinger',
+  'muraFirstRunTouch',
+  'muraFirstRunDragTrail',
   '@media(max-height:560px)',
   '@media(prefers-reduced-motion:reduce)',
- ])assert.ok(style.includes(required),required);
+ ])assert.ok(style.includes(required)||view.includes(required),required);
+ assert.equal(style.includes('muraFirstRunFinger'),false);
+ assert.equal(view.includes('muraFirstRunFinger'),false);
  assert.equal(style.includes('aria-modal'),false);
 });
 
@@ -65,19 +68,27 @@ test('quality pass keeps action coaching compact, legible and touch-safe',()=>{
   '--mura-first-run-progress',
   "nodes.cue.textContent='できた'",
   "nodes.cue.textContent='もう一度'",
+  "touch.dataset.label='タップ'",
+  "touch.dataset.label='なぞる'",
+  'function scheduleRepeat',
+  'await wait(timing.hold)',
+  'timing.repeat',
  ])assert.ok(view.includes(required),required);
  for(const required of [
   '#muraFirstRunGuide[data-mode="card"] .muraFirstRunGuideCard',
+  '#muraFirstRunGuide[data-mode="coach"] .muraFirstRunGuideCard',
   '.muraFirstRunProgress i',
   '.muraFirstRunCue[data-state="success"]',
   '@media(max-width:340px)',
-  '.muraFirstRunGuideCard button{min-height:44px',
+  '.muraFirstRunTouch{width:44px',
+  '.muraFirstRunReplay{flex:0 0 auto;min-height:28px!important',
  ])assert.ok(style.includes(required),required);
+ for(const required of ['hold:900','repeat:1700','tap:1300','drag:2200'])assert.ok(controller.includes(required),required);
  const actionTexts=['画面下の「つくる」を1回タップ。','光っている「空きテント」を1回タップ。','1本指で画面をなぞり、テントを置きたい場所へ。','場所がよければ、画面を短く1回タップ。'];
  for(const text of actionTexts)assert.ok(view.includes(text),text);
 });
 
-test('first-run acceptance contract requires user input and no direct placement shortcut',()=>{
+test('first-run acceptance contract requires user input and mobile screenshot corrections',()=>{
  for(const required of [
   '通常プレイと同じDOM / pointer入力経路',
   '時間経過だけで次の操作へ自動進行しない',
@@ -87,6 +98,9 @@ test('first-run acceptance contract requires user input and no direct placement 
   'Quality pass',
   '`1 / 4` の数値と細い進行線',
   '主要ボタンを44px相当以上',
+  'Mobile screenshot correction',
+  '人体の一部を模した自作の指形状は使わない',
+  '最低1秒程度認識できる',
  ])assert.ok(contract.includes(required),required);
 });
 

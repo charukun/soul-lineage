@@ -19,3 +19,16 @@ PULSEのGitHub取得でHTTP 403/429やrate-limit backoffが発生した場合、
 - deployment primeは1回のauthenticated state refreshだけにし、target attributionの残りは後続イベント/定期reconcileへ委ねる。表示上はpendingを正直に残す。
 - browser閲覧や「最新に更新」のGETだけでGitHub APIを直接消費しない既存契約を維持する。
 - Integrationのexact-head、review、dependency、mergeability、DEV/Production品質gateは削減対象にしない。
+
+## 認証必須化
+
+PULSE runtimeからGitHub REST APIへ行う取得は、例外なく認証済みcredentialを必要とする。未認証の公開API枠を通常経路・fallback・Cron・cold-start・rate-limit retryのいずれにも使用しない。
+
+- `createGithubClient` はtokenなしでGitHub network requestを実行しない。token欠落は `auth-required` としてfail-closedに扱う。
+- Actionsからのevent refreshは、そのrunの一時 `GITHUB_TOKEN` を1回だけWorkerへ渡し、永続保存しない既存方式を使う。
+- `OPS_GITHUB_TOKEN` が設定されている場合のみ、CronとDurable Object alarmがGitHub再取得を実行できる。
+- `OPS_GITHUB_TOKEN` が無いCron/alarmはGitHubへ接続せず、最後の正常snapshotを保持する。
+- cold-startでsnapshotもcredentialも無い場合、GitHub公開APIへfallbackせず `github_auth_required` としてfail closedにする。
+- `/api/refresh` はrefresh credentialだけではGitHub取得を許可しない。`x-ops-github-token` またはWorker側 `OPS_GITHUB_TOKEN` が必要。
+- ブラウザの `/api/state` GET と「最新に更新」は引き続きGitHub APIを直接呼ばない。
+- 新しい未認証GitHub API経路を再導入しないことをfocused test / contract testで固定する。
