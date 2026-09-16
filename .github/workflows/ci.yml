@@ -186,11 +186,24 @@ jobs:
         working-directory: work
         env:
           BASE_SHA: ${{ steps.base.outputs.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
             git fetch --no-tags --depth=1 origin "$BASE_SHA"
           fi
           git cat-file -e "$BASE_SHA^{commit}"
+          # Bootstrap only while develop's trusted preflight still needs a merge base.
+          if grep -Fq '${base}...${head}' ../control/scripts/integration-gate-cost.mjs; then
+            depth=16
+            while ! git merge-base "$BASE_SHA" "$HEAD_SHA" >/dev/null 2>&1; do
+              if [ "$depth" -gt 256 ]; then
+                echo 'Unable to recover a merge base for the trusted legacy preflight' >&2
+                exit 1
+              fi
+              git fetch --no-tags --deepen="$depth" origin "$HEAD_SHA"
+              depth=$((depth * 2))
+            done
+          fi
       - name: Cheap gate-cost preflight before dependency install
         id: gate-cost
         if: steps.rescue-fast.outputs.reuse != 'true'
