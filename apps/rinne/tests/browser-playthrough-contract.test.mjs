@@ -17,4 +17,6 @@ test('browser playthrough follows the current birth-tour presentation',async()=>
   assert.match(playthrough,/\.objective-card'\)\.isHidden\(\)/);
   assert.match(playthrough,/#talk'\)\.count\(\),0/);
   assert.match(playthrough,/#dialogue'\)\.waitFor\(\{state:'visible'\}/);
+  assert.match(playthrough,/\.title-copy/);
+  assert.match(playthrough,/\.crest/);
 });

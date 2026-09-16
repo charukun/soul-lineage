@@ -47,7 +47,7 @@ export async function verifyRebuildPlaythrough(browser,url,output){
   try{
     const response=await page.goto(url,{waitUntil:'domcontentloaded'});assert.ok(response?.ok(),'rinne preview must answer successfully');
     await page.locator('#title-screen').waitFor({state:'visible'});assert.equal(await page.locator('#game').getAttribute('data-runtime'),'prepared');
-    assert.match(await text(page.locator('.tagline')),/暮らし、戦い、遺し/);assert.equal(await page.locator('.crest-ring').count(),1);key=await saveKey();
+    assert.match(await text(page.locator('.title-copy')),/暮らし、戦い、遺し/);assert.equal(await page.locator('.crest').count(),1);key=await saveKey();
 
     await page.locator('#new-life').click();await waitGame();await expectTone('village');
     assert.equal(await text(page.locator('#life-stage')),'1/6 誕生');assert.equal(await text(page.locator('#objective')),'村を知る');assert.equal(await text(page.locator('#objective-badge')),'自立 4歳');assert.equal(await text(page.locator('#waypoint-label')),'広場');
