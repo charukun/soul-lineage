@@ -6,6 +6,7 @@ import { installStylizedBakedLighting } from '@soul/rendering/baked-lighting';
 import { installSilhouetteImpostorLOD } from '@soul/rendering/impostor-lod';
 import { markVisualQualityPriority } from '@soul/rendering/visual-quality-floor';
 import { View } from './web/view.js';
+import { visualSceneTrackerFor } from './visual-scene-tracker.js';
 
 const states = new WeakMap();
 const schedule = fn => (globalThis.requestIdleCallback ? requestIdleCallback(fn, { timeout: 1200 }) : setTimeout(fn, 0));
@@ -43,11 +44,14 @@ function installImpostors(view, state) {
 }
 
 function registerWorldResources(view, state) {
-  state.lifetime.release('world');
-  for (const root of [view.outside, view.objects, view.inside, view.actors]) state.lifetime.retainObject3D('world', root);
+  const owner=`world:${state.worldGeneration=(state.worldGeneration||0)+1}`;
+  for (const root of [view.outside,view.objects,view.inside,view.actors]) state.lifetime.retainObject3D(owner,root);
+  if(state.worldOwner)state.lifetime.release(state.worldOwner);
+  state.worldOwner=owner;
   state.lighting.apply(view.outside); state.lighting.apply(view.objects); state.lighting.apply(view.inside);
   markVisualQualityPriority(view.selection, 'critical');
-  installImpostors(view, state);
+  const tracker=visualSceneTrackerFor(view);
+  if(state.outsideRevision!==tracker.revision(view.outside)){installImpostors(view,state);state.outsideRevision=tracker.revision(view.outside);}
   state.lastLeak = state.leak.observe(stableSceneKey(view));
 }
 
@@ -94,8 +98,8 @@ function ensure(view) {
 const rebuild = View.prototype.rebuild;
 if (typeof rebuild === 'function' && !rebuild.__runtimeResilience) {
   const wrapped = function resilientVillageRebuild(...args) {
-    const existing = states.get(this); if (existing) disposeImpostors(existing);
     const result = rebuild.apply(this, args);
+    if(result?.changed===false&&states.get(this)?.outsideRevision===visualSceneTrackerFor(this).revision(this.outside))return result;
     const state = ensure(this); registerWorldResources(this, state); scheduleWarmup(this, state, 'village-rebuild');
     return result;
   };

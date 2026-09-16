@@ -1,11 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {defaultMuraLayout} from '@soul/world/mura';
+import {RINNE_BIRTH_VILLAGE_ID} from '../src/rebuild/birth-village.js';
 import {buildInteriors,buildStations,equipmentStations,nearestStation,normalizeLayout} from '../src/rebuild/locations.js';
 
-test('Rinne enriches a sparse shared village locally without mutating the shared default',()=>{
+test('Rinne uses its authored developed birth village without mutating the MURA default',()=>{
   const shared=defaultMuraLayout(),before=shared.objects.length,layout=normalizeLayout(shared);
-  assert.equal(shared.objects.length,before);
+  assert.equal(shared.objects.length,before);assert.equal(layout.id,RINNE_BIRTH_VILLAGE_ID);assert.equal(layout.name,'風待ちの里');
+  assert.ok(layout.objects.filter(row=>row.phase==='built').length>=30);
+  for(const kind of ['clanManor','home','dojo','school','chapel','smith','clinic','guardpost','barracks','watchtower','harbor'])assert.ok(layout.objects.some(row=>row.kind===kind&&row.phase==='built'));
+  const square=layout.objects.find(row=>row.kind==='campfire');assert.ok(square);assert.ok(Math.hypot(square.x,square.z)<2);
+});
+
+test('an explicitly code-authorized shared village keeps its own identity and is only locally supplemented',()=>{
+  const shared={...defaultMuraLayout(),__sharedWorldCode:true},before=shared.objects.length,layout=normalizeLayout(shared);
+  assert.equal(shared.objects.length,before);assert.equal(layout.id,shared.id);assert.equal(layout.__sharedWorldCode,true);
   assert.ok(layout.objects.filter(row=>row.phase==='built').length>=10);
   for(const kind of ['home','dojo','school','smith','clinic','guardpost'])assert.ok(layout.objects.some(row=>row.kind===kind&&row.phase==='built'));
 });

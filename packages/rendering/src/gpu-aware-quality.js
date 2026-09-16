@@ -34,7 +34,8 @@ export function profileForBottleneck(profile, bottleneck) {
  * uses the proven hysteresis, while the effective profile decides which budget
  * axis to spend so CPU pressure does not unnecessarily blur the image.
  */
-export function createGpuAwareQualityGovernor({ targetFps = 60, initialLevel = 0, onChange = () => {}, ...options } = {}) {
+export function createGpuAwareQualityGovernor({ targetFps = 60, initialLevel = 0, onChange = () => {}, bottleneckFrames = 1, ...options } = {}) {
+  let candidateBottleneck = 'unknown', candidateFrames = 0;
   let bottleneck = 'unknown', gpuMs = null, cpuMs = null, lastSignature = '';
   const base = createAdaptiveQualityGovernor({ targetFps, initialLevel, ...options });
 
@@ -56,7 +57,9 @@ export function createGpuAwareQualityGovernor({ targetFps = 60, initialLevel = 0
       const frameMs = Number(deltaSeconds) * 1000;
       if (Number.isFinite(measuredGpuMs) && measuredGpuMs >= 0) gpuMs = measuredGpuMs;
       cpuMs = Number.isFinite(frameMs) ? Math.max(0, frameMs - (gpuMs || 0)) : null;
-      bottleneck = classifyFrameBottleneck({ frameMs: Number.isFinite(frameMs) ? frameMs : 0, gpuMs, targetFps });
+      const observed=classifyFrameBottleneck({frameMs:Number.isFinite(frameMs)?frameMs:0,gpuMs,targetFps});
+      if(observed!==candidateBottleneck){candidateBottleneck=observed;candidateFrames=0;}
+      if(++candidateFrames>=Math.max(1,bottleneckFrames))bottleneck=observed;
       return notify(base.observeFrame(deltaSeconds));
     },
     setLevel(level) { return notify(base.setLevel(clamp(level, 0, 3))); },
