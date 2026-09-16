@@ -44,6 +44,9 @@ export function performanceEvidenceTemplate(evidenceClass=EVIDENCE_CLASS.PHYSICA
 export function buildPerformanceEvidence(input={}){
   const rawSamples=Array.isArray(input.captures)?mergeRawPerformanceCaptures(input.captures):input.rawSamples;
   if(!rawSamples)throw Error('Performance evidence build requires rawSamples or captures');
+  const skipped=Number(rawSamples.bandwidthSkippedBuckets??0);
+  if(!Number.isInteger(skipped)||skipped<0)throw Error('Invalid bandwidth skipped bucket count');
+  if(input.evidenceClass===EVIDENCE_CLASS.PHYSICAL_MULTIPEER&&skipped>0)throw Error('Physical multipeer evidence contains unobserved bandwidth buckets; repeat with continuous sampling');
   return buildRrpPerformanceEvidenceFromSamples({...input,rawSamples});
 }
 
