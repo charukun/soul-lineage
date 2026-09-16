@@ -54,6 +54,8 @@
   "status": {
     "visualApproval": "pending",
     "productionReady": false,
-    "note": "Dedicated Blender DCC PRIMARY asset. Secondary-form, deformation, motion, polish, device performance and explicit visual approval remain open gates."
+    "licensePolicy": "retired",
+    "distributionEligible": false,
+    "note": "Retired from active runtime, review candidates and Production distribution under CHARACTER_LICENSE_POLICY. Retained only as historical/migration production evidence."
   }
 }

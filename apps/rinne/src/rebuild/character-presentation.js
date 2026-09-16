@@ -1,21 +1,23 @@
 import {
+  KAYKIT_FAMILY_ID,
+  KAYKIT_FOUNDATION,
   LIFESPAN_MS,
-  MASTER_ID,
-  SHINO_MASTER,
-  SHINO_REFERENCE_V2_RUNTIME,
   YEAR_MS,
   appearanceForCharacter,
   createCharacter,
-  resolveCharacterPresentations
+  kaykitRuntimeAsset,
+  resolveCharacterPresentations,
+  selectKaykitModel
 } from '@soul/characters';
 
-export const RINNE_RUNTIME_CHARACTER_FAMILY = SHINO_MASTER;
-export const RINNE_RUNTIME_CHARACTER_ASSET = SHINO_REFERENCE_V2_RUNTIME;
+export const RINNE_RUNTIME_CHARACTER_FAMILY = KAYKIT_FOUNDATION;
+// Compatibility export for consumers that need one representative asset.
+export const RINNE_RUNTIME_CHARACTER_ASSET = kaykitRuntimeAsset(KAYKIT_FOUNDATION.defaultModelId);
 
 const ROLE_SEQUENCE=Object.freeze(['guard','knight','hunter']);
-// Historical outfit ids stay authoritative for save/identity compatibility and now
-// also drive tint variation on the shared Shino DCC surface.
-const IDENTITY_OUTFIT_BY_KIND=Object.freeze({hero:'shino.uniform.original.v1',mother:'shino.uniform.moss.v1',enemy:'shino.uniform.ember.v1'});
+// The domain model still accepts the historical MasterCharacter outfit ids.
+// They preserve save/identity compatibility only; KayKit owns the rendered surface.
+const LEGACY_IDENTITY_OUTFIT_BY_KIND=Object.freeze({hero:'shino.uniform.original.v1',mother:'shino.uniform.moss.v1',enemy:'shino.uniform.ember.v1'});
 const cleanId=value=>String(value||'actor').replace(/[^a-zA-Z0-9._:-]/g,'-').slice(0,80)||'actor';
 const mixSeed=(seed,text)=>{
   let value=(Number(seed)||0)>>>0;
@@ -29,20 +31,21 @@ export function rinneRuntimeAgeMs(ageSeconds){
 }
 
 export function createRinneRuntimeCharacter({kind,id,seed,ageSeconds,role=null}={}){
-  if(!Object.hasOwn(IDENTITY_OUTFIT_BY_KIND,kind))throw Error(`Unknown Rinne runtime character kind: ${kind}`);
+  if(!Object.hasOwn(LEGACY_IDENTITY_OUTFIT_BY_KIND,kind))throw Error(`Unknown Rinne runtime character kind: ${kind}`);
   const actorId=`rinne.${kind}.${cleanId(id)}`,character=createCharacter({
     id:actorId,
     seed:mixSeed(seed,actorId),
     ageMs:rinneRuntimeAgeMs(ageSeconds),
-    outfitId:IDENTITY_OUTFIT_BY_KIND[kind]
+    outfitId:LEGACY_IDENTITY_OUTFIT_BY_KIND[kind]
   });
+  const model=selectKaykitModel({kind,key:`${actorId}:${seed||0}`}),asset=kaykitRuntimeAsset(model.id);
   return Object.freeze({
     kind,
     role:role||({hero:'traveler',mother:'villager',enemy:'guard'}[kind]),
-    familyId:MASTER_ID,
-    modelId:SHINO_REFERENCE_V2_RUNTIME.modelId,
+    familyId:KAYKIT_FAMILY_ID,
+    modelId:model.id,
     character,
-    asset:SHINO_REFERENCE_V2_RUNTIME
+    asset
   });
 }
 
@@ -72,7 +75,7 @@ export function resolveRinneRuntimeRoster(actors,{lod={maxFull:6,nearDistance:8,
   const presentations=resolveCharacterPresentations(inputs,{app:'rinne',lod,assetCandidates:[]});
   return Object.freeze(presentations.map((presentation,index)=>Object.freeze({
     ...presentation,
-    characterFamily:actors[index].familyId||MASTER_ID,
+    characterFamily:actors[index].familyId||KAYKIT_FAMILY_ID,
     runtimeAsset:actors[index].asset||RINNE_RUNTIME_CHARACTER_ASSET,
     appearance:appearanceForCharacter(actors[index].character)
   })));

@@ -10,7 +10,6 @@
     "./master-character-production": "./src/master-character-production-stylized.js",
     "./master-character-modular": "./src/master-character-modular.js",
     "./master-character-reference": "./src/master-character-reference.js",
-    "./shino-reference-v2-runtime": "./src/shino-reference-v2-runtime.js",
     "./stylized-art": "./src/stylized-art.js",
     "./stylized-shading": "./src/stylized-shading.js",
     "./adaptive-quality": "./src/adaptive-quality.js",

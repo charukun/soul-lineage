@@ -21,8 +21,8 @@ test('marked and combat roles receive near-detail priority',()=>{
  assert.equal(MASTER_HUMAN_LIMIT,6);
 });
 
-test('shared Shino v2 model resolves to sibling Rinne DEV deployment',()=>{
- assert.equal(masterHumanModelUrl('https://example.test/soul-lineage/dev/demon/'),'https://example.test/soul-lineage/dev/rinne/simulator/assets/SHINO_REFERENCE_V2.vrm');
+test('CC0 KayKit model resolves to sibling Rinne DEV deployment',()=>{
+ assert.equal(masterHumanModelUrl('https://example.test/soul-lineage/dev/demon/'),'https://example.test/soul-lineage/dev/rinne/simulator/assets/kaykit/Knight.glb');
  assert.equal(hashHuman('same'),hashHuman('same'));
  assert.notEqual(hashHuman('same'),hashHuman('different'));
 });
