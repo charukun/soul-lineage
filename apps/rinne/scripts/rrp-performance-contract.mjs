@@ -36,10 +36,6 @@ export function mergeRawPerformanceCaptures(captures=[]){
     for(const key of RAW_COUNTER_KEYS.filter(key=>!CONNECTION_COUNTER_KEYS.includes(key)))merged[key]+=readCounter(capture,key);
     const duration=Number(capture.durationMinutes??0);if(!Number.isFinite(duration)||duration<0)throw Error('Invalid capture duration');merged.durationMinutes+=duration;
   }
-  // A Host and its Guests observe the same WebRTC links. Capture metadata lets us count the
-  // Host endpoint once per world instead of doubling each link merely because both endpoints
-  // exported evidence. A world with no surviving Host capture falls back to its Guest counters.
-  // Legacy captures without complete role/world metadata retain the previous additive behavior.
   const connectionSources=connectionEvidenceSources(captures);
   for(const key of CONNECTION_COUNTER_KEYS)merged[key]=connectionSources.reduce((sum,capture)=>sum+readCounter(capture,key),0);
   return merged;
@@ -47,53 +43,36 @@ export function mergeRawPerformanceCaptures(captures=[]){
 
 function validateRouteCaptureProvenance(captures,provenance){
   const routed=captures.filter(capture=>capture?._capture?.schema==='rrp-raw-peer-capture');if(!routed.length)return;
+  if(routed.length!==captures.length)throw Error('Physical capture evidence cannot mix routed and legacy peer captures');
   if(routed.some(capture=>capture._capture.windowArmed!==true))throw Error('Physical capture window was not armed at the intended peer count');
   const targets=new Set(routed.map(capture=>Number(capture._capture.expectedPeers)));if(targets.size!==1||![...targets].every(value=>Number.isInteger(value)&&value>=2&&value<=30))throw Error('Physical captures disagree on expected peer count');
   const target=[...targets][0],declaredPeers=Number(provenance?.peers);if(!Number.isInteger(declaredPeers)||declaredPeers!==target)throw Error('Physical capture peer target does not match provenance.peers');
   const builds=new Set(routed.map(capture=>String(capture._capture.buildRevision||'')));if(builds.size!==1||![...builds][0]||String(provenance?.buildRevision||'')!==[...builds][0])throw Error('Physical capture build revision does not match provenance.buildRevision');
+  const worlds=new Map();for(const capture of routed){const worldId=String(capture._capture.worldId||''),peerId=String(capture._capture.peerId||'');if(!worldId||!peerId)throw Error('Physical capture requires worldId and peerId for every endpoint');if(!worlds.has(worldId))worlds.set(worldId,new Set());worlds.get(worldId).add(peerId);}
+  for(const [worldId,peers]of worlds)if(peers.size!==target)throw Error(`Physical capture cohort ${worldId} has ${peers.size}/${target} endpoint captures`);
 }
 
 export function performanceEvidenceTemplate(evidenceClass=EVIDENCE_CLASS.PHYSICAL_MULTIPEER){
   if(!Object.values(EVIDENCE_CLASS).includes(evidenceClass))throw Error('Unknown evidence class');
-  return {
-    evidenceClass,
-    samples:0,
-    metrics:Object.fromEntries(RRP_PERFORMANCE_METRICS.map(key=>[key,null])),
-    sampleCounts:Object.fromEntries(RRP_PERFORMANCE_METRICS.map(key=>[key,null])),
-    safety:Object.fromEntries(RRP_SAFETY_KEYS.map(key=>[key,null])),
-    provenance:evidenceClass===EVIDENCE_CLASS.PHYSICAL_MULTIPEER?{buildRevision:'',runtime:'',deviceClass:'',deviceModel:'',peers:2,networkProfile:''}:{},
-  };
+  return {evidenceClass,samples:0,metrics:Object.fromEntries(RRP_PERFORMANCE_METRICS.map(key=>[key,null])),sampleCounts:Object.fromEntries(RRP_PERFORMANCE_METRICS.map(key=>[key,null])),safety:Object.fromEntries(RRP_SAFETY_KEYS.map(key=>[key,null])),provenance:evidenceClass===EVIDENCE_CLASS.PHYSICAL_MULTIPEER?{buildRevision:'',runtime:'',deviceClass:'',deviceModel:'',peers:2,networkProfile:''}:{}};
 }
 
 export function buildPerformanceEvidence(input={}){
   const captures=Array.isArray(input.captures)?input.captures:null;if(input.evidenceClass===EVIDENCE_CLASS.PHYSICAL_MULTIPEER&&captures)validateRouteCaptureProvenance(captures,input.provenance);
-  const rawSamples=captures?mergeRawPerformanceCaptures(captures):input.rawSamples;
-  if(!rawSamples)throw Error('Performance evidence build requires rawSamples or captures');
-  const skipped=Number(rawSamples.bandwidthSkippedBuckets??0);
-  if(!Number.isInteger(skipped)||skipped<0)throw Error('Invalid bandwidth skipped bucket count');
+  const rawSamples=captures?mergeRawPerformanceCaptures(captures):input.rawSamples;if(!rawSamples)throw Error('Performance evidence build requires rawSamples or captures');
+  const skipped=Number(rawSamples.bandwidthSkippedBuckets??0);if(!Number.isInteger(skipped)||skipped<0)throw Error('Invalid bandwidth skipped bucket count');
   if(input.evidenceClass===EVIDENCE_CLASS.PHYSICAL_MULTIPEER&&skipped>0)throw Error('Physical multipeer evidence contains unobserved bandwidth buckets; repeat with continuous sampling');
   return buildRrpPerformanceEvidenceFromSamples({...input,rawSamples});
 }
 
-export function validatePerformanceEvidence(input,{requirePhysicalCertification=false}={}){
-  const evidence=normalizeRrpPerformanceEvidence(input);
-  return evaluateRrpPerformanceContract(evidence,{requirePhysicalCertification});
-}
+export function validatePerformanceEvidence(input,{requirePhysicalCertification=false}={}){const evidence=normalizeRrpPerformanceEvidence(input);return evaluateRrpPerformanceContract(evidence,{requirePhysicalCertification});}
 
 const isMain=process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href;
 if(isMain){
   const command=process.argv[2],args=process.argv.slice(3),get=name=>{const i=args.indexOf(name);return i>=0?args[i+1]:null;};
-  if(command==='template'){
-    print(performanceEvidenceTemplate(get('--class')||EVIDENCE_CLASS.PHYSICAL_MULTIPEER));
-  }else if(command==='build'){
-    const input=get('--input');if(!input)throw Error('build requires --input <raw-capture.json>');
-    print(buildPerformanceEvidence(readJson(input)));
-  }else if(command==='validate'){
-    const input=get('--input');if(!input)throw Error('validate requires --input <evidence.json>');
-    const result=validatePerformanceEvidence(readJson(input),{requirePhysicalCertification:args.includes('--require-physical')});
-    print(result);if(result.status==='fail'||args.includes('--require-physical')&&!result.physicalCertificationEligible)process.exitCode=1;
-  }else if(command==='compare'){
-    const baseline=get('--baseline'),current=get('--current');if(!baseline||!current)throw Error('compare requires --baseline <json> --current <json>');
-    const result=compareRrpPerformanceEvidence(readJson(baseline),readJson(current));print(result);if(!result.pass)process.exitCode=1;
-  }else throw Error('Use rrp-performance-contract.mjs template|build|validate|compare');
+  if(command==='template')print(performanceEvidenceTemplate(get('--class')||EVIDENCE_CLASS.PHYSICAL_MULTIPEER));
+  else if(command==='build'){const input=get('--input');if(!input)throw Error('build requires --input <raw-capture.json>');print(buildPerformanceEvidence(readJson(input)));}
+  else if(command==='validate'){const input=get('--input');if(!input)throw Error('validate requires --input <evidence.json>');const result=validatePerformanceEvidence(readJson(input),{requirePhysicalCertification:args.includes('--require-physical')});print(result);if(result.status==='fail'||args.includes('--require-physical')&&!result.physicalCertificationEligible)process.exitCode=1;}
+  else if(command==='compare'){const baseline=get('--baseline'),current=get('--current');if(!baseline||!current)throw Error('compare requires --baseline <json> --current <json>');const result=compareRrpPerformanceEvidence(readJson(baseline),readJson(current));print(result);if(!result.pass)process.exitCode=1;}
+  else throw Error('Use rrp-performance-contract.mjs template|build|validate|compare');
 }
