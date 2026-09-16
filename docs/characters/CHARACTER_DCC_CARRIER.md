@@ -2,117 +2,115 @@
 
 ## Purpose
 
-Character DCC Carrier is the repository-wide execution path for repeatable Blender character builds. A future implementation session should not have to rediscover whether Blender is available or rebuild a one-off Actions workflow for every character.
+Character DCC Carrier is the repository-wide Blender execution path for character builds. Future sessions should not recreate a per-character workflow or a request manifest.
 
-The carrier standardizes execution, audit, evidence, hashing and generated-file handoff. Character-specific modeling remains in a dedicated Blender builder so visual identity and authored form are not reduced to a generic procedural template.
+The authored input is deliberately tiny so the modeling work stays character-specific while execution stays reusable.
 
-## Request branch contract
+## Two-file contract
 
-A carrier build starts from current `develop` on a short-lived branch named `dcc/<slug>`.
+Start from current `develop` on a short-lived branch named exactly:
 
-The branch contains `.dcc/character-dcc-request.json` plus the character-specific Blender builder referenced by that file. The request is repository data and must not contain secrets or external credentials.
+```text
+dcc/<slug>
+```
 
-Required request fields:
+The character directory is:
 
-- `schema`: `character-dcc-request`
-- `version`: `1`
-- `id`: stable character candidate id
-- `assetId`: stable asset id
-- `reference.path`, exact `reference.sha256`, and the actually available `reference.views`
-- `rig.path`, exact `rig.sha256`, and logical `rig.id`
-- `builder`: repository-relative Blender Python script
-- `generatedDir`: repository-relative temporary output root under `generated/`
-- `blendName`, `modelName`, `format`, and runtime `publicPath`
-- `canonical.blend`, `canonical.model`, `canonical.integrity`, `canonical.production`, `canonical.qaDir`
-- `license.rigProvenance` and `license.surfaceAuthorship`
-- `primary.separateSurfaces`, `primary.minMeshObjects`, `primary.minMaterials`
-- `production.stage`, which may only be `REFERENCE`, `BLOCKOUT`, or `PRIMARY`
-- explicit `review` evidence used for any requested stage promotion
+```text
+assets/characters/<slug>/
+  reference.<ext>
+  build.py
+```
 
-All paths must be repository-relative, normalized, and remain inside the repository. Absolute paths and `..` traversal are rejected. Canonical outputs cannot target `generated/`, `.github/`, or `.dcc/`.
+Those are the only required authored inputs.
+
+- `<slug>` is taken from the branch name and must be lowercase letters, digits and hyphens.
+- exactly one `reference.*` file must exist directly in the character directory;
+- `build.py` is the character-specific Blender authoring script;
+- the shared audited rig is `apps/rinne/public/simulator/assets/SHINO_review.vrm` unless the repository standard changes globally;
+- no `.dcc/character-dcc-request.json`, output-path declaration, reference hash declaration, rig hash declaration, stage declaration, or per-character workflow is required.
+
+The carrier computes hashes, output paths and run metadata itself.
 
 ## Builder contract
 
-The carrier invokes the builder through Blender headless with:
+The carrier invokes the character builder through Blender headless:
 
 ```text
-blender --background --python <builder> -- \
-  --source <copied rig GLB> \
-  --source-vrm <rig path> \
-  --out <generatedDir>
+blender --background --python assets/characters/<slug>/build.py -- \
+  --source generated/<slug>-dcc/input/source-rig.glb \
+  --source-vrm apps/rinne/public/simulator/assets/SHINO_review.vrm \
+  --out generated/<slug>-dcc
 ```
 
-The builder owns character-specific geometry and must produce:
+The builder owns the character's visual identity and geometry. It must produce:
 
-- `<generatedDir>/source/<blendName>`
-- `<generatedDir>/export/<modelName>`
-- `<generatedDir>/review/front.png`
-- `<generatedDir>/review/three-quarter.png`
-- `<generatedDir>/review/side.png`
-- `<generatedDir>/review/back.png`
-- `<generatedDir>/build.json`, with `characterId` equal to the request id
+```text
+generated/<slug>-dcc/source/*.blend
+generated/<slug>-dcc/export/*.(glb|vrm)
+generated/<slug>-dcc/review/front.png
+generated/<slug>-dcc/review/three-quarter.png
+generated/<slug>-dcc/review/side.png
+generated/<slug>-dcc/review/back.png
+generated/<slug>-dcc/build.json
+```
 
-The final exported model must already contain the runtime metadata required by that model contract. A builder may call repository post-processing helpers internally, but the carrier does not guess character-specific VRM/GLB semantics.
+Exactly one `.blend` and one runtime model (`.glb` or `.vrm`) are accepted. `build.json` must contain a non-empty `characterId`. Character-specific post-processing belongs inside `build.py`; the carrier does not guess VRM/GLB semantics and does not replace authored geometry with generic primitives.
 
-A builder may use additional authored passes, but the carrier does not substitute primitive/runtime-procedural geometry when a DCC result was requested.
+## Automatic outputs
 
-## Carrier execution
+The carrier derives all canonical paths from `<slug>` and commits them back to the same `dcc/<slug>` branch:
 
-The repository-owned `Character DCC Carrier` workflow runs only for `dcc/**` branches. It:
+```text
+assets/characters/<slug>/model.blend
+apps/rinne/public/simulator/assets/<SLUG>_DCC.glb|vrm
+docs/characters/qa/<slug>-dcc/
+  front.png
+  three-quarter.png
+  side.png
+  back.png
+  blender-audit.json
+  build.json
+  integrity.json
+```
 
-1. validates the request and exact reference/rig hashes before installing Blender;
-2. installs the repository-approved headless Blender runtime and records the actual Blender version;
-3. runs the character builder for real;
-4. runs `scripts/blender/character-production-audit.py` against the generated `.blend`;
-5. requires the four fixed review views and non-empty editable/runtime artifacts;
-6. copies only canonical outputs into their requested repository paths;
-7. creates exact integrity and Character Production manifests from the request plus objective audit;
-8. runs the repository Character Production checker, carrier contract tests, and `git diff --check`;
-9. verifies the request did not change while Blender was running;
-10. commits generated canonical assets back to the same `dcc/**` branch;
-11. records `character-dcc/build` on the generated exact head.
+`<SLUG>` is the upper-snake form of the branch slug.
 
-The generated commit is made by the Actions token. GitHub does not recursively start another push workflow from a push performed with the repository `GITHUB_TOKEN`, preventing a build loop. A later implementation session resumes from the branch/head recorded in GitHub rather than repeating the DCC build.
+The integrity record contains the actual reference, rig, `.blend` and runtime-model SHA-256 values plus Blender/audit facts. The carrier is a build-and-evidence path only: it does not grant human visual approval, `productionReady`, `POLISH`, `MOTION` or `RUNTIME_READY`, and it does not create a Character Production promotion manifest automatically.
 
-## Production truth
+## Execution
 
-The carrier can establish at most `PRIMARY / dcc-blender`. It always records `productionReady=false` and `visualApproval=pending`.
+`Character DCC Carrier` runs only on `dcc/**` pushes that change `assets/characters/**/build.py` or `assets/characters/**/reference.*`.
 
-Stage promotion is fail-closed:
+It:
 
-- `REFERENCE` requires locked identity/reference evidence and is the safe default for a first unattended DCC generation.
-- `BLOCKOUT` additionally requires explicit `proportionsReviewed=true` and `silhouetteReviewed=true`.
-- `PRIMARY` additionally requires explicit `topologyReviewed=true`; UV evidence comes from the Blender audit and `primary.separateSurfaces` must include skin, hair and clothing.
+1. derives `<slug>` from the branch and validates the two-file layout before installing Blender;
+2. computes reference and rig hashes automatically;
+3. installs the repository-approved headless Blender runtime;
+4. runs the character-specific builder for real;
+5. runs `scripts/blender/character-production-audit.py` against the generated `.blend`;
+6. requires the runtime model, editable `.blend`, four fixed review views and `build.json`;
+7. derives canonical output paths and writes `integrity.json`;
+8. runs focused carrier tests plus `git diff --check`;
+9. commits generated canonical evidence back to the same `dcc/<slug>` branch;
+10. records `character-dcc/build` on the exact generated head.
 
-The carrier does not infer those review decisions merely because PNGs or an export exist. A first build can therefore stay at `REFERENCE`, expose the four fixed views, and be promoted by a later reviewed request without pretending that automation visually approved the asset.
-
-It does not claim DEFORMATION, MOTION, POLISH, RUNTIME_READY, device performance or human visual approval from export/audit success. Those remain separate Character Production gates.
-
-Visible review props do not grant gameplay inventory/combat ownership.
+The generated commit does not touch `build.py` or `reference.*`, so the path-filtered push workflow does not recursively rebuild itself.
 
 ## Future-session procedure
 
-For a new character modeling request, a future Chat/WORK should:
+For a user request such as "このキャラをBlenderで作って", a future Chat/WORK should only:
 
-1. start from latest `develop`, read `AGENTS.md`, this document, the applicable character contract and art standards;
-2. create a short-lived `dcc/<slug>` branch;
-3. add the character-specific Blender builder and `.dcc/character-dcc-request.json` using `docs/characters/dcc-request.example.json`;
-4. push the branch through normal git, the connected GitHub API, or the already-authorized Codespaces fallback;
-5. perform one bounded post-push state read. Do not wait/poll the run;
-6. on a later interaction, recover from the current branch/head and `character-dcc/build` status. If successful, inspect the committed fixed views and continue refinement/promotion from that exact generated head.
+1. start from latest `develop` and create `dcc/<slug>`;
+2. place the character reference at `assets/characters/<slug>/reference.<ext>`;
+3. implement `assets/characters/<slug>/build.py`;
+4. push once and perform one bounded carrier-state read;
+5. on a later interaction, resume from the current branch/head and inspect the committed review views.
 
-Do not route ordinary DCC generation through RINNE Dispatch merely to obtain Blender. The carrier is the dedicated execution route and does not require `DISPATCH_GITHUB_TOKEN` or `RESCUE_GITHUB_TOKEN`.
+Do not create a request manifest or a character-specific Actions workflow. Do not route ordinary Blender execution through RINNE Dispatch merely to obtain Blender.
 
-## Visual Review Lab handoff
+## Recovery and safety
 
-The carrier does not modify `work/visual-review-lab-v2` automatically. After a successful generated head exists, an explicitly requested Lab task may copy the exact model into the long-lived Draft Lab and register it as a distinct comparison candidate with exact bytes/hash validation.
+If the normal environment cannot run Blender locally, the `dcc/<slug>` push is the normal execution route. If transport fails, the standing delivery authorization permits the same branch to move through the connected GitHub API or repository Codespaces plus normal git without asking again.
 
-This keeps DCC generation reusable while preventing concurrent Lab work from being overwritten.
-
-## Recovery
-
-If the normal work environment cannot run Blender locally, the `dcc/**` push is the normal repository execution route. If transport itself fails, the standing delivery authorization permits switching the same branch through the connected GitHub API or repository Codespaces plus normal git without asking again.
-
-A carrier failure remains on the same `dcc/**` branch with the exact workflow URL/status and retained review/debug artifact where available. Fix that branch and push a new request/builder head; do not create a second competing DCC task for the same candidate.
-
-Never weaken the production audit, reference hash check, generated-file checks, or Integration gates to make a carrier run pass.
+A carrier failure remains on the same branch with its exact workflow run as the recovery point. Fix that branch and push the corrected `build.py` or reference. Do not weaken Blender audit or generated-file checks to force success.
