@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { PoseSchedule } from '@soul/characters';
 import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { createCoopActors } from './coop-actors.js';
-import { createKaykitCharacterPools } from './kaykit-character-pool.js';
+import { createShinoCharacterPools } from './shino-character-pool.js';
 import { hideCarrierCombatProps, newbornCarryTransform } from './newborn-carry-presentation.js';
 import {
   createRinneEnemyCharacter,
@@ -143,7 +143,7 @@ function renderActors({roster,heroSchedule,motherSchedule,motherMotion},life,dt)
 }
 
 export async function createRinneCharacterStage({renderer,scene,frontRoot,weaponVisual,mat,disposeObject}){
-  const runtime=await createKaykitCharacterPools(renderer),roster=createActorRoster({scene,frontRoot,characterPool:runtime.pool});
+  const runtime=await createShinoCharacterPools(renderer),roster=createActorRoster({scene,frontRoot,characterPool:runtime.pool});
   const equipment=createEquipmentController({heroActor:roster.heroActor,weaponVisual,mat,disposeObject});
   const peers=createCoopActors({pool:runtime.peerPool,motherPool:runtime.motherPool,scene,sampleSlot,poseHumanoid,armorDye,createEquipment:heroActor=>createEquipmentController({heroActor,weaponVisual,mat,disposeObject})});
   const animation={roster,heroSchedule:new PoseSchedule(),motherSchedule:new PoseSchedule(),motherMotion:{active:false,moving:false,speed:0}};
