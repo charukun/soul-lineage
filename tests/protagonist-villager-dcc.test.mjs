@@ -51,7 +51,8 @@ test('protagonist village-start DCC is a KayKit Knight-derived humble hero candi
 test('protagonist builder reuses pinned real KayKit Knight parts instead of rebuilding a primitive body', () => {
   const request = JSON.parse(readFileSync('.dcc/character-dcc-request.json', 'utf8'));
   const source = readFileSync('scripts/blender/build-protagonist-kaykit-derivative-v2.py', 'utf8');
-  assert.equal(request.builder, 'scripts/blender/build-protagonist-kaykit-derivative-v2.py');
+  const carrier = readFileSync('scripts/blender/build-protagonist-kaykit-derivative-v2-carrier.py', 'utf8');
+  assert.equal(request.builder, 'scripts/blender/build-protagonist-kaykit-derivative-v2-carrier.py');
   assert.equal(request.rig.id, 'kaykit.Rig_Medium.v1');
   assert.match(request.license.rigProvenance, /717b56ca2b5ff5392679774725201ba03a3eefab/);
   assert.match(request.license.rigProvenance, /CC0 1\.0/);
@@ -60,6 +61,8 @@ test('protagonist builder reuses pinned real KayKit Knight parts instead of rebu
   assert.match(source, /Knight_/);
   assert.match(source, /kaykit-source-part-reuse/);
   assert.doesNotMatch(source, /primitive_cube_add|primitive_uv_sphere_add|clear_source_meshes/);
+  assert.match(carrier, /build-protagonist-kaykit-derivative-v2\.py/);
+  assert.match(carrier, /scene\.world = bpy\.data\.worlds\.new/);
 });
 
 test('generated protagonist GLB carries the exact audited humanoid runtime contract', () => {

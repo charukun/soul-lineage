@@ -13,7 +13,7 @@
     "sha256": "83843ade7dbdfaacc9d601bda099fcb5757527e339b9c5deb223a2c2f5eb28ca",
     "id": "kaykit.Rig_Medium.v1"
   },
-  "builder": "scripts/blender/build-protagonist-kaykit-derivative-v2.py",
+  "builder": "scripts/blender/build-protagonist-kaykit-derivative-v2-carrier.py",
   "generatedDir": "generated/protagonist-villager-v1",
   "blendName": "ProtagonistVillagerV1.blend",
   "modelName": "ProtagonistVillagerV1.glb",
