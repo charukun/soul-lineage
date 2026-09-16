@@ -6,6 +6,8 @@ export function runRrpTheoryVerificationSuite({semantic=null}={}){
   const packets=runCanonPacketProofSuite(),relay=runAdaptiveRelayProofSuite(),semanticProof=semantic??runSemanticFrontierProofSuite();
   const boundaries={
     generalizedCrashQuorum:packets.generalized.pass,
+    generalizedPacketRecovery:packets.packetSweep.pass&&packets.packetSweep.cases===5218,
+    sequentialEpochDedupe:packets.sequential.pass,
     twoPeerNoWitnessBoundary:packets.twoPeer.pass&&packets.twoPeer.requiresAdditionalFailureDiscriminator,
     packetInterleavings:packets.interleavings.pass,
     finiteBurstEventuallyProgresses:packets.faults.pass&&packets.faults.permanentPartitionMakesNoLivenessClaim,
@@ -15,5 +17,5 @@ export function runRrpTheoryVerificationSuite({semantic=null}={}){
     canonNeverUsesPresenceRelay:relay.dense.checks.canonIsolation,
     semanticUniversalStrictDominanceStillRejected:semanticProof.maximal.strictUniversalDominancePossible===false,
   };
-  return{format:'rrp-theory-verification/1',pass:packets.pass&&relay.pass&&semanticProof.pass&&Object.values(boundaries).every(Boolean),packets,relay,semantic:{pass:semanticProof.pass,maximal:semanticProof.maximal},boundaries,limits:[...packets.limits,...relay.dense.limits,'this suite proves a deterministic crash-fault model, not physical WebRTC/NAT/TURN/device behavior','adaptive relay changes the presence fan-out frontier only; it does not weaken Canon consistency requirements']};
+  return{format:'rrp-theory-verification/2',pass:packets.pass&&relay.pass&&semanticProof.pass&&Object.values(boundaries).every(Boolean),packets,relay,semantic:{pass:semanticProof.pass,maximal:semanticProof.maximal},boundaries,limits:[...packets.limits,...relay.dense.limits,'this suite proves a deterministic crash-fault model, not physical WebRTC/NAT/TURN/device behavior','adaptive relay changes the presence fan-out frontier only; it does not weaken Canon consistency requirements']};
 }
