@@ -26,7 +26,7 @@ Read only the standards relevant to the task:
 | Rig/animation/material/export work that also changes character appearance | both files, plus the applicable `docs/characters/*` contract |
 | Pure UI/code work with no 3D appearance or asset impact | these files are not required |
 
-For Sendagaya_Shino / MasterCharacter work, read `docs/characters/MASTER_CHARACTER.md`, `MODULAR_APPEARANCE.md`, and `CHARACTER_STUDIO.md` as applicable before using this standard.
+For the current game-facing character foundation, read `docs/characters/KAYKIT_FOUNDATION.md`; new gameplay character/motion work uses that KayKit family by default. For Sendagaya_Shino compatibility or direct Shino asset work, read `docs/characters/MASTER_CHARACTER.md`, `MODULAR_APPEARANCE.md`, and `CHARACTER_STUDIO.md` as applicable before using this standard. Shino remains a supported character contract, not the default foundation for new game-facing work.
 
 ## Core rule
 
