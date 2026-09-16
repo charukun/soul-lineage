@@ -4,7 +4,7 @@ import { buildStations, nearestStation } from './locations.js';
 import { validateMuraLayout, safeMuraPosition, muraBlocked } from '@soul/world/mura';
 
 export const COOP_LIMIT=30;
-export const COOP_PROTOCOL='rinne-coop-dev-1';
+export const COOP_PROTOCOL='rinne-coop-dev-2';
 const clone=value=>structuredClone(value),identifier=value=>typeof value==='string'&&/^[\w:.-]{1,120}$/.test(value);
 const seedOf=text=>{let n=2166136261;for(const c of text)n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0;};
 const speed=age=>age<4?1.2:age<7?2.15:age<65?4.15:Math.max(2.3,4.15-(age-65)*.035);
@@ -39,11 +39,12 @@ export class CoopWorld {
   }
   clearInput(id){this.inputs.delete(id);}
   rebirth(id,villageId){const row=this.data.players[id];if(!row||!row.life.ended)return false;row.life=rebirth(row.life,{villageId:villageId||null,villageIds:[this.layout.id]});row.life.id=`${id}:${row.life.generation}`;row.life.clockRate=this.data.clockRate;row.life.position=safeMuraPosition(this.layout,row.life.position);row.portDwell=0;this.dirtyHistory=true;return true;}
-  advance(dt=.05){
+  advance(dt=.05,{blocked=new Set()}={}){
     if(!Number.isFinite(dt)||dt<=0||dt>.05)throw Error('共有時計の刻みが不正です。');
     this.data.tick++;this.data.worldSeconds+=dt*this.data.clockRate;
     const rows=Object.entries(this.data.players).sort(([a],[b])=>a.localeCompare(b));
     for(const [id,row]of rows){
+      if(blocked.has(id)){this.clearInput(id);continue;}
       const life=row.life,input=this.inputs.get(id),beforeEnded=life.ended;let moved=false;
       if(input&&input.until>=this.data.tick&&!life.ended&&!life.down){
         const step=speed(life.ageYears)*(life.combat?.72:1)*dt,nx=life.position.x+input.x*step,nz=life.position.z+input.z*step;
@@ -58,7 +59,7 @@ export class CoopWorld {
         if(depart(life)){this.events.get(id).push({type:'depart'});row.portDwell=0;}
       }}else row.portDwell=0;
     }
-    const groups=Array.from({length:6},(_,stage)=>rows.filter(([,r])=>r.life.zone==='frontier'&&r.life.front===stage&&!r.life.ended));
+    const groups=Array.from({length:6},(_,stage)=>rows.filter(([id,r])=>!blocked.has(id)&&r.life.zone==='frontier'&&r.life.front===stage&&!r.life.ended));
     for(let stage=0;stage<=5;stage++){
       const fighters=groups[stage];if(!fighters.length)continue;
       const front=this.data.fronts[stage]??=createFront(stage,seedOf(this.data.worldId));
