@@ -22,16 +22,16 @@ test('successful capture reports real healing, growth and persisted memory exact
  const {game,store}=fixture(),n=game.village.npcs[0],startMax=game.player.maxhp;game.player.hp=Math.max(1,startMax-10);
  game.consume(n);const event=consumeEvent(game),r=feastReward(event);
  assert.ok(event.reward.healed>0);assert.ok(event.reward.maxHpGain>=0);assert.ok(game.player.maxhp>=startMax);assert.equal(r.kind,'memory');
- assert.equal(store.read().totalEaten,1);assert.equal(event.reward.equipped,true);assert.ok(event.reward.growthScale>.78);
+ assert.equal(store.read().totalEaten,1);assert.equal(event.reward.equipped,true);assert.ok(event.reward.growthScale>.28);assert.ok(event.reward.growthScale<1);
  game.consume(n);assert.equal(store.read().totalEaten,1);assert.equal(game.events.filter(e=>e.type==='consume').length,1);
  const duplicate=game.village.npcs.find(v=>v!==n&&v.role===n.role);game.consume(duplicate);
  assert.equal(feastReward(consumeEvent(game)).kind,'restore');assert.equal(store.read().totalEaten,2);
 });
-test('meal growth raises maximum health while the body scale remains capped',()=>{
- const {game}=fixture(),start=game.player.maxhp;
+test('meal growth raises maximum health while the body scale reaches a giant hard cap',()=>{
+ const {game}=fixture(),start=game.player.maxhp;assert.equal(game.player.growthScale,.28);
  for(let i=0;i<12;i++)game.consume({id:`meal:${i}`,role:'traveller',marked:false,eaten:false,dead:true});
- assert.ok(game.player.maxhp>start);assert.equal(game.player.growthScale,1.28);assert.ok(game.player.powerScale<=1.08);
- const e=consumeEvent(game),r=feastReward(e);assert.ok(e.reward.growthScale<=1.28);assert.ok(r.detail.length>0);
+ assert.ok(game.player.maxhp>start*5);assert.equal(game.player.growthScale,3.2);assert.ok(game.player.powerScale<=1.35);assert.ok(game.player.moveScale<=1.12);
+ const e=consumeEvent(game),r=feastReward(e);assert.ok(e.reward.growthScale<=3.2);assert.equal(e.reward.monsterSpecies,'night-creature');assert.ok(r.detail.length>0);
 });
 test('a learned trait remains active even when legacy equipment slots are full',()=>{
  const {game,store}=fixture();for(const role of ['traveller','bellkeeper','hunter'])store.unlock(role);game.refreshProfile(store.read());
@@ -78,6 +78,12 @@ test('real Three effects keep a fixed object budget and clear particles/light on
  for(let i=0;i<40;i++){fx.event({...e,at:game.time});game.time+=.1;fx.update(game);assert.equal(fx.root.children.length,count);assert.ok([...fx.positions,...fx.wispPositions].every(Number.isFinite));}
  game.time+=3;fx.update(game);assert.equal(fx.root.visible,false);assert.equal(fx.light.intensity,0);
  fx.reset();assert.equal(fx.beacon.visible,false);fx.dispose();assert.equal(scene.children.length,0);
+});
+test('monster renderer spans knee-high infancy through giant late-hunt size',()=>{
+ const g=createCreature(true),a={x:0,z:0,yaw:0,speed:0,growthScale:.28};
+ animateCreature(g,a,0,{form:'hollow'});assert.equal(g.scale.x,.28);
+ a.growthScale=3.2;animateCreature(g,a,.1,{form:'hollow'});assert.equal(g.scale.x,3.2);
+ a.growthScale=99;animateCreature(g,a,.2,{form:'hollow'});assert.equal(g.scale.x,3.2);
 });
 test('release opens real creature arms, keeps soles planted and yields to movement',()=>{
  for(const form of ['hollow','stalker','brute','wraith']){

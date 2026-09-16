@@ -29,12 +29,12 @@ test('KayKit-first runtime is an actual playable loop, not a model-only preview'
   assert.match(assets, /knight:\['adventurers'/);
 });
 
-test('the main title exposes KayKit-first play without removing the 100-year compatibility runtime', () => {
+test('the main title launches the current runtime without a separate KayKit route', () => {
   const html = source('../index.html');
   const main = source('../src/main.js');
-  assert.match(html, /id="kaykit-life"/);
-  assert.match(html, /KayKitで遊ぶ/);
-  assert.match(main, /KAYKIT_GAME_AXIS/);
-  assert.match(main, /primaryRuntime/);
-  assert.match(main, /new-life/);
+  assert.doesNotMatch(html, /id="kaykit-life"|KayKitで遊ぶ/);
+  assert.doesNotMatch(main, /KAYKIT_GAME_AXIS|primaryRuntime/);
+  assert.match(main, /import\('\.\/rebuild\/runtime\.js'\)/);
+  assert.match(main, /startRuntime\(\{mode,buildInfo:info,name:/);
+  assert.match(main, /\$\('new-life'\)\.addEventListener\('click',\(\)=>\{void launch\('new'\);\}\)/);
 });
