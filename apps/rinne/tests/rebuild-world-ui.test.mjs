@@ -20,7 +20,7 @@ test('game shell keeps tactile depth while the visible skin is restrained casual
   assert.match(pop,/box-shadow:[^;]*inset[^;]*0 3px 0/);assert.match(pop,/transform:translateY\(2px\)/);assert.match(pop,/border-radius:9px/);
   assert.match(pop,/\.loading-dots\{display:none\}/);assert.match(pop,/repeating-conic-gradient/);
   assert.doesNotMatch(pop,/--pop-green:/);assert.doesNotMatch(pop,/--pop-pink:/);assert.doesNotMatch(pop,/#ff9ecb/i);assert.doesNotMatch(pop,/border-radius:26px/);
-  assert.match(html,/theme-color" content="#7896a1"/);
+  assert.match(html,/theme-color" content="#08111f"/);
 });
 
 test('village frontier homecoming and rebirth stay distinct without green or candy wash',()=>{

@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#7896a1">
-  <meta name="description" content="100年人生 — 輪廻転焦。暮らし、戦い、遺し、また生まれる。">
-  <title>100年人生 — 輪廻転焦</title>
+  <meta name="theme-color" content="#08111f">
+  <meta name="description" content="100年生 — 輪廻転焦。暮らし、戦い、遺し、また生まれる。">
+  <title>100年生 — 輪廻転焦</title>
   <link rel="icon" href="./favicon.svg?v=1" type="image/svg+xml">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./src/rebuild/app.css">
@@ -13,31 +13,33 @@
   <link rel="stylesheet" href="./src/rebuild/birth-tour.css">
   <link rel="stylesheet" href="./src/consumer-game-ui.css">
   <link rel="stylesheet" href="./src/rebuild/button-help.css">
+  <link rel="stylesheet" href="./src/title-screen.css">
   <link rel="stylesheet" href="./src/typography.css">
 </head>
 <body>
 <main id="app" data-screen="loading">
-  <section id="title-screen" class="title-screen" aria-labelledby="title-mark" hidden>
-    <div class="title-rune" aria-hidden="true"></div>
+  <section id="title-screen" class="title-screen" data-motion="on" aria-labelledby="title-mark" hidden>
+    <div class="title-world" aria-hidden="true"><img src="./title-assets/world.webp" alt="" fetchpriority="high"></div>
+    <p class="title-copy">暮らし、戦い、遺し、<br>また生まれる。</p>
     <div class="title-lockup">
-      <div class="crest-ring"><img class="crest" src="./title-assets/crest.svg" alt=""></div>
+      <img class="crest" src="./title-assets/crest.svg" alt="">
       <p class="eyebrow">A LIFE, THEN ANOTHER</p>
-      <h1 id="title-mark">100年人生</h1>
+      <h1 id="title-mark">100年生</h1>
       <p class="subtitle">輪廻転焦</p>
-      <p class="tagline">暮らし、戦い、遺し、また生まれる。</p>
     </div>
-    <div class="title-actions" aria-label="ゲーム開始">
-      <label class="name-field"><span>名</span><input id="life-name" maxlength="12" autocomplete="off" value="旅人"></label>
-      <button id="continue-life" class="primary" type="button" hidden><strong>つづきから</strong><small id="continue-detail"></small></button>
-      <button id="new-life" class="primary" type="button"><strong>新しい人生</strong><small>0歳</small></button>
-      <a class="secondary" href="./simulator/index.html"><strong>稽古場</strong><small>技・装備</small></a>
-      <button id="open-village" class="secondary" type="button"><strong>友達と遊ぶ</strong><small>試遊の村</small></button>
-    </div>
+    <nav class="title-actions" aria-label="タイトルメニュー">
+      <input id="life-name" type="hidden" value="旅人">
+      <button id="new-life" class="title-command" data-selected="true" type="button">新しい人生</button>
+      <button id="continue-life" class="title-command" type="button" aria-disabled="true">旅の記録<span id="continue-detail" hidden>記録はまだありません</span></button>
+      <button id="open-village" class="title-command" type="button">村へ参加</button>
+      <button id="open-settings" class="title-command" type="button">設定</button>
+    </nav>
+    <div class="title-controller-hints" aria-hidden="true"><span><b>A</b>決定</span><span><b>B</b>戻る</span></div>
     <p id="boot-status" class="boot-status" role="status" aria-live="polite">世界を準備しています</p>
     <footer><span id="build-label">LOCAL</span><span>輪廻転焦</span></footer>
   </section>
 
-  <section id="game-screen" class="game-screen is-loading" data-world-tone="village" aria-busy="true" aria-label="100年人生 本編">
+  <section id="game-screen" class="game-screen is-loading" data-world-tone="village" aria-busy="true" aria-label="100年生 本編">
     <canvas id="game" aria-label="村と旅人の世界"></canvas>
     <div class="world-vignette" aria-hidden="true"></div>
     <div id="actor-status-layer" class="actor-status-layer" aria-hidden="true"></div>
@@ -72,7 +74,14 @@
   <h2 id="village-dialog-title">友達と遊ぶ</h2>
   <div id="village-panel"></div>
 </dialog>
-<noscript>100年人生を開くにはJavaScriptを有効にしてください。</noscript>
+<dialog id="title-settings-dialog" class="title-settings-dialog" aria-labelledby="title-settings-title">
+  <form method="dialog">
+    <button id="close-settings" class="dialog-close" type="submit" aria-label="設定を閉じる">×</button>
+    <h2 id="title-settings-title">設定</h2>
+    <label class="setting-row"><span>背景演出<small>タイトル画面の雲・光・星の動き</small></span><input id="title-motion-toggle" type="checkbox" checked></label>
+  </form>
+</dialog>
+<noscript>100年生を開くにはJavaScriptを有効にしてください。</noscript>
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>

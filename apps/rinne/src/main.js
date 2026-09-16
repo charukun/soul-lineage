@@ -1,21 +1,62 @@
-const info=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__:{name:'100年人生',app:'rinne',environment:'local',commit:'UNBUILT'};
-document.title=`100年人生 — 輪廻転焦${info.environment==='prod'?'':` | ${String(info.environment).toUpperCase()}`}`;
+const info=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__:{name:'100年生',app:'rinne',environment:'local',commit:'UNBUILT'};
+document.title=`100年生 — 輪廻転焦${info.environment==='prod'?'':` | ${String(info.environment).toUpperCase()}`}`;
 const $=id=>document.getElementById(id),app=$('app'),title=$('title-screen'),game=$('game-screen'),loading=$('loading-card'),retry=$('boot-retry');
+const villageDialog=$('village-dialog'),settingsDialog=$('title-settings-dialog'),motionToggle=$('title-motion-toggle');
 $('build-label').textContent=info.commit==='UNBUILT'?'LOCAL':`${String(info.environment).toUpperCase()} · ${String(info.commit).slice(0,7)}`;
 const storageKey=`soul:v1:${info.environment}:rinne:local:life-v2`;
+const motionKey=`soul:v1:${info.environment}:rinne:title-motion-v1`;
 const afterVisiblePaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null;
 
+const titleCommands=[...title.querySelectorAll('.title-command')];
+function selectTitleCommand(command){
+  for(const item of titleCommands)item.dataset.selected=String(item===command);
+}
+for(const command of titleCommands){
+  command.addEventListener('focus',()=>selectTitleCommand(command));
+  command.addEventListener('pointerenter',()=>selectTitleCommand(command));
+}
+title.addEventListener('keydown',event=>{
+  if(villageDialog.open||settingsDialog.open)return;
+  if(event.key!=='ArrowDown'&&event.key!=='ArrowUp'&&event.key!=='Enter')return;
+  const selected=titleCommands.findIndex(item=>item.dataset.selected==='true');
+  const index=selected<0?0:selected;
+  if(event.key==='Enter'){
+    if(!titleCommands.includes(document.activeElement)){event.preventDefault();titleCommands[index].click();}
+    return;
+  }
+  event.preventDefault();
+  const delta=event.key==='ArrowDown'?1:-1;
+  const next=(index+delta+titleCommands.length)%titleCommands.length;
+  selectTitleCommand(titleCommands[next]);
+  titleCommands[next].focus({preventScroll:true});
+});
+
+function applyTitleMotion(enabled,persist=false){
+  title.dataset.motion=enabled?'on':'off';motionToggle.checked=enabled;
+  if(persist){try{localStorage.setItem(motionKey,enabled?'on':'off');}catch{}}
+}
+let initialMotion=!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+try{const stored=localStorage.getItem(motionKey);if(stored==='on'||stored==='off')initialMotion=stored==='on';}catch{}
+applyTitleMotion(initialMotion);
+
 function refreshContinue(){
   let saved=null;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
-  hasSave=Boolean(saved);const button=$('continue-life');button.hidden=!saved;
-  if(saved){const age=Math.max(0,Math.min(100,Math.floor(Number(saved.ageYears)||0)));$('continue-detail').textContent=`${saved.name||'旅人'} · ${age}歳 · ${saved.generation||1}代目`;}
+  hasSave=Boolean(saved);const button=$('continue-life'),detail=$('continue-detail');
+  button.hidden=false;button.setAttribute('aria-disabled',String(!saved));
+  if(saved){
+    const age=Math.max(0,Math.min(100,Math.floor(Number(saved.ageYears)||0)));
+    detail.textContent=`${saved.name||'旅人'} · ${age}歳 · ${saved.generation||1}代目`;
+    button.setAttribute('aria-label',`旅の記録 ${detail.textContent}`);
+  }else{
+    detail.textContent='記録はまだありません';button.setAttribute('aria-label','旅の記録 記録なし');
+  }
 }
 function setLoading(message,titleText='世界をつくっています'){
   $('loading-title').textContent=titleText;$('loading-message').textContent=message;retry.hidden=true;loading.hidden=false;
 }
-function showTitle(status='準備完了'){
-  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;loading.hidden=true;title.hidden=false;launching=false;booting=false;$('boot-status').textContent=status;refreshContinue();
+function showTitle(status=''){
+  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;loading.hidden=true;title.hidden=false;launching=false;booting=false;$('boot-status').textContent=status;refreshContinue();selectTitleCommand($('new-life'));
 }
 function showBootFailure(error){
   console.error(error);app.dataset.screen='error';booting=false;launching=false;title.hidden=true;game.hidden=false;game.classList.add('is-loading');game.removeAttribute('aria-busy');
@@ -65,11 +106,12 @@ async function launch(mode,coop=null){
 
 refreshContinue();
 retry.addEventListener('click',()=>location.reload());
-$('new-life').addEventListener('click',()=>{if(hasSave&&!confirm('今の人生を終えて、0歳から新しく始めます。現在の100年人生の保存は置き換わります。続けますか？'))return;void launch('new');});
-$('continue-life').addEventListener('click',()=>{void launch('continue');});
+$('new-life').addEventListener('click',()=>{if(hasSave&&!confirm('今の人生を終えて、0歳から新しく始めます。現在の保存は置き換わります。続けますか？'))return;void launch('new');});
+$('continue-life').addEventListener('click',()=>{if(!hasSave){$('boot-status').textContent='旅の記録はまだありません';return;}void launch('continue');});
+$('open-settings').addEventListener('click',()=>settingsDialog.showModal());
+motionToggle.addEventListener('change',()=>applyTitleMotion(motionToggle.checked,true));
 void boot();
 
-const villageDialog=document.getElementById('village-dialog');
 document.getElementById('open-village').addEventListener('click',async()=>{
   try{
     if(!villageInstalled){
