@@ -133,13 +133,16 @@ test('browser smoke completes the new guide with real pointer input instead of s
  assert.equal(guideSource.includes("nativeTap(page,expect,page.locator('#muraCancelPlacement'))"),false);
 });
 
-test('browser smoke hands off from onboarding to ordinary build controls without a second tutorial CTA',()=>{
+test('browser smoke keeps the current tutorial CTA truthful without blocking ordinary build controls',()=>{
  const firstBuild=browser.indexOf('export async function verifyVillageFirstBuild');
- const legacyAction=browser.indexOf("page.locator('#tutorialAction')",firstBuild);
+ const tutorialStep=browser.indexOf("window.village.world.tutorialStep()?.text||''",firstBuild);
+ const tutorialAction=browser.indexOf("page.locator('#tutorialAction')",firstBuild);
  const buildTap=browser.indexOf("nativeTap(page,expect,page.locator('#build'))",firstBuild);
  const tentCard=browser.indexOf("page.locator('#catalog .card[data-kind=\"tent\"]')",firstBuild);
- assert.ok(firstBuild>=0&&legacyAction>firstBuild&&buildTap>legacyAction&&tentCard>buildTap,{firstBuild,legacyAction,buildTap,tentCard});
- const handoff=browser.slice(legacyAction,buildTap);
- assert.ok(handoff.includes('toBeHidden()'));
- assert.equal(handoff.includes('nativeTap(page,expect,page.locator(\'#tutorialAction\'))'),false);
+ assert.ok(firstBuild>=0&&tutorialStep>firstBuild&&tutorialAction>tutorialStep&&buildTap>tutorialAction&&tentCard>buildTap,{firstBuild,tutorialStep,tutorialAction,buildTap,tentCard});
+ const handoff=browser.slice(tutorialStep,buildTap);
+ assert.ok(handoff.includes('expect(tutorialText.length).toBeGreaterThan(0)'));
+ assert.ok(handoff.includes('toBeVisible()'));
+ assert.ok(handoff.includes("toHaveAttribute('aria-label',tutorialText)"));
+ assert.equal(handoff.includes("nativeTap(page,expect,page.locator('#tutorialAction'))"),false);
 });
