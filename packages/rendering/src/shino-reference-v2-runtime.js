@@ -16,8 +16,8 @@ async function sha256Hex(bytes) {
 
 function validateDeclaredSize(response) {
   const declared = Number(response.headers.get('content-length'));
-  if (Number.isFinite(declared) && declared !== SHINO_REFERENCE_V2_BYTES) {
-    throw new Error(`Shino Reference v2 content-length mismatch: ${declared}`);
+  if (Number.isFinite(declared) && declared > MAX_MODEL_BYTES) {
+    throw new Error(`Shino Reference v2 declared size too large: ${declared}`);
   }
 }
 
