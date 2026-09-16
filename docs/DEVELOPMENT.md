@@ -73,6 +73,14 @@ GitHub 標準状態をそのまま使う。
 
 通常実装は速度のため「必要な局所確認」に絞るが、品質 gate を削除・弱体化しない。重い browser / public verification は Integration 側で非同期に扱う。main / Production の blocking gate は不変。
 
+テストは実装の書き方ではなく、ユーザー・ドメイン・公開インターフェースから観測できる契約を優先する。特に UI / browser テストでは、次を原則とする。
+
+- 表示文言そのものが仕様である場合を除き、完全一致コピーより状態・役割・可視性・操作結果を検証する。
+- DOM id / class / matcher 名 / helper 呼び出し文字列など、同じ挙動を別実装でも成立させられる内部表現を二重に固定しない。
+- 別テストファイルを文字列として読み込み、「そのテストが `toBeHidden()` を使う」「この selector を直接書く」などのテスト実装詳細を検査しない。必要なら共有 helper / 公開 contract / 実ブラウザ挙動を直接検証する。
+- 起動、主要入力、保存、復元、致命的 console/page error、重要なゲーム状態遷移など、ユーザー影響が大きい失敗は引き続き厳格に fail させる。
+- timeout 延長、force click、assertion 削除、常時 retry で不安定さを隠さない。過剰固定を外すことと品質 gate を弱めることは別扱いにする。
+
 単一 app の変更を root ゲーム構成へ戻さず、`apps/<id>` と `packages/<id>` の境界を維持する。詳細は [`MONOREPO.md`](MONOREPO.md) と [`PLATFORMS.md`](PLATFORMS.md)。
 
 ## GitHub / Codespaces 経路
