@@ -1,6 +1,7 @@
 import {runCanonPacketProofSuite,crashQuorumConfig} from './canon-packet-proof.js';
 import {proveBoundedF1ScheduleStateSpace} from './canon-state-space-proof.js';
 import {runAdaptiveRelayProofSuite,chooseAdaptivePresence} from './adaptive-relay.js';
+import {proveSfuTradeoffBoundary} from './presence-topology-proof.js';
 import {runAuthorityMembershipProofSuite} from './authority-membership-proof.js';
 import {runFailureDomainProofSuite} from './failure-domain-proof.js';
 import {OP_KIND,POLICY,evaluatePolicy,runSemanticFrontierProofSuite} from './semantic-frontier.js';
@@ -17,7 +18,7 @@ export function proveSemanticProtocolComposition(){
 }
 
 export function runRrpTheoryVerificationSuite({semantic=null}={}){
-  const packets=runCanonPacketProofSuite(),stateSpace=proveBoundedF1ScheduleStateSpace(),relay=runAdaptiveRelayProofSuite(),membership=runAuthorityMembershipProofSuite(),failureDomains=runFailureDomainProofSuite(),semanticProof=semantic??runSemanticFrontierProofSuite(),composition=proveSemanticProtocolComposition();
+  const packets=runCanonPacketProofSuite(),stateSpace=proveBoundedF1ScheduleStateSpace(),relay=runAdaptiveRelayProofSuite(),presenceTopology=proveSfuTradeoffBoundary(),membership=runAuthorityMembershipProofSuite(),failureDomains=runFailureDomainProofSuite(),semanticProof=semantic??runSemanticFrontierProofSuite(),composition=proveSemanticProtocolComposition();
   const boundaries={
     generalizedCrashQuorum:packets.generalized.pass,
     generalizedPacketRecovery:packets.packetSweep.pass&&packets.packetSweep.cases===5218,
@@ -34,9 +35,11 @@ export function runRrpTheoryVerificationSuite({semantic=null}={}){
     relayFailureDomainDiversity:failureDomains.relay.pass,
     denseRelayFanoutFrontier:relay.dense.pass,
     relayNotUniversal:relay.dense.checks.r1AddsHop&&relay.dense.checks.r1NotOneRelayFaultSafe&&relay.dense.checks.r2CostsExtraTraffic&&relay.dense.checks.zeroExtraHopSelectsStar,
+    sfuParetoPointRetained:presenceTopology.pass&&presenceTopology.checks.sfuBestPlayerFanout&&presenceTopology.checks.infraConstraintSelectsSfu,
+    noInfraConstraintRetained:presenceTopology.checks.noInfraSelectsPeerRelay,
     canonNeverUsesPresenceRelay:relay.dense.checks.canonIsolation,
     semanticProtocolComposition:composition.pass,
     semanticUniversalStrictDominanceStillRejected:semanticProof.maximal.strictUniversalDominancePossible===false,
   };
-  return{format:'rrp-theory-verification/6',pass:packets.pass&&stateSpace.pass&&relay.pass&&membership.pass&&failureDomains.pass&&semanticProof.pass&&composition.pass&&Object.values(boundaries).every(Boolean),packets,stateSpace,relay,membership,failureDomains,composition,semantic:{pass:semanticProof.pass,maximal:semanticProof.maximal},boundaries,limits:[...packets.limits,...relay.dense.limits,...failureDomains.limits,'bounded schedule exploration covers one Canon operation, three members, at most one crash and no retries/duplicates; generalized and duplicate/burst dimensions are covered by separate sweeps','authority rotation proof covers one-member replacement through an old/new common majority; larger membership changes require sequential replacement or a joint-consensus protocol','background/suspended nucleus members are treated as unavailable for new Canon and cannot be rotated out after old quorum is already lost','this suite proves a deterministic crash-fault model, not physical WebRTC/NAT/TURN/device behavior','adaptive relay changes the presence fan-out frontier only; it does not weaken Canon consistency requirements']};
+  return{format:'rrp-theory-verification/7',pass:packets.pass&&stateSpace.pass&&relay.pass&&presenceTopology.pass&&membership.pass&&failureDomains.pass&&semanticProof.pass&&composition.pass&&Object.values(boundaries).every(Boolean),packets,stateSpace,relay,presenceTopology,membership,failureDomains,composition,semantic:{pass:semanticProof.pass,maximal:semanticProof.maximal},boundaries,limits:[...packets.limits,...relay.dense.limits,...presenceTopology.limits,...failureDomains.limits,'bounded schedule exploration covers one Canon operation, three members, at most one crash and no retries/duplicates; generalized and duplicate/burst dimensions are covered by separate sweeps','authority rotation proof covers one-member replacement through an old/new common majority; larger membership changes require sequential replacement or a joint-consensus protocol','background/suspended nucleus members are treated as unavailable for new Canon and cannot be rotated out after old quorum is already lost','this suite proves a deterministic crash-fault model, not physical WebRTC/NAT/TURN/device behavior','adaptive relay changes the presence fan-out frontier only; it does not weaken Canon consistency requirements']};
 }
