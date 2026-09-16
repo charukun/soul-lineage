@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {muraEntry,muraInteriorAt,muraInteriorEntry} from '@soul/world/mura';
+import {muraBlocked,muraEntry,muraInteriorAt,muraInteriorEntry,muraLocalToWorld} from '@soul/world/mura';
 import {World} from '../src/game/core.js';
 import {Simulation} from '../src/game/simulation.js';
 
@@ -23,4 +23,17 @@ test('resident can route back out through the same doorway',()=>{
   assert.equal(person.task,'wander');
   assert.equal(person.insideId,null);
   assert.equal(muraInteriorAt({objects:[home]},person.x,person.z),null);
+});
+
+test('navigation from behind a building goes around to its doorway without crossing a wall segment',()=>{
+  const world=new World(),home=world.object('b1'),sim=new Simulation(world),start=muraLocalToWorld(home,0,-10),inside=muraInteriorEntry(home),path=sim.nav.route(start,inside);
+  assert.ok(path?.length);
+  let previous=start;
+  for(const next of path){
+    for(let i=1;i<=4;i++){
+      const t=i/4,x=previous.x+(next.x-previous.x)*t,z=previous.z+(next.z-previous.z)*t;
+      assert.equal(muraBlocked({objects:world.objects},x,z,.28),false,`route crossed a wall at ${x},${z}`);
+    }
+    previous=next;
+  }
 });
