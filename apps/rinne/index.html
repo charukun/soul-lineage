@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="./src/rebuild/button-help.css">
   <link rel="stylesheet" href="./src/title-screen.css">
   <link rel="stylesheet" href="./src/life-confirm.css">
+  <link rel="stylesheet" href="./src/native-ui-polish.css">
   <link rel="stylesheet" href="./src/typography.css">
 </head>
 <body>
@@ -30,14 +31,15 @@
     </div>
     <nav class="title-actions" aria-label="タイトルメニュー">
       <input id="life-name" type="hidden" value="旅人">
-      <button id="new-life" class="title-command" data-selected="true" type="button">新しい人生</button>
+      <button id="kaykit-life" class="title-command" type="button">KayKitで遊ぶ</button>
+      <button id="new-life" class="title-command" data-selected="true" type="button" aria-label="100年生を新しい人生から始める">新しい人生</button>
       <button id="continue-life" class="title-command" type="button" aria-disabled="true">旅の記録<span id="continue-detail" hidden>記録はまだありません</span></button>
       <button id="open-village" class="title-command" type="button">村へ参加</button>
       <button id="open-settings" class="title-command" type="button">設定</button>
     </nav>
     <div class="title-controller-hints" aria-hidden="true"><span><b>A</b>決定</span><span><b>B</b>戻る</span></div>
     <p id="boot-status" class="boot-status" role="status" aria-live="polite">世界を準備しています</p>
-    <footer><span id="build-label">LOCAL</span><span>輪廻転焦</span></footer>
+    <footer><span id="build-label" hidden>LOCAL</span><span>輪廻転焦</span></footer>
   </section>
 
   <section id="game-screen" class="game-screen is-loading" data-world-tone="village" aria-busy="true" aria-label="100年生 本編">
@@ -57,7 +59,7 @@
       <button id="open-coop-game" class="icon-button" type="button" hidden>友達</button>
       <div class="life-chip ornate"><span id="generation">1代目</span><strong id="age">0歳</strong></div>
       <div class="bars ornate"><label><span>命</span><i><b id="hp-bar"></b></i></label><label><span>息</span><i><b id="stamina-bar"></b></i></label></div>
-      <label class="clock-rate ornate"><span>時</span><select id="clock-rate" aria-label="世界時計の速さ"><option value="1">1×</option><option value="5">5×</option><option value="10">10×</option><option value="20">20×</option></select></label>
+      <div class="clock-rate ornate"><span>時</span><button id="clock-rate" type="button" value="1" aria-label="世界時計の速さ 1倍。押すと変更">1×</button></div>
     </header>
     <aside class="objective-card ornate">
       <div class="objective-meta"><span id="life-stage">1/6 誕生</span><small id="objective-badge">自立 4歳</small></div>
@@ -90,7 +92,7 @@
   <form method="dialog">
     <button id="close-settings" class="dialog-close" type="submit" aria-label="設定を閉じる">×</button>
     <h2 id="title-settings-title">設定</h2>
-    <label class="setting-row"><span>背景演出<small>タイトル画面の雲・光・星の動き</small></span><input id="title-motion-toggle" type="checkbox" checked></label>
+    <div class="setting-row"><span>背景演出<small>タイトル画面の雲・光・星の動き</small></span><button id="title-motion-toggle" class="setting-switch" type="button" role="switch" aria-checked="true"><span class="setting-switch-state">入</span></button></div>
   </form>
 </dialog>
 <noscript>100年生を開くにはJavaScriptを有効にしてください。</noscript>
