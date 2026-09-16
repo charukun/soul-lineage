@@ -215,8 +215,8 @@ for (const app of apps) {
       await verifyRebuildPlaythrough(browser,url,resolve(root,'test-results/pr-browser/rinne-playthrough'));
     } else if (app === 'demon') {
       await page.locator('#begin').click();
-      await page.locator('[data-village]').first().click();
       await expect(page.locator('#hud')).toBeVisible();
+      await expect(page.locator('[data-village]')).toHaveCount(0);
       await verifyHuntClarity(page, expect, evidence);
     } else if (app === 'village') {
       const {verifyVillageFirstBuild} = await import('../../apps/village/tests/first-build.browser.mjs');
