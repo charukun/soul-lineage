@@ -22,8 +22,9 @@ document.head.append(css);
 function rememberEntry(){try{localStorage.setItem(ENTRY_SEEN_KEY,'1');}catch{}}
 function installReturnFlow(){
  const entry=$('muraEntry');if(!entry)return;
- let seen=false;try{seen=shouldSkipEntry(localStorage.getItem(ENTRY_SEEN_KEY));}catch{}
- if(seen){entry.remove();document.body.classList.remove('mura-entry-open');activity();return;}
+ const firstRunTutorial=$('game')?.dataset.firstRunTutorial==='running';
+ let seen=false;try{seen=shouldSkipEntry(localStorage.getItem(ENTRY_SEEN_KEY),{firstRunTutorial});}catch{}
+ if(seen){ui.entryOpen=false;entry.remove();document.body.classList.remove('mura-entry-open');activity();return;}
  const enter=$('muraEnterVillage');if(!enter)return;
  enter.addEventListener('click',rememberEntry,{capture:true,once:true});
  enter.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' ')rememberEntry();},{capture:true});
