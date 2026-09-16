@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {mkdir} from 'node:fs/promises';
 import {join} from 'node:path';
+import {KAYKIT_MODEL_BY_KEY} from '@soul/characters';
 import {createLife,serializeLife,LIFE_SECONDS} from '../src/rebuild/domain.js';
 import {createFront} from '../src/rebuild/combat.js';
 import {buildStations} from '../src/rebuild/locations.js';
@@ -8,6 +9,65 @@ import {defaultMuraLayout} from '@soul/world/mura';
 
 const text=async locator=>(await locator.textContent()||'').trim();
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const REBUILT_MODEL_ID='reconstructed-wayfarer.reference.v1';
+const SOURCE_PROFILE={version:1,face:'classic',hair:'original',body:'balanced',outfit:'uniform',accessory:'none'};
+
+async function captureRebuildThreeView(browser,url,output){
+  const source=KAYKIT_MODEL_BY_KEY.knight;
+  assert.equal(source.runtime.url,'./simulator/assets/kaykit/Knight.glb');
+  assert.equal(source.license,'CC0-1.0');
+  const context=await browser.newContext({viewport:{width:1280,height:940},reducedMotion:'reduce'}),page=await context.newPage(),errors=[];
+  page.setDefaultTimeout(60000);page.on('pageerror',error=>errors.push(error.message));page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
+  try{
+    const reviewURL=new URL('./characters.html',url).href,response=await page.goto(reviewURL,{waitUntil:'domcontentloaded'});assert.ok(response?.ok(),'character review must answer successfully');
+    await page.waitForFunction(()=>window.characterStudio?.review?.ready===true&&window.characterStudio?.workspace,null,{timeout:90000});
+    await page.evaluate(()=>window.characterStudio.workspace.configure({view:'single',motion:'rest',rotate:false,paused:true}));
+    const canvas=page.locator('#stage');await canvas.waitFor({state:'visible'});
+    const captures=[];
+    const take=async(kind,preset)=>{
+      await page.evaluate(({kind,preset,profile,modelId})=>{
+        const {workspace,review}=window.characterStudio;
+        workspace.configure({view:'single',motion:'rest',rotate:false,paused:true});
+        if(kind==='source'){
+          workspace.selectModel(null);
+          const actor=review.actors[review.settings.selected];
+          actor.appearanceController?.setIdentity(null);
+          actor.appearanceController?.setProfile(profile);
+        }else{
+          workspace.selectModel(modelId);
+        }
+        review.aim(preset);
+      },{kind,preset,profile:SOURCE_PROFILE,modelId:REBUILT_MODEL_ID});
+      if(kind==='rebuilt')await page.waitForFunction(id=>window.characterStudio?.workspace?.modelId===id,REBUILT_MODEL_ID);
+      else await page.waitForFunction(()=>window.characterStudio?.workspace?.modelId===null);
+      await page.waitForTimeout(220);
+      const state=await page.evaluate(()=>{
+        const studio=window.characterStudio,actor=studio.review.actors[studio.review.settings.selected];
+        return {modelId:studio.workspace.modelId,subject:document.querySelector('#subject')?.textContent||'',referenceMeshes:actor.visual.getObjectByName(`reference-character:${studio.workspace.modelId}`)?.children?.length??0};
+      });
+      const buffer=await canvas.screenshot({type:'png'});captures.push({kind,preset,state,buffer});
+      await mkdir(join(output,'three-view'),{recursive:true});
+      await canvas.screenshot({path:join(output,'three-view',`${kind}-${preset}.png`)});
+    };
+    for(const preset of ['front','side','back'])await take('source',preset);
+    for(const preset of ['front','side','back'])await take('rebuilt',preset);
+    assert.deepEqual(errors,[]);
+    assert.ok(captures.slice(0,3).every(row=>row.state.modelId===null),'source evidence must render the raw default source selection');
+    assert.ok(captures.slice(3).every(row=>row.state.modelId===REBUILT_MODEL_ID),'rebuilt evidence must render the reconstructed model');
+
+    const labels={front:'正面',side:'横',back:'背面'};
+    const cells=captures.map(row=>`<figure><img src="data:image/png;base64,${row.buffer.toString('base64')}" alt="${row.kind} ${row.preset}"><figcaption>${labels[row.preset]}</figcaption></figure>`).join('');
+    const evidence=await context.newPage();
+    await evidence.setContent(`<!doctype html><html lang="ja"><head><meta charset="utf-8"><style>
+      *{box-sizing:border-box}body{margin:0;background:#10191b;color:#f2eadb;font-family:Arial,sans-serif;padding:36px}h1{font-size:28px;margin:0 0 8px}p{margin:4px 0 24px;color:#b8c5c2}.meta{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px}.meta section{border:1px solid #51615e;padding:16px;background:#172427}.meta strong{display:block;font-size:18px;margin-bottom:8px}.meta small{display:block;line-height:1.55;color:#c8d1cf}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.row-title{grid-column:1/-1;font-size:20px;font-weight:700;margin-top:6px}.grid figure{margin:0;border:1px solid #51615e;background:#1d2c2f;padding:10px}.grid img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#1e3036}.grid figcaption{text-align:center;padding:9px 0 2px;font-weight:700}.foot{margin-top:18px;font-size:12px;color:#8fa09d}
+    </style></head><body><h1>Source → AI Rebuild / Three-view Evidence</h1><p>同一Visual Review・同一camera presetで、元モデルと再構築モデルを正面 / 横 / 背面から実描画。</p><div class="meta"><section><strong>元モデル: KayKit Knight</strong><small>ID: ${source.id}<br>File: Knight.glb<br>Revision: ${source.source.revision}<br>Blob: ${source.source.gitBlobSha}<br>License: ${source.license}</small></section><section><strong>再構築: Wayfarer</strong><small>ID: ${REBUILT_MODEL_ID}<br>Geometry: runtime procedural rebuild<br>Source geometry / texture: reused = false<br>Style: armored knight → itinerant wayfarer</small></section></div><div class="grid"><div class="row-title">元モデル / KayKit Knight.glb</div>${cells.slice(0,cells.indexOf('<figure',cells.indexOf('<figure')+1))}</div></body></html>`);
+    // Rebuild the sheet explicitly to avoid fragile HTML slicing while keeping the captured bytes canonical.
+    const sourceCells=captures.slice(0,3).map(row=>`<figure><img src="data:image/png;base64,${row.buffer.toString('base64')}"><figcaption>${labels[row.preset]}</figcaption></figure>`).join('');
+    const rebuiltCells=captures.slice(3).map(row=>`<figure><img src="data:image/png;base64,${row.buffer.toString('base64')}"><figcaption>${labels[row.preset]}</figcaption></figure>`).join('');
+    await evidence.setContent(`<!doctype html><html lang="ja"><head><meta charset="utf-8"><style>*{box-sizing:border-box}body{margin:0;background:#10191b;color:#f2eadb;font-family:Arial,sans-serif;padding:36px}h1{font-size:28px;margin:0 0 8px}p{margin:4px 0 24px;color:#b8c5c2}.meta{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px}.meta section{border:1px solid #51615e;padding:16px;background:#172427}.meta strong{display:block;font-size:18px;margin-bottom:8px}.meta small{display:block;line-height:1.55;color:#c8d1cf}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.row-title{grid-column:1/-1;font-size:20px;font-weight:700;margin-top:6px}.grid figure{margin:0;border:1px solid #51615e;background:#1d2c2f;padding:10px}.grid img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#1e3036}.grid figcaption{text-align:center;padding:9px 0 2px;font-weight:700}.foot{margin-top:18px;font-size:12px;color:#8fa09d}</style></head><body><h1>Source → AI Rebuild / Three-view Evidence</h1><p>同一Visual Review・同一camera presetで、元モデルと再構築モデルを正面 / 横 / 背面から実描画。</p><div class="meta"><section><strong>元モデル: KayKit Knight</strong><small>ID: ${source.id}<br>File: Knight.glb<br>Revision: ${source.source.revision}<br>Blob: ${source.source.gitBlobSha}<br>License: ${source.license}</small></section><section><strong>再構築: Wayfarer</strong><small>ID: ${REBUILT_MODEL_ID}<br>Geometry: runtime procedural rebuild<br>Source geometry / texture: reused = false<br>Style: armored knight → itinerant wayfarer</small></section></div><div class="grid"><div class="row-title">元モデル / KayKit Knight.glb</div>${sourceCells}<div class="row-title">再構築モデル / Wayfarer</div>${rebuiltCells}</div><div class="foot">Generated from the PR-head browser render. Not a concept mockup.</div></body></html>`);
+    await evidence.screenshot({path:join(output,'00-source-vs-wayfarer-three-view.png'),fullPage:true});
+  }finally{await context.close();}
+}
 
 export async function verifyRebuildPlaythrough(browser,url,output,{recordVideo=false}={}){
   await mkdir(output,{recursive:true});
@@ -92,6 +152,7 @@ export async function verifyRebuildPlaythrough(browser,url,output,{recordVideo=f
 
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
   } finally {await context.close();}
+  if(recordVideo)await captureRebuildThreeView(browser,url,output);
   const {verifyCoopPlay}=await import('./coop-play.browser.mjs');
   await verifyCoopPlay(browser,url,join(output,'friend-play'));
 }
