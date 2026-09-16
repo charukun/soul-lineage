@@ -73,7 +73,8 @@ test('protagonist builder reuses pinned real KayKit Knight parts instead of rebu
   assert.match(carrier, /backing_center/);
   assert.match(carrier, /fragment_radius/);
   assert.match(carrier, /component\["count"\] <= 5/);
-  assert.match(carrier, /point\.y -= 0\.045/);
+  assert.match(carrier, /\* 3\.05/);
+  assert.match(carrier, /point\.y -= 0\.060/);
   assert.match(carrier, /module\.villageize_materials = villageize_source_parts/);
 });
 
