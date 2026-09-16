@@ -84,12 +84,38 @@ def _component_rows(obj: bpy.types.Object) -> list[dict]:
         centers = [_world_center(obj, obj.data.polygons[index]) for index in faces]
         if not centers:
             continue
+        vertex_indices = sorted({
+            vertex_index
+            for face_index in faces
+            for vertex_index in obj.data.polygons[face_index].vertices
+        })
+        points = [obj.matrix_world @ obj.data.vertices[index].co for index in vertex_indices]
+        component_min = Vector(tuple(min(point[axis] for point in points) for axis in range(3)))
+        component_max = Vector(tuple(max(point[axis] for point in points) for axis in range(3)))
         rows.append({
             "faces": faces,
+            "vertices": vertex_indices,
             "count": len(faces),
             "point": sum(centers, Vector((0.0, 0.0, 0.0))) / len(centers),
+            "extent": component_max - component_min,
         })
     return rows
+
+
+def _delete_vertices(obj: bpy.types.Object, vertex_indices: set[int]) -> int:
+    if not vertex_indices:
+        return 0
+    mesh = obj.data
+    faces_before = len(mesh.polygons)
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bm.verts.ensure_lookup_table()
+    targets = [bm.verts[index] for index in sorted(vertex_indices) if index < len(bm.verts)]
+    bmesh.ops.delete(bm, geom=targets, context="VERTS")
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
+    return max(0, faces_before - len(mesh.polygons))
 
 
 def _seat_badge_backing_as_linen_patch(obj: bpy.types.Object, vertex_indices: set[int]) -> None:
@@ -108,6 +134,47 @@ def _seat_badge_backing_as_linen_patch(obj: bpy.types.Object, vertex_indices: se
         point.y -= 0.045
         obj.data.vertices[index].co = inverse @ point
     obj.data.update()
+
+
+def _remove_compact_badge_fragments(obj: bpy.types.Object) -> int:
+    """Delete only tiny loose source fragments left around the flattened chest patch.
+
+    The pinned Knight body contains a handful of one-to-five-face badge fragments.
+    Their spans are tiny in all axes, unlike real tunic seams/panels.  Detecting the
+    post-edit fragments by compactness is more robust than relying on source component
+    ordering, while the eight-face backing plate remains protected by the face-count
+    ceiling.
+    """
+    minimum, maximum = _world_bounds(obj)
+    size = maximum - minimum
+    center = (minimum + maximum) * 0.5
+    remove_vertices: set[int] = set()
+    fragment_count = 0
+    for component in _component_rows(obj):
+        point = component["point"]
+        extent = component["extent"]
+        vertical = (point.z - minimum.z) / max(size.z, 1e-6)
+        compact = (
+            component["count"] <= 5
+            and extent.x <= size.x * 0.14
+            and extent.y <= size.y * 0.13
+            and extent.z <= size.z * 0.13
+        )
+        in_badge_zone = (
+            center.x - size.x * 0.46 <= point.x <= center.x - size.x * 0.10
+            and point.y < center.y - size.y * 0.22
+            and 0.56 <= vertical <= 0.82
+        )
+        if not (compact and in_badge_zone):
+            continue
+        fragment_count += 1
+        remove_vertices.update(component["vertices"])
+
+    if fragment_count:
+        _delete_vertices(obj, remove_vertices)
+    if fragment_count > 16:
+        raise RuntimeError(f"KayKit badge fragment cleanup selected too many islands: {fragment_count}")
+    return fragment_count
 
 
 def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
@@ -142,14 +209,9 @@ def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
             and point.x < center.x - size.x * 0.18
         )
         if is_backing_plate:
-            for face_index in component["faces"]:
-                backing_vertices.update(obj.data.polygons[face_index].vertices)
+            backing_vertices.update(component["vertices"])
             continue
 
-        # In the pinned Knight.glb the two lower ribbon folds are five-face islands
-        # around normalized chest height 0.50-0.55. Their loose geometry happens to
-        # resemble legitimate mirrored tunic panels, so symmetry alone produced the
-        # last black J-shaped remnant. Treat this exact source region as badge art.
         is_lower_badge_ribbon = (
             component["count"] == 5
             and 0.50 <= vertical <= 0.55
@@ -170,25 +232,16 @@ def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
             continue
 
         removed_components += 1
-        for face_index in component["faces"]:
-            remove_vertices.update(obj.data.polygons[face_index].vertices)
+        remove_vertices.update(component["vertices"])
 
     if not remove_vertices:
         raise RuntimeError("KayKit Knight chest badge was not found as asymmetric left-chest islands")
     _seat_badge_backing_as_linen_patch(obj, backing_vertices)
-
-    mesh = obj.data
-    faces_before = len(mesh.polygons)
-    bm = bmesh.new()
-    bm.from_mesh(mesh)
-    bm.verts.ensure_lookup_table()
-    targets = [bm.verts[index] for index in sorted(remove_vertices) if index < len(bm.verts)]
-    bmesh.ops.delete(bm, geom=targets, context="VERTS")
-    bm.to_mesh(mesh)
-    bm.free()
-    mesh.update()
-    if len(mesh.polygons) >= faces_before:
+    faces_removed = _delete_vertices(obj, remove_vertices)
+    if faces_removed <= 0:
         raise RuntimeError("KayKit Knight chest badge removal did not reduce body faces")
+
+    removed_components += _remove_compact_badge_fragments(obj)
     if removed_components > 80:
         raise RuntimeError(f"KayKit Knight chest badge removal selected too many islands: {removed_components}")
     return removed_components
