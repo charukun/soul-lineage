@@ -6,7 +6,7 @@ import {EVIDENCE_CLASS,RRP_SAFETY_KEYS} from '../src/game/reality-lab/performanc
 const safety=()=>Object.fromEntries(RRP_SAFETY_KEYS.map(key=>[key,0]));
 const provenance={buildRevision:'abc',runtime:'Chrome',deviceClass:'mixed-physical',deviceModel:'Pixel Fold + desktop peer',peers:2,networkProfile:'wifi-lan'};
 
-test('multipeer raw captures merge host and guest samples without inventing missing fields',()=>{
+test('multipeer raw captures merge legacy host and guest samples without inventing missing fields',()=>{
   const host={hostUplinkKbps:[800,900],reliableBufferedAmountBytes:[1000],durationMinutes:1,bandwidthSkippedBuckets:2,connectionAttempts:1,connectionSuccesses:1,turnCandidateClassifiedConnections:1,turnRelayConnections:0};
   const guest={inputToAuthoritativeAckMs:[100,120],peerUplinkKbps:[100,120],durationMinutes:1,bandwidthSkippedBuckets:3,connectionAttempts:1,connectionSuccesses:1,turnCandidateClassifiedConnections:0,turnRelayConnections:0};
   const merged=mergeRawPerformanceCaptures([host,guest]);
@@ -18,6 +18,17 @@ test('multipeer raw captures merge host and guest samples without inventing miss
   assert.equal(merged.durationMinutes,2);
   assert.equal(merged.bandwidthSkippedBuckets,5);
   assert.deepEqual(merged.inputToDisplayMs,[]);
+});
+
+test('capture metadata prevents host and guest endpoints from counting one WebRTC link twice',()=>{
+  const host={_capture:{role:'host',worldId:'room'},connectionAttempts:3,connectionSuccesses:3,turnCandidateClassifiedConnections:2,turnRelayConnections:1,durationMinutes:1};
+  const guestA={_capture:{role:'guest',worldId:'room'},connectionAttempts:1,connectionSuccesses:1,turnCandidateClassifiedConnections:1,turnRelayConnections:0,durationMinutes:1};
+  const guestB={_capture:{role:'guest',worldId:'room'},connectionAttempts:1,connectionSuccesses:1,turnCandidateClassifiedConnections:1,turnRelayConnections:1,durationMinutes:1};
+  const merged=mergeRawPerformanceCaptures([host,guestA,guestB]);
+  assert.equal(merged.connectionAttempts,3);
+  assert.equal(merged.connectionSuccesses,3);
+  assert.equal(merged.turnCandidateClassifiedConnections,2);
+  assert.equal(merged.turnRelayConnections,1);
 });
 
 test('build accepts continuously sampled peer captures and emits one physical-multipeer evidence object',()=>{
