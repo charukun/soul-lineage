@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-test('Draft PR uses lightweight CI and Ready owns fast/browser/Integration gates', () => {
+test('Draft PR uses lightweight CI and Ready owns fast/Integration gates while develop browser work is opt-in', () => {
   const ci = readFileSync('.github/workflows/ci.yml', 'utf8');
   assert.match(ci, /types: \[opened, synchronize, reopened, ready_for_review, converted_to_draft, edited, labeled, unlabeled\]/);
   assert.match(ci, /name: Draft lightweight check/);
@@ -16,5 +16,8 @@ test('Draft PR uses lightweight CI and Ready owns fast/browser/Integration gates
   const buildHeader = ci.split('  build:')[1].split('    steps:')[0];
   assert.match(buildHeader, /needs.readiness.outputs.ready == 'true'/);
   assert.match(ci.split('  integration-request:')[1], /needs.readiness.outputs.ready == 'true'/);
-  assert.match(ci.split('  browser-repair-dispatch:')[1].split('  integration-request:')[0], /workflow_id: 'deploy\.yml'/);
+  assert.doesNotMatch(ci, /name: Affected browser smoke/);
+  assert.doesNotMatch(ci, /browser-repair-dispatch:/);
+  assert.doesNotMatch(ci, /npx playwright install/);
+  assert.match(ci, /Browser\/gameplay verification is opt-in/);
 });
