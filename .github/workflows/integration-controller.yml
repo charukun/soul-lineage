@@ -66,6 +66,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-diagnostics.json
+          INTEGRATION_RESCUE_MODE: ${{ inputs.rescue_mode }}
         run: node scripts/integration-fast-lane.mjs
       - name: Finalize Deep Repair issues for merged PRs
         if: ${{ !cancelled() && steps.fast-lane.outcome == 'success' && ((steps.fast-lane.outputs.merged_count != '' && steps.fast-lane.outputs.merged_count != '0') || inputs.rescue_mode == 'scan') }}
