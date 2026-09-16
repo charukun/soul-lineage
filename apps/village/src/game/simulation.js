@@ -1,4 +1,5 @@
-import {defs,ready,entry,inWater,LIMIT,extent,localToWorld,DAY_SECONDS,DAYS_YEAR,clamp,isGuard,isPlayer,dist,capacityOf,jobsOf,RESOURCE_NAMES} from './core.js';
+import {muraBlocked,muraHasInterior,muraInteriorAt,muraInteriorEntry} from '@soul/world/mura';
+import {defs,ready,entry,inWater,LIMIT,extent,DAY_SECONDS,DAYS_YEAR,clamp,isGuard,isPlayer,dist,capacityOf,jobsOf,RESOURCE_NAMES} from './core.js';
 import {TERRAIN_SITES} from './terrain.js';
 const STEP=2, key=(x,z)=>`${x},${z}`,cell=v=>Math.round(v/STEP);
 const names=['こはる','リオ','セナ','ルカ','ミオ','ニナ','ソラ','カイ','エマ','フィン','ハル','ユノ','レイ','ノア','アオ','メイ','テオ','リナ','ナギ','ミナ','ルイ','アン','トワ','リネ'];
@@ -6,8 +7,8 @@ class Heap{constructor(){this.a=[];}push(n){const a=this.a;a.push(n);let i=a.len
 /** Private navigation cells, independent of the arbitrary world-space editor. */
 export class Navigation{
  constructor(world){this.world=world;this.revision=-1;this.cache=new Map();}
- sync(){if(this.revision!==this.world.state.revision){this.revision=this.world.state.revision;this.cache.clear();this.obstacles=this.world.objects.filter(o=>!defs[o.kind].soft&&!['field','orchard','pond'].includes(defs[o.kind].shape)).map(o=>({...o,bounds:extent(o)}));}}
- blocked(x,z){this.sync();const k=key(x,z);if(this.cache.has(k))return this.cache.get(k);const wx=x*STEP,wz=z*STEP;const bad=Math.abs(wx)>LIMIT-2||Math.abs(wz)>LIMIT-2||inWater(wx,wz,.45)||this.obstacles.some(o=>Math.abs(o.x-wx)<o.bounds[0]/2+1.05&&Math.abs(o.z-wz)<o.bounds[1]/2+1.05);this.cache.set(k,bad);return bad;}
+ sync(){if(this.revision!==this.world.state.revision){this.revision=this.world.state.revision;this.cache.clear();this.obstacles=this.world.objects.filter(o=>!defs[o.kind].building&&!defs[o.kind].soft).map(o=>({...o,bounds:extent(o)}));this.construction=this.world.objects.filter(o=>defs[o.kind].building&&!ready(o)).map(o=>({...o,bounds:extent(o)}));}}
+ blocked(x,z){this.sync();const k=key(x,z);if(this.cache.has(k))return this.cache.get(k);const wx=x*STEP,wz=z*STEP,full=o=>Math.abs(o.x-wx)<o.bounds[0]/2+1.05&&Math.abs(o.z-wz)<o.bounds[1]/2+1.05;const bad=muraBlocked({objects:this.world.objects},wx,wz,.28)||this.construction.some(full)||this.obstacles.some(full);this.cache.set(k,bad);return bad;}
  free(x,z){if(!this.blocked(x,z))return{x,z};for(let r=1;r<=6;r++)for(let dx=-r;dx<=r;dx++)for(let dz=-r;dz<=r;dz++){if(Math.abs(dx)!==r&&Math.abs(dz)!==r)continue;if(!this.blocked(x+dx,z+dz))return{x:x+dx,z:z+dz};}return null;}
  route(from,to){const a=this.free(cell(from.x),cell(from.z)),b=this.free(cell(to.x),cell(to.z));if(!a||!b)return null;const target=key(b.x,b.z),start=key(a.x,a.z),open=new Heap(),dist=new Map([[start,0]]),prev=new Map(),closed=new Set();open.push({...a,f:0});let found=false;
   while(open.length&&closed.size<18000){const n=open.pop(),k=key(n.x,n.z);if(closed.has(k))continue;if(k===target){found=true;break;}closed.add(k);
@@ -73,19 +74,20 @@ export class Simulation{
    p.jobId=next.id;p.jobAssignedAt=this.elapsed;this.remember(p,defs[next.kind].label+'で働くことにした');
   }
  }
- go(p,o,action){if(!o)return false;const destination=o.kind?entry(o):o;const path=this.nav.route(p,destination);
+ go(p,o,action){if(!o)return false;const destination=o.kind?(muraHasInterior(o)?muraInteriorEntry(o):entry(o)):o;const path=this.nav.route(p,destination);
   if(path===null){p.task='idle';p.timer=5;p.status='通れる道を探しています';return false;}
-  p.path=path;p.destination={x:destination.x,z:destination.z};p.navRevision=this.world.state.revision;p.task='walk';p.nextAction=action;p.targetId=o.id||null;p.insideId=null;
+  p.path=path;p.destination={x:destination.x,z:destination.z};p.navRevision=this.world.state.revision;p.task='walk';p.nextAction=action;p.targetId=o.id||null;
   p.status={work:'仕事へ向かう',eat:'食事へ向かう',shop:'旅商人の店へ',decorate:'家具を家へ運ぶ',home:'自宅へ帰る',rest:'休みに行く',wander:'散歩',service:'施設へ向かう',social:'語らいの輪へ',patrol:'ゆっくり見回り',escort:'村長に同行中',rescue:'救助に向かう'}[action]||'移動中';return true;
  }
  footprint(x,z,amount){if(inWater(x,z))return;const k=key(cell(x),cell(z));this.world.state.traffic[k]=Math.min(40,(this.world.state.traffic[k]||0)+amount);this.trafficRevision++;}
  walk(p,dt){if(p.navRevision!==this.world.state.revision){const target=p.targetId?this.world.object(p.targetId):p.destination;if(!target){p.task='idle';p.timer=0;return;}if(!this.go(p,target,p.nextAction))return;}
   p.moving=false;let left=dt*(isGuard(p)?4.6:2.8);while(left>0&&p.path.length){const n=p.path[0],dx=n.x-p.x,dz=n.z-p.z,d=Math.hypot(dx,dz);if(d<.025){p.path.shift();continue;}
    const step=Math.min(left,d),beforeX=p.x,beforeZ=p.z;p.x+=dx/d*step;p.z+=dz/d*step;p.angle=Math.atan2(dx,dz);left-=step;p.moving=true;p.walked=(p.walked||0)+step;if(p.walked>.8){this.footprint((p.x+beforeX)/2,(p.z+beforeZ)/2,.46);p.walked=0;}if(step>=d-.001)p.path.shift();}
+  if(p.insideId){const inside=this.world.object(p.insideId);if(!inside||!muraInteriorAt({objects:[inside]},p.x,p.z))p.insideId=null;}
   if(!p.path.length)this.onArrival(p);
  }
  onArrival(p){p.moving=false;p.task=p.nextAction;p.timer={work:8,eat:4,shop:3,decorate:4,home:6,rest:10,wander:6,service:7,social:10,patrol:5,escort:2}[p.task]||3;
-  const h=this.world.object(p.targetId);if(['home','decorate','rest'].includes(p.task)&&h){const spot=localToWorld(h,0,defs[h.kind].d/2-1.4);p.x=spot.x;p.z=spot.z;p.insideId=h.id;}
+  const h=this.world.object(p.targetId);if(h&&muraHasInterior(h)){p.x=p.destination.x;p.z=p.destination.z;p.insideId=h.id;}else if(!h||!muraHasInterior(h))p.insideId=null;
   const jobs={logging:'薪をまとめている',wheat:'小麦を刈っている',quarry:'石を選り分けている',clay:'粘土をすくっている',carpenter:'板を削っている',fishpond:'釣り糸を垂れている',orchard:'実を摘んでいる',school:'読み書きを学んでいる',smith:'鉄を鍛えている'};
   p.status={work:jobs[h?.kind]||'仕事中',eat:'食事中',shop:'小物を選んでいる',decorate:'部屋を飾っている',home:'自宅でひと休み',rest:'休息中',wander:p.favorite||'ひなたぼっこ',service:'施設を利用中',social:'焚き火を囲んで語らう',patrol:'周囲を見守っている',escort:'村長のそばで見守る'}[p.task]||'ひと休み';
  }
@@ -111,7 +113,6 @@ export class Simulation{
   else if(['rest','home'].includes(p.task)){p.health=Math.min(100,p.health+14);p.happiness=Math.min(100,p.happiness+3);}
   else if(p.task==='social'){p.happiness=Math.min(100,p.happiness+9);p.friendships=(p.friendships||0)+1;}
   else if(p.task==='service'&&d){if(d.effect==='healing')p.health=100;if(['learning','training'].includes(d.effect))p.skill=Math.min(100,p.skill+.5);p.happiness=Math.min(100,p.happiness+7);}
-  if(p.insideId){const home=w.object(p.insideId);if(home){const e=entry(home);p.x=e.x;p.z=e.z;}p.insideId=null;}
   p.task='idle';p.timer=1+this.random()*2;
  }
  decide(p){const w=this.world,s=w.state,home=w.object(p.homeId),job=w.object(p.jobId),fire=w.objects.find(o=>o.kind==='campfire');
@@ -180,8 +181,8 @@ export class Simulation{
   if(g.hunger<=42){const meal=w.spend({food:1});g.hunger=Math.min(100,g.hunger+(meal?64:45));g.snackUntil=this.elapsed+4;w.state.stats.meals++;this.remember(g,meal?'見張りの合間にお弁当を食べた':'木の実で腹ごしらえをした','見張りながら、ひと口');}
   if(g.snackUntil>this.elapsed){g.moving=false;g.status='見張りを続けながら、軽く食事';return;}
   if(g.id==='guard-npc'&&mayor?.insideId&&(w.state.time>=21||w.state.time<5)){
-   const at=entry(w.object(g.homeId));g.status='自宅から村の灯りを見守る';g.task='rest';
-   if(dist(g,at)>3)this.threatMotion(g,at,dt,3);else{g.moving=false;g.insideId=g.homeId;}return;
+   const guardHome=w.object(g.homeId),at=muraHasInterior(guardHome)?muraInteriorEntry(guardHome):entry(guardHome);g.status='自宅から村の灯りを見守る';g.task='rest';
+   if(dist(g,at)>3)this.threatMotion(g,at,dt,3);else{g.moving=false;g.x=at.x;g.z=at.z;g.insideId=g.homeId;}return;
   }
   const destination=g.id==='guard-npc'?{x:anchor.x+3,z:anchor.z+3}:{x:home.x+Math.cos(this.elapsed*.032+g.seed)*13,z:home.z+Math.sin(this.elapsed*.032+g.seed)*13};
   g.status=g.id==='guard-npc'?'村長に寄り添い、周囲を見守る':'村の小径を巡回する';g.task='patrol';g.insideId=null;
