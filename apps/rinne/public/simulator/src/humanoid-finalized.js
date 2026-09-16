@@ -12,7 +12,7 @@ const q=()=>new T.Quaternion();
 const stateFor=(a,previous)=>{if(a?.attack)return'attack';if(a?.reaction)return'hit';if(a?.recovery)return'recovery';const s=speed(a);if(previous?.state==='hit'&&s<.08)return'recovery';if(s>.08&&previous&&Math.abs(angleDelta(previous.yaw,Number(a?.yaw)||0))>.42)return'pivot';if(s>.08)return'move';if(previous?.state==='move'||previous?.state==='pivot')return'stop';return'idle';};
 const safeSurface=value=>typeof value==='string'&&/^(unknown|grass|dirt|stone|wood|mud|water|snow)$/.test(value)?value:'unknown';
 const tierDistance=tier=>({full:0,near:5,mid:12,far:24}[tier]??0);
-const presentationIndex=a=>[a?.attack?.comboIndex,a?.attack?.comboStep,a?.attack?.chainIndex,a?.attack?.sequenceIndex,a?.attack?.presentationIndex].find(value=>Number.isFinite(Number(value)));
+const presentationIndex=a=>[a?.attack?.comboIndex,a?.attack?.comboStep,a?.attack?.chainIndex,a?.attack?.sequenceIndex,a?.attack?.presentationIndex].find(value=>value!==undefined&&value!==null&&value!==''&&Number.isFinite(Number(value)));
 export function slashPresentationVariant(a){
  if(a?.attack?.kind!=='slash')return null;const explicit=a.attack.presentationVariant;if(SLASH_VARIANTS.includes(explicit))return explicit;const raw=presentationIndex(a);if(raw!==undefined){const index=Math.trunc(Number(raw)),n=SLASH_VARIANTS.length;return SLASH_VARIANTS[((index%n)+n)%n];}return 'cross';
 }
