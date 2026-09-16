@@ -69,6 +69,21 @@ test('scene budget reports material/draw-call pressure and conservative savings'
   assert.equal(report.staticBatch.projectedSavedDrawCalls, 3);
 });
 
+test('scene budget counts each geometry group as a draw call even when material is reused', () => {
+  const root = new THREE.Group();
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute([
+    0,0,0, 1,0,0, 0,1,0,
+    1,0,0, 1,1,0, 0,1,0,
+  ], 3));
+  geometry.addGroup(0, 3, 0);
+  geometry.addGroup(3, 3, 0);
+  const material = new THREE.MeshBasicMaterial();
+  root.add(new THREE.Mesh(geometry, [material]));
+  const report = auditSceneBudget(root);
+  assert.equal(report.estimatedDrawCalls, 2);
+});
+
 test('rendering budget snapshot combines scene and texture diagnostics', () => {
   const root = new THREE.Group();
   const texture = new THREE.Texture(); texture.image = { width: 512, height: 512 }; texture.name = 'shared.png';

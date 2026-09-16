@@ -18,12 +18,12 @@ function estimatedObjectDrawCalls(node) {
   if (!Array.isArray(node.material)) return 1;
   const groups = node.geometry?.groups;
   if (!Array.isArray(groups) || !groups.length) return rows.length;
-  const used = new Set();
+  let draws = 0;
   for (const group of groups) {
     const index = Number(group?.materialIndex || 0);
-    if (index >= 0 && index < rows.length) used.add(index);
+    if (index >= 0 && index < node.material.length && node.material[index]) draws++;
   }
-  return Math.max(1, used.size);
+  return Math.max(1, draws);
 }
 
 /**
