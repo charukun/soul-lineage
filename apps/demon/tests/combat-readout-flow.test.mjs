@@ -30,7 +30,7 @@ test('invalid phases are normalized without inventing combat state',()=>{
   });
 });
 
-test('combat readout flow is loaded and uses incoming/outgoing layers',()=>{
+test('combat readout flow is loaded and uses incoming/outgoing layers only during combat',()=>{
   const index=read('../index.html');
   const js=read('../src/web/combat-readout-flow.js');
   const css=read('../src/web/combat-readout-flow.css');
@@ -38,6 +38,8 @@ test('combat readout flow is loaded and uses incoming/outgoing layers',()=>{
   assert.match(js,/combat-action-outgoing/);
   assert.match(js,/combat-action-current/);
   assert.match(js,/nextCombatReadoutState/);
+  assert.match(js,/battle\.style\.opacity==='1'/);
+  assert.match(js,/attributeFilter:\['class','style'\]/);
   assert.match(css,/@keyframes combat-action-enter/);
   assert.match(css,/@keyframes combat-action-exit/);
   assert.match(css,/combat-phase-shift/);
