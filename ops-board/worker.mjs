@@ -3,6 +3,7 @@ import { buildState } from './collector.mjs';
 import { readStored, writeStored } from './github-client.mjs';
 import { degradedState } from './fallback-state.mjs';
 import { reconcileRetryAlarm } from './retry-alarm.mjs';
+import { shouldReuseFreshState } from './refresh-policy.mjs';
 import { boardAlerts } from './public/health.mjs';
 import {
   PEER_WORLD_REGISTRY_KEY,emptyPeerWorldRegistry,createPeerWorldRoom,listPeerWorldRooms,joinPeerWorldRoom,
@@ -64,11 +65,13 @@ export class OpsState extends DurableObject {
       await this.inflight.catch(() => {});
       return this.refresh(source, requestToken);
     }
-    this.inflightAuthenticated = Boolean(requestToken || this.env.OPS_GITHUB_TOKEN);
+    const token = requestToken || this.env.OPS_GITHUB_TOKEN || '';
+    this.inflightAuthenticated = Boolean(token);
     this.inflight = (async () => {
-      const previous = await this.getState();
+      let previous = null;
       try {
-        const token = requestToken || this.env.OPS_GITHUB_TOKEN || '';
+        previous = await this.getState();
+        if (shouldReuseFreshState(previous, { source, authenticated: Boolean(token) })) return previous;
         const state = await buildState(previous, { storage: this.ctx.storage, token, reason: source });
         state.refreshReason = source;
         state.nextRetryAt = null;

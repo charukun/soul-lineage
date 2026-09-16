@@ -46,15 +46,40 @@ test('a different build is rejected before another life is admitted',async()=>{
   finally{guest?.dispose();await host.dispose();}
 });
 
-test('pending or failed historical save cannot publish death or keep the world ticking',async()=>{
-  const world=room();let fail=false,release,pending=false;
+test('pending history holds the affected life, while IO failure stops the world without publishing death',async()=>{
+  const world=room();world.addPlayer('other','別の人生','token');let fail=false,release,pending=false;
   const host=await createCoopHost({world,contentVersion:'test',RTCPeerConnection:MemoryRTC,save:async()=>{if(fail){pending=true;await new Promise(resolve=>{release=resolve;});throw Error('disk full');}}});
   try{
     world.data.players.owner.life.ageSeconds=LIFE_SECONDS-.01;world.data.players.owner.life.ageYears=99.99;fail=true;
     await until(()=>pending);const tick=world.data.tick;assert(world.data.players.owner.life.ended);assert.equal(host.snapshot().view.me.ended,false);
-    host.pause(true);host.pause(false);await delay(120);assert.equal(world.data.tick,tick);assert.equal(host.snapshot().view.me.ended,false);
-    release();await until(()=>host.snapshot().phase==='closed');assert.equal(host.snapshot().error,'disk full');await delay(100);assert.equal(world.data.tick,tick);
+    host.pause(true);const paused=world.data.tick;await delay(60);assert.equal(world.data.tick,paused);
+    host.pause(false);const age=world.data.players.other.life.ageSeconds;await delay(120);
+    assert(world.data.tick>tick);assert(world.data.players.other.life.ageSeconds>age);assert.equal(host.snapshot().view.me.ended,false);assert.equal(host.snapshot().view.historyPending,true);
+    release();await until(()=>host.snapshot().phase==='closed');assert.equal(host.snapshot().error,'disk full');const failedTick=world.data.tick;await delay(100);assert.equal(world.data.tick,failedTick);assert.equal(host.snapshot().view.me.ended,false);
   }finally{fail=false;release?.();await host.dispose();}
+});
+
+test('a stalled write becomes darkness after the IO budget, then resumes at a confirmed revision',async()=>{
+  const world=room();let clock=0,release,slow=false;
+  const host=await createCoopHost({world,contentVersion:'test',RTCPeerConnection:MemoryRTC,now:()=>clock,save:async()=>{if(slow)await new Promise(resolve=>{release=resolve;});}});
+  try{
+    slow=true;const saving=host.save();await until(()=>release);clock=3100;
+    await until(()=>host.snapshot().phase==='closed');const tick=world.data.tick;await delay(110);assert.equal(world.data.tick,tick);
+    slow=false;release();await saving;await until(()=>host.snapshot().phase==='open');assert(host.snapshot().view.historyRevision>=2);
+  }finally{slow=false;release?.();await host.dispose();}
+});
+
+test('guest rebirth ACK follows persistence; repeated old-life intent cannot advance another generation',async()=>{
+  const world=room();let hold=false,release,guest;
+  const host=await createCoopHost({world,contentVersion:'test',RTCPeerConnection:MemoryRTC,save:async()=>{if(hold)await new Promise(resolve=>{release=resolve;});}});
+  try{
+    guest=await connect(host);await until(()=>guest.snapshot().phase==='open');const id=guest.selfId;
+    world.data.players[id].life.ageSeconds=LIFE_SECONDS-.01;world.data.players[id].life.ageYears=99.99;
+    await until(()=>guest.snapshot().view.me.ended);const lifeId=guest.snapshot().view.me.id;
+    hold=true;const result=guest.rebirth(null);let completed=false;void result.then(()=>{completed=true;});await until(()=>release);
+    await delay(110);assert.equal(completed,false);assert.equal(guest.snapshot().view.me.id,lifeId);assert.equal(world.data.players[id].life.ageSeconds,0);
+    hold=false;release();await result;await until(()=>guest.snapshot().view.me.id!==lifeId);assert.equal(guest.snapshot().view.me.generation,2);
+  }finally{hold=false;release?.();guest?.dispose();await host.dispose();}
 });
 
 test('silence closes a guest even when transport reports no disconnect, then fresh state recovers',async()=>{

@@ -30,6 +30,9 @@ async function withHistory(env, previous, client) {
   if (previous?.deployedCommit === env.deployedCommit && previous.historyComplete === true && Array.isArray(previous.reflectedPrs)) {
     return { ...env, reflectedPrs: previous.reflectedPrs, reflectedPrCount: previous.reflectedPrCount, historyComplete: true, commitCountScanned: previous.commitCountScanned };
   }
+  // Anonymous reconciliation is a recovery path. Keep its scarce public quota for current
+  // branch/PR/Actions state; authenticated event refreshes populate expensive history.
+  if (client.scope === 'public') return { ...env, reflectedPrs: [], reflectedPrCount: null, historyComplete: false, commitCountScanned: 0 };
   const commits = [];
   let complete = false;
   for (let page = 1; page <= API_HISTORY_PAGE_LIMIT; page++) {
@@ -56,7 +59,7 @@ async function previewEnvironment(candidate, branches, previous, client) {
   const prior = (previous?.environments || []).find(env => env.kind === 'preview' && env.workflow === candidate.name);
   let publicStatus = prior?.deployedCommit === success.head_sha ? prior.publicStatus : null;
   if (!publicStatus?.targetUrl) {
-    if (!client.deepAllowed) return prior || null;
+    if (client.scope === 'public' || !client.deepAllowed) return prior || null;
     const { data } = await client.get(`/commits/${success.head_sha}/status`, { maxAgeMs: 60_000 });
     const selected = (data.statuses || []).find(status => status.state === 'success' && /\/public$/.test(status.context || '') && /^https:\/\//.test(status.target_url || ''));
     if (!selected) return null;
@@ -127,7 +130,7 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     if (workflowFailure(latestDevelopRun) && !deliveryVerified) alerts.push({ type: 'integration-failed', tone: 'danger', title: 'DEV公開で問題を検出', detail: '公開・検証処理が失敗しています。再試行が始まるまで要確認です。', url: latestDevelopRun.html_url });
     if (reconciled.actionableIdle) alerts.push({ type: 'reconciliation-idle', tone: 'warning', title: '自動統合の再配分待ち', detail: '処理可能なReady PRがありますが、現在のexecutor割当が0です。次のreconcileで再配分します。' });
 
-    const targetLimit = client.deepAllowed ? (token ? 4 : 1) : 0;
+    const targetLimit = client.deepAllowed && token ? 4 : 0;
     const targets = await enrichTargets(allPulls, client, storage, targetLimit);
     const pullRequests = splitPulls(targets.pulls);
     const failures = actionProblems(runs, allPulls, { verifiedDevelopSha: deliveryVerified ? developSha : null });
@@ -136,7 +139,8 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
       syncSource: 'GitHub API incremental snapshot + published deployment manifests/statuses', syncReason: reason,
       githubRateRemaining: client.remaining,
       githubApi: { scope: client.scope, requests: client.requests, cacheHits: client.cacheHits, maxRequests: client.maxRequests,
-        remaining: client.remaining, deepEnrichment: client.deepAllowed ? 'enabled' : 'deferred' },
+        remaining: client.remaining, rate: client.rate, deepEnrichment: client.deepAllowed && token ? 'enabled' : 'deferred' },
+      githubFailure: null,
       pullSync: { mode: pullSync.mode, pages: pullSync.pages, complete: pullSync.complete, watermark: pullSync.watermark, fullAt: pullSync.fullAt },
       pullRequests: { ...pullRequests, total: allPulls.length, truncated: !pullSync.complete, targetLookup: { ready: targets.ready, pending: targets.pending, unavailable: targets.unavailable, attempted: targets.attempted } },
       applications, applicationsUpdatedAt: now, applicationsSource: 'public-manifest', environments: [dev, staging, prod, ...previews], environmentDiff: environmentDiff(dev, prod),

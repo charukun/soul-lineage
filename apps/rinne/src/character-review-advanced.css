@@ -11,5 +11,13 @@ html:has(.advanced-review){height:100%;overflow:hidden}
 .advanced-review .camera-tools{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;margin-top:6px}.advanced-review .camera-tools button{min-width:0;min-height:44px;font-size:10px;padding:2px}
 .advanced-review .load-state{margin-top:4px}.advanced-review #status{font-size:10px;max-height:42px;overflow:auto}
 .advanced-review>footer{width:100%;max-width:none;font-size:9px;padding:3px 10px;max-height:28px;overflow:auto}
-@media(max-width:680px){.advanced-review .workbench{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,60fr) minmax(0,40fr)}.advanced-review .stage-panel{border-bottom:1px solid var(--line)}.advanced-review .page-head{padding:4px 9px}.advanced-review .page-head h1{font-size:15px}.advanced-review .eyebrow{display:none}.advanced-review .controls details{scroll-margin-top:0}.advanced-review .stage-tools>button{font-size:11px;padding:4px 7px}.advanced-review .controls{border-top:0}}
+.advanced-review .cohort-confirm{width:min(420px,calc(100vw - 32px));padding:0;border:1px solid var(--accent);color:var(--ink);background:var(--panel);box-shadow:0 24px 80px #000b}
+.advanced-review .cohort-confirm::backdrop{background:#071012c9;backdrop-filter:blur(4px)}
+.advanced-review .cohort-confirm form{display:grid;gap:12px;padding:24px}
+.advanced-review .cohort-confirm form>span{color:var(--muted);font-size:10px;letter-spacing:.2em}
+.advanced-review .cohort-confirm h2{margin:0;font-size:21px}
+.advanced-review .cohort-confirm p{margin:0;color:var(--muted);font-size:12px;line-height:1.8}
+.advanced-review .cohort-confirm form>div{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.advanced-review .cohort-confirm button{min-height:44px}
+@media(max-width:680px){.advanced-review .workbench{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,60fr) minmax(0,40fr)}.advanced-review .stage-panel{border-bottom:1px solid var(--line)}.advanced-review .page-head{padding:4px 9px}.advanced-review .page-head h1{font-size:15px}.advanced-review .eyebrow{display:none}.advanced-review .controls details{scroll-margin-top:0}.advanced-review .stage-tools>button{font-size:11px;padding:4px 7px}.advanced-review .controls{border-top:0}.advanced-review .cohort-confirm form>div{grid-template-columns:1fr}}
 @media(orientation:landscape) and (max-height:600px){.advanced-review .workbench{grid-template-columns:minmax(0,1fr) minmax(290px,43%);grid-template-rows:minmax(0,1fr)}.advanced-review>footer{display:none}}
