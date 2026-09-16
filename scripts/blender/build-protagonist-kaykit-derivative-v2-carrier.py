@@ -3,7 +3,7 @@
 
 The real KayKit Knight meshes and Rig_Medium remain the authored source. This shim
 only supplies carrier/runtime compatibility plus conservative part-level edits that
-turn those copied Knight pieces into humble village clothing. No replacement body is
+turn copied Knight pieces into humble village clothing. No replacement body is
 synthesized.
 """
 from __future__ import annotations
@@ -78,38 +78,55 @@ def _face_components(obj: bpy.types.Object) -> list[list[int]]:
     return components
 
 
-def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
-    """Remove only the loose asymmetric Knight crest components from the copied body.
+def _component_rows(obj: bpy.types.Object) -> list[dict]:
+    rows = []
+    for faces in _face_components(obj):
+        centers = [_world_center(obj, obj.data.polygons[index]) for index in faces]
+        if not centers:
+            continue
+        rows.append({
+            "faces": faces,
+            "count": len(faces),
+            "point": sum(centers, Vector((0.0, 0.0, 0.0))) / len(centers),
+        })
+    return rows
 
-    The badge and chevron are disconnected islands on the source Body mesh. We delete
-    those islands through bmesh vertex deletion so the authored torso shell, skinning,
-    UVs and all mirrored clothing panels remain intact.
-    """
+
+def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
+    """Delete only small asymmetric chest islands; preserve the copied torso shell."""
     if "body" not in obj.name.lower() or not obj.data.vertices:
         return 0
     minimum, maximum = _world_bounds(obj)
     size = maximum - minimum
     center = (minimum + maximum) * 0.5
+    components = _component_rows(obj)
     remove_vertices: set[int] = set()
     removed_components = 0
-    for faces in _face_components(obj):
-        if len(faces) > 20:
-            continue
-        centers = [_world_center(obj, obj.data.polygons[index]) for index in faces]
-        if not centers:
-            continue
-        point = sum(centers, Vector((0.0, 0.0, 0.0))) / len(centers)
+
+    for component in components:
+        point = component["point"]
         vertical = (point.y - minimum.y) / max(size.y, 1e-6)
-        on_badge_side = point.x < center.x - size.x * 0.18
-        on_front = point.z > center.z + size.z * 0.22
-        in_chest_band = 0.48 <= vertical <= 0.82
-        if on_badge_side and on_front and in_chest_band:
-            removed_components += 1
-            for face_index in faces:
-                remove_vertices.update(obj.data.polygons[face_index].vertices)
+        if component["count"] > 24 or not (0.45 <= vertical <= 0.84):
+            continue
+        if abs(point.x - center.x) <= size.x * 0.15:
+            continue
+        mirrored_x = 2.0 * center.x - point.x
+        mirrored = any(
+            other is not component
+            and abs(other["point"].x - mirrored_x) <= size.x * 0.05
+            and abs(other["point"].y - point.y) <= size.y * 0.05
+            and abs(other["point"].z - point.z) <= size.z * 0.07
+            and abs(other["count"] - component["count"]) <= max(2, component["count"] * 0.45)
+            for other in components
+        )
+        if mirrored:
+            continue
+        removed_components += 1
+        for face_index in component["faces"]:
+            remove_vertices.update(obj.data.polygons[face_index].vertices)
+
     if not remove_vertices:
         return 0
-
     mesh = obj.data
     bm = bmesh.new()
     bm.from_mesh(mesh)
@@ -158,8 +175,16 @@ def _material_slots(obj: bpy.types.Object, materials: list[bpy.types.Material]) 
         obj.data.materials.append(mat)
 
 
+def _assign_component_materials(obj: bpy.types.Object, classifier) -> None:
+    for component in _component_rows(obj):
+        material_index = int(classifier(component))
+        for face_index in component["faces"]:
+            if face_index < len(obj.data.polygons):
+                obj.data.polygons[face_index].material_index = material_index
+
+
 def villageize_source_parts(meshes: list[bpy.types.Object]) -> None:
-    """Dress copied Knight pieces as linen sleeves, bare hands, trousers and boots."""
+    """Dress copied Knight components cleanly without painting across large polygons."""
     linen = module.material("PROTAGONIST_LINEN", (0.36, 0.26, 0.15, 1.0))
     olive = module.material("PROTAGONIST_OLIVE", (0.15, 0.18, 0.075, 1.0))
     leather = module.material("PROTAGONIST_LEATHER", (0.085, 0.045, 0.020, 1.0))
@@ -183,31 +208,38 @@ def villageize_source_parts(meshes: list[bpy.types.Object]) -> None:
             abs_x = [abs((obj.matrix_world @ vertex.co).x) for vertex in obj.data.vertices]
             start, end = min(abs_x), max(abs_x)
             span = max(end - start, 1e-6)
-            for polygon in obj.data.polygons:
-                point = _world_center(obj, polygon)
-                along = (abs(point.x) - start) / span
-                polygon.material_index = 2 if along >= 0.82 else 1 if along >= 0.68 else 0
+
+            def arm_material(component):
+                along = (abs(component["point"].x) - start) / span
+                return 2 if along >= 0.80 else 1 if along >= 0.62 else 0
+
+            _assign_component_materials(obj, arm_material)
             continue
 
         if "leg" in name:
             _material_slots(obj, [olive, leather])
-            for polygon in obj.data.polygons:
-                point = _world_center(obj, polygon)
-                vertical = (point.y - minimum.y) / max(size.y, 1e-6)
-                polygon.material_index = 0 if vertical >= 0.56 else 1
+
+            def leg_material(component):
+                vertical = (component["point"].y - minimum.y) / max(size.y, 1e-6)
+                return 0 if vertical >= 0.50 else 1
+
+            _assign_component_materials(obj, leg_material)
             continue
 
         if "body" in name:
             _material_slots(obj, [linen, leather, accent])
-            for polygon in obj.data.polygons:
-                point = _world_center(obj, polygon)
-                vertical = (point.y - minimum.y) / max(size.y, 1e-6)
-                if 0.075 <= vertical <= 0.145:
-                    polygon.material_index = 1
-                elif vertical >= 0.90:
-                    polygon.material_index = 2
-                else:
-                    polygon.material_index = 0
+
+            def body_material(component):
+                vertical = (component["point"].y - minimum.y) / max(size.y, 1e-6)
+                # Keep the torso itself plain. Only small separated collar/hem pieces
+                # receive accent or leather; this avoids armor-like painted facets.
+                if component["count"] <= 50 and vertical >= 0.84:
+                    return 2
+                if component["count"] <= 60 and vertical <= 0.22:
+                    return 1
+                return 0
+
+            _assign_component_materials(obj, body_material)
             continue
 
         _material_slots(obj, [linen])
