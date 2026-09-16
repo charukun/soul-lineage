@@ -34,9 +34,10 @@ test('post-boot enhancement graph contains only current runtime owners',()=>{
   'mura-mobile-feedback-fix-2',
   'mura-mobile-feedback-fix-3',
   'mura-rotation-fix',
+  'mura-master-characters',
   'mura-ux-polish-4',
   'mura-ux-polish-4b',
  ];
  for(const name of retired)assert.ok(!source.includes(name),`${name} must not remain in the runtime module graph`);
- for(const name of ['mura-world-systems','mura-v2-ui','mura-director-polish','mura-playability-polish','mura-master-characters','mura-motion-crowd'])assert.ok(source.includes(name),`${name} remains an active runtime owner`);
+ for(const name of ['mura-world-systems','mura-v2-ui','mura-director-polish','mura-playability-polish','mura-motion-crowd'])assert.ok(source.includes(name),`${name} remains an active runtime owner`);
 });

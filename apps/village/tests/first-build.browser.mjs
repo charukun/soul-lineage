@@ -113,10 +113,13 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   expect(settings.width).toBeGreaterThanOrEqual(44);expect(settings.height).toBeGreaterThanOrEqual(44);
   const before=await page.evaluate(()=>({count:window.village.world.objects.length,beds:window.village.world.population().openBeds}));
 
-  // First-run already taught the first tent, so do not resurrect the legacy
-  // tutorial CTA. Continue through the ordinary build controls a returning
-  // player will actually use: つくる → 空きテント → native placement.
-  await expect(page.locator('#tutorialAction')).toBeHidden();
+  // The persistent tutorial CTA is current UI: after first-run it may continue
+  // to guide the next tutorial step. Verify it is truthful, then prove it does
+  // not block the ordinary returning-player build path.
+  const tutorialText=await page.evaluate(()=>window.village.world.tutorialStep()?.text||'');
+  expect(tutorialText.length).toBeGreaterThan(0);
+  await expect(page.locator('#tutorialAction')).toBeVisible();
+  await expect(page.locator('#tutorialAction')).toHaveAttribute('aria-label',tutorialText);
   await nativeTap(page,expect,page.locator('#build'));
   await expect(page.locator('#drawer')).toBeVisible();
   const tentCard=page.locator('#catalog .card[data-kind="tent"]');

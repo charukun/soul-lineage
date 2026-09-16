@@ -55,6 +55,8 @@
   "status": {
     "visualApproval": "pending",
     "productionReady": false,
-    "note": "Character DCC Carrier output. Export/audit does not grant deformation, motion, polish, device performance, RUNTIME_READY, or human visual approval."
+    "licensePolicy": "blocked-rerig",
+    "distributionEligible": false,
+    "note": "RINNE-authored surfaces are retained for re-rig migration only. The current output uses the retired conditional Shino carrier rig and cannot advance to RUNTIME_READY until rebuilt on CC0 or RINNE-owned rig provenance."
   }
 }

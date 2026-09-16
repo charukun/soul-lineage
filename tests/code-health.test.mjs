@@ -62,6 +62,19 @@ test('audit ranks a structural hotspot actionable while small modules remain qui
   assert.equal(report.candidates.at(-1).actionable, false);
 });
 
+test('audit total LOC remains complete when candidate output is truncated', () => {
+  const entries = [
+    { path: 'apps/rinne/src/hot.js', source: block(1550) },
+    { path: 'packages/world/src/medium.js', source: block(20) },
+    { path: 'packages/world/src/tiny.js', source: 'export const tiny = () => 1;\n' },
+  ];
+  const limited = { ...config, thresholds: { ...config.thresholds, maxCandidates: 1 } };
+  const report = buildAuditReport(entries, limited, '2026-09-14T00:00:00.000Z');
+  const expectedLoc = entries.reduce((total, entry) => total + analyzeSource(entry.source, entry.path).loc, 0);
+  assert.equal(report.candidates.length, 1);
+  assert.equal(report.summary.totalLoc, expectedLoc);
+});
+
 test('guard permits small edits to legacy hotspots but rejects material new growth', () => {
   const base = analyzeSource(block(700), 'apps/rinne/src/a.js');
   const small = analyzeSource(block(730), 'apps/rinne/src/a.js');
