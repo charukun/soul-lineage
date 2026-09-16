@@ -33,7 +33,7 @@ export async function createCoopHost({world,contentVersion,save,RTCPeerConnectio
   }
   async function invite(){
     if(!open())throw Error(error||'村は閉じています。');if(pending&&!pending.joined)pending.connection?.close();
-    const link={connection:null,joined:false,joining:false,closed:false,expiresAt:Date.now()+15*60*1000,id:null};pending=link;probe?.connectionAttempt();
+    const link={connection:null,joined:false,joining:false,closed:false,attempted:false,expiresAt:Date.now()+15*60*1000,id:null};pending=link;
     link.wire=createRoomWire(async message=>{
       if(closed||!message||message.worldId!==world.data.worldId||message.protocol!==COOP_PROTOCOL)return;
       if(message.type==='hello'&&!link.joined)return welcome(link,message);
@@ -47,6 +47,7 @@ export async function createCoopHost({world,contentVersion,save,RTCPeerConnectio
     link.connection=await createHostOffer({RTCPeerConnection,dualChannel:true,onMessage:m=>link.wire.receive(m),onState:state=>{if(state==='open'){sendFirst(link);if(probe)void probe.connectionOpen(link.connection);}if(['closed','failed','error'].includes(state))closeLink(link.id,link);}});
     return{protocol:COOP_PROTOCOL,contentVersion,worldId:world.data.worldId,offer:link.connection.code,expiresAt:link.expiresAt};
   }
+  function accept(answer){if(!pending)throw Error('先に招待を作ってください。');if(probe&&!pending.attempted){pending.attempted=true;probe.connectionAttempt();}return pending.connection.accept(answer.trim());}
   function step(){
     if(closed)return;
     if(writer.pending&&now()-writer.pendingSince>3000&&!stalled){stalled=true;publish();}
@@ -61,8 +62,7 @@ export async function createCoopHost({world,contentVersion,save,RTCPeerConnectio
   const timer=setInterval(step,50);
   function pause(value){paused=Boolean(value)||Boolean(error);for(const id of Object.keys(world.data.players))world.clearInput(id);acceptedInputs.clear();publish();}
   async function dispose(){if(closed)return;closed=true;clearInterval(timer);pending?.connection?.close();for(const link of links.values())link.connection.close();links.clear();if(!writer.failure)await writer.request();}
-  return{role:'host',selfId,layout:world.layout,worldId:world.data.worldId,invite,
-    accept:answer=>{if(!pending)throw Error('先に招待を作ってください。');return pending.connection.accept(answer.trim());},
+  return{role:'host',selfId,layout:world.layout,worldId:world.data.worldId,invite,accept,
     input:direction=>{if(open()&&!writer.pendingIds().has(selfId))world.acceptInput(selfId,{seq:++inputSeq,...direction});},
     setRate:async rate=>{if(!open())throw Error('村の再開を待ってください。');world.setRate(selfId,rate);await persist();},
     rebirth:(villageId,lifeId=writer.committed.world.players[selfId].life.id)=>rebirth(selfId,lifeId,villageId),pause,dispose,
