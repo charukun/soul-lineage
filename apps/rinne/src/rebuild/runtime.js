@@ -9,6 +9,7 @@ import { createFront, normalizeFront, tickFront } from './combat.js';
 import { createVillageSkirmish, tickVillageSkirmish, villageSkirmishAnchor } from './village-skirmish.js';
 import { guidanceFor } from './guidance.js';
 import { RINNE_RUNTIME_PERFORMANCE } from './performance.js';
+import { splitRuntimeFrameDelta } from './runtime-clock.js';
 
 const $=id=>document.getElementById(id);
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
@@ -151,14 +152,14 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   }
 
   function frame(now){
-    if(!active)return;raf=requestAnimationFrame(frame);const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
+    if(!active)return;raf=requestAnimationFrame(frame);const elapsed=Math.max(0,(now-last)/1000);last=now;const {simulationDelta:dt,lifeDelta}=splitRuntimeFrameDelta(elapsed,{paused:document.hidden});
     if(coop){renderCoopFrame(dt);return;}
     let moved=false,carrierMoving=false;const mag=Math.hypot(axis.x,axis.y),birthStep=birth.step(dt,axis);
     if(birthStep.handled){moved=birthStep.moved;carrierMoving=birthStep.carrierMoving;}
     else if(mag>.08&&!state.ended&&!state.down){const direction=view.cameraVector(axis),speed=speedForAge(state.ageYears)*(state.combat?.72:1),nx=state.position.x+direction.x*speed*dt,nz=state.position.z+direction.z*speed*dt;
       const movementZone=state.interior?'interior':state.zone;if(view.canMoveTo(nx,nz,.32,movementZone,state.interior?.buildingId)){state.position.x=nx;state.position.z=nz;state.yaw=Math.atan2(direction.x,direction.z);moved=true;}}
     if(moved&&movementHint){movementHint=false;$('move-hint').hidden=true;}
-    setMoving(state,birthStep.handled?false:moved,state.yaw);const station=state.zone==='village'?nearestStation(stations,state.position,{interiorId:state.interior?.buildingId||null}):null,events=tickLife(state,{realDelta:dt,station,paused:document.hidden});handleEvents(events);
+    setMoving(state,birthStep.handled?false:moved,state.yaw);const station=state.zone==='village'?nearestStation(stations,state.position,{interiorId:state.interior?.buildingId||null}):null,events=tickLife(state,{realDelta:dt,lifeDelta,station,paused:document.hidden});handleEvents(events);
     if(state.zone==='village'&&!moved&&(station?.enterInterior||station?.exitInterior)){
       if(doorStationId!==station.id){doorStationId=station.id;doorDwell=0;}doorDwell+=dt;
       if(doorDwell>=.55){const entering=station.enterInterior,changed=entering?enterBuilding(state,station):leaveBuilding(state);if(changed){toast(entering?`${station.label}へ入る`:'外へ出る');doorDwell=0;doorStationId='';void save();}}
@@ -180,7 +181,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   }
 
   function pagehide(){void save();}
-  function visibility(){coop?.pause(document.hidden);if(document.hidden){keys.clear();pointer=null;setAxis({x:0,y:0});}}
+  function visibility(){last=performance.now();coop?.pause(document.hidden);if(document.hidden){keys.clear();pointer=null;setAxis({x:0,y:0});}}
   document.addEventListener('visibilitychange',visibility);
   window.addEventListener('pagehide',pagehide);
   if(front)view.syncFront(front);else view.syncFront(null);view.renderState(state,.016);birth.afterRender(.016,{carrierMoving:false});syncUI();uiElapsed=0;loading.hidden=true;canvas.dataset.runtime='active';
