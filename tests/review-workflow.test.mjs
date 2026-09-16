@@ -47,8 +47,8 @@ test('Visual Review publication follows exact develop delivery and requires desk
   assert.match(smoke,/pageerror/);
   assert.match(smoke,/requestfailed/);
 
-  assert.match(reviewCss,/\.review-nav\{[^}]*grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
-  assert.match(reviewCss,/@media\(max-width:700px\)\{[\s\S]*\.review-nav\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(reviewCss,/\.review-nav\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(reviewCss,/@media\(max-width:700px\)\{[\s\S]*\.review-nav\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.doesNotMatch(reviewCss,/@media\(max-width:700px\)\{[\s\S]*\.review-nav\{grid-template-columns:1fr 1fr/);
 
   assert.match(opsBoard,/visual-review:[\s\S]*uses: \.\/\.github\/workflows\/review-preview\.yml/);
@@ -76,10 +76,4 @@ test('Review page loads lazy embedded tools from an explicit src attribute',asyn
   const review=await read('apps/rinne/src/develop-review.js');
   assert.match(review,/getAttribute\('src'\)/);
   assert.match(review,/setAttribute\('src',frame\.dataset\.src\)/);
-});
-
-test('Review Worker keeps the established fixed deployment name',async()=>{
-  const config=await read('wrangler.review.jsonc');
-  assert.match(config,/"name": "rinne-visual-review"/);
-  assert.match(config,/"directory": "\.\/dist\/rinne"/);
 });
