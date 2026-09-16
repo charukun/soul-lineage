@@ -13,8 +13,6 @@ test('center-follow placement keeps the ghost on the camera target and taps to c
   'queueMicrotask',
   'スワイプで場所を調整 · タップで配置',
   'muraRotateLeft',
-  'muraPlacementUndo',
-  'world.undo()',
  ])assert.ok(source.includes(contract),contract);
  assert.equal(source.includes('muraFindPlacement'),false);
 });
@@ -26,12 +24,12 @@ test('placement UI sync cannot observe and rewrite its own child text forever',(
  assert.ok(source.includes("paragraph.textContent!==HELP_TEXT"));
 });
 
-test('placement contract makes one-finger movement primary and keeps undo explicit',()=>{
+test('placement contract makes one-finger movement primary and returns to normal controls',()=>{
  for(const contract of [
   'ゴーストを画面中央の照準位置に保ちます',
   '1本指スワイプ',
   '短いタップ',
-  '取り消す',
+  '配置直後の「取り消す」ボタンは表示せず、通常の操作へ戻します',
   '二本指操作を建築配置の必須操作にはしません',
   '配置UIの状態同期は冪等',
  ])assert.ok(requirements.includes(contract),contract);

@@ -10,31 +10,24 @@ export function resolveSpeechRecognition(windowLike){
   return windowLike?.SpeechRecognition||windowLike?.webkitSpeechRecognition||null;
 }
 
-export function createConversationInput({document,window:windowLike=globalThis.window,getState,onSpeak,onStatus=()=>{}}){
-  const dock=document.getElementById('speech-dock'),fan=document.getElementById('speech-fan'),toggle=document.getElementById('speech-fan-toggle'),mic=document.getElementById('speech-mic');
-  if(!dock||!fan||!toggle||!mic)throw Error('発話UIが見つかりません');
+export function createConversationInput({document,window:windowLike=globalThis.window,root,getState,onSpeak=()=>{},onStatus=()=>{}}){
+  if(!document||!root)throw Error('発話UIの接続先が見つかりません');
+  const dock=document.createElement('div');dock.className='speech-dock';dock.hidden=true;
+  dock.innerHTML='<div class="speech-output" role="status" aria-live="polite" hidden></div><div class="speech-fan" aria-label="定型文" aria-hidden="true"></div><div class="speech-controls"><button class="speech-fan-toggle" type="button" aria-label="定型文を開く" aria-expanded="false"><span aria-hidden="true">言</span></button><button class="speech-mic" type="button" aria-label="マイクで発話" aria-pressed="false"></button></div>';
+  root.append(dock);
+  const fan=dock.querySelector('.speech-fan'),toggle=dock.querySelector('.speech-fan-toggle'),mic=dock.querySelector('.speech-mic'),output=dock.querySelector('.speech-output');
   const Recognition=resolveSpeechRecognition(windowLike),phrases=muraSpeechPhrases();
-  let recognition=null,listening=false,open=false;
+  let recognition=null,listening=false,open=false,outputTimer=0;
 
-  fan.replaceChildren(...phrases.map((phrase,index)=>{
-    const button=document.createElement('button');
-    button.type='button';button.className='speech-phrase';button.dataset.intent=phrase.id;button.textContent=phrase.text;button.title=phrase.label;button.tabIndex=-1;
-    button.setAttribute('aria-label',`${phrase.label}：${phrase.text}`);
-    const angle=(200+(index*(80/Math.max(1,phrases.length-1))))*Math.PI/180,radius=94;
-    button.style.setProperty('--fan-x',`${Math.cos(angle)*radius}px`);button.style.setProperty('--fan-y',`${Math.sin(angle)*radius}px`);
-    button.addEventListener('click',event=>{event.stopPropagation();emit({source:'preset',intentId:phrase.id,text:phrase.text});closeFan();});
-    return button;
-  }));
-
-  mic.hidden=!Recognition;mic.disabled=!Recognition;
-  mic.setAttribute('aria-label',Recognition?'マイクで発話':'この端末ではマイク発話を利用できません');
-
+  function feedback(text,kind='speech'){
+    if(!text)return;output.textContent=text;output.dataset.kind=kind;output.hidden=false;clearTimeout(outputTimer);outputTimer=setTimeout(()=>{output.hidden=true;},2800);
+  }
   function emit({source,intentId=null,text}){
     const value=cleanText(text);if(!value||!conversationAvailable(getState?.()))return false;
-    onSpeak?.({source,intentId,text:value});return true;
+    feedback(value);onSpeak({source,intentId,text:value});return true;
   }
   function setOpen(next){
-    open=Boolean(next)&&conversationAvailable(getState?.());dock.classList.toggle('is-fan-open',open);fan.setAttribute('aria-hidden',String(!open));toggle.setAttribute('aria-expanded',String(open));
+    open=Boolean(next)&&conversationAvailable(getState?.());dock.classList.toggle('is-fan-open',open);fan.setAttribute('aria-hidden',String(!open));toggle.setAttribute('aria-expanded',String(open));toggle.setAttribute('aria-label',open?'定型文を閉じる':'定型文を開く');
     for(const button of fan.querySelectorAll('.speech-phrase'))button.tabIndex=open?0:-1;
   }
   function closeFan(){setOpen(false);}
@@ -49,9 +42,9 @@ export function createConversationInput({document,window:windowLike=globalThis.w
     closeFan();recognition=new Recognition();recognition.lang='ja-JP';recognition.continuous=false;recognition.interimResults=false;recognition.maxAlternatives=1;
     recognition.onstart=()=>{listening=true;dock.classList.add('is-listening');mic.setAttribute('aria-pressed','true');};
     recognition.onresult=event=>{const text=event?.results?.[0]?.[0]?.transcript;if(text)emit({source:'voice',text});};
-    recognition.onerror=event=>{if(event?.error!=='aborted')onStatus(voiceError(event?.error));};
+    recognition.onerror=event=>{if(event?.error!=='aborted'){const message=voiceError(event?.error);feedback(message,'error');onStatus(message);}};
     recognition.onend=()=>{recognition=null;listening=false;dock.classList.remove('is-listening');mic.setAttribute('aria-pressed','false');};
-    try{recognition.start();return true;}catch(error){recognition=null;listening=false;onStatus('音声入力を開始できませんでした');return false;}
+    try{recognition.start();return true;}catch{recognition=null;listening=false;const message='音声入力を開始できませんでした';feedback(message,'error');onStatus(message);return false;}
   }
   function sync(){
     const available=conversationAvailable(getState?.());dock.hidden=!available;
@@ -60,9 +53,13 @@ export function createConversationInput({document,window:windowLike=globalThis.w
   }
   function outside(event){if(open&&!dock.contains(event.target))closeFan();}
   function keydown(event){if(event.key==='Escape')closeFan();}
-  toggle.addEventListener('click',event=>{event.stopPropagation();setOpen(!open);});
-  mic.addEventListener('click',event=>{event.stopPropagation();startVoice();});
-  document.addEventListener('pointerdown',outside,true);document.addEventListener('keydown',keydown);
-  sync();
-  return{sync,open:()=>setOpen(true),close:closeFan,startVoice,isSupported:()=>Boolean(Recognition),dispose(){stopRecognition();closeFan();document.removeEventListener('pointerdown',outside,true);document.removeEventListener('keydown',keydown);}};
+
+  fan.replaceChildren(...phrases.map((phrase,index)=>{
+    const button=document.createElement('button');button.type='button';button.className='speech-phrase';button.dataset.intent=phrase.id;button.textContent=phrase.text;button.title=phrase.label;button.tabIndex=-1;button.setAttribute('aria-label',`${phrase.label}：${phrase.text}`);
+    const progress=phrases.length>1?index/(phrases.length-1):0;button.style.setProperty('--fan-x',`${42+Math.sin(progress*Math.PI)*64}px`);button.style.setProperty('--fan-y',`${-(18+index*46)}px`);
+    button.addEventListener('click',event=>{event.stopPropagation();emit({source:'preset',intentId:phrase.id,text:phrase.text});closeFan();});return button;
+  }));
+  mic.hidden=!Recognition;mic.disabled=!Recognition;mic.setAttribute('aria-label',Recognition?'マイクで発話':'この端末ではマイク発話を利用できません');
+  toggle.addEventListener('click',event=>{event.stopPropagation();setOpen(!open);});mic.addEventListener('click',event=>{event.stopPropagation();startVoice();});document.addEventListener('pointerdown',outside,true);document.addEventListener('keydown',keydown);sync();
+  return{sync,open:()=>setOpen(true),close:closeFan,startVoice,isSupported:()=>Boolean(Recognition),dispose(){stopRecognition();closeFan();clearTimeout(outputTimer);document.removeEventListener('pointerdown',outside,true);document.removeEventListener('keydown',keydown);dock.remove();}};
 }

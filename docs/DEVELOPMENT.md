@@ -68,8 +68,10 @@ Sendagaya_Shinoを基準モデル化し、量産用共通構造と確認シミ�
 - セッション停止時は当該Draft PR・branch・最新commit・handoff・最新developとの差分・CI/CDを復旧起点とし、別セッションで同じPRを継続する。既存task-start/heartbeat/watchdog通知を置き換えない。
 - 開始時のbranch push/Draft登録は完了通知とは区別する。実装・高速検証・push・Ready更新後の成功名は `READY_FOR_INTEGRATION`。FAILEDは到達工程、失敗理由、試した経路、復旧経路を含める。
 
-### Visual Review Labは独立運用を維持
+### Visual Reviewはdevelopを直接確認する
 
-Labの長寿命Draftは同一Repositoryの専用head branch `work/visual-review-lab-v2`（現行PR #23）で識別し、一覧には「Visual Review Lab」と表示する。PR番号や本文だけに依存せず、通常実装のDraftとは別種別にする。Labを未更新タスク警告に混ぜず、更新日時自体は表示する。
+Visual Reviewは長寿命Draftや専用head branchを正本にしない。Review UIと確認用ルートは通常のRINNEソースとしてdevelopへ統合し、ゲーム本体と同じ共有package、キャラクター、モーション、戦闘runtimeを直接利用する。
 
-Lab専用 `review-preview.yml` の公開条件（専用branchへのpush/手動実行、`REVIEW_PREVIEW_ENABLED`）、`wrangler.review.jsonc`、Cloudflare Workers Static Assets、既存URLと専用concurrencyを維持する。通常Draftの作成をLab CI/Workers公開のtriggerにしない。Lab専用branchへ通常タスクをpushしない。Labは人間が見た目を高速確認する独立経路であり、通常実装・Integrationの必須ブロッカーにしない。Lab自身のDraftも通常Integrationから除外する。
+固定のVisual Review公開URLは維持し、その内容は最新developからビルドして更新する。通常の実装は通常PR → develop統合の流れだけを使い、Visual Review専用branchへの二重実装・同期・rebaseを要求しない。Visual Reviewはdevelopの観測窓であり、通常Integrationの追加ブロッカーにはしない。
+
+旧 `work/visual-review-lab-v2` / PR #23 は移行元としてのみ参照し、必要なReview資産を最新developへ選択移植した後に終了する。PR #23そのものを巨大差分のままdevelopへmergeしない。

@@ -1,4 +1,4 @@
-import {muraDialogueTopic} from '@soul/world/mura/dialogue';
+import {muraTopicLine} from '@soul/world/mura/dialogue';
 
 export const BIRTH_TOUR_ORDER=Object.freeze(['garden','home','school','library','chapel','dojo','smith','clinic']);
 
@@ -11,11 +11,7 @@ const finite=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fa
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
 const rounded=value=>Math.round(value*100)/100;
 
-export function birthTourLine(station){
-  const topic=muraDialogueTopic(station?.topicId,{kind:station?.facilityKind||null});
-  if(!topic||topic.compatible===false)return null;
-  return topic.form==='thing'?`${topic.label}にはね、${topic.fact}よ。`:`ここは${topic.label}。${topic.fact}よ。`;
-}
+export function birthTourLine(station){return muraTopicLine(station?.topicId,{kind:station?.facilityKind||null});}
 
 export function birthTourStops(stations=[]){
   const byId=new Map((Array.isArray(stations)?stations:[]).filter(row=>row&&typeof row.id==='string').map(row=>[row.id,row]));

@@ -16,6 +16,7 @@ const progress = document.querySelector('#progress');
 const message = document.querySelector('#loadText');
 const retry = document.querySelector('#retry');
 const recover = document.querySelector('#recover');
+const recoverDialog = document.querySelector('#recoverDialog');
 const disposeMusic=installMusicLibrary({game:'village',environment:__BUILD_INFO__.environment,defaultTrack:'v01',autoStart:false,preferDefault:true,trigger:'hidden'});
 let finished = false;
 const watchdog = setTimeout(() => {
@@ -35,7 +36,12 @@ function reportError(error) {
 }
 retry.onclick = () => location.reload();
 recover.onclick = async () => {
-  if (!confirm('現在の保存データを退避して、新しい村を始めます。退避できなければ現在の保存は残します。続けますか？')) return;
+  recoverDialog.returnValue = 'cancel';
+  const approved = await new Promise(resolve => {
+    recoverDialog.addEventListener('close', () => resolve(recoverDialog.returnValue === 'recover'), { once: true });
+    recoverDialog.showModal();
+  });
+  if (!approved) return;
   recover.disabled = true;
   try { await window.__VILLAGE_BOOT__.recover(); location.reload(); }
   catch (error) { reportError(error); recover.disabled = false; }

@@ -63,6 +63,17 @@
     </div></details>
   </aside>
 </main>
+<dialog id="cohort-confirm" class="cohort-confirm" aria-labelledby="cohort-confirm-title" aria-describedby="cohort-confirm-message">
+  <form method="dialog">
+    <span aria-hidden="true">個体群</span>
+    <h2 id="cohort-confirm-title">個体群を再生成しますか</h2>
+    <p id="cohort-confirm-message">個別の編集は、新しい個体群に置き換わります。</p>
+    <div>
+      <button type="submit" value="cancel" autofocus>編集へ戻る</button>
+      <button type="submit" value="replace" class="primary">再生成する</button>
+    </div>
+  </form>
+</dialog>
 <footer>通常確認は <a href="./characters.html">MasterCharacter Review</a> へ。原作：VRoid Project / pixiv Inc.（CC0） · VRM 1.0 conversion：Coatie（coati）。<a href="./simulator/licenses/MODEL_LICENSE_SUMMARY_JA.txt">収録モデルの利用条件</a></footer>
 <script type="module" src="./src/character-review.js"></script>
 </body></html>

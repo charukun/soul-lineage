@@ -129,13 +129,19 @@ export async function verifyVillagePlaythrough(browser,url,out){
    const models=await page.evaluate(()=>{const v=window.village;return ['logging','storage','quarry','carpenter','guardpost'].map(kind=>{const model=v.view.getBuilding(kind);return{kind,vertices:model.children.reduce((n,c)=>n+(c.geometry?.attributes?.position?.count||0),0),thumbnail:v.view.thumbnail(kind).length};});});assert.equal(new Set(models.map(m=>m.vertices)).size,5);
    await page.evaluate(()=>{const v=window.village;const root=document.createElement('section');root.id='reviewFacilities';root.style='position:fixed;inset:65px 10px 70px;z-index:80;overflow:auto;background:#ece4d2;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px;border-radius:18px';for(const[kind,label]of[['logging','伐採場'],['storage','資材置き場'],['quarry','石切場'],['carpenter','木工所'],['guardpost','詰所']]){const d=document.createElement('div'),i=new Image();i.src=v.view.thumbnail(kind);i.style='width:100%;image-rendering:auto';d.append(i,document.createTextNode(label));root.append(d);}document.body.append(root);});await screenshot('10-facility-models');await page.locator('#reviewFacilities').evaluate(e=>e.remove());return models;
   });
-  await check('title return, reset cancel, failed backup and successful reset preserve the correct save',async()=>{
+  await check('title reset preserves failures and replays the first-run tutorial after success',async()=>{
    const before=await page.evaluate(()=>JSON.stringify(window.village.world.objects));await tap('#muraSettingsButton');await tap('#muraTitleAction');assert.ok(await page.locator('#muraEnterVillage').isVisible());
    await tap('#muraResetVillage');await tap('#muraResetConfirm [data-cancel]');assert.equal(await page.evaluate(()=>JSON.stringify(window.village.world.objects)),before);
    await page.evaluate(()=>{window.__storageWrite=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k.includes('.recovery.'))throw Error('test backup failure');return window.__storageWrite.call(this,k,v);};});
    await tap('#muraResetVillage');await tap('#muraResetConfirm [data-reset]');await page.locator('#muraResetConfirm [data-error]').waitFor();assert.equal(await page.evaluate(()=>JSON.stringify(window.village.world.objects)),before);
-   await page.evaluate(()=>{Storage.prototype.setItem=window.__storageWrite;delete window.__storageWrite;});await tap('#muraResetConfirm [data-reset]');await page.waitForTimeout(1000);await page.waitForSelector('#muraEnterVillage',{timeout:30000});
-   assert.ok(await page.evaluate(()=>!window.village.world.state.known.includes('plank')));await page.reload({waitUntil:'domcontentloaded'});await page.waitForSelector('#muraEnterVillage',{timeout:30000});assert.ok(await page.evaluate(()=>!window.village.world.state.known.includes('plank')));await screenshot('11-reset');
+   await page.evaluate(()=>{Storage.prototype.setItem=window.__storageWrite;delete window.__storageWrite;});await tap('#muraResetConfirm [data-reset]');await page.waitForSelector('#muraEnterVillage',{timeout:30000});
+   assert.ok(await page.evaluate(()=>!window.village.world.state.known.includes('plank')));
+   assert.equal(await page.locator('#game').getAttribute('data-first-run-tutorial'),'running');
+   await tap('#muraEnterVillage');await guide.waitFor({state:'visible',timeout:8000});assert.equal(await guide.getAttribute('data-stage'),'welcome');
+   assert.equal(await page.locator('#game').getAttribute('data-first-run-tutorial'),'running');await screenshot('11-reset-tutorial');
+   await tap('.muraFirstRunSkip');await guide.waitFor({state:'detached'});
+   await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.village&&document.querySelector('#loading').hidden,null,{timeout:30000});
+   assert.ok(await page.evaluate(()=>!window.village.world.state.known.includes('plank')));assert.equal(await page.locator('#muraFirstRunGuide').count(),0);
   });
   assert.deepEqual(report.nativeDialogs,[]);assert.deepEqual(report.errors,[]);report.success=true;
  }catch(error){report.success=false;report.failure=String(error);await screenshot('failure').catch(()=>{});throw error;}

@@ -287,3 +287,14 @@ jobs:
               description: success ? 'PULSE runtime unchanged; authenticated state refresh passed' : 'PULSE state refresh failed',
               target_url: success ? 'https://rinne-ops.c-okamoto.workers.dev/' : `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
             });
+
+  visual-review:
+    name: Publish Visual Review
+    if: github.ref == 'refs/heads/develop'
+    uses: ./.github/workflows/review-preview.yml
+    with:
+      source_sha: ${{ inputs.source_sha || github.sha }}
+    permissions:
+      contents: read
+      statuses: write
+    secrets: inherit

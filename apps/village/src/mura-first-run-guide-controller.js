@@ -7,7 +7,9 @@ const TAP_DISTANCE=7;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 
 function timingFor(reduced){
- return reduced?{read:420,tap:520,drag:760,confirm:320}:{read:1050,tap:900,drag:1650,confirm:800};
+ return reduced
+  ?{read:350,tap:700,drag:900,confirm:300,hold:1100,repeat:2600}
+  :{read:850,tap:1300,drag:2200,confirm:650,hold:900,repeat:1700};
 }
 
 function accept(ctx,next,message){
@@ -18,13 +20,13 @@ function catalogDetour(ctx,event,button){
  const card=event.target.closest?.('#catalog .card');
  if(card&&card.dataset.kind!==GUIDE_KIND){
   event.preventDefault();event.stopImmediatePropagation();
-  ctx.guide.setHint('今回は「空きテント」を選びます。光っている住まいをタップしてください。');
+  ctx.guide.setHint('今回は「空きテント」だけ。光っている住まいをタップしてください。');
   void ctx.guide.playDemo({immediate:true});
   return true;
  }
  if(button.matches('#tabs [data-category]')&&button.dataset.category!=='住まい'){
   event.preventDefault();event.stopImmediatePropagation();
-  ctx.guide.setHint('最初は「住まい」のままで大丈夫です。光っている空きテントを選んでください。');
+  ctx.guide.setHint('最初は「住まい」のままでOK。光っている空きテントを選びます。');
   void ctx.guide.playDemo({immediate:true});
   return true;
  }
@@ -33,18 +35,18 @@ function catalogDetour(ctx,event,button){
 
 function handleBuildClick(ctx,button){
  if(ctx.guide.stage!=='build'||button.id!=='build')return false;
- requestAnimationFrame(()=>{if(ctx.active&&ctx.ui.drawer)accept(ctx,'catalog','そうです。次は、実際の住まいを選びます。');});
+ requestAnimationFrame(()=>{if(ctx.active&&ctx.ui.drawer)accept(ctx,'catalog','次は、光っている「空きテント」をタップ。');});
  return true;
 }
 
 function handleCatalogClick(ctx,button){
  if(ctx.guide.stage!=='catalog')return false;
  if(button.matches('#catalog .card[data-kind="tent"]')){
-  requestAnimationFrame(()=>{if(ctx.active&&ctx.ui.pending?.kind===GUIDE_KIND)accept(ctx,'drag','配置モードに入りました。次は場所を自分の指で動かします。');});
+  requestAnimationFrame(()=>{if(ctx.active&&ctx.ui.pending?.kind===GUIDE_KIND)accept(ctx,'drag','1本指で画面をなぞり、置く場所を動かします。');});
   return true;
  }
  if(button.id==='build'||button.id==='closeDrawer'){
-  requestAnimationFrame(()=>{if(ctx.active&&!ctx.ui.drawer)ctx.guide.setStage('build',{message:'閉じても大丈夫です。もう一度「つくる」から試せます。'});});
+  requestAnimationFrame(()=>{if(ctx.active&&!ctx.ui.drawer)ctx.guide.setStage('build',{message:'閉じても大丈夫。「つくる」からもう一度。'});});
   return true;
  }
  return false;
@@ -55,12 +57,12 @@ function handlePlacementButton(ctx,event,button){
  if(stage!=='drag'&&stage!=='place')return false;
  if(button.id==='cancelPlace'){
   event.preventDefault();event.stopImmediatePropagation();
-  const message=stage==='drag'?'まず1本指で画面をなぞって、テントの場所を動かしてみてください。':'今回は画面そのものを短くタップして置いてみましょう。';
+  const message=stage==='drag'?'まだ置かずに、1本指で少し大きくなぞります。':'今回はボタンではなく、画面を短くタップして置きます。';
   ctx.guide.setHint(message);void ctx.guide.playDemo({immediate:true});
   return true;
  }
  if(button.id==='muraCancelPlacement'){
-  requestAnimationFrame(()=>{if(ctx.active&&!ctx.ui.pending)ctx.guide.setStage('build',{message:'配置をやめました。もう一度「つくる」から試せます。'});});
+  requestAnimationFrame(()=>{if(ctx.active&&!ctx.ui.pending)ctx.guide.setStage('build',{message:'配置をやめました。「つくる」から再開できます。'});});
   return true;
  }
  return false;
@@ -93,14 +95,14 @@ function onPointerMove(ctx,event){
 
 function handleDragRelease(ctx,event,gesture){
  if(!gesture.multi&&gesture.max>=DRAG_DISTANCE&&ctx.active&&ctx.guide.stage==='drag'&&ctx.ui.pending?.kind===GUIDE_KIND){
-  accept(ctx,'place','場所を動かせました。最後は、画面を短くタップして置きます。');
+  accept(ctx,'place','いい位置なら、画面を短く1回タップ。');
   return;
  }
  if(gesture.multi||!ctx.active||ctx.guide.stage!=='drag')return;
  if(gesture.max<TAP_DISTANCE){
   event.preventDefault();event.stopImmediatePropagation();
-  ctx.guide.setHint('いまは置かずに、指を画面につけたまま少し大きくなぞってみてください。');
- }else ctx.guide.setHint('動かし方は合っています。もう少しだけ大きく、ゆっくりなぞってみてください。');
+  ctx.guide.setHint('指をつけたまま、もう少し大きくなぞってください。');
+ }else ctx.guide.setHint('動かし方は合っています。もう少しだけ大きくなぞります。');
  void ctx.guide.playDemo({immediate:true});
 }
 
@@ -109,10 +111,10 @@ function verifyPlacement(ctx){
  const placed=ctx.world.objects.some(object=>object.kind===GUIDE_KIND);
  if(placed&&!ctx.ui.pending){ctx.guide.setStage('done');return;}
  if(ctx.ui.pending?.error){
-  ctx.guide.setHint(`そこには置けません。「${ctx.ui.pending.error}」と出ているので、もう一度なぞって場所をずらしてから短くタップしてください。`,4300);
+  ctx.guide.setHint(`そこには置けません。「${ctx.ui.pending.error}」なので、少し場所をずらしてから短くタップ。`,3800);
   return;
  }
- ctx.guide.setHint('短く1回だけタップすると、中央の候補をその場所へ置けます。');
+ ctx.guide.setHint('画面を短く1回タップすると、いまの候補位置へ置けます。');
 }
 
 function onPointerFinish(ctx,event){

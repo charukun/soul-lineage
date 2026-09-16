@@ -1,0 +1,21 @@
+{
+  "schema": "protagonist-villager-dcc-build",
+  "version": 1,
+  "characterId": "protagonist.villager.v1",
+  "referencePath": "docs/characters/references/protagonist-villager-v1.svg",
+  "sourceRigSha256": "83843ade7dbdfaacc9d601bda099fcb5757527e339b9c5deb223a2c2f5eb28ca",
+  "blenderVersion": "4.0.2",
+  "meshObjects": 32,
+  "trianglesApprox": 1728,
+  "materials": 8,
+  "styleFamily": "kaykit-compatible-rinne-low-poly",
+  "role": "protagonist",
+  "wardrobe": "humble-village-start",
+  "armor": false,
+  "blendSha256": "b3339de3aa185ae06e899b29c85c19318d080a916cac0baeb4ab6671294525e2",
+  "glbSha256": "4f95570fcd0f663e1497b3f4e922d3aa96be014cc4cc0255e70db3f206c1b1db",
+  "productionReady": false,
+  "visualApproval": "pending",
+  "humanoidMetadata": "VRMC_vrm/1.0 restored from audited SHINO_review.vrm by bone name",
+  "humanoidBones": 54
+}

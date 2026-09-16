@@ -10,6 +10,7 @@ if (!document.querySelector('link[rel="manifest"]')) {
 // Catch module download/initialization errors before the game owns its loading UI.
 const boot = document.querySelector('#boot');
 const progress = document.querySelector('#boot-progress');
+let disposeCombatCamera=()=>{};
 try {
   progress.value = 1;
   await import('./runtime-scale-stack.js');
@@ -17,6 +18,8 @@ try {
   await import('./master-humans.js');
   await import('./motion-interactions.js');
   await import('./motion-crowd.js');
+  const {installCombatCamera}=await import('./combat-camera.js');
+  disposeCombatCamera=installCombatCamera();
   const game = await import('./web/main.js');
   progress.value = 2;
   await game.boot();
@@ -43,4 +46,4 @@ const disposeMusic=installMusicLibrary({
   trigger:'hidden',
   contextNote:'この画面では単独狩りを止めています。閉じると設定画面に戻ります。'
 });
-if(import.meta.hot)import.meta.hot.dispose(disposeMusic);
+if(import.meta.hot)import.meta.hot.dispose(()=>{disposeCombatCamera?.();disposeMusic();});

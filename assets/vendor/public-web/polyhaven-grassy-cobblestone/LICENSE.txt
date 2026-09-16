@@ -1,0 +1,5 @@
+Grassy Cobblestone by Poly Haven contributors
+Canonical source: https://polyhaven.com/a/grassy_cobblestone
+License: Creative Commons Zero 1.0 Universal (CC0-1.0)
+https://creativecommons.org/publicdomain/zero/1.0/
+Selected maps: 1K JPG diffuse, OpenGL normal and roughness.

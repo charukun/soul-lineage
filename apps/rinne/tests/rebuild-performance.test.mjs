@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {RINNE_RUNTIME_PERFORMANCE,renderPixelRatio,targetFpsForView} from '../src/rebuild/performance.js';
 
 const renderer=await readFile(new URL('../src/rebuild/renderer.js',import.meta.url),'utf8');
+const characterStage=await readFile(new URL('../src/rebuild/runtime-character-stage.js',import.meta.url),'utf8');
 const runtime=await readFile(new URL('../src/rebuild/runtime.js',import.meta.url),'utf8');
 
 test('100-year runtime restores edge quality and only reduces resolution under adaptive pressure',()=>{
@@ -31,9 +32,9 @@ test('frame hot path avoids deep-cloning front state and roster reconstruction',
   assert.doesNotMatch(runtime,/structuredClone\(front\)/);
   assert.match(runtime,/view\.updateFront\(front\)/);
   assert.match(runtime,/uiElapsed>=RINNE_RUNTIME_PERFORMANCE\.uiSyncInterval/);
-  assert.match(renderer,/function updateFront\(front\)/);
-  assert.match(renderer,/rosterKey!==enemyRosterKey/);
-  assert.doesNotMatch(renderer,/JSON\.stringify\(equipment\)/);
+  assert.match(characterStage,/function updateFront\(front\)/);
+  assert.match(characterStage,/rosterKey!==state\.enemyRosterKey/);
+  assert.doesNotMatch(characterStage,/JSON\.stringify\(equipment\)/);
   const frame=runtime.slice(runtime.indexOf('function frame(now)'),runtime.indexOf('if(front)view.syncFront(front)'));
   assert.equal((frame.match(/syncUI\(\)/g)||[]).length,1);
   assert.equal((frame.match(/view\.syncFront\(front\)/g)||[]).length,3);

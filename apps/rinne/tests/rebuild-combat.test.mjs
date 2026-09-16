@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createLife} from '../src/rebuild/domain.js';
-import {createFront,normalizeFront,tickFront} from '../src/rebuild/combat.js';
+import {createFront,frontierFatalityChance,normalizeFront,tickFront} from '../src/rebuild/combat.js';
 
-function combatState(){
-  const state=createLife({seed:17});
+function combatState(seed=17){
+  const state=createLife({seed});
   state.phase='living';state.ageSeconds=20*60;state.ageYears=20;state.zone='frontier';state.position={x:0,z:0};state.yaw=0;state.resting=false;
   state.equipment.weapon='sword';state.knownSkills.push('basic.sword');state.skillWeights={jo:{'basic.sword':100},ha:{'basic.sword':100},kyu:{'basic.sword':100}};
   return state;
@@ -40,6 +40,11 @@ test('jo-ha-kyu can retarget to the more immediate threat mid-sequence',()=>{
   const hit=tickFront(state,front,.05).find(event=>event.type==='player-hit');
   assert.equal(hit?.targetId,'b');
   assert.equal(hit?.phase,'kyu');
+});
+
+test('armor and survival skills lower frontier fatality instead of only changing HP',()=>{
+  const base=combatState(71),survivor=combatState(72);survivor.equipment.armor='heavy';survivor.equipment.shield=true;survivor.knownSkills.push('skill.balance','skill.adapt','skill.danger','skill.care','action.guard-step');
+  assert.ok(frontierFatalityChance(base)>=.8);assert.ok(frontierFatalityChance(survivor)<frontierFatalityChance(base));
 });
 
 test('legacy frontier saves gain tactical fields without migration failure',()=>{

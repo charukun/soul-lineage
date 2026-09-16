@@ -41,8 +41,11 @@ test('PULSE retries rate limits exactly and rejects anonymous event refreshes', 
   assert.match(worker, /reconcileRetryAlarm/);
   assert.match(worker, /async alarm\(\)/);
   assert.match(worker, /refresh\('rate-limit-retry'\)/);
+  assert.match(worker, /if \(!env\.OPS_GITHUB_TOKEN\) return/);
+  assert.match(worker, /if \(!token\) throw githubAuthError\(source\)/);
   assert.match(worker, /if \(!token && !env\.OPS_GITHUB_TOKEN\)/);
-  assert.match(worker, /await stub\.getState\(\) \|\| await stub\.refresh\(eventReason\(request\)\)/);
+  assert.match(worker, /if \(!state && env\.OPS_GITHUB_TOKEN\) state = await stub\.refresh\('cold-start'\)/);
+  assert.doesNotMatch(worker, /await stub\.getState\(\) \|\| await stub\.refresh\(eventReason\(request\)\)/);
 });
 
 test('PULSE exposes the API budget used by the current snapshot', () => {

@@ -22,7 +22,11 @@ test('retirement preserves the main and character-review build entries', () => {
 
 test('main game keeps village joining and opt-in host migration diagnostics', () => {
   const main = read('src/main.js');
-  assert.match(main, /installOnlinePlayer\(document\.getElementById\('village-panel'\)\)/);
+  assert.match(main, /import\('\.\/coop\/menu\.js'\)/);
+  assert.match(main, /installCoopMenu\(\{container:document\.getElementById\('village-panel'\)/);
+  assert.match(main, /onPlay:enterCoop/);
+  assert.match(main, /return launch\('coop',coop\)/);
+  assert.match(main, /mode,buildInfo:info,name:[^\n]+prepared,coop/);
   assert.match(main, /getElementById\('open-village'\)\.addEventListener\('click'/);
   assert.match(main, /new URLSearchParams\(location\.search\)\.has\('villageHostLab'\)/);
   assert.match(main, /lab\s*=\s*installVillageHostRehearsal\(/);

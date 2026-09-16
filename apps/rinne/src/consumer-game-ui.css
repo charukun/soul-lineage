@@ -46,7 +46,6 @@
   border-color:#51626c;
   background:linear-gradient(180deg,#7d929f 0%,#647986 72%,#50636e 100%);
 }
-#open-village{background:linear-gradient(180deg,#79758b,#615e76 72%,#514e64)}
 .title-actions :is(.primary,.secondary)::after{
   content:"";position:absolute;left:11px;right:11px;bottom:5px;height:1px;
   background:linear-gradient(90deg,transparent,rgba(255,245,214,.5),transparent);pointer-events:none;

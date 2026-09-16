@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {muraDialogueTopic} from '@soul/world/mura/dialogue';
 import {BIRTH_TOUR_PACE,birthTourLine,birthTourPace,birthTourStops,createBirthTour} from '../src/rebuild/birth-tour.js';
 
 const stations=[
@@ -28,12 +27,11 @@ test('tour pace scales with village spread but passive travel stays within villa
   assert.ok(wide.autoSpeed>compact.autoSpeed);assert.ok(wide.manualSpeed>wide.autoSpeed);
 });
 
-test('facility narration is phrased from shared MURA dialogue facts',()=>{
-  const square=muraDialogueTopic('village-square',{kind:'campfire'}),books=muraDialogueTopic('books',{kind:'school'});
-  assert.match(birthTourLine(stations[1]),/広場/);assert.match(birthTourLine(stations[1]),new RegExp(square.fact));
-  assert.match(birthTourLine(stations[3]),/本にはね/);assert.match(birthTourLine(stations[3]),new RegExp(books.fact));
+test('facility narration comes from shared MURA meanings and only for tour topics',()=>{
+  assert.match(birthTourLine(stations[1]),/焚き火/);
+  assert.match(birthTourLine(stations[1]),/村の集いの中心/);
+  assert.match(birthTourLine(stations[3]),/会ったことのない人の知恵/);
   assert.equal(birthTourLine(stations[8]),null);assert.equal(birthTourLine(stations[9]),null);
-  assert.equal(birthTourLine({id:'bad',topicId:'healing',facilityKind:'school'}),null);
 });
 
 test('manual movement pauses the mother tour and automatic travel resumes after input stops',()=>{
@@ -46,7 +44,7 @@ test('manual movement pauses the mother tour and automatic travel resumes after 
 
 test('arrival narrates a facility once then advances after a short dwell',()=>{
   const tour=createBirthTour(stations,{dwellSeconds:.25});
-  let result=tour.tick(.1,{x:0,z:0},false);assert.equal(result.mode,'dwell');assert.match(result.line,/広場/);
+  let result=tour.tick(.1,{x:0,z:0},false);assert.equal(result.mode,'dwell');assert.match(result.line,/焚き火/);
   result=tour.tick(.25,{x:0,z:0},false);assert.equal(result.mode,'travel');assert.equal(tour.target().id,'home');
   assert.equal(tour.observe(stations[1]),null);
 });

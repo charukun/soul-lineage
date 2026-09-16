@@ -32,11 +32,26 @@ export async function verifyHuntClarity(page, expect, testInfo) {
   await expect(page.locator('#online-open')).toHaveCount(0);
   await expect(page.locator('.soul-music [data-open]')).toBeHidden();
   const bounds=await page.locator('#pause').boundingBox();expect(bounds.width).toBeGreaterThanOrEqual(44);expect(bounds.height).toBeGreaterThanOrEqual(44);
+
+  // Normal hunt is movement-only. Pause is the single system exception and owns
+  // low-frequency help instead of leaving tutorial prose or utility controls on HUD.
   await nativeTap(page, expect, page.locator('#pause'));
-  await assertHuntGuideState(page, expect);
-  // Friend visits use Village invitations; normal hunts expose no player-village entry.
+  await assertMovementOnlyHuntState(page, expect);
   await expect(page.locator('#online-settings')).toHaveCount(0);
   await expect(page.locator('#online-box')).toHaveCount(0);
+  await expect(page.locator('#sheet')).toBeVisible();
+  await expect(page.locator('#movement-help')).toBeVisible();
+  await expect(page.locator('#movement-lineage')).toBeVisible();
+  const helpBounds=await page.locator('#movement-help').boundingBox();expect(helpBounds.width).toBeGreaterThanOrEqual(44);expect(helpBounds.height).toBeGreaterThanOrEqual(44);
+  await nativeTap(page, expect, page.locator('#movement-help'));
+  await expect(page.locator('#sheet-title')).toHaveText('動きかた');
+  await expect(page.locator('#sheet-body')).toContainText('狩場を指で滑らせると移動します。');
+  await page.screenshot({path:testInfo.outputPath('movement-only-help.png')});
+  await nativeTap(page, expect, page.locator('#sheet-close'));
+
+  await assertMovementOnlyHud(page, expect);
+  await nativeTap(page, expect, page.locator('#pause'));
+  await assertMovementOnlyHuntState(page, expect);
   await expect(page.locator('#sheet')).toBeVisible();
   await nativeTap(page, expect, page.locator('#music-library'));
   const time=await page.evaluate(()=>window.__NIGHT_HUNT__.snapshot().time);
@@ -44,17 +59,21 @@ export async function verifyHuntClarity(page, expect, testInfo) {
   await nativeTap(page, expect, page.locator('.soul-music form button'));
   await expect(page.locator('#sheet')).toBeVisible();
   await nativeTap(page, expect, page.locator('#sheet-close'));
-  await nativeTap(page, expect, page.locator('#scent'));
-  await expect(page.locator('#scent')).toBeDisabled();
-  await nativeTap(page, expect, page.locator('#pause'));
-  await assertHuntGuideState(page, expect);
-  await nativeTap(page, expect, page.locator('#sheet-close'));
-  await page.screenshot({path:testInfo.outputPath('first-hunt-guide.png')});
+  await assertMovementOnlyHud(page, expect);
+  await page.screenshot({path:testInfo.outputPath('movement-only-hunt.png')});
+}
+
+async function assertMovementOnlyHud(page, expect) {
+  await expect(page.locator('#first-hunt-guide')).toBeHidden();
+  await expect(page.locator('#scent')).toBeHidden();
+  await expect(page.locator('#dash-stop')).toBeHidden();
+  await expect(page.locator('#swipe-hint')).toBeHidden();
 }
 
 // The village is generated, so a real encounter may start before the first click.
-// Inspect the paused engine, not the guide itself, to determine the exact instruction.
-async function assertHuntGuideState(page, expect) {
+// Inspect the paused engine to keep the first-hunt state machine verified while the
+// movement-only presentation deliberately keeps its prose off the permanent HUD.
+async function assertMovementOnlyHuntState(page, expect) {
   const state = await page.evaluate(() => window.__NIGHT_HUNT__.snapshot());
   expect(state.paused).toBe(true);
   expect(state.finished).toBe(false);
@@ -62,5 +81,5 @@ async function assertHuntGuideState(page, expect) {
   const expected = firstHuntDirectorState(state).stage;
   await expect(page.locator('#first-hunt-guide')).toHaveAttribute('data-step', expected);
   await expect(page.locator('#hud')).toHaveAttribute('data-guide', expected);
-  await expect(page.locator('#first-hunt-guide')).toBeVisible();
+  await assertMovementOnlyHud(page, expect);
 }

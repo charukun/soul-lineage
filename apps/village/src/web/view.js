@@ -1,3 +1,4 @@
+import {reconcileVillageScene} from './scene-reconciler.js';
 import {createMuraTerrain} from '@soul/rendering/mura/terrain';
 import { THREE as T } from '@soul/rendering';
 import { mergeGeometries } from '@soul/rendering';
@@ -33,21 +34,7 @@ export class View{
  getBuilding(kind,material='base',level=1){const key=kind+':'+material+':'+level;if(!this.buildingCache.has(key))this.buildingCache.set(key,flatten(building(kind,material,level)));return this.buildingCache.get(key);}
  getFloor(host){if(!this.floorCache.has(host.kind))this.floorCache.set(host.kind,flatten(floorFor(host)));return this.floorCache.get(host.kind);}
  node(o){const g=defs[o.kind].building?this.getBuilding(o.kind,o.material||'base',o.level||1).clone():this.getProp(o.kind).clone();g.position.set(o.x,.025,o.z);g.rotation.y=o.rot;g.userData.objectId=o.id;return g;}
- rebuild(){
- this.clearObservationOccluders();
- this.objects.traverse(o=>{if(o.userData.privateMaterial)o.material.dispose();});this.objects.clear();this.inside.clear();this.objectNodes.clear();this.picking=[];
- for(const o of this.world.objects){const n=this.node(o);n.userData.hostId=o.id;
-  n.traverse(m=>{if(m.isMesh&&defs[o.kind].building){m.material=m.material.clone();m.userData.privateMaterial=true;if(!ready(o)){m.material.transparent=true;m.material.opacity=o.phase==='building'?.50:.22;m.material.color.lerp(new T.Color(0xb5d9dd),.6);m.castShadow=false;}}});
-  this.objects.add(n);this.objectNodes.set(o.id,n);this.picking.push(n);
-  if(defs[o.kind].building&&ready(o)){
-   const room=new T.Group();room.position.set(o.x,.035,o.z);room.rotation.y=o.rot;room.userData.roomId=o.id;room.add(this.getFloor(o).clone());
-   for(const f of o.room){const m=this.node(f);m.userData.roomId=o.id;room.add(m);this.picking.push(m);}this.inside.add(room);
-  }
- }
- const q=new T.Quaternion(),m=new T.Matrix4();for(const ins of [...this.forestMeshes,...this.flowerMeshes]){ins.userData.forestItems.forEach((o,i)=>{const covered=this.world.objects.some(b=>defs[b.kind].building&&Math.abs(b.x-o.x)<Math.max(defs[b.kind].w,defs[b.kind].d)/2+4&&Math.abs(b.z-o.z)<Math.max(defs[b.kind].w,defs[b.kind].d)/2+4);q.setFromAxisAngle(UP,o.yaw);m.compose(new T.Vector3(o.x,0,o.z),q,new T.Vector3().setScalar(covered?0:o.s));ins.setMatrixAt(i,m);});ins.instanceMatrix.needsUpdate=true;}
- if(this.roomId&&!this.world.object(this.roomId))this.roomId=null;
- this.applyCutaway();this.updateActors();this.objects.updateMatrixWorld(true);this.inside.updateMatrixWorld(true);this.renderer.shadowMap.needsUpdate=true;
- }
+ rebuild(){return reconcileVillageScene(this);}
  cutGeometry(geo,height=1.1){
  const src=geo.index?geo.toNonIndexed():geo,p=src.attributes.position,uv=src.attributes.uv,out=[],tex=[];
  const mix=(a,b,t)=>({x:a.x+(b.x-a.x)*t,y:height,z:a.z+(b.z-a.z)*t,u:a.u+(b.u-a.u)*t,v:a.v+(b.v-a.v)*t});

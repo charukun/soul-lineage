@@ -11,6 +11,7 @@ import { auditTransparency, combineTransparencyAudits } from '@soul/rendering/tr
 import { createThermalTrendGovernor } from '@soul/rendering/thermal-governor';
 import { applyVisualQualityFloor } from '@soul/rendering/visual-quality-floor';
 import { deviceCapabilityProfile, saveDeviceCapability } from '@soul/platform-web/device-capability';
+import { visualSceneTrackerFor } from './visual-scene-tracker.js';
 import { View } from './web/view.js';
 
 const governors = new WeakMap(), densityMatrix = new T.Matrix4(), hiddenMatrix = new T.Matrix4().makeScale(0,0,0), densityPosition = new T.Vector3();
@@ -19,8 +20,8 @@ const densityHash = index => { const x = Math.sin((index + 1) * 73.173 + 11.7) *
 function applyAdaptiveVegetation(view, scale) {
   const target=view.target;if(!target)return;
   const last=view.__adaptiveDensityTarget;
-  if(last&&last.level===view.__stylizedQuality?.level&&last.scale===scale&&Math.hypot(target.x-last.x,target.z-last.z)<5)return;
-  view.__adaptiveDensityTarget={x:target.x,z:target.z,level:view.__stylizedQuality?.level??0,scale};
+  if(last&&last.stylizedTarget===view.__stylizedDensityTarget&&last.level===view.__stylizedQuality?.level&&last.scale===scale&&Math.hypot(target.x-last.x,target.z-last.z)<5)return;
+  view.__adaptiveDensityTarget={x:target.x,z:target.z,level:view.__stylizedQuality?.level??0,scale,stylizedTarget:view.__stylizedDensityTarget};
   for(const instanced of [...(view.forestMeshes||[]),...(view.flowerMeshes||[])]){
     const base=instanced.userData.stylizedDensityBase;if(!base?.length)continue;
     for(let i=0;i<base.length;i++){densityMatrix.copy(base[i]);densityPosition.setFromMatrixPosition(densityMatrix);const distance=Math.hypot(densityPosition.x-target.x,densityPosition.z-target.z);const density=stylizedDensityForDistance('environment',distance)*scale;instanced.setMatrixAt(i,densityHash(i+instanced.id*31)<=density?base[i]:hiddenMatrix);}
@@ -35,10 +36,6 @@ function setShadowSize(view, scale) {
   view.sun.shadow.map?.dispose?.(); view.sun.shadow.map = null; view.renderer.shadowMap.needsUpdate = true;
 }
 
-function textureBytes(view) {
-  return [view.objects,view.outside,view.inside,view.actors].reduce((sum,root)=>sum+auditTextureBudget(root).estimatedBytes,0);
-}
-
 function transparencyAudit(view) {
   return combineTransparencyAudits([view.objects,view.outside,view.inside,view.actors].map(root=>auditTransparency(root)));
 }
@@ -50,27 +47,23 @@ function performanceScene(view) {
 }
 
 function apply(view, snapshot) {
-  const q = snapshot.profile, npcQuality = applyVisualQualityFloor(q, 'npc');
+  const q=snapshot.profile,npcQuality=applyVisualQualityFloor(q,'npc'),state=governors.get(view);
   view.__stylizedQuality = snapshot;
-  view.objects.userData.visualQualityLevel = snapshot.level;
-  view.outside.userData.visualQualityLevel = snapshot.level;
-  view.inside.userData.visualQualityLevel = snapshot.level;
-  view.actors.userData.visualQualityLevel = snapshot.level;
-  for (const root of [view.objects,view.outside,view.inside,view.actors]) for (const child of root.children || []) child.userData.visualQualityLevel = snapshot.level;
   const baseScale = view.__stylizedBaseRenderScale ?? (view.__stylizedBaseRenderScale = view.renderScale || 1);
   const nextScale = baseScale * q.renderScale;
   if (Math.abs(view.renderScale - nextScale) > .001) { view.renderScale = nextScale; view.resize(); }
   setShadowSize(view,q.shadowScale);
-  for (const root of [view.objects,view.outside,view.inside]) {
-    applyTextureQuality(root,{anisotropy:q.textureAnisotropy});
-    for(const child of root.children||[]){const profileId=child.userData?.stylizedArt?.profileId;if(profileId)applyStylizedShading(child,profileId);}
+  for(const root of [view.objects,view.outside,view.inside,view.actors]){
+    const anisotropy=root===view.actors?npcQuality.textureAnisotropy:q.textureAnisotropy;
+    const key=`${snapshot.level}:${anisotropy}:${state.tracker.revision(root)}`;
+    if(state.sceneKeys.get(root)===key)continue;
+    root.userData.visualQualityLevel=snapshot.level;
+    applyTextureQuality(root,{anisotropy});
+    for(const child of root.children){child.userData.visualQualityLevel=snapshot.level;const profileId=child.userData?.stylizedArt?.profileId;if(profileId)applyStylizedShading(child,profileId);}
+    state.textureBytes.set(root,auditTextureBudget(root).estimatedBytes);state.sceneKeys.set(root,key);
   }
-  applyTextureQuality(view.actors,{anisotropy:npcQuality.textureAnisotropy});
-  for(const child of view.actors.children||[]){const profileId=child.userData?.stylizedArt?.profileId;if(profileId)applyStylizedShading(child,profileId);}
-  view.__stylizedDensityTarget = null; view.__adaptiveDensityTarget = null;
-  window.__VILLAGE_STYLIZED_TARGET__?.refreshDensity?.();
-  applyAdaptiveVegetation(view,q.vegetationScale);
-  view.__estimatedTextureBytes = textureBytes(view);
+  view.__estimatedTextureBytes=[...state.textureBytes.values()].reduce((a,b)=>a+b,0);
+
 }
 
 function occlusionRoots(view) {
@@ -89,10 +82,10 @@ function governorFor(view) {
   const device=deviceCapabilityProfile({renderer:view.renderer});
   saveDeviceCapability(device);
   const plan = createWorldCellStreamingPlan({cellSize:32,preloadRadius:2,retainRadius:3});
-  const gpu=createGpuTimer(view.renderer),recorder=createPerformanceRecorder({label:'village'}),occlusion=createConservativeOcclusionCuller({maxChecksPerUpdate:5,minDistance:24,hiddenConfirmations:2});
+  const gpu=createGpuTimer(view.renderer),recorder=createPerformanceRecorder({label:'village',snapshotOnSample:false}),occlusion=createConservativeOcclusionCuller({maxChecksPerUpdate:5,minDistance:24,hiddenConfirmations:2});
   const thermal=createThermalTrendGovernor({sampleEverySeconds:5,baselineSamples:6,windowSamples:12});
-  const governor = createGpuAwareQualityGovernor({targetFps:device.targetFps,initialLevel:Math.max(view.softwareGPU?2:0,device.initialQuality),onChange:s=>apply(view,s)});
-  const state = { governor, plan, gpu, recorder, occlusion, thermal, device, occlusionFrame:0, transparencyFrame:0, transparency:combineTransparencyAudits([]), stream: plan.update(view.target.x,view.target.z) };
+  const governor = createGpuAwareQualityGovernor({targetFps:device.targetFps,initialLevel:Math.max(view.softwareGPU?2:0,device.initialQuality),bottleneckFrames:12,onChange:s=>apply(view,s)});
+  const state = { tracker:visualSceneTrackerFor(view),sceneKeys:new Map(),textureBytes:new Map(),occlusionRevision:-1,occlusionRoots:null,governor, plan, gpu, recorder, occlusion, thermal, device, occlusionFrame:0, transparencyFrame:0, transparency:combineTransparencyAudits([]), stream: plan.update(view.target.x,view.target.z) };
   governors.set(view,state); apply(view,governor.snapshot());
   if (typeof window !== 'undefined') window.__VILLAGE_ADAPTIVE_QUALITY__ = { snapshot:()=>({quality:governor.snapshot(),device,gpu:gpu.snapshot(),thermal:thermal.snapshot(),performance:recorder.snapshot(),occlusion:occlusion.snapshot(),transparency:state.transparency,scene:performanceScene(view),stream:state.stream,textureBytes:view.__estimatedTextureBytes||0}) };
   return state;
@@ -106,6 +99,7 @@ if (typeof render === 'function' && !render.__adaptiveVisualPerformance) {
       actor.userData.presentationDistance = Math.hypot((actor.position?.x||0)-this.target.x,(actor.position?.z||0)-this.target.z);
       actor.userData.visualQualityLevel = level;
     }
+    apply(this,snapshot);
     state.stream = state.plan.update(this.target.x,this.target.z);
     state.gpu.begin('village-frame');
     const result = render.call(this,time,dt,...rest);
@@ -116,7 +110,11 @@ if (typeof render === 'function' && !render.__adaptiveVisualPerformance) {
     if(thermal.recommendedMinLevel>next.level)next=state.governor.setLevel(thermal.recommendedMinLevel);
     if((state.transparencyFrame++%120)===0)state.transparency=transparencyAudit(this);
     state.recorder.sample({frameMs:dt*1000,gpuMs:gpu.emaMs,drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,textureBytes:this.__estimatedTextureBytes||0,transparentDrawCalls:state.transparency.blendedDrawCalls,transparentTriangleUpperBound:state.transparency.transparentTriangleUpperBound});
-    if((state.occlusionFrame++%12)===0){const roots=occlusionRoots(this);state.occlusion.update({camera:this.camera,...roots});}
+    if((state.occlusionFrame++%12)===0){
+      const revision=state.tracker.revision(this.outside);
+      if(state.occlusionRevision!==revision){state.occlusion.revealAll(state.occlusionRoots?.candidates);state.occlusionRoots=occlusionRoots(this);state.occlusionRevision=revision;}
+      state.occlusion.update({camera:this.camera,...state.occlusionRoots});
+    }
     if(next.profile.vegetationScale!==snapshot.profile.vegetationScale)applyAdaptiveVegetation(this,next.profile.vegetationScale);
     return result;
   };

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "materialized": true,
+  "license": "CC0-1.0",
+  "source": {
+    "repository": "KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0",
+    "commit": "84fa4e91af6a88989be7c99e0891cede11f2ca38"
+  },
+  "verification": "Every upstream file is verified with git hash-object against the Git blob ID at the pinned commit before commit.",
+  "policy": "Curated shared visual candidates for Rinne, MURAAAAAAA and 尽喰廻遊. Import does not imply RUNTIME_READY, gameplay collision suitability, Production approval or human Visual Approval.",
+  "assets": [
+    {"id":"arrow-bucket","category":"prop","source":"bucket_arrows","apps":["rinne","village","demon"],"tags":["camp","archery","training"]},
+    {"id":"ladder","category":"prop","source":"ladder","apps":["rinne","village","demon"],"tags":["settlement","work","ruin"]},
+    {"id":"lumber-pile","category":"prop","source":"resource_lumber","apps":["rinne","village","demon"],"tags":["resource","construction","work"]},
+    {"id":"stone-pile","category":"prop","source":"resource_stone","apps":["rinne","village","demon"],"tags":["resource","construction","ruin"]},
+    {"id":"sack","category":"prop","source":"sack","apps":["rinne","village","demon"],"tags":["storage","market","camp"]},
+    {"id":"training-target","category":"prop","source":"target","apps":["rinne","village","demon"],"tags":["training","guard","encounter"]},
+    {"id":"tent","category":"prop","source":"tent","apps":["rinne","village","demon"],"tags":["camp","travel","encounter"]},
+    {"id":"weapon-rack","category":"prop","source":"weaponrack","apps":["rinne","village","demon"],"tags":["weapon","training","guard"]},
+    {"id":"wheelbarrow","category":"prop","source":"wheelbarrow","apps":["rinne","village","demon"],"tags":["work","construction","farm"]},
+    {"id":"tree-a","category":"nature","source":"tree_single_A","apps":["rinne","village","demon"],"tags":["tree","forest","roadside"]},
+    {"id":"tree-b","category":"nature","source":"tree_single_B","apps":["rinne","village","demon"],"tags":["tree","forest","roadside"]},
+    {"id":"rock-a","category":"nature","source":"rock_single_A","apps":["rinne","village","demon"],"tags":["rock","terrain","ruin"]},
+    {"id":"rock-c","category":"nature","source":"rock_single_C","apps":["rinne","village","demon"],"tags":["rock","terrain","ruin"]}
+  ]
+}

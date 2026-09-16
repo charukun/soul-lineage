@@ -24,11 +24,17 @@ export function auditTextureBudget(root, { softBytes = 48 * 1024 * 1024, maxDime
 }
 
 export function applyTextureQuality(root, { anisotropy = 4 } = {}) {
+  const targetAnisotropy = Math.max(1, Math.floor(anisotropy));
   const textures = new Set();
   root?.traverse?.(node => { for (const material of materialRows(node)) for (const value of Object.values(material)) if (value?.isTexture) textures.add(value); });
   for (const texture of textures) {
-    if ('anisotropy' in texture) texture.anisotropy = Math.max(1, Math.floor(anisotropy));
-    texture.needsUpdate = true;
+    // Pressure-axis changes can reapply the same profile every few frames.
+    // Retain a texture's existing dirty state, but do not request a fresh GPU
+    // upload when its sampler setting has not changed.
+    if ('anisotropy' in texture && texture.anisotropy !== targetAnisotropy) {
+      texture.anisotropy = targetAnisotropy;
+      texture.needsUpdate = true;
+    }
   }
-  return { textures: textures.size, anisotropy: Math.max(1, Math.floor(anisotropy)) };
+  return { textures: textures.size, anisotropy: targetAnisotropy };
 }
