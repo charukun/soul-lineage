@@ -5,10 +5,13 @@ import {EVIDENCE_CLASS,RRP_SAFETY_KEYS} from '../src/game/reality-lab/performanc
 
 const safety=()=>Object.fromEntries(RRP_SAFETY_KEYS.map(key=>[key,0]));
 const provenance={buildRevision:'abc',runtime:'Chrome',deviceClass:'mixed-physical',deviceModel:'Pixel Fold + desktop peer',peers:2,networkProfile:'wifi-lan'};
-const routeCapture=(role,overrides={})=>({
-  _capture:{schema:'rrp-raw-peer-capture',version:1,role,worldId:'room',buildRevision:'abc',environment:'dev',expectedPeers:2,windowArmed:true,capturedAt:'2026-09-17T00:00:00Z',...(overrides._capture||{})},
-  durationMinutes:1,bandwidthSkippedBuckets:0,connectionAttempts:1,connectionSuccesses:1,turnCandidateClassifiedConnections:0,turnRelayConnections:0,...overrides,
-});
+const routeCapture=(role,overrides={})=>{
+  const {_capture:metaOverrides={},...rest}=overrides;
+  return{
+    _capture:{schema:'rrp-raw-peer-capture',version:1,role,worldId:'room',buildRevision:'abc',environment:'dev',expectedPeers:2,windowArmed:true,capturedAt:'2026-09-17T00:00:00Z',...metaOverrides},
+    durationMinutes:1,bandwidthSkippedBuckets:0,connectionAttempts:1,connectionSuccesses:1,turnCandidateClassifiedConnections:0,turnRelayConnections:0,...rest,
+  };
+};
 
 test('multipeer raw captures merge legacy host and guest samples without inventing missing fields',()=>{
   const host={hostUplinkKbps:[800,900],reliableBufferedAmountBytes:[1000],durationMinutes:1,bandwidthSkippedBuckets:2,connectionAttempts:1,connectionSuccesses:1,turnCandidateClassifiedConnections:1,turnRelayConnections:0};
