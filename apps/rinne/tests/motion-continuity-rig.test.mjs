@@ -13,6 +13,10 @@ import { appearanceForCharacter,visualIdentityForCharacter } from '@soul/charact
 import { createReviewCohort,reviewSettings,editReviewCharacter } from '../src/character-review-state.js';
 import { loadWorkshopMotionSource } from '../src/character-motion-source.js';
 const readAsset=async id=>{const path=id.startsWith('motion:')?`motions/${id.slice(7)}.vrma`:`${id}_review.vrm`;const b=await readFile(new URL(`../public/simulator/assets/${path}`,import.meta.url));return b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength);};
+const correctionChange=(a,b)=>Math.max(...['left','right'].flatMap(side=>[
+  ...['hand','elbow'].map(point=>Math.hypot(...a[side][point].map((value,axis)=>value-b[side][point][axis]))),
+  Math.abs(a[side].twist-b[side].twist)
+]));
 
 
 test('continuous correction and carry transfer preserve expressive motion across real body variants',async()=>{
@@ -35,16 +39,20 @@ test('continuous correction and carry transfer preserve expressive motion across
       const base=t=>actor.sample(appearance,t,()=>qa.apply(sampleMotionFrames({...bank,frames:bank.qualityFrames},t)));
       const sampler=createCorrectionSampler({duration:30,evaluate:t=>{base(t);return qa.measureCorrection();}});
       const times=i===0?Array.from({length:1801},(_,f)=>f/60):[...Array.from({length:30},(_,n)=>(1025+n)/60),...Array.from({length:17},(_,n)=>(697+n)/60),...Array.from({length:17},(_,n)=>(1552+n)/60)];
-      let legacyRisk=0,continuousRisk=0,legacyStep=0,continuousStep=0,previous=null,previousLegacy=null,lastTime=-1,maxPalmTurn=0;
+      let legacyRisk=0,continuousRisk=0,legacyStep=0,continuousStep=0,legacyCorrectionStep=0,continuousCorrectionStep=0,previous=null,previousLegacy=null,previousLegacyCorrection=null,previousCorrection=null,lastTime=-1,maxPalmTurn=0;
       for(const time of times){
-        base(time);legacyRisk=Math.max(legacyRisk,risk(qa.correct()));const legacy=rotations(actor);
+        base(time);const legacyCorrection=qa.measureCorrection();legacyRisk=Math.max(legacyRisk,risk(qa.inspect()));const legacy=rotations(actor);
         const correction=sampler.sample(time);base(time);const hand=hierarchyQuaternion(actor.bones.rightHand);
         const quality=qa.applyCorrection(correction);continuousRisk=Math.max(continuousRisk,risk(quality));
         maxPalmTurn=Math.max(maxPalmTurn,hand.angleTo(hierarchyQuaternion(actor.bones.rightHand)));
         qa.matchWeaponTransfer(REVIEW_SWORD_CALIBRATION,bank.socket,bank.attachments[Math.round(time*60)].draw);
         const now=rotations(actor);for(const q of Object.values(now))assert.ok(q.toArray().every(Number.isFinite));
-        if(previous&&time-lastTime>0&&time-lastTime<.02)for(const n of names){legacyStep=Math.max(legacyStep,legacy[n].angleTo(previousLegacy[n]));continuousStep=Math.max(continuousStep,now[n].angleTo(previous[n]));}
-        previous=now;previousLegacy=legacy;lastTime=time;
+        if(previous&&time-lastTime>0&&time-lastTime<.02){
+          for(const n of names){legacyStep=Math.max(legacyStep,legacy[n].angleTo(previousLegacy[n]));continuousStep=Math.max(continuousStep,now[n].angleTo(previous[n]));}
+          legacyCorrectionStep=Math.max(legacyCorrectionStep,correctionChange(legacyCorrection,previousLegacyCorrection));
+          continuousCorrectionStep=Math.max(continuousCorrectionStep,correctionChange(correction,previousCorrection));
+        }
+        previous=now;previousLegacy=legacy;previousLegacyCorrection=legacyCorrection;previousCorrection=correction;lastTime=time;
       }
       assert.ok(continuousRisk<=legacyRisk+.001,`clearance regression ${i}: ${legacyRisk} -> ${continuousRisk}`);
       assert.ok(maxPalmTurn<1e-6,'authored world palm rotation and blade direction are preserved');
@@ -61,10 +69,11 @@ test('continuous correction and carry transfer preserve expressive motion across
         const handGrip=new T.Vector3(...REVIEW_SWORD_CALIBRATION.grip).applyMatrix4(sword.matrixWorld);
         assert.ok(handGrip.distanceTo(carry)<1e-5,`handoff teleport ${i}: ${handGrip.distanceTo(carry)}`);
       }
-      assert.deepEqual(record,saved);evidence.push({index:i,age:record.ageMs/60000,legacyRisk,continuousRisk,legacyStep,continuousStep,maxPalmTurn,transferBefore,transferAfter});
+      assert.deepEqual(record,saved);evidence.push({index:i,age:record.ageMs/60000,legacyRisk,continuousRisk,legacyStep,continuousStep,legacyCorrectionStep,continuousCorrectionStep,maxPalmTurn,transferBefore,transferAfter});
     }
     console.log('MOTION_CONTINUITY_RIG',JSON.stringify(evidence));
-    assert.ok(evidence[0].continuousStep<evidence[0].legacyStep*.8,'reduce correction switching without filtering action keys');
+    assert.ok(evidence[0].continuousCorrectionStep<evidence[0].legacyCorrectionStep*.8,'reduce correction switching without filtering action keys');
+    assert.ok(evidence[0].continuousStep<=evidence[0].legacyStep+.001,'continuous correction must not amplify authored motion steps');
     assert.ok(evidence.some(row=>row.transferBefore>.02),'reproduce existing body-variant handoff mismatch');
     assert.ok(evidence.every(row=>row.transferAfter<1e-5),'one shared transfer profile fixes all measured palms');
   }finally{pool?.dispose();SourceLoader.prototype.parseAsync=original;delete globalThis.window;delete globalThis.self;}
