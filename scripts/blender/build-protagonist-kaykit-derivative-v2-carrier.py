@@ -93,36 +93,58 @@ def _component_rows(obj: bpy.types.Object) -> list[dict]:
 
 
 def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
-    """Remove the source Knight's detached left-chest star/ribbon islands only."""
+    """Remove only asymmetric detached Knight badge/ribbon islands.
+
+    Blender imports glTF Y-up as Z-up, so Z is height and negative Y is the front of
+    the character. The real tunic/body panels are mirrored left/right; the Knight's
+    star-and-ribbon badge is the compact unmatched island cluster on the left chest.
+    Matching by mirror symmetry is intentionally safer than deleting a guessed edit-
+    mode face region and preserves the copied KayKit torso shell.
+    """
     if "body" not in obj.name.lower() or not obj.data.vertices:
         return 0
+
     minimum, maximum = _world_bounds(obj)
     size = maximum - minimum
+    center = (minimum + maximum) * 0.5
+    rows = _component_rows(obj)
     remove_vertices: set[int] = set()
     removed_components = 0
-    for component in _component_rows(obj):
-        point = component["point"]
-        nx = (point.x - minimum.x) / max(size.x, 1e-6)
-        ny = (point.y - minimum.y) / max(size.y, 1e-6)
-        nz = (point.z - minimum.z) / max(size.z, 1e-6)
-        # Exact source region occupied by the Knight's asymmetric star and its two
-        # hanging ribbon islands. The large torso shell and mirrored garment panels
-        # sit outside this compact left-front region.
-        chest_badge = (
-            component["count"] <= 20
-            and 0.10 <= nx <= 0.36
-            and 0.43 <= ny <= 0.80
-            and 0.70 <= nz <= 1.02
-        )
-        if not chest_badge:
+
+    for component in rows:
+        if component["count"] > 20:
             continue
+        point = component["point"]
+        vertical = (point.z - minimum.z) / max(size.z, 1e-6)
+        is_left_chest = (
+            point.x < center.x - size.x * 0.08
+            and point.y < center.y - size.y * 0.04
+            and 0.43 <= vertical <= 0.82
+        )
+        if not is_left_chest:
+            continue
+
+        mirrored = any(
+            other is not component
+            and other["point"].x > center.x + size.x * 0.04
+            and abs((other["point"].x - center.x) + (point.x - center.x)) <= size.x * 0.05
+            and abs(other["point"].y - point.y) <= size.y * 0.06
+            and abs(other["point"].z - point.z) <= size.z * 0.05
+            and abs(other["count"] - component["count"]) <= max(2, int(component["count"] * 0.5))
+            for other in rows
+        )
+        if mirrored:
+            continue
+
         removed_components += 1
         for face_index in component["faces"]:
             remove_vertices.update(obj.data.polygons[face_index].vertices)
 
     if not remove_vertices:
-        return 0
+        raise RuntimeError("KayKit Knight chest badge was not found as asymmetric left-chest islands")
+
     mesh = obj.data
+    faces_before = len(mesh.polygons)
     bm = bmesh.new()
     bm.from_mesh(mesh)
     bm.verts.ensure_lookup_table()
@@ -131,6 +153,10 @@ def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
     bm.to_mesh(mesh)
     bm.free()
     mesh.update()
+    if len(mesh.polygons) >= faces_before:
+        raise RuntimeError("KayKit Knight chest badge removal did not reduce body faces")
+    if removed_components > 80:
+        raise RuntimeError(f"KayKit Knight chest badge removal selected too many islands: {removed_components}")
     return removed_components
 
 
@@ -142,8 +168,10 @@ def _soften_knight_sleeve(obj: bpy.types.Object) -> None:
     radial = [abs(point.x) for point in world_points]
     start, end = min(radial), max(radial)
     span = max(end - start, 1e-6)
-    shoulder_points = [point for point, distance in zip(world_points, radial)
-                       if (distance - start) / span <= 0.20]
+    shoulder_points = [
+        point for point, distance in zip(world_points, radial)
+        if (distance - start) / span <= 0.20
+    ]
     if not shoulder_points:
         return
     center_y = sum(point.y for point in shoulder_points) / len(shoulder_points)
@@ -155,7 +183,7 @@ def _soften_knight_sleeve(obj: bpy.types.Object) -> None:
             continue
         t = max(0.0, min(1.0, along / 0.42))
         smooth = t * t * (3.0 - 2.0 * t)
-        factor = 0.76 + 0.24 * smooth
+        factor = 0.72 + 0.28 * smooth
         point.y = center_y + (point.y - center_y) * factor
         point.z = center_z + (point.z - center_z) * factor
         vertex.co = inverse @ point
@@ -190,8 +218,8 @@ def villageize_source_parts(meshes: list[bpy.types.Object]) -> None:
 
         if "body" in name:
             _remove_knight_chest_badge(obj)
-            # Deliberately keep the copied torso one plain cloth material. The source
-            # geometry supplies the silhouette; painted armor-like facets do not.
+            # Keep the copied torso as one humble cloth surface. The KayKit geometry
+            # supplies the silhouette; armor-like palette facets do not.
             _material_slots(obj, [linen])
             for polygon in obj.data.polygons:
                 polygon.material_index = 0
@@ -217,8 +245,8 @@ def villageize_source_parts(meshes: list[bpy.types.Object]) -> None:
             size = maximum - minimum
 
             def leg_material(component):
-                vertical = (component["point"].y - minimum.y) / max(size.y, 1e-6)
-                return 0 if vertical >= 0.50 else 1
+                vertical = (component["point"].z - minimum.z) / max(size.z, 1e-6)
+                return 0 if vertical >= 0.48 else 1
 
             _assign_component_materials(obj, leg_material)
             continue
