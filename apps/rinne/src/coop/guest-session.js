@@ -5,7 +5,7 @@ import { normalizeFront } from '../rebuild/combat.js';
 import { validateMuraLayout } from '@soul/world/mura';
 import { createRoomWire } from './wire.js';
 
-export async function joinCoopHost({invite,name,contentVersion,RTCPeerConnection,resume=null,remember=()=>{},onChange=()=>{},now=()=>performance.now(),performanceProbe=null}){
+export async function joinCoopHost({invite,name,contentVersion,RTCPeerConnection,resume=null,remember=()=>{},onChange=()=>{},now=()=>performance.now(),performanceProbe=null,afterFrame=callback=>typeof requestAnimationFrame==='function'?requestAnimationFrame(callback):queueMicrotask(callback)}){
   let connection=null,latest=null,phase='connecting',selfId=null,layout=null,error='',lastSeen=now(),seq=0,lastEpoch=0,lastTick=-1,lastRevision=0,disposed=false,rebirthRequest=null,lastDisplayQueued=-1;
   const probe=performanceProbe;
   const send=m=>wire.send(connection,{...m,worldId:invite.worldId,protocol:COOP_PROTOCOL,epoch:lastEpoch});
@@ -47,8 +47,7 @@ export async function joinCoopHost({invite,name,contentVersion,RTCPeerConnection
   }
   function inputDisplayed(inputSeq){
     if(!probe||!Number.isSafeInteger(inputSeq)||inputSeq<0||inputSeq<=lastDisplayQueued)return false;lastDisplayQueued=inputSeq;
-    const commit=()=>{if(!disposed)probe.inputDisplayed(inputSeq);};
-    if(typeof requestAnimationFrame==='function')requestAnimationFrame(commit);else queueMicrotask(commit);return true;
+    afterFrame(()=>{if(!disposed)probe.inputDisplayed(inputSeq);});return true;
   }
   return{role:'guest',worldId:invite.worldId,get selfId(){return selfId;},get layout(){return layout;},answerCode:connection.code,
     input:direction=>{if(phase!=='open'||latest?.historyPending)return false;const next=++seq;probe?.inputSent(next);const sent=send({type:'input',input:{seq:next,...direction}});if(!sent)probe?.inputAborted(next);return sent;},
