@@ -96,11 +96,21 @@ export async function verifyRebuildPlaythrough(browser,url,output){
     await sleep(450);
     await page.mouse.up();
     assert.equal(await page.locator('#move-hint').isHidden(),true,'control hint should disappear after the first movement');
-    for(let i=0;i<3;i++)await page.locator('#clock-rate').click();
-    assert.equal(await page.locator('#clock-rate').evaluate(node=>node.value),'20');
-    await page.waitForFunction(()=>document.getElementById('life-stage')?.textContent.includes('2/6 '),null,{timeout:18000});
+
+    // Birth intentionally hides the world-clock control. Start from a nearby persisted
+    // age at the fast clock rate, cross the real release boundary, then exercise the
+    // clock button only after it becomes a visible player control.
+    const releaseEdge=stateAt(3.95,49);releaseEdge.clockRate=20;
+    await load(releaseEdge);
+    assert.equal(await text(page.locator('#life-stage')),'1/6 誕生');
+    assert.equal(await page.locator('#game-screen').getAttribute('data-birth-tour'),'true');
+    await page.waitForFunction(()=>document.getElementById('life-stage')?.textContent.includes('2/6 '),null,{timeout:5000});
     assert.equal(await page.locator('#game-screen').getAttribute('data-birth-tour'),'false');
     await page.locator('.objective-card').waitFor({state:'visible'});
+    await page.locator('#clock-rate').waitFor({state:'visible'});
+    assert.equal(await page.locator('#clock-rate').evaluate(node=>node.value),'20');
+    await page.locator('#clock-rate').click();
+    assert.equal(await page.locator('#clock-rate').evaluate(node=>node.value),'1');
     assert.match(await text(page.locator('#life-stage')), /^2\/6 /);
     assert.ok((await text(page.locator('#objective'))).length>0,'post-birth guidance must expose the next world action');
     assert.ok((await text(page.locator('#objective-badge'))).length>0,'post-birth guidance must expose progression context');
