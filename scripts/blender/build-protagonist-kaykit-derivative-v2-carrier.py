@@ -34,5 +34,6 @@ def reset_scene_with_world() -> None:
     scene.world.color = (0.035, 0.045, 0.05)
 
 
+# Keep this shim in the carrier trigger set so exact-source DCC regeneration is explicit.
 module.reset_scene = reset_scene_with_world
 module.main()
