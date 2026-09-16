@@ -12,9 +12,10 @@ export function readInvitation(value,now=Date.now()){
 }
 
 /** Bound large welcome/save-derived messages below SCTP message limits; at most one bounded assembly. */
-export function createRoomWire(onMessage,{now=()=>performance.now(),onSendSample=()=>{}}={}){
+export function createRoomWire(onMessage,{now=()=>performance.now(),onSendSample=null}={}){
   let outgoing=0,assembly=null,received=0;
-  const sample=value=>{try{onSendSample(value);}catch{/* metrics must never break gameplay */}};
+  const metrics=typeof onSendSample==='function';
+  const sample=value=>{if(!metrics)return;try{onSendSample(value);}catch{/* metrics must never break gameplay */}};
   function receive(frame){
     if(!frame||frame.type!=='coop-part'||!Number.isSafeInteger(frame.id)||frame.id<=received||!Number.isInteger(frame.part)||!Number.isInteger(frame.total)||frame.total<1||frame.total>128||frame.part<0||frame.part>=frame.total||typeof frame.data!=='string'||frame.data.length>4000)return false;
     if(!assembly||now()>assembly.expires||frame.id>assembly.id)assembly={id:frame.id,total:frame.total,parts:new Map(),expires:now()+5000};
@@ -29,8 +30,10 @@ export function createRoomWire(onMessage,{now=()=>performance.now(),onSendSample
     if(replaceable&&(beforeReliable>64000||beforePresence>64000)){sample({payloadBytes:0,reliableBufferedAmount:beforeReliable,presenceBufferedAmount:beforePresence,replaceable,dropped:true});return false;}
     const text=JSON.stringify(message),total=Math.ceil(text.length/4000);if(total>128)throw Error('共有データが送信上限を超えました。');const id=++outgoing;
     for(let part=0;part<total;part++)connection.send({type:'coop-part',id,part,total,data:text.slice(part*4000,(part+1)*4000)});
-    const payloadBytes=new TextEncoder().encode(text).byteLength,afterReliable=Number(connection.channel.bufferedAmount)||0,afterPresence=Number(connection.presenceBufferedAmount?.())||0;
-    sample({payloadBytes,reliableBufferedAmount:Math.max(beforeReliable,afterReliable),presenceBufferedAmount:Math.max(beforePresence,afterPresence),replaceable,dropped:false});
+    if(metrics){
+      const payloadBytes=new TextEncoder().encode(text).byteLength,afterReliable=Number(connection.channel.bufferedAmount)||0,afterPresence=Number(connection.presenceBufferedAmount?.())||0;
+      sample({payloadBytes,reliableBufferedAmount:Math.max(beforeReliable,afterReliable),presenceBufferedAmount:Math.max(beforePresence,afterPresence),replaceable,dropped:false});
+    }
     return true;
   }
   return{receive,send};
