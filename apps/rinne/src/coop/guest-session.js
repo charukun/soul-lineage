@@ -47,6 +47,7 @@ export async function joinCoopHost({invite,name,contentVersion,RTCPeerConnection
   }
   return{role:'guest',worldId:invite.worldId,get selfId(){return selfId;},get layout(){return layout;},answerCode:connection.code,
     input:direction=>{if(phase!=='open'||latest?.historyPending)return false;const next=++seq;probe?.inputSent(next);const sent=send({type:'input',input:{seq:next,...direction}});if(!sent)probe?.inputAborted(next);return sent;},
+    inputDisplayed:inputSeq=>probe?.inputDisplayed(inputSeq)??false,frameRendered:frameMs=>probe?.recordFrame(frameMs)??false,
     rebirth,setRate:()=>{},pause:()=>{},save:async()=>true,
     snapshot:()=>({phase,error,view:latest}),performance:()=>probe?.snapshot()??null,dispose:()=>{if(disposed)return;disposed=true;phase='closed';clearInterval(timer);failRequest('村を離れました。');connection.close();}};
 }
