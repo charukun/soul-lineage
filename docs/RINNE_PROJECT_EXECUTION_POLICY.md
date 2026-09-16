@@ -96,6 +96,17 @@ browser repair は [`BROWSER_SELF_HEALING.md`](BROWSER_SELF_HEALING.md)、Integr
 
 この承認は、無関係なデータ、別 Repository / account / provider、新規課金、credential/security 変更、破壊的操作、実装 worker による develop merge、main / Production 公開を許可しない。
 
+## 完了報告の画像・動画エビデンス
+
+作業依頼への完了報告では、実際に確認した結果のキャプチャーまたは動画をユーザーへ見せる。画像・動画の保存だけ、PR URLだけ、テスト成功の文章だけでは視覚エビデンスの提示完了としない。
+
+- 見た目の変更は変更箇所が分かるキャプチャー、移動・戦闘・アニメーション・操作の変更は該当操作の動画を優先する。比較が必要なら同じ条件の変更前後を添える。
+- 文書・基盤など画面を変更しない作業は、実際の検証結果や変更結果のキャプチャーを使い、ゲーム画面の確認とは区別する。無関係なタイトル画面や生成した見本画像を実証拠にしない。
+- 対象SHA、確認環境（local PR preview / deployed DEVなど）、画面・操作、結果、未確認範囲を証拠と対応づける。PR headの録画をDEV公開確認として扱わない。別SHAの証拠の使い回しは禁止。
+- 最終応答では代表画像をインライン表示するか、動画を再生可能な添付で提示する。保存済みの証拠・PR報告へのリンクも添えられるが、リンクだけで代替しない。トークン・個人情報等が映り込む場合は撮影範囲を限定する。
+- 局所検証時に撮影できるものはReady前に取得する。非同期CIの証拠はIntegration側が対象PR/headへ追記する。取得待ち・環境制約・失敗の場合は `未取得` と理由・担当経路を明記し、画像を見せた／動作を確認したとは報告しない。
+- Ready / `READY_FOR_INTEGRATION` は引き続き実装の終了境界。証拠待ちでCIをpollingしない。browser assertion、review、main / Productionの品質gateを弱めない。
+
 ## 最終応答
 
 通常実装の最終応答には最低限、次を含める。
@@ -107,6 +118,7 @@ browser repair は [`BROWSER_SELF_HEALING.md`](BROWSER_SELF_HEALING.md)、Integr
 - Ready for review 化済み
 - `READY_FOR_INTEGRATION`
 - 実行した高速検証
+- 上記のキャプチャー／動画と短い確認内容、または未取得理由と非同期の証拠追記先
 - CI / handoff recorder / 通知が未確認または実行中なら、その事実
 
 CI・browser・通知完了を待って最終応答を遅らせない。
