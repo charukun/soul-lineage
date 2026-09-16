@@ -1,3 +1,5 @@
+import './character-workshop-ux.css';
+
 const byId = id => document.getElementById(id);
 const qs = selector => document.querySelector(selector);
 
@@ -140,12 +142,12 @@ function moveIntoDetails(details, node) {
 
 function simplifyMotionReview() {
   const root = byId('motion-qa');
-  if (!root || byId('workshop-qa-details')) return false;
+  if (!root || !byId('qa-live-toggle') || byId('workshop-qa-details')) return false;
 
   const heading = root.querySelector('h2');
-  if (heading) heading.textContent = '演舞レビュー';
+  if (heading && heading.textContent !== '演舞レビュー') heading.textContent = '演舞レビュー';
   const start = byId('qa-start');
-  if (start) start.textContent = '▶ 30秒演舞';
+  if (start && start.textContent !== '▶ 30秒演舞') start.textContent = '▶ 30秒演舞';
 
   const details = document.createElement('details');
   details.id = 'workshop-qa-details';
@@ -159,14 +161,12 @@ function simplifyMotionReview() {
   details.append(tools);
 
   const live = byId('qa-live-toggle');
-  if (live) {
-    if (!liveCompareNormalized && live.getAttribute('aria-pressed') === 'true') {
-      live.click();
-      liveCompareNormalized = true;
-    }
-    live.textContent = '左右比較 OFF';
-    tools.append(live);
+  if (!liveCompareNormalized && live.getAttribute('aria-pressed') === 'true') {
+    live.click();
+    liveCompareNormalized = true;
   }
+  if (live.getAttribute('aria-pressed') === 'false') live.textContent = '左右比較 OFF';
+  tools.append(live);
 
   let debugEnabled = false;
   document.documentElement.dataset.motionDebug = 'off';
@@ -212,7 +212,7 @@ function simplifyComparison() {
   const baseline = byId('quality-baseline');
   const camera = byId('quality-camera');
   const heading = panel.querySelector('h2');
-  if (heading) heading.textContent = '比べる';
+  if (heading && heading.textContent !== '比べる') heading.textContent = '比べる';
 
   const quick = document.createElement('div');
   quick.className = 'workshop-compare-quick';
@@ -237,18 +237,18 @@ function simplifyComparison() {
 
 function normalizeMotionLabels() {
   const tab = byId('tab-qa');
-  if (tab) tab.textContent = '演舞';
+  if (tab && tab.textContent !== '演舞') tab.textContent = '演舞';
   const heading = qs('#motion-qa > h2');
-  if (heading) heading.textContent = '演舞レビュー';
+  if (heading && heading.textContent !== '演舞レビュー') heading.textContent = '演舞レビュー';
   const start = byId('qa-start');
-  if (start) start.textContent = '▶ 30秒演舞';
+  if (start && start.textContent !== '▶ 30秒演舞') start.textContent = '▶ 30秒演舞';
   const live = byId('qa-live-toggle');
-  if (live && live.getAttribute('aria-pressed') === 'false') live.textContent = '左右比較 OFF';
+  if (live && live.getAttribute('aria-pressed') === 'false' && live.textContent !== '左右比較 OFF') live.textContent = '左右比較 OFF';
 }
 
 function install() {
   if (installed) return true;
-  if (!window.characterStudio || !qs('.mode-tabs') || !byId('motion-qa')) return false;
+  if (!window.characterStudio || !qs('.mode-tabs') || !byId('motion-qa') || !byId('qa-live-toggle')) return false;
   buildIntentNavigation();
   compactStageActions();
   if (!simplifyMotionReview()) return false;
