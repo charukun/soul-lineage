@@ -92,15 +92,32 @@ def _component_rows(obj: bpy.types.Object) -> list[dict]:
     return rows
 
 
-def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
-    """Remove only asymmetric detached Knight badge/ribbon islands.
+def _seat_badge_backing_as_linen_patch(obj: bpy.types.Object, vertex_indices: set[int]) -> None:
+    """Reuse the real Knight badge backing as a flush cloth repair patch.
 
-    Blender imports glTF Y-up as Z-up, so Z is height and negative Y is the front of
-    the character. The real tunic/body panels are mirrored left/right; the Knight's
-    star-and-ribbon badge is the compact unmatched island cluster on the left chest.
-    Matching by mirror symmetry is intentionally safer than deleting a guessed edit-
-    mode face region and preserves the copied KayKit torso shell.
+    The source backing sits slightly behind the tunic surface because the raised badge
+    covers it. After the decorative badge islands are removed that depth reads as a
+    black notch. Move only this copied KayKit backing piece a few centimeters toward
+    the chest surface and expand it subtly in X/Z so it closes the original recess.
     """
+    if not vertex_indices:
+        raise RuntimeError("KayKit Knight badge backing vertices were not identified")
+    valid = [index for index in sorted(vertex_indices) if index < len(obj.data.vertices)]
+    if not valid:
+        raise RuntimeError("KayKit Knight badge backing vertex indices became invalid")
+    points = [obj.matrix_world @ obj.data.vertices[index].co for index in valid]
+    center = sum(points, Vector((0.0, 0.0, 0.0))) / len(points)
+    inverse = obj.matrix_world.inverted()
+    for index, point in zip(valid, points):
+        point.x = center.x + (point.x - center.x) * 1.10
+        point.z = center.z + (point.z - center.z) * 1.10
+        point.y -= 0.045
+        obj.data.vertices[index].co = inverse @ point
+    obj.data.update()
+
+
+def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
+    """Remove only asymmetric detached Knight badge/ribbon islands."""
     if "body" not in obj.name.lower() or not obj.data.vertices:
         return 0
 
@@ -109,6 +126,7 @@ def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
     center = (minimum + maximum) * 0.5
     rows = _component_rows(obj)
     remove_vertices: set[int] = set()
+    backing_vertices: set[int] = set()
     removed_components = 0
 
     for component in rows:
@@ -124,16 +142,17 @@ def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
         if not is_left_chest:
             continue
 
-        # The compact eight-face island is the source badge backing plate. The
-        # Knight mesh leaves no torso surface immediately behind it, so deleting
-        # that plate creates a visible hole. Keep the real KayKit plate, recolor
-        # it with the body linen below, and remove only the star/ribbon artwork.
+        # This exact eight-face island is the source badge backing plate. Keep the
+        # existing KayKit part and reuse it as a plain cloth repair patch instead of
+        # deleting it or synthesizing replacement torso geometry.
         is_backing_plate = (
             component["count"] == 8
             and 0.64 <= vertical <= 0.73
             and point.x < center.x - size.x * 0.18
         )
         if is_backing_plate:
+            for face_index in component["faces"]:
+                backing_vertices.update(obj.data.polygons[face_index].vertices)
             continue
 
         mirrored = any(
@@ -154,6 +173,7 @@ def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
 
     if not remove_vertices:
         raise RuntimeError("KayKit Knight chest badge was not found as asymmetric left-chest islands")
+    _seat_badge_backing_as_linen_patch(obj, backing_vertices)
 
     mesh = obj.data
     faces_before = len(mesh.polygons)
@@ -230,8 +250,6 @@ def villageize_source_parts(meshes: list[bpy.types.Object]) -> None:
 
         if "body" in name:
             _remove_knight_chest_badge(obj)
-            # Keep the copied torso as one humble cloth surface. The KayKit geometry
-            # supplies the silhouette; armor-like palette facets do not.
             _material_slots(obj, [linen])
             for polygon in obj.data.polygons:
                 polygon.material_index = 0
