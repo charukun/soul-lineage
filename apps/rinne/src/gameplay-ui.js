@@ -57,14 +57,16 @@ export function createGameplayUI(gameScreen,{stations,layout,audio}){
     if(!silent)audio.ui();
   }
   function close(){ui.panel.hidden=true;delete ui.panel.dataset.type;ui.panel.style.removeProperty('--skill-sheet-drag');delete ui.panel.dataset.dragging;markOpenControl('');audio.ui();}
+  function bindState(next){
+    state=next;const lifeChanged=skillSetter.bindState(next);if(lifeChanged&&!ui.panel.hidden&&['skills','mind'].includes(ui.panel.dataset.type)){ui.panel.hidden=true;delete ui.panel.dataset.type;markOpenControl('');}
+  }
   function refresh(){if(ui.panel.hidden||!state)return;open(ui.panel.dataset.type||'items',{silent:true,keepScroll:true,skillId:skillSetter.firstUnseen()});}
   function summary(s,{dashing=false,resting=false,training=null}={}){
-    state=s;const lifeChanged=skillSetter.bindState(s);if(lifeChanged&&!ui.panel.hidden&&['skills','mind'].includes(ui.panel.dataset.type)){ui.panel.hidden=true;delete ui.panel.dataset.type;markOpenControl('');}
-    speech.sync();ui.name.textContent=`${s.name||'旅人'} · ${Math.floor(s.ageYears||0)}歳`;ui.equip.textContent=`${WEAPON_LABELS[s.equipment?.weapon]||'素手'} · ${ARMOR_LABELS[s.equipment?.armor]||'旅装'}`;
+    state=s;speech.sync();ui.name.textContent=`${s.name||'旅人'} · ${Math.floor(s.ageYears||0)}歳`;ui.equip.textContent=`${WEAPON_LABELS[s.equipment?.weapon]||'素手'} · ${ARMOR_LABELS[s.equipment?.armor]||'旅装'}`;
     ui.state.textContent=s.down?'行動不能':resting?'休憩':dashing?'疾走':s.combat||training?.d<2.8?'戦闘態勢':'探索';ui.rest.hidden=!resting;ui.dash.dataset.active=String(dashing);const engaged=training?.d<2.8;ui.training.hidden=!engaged;if(engaged)ui.trainingName.textContent=training.label;
   }
 
   skillSetter.bindInteractions({openSkills:skillId=>open('skills',{skillId}),close});
   ui.mind.onclick=()=>open('mind');ui.items.onclick=()=>open('items');ui.map.onclick=()=>open('map');ui.close.onclick=close;
-  return{...ui,bindState(next){state=next;skillSetter.bindState(next);},refresh,open,close,discover:ids=>skillSetter.discover(ids),summary,dispose(){skillSetter.dispose();speech.dispose();root.remove();}};
+  return{...ui,bindState,refresh,open,close,discover:ids=>skillSetter.discover(ids),summary,dispose(){skillSetter.dispose();speech.dispose();root.remove();}};
 }
