@@ -22,9 +22,20 @@ if (review?.session) {
     } catch (error) { message(error.message); }
     finally { el('session-file').value = ''; }
   }, true);
-  // Destructive cohort commands require deliberate confirmation, unlike view changes.
+  // Destructive cohort commands use an app-owned confirmation surface. Re-dispatch
+  // exactly one approved click so the existing generation handlers remain canonical.
+  const cohortConfirm = el('cohort-confirm');
+  let pendingCohortCommand = null, approvedCohortCommand = null;
   for (const id of ['regenerate', 'next-seed']) el(id).addEventListener('click', event => {
-    if (!confirm('個体群を再生成します。個別の編集は置き換わります。続けますか？')) { event.preventDefault(); event.stopImmediatePropagation(); }
+    if (approvedCohortCommand === event.currentTarget) { approvedCohortCommand = null; return; }
+    event.preventDefault(); event.stopImmediatePropagation();
+    pendingCohortCommand = event.currentTarget;
+    if (!cohortConfirm.open) cohortConfirm.showModal();
   }, true);
+  cohortConfirm.addEventListener('close', () => {
+    const command = pendingCohortCommand; pendingCohortCommand = null;
+    if (cohortConfirm.returnValue !== 'replace' || !command) return;
+    approvedCohortCommand = command; command.click();
+  });
   el('note').addEventListener('input', workspace.save);
 }
