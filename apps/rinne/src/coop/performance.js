@@ -23,6 +23,7 @@ export function createCoopPerformanceProbe({role='peer',now=()=>performance.now(
     push('reliableBufferedAmountBytes',Number(reliableBufferedAmount));push('presenceBufferedAmountBytes',Number(presenceBufferedAmount));
   }
   function inputSent(seq){seq=clampSeq(seq);if(seq==null)return false;inputStarted.set(seq,now());return true;}
+  function inputAborted(seq){seq=clampSeq(seq);return seq==null?false:inputStarted.delete(seq);}
   function inputAcknowledged(seq){
     seq=clampSeq(seq);if(seq==null)return false;const at=now();let recorded=false;
     for(const [pending,start]of [...inputStarted])if(pending<=seq){push('inputToDisplayMs',Math.max(0,at-start));inputStarted.delete(pending);recorded=true;}
@@ -58,5 +59,5 @@ export function createCoopPerformanceProbe({role='peer',now=()=>performance.now(
     if(flush)flushTx(true);else flushTx(false);
     return structuredClone({...raw,durationMinutes:Math.max(0,(now()-startedAt)/60000),connectionAttempts,connectionSuccesses,connectedPeers:connectionSuccesses,turnRelayConnections,pendingInputs:inputStarted.size,pendingCanon:canonStarted.size});
   }
-  return{recordSend,inputSent,inputAcknowledged,canonIntent,canonCommitted,canonAborted,connectionAttempt,connectionOpen,recordStateFreshness,recordPositionError,recordRollback,recordFrame,recordGpu,recordMemory,recordBatteryRate,recordHostLossDetection,recordHostReopen,snapshot};
+  return{recordSend,inputSent,inputAborted,inputAcknowledged,canonIntent,canonCommitted,canonAborted,connectionAttempt,connectionOpen,recordStateFreshness,recordPositionError,recordRollback,recordFrame,recordGpu,recordMemory,recordBatteryRate,recordHostLossDetection,recordHostReopen,snapshot};
 }
