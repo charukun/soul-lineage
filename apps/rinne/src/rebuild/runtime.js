@@ -95,7 +95,8 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   function endLife(){
     if(endDialog?.open)return;
     endDialog=document.createElement('dialog');endDialog.className='life-end-dialog';
-    endDialog.innerHTML='<form method="dialog"><p>100年</p><h2 id="life-end-name"></h2><p class="life-end-summary"><span id="life-end-defeats"></span>撃破 · 凱旋<span id="life-end-returns"></span>回 · 技<span id="life-end-skills"></span></p><label>次の出生<select id="rebirth-village"></select></label><p class="life-end-help">次の人生は0歳・基礎装備から。残るのは一族の記録と、帰還して刻んだ故郷だけ。</p><button value="rebirth" id="rebirth">次の人生へ</button></form>';
+    endDialog.innerHTML='<form method="dialog"><p id="life-end-age"></p><h2 id="life-end-name"></h2><p class="life-end-summary"><span id="life-end-defeats"></span>撃破 · 凱旋<span id="life-end-returns"></span>回 · 技<span id="life-end-skills"></span></p><label>次の出生<select id="rebirth-village"></select></label><p class="life-end-help">次の人生は0歳・基礎装備から。残るのは一族の記録と、帰還して刻んだ故郷だけ。</p><button value="rebirth" id="rebirth">次の人生へ</button></form>';
+    endDialog.querySelector('#life-end-age').textContent=state.ageYears>=LIFE_YEARS?'100年の生涯':`${Math.floor(state.ageYears)}歳の生涯`;
     endDialog.querySelector('#life-end-name').textContent=`${state.name} · ${state.generation}代`;
     endDialog.querySelector('#life-end-defeats').textContent=String(state.defeats);endDialog.querySelector('#life-end-returns').textContent=String(state.returns);endDialog.querySelector('#life-end-skills').textContent=String(state.knownSkills.length);
     const select=endDialog.querySelector('#rebirth-village'),random=document.createElement('option');random.value='';random.textContent='ランダムな村';select.append(random);
