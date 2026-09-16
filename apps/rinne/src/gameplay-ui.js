@@ -77,7 +77,12 @@ export function createGameplayUI(gameScreen,{stations,layout,audio}){
   }
   function observeKnownSkills(next){
     const nextId=next?.id||null,current=new Set(next?.knownSkills||[]);
-    if(lifeId!==nextId||knownSnapshot===null){lifeId=nextId;knownSnapshot=current;return;}
+    if(lifeId!==nextId){
+      const hadLife=lifeId!==null;lifeId=nextId;knownSnapshot=current;unseen.clear();latestDiscoveries=[];selectedSkill=null;lastCommit='';clearTimeout(sparkTimer);ui.spark.hidden=true;updateTechniqueBadge();
+      if(hadLife&&!ui.panel.hidden&&['skills','mind'].includes(ui.panel.dataset.type)){ui.panel.hidden=true;markOpenControl('');}
+      return;
+    }
+    if(knownSnapshot===null){knownSnapshot=current;return;}
     const fresh=[...current].filter(id=>!knownSnapshot.has(id)&&SKILL_BY_ID[id]);knownSnapshot=current;if(fresh.length)discover(fresh);
   }
   function bindState(next){state=next;observeKnownSkills(next);}
