@@ -28,7 +28,7 @@ test('title input unlocks persistent game audio and provides selection and confi
   assert.match(main,/confirmRinneAudio/);
   assert.match(audio,/export const unlockRinneAudio/);
   assert.match(audio,/function select\(\)/);
-  assert.match(audio,/function confirm\(\)/);
+  assert.match(audio,/function commit\(\)/);
   assert.match(audio,/music\.play\(\)/);
 });
 
