@@ -56,6 +56,23 @@ test('static batch audit is non-mutating and excludes stateful content', () => {
   assert.equal(root.children.some(node => node.isInstancedMesh), false);
 });
 
+test('static batch audit keeps transform parents and render layers isolated', () => {
+  const root = new THREE.Group(), left = new THREE.Group(), right = new THREE.Group();
+  root.add(left, right);
+  const geometry = new THREE.BoxGeometry(), material = new THREE.MeshStandardMaterial();
+  repeatedMeshes(left, 2, geometry, material);
+  repeatedMeshes(right, 2, geometry, material);
+  const report = auditStaticBatchOpportunities(root, { minInstances: 4 });
+  assert.equal(report.candidateGroups, 0);
+
+  const sameParent = new THREE.Group(); root.add(sameParent);
+  repeatedMeshes(sameParent, 4, geometry, material);
+  sameParent.children[2].layers.mask = 2;
+  sameParent.children[3].layers.mask = 2;
+  const layered = auditStaticBatchOpportunities(root, { minInstances: 4 });
+  assert.equal(layered.candidateGroups, 0);
+});
+
 test('scene budget reports material/draw-call pressure and conservative savings', () => {
   const root = new THREE.Group();
   const geometry = new THREE.BoxGeometry(), material = new THREE.MeshStandardMaterial(); material.name = 'crate';

@@ -5,7 +5,7 @@ const localMatrix = new Matrix4(), inverseRoot = new Matrix4();
 function blockedByAncestor(node) {
   for (let p = node; p; p = p.parent) {
     const data = p.userData || {};
-    if (data.streamingCritical || data.interactive || data.noBatch || data.stateful || data.collisionRoot || data.focusTarget || data.mountPoint) return true;
+    if (data.streamingCritical || data.interactive || data.noBatch || data.noInstance || data.stateful || data.dynamic || data.animated || data.physicsBody || data.collisionRoot || data.focusTarget || data.mountPoint) return true;
   }
   return false;
 }
@@ -19,7 +19,7 @@ function eligible(mesh) {
     effectivelyVisible(mesh) && !mesh.userData?.batchedInto && !blockedByAncestor(mesh));
 }
 function batchKey(node) {
-  return `${node.geometry.uuid}:${node.material.uuid}:${node.castShadow ? 1 : 0}:${node.receiveShadow ? 1 : 0}:${node.renderOrder || 0}:${node.frustumCulled === false ? 0 : 1}`;
+  return `${node.parent?.uuid || 'root'}:${node.geometry.uuid}:${node.material.uuid}:${node.layers?.mask ?? 1}:${node.castShadow ? 1 : 0}:${node.receiveShadow ? 1 : 0}:${node.renderOrder || 0}:${node.frustumCulled === false ? 0 : 1}`;
 }
 function collectBatchGroups(root) {
   const groups = new Map();
@@ -91,7 +91,7 @@ export function batchStaticMeshes(root, { minInstances = 4, maxInstances = 512 }
   if (!root?.traverse) throw new Error('Static batching requires an Object3D');
   const safeMin = Math.max(2, Math.floor(minInstances));
   const safeMax = Math.max(safeMin, Math.floor(maxInstances));
-  root.updateWorldMatrix(true, true); inverseRoot.copy(root.matrixWorld).invert();
+  root.updateWorldMatrix(true, true);
   const groups = collectBatchGroups(root);
   const batches = [];
   for (const nodes of groups.values()) {
@@ -104,7 +104,10 @@ export function batchStaticMeshes(root, { minInstances = 4, maxInstances = 512 }
       batch.name = `Instanced_${source.name || source.geometry.uuid.slice(0, 8)}`;
       batch.castShadow = source.castShadow; batch.receiveShadow = source.receiveShadow;
       batch.renderOrder = source.renderOrder; batch.frustumCulled = source.frustumCulled;
+      if (batch.layers && source.layers) batch.layers.mask = source.layers.mask;
       batch.userData.staticBatch = true; batch.userData.sourceCount = rows.length;
+      const parent = source.parent;
+      parent.updateWorldMatrix(true, false); inverseRoot.copy(parent.matrixWorld).invert();
       rows.forEach((mesh, index) => {
         mesh.updateWorldMatrix(true, false);
         localMatrix.copy(inverseRoot).multiply(mesh.matrixWorld);
@@ -112,14 +115,14 @@ export function batchStaticMeshes(root, { minInstances = 4, maxInstances = 512 }
         mesh.visible = false; mesh.userData.batchedInto = batch.name;
       });
       batch.instanceMatrix.needsUpdate = true;
-      root.add(batch); batches.push({ batch, sources: rows });
+      parent.add(batch); batches.push({ batch, sources: rows, parent });
     }
   }
   return {
     batches: batches.length,
     instances: batches.reduce((sum, row) => sum + row.sources.length, 0),
     restore() {
-      for (const row of batches) { row.sources.forEach(mesh => { mesh.visible = true; delete mesh.userData.batchedInto; }); root.remove(row.batch); }
+      for (const row of batches) { row.sources.forEach(mesh => { mesh.visible = true; delete mesh.userData.batchedInto; }); row.parent.remove(row.batch); }
     },
   };
 }
