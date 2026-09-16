@@ -1,4 +1,5 @@
 name: Materialize Public Web Assets Phase 2
+# Final one-shot trigger after catalog/docs and latest develop were synchronized.
 
 on:
   push:
