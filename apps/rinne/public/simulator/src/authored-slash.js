@@ -65,7 +65,7 @@ export function sampleSlashPose(phase, contact) {
 
 export function applyAuthoredSlash(runtime,c,phase,definition=SLASH_TIMING) {
   const pose=sampleSlashPose(phase,definition.contact),s=c.legLength/.82;
-  const flip=c.vrm.meta.metaVersion==='1'?-1?1:1;
+  const flip=c.vrm.meta.metaVersion==='1'?-1:1;
   for(const name of ['hips','spine','chest','head']){
     const b=c.bones[name];if(!b)continue;
     const [x,y,z]=pose[name];
