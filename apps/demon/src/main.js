@@ -14,8 +14,9 @@ let disposeCombatCamera=()=>{};
 try {
   progress.value = 1;
   await import('./runtime-scale-stack.js');
-  // Install shared human motion presentation before the game creates NightView.
+  // Install shared human motion and monster surface adapters before the game creates NightView.
   await import('./master-humans.js');
+  await import('./monster-player.js');
   await import('./motion-interactions.js');
   await import('./motion-crowd.js');
   const {installCombatCamera}=await import('./combat-camera.js');
