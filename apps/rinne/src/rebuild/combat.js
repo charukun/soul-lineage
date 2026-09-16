@@ -1,19 +1,20 @@
+import { createTidebreakRuntime } from '@soul/tidebreak-combat';
 import { WEAPONS, ARMORS, endLifeEarly, spendStamina, skillEffects } from './domain.js';
-import {
-  beginCombatState,tickLoadoutCombatState,combatSkill,oneMotionSpec,completeOneMotion,
-  automaticRecovery,settleAutomaticAttack,combatBody
-} from './combat-loadout-runtime.js';
+import { beginCombatState } from './combat-loadout-runtime.js';
+import { activeCombo, bodyRuntime, comboById, ensureCombatLoadout, selectCombatCombo, techniqueName } from '../combat-loadout.js';
 
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const finite=(n,lo,hi)=>typeof n==='number'&&Number.isFinite(n)&&n>=lo&&n<=hi;
 const TAU=Math.PI*2,ARENA={minX:-6.75,maxX:6.75,minZ:-5.85,maxZ:5.65};
+const SESSIONS=new WeakMap();
 
 function wrapAngle(value){value=Number(value)||0;while(value>Math.PI)value-=TAU;while(value<-Math.PI)value+=TAU;return value;}
 function angleDelta(from,to){return wrapAngle(to-from);}
 function turnToward(from,to,maxStep){return wrapAngle(from+clamp(angleDelta(from,to),-maxStep,maxStep));}
 function angleTo(from,to){return Math.atan2(to.x-from.x,to.z-from.z);}
 function hash01(value){const text=String(value);let hash=2166136261;for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}return(hash>>>0)/4294967295;}
+function hashSeed(value){return Math.max(1,Math.floor(hash01(value)*0x7ffffffe));}
 function enemyDefaults(id,x,z){return{yaw:angleTo({x,z},{x:0,z:5.2}),attackWindow:0,moving:false};}
 
 export function createFront(stage=0,seed=1){
@@ -37,107 +38,171 @@ export function normalizeFront(raw,stage=0,seed=1){
   const cleared=allDead,clearSeconds=finite(raw.clearSeconds,0,3600)?raw.clearSeconds:0;return{stage,enemies,cleared,clearSeconds};
 }
 
+export function frontierFatalityChance(state){
+  const effects=skillEffects(state),body=bodyRuntime(state),armor=ARMORS[state.equipment.armor]||ARMORS.cloth,shield=state.equipment.shield?.12:0,survival=armor.guard+shield+body.guardBonus+effects.mitigation+effects.evasion*.35+effects.recovery*.2;
+  return clamp(.84-survival*.86,.2,.84);
+}
+
+const TIDE_WEAPON=Object.freeze({fist:'fist',sword:'sword',dagger:'sword',great:'great',spear:'spear',axe:'axe',staff:'spear'});
+export function tidebreakWeaponFor(weapon){return TIDE_WEAPON[weapon]||'fist';}
+
+const FIST_KIND=Object.freeze({slash:'jab',back:'hook',thrust:'straight',heavy:'oneinch',dash:'straight',spin:'barrage',leap:'risingfist',uppercut:'risingfist',sweep:'bodyblow',diagonal:'hook',crosscut:'barrage',round:'hook',pierce:'oneinch',sky:'risingfist',pommel:'bodyblow',bash:'straight',bullrush:'rushfist',meteor:'rushfist'});
+const BASIC_FORMS=Object.freeze({
+  fist:{kinds:['jab','straight','hook'],feet:['forward','chase','sideL'],rhythm:'sharp'},
+  sword:{kinds:['slash','thrust','back'],feet:['forward','chase','orbitR'],rhythm:'flow'},
+  dagger:{kinds:['thrust','back','slash'],feet:['rush','sideL','retreat'],rhythm:'sharp',tempo:1.08},
+  great:{kinds:['slash','sweep','heavy'],feet:['forward','orbitL','chase'],rhythm:'weight'},
+  spear:{kinds:['thrust','sweep','pierce'],feet:['forward','orbitR','chase'],rhythm:'sharp'},
+  axe:{kinds:['diagonal','sweep','heavy'],feet:['forward','sideL','chase'],rhythm:'weight'},
+  staff:{kinds:['sweep','pommel','thrust'],feet:['orbitL','forward','retreat'],rhythm:'flow'}
+});
+const ACTION_FORMS=Object.freeze({
+  'action.guard-step':{kinds:['guard','bash','back'],feet:['stay','forward','retreat'],rhythm:'weight'},
+  'action.slip':{kinds:['slip','back','ready'],feet:['sideL','cross','stay'],rhythm:'flow',tempo:1.08},
+  'action.lunge':{kinds:['thrust','dash','pierce'],feet:['forward','rush','chase'],rhythm:'sharp',tempo:1.06},
+  'action.counter':{kinds:['parry','counter','thrust'],feet:['stay','stay','chase'],rhythm:'sharp',tempo:1.08},
+  'action.feint':{kinds:['ready','slash','back'],feet:['sideR','cross','retreat'],rhythm:'elastic',tempo:1.05},
+  'action.flow':{kinds:['slash','crosscut','round'],feet:['forward','cross','spiral'],rhythm:'seamless',tempo:1.08},
+  'action.breakfall':{kinds:['brace','back','ready'],feet:['stay','retreat','stay'],rhythm:'flow'},
+  'action.finish':{kinds:['heavy','pierce','round'],feet:['chase','rush','forward'],charges:['breath','deep','none'],rhythm:'weight'},
+  'action.side-step':{kinds:['slip','slash','back'],feet:['sideL','cross','sideR'],rhythm:'flow',tempo:1.08},
+  'action.circle':{kinds:['slash','crosscut','round'],feet:['orbitL','cross','orbitR'],rhythm:'flow',tempo:1.06},
+  'action.crash':{kinds:['bash','heavy','diagonal'],feet:['forward','chase','forward'],charges:['none','breath','none'],rhythm:'weight'},
+  'action.draw':{kinds:['dash','diagonal','back'],feet:['rush','forward','retreat'],rhythm:'sharp',tempo:1.1},
+  'action.recover':{kinds:['guard','back','ready'],feet:['stay','retreat','stay'],rhythm:'flow'},
+  'action.precision':{kinds:['thrust','pierce','thrust'],feet:['forward','chase','stay'],charges:['none','breath','focus'],rhythm:'sharp',tempo:1.04}
+});
+
+function adaptKind(kind,weapon){return weapon==='fist'?(FIST_KIND[kind]||kind):kind;}
+function formForSkill(skill,originalWeapon){return ACTION_FORMS[skill]||BASIC_FORMS[originalWeapon]||BASIC_FORMS.fist;}
+function phaseRecipe(state,phase,weapon,combo){
+  const skill=combo?.slots?.[phase]||`basic.${state.equipment.weapon}`,form=formForSkill(skill,state.equipment.weapon),kinds=form.kinds.map(kind=>adaptKind(kind,weapon));
+  return{id:`rinne-${phase}-${skill}`,name:techniqueName(skill),type:'normal',weapon,element:form.element||'steel',rhythm:form.rhythm||'flow',tempo:form.tempo||1,aura:'none',steps:kinds.map((kind,index)=>({kind,footwork:form.feet?.[index]||'forward',charge:form.charges?.[index]||'none'}))};
+}
+function activeHeart(state){ensureCombatLoadout(state);return new Set(state.combatLoadout.heart.active||[]);}
+function receiveFor(state){
+  const body=bodyRuntime(state),heart=activeHeart(state);
+  if(state.equipment.shield)return'shield';
+  if(body.style.id==='counter')return heart.has('skill.read')?'backcounter':'turncounter';
+  if(body.style.id==='flow')return'flow';
+  if(body.stance.id==='chinshin'||state.equipment.armor==='heavy')return'iron';
+  if(heart.has('skill.recovery-breath'))return'breath';
+  if(heart.has('skill.fall')||heart.has('skill.balance'))return'backroll';
+  if(heart.has('skill.danger')||heart.has('skill.peripheral'))return'leftroll';
+  return'basic';
+}
+function reactionRecipe(state,weapon){
+  const receive=receiveFor(state),counter=['backcounter','turncounter','thrustcounter','rising'].includes(receive);
+  return{id:`rinne-uke-${receive}`,name:'受け',type:'reaction',weapon,element:'steel',rhythm:'flow',tempo:1,aura:'none',receive,steps:[{kind:counter?adaptKind('thrust',weapon):'brace',footwork:counter?'chase':'stay',charge:'none'},{kind:counter?'guard':'retreat',footwork:'retreat',charge:'none'},{kind:'ready',footwork:'stay',charge:'none'}]};
+}
+export function tidebreakLoadoutFor(state,comboId=state?.combat?.comboId){
+  ensureCombatLoadout(state);const weapon=tidebreakWeaponFor(state.equipment.weapon),combo=comboById(state,comboId)||activeCombo(state);
+  return{jo:phaseRecipe(state,'jo',weapon,combo),ha:phaseRecipe(state,'ha',weapon,combo),kyu:phaseRecipe(state,'kyu',weapon,combo),uke:reactionRecipe(state,weapon)};
+}
+export function tidebreakMindsetFor(state){
+  ensureCombatLoadout(state);const body=bodyRuntime(state),heart=activeHeart(state),ratio=state.maxHp>0?state.hp/state.maxHp:0;
+  if(ratio<.32)return'survival';
+  if(body.style.id==='pressure'||body.stance.id==='kosei'||heart.has('skill.resolve'))return'assault';
+  if(body.style.id==='counter')return heart.has('skill.patience')?'patient':'counter';
+  if(body.style.id==='flow'||heart.has('skill.flow-step')||heart.has('skill.soft-step'))return'elusive';
+  if(body.style.id==='distance')return heart.has('skill.patience')||heart.has('skill.read')?'patient':'defensive';
+  if(body.stance.id==='chinshin'||state.equipment.armor==='heavy'||heart.has('skill.endure'))return'steadfast';
+  if(heart.has('skill.guard-sense'))return'defensive';
+  return'balanced';
+}
+
+function heroHpScale(state){
+  const effects=skillEffects(state),body=bodyRuntime(state),armor=ARMORS[state.equipment.armor]||ARMORS.cloth,shield=state.equipment.shield?.12:0,guard=clamp(armor.guard+shield+body.guardBonus,0,.72);
+  return clamp((1-guard)*(1-effects.mitigation),.18,1);
+}
+function enemyHpScale(state){return clamp(1+skillEffects(state).damage,1,1.7);}
+function enemyWeapon(front,target){
+  if(front.stage>=5)return'great';const pool=['sword','spear','axe','great'],index=Math.floor(hash01(`${target.id}:weapon`)*pool.length)%pool.length;return pool[index];
+}
+function enemyStyle(front,target){
+  if(front.stage>=5)return'assault';const pool=['balanced','assault','defensive','counter','patient'],index=Math.floor(hash01(`${target.id}:mind`)*pool.length)%pool.length;return pool[index];
+}
+function combatSignature(state,target,front){return JSON.stringify({target:target.id,weapon:tidebreakWeaponFor(state.equipment.weapon),mind:tidebreakMindsetFor(state),loadout:tidebreakLoadoutFor(state),armor:state.equipment.armor,shield:state.equipment.shield,enemyWeapon:enemyWeapon(front,target),enemyStyle:enemyStyle(front,target)});}
+function createSession(state,target,front,signature){
+  const weapon=tidebreakWeaponFor(state.equipment.weapon),loadout=tidebreakLoadoutFor(state),mindset=tidebreakMindsetFor(state),hScale=heroHpScale(state),eScale=enemyHpScale(state);
+  const runtime=createTidebreakRuntime({seed:hashSeed(`${state.seed}:${state.generation}:${target.id}`),weapon});
+  const snapshot=runtime.configure({weapon,enemyWeapon:enemyWeapon(front,target),enemyStyle:enemyStyle(front,target),loadout,mindset,hp:Math.max(.001,state.hp/hScale),maxhp:Math.max(.001,state.maxHp/hScale),enemyHp:Math.max(.001,target.hp/eScale),positions:{hero:{x:state.position.x,z:state.position.z,yaw:state.yaw},enemy:{x:target.x,z:target.z,yaw:target.yaw}}});
+  const session={runtime,targetId:target.id,signature,heroHpScale:hScale,enemyHpScale:eScale,last:snapshot,lastAttackKey:snapshot.hero.attack?`${snapshot.hero.slot||''}:${snapshot.hero.attack}`:null,oneMotionArmed:null,invalid:false,rotateAfterKyu:false};SESSIONS.set(state,session);return session;
+}
+function sessionFor(state,target,front){const signature=combatSignature(state,target,front),existing=SESSIONS.get(state);return !existing||existing.targetId!==target.id||existing.signature!==signature||existing.invalid?createSession(state,target,front,signature):existing;}
+function clearSession(state){SESSIONS.delete(state);}
+
 function nearestEnemy(position,enemies){let best=null,bestDistance=Infinity;for(const enemy of enemies){const d=dist(position,enemy);if(d<bestDistance){best=enemy;bestDistance=d;}}return{enemy:best,distance:bestDistance};}
-function advanceEnemyFormation(state,living,dt,stage){
-  if(!living.length||dt<=0)return;
+function advanceEnemyClock(front,dt){for(const enemy of front.enemies){enemy.flash=Math.max(0,enemy.flash-dt*4);enemy.attackWindow=Math.max(0,(enemy.attackWindow||0)-dt);if(!enemy.dead)enemy.cooldown=Math.max(-1,(Number(enemy.cooldown)||0)-dt);else enemy.moving=false;}}
+function advanceEnemyFormation(state,living,dt,stage,skipId=null){
+  const movers=living.filter(enemy=>enemy.id!==skipId);if(!movers.length||dt<=0)return;
   const snapshot=living.map(enemy=>({id:enemy.id,x:enemy.x,z:enemy.z,cooldown:enemy.cooldown,attackWindow:enemy.attackWindow||0}));
-  const planned=snapshot.map(row=>{
-    const dx=row.x-state.position.x,dz=row.z-state.position.z,d=Math.max(.001,Math.hypot(dx,dz)),ox=dx/d,oz=dz/d;
-    const orbit=hash01(`${row.id}:orbit`)<.5?-1:1,ready=row.cooldown<=.12,committed=row.attackWindow>0;
-    const preferred=(stage>=5?1.65:ready?1.48:1.86+hash01(`${row.id}:ring`)*.42),radial=clamp((d-preferred)*(d>3.2?1.15:.82),-.75,1.45);
-    const tx=-oz*orbit,tz=ox*orbit,orbitSpeed=d>3.35?.12:(ready?.24:.48+hash01(`${row.id}:pace`)*.2);
+  const planned=movers.map(row=>{
+    const dx=row.x-state.position.x,dz=row.z-state.position.z,d=Math.max(.001,Math.hypot(dx,dz)),ox=dx/d,oz=dz/d,orbit=hash01(`${row.id}:orbit`)<.5?-1:1,ready=row.cooldown<=.12,committed=row.attackWindow>0;
+    const preferred=stage>=5?1.65:ready?1.48:1.86+hash01(`${row.id}:ring`)*.42,radial=clamp((d-preferred)*(d>3.2?1.15:.82),-.75,1.45),tx=-oz*orbit,tz=ox*orbit,orbitSpeed=d>3.35?.12:(ready?.24:.48+hash01(`${row.id}:pace`)*.2);
     let vx=-ox*radial+tx*orbitSpeed,vz=-oz*radial+tz*orbitSpeed;
     for(const other of snapshot){if(other.id===row.id)continue;const sx=row.x-other.x,sz=row.z-other.z,separation=Math.hypot(sx,sz);if(separation>0&&separation<1.08){const push=(1-separation/1.08)*1.55;vx+=sx/separation*push;vz+=sz/separation*push;}}
     if(committed){vx*=.22;vz*=.22;}const magnitude=Math.hypot(vx,vz),speed=1.02+Math.min(.28,stage*.045)+(d>3.2?.5:0),scale=magnitude>speed?speed/magnitude:1;return{id:row.id,vx:vx*scale,vz:vz*scale};
   });
   for(const move of planned){const enemy=living.find(row=>row.id===move.id);if(!enemy)continue;const beforeX=enemy.x,beforeZ=enemy.z;enemy.x=clamp(enemy.x+move.vx*dt,ARENA.minX,ARENA.maxX);enemy.z=clamp(enemy.z+move.vz*dt,ARENA.minZ,ARENA.maxZ);enemy.yaw=turnToward(enemy.yaw,angleTo(enemy,state.position),dt*5.4);enemy.moving=Math.hypot(enemy.x-beforeX,enemy.z-beforeZ)>.002;}
 }
-function targetScore(state,enemy,currentId,phase,weapon){
-  const d=dist(state.position,enemy),facing=Math.abs(angleDelta(state.yaw,angleTo(state.position,enemy)));let score=d+facing*.18+(enemy.cooldown<=.12?-.5:0)+(enemy.attackWindow>0?-.22:0)+(d<=weapon.reach+.45?-.24:0);
-  if(enemy.id===currentId)score+=phase==='jo'?-.32:phase==='ha'?-.04:.1;else score+=phase==='kyu'?-.28:phase==='ha'?-.14:.02;return score+(hash01(`${enemy.id}:${phase}`)-.5)*.03;
+function allowedLiving(front,allowedEnemyIds){const living=front.enemies.filter(enemy=>!enemy.dead);return allowedEnemyIds?living.filter(enemy=>allowedEnemyIds.has(enemy.id)):living;}
+function recordEnemyDown(state,target,events){
+  if(target.dead)return;target.hp=0;target.dead=true;target.moving=false;state.defeats++;const row=state.experiences.combat||{count:0,score:0,last:0};state.experiences.combat={count:row.count+1,score:row.score+1,last:state.ageSeconds};events.push({type:'enemy-down',targetId:target.id,engine:'tidebreak'});
 }
-function selectPlayerTarget(state,living,weapon){const currentId=state.combat?.targetId||null,phase=state.combat?.phase||'jo';return[...living].sort((a,b)=>targetScore(state,a,currentId,phase,weapon)-targetScore(state,b,currentId,phase,weapon))[0]||null;}
-function widestEscapeLane(state,enemies){
-  const angles=enemies.map(enemy=>angleTo(state.position,enemy)).sort((a,b)=>a-b);if(angles.length<2)return null;let widest=-1,start=0;
-  for(let i=0;i<angles.length;i++){const a=angles[i],b=i===angles.length-1?angles[0]+TAU:angles[i+1],gap=b-a;if(gap>widest){widest=gap;start=a;}}
-  const angle=wrapAngle(start+widest/2);return{x:Math.sin(angle),z:Math.cos(angle),gap:widest};
+function chargeAttackStamina(state,session,next){
+  const key=next.hero.attack?`${next.hero.slot||''}:${next.hero.attack}`:null;if(key&&key!==session.lastAttackKey&&!session.oneMotionArmed){const base=WEAPONS[state.equipment.weapon]||WEAPONS.fist,phase=next.hero.slot,cost=base.stamina*(phase==='kyu'?1.25:phase==='ha'?1.08:1);if(!spendStamina(state,cost))state.stamina=0;}session.lastAttackKey=key;
 }
-function movePlayer(state,vx,vz,speed,dt){const magnitude=Math.hypot(vx,vz);if(magnitude<.001)return false;const scale=speed*dt/magnitude,beforeX=state.position.x,beforeZ=state.position.z;state.position.x=clamp(state.position.x+vx*scale,ARENA.minX,ARENA.maxX);state.position.z=clamp(state.position.z+vz*scale,ARENA.minZ,ARENA.maxZ);return Math.hypot(state.position.x-beforeX,state.position.z-beforeZ)>.001;}
-function automaticFootwork(state,living,target,weapon,dt,body){
-  if(state.moving||!target||dt<=0||state.combat?.attackCooldown>1.25)return false;const nearby=living.filter(enemy=>dist(state.position,enemy)<=2.45),style=body.style;
-  if(nearby.length>=2){const lane=widestEscapeLane(state,nearby);if(lane&&lane.gap>1.05)return movePlayer(state,lane.x,lane.z,.72*style.retreatScale,dt);}
-  const dx=target.x-state.position.x,dz=target.z-state.position.z,d=Math.max(.001,Math.hypot(dx,dz)),preferred=Math.max(.72,weapon.reach*.82*style.distanceScale);
-  if(d>preferred+.3&&d<4.0)return movePlayer(state,dx,dz,.62*style.advanceScale,dt);if(d<preferred-.18)return movePlayer(state,-dx,-dz,.5*style.retreatScale,dt);
-  if(living.length>1){const orbit=hash01(`${target.id}:hero-orbit`)<.5?-1:1;return movePlayer(state,-dz*orbit,dx*orbit,.22*style.orbitScale,dt);}return false;
+function armOneMotion(state,session,dt){
+  const queued=state.combat?.oneMotionQueued;if(!queued)return;
+  queued.ttl-=dt;if(queued.ttl<=0){state.combat.oneMotionQueued=null;return;}
+  if(session.last.hero.attack)return;const base=WEAPONS[state.equipment.weapon]||WEAPONS.fist,cost=Math.max(22,base.stamina*2.6);if(!spendStamina(state,cost))return;session.oneMotionArmed=queued.skill;state.combat.oneMotionQueued=null;
 }
-function enemyAttackCandidates(state,living){
-  const candidates=living.filter(enemy=>!enemy.dead&&enemy.cooldown<=0&&dist(state.position,enemy)<=1.58).map(enemy=>({enemy,distance:dist(state.position,enemy),angle:angleTo(state.position,enemy)}));
-  for(const row of candidates)row.score=-row.enemy.cooldown+(1.58-row.distance)*.7+hash01(`${row.enemy.id}:attack`)*.035;
-  return candidates.filter(row=>!candidates.some(other=>{if(other.enemy.id===row.enemy.id||Math.abs(angleDelta(row.angle,other.angle))>=.78)return false;return other.score>row.score||(other.score===row.score&&other.enemy.id<row.enemy.id);}));
-}
-function applyPlayerHit(state,target,damage,events,{skill,phase,manual=false}={}){
-  target.hp-=damage;target.flash=1;events.push({type:'player-hit',targetId:target.id,skill,phase,damage,manual});if(manual)events.push({type:'one-motion',targetId:target.id,skill,damage});
-  if(target.hp>0)return;target.hp=0;target.dead=true;target.moving=false;state.defeats++;const row=state.experiences.combat||{count:0,score:0,last:0};state.experiences.combat={count:row.count+1,score:row.score+1,last:state.ageSeconds};events.push({type:'enemy-down',targetId:target.id});
+function applyTidebreakStep(state,target,front,dt,events){
+  const session=sessionFor(state,target,front);armOneMotion(state,session,dt);
+  const manual=state.moving?.67:0;session.runtime.input(Math.sin(state.yaw),Math.cos(state.yaw),manual,0);
+  const beforeHero=state.hp,beforeEnemy=target.hp,beforeX=state.position.x,beforeZ=state.position.z,beforeEnemyX=target.x,beforeEnemyZ=target.z,previous=session.last,next=session.runtime.step(dt);
+  chargeAttackStamina(state,session,next);
+  state.position.x=clamp(next.hero.x,ARENA.minX,ARENA.maxX);state.position.z=clamp(next.hero.z,ARENA.minZ,ARENA.maxZ);state.yaw=wrapAngle(next.hero.yaw);state.moving=state.moving||Math.hypot(state.position.x-beforeX,state.position.z-beforeZ)>.002;
+  target.x=clamp(next.enemy.x,ARENA.minX,ARENA.maxX);target.z=clamp(next.enemy.z,ARENA.minZ,ARENA.maxZ);target.yaw=wrapAngle(next.enemy.yaw);target.moving=Math.hypot(target.x-beforeEnemyX,target.z-beforeEnemyZ)>.002;target.attackWindow=next.enemy.attack?.32:0;target.cooldown=next.enemy.attack?.55:Math.max(-1,target.cooldown);
+  state.hp=clamp(next.hero.hp*session.heroHpScale,0,state.maxHp);target.hp=clamp(next.enemy.hp*session.enemyHpScale,0,target.maxHp);
+  let dealt=Math.max(0,beforeEnemy-target.hp),taken=Math.max(0,beforeHero-state.hp);const slot=['jo','ha','kyu'].includes(next.hero.slot)?next.hero.slot:null;if(slot)state.combat.phase=slot;
+  state.combat.engine='tidebreak';state.combat.tidebreakVersion=session.runtime.sourceVersion;state.combat.attackCooldown=next.hero.attack?1.3:0;
+  const armed=session.oneMotionArmed;if(dealt>.001&&armed){const extra=Math.min(target.hp,dealt*.78);target.hp-=extra;dealt+=extra;session.oneMotionArmed=null;session.invalid=true;state.combat.zanshinSeconds=.95;events.push({type:'one-motion',targetId:target.id,skill:armed,damage:dealt,engine:'tidebreak'});}
+  if(dealt>.001)events.push({type:'player-hit',targetId:target.id,skill:armed?techniqueName(armed):(next.hero.skill||techniqueName(comboById(state,state.combat.comboId)?.slots?.[slot||state.combat.phase])),phase:armed?'one':(slot||state.combat.phase||'jo'),damage:dealt,manual:Boolean(armed),engine:'tidebreak'});
+  if(taken>.001)events.push({type:'enemy-hit',sourceId:target.id,damage:taken,engine:'tidebreak'});
+  const counters=(next.stats?.counters||0)-(previous.stats?.counters||0);if(counters>0&&taken<=.001)events.push({type:'evaded',sourceId:target.id,defense:'counter',engine:'tidebreak'});
+  const kyuUses=(next.stats?.uses?.kyu||0)-(previous.stats?.uses?.kyu||0);if(kyuUses>0)session.rotateAfterKyu=true;
+  if(session.rotateAfterKyu&&!next.hero.attack&&state.combat){selectCombatCombo(state,state.combat,{advance:true});state.combat.phase='jo';session.rotateAfterKyu=false;session.invalid=true;}
+  session.last=next;
+  if(target.hp<=.001)recordEnemyDown(state,target,events);
+  if(state.hp<=.001&&!state.ended&&!state.down){const fatalChance=frontierFatalityChance(state),fatalRoll=hash01(`${state.seed}:${target.id}:fatal:${front.stage}:${Math.floor(state.ageSeconds)}:${state.defeats}`);clearSession(state);if(fatalRoll<fatalChance){endLifeEarly(state,`第${front.stage+1}前線の戦い`);events.push({type:'life-end',cause:'combat',fatalChance,engine:'tidebreak'});}else{state.down={elapsed:0,rescueSeconds:40,frontier:true};state.combat=null;events.push({type:'downed',fatalChance,engine:'tidebreak'});}}
+  if(target.dead){clearSession(state);state.combat=null;}
 }
 
-export function frontierFatalityChance(state){
-  const effects=skillEffects(state),body=combatBody(state),armor=ARMORS[state.equipment.armor]||ARMORS.cloth,shield=state.equipment.shield?.12:0,survival=armor.guard+shield+body.guardBonus+effects.mitigation+effects.evasion*.35+effects.recovery*.2;
-  return clamp(.84-survival*.86,.2,.84);
-}
-
-export function tickFront(state,front,dt,{advanceEnemies=true,incomingEnemyIds=null}={}){
+export function tickFront(state,front,dt,{advanceEnemies=true,allowedEnemyIds=null}={}){
   const events=[];if(state.zone!=='frontier'||state.ended)return events;if(advanceEnemies)advanceEnemyClock(front,dt);
-  let living=front.enemies.filter(enemy=>!enemy.dead);if(!living.length){front.cleared=true;if(advanceEnemies)front.clearSeconds+=dt;state.combat=null;return[{type:'front-cleared',stage:front.stage}];}
-  if(state.down){if(advanceEnemies)for(const enemy of living)enemy.moving=false;state.down.elapsed+=dt;if(state.down.elapsed>=40){state.down=null;state.zone='village';state.front=0;state.hp=Math.max(30,state.maxHp*.3);state.stamina=state.staminaCap*.6;state.combat=null;events.push({type:'rescued'});}return events;}
-
-  const effects=skillEffects(state);if(advanceEnemies)advanceEnemyFormation(state,living,dt,front.stage);let nearest=nearestEnemy(state.position,living);
-  if(!state.combat&&nearest.distance<=3.25)state.combat=beginCombatState(state,nearest.enemy.id);if(state.combat&&nearest.distance>4.6){state.combat=null;events.push({type:'disengage'});}
-  const body=tickLoadoutCombatState(state,dt);
-
-  if(state.combat){
-    const baseWeapon=WEAPONS[state.equipment.weapon]||WEAPONS.fist,weapon={...baseWeapon,reach:baseWeapon.reach*(1+effects.reach)*body.stance.reachScale};state.combat.phase=['jo','ha','kyu'].includes(state.combat.phase)?state.combat.phase:'jo';state.combat.attackCooldown=Number.isFinite(state.combat.attackCooldown)?state.combat.attackCooldown-dt:-dt;
-    let target=living.find(enemy=>enemy.id===state.combat.targetId&&!enemy.dead)||selectPlayerTarget(state,living,weapon);if(state.combat.attackCooldown<=0||!target||dist(state.position,target)>4)target=selectPlayerTarget(state,living,weapon);
-    if(target){
-      state.combat.targetId=target.id;const autoMoved=automaticFootwork(state,living,target,weapon,dt,body);if(autoMoved)state.moving=true;const desiredYaw=angleTo(state.position,target);state.yaw=turnToward(state.yaw,desiredYaw,dt*6.2*body.stance.turnScale);const d=dist(state.position,target),facing=Math.abs(angleDelta(state.yaw,desiredYaw));
-      if(state.combat.attackCooldown<=0){
-        const manual=oneMotionSpec(state,baseWeapon,d,weapon.reach);
-        if(manual&&facing<=.82&&spendStamina(state,manual.cost)){
-          const damage=baseWeapon.power*manual.damageScale*(1+effects.damage);applyPlayerHit(state,target,damage,events,{skill:manual.skill,phase:'one',manual:true});completeOneMotion(state,manual);
-        }else{
-          const phase=state.combat.phase,skill=combatSkill(state,phase),cost=baseWeapon.stamina*(phase==='kyu'?1.25:phase==='ha'?1.08:1);
-          if(d<=weapon.reach+.35&&facing<=.68&&spendStamina(state,cost)){
-            const mult=phase==='kyu'?1.28:phase==='ha'?1.12:1,damage=baseWeapon.power*mult*(1+effects.damage);applyPlayerHit(state,target,damage,events,{skill,phase});state.combat.attackCooldown=automaticRecovery(state,baseWeapon,phase);settleAutomaticAttack(state,baseWeapon,phase);
-          }else state.combat.attackCooldown=.12;
-        }
-      }
-    }
-  }
-
-  living=front.enemies.filter(enemy=>!enemy.dead);nearest=nearestEnemy(state.position,living);
-  if(state.combat&&living.length){const target=living.find(enemy=>enemy.id===state.combat.targetId);if(!target)state.combat.targetId=nearest.enemy?.id||null;}if(!living.length){front.cleared=true;state.combat=null;return events;}
-
-  const attackers=enemyAttackCandidates(state,incomingEnemyIds?living.filter(enemy=>incomingEnemyIds.has(enemy.id)):living),armor=ARMORS[state.equipment.armor]||ARMORS.cloth,shield=state.equipment.shield?.12:0,simultaneousScale=attackers.length>1?1/Math.sqrt(attackers.length):1;
-  for(const row of attackers){
-    if(state.hp<=0)break;const enemy=row.enemy,roll=hash01(`${state.seed}:${enemy.id}:evade:${Math.floor(state.ageSeconds*4)}:${state.defeats}`);
-    if(roll<effects.evasion){enemy.cooldown=.82+hash01(`${enemy.id}:evade-recovery`)*.2;enemy.attackWindow=.2;events.push({type:'evaded',sourceId:enemy.id});continue;}
-    const mitigation=clamp(armor.guard+shield+body.guardBonus,0,.72),damage=(13+front.stage*2.2)*(1-mitigation)*(1-effects.mitigation)*simultaneousScale;state.hp=clamp(state.hp-damage,0,state.maxHp);enemy.cooldown=1.05+front.stage*.04+hash01(`${enemy.id}:recovery`)*.22;enemy.attackWindow=.32;events.push({type:'enemy-hit',sourceId:enemy.id,damage});if(!state.combat)state.combat=beginCombatState(state,enemy.id);
-    if(state.hp<=0){
-      const fatalChance=frontierFatalityChance(state),fatalRoll=hash01(`${state.seed}:${enemy.id}:fatal:${front.stage}:${Math.floor(state.ageSeconds)}:${state.defeats}`);
-      if(fatalRoll<fatalChance){endLifeEarly(state,`第${front.stage+1}前線の戦い`);events.push({type:'life-end',cause:'combat',fatalChance});}
-      else{state.down={elapsed:0,rescueSeconds:40,frontier:true};state.combat=null;events.push({type:'downed',fatalChance});}
-      break;
-    }
-  }
+  const allLiving=front.enemies.filter(enemy=>!enemy.dead);if(!allLiving.length){front.cleared=true;if(advanceEnemies)front.clearSeconds+=dt;state.combat=null;clearSession(state);return[{type:'front-cleared',stage:front.stage,engine:'tidebreak'}];}
+  if(state.down){clearSession(state);if(advanceEnemies)for(const enemy of allLiving)enemy.moving=false;state.down.elapsed+=dt;if(state.down.elapsed>=40){state.down=null;state.zone='village';state.front=0;state.hp=Math.max(30,state.maxHp*.3);state.stamina=state.staminaCap*.6;state.combat=null;events.push({type:'rescued'});}return events;}
+  let living=allowedLiving(front,allowedEnemyIds);if(!living.length){if(state.combat){state.combat=null;clearSession(state);}return events;}
+  let nearest=nearestEnemy(state.position,living),target=state.combat?living.find(enemy=>enemy.id===state.combat.targetId&&!enemy.dead):null;
+  if(!state.combat&&nearest.distance<=3.25){state.combat=beginCombatState(state,nearest.enemy.id);state.combat.engine='tidebreak';target=nearest.enemy;}
+  if(state.combat&&!target){if(nearest.distance<=3.25){state.combat.targetId=nearest.enemy.id;target=nearest.enemy;clearSession(state);}else{state.combat=null;clearSession(state);}}
+  if(state.combat&&target&&dist(state.position,target)>5.4){state.combat=null;clearSession(state);target=null;events.push({type:'disengage'});}
+  advanceEnemyFormation(state,living,dt,front.stage,target?.id||null);
+  if(state.combat&&target)applyTidebreakStep(state,target,front,dt,events);
+  if(front.enemies.every(enemy=>enemy.dead)){front.cleared=true;if(advanceEnemies)front.clearSeconds+=dt;state.combat=null;clearSession(state);}
   return events;
 }
 
-function advanceEnemyClock(front,dt){for(const enemy of front.enemies){enemy.flash=Math.max(0,enemy.flash-dt*4);enemy.attackWindow=Math.max(0,(enemy.attackWindow||0)-dt);if(!enemy.dead)enemy.cooldown-=dt;else enemy.moving=false;}}
-
-/** One shared frontier: enemy clocks/formation run once, with stable character order, never packet order. */
+/** Shared frontier keeps one authoritative owner per enemy; each owned duel resolves in Tidebreak. */
 export function tickSharedFront(states,front,dt){
-  const ordered=[...states].sort((a,b)=>a.id.localeCompare(b.id)),events=new Map();if(ordered.length===1){events.set(ordered[0].id,tickFront(ordered[0],front,dt));return events;}if(!ordered.length)return events;
-  advanceEnemyClock(front,dt);const eligible=ordered.filter(state=>!state.down&&!state.ended),targets=new Map(ordered.map(state=>[state.id,new Set()]));
-  for(const enemy of front.enemies.filter(row=>!row.dead)){const target=[...eligible].sort((a,b)=>dist(enemy,a.position)-dist(enemy,b.position)||a.id.localeCompare(b.id))[0];if(target)targets.get(target.id).add(enemy.id);else enemy.moving=false;}
-  for(const state of eligible)advanceEnemyFormation(state,front.enemies.filter(enemy=>targets.get(state.id).has(enemy.id)),dt,front.stage);if(front.enemies.every(enemy=>enemy.dead))front.clearSeconds+=dt;
-  for(const state of ordered)events.set(state.id,tickFront(state,front,dt,{advanceEnemies:false,incomingEnemyIds:targets.get(state.id)}));return events;
+  const ordered=[...states].sort((a,b)=>a.id.localeCompare(b.id)),events=new Map();if(!ordered.length)return events;if(ordered.length===1){events.set(ordered[0].id,tickFront(ordered[0],front,dt));return events;}
+  advanceEnemyClock(front,dt);const eligible=ordered.filter(state=>!state.down&&!state.ended),assignments=new Map(ordered.map(state=>[state.id,new Set()]));
+  for(const enemy of front.enemies.filter(row=>!row.dead)){
+    const owner=[...eligible].sort((a,b)=>{const lockA=a.combat?.targetId===enemy.id?-1.15:0,lockB=b.combat?.targetId===enemy.id?-1.15:0;return dist(enemy,a.position)+lockA-(dist(enemy,b.position)+lockB)||a.id.localeCompare(b.id);})[0];if(owner)assignments.get(owner.id).add(enemy.id);
+  }
+  for(const state of ordered)events.set(state.id,tickFront(state,front,dt,{advanceEnemies:false,allowedEnemyIds:assignments.get(state.id)}));
+  if(front.enemies.every(enemy=>enemy.dead)){front.cleared=true;front.clearSeconds+=dt;}
+  return events;
 }
