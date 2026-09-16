@@ -31,6 +31,8 @@ test('Visual Review publication follows exact develop delivery and requires brow
 
   assert.match(smoke,/version\.json/);
   assert.match(smoke,/version\.commit, expectedSha/);
+  assert.match(smoke,/page\.goto\(entry\.toString\(\),/);
+  assert.doesNotMatch(smoke,/page\.goto\(entry,\s*\{/);
   assert.match(smoke,/\[data-view=\\?"motion/);
   assert.match(smoke,/characters\.html\?review=motion/);
   assert.match(smoke,/battle-time/);
