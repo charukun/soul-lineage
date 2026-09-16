@@ -46,10 +46,8 @@ export function installRrpPerformanceCapture({
     if(!panel||!documentRef?.body)return;const dialog=documentRef.getElementById?.('village-dialog');const target=dialog?.open?dialog:documentRef.body;if(panel.parentNode!==target)target.append(panel);
   }
   function performanceProbeFactory(role){activeProbe=createCoopPerformanceProbe({role,now});activeSession=null;windowArmed=false;return activeProbe;}
-  function armWindow(session){
-    if(!activeProbe||windowArmed)return false;const snapshot=session?.snapshot?.(),connected=Number(snapshot?.view?.connected||0);if(snapshot?.phase!=='open'||connected<peerTarget)return false;
-    activeProbe.resetWindow({keepConnections:true});windowArmed=true;lastRaw=null;lastMeta=null;return true;
-  }
+  function readyToArm(session){const snapshot=session?.snapshot?.();return snapshot?.phase==='open'&&Number(snapshot?.view?.connected||0)>=peerTarget;}
+  function armWindow(session){if(!activeProbe||windowArmed||!readyToArm(session))return false;activeProbe.resetWindow({keepConnections:true});windowArmed=true;lastRaw=null;lastMeta=null;return true;}
   function sample(){
     if(disposed)return null;mountPanel();const session=getSession();
     if(session!==activeSession){activeSession=session;if(session){windowArmed=false;lastRaw=null;lastMeta=null;}else windowArmed=false;}
@@ -58,7 +56,7 @@ export function installRrpPerformanceCapture({
     else if(status){status.textContent=session?'performance probeなし':lastRaw?'session終了 · 最終capture保持':'co-op session待機中';if(copyButton)copyButton.disabled=!lastRaw;if(resetButton)resetButton.disabled=true;}
     return raw?safeClone(raw):null;
   }
-  function reset(){if(!activeProbe||!activeSession)return false;activeProbe.resetWindow({keepConnections:true});windowArmed=true;lastRaw=null;lastMeta=null;sample();return true;}
+  function reset(){if(!activeProbe||!readyToArm(activeSession))return false;activeProbe.resetWindow({keepConnections:true});windowArmed=true;lastRaw=null;lastMeta=null;sample();return true;}
   function raw(){sample();return lastRaw?Object.freeze({...safeClone(lastRaw),_capture:safeClone(lastMeta)}):null;}
   function json(){const value=raw();return value?JSON.stringify(value,null,2):'';}
   async function copy(){const text=json();if(!text)return false;const clipboard=windowRef?.navigator?.clipboard||globalThis.navigator?.clipboard;if(!clipboard?.writeText)return false;await clipboard.writeText(text);if(status)status.textContent='raw JSONをコピーしました';return true;}
