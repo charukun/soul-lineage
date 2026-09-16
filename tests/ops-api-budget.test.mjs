@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGithubClient } from '../ops-board/github-client.mjs';
+import { classifyGithubFailure, createGithubClient } from '../ops-board/github-client.mjs';
 import { FULL_PULL_RECONCILE_MS, syncPullSnapshot } from '../ops-board/pull-snapshot.mjs';
 import { enrichTargets } from '../ops-board/review-model.mjs';
+import { ANONYMOUS_RECONCILE_MIN_AGE_MS, shouldReuseFreshState } from '../ops-board/refresh-policy.mjs';
 
 function memoryStorage() {
   const map = new Map();
@@ -55,9 +56,99 @@ test('GitHub client serves short-lived TTL hits without spending another request
   assert.equal(calls, 1);
   assert.equal(client.requests, 1);
   assert.equal(client.cacheHits, 1);
-  assert.equal(client.maxRequests, 18);
+  assert.equal(client.maxRequests, 12);
   assert.equal(client.scope, 'public');
   assert.equal(client.deepAllowed, false);
+});
+
+test('permission 403 does not poison the public scope with rate-limit backoff', async () => {
+  const storage = memoryStorage();
+  let calls = 0;
+  const fetchImpl = async () => {
+    calls++;
+    return new Response(JSON.stringify({ message: 'Resource not accessible by integration' }), {
+      status: 403,
+      headers: {
+        'content-type': 'application/json',
+        'x-ratelimit-limit': '60',
+        'x-ratelimit-remaining': '59',
+        'x-ratelimit-used': '1',
+        'x-ratelimit-resource': 'core',
+      },
+    });
+  };
+  const client = createGithubClient({ storage, fetchImpl });
+  await assert.rejects(client.get('/branches?per_page=100'), error => {
+    assert.equal(error.githubDiagnostic?.kind, 'permission');
+    assert.equal(error.rateLimited, false);
+    return true;
+  });
+  await assert.rejects(client.get('/branches?per_page=100'), error => error.githubDiagnostic?.kind === 'permission');
+  assert.equal(calls, 2);
+});
+
+test('primary limit stores typed backoff and blocks the next request without another fetch', async () => {
+  const storage = memoryStorage();
+  let calls = 0;
+  const now = Date.parse('2026-09-15T09:00:00Z');
+  const resetSeconds = Math.floor((now + 20 * 60_000) / 1000);
+  const fetchImpl = async () => {
+    calls++;
+    return new Response(JSON.stringify({ message: 'API rate limit exceeded for test' }), {
+      status: 403,
+      headers: {
+        'content-type': 'application/json',
+        'x-ratelimit-limit': '60',
+        'x-ratelimit-remaining': '0',
+        'x-ratelimit-used': '60',
+        'x-ratelimit-resource': 'core',
+        'x-ratelimit-reset': String(resetSeconds),
+      },
+    });
+  };
+  const client = createGithubClient({ storage, fetchImpl, now: () => now });
+  await assert.rejects(client.get('/branches?per_page=100'), error => {
+    assert.equal(error.githubDiagnostic?.kind, 'primary');
+    assert.equal(error.githubDiagnostic?.remaining, 0);
+    assert.equal(error.rateLimited, true);
+    return true;
+  });
+  await assert.rejects(client.get('/actions/runs?per_page=100'), error => {
+    assert.equal(error.githubDiagnostic?.kind, 'primary');
+    assert.match(error.message, /再取得待ち/);
+    return true;
+  });
+  assert.equal(calls, 1);
+});
+
+test('secondary limit is distinct even when primary remaining is nonzero', () => {
+  const now = Date.parse('2026-09-15T09:00:00Z');
+  const diagnostic = classifyGithubFailure({
+    status: 429,
+    headers: new Headers({
+      'retry-after': '90',
+      'x-ratelimit-limit': '5000',
+      'x-ratelimit-remaining': '4870',
+      'x-ratelimit-used': '130',
+      'x-ratelimit-resource': 'core',
+    }),
+    message: 'You have exceeded a secondary rate limit.',
+    scope: 'authenticated',
+    now,
+  });
+  assert.equal(diagnostic.kind, 'secondary');
+  assert.equal(diagnostic.remaining, 4870);
+  assert.equal(diagnostic.retryAfter, '90');
+  assert.equal(diagnostic.retryAtMs, now + 90_000);
+});
+
+test('fresh state suppresses only redundant anonymous cron reconciliation', () => {
+  const now = Date.parse('2026-09-15T09:30:00Z');
+  const previous = { syncStatus: 'ok', generatedAt: new Date(now - 5 * 60_000).toISOString() };
+  assert.equal(shouldReuseFreshState(previous, { source: 'cron:*/30 * * * *', authenticated: false, now }), true);
+  assert.equal(shouldReuseFreshState(previous, { source: 'cron:*/30 * * * *', authenticated: true, now }), false);
+  assert.equal(shouldReuseFreshState(previous, { source: 'github-event:integration', authenticated: false, now }), false);
+  assert.equal(shouldReuseFreshState({ ...previous, generatedAt: new Date(now - ANONYMOUS_RECONCILE_MIN_AGE_MS).toISOString() }, { source: 'cron:*/30 * * * *', authenticated: false, now }), false);
 });
 
 test('PR snapshot is incremental between bounded full reconciliations', async () => {
