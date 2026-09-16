@@ -53,7 +53,8 @@ export async function createCoopHost({world,contentVersion,save,RTCPeerConnectio
     if(writer.pending&&now()-writer.pendingSince>3000&&!stalled){stalled=true;publish();}
     if(!open())return;
     try{
-      world.advance(.05,{blocked:writer.pendingIds()});for(const [id,seq]of acceptedInputs)appliedInputs.set(id,seq);acceptedInputs.clear();
+      const blocked=writer.pendingIds();world.advance(.05,{blocked});
+      for(const [id,seq]of acceptedInputs)if(!blocked.has(id))appliedInputs.set(id,seq);acceptedInputs.clear();
       if(world.dirtyHistory||(!writer.pending&&now()-lastSave>=1000))void persist().catch(()=>{});
       if(now()-lastBroadcast>=95){lastBroadcast=now();publish();}
     }catch(e){error=e.message;paused=true;publish();}
