@@ -11,8 +11,8 @@ test('repository character production manifests and catalog classifications pass
   const byId = Object.fromEntries(result.manifests.map(row => [row.id, row]));
   assert.equal(byId['shino.reference.v2'].licenseStatus, 'retired');
   assert.equal(byId['shino.reference.v2'].distributionEligible, false);
-  assert.equal(byId['protagonist.villager.v1'].licenseStatus, 'blocked-rerig');
-  assert.equal(byId['protagonist.villager.v1'].distributionEligible, false);
+  assert.equal(byId['protagonist.villager.v1'].licenseStatus, 'allowed');
+  assert.equal(byId['protagonist.villager.v1'].distributionEligible, true);
   assert.equal(byId['arcanist.atlas-dcc.v1'].licenseStatus, 'blocked-rerig');
   assert.equal(byId['arcanist.atlas-dcc.v1'].distributionEligible, false);
   for (const row of Object.values(byId)) assert.equal(row.productionReady, false);
