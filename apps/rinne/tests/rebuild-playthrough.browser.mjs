@@ -57,7 +57,13 @@ export async function verifyRebuildPlaythrough(browser,url,output){
     assert.equal(await text(page.locator('#move-hint')),'スワイプで母を動かせる');
     const canvas=page.locator('#game'),box=await canvas.boundingBox();assert.ok(box);await page.mouse.move(box.x+box.width*.48,box.y+box.height*.62);await page.mouse.down();await page.mouse.move(box.x+box.width*.64,box.y+box.height*.52,{steps:6});await sleep(450);await page.mouse.up();
     assert.equal(await page.locator('#move-hint').isHidden(),true,'control hint should disappear after the first movement');
-    await page.locator('#clock-rate').selectOption('20');await page.waitForFunction(()=>document.getElementById('life-stage')?.textContent.includes('2/6 村'),null,{timeout:18000});
+
+    // Exact clock timing is covered by the life-clock tests. Browser coverage crosses
+    // the real birth-release UI boundary from a nearby persisted state so slow WebGL
+    // frames cannot turn this interaction check into a wall-clock timeout.
+    const releaseEdge=stateAt(3.95,49);await load(releaseEdge);await expectTone('village');
+    assert.equal(await text(page.locator('#life-stage')),'1/6 誕生');assert.equal(await page.locator('#game-screen').getAttribute('data-birth-tour'),'true');
+    await page.locator('#clock-rate').selectOption('20');await page.waitForFunction(()=>document.getElementById('life-stage')?.textContent.includes('2/6 村'),null,{timeout:5000});
     assert.equal(await page.locator('#game-screen').getAttribute('data-birth-tour'),'false');await page.locator('.objective-card').waitFor({state:'visible'});assert.equal(await text(page.locator('#objective-badge')),'武具 7歳');await expectTone('village');await compactHud();await page.screenshot({path:join(output,'01-village-growth.png')});
 
     const prep=stateAt(8,42);prep.position={x:sword.x+1.35,z:sword.z};await load(prep);
