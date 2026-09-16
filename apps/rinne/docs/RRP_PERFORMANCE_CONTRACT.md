@@ -53,12 +53,12 @@ Use these boundaries consistently so two captures are comparable.
 - `canonCommitMs`: irreversible intent creation to the committed Canon revision becoming visible to the initiator. Pre-commit animation does not end the timer.
 - `hostLossDetectionMs`: injected/observed old-Host loss to the first `MIGRATING`/darkness transition.
 - `hostReopenMs`: migration start to the successor becoming `OPEN` with the committed recovery material.
-- `peerUplinkKbps` / `hostUplinkKbps`: application payload bytes in fixed one-second buckets, including idle zero-byte buckets inside the measured interval. WebRTC stats may corroborate them when available.
+- `peerUplinkKbps` / `hostUplinkKbps`: application payload bytes in fixed one-second buckets. An explicitly observed idle bucket is zero. If the probe is not sampled across multiple buckets, those intervening buckets are counted in `bandwidthSkippedBuckets` and omitted rather than fabricated as idle traffic. The dedicated capture route must therefore sample continuously for a comparable bandwidth run.
 - `reliableBufferedAmountBytes` / `presenceBufferedAmountBytes`: sample `RTCDataChannel.bufferedAmount`. This is the user-agent send queue only; it does not include OS/network hardware buffering.
 - `stateFreshnessMs`: render-apply time minus the timestamp/tick time of the newest authoritative state used by that render.
 - `positionErrorM`: displayed interpolated/reconciled position versus the authoritative position for the same world time. Do not compare values at different ticks.
 - `rollbackMs`: amount of already presented reversible world time invalidated by one correction. If a measured interval has zero rollbacks, rate/p95/max are measured zero, not unknown.
-- `connectionSuccessRate`: successful DataChannel opens divided by connection attempts using the same timeout and network profile.
+- `connectionSuccessRate`: successful DataChannel opens divided by actual connection attempts using the same timeout and network profile. Merely creating an unused invite is not a Host-side attempt; accepting an answer is.
 - `turnRelayRate`: connections whose selected candidate pair can be classified as relay divided only by connections whose selected candidate type could actually be established. It remains `null` when candidate classification is unavailable instead of assuming zero TURN usage.
 
 `RTCPeerConnection.getStats()` is used only when the browser exposes the needed selected-candidate dictionaries. Data-channel-specific stats are not uniformly available, so application send counters remain the portable payload source. `RTCDataChannel.bufferedAmount` is sampled directly for queue pressure.
@@ -81,7 +81,7 @@ Before baseline acceptance, the capture must at least contain:
 - 300 input-to-authoritative-ack samples and 300 input-to-rendered-display samples;
 - 20 Canon commits;
 - 20 Host-loss and 20 successor-reopen observations;
-- 120 one-second peer-uplink and Host-uplink buckets;
+- 120 observed one-second peer-uplink and Host-uplink buckets;
 - 120 samples for each DataChannel buffer maximum source;
 - 300 freshness samples and 300 position-error samples;
 - a measured rollback interval; zero rollback is valid evidence for that interval;
@@ -98,13 +98,13 @@ The current co-op runtime can take an **opt-in** bounded performance probe. Norm
 
 When a probe is supplied, it records:
 
-- Guest input creation and the exact authoritative input sequence applied by the Host. The Host publishes `ackInputSeq` only after the 20 Hz authoritative advance, not merely after packet receipt. This fills `inputToAuthoritativeAckMs`.
+- Guest input creation and the exact authoritative input sequence applied by the Host. The Host publishes `ackInputSeq` only after the 20 Hz authoritative advance, not merely after packet receipt. The probe retains the original input timestamp after acknowledgement so the render layer can later call `inputDisplayed(seq)` for the same authoritative sequence. Superseded inputs are discarded rather than converted into fictional latency samples.
 - Rebirth intent to persisted/confirmed rebirth result on the Guest.
-- Application payload bytes in fixed one-second buckets and reliable/presence `bufferedAmount` samples from the existing room wire, including queue pressure on replaceable drops.
+- Application payload bytes in fixed one-second observed buckets and reliable/presence `bufferedAmount` samples from the existing room wire, including queue pressure on replaceable drops. Long observation gaps are flagged and omitted instead of backfilled with zeroes.
 - Connection attempts and successful opens. When `getStats()` exposes a selected candidate pair, relay/direct classification is recorded; unsupported candidate classification stays unknown.
 - A bounded raw-sample snapshot through `session.performance()` while the probe is attached.
 
-The probe exposes a separate `recordInputToDisplay` hook so network acknowledgement cannot be mislabeled as rendered latency. It also exposes hooks for Host-loss/reopen, state freshness, same-time position error, rollback, frame/GPU, memory and battery measurements. These fields remain unknown until the corresponding runtime/render layer can measure the stated boundary honestly.
+The probe also keeps `recordInputToDisplay(value)` for capture layers that already own the full timing boundary. It exposes hooks for Host-loss/reopen, state freshness, same-time position error, rollback, frame/GPU, memory and battery measurements. These fields remain unknown until the corresponding runtime/render layer can measure the stated boundary honestly.
 
 ## CLI
 
@@ -144,8 +144,8 @@ The combined architecture proof also imports the contract proof. Reality Lab mod
 
 The remaining evidence work is now narrower:
 
-1. wire a dedicated browser/performance capture route that explicitly creates the probe without enabling it in ordinary gameplay;
-2. wire the render layer to `recordInputToDisplay` after the authoritative state is actually presented, rather than treating network receipt as display;
+1. wire a dedicated browser/performance capture route that explicitly creates the probe without enabling it in ordinary gameplay and samples it continuously at the bandwidth cadence;
+2. have the render layer call `inputDisplayed(seq)` only after the acknowledged authoritative sequence is actually presented;
 3. connect Host-loss/detection/reopen timestamps to the real browser migration path rather than the model;
 4. measure render-time state freshness and same-world-time position error once prediction/interpolation is wired into the main Rinne co-op path;
 5. join existing physical Performance Lab frame/GPU evidence by build/device/viewport provenance;
