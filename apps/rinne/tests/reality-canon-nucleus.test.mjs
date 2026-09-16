@@ -7,6 +7,7 @@ import {
   compareRequirementEnvelope,
   createCanonNucleus,
   progressIsolation,
+  proveCrashToleranceLowerBound,
   proveCostDominance,
   proveThreeNodeQuorumIntersection,
   runCanonNucleusProofSuite,
@@ -96,6 +97,14 @@ test('authority epoch fences stale writers and operation ids are idempotent',()=
   assert.throws(()=>node.commit({operationId:'new',canon:{v:2},recovery:{tick:2},expectedEpoch:oldEpoch}),/Stale/);
 });
 
+test('two committed copies are the crash-tolerance lower bound for one device failure',()=>{
+  const proof=proveCrashToleranceLowerBound({failures:1,copies:2});
+  assert.equal(proof.minimumCopies,2);
+  assert.equal(proof.pass,true);
+  assert.equal(proof.strictlyMinimal,true);
+  assert.equal(proveCrashToleranceLowerBound({failures:1,copies:1}).pass,false);
+});
+
 test('semantic canon replication strictly removes realtime traffic from the strong-consistency path',()=>{
   const proof=proveCostDominance();
   assert.equal(proof.pass,true);
@@ -104,8 +113,10 @@ test('semantic canon replication strictly removes realtime traffic from the stro
   assert.equal(cost.nucleusConnections,30);
   assert.equal(cost.fullStateConnections,30);
   assert.equal(cost.fullMeshConnections,435);
-  assert.equal(cost.strongSaved,2*2048*1200);
-  assert.ok(cost.nucleusStrong<cost.fullStateStrong);
+  assert.equal(cost.commitPathSaved,2048*1200);
+  assert.equal(cost.warmSaved,2*2048*1200);
+  assert.ok(cost.nucleusCommitPath<cost.fullStateCommitPath);
+  assert.ok(cost.nucleusWarmReplication<cost.fullStateWarmReplication);
   assert.ok(cost.nucleusTotal<cost.fullStateTotal);
 });
 
@@ -128,6 +139,7 @@ test('proof suite is self-consistent',()=>{
   const proof=runCanonNucleusProofSuite();
   assert.equal(proof.pass,true);
   assert.deepEqual(proof.checks,{
+    crashToleranceLowerBound:true,
     quorumIntersection:true,
     singleFailureRecovery:true,
     doubleFailureFailClosed:true,
