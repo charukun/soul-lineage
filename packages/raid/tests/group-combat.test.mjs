@@ -116,18 +116,25 @@ test('a fleeing villager can still be caught when no other combat is active',()=
  assert.equal(session.fight?.npc,runner);
 });
 
-test('a queued opponent becomes the primary target without dropping combat state',()=>{
+test('feeding remains the top-priority action before a queued opponent can retarget',()=>{
  const session=makeSession(),[a,b]=session.village.npcs;
  a.behavior='fight';b.behavior='fight';a.x=0;a.z=3;b.x=1;b.z=3.2;
  session.engage(a);session.engage(b);
  assert.equal(session.fight.npc,a);assert.equal(session.combatantCount(),2);
  session.fight=null;session.devour={npc:a,t:0};a.dead=true;
  const promoted=session.promoteNextCombatant();
- assert.equal(promoted,true);
- assert.equal(session.fight.npc,b);
- assert.equal(session.devour,null);
+ assert.equal(promoted,false);
+ assert.equal(session.fight,null);
+ assert.equal(session.devour.npc,a);
  assert.equal(session.combatantCount(),1);
- assert.equal(session.safeTime,0);
+});
+
+test('group tick does not advance secondary attacks while feeding is active',t=>{
+ const session=makeSession(),[a,b]=session.village.npcs;a.dead=true;a.eaten=false;a.x=0;a.z=0;b.behavior='fight';b.x=0;b.z=2;
+ session.player.x=0;session.player.z=.6;session.devour={npc:a,t:0};session.combatants=[{npc:b,retreat:0,learned:false,attackCooldown:0}];
+ let secondaryTicks=0;t.mock.method(session,'_tickSecondaries',()=>secondaryTicks++);
+ session.tick(1/60,input);
+ assert.equal(secondaryTicks,0);assert.ok(session.devour);assert.equal(session.fight,null);
 });
 
 test('only the enemy that leaves the group is released while the main fight continues',()=>{

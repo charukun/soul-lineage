@@ -22,7 +22,7 @@ test('legacy online adapter retains harmless lifecycle without DOM, storage or t
  assert.doesNotMatch(online,/localStorage|RTCPeerConnection|createElement|setInterval/);
 });
 
-test('latest settings still open and retain music and non-network actions',()=>{
+test('latest settings retain music and non-network actions without village import or route selection',()=>{
  const elements=new Map();
  function element(id){const e={id,hidden:true,style:{},textContent:'',onclick:null,addEventListener(){}};let html='';
   Object.defineProperty(e,'innerHTML',{get:()=>html,set:value=>{html=value;for(const [,child]of value.matchAll(/id="([^"]+)"/g))if(!elements.has(child))elements.set(child,element(child));}});return e;}
@@ -33,9 +33,11 @@ test('latest settings still open and retain music and non-network actions',()=>{
  vm.runInNewContext(source+"\nstore={read:()=>({visits:{}})};settings();",context);
  assert.equal(elements.get('sheet').hidden,false);assert.equal(elements.get('sheet-title').textContent,'記録と連携');
  assert.equal(elements.has('online-settings'),false);
- for(const id of ['music-library','sound-toggle','visit-log','load-village','load-echo','credits'])assert.equal(typeof elements.get(id)?.onclick,'function',id);
+ for(const id of ['music-library','sound-toggle','visit-log','credits'])assert.equal(typeof elements.get(id)?.onclick,'function',id);
+ for(const id of ['load-village','load-echo'])assert.equal(elements.has(id),false,id);
  elements.get('music-library').onclick();assert.equal(musicOpened,1);
- assert.match(main,/firstHuntGuide\(game,profile/);assert.match(main,/renderRaidRoutes\(offers,profile\)/);
+ assert.match(main,/firstHuntGuide\(game,profile/);assert.match(main,/pickRandomRaid\(offers,profile\)/);
+ assert.doesNotMatch(main,/renderRaidRoutes|importHousing|createTidebreakRuntime/);
  assert.match(main,/document\.hidden/);assert.match(main,/createExclusiveProfileStorage/);
 });
 

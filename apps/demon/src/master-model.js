@@ -1,12 +1,14 @@
 import {createCompressedGLTFLoader} from '@soul/rendering/compressed-gltf';
 import {shinoProductionRigFromGLTF} from '@soul/rendering/master-character-production';
 
-export const SHINO_REVIEW_SHA256='83843ade7dbdfaacc9d601bda099fcb5757527e339b9c5deb223a2c2f5eb28ca';
+export const MASTER_HUMAN_SHA256='4f95570fcd0f663e1497b3f4e922d3aa96be014cc4cc0255e70db3f206c1b1db';
+// Legacy export name is retained for dependent tests/imports while the actual surface asset changes.
+export const SHINO_REVIEW_SHA256=MASTER_HUMAN_SHA256;
 const MAX_MODEL_BYTES=32*1024*1024;
 let pending;
-export function masterHumanModelUrl(href){return new URL('../rinne/simulator/assets/SHINO_review.vrm',href).href;}
+export function masterHumanModelUrl(href){return new URL('../rinne/simulator/assets/PROTAGONIST_VILLAGER_V1.glb',href).href;}
 
-// NPCs and the playable character share one audited download/template. Failed
+// NPCs and the playable character share one audited production humanoid template. Failed
 // requests are evicted so an explicit selection retry can recover on the same page.
 export function loadDemonMasterModel(renderer=null) {
   if(!pending)pending=(async()=>{
@@ -19,7 +21,7 @@ export function loadDemonMasterModel(renderer=null) {
     if(bytes.byteLength<28||bytes.byteLength>MAX_MODEL_BYTES)throw new Error('MasterCharacter asset size invalid');
     const digest=await crypto.subtle.digest('SHA-256',bytes);
     const hash=[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
-    if(hash!==SHINO_REVIEW_SHA256)throw new Error('MasterCharacter asset hash mismatch');
+    if(hash!==MASTER_HUMAN_SHA256)throw new Error('MasterCharacter asset hash mismatch');
     const compressed=createCompressedGLTFLoader({renderer,transcoderPath:`${import.meta.env.BASE_URL}basis/`});
     try{
       const gltf=await compressed.parseAsync(bytes,url);

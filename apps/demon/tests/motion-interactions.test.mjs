@@ -17,6 +17,6 @@ test('Demon boot installs master human then interaction then crowd before NightV
 test('portable devour owns the explicit capture lifetime and clears it on cancellation',async()=>{
  const raidEntry=import.meta.resolve('@soul/raid');
  const source=await readFile(new URL('./devour.js',raidEntry),'utf8');
- assert.match(source,/n\.capturedBy=\{x:p\.x,z:p\.z,yaw:p\.yaw,form:session\.profile\?\.form,progress:p\.devourProgress\}/);
+ assert.match(source,/n\.capturedBy=\{x:p\.x,z:p\.z,yaw:p\.yaw,form:session\.profile\?\.form,growthScale:p\.growthScale,progress:p\.devourProgress\}/);
  assert.match(source,/delete session\.devour\.npc\.capturedBy/);
 });
