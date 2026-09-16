@@ -1,14 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { CHARACTER_REFERENCE_MODELS as ACTIVE_REFERENCE_MODELS } from '../src/index.js';
 import {
   CHARACTER_REFERENCE_MODELS,
   RECONSTRUCTED_WAYFARER_MODEL_ID
 } from '../src/reference-model-catalog.js';
 import { validateVisualIdentity } from '../src/visual-identity.js';
 
-test('reconstructed wayfarer is a selectable runtime rebuild with explicit CC0 provenance', () => {
+test('reconstructed wayfarer is a selectable active runtime rebuild with explicit CC0 provenance', () => {
   const model = CHARACTER_REFERENCE_MODELS[RECONSTRUCTED_WAYFARER_MODEL_ID];
+  const active = ACTIVE_REFERENCE_MODELS[RECONSTRUCTED_WAYFARER_MODEL_ID];
   assert.ok(model);
+  assert.ok(active, 'Visual Review selector consumes the active reference-model catalog');
+  assert.equal(active.id, RECONSTRUCTED_WAYFARER_MODEL_ID);
   assert.equal(model.kind, 'runtime-reference-model');
   assert.equal(model.modelingMode, 'runtime-procedural-rebuild');
   assert.equal(model.productionReady, false);
