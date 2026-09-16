@@ -34,8 +34,8 @@ test('mayor and guards receive stable near-detail priority',()=>{
  assert.equal(MASTER_RESIDENT_LIMIT,6);
 });
 
-test('review model resolves to the sibling Rinne deployment',()=>{
- assert.equal(masterModelUrl('https://example.test/soul-lineage/dev/village/'),'https://example.test/soul-lineage/dev/rinne/simulator/assets/SHINO_review.vrm');
+test('DCC Shino model resolves to the sibling Rinne deployment',()=>{
+ assert.equal(masterModelUrl('https://example.test/soul-lineage/dev/village/'),'https://example.test/soul-lineage/dev/rinne/simulator/assets/SHINO_REFERENCE_V2.vrm');
  assert.equal(hashResident('same'),hashResident('same'));
  assert.notEqual(hashResident('same'),hashResident('different'));
 });
