@@ -2,54 +2,104 @@
 
 ## Scope
 
-This note records the proof target for Rinne's 30-player cooperative DEV model. It does not claim a universally superior multiplayer or distributed-systems theory. The fixed requirement envelope is:
+Canon Nucleus is the crash-fault authority path for Rinne's irreversible history. It is not a claim of a universally superior consensus algorithm. The product-specific requirement remains:
 
 - no mandatory dedicated game server for the DEV slice;
-- one nucleus device may fail without losing already committed birth/death/rebirth canon;
-- loss of quorum must fail closed instead of inventing a successor history;
-- replaceable realtime state must not be forced through the irreversible-history commit path;
-- the topology must remain practical for a 30-player mobile/browser room.
+- already confirmed birth/death/rebirth/lineage Canon survives the declared crash budget;
+- loss of sufficient authority must fail closed instead of inventing history;
+- replaceable realtime state does not enter the irreversible-history strong path;
+- recovery must contain enough application state, including operation dedupe, to resume the confirmed history;
+- the 30-player room must not require a full player mesh merely to protect Canon.
 
-The proof implementation is `src/game/reality-lab/canon-nucleus.js`. The existing Reality Lab remains the source for realtime fan-out, Interest, Cell, host-loss and corruption experiments. `proof-loop.js` composes both evidence sets without pretending that the model wire certifies real NAT/TURN/WebRTC behavior.
+The original state proof is `src/game/reality-lab/canon-nucleus.js`. Packet-level crash timing is modeled separately in `canon-packet-proof.js`; dense presence fan-out is modeled in `adaptive-relay.js`. `proof-loop.js` composes these with Reality Lab and Semantic Frontier evidence without treating model results as physical WebRTC certification.
 
 ## Semantic planes
 
-The architecture separates four meanings that do not require the same consistency level.
-
-1. **Presence / realtime**: position, yaw, animation and other replaceable presentation state. A newer sample supersedes an older one.
-2. **Recovery state**: the bounded material required to reconstruct the last committed canon boundary. Realtime progress after that boundary may be discarded on failure.
+1. **Presence / realtime**: position, yaw, animation and other replaceable state. Newer state may supersede older state and may use Interest, Cell or adaptive relay distribution.
+2. **Recovery state**: bounded material required to reconstruct the latest accepted Canon boundary. Realtime progress after that boundary may roll back.
 3. **Canon**: irreversible birth, death, rebirth, lineage and equivalent history decisions.
-4. **Authority**: leader epoch, fencing and proof that a successor has the committed recovery material before OPEN.
+4. **Authority**: epoch, fencing, quorum membership and proof that a successor can reconstruct the accepted Canon before it becomes `OPEN`.
 
-A canon operation is not committed merely because a leader chose it. The same canon payload and its recovery material must be stored by a 2-of-3 nucleus quorum. Only then may that revision become visible as committed history.
+The core invariant is unchanged:
 
-The recovery capsule must contain the application-level deduplication state needed after process replacement. In the current Rinne coop model, rebirth requests are already represented by stable operation/life identifiers and the `rebirthOps` state belongs with the recoverable checkpoint. An in-memory operation map alone is not sufficient evidence for cross-Host idempotency.
+> **Committed Canon must be Recovery-Complete.**
 
-## Safety argument
+A hash or event ID by itself is not enough. The same durable proposal contains Canon payload plus recovery material. Application-level dedupe state such as `rebirthOps` belongs to that recovery capsule; an in-memory request map alone cannot prove idempotency after process replacement.
 
-For a three-member set, every two-member quorum intersects every other two-member quorum. A committed revision therefore exists on at least two members at commit time.
+## Packet-level commit contract
 
-After any single member failure, two members remain. The surviving set intersects the previous commit quorum, so at least one live member retains the complete committed canon/recovery pair. Before a replacement leader opens a new epoch, that pair is copied and validated across the live quorum. The successor cannot silently choose an older revision.
+The earlier proof assumed that an acknowledged replica was already durable. The packet model now makes that boundary explicit.
 
-After two member failures, fewer than two members remain. No quorum can be formed, so the model moves to CLOSED. Availability is intentionally sacrificed rather than fabricating history.
+1. The current leader durably stores a complete `PREPARE(epoch, revision, parent, operationId, canon, recovery)`.
+2. Followers may receive, lose, duplicate or reorder `PREPARE` packets. A follower emits `ACK` only after the complete proposal is stored.
+3. The leader counts unique ACKing holders, including itself. **Client-visible Canon is forbidden until a quorum of currently live nodes durably holds the exact proposal.** A historical ACK from a holder that has already failed is insufficient.
+4. After visibility, `COMMIT` dissemination may mark additional replicas, but safety does not depend on every follower seeing that packet before the leader fails.
+5. If a holder disappears and the accepted revision falls below the durability quorum, the authority is `RECOVERING`, not fully `OPEN`, until the exact proposal is repaired across a live quorum.
+6. Epoch fencing rejects delayed old-authority `PREPARE`/`COMMIT` traffic after recovery.
 
-A healthy OPEN leader cannot be replaced through the recovery API. Epoch fencing rejects writes from an older authority epoch. Operation IDs are idempotent within the protocol model: replaying the same operation with the same payload returns the original receipt, while reusing the same ID with different content is rejected. Cross-process deduplication additionally depends on the recovery-capsule rule above.
+This yields an important uncertain-completion rule. A follower may have durably stored an operation even if its ACK never reached the old leader and the client never received success. A successor may conservatively finish that pending operation. Therefore the client must retry with the same stable operation ID, and the recovery capsule must retain the dedupe information needed to return the same result rather than create a second irreversible event.
 
-The proof model verifies the actual payload structure as well as the displayed digest, so its internal safety result does not depend on an accidental collision in the display checksum. This is still a non-Byzantine proof: a malicious member that intentionally violates the protocol is out of scope.
+### Crash timing now exercised
 
-## Crash-tolerance lower bound
+For the 3-member `f=1` case, the proof walks every member failure across these stages and all one/two-follower ACK sets:
 
-With no external durable authority and a target of surviving `f=1` crash, a committed canon item must exist on at least `f+1 = 2` independent members. If only one member holds it, that member is itself an allowed single failure and the committed canon can disappear.
+- before any follower store;
+- after durable follower store but before ACK delivery;
+- after ACK but before client-visible commit;
+- after client-visible commit but before follower COMMIT dissemination;
+- after partial COMMIT dissemination.
 
-The leader already owns one copy, so the minimum synchronous commit-path transfer is one follower copy. Canon Nucleus commits at exactly that lower bound: leader + one acknowledged follower. After leader loss, the surviving committed copy is copied to the other live nucleus member before the replacement leader becomes OPEN.
+A visible revision must survive and be repaired to a live quorum after every allowed single crash. If the only ACKing follower dies before visibility, publication is blocked until the other follower stores the proposal. This closes the gap between "an ACK once existed" and "the confirmed Canon is still crash-safe now".
 
-This lower bound is about crash safety, not Byzantine consensus or geographic failure domains. If the two copies share a common physical failure domain, the practical durability claim must be weakened accordingly.
+The proof deliberately retains the inverse counterexample: if a leader is allowed to tell the client "committed" while only its own durable copy exists, one allowed leader crash can erase that visible Canon. The unsafe variant must fail in the suite.
 
-## Constrained dominance
+## General crash-quorum form
 
-Comparisons are made only among architectures that satisfy the same one-crash canon requirement. A single-host star remains useful as a low-cost reference, but it is not a feasible baseline for one-host-loss canon survival.
+For a crash budget `f` and a requirement to remain writable after those `f` failures, the model generalizes the nucleus to:
 
-Let `R > 0` be replaceable realtime bytes generated during the interval and `C` the canon plus recovery bytes required by both designs. On the minimum commit path, a three-replica all-state design that includes every realtime transition in its strongly ordered log must transfer at least one follower copy of `R + C`, while Canon Nucleus transfers one follower copy of `C`:
+```text
+members N = 2f + 1
+commit / reopen quorum Q = f + 1
+minimum committed copies for survival = f + 1
+```
+
+Any two `Q`-member majorities of a `2f+1` set intersect. If a committed proposal exists on `f+1` members, any set of at most `f` crashes leaves at least one complete proposal copy. Exactly `f` crashes also leave `f+1` live members, so the surviving copy can be repaired across a new quorum before reopening.
+
+The automated proof currently enumerates `f=1..4`, all majority-quorum pairs and all size-`f` failure sets. It also keeps the minimal-member counterexample: with only `2f` members, `f` crashes leave `f` live nodes, fewer than the `f+1` majority required to resume writable crash-consensus.
+
+These are standard majority/crash-fault bounds expressed in Rinne's recovery-complete state model, not a new consensus lower bound.
+
+### Why two peers are still a boundary
+
+With exactly two peers, arbitrary partition and no external witness/fencing service, the desired combination cannot be guaranteed simultaneously:
+
+- if A must be able to stay/open alone after B crashes, A needs an "open alone" rule;
+- if B must be able to stay/open alone after A crashes, B needs the symmetric rule;
+- during a partition where both are alive but cannot distinguish the other from a crash, both rules can fire and violate split-brain safety.
+
+If one side is forbidden to open alone, the corresponding real single-peer crash loses availability instead. The proof exhausts the four possible `A may open alone / B may open alone` policies and finds none satisfying both one-peer post-failure availability and partition split-brain safety.
+
+This boundary assumes arbitrary partition without an external witness, fencing authority or trusted bounded-drift lease. Adding such a discriminator changes the model and may solve the two-peer product case; the current peer-only proof does not pretend otherwise.
+
+## Finite burst, duplicate and reorder model
+
+`canon-packet-proof.js` also drives deterministic message faults:
+
+- consecutive loss bursts followed by eventual delivery;
+- duplicate `PREPARE`, `ACK` and `COMMIT` packets;
+- reordering by choosing delivery order from the pending queue;
+- delayed old-epoch packets after successor recovery;
+- permanent loss/partition as a no-liveness boundary.
+
+Safety is maintained because storage and ACK handling are idempotent by `(epoch, revision, exact proposal)`, ACKs are counted by unique member, visibility still requires a currently-live durable quorum, and stale epochs are fenced. A finite loss burst can make progress once delivery resumes and retries occur. An infinite partition has no guaranteed Canon liveness and is not relabeled as a slow success.
+
+This is an adversarial deterministic packet model. It is **not** evidence about SCTP retransmission algorithms, browser scheduling, NAT, TURN, carrier radio sleep or real burst-loss distributions.
+
+## Original f=1 lower-bound and cost result
+
+For the default 3-member case, crash survival needs at least two independent copies. The leader already owns one copy, so one follower durable store is the minimum synchronous transfer before visibility.
+
+Let `R > 0` be replaceable realtime bytes during an interval and `C` the Canon plus recovery bytes required by both compared designs. A three-replica all-state design that strongly logs every realtime transition must transfer at least one follower copy of `R + C`, while Canon Nucleus transfers one follower copy of `C`:
 
 ```text
 all-state minimum commit path = R + C
@@ -57,53 +107,57 @@ Canon Nucleus minimum commit path = C
 minimum commit-path saving = R > 0
 ```
 
-If both standby replicas are kept warm, the corresponding traffic is `2 × (R + C)` versus `2 × C`, preserving the same strict inequality. The deterministic proof sweep varies players, ticks, realtime payload, canon frequency, canon payload, recovery payload and reliable-delivery multiplier. The current sweep covers 6,480 combinations and requires both minimum-commit and two-standby inequalities to hold in every case.
+Keeping both standbys warm yields `2 × (R + C)` versus `2 × C`. The existing deterministic cost sweep covers 6,480 combinations across player count, ticks, realtime payload, Canon frequency/payload, recovery payload and reliable-delivery multiplier.
 
-For 30 players, a host-star plus a three-member nucleus needs 29 host/client edges plus the one standby-to-standby edge not already present in the star: 30 unique peer edges. A 30-player full mesh has `30 × 29 / 2 = 435` edges. Both numbers describe topology, not a claim that every browser can sustain the resulting traffic.
-
-During a pending canon commit, only the canon-affected actors need to be held at the irreversible boundary. Other reversible simulation can continue until the existing global stall budget is exceeded. A monolithic all-state commit barrier blocks the entire authoritative simulation for the same durability wait. This selective-progress property is part of the fixed comparison model, not a universal statement about every replicated-state-machine implementation.
+For 30 players, the structural host-star+nucleus topology is 29 host/client edges plus one standby-to-standby edge = 30 unique peer edges, versus `30 × 29 / 2 = 435` full-mesh edges. This is a topology fact, not browser throughput certification.
 
 ## Position relative to known theory
 
-Canon Nucleus does not claim to replace or invalidate the underlying theories it uses.
+Canon Nucleus specializes existing ideas rather than replacing them.
 
-- Raft-style replicated logs establish the majority-commit and leader-safety foundation. Canon Nucleus narrows what must enter that strong path to irreversible canon plus its recovery material rather than every replaceable gameplay transition. See `https://raft.github.io/raft.pdf`.
-- RedBlue Consistency already demonstrates the general principle that operations may be classified so only those requiring strong consistency pay coordination cost. Canon Nucleus is a game-specific specialization with an explicit recovery-complete canon boundary and 30-player peer topology, not a new general consistency class. See `https://www.usenix.org/conference/osdi12/technical-sessions/presentation/li`.
-- GGPO-style rollback demonstrates that speculative/replaceable gameplay can trade rollback for responsiveness. Rinne cannot apply that rule to an already committed life/death/rebirth history, so rollback techniques belong only on the realtime side of the boundary. See `https://www.ggpo.net/`.
+- Raft-style majority replication supplies the crash-consensus/leader-safety foundation. Rinne narrows the strong path to irreversible Canon plus recovery rather than declaring every gameplay transition strongly ordered. See `https://raft.github.io/raft.pdf`.
+- Paxos/Raft majority intersection is the basis of the generalized `2f+1 / f+1` crash-quorum rule; the Rinne-specific piece is the recovery-complete semantic payload and gameplay boundary.
+- RedBlue Consistency already establishes the general idea that only operations needing strong consistency should pay strong coordination. Canon Nucleus is a game-specific specialization, not a new general consistency class. See `https://www.usenix.org/conference/osdi12/technical-sessions/presentation/li`.
+- GGPO-style rollback shows how reversible gameplay can trade rollback for responsiveness. Confirmed birth/death/rebirth history is intentionally outside that rollback domain. See `https://www.ggpo.net/`.
 
-The proven advantage is therefore constrained but meaningful: for Rinne's requirement set, Canon Nucleus reaches the minimum two-copy crash-safety bound for irreversible canon while removing `R` from the synchronous strong path and avoiding a full mesh. An equally specialized known architecture that makes the same semantic split can match this bound; the proof does not claim a lower communication cost than that theoretical optimum.
+An equally specialized architecture with the same semantic split and crash assumptions can match the same lower bounds. The claim is constrained: Rinne reaches those bounds without forcing replaceable realtime traffic through the Canon strong path.
 
-## Counterexamples retained
+## Presence fan-out remains a separate problem
 
-The combined proof loop deliberately keeps results that defeat simplistic claims. In the current Reality Lab, Cell distribution materially reduces busiest-peer load in spread layouts, but provides almost no fan-out advantage when all players are dense in one cell. The architecture therefore does not claim that Cell distribution is always superior; it composes semantic canon with whatever presence strategy the measured room layout justifies.
+The existing Reality Lab retains a counterexample where all 30 players are dense in one Cell, so fixed spatial Cell authority provides almost no busiest-sender fan-out benefit. This does not weaken Canon safety; it means presence distribution needs a separate strategy.
 
-Likewise, packet loss can delay liveness. Canon safety is protected by refusing to commit without quorum rather than by assuming delivery. Burst-loss, SCTP retransmission behavior, NAT, TURN, device sleep and radio behavior require a different evidence layer.
+`adaptive-relay.js` now supplies that candidate for replaceable presence only. It is prohibited for Canon/authority messages. The architecture can therefore change dense realtime fan-out without making irreversible history depend on the relay tree.
 
 ## Reproducible checks
 
-Focused theorem/state-machine checks:
+Existing Canon checks:
 
 ```sh
 node --test apps/rinne/tests/reality-canon-nucleus.test.mjs
 ```
 
-Full fixed Reality Lab comparison loop:
+Packet/generalization/relay theory checks:
+
+```sh
+node --test apps/rinne/tests/reality-theory-verification.test.mjs
+```
+
+Combined architecture loop:
 
 ```sh
 node apps/rinne/scripts/reality-architecture-proof.mjs
 ```
 
-The focused checks exhaust all three two-member commit quorums against all single-node failures and all two-node failure sets, verify quorum-before-commit, recovery-material integrity, healthy-leader fencing, stale epoch rejection, operation conflicts, the one-failure copy lower bound and the 6,480-case cost sweep.
+The combined loop must keep old counterexamples visible while also requiring the packet interleaving, two-peer boundary, finite-burst boundary and dense adaptive-relay proof to pass.
 
-The full loop covers clean spread/dense, WAN-like delay/jitter/loss, adverse dense loss, Host failure, lossy Host failure, Cell failure, corruption repair and collapse/revisit. A passing report also requires the dense counterexample, the spread benefit, host recovery and corruption repair to remain visible.
+## Still not proved by this model
 
-## Not proved here
+- Byzantine/colluding peers, Sybil resistance or anti-cheat;
+- a cryptographic commit certificate against malicious participants;
+- real browser background/suspension timing or radio behavior;
+- physical 30-device throughput/latency/energy certification;
+- NAT/TURN reachability or SCTP implementation behavior;
+- zero rollback for replaceable realtime after the latest accepted recovery boundary;
+- cloud durability after all authority devices are lost.
 
-- Byzantine or colluding peers, Sybil resistance or anti-cheat;
-- physical 30-device certification or Pixel Fold performance;
-- NAT/TURN reachability, carrier-network behavior or SCTP implementation details;
-- burst-loss or radio-sleep behavior;
-- zero rollback for replaceable realtime state after the latest committed recovery capsule;
-- cloud durability after all nucleus devices are lost.
-
-Those claims require their own adapters and evidence and must not be inferred from this model proof.
+Those require separate assumptions and evidence. A physical capture can validate performance of an already-defined protocol, but it cannot repair a missing safety proof, so those evidence tracks stay separate.
