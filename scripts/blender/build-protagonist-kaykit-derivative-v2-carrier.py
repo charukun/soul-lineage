@@ -93,13 +93,7 @@ def _component_rows(obj: bpy.types.Object) -> list[dict]:
 
 
 def _seat_badge_backing_as_linen_patch(obj: bpy.types.Object, vertex_indices: set[int]) -> None:
-    """Reuse the real Knight badge backing as a flush cloth repair patch.
-
-    The source backing sits slightly behind the tunic surface because the raised badge
-    covers it. After the decorative badge islands are removed that depth reads as a
-    black notch. Move only this copied KayKit backing piece a few centimeters toward
-    the chest surface and expand it subtly in X/Z so it closes the original recess.
-    """
+    """Reuse the real Knight badge backing as a flush cloth repair patch."""
     if not vertex_indices:
         raise RuntimeError("KayKit Knight badge backing vertices were not identified")
     valid = [index for index in sorted(vertex_indices) if index < len(obj.data.vertices)]
@@ -117,7 +111,7 @@ def _seat_badge_backing_as_linen_patch(obj: bpy.types.Object, vertex_indices: se
 
 
 def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
-    """Remove only asymmetric detached Knight badge/ribbon islands."""
+    """Remove the Knight star/ribbons while retaining its real backing as cloth."""
     if "body" not in obj.name.lower() or not obj.data.vertices:
         return 0
 
@@ -142,9 +136,6 @@ def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
         if not is_left_chest:
             continue
 
-        # This exact eight-face island is the source badge backing plate. Keep the
-        # existing KayKit part and reuse it as a plain cloth repair patch instead of
-        # deleting it or synthesizing replacement torso geometry.
         is_backing_plate = (
             component["count"] == 8
             and 0.64 <= vertical <= 0.73
@@ -155,6 +146,17 @@ def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
                 backing_vertices.update(obj.data.polygons[face_index].vertices)
             continue
 
+        # In the pinned Knight.glb the two lower ribbon folds are five-face islands
+        # around normalized chest height 0.50-0.55. Their loose geometry happens to
+        # resemble legitimate mirrored tunic panels, so symmetry alone produced the
+        # last black J-shaped remnant. Treat this exact source region as badge art.
+        is_lower_badge_ribbon = (
+            component["count"] == 5
+            and 0.50 <= vertical <= 0.55
+            and point.x < center.x - size.x * 0.20
+            and point.y < center.y - size.y * 0.20
+        )
+
         mirrored = any(
             other is not component
             and other["point"].x > center.x + size.x * 0.04
@@ -164,7 +166,7 @@ def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
             and abs(other["count"] - component["count"]) <= max(2, int(component["count"] * 0.5))
             for other in rows
         )
-        if mirrored:
+        if mirrored and not is_lower_badge_ribbon:
             continue
 
         removed_components += 1
