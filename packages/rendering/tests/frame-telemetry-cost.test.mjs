@@ -53,3 +53,16 @@ test('reapplying texture quality avoids uploads but preserves real sampler and i
   applyTextureQuality(root,{anisotropy:1});
   assert.equal(texture.version,clamped);
 });
+
+test('rolling telemetry has no shifts or sorts during sampling and caches unchanged reports',()=>{
+  const recorder=createPerformanceRecorder({maxSamples:1800,snapshotOnSample:false}),sort=Array.prototype.sort,shift=Array.prototype.shift;
+  let sorts=0,shifts=0;
+  Array.prototype.sort=function(...args){sorts++;return sort.apply(this,args);};Array.prototype.shift=function(...args){shifts++;return shift.apply(this,args);};
+  try{
+    for(let i=0;i<5000;i++)recorder.sample({frameMs:i%90+1,gpuMs:i%20,drawCalls:400+i%3,triangles:20000,textureBytes:16000,transparentDrawCalls:3,transparentTriangleUpperBound:600});
+    assert.equal(sorts,0);assert.equal(shifts,0);
+    const first=recorder.snapshot();assert.equal(sorts,7);assert.equal(first.samples,1800);
+    first.frame.p95Ms=-100;recorder.snapshot();assert.equal(sorts,7);assert.notEqual(recorder.snapshot().frame.p95Ms,-100);
+    recorder.sample({frameMs:16});recorder.snapshot();assert.equal(sorts,8,'only changed metric sorts');
+  }finally{Array.prototype.sort=sort;Array.prototype.shift=shift;}
+});

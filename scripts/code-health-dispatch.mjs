@@ -16,16 +16,18 @@ export function buildDispatchArtifacts(report) {
   const evidence = [
     `score ${candidate.score}/100`,
     `${candidate.loc} LOC`,
+    candidate.sourceBytes ? `${(candidate.sourceBytes / 1024).toFixed(1)} KiB source context` : null,
+    candidate.directDependencies ? `${candidate.directDependencies} direct dependencies` : null,
     candidate.maxFunctionSpan ? `longest function ≈${candidate.maxFunctionSpan} lines` : null,
     candidate.duplicateLines ? `${candidate.duplicateLines} duplicate-covered lines` : null,
     `${candidate.decisionDensity} decisions/100 LOC`,
   ].filter(Boolean).join(', ');
   const title = `Code Health: ${candidate.path}を分割・整理`;
-  const detail = `肥大化ホットスポットを挙動維持のまま小さな責務へ分離し、重複と複雑化を減らす`;
+  const detail = `肥大化ホットスポットを挙動維持のまま独立して読める責務へ分離し、AI context surface・重複・複雑化を減らす`;
   const request = `最新developとRepositoryルールを正本として、Code Healthが検出した次の1ホットスポットだけを安全にリファクタしてください。\n\n` +
     `Primary hotspot: \`${candidate.path}\`\nEvidence: ${evidence}\n` +
     (relatedPaths.length ? `Related duplicate locations: ${relatedPaths.map(path => `\`${path}\``).join(', ')}\n` : '') +
-    `\n目的は行数だけを移動することではなく、責務分離・重複除去・既存共有packageの再利用で構造的負債を減らすことです。` +
+    `\n目的は行数だけを移動することではなく、タスクごとに必要な責務だけを読めるmodule境界へ分離し、重複除去・既存共有packageの再利用でAI context surfaceと構造的負債を減らすことです。` +
     `公開API、ゲーム挙動、保存形式、ネットワーク権限、描画/入力タイミングを変更しないでください。` +
     `テストやブラウザassertion、Integration gateを削除・緩和してはいけません。` +
     `新しい巨大ファイルへ丸ごと移すだけの変更は禁止です。必要なfocused regression testを追加・維持し、変更対象をこのhotspotと直接依存だけに限定してください。\n\n` +
