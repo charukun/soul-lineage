@@ -119,7 +119,14 @@ def _delete_vertices(obj: bpy.types.Object, vertex_indices: set[int]) -> int:
 
 
 def _seat_badge_backing_as_linen_patch(obj: bpy.types.Object, vertex_indices: set[int]) -> None:
-    """Reuse the real Knight badge backing as a flush cloth repair patch."""
+    """Reuse the real Knight badge backing as a visible village repair patch.
+
+    The original eight-face backing is only about six centimeters wide while the
+    removed badge/ribbon assembly spans roughly fifteen by seventeen centimeters.
+    Enlarge that existing KayKit piece until it covers the full recess, keep it in the
+    same linen material as the tunic, and seat it just in front of the old badge plane.
+    No replacement primitive or new surface is created.
+    """
     if not vertex_indices:
         raise RuntimeError("KayKit Knight badge backing vertices were not identified")
     valid = [index for index in sorted(vertex_indices) if index < len(obj.data.vertices)]
@@ -129,22 +136,15 @@ def _seat_badge_backing_as_linen_patch(obj: bpy.types.Object, vertex_indices: se
     center = sum(points, Vector((0.0, 0.0, 0.0))) / len(points)
     inverse = obj.matrix_world.inverted()
     for index, point in zip(valid, points):
-        point.x = center.x + (point.x - center.x) * 1.10
-        point.z = center.z + (point.z - center.z) * 1.10
-        point.y -= 0.045
+        point.x = center.x + (point.x - center.x) * 3.05
+        point.z = center.z + (point.z - center.z) * 3.05
+        point.y -= 0.060
         obj.data.vertices[index].co = inverse @ point
     obj.data.update()
 
 
 def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
-    """Remove Knight badge art while retaining its real backing as plain cloth.
-
-    Source-axis heuristics identify the backing plate and obvious asymmetric badge
-    islands. A second axis-independent pass then uses that real eight-face backing as
-    a spatial anchor and removes only one-to-five-face compact fragments immediately
-    surrounding it. This matches the pinned Knight mesh without touching longer tunic
-    seams or mirrored body panels.
-    """
+    """Remove Knight badge art while retaining its real backing as plain cloth."""
     if "body" not in obj.name.lower() or not obj.data.vertices:
         return 0
 
@@ -205,10 +205,9 @@ def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
     if backing_center is None or not backing_vertices:
         raise RuntimeError("KayKit Knight chest backing plate was not identified")
 
-    # The exported failing candidate proved that the remaining J-shaped mark is made
-    # from eight tiny one-face source fragments encircling this backing.  Anchor the
-    # cleanup to the backing itself instead of any coordinate axis.  Legitimate nearby
-    # tunic panels are longer than this compact envelope and stay untouched.
+    # Keep the source-derived cleanup as a secondary safeguard. The enlarged backing
+    # above is the visual closure: it covers any exporter-created seam fragments while
+    # this pass removes compact detached source islands when Blender exposes them.
     fragment_radius = max(size.x, size.y, size.z) * 0.14
     for component in rows:
         extent = component["extent"]
