@@ -14,7 +14,7 @@
       "tool": "Blender",
       "version": "4.0.2",
       "sourcePath": "assets/characters/protagonist/villager-v1/source/ProtagonistVillagerV1.blend",
-      "sourceSha256": "d126dea83d18ab4ef52e1671901ebf4f2b7382895104367b64826f98cb1b6a69"
+      "sourceSha256": "a725b3dec143d8888fe52068c9f3f2f779864cf43f096028d009e1c41ec07aad"
     }
   },
   "evidence": {
@@ -49,7 +49,7 @@
       "auditPath": "docs/characters/qa/protagonist-villager-v1/blender-audit.json",
       "meshObjects": 6,
       "triangles": 4148,
-      "materials": 3
+      "materials": 6
     }
   },
   "status": {
