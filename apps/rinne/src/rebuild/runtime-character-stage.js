@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PoseSchedule } from '@soul/characters';
+import { attentionLoadPriority, shouldPromoteAttention } from '@soul/rendering/attention-priority';
 import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { createCoopActors } from './coop-actors.js';
 import { createKaykitCharacterPools } from './kaykit-character-pool.js';
@@ -40,6 +41,18 @@ function syncRuntimeState(actor,input){
   actor.root.userData.characterRuntimeState=runtime.state;
   actor.root.userData.characterRuntimeMotion=runtime.motion.resolvedState;
   return runtime;
+}
+
+function promoteObservedModel(characterPool,slot,life,target,distance){
+  if(!slot?.descriptor?.modelId||!slot.actor?.root||!target)return;
+  const dx=(Number(target.x)||0)-(Number(life.position?.x)||0),dz=(Number(target.z)||0)-(Number(life.position?.z)||0),length=Math.max(.001,distance||Math.hypot(dx,dz));
+  // Runtime yaw is atan2(direction.x, direction.z). The third-person camera follows
+  // that facing direction, so it is the stable attention vector available here.
+  const yaw=Number(life.yaw)||0,forwardX=Math.sin(yaw),forwardZ=Math.cos(yaw),alignment=Math.max(0,(forwardX*dx+forwardZ*dz)/length),coverage=Math.min(1,2.4/(length+1));
+  const priority=attentionLoadPriority({visible:!target.dead,combat:Boolean(target.attacking||target.hit||target.flash),screenAlignment:alignment,screenCoverage:coverage,distance:length});
+  slot.actor.root.userData.manifestationAttention=priority;
+  slot.actor.root.userData.manifestationAttentionAlignment=alignment;
+  if(shouldPromoteAttention(priority))characterPool.focusModel(slot.descriptor.modelId,priority);
 }
 
 function createActorRoster({scene,frontRoot,characterPool}){
@@ -123,7 +136,7 @@ function sampleSlot(actor,schedule,presentation,dt,pose){
   if(tick!==null)actor.sample(presentation.appearance,tick===0?0:performance.now()/1000,pose);
 }
 
-function renderActors({roster,heroSchedule,motherSchedule,motherMotion},life,dt){
+function renderActors({roster,heroSchedule,motherSchedule,motherMotion,characterPool},life,dt){
   const {heroActor,motherActor,enemyActors,guardActors,state}=roster,birth=life.phase==='birth',village=life.zone==='village',carried=birth&&village,villageOutside=village&&!life.interior;
   state.heroDescriptor.character.ageMs=rinneRuntimeAgeMs(life.ageSeconds);state.heroDescriptor.character.lifeState='alive';
   heroActor.root.rotation.y=life.yaw;heroActor.root.rotation.z=0;motherActor.root.rotation.y=life.yaw;heroActor.attachments.visible=true;
@@ -142,12 +155,14 @@ function renderActors({roster,heroSchedule,motherSchedule,motherMotion},life,dt)
   for(const enemy of state.front?.enemies||[]){
     const slot=enemyActors.get(enemy.id);if(!slot)continue;
     const distance=Math.hypot(enemy.x-life.position.x,enemy.z-life.position.z),presentation=resolveRinneRuntimeCharacter({...slot.descriptor,distance,visible:!enemy.dead,important:(state.front?.stage??0)>=5});
+    promoteObservedModel(characterPool,slot,life,enemy,distance);
     syncRuntimeState(slot.actor,{dead:Boolean(enemy.dead),hit:(Number(enemy.flash)||0)>0,attacking:Boolean(enemy.attacking),dashing:Boolean(enemy.dashing),moving:Boolean(enemy.moving),speed:enemy.moving?3.6:0,combat:true,runThreshold:3});
     sampleSlot(slot.actor,slot.schedule,presentation,dt,(bones,time)=>poseHumanoid(bones,{moving:Boolean(enemy.moving),speed:enemy.moving?3.6:0,combat:true,flash:enemy.flash||0},time));
     slot.actor.root.position.set(enemy.x,0,enemy.z);slot.actor.root.rotation.y=Number.isFinite(enemy.yaw)?enemy.yaw:0;
   }
   for(const guard of state.skirmish?.guards||[]){
     const slot=guardActors.get(guard.id);if(!slot)continue;const distance=Math.hypot(guard.x-life.position.x,guard.z-life.position.z),presentation=resolveRinneRuntimeCharacter({...slot.descriptor,distance,visible:villageOutside&&!guard.dead,important:true});
+    if(villageOutside)promoteObservedModel(characterPool,slot,life,guard,distance);
     syncRuntimeState(slot.actor,{dead:Boolean(guard.dead),hit:(Number(guard.flash)||0)>0,attacking:Boolean(guard.attacking),dashing:Boolean(guard.dashing),moving:Boolean(guard.moving),speed:guard.moving?3.3:0,combat:true,runThreshold:3});
     sampleSlot(slot.actor,slot.schedule,presentation,dt,(bones,time)=>poseHumanoid(bones,{moving:Boolean(guard.moving),speed:guard.moving?3.3:0,combat:true,flash:guard.flash||0},time));slot.actor.root.position.set(guard.x,0,guard.z);slot.actor.root.rotation.y=Number.isFinite(guard.yaw)?guard.yaw:0;
   }
@@ -158,7 +173,7 @@ export async function createRinneCharacterStage({renderer,scene,frontRoot,weapon
   const runtime=await createKaykitCharacterPools(renderer),roster=createActorRoster({scene,frontRoot,characterPool:runtime.pool});
   const equipment=createEquipmentController({heroActor:roster.heroActor,weaponVisual,mat,disposeObject});
   const peers=createCoopActors({pool:runtime.peerPool,motherPool:runtime.motherPool,scene,sampleSlot,poseHumanoid,armorDye,createEquipment:heroActor=>createEquipmentController({heroActor,weaponVisual,mat,disposeObject})});
-  const animation={roster,heroSchedule:new PoseSchedule(),motherSchedule:new PoseSchedule(),motherMotion:{active:false,moving:false,speed:0}};
+  const animation={roster,characterPool:runtime.pool,heroSchedule:new PoseSchedule(),motherSchedule:new PoseSchedule(),motherMotion:{active:false,moving:false,speed:0}};
   function render(life,dt=0){roster.bindLife(life);equipment.syncEquipment(life.equipment);renderActors(animation,life,dt);peers.render(life,dt);}
   function setCarrierMotion({active=false,moving=false,speed=0}={}){animation.motherMotion={active:Boolean(active),moving:Boolean(moving),speed:Math.max(0,Number(speed)||0)};}
   function dispose(){peers.dispose();roster.dispose();runtime.dispose();}
