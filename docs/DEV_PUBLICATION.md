@@ -37,9 +37,13 @@ Before deploying, Visual Review confirms that its source SHA is still the curren
 
 Visual Review must not report public success from root HTML markers alone. A successful publication requires the fixed URL to expose `version.json` for the exact source SHA and a focused Chromium interaction check to load the bundled runtime, switch Review panels, load the character/motion iframe route, and observe the built-in battle simulation advancing. JS/CSS/module/request failures or a stale source identity make `visual-review/public` fail even when Wrangler deployment itself succeeded.
 
+The same public success must cover both the desktop review surface and a smartphone touch profile representative of Pixel Fold-class portrait use. The mobile profile must use a narrow viewport around 390×844 with touch/mobile browser semantics, exercise the same Review navigation and embedded routes, and preserve separate screenshot/receipt evidence. A desktop-only pass must not certify mobile Visual Review usability.
+
 The focused browser harness may construct WHATWG `URL` objects for cache-busting and source identity, but every Playwright page-navigation target must be serialized to an HTTPS string before calling `page.goto`. A harness API type mismatch is a verification defect and must be covered by regression tests rather than retried or hidden.
 
 PULSE must discover Visual Review from the exact develop `visual-review/public` commit status rather than requiring a separate top-level workflow run whose name contains `preview` or `visual review`. The publisher is intentionally a nested reusable workflow, so top-level workflow-name discovery is not a liveness contract.
+
+PULSE pre-publication browser checks that operate a dialog must scope controls to the owning dialog. Shared labels/classes such as `閉じる` / `.app-dialog-close` may exist in multiple independent dialogs; a global strict-mode locator must not prevent the updated PULSE entry surface from being published when the intended dialog is otherwise valid.
 
 ## PULSE semantics
 
