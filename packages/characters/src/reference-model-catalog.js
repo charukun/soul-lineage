@@ -5,6 +5,7 @@ import { validateVisualIdentity } from './visual-identity.js';
 
 export { CHARACTER_REFERENCE_MODEL_VERSION };
 export const PROTAGONIST_VILLAGER_MODEL_ID = 'protagonist.villager.v1';
+export const RECONSTRUCTED_WAYFARER_MODEL_ID = 'reconstructed-wayfarer.reference.v1';
 
 const base = BASE_CHARACTER_REFERENCE_MODELS['child-boy.reference.v1'];
 const profile = canonicalAppearanceParts({
@@ -96,8 +97,86 @@ const protagonist = {
 validateVisualIdentity(protagonist);
 export const PROTAGONIST_VILLAGER_MODEL = deepFreeze(protagonist);
 
+const seedKnight = BASE_CHARACTER_REFERENCE_MODELS['knight.reference.v1'];
+const reconstructedProfile = canonicalAppearanceParts({
+  version: 1,
+  face: 'sharp',
+  hair: 'crop',
+  body: 'slender',
+  outfit: 'tunic',
+  accessory: 'scarf'
+});
+const reconstructedWayfarer = {
+  ...seedKnight,
+  version: 1,
+  seed: 0x52425731,
+  role: 'traveller',
+  ageBand: 'adult',
+  parts: reconstructedProfile,
+  front: 'swept',
+  back: 'layered',
+  face: { ...seedKnight.face, jaw: .98, cheek: .97, nose: 1.02, eyeWidth: 1.03, eyeHeight: .98, eyeSpacing: .99, browWeight: .96, browSlant: .025, chin: 1.01 },
+  proportions: { shoulders: 1.01, arms: 1.04, legs: 1.06, head: .98 },
+  gear: 'satchel',
+  cloth: [.18, .31, .29],
+  trim: [.72, .46, .22],
+  hairValue: .91,
+  id: RECONSTRUCTED_WAYFARER_MODEL_ID,
+  label: '再構築 Wayfarer / CC0 Seed',
+  kind: 'runtime-reference-model',
+  characterId: 'Reference_Reconstructed_Wayfarer',
+  assetId: 'runtime.reconstructed-wayfarer.reference.v1',
+  productionStage: 'BLOCKOUT',
+  modelingMode: 'runtime-procedural',
+  productionReady: false,
+  referencePath: 'apps/rinne/public/simulator/licenses/KAYKIT_FOUNDATION_SOURCE.txt',
+  profile: reconstructedProfile,
+  referenceStyle: deepFreeze({
+    version: 1,
+    design: 'reconstructed-wayfarer',
+    scale: .88,
+    palette: {
+      skin: [.82, .63, .52],
+      hair: [.16, .12, .10],
+      eyes: [.25, .36, .34],
+      primary: [.18, .31, .29],
+      secondary: [.56, .50, .39],
+      accent: [.72, .46, .22],
+      dark: [.10, .12, .11],
+      metal: [.45, .48, .46],
+      leather: [.28, .17, .10],
+      wood: [.34, .22, .12]
+    },
+    armStyle: 'shirt',
+    legStyle: 'pants',
+    footwear: 'boots',
+    prop: 'satchel',
+    topologyPreset: 'procedural-humanoid-rebuild-v1',
+    surfacePreset: 'new-flat-stylized-materials-v1'
+  }),
+  sourceReference: deepFreeze({
+    source: 'KayKit Character Pack: Adventurers / Knight.glb',
+    license: 'CC0-1.0',
+    provenancePath: 'apps/rinne/public/simulator/licenses/KAYKIT_FOUNDATION_SOURCE.txt',
+    use: 'visual-form-seed-only',
+    reusedGeometry: false,
+    reusedTextures: false,
+    transformation: [
+      'discard-source-mesh-and-materials',
+      'rebuild-on-audited-humanoid-rig',
+      'replace-topology-with-runtime-procedural-geometry',
+      'replace-surface-with-new-stylized-material-palette',
+      'restyle-armored-knight-as-itinerant-wayfarer'
+    ]
+  }),
+  note: 'CC0 KayKit Knightを視覚的な種だけに使い、元mesh・元texture/materialを再利用せず、監査済み共通Humanoid rig上で別Topologyのランタイム3Dへ再構築した実験モデル。鎧シルエットを旅人服・スカーフ・鞄へ変更し、表面色と材質も独自パレットへ置換する。'
+};
+validateVisualIdentity(reconstructedWayfarer);
+export const RECONSTRUCTED_WAYFARER_MODEL = deepFreeze(reconstructedWayfarer);
+
 export const CHARACTER_REFERENCE_MODELS = deepFreeze({
   [PROTAGONIST_VILLAGER_MODEL_ID]: PROTAGONIST_VILLAGER_MODEL,
+  [RECONSTRUCTED_WAYFARER_MODEL_ID]: RECONSTRUCTED_WAYFARER_MODEL,
   ...BASE_CHARACTER_REFERENCE_MODELS
 });
 
