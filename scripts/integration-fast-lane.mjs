@@ -11,12 +11,14 @@ import {
   validationRuns,
 } from './integration.mjs';
 import { signalDeepRepair } from './integration-deep-repair-handoff.mjs';
+import { exactHeadFastFailure } from './integration-ci-failure.mjs';
 import { trustedStackFastEvidence } from './integration-stack-fast-evidence.mjs';
 import { dependencies, eligibility } from './integration-policy.mjs';
 import { comparison as completeComparison } from './integration-rescue-store.mjs';
 
 export const maxFastLaneMerges = 24;
 const trustedReviewReason = 'automation/deployment change requires approval of this head by a maintainer';
+const overlapReviewReason = 'overlapping changes since PR base require Integration review';
 
 function labels(pr) {
   return (pr.labels || []).map(item => item.name);
@@ -165,6 +167,28 @@ export async function integrateFastLane(c, repository, options = {}) {
         }
       }
 
+      if (!checksPassed) {
+        const failure = await exactHeadFastFailure(c, pr);
+        if (failure) {
+          const fresh = await c.api('GET', `${c.root}/pulls/${pr.number}`);
+          if (fresh.head.sha !== pr.head.sha) throw new Error('PR head changed before CI failure handoff');
+          const develop = (await branch()).commit.sha;
+          const deep = await signalDeepRepair(c, {
+            pr: fresh, repository, develop, repairKind: 'ci-failure', ciFailure: failure,
+            reason: `CI_FAILURE: ${failure.jobName} ${failure.conclusion}; ${failure.jobUrl}`,
+            dependenciesMerged: await dependencyState(c, fresh),
+            unresolved: await unresolvedThreads(c, fresh),
+            reviews: await c.pages(`/pulls/${fresh.number}/reviews`, undefined, { maxPages: 10 }),
+          });
+          if (deep.signaled) {
+            report.deepRepair.push({ pr: fresh.number, head: fresh.head.sha, issue: deep.issue, reason: 'CI failure' });
+            report.held.push({ pr: fresh.number, head: fresh.head.sha, reason: `deep repair requested in issue #${deep.issue}` });
+            await queueStatus(c, fresh, 'pending', `Deep Repair #${deep.issue}: CI failure`, deep.url || targetUrl);
+            continue;
+          }
+        }
+      }
+
       const ownDiff = await c.api('GET', `${c.root}/compare/${expected}...${pr.head.sha}`, null, { cache: true });
       const base = ownDiff.merge_base_commit?.sha;
       if (!/^[0-9a-f]{40}$/.test(base || '')) throw new Error('INCOMPLETE_BASE_COMPARISON');
@@ -185,6 +209,24 @@ export async function integrateFastLane(c, repository, options = {}) {
       if (reason === trustedReviewReason) {
         reviews = await ensureTrustedReview(c, pr);
         reason = eligibility(criteria());
+      }
+      if (reason === overlapReviewReason) {
+        const fresh = await c.api('GET', `${c.root}/pulls/${pr.number}`);
+        if (fresh.head.sha !== pr.head.sha) throw new Error('PR head changed before overlap repair handoff');
+        if ((await branch()).commit.sha !== expected) throw new Error('develop moved before overlap repair handoff');
+        const deep = await signalDeepRepair(c, {
+          pr: fresh, repository, develop: expected, repairKind: 'semantic',
+          reason: 'DEVELOP_OVERLAP: review both current scopes and reconcile the source branch before returning to Fast Lane',
+          dependenciesMerged: await dependencyState(c, fresh),
+          unresolved: await unresolvedThreads(c, fresh),
+          reviews: await c.pages(`/pulls/${fresh.number}/reviews`, undefined, { maxPages: 10 }),
+        });
+        if (deep.signaled) {
+          report.deepRepair.push({ pr: fresh.number, head: fresh.head.sha, issue: deep.issue, reason: 'develop scope overlap' });
+          report.held.push({ pr: fresh.number, head: fresh.head.sha, reason: `deep repair requested in issue #${deep.issue}` });
+          await queueStatus(c, fresh, 'pending', `Deep Repair #${deep.issue}: develop scope overlap`, deep.url || targetUrl);
+          continue;
+        }
       }
       if (reason) {
         report.held.push({ pr: pr.number, head: pr.head.sha, reason });

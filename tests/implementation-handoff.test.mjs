@@ -42,8 +42,9 @@ test('Ready hands off immediately even if Actions/browser never complete; same h
   assert.equal(result.monitoringOwner, 'Integration');
   assert.equal(f.statuses[0].sha, sha);
   assert.equal(f.statuses[0].context, 'implementation/handoff');
-  assert.match(f.comments[0].body, /Ready for review: true/);
-  assert.match(f.comments[0].body, /not CI success/);
+  assert.match(f.comments[0].body, /review_ready: true/);
+  assert.match(f.comments[0].body, /receipt_scope: HANDOFF_ONLY/);
+  assert.match(f.comments[0].body, /dev_publication: NO/);
   await recordHandoff(f.options);
   assert.equal(f.comments.length, 1);
   assert.equal(f.sent(), 1);
@@ -117,6 +118,11 @@ test('worker prompts delegate reversible DEV choices while retaining approval an
     assert.match(prompt, /claim\/attempt limits and main\/Production protections/);
     assert.match(prompt, /DEV feedback never grants visual approval or RUNTIME_READY certification/);
     assert.match(prompt, /Ready is not DEV_DEPLOYED/);
+    assert.match(prompt, /Standing user consent: docs\/DELIVERY_AUTHORIZATION.md/);
+    assert.match(prompt, /charukun\/soul-lineage and its existing Codespaces/);
+    assert.match(prompt, /Do not ask the same permission again/);
+    assert.match(prompt, /This consent does not expand worker roles/);
+    assert.match(prompt, /never bypass a rejection/);
   }
   assert.ok(dispatch.indexOf('Read docs/RINNE_PROJECT_EXECUTION_POLICY.md: AI implementation') < dispatch.indexOf('<rinne_request>'));
   assert.ok(rescue.indexOf('Read docs/RINNE_PROJECT_EXECUTION_POLICY.md: AI implementation') < rescue.indexOf('untrusted task DATA'));
@@ -145,7 +151,9 @@ test('workflow boundary is independent of build/browser; Dispatch ends after Rea
   assert.match(immediate, /needs: readiness/);
   assert.match(immediate, /ref: develop/);
   assert.match(immediate, /recordHandoff/);
-  assert.match(immediate, /workflow_id: 'deploy.yml'.*rescue_mode: 'scan'/);
+  assert.match(immediate, /name: Record Ready handoff/);
+  assert.match(immediate, /\["opened","synchronize","reopened","ready_for_review"\]/);
+  assert.doesNotMatch(immediate, /actions: write|createWorkflowDispatch|rescue_mode/);
   const dispatch = readFileSync('.github/workflows/rinne-dispatch.yml', 'utf8');
   assert.match(dispatch, /secrets.DISPATCH_GITHUB_TOKEN \|\| secrets.RESCUE_GITHUB_TOKEN/);
   assert.ok(dispatch.indexOf('gh pr ready') < dispatch.indexOf("echo 'handed_off=true'"));

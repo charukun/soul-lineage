@@ -1,0 +1,29 @@
+.camera-position-control{
+  position:absolute;left:max(6px,env(safe-area-inset-left));top:max(54px,calc(env(safe-area-inset-top) + 48px));z-index:5;
+  width:44px;height:44px;pointer-events:auto;touch-action:none;transition:opacity .16s ease;
+}
+.game-screen.is-loading .camera-position-control{display:none}
+.camera-position-control.is-combat{opacity:.58}
+.camera-position-panel{
+  position:absolute;left:0;top:38px;width:44px;height:94px;background:transparent;border:0;box-shadow:none;clip-path:none;pointer-events:auto;
+}
+.camera-position-rail{
+  position:absolute;left:50%;top:7px;bottom:7px;width:2px;transform:translateX(-50%);border-radius:99px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(231,202,130,.94),rgba(126,102,58,.82));
+  box-shadow:0 0 0 1px rgba(12,14,11,.44),0 1px 5px rgba(0,0,0,.3);
+}
+.camera-position-thumb{
+  position:absolute;left:50%;top:47px;width:28px;height:24px;transform:translate(-50%,-50%);pointer-events:none;z-index:1;transition:top .08s linear,filter .12s ease;
+}
+.camera-position-thumb svg{
+  display:block;width:28px;height:24px;overflow:visible;fill:rgba(34,33,27,.94);stroke:#dfc57f;stroke-width:1.7;stroke-linejoin:round;stroke-linecap:round;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.55)) drop-shadow(0 0 1px rgba(15,16,13,.75));
+}
+.camera-position-panel input{
+  position:absolute;left:50%;top:50%;z-index:2;width:80px;height:44px;margin:0;transform:translate(-50%,-50%) rotate(-90deg);transform-origin:center;
+  appearance:none;-webkit-appearance:none;background:transparent;border:0;outline:none;cursor:ns-resize;touch-action:none;opacity:0;
+}
+.camera-position-panel input:disabled{cursor:default}
+.camera-position-panel:focus-within .camera-position-rail{box-shadow:0 0 0 1px rgba(12,14,11,.5),0 0 7px rgba(225,196,124,.28)}
+.camera-position-panel:focus-within .camera-position-thumb svg{filter:drop-shadow(0 2px 2px rgba(0,0,0,.55)) drop-shadow(0 0 4px rgba(225,196,124,.5))}
+@media(prefers-reduced-motion:reduce){.camera-position-control,.camera-position-thumb{transition:none}}

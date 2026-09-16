@@ -1,5 +1,6 @@
 import { subscribe, preserveView, disclosure } from './view-state.js';
 import { ageLabel } from './health.mjs';
+import { buildWorkResumePrompt, draftWorkItems } from './work-resume-prompt.js';
 const $ = selector => document.querySelector(selector);
 const fmt = new Intl.DateTimeFormat('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
 const el = (tag, className, text) => {
@@ -14,6 +15,57 @@ const filterOptions = [['all', 'すべて', 'info'], ['Draft', '作業中', 'pro
 let selectedFilter = 'all';
 try { const saved = sessionStorage.getItem('rinne-ops:filter'); if (filterOptions.some(([id]) => id === saved)) selectedFilter = saved; } catch { /* storage optional */ }
 let currentPullData = {};
+let promptReturnFocus = null;
+
+const promptDialog = el('dialog', 'app-dialog work-prompt-dialog');
+promptDialog.id = 'work-resume-prompt-dialog';
+promptDialog.setAttribute('aria-labelledby', 'work-resume-prompt-title');
+const promptHead = el('div', 'app-dialog-head');
+const promptTitle = el('h2', '', '作業中を確認・進めるAIプロンプト');
+promptTitle.id = 'work-resume-prompt-title';
+const promptClose = el('button', 'app-dialog-close', '閉じる');
+promptClose.type = 'button';
+const promptLead = el('p', 'work-prompt-lead', '表示中のDraftを手掛かりに、GitHubで全件を再確認して停止作業を既存PRから再開するためのプロンプトです。');
+const promptText = el('textarea', 'work-prompt-text');
+promptText.readOnly = true;
+promptText.spellcheck = false;
+promptText.setAttribute('aria-label', 'AIへ渡す作業再開プロンプト');
+const promptActions = el('div', 'work-prompt-dialog-actions');
+const promptCopy = el('button', 'work-prompt-copy', 'プロンプトをコピー');
+promptCopy.type = 'button';
+const promptStatus = el('p', 'work-prompt-status', '');
+promptStatus.setAttribute('role', 'status');
+promptActions.append(promptCopy, promptStatus);
+promptHead.append(promptTitle, promptClose);
+promptDialog.append(promptHead, promptLead, promptText, promptActions);
+document.body.append(promptDialog);
+promptClose.addEventListener('click', () => promptDialog.close());
+promptDialog.addEventListener('click', event => {
+  if (event.target !== promptDialog) return;
+  const rect = promptDialog.getBoundingClientRect();
+  if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) promptDialog.close();
+});
+promptDialog.addEventListener('close', () => {
+  promptReturnFocus?.focus?.({ preventScroll: true });
+  promptReturnFocus = null;
+});
+promptCopy.addEventListener('click', async () => {
+  const text = promptText.value;
+  if (!text) return;
+  try {
+    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+    else {
+      promptText.focus();
+      promptText.select();
+      if (!document.execCommand?.('copy')) throw new Error('copy unavailable');
+    }
+    promptStatus.textContent = 'コピーしました';
+  } catch {
+    promptText.focus();
+    promptText.select();
+    promptStatus.textContent = '自動コピーできません。選択中の全文をコピーしてください。';
+  }
+});
 
 function renderTargetChips(root, pr) {
   const targets = Array.isArray(pr.targets) ? pr.targets : [];
@@ -83,13 +135,38 @@ function filterBar(items) {
   }
   return root;
 }
+function resumePromptAction(data) {
+  const drafts = draftWorkItems(data);
+  const auditAvailable = drafts.length > 0 || Boolean(data?.truncated);
+  const root = el('div', 'work-resume-action');
+  const copy = el('div', 'work-resume-copy');
+  copy.append(
+    el('strong', '', '作業中が本当に動いているかAIで全件確認'),
+    el('span', '', drafts.length ? `${drafts.length}件のDraftを手掛かりに、停止・待機・稼働中を再判定します。` : data?.truncated ? '表示外も含め、GitHub側の通常Draftを全件再確認します。' : '現在の通常Draftはありません。'),
+  );
+  if (data?.truncated) copy.append(el('span', 'work-resume-warning', '表示外があるため、プロンプトはGitHub側の全Draft列挙を必須にします。'));
+  const button = el('button', 'work-resume-button', drafts.length ? `AI再開プロンプト ${drafts.length}件` : data?.truncated ? 'AI再開プロンプト 全件確認' : 'AI再開プロンプト');
+  button.type = 'button';
+  button.disabled = !auditAvailable;
+  button.dataset.viewKey = 'work-resume-prompt';
+  button.setAttribute('aria-haspopup', 'dialog');
+  button.addEventListener('click', () => {
+    promptReturnFocus = button;
+    promptText.value = buildWorkResumePrompt(currentPullData);
+    promptStatus.textContent = '';
+    promptText.scrollTop = 0;
+    promptDialog.showModal();
+  });
+  root.append(copy, button);
+  return root;
+}
 function render(data = {}) {
   currentPullData = data;
   const items = data.normal || [];
   const active = items.filter(item => ['Draft', 'Ready'].includes(item.state));
   const completed = items.filter(item => ['Merged', 'Closed'].includes(item.state));
   const root = $('#pulls');
-  root.replaceChildren(filterBar(items));
+  root.replaceChildren(resumePromptAction(data), filterBar(items));
   if (selectedFilter === 'all') {
     root.append(rows(active, '現在、作業中・統合待ちのPRはありません'),
       disclosure('completed-pulls', `完了・終了 ${completed.length}件`, rows(completed, '完了PRなし'), 'completed-pulls'));

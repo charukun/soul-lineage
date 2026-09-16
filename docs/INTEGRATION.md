@@ -47,6 +47,10 @@ merge APIにはcurrent exact head SHAを渡す。develop writerは単一laneで�
 
 Fast Repairが扱うのは、依存PRのmerge後に最新developを取り込むなど **機械的に安全性を証明できるstack/base更新** だけ。実行直前にcurrent PR/head/develop、Draft、repository、author、hold、review thread、Depends-Onを再確認し、元PR branchへ通常のmerge-forwardを行う。更新後は同じtrusted runでexact-head fast validationを行い、`integration/stack-fast` と `pr-fast-<PR>-<SHA>` の実証拠を作ってFast Laneを即wakeする。
 
+CI成功でもdevelop進行後のscope重複が残るPRは、Fast Laneが既存Deep Repairへ渡す。Workは両側の変更をレビューして元PRを現行仕様へ調整し、高速検証後の新headを同じFast Laneへ戻す。重複だけを理由に承認を作ったりreview gateを省略したりしない。
+
+Fast Repairのmerge成功直後はPR情報に旧headが残ることがある。この場合だけ、元headから変わっていないPRの安全条件と実際のGit branch refを照合し、返却されたmerge SHAへの更新を確認できたら既存Stack Validateへ渡す。別writerのhead・Draft・hold・依存本文変更は採用しない。検証jobとmerge直前のcurrent head再確認は維持する。GitHubのbot由来PR CIが承認待ちでも、trusted runner内の同じheadに対する検証を失わない。
+
 同一fileや契約の意味衝突、真のプロダクト判断、明示hold、Changes requested、未解決threadは自動修復しない。必要な場合だけ既存deep repair / human-requiredへ送る。追加の有料モデルAPIやPATを通常Repairの前提にしない。
 
 ここでの自動修復は機械的なFast Repairを指す。意味衝突はDeep Repairの調査対象であり、人待ちとは限らない。[DEVで実物を確認する標準開発](RINNE_PROJECT_EXECUTION_POLICY.md#devで実物を確認する標準開発) に従い、確定仕様への適応と可逆的な判断はAIが行う。任意の見た目・操作感の確認はDEV公開後に行い、既存gateに新しい目視承認待ちを追加しない。
@@ -95,7 +99,7 @@ explicit hold、dependency、review objection、merge conflict、exact-head fast
 
 ## Draft / Ready
 
-Draftでは lightweight checkのみ。Readyになると `Validate and build` とbrowser smokeを開始する。**Request Integrationはbuild成功直後に起動し、browser完了を待たない。** browserは並行してrepair evidenceを残す。
+Draftでは lightweight checkのみ。Readyになると `Validate and build` とbrowser smokeを開始する。**Request Integrationはbuild成功・失敗の直後に起動し、browser完了を待たない。失敗はcurrent exact-headのDeep Repairへ送る。** browserは並行してrepair evidenceを残す。
 
 ## main / Production
 
@@ -104,6 +108,10 @@ Draftでは lightweight checkのみ。Readyになると `Validate and build` と
 ## 通知とPULSE
 
 `INTEGRATED` と `DEV_DEPLOYED` は別イベントとして扱う。通知失敗はadvisoryでありmerge/publication判定を変更しない。PULSEはmerge状態とDEV delivery healthを混同せず表示する。旧Rescue stateを表示する場合も診断情報であり、通常Repairの権限・待ち条件にはしない。
+
+ユーザーが修正依頼した内容のDEV反映連絡は、ゲーム本体やエンドユーザー向け通知から分離した開発者メールとする。公開されたdevelop SHAに直接対応するdevelop向けPRを特定し、GitHub Actions botがそのPRへ `DEV反映完了` 相当のコメントを1件記録する。PRタイトルを修正内容として含め、DEV確認URLを付ける。GitHubの既存PR購読/mentionメール経路を利用し、ゲーム側push/ntfy、独自SMTP、新規外部メールサービス、通知queueはこの連絡には使わない。同一SHAは既存receipt markerで重複送信を防ぐ。詳細は [開発中のDEV反映メール通知](DEV_NOTIFICATION.md) を参照する。
+
+PRを特定できないpublish-only実行では誤った修正内容を通知せず、DEV delivery statusだけを残す。既存の基盤ライフサイクル通知が別経路に存在しても、この開発者向け修正内容メールとは混同しない。
 
 ## 受入条件
 

@@ -73,10 +73,9 @@ const rebuild = View.prototype.rebuild;
 if (!rebuild.__stylizedVisualTarget) {
   const wrappedRebuild = function stylizedVillageRebuild(...args) {
     const result = rebuild.apply(this, args);
-    installStaticLOD(this.objects);
-    installStaticLOD(this.inside);
-    captureVegetationMatrices(this);
-    applyVegetationDensity(this);
+    if(result?.changed===false&&!result?.vegetationChanged)return result;
+    installStaticLOD({children:result?.addedRoots||[this.objects,this.inside]});
+    if(result?.vegetationChanged!==false){captureVegetationMatrices(this);applyVegetationDensity(this);this.__adaptiveDensityTarget=null;}
     return result;
   };
   wrappedRebuild.__stylizedVisualTarget = true;

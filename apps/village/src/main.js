@@ -16,6 +16,7 @@ const progress = document.querySelector('#progress');
 const message = document.querySelector('#loadText');
 const retry = document.querySelector('#retry');
 const recover = document.querySelector('#recover');
+const recoverDialog = document.querySelector('#recoverDialog');
 const disposeMusic=installMusicLibrary({game:'village',environment:__BUILD_INFO__.environment,defaultTrack:'v01',autoStart:false,preferDefault:true,trigger:'hidden'});
 let finished = false;
 const watchdog = setTimeout(() => {
@@ -35,7 +36,12 @@ function reportError(error) {
 }
 retry.onclick = () => location.reload();
 recover.onclick = async () => {
-  if (!confirm('現在の保存データを退避して、新しい村を始めます。退避できなければ現在の保存は残します。続けますか？')) return;
+  recoverDialog.returnValue = 'cancel';
+  const approved = await new Promise(resolve => {
+    recoverDialog.addEventListener('close', () => resolve(recoverDialog.returnValue === 'recover'), { once: true });
+    recoverDialog.showModal();
+  });
+  if (!approved) return;
   recover.disabled = true;
   try { await window.__VILLAGE_BOOT__.recover(); location.reload(); }
   catch (error) { reportError(error); recover.disabled = false; }
@@ -45,12 +51,7 @@ try {
   progress.value = 10;
   message.textContent = '村の資産と暮らしの仕組みを読み込んでいます。';
   await import('./mura-patch.js');
-  await import('./asset-visuals.js');
-  await import('./authored-visual-lod.js');
-  await import('./stylized-visual-target.js');
-  await import('./adaptive-visual-performance.js');
-  await import('./runtime-resilience.js');
-  await import('./shared-world-scale.js');
+  await import('./runtime-scale-stack.js');
   const { boot } = await import('./web/main.js');
   await boot({
     onProgress(value, text) { progress.value = value; message.textContent = text; },

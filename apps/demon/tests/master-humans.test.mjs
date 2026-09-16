@@ -21,8 +21,8 @@ test('marked and combat roles receive near-detail priority',()=>{
  assert.equal(MASTER_HUMAN_LIMIT,6);
 });
 
-test('review model resolves to sibling Rinne DEV deployment',()=>{
- assert.equal(masterHumanModelUrl('https://example.test/soul-lineage/dev/demon/'),'https://example.test/soul-lineage/dev/rinne/simulator/assets/SHINO_review.vrm');
+test('production villager model resolves to sibling Rinne DEV deployment',()=>{
+ assert.equal(masterHumanModelUrl('https://example.test/soul-lineage/dev/demon/'),'https://example.test/soul-lineage/dev/rinne/simulator/assets/PROTAGONIST_VILLAGER_V1.glb');
  assert.equal(hashHuman('same'),hashHuman('same'));
  assert.notEqual(hashHuman('same'),hashHuman('different'));
 });

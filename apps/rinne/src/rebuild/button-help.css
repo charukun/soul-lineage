@@ -1,0 +1,27 @@
+#move-hint{
+  appearance:none;
+  min-width:44px;
+  min-height:44px;
+  padding:8px 14px;
+  display:grid;
+  place-items:center;
+  border:0;
+  border-bottom:1px solid rgba(192,157,84,.27);
+  cursor:pointer;
+  pointer-events:auto;
+  touch-action:manipulation;
+  font-size:0;
+}
+#move-hint::after{
+  content:'動きかた';
+  font:700 9px/1.2 var(--rinne-ui-font, sans-serif);
+  letter-spacing:.08em;
+}
+#move-hint:focus-visible{
+  outline:1px solid var(--brass-hi);
+  outline-offset:3px;
+}
+@media(pointer:coarse){
+  .hud-top{grid-template-columns:44px 72px 1fr 52px}
+  #back-title{width:44px;height:44px;min-width:44px;min-height:44px}
+}

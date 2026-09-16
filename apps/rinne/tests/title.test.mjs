@@ -19,22 +19,39 @@ test('legacy preferences remain parseable for simulator compatibility',()=>{asse
 test('ready requires the specific pending request token',()=>{const data={channel:'rinne-title-v1',type:'ready',token:'nonce-123'};assert.equal(acceptsReadyMessage(data,'nonce-123'),true);assert.equal(acceptsReadyMessage(data,'different'),false);assert.equal(acceptsReadyMessage({...data,channel:'else'},'nonce-123'),false);assert.equal(acceptsReadyMessage({...data,type:'anything'},'nonce-123'),false);assert.equal(acceptsReadyMessage({...data,token:''},''),false);assert.equal(acceptsReadyMessage(null,'nonce-123'),false);});
 test('legacy title state has no browser/SDK access',()=>assert.doesNotMatch(stateSource,/\b(window|document|localStorage|navigator|fetch)\s*\./));
 
-test('100年人生 title is immediately interactive without eager game iframe',async()=>{
+test('100年生 boots the world before revealing the title',async()=>{
  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
- assert.doesNotMatch(html,/<iframe\b/);assert.match(html,/>100年人生</);assert.match(html,/>輪廻転焦</);
- assert.match(html,/id="new-life"/);assert.match(html,/id="continue-life"/);assert.match(html,/href="\.\/simulator\/index\.html"/);assert.match(html,/viewport-fit=cover/);
+ assert.doesNotMatch(html,/<iframe\b/);assert.match(html,/>100年生</);assert.match(html,/>輪廻転焦</);
+ assert.match(html,/id="title-screen"[^>]*hidden/);assert.match(html,/class="title-world"/);assert.match(html,/title-assets\/world\.webp/);assert.match(html,/title-assets\/crest\.svg/);
+ assert.match(html,/id="game-screen"[^>]*class="game-screen is-loading"/);assert.match(html,/aria-busy="true"/);
+ assert.match(html,/id="loading-card"/);assert.match(html,/id="boot-retry"/);assert.match(html,/id="new-life"/);assert.match(html,/id="continue-life"/);assert.match(html,/id="open-village"/);assert.match(html,/id="open-settings"/);assert.match(html,/viewport-fit=cover/);
+ assert.match(html,/>新しい人生</);assert.match(html,/>旅の記録/);assert.match(html,/>村へ参加</);assert.match(html,/>設定</);
+ assert.doesNotMatch(html,/id="continue-life"[^>]*hidden/);assert.doesNotMatch(html,/class="name-field"/);assert.doesNotMatch(html,/href="\.\/simulator\/index\.html"/);
  assert.doesNotMatch(html,/id="start-simulator"/);assert.doesNotMatch(html,/id="loading-progress"/);
 });
-test('clean bootstrap lazy-loads gameplay and has no fixed intro delay',async()=>{
+
+test('clean bootstrap prewarms renderer/world and start buttons only bind a life state',async()=>{
  const main=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
- assert.match(main,/import\('\.\/rebuild\/runtime\.js'\)/);
- assert.doesNotMatch(main,/from ['"]\.\/title\/controller\.js['"]/);assert.doesNotMatch(main,/from ['"]\.\/story\/controller\.js['"]/);
+ const boot=main.slice(main.indexOf('async function boot'),main.indexOf('async function launch'));
+ const launch=main.slice(main.indexOf('async function launch'),main.indexOf('retry.addEventListener'));
+ assert.match(boot,/import\('\.\/rebuild\/runtime\.js'\)/);assert.match(boot,/prepareRuntime\(/);assert.match(main,/void boot\(\)/);
+ assert.match(launch,/startRuntime\(/);assert.match(launch,/prepared,/);assert.doesNotMatch(launch,/import\(/);assert.doesNotMatch(launch,/prepareRuntime\(/);
+ assert.match(main,/prepared\?\.dispose\?\.\(\)/);assert.doesNotMatch(main,/from ['"]\.\/title\/controller\.js['"]/);assert.doesNotMatch(main,/from ['"]\.\/story\/controller\.js['"]/);
  assert.doesNotMatch(main,/setTimeout\([^)]*3800/);assert.doesNotMatch(main,/setTimeout\([^)]*650/);
 });
-test('automatic play shell keeps contextual buttons to optional nearby talk only',async()=>{
+
+test('title menu keeps new life primary while records preserve continue behavior',async()=>{
+ const main=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
+ assert.match(main,/selectTitleCommand\(\$\('new-life'\)\)/);
+ assert.match(main,/\$\('continue-life'\).*launch\('continue'\)/s);
+ assert.match(main,/aria-disabled/);
+ assert.match(main,/title-motion-v1/);
+});
+
+test('automatic play shell omits legacy contextual action buttons',async()=>{
  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
- assert.match(html,/id="talk"[^>]*data-context-action="talk"[^>]*hidden/);
- assert.equal([...html.matchAll(/data-context-action=/g)].length,1);
+ assert.doesNotMatch(html,/id="talk"/);assert.doesNotMatch(html,/data-context-action="talk"/);
+ assert.equal([...html.matchAll(/data-context-action=/g)].length,0);
  assert.doesNotMatch(html,/id="rest"/);assert.doesNotMatch(html,/id="objective-detail"/);assert.doesNotMatch(html,/>攻撃</);
  assert.doesNotMatch(html,/>装備する</);assert.doesNotMatch(html,/>出航する</);assert.doesNotMatch(html,/>救助する</);
 });

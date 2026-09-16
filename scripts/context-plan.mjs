@@ -7,6 +7,8 @@ export const DEFAULT_MAX_BYTES = 48 * 1024;
 export const WHOLE_DIFF_MAX_FILES = 12;
 export const WHOLE_DIFF_MAX_LINES = 2000;
 export const MAX_LOG_BYTES = 64 * 1024;
+export const MAX_SESSION_LOG_BYTES = 96 * 1024;
+export const MAX_SESSION_LOG_EXCERPTS = 3;
 
 const ROUTES = [
   {
@@ -201,14 +203,17 @@ export function buildContextPlan({ task = '', paths = [], base = 'origin/develop
     diff: { ...diff, strategy: chooseDiffStrategy(diff) },
     githubRetrieval: {
       maxLogBytes: MAX_LOG_BYTES,
+      maxSessionLogBytes: MAX_SESSION_LOG_BYTES,
+      maxSessionLogExcerpts: MAX_SESSION_LOG_EXCERPTS,
       pr: 'metadata → changed filenames → necessary file patch; avoid whole diff when diff.strategy requires file-patch',
-      ci: 'exact-head status → failed/cancelled job → relevant log slice; do not preload successful job logs',
+      ci: 'exact-head status → failed/cancelled job → relevant log slice; one session ledger stops after 3 unique excerpts or 96 KiB total; on exhaustion summarize/handoff instead of fetching more logs or polling',
       cache: 'reuse exact-head metadata/documents until head/state changes or new evidence is required',
     },
     retrieval: [
       'Read only the listed docs that are necessary for the decision.',
       'For deferred docs, search or fetch a line range instead of the whole file.',
       'Search/narrow first; fetch full files, PR patches, or CI logs only when needed.',
+      'Stop CI log retrieval when the session ledger budget is exhausted; summarize current evidence and hand off instead of switching ranges/jobs to bypass it.',
       'Reuse already-known exact-head metadata until there is a reason it may have changed.',
     ],
     avoidPreload: ['past chat history', 'closed/merged PR bodies and diffs', 'all docs', 'all workflow logs', 'binary/base64 artifacts'],
@@ -237,6 +242,7 @@ function printCompact(plan) {
     for (const path of plan.changedPaths.slice(0, 20)) console.log(`- ${path}`);
     if (plan.changedPaths.length > 20) console.log(`- ... +${plan.changedPaths.length - 20} more (do not preload contents)`);
   }
+  console.log(`ci-log-budget: ${plan.githubRetrieval.maxSessionLogExcerpts} unique excerpts / ${plan.githubRetrieval.maxSessionLogBytes} bytes per session ledger; exhaustion is a stop condition`);
   console.log('rule: narrow/search first; do not preload old chats, all docs, whole large diffs, or all CI logs');
 }
 

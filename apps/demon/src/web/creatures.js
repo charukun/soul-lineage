@@ -1,5 +1,6 @@
 import * as T from 'three';
 import {sampleDevourMotion} from './devour-motion.js';
+import {blendPoint,stepCombatPresentation} from '../combat-presentation.js';
 const up=new T.Vector3(0,1,0),temp=new T.Vector3();
 const palette=new Map();
 function mat(c,emissive=0){const k=c+':'+emissive;if(!palette.has(k))palette.set(k,new T.MeshStandardMaterial({color:c,roughness:.72,metalness:.12,emissive,emissiveIntensity:emissive?1.4:0}));return palette.get(k);}
@@ -41,20 +42,24 @@ export function createCreature(monster=false,role='traveller'){
  g.userData={monster,body,head,jaw,torso,limbs,weapon,wings};return g;
 }
 export function animateCreature(g,a,time,options={}){
- const u=g.userData,m=u.monster,q=a.dead?null:a.pose,walking=!q&&((a.speed||0)>.05||a.state==='flee'||a.state==='pursue'||a.state==='idle'&&Math.sin((a.clock||0)*.45)>.35),phase=q?.phase??a.walk??time*3,step=walking?.24:0;
- const crouch=q?.crouch||0,lift=q?.lift||0;
- g.position.set(a.x,lift*.8,a.z);g.rotation.y=a.yaw||0;g.scale.setScalar(m?(options.form==='brute'?1.12:options.form==='stalker'?1.04:1):1);
- u.body.position.set(0,crouch*.75+(walking?Math.sin(phase*2)*.025:Math.sin(time*1.7)*.018),0);u.body.rotation.set((q?.pitch||0)+(m?.16:0),q?.twist||Math.cos(phase)*step*.25,q?.roll||Math.sin(time)*.012);
+ const u=g.userData,m=u.monster,rawPose=a.dead?null:a.pose;
+ const frameDt=Number.isFinite(options.dt)?options.dt:Number.isFinite(u.combatTime)?Math.max(0,time-u.combatTime):1/60;u.combatTime=time;
+ const transition=stepCombatPresentation(u.combatPresentation,rawPose,frameDt);u.combatPresentation=transition;u.combatBlend=transition.eased;
+ const q=transition.pose,cw=transition.eased,locomotion=(a.speed||0)>.05||a.state==='flee'||a.state==='pursue'||a.state==='idle'&&Math.sin((a.clock||0)*.45)>.35,phase=a.walk??time*3,step=locomotion?.24*(1-cw):0;
+ const crouch=(q?.crouch||0)*cw,lift=(q?.lift||0)*cw;
+ g.position.set(a.x,lift*.8,a.z);g.rotation.y=a.yaw||0;const mealGrowth=m?Math.max(.78,Math.min(1.28,Number(a.growthScale)||1)):1,formScale=m?(options.form==='brute'?1.12:options.form==='stalker'?1.04:1):1;g.scale.setScalar(formScale*mealGrowth);
+ const basePitch=m?.16:0,baseTwist=Math.cos(phase)*step*.25,baseRoll=Math.sin(time)*.012;
+ u.body.position.set(0,crouch*.75+(locomotion?Math.sin(phase*2)*.025*(1-cw):Math.sin(time*1.7)*.018),0);u.body.rotation.set(basePitch+(q?.pitch||0)*cw,baseTwist+(q?.twist||0)*cw,baseRoll*(1-cw)+(q?.roll||0)*cw);
  u.head.rotation.set(-u.body.rotation.x*.6,Math.sin(time*.8)*.06,Math.sin(time*.5)*.025);
  u.jaw.rotation.x=-.035-Math.sin(time*1.1)*.025;
  u.wings.visible=m&&options.form==='wraith';u.wings.rotation.y=Math.sin(time*2)*.07;
  u.torso.scale.x=(m?.35:.25)*(options.form==='brute'?1.22:1);u.torso.scale.z=(m?.25:.17)*(1+Math.sin(time*2)*.025);
  for(const {leg,arm} of u.limbs){const s=leg.s,sw=Math.cos(phase+(s===1?0:Math.PI)),ank=[s*.17,.07+Math.max(0,sw)*step*.5,sw*step];const knee=[s*.19,.46,Math.max(0,sw)*step*.7+(m?.14:0)];connect(leg.upper,[s*.16,.91,0],knee);connect(leg.lower,knee,ank);leg.foot.position.set(ank[0],ank[1],ank[2]+.08);leg.foot.rotation.set(0,0,0);
- let hand=q?(s===1?q.hand:q.left).slice():[s*(m?.47:.36),m?.71:1.03,.05-sw*step*.8];
+ const baseHand=[s*(m?.47:.36),m?.71:1.03,.05-sw*step*.8],combatHand=q?(s===1?q.hand:q.left):baseHand,hand=blendPoint(baseHand,combatHand,transition.weight);
  const shoulder=[s*.28,1.47,-.025],elbow=[s*(m?.58:.38),(1.47+hand[1])*.5-.1,hand[2]*.47-.10];connect(arm.upper,shoulder,elbow);connect(arm.lower,elbow,hand);arm.hand.position.set(...hand);for(let j=0;j<arm.claws.length;j++){let c=arm.claws[j];c.position.set(hand[0]+(j-1)*.066,hand[1]-.12,hand[2]+.085);c.rotation.x=Math.PI*.83;}
- if(s===1){const tip=q?.tip||[hand[0],hand[1]+.9,hand[2]+.3];u.weapon.position.set(...hand);u.weapon.quaternion.setFromUnitVectors(up,temp.set(tip[0]-hand[0],tip[1]-hand[1],tip[2]-hand[2]).normalize());}}
+ if(s===1){const baseTip=[baseHand[0],baseHand[1]+.9,baseHand[2]+.3],combatTip=q?.tip||baseTip,tip=blendPoint(baseTip,combatTip,transition.weight);u.weapon.position.set(...hand);u.weapon.quaternion.setFromUnitVectors(up,temp.set(tip[0]-hand[0],tip[1]-hand[1],tip[2]-hand[2]).normalize());}}
  if(m&&!a.dead&&options.eating&&Number.isFinite(a.devourProgress))applyDevourPose(g,sampleDevourMotion(a.devourProgress));
- else if(m&&!a.dead&&!q&&!walking&&options.feast>0)applyFeastPose(g,options.feast);
+ else if(m&&!a.dead&&!rawPose&&!locomotion&&options.feast>0)applyFeastPose(g,options.feast);
  u.weapon.visible=!a.dead;
  if(a.dead){g.rotation.z=m?.35:1.45;g.position.y=.13;u.body.rotation.x=.12;}else g.rotation.z=0;
  if(!m&&a.dead&&a.capturedBy)applyCapturedPose(g,a.capturedBy);
@@ -97,7 +102,7 @@ function applyDevourPose(g,p){
 }
 function applyCapturedPose(g,capture){
  const p=sampleDevourMotion(capture.progress),k=p.hold;
- const size=capture.form==='brute'?1.12:capture.form==='stalker'?1.04:1;
+ const growth=Math.max(.78,Math.min(1.28,Number(capture.growthScale)||1)),size=(capture.form==='brute'?1.12:capture.form==='stalker'?1.04:1)*growth;
  const yaw=capture.yaw||0,cs=Math.cos(yaw),sn=Math.sin(yaw);
  const forward=(.66-p.preyLift*.35)*size;
  const tx=capture.x+cs*1.15+sn*forward,tz=capture.z-sn*1.15+cs*forward;

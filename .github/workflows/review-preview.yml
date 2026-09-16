@@ -1,0 +1,110 @@
+name: Visual Review Preview
+
+on:
+  workflow_call:
+    inputs:
+      source_sha:
+        description: 'Exact develop SHA to publish'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: visual-review-develop
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Publish exact develop review
+    if: vars.REVIEW_PREVIEW_ENABLED != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Mark Visual Review pending
+        continue-on-error: true
+        uses: actions/github-script@v8
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: process.env.SOURCE_SHA,
+              context: 'visual-review/public',
+              state: 'pending',
+              description: 'Visual Review: building exact develop source',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+      - run: npm ci
+      - run: npm run build:review
+      - name: Confirm develop did not move before publish
+        uses: actions/github-script@v8
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        with:
+          script: |
+            const { data } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
+            if (data.commit.sha !== process.env.SOURCE_SHA) {
+              core.setFailed(`develop advanced to ${data.commit.sha}; newer publication owns Visual Review`);
+            }
+      - name: Deploy fixed Visual Review URL
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --yes wrangler@4 deploy --config wrangler.review.jsonc
+      - name: Install focused Visual Review browser
+        if: steps.deploy.outcome == 'success'
+        run: npx playwright install --with-deps chromium
+      - name: Verify fixed Visual Review runtime
+        id: public
+        if: steps.deploy.outcome == 'success'
+        env:
+          REVIEW_URL: https://rinne-visual-review.c-okamoto.workers.dev/
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          VISUAL_REVIEW_REPORT_DIR: test-results/visual-review
+        run: node scripts/browser/visual-review-smoke.mjs "$REVIEW_URL" "$SOURCE_SHA"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-review-${{ inputs.source_sha }}
+          path: test-results/visual-review/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Record Visual Review result
+        if: always()
+        uses: actions/github-script@v8
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+          PUBLIC_OUTCOME: ${{ steps.public.outcome }}
+        with:
+          script: |
+            const success = process.env.DEPLOY_OUTCOME === 'success' && process.env.PUBLIC_OUTCOME === 'success';
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: process.env.SOURCE_SHA,
+              context: 'visual-review/public',
+              state: success ? 'success' : 'failure',
+              description: success
+                ? 'Visual Review is live, exact-source and browser-verified'
+                : 'Visual Review build, deploy, source, or browser verification failed',
+              target_url: success
+                ? 'https://rinne-visual-review.c-okamoto.workers.dev/'
+                : `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });

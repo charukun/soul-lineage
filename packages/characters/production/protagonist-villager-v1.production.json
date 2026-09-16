@@ -1,0 +1,60 @@
+{
+  "schema": "character-production",
+  "version": 2,
+  "id": "protagonist.villager.v1",
+  "stage": "PRIMARY",
+  "modelingMode": "dcc-blender",
+  "source": {
+    "referencePaths": [
+      "docs/characters/references/protagonist-villager-v1.svg"
+    ],
+    "meshPath": "apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_V1.glb",
+    "integrityPath": "apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_V1.asset.json",
+    "dcc": {
+      "tool": "Blender",
+      "version": "4.0.2",
+      "sourcePath": "assets/characters/protagonist/villager-v1/source/ProtagonistVillagerV1.blend",
+      "sourceSha256": "b3339de3aa185ae06e899b29c85c19318d080a916cac0baeb4ab6671294525e2"
+    }
+  },
+  "evidence": {
+    "reference": {
+      "intentLocked": true,
+      "views": [
+        "front",
+        "side",
+        "back"
+      ]
+    },
+    "blockout": {
+      "views": [
+        "front",
+        "side",
+        "back",
+        "three-quarter"
+      ],
+      "proportionsReviewed": true,
+      "silhouetteReviewed": true,
+      "reviewEvidence": "docs/characters/qa/protagonist-villager-v1/"
+    },
+    "primary": {
+      "topologyReviewed": true,
+      "uvReviewed": true,
+      "separateSurfaces": [
+        "skin",
+        "hair",
+        "clothing",
+        "accessories"
+      ],
+      "auditPath": "docs/characters/qa/protagonist-villager-v1/blender-audit.json",
+      "meshObjects": 32,
+      "triangles": 1728,
+      "materials": 8
+    }
+  },
+  "status": {
+    "visualApproval": "pending",
+    "productionReady": false,
+    "note": "Character DCC Carrier output. Export/audit does not grant deformation, motion, polish, device performance, RUNTIME_READY, or human visual approval."
+  }
+}

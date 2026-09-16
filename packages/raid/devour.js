@@ -1,5 +1,5 @@
 // Capture progress is portable interaction state; the Web adapter owns all poses.
-export const DEVOUR_SECONDS=1.5;
+export const DEVOUR_SECONDS=4.2;
 export const DEVOUR_REACH=.75;
 export function cancelDevour(session){
  if(session.devour?.npc)delete session.devour.npc.capturedBy;
@@ -23,6 +23,6 @@ export function advanceDevour(session,dt,amount=0){
  action.phase='feeding';
  action.t=Math.min(DEVOUR_SECONDS,(action.t||0)+Math.max(0,dt));
  p.devourProgress=action.t/DEVOUR_SECONDS;
- n.capturedBy={x:p.x,z:p.z,yaw:p.yaw,form:session.profile?.form,progress:p.devourProgress};
+ n.capturedBy={x:p.x,z:p.z,yaw:p.yaw,form:session.profile?.form,growthScale:p.growthScale,progress:p.devourProgress};
  if(action.t>=DEVOUR_SECONDS){cancelDevour(session);session.consume(n);}
 }

@@ -22,12 +22,17 @@ const collectorFetch = async url => {
   if (u.pathname.endsWith('/actions/runs')) return response({workflow_runs:[]});
   throw new Error('Unexpected route '+url);
 };
-test('collector preserves the three current environments and exact pinned staging history', async () => {
-  const state = await buildState(null, {fetchImpl:collectorFetch});
-  assert.deepEqual(state.environments.map(e=>e.id), ['dev','staging','prod']);
+test('collector preserves the three game environments, Visual Review, and exact pinned staging history', async () => {
+  const state = await buildState(null, {fetchImpl:collectorFetch,token:'test-token'});
+  assert.deepEqual(state.environments.map(e=>e.id), ['dev','staging','prod','visual-review']);
   assert.equal(state.environments[1].deployedCommit, stagedSha);
   assert.equal(state.environments[1].branch, 'develop');
   assert.equal(state.environments[1].deployState, 'success');
+  const visualReview = state.environments[3];
+  assert.equal(visualReview.branch, 'develop');
+  assert.equal(visualReview.branchCommit, sha);
+  assert.equal(visualReview.deployState, 'unknown');
+  assert.equal(visualReview.url, 'https://rinne-visual-review.c-okamoto.workers.dev/');
   assert.equal(state.applications.find(a=>a.id==='ops-board').name,'PULSE');
   assert.equal(state.applications.find(a=>a.id==='demon').name,'尽喰廻遊');
   assert.equal(state.applicationsSource,'public-manifest');
@@ -45,7 +50,7 @@ test('recovery rejects an old Worker or a different static SHA before priming', 
   assert.throws(()=>assertSnapshot({repository:'charukun/soul-lineage',schemaVersion:1,syncStatus:'ok'},sha),/Old Worker/);
 });
 test('schema2 without target lookup cannot masquerade as a completed zero-target prime', async () => {
-  const state=await buildState(null,{fetchImpl:collectorFetch}); state.buildCommit=sha;
+  const state=await buildState(null,{fetchImpl:collectorFetch,token:'test-token'}); state.buildCommit=sha;
   delete state.pullRequests.targetLookup;
   assert.throws(()=>assertSnapshot(state,sha),/lookup metadata/);
 });
@@ -56,6 +61,7 @@ test('partial public fallback preserves names, environment matrix and real GitHu
   assert.equal(state.schemaVersion,2); assert.equal(state.syncStatus,'degraded');
   assert.equal(state.generatedAt,previous.generatedAt); assert.equal(state.applicationsUpdatedAt,now);
   assert.deepEqual(state.environments.map(e=>e.id),['dev','staging','prod']);
+  assert.equal(state.applications.find(a=>a.id==='visual-review').targets[0].url,'https://rinne-visual-review.c-okamoto.workers.dev/');
   assert.equal(state.applications.find(a=>a.id==='demon').name,'尽喰廻遊');
   assert.equal(boardAlerts(state).filter(a=>['sync-failed','github-sync-degraded'].includes(a.type)).length,1);
   assert.ok(state.nextRetryAt);

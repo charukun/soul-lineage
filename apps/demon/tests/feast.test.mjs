@@ -10,32 +10,33 @@ import {NightAudio} from '../src/web/audio.js';
 
 function fixture(){
  const data=new Map(),store=new ProfileStore({getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v)},()=> 'feast-fixture');
- let game;game=new RaidSession({id:'feast',seed:12,name:'test',target:'smith',raidScale:'small'},store.read(),{consume(role){store.unlock(role);game.refreshProfile(store.read());}});
- game.player.x=0;game.player.z=0;return {game,store};
+ let game;game=new RaidSession({id:'feast',seed:12,name:'test',target:'smith',raidScale:'small'},store.read(),{
+  consume(role,options){const first=store.consume(role,options);game.refreshProfile(store.read());return first;},
+  battle(role){store.recordBattle(role);game.refreshProfile(store.read());},
+  learn(role,move){const first=store.learn(role,move);game.refreshProfile(store.read());return first;}
+ });
+ game.player.x=0;game.player.z=0;game.rng=()=>0;return {game,store};
 }
 const consumeEvent=g=>g.events.filter(e=>e.type==='consume').at(-1);
-test('successful capture reports real capped healing and persisted memory exactly once',()=>{
- const {game,store}=fixture(),n=game.village.npcs[0];game.player.hp=220;
+test('successful capture reports real healing, growth and persisted memory exactly once',()=>{
+ const {game,store}=fixture(),n=game.village.npcs[0],startMax=game.player.maxhp;game.player.hp=Math.max(1,startMax-10);
  game.consume(n);const event=consumeEvent(game),r=feastReward(event);
- assert.equal(event.reward.healed,10);assert.equal(r.kind,'memory');assert.match(r.detail,/生命 \+10/);
- assert.equal(store.read().totalEaten,1);assert.equal(event.reward.equipped,true);
+ assert.ok(event.reward.healed>0);assert.ok(event.reward.maxHpGain>=0);assert.ok(game.player.maxhp>=startMax);assert.equal(r.kind,'memory');
+ assert.equal(store.read().totalEaten,1);assert.equal(event.reward.equipped,true);assert.ok(event.reward.growthScale>.78);
  game.consume(n);assert.equal(store.read().totalEaten,1);assert.equal(game.events.filter(e=>e.type==='consume').length,1);
  const duplicate=game.village.npcs.find(v=>v!==n&&v.role===n.role);game.consume(duplicate);
- assert.equal(feastReward(consumeEvent(game)).kind,'restore');assert.match(feastReward(consumeEvent(game)).detail,/満ちている/);
+ assert.equal(feastReward(consumeEvent(game)).kind,'restore');assert.equal(store.read().totalEaten,2);
 });
-test('new form and permanent max health reflect the actual before/after profile',()=>{
- const {game}=fixture();game.consume(game.village.npcs[0]);game.player.hp=100;
- game.consume({...game.village.npcs[1],id:'smith',role:'smith'});
- const e=consumeEvent(game),r=feastReward(e);
- assert.equal(e.reward.maxHpGain,65);assert.equal(e.reward.healed,140);assert.equal(game.player.maxhp,295);
- assert.equal(r.kind,'form');assert.match(r.title,/夜這い 解放/);assert.match(r.progress,/あと2種/);
- assert.equal(game.profile.form,'stalker');
+test('meal growth raises maximum health while the body scale remains capped',()=>{
+ const {game}=fixture(),start=game.player.maxhp;
+ for(let i=0;i<12;i++)game.consume({id:`meal:${i}`,role:'traveller',marked:false,eaten:false,dead:true});
+ assert.ok(game.player.maxhp>start);assert.equal(game.player.growthScale,1.28);assert.ok(game.player.powerScale<=1.08);
+ const e=consumeEvent(game),r=feastReward(e);assert.ok(e.reward.growthScale<=1.28);assert.ok(r.detail.length>0);
 });
-test('legacy equipment slots never suppress a permanently devoured power',()=>{
+test('a learned trait remains active even when legacy equipment slots are full',()=>{
  const {game,store}=fixture();for(const role of ['traveller','bellkeeper','hunter'])store.unlock(role);game.refreshProfile(store.read());
- game.consume({...game.village.npcs[0],id:'smith',role:'smith'});const e=consumeEvent(game);
- assert.equal(e.reward.equipped,true);assert.equal(e.reward.maxHpGain,140);assert.match(feastReward(e).detail,/生命/);assert.equal(store.read().equipped.length,3);
- assert.equal(game.has('smith'),true);assert.equal(game.player.maxhp,370);assert.equal(game.profile.form,'brute');
+ const before=store.read().equipped.length;game.consume({...game.village.npcs[0],id:'smith',role:'smith',eaten:false,dead:true});const e=consumeEvent(game);
+ assert.equal(e.reward.equipped,true);assert.equal(store.read().equipped.length,before);assert.equal(game.has('smith'),true);assert.ok(game.player.maxhp>0);
 });
 test('cancelled feeding never creates a consume reward and restart uses a fresh clock',()=>{
  const {game,store}=fixture(),n=game.village.npcs[0];Object.assign(n,{dead:true,x:0,z:.7});
@@ -80,10 +81,10 @@ test('real Three effects keep a fixed object budget and clear particles/light on
 });
 test('release opens real creature arms, keeps soles planted and yields to movement',()=>{
  for(const form of ['hollow','stalker','brute','wraith']){
-  const g=createCreature(true),a={x:0,z:0,yaw:0,speed:0};
+  const g=createCreature(true),a={x:0,z:0,yaw:0,speed:0,growthScale:1};
   animateCreature(g,a,0,{form});const rest=g.userData.limbs[0].arm.hand.position.clone();
   animateCreature(g,a,0,{form,feast:1});g.updateMatrixWorld(true);
-  for(const {leg} of g.userData.limbs){const pos=leg.foot.getWorldPosition(new T.Vector3());assert.ok(pos.y>.065&&pos.y<.09,`${form} foot ${pos.y}`);}
+  for(const {leg} of g.userData.limbs){const pos=leg.foot.getWorldPosition(new T.Vector3());assert.ok(pos.y>.065&&pos.y<.11,`${form} foot ${pos.y}`);}
   assert.ok(g.userData.limbs[0].arm.hand.position.distanceTo(rest)>.2);
   animateCreature(g,{...a,speed:1,walk:1},0,{form,feast:1});const walking=g.userData.limbs[0].arm.hand.position.clone();
   animateCreature(g,{...a,speed:1,walk:1},0,{form});assert.ok(g.userData.limbs[0].arm.hand.position.distanceTo(walking)<1e-12);

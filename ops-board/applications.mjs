@@ -2,6 +2,7 @@ import { GAME_NAMES, GAME_ENVIRONMENTS, BOARD_NAME } from '../scripts/applicatio
 
 export const OPS_PUBLIC_URL = 'https://rinne-ops.c-okamoto.workers.dev/';
 export const PORTAL_PUBLIC_URL = 'https://wayfinder-gallery.c-okamoto.workers.dev/';
+export const VISUAL_REVIEW_PUBLIC_URL = 'https://rinne-visual-review.c-okamoto.workers.dev/';
 const PAGES_ROOT = 'https://charukun.github.io/soul-lineage/';
 const environmentIds = new Set(GAME_ENVIRONMENTS.map(env => env.id));
 const validApp = id => typeof id === 'string' && /^[a-z][a-z0-9-]*$/.test(id);
@@ -67,6 +68,18 @@ export function buildApplications(manifest = {}, environments = [], runs = []) {
       targets: [{ id: env.id, label: '専用公開', environment: 'preview', state: env.deployState || 'unknown',
         url: env.url || null, commit: env.deployedCommit || null, deployedAt: env.deployedAt || null,
         source: 'GitHub Actions / 公開status' }],
+    });
+  }
+
+  const visual = groups.get('visual-review');
+  if (visual) {
+    visual.targets = visual.targets.map(target => ({ ...target, url: VISUAL_REVIEW_PUBLIC_URL }));
+  } else {
+    groups.set('visual-review', {
+      id: 'visual-review', name: 'Visual Review Lab', kind: 'tool',
+      targets: [{ id: 'visual-review', label: '専用公開', environment: 'preview', state: 'unknown',
+        url: VISUAL_REVIEW_PUBLIC_URL, commit: null, deployedAt: null,
+        source: '固定公開URL / status同期待ち', note: '公開状態の同期前でも固定URLから現在公開中のVisual Reviewを開けます。' }],
     });
   }
 

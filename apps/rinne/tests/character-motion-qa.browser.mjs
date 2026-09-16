@@ -63,6 +63,19 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
     const penetration=s=>s.diagnostics.filter(i=>i.category==='self intersection').reduce((m,i)=>Math.max(m,i.penetration??0),0);
     assert.ok(penetration(after)<penetration(before),'source arm penetration case must improve');
     snapshots.push({before,after});checks.push('same frame before/after visible arm clearance improvement');
+    const renderedPose=()=>page.evaluate(()=>{
+      const actor=window.masterCharacterReview.actors[window.masterCharacterReview.settings.selected],expressions=[];
+      actor.visual.traverse(o=>{if(o.morphTargetInfluences)expressions.push([...o.morphTargetInfluences]);});
+      return {bones:Object.fromEntries(Object.entries(actor.bones).map(([n,b])=>[n,b.quaternion.toArray()])),expressions};
+    });
+    await seek(17.55);const repeatBefore=await renderedPose();await seek(14);await seek(17.55);
+    assert.deepEqual(await renderedPose(),repeatBefore,'same frame must include the same pose AND blink');
+    checks.push('arbitrary seek reproduces correction and expression state');
+    await page.locator('#qa-speed').selectOption('0.25');await page.locator('#qa-loop').check();await seek(22.99);await page.locator('#qa-play').click();
+    await page.waitForFunction(()=>{const q=window.masterCharacterReview.motionQA;return q.playing&&q.time>=17&&q.time<18;});
+    assert.deepEqual((await qa()).playback,{speed:.25,loopRange:[17,23]});
+    await seek(17.475);await page.locator('#qa-loop').uncheck();await page.locator('#qa-speed').selectOption('1');
+    checks.push('quarter-speed source-motion loop wraps without exiting review');
 
     await seek(5);await page.evaluate(()=>document.querySelector('#qa-ab-known').click());
     await page.waitForFunction(()=>window.masterCharacterReview.motionQA.comparison?.frame===1049);
@@ -83,7 +96,13 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
     for(const [index,age,body]of [[0,22,'balanced'],[1,7,'sturdy'],[2,75,'compact']]){
       await page.evaluate(({index,age,body})=>{const w=window.characterStudio.workspace;w.configure({selected:index});window.masterCharacterReview.editSelected({age,height:index?0:1,build:index?1:0});w.change('body',body);},{index,age,body});
       await seek(17.475);snapshots.push(await qa());await page.screenshot({path:resolve(output,`motion-qa-variant-${index}.png`)});
+      for(const t of [11.75,26]){
+        await seek(t);const state=await qa();assert.ok(state.weapon.transferError<1e-5,JSON.stringify(state.weapon));
+        assert.equal(state.weapon.transferWeight,1);snapshots.push(state);
+        await page.screenshot({path:resolve(output,`motion-qa-transfer-${index}-${t}.png`)});
+      }
     }
+    await seek(17.475);
     checks.push('6/12 cohort preserves records; body, height and child/elder presentation shown');
     await page.locator('.qa-diagnostics-panel > summary').click();
     await page.locator('#qa-category').selectOption('self intersection');await page.locator('#qa-bones').fill('rightUpperArm rightLowerArm');await page.locator('#qa-note').fill('検証用の指摘。Visual Approvalとは別。');

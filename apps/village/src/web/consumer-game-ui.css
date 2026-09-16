@@ -1,0 +1,159 @@
+/* Consumer-game finish for MURAAAAAAA.
+ * The village UI is a kit of wood, cloth and paper instruments laid over the diorama.
+ * It intentionally replaces generic glass/card/pill styling from earlier browser-first passes.
+ */
+:root{
+  --village-wood:#80694a;
+  --village-wood-dark:#574633;
+  --village-brass:#b19057;
+  --village-canvas:#eadfc7;
+  --village-paper:#f5ecd9;
+  --village-ink:#394438;
+  --village-moss:#71845e;
+  --village-focus:#f4d98c;
+  --village-fibre:repeating-linear-gradient(17deg,rgba(76,59,37,.035) 0 1px,transparent 1px 5px),repeating-linear-gradient(101deg,rgba(255,255,255,.1) 0 1px,transparent 1px 8px);
+}
+
+button{
+  border:1px solid rgba(86,66,45,.58);border-radius:5px;
+  background-image:var(--village-fibre),linear-gradient(180deg,#eee6d2 0%,#d7c9aa 72%,#c3ad84 100%);
+  box-shadow:inset 0 1px rgba(255,255,255,.7),inset 0 -3px rgba(83,62,42,.12),0 2px 0 var(--village-wood-dark),0 5px 10px rgba(48,58,43,.14);
+  transition:transform .08s ease,filter .12s ease,box-shadow .08s ease;
+}
+button:hover{background-color:transparent;filter:brightness(1.025)}
+button:active:not(:disabled){scale:1;transform:translateY(2px);box-shadow:inset 0 1px rgba(255,255,255,.55),0 1px 0 var(--village-wood-dark),0 2px 5px rgba(48,58,43,.12)}
+button:focus-visible{
+  outline:0;box-shadow:0 0 0 2px #4e493b,0 0 0 4px var(--village-focus),0 7px 15px rgba(45,56,41,.18);
+}
+
+/* One coherent material family, no frosted dashboard glass. */
+.glass,dialog,#idleStatus,#tutorial,#toast,#muraIdleDetails,#muraEntryCard{
+  backdrop-filter:none;
+  border:1px solid rgba(89,69,45,.55);
+  background-color:var(--village-canvas);
+  background-image:var(--village-fibre),linear-gradient(145deg,rgba(252,246,229,.96),rgba(220,208,179,.96));
+  box-shadow:inset 0 1px rgba(255,255,255,.7),inset 0 -3px rgba(76,58,40,.09),0 3px 0 rgba(89,69,48,.68),0 10px 24px rgba(45,56,41,.16);
+  color:var(--village-ink);
+}
+
+/* HUD is a narrow field ledger, not a floating rounded card. */
+#idleStatus{
+  left:8px;right:8px;top:max(7px,env(safe-area-inset-top));padding:3px 6px;
+  border-radius:4px;clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%,0 7px);
+  background-image:var(--village-fibre),linear-gradient(180deg,rgba(246,237,216,.94),rgba(216,205,178,.94));
+}
+.muraHudMain{min-height:44px;gap:4px}
+.muraHudActions button{width:40px;height:40px;padding:8px;border-radius:4px}
+#muraHudToggle{border:0;background:none;box-shadow:none;border-radius:0;transform:none}
+#muraHudToggle:focus-visible{box-shadow:inset 0 0 0 2px var(--village-brass)}
+#muraHudDetails{border-top:1px solid rgba(101,80,53,.33)}
+.muraHudStats span,.muraHudResources span{
+  padding:3px 6px;border:0;border-radius:2px;background:rgba(255,248,224,.35);
+  box-shadow:inset 2px 0 rgba(138,111,68,.35);
+}
+#muraModeLabel{
+  border:1px solid rgba(91,72,48,.45);border-radius:3px;background:#e8ddc5e8;backdrop-filter:none;
+  box-shadow:0 2px 0 rgba(82,64,44,.4);letter-spacing:.04em;
+}
+
+/* Build command and workbench are physical tools at the edge of the diorama. */
+#build{
+  min-width:118px;height:50px;border-radius:4px;
+  clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);
+  border-color:#725b3d;color:#f7efda;
+  background-image:var(--village-fibre),linear-gradient(180deg,#8b7553 0%,#705b42 72%,#5a4937 100%);
+  box-shadow:inset 0 1px rgba(255,255,255,.16),inset 0 -3px rgba(42,32,25,.22),0 3px 0 #43382d,0 8px 16px rgba(36,47,34,.2);
+  text-shadow:0 1px 2px rgba(39,31,25,.7);
+}
+#build:active{transform:translateY(2px)}
+#build svg{filter:drop-shadow(0 1px rgba(0,0,0,.35))}
+
+#drawer{
+  bottom:70px;left:8px;right:8px;width:auto;max-height:49dvh;padding-top:8px;border-radius:4px;
+  clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%,0 8px);
+  background-image:var(--village-fibre),linear-gradient(180deg,#eadfc7,#d2c09e);
+}
+#tabs{border-bottom:1px solid rgba(98,77,51,.35)}
+#tabs button{border-radius:3px;box-shadow:inset 0 1px rgba(255,255,255,.5),0 2px 0 #6d5942}
+#tabs .active{
+  color:#354131;background-image:var(--village-fibre),linear-gradient(#c6d1aa,#aab990);
+  box-shadow:inset 0 2px 5px rgba(67,83,55,.16),0 1px 0 #5f704f;
+}
+#catalog{gap:8px}
+.card{
+  position:relative;border-radius:3px;border:1px solid rgba(100,78,50,.45);padding:4px 4px 8px;
+  background-image:var(--village-fibre),linear-gradient(180deg,#efe4cd,#d5c4a5);
+  box-shadow:inset 0 1px rgba(255,255,255,.58),0 2px 0 rgba(91,70,47,.48),0 5px 9px rgba(48,58,43,.08);
+}
+.card::after{content:"";position:absolute;inset:4px 4px auto;height:2px;background:linear-gradient(90deg,transparent,rgba(174,143,87,.55),transparent);pointer-events:none}
+.card img{border-bottom:1px solid rgba(98,76,50,.22);filter:drop-shadow(0 4px 3px rgba(58,66,48,.16))}
+.card:hover{border-color:#856f49;background-color:transparent;filter:brightness(1.035)}
+.card.recommended{border:2px solid var(--village-brass);background-image:var(--village-fibre),linear-gradient(#f0dfb7,#d7c18d)}
+#drawer footer{border-top:1px solid rgba(98,77,51,.32)}
+
+#context,#placement{
+  border-radius:4px;
+  clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px);
+}
+.contextTop button{border:0;background:none;box-shadow:none;border-radius:0}
+#objectInfo{opacity:.82}
+.actions button{background-image:var(--village-fibre),linear-gradient(#e9dfca,#ccb995)}
+.actions .danger,#muraCancelPlacement{background-image:var(--village-fibre),linear-gradient(#e5c8b7,#cda78f);color:#70493e}
+.rotationControl input{accent-color:var(--village-moss)}
+
+/* Guidance is a compact ribbon attached to play, not a floating notification pill. */
+#tutorial{
+  border-radius:3px;clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% 100%,0 100%,0 6px);
+  background-image:var(--village-fibre),linear-gradient(180deg,#f2e6ca,#d8c49e);
+  box-shadow:inset 3px 0 var(--village-brass),0 3px 0 rgba(88,68,46,.5),0 8px 16px rgba(48,59,43,.14);
+}
+#tutorialAction{border:0;background:none;box-shadow:none;border-radius:0;transform:none}
+#tutorialAction:focus-visible{box-shadow:inset 0 0 0 2px var(--village-focus)}
+#tutorialCount{border-radius:2px;border:1px solid rgba(116,91,55,.42);background:rgba(255,248,224,.45)}
+#dismissTutorial{border-radius:0;border:0;border-left:1px solid rgba(98,77,51,.35);background:none;box-shadow:none;transform:none}
+
+#toast{
+  border-radius:3px;padding:9px 14px;
+  clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);
+}
+.speech{
+  border-radius:4px;background-image:var(--village-fibre),linear-gradient(#fff5dc,#dfcfad);
+  box-shadow:0 2px 0 rgba(96,75,49,.38),0 6px 12px rgba(48,58,43,.12);
+}
+.speech.micro{border-radius:3px}
+.muraConstructionBar{border-radius:3px;border:1px solid rgba(93,72,47,.45);background:#eadbc0e8;box-shadow:0 2px 0 rgba(83,64,43,.4)}
+
+/* Menus read as framed village ledgers. */
+dialog{
+  border-radius:4px;border:1px solid #826b49;padding:20px;
+  background-image:var(--village-fibre),linear-gradient(145deg,#f4ead6,#d9c8a8 76%,#c7ae83);
+  clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);
+  box-shadow:inset 0 0 0 3px rgba(255,250,232,.35),0 4px 0 #66533f,0 24px 65px rgba(31,45,32,.3);
+}
+dialog::backdrop{background:rgba(35,50,37,.54);backdrop-filter:blur(2px)}
+dialog button{border-radius:4px;background-image:var(--village-fibre),linear-gradient(#e9dfca,#cdbb98)}
+dialog .dialogClose{border:1px solid #776346;background-image:var(--village-fibre),linear-gradient(#7d735d,#625a4b);color:#f6edd9}
+.dialogNavigation{background:linear-gradient(180deg,rgba(232,220,195,.35),#d7c5a4);backdrop-filter:none;border-top:1px solid rgba(95,74,48,.34)}
+.personMeters,.journalEntry{border-radius:2px;background:rgba(255,247,225,.28);border-color:rgba(104,81,52,.3)}
+
+#muraEntry{
+  background:radial-gradient(circle at 50% 35%,rgba(235,221,185,.16),transparent 28%),linear-gradient(rgba(57,77,55,.46),rgba(39,58,42,.72));
+  backdrop-filter:blur(2px);
+}
+#muraEntryCard{
+  border-radius:4px;padding:27px 22px;
+  clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);
+  background-image:var(--village-fibre),linear-gradient(145deg,#f2e8d2,#d6c29d);
+  box-shadow:inset 0 0 0 4px rgba(255,249,230,.38),0 5px 0 #65523e,0 25px 70px rgba(35,49,36,.28);
+}
+#muraEntryCard h2{filter:drop-shadow(0 2px 0 rgba(255,255,255,.72));-webkit-text-stroke:.5px rgba(97,75,48,.38)}
+#muraEnterVillage{width:min(76%,300px);border-radius:4px;clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px);color:#fff7e5;background-image:var(--village-fibre),linear-gradient(#7d9369,#607751);border-color:#4d6243;text-shadow:0 1px rgba(37,49,34,.7)}
+#muraResetVillage{border-radius:3px}
+
+@media(max-width:600px){
+  #drawer{left:6px;right:6px}
+  #idleStatus{left:6px;right:6px}
+  #context,#placement{left:6px}
+}
+
+@media(prefers-reduced-motion:reduce){button{transition:none}}

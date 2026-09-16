@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {LIFE_YEARS,YEAR_SECONDS,LIFE_SECONDS,createLife,validateLife,serializeLife,deserializeLife,setClockRate,setMoving,tickLife,applyEquipmentStation,rebirth} from '../src/rebuild/domain.js';
+import {LIFE_YEARS,YEAR_SECONDS,LIFE_SECONDS,createLife,chooseBirthVillage,validateLife,serializeLife,deserializeLife,setClockRate,setMoving,tickLife,applyEquipmentStation,returnHome,rebirth} from '../src/rebuild/domain.js';
 import {createFront,normalizeFront,tickFront} from '../src/rebuild/combat.js';
 
 test('100年人生 is exactly 100 minutes at 1x',()=>{
@@ -8,6 +8,13 @@ test('100年人生 is exactly 100 minutes at 1x',()=>{
   const s=createLife({name:'テスト',seed:1});
   for(let i=0;i<6000*4;i++)tickLife(s,{realDelta:.25});
   assert.equal(s.ended,true);assert.equal(s.ageYears,100);assert.equal(s.phase,'ended');
+});
+
+test('birth village is selected from available villages by the life seed',()=>{
+  const villages=['village-a','village-b','village-c'];
+  assert.equal(createLife({seed:1,villageIds:villages}).birthVillageId,'village-b');
+  assert.equal(createLife({seed:2,villageIds:villages}).birthVillageId,'village-c');
+  assert.equal(chooseBirthVillage(3,villages),'village-a');
 });
 
 test('clock rate changes only life clock and 20x reaches one year in three seconds',()=>{
@@ -36,10 +43,26 @@ test('spatial automatic activity stops on swipe and can spark without rewriting 
   assert.equal(s.experiences.play.count,1);assert.deepEqual(s.skillWeights,before);
 });
 
-test('rebirth records a full century and keeps chosen configuration',()=>{
-  const s=createLife({name:'千春',seed:5});s.ageSeconds=LIFE_SECONDS;s.ageYears=100;s.ended=true;s.phase='ended';s.equipment={weapon:'spear',armor:'light',shield:true};s.knownSkills.push('skill.step');
-  const next=rebirth(s,{memento:'skill.step'});assert.equal(next.generation,2);assert.equal(next.ageYears,0);assert.equal(next.equipment.weapon,'spear');assert.equal(next.lineage.at(-1).age,100);assert.ok(next.knownSkills.includes('skill.step'));
+test('return unlocks the birth village and rebirth starts personal power from zero',()=>{
+  const s=createLife({name:'千春',seed:5,villageIds:['village-a']});
+  s.phase='living';s.zone='frontier';s.equipment={weapon:'spear',armor:'light',shield:true};s.knownSkills.push('skill.step');s.skillWeights={jo:{'skill.step':100},ha:{},kyu:{}};s.experiences.play={count:9,score:4,last:10};s.hp=23;
+  assert.equal(returnHome(s),true);assert.deepEqual(s.homelands,['village-a']);
+  s.ageSeconds=LIFE_SECONDS;s.ageYears=100;s.ended=true;s.phase='ended';
+  const next=rebirth(s,{memento:'skill.step',villageId:'village-a',villageIds:['village-a','village-b']});
+  assert.equal(next.generation,2);assert.equal(next.ageYears,0);assert.equal(next.birthVillageId,'village-a');assert.deepEqual(next.homelands,['village-a']);
+  assert.deepEqual(next.equipment,{weapon:'fist',armor:'cloth',shield:false});assert.deepEqual(next.knownSkills,['basic.fist']);assert.deepEqual(next.skillWeights,{jo:{'basic.fist':100},ha:{},kyu:{}});assert.deepEqual(next.experiences,{});assert.equal(next.hp,100);
+  assert.equal(next.lineage.at(-1).age,100);assert.equal(next.lineage.at(-1).birthVillageId,'village-a');assert.equal(next.lineage.at(-1).returnedHome,true);assert.equal(next.lineage.at(-1).memento,'skill.step');
   assert.doesNotThrow(()=>validateLife(next));
+});
+
+test('a village cannot be chosen for rebirth until the lineage returns there',()=>{
+  const s=createLife({seed:6,villageIds:['village-a']});s.ageSeconds=LIFE_SECONDS;s.ageYears=100;s.ended=true;s.phase='ended';
+  assert.throws(()=>rebirth(s,{villageId:'village-b',villageIds:['village-a','village-b']}),/帰還していない村/);
+});
+
+test('old saves without homeland fields migrate to the local village without inventing an unlock',()=>{
+  const old=createLife({seed:7});delete old.birthVillageId;delete old.homelands;
+  const restored=validateLife(old);assert.equal(restored.birthVillageId,'local-hoshitsugi');assert.deepEqual(restored.homelands,[]);
 });
 
 test('contact combat is automatic and never needs an attack button',()=>{

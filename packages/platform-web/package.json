@@ -9,7 +9,12 @@
     "./world-scale-worker": "./src/world-scale-worker.js",
     "./asset-residency": "./src/asset-residency.js",
     "./device-capability": "./src/device-capability.js",
-    "./testing/native-input": "./testing/native-input.mjs"
+    "./testing/native-input": "./testing/native-input.mjs",
+    "./runtime-profiler": "./src/runtime-profiler.js",
+    "./audio-worklet-mixer": "./src/audio-worklet-mixer.js",
+    "./peer-signaling": "./src/peer-signaling.js"
   },
-  "dependencies": {"@soul/platform": "*"}
+  "dependencies": {
+    "@soul/platform": "*"
+  }
 }

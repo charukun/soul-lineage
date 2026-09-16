@@ -121,3 +121,42 @@ test('repair validation matrix rejects malformed or non-repaired entries', () =>
     { pr: 3, state: 'merged-forward', sha: sha('c'), develop: sha('d') },
   ]), [{ pr: 3, head: sha('c'), base: sha('d') }]);
 });
+
+test('a successful merge with stale PR metadata still schedules exact-head validation when the branch ref proves it', async () => {
+  const develop=sha('d'), original=sha('a'), repaired=sha('c');
+  const stacked=pr(9,{body:'Depends-On: #8',head:original});
+  for (const variation of ['lag', 'other-writer', 'stale-ref', 'draft', 'hold', 'body']) {
+    let merged=false, refReads=0;
+    const c={
+      root:`/repos/${repository}`,
+      async pages(){return [];},
+      async api(method,path){
+        if(path.endsWith('/pulls/8'))return {merged:true,base:{ref:'develop',repo:{full_name:repository}}};
+        if(path.endsWith('/pulls/9')){
+          const value=structuredClone(stacked);
+          if(merged){
+            if(variation==='other-writer')value.head.sha=sha('e');
+            if(variation==='draft')value.draft=true;
+            if(variation==='hold')value.labels=[{name:'integration:hold'}];
+            if(variation==='body')value.body='Depends-On: #7';
+          }
+          return value;
+        }
+        if(path.endsWith('/branches/develop'))return {commit:{sha:develop}};
+        if(path==='/graphql')return {data:{repository:{pullRequest:{reviewThreads:{nodes:[],pageInfo:{hasNextPage:false}}}}}};
+        if(path.endsWith('/merges')){assert.equal(method,'POST');merged=true;return {sha:repaired};}
+        if(path.endsWith('/git/ref/heads/feat/p9')){refReads++;return {object:{type:'commit',sha:variation==='stale-ref'?original:repaired}};}
+        throw new Error(`${method} ${path}`);
+      },
+    };
+    const result=await reconcileStackFast(c,stacked,develop,{repository});
+    const matrix=repairValidationMatrix([{pr:9,...result}]);
+    if(variation==='lag'){
+      assert.equal(result.state,'merged-forward');assert.equal(refReads,1);
+      assert.deepEqual(matrix,[{pr:9,head:repaired,base:develop}]);
+    }else{
+      assert.equal(result.state,'changed',variation);assert.deepEqual(matrix,[],variation);
+      assert.equal(refReads,variation==='stale-ref'?1:0,variation);
+    }
+  }
+});

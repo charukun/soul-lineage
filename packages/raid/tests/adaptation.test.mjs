@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {ProfileStore} from '../profile.js';
 import {offerVillages} from '../world.js';
-import {RaidSession} from '../session.js';
+import {RaidSession,feedingGrowth} from '../session.js';
 
 const memory=()=>{const m=new Map();return{getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v)}};
 function storeAt(){let now=1_000;return new ProfileStore(memory(),()=> 'adaptive-player',()=>++now);}
@@ -18,8 +18,9 @@ test('devoured powers become permanent abilities and forms evolve without loadou
  assert.equal(g.getMaxHP(),295);
 });
 
-test('opponent movement is recorded and used by later automatic combat',()=>{
+test('battle encounters and rare copied movement are recorded separately',()=>{
  const s=storeAt();
+ s.recordBattle('knight');s.recordBattle('knight');
  assert.equal(s.learn('knight','stone'),true);
  assert.equal(s.learn('knight','stone'),false);
  const p=s.read();assert.equal(p.adaptations.knight.encounters,2);assert.deepEqual(p.adaptations.knight.moves,['stone']);
@@ -28,10 +29,26 @@ test('opponent movement is recorded and used by later automatic combat',()=>{
 });
 
 test('defeat closes one life and begins the next while inherited learning remains',()=>{
- const s=storeAt(),v=offerVillages(s)[0];s.claim(v);s.unlock('traveller');s.learn('traveller','dancer');s.finish(v.id,'defeated',2);
+ const s=storeAt(),v=offerVillages(s)[0];s.claim(v);s.unlock('traveller');s.recordBattle('traveller');s.learn('traveller','dancer');s.finish(v.id,'defeated',2);
  const p=s.read();assert.equal(p.lives.length,1);assert.equal(p.lives[0].number,1);assert.equal(p.lives[0].status,'defeated');
  assert.ok(p.lives[0].knownPowers.includes('traveller'));assert.ok(p.lives[0].knownMoves.includes('dancer'));
  assert.equal(p.currentLife.number,2);assert.equal(p.currentLife.hunts,0);assert.ok(p.unlocked.includes('traveller'));assert.ok(p.adaptations.traveller.moves.includes('dancer'));
+});
+
+test('each hunt starts small and weak, then meal growth rises into a hard cap',()=>{
+ const s=storeAt(),g=new RaidSession(offerVillages(s)[0],s.read());
+ const startMax=g.player.maxhp;
+ assert.equal(g.player.growthScale,feedingGrowth(0).scale);assert.equal(g.player.growthScale,.78);assert.ok(startMax<g.getMaxHP());
+ for(let i=0;i<20;i++)g.consume({id:`meal:${i}`,role:'traveller',marked:false,eaten:false,dead:true});
+ assert.equal(g.eaten,20);assert.equal(g.player.growthScale,1.28);assert.ok(g.player.maxhp>startMax);assert.ok(g.player.maxhp<=Math.round(g.getMaxHP()*1.04));
+});
+
+test('human movement and traits can be acquired on devour, never merely from a fight',()=>{
+ const s=storeAt(),v=offerVillages(s)[0],learned=[],consumed=[];
+ const g=new RaidSession(v,s.read(),{battle:role=>s.recordBattle(role),consume:(role,options)=>{consumed.push(options);return s.consume(role,options);},learn:(role,move)=>{learned.push([role,move]);return s.learn(role,move);}});
+ const n=g.village.npcs[0];g.rememberFight({npc:n,learned:false});assert.equal(learned.length,0);assert.equal(s.read().adaptations[n.role].encounters,1);
+ g.rng=()=>0;g.consume(n);
+ assert.equal(consumed[0].learnTrait,true);assert.equal(learned.length,1);assert.ok(s.read().unlocked.includes(n.role));assert.equal(s.read().adaptations[n.role].moves.length,1);
 });
 
 test('idle raid body starts a slow wander and direct input takes control immediately',()=>{

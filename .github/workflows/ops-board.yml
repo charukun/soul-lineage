@@ -3,7 +3,6 @@ name: Rinne Ops Board
 on:
   push:
     branches:
-      - develop
       - 'feat/**'
       - 'fix/**'
       - 'work/**'
@@ -38,8 +37,48 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  plan:
+    name: Plan PULSE publication
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      deploy_required: ${{ steps.plan.outputs.deploy_required }}
+      relevant_count: ${{ steps.plan.outputs.relevant_count }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.OPS_SOURCE_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Compare current source with the deployed PULSE runtime
+        id: plan
+        env:
+          OPS_URL: https://rinne-ops.c-okamoto.workers.dev/
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = 'workflow_dispatch' ]; then
+            echo 'deploy_required=true' >> "$GITHUB_OUTPUT"
+            echo 'relevant_count=manual' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          deployed=$(curl -fsS --connect-timeout 5 --max-time 15 "${OPS_URL}api/version" 2>/dev/null | node --input-type=module -e "let s='';for await(const c of process.stdin)s+=c;try{const v=JSON.parse(s);if(/^[0-9a-f]{40}$/.test(v.commit||''))process.stdout.write(v.commit)}catch{}" || true)
+          if ! [[ "$deployed" =~ ^[0-9a-f]{40}$ ]]; then
+            echo 'PULSE deployed source is unavailable; deploy conservatively.'
+            echo 'deploy_required=true' >> "$GITHUB_OUTPUT"
+            echo 'relevant_count=unknown' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! git cat-file -e "$deployed^{commit}" 2>/dev/null; then
+            git fetch --no-tags --depth=1 origin "$deployed" || true
+          fi
+          node ops-board/publication-plan.mjs "$deployed" "$OPS_SOURCE_SHA"
+
   verify:
     name: PULSE verification
+    needs: plan
+    if: needs.plan.outputs.deploy_required == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -56,9 +95,9 @@ jobs:
           grep -q '<title>PULSE</title>' ops-board/public/index.html
           grep -q 'favicon.svg' ops-board/public/index.html
           grep -q '要対応タスク' ops-board/public/index.html
-          grep -q '公開・自動処理の状態' ops-board/public/index.html
+          grep -q '技術詳細' ops-board/public/index.html
           grep -q 'diagnostic-grid' ops-board/public/index.html
-          grep -q 'アプリ別の公開状況' ops-board/public/index.html
+          grep -q 'アプリの公開状況' ops-board/public/index.html
           grep -q 'ゲーム / 専用開発版' ops-board/public/app-board.js
           grep -q 'APP_ICONS' ops-board/public/app-board.js
           grep -q 'grid-template-columns:repeat(3,minmax(0,1fr))' ops-board/public/app-board.css
@@ -93,8 +132,8 @@ jobs:
 
   deploy:
     name: Publish PULSE
-    needs: verify
-    if: github.ref == 'refs/heads/develop'
+    needs: [plan, verify]
+    if: github.ref == 'refs/heads/develop' && needs.plan.outputs.deploy_required == 'true' && needs.verify.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     permissions:
@@ -161,7 +200,7 @@ jobs:
           page=$(curl -fsS --retry 4 --retry-delay 2 "${OPS_URL}")
           printf '%s' "$page" | grep -q '<title>PULSE</title>'
           printf '%s' "$page" | grep -q '要対応タスク'
-          printf '%s' "$page" | grep -q '公開・自動処理の状態'
+          printf '%s' "$page" | grep -q '技術詳細'
           printf '%s' "$page" | grep -q 'diagnostic-grid'
           printf '%s' "$page" | grep -q 'sync-freshness'
           ! printf '%s' "$page" | grep -q 'summary-grid'
@@ -199,3 +238,63 @@ jobs:
           name: ops-board-focused-review
           path: ops-review-results/
           retention-days: 7
+
+  refresh:
+    name: Refresh existing PULSE state
+    needs: plan
+    if: github.ref == 'refs/heads/develop' && needs.plan.outputs.deploy_required == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+      statuses: write
+    steps:
+      - name: Refresh state with this Actions token, without redeploying PULSE
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          OPS_URL: https://rinne-ops.c-okamoto.workers.dev/
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          refresh_token=$(printf '%s' "$CLOUDFLARE_API_TOKEN|$GITHUB_REPOSITORY|rinne-ops-refresh-v1" | sha256sum | awk '{print $1}')
+          echo "::add-mask::$refresh_token"
+          curl --fail-with-body --silent --show-error --max-time 120 \
+            -X POST "${OPS_URL}api/refresh" \
+            -H "Authorization: Bearer $refresh_token" \
+            -H "x-ops-github-token: $GH_TOKEN" \
+            -H 'x-ops-refresh-reason: deployment' \
+            -o /tmp/pulse-refresh.json
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const s=JSON.parse(fs.readFileSync('/tmp/pulse-refresh.json','utf8'));
+          if(s.repository!=='charukun/soul-lineage'||s.schemaVersion!==2||s.syncStatus!=='ok') throw new Error(`PULSE refresh not healthy: ${s.syncError||s.syncStatus||'invalid'}`);
+          console.log(`PULSE refresh: ${s.githubApi?.scope||'?'} ${s.githubApi?.requests??'?'} requests, ${s.githubApi?.cacheHits??0} cache hits`);
+          JS
+      - name: Record reused PULSE runtime for this develop source
+        if: always()
+        uses: actions/github-script@v8
+        env:
+          RESULT: ${{ job.status }}
+          SOURCE_SHA: ${{ env.OPS_SOURCE_SHA }}
+        with:
+          script: |
+            const success = process.env.RESULT === 'success';
+            await github.rest.repos.createCommitStatus({
+              ...context.repo, sha: process.env.SOURCE_SHA, context: 'ops-board/public',
+              state: success ? 'success' : 'failure',
+              description: success ? 'PULSE runtime unchanged; authenticated state refresh passed' : 'PULSE state refresh failed',
+              target_url: success ? 'https://rinne-ops.c-okamoto.workers.dev/' : `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+
+  visual-review:
+    name: Publish Visual Review
+    if: github.ref == 'refs/heads/develop'
+    uses: ./.github/workflows/review-preview.yml
+    with:
+      source_sha: ${{ inputs.source_sha || github.sha }}
+    permissions:
+      contents: read
+      statuses: write
+    secrets: inherit

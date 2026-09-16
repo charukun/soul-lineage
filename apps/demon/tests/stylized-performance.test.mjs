@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const main=fs.readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
+const main=fs.readFileSync(new URL('../src/runtime-scale-stack.js',import.meta.url),'utf8');
 const adaptive=fs.readFileSync(new URL('../src/adaptive-visual-performance.js',import.meta.url),'utf8');
 const assets=fs.readFileSync(new URL('../src/asset-visuals.js',import.meta.url),'utf8');
 const resilience=fs.readFileSync(new URL('../src/runtime-resilience.js',import.meta.url),'utf8');
@@ -36,4 +36,19 @@ test('demon visual assets use Meshopt/KTX2-capable loading',()=>{
 test('demon shared-world scale offloads crowd/network/audio planning without changing combat authority',()=>{
   for(const token of ['createWorldScaleWorker','createCrowdPresenceRenderer','createAssetResidencyCache','audioSummary','runScaleReplay','probeExperimentalWebGPU','__DEMON_WORLD_SCALE__'])assert.match(scale,new RegExp(token));
   assert.doesNotMatch(scale,/game\.(player|village|time)\s*=/);
+});
+
+const cpu=fs.readFileSync(new URL('../src/cpu-runtime-scale.js',import.meta.url),'utf8');
+const audio=fs.readFileSync(new URL('../src/web/audio.js',import.meta.url),'utf8');
+test('demon CPU bridge measures authoritative RaidSession tick without replacing it',()=>{assert.match(cpu,/RaidSession\.prototype\.tick/);assert.match(cpu,/tick\.apply\(this,args\)/);assert.match(cpu,/createRuntimeProfiler/);assert.doesNotMatch(cpu,/player\.(x|z)\s*=/);});
+
+test('demon audio uses AudioWorklet category mixer with transparent fallback buses',()=>{for(const token of ['createAudioWorkletCategoryMixer','ambientBus','fxBus','__DEMON_AUDIO_WORKLET__'])assert.match(audio,new RegExp(token));assert.match(audio,/if\(mixer\.supported\)/);});
+
+test('demon boot loads the ordered scale stack before its current human motion adapters',()=>{
+  const boot=fs.readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
+  for(const adapter of ['master-humans','motion-interactions','motion-crowd']) {
+    assert.ok(boot.indexOf('./runtime-scale-stack.js')<boot.indexOf(`./${adapter}.js`));
+    assert.ok(boot.indexOf(`./${adapter}.js`)<boot.indexOf('./web/main.js'));
+  }
+  assert.ok(main.indexOf('./shared-world-scale.js')<main.indexOf('./cpu-runtime-scale.js'));
 });

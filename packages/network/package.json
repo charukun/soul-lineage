@@ -6,9 +6,17 @@
   "exports": {
     ".": "./src/index.js",
     "./peer": "./src/peer.js",
+    "./peer-mesh": "./src/peer-mesh.js",
+    "./peer-hosted-world": "./src/peer-hosted-world.js",
+    "./peer-world-client": "./src/peer-world-client.js",
+    "./checkpoint-sync": "./src/checkpoint-sync.js",
+    "./checkpoint-sync-node": "./src/checkpoint-sync-node.js",
     "./raid-host": "./src/raid-host.js",
     "./presence-lod": "./src/presence-lod.js",
-    "./friend-invite": "./src/friend-invite.js"
+    "./friend-invite": "./src/friend-invite.js",
+    "./transport-lod": "./src/transport-lod.js",
+    "./interpolation": "./src/interpolation.js",
+    "./friend-visit-authority": "./src/friend-visit-authority.js"
   },
   "dependencies": {
     "@soul/platform": "*",

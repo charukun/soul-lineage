@@ -1,5 +1,5 @@
 import { subscribe } from './view-state.js';
-import { appHealth, boardAlerts, devPublicationSummary } from './health.mjs';
+import { appHealth, boardAlerts, devPublicationProgress } from './health.mjs';
 
 const $ = selector => document.querySelector(selector);
 const toneNames = ['ok', 'progress', 'warning', 'danger', 'info'];
@@ -13,6 +13,28 @@ function setCard(id, value, detail, tone = 'info') {
   card.classList.add(toneNames.includes(tone) ? tone : 'info');
   valueNode.textContent = value;
   detailNode.textContent = detail;
+}
+
+function setPublicationRows(current, next, eta) {
+  const currentNode = $('#overview-app-now');
+  const nextNode = $('#overview-app-next');
+  const etaNode = $('#overview-app-eta');
+  if (currentNode) currentNode.textContent = current;
+  if (nextNode) nextNode.textContent = next;
+  if (etaNode) etaNode.textContent = eta;
+}
+
+function publicationHeadline(progress) {
+  return ({
+    queued: 'DEV更新を準備中',
+    coalescing: 'DEV更新を準備中',
+    waiting: 'DEV更新を準備中',
+    publishing: 'DEVを更新中',
+    reflecting: 'もうすぐ確認できます',
+    recovering: 'DEV更新を復旧中',
+    failed: 'DEV更新で問題発生',
+    stalled: 'DEV更新が遅れています',
+  })[progress?.state] || progress?.value || 'DEV状態を確認中';
 }
 
 function renderAttention(state, error) {
@@ -39,32 +61,49 @@ function renderDevelopment(state) {
 }
 
 function renderApplications(state) {
-  const publication = devPublicationSummary(state, Date.now());
+  const dev = (state?.environments || []).find(env => env.id === 'dev');
+  const publication = devPublicationProgress(state, Date.now());
   if (publication) {
-    setCard('overview-app', publication.value, publication.detail, publication.tone);
+    setCard(
+      'overview-app',
+      publicationHeadline(publication),
+      publication.currentVersionAvailable ? '現在のDEVは今すぐ開けます' : '現在のDEV公開は未確認です',
+      publication.tone,
+    );
+    setPublicationRows(publication.current, publication.next, publication.eta);
     return;
   }
+
+  const exactPublished = Boolean(dev?.branchCommit && dev?.deployedCommit === dev.branchCommit && dev?.exactCommit !== false);
+  if (exactPublished) {
+    setCard('overview-app', 'DEVは最新です', '今すぐ確認できます', 'ok');
+    setPublicationRows('最新のdevelopが公開済みです', '待つ必要はありません', '今すぐ確認できます');
+    return;
+  }
+
+  if (!dev) {
+    setCard('overview-app', 'DEV状態を確認中', '公開情報を取得しています', 'info');
+    setPublicationRows('公開状態を取得しています', 'developとの一致を確認します', '確認中');
+    return;
+  }
+
   const apps = state?.applications || [];
-  if (!apps.length) {
-    setCard('overview-app', '未確認', '公開情報なし', 'info');
-    return;
-  }
   const counts = { ok: 0, progress: 0, warning: 0, danger: 0, info: 0 };
   for (const app of apps) {
     const [, tone] = appHealth(app);
     counts[tone] = (counts[tone] || 0) + 1;
   }
-  const tone = counts.danger ? 'danger' : counts.warning ? 'warning' : counts.progress ? 'progress' : counts.ok === apps.length ? 'ok' : 'info';
-  const value = counts.danger ? `要対応 ${counts.danger}` : counts.warning ? `公開待ち ${counts.warning}` : counts.progress ? `更新中 ${counts.progress}` : `${counts.ok}/${apps.length} 正常`;
-  const detail = counts.info ? `未確認 ${counts.info} / 全${apps.length}` : `全${apps.length}アプリ`;
-  setCard('overview-app', value, detail, tone);
+  const tone = counts.danger ? 'danger' : counts.warning ? 'warning' : counts.progress ? 'progress' : 'info';
+  setCard('overview-app', 'DEV状態を確認中', dev.deployedCommit ? '現在のDEVは開けます' : '公開版を確認できていません', tone);
+  setPublicationRows('公開版と最新developを照合しています', '一致状態を確認します', '確認中');
 }
 
 function render(state, error) {
   renderAttention(state, error);
   if (!state) {
     setCard('overview-task', '未確認', '開発状態なし', 'info');
-    setCard('overview-app', '未確認', '公開状態なし', 'info');
+    setCard('overview-app', 'DEV状態を確認中', '公開情報を取得しています', 'info');
+    setPublicationRows('公開状態を取得しています', 'developとの一致を確認します', '確認中');
     return;
   }
   renderDevelopment(state);

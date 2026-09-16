@@ -16,10 +16,11 @@ test('Character Workshop mounts the shared art/performance QA without a separate
   assert.match(qa, /__CHARACTER_ART_QA__/);
 });
 
-test('Shino Hero gate requires explicit Motion QA visual approval and combined equipment budget', () => {
+test('family-neutral Hero gate requires explicit Motion QA visual approval and combined equipment budget', () => {
   assert.match(qa, /character \+ equipment triangles/);
-  assert.match(qa, /Motion QA has not been recorded/);
+  assert.match(qa, /Hero Gate: Motion QA has not been recorded/);
   assert.match(qa, /visualApproval === 'changes-requested'/);
   assert.match(qa, /visualApproval !== 'approved'/);
-  assert.match(qa, /hero · SHINO GATE/);
+  assert.match(qa, /hero · HERO GATE/);
+  assert.doesNotMatch(qa, /Shino Hero Gate|SHINO GATE/);
 });

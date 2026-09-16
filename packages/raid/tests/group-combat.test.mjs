@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {RaidSession} from '../group-session.js';
+import {RaidSession as SingleRaidSession} from '../session.js';
 import {freshProfile} from '../profile.js';
 import {makeVillage,villagerBehavior} from '../world.js';
 
@@ -37,6 +38,55 @@ test('nearby attacking villagers enter one combat without waiting for the first 
  assert.ok([a,b,c].every(n=>n.state==='combat'));
 });
 
+test('held approach input is suppressed but reversing the same pointer to retreat is immediate',()=>{
+ const session=makeSession(),runner=session.village.npcs[0];
+ runner.behavior='flee';runner.x=0;runner.z=3.2;
+ const approach={x:0,z:1,amount:1,active:true,dash:false};
+ session.tick(1/60,approach);
+ assert.equal(session.fight?.npc,runner);assert.equal(session.combatInputLatched,true);
+ const seen=[],core=session.fight.core,originalInput=core.input.bind(core);
+ core.input=(x,z,amount,...rest)=>{seen.push([x,z,amount]);return originalInput(x,z,amount,...rest);};
+ session.tick(1/60,approach);
+ assert.deepEqual(seen.at(-1),[0,0,0]);assert.equal(session.combatInputLatched,true);
+ const retreat={x:0,z:-1,amount:.8,active:true,dash:false};
+ session.tick(1/60,retreat);
+ assert.deepEqual(seen.at(-1),[0,-1,.8]);assert.equal(session.combatInputLatched,false);
+});
+
+test('held escape through a crowd gap stays live even when it is sideways to the primary target',()=>{
+ const session=makeSession(),[a,b,c]=session.village.npcs;
+ for(const n of [a,b,c])n.behavior='fight';
+ a.x=0;a.z=3.2;b.x=3;b.z=1.4;c.x=3.2;c.z=-1.5;
+ const escape={x:-1,z:0,amount:1,active:true,dash:false};
+ session.tick(1/60,escape);
+ assert.equal(session.fight?.npc,a);assert.equal(session.combatantCount(),3);assert.equal(session.combatInputLatched,false);
+ const seen=[],core=session.fight.core,originalInput=core.input.bind(core);
+ core.input=(x,z,amount,...rest)=>{seen.push([x,z,amount]);return originalInput(x,z,amount,...rest);};
+ session.tick(1/60,escape);
+ assert.deepEqual(seen.at(-1),[-1,0,1]);assert.equal(session.combatInputLatched,false);
+});
+
+test('group simulation delegates the same gated input to primary and secondary combat',t=>{
+ const session=makeSession(),npc=session.village.npcs[0];
+ npc.behavior='fight';npc.x=0;npc.z=3;
+ session.engage(npc);session.combatInputLatched=true;
+ const primary=[],secondary=[];
+ t.mock.method(SingleRaidSession.prototype,'tick',function(dt,value){primary.push({dt,value});});
+ t.mock.method(session,'_tickSecondaries',function(dt,value){secondary.push({dt,value});});
+ const held={x:0,z:1,amount:1,active:true,dash:true};
+ session.tick(1/60,held);
+ assert.equal(primary.length,1);assert.equal(secondary.length,1);
+ assert.equal(primary[0].dt,1/60);assert.equal(secondary[0].dt,1/60);
+ for(const {value} of [primary[0],secondary[0]]){
+  assert.deepEqual([value.x,value.z,value.amount,value.active,value.dash],[0,0,0,false,false]);
+ }
+ assert.deepEqual(held,{x:0,z:1,amount:1,active:true,dash:true});
+ session.tick(1/60,input);
+ const retreat={x:0,z:-1,amount:.8,active:true,dash:false};
+ session.tick(1/60,retreat);
+ assert.deepEqual(primary.at(-1).value,retreat);assert.deepEqual(secondary.at(-1).value,retreat);
+});
+
 test('attacking villagers rally from outside join range while fleeing villagers keep running',()=>{
  const session=makeSession(),[primary,fighter,runner]=session.village.npcs;
  primary.behavior='fight';fighter.behavior='fight';runner.behavior='flee';
@@ -66,18 +116,25 @@ test('a fleeing villager can still be caught when no other combat is active',()=
  assert.equal(session.fight?.npc,runner);
 });
 
-test('a queued opponent becomes the primary target without dropping combat state',()=>{
+test('feeding remains the top-priority action before a queued opponent can retarget',()=>{
  const session=makeSession(),[a,b]=session.village.npcs;
  a.behavior='fight';b.behavior='fight';a.x=0;a.z=3;b.x=1;b.z=3.2;
  session.engage(a);session.engage(b);
  assert.equal(session.fight.npc,a);assert.equal(session.combatantCount(),2);
  session.fight=null;session.devour={npc:a,t:0};a.dead=true;
  const promoted=session.promoteNextCombatant();
- assert.equal(promoted,true);
- assert.equal(session.fight.npc,b);
- assert.equal(session.devour,null);
+ assert.equal(promoted,false);
+ assert.equal(session.fight,null);
+ assert.equal(session.devour.npc,a);
  assert.equal(session.combatantCount(),1);
- assert.equal(session.safeTime,0);
+});
+
+test('group tick does not advance secondary attacks while feeding is active',t=>{
+ const session=makeSession(),[a,b]=session.village.npcs;a.dead=true;a.eaten=false;a.x=0;a.z=0;b.behavior='fight';b.x=0;b.z=2;
+ session.player.x=0;session.player.z=.6;session.devour={npc:a,t:0};session.combatants=[{npc:b,retreat:0,learned:false,attackCooldown:0}];
+ let secondaryTicks=0;t.mock.method(session,'_tickSecondaries',()=>secondaryTicks++);
+ session.tick(1/60,input);
+ assert.equal(secondaryTicks,0);assert.ok(session.devour);assert.equal(session.fight,null);
 });
 
 test('only the enemy that leaves the group is released while the main fight continues',()=>{
