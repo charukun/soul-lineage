@@ -77,6 +77,14 @@ test('recovery requires the complete committed canon plus recovery material',()=
   assert.equal(node.phase,NUCLEUS_PHASE.CLOSED);
 });
 
+test('a healthy leader cannot be replaced through the recovery path',()=>{
+  const node=createCanonNucleus({members:['a','b','c'],leaderId:'a'});
+  node.commit({operationId:'op',canon:{v:1},recovery:{tick:1},acknowledgers:['b']});
+  assert.throws(()=>node.recover({candidateId:'b'}),/healthy canon leader/);
+  assert.equal(node.leaderId,'a');
+  assert.equal(node.epoch,1);
+});
+
 test('authority epoch fences stale writers and operation ids are idempotent',()=>{
   const node=createCanonNucleus({members:['a','b','c'],leaderId:'a'});
   const first=node.commit({operationId:'op',canon:{v:1},recovery:{tick:1},acknowledgers:['a','b']});
