@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   EVIDENCE_CLASS,PERFORMANCE_STATUS,RRP_ABSOLUTE_SLOS,RRP_SAFETY_KEYS,
-  compareRrpPerformanceEvidence,evaluateRrpPerformanceContract,normalizeRrpPerformanceEvidence,
-  percentile,realityResultToPerformanceEvidence,
+  aggregateRrpPerformanceSamples,compareRrpPerformanceEvidence,evaluateRrpPerformanceContract,
+  normalizeRrpPerformanceEvidence,percentile,realityResultToPerformanceEvidence,runRrpPerformanceContractProofSuite,
 } from '../src/game/reality-lab/performance-contract.js';
 
 const zeroSafety=()=>Object.fromEntries(RRP_SAFETY_KEYS.map(key=>[key,0]));
@@ -16,12 +16,28 @@ const physicalBase=(metrics={})=>({
     peerUplinkP95Kbps:320,hostUplinkP95Kbps:900,reliableBufferedAmountMaxBytes:32768,presenceBufferedAmountMaxBytes:8192,
     stateFreshnessP95Ms:180,positionErrorP95M:.35,rollbackP95Ms:80,connectionSuccessRate:.99,frameP95Ms:30,...metrics,
   },
-  provenance:{buildRevision:'abc',runtime:'Chrome 140',deviceClass:'pixel-fold-class',deviceModel:'Pixel Fold',peers:3,networkProfile:'wifi-lan'},
+  provenance:{buildRevision:'abc',runtime:'Chrome',deviceClass:'pixel-fold-class',deviceModel:'Pixel Fold',peers:3,networkProfile:'wifi-lan'},
 });
 
 test('percentile uses a deterministic nearest-rank definition',()=>{
   assert.equal(percentile([5,1,4,2,3],.5),3);
   assert.equal(percentile([5,1,4,2,3],.95),5);
+});
+
+test('raw performance samples aggregate into contract metric names without filling unknowns',()=>{
+  const metrics=aggregateRrpPerformanceSamples({
+    inputToDisplayMs:[100,120,140,200],canonCommitMs:[180,200,240],hostLossDetectionMs:[4000,4200],hostReopenMs:[5000,5200],
+    peerUplinkKbps:[100,200,300],hostUplinkKbps:[600,800,1000],reliableBufferedAmountBytes:[0,1000,4000],presenceBufferedAmountBytes:[0,500],
+    stateFreshnessMs:[100,130,170],positionErrorM:[.1,.2,.4],rollbackMs:[50,80],durationMinutes:2,
+    connectionAttempts:100,connectionSuccesses:99,connectedPeers:99,turnRelayConnections:8,frameMs:[20,25,30],gpuMs:[10,12],memoryMb:[400,450],
+  });
+  assert.equal(metrics.inputToDisplayP95Ms,200);
+  assert.equal(metrics.peerUplinkAverageKbps,200);
+  assert.equal(metrics.hostUplinkPeakKbps,1000);
+  assert.equal(metrics.reliableBufferedAmountMaxBytes,4000);
+  assert.equal(metrics.connectionSuccessRate,.99);
+  assert.equal(metrics.turnRelayRate,8/99);
+  assert.equal(metrics.batteryPctPerHour,null);
 });
 
 test('faster evidence cannot pass when a safety invariant is violated',()=>{
@@ -32,11 +48,10 @@ test('faster evidence cannot pass when a safety invariant is violated',()=>{
   assert.equal(result.safety.failures[0].metric,'committedCanonRollbackEvents');
 });
 
-test('physical multipeer evidence passes anchored SLOs only when safety and calibration metrics are complete',()=>{
+test('physical multipeer evidence passes anchored SLOs only when safety and required metrics are complete',()=>{
   const result=evaluateRrpPerformanceContract(physicalBase());
   assert.equal(result.status,PERFORMANCE_STATUS.PASS);
   assert.equal(result.physicalCertificationEligible,true);
-  assert.equal(result.slows,undefined);
   assert.equal(result.slos.failures.length,0);
 });
 
@@ -52,13 +67,14 @@ test('physical frame p95 retains the 30fps-class absolute target',()=>{
   assert.ok(result.slos.failures.some(row=>row.metric==='frameP95Ms'));
 });
 
-test('missing physical network measurements remain calibration gaps instead of passes',()=>{
-  const input=physicalBase();delete input.metrics.inputToDisplayP95Ms;delete input.metrics.hostUplinkP95Kbps;
+test('missing physical network or anchored measurements remain calibration gaps instead of passes',()=>{
+  const input=physicalBase();delete input.metrics.inputToDisplayP95Ms;delete input.metrics.hostUplinkP95Kbps;delete input.metrics.hostReopenP95Ms;
   const result=evaluateRrpPerformanceContract(input);
   assert.equal(result.status,PERFORMANCE_STATUS.CALIBRATION_REQUIRED);
   assert.equal(result.physicalCertificationEligible,false);
   assert.ok(result.calibrationRequired.includes('inputToDisplayP95Ms'));
   assert.ok(result.calibrationRequired.includes('hostUplinkP95Kbps'));
+  assert.ok(result.calibrationRequired.includes('hostReopenP95Ms'));
 });
 
 test('model evidence cannot masquerade as physical certification',()=>{
@@ -87,4 +103,18 @@ test('ratchet comparison catches regressions and missing repeated measurements',
 test('incompatible physical baselines are rejected instead of compared',()=>{
   const baseline=physicalBase(),current=physicalBase();current.provenance={...current.provenance,peers:4};
   assert.throws(()=>compareRrpPerformanceEvidence(baseline,current),/not comparable/);
+});
+
+test('performance contract proof suite keeps safety, calibration and anchored SLO boundaries intact',()=>{
+  const proof=runRrpPerformanceContractProofSuite();
+  assert.equal(proof.pass,true);
+  assert.deepEqual(proof.checks,{
+    completePhysicalPasses:true,
+    unsafeFastFails:true,
+    anchoredSloFails:true,
+    missingMetricCalibrates:true,
+    modelCannotCertify:true,
+    ratchetRejectsRegression:true,
+    anchoredTargetsPreserved:true,
+  });
 });
