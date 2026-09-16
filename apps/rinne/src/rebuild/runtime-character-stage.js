@@ -4,6 +4,7 @@ import { attentionLoadPriority, shouldPromoteAttention } from '@soul/rendering/a
 import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { createCoopActors } from './coop-actors.js';
 import { createKaykitCharacterPools } from './kaykit-character-pool.js';
+import { createProtagonistCharacterPool } from './protagonist-character-pool.js';
 import { hideCarrierCombatProps, newbornCarryTransform } from './newborn-carry-presentation.js';
 import { resolveRinneCharacterRuntime } from './character-runtime-adapter.js';
 import {
@@ -55,8 +56,8 @@ function promoteObservedModel(characterPool,slot,life,target,distance){
   if(shouldPromoteAttention(priority))characterPool.focusModel(slot.descriptor.modelId,priority);
 }
 
-function createActorRoster({scene,frontRoot,characterPool}){
-  const heroActor=characterPool.spawn('rinne-runtime-hero'),motherActor=characterPool.spawn('rinne-runtime-mother');
+function createActorRoster({scene,frontRoot,characterPool,heroPool}){
+  const heroActor=heroPool.spawn('rinne-runtime-hero'),motherActor=characterPool.spawn('rinne-runtime-mother');
   const enemyActors=new Map(),guardActors=new Map(),state={lifeKey:'',front:null,skirmish:null,enemyRosterKey:'',guardRosterKey:'',heroDescriptor:null,motherDescriptor:null};
   heroActor.root.name='Player';motherActor.root.name='Mother';
   hideCarrierCombatProps(motherActor.root);
@@ -170,12 +171,12 @@ function renderActors({roster,heroSchedule,motherSchedule,motherMotion,character
 }
 
 export async function createRinneCharacterStage({renderer,scene,frontRoot,weaponVisual,mat,disposeObject}){
-  const runtime=await createKaykitCharacterPools(renderer),roster=createActorRoster({scene,frontRoot,characterPool:runtime.pool});
+  const [runtime,protagonist]=await Promise.all([createKaykitCharacterPools(renderer),createProtagonistCharacterPool(renderer)]),roster=createActorRoster({scene,frontRoot,characterPool:runtime.pool,heroPool:protagonist.pool});
   const equipment=createEquipmentController({heroActor:roster.heroActor,weaponVisual,mat,disposeObject});
   const peers=createCoopActors({pool:runtime.peerPool,motherPool:runtime.motherPool,scene,sampleSlot,poseHumanoid,armorDye,createEquipment:heroActor=>createEquipmentController({heroActor,weaponVisual,mat,disposeObject})});
   const animation={roster,characterPool:runtime.pool,heroSchedule:new PoseSchedule(),motherSchedule:new PoseSchedule(),motherMotion:{active:false,moving:false,speed:0}};
   function render(life,dt=0){roster.bindLife(life);equipment.syncEquipment(life.equipment);renderActors(animation,life,dt);peers.render(life,dt);}
   function setCarrierMotion({active=false,moving=false,speed=0}={}){animation.motherMotion={active:Boolean(active),moving:Boolean(moving),speed:Math.max(0,Number(speed)||0)};}
-  function dispose(){peers.dispose();roster.dispose();runtime.dispose();}
+  function dispose(){peers.dispose();roster.dispose();protagonist.dispose();runtime.dispose();}
   return{render,syncPeers:peers.sync,syncEquipment:equipment.syncEquipment,syncFront:roster.syncFront,updateFront:roster.updateFront,syncSkirmish:roster.syncSkirmish,updateSkirmish:roster.updateSkirmish,setCarrierMotion,dispose};
 }
