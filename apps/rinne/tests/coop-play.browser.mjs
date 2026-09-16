@@ -25,7 +25,8 @@ export async function verifyCoopPlay(browser,url,output){
     await host.waitForFunction(()=>document.getElementById('coop-people')?.textContent.includes('2人'));
   }
   try{
-    await host.goto(url,{waitUntil:'domcontentloaded'});await host.locator('#title-screen').waitFor({state:'visible'});const beforeHost=await soloSaves(host);
+    const captureUrl=new URL(url);captureUrl.searchParams.set('rrpCapture','1');await host.goto(captureUrl.href,{waitUntil:'domcontentloaded'});await host.locator('#rrp-performance-capture').waitFor();assert.equal(await host.evaluate(()=>Boolean(window.__RRP_CAPTURE__)),true);assert.equal(await host.locator('#village-dialog').isVisible(),true,'capture route must open the co-op surface');
+    await host.goto(url,{waitUntil:'domcontentloaded'});await host.locator('#title-screen').waitFor({state:'visible'});assert.equal(await host.evaluate(()=>Boolean(window.__RRP_CAPTURE__)),false,'ordinary gameplay must not install the performance probe surface');const beforeHost=await soloSaves(host);
     await guest.goto(url,{waitUntil:'domcontentloaded'});await guest.locator('#title-screen').waitFor({state:'visible'});const beforeGuest=await soloSaves(guest);
     await host.locator('#open-village').click();await host.locator('#coop-host').click();await host.locator('#open-coop-game').waitFor({state:'visible'});
     await joinRoom(await invite());const first=await sample(guest);assert.equal(first.epoch,1);assert.equal(await guest.locator('#clock-rate').isDisabled(),true);
