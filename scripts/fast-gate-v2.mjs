@@ -10,9 +10,9 @@ const RINNE_RIG_INPUT = [
   /^apps\/rinne\/tests\/(?:authored-slash|character-|humanoid-|motion-|natural-weapon-stance|slash-motion-warp)/,
 ];
 
-export function fastGateScope(plan = {}) {
-  if (plan.infrastructure) return 'broad';
-  if ((plan.packages || []).length) return 'shared';
+export function fastGateScope(plan = {}, profile = '') {
+  if (plan.infrastructure || profile === 'control') return 'broad';
+  if ((plan.packages || []).length || profile === 'shared') return 'shared';
   if ((plan.apps || []).length) return 'app';
   return 'none';
 }
@@ -36,9 +36,10 @@ export function splitFastTests(tests = [], paths = [], { broad = false } = {}) {
   return { light, heavy, skippedHeavy };
 }
 
-export function summarizeFastGate({ scope, checkedWorkspaces = [], light = [], heavy = [], skippedHeavy = [] } = {}) {
+export function summarizeFastGate({ scope, profile = '', checkedWorkspaces = [], light = [], heavy = [], skippedHeavy = [] } = {}) {
   return {
     scope,
+    profile,
     checkedWorkspaces,
     lightTests: light.length,
     heavyTests: heavy.length,
