@@ -1,0 +1,44 @@
+/* Consumer controls must belong to 100年生, never to browser/OS chrome. */
+.clock-rate button{
+  appearance:none;-webkit-appearance:none;
+  min-width:34px;min-height:28px;padding:3px 4px;border:0;
+  color:#4e402a;background:transparent;
+  font-family:var(--font-rinne-body)!important;font-size:11px;font-weight:700;
+  cursor:pointer;text-align:center;
+}
+.clock-rate button::after{content:"";display:block;width:18px;height:1px;margin:2px auto 0;background:linear-gradient(90deg,transparent,#8d6d39,transparent)}
+.clock-rate button:focus-visible{outline:0;box-shadow:inset 0 0 0 1px #8d6d39,0 0 0 2px rgba(255,238,190,.8)}
+.clock-rate button:disabled{opacity:.42;cursor:default}
+
+.title-settings-dialog .setting-switch{
+  appearance:none;-webkit-appearance:none;
+  width:54px;min-width:54px;height:34px;padding:0;
+  border:1px solid rgba(217,184,116,.52);border-radius:1px;
+  clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);
+  color:#cbbd9c;background:linear-gradient(180deg,#171d20,#0b1015);
+  box-shadow:inset 0 0 0 1px rgba(255,239,196,.04),0 2px 8px rgba(0,0,0,.35);
+}
+.title-settings-dialog .setting-switch[aria-checked="true"]{
+  color:#fff0bd;border-color:#d5ab5e;
+  background:linear-gradient(180deg,#5a4729,#2f281d);
+  box-shadow:inset 3px 0 #d5ab5e,inset 0 0 15px rgba(220,177,91,.09),0 2px 8px rgba(0,0,0,.35);
+}
+.title-settings-dialog .setting-switch-state{font-family:var(--font-rinne-display)!important;font-size:13px;letter-spacing:.12em;text-indent:.12em}
+.title-settings-dialog .setting-switch:focus-visible{outline:1px solid #f1d58c;outline-offset:3px}
+
+.life-end-dialog .rinne-choice-label{display:block;margin-bottom:-5px;color:#6a512e;font-size:10px;letter-spacing:.16em;text-align:center}
+.rinne-choice-list{display:grid;gap:7px}
+.life-end-dialog .rinne-choice{
+  min-height:44px;width:100%;padding:9px 12px;
+  border:1px solid rgba(82,57,30,.46);color:#382918;
+  background:linear-gradient(180deg,rgba(244,226,180,.48),rgba(202,177,123,.44));
+  clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);
+  box-shadow:inset 0 1px rgba(255,245,215,.52);
+  font-family:var(--font-rinne-body)!important;text-align:left;
+}
+.life-end-dialog .rinne-choice[data-selected="true"]{
+  color:#f1dfb8;border-color:#684a25;
+  background:linear-gradient(180deg,#554329,#2d271c);
+  box-shadow:inset 4px 0 #b58d4e,0 2px 6px rgba(62,43,25,.24);
+}
+.life-end-dialog .rinne-choice:focus-visible{outline:1px solid #f3dca4;outline-offset:2px}
