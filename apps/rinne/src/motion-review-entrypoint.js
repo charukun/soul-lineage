@@ -1,9 +1,10 @@
+import './character-workshop-ux.js';
 import { PROTAGONIST_VILLAGER_MODEL_ID } from '@soul/characters';
 
 const REVIEW_QUERY = 'motion';
 const CHARACTER_MODEL_QUERY = 'characterModel';
 const LABELS = Object.freeze({
-  tab: '演舞レビュー',
+  tab: '演舞',
   heading: '演舞レビュー',
   start: '▶ 30秒演舞'
 });

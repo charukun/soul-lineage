@@ -15,15 +15,29 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
   try{
     await page.goto(new URL('./characters.html',baseURL).href,{waitUntil:'domcontentloaded'});
     await page.waitForFunction(()=>window.characterStudio?.review.ready,null,{timeout:60000});
-    await page.locator('[data-tab="qa"]').click();await page.locator('#qa-start').click();
+    await page.waitForFunction(()=>document.body.classList.contains('workshop-ux-ready'));
+    assert.equal(await page.locator('.mode-tabs [data-workshop-intent]').count(),3);
+    await page.locator('[data-workshop-intent="move"]').click();await page.locator('#qa-start').click();
     await page.waitForFunction(()=>window.masterCharacterReview.motionQA.active,null,{timeout:60000});
     const started=await qa();await page.waitForFunction(t=>window.masterCharacterReview.motionQA.time>t+.05,started.time);
     assert.deepEqual(await page.evaluate(()=>window.masterCharacterReview.motionQA.sources),['idle-01','walk','run-slow','runtime.weaponDraw','runtime.guard','runtime.naturalWeaponStance','authored-slash']);
+    assert.equal((await qa()).liveCompare,false);
+    assert.equal(await page.locator('#motion-live-compare').evaluate(node=>node.hidden),true);
+    assert.equal(await page.locator('#motion-debug-controls').isVisible(),false);
+    checks.push('motion review starts as a clean single-character stage with debug and split comparison off');
+
+    await page.locator('#workshop-qa-details').evaluate(node=>node.open=true);
+    await page.locator('#qa-live-toggle').click();
     assert.equal((await qa()).liveCompare,true);
     await page.waitForFunction(()=>{const layer=document.querySelector('#motion-live-compare');const panes=layer?.querySelectorAll('canvas');return layer&&!layer.hidden&&panes?.length===2&&[...panes].every(c=>c.width>0&&c.height>0);});
     assert.deepEqual(await page.locator('#motion-live-compare .live-label').allTextContents(),['基盤 OFF','基盤 ON']);
     await page.locator('.canvas-wrap').screenshot({path:resolve(output,'motion-qa-live-split.png')});
-    checks.push('one-tap review starts synchronized live basis-off / basis-on split view');
+    checks.push('explicit detail control enables synchronized live basis-off / basis-on split view');
+
+    await page.locator('#qa-debug-toggle').click();await page.waitForFunction(()=>!document.querySelector('#motion-debug-controls').hidden);
+    assert.equal(await page.locator('#motion-debug-controls').isVisible(),true);
+    await page.locator('#qa-debug-toggle').click();await page.waitForFunction(()=>document.querySelector('#motion-debug-controls').hidden);
+    checks.push('developer motion diagnostics are explicit opt-in and leave the normal stage clear');
 
     const beforeToggle=await qa();assert.equal(beforeToggle.playing,true);await toggleBasis();const toggled=await qa();assert.equal(toggled.playing,true);
     await page.waitForFunction(t=>window.masterCharacterReview.motionQA.time>t+.08,beforeToggle.time);await toggleBasis();
@@ -39,7 +53,7 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
     const cameras={};for(const id of cameraNames){await page.locator(`[data-qa-camera="${id}"]`).click();cameras[id]=(await qa()).cameraPosition;}
     assert.equal(new Set(Object.values(cameras).map(p=>p.join(','))).size,8);
     await page.locator('[data-qa-camera="front"]').click();assert.deepEqual((await qa()).cameraPosition,cameras.front);
-    await page.locator('.qa-more > summary').click();await page.locator('#qa-tour').check();await seek(10);await page.locator('#qa-play').click();await page.waitForFunction(()=>window.masterCharacterReview.motionQA.camera==='left');
+    await page.locator('.qa-more').evaluate(node=>node.open=true);await page.locator('#qa-tour').check();await seek(10);await page.locator('#qa-play').click();await page.waitForFunction(()=>window.masterCharacterReview.motionQA.camera==='left');
     await page.locator('#qa-tour').uncheck();checks.push('eight repeatable camera presets and clock-driven tour');
 
     // Preserve raw draw/guard evidence. qa-before lives under display options now,
@@ -104,7 +118,7 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
     }
     await seek(17.475);
     checks.push('6/12 cohort preserves records; body, height and child/elder presentation shown');
-    await page.locator('.qa-diagnostics-panel > summary').click();
+    await page.locator('.qa-diagnostics-panel').evaluate(node=>node.open=true);
     await page.locator('#qa-category').selectOption('self intersection');await page.locator('#qa-bones').fill('rightUpperArm rightLowerArm');await page.locator('#qa-note').fill('検証用の指摘。Visual Approvalとは別。');
     await page.locator('#qa-record').click();const downloadPromise=page.waitForEvent('download');await page.locator('#qa-export').click();
     const download=await downloadPromise,path=resolve(output,'character-motion-qa.json');await download.saveAs(path);
