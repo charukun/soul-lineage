@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="./src/life-confirm.css">
   <link rel="stylesheet" href="./src/native-ui-polish.css">
   <link rel="stylesheet" href="./src/consumer-game-surfaces.css">
+  <link rel="stylesheet" href="./src/village-code.css">
   <link rel="stylesheet" href="./src/typography.css">
 </head>
 <body>
@@ -35,6 +36,7 @@
       <button id="kaykit-life" class="title-command" type="button">KayKitで遊ぶ</button>
       <button id="new-life" class="title-command" data-selected="true" type="button" aria-label="100年生を新しい人生から始める">新しい人生</button>
       <button id="continue-life" class="title-command" type="button" aria-disabled="true">旅の記録<span id="continue-detail" hidden>記録はまだありません</span></button>
+      <button id="open-village-code" class="title-command" type="button">村コード</button>
       <button id="open-village" class="title-command" type="button">村へ参加</button>
       <button id="open-settings" class="title-command" type="button">設定</button>
     </nav>
@@ -84,6 +86,15 @@
     </div>
   </form>
 </dialog>
+<dialog id="village-code-dialog" class="village-code-dialog" aria-labelledby="village-code-title">
+  <section class="village-code-panel">
+    <div class="village-code-head"><h2 id="village-code-title">村コード</h2><button id="close-village-code" class="village-code-close" type="button" aria-label="村コードを閉じる">×</button></div>
+    <p id="village-code-connected" class="village-code-connected" hidden></p>
+    <label>村アプリのコード<input id="village-code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="MURA-XXXX-XXXX"></label>
+    <p id="village-code-status" class="village-code-status" role="status" aria-live="polite">村コードを入力した時だけ、その村へ切り替わります。</p>
+    <div class="village-code-actions"><button id="village-code-apply" type="button">この村へ行く</button><button id="village-code-reset" type="button" hidden>風待ちの里へ戻る</button></div>
+  </section>
+</dialog>
 <dialog id="village-dialog" aria-labelledby="village-dialog-title">
   <form method="dialog"><button id="close-village" type="button" aria-label="村への参加を閉じる">閉じる</button></form>
   <h2 id="village-dialog-title">友達と遊ぶ</h2>
@@ -98,5 +109,6 @@
 </dialog>
 <noscript>100年生を開くにはJavaScriptを有効にしてください。</noscript>
 <script type="module" src="./src/main.js"></script>
+<script type="module" src="./src/village-code-ui.js"></script>
 </body>
 </html>
