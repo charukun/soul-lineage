@@ -63,7 +63,7 @@ export async function verifyRebuildPlaythrough(browser,url,output){
     // frames cannot turn this interaction check into a wall-clock timeout.
     const releaseEdge=stateAt(3.95,49);await load(releaseEdge);await expectTone('village');
     assert.equal(await text(page.locator('#life-stage')),'1/6 誕生');assert.equal(await page.locator('#game-screen').getAttribute('data-birth-tour'),'true');
-    await page.locator('#clock-rate').selectOption('20');await page.waitForFunction(()=>document.getElementById('life-stage')?.textContent.includes('2/6 村'),null,{timeout:5000});
+    for(let i=0;i<3;i++)await page.locator('#clock-rate').click();assert.equal(await page.locator('#clock-rate').evaluate(node=>node.value),'20');await page.waitForFunction(()=>document.getElementById('life-stage')?.textContent.includes('2/6 村'),null,{timeout:5000});
     assert.equal(await page.locator('#game-screen').getAttribute('data-birth-tour'),'false');await page.locator('.objective-card').waitFor({state:'visible'});assert.equal(await text(page.locator('#objective-badge')),'武具 7歳');await expectTone('village');await compactHud();await page.screenshot({path:join(output,'01-village-growth.png')});
 
     // Fallback activities cluster around the generated sword racks. Observe the weapon
@@ -94,13 +94,13 @@ export async function verifyRebuildPlaythrough(browser,url,output){
 
     const final=stateAt(40,46);final.zone='frontier';final.front=5;final.lastDepartureCycle=8;final.position={x:0,z:4.5};final.equipment.weapon='sword';const finalFront=createFront(5,final.seed);for(const enemy of finalFront.enemies){enemy.hp=0;enemy.dead=true;}finalFront.cleared=true;final.frontState=finalFront;await load(final);await expectTone('frontier');
     assert.equal(await text(page.locator('#objective')),'帰還へ');await page.keyboard.down('ArrowDown');await sleep(650);await page.keyboard.up('ArrowDown');
-    await page.waitForFunction(()=>document.getElementById('life-stage')?.textContent.includes('凱旋'),null,{timeout:4000});await expectTone('home');await compactHud();await page.screenshot({path:join(output,'04-homecoming.png')});
+    await page.waitForFunction(()=>document.getElementById('life-stage')?.textContent.includes('凱旋'),null,{timeout:4000});assert.equal(await page.locator('.objective-card').isVisible(),true);await compactHud();await page.screenshot({path:join(output,'04-homecoming.png')});
 
     const downed=stateAt(30,47);downed.zone='frontier';downed.front=1;downed.lastDepartureCycle=6;downed.position={x:0,z:0};downed.down={elapsed:39.2};downed.hp=0;downed.frontState=createFront(1,downed.seed);await load(downed);await expectTone('frontier');
     assert.equal(await text(page.locator('#objective')),'救助待ち');assert.match(await text(page.locator('#objective-badge')),/秒/);assert.equal(await page.locator('#talk').count(),0);await page.waitForFunction(()=>!document.getElementById('life-stage')?.textContent.includes('救助'),null,{timeout:4000});await expectTone('home').catch(async()=>expectTone('village'));
 
     const old=stateAt(99.99,48);old.ageSeconds=LIFE_SECONDS-.35;old.ageYears=old.ageSeconds/60;old.clockRate=20;old.lastDepartureCycle=20;old.equipment={weapon:'spear',armor:'light',shield:true};old.knownSkills.push('basic.spear','skill.step');old.defeats=12;old.returns=3;await load(old);
-    await page.locator('.life-end-dialog[open]').waitFor({state:'visible',timeout:5000});await page.waitForFunction(()=>document.getElementById('game-screen')?.dataset.worldTone==='rebirth');await expectTone('rebirth');assert.match(await text(page.locator('.life-end-summary')),/12撃破/);assert.match(await text(page.locator('.life-end-help')),/次の人生は0歳/);assert.equal(await page.locator('#rebirth-village').count(),1);await page.screenshot({path:join(output,'05-life-end.png')});
+    await page.locator('.life-end-dialog[open]').waitFor({state:'visible',timeout:5000});await page.waitForFunction(()=>document.getElementById('game-screen')?.dataset.worldTone==='rebirth');await expectTone('rebirth');assert.match(await text(page.locator('.life-end-summary')),/12撃破/);assert.match(await text(page.locator('.life-end-help')),/次の人生は0歳/);assert.equal(await page.locator('#rebirth-village').count(),1);assert.equal(await page.locator('#rebirth-village').isHidden(),true);assert.ok(await page.locator('.rinne-choice-list .rinne-choice').count()>0);await page.screenshot({path:join(output,'05-life-end.png')});
     await page.locator('#rebirth').click();await page.waitForFunction(()=>document.getElementById('generation')?.textContent==='2代目',null,{timeout:5000});await expectTone('village');assert.equal(await text(page.locator('#life-stage')),'1/6 誕生');assert.equal(await text(page.locator('#toast')),'2代目 · 0歳');await page.screenshot({path:join(output,'06-rebirth.png')});
 
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
