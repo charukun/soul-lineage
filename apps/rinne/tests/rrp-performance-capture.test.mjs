@@ -23,7 +23,7 @@ test('capture controller arms at the intended peer count and measures from that 
 
   connected=2;capture.sample();assert.equal(capture.armed(),true);assert.deepEqual(probe.snapshot().inputToAuthoritativeAckMs,[],'arming must discard pre-window timing samples');
   probe.inputSent(4);clock=130;probe.inputAcknowledged(4);clock=162;probe.inputDisplayed(4);probe.recordFrame(16.7);
-  clock=1000;tick();const raw=capture.raw();
+  clock=1050;tick();const raw=capture.raw();
   assert.deepEqual(raw.inputToAuthoritativeAckMs,[80]);assert.deepEqual(raw.inputToDisplayMs,[112]);assert.deepEqual(raw.frameMs,[16.7]);assert.deepEqual(raw.peerUplinkKbps,[0]);assert.equal(raw.bandwidthSkippedBuckets,0);
   assert.equal(raw._capture.schema,'rrp-raw-peer-capture');assert.equal(raw._capture.role,'guest');assert.equal(raw._capture.worldId,'room-1');assert.equal(raw._capture.buildRevision,'abc123');assert.equal(raw._capture.environment,'dev');assert.equal(raw._capture.expectedPeers,2);assert.equal(raw._capture.windowArmed,true);assert.equal(JSON.parse(capture.json())._capture.role,'guest');
 
