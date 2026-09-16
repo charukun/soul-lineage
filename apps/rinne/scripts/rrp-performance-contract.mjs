@@ -17,6 +17,13 @@ const CONNECTION_COUNTER_KEYS=Object.freeze(['connectionAttempts','connectionSuc
 const RAW_COUNTER_KEYS=Object.freeze(['bandwidthSkippedBuckets',...CONNECTION_COUNTER_KEYS,'missingSamples','expectedSamples']);
 const readCounter=(capture,key)=>{const value=Number(capture[key]??0);if(!Number.isInteger(value)||value<0)throw Error(`Invalid capture counter ${key}`);return value;};
 
+function connectionEvidenceSources(captures){
+  const complete=captures.every(capture=>['host','guest'].includes(capture._capture?.role)&&typeof capture._capture?.worldId==='string'&&capture._capture.worldId);
+  if(!complete)return captures;
+  const worlds=new Map();for(const capture of captures){const id=capture._capture.worldId;if(!worlds.has(id))worlds.set(id,[]);worlds.get(id).push(capture);}
+  const sources=[];for(const group of worlds.values()){const hosts=group.filter(capture=>capture._capture.role==='host');sources.push(...(hosts.length?hosts:group));}return sources;
+}
+
 export function mergeRawPerformanceCaptures(captures=[]){
   if(!Array.isArray(captures)||captures.length<1)throw Error('Performance capture list is required');
   const merged=Object.fromEntries(RAW_ARRAY_KEYS.map(key=>[key,[]]));
@@ -29,13 +36,11 @@ export function mergeRawPerformanceCaptures(captures=[]){
     for(const key of RAW_COUNTER_KEYS.filter(key=>!CONNECTION_COUNTER_KEYS.includes(key)))merged[key]+=readCounter(capture,key);
     const duration=Number(capture.durationMinutes??0);if(!Number.isFinite(duration)||duration<0)throw Error('Invalid capture duration');merged.durationMinutes+=duration;
   }
-  // A Host and its Guest both observe the same WebRTC link. When capture metadata is present,
-  // use Host endpoint counters as the canonical link sample so one physical connection is not
-  // counted twice merely because both endpoints exported evidence. If no Host capture survived,
-  // Guest counters remain the available link evidence. Legacy captures without metadata keep the
-  // previous additive behavior.
-  const roles=captures.map(capture=>capture._capture?.role||null),metadataComplete=roles.every(role=>role==='host'||role==='guest');
-  const connectionSources=metadataComplete?(captures.filter(capture=>capture._capture.role==='host').length?captures.filter(capture=>capture._capture.role==='host'):captures):captures;
+  // A Host and its Guests observe the same WebRTC links. Capture metadata lets us count the
+  // Host endpoint once per world instead of doubling each link merely because both endpoints
+  // exported evidence. A world with no surviving Host capture falls back to its Guest counters.
+  // Legacy captures without complete role/world metadata retain the previous additive behavior.
+  const connectionSources=connectionEvidenceSources(captures);
   for(const key of CONNECTION_COUNTER_KEYS)merged[key]=connectionSources.reduce((sum,capture)=>sum+readCounter(capture,key),0);
   return merged;
 }
