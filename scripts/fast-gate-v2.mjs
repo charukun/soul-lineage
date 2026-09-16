@@ -5,7 +5,7 @@ const RINNE_RIG_QA = new Set([
 
 const RINNE_RIG_INPUT = [
   /^packages\/(?:characters|animations|rendering)\//,
-  /^apps\/rinne\/src\/(?:character-|humanoid-|.*motion|.*weapon)/,
+  /^apps\/rinne\/src\/.*(?:motion|rig|humanoid|character|weapon|slash)/,
   /^apps\/rinne\/src\/rebuild\/(?:combat|renderer|runtime-character-stage)\.js$/,
   /^apps\/rinne\/tests\/(?:authored-slash|character-|humanoid-|motion-|natural-weapon-stance|slash-motion-warp)/,
 ];
