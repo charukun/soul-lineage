@@ -18,7 +18,7 @@ const profile = canonicalAppearanceParts({
 
 const protagonist = {
   ...base,
-  version: 2,
+  version: 1,
   seed: 0x50525631,
   role: 'resident',
   ageBand: 'adult',
