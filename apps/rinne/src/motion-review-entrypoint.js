@@ -1,3 +1,5 @@
+import { PROTAGONIST_VILLAGER_MODEL_ID } from '@soul/characters';
+
 const REVIEW_QUERY = 'motion';
 const CHARACTER_MODEL_QUERY = 'characterModel';
 const LABELS = Object.freeze({
@@ -21,7 +23,7 @@ function normalizeMotionReviewLabels() {
 function openRequestedMotionReview() {
   const url = new URL(location.href);
   const requested = url.searchParams.get('review') === REVIEW_QUERY || url.hash === '#motion-review';
-  const requestedModel = url.searchParams.get(CHARACTER_MODEL_QUERY);
+  const requestedModel = url.searchParams.get(CHARACTER_MODEL_QUERY) || (requested ? PROTAGONIST_VILLAGER_MODEL_ID : null);
   if (!requested && !requestedModel) return;
 
   let frames = 0;
