@@ -1,7 +1,7 @@
 const API = 'https://api.github.com/repos/charukun/soul-lineage';
 const CHUNK_SIZE = 16000;
-const REQUEST_CAP = { authenticated: 32, public: 12 };
-const LOW_REMAINING = { authenticated: 250, public: 10 };
+const REQUEST_CAP = 32;
+const LOW_REMAINING = 250;
 const RATE_HEADER_NAMES = [
   'link', 'x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-used',
   'x-ratelimit-resource', 'x-ratelimit-reset', 'retry-after',
@@ -34,7 +34,7 @@ function retryAfterAt(value, now) {
   return Number.isFinite(date) ? date : null;
 }
 
-export function classifyGithubFailure({ status, headers = new Headers(), message = '', scope = 'public', now = Date.now() } = {}) {
+export function classifyGithubFailure({ status, headers = new Headers(), message = '', scope = 'authenticated', now = Date.now() } = {}) {
   const rate = rateMetadata(headers, scope, status);
   const text = String(message || '').slice(0, 500);
   const retryAtFromHeader = retryAfterAt(rate.retryAfter, now);
@@ -82,6 +82,7 @@ export async function writeStored(storage, key, value) {
 }
 
 export function createGithubClient({ storage, token = '', fetchImpl = fetch, now = Date.now, maxRequests = null } = {}) {
+  const credential = typeof token === 'string' ? token.trim() : '';
   let requests = 0;
   let cacheHits = 0;
   let remaining = null;
@@ -89,11 +90,17 @@ export function createGithubClient({ storage, token = '', fetchImpl = fetch, now
   let lastRate = null;
   let lastFailure = null;
   const touched = new Set();
-  const scope = token ? 'authenticated' : 'public';
-  const requestCap = Number.isFinite(maxRequests) ? maxRequests : REQUEST_CAP[scope];
+  const scope = credential ? 'authenticated' : 'auth-required';
+  const requestCap = credential ? (Number.isFinite(maxRequests) ? maxRequests : REQUEST_CAP) : 0;
   const cachedResult = (cached, headers = cached?.headers || {}) => ({ data: cached.data, response: { headers: new Headers(headers) }, cached: true });
   async function get(path, { immutable = false, maxAgeMs = 0 } = {}) {
     if (!path.startsWith('/') || path.startsWith('//') || path.includes('://')) throw new Error('Invalid GitHub repository path');
+    if (!credential) {
+      lastFailure = { kind: 'auth-required', status: null, scope: 'none', requests, maxRequests: 0, remaining: null };
+      throw Object.assign(new Error('GitHub認証tokenが必要です。未認証APIへは接続しません。'), {
+        authRequired: true, githubDiagnostic: lastFailure,
+      });
+    }
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(path));
     const key = 'ops-http:' + [...new Uint8Array(digest)].map(x => x.toString(16).padStart(2, '0')).join('');
     touched.add(key);
@@ -103,7 +110,7 @@ export function createGithubClient({ storage, token = '', fetchImpl = fetch, now
       cacheHits++;
       return cachedResult(cached);
     }
-    const backoffKey = `ops-backoff:${scope}`;
+    const backoffKey = 'ops-backoff:authenticated';
     const rawBackoff = await storage?.get(backoffKey);
     if (typeof rawBackoff === 'number') {
       // Legacy backoff did not record why a 403 happened and could contain a permission error.
@@ -127,8 +134,12 @@ export function createGithubClient({ storage, token = '', fetchImpl = fetch, now
       });
     }
     requests++;
-    const headers = { accept: 'application/vnd.github+json', 'user-agent': 'rinne-ops-board/2.2', 'x-github-api-version': '2022-11-28' };
-    if (token) headers.authorization = `Bearer ${token}`;
+    const headers = {
+      accept: 'application/vnd.github+json',
+      authorization: `Bearer ${credential}`,
+      'user-agent': 'rinne-ops-board/2.3',
+      'x-github-api-version': '2022-11-28',
+    };
     if (cached?.etag) headers['if-none-match'] = cached.etag;
     const response = await fetchImpl(`${API}${path}`, { headers, signal: AbortSignal.timeout(15000) });
     lastRate = rateMetadata(response.headers, scope, response.status);
@@ -191,6 +202,6 @@ export function createGithubClient({ storage, token = '', fetchImpl = fetch, now
     get scope() { return scope; },
     get rate() { return lastRate; },
     get failure() { return lastFailure; },
-    get deepAllowed() { return remaining === null || remaining > LOW_REMAINING[scope]; },
+    get deepAllowed() { return Boolean(credential) && (remaining === null || remaining > LOW_REMAINING); },
   };
 }
