@@ -67,3 +67,9 @@ Repositoryで provenance と利用条件が確定した資産だけを使う。K
 再構築は同じ `apps/rinne` の新entryへ切り替える。旧本編/タイトル実装は初回PRでは削除せず未参照にして回帰時の比較材料として残す。新entryがfast validationと公開browser確認を通った後、後続PRで未参照legacyを削除する。
 
 main / Productionはこの作業では変更しない。
+
+## 実時間と低FPS時の進行
+
+60秒/年と世界時計だけ1〜20倍の契約を、描画FPSが低い場合も維持する。描画・移動・戦闘・回復・生活行動へ渡すsimulation deltaは最大50msに抑え、人生時計には表示中の実elapsed timeを別経路で渡す。50ms超過分を年齢進行から捨てず、非表示中は両方を停止し、visibility復帰時には時刻基準をリセットしてbackground滞在時間を加算しない。
+
+Browser repair #383では16/50/100/200ms相当のframe deltaで同じ実時間の年齢累積が一致すること、20倍でも3実秒/年を維持すること、倍率がsimulation deltaへ流れないこと、非表示中に時間が進まないことをdeterministic testで固定し、既存playthroughの成長・導線assertionと期限を維持する。

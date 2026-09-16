@@ -20,7 +20,7 @@ test('actual shipped Shino/VRMA pipeline, clearance, retargeting and cohort regr
   let bank,pool;
   try{
     bank=await loadWorkshopMotionSource({resolveModule:file=>import(new URL(`../public/simulator/src/${file}`,import.meta.url)),readAsset});
-    assert.equal(bank.frames.length,1801);assert.equal(bank.revision,'shino-slash-3-combo');
+    assert.equal(bank.frames.length,1801);assert.equal(bank.revision,'shino-slash-2');
     const loader=new GLTFLoader();loader.register(()=>({name:'CPUTexture',loadTexture:async()=>new T.Texture()}));
     const gltf=await loader.parseAsync(await readAsset('SHINO'),''),rig=await shinoProductionRigFromGLTF(gltf);
     pool=createShinoProductionPool({template:gltf.scene,rig,capacity:12});
