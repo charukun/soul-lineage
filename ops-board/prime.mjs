@@ -1,5 +1,5 @@
-// Prime attribution in bounded batches with this Actions job's read token.
-// No CI polling, PR mutation, or persistent copy of the job credential.
+// Prime attribution once with this Actions job's read token.
+// No CI polling, PR mutation, persistent copy of the job credential, or refresh amplification.
 import { setTimeout as delay } from 'node:timers/promises';
 import { assertSnapshot } from './publication-check.mjs';
 const url = process.env.OPS_URL || 'https://rinne-ops.c-okamoto.workers.dev/';
@@ -34,15 +34,11 @@ async function refreshOnce() {
   }
   throw lastError || new Error('Ops refresh failed without a response');
 }
-let previousReady = -1;
-for (let batch = 0; batch < 3; batch++) {
-  const response = await refreshOnce();
-  const state = assertSnapshot(await response.json(), (process.env.OPS_SOURCE_SHA || process.env.GITHUB_SHA));
-  const lookup = state.pullRequests.targetLookup;
-  console.log(`Target batch ${batch + 1}: ready=${lookup.ready}, pending=${lookup.pending}, unavailable=${lookup.unavailable}, api=${state.githubApi?.requests ?? '?'} requests`);
-  if (!lookup.pending || lookup.ready === previousReady) {
-    if (lookup.pending || lookup.unavailable) console.log('::warning::Some PR target attribution remains explicitly pending or unavailable; the board does not invent results.');
-    break;
-  }
-  previousReady = lookup.ready;
+
+const response = await refreshOnce();
+const state = assertSnapshot(await response.json(), (process.env.OPS_SOURCE_SHA || process.env.GITHUB_SHA));
+const lookup = state.pullRequests.targetLookup;
+console.log(`Target prime: ready=${lookup.ready}, pending=${lookup.pending}, unavailable=${lookup.unavailable}, api=${state.githubApi?.requests ?? '?'} requests`);
+if (lookup.pending || lookup.unavailable) {
+  console.log('::warning::Some PR target attribution remains explicitly pending or unavailable; later authenticated event/reconcile refreshes will continue it.');
 }
