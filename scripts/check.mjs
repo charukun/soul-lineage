@@ -8,12 +8,17 @@ import { importSpecifiers } from './import-specifiers.mjs';
 const root = process.cwd();
 const nodes = graph(root);
 const nativeBrowserDialog = /\b(?:(?:window|globalThis|self)\s*\.\s*)?(?:alert|confirm|prompt)\s*\(/;
+const nativeEntryChoice = /<select\b|<input\b[^>]*\btype\s*=\s*["']?checkbox\b/i;
 const selected = process.argv[2] ? new Set(process.argv.slice(2).flatMap(id => [...closure(nodes, nodes.has(id) ? id : appNode(nodes, id).name)])) : new Set(nodes.keys());
 for (const name of selected) {
   const node = nodes.get(name);
   if (node.group === 'apps') {
-    assert.ok(existsSync(resolve(root, node.dir, 'index.html')), `${name} requires its own index.html`);
+    const entryPath=resolve(root,node.dir,'index.html');
+    assert.ok(existsSync(entryPath), `${name} requires its own index.html`);
     assert.ok(node.pkg.scripts?.build, `${name} requires an independent build`);
+    const entrySource=readFileSync(entryPath,'utf8').replace(/<!--[\s\S]*?-->/g,'');
+    assert.ok(!nativeBrowserDialog.test(entrySource), `Native browser alert/confirm/prompt is forbidden in consumer entry HTML: ${node.dir}/index.html.`);
+    assert.ok(!nativeEntryChoice.test(entrySource), `Visible native select/checkbox is forbidden in consumer entry HTML: ${node.dir}/index.html. Use an app-owned choice surface.`);
   }
   const files = readdirSync(resolve(root, node.dir), { recursive: true }).filter(p => /\.(m?js)$/.test(p) && !p.startsWith('node_modules/'));
   for (const file of files) {
