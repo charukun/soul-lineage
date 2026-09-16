@@ -18,7 +18,7 @@ const profile = canonicalAppearanceParts({
 
 const protagonist = {
   ...base,
-  version: 1,
+  version: 2,
   seed: 0x50525631,
   role: 'resident',
   ageBand: 'adult',
@@ -32,7 +32,7 @@ const protagonist = {
   trim: [.30, .40, .46],
   hairValue: .90,
   id: PROTAGONIST_VILLAGER_MODEL_ID,
-  label: '主人公 / 村人服 PRIMARY',
+  label: '主人公 / KayKit Knight派生・村人服 PRIMARY',
   kind: 'dcc-character-model',
   characterId: 'Protagonist_Villager_V1',
   assetId: 'character.protagonist-villager.v1',
@@ -45,8 +45,8 @@ const protagonist = {
   referencePath: 'docs/characters/references/protagonist-villager-v1.svg',
   profile,
   referenceStyle: {
-    version: 1,
-    design: 'protagonist-villager',
+    version: 2,
+    design: 'protagonist-kaykit-knight-derivative',
     scale: .72,
     palette: {
       skin: [.72, .48, .34],
@@ -69,20 +69,20 @@ const protagonist = {
     sourceSections: [...base.production.sourceSections],
     authority: {
       currentMaster: [...base.production.authority.currentMaster],
-      implementedModularParts: ['face', 'hair', 'body', 'outfit', 'accessory'],
+      implementedModularParts: ['kaykit-knight-source-parts', 'village-material-pass'],
       proposedParts: [],
       gameEquipment: []
     },
     target: {
       formats: ['glb'],
       primaryFormat: 'glb',
-      rigId: 'humanoid.shino-vrm1.v2',
-      materialProfiles: ['stylized-pbr-fallback'],
+      rigId: 'Rig_Medium',
+      materialProfiles: ['kaykit-gradient-source', 'stylized-pbr-village-cloth'],
       preserveExpressions: false,
       preserveSpringBones: false
     },
     requirements: {
-      topology: 'humanoid-production',
+      topology: 'kaykit-source-derived',
       modularCompatibility: false,
       sourceProvenanceRequired: true,
       gameEquipmentPolicy: 'exclude-from-shared-character-asset',
@@ -90,7 +90,7 @@ const protagonist = {
       fallbackPolicy: 'retain-current-master-until-candidate-accepted'
     }
   },
-  note: 'KayKit系NPCと同じ低ポリ世界観に合わせた主人公専用DCC PRIMARY。初期村人服のみで、鎧・兜・盾・衛兵意匠は持たない。30秒演舞を含む既存Humanoidモーション確認用。Visual Approvalまではゲーム既定モデルを置換しない。'
+  note: 'KayKit Adventurers 1.0の固定revisionからKnight.glbの実メッシュとRig_Mediumを直接流用する主人公DCC PRIMARY。剣・盾・兜・肩軍装を外し、残したKnightパーツを布・革・オリーブ系の村人服へ再構成する。Knightに髪が無い場合のみ同一CC0パックのRogue髪パーツを使用する。30秒演舞を含む既存Humanoidモーション確認用で、Visual Approvalまではゲーム既定モデルを置換しない。'
 };
 
 validateVisualIdentity(protagonist);

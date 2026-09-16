@@ -25,7 +25,7 @@ function glbDocument(buffer) {
   throw new Error('GLB JSON chunk missing');
 }
 
-test('protagonist village-start DCC is a dedicated humble hero candidate', () => {
+test('protagonist village-start DCC is a KayKit Knight-derived humble hero candidate', () => {
   const model = CHARACTER_REFERENCE_MODELS[PROTAGONIST_VILLAGER_MODEL_ID];
   assert.ok(model);
   assert.equal(model.kind, 'dcc-character-model');
@@ -35,16 +35,31 @@ test('protagonist village-start DCC is a dedicated humble hero candidate', () =>
   assert.equal(model.productionReady, false);
   assert.equal(model.assetPath, './simulator/assets/PROTAGONIST_VILLAGER_V1.glb');
   assert.equal(model.integrityPath, './simulator/assets/PROTAGONIST_VILLAGER_V1.asset.json');
-  assert.equal(model.referenceStyle.design, 'protagonist-villager');
+  assert.equal(model.referenceStyle.design, 'protagonist-kaykit-knight-derivative');
   assert.equal(model.referenceStyle.prop, 'none');
-  assert.ok(model.proportions.head > 1.1);
-  assert.ok(model.referenceStyle.palette.primary.every(Number.isFinite));
+  assert.equal(model.production.target.rigId, 'Rig_Medium');
+  assert.equal(model.production.requirements.topology, 'kaykit-source-derived');
+  assert.ok(model.note.includes('Knight.glb'));
 
   const request = createCharacterModelBuildRequest(PROTAGONIST_VILLAGER_MODEL_ID, { requestedBy: 'character-workshop' });
   assert.equal(request.reference.id, PROTAGONIST_VILLAGER_MODEL_ID);
   assert.equal(request.target.primaryFormat, 'glb');
   assert.deepEqual(request.target.formats, ['glb']);
   assert.equal(request.handoff.fallbackPolicy, 'retain-current-master-until-candidate-accepted');
+});
+
+test('protagonist builder reuses pinned real KayKit Knight parts instead of rebuilding a primitive body', () => {
+  const request = JSON.parse(readFileSync('.dcc/character-dcc-request.json', 'utf8'));
+  const source = readFileSync('scripts/blender/build-protagonist-kaykit-derivative-v2.py', 'utf8');
+  assert.equal(request.builder, 'scripts/blender/build-protagonist-kaykit-derivative-v2.py');
+  assert.equal(request.rig.id, 'kaykit.Rig_Medium.v1');
+  assert.match(request.license.rigProvenance, /717b56ca2b5ff5392679774725201ba03a3eefab/);
+  assert.match(request.license.rigProvenance, /CC0 1\.0/);
+  assert.match(source, /Knight\.glb/);
+  assert.match(source, /717b56ca2b5ff5392679774725201ba03a3eefab/);
+  assert.match(source, /Knight_/);
+  assert.match(source, /kaykit-source-part-reuse/);
+  assert.doesNotMatch(source, /primitive_cube_add|primitive_uv_sphere_add|clear_source_meshes/);
 });
 
 test('generated protagonist GLB carries the exact audited humanoid runtime contract', () => {
