@@ -1,10 +1,10 @@
 const STAGES={
- welcome:{number:0,title:'ここからは、あなたの指で。',text:'最初の空きテントをひとつ置きながら、村の基本操作を覚えます。勝手には進みません。',cue:'まず流れを見る'},
- build:{number:1,title:'「つくる」を押す',text:'画面下の「つくる」を、短く1回タップしてください。',cue:'つくる をタップ'},
- catalog:{number:2,title:'空きテントを選ぶ',text:'住まいの一覧から「空きテント」を1回タップします。すると実際の配置モードに入ります。',cue:'空きテント をタップ'},
- drag:{number:3,title:'1本指で、場所を動かす',text:'画面を1本指でゆっくりなぞってください。指の動きと同じだけ地面が動き、中央のテント候補の場所が変わります。',cue:'1本指でなぞる'},
- place:{number:4,title:'短くタップして置く',text:'置きたい場所になったら、画面を短く1回タップ。いま見えている候補の位置へ、そのまま配置されます。',cue:'画面を短くタップ'},
- done:{number:4,title:'これで、村を自分で動かせます。',text:'「選ぶ → 指で場所を動かす → タップで置く」が基本です。ここから先は、あなたの村です。',cue:'完了'},
+ welcome:{number:0,title:'最初のテントを、一緒に置く。',text:'4つの操作だけ。あなたが動かしたときだけ、次へ進みます。',cue:'4ステップ'},
+ build:{number:1,title:'① つくる',text:'画面下の「つくる」を1回タップ。',cue:'下のボタン'},
+ catalog:{number:2,title:'② 空きテント',text:'光っている「空きテント」を1回タップ。',cue:'光っている住まい'},
+ drag:{number:3,title:'③ 場所を動かす',text:'1本指で画面をなぞり、テントを置きたい場所へ。',cue:'1本指でなぞる'},
+ place:{number:4,title:'④ ここに置く',text:'場所がよければ、画面を短く1回タップ。',cue:'短くタップ'},
+ done:{number:4,title:'置けました。',text:'基本操作はこれで完了。必要なときだけ「つくる」から村を増やせます。',cue:'完了'},
 };
 
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -13,12 +13,13 @@ function createLayer(hidden){
  const layer=document.createElement('div');
  layer.id='muraFirstRunGuide';
  layer.dataset.stage='welcome';
+ layer.dataset.mode='card';
  layer.hidden=hidden;
  layer.innerHTML=`
   <section class="muraFirstRunGuideCard" aria-labelledby="muraFirstRunGuideTitle" aria-describedby="muraFirstRunGuideText">
-   <div class="muraFirstRunGuideTop"><span class="muraFirstRunGuideEyebrow">はじめての村</span><button type="button" class="muraFirstRunSkip" aria-label="チュートリアルをスキップ">スキップ</button></div>
+   <div class="muraFirstRunGuideTop"><span class="muraFirstRunGuideEyebrow">はじめての村</span><span class="muraFirstRunStep" aria-live="polite"></span><button type="button" class="muraFirstRunSkip" aria-label="チュートリアルをスキップ">スキップ</button></div>
    <strong id="muraFirstRunGuideTitle"></strong><p id="muraFirstRunGuideText" aria-live="polite"></p>
-   <div class="muraFirstRunGuideFooter"><div class="muraFirstRunProgress" aria-label="チュートリアル進行"></div><span class="muraFirstRunCue"></span><button type="button" class="muraFirstRunReplay">もう一度見る</button><button type="button" class="muraFirstRunStart">やってみる</button><button type="button" class="muraFirstRunFinish">村を始める</button></div>
+   <div class="muraFirstRunGuideFooter"><div class="muraFirstRunProgress" aria-label="チュートリアル進行"><i></i></div><span class="muraFirstRunCue" aria-live="polite"></span><button type="button" class="muraFirstRunReplay">もう一度見る</button><button type="button" class="muraFirstRunStart">やってみる</button><button type="button" class="muraFirstRunFinish">村を始める</button></div>
   </section>
   <div class="muraFirstRunFinger" aria-hidden="true"><i></i><b></b></div><div class="muraFirstRunRipple" aria-hidden="true"></div><div class="muraFirstRunDragStart" aria-hidden="true"></div><div class="muraFirstRunDragEnd" aria-hidden="true"></div>`;
  document.body.append(layer);
@@ -42,15 +43,12 @@ function placeMarker(node,point){
  node.style.top=`${Math.round(point.y)}px`;
 }
 
-function setProgress(progress,stage,number){
- const marks=[1,2,3,4].map(index=>{
-  const mark=document.createElement('i');
-  mark.className=stage==='done'||index<number?'done':index===number?'current':'';
-  mark.setAttribute('aria-hidden','true');
-  return mark;
- });
- progress.replaceChildren(...marks);
+function setProgress(progress,step,stage,number){
+ const value=stage==='done'?4:number;
+ const percent=Math.max(0,Math.min(100,value/4*100));
+ progress.style.setProperty('--mura-first-run-progress',`${percent}%`);
  progress.setAttribute('aria-label',stage==='done'?'4 / 4 · 完了':number?`${number} / 4`:'導入');
+ step.textContent=stage==='welcome'?'4ステップ':stage==='done'?'完了':`${number} / 4`;
 }
 
 function hideDemo(nodes){
@@ -63,8 +61,8 @@ function tapAnimations(finger,ripple,timing,reduced){
   ripple.animate([{opacity:0,transform:'translate(-50%,-50%) scale(.7)'},{opacity:.75,transform:'translate(-50%,-50%) scale(1)'},{opacity:0,transform:'translate(-50%,-50%) scale(1.35)'}],{duration:timing.tap,easing:'ease-out'});
   return;
  }
- finger.animate([{opacity:0,transform:'translate(-50%,-50%) translateY(18px) scale(1.04)'},{opacity:1,transform:'translate(-50%,-50%) translateY(0) scale(1)',offset:.3},{opacity:1,transform:'translate(-50%,-50%) translateY(3px) scale(.9)',offset:.58},{opacity:1,transform:'translate(-50%,-50%) translateY(0) scale(1)',offset:.73},{opacity:0,transform:'translate(-50%,-50%) translateY(-5px) scale(1)',offset:1}],{duration:timing.tap,easing:'ease-in-out'});
- ripple.animate([{opacity:0,transform:'translate(-50%,-50%) scale(.5)'},{opacity:0,transform:'translate(-50%,-50%) scale(.5)',offset:.5},{opacity:.85,transform:'translate(-50%,-50%) scale(.75)',offset:.58},{opacity:0,transform:'translate(-50%,-50%) scale(1.55)'}],{duration:timing.tap,easing:'ease-out'});
+ finger.animate([{opacity:0,transform:'translate(-50%,-50%) translateY(14px) scale(1.02)'},{opacity:1,transform:'translate(-50%,-50%) translateY(0) scale(1)',offset:.28},{opacity:1,transform:'translate(-50%,-50%) translateY(3px) scale(.92)',offset:.58},{opacity:1,transform:'translate(-50%,-50%) translateY(0) scale(1)',offset:.74},{opacity:0,transform:'translate(-50%,-50%) translateY(-4px) scale(1)',offset:1}],{duration:timing.tap,easing:'ease-in-out'});
+ ripple.animate([{opacity:0,transform:'translate(-50%,-50%) scale(.5)'},{opacity:0,transform:'translate(-50%,-50%) scale(.5)',offset:.48},{opacity:.82,transform:'translate(-50%,-50%) scale(.76)',offset:.58},{opacity:0,transform:'translate(-50%,-50%) scale(1.48)'}],{duration:timing.tap,easing:'ease-out'});
 }
 
 async function animateTap({finger,ripple,element,canvas,timing,reduced}){
@@ -81,14 +79,14 @@ async function animateTap({finger,ripple,element,canvas,timing,reduced}){
 function dragAnimations(finger,start,end,startPoint,endPoint,timing,reduced){
  if(reduced){
   finger.animate([{opacity:0},{opacity:1},{opacity:1},{opacity:0}],{duration:timing.drag,easing:'ease-in-out'});
-  start.animate([{opacity:0},{opacity:.65},{opacity:.25}],{duration:timing.drag});
-  end.animate([{opacity:0},{opacity:.2},{opacity:.75}],{duration:timing.drag});
+  start.animate([{opacity:0},{opacity:.6},{opacity:.2}],{duration:timing.drag});
+  end.animate([{opacity:0},{opacity:.2},{opacity:.7}],{duration:timing.drag});
   return;
  }
  const dx=endPoint.x-startPoint.x,dy=endPoint.y-startPoint.y;
- finger.animate([{opacity:0,transform:'translate(-50%,-50%) scale(1)'},{opacity:1,transform:'translate(-50%,-50%) scale(1)',offset:.18},{opacity:1,transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.92)`,offset:.82},{opacity:0,transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(1)`,offset:1}],{duration:timing.drag,easing:'cubic-bezier(.25,.68,.35,1)'});
- start.animate([{opacity:0},{opacity:.65,offset:.18},{opacity:0}],{duration:timing.drag});
- end.animate([{opacity:0},{opacity:0,offset:.55},{opacity:.75,offset:.82},{opacity:0}],{duration:timing.drag});
+ finger.animate([{opacity:0,transform:'translate(-50%,-50%) scale(1)'},{opacity:1,transform:'translate(-50%,-50%) scale(1)',offset:.16},{opacity:1,transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.94)`,offset:.82},{opacity:0,transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(1)`,offset:1}],{duration:timing.drag,easing:'cubic-bezier(.25,.68,.35,1)'});
+ start.animate([{opacity:0},{opacity:.58,offset:.16},{opacity:0}],{duration:timing.drag});
+ end.animate([{opacity:0},{opacity:0,offset:.55},{opacity:.72,offset:.82},{opacity:0}],{duration:timing.drag});
 }
 
 async function animateDrag({finger,start,end,canvas,timing,reduced}){
@@ -106,7 +104,7 @@ async function animateDrag({finger,start,end,canvas,timing,reduced}){
 export function createFirstRunGuideView({canvas,initiallyHidden=false,reduced=false,timing}){
  const layer=createLayer(initiallyHidden);
  const nodes={
-  title:layer.querySelector('#muraFirstRunGuideTitle'),text:layer.querySelector('#muraFirstRunGuideText'),cue:layer.querySelector('.muraFirstRunCue'),progress:layer.querySelector('.muraFirstRunProgress'),
+  title:layer.querySelector('#muraFirstRunGuideTitle'),text:layer.querySelector('#muraFirstRunGuideText'),cue:layer.querySelector('.muraFirstRunCue'),step:layer.querySelector('.muraFirstRunStep'),progress:layer.querySelector('.muraFirstRunProgress'),
   replay:layer.querySelector('.muraFirstRunReplay'),start:layer.querySelector('.muraFirstRunStart'),finish:layer.querySelector('.muraFirstRunFinish'),skip:layer.querySelector('.muraFirstRunSkip'),
   finger:layer.querySelector('.muraFirstRunFinger'),ripple:layer.querySelector('.muraFirstRunRipple'),dragStart:layer.querySelector('.muraFirstRunDragStart'),dragEnd:layer.querySelector('.muraFirstRunDragEnd'),
  };
@@ -135,7 +133,7 @@ export function createFirstRunGuideView({canvas,initiallyHidden=false,reduced=fa
   const version=demoVersion;
   if(stage==='welcome'||stage==='done'||destroyed)return;
   updateTarget();
-  await wait(immediate?120:timing.read);
+  await wait(immediate?90:timing.read);
   if(destroyed||version!==demoVersion)return;
   if(stage==='drag')await animateDrag({finger:nodes.finger,start:nodes.dragStart,end:nodes.dragEnd,canvas,timing,reduced});
   else await animateTap({finger:nodes.finger,ripple:nodes.ripple,element:targetFor(stage,canvas),canvas,timing,reduced});
@@ -144,17 +142,19 @@ export function createFirstRunGuideView({canvas,initiallyHidden=false,reduced=fa
  function scheduleDemo(){
   cancelDemo();
   const version=demoVersion;
-  demoTimer=setTimeout(()=>{if(!destroyed&&version===demoVersion)void playDemo();},80);
+  demoTimer=setTimeout(()=>{if(!destroyed&&version===demoVersion)void playDemo();},70);
  }
  function setStage(next,{message=null}={}){
   if(destroyed)return;
   stage=next;
   layer.dataset.stage=next;
+  layer.dataset.mode=next==='welcome'||next==='done'?'card':'coach';
   const config=STAGES[next];
   nodes.title.textContent=config.title;
   nodes.text.textContent=message||config.text;
   nodes.cue.textContent=config.cue;
-  setProgress(nodes.progress,next,config.number);
+  nodes.cue.removeAttribute('data-state');
+  setProgress(nodes.progress,nodes.step,next,config.number);
   nodes.start.hidden=next!=='welcome';
   nodes.finish.hidden=next!=='done';
   nodes.replay.hidden=next==='welcome'||next==='done';
@@ -162,18 +162,25 @@ export function createFirstRunGuideView({canvas,initiallyHidden=false,reduced=fa
   updateTarget();
   scheduleDemo();
  }
- function setHint(message,ms=3200){
+ function setHint(message,ms=2800){
   if(destroyed)return;
   clearTimeout(hintTimer);
   nodes.text.textContent=message;
+  nodes.cue.hidden=false;
+  nodes.cue.textContent='もう一度';
+  nodes.cue.dataset.state='hint';
   layer.classList.add('mura-first-run-hint');
-  hintTimer=setTimeout(()=>{if(!destroyed){layer.classList.remove('mura-first-run-hint');nodes.text.textContent=STAGES[stage].text;}},ms);
+  const currentStage=stage;
+  hintTimer=setTimeout(()=>{if(!destroyed&&stage===currentStage){layer.classList.remove('mura-first-run-hint');nodes.text.textContent=STAGES[stage].text;nodes.cue.textContent=STAGES[stage].cue;nodes.cue.removeAttribute('data-state');nodes.cue.hidden=stage==='welcome'||stage==='done';}},ms);
  }
  function accept(next,message,duration){
   clearTimeout(acceptTimer);
   setStage(next,{message});
+  nodes.cue.hidden=false;
+  nodes.cue.textContent='できた';
+  nodes.cue.dataset.state='success';
   layer.classList.add('mura-first-run-accepted');
-  acceptTimer=setTimeout(()=>{if(!destroyed&&stage===next){layer.classList.remove('mura-first-run-accepted');nodes.text.textContent=STAGES[next].text;}},duration);
+  acceptTimer=setTimeout(()=>{if(!destroyed&&stage===next){layer.classList.remove('mura-first-run-accepted');nodes.text.textContent=STAGES[next].text;nodes.cue.textContent=STAGES[next].cue;nodes.cue.removeAttribute('data-state');nodes.cue.hidden=next==='welcome'||next==='done';}},duration);
  }
  function show(){
   layer.hidden=false;
