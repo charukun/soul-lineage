@@ -123,7 +123,8 @@ export default {
       if (url.pathname === '/api/version' && request.method === 'GET') return json({ app: 'ops-board', commit: env.OPS_BUILD_SHA || null });
       if (url.pathname === '/api/state' && request.method === 'GET') {
         const stub = env.OPS_STATE.getByName('global');
-        const state = await stub.getState();
+        let state = await stub.getState();
+        if (!state && env.OPS_GITHUB_TOKEN) state = await stub.refresh('cold-start');
         if (!state) return json({ error: 'github_auth_required' }, 503);
         return json({ ...publicState(state, env), sharedWorld: await stub.peerSnapshot() });
       }
