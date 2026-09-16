@@ -9,8 +9,12 @@ export function createCoopPerformanceProbe({role='peer',now=()=>performance.now(
   let txBucket=0,txBucketBytes=0,connectionAttempts=0,connectionSuccesses=0,turnCandidateClassifiedConnections=0,turnRelayConnections=0;
   const push=(key,value)=>{if(!finite(value))return false;const list=raw[key];if(!list)return false;list.push(value);if(list.length>maxSamples)list.splice(0,list.length-maxSamples);return true;};
   function advanceTxBuckets(){
-    const elapsed=Math.max(0,now()-startedAt),nextBucket=Math.floor(elapsed/1000),key=role==='host'?'hostUplinkKbps':'peerUplinkKbps';
-    while(txBucket<nextBucket){push(key,txBucketBytes*8/1000);txBucketBytes=0;txBucket++;}
+    const elapsed=Math.max(0,now()-startedAt),nextBucket=Math.floor(elapsed/1000),gap=nextBucket-txBucket;if(gap<=0)return;
+    const key=role==='host'?'hostUplinkKbps':'peerUplinkKbps',list=raw[key],completed=[];
+    if(gap>maxSamples)completed.push(...Array(maxSamples).fill(0));
+    else completed.push(txBucketBytes*8/1000,...Array(Math.max(0,gap-1)).fill(0));
+    list.push(...completed);if(list.length>maxSamples)list.splice(0,list.length-maxSamples);
+    txBucket=nextBucket;txBucketBytes=0;
   }
   function recordSend({payloadBytes=0,reliableBufferedAmount=null,presenceBufferedAmount=null}={}){advanceTxBuckets();if(finite(Number(payloadBytes)))txBucketBytes+=Number(payloadBytes);push('reliableBufferedAmountBytes',Number(reliableBufferedAmount));push('presenceBufferedAmountBytes',Number(presenceBufferedAmount));}
   function inputSent(seq){seq=clampSeq(seq);if(seq==null)return false;inputStarted.set(seq,now());return true;}
