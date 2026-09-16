@@ -66,7 +66,7 @@ export async function verifyRebuildPlaythrough(browser,url,output){
     await page.locator('#clock-rate').selectOption('20');await page.waitForFunction(()=>document.getElementById('life-stage')?.textContent.includes('2/6 村'),null,{timeout:5000});
     assert.equal(await page.locator('#game-screen').getAttribute('data-birth-tour'),'false');await page.locator('.objective-card').waitFor({state:'visible'});assert.equal(await text(page.locator('#objective-badge')),'武具 7歳');await expectTone('village');await compactHud();await page.screenshot({path:join(output,'01-village-growth.png')});
 
-    const prep=stateAt(8,42);prep.position={x:sword.x+1.35,z:sword.z};await load(prep);
+    const prep=stateAt(8,42);prep.position={x:sword.x,z:sword.z-1.35};await load(prep);
     assert.equal(await text(page.locator('#life-stage')),'3/6 支度');assert.equal(await text(page.locator('#objective')),'武具を選ぶ');assert.equal(await page.locator('#talk').count(),0);await expectTone('village');
     prep.position={x:sword.x,z:sword.z};await load(prep);await page.waitForFunction(()=>document.getElementById('toast')?.textContent.includes('装備'),null,{timeout:4000});
     assert.match(await text(page.locator('#toast')),/片手剣 装備/);assert.equal(await page.locator('#talk').count(),0);await page.screenshot({path:join(output,'02-equipment.png')});
