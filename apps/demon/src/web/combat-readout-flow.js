@@ -27,7 +27,17 @@ export function installCombatReadoutFlow(doc=document){
   const current=flow.querySelector('.combat-action-current');
   let state={action:'',phase:''};
 
+  const reset=()=>{
+    state={action:'',phase:''};
+    current.textContent='';
+    outgoing.textContent='';
+    flow.hidden=true;
+  };
+
   const sync=()=>{
+    const fighting=battle.style.opacity==='1';
+    if(!fighting){reset();return;}
+
     const active=phaseNodes.find(el=>el.classList.contains('active'));
     const next=nextCombatReadoutState(state,source.textContent,active?.dataset.phase||'');
 
@@ -50,7 +60,7 @@ export function installCombatReadoutFlow(doc=document){
   };
 
   const observer=new MutationObserver(sync);
-  observer.observe(battle,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class']});
+  observer.observe(battle,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','style']});
   sync();
 
   return()=>{
