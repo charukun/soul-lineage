@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-"""Finalize a Character DCC Carrier build from its repository request."""
+"""Write a minimal integrity receipt for a Character DCC Carrier build."""
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
-REQUIRED_VIEWS = ("front", "side", "back", "three-quarter")
-ALLOWED_STAGES = {"REFERENCE", "BLOCKOUT", "PRIMARY"}
+REQUIRED_VIEWS = ("front", "three-quarter", "side", "back")
 
 
 def sha256(path: Path) -> str:
@@ -19,181 +18,119 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def repo_path(value: str, name: str) -> Path:
-    if not isinstance(value, str) or not value or "\\" in value:
-        raise SystemExit(f"{name} must be a repository-relative POSIX path")
-    pure = PurePosixPath(value)
-    if pure.is_absolute() or ".." in pure.parts or value.startswith("/"):
-        raise SystemExit(f"{name} escapes the repository: {value}")
-    return Path(*pure.parts)
-
-
-def load_json(path: Path, name: str) -> dict:
+def require_file(value: str, label: str) -> Path:
+    path = Path(value)
+    if path.is_absolute() or ".." in path.parts:
+        raise SystemExit(f"{label} must stay inside the repository: {path}")
     if not path.is_file() or path.stat().st_size == 0:
-        raise SystemExit(f"{name} missing or empty: {path}")
+        raise SystemExit(f"{label} missing or empty: {path}")
+    return path
+
+
+def load_json(path: Path, label: str) -> dict:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        value = json.loads(path.read_text(encoding="utf-8"))
     except Exception as error:
-        raise SystemExit(f"invalid {name}: {path}: {error}") from error
+        raise SystemExit(f"invalid {label}: {path}: {error}") from error
+    if not isinstance(value, dict):
+        raise SystemExit(f"{label} must be a JSON object: {path}")
+    return value
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--request", default=".dcc/character-dcc-request.json")
+    parser.add_argument("--slug", required=True)
+    parser.add_argument("--reference", required=True)
+    parser.add_argument("--rig", required=True)
+    parser.add_argument("--builder", required=True)
+    parser.add_argument("--blend", required=True)
+    parser.add_argument("--model", required=True)
+    parser.add_argument("--audit", required=True)
+    parser.add_argument("--build", required=True)
+    parser.add_argument("--qa-dir", required=True)
+    parser.add_argument("--public-path", required=True)
+    parser.add_argument("--out", required=True)
     args = parser.parse_args()
 
-    request_path = repo_path(args.request, "request")
-    request = load_json(request_path, "request")
-    if request.get("schema") != "character-dcc-request" or request.get("version") != 1:
-        raise SystemExit("unsupported Character DCC request schema/version")
+    if not args.slug or any(char not in "abcdefghijklmnopqrstuvwxyz0123456789-" for char in args.slug):
+        raise SystemExit("slug must contain only lowercase letters, digits and hyphens")
+    if not args.public_path.startswith("./") or ".." in args.public_path:
+        raise SystemExit("public path must be a safe ./ path")
 
-    character_id = request.get("id")
-    asset_id = request.get("assetId")
-    if not isinstance(character_id, str) or not character_id:
-        raise SystemExit("request.id missing")
-    if not isinstance(asset_id, str) or not asset_id:
-        raise SystemExit("request.assetId missing")
-
-    generated = repo_path(request["generatedDir"], "generatedDir")
-    blend = repo_path(request["canonical"]["blend"], "canonical.blend")
-    model = repo_path(request["canonical"]["model"], "canonical.model")
-    integrity_path = repo_path(request["canonical"]["integrity"], "canonical.integrity")
-    production_path = repo_path(request["canonical"]["production"], "canonical.production")
-    qa_dir = repo_path(request["canonical"]["qaDir"], "canonical.qaDir")
-    audit_path = qa_dir / "blender-audit.json"
-    build_path = qa_dir / "build.json"
-
-    for path, label in ((blend, "blend"), (model, "model"), (audit_path, "audit"), (build_path, "build")):
-        if not path.is_file() or path.stat().st_size == 0:
-            raise SystemExit(f"required canonical {label} missing or empty: {path}")
+    reference = require_file(args.reference, "reference")
+    rig = require_file(args.rig, "rig")
+    builder = require_file(args.builder, "builder")
+    blend = require_file(args.blend, "blend")
+    model = require_file(args.model, "model")
+    audit_path = require_file(args.audit, "audit")
+    build_path = require_file(args.build, "build metadata")
+    qa_dir = Path(args.qa_dir)
+    if qa_dir.is_absolute() or ".." in qa_dir.parts:
+        raise SystemExit("qa-dir must stay inside the repository")
     for view in REQUIRED_VIEWS:
-        path = qa_dir / f"{view}.png"
-        if not path.is_file() or path.stat().st_size == 0:
-            raise SystemExit(f"required review view missing or empty: {path}")
+        require_file(str(qa_dir / f"{view}.png"), f"review {view}")
 
     audit = load_json(audit_path, "Blender audit")
     build = load_json(build_path, "build metadata")
+    character_id = build.get("characterId")
+    if not isinstance(character_id, str) or not character_id.strip():
+        raise SystemExit("build metadata must contain a non-empty characterId")
     if audit.get("characterId") != character_id:
         raise SystemExit(f"audit character id mismatch: {audit.get('characterId')} != {character_id}")
-    if build.get("characterId") != character_id:
-        raise SystemExit(f"build character id mismatch: {build.get('characterId')} != {character_id}")
-    checks = audit.get("checks", {})
-    if not checks or not all(checks.values()):
+    checks = audit.get("checks")
+    if not isinstance(checks, dict) or not checks or not all(checks.values()):
         raise SystemExit("Blender audit contains a failed or missing objective check")
 
-    scene = audit.get("scene", {})
-    primary = request.get("primary", {})
-    min_meshes = int(primary.get("minMeshObjects", 1))
-    min_materials = int(primary.get("minMaterials", 1))
-    if scene.get("meshObjects", 0) < min_meshes:
-        raise SystemExit(f"meshObjects below request minimum: {scene.get('meshObjects', 0)} < {min_meshes}")
-    if scene.get("materials", 0) < min_materials:
-        raise SystemExit(f"materials below request minimum: {scene.get('materials', 0)} < {min_materials}")
+    suffix = model.suffix.lower().lstrip(".")
+    if suffix not in {"glb", "vrm"}:
+        raise SystemExit("runtime model must be .glb or .vrm")
 
-    stage = str(request.get("production", {}).get("stage", "REFERENCE")).upper()
-    if stage not in ALLOWED_STAGES:
-        raise SystemExit("carrier production stage may only be REFERENCE, BLOCKOUT or PRIMARY")
-    review = request.get("review", {})
-    if request.get("production", {}).get("productionReady", False) is not False:
-        raise SystemExit("carrier cannot set productionReady=true")
-    if request.get("production", {}).get("visualApproval", "pending") != "pending":
-        raise SystemExit("carrier cannot grant visualApproval")
-
-    reference = request.get("reference", {})
-    reference_views = reference.get("views", ["front", "side", "back"])
-    if not isinstance(reference_views, list):
-        raise SystemExit("reference.views must be an array")
-
-    blend_sha = sha256(blend)
-    model_sha = sha256(model)
-    format_name = str(request.get("format", model.suffix.lstrip("."))).lower()
-    public_path = request.get("publicPath")
-    if not isinstance(public_path, str) or not public_path.startswith("./") or ".." in public_path:
-        raise SystemExit("request.publicPath must be a safe ./ runtime path")
-
-    integrity = {
-        "schema": "character-asset-integrity",
+    receipt = {
+        "schema": "character-dcc-build",
         "version": 1,
-        "id": character_id,
-        "assetId": asset_id,
-        "format": format_name,
-        "path": public_path,
-        "sha256": model_sha,
-        "bytes": model.stat().st_size,
-        "productionStage": stage,
-        "modelingMode": "dcc-blender",
-        "sourceBlendSha256": blend_sha,
-        "humanoidRig": request["rig"]["id"],
-        "referencePath": request["reference"]["path"],
-        "visualApproval": "pending",
-        "license": {
-            "rigProvenance": request["license"]["rigProvenance"],
-            "surfaceAuthorship": request["license"]["surfaceAuthorship"],
+        "slug": args.slug,
+        "characterId": character_id,
+        "format": suffix,
+        "path": args.public_path,
+        "model": {
+            "path": model.as_posix(),
+            "bytes": model.stat().st_size,
+            "sha256": sha256(model),
         },
-    }
-    integrity_path.parent.mkdir(parents=True, exist_ok=True)
-    integrity_path.write_text(json.dumps(integrity, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-    production = {
-        "schema": "character-production",
-        "version": 2,
-        "id": character_id,
-        "stage": stage,
-        "modelingMode": "dcc-blender",
         "source": {
-            "referencePaths": [request["reference"]["path"]],
-            "meshPath": model.as_posix(),
-            "integrityPath": integrity_path.as_posix(),
-            "dcc": {
-                "tool": "Blender",
-                "version": audit["dcc"]["version"],
-                "sourcePath": blend.as_posix(),
-                "sourceSha256": blend_sha,
-            },
+            "blend": {"path": blend.as_posix(), "sha256": sha256(blend)},
+            "builder": {"path": builder.as_posix(), "sha256": sha256(builder)},
+            "reference": {"path": reference.as_posix(), "sha256": sha256(reference)},
+            "rig": {"path": rig.as_posix(), "sha256": sha256(rig)},
         },
-        "evidence": {
-            "reference": {
-                "intentLocked": review.get("intentLocked") is True,
-                "views": reference_views,
-            },
-            "blockout": {
-                "views": list(REQUIRED_VIEWS),
-                "proportionsReviewed": review.get("proportionsReviewed") is True,
-                "silhouetteReviewed": review.get("silhouetteReviewed") is True,
-                "reviewEvidence": qa_dir.as_posix() + "/",
-            },
-            "primary": {
-                "topologyReviewed": review.get("topologyReviewed") is True,
-                "uvReviewed": checks.get("hasUVs") is True,
-                "separateSurfaces": list(primary.get("separateSurfaces", [])),
-                "auditPath": audit_path.as_posix(),
-                "meshObjects": scene.get("meshObjects", 0),
-                "triangles": scene.get("triangles", 0),
-                "materials": scene.get("materials", 0),
-            },
+        "dcc": audit.get("dcc", {}),
+        "scene": audit.get("scene", {}),
+        "checks": checks,
+        "review": {
+            "views": list(REQUIRED_VIEWS),
+            "evidencePath": qa_dir.as_posix() + "/",
+            "visualApproval": "pending",
         },
         "status": {
-            "visualApproval": "pending",
             "productionReady": False,
-            "note": "Character DCC Carrier output. Export/audit does not grant deformation, motion, polish, device performance, RUNTIME_READY, or human visual approval.",
+            "note": "Blender execution evidence only. Production-stage promotion and human visual approval are separate gates.",
         },
     }
-    production_path.parent.mkdir(parents=True, exist_ok=True)
-    production_path.write_text(json.dumps(production, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    out = Path(args.out)
+    if out.is_absolute() or ".." in out.parts:
+        raise SystemExit("out must stay inside the repository")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     print(json.dumps({
-        "id": character_id,
-        "stage": stage,
-        "modelSha256": model_sha,
-        "blendSha256": blend_sha,
-        "modelBytes": model.stat().st_size,
-        "meshObjects": scene.get("meshObjects", 0),
-        "vertices": scene.get("vertices", 0),
-        "triangles": scene.get("triangles", 0),
-        "materials": scene.get("materials", 0),
-        "bones": scene.get("bones", 0),
-        "blenderVersion": audit["dcc"]["version"],
-        "generatedDir": generated.as_posix(),
+        "slug": args.slug,
+        "characterId": character_id,
+        "modelSha256": receipt["model"]["sha256"],
+        "blendSha256": receipt["source"]["blend"]["sha256"],
+        "referenceSha256": receipt["source"]["reference"]["sha256"],
+        "rigSha256": receipt["source"]["rig"]["sha256"],
+        "blenderVersion": receipt["dcc"].get("version"),
     }, indent=2))
 
 
