@@ -15,7 +15,7 @@ latest develop
   -> session ends
 ```
 
-Ready 後の CI 監視、develop merge、DEV 公開、browser gate、repair は Integration の責任。実装 WORK は Running / Queued / Pending の check を完了まで watch・sleep・polling しない。
+Ready 後の CI 監視、develop merge、DEV 公開、明示browser verification、repair は Integration または専用経路の責任。実装 WORK は Running / Queued / Pending の check を完了まで watch・sleep・polling しない。
 
 ## 標準手順
 
@@ -71,7 +71,7 @@ GitHub 標準状態をそのまま使う。
 
 ## Validation と品質境界
 
-通常実装は速度のため「必要な局所確認」に絞るが、品質 gate を削除・弱体化しない。重い browser / public verification は Integration 側で非同期に扱う。main / Production の blocking gate は不変。
+通常実装は速度のため「必要な局所確認」に絞るが、品質 gate を削除・弱体化しない。通常developのbrowser/gameplay検証は自動gateにせず、ユーザー明示playtest、`full_verification=true`、専門evidence workflow、main / Productionで実行する。main / Production の blocking gate は不変。
 
 テストは実装の書き方ではなく、ユーザー・ドメイン・公開インターフェースから観測できる契約を優先する。特に UI / browser テストでは、次を原則とする。
 
@@ -102,5 +102,5 @@ Ready なら修正依頼なしに CI 待機セッションを再開しない。�
 - Integration: [`INTEGRATION.md`](INTEGRATION.md)
 - Repair / legacy Rescue compatibility: [`INTEGRATION_RESCUE.md`](INTEGRATION_RESCUE.md)
 - Context budget: [`CONTEXT_EFFICIENCY.md`](CONTEXT_EFFICIENCY.md)
-- Browser repair: [`BROWSER_SELF_HEALING.md`](BROWSER_SELF_HEALING.md)
+- Browser verification / repair: [`BROWSER_SELF_HEALING.md`](BROWSER_SELF_HEALING.md)
 - Documentation map: [`README.md`](README.md)
