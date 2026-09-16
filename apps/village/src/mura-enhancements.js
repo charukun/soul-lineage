@@ -18,6 +18,7 @@ import './mura-first-run-autoplay.js';
 import './mura-director-polish.js';
 import './mura-director-touch-fix.js';
 import './mura-playability-polish.js';
+import './mura-code-share.js';
 // MasterCharacter motion must install after the authoritative village is booted.
 // Crowd spacing then wraps its final actor sync as presentation-only bias.
 import './mura-master-characters.js';
