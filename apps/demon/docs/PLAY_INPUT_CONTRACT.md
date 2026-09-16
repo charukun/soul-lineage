@@ -40,6 +40,17 @@
 
 「まず○○を押す」「○○してください」のように次のボタン操作を要求する常設チュートリアルは使用しません。
 
+## Browser verification
+
+実ブラウザ検証もこの入力契約をそのまま検証します。通常狩猟中に非表示となった旧ガイドや嗅覚・走行停止ボタンを表示させたり強制クリックしたりして検証を通してはいけません。
+
+- native inputでポーズを開き、`動きかた` が任意の説明入口として利用できることを確認する。
+- 初回段階の内部state / `data-step` は継続して確認するが、常設説明 `#first-hunt-guide` は通常HUDで非表示であることを確認する。
+- `#scent`、`#dash-stop`、`#swipe-hint` は通常HUDで非表示であることを確認し、嗅覚自動化そのものは既存のbehavior testで維持する。
+- 戦闘中の序・破・急と現在行動名、音楽、ポーズ、WebGL2、native movement、console/network診断など既存のbrowser assertionは維持する。
+
+UI契約が変わった場合、browser testを旧UIへ戻すのではなく、現在の確定契約をnative inputで観測できるassertionへ更新する。timeout延長、force click、DOM click注入で隠れた操作を復活させない。
+
 ## 受入条件
 
 - 狩場へ入ってから捕食し帰還するまで、ポーズを除いて移動操作だけで完遂できる。

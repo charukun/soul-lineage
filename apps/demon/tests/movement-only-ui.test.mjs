@@ -45,6 +45,15 @@ test('utility actions are automatic and low-frequency information moves into pau
   assert.match(js,/輪の中で指を離す/);
 });
 
+test('browser clarity exercises pause help instead of hidden utility controls',()=>{
+  const browser=read('../../../scripts/browser/play-clarity.mjs');
+  assert.match(browser,/nativeTap\(page, expect, page\.locator\('#movement-help'\)\)/);
+  assert.match(browser,/toHaveText\('動きかた'\)/);
+  assert.match(browser,/page\.locator\('#scent'\)\)\.toBeHidden\(\)/);
+  assert.match(browser,/page\.locator\('#first-hunt-guide'\)\)\.toBeHidden\(\)/);
+  assert.doesNotMatch(browser,/nativeTap\(page, expect, page\.locator\('#scent'\)\)/);
+});
+
 test('the app contract fixes normal gameplay input to movement plus system pause',()=>{
   const contract=read('../docs/PLAY_INPUT_CONTRACT.md');
   assert.match(contract,/能動操作は \*\*移動だけ\*\*/);
@@ -52,4 +61,5 @@ test('the app contract fixes normal gameplay input to movement plus system pause
   assert.match(contract,/嗅覚: 狩場へ入った時と必要な再探索時に自動/);
   assert.match(contract,/帰路: 捕食後は最寄りの帰還口を自動案内/);
   assert.match(contract,/序・破・急の現在phaseと現在行動名/);
+  assert.match(contract,/通常狩猟中に非表示となった旧ガイドや嗅覚・走行停止ボタンを表示させたり強制クリックしたりして検証を通してはいけません/);
 });
