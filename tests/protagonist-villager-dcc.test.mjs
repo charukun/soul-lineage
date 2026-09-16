@@ -70,6 +70,8 @@ test('protagonist builder reuses pinned real KayKit Knight parts instead of rebu
   assert.match(carrier, /point\.y < center\.y/);
   assert.match(carrier, /mirrored = any/);
   assert.match(carrier, /is_backing_plate/);
+  assert.match(carrier, /seat_badge_backing_as_linen_patch/);
+  assert.match(carrier, /point\.y -= 0\.045/);
   assert.match(carrier, /module\.villageize_materials = villageize_source_parts/);
 });
 
