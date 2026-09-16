@@ -4,6 +4,7 @@ This repository contains 輪廻転焦 (formerly 魂の系譜), village housing, 
 
 - Read README.md and docs/MONOREPO.md before build/deployment changes; read docs/PLATFORMS.md for gameplay/platform work.
 - Keep session context lean per `docs/CONTEXT_EFFICIENCY.md`: do not preload past chats, closed/merged PR histories, all docs, whole diffs, or all CI logs. Start from latest develop/current GitHub state, run `npm run context:plan -- --task "<short task summary>"` when a checkout is available, and retrieve additional files/logs only when the task actually needs them.
+- Treat CI log retrieval as a hard per-session budget: use the shared context ledger, read only failed/cancelled job slices, and stop after 3 unique excerpts or 96 KiB total. On exhaustion, summarize current evidence and hand off; do not switch ranges/jobs, start another session solely to keep mining logs, or poll CI to bypass the limit.
 - The latest develop is the implementation base. Keep each game's entry point under apps/<id>; do not recreate a single root game.
 - Tidebreak integration belongs to apps/rinne. Reconcile parallel work against current develop; preserve app/package boundaries and selective deployment.
 - Shared code belongs to packages with explicit workspace dependencies. Apps must not import one another. Packages must not import apps.
