@@ -1,20 +1,19 @@
 # 実装WORKのクイックスタート
 
-正本: [WORKの分担](DEVELOPMENT.md) / [Integration](INTEGRATION.md) / [スマホ完結ハイブリッド開発](MOBILE_HYBRID_DEVELOPMENT.md)。
+詳細規則をここへ複製しない。通常実装の正本は [`DEVELOPMENT.md`](DEVELOPMENT.md)、資料の入口は [`README.md`](README.md)。
 
 ```sh
 git fetch origin
 git switch -c feat/my-change origin/develop
-# コード修正前に最小の意味ある文書差分をcommit/pushしDraft PRを作る
-# 詳細はDEVELOPMENT.md。文章のみのタスクはDraft作成対象外
+# 意味のある最初の差分をpushしてdevelop向けDraft PRを作る
 npm ci
-# 実装し、変更をcommitしてから現在headを検証
+# 実装・commit後
 node scripts/validate.mjs fast origin/develop HEAD
 npm run push:route -- origin/develop HEAD
 ```
 
-`PUSH_ROUTE=WORK_CONNECTOR_OK`でも通常gitを第一経路とし、失敗時はGitHub連携/APIへ切り替えます。`PUSH_ROUTE=CODESPACES_GIT`または容量・Base64・payload上限系エラー時は、そのbranchをGitHub Codespacesで開き、通常`git push`へ即時切り替えます。100 MiB超の単一ファイルは通常Gitへpushせず、Git LFS等へ移します。
+実装と必要な高速検証が完了したら push → Ready for review → `READY_FOR_INTEGRATION` で終了する。CI / browser / DEV 公開の完了を watch・sleep・polling しない。
 
-コード変更前のbranch push・Draft PR作成と本文先頭2行は [DEVELOPMENT.md](DEVELOPMENT.md) に従います。変更した機能の局所確認を済ませ、develop向けPRをReady for reviewにします。PRには理由・影響app/package・実行した検証・依存PRを記載します。未完了や仕様判断待ちはdraftまたはintegration:hold。
+GitHub 搬送は通常 git → 接続済み GitHub API → 同じ branch の既存 Codespaces + 通常 git。容量・Base64・payload 上限で大きな binary を connector へ分割再送しない。詳細は [`MOBILE_HYBRID_DEVELOPMENT.md`](MOBILE_HYBRID_DEVELOPMENT.md)。
 
-実装WORKはReady化後、branch・SHA・PR URL・高速検証結果を報告して終了。CI完了の同期待機・反復ポーリングは禁止。既知の失敗を短時間で単発確認することだけ許容します。CI監視・merge・DEV反映はIntegrationが担当し、CI失敗時のみ必要な修正をワーカーへ返します。PR作成時に毎回重い全ゲームのブラウザ検証を実施する必要はありません。
+main / Production は明示許可時のみ変更し、品質 gate を弱めない。
