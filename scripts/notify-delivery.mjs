@@ -33,7 +33,7 @@ export function deliveryMessage(stage, { report, sha, repository, runUrl }) {
     branch: 'develop',
     commit: sha,
     verification: 'FAST_CHECKS+DEV_PUBLIC+HTTP_SOURCE',
-    browser: 'ASYNC_DIAGNOSTICS',
+    browser: 'OPT_IN',
     action: 'NONE',
     run_url: runUrl,
   } });
@@ -97,7 +97,7 @@ export async function recordDevelopDeliveryStatus({ token = '', repository, sha,
     body: {
       state: 'success',
       context: 'integration/develop',
-      description: 'DEV published; HTTP/source verified; browser diagnostics are asynchronous',
+      description: 'DEV published; HTTP/source verified; browser verification is opt-in',
       target_url: runUrl,
     },
   });

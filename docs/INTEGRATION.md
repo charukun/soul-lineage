@@ -2,7 +2,7 @@
 
 ## 目的
 
-通常の develop Integration は **PRで最低限守り、通るものから即流す**。DEV公開/browserの遅さや、別PRの失敗を通常merge laneへ伝播させない。
+通常の develop Integration は **PRで最低限守り、通るものから即流す**。DEV公開や、別PRの失敗を通常merge laneへ伝播させない。通常developのブラウザ検証はopt-inとし、古いUI契約や表示タイミングだけで自動CIを赤くしない。
 
 実装セッションの終了条件は [実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md)。通常実装は Draft PR → 実装 → 高速検証 → push → Ready → `READY_FOR_INTEGRATION` で終了し、CI/DEV完了を待機・pollingしない。
 
@@ -19,10 +19,10 @@ Ready PR
        semantic/unsafe -> owner-notified Chat Repair Issue / HUMAN_REQUIRED
   -> develop push
   -> DEV Publisher
-  -> public/browser smoke
-       mechanical recovery -> GitHub Actions
-       semantic source repair -> owner-notified normal Chat handoff
+  -> candidate manifest / public HTTP + source verification
 ```
+
+通常経路ではPR browser smoke、DEV candidate browser、DEV post-publish browserを自動実行しない。ブラウザ検証は明示依頼、`full_verification=true`、専門workflowのevidence契約、main / Productionでだけ実行する。
 
 正常PRはFast Repairを通らない。Fast Repairは第二のmerge queueではなく、Fast Laneの横にある短命executorだけとする。Chat repair待ちのPRは独立eligible PRを止めない。
 
@@ -59,29 +59,34 @@ Deep RepairはバックグラウンドAI workerではない。Fast Laneがcurren
 
 通知を受けたユーザーが通常Chatを手動開始した場合だけ修復する。Chatはrecorded SHAを正本にせずcurrent PR head / latest developを再取得し、PR側・develop側の意図と確定契約を読み、双方を両立できる第三の修復を作る。無条件ours/theirs、blind cherry-pick、assertion削除、品質gate弱体化は禁止。
 
-修復は同じsource PR branchだけへpushし、focused checks / fast validation後にReady / `READY_FOR_INTEGRATION`へ戻す。通常git → 接続済みGitHub API → 必要時のみ同branchの既存Codespaces＋通常gitの順で反映する。ChatはCI/browser/DEVを待機・pollingしない。
+修復は同じsource PR branchだけへpushし、focused checks / fast validation後にReady / `READY_FOR_INTEGRATION`へ戻す。通常git → 接続済みGitHub API → 必要時のみ同branchの既存Codespaces＋通常gitの順で反映する。ChatはCI/DEVを待機・pollingしない。
 
 Integration復旧では ChatGPT Work、Codex、OpenAI API、追加有料モデルAPI、専用PATを自動起動・fallback・watchdogに使わない。旧Work repair文書/scripts/stateは互換・履歴参照用であり現行実行経路ではない。
 
 current repository contractsから解けないschema/save/protocol/API等の真のproduct choiceだけを `human-required` とする。同file競合・技術的難しさ・目視未確認だけでhuman-requiredにしない。
 
-## browserはmerge laneを止めない
+## browserはdevelopでopt-in
 
-`Affected browser smoke` は継続実行し、成功/失敗をbrowser repair evidenceへ記録する。ただし通常develop mergeの前提にはしない。
+通常のdevelop PRでは `Affected browser smoke` を自動実行しない。通常DEV Publisherでもgameplay/WebGL browser verificationを自動実行しない。
 
-PR Aのbrowser失敗・timeout中でも、PR Bがexact-head fast条件を満たすならBはmergeできる。assertion削除や恣意的timeout延長で通すことは禁止。機械的な再実行・evidence収集はGitHub Actionsへ残し、true source semantic repairだけnormal Chat handoffへ送る。
+ブラウザ検証は次の場合だけ行う。
 
-PR browser failureがmerge後に到着した場合、そのPR mergeがcurrent developの祖先ならcurrent develop repair generationへ昇格し、staleとして捨てない。
+- ユーザーが明示的にブラウザ操作・playtest・確認を依頼した場合
+- `deploy.yml` を `full_verification=true` で明示実行した場合
+- motion / Visual Review等の専門workflowが自身のevidence契約として必要とする場合
+- main / Productionのblocking gate
+
+明示ブラウザ検証が失敗した場合も、assertion削除や恣意的timeout延長で通すことは禁止。true source semantic repairが必要ならnormal Chat handoffへ送る。過去の `browser-repair:v1`、`pr-browser-*`、`dev-browser-*` は履歴証拠であり、通常developの自動実行トリガーにしない。
 
 ## DEV deliveryはmerge healthと分離する
 
 `integration/develop` は **DEV delivery health** であり、通常PRのglobal merge lockではない。
 
-- `pending`: DEV公開・検証中
-- `success`: そのdevelop SHAのDEV公開/source/browser確認成功
-- `failure`: そのdevelop SHAのDEV delivery/browser失敗。repair対象だが独立Ready PRのmergeは止めない
+- `pending`: DEV公開・source検証中
+- `success`: そのdevelop SHAのDEV公開とHTTP/source確認成功
+- `failure`: そのdevelop SHAのDEV delivery/source確認失敗。repair対象だが独立Ready PRのmergeは止めない
 
-DEV側の公開・HTTP/source照合・focused browser・LKG rollbackは維持する。失敗時はmachine-readable repair evidenceを残す。
+DEV側の公開・候補manifest・HTTP/source照合・LKG rollbackは維持する。通常develop deliveryの成功条件にbrowser結果は含めない。
 
 ## latest-only DEV Publisher
 
@@ -103,7 +108,7 @@ explicit hold、dependency、review objection、merge conflict、exact-head fast
 
 ## Draft / Ready
 
-Draftではlightweight checkのみ。Readyになると `Validate and build` とbrowser smokeを開始する。**Request Integrationはbuild成功・失敗の直後に起動し、browser完了を待たない。** current exact-head source repairが必要な失敗はChat Repair Issueへ送る。
+Draftではlightweight checkのみ。Readyになると `Validate and build` を開始する。**Request Integrationはbuild成功・失敗の直後に起動し、browser jobは通常develop経路に存在しない。** current exact-head source repairが必要な失敗はChat Repair Issueへ送る。
 
 ## main / Production
 
@@ -124,7 +129,7 @@ Draftではlightweight checkのみ。Readyになると `Validate and build` とb
 - semantic conflict / source-level CI repairはexact headごとに1件だけowner通知Chat Repair Issueを作る
 - 通知Issueに通常Chat用promptがあり、修復時はcurrent GitHub stateを再取得する
 - `AWAITING_PUSH` / Work relay / periodic Work watchdogを通常Repairの待ち時間にしない
-- browser test自体は維持し、意味修復だけnormal Chatへ送る
+- normal developでbrowserはopt-in、明示full verificationとProduction browser gateは維持
 - develop writerはsingle expected-head writer
 - stale DEV push publisherはcancel/coalesceされlatest developへ収束する
 - ChatGPT Work / Codex / OpenAI API / paid fallbackなし

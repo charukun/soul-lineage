@@ -19,7 +19,7 @@ implementation
 
 CI / GitHub Actions / Playwright / browser check が Running / Queued / Pending でも待たない。`gh run watch`、`gh pr checks --watch`、一定間隔の Actions API 取得、sleep を使う polling loopは禁止。push 直後に1回だけ短時間確認し、起動・即時失敗・明白な設定誤りを確認するのはよい。未完了ならそのまま Integration へ handoff する。
 
-Ready 後の CI 監視、develop 統合、DEV 公開、browser gate、Integration Repair / Deep Repair、有限 retry は Integration の責任。実装 worker が「裏で追跡中」を理由に返答を保留しない。
+Ready 後の CI 監視、develop 統合、DEV 公開、明示browser verification、Integration Repair / Deep Repair、有限 retry は Integration または専用経路の責任。実装 worker が「裏で追跡中」を理由に返答を保留しない。
 
 状態名は工程を混同しない。
 
@@ -27,7 +27,7 @@ Ready 後の CI 監視、develop 統合、DEV 公開、browser gate、Integratio
 | --- | --- |
 | `READY_FOR_INTEGRATION` | 実装・必要な高速検証・push・Ready 完了 |
 | `INTEGRATED` | develop へ統合済み |
-| `DEV_DEPLOYED` | 対象 develop SHA の DEV 公開検証成功 |
+| `DEV_DEPLOYED` | 対象 develop SHA の DEV 公開・HTTP/source検証成功 |
 | `FAILED` | 実装を完遂できず、理由と復旧情報を残した |
 
 Ready は CI 成功、merge、DEV 公開成功を意味しない。
@@ -51,7 +51,7 @@ Ready は CI 成功、merge、DEV 公開成功を意味しない。
 
 技術的に難しい、同じ file を変更している、任意の目視確認がまだ、という理由だけで human-required にしない。一方、明示的な権限不足、実際の互換性破壊、既存 review / hold、キャラクター等の明示 visual approval / `RUNTIME_READY` 条件は推測で解除しない。
 
-DEV の人間目視と、自動 browser 検証・Production 品質認定は別。テスト、browser assertion、exact-head review、claim/attempt、main / Production gate を弱めない。
+DEV の人間目視と、browser検証・Production 品質認定は別。通常developではbrowser検証を自動実行せず、明示playtest / `full_verification=true` / 専門evidence workflow / main・Productionだけで実行する。既存browser assertionとmain / Production gateは弱めない。
 
 ## Ready handoff
 
@@ -88,7 +88,7 @@ Ready 済みなら、修正依頼なしに CI 待機セッションを再開し�
 
 GitHub 反映経路は **通常 git → 接続済み GitHub API → 同 Repository の既存 Codespaces + 通常 git**。1経路の認証・通信・転送制約だけで不能と結論付けない。詳細は [`MOBILE_HYBRID_DEVELOPMENT.md`](MOBILE_HYBRID_DEVELOPMENT.md)。
 
-browser repair は [`BROWSER_SELF_HEALING.md`](BROWSER_SELF_HEALING.md)、Integration Repair は [`INTEGRATION_RESCUE.md`](INTEGRATION_RESCUE.md) に従う。
+browser verification / repair は [`BROWSER_SELF_HEALING.md`](BROWSER_SELF_HEALING.md)、Integration Repair は [`INTEGRATION_RESCUE.md`](INTEGRATION_RESCUE.md) に従う。
 
 ## 転送・push の既存承認
 
@@ -98,28 +98,28 @@ browser repair は [`BROWSER_SELF_HEALING.md`](BROWSER_SELF_HEALING.md)、Integr
 
 ## 完了報告の画像・動画エビデンス
 
-作業依頼への完了報告では、実際に確認した結果のキャプチャーまたは動画をユーザーへ見せる。画像・動画の保存だけ、PR URLだけ、テスト成功の文章だけでは視覚エビデンスの提示完了としない。
+作業依頼への完了報告では、実際に確認した結果のキャプチャーまたは動画が取得できた場合はユーザーへ見せる。画像・動画を取得していないのに確認済みとは報告しない。
 
 - 見た目の変更は変更箇所が分かるキャプチャー、移動・戦闘・アニメーション・操作の変更は該当操作の動画を優先する。比較が必要なら同じ条件の変更前後を添える。
-- 文書・基盤など画面を変更しない作業は、実際の検証結果や変更結果のキャプチャーを使い、ゲーム画面の確認とは区別する。無関係なタイトル画面や生成した見本画像を実証拠にしない。
+- 文書・基盤など画面を変更しない作業は、テスト・diff・workflow状態を実証拠としてよく、ゲーム画面の確認とは区別する。無関係なタイトル画面や生成した見本画像を実証拠にしない。
 - 対象SHA、確認環境（local PR preview / deployed DEVなど）、画面・操作、結果、未確認範囲を証拠と対応づける。PR headの録画をDEV公開確認として扱わない。別SHAの証拠の使い回しは禁止。
-- 最終応答では代表画像をインライン表示するか、動画を再生可能な添付で提示する。保存済みの証拠・PR報告へのリンクも添えられるが、リンクだけで代替しない。トークン・個人情報等が映り込む場合は撮影範囲を限定する。
-- 局所検証時に撮影できるものはReady前に取得する。非同期CIの証拠はIntegration側が対象PR/headへ追記する。取得待ち・環境制約・失敗の場合は `未取得` と理由・担当経路を明記し、画像を見せた／動作を確認したとは報告しない。
+- 実画像・動画を取得した場合は最終応答で代表画像をインライン表示するか、動画を再生可能な添付で提示する。保存済みの証拠・PR報告へのリンクも添えられるが、リンクだけで取得済み映像の提示を代替しない。
+- 局所検証や明示browser playtestで撮影できるものはReady前に取得する。取得待ち・環境制約・未実施の場合は `未取得` と理由を明記し、画像を見せた／動作を確認したとは報告しない。
 - Ready / `READY_FOR_INTEGRATION` は引き続き実装の終了境界。証拠待ちでCIをpollingしない。browser assertion、review、main / Productionの品質gateを弱めない。
 
 ### 取得・報告の実装
 
-PRの `Affected browser smoke` は対象操作のスクリーンショットと動画を `test-results/pr-browser/` に保存し、同じrunの `completion-evidence.json`・`README.md`・`index.html` にまとめる。検証失敗時の撮影も診断用として残す。続く `Report completion evidence` はtrusted developから実行し、current PR headが一致する場合だけ撮影件数・保存先・保存期限・未取得状態をPRへ追記する。Readyの受領やmergeはこのjobを待たない。
+通常develop PRは自動 `Affected browser smoke` や `Report completion evidence` を実行しない。ユーザーが明示したbrowser playtest、`full_verification=true`、または専門workflowがbrowser evidenceを要求する場合に、その経路がスクリーンショット・動画・trace等を保存する。
 
-ローカルで撮影した画像・動画も、専用の空ディレクトリに保存して次で整理できる。
+ローカルで撮影した画像・動画は、専用の空ディレクトリに保存して次で整理できる。
 
 ```sh
 npm run completion:evidence -- test-results/completion <撮影した40桁SHA> success "local validation" "確認した画面・操作"
 ```
 
-SHAは現在checkoutと一致させる。CIではplaytest receiptのSHAも照合し、前回の撮影ファイルは撮影開始時に除去する。画像の形式・空ファイル・サイズ上限を検査するが、画像内容が依頼を満たすかは実際に画像を開いて確認する。汎用smokeだけで依頼固有の動作まで確認済みとしない。
+SHAは現在checkoutと一致させる。playtest receiptを使う経路ではSHAも照合し、前回の撮影ファイルは撮影開始時に除去する。画像の形式・空ファイル・サイズ上限を検査するが、画像内容が依頼を満たすかは実際に画像を開いて確認する。汎用smokeだけで依頼固有の動作まで確認済みとしない。
 
-GitHubの保存先はログインが必要なActions artifact（14日保存）のZIP。展開後の `index.html` で画像表示・動画再生ができる。artifact自体はチャットへのインライン表示でも永続保管でもない。最終応答を作るworkerは必要ファイルだけ取得して直接表示し、利用環境の永続添付へ保存する。CI結果がセッション終了後に届く場合はPRへの追記までが自動処理であり、終了済みチャットへ画像が自動追加されるとは報告しない。期限切れの証拠は取得済みと扱わず、必要時に同SHAで再取得する。
+GitHub Actions artifactを使う明示browser/evidence workflowでは保存期限とexact headを対応づける。artifact自体はチャットへのインライン表示でも永続保管でもない。最終応答を作るworkerは必要ファイルだけ取得して直接表示する。期限切れの証拠は取得済みと扱わず、必要時に同SHAで再取得する。
 
 ## 最終応答
 
@@ -132,7 +132,7 @@ GitHubの保存先はログインが必要なActions artifact（14日保存）�
 - Ready for review 化済み
 - `READY_FOR_INTEGRATION`
 - 実行した高速検証
-- 上記のキャプチャー／動画と短い確認内容、または未取得理由と非同期の証拠追記先
+- 取得したキャプチャー／動画と短い確認内容、または未取得理由
 - CI / handoff recorder / 通知が未確認または実行中なら、その事実
 
 CI・browser・通知完了を待って最終応答を遅らせない。

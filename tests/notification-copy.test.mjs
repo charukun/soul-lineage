@@ -46,7 +46,7 @@ test('delivery contract explicitly separates develop merge from verified DEV pub
   assert.match(deployed, /outcome: VERIFIED/);
   assert.match(deployed, /action: NONE/);
   assert.match(deployed, /verification: FAST_CHECKS\+DEV_PUBLIC\+HTTP_SOURCE/);
-  assert.match(deployed, /browser: ASYNC_DIAGNOSTICS/);
+  assert.match(deployed, /browser: OPT_IN/);
   assert.doesNotMatch(deployed, /DEV反映完了/);
 });
 
