@@ -12,7 +12,6 @@ export function createGameplayUI(gameScreen,{stations,layout,audio}){
   root.innerHTML=`
     <div class="rinne-player-strip"><span data-name>旅人</span><i></i><span data-equip>素手 · 旅装</span><span data-state>探索</span></div>
     <nav class="rinne-bottom-controls" aria-label="プレイ操作">
-      <button data-dash class="upgrade-control is-action"><span>走</span><small>ダッシュ</small></button>
       <button data-heart class="upgrade-control is-heart"><span>心</span><small>心得</small><em data-heart-badge hidden>0</em></button>
       <button data-techniques class="upgrade-control is-technique"><span>技</span><small>連技</small><em data-tech-badge hidden>0</em></button>
       <button data-body class="upgrade-control is-body"><span>体</span><small>構え</small></button>
@@ -35,15 +34,26 @@ export function createGameplayUI(gameScreen,{stations,layout,audio}){
     <div data-training class="upgrade-training" hidden><strong>稽古態勢</strong><span data-training-name>かかし</span></div>`;
   gameScreen.append(root);
 
+  // Keep the internal dash input hook for keyboard/runtime compatibility, but do
+  // not expose a dedicated run button in the mobile command row.
+  const dash=document.createElement('button');dash.type='button';dash.hidden=true;
   const q=s=>root.querySelector(s),ui={
-    root,dash:q('[data-dash]'),heart:q('[data-heart]'),heartBadge:q('[data-heart-badge]'),techniques:q('[data-techniques]'),techBadge:q('[data-tech-badge]'),bodyButton:q('[data-body]'),items:q('[data-items]'),map:q('[data-map]'),debug:q('[data-debug]'),
+    root,dash,heart:q('[data-heart]'),heartBadge:q('[data-heart-badge]'),techniques:q('[data-techniques]'),techBadge:q('[data-tech-badge]'),bodyButton:q('[data-body]'),items:q('[data-items]'),map:q('[data-map]'),debug:q('[data-debug]'),
     oneMotion:q('[data-one-motion]'),oneMotionName:q('[data-one-motion-name]'),panel:q('[data-panel]'),title:q('[data-title]'),body:q('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
     rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),name:q('[data-name]'),equip:q('[data-equip]'),state:q('[data-state]')
   };
-  let state=null,sheetDrag=null;
+  let state=null,sheetDrag=null,movementHelpTimer=0;
   const speech=createConversationInput({document,window,root:gameScreen,getState:()=>state});
   const tracker=createSkillSetter({ui,audio,getState:()=>state});
   const loadoutUI=createHeartTechniqueBodyUI({ui,audio,getState:()=>state,tracker});
+  const moveHint=gameScreen.querySelector('#move-hint');
+  const showMovementHelp=event=>{
+    event.stopImmediatePropagation();
+    const node=document.getElementById('toast');if(!node)return;
+    node.textContent=moveHint?.textContent?.includes('母')?'抱っこ中も画面をスワイプすると、母に抱かれたまま村を見て回れます。':'スワイプで移動。画面長押しで休憩し、息を回復します。';
+    node.hidden=false;clearTimeout(movementHelpTimer);movementHelpTimer=setTimeout(()=>{node.hidden=true;},3200);
+  };
+  moveHint?.addEventListener('click',showMovementHelp,{capture:true});
 
   function inventory(){
     ensureProgression(state);ui.title.textContent='所持品';ui.body.innerHTML='<p class="upgrade-panel-copy">施設で受け取った装備や、冒険で拾った装備を持ち替えます。</p>';
@@ -78,5 +88,5 @@ export function createGameplayUI(gameScreen,{stations,layout,audio}){
 
   tracker.bindInteractions({openHeart:skillId=>open('heart',{skillId}),openTechnique:skillId=>open('technique',{skillId})});bindSheetGesture();
   ui.heart.onclick=()=>open('heart',{skillId:tracker.firstUnseen('heart')});ui.techniques.onclick=()=>open('technique',{skillId:tracker.firstUnseen('technique')});ui.bodyButton.onclick=()=>open('body');ui.items.onclick=()=>open('items');ui.map.onclick=()=>open('map');ui.close.onclick=close;
-  return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,dispose(){loadoutUI.dispose();tracker.dispose();speech.dispose();root.remove();}};
+  return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,dispose(){clearTimeout(movementHelpTimer);moveHint?.removeEventListener('click',showMovementHelp,{capture:true});loadoutUI.dispose();tracker.dispose();speech.dispose();root.remove();}};
 }
