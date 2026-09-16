@@ -27,7 +27,7 @@ test('legacy slash review URL deep-links to the canonical motion review tab', as
 test('runtime entrypoint keeps canonical labels after Motion QA UI setup', async () => {
   const source = await readFile(entrypointPath, 'utf8');
 
-  assert.match(source, /tab: '演舞レビュー'/);
+  assert.match(source, /tab: '演舞'/);
   assert.match(source, /heading: '演舞レビュー'/);
   assert.match(source, /start: '▶ 30秒演舞'/);
   assert.match(source, /searchParams\.get\('review'\) === REVIEW_QUERY/);
