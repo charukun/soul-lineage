@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  EVIDENCE_CLASS,PERFORMANCE_STATUS,RRP_ABSOLUTE_SLOS,RRP_SAFETY_KEYS,
+  EVIDENCE_CLASS,PERFORMANCE_STATUS,PHYSICAL_MULTIPEER_REQUIRED_METRICS,RRP_ABSOLUTE_SLOS,RRP_MIN_SAMPLE_COUNTS,RRP_SAFETY_KEYS,
   aggregateRrpPerformanceSamples,compareRrpPerformanceEvidence,evaluateRrpPerformanceContract,
   normalizeRrpPerformanceEvidence,percentile,realityResultToPerformanceEvidence,runRrpPerformanceContractProofSuite,
 } from '../src/game/reality-lab/performance-contract.js';
 
 const zeroSafety=()=>Object.fromEntries(RRP_SAFETY_KEYS.map(key=>[key,0]));
+const sampleCounts=()=>Object.fromEntries(PHYSICAL_MULTIPEER_REQUIRED_METRICS.map(key=>[key,RRP_MIN_SAMPLE_COUNTS[key]??1]));
 const physicalBase=(metrics={})=>({
   evidenceClass:EVIDENCE_CLASS.PHYSICAL_MULTIPEER,
   samples:300,
@@ -16,6 +17,7 @@ const physicalBase=(metrics={})=>({
     peerUplinkP95Kbps:320,hostUplinkP95Kbps:900,reliableBufferedAmountMaxBytes:32768,presenceBufferedAmountMaxBytes:8192,
     stateFreshnessP95Ms:180,positionErrorP95M:.35,rollbackP95Ms:80,connectionSuccessRate:.99,frameP95Ms:30,...metrics,
   },
+  sampleCounts:sampleCounts(),
   provenance:{buildRevision:'abc',runtime:'Chrome',deviceClass:'pixel-fold-class',deviceModel:'Pixel Fold',peers:3,networkProfile:'wifi-lan'},
 });
 
@@ -40,6 +42,13 @@ test('raw performance samples aggregate into contract metric names without filli
   assert.equal(metrics.batteryPctPerHour,null);
 });
 
+test('measured zero rollback is preserved as zero instead of treated as missing',()=>{
+  const metrics=aggregateRrpPerformanceSamples({rollbackMs:[],durationMinutes:5});
+  assert.equal(metrics.rollbackPerMinute,0);
+  assert.equal(metrics.rollbackP95Ms,0);
+  assert.equal(metrics.rollbackMaxMs,0);
+});
+
 test('faster evidence cannot pass when a safety invariant is violated',()=>{
   const input=physicalBase({inputToDisplayP95Ms:1,hostUplinkP95Kbps:1});
   input.safety={...input.safety,committedCanonRollbackEvents:1};
@@ -48,11 +57,12 @@ test('faster evidence cannot pass when a safety invariant is violated',()=>{
   assert.equal(result.safety.failures[0].metric,'committedCanonRollbackEvents');
 });
 
-test('physical multipeer evidence passes anchored SLOs only when safety and required metrics are complete',()=>{
+test('physical multipeer evidence passes anchored SLOs only when safety, metrics and sample counts are complete',()=>{
   const result=evaluateRrpPerformanceContract(physicalBase());
   assert.equal(result.status,PERFORMANCE_STATUS.PASS);
   assert.equal(result.physicalCertificationEligible,true);
   assert.equal(result.slos.failures.length,0);
+  assert.equal(result.insufficientSamples.length,0);
 });
 
 test('existing migration SLO regressions fail the contract',()=>{
@@ -75,6 +85,14 @@ test('missing physical network or anchored measurements remain calibration gaps 
   assert.ok(result.calibrationRequired.includes('inputToDisplayP95Ms'));
   assert.ok(result.calibrationRequired.includes('hostUplinkP95Kbps'));
   assert.ok(result.calibrationRequired.includes('hostReopenP95Ms'));
+});
+
+test('insufficient physical samples remain calibration gaps instead of passes',()=>{
+  const input=physicalBase();input.sampleCounts={...input.sampleCounts,inputToDisplayP95Ms:10};
+  const result=evaluateRrpPerformanceContract(input);
+  assert.equal(result.status,PERFORMANCE_STATUS.CALIBRATION_REQUIRED);
+  assert.equal(result.physicalCertificationEligible,false);
+  assert.ok(result.insufficientSamples.some(row=>row.metric==='inputToDisplayP95Ms'));
 });
 
 test('model evidence cannot masquerade as physical certification',()=>{
@@ -105,7 +123,7 @@ test('incompatible physical baselines are rejected instead of compared',()=>{
   assert.throws(()=>compareRrpPerformanceEvidence(baseline,current),/not comparable/);
 });
 
-test('performance contract proof suite keeps safety, calibration and anchored SLO boundaries intact',()=>{
+test('performance contract proof suite keeps safety, calibration, sample and anchored SLO boundaries intact',()=>{
   const proof=runRrpPerformanceContractProofSuite();
   assert.equal(proof.pass,true);
   assert.deepEqual(proof.checks,{
@@ -113,6 +131,7 @@ test('performance contract proof suite keeps safety, calibration and anchored SL
     unsafeFastFails:true,
     anchoredSloFails:true,
     missingMetricCalibrates:true,
+    insufficientSamplesCalibrate:true,
     modelCannotCertify:true,
     ratchetRejectsRegression:true,
     anchoredTargetsPreserved:true,
