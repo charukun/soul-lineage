@@ -96,21 +96,32 @@ export function proveThreeNodeQuorumIntersection(members=['n0','n1','n2']){
 
 export function architectureCost({players=30,ticks=1200,realtimeBytesPerTick=2048,canonEvents=4,canonBytesPerEvent=512,recoveryBytesPerCanon=16_384,reliableMultiplier=1}={}){
   if(!Number.isInteger(players)||players<3||!Number.isInteger(ticks)||ticks<1||realtimeBytesPerTick<=0||canonEvents<0||canonBytesPerEvent<0||recoveryBytesPerCanon<0||reliableMultiplier<1)throw Error('Invalid architecture cost input');
-  const starGameplay=(players-1)*realtimeBytesPerTick*ticks;
+  const realtimePayload=realtimeBytesPerTick*ticks;
+  const starGameplay=(players-1)*realtimePayload;
   const canonPayload=canonEvents*(canonBytesPerEvent+recoveryBytesPerCanon);
-  // Both satisfy the same canon durability requirement. Full-state RSM additionally replicates every replaceable realtime transition to two followers.
-  const fullStateStrong=2*(realtimeBytesPerTick*ticks+canonPayload)*reliableMultiplier;
-  const nucleusStrong=2*canonPayload*reliableMultiplier;
-  const fullStateTotal=starGameplay+fullStateStrong;
-  const nucleusTotal=starGameplay+nucleusStrong;
-  return Object.freeze({players,ticks,starGameplay,fullStateStrong,nucleusStrong,fullStateTotal,nucleusTotal,strongSaved:fullStateStrong-nucleusStrong,totalSaved:fullStateTotal-nucleusTotal,nucleusConnections:players,fullStateConnections:players,fullMeshConnections:players*(players-1)/2});
+  // Crash tolerance f=1 requires a committed item on at least two independent members. With the leader already holding one copy, one follower acknowledgement is the minimum commit-path transfer.
+  const requiredFollowerCopies=1;
+  const warmFollowerCopies=2;
+  const fullStateCommitPath=requiredFollowerCopies*(realtimePayload+canonPayload)*reliableMultiplier;
+  const nucleusCommitPath=requiredFollowerCopies*canonPayload*reliableMultiplier;
+  const fullStateWarmReplication=warmFollowerCopies*(realtimePayload+canonPayload)*reliableMultiplier;
+  const nucleusWarmReplication=warmFollowerCopies*canonPayload*reliableMultiplier;
+  const fullStateTotal=starGameplay+fullStateWarmReplication;
+  const nucleusTotal=starGameplay+nucleusWarmReplication;
+  return Object.freeze({players,ticks,realtimePayload,canonPayload,starGameplay,requiredFollowerCopies,warmFollowerCopies,fullStateCommitPath,nucleusCommitPath,fullStateWarmReplication,nucleusWarmReplication,fullStateTotal,nucleusTotal,commitPathSaved:fullStateCommitPath-nucleusCommitPath,warmSaved:fullStateWarmReplication-nucleusWarmReplication,totalSaved:fullStateTotal-nucleusTotal,nucleusConnections:players,fullStateConnections:players,fullMeshConnections:players*(players-1)/2});
+}
+
+export function proveCrashToleranceLowerBound({failures=1,copies=NUCLEUS_QUORUM}={}){
+  if(!Number.isInteger(failures)||failures<0||!Number.isInteger(copies)||copies<1)throw Error('Invalid crash tolerance proof input');
+  const minimumCopies=failures+1;
+  return Object.freeze({failures,copies,minimumCopies,pass:copies>=minimumCopies,strictlyMinimal:copies===minimumCopies});
 }
 
 export function proveCostDominance(input={}){
   const rows=[];
   const players=input.players??[3,4,10,30],ticks=input.ticks??[20,200,1200],realtime=input.realtime??[1,32,256,2048,8192],canonEvents=input.canonEvents??[0,1,4,20],canonBytes=input.canonBytes??[64,512,4096],recovery=input.recovery??[512,16_384,65_536],multipliers=input.reliableMultiplier??[1,1.1,1.5];
-  for(const n of players)for(const t of ticks)for(const r of realtime)for(const c of canonEvents)for(const cb of canonBytes)for(const rb of recovery)for(const m of multipliers){const cost=architectureCost({players:n,ticks:t,realtimeBytesPerTick:r,canonEvents:c,canonBytesPerEvent:cb,recoveryBytesPerCanon:rb,reliableMultiplier:m});rows.push({...cost,strictStrongWin:cost.nucleusStrong<cost.fullStateStrong,strictTotalWin:cost.nucleusTotal<cost.fullStateTotal,meshConnectionWin:n===3?cost.nucleusConnections===cost.fullMeshConnections:cost.nucleusConnections<cost.fullMeshConnections});}
-  return{pass:rows.every(row=>row.strictStrongWin&&row.strictTotalWin&&row.meshConnectionWin),cases:rows.length,rows};
+  for(const n of players)for(const t of ticks)for(const r of realtime)for(const c of canonEvents)for(const cb of canonBytes)for(const rb of recovery)for(const m of multipliers){const cost=architectureCost({players:n,ticks:t,realtimeBytesPerTick:r,canonEvents:c,canonBytesPerEvent:cb,recoveryBytesPerCanon:rb,reliableMultiplier:m});rows.push({...cost,strictCommitPathWin:cost.nucleusCommitPath<cost.fullStateCommitPath,strictWarmWin:cost.nucleusWarmReplication<cost.fullStateWarmReplication,strictTotalWin:cost.nucleusTotal<cost.fullStateTotal,meshConnectionWin:n===3?cost.nucleusConnections===cost.fullMeshConnections:cost.nucleusConnections<cost.fullMeshConnections});}
+  return{pass:rows.every(row=>row.strictCommitPathWin&&row.strictWarmWin&&row.strictTotalWin&&row.meshConnectionWin),cases:rows.length,rows};
 }
 
 export function progressIsolation({actors=30,pendingCanonActors=1}={}){
@@ -122,9 +133,9 @@ export function compareRequirementEnvelope(input={}){
   const players=input.players??30,cost=architectureCost({...input,players}),isolation=progressIsolation({actors:players,pendingCanonActors:Math.min(players,input.pendingCanonActors??1)});
   const architectures={
     singleHostStar:{feasible:false,reason:'host-loss can remove the only committed canon copy',connections:players-1,strongBytes:0,oneFailureCanon:false,majorityLossFailClosed:true},
-    threeReplicaAllState:{feasible:true,connections:cost.fullStateConnections,strongBytes:cost.fullStateStrong,oneFailureCanon:true,majorityLossFailClosed:true,blockedDuringCanon:isolation.allStateBlocked},
-    peerFullMeshQuorum:{feasible:true,connections:cost.fullMeshConnections,strongBytes:cost.fullStateStrong,oneFailureCanon:true,majorityLossFailClosed:true,blockedDuringCanon:isolation.allStateBlocked},
-    canonNucleus:{feasible:true,connections:cost.nucleusConnections,strongBytes:cost.nucleusStrong,oneFailureCanon:true,majorityLossFailClosed:true,blockedDuringCanon:isolation.nucleusBlocked},
+    threeReplicaAllState:{feasible:true,connections:cost.fullStateConnections,strongBytes:cost.fullStateCommitPath,warmBytes:cost.fullStateWarmReplication,oneFailureCanon:true,majorityLossFailClosed:true,blockedDuringCanon:isolation.allStateBlocked},
+    peerFullMeshQuorum:{feasible:true,connections:cost.fullMeshConnections,strongBytes:cost.fullStateCommitPath,warmBytes:cost.fullStateWarmReplication,oneFailureCanon:true,majorityLossFailClosed:true,blockedDuringCanon:isolation.allStateBlocked},
+    canonNucleus:{feasible:true,connections:cost.nucleusConnections,strongBytes:cost.nucleusCommitPath,warmBytes:cost.nucleusWarmReplication,oneFailureCanon:true,majorityLossFailClosed:true,blockedDuringCanon:isolation.nucleusBlocked},
   };
   const constrainedDominance={
     overAllState:architectures.canonNucleus.oneFailureCanon===architectures.threeReplicaAllState.oneFailureCanon&&architectures.canonNucleus.majorityLossFailClosed===architectures.threeReplicaAllState.majorityLossFailClosed&&architectures.canonNucleus.connections<=architectures.threeReplicaAllState.connections&&architectures.canonNucleus.strongBytes<architectures.threeReplicaAllState.strongBytes&&architectures.canonNucleus.blockedDuringCanon<architectures.threeReplicaAllState.blockedDuringCanon,
@@ -146,7 +157,7 @@ export function runCanonNucleusProofSuite(){
   const stale=createCanonNucleus({members,leaderId:'a'});stale.commit({operationId:'x',canon:{v:1},recovery:{tick:1},acknowledgers:['a','b']});stale.fail('a');const oldEpoch=stale.epoch;stale.recover({candidateId:'b'});let staleRejected=false;try{stale.commit({operationId:'y',canon:{v:2},recovery:{tick:2},expectedEpoch:oldEpoch});}catch{staleRejected=true;}
   const corruption=createCanonNucleus({members,leaderId:'a'});corruption.commit({operationId:'x',canon:{v:1},recovery:{tick:1},acknowledgers:['a','b']});corruption.fail('a');corruption.corrupt('b');const corruptionRejected=!corruption.recover({candidateId:'c'})&&corruption.phase==='closed';
   const idempotent=createCanonNucleus({members,leaderId:'a'});const first=idempotent.commit({operationId:'same',canon:{v:1},recovery:{tick:1},acknowledgers:['a','b']}),again=idempotent.commit({operationId:'same',canon:{v:1},recovery:{tick:1},acknowledgers:['a','c']});let conflictRejected=false;try{idempotent.commit({operationId:'same',canon:{v:2},recovery:{tick:1},acknowledgers:['a','c']});}catch{conflictRejected=true;}
-  const cost=proveCostDominance(),comparison=compareRequirementEnvelope({players:30,ticks:1200,realtimeBytesPerTick:2048,canonEvents:4,canonBytesPerEvent:512,recoveryBytesPerCanon:16_384,pendingCanonActors:1});
-  const checks={quorumIntersection:quorum.pass,singleFailureRecovery:singleFailures.every(row=>row.pass),doubleFailureFailClosed:doubleFailures.every(row=>row.pass),staleEpochRejected:staleRejected,corruptRecoveryRejected:corruptionRejected,idempotentOperation:first.root===again.root&&first.revision===again.revision&&conflictRejected,costDominance:cost.pass,requirementDominance:comparison.pass};
-  return{pass:Object.values(checks).every(Boolean),checks,quorum,singleFailures,doubleFailures,cost:{pass:cost.pass,cases:cost.cases},comparison};
+  const lowerBound=proveCrashToleranceLowerBound(),cost=proveCostDominance(),comparison=compareRequirementEnvelope({players:30,ticks:1200,realtimeBytesPerTick:2048,canonEvents:4,canonBytesPerEvent:512,recoveryBytesPerCanon:16_384,pendingCanonActors:1});
+  const checks={crashToleranceLowerBound:lowerBound.pass&&lowerBound.strictlyMinimal,quorumIntersection:quorum.pass,singleFailureRecovery:singleFailures.every(row=>row.pass),doubleFailureFailClosed:doubleFailures.every(row=>row.pass),staleEpochRejected:staleRejected,corruptRecoveryRejected:corruptionRejected,idempotentOperation:first.root===again.root&&first.revision===again.revision&&conflictRejected,costDominance:cost.pass,requirementDominance:comparison.pass};
+  return{pass:Object.values(checks).every(Boolean),checks,lowerBound,quorum,singleFailures,doubleFailures,cost:{pass:cost.pass,cases:cost.cases},comparison};
 }
