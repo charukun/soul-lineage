@@ -28,7 +28,7 @@ function requestModel(view,state,species){
    onFailure:error=>{state.failed.set(species,String(error?.message||error));console.warn(`[monster ${species}] procedural fallback`,error);}
   });
  }
- // The player monster is an active/observed subject, so it owns the highest asset priority.
+ // The local monster is always a player-observed subject, so its asset owns top priority.
  state.director.focus(species,220);
 }
 function syncMonster(view,game,time,dt=0){
@@ -47,5 +47,7 @@ function syncMonster(view,game,time,dt=0){
 
 const originalUpdate=NightView.prototype.update;
 NightView.prototype.update=function updateWithMonsterSpecies(game,dt,title=false){syncMonster(this,game,game?.time||this.elapsed||0,dt);return originalUpdate.call(this,game,dt,title);};
+const originalDispose=NightView.prototype.dispose;
+if(typeof originalDispose==='function')NightView.prototype.dispose=function disposeMonsterManifestation(...args){const state=states.get(this);if(state){for(const effect of state.effects.values())effect.dispose();for(const instance of state.models.values())instance.root.removeFromParent();state.director.dispose();states.delete(this);}return originalDispose.apply(this,args);};
 
 if(typeof window!=='undefined')window.__DEMON_MONSTER_MODELS__={snapshot:()=>({source:'Gobkit CC0',views:[...document.querySelectorAll('canvas[data-monster-species]')].map(canvas=>({species:canvas.dataset.monsterSpecies,model:canvas.dataset.monsterModel,stage:canvas.dataset.monsterManifestation,progress:Number(canvas.dataset.monsterLoadProgress||0)}))})};
