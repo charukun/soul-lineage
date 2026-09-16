@@ -34,10 +34,6 @@ export function installInterface(village){
  // modes and tutorial in the same layout pass, without a one-frame overlap.
  const stack=document.createElement('div');stack.id='muraTopStack';document.body.append(stack);
  stack.append(hud,modes,$('tutorial'));
- const moment=document.createElement('button');moment.type='button';moment.id='muraIdleDetails';moment.hidden=true;moment.setAttribute('aria-live','polite');
- moment.innerHTML='<small>村人の様子</small><span class="muraIdleDetailsText"></span>';
- document.body.append(moment);let currentPerson=null,lastMoment=null,momentUntil=0;
- moment.onclick=()=>{if(currentPerson)observePerson(currentPerson);};
  const progress=document.createElement('div');progress.id='muraConstructionLayer';document.body.append(progress);
  const bars=new Map();let lastTick=0,resourceSignature='',statsSignature='',lastRoom=null,lastObserved=null;
  function statusTick(now){
@@ -59,13 +55,6 @@ export function installInterface(village){
   }
   const chromeBlocked=ui.entryOpen||ui.drawer||ui.pending||ui.selected||ui.dialogPage||document.querySelector('dialog[open]')||view.observation;
   chronicle.sync(now,{blocked:!!chromeBlocked});
-  const blocked=chromeBlocked||chronicle.isOpen();
-  const m=world.state.moments?.[0];
-  if(ui.idle&&m&&m.id!==lastMoment){lastMoment=m.id;momentUntil=now+3800;}
-  const showMoment=ui.idle&&now<momentUntil&&m;
-  moment.hidden=!!blocked||!showMoment;
-  if(!moment.hidden){text(moment.querySelector('small'),'村人の様子');text(moment.querySelector('span'),m.text);currentPerson=m.ids?.find(id=>world.people.some(p=>p.id===id));moment.disabled=!currentPerson;}
-  else currentPerson=null;
   const pending=world.objects.filter(o=>o.phase==='planned'||o.phase==='building'||o.upgrade),ids=new Set(pending.map(o=>o.id));
   for(const[id,node]of bars)if(!ids.has(id)){node.remove();bars.delete(id);}
   for(const o of pending.slice(0,12)){
