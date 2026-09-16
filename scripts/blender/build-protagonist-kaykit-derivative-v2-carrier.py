@@ -93,33 +93,28 @@ def _component_rows(obj: bpy.types.Object) -> list[dict]:
 
 
 def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
-    """Delete only small asymmetric chest islands; preserve the copied torso shell."""
+    """Remove the source Knight's detached left-chest star/ribbon islands only."""
     if "body" not in obj.name.lower() or not obj.data.vertices:
         return 0
     minimum, maximum = _world_bounds(obj)
     size = maximum - minimum
-    center = (minimum + maximum) * 0.5
-    components = _component_rows(obj)
     remove_vertices: set[int] = set()
     removed_components = 0
-
-    for component in components:
+    for component in _component_rows(obj):
         point = component["point"]
-        vertical = (point.y - minimum.y) / max(size.y, 1e-6)
-        if component["count"] > 24 or not (0.45 <= vertical <= 0.84):
-            continue
-        if abs(point.x - center.x) <= size.x * 0.15:
-            continue
-        mirrored_x = 2.0 * center.x - point.x
-        mirrored = any(
-            other is not component
-            and abs(other["point"].x - mirrored_x) <= size.x * 0.05
-            and abs(other["point"].y - point.y) <= size.y * 0.05
-            and abs(other["point"].z - point.z) <= size.z * 0.07
-            and abs(other["count"] - component["count"]) <= max(2, component["count"] * 0.45)
-            for other in components
+        nx = (point.x - minimum.x) / max(size.x, 1e-6)
+        ny = (point.y - minimum.y) / max(size.y, 1e-6)
+        nz = (point.z - minimum.z) / max(size.z, 1e-6)
+        # Exact source region occupied by the Knight's asymmetric star and its two
+        # hanging ribbon islands. The large torso shell and mirrored garment panels
+        # sit outside this compact left-front region.
+        chest_badge = (
+            component["count"] <= 20
+            and 0.10 <= nx <= 0.36
+            and 0.43 <= ny <= 0.80
+            and 0.70 <= nz <= 1.02
         )
-        if mirrored:
+        if not chest_badge:
             continue
         removed_components += 1
         for face_index in component["faces"]:
@@ -140,17 +135,15 @@ def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
 
 
 def _soften_knight_sleeve(obj: bpy.types.Object) -> None:
-    """Pull the copied Knight shoulder shell inward without changing arm length/rig."""
+    """Pull copied Knight shoulders inward while retaining arm length and skinning."""
     if "arm" not in obj.name.lower() or not obj.data.vertices:
         return
     world_points = [obj.matrix_world @ vertex.co for vertex in obj.data.vertices]
     radial = [abs(point.x) for point in world_points]
     start, end = min(radial), max(radial)
     span = max(end - start, 1e-6)
-    shoulder_points = [
-        point for point, distance in zip(world_points, radial)
-        if (distance - start) / span <= 0.20
-    ]
+    shoulder_points = [point for point, distance in zip(world_points, radial)
+                       if (distance - start) / span <= 0.20]
     if not shoulder_points:
         return
     center_y = sum(point.y for point in shoulder_points) / len(shoulder_points)
@@ -184,62 +177,50 @@ def _assign_component_materials(obj: bpy.types.Object, classifier) -> None:
 
 
 def villageize_source_parts(meshes: list[bpy.types.Object]) -> None:
-    """Dress copied Knight components cleanly without painting across large polygons."""
-    linen = module.material("PROTAGONIST_LINEN", (0.36, 0.26, 0.15, 1.0))
+    """Dress copied Knight parts as a plain village-start outfit."""
+    linen = module.material("PROTAGONIST_LINEN", (0.52, 0.40, 0.26, 1.0))
     olive = module.material("PROTAGONIST_OLIVE", (0.15, 0.18, 0.075, 1.0))
     leather = module.material("PROTAGONIST_LEATHER", (0.085, 0.045, 0.020, 1.0))
     skin = module.material("PROTAGONIST_SKIN", (0.48, 0.28, 0.17, 1.0))
-    accent = module.material("PROTAGONIST_BLUE_GRAY", (0.12, 0.20, 0.25, 1.0))
 
     for obj in meshes:
         name = obj.name.lower()
         if "head" in name or "hair" in name:
             continue
+
         if "body" in name:
             _remove_knight_chest_badge(obj)
+            # Deliberately keep the copied torso one plain cloth material. The source
+            # geometry supplies the silhouette; painted armor-like facets do not.
+            _material_slots(obj, [linen])
+            for polygon in obj.data.polygons:
+                polygon.material_index = 0
+            continue
+
         if "arm" in name:
             _soften_knight_sleeve(obj)
-
-        minimum, maximum = _world_bounds(obj)
-        size = maximum - minimum
-
-        if "arm" in name:
-            _material_slots(obj, [linen, leather, skin])
+            _material_slots(obj, [linen, skin])
             abs_x = [abs((obj.matrix_world @ vertex.co).x) for vertex in obj.data.vertices]
             start, end = min(abs_x), max(abs_x)
             span = max(end - start, 1e-6)
 
             def arm_material(component):
                 along = (abs(component["point"].x) - start) / span
-                return 2 if along >= 0.80 else 1 if along >= 0.62 else 0
+                return 1 if along >= 0.80 else 0
 
             _assign_component_materials(obj, arm_material)
             continue
 
         if "leg" in name:
             _material_slots(obj, [olive, leather])
+            minimum, maximum = _world_bounds(obj)
+            size = maximum - minimum
 
             def leg_material(component):
                 vertical = (component["point"].y - minimum.y) / max(size.y, 1e-6)
                 return 0 if vertical >= 0.50 else 1
 
             _assign_component_materials(obj, leg_material)
-            continue
-
-        if "body" in name:
-            _material_slots(obj, [linen, leather, accent])
-
-            def body_material(component):
-                vertical = (component["point"].y - minimum.y) / max(size.y, 1e-6)
-                # Keep the torso itself plain. Only small separated collar/hem pieces
-                # receive accent or leather; this avoids armor-like painted facets.
-                if component["count"] <= 50 and vertical >= 0.84:
-                    return 2
-                if component["count"] <= 60 and vertical <= 0.22:
-                    return 1
-                return 0
-
-            _assign_component_materials(obj, body_material)
             continue
 
         _material_slots(obj, [linen])
