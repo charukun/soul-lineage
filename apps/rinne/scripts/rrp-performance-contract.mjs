@@ -7,6 +7,27 @@ import {
 
 const readJson=file=>JSON.parse(readFileSync(file,'utf8'));
 const print=value=>process.stdout.write(`${JSON.stringify(value,null,2)}\n`);
+const RAW_ARRAY_KEYS=Object.freeze([
+  'inputToAuthoritativeAckMs','inputToDisplayMs','canonCommitMs','hostLossDetectionMs','hostReopenMs',
+  'peerUplinkKbps','hostUplinkKbps','reliableBufferedAmountBytes','presenceBufferedAmountBytes',
+  'stateFreshnessMs','positionErrorM','rollbackMs','frameMs','gpuMs','memoryMb','batteryPctPerHour',
+  'modelDeliveryMs','modelQueue','modelDarkMs','modelRollbackMs',
+]);
+const RAW_COUNTER_KEYS=Object.freeze(['connectionAttempts','connectionSuccesses','turnCandidateClassifiedConnections','turnRelayConnections','missingSamples','expectedSamples']);
+
+export function mergeRawPerformanceCaptures(captures=[]){
+  if(!Array.isArray(captures)||captures.length<1)throw Error('Performance capture list is required');
+  const merged=Object.fromEntries(RAW_ARRAY_KEYS.map(key=>[key,[]]));
+  for(const key of RAW_COUNTER_KEYS)merged[key]=0;
+  merged.durationMinutes=0;
+  for(const capture of captures){
+    if(!capture||typeof capture!=='object'||Array.isArray(capture))throw Error('Invalid performance capture');
+    for(const key of RAW_ARRAY_KEYS){if(capture[key]==null)continue;if(!Array.isArray(capture[key]))throw Error(`Invalid capture array ${key}`);merged[key].push(...capture[key]);}
+    for(const key of RAW_COUNTER_KEYS){const value=Number(capture[key]??0);if(!Number.isInteger(value)||value<0)throw Error(`Invalid capture counter ${key}`);merged[key]+=value;}
+    const duration=Number(capture.durationMinutes??0);if(!Number.isFinite(duration)||duration<0)throw Error('Invalid capture duration');merged.durationMinutes+=duration;
+  }
+  return merged;
+}
 
 export function performanceEvidenceTemplate(evidenceClass=EVIDENCE_CLASS.PHYSICAL_MULTIPEER){
   if(!Object.values(EVIDENCE_CLASS).includes(evidenceClass))throw Error('Unknown evidence class');
@@ -18,6 +39,12 @@ export function performanceEvidenceTemplate(evidenceClass=EVIDENCE_CLASS.PHYSICA
     safety:Object.fromEntries(RRP_SAFETY_KEYS.map(key=>[key,null])),
     provenance:evidenceClass===EVIDENCE_CLASS.PHYSICAL_MULTIPEER?{buildRevision:'',runtime:'',deviceClass:'',deviceModel:'',peers:2,networkProfile:''}:{},
   };
+}
+
+export function buildPerformanceEvidence(input={}){
+  const rawSamples=Array.isArray(input.captures)?mergeRawPerformanceCaptures(input.captures):input.rawSamples;
+  if(!rawSamples)throw Error('Performance evidence build requires rawSamples or captures');
+  return buildRrpPerformanceEvidenceFromSamples({...input,rawSamples});
 }
 
 export function validatePerformanceEvidence(input,{requirePhysicalCertification=false}={}){
@@ -32,7 +59,7 @@ if(isMain){
     print(performanceEvidenceTemplate(get('--class')||EVIDENCE_CLASS.PHYSICAL_MULTIPEER));
   }else if(command==='build'){
     const input=get('--input');if(!input)throw Error('build requires --input <raw-capture.json>');
-    const capture=readJson(input);print(buildRrpPerformanceEvidenceFromSamples(capture));
+    print(buildPerformanceEvidence(readJson(input)));
   }else if(command==='validate'){
     const input=get('--input');if(!input)throw Error('validate requires --input <evidence.json>');
     const result=validatePerformanceEvidence(readJson(input),{requirePhysicalCertification:args.includes('--require-physical')});
