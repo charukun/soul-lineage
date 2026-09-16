@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {attentionLoadPriority,shouldPromoteAttention} from '@soul/rendering/attention-priority';
 import {
   MANIFESTATION_STAGES,
   createProgressiveManifestation,
@@ -21,6 +22,13 @@ test('attention priority wins the next available loading slot without preempting
   block.resolve({id:'block'});await tick();await tick();assert.deepEqual(order,['block','high']);
   high.resolve({id:'high'});await tick();await tick();assert.deepEqual(order,['block','high','low']);
   low.resolve({id:'low'});await tick();director.dispose();
+});
+
+test('player attention promotes observed targets above generic visible candidates',()=>{
+  const background=attentionLoadPriority({visible:true,screenAlignment:.1,screenCoverage:.02,distance:45});
+  const observed=attentionLoadPriority({visible:true,screenAlignment:.96,screenCoverage:.18,distance:30});
+  const combat=attentionLoadPriority({combat:true,screenAlignment:.2,distance:18});
+  assert.ok(observed>background);assert.ok(combat>observed);assert.equal(shouldPromoteAttention(background),false);assert.equal(shouldPromoteAttention(observed),true);assert.equal(attentionLoadPriority({selected:true}),260);
 });
 
 test('manifestation state is monotonic and never returns to low resolution after completion',async()=>{
