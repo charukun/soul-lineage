@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {RaidSession} from '@soul/raid/single-session';
+import {freshProfile} from '@soul/raid/profile';
 import {pickRandomRaid} from '../src/web/raid-routes.js';
 import {sampleDevourMotion,DEVOUR_PHASES} from '../src/web/devour-motion.js';
 const profile={visits:{},unlocked:[],hunts:0};
@@ -33,9 +35,15 @@ test('devour animation has reach, pull, asymmetric bites, swallowing and recover
  assert.ok(swallow.throat>.9);assert.ok(swallow.headPitch<-.3);
  assert.notEqual(sampleDevourMotion(.59).twist,bite.twist);
 });
-test('feeding action is intentionally long enough to read as eating',()=>{
- const core=readFileSync(new URL('../../../packages/raid/devour.js',import.meta.url),'utf8');
- assert.match(core,/DEVOUR_SECONDS=4\.2/);assert.match(core,/growthScale:p\.growthScale/);
+test('feeding action stays committed for more than four seconds and carries growth into capture',()=>{
+ const game=new RaidSession(offers[0],freshProfile('presentation-feeding',1));
+ const prey=game.village.npcs[0];game.village.colliders=[];game.village.gate.broken=true;
+ Object.assign(prey,{dead:true,eaten:false,x:0,z:0});Object.assign(game.player,{x:0,z:.7});game.devour={npc:prey,t:0};
+ game.tick(1/30,{x:0,z:0,amount:0});assert.equal(prey.capturedBy.growthScale,game.player.growthScale);
+ for(let i=1;i<120;i++)game.tick(1/30,{x:0,z:0,amount:0});
+ assert.equal(prey.eaten,false);assert.ok(game.devour);
+ for(let i=0;i<7&&!prey.eaten;i++)game.tick(1/30,{x:0,z:0,amount:0});
+ assert.equal(prey.eaten,true);assert.equal(game.devour,null);
 });
 test('motion is continuous, finite, bounded, deterministic and clamps invalid input',()=>{
  for(let i=0;i<=1000;i++){
