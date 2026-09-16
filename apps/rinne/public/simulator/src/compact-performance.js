@@ -2,11 +2,11 @@ import * as T from '../vendor/three.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
 
 const REVISION='672074b73ba276876a19e8816ecdc5241817ab47';
-const ROOT=`https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/${REVISION}/addons/kaykit_character_pack_adventures/Characters/gltf/`;
+const MODEL_URL=new URL('../../asset-review/motion-library/Knight.glb',import.meta.url).href;
 export const COMPACT_PERFORMANCE_MODEL=Object.freeze({
   id:'motion-library.knight',label:'Knight / デフォルメ',file:'Knight.glb',repository:'KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0',revision:REVISION,license:'CC0-1.0'
 });
-export const COMPACT_PERFORMANCE_REVISION='compact-performance-1';
+export const COMPACT_PERFORMANCE_REVISION='compact-performance-2';
 
 const clamp=x=>Math.min(1,Math.max(0,x));
 const key=name=>String(name||'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -52,7 +52,7 @@ export class CompactPerformanceRuntime{
   constructor(scene){this.scene=scene;this.ready=false;this.root=null;this.model=null;this.mixer=null;this.actions=new Map();this.groups=null;this.bones={};this.restRoots=[];this.sourceHeight=1;}
   async load(){
     if(this.ready)return this;
-    const gltf=await new GLTFLoader().loadAsync(ROOT+COMPACT_PERFORMANCE_MODEL.file),model=gltf.scene;
+    const gltf=await new GLTFLoader().loadAsync(MODEL_URL),model=gltf.scene;
     model.updateMatrixWorld(true);const box=new T.Box3().setFromObject(model),height=Math.max(.001,box.max.y-box.min.y),root=new T.Group();
     model.position.y=-box.min.y;root.add(model);root.scale.setScalar(2.02/height);this.scene.add(root);root.visible=false;root.updateMatrixWorld(true);
     this.root=root;this.model=model;this.sourceHeight=height;this.mixer=new T.AnimationMixer(model);
