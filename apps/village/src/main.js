@@ -56,8 +56,7 @@ try {
   await boot({
     onProgress(value, text) { progress.value = value; message.textContent = text; },
   });
-  // Preserve the single enhancement graph introduced on develop. Retired
-  // entries are side-effect-free compatibility modules after consolidation.
+  // Keep post-boot behavior behind one ordered enhancement graph.
   await import('./mura-enhancements.js');
   const {installInterface}=await import('./web/interface.js');
   installInterface(window.village);
