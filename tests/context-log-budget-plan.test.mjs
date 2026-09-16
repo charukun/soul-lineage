@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   buildContextPlan,
   MAX_LOG_BYTES,
@@ -19,4 +20,13 @@ test('context plan exposes per-excerpt and cumulative CI log limits as a stop co
   assert.match(plan.githubRetrieval.ci, /summarize\/handoff/);
   assert.match(plan.githubRetrieval.ci, /polling/);
   assert.ok(plan.retrieval.some(rule => /Stop CI log retrieval/.test(rule)));
+});
+
+test('repository entry instructions expose the CI log stop condition even without a checkout helper', () => {
+  const agents = readFileSync('AGENTS.md', 'utf8');
+  const policy = readFileSync('docs/CONTEXT_EFFICIENCY.md', 'utf8');
+  assert.match(agents, /3 unique excerpts or 96 KiB total/);
+  assert.match(agents, /do not switch ranges\/jobs/);
+  assert.match(policy, /固有excerpt 3件または96 KiB/);
+  assert.match(policy, /追加log取得を停止/);
 });
