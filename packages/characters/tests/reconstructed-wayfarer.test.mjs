@@ -14,7 +14,7 @@ test('reconstructed wayfarer is a selectable active runtime rebuild with explici
   assert.ok(active, 'Visual Review selector consumes the active reference-model catalog');
   assert.equal(active.id, RECONSTRUCTED_WAYFARER_MODEL_ID);
   assert.equal(model.kind, 'runtime-reference-model');
-  assert.equal(model.modelingMode, 'runtime-procedural-rebuild');
+  assert.equal(model.modelingMode, 'runtime-procedural');
   assert.equal(model.productionReady, false);
   assert.doesNotThrow(() => validateVisualIdentity(model));
 

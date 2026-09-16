@@ -127,7 +127,7 @@ const reconstructedWayfarer = {
   characterId: 'Reference_Reconstructed_Wayfarer',
   assetId: 'runtime.reconstructed-wayfarer.reference.v1',
   productionStage: 'BLOCKOUT',
-  modelingMode: 'runtime-procedural-rebuild',
+  modelingMode: 'runtime-procedural',
   productionReady: false,
   referencePath: 'apps/rinne/public/simulator/licenses/KAYKIT_FOUNDATION_SOURCE.txt',
   profile: reconstructedProfile,
