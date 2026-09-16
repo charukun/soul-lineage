@@ -1,51 +1,59 @@
 # soul-lineage development
 
-This repository contains 輪廻転焦 (formerly 魂の系譜), village housing, and demon-army apps.
+This repository contains 輪廻転焦, village housing, and demon-army apps. `develop` is the implementation source of truth; `main` is Production.
 
-- Read README.md and docs/MONOREPO.md before build/deployment changes; read docs/PLATFORMS.md for gameplay/platform work.
-- Keep session context lean per `docs/CONTEXT_EFFICIENCY.md`: do not preload past chats, closed/merged PR histories, all docs, whole diffs, or all CI logs. Start from latest develop/current GitHub state, run `npm run context:plan -- --task "<short task summary>"` when a checkout is available, and retrieve additional files/logs only when the task actually needs them.
-- Treat CI log retrieval as a hard per-session budget: use the shared context ledger, read only failed/cancelled job slices, and stop after 3 unique excerpts or 96 KiB total. On exhaustion, summarize current evidence and hand off; do not switch ranges/jobs, start another session solely to keep mining logs, or poll CI to bypass the limit.
-- The latest develop is the implementation base. Keep each game's entry point under apps/<id>; do not recreate a single root game.
-- Tidebreak integration belongs to apps/rinne. Reconcile parallel work against current develop; preserve app/package boundaries and selective deployment.
-- Shared code belongs to packages with explicit workspace dependencies. Apps must not import one another. Packages must not import apps.
-- Game/domain logic must use injected platform ports. Browser APIs, SDK calls, renderer/UI setup and device storage belong in adapters/bootstrap.
-- Keep production source on main. Reuse existing GitHub Pages/OIDC infrastructure, retain unchanged app artifacts, and do not silently promote develop game code to production.
-- Validate affected apps and shared packages. Deployment changes also require infrastructure tests and public URL verification.
-- Source bloat and structural debt follow `docs/CODE_HEALTH.md`. Fast validation rejects material new size/complexity regressions without retroactively blocking existing hotspots; scheduled Code Health may bootstrap at most one focused RINNE Dispatch refactor PR at a time. Do not weaken its thresholds, tests, browser assertions, or Integration gates merely to make a change pass.
-- For character modeling, Blender/GLB/VRM work, 3D asset authoring, rigging/material changes, or visual-quality work, read `docs/art/README.md` and the routed standard before editing. Model-specific contracts under `docs/characters/` remain authoritative for identity, provenance, runtime and compatibility; external tutorials are technique references only.
-- For smartphone-only development, follow `docs/MOBILE_HYBRID_DEVELOPMENT.md`: normal git from Chat/WORK/Codex is the first route, then the connected GitHub API; when connector transport cannot handle changed files, switch the same work branch to GitHub Codespaces and normal `git push`. Do not split/Base64-retry large binaries through the connector.
-- Browser verification failures follow `docs/BROWSER_SELF_HEALING.md`. End-to-end repair verification is not complete until the relevant browser gate succeeds; Integration owns that asynchronous verification, not a waiting implementation worker. Claim machine-readable repair tickets before editing code, never create parallel repairs for the same ticket, and stop automation at the configured attempt limit instead of weakening assertions.
-- When the user explicitly asks to actually play, operate, touch, or verify an app in a browser, follow `docs/BROWSER_PLAYTEST_ROUTING.md`. A missing local browser / Computer Use surface is not a reason to declare the request impossible or divert it to another ChatGPT mode: encode `Browser-Playtest:` on the Draft PR before Ready, or for a no-code current-develop check dispatch the existing `Deploy DEV and PROD` workflow on `develop` with `full_verification=true`. Distinguish static review, browser playtest, and DEV browser verification in the report, and only claim completed play when exact run/artifact evidence exists.
-- For character modeling, rigging, character animation, clothing/hair or character-art implementation, read `docs/characters/CHARACTER_PRODUCTION_PIPELINE.md` before editing. Runtime Three.js primitive/procedural geometry is `BLOCKOUT` only and must never be described or registered as production-ready. `PRIMARY` and later stages require a reviewed DCC/imported mesh path; use Blender headless audit when Blender is available, preserve source/provenance, run deformation and Motion QA, and require explicit visual approval plus runtime evidence before `RUNTIME_READY`.
-- For a user-requested Blender character build when local Blender is unavailable or reusable headless execution is appropriate, use `docs/characters/CHARACTER_DCC_CARRIER.md`: create a short-lived `dcc/<slug>` branch from latest develop, provide `.dcc/character-dcc-request.json` plus the character-specific builder, and let the repository carrier own real Blender execution, audit, hashes and canonical generated-asset commit. Do not use RINNE Dispatch merely to obtain Blender. Read the carrier state once after push and recover from its exact branch/head later; do not wait or poll.
+## Start here
 
-## Standing delivery authorization
+1. Confirm the latest `develop` SHA and current GitHub state.
+2. Read this file, then use [`docs/README.md`](docs/README.md) to select the canonical document for the task.
+3. When a checkout is available, run `npm run context:plan -- --task "<short task summary>"` and read only the returned documents that are actually needed.
+4. Keep retrieval lean per [`docs/CONTEXT_EFFICIENCY.md`](docs/CONTEXT_EFFICIENCY.md). Do not preload past chats, all docs, merged PR history, whole large diffs, or all CI logs.
 
-- For user-requested work in `charukun/soul-lineage`, transfers of project code, model/VRM/GLB, Blender sources and Git bundles to this repository and its existing Codespaces, work-branch pushes, and requested Lab publication are already user-authorized. Read `docs/DELIVERY_AUTHORIZATION.md` before delivery. Verify destination/payload and include the recorded consent in tool context; do not ask the same permission again. This does not expand worker roles or override approval, CI, review, Integration or main/Production controls.
+Use metadata → changed filenames / failed job → necessary patch / range. CI log retrieval is capped by the shared context ledger. On budget exhaustion, summarize the evidence and hand off instead of mining more logs or polling.
 
-## WORK roles (current operation)
+## Delivery boundary
 
-- Default development style is AI implementation → fast validation → Ready → Integration/DEV publication → user visual feedback → AI correction, as defined in `docs/RINNE_PROJECT_EXECUTION_POLICY.md`. Within explicit requirements and current develop contracts, make and record reversible visual/interaction/implementation choices without adding pre-DEV human approval. Adapt old PRs to confirmed current specifications before escalating. Technical difficulty or optional visual feedback alone is not human-required. Preserve all existing gates, approval/certification rules and finite repair attempts.
-- Select delivery references instead of loading all delivery docs: routine code-changing implementation normally needs `docs/DEVELOPMENT.md`; explicit Integration work needs `docs/INTEGRATION.md`; Integration control-plane / Rescue / queue-liveness changes additionally use `docs/INTEGRATION_RECONCILIATION.md`. Load only the documents needed by the task; `context:plan` remains the normal routing entry point.
-- For normal code-changing tasks, push a work branch and open a Draft PR before code edits; follow the first-two-body-lines, lightweight Draft CI and recovery contract in `docs/DEVELOPMENT.md`. Read-only and writing-only tasks are exempt.
-- Mandatory delivery boundary is summarized here and defined in `docs/RINNE_PROJECT_EXECUTION_POLICY.md`; do not fetch the full policy unconditionally when this summary is sufficient. Implementation WORK ends at Ready for review → `READY_FOR_INTEGRATION` handoff → final response. Running / Queued / Pending CI or browser checks must never keep the session alive; no watch, sleep/polling or repeated completion checks. Integration owns asynchronous monitoring and repair. Read the full policy when changing or diagnosing handoff, notification, recovery, watchdog, or delivery-boundary behavior. Explicitly assigned Integration work retains its separate responsibility.
-- Integration uses `docs/INTEGRATION.md` Fast Lane: current exact-head `Validate and build` + `pr-fast` evidence, dependency/review/hold/mergeability checks, then one serialized expected-head develop writer. A failed PR, `integration/develop` delivery health, or affected browser smoke does not globally block independent eligible PRs. Browser/public verification remains enabled asynchronously and failures go to repair. DEV publisher runs coalesce toward latest develop; main / Production quality gates remain unchanged.
-- Keep PRs focused. State changed apps/packages, checks actually run, shared impacts and `Depends-On: #N` (or `none`). Record AI assumptions and DEV review steps. Use draft or `integration:hold` for unfinished work or unresolved blocking contract/authorization decisions; optional post-DEV visual feedback is not unfinished implementation. Never clear holds or resolve review objections to make automation proceed.
-- Automation/control changes require Integration review of the exact head; no policy/protection bypass. Normal work uses no sub-agents.
-- Do not modify main or Production as part of develop Integration. Explicit user scope supersedes older handoff instructions that assign merge/deploy to every WORK.
+Normal implementation work follows [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md): latest `develop` → work branch / Draft PR → implementation → fast validation → push → Ready for review → `READY_FOR_INTEGRATION` → final response.
 
-## Motion authoring and review
+Ready ends the implementation session. Running / Queued / Pending CI, browser checks, handoff recorder, Integration, and DEV publication must not keep the worker alive. Do not watch, sleep, or poll for completion. Integration owns asynchronous merge/publication/repair. The detailed boundary is canonical in [`docs/RINNE_PROJECT_EXECUTION_POLICY.md`](docs/RINNE_PROJECT_EXECUTION_POLICY.md); do not fetch the full policy unconditionally when the summary here and the task-specific document are sufficient.
 
-- Visual motion review uses the current develop tree. Run `npm run dev:rinne` and open `/review.html` for the unified entry or `/characters.html?review=motion` for the existing 30-second motion review. After Integration publishes develop, use the fixed Visual Review URL. Do not create or revive a long-lived review branch merely to observe motion; the Review page must consume the same shared packages, character sources and runtimes as develop.
-- For character motion, stance, locomotion or motion-transition changes, read `docs/characters/MOTION_AUTHORING.md` and `docs/characters/MOTION_QUALITY.md` before editing. Design full-body key poses first, then weight/timing and normal-speed playback, then detail/transition polish. Return to the earliest weak stage when a correction regresses it.
-- Use the existing Motion QA report's `authoring` record and relevant iteration notes. Record reference seconds, before/after source revisions, actual model/rig evidence and remaining differences. Numeric tests, rendered stills, exported-but-unwatched video and iteration counts cannot stand in for normal-speed visual evaluation or human approval.
-- Preserve native gameplay/contact timing and shared sources. Visual Review is an observation surface on develop, not a separate source of gameplay or motion truth. This authoring contract does not change Integration/hold/approval gates. See the authoring guide for per-app adoption and CPU/WebGL evidence limits.
+Use normal git first, then the connected GitHub API, then the same branch in existing GitHub Codespaces when transport or binary limits require it. One failed route is not task failure. Large binaries must not be split/Base64-retried through the connector. See [`docs/MOBILE_HYBRID_DEVELOPMENT.md`](docs/MOBILE_HYBRID_DEVELOPMENT.md).
 
-## RINNE Dispatch
+For user-requested work in `charukun/soul-lineage`, transfer of project code/assets to this repository or its existing Codespaces, work-branch push, PR create/update, and explicitly requested Lab publication are already authorized within the limits recorded in [`docs/DELIVERY_AUTHORIZATION.md`](docs/DELIVERY_AUTHORIZATION.md). Do not ask the same permission again. This does not authorize unrelated data, new paid resources, credential/security changes, destructive operations, develop merge by an implementation worker, or main/Production publication.
 
-- Read `docs/DISPATCHER.md` before using or modifying the dispatch route.
-- When the user explicitly says `派生して`, `別セッションで`, or otherwise asks to hand a self-contained implementation task to a dedicated worker, the initiating Chat/WORK may bootstrap a RINNE Dispatch instead of implementing the code itself.
-- Dispatch is for bounded tasks that can deliver one DEV review candidate without repeated human decisions during implementation. Reversible details can be chosen by AI under the DEV feedback policy. Interactive design with an explicitly requested discussion-first process or an unresolved blocking contract/authorization decision stays in normal Chat/WORK.
-- Bootstrap from the current latest `develop`: create `dispatch/<short-slug>`, add a temporary `.task-start/<short-slug>.md` scope marker as the meaningful initial diff, and open a develop-targeting Draft PR. Its first two body lines follow the normal PR contract, followed by `RINNE-Dispatch: implementation` and a non-empty `## Request` section. Do not make the requested implementation edits during bootstrap.
-- The `RINNE Dispatch` GitHub workflow owns the isolated Codex implementation, fast validation, push and Ready transition. The Draft PR / branch / commit remain the recovery source of truth; do not add a separate task ID, task database, or second Integration queue.
-- After the dispatch PR becomes Ready, the existing Integration flow owns CI, merge and DEV publication exactly as for any other Ready PR.
+Never modify `main` or Production unless the user explicitly requests it. Never weaken tests, browser assertions, review requirements, exact-head gates, repair attempt limits, or Production gates to make a change pass.
+
+## Architecture invariants
+
+- Keep each game under `apps/<id>` and shared code under `packages/<id>`. Apps must not import other apps; packages must not import apps. See [`docs/MONOREPO.md`](docs/MONOREPO.md).
+- Game/domain logic uses injected platform ports. Browser APIs, SDK calls, renderer/UI bootstrap, and device storage belong in adapters/bootstrap. See [`docs/PLATFORMS.md`](docs/PLATFORMS.md).
+- Tidebreak integration belongs to `apps/rinne`; do not recreate a root-level game.
+- Source bloat and structural debt follow [`docs/CODE_HEALTH.md`](docs/CODE_HEALTH.md). Fast validation may reject new regressions without retroactively blocking existing hotspots.
+- Validate affected apps/shared packages. Deployment/control-plane changes also require their dedicated infrastructure checks. Production quality requirements are unchanged.
+
+## Task routing
+
+Read only the rows that match the task.
+
+| Task | Canonical / specialist document |
+| --- | --- |
+| Routine implementation | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) |
+| Integration / merge / DEV publication | [`docs/INTEGRATION.md`](docs/INTEGRATION.md) |
+| Integration control-plane reconciliation | [`docs/INTEGRATION_RECONCILIATION.md`](docs/INTEGRATION_RECONCILIATION.md) |
+| Fast Repair / legacy Rescue compatibility | [`docs/INTEGRATION_RESCUE.md`](docs/INTEGRATION_RESCUE.md) |
+| Browser repair | [`docs/BROWSER_SELF_HEALING.md`](docs/BROWSER_SELF_HEALING.md) |
+| User explicitly asks to play/operate/verify in a browser | [`docs/BROWSER_PLAYTEST_ROUTING.md`](docs/BROWSER_PLAYTEST_ROUTING.md) |
+| Dispatch to a dedicated worker | [`docs/DISPATCHER.md`](docs/DISPATCHER.md) |
+| Mobile / Codespaces / push routing | [`docs/MOBILE_HYBRID_DEVELOPMENT.md`](docs/MOBILE_HYBRID_DEVELOPMENT.md) |
+| Character/model/rig/material/DCC work | [`docs/art/README.md`](docs/art/README.md) and the routed `docs/characters/` contract |
+| Character motion / stance / locomotion | [`docs/characters/MOTION_AUTHORING.md`](docs/characters/MOTION_AUTHORING.md) and [`docs/characters/MOTION_QUALITY.md`](docs/characters/MOTION_QUALITY.md) |
+
+## Specialized execution
+
+Character production must follow [`docs/characters/CHARACTER_PRODUCTION_PIPELINE.md`](docs/characters/CHARACTER_PRODUCTION_PIPELINE.md). Runtime primitive/procedural geometry is `BLOCKOUT` only; production-ready stages require reviewed DCC/imported assets, provenance, deformation/Motion QA, runtime evidence, and explicit visual approval where the character contract requires it.
+
+When a requested Blender character build needs repository-hosted headless execution, follow [`docs/characters/CHARACTER_DCC_CARRIER.md`](docs/characters/CHARACTER_DCC_CARRIER.md): use a short-lived `dcc/<slug>` branch and the carrier contract. Do not repurpose RINNE Dispatch merely to obtain Blender, and do not wait/poll for the carrier.
+
+When the user explicitly requests a dedicated worker (`派生して`, `別セッションで`, etc.), use RINNE Dispatch only for a self-contained implementation task. Bootstrap the Draft PR and request marker as described in [`docs/DISPATCHER.md`](docs/DISPATCHER.md); the dispatched worker implements and returns the same PR to normal Integration.
+
+Visual/motion review observes current `develop`; it is not a second source of gameplay or motion truth. Preserve native gameplay/contact timing and shared sources. Use the current review routes documented by the character/motion guides rather than reviving a long-lived review branch.
