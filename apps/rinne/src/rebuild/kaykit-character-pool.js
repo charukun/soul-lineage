@@ -2,6 +2,7 @@ import { KAYKIT_DEFAULT_MODEL_ID, KAYKIT_MODELS, selectKaykitModel } from '@soul
 import { GLTFLoader } from '@soul/rendering';
 import { createMasterCharacterPool } from '@soul/rendering/master-character';
 import { createManifestationEffect, createProgressiveManifestation } from '@soul/rendering/progressive-manifestation';
+import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { kaykitHumanoidFromGLTF } from '@soul/rendering/kaykit-rig';
 import { RINNE_CHARACTER_RUNTIME } from './character-runtime-adapter.js';
 
@@ -15,9 +16,9 @@ function fallbackModelId(actorId) {
   return selectKaykitModel({ kind: 'actor', key: text }).id;
 }
 
-function playManifestation(root,profile='human'){
-  if(!root||typeof requestAnimationFrame!=='function')return;
-  const qualityScale=Math.max(.35,Math.min(1,Number(root.userData?.manifestationQualityScale)||1)),effect=createManifestationEffect({profile,qualityScale}),duration=effect.profile.duration*1000,start=performance.now();root.add(effect.root);root.userData.manifestationStage='forming';root.userData.manifestationProfile=effect.profile.id;
+function playManifestation(actor,profile='human'){
+  const root=actor?.root;if(!root||typeof requestAnimationFrame!=='function')return;
+  const qualityScale=Math.max(.35,Math.min(1,Number(root.userData?.manifestationQualityScale)||1)),effect=createManifestationEffect({profile,qualityScale,subject:actor.visual}),duration=effect.profile.duration*1000,start=performance.now();effect.update(0);root.add(effect.root);root.userData.manifestationStage='forming';root.userData.manifestationProfile=effect.profile.id;
   const step=now=>{const progress=Math.max(0,Math.min(1,(now-start)/duration));effect.update(progress);root.userData.manifestationProgress=progress;if(progress<1)requestAnimationFrame(step);else{root.userData.manifestationStage='manifested';effect.dispose();}};requestAnimationFrame(step);
 }
 
@@ -39,7 +40,8 @@ function familyPool(templates, capacity, {onNeedModel=()=>{}} = {}) {
   function upgrade(slot,modelId){
     if(slot.activeModel===modelId||slot.actor.attachments.children.length)return false;const nextPool=ensurePool(modelId);if(!nextPool)return false;
     const old=slot.actor,rootParent=old.root.parent,attachmentsParent=old.attachments.parent,position=old.root.position.clone(),quaternion=old.root.quaternion.clone(),scale=old.root.scale.clone(),visible=old.root.visible,name=old.root.name,userData={...old.root.userData};
-    pools.get(slot.activeModel).despawn(slot.poolId);const next=nextPool.spawn(slot.poolId);next.root.position.copy(position);next.root.quaternion.copy(quaternion);next.root.scale.copy(scale);next.root.visible=visible;next.root.name=name;Object.assign(next.root.userData,userData);stamp(next,modelId);if(rootParent)rootParent.add(next.root);if(attachmentsParent)attachmentsParent.add(next.attachments);slot.actor=next;slot.activeModel=modelId;playManifestation(next.root,slot.poolId.includes('enemy')?'hostile':'human');return true;
+    pools.get(slot.activeModel).despawn(slot.poolId);const next=nextPool.spawn(slot.poolId);next.root.position.copy(position);next.root.quaternion.copy(quaternion);next.root.scale.copy(scale);next.root.visible=visible;next.root.name=name;Object.assign(next.root.userData,userData);stamp(next,modelId);if(rootParent)rootParent.add(next.root);if(attachmentsParent)attachmentsParent.add(next.attachments);slot.actor=next;slot.activeModel=modelId;
+    const hostile=slot.poolId.includes('enemy');applyStylizedShading(next.root,hostile?'enemy':'npc');playManifestation(next,hostile?'hostile':'human');return true;
   }
   return Object.freeze({
     spawn(id, modelId = null) {
