@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Blender Carrier entrypoint for the KayKit-derived protagonist builder.
+"""Carrier shim for the KayKit-derived village-start protagonist.
 
-The real KayKit Knight meshes and Rig_Medium remain the authored source. This shim
-only supplies carrier/runtime compatibility plus conservative part-level edits that
-turn copied Knight pieces into humble village clothing. No replacement body is
-synthesized.
+The protagonist is assembled from shipped CC0 KayKit character parts instead of a
+procedural replacement body.  Knight remains the identity/proportion source: head,
+arms, legs and Rig_Medium stay Knight-authored.  Only the torso clothing is swapped
+to the same pack's Rogue_Body because Knight_Body contains the permanent knight badge.
+No Rogue weapons/cape/accessories are retained.
 """
 from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
 
-import bmesh
 import bpy
 from mathutils import Vector
 
@@ -54,233 +54,109 @@ def _world_bounds(obj: bpy.types.Object) -> tuple[Vector, Vector]:
     return minimum, maximum
 
 
-def _face_components(obj: bpy.types.Object) -> list[list[int]]:
-    vertex_faces: dict[int, list[int]] = {}
-    for polygon in obj.data.polygons:
-        for vertex in polygon.vertices:
-            vertex_faces.setdefault(vertex, []).append(polygon.index)
-    unseen = {polygon.index for polygon in obj.data.polygons}
-    components: list[list[int]] = []
-    while unseen:
-        seed = unseen.pop()
-        stack = [seed]
-        component = [seed]
-        while stack:
-            face_index = stack.pop()
-            polygon = obj.data.polygons[face_index]
-            for vertex in polygon.vertices:
-                for neighbor in vertex_faces.get(vertex, ()):
-                    if neighbor in unseen:
-                        unseen.remove(neighbor)
-                        stack.append(neighbor)
-                        component.append(neighbor)
-        components.append(component)
-    return components
-
-
-def _component_rows(obj: bpy.types.Object) -> list[dict]:
-    rows = []
-    for faces in _face_components(obj):
-        centers = [_world_center(obj, obj.data.polygons[index]) for index in faces]
-        if not centers:
-            continue
-        vertex_indices = sorted({
-            vertex_index
-            for face_index in faces
-            for vertex_index in obj.data.polygons[face_index].vertices
-        })
-        points = [obj.matrix_world @ obj.data.vertices[index].co for index in vertex_indices]
-        component_min = Vector(tuple(min(point[axis] for point in points) for axis in range(3)))
-        component_max = Vector(tuple(max(point[axis] for point in points) for axis in range(3)))
-        rows.append({
-            "faces": faces,
-            "vertices": vertex_indices,
-            "count": len(faces),
-            "point": sum(centers, Vector((0.0, 0.0, 0.0))) / len(centers),
-            "extent": component_max - component_min,
-        })
-    return rows
-
-
-def _delete_vertices(obj: bpy.types.Object, vertex_indices: set[int]) -> int:
-    if not vertex_indices:
-        return 0
-    mesh = obj.data
-    faces_before = len(mesh.polygons)
-    bm = bmesh.new()
-    bm.from_mesh(mesh)
-    bm.verts.ensure_lookup_table()
-    targets = [bm.verts[index] for index in sorted(vertex_indices) if index < len(bm.verts)]
-    bmesh.ops.delete(bm, geom=targets, context="VERTS")
-    bm.to_mesh(mesh)
-    bm.free()
-    mesh.update()
-    return max(0, faces_before - len(mesh.polygons))
-
-
-def _seat_badge_backing_as_linen_patch(obj: bpy.types.Object, vertex_indices: set[int]) -> None:
-    """Reuse the real Knight badge backing as a visible village repair patch.
-
-    The original eight-face backing is only about six centimeters wide while the
-    removed badge/ribbon assembly spans roughly fifteen by seventeen centimeters.
-    Enlarge that existing KayKit piece until it covers the full recess, keep it in the
-    same linen material as the tunic, and seat it just in front of the old badge plane.
-    No replacement primitive or new surface is created.
-    """
-    if not vertex_indices:
-        raise RuntimeError("KayKit Knight badge backing vertices were not identified")
-    valid = [index for index in sorted(vertex_indices) if index < len(obj.data.vertices)]
-    if not valid:
-        raise RuntimeError("KayKit Knight badge backing vertex indices became invalid")
-    points = [obj.matrix_world @ obj.data.vertices[index].co for index in valid]
-    center = sum(points, Vector((0.0, 0.0, 0.0))) / len(points)
-    inverse = obj.matrix_world.inverted()
-    for index, point in zip(valid, points):
-        point.x = center.x + (point.x - center.x) * 3.05
-        point.z = center.z + (point.z - center.z) * 3.05
-        point.y -= 0.060
-        obj.data.vertices[index].co = inverse @ point
-    obj.data.update()
-
-
-def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
-    """Remove Knight badge art while retaining its real backing as plain cloth."""
-    if "body" not in obj.name.lower() or not obj.data.vertices:
-        return 0
-
-    minimum, maximum = _world_bounds(obj)
-    size = maximum - minimum
-    center = (minimum + maximum) * 0.5
-    rows = _component_rows(obj)
-    remove_vertices: set[int] = set()
-    backing_vertices: set[int] = set()
-    backing_center: Vector | None = None
-    removed_components = 0
-
-    for component in rows:
-        if component["count"] > 20:
-            continue
-        point = component["point"]
-        vertical = (point.z - minimum.z) / max(size.z, 1e-6)
-        is_left_chest = (
-            point.x < center.x - size.x * 0.08
-            and point.y < center.y - size.y * 0.04
-            and 0.43 <= vertical <= 0.82
-        )
-        if not is_left_chest:
-            continue
-
-        is_backing_plate = (
-            component["count"] == 8
-            and 0.64 <= vertical <= 0.73
-            and point.x < center.x - size.x * 0.18
-        )
-        if is_backing_plate:
-            backing_vertices.update(component["vertices"])
-            backing_center = point.copy()
-            continue
-
-        is_lower_badge_ribbon = (
-            component["count"] == 5
-            and 0.50 <= vertical <= 0.55
-            and point.x < center.x - size.x * 0.20
-            and point.y < center.y - size.y * 0.20
-        )
-
-        mirrored = any(
-            other is not component
-            and other["point"].x > center.x + size.x * 0.04
-            and abs((other["point"].x - center.x) + (point.x - center.x)) <= size.x * 0.05
-            and abs(other["point"].y - point.y) <= size.y * 0.06
-            and abs(other["point"].z - point.z) <= size.z * 0.05
-            and abs(other["count"] - component["count"]) <= max(2, int(component["count"] * 0.5))
-            for other in rows
-        )
-        if mirrored and not is_lower_badge_ribbon:
-            continue
-
-        removed_components += 1
-        remove_vertices.update(component["vertices"])
-
-    if backing_center is None or not backing_vertices:
-        raise RuntimeError("KayKit Knight chest backing plate was not identified")
-
-    # Keep the source-derived cleanup as a secondary safeguard. The enlarged backing
-    # above is the visual closure: it covers any exporter-created seam fragments while
-    # this pass removes compact detached source islands when Blender exposes them.
-    fragment_radius = max(size.x, size.y, size.z) * 0.14
-    for component in rows:
-        extent = component["extent"]
-        compact = (
-            component["count"] <= 5
-            and extent.x <= size.x * 0.14
-            and extent.y <= size.y * 0.14
-            and extent.z <= size.z * 0.14
-        )
-        if not compact:
-            continue
-        if (component["point"] - backing_center).length > fragment_radius:
-            continue
-        removed_components += 1
-        remove_vertices.update(component["vertices"])
-
-    if not remove_vertices:
-        raise RuntimeError("KayKit Knight chest badge fragments were not identified")
-    _seat_badge_backing_as_linen_patch(obj, backing_vertices)
-    faces_removed = _delete_vertices(obj, remove_vertices)
-    if faces_removed <= 0:
-        raise RuntimeError("KayKit Knight chest badge removal did not reduce body faces")
-    if removed_components > 80:
-        raise RuntimeError(f"KayKit Knight chest badge removal selected too many islands: {removed_components}")
-    return removed_components
-
-
-def _soften_knight_sleeve(obj: bpy.types.Object) -> None:
-    """Pull copied Knight shoulders inward while retaining arm length and skinning."""
-    if "arm" not in obj.name.lower() or not obj.data.vertices:
-        return
-    world_points = [obj.matrix_world @ vertex.co for vertex in obj.data.vertices]
-    radial = [abs(point.x) for point in world_points]
-    start, end = min(radial), max(radial)
-    span = max(end - start, 1e-6)
-    shoulder_points = [
-        point for point, distance in zip(world_points, radial)
-        if (distance - start) / span <= 0.20
-    ]
-    if not shoulder_points:
-        return
-    center_y = sum(point.y for point in shoulder_points) / len(shoulder_points)
-    center_z = sum(point.z for point in shoulder_points) / len(shoulder_points)
-    inverse = obj.matrix_world.inverted()
-    for vertex, point, distance in zip(obj.data.vertices, world_points, radial):
-        along = (distance - start) / span
-        if along >= 0.42:
-            continue
-        t = max(0.0, min(1.0, along / 0.42))
-        smooth = t * t * (3.0 - 2.0 * t)
-        factor = 0.72 + 0.28 * smooth
-        point.y = center_y + (point.y - center_y) * factor
-        point.z = center_z + (point.z - center_z) * factor
-        vertex.co = inverse @ point
-    obj.data.update()
-
-
 def _material_slots(obj: bpy.types.Object, materials: list[bpy.types.Material]) -> None:
     obj.data.materials.clear()
     for mat in materials:
         obj.data.materials.append(mat)
 
 
-def _assign_component_materials(obj: bpy.types.Object, classifier) -> None:
-    for component in _component_rows(obj):
-        material_index = int(classifier(component))
-        for face_index in component["faces"]:
-            if face_index < len(obj.data.polygons):
-                obj.data.polygons[face_index].material_index = material_index
+def _rebind_to_knight_rig(obj: bpy.types.Object, donor_armatures: list[bpy.types.Object], knight_armature: bpy.types.Object) -> None:
+    donor_bones = {bone.name for armature in donor_armatures for bone in armature.data.bones}
+    knight_bones = {bone.name for bone in knight_armature.data.bones}
+    if donor_bones and not donor_bones.issubset(knight_bones):
+        missing = sorted(donor_bones - knight_bones)
+        raise RuntimeError(f"Rogue donor rig is not Rig_Medium-compatible: {missing}")
+
+    world = obj.matrix_world.copy()
+    for modifier in obj.modifiers:
+        if modifier.type == "ARMATURE":
+            modifier.object = knight_armature
+    if obj.parent in donor_armatures:
+        obj.parent = knight_armature
+        obj.matrix_world = world
+
+
+def add_rogue_tunic_donor(work_dir: Path, knight_armature: bpy.types.Object, meshes: list[bpy.types.Object]) -> tuple[list[bpy.types.Object], list[str]]:
+    """Replace only Knight_Body with the same-pack Rogue_Body clothing shell.
+
+    The Rogue body is almost dimension-identical and uses the same Rig_Medium bone
+    names.  Its weapons, cape, head and limbs are discarded.  This removes the knight
+    medal at the source instead of carving the badge out of a skinned torso.
+    """
+    rogue_path = module.download_verified(module.ROGUE, work_dir / module.ROGUE["file"])
+    imported = module.import_gltf(rogue_path)
+    rogue_armatures = [obj for obj in imported if obj.type == "ARMATURE"]
+    bodies = [obj for obj in imported if obj.type == "MESH" and obj.name == "Rogue_Body"]
+    if len(bodies) != 1:
+        raise RuntimeError(f"Rogue.glb expected exactly one Rogue_Body, got {[obj.name for obj in bodies]}")
+    rogue_body = bodies[0]
+
+    knight_bodies = [obj for obj in meshes if "body" in obj.name.lower()]
+    if len(knight_bodies) != 1:
+        raise RuntimeError(f"Knight protagonist expected one body part before torso swap: {[obj.name for obj in knight_bodies]}")
+    knight_body = knight_bodies[0]
+
+    _rebind_to_knight_rig(rogue_body, rogue_armatures, knight_armature)
+    rogue_body.name = "Protagonist_RogueTunic_Body"
+    rogue_body["rinneSourceModel"] = "Rogue.glb"
+    rogue_body["rinneSourcePart"] = "Rogue_Body"
+    rogue_body["rinneUsage"] = "village-tunic-torso-only"
+
+    result = [obj for obj in meshes if obj is not knight_body]
+    module.remove_object(knight_body)
+    result.append(rogue_body)
+
+    # Hair is optional and only retained if the pack exposes an explicit hair object.
+    hair = [
+        obj for obj in imported
+        if obj.type == "MESH" and obj.name.lower().startswith("rogue_") and "hair" in obj.name.lower()
+    ]
+    used_hair = []
+    if not any("hair" in obj.name.lower() for obj in result):
+        for obj in hair:
+            _rebind_to_knight_rig(obj, rogue_armatures, knight_armature)
+            obj.name = obj.name.replace("Rogue_", "Protagonist_KayKitHair_", 1)
+            obj["rinneSourceModel"] = "Rogue.glb"
+            obj["rinneUsage"] = "hair-only"
+            result.append(obj)
+            used_hair.append(obj.name)
+
+    keep = {rogue_body, *[obj for obj in result if obj in hair]}
+    for obj in imported:
+        if obj not in keep:
+            module.remove_object(obj)
+
+    return result, used_hair
+
+
+def _soften_knight_sleeve(obj: bpy.types.Object) -> None:
+    if "arm" not in obj.name.lower() or not obj.data.vertices:
+        return
+    points = [obj.matrix_world @ vertex.co for vertex in obj.data.vertices]
+    radial = [abs(point.x) for point in points]
+    start, end = min(radial), max(radial)
+    span = max(end - start, 1e-6)
+    shoulder = [point for point, distance in zip(points, radial) if (distance - start) / span <= 0.20]
+    if not shoulder:
+        return
+    center_y = sum(point.y for point in shoulder) / len(shoulder)
+    center_z = sum(point.z for point in shoulder) / len(shoulder)
+    inverse = obj.matrix_world.inverted()
+    for vertex, point, distance in zip(obj.data.vertices, points, radial):
+        along = (distance - start) / span
+        if along >= 0.42:
+            continue
+        t = max(0.0, min(1.0, along / 0.42))
+        smooth = t * t * (3.0 - 2.0 * t)
+        factor = 0.74 + 0.26 * smooth
+        point.y = center_y + (point.y - center_y) * factor
+        point.z = center_z + (point.z - center_z) * factor
+        vertex.co = inverse @ point
+    obj.data.update()
 
 
 def villageize_source_parts(meshes: list[bpy.types.Object]) -> None:
-    """Dress copied Knight parts as a plain village-start outfit."""
+    """Use source geometry unchanged apart from mild Knight sleeve softening."""
     linen = module.material("PROTAGONIST_LINEN", (0.52, 0.40, 0.26, 1.0))
     olive = module.material("PROTAGONIST_OLIVE", (0.15, 0.18, 0.075, 1.0))
     leather = module.material("PROTAGONIST_LEATHER", (0.085, 0.045, 0.020, 1.0))
@@ -292,7 +168,6 @@ def villageize_source_parts(meshes: list[bpy.types.Object]) -> None:
             continue
 
         if "body" in name:
-            _remove_knight_chest_badge(obj)
             _material_slots(obj, [linen])
             for polygon in obj.data.polygons:
                 polygon.material_index = 0
@@ -301,27 +176,25 @@ def villageize_source_parts(meshes: list[bpy.types.Object]) -> None:
         if "arm" in name:
             _soften_knight_sleeve(obj)
             _material_slots(obj, [linen, skin])
-            abs_x = [abs((obj.matrix_world @ vertex.co).x) for vertex in obj.data.vertices]
-            start, end = min(abs_x), max(abs_x)
-            span = max(end - start, 1e-6)
-
-            def arm_material(component):
-                along = (abs(component["point"].x) - start) / span
-                return 1 if along >= 0.80 else 0
-
-            _assign_component_materials(obj, arm_material)
+            minimum, maximum = _world_bounds(obj)
+            size = maximum - minimum
+            for polygon in obj.data.polygons:
+                point = _world_center(obj, polygon)
+                lateral = abs(point.x)
+                outer = max(abs(minimum.x), abs(maximum.x))
+                inner = min(abs(minimum.x), abs(maximum.x))
+                along = (lateral - inner) / max(outer - inner, 1e-6)
+                polygon.material_index = 1 if along >= 0.80 else 0
             continue
 
         if "leg" in name:
             _material_slots(obj, [olive, leather])
             minimum, maximum = _world_bounds(obj)
             size = maximum - minimum
-
-            def leg_material(component):
-                vertical = (component["point"].z - minimum.z) / max(size.z, 1e-6)
-                return 0 if vertical >= 0.48 else 1
-
-            _assign_component_materials(obj, leg_material)
+            for polygon in obj.data.polygons:
+                point = _world_center(obj, polygon)
+                vertical = (point.z - minimum.z) / max(size.z, 1e-6)
+                polygon.material_index = 0 if vertical >= 0.48 else 1
             continue
 
         _material_slots(obj, [linen])
@@ -330,5 +203,6 @@ def villageize_source_parts(meshes: list[bpy.types.Object]) -> None:
 
 
 module.reset_scene = reset_scene_with_world
+module.add_optional_kaykit_hair = add_rogue_tunic_donor
 module.villageize_materials = villageize_source_parts
 module.main()
