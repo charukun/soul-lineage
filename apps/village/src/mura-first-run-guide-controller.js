@@ -7,7 +7,9 @@ const TAP_DISTANCE=7;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 
 function timingFor(reduced){
- return reduced?{read:300,tap:460,drag:650,confirm:260}:{read:760,tap:780,drag:1380,confirm:620};
+ return reduced
+  ?{read:350,tap:700,drag:900,confirm:300,hold:1100,repeat:2600}
+  :{read:850,tap:1300,drag:2200,confirm:650,hold:900,repeat:1700};
 }
 
 function accept(ctx,next,message){
