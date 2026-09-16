@@ -1,65 +1,47 @@
-# Browser self-healing
+# Browser verification and repair
 
-Browser failures are first-class repair events. The source of truth is GitHub: failing run, artifacts, machine-readable repair state, source PR/develop and final browser result. main / Production are never modified by this flow.
+Browser automation is **opt-in for normal develop work**. The source of truth for normal integration is the exact-head fast validation/build result and current GitHub state. main / Production browser gates remain unchanged.
 
-Browser verification is **asynchronous to Integration Fast Lane** on develop. A browser failure never globally freezes independent Ready PRs.
+Normal PRs targeting `develop` and normal DEV publication do not automatically launch gameplay/WebGL browser scenarios, create browser evidence artifacts, or create browser-repair tickets. A stale UI selector or presentation-only browser assertion must not turn an otherwise valid develop change red.
 
-## Work-free flow
+## Default develop route
 
-### PR failure while the PR is still open
+`PR -> fast validation/build -> Integration Fast Lane -> develop -> DEV publication -> HTTP/source verification`
 
-`PR -> browser smoke -> failure evidence -> GitHub mechanical retry/diagnosis -> semantic source repair needed -> owner-notified Chat Repair Issue -> user starts normal Chat -> same PR repair -> CI/browser rerun`
+The default route deliberately excludes automatic PR browser smoke, DEV candidate browser verification, post-publication DEV browser verification, and browser self-healing dispatch. Unit/integration tests, syntax checks, workspace boundaries, code-health, builds, exact-head evidence, deployment identity and HTTP/source verification remain active.
 
-The browser job stores screenshots, Playwright trace, JSON console/network diagnostics and preview logs in `pr-browser-<pr>-<sha>`.
+## When browser verification runs
 
-GitHub Actions owns deterministic rerun/evidence handling. A source-level semantic repair must not start ChatGPT Work/Codex/API. It is converted to the same normal-Chat handoff defined by [`INTEGRATION_DEEP_REPAIR.md`](INTEGRATION_DEEP_REPAIR.md).
+Browser automation is still available when it is actually requested or release-critical:
 
-### PR browser failure arriving after merge
+- the user explicitly asks to play, operate, or verify the app in a browser, following [`BROWSER_PLAYTEST_ROUTING.md`](BROWSER_PLAYTEST_ROUTING.md);
+- `deploy.yml` is explicitly dispatched with `full_verification=true`, which runs the separate public browser/WebGL/P2P diagnostic suite;
+- a specialist workflow explicitly requires browser evidence for its own artifact contract;
+- main / Production publication, where the blocking browser gate is preserved.
 
-If the failed PR head was merged and remains an ancestor of current develop, promote the failure to a current-develop repair generation instead of discarding it as stale. Mechanical verification remains in GitHub. If code meaning must change, create an owner-notified normal-Chat handoff.
+An explicit browser run is diagnostic evidence unless the governing main / Production contract makes it blocking. It does not retroactively become a default develop merge gate.
 
-### develop / DEV failure
+## Browser failure handling
 
-`develop -> DEV publish/browser -> failure -> GitHub evidence/retry -> semantic source repair needed -> owner-notified Chat Repair Issue -> normal Chat repair PR -> Fast Lane -> DEV browser verification`
+When an explicit browser run fails, inspect evidence in this order: JSON report, console/page errors, failed requests, screenshot, trace, then only the necessary Actions log excerpts. Network-only/transient failures may receive a bounded GitHub-side retry when the evidence supports that diagnosis. Repeated failures must be fixed, not hidden with retries or relaxed assertions.
 
-A develop repair PR continues to include the originating repair Issue reference so final public verification can close the same recovery record.
+If an explicit browser failure proves a source-level semantic defect, route it through the normal Chat Repair handoff described by [`INTEGRATION_DEEP_REPAIR.md`](INTEGRATION_DEEP_REPAIR.md). Do not start ChatGPT Work, Codex, OpenAI API, or an additional paid-model repair loop.
 
-## Machine-readable state and dedupe
-
-Existing `browser-repair:v1` records may remain for browser-specific evidence and attempt bookkeeping. They are not a trigger for ChatGPT Work.
-
-For source semantic repair, create or reuse the exact-head `integration-deep-repair:v1` + `chat-repair:v1` Issue. Deduplicate by failure source/exact head and never start a second source repair while the same current repair record already owns it.
-
-Explicit hold, Changes requested, unresolved threads, external/untrusted PRs, main and Production remain non-repairable automatically.
-
-## Normal Chat repair contract
-
-The owner notification Issue contains a copy/paste prompt. The user manually starts a normal Chat; there is no background Work task.
-
-The Chat must:
+The repair Chat must:
 
 - re-read current GitHub state before changing code;
-- inspect JSON report, console/page errors, failed requests, screenshot and trace first, and only the necessary job-log range after that;
-- identify the smallest root-cause fix without weakening browser assertions, forcing input, increasing deadlines to hide defects, or disabling production animation;
-- for an open PR, repair the existing PR branch only;
-- for a develop-scope defect, create the normal short-lived repair branch/Draft PR from latest develop before code edits;
-- use normal git -> connected GitHub API -> existing Codespaces + normal git only as transport fallback;
-- never use ChatGPT Work, Codex, OpenAI API or additional paid model APIs;
+- identify the smallest root-cause fix without weakening browser assertions, forcing input, or increasing deadlines to hide defects;
+- repair the existing PR branch when the source PR is still open;
+- create a normal short-lived repair branch/Draft PR from latest develop for a develop-scope defect;
 - run focused checks/fast validation, push, Ready -> `READY_FOR_INTEGRATION`, then stop without polling CI/browser/DEV;
 - leave a true unresolved product/schema/save/protocol decision as `human-required` with the exact decision needed.
 
-## Evidence and retry handling
-
-On browser failure inspect in this order: JSON report, console/page errors, failed requests, screenshot, trace, then necessary Actions log excerpts. Network-only/transient failure may receive a bounded GitHub-side retry when evidence supports that diagnosis. Repeated failure must be fixed, not hidden with retries or relaxed assertions.
-
-Normal success has no repair handoff. Source repair is complete only when the repaired head passes the normal repository gates and the appropriate browser verification records success.
-
 ## Native input during animated UI transitions
 
-A visible control may still be moving or briefly covered while a drawer opens. Browser helpers must wait within the existing input timeout for a positive-size native hit target, then send real pointer input. Permanent occlusion must still fail; do not force-click, inject DOM clicks, disable production animation, or extend scenario deadlines to hide it. Cover transient and persistent occlusion in regression tests.
+When browser verification is explicitly run, a visible control may still be moving or briefly covered while a drawer opens. Browser helpers must wait within the existing input timeout for a positive-size native hit target, then send real pointer input. Permanent occlusion must still fail; do not force-click, inject DOM clicks, disable production animation, or extend scenario deadlines to hide it. Cover transient and persistent occlusion in regression tests.
 
-An Integration run that requires public DEV verification must run browser cases even if deployment reuses every app artifact. An empty build delta does not certify a previously failed browser result. Production target selection and Production blocking gates remain unchanged.
+## Legacy browser-repair records
 
-## Legacy Work trigger
+Existing `browser-repair:v1` Issues and old `pr-browser-*` / `dev-browser-*` artifacts remain historical evidence. They do not trigger new automatic develop browser runs or source-repair work. Do not recreate the retired ChatGPT Work browser-repair trigger.
 
-Any previous ChatGPT Work browser-repair trigger is retired. Do not recreate, re-enable or use it as fallback. Historical `browser-repair:v1` Issues remain valid evidence/recovery records, but source repair now routes through GitHub notification -> manually started normal Chat.
+Explicit holds, Changes requested, unresolved threads, external/untrusted PRs, main and Production remain protected by their existing gates. Production target selection and blocking browser verification remain unchanged.
