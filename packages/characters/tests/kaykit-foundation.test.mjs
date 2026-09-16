@@ -39,8 +39,8 @@ test('the five pinned KayKit models have immutable provenance and local runtime 
   }
 });
 
-test('runtime selection is deterministic and preserves an explicit Knight default', () => {
-  assert.equal(KAYKIT_DEFAULT_MODEL_ID, 'kaykit.knight.v1');
+test('runtime selection is deterministic and preserves an explicit Rogue hero default', () => {
+  assert.equal(KAYKIT_DEFAULT_MODEL_ID, 'kaykit.rogue.v1');
   assert.equal(selectKaykitModel({ kind: 'hero', key: 'player' }).id, KAYKIT_DEFAULT_MODEL_ID);
   assert.equal(selectKaykitModel({ kind: 'mother', key: 'village' }).id, 'kaykit.rogue-hooded.v1');
   const a = selectKaykitModel({ kind: 'enemy', key: 'enemy-7', index: 2 });
