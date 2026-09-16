@@ -1,3 +1,4 @@
+import {readHuntPresentation} from './presentation-snapshot.js';
 const SENSE_REFRESH_MS=16_250;
 
 const byId=id=>document.getElementById(id);
@@ -6,7 +7,7 @@ let lastSenseAt=-Infinity;
 let returnActivated=false;
 
 function readSnapshot(){
-  try{return window.__NIGHT_HUNT__?.snapshot?.()||null;}catch{return null;}
+  try{return readHuntPresentation(window.__NIGHT_HUNT__);}catch{return null;}
 }
 
 function compactReturnHint(){

@@ -1,5 +1,6 @@
 import {PREY} from '@soul/raid/world';
 import {hasCompletedFirstHunt} from './first-hunt-guide.js';
+import {readHuntPresentation} from './presentation-snapshot.js';
 
 const distance=(a,b)=>Math.hypot((a?.x||0)-(b?.x||0),(a?.z||0)-(b?.z||0));
 
@@ -92,12 +93,12 @@ export function installFirstHuntDirector(){
  if(!window.__NIGHT_HUNT__||window.__FIRST_HUNT_DIRECTOR__)return()=>{};
  window.__FIRST_HUNT_DIRECTOR__=true;
  const ui=ensureUi(),hud=document.querySelector('#hud'),guide=document.querySelector('#first-hunt-guide'),kicker=document.querySelector('#objective small'),objective=document.querySelector('#objective span');
- let stopped=false,gainUntil=0,previous=window.__NIGHT_HUNT__.snapshot(),previousEaten=Number(previous?.eaten)||0,previousUnlocked=new Set(previous?.profile?.unlocked||[]);
+ let stopped=false,gainUntil=0,previous=readHuntPresentation(window.__NIGHT_HUNT__),previousEaten=Number(previous?.eaten)||0,previousUnlocked=new Set(previous?.profile?.unlocked||[]);
  const labelFor=id=>[...document.querySelectorAll('.nameplate')].find(el=>el.dataset.npc===id);
  function clearLabels(){for(const el of document.querySelectorAll('.nameplate.first-hunt-prey,.nameplate.first-hunt-choice-prey'))el.classList.remove('first-hunt-prey','first-hunt-choice-prey');}
  function frame(now){
   if(stopped)return;
-  const snapshot=window.__NIGHT_HUNT__?.snapshot?.();
+  const snapshot=readHuntPresentation(window.__NIGHT_HUNT__);
   if(snapshot){
    const state=firstHuntDirectorState(snapshot);
    document.body.classList.toggle('first-hunt-active',state.active);
