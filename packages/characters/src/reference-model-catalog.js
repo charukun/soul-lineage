@@ -45,7 +45,7 @@ const protagonist = {
   referencePath: 'docs/characters/references/protagonist-villager-v1.svg',
   profile,
   referenceStyle: {
-    version: 2,
+    version: 1,
     design: 'protagonist-kaykit-knight-derivative',
     scale: .72,
     palette: {
