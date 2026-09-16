@@ -55,6 +55,8 @@
   "status": {
     "visualApproval": "pending",
     "productionReady": false,
-    "note": "Blender-authored Arcanist Atlas PRIMARY comparison candidate. Existing runtime Arcanist and Atlas blockout remain separate. Deformation, motion, polish, physical-device performance and explicit visual approval remain open gates."
+    "licensePolicy": "blocked-rerig",
+    "distributionEligible": false,
+    "note": "RINNE-authored surfaces are retained for re-rig migration only. The current output uses the retired conditional Shino carrier rig and cannot advance to RUNTIME_READY until rebuilt on CC0 or RINNE-owned rig provenance."
   }
 }

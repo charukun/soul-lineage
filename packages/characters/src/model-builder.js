@@ -1,5 +1,11 @@
-import { deepFreeze, invariant } from './master-character.js';
+import { deepFreeze, invariant, MASTER_ID } from './master-character.js';
 import { characterReferenceModel } from './reference-models.js';
+import { KAYKIT_DEFAULT_MODEL_ID, KAYKIT_RIG_ID } from './kaykit-foundation.js';
+import {
+  BLOCKED_RERIG_CHARACTER_IDS,
+  RETIRED_CONDITIONAL_CHARACTER_IDS,
+  evaluateCharacterLicensePolicy
+} from './license-policy.js';
 import { createCharacterRefinementPolicy, validateCharacterRefinementPolicy } from './refinement-policy.js';
 
 export const CHARACTER_MODEL_BUILD_REQUEST_VERSION = 1;
@@ -8,6 +14,7 @@ export const CHARACTER_MODEL_DISTRIBUTION_VERSION = 1;
 
 export const CHARACTER_MODEL_REQUIRED_GATES = Object.freeze([
   'provenance',
+  'license',
   'identity',
   'silhouette',
   'topology',
@@ -69,11 +76,19 @@ function productionContract(reference) {
   };
 }
 
+function assertReferenceLicenseEligible(referenceId) {
+  invariant(!RETIRED_CONDITIONAL_CHARACTER_IDS.includes(referenceId), `Retired conditional character reference: ${referenceId}`);
+  invariant(!BLOCKED_RERIG_CHARACTER_IDS.includes(referenceId), `Character reference requires unconditional re-rig: ${referenceId}`);
+}
+
 /**
  * Convert one repository character reference into a provider-neutral build request.
  * The request describes what may be generated; it does not approve or adopt an asset.
+ * New model work always targets the pinned CC0 KayKit rig family or an explicitly
+ * RINNE-owned replacement, never the retired conditional MasterCharacter carrier.
  */
 export function createCharacterModelBuildRequest(referenceId, options = {}) {
+  assertReferenceLicenseEligible(referenceId);
   const reference = characterReferenceModel(referenceId);
   const production = productionContract(reference);
   const provider = options.provider == null ? 'unassigned' : stringValue(options.provider, 'provider');
@@ -95,16 +110,22 @@ export function createCharacterModelBuildRequest(referenceId, options = {}) {
       id: reference.id,
       label: reference.label,
       characterId: reference.characterId,
-      masterId: reference.masterId,
-      // A runtime reference model is BLOCKOUT evidence, never the production
-      // fallback. Keep the audited MasterCharacter active until every gate passes.
-      fallbackAssetId: reference.masterId,
+      masterId: KAYKIT_DEFAULT_MODEL_ID,
+      fallbackAssetId: KAYKIT_DEFAULT_MODEL_ID,
       referencePath: reference.referencePath,
       profile: clone(reference.profile)
     },
     sourceSections: production.sourceSections,
     authority: production.authority,
-    target: production.target,
+    target: {
+      ...production.target,
+      formats: ['glb'],
+      primaryFormat: 'glb',
+      rigId: KAYKIT_RIG_ID,
+      materialProfiles: ['stylized-pbr-fallback'],
+      preserveExpressions: false,
+      preserveSpringBones: false
+    },
     requirements: {
       ...production.requirements,
       refinement: createCharacterRefinementPolicy()
@@ -134,6 +155,8 @@ export function validateCharacterModelBuildRequest(request) {
   invariant(['adapter-required', 'external-adapter'].includes(provider.mode), 'Invalid provider mode');
   const reference = plainObject(request.reference, 'reference');
   for (const field of ['id', 'label', 'characterId', 'masterId', 'fallbackAssetId', 'referencePath']) stringValue(reference[field], `reference ${field}`, 512);
+  assertReferenceLicenseEligible(reference.id);
+  invariant(reference.masterId !== MASTER_ID && reference.fallbackAssetId !== MASTER_ID, 'Retired conditional MasterCharacter cannot be a build target or fallback');
   plainObject(reference.profile, 'reference profile');
   const authority = plainObject(request.authority, 'authority');
   for (const key of ['currentMaster', 'implementedModularParts', 'proposedParts', 'gameEquipment']) stringList(authority[key], `authority ${key}`);
@@ -141,6 +164,7 @@ export function validateCharacterModelBuildRequest(request) {
   const formats = stringList(target.formats, 'target formats');
   stringValue(target.primaryFormat, 'primary format');
   invariant(formats.includes(target.primaryFormat), 'Primary format must be in target formats');
+  invariant(target.rigId !== 'humanoid.shino-vrm1.v2', 'Retired conditional rig cannot be a build target');
   const requirements = plainObject(request.requirements, 'requirements');
   if (requirements.refinement != null) validateCharacterRefinementPolicy(plainObject(requirements.refinement, 'requirements refinement'));
   const acceptance = plainObject(request.acceptance, 'acceptance');
@@ -181,6 +205,10 @@ export function createCharacterModelCandidate(request, artifact) {
   const sha256 = stringValue(artifact.sha256, 'candidate sha256', 64).toLowerCase();
   invariant(SHA256.test(sha256), 'Invalid candidate sha256');
   const provider = stringValue(artifact.provider ?? request.provider.id, 'candidate provider');
+  const license = artifact.license == null ? null : clone(artifact.license);
+  const ownership = artifact.ownership == null ? '' : stringValue(artifact.ownership, 'candidate ownership');
+  const rigId = artifact.rigId == null ? request.target.rigId : stringValue(artifact.rigId, 'candidate rig id');
+  const rigProvenance = artifact.rigProvenance == null ? '' : stringValue(artifact.rigProvenance, 'candidate rig provenance', 1000);
   const gates = Object.fromEntries(request.acceptance.requiredGates.map(gate => [gate, { status: 'pending', evidence: [] }]));
   return deepFreeze({
     version: CHARACTER_MODEL_CANDIDATE_VERSION,
@@ -191,7 +219,7 @@ export function createCharacterModelCandidate(request, artifact) {
     characterId: request.reference.characterId,
     masterId: request.reference.masterId,
     fallbackAssetId: request.reference.fallbackAssetId,
-    artifact: { format, path, sha256, provider },
+    artifact: { format, path, sha256, provider, license, ownership, rigId, rigProvenance },
     acceptance: { status: 'pending', requiredGates: [...request.acceptance.requiredGates], gates }
   });
 }
@@ -201,11 +229,16 @@ export function validateCharacterModelCandidate(candidate) {
   invariant(candidate.version === CHARACTER_MODEL_CANDIDATE_VERSION, 'Unsupported character model candidate version');
   invariant(candidate.kind === 'character-model-candidate', 'Invalid character model candidate kind');
   for (const field of ['id', 'requestId', 'referenceId', 'characterId', 'masterId', 'fallbackAssetId']) stringValue(candidate[field], `candidate ${field}`);
+  assertReferenceLicenseEligible(candidate.referenceId);
+  invariant(candidate.masterId !== MASTER_ID && candidate.fallbackAssetId !== MASTER_ID, 'Retired conditional MasterCharacter cannot be distributed');
   const artifact = plainObject(candidate.artifact, 'candidate artifact');
   stringValue(artifact.format, 'candidate format');
   stringValue(artifact.path, 'candidate path', 1024);
   invariant(SHA256.test(stringValue(artifact.sha256, 'candidate sha256', 64)), 'Invalid candidate sha256');
   stringValue(artifact.provider, 'candidate provider');
+  if (artifact.ownership) stringValue(artifact.ownership, 'candidate ownership');
+  if (artifact.rigId) stringValue(artifact.rigId, 'candidate rig id');
+  if (artifact.rigProvenance) stringValue(artifact.rigProvenance, 'candidate rig provenance', 1000);
   const acceptance = plainObject(candidate.acceptance, 'candidate acceptance');
   invariant(BUILD_STATUSES.has(acceptance.status), 'Invalid candidate status');
   const required = stringList(acceptance.requiredGates, 'candidate required gates');
@@ -251,6 +284,14 @@ export function reviewCharacterModelCandidate(candidate, results = {}) {
 export function createCharacterDistributionManifest(candidate, targets = CHARACTER_MODEL_DISTRIBUTION_TARGETS) {
   validateCharacterModelCandidate(candidate);
   invariant(candidate.acceptance.status === 'accepted', 'Character model candidate is not accepted');
+  const license = evaluateCharacterLicensePolicy({
+    id: candidate.referenceId,
+    license: candidate.artifact.license,
+    ownership: candidate.artifact.ownership,
+    rigId: candidate.artifact.rigId,
+    rigProvenance: candidate.artifact.rigProvenance
+  });
+  invariant(license.allowed, `Character model candidate license rejected: ${license.reason}`);
   const apps = stringList([...targets], 'distribution targets');
   invariant(apps.length > 0, 'At least one distribution target is required');
   return deepFreeze({
@@ -262,6 +303,7 @@ export function createCharacterDistributionManifest(candidate, targets = CHARACT
     masterId: candidate.masterId,
     fallbackAssetId: candidate.fallbackAssetId,
     artifact: clone(candidate.artifact),
+    licensePolicy: clone(license),
     targets: apps.map(appId => ({ appId, mode: 'shared-character-asset' })),
     adoptionPolicy: 'integration-exact-head-after-acceptance'
   });

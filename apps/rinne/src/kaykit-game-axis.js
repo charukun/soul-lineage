@@ -1,10 +1,10 @@
 export const KAYKIT_GAME_AXIS = Object.freeze({
-  id: 'kaykit-first-v1',
-  label: 'KayKit Game Axis',
+  id: 'kaykit-first-v2',
+  label: 'KayKit License-Clean Game Axis',
   primaryRuntime: './lanternfell/index.html',
   primaryModel: 'knight',
   playableModels: Object.freeze(['knight', 'rogue', 'mage', 'barbarian']),
-  comparisonModel: 'shino.reference.v2',
+  comparisonModel: null,
   source: Object.freeze({
     adventurers: Object.freeze({
       repository: 'KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0',
@@ -14,8 +14,11 @@ export const KAYKIT_GAME_AXIS = Object.freeze({
   }),
   policy: Object.freeze({
     newGameplayFeaturesFollowKayKitRuntime: true,
-    shinoIsCompatibilityReference: true,
+    activeCharacterLicenses: Object.freeze(['CC0-1.0', 'RINNE-owned']),
+    conditionalCommercialModelsRetired: true,
+    shinoIsCompatibilityReference: false,
     shinoIsRequiredForNewGameplay: false,
+    preserveLegacyIdsForMigrationOnly: true,
     preserveSaveAndGameplayAuthority: true
   })
 });
