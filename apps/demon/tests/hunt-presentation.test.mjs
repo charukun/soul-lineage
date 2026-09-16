@@ -5,6 +5,7 @@ import {RaidSession} from '@soul/raid/single-session';
 import {freshProfile} from '@soul/raid/profile';
 import {pickRandomRaid} from '../src/web/raid-routes.js';
 import {sampleDevourMotion,DEVOUR_PHASES} from '../src/web/devour-motion.js';
+import {growthCameraFrame} from '../src/web/view.js';
 const profile={visits:{},unlocked:[],hunts:0};
 const offers=['small','medium','large'].map((raidScale,i)=>({id:'route:'+i,seed:i+1,name:'村'+i,target:'traveller',raidScale,source:'generated'}));
 
@@ -45,6 +46,13 @@ test('feeding action stays committed for more than four seconds and carries grow
  for(let i=0;i<7&&!prey.eaten;i++)game.tick(1/30,{x:0,z:0,amount:0});
  assert.equal(prey.eaten,true);assert.equal(game.devour,null);
 });
+test('camera framing expands smoothly from tiny body to giant body',()=>{
+ const tiny=growthCameraFrame(.28,false),mid=growthCameraFrame(1,false),giant=growthCameraFrame(3.2,false);
+ assert.equal(tiny.scale,.28);assert.equal(giant.scale,3.2);
+ assert.ok(tiny.zoom<mid.zoom&&mid.zoom<giant.zoom);assert.ok(giant.zoom>tiny.zoom*2);
+ assert.ok(giant.lookY>mid.lookY&&mid.lookY>tiny.lookY);assert.ok(giant.shadow>mid.shadow&&mid.shadow>tiny.shadow);
+ assert.deepEqual(growthCameraFrame(99,false),giant);
+});
 test('motion is continuous, finite, bounded, deterministic and clamps invalid input',()=>{
  for(let i=0;i<=1000;i++){
   const p=sampleDevourMotion(i/1000),prev=sampleDevourMotion(Math.max(0,i-1)/1000);
@@ -68,14 +76,16 @@ test('UI uses lineage and adaptive combat instead of manual technique slots',()=
 });
 test('real adapter and grouped session preserve devour, escape and random-route contracts',()=>{
  const creature=readFileSync(new URL('../src/web/creatures.js',import.meta.url),'utf8');
+ const view=readFileSync(new URL('../src/web/view.js',import.meta.url),'utf8');
  const grouped=readFileSync(new URL(import.meta.resolve('@soul/raid')),'utf8');
  const single=readFileSync(new URL(import.meta.resolve('@soul/raid/single-session')),'utf8');
  const main=readFileSync(new URL('../src/web/main.js',import.meta.url),'utf8');
  const index=readFileSync(new URL('../index.html',import.meta.url),'utf8');
- assert.match(creature,/Number\.isFinite\(a\.devourProgress\)/);assert.match(creature,/applyCapturedPose\(g,a\.capturedBy\)/);assert.match(creature,/Math\.min\(1\.28/);
+ assert.match(creature,/Number\.isFinite\(a\.devourProgress\)/);assert.match(creature,/applyCapturedPose\(g,a\.capturedBy\)/);assert.match(creature,/Math\.min\(3\.2/);
  assert.match(creature,/foot\.quaternion\.copy\(inverse\)/);assert.ok(!creature.includes('Math.sin(time*10)'));
+ assert.match(view,/growthCameraFrame\(p\.growthScale/);assert.match(view,/growthFrame\.shadow/);
  assert.match(grouped,/extends SingleRaidSession/);assert.match(grouped,/combatants/);assert.match(grouped,/if\(this\.devour\)/);
- assert.match(single,/advanceDevour\(this,dt,v\.amount\)/);assert.match(single,/cancelDevour\(this\)/);assert.match(single,/escapePoints\(\)/);assert.match(single,/feedingGrowth/);
+ assert.match(single,/advanceDevour\(this,dt,v\.amount\)/);assert.match(single,/cancelDevour\(this\)/);assert.match(single,/escapePoints\(\)/);assert.match(single,/MONSTER_GROWTH_PROFILES/);assert.match(single,/feedingGrowth/);
  assert.match(main,/pickRandomRaid\(offers,profile\)/);assert.match(main,/huntUiState\(game/);assert.match(main,/game\.nearestEscape\?\.\(\)/);assert.match(main,/if\(game\?\.eaten>0\)guideState\.memorySeen=true/);
  for(const id of ['enemy-name','enemy-health-track','return-label'])assert.ok(index.includes(`id="${id}"`));
  assert.match(single,/autoRoam/);assert.match(single,/f\.retreat/);assert.doesNotMatch(single,/addGuard\(|this\.alarm/);
