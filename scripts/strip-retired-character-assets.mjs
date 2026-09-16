@@ -1,6 +1,6 @@
 import { access, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import { NON_DISTRIBUTABLE_CHARACTER_FILES } from '../packages/characters/src/license-policy.js';
 
 const PUBLIC_PREFIX = 'apps/rinne/public/';
