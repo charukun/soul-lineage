@@ -31,6 +31,16 @@ PR browser artifactには対象・要求・実行結果を示す `playtest-recei
 
 `Browser-Playtest:` はReady前に確定する。Ready後に対象を変える場合は、同じPRで新headをpushするかDraft→Readyをやり直して通常browser runを再起動し、本文だけを書き換えて検証済みと扱わない。
 
+### playthroughのブラウザ隔離
+
+同じアプリで「起動/WebGLの軽量probe」と「保存・タイトル復帰を含むfull playthrough」を連続実行する場合、probe用BrowserContextを閉じてからfull playthroughを開始する。二つのruntimeを同時に生かしたまま同一originの保存・exclusive-tab・lifecycle状態を競合させない。これは検証を弱めるためではなく、各playthroughを実ユーザーの単一タブ起動に近い独立セッションとして成立させるための隔離条件である。
+
+### 一時的に隠れるHUDをready判定に使わない
+
+起動直後の演出やゲーム状態によって意図的に隠れる常設HUD要素を、playthrough開始条件へ使わない。たとえば輪廻転焦の出生期は `data-birth-tour=true` の間、右上の目的カードを隠し、母との会話・頭上の短い状態表示・実際の村巡りで導入する。この状態で `#objective` の可視化を待つことは、現在のUI契約ではなく旧HUDを要求することになる。
+
+playthroughのready判定は、runtimeがactiveであること、loadingが消えたこと、canvas / 現在状態で利用できる主要操作が成立していることを基準にする。後続の各phaseでは目的テキストや状態値そのものを引き続き検証してよいが、現在の仕様で隠すことが確定した旧操作や一時的HUDを表示させたりforce clickして検証を通してはいけない。
+
 ## PRを伴わない現在developの確認
 
 コード変更なしで現在のdevelopを実際に触って確認する場合は、新しいworkflowを増やさず既存の `Deploy DEV and PROD` workflowを `ref=develop`, `full_verification=true` でdispatchする。この経路は現在のdevelopをDEVへ整合させたうえで、`INTEGRATION_FULL=true` のpublic Chromium / WebGL2検証を全DEV targetへ実行し、既存artifactとstatusへ証拠を残す。必要なP2P診断も既存full verificationに含まれる。

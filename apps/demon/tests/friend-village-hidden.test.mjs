@@ -45,6 +45,6 @@ test('browser gate enforces absent player-village entry instead of reopening it'
  assert.match(browser,/locator\('#online-box'\)\)\.toHaveCount\(0\)/);
  assert.doesNotMatch(browser,/locator\('#online-settings'\)\.click/);
  assert.match(browser,/firstHuntDirectorState\(state\)\.stage/);
- assert.equal([...browser.matchAll(/await assertHuntGuideState\(page, expect\)/g)].length,2);
- assert.doesNotMatch(browser,/assertHuntGuideState\(page, expect, (?:false|true)\)/);
+ assert.equal([...browser.matchAll(/await assertMovementOnlyHuntState\(page, expect\)/g)].length,2);
+ assert.doesNotMatch(browser,/assertMovementOnlyHuntState\(page, expect, (?:false|true)\)/);
 });

@@ -1,5 +1,6 @@
 import { deepFreeze, invariant } from './master-character.js';
 import { characterReferenceModel } from './reference-models.js';
+import { createCharacterRefinementPolicy, validateCharacterRefinementPolicy } from './refinement-policy.js';
 
 export const CHARACTER_MODEL_BUILD_REQUEST_VERSION = 1;
 export const CHARACTER_MODEL_CANDIDATE_VERSION = 1;
@@ -104,7 +105,10 @@ export function createCharacterModelBuildRequest(referenceId, options = {}) {
     sourceSections: production.sourceSections,
     authority: production.authority,
     target: production.target,
-    requirements: production.requirements,
+    requirements: {
+      ...production.requirements,
+      refinement: createCharacterRefinementPolicy()
+    },
     acceptance: {
       rule: 'all-required-gates-pass',
       requiredGates: [...CHARACTER_MODEL_REQUIRED_GATES]
@@ -137,7 +141,8 @@ export function validateCharacterModelBuildRequest(request) {
   const formats = stringList(target.formats, 'target formats');
   stringValue(target.primaryFormat, 'primary format');
   invariant(formats.includes(target.primaryFormat), 'Primary format must be in target formats');
-  plainObject(request.requirements, 'requirements');
+  const requirements = plainObject(request.requirements, 'requirements');
+  if (requirements.refinement != null) validateCharacterRefinementPolicy(plainObject(requirements.refinement, 'requirements refinement'));
   const acceptance = plainObject(request.acceptance, 'acceptance');
   invariant(acceptance.rule === 'all-required-gates-pass', 'Invalid acceptance rule');
   const gates = stringList(acceptance.requiredGates, 'acceptance gates');
