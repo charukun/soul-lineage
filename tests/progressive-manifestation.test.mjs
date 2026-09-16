@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {BoxGeometry,Group,Mesh,MeshBasicMaterial} from 'three';
 import {attentionLoadPriority,shouldPromoteAttention} from '@soul/rendering/attention-priority';
 import {
   MANIFESTATION_STAGES,
+  createManifestationEffect,
   createProgressiveManifestation,
   manifestationProfileFor,
   manifestationVisualPhase,
@@ -48,6 +50,15 @@ test('stream reader reports monotonic byte progress before parse handoff',async(
   const stream=new ReadableStream({start(controller){controller.enqueue(new Uint8Array([1,2]));controller.enqueue(new Uint8Array([3,4]));controller.close();}}),progress=[];
   const response=new Response(stream,{status:200,headers:{'content-length':'4'}}),buffer=await readResponseArrayBufferWithProgress(response,{expectedBytes:4,maxBytes:32,onProgress:value=>progress.push(value)});
   assert.deepEqual([...new Uint8Array(buffer)],[1,2,3,4]);assert.equal(progress.at(-1),1);assert.ok(progress.every((value,index)=>index===0||value>=progress[index-1]));
+});
+
+test('subject becomes clearer through forming and restores authored material at completion',()=>{
+  const geometry=new BoxGeometry(1,1,1),material=new MeshBasicMaterial({opacity:.8,transparent:false,depthWrite:true}),subject=new Group();subject.add(new Mesh(geometry,material));
+  const effect=createManifestationEffect({profile:'human',qualityScale:1,subject});effect.update(0);
+  assert.equal(material.transparent,true);assert.ok(material.opacity<.2);assert.equal(material.depthWrite,false);
+  effect.update(.5);assert.ok(material.opacity>.2&&material.opacity<.8);
+  effect.update(1);assert.equal(material.opacity,.8);assert.equal(material.transparent,false);assert.equal(material.depthWrite,true);
+  effect.dispose();geometry.dispose();material.dispose();
 });
 
 test('load failure is explicit and does not masquerade as manifested',async()=>{
