@@ -1,14 +1,13 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import {
   PUBLIC_WEB_PHASE4_SOURCES,
   publicWebPhase4AssetCatalog,
   publicWebPhase4AssetsForApp,
 } from '../src/public-web-phase4-catalog.js';
 
-const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
+const repoRoot = process.cwd();
 const resolveRepo = relativePath => new URL(relativePath, `file://${repoRoot.replace(/\\/g, '/')}/`);
 
 async function sha256(relativePath) {

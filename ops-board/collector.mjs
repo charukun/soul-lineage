@@ -1,6 +1,6 @@
 import { API_HISTORY_PAGE_LIMIT, PAGES_ROOT, REPOSITORY, classifyPull, deploymentQueue, environmentDiff, overallIntegration, parseMergePulls, publishedCommit, reconcileIntegrationQueue, workflowFailure } from './model.mjs';
 import { splitPulls, isVisualReviewPull } from './pulls.mjs';
-import { buildApplications } from './applications.mjs';
+import { buildApplications, VISUAL_REVIEW_PUBLIC_URL } from './applications.mjs';
 import { createGithubClient } from './github-client.mjs';
 import { syncPullSnapshot } from './pull-snapshot.mjs';
 import { enrichTargets, actionProblems } from './review-model.mjs';
@@ -51,7 +51,10 @@ async function compareQueue(deployed, branch, client) {
   return deploymentQueue(data);
 }
 function previewCandidates(runs) {
-  const names = [...new Set(runs.filter(run => run?.name !== 'Rinne Ops Board' && /(visual.*review|review.*preview|preview)/i.test(run?.name || '')).map(run => run.name))].slice(0, 4);
+  const names = [...new Set(runs.filter(run => {
+    const name = run?.name || '';
+    return name !== 'Rinne Ops Board' && !/(visual.*review|review.*preview)/i.test(name) && /preview/i.test(name);
+  }).map(run => run.name))].slice(0, 4);
   return names.map(name => { const all = runs.filter(run => run.name === name); return { name, latest: all[0], success: all.find(run => run.status === 'completed' && run.conclusion === 'success') }; }).filter(x => x.success);
 }
 async function previewEnvironment(candidate, branches, previous, client) {
@@ -65,12 +68,51 @@ async function previewEnvironment(candidate, branches, previous, client) {
     if (!selected) return null;
     publicStatus = { state: selected.state, context: selected.context, targetUrl: selected.target_url, updatedAt: selected.updated_at || selected.created_at || null };
   }
-  const env = { id: publicStatus.context.replace(/\/public$/, ''), kind: 'preview', name: publicStatus.context === 'visual-review/public' ? 'Visual Review Lab' : candidate.name.replace(/\bpreview\b/ig, '').trim(),
+  const env = { id: publicStatus.context.replace(/\/public$/, ''), kind: 'preview', name: candidate.name.replace(/\bpreview\b/ig, '').trim(),
     workflow: candidate.name, branch: success.head_branch, branchCommit: branches.get(success.head_branch)?.commit?.sha || success.head_sha,
     deployedCommit: success.head_sha, deployedAt: publicStatus.updatedAt, url: publicStatus.targetUrl,
     deployState: RUNNING.has(latest?.status) ? 'deploying' : FAILED_CONCLUSIONS.has(latest?.conclusion) ? 'failed' : latest?.conclusion === 'cancelled' ? 'waiting' : 'success',
     publicStatus, latestRun: runView(latest), source: 'GitHub Actions + commit status' };
   return withHistory(env, prior, client);
+}
+async function visualReviewEnvironment(developSha, previous, client) {
+  const prior = (previous?.environments || []).find(env => env.id === 'visual-review');
+  const base = {
+    id: 'visual-review', kind: 'preview', name: 'Visual Review Lab', workflow: 'Visual Review Preview',
+    branch: 'develop', branchCommit: developSha, deployedCommit: null, deployedAt: null,
+    url: VISUAL_REVIEW_PUBLIC_URL, deployState: 'unknown', publicStatus: null, latestRun: null,
+    source: 'exact develop visual-review/public status',
+  };
+  if (!developSha) return prior ? { ...prior, url: VISUAL_REVIEW_PUBLIC_URL, branchCommit: null } : base;
+  if (client.scope === 'public' || !client.deepAllowed) {
+    if (!prior) return base;
+    return {
+      ...prior,
+      branchCommit: developSha,
+      url: VISUAL_REVIEW_PUBLIC_URL,
+      deployState: prior.deployedCommit === developSha ? prior.deployState : 'waiting',
+      source: 'cached exact develop visual-review/public status',
+    };
+  }
+  const { data } = await client.get(`/commits/${developSha}/status`, { maxAgeMs: 30_000 });
+  const selected = (data.statuses || []).find(status => status.context === 'visual-review/public') || null;
+  if (!selected) return { ...base, deployState: 'waiting' };
+  const deployState = selected.state === 'success' ? 'success'
+    : selected.state === 'pending' ? 'deploying'
+      : ['failure', 'error'].includes(selected.state) ? 'failed' : 'unknown';
+  const publicStatus = {
+    state: selected.state,
+    context: selected.context,
+    targetUrl: selected.target_url || VISUAL_REVIEW_PUBLIC_URL,
+    updatedAt: selected.updated_at || selected.created_at || null,
+  };
+  return {
+    ...base,
+    deployedCommit: selected.state === 'success' ? developSha : prior?.deployedCommit || null,
+    deployedAt: selected.state === 'success' ? publicStatus.updatedAt : prior?.deployedAt || null,
+    deployState,
+    publicStatus,
+  };
 }
 
 export async function buildState(previous = null, { storage, token = '', fetchImpl = fetch, reason = 'manual' } = {}) {
@@ -84,6 +126,7 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     if (manifest?.schemaVersion !== 1 || !Array.isArray(manifest.entries)) throw new Error('公開manifestの形式が不正です');
     const branchesResult = await client.get('/branches?per_page=100', { maxAgeMs: 30_000 });
     const branches = new Map((branchesResult.data || []).map(branch => [branch.name, branch]));
+    const developSha = branches.get('develop')?.commit?.sha || null;
     const pullSync = await syncPullSnapshot(client, storage);
     const allPulls = pullSync.pulls;
     const { data: actions } = await client.get('/actions/runs?per_page=100', { maxAgeMs: 30_000 });
@@ -92,7 +135,7 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     const mainRuns = runs.filter(run => run.name === 'Deploy DEV and PROD' && run.head_branch === 'main');
     const latestDevelopRun = developRuns[0] || null;
     const previousById = new Map((previous?.environments || []).map(env => [env.id, env]));
-    let dev = environmentFromManifest('dev', manifest, branches.get('develop')?.commit?.sha || null, latestDevelopRun);
+    let dev = environmentFromManifest('dev', manifest, developSha, latestDevelopRun);
     let prod = environmentFromManifest('prod', manifest, branches.get('main')?.commit?.sha || null, mainRuns[0]);
     dev = await withHistory(dev, previousById.get('dev'), client);
     prod = await withHistory(prod, previousById.get('prod'), client);
@@ -102,12 +145,13 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     dev.deployQueue = await compareQueue(dev.deployedCommit, dev.branchCommit, client);
     prod.deployQueue = await compareQueue(prod.deployedCommit, prod.branchCommit, client);
     const previews = [];
+    const visualReview = await visualReviewEnvironment(developSha, previous, client);
+    if (visualReview) previews.push(visualReview);
     for (const candidate of previewCandidates(runs)) { const env = await previewEnvironment(candidate, branches, previous, client); if (env) previews.push(env); }
     const applications = buildApplications(manifest, [dev, staging, prod, ...previews], runs);
 
     const integrationRescue = await collectRescue(client, previous?.integrationRescue);
     const plan = integrationRescue?.flowControl?.reconciliation || null;
-    const developSha = branches.get('develop')?.commit?.sha || null;
     const openPulls = allPulls.filter(pr => pr.state === 'open' && !isVisualReviewPull(pr)).sort((a, b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0));
     const baseIntegrationQueue = openPulls.map(pr => classifyPull(pr, runs, developRuns));
     const reconciled = reconcileIntegrationQueue(baseIntegrationQueue, plan, developSha);

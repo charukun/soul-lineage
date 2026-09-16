@@ -13,7 +13,7 @@ function rebuildIndexes(sim,state){const world=sim.world;state.dynamic.beginFram
 function focusFor(sim){if(sim.__simulationFocus)return sim.__simulationFocus;return sim.world.people.find(isPlayer)||sim.world.people.find(p=>p.role==='mayor')||sim.world.people[0]||{x:0,z:0};}
 
 const originalRoute=Navigation.prototype.route;
-Navigation.prototype.route=function sharedFlowRoute(from,to){let router=navStates.get(this);if(!router){router=createFlowFieldRouter({worldStep:2,maxFields:32,maxCells:18000,radiusCells:128});navStates.set(this,router);}const revision=`${this.world.state.revision}:${this.__trafficRevision||0}`,path=router.route({from,to,revision,isBlocked:(x,z)=>this.blocked(x,z),costAt:(x,z)=>this.world.state.traffic[`${x},${z}`]||0});return path===null?originalRoute.call(this,from,to):path;};
+Navigation.prototype.route=function sharedFlowRoute(from,to){let router=navStates.get(this);if(!router){router=createFlowFieldRouter({worldStep:2,maxFields:32,maxCells:18000,radiusCells:128});navStates.set(this,router);}const revision=`${this.world.state.revision}:${this.__trafficRevision||0}`,path=router.route({from,to,revision,isBlocked:(x,z)=>this.blocked(x,z),isSegmentBlocked:(ax,az,bx,bz)=>this.segmentBlocked(ax,az,bx,bz),costAt:(x,z)=>this.world.state.traffic[`${x},${z}`]||0});return path===null?originalRoute.call(this,from,to):path;};
 
 const originalUpdate=Simulation.prototype.update;
 Simulation.prototype.update=function fixedVillageUpdate(dt){const state=stateFor(this);return state.profiler.measure('simulation',()=>state.fixed.advance(dt,step=>originalUpdate.call(this,step)));};
