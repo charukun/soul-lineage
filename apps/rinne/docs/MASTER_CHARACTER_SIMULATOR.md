@@ -14,6 +14,16 @@ Detailed genetic values, seed/session import-export, per-gene editing, raw diagn
 
 Acceptance for this revision includes: no horizontal overflow at narrow mobile widths; mode changes preserve the visible stage; every former capability remains available either on the main review console or the advanced page; game saves/network authority remain disconnected; no changes to the audited Shino asset, gameplay rules, main, Production, or parallel motion work.
 
+### Mobile interaction recovery acceptance
+
+The smartphone main screen has three primary intentions only: **作る / 動かす / 比べる**. Secondary choices such as appearance versus color, or rehearsal versus ordinary motion, stay inside the selected intention instead of competing for the top navigation. The character stage remains the dominant visual area and normal operation must never cover it with development diagnostics.
+
+Motion review starts in a single-character view with one obvious `30秒演舞` action and one transport. Live A/B comparison, frame stepping, alternate speeds, camera tours, multi-character load checks, structured QA recording and Motion Debug overlays remain available, but only after the operator explicitly opens `詳細レビュー` or enables the corresponding diagnostic toggle. A/B split view and Motion Debug are OFF by default. Entering motion review must not create a second always-visible pause control over the normal stage controls.
+
+On narrow portrait viewports the stage receives at least the majority of the application height while the control dock remains independently scrollable. The normal stage action row is compact; camera presets and compatibility controls may remain wired for tests/runtime contracts without occupying the primary mobile surface. The edit save footer is shown for editing work but does not consume space while the operator is reviewing motion or comparison-only content.
+
+This recovery is a presentation and interaction hierarchy change. Existing renderer/session state, motion sources, QA evidence generation, deterministic cohorts, advanced maintenance controls and game isolation remain intact. The implementation must preserve the ability to reach every current capability without returning development-only controls to the default stage surface.
+
 ## Controls
 
 - Deterministic seed cohorts; 1/6/12/30 displayed actors; selected-only inspection; two-parent inheritance comparison.

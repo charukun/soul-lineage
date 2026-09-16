@@ -14,6 +14,22 @@
 
 このループは人とAIが結果を往復するための実験導線。独自の自動修復WORK、無人AI評価、定期実行、外部送信は追加しない。次の実装変更も最新developから通常の短寿命WORKで行う。
 
+## Canon Nucleus 証明ループ
+
+今回の検討では、既存方式を広く否定するのではなく、輪廻転焦の30人協力試遊に必要な条件を固定して比較する。対象条件は、専用ゲームサーバーなし、Host 1台故障後も継続可能、確定済みの出生・死亡・転生履歴を巻き戻さない、高頻度presenceでモバイル帯域を使い切らないこと。理論・証明条件・既知方式との比較境界は [Canon Nucleus architecture proof](CANON_NUCLEUS.md) を参照する。
+
+追加する候補方式は `Canon Nucleus` と呼ぶ。高頻度で置換可能なpresence、復元可能なworld state、不可逆なcanon、authority controlを別の意味論として扱い、canonの確定は3台のauthority nucleusのうち2台以上が同じrevision/rootと復元材料を保持した時だけ進める。Host選出だけ成功して復元材料が欠ける状態を成功と数えない。
+
+受入条件は次の通り。
+
+- 同一条件の既存全体配信、Interest配信、Cell分散と比較し、計測式とseedを共有する。
+- 1台故障では、確定済みcanon revisionを失わず、旧revisionへ無断で戻らず、復元可能な新HostだけがOPENになる。
+- 2台同時故障やnucleus多数派喪失では、安全性を優先してCLOSEDとなり、架空の継続を成功扱いしない。
+- realtime payloadをcanon quorumへ含めないため、canon強整合通信量が全状態強整合方式より小さいことを、同じpayload定義で検証する。
+- dense / spread、低損失 / 高損失、遅延 / jitter、Host故障 / standby相当のCell故障 / 破損 / 再訪を含む固定matrixを用意し、候補方式が勝てない条件も結果へ残す。
+- 「常に最良」ではなく、同じ1台故障耐性・canon安全性を満たす実行可能な既知方式との制約付き優位を判定する。単一Hostは安価な参照方式だが、同じ故障要件を満たさないため優位判定の母集団には入れない。
+- 模型上の証明と実WebRTC/NAT/TURN/実機証明を混同しない。Labで示せない外部条件は未証明として残す。
+
 ## 実行
 
 ```sh
@@ -23,6 +39,8 @@ npm run dev:rinne
 node apps/rinne/scripts/reality-lab.mjs
 node apps/rinne/scripts/reality-lab.mjs --config '{"scenario":"steady","layout":"dense","loss":0,"latencyMs":0,"jitterMs":0,"durationMs":16000}' --out /tmp/rrp-dense.json
 node --test apps/rinne/tests/reality-lab.test.mjs
+node --test apps/rinne/tests/reality-canon-nucleus.test.mjs
+node apps/rinne/scripts/reality-architecture-proof.mjs
 ```
 
 Chromium導入済みの検証環境では、Labを起動して `RRP_LAB_URL=http://localhost:5173/reality-lab.html node apps/rinne/scripts/reality-lab-browser.mjs` で390px幅の操作・結果保存・JSON往復・中止を確認できる。この操作検証はモデルのNodeテストとは別であり、ブラウザを起動できなかった実行を成功として数えない。
@@ -34,6 +52,7 @@ Chromium導入済みの検証環境では、Labを起動して `RRP_LAB_URL=http
 - 3〜30の模擬参加者と18 NPC。50ms固定の仮想時間、自律した往復移動。同じseed/条件/コード版なら同じ結果。
 - 全体配信は全個体を20Hzで配信。Interestは既存 `presencePolicy` / scheduler / quantisationを利用する。
 - Cell分散は同じInterest条件の配信元をCell担当へ移す。時計/Cell報告/バックアップのpayloadも数える。ただしこの版のcoordinatorは単一プロセス内で権限を決めるため、分散合意の検証ではない。
+- Canon Nucleus proofは3台のnon-Byzantine quorum、epoch fence、operation idempotency、canon＋recovery materialの同時保持を検査する。悪意あるpeer、Sybil、改造Hostの検証ではない。
 - 未観測NPCは位相・速度・最後の世界tickを保持。観測時の閉形式による位置復元を、初期状態からの逐次加算と照合する。これはこの移動規則の検証であり、戦闘・生態系一般の復元可能性の証明ではない。
 - `dragon-1`という遠方の兆しを空間Interest外にも配信する。規則で明示した一つの因果購読だけを検証し、未来の因果推論を実装したとは言わない。
 - 模擬wireはJSONを実際にserializeしたpayload byte数を数え、独立欠落と片道遅延/jitterを適用する。SCTP、再送、暗号化header、NAT、TURN、輻輳、burst lossはモデル化しない。
@@ -61,6 +80,7 @@ Cell担当の切断は8秒、単一coordinatorが次の刻みで再割当て。�
 - `migrations`: Host消失から復元完了までの仮想経過。`rollbackMs`: 一時状態の戻し量。
 - `meanPositionError`: 同じ区画の受信済み個体位置と現在の正解位置との差。`missingSamples`も確認し、未受信を誤差ゼロとして解釈しない。
 - `collapseMatchesReference`: このNPC移動規則の逐次計算との一致。正史や暗号の検証ではない。
+- Canon Nucleusはquorum交差、全単一故障、全二重故障、stale epoch、破損recovery、operation ID再送、強整合payload sweep、同一要件方式との制約付き比較を別の証拠として出す。
 - 結果にはconfig、model version、build commit/inputHash、仮説、観察、方式別イベントと時系列を保存する。記録元SHAは結果の出典であり、次の変更の正本を古いSHAへ戻す指示ではない。
 - JSON読込みは条件とメモだけを復元する。持ち込んだ集計値を現在の計測として表示しない。再実行が必要。
 - 端末内保存は本編と異なる環境別キーで最大10件。保存失敗を成功表示しない。クラウド同期はない。
