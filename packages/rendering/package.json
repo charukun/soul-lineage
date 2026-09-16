@@ -19,6 +19,7 @@
     "./authored-lod": "./src/authored-lod.js",
     "./texture-quality": "./src/texture-quality.js",
     "./compressed-gltf": "./src/compressed-gltf.js",
+    "./progressive-manifestation": "./src/progressive-manifestation.js",
     "./world-streaming": "./src/world-streaming.js",
     "./occlusion": "./src/occlusion.js",
     "./instance-atlas": "./src/instance-atlas.js",
