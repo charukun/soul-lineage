@@ -49,7 +49,7 @@ The older Semantic Frontier dimensions (`wireBytes`, `latencyMs`, `coordination`
 Use these boundaries consistently so two captures are comparable.
 
 - `inputToAuthoritativeAckMs`: local input creation to receipt of the first authoritative state that explicitly acknowledges that exact input was applied by the Host simulation. If a newer input supersedes an older un-applied input, the older input is not fabricated as a latency sample.
-- `inputToDisplayMs`: local input creation to the first rendered frame that actually presents an authoritative state containing that applied input. Network receipt alone does not end the timer, and a prediction-only frame does not end it either.
+- `inputToDisplayMs`: local input creation to the browser-frame boundary after `renderer.render()` submitted the first authoritative state containing that applied input. The runtime calls `inputDisplayed(seq)` only after that authoritative state was submitted to WebGL, and the Guest records the sample on the following `requestAnimationFrame`. This is deliberately conservative relative to the JavaScript render-submit point, but it is still not a photon/scanout measurement. Network receipt alone never ends the timer, and a prediction-only frame never ends it either.
 - `canonCommitMs`: irreversible intent creation to the committed Canon revision becoming visible to the initiator. Pre-commit animation does not end the timer.
 - `hostLossDetectionMs`: injected/observed old-Host loss to the first `MIGRATING`/darkness transition.
 - `hostReopenMs`: migration start to the successor becoming `OPEN` with the committed recovery material.
@@ -58,7 +58,7 @@ Use these boundaries consistently so two captures are comparable.
 - `stateFreshnessMs`: render-apply time minus the timestamp/tick time of the newest authoritative state used by that render.
 - `positionErrorM`: displayed interpolated/reconciled position versus the authoritative position for the same world time. Do not compare values at different ticks.
 - `rollbackMs`: amount of already presented reversible world time invalidated by one correction. If a measured interval has zero rollbacks, rate/p95/max are measured zero, not unknown.
-- `connectionSuccessRate`: successful DataChannel opens divided by actual connection attempts using the same timeout and network profile. Merely creating an unused invite is not a Host-side attempt; accepting an answer is.
+- `connectionSuccessRate`: successful DataChannel opens divided by actual connection attempts using the same timeout and network profile. Merely creating an unused invite is not a Host-side attempt; accepting an answer is. When Host and Guest raw captures from the same world are merged, the Host endpoint is the canonical link counter so one WebRTC connection is not counted twice. A world without a surviving Host capture falls back to its Guest endpoint counters.
 - `turnRelayRate`: connections whose selected candidate pair can be classified as relay divided only by connections whose selected candidate type could actually be established. It remains `null` when candidate classification is unavailable instead of assuming zero TURN usage.
 
 `RTCPeerConnection.getStats()` is used only when the browser exposes the needed selected-candidate dictionaries. Data-channel-specific stats are not uniformly available, so application send counters remain the portable payload source. `RTCDataChannel.bufferedAmount` is sampled directly for queue pressure.
@@ -92,19 +92,22 @@ These are minimum evidence floors for this development contract, not a claim of 
 
 After a baseline is explicitly accepted, regression checking uses both an existing absolute SLO where one exists and a baseline ratchet. The default regression guard permits at most roughly 12% degradation for core latency/frame metrics, 15% for bandwidth/error/resource metrics and 20% for DataChannel queue peaks. `connectionSuccessRate` is handled separately as higher-is-better and may not fall below 98% of its accepted baseline. These ratios are regression guards, not product SLOs.
 
-## Runtime capture now wired
+## Runtime capture route
 
-The current co-op runtime can take an **opt-in** bounded performance probe. Normal gameplay does not create the probe, run `getStats()`, UTF-8-count every outgoing message, or retain sample arrays merely because this measurement code exists.
+Normal gameplay remains measurement-off. The physical capture surface is enabled explicitly by opening the normal Rinne app with `?rrpCapture=1`. That route opens the co-op surface and installs the opt-in bounded performance probe; ordinary URLs do not install it.
 
-When a probe is supplied, it records:
+While capture mode is active:
 
-- Guest input creation and the exact authoritative input sequence applied by the Host. The Host publishes `ackInputSeq` only after the 20 Hz authoritative advance, not merely after packet receipt. The probe retains the original input timestamp after acknowledgement so the render layer can later call `inputDisplayed(seq)` for the same authoritative sequence. Superseded inputs are discarded rather than converted into fictional latency samples.
-- Rebirth intent to persisted/confirmed rebirth result on the Guest.
-- Application payload bytes in fixed one-second observed buckets and reliable/presence `bufferedAmount` samples from the existing room wire, including queue pressure on replaceable drops. Long observation gaps are flagged and omitted instead of backfilled with zeroes.
-- Connection attempts and successful opens. When `getStats()` exposes a selected candidate pair, relay/direct classification is recorded; unsupported candidate classification stays unknown.
-- A bounded raw-sample snapshot through `session.performance()` while the probe is attached.
+- Host/Guest sessions receive an explicit performance probe. Normal sessions do not create the probe, call `getStats()`, UTF-8-count every outgoing message, or retain measurement arrays.
+- The capture controller samples `session.performance()` every 250 ms, keeping the one-second bandwidth observation boundary alive while foreground execution is healthy. Browser throttling/background gaps become `bandwidthSkippedBuckets` rather than zero traffic and invalidate a physical-multipeer evidence build.
+- `window.__RRP_CAPTURE__.raw()` exposes the current peer raw capture object, `json()` returns printable JSON, and the capture panel can copy that JSON. Raw objects include `_capture.role`, `_capture.worldId`, build revision and environment so Host/Guest endpoint evidence can be merged without double-counting physical links.
+- The capture controls move into the modal while the co-op dialog is open and back to the normal document while gameplay is active, so the controls remain reachable across the capture flow.
+- Guest input creation and authoritative acknowledgement preserve the exact sequence timer until the authoritative state is submitted to WebGL and the following browser frame boundary is reached.
+- Frame intervals are recorded from the visible co-op `requestAnimationFrame` loop. Hidden-page intervals are not admitted as normal visible frame samples.
+- Rebirth intent to persisted/confirmed rebirth result remains the current Canon commit timing sample.
+- Connection attempts and successful opens are captured, and selected ICE candidate pairs are classified when browser stats expose them. Unclassifiable TURN state remains unknown.
 
-The probe also keeps `recordInputToDisplay(value)` for capture layers that already own the full timing boundary. It exposes hooks for Host-loss/reopen, state freshness, same-time position error, rollback, frame/GPU, memory and battery measurements. These fields remain unknown until the corresponding runtime/render layer can measure the stated boundary honestly.
+Host-loss/reopen, render-time freshness, same-world-time position error, rollback, GPU, memory and battery hooks remain unfilled until a runtime path can measure their stated semantics honestly.
 
 ## CLI
 
@@ -114,7 +117,7 @@ Generate an evidence template:
 node apps/rinne/scripts/rrp-performance-contract.mjs template --class physical-multipeer
 ```
 
-Build evidence from one aggregated raw sample object, or from a `captures` array containing separate Host/Guest probe snapshots. Separate captures are merged without inventing fields that were not measured:
+Build evidence from one aggregated raw sample object, or from a `captures` array containing separate Host/Guest capture JSON. Separate captures are merged without inventing fields that were not measured:
 
 ```sh
 node apps/rinne/scripts/rrp-performance-contract.mjs build --input /tmp/rrp-raw-capture.json
@@ -135,26 +138,25 @@ node apps/rinne/scripts/rrp-performance-contract.mjs compare --baseline accepted
 Focused checks:
 
 ```sh
-node --test apps/rinne/tests/reality-performance-contract.test.mjs apps/rinne/tests/coop-performance.test.mjs apps/rinne/tests/rrp-performance-cli.test.mjs
+node --test apps/rinne/tests/reality-performance-contract.test.mjs apps/rinne/tests/coop-performance.test.mjs apps/rinne/tests/coop-session.test.mjs apps/rinne/tests/rrp-performance-cli.test.mjs apps/rinne/tests/rrp-performance-capture.test.mjs
 ```
 
-The combined architecture proof also imports the contract proof. Reality Lab model results are mapped into the same metric namespace but remain explicitly `model` evidence and are expected to be non-certifying.
+The existing co-op browser gate also checks that capture mode installs the diagnostic surface and that ordinary gameplay does not. The combined architecture proof still imports the contract proof. Reality Lab model results map into the same metric namespace but remain explicitly `model` evidence and are non-certifying.
 
 ## Next physical loop
 
-The remaining evidence work is now narrower:
+The capture plumbing is now implemented. The remaining evidence work is narrower:
 
-1. wire a dedicated browser/performance capture route that explicitly creates the probe without enabling it in ordinary gameplay and samples it continuously at the bandwidth cadence;
-2. have the render layer call `inputDisplayed(seq)` only after the acknowledged authoritative sequence is actually presented;
-3. connect Host-loss/detection/reopen timestamps to the real browser migration path rather than the model;
-4. measure render-time state freshness and same-world-time position error once prediction/interpolation is wired into the main Rinne co-op path;
-5. join existing physical Performance Lab frame/GPU evidence by build/device/viewport provenance;
-6. run repeatable physical-multipeer captures across fixed Wi-Fi and WAN profiles, with candidate-path classification where available;
-7. gather enough samples, review the first compatible baseline, then promote selected calibrated values into absolute product SLO candidates;
-8. expand from the initial 2–3 physical peers toward the separate 30-device certification matrix.
+1. run repeatable 2–3 physical-peer captures on a fixed Wi-Fi profile and collect the first real input/ACK/display, frame, bandwidth, queue, ICE-path and Canon-commit distributions;
+2. connect Host-loss/detection/reopen timestamps to the real browser migration path rather than the model;
+3. measure render-time state freshness and same-world-time position error once prediction/interpolation is wired into the main Rinne co-op path;
+4. join existing physical Performance Lab GPU/memory evidence by build/device/viewport provenance and add battery/radio measurements only where the platform exposes an honest boundary;
+5. repeat on fixed WAN profiles with candidate-path classification where available;
+6. gather enough samples, review the first compatible baseline, then promote selected calibrated values into absolute product SLO candidates;
+7. expand from the initial 2–3 physical peers toward the separate 30-device certification matrix.
 
 ## Physical capture loop acceptance
 
-The next implementation loop may be considered complete only when measurement plumbing is usable from a dedicated capture surface without affecting ordinary gameplay. The dedicated route must explicitly opt into the performance probe, keep the one-second observation cadence alive while the capture is active, expose raw Host/Guest capture JSON for the existing evidence builder, and bind `inputToDisplayMs` to a rendered authoritative frame rather than packet receipt. Missing render, migration, freshness, error, GPU, memory, battery, or physical-network evidence must remain missing rather than be synthesized.
+This implementation loop is complete when the dedicated capture surface is present only in explicit capture mode, continuously samples the bounded probe, exports raw Host/Guest JSON accepted by the evidence builder, binds input-to-display to a post-render browser-frame boundary, and keeps missing physical measurements missing. It does not by itself certify WAN reachability, automatic Host migration, battery/radio behavior or 30-device scale.
 
 No paid runtime or dedicated game server is required by this contract. NAT/TURN reachability, physical 30-device scale, battery and radio behavior remain unproved until their corresponding evidence exists.
