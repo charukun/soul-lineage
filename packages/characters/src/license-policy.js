@@ -9,12 +9,27 @@ export const RETIRED_CONDITIONAL_CHARACTER_IDS = Object.freeze([
   'review.vroid-c',
   'review.tsukuyomi-type-a'
 ]);
-export const RETIRED_CONDITIONAL_CHARACTER_FILES = Object.freeze([
+export const BLOCKED_RERIG_CHARACTER_IDS = Object.freeze([
+  'protagonist.villager.v1',
+  'arcanist.atlas-dcc.v1'
+]);
+export const NON_DISTRIBUTABLE_CHARACTER_FILES = Object.freeze([
   'apps/rinne/public/simulator/assets/A_review.vrm',
   'apps/rinne/public/simulator/assets/B_review.vrm',
   'apps/rinne/public/simulator/assets/C_review.vrm',
   'apps/rinne/public/simulator/assets/SHINO_review.vrm',
-  'apps/rinne/public/simulator/assets/TSUKU_review.vrm'
+  'apps/rinne/public/simulator/assets/TSUKU_review.vrm',
+  'apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm',
+  'apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json',
+  'apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_V1.glb',
+  'apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_V1.asset.json',
+  'apps/rinne/public/simulator/assets/ARCANIST_ATLAS_DCC.glb',
+  'apps/rinne/public/simulator/assets/ARCANIST_ATLAS_DCC.asset.json',
+  'apps/rinne/public/simulator/assets/portrait_A.webp',
+  'apps/rinne/public/simulator/assets/portrait_B.webp',
+  'apps/rinne/public/simulator/assets/portrait_C.webp',
+  'apps/rinne/public/simulator/assets/portrait_SHINO.webp',
+  'apps/rinne/public/simulator/assets/portrait_TSUKU.webp'
 ]);
 export const CONDITIONAL_CHARACTER_RIG_IDS = Object.freeze(['humanoid.shino-vrm1.v2']);
 
@@ -37,7 +52,7 @@ export function evaluateCharacterLicensePolicy({
   if (RETIRED_CONDITIONAL_CHARACTER_IDS.includes(id)) {
     return Object.freeze({ status: 'retired', allowed: false, reason: 'retired-conditional-character' });
   }
-  if (CONDITIONAL_CHARACTER_RIG_IDS.includes(rigId) || conditionalTerms(rigProvenance)) {
+  if (BLOCKED_RERIG_CHARACTER_IDS.includes(id) || CONDITIONAL_CHARACTER_RIG_IDS.includes(rigId) || conditionalTerms(rigProvenance)) {
     return Object.freeze({ status: 'blocked-rerig', allowed: false, reason: 'conditional-carrier-rig' });
   }
   if (ownership === CHARACTER_LICENSE_ALLOWED_OWNERSHIP) {
