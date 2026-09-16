@@ -89,7 +89,7 @@ function governorFor(view) {
   const device=deviceCapabilityProfile({renderer:view.renderer});
   saveDeviceCapability(device);
   const plan = createWorldCellStreamingPlan({cellSize:32,preloadRadius:2,retainRadius:3});
-  const gpu=createGpuTimer(view.renderer),recorder=createPerformanceRecorder({label:'village'}),occlusion=createConservativeOcclusionCuller({maxChecksPerUpdate:5,minDistance:24,hiddenConfirmations:2});
+  const gpu=createGpuTimer(view.renderer),recorder=createPerformanceRecorder({label:'village',snapshotOnSample:false}),occlusion=createConservativeOcclusionCuller({maxChecksPerUpdate:5,minDistance:24,hiddenConfirmations:2});
   const thermal=createThermalTrendGovernor({sampleEverySeconds:5,baselineSamples:6,windowSamples:12});
   const governor = createGpuAwareQualityGovernor({targetFps:device.targetFps,initialLevel:Math.max(view.softwareGPU?2:0,device.initialQuality),onChange:s=>apply(view,s)});
   const state = { governor, plan, gpu, recorder, occlusion, thermal, device, occlusionFrame:0, transparencyFrame:0, transparency:combineTransparencyAudits([]), stream: plan.update(view.target.x,view.target.z) };
