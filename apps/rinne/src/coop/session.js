@@ -3,12 +3,11 @@ import { COOP_PROTOCOL } from '../rebuild/coop-world.js';
 import { createRoomWire } from './wire.js';
 import { createCheckpointWriter } from './checkpoint-writer.js';
 import { applyRebirthIntent } from './history.js';
-import { createCoopPerformanceProbe } from './performance.js';
 export { joinCoopHost } from './guest-session.js';
 
 export async function createCoopHost({world,contentVersion,save,RTCPeerConnection,onChange=()=>{},now=()=>performance.now(),uuid=()=>crypto.randomUUID(),performanceProbe=null}){
   let closed=false,paused=false,stalled=false,ready=false,pending=null,lastSave=now(),lastBroadcast=0,inputSeq=0,latest=null,error='';
-  const links=new Map(),acceptedInputs=new Map(),appliedInputs=new Map(),selfId=world.data.ownerId,probe=performanceProbe||createCoopPerformanceProbe({role:'host',now});
+  const links=new Map(),acceptedInputs=new Map(),appliedInputs=new Map(),selfId=world.data.ownerId,probe=performanceProbe;
   world.data.rebirthOps??={};
   const writer=createCheckpointWriter({world,save,now,onCommit:()=>{stalled=false;if(ready&&!closed)publish();},onError:e=>{error=e.message;paused=true;if(ready&&!closed)publish();}});
   await writer.request();ready=true;latest=writer.project(world.view(selfId));
@@ -34,7 +33,7 @@ export async function createCoopHost({world,contentVersion,save,RTCPeerConnectio
   }
   async function invite(){
     if(!open())throw Error(error||'村は閉じています。');if(pending&&!pending.joined)pending.connection?.close();
-    const link={connection:null,joined:false,joining:false,closed:false,expiresAt:Date.now()+15*60*1000,id:null};pending=link;probe.connectionAttempt();
+    const link={connection:null,joined:false,joining:false,closed:false,expiresAt:Date.now()+15*60*1000,id:null};pending=link;probe?.connectionAttempt();
     link.wire=createRoomWire(async message=>{
       if(closed||!message||message.worldId!==world.data.worldId||message.protocol!==COOP_PROTOCOL)return;
       if(message.type==='hello'&&!link.joined)return welcome(link,message);
@@ -44,8 +43,8 @@ export async function createCoopHost({world,contentVersion,save,RTCPeerConnectio
         try{const result=await rebirth(link.id,message.lifeId,message.villageId);link.wire.send(link.connection,{type:'rebirth-result',lifeId:message.lifeId,resultId:result.resultId});}
         catch(e){if(!link.closed)link.wire.send(link.connection,{type:'rebirth-result',lifeId:message.lifeId,error:e.message});}
       }
-    },{now,onSendSample:sample=>probe.recordSend(sample)});
-    link.connection=await createHostOffer({RTCPeerConnection,dualChannel:true,onMessage:m=>link.wire.receive(m),onState:state=>{if(state==='open'){sendFirst(link);void probe.connectionOpen(link.connection);}if(['closed','failed','error'].includes(state))closeLink(link.id,link);}});
+    },{now,onSendSample:probe?sample=>probe.recordSend(sample):null});
+    link.connection=await createHostOffer({RTCPeerConnection,dualChannel:true,onMessage:m=>link.wire.receive(m),onState:state=>{if(state==='open'){sendFirst(link);if(probe)void probe.connectionOpen(link.connection);}if(['closed','failed','error'].includes(state))closeLink(link.id,link);}});
     return{protocol:COOP_PROTOCOL,contentVersion,worldId:world.data.worldId,offer:link.connection.code,expiresAt:link.expiresAt};
   }
   function step(){
@@ -67,5 +66,5 @@ export async function createCoopHost({world,contentVersion,save,RTCPeerConnectio
     input:direction=>{if(open()&&!writer.pendingIds().has(selfId))world.acceptInput(selfId,{seq:++inputSeq,...direction});},
     setRate:async rate=>{if(!open())throw Error('村の再開を待ってください。');world.setRate(selfId,rate);await persist();},
     rebirth:(villageId,lifeId=writer.committed.world.players[selfId].life.id)=>rebirth(selfId,lifeId,villageId),pause,dispose,
-    snapshot:()=>({phase:open()?'open':'closed',error,historyPending:writer.pending,view:latest&&{...latest,connected:links.size+1}}),performance:()=>probe.snapshot({flush:true}),save:()=>writer.failure?Promise.reject(writer.failure):persist()};
+    snapshot:()=>({phase:open()?'open':'closed',error,historyPending:writer.pending,view:latest&&{...latest,connected:links.size+1}}),performance:()=>probe?.snapshot()??null,save:()=>writer.failure?Promise.reject(writer.failure):persist()};
 }
