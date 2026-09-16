@@ -132,6 +132,8 @@ test('workflow is isolated to dcc branches and does not depend on Dispatch/Rescu
   assert.match(workflow, /scripts\/blender\/character-production-audit\.py/);
   assert.match(workflow, /scripts\/finalize-character-dcc\.py/);
   assert.match(workflow, /git push origin "HEAD:\$GITHUB_REF_NAME"/);
+  assert.match(workflow, /name: character-dcc-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/);
+  assert.doesNotMatch(workflow, /name: character-dcc-\$\{\{ github\.ref_name \}\}/);
   assert.doesNotMatch(workflow, /DISPATCH_GITHUB_TOKEN|RESCUE_GITHUB_TOKEN/);
   assert.doesNotMatch(workflow, /refs\/heads\/main|work\/visual-review-lab-v2/);
   assert.ok(workflow.indexOf('Validate request before installing Blender') < workflow.indexOf('Install headless Blender runtime'));
