@@ -38,16 +38,14 @@ function findBone(rows, names) {
 
 /**
  * Map KayKit's public Rig_Medium bone names to the renderer's provider-neutral
- * humanoid contract. Missing required bones fail closed instead of silently
- * substituting the legacy VRM rig.
+ * humanoid contract. Rig_Medium is the shared rig-family identifier, not a
+ * required glTF scene-node label. Missing required bones still fail closed
+ * instead of silently substituting the legacy VRM rig.
  */
 export function kaykitHumanoidFromGLTF(gltf) {
   if (!gltf?.scene?.traverse) throw new Error('KayKit Rig_Medium requires a loaded glTF scene');
   const nodes = [];
   gltf.scene.traverse(node => nodes.push(node));
-  if (!nodes.some(node => normalize(node.name) === 'rigmedium')) {
-    throw new Error('KayKit Rig_Medium root is missing');
-  }
   const bones = nodes.filter(node => node?.isBone);
   const humanoid = {};
   for (const [key, names] of Object.entries(REQUIRED)) humanoid[key] = findBone(bones, names);
