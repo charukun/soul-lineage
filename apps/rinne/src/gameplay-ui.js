@@ -10,7 +10,6 @@ export function createGameplayUI(gameScreen,{stations,layout,audio}){
   root.innerHTML=`
     <div class="rinne-player-strip"><span data-name>旅人</span><i></i><span data-equip>素手 · 旅装</span><span data-state>探索</span></div>
     <nav class="rinne-bottom-controls" aria-label="プレイ操作">
-      <button data-dash class="upgrade-control is-action"><span>走</span><small>ダッシュ</small></button>
       <button data-techniques class="upgrade-control is-technique"><span>技</span><small>兵法帖</small><em data-tech-badge hidden>0</em></button>
       <button data-mind class="upgrade-control"><span>意</span><small>意識</small></button>
       <button data-items class="upgrade-control"><span>具</span><small>所持品</small></button>
@@ -30,7 +29,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio}){
   gameScreen.append(root);
 
   const q=s=>root.querySelector(s),ui={
-    root,dash:q('[data-dash]'),techniques:q('[data-techniques]'),techBadge:q('[data-tech-badge]'),mind:q('[data-mind]'),items:q('[data-items]'),map:q('[data-map]'),debug:q('[data-debug]'),
+    root,techniques:q('[data-techniques]'),techBadge:q('[data-tech-badge]'),mind:q('[data-mind]'),items:q('[data-items]'),map:q('[data-map]'),debug:q('[data-debug]'),
     panel:q('[data-panel]'),title:q('[data-title]'),body:q('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
     rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),name:q('[data-name]'),equip:q('[data-equip]'),state:q('[data-state]')
   };
@@ -63,7 +62,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio}){
   function refresh(){if(ui.panel.hidden||!state)return;open(ui.panel.dataset.type||'items',{silent:true,keepScroll:true,skillId:skillSetter.firstUnseen()});}
   function summary(s,{dashing=false,resting=false,training=null}={}){
     state=s;speech.sync();ui.name.textContent=`${s.name||'旅人'} · ${Math.floor(s.ageYears||0)}歳`;ui.equip.textContent=`${WEAPON_LABELS[s.equipment?.weapon]||'素手'} · ${ARMOR_LABELS[s.equipment?.armor]||'旅装'}`;
-    ui.state.textContent=s.down?'行動不能':resting?'休憩':dashing?'疾走':s.combat||training?.d<2.8?'戦闘態勢':'探索';ui.rest.hidden=!resting;ui.dash.dataset.active=String(dashing);const engaged=training?.d<2.8;ui.training.hidden=!engaged;if(engaged)ui.trainingName.textContent=training.label;
+    ui.state.textContent=s.down?'行動不能':resting?'休憩':dashing?'疾走':s.combat||training?.d<2.8?'戦闘態勢':'探索';ui.rest.hidden=!resting;const engaged=training?.d<2.8;ui.training.hidden=!engaged;if(engaged)ui.trainingName.textContent=training.label;
   }
 
   skillSetter.bindInteractions({openSkills:skillId=>open('skills',{skillId}),close});
