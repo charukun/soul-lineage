@@ -18,7 +18,11 @@ export async function verifyCoopPlay(browser,url,output){
   const sample=page=>page.locator('#game').evaluate(node=>({player:node.dataset.coopPlayer,epoch:Number(node.dataset.coopEpoch),tick:Number(node.dataset.coopTick),seconds:Number(node.dataset.coopSeconds),position:JSON.parse(node.dataset.coopPosition),peers:JSON.parse(node.dataset.coopPeers)}));
   async function invite(){await host.locator('#open-coop-game').click();await host.locator('#coop-invite').click();await host.waitForFunction(()=>document.getElementById('coop-link')?.value.includes('rinne-coop'));return host.locator('#coop-link').inputValue();}
   async function joinRoom(link){
-    await guest.goto(link,{waitUntil:'domcontentloaded'});await guest.locator('#village-dialog[open]').waitFor();await guest.locator('#coop-join').click();
+    await guest.goto(link,{waitUntil:'domcontentloaded'});
+    // Invite UI is opened only after the same prebooted world used by normal play is ready.
+    // Match the established Rinne startup gate instead of classifying slow WebGL preboot as a missing dialog.
+    await guest.locator('#title-screen').waitFor({state:'visible',timeout:45000});
+    await guest.locator('#village-dialog[open]').waitFor({state:'visible',timeout:5000});await guest.locator('#coop-join').click();
     await guest.waitForFunction(()=>document.getElementById('coop-answer')?.value.length>0);const answer=await guest.locator('#coop-answer').inputValue();
     await host.locator('#coop-answer').fill(answer);await host.locator('#coop-accept').click();await host.locator('#close-village').click();
     await guest.waitForFunction(()=>document.getElementById('game')?.dataset.coopPlayer);await guest.locator('#village-dialog').waitFor({state:'hidden'});
@@ -33,7 +37,7 @@ export async function verifyCoopPlay(browser,url,output){
     const recorded=await historySave(host);assert.equal(recorded.version,2);assert.equal(recorded.births.length,2);assert.match(recorded.root,/^[0-9a-f]{64}$/);
     await guest.keyboard.down('ArrowRight');await guest.waitForTimeout(700);await guest.keyboard.up('ArrowRight');
     await host.waitForFunction(({id,start})=>{const peer=JSON.parse(document.getElementById('game')?.dataset.coopPeers||'[]').find(peer=>peer.id===id);return peer&&Math.hypot(peer.position.x-start.x,peer.position.z-start.z)>.1;},{id:first.player,start:first.position});
-    await host.locator('#clock-rate').selectOption('20');await guest.waitForFunction(()=>document.getElementById('clock-rate')?.value==='20');
+    for(let i=0;i<3;i++)await host.locator('#clock-rate').click();assert.equal(await host.locator('#clock-rate').evaluate(node=>node.value),'20');await guest.waitForFunction(()=>document.getElementById('clock-rate')?.value==='20');
     await guest.screenshot({path:join(output,'01-two-players.png')});assert.equal(await guest.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     await host.close();await guest.locator('#coop-darkness').waitFor({state:'visible',timeout:6000});const stopped=await sample(guest);await guest.waitForTimeout(300);assert.equal((await sample(guest)).tick,stopped.tick);
     await guest.screenshot({path:join(output,'02-host-loss.png')});
