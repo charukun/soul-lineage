@@ -47,11 +47,11 @@ function familyPool(templates, capacity, {onNeedModel=()=>{}} = {}) {
       const requested=modelId||fallbackModelId(id),requestedPool=ensurePool(requested),activeModel=requestedPool?requested:KAYKIT_DEFAULT_MODEL_ID,pool=ensurePool(activeModel);
       if(!pool)throw new Error('KayKit fallback model is not loaded');
       const actor=pool.spawn(id),slot={poolId:id,requestedModel:requested,activeModel,actor,handle:null};slot.handle=actorHandle(slot);owners.set(id,slot);stamp(actor,activeModel);
-      if(activeModel!==requested){actor.root.userData.manifestationStage='hinted';actor.root.userData.manifestationRequestedModel=requested;onNeedModel(requested);}
+      if(activeModel!==requested){actor.root.userData.manifestationStage='hinted';actor.root.userData.manifestationRequestedModel=requested;onNeedModel(requested,20,false);}
       return slot.handle;
     },
     installModel(modelId,template){templates.set(modelId,template);ensurePool(modelId);for(const slot of owners.values())if(slot.requestedModel===modelId&&slot.activeModel!==modelId)upgrade(slot,modelId);},
-    focusModel(modelId,priority=180){if(!templates.has(modelId))onNeedModel(modelId,priority);},
+    focusModel(modelId,priority=180){if(!templates.has(modelId))onNeedModel(modelId,priority,true);},
     despawn(id) {const slot=owners.get(id);if(!slot)return false;owners.delete(id);return pools.get(slot.activeModel).despawn(id);},
     stats() {const rows=[...pools.values()].map(pool=>pool.stats());return rows.reduce((sum,row)=>({active:sum.active+row.active,allocated:sum.allocated+row.allocated,meshes:sum.meshes+row.meshes,geometries:sum.geometries+row.geometries,textures:sum.textures+row.textures,materials:sum.materials+row.materials}),{active:0,allocated:0,meshes:0,geometries:0,textures:0,materials:0});},
     dispose(){owners.clear();for(const pool of pools.values())pool.dispose();pools.clear();}
@@ -60,7 +60,7 @@ function familyPool(templates, capacity, {onNeedModel=()=>{}} = {}) {
 
 /**
  * Load only the two title/first-life critical KayKit variants before Rinne becomes playable.
- * Remaining variants enter a low-priority queue and are promoted when an actor actually needs them.
+ * Remaining variants enter a low-priority queue and are promoted when player attention needs them.
  */
 export async function createKaykitCharacterPools(renderer,{onProgress=null}={}) {
   const loader=new GLTFLoader();loader.useCompressedTextures?.(renderer,{transcoderPath:'./basis/'});
@@ -70,17 +70,17 @@ export async function createKaykitCharacterPools(renderer,{onProgress=null}={}) 
     for(const model of KAYKIT_MODELS){
       director.register(model.id,{profile:'human',load:async({onProgress:progress})=>{
         const gltf=await loader.loadAsync(model.runtime.url,event=>{const total=Number(event?.total)||model.source.byteLength,loaded=Number(event?.loaded)||0;progress(total>0?loaded/total:0);});const humanoid=kaykitHumanoidFromGLTF(gltf);return Object.freeze({scene:gltf.scene,humanoid});
-      },onState:snapshot=>onProgress?.(Object.freeze({modelId:model.id,...snapshot})),onReady:template=>install(model.id,template)});
+      },onState:snapshot=>onProgress?.(Object.freeze({modelId:model.id,...snapshot})),onReady:(template,profile)=>{install(model.id,template);queueMicrotask(()=>director.update(profile.duration));}});
     }
     director.focus(KAYKIT_DEFAULT_MODEL_ID,300);director.focus(motherModelId,290);
     await Promise.all([director.wait(KAYKIT_DEFAULT_MODEL_ID),director.wait(motherModelId)]);
-    const needModel=(modelId,priority=180)=>{if(modelById.has(modelId))director.focus(modelId,priority);};
+    const needModel=(modelId,priority=20,focused=false)=>{if(!modelById.has(modelId))return;focused?director.focus(modelId,priority):director.hint(modelId,priority);};
     const pool=familyPool(templates,8,{onNeedModel:needModel}),peerPool=familyPool(templates,30,{onNeedModel:needModel}),motherPool=familyPool(templates,30,{onNeedModel:needModel});families.push(pool,peerPool,motherPool);
     for(const [modelId,template] of templates)for(const family of families)family.installModel(modelId,template);
     for(const model of KAYKIT_MODELS)if(!templates.has(model.id))director.hint(model.id,5);
     return Object.freeze({
       pool,peerPool,motherPool,
-      manifestation:Object.freeze({snapshot:director.snapshot,focusModel:(modelId,priority=180)=>needModel(modelId,priority)}),
+      manifestation:Object.freeze({snapshot:director.snapshot,focusModel:(modelId,priority=180)=>needModel(modelId,priority,true)}),
       dispose(){pool.dispose();peerPool.dispose();motherPool.dispose();director.dispose();loader.disposeCompressedTextures?.();}
     });
   } catch (error) {director.dispose();loader.disposeCompressedTextures?.();throw error;}
