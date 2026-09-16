@@ -39,3 +39,7 @@ python3 apps/village/tests/built-browser.py
 画面テストをネイティブURLで再実行する場合は、Python PlaywrightとChromiumを用意し、別プロセスで `npm run dev:village` を起動したうえで、進行テスト実行後に `python apps/village/tests/browser.py` を実行します。対象URLは `VILLAGE_URL`、任意のChromium実行ファイルは `CHROMIUM_EXECUTABLE` で指定できます。生成物はroot `test-results/village/` に保存されます。Chromiumは実WebGLで起動します。SwiftShaderを使う場合は機能確認であり、実端末の性能測定ではありません。
 
 `built-browser.py` はビルド済みの `dist/village` を一時HTTPサーバーで配信し、起動・保存再読込・破損保存の保護と退避・実WebGL context lossを検証します。同じPython Playwright/Chromiumを使用し、サーバーはテスト終了時に停止します。
+
+## フレーム時間の安定性
+
+通常プレイでは、性能記録のために毎フレーム統計用の全サンプルをソートしません。フレーム値は従来どおり記録し、診断要求時に集計します。また、描画品質の再適用で異方性設定が変わらないテクスチャはGPUへ再転送せず、実際の設定変更・テクスチャ内容更新は維持します。性能修正は局所的な回帰テストと処理回数で検証し、Node.jsの処理時間やソフトウェアGPU上の結果をスマートフォン実機のFPSとして報告しません。
