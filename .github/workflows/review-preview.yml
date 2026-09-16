@@ -1,11 +1,12 @@
 name: Visual Review Preview
 
 on:
-  workflow_run:
-    workflows: ["Deploy DEV and PROD"]
-    types: [completed]
-    branches: [develop]
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      source_sha:
+        description: 'Exact develop SHA to publish'
+        type: string
+        required: true
 
 permissions:
   contents: read
@@ -17,41 +18,47 @@ concurrency:
 
 jobs:
   publish:
-    name: Publish latest develop review
-    if: vars.REVIEW_PREVIEW_ENABLED == 'true'
+    name: Publish exact develop review
+    if: vars.REVIEW_PREVIEW_ENABLED != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: develop
+          ref: ${{ inputs.source_sha }}
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: npm
-      - name: Resolve exact develop head
-        id: source
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Mark Visual Review pending
+        continue-on-error: true
+        uses: actions/github-script@v8
         env:
-          GH_TOKEN: ${{ github.token }}
-          SOURCE_SHA: ${{ steps.source.outputs.sha }}
-        run: |
-          gh api "repos/$GITHUB_REPOSITORY/statuses/$SOURCE_SHA" \
-            -f state=pending \
-            -f context=visual-review/public \
-            -f description="Visual Review: building latest develop" \
-            -f target_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: process.env.SOURCE_SHA,
+              context: 'visual-review/public',
+              state: 'pending',
+              description: 'Visual Review: building exact develop source',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
       - run: npm ci
       - run: npm run build:review
       - name: Confirm develop did not move before publish
+        uses: actions/github-script@v8
         env:
-          GH_TOKEN: ${{ github.token }}
-          SOURCE_SHA: ${{ steps.source.outputs.sha }}
-        run: |
-          latest=$(gh api "repos/$GITHUB_REPOSITORY/branches/develop" --jq .commit.sha)
-          test "$latest" = "$SOURCE_SHA"
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        with:
+          script: |
+            const { data } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
+            if (data.commit.sha !== process.env.SOURCE_SHA) {
+              core.setFailed(`develop advanced to ${data.commit.sha}; newer publication owns Visual Review`);
+            }
       - name: Deploy fixed Visual Review URL
         id: deploy
         env:
@@ -61,23 +68,34 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           npx --yes wrangler@4 deploy --config wrangler.review.jsonc
+      - name: Verify fixed Visual Review URL
+        id: public
+        env:
+          REVIEW_URL: https://rinne-visual-review.c-okamoto.workers.dev/
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          page=$(curl -fsS --retry 6 --retry-delay 2 --retry-all-errors --max-time 20 "${REVIEW_URL}?source=${SOURCE_SHA}")
+          printf '%s' "$page" | grep -q '<title>輪廻転焦 Visual Review</title>'
+          printf '%s' "$page" | grep -q 'Visual Review'
       - name: Record Visual Review result
         if: always()
+        uses: actions/github-script@v8
         env:
-          GH_TOKEN: ${{ github.token }}
-          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
           DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
-        run: |
-          state=failure
-          description="Visual Review publication failed"
-          target_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          if [ "$DEPLOY_OUTCOME" = "success" ]; then
-            state=success
-            description="Visual Review is live from latest develop"
-            target_url="https://rinne-visual-review.c-okamoto.workers.dev/"
-          fi
-          gh api "repos/$GITHUB_REPOSITORY/statuses/$SOURCE_SHA" \
-            -f state="$state" \
-            -f context=visual-review/public \
-            -f description="$description" \
-            -f target_url="$target_url"
+          PUBLIC_OUTCOME: ${{ steps.public.outcome }}
+        with:
+          script: |
+            const success = process.env.DEPLOY_OUTCOME === 'success' && process.env.PUBLIC_OUTCOME === 'success';
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: process.env.SOURCE_SHA,
+              context: 'visual-review/public',
+              state: success ? 'success' : 'failure',
+              description: success
+                ? 'Visual Review is live and HTTP-verified from exact develop'
+                : 'Visual Review build, deploy, or public verification failed',
+              target_url: success
+                ? 'https://rinne-visual-review.c-okamoto.workers.dev/'
+                : `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });

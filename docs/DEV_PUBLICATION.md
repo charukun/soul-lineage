@@ -27,6 +27,14 @@ When both are true the same ticket becomes `verified`. If PR browser verificatio
 
 The repair path must keep assertion quality, exact-head evidence, hold/review/dependency rules, and `maxAttempts`. It must not weaken Production gates or modify `main`.
 
+## Visual Review publication liveness
+
+The fixed Visual Review URL is a non-blocking observation surface for the latest `develop`. Its publisher must have a trigger that can fire from the existing develop publication path without requiring the workflow file to exist on the repository default branch (`main`). Default-branch-only event types such as `workflow_run` or `workflow_dispatch` must not be the sole liveness path while the Visual Review workflow is intentionally develop-only. A `push` event is also insufficient as the sole path because Integration can update `develop` with `GITHUB_TOKEN`, whose resulting events do not create another workflow run.
+
+The existing develop publisher already invokes the reusable PULSE/control-plane workflow with the exact publication SHA. That reusable workflow fans out an independent Visual Review reusable publisher with the same exact SHA. This fan-out is routing only: Visual Review build/deploy/public-check failure is recorded on `visual-review/public` but must not fail PULSE, normal Integration, or DEV publication.
+
+Before deploying, Visual Review confirms that its source SHA is still the current `develop` head. Newer publication runs coalesce through the fixed `visual-review-develop` concurrency group. The optional `REVIEW_PREVIEW_ENABLED` repository variable is an opt-out switch: an unset value must not silently disable publication, while an explicit `false` may disable it. A successful publication requires both the Cloudflare deploy and an HTTP check of the fixed URL containing the Visual Review document marker; Wrangler command success alone is not sufficient.
+
 ## PULSE semantics
 
 PULSE publication health follows the exact public DEV snapshot, not browser-repair state:
