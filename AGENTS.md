@@ -47,6 +47,7 @@ Read only the rows that match the task.
 | Mobile / Codespaces / push routing | [`docs/MOBILE_HYBRID_DEVELOPMENT.md`](docs/MOBILE_HYBRID_DEVELOPMENT.md) |
 | Character/model/rig/material/DCC work | [`docs/art/README.md`](docs/art/README.md) and the routed `docs/characters/` contract |
 | Character motion / stance / locomotion | [`docs/characters/MOTION_AUTHORING.md`](docs/characters/MOTION_AUTHORING.md) and [`docs/characters/MOTION_QUALITY.md`](docs/characters/MOTION_QUALITY.md) |
+| User asks for the current motion video (`動画ください`) | [`docs/characters/MOTION_VIDEO_HANDOFF.md`](docs/characters/MOTION_VIDEO_HANDOFF.md) |
 
 ## Specialized execution
 
@@ -55,5 +56,7 @@ Character production must follow [`docs/characters/CHARACTER_PRODUCTION_PIPELINE
 When a requested Blender character build needs repository-hosted headless execution, follow [`docs/characters/CHARACTER_DCC_CARRIER.md`](docs/characters/CHARACTER_DCC_CARRIER.md): use a short-lived `dcc/<slug>` branch and the carrier contract. Do not repurpose RINNE Dispatch merely to obtain Blender, and do not wait/poll for the carrier.
 
 When the user explicitly requests a dedicated worker (`派生して`, `別セッションで`, etc.), use RINNE Dispatch only for a self-contained implementation task. Bootstrap the Draft PR and request marker as described in [`docs/DISPATCHER.md`](docs/DISPATCHER.md); the dispatched worker implements and returns the same PR to normal Integration.
+
+When the user asks for a motion video, do not synthesize a stick figure or schematic as a substitute. Resolve the target PR's current exact head and use the corresponding `pr-browser-<pr>-<head>` artifact described by [`docs/characters/MOTION_VIDEO_HANDOFF.md`](docs/characters/MOTION_VIDEO_HANDOFF.md). Only call it an actual motion video when the receipt identifies the real model/runtime and exact head.
 
 Visual/motion review observes current `develop`; it is not a second source of gameplay or motion truth. Preserve native gameplay/contact timing and shared sources. Use the current review routes documented by the character/motion guides rather than reviving a long-lived review branch.

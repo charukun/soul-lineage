@@ -141,4 +141,6 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
     writeFileSync(resolve(output,'motion-qa-browser.json'),JSON.stringify({success:true,checks,snapshots,errors,network},null,2));
   }catch(error){await page.screenshot({path:resolve(output,'motion-qa-failure.png')}).catch(()=>{});writeFileSync(resolve(output,'motion-qa-browser.json'),JSON.stringify({success:false,error:String(error),checks,errors,network},null,2));throw error;}
   finally{await context.close();}
+  const {verifyCharacterMotionVideo}=await import('./character-motion-video.browser.mjs');
+  await verifyCharacterMotionVideo(browser,baseURL,output,{head:process.env.HEAD_SHA||'local'});
 }
