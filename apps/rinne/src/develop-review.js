@@ -42,7 +42,7 @@ function openPanel(name) {
   qa('[data-panel]').forEach(panel=>panel.classList.toggle('active',panel.dataset.panel===name));
   const panel=q(`[data-panel="${name}"]`);
   const frame=panel?.querySelector('iframe[data-src]');
-  if(frame && !frame.src) frame.src=frame.dataset.src;
+  if(frame && !frame.getAttribute('src')) frame.setAttribute('src',frame.dataset.src);
 }
 qa('[data-view]').forEach(button=>button.addEventListener('click',()=>openPanel(button.dataset.view)));
 
