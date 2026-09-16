@@ -21,8 +21,8 @@
    - `return`: 逆方向へ身体を切り返す返し斬り。
    - `finisher`: 高い溜めから全身で落とす打ち下ろし。
 2. variant は gameplay timing を共有し、剣軌道・骨盤/胸郭・重心・free hand・足の受けだけを変える。
-3. `HumanoidRuntime` は attack の明示variantを優先し、通常プレイでは attack ID から決定論的に presentation variant を選ぶ。ゲーム判定には使わない。
-4. 3 variant は初回攻撃中に都度生成せず、Shino load 時に実ランタイムの baked clip として準備する。
+3. `HumanoidRuntime` は `attack.presentationVariant` を最優先し、既存の combo/chain/sequence index が明示されている場合だけ決定論的に3 variantへ割り当てる。どちらも無い通常 `slash` は従来互換の `cross` とし、presentation選択をゲーム判定には使わない。
+4. 3 variant は初回攻撃中に都度生成せず、Shino load 時に実ランタイムの baked clip として準備する。同一モデルの再取得では再bakeしない。
 5. 30秒演武の17〜23秒は `cross -> return -> finisher` の一連の型として構成し、最後は十分な残心を置いて納刀へ渡す。
 
 ## 受入条件
