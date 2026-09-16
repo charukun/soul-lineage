@@ -6,12 +6,13 @@ const root=new URL('../',import.meta.url);
 const read=path=>readFile(new URL(path,root),'utf8');
 
 test('Visual Review publication follows exact develop delivery and requires desktop plus mobile browser verification',async()=>{
-  const [workflow,opsBoard,smoke,collector,browserCheck]=await Promise.all([
+  const [workflow,opsBoard,smoke,collector,browserCheck,reviewCss]=await Promise.all([
     read('.github/workflows/review-preview.yml'),
     read('.github/workflows/ops-board.yml'),
     read('scripts/browser/visual-review-smoke.mjs'),
     read('ops-board/collector.mjs'),
     read('ops-board/browser-check.mjs'),
+    read('apps/rinne/src/develop-review.css'),
   ]);
   assert.match(workflow,/workflow_call:/);
   assert.match(workflow,/source_sha:[\s\S]*required: true/);
@@ -45,6 +46,10 @@ test('Visual Review publication follows exact develop delivery and requires desk
   assert.match(smoke,/battle-time/);
   assert.match(smoke,/pageerror/);
   assert.match(smoke,/requestfailed/);
+
+  assert.match(reviewCss,/\.review-nav\{[^}]*grid-template-columns:repeat\(4,1fr\)/);
+  assert.match(reviewCss,/@media\(max-width:700px\)\{[\s\S]*\.review-nav\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(reviewCss,/@media\(max-width:700px\)\{[\s\S]*\.review-nav\{grid-template-columns:1fr 1fr/);
 
   assert.match(opsBoard,/visual-review:[\s\S]*uses: \.\/\.github\/workflows\/review-preview\.yml/);
   assert.match(opsBoard,/source_sha: \$\{\{ inputs\.source_sha \|\| github\.sha \}\}/);
