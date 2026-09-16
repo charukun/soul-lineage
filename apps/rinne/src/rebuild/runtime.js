@@ -6,6 +6,7 @@ import { buildStations, nearestStation, normalizeLayout } from './locations.js';
 import { createWorldRenderer } from './renderer.js';
 import { createBirthExperience } from './birth-experience.js';
 import { createFront, normalizeFront, tickFront } from './combat.js';
+import { createVillageSkirmish, tickVillageSkirmish, villageSkirmishAnchor } from './village-skirmish.js';
 import { guidanceFor } from './guidance.js';
 import { RINNE_RUNTIME_PERFORMANCE } from './performance.js';
 
@@ -28,13 +29,14 @@ export async function prepareRuntime({buildInfo,onProgress,layoutOverride}={}){
   const channel=createSharedWorldChannel({environment,validate:validateMuraLayout});
   let layout=defaultMuraLayout();try{layout=normalizeLayout(channel.read()||layout);}catch(error){console.warn('shared world:',error);}
   if(layoutOverride)layout=normalizeLayout(validateMuraLayout(layoutOverride));
-  const stations=buildStations(layout),canvas=$('game'),loading=$('loading-card'),gameScreen=$('game-screen');
+  const stations=buildStations(layout),skirmishAnchor=villageSkirmishAnchor(stations);stations.push({id:'village-skirmish',label:'村外の戦場',x:skirmishAnchor.x,z:skirmishAnchor.z,radius:2.5,danger:true});
+  const canvas=$('game'),loading=$('loading-card'),gameScreen=$('game-screen');
   await progress('景色を描いています');
   const view=await createWorldRenderer({canvas,document,layout,stations});
   await progress('旅人を迎えています');
   const preview=placeState(createLife({name:'旅人',seed:0x51f15e,villageIds:[layout.id]}),layout);
-  view.syncFront(null);view.renderState(preview,.016);canvas.dataset.runtime='prepared';
-  const host={environment,platform,saveKey,channel,layout,stations,canvas,loading,gameScreen,view,active:false,disposed:false};
+  view.syncFront(null);view.syncSkirmish(null);view.renderState(preview,.016);canvas.dataset.runtime='prepared';
+  const host={environment,platform,saveKey,channel,layout,stations,skirmishAnchor,canvas,loading,gameScreen,view,active:false,disposed:false};
   host.dispose=()=>{if(host.disposed)return;host.disposed=true;host.active=false;canvas.dataset.runtime='disposed';view.dispose();};
   return host;
 }
@@ -44,7 +46,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   if(host.disposed)throw Error('描画世界は終了済みです');
   if(host.active)throw Error('人生はすでに始まっています');
   host.active=true;
-  const {platform,saveKey,channel,layout,stations,canvas,loading,gameScreen,view}=host;
+  const {platform,saveKey,channel,layout,stations,skirmishAnchor,canvas,loading,gameScreen,view}=host;
   let state=null;
   try{
     if(coop)state=structuredClone(coop.snapshot().view.me);
@@ -57,6 +59,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
 
   let active=true,raf=0,last=performance.now(),saveElapsed=0,uiElapsed=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval,toastTimer=0,endDialog=null,pointer=null,keyboard={x:0,y:0},axis={x:0,y:0},portDwell=0,doorDwell=0,doorStationId='',movementHint=true,movementHintTimer=0,chapterTimer=0,hurtTimer=0,lastChapter='';
   let front=coop?coop.snapshot().view.front:state.zone==='frontier'?normalizeFront(state.frontState,state.front,state.seed):null;if(front)state.frontState=front;
+  let skirmish=coop?null:createVillageSkirmish(skirmishAnchor,state.seed);view.syncSkirmish(skirmish);
   let coopTick=-1,coopEpoch=0,rebirthPending=false,inputElapsed=0;
   const birth=createBirthExperience({document,canvas,gameScreen,view,stations,getState:()=>state,dialogue});
 
@@ -100,7 +103,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     document.body.append(endDialog);
     endDialog.addEventListener('close',async()=>{if(endDialog.returnValue==='rebirth'){
       if(coop){rebirthPending=true;void Promise.resolve(coop.rebirth(select.value||null)).catch(error=>{rebirthPending=false;toast(error.message);});endDialog.remove();endDialog=null;return;}
-      state=rebirth(state,{villageId:select.value||null,villageIds:[layout.id]});front=null;state.frontState=null;view.syncFront(null);state.position=safeMuraPosition(layout,state.position);lastChapter='';await save();endDialog.remove();endDialog=null;syncUI();armMovementHint();showBirthIntro();toast(`${state.generation}代目 · 0歳`);
+      state=rebirth(state,{villageId:select.value||null,villageIds:[layout.id]});front=null;state.frontState=null;view.syncFront(null);skirmish=createVillageSkirmish(skirmishAnchor,state.seed);view.syncSkirmish(skirmish);state.position=safeMuraPosition(layout,state.position);lastChapter='';await save();endDialog.remove();endDialog=null;syncUI();armMovementHint();showBirthIntro();toast(`${state.generation}代目 · 0歳`);
     }else endDialog.showModal();});endDialog.showModal();
   }
   function handleEvents(events){for(const event of events){
@@ -116,7 +119,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     if(event.type==='evaded')toast('見切った');
     if(event.type==='enemy-down')toast('撃破');
     if(event.type==='downed'){pulseHurt();toast('行動不能 · 救助待ち');}
-    if(event.type==='rescued')toast('救助 · 村');
+    if(event.type==='rescued')toast('衛兵に救助された');
   }}
   function setAxis(next){axis=next;const len=Math.hypot(axis.x,axis.y);if(len>1){axis={x:axis.x/len,y:axis.y/len};}}
   function onPointerDown(event){if(pointer||!active)return;pointer={id:event.pointerId,x:event.clientX,y:event.clientY};canvas.setPointerCapture?.(event.pointerId);setAxis({x:0,y:0});event.preventDefault();}
@@ -159,6 +162,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
       if(doorDwell>=.55){const entering=station.enterInterior,changed=entering?enterBuilding(state,station):leaveBuilding(state);if(changed){toast(entering?`${station.label}へ入る`:'外へ出る');doorDwell=0;doorStationId='';void save();}}
     }else{doorDwell=0;doorStationId='';}
     if(state.zone==='village'&&!state.interior&&station?.port&&canDepart(state)&&!moved){portDwell+=dt;if(portDwell>=1.5&&depart(state)){front=createFront(0,state.seed);state.frontState=front;view.syncFront(front);toast('出航 · 前線');portDwell=0;}}else portDwell=0;
+    const villageBattle=tickVillageSkirmish(state,skirmish,dt);handleEvents(villageBattle);view.updateSkirmish(skirmish);
     if(state.zone==='frontier'){
       if(!front){front=normalizeFront(state.frontState,state.front,state.seed);state.frontState=front;view.syncFront(front);}
       const battle=tickFront(state,front,dt);handleEvents(battle);view.updateFront(front);
