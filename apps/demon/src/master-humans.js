@@ -5,6 +5,7 @@ import {NightView} from './web/view.js';
 import {attachModularAppearanceController} from '@soul/rendering/master-character-modular';
 import {createCharacter,visualIdentityForCharacter,YEAR_MS} from '@soul/characters';
 import {stepCombatPresentation} from './combat-presentation.js';
+import {DEMON_CHARACTER_RUNTIME,resolveDemonCharacterRuntime} from './character-runtime-adapter.js';
 
 export const MASTER_HUMAN_LIMIT=6;
 import {loadDemonMasterModel} from './master-model.js';
@@ -56,20 +57,20 @@ function stateFor(view){
  if(states.has(view))return states.get(view);
  const state={status:'loading',pool:null,rig:null,entries:new Map(),model:null,error:null};states.set(view,state);
  view.canvas.dataset.masterHuman='loading';view.canvas.dataset.masterHumanLimit=String(MASTER_HUMAN_LIMIT);
- if(typeof window!=='undefined')window.__DEMON_MASTER_HUMANS__={snapshot:()=>({status:state.status,active:state.entries.size,limit:MASTER_HUMAN_LIMIT,model:state.model,error:state.error,ids:[...state.entries.keys()],motions:[...state.entries.values()].map(e=>({id:e.npc.id,state:e.motion?.transition?.state||null,personality:e.motion?.personality?.name||null,fatigue:e.motion?.condition?.fatigue??0,combatBlend:e.combatPresentation?.eased||0}))})};
+ if(typeof window!=='undefined')window.__DEMON_MASTER_HUMANS__={snapshot:()=>({status:state.status,active:state.entries.size,limit:MASTER_HUMAN_LIMIT,model:state.model,error:state.error,ids:[...state.entries.keys()],motions:[...state.entries.values()].map(e=>({id:e.npc.id,state:e.motion?.transition?.state||null,personality:e.motion?.personality?.name||null,fatigue:e.motion?.condition?.fatigue??0,combatBlend:e.combatPresentation?.eased||0,runtimeState:e.runtime?.state||null,runtimeMotion:e.runtime?.motion?.resolvedState||null}))})};
  void load(view,state);return state;
 }
 async function load(view,state){try{const {url,gltf,rig}=await loadDemonMasterModel();state.model=url;state.rig=rig;state.pool=createShinoProductionPool({template:gltf.scene,humanoid:rig.humanoid,rig,capacity:MASTER_HUMAN_LIMIT});state.status='ready';state.error=null;view.canvas.dataset.masterHuman='ready';}catch(error){state.status='fallback';state.error=String(error?.message||error);view.canvas.dataset.masterHuman='fallback';console.warn('[MasterCharacter humans] fallback',error);}}
 function release(view,state,id){const entry=state.entries.get(id);if(!entry)return;showProceduralBody(view.npcs.get(id),true);state.pool?.despawn(entry.poolId);motionRuntime.reset(`demon:${id}`);state.entries.delete(id);}
 function releaseAll(view,state){for(const id of [...state.entries.keys()])release(view,state,id);}
-function acquire(view,state,npc){let entry=state.entries.get(npc.id);if(entry)return entry;if(!state.pool)return null;const poolId=`demon.${hashHuman(npc.id).toString(16)}.${String(npc.id).length}`;const actor=state.pool.spawn(poolId);actor.root.userData.masterCharacter=true;actor.root.userData.npcId=npc.id;view.actors.add(actor.root);const modular=attachModularAppearanceController(actor);modular.setIdentity(humanVisualIdentity(npc));entry={actor,modular,poolId,npc,lastTime:0,role:npc.role,appearance:humanAppearance(npc),motion:null,combatPresentation:{weight:0,pose:null}};state.entries.set(npc.id,entry);return entry;}
+function acquire(view,state,npc){let entry=state.entries.get(npc.id);if(entry)return entry;if(!state.pool)return null;const poolId=`demon.${hashHuman(npc.id).toString(16)}.${String(npc.id).length}`;const actor=state.pool.spawn(poolId);Object.assign(actor.root.userData,{masterCharacter:true,npcId:npc.id,characterRuntimeAdapter:DEMON_CHARACTER_RUNTIME.id,characterRuntimeFormat:DEMON_CHARACTER_RUNTIME.format,characterRuntimeRig:DEMON_CHARACTER_RUNTIME.rigFamily});view.actors.add(actor.root);const modular=attachModularAppearanceController(actor);modular.setIdentity(humanVisualIdentity(npc));entry={actor,modular,poolId,npc,lastTime:0,role:npc.role,appearance:humanAppearance(npc),motion:null,runtime:null,combatPresentation:{weight:0,pose:null}};state.entries.set(npc.id,entry);return entry;}
 function sync(view,state,game,dt){
  const npcs=game?.village?.npcs||[],player=game?.player||{x:0,z:0};if(state.status!=='ready'){for(const n of npcs)showProceduralBody(view.npcs.get(n.id),true);return;}
  const selected=new Set(npcs.filter(n=>!n.dead&&!n.eaten).sort((a,b)=>masterHumanScore(a,player)-masterHumanScore(b,player)).slice(0,MASTER_HUMAN_LIMIT).map(n=>n.id));
  for(const id of [...state.entries.keys()])if(!selected.has(id))release(view,state,id);
  const time=game.time||view.elapsed||0;
  for(const npc of npcs){const procedural=view.npcs.get(npc.id);if(!selected.has(npc.id)){showProceduralBody(procedural,true);continue;}const entry=acquire(view,state,npc);if(!entry){showProceduralBody(procedural,true);continue;}
-  entry.npc=npc;if(entry.role!==npc.role){entry.role=npc.role;entry.appearance=humanAppearance(npc);entry.modular.setIdentity(humanVisualIdentity(npc));}entry.motion=humanMotion(npc,time,entry.appearance);entry.combatPresentation=stepCombatPresentation(entry.combatPresentation,npc.pose,dt);entry.actor.sample(entry.appearance,time,bones=>pose(bones,time,npc,entry.motion,entry.combatPresentation));if(entry.actor.expressionNames.includes('blink'))entry.actor.setExpressions({blink:entry.motion.micro.blink});
+  entry.npc=npc;entry.runtime=resolveDemonCharacterRuntime(npc);entry.actor.root.userData.characterRuntimeState=entry.runtime.state;entry.actor.root.userData.characterRuntimeMotion=entry.runtime.motion.resolvedState;if(entry.role!==npc.role){entry.role=npc.role;entry.appearance=humanAppearance(npc);entry.modular.setIdentity(humanVisualIdentity(npc));}entry.motion=humanMotion(npc,time,entry.appearance);entry.combatPresentation=stepCombatPresentation(entry.combatPresentation,npc.pose,dt);entry.actor.sample(entry.appearance,time,bones=>pose(bones,time,npc,entry.motion,entry.combatPresentation));if(entry.actor.expressionNames.includes('blink'))entry.actor.setExpressions({blink:entry.motion.micro.blink});
   entry.actor.updateSecondary(clamp(dt,0,.1),true);entry.actor.root.position.set(npc.x||0,0,npc.z||0);entry.actor.root.rotation.y=npc.yaw||0;entry.actor.root.visible=!npc.eaten&&!npc.dead;showProceduralBody(procedural,false);
  }
 }
