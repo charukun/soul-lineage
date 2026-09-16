@@ -13,6 +13,8 @@ test('Fast Gate scope separates app, shared and fail-closed infrastructure chang
   assert.equal(fastGateScope({ apps: ['rinne'], packages: [], infrastructure: false }), 'app');
   assert.equal(fastGateScope({ apps: ['rinne'], packages: ['@soul/characters'], infrastructure: false }), 'shared');
   assert.equal(fastGateScope({ apps: ['rinne'], packages: [], infrastructure: true }), 'broad');
+  assert.equal(fastGateScope({ apps: ['rinne'], packages: [], infrastructure: false }, 'control'), 'broad');
+  assert.equal(fastGateScope({ apps: ['rinne'], packages: [], infrastructure: false }, 'shared'), 'shared');
   assert.equal(fastGateScope({ apps: [], packages: [], infrastructure: false }), 'none');
 });
 
@@ -38,9 +40,11 @@ test('broad validation never drops a test', () => {
   assert.deepEqual(plan.skippedHeavy, []);
 });
 
-test('validator uses direct workspace checks for narrow fast scope and keeps full paths broad', () => {
+test('validator uses gate-cost profile and direct workspace checks for narrow fast scope', () => {
   const validate = source('scripts/validate.mjs');
   const check = source('scripts/check.mjs');
+  assert.match(validate, /gateCostPlan\(plan\.paths \|\| \[\]\)\.profile/);
+  assert.match(validate, /fastGateScope\(plan, profile\)/);
   assert.match(validate, /narrowFast \? \['scripts\/check\.mjs', '--direct'/);
   assert.match(validate, /splitFastTests\(uniqueTests, plan\.paths/);
   assert.match(validate, /plan\.infrastructure/);
