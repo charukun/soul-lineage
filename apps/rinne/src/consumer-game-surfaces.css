@@ -1,0 +1,356 @@
+/*
+ * RINNE consumer-game surface family.
+ * These are related materials, not one generic card copied everywhere.
+ */
+:root{
+  --rinne-surface-gold:#c7a25c;
+  --rinne-surface-gold-hi:#efd79d;
+  --rinne-surface-ink:#060b10;
+  --rinne-surface-text:#f3e7cc;
+  --rinne-surface-muted:rgba(232,224,207,.68);
+}
+
+:is(.title-settings-dialog,#village-dialog,.life-end-dialog){
+  position:relative;
+  isolation:isolate;
+  border-radius:0;
+  color:var(--rinne-surface-text);
+  clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);
+  box-shadow:
+    0 6px 0 rgba(20,15,10,.78),
+    0 28px 82px rgba(0,0,0,.74),
+    inset 0 1px rgba(255,244,214,.12),
+    inset 0 -14px 32px rgba(0,0,0,.28);
+}
+:is(.title-settings-dialog,#village-dialog,.life-end-dialog)::before{
+  content:"";
+  position:absolute;
+  inset:7px;
+  z-index:0;
+  pointer-events:none;
+  border:1px solid rgba(214,177,102,.25);
+  clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px);
+}
+:is(.title-settings-dialog,#village-dialog,.life-end-dialog)>*{position:relative;z-index:1}
+:is(.title-settings-dialog,#village-dialog,.life-end-dialog)::backdrop{
+  background:radial-gradient(ellipse at 50% 46%,rgba(22,31,38,.24),rgba(2,5,8,.84) 58%,rgba(1,3,5,.94));
+  -webkit-backdrop-filter:blur(7px) saturate(.70) brightness(.72);
+  backdrop-filter:blur(7px) saturate(.70) brightness(.72);
+}
+
+/* Settings: cool blackened steel. */
+.title-settings-dialog{
+  width:min(480px,calc(100vw - 30px));
+  padding:31px 32px 28px;
+  border:1px solid rgba(211,178,109,.72);
+  background:
+    radial-gradient(ellipse at 50% -10%,rgba(205,170,100,.14),transparent 44%),
+    repeating-linear-gradient(108deg,rgba(255,255,255,.016) 0 1px,transparent 1px 7px),
+    linear-gradient(155deg,#182531,#0b131b 62%,#060b10);
+}
+.title-settings-dialog h2{
+  margin:0 0 23px;
+  color:#f4e4bd;
+  font-size:25px;
+  text-shadow:0 2px 6px rgba(0,0,0,.82);
+}
+.title-settings-dialog .dialog-close{
+  right:12px;
+  top:11px;
+  width:42px;
+  height:42px;
+  border:1px solid rgba(198,170,112,.30);
+  border-radius:0;
+  clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);
+  background:linear-gradient(180deg,rgba(52,64,72,.84),rgba(18,27,34,.90));
+  color:#ebd9b1;
+  box-shadow:inset 0 1px rgba(255,255,255,.08),0 2px 0 rgba(1,4,7,.82);
+}
+.title-settings-dialog .dialog-close:hover,.title-settings-dialog .dialog-close:focus-visible{
+  outline:0;
+  border-color:rgba(238,211,150,.72);
+  box-shadow:inset 0 1px rgba(255,255,255,.10),0 2px 0 rgba(1,4,7,.82),0 0 0 2px rgba(236,207,142,.20),0 0 16px rgba(216,177,99,.12);
+}
+.title-settings-dialog .setting-row{
+  position:relative;
+  min-height:62px;
+  margin:0 -4px;
+  padding:14px 12px 14px 17px;
+  border:1px solid rgba(200,169,105,.18);
+  background:linear-gradient(90deg,rgba(203,167,93,.055),rgba(255,255,255,.016) 42%,rgba(0,0,0,.12));
+  box-shadow:inset 3px 0 rgba(195,155,77,.30),inset 0 1px rgba(255,255,255,.025);
+}
+.title-settings-dialog .setting-row small{color:var(--rinne-surface-muted)}
+.title-settings-dialog .setting-switch{
+  border-color:rgba(209,175,104,.56);
+  box-shadow:inset 0 1px rgba(255,255,255,.08),0 2px 0 rgba(2,5,8,.86),0 5px 12px rgba(0,0,0,.22);
+}
+.title-settings-dialog .setting-switch[aria-checked="true"]{
+  box-shadow:inset 0 1px rgba(255,244,211,.15),0 2px 0 rgba(30,20,10,.86),0 0 17px rgba(215,170,83,.13);
+}
+
+/* Friend-village surface: warmer iron and leather, but still part of RINNE. */
+#village-dialog{
+  width:min(620px,calc(100vw - 30px));
+  max-height:min(86dvh,760px);
+  padding:30px 30px 26px;
+  border:1px solid rgba(192,152,82,.76);
+  background:
+    radial-gradient(ellipse at 22% 0,rgba(167,124,61,.16),transparent 38%),
+    repeating-linear-gradient(98deg,rgba(255,255,255,.014) 0 1px,transparent 1px 8px),
+    linear-gradient(145deg,#24241d,#141a17 58%,#090e0d);
+}
+#village-dialog h2{
+  margin:0 48px 20px 0;
+  color:#f1dfb5;
+  font-size:24px;
+  font-weight:500;
+  letter-spacing:.15em;
+  text-shadow:0 2px 6px rgba(0,0,0,.84);
+}
+#close-village{
+  position:absolute;
+  top:11px;
+  right:12px;
+  width:42px;
+  height:42px;
+  min-height:42px;
+  padding:0;
+  border:1px solid rgba(197,158,87,.36);
+  border-radius:0;
+  color:#ead6ab;
+  background:linear-gradient(180deg,#3f3c2e,#24261f);
+  clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);
+  box-shadow:inset 0 1px rgba(255,255,255,.07),0 2px 0 #11130f;
+}
+#close-village:hover,#close-village:focus-visible{
+  outline:0;
+  border-color:rgba(237,207,142,.74);
+  filter:brightness(1.10);
+  box-shadow:inset 0 1px rgba(255,255,255,.09),0 2px 0 #11130f,0 0 0 2px rgba(231,197,126,.18),0 0 15px rgba(211,165,80,.12);
+}
+#village-panel{
+  padding-top:5px;
+  border-top:1px solid rgba(202,164,90,.25);
+}
+#village-dialog .coop-menu{max-width:none;color:inherit}
+#village-dialog .coop-menu>p:first-child{margin:12px 0 17px;color:rgba(233,223,201,.72);font-size:12px;line-height:1.72}
+#village-dialog .coop-menu label{
+  margin-block:14px;
+  color:rgba(225,208,171,.78);
+  font-size:11px;
+  letter-spacing:.05em;
+}
+#village-dialog .coop-menu textarea{
+  min-height:72px;
+  margin-top:7px;
+  padding:11px 12px;
+  resize:vertical;
+  border:1px solid rgba(181,151,94,.36);
+  border-radius:0;
+  color:#eee5d2;
+  background:linear-gradient(180deg,rgba(5,10,12,.84),rgba(12,18,18,.92));
+  box-shadow:inset 0 3px 11px rgba(0,0,0,.34),0 1px rgba(255,244,213,.035);
+  outline:0;
+}
+#village-dialog .coop-menu textarea:focus-visible{
+  border-color:rgba(234,204,139,.76);
+  box-shadow:inset 0 3px 11px rgba(0,0,0,.34),0 0 0 2px rgba(231,195,120,.18),0 0 15px rgba(207,161,77,.10);
+}
+#village-dialog .coop-actions{gap:8px}
+#village-dialog .coop-actions button,#village-dialog #coop-cancel{
+  min-height:46px;
+  padding:9px 13px;
+  border:1px solid rgba(194,155,82,.52);
+  border-radius:0;
+  clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);
+  color:#f0dfb9;
+  background:linear-gradient(180deg,#51452f,#312b20 66%,#201d18);
+  box-shadow:inset 0 1px rgba(255,244,215,.10),inset 0 -4px 8px rgba(0,0,0,.20),0 2px 0 #14120f,0 6px 12px rgba(0,0,0,.20);
+  text-shadow:0 1px 3px #000;
+}
+#village-dialog .coop-actions button:hover,#village-dialog .coop-actions button:focus-visible,#village-dialog #coop-cancel:hover,#village-dialog #coop-cancel:focus-visible{
+  outline:0;
+  border-color:rgba(237,205,135,.86);
+  filter:brightness(1.09);
+  transform:translateY(-1px);
+  box-shadow:inset 0 1px rgba(255,244,215,.12),0 2px 0 #14120f,0 0 0 2px rgba(230,193,117,.18),0 7px 15px rgba(0,0,0,.27);
+}
+#village-dialog .coop-actions button:active,#village-dialog #coop-cancel:active{transform:translateY(1px)}
+#village-dialog .coop-menu details{
+  margin-top:16px;
+  padding-top:12px;
+  border-top:1px solid rgba(201,162,88,.20);
+  color:rgba(226,218,200,.67);
+  font-size:11px;
+}
+#village-dialog .coop-menu summary{display:flex;align-items:center;color:#dbc28f;letter-spacing:.06em}
+#village-dialog #coop-status{
+  margin:14px 0 0;
+  padding:9px 11px;
+  border-left:2px solid rgba(201,161,84,.48);
+  color:rgba(238,228,208,.78);
+  background:linear-gradient(90deg,rgba(201,161,84,.07),transparent 72%);
+  font-size:11px;
+}
+
+/* Life end: darker bronze, signalling irreversible transition and continuity. */
+.life-end-dialog{
+  width:min(500px,calc(100vw - 30px));
+  padding:31px 30px 27px;
+  border:1px solid rgba(196,154,78,.80);
+  background:
+    radial-gradient(ellipse at 50% -12%,rgba(209,161,75,.19),transparent 44%),
+    repeating-linear-gradient(105deg,rgba(255,255,255,.014) 0 1px,transparent 1px 8px),
+    linear-gradient(150deg,#2a2419,#171713 58%,#0b0e0d);
+}
+.life-end-dialog form{display:grid;gap:14px}
+.life-end-dialog form>p:first-child{
+  margin:0;
+  color:#d0ad69;
+  font-size:10px;
+  letter-spacing:.48em;
+  text-indent:.48em;
+  text-shadow:0 1px 3px #000;
+}
+.life-end-dialog h2{
+  margin:0;
+  color:#f3e3be;
+  font-family:var(--font-rinne-display)!important;
+  font-size:clamp(22px,5vw,29px);
+  font-weight:500;
+  letter-spacing:.12em;
+  text-shadow:0 2px 5px #000;
+}
+.life-end-dialog .life-end-summary{
+  margin:1px 0 2px;
+  padding:10px 12px;
+  border:1px solid rgba(194,155,85,.18);
+  color:rgba(232,218,187,.78);
+  background:linear-gradient(90deg,rgba(195,152,75,.06),rgba(0,0,0,.17),rgba(195,152,75,.04));
+  box-shadow:inset 3px 0 rgba(192,148,70,.26);
+  font-size:11px;
+  text-align:center;
+}
+.life-end-dialog label{
+  display:grid;
+  gap:7px;
+  color:rgba(226,207,165,.78);
+  font-size:11px;
+  letter-spacing:.05em;
+}
+.life-end-dialog select{
+  width:100%;
+  min-height:48px;
+  padding:0 38px 0 13px;
+  appearance:none;
+  border:1px solid rgba(199,159,83,.42);
+  border-radius:0;
+  color:#f1e5ca;
+  background:
+    linear-gradient(45deg,transparent 50%,#d6b36b 50%) calc(100% - 18px) 21px/6px 6px no-repeat,
+    linear-gradient(135deg,#d6b36b 50%,transparent 50%) calc(100% - 12px) 21px/6px 6px no-repeat,
+    linear-gradient(180deg,#20241e,#101510);
+  box-shadow:inset 0 2px 8px rgba(0,0,0,.32),0 1px rgba(255,244,211,.04);
+  outline:0;
+}
+.life-end-dialog select:focus-visible{
+  border-color:rgba(236,205,138,.82);
+  box-shadow:inset 0 2px 8px rgba(0,0,0,.32),0 0 0 2px rgba(230,193,119,.20),0 0 16px rgba(211,166,82,.12);
+}
+.life-end-dialog .life-end-help{
+  margin:-2px 0 0;
+  color:rgba(223,214,196,.61);
+  font-size:10px;
+  line-height:1.55;
+  text-align:center;
+}
+.life-end-dialog #rebirth{
+  min-height:52px;
+  padding:11px 16px;
+  border:1px solid rgba(232,194,116,.78);
+  border-radius:0;
+  clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px);
+  color:#fff0c8;
+  background:radial-gradient(ellipse at 50% 0,rgba(255,232,169,.15),transparent 60%),linear-gradient(180deg,#73562a,#4c3b22 64%,#30271b);
+  box-shadow:inset 0 1px rgba(255,244,210,.18),inset 0 -5px 9px rgba(0,0,0,.24),0 3px 0 #1f180f,0 8px 18px rgba(0,0,0,.31);
+  text-shadow:0 1px 3px #000;
+}
+.life-end-dialog #rebirth:hover,.life-end-dialog #rebirth:focus-visible{
+  outline:0;
+  border-color:#f0d79e;
+  filter:brightness(1.10);
+  transform:translateY(-1px);
+  box-shadow:inset 0 1px rgba(255,244,210,.22),0 3px 0 #1f180f,0 0 0 2px rgba(236,202,132,.23),0 0 20px rgba(216,169,80,.15),0 9px 21px rgba(0,0,0,.36);
+}
+.life-end-dialog #rebirth:active{transform:translateY(2px);filter:brightness(.98)}
+
+/* Alternate/end-state choices use the same input grammar without becoming generic pills. */
+.life-end-dialog .rinne-choice-list{display:grid;gap:9px}
+.life-end-dialog .rinne-choice{
+  position:relative;
+  min-height:46px;
+  width:100%;
+  padding:10px 15px 10px 21px;
+  border:1px solid rgba(174,155,116,.30);
+  border-radius:0;
+  clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);
+  color:rgba(238,231,214,.80);
+  background:linear-gradient(180deg,#263038,#172027 68%,#10161b);
+  box-shadow:inset 0 1px rgba(255,255,255,.055),0 2px 0 #090d10,0 5px 12px rgba(0,0,0,.22);
+  text-align:left;
+}
+.life-end-dialog .rinne-choice::before{
+  content:"◆";
+  position:absolute;
+  left:7px;
+  top:50%;
+  transform:translateY(-52%) scale(.62);
+  color:rgba(194,159,89,.42);
+}
+.life-end-dialog .rinne-choice[data-selected="true"],.life-end-dialog .rinne-choice:focus-visible{
+  outline:0;
+  border-color:rgba(234,199,128,.76);
+  color:#f7e7bd;
+  background:linear-gradient(180deg,#594627,#362e20 68%,#231f18);
+  box-shadow:inset 3px 0 #c79a50,inset 0 1px rgba(255,244,211,.10),0 2px 0 #130f0a,0 0 0 2px rgba(225,188,112,.15),0 7px 15px rgba(0,0,0,.27);
+}
+.life-end-dialog .rinne-choice[data-selected="true"]::before,.life-end-dialog .rinne-choice:focus-visible::before{color:#efd497;transform:translateY(-52%) scale(.78)}
+
+@media(max-width:560px){
+  .title-settings-dialog,#village-dialog,.life-end-dialog{width:calc(100vw - 22px);padding-left:20px;padding-right:20px}
+  #village-dialog{max-height:88dvh;padding-top:27px;padding-bottom:22px}
+  #village-dialog .coop-actions{display:grid;grid-template-columns:1fr 1fr}
+  #village-dialog .coop-actions button{width:100%;min-width:0}
+  .life-end-dialog{padding-top:28px}
+}
+@media(max-width:380px){
+  #village-dialog .coop-actions{grid-template-columns:1fr}
+}
+@media(orientation:landscape) and (max-height:600px){
+  .title-settings-dialog{width:min(620px,calc(100vw - 42px));padding:22px 27px 20px}
+  .title-settings-dialog h2{margin-bottom:14px;font-size:21px}
+  .title-settings-dialog .setting-row{min-height:54px;padding-block:9px}
+  #village-dialog{width:min(820px,calc(100vw - 42px));max-height:calc(100dvh - 18px);padding:21px 25px 20px}
+  #village-dialog h2{margin-bottom:12px;font-size:20px}
+  #village-dialog .coop-menu>p:first-child{margin-block:8px 12px}
+  #village-dialog .coop-menu label{margin-block:9px}
+  #village-dialog .coop-menu textarea{min-height:54px}
+  #village-dialog .coop-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .life-end-dialog{width:min(700px,calc(100vw - 42px));padding:21px 28px 20px}
+  .life-end-dialog form{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:9px 20px;align-items:center}
+  .life-end-dialog form>p:first-child,.life-end-dialog h2,.life-end-dialog .life-end-summary{grid-column:1}
+  .life-end-dialog label,.life-end-dialog .life-end-help,.life-end-dialog #rebirth{grid-column:2}
+  .life-end-dialog form>p:first-child{grid-row:1}
+  .life-end-dialog h2{grid-row:2}
+  .life-end-dialog .life-end-summary{grid-row:3}
+  .life-end-dialog label{grid-row:1 / span 2}
+  .life-end-dialog .life-end-help{grid-row:3}
+  .life-end-dialog #rebirth{grid-row:4}
+}
+@media(prefers-reduced-motion:reduce){
+  :is(.title-settings-dialog,#village-dialog,.life-end-dialog) button{transition:none!important}
+  :is(.title-settings-dialog,#village-dialog,.life-end-dialog) button:hover,
+  :is(.title-settings-dialog,#village-dialog,.life-end-dialog) button:focus-visible,
+  :is(.title-settings-dialog,#village-dialog,.life-end-dialog) button:active{transform:none!important}
+}
