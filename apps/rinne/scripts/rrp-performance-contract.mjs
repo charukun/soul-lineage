@@ -45,6 +45,14 @@ export function mergeRawPerformanceCaptures(captures=[]){
   return merged;
 }
 
+function validateRouteCaptureProvenance(captures,provenance){
+  const routed=captures.filter(capture=>capture?._capture?.schema==='rrp-raw-peer-capture');if(!routed.length)return;
+  if(routed.some(capture=>capture._capture.windowArmed!==true))throw Error('Physical capture window was not armed at the intended peer count');
+  const targets=new Set(routed.map(capture=>Number(capture._capture.expectedPeers)));if(targets.size!==1||![...targets].every(value=>Number.isInteger(value)&&value>=2&&value<=30))throw Error('Physical captures disagree on expected peer count');
+  const target=[...targets][0],declaredPeers=Number(provenance?.peers);if(!Number.isInteger(declaredPeers)||declaredPeers!==target)throw Error('Physical capture peer target does not match provenance.peers');
+  const builds=new Set(routed.map(capture=>String(capture._capture.buildRevision||'')));if(builds.size!==1||![...builds][0]||String(provenance?.buildRevision||'')!==[...builds][0])throw Error('Physical capture build revision does not match provenance.buildRevision');
+}
+
 export function performanceEvidenceTemplate(evidenceClass=EVIDENCE_CLASS.PHYSICAL_MULTIPEER){
   if(!Object.values(EVIDENCE_CLASS).includes(evidenceClass))throw Error('Unknown evidence class');
   return {
@@ -58,7 +66,8 @@ export function performanceEvidenceTemplate(evidenceClass=EVIDENCE_CLASS.PHYSICA
 }
 
 export function buildPerformanceEvidence(input={}){
-  const rawSamples=Array.isArray(input.captures)?mergeRawPerformanceCaptures(input.captures):input.rawSamples;
+  const captures=Array.isArray(input.captures)?input.captures:null;if(input.evidenceClass===EVIDENCE_CLASS.PHYSICAL_MULTIPEER&&captures)validateRouteCaptureProvenance(captures,input.provenance);
+  const rawSamples=captures?mergeRawPerformanceCaptures(captures):input.rawSamples;
   if(!rawSamples)throw Error('Performance evidence build requires rawSamples or captures');
   const skipped=Number(rawSamples.bandwidthSkippedBuckets??0);
   if(!Number.isInteger(skipped)||skipped<0)throw Error('Invalid bandwidth skipped bucket count');
