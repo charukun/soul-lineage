@@ -67,6 +67,6 @@ test('playable protagonist adoption is fail-closed and does not add a legacy fal
   assert.doesNotMatch(pool, /SHINO_review|Sendagaya|fallbackModelId/);
   assert.match(stage, /createProtagonistCharacterPool/);
   assert.match(stage, /heroPool:protagonist\.pool/);
-  assert.match(stage, /peerPool:runtime\.peerPool/);
-  assert.match(stage, /motherPool:runtime\.motherPool/);
+  assert.match(stage, /createCoopActors\(\{pool:runtime\.peerPool,/);
+  assert.match(stage, /motherPool:runtime\.motherPool,/);
 });

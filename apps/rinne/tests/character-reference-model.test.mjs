@@ -13,7 +13,7 @@ test('Character Workshop builds selectable model controls from the license-clean
   assert.match(main, /量産モデル/);
   assert.match(main, /workspace\.selectModel/);
   assert.equal(Object.hasOwn(CHARACTER_REFERENCE_MODELS, 'shino.reference.v2'), false);
-  assert.equal(Object.hasOwn(CHARACTER_REFERENCE_MODELS, 'protagonist.villager.v1'), false);
+  assert.equal(Object.hasOwn(CHARACTER_REFERENCE_MODELS, 'protagonist.villager.v1'), true);
   assert.equal(Object.hasOwn(CHARACTER_REFERENCE_MODELS, 'arcanist.atlas-dcc.v1'), false);
 });
 
