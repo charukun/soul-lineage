@@ -13,11 +13,15 @@ test('Ready handoff no longer duplicates the normal Fast Lane wake', () => {
   assert.doesNotMatch(handoff, /actions: write/);
 });
 
-test('browser repair records its result without a compatibility Integration wake', () => {
+test('normal develop CI does not dispatch browser repair while the legacy recorder remains explicit-only', () => {
   const ci = text('.github/workflows/ci.yml');
-  const repair = ci.split('  browser-repair-dispatch:')[1];
-  assert.equal((repair.match(/createWorkflowDispatch/g) || []).length, 1);
-  assert.doesNotMatch(repair, /Compatibility wake|harmless\s+extra event/);
+  const deploy = text('.github/workflows/deploy.yml');
+  assert.doesNotMatch(ci, /browser-repair-dispatch:/);
+  assert.doesNotMatch(ci, /repair_scope:\s*'pr'/);
+  const repair = deploy.split('  repair-ticket:')[1].split('\n  integrate:')[0];
+  assert.match(repair, /name: Record explicit legacy PR browser repair state/);
+  assert.match(repair, /github\.event_name == 'workflow_dispatch' && inputs\.repair_scope == 'pr'/);
+  assert.match(repair, /node scripts\/browser-repair-ticket\.mjs/);
 });
 
 test('publisher coalescing reads one bounded workflow snapshot', () => {
