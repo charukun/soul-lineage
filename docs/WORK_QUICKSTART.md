@@ -1,19 +1,16 @@
-# 実装WORKのクイックスタート
+# 実装 WORK のクイックスタート
 
-詳細規則をここへ複製しない。通常実装の正本は [`DEVELOPMENT.md`](DEVELOPMENT.md)、資料の入口は [`README.md`](README.md)。
+詳細な規則は [`DEVELOPMENT.md`](DEVELOPMENT.md) が正本。この文書は入口だけを残す。
 
 ```sh
 git fetch origin
 git switch -c feat/my-change origin/develop
-# 意味のある最初の差分をpushしてdevelop向けDraft PRを作る
 npm ci
-# 実装・commit後
+# 変更後
 node scripts/validate.mjs fast origin/develop HEAD
 npm run push:route -- origin/develop HEAD
 ```
 
-実装と必要な高速検証が完了したら push → Ready for review → `READY_FOR_INTEGRATION` で終了する。CI / browser / DEV 公開の完了を watch・sleep・polling しない。
+通常のコード変更は、コード修正前に作業 branch を push して develop 向け Draft PR を作る。実装と必要な高速検証が完了したら push、Ready for review、`READY_FOR_INTEGRATION` で終了する。CI / browser / DEV 公開の完了待ちや polling はしない。
 
-GitHub 搬送は通常 git → 接続済み GitHub API → 同じ branch の既存 Codespaces + 通常 git。容量・Base64・payload 上限で大きな binary を connector へ分割再送しない。詳細は [`MOBILE_HYBRID_DEVELOPMENT.md`](MOBILE_HYBRID_DEVELOPMENT.md)。
-
-main / Production は明示許可時のみ変更し、品質 gate を弱めない。
+push 経路、PR 本文契約、Draft / Ready 条件、例外は [`DEVELOPMENT.md`](DEVELOPMENT.md) を参照する。main / Production は明示許可時のみ変更し、品質 gate は弱めない。
