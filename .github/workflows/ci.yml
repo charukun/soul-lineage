@@ -129,7 +129,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           path: work
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
@@ -182,6 +182,15 @@ jobs:
           else
             echo "sha=$EVENT_BASE" >> "$GITHUB_OUTPUT"
           fi
+      - name: Fetch exact validation base only
+        working-directory: work
+        env:
+          BASE_SHA: ${{ steps.base.outputs.sha }}
+        run: |
+          if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          fi
+          git cat-file -e "$BASE_SHA^{commit}"
       - name: Cheap gate-cost preflight before dependency install
         id: gate-cost
         if: steps.rescue-fast.outputs.reuse != 'true'
@@ -201,7 +210,7 @@ jobs:
         if: >-
           steps.rescue-fast.outputs.reuse != 'true' &&
           (steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.has_packages == 'true' || steps.plan.outputs.infrastructure == 'true')
-      - name: Fast verification (shared tests run once)
+      - name: Fast verification (responsibility-scoped)
         if: steps.rescue-fast.outputs.reuse != 'true'
         working-directory: work
         env:
