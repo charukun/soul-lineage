@@ -19,7 +19,7 @@ test('motion video plan covers the existing 30-second review at recording rate',
   assert.equal(frames[11*30].label,'draw');
   assert.equal(frames[14*30].label,'guard');
   assert.equal(frames[23*30].label,'sheathe');
-  assert.equal(frames[27*30].label,'idle');
+  assert.equal(frames[27*30].label,'idle-end');
   assert.ok(frames.slice(17*30,23*30).some(frame=>frame.attack?.kind==='slash'),'combat block must include the authored slash');
 });
 
