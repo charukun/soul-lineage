@@ -31,6 +31,13 @@ test('wire instrumentation counts UTF-8 payload bytes and DataChannel queue pres
   clock=2000;assert.deepEqual(probe.snapshot().peerUplinkKbps,[expectedBytes*8/1000,0]);
 });
 
+test('long background gaps keep bandwidth catchup bounded to retained samples',()=>{
+  let clock=0;const probe=createCoopPerformanceProbe({role:'peer',now:()=>clock,maxSamples:32});
+  probe.recordSend({payloadBytes:100,reliableBufferedAmount:0,presenceBufferedAmount:0});
+  clock=24*60*60*1000;
+  const raw=probe.snapshot();assert.equal(raw.peerUplinkKbps.length,32);assert.ok(raw.peerUplinkKbps.every(value=>value===0));
+});
+
 test('replaceable backpressure drop records queue pressure and a zero-byte bandwidth window',()=>{
   let clock=0;const probe=createCoopPerformanceProbe({role:'host',now:()=>clock});
   const connection={channel:{readyState:'open',bufferedAmount:70000},presenceBufferedAmount:()=>0,send:()=>assert.fail('must not send')};
