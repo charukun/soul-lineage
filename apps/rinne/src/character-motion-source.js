@@ -1,5 +1,6 @@
 import { QA_FPS, qaSequenceAt, blendHumanoidPose, stabilizeMotionBoundaries } from '@soul/animations';
 import { captureMotionRest, captureNormalizedMotion } from '@soul/rendering/motion-quality';
+import { thirtySecondSlashBeat } from './character-motion-performance.js';
 
 /** Bake the existing runtime once, then release its model/controllers. A crowd shares
  * immutable canonical poses, never a mixer, VRM bridge, spring history or model clone.
@@ -25,7 +26,8 @@ export async function bakeWorkshopMotionSource(runtime,{slashSeconds,revision,pr
     actor._humanoidClock=time;actor._humanoidPhase=time;actor.vx=0;actor.vz=row.id==='walk'?1:row.id==='run'?3:0;
     actor.attack=null;actor.combatReady=['draw','guard','slash','sheathe'].includes(row.id);actor.weaponTransition=['draw','sheathe'].includes(row.id);
     actor.weaponDraw=['guard','slash'].includes(row.id)?1:row.id==='draw'?row.progress:row.id==='sheathe'?1-row.progress:0;
-    if(row.id==='slash'&&phase%2<slashSeconds)actor.attack={id:`qa-slash-${Math.floor(phase/2)}`,kind:'slash',t:phase%2,duration:slashSeconds};
+    const slashBeat=row.id==='slash'?thirtySecondSlashBeat(phase,slashSeconds):null;
+    if(slashBeat)actor.attack={id:`qa-slash-${slashBeat.index}`,kind:'slash',t:slashBeat.time,duration:slashSeconds};
     // Bake primary animation, not elapsed spring simulation. Secondary motion is
     // deliberately reset for reproducible screenshots and remains a separate review.
     c.resetSpring=true;
