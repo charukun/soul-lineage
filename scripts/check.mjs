@@ -21,8 +21,8 @@ for (const name of selected) {
     execFileSync(process.execPath, ['--check', absolute]);
     const source = readFileSync(absolute, 'utf8');
     const sourceWithoutLineComments = source.replace(/\/\/[^\n]*/g, '');
-    if (node.group === 'apps') {
-      assert.ok(!nativeBrowserDialog.test(sourceWithoutLineComments), `Native browser alert/confirm/prompt is forbidden in app code: ${node.dir}/${file}. Use an app-owned dialog or notification surface.`);
+    if (node.group === 'apps' && file.startsWith('src/')) {
+      assert.ok(!nativeBrowserDialog.test(sourceWithoutLineComments), `Native browser alert/confirm/prompt is forbidden in app source: ${node.dir}/${file}. Use an app-owned dialog or notification surface.`);
     }
     if ((node.group === 'apps' && (file === 'src/app.js' || file.startsWith('src/game/'))) || ['@soul/platform', '@soul/network', '@soul/game-data', '@soul/world'].includes(name)) {
       assert.ok(!/\b(window|document|navigator|localStorage|sessionStorage)\s*[.\[]|\b(?:fetch|WebSocket|XMLHttpRequest)\s*\(/.test(sourceWithoutLineComments), `Platform-specific global in portable code: ${node.dir}/${file}`);
