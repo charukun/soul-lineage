@@ -1,0 +1,20 @@
+{
+  "schema": "character-asset-integrity",
+  "version": 1,
+  "id": "protagonist.villager.v1",
+  "assetId": "character.protagonist-villager.v1",
+  "format": "glb",
+  "path": "./simulator/assets/PROTAGONIST_VILLAGER_V1.glb",
+  "sha256": "80fe1405cbeac101d4ed9ec57977be53214fb4b66db94ef4e127b4dc26564ece",
+  "bytes": 272852,
+  "productionStage": "PRIMARY",
+  "modelingMode": "dcc-blender",
+  "sourceBlendSha256": "dd2655315533b209e148ae30a5c7dc0c050b3836643daa8a81cc8c9b99b4ba1e",
+  "humanoidRig": "humanoid.shino-vrm1.v2",
+  "referencePath": "docs/characters/references/protagonist-villager-v1.svg",
+  "visualApproval": "pending",
+  "license": {
+    "rigProvenance": "Sendagaya_Shino audited source / VRM Public License 1.0 metadata; carrier rig only",
+    "surfaceAuthorship": "RINNE original protagonist village-start low-poly surfaces; KayKit-family art direction without copied Knight surface geometry"
+  }
+}

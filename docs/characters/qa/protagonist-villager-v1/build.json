@@ -1,0 +1,19 @@
+{
+  "schema": "protagonist-villager-dcc-build",
+  "version": 1,
+  "characterId": "protagonist.villager.v1",
+  "referencePath": "docs/characters/references/protagonist-villager-v1.svg",
+  "sourceRigSha256": "83843ade7dbdfaacc9d601bda099fcb5757527e339b9c5deb223a2c2f5eb28ca",
+  "blenderVersion": "4.0.2",
+  "meshObjects": 32,
+  "trianglesApprox": 1728,
+  "materials": 8,
+  "styleFamily": "kaykit-compatible-rinne-low-poly",
+  "role": "protagonist",
+  "wardrobe": "humble-village-start",
+  "armor": false,
+  "blendSha256": "dd2655315533b209e148ae30a5c7dc0c050b3836643daa8a81cc8c9b99b4ba1e",
+  "glbSha256": "80fe1405cbeac101d4ed9ec57977be53214fb4b66db94ef4e127b4dc26564ece",
+  "productionReady": false,
+  "visualApproval": "pending"
+}
