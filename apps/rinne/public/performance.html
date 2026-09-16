@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#111820"/>
+<title>30秒演舞 · Visual Review Lab</title>
+<style>
+:root{color-scheme:dark;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0b0f14;color:#eef2f4}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b0f14}body{display:grid;grid-template-rows:auto 1fr auto;min-height:100dvh}
+header{padding:calc(12px + env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid #ffffff12;background:#0c1118e8;backdrop-filter:blur(12px)}header small{display:block;font-size:10px;letter-spacing:.18em;color:#99ada8}header strong{display:block;margin-top:4px;font-size:18px}main{position:relative;min-height:0}canvas{display:block;width:100%;height:100%;touch-action:none;background:#111820}.status{position:absolute;left:12px;right:12px;top:12px;padding:10px 12px;border:1px solid #ffffff18;border-radius:12px;background:#0a0f15d9;font-size:12px;line-height:1.45;backdrop-filter:blur(8px)}.status[data-kind="error"]{border-color:#d66;color:#ffd4d4}.phase{position:absolute;left:12px;right:12px;bottom:12px;display:flex;justify-content:space-between;gap:12px;padding:9px 11px;border-radius:11px;background:#0a0f15c7;border:1px solid #ffffff12;font-size:11px}.phase span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+footer{padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#0a0f15;border-top:1px solid #ffffff12}.transport{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:8px;align-items:center}.views{display:flex;gap:6px;margin-top:8px}.views button{flex:1}.transport button,.views button,select{min-height:40px;border:1px solid #ffffff1c;border-radius:10px;background:#151d26;color:#edf2f4;padding:0 12px;font-weight:700}.transport button:disabled,select:disabled{opacity:.45}input[type="range"]{width:100%}button[aria-pressed="true"],.views button[aria-pressed="true"]{border-color:#d6bd8466;background:#302a1b;color:#f2dfaa}#performance-retry{position:absolute;right:12px;top:64px;min-height:38px;border:1px solid #d66;border-radius:9px;background:#2a1518;color:#ffd8d8;padding:0 12px}
+@media(min-width:700px){body{max-width:980px;margin:0 auto;border-left:1px solid #ffffff0d;border-right:1px solid #ffffff0d}.status,.phase{left:20px;right:20px}.transport{grid-template-columns:110px 110px 1fr 100px}}
+</style>
+</head>
+<body>
+<header><small>VISUAL REVIEW LAB</small><strong>30秒演舞 · Knight</strong></header>
+<main>
+<canvas id="performance-stage"></canvas>
+<div id="performance-status" class="status" role="status">準備しています</div>
+<button id="performance-retry" type="button" hidden>再読み込み</button>
+<div class="phase"><span id="performance-phase">準備中</span><span id="performance-time">0.0 / 30.0 秒</span></div>
+</main>
+<footer>
+<div class="transport">
+<button id="performance-play" type="button" aria-pressed="true" disabled>一時停止</button>
+<button id="performance-restart" type="button" disabled>最初から</button>
+<input id="performance-timeline" type="range" min="0" max="30" step="0.001" value="0" aria-label="再生位置" disabled/>
+<select id="performance-speed" aria-label="再生速度" disabled><option value="1">1×</option><option value="0.5">1/2×</option><option value="0.25">1/4×</option></select>
+</div>
+<div class="views" role="group" aria-label="視点">
+<button type="button" data-view="three" aria-pressed="true">斜め</button><button type="button" data-view="front" aria-pressed="false">正面</button><button type="button" data-view="side" aria-pressed="false">横</button><button type="button" data-view="back" aria-pressed="false">背面</button>
+</div>
+</footer>
+<script type="module" src="./simulator/src/compact-performance-viewer.js"></script>
+</body>
+</html>
