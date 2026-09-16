@@ -63,6 +63,9 @@ test('protagonist builder reuses pinned real KayKit Knight parts instead of rebu
   assert.doesNotMatch(source, /primitive_cube_add|primitive_uv_sphere_add|clear_source_meshes/);
   assert.match(carrier, /build-protagonist-kaykit-derivative-v2\.py/);
   assert.match(carrier, /scene\.world = bpy\.data\.worlds\.new/);
+  assert.match(carrier, /villageize_source_parts/);
+  assert.match(carrier, /PROTAGONIST_SKIN/);
+  assert.match(carrier, /module\.villageize_materials = villageize_source_parts/);
 });
 
 test('generated protagonist GLB carries the exact audited humanoid runtime contract', () => {
