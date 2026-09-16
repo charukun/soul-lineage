@@ -1,11 +1,12 @@
 import { createWebPlatform } from '@soul/platform-web';
 import { createSharedWorldChannel } from '@soul/platform-web/shared-world';
 import { defaultMuraLayout, validateMuraLayout, safeMuraPosition } from '@soul/world/mura';
-import { createLife, deserializeLife, serializeLife, setClockRate, setMoving, tickLife, rebirth, LIFE_YEARS, canDepart, depart, advanceFront, returnHome } from './domain.js';
+import { createLife, deserializeLife, serializeLife, setClockRate, setMoving, tickLife, rebirth, LIFE_YEARS, canDepart, depart, advanceFront, returnHome, enterBuilding, leaveBuilding } from './domain.js';
 import { buildStations, nearestStation, normalizeLayout } from './locations.js';
 import { createWorldRenderer } from './renderer.js';
 import { createBirthExperience } from './birth-experience.js';
 import { createFront, normalizeFront, tickFront } from './combat.js';
+import { createVillageSkirmish, tickVillageSkirmish, villageSkirmishAnchor } from './village-skirmish.js';
 import { guidanceFor } from './guidance.js';
 import { RINNE_RUNTIME_PERFORMANCE } from './performance.js';
 
@@ -16,8 +17,8 @@ const chapterName=stage=>String(stage||'').replace(/^\d+\/6\s*/, '').trim();
 const nextPaint=()=>new Promise(resolve=>document.hidden?setTimeout(resolve,0):requestAnimationFrame(()=>resolve()));
 
 function placeState(state,layout){
-  if(state.zone==='village')state.position=safeMuraPosition(layout,state.position);
-  else state.position={x:clamp(state.position.x,-6.8,6.8),z:clamp(state.position.z,-5.9,5.7)};
+  if(state.zone==='village'&&!state.interior)state.position=safeMuraPosition(layout,state.position);
+  else if(state.zone==='frontier')state.position={x:clamp(state.position.x,-6.8,6.8),z:clamp(state.position.z,-5.9,5.7)};
   return state;
 }
 
@@ -28,13 +29,14 @@ export async function prepareRuntime({buildInfo,onProgress,layoutOverride}={}){
   const channel=createSharedWorldChannel({environment,validate:validateMuraLayout});
   let layout=defaultMuraLayout();try{layout=normalizeLayout(channel.read()||layout);}catch(error){console.warn('shared world:',error);}
   if(layoutOverride)layout=normalizeLayout(validateMuraLayout(layoutOverride));
-  const stations=buildStations(layout),canvas=$('game'),loading=$('loading-card'),gameScreen=$('game-screen');
+  const stations=buildStations(layout),skirmishAnchor=villageSkirmishAnchor(stations);stations.push({id:'village-skirmish',label:'村外の戦場',x:skirmishAnchor.x,z:skirmishAnchor.z,radius:2.5,danger:true});
+  const canvas=$('game'),loading=$('loading-card'),gameScreen=$('game-screen');
   await progress('景色を描いています');
   const view=await createWorldRenderer({canvas,document,layout,stations});
   await progress('旅人を迎えています');
   const preview=placeState(createLife({name:'旅人',seed:0x51f15e,villageIds:[layout.id]}),layout);
-  view.syncFront(null);view.renderState(preview,.016);canvas.dataset.runtime='prepared';
-  const host={environment,platform,saveKey,channel,layout,stations,canvas,loading,gameScreen,view,active:false,disposed:false};
+  view.syncFront(null);view.syncSkirmish(null);view.renderState(preview,.016);canvas.dataset.runtime='prepared';
+  const host={environment,platform,saveKey,channel,layout,stations,skirmishAnchor,canvas,loading,gameScreen,view,active:false,disposed:false};
   host.dispose=()=>{if(host.disposed)return;host.disposed=true;host.active=false;canvas.dataset.runtime='disposed';view.dispose();};
   return host;
 }
@@ -44,7 +46,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   if(host.disposed)throw Error('描画世界は終了済みです');
   if(host.active)throw Error('人生はすでに始まっています');
   host.active=true;
-  const {platform,saveKey,channel,layout,stations,canvas,loading,gameScreen,view}=host;
+  const {platform,saveKey,channel,layout,stations,skirmishAnchor,canvas,loading,gameScreen,view}=host;
   let state=null;
   try{
     if(coop)state=structuredClone(coop.snapshot().view.me);
@@ -55,8 +57,9 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     placeState(state,layout);
   }catch(error){host.active=false;if(ownsPrepared)host.dispose();throw error;}
 
-  let active=true,raf=0,last=performance.now(),saveElapsed=0,uiElapsed=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval,toastTimer=0,endDialog=null,pointer=null,keyboard={x:0,y:0},axis={x:0,y:0},portDwell=0,movementHint=true,movementHintTimer=0,chapterTimer=0,hurtTimer=0,lastChapter='';
+  let active=true,raf=0,last=performance.now(),saveElapsed=0,uiElapsed=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval,toastTimer=0,endDialog=null,pointer=null,keyboard={x:0,y:0},axis={x:0,y:0},portDwell=0,doorDwell=0,doorStationId='',movementHint=true,movementHintTimer=0,chapterTimer=0,hurtTimer=0,lastChapter='';
   let front=coop?coop.snapshot().view.front:state.zone==='frontier'?normalizeFront(state.frontState,state.front,state.seed):null;if(front)state.frontState=front;
+  let skirmish=coop?null:createVillageSkirmish(skirmishAnchor,state.seed);view.syncSkirmish(skirmish);
   let coopTick=-1,coopEpoch=0,coopHistoryRevision=-1,rebirthPending=false,inputElapsed=0;
   const birth=createBirthExperience({document,canvas,gameScreen,view,stations,getState:()=>state,dialogue});
 
@@ -84,7 +87,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     $('generation').textContent=`${state.generation}代目`;$('age').textContent=`${Math.min(LIFE_YEARS,Math.floor(state.ageYears))}歳`;
     $('hp-bar').style.width=`${clamp(state.hp/state.maxHp*100,0,100)}%`;$('stamina-bar').style.width=`${clamp(state.stamina/100*100,0,100)}%`;
     const guide=guidanceFor({state,stations,front});$('life-stage').textContent=guide.stage;$('objective').textContent=guide.objective;$('objective-badge').textContent=guide.badge||'';
-    gameScreen.dataset.worldTone=worldTone(guide);gameScreen.dataset.birthTour=String(birth.active());gameScreen.style.setProperty('--wound',String(clamp(1-state.hp/state.maxHp,0,.85)));showChapter(guide.stage);
+    gameScreen.dataset.worldTone=worldTone(guide);gameScreen.dataset.birthTour=String(birth.active());gameScreen.dataset.interior=state.interior?.buildingId||'';gameScreen.style.setProperty('--wound',String(clamp(1-state.hp/state.maxHp,0,.85)));showChapter(guide.stage);
     $('clock-rate').value=String(state.clockRate);syncMovementHint();
   }
   function dialogue(speaker,text){$('speaker').textContent=speaker;$('dialogue-text').textContent=text;$('dialogue').hidden=false;clearTimeout(dialogue.timer);dialogue.timer=setTimeout(()=>$('dialogue').hidden=true,4200);}
@@ -92,7 +95,8 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   function endLife(){
     if(endDialog?.open)return;
     endDialog=document.createElement('dialog');endDialog.className='life-end-dialog';
-    endDialog.innerHTML='<form method="dialog"><p>100年</p><h2 id="life-end-name"></h2><p class="life-end-summary"><span id="life-end-defeats"></span>撃破 · 凱旋<span id="life-end-returns"></span>回 · 技<span id="life-end-skills"></span></p><label>次の出生<select id="rebirth-village"></select></label><p class="life-end-help">次の人生は0歳・基礎装備から。残るのは一族の記録と、帰還して刻んだ故郷だけ。</p><button value="rebirth" id="rebirth">次の人生へ</button></form>';
+    endDialog.innerHTML='<form method="dialog"><p id="life-end-age"></p><h2 id="life-end-name"></h2><p class="life-end-summary"><span id="life-end-defeats"></span>撃破 · 凱旋<span id="life-end-returns"></span>回 · 技<span id="life-end-skills"></span></p><label>次の出生<select id="rebirth-village"></select></label><p class="life-end-help">次の人生は0歳・基礎装備から。残るのは一族の記録と、帰還して刻んだ故郷だけ。</p><button value="rebirth" id="rebirth">次の人生へ</button></form>';
+    endDialog.querySelector('#life-end-age').textContent=state.ageYears>=LIFE_YEARS?'100年の生涯':`${Math.floor(state.ageYears)}歳の生涯`;
     endDialog.querySelector('#life-end-name').textContent=`${state.name} · ${state.generation}代`;
     endDialog.querySelector('#life-end-defeats').textContent=String(state.defeats);endDialog.querySelector('#life-end-returns').textContent=String(state.returns);endDialog.querySelector('#life-end-skills').textContent=String(state.knownSkills.length);
     const select=endDialog.querySelector('#rebirth-village'),random=document.createElement('option');random.value='';random.textContent='ランダムな村';select.append(random);
@@ -100,22 +104,23 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     document.body.append(endDialog);
     endDialog.addEventListener('close',async()=>{if(endDialog.returnValue==='rebirth'){
       if(coop){rebirthPending=true;void Promise.resolve(coop.rebirth(select.value||null)).catch(error=>{rebirthPending=false;toast(error.message);});endDialog.remove();endDialog=null;return;}
-      state=rebirth(state,{villageId:select.value||null,villageIds:[layout.id]});front=null;state.frontState=null;view.syncFront(null);state.position=safeMuraPosition(layout,state.position);lastChapter='';await save();endDialog.remove();endDialog=null;syncUI();armMovementHint();showBirthIntro();toast(`${state.generation}代目 · 0歳`);
+      state=rebirth(state,{villageId:select.value||null,villageIds:[layout.id]});front=null;state.frontState=null;view.syncFront(null);skirmish=createVillageSkirmish(skirmishAnchor,state.seed);view.syncSkirmish(skirmish);state.position=safeMuraPosition(layout,state.position);lastChapter='';await save();endDialog.remove();endDialog=null;syncUI();armMovementHint();showBirthIntro();toast(`${state.generation}代目 · 0歳`);
     }else endDialog.showModal();});endDialog.showModal();
   }
   function handleEvents(events){for(const event of events){
     if(event.type==='release'){toast('4歳 · 自立');birth.release();armMovementHint();}
     if(event.type==='equipment')toast(`${event.station.label} 装備`);
     if(event.type==='activity-start')toast(event.station.actionLabel||event.station.label);
-    if(event.type==='activity-complete')toast('経験 +1');
-    if(event.type==='skills'&&event.ids.length)toast('技 閃き');
+    if(event.type==='activity-complete')toast('経験が残った');
+    if(event.type==='skills'&&event.ids.length)toast(`閃き · ${(event.names||event.ids).slice(0,2).join('・')}`);
     if(event.type==='birthday'&&[7,15,50,80].includes(event.age))toast(`${event.age}歳`);
     if(event.type==='life-end')endLife();
     if(event.type==='player-hit')gameScreen.classList.add('strike-mark');
     if(event.type==='enemy-hit')pulseHurt();
+    if(event.type==='evaded')toast('見切った');
     if(event.type==='enemy-down')toast('撃破');
     if(event.type==='downed'){pulseHurt();toast('行動不能 · 救助待ち');}
-    if(event.type==='rescued')toast('救助 · 村');
+    if(event.type==='rescued')toast('衛兵に救助された');
   }}
   function setAxis(next){axis=next;const len=Math.hypot(axis.x,axis.y);if(len>1){axis={x:axis.x/len,y:axis.y/len};}}
   function onPointerDown(event){if(pointer||!active)return;pointer={id:event.pointerId,x:event.clientX,y:event.clientY};canvas.setPointerCapture?.(event.pointerId);setAxis({x:0,y:0});event.preventDefault();}
@@ -151,10 +156,15 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     let moved=false,carrierMoving=false;const mag=Math.hypot(axis.x,axis.y),birthStep=birth.step(dt,axis);
     if(birthStep.handled){moved=birthStep.moved;carrierMoving=birthStep.carrierMoving;}
     else if(mag>.08&&!state.ended&&!state.down){const direction=view.cameraVector(axis),speed=speedForAge(state.ageYears)*(state.combat?.72:1),nx=state.position.x+direction.x*speed*dt,nz=state.position.z+direction.z*speed*dt;
-      if(view.canMoveTo(nx,nz,.32,state.zone)){state.position.x=nx;state.position.z=nz;state.yaw=Math.atan2(direction.x,direction.z);moved=true;}}
+      const movementZone=state.interior?'interior':state.zone;if(view.canMoveTo(nx,nz,.32,movementZone,state.interior?.buildingId)){state.position.x=nx;state.position.z=nz;state.yaw=Math.atan2(direction.x,direction.z);moved=true;}}
     if(moved&&movementHint){movementHint=false;$('move-hint').hidden=true;}
-    setMoving(state,birthStep.handled?false:moved,state.yaw);const station=state.zone==='village'?nearestStation(stations,state.position):null,events=tickLife(state,{realDelta:dt,station,paused:document.hidden});handleEvents(events);
-    if(state.zone==='village'&&station?.port&&canDepart(state)&&!moved){portDwell+=dt;if(portDwell>=1.5&&depart(state)){front=createFront(0,state.seed);state.frontState=front;view.syncFront(front);toast('出航 · 前線');portDwell=0;}}else portDwell=0;
+    setMoving(state,birthStep.handled?false:moved,state.yaw);const station=state.zone==='village'?nearestStation(stations,state.position,{interiorId:state.interior?.buildingId||null}):null,events=tickLife(state,{realDelta:dt,station,paused:document.hidden});handleEvents(events);
+    if(state.zone==='village'&&!moved&&(station?.enterInterior||station?.exitInterior)){
+      if(doorStationId!==station.id){doorStationId=station.id;doorDwell=0;}doorDwell+=dt;
+      if(doorDwell>=.55){const entering=station.enterInterior,changed=entering?enterBuilding(state,station):leaveBuilding(state);if(changed){toast(entering?`${station.label}へ入る`:'外へ出る');doorDwell=0;doorStationId='';void save();}}
+    }else{doorDwell=0;doorStationId='';}
+    if(state.zone==='village'&&!state.interior&&station?.port&&canDepart(state)&&!moved){portDwell+=dt;if(portDwell>=1.5&&depart(state)){front=createFront(0,state.seed);state.frontState=front;view.syncFront(front);toast('出航 · 前線');portDwell=0;}}else portDwell=0;
+    const villageBattle=tickVillageSkirmish(state,skirmish,dt);handleEvents(villageBattle);view.updateSkirmish(skirmish);
     if(state.zone==='frontier'){
       if(!front){front=normalizeFront(state.frontState,state.front,state.seed);state.frontState=front;view.syncFront(front);}
       const battle=tickFront(state,front,dt);handleEvents(battle);view.updateFront(front);
