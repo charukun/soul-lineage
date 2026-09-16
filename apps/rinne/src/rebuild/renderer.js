@@ -3,6 +3,7 @@ import { defs, muraBlocked } from '@soul/world/mura';
 import { createMuraModels } from '@soul/rendering/mura';
 import { createMuraTerrain, flattenMuraModel } from '@soul/rendering/mura/terrain';
 import { createAdaptiveQualityGovernor } from '@soul/rendering/adaptive-quality';
+import { createForegroundOcclusionFader } from '@soul/rendering/occlusion';
 import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { createRinneCharacterStage } from './runtime-character-stage.js';
 import { buildInteriors } from './locations.js';
@@ -107,6 +108,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   for(const x of[-2.2,0,2.2])box(frontRoot,[1.4,.25,.7],[x,.12,-6.25],0xa47768);
   const rescuePad=new THREE.Mesh(new THREE.RingGeometry(.8,1.0,32),new THREE.MeshBasicMaterial({color:0xffd470,side:THREE.DoubleSide}));rescuePad.rotation.x=-Math.PI/2;rescuePad.position.set(0,.03,5.2);frontRoot.add(rescuePad);
   applyStylizedShading(root,'environment');applyStylizedShading(interiorRoot,'environment');applyStylizedShading(frontRoot,'environment');
+  const foregroundOcclusion=createForegroundOcclusionFader();
 
   const characterStage=await createRinneCharacterStage({renderer,scene,frontRoot,weaponVisual,mat,disposeObject});
   const {syncEquipment,setCarrierMotion,syncPeers}=characterStage;let currentFront=null;
@@ -146,11 +148,12 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     if(combatFrame){target.set(combatFrame.look.x,combatFrame.look.y,combatFrame.look.z);desired.set(target.x+combatFrame.offset.x,target.y+combatFrame.offset.y,target.z+combatFrame.offset.z);}
     else{target.set(state.position.x,1.15,state.position.z);desired.copy(target).add(camOffset);if(inside)desired.y=Math.min(desired.y,9.5);}
     if(spaceChanged){camera.position.copy(desired);cameraLook.copy(target);cameraLookReady=true;}else{const step=Math.min(.05,dt||.016),positionBlend=1-Math.exp(-(combatFrame?5.6:6.9)*step),lookBlend=1-Math.exp(-(combatFrame?7.2:9.2)*step);camera.position.lerp(desired,positionBlend);if(!cameraLookReady){cameraLook.copy(target);cameraLookReady=true;}else cameraLook.lerp(target,lookBlend);}camera.lookAt(cameraLook);
+    const occlusion=foregroundOcclusion.update({camera,target,occluderRoot:objects,enabled:village&&!inside,dt});canvas.dataset.occludedObjects=String(occlusion.occluded);
     if(village&&!inside){terrain.waterMat.uniforms.time.value=elapsed;terrain.motes.position.y=Math.sin(elapsed*.35)*.15;}
     renderer.render(scene,camera);
   }
   function dispose(){
-    observer.disconnect();cameraControl.dispose();skirmishRenderer.dispose();characterStage.dispose();
+    observer.disconnect();cameraControl.dispose();foregroundOcclusion.dispose();skirmishRenderer.dispose();characterStage.dispose();
     root.removeFromParent();interiorRoot.removeFromParent();skirmishRoot.removeFromParent();frontRoot.removeFromParent();for(const v of cache.values())disposeObject(v);renderer.dispose();
   }
   return{THREE,scene,camera,viewport,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,updateFront,syncSkirmish:skirmishRenderer.sync,updateSkirmish:skirmishRenderer.update,setCarrierMotion,syncPeers,resize,qualitySnapshot:()=>qualityGovernor.snapshot(),dispose};
