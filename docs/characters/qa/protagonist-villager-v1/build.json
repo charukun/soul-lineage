@@ -5,7 +5,7 @@
   "referencePath": "docs/characters/references/protagonist-villager-v1.svg",
   "blenderVersion": "4.0.2",
   "meshObjects": 6,
-  "trianglesApprox": 4060,
+  "trianglesApprox": 4268,
   "materials": 5,
   "styleFamily": "kaykit.adventurers.v1",
   "construction": "kaykit-source-part-reuse",
@@ -23,10 +23,10 @@
   "sourceParts": [
     "Protagonist_KnightPart_ArmLeft",
     "Protagonist_KnightPart_ArmRight",
-    "Protagonist_KnightPart_Body",
     "Protagonist_KnightPart_Head",
     "Protagonist_KnightPart_LegLeft",
-    "Protagonist_KnightPart_LegRight"
+    "Protagonist_KnightPart_LegRight",
+    "Protagonist_RogueTunic_Body"
   ],
   "removedParts": [
     "1H_Sword",
@@ -45,8 +45,8 @@
   "targetHeight": 1.85,
   "rigFamily": "Rig_Medium",
   "license": "CC0-1.0",
-  "blendSha256": "36a5f0a1ef291bba336595419bebe4bb5a1bf385d12b9097a6b1ddc67ea15f46",
-  "glbSha256": "c5ef1a2d0e2b72cdcd4ce1841801b9fc41f7ad3eaaa9bb66f577cf7879cbb839",
+  "blendSha256": "37fb3ee22c85ed49088c3b96f5fa1246309a120376052ce67ca32617c1a037da",
+  "glbSha256": "ab3e2e71b768843a756abaa79f47859d1cd3c77a45b0c8b7a582f8d0b158fab6",
   "productionReady": false,
   "visualApproval": "pending",
   "humanoidMetadata": "VRMC_vrm/1.0 mapped onto KayKit Rig_Medium bones",

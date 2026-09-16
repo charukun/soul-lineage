@@ -5,16 +5,16 @@
   "assetId": "character.protagonist-villager.v1",
   "format": "glb",
   "path": "./simulator/assets/PROTAGONIST_VILLAGER_V1.glb",
-  "sha256": "c5ef1a2d0e2b72cdcd4ce1841801b9fc41f7ad3eaaa9bb66f577cf7879cbb839",
-  "bytes": 250776,
+  "sha256": "ab3e2e71b768843a756abaa79f47859d1cd3c77a45b0c8b7a582f8d0b158fab6",
+  "bytes": 262324,
   "productionStage": "PRIMARY",
   "modelingMode": "dcc-blender",
-  "sourceBlendSha256": "36a5f0a1ef291bba336595419bebe4bb5a1bf385d12b9097a6b1ddc67ea15f46",
+  "sourceBlendSha256": "37fb3ee22c85ed49088c3b96f5fa1246309a120376052ce67ca32617c1a037da",
   "humanoidRig": "kaykit.Rig_Medium.v1",
   "referencePath": "docs/characters/references/protagonist-villager-v1.svg",
   "visualApproval": "pending",
   "license": {
     "rigProvenance": "KayKit Character Pack Adventures 1.0 Knight.glb Rig_Medium at 672074b73ba276876a19e8816ecdc5241817ab47, git blob 717b56ca2b5ff5392679774725201ba03a3eefab, CC0 1.0. SHINO_review.vrm path is retained only as the carrier-v1 local trust anchor and is not used as visible geometry or armature.",
-    "surfaceAuthorship": "KayKit Knight CC0 source meshes copied and rearranged for the RINNE protagonist; military accessories are removed and retained source parts receive village-cloth/leather materials. Rogue.glb at the same CC0 revision may contribute hair only when Knight has no hair mesh."
+    "surfaceAuthorship": "KayKit Knight CC0 Head/Arm/Leg source meshes and Rig_Medium are copied and rearranged for the RINNE protagonist. Knight_Body is replaced only by Rogue_Body from Rogue.glb at the same pinned revision (git blob c8827661105eef7b2bfbef3bc676d41a47625733) as the village-tunic torso. Rogue weapons, cape, head, arms and legs are excluded; explicit Rogue hair may be retained only if the source exposes a separate hair mesh."
   }
 }
