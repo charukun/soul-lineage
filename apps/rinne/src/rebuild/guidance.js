@@ -62,7 +62,7 @@ export function guidanceFor({state,stations=[],front=null}){
     return {stage:villageStage(state,age),objective:'外へ',badge:'村へ戻る',target:target(exit,'外へ'),tone:'home'};
   }
 
-  const practice=practiceStation(state,stations),dummy=stationById(stations,'training-dummy'),door=housingDoor(state,stations);
+  const practice=practiceStation(state,stations),dummy=stationById(stations,'training-dummy'),door=housingDoor(state,stations),edge=stationById(stations,'village-skirmish');
   if(age<7){
     if(!housingSeen(state)&&door)return {stage:'2/6 村',objective:`${door.label}へ入る`,badge:'暮らしを見る',target:target(door,door.label),tone:'home'};
     if(dummy&&score(state,'practice')<1.6)return {stage:'2/6 修行',objective:'かかしへ',badge:`閃き ${supportCount(state)}`,target:target(dummy,'かかし'),tone:'prepare'};
@@ -74,12 +74,14 @@ export function guidanceFor({state,stations=[],front=null}){
   }
   if(age<15){
     if(dummy&&(actionCount(state)<2||score(state,'practice')<3.2))return {stage:'3/6 修行',objective:'かかしへ',badge:`技 ${actionCount(state)}`,target:target(dummy,'かかし'),tone:'prepare'};
+    if(edge&&score(state,'combat')<1)return {stage:'3/6 腕試し',objective:'村外へ',badge:'危険',target:target(edge,'村外の戦場'),tone:'danger'};
     return {stage:'3/6 支度',objective:activityLabel(practice),badge:'出航 15歳',target:target(practice,activityLabel(practice)),tone:'prepare'};
   }
   const port=stationById(stations,'port-prayer');
   const canLeave=state.phase==='living'&&!state.combat&&!state.interior&&Math.floor(age/5)>Number(state.lastDepartureCycle||0);
   if(canLeave)return {stage:'4/6 出立',objective:'港へ',badge:'出航',target:target(port,'港'),tone:'urgent'};
   if(dummy&&actionCount(state)<3)return {stage:Number(state.returns||0)>0?'5/6 凱旋':'3/6 修行',objective:'かかしへ',badge:`技 ${actionCount(state)}`,target:target(dummy,'かかし'),tone:'prepare'};
+  if(edge&&score(state,'combat')<2)return {stage:Number(state.returns||0)>0?'5/6 凱旋':'3/6 腕試し',objective:'村外へ',badge:'危険',target:target(edge,'村外の戦場'),tone:'danger'};
   const nextAge=nextDepartureAge(state),returned=Number(state.returns||0)>0;
   return {stage:returned?'5/6 凱旋':'3/6 支度',objective:activityLabel(practice),badge:`次 ${nextAge}歳`,target:target(practice,activityLabel(practice)),tone:returned?'home':'prepare'};
 }
