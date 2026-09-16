@@ -9,6 +9,7 @@ import {
   createRinneEnemyCharacter,
   createRinneHeroCharacter,
   createRinneMotherCharacter,
+  createRinneRuntimeCharacter,
   resolveRinneRuntimeCharacter,
   rinneRuntimeAgeMs
 } from './character-presentation.js';
@@ -20,7 +21,7 @@ async function createRuntimeCharacterPool(renderer){
   loader.useCompressedTextures?.(renderer,{transcoderPath:'./basis/'});
   const gltf=await loader.loadAsync(RINNE_RUNTIME_CHARACTER_ASSET.url);
   const humanoid=await shinoHumanoidFromGLTF(gltf);
-  return{loader,pool:createMasterCharacterPool({template:gltf.scene,humanoid,capacity:8}),peerPool:createMasterCharacterPool({template:gltf.scene,humanoid,capacity:30}),motherPool:createMasterCharacterPool({template:gltf.scene,humanoid,capacity:30})};
+  return{loader,pool:createMasterCharacterPool({template:gltf.scene,humanoid,capacity:12}),peerPool:createMasterCharacterPool({template:gltf.scene,humanoid,capacity:30}),motherPool:createMasterCharacterPool({template:gltf.scene,humanoid,capacity:30})};
 }
 
 function poseHumanoid(bones,{moving=false,speed=0,combat=false,flash=0,carrier=false}={},time=0){
@@ -38,7 +39,7 @@ function poseHumanoid(bones,{moving=false,speed=0,combat=false,flash=0,carrier=f
 
 function createActorRoster({scene,frontRoot,characterPool}){
   const heroActor=characterPool.spawn('rinne-runtime-hero'),motherActor=characterPool.spawn('rinne-runtime-mother');
-  const enemyActors=new Map(),state={lifeKey:'',front:null,enemyRosterKey:'',heroDescriptor:null,motherDescriptor:null};
+  const enemyActors=new Map(),guardActors=new Map(),state={lifeKey:'',front:null,skirmish:null,enemyRosterKey:'',guardRosterKey:'',heroDescriptor:null,motherDescriptor:null};
   heroActor.root.name='Player';motherActor.root.name='Mother';
   scene.add(heroActor.root,heroActor.attachments,motherActor.root,motherActor.attachments);
   applyStylizedShading(heroActor.root,'hero');applyStylizedShading(motherActor.root,'npc');
@@ -48,6 +49,7 @@ function createActorRoster({scene,frontRoot,characterPool}){
     state.lifeKey=key;state.heroDescriptor=createRinneHeroCharacter(life);state.motherDescriptor=createRinneMotherCharacter(life);
   }
   function removeEnemy(id){const slot=enemyActors.get(id);if(!slot)return;characterPool.despawn(slot.poolId);enemyActors.delete(id);}
+  function removeGuard(id){const slot=guardActors.get(id);if(!slot)return;characterPool.despawn(slot.poolId);guardActors.delete(id);}
   function updateFront(front){
     state.front=front;
     for(const enemy of front?.enemies||[]){const slot=enemyActors.get(enemy.id);if(!slot)continue;slot.actor.root.position.set(enemy.x,0,enemy.z);slot.actor.root.rotation.y=Number.isFinite(enemy.yaw)?enemy.yaw:0;slot.actor.setVisible(!enemy.dead);}
@@ -67,8 +69,24 @@ function createActorRoster({scene,frontRoot,characterPool}){
     }
     updateFront(front);
   }
-  function dispose(){for(const id of [...enemyActors.keys()])removeEnemy(id);heroActor.root.removeFromParent();heroActor.attachments.removeFromParent();motherActor.root.removeFromParent();motherActor.attachments.removeFromParent();}
-  return{heroActor,motherActor,enemyActors,state,bindLife,syncFront,updateFront,dispose};
+  function updateSkirmish(skirmish){
+    state.skirmish=skirmish;
+    for(const guard of skirmish?.guards||[]){const slot=guardActors.get(guard.id);if(!slot)continue;slot.actor.root.position.set(guard.x,0,guard.z);slot.actor.root.rotation.y=Number.isFinite(guard.yaw)?guard.yaw:0;}
+  }
+  function syncSkirmish(skirmish){
+    state.skirmish=skirmish;const guards=skirmish?.guards||[],rosterKey=guards.map(row=>row.id).join('|');
+    if(rosterKey!==state.guardRosterKey){
+      state.guardRosterKey=rosterKey;const ids=new Set(guards.map(row=>row.id));for(const id of [...guardActors.keys()])if(!ids.has(id))removeGuard(id);
+      guards.forEach((guard,index)=>{
+        if(guardActors.has(guard.id))return;
+        const descriptor=createRinneRuntimeCharacter({kind:'hero',id:guard.id,seed:(skirmish?.seed||1)+index,ageSeconds:(28+index*7)*60,role:'guard'}),poolId=`rinne-runtime-${descriptor.character.id}`,actor=characterPool.spawn(poolId);
+        actor.root.name=`Guard:${guard.id}`;scene.add(actor.root,actor.attachments);applyStylizedShading(actor.root,'npc');guardActors.set(guard.id,{actor,descriptor,poolId,schedule:new PoseSchedule()});
+      });
+    }
+    updateSkirmish(skirmish);
+  }
+  function dispose(){for(const id of [...enemyActors.keys()])removeEnemy(id);for(const id of [...guardActors.keys()])removeGuard(id);heroActor.root.removeFromParent();heroActor.attachments.removeFromParent();motherActor.root.removeFromParent();motherActor.attachments.removeFromParent();}
+  return{heroActor,motherActor,enemyActors,guardActors,state,bindLife,syncFront,updateFront,syncSkirmish,updateSkirmish,dispose};
 }
 
 function createEquipmentController({heroActor,weaponVisual,mat,disposeObject}){
@@ -100,7 +118,7 @@ function sampleSlot(actor,schedule,presentation,dt,pose){
 }
 
 function renderActors({roster,heroSchedule,motherSchedule,motherMotion},life,dt){
-  const {heroActor,motherActor,enemyActors,state}=roster,birth=life.phase==='birth',village=life.zone==='village';
+  const {heroActor,motherActor,enemyActors,guardActors,state}=roster,birth=life.phase==='birth',village=life.zone==='village',villageOutside=village&&!life.interior;
   state.heroDescriptor.character.ageMs=rinneRuntimeAgeMs(life.ageSeconds);state.heroDescriptor.character.lifeState='alive';
   heroActor.root.rotation.y=life.yaw;motherActor.root.rotation.y=life.yaw;
   if(birth&&village){motherActor.setVisible(true);motherActor.root.position.set(life.position.x,0,life.position.z);heroActor.root.position.set(life.position.x+Math.sin(life.yaw)*.24,1.02,life.position.z+Math.cos(life.yaw)*.24);}
@@ -116,7 +134,11 @@ function renderActors({roster,heroSchedule,motherSchedule,motherMotion},life,dt)
     sampleSlot(slot.actor,slot.schedule,presentation,dt,(bones,time)=>poseHumanoid(bones,{moving:Boolean(enemy.moving),speed:enemy.moving?3.6:0,combat:true,flash:enemy.flash||0},time));
     slot.actor.root.position.set(enemy.x,0,enemy.z);slot.actor.root.rotation.y=Number.isFinite(enemy.yaw)?enemy.yaw:0;
   }
-  heroActor.updateAttachments();motherActor.updateAttachments();for(const slot of enemyActors.values())slot.actor.updateAttachments();
+  for(const guard of state.skirmish?.guards||[]){
+    const slot=guardActors.get(guard.id);if(!slot)continue;const distance=Math.hypot(guard.x-life.position.x,guard.z-life.position.z),presentation=resolveRinneRuntimeCharacter({...slot.descriptor,distance,visible:villageOutside&&!guard.dead,important:true});
+    sampleSlot(slot.actor,slot.schedule,presentation,dt,(bones,time)=>poseHumanoid(bones,{moving:Boolean(guard.moving),speed:guard.moving?3.3:0,combat:true,flash:guard.flash||0},time));slot.actor.root.position.set(guard.x,0,guard.z);slot.actor.root.rotation.y=Number.isFinite(guard.yaw)?guard.yaw:0;
+  }
+  heroActor.updateAttachments();motherActor.updateAttachments();for(const slot of enemyActors.values())slot.actor.updateAttachments();for(const slot of guardActors.values())slot.actor.updateAttachments();
 }
 
 export async function createRinneCharacterStage({renderer,scene,frontRoot,weaponVisual,mat,disposeObject}){
@@ -127,5 +149,5 @@ export async function createRinneCharacterStage({renderer,scene,frontRoot,weapon
   function render(life,dt=0){roster.bindLife(life);equipment.syncEquipment(life.equipment);renderActors(animation,life,dt);peers.render(life,dt);}
   function setCarrierMotion({active=false,moving=false,speed=0}={}){animation.motherMotion={active:Boolean(active),moving:Boolean(moving),speed:Math.max(0,Number(speed)||0)};}
   function dispose(){peers.dispose();roster.dispose();runtime.pool.dispose();runtime.peerPool.dispose();runtime.motherPool.dispose();runtime.loader.disposeCompressedTextures?.();}
-  return{render,syncPeers:peers.sync,syncEquipment:equipment.syncEquipment,syncFront:roster.syncFront,updateFront:roster.updateFront,setCarrierMotion,dispose};
+  return{render,syncPeers:peers.sync,syncEquipment:equipment.syncEquipment,syncFront:roster.syncFront,updateFront:roster.updateFront,syncSkirmish:roster.syncSkirmish,updateSkirmish:roster.updateSkirmish,setCarrierMotion,dispose};
 }
