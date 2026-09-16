@@ -59,6 +59,9 @@ try {
   // Preserve the single enhancement graph introduced on develop. Retired
   // entries are side-effect-free compatibility modules after consolidation.
   await import('./mura-enhancements.js');
+  // Character runtime metadata wraps the final syncActor chain so later
+  // presentation enhancers cannot replace the shared semantic state adapter.
+  await import('./character-runtime-integration.js');
   const {installInterface}=await import('./web/interface.js');
   installInterface(window.village);
   await import('./mura-village-visual-language.js');
