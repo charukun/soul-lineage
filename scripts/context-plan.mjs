@@ -4,6 +4,7 @@ import { statSync } from 'node:fs';
 const ALWAYS = ['AGENTS.md'];
 const MAX_DOCS = 8;
 export const DEFAULT_MAX_BYTES = 48 * 1024;
+export const RELEVANT_FILE_FULL_READ_MAX_BYTES = 16 * 1024;
 export const WHOLE_DIFF_MAX_FILES = 12;
 export const WHOLE_DIFF_MAX_LINES = 2000;
 export const MAX_LOG_BYTES = 64 * 1024;
@@ -133,6 +134,16 @@ function fileBytes(root, path) {
   }
 }
 
+export function classifyRelevantFiles({ paths = [], root = process.cwd(), maxBytes = RELEVANT_FILE_FULL_READ_MAX_BYTES } = {}) {
+  const limit = positiveInteger(maxBytes, 'maxBytes');
+  return unique(paths.filter(Boolean)).map(path => {
+    const bytes = fileBytes(root, path);
+    if (bytes === null) return { path, bytes: null, reason: 'size-unknown', strategy: 'metadata-or-search' };
+    if (bytes > limit) return { path, bytes, reason: 'large-file', strategy: 'search-or-line-range' };
+    return { path, bytes, reason: 'within-full-read-budget', strategy: 'full-file-if-needed' };
+  });
+}
+
 export function selectContextDocs({ task = '', paths = [], root = process.cwd() } = {}) {
   const context = { text: task, paths: unique(paths.filter(Boolean)) };
   const docs = [...ALWAYS];
@@ -185,12 +196,19 @@ export function buildContextPlan({ task = '', paths = [], base = 'origin/develop
   const headSha = git(root, ['rev-parse', '--verify', '--end-of-options', `${head}^{commit}`], null);
   const baseSha = git(root, ['rev-parse', '--verify', '--end-of-options', `${base}^{commit}`], null);
   const budget = budgetContextDocs({ task, paths: inferredPaths, root, maxBytes });
+  const relevantFiles = classifyRelevantFiles({ paths: inferredPaths, root });
   const diff = diffStats(root, base, head, inferredPaths.length);
   return {
     sourceOfTruth: 'latest develop + current GitHub branch/commit/PR state',
     task: task || null,
     git: { branch, head: headSha, base: baseSha },
     changedPaths: inferredPaths,
+    pathRetrieval: {
+      fullReadMaxBytes: RELEVANT_FILE_FULL_READ_MAX_BYTES,
+      files: relevantFiles,
+      narrowFirst: relevantFiles.filter(item => item.strategy !== 'full-file-if-needed'),
+      note: 'Initial retrieval guidance only; fetch more when the task requires it.',
+    },
     budget: {
       maxBytes: budget.maxBytes,
       usedBytes: budget.usedBytes,
@@ -212,6 +230,7 @@ export function buildContextPlan({ task = '', paths = [], base = 'origin/develop
     retrieval: [
       'Read only the listed docs that are necessary for the decision.',
       'For deferred docs, search or fetch a line range instead of the whole file.',
+      'For relevant files above the full-read byte threshold or with unknown size, search/range first instead of fetching the whole file.',
       'Search/narrow first; fetch full files, PR patches, or CI logs only when needed.',
       'Stop CI log retrieval when the session ledger budget is exhausted; summarize current evidence and hand off instead of switching ranges/jobs to bypass it.',
       'Reuse already-known exact-head metadata until there is a reason it may have changed.',
@@ -242,8 +261,15 @@ function printCompact(plan) {
     for (const path of plan.changedPaths.slice(0, 20)) console.log(`- ${path}`);
     if (plan.changedPaths.length > 20) console.log(`- ... +${plan.changedPaths.length - 20} more (do not preload contents)`);
   }
+  if (plan.pathRetrieval.narrowFirst.length > 0) {
+    console.log(`large/unknown relevant files (search/range first; full-read threshold ${plan.pathRetrieval.fullReadMaxBytes} bytes):`);
+    for (const item of plan.pathRetrieval.narrowFirst.slice(0, 20)) {
+      console.log(`- ${item.path} (${item.bytes ?? 'unknown'} bytes; ${item.reason})`);
+    }
+    if (plan.pathRetrieval.narrowFirst.length > 20) console.log(`- ... +${plan.pathRetrieval.narrowFirst.length - 20} more`);
+  }
   console.log(`ci-log-budget: ${plan.githubRetrieval.maxSessionLogExcerpts} unique excerpts / ${plan.githubRetrieval.maxSessionLogBytes} bytes per session ledger; exhaustion is a stop condition`);
-  console.log('rule: narrow/search first; do not preload old chats, all docs, whole large diffs, or all CI logs');
+  console.log('rule: narrow/search first; do not preload old chats, all docs, whole large files/diffs, or all CI logs');
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
