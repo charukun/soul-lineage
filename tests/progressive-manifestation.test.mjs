@@ -5,7 +5,8 @@ import {
   MANIFESTATION_STAGES,
   createProgressiveManifestation,
   manifestationProfileFor,
-  manifestationVisualPhase
+  manifestationVisualPhase,
+  readResponseArrayBufferWithProgress
 } from '@soul/rendering/progressive-manifestation';
 
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return{promise,resolve,reject};};
@@ -41,6 +42,12 @@ test('manifestation state is monotonic and never returns to low resolution after
   director.hint('actor',1);director.focus('actor',999);director.update(.1);
   const final=director.snapshot('actor');assert.equal(final.stage,MANIFESTATION_STAGES.MANIFESTED);assert.equal(final.formingProgress,1);assert.equal(final.progress,1);
   director.dispose();
+});
+
+test('stream reader reports monotonic byte progress before parse handoff',async()=>{
+  const stream=new ReadableStream({start(controller){controller.enqueue(new Uint8Array([1,2]));controller.enqueue(new Uint8Array([3,4]));controller.close();}}),progress=[];
+  const response=new Response(stream,{status:200,headers:{'content-length':'4'}}),buffer=await readResponseArrayBufferWithProgress(response,{expectedBytes:4,maxBytes:32,onProgress:value=>progress.push(value)});
+  assert.deepEqual([...new Uint8Array(buffer)],[1,2,3,4]);assert.equal(progress.at(-1),1);assert.ok(progress.every((value,index)=>index===0||value>=progress[index-1]));
 });
 
 test('load failure is explicit and does not masquerade as manifested',async()=>{
