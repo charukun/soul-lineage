@@ -1,13 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {dirname, resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 
-const appRoot = new URL('../', import.meta.url);
+const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const assetNames = [0, 1, 2, 3].map((index) => `world-loading-${index}.webp`);
 
 test('world-building loading screen uses the approved static artwork', async () => {
-  const html = await readFile(new URL('index.html', appRoot), 'utf8');
-  const css = await readFile(new URL('src/title-loading-screen.css', appRoot), 'utf8');
+  const html = await readFile(resolve(appRoot, 'index.html'), 'utf8');
+  const css = await readFile(resolve(appRoot, 'src/title-loading-screen.css'), 'utf8');
   let totalBytes = 0;
 
   assert.match(html, /id="loading-card"/);
@@ -17,7 +19,7 @@ test('world-building loading screen uses the approved static artwork', async () 
 
   for (const name of assetNames) {
     assert.ok(html.includes(`./title-assets/${name}`), `${name} must be mounted by the loading screen`);
-    const bytes = await readFile(new URL(`title-assets/${name}`, appRoot));
+    const bytes = await readFile(resolve(appRoot, 'title-assets', name));
     totalBytes += bytes.length;
     assert.equal(bytes.subarray(0, 4).toString(), 'RIFF');
     assert.equal(bytes.subarray(8, 12).toString(), 'WEBP');
