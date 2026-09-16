@@ -1,0 +1,169 @@
+{
+  "auditDate": "2026-09-16",
+  "files": [
+    {
+      "path": "assets/vendor/public-web/kenney-rpg-audio/weapon/draw-blade.ogg",
+      "provider": "Kenney",
+      "canonicalAsset": "https://kenney.nl/assets/rpg-audio",
+      "providerRepository": "Boyquotes/kenney-rpg-audio-for-godot",
+      "commit": "22eb79bb843bbcadcaa6ed119353a33265ffad11",
+      "sourcePath": "addons/kenney rpg audio/draw_knife_1.ogg",
+      "gitBlob": "4141dbf41af81a4e7013a09692f4ac9000d885eb",
+      "sha256": "276403e72c3b71c47bc24db3083970c23f8e5551ffa78f436f83483c56f3f0bb",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-rpg-audio/weapon/slash-a.ogg",
+      "provider": "Kenney",
+      "canonicalAsset": "https://kenney.nl/assets/rpg-audio",
+      "providerRepository": "Boyquotes/kenney-rpg-audio-for-godot",
+      "commit": "22eb79bb843bbcadcaa6ed119353a33265ffad11",
+      "sourcePath": "addons/kenney rpg audio/knife_slice.ogg",
+      "gitBlob": "86338431259517417132d9b1aaa28eb9a9f36d95",
+      "sha256": "4cd96dc630bed9840c15f1dd2306da2cc56a4da26a5d3f1a03c5a7265ac5e54f",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-rpg-audio/weapon/slash-b.ogg",
+      "provider": "Kenney",
+      "canonicalAsset": "https://kenney.nl/assets/rpg-audio",
+      "providerRepository": "Boyquotes/kenney-rpg-audio-for-godot",
+      "commit": "22eb79bb843bbcadcaa6ed119353a33265ffad11",
+      "sourcePath": "addons/kenney rpg audio/knife_slice_2.ogg",
+      "gitBlob": "cf6098e7395fcfeb537fa83ba41ba9ec0606e362",
+      "sha256": "6c2064d0ef988d1ec3d56868e823ea8823a5cac00f2742560052633529407def",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-rpg-audio/foley/cloth.ogg",
+      "provider": "Kenney",
+      "canonicalAsset": "https://kenney.nl/assets/rpg-audio",
+      "providerRepository": "Boyquotes/kenney-rpg-audio-for-godot",
+      "commit": "22eb79bb843bbcadcaa6ed119353a33265ffad11",
+      "sourcePath": "addons/kenney rpg audio/cloth_1.ogg",
+      "gitBlob": "b76853a893383a0facfb230a368404d136eff1a3",
+      "sha256": "ddb93a3671233f95da0e0b10367f082f7eb42fa6caaddcf776410aa8833c747d",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-rpg-audio/world/door-open.ogg",
+      "provider": "Kenney",
+      "canonicalAsset": "https://kenney.nl/assets/rpg-audio",
+      "providerRepository": "Boyquotes/kenney-rpg-audio-for-godot",
+      "commit": "22eb79bb843bbcadcaa6ed119353a33265ffad11",
+      "sourcePath": "addons/kenney rpg audio/door_open_1.ogg",
+      "gitBlob": "7df28265312494fc053380002e551b001dea89ad",
+      "sha256": "4ab93bab96522d8eb109ff96dc57cb6765deb02448fe14c10472084be5bb2a0b",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-rpg-audio/world/door-close.ogg",
+      "provider": "Kenney",
+      "canonicalAsset": "https://kenney.nl/assets/rpg-audio",
+      "providerRepository": "Boyquotes/kenney-rpg-audio-for-godot",
+      "commit": "22eb79bb843bbcadcaa6ed119353a33265ffad11",
+      "sourcePath": "addons/kenney rpg audio/door_close_1.ogg",
+      "gitBlob": "21021c5f8c13c2fbc74e83de8c5fce5d8709b70b",
+      "sha256": "834d29c60a8a8bfb50b158cdb6b7dfa8f02812a408a1ee9703d038dfab0b1aeb",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-rpg-audio/footsteps/generic-a.ogg",
+      "provider": "Kenney",
+      "canonicalAsset": "https://kenney.nl/assets/rpg-audio",
+      "providerRepository": "Boyquotes/kenney-rpg-audio-for-godot",
+      "commit": "22eb79bb843bbcadcaa6ed119353a33265ffad11",
+      "sourcePath": "addons/kenney rpg audio/footstep_0.ogg",
+      "gitBlob": "ca5dd2b6aa45f73f53685988aacec0a88f31887b",
+      "sha256": "6fe61ef1fc3bcf0e253bf2eb64759db6cb69e2fe452f4d88cc597ecf78a3d601",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-rpg-audio/footsteps/generic-b.ogg",
+      "provider": "Kenney",
+      "canonicalAsset": "https://kenney.nl/assets/rpg-audio",
+      "providerRepository": "Boyquotes/kenney-rpg-audio-for-godot",
+      "commit": "22eb79bb843bbcadcaa6ed119353a33265ffad11",
+      "sourcePath": "addons/kenney rpg audio/footstep_1.ogg",
+      "gitBlob": "e784dbff4808267daebd9297674f6532b1a826f3",
+      "sha256": "313472dba31fd0c855376069fa368bb5a198c27251cc8398ef464578b7047a4c",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-rpg-audio/foley/coins.ogg",
+      "provider": "Kenney",
+      "canonicalAsset": "https://kenney.nl/assets/rpg-audio",
+      "providerRepository": "Boyquotes/kenney-rpg-audio-for-godot",
+      "commit": "22eb79bb843bbcadcaa6ed119353a33265ffad11",
+      "sourcePath": "addons/kenney rpg audio/handle_coins.ogg",
+      "gitBlob": "c84e27d4a9d34588a881d639e563c45473ed5039",
+      "sha256": "8a91f969e932df709df80ee124d86a51389eed9b67f22e5e716bc2bbf60d8dab",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-rpg-audio/foley/book-flip.ogg",
+      "provider": "Kenney",
+      "canonicalAsset": "https://kenney.nl/assets/rpg-audio",
+      "providerRepository": "Boyquotes/kenney-rpg-audio-for-godot",
+      "commit": "22eb79bb843bbcadcaa6ed119353a33265ffad11",
+      "sourcePath": "addons/kenney rpg audio/book_flip_1.ogg",
+      "gitBlob": "7c0e80b9133df8bb4d451528d31cb0725ca44984",
+      "sha256": "fa81ac2fedc8c641661b87e349630a36c9800e795e0c800e029214efdbe26a7d",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-nature-kit/models/tree-oak.glb",
+      "provider": "Kenney",
+      "canonicalAsset": "https://kenney.nl/assets/nature-kit",
+      "archiveUrl": "https://kenney.nl/media/pages/assets/nature-kit/37ac38a37b-1677698939/kenney_nature-kit.zip",
+      "archiveSha256": "fa7974a0d342bfe63c38664ba9f8ec1a4aab8ea25f099bdc56870e33588c4d9d",
+      "sourcePath": "tree_oak.glb",
+      "sha256": "d7fd8773674928c50c11b66d12c636d49bdcc15a8b1c7fbb98e6f63a3439a3f3",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-nature-kit/models/fence-simple.glb",
+      "provider": "Kenney",
+      "canonicalAsset": "https://kenney.nl/assets/nature-kit",
+      "archiveUrl": "https://kenney.nl/media/pages/assets/nature-kit/37ac38a37b-1677698939/kenney_nature-kit.zip",
+      "archiveSha256": "fa7974a0d342bfe63c38664ba9f8ec1a4aab8ea25f099bdc56870e33588c4d9d",
+      "sourcePath": "fence_simple.glb",
+      "sha256": "ecaf6c29532aa9fd305a8ef71df769d60748bd797f2eb1c63bdefc4edb8062a7",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-nature-kit/models/sign.glb",
+      "provider": "Kenney",
+      "canonicalAsset": "https://kenney.nl/assets/nature-kit",
+      "archiveUrl": "https://kenney.nl/media/pages/assets/nature-kit/37ac38a37b-1677698939/kenney_nature-kit.zip",
+      "archiveSha256": "fa7974a0d342bfe63c38664ba9f8ec1a4aab8ea25f099bdc56870e33588c4d9d",
+      "sourcePath": "sign.glb",
+      "sha256": "c658c21672ecd63c5d3e53f06f875d68e6509edb1ab7e3b75374df7c61e7dd0c",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/polyhaven-grassy-cobblestone/1k/diffuse.jpg",
+      "provider": "Poly Haven",
+      "canonicalAsset": "https://polyhaven.com/a/grassy_cobblestone",
+      "fetchUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grassy_cobblestone/grassy_cobblestone_diff_1k.jpg",
+      "sha256": "9e7ba40919fd1bb4b98397b9522de0e6e537be8ea4121344772238d63fe50fcc",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/polyhaven-grassy-cobblestone/1k/normal-gl.jpg",
+      "provider": "Poly Haven",
+      "canonicalAsset": "https://polyhaven.com/a/grassy_cobblestone",
+      "fetchUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grassy_cobblestone/grassy_cobblestone_nor_gl_1k.jpg",
+      "sha256": "f9721ccd828523edbb19b3f391ad706efe3f5fe142133ea9c137bfd2f7751cd9",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/polyhaven-grassy-cobblestone/1k/roughness.jpg",
+      "provider": "Poly Haven",
+      "canonicalAsset": "https://polyhaven.com/a/grassy_cobblestone",
+      "fetchUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grassy_cobblestone/grassy_cobblestone_rough_1k.jpg",
+      "sha256": "5d7e8f179187fec6e5474cc5b2a0f702513e1eacc4087fcc2b5b57cfecb6c771",
+      "license": "CC0-1.0"
+    }
+  ]
+}
