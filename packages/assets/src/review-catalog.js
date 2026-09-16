@@ -17,6 +17,7 @@ const remote = (id, source, path, output, size, gitBlob = null) => Object.freeze
   id, repository: source[0], commit: source[1], path, output, size, gitBlob,
 });
 const weapon = 'addons/kaykit_character_pack_adventures/Assets/gltf/';
+const character = 'addons/kaykit_character_pack_adventures/Characters/gltf/';
 
 export const REVIEW_KAYKIT_EQUIPMENT_SOURCE = Object.freeze({
   repository: kaykit[0],
@@ -83,6 +84,7 @@ export const REVIEW_DOWNLOADS = Object.freeze([
   remote('vfx.kenney.dust', kenney, 'addons/kenney_particle_pack/dirt_01.png', 'particles/dirt_01.png', 46129, '3bf82433236c8a0e5452563dccafd0ca4ec82a31'),
   remote('vfx.kenney.light', kenney, 'addons/kenney_particle_pack/light_01.png', 'particles/light_01.png', 86592, '0192157986a9c7d2406a53d1b56e3b055fde84de'),
   remote('source.kenney.license', kenney, 'LICENSE.txt', 'licenses/Kenney-CC0.txt', 629, 'e198510d3c6ac7e3dc4370f1f0861d8c617362e8'),
+  remote('character.kaykit.knight', kaykit, character + 'Knight.glb', 'motion-library/Knight.glb', 3659532, '717b56ca2b5ff5392679774725201ba03a3eefab'),
   remote('weapon.kaykit.greatsword', kaykit, weapon + 'sword_2handed.gltf', 'weapon/sword_2handed.gltf', null, '593016769c491c37ce4705bc76f80e2a042ccaee'),
   remote('weapon.kaykit.greatsword.buffer', kaykit, weapon + 'sword_2handed.bin', 'weapon/sword_2handed.bin', 19912),
   remote('weapon.kaykit.knight.texture', kaykit, weapon + 'knight_texture.png', 'weapon/knight_texture.png', 14172, 'a56eae7514f908862e304620b89dc2d0cb9f362f'),
