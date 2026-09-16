@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {existsSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
 const stateSource = await readFile(new URL('../src/title/state.js', import.meta.url), 'utf8');
 // Legacy title state remains testable while the clean rebuild no longer boots through it.
@@ -26,6 +27,7 @@ test('100年生 boots the world before revealing the title',async()=>{
  assert.match(html,/id="game-screen"[^>]*class="game-screen is-loading"/);assert.match(html,/aria-busy="true"/);
  assert.match(html,/id="loading-card"/);assert.match(html,/id="boot-retry"/);assert.match(html,/id="new-life"/);assert.match(html,/id="continue-life"/);assert.match(html,/id="open-village-code"/);assert.match(html,/id="open-settings"/);assert.match(html,/viewport-fit=cover/);
  assert.match(html,/>最初から</);assert.match(html,/>続きから</);assert.match(html,/>村コード</);assert.match(html,/>設定</);
+ assert.doesNotMatch(html,/id="kaykit-life"|KayKitで遊ぶ|Lanternfell|稽古場/);
  assert.doesNotMatch(html,/id="continue-life"[^>]*hidden/);assert.doesNotMatch(html,/class="name-field"/);assert.doesNotMatch(html,/href="\.\/simulator\/index\.html"/);
  assert.doesNotMatch(html,/id="start-simulator"/);assert.doesNotMatch(html,/id="loading-progress"/);
 });
@@ -57,9 +59,14 @@ test('automatic play shell omits legacy contextual action buttons',async()=>{
  assert.doesNotMatch(html,/>装備する</);assert.doesNotMatch(html,/>出航する</);assert.doesNotMatch(html,/>救助する</);
 });
 
-test('retired bundled characters stay absent while the separate training motion evidence remains intact',async()=>{const base=new URL('../public/simulator/',import.meta.url);await assert.rejects(readFile(new URL('./assets/manifest.json',base)),error=>error?.code==='ENOENT');const motions=JSON.parse(await readFile(new URL('./assets/motions.json',base),'utf8'));assert.equal(motions.length,13);for(const asset of motions){const bytes=await readFile(new URL(asset.file,base));assert.equal(bytes.subarray(0,4).toString(),'glTF');}});
+test('retired bundled characters stay absent while shared review motion evidence remains intact',async()=>{const base=new URL('../public/simulator/',import.meta.url);await assert.rejects(readFile(new URL('./assets/manifest.json',base)),error=>error?.code==='ENOENT');const motions=JSON.parse(await readFile(new URL('./assets/motions.json',base),'utf8'));assert.equal(motions.length,13);for(const asset of motions){const bytes=await readFile(new URL(asset.file,base));assert.equal(bytes.subarray(0,4).toString(),'glTF');}});
 
 test('HTTPS never admits opaque or foreign legacy frame origin',()=>{assert.equal(acceptsFrameOrigin('null','https://example.test','https:',true),false);assert.equal(acceptsFrameOrigin('https://other.test','https://example.test','https:',false),false);assert.equal(acceptsFrameOrigin('https://example.test','https://example.test','https:',false),true);});
 test('local legacy frame support is restricted to explicit offline adapter',()=>{assert.equal(acceptsFrameOrigin('null','content://downloads','content:',true),true);assert.equal(acceptsFrameOrigin('null','file://','file:',true),true);assert.equal(acceptsFrameOrigin('null','content://downloads','content:',false),false);assert.equal(acceptsFrameOrigin('https://evil.test','null','content:',true),false);});
 test('legacy progress and asset requests still require channel and token',()=>{for(const type of ['progress','asset-request']){assert.equal(acceptsReadyMessage({channel:'rinne-title-v1',type,token:'expected-123'},'expected-123'),true);assert.equal(acceptsReadyMessage({channel:'rinne-title-v1',type,token:'stale-123'},'expected-123'),false);}});
-test('separate simulator keeps its early error bridge',async()=>{const html=await readFile(new URL('../public/simulator/index.html',import.meta.url),'utf8');assert.ok(html.indexOf('src="./title-bridge.js"')<html.indexOf('type="module"'));assert.match(html,/function fatal\(e\)\{window\.__RINNE_BOOT__\?\.fail\(e\)/);});
+test('retired training surface redirects to the current title and drops its adapters',async()=>{
+ const html=await readFile(new URL('../public/simulator/index.html',import.meta.url),'utf8');
+ assert.match(html,/location\.replace\('\.\.\/'\)/);assert.match(html,/この画面は廃止しました/);assert.doesNotMatch(html,/title-bridge\.js|__RINNE_BOOT__|稽古場へ/);
+ assert.equal(existsSync(new URL('../public/simulator/title-bridge.js',import.meta.url)),false);
+ assert.equal(existsSync(new URL('../public/simulator/observation.js',import.meta.url)),false);
+});
