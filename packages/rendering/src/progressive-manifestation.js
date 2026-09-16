@@ -2,6 +2,7 @@ import {
   AdditiveBlending,
   BufferGeometry,
   Color,
+  DoubleSide,
   Float32BufferAttribute,
   Group,
   Mesh,
@@ -120,13 +121,24 @@ function particleGeometry(count){
   const geometry=new BufferGeometry();geometry.setAttribute('position',new Float32BufferAttribute(positions,3));return geometry;
 }
 
-export function createManifestationEffect({profile='subtle',qualityScale=1}={}){
+function createMaterialReveal(subject,minOpacity=.16){
+  if(!subject?.traverse)return{update(){},restore(){}};
+  const states=new Map();subject.traverse(node=>{if(!node?.isMesh)return;for(const material of Array.isArray(node.material)?node.material:[node.material])if(material&&!states.has(material))states.set(material,{opacity:Number.isFinite(material.opacity)?material.opacity:1,transparent:Boolean(material.transparent),depthWrite:material.depthWrite!==false,emissiveIntensity:Number.isFinite(material.emissiveIntensity)?material.emissiveIntensity:null});});
+  let restored=false;
+  const restore=()=>{if(restored)return;restored=true;for(const [material,state] of states){const transparencyChanged=material.transparent!==state.transparent;material.opacity=state.opacity;material.transparent=state.transparent;material.depthWrite=state.depthWrite;if(state.emissiveIntensity!==null)material.emissiveIntensity=state.emissiveIntensity;if(transparencyChanged)material.needsUpdate=true;}};
+  return{
+    update(progress){if(restored)return;const detail=smooth(progress);for(const [material,state] of states){const nextTransparent=detail<.999||state.transparent,changed=material.transparent!==nextTransparent;material.transparent=nextTransparent;material.opacity=state.opacity*(minOpacity+(1-minOpacity)*detail);material.depthWrite=detail>.7?state.depthWrite:false;if(state.emissiveIntensity!==null)material.emissiveIntensity=state.emissiveIntensity+(1-detail)*.55;if(changed)material.needsUpdate=true;}if(detail>=.999)restore();},
+    restore
+  };
+}
+
+export function createManifestationEffect({profile='subtle',qualityScale=1,subject=null}={}){
   const p=manifestationProfileFor(profile),q=Math.max(.2,Math.min(1,Number(qualityScale)||1)),root=new Group();root.name=`Manifestation:${p.id}`;root.userData.manifestationEffect=true;
-  const color=new Color(p.color),ringMaterial=new MeshBasicMaterial({color,transparent:true,opacity:0,depthWrite:false,blending:AdditiveBlending,side:2}),ring=new Mesh(new RingGeometry(.38,.46,32),ringMaterial);ring.rotation.x=-Math.PI/2;ring.position.y=.025;root.add(ring);
+  const reveal=createMaterialReveal(subject,p.id==='shadow'?.08:p.id==='massive'?.13:.18),color=new Color(p.color),ringMaterial=new MeshBasicMaterial({color,transparent:true,opacity:0,depthWrite:false,blending:AdditiveBlending,side:DoubleSide}),ring=new Mesh(new RingGeometry(.38,.46,32),ringMaterial);ring.rotation.x=-Math.PI/2;ring.position.y=.025;root.add(ring);
   const count=Math.max(8,Math.round(42*p.particles*q)),pointsMaterial=new PointsMaterial({color,size:.045+.035*p.energy*q,transparent:true,opacity:0,depthWrite:false,blending:AdditiveBlending}),points=new Points(particleGeometry(count),pointsMaterial);root.add(points);root.visible=false;
   return Object.freeze({
     root,profile:p,
-    update(progress){const visual=manifestationVisualPhase(MANIFESTATION_STAGES.FORMING,progress,{profile:p,qualityScale:q}),t=clamp01(progress);root.visible=t<1;ringMaterial.opacity=visual.effect*.9;ring.scale.setScalar(.7+1.7*t+visual.shock*.3);pointsMaterial.opacity=visual.particles;points.rotation.y=t*Math.PI*2*(.4+p.distortion);points.scale.setScalar(.75+1.4*t);return visual;},
-    dispose(){root.removeFromParent();ring.geometry.dispose();ringMaterial.dispose();points.geometry.dispose();pointsMaterial.dispose();}
+    update(progress){const visual=manifestationVisualPhase(MANIFESTATION_STAGES.FORMING,progress,{profile:p,qualityScale:q}),t=clamp01(progress);reveal.update(t);root.visible=t<1;ringMaterial.opacity=visual.effect*.9;ring.scale.setScalar(.7+1.7*t+visual.shock*.3);pointsMaterial.opacity=visual.particles;points.rotation.y=t*Math.PI*2*(.4+p.distortion);points.scale.setScalar(.75+1.4*t);return visual;},
+    dispose(){reveal.restore();root.removeFromParent();ring.geometry.dispose();ringMaterial.dispose();points.geometry.dispose();pointsMaterial.dispose();}
   });
 }
