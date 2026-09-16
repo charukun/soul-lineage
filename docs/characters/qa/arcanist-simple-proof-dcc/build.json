@@ -1,0 +1,15 @@
+{
+  "schema": "arcanist-atlas-dcc-build",
+  "version": 1,
+  "characterId": "arcanist.atlas-dcc.v1",
+  "referencePath": "docs/characters/references/npc-role-set/arcanist.avif",
+  "sourceRigSha256": "83843ade7dbdfaacc9d601bda099fcb5757527e339b9c5deb223a2c2f5eb28ca",
+  "blenderVersion": "4.0.2",
+  "meshObjects": 50,
+  "trianglesApprox": 15296,
+  "materials": 10,
+  "blendSha256": "8a7d23c79f5187bbfa8814b14998538b26eb3bd0cef850a6a59d2cfe5c7489e7",
+  "glbSha256": "27e3bd9b392d2963de2567349fdfb89f3b716f0ef27e53e8455e1d4bb3390e9f",
+  "productionReady": false,
+  "visualApproval": "pending"
+}

@@ -1,0 +1,68 @@
+{
+  "schema": "character-dcc-build",
+  "version": 1,
+  "slug": "arcanist-simple-proof",
+  "characterId": "arcanist.atlas-dcc.v1",
+  "format": "glb",
+  "path": "./simulator/assets/ARCANIST_SIMPLE_PROOF_DCC.glb",
+  "model": {
+    "path": "apps/rinne/public/simulator/assets/ARCANIST_SIMPLE_PROOF_DCC.glb",
+    "bytes": 714680,
+    "sha256": "27e3bd9b392d2963de2567349fdfb89f3b716f0ef27e53e8455e1d4bb3390e9f"
+  },
+  "source": {
+    "blend": {
+      "path": "assets/characters/arcanist-simple-proof/model.blend",
+      "sha256": "8a7d23c79f5187bbfa8814b14998538b26eb3bd0cef850a6a59d2cfe5c7489e7"
+    },
+    "builder": {
+      "path": "assets/characters/arcanist-simple-proof/build.py",
+      "sha256": "9b2e13a4e5b83c81825a7255f95805f81c9f174ee7561f98525fb26f779b2067"
+    },
+    "reference": {
+      "path": "assets/characters/arcanist-simple-proof/reference.avif",
+      "sha256": "5930816e59424bcc17530ba9029d1231fb24ac88ee35ee5818f96e05e0978bd0"
+    },
+    "rig": {
+      "path": "apps/rinne/public/simulator/assets/SHINO_review.vrm",
+      "sha256": "83843ade7dbdfaacc9d601bda099fcb5757527e339b9c5deb223a2c2f5eb28ca"
+    }
+  },
+  "dcc": {
+    "tool": "Blender",
+    "version": "4.0.2"
+  },
+  "scene": {
+    "unitSystem": "METRIC",
+    "scaleLength": 1.0,
+    "meshObjects": 50,
+    "armatures": 1,
+    "vertices": 7760,
+    "triangles": 15296,
+    "materials": 10,
+    "uvMeshCount": 50,
+    "shapeKeys": [],
+    "bones": 134
+  },
+  "checks": {
+    "hasMesh": true,
+    "singleArmature": true,
+    "hasUVs": true,
+    "transformsApplied": true,
+    "noDegeneratePolygons": true
+  },
+  "review": {
+    "views": [
+      "front",
+      "three-quarter",
+      "side",
+      "back"
+    ],
+    "evidencePath": "docs/characters/qa/arcanist-simple-proof-dcc/",
+    "visualApproval": "pending"
+  },
+  "status": {
+    "productionReady": false,
+    "note": "Blender execution evidence only. Production-stage promotion and human visual approval are separate gates."
+  }
+}
