@@ -1,8 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
 import {collectAddedNews} from '../src/web/event-chronicle.js';
 
 const event=(text,type='life')=>({text,type,day:1});
+const readSibling=relative=>readFileSync(fileURLToPath(new URL(relative,import.meta.url)),'utf8');
 
 test('chronicle ignores an unchanged news head',()=>{
  const old=event('old');
@@ -29,4 +32,12 @@ test('chronicle degrades to the newest entry when history was replaced',()=>{
  const result=collectAddedNews([latest,older],missing);
  assert.deepEqual(result.added,[latest]);
  assert.equal(result.head,latest);
+});
+
+test('automatic village moments never create a center-screen popup',()=>{
+ const interfaceSource=readSibling('../src/web/interface.js');
+ const chronicleSource=readSibling('../src/web/event-chronicle.js');
+ assert.equal(interfaceSource.includes('muraIdleDetails'),false);
+ assert.equal(interfaceSource.includes('world.state.moments'),false);
+ assert.match(chronicleSource,/moment:'暮らし'/);
 });
