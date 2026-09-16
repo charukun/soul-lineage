@@ -59,8 +59,10 @@ function finishingCut(pose,p){
 }
 
 export function applySlashVariant(pose,p,variant='cross'){
-  const id=normalizeSlashVariant(variant);
-  if(id==='return')return returnCut(pose,clamp(p));
-  if(id==='finisher')return finishingCut(pose,clamp(p));
+  const id=normalizeSlashVariant(variant),phase=clamp(p);
+  // Guarantee exact shared seams instead of relying on trigonometric near-zeroes.
+  if(phase===0||phase===1)return copyPose(pose);
+  if(id==='return')return returnCut(pose,phase);
+  if(id==='finisher')return finishingCut(pose,phase);
   return copyPose(pose);
 }
