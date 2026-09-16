@@ -31,12 +31,15 @@ test('cross, return and finisher are different full-body trajectories rather tha
 
 test('runtime variant selection is deterministic and gameplay-authority neutral',async()=>{
   assert.equal(slashPresentationVariant({attack:{kind:'slash',id:'plain'}}),'cross');
+  assert.equal(slashPresentationVariant({attack:{kind:'slash',comboIndex:null}}),'cross');
+  assert.equal(slashPresentationVariant({attack:{kind:'slash',comboIndex:''}}),'cross');
   assert.equal(slashPresentationVariant({attack:{kind:'slash',presentationVariant:'return'}}),'return');
   assert.equal(slashPresentationVariant({attack:{kind:'slash',comboIndex:2}}),'finisher');
   assert.equal(slashPresentationVariant({attack:{kind:'slash',comboStep:4}}),'return');
   assert.equal(slashPresentationVariant({attack:{kind:'thrust',comboIndex:2}}),null);
   const source=await readFile(new URL('../public/simulator/src/humanoid-finalized.js',import.meta.url),'utf8');
   assert.match(source,/prepareSlashVariants/);
+  assert.match(source,/!c\.slashPresentationVariants/,'same loaded Shino must not rebake all presentation clips');
   assert.match(source,/sword:slash:\$\{variant\}/);
   assert.match(source,/slashPresentationVariant/);
   assert.match(source,/contactTimingAuthority:'gameplay-external'/);
