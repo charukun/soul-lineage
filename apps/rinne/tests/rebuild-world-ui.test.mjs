@@ -40,7 +40,7 @@ test('actor status is reusable and birth teaches through the mother instead of a
   assert.match(html,/id="actor-status-layer"/);assert.match(html,/birth-tour\.css/);assert.doesNotMatch(html,/id="waypoint"/);
   assert.match(birthCss,/\.actor-status-text/);assert.match(birthCss,/@keyframes rinne-actor-status-rise/);assert.match(birthCss,/data-birth-tour="true".*\.objective-card/s);
   assert.match(actorStatus,/export function createActorStatus/);assert.match(actorStatus,/actorName=['"]Player['"]/);assert.match(actorStatus,/localToWorld/);assert.match(actorStatus,/function show\(text/);
-  assert.match(birthExperience,/createActorStatus/);assert.match(birthExperience,/status\.show\('抱っこされている…'\)/);assert.match(birthExperience,/\$\{state\.name\}、お外は初めてだね/);
+  assert.match(birthExperience,/createActorStatus/);assert.match(birthExperience,/status\.show\('抱っこされている…'\)/);assert.match(birthExperience,/muraSharedLine\('first-outing'\)/);assert.match(birthExperience,/dialogue\('母',`\$\{state\.name\}、\$\{line\}`\)/);
   assert.match(birthExperience,/getObjectByName\('Mother'\)/);assert.match(birthExperience,/tour\.tick/);assert.match(birthExperience,/tour\.observe/);
   assert.match(runtime,/createBirthExperience/);assert.match(runtime,/birth\.step\(dt,axis\)/);assert.match(runtime,/birth\.afterRender/);assert.match(runtime,/birth\.release\(\)/);assert.match(runtime,/スワイプで母を動かせる/);
 });

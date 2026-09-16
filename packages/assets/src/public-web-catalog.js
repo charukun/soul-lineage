@@ -26,8 +26,16 @@ export const PUBLIC_WEB_ASSET_SOURCES = Object.freeze({
     provider: 'Kenney', license: 'CC0-1.0', canonicalUrl: 'https://kenney.nl/assets/ui-audio',
     archiveUrl: 'https://kenney.nl/media/pages/assets/ui-audio/490d233f68-1677590494/kenney_ui-audio.zip', redistributionAllowed: true,
   }),
+  'kenney-rpg-audio': source({
+    provider: 'Kenney', license: 'CC0-1.0', canonicalUrl: 'https://kenney.nl/assets/rpg-audio',
+    mirrorRepository: 'Boyquotes/kenney-rpg-audio-for-godot', mirrorCommit: '22eb79bb843bbcadcaa6ed119353a33265ffad11',
+    repositoryRoot: 'assets/vendor/public-web/kenney-rpg-audio',
+    archiveUrl: 'https://kenney.nl/media/pages/assets/rpg-audio/8e99002d76-1677590336/kenney_rpg-audio.zip',
+    archiveSha256: '6dbeaf8544da958d8f2adcb4a4a4b76c1ade34a05f8ab9edccd327da7375f38b', redistributionAllowed: true,
+  }),
   'kenney-nature-kit': source({
     provider: 'Kenney', license: 'CC0-1.0', canonicalUrl: 'https://kenney.nl/assets/nature-kit',
+    repositoryRoot: 'assets/vendor/public-web/kenney-nature-kit',
     archiveUrl: 'https://kenney.nl/media/pages/assets/nature-kit/37ac38a37b-1677698939/kenney_nature-kit.zip',
     archiveSha256: 'fa7974a0d342bfe63c38664ba9f8ec1a4aab8ea25f099bdc56870e33588c4d9d', redistributionAllowed: true,
   }),
@@ -36,13 +44,24 @@ export const PUBLIC_WEB_ASSET_SOURCES = Object.freeze({
     mirrorRepository: 'Calinou/kenney-particle-pack', mirrorCommit: 'ab7086639ee73be31abd87feb21bf1402d4e8144',
     repositoryRoot: 'assets/vendor/public-web/kenney-particle-pack', redistributionAllowed: true,
   }),
+  'kenney-skyboxes': source({
+    provider: 'Kenney', license: 'CC0-1.0', canonicalUrl: 'https://kenney.nl/assets/skyboxes',
+    archiveUrl: 'https://kenney.nl/media/pages/assets/skyboxes/6736ff5c10-1784123473/kenney_skyboxes.zip', redistributionAllowed: true,
+  }),
+  'kenney-light-masks': source({
+    provider: 'Kenney', license: 'CC0-1.0', canonicalUrl: 'https://kenney.nl/assets/light-masks', redistributionAllowed: true,
+  }),
   'polyhaven-medieval-blocks-05': source({
     provider: 'Poly Haven', license: 'CC0-1.0', canonicalUrl: 'https://polyhaven.com/a/medieval_blocks_05',
     repositoryRoot: 'assets/vendor/public-web/polyhaven-medieval-blocks-05', redistributionAllowed: true,
   }),
-  'polyhaven-grassy-cobblestone': source({ provider: 'Poly Haven', license: 'CC0-1.0', canonicalUrl: 'https://polyhaven.com/a/grassy_cobblestone', redistributionAllowed: true }),
+  'polyhaven-grassy-cobblestone': source({
+    provider: 'Poly Haven', license: 'CC0-1.0', canonicalUrl: 'https://polyhaven.com/a/grassy_cobblestone',
+    repositoryRoot: 'assets/vendor/public-web/polyhaven-grassy-cobblestone', redistributionAllowed: true,
+  }),
   'polyhaven-cobblestone-01': source({ provider: 'Poly Haven', license: 'CC0-1.0', canonicalUrl: 'https://polyhaven.com/a/cobblestone_01', redistributionAllowed: true }),
   'polyhaven-zavelstein': source({ provider: 'Poly Haven', license: 'CC0-1.0', canonicalUrl: 'https://polyhaven.com/a/zavelstein', redistributionAllowed: true }),
+  'polyhaven-steinbach-field': source({ provider: 'Poly Haven', license: 'CC0-1.0', canonicalUrl: 'https://polyhaven.com/a/steinbach_field', redistributionAllowed: true }),
   'ambientcg-wood-siding-006': source({ provider: 'ambientCG', license: 'CC0-1.0', canonicalUrl: 'https://ambientcg.com/view?id=WoodSiding006', redistributionAllowed: true }),
 });
 
@@ -65,11 +84,26 @@ export const publicWebAssetCatalog = Object.freeze({
   'audio.footstep-grass': materialized('kenney-impact-sounds', 'audio', 'assets/vendor/public-web/kenney-impact-sounds/footsteps/grass.ogg', ['footstep', 'grass', 'movement']),
   'audio.footstep-wood': materialized('kenney-impact-sounds', 'audio', 'assets/vendor/public-web/kenney-impact-sounds/footsteps/wood.ogg', ['footstep', 'wood', 'movement']),
 
+  'audio.weapon-draw-blade': materialized('kenney-rpg-audio', 'audio', 'assets/vendor/public-web/kenney-rpg-audio/weapon/draw-blade.ogg', ['weapon', 'draw', 'blade', 'combat']),
+  'audio.weapon-slash-a': materialized('kenney-rpg-audio', 'audio', 'assets/vendor/public-web/kenney-rpg-audio/weapon/slash-a.ogg', ['weapon', 'slash', 'sword', 'combat']),
+  'audio.weapon-slash-b': materialized('kenney-rpg-audio', 'audio', 'assets/vendor/public-web/kenney-rpg-audio/weapon/slash-b.ogg', ['weapon', 'slash', 'sword', 'combat']),
+  'audio.foley-cloth': materialized('kenney-rpg-audio', 'audio', 'assets/vendor/public-web/kenney-rpg-audio/foley/cloth.ogg', ['foley', 'cloth', 'movement']),
+  'audio.door-open': materialized('kenney-rpg-audio', 'audio', 'assets/vendor/public-web/kenney-rpg-audio/world/door-open.ogg', ['door', 'open', 'world']),
+  'audio.door-close': materialized('kenney-rpg-audio', 'audio', 'assets/vendor/public-web/kenney-rpg-audio/world/door-close.ogg', ['door', 'close', 'world']),
+  'audio.footstep-generic-a': materialized('kenney-rpg-audio', 'audio', 'assets/vendor/public-web/kenney-rpg-audio/footsteps/generic-a.ogg', ['footstep', 'generic', 'movement']),
+  'audio.footstep-generic-b': materialized('kenney-rpg-audio', 'audio', 'assets/vendor/public-web/kenney-rpg-audio/footsteps/generic-b.ogg', ['footstep', 'generic', 'movement']),
+  'audio.coins-handle': materialized('kenney-rpg-audio', 'audio', 'assets/vendor/public-web/kenney-rpg-audio/foley/coins.ogg', ['coins', 'inventory', 'reward']),
+  'audio.book-flip': materialized('kenney-rpg-audio', 'audio', 'assets/vendor/public-web/kenney-rpg-audio/foley/book-flip.ogg', ['book', 'page', 'inventory']),
+
   'vfx.spark': materialized('kenney-particle-pack', 'vfx-texture', 'assets/vendor/public-web/kenney-particle-pack/vfx/spark.png', ['spark', 'hit', 'metal']),
   'vfx.slash': materialized('kenney-particle-pack', 'vfx-texture', 'assets/vendor/public-web/kenney-particle-pack/vfx/slash.png', ['slash', 'sword', 'trail']),
   'vfx.smoke': materialized('kenney-particle-pack', 'vfx-texture', 'assets/vendor/public-web/kenney-particle-pack/vfx/smoke.png', ['smoke', 'dust', 'impact']),
   'vfx.flare': materialized('kenney-particle-pack', 'vfx-texture', 'assets/vendor/public-web/kenney-particle-pack/vfx/flare.png', ['flare', 'flash', 'impact']),
   'vfx.magic': materialized('kenney-particle-pack', 'vfx-texture', 'assets/vendor/public-web/kenney-particle-pack/vfx/magic.png', ['magic', 'aura', 'skill']),
+
+  'model.nature-tree-oak': materialized('kenney-nature-kit', '3d', 'assets/vendor/public-web/kenney-nature-kit/models/tree-oak.glb', ['tree', 'oak', 'vegetation', 'outdoor']),
+  'model.nature-fence-simple': materialized('kenney-nature-kit', '3d', 'assets/vendor/public-web/kenney-nature-kit/models/fence-simple.glb', ['fence', 'wood', 'village', 'prop']),
+  'model.nature-sign': materialized('kenney-nature-kit', '3d', 'assets/vendor/public-web/kenney-nature-kit/models/sign.glb', ['sign', 'wood', 'village', 'prop']),
 
   'material.medieval-blocks': asset({
     sourceId: 'polyhaven-medieval-blocks-05', category: 'pbr-material', status: 'MATERIALIZED',
@@ -80,15 +114,27 @@ export const publicWebAssetCatalog = Object.freeze({
     }),
     tags: ['wall', 'stone', 'medieval', 'ground', '1k'],
   }),
+  'material.grassy-cobblestone': asset({
+    sourceId: 'polyhaven-grassy-cobblestone', category: 'pbr-material', status: 'MATERIALIZED',
+    localPaths: Object.freeze({
+      diffuse: 'assets/vendor/public-web/polyhaven-grassy-cobblestone/1k/diffuse.jpg',
+      normalGL: 'assets/vendor/public-web/polyhaven-grassy-cobblestone/1k/normal-gl.jpg',
+      roughness: 'assets/vendor/public-web/polyhaven-grassy-cobblestone/1k/roughness.jpg',
+    }),
+    tags: ['road', 'village', 'ground', 'moss', 'grass', '1k'],
+  }),
 
   'audio.impact-pack': asset({ sourceId: 'kenney-impact-sounds', category: 'audio-pack', status: 'AUDITED_REMOTE_CANDIDATE', tags: ['combat', 'hit', 'impact', 'full-pack'] }),
   'audio.interface-pack': asset({ sourceId: 'kenney-interface-sounds', category: 'audio-pack', status: 'AUDITED_REMOTE_CANDIDATE', tags: ['ui', 'menu', 'feedback', 'full-pack'] }),
   'audio.ui-pack': asset({ sourceId: 'kenney-ui-audio', category: 'audio-pack', status: 'AUDITED_REMOTE_CANDIDATE', tags: ['ui', 'confirm', 'cancel', 'full-pack'] }),
-  'model.nature-kit': asset({ sourceId: 'kenney-nature-kit', category: '3d', status: 'AUDITED_REMOTE_CANDIDATE', tags: ['tree', 'rock', 'vegetation'] }),
+  'audio.rpg-pack': asset({ sourceId: 'kenney-rpg-audio', category: 'audio-pack', status: 'AUDITED_REMOTE_CANDIDATE', tags: ['foley', 'footstep', 'weapon', 'full-pack'] }),
+  'model.nature-kit': asset({ sourceId: 'kenney-nature-kit', category: '3d', status: 'AUDITED_REMOTE_CANDIDATE', tags: ['tree', 'rock', 'vegetation', 'full-pack'] }),
   'vfx.particle-pack': asset({ sourceId: 'kenney-particle-pack', category: 'vfx-texture-pack', status: 'AUDITED_REMOTE_CANDIDATE', tags: ['spark', 'slash', 'smoke', 'magic', 'full-pack'] }),
-  'material.grassy-cobblestone': asset({ sourceId: 'polyhaven-grassy-cobblestone', category: 'pbr-material', status: 'AUDITED_REMOTE_CANDIDATE', tags: ['road', 'village', 'ground'] }),
+  'vfx.light-masks': asset({ sourceId: 'kenney-light-masks', category: 'vfx-texture-pack', status: 'AUDITED_REMOTE_CANDIDATE', tags: ['light', 'shader', 'cookie', 'vfx'] }),
+  'lighting.skyboxes': asset({ sourceId: 'kenney-skyboxes', category: 'skybox-pack', status: 'AUDITED_REMOTE_CANDIDATE', tags: ['sky', 'clouds', 'space', 'lighting'] }),
   'material.cobblestone': asset({ sourceId: 'polyhaven-cobblestone-01', category: 'pbr-material', status: 'AUDITED_REMOTE_CANDIDATE', tags: ['road', 'ground', 'ruin'] }),
   'lighting.zavelstein': asset({ sourceId: 'polyhaven-zavelstein', category: 'hdri', status: 'AUDITED_REMOTE_CANDIDATE', tags: ['forest', 'outdoor', 'lighting'] }),
+  'lighting.steinbach-field': asset({ sourceId: 'polyhaven-steinbach-field', category: 'hdri', status: 'AUDITED_REMOTE_CANDIDATE', tags: ['field', 'outdoor', 'daylight', 'lighting'] }),
   'material.wood-siding': asset({ sourceId: 'ambientcg-wood-siding-006', category: 'pbr-material', status: 'AUDITED_REMOTE_CANDIDATE', tags: ['wood', 'building', 'prop'] }),
 });
 

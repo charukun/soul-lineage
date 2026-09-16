@@ -30,12 +30,14 @@ export function gateCostPlan(paths = [], knowledge = {}) {
 }
 
 function gitPaths(work, base, head) {
-  const output = execFileSync('git', ['diff', '--name-only', `${base}...${head}`], { cwd: work, encoding: 'utf8' });
+  // The Fast Gate receives an exact validation base and exact head. A direct tree diff
+  // avoids requiring a full ancestry graph just to classify the changed responsibility.
+  const output = execFileSync('git', ['diff', '--name-only', base, head], { cwd: work, encoding: 'utf8' });
   return output.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
 }
 
 export function runCheapPreflight(work, base, head, paths) {
-  execFileSync('git', ['diff', '--check', `${base}...${head}`], { cwd: work, stdio: 'inherit' });
+  execFileSync('git', ['diff', '--check', base, head], { cwd: work, stdio: 'inherit' });
   const syntax = paths.filter(path => JS.test(path) && !path.includes('/node_modules/') && !path.endsWith('.min.js')).slice(0, 80);
   const failures = [];
   for (const path of syntax) {

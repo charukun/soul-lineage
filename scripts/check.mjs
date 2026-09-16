@@ -9,7 +9,11 @@ const root = process.cwd();
 const nodes = graph(root);
 const nativeBrowserDialog = /\b(?:(?:window|globalThis|self)\s*\.\s*)?(?:alert|confirm|prompt)\s*\(/;
 const nativeEntryChoice = /<select\b|<input\b[^>]*\btype\s*=\s*["']?checkbox\b/i;
-const selected = process.argv[2] ? new Set(process.argv.slice(2).flatMap(id => [...closure(nodes, nodes.has(id) ? id : appNode(nodes, id).name)])) : new Set(nodes.keys());
+const requested = process.argv.slice(2), direct = requested[0] === '--direct', targets = direct ? requested.slice(1) : requested;
+const nodeName = id => nodes.has(id) ? id : appNode(nodes, id).name;
+const selected = targets.length
+  ? new Set(targets.flatMap(id => direct ? [nodeName(id)] : [...closure(nodes, nodeName(id))]))
+  : direct ? new Set() : new Set(nodes.keys());
 for (const name of selected) {
   const node = nodes.get(name);
   if (node.group === 'apps') {
@@ -45,5 +49,5 @@ for (const name of selected) {
     }
   }
 }
-for (const file of readdirSync('scripts').filter(p => p.endsWith('.mjs'))) execFileSync(process.execPath, ['--check', `scripts/${file}`]);
-console.log(`Workspace boundaries and syntax verified: ${[...selected].join(', ')}`);
+if (!direct) for (const file of readdirSync('scripts').filter(p => p.endsWith('.mjs'))) execFileSync(process.execPath, ['--check', `scripts/${file}`]);
+console.log(`Workspace boundaries and syntax verified${direct ? ' (direct)' : ''}: ${[...selected].join(', ')}`);
