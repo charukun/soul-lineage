@@ -16,10 +16,15 @@ test('legacy skill weights migrate into one combo while newly learned hearts wai
   state.knownSkills.push('skill.focus');ensureCombatLoadout(state);assert.equal(state.combatLoadout.heart.active.includes('skill.focus'),false);
 });
 
-test('heart page selection controls support effects without changing learned knowledge',()=>{
-  const state=living();state.knownSkills.push('skill.focus');ensureCombatLoadout(state);assert.equal(skillEffects(state).damage,0);
+test('heart page selection controls a newly learned support effect without changing learned knowledge',()=>{
+  const state=living();ensureCombatLoadout(state);state.knownSkills.push('skill.focus');ensureCombatLoadout(state);assert.equal(skillEffects(state).damage,0);
   assert.equal(setHeartActive(state,'skill.focus',true),true);assert.ok(skillEffects(state).damage>.05);assert.ok(state.knownSkills.includes('skill.focus'));
   setHeartActive(state,'skill.focus',false);assert.equal(skillEffects(state).damage,0);
+});
+
+test('weapon change normalizes stale legacy basic skills to the equipped weapon',()=>{
+  const state=living();state.equipment.weapon='sword';state.knownSkills.push('basic.sword');state.skillWeights={jo:{'basic.fist':100},ha:{},kyu:{}};ensureCombatLoadout(state);
+  assert.equal(state.combatLoadout.technique.combos[0].slots.jo,'basic.sword');assert.equal(state.skillWeights.jo['basic.sword'],100);
 });
 
 test('multiple jo-ha-kyu combos can be added and favored tags bias automatic selection',()=>{
