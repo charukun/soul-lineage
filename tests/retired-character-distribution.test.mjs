@@ -18,7 +18,7 @@ test('retired conditional character assets are stripped from a Rinne distributio
   const keep=path.join(root,'simulator/assets/kaykit/Knight.glb');
   await mkdir(path.dirname(keep),{recursive:true});await writeFile(keep,'cc0');
   const removed=await stripRetiredCharacterAssets(root);
-  assert.deepEqual(removed.sort(),[...sample].sort());
+  assert.deepEqual([...removed].sort(),[...sample].sort());
   await assertNoRetiredCharacterAssets(root);
   await access(keep);
 });

@@ -7,11 +7,12 @@ import {
   createCharacterModelCandidate,
   reviewCharacterModelCandidate
 } from '../packages/characters/src/model-builder.js';
+import {KAYKIT_DEFAULT_MODEL_ID} from '../packages/characters/src/kaykit-foundation.js';
 
 test('reference-to-model handoff uses the unconditional KayKit fallback until every gate passes', () => {
   const request = createCharacterModelBuildRequest('knight.reference.v1');
-  assert.equal(request.reference.masterId, 'kaykit.knight.v1');
-  assert.equal(request.reference.fallbackAssetId, 'kaykit.knight.v1');
+  assert.equal(request.reference.masterId, KAYKIT_DEFAULT_MODEL_ID);
+  assert.equal(request.reference.fallbackAssetId, KAYKIT_DEFAULT_MODEL_ID);
   assert.equal(request.target.rigId, 'Rig_Medium');
   assert.deepEqual(request.target.formats, ['glb']);
   assert.ok(CHARACTER_MODEL_REQUIRED_GATES.includes('license'));
