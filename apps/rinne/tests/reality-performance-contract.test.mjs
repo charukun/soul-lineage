@@ -13,9 +13,9 @@ const physicalBase=(metrics={})=>({
   samples:300,
   safety:zeroSafety(),
   metrics:{
-    inputToDisplayP95Ms:180,canonCommitP95Ms:220,hostLossDetectionP95Ms:4000,hostReopenP95Ms:5000,
+    inputToAuthoritativeAckP95Ms:140,inputToDisplayP95Ms:180,canonCommitP95Ms:220,hostLossDetectionP95Ms:4000,hostReopenP95Ms:5000,
     peerUplinkP95Kbps:320,hostUplinkP95Kbps:900,reliableBufferedAmountMaxBytes:32768,presenceBufferedAmountMaxBytes:8192,
-    stateFreshnessP95Ms:180,positionErrorP95M:.35,rollbackP95Ms:80,connectionSuccessRate:.99,frameP95Ms:30,...metrics,
+    stateFreshnessP95Ms:180,positionErrorP95M:.35,rollbackP95Ms:0,connectionSuccessRate:.99,frameP95Ms:30,...metrics,
   },
   sampleCounts:sampleCounts(),
   provenance:{buildRevision:'abc',runtime:'Chrome',deviceClass:'pixel-fold-class',deviceModel:'Pixel Fold',peers:3,networkProfile:'wifi-lan'},
@@ -26,20 +26,27 @@ test('percentile uses a deterministic nearest-rank definition',()=>{
   assert.equal(percentile([5,1,4,2,3],.95),5);
 });
 
-test('raw performance samples aggregate into contract metric names without filling unknowns',()=>{
+test('raw performance samples keep authoritative acknowledgement and rendered display as separate metrics',()=>{
   const metrics=aggregateRrpPerformanceSamples({
-    inputToDisplayMs:[100,120,140,200],canonCommitMs:[180,200,240],hostLossDetectionMs:[4000,4200],hostReopenMs:[5000,5200],
+    inputToAuthoritativeAckMs:[70,80,90,100],inputToDisplayMs:[100,120,140,200],canonCommitMs:[180,200,240],hostLossDetectionMs:[4000,4200],hostReopenMs:[5000,5200],
     peerUplinkKbps:[100,200,300],hostUplinkKbps:[600,800,1000],reliableBufferedAmountBytes:[0,1000,4000],presenceBufferedAmountBytes:[0,500],
     stateFreshnessMs:[100,130,170],positionErrorM:[.1,.2,.4],rollbackMs:[50,80],durationMinutes:2,
-    connectionAttempts:100,connectionSuccesses:99,connectedPeers:99,turnRelayConnections:8,frameMs:[20,25,30],gpuMs:[10,12],memoryMb:[400,450],
+    connectionAttempts:100,connectionSuccesses:99,turnCandidateClassifiedConnections:80,turnRelayConnections:8,frameMs:[20,25,30],gpuMs:[10,12],memoryMb:[400,450],
   });
+  assert.equal(metrics.inputToAuthoritativeAckP95Ms,100);
   assert.equal(metrics.inputToDisplayP95Ms,200);
   assert.equal(metrics.peerUplinkAverageKbps,200);
   assert.equal(metrics.hostUplinkPeakKbps,1000);
   assert.equal(metrics.reliableBufferedAmountMaxBytes,4000);
   assert.equal(metrics.connectionSuccessRate,.99);
-  assert.equal(metrics.turnRelayRate,8/99);
+  assert.equal(metrics.turnRelayRate,.1);
   assert.equal(metrics.batteryPctPerHour,null);
+});
+
+test('TURN rate stays unknown when candidate classification is unavailable',()=>{
+  const metrics=aggregateRrpPerformanceSamples({connectionAttempts:1,connectionSuccesses:1,turnCandidateClassifiedConnections:0,turnRelayConnections:0});
+  assert.equal(metrics.connectionSuccessRate,1);
+  assert.equal(metrics.turnRelayRate,null);
 });
 
 test('measured zero rollback is preserved as zero instead of treated as missing',()=>{
@@ -88,11 +95,11 @@ test('missing physical network or anchored measurements remain calibration gaps 
 });
 
 test('insufficient physical samples remain calibration gaps instead of passes',()=>{
-  const input=physicalBase();input.sampleCounts={...input.sampleCounts,inputToDisplayP95Ms:10};
+  const input=physicalBase();input.sampleCounts={...input.sampleCounts,inputToAuthoritativeAckP95Ms:10};
   const result=evaluateRrpPerformanceContract(input);
   assert.equal(result.status,PERFORMANCE_STATUS.CALIBRATION_REQUIRED);
   assert.equal(result.physicalCertificationEligible,false);
-  assert.ok(result.insufficientSamples.some(row=>row.metric==='inputToDisplayP95Ms'));
+  assert.ok(result.insufficientSamples.some(row=>row.metric==='inputToAuthoritativeAckP95Ms'));
 });
 
 test('model evidence cannot masquerade as physical certification',()=>{
