@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { KAYKIT_HUMANOID_BONES, kaykitHumanoidFromGLTF } from '../src/kaykit-rig.js';
 
-function rig({ omit = null, punctuated = false } = {}) {
+function rig({ omit = null, punctuated = false, rootName = 'root' } = {}) {
   const scene = new THREE.Group();
-  const root = new THREE.Group(); root.name = 'Rig_Medium'; scene.add(root);
+  const root = new THREE.Group(); root.name = rootName; scene.add(root);
   const names = [
     'hips','spine','chest','head',
     'upperarm.l','lowerarm.l','hand.l','upperleg.l','lowerleg.l','foot.l',
@@ -22,7 +22,7 @@ function rig({ omit = null, punctuated = false } = {}) {
   return { scene };
 }
 
-test('KayKit Rig_Medium maps public bone names to the shared humanoid contract', () => {
+test('KayKit Rig_Medium maps required bones under the upstream-style root node', () => {
   const mapped = kaykitHumanoidFromGLTF(rig());
   assert.equal(KAYKIT_HUMANOID_BONES.length, 15);
   for (const key of KAYKIT_HUMANOID_BONES) assert.ok(mapped[key]?.isBone, key);
@@ -31,10 +31,13 @@ test('KayKit Rig_Medium maps public bone names to the shared humanoid contract',
   assert.equal(mapped.rightHand.name, 'hand.r');
 });
 
-test('KayKit rig mapping tolerates glTF punctuation prefixes but fails closed on missing bones', () => {
-  const mapped = kaykitHumanoidFromGLTF(rig({ punctuated: true }));
+test('KayKit rig mapping tolerates glTF punctuation prefixes and the legacy rig-labelled root', () => {
+  const mapped = kaykitHumanoidFromGLTF(rig({ punctuated: true, rootName: 'Rig_Medium' }));
   assert.match(mapped.leftLowerArm.name, /lowerarm\.l$/);
+});
+
+test('KayKit rig mapping fails closed on missing required bones instead of root labels', () => {
   assert.throws(() => kaykitHumanoidFromGLTF(rig({ omit: 'foot.r' })), /rightFoot/);
   const scene = new THREE.Group();
-  assert.throws(() => kaykitHumanoidFromGLTF({ scene }), /Rig_Medium root is missing/);
+  assert.throws(() => kaykitHumanoidFromGLTF({ scene }), /bones missing/);
 });

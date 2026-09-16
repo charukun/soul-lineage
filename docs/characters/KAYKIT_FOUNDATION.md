@@ -34,6 +34,7 @@ KayKitが既製の高品質アセットであることと、輪廻転焦で `RUN
 - provenanceとCC0 licenseを記録する。
 - upstream revisionとGit blob identityを固定する。
 - runtimeへ置く場合は固定revisionからlocalizeし、取得内容をfail-closedで検証する。
+- `Rig_Medium` は共有rig family / 互換識別子であり、glTF scene nodeの文字列が必ず `Rig_Medium` であることを要求しない。固定revisionの実モデル階層から必須boneを解決し、`root` 等の正規upstream root名だけを理由に有効なassetを拒否しない。
 - `Rig_Medium` の必須boneを実モデルから解決し、不足時にShino rigへ黙ってfallbackしない。
 - front / three-quarter / side / backと既存の局所改善6項目を使う。
 - imported meshであってもdeformation / motion / visual approval / runtime performanceを未確認のまま `RUNTIME_READY` としない。
@@ -51,6 +52,7 @@ Shinoは「ゲーム全体の軸」から「1キャラクター + 互換参照�
 
 - KayKit foundationがshared packageから1つの正本として取得できる。
 - 5モデル・固定revision・CC0・Rig_Mediumがテストで固定される。
+- 固定revisionの実GLBと同じくscene root名が `Rig_Medium` でなくても、必須boneが揃うKayKit rigをruntime adapterが解決できる。
 - Rinne runtime presentationがKayKitを既定familyとして選ぶ一方、既存Character identity/save schemaは変更されない。
 - Character Workshop / Art QAの既定表示からShino専用ブランドを外し、KayKit foundationを先頭にする。
 - KayKit asset localizationは固定revision + blob identityを検証し、ネットワークや内容不一致でfail-closedする。
