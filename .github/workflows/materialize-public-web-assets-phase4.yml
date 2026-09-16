@@ -48,7 +48,7 @@ jobs:
           fetch_git '3d/mini-forest/bridge.glb' "$ROOT/kenney-mini-forest/models/bridge.glb" 'd38560579e662a5457e6acccfe5be19c976969da'
           fetch_git '3d/mini-forest/fence.glb' "$ROOT/kenney-mini-forest/models/fence.glb" 'd2cf3a7d23b30819fe151a38e1f07c9515fe47b9'
           fetch_git '3d/mini-forest/ladder.glb' "$ROOT/kenney-mini-forest/models/ladder.glb" '716910750151c251bd305d5dba61b22db763a2a5'
-          fetch_git '3d/mini-forest/patch-grass.glb' "$ROOT/kenney-mini-forest/models/patch-grass.glb" 'e4e2866f0d6af1409cf6c52991a47a33642f0dae'
+          fetch_git '3d/mini-forest/patch-grass.glb' "$ROOT/kenney-mini-forest/models/patch-grass.glb" '2e69e0d3083619bcfe196a9fa4cf4ecc359c60d5'
           fetch_git '3d/mini-forest/plant.glb' "$ROOT/kenney-mini-forest/models/plant.glb" 'e926e555d51c1ba6f8f4993de7e43730ce022afe'
           fetch_git '3d/mini-forest/rocks-high.glb' "$ROOT/kenney-mini-forest/models/rocks-high.glb" 'e4b3bdc3b4cbd421b9773d73fc0918778804212d'
           fetch_git '3d/mini-forest/stones.glb' "$ROOT/kenney-mini-forest/models/stones.glb" '4bbbf50c0aec6e71b01c1e0c47f14a50c38a5148'
@@ -101,7 +101,7 @@ jobs:
                   ('models/bridge.glb', 'd38560579e662a5457e6acccfe5be19c976969da'),
                   ('models/fence.glb', 'd2cf3a7d23b30819fe151a38e1f07c9515fe47b9'),
                   ('models/ladder.glb', '716910750151c251bd305d5dba61b22db763a2a5'),
-                  ('models/patch-grass.glb', 'e4e2866f0d6af1409cf6c52991a47a33642f0dae'),
+                  ('models/patch-grass.glb', '2e69e0d3083619bcfe196a9fa4cf4ecc359c60d5'),
                   ('models/plant.glb', 'e926e555d51c1ba6f8f4993de7e43730ce022afe'),
                   ('models/rocks-high.glb', 'e4b3bdc3b4cbd421b9773d73fc0918778804212d'),
                   ('models/stones.glb', '4bbbf50c0aec6e71b01c1e0c47f14a50c38a5148'),
