@@ -1,0 +1,24 @@
+{
+  "sourceId": "polyhaven-wood-planks",
+  "provider": "Poly Haven",
+  "license": "CC0-1.0",
+  "canonicalUrl": "https://polyhaven.com/a/wood_planks",
+  "apiRepository": "Poly-Haven/Public-API",
+  "files": [
+    {
+      "path": "assets/vendor/public-web/polyhaven-wood-planks/1k/diffuse.jpg",
+      "sha256": "3b0669f683e4bf10f5a55a381cfa9669a7b8dfd921901829daa3b35acc2bbdec",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_planks/wood_planks_diff_1k.jpg"
+    },
+    {
+      "path": "assets/vendor/public-web/polyhaven-wood-planks/1k/normal-gl.jpg",
+      "sha256": "d02abf113e17a8abe97e1be3e9d6d88add242e8c2291e2200d37aa8c68909f25",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_planks/wood_planks_nor_gl_1k.jpg"
+    },
+    {
+      "path": "assets/vendor/public-web/polyhaven-wood-planks/1k/roughness.jpg",
+      "sha256": "1b7f115bfa25619b0a2db554eb1ab88a6fc5ef0b74ba4890611eae04d00b9829",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_planks/wood_planks_rough_1k.jpg"
+    }
+  ]
+}
