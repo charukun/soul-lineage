@@ -6,6 +6,7 @@ const captureMeta=(session,buildInfo,{expectedPeers,windowArmed})=>({
   version:1,
   role:session?.role||null,
   worldId:session?.worldId||null,
+  peerId:session?.selfId||null,
   buildRevision:String(buildInfo?.commit||'UNBUILT'),
   environment:String(buildInfo?.environment||'local'),
   expectedPeers,
