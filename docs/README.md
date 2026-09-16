@@ -65,9 +65,20 @@ latest develop
 
 履歴資料は当時の事実を保存するため、古い SHA や状態を機械的に現在値へ書き換えない。現行規則が必要な箇所からは canonical document だけを参照する。
 
+## 削除してよいもの
+
+履歴という理由だけで無期限に残さない。次をすべて満たす資料・コードは削除候補とする。
+
+- current workflow / source / test / canonical document から参照されていない。
+- 現行機能の fallback・migration・compatibility path ではない。
+- 実装判断に必要な唯一の証跡ではなく、Git / PR / Actions history で追跡できる。
+- 削除しても test、browser assertion、review、Integration、Production gate を弱めない。
+
+判断が曖昧なものは残し、参照関係を先に確認する。generated artifact、temporary marker、過去の一時受入レポートは、上記条件を満たせば履歴を Git に任せて repository から除去する。
+
 ## 更新ルール
 
 - 新しい横断ルールを追加する前に、既存 canonical document のどこへ入れるかを決める。
 - 同じルールを AGENTS / README / DEVELOPMENT / Integration 文書へ重複記載しない。
 - 入口文書は「どこを読むか」、canonical document は「何を守るか」、履歴資料は「何が起きたか」に役割を分ける。
-- 現行経路を置き換えた場合は、旧資料を削除して証跡を失うより、明確に historical / compatibility と表示して canonical へのリンクを残す。
+- 現行経路を置き換えた場合は、旧資料を削除して証跡を失うより、明確に historical / compatibility と表示して canonical へのリンクを残す。ただし参照不要かつ Git 履歴で十分な一時資料・旧実装は削除する。
