@@ -53,7 +53,7 @@ Use these boundaries consistently so two captures are comparable.
 - `canonCommitMs`: irreversible intent creation to the committed Canon revision becoming visible to the initiator. Pre-commit animation does not end the timer.
 - `hostLossDetectionMs`: injected/observed old-Host loss to the first `MIGRATING`/darkness transition.
 - `hostReopenMs`: migration start to the successor becoming `OPEN` with the committed recovery material.
-- `peerUplinkKbps` / `hostUplinkKbps`: application payload bytes over fixed one-second windows. WebRTC stats may corroborate them when available.
+- `peerUplinkKbps` / `hostUplinkKbps`: application payload bytes in fixed one-second buckets, including idle zero-byte buckets inside the measured interval. WebRTC stats may corroborate them when available.
 - `reliableBufferedAmountBytes` / `presenceBufferedAmountBytes`: sample `RTCDataChannel.bufferedAmount`. This is the user-agent send queue only; it does not include OS/network hardware buffering.
 - `stateFreshnessMs`: render-apply time minus the timestamp/tick time of the newest authoritative state used by that render.
 - `positionErrorM`: displayed interpolated/reconciled position versus the authoritative position for the same world time. Do not compare values at different ticks.
@@ -72,14 +72,16 @@ These values already exist elsewhere in the repository and are carried forward r
 - Migration start to reopened successor Host: <= 6000 ms.
 - Current Rinne authority simulation cadence is 20 Hz and published results are approximately 10 Hz; these are workload facts, not proof that end-to-end latency is acceptable.
 
-## Calibration floors
+## Calibration floors and baseline acceptance
 
-For metrics that did not previously have an accepted product SLO, the first compatible physical-multipeer baseline establishes the observed value. Before certification, the capture must at least contain:
+Metrics that did not previously have an accepted product SLO do **not** pass merely because a first physical capture produced a number. The first compatible physical-multipeer capture remains `calibration-required` until it is explicitly accepted as the comparison baseline. This prevents an arbitrary first measurement, including a bad one, from certifying itself.
+
+Before baseline acceptance, the capture must at least contain:
 
 - 300 input-to-authoritative-ack samples and 300 input-to-rendered-display samples;
 - 20 Canon commits;
 - 20 Host-loss and 20 successor-reopen observations;
-- 120 one-second peer-uplink and Host-uplink windows;
+- 120 one-second peer-uplink and Host-uplink buckets;
 - 120 samples for each DataChannel buffer maximum source;
 - 300 freshness samples and 300 position-error samples;
 - a measured rollback interval; zero rollback is valid evidence for that interval;
@@ -88,50 +90,52 @@ For metrics that did not previously have an accepted product SLO, the first comp
 
 These are minimum evidence floors for this development contract, not a claim of statistical confidence or an industry standard. Captures below a floor are `calibration-required`, never a pass.
 
-After calibration, regression checking uses both an accepted absolute SLO where one exists and a baseline ratchet. The default regression guard permits at most roughly 12% degradation for core latency/frame metrics, 15% for bandwidth/error/resource metrics and 20% for DataChannel queue peaks. These ratios are regression guards, not product SLOs.
+After a baseline is explicitly accepted, regression checking uses both an existing absolute SLO where one exists and a baseline ratchet. The default regression guard permits at most roughly 12% degradation for core latency/frame metrics, 15% for bandwidth/error/resource metrics and 20% for DataChannel queue peaks. `connectionSuccessRate` is handled separately as higher-is-better and may not fall below 98% of its accepted baseline. These ratios are regression guards, not product SLOs.
 
 ## Runtime capture now wired
 
-The current co-op runtime has a bounded performance probe. It records without making telemetry a gameplay dependency:
+The current co-op runtime can take an **opt-in** bounded performance probe. Normal gameplay does not create the probe, run `getStats()`, UTF-8-count every outgoing message, or retain sample arrays merely because this measurement code exists.
 
-- Guest input creation and the exact authoritative input sequence applied by the Host. The Host publishes `ackInputSeq` only after the 20 Hz authoritative advance, not merely after packet receipt. This currently fills `inputToAuthoritativeAckMs`.
+When a probe is supplied, it records:
+
+- Guest input creation and the exact authoritative input sequence applied by the Host. The Host publishes `ackInputSeq` only after the 20 Hz authoritative advance, not merely after packet receipt. This fills `inputToAuthoritativeAckMs`.
 - Rebirth intent to persisted/confirmed rebirth result on the Guest.
-- Application payload bytes and reliable/presence `bufferedAmount` samples from the existing room wire, including queue pressure on replaceable drops.
+- Application payload bytes in fixed one-second buckets and reliable/presence `bufferedAmount` samples from the existing room wire, including queue pressure on replaceable drops.
 - Connection attempts and successful opens. When `getStats()` exposes a selected candidate pair, relay/direct classification is recorded; unsupported candidate classification stays unknown.
-- A bounded raw-sample snapshot through `session.performance()` for Host and Guest.
+- A bounded raw-sample snapshot through `session.performance()` while the probe is attached.
 
 The probe exposes a separate `recordInputToDisplay` hook so network acknowledgement cannot be mislabeled as rendered latency. It also exposes hooks for Host-loss/reopen, state freshness, same-time position error, rollback, frame/GPU, memory and battery measurements. These fields remain unknown until the corresponding runtime/render layer can measure the stated boundary honestly.
 
 ## CLI
 
-Generate a schema template:
+Generate an evidence template:
 
 ```sh
 node apps/rinne/scripts/rrp-performance-contract.mjs template --class physical-multipeer
 ```
 
-Aggregate a raw capture into evidence:
+Build evidence from one aggregated raw sample object, or from a `captures` array containing separate Host/Guest probe snapshots. Separate captures are merged without inventing fields that were not measured:
 
 ```sh
 node apps/rinne/scripts/rrp-performance-contract.mjs build --input /tmp/rrp-raw-capture.json
 ```
 
-Validate evidence, optionally requiring complete physical certification:
+A standalone physical validation before accepted calibration is expected to remain `calibration-required`, even when all measurements are present:
 
 ```sh
 node apps/rinne/scripts/rrp-performance-contract.mjs validate --input /tmp/rrp-evidence.json --require-physical
 ```
 
-Compare a compatible baseline/current pair using the regression ratchet:
+Once a baseline has been reviewed and accepted, using it explicitly in `compare` supplies the calibration context and applies the regression ratchets to the current capture:
 
 ```sh
-node apps/rinne/scripts/rrp-performance-contract.mjs compare --baseline baseline.json --current current.json
+node apps/rinne/scripts/rrp-performance-contract.mjs compare --baseline accepted-baseline.json --current current.json
 ```
 
 Focused checks:
 
 ```sh
-node --test apps/rinne/tests/reality-performance-contract.test.mjs apps/rinne/tests/coop-performance.test.mjs
+node --test apps/rinne/tests/reality-performance-contract.test.mjs apps/rinne/tests/coop-performance.test.mjs apps/rinne/tests/rrp-performance-cli.test.mjs
 ```
 
 The combined architecture proof also imports the contract proof. Reality Lab model results are mapped into the same metric namespace but remain explicitly `model` evidence and are expected to be non-certifying.
@@ -140,13 +144,13 @@ The combined architecture proof also imports the contract proof. Reality Lab mod
 
 The remaining evidence work is now narrower:
 
-1. wire the render layer to `recordInputToDisplay` after the authoritative state is actually presented, rather than treating network receipt as display;
-2. connect Host-loss/detection/reopen timestamps to the real browser migration path rather than the model;
-3. measure render-time state freshness and same-world-time position error once prediction/interpolation is wired into the main Rinne co-op path;
-4. join existing physical Performance Lab frame/GPU evidence by build/device/viewport provenance;
-5. run repeatable physical-multipeer captures across fixed Wi-Fi and WAN profiles, with candidate-path classification where available;
-6. gather enough samples to calibrate threshold-less metrics;
-7. only then promote calibrated values into absolute product SLO candidates;
+1. wire a dedicated browser/performance capture route that explicitly creates the probe without enabling it in ordinary gameplay;
+2. wire the render layer to `recordInputToDisplay` after the authoritative state is actually presented, rather than treating network receipt as display;
+3. connect Host-loss/detection/reopen timestamps to the real browser migration path rather than the model;
+4. measure render-time state freshness and same-world-time position error once prediction/interpolation is wired into the main Rinne co-op path;
+5. join existing physical Performance Lab frame/GPU evidence by build/device/viewport provenance;
+6. run repeatable physical-multipeer captures across fixed Wi-Fi and WAN profiles, with candidate-path classification where available;
+7. gather enough samples, review the first compatible baseline, then promote selected calibrated values into absolute product SLO candidates;
 8. expand from the initial 2–3 physical peers toward the separate 30-device certification matrix.
 
 No paid runtime or dedicated game server is required by this contract. NAT/TURN reachability, physical 30-device scale, battery and radio behavior remain unproved until their corresponding evidence exists.
