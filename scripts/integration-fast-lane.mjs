@@ -13,12 +13,14 @@ import {
 import { signalDeepRepair } from './integration-deep-repair-handoff.mjs';
 import { exactHeadFastFailure } from './integration-ci-failure.mjs';
 import { trustedStackFastEvidence } from './integration-stack-fast-evidence.mjs';
-import { dependencies, eligibility } from './integration-policy.mjs';
+import { dependencies, eligibility, reviewDecision, scope } from './integration-policy.mjs';
 import { comparison as completeComparison } from './integration-rescue-store.mjs';
 
 export const maxFastLaneMerges = 24;
 const trustedReviewReason = 'automation/deployment change requires approval of this head by a maintainer';
 const overlapReviewReason = 'overlapping changes since PR base require Integration review';
+const repairableMergeStates = new Set(['clean', 'unstable', 'has_hooks', 'behind']);
+const gitSha = value => typeof value === 'string' && /^[0-9a-f]{40}$/i.test(value);
 
 function labels(pr) {
   return (pr.labels || []).map(item => item.name);
@@ -92,6 +94,26 @@ async function dependencyState(c, pr) {
   return values.every(item => item.merged && item.base.ref === 'develop' && item.base.repo.full_name === pr.base.repo.full_name);
 }
 
+async function baseDriftState(c, pr, expected, files, dependencyMerged, unresolved, reviews) {
+  const ownDiff = await c.api('GET', `${c.root}/compare/${expected}...${pr.head.sha}`, null, { cache: true });
+  const base = ownDiff.merge_base_commit?.sha;
+  if (!gitSha(base)) throw new Error('INCOMPLETE_BASE_COMPARISON');
+  const baseComparison = base === expected ? { files: [] } : await completeComparison(c, base, expected);
+  const changedScopes = new Set(baseComparison.files.map(scope));
+  const overlap = files.some(path => changedScopes.has(scope(path)));
+  const rejected = reviewDecision(reviews, pr.head.sha).rejected;
+  const repairable = base !== expected && !overlap && dependencyMerged && !unresolved && !rejected &&
+    pr.mergeable === true && repairableMergeStates.has(pr.mergeable_state);
+  return { base, baseComparison, overlap, repairable };
+}
+
+async function requestFastRepairScan(c) {
+  await c.api('POST', `${c.root}/actions/workflows/deploy.yml/dispatches`, {
+    ref: 'develop',
+    inputs: { rescue_mode: 'scan', integration_cursor: '0' },
+  });
+}
+
 async function settleMergeability(c, pr, wait) {
   let current = pr;
   for (let attempt = 0; current.mergeable === null && attempt < 3; attempt++) {
@@ -109,11 +131,14 @@ export async function integrateFastLane(c, repository, options = {}) {
   const wait = options.wait || sleep;
   const maxMerges = Number(options.maxMerges || maxFastLaneMerges);
   const targetUrl = options.targetUrl || null;
+  const repairScan = process.env.INTEGRATION_RESCUE_MODE === 'scan';
   const report = {
     mode: 'FAST_LANE',
     startedAt: new Date().toISOString(),
     merged: [],
     deepRepair: [],
+    fastRepair: [],
+    fastRepairScanRequested: false,
     held: [],
     evaluated: 0,
     browserBlocking: false,
@@ -167,7 +192,23 @@ export async function integrateFastLane(c, repository, options = {}) {
         }
       }
 
+      const drift = await baseDriftState(c, pr, expected, files, dependencyMerged, unresolved, reviews);
+
       if (!checksPassed) {
+        if (drift.repairable) {
+          if (!repairScan && !report.fastRepairScanRequested) {
+            await requestFastRepairScan(c);
+            report.fastRepairScanRequested = true;
+          }
+          const reason = repairScan
+            ? 'Fast Repair scan owns non-overlapping develop refresh'
+            : 'Fast Repair requested for non-overlapping develop refresh';
+          report.fastRepair.push({ pr: pr.number, head: pr.head.sha, base: drift.base, develop: expected, reason });
+          report.held.push({ pr: pr.number, head: pr.head.sha, reason });
+          await queueStatus(c, pr, 'pending', reason, targetUrl);
+          continue;
+        }
+
         const failure = await exactHeadFastFailure(c, pr);
         if (failure) {
           const fresh = await c.api('GET', `${c.root}/pulls/${pr.number}`);
@@ -189,10 +230,8 @@ export async function integrateFastLane(c, repository, options = {}) {
         }
       }
 
-      const ownDiff = await c.api('GET', `${c.root}/compare/${expected}...${pr.head.sha}`, null, { cache: true });
-      const base = ownDiff.merge_base_commit?.sha;
-      if (!/^[0-9a-f]{40}$/.test(base || '')) throw new Error('INCOMPLETE_BASE_COMPARISON');
-      const baseComparison = base === expected ? { files: [] } : await completeComparison(c, base, expected);
+      const base = drift.base;
+      const baseComparison = drift.baseComparison;
       const criteria = () => ({
         pr,
         repository,
