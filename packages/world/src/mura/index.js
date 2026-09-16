@@ -9,8 +9,8 @@ const NON_INTERIOR_SHAPES=new Set(['fire','yard','field','market','pond','orchar
 const DEFAULT_WALL_THICKNESS=.35;
 export const initialMuraObjects=()=>[
   {id:'b1',kind:'mayor',x:-7,z:-5,rot:0,phase:'built',level:1,material:'base',room:[]},
-  {id:'b2',kind:'campfire',x:5,z:8,rot:0,phase:'built',level:1,material:'base',room:[]},
-  {id:'b3',kind:'guardhome',x:12,z:-7,rot:0,phase:'built',level:1,material:'base',room:[]},
+  {id:'b2',kind:'campfire',x:5,z:8,rot:0,phase:'built',level:1,room:[]},
+  {id:'b3',kind:'guardhome',x:12,z:-7,rot:0,phase:'built',level:1,room:[]},
 ];
 export function defaultMuraLayout(){return projectMuraLayout({villageId:'local-hoshitsugi',name:'MURAAAAAAA',revision:0,objects:initialMuraObjects()});}
 /** World geometry only: village economy, Rinne lives and demon admission stay owned by their games. */
