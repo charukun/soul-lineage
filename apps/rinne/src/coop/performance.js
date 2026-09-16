@@ -6,10 +6,13 @@ export function createCoopPerformanceProbe({role='peer',now=()=>performance.now(
   if(!Number.isInteger(maxSamples)||maxSamples<32)throw Error('Invalid co-op performance sample bound');
   const startedAt=now(),inputStarted=new Map(),canonStarted=new Map(),opened=new WeakSet();
   const raw={inputToAuthoritativeAckMs:[],inputToDisplayMs:[],canonCommitMs:[],hostLossDetectionMs:[],hostReopenMs:[],peerUplinkKbps:[],hostUplinkKbps:[],reliableBufferedAmountBytes:[],presenceBufferedAmountBytes:[],stateFreshnessMs:[],positionErrorM:[],rollbackMs:[],frameMs:[],gpuMs:[],memoryMb:[],batteryPctPerHour:[]};
-  let txWindowStartedAt=startedAt,txWindowBytes=0,connectionAttempts=0,connectionSuccesses=0,turnCandidateClassifiedConnections=0,turnRelayConnections=0;
+  let txBucket=0,txBucketBytes=0,connectionAttempts=0,connectionSuccesses=0,turnCandidateClassifiedConnections=0,turnRelayConnections=0;
   const push=(key,value)=>{if(!finite(value))return false;const list=raw[key];if(!list)return false;list.push(value);if(list.length>maxSamples)list.splice(0,list.length-maxSamples);return true;};
-  function flushTx(force=false){const at=now(),elapsed=at-txWindowStartedAt;if(elapsed<1000&&!force)return false;if(elapsed>0&&txWindowBytes>0)push(role==='host'?'hostUplinkKbps':'peerUplinkKbps',txWindowBytes*8/elapsed);txWindowStartedAt=at;txWindowBytes=0;return true;}
-  function recordSend({payloadBytes=0,reliableBufferedAmount=null,presenceBufferedAmount=null}={}){flushTx(false);if(finite(Number(payloadBytes)))txWindowBytes+=Number(payloadBytes);push('reliableBufferedAmountBytes',Number(reliableBufferedAmount));push('presenceBufferedAmountBytes',Number(presenceBufferedAmount));}
+  function advanceTxBuckets(){
+    const elapsed=Math.max(0,now()-startedAt),nextBucket=Math.floor(elapsed/1000),key=role==='host'?'hostUplinkKbps':'peerUplinkKbps';
+    while(txBucket<nextBucket){push(key,txBucketBytes*8/1000);txBucketBytes=0;txBucket++;}
+  }
+  function recordSend({payloadBytes=0,reliableBufferedAmount=null,presenceBufferedAmount=null}={}){advanceTxBuckets();if(finite(Number(payloadBytes)))txBucketBytes+=Number(payloadBytes);push('reliableBufferedAmountBytes',Number(reliableBufferedAmount));push('presenceBufferedAmountBytes',Number(presenceBufferedAmount));}
   function inputSent(seq){seq=clampSeq(seq);if(seq==null)return false;inputStarted.set(seq,now());return true;}
   function inputAborted(seq){seq=clampSeq(seq);return seq==null?false:inputStarted.delete(seq);}
   function inputAcknowledged(seq){seq=clampSeq(seq);if(seq==null)return false;const at=now(),start=inputStarted.get(seq);for(const pending of [...inputStarted.keys()])if(pending<=seq)inputStarted.delete(pending);if(start==null)return false;push('inputToAuthoritativeAckMs',Math.max(0,at-start));return true;}
@@ -33,6 +36,6 @@ export function createCoopPerformanceProbe({role='peer',now=()=>performance.now(
     return true;
   }
   const recordStateFreshness=value=>push('stateFreshnessMs',Number(value)),recordPositionError=value=>push('positionErrorM',Number(value)),recordRollback=value=>push('rollbackMs',Number(value)),recordFrame=value=>push('frameMs',Number(value)),recordGpu=value=>push('gpuMs',Number(value)),recordMemory=value=>push('memoryMb',Number(value)),recordBatteryRate=value=>push('batteryPctPerHour',Number(value)),recordHostLossDetection=value=>push('hostLossDetectionMs',Number(value)),recordHostReopen=value=>push('hostReopenMs',Number(value));
-  function snapshot({flush=false}={}){if(flush)flushTx(true);else flushTx(false);return structuredClone({...raw,durationMinutes:Math.max(0,(now()-startedAt)/60000),connectionAttempts,connectionSuccesses,connectedPeers:connectionSuccesses,turnCandidateClassifiedConnections,turnRelayConnections,pendingInputs:inputStarted.size,pendingCanon:canonStarted.size});}
+  function snapshot(){advanceTxBuckets();return structuredClone({...raw,durationMinutes:Math.max(0,(now()-startedAt)/60000),connectionAttempts,connectionSuccesses,connectedPeers:connectionSuccesses,turnCandidateClassifiedConnections,turnRelayConnections,pendingInputs:inputStarted.size,pendingCanon:canonStarted.size});}
   return{recordSend,inputSent,inputAborted,inputAcknowledged,recordInputToDisplay,canonIntent,canonCommitted,canonAborted,connectionAttempt,connectionOpen,recordStateFreshness,recordPositionError,recordRollback,recordFrame,recordGpu,recordMemory,recordBatteryRate,recordHostLossDetection,recordHostReopen,snapshot};
 }
