@@ -47,19 +47,19 @@ The older Semantic Frontier dimensions (`wireBytes`, `latencyMs`, `coordination`
 
 Use these boundaries consistently so two captures are comparable.
 
-- `inputToDisplayMs`: local input creation time to the first authoritative state that acknowledges that input being applied to the visible render state. A prediction-only frame does not end the timer.
+- `inputToDisplayMs`: local input creation time to the first authoritative state that acknowledges that exact input being applied to the visible render state. If newer input supersedes an older un-applied input, the older input is not fabricated as a latency sample. A prediction-only frame does not end the timer.
 - `canonCommitMs`: irreversible intent creation to the committed Canon revision becoming visible to the initiator. Pre-commit animation does not end the timer.
 - `hostLossDetectionMs`: injected/observed old-Host loss to the first `MIGRATING`/darkness transition.
 - `hostReopenMs`: migration start to the successor becoming `OPEN` with the committed recovery material.
-- `peerUplinkKbps` / `hostUplinkKbps`: payload bytes over fixed one-second windows. Record application payload counters; WebRTC stats may corroborate them when available.
+- `peerUplinkKbps` / `hostUplinkKbps`: application payload bytes over fixed one-second windows. WebRTC stats may corroborate them when available.
 - `reliableBufferedAmountBytes` / `presenceBufferedAmountBytes`: sample `RTCDataChannel.bufferedAmount`. This is the user-agent send queue only; it does not include OS/network hardware buffering.
 - `stateFreshnessMs`: render-apply time minus the timestamp/tick time of the newest authoritative state used by that render.
 - `positionErrorM`: displayed interpolated/reconciled position versus the authoritative position for the same world time. Do not compare values at different ticks.
-- `rollbackMs`: amount of already presented reversible world time invalidated by one correction. If a sufficiently long measurement interval has zero rollbacks, rate/p95/max are measured zero, not unknown.
+- `rollbackMs`: amount of already presented reversible world time invalidated by one correction. If a measured interval has zero rollbacks, rate/p95/max are measured zero, not unknown.
 - `connectionSuccessRate`: successful DataChannel opens divided by connection attempts using the same timeout and network profile.
-- `turnRelayRate`: selected relay candidate-pair connections divided by connected peers. Leave `null` when selected candidate type cannot be established.
+- `turnRelayRate`: connections whose selected candidate pair can be classified as relay divided only by connections whose selected candidate type could actually be established. It remains `null` when candidate classification is unavailable instead of assuming zero TURN usage.
 
-`RTCPeerConnection.getStats()` is suitable for connection statistics where the browser exposes the needed dictionaries. Data-channel-specific stats are not uniformly available, so application send counters remain the portable payload source. `RTCDataChannel.bufferedAmount` is sampled directly for queue pressure.
+`RTCPeerConnection.getStats()` is used only when the browser exposes the needed selected-candidate dictionaries. Data-channel-specific stats are not uniformly available, so application send counters remain the portable payload source. `RTCDataChannel.bufferedAmount` is sampled directly for queue pressure.
 
 ## Existing anchored SLOs
 
@@ -80,13 +80,25 @@ For metrics that did not previously have an accepted product SLO, the first comp
 - 120 one-second peer-uplink and Host-uplink windows;
 - 120 samples for each DataChannel buffer maximum source;
 - 300 freshness samples and 300 position-error samples;
-- a measured rollback interval; if rollbacks occur, the p95 uses the captured rollback events;
+- a measured rollback interval; zero rollback is valid evidence for that interval;
 - 20 connection attempts;
 - 300 frame samples.
 
 These are minimum evidence floors for this development contract, not a claim of statistical confidence or an industry standard. Captures below a floor are `calibration-required`, never a pass.
 
 After calibration, regression checking uses both an accepted absolute SLO where one exists and a baseline ratchet. The default regression guard permits at most roughly 12% degradation for core latency/frame metrics, 15% for bandwidth/error/resource metrics and 20% for DataChannel queue peaks. These ratios are regression guards, not product SLOs.
+
+## Runtime capture now wired
+
+The current co-op runtime has a bounded performance probe. It records without making telemetry a gameplay dependency:
+
+- Guest input creation and the exact authoritative input sequence applied by the Host. The Host publishes `ackInputSeq` only after the 20 Hz authoritative advance, not merely after packet receipt.
+- Rebirth intent to persisted/confirmed rebirth result on the Guest.
+- Application payload bytes and reliable/presence `bufferedAmount` samples from the existing room wire, including queue pressure on replaceable drops.
+- Connection attempts and successful opens. When `getStats()` exposes a selected candidate pair, relay/direct classification is recorded; unsupported candidate classification stays unknown.
+- A bounded raw-sample snapshot through `session.performance()` for Host and Guest.
+
+The probe also exposes explicit sample hooks for Host-loss/reopen, state freshness, same-time position error, rollback, frame/GPU, memory and battery measurements. These hooks are deliberately not auto-filled until the corresponding runtime layer can measure the stated semantics honestly.
 
 ## CLI
 
@@ -114,25 +126,24 @@ Compare a compatible baseline/current pair using the regression ratchet:
 node apps/rinne/scripts/rrp-performance-contract.mjs compare --baseline baseline.json --current current.json
 ```
 
-Focused contract tests:
+Focused checks:
 
 ```sh
-node --test apps/rinne/tests/reality-performance-contract.test.mjs
+node --test apps/rinne/tests/reality-performance-contract.test.mjs apps/rinne/tests/coop-performance.test.mjs
 ```
 
 The combined architecture proof also imports the contract proof. Reality Lab model results are mapped into the same metric namespace but remain explicitly `model` evidence and are expected to be non-certifying.
 
 ## Next physical loop
 
-The next evidence layer should instrument the current Rinne co-op path rather than fabricate physical values in Reality Lab:
+The remaining evidence work is now narrower:
 
-1. stamp input sequence creation and authoritative acknowledgement/application;
-2. stamp irreversible intent and committed Canon visibility;
-3. sample application payload bytes and both DataChannel `bufferedAmount` values;
-4. sample selected ICE candidate information and connection success where supported;
-5. capture Host failure/detection/reopen timestamps;
-6. join existing physical Performance Lab frame/GPU evidence by build/device/viewport provenance;
-7. produce `physical-multipeer` evidence and calibrate the currently threshold-less metrics;
-8. only then turn calibrated values into absolute product SLO candidates.
+1. connect Host-loss/detection/reopen timestamps to the real browser migration path rather than the model;
+2. measure render-time state freshness and same-world-time position error once prediction/interpolation is wired into the main Rinne co-op path;
+3. join existing physical Performance Lab frame/GPU evidence by build/device/viewport provenance;
+4. run repeatable physical-multipeer captures across fixed Wi-Fi and WAN profiles, with candidate-path classification where available;
+5. gather enough samples to calibrate threshold-less metrics;
+6. only then promote calibrated values into absolute product SLO candidates;
+7. expand from the initial 2–3 physical peers toward the separate 30-device certification matrix.
 
 No paid runtime or dedicated game server is required by this contract. NAT/TURN reachability, physical 30-device scale, battery and radio behavior remain unproved until their corresponding evidence exists.
