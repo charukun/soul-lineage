@@ -14,7 +14,8 @@ test('30-second slash block builds toward the final cut without changing skill d
   assert.equal(thirtySecondSlashBeat(4.45,.66).index,2);
   assert.equal(thirtySecondSlashBeat(5.109,.66).index,2);
   assert.equal(thirtySecondSlashBeat(5.11,.66),null);
-  assert.equal(6-THIRTY_SECOND_SLASH_BEATS.at(-1)-.66,.89,'slash block should retain a deliberate settle before sheathing');
+  const settle=6-THIRTY_SECOND_SLASH_BEATS.at(-1)-.66;
+  assert.ok(Math.abs(settle-.89)<1e-9,'slash block should retain a deliberate settle before sheathing');
   assert.ok(THIRTY_SECOND_SLASH_BEATS[1]-THIRTY_SECOND_SLASH_BEATS[0]>THIRTY_SECOND_SLASH_BEATS[2]-THIRTY_SECOND_SLASH_BEATS[1],'three cuts should compress toward the finish');
   assert.throws(()=>thirtySecondSlashBeat(NaN,.66));
   assert.throws(()=>thirtySecondSlashBeat(0,0));
