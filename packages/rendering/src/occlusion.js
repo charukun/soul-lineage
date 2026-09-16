@@ -121,6 +121,111 @@ function topLevelOccluder(object, root) {
   return current?.parent === root ? current : null;
 }
 
+function createFadeEntry(object) {
+  const meshes = [];
+  object?.traverse?.(mesh => {
+    if (!mesh?.isMesh || !mesh.material) return;
+    const source = materialRows(mesh.material);
+    if (!source.length || source.some(material => !material?.clone)) return;
+    const clones = source.map(cloneFadeMaterial);
+    if (clones.some(material => !material)) return;
+    meshes.push({
+      mesh,
+      original: mesh.material,
+      faded: Array.isArray(mesh.material) ? clones : clones[0],
+      materials: clones.map((material, index) => ({
+        material,
+        baseOpacity: Number.isFinite(source[index]?.opacity) ? source[index].opacity : 1,
+      })),
+    });
+  });
+  return { object, meshes, factor: 1, target: 1, active: false };
+}
+
+function activateFadeEntry(entry) {
+  if (entry.active) return;
+  for (const row of entry.meshes) row.mesh.material = row.faded;
+  entry.active = true;
+}
+
+function applyFadeFactor(entry) {
+  for (const row of entry.meshes) {
+    for (const material of row.materials) material.material.opacity = material.baseOpacity * entry.factor;
+  }
+}
+
+function restoreFadeEntry(entry) {
+  if (!entry.active) return;
+  for (const row of entry.meshes) if (row.mesh.material === row.faded) row.mesh.material = row.original;
+  entry.active = false;
+}
+
+function writeTargetPoint(targetWorld, point) {
+  if (point?.isVector3) targetWorld.copy(point);
+  else targetWorld.set(Number(point?.x) || 0, Number(point?.y) || 0, Number(point?.z) || 0);
+}
+
+function sampleForegroundOccluders({ camera, point, occluderRoot, raycaster, direction, targetWorld, padding, matrixState }) {
+  if (!camera || !point || !occluderRoot?.children?.length) return new Set();
+  if (matrixState.root !== occluderRoot) {
+    occluderRoot.updateWorldMatrix?.(true, true);
+    matrixState.root = occluderRoot;
+  }
+  camera.getWorldPosition(cameraPosition);
+  writeTargetPoint(targetWorld, point);
+  direction.copy(targetWorld).sub(cameraPosition);
+  const distance = direction.length();
+  if (distance <= padding + 1e-4) return new Set();
+  direction.multiplyScalar(1 / distance);
+  raycaster.camera = camera;
+  raycaster.set(cameraPosition, direction);
+  raycaster.near = .01;
+  raycaster.far = Math.max(.01, distance - padding);
+  const next = new Set();
+  for (const hit of raycaster.intersectObjects(occluderRoot.children, true)) {
+    if (!hit?.object || hit.object.visible === false) continue;
+    const object = topLevelOccluder(hit.object, occluderRoot);
+    if (!object || object.visible === false || object.userData?.occlusionFadeDisabled) continue;
+    next.add(object);
+  }
+  return next;
+}
+
+function advanceFadeEntries(entries, dt, fadeSpeed, restoreSpeed) {
+  const delta = Math.min(.1, Math.max(0, Number(dt) || 0));
+  let transitioning = 0;
+  for (const entry of entries.values()) {
+    if (entry.target < 1 || entry.factor < .999) activateFadeEntry(entry);
+    const speed = entry.target < entry.factor ? fadeSpeed : restoreSpeed;
+    const blend = delta > 0 ? 1 - Math.exp(-Math.max(.01, speed) * delta) : 0;
+    entry.factor += (entry.target - entry.factor) * blend;
+    if (Math.abs(entry.target - entry.factor) < .002) entry.factor = entry.target;
+    if (entry.active) applyFadeFactor(entry);
+    if (entry.target === 1 && entry.factor === 1) restoreFadeEntry(entry);
+    else if (entry.factor !== entry.target) transitioning++;
+  }
+  return transitioning;
+}
+
+function resetFadeEntry(entry) {
+  entry.target = 1;
+  entry.factor = 1;
+  applyFadeFactor(entry);
+  restoreFadeEntry(entry);
+}
+
+function disposeFadeEntry(entry) {
+  resetFadeEntry(entry);
+  const disposed = new Set();
+  for (const row of entry.meshes) {
+    for (const { material } of row.materials) {
+      if (disposed.has(material)) continue;
+      disposed.add(material);
+      material.dispose?.();
+    }
+  }
+}
+
 /**
  * Player-visibility fader for fixed/limited cameras.
  *
@@ -137,144 +242,48 @@ export function createForegroundOcclusionFader({
   sampleInterval = .05,
   targetPadding = .18,
 } = {}) {
-  const raycaster = new Raycaster();
-  const direction = new Vector3(), targetWorld = new Vector3();
-  const entries = new Map();
-  let activeRoots = new Set(), sampleClock = 0, sampled = false, matrixRoot = null;
-
+  const raycaster = new Raycaster(), direction = new Vector3(), targetWorld = new Vector3();
+  const entries = new Map(), matrixState = { root: null };
   const fadedFactor = Math.min(.8, Math.max(.08, Number(fadedOpacity) || .28));
-  const sampleEvery = Math.max(0, Number(sampleInterval) || 0);
-  const padding = Math.max(0, Number(targetPadding) || 0);
+  const sampleEvery = Math.max(0, Number(sampleInterval) || 0), padding = Math.max(0, Number(targetPadding) || 0);
+  let activeRoots = new Set(), sampleClock = 0, sampled = false;
 
-  function createEntry(object) {
-    const meshes = [];
-    object?.traverse?.(mesh => {
-      if (!mesh?.isMesh || !mesh.material) return;
-      const source = materialRows(mesh.material);
-      if (!source.length || source.some(material => !material?.clone)) return;
-      const clones = source.map(cloneFadeMaterial);
-      if (clones.some(material => !material)) return;
-      meshes.push({
-        mesh,
-        original: mesh.material,
-        faded: Array.isArray(mesh.material) ? clones : clones[0],
-        materials: clones.map((material, index) => ({
-          material,
-          baseOpacity: Number.isFinite(source[index]?.opacity) ? source[index].opacity : 1,
-        })),
-      });
-    });
-    return { object, meshes, factor: 1, target: 1, active: false };
-  }
-
-  function entryFor(object) {
+  const entryFor = object => {
     let entry = entries.get(object);
-    if (!entry) { entry = createEntry(object); entries.set(object, entry); }
+    if (!entry) { entry = createFadeEntry(object); entries.set(object, entry); }
     return entry;
-  }
-
-  function activate(entry) {
-    if (entry.active) return;
-    for (const row of entry.meshes) row.mesh.material = row.faded;
-    entry.active = true;
-  }
-
-  function applyFactor(entry) {
-    for (const row of entry.meshes) {
-      for (const material of row.materials) material.material.opacity = material.baseOpacity * entry.factor;
-    }
-  }
-
-  function restore(entry) {
-    if (!entry.active) return;
-    for (const row of entry.meshes) if (row.mesh.material === row.faded) row.mesh.material = row.original;
-    entry.active = false;
-  }
-
-  function setTargetPoint(point) {
-    if (point?.isVector3) targetWorld.copy(point);
-    else targetWorld.set(Number(point?.x) || 0, Number(point?.y) || 0, Number(point?.z) || 0);
-  }
-
-  function sample(camera, point, occluderRoot) {
-    if (!camera || !point || !occluderRoot?.children?.length) return new Set();
-    if (matrixRoot !== occluderRoot) {
-      occluderRoot.updateWorldMatrix?.(true, true);
-      matrixRoot = occluderRoot;
-    }
-    camera.getWorldPosition(cameraPosition);
-    setTargetPoint(point);
-    direction.copy(targetWorld).sub(cameraPosition);
-    const distance = direction.length();
-    if (distance <= padding + 1e-4) return new Set();
-    direction.multiplyScalar(1 / distance);
-    raycaster.camera = camera;
-    raycaster.set(cameraPosition, direction);
-    raycaster.near = .01;
-    raycaster.far = Math.max(.01, distance - padding);
-    const next = new Set();
-    for (const hit of raycaster.intersectObjects(occluderRoot.children, true)) {
-      if (!hit?.object || hit.object.visible === false) continue;
-      const object = topLevelOccluder(hit.object, occluderRoot);
-      if (!object || object.visible === false || object.userData?.occlusionFadeDisabled) continue;
-      next.add(object);
-    }
-    return next;
-  }
-
-  function updateTargets(next) {
+  };
+  const updateTargets = next => {
     activeRoots = next;
     for (const entry of entries.values()) entry.target = next.has(entry.object) ? fadedFactor : 1;
     for (const object of next) entryFor(object).target = fadedFactor;
-  }
-
-  function tick(dt) {
-    const delta = Math.min(.1, Math.max(0, Number(dt) || 0));
-    let transitioning = 0;
-    for (const entry of entries.values()) {
-      if (entry.target < 1 || entry.factor < .999) activate(entry);
-      const speed = entry.target < entry.factor ? fadeSpeed : restoreSpeed;
-      const blend = delta > 0 ? 1 - Math.exp(-Math.max(.01, speed) * delta) : 0;
-      entry.factor += (entry.target - entry.factor) * blend;
-      if (Math.abs(entry.target - entry.factor) < .002) entry.factor = entry.target;
-      if (entry.active) applyFactor(entry);
-      if (entry.target === 1 && entry.factor === 1) restore(entry);
-      else if (entry.factor !== entry.target) transitioning++;
-    }
-    return transitioning;
-  }
-
-  function snapshot(transitioning = 0) {
-    return Object.freeze({ occluded: activeRoots.size, transitioning, tracked: entries.size });
-  }
+  };
+  const snapshot = (transitioning = 0) => Object.freeze({ occluded: activeRoots.size, transitioning, tracked: entries.size });
+  const clearSampling = () => { sampleClock = 0; sampled = false; };
 
   return {
     update({ camera, target: point, occluderRoot, enabled = true, dt = 0 } = {}) {
       const delta = Math.max(0, Number(dt) || 0);
       if (!enabled) {
-        sampleClock = 0; sampled = false;
+        clearSampling();
         if (activeRoots.size) updateTargets(new Set());
-        return snapshot(tick(delta));
+        return snapshot(advanceFadeEntries(entries, delta, fadeSpeed, restoreSpeed));
       }
       sampleClock += delta;
       if (!sampled || sampleEvery === 0 || sampleClock >= sampleEvery) {
-        updateTargets(sample(camera, point, occluderRoot));
+        updateTargets(sampleForegroundOccluders({ camera, point, occluderRoot, raycaster, direction, targetWorld, padding, matrixState }));
         sampled = true; sampleClock = 0;
       }
-      return snapshot(tick(delta));
+      return snapshot(advanceFadeEntries(entries, delta, fadeSpeed, restoreSpeed));
     },
     revealAll() {
-      activeRoots = new Set(); sampled = false; sampleClock = 0;
-      for (const entry of entries.values()) { entry.target = 1; entry.factor = 1; applyFactor(entry); restore(entry); }
+      activeRoots = new Set(); clearSampling();
+      for (const entry of entries.values()) resetFadeEntry(entry);
       return snapshot(0);
     },
     dispose() {
-      for (const entry of entries.values()) {
-        entry.factor = 1; applyFactor(entry); restore(entry);
-        const disposed = new Set();
-        for (const row of entry.meshes) for (const { material } of row.materials) if (!disposed.has(material)) { disposed.add(material); material.dispose?.(); }
-      }
-      entries.clear(); activeRoots = new Set(); sampled = false; sampleClock = 0;
+      for (const entry of entries.values()) disposeFadeEntry(entry);
+      entries.clear(); activeRoots = new Set(); clearSampling(); matrixState.root = null;
     },
     snapshot,
   };
