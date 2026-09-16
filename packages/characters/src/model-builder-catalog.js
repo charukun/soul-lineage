@@ -4,11 +4,20 @@ import {
   validateCharacterModelBuildRequest
 } from './model-builder.js';
 import { characterReferenceModel, PROTAGONIST_VILLAGER_MODEL_ID } from './reference-model-catalog.js';
+import { BLOCKED_RERIG_CHARACTER_IDS, RETIRED_CONDITIONAL_CHARACTER_IDS } from './license-policy.js';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 
-/** Keep the normal build-request API usable for the already-authored protagonist DCC reference. */
+function rejectConditionalReference(referenceId) {
+  if (RETIRED_CONDITIONAL_CHARACTER_IDS.includes(referenceId) || BLOCKED_RERIG_CHARACTER_IDS.includes(referenceId)) {
+    throw new Error(`Character reference model is retired pending unconditional replacement: ${referenceId}`);
+  }
+}
+
+/** Keep the normal build-request API license-clean. Conditional and carrier-rig
+ * references must be re-authored on the CC0/RINNE foundation before generation. */
 export function createCharacterModelBuildRequest(referenceId, options = {}) {
+  rejectConditionalReference(referenceId);
   if (referenceId !== PROTAGONIST_VILLAGER_MODEL_ID) return createBaseCharacterModelBuildRequest(referenceId, options);
 
   const template = clone(createBaseCharacterModelBuildRequest('child-boy.reference.v1', options));
