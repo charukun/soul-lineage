@@ -22,7 +22,7 @@ GitHub event
        true unresolved product decision -> HUMAN_REQUIRED
 ```
 
-正常PRはRepairを通らない。1件の失敗PR、browser failure、DEV delivery failureは独立PRをglobal blockしない。large-base reconciliationはcomplete fail-closed comparisonでFast Laneに残し、変更量だけを理由にChat repairへ落とさない。
+正常PRはRepairを通らない。1件の失敗PRやDEV delivery failureは独立PRをglobal blockしない。通常developのbrowser verificationはopt-inであり、自動Repair laneの入力にしない。large-base reconciliationはcomplete fail-closed comparisonでFast Laneに残し、変更量だけを理由にChat repairへ落とさない。
 
 ## 実装
 
@@ -30,7 +30,7 @@ GitHub event
 | --- | --- | --- |
 | Fast Lane | `scripts/integration-fast-lane.mjs` | current Ready PR再取得、complete base comparison、exact-head gate、expected-head merge、真のconflict・exact-head CI failureのhandoff |
 | Fast Repair | `scripts/integration-repair-fast.mjs` | Depends-On・review・hold・thread・head・developを再確認し、元PR branchを機械的に安全な場合だけmerge-forward |
-| Repair workflow | `.github/workflows/integration-rescue.yml` | Fast Repair、exact-head fast validation、Fast Lane wake、nonblocking browser smoke |
+| Repair workflow | `.github/workflows/integration-rescue.yml` | Fast Repair、exact-head fast validation、Fast Lane wake |
 | Chat Repair handoff | `scripts/integration-deep-repair-handoff.mjs` | exact-headごとに `integration-deep-repair:v1` + `chat-repair:v1` Issueを作成しownerへ通知 |
 | Deep Repair finalization | `scripts/integration-deep-repair-finalize.mjs` | 修復PRのdevelop merge後に同Issueをcompleted/closeしstatusをfinalize |
 | Legacy rescue compatibility | `scripts/integration-rescue-*` | 旧stateの互換・診断・移行のみ。Work起動権限を持たない |
@@ -69,7 +69,7 @@ GitHub Issue/mention/assignmentは既存GitHub通知経路を使う。メール�
 
 通知を受けたユーザーが**通常Chatを手動開始した場合だけ** semantic repairを行う。通常Chatはメールやrecorded SHAを正本にせず、current PR headとlatest developを再取得する。PR側とdevelop側の意図、関連契約・テストを読み、両立可能な目的は双方残す。無条件ours/theirs、blind cherry-pick、assertion削除、gate弱体化は禁止。
 
-通常Chatの修復先は既存source PR branchだけ。通常git → 接続済みGitHub API → 必要時だけ同branchの既存Codespaces＋通常gitの順で反映する。fast validation後に同PRをReady / `READY_FOR_INTEGRATION`へ戻し、CI/browser/DEV完了は待たない。
+通常Chatの修復先は既存source PR branchだけ。通常git → 接続済みGitHub API → 必要時だけ同branchの既存Codespaces＋通常gitの順で反映する。fast validation後に同PRをReady / `READY_FOR_INTEGRATION`へ戻し、CI/DEV完了は待たない。
 
 ## Work / Codex / APIは使わない
 
@@ -92,9 +92,11 @@ Integration復旧は ChatGPT Work、Codex、OpenAI API、追加の有料モデ�
 
 ## browser / DEV
 
-browser smokeはFast Laneをglobal blockしない。機械的な再実行・evidence収集はGitHub Actionsで行う。browser failureがtrue source semantic repairを要求する場合も、Workではなく同じnormal-Chat handoffへ寄せる。
+通常develop PRと通常DEV publicationではbrowser verificationを自動実行しない。明示playtest、`full_verification=true`、専門evidence workflow、main / Productionだけがbrowserを実行する。
 
-DEV PublisherはFast Laneから分離しlatest developへcoalesceする。main / Productionのblocking gateは変更しない。
+明示browser failureがtrue source semantic repairを要求する場合はnormal-Chat handoffへ寄せる。機械的なbrowser evidenceの再実行を通常Fast LaneやFast Repairへ混ぜない。過去のbrowser repair stateは履歴証拠として残してよいが、新しい通常develop Repairの入力にはしない。
+
+DEV PublisherはFast Laneから分離しlatest developへcoalesceする。normal DEV成功条件はcandidate manifest / public HTTP/source verificationであり、main / Productionのblocking gateは変更しない。
 
 ## 旧Rescue state
 
@@ -118,6 +120,7 @@ DEV PublisherはFast Laneから分離しlatest developへcoalesceする。main /
 - 真のsemantic conflict / source-level CI repairは同じFast Lane passで1件のowner通知Chat Repair Issueへhandoffされる
 - Issueメールには通常Chatへ貼るpromptが含まれ、修復時はcurrent GitHub stateを再取得する
 - 両側の互換な意図を保持し、片側丸捨てを自動化しない
+- normal develop browserはopt-in、Production browser gateは不変
 - Work / Codex / OpenAI API / paid fallbackなし
 - Chat repair待ちでも独立eligible PRはmergeできる
 - main / Production gate不変
