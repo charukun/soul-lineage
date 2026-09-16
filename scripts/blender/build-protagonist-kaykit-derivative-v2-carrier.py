@@ -136,49 +136,15 @@ def _seat_badge_backing_as_linen_patch(obj: bpy.types.Object, vertex_indices: se
     obj.data.update()
 
 
-def _remove_compact_badge_fragments(obj: bpy.types.Object) -> int:
-    """Delete only tiny loose source fragments left around the flattened chest patch.
-
-    The pinned Knight body contains a handful of one-to-five-face badge fragments.
-    Their spans are tiny in all axes, unlike real tunic seams/panels.  Detecting the
-    post-edit fragments by compactness is more robust than relying on source component
-    ordering, while the eight-face backing plate remains protected by the face-count
-    ceiling.
-    """
-    minimum, maximum = _world_bounds(obj)
-    size = maximum - minimum
-    center = (minimum + maximum) * 0.5
-    remove_vertices: set[int] = set()
-    fragment_count = 0
-    for component in _component_rows(obj):
-        point = component["point"]
-        extent = component["extent"]
-        vertical = (point.z - minimum.z) / max(size.z, 1e-6)
-        compact = (
-            component["count"] <= 5
-            and extent.x <= size.x * 0.14
-            and extent.y <= size.y * 0.13
-            and extent.z <= size.z * 0.13
-        )
-        in_badge_zone = (
-            center.x - size.x * 0.46 <= point.x <= center.x - size.x * 0.10
-            and point.y < center.y - size.y * 0.22
-            and 0.56 <= vertical <= 0.82
-        )
-        if not (compact and in_badge_zone):
-            continue
-        fragment_count += 1
-        remove_vertices.update(component["vertices"])
-
-    if fragment_count:
-        _delete_vertices(obj, remove_vertices)
-    if fragment_count > 16:
-        raise RuntimeError(f"KayKit badge fragment cleanup selected too many islands: {fragment_count}")
-    return fragment_count
-
-
 def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
-    """Remove the Knight star/ribbons while retaining its real backing as cloth."""
+    """Remove Knight badge art while retaining its real backing as plain cloth.
+
+    Source-axis heuristics identify the backing plate and obvious asymmetric badge
+    islands. A second axis-independent pass then uses that real eight-face backing as
+    a spatial anchor and removes only one-to-five-face compact fragments immediately
+    surrounding it. This matches the pinned Knight mesh without touching longer tunic
+    seams or mirrored body panels.
+    """
     if "body" not in obj.name.lower() or not obj.data.vertices:
         return 0
 
@@ -188,6 +154,7 @@ def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
     rows = _component_rows(obj)
     remove_vertices: set[int] = set()
     backing_vertices: set[int] = set()
+    backing_center: Vector | None = None
     removed_components = 0
 
     for component in rows:
@@ -210,6 +177,7 @@ def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
         )
         if is_backing_plate:
             backing_vertices.update(component["vertices"])
+            backing_center = point.copy()
             continue
 
         is_lower_badge_ribbon = (
@@ -234,14 +202,35 @@ def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
         removed_components += 1
         remove_vertices.update(component["vertices"])
 
+    if backing_center is None or not backing_vertices:
+        raise RuntimeError("KayKit Knight chest backing plate was not identified")
+
+    # The exported failing candidate proved that the remaining J-shaped mark is made
+    # from eight tiny one-face source fragments encircling this backing.  Anchor the
+    # cleanup to the backing itself instead of any coordinate axis.  Legitimate nearby
+    # tunic panels are longer than this compact envelope and stay untouched.
+    fragment_radius = max(size.x, size.y, size.z) * 0.14
+    for component in rows:
+        extent = component["extent"]
+        compact = (
+            component["count"] <= 5
+            and extent.x <= size.x * 0.14
+            and extent.y <= size.y * 0.14
+            and extent.z <= size.z * 0.14
+        )
+        if not compact:
+            continue
+        if (component["point"] - backing_center).length > fragment_radius:
+            continue
+        removed_components += 1
+        remove_vertices.update(component["vertices"])
+
     if not remove_vertices:
-        raise RuntimeError("KayKit Knight chest badge was not found as asymmetric left-chest islands")
+        raise RuntimeError("KayKit Knight chest badge fragments were not identified")
     _seat_badge_backing_as_linen_patch(obj, backing_vertices)
     faces_removed = _delete_vertices(obj, remove_vertices)
     if faces_removed <= 0:
         raise RuntimeError("KayKit Knight chest badge removal did not reduce body faces")
-
-    removed_components += _remove_compact_badge_fragments(obj)
     if removed_components > 80:
         raise RuntimeError(f"KayKit Knight chest badge removal selected too many islands: {removed_components}")
     return removed_components
