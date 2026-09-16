@@ -13,7 +13,9 @@ const RAW_ARRAY_KEYS=Object.freeze([
   'stateFreshnessMs','positionErrorM','rollbackMs','frameMs','gpuMs','memoryMb','batteryPctPerHour',
   'modelDeliveryMs','modelQueue','modelDarkMs','modelRollbackMs',
 ]);
-const RAW_COUNTER_KEYS=Object.freeze(['bandwidthSkippedBuckets','connectionAttempts','connectionSuccesses','turnCandidateClassifiedConnections','turnRelayConnections','missingSamples','expectedSamples']);
+const CONNECTION_COUNTER_KEYS=Object.freeze(['connectionAttempts','connectionSuccesses','turnCandidateClassifiedConnections','turnRelayConnections']);
+const RAW_COUNTER_KEYS=Object.freeze(['bandwidthSkippedBuckets',...CONNECTION_COUNTER_KEYS,'missingSamples','expectedSamples']);
+const readCounter=(capture,key)=>{const value=Number(capture[key]??0);if(!Number.isInteger(value)||value<0)throw Error(`Invalid capture counter ${key}`);return value;};
 
 export function mergeRawPerformanceCaptures(captures=[]){
   if(!Array.isArray(captures)||captures.length<1)throw Error('Performance capture list is required');
@@ -23,9 +25,18 @@ export function mergeRawPerformanceCaptures(captures=[]){
   for(const capture of captures){
     if(!capture||typeof capture!=='object'||Array.isArray(capture))throw Error('Invalid performance capture');
     for(const key of RAW_ARRAY_KEYS){if(capture[key]==null)continue;if(!Array.isArray(capture[key]))throw Error(`Invalid capture array ${key}`);merged[key].push(...capture[key]);}
-    for(const key of RAW_COUNTER_KEYS){const value=Number(capture[key]??0);if(!Number.isInteger(value)||value<0)throw Error(`Invalid capture counter ${key}`);merged[key]+=value;}
+    for(const key of RAW_COUNTER_KEYS)readCounter(capture,key);
+    for(const key of RAW_COUNTER_KEYS.filter(key=>!CONNECTION_COUNTER_KEYS.includes(key)))merged[key]+=readCounter(capture,key);
     const duration=Number(capture.durationMinutes??0);if(!Number.isFinite(duration)||duration<0)throw Error('Invalid capture duration');merged.durationMinutes+=duration;
   }
+  // A Host and its Guest both observe the same WebRTC link. When capture metadata is present,
+  // use Host endpoint counters as the canonical link sample so one physical connection is not
+  // counted twice merely because both endpoints exported evidence. If no Host capture survived,
+  // Guest counters remain the available link evidence. Legacy captures without metadata keep the
+  // previous additive behavior.
+  const roles=captures.map(capture=>capture._capture?.role||null),metadataComplete=roles.every(role=>role==='host'||role==='guest');
+  const connectionSources=metadataComplete?(captures.filter(capture=>capture._capture.role==='host').length?captures.filter(capture=>capture._capture.role==='host'):captures):captures;
+  for(const key of CONNECTION_COUNTER_KEYS)merged[key]=connectionSources.reduce((sum,capture)=>sum+readCounter(capture,key),0);
   return merged;
 }
 
