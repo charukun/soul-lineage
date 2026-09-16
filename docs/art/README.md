@@ -21,12 +21,13 @@ Read only the standards relevant to the task:
 
 | Task | Required standard |
 | --- | --- |
+| Rinne game construction, default playable character/art direction, KayKit reuse | `KAYKIT_GAME_AXIS.md` |
 | Character mesh, face, hair, body, clothing, accessories, Blender character assembly, variant art | `CHARACTER_MODELING.md` |
 | Visual polish, model comparison, render/runtime acceptance, before/after evidence | `VISUAL_REVIEW.md` |
 | Rig/animation/material/export work that also changes character appearance | both files, plus the applicable `docs/characters/*` contract |
 | Pure UI/code work with no 3D appearance or asset impact | these files are not required |
 
-For the current game-facing character foundation, read `docs/characters/KAYKIT_FOUNDATION.md`; new gameplay character/motion work uses that KayKit family by default. For Sendagaya_Shino compatibility or direct Shino asset work, read `docs/characters/MASTER_CHARACTER.md`, `MODULAR_APPEARANCE.md`, and `CHARACTER_STUDIO.md` as applicable before using this standard. Shino remains a supported character contract, not the default foundation for new game-facing work.
+KayKit-first is the current Rinne game-construction axis. Read `KAYKIT_GAME_AXIS.md` for the playable runtime direction and `docs/characters/KAYKIT_FOUNDATION.md` for the current game-facing character foundation; new gameplay character and motion work uses that KayKit family by default. Sendagaya_Shino / MasterCharacter remains a supported compatibility and comparison path, not the default foundation for new game-facing work. When explicitly changing Shino/MasterCharacter, read `docs/characters/MASTER_CHARACTER.md`, `MODULAR_APPEARANCE.md`, and `CHARACTER_STUDIO.md` as applicable before using this standard.
 
 ## Core rule
 

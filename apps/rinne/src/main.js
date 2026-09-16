@@ -1,5 +1,5 @@
+import { KAYKIT_GAME_AXIS } from './kaykit-game-axis.js';
 import './native-ui-polish.js';
-
 const info=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__:{name:'100年生',app:'rinne',environment:'local',commit:'UNBUILT'};
 document.title=`100年生 — 輪廻転焦${info.environment==='prod'?'':` | ${String(info.environment).toUpperCase()}`}`;
 const $=id=>document.getElementById(id),app=$('app'),title=$('title-screen'),game=$('game-screen'),loading=$('loading-card'),retry=$('boot-retry');
@@ -117,6 +117,7 @@ async function launch(mode,coop=null){
 
 refreshContinue();
 retry.addEventListener('click',()=>location.reload());
+$('kaykit-life').addEventListener('click',()=>{ location.href=KAYKIT_GAME_AXIS.primaryRuntime; });
 $('new-life').addEventListener('click',async()=>{if(hasSave&&!await requestLifeReplacement())return;void launch('new');});
 $('continue-life').addEventListener('click',()=>{if(!hasSave){$('boot-status').textContent='旅の記録はまだありません';return;}void launch('continue');});
 $('open-settings').addEventListener('click',()=>settingsDialog.showModal());
