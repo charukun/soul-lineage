@@ -124,6 +124,18 @@ def _remove_knight_chest_badge(obj: bpy.types.Object) -> int:
         if not is_left_chest:
             continue
 
+        # The compact eight-face island is the source badge backing plate. The
+        # Knight mesh leaves no torso surface immediately behind it, so deleting
+        # that plate creates a visible hole. Keep the real KayKit plate, recolor
+        # it with the body linen below, and remove only the star/ribbon artwork.
+        is_backing_plate = (
+            component["count"] == 8
+            and 0.64 <= vertical <= 0.73
+            and point.x < center.x - size.x * 0.18
+        )
+        if is_backing_plate:
+            continue
+
         mirrored = any(
             other is not component
             and other["point"].x > center.x + size.x * 0.04
