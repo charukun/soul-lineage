@@ -10,12 +10,16 @@ export function createRinneAudio(){
   async function unlock(){
     if(disposed)return false;
     const C=globalThis.AudioContext||globalThis.webkitAudioContext;
-    try{if(C&&!context)context=new C();if(context?.state==='suspended')await context.resume();}catch(error){console.warn('Rinne AudioContext resume failed',error);}
-    try{if(music.paused)await music.play();}catch(error){console.warn('Rinne music start failed',error);}
+    try{if(C&&!context)context=new C();}catch(error){console.warn('Rinne AudioContext creation failed',error);}
+    const resume=context?.state==='suspended'?context.resume().catch(error=>{console.warn('Rinne AudioContext resume failed',error);}):Promise.resolve();
+    const playback=music.paused?music.play().catch(error=>{console.warn('Rinne music start failed',error);}):Promise.resolve();
+    await Promise.allSettled([resume,playback]);
     return Boolean(context?.state==='running'||!music.paused);
   }
   function tone(freq,duration=.06,gain=.02,type='sine'){
-    if(disposed||!context||context.state!=='running')return;
+    if(disposed||!context)return;
+    if(context.state==='suspended'){void context.resume().then(()=>tone(freq,duration,gain,type)).catch(()=>{});return;}
+    if(context.state!=='running')return;
     const now=context.currentTime,osc=context.createOscillator(),amp=context.createGain();osc.type=type;osc.frequency.value=freq;amp.gain.setValueAtTime(.0001,now);amp.gain.exponentialRampToValueAtTime(gain,now+.006);amp.gain.exponentialRampToValueAtTime(.0001,now+duration);osc.connect(amp).connect(context.destination);osc.start(now);osc.stop(now+duration+.02);
   }
   function select(){tone(520,.045,.014,'triangle');}
