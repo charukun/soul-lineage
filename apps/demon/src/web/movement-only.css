@@ -17,12 +17,9 @@
 #hud .danger{top:calc(62px + env(safe-area-inset-top));left:19px;right:74px;height:2px}
 #hud #pause{justify-self:end}
 
-/* Auto combat remains readable, but does not look like another control panel. */
-#hud #battle{bottom:calc(84px + env(safe-area-inset-bottom))}
-#hud #battle .phases,
-#hud #skill-name{display:none}
-#hud #enemy-name{margin-top:0;font-size:9px;opacity:.85}
-#hud #enemy-health-track{width:min(170px,44vw);height:3px;margin-top:5px}
+/* Auto combat is transient state, not an extra input surface. Preserve its existing phase/action readout. */
+#hud #enemy-name{font-size:9px;opacity:.85}
+#hud #enemy-health-track{width:min(170px,44vw);height:3px}
 
 /* The former return command is presentation-only: a bare bearing mark, not a button. */
 #hud .controls{
@@ -68,6 +65,5 @@
 #hud[data-feasting="feeding"] #return{opacity:.35}
 
 @media(max-height:650px){
-  #hud #battle{bottom:calc(74px + env(safe-area-inset-bottom))}
   #hud #return-hint{bottom:calc(27px + env(safe-area-inset-bottom))}
 }
