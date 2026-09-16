@@ -4,13 +4,18 @@ const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const angleTo=(a,b)=>Math.atan2(b.x-a.x,b.z-a.z);
 const hash01=value=>{let hash=2166136261;for(const c of String(value)){hash^=c.codePointAt(0);hash=Math.imul(hash,16777619);}return(hash>>>0)/4294967295;};
-const ACTOR_RADIUS=.55;
+
+export function villageSkirmishAnchor(stations=[]){
+  const guard=stations.find(row=>row.enterInterior&&/詰所|駐屯所|見張り/.test(row.label))||stations.find(row=>row.id==='training-dummy')||{x:0,z:-22};
+  let dx=Number(guard.x)||0,dz=Number(guard.z)||-1,len=Math.hypot(dx,dz);if(len<2){dx=0;dz=-1;len=1;}
+  const ux=dx/len,uz=dz/len;return{x:guard.x+ux*7,z:guard.z+uz*7,angle:Math.atan2(ux,uz)};
+}
 
 function guard(id,x,z,index){return{id:`guard-${id}-${index}`,kind:'guard',label:'衛兵',x,z,spawnX:x,spawnZ:z,hp:70,maxHp:70,dead:false,respawn:0,cooldown:.3+index*.18,yaw:0,moving:false,flash:0};}
 function hostile(id,kind,label,x,z,index){const stats=kind==='monster'?{hp:74,power:15,speed:1.05}:{hp:48,power:11,speed:1.22};return{id:`${kind}-${id}-${index}`,kind,label,x,z,spawnX:x,spawnZ:z,hp:stats.hp,maxHp:stats.hp,power:stats.power,speed:stats.speed,dead:false,respawn:0,cooldown:.45+index*.16,yaw:Math.PI,moving:false,flash:0};}
 
 export function createVillageSkirmish(anchor={x:0,z:-30},seed=1){
-  const ax=Number(anchor.x)||0,az=Number(anchor.z)||-30,angle=Number(anchor.angle)||Math.atan2(ax,az||-1),out={x:Math.sin(angle),z:Math.cos(angle)},side={x:out.z,z:-out.x};
+  const ax=Number(anchor.x)||0,az=Number(anchor.z)||-30,angle=Number.isFinite(anchor.angle)?anchor.angle:Math.atan2(ax,az||-1),out={x:Math.sin(angle),z:Math.cos(angle)},side={x:out.z,z:-out.x};
   const at=(forward,lateral)=>({x:ax+out.x*forward+side.x*lateral,z:az+out.z*forward+side.z*lateral});
   const g0=at(-2.2,-1.4),g1=at(-2.3,1.4),rows=[at(2.3,-2.2),at(3.1,.2),at(2.1,2.2),at(4.5,1.2)];
   return{
