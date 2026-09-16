@@ -1,6 +1,6 @@
 # RRP theory verification ledger
 
-This ledger separates claims that can still be decided by deterministic reasoning from claims that need physical evidence. It is intentionally stricter than a feature checklist: every positive claim has a failure model, and retained counterexamples are part of the proof surface.
+This ledger separates claims that can still be decided by deterministic reasoning from claims that need physical evidence. Every positive claim has a failure model; retained counterexamples are part of the proof surface.
 
 ## Current proof ledger
 
@@ -8,68 +8,105 @@ This ledger separates claims that can still be decided by deterministic reasonin
 | --- | --- | --- |
 | confirmed Canon is recovery-complete | exact proposal contains Canon + application recovery + operation-dedupe state | a hash/event ID alone is insufficient |
 | ACK means durable proposal exists on that follower | explicit PREPARE → durable store → ACK state machine | packet receipt by the leader is not itself durability |
-| client-visible Canon survives declared crash budget | visibility requires a **currently-live** durable quorum | a holder that ACKed and then died no longer satisfies the visibility gate |
+| client-visible Canon survives declared crash budget | visibility requires a currently-live durable quorum | a holder that ACKed and then died no longer satisfies visibility |
 | f=1 crash timing safety | 45 store/ACK/visibility/partial-COMMIT × member-failure cases | unconfirmed prepared work may be lost or conservatively completed |
-| generalized crash recovery | 5,218 actual protocol cases across f=1..3, every leader, commit majority and size-f crash set | Byzantine/malicious behavior is outside this model |
-| generalized majority geometry | all majority pairs and size-f failure sets for f=1..4 under N=2f+1, Q=f+1 | with only 2f members, f failures leave fewer than Q live members |
-| uncertain completion is idempotent | recovery carries operation-dedupe map; retrying current or older operations cannot create a new revision | client must retry with the same stable operation ID |
-| epoch/history ancestry survives recovery | sequential A → uncertain B → recovery/new epoch → retry B → C proof plus stale-old-epoch injection | a successor may not jump to a proposal whose parent is not the latest visible Canon root |
-| early visibility is unsafe | deliberately unsafe one-copy publication loses visible Canon after one allowed leader crash | retained as a required failing counterexample |
-| finite burst loss safety | exact 0..16 consecutive dropped protocol rounds, then eventual delivery; duplicate/reorder/stale-epoch tests | permanent partition has no strong-Canon liveness guarantee |
-| two-peer peer-only availability boundary | exhaustive A/B "may open alone" policy table | arbitrary partition + no external witness cannot provide both symmetric one-peer availability and split-brain safety |
-| suspended authority rotation | one-member old/new common-majority bridge, f=1..4 intersection proof | if the old majority is already lost, rotation fails closed |
-| bulk membership change | direct 3-node two-member replacement is rejected | use sequential one-member changes or a real joint-consensus protocol |
-| crash copies imply domain durability only with placement diversity | durable-holder domain sweep for f=1..3 | f+1 peer copies in one shared failure domain are not f-domain tolerant |
-| dense 30-player fixed-Cell fan-out is not enough | existing dense Cell counterexample retained | spatial partition alone is not a universal fan-out answer |
-| dense adaptive relay lowers sender fan-out | exact balanced construction and pigeonhole lower bound for 3..64 players, redundancy 1..2 | adds a hop and relay-failure exposure; not a universal win |
-| 30-player r=1 relay frontier | 29 direct fan-out → 5 relays / max sender fan-out 5 with 29 total transmissions | no one-relay-path failure tolerance |
-| 30-player r=2 relay frontier | 7 relays / max sender fan-out 7 / 51 transmissions | one relay-path failure tolerant, but more aggregate traffic |
-| redundant relays require domain diversity | relay-domain counterexample | two peer relays on one failed transport/power domain are not one-domain tolerant |
-| relay cannot weaken Canon | relay planner rejects irreversible/total-order/crash-survival operations | Canon/authority remains on its strong path |
-| Semantic Frontier composition | presence policy, Canon Nucleus and PBFT escalation are checked as separate guarantee domains | Byzantine Canon is not relabeled as crash-safe Canon |
+| generalized crash recovery | 5,218 protocol cases across f=1..3, every leader, commit majority and size-f crash set | Byzantine behavior is outside this model |
+| generalized majority geometry | all majority pairs and size-f failure sets for f=1..4 under N=2f+1, Q=f+1 | 2f members cannot retain Q live after f failures |
+| bounded arbitrary scheduling | state-space exploration over delivery/drop/crash/publish/recovery ordering | bounded one-operation f=1 exploration is not an unbounded model checker |
+| uncertain completion is idempotent | recovery carries operation-dedupe map; current/older stable-ID retries cannot create a new revision | client must retry the same operation ID |
+| epoch/history ancestry survives recovery | sequential uncertain completion → recovery/new epoch → retry → next Canon + stale epoch injection | successor cannot jump around latest visible parent root |
+| false suspicion does not permit old Canon commits | new authority epoch requires a quorum fence; every old majority intersects the new voting majority | failure detection itself is not guaranteed or bounded-time |
+| minority authority promotion | minority component cannot acquire the Canon quorum | availability is sacrificed rather than self-promoting |
+| timeout-only promotion is unsafe | retained self-promotion counterexample has a disjoint old commit majority | timeout alone is not a fencing certificate |
+| early visibility is unsafe | deliberately unsafe one-copy publication loses visible Canon after one leader crash | retained required failing counterexample |
+| finite burst loss safety | exact 0..16 dropped protocol rounds, then eventual delivery; duplicate/reorder/stale-epoch tests | permanent partition has no strong-Canon liveness guarantee |
+| two-peer peer-only availability boundary | exhaustive A/B "may open alone" table | arbitrary partition + no external witness cannot give symmetric one-peer availability and split-brain safety |
+| suspended authority rotation | one-member old/new common-majority bridge, f=1..4 | if old majority is already lost, rotation fails closed |
+| bulk membership change | direct disjoint-majority counterexample retained | use sequential one-member replacement or real joint consensus |
+| crash copies imply domain durability only with placement diversity | holder-domain sweep f=1..3 | f+1 copies in one shared failure domain are not f-domain tolerant |
+| dense fixed-Cell fan-out is not enough | existing 30-player dense Cell counterexample retained | spatial partition alone is not universal |
+| dense adaptive relay lowers sender fan-out | balanced construction reaches pigeonhole lower bound for 3..64 players, redundancy 1..2 | extra hop/failure exposure remains |
+| 30-player r=1 relay frontier | 29 direct fan-out → 5 relays / max sender fan-out 5 / 29 transmissions | no one-relay-path tolerance |
+| 30-player r=2 relay frontier | 7 relays / max sender fan-out 7 / 51 transmissions | one relay-path failure tolerant but more aggregate traffic |
+| redundant relays need domain diversity | correlated-domain relay counterexample | two relays sharing one failed domain are not independent |
+| SFU/external fan-out remains a valid frontier point | explicit topology comparison retains lower player fan-out when infrastructure is allowed | no-infrastructure constraint correctly selects peer alternatives |
+| relay cannot weaken Canon | relay planner rejects irreversible/total-order/crash-survival operations | Canon remains on strong path |
+| invariant conflicts can be compiled | bounded counter / grow-only set / unique register / single-use token compiler emits witness-backed coordination kernel | undeclared or richer application semantics remain outside proof |
+| weak operation can remain weak beside strong conflicts | compiled mixed workload keeps safe mergeable state weak while witnessed stock conflicts cannot use weak policies | total-order escalation is conservative, not globally cheapest |
+| planner result carries its assumptions | proof-carrying bundle binds invariant certificate + environment + objective + selected policy/cost | certificate cannot prove an omitted invariant |
+| certificate/policy tampering | recomputation rejects changed conflict set, selected policy or cost | cryptographic adversary/authentication is not modeled by the display digest |
+| cross-policy transition safety | source PREPARE is invalidated by later source writes; durable fence closes old generation before target opens | transition may stall; zero-stall switching is not claimed |
+| late old-policy messages | generation fencing rejects writes from earlier policy epochs after activation | richer policy-specific metadata translation still needs adapters |
+| direct policy switch is unsafe | retained split-policy counterexample accepts divergent writes when target opens before fence | old/new simultaneous authority is forbidden |
+| Semantic Frontier composition | presence, crash Canon, Byzantine and external-order escalation stay distinct | Byzantine/external effects are not relabeled as peer crash-safe Canon |
 | universal strict dominance | explicitly false | lower bounds, CAP and FLP remain hard boundaries |
 
-## What is now saturated inside the crash-only model
+## Theoretical saturation point
 
-Within the declared non-Byzantine model, the remaining obvious protocol questions are no longer hidden behind an atomic "replicate and migrate" assumption. Storage-before-ACK, visibility, follower loss, leader loss, partial dissemination, generalized crash majorities, uncertain completion, stale epochs, membership rotation, correlated failure-domain placement and dense presence fan-out each have either a positive proof or a retained counterexample.
+Inside the declared **protocol-following crash-fault + bounded invariant model**, the major hidden assumptions have now been pulled into explicit state machines or explicit counterexamples:
 
-That does **not** mean the real multiplayer system is certified. It means further progress on the same claims now needs evidence about quantities the deterministic model deliberately does not invent, such as browser scheduling, real RTT/loss bursts, SCTP behavior, ICE/TURN paths, radio suspension, CPU/frame cost and device/network failure correlation.
+- storage-before-ACK and live-quorum-before-visibility;
+- packet ordering, loss, duplicate delivery and uncertain completion;
+- generalized 2f+1 / f+1 crash geometry;
+- quorum-fenced epoch change under false suspicion;
+- membership rotation and background/suspended members;
+- failure-domain independence rather than raw copy count;
+- dense presence fan-out and peer-relay/SFU trade-offs;
+- invariant-derived coordination rather than manually marking every operation strong;
+- proof-carrying policy selection;
+- fenced handoff between different consistency policies.
 
-## Theory that remains intentionally outside the crash-only proof
+That is a materially stronger stopping point than the earlier atomic `replicate -> migrate` model. More deterministic modeling can always enlarge the state space, but remaining claims now fall into one of three categories: a deliberately unsupported failure model, an application semantic not yet declared to the compiler, or a physical quantity the model must not invent.
 
-### Malicious / Byzantine participants
+## Deliberate theory boundaries
 
-Canon Nucleus assumes protocol-following peers that may crash. A peer that lies about durable storage, fabricates ACKs, signs conflicting histories, colludes or creates Sybil identities changes the failure model. Semantic Frontier must escalate such an operation to a Byzantine policy. The current project does not claim that three crash-only nucleus members solve anti-cheat or Byzantine consensus.
+### Byzantine / malicious participants
+
+Canon Nucleus assumes protocol-following peers that may crash. Lying durable-storage ACKs, collusion, Sybil identities or conflicting signatures change the failure model. Semantic Frontier escalates such work to a Byzantine policy; this project does not claim that three crash-only peers solve BFT or anti-cheat.
+
+### Arbitrary program semantics
+
+Invariant compilation is exact only for its declared resource/effect algebra. Arbitrary JavaScript, cross-resource business rules and hidden side effects cannot be inferred safely. Unknown semantics must be declared, proven with a richer compiler, or conservatively coordinated.
 
 ### Arbitrary bulk reconfiguration
 
-Only one-member nucleus rotation through a common-majority bridge is certified here. Arbitrary old/new membership changes need sequential replacements or a joint-consensus state machine. The one-member theorem must not be extrapolated to a disjoint replacement set.
+One-member rotation through a common-majority bridge is certified. Larger membership jumps need sequential replacement or a joint-consensus protocol.
 
 ### Guaranteed strong progress under permanent partition
 
-Strong Canon deliberately sacrifices availability without quorum. CAP/FLP boundaries remain part of the design, not defects to hide with shorter timers.
+Strong Canon deliberately sacrifices availability without quorum. CAP/FLP boundaries are preserved, not disguised with shorter timers.
 
 ### Universal presence optimum
 
-The adaptive relay proof reaches the exact max-sender-fan-out lower bound for its fixed two-level balanced relay model. It does not prove that two-level relaying is globally optimal among every multicast tree, SFU, network-coding, congestion-control or future transport architecture. Semantic Frontier remains open to registering a better policy without discarding its Pareto point.
+The relay construction is optimal only inside the declared two-level balanced-relay fan-out objective. SFU and future policies remain valid Pareto candidates. Runtime choice needs measured latency/queue/device costs before any adaptive threshold can be calibrated.
 
-## Transition to physical evidence
+## What now requires physical evidence
 
-A theory claim may move to physical validation only when its logical boundary is already explicit. Physical tests can then answer questions such as:
+The next unresolved questions are predominantly empirical:
 
-- how much RTT the extra relay hop actually adds;
-- whether a Pixel-Fold-class peer can relay the predicted fan-out without frame or queue regressions;
-- whether browser backgrounding is detected early enough to rotate authority before the platform suspends execution;
-- whether real burst loss/retransmission matches the model's eventual-delivery assumption;
-- whether candidate failure domains thought to be independent actually share Wi-Fi, power or carrier dependencies.
+- actual RTT added by one relay hop;
+- real SCTP buffering/retransmission under burst loss;
+- ICE/TURN reachability and selected path distributions;
+- browser background/suspension timing versus pre-rotation time;
+- Pixel-Fold-class frame/CPU/queue cost while relaying;
+- physical correlation of Wi-Fi, power, carrier and device failure domains;
+- battery/radio cost;
+- whether measured thresholds justify switching among direct, relay or infrastructure-assisted presence paths.
 
-A fast physical run cannot rescue a failed safety proof, and a passing deterministic proof cannot certify physical performance. Both evidence classes stay separate in `RRP_PERFORMANCE_CONTRACT.md`.
+A fast physical run cannot rescue a failed safety proof, and a deterministic proof cannot certify physical performance. Both evidence classes remain separate in `RRP_PERFORMANCE_CONTRACT.md`.
 
 ## Commands
 
 ```sh
-node --test apps/rinne/tests/reality-canon-nucleus.test.mjs apps/rinne/tests/reality-semantic-frontier.test.mjs apps/rinne/tests/reality-theory-verification.test.mjs
+node --test \
+  apps/rinne/tests/reality-canon-nucleus.test.mjs \
+  apps/rinne/tests/reality-semantic-frontier.test.mjs \
+  apps/rinne/tests/reality-theory-verification.test.mjs \
+  apps/rinne/tests/reality-canon-state-space.test.mjs \
+  apps/rinne/tests/reality-invariant-compiler.test.mjs \
+  apps/rinne/tests/reality-policy-handoff.test.mjs \
+  apps/rinne/tests/reality-epoch-election.test.mjs
 node apps/rinne/scripts/reality-architecture-proof.mjs
 ```
 
-A combined pass must still retain the old dense-Cell counterexample, impossibility boundaries and model/physical evidence separation.
+A combined pass must retain the old dense-Cell, unsafe early visibility, timeout-self-promotion, direct membership switch and direct policy-switch counterexamples as well as the model/physical evidence boundary.
