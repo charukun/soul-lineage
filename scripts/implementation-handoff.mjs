@@ -11,6 +11,9 @@ Running / Queued / Pending means hand off without waiting. One short post-push s
 may identify an already-failed check; never wait for an unfinished check to fail or pass.
 The wrapper owns push/Ready and then ends the worker responsibility as READY_FOR_INTEGRATION.
 Integration owns continued CI/browser monitoring, retries, merge and DEV deployment.
+Show an actual screenshot inline or attach a playable video in your completion response.
+Bind it to the tested SHA, environment and action. For non-visual changes capture actual validation results.
+If unavailable, report evidence as missing with its reason and asynchronous PR follow-up; never claim visual verification.
 Return your implementation result immediately; session silence is not a monitoring service.`;
 
 export function handoffSnapshot(pr, repository, expectedHead = pr?.head?.sha) {
@@ -65,6 +68,8 @@ export async function recordHandoff({ github, repo, number, expectedHead, runUrl
     monitoring_owner: 'INTEGRATION',
     worker: 'ENDED',
     ci_wait: 'NO',
+    visual_evidence: 'SEE_PR_REPORT; CI_CAPTURE_ASYNC',
+    evidence_url: snapshot.url,
     run_url: runUrl,
   } });
   await github.rest.repos.createCommitStatus({ ...repo, sha: snapshot.commit, context: HANDOFF_CONTEXT,

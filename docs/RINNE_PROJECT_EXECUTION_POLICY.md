@@ -107,6 +107,20 @@ browser repair は [`BROWSER_SELF_HEALING.md`](BROWSER_SELF_HEALING.md)、Integr
 - 局所検証時に撮影できるものはReady前に取得する。非同期CIの証拠はIntegration側が対象PR/headへ追記する。取得待ち・環境制約・失敗の場合は `未取得` と理由・担当経路を明記し、画像を見せた／動作を確認したとは報告しない。
 - Ready / `READY_FOR_INTEGRATION` は引き続き実装の終了境界。証拠待ちでCIをpollingしない。browser assertion、review、main / Productionの品質gateを弱めない。
 
+### 取得・報告の実装
+
+PRの `Affected browser smoke` は対象操作のスクリーンショットと動画を `test-results/pr-browser/` に保存し、同じrunの `completion-evidence.json`・`README.md`・`index.html` にまとめる。検証失敗時の撮影も診断用として残す。続く `Report completion evidence` はtrusted developから実行し、current PR headが一致する場合だけ撮影件数・保存先・保存期限・未取得状態をPRへ追記する。Readyの受領やmergeはこのjobを待たない。
+
+ローカルで撮影した画像・動画も、専用の空ディレクトリに保存して次で整理できる。
+
+```sh
+npm run completion:evidence -- test-results/completion <撮影した40桁SHA> success "local validation" "確認した画面・操作"
+```
+
+SHAは現在checkoutと一致させる。CIではplaytest receiptのSHAも照合し、前回の撮影ファイルは撮影開始時に除去する。画像の形式・空ファイル・サイズ上限を検査するが、画像内容が依頼を満たすかは実際に画像を開いて確認する。汎用smokeだけで依頼固有の動作まで確認済みとしない。
+
+GitHubの保存先はログインが必要なActions artifact（14日保存）のZIP。展開後の `index.html` で画像表示・動画再生ができる。artifact自体はチャットへのインライン表示でも永続保管でもない。最終応答を作るworkerは必要ファイルだけ取得して直接表示し、利用環境の永続添付へ保存する。CI結果がセッション終了後に届く場合はPRへの追記までが自動処理であり、終了済みチャットへ画像が自動追加されるとは報告しない。期限切れの証拠は取得済みと扱わず、必要時に同SHAで再取得する。
+
 ## 最終応答
 
 通常実装の最終応答には最低限、次を含める。
