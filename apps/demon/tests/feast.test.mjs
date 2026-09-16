@@ -10,7 +10,8 @@ import {NightAudio} from '../src/web/audio.js';
 
 function fixture(){
  const data=new Map(),store=new ProfileStore({getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v)},()=> 'feast-fixture');
- let game;game=new RaidSession({id:'feast',seed:12,name:'test',target:'smith',raidScale:'small'},store.read(),{
+ const profile=store.read();profile.monsterSpecies='night-creature';
+ let game;game=new RaidSession({id:'feast',seed:12,name:'test',target:'smith',raidScale:'small'},profile,{
   consume(role,options){const first=store.consume(role,options);game.refreshProfile(store.read());return first;},
   battle(role){store.recordBattle(role);game.refreshProfile(store.read());},
   learn(role,move){const first=store.learn(role,move);game.refreshProfile(store.read());return first;}

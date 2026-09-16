@@ -36,7 +36,8 @@ test('defeat closes one life and begins the next while inherited learning remain
 });
 
 test('default monster starts knee-high and weak, then grows past villagers into a hard species cap',()=>{
- const s=storeAt(),g=new RaidSession(offerVillages(s)[0],s.read()),profile=MONSTER_GROWTH_PROFILES[DEFAULT_MONSTER_SPECIES],startMax=g.player.maxhp;
+ const s=storeAt(),saved=s.read();saved.monsterSpecies=DEFAULT_MONSTER_SPECIES;
+ const g=new RaidSession(offerVillages(s)[0],saved),profile=MONSTER_GROWTH_PROFILES[DEFAULT_MONSTER_SPECIES],startMax=g.player.maxhp;
  assert.equal(profile.minScale,.28);assert.equal(profile.maxScale,3.2);assert.equal(profile.fullMeals,10);
  assert.equal(g.player.growthScale,.28);assert.equal(g.player.moveScale,.72);assert.equal(g.player.powerScale,.55);assert.ok(startMax<=60);assert.ok(startMax<g.getMaxHP()/3);
  assert.ok(feedingGrowth(1).scale>.7&&feedingGrowth(1).scale<1);

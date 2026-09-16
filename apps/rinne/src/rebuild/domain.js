@@ -209,12 +209,13 @@ export function endLifeEarly(state,cause='戦い'){
   pushEvent(state,'life-end',`${cause}で命を落とした。`);return true;
 }
 
-export function tickLife(state,{realDelta,station=null,paused=false}={}) {
+export function tickLife(state,{realDelta,lifeDelta=realDelta,station=null,paused=false}={}) {
   if(!Number.isFinite(realDelta)||realDelta<0||realDelta>.25)throw Error('時間刻みが不正です。');
+  if(!Number.isFinite(lifeDelta)||lifeDelta<0)throw Error('人生時間が不正です。');
   const events=[];
   if(paused||state.ended)return events;
   const beforeYear=Math.floor(state.ageYears);
-  state.ageSeconds=Math.min(LIFE_SECONDS,state.ageSeconds+realDelta*state.clockRate);
+  state.ageSeconds=Math.min(LIFE_SECONDS,state.ageSeconds+lifeDelta*state.clockRate);
   state.ageYears=state.ageSeconds/YEAR_SECONDS;
   const afterYear=Math.floor(state.ageYears);
   if(beforeYear<4&&afterYear>=4&&state.phase==='birth'){

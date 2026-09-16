@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
-const [html, confirmCss, surfaceCss] = await Promise.all([
+const [html, main, confirmCss, surfaceCss] = await Promise.all([
   read('../index.html'),
+  read('../src/main.js'),
   read('../src/life-confirm.css'),
   read('../src/consumer-game-surfaces.css'),
 ]);
@@ -16,10 +17,11 @@ test('consumer-game surface overrides load after legacy polish and before typogr
   assert.ok(native >= 0 && surfaces > native && typography > surfaces);
 });
 
-test('new-life replacement keeps behavior contract while using dimensional game framing', () => {
-  assert.match(html, /id="replace-life-dialog"/);
-  assert.match(html, /value="cancel"[^>]*>今の人生へ戻る/);
-  assert.match(html, /value="replace"[^>]*>0歳から始める/);
+test('new-life starts directly while dimensional game framing remains available', () => {
+  assert.match(html, /id="new-life"[^>]*>最初から<\/button>/);
+  assert.doesNotMatch(html, /id="replace-life-dialog"/);
+  assert.doesNotMatch(main, /replace-life-dialog|replaceLife/);
+  assert.match(main, /\$\('new-life'\)\.addEventListener\('click',\(\)=>\{void launch\('new'\);\}\)/);
   assert.match(confirmCss, /\.life-confirm-panel\{[\s\S]*clip-path:polygon/);
   assert.match(confirmCss, /\.life-confirm-panel::before/);
   assert.match(confirmCss, /\.life-confirm-panel::after/);

@@ -28,9 +28,26 @@ export const MURA_SHARED_LINES=Object.freeze({
   'reaction.event':'村で何か起きている',
 });
 
+/** Portable player utterances. Browser/device input stays in the app adapter. */
+export const MURA_SPEECH_INTENTS=Object.freeze([
+  Object.freeze({id:'greet',label:'あいさつ',text:'こんにちは'}),
+  Object.freeze({id:'ask-place',label:'ここは？',text:'ここはどんな場所？'}),
+  Object.freeze({id:'offer-help',label:'手伝う',text:'何か手伝える？'}),
+  Object.freeze({id:'thanks',label:'感謝',text:'ありがとう'}),
+  Object.freeze({id:'agree',label:'うん',text:'うん'}),
+  Object.freeze({id:'farewell',label:'またね',text:'またね'}),
+]);
+
 export function muraSharedLine(id){
   return typeof id==='string'&&Object.hasOwn(MURA_SHARED_LINES,id)?MURA_SHARED_LINES[id]:null;
 }
+
+export function muraSpeechIntent(intentId){
+  const row=MURA_SPEECH_INTENTS.find(item=>item.id===intentId);
+  return row?{...row}:null;
+}
+
+export function muraSpeechPhrases(){return MURA_SPEECH_INTENTS.map(item=>({...item}));}
 
 export function muraFacilityMeaning(kind){
   const definition=kind&&defs[kind];
