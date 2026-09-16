@@ -47,7 +47,7 @@ test('Visual Review publication follows exact develop delivery and requires desk
   assert.match(smoke,/pageerror/);
   assert.match(smoke,/requestfailed/);
 
-  assert.match(reviewCss,/\.review-nav\{[^}]*grid-template-columns:repeat\(4,1fr\)/);
+  assert.match(reviewCss,/\.review-nav\{[^}]*grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   assert.match(reviewCss,/@media\(max-width:700px\)\{[\s\S]*\.review-nav\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   assert.doesNotMatch(reviewCss,/@media\(max-width:700px\)\{[\s\S]*\.review-nav\{grid-template-columns:1fr 1fr/);
 
