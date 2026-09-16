@@ -31,6 +31,15 @@ test('capture metadata prevents host and guest endpoints from counting one WebRT
   assert.equal(merged.turnRelayConnections,1);
 });
 
+test('connection dedupe is scoped per world and keeps guest-only evidence for a lost Host capture',()=>{
+  const hostA={_capture:{role:'host',worldId:'room-a'},connectionAttempts:2,connectionSuccesses:2,durationMinutes:1};
+  const guestA={_capture:{role:'guest',worldId:'room-a'},connectionAttempts:1,connectionSuccesses:1,durationMinutes:1};
+  const guestB={_capture:{role:'guest',worldId:'room-b'},connectionAttempts:1,connectionSuccesses:1,durationMinutes:1};
+  const merged=mergeRawPerformanceCaptures([hostA,guestA,guestB]);
+  assert.equal(merged.connectionAttempts,3);
+  assert.equal(merged.connectionSuccesses,3);
+});
+
 test('build accepts continuously sampled peer captures and emits one physical-multipeer evidence object',()=>{
   const evidence=buildPerformanceEvidence({
     evidenceClass:EVIDENCE_CLASS.PHYSICAL_MULTIPEER,
