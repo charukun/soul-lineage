@@ -176,11 +176,12 @@ export function createFirstRunGuideView({canvas,initiallyHidden=false,reduced=fa
  function accept(next,message,duration){
   clearTimeout(acceptTimer);
   setStage(next,{message});
+  cancelDemo();
   nodes.cue.hidden=false;
   nodes.cue.textContent='できた';
   nodes.cue.dataset.state='success';
   layer.classList.add('mura-first-run-accepted');
-  acceptTimer=setTimeout(()=>{if(!destroyed&&stage===next){layer.classList.remove('mura-first-run-accepted');nodes.text.textContent=STAGES[next].text;nodes.cue.textContent=STAGES[next].cue;nodes.cue.removeAttribute('data-state');nodes.cue.hidden=next==='welcome'||next==='done';}},duration);
+  acceptTimer=setTimeout(()=>{if(!destroyed&&stage===next){layer.classList.remove('mura-first-run-accepted');nodes.text.textContent=STAGES[next].text;nodes.cue.textContent=STAGES[next].cue;nodes.cue.removeAttribute('data-state');nodes.cue.hidden=next==='welcome'||next==='done';scheduleDemo();}},duration);
  }
  function show(){
   layer.hidden=false;
