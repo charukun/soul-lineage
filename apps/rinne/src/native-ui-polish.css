@@ -27,14 +27,14 @@
 .title-settings-dialog .setting-switch:focus-visible{outline:1px solid #f1d58c;outline-offset:3px}
 
 .life-end-dialog .rinne-choice-label{display:block;margin-bottom:-5px;color:#6a512e;font-size:10px;letter-spacing:.16em;text-align:center}
-.rinne-choice-list{display:grid;gap:7px}
+.rinne-choice-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
 .life-end-dialog .rinne-choice{
-  min-height:44px;width:100%;padding:9px 12px;
+  min-height:44px;min-width:0;width:100%;padding:9px 8px;
   border:1px solid rgba(82,57,30,.46);color:#382918;
   background:linear-gradient(180deg,rgba(244,226,180,.48),rgba(202,177,123,.44));
   clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);
   box-shadow:inset 0 1px rgba(255,245,215,.52);
-  font-family:var(--font-rinne-body)!important;text-align:left;
+  font-family:var(--font-rinne-body)!important;text-align:center;overflow-wrap:anywhere;
 }
 .life-end-dialog .rinne-choice[data-selected="true"]{
   color:#f1dfb8;border-color:#684a25;
@@ -42,3 +42,24 @@
   box-shadow:inset 4px 0 #b58d4e,0 2px 6px rgba(62,43,25,.24);
 }
 .life-end-dialog .rinne-choice:focus-visible{outline:1px solid #f3dca4;outline-offset:2px}
+
+/* Selection surfaces with three or more candidates stay directly comparable instead of becoming a vertical list. */
+.title-actions{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  align-items:stretch;
+  gap:6px;
+  width:min(760px,90vw);
+}
+.title-command{
+  min-width:0;
+  width:100%;
+  padding-inline:12px;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+@media(max-width:700px){
+  .title-actions{width:min(94vw,560px);gap:5px}
+  .title-command{min-height:46px;padding:6px 7px;font-size:clamp(12px,3.7vw,16px);line-height:1.25;letter-spacing:.07em;text-indent:.07em}
+  .life-end-dialog .rinne-choice{padding-inline:5px;font-size:11px;line-height:1.3}
+}
