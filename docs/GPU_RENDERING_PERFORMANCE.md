@@ -6,6 +6,8 @@ This layer extends the Stylized Low / Mid Poly runtime with performance decision
 
 The system is presentation-only. Gameplay state, collision, save data, damage authority and multiplayer/network authority remain independent.
 
+Cross-app runtime optimization must inspect the active `rinne`, `village` and `demon` entry points together. Repeated diagnostics, temporary allocation and scene/character traversal belong outside the frame loop when their inputs have not changed. Preserve the current models, animation/contact timing and visible quality; compare the same workload before and after, and distinguish operation counts and software-rendered checks from hardware FPS. Diagnostic replay must remain explicitly available without competing with ordinary play.
+
 ## GPU-aware quality
 
 `@soul/rendering/gpu-timer` uses `EXT_disjoint_timer_query_webgl2` when the browser/driver exposes it. Queries are asynchronous and bounded. Unsupported or disjoint devices fail open and continue using frame-time-only quality control.
