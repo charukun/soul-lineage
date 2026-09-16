@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {aggregateRrpPerformanceSamples} from '../src/game/reality-lab/performance-contract.js';
 import {createCoopPerformanceProbe} from '../src/coop/performance.js';
 import {createRoomWire} from '../src/coop/wire.js';
 
-test('input and canon timers measure from intent to authoritative acknowledgement',()=>{
+test('input and canon timers measure the applied input and irreversible acknowledgement',()=>{
   let clock=0;const probe=createCoopPerformanceProbe({now:()=>clock});
   probe.inputSent(1);clock=40;probe.inputSent(2);clock=125;assert.equal(probe.inputAcknowledged(2),true);
   probe.canonIntent('life:1');clock=325;assert.equal(probe.canonCommitted('life:1'),true);
-  const raw=probe.snapshot();assert.deepEqual(raw.inputToDisplayMs,[125,85]);assert.deepEqual(raw.canonCommitMs,[200]);assert.equal(raw.pendingInputs,0);assert.equal(raw.pendingCanon,0);
+  const raw=probe.snapshot();assert.deepEqual(raw.inputToDisplayMs,[85]);assert.deepEqual(raw.canonCommitMs,[200]);assert.equal(raw.pendingInputs,0);assert.equal(raw.pendingCanon,0);
 });
 
 test('aborted input and canon intents do not create latency samples',()=>{
@@ -40,5 +41,11 @@ test('selected relay candidate is counted when getStats exposes it',async()=>{
     ['remote',{id:'remote',type:'remote-candidate',candidateType:'srflx'}],
   ]);rows.forEach=(fn)=>{for(const value of rows.values())fn(value);};
   const connection={pc:{getStats:async()=>rows}};probe.connectionAttempt();await probe.connectionOpen(connection);await probe.connectionOpen(connection);
-  const raw=probe.snapshot();assert.equal(raw.connectionAttempts,1);assert.equal(raw.connectionSuccesses,1);assert.equal(raw.connectedPeers,1);assert.equal(raw.turnRelayConnections,1);
+  const raw=probe.snapshot();assert.equal(raw.connectionAttempts,1);assert.equal(raw.connectionSuccesses,1);assert.equal(raw.turnCandidateClassifiedConnections,1);assert.equal(raw.turnRelayConnections,1);
+  assert.equal(aggregateRrpPerformanceSamples(raw).turnRelayRate,1);
+});
+
+test('TURN rate stays unknown when selected candidate type cannot be established',async()=>{
+  const probe=createCoopPerformanceProbe(),connection={pc:{getStats:async()=>{throw Error('unsupported');}}};probe.connectionAttempt();await probe.connectionOpen(connection);
+  const raw=probe.snapshot();assert.equal(raw.connectionSuccesses,1);assert.equal(raw.turnCandidateClassifiedConnections,0);assert.equal(aggregateRrpPerformanceSamples(raw).turnRelayRate,null);
 });
