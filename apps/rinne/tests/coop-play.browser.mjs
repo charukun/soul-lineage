@@ -12,7 +12,11 @@ export async function verifyCoopPlay(browser,url,output){
   const sample=page=>page.locator('#game').evaluate(node=>({player:node.dataset.coopPlayer,epoch:Number(node.dataset.coopEpoch),tick:Number(node.dataset.coopTick),seconds:Number(node.dataset.coopSeconds),position:JSON.parse(node.dataset.coopPosition),peers:JSON.parse(node.dataset.coopPeers)}));
   async function invite(){await host.locator('#open-coop-game').click();await host.locator('#coop-invite').click();await host.waitForFunction(()=>document.getElementById('coop-link')?.value.includes('rinne-coop'));return host.locator('#coop-link').inputValue();}
   async function joinRoom(link){
-    await guest.goto(link,{waitUntil:'domcontentloaded'});await guest.locator('#village-dialog[open]').waitFor();await guest.locator('#coop-join').click();
+    await guest.goto(link,{waitUntil:'domcontentloaded'});
+    // The invite opens only after the same prebooted world used by normal play is ready.
+    // Match the existing Rinne startup gate instead of treating a slow WebGL preboot as a missing dialog.
+    await guest.locator('#title-screen').waitFor({state:'visible',timeout:45000});
+    await guest.locator('#village-dialog[open]').waitFor({state:'visible',timeout:5000});await guest.locator('#coop-join').click();
     await guest.waitForFunction(()=>document.getElementById('coop-answer')?.value.length>0);const answer=await guest.locator('#coop-answer').inputValue();
     await host.locator('#coop-answer').fill(answer);await host.locator('#coop-accept').click();await host.locator('#close-village').click();
     await guest.waitForFunction(()=>document.getElementById('game')?.dataset.coopPlayer);await guest.locator('#village-dialog').waitFor({state:'hidden'});
