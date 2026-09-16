@@ -60,7 +60,7 @@ export function createRinneMotherCharacter(state){
 export function createRinneEnemyCharacter(enemy,{lifeSeed=1,stage=0,index=0}={}){
   const role=ROLE_SEQUENCE[(Math.max(0,stage)+Math.max(0,index))%ROLE_SEQUENCE.length];
   const ageYears=20+(mixSeed(lifeSeed,enemy?.id||index)%36);
-  return createRinneRuntimeCharacter({kind:'enemy',id:enemy?.id||`enemy-${index}`,seed:mixSeed(lifeSeed,`${enemy?.id||index}:${stage}:${index}`),ageSeconds:ageYears*YEAR_MS/1000,role});
+  return createRinneRuntimeCharacter({kind:'enemy',id:enemy?.id||`enemy-${index}`,seed:mixSeed(lifeSeed,enemy?.id||index),ageSeconds:ageYears*YEAR_MS/1000,role});
 }
 
 export function resolveRinneRuntimeRoster(actors,{lod={maxFull:6,nearDistance:8,farDistance:20}}={}){
