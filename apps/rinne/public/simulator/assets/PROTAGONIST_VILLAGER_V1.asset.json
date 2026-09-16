@@ -5,16 +5,16 @@
   "assetId": "character.protagonist-villager.v1",
   "format": "glb",
   "path": "./simulator/assets/PROTAGONIST_VILLAGER_V1.glb",
-  "sha256": "4f95570fcd0f663e1497b3f4e922d3aa96be014cc4cc0255e70db3f206c1b1db",
-  "bytes": 276056,
+  "sha256": "0d7586e24e8684ad631832b198e63ee0addb2b57065bda0cb795cf0338b3e95c",
+  "bytes": 254552,
   "productionStage": "PRIMARY",
   "modelingMode": "dcc-blender",
-  "sourceBlendSha256": "b3339de3aa185ae06e899b29c85c19318d080a916cac0baeb4ab6671294525e2",
-  "humanoidRig": "humanoid.shino-vrm1.v2",
+  "sourceBlendSha256": "d126dea83d18ab4ef52e1671901ebf4f2b7382895104367b64826f98cb1b6a69",
+  "humanoidRig": "kaykit.Rig_Medium.v1",
   "referencePath": "docs/characters/references/protagonist-villager-v1.svg",
   "visualApproval": "pending",
   "license": {
-    "rigProvenance": "Sendagaya_Shino audited source / VRM Public License 1.0 metadata; carrier rig only",
-    "surfaceAuthorship": "RINNE original protagonist village-start low-poly surfaces; KayKit-family art direction without copied Knight surface geometry"
+    "rigProvenance": "KayKit Character Pack Adventures 1.0 Knight.glb Rig_Medium at 672074b73ba276876a19e8816ecdc5241817ab47, git blob 717b56ca2b5ff5392679774725201ba03a3eefab, CC0 1.0. SHINO_review.vrm path is retained only as the carrier-v1 local trust anchor and is not used as visible geometry or armature.",
+    "surfaceAuthorship": "KayKit Knight CC0 source meshes copied and rearranged for the RINNE protagonist; military accessories are removed and retained source parts receive village-cloth/leather materials. Rogue.glb at the same CC0 revision may contribute hair only when Knight has no hair mesh."
   }
 }

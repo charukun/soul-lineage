@@ -14,7 +14,7 @@
       "tool": "Blender",
       "version": "4.0.2",
       "sourcePath": "assets/characters/protagonist/villager-v1/source/ProtagonistVillagerV1.blend",
-      "sourceSha256": "b3339de3aa185ae06e899b29c85c19318d080a916cac0baeb4ab6671294525e2"
+      "sourceSha256": "d126dea83d18ab4ef52e1671901ebf4f2b7382895104367b64826f98cb1b6a69"
     }
   },
   "evidence": {
@@ -44,12 +44,12 @@
         "skin",
         "hair",
         "clothing",
-        "accessories"
+        "source-knight-parts"
       ],
       "auditPath": "docs/characters/qa/protagonist-villager-v1/blender-audit.json",
-      "meshObjects": 32,
-      "triangles": 1728,
-      "materials": 8
+      "meshObjects": 6,
+      "triangles": 4148,
+      "materials": 3
     }
   },
   "status": {
