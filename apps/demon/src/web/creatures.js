@@ -47,7 +47,7 @@ export function animateCreature(g,a,time,options={}){
  const transition=stepCombatPresentation(u.combatPresentation,rawPose,frameDt);u.combatPresentation=transition;u.combatBlend=transition.eased;
  const q=transition.pose,cw=transition.eased,locomotion=(a.speed||0)>.05||a.state==='flee'||a.state==='pursue'||a.state==='idle'&&Math.sin((a.clock||0)*.45)>.35,phase=a.walk??time*3,step=locomotion?.24*(1-cw):0;
  const crouch=(q?.crouch||0)*cw,lift=(q?.lift||0)*cw;
- g.position.set(a.x,lift*.8,a.z);g.rotation.y=a.yaw||0;const mealGrowth=m?Math.max(.78,Math.min(1.28,Number(a.growthScale)||1)):1,formScale=m?(options.form==='brute'?1.12:options.form==='stalker'?1.04:1):1;g.scale.setScalar(formScale*mealGrowth);
+ g.position.set(a.x,lift*.8,a.z);g.rotation.y=a.yaw||0;const mealGrowth=m?Math.max(.28,Math.min(3.2,Number(a.growthScale)||1)):1,formScale=m?(options.form==='brute'?1.12:options.form==='stalker'?1.04:1):1;g.scale.setScalar(formScale*mealGrowth);
  const basePitch=m?.16:0,baseTwist=Math.cos(phase)*step*.25,baseRoll=Math.sin(time)*.012;
  u.body.position.set(0,crouch*.75+(locomotion?Math.sin(phase*2)*.025*(1-cw):Math.sin(time*1.7)*.018),0);u.body.rotation.set(basePitch+(q?.pitch||0)*cw,baseTwist+(q?.twist||0)*cw,baseRoll*(1-cw)+(q?.roll||0)*cw);
  u.head.rotation.set(-u.body.rotation.x*.6,Math.sin(time*.8)*.06,Math.sin(time*.5)*.025);
@@ -102,10 +102,10 @@ function applyDevourPose(g,p){
 }
 function applyCapturedPose(g,capture){
  const p=sampleDevourMotion(capture.progress),k=p.hold;
- const growth=Math.max(.78,Math.min(1.28,Number(capture.growthScale)||1)),size=(capture.form==='brute'?1.12:capture.form==='stalker'?1.04:1)*growth;
+ const growth=Math.max(.28,Math.min(3.2,Number(capture.growthScale)||1)),size=(capture.form==='brute'?1.12:capture.form==='stalker'?1.04:1)*growth;
  const yaw=capture.yaw||0,cs=Math.cos(yaw),sn=Math.sin(yaw);
- const forward=(.66-p.preyLift*.35)*size;
- const tx=capture.x+cs*1.15+sn*forward,tz=capture.z-sn*1.15+cs*forward;
+ const forward=(.66-p.preyLift*.35)*size,lateral=1.15*Math.max(.42,Math.min(1.7,size));
+ const tx=capture.x+cs*lateral+sn*forward,tz=capture.z-sn*lateral+cs*forward;
  g.position.x+=(tx-g.position.x)*k;g.position.z+=(tz-g.position.z)*k;
  g.position.y+=p.preyLift*k;
  g.rotation.y+=Math.atan2(Math.sin(yaw-g.rotation.y),Math.cos(yaw-g.rotation.y))*k;
