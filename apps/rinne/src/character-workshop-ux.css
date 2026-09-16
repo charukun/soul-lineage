@@ -1,0 +1,59 @@
+/* Restored Character Workshop hierarchy: stage first, advanced controls on demand. */
+.mode-tabs{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.mode-tabs [data-workshop-intent]{min-height:44px;border:0;border-radius:0;background:transparent;font-size:13px;font-weight:650;position:relative}
+.mode-tabs [data-workshop-intent][aria-selected="true"]{color:var(--accent);background:transparent}
+.mode-tabs [data-workshop-intent][aria-selected="true"]::after{content:"";position:absolute;left:18px;right:18px;bottom:0;height:2px;background:var(--accent)}
+.workshop-secondary-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin:-2px 0 10px;padding-bottom:8px;border-bottom:1px solid color-mix(in srgb,var(--line) 68%,transparent)}
+.workshop-secondary-tabs[hidden]{display:none!important}
+.workshop-secondary-tabs button{min-height:40px;background:transparent;font-size:12px}
+.workshop-secondary-tabs button[aria-selected="true"]{border-color:var(--accent);background:#34382f;color:#fff0ce}
+.stage-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important;padding:4px 8px 5px}
+.stage-actions>button{font-size:11px}
+.stage-actions>[hidden]{display:none!important}
+#camera-cycle{font-weight:650}
+.review-app[data-workshop-intent="move"] .editor-footer,
+.review-app[data-workshop-intent="compare"] .editor-footer{display:none}
+.review-app[data-workshop-intent="move"] .editor-dock,
+.review-app[data-workshop-intent="compare"] .editor-dock{grid-template-rows:49px minmax(0,1fr)}
+.workshop-qa-details,.workshop-compare-details{margin-top:10px;border-top:1px solid var(--line);padding-top:3px}
+.workshop-qa-details>summary,.workshop-compare-details>summary{display:list-item;min-height:44px;padding:10px 2px;cursor:pointer;color:#d7ddd8;font-weight:650}
+.workshop-qa-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:2px 0 10px}
+.workshop-qa-tools button{font-size:11px;background:transparent}
+#qa-debug-toggle[aria-pressed="true"]{border-color:#d8be83;color:#ffe9b8;background:#38372d}
+html:not([data-motion-debug="on"]) #motion-debug-overlay,
+html:not([data-motion-debug="on"]) #motion-debug-summary,
+html:not([data-motion-debug="on"]) #motion-debug-controls{display:none!important}
+#motion-qa .qa-quickbar{position:static!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important;padding:0!important;background:none!important;backdrop-filter:none!important}
+#motion-qa .qa-quickbar #qa-start{grid-column:1/-1;min-height:48px;font-size:14px}
+#motion-qa .qa-quickbar #qa-play,#motion-qa .qa-quickbar #qa-stop{min-height:42px}
+#motion-qa #qa-frame{margin:7px 0 4px;font-size:11px;color:var(--muted)}
+#motion-qa #qa-time{margin:0 0 5px}
+#motion-qa #qa-status{margin:4px 0 2px;font-size:11px;color:var(--muted)}
+.workshop-qa-details .qa-more{border-top:0;margin:.2rem 0;padding-top:0}
+.workshop-qa-details .qa-more>summary{font-size:11px;min-height:38px}
+.workshop-compare-quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:8px 0 4px}
+.workshop-compare-quick button{min-height:44px}
+.workshop-compare-details .compare-counts{margin-top:6px}
+
+@media(max-width:760px){
+  .review-app{grid-template-rows:minmax(0,64fr) minmax(0,36fr)!important}
+  .stage-shell{grid-template-rows:42px minmax(0,1fr) 44px auto!important}
+  .stage-actions{padding:2px 7px 3px}
+  .stage-actions button{min-height:40px}
+  .stage-status{min-height:24px;padding:1px 8px 4px}
+  .stage-status #status{font-size:9px}
+  .editor-dock{grid-template-rows:44px minmax(0,1fr) auto}
+  .review-app[data-workshop-intent="move"] .editor-dock,
+  .review-app[data-workshop-intent="compare"] .editor-dock{grid-template-rows:44px minmax(0,1fr)}
+  .review-controls{padding:8px 10px}
+  .workshop-secondary-tabs{margin:-2px 0 8px;padding-bottom:6px}
+  .workshop-secondary-tabs button{min-height:38px}
+  .editor-footer{padding:2px 9px calc(4px + env(safe-area-inset-bottom))}
+  .save-line{min-height:16px}
+  .footer-actions button{min-height:40px}
+}
+
+@media(max-height:620px) and (orientation:portrait){
+  .review-app{grid-template-rows:minmax(0,61fr) minmax(0,39fr)!important}
+  .stage-shell{grid-template-rows:38px minmax(0,1fr) 42px auto!important}
+}
