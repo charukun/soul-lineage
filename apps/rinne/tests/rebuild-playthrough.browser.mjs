@@ -5,6 +5,7 @@ import {createLife,serializeLife,LIFE_SECONDS} from '../src/rebuild/domain.js';
 import {createFront} from '../src/rebuild/combat.js';
 import {buildStations} from '../src/rebuild/locations.js';
 import {defaultMuraLayout} from '@soul/world/mura';
+import {captureRebuildThreeView} from './rebuild-three-view-evidence.browser.mjs';
 
 const text=async locator=>(await locator.textContent()||'').trim();
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -91,5 +92,6 @@ export async function verifyRebuildPlaythrough(browser,url,output,{recordVideo=f
 
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
   } finally {await context.close();}
+  if(recordVideo)await captureRebuildThreeView(browser,url,output);
   const {verifyCoopPlay}=await import('./coop-play.browser.mjs');await verifyCoopPlay(browser,url,join(output,'friend-play'));
 }
