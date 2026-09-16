@@ -3,18 +3,19 @@ import { COOP_PROTOCOL } from '../rebuild/coop-world.js';
 import { createRoomWire } from './wire.js';
 import { createCheckpointWriter } from './checkpoint-writer.js';
 import { applyRebirthIntent } from './history.js';
+import { createCoopPerformanceProbe } from './performance.js';
 export { joinCoopHost } from './guest-session.js';
 
-export async function createCoopHost({world,contentVersion,save,RTCPeerConnection,onChange=()=>{},now=()=>performance.now(),uuid=()=>crypto.randomUUID()}){
+export async function createCoopHost({world,contentVersion,save,RTCPeerConnection,onChange=()=>{},now=()=>performance.now(),uuid=()=>crypto.randomUUID(),performanceProbe=null}){
   let closed=false,paused=false,stalled=false,ready=false,pending=null,lastSave=now(),lastBroadcast=0,inputSeq=0,latest=null,error='';
-  const links=new Map(),selfId=world.data.ownerId;
+  const links=new Map(),selfId=world.data.ownerId,probe=performanceProbe||createCoopPerformanceProbe({role:'host',now});
   world.data.rebirthOps??={};
   const writer=createCheckpointWriter({world,save,now,
     onCommit:()=>{stalled=false;if(ready&&!closed)publish();},
     onError:e=>{error=e.message;paused=true;if(ready&&!closed)publish();}});
   await writer.request();ready=true;latest=writer.project(world.view(selfId));
   const open=()=>!closed&&!paused&&!stalled&&!error;
-  const packet=id=>({type:'view',phase:open()?'open':'closed',view:{...writer.project(world.view(id)),connected:links.size+1}});
+  const packet=id=>({type:'view',phase:open()?'open':'closed',view:{...writer.project(world.view(id)),connected:links.size+1,ackInputSeq:world.inputs.get(id)?.seq??null}});
   function sendFirst(link){if(link.firstMessage&&link.wire.send(link.connection,link.firstMessage))link.firstMessage=null;}
   function publish(){latest=writer.project(world.view(selfId));for(const [id,link]of links)try{sendFirst(link);if(!link.firstMessage)link.wire.send(link.connection,packet(id),{replaceable:true});}catch(e){error=e.message;paused=true;}world.events.clear();onChange();}
   function closeLink(id,link){link.closed=true;if(links.get(id)!==link)return;links.delete(id);world.clearInput(id);}
@@ -39,7 +40,7 @@ export async function createCoopHost({world,contentVersion,save,RTCPeerConnectio
   }
   async function invite(){
     if(!open())throw Error(error||'村は閉じています。');if(pending&&!pending.joined)pending.connection?.close();
-    const link={connection:null,joined:false,joining:false,closed:false,expiresAt:Date.now()+15*60*1000,id:null};pending=link;
+    const link={connection:null,joined:false,joining:false,closed:false,expiresAt:Date.now()+15*60*1000,id:null};pending=link;probe.connectionAttempt();
     link.wire=createRoomWire(async message=>{
       if(closed||!message||message.worldId!==world.data.worldId||message.protocol!==COOP_PROTOCOL)return;
       if(message.type==='hello'&&!link.joined)return welcome(link,message);
@@ -49,8 +50,8 @@ export async function createCoopHost({world,contentVersion,save,RTCPeerConnectio
         try{const result=await rebirth(link.id,message.lifeId,message.villageId);link.wire.send(link.connection,{type:'rebirth-result',lifeId:message.lifeId,resultId:result.resultId});}
         catch(e){if(!link.closed)link.wire.send(link.connection,{type:'rebirth-result',lifeId:message.lifeId,error:e.message});}
       }
-    });
-    link.connection=await createHostOffer({RTCPeerConnection,dualChannel:true,onMessage:m=>link.wire.receive(m),onState:state=>{if(state==='open')sendFirst(link);if(['closed','failed','error'].includes(state))closeLink(link.id,link);}});
+    },{now,onSendSample:sample=>probe.recordSend(sample)});
+    link.connection=await createHostOffer({RTCPeerConnection,dualChannel:true,onMessage:m=>link.wire.receive(m),onState:state=>{if(state==='open'){sendFirst(link);void probe.connectionOpen(link.connection);}if(['closed','failed','error'].includes(state))closeLink(link.id,link);}});
     return{protocol:COOP_PROTOCOL,contentVersion,worldId:world.data.worldId,offer:link.connection.code,expiresAt:link.expiresAt};
   }
   function step(){
@@ -75,5 +76,5 @@ export async function createCoopHost({world,contentVersion,save,RTCPeerConnectio
     setRate:async rate=>{if(!open())throw Error('村の再開を待ってください。');world.setRate(selfId,rate);await persist();},
     rebirth:(villageId,lifeId=writer.committed.world.players[selfId].life.id)=>rebirth(selfId,lifeId,villageId),pause,dispose,
     snapshot:()=>({phase:open()?'open':'closed',error,historyPending:writer.pending,view:latest&&{...latest,connected:links.size+1}}),
-    save:()=>writer.failure?Promise.reject(writer.failure):persist()};
+    performance:()=>probe.snapshot({flush:true}),save:()=>writer.failure?Promise.reject(writer.failure):persist()};
 }
