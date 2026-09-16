@@ -27,7 +27,7 @@ export async function verifyRebuildPlaythrough(browser,url,output){
   async function expectTone(tone){assert.equal(await page.locator('#game-screen').getAttribute('data-world-tone'),tone);}
   async function waitGame(){
     await page.locator('#game-screen').waitFor({state:'visible'});await page.locator('#loading-card').waitFor({state:'hidden'});
-    await page.locator('#game').waitFor({state:'visible'});await page.locator('#back-title').waitFor({state:'visible'});assert.equal(await page.locator('#waypoint-arrow').count(),1);assert.equal(await page.locator('#game').getAttribute('data-runtime'),'active');await compactHud();
+    await page.locator('#game').waitFor({state:'visible'});await page.locator('#back-title').waitFor({state:'visible'});assert.equal(await page.locator('#waypoint-arrow').count(),0,'retired waypoint arrow must stay out of the current HUD');assert.equal(await page.locator('#game').getAttribute('data-runtime'),'active');await compactHud();
   }
   async function backToTitle(){
     if(await page.locator('#game-screen').isVisible().catch(()=>false)){await page.locator('#back-title').click();await page.locator('#title-screen').waitFor({state:'visible'});assert.equal(await page.locator('#game').getAttribute('data-runtime'),'prepared');}
