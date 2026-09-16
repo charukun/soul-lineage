@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="./src/consumer-game-ui.css">
   <link rel="stylesheet" href="./src/rebuild/button-help.css">
   <link rel="stylesheet" href="./src/title-screen.css">
+  <link rel="stylesheet" href="./src/life-confirm.css">
   <link rel="stylesheet" href="./src/typography.css">
 </head>
 <body>
@@ -69,6 +70,17 @@
     <div id="coop-darkness" hidden role="status"><p>世界は闇に包まれています</p><span>村とのつながりを待っています</span><button id="coop-leave" type="button">タイトルへ</button></div>
   </section>
 </main>
+<dialog id="replace-life-dialog" class="life-confirm-dialog" aria-labelledby="replace-life-title" aria-describedby="replace-life-message">
+  <form method="dialog" class="life-confirm-panel">
+    <span class="life-confirm-mark" aria-hidden="true">輪廻</span>
+    <h2 id="replace-life-title">新しい人生を始めますか</h2>
+    <p id="replace-life-message">今の人生を終えて、0歳から生まれ直します。現在の旅の記録は、新しい人生に置き換わります。</p>
+    <div class="life-confirm-actions">
+      <button class="life-confirm-cancel" type="submit" value="cancel" autofocus>今の人生へ戻る</button>
+      <button class="life-confirm-accept" type="submit" value="replace">0歳から始める</button>
+    </div>
+  </form>
+</dialog>
 <dialog id="village-dialog" aria-labelledby="village-dialog-title">
   <form method="dialog"><button id="close-village" type="button" aria-label="村への参加を閉じる">閉じる</button></form>
   <h2 id="village-dialog-title">友達と遊ぶ</h2>
