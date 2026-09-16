@@ -18,12 +18,10 @@ export const MURA_DIALOGUE_TOPICS=Object.freeze({
   healing:topic('healing',{kinds:['clinic']}),
 });
 
-/** Existing/shared village utterances. Apps own speaker, timing and styling. */
+/** Shared village utterances. Apps own speaker, timing and styling. */
 export const MURA_SHARED_LINES=Object.freeze({
   'first-outing':'お外は初めてだね。今日は一緒に村を見てまわろう。',
   'walk-alone':'さあ、地面へ。今日からは自分の足で歩けるよ。',
-  settle:'ここに暮らそう',
-  'guard-patrol':'見回りに行こう',
   'reaction.growth':'村が少し育ったね',
   'reaction.unlock':'新しい仕事ができそう',
   'reaction.danger':'みんな、気をつけて',
