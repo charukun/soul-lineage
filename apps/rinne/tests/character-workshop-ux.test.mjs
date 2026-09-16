@@ -13,7 +13,7 @@ test('workshop exposes only three primary mobile intentions', () => {
   }
   assert.match(ux, /nav\.replaceChildren\(\)/);
   assert.match(ux, /workshop-secondary-tabs/);
-  assert.match(ux, /data\.workshopIntent/);
+  assert.match(ux, /dataset\.workshopIntent/);
 });
 
 test('motion comparison and diagnostics are opt-in instead of covering the stage', () => {
