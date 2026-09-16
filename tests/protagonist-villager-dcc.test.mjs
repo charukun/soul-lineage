@@ -49,7 +49,7 @@ test('protagonist village-start DCC is a KayKit Knight-derived humble hero candi
   assert.equal(request.handoff.fallbackPolicy, 'retain-current-master-until-candidate-accepted');
 });
 
-test('protagonist builder reuses pinned real KayKit Knight parts instead of rebuilding a primitive body', () => {
+test('protagonist assembles pinned KayKit Knight identity parts with a same-pack tunic torso', () => {
   const request = JSON.parse(readFileSync('.dcc/character-dcc-request.json', 'utf8'));
   const source = readFileSync('scripts/blender/build-protagonist-kaykit-derivative-v2.py', 'utf8');
   const carrier = readFileSync('scripts/blender/build-protagonist-kaykit-derivative-v2-carrier.py', 'utf8');
@@ -59,23 +59,19 @@ test('protagonist builder reuses pinned real KayKit Knight parts instead of rebu
   assert.match(request.license.rigProvenance, /CC0 1\.0/);
   assert.match(source, /Knight\.glb/);
   assert.match(source, /717b56ca2b5ff5392679774725201ba03a3eefab/);
+  assert.match(source, /Rogue\.glb/);
+  assert.match(source, /c8827661105eef7b2bfbef3bc676d41a47625733/);
   assert.match(source, /Knight_/);
   assert.match(source, /kaykit-source-part-reuse/);
   assert.doesNotMatch(source, /primitive_cube_add|primitive_uv_sphere_add|clear_source_meshes/);
-  assert.match(carrier, /build-protagonist-kaykit-derivative-v2\.py/);
-  assert.match(carrier, /scene\.world = bpy\.data\.worlds\.new/);
-  assert.match(carrier, /villageize_source_parts/);
-  assert.match(carrier, /PROTAGONIST_SKIN/);
-  assert.match(carrier, /mirrored = any/);
-  assert.match(carrier, /is_backing_plate/);
-  assert.match(carrier, /is_lower_badge_ribbon/);
-  assert.match(carrier, /seat_badge_backing_as_linen_patch/);
-  assert.match(carrier, /backing_center/);
-  assert.match(carrier, /fragment_radius/);
-  assert.match(carrier, /component\["count"\] <= 5/);
-  assert.match(carrier, /\* 3\.05/);
-  assert.match(carrier, /point\.y -= 0\.060/);
+  assert.match(carrier, /Rogue_Body/);
+  assert.match(carrier, /Knight protagonist expected one body part before torso swap/);
+  assert.match(carrier, /Rogue donor rig is not Rig_Medium-compatible/);
+  assert.match(carrier, /Protagonist_RogueTunic_Body/);
+  assert.match(carrier, /village-tunic-torso-only/);
+  assert.match(carrier, /module\.add_optional_kaykit_hair = add_rogue_tunic_donor/);
   assert.match(carrier, /module\.villageize_materials = villageize_source_parts/);
+  assert.doesNotMatch(carrier, /primitive_cube_add|primitive_uv_sphere_add/);
 });
 
 test('generated protagonist GLB carries the exact audited humanoid runtime contract', () => {
