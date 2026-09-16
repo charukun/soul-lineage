@@ -10,6 +10,8 @@
 
 既存 `/dev/` は輪廻転焦へ転送します。現在の `/prod/` はmainの既存実装を維持します。mainへ各appを昇格すると、対応するProductionパスを自動検出します。URLは公開・ログイン不要です。
 
+資料の入口と正本の優先順位は [Documentation map](docs/README.md) を参照してください。全docsを最初から読むのではなく、`AGENTS.md` と `npm run context:plan -- --task "<要約>"` から必要資料だけ選びます。
+
 ## 開発・独立build
 
 輪廻転焦本編への仕様導入は [血脈の系譜からのゲーム仕様抽出・適用差分](docs/rinne/BLOODLINE_GAMEPLAY_SPEC.md) を参照してください。血脈の系譜のコードは移植せず、現行優先の独自実装です。出生・生活・前線・救助・転生とMURAAAAAAAの配置接続は [本編と共有世界](docs/rinne/MAIN_GAME.md) を参照してください。
@@ -24,7 +26,7 @@ npm run dev:demon       # :5175
 npm run build:rinne     # dist/rinne/index.html
 npm run build:village   # dist/village/index.html
 npm run build:demon     # dist/demon/index.html
-npm run build          # すべて（共有package単独のbuildは不要）
+npm run build            # すべて（共有package単独のbuildは不要）
 npm run check
 npm test
 npm run test:app -- rinne
@@ -53,13 +55,24 @@ npm run affected -- origin/develop HEAD
 
 ## CI/CD
 
-- 実装WORK: コード修正前Draft PR → 実装・影響範囲の高速検証・push・Ready化で終了し、CI完了を待機・反復ポーリングしません。高速gateは1runnerでinstall・共有テストを重複させません。
-- Integration: Ready後のCI監視を担い、失敗時のみ修正をワーカーへ返します。Ready PRを安全条件で判定し、developへまとめて統合。最終SHAで影響範囲の高速検証・DEV公開・公開HTTP/source照合を実施します。重い全体回帰・実Chromium/WebGL2・P2Pは必要時の別jobへ分離します。
-- 変更appのみbuildし、不変appとProductionの公開済み成果物をhash検証して保持。同じ最終SHAが検証済みなら重複実行を省略します。
-- 既存Pages・OIDC・GITHUB_TOKENを利用。main/Productionはdevelop Integrationで変更しません。
-- 運用の正本: [WORKの分担](docs/DEVELOPMENT.md)、[自動Integration・停止・復旧](docs/INTEGRATION.md)。
+通常の責任分界だけをここに示し、詳細規則は重複記載しません。
 
-詳細: [CI/CD運用](docs/MONOREPO.md)。[GitHub Pages公式Workflow](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)、[npm workspaces](https://docs.npmjs.com/cli/v11/using-npm/workspaces/)、[Vite相対base](https://vite.dev/config/shared-options#base)。
+```text
+Implementation WORK
+  Draft PR -> implement -> fast validation -> push -> Ready
+  -> READY_FOR_INTEGRATION
+
+Integration Fast Lane
+  current exact-head fast evidence + safety gates
+  -> single expected-head writer -> develop
+  -> asynchronous latest-only DEV publication / browser repair
+```
+
+実装WORKはReadyで終了し、CI・browser・DEV公開を待機・反復pollingしません。Integrationは1件の失敗やDEV delivery/browser failureを独立したeligible PRのglobal blockerにせず、通るPRから処理します。main / Productionの品質gateは変更しません。
+
+運用の正本は [Development WORK](docs/DEVELOPMENT.md) と [develop Integration Fast Lane](docs/INTEGRATION.md)。monorepo・build・配信構造の詳細は [CI/CD運用](docs/MONOREPO.md) を参照してください。
+
+参考: [GitHub Pages公式Workflow](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)、[npm workspaces](https://docs.npmjs.com/cli/v11/using-npm/workspaces/)、[Vite相対base](https://vite.dev/config/shared-options#base)。
 
 ## ゲームの追加
 
