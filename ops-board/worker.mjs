@@ -68,9 +68,10 @@ export class OpsState extends DurableObject {
     const token = requestToken || this.env.OPS_GITHUB_TOKEN || '';
     this.inflightAuthenticated = Boolean(token);
     this.inflight = (async () => {
-      const previous = await this.getState();
-      if (shouldReuseFreshState(previous, { source, authenticated: Boolean(token) })) return previous;
+      let previous = null;
       try {
+        previous = await this.getState();
+        if (shouldReuseFreshState(previous, { source, authenticated: Boolean(token) })) return previous;
         const state = await buildState(previous, { storage: this.ctx.storage, token, reason: source });
         state.refreshReason = source;
         state.nextRetryAt = null;
