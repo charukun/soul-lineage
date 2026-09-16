@@ -1,10 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {compileInvariantCoordination,proveCompiledSemanticFrontier,proveInvariantCompilerKernel,verifyInvariantCoordinationCertificate} from '../src/game/reality-lab/invariant-compiler.js';
+import {compileInvariantCoordination,proveCompiledSemanticFrontier,proveInvariantCompilerKernel,synthesizeProofCarryingPlan,verifyInvariantCoordinationCertificate,verifyProofCarryingPlan} from '../src/game/reality-lab/invariant-compiler.js';
 
 test('bounded invariant compiler emits witness-backed minimal coordination edges',()=>{
-  const proof=proveInvariantCompilerKernel();assert.equal(proof.pass,true);assert.equal(proof.checks.witnessMinimal,true);assert.equal(proof.checks.growOnlySafe,true);assert.equal(proof.checks.conservativeEscalation,true);assert.equal(proof.checks.certificateValid,true);assert.equal(proof.checks.tamperRejected,true);
-  assert.ok(proof.compiled.conflicts.every(row=>row.witnesses.length>0));
+  const proof=proveInvariantCompilerKernel();assert.equal(proof.pass,true);assert.equal(proof.checks.witnessMinimal,true);assert.equal(proof.checks.growOnlySafe,true);assert.equal(proof.checks.conservativeEscalation,true);assert.equal(proof.checks.certificateValid,true);assert.equal(proof.checks.tamperRejected,true);assert.ok(proof.compiled.conflicts.every(row=>row.witnesses.length>0));
 });
 
 test('two independently valid reservations expose the exact stock underflow witness',()=>{
@@ -18,5 +17,13 @@ test('grow-only merge stays coordination-free while conflicting unique assignmen
 });
 
 test('compiled Semantic Frontier never routes witnessed conflicts through weak merge paths',()=>{
-  const proof=proveCompiledSemanticFrontier();assert.equal(proof.pass,true);assert.equal(proof.hasPlan,true);assert.equal(proof.unsafeNeverWeak,true);assert.equal(proof.mergeableCanStayWeak,true);assert.ok(proof.frontierPoints>0);
+  const proof=proveCompiledSemanticFrontier();assert.equal(proof.pass,true);assert.equal(proof.hasPlan,true);assert.equal(proof.unsafeNeverWeak,true);assert.equal(proof.mergeableCanStayWeak,true);assert.equal(proof.proofCarrying,true);assert.equal(proof.tamperedPlanRejected,true);assert.ok(proof.frontierPoints>0);
+});
+
+test('proof-carrying plan is reproducible and policy or cost tampering invalidates it',()=>{
+  const input={resources:[{id:'stock',type:'bounded-counter',min:0,max:1},{id:'tags',type:'grow-only-set'}],operations:[{id:'reserve-a',effects:{stock:{delta:-1}}},{id:'reserve-b',effects:{stock:{delta:-1}}},{id:'tag',effects:{tags:{add:'x'}}}],environment:{players:30,trustedAuthority:true,crashReplicas:3,rttMs:60,jitterMs:10},objective:['latencyMs','wireBytes','connections','coordination','cpuWork','infraUnits','rollbackExposure']};
+  const synthesized=synthesizeProofCarryingPlan(input);assert.equal(synthesized.pass,true);assert.equal(verifyProofCarryingPlan(synthesized.bundle),true);
+  const changedPolicy=structuredClone(synthesized.bundle);changedPolicy.selected.policies[0]='crdt';assert.equal(verifyProofCarryingPlan(changedPolicy),false);
+  const changedCost=structuredClone(synthesized.bundle);changedCost.selected.cost.wireBytes+=1;assert.equal(verifyProofCarryingPlan(changedCost),false);
+  const changedInvariant=structuredClone(synthesized.bundle);changedInvariant.invariantCertificate.conflicts=[];assert.equal(verifyProofCarryingPlan(changedInvariant),false);
 });
