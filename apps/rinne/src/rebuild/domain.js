@@ -1,4 +1,5 @@
 import { DISCOVERIES, eligibleDiscoveries, skillEffects, skillName } from './skill-system.js';
+import { enterInteriorState, leaveInteriorState } from './interior-state.js';
 
 export { DISCOVERIES, skillEffects, skillName };
 export const SAVE_SCHEMA = 2;
@@ -155,17 +156,15 @@ export function stopAutomaticActivity(state, reason='move') {
 }
 
 export function enterBuilding(state,station){
-  if(!station?.enterInterior||!station.buildingId||state.interior||state.zone!=='village'||state.phase!=='living'||state.combat||state.ended)return false;
-  const outside=station.outsideSpawn||state.position,inside=station.interiorSpawn||{x:0,z:3.4};
-  state.interior={buildingId:station.buildingId,returnPosition:{x:outside.x,z:outside.z}};
-  state.position={x:inside.x,z:inside.z};state.activity=null;state.resting=false;state.idleSeconds=0;
-  pushEvent(state,'building',`${station.label}へ入った。`);return true;
+  const changed=enterInteriorState(state,station);
+  if(changed)pushEvent(state,'building',`${station.label}へ入った。`);
+  return changed;
 }
 
 export function leaveBuilding(state){
-  if(!state.interior||state.zone!=='village')return false;
-  const back=state.interior.returnPosition;state.position={x:back.x,z:back.z};state.interior=null;state.activity=null;state.resting=false;state.idleSeconds=0;
-  pushEvent(state,'building','建物の外へ出た。');return true;
+  const changed=leaveInteriorState(state);
+  if(changed)pushEvent(state,'building','建物の外へ出た。');
+  return changed;
 }
 
 export function applyEquipmentStation(state, station) {

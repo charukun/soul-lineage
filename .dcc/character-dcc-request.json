@@ -1,0 +1,49 @@
+{
+  "schema": "character-dcc-request",
+  "version": 1,
+  "id": "protagonist.villager.v1",
+  "assetId": "character.protagonist-villager.v1",
+  "reference": {
+    "path": "docs/characters/references/protagonist-villager-v1.svg",
+    "sha256": "fe5780599464bc9d1912681dd3d02aa089ac873b7222fd09681662154fbdf9c3",
+    "views": ["front", "side", "back"]
+  },
+  "rig": {
+    "path": "apps/rinne/public/simulator/assets/SHINO_review.vrm",
+    "sha256": "83843ade7dbdfaacc9d601bda099fcb5757527e339b9c5deb223a2c2f5eb28ca",
+    "id": "humanoid.shino-vrm1.v2"
+  },
+  "builder": "scripts/blender/build-protagonist-villager-v1-carrier.py",
+  "generatedDir": "generated/protagonist-villager-v1",
+  "blendName": "ProtagonistVillagerV1.blend",
+  "modelName": "ProtagonistVillagerV1.glb",
+  "format": "glb",
+  "publicPath": "./simulator/assets/PROTAGONIST_VILLAGER_V1.glb",
+  "canonical": {
+    "blend": "assets/characters/protagonist/villager-v1/source/ProtagonistVillagerV1.blend",
+    "model": "apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_V1.glb",
+    "integrity": "apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_V1.asset.json",
+    "production": "packages/characters/production/protagonist-villager-v1.production.json",
+    "qaDir": "docs/characters/qa/protagonist-villager-v1"
+  },
+  "license": {
+    "rigProvenance": "Sendagaya_Shino audited source / VRM Public License 1.0 metadata; carrier rig only",
+    "surfaceAuthorship": "RINNE original protagonist village-start low-poly surfaces; KayKit-family art direction without copied Knight surface geometry"
+  },
+  "primary": {
+    "separateSurfaces": ["skin", "hair", "clothing", "accessories"],
+    "minMeshObjects": 24,
+    "minMaterials": 7
+  },
+  "production": {
+    "stage": "PRIMARY",
+    "productionReady": false,
+    "visualApproval": "pending"
+  },
+  "review": {
+    "intentLocked": true,
+    "proportionsReviewed": true,
+    "silhouetteReviewed": true,
+    "topologyReviewed": true
+  }
+}

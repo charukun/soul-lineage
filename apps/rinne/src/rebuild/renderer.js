@@ -12,13 +12,39 @@ import { rinneCombatCameraFrame } from './combat-camera.js';
 import './camera-position-control.css';
 
 const disposeObject=root=>root?.traverse?.(o=>{if(o.geometry?.dispose)o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])if(m?.dispose)m.dispose();});
+
+function createSkirmishRenderer({characterStage,skirmishRoot,mat}){
+  let current=null;const hostileModels=new Map();
+  function hostileVisual(row){
+    const g=new THREE.Group(),monster=row.kind==='monster',boar=row.label==='猪',bodyColor=monster?0x665780:boar?0x725444:0x696d66;
+    const body=new THREE.Mesh(new THREE.SphereGeometry(monster?.62:.52,10,7),mat(bodyColor));body.scale.set(monster?1.2:1.45,monster?1.05:.72,monster?1.05:.78);body.position.y=monster?.7:.55;g.add(body);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(monster?.38:.31,9,6),mat(monster?0x745f8b:bodyColor));head.position.set(0,monster?.86:.62,.58);g.add(head);
+    for(const x of[-.34,.34])for(const z of[-.32,.35]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,monster?.48:.42,6),mat(0x4c453e));leg.position.set(x,monster?.28:.24,z);g.add(leg);}
+    if(monster){for(const x of[-.22,.22]){const horn=new THREE.Mesh(new THREE.ConeGeometry(.09,.42,6),mat(0xd3c8ae));horn.position.set(x,1.2,.57);horn.rotation.x=-.22;g.add(horn);}}
+    else if(boar){for(const x of[-.24,.24]){const tusk=new THREE.Mesh(new THREE.ConeGeometry(.045,.28,6),mat(0xe5dec7));tusk.position.set(x,.58,.87);tusk.rotation.x=Math.PI/2;g.add(tusk);}}
+    else{const tail=new THREE.Mesh(new THREE.ConeGeometry(.07,.52,6),mat(bodyColor));tail.position.set(0,.6,-.68);tail.rotation.x=-Math.PI/2.5;g.add(tail);}
+    applyStylizedShading(g,'enemy');return g;
+  }
+  function update(skirmish){
+    current=skirmish||null;characterStage.updateSkirmish(skirmish);
+    for(const row of skirmish?.hostiles||[]){const model=hostileModels.get(row.id);if(!model)continue;model.position.set(row.x,0,row.z);model.rotation.y=Number.isFinite(row.yaw)?row.yaw:0;model.visible=!row.dead;model.scale.setScalar(row.flash>0?1.05:1);}
+  }
+  function sync(skirmish){
+    current=skirmish||null;characterStage.syncSkirmish(skirmish);const ids=new Set((skirmish?.hostiles||[]).map(row=>row.id));
+    for(const [id,model] of hostileModels)if(!ids.has(id)){model.removeFromParent();disposeObject(model);hostileModels.delete(id);}
+    for(const row of skirmish?.hostiles||[]){if(hostileModels.has(row.id))continue;const model=hostileVisual(row);model.name=`VillageThreat:${row.id}`;skirmishRoot.add(model);hostileModels.set(row.id,model);}update(skirmish);
+  }
+  function dispose(){for(const model of hostileModels.values())disposeObject(model);hostileModels.clear();}
+  return{sync,update,current:()=>current,dispose};
+}
+
 export async function createWorldRenderer({canvas,document:doc,layout,stations}){
   const renderWindow=doc.defaultView||globalThis,basePixelRatio=Number(renderWindow?.devicePixelRatio)||1,targetFps=targetFpsForView(renderWindow);
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance',alpha:false});
   renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.06;
   const applyQuality=profile=>{const ratio=renderPixelRatio(basePixelRatio,profile.renderScale);renderer.setPixelRatio(ratio);canvas.dataset.renderQuality=profile.id;canvas.dataset.renderPixelRatio=String(ratio);};
   const qualityGovernor=createAdaptiveQualityGovernor({targetFps,onChange:snapshot=>applyQuality(snapshot.profile)});applyQuality(qualityGovernor.snapshot().profile);
-  const outdoorSky=new THREE.Color(0x91d7f5),indoorSky=new THREE.Color(0x544c62),scene=new THREE.Scene();scene.background=outdoorSky;scene.fog=new THREE.FogExp2(0xcfe6ef,.0042);
+  const scene=new THREE.Scene();scene.background=new THREE.Color(0x91d7f5);const outdoorSky=scene.background,indoorSky=new THREE.Color(0x544c62);scene.fog=new THREE.FogExp2(0xcfe6ef,.0042);
   const camera=new THREE.PerspectiveCamera(43,1,.08,650);camera.position.set(12,13,17);
   scene.add(new THREE.HemisphereLight(0xfff0cb,0x7b6fa5,2.15));
   const sun=new THREE.DirectionalLight(0xffd493,2.65);sun.position.set(-12,25,15);scene.add(sun);
@@ -83,28 +109,10 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   applyStylizedShading(root,'environment');applyStylizedShading(interiorRoot,'environment');applyStylizedShading(frontRoot,'environment');
 
   const characterStage=await createRinneCharacterStage({renderer,scene,frontRoot,weaponVisual,mat,disposeObject});
-  const {syncEquipment,setCarrierMotion,syncPeers}=characterStage;let currentFront=null,currentSkirmish=null;const hostileModels=new Map();
+  const {syncEquipment,setCarrierMotion,syncPeers}=characterStage;let currentFront=null;
   function syncFront(front){currentFront=front||null;characterStage.syncFront(front);}
   function updateFront(front){currentFront=front||null;characterStage.updateFront(front);}
-  function hostileVisual(row){
-    const g=new THREE.Group(),monster=row.kind==='monster',boar=row.label==='猪',bodyColor=monster?0x665780:boar?0x725444:0x696d66;
-    const body=new THREE.Mesh(new THREE.SphereGeometry(monster?.62:.52,10,7),mat(bodyColor));body.scale.set(monster?1.2:1.45,monster?1.05:.72,monster?1.05:.78);body.position.y=monster?.7:.55;g.add(body);
-    const head=new THREE.Mesh(new THREE.SphereGeometry(monster?.38:.31,9,6),mat(monster?0x745f8b:bodyColor));head.position.set(0,monster?.86:.62,.58);g.add(head);
-    for(const x of[-.34,.34])for(const z of[-.32,.35])cyl(g,.055,monster?.48:.42,[x,monster?.28:.24,z],0x4c453e,6);
-    if(monster){for(const x of[-.22,.22]){const horn=new THREE.Mesh(new THREE.ConeGeometry(.09,.42,6),mat(0xd3c8ae));horn.position.set(x,1.2,.57);horn.rotation.x=-.22;g.add(horn);}}
-    else if(boar){for(const x of[-.24,.24]){const tusk=new THREE.Mesh(new THREE.ConeGeometry(.045,.28,6),mat(0xe5dec7));tusk.position.set(x,.58,.87);tusk.rotation.x=Math.PI/2;g.add(tusk);}}
-    else{const tail=new THREE.Mesh(new THREE.ConeGeometry(.07,.52,6),mat(bodyColor));tail.position.set(0,.6,-.68);tail.rotation.x=-Math.PI/2.5;g.add(tail);}
-    applyStylizedShading(g,'enemy');return g;
-  }
-  function updateSkirmish(skirmish){
-    currentSkirmish=skirmish||null;characterStage.updateSkirmish(skirmish);
-    for(const row of skirmish?.hostiles||[]){const model=hostileModels.get(row.id);if(!model)continue;model.position.set(row.x,0,row.z);model.rotation.y=Number.isFinite(row.yaw)?row.yaw:0;model.visible=!row.dead;model.scale.setScalar(row.flash>0?1.05:1);}
-  }
-  function syncSkirmish(skirmish){
-    currentSkirmish=skirmish||null;characterStage.syncSkirmish(skirmish);const ids=new Set((skirmish?.hostiles||[]).map(row=>row.id));
-    for(const [id,model] of hostileModels)if(!ids.has(id)){model.removeFromParent();disposeObject(model);hostileModels.delete(id);}
-    for(const row of skirmish?.hostiles||[]){if(hostileModels.has(row.id))continue;const model=hostileVisual(row);model.name=`VillageThreat:${row.id}`;skirmishRoot.add(model);hostileModels.set(row.id,model);}updateSkirmish(skirmish);
-  }
+  const skirmishRenderer=createSkirmishRenderer({characterStage,skirmishRoot,mat});
 
   const target=new THREE.Vector3(),cameraLook=new THREE.Vector3(),desired=new THREE.Vector3(),moveVector=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),camOffset=new THREE.Vector3(10.5,11.5,14.5);let elapsed=0,cameraLookReady=false,lastSpace='';
   const cameraControl=createCameraPositionControl({document:doc,container:canvas.parentElement,onChange:position=>{camOffset.set(...cameraOffsetForPosition(position));canvas.dataset.cameraPosition=String(Math.round(position*100));}});
@@ -133,7 +141,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     const village=state.zone==='village',inside=village&&!!state.interior,space=inside?`interior:${state.interior.buildingId}`:state.zone,spaceChanged=space!==lastSpace;lastSpace=space;
     root.visible=village&&!inside;interiorRoot.visible=inside;skirmishRoot.visible=village&&!inside;frontRoot.visible=state.zone==='frontier';scene.background=inside?indoorSky:outdoorSky;
     for(const [id,g] of interiorGroups)g.visible=inside&&id===state.interior?.buildingId;
-    const combatFrame=state.zone==='frontier'?rinneCombatCameraFrame({player:state.position,enemies:currentFront?.enemies,targetId:state.combat?.targetId,active:!!state.combat}):null;cameraControl.setCombat(!!combatFrame);canvas.dataset.combatCamera=String(!!combatFrame);canvas.dataset.worldSpace=space;canvas.dataset.villageThreats=String(currentSkirmish?.hostiles?.filter(row=>!row.dead).length||0);
+    const combatFrame=state.zone==='frontier'?rinneCombatCameraFrame({player:state.position,enemies:currentFront?.enemies,targetId:state.combat?.targetId,active:!!state.combat}):null;cameraControl.setCombat(!!combatFrame);canvas.dataset.combatCamera=String(!!combatFrame);canvas.dataset.worldSpace=space;canvas.dataset.villageThreats=String(skirmishRenderer.current()?.hostiles?.filter(row=>!row.dead).length||0);
     if(combatFrame){target.set(combatFrame.look.x,combatFrame.look.y,combatFrame.look.z);desired.set(target.x+combatFrame.offset.x,target.y+combatFrame.offset.y,target.z+combatFrame.offset.z);}
     else{target.set(state.position.x,1.15,state.position.z);desired.copy(target).add(camOffset);if(inside)desired.y=Math.min(desired.y,9.5);}
     if(spaceChanged){camera.position.copy(desired);cameraLook.copy(target);cameraLookReady=true;}else{const step=Math.min(.05,dt||.016),positionBlend=1-Math.exp(-(combatFrame?5.6:6.9)*step),lookBlend=1-Math.exp(-(combatFrame?7.2:9.2)*step);camera.position.lerp(desired,positionBlend);if(!cameraLookReady){cameraLook.copy(target);cameraLookReady=true;}else cameraLook.lerp(target,lookBlend);}camera.lookAt(cameraLook);
@@ -141,8 +149,8 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     renderer.render(scene,camera);
   }
   function dispose(){
-    observer.disconnect();cameraControl.dispose();characterStage.dispose();for(const model of hostileModels.values())disposeObject(model);hostileModels.clear();
+    observer.disconnect();cameraControl.dispose();skirmishRenderer.dispose();characterStage.dispose();
     root.removeFromParent();interiorRoot.removeFromParent();skirmishRoot.removeFromParent();frontRoot.removeFromParent();for(const v of cache.values())disposeObject(v);renderer.dispose();
   }
-  return{THREE,scene,camera,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,updateFront,syncSkirmish,updateSkirmish,setCarrierMotion,syncPeers,resize,qualitySnapshot:()=>qualityGovernor.snapshot(),dispose};
+  return{THREE,scene,camera,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,updateFront,syncSkirmish:skirmishRenderer.sync,updateSkirmish:skirmishRenderer.update,setCarrierMotion,syncPeers,resize,qualitySnapshot:()=>qualityGovernor.snapshot(),dispose};
 }

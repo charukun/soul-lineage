@@ -69,7 +69,7 @@ function createActorRoster({scene,frontRoot,characterPool}){
   }
   function updateSkirmish(skirmish){
     state.skirmish=skirmish;
-    for(const guard of skirmish?.guards||[]){const slot=guardActors.get(guard.id);if(!slot)continue;slot.actor.root.position.set(guard.x,0,guard.z);slot.actor.root.rotation.y=Number.isFinite(guard.yaw)?guard.yaw:0;slot.actor.setVisible(!guard.dead);}
+    for(const guard of skirmish?.guards||[]){const slot=guardActors.get(guard.id);if(!slot)continue;slot.actor.root.position.set(guard.x,0,guard.z);slot.actor.root.rotation.y=Number.isFinite(guard.yaw)?guard.yaw:0;}
   }
   function syncSkirmish(skirmish){
     state.skirmish=skirmish;const guards=skirmish?.guards||[],rosterKey=guards.map(row=>row.id).join('|');
@@ -77,7 +77,7 @@ function createActorRoster({scene,frontRoot,characterPool}){
       state.guardRosterKey=rosterKey;const ids=new Set(guards.map(row=>row.id));for(const id of [...guardActors.keys()])if(!ids.has(id))removeGuard(id);
       guards.forEach((guard,index)=>{
         if(guardActors.has(guard.id))return;
-        const descriptor=createRinneRuntimeCharacter({kind:'hero',id:guard.id,seed:(skirmish?.seed||1)+index,ageSeconds:(28+index*7)*60,role:'guard'}),poolId=`rinne-runtime-${descriptor.character.id}`,actor=characterPool.spawn(poolId,descriptor.modelId);
+        const descriptor=createRinneRuntimeCharacter({kind:'hero',id:guard.id,seed:(skirmish?.seed||1)+index,ageSeconds:(28+index*7)*60,role:'guard'}),poolId=`rinne-runtime-${descriptor.character.id}`,actor=characterPool.spawn(poolId);
         actor.root.name=`Guard:${guard.id}`;scene.add(actor.root,actor.attachments);applyStylizedShading(actor.root,'npc');guardActors.set(guard.id,{actor,descriptor,poolId,schedule:new PoseSchedule()});
       });
     }

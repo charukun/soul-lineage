@@ -1,4 +1,5 @@
 import {defs,ready,capacityOf,RESOURCE_NAMES,DAYS_YEAR} from '../game/core.js';
+import {installEventChronicle} from './event-chronicle.js';
 
 const ICONS={
  people:'<circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 21v-3c0-6 12-6 12 0v3m1-8c4-1 7 1 7 5v3"/>',
@@ -18,7 +19,7 @@ const text=(node,value)=>{if(node.textContent!==value)node.textContent=value;};
 
 /** Explicit views of game state. No polling that changes catalog or input state. */
 export function installInterface(village){
- const {world,view,ui,more,observePerson,toast,frameHooks,eventHooks}=village;
+ const {world,view,ui,more,observePerson,frameHooks}=village;
  const $=id=>document.getElementById(id);
  const hud=$('idleStatus');hud.setAttribute('aria-label','村の今');
  hud.innerHTML=`<div class="muraHudMain"><button id="muraHudToggle" aria-expanded="false" aria-controls="muraHudDetails"><span class="muraHudClock"></span><span class="muraHudBrief"></span><span class="muraHudChevron" aria-hidden="true">⌄</span></button><div class="muraHudActions"><button id="muraFollowMayor" aria-label="村長を追う" title="村長">${svg('mayor')}</button><button id="muraEventButton" aria-label="出来事" title="出来事">${svg('events')}</button><button id="muraSettingsButton" aria-label="設定" title="設定">${svg('settings')}</button></div></div><div id="muraHudDetails" hidden><div class="muraHudStats"></div><div class="muraHudResources"></div></div>`;
@@ -26,22 +27,13 @@ export function installInterface(village){
  toggle.onclick=()=>{details.hidden=!details.hidden;toggle.setAttribute('aria-expanded',String(!details.hidden));hud.classList.toggle('muraHudExpanded',!details.hidden);};
  $('muraSettingsButton').onclick=more;
  $('muraFollowMayor').onclick=()=>{const p=world.people.find(p=>p.role==='mayor');if(p)observePerson(p.id);};
- $('muraEventButton').onclick=()=>{more();$('journal').click();};
+ const chronicle=installEventChronicle({world,eventButton:$('muraEventButton')});
  $('muraEndObservation').onclick=()=>{view.endObservation();view.focus(view.target.x,view.target.z,Math.max(32,view.span));village.activity();};
  const modes=$('muraModeControls'),modeLabel=document.createElement('small');modeLabel.id='muraModeLabel';modes.prepend(modeLabel);
  // Put related surfaces in ordinary document flow. Header expansion moves
  // modes and tutorial in the same layout pass, without a one-frame overlap.
  const stack=document.createElement('div');stack.id='muraTopStack';document.body.append(stack);
  stack.append(hud,modes,$('tutorial'));
- const moment=document.createElement('button');moment.type='button';moment.id='muraIdleDetails';moment.hidden=true;moment.setAttribute('aria-live','polite');
- moment.innerHTML='<small>村人の様子</small><span class="muraIdleDetailsText"></span>';
- document.body.append(moment);let currentPerson=null,event=null,eventUntil=0,lastMoment=null,momentUntil=0;
- moment.onclick=()=>{if(currentPerson)observePerson(currentPerson);};
- eventHooks.add((message,type)=>{
-  if(!['threat','loss','rescue','voyage','arrival','discovery'].includes(type))return;
-  event={text:message,type};eventUntil=performance.now()+4300;
-  if(ui.pending||ui.drawer||ui.dialogPage||view.observation){toast(message,3500);eventUntil=0;}
- });
  const progress=document.createElement('div');progress.id='muraConstructionLayer';document.body.append(progress);
  const bars=new Map();let lastTick=0,resourceSignature='',statsSignature='',lastRoom=null,lastObserved=null;
  function statusTick(now){
@@ -61,13 +53,8 @@ export function installInterface(village){
    $('leaveRoom').hidden=!view.roomId;$('muraEndObservation').hidden=!observing;
    text(modeLabel,view.roomId?defs[world.object(view.roomId)?.kind]?.label||'内装':world.people.find(p=>p.id===observing)?.name||'観察');
   }
-  const blocked=ui.entryOpen||ui.drawer||ui.pending||ui.selected||ui.dialogPage||document.querySelector('dialog[open]')||view.observation;
-  const m=world.state.moments?.[0];
-  if(ui.idle&&m&&m.id!==lastMoment){lastMoment=m.id;momentUntil=now+3800;}
-  const showEvent=now<eventUntil&&event,showMoment=ui.idle&&now<momentUntil&&m;
-  moment.hidden=!!blocked||(!showEvent&&!showMoment);
-  if(!moment.hidden){text(moment.querySelector('small'),showEvent?'村の出来事':'村人の様子');text(moment.querySelector('span'),(showEvent?event:m).text);currentPerson=showEvent?null:m.ids?.find(id=>world.people.some(p=>p.id===id));moment.disabled=!currentPerson;}
-  else currentPerson=null;
+  const chromeBlocked=ui.entryOpen||ui.drawer||ui.pending||ui.selected||ui.dialogPage||document.querySelector('dialog[open]')||view.observation;
+  chronicle.sync(now,{blocked:!!chromeBlocked});
   const pending=world.objects.filter(o=>o.phase==='planned'||o.phase==='building'||o.upgrade),ids=new Set(pending.map(o=>o.id));
   for(const[id,node]of bars)if(!ids.has(id)){node.remove();bars.delete(id);}
   for(const o of pending.slice(0,12)){
