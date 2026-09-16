@@ -1,0 +1,207 @@
+name: Materialize public web assets phase 4
+
+on:
+  push:
+    branches:
+      - feat/public-web-assets-phase4-20260916
+    paths:
+      - .github/workflows/materialize-public-web-assets-phase4.yml
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.repository == 'charukun/soul-lineage' && github.ref == 'refs/heads/feat/public-web-assets-phase4-20260916'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/public-web-assets-phase4-20260916
+          fetch-depth: 0
+
+      - name: Download, verify, manifest, and commit curated CC0 assets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          KENNEY_REPO='shorepine/kenney'
+          KENNEY_COMMIT='3694c6879e487c108f55677be7dd2ca75b07cc3b'
+          KENNEY_RAW="https://raw.githubusercontent.com/${KENNEY_REPO}/${KENNEY_COMMIT}"
+          ROOT='assets/vendor/public-web'
+
+          fetch_git() {
+            local source_path="$1"
+            local destination="$2"
+            local expected_blob="$3"
+            mkdir -p "$(dirname "$destination")"
+            curl --fail --location --retry 3 --silent --show-error \
+              "${KENNEY_RAW}/${source_path// /%20}" -o "$destination"
+            local actual_blob
+            actual_blob="$(git hash-object "$destination")"
+            if [[ "$actual_blob" != "$expected_blob" ]]; then
+              echo "Git blob mismatch for $source_path: expected $expected_blob got $actual_blob" >&2
+              exit 1
+            fi
+          }
+
+          fetch_git '3d/mini-forest/bridge.glb' "$ROOT/kenney-mini-forest/models/bridge.glb" 'd38560579e662a5457e6acccfe5be19c976969da'
+          fetch_git '3d/mini-forest/fence.glb' "$ROOT/kenney-mini-forest/models/fence.glb" 'd2cf3a7d23b30819fe151a38e1f07c9515fe47b9'
+          fetch_git '3d/mini-forest/ladder.glb' "$ROOT/kenney-mini-forest/models/ladder.glb" '716910750151c251bd305d5dba61b22db763a2a5'
+          fetch_git '3d/mini-forest/patch-grass.glb' "$ROOT/kenney-mini-forest/models/patch-grass.glb" 'e4e2866f0d6af1409cf6c52991a47a33642f0dae'
+          fetch_git '3d/mini-forest/plant.glb' "$ROOT/kenney-mini-forest/models/plant.glb" 'e926e555d51c1ba6f8f4993de7e43730ce022afe'
+          fetch_git '3d/mini-forest/rocks-high.glb' "$ROOT/kenney-mini-forest/models/rocks-high.glb" 'e4b3bdc3b4cbd421b9773d73fc0918778804212d'
+          fetch_git '3d/mini-forest/stones.glb' "$ROOT/kenney-mini-forest/models/stones.glb" '4bbbf50c0aec6e71b01c1e0c47f14a50c38a5148'
+          fetch_git '3d/mini-forest/tent.glb' "$ROOT/kenney-mini-forest/models/tent.glb" 'd372b699d620c780be8970398dfe49e60ddb2b2f'
+          fetch_git '3d/mini-forest/tree.glb' "$ROOT/kenney-mini-forest/models/tree.glb" 'a8d0e5619df6c6239371e668bad72ac0c4c942fc'
+
+          fetch_git '2d/Foliage Sprites/Flat/sprite_0001.png' "$ROOT/kenney-foliage-sprites/flat/sprite_0001.png" '6e27aa5f0c2f53a4bceb746be4c513a0a87e3659'
+          fetch_git '2d/Foliage Sprites/Flat/sprite_0002.png' "$ROOT/kenney-foliage-sprites/flat/sprite_0002.png" 'a94d8afcf1799acfd2e161b1f8209688567493fb'
+          fetch_git '2d/Foliage Sprites/Flat/sprite_0003.png' "$ROOT/kenney-foliage-sprites/flat/sprite_0003.png" '4674967ab59443bd25fd3a10cd3f9994c5d844cc'
+          fetch_git '2d/Foliage Sprites/Flat/sprite_0004.png' "$ROOT/kenney-foliage-sprites/flat/sprite_0004.png" '62f0614ec3381d518407f1df0cdc4f4ab1899344'
+          fetch_git '2d/Foliage Sprites/Shaded/sprite_0052.png' "$ROOT/kenney-foliage-sprites/shaded/sprite_0052.png" '0af730f9268fa40f64a6d7d24ac4a769011fc69b'
+          fetch_git '2d/Foliage Sprites/Shaded/sprite_0053.png' "$ROOT/kenney-foliage-sprites/shaded/sprite_0053.png" '23a5db4ab657ef4c731c18ec14e9d3ce3791934b'
+          fetch_git '2d/Foliage Sprites/Shaded/sprite_0054.png' "$ROOT/kenney-foliage-sprites/shaded/sprite_0054.png" 'ac534dc5d9cdfcecdfb41ced4333599b70b806ee'
+          fetch_git '2d/Foliage Sprites/Shaded/sprite_0055.png' "$ROOT/kenney-foliage-sprites/shaded/sprite_0055.png" '2965299cd5fcf431802ebbc6a7be3018acd7deca'
+
+          fetch_git '2d/Smoke Particles/White puff/whitePuff00.png' "$ROOT/kenney-smoke-particles/white-puff/whitePuff00.png" '52d2a79863b06669c0a77556602fdb139039267e'
+          fetch_git '2d/Smoke Particles/White puff/whitePuff04.png' "$ROOT/kenney-smoke-particles/white-puff/whitePuff04.png" '2238946268c78b4d4f7d35824678629f701acf11'
+
+          fetch_git '2d/Light Masks/circle_a_noise.png' "$ROOT/kenney-light-masks-phase4/circle_a_noise.png" '5638b19ef3419162a96edaf336a63db4f071758a'
+          fetch_git '2d/Light Masks/circle_a_streaks_noise.png' "$ROOT/kenney-light-masks-phase4/circle_a_streaks_noise.png" '16c5110f01ec3cc0c023c90647d50b170139e9c7'
+
+          fetch_git 'LICENSE.txt' "$ROOT/kenney-mini-forest/LICENSE.txt" 'aa24b63ec09d264958193889040cf3348b62b8fc'
+          cp "$ROOT/kenney-mini-forest/LICENSE.txt" "$ROOT/kenney-foliage-sprites/LICENSE.txt"
+          cp "$ROOT/kenney-mini-forest/LICENSE.txt" "$ROOT/kenney-smoke-particles/LICENSE.txt"
+          cp "$ROOT/kenney-mini-forest/LICENSE.txt" "$ROOT/kenney-light-masks-phase4/LICENSE.txt"
+
+          POLY_ROOT="$ROOT/polyhaven-wood-planks"
+          mkdir -p "$POLY_ROOT/1k"
+          POLY_BASE='https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_planks'
+          curl --fail --location --retry 3 --silent --show-error "$POLY_BASE/wood_planks_diff_1k.jpg" -o "$POLY_ROOT/1k/diffuse.jpg"
+          curl --fail --location --retry 3 --silent --show-error "$POLY_BASE/wood_planks_nor_gl_1k.jpg" -o "$POLY_ROOT/1k/normal-gl.jpg"
+          curl --fail --location --retry 3 --silent --show-error "$POLY_BASE/wood_planks_rough_1k.jpg" -o "$POLY_ROOT/1k/roughness.jpg"
+          cat > "$POLY_ROOT/LICENSE.txt" <<'EOF'
+          Wood Planks by Amal Kumar / Poly Haven
+          Canonical source: https://polyhaven.com/a/wood_planks
+          License: Creative Commons Zero (CC0 1.0)
+          https://creativecommons.org/publicdomain/zero/1.0/
+          EOF
+
+          python3 <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          commit = '3694c6879e487c108f55677be7dd2ca75b07cc3b'
+          root = Path('assets/vendor/public-web')
+
+          groups = {
+              'kenney-mini-forest': [
+                  ('models/bridge.glb', 'd38560579e662a5457e6acccfe5be19c976969da'),
+                  ('models/fence.glb', 'd2cf3a7d23b30819fe151a38e1f07c9515fe47b9'),
+                  ('models/ladder.glb', '716910750151c251bd305d5dba61b22db763a2a5'),
+                  ('models/patch-grass.glb', 'e4e2866f0d6af1409cf6c52991a47a33642f0dae'),
+                  ('models/plant.glb', 'e926e555d51c1ba6f8f4993de7e43730ce022afe'),
+                  ('models/rocks-high.glb', 'e4b3bdc3b4cbd421b9773d73fc0918778804212d'),
+                  ('models/stones.glb', '4bbbf50c0aec6e71b01c1e0c47f14a50c38a5148'),
+                  ('models/tent.glb', 'd372b699d620c780be8970398dfe49e60ddb2b2f'),
+                  ('models/tree.glb', 'a8d0e5619df6c6239371e668bad72ac0c4c942fc'),
+              ],
+              'kenney-foliage-sprites': [
+                  ('flat/sprite_0001.png', '6e27aa5f0c2f53a4bceb746be4c513a0a87e3659'),
+                  ('flat/sprite_0002.png', 'a94d8afcf1799acfd2e161b1f8209688567493fb'),
+                  ('flat/sprite_0003.png', '4674967ab59443bd25fd3a10cd3f9994c5d844cc'),
+                  ('flat/sprite_0004.png', '62f0614ec3381d518407f1df0cdc4f4ab1899344'),
+                  ('shaded/sprite_0052.png', '0af730f9268fa40f64a6d7d24ac4a769011fc69b'),
+                  ('shaded/sprite_0053.png', '23a5db4ab657ef4c731c18ec14e9d3ce3791934b'),
+                  ('shaded/sprite_0054.png', 'ac534dc5d9cdfcecdfb41ced4333599b70b806ee'),
+                  ('shaded/sprite_0055.png', '2965299cd5fcf431802ebbc6a7be3018acd7deca'),
+              ],
+              'kenney-smoke-particles': [
+                  ('white-puff/whitePuff00.png', '52d2a79863b06669c0a77556602fdb139039267e'),
+                  ('white-puff/whitePuff04.png', '2238946268c78b4d4f7d35824678629f701acf11'),
+              ],
+              'kenney-light-masks-phase4': [
+                  ('circle_a_noise.png', '5638b19ef3419162a96edaf336a63db4f071758a'),
+                  ('circle_a_streaks_noise.png', '16c5110f01ec3cc0c023c90647d50b170139e9c7'),
+              ],
+          }
+
+          source_paths = {
+              'kenney-mini-forest': '3d/mini-forest/',
+              'kenney-foliage-sprites': '2d/Foliage Sprites/',
+              'kenney-smoke-particles': '2d/Smoke Particles/White puff/',
+              'kenney-light-masks-phase4': '2d/Light Masks/',
+          }
+
+          for source_id, entries in groups.items():
+              folder = root / source_id
+              files = []
+              for relative, blob in entries:
+                  path = folder / relative
+                  files.append({
+                      'path': path.as_posix(),
+                      'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+                      'gitBlob': blob,
+                  })
+              manifest = {
+                  'sourceId': source_id,
+                  'provider': 'Kenney',
+                  'license': 'CC0-1.0',
+                  'repository': 'shorepine/kenney',
+                  'commit': commit,
+                  'sourcePath': source_paths[source_id],
+                  'files': files,
+              }
+              (folder / 'MANIFEST.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
+
+          poly = root / 'polyhaven-wood-planks'
+          poly_entries = [
+              ('1k/diffuse.jpg', 'https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_planks/wood_planks_diff_1k.jpg'),
+              ('1k/normal-gl.jpg', 'https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_planks/wood_planks_nor_gl_1k.jpg'),
+              ('1k/roughness.jpg', 'https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_planks/wood_planks_rough_1k.jpg'),
+          ]
+          files = []
+          for relative, url in poly_entries:
+              path = poly / relative
+              files.append({
+                  'path': path.as_posix(),
+                  'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+                  'sourceUrl': url,
+              })
+          manifest = {
+              'sourceId': 'polyhaven-wood-planks',
+              'provider': 'Poly Haven',
+              'license': 'CC0-1.0',
+              'canonicalUrl': 'https://polyhaven.com/a/wood_planks',
+              'apiRepository': 'Poly-Haven/Public-API',
+              'files': files,
+          }
+          (poly / 'MANIFEST.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
+          PY
+
+          python3 - <<'PY'
+          from pathlib import Path
+          for path in Path('assets/vendor/public-web/kenney-mini-forest/models').glob('*.glb'):
+              data = path.read_bytes()
+              if len(data) < 12 or data[:4] != b'glTF' or int.from_bytes(data[4:8], 'little') != 2:
+                  raise SystemExit(f'invalid glTF 2.0 binary: {path}')
+          for path in list(Path('assets/vendor/public-web/kenney-foliage-sprites').rglob('*.png')) + list(Path('assets/vendor/public-web/kenney-smoke-particles').rglob('*.png')) + list(Path('assets/vendor/public-web/kenney-light-masks-phase4').rglob('*.png')):
+              if path.read_bytes()[:8] != b'\x89PNG\r\n\x1a\n':
+                  raise SystemExit(f'invalid PNG: {path}')
+          for path in Path('assets/vendor/public-web/polyhaven-wood-planks/1k').glob('*.jpg'):
+              if path.read_bytes()[:3] != b'\xff\xd8\xff':
+                  raise SystemExit(f'invalid JPEG: {path}')
+          PY
+
+          rm -f .github/workflows/materialize-public-web-assets-phase4.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No materialization changes to commit.'
+            exit 0
+          fi
+          git commit -m 'feat(assets): materialize phase 4 CC0 public web assets'
+          git push origin HEAD:feat/public-web-assets-phase4-20260916
