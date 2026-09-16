@@ -46,9 +46,9 @@ function syncRuntimeState(actor,input){
 function promoteObservedModel(characterPool,slot,life,target,distance){
   if(!slot?.descriptor?.modelId||!slot.actor?.root||!target)return;
   const dx=(Number(target.x)||0)-(Number(life.position?.x)||0),dz=(Number(target.z)||0)-(Number(life.position?.z)||0),length=Math.max(.001,distance||Math.hypot(dx,dz));
-  // Rinne's third-person camera follows the actor, so player-facing direction is the stable
-  // attention vector available to presentation without coupling loading to camera/game authority.
-  const yaw=Number(life.yaw)||0,forwardX=-Math.sin(yaw),forwardZ=-Math.cos(yaw),alignment=Math.max(0,(forwardX*dx+forwardZ*dz)/length),coverage=Math.min(1,2.4/(length+1));
+  // Runtime yaw is atan2(direction.x, direction.z). The third-person camera follows
+  // that facing direction, so it is the stable attention vector available here.
+  const yaw=Number(life.yaw)||0,forwardX=Math.sin(yaw),forwardZ=Math.cos(yaw),alignment=Math.max(0,(forwardX*dx+forwardZ*dz)/length),coverage=Math.min(1,2.4/(length+1));
   const priority=attentionLoadPriority({visible:!target.dead,combat:Boolean(target.attacking||target.hit||target.flash),screenAlignment:alignment,screenCoverage:coverage,distance:length});
   slot.actor.root.userData.manifestationAttention=priority;
   slot.actor.root.userData.manifestationAttentionAlignment=alignment;
