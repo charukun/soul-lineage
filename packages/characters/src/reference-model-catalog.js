@@ -32,7 +32,7 @@ const protagonist = {
   trim: [.30, .40, .46],
   hairValue: .90,
   id: PROTAGONIST_VILLAGER_MODEL_ID,
-  label: '主人公 / KayKit Knight派生・村人服 PRIMARY',
+  label: '主人公 / KayKit Knight主軸・村人服 PRIMARY',
   kind: 'dcc-character-model',
   characterId: 'Protagonist_Villager_V1',
   assetId: 'character.protagonist-villager.v1',
@@ -69,7 +69,7 @@ const protagonist = {
     sourceSections: [...base.production.sourceSections],
     authority: {
       currentMaster: [...base.production.authority.currentMaster],
-      implementedModularParts: ['kaykit-knight-source-parts', 'village-material-pass'],
+      implementedModularParts: ['kaykit-knight-identity-parts', 'kaykit-rogue-tunic-torso', 'village-material-pass'],
       proposedParts: [],
       gameEquipment: []
     },
@@ -90,7 +90,7 @@ const protagonist = {
       fallbackPolicy: 'retain-current-master-until-candidate-accepted'
     }
   },
-  note: 'KayKit Adventurers 1.0の固定revisionからKnight.glbの実メッシュとRig_Mediumを直接流用する主人公DCC PRIMARY。剣・盾・兜・肩軍装を外し、残したKnightパーツを布・革・オリーブ系の村人服へ再構成する。Knightに髪が無い場合のみ同一CC0パックのRogue髪パーツを使用する。30秒演舞を含む既存Humanoidモーション確認用で、Visual Approvalまではゲーム既定モデルを置換しない。'
+  note: 'KayKit Adventurers 1.0の固定revisionからKnight.glbのHead / Arm / Leg実メッシュとRig_Mediumを主人公の主軸として直接流用するDCC PRIMARY。Knight_Body固有の騎士章を削るのではなく、同じ固定CC0パックのRogue_Bodyだけを装備なし村人チュニックの胴パーツとしてRig_Mediumへ付け替える。Rogueの武器・ケープ・頭・腕・脚は持ち込まない。30秒演舞を含む既存Humanoidモーション確認用で、Visual Approvalまではゲーム既定モデルを置換しない。'
 };
 
 validateVisualIdentity(protagonist);
