@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createLife} from '../src/rebuild/domain.js';
-import {createVillageSkirmish,skirmishAlive,tickVillageSkirmish,villageSkirmishAnchor} from '../src/rebuild/village-skirmish.js';
+import {createVillageSkirmish,skirmishAlive,tickVillageSkirmish,villageFatalityChance,villageSkirmishAnchor} from '../src/rebuild/village-skirmish.js';
 
 function living(seed=1){const state=createLife({seed});state.phase='living';state.ageYears=20;state.ageSeconds=1200;state.equipment.weapon='sword';state.knownSkills.push('basic.sword');return state;}
 function exposed(seed=1){
   const skirmish=createVillageSkirmish({x:0,z:-10,angle:Math.PI},seed);for(const guard of skirmish.guards){guard.dead=true;guard.respawn=999;}
-  for(const hostile of skirmish.hostiles){hostile.x=0;hostile.z=-10;hostile.cooldown=-1;}
+  for(const hostile of skirmish.hostiles){hostile.x=0;hostile.z=-10;hostile.cooldown=-1;hostile.playerCooldown=-1;}
   return skirmish;
 }
 
@@ -23,23 +23,23 @@ test('guards and wildlife/monster keep resolving combat instead of forming a sta
   assert.ok(skirmishAlive(skirmish).hostiles>=1);
 });
 
-test('unprepared player is downed quickly when walking into several village-edge threats',()=>{
-  const state=living(41),skirmish=exposed(41);state.position={x:0,z:-10};
-  for(let i=0;i<20&&!state.down;i++){for(const hostile of skirmish.hostiles)hostile.cooldown=-1;tickVillageSkirmish(state,skirmish,.1);}
-  assert.ok(state.down?.village);assert.equal(state.hp,0);assert.equal(state.down.rescueSeconds,12);
+test('unprepared player can die quickly after walking into a village-edge threat',()=>{
+  const state=living(41),skirmish=exposed(41);state.position={x:0,z:-10};state.stamina=0;skirmish.hostiles.splice(1);
+  for(let i=0;i<30&&!state.ended&&!state.down;i++){skirmish.hostiles[0].playerCooldown=-1;tickVillageSkirmish(state,skirmish,.1);}
+  assert.equal(state.ended,true);assert.equal(state.phase,'ended');assert.equal(state.hp,0);
 });
 
-test('survival support reduces incoming damage while power support raises outgoing damage',()=>{
+test('survival build lowers fatality chance while power build raises outgoing damage',()=>{
   const base=living(51),defender=living(52),power=living(53);base.position=defender.position=power.position={x:0,z:-10};
-  defender.knownSkills.push('skill.balance','skill.adapt');power.knownSkills.push('skill.focus','skill.edge');
-  const baseBattle=exposed(51),defBattle=exposed(52),powerBattle=exposed(53);
-  for(const battle of [baseBattle,defBattle,powerBattle])battle.hostiles.splice(1);
+  defender.equipment.armor='heavy';defender.equipment.shield=true;defender.knownSkills.push('skill.balance','skill.adapt','skill.danger','skill.care');power.knownSkills.push('skill.focus','skill.edge');
+  assert.ok(villageFatalityChance(defender)<villageFatalityChance(base),'survival build should lower fatality chance');
+  const baseBattle=exposed(51),defBattle=exposed(52),powerBattle=exposed(53);for(const battle of [baseBattle,defBattle,powerBattle])battle.hostiles.splice(1);
   tickVillageSkirmish(base,baseBattle,.1);tickVillageSkirmish(defender,defBattle,.1);tickVillageSkirmish(power,powerBattle,.1);
   assert.ok(defender.hp>base.hp,'mitigation build should take less damage');
   assert.ok(powerBattle.hostiles[0].hp<baseBattle.hostiles[0].hp,'power build should deal more damage');
 });
 
-test('village down state is rescued by guards without ending the hundred-year life',()=>{
+test('survived lethal check can still resolve into guard rescue instead of ending the life',()=>{
   const state=living(61),skirmish=exposed(61);state.position={x:0,z:-10};state.hp=0;state.down={elapsed:11.9,rescueSeconds:12,village:true};
   const events=tickVillageSkirmish(state,skirmish,.2);
   assert.equal(state.down,null);assert.ok(state.hp>0);assert.ok(events.some(row=>row.type==='rescued'));assert.equal(state.ended,false);
