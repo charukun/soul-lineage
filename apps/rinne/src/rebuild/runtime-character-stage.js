@@ -4,6 +4,7 @@ import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { createCoopActors } from './coop-actors.js';
 import { createKaykitCharacterPools } from './kaykit-character-pool.js';
 import { hideCarrierCombatProps, newbornCarryTransform } from './newborn-carry-presentation.js';
+import { resolveRinneCharacterRuntime } from './character-runtime-adapter.js';
 import {
   createRinneEnemyCharacter,
   createRinneHeroCharacter,
@@ -32,6 +33,13 @@ function poseHumanoid(bones,{moving=false,speed=0,combat=false,flash=0,carrier=f
     if(bones.rightLowerArm){bones.rightLowerArm.rotation.x-=.58;bones.rightLowerArm.rotation.y+=.18;}
   }
   if(flash&&bones.spine)bones.spine.rotation.z+=Math.sin(time*32)*.12*flash;
+}
+
+function syncRuntimeState(actor,input){
+  const runtime=resolveRinneCharacterRuntime(input);
+  actor.root.userData.characterRuntimeState=runtime.state;
+  actor.root.userData.characterRuntimeMotion=runtime.motion.resolvedState;
+  return runtime;
 }
 
 function createActorRoster({scene,frontRoot,characterPool}){
@@ -126,17 +134,21 @@ function renderActors({roster,heroSchedule,motherSchedule,motherMotion},life,dt)
   }else{motherActor.setVisible(false);heroActor.root.position.set(life.position.x,0,life.position.z);}
   const heroPresentation=resolveRinneRuntimeCharacter({...state.heroDescriptor,distance:0,visible:true,important:true});
   heroPresentation.appearance.dye=[...(armorDye[life.equipment.armor]||armorDye.cloth)];
+  syncRuntimeState(heroActor,{dead:Boolean(life.dead)||life.phase==='dead',hit:(Number(life.flash)||0)>0,attacking:Boolean(life.attacking),resting:Boolean(life.resting),dashing:Boolean(life.dashing),moving:carried?false:Boolean(life.moving),speed:carried?0:(life.moving?4.1:0),combat:carried?false:Boolean(life.combat),runThreshold:3});
   sampleSlot(heroActor,heroSchedule,heroPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:carried?false:life.moving,speed:carried?0:(life.moving?4.1:0),combat:carried?false:Boolean(life.combat)},time));
   const motherPresentation=resolveRinneRuntimeCharacter({...state.motherDescriptor,distance:.3,visible:carried,important:true});
+  syncRuntimeState(motherActor,{moving:motherMotion.active&&motherMotion.moving,speed:motherMotion.speed,runThreshold:3});
   sampleSlot(motherActor,motherSchedule,motherPresentation,dt,(bones,time)=>poseHumanoid(bones,{moving:motherMotion.active&&motherMotion.moving,speed:motherMotion.speed,carrier:carried},time));
   for(const enemy of state.front?.enemies||[]){
     const slot=enemyActors.get(enemy.id);if(!slot)continue;
     const distance=Math.hypot(enemy.x-life.position.x,enemy.z-life.position.z),presentation=resolveRinneRuntimeCharacter({...slot.descriptor,distance,visible:!enemy.dead,important:(state.front?.stage??0)>=5});
+    syncRuntimeState(slot.actor,{dead:Boolean(enemy.dead),hit:(Number(enemy.flash)||0)>0,attacking:Boolean(enemy.attacking),dashing:Boolean(enemy.dashing),moving:Boolean(enemy.moving),speed:enemy.moving?3.6:0,combat:true,runThreshold:3});
     sampleSlot(slot.actor,slot.schedule,presentation,dt,(bones,time)=>poseHumanoid(bones,{moving:Boolean(enemy.moving),speed:enemy.moving?3.6:0,combat:true,flash:enemy.flash||0},time));
     slot.actor.root.position.set(enemy.x,0,enemy.z);slot.actor.root.rotation.y=Number.isFinite(enemy.yaw)?enemy.yaw:0;
   }
   for(const guard of state.skirmish?.guards||[]){
     const slot=guardActors.get(guard.id);if(!slot)continue;const distance=Math.hypot(guard.x-life.position.x,guard.z-life.position.z),presentation=resolveRinneRuntimeCharacter({...slot.descriptor,distance,visible:villageOutside&&!guard.dead,important:true});
+    syncRuntimeState(slot.actor,{dead:Boolean(guard.dead),hit:(Number(guard.flash)||0)>0,attacking:Boolean(guard.attacking),dashing:Boolean(guard.dashing),moving:Boolean(guard.moving),speed:guard.moving?3.3:0,combat:true,runThreshold:3});
     sampleSlot(slot.actor,slot.schedule,presentation,dt,(bones,time)=>poseHumanoid(bones,{moving:Boolean(guard.moving),speed:guard.moving?3.3:0,combat:true,flash:guard.flash||0},time));slot.actor.root.position.set(guard.x,0,guard.z);slot.actor.root.rotation.y=Number.isFinite(guard.yaw)?guard.yaw:0;
   }
   heroActor.updateAttachments();motherActor.updateAttachments();for(const slot of enemyActors.values())slot.actor.updateAttachments();for(const slot of guardActors.values())slot.actor.updateAttachments();

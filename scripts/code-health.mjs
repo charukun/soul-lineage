@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { directDependencyCount } from './code-health-context.mjs';
 
 const CONFIG_PATH = fileURLToPath(new URL('./code-health.config.json', import.meta.url));
 
@@ -90,19 +91,6 @@ function countMatches(source, pattern) {
 
 function stripRegexLiterals(source) {
   return source.replace(/\/(?:\\.|[^\/\n])+\/[dgimsuvy]*/g, match => ' '.repeat(match.length));
-}
-
-function directDependencyCount(source) {
-  const dependencies = new Set();
-  const patterns = [
-    /(?:^|[;\n])\s*import\s+(?:[^'\"\n;]+?\s+from\s+)?['\"]([^'\"]+)['\"]/gm,
-    /(?:^|[;\n])\s*export\s+(?:\*|\{[^}]*\})\s+from\s+['\"]([^'\"]+)['\"]/gm,
-    /\brequire\s*\(\s*['\"]([^'\"]+)['\"]\s*\)/g,
-  ];
-  for (const pattern of patterns) {
-    for (const match of source.matchAll(pattern)) dependencies.add(match[1]);
-  }
-  return dependencies.size;
 }
 
 function looksLikeFunctionStart(line) {

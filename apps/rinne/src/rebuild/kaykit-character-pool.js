@@ -2,6 +2,7 @@ import { KAYKIT_DEFAULT_MODEL_ID, KAYKIT_MODELS, selectKaykitModel } from '@soul
 import { GLTFLoader } from '@soul/rendering';
 import { createMasterCharacterPool } from '@soul/rendering/master-character';
 import { kaykitHumanoidFromGLTF } from '@soul/rendering/kaykit-rig';
+import { RINNE_CHARACTER_RUNTIME } from './character-runtime-adapter.js';
 
 function fallbackModelId(actorId) {
   const text = String(actorId || 'actor');
@@ -22,7 +23,16 @@ function familyPool(templates, capacity) {
       if (owners.has(id)) throw new Error(`KayKit actor already spawned: ${id}`);
       const selected = modelId || fallbackModelId(id), pool = pools.get(selected);
       if (!pool) throw new Error(`Unknown KayKit runtime model: ${selected}`);
-      const actor = pool.spawn(id); owners.set(id, selected); actor.root.userData.characterFamily = 'kaykit.adventurers.v1'; actor.root.userData.characterModel = selected; return actor;
+      const actor = pool.spawn(id); owners.set(id, selected);
+      Object.assign(actor.root.userData, {
+        characterFamily: RINNE_CHARACTER_RUNTIME.family,
+        characterModel: selected,
+        characterRuntimeAdapter: RINNE_CHARACTER_RUNTIME.id,
+        characterRuntimeFormat: RINNE_CHARACTER_RUNTIME.format,
+        characterRuntimeRig: RINNE_CHARACTER_RUNTIME.rigFamily,
+        characterRuntimeState: RINNE_CHARACTER_RUNTIME.resolveState()
+      });
+      return actor;
     },
     despawn(id) {
       const modelId = owners.get(id); if (!modelId) return false;

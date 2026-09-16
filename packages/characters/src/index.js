@@ -74,5 +74,6 @@ export * from './reference-archetypes.js';
 export * from './reference-intelligence.js';
 export * from './production-pipeline.js';
 export * from './runtime-asset-audit.js';
+export * from './runtime-character-contract.js';
 export * from './art-direction.js';
 export * from './material-library.js';
