@@ -1,4 +1,5 @@
 import { defaultMuraLayout, muraEntry, defs, validateMuraLayout } from '@soul/world/mura';
+import { createRinneBirthVillage } from './birth-village.js';
 
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const built=(layout,kinds)=>layout.objects.find(o=>o.phase==='built'&&kinds.includes(o.kind));
@@ -41,7 +42,14 @@ function place(layout,id,kinds,label,activity=null,radius=2.4,topicId=null){
   return {id,entityId:object?.id||fallback?.id||null,facilityKind:object?.kind||kinds[0]||null,topicId,label:object?defs[object.kind]?.label||label:label,x:position.x,z:position.z,activity,actionLabel:label,radius,fallback:!object};
 }
 
-export function normalizeLayout(raw){return ensurePlayableVillage(raw?validateMuraLayout(raw):defaultMuraLayout());}
+function isBareLocalMura(layout){
+  if(layout.__sharedWorldCode||layout.id!=='local-hoshitsugi'||layout.revision!==0||layout.objects.length!==3)return false;
+  const ids=new Set(layout.objects.map(object=>object.id));return ['b1','b2','b3'].every(id=>ids.has(id));
+}
+export function normalizeLayout(raw){
+  const validated=raw?validateMuraLayout(raw):defaultMuraLayout();
+  return ensurePlayableVillage(isBareLocalMura(validated)?createRinneBirthVillage():validated);
+}
 
 function entryStation(object){
   const entry=muraEntry(object),dx=entry.x-object.x,dz=entry.z-object.z,len=Math.max(.001,Math.hypot(dx,dz)),def=defs[object.kind],insideZ=Math.max(0,(def?.d||10)/2-2.4);
