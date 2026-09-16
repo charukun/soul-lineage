@@ -9,6 +9,7 @@ export * from './presentation-resolver.js';
 export * from './visual-identity.js';
 export * from './reference-models.js';
 export * from './model-builder.js';
+export * from './refinement-policy.js';
 export * from './age-identity-continuity.js';
 export * from './reference-archetypes.js';
 export * from './reference-intelligence.js';

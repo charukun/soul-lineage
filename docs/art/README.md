@@ -36,6 +36,19 @@ A request such as "improve the model" must not be completed by changing only lig
 
 Use real editable assets, preserve already-approved work, and make local changes before broad rewrites. If a requested tool path is unavailable, check another allowed path before declaring the task impossible. Blender MCP is one possible Blender control path, not the definition of Blender availability and not a reason to substitute a primitive mock-up for the requested asset.
 
+## Minimal character refinement loop
+
+For short-term quality improvement while generation quality is still uneven, prefer a small repeatable loop over free-form regeneration:
+
+1. Reuse the current reviewed DCC/source asset as the base when it is compatible; do not restart the whole character by default.
+2. Compare the same candidate in fixed `front`, `three-quarter`, `side`, and `back` views.
+3. Check the repository's small structural checklist for silhouette/proportion, side profile, joint readability, hands, hair consistency, and back-view identity.
+4. Repair only failed regions and preserve regions that already pass.
+5. Repeat for at most three refinement rounds. Remaining failures stay explicit instead of being hidden by another camera/light setup.
+6. Search external/open-source references only for the unresolved failing part, with provenance/license review before reuse. Replacing the whole model is a fallback, not the first response.
+
+The provider-neutral model build request and Character Workshop QA should expose the same checklist and three-round limit so humans and implementation workers review the same contract. This loop does not grant visual approval or advance Character Production stages by itself.
+
 ## External technique reference
 
 Non-normative reference checked 2026-09-13:
