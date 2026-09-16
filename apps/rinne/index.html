@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="./src/rebuild/button-help.css">
   <link rel="stylesheet" href="./src/title-screen.css">
   <link rel="stylesheet" href="./src/title-rich.css">
+  <link rel="stylesheet" href="./src/title-loading-screen.css">
   <link rel="stylesheet" href="./src/life-confirm.css">
   <link rel="stylesheet" href="./src/native-ui-polish.css">
   <link rel="stylesheet" href="./src/consumer-game-surfaces.css">
@@ -57,9 +58,10 @@
     <div id="actor-status-layer" class="actor-status-layer" aria-hidden="true"></div>
     <div id="chapter-mark" class="chapter-mark" hidden aria-hidden="true"><span>輪廻転焦</span><strong id="chapter-title"></strong><i></i></div>
     <div id="loading-card" class="loading-card" aria-live="polite">
+      <img class="loading-world-art" src="./title-assets/world-loading.webp" alt="" aria-hidden="true" fetchpriority="high" decoding="async">
       <div class="loading-emblem" aria-hidden="true"><span></span><i></i></div>
       <strong id="loading-title">世界をつくっています</strong>
-      <small id="loading-message">人生の入口を開いています</small>
+      <small id="loading-message">景色を描いています</small>
       <div class="loading-dots" aria-hidden="true"><i></i><i></i><i></i></div>
       <button id="boot-retry" class="primary loading-retry" type="button" hidden><strong>もう一度</strong><small>世界を開き直す</small></button>
     </div>
