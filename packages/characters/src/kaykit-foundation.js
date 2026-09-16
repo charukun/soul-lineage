@@ -41,7 +41,9 @@ export const KAYKIT_MODELS = Object.freeze([
 
 export const KAYKIT_MODEL_BY_ID = Object.freeze(Object.fromEntries(KAYKIT_MODELS.map(row => [row.id, row])));
 export const KAYKIT_MODEL_BY_KEY = Object.freeze(Object.fromEntries(KAYKIT_MODELS.map(row => [row.key, row])));
-export const KAYKIT_DEFAULT_MODEL_ID = KAYKIT_MODEL_BY_KEY.knight.id;
+// The Rinne title reference favors a hair-visible, lightly equipped young adventurer silhouette.
+// Rogue is already pinned, CC0, Rig_Medium-compatible and repository-local, so no mutable external runtime URL is introduced.
+export const KAYKIT_DEFAULT_MODEL_ID = KAYKIT_MODEL_BY_KEY.rogue.id;
 
 export const KAYKIT_FOUNDATION = Object.freeze({
   id: KAYKIT_FAMILY_ID,
@@ -70,9 +72,9 @@ export function kaykitModel(id = KAYKIT_DEFAULT_MODEL_ID) {
 
 export function selectKaykitModel({ kind = 'actor', key = '', index = 0 } = {}) {
   if (kind === 'mother') return KAYKIT_MODEL_BY_KEY['rogue-hooded'];
-  if (kind === 'hero') return KAYKIT_MODEL_BY_KEY.knight;
+  if (kind === 'hero') return KAYKIT_MODEL_BY_KEY.rogue;
   const pool = kind === 'enemy'
-    ? [KAYKIT_MODEL_BY_KEY.barbarian, KAYKIT_MODEL_BY_KEY.mage, KAYKIT_MODEL_BY_KEY.rogue, KAYKIT_MODEL_BY_KEY['rogue-hooded']]
+    ? [KAYKIT_MODEL_BY_KEY.knight, KAYKIT_MODEL_BY_KEY.barbarian, KAYKIT_MODEL_BY_KEY.mage, KAYKIT_MODEL_BY_KEY['rogue-hooded']]
     : KAYKIT_MODELS;
   return pool[(hash(`${key}:${index}`) + Math.max(0, Number(index) || 0)) % pool.length];
 }
