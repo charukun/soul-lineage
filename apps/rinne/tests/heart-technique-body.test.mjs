@@ -12,7 +12,7 @@ function living(){const state=createLife({name:'検証',seed:77});state.phase='l
 
 test('legacy skill weights migrate into one combo while newly learned hearts wait to be set',()=>{
   const state=living();state.knownSkills.push('skill.balance','action.guard-step');state.skillWeights.jo={'action.guard-step':100};ensureCombatLoadout(state);
-  assert.equal(state.combatLoadout.technique.combos.length,1);assert.equal(state.combatLoadout.technique.combos[0].slots.jo,'action.guard-step');assert.deepEqual(learnedHeartSkills(state),['skill.balance']);assert.deepEqual(state.combatLoadout.heart.active,['skill.balance']);
+  assert.equal(state.combatLoadout.technique.combos.length,1);assert.equal(state.combatLoadout.technique.combos[0].id,'combo-1');assert.equal(state.combatLoadout.technique.combos[0].slots.jo,'action.guard-step');assert.deepEqual(learnedHeartSkills(state),['skill.balance']);assert.deepEqual(state.combatLoadout.heart.active,['skill.balance']);
   state.knownSkills.push('skill.focus');ensureCombatLoadout(state);assert.equal(state.combatLoadout.heart.active.includes('skill.focus'),false);
 });
 

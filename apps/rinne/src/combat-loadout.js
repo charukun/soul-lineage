@@ -34,7 +34,7 @@ const actionIds=state=>[basicSkill(state),...(state?.knownSkills||[]).filter(id=
 const learned=row=>state=>!row.requiresAny.length||row.requiresAny.some(id=>knownSet(state).has(id));
 function phaseFromLegacy(state,phase){const id=Object.entries(state?.skillWeights?.[phase]||{}).filter(([,value])=>Number(value)>0).sort((a,b)=>Number(b[1])-Number(a[1]))[0]?.[0];return isAction(state,id)?id:basicSkill(state);}
 function makeCombo(state,index=0,source=null){
-  const id=source?.id||`combo-${Date.now().toString(36)}-${index}`;
+  const id=source?.id||`combo-${index+1}`;
   return{id,name:String(source?.name||COMBO_NAMES[index]||`第${index+1}連`).slice(0,12),slots:{jo:isAction(state,source?.slots?.jo)?source.slots.jo:phaseFromLegacy(state,'jo'),ha:isAction(state,source?.slots?.ha)?source.slots.ha:phaseFromLegacy(state,'ha'),kyu:isAction(state,source?.slots?.kyu)?source.slots.kyu:phaseFromLegacy(state,'kyu')},favored:PHASES.map(([phase])=>phase).filter(phase=>Boolean(source?.favored?.[phase]||source?.favored?.includes?.(phase))).reduce((out,phase)=>(out[phase]=true,out),{})};
 }
 function optionUnlocked(state,option){return learned(option)(state);}
@@ -55,7 +55,7 @@ export function techniqueName(id){return SKILL_BY_ID[id]?.name||BASIC_LABELS[id]
 export function activeCombo(state){const loadout=state?.combatLoadout||ensureCombatLoadout(state);return loadout?.technique?.combos?.find(row=>row.id===loadout.technique.activeComboId)||loadout?.technique?.combos?.[0]||null;}
 export function comboById(state,id){ensureCombatLoadout(state);return state.combatLoadout.technique.combos.find(row=>row.id===id)||activeCombo(state);}
 export function setHeartActive(state,id,active){const loadout=ensureCombatLoadout(state);if(!supportIds(state).includes(id))return false;const set=new Set(loadout.heart.active);active?set.add(id):set.delete(id);loadout.heart.active=[...set];return true;}
-export function addCombo(state){const loadout=ensureCombatLoadout(state),rows=loadout.technique.combos;if(rows.length>=MAX_COMBOS)return null;const source=activeCombo(state),combo=makeCombo(state,rows.length,{slots:{...source.slots}});rows.push(combo);return combo;}
+export function addCombo(state){const loadout=ensureCombatLoadout(state),rows=loadout.technique.combos;if(rows.length>=MAX_COMBOS)return null;const source=activeCombo(state),ids=new Set(rows.map(row=>row.id));let serial=1;while(ids.has(`combo-${serial}`))serial++;const combo=makeCombo(state,rows.length,{id:`combo-${serial}`,slots:{...source.slots}});rows.push(combo);return combo;}
 export function removeCombo(state,id){const loadout=ensureCombatLoadout(state),rows=loadout.technique.combos;if(rows.length<=1)return false;const index=rows.findIndex(row=>row.id===id);if(index<0)return false;rows.splice(index,1);if(loadout.technique.activeComboId===id)loadout.technique.activeComboId=rows[0].id;mirrorLegacy(state);return true;}
 export function setActiveCombo(state,id){const loadout=ensureCombatLoadout(state);if(!loadout.technique.combos.some(row=>row.id===id))return false;loadout.technique.activeComboId=id;mirrorLegacy(state);return true;}
 export function setComboSkill(state,comboId,phase,skill){const combo=comboById(state,comboId);if(!combo||!PHASES.some(([id])=>id===phase)||!isAction(state,skill))return false;combo.slots[phase]=skill;if(combo.id===state.combatLoadout.technique.activeComboId)mirrorLegacy(state);return true;}

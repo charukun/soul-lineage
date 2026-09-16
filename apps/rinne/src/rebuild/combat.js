@@ -29,7 +29,7 @@ export function normalizeFront(raw,stage=0,seed=1){
   if(!raw)return createFront(stage,seed);
   if(!Number.isInteger(raw.stage)||raw.stage<0||raw.stage>5||raw.stage!==stage||!Array.isArray(raw.enemies)||raw.enemies.length<1||raw.enemies.length>6)throw Error('前線の保存データが不正です。');
   const ids=new Set(),enemies=raw.enemies.map(e=>{
-    if(!e||typeof e.id!=='string'||e.id.length>80||ids.has(e.id)||!finite(e.x,-20,20)||!finite(e.z,-20,20)||!finite(e.maxHp,1,1000)||!finite(e.hp,0,e.maxHp)||typeof e.dead!=='boolean'||!finite(e.cooldown,-30,30))throw Error('前線の保存データが不正です。');
+    if(!e||typeof e.id!=='string'||e.id.length>80||ids.has(e.id)||!finite(e.x,-20,20)||!finite(e.z,-20,20)||!finite(e.maxHp,1,1000)||!finite(e.hp,0,e.maxHp)||typeof e.dead!=='boolean'||!finite(e.cooldown,-30,30))throw Error('前線の敵データが不正です。');
     ids.add(e.id);const fallback=enemyDefaults(e.id,e.x,e.z);
     return{id:e.id,x:e.x,z:e.z,hp:e.hp,maxHp:e.maxHp,dead:e.dead,cooldown:e.cooldown,flash:finite(e.flash,0,1)?e.flash:0,yaw:Number.isFinite(e.yaw)?wrapAngle(e.yaw):fallback.yaw,attackWindow:finite(e.attackWindow,0,3)?e.attackWindow:0,moving:false};
   });
