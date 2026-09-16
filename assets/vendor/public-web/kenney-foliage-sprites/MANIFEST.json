@@ -1,0 +1,50 @@
+{
+  "sourceId": "kenney-foliage-sprites",
+  "provider": "Kenney",
+  "license": "CC0-1.0",
+  "repository": "shorepine/kenney",
+  "commit": "3694c6879e487c108f55677be7dd2ca75b07cc3b",
+  "sourcePath": "2d/Foliage Sprites/",
+  "files": [
+    {
+      "path": "assets/vendor/public-web/kenney-foliage-sprites/flat/sprite_0001.png",
+      "sha256": "f68634c0a094efc987991705a1d971ab4e348a85a5b39dbca2d972425d0ea0c8",
+      "gitBlob": "6e27aa5f0c2f53a4bceb746be4c513a0a87e3659"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-foliage-sprites/flat/sprite_0002.png",
+      "sha256": "518ace9326c52dd86badb8d6f1b2118dfb20d68b21f8d7c8a570233dd63d0a2f",
+      "gitBlob": "a94d8afcf1799acfd2e161b1f8209688567493fb"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-foliage-sprites/flat/sprite_0003.png",
+      "sha256": "e0dba945e2e752d707b5da28037ae8c6c93b0efb17d6c52ced77a58f0f124333",
+      "gitBlob": "4674967ab59443bd25fd3a10cd3f9994c5d844cc"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-foliage-sprites/flat/sprite_0004.png",
+      "sha256": "952c2492a076dacdcd8ed6da68986e5da2ed3802673029a22ea8b23796ebf87f",
+      "gitBlob": "62f0614ec3381d518407f1df0cdc4f4ab1899344"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-foliage-sprites/shaded/sprite_0052.png",
+      "sha256": "0b6d85d1700c54ad5bcbb49785105358a05a77eddc2f836dd72144eeabfccc87",
+      "gitBlob": "0af730f9268fa40f64a6d7d24ac4a769011fc69b"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-foliage-sprites/shaded/sprite_0053.png",
+      "sha256": "3e7bdeae8533e6747dc2168992ce499df4e5dd6c06bfeaa2bc47df6cdde9f79b",
+      "gitBlob": "23a5db4ab657ef4c731c18ec14e9d3ce3791934b"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-foliage-sprites/shaded/sprite_0054.png",
+      "sha256": "50067bdd72464cf836c2ff001cac2f7cd9ef1f3e00031a33b635504752367acc",
+      "gitBlob": "ac534dc5d9cdfcecdfb41ced4333599b70b806ee"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-foliage-sprites/shaded/sprite_0055.png",
+      "sha256": "fb8ef03465d66688501a4b4dd349af79f78b3b68f6e9c51d5860906f18d9bf38",
+      "gitBlob": "2965299cd5fcf431802ebbc6a7be3018acd7deca"
+    }
+  ]
+}
