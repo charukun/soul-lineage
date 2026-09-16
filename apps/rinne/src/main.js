@@ -147,7 +147,7 @@ $('coop-leave').addEventListener('click',()=>{$('back-title').click();});
 let movementHelpTimer=0;
 $('move-hint').addEventListener('click',()=>{
   const held=$('move-hint').textContent.includes('母'),node=$('toast');
-  node.textContent=held?'抱っこ中も画面をスワイプすると、母に抱かれたまま村を見て回れます。':'スワイプで移動。下の「走」を押しながら移動でダッシュ、画面長押しで休憩します。';
+  node.textContent=held?'抱っこ中も画面をスワイプすると、母に抱かれたまま村を見て回れます。':'スワイプで移動。素早くフリックするとダッシュ、画面長押しで休憩します。';
   node.hidden=false;clearTimeout(movementHelpTimer);movementHelpTimer=setTimeout(()=>{node.hidden=true;},3200);
 });
 
