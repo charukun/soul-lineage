@@ -1,3 +1,4 @@
+import {muraSharedLine} from '@soul/world/mura/dialogue';
 import {createActorStatus} from './actor-status.js';
 import {birthTourPace,createBirthTour} from './birth-tour.js';
 import {nearestStation} from './locations.js';
@@ -49,9 +50,9 @@ export function createBirthExperience({document,canvas,gameScreen,view,stations,
   }
   function showIntro(){
     if(!active())return;tour.reset();stuck=0;carrierSpeed=0;introRemaining=2.5;gameScreen.dataset.birthTour='true';status.show('抱っこされている…');
-    clearTimeout(introTimer);introTimer=setTimeout(()=>{const state=getState();if(active())dialogue('母',`${state.name}、お外は初めてだね。今日は一緒に村を見てまわろう。`);},650);
+    clearTimeout(introTimer);introTimer=setTimeout(()=>{const state=getState(),line=muraSharedLine('first-outing');if(active()&&line)dialogue('母',`${state.name}、${line}`);},650);
   }
-  function release(){clearTimeout(introTimer);introRemaining=0;carrierSpeed=0;view.setCarrierMotion?.({active:false,moving:false,speed:0});gameScreen.dataset.birthTour='false';status.show('自分の足で歩けるようになった');dialogue('母','さあ、地面へ。今日からは自分の足で歩けるよ。');}
+  function release(){clearTimeout(introTimer);introRemaining=0;carrierSpeed=0;view.setCarrierMotion?.({active:false,moving:false,speed:0});gameScreen.dataset.birthTour='false';status.show('自分の足で歩けるようになった');const line=muraSharedLine('walk-alone');if(line)dialogue('母',line);}
   function dispose(){clearTimeout(introTimer);introRemaining=0;carrierSpeed=0;view.setCarrierMotion?.({active:false,moving:false,speed:0});status.dispose();gameScreen.dataset.birthTour='false';}
   return{active,step,afterRender,showIntro,release,floatStatus:status.show,dispose,tour,pace};
 }
