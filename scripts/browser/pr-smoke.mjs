@@ -89,6 +89,52 @@ async function stopPreview(preview) {
   for (let attempt = 0; attempt < 20 && preview.exitCode === null; attempt++) await delay(50);
 }
 
+async function captureProtagonistVisualReview(browser, baseURL) {
+  const context = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+  const page = await context.newPage();
+  const errors = [], failedRequests = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  page.on('requestfailed', request => failedRequests.push({ url: request.url(), failure: request.failure()?.errorText || 'failed' }));
+  try {
+    const reviewURL = new URL('./review.html', baseURL).href;
+    const response = await page.goto(reviewURL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    if (!response?.ok()) throw new Error(`Visual Review returned HTTP ${response?.status()}`);
+    await page.locator('[data-view="motion"]').click();
+    const iframe = page.locator('[data-panel="motion"] iframe');
+    await iframe.waitFor({ state: 'visible', timeout: 30000 });
+    const handle = await iframe.elementHandle();
+    const frame = await handle?.contentFrame();
+    if (!frame) throw new Error('Visual Review motion iframe did not attach');
+    await frame.waitForFunction(() => window.characterStudio?.workspace?.modelId === 'protagonist.villager.v1', null, { timeout: 90000 });
+    await frame.waitForFunction(() => window.masterCharacterReview?.ready === true && document.querySelector('#capabilities')?.textContent?.includes('4f95570f'), null, { timeout: 90000 });
+    await frame.locator('#qa-start').click();
+    await frame.waitForFunction(() => window.masterCharacterReview?.motionQA?.active === true, null, { timeout: 90000 });
+    await frame.evaluate(() => window.masterCharacterReview.motionQA.seek(13.97));
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: resolve(resultDir, 'rinne-visual-review-protagonist-draw.png'), fullPage: true });
+    await frame.locator('.canvas-wrap').screenshot({ path: resolve(resultDir, 'rinne-protagonist-motion-draw.png') });
+    await frame.evaluate(() => window.masterCharacterReview.motionQA.seek(17.475));
+    await page.waitForTimeout(200);
+    await frame.locator('.canvas-wrap').screenshot({ path: resolve(resultDir, 'rinne-protagonist-motion-slash.png') });
+    const state = await frame.evaluate(() => ({
+      modelId: window.characterStudio.workspace.modelId,
+      motion: window.masterCharacterReview.motionQA.snapshot(),
+      status: document.querySelector('#qa-status')?.textContent || '',
+      capabilities: document.querySelector('#capabilities')?.textContent || '',
+    }));
+    writeFileSync(resolve(resultDir, 'rinne-protagonist-motion-review.json'), JSON.stringify({ success: true, reviewURL, state, errors, failedRequests }, null, 2));
+    if (errors.length || failedRequests.length) throw new Error(`Protagonist Visual Review browser errors: ${JSON.stringify({ errors, failedRequests })}`);
+    console.log('PROTAGONIST VISUAL REVIEW CAPTURED', JSON.stringify({ modelId: state.modelId, frame: state.motion.frame }));
+  } catch (error) {
+    await page.screenshot({ path: resolve(resultDir, 'rinne-protagonist-motion-failure.png'), fullPage: true }).catch(() => {});
+    writeFileSync(resolve(resultDir, 'rinne-protagonist-motion-review.json'), JSON.stringify({ success: false, error: String(error), errors, failedRequests }, null, 2));
+    throw error;
+  } finally {
+    await context.close();
+  }
+}
+
 for (const app of apps) {
   const port = ports[app];
   if (!port) throw new Error(`Missing preview port for ${app}`);
@@ -199,6 +245,9 @@ for (const app of apps) {
     if (app === 'rinne' && /^(apps\/rinne\/public\/simulator\/src\/(?:authored-slash|game-hooks|humanoid|motion-)|apps\/rinne\/tests\/humanoid-|packages\/animations\/src\/(?:gameplay-motion-quality|motion-)|packages\/animations\/tests\/motion-)/m.test(changed)) {
       const { verifyCharacterMotionQA } = await import('../../apps/rinne/tests/character-motion-qa.browser.mjs');
       await verifyCharacterMotionQA(browser, url, resolve(root, 'test-results/pr-browser'));
+    }
+    if (app === 'rinne' && /(?:PROTAGONIST_VILLAGER_V1|protagonist-villager-v1|motion-review-entrypoint|reference-model-catalog)/.test(changed)) {
+      await captureProtagonistVisualReview(browser, url);
     }
     receipt.completedApps.push(app);
     writeReceipt();
