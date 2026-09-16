@@ -4,17 +4,21 @@ import {aggregateRrpPerformanceSamples} from '../src/game/reality-lab/performanc
 import {createCoopPerformanceProbe} from '../src/coop/performance.js';
 import {createRoomWire} from '../src/coop/wire.js';
 
-test('input and canon timers measure the applied input and irreversible acknowledgement',()=>{
+test('input and canon timers measure the applied input acknowledgement and irreversible acknowledgement',()=>{
   let clock=0;const probe=createCoopPerformanceProbe({now:()=>clock});
   probe.inputSent(1);clock=40;probe.inputSent(2);clock=125;assert.equal(probe.inputAcknowledged(2),true);
   probe.canonIntent('life:1');clock=325;assert.equal(probe.canonCommitted('life:1'),true);
-  const raw=probe.snapshot();assert.deepEqual(raw.inputToDisplayMs,[85]);assert.deepEqual(raw.canonCommitMs,[200]);assert.equal(raw.pendingInputs,0);assert.equal(raw.pendingCanon,0);
+  const raw=probe.snapshot();assert.deepEqual(raw.inputToAuthoritativeAckMs,[85]);assert.deepEqual(raw.inputToDisplayMs,[]);assert.deepEqual(raw.canonCommitMs,[200]);assert.equal(raw.pendingInputs,0);assert.equal(raw.pendingCanon,0);
 });
 
 test('aborted input and canon intents do not create latency samples',()=>{
   let clock=0;const probe=createCoopPerformanceProbe({now:()=>clock});
   probe.inputSent(1);assert.equal(probe.inputAborted(1),true);probe.canonIntent('life:1');assert.equal(probe.canonAborted('life:1'),true);clock=100;probe.inputAcknowledged(1);
-  const raw=probe.snapshot();assert.deepEqual(raw.inputToDisplayMs,[]);assert.deepEqual(raw.canonCommitMs,[]);
+  const raw=probe.snapshot();assert.deepEqual(raw.inputToAuthoritativeAckMs,[]);assert.deepEqual(raw.canonCommitMs,[]);
+});
+
+test('render latency stays separate until a render layer records it',()=>{
+  const probe=createCoopPerformanceProbe();probe.recordInputToDisplay(123);const raw=probe.snapshot();assert.deepEqual(raw.inputToDisplayMs,[123]);
 });
 
 test('wire instrumentation counts UTF-8 payload bytes and DataChannel queue pressure without changing framing',()=>{
