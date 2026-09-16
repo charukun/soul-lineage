@@ -13,7 +13,7 @@ function directionLabel(player,npc){
 export function abilityNudge(role){
  return ({
   traveller:'命の余熱。次の捕食では、傷がさらに深く癒える。',
-  bellkeeper:'声喰い。次の狩りでは、村の警戒が上がりにくい。',
+  bellkeeper:'声喰い。気配と悲鳴が薄れ、近くの村人に見つかりにくくなる。',
   smith:'鉄砕く腕。正面の木柵へ押し続ければ、道をこじ開けられる。',
   hunter:'血の嗅覚。嗅覚を押さなくても、近い獲物を見失いにくい。',
   gravekeeper:'墓道の記憶。礼拝所の裏に、別の帰還口が開いている。',
@@ -52,8 +52,8 @@ export function firstHuntDirectorState(snapshot){
   return{active:true,stage:'approach',guide:'近い人影へ。指を滑らせるだけで戦いは始まる。',preyId:prey?.id,objectiveKicker:'最初の獲物',objective:kind?`${kind.name} · ${kind.power}`:'近い人影を追え',choices:[]};
  }
  if(eaten===1){
-  const role=(snapshot.npcs||[]).find(n=>n.eaten)?.role||(profile.unlocked||[]).at(-1),choice=candidates(snapshot);
-  return{active:true,stage:'choice',guide:`${abilityNudge(role)} 次は選べ。喰う相手で、次の身体が変わる。`,objectiveKicker:'次の獲物は選べ',objective:'喰う相手で身体が変わる',choices:choice};
+  const role=(snapshot.npcs||[]).find(n=>n.eaten)?.role||(profile.unlocked||[]).at(-1),choice=candidates(snapshot),learned=(profile.unlocked||[]).includes(role);
+  return{active:true,stage:'choice',guide:`${learned?abilityNudge(role):'身体は少し育ったが、人の性質はまだ刻まれていない。'} 次は選べ。喰う相手で、次の身体が変わる。`,objectiveKicker:'次の獲物は選べ',objective:'喰う相手で身体が変わる',choices:choice};
  }
  return{active:true,stage:'free',guide:'もう分かった。狙った命を追うか、今の身体を持ち帰るか。',choices:[]};
 }
@@ -114,9 +114,7 @@ export function installFirstHuntDirector(){
    const unlocked=new Set(snapshot.profile?.unlocked||[]),eaten=Number(snapshot.eaten)||0;
    if(state.active&&eaten>previousEaten){
     const added=[...unlocked].filter(role=>!previousUnlocked.has(role));
-    const freshlyEaten=(snapshot.npcs||[]).find(n=>n.eaten&&!previous?.npcs?.find(old=>old.id===n.id)?.eaten);
-    const role=freshlyEaten?.role||added.at(-1)||(snapshot.profile?.unlocked||[]).at(-1);
-    gainUntil=showGain(ui.gain,role)||gainUntil;
+    if(added.length)gainUntil=showGain(ui.gain,added.at(-1))||gainUntil;
    }
    previousEaten=eaten;previousUnlocked=unlocked;previous=snapshot;
   }
