@@ -100,11 +100,12 @@ export function normalChatRepairPrompt({ repository, state, pr, ciFailure }) {
   const task = ciFailure ? `PR #${pr.number} exact-head CI source repair` : `PR #${pr.number} semantic conflict repair`;
   return `Repository: ${repository}\n\n` +
     `GitHub上の意味的競合/CI source repairを通常Chatで修復してください。Work / Codex / OpenAI API /追加の有料APIは使わないでください。\n\n` +
-    `復旧座標は sourceKey \`${state.sourceKey}\`、source PR #${pr.number}、記録head \`${state.head}\`、記録develop \`${state.develop}\` です。これらは開始座標であり正本ではありません。最初に現在のGitHub状態、current PR head、latest developを再取得してください。\n\n` +
+    `復旧座標は sourceKey \`${state.sourceKey}\`、source PR #${pr.number}、記録head \`${state.head}\`、記録develop \`${state.develop}\` です。これらは開始座標であり正本ではありません。最初にsourceKeyで同じGitHub Issueを取得し、現在のGitHub状態、current PR head、latest developを再取得してください。\n\n` +
+    `Issueの \`integration-deep-repair:v1\` を再読し、closed / human-required / attempt上限ならコードを変更せず停止してください。別のclaimが \`working\` なら並行修復しないでください。\`pending\` なら編集前に同じIssueを \`state=working\`、\`attempt+1\`、\`claimedBy=normal-chat\`、\`claimedAt=<current ISO time>\` へ更新し、再取得して自分のclaimを確認してから作業してください。\n\n` +
     `最新develop SHA → AGENTS.md → checkoutがあれば \`npm run context:plan -- --task "${task}"\` → 必要文書だけ、の順で確認してください。過去チャット全文、全docs、巨大diff、全CIログを初期投入しないでください。\n\n` +
     `source PR側の意図とcurrent develop側の意図、関連する確定仕様・テストを読み、両立できる意図は両方残してください。無条件ours/theirs、blind cherry-pick、assertion削除、品質gate弱体化は禁止です。真のproduct/schema/save/protocol判断が必要で現在の契約から解けない場合だけ、このIssueをhuman-requiredにして必要な判断を具体化してください。\n\n` +
     `修復先は既存source PR branchだけです。通常git → 接続済みGitHub API → 必要時のみ同じbranchの既存Codespaces＋通常gitの順で経路を選び、1経路の失敗だけで停止しないでください。force pushは禁止です。\n\n` +
-    `必要なfocused checkとfast validationを行い、検証済み修復を同じPRへpushしてください。Issueへrepair headと検証結果を記録し、PRをReady for review → READY_FOR_INTEGRATIONまで戻してください。CI/browser/DEV完了は待機・pollingしないでください。main / Productionは変更しないでください。`;
+    `必要なfocused checkとfast validationを行い、検証済み修復を同じPRへpushしてください。push後は自分がclaimした同じIssueを \`state=ready-for-integration\` に更新し、\`repairHead\` と検証結果を記録してください。PRをReady for review → READY_FOR_INTEGRATIONまで戻してください。CI/browser/DEV完了は待機・pollingしないでください。main / Productionは変更しないでください。`;
 }
 
 function chatRepairSection({ repository, state, pr, develop, reason, repairKind, ciFailure }) {
