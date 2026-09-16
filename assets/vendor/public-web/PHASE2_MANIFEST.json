@@ -1,0 +1,157 @@
+{
+  "auditDate": "2026-09-16",
+  "files": [
+    {
+      "path": "assets/vendor/public-web/kenney-interface-sounds/ui/confirm.wav",
+      "providerRepository": "Calinou/kenney-interface-sounds",
+      "commit": "4596a49eaf5a533948d49a47467f606bcdea70ff",
+      "gitBlob": "57b0731148815280947db27a3015c483c3fa24e7",
+      "sha256": "f9d0ef5a5c740c2ac250ac3876db9e4340669044a5bf78ae09192918db3e2ebc",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-interface-sounds/ui/error.wav",
+      "providerRepository": "Calinou/kenney-interface-sounds",
+      "commit": "4596a49eaf5a533948d49a47467f606bcdea70ff",
+      "gitBlob": "edcf344ee212d13797f250eb5649ce55c655d825",
+      "sha256": "d77546b0baa89f37eca6b86f59b54a654ce5afe3d5a73492d0963168cc4ab5bf",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-interface-sounds/ui/select.wav",
+      "providerRepository": "Calinou/kenney-interface-sounds",
+      "commit": "4596a49eaf5a533948d49a47467f606bcdea70ff",
+      "gitBlob": "9b87d500823213ccb556b286bef7164a44fcabe1",
+      "sha256": "3d9e86003f8ebd1a3f6f3d8af65b6b682562a46d532ccd204dcba21305b950ff",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-interface-sounds/ui/click.wav",
+      "providerRepository": "Calinou/kenney-interface-sounds",
+      "commit": "4596a49eaf5a533948d49a47467f606bcdea70ff",
+      "gitBlob": "f7378a24b790c2ee6340db66c849e617bd315966",
+      "sha256": "ea67c9d78750e5a356bf53ef8c2063b52cc3ccdae6ae8afeec87f97f79ae692d",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-interface-sounds/ui/toggle.wav",
+      "providerRepository": "Calinou/kenney-interface-sounds",
+      "commit": "4596a49eaf5a533948d49a47467f606bcdea70ff",
+      "gitBlob": "ff8109f06391972f86fa391403b429739d2f8386",
+      "sha256": "9eb9b937ff6f0790b00a523084e51669bc4675b13ca80d91e8fcf9eb1b5ca174",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-impact-sounds/combat/metal-heavy.ogg",
+      "providerRepository": "Boyquotes/kenney-impact-sounds-for-godot",
+      "commit": "999dd1684873f8b020a3aa5b26e713da21688924",
+      "gitBlob": "d4432f48b6ff5b4a501045ef0b8068963ef5530d",
+      "sha256": "e07045693e4a2b3d165c424e3dab4c781d9ff8880a386880ac89a51315d7f831",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-impact-sounds/combat/punch-medium.ogg",
+      "providerRepository": "Boyquotes/kenney-impact-sounds-for-godot",
+      "commit": "999dd1684873f8b020a3aa5b26e713da21688924",
+      "gitBlob": "d8e0b890ae019533ec190dd2d1decce249ea556e",
+      "sha256": "486988aa2d6440ffc4c62a0e8ccf3c23673ba84424bd4723378d451b7255eb5c",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-impact-sounds/combat/wood-heavy.ogg",
+      "providerRepository": "Boyquotes/kenney-impact-sounds-for-godot",
+      "commit": "999dd1684873f8b020a3aa5b26e713da21688924",
+      "gitBlob": "30fb995aab49d70e51b0c3a226fa45301ad4f760",
+      "sha256": "15ff82332f342c30e469215539e1cc57e11b221aa2cf7e11e811d313a9927f3d",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-impact-sounds/combat/generic-light.ogg",
+      "providerRepository": "Boyquotes/kenney-impact-sounds-for-godot",
+      "commit": "999dd1684873f8b020a3aa5b26e713da21688924",
+      "gitBlob": "d0a32de2dfbe38e19e0297a047c7dfc77a7ab487",
+      "sha256": "f0e982611e97512fee5f777986b67e8b435434b601f94992ec044f7e89fb5acb",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-impact-sounds/footsteps/grass.ogg",
+      "providerRepository": "Boyquotes/kenney-impact-sounds-for-godot",
+      "commit": "999dd1684873f8b020a3aa5b26e713da21688924",
+      "gitBlob": "5b5ec879a5ca457d18ad01a81af805409e35207f",
+      "sha256": "9d49497777405d78d7cf7f2888e28277f3a23192300cfd1d79d54876b20f479f",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-impact-sounds/footsteps/wood.ogg",
+      "providerRepository": "Boyquotes/kenney-impact-sounds-for-godot",
+      "commit": "999dd1684873f8b020a3aa5b26e713da21688924",
+      "gitBlob": "1a519c74dc71da391a93e033aa63eb641da80dd9",
+      "sha256": "5f1c252942a220d658121bd9417448cd19649ded9fff2ff15f6e50899373ce8e",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-particle-pack/vfx/spark.png",
+      "providerRepository": "Calinou/kenney-particle-pack",
+      "commit": "ab7086639ee73be31abd87feb21bf1402d4e8144",
+      "gitBlob": "6eaf328696ec8640571a69318b6211223c14224e",
+      "sha256": "e3fac37e94127b3b5fcfaaf91eca8c157dc32d08a760e8c9df35dc5fcf017407",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-particle-pack/vfx/slash.png",
+      "providerRepository": "Calinou/kenney-particle-pack",
+      "commit": "ab7086639ee73be31abd87feb21bf1402d4e8144",
+      "gitBlob": "307bd547f39287c39fc8e8aca020134592330433",
+      "sha256": "37a55c91023d5130ea816d2bd1f5083fe5230842e8308823fd957d38ad15145f",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-particle-pack/vfx/smoke.png",
+      "providerRepository": "Calinou/kenney-particle-pack",
+      "commit": "ab7086639ee73be31abd87feb21bf1402d4e8144",
+      "gitBlob": "4a77199d4ddab9d6482d8285ed3cd962983d8ffa",
+      "sha256": "4c6607566fba4cb3e949f56ed0c38d49fddba844b29e8ec94d5fda20be1a8b01",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-particle-pack/vfx/flare.png",
+      "providerRepository": "Calinou/kenney-particle-pack",
+      "commit": "ab7086639ee73be31abd87feb21bf1402d4e8144",
+      "gitBlob": "bd25bd874e47467e95d6623aa0364be1c619617a",
+      "sha256": "7ec33b6648f555b958eee8b3c799d44e76ff0e7516a06525d37911e208373d5b",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-particle-pack/vfx/magic.png",
+      "providerRepository": "Calinou/kenney-particle-pack",
+      "commit": "ab7086639ee73be31abd87feb21bf1402d4e8144",
+      "gitBlob": "67b3582a720af77b76916c06643a260834e2e37b",
+      "sha256": "4df1710412939410a65b60133d4f54abe47d446eaecb9bbdf4528f0060faa63d",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/polyhaven-medieval-blocks-05/1k/diffuse.jpg",
+      "provider": "Poly Haven",
+      "canonicalAsset": "https://polyhaven.com/a/medieval_blocks_05",
+      "fetchUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/medieval_blocks_05/medieval_blocks_05_diff_1k.jpg",
+      "sha256": "dbaf760ed384c2202f2723b1a846bf4e2f9b128e4e7eb5fe549f51fdbbc4db84",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/polyhaven-medieval-blocks-05/1k/normal-gl.jpg",
+      "provider": "Poly Haven",
+      "canonicalAsset": "https://polyhaven.com/a/medieval_blocks_05",
+      "fetchUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/medieval_blocks_05/medieval_blocks_05_nor_gl_1k.jpg",
+      "sha256": "f8cf72d17b2f15b981921fd5cb29cf8daa721f754fe8996794b705dbbee7b28c",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/vendor/public-web/polyhaven-medieval-blocks-05/1k/roughness.jpg",
+      "provider": "Poly Haven",
+      "canonicalAsset": "https://polyhaven.com/a/medieval_blocks_05",
+      "fetchUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/medieval_blocks_05/medieval_blocks_05_rough_1k.jpg",
+      "sha256": "1de7116adc8d13fcf2943fb73770507754f5b0bce5b94f8d5ade47252f8dd32a",
+      "license": "CC0-1.0"
+    }
+  ]
+}
