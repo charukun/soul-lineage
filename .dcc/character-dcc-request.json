@@ -1,0 +1,49 @@
+{
+  "schema": "character-dcc-request",
+  "version": 1,
+  "id": "protagonist.meshy-shino.v1",
+  "assetId": "character.protagonist-meshy-shino.v1",
+  "reference": {
+    "path": "docs/characters/references/protagonist-villager-v1.svg",
+    "sha256": "fe5780599464bc9d1912681dd3d02aa089ac873b7222fd09681662154fbdf9c3",
+    "views": ["front", "side", "back"]
+  },
+  "rig": {
+    "path": "assets/characters/rigs/kaykit-rig-medium-v1/ProtagonistKayKitRigSource.glb",
+    "sha256": "ab3e2e71b768843a756abaa79f47859d1cd3c77a45b0c8b7a582f8d0b158fab6",
+    "id": "kaykit.Rig_Medium.v1"
+  },
+  "builder": "scripts/blender/build-protagonist-meshy-shino-v1.py",
+  "generatedDir": "generated/protagonist-meshy-shino-v1",
+  "blendName": "ProtagonistMeshyShinoV1.blend",
+  "modelName": "ProtagonistMeshyShinoV1.glb",
+  "format": "glb",
+  "publicPath": "./simulator/assets/PROTAGONIST_MESHY_SHINO_V1.glb",
+  "canonical": {
+    "blend": "assets/characters/protagonist/meshy-shino-v1/source/ProtagonistMeshyShinoV1.blend",
+    "model": "apps/rinne/public/simulator/assets/PROTAGONIST_MESHY_SHINO_V1.glb",
+    "integrity": "apps/rinne/public/simulator/assets/PROTAGONIST_MESHY_SHINO_V1.asset.json",
+    "production": "packages/characters/production/protagonist-meshy-shino-v1.production.json",
+    "qaDir": "docs/characters/qa/protagonist-meshy-shino-v1"
+  },
+  "license": {
+    "rigProvenance": "KayKit Character Pack Adventures 1.0 Rig_Medium, CC0 1.0, materialized from the repository's generated KayKit Knight/Rogue protagonist candidate. Donor GLB SHA-256 ab3e2e71b768843a756abaa79f47859d1cd3c77a45b0c8b7a582f8d0b158fab6. Original Knight.glb source revision 672074b73ba276876a19e8816ecdc5241817ab47 / git blob 717b56ca2b5ff5392679774725201ba03a3eefab.",
+    "surfaceAuthorship": "Visible surface source is the public Meshy community model by @ktmarine1999, model 0196ad16-605f-735d-9d1c-ec04032a2e02. The public model page declares CC0. The builder refuses substitutions, verifies page identity/author/CC0 before download, records the fetched source SHA-256 and byte count, and stores the derived DCC/runtime outputs repository-locally."
+  },
+  "primary": {
+    "separateSurfaces": ["skin", "hair", "clothing"],
+    "minMeshObjects": 1,
+    "minMaterials": 1
+  },
+  "production": {
+    "stage": "REFERENCE",
+    "productionReady": false,
+    "visualApproval": "pending"
+  },
+  "review": {
+    "intentLocked": true,
+    "proportionsReviewed": false,
+    "silhouetteReviewed": false,
+    "topologyReviewed": false
+  }
+}
