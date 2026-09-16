@@ -38,6 +38,7 @@ export function createCanonNucleus({members=['n0','n1','n2'],leaderId=members[0]
     const voters=unique([leader,...acknowledgers]).filter(id=>nodes.get(id)?.alive);
     if(voters.length<NUCLEUS_QUORUM)throw Error('Canon quorum unavailable');
     const revision=nextRevision++,replica={revision,commitEpoch:epoch,operationId,canonRoot,recoveryRoot,root,proofKey,canon:clone(canon),recovery:clone(recovery)};
+    // Only acknowledged live nodes become holders. The operation is committed once any quorum stores the complete recovery material.
     for(const id of voters)nodes.get(id).replica=clone(replica);
     committed={revision,commitEpoch:epoch,operationId,canonRoot,recoveryRoot,root,proofKey};
     const receipt=Object.freeze({...publicCommit(committed),holders:voters.slice().sort()});
@@ -62,6 +63,10 @@ export function createCanonNucleus({members=['n0','n1','n2'],leaderId=members[0]
     const remaining=live();
     if(remaining.length<NUCLEUS_QUORUM){leader=null;phase=NUCLEUS_PHASE.CLOSED;return false;}
     if(!remaining.includes(candidateId))throw Error('Recovery candidate must be live');
+    if(phase===NUCLEUS_PHASE.OPEN&&leader&&nodes.get(leader).alive){
+      if(candidateId!==leader)throw Error('Cannot replace a healthy canon leader');
+      return repair();
+    }
     if(committed){
       const source=remaining.find(id=>validReplica(nodes.get(id).replica,committed));
       if(!source){leader=null;phase=NUCLEUS_PHASE.CLOSED;return false;}
@@ -93,6 +98,7 @@ export function architectureCost({players=30,ticks=1200,realtimeBytesPerTick=204
   if(!Number.isInteger(players)||players<3||!Number.isInteger(ticks)||ticks<1||realtimeBytesPerTick<=0||canonEvents<0||canonBytesPerEvent<0||recoveryBytesPerCanon<0||reliableMultiplier<1)throw Error('Invalid architecture cost input');
   const starGameplay=(players-1)*realtimeBytesPerTick*ticks;
   const canonPayload=canonEvents*(canonBytesPerEvent+recoveryBytesPerCanon);
+  // Both satisfy the same canon durability requirement. Full-state RSM additionally replicates every replaceable realtime transition to two followers.
   const fullStateStrong=2*(realtimeBytesPerTick*ticks+canonPayload)*reliableMultiplier;
   const nucleusStrong=2*canonPayload*reliableMultiplier;
   const fullStateTotal=starGameplay+fullStateStrong;
@@ -131,7 +137,7 @@ export function runCanonNucleusProofSuite(){
   const members=['a','b','c'],quorum=proveThreeNodeQuorumIntersection(members),singleFailures=[],doubleFailures=[];
   for(const committers of combinations(members,2))for(const failed of members){
     const nucleus=createCanonNucleus({members,leaderId:'a'});const receipt=nucleus.commit({operationId:'life:1:end',canon:{lifeId:'life:1',ended:true},recovery:{tick:120,lifeId:'life:1'},acknowledgers:committers});
-    nucleus.fail(failed);const recovered=nucleus.phase===NUCLEUS_PHASE.OPEN?nucleus.repair():nucleus.recover({candidateId:nucleus.snapshot().live[0]});
+    nucleus.fail(failed);let recovered=nucleus.phase===NUCLEUS_PHASE.OPEN?nucleus.repair():nucleus.recover({candidateId:nucleus.snapshot().live[0]});
     const snap=nucleus.snapshot();singleFailures.push({committers,failed,recovered,phase:snap.phase,revision:snap.committed?.revision??0,holders:snap.holders,root:receipt.root,pass:recovered&&snap.phase==='open'&&snap.committed?.root===receipt.root&&snap.holders.length>=2});
   }
   for(const committers of combinations(members,2))for(const failed of combinations(members,2)){
