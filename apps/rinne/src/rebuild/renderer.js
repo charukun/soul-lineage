@@ -9,6 +9,8 @@ import { buildInteriors } from './locations.js';
 import { renderPixelRatio, targetFpsForView } from './performance.js';
 import { cameraOffsetForPosition, createCameraPositionControl } from './camera-position-control.js';
 import { rinneCombatCameraFrame } from './combat-camera.js';
+import { createMiniatureFocus } from './miniature-focus.js';
+import { createMiniatureLighting, createActorContactShadows } from './miniature-lighting.js';
 import './camera-position-control.css';
 
 const disposeObject=root=>root?.traverse?.(o=>{if(o.geometry?.dispose)o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])if(m?.dispose)m.dispose();});
@@ -41,13 +43,12 @@ function createSkirmishRenderer({characterStage,skirmishRoot,mat}){
 export async function createWorldRenderer({canvas,document:doc,layout,stations}){
   const renderWindow=doc.defaultView||globalThis,basePixelRatio=Number(renderWindow?.devicePixelRatio)||1,targetFps=targetFpsForView(renderWindow);
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance',alpha:false});
-  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.06;
-  const applyQuality=profile=>{const ratio=renderPixelRatio(basePixelRatio,profile.renderScale);renderer.setPixelRatio(ratio);canvas.dataset.renderQuality=profile.id;canvas.dataset.renderPixelRatio=String(ratio);};
+  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;
+  let focusEffect,qualityLevel=0;
+  const applyQuality=profile=>{const ratio=renderPixelRatio(basePixelRatio,profile.renderScale);renderer.setPixelRatio(ratio);qualityLevel=profile.level;focusEffect?.setLevel(qualityLevel);canvas.dataset.renderQuality=profile.id;canvas.dataset.renderPixelRatio=String(ratio);};
   const qualityGovernor=createAdaptiveQualityGovernor({targetFps,onChange:snapshot=>applyQuality(snapshot.profile)});applyQuality(qualityGovernor.snapshot().profile);
-  const scene=new THREE.Scene();scene.background=new THREE.Color(0x91d7f5);const outdoorSky=scene.background,indoorSky=new THREE.Color(0x544c62);scene.fog=new THREE.FogExp2(0xcfe6ef,.0042);
+  const scene=new THREE.Scene();scene.background=new THREE.Color(0x91d7f5);const outdoorSky=scene.background,indoorSky=new THREE.Color(0x544c62);scene.fog=new THREE.FogExp2(0xcfe6ef,.0065);
   const camera=new THREE.PerspectiveCamera(43,1,.08,650);camera.position.set(12,13,17);
-  scene.add(new THREE.HemisphereLight(0xfff0cb,0x7b6fa5,2.15));
-  const sun=new THREE.DirectionalLight(0xffd493,2.65);sun.position.set(-12,25,15);scene.add(sun);
 
   const root=new THREE.Group(),land=new THREE.Group(),objects=new THREE.Group(),stationsRoot=new THREE.Group(),interiorRoot=new THREE.Group(),skirmishRoot=new THREE.Group(),frontRoot=new THREE.Group();root.add(land,objects,stationsRoot);scene.add(root,interiorRoot,skirmishRoot,frontRoot);interiorRoot.visible=false;skirmishRoot.visible=false;frontRoot.visible=false;
   // Mura models are environment-only in Rinne. Runtime humanoids are exclusively created by the Character Presentation pool below.
@@ -108,6 +109,10 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   const rescuePad=new THREE.Mesh(new THREE.RingGeometry(.8,1.0,32),new THREE.MeshBasicMaterial({color:0xffd470,side:THREE.DoubleSide}));rescuePad.rotation.x=-Math.PI/2;rescuePad.position.set(0,.03,5.2);frontRoot.add(rescuePad);
   applyStylizedShading(root,'environment');applyStylizedShading(interiorRoot,'environment');applyStylizedShading(frontRoot,'environment');
 
+  const lighting=createMiniatureLighting({renderer,scene,staticRoots:[objects,stationsRoot,...terrain.forestMeshes]});
+  const contacts=createActorContactShadows(scene,[scene,frontRoot,skirmishRoot]);
+  focusEffect=createMiniatureFocus(renderer);
+
   const characterStage=await createRinneCharacterStage({renderer,scene,frontRoot,weaponVisual,mat,disposeObject});
   const {syncEquipment,setCarrierMotion,syncPeers}=characterStage;let currentFront=null;
   function syncFront(front){currentFront=front||null;characterStage.syncFront(front);}
@@ -116,8 +121,8 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
 
   const target=new THREE.Vector3(),cameraLook=new THREE.Vector3(),desired=new THREE.Vector3(),moveVector=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),camOffset=new THREE.Vector3(10.5,11.5,14.5);let elapsed=0,cameraLookReady=false,lastSpace='';
   const cameraControl=createCameraPositionControl({document:doc,container:canvas.parentElement,onChange:position=>{camOffset.set(...cameraOffsetForPosition(position));canvas.dataset.cameraPosition=String(Math.round(position*100));}});
-  const viewport={width:1,height:1};
-  function resize(){const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);viewport.width=w;viewport.height=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+  const viewport={width:1,height:1},focusPoint=new THREE.Vector3();
+  function resize(){const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);viewport.width=w;viewport.height=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();focusEffect.resize();}
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
   function cameraVector(axis){
     camera.getWorldDirection(forward);forward.y=0;forward.normalize();right.crossVectors(forward,up).normalize();
@@ -147,11 +152,13 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     else{target.set(state.position.x,1.15,state.position.z);desired.copy(target).add(camOffset);if(inside)desired.y=Math.min(desired.y,9.5);}
     if(spaceChanged){camera.position.copy(desired);cameraLook.copy(target);cameraLookReady=true;}else{const step=Math.min(.05,dt||.016),positionBlend=1-Math.exp(-(combatFrame?5.6:6.9)*step),lookBlend=1-Math.exp(-(combatFrame?7.2:9.2)*step);camera.position.lerp(desired,positionBlend);if(!cameraLookReady){cameraLook.copy(target);cameraLookReady=true;}else cameraLook.lerp(target,lookBlend);}camera.lookAt(cameraLook);
     if(village&&!inside){terrain.waterMat.uniforms.time.value=elapsed;terrain.motes.position.y=Math.sin(elapsed*.35)*.15;}
-    renderer.render(scene,camera);
+    lighting.update({x:state.position.x,z:state.position.z,inside,frontier:!village,level:qualityLevel});contacts.update();
+    camera.updateMatrixWorld();focusPoint.set(state.position.x,1.15,state.position.z).project(camera);
+    focusEffect.render(scene,camera,{focusY:focusPoint.y*.5+.5,inside,combat:!!state.combat});
   }
   function dispose(){
-    observer.disconnect();cameraControl.dispose();skirmishRenderer.dispose();characterStage.dispose();
+    observer.disconnect();cameraControl.dispose();skirmishRenderer.dispose();characterStage.dispose();focusEffect.dispose();contacts.dispose();lighting.dispose();
     root.removeFromParent();interiorRoot.removeFromParent();skirmishRoot.removeFromParent();frontRoot.removeFromParent();for(const v of cache.values())disposeObject(v);renderer.dispose();
   }
-  return{THREE,scene,camera,viewport,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,updateFront,syncSkirmish:skirmishRenderer.sync,updateSkirmish:skirmishRenderer.update,setCarrierMotion,syncPeers,resize,qualitySnapshot:()=>qualityGovernor.snapshot(),dispose};
+  return{THREE,scene,camera,viewport,renderState,cameraVector,screenDirection,canMoveTo,syncEquipment,syncFront,updateFront,syncSkirmish:skirmishRenderer.sync,updateSkirmish:skirmishRenderer.update,setCarrierMotion,syncPeers,resize,qualitySnapshot:()=>qualityGovernor.snapshot(),visualSnapshot:()=>({focus:focusEffect.snapshot(),lighting:lighting.snapshot(),contacts:contacts.snapshot()}),dispose};
 }
