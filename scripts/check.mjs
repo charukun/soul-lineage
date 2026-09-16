@@ -7,6 +7,7 @@ import { importSpecifiers } from './import-specifiers.mjs';
 
 const root = process.cwd();
 const nodes = graph(root);
+const nativeBrowserDialog = /\b(?:(?:window|globalThis|self)\s*\.\s*)?(?:alert|confirm|prompt)\s*\(/;
 const selected = process.argv[2] ? new Set(process.argv.slice(2).flatMap(id => [...closure(nodes, nodes.has(id) ? id : appNode(nodes, id).name)])) : new Set(nodes.keys());
 for (const name of selected) {
   const node = nodes.get(name);
@@ -19,8 +20,12 @@ for (const name of selected) {
     const absolute = resolve(root, node.dir, file);
     execFileSync(process.execPath, ['--check', absolute]);
     const source = readFileSync(absolute, 'utf8');
+    const sourceWithoutLineComments = source.replace(/\/\/[^\n]*/g, '');
+    if (node.group === 'apps' && file.startsWith('src/')) {
+      assert.ok(!nativeBrowserDialog.test(sourceWithoutLineComments), `Native browser alert/confirm/prompt is forbidden in app source: ${node.dir}/${file}. Use an app-owned dialog or notification surface.`);
+    }
     if ((node.group === 'apps' && (file === 'src/app.js' || file.startsWith('src/game/'))) || ['@soul/platform', '@soul/network', '@soul/game-data', '@soul/world'].includes(name)) {
-      assert.ok(!/\b(window|document|navigator|localStorage|sessionStorage)\s*[.\[]|\b(?:fetch|WebSocket|XMLHttpRequest)\s*\(/.test(source.replace(/\/\/[^\n]*/g, '')), `Platform-specific global in portable code: ${node.dir}/${file}`);
+      assert.ok(!/\b(window|document|navigator|localStorage|sessionStorage)\s*[.\[]|\b(?:fetch|WebSocket|XMLHttpRequest)\s*\(/.test(sourceWithoutLineComments), `Platform-specific global in portable code: ${node.dir}/${file}`);
       assert.ok(!source.includes("from '@soul/platform-web'") && !source.includes("from '@soul/rendering'") && !source.includes("from '@soul/shared-ui'"), `Browser adapter imported by portable code: ${node.dir}/${file}`);
     }
     for (const spec of importSpecifiers(source)) {

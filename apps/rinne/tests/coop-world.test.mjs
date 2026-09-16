@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultMuraLayout } from '@soul/world/mura';
-import { CoopWorld, COOP_LIMIT } from '../src/rebuild/coop-world.js';
+import { CoopWorld, COOP_LIMIT, COOP_PROTOCOL } from '../src/rebuild/coop-world.js';
 import { createLife, LIFE_SECONDS } from '../src/rebuild/domain.js';
 import { createFront, tickSharedFront } from '../src/rebuild/combat.js';
 import { createRoomWire, invitationUrl, readInvitation } from '../src/coop/wire.js';
@@ -53,6 +53,6 @@ test('wire assembles Unicode frames, rejects oversized parts and drops supersede
   assert.equal(wire.receive({type:'coop-part',id:9,part:0,total:1,data:'x'.repeat(4001)}),false);
 });
 test('invitation uses a private fragment with expiration',()=>{
-  const invite={protocol:'rinne-coop-dev-1',worldId:'room-1',offer:'sdp',expiresAt:Date.now()+60000};
+  const invite={protocol:COOP_PROTOCOL,worldId:'room-1',offer:'sdp',expiresAt:Date.now()+60000};
   const url=invitationUrl('https://example.test/dev/rinne/',invite);assert.equal(new URL(url).search,'');assert.deepEqual(readInvitation(url),invite);assert.deepEqual(readInvitation(new URL(url).hash),invite);assert.throws(()=>readInvitation(url,invite.expiresAt));
 });

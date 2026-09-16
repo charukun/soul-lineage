@@ -2,14 +2,39 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {
- ENTRY_SEEN_KEY,TUTORIAL_REASONS,feedbackTone,nearestProjectedObject,objectTapRadius,shouldCelebrate,shouldSkipEntry,tutorialReason,
+ ENTRY_SEEN_KEY,TUTORIAL_REASONS,clearEntrySeenForReset,feedbackTone,nearestProjectedObject,objectTapRadius,restoreEntrySeenAfterFailedReset,shouldCelebrate,shouldSkipEntry,tutorialReason,
 } from '../src/web/playability.js';
+
+function memoryStorage(entries={}){
+ const values=new Map(Object.entries(entries));
+ return{
+  getItem:key=>values.has(key)?values.get(key):null,
+  setItem:(key,value)=>values.set(key,String(value)),
+  removeItem:key=>values.delete(key),
+ };
+}
 
 test('return flow only skips entry after the first acknowledged visit',()=>{
  assert.equal(ENTRY_SEEN_KEY,'mura.village.entry-seen.v1');
  assert.equal(shouldSkipEntry(null),false);
  assert.equal(shouldSkipEntry('0'),false);
  assert.equal(shouldSkipEntry('1'),true);
+ assert.equal(shouldSkipEntry('1',{firstRunTutorial:true}),false);
+});
+
+test('title reset clears entry acknowledgement and failed reset restores it',()=>{
+ const storage=memoryStorage({[ENTRY_SEEN_KEY]:'1'});
+ const snapshot=clearEntrySeenForReset(storage);
+ assert.deepEqual(snapshot,{available:true,previous:'1'});
+ assert.equal(storage.getItem(ENTRY_SEEN_KEY),null);
+ assert.equal(restoreEntrySeenAfterFailedReset(snapshot,storage),true);
+ assert.equal(storage.getItem(ENTRY_SEEN_KEY),'1');
+
+ const fresh=memoryStorage();
+ const absent=clearEntrySeenForReset(fresh);
+ assert.deepEqual(absent,{available:true,previous:null});
+ assert.equal(restoreEntrySeenAfterFailedReset(absent,fresh),true);
+ assert.equal(fresh.getItem(ENTRY_SEEN_KEY),null);
 });
 
 test('all authored onboarding steps explain why the action matters',()=>{
@@ -61,4 +86,11 @@ test('post-boot enhancement graph preserves first-run before playability',()=>{
 test('browser polish keeps the full first-play interaction contract',()=>{
  const source=readFileSync(new URL('../src/mura-playability-polish.js',import.meta.url),'utf8');
  for(const contract of ['muraFindPlacement','cancelPlace','muraEnterVillage','nearestProjectedObject','world.notify','view.pickPerson','dragThreshold=10','AudioContext','residentReaction','__MURA_PLAYABILITY_POLISH__'])assert.ok(source.includes(contract),contract);
+});
+
+test('title reset implementation couples save reset with entry acknowledgement reset',()=>{
+ const source=readFileSync(new URL('../src/mura-entry-polish.js',import.meta.url),'utf8');
+ assert.ok(source.includes('clearEntrySeenForReset()'));
+ assert.ok(source.includes('restoreEntrySeenAfterFailedReset(entrySeen)'));
+ assert.ok(source.indexOf('clearEntrySeenForReset()')<source.indexOf('await resetVillage()'));
 });

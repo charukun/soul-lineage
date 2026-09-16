@@ -1,6 +1,7 @@
 import { CoopWorld } from '../rebuild/coop-world.js';
 import { createCoopHost, joinCoopHost } from './session.js';
 import { readInvitation, invitationUrl } from './wire.js';
+import { createHistoryStore } from './history-store.js';
 import './menu.css';
 
 export function installCoopMenu({container,buildInfo,getPrepared,getName,onPlay,onLeave}){
@@ -11,7 +12,7 @@ export function installCoopMenu({container,buildInfo,getPrepared,getName,onPlay,
   const run=fn=>async()=>{if(locked)return;locked=true;try{await fn();}catch(error){status(error.message);}finally{locked=false;}};
   const copy=async id=>{await navigator.clipboard.writeText($(id).value);status('コピーしました。');};
   const storage=()=>getPrepared().platform.storage;
-  async function persist(value){await storage().write(`coop-v1:${value.world.worldId}`,JSON.stringify(value));await storage().write('coop-last',value.world.worldId);}
+  const history=createHistoryStore({storage:{read:key=>storage().read(key),write:(key,value)=>storage().write(key,value)},exclusive:(id,fn)=>navigator.locks.request(`rinne-coop-history:${id}`,fn)});
   function changed(){const snapshot=session?.snapshot();if(!snapshot)return;status(snapshot.error||(snapshot.phase==='open'?`${snapshot.view?.connected||1}人 · 村は開いています`:'村とのつながりを待っています。'));
     if(!playing&&session?.selfId&&session?.layout&&snapshot.view){playing=true;Promise.resolve(onPlay(session)).catch(error=>{void leave().finally(()=>status(error.message));});}}
   async function acquire(){
@@ -21,9 +22,11 @@ export function installCoopMenu({container,buildInfo,getPrepared,getName,onPlay,
   async function host(resume){
     if(session)throw Error('いったんタイトルへ戻ってから村を開いてください。');await acquire();
     try{
-      let saved=null;if(resume){const id=await storage().read('coop-last');if(!id)throw Error('保存された試遊の村はありません。');const raw=await storage().read(`coop-v1:${id}`);saved=JSON.parse(raw);}
+      let saved=null;if(resume){const id=await storage().read('coop-last');if(!id)throw Error('保存された試遊の村はありません。');saved=await history.restore(id);if(!saved){const raw=await storage().read(`coop-v1:${id}`);saved=JSON.parse(raw);}if(!saved)throw Error('村の記録が見つかりません。');}
       const prepared=getPrepared(),worldId=saved?.world.worldId||`room-${crypto.randomUUID()}`,ownerId=saved?.world.ownerId||`p-${crypto.randomUUID()}`;
       const world=new CoopWorld({worldId,ownerId,name:getName(),layout:saved?.layout||prepared.layout,saved:saved?.world});
+      let writeSequence=0;const writerId=crypto.randomUUID();
+      const persist=async value=>{const sequence=writeSequence++,receipt=await history.commit(value,{writeId:`${world.data.epoch}:${writerId}:${sequence}`,acquire:sequence===0});if(sequence===0)await storage().write('coop-last',worldId);return receipt;};
       session=await createCoopHost({world,contentVersion,save:persist,RTCPeerConnection,onChange:changed});$('coop-invite').hidden=false;$('coop-cancel').hidden=false;changed();
     }catch(error){releaseLock?.();releaseLock=null;throw error;}
   }
