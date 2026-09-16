@@ -1,7 +1,7 @@
 import {ITEMS} from '@soul/housing-assets/catalog';
 export const PREY={
  traveller:{name:'旅人',power:'命の余熱',glyph:'雫',desc:'捕食時の回復が増える。喰らった息が次の狩りを支える。',hp:38,weapon:'fist',color:0x8c7763},
- bellkeeper:{name:'鐘番',power:'声喰い',glyph:'黙',desc:'気配と悲鳴を抑え、村の警戒が上がりにくくなる。',hp:52,weapon:'fist',color:0xa99b76},
+ bellkeeper:{name:'鐘番',power:'声喰い',glyph:'黙',desc:'気配と悲鳴を抑え、近くの村人に見つかりにくくなる。',hp:52,weapon:'fist',color:0xa99b76},
  smith:{name:'鍛冶師',power:'鉄砕く腕',glyph:'腕',desc:'最大生命が増え、前進し続けると木の封鎖を壊せる。',hp:82,weapon:'axe',color:0xa76542},
  hunter:{name:'猟師',power:'血の嗅覚',glyph:'眼',desc:'嗅覚が常時働く。家の向こうの獲物も見失わない。',hp:64,weapon:'spear',color:0x567f67},
  gravekeeper:{name:'墓守',power:'墓道の記憶',glyph:'径',desc:'礼拝所の裏に帰還口を開く。奥で喰らって裏から帰る。',hp:62,weapon:'fist',color:0x797287},
