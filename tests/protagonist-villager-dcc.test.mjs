@@ -35,6 +35,7 @@ test('protagonist village-start DCC is a KayKit Knight-derived humble hero candi
   assert.equal(model.productionReady, false);
   assert.equal(model.assetPath, './simulator/assets/PROTAGONIST_VILLAGER_V1.glb');
   assert.equal(model.integrityPath, './simulator/assets/PROTAGONIST_VILLAGER_V1.asset.json');
+  assert.equal(model.referenceStyle.version, 1);
   assert.equal(model.referenceStyle.design, 'protagonist-kaykit-knight-derivative');
   assert.equal(model.referenceStyle.prop, 'none');
   assert.equal(model.production.target.rigId, 'Rig_Medium');
@@ -65,6 +66,10 @@ test('protagonist builder reuses pinned real KayKit Knight parts instead of rebu
   assert.match(carrier, /scene\.world = bpy\.data\.worlds\.new/);
   assert.match(carrier, /villageize_source_parts/);
   assert.match(carrier, /PROTAGONIST_SKIN/);
+  assert.match(carrier, /point\.z - minimum\.z/);
+  assert.match(carrier, /point\.y < center\.y/);
+  assert.match(carrier, /mirrored = any/);
+  assert.match(carrier, /is_backing_plate/);
   assert.match(carrier, /module\.villageize_materials = villageize_source_parts/);
 });
 
