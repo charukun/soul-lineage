@@ -204,6 +204,12 @@ export function spendStamina(state, amount) {
   state.stamina-=amount;state.staminaCap=Math.max(22,state.staminaCap-amount*.08);state.lastSpendSeconds=0;return true;
 }
 
+export function endLifeEarly(state,cause='戦い'){
+  if(state.ended)return false;
+  state.ended=true;state.phase='ended';state.moving=false;state.resting=false;state.activity=null;state.combat=null;state.down=null;state.interior=null;state.hp=0;
+  pushEvent(state,'life-end',`${cause}で命を落とした。`);return true;
+}
+
 export function tickLife(state,{realDelta,station=null,paused=false}={}) {
   if(!Number.isFinite(realDelta)||realDelta<0||realDelta>.25)throw Error('時間刻みが不正です。');
   const events=[];
@@ -239,7 +245,7 @@ export function tickLife(state,{realDelta,station=null,paused=false}={}) {
 
   if(state.ageSeconds>=LIFE_SECONDS&&!state.ended){
     state.ageSeconds=LIFE_SECONDS;state.ageYears=LIFE_YEARS;state.ended=true;state.phase='ended';state.moving=false;state.activity=null;state.combat=null;state.interior=null;
-    pushEvent(state,'life-end','100年の生涯を生き終えた。');events.push({type:'life-end'});
+    pushEvent(state,'life-end','100年の生涯を生き終えた。');events.push({type:'life-end',cause:'old-age'});
   }
   return events;
 }
@@ -259,7 +265,7 @@ export function returnHome(state){
 }
 
 export function objectiveFor(state) {
-  if(state.ended)return 'この100年を記録し、次の人生へ';
+  if(state.ended)return 'この生涯を記録し、次の人生へ';
   if(state.phase==='birth')return '母と村を歩き、4歳まで世界を知る';
   if(state.activity)return `${state.activity.label}を続ける`;
   if(state.interior)return '建物の中を見て、暮らしから閃きを得る';
