@@ -1,3 +1,4 @@
+import { KAYKIT_GAME_AXIS } from './kaykit-game-axis.js';
 const info=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__:{name:'100年生',app:'rinne',environment:'local',commit:'UNBUILT'};
 document.title=`100年生 — 輪廻転焦${info.environment==='prod'?'':` | ${String(info.environment).toUpperCase()}`}`;
 const $=id=>document.getElementById(id),app=$('app'),title=$('title-screen'),game=$('game-screen'),loading=$('loading-card'),retry=$('boot-retry');
@@ -56,7 +57,7 @@ function setLoading(message,titleText='世界をつくっています'){
   $('loading-title').textContent=titleText;$('loading-message').textContent=message;retry.hidden=true;loading.hidden=false;
 }
 function showTitle(status=''){
-  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;loading.hidden=true;title.hidden=false;launching=false;booting=false;$('boot-status').textContent=status;refreshContinue();selectTitleCommand($('new-life'));
+  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;loading.hidden=true;title.hidden=false;launching=false;booting=false;$('boot-status').textContent=status;refreshContinue();selectTitleCommand($('kaykit-life'));
 }
 function showBootFailure(error){
   console.error(error);app.dataset.screen='error';booting=false;launching=false;title.hidden=true;game.hidden=false;game.classList.add('is-loading');game.removeAttribute('aria-busy');
@@ -106,6 +107,7 @@ async function launch(mode,coop=null){
 
 refreshContinue();
 retry.addEventListener('click',()=>location.reload());
+$('kaykit-life').addEventListener('click',()=>{ location.href=KAYKIT_GAME_AXIS.primaryRuntime; });
 $('new-life').addEventListener('click',()=>{if(hasSave&&!confirm('今の人生を終えて、0歳から新しく始めます。現在の保存は置き換わります。続けますか？'))return;void launch('new');});
 $('continue-life').addEventListener('click',()=>{if(!hasSave){$('boot-status').textContent='旅の記録はまだありません';return;}void launch('continue');});
 $('open-settings').addEventListener('click',()=>settingsDialog.showModal());
