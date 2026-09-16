@@ -1,5 +1,6 @@
 import {riverX,naturalTrees,TERRAIN_SITES} from '@soul/world/mura';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {partitionStaticInstances} from '../spatial-instances.js';
 const fract=x=>x-Math.floor(x),rand=n=>fract(Math.sin(n*127.13+18.3)*41758.34);
 export function flattenMuraModel(T,g){g.updateMatrixWorld(true);const bins=new Map();g.traverse(o=>{if(o.isMesh){const k=o.material.uuid;let b=bins.get(k);if(!b)bins.set(k,b={m:o.material,geos:[]});b.geos.push(o.geometry.clone().applyMatrix4(o.matrixWorld));}});const out=new T.Group();for(const b of bins.values()){
  const merged=mergeGeometries(b.geos,false);if(!merged)throw Error('Geometry merge failed');
@@ -39,6 +40,12 @@ const view={scene,outside,getProp},UP=new T.Vector3(0,1,0);
  // Small motes over the village, as ambience rather than collectible currency.
  const pv=[];for(let i=0;i<80;i++)pv.push((rand(i+14)-.5)*140,1+rand(i+63)*12,(rand(i+126)-.5)*140);const pg=new T.BufferGeometry();pg.setAttribute('position',new T.Float32BufferAttribute(pv,3));view.motes=new T.Points(pg,new T.PointsMaterial({color:0xfff1c0,size:.1,transparent:true,opacity:.5,depthWrite:false}));view.outside.add(view.motes);
  
+// Partition after creating all originals so density seeds keep the original IDs.
+for(const key of ['forestMeshes','flowerMeshes'])view[key]=view[key].flatMap(mesh=>{
+ const chunks=partitionStaticInstances(mesh,{THREE:T,cellSize:64});
+ if(chunks[0]!==mesh){mesh.removeFromParent();view.outside.add(...chunks);mesh.dispose();}
+ return chunks;
+});
 // Return generated terrain state only; do not replace host methods with injected callbacks.
 const {scene:hostScene,outside:hostOutside,getProp:hostGetProp,...terrain}=view;
 return terrain;

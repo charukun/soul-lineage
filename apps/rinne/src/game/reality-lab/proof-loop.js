@@ -3,6 +3,7 @@ import {runComparison} from './engine.js';
 import {compareRequirementEnvelope,runCanonNucleusProofSuite} from './canon-nucleus.js';
 import {runSemanticFrontierProofSuite} from './semantic-frontier.js';
 import {proveCatalogAgnosticClosure} from './frontier-closure.js';
+import {PERFORMANCE_STATUS,evaluateRrpPerformanceContract,realityResultToPerformanceEvidence,runRrpPerformanceContractProofSuite} from './performance-contract.js';
 
 export const ARCHITECTURE_PROOF_MATRIX=Object.freeze([
   {id:'clean-spread',layout:'spread',scenario:'steady',durationMs:16000,latencyMs:0,jitterMs:0,loss:0},
@@ -23,19 +24,23 @@ function workloadFrom(result,config){
 }
 function findMode(results,mode){return results.find(row=>row.mode===mode);}
 export function runArchitectureProofLoop(){
-  const canon=runCanonNucleusProofSuite(),semantic=runSemanticFrontierProofSuite(),closure=proveCatalogAgnosticClosure(),cases=[];
+  const canon=runCanonNucleusProofSuite(),semantic=runSemanticFrontierProofSuite(),closure=proveCatalogAgnosticClosure(),performanceContract=runRrpPerformanceContractProofSuite(),cases=[];
   for(const spec of ARCHITECTURE_PROOF_MATRIX){
     const config=normalizeConfig({...DEFAULTS,peers:30,...spec});
-    const results=runComparison(config),comparisons={};
+    const results=runComparison(config),comparisons={},performance={};
     for(const result of results){
       const realtimeBytesPerTick=workloadFrom(result,config);
       comparisons[result.mode]=compareRequirementEnvelope({players:config.peers,ticks:Math.max(1,Math.floor(config.durationMs/STEP_MS)),realtimeBytesPerTick,canonEvents:4,canonBytesPerEvent:512,recoveryBytesPerCanon:16_384,reliableMultiplier:1+config.loss,pendingCanonActors:1});
+      const evidence=realityResultToPerformanceEvidence(result,{scenario:spec.id});
+      const evaluated=evaluateRrpPerformanceContract(evidence,{requirePhysicalCertification:true});
+      performance[result.mode]={status:evaluated.status,evidenceClass:evaluated.evidenceClass,physicalCertificationEligible:evaluated.physicalCertificationEligible,metrics:evaluated.evidence.metrics};
     }
     const interest=findMode(results,'interest'),cells=findMode(results,'cells');
-    cases.push({id:spec.id,config,results,comparisons,presence:{cellFanoutWin:Boolean(interest&&cells&&cells.maxPeerKbps<interest.maxPeerKbps*.9),cellLoadRatio:interest&&cells&&interest.maxPeerKbps?cells.maxPeerKbps/interest.maxPeerKbps:null},pass:results.every(row=>row.freezeViolations===0&&row.collapseMatchesReference)&&Object.values(comparisons).every(row=>row.pass)});
+    const modelEvidenceHonest=Object.values(performance).every(row=>row.status!==PERFORMANCE_STATUS.FAIL&&row.evidenceClass==='model'&&row.physicalCertificationEligible===false);
+    cases.push({id:spec.id,config,results,comparisons,performance,presence:{cellFanoutWin:Boolean(interest&&cells&&cells.maxPeerKbps<interest.maxPeerKbps*.9),cellLoadRatio:interest&&cells&&interest.maxPeerKbps?cells.maxPeerKbps/interest.maxPeerKbps:null},pass:modelEvidenceHonest&&results.every(row=>row.freezeViolations===0&&row.collapseMatchesReference)&&Object.values(comparisons).every(row=>row.pass)});
   }
   const dense=cases.find(row=>row.id==='clean-dense'),spread=cases.find(row=>row.id==='clean-spread'),host=cases.find(row=>row.id==='host-clean'),corruption=cases.find(row=>row.id==='corruption');
-  const boundaries={denseCounterexampleRetained:Boolean(dense&&!dense.presence.cellFanoutWin),spreadBenefitRetained:Boolean(spread&&spread.presence.cellFanoutWin),hostRecoveryObserved:Boolean(host&&host.results.every(row=>row.phase==='open'&&row.migrations.length===1&&row.freezeViolations===0)),corruptionRepairObserved:Boolean(corruption&&corruption.results.every(row=>row.invalid===1&&row.repairs>=1)),universalStrictDominanceRejected:semantic.maximal.strictUniversalDominancePossible===false,semanticPolicyClosure:semantic.maximal.weakPolicyClosure===true,futurePolicyAbsorption:closure.pass===true};
-  const pass=canon.pass&&semantic.pass&&closure.pass&&cases.every(row=>row.pass)&&Object.values(boundaries).every(Boolean);
-  return{format:'rrp-architecture-proof/3',pass,canon,semantic,closure,cases,boundaries,limits:['model wire does not certify SCTP/NAT/TURN','Semantic Frontier is a policy closure, not a claim of physically impossible universal strict dominance','CAP/FLP and crash/BFT lower bounds remain hard constraints','unknown future algorithms gain no-regret coverage only after their guarantee/cost policy is registered','cross-policy state translation beyond declared invariants/commutativity still needs app-specific proof','replaceable realtime state may roll back to the last accepted recovery boundary']};
+  const boundaries={denseCounterexampleRetained:Boolean(dense&&!dense.presence.cellFanoutWin),spreadBenefitRetained:Boolean(spread&&spread.presence.cellFanoutWin),hostRecoveryObserved:Boolean(host&&host.results.every(row=>row.phase==='open'&&row.migrations.length===1&&row.freezeViolations===0)),corruptionRepairObserved:Boolean(corruption&&corruption.results.every(row=>row.invalid===1&&row.repairs>=1)),universalStrictDominanceRejected:semantic.maximal.strictUniversalDominancePossible===false,semanticPolicyClosure:semantic.maximal.weakPolicyClosure===true,futurePolicyAbsorption:closure.pass===true,performanceContractHonest:performanceContract.pass&&cases.every(row=>Object.values(row.performance).every(perf=>perf.physicalCertificationEligible===false))};
+  const pass=canon.pass&&semantic.pass&&closure.pass&&performanceContract.pass&&cases.every(row=>row.pass)&&Object.values(boundaries).every(Boolean);
+  return{format:'rrp-architecture-proof/4',pass,canon,semantic,closure,performanceContract,cases,boundaries,limits:['model wire does not certify SCTP/NAT/TURN','model performance evidence cannot satisfy physical-multipeer certification','physical metrics without a justified threshold remain calibration-required','Semantic Frontier is a policy closure, not a claim of physically impossible universal strict dominance','CAP/FLP and crash/BFT lower bounds remain hard constraints','unknown future algorithms gain no-regret coverage only after their guarantee/cost policy is registered','cross-policy state translation beyond declared invariants/commutativity still needs app-specific proof','replaceable realtime state may roll back to the last accepted recovery boundary']};
 }

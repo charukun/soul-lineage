@@ -92,7 +92,7 @@ function governorFor(view) {
   const device=deviceCapabilityProfile({renderer:view.renderer});
   saveDeviceCapability(device);
   const streamer=createVisualDistanceStreamer({baseDistance:138,hysteresis:14});
-  const gpu=createGpuTimer(view.renderer),recorder=createPerformanceRecorder({label:'demon'}),occlusion=createConservativeOcclusionCuller({maxChecksPerUpdate:6,minDistance:18,hiddenConfirmations:2});
+  const gpu=createGpuTimer(view.renderer),recorder=createPerformanceRecorder({label:'demon',snapshotOnSample:false}),occlusion=createConservativeOcclusionCuller({maxChecksPerUpdate:6,minDistance:18,hiddenConfirmations:2});
   const thermal=createThermalTrendGovernor({sampleEverySeconds:5,baselineSamples:6,windowSamples:12});
   // Start at full quality like the pre-regression runtime. Actual sustained frame pressure may still step down through the governor.
   const governor=createGpuAwareQualityGovernor({targetFps:device.targetFps,initialLevel:0,onChange:s=>apply(view,s,governors.get(view))});

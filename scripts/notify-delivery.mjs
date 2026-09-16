@@ -59,6 +59,7 @@ export function devChangeEmailMessage({ pr, repository }) {
     'DEV反映完了',
     `「${label}」をDEVに反映しました。`,
     `DEVを確認: ${PERSONAL_DEV_URL}`,
+    `確認画像・動画の報告: https://github.com/${repository}/pull/${pr.number}`,
   ].join('\n');
 }
 

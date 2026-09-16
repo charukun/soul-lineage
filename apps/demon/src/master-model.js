@@ -1,6 +1,7 @@
 import {createCompressedGLTFLoader} from '@soul/rendering/compressed-gltf';
 import {kaykitHumanoidFromGLTF} from '@soul/rendering/kaykit-rig';
 import {KAYKIT_MODEL_BY_KEY} from '@soul/characters';
+import {DEMON_CHARACTER_RUNTIME} from './character-runtime-adapter.js';
 
 const MODEL=KAYKIT_MODEL_BY_KEY.knight;
 export const MASTER_HUMAN_GIT_BLOB_SHA=MODEL.source.gitBlobSha;
@@ -36,7 +37,7 @@ export function loadDemonMasterModel(renderer=null) {
     const compressed=createCompressedGLTFLoader({renderer,transcoderPath:`${import.meta.env.BASE_URL}basis/`});
     try{
       const gltf=await compressed.parseAsync(bytes,url),humanoid=kaykitHumanoidFromGLTF(gltf);
-      return {url,gltf,rig:{humanoid,expressions:[],springs:[],warnings:['KayKit Rig_Medium / CC0 character foundation']},compression:{meshopt:true,ktx2:Boolean(renderer)},license:MODEL.license,modelId:MODEL.id};
+      return {url,gltf,rig:{humanoid,expressions:[],springs:[],warnings:['KayKit Rig_Medium / CC0 character foundation']},runtime:DEMON_CHARACTER_RUNTIME,compression:{meshopt:true,ktx2:Boolean(renderer)},license:MODEL.license,modelId:MODEL.id};
     }finally{compressed.dispose();}
   })().catch(error=>{pending=null;throw error;});
   return pending;

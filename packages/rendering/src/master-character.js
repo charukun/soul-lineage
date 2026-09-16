@@ -68,6 +68,8 @@ export function createMasterCharacterPool({ template, humanoid, capacity = 30 })
       mesh.material = Array.isArray(mesh.material) ? mesh.material.map(copy) : copy(mesh.material);
     });
     const mixer = new AnimationMixer(visual), sockets = new Map(); let clip = null, appearance = null;
+    const poseRotation=new Quaternion(),tintColor=new Color(),inverseAttachments=new Matrix4(),socketMatrix=new Matrix4();
+    const socketPosition=new Vector3(),socketRotation=new Quaternion(),socketScale=new Vector3();
     const instance = {
       id: null, root, visual, bones, attachments, motionRest: captureMotionRest(bones, sourceHeight),
       setClip(sourceClip) {
@@ -88,16 +90,16 @@ export function createMasterCharacterPool({ template, humanoid, capacity = 30 })
         if (clip) mixer.setTime(timeSeconds);
         if (pose) pose(bones, timeSeconds);
         if (!p.dead) {
-          bones.spine.quaternion.multiply(new Quaternion().setFromAxisAngle(xAxis, p.stoop * .62));
-          if (bones.chest) bones.chest.quaternion.multiply(new Quaternion().setFromAxisAngle(xAxis, p.stoop * .38));
-          bones.head.quaternion.multiply(new Quaternion().setFromAxisAngle(xAxis, -p.stoop * .38));
+          bones.spine.quaternion.multiply(poseRotation.setFromAxisAngle(xAxis, p.stoop * .62));
+          if (bones.chest) bones.chest.quaternion.multiply(poseRotation.setFromAxisAngle(xAxis, p.stoop * .38));
+          bones.head.quaternion.multiply(poseRotation.setFromAxisAngle(xAxis, -p.stoop * .38));
         }
         bones.head.scale.copy(rest.get(bones.head).s).multiplyScalar(p.headScale);
         const unit = p.adultHeightMetres / sourceHeight;
         root.scale.set(unit * p.scale * p.width, unit * p.scale * p.height, unit * p.scale * p.width);
         for (const { m, role, tint, gray, originalColor } of ownedMaterials.values()) {
           if (role === 'hair') { tint.value.setRGB(...p.hair); gray.value = p.gray; }
-          else if (role !== 'other' && originalColor) m.color.copy(originalColor).multiply(new Color(...p[role]));
+          else if (role !== 'other' && originalColor) m.color.copy(originalColor).multiply(tintColor.setRGB(...p[role]));
         }
         instance.updateAttachments();
       },
@@ -116,12 +118,16 @@ export function createMasterCharacterPool({ template, humanoid, capacity = 30 })
         entry.socket.removeFromParent(); entry.holder.removeFromParent(); entry.object.removeFromParent(); sockets.delete(key); return entry.object;
       },
       updateAttachments() {
-        root.updateWorldMatrix(true, true); attachments.updateWorldMatrix(true, false);
-        const inverse = new Matrix4().copy(attachments.matrixWorld).invert();
+        if(!sockets.size)return;
+        attachments.updateWorldMatrix(true, false);
+        inverseAttachments.copy(attachments.matrixWorld).invert();
         for (const { socket, holder, scale } of sockets.values()) {
           holder.visible = Boolean(appearance?.canEquipWeapon && !appearance?.dead && root.visible);
-          const position = socket.getWorldPosition(new Vector3()), quaternion = socket.getWorldQuaternion(new Quaternion()).normalize();
-          holder.matrix.copy(inverse).multiply(new Matrix4().compose(position, quaternion, new Vector3().setScalar(scale * (appearance?.scale ?? 1))));
+          // Only this socket's ancestor path is needed; the renderer owns skin/mesh updates.
+          socket.updateWorldMatrix(true,false);
+          socket.matrixWorld.decompose(socketPosition,socketRotation,socketScale);socketRotation.normalize();
+          socketScale.setScalar(scale*(appearance?.scale??1));
+          holder.matrix.copy(inverseAttachments).multiply(socketMatrix.compose(socketPosition,socketRotation,socketScale));
           holder.matrixWorldNeedsUpdate = true;
         }
       },

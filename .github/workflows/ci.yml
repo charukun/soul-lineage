@@ -290,6 +290,10 @@ jobs:
     timeout-minutes: 15
     env:
       APP_ENV: dev
+    outputs:
+      evidence_state: ${{ steps.evidence.outputs.state }}
+      evidence_images: ${{ steps.evidence.outputs.images }}
+      evidence_videos: ${{ steps.evidence.outputs.videos }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -304,10 +308,18 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Run affected mobile/WebGL browser smoke
+        id: smoke
         env:
           BASE_SHA: ${{ needs.build.outputs.effective_base || github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: node scripts/browser/pr-smoke.mjs "$BASE_SHA" "$HEAD_SHA"
+      - name: Index screenshots and videos for completion reports
+        id: evidence
+        if: always()
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BROWSER_RESULT: ${{ steps.smoke.outcome }}
+        run: node scripts/completion-evidence.mjs test-results/pr-browser "$HEAD_SHA" "$BROWSER_RESULT"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -315,6 +327,49 @@ jobs:
           path: test-results/pr-browser/
           if-no-files-found: ignore
           retention-days: 14
+
+  completion-evidence:
+    name: Report completion evidence
+    needs: browser
+    if: >-
+      always() && github.event_name == 'pull_request' &&
+      contains(fromJSON('["success","failure","cancelled"]'), needs.browser.result) &&
+      github.event.pull_request.base.ref == 'develop' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+          sparse-checkout: scripts
+      - name: Attach the exact-head evidence location to the PR
+        uses: actions/github-script@v8
+        env:
+          EVIDENCE_STATE: ${{ needs.browser.outputs.evidence_state }}
+          EVIDENCE_IMAGES: ${{ needs.browser.outputs.evidence_images }}
+          EVIDENCE_VIDEOS: ${{ needs.browser.outputs.evidence_videos }}
+          BROWSER_RESULT: ${{ needs.browser.result }}
+        with:
+          script: |
+            const { existsSync } = require('node:fs');
+            if (!existsSync('scripts/completion-evidence-receipt.mjs')) {
+              core.notice('Evidence recorder is not on develop yet; capture artifacts remain on this run.');
+              return;
+            }
+            const { recordCompletionEvidence } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/completion-evidence-receipt.mjs`);
+            const result = await recordCompletionEvidence({ github, repo: context.repo,
+              number: context.payload.pull_request.number, head: context.payload.pull_request.head.sha,
+              runId: context.runId, attempt: process.env.GITHUB_RUN_ATTEMPT,
+              conclusion: process.env.BROWSER_RESULT, state: process.env.EVIDENCE_STATE,
+              images: process.env.EVIDENCE_IMAGES, videos: process.env.EVIDENCE_VIDEOS });
+            core.summary.addRaw(JSON.stringify(result)).write();
 
   browser-repair-dispatch:
     name: Dispatch browser repair state
