@@ -23,7 +23,7 @@ function requestModel(view,state,species){
    },
    onReady:(instance,profile)=>{
     if(!instance)return;instance.root.visible=false;view.scene.add(instance.root);state.models.set(species,instance);
-    const qualityScale=view.__stylizedQuality?.profile?.vfxScale??1,effect=createManifestationEffect({profile,qualityScale});instance.root.add(effect.root);state.effects.set(species,effect);
+    const qualityScale=view.__stylizedQuality?.profile?.vfxScale??1,effect=createManifestationEffect({profile,qualityScale,subject:instance.visual});instance.root.add(effect.root);state.effects.set(species,effect);
    },
    onFailure:error=>{state.failed.set(species,String(error?.message||error));console.warn(`[monster ${species}] procedural fallback`,error);}
   });
