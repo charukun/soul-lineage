@@ -245,11 +245,13 @@ export function buildAuditReport(entries, config, generatedAt = new Date().toISO
       coverage.get(occurrence.path)?.push([occurrence.startLine, occurrence.endLine]);
     }
   }
-  const candidates = entries.map(entry => {
+  const metrics = entries.map(entry => {
     const metric = analyzeSource(entry.source, entry.path);
     metric.duplicateLines = mergeCoverage(coverage.get(entry.path) || []);
-    return scoreMetric(metric, config);
-  }).sort((a, b) => b.score - a.score || b.loc - a.loc)
+    return metric;
+  });
+  const candidates = metrics.map(metric => scoreMetric(metric, config))
+    .sort((a, b) => b.score - a.score || b.loc - a.loc)
     .slice(0, config.thresholds.maxCandidates);
   const actionableCandidates = candidates.filter(candidate => candidate.actionable);
   return {
@@ -257,7 +259,7 @@ export function buildAuditReport(entries, config, generatedAt = new Date().toISO
     generatedAt,
     summary: {
       scannedFiles: entries.length,
-      totalLoc: entries.reduce((total, entry) => total + analyzeSource(entry.source, entry.path).loc, 0),
+      totalLoc: metrics.reduce((total, metric) => total + metric.loc, 0),
       duplicateGroups: groups.length,
       actionableCandidates: actionableCandidates.length,
       topScore: candidates[0]?.score || 0,

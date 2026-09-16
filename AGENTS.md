@@ -9,7 +9,7 @@ This repository contains 輪廻転焦, village housing, and demon-army apps. `de
 3. When a checkout is available, run `npm run context:plan -- --task "<short task summary>"` and read only the returned documents that are actually needed.
 4. Keep retrieval lean per [`docs/CONTEXT_EFFICIENCY.md`](docs/CONTEXT_EFFICIENCY.md). Do not preload past chats, all docs, merged PR history, whole large diffs, or all CI logs.
 
-Use metadata → changed filenames / failed job → necessary patch / range. CI log retrieval is capped by the shared context ledger at 3 unique excerpts or 96 KiB total per session. On budget exhaustion, summarize the evidence and hand off instead of mining more logs or polling.
+Use metadata → changed filenames / failed job → necessary patch / range. CI log retrieval is capped by the shared context ledger: stop after 3 unique excerpts or 96 KiB total, and do not switch ranges/jobs to evade that limit. On budget exhaustion, summarize the evidence and hand off instead of mining more logs or polling.
 
 ## Delivery boundary
 

@@ -21,9 +21,9 @@ import './mura-director-touch-fix.js';
 import './mura-playability-polish.js';
 import './mura-code-share.js';
 import './village-kaykit-detail-unity.js';
-// MasterCharacter motion must install after the authoritative village is booted.
-// Crowd spacing then wraps its final actor sync as presentation-only bias.
-import './mura-master-characters.js';
+// The legacy Shino MasterCharacter enhancement is intentionally not loaded.
+// Conditional character-model assets are retired; the authoritative procedural
+// resident presentation remains active until the CC0/RINNE replacement is ready.
 import './mura-motion-crowd.js';
 
 export const MURA_ENHANCEMENTS_READY = true;

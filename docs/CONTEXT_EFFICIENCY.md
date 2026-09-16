@@ -44,7 +44,9 @@
 
 ## Hard budget phase
 
-`context:plan` は参照候補の列挙だけでなく、初期全文取得に使えるbyte budgetを持つ。既定値は48 KiBとし、`--max-bytes`で明示変更できる。これはtoken数の推測ではなくRepository文書のUTF-8 byte数に対する上限である。
+`context:plan` は参照候補の列挙だけでなく、初期全文取得に使えるbyte budgetを持つ。文書の既定値は48 KiBとし、`--max-bytes`で明示変更できる。これはtoken数の推測ではなくRepository文書のUTF-8 byte数に対する上限である。
+
+関連するコード・設定などのtask pathにも別の全文取得ガードを持つ。**1 file 16 KiBを初期全文取得の上限**とし、16 KiBを超えるfileは `search-or-line-range`、容量不明は `metadata-or-search` を既定戦略として `context:plan` が返す。16 KiB以下も自動全文投入ではなく `full-file-if-needed` であり、タスクに必要な場合だけ読む。この閾値は取得粒度の初期判断であって、必要な実装・仕様確認を禁止する上限ではない。
 
 - budget内の文書だけを `read` として返し、超過候補は `deferred` として全文取得を避ける。
 - `deferred` は不要という意味ではない。検索・見出し・必要line rangeで絞って読む対象である。

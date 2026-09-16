@@ -38,10 +38,15 @@ test('renderer and visible shell remain isolated from game saves and authority',
   for (const code of [engine,shell]) assert.doesNotMatch(code, /localStorage|sessionStorage|indexedDB|WebSocket|RTCPeerConnection|\.innerHTML\s*=/);
   assert.match(main, /本編・セーブ・通信には接続しません/);
 });
-test('model audit, bounded loads and GPU recovery are preserved', () => {
-  assert.match(engine, /new URL\(path, location\.href\)/);
-  assert.match(engine, /modelBytes\('\.\/simulator\/assets\/SHINO_review\.vrm'\)/);
-  assert.ok(engine.indexOf('auditShinoDocument(json, hash)') < engine.indexOf('new GLTFLoader().parseAsync(bytes'));
+test('model audit uses pinned CC0 KayKit identity, bounded loads and GPU recovery', () => {
+  assert.match(engine, /KAYKIT_MODEL_BY_KEY/);
+  assert.match(engine, /defaultModel = KAYKIT_MODEL_BY_KEY\.knight/);
+  assert.match(engine, /defaultBytes = \(\) => modelBytes\(defaultModel\.runtime\.url\)/);
+  assert.match(engine, /gitBlobSha/);
+  assert.match(engine, /defaultModel\.source\.gitBlobSha/);
+  assert.match(engine, /defaultModel\.license/);
+  assert.doesNotMatch(engine, /SHINO_review\.vrm/);
+  assert.ok(engine.indexOf('auditDocument(json, hash, bytes.byteLength, blobSha)') < engine.indexOf("new GLTFLoader().parseAsync(bytes, '')"));
   for (const expression of [/if \(!audit\.approved\) throw/, /length > MAX_MODEL_BYTES/, /file\.size > MAX_SESSION_BYTES/, /webglcontextlost/, /webglcontextrestored/]) assert.match(engine, expression);
 });
 test('both review pages stay in the existing Rinne build', () => {
