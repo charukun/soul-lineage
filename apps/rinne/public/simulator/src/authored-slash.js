@@ -16,7 +16,7 @@ const clamp = (x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 // overshooting anatomical targets. Only intentional holds have zero tangents.
 export function poseCurve(rows, t) {
   if(t<=rows[0][0])return rows[0].slice(1);
-  if(t>=rows.at(-1)[0])return rows.at(-1].slice(1);
+  if(t>=rows.at(-1)[0])return rows.at(-1).slice(1);
   let i=0;while(t>rows[i+1][0])i++;
   const a=rows[i],b=rows[i+1],h=b[0]-a[0],u=(t-a[0])/h;
   const slope=(k,j)=>{
@@ -65,7 +65,7 @@ export function sampleSlashPose(phase, contact) {
 
 export function applyAuthoredSlash(runtime,c,phase,definition=SLASH_TIMING) {
   const pose=sampleSlashPose(phase,definition.contact),s=c.legLength/.82;
-  const flip=c.vrm.meta.metaVersion==='1'?-1:1;
+  const flip=c.vrm.meta.metaVersion==='1'?-1?1:1;
   for(const name of ['hips','spine','chest','head']){
     const b=c.bones[name];if(!b)continue;
     const [x,y,z]=pose[name];
