@@ -33,7 +33,7 @@ const protagonist = {
   trim: [.30, .40, .46],
   hairValue: .90,
   id: PROTAGONIST_VILLAGER_MODEL_ID,
-  label: '主人公 / 村人服 PRIMARY',
+  label: '主人公 / KayKit Knight主軸・村人服 PRIMARY',
   kind: 'dcc-character-model',
   characterId: 'Protagonist_Villager_V1',
   assetId: 'character.protagonist-villager.v1',
@@ -47,7 +47,7 @@ const protagonist = {
   profile,
   referenceStyle: {
     version: 1,
-    design: 'protagonist-villager',
+    design: 'protagonist-kaykit-knight-derivative',
     scale: .72,
     palette: {
       skin: [.72, .48, .34],
@@ -70,28 +70,28 @@ const protagonist = {
     sourceSections: [...base.production.sourceSections],
     authority: {
       currentMaster: [...base.production.authority.currentMaster],
-      implementedModularParts: ['face', 'hair', 'body', 'outfit', 'accessory'],
+      implementedModularParts: ['kaykit-knight-identity-parts', 'kaykit-rogue-tunic-torso', 'village-material-pass'],
       proposedParts: [],
       gameEquipment: []
     },
     target: {
       formats: ['glb'],
       primaryFormat: 'glb',
-      rigId: 'humanoid.shino-vrm1.v2',
-      materialProfiles: ['stylized-pbr-fallback'],
+      rigId: 'Rig_Medium',
+      materialProfiles: ['kaykit-gradient-source', 'stylized-pbr-village-cloth'],
       preserveExpressions: false,
       preserveSpringBones: false
     },
     requirements: {
-      topology: 'humanoid-production',
+      topology: 'kaykit-source-derived',
       modularCompatibility: false,
       sourceProvenanceRequired: true,
       gameEquipmentPolicy: 'exclude-from-shared-character-asset',
       weaponSocketPolicy: 'preserve-runtime-owned-sockets',
-      fallbackPolicy: 'retain-current-master-until-candidate-accepted'
+      fallbackPolicy: 'fail-closed-on-adopted-runtime-integrity-error'
     }
   },
-  note: 'KayKit系NPCと同じ低ポリ世界観に合わせた主人公専用DCC PRIMARY。初期村人服のみで、鎧・兜・盾・衛兵意匠は持たない。30秒演舞を含む既存Humanoidモーション確認用。Visual Approvalまではゲーム既定モデルを置換しない。'
+  note: 'KayKit Adventurers 1.0の固定revisionからKnight.glbのHead / Arm / Leg実メッシュとRig_Mediumを主人公の主軸として直接流用するDCC PRIMARY。Knight_Body固有の騎士章を削るのではなく、同じ固定CC0パックのRogue_Bodyだけを装備なし村人チュニックの胴パーツとしてRig_Mediumへ付け替える。Rogueの武器・ケープ・頭・腕・脚は持ち込まない。ユーザー確認を受けDEV runtime主人公として採用するが、visualApproval=pending / productionReady=falseの品質gateは維持する。'
 };
 
 validateVisualIdentity(protagonist);
