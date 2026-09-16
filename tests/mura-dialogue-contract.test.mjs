@@ -7,12 +7,12 @@ import {muraDialogueTopic,muraResidentReactionLine,muraSharedLine,muraTopicLine}
 const read=path=>readFile(new URL(`../${path}`,import.meta.url),'utf8');
 
 test('shared MURA topics resolve facility meaning from the canonical catalog',()=>{
-  const square=muraDialogueTopic('village-square',{kind:'campfire'});
+  const square=muraDialogueTopic('village-square',{kind:'campfire'}),line=muraTopicLine('village-square',{kind:'campfire'});
   assert.equal(square.compatible,true);
   assert.equal(square.facility.label,defs.campfire.label);
   assert.equal(square.facility.trait,defs.campfire.trait);
-  assert.match(muraTopicLine('village-square',{kind:'campfire'}),new RegExp(defs.campfire.label));
-  assert.match(muraTopicLine('village-square',{kind:'campfire'}),new RegExp(defs.campfire.trait.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  assert.ok(line.includes(defs.campfire.label));
+  assert.ok(line.includes(defs.campfire.trait));
   assert.equal(muraTopicLine('village-square',{kind:'school'}),null);
 });
 
