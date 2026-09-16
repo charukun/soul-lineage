@@ -38,6 +38,7 @@
     "./mura/asset-data": "./src/mura/asset-data.js",
     "./mura/nature-data": "./src/mura/nature-data.js",
     "./mura/terrain": "./src/mura/terrain.js",
+    "./mura/kaykit-detail": "./src/mura/kaykit-detail.js",
     "./motion-quality": "./src/motion-quality.js",
     "./motion-runtime": "./src/motion-runtime.js"
   },
