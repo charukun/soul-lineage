@@ -57,9 +57,13 @@ test('Ready validation checkout is shallow and fetches only the resolved exact b
   assert.match(build, /git fetch --no-tags --depth=1 origin "\$BASE_SHA"/);
 });
 
-test('gate-cost preflight compares the exact base and head without requiring merge-base history', () => {
+test('Fast Gate guards compare exact trees without merge-base history', () => {
   const gate = source('scripts/integration-gate-cost.mjs');
+  const visual = source('scripts/visual-budget.mjs');
+  const health = source('scripts/code-health.mjs');
   assert.match(gate, /\['diff', '--name-only', base, head\]/);
   assert.match(gate, /\['diff', '--check', base, head\]/);
-  assert.doesNotMatch(gate, /\$\{base\}\.\.\.\$\{head\}/);
+  assert.match(visual, /\['diff','--name-only','--diff-filter=AM',base,head\]/);
+  assert.match(health, /\['diff', '--name-status', '--find-renames', base, head\]/);
+  for (const text of [gate, visual, health]) assert.doesNotMatch(text, /\$\{base\}\.\.\.\$\{head\}/);
 });
