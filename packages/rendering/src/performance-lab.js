@@ -5,7 +5,7 @@ const percentile = (values, p) => {
   return sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * p) - 1))];
 };
 
-export function createPerformanceRecorder({ label = 'runtime', maxSamples = 1800 } = {}) {
+export function createPerformanceRecorder({ label = 'runtime', maxSamples = 1800, snapshotOnSample = true } = {}) {
   const frames = [], gpu = [], calls = [], triangles = [], memory = [], transparentCalls = [], transparentTriangles = [];
   let longFrames = 0, startedAt = Date.now();
   const trim = list => { while (list.length > maxSamples) list.shift(); };
@@ -18,7 +18,9 @@ export function createPerformanceRecorder({ label = 'runtime', maxSamples = 1800
       if (finite(textureBytes) && textureBytes >= 0) { memory.push(textureBytes); trim(memory); }
       if (finite(transparentDrawCalls) && transparentDrawCalls >= 0) { transparentCalls.push(transparentDrawCalls); trim(transparentCalls); }
       if (finite(transparentTriangleUpperBound) && transparentTriangleUpperBound >= 0) { transparentTriangles.push(transparentTriangleUpperBound); trim(transparentTriangles); }
-      return this.snapshot?.();
+      // Frame-loop consumers read diagnostics explicitly. Sorting the full
+      // rolling window here makes the measurement itself a growing CPU cost.
+      return snapshotOnSample ? this.snapshot?.() : undefined;
     },
     snapshot() {
       const average = list => list.length ? list.reduce((a, b) => a + b, 0) / list.length : null;
