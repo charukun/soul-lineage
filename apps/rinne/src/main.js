@@ -1,3 +1,5 @@
+import './native-ui-polish.js';
+
 const info=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__:{name:'100年生',app:'rinne',environment:'local',commit:'UNBUILT'};
 document.title=`100年生 — 輪廻転焦${info.environment==='prod'?'':` | ${String(info.environment).toUpperCase()}`}`;
 const $=id=>document.getElementById(id),app=$('app'),title=$('title-screen'),game=$('game-screen'),loading=$('loading-card'),retry=$('boot-retry');
@@ -33,7 +35,9 @@ title.addEventListener('keydown',event=>{
 });
 
 function applyTitleMotion(enabled,persist=false){
-  title.dataset.motion=enabled?'on':'off';motionToggle.checked=enabled;
+  title.dataset.motion=enabled?'on':'off';
+  motionToggle.setAttribute('aria-checked',String(enabled));
+  const state=motionToggle.querySelector('.setting-switch-state');if(state)state.textContent=enabled?'入':'切';
   if(persist){try{localStorage.setItem(motionKey,enabled?'on':'off');}catch{}}
 }
 let initialMotion=!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -116,7 +120,7 @@ retry.addEventListener('click',()=>location.reload());
 $('new-life').addEventListener('click',async()=>{if(hasSave&&!await requestLifeReplacement())return;void launch('new');});
 $('continue-life').addEventListener('click',()=>{if(!hasSave){$('boot-status').textContent='旅の記録はまだありません';return;}void launch('continue');});
 $('open-settings').addEventListener('click',()=>settingsDialog.showModal());
-motionToggle.addEventListener('change',()=>applyTitleMotion(motionToggle.checked,true));
+motionToggle.addEventListener('click',()=>applyTitleMotion(motionToggle.getAttribute('aria-checked')!=='true',true));
 void boot();
 
 document.getElementById('open-village').addEventListener('click',async()=>{
