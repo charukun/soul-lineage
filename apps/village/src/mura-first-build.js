@@ -15,10 +15,6 @@ actions.insertBefore(rotateLeft,rotateRight);
 rotateRight.textContent='↻';rotateRight.setAttribute('aria-label','右へ90度回転');
 cancel.textContent='×';cancel.setAttribute('aria-label','配置をやめる');
 
-const undo=document.createElement('button');
-undo.id='muraPlacementUndo';undo.type='button';undo.className='glass';undo.hidden=true;undo.textContent='↶ 取り消す';
-document.body.append(undo);
-
 const css=document.createElement('style');css.dataset.muraPlacement='center-follow';css.textContent=`
 body.mura-placement-active #build{opacity:0;pointer-events:none}
 body.mura-placement-active #placement{box-sizing:border-box!important;position:fixed!important;z-index:42!important;left:50%!important;top:calc(50% - clamp(94px,14vh,126px))!important;bottom:auto!important;transform:translate(-50%,-100%)!important;width:min(330px,calc(100vw - 24px))!important;max-height:min(44dvh,320px)!important;overflow:auto!important;padding:10px 12px!important;border-radius:17px!important;text-align:center!important}
@@ -33,8 +29,6 @@ body.mura-placement-active #placement #muraRotation{min-width:90px!important;hei
 body.mura-placement-active #placement #materialChoices{justify-content:center!important;flex-wrap:wrap!important}
 body.mura-placement-active #placement.invalid{border-color:rgba(166,88,68,.42)!important}
 body.mura-placement-active #placement.invalid #placementText{color:#9b5948!important}
-#muraPlacementUndo{position:fixed;z-index:70;left:50%;bottom:max(20px,env(safe-area-inset-bottom));transform:translateX(-50%);min-height:48px;padding:10px 22px;border-radius:26px;font-size:12px;font-weight:700;letter-spacing:.04em;background:rgba(248,242,222,.96);white-space:nowrap}
-body.mura-placement-undo-visible #build{opacity:0;pointer-events:none}
 #muraSettingsButton{min-width:44px!important;width:44px!important;height:44px!important;min-height:44px!important;padding:10px!important}
 #muraSettingsButton svg{width:18px!important;height:18px!important}
 #housingMode{box-sizing:border-box}
@@ -48,19 +42,13 @@ body.mura-placement-undo-visible #build{opacity:0;pointer-events:none}
 `;
 document.head.append(css);
 
-let busy=false,toastTimer=0,undoTimer=0,activePending=null,lastCommit=null;
+let busy=false,toastTimer=0,activePending=null;
 const nativePan=view.pan.bind(view),nativeFocus=view.focus.bind(view);
 const tracked=new Map();
-const HELP_TEXT='つくるで施設や家具を選ぶと、画面中央にゴーストが出ます。1本指でなぞって場所を動かし、短くタップするとその位置へ配置します。置けない場所では理由が表示され、配置されません。回転はゴースト上のボタンを使います。間違えた場合は直後の「取り消す」で戻せます。';
+const HELP_TEXT='つくるで施設や家具を選ぶと、画面中央にゴーストが出ます。1本指でなぞって場所を動かし、短くタップするとその位置へ配置します。置けない場所では理由が表示され、配置されません。回転はゴースト上のボタンを使います。';
 
 function notice(text,ms=3500){
  $('toastText').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,ms);
-}
-function hideUndo(){
- clearTimeout(undoTimer);undo.hidden=true;document.body.classList.remove('mura-placement-undo-visible');lastCommit=null;
-}
-function showUndo(commit){
- clearTimeout(undoTimer);lastCommit=commit;undo.hidden=false;document.body.classList.add('mura-placement-undo-visible');undoTimer=setTimeout(hideUndo,6500);
 }
 function worldPoint(p,point){
  if(!p?.roomId)return point;
@@ -121,7 +109,7 @@ function refresh(){
  if(canvas.getAttribute('aria-label')!==ariaLabel)canvas.setAttribute('aria-label',ariaLabel);
  if(!p){activePending=null;done.disabled=false;return;}
  if(p!==activePending){
-  activePending=p;hideUndo();
+  activePending=p;
   const site=findPlacementSite(world,p);
   if(site){p.x=site.x;p.z=site.z;p.error=null;centerPending(p,site);}
  }
@@ -141,7 +129,6 @@ $('muraRotation').addEventListener('input',()=>queueMicrotask(()=>syncPendingPre
 async function commitCurrentPlacement(){
  const p=ui.pending;if(!p||busy)return false;
  centerCandidate();
- const snapshot={kind:p.kind,x:p.x,z:p.z,rot:p.rot,moveId:p.moveId||null,roomId:p.roomId||null,material:p.material};
  const result=commitPlacement(world,p);
  if(result.error){notice(result.error);syncPendingPresentation(p);return false;}
  busy=true;
@@ -149,7 +136,7 @@ async function commitCurrentPlacement(){
  village.cancelPlacement();
  if(id)village.selection(id,room);
  world.notify(result.message,'life');
- showUndo(snapshot);refresh();
+ refresh();
  try{
   const saved=await village.save();
   notice(saved===false?`${result.message}。保存できません。設定から書き出してください`:result.message,3000);
@@ -178,22 +165,6 @@ canvas.addEventListener('pointerup',event=>finishPointer(event),{passive:true});
 canvas.addEventListener('pointercancel',event=>finishPointer(event,true),{passive:true});
 canvas.addEventListener('lostpointercapture',event=>queueMicrotask(()=>tracked.delete(event.pointerId)),{passive:true});
 
-undo.onclick=()=>{
- const snapshot=lastCommit;if(!snapshot)return;
- hideUndo();
- const result=world.undo();
- if(result.error){notice(result.error);return;}
- village.deselect();void village.save();
- const reopened=village.beginPlacement(snapshot.kind,snapshot.moveId);
- if(reopened&&ui.pending){
-  activePending=ui.pending;
-  Object.assign(ui.pending,{x:snapshot.x,z:snapshot.z,rot:snapshot.rot,material:snapshot.material});
-  $('muraRotation').value=String(Math.round(ui.pending.rot*180/Math.PI));
-  village.refreshPreview();centerPending(ui.pending,{x:snapshot.x,z:snapshot.z});refresh();
-  notice('取り消しました。位置を調整できます',2600);
- }else notice('取り消しました',2200);
-};
-
 function syncHelp(){
  const host=$('dialogContent');if(!host)return;
  const heading=[...host.querySelectorAll('h3')].find(node=>node.textContent.trim()==='建築と内装');
@@ -205,6 +176,6 @@ const observer=new MutationObserver(refresh);observer.observe(panel,{attributes:
 refresh();
 window.__MURA_CENTER_PLACEMENT__={version:1,centerCandidate,commit:commitCurrentPlacement};
 window.addEventListener('pagehide',()=>{
- observer.disconnect();helpObserver.disconnect();clearTimeout(toastTimer);clearTimeout(undoTimer);tracked.clear();
+ observer.disconnect();helpObserver.disconnect();clearTimeout(toastTimer);tracked.clear();
  view.pan=nativePan;view.focus=nativeFocus;
 },{once:true});
