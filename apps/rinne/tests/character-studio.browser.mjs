@@ -45,11 +45,13 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
   try {
     const response = await page.goto(new URL('./characters.html', baseURL).href, {waitUntil:'domcontentloaded',timeout:60000});
     assert.equal(response.status(),200); await ready();
+    await page.waitForFunction(()=>document.body.classList.contains('workshop-ux-ready'));
+    assert.equal(await page.locator('.mode-tabs [data-workshop-intent]').count(),3);
     assert.equal((await state()).view,'single');
     const gpu = await page.locator('#stage').evaluate(canvas => { const gl=canvas.getContext('webgl2'); return gl&&!gl.isContextLost() ? { version:gl.getParameter(gl.VERSION),width:gl.drawingBufferWidth,height:gl.drawingBufferHeight } : null; });
     assert.ok(gpu?.version.includes('WebGL 2.0')); assert.ok(gpu.width>0 && gpu.height>0);
     checks.push({name:'audited Shino WebGL scene',gpu});
-    await page.locator('#pause').click();
+    await page.locator('#pause').evaluate(node=>node.click());
     await page.locator('[data-slot="hair"]').click();
     await page.locator('[data-modular-value="bob"]').click();
     assert.equal((await state()).profile.hair,'bob');
@@ -73,7 +75,8 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
     checks.push({name:'paused part switching, visible replacement hair, undo/redo and non-cumulative original preview'});
     await page.screenshot({path:resolve(output,'studio-main-mobile.png')});
     const before = await state();
-    await page.locator('[data-tab="compare"]').click();
+    await page.locator('[data-workshop-intent="compare"]').click();
+    await page.locator('#workshop-compare-details').evaluate(node=>node.open=true);
     const one = await captureComparison(1); assert.deepEqual(one.records,before.records);
     const six = await captureComparison(6); assert.deepEqual(six.records,before.records);
     const twelve = await captureComparison(12); assert.deepEqual(twelve.records,before.records);
