@@ -35,17 +35,20 @@ export function installRrpPerformanceCapture({
     copyButton.type='button';copyButton.textContent='raw JSONをコピー';copyButton.disabled=true;
     panel.append(title,status,copyButton);documentRef.body?.append(panel);
   }
+  function mountPanel(){
+    if(!panel||!documentRef?.body)return;const dialog=documentRef.getElementById?.('village-dialog');const target=dialog?.open?dialog:documentRef.body;if(panel.parentNode!==target)target.append(panel);
+  }
   function performanceProbeFactory(role){return createCoopPerformanceProbe({role,now});}
   function sample(){
-    if(disposed)return null;
+    if(disposed)return null;mountPanel();
     const session=getSession();const raw=session?.performance?.();
-    if(raw){lastRaw=safeClone(raw);lastMeta=captureMeta(session,buildInfo);if(status)status.textContent=`${session.role} · ${Math.round((raw.durationMinutes||0)*60)}秒 · ACK ${raw.inputToAuthoritativeAckMs?.length||0} · display ${raw.inputToDisplayMs?.length||0}`;if(copyButton)copyButton.disabled=false;}
+    if(raw){lastRaw=safeClone(raw);lastMeta=captureMeta(session,buildInfo);const gaps=Number(raw.bandwidthSkippedBuckets||0);if(status)status.textContent=`${session.role} · ${Math.round((raw.durationMinutes||0)*60)}秒 · ACK ${raw.inputToAuthoritativeAckMs?.length||0} · display ${raw.inputToDisplayMs?.length||0}${gaps?` · gap ${gaps}`:''}`;if(copyButton)copyButton.disabled=false;}
     else if(status){status.textContent=session?'performance probeなし':'co-op session待機中';if(copyButton)copyButton.disabled=true;}
     return raw?safeClone(raw):null;
   }
   function raw(){sample();return lastRaw?Object.freeze({...safeClone(lastRaw),_capture:safeClone(lastMeta)}):null;}
   function json(){const value=raw();return value?JSON.stringify(value,null,2):'';}
-  async function copy(){const text=json();if(!text)return false;if(!globalThis.navigator?.clipboard?.writeText)return false;await globalThis.navigator.clipboard.writeText(text);if(status)status.textContent='raw JSONをコピーしました';return true;}
+  async function copy(){const text=json();if(!text)return false;const clipboard=windowRef?.navigator?.clipboard||globalThis.navigator?.clipboard;if(!clipboard?.writeText)return false;await clipboard.writeText(text);if(status)status.textContent='raw JSONをコピーしました';return true;}
   if(copyButton)copyButton.addEventListener('click',()=>{void copy().catch(error=>{if(status)status.textContent=`copy失敗: ${error.message}`;});});
   const timer=setIntervalFn(sample,intervalMs);sample();
   const api=Object.freeze({performanceProbeFactory,sample,raw,json,copy,dispose(){if(disposed)return;disposed=true;clearIntervalFn(timer);panel?.remove();if(windowRef?.__RRP_CAPTURE__===api)delete windowRef.__RRP_CAPTURE__;}});
