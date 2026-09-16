@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
   CHARACTER_REFERENCE_MODELS,
+  evaluateCharacterLicensePolicy,
   evaluateCharacterProduction,
   referenceModelProductionStage
 } from '../packages/characters/src/index.js';
@@ -29,8 +30,18 @@ for (const name of readdirSync(productionDir).filter(name => name.endsWith('.pro
   catch (error) { failures.push(`${name}: invalid JSON: ${error.message}`); continue; }
   try {
     const result = evaluateCharacterProduction(manifest, manifest.stage);
-    reports.push({ file: name, ...result });
+    const license = evaluateCharacterLicensePolicy({
+      id: manifest.id,
+      license: manifest.license,
+      ownership: manifest.ownership,
+      rigId: manifest.source?.rigId || manifest.rigId,
+      rigProvenance: manifest.source?.rigProvenance || manifest.rigProvenance
+    });
+    reports.push({ file: name, ...result, licenseStatus: license.status, distributionEligible: license.allowed });
     if (!result.ok) failures.push(`${name}: ${result.missing.join('; ')}`);
+    if ((manifest.stage === 'RUNTIME_READY' || result.productionReady) && !license.allowed) {
+      failures.push(`${name}: RUNTIME_READY rejected by character license policy (${license.reason})`);
+    }
     const catalogModel = CHARACTER_REFERENCE_MODELS[manifest.id];
     if (catalogModel && catalogModel.productionStage !== manifest.stage) failures.push(`${name}: catalog stage ${catalogModel.productionStage} != manifest stage ${manifest.stage}`);
   } catch (error) { failures.push(`${name}: ${error.message}`); }
@@ -38,8 +49,10 @@ for (const name of readdirSync(productionDir).filter(name => name.endsWith('.pro
 
 const output = {
   schema: 'character-production-check',
-  version: 1,
-  manifests: reports.map(({ file, id, declaredStage, modelingMode, maximumStage, highestEligibleStage, productionReady }) => ({ file, id, declaredStage, modelingMode, maximumStage, highestEligibleStage, productionReady })),
+  version: 2,
+  manifests: reports.map(({ file, id, declaredStage, modelingMode, maximumStage, highestEligibleStage, productionReady, licenseStatus, distributionEligible }) => ({
+    file, id, declaredStage, modelingMode, maximumStage, highestEligibleStage, productionReady, licenseStatus, distributionEligible
+  })),
   catalogModels: Object.keys(CHARACTER_REFERENCE_MODELS).length,
   ok: failures.length === 0,
   failures

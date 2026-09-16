@@ -1,9 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { auditCharacterRuntimeDocument } from '../src/runtime-asset-audit.js';
+import { evaluateCharacterLicensePolicy } from '../src/license-policy.js';
 
 function glbDocument(bytes){
   assert.equal(bytes.subarray(0,4).toString('ascii'),'glTF');
@@ -18,14 +17,13 @@ function glbDocument(bytes){
   throw new Error('GLB JSON chunk missing');
 }
 
-test('generated Shino Reference v2 DCC asset matches its exact-hash integrity record',()=>{
+test('generated Shino Reference v2 DCC asset remains historical evidence and is not distributed',()=>{
   const asset=resolve('apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm');
   const integrityURL=resolve('apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json');
-  const bytes=readFileSync(asset),integrity=JSON.parse(readFileSync(integrityURL,'utf8'));
-  const sha256=createHash('sha256').update(bytes).digest('hex');
-  const result=auditCharacterRuntimeDocument(glbDocument(bytes),sha256,bytes.length,integrity);
-  assert.equal(result.approved,true,result.errors.join(', '));
-  assert.equal(result.id,'shino.reference.v2');
-  assert.equal(result.productionStage,'PRIMARY');
-  assert.equal(result.productionReady,false);
+  assert.equal(existsSync(asset),false);
+  assert.equal(existsSync(integrityURL),false);
+  const manifest=JSON.parse(readFileSync(resolve('packages/characters/production/shino-reference.production.json'),'utf8'));
+  assert.equal(manifest.status.licensePolicy,'retired');
+  assert.equal(manifest.status.distributionEligible,false);
+  assert.deepEqual(evaluateCharacterLicensePolicy({id:'shino.reference.v2'}),{status:'retired',allowed:false,reason:'retired-conditional-character'});
 });
