@@ -30,7 +30,8 @@ Performance optimization runs only inside this safety envelope. A faster unsafe 
 
 The machine-readable contract records:
 
-- input-to-authoritative-display p50/p95/p99;
+- input-to-authoritative-ack p50/p95/p99;
+- input-to-rendered-display p50/p95/p99;
 - canon commit p50/p95/p99;
 - Host-loss detection p95 and migration-start-to-reopen p95;
 - average/p95/peak peer uplink and Host uplink;
@@ -47,7 +48,8 @@ The older Semantic Frontier dimensions (`wireBytes`, `latencyMs`, `coordination`
 
 Use these boundaries consistently so two captures are comparable.
 
-- `inputToDisplayMs`: local input creation time to the first authoritative state that acknowledges that exact input being applied to the visible render state. If newer input supersedes an older un-applied input, the older input is not fabricated as a latency sample. A prediction-only frame does not end the timer.
+- `inputToAuthoritativeAckMs`: local input creation to receipt of the first authoritative state that explicitly acknowledges that exact input was applied by the Host simulation. If a newer input supersedes an older un-applied input, the older input is not fabricated as a latency sample.
+- `inputToDisplayMs`: local input creation to the first rendered frame that actually presents an authoritative state containing that applied input. Network receipt alone does not end the timer, and a prediction-only frame does not end it either.
 - `canonCommitMs`: irreversible intent creation to the committed Canon revision becoming visible to the initiator. Pre-commit animation does not end the timer.
 - `hostLossDetectionMs`: injected/observed old-Host loss to the first `MIGRATING`/darkness transition.
 - `hostReopenMs`: migration start to the successor becoming `OPEN` with the committed recovery material.
@@ -74,7 +76,7 @@ These values already exist elsewhere in the repository and are carried forward r
 
 For metrics that did not previously have an accepted product SLO, the first compatible physical-multipeer baseline establishes the observed value. Before certification, the capture must at least contain:
 
-- 300 input-to-display samples;
+- 300 input-to-authoritative-ack samples and 300 input-to-rendered-display samples;
 - 20 Canon commits;
 - 20 Host-loss and 20 successor-reopen observations;
 - 120 one-second peer-uplink and Host-uplink windows;
@@ -92,13 +94,13 @@ After calibration, regression checking uses both an accepted absolute SLO where 
 
 The current co-op runtime has a bounded performance probe. It records without making telemetry a gameplay dependency:
 
-- Guest input creation and the exact authoritative input sequence applied by the Host. The Host publishes `ackInputSeq` only after the 20 Hz authoritative advance, not merely after packet receipt.
+- Guest input creation and the exact authoritative input sequence applied by the Host. The Host publishes `ackInputSeq` only after the 20 Hz authoritative advance, not merely after packet receipt. This currently fills `inputToAuthoritativeAckMs`.
 - Rebirth intent to persisted/confirmed rebirth result on the Guest.
 - Application payload bytes and reliable/presence `bufferedAmount` samples from the existing room wire, including queue pressure on replaceable drops.
 - Connection attempts and successful opens. When `getStats()` exposes a selected candidate pair, relay/direct classification is recorded; unsupported candidate classification stays unknown.
 - A bounded raw-sample snapshot through `session.performance()` for Host and Guest.
 
-The probe also exposes explicit sample hooks for Host-loss/reopen, state freshness, same-time position error, rollback, frame/GPU, memory and battery measurements. These hooks are deliberately not auto-filled until the corresponding runtime layer can measure the stated semantics honestly.
+The probe exposes a separate `recordInputToDisplay` hook so network acknowledgement cannot be mislabeled as rendered latency. It also exposes hooks for Host-loss/reopen, state freshness, same-time position error, rollback, frame/GPU, memory and battery measurements. These fields remain unknown until the corresponding runtime/render layer can measure the stated boundary honestly.
 
 ## CLI
 
@@ -138,12 +140,13 @@ The combined architecture proof also imports the contract proof. Reality Lab mod
 
 The remaining evidence work is now narrower:
 
-1. connect Host-loss/detection/reopen timestamps to the real browser migration path rather than the model;
-2. measure render-time state freshness and same-world-time position error once prediction/interpolation is wired into the main Rinne co-op path;
-3. join existing physical Performance Lab frame/GPU evidence by build/device/viewport provenance;
-4. run repeatable physical-multipeer captures across fixed Wi-Fi and WAN profiles, with candidate-path classification where available;
-5. gather enough samples to calibrate threshold-less metrics;
-6. only then promote calibrated values into absolute product SLO candidates;
-7. expand from the initial 2–3 physical peers toward the separate 30-device certification matrix.
+1. wire the render layer to `recordInputToDisplay` after the authoritative state is actually presented, rather than treating network receipt as display;
+2. connect Host-loss/detection/reopen timestamps to the real browser migration path rather than the model;
+3. measure render-time state freshness and same-world-time position error once prediction/interpolation is wired into the main Rinne co-op path;
+4. join existing physical Performance Lab frame/GPU evidence by build/device/viewport provenance;
+5. run repeatable physical-multipeer captures across fixed Wi-Fi and WAN profiles, with candidate-path classification where available;
+6. gather enough samples to calibrate threshold-less metrics;
+7. only then promote calibrated values into absolute product SLO candidates;
+8. expand from the initial 2–3 physical peers toward the separate 30-device certification matrix.
 
 No paid runtime or dedicated game server is required by this contract. NAT/TURN reachability, physical 30-device scale, battery and radio behavior remain unproved until their corresponding evidence exists.
