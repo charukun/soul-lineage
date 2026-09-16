@@ -57,19 +57,24 @@ export async function verifyRebuildPlaythrough(browser,url,output,{recordVideo=f
     const prep=stateAt(8,42);prep.position={x:sword.x+1.35,z:sword.z};await load(prep);assert.match(await text(page.locator('#life-stage')),/支度/);await expectTone('village');
     prep.position={x:sword.x,z:sword.z};await load(prep);await page.waitForFunction(()=>document.getElementById('toast')?.textContent.includes('装備'),null,{timeout:4000});assert.match(await text(page.locator('#toast')),/装備/);await page.screenshot({path:join(output,'02-equipment.png')});
 
-    // Heart / Technique / Body: all three pages must open and the technique page must support
-    // extra combos, favored tags, and a costly manual one-motion. Keep a single final evidence
-    // frame that also includes the bottom 心技体 rail.
+    // Heart / Technique / Body evidence: capture every page separately on the same exact-head,
+    // same 390x844 touch context. Technique evidence is captured after configuring the extra
+    // combo, favored tag, and costly manual one-motion.
     const loadout=stateAt(20,142);loadout.zone='frontier';loadout.front=0;loadout.lastDepartureCycle=4;loadout.position={x:0,z:0};loadout.equipment.weapon='sword';
     loadout.knownSkills.push('basic.sword','skill.balance','skill.distance','skill.breath','skill.focus','skill.flow-step','action.guard-step','action.slip','action.lunge');
     const loadoutFront=createFront(0,loadout.seed);loadoutFront.enemies.forEach((enemy,index)=>{enemy.dead=index!==0;if(index===0){enemy.x=0;enemy.z=2.15;enemy.maxHp=900;enemy.hp=900;}});loadout.frontState=loadoutFront;await load(loadout);await expectTone('frontier');
+
     await page.locator('[data-heart]').click();await page.locator('.upgrade-panel[data-type="heart"]').waitFor({state:'visible'});assert.ok(await page.locator('.heart-list .heart-skill').count()>=4,'heart page must list learned hearts');
+    await page.screenshot({path:join(output,'00-heart-evidence.png'),fullPage:true});
+
     await page.locator('[data-body]').click();await page.locator('.upgrade-panel[data-type="body"]').waitFor({state:'visible'});assert.ok(await page.locator('.body-loadout-section').count()===3,'body page must expose stance, style, and zanshin');
+    await page.screenshot({path:join(output,'01-body-evidence.png'),fullPage:true});
+
     await page.locator('[data-techniques]').click();await page.locator('.upgrade-panel[data-type="technique"]').waitFor({state:'visible'});await page.locator('.combo-add').click();assert.ok(await page.locator('.combo-tab:not(.combo-add)').count()>=2,'technique page must add a second combo');
     await page.locator('.favored-tag').first().click();assert.equal(await page.locator('.favored-tag').first().getAttribute('data-active'),'true');
     await page.locator('.one-motion-actions button').first().click();await page.locator('.technique-picker-list .heart-skill').filter({hasText:'受け流し歩法'}).first().click();
     await page.waitForFunction(()=>!document.querySelector('[data-one-motion]')?.hidden,null,{timeout:4000});assert.match(await text(page.locator('.one-motion-card')),/受け流し歩法/);assert.match(await text(page.locator('[data-one-motion]')),/受け流し歩法/);
-    await page.screenshot({path:join(output,'00-heart-technique-body-evidence.png'),fullPage:true});
+    await page.screenshot({path:join(output,'02-technique-evidence.png'),fullPage:true});
 
     // Departure: an equipped adult standing at the port must reach the frontier.
     const departure=stateAt(15,43);departure.equipment.weapon='sword';departure.knownSkills.push('basic.sword');departure.position={x:port.x,z:port.z};departure.lastDepartureCycle=2;await load(departure);assert.match(await text(page.locator('#life-stage')),/出立/);await page.waitForFunction(()=>document.getElementById('life-stage')?.textContent.includes('第1前線'),null,{timeout:5000});await expectTone('frontier');await page.screenshot({path:join(output,'03-frontier-arrival.png')});
