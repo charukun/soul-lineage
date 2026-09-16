@@ -1,0 +1,191 @@
+name: Materialize public web assets phase 3
+
+on:
+  push:
+    branches:
+      - feat/public-web-assets-phase3-20260916
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/public-web-assets-phase3-20260916
+          fetch-depth: 0
+
+      - name: Fetch, verify and select assets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ROOT="assets/vendor/public-web"
+          RPG="$ROOT/kenney-rpg-audio"
+          NATURE="$ROOT/kenney-nature-kit"
+          GRASSY="$ROOT/polyhaven-grassy-cobblestone"
+          TMP="$(mktemp -d)"
+          trap 'rm -rf "$TMP"' EXIT
+
+          mkdir -p "$RPG/weapon" "$RPG/foley" "$RPG/world" "$RPG/footsteps" "$NATURE/models" "$GRASSY/1k"
+
+          fetch_git_asset() {
+            local src="$1" expected_blob="$2" out="$3"
+            curl --fail --silent --show-error --location "$src" --output "$out"
+            local actual_blob
+            actual_blob="$(git hash-object "$out")"
+            if [[ "$actual_blob" != "$expected_blob" ]]; then
+              echo "Git blob mismatch for $out: expected $expected_blob got $actual_blob" >&2
+              exit 1
+            fi
+          }
+
+          RPG_BASE="https://raw.githubusercontent.com/Boyquotes/kenney-rpg-audio-for-godot/22eb79bb843bbcadcaa6ed119353a33265ffad11/addons/kenney%20rpg%20audio"
+          fetch_git_asset "$RPG_BASE/draw_knife_1.ogg" 4141dbf41af81a4e7013a09692f4ac9000d885eb "$RPG/weapon/draw-blade.ogg"
+          fetch_git_asset "$RPG_BASE/knife_slice.ogg" 86338431259517417132d9b1aaa28eb9a9f36d95 "$RPG/weapon/slash-a.ogg"
+          fetch_git_asset "$RPG_BASE/knife_slice_2.ogg" cf6098e7395fcfeb537fa83ba41ba9ec0606e362 "$RPG/weapon/slash-b.ogg"
+          fetch_git_asset "$RPG_BASE/cloth_1.ogg" b76853a893383a0facfb230a368404d136eff1a3 "$RPG/foley/cloth.ogg"
+          fetch_git_asset "$RPG_BASE/door_open_1.ogg" 7df28265312494fc053380002e551b001dea89ad "$RPG/world/door-open.ogg"
+          fetch_git_asset "$RPG_BASE/door_close_1.ogg" 21021c5f8c13c2fbc74e83de8c5fce5d8709b70b "$RPG/world/door-close.ogg"
+          fetch_git_asset "$RPG_BASE/footstep_0.ogg" ca5dd2b6aa45f73f53685988aacec0a88f31887b "$RPG/footsteps/generic-a.ogg"
+          fetch_git_asset "$RPG_BASE/footstep_1.ogg" e784dbff4808267daebd9297674f6532b1a826f3 "$RPG/footsteps/generic-b.ogg"
+          fetch_git_asset "$RPG_BASE/handle_coins.ogg" c84e27d4a9d34588a881d639e563c45473ed5039 "$RPG/foley/coins.ogg"
+          fetch_git_asset "$RPG_BASE/book_flip_1.ogg" 7c0e80b9133df8bb4d451528d31cb0725ca44984 "$RPG/foley/book-flip.ogg"
+
+          cat > "$RPG/LICENSE.txt" <<'EOF'
+          RPG Audio by Kenney
+          Canonical source: https://kenney.nl/assets/rpg-audio
+          License: Creative Commons Zero 1.0 Universal (CC0-1.0)
+          https://creativecommons.org/publicdomain/zero/1.0/
+          Official archive: https://kenney.nl/media/pages/assets/rpg-audio/8e99002d76-1677590336/kenney_rpg-audio.zip
+          Official archive SHA-256 recorded by the project: 6dbeaf8544da958d8f2adcb4a4a4b76c1ade34a05f8ab9edccd327da7375f38b
+          The selected files were transported from fixed commit 22eb79bb843bbcadcaa6ed119353a33265ffad11 of Boyquotes/kenney-rpg-audio-for-godot and verified by exact Git blob ID.
+          EOF
+
+          NATURE_ZIP="$TMP/nature.zip"
+          NATURE_URL="https://kenney.nl/media/pages/assets/nature-kit/37ac38a37b-1677698939/kenney_nature-kit.zip"
+          curl --fail --silent --show-error --location "$NATURE_URL" --output "$NATURE_ZIP"
+          echo "fa7974a0d342bfe63c38664ba9f8ec1a4aab8ea25f099bdc56870e33588c4d9d  $NATURE_ZIP" | sha256sum --check --strict
+          unzip -q "$NATURE_ZIP" -d "$TMP/nature"
+
+          copy_nature() {
+            local basename="$1" out="$2" found
+            found="$(find "$TMP/nature" -type f -name "$basename" -print -quit)"
+            if [[ -z "$found" ]]; then
+              echo "Nature Kit asset not found: $basename" >&2
+              exit 1
+            fi
+            cp "$found" "$out"
+          }
+          copy_nature tree_oak.glb "$NATURE/models/tree-oak.glb"
+          copy_nature fence_simple.glb "$NATURE/models/fence-simple.glb"
+          copy_nature sign.glb "$NATURE/models/sign.glb"
+
+          cat > "$NATURE/LICENSE.txt" <<'EOF'
+          Nature Kit by Kenney
+          Canonical source: https://kenney.nl/assets/nature-kit
+          License: Creative Commons Zero 1.0 Universal (CC0-1.0)
+          https://creativecommons.org/publicdomain/zero/1.0/
+          Official archive: https://kenney.nl/media/pages/assets/nature-kit/37ac38a37b-1677698939/kenney_nature-kit.zip
+          Archive SHA-256: fa7974a0d342bfe63c38664ba9f8ec1a4aab8ea25f099bdc56870e33588c4d9d
+          EOF
+
+          PH_BASE="https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grassy_cobblestone"
+          curl --fail --silent --show-error --location "$PH_BASE/grassy_cobblestone_diff_1k.jpg" --output "$GRASSY/1k/diffuse.jpg"
+          curl --fail --silent --show-error --location "$PH_BASE/grassy_cobblestone_nor_gl_1k.jpg" --output "$GRASSY/1k/normal-gl.jpg"
+          curl --fail --silent --show-error --location "$PH_BASE/grassy_cobblestone_rough_1k.jpg" --output "$GRASSY/1k/roughness.jpg"
+
+          cat > "$GRASSY/LICENSE.txt" <<'EOF'
+          Grassy Cobblestone by Poly Haven contributors
+          Canonical source: https://polyhaven.com/a/grassy_cobblestone
+          License: Creative Commons Zero 1.0 Universal (CC0-1.0)
+          https://creativecommons.org/publicdomain/zero/1.0/
+          Selected maps: 1K JPG diffuse, OpenGL normal and roughness.
+          EOF
+
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+
+          audit_date = '2026-09-16'
+          rpg_repo = 'Boyquotes/kenney-rpg-audio-for-godot'
+          rpg_commit = '22eb79bb843bbcadcaa6ed119353a33265ffad11'
+          rpg = [
+              ('assets/vendor/public-web/kenney-rpg-audio/weapon/draw-blade.ogg', 'draw_knife_1.ogg', '4141dbf41af81a4e7013a09692f4ac9000d885eb'),
+              ('assets/vendor/public-web/kenney-rpg-audio/weapon/slash-a.ogg', 'knife_slice.ogg', '86338431259517417132d9b1aaa28eb9a9f36d95'),
+              ('assets/vendor/public-web/kenney-rpg-audio/weapon/slash-b.ogg', 'knife_slice_2.ogg', 'cf6098e7395fcfeb537fa83ba41ba9ec0606e362'),
+              ('assets/vendor/public-web/kenney-rpg-audio/foley/cloth.ogg', 'cloth_1.ogg', 'b76853a893383a0facfb230a368404d136eff1a3'),
+              ('assets/vendor/public-web/kenney-rpg-audio/world/door-open.ogg', 'door_open_1.ogg', '7df28265312494fc053380002e551b001dea89ad'),
+              ('assets/vendor/public-web/kenney-rpg-audio/world/door-close.ogg', 'door_close_1.ogg', '21021c5f8c13c2fbc74e83de8c5fce5d8709b70b'),
+              ('assets/vendor/public-web/kenney-rpg-audio/footsteps/generic-a.ogg', 'footstep_0.ogg', 'ca5dd2b6aa45f73f53685988aacec0a88f31887b'),
+              ('assets/vendor/public-web/kenney-rpg-audio/footsteps/generic-b.ogg', 'footstep_1.ogg', 'e784dbff4808267daebd9297674f6532b1a826f3'),
+              ('assets/vendor/public-web/kenney-rpg-audio/foley/coins.ogg', 'handle_coins.ogg', 'c84e27d4a9d34588a881d639e563c45473ed5039'),
+              ('assets/vendor/public-web/kenney-rpg-audio/foley/book-flip.ogg', 'book_flip_1.ogg', '7c0e80b9133df8bb4d451528d31cb0725ca44984'),
+          ]
+          nature = [
+              ('assets/vendor/public-web/kenney-nature-kit/models/tree-oak.glb', 'tree_oak.glb'),
+              ('assets/vendor/public-web/kenney-nature-kit/models/fence-simple.glb', 'fence_simple.glb'),
+              ('assets/vendor/public-web/kenney-nature-kit/models/sign.glb', 'sign.glb'),
+          ]
+          poly = [
+              ('assets/vendor/public-web/polyhaven-grassy-cobblestone/1k/diffuse.jpg', 'grassy_cobblestone_diff_1k.jpg'),
+              ('assets/vendor/public-web/polyhaven-grassy-cobblestone/1k/normal-gl.jpg', 'grassy_cobblestone_nor_gl_1k.jpg'),
+              ('assets/vendor/public-web/polyhaven-grassy-cobblestone/1k/roughness.jpg', 'grassy_cobblestone_rough_1k.jpg'),
+          ]
+
+          def sha256(path):
+              return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+          files = []
+          for path, source_path, blob in rpg:
+              files.append({
+                  'path': path,
+                  'provider': 'Kenney',
+                  'canonicalAsset': 'https://kenney.nl/assets/rpg-audio',
+                  'providerRepository': rpg_repo,
+                  'commit': rpg_commit,
+                  'sourcePath': f'addons/kenney rpg audio/{source_path}',
+                  'gitBlob': blob,
+                  'sha256': sha256(path),
+                  'license': 'CC0-1.0',
+              })
+          for path, source_path in nature:
+              files.append({
+                  'path': path,
+                  'provider': 'Kenney',
+                  'canonicalAsset': 'https://kenney.nl/assets/nature-kit',
+                  'archiveUrl': 'https://kenney.nl/media/pages/assets/nature-kit/37ac38a37b-1677698939/kenney_nature-kit.zip',
+                  'archiveSha256': 'fa7974a0d342bfe63c38664ba9f8ec1a4aab8ea25f099bdc56870e33588c4d9d',
+                  'sourcePath': source_path,
+                  'sha256': sha256(path),
+                  'license': 'CC0-1.0',
+              })
+          ph_base = 'https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grassy_cobblestone'
+          for path, source_path in poly:
+              files.append({
+                  'path': path,
+                  'provider': 'Poly Haven',
+                  'canonicalAsset': 'https://polyhaven.com/a/grassy_cobblestone',
+                  'fetchUrl': f'{ph_base}/{source_path}',
+                  'sha256': sha256(path),
+                  'license': 'CC0-1.0',
+              })
+
+          Path('assets/vendor/public-web/PHASE3_MANIFEST.json').write_text(
+              json.dumps({'auditDate': audit_date, 'files': files}, indent=2) + '\n', encoding='utf-8'
+          )
+          PY
+
+      - name: Remove one-shot workflow and commit materialized assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/materialize-public-web-assets-phase3.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A assets/vendor/public-web .github/workflows/materialize-public-web-assets-phase3.yml
+          git commit -m 'feat(assets): materialize phase 3 public web assets'
+          git push origin HEAD:feat/public-web-assets-phase3-20260916
