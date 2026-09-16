@@ -1,5 +1,6 @@
 import {DAYS_YEAR} from './game/core.js';
 import {consumeFirstRunAutoplayAfterReset,requestFirstRunAutoplayAfterReset} from './game/first-run-onboarding.js';
+import {clearEntrySeenForReset,restoreEntrySeenAfterFailedReset} from './web/playability.js';
 const village=window.village,{world,ui,activity,resetVillage}=village;
 const $=id=>document.getElementById(id);
 
@@ -22,9 +23,10 @@ function resetConfirm(){
  dialog.querySelector('[data-reset]').onclick=async()=>{
   const button=dialog.querySelector('[data-reset]');button.disabled=true;button.textContent='初期化中';
   const environment=village.info.environment;
+  const entrySeen=clearEntrySeenForReset();
   requestFirstRunAutoplayAfterReset(environment);
   try{await resetVillage();}
-  catch(error){consumeFirstRunAutoplayAfterReset(environment);button.disabled=false;button.textContent='初期化';const message=dialog.querySelector('[data-error]');message.hidden=false;message.textContent=`初期化できませんでした。今の村は残しています。${error.message||''}`;}
+  catch(error){restoreEntrySeenAfterFailedReset(entrySeen);consumeFirstRunAutoplayAfterReset(environment);button.disabled=false;button.textContent='初期化';const message=dialog.querySelector('[data-error]');message.hidden=false;message.textContent=`初期化できませんでした。今の村は残しています。${error.message||''}`;}
  };
  dialog.showModal();dialog.querySelector('[data-cancel]').focus();
 }

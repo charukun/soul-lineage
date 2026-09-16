@@ -29,18 +29,18 @@ function actorAudit(actor, review = window.masterCharacterReview) {
   if (profileId === 'hero') {
     const s = body.silhouette, report = review?.motionQA?.report;
     const heroWarnings = [], heroErrors = [];
-    if (!s.valid) heroErrors.push('Shino Hero Gate: silhouette envelope missing');
+    if (!s.valid) heroErrors.push('Hero Gate: silhouette envelope missing');
     else {
-      if (s.frontAspect < .18 || s.frontAspect > .90) heroWarnings.push(`Shino Hero Gate: front silhouette aspect ${s.frontAspect.toFixed(2)} needs visual review`);
-      if (s.sideAspect < .10 || s.sideAspect > .78) heroWarnings.push(`Shino Hero Gate: side silhouette aspect ${s.sideAspect.toFixed(2)} needs visual review`);
-      if (s.diagonalAspect < Math.min(s.frontAspect, s.sideAspect) * .82) heroWarnings.push('Shino Hero Gate: three-quarter silhouette collapses unexpectedly');
+      if (s.frontAspect < .18 || s.frontAspect > .90) heroWarnings.push(`Hero Gate: front silhouette aspect ${s.frontAspect.toFixed(2)} needs visual review`);
+      if (s.sideAspect < .10 || s.sideAspect > .78) heroWarnings.push(`Hero Gate: side silhouette aspect ${s.sideAspect.toFixed(2)} needs visual review`);
+      if (s.diagonalAspect < Math.min(s.frontAspect, s.sideAspect) * .82) heroWarnings.push('Hero Gate: three-quarter silhouette collapses unexpectedly');
     }
-    if (!report) heroWarnings.push('Shino Hero Gate: Motion QA has not been recorded');
+    if (!report) heroWarnings.push('Hero Gate: Motion QA has not been recorded');
     else {
       const unresolved = report.issues.filter(issue => ['open', 'needs-review'].includes(issue.status) && ['warning', 'error'].includes(issue.severity));
-      if (unresolved.length) heroWarnings.push(`Shino Hero Gate: ${unresolved.length} unresolved Motion QA issue(s)`);
-      if (report.visualApproval === 'changes-requested') heroErrors.push('Shino Hero Gate: visual approval requests changes');
-      else if (report.visualApproval !== 'approved') heroWarnings.push('Shino Hero Gate: explicit visual approval is still pending');
+      if (unresolved.length) heroWarnings.push(`Hero Gate: ${unresolved.length} unresolved Motion QA issue(s)`);
+      if (report.visualApproval === 'changes-requested') heroErrors.push('Hero Gate: visual approval requests changes');
+      else if (report.visualApproval !== 'approved') heroWarnings.push('Hero Gate: explicit visual approval is still pending');
     }
     warnings.push(...heroWarnings); errors.push(...heroErrors);
     hero = { visualApproval: report?.visualApproval ?? 'not-recorded', warnings: heroWarnings, errors: heroErrors };
@@ -141,7 +141,7 @@ function install() {
     refinementController.render();
     if (!audit) { renderPerf(); return; }
     const body = audit.body;
-    el('art-qa-profile').textContent = audit.profileId === 'hero' ? 'hero · SHINO GATE' : audit.profileId;
+    el('art-qa-profile').textContent = audit.profileId === 'hero' ? 'hero · HERO GATE' : audit.profileId;
     el('art-qa-triangles').textContent = `${formatNumber(audit.totalTriangles)} / soft ${formatNumber(body.budget.softTriangleBudget)}`;
     el('art-qa-materials').textContent = `${audit.totalMaterials} / soft ${body.budget.softMaterialBudget}`;
     el('art-qa-textures').textContent = `${audit.textureBudget.count} tex / ${formatMiB(audit.textureBudget.estimatedBytes)}`;

@@ -10,3 +10,4 @@ _site/
 test-results/
 ops-review-results/
 apps/*/public/basis/
+apps/rinne/public/simulator/assets/kaykit/*.glb

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGithubClient } from '../ops-board/github-client.mjs';
+import { classifyGithubFailure, createGithubClient } from '../ops-board/github-client.mjs';
 import { FULL_PULL_RECONCILE_MS, syncPullSnapshot } from '../ops-board/pull-snapshot.mjs';
 import { enrichTargets } from '../ops-board/review-model.mjs';
 
@@ -38,26 +38,125 @@ const page = (data, hasNext = false) => ({
   response: { headers: new Headers(hasNext ? { link: '<next>; rel="next"' } : {}) },
 });
 
-test('GitHub client serves short-lived TTL hits without spending another request', async () => {
+test('GitHub client refuses tokenless access before any network request', async () => {
+  const storage = memoryStorage();
+  let calls = 0;
+  const client = createGithubClient({ storage, fetchImpl: async () => { calls++; throw new Error('must not fetch'); } });
+  await assert.rejects(client.get('/branches?per_page=100'), error => {
+    assert.equal(error.authRequired, true);
+    assert.equal(error.githubDiagnostic?.kind, 'auth-required');
+    assert.match(error.message, /未認証APIへは接続しません/);
+    return true;
+  });
+  assert.equal(calls, 0);
+  assert.equal(client.requests, 0);
+  assert.equal(client.maxRequests, 0);
+  assert.equal(client.scope, 'auth-required');
+  assert.equal(client.deepAllowed, false);
+});
+
+test('authenticated GitHub client serves short-lived TTL hits without spending another request', async () => {
   const storage = memoryStorage();
   let calls = 0;
   const now = Date.parse('2026-09-15T09:00:00Z');
-  const fetchImpl = async () => {
+  const fetchImpl = async (_url, options) => {
     calls++;
+    assert.match(options.headers.authorization, /^Bearer /);
     return new Response(JSON.stringify([{ name: 'develop' }]), {
-      headers: { etag: '"branches-v1"', 'x-ratelimit-remaining': '10' },
+      headers: { etag: '"branches-v1"', 'x-ratelimit-remaining': '1000' },
     });
   };
-  const client = createGithubClient({ storage, fetchImpl, now: () => now });
+  const client = createGithubClient({ storage, token: 'test-token', fetchImpl, now: () => now });
   const first = await client.get('/branches?per_page=100', { maxAgeMs: 60_000 });
   const second = await client.get('/branches?per_page=100', { maxAgeMs: 60_000 });
   assert.deepEqual(second.data, first.data);
   assert.equal(calls, 1);
   assert.equal(client.requests, 1);
   assert.equal(client.cacheHits, 1);
-  assert.equal(client.maxRequests, 18);
-  assert.equal(client.scope, 'public');
-  assert.equal(client.deepAllowed, false);
+  assert.equal(client.maxRequests, 32);
+  assert.equal(client.scope, 'authenticated');
+  assert.equal(client.deepAllowed, true);
+});
+
+test('permission 403 does not poison authenticated scope with rate-limit backoff', async () => {
+  const storage = memoryStorage();
+  let calls = 0;
+  const fetchImpl = async () => {
+    calls++;
+    return new Response(JSON.stringify({ message: 'Resource not accessible by integration' }), {
+      status: 403,
+      headers: {
+        'content-type': 'application/json',
+        'x-ratelimit-limit': '1000',
+        'x-ratelimit-remaining': '999',
+        'x-ratelimit-used': '1',
+        'x-ratelimit-resource': 'core',
+      },
+    });
+  };
+  const client = createGithubClient({ storage, token: 'test-token', fetchImpl });
+  await assert.rejects(client.get('/branches?per_page=100'), error => {
+    assert.equal(error.githubDiagnostic?.kind, 'permission');
+    assert.equal(error.rateLimited, false);
+    return true;
+  });
+  await assert.rejects(client.get('/branches?per_page=100'), error => error.githubDiagnostic?.kind === 'permission');
+  assert.equal(calls, 2);
+});
+
+test('primary limit stores typed authenticated backoff and blocks the next request without another fetch', async () => {
+  const storage = memoryStorage();
+  let calls = 0;
+  const now = Date.parse('2026-09-15T09:00:00Z');
+  const resetSeconds = Math.floor((now + 20 * 60_000) / 1000);
+  const fetchImpl = async () => {
+    calls++;
+    return new Response(JSON.stringify({ message: 'API rate limit exceeded for test' }), {
+      status: 403,
+      headers: {
+        'content-type': 'application/json',
+        'x-ratelimit-limit': '1000',
+        'x-ratelimit-remaining': '0',
+        'x-ratelimit-used': '1000',
+        'x-ratelimit-resource': 'core',
+        'x-ratelimit-reset': String(resetSeconds),
+      },
+    });
+  };
+  const client = createGithubClient({ storage, token: 'test-token', fetchImpl, now: () => now });
+  await assert.rejects(client.get('/branches?per_page=100'), error => {
+    assert.equal(error.githubDiagnostic?.kind, 'primary');
+    assert.equal(error.githubDiagnostic?.remaining, 0);
+    assert.equal(error.rateLimited, true);
+    return true;
+  });
+  await assert.rejects(client.get('/actions/runs?per_page=100'), error => {
+    assert.equal(error.githubDiagnostic?.kind, 'primary');
+    assert.match(error.message, /再取得待ち/);
+    return true;
+  });
+  assert.equal(calls, 1);
+});
+
+test('secondary limit is distinct even when primary remaining is nonzero', () => {
+  const now = Date.parse('2026-09-15T09:00:00Z');
+  const diagnostic = classifyGithubFailure({
+    status: 429,
+    headers: new Headers({
+      'retry-after': '90',
+      'x-ratelimit-limit': '5000',
+      'x-ratelimit-remaining': '4870',
+      'x-ratelimit-used': '130',
+      'x-ratelimit-resource': 'core',
+    }),
+    message: 'You have exceeded a secondary rate limit.',
+    scope: 'authenticated',
+    now,
+  });
+  assert.equal(diagnostic.kind, 'secondary');
+  assert.equal(diagnostic.remaining, 4870);
+  assert.equal(diagnostic.retryAfter, '90');
+  assert.equal(diagnostic.retryAtMs, now + 90_000);
 });
 
 test('PR snapshot is incremental between bounded full reconciliations', async () => {
@@ -105,7 +204,7 @@ test('historical PR rows never trigger new target-file API backfill', async () =
   const storage = memoryStorage();
   let calls = 0;
   const client = {
-    available: 18,
+    available: 32,
     deepAllowed: true,
     async get() { calls++; throw new Error('historical target lookup must not run'); },
   };

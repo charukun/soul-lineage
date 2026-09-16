@@ -60,7 +60,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   let active=true,raf=0,last=performance.now(),saveElapsed=0,uiElapsed=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval,toastTimer=0,endDialog=null,pointer=null,keyboard={x:0,y:0},axis={x:0,y:0},portDwell=0,doorDwell=0,doorStationId='',movementHint=true,movementHintTimer=0,chapterTimer=0,hurtTimer=0,lastChapter='';
   let front=coop?coop.snapshot().view.front:state.zone==='frontier'?normalizeFront(state.frontState,state.front,state.seed):null;if(front)state.frontState=front;
   let skirmish=coop?null:createVillageSkirmish(skirmishAnchor,state.seed);view.syncSkirmish(skirmish);
-  let coopTick=-1,coopEpoch=0,rebirthPending=false,inputElapsed=0;
+  let coopTick=-1,coopEpoch=0,coopHistoryRevision=-1,rebirthPending=false,inputElapsed=0;
   const birth=createBirthExperience({document,canvas,gameScreen,view,stations,getState:()=>state,dialogue});
 
   const toast=text=>{if(!text)return;$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1800);};
@@ -139,11 +139,12 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   function renderCoopFrame(dt){
     const snapshot=coop.snapshot(),shared=snapshot.view,open=snapshot.phase==='open';$('coop-darkness').hidden=open;
     inputElapsed+=dt;if(inputElapsed>=.05){inputElapsed=0;const direction=open&&!document.hidden&&!document.querySelector('dialog[open]')?view.cameraVector(axis):{x:0,z:0};coop.input({x:direction.x*Math.min(1,Math.hypot(axis.x,axis.y)),z:direction.z*Math.min(1,Math.hypot(axis.x,axis.y))});}
-    if(shared&&(shared.tick!==coopTick||shared.epoch!==coopEpoch)){
+    if(shared&&(shared.tick!==coopTick||shared.epoch!==coopEpoch||shared.historyRevision!==coopHistoryRevision)){
+      coopHistoryRevision=shared.historyRevision;
       coopTick=shared.tick;coopEpoch=shared.epoch;Object.assign(canvas.dataset,{coopWorld:coop.worldId,coopPlayer:coop.selfId,coopTick:String(shared.tick),coopEpoch:String(shared.epoch),coopSeconds:String(shared.worldSeconds),coopPosition:JSON.stringify(shared.me.position),coopPeers:JSON.stringify(shared.peers.map(peer=>({id:peer.playerId,position:peer.position})))});const oldId=state.id;const previousStage=front?.stage;state=shared.me;front=shared.front;
       if(oldId!==state.id){rebirthPending=false;lastChapter='';showBirthIntro();}
       if(previousStage!==front?.stage)view.syncFront(front);else view.updateFront(front);view.syncPeers(shared.peers);handleEvents(shared.events||[]);
-      $('coop-people').textContent=`接続 ${shared.connected||1}人 · ${shared.peers.map(peer=>peer.name).join(' / ')}`;
+      $('coop-people').textContent=shared.historyPending?'人生を記録しています。':`接続 ${shared.connected||1}人 · ${shared.peers.map(peer=>peer.name).join(' / ')}`;
     }
     uiElapsed+=dt;if(uiElapsed>=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval){uiElapsed=0;syncUI();}
     if(Math.hypot(axis.x,axis.y)>.08&&open&&movementHint){movementHint=false;$('move-hint').hidden=true;}if(state.ended&&!rebirthPending)endLife();view.renderState(state,open?dt:0);birth.afterRender(open?dt:0,{carrierMoving:open&&Math.hypot(axis.x,axis.y)>.08});

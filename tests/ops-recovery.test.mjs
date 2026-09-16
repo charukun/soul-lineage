@@ -23,7 +23,7 @@ const collectorFetch = async url => {
   throw new Error('Unexpected route '+url);
 };
 test('collector preserves the three current environments and exact pinned staging history', async () => {
-  const state = await buildState(null, {fetchImpl:collectorFetch});
+  const state = await buildState(null, {fetchImpl:collectorFetch,token:'test-token'});
   assert.deepEqual(state.environments.map(e=>e.id), ['dev','staging','prod']);
   assert.equal(state.environments[1].deployedCommit, stagedSha);
   assert.equal(state.environments[1].branch, 'develop');
@@ -45,7 +45,7 @@ test('recovery rejects an old Worker or a different static SHA before priming', 
   assert.throws(()=>assertSnapshot({repository:'charukun/soul-lineage',schemaVersion:1,syncStatus:'ok'},sha),/Old Worker/);
 });
 test('schema2 without target lookup cannot masquerade as a completed zero-target prime', async () => {
-  const state=await buildState(null,{fetchImpl:collectorFetch}); state.buildCommit=sha;
+  const state=await buildState(null,{fetchImpl:collectorFetch,token:'test-token'}); state.buildCommit=sha;
   delete state.pullRequests.targetLookup;
   assert.throws(()=>assertSnapshot(state,sha),/lookup metadata/);
 });
