@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
+  <rect width="1200" height="760" fill="#e9e2d1"/>
+  <text x="54" y="62" font-family="serif" font-size="30" fill="#2b2a27">RINNE / Protagonist Villager v1</text>
+  <text x="54" y="94" font-family="sans-serif" font-size="16" fill="#666159">KayKit-family low-poly language · humble village start · no armor / no helmet / no shield</text>
+  <g font-family="sans-serif" text-anchor="middle" fill="#4c4942" font-size="18">
+    <text x="245" y="140">FRONT</text><text x="600" y="140">SIDE</text><text x="955" y="140">BACK</text>
+  </g>
+  <g stroke="#5b5148" stroke-width="4" stroke-linejoin="round">
+    <g transform="translate(245 170)">
+      <circle cx="0" cy="105" r="92" fill="#c99373"/>
+      <path d="M-86 96 Q-72 4 0 8 Q76 8 88 98 L58 70 L42 35 L15 60 L-18 30 L-42 62 Z" fill="#493a32"/>
+      <circle cx="-30" cy="105" r="8" fill="#292522" stroke="none"/><circle cx="30" cy="105" r="8" fill="#292522" stroke="none"/>
+      <path d="M-118 214 L-88 172 L88 172 L118 214 L92 365 L-92 365 Z" fill="#d9ccb0"/>
+      <path d="M-25 176 L0 208 L25 176" fill="none"/>
+      <rect x="-102" y="345" width="204" height="24" rx="7" fill="#5a4130"/>
+      <path d="M-85 369 L-15 369 L-28 540 L-92 540 Z M15 369 L85 369 L92 540 L28 540 Z" fill="#6c7251"/>
+      <path d="M-104 540 L-22 540 L-14 590 L-118 590 Z M22 540 L104 540 L118 590 L14 590 Z" fill="#554032"/>
+      <path d="M-112 220 L-160 390 L-110 405 L-62 246 Z M112 220 L160 390 L110 405 L62 246 Z" fill="#d9ccb0"/>
+      <circle cx="-137" cy="407" r="27" fill="#c99373"/><circle cx="137" cy="407" r="27" fill="#c99373"/>
+      <rect x="80" y="352" width="58" height="70" rx="10" fill="#66503b"/>
+      <path d="M-82 365 L-112 444 L-82 462 L-52 375 Z" fill="#6f8290" stroke="none"/>
+    </g>
+    <g transform="translate(600 170)">
+      <ellipse cx="0" cy="105" rx="80" ry="92" fill="#c99373"/>
+      <path d="M-70 94 Q-55 6 12 10 Q72 20 77 103 L48 65 L8 45 L-28 50 Z" fill="#493a32"/>
+      <path d="M-82 178 L52 178 L92 230 L65 365 L-70 365 L-98 230 Z" fill="#d9ccb0"/>
+      <rect x="-70" y="345" width="135" height="24" rx="7" fill="#5a4130"/>
+      <path d="M-58 369 L5 369 L-10 540 L-66 540 Z M8 369 L62 369 L74 540 L18 540 Z" fill="#6c7251"/>
+      <path d="M-72 540 L-5 540 L5 590 L-82 590 Z M15 540 L78 540 L88 590 L8 590 Z" fill="#554032"/>
+      <rect x="58" y="350" width="52" height="72" rx="10" fill="#66503b"/>
+    </g>
+    <g transform="translate(955 170)">
+      <circle cx="0" cy="105" r="92" fill="#c99373"/>
+      <path d="M-88 106 Q-78 8 0 8 Q78 8 88 106 L63 150 L0 170 L-63 150 Z" fill="#493a32"/>
+      <path d="M-118 214 L-88 172 L88 172 L118 214 L92 365 L-92 365 Z" fill="#d9ccb0"/>
+      <rect x="-102" y="345" width="204" height="24" rx="7" fill="#5a4130"/>
+      <path d="M-85 369 L-15 369 L-28 540 L-92 540 Z M15 369 L85 369 L92 540 L28 540 Z" fill="#6c7251"/>
+      <path d="M-104 540 L-22 540 L-14 590 L-118 590 Z M22 540 L104 540 L118 590 L14 590 Z" fill="#554032"/>
+      <path d="M-112 220 L-160 390 L-110 405 L-62 246 Z M112 220 L160 390 L110 405 L62 246 Z" fill="#d9ccb0"/>
+      <rect x="76" y="346" width="56" height="76" rx="10" fill="#66503b"/>
+    </g>
+  </g>
+  <g font-family="sans-serif" font-size="15" fill="#45413a">
+    <text x="55" y="698">Palette: hair #493a32 · linen #d9ccb0 · trousers #6c7251 · leather #554032 · accent #6f8290</text>
+    <text x="55" y="728">Hero read: short asymmetric fringe + V-neck + muted blue-gray waist cloth. Keep clothing modest and armor-free.</text>
+  </g>
+</svg>
