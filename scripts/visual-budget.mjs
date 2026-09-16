@@ -50,7 +50,7 @@ export function inspectVisualFiles(files, options = {}) {
 
 function changedFiles(base, head) {
   if (!base || !head) return [];
-  return execFileSync('git', ['diff','--name-only','--diff-filter=AM',`${base}...${head}`], { encoding:'utf8' }).split(/\r?\n/).filter(Boolean);
+  return execFileSync('git', ['diff','--name-only','--diff-filter=AM',base,head], { encoding:'utf8' }).split(/\r?\n/).filter(Boolean);
 }
 
 function trackedVisualFiles() {
