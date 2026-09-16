@@ -37,7 +37,7 @@ export async function verifyCoopPlay(browser,url,output){
     const recorded=await historySave(host);assert.equal(recorded.version,2);assert.equal(recorded.births.length,2);assert.match(recorded.root,/^[0-9a-f]{64}$/);
     await guest.keyboard.down('ArrowRight');await guest.waitForTimeout(700);await guest.keyboard.up('ArrowRight');
     await host.waitForFunction(({id,start})=>{const peer=JSON.parse(document.getElementById('game')?.dataset.coopPeers||'[]').find(peer=>peer.id===id);return peer&&Math.hypot(peer.position.x-start.x,peer.position.z-start.z)>.1;},{id:first.player,start:first.position});
-    await host.locator('#clock-rate').selectOption('20');await guest.waitForFunction(()=>document.getElementById('clock-rate')?.value==='20');
+    for(let i=0;i<3;i++)await host.locator('#clock-rate').click();assert.equal(await host.locator('#clock-rate').evaluate(node=>node.value),'20');await guest.waitForFunction(()=>document.getElementById('clock-rate')?.value==='20');
     await guest.screenshot({path:join(output,'01-two-players.png')});assert.equal(await guest.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     await host.close();await guest.locator('#coop-darkness').waitFor({state:'visible',timeout:6000});const stopped=await sample(guest);await guest.waitForTimeout(300);assert.equal((await sample(guest)).tick,stopped.tick);
     await guest.screenshot({path:join(output,'02-host-loss.png')});
