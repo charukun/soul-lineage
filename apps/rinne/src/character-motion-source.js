@@ -1,6 +1,6 @@
 import { QA_FPS, qaSequenceAt, blendHumanoidPose, stabilizeMotionBoundaries } from '@soul/animations';
 import { captureMotionRest, captureNormalizedMotion } from '@soul/rendering/motion-quality';
-import { thirtySecondSlashBeat } from './character-motion-performance.js';
+import { thirtySecondSlashBeat, THIRTY_SECOND_ENBU_REVISION } from './character-motion-performance.js';
 
 /** Bake the existing runtime once, then release its model/controllers. A crowd shares
  * immutable canonical poses, never a mixer, VRM bridge, spring history or model clone.
@@ -27,7 +27,7 @@ export async function bakeWorkshopMotionSource(runtime,{slashSeconds,revision,pr
     actor.attack=null;actor.combatReady=['draw','guard','slash','sheathe'].includes(row.id);actor.weaponTransition=['draw','sheathe'].includes(row.id);
     actor.weaponDraw=['guard','slash'].includes(row.id)?1:row.id==='draw'?row.progress:row.id==='sheathe'?1-row.progress:0;
     const slashBeat=row.id==='slash'?thirtySecondSlashBeat(phase,slashSeconds):null;
-    if(slashBeat)actor.attack={id:`qa-slash-${slashBeat.index}`,kind:'slash',t:slashBeat.time,duration:slashSeconds};
+    if(slashBeat)actor.attack={id:`qa-slash-${slashBeat.variant}`,kind:'slash',t:slashBeat.time,duration:slashSeconds,presentationVariant:slashBeat.variant,comboIndex:slashBeat.index};
     // Bake primary animation, not elapsed spring simulation. Secondary motion is
     // deliberately reset for reproducible screenshots and remains a separate review.
     c.resetSpring=true;
@@ -39,5 +39,5 @@ export async function bakeWorkshopMotionSource(runtime,{slashSeconds,revision,pr
   for(let i=frames.length-31;i<frames.length;i++)frames[i]=blendHumanoidPose(frames[i],frames[0],(i-(frames.length-31))/30);
   const transitionRanges=[[2.9,3.15],[6.9,7.15],[10.98,11.5],[13.9,14.15],[23,23.3],[26.5,27.2]];
   const qualityFrames=stabilizeMotionBoundaries({frames,fps:QA_FPS,duration:30},transitionRanges);
-  return {version:1,fps:QA_FPS,duration:30,revision,sourceHeight:c.sourceHeight,frames,qualityFrames,transitionRanges,attachments,socket,sourceRest:rest,sources:['idle-01','walk','run-slow','runtime.weaponDraw','runtime.guard','runtime.naturalWeaponStance','authored-slash']};
+  return {version:1,fps:QA_FPS,duration:30,revision,performanceRevision:THIRTY_SECOND_ENBU_REVISION,sourceHeight:c.sourceHeight,frames,qualityFrames,transitionRanges,attachments,socket,sourceRest:rest,sources:['idle-01','walk','run-slow','runtime.weaponDraw','runtime.guard','runtime.naturalWeaponStance','authored-slash']};
 }
