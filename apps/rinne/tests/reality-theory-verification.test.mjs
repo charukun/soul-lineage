@@ -5,6 +5,7 @@ import {
 } from '../src/game/reality-lab/canon-packet-proof.js';
 import {chooseAdaptivePresence,optimizeRelayPresence,proveDenseAdaptiveRelay,proveRelayConstructionOptimality,relayFailureCoverage,runAdaptiveRelayProofSuite} from '../src/game/reality-lab/adaptive-relay.js';
 import {directMembershipSwitchCounterexample,proveMembershipRotationLimits,proveOneMemberBridgeReconfiguration,proveSuspendedMemberRotation,runAuthorityMembershipProofSuite} from '../src/game/reality-lab/authority-membership-proof.js';
+import {proveCanonFailureDomainBoundary,proveRelayFailureDomainBoundary,runFailureDomainProofSuite} from '../src/game/reality-lab/failure-domain-proof.js';
 import {proveSemanticProtocolComposition,runRrpTheoryVerificationSuite} from '../src/game/reality-lab/theory-verification.js';
 
 const deliver=(protocol,type,matcher=()=>true)=>protocol.deliverWhere(row=>row.type===type&&matcher(row));
@@ -57,6 +58,14 @@ test('one suspended nucleus member can rotate out through the surviving majority
   const proof=proveSuspendedMemberRotation();assert.equal(proof.pass,true);assert.equal(proof.oldQuorumAvailable,true);assert.equal(proof.canOpenNew,true);assert.equal(proof.transition.newMemberRecoveryCopied,true);assert.equal(proof.blockedAfterTooManyUnavailable,true);assert.equal(proveMembershipRotationLimits().requiresJointConsensusOrSequentialReplacement,true);assert.equal(runAuthorityMembershipProofSuite().pass,true);
 });
 
+test('Canon crash-copy count is not promoted to failure-domain durability without independent placement',()=>{
+  const proof=proveCanonFailureDomainBoundary({maxFailures:3});assert.equal(proof.pass,true);for(const row of proof.rows){assert.equal(row.diverse.pass,true);assert.equal(row.collapsed.pass,false);assert.ok(row.diverse.domains.length>=row.failures+1);}
+});
+
+test('redundant relay peers still fail one-domain tolerance when both paths share the same domain',()=>{
+  const proof=proveRelayFailureDomainBoundary();assert.equal(proof.pass,true);assert.equal(proof.diverse.pass,true);assert.equal(proof.collapsed.pass,false);assert.ok(proof.collapsed.uncovered.length>0);assert.equal(runFailureDomainProofSuite().pass,true);
+});
+
 test('dense 30-peer relay has exact sender-fanout optima but retains latency and failure counterexamples',()=>{
   const proof=proveDenseAdaptiveRelay();assert.equal(proof.pass,true);assert.equal(proof.star.hostFanout,29);assert.equal(proof.r1.relays,5);assert.equal(proof.r1.maxSenderFanout,5);assert.equal(proof.r1.aggregateTransmissions,29);assert.equal(proof.r2.relays,7);assert.equal(proof.r2.maxSenderFanout,7);assert.ok(proof.r2.aggregateTransmissions>29);assert.equal(proof.r1Failure.pass,false);assert.equal(proof.r2Failure.pass,true);assert.equal(proof.zeroExtraHop.selected.kind,'direct-star');
 });
@@ -74,5 +83,5 @@ test('Semantic Frontier keeps presence relay, crash Canon and Byzantine escalati
 });
 
 test('new theory suites compose without weakening Semantic Frontier impossibility boundaries',()=>{
-  const packet=runCanonPacketProofSuite(),relay=runAdaptiveRelayProofSuite(),membership=runAuthorityMembershipProofSuite();assert.equal(packet.pass,true);assert.equal(packet.packetSweep.cases,5218);assert.equal(packet.sequential.pass,true);assert.equal(relay.pass,true);assert.equal(membership.pass,true);const combined=runRrpTheoryVerificationSuite();assert.equal(combined.pass,true);assert.equal(combined.boundaries.twoPeerNoWitnessBoundary,true);assert.equal(combined.boundaries.earlyVisibilityCounterexampleRetained,true);assert.equal(combined.boundaries.authorityRotationBridge,true);assert.equal(combined.boundaries.relayNotUniversal,true);assert.equal(combined.boundaries.semanticProtocolComposition,true);assert.equal(combined.boundaries.semanticUniversalStrictDominanceStillRejected,true);
+  const packet=runCanonPacketProofSuite(),relay=runAdaptiveRelayProofSuite(),membership=runAuthorityMembershipProofSuite(),domains=runFailureDomainProofSuite();assert.equal(packet.pass,true);assert.equal(packet.packetSweep.cases,5218);assert.equal(packet.sequential.pass,true);assert.equal(relay.pass,true);assert.equal(membership.pass,true);assert.equal(domains.pass,true);const combined=runRrpTheoryVerificationSuite();assert.equal(combined.pass,true);assert.equal(combined.boundaries.twoPeerNoWitnessBoundary,true);assert.equal(combined.boundaries.earlyVisibilityCounterexampleRetained,true);assert.equal(combined.boundaries.authorityRotationBridge,true);assert.equal(combined.boundaries.canonFailureDomainDiversity,true);assert.equal(combined.boundaries.relayFailureDomainDiversity,true);assert.equal(combined.boundaries.relayNotUniversal,true);assert.equal(combined.boundaries.semanticProtocolComposition,true);assert.equal(combined.boundaries.semanticUniversalStrictDominanceStillRejected,true);
 });
