@@ -20,7 +20,8 @@ function normalizeResource(resource){
 function normalizeOperation(operation,resources){
   const id=String(operation?.id||'');if(!id)throw Error('Invariant operation id is required');
   const effects={};for(const [resourceId,effect] of Object.entries(operation.effects||{})){if(!resources.has(resourceId))throw Error(`Unknown invariant resource ${resourceId}`);effects[resourceId]=clone(effect);}
-  return{id,kind:operation.kind||OP_KIND.MERGEABLE,bytes:operation.bytes??64,rate:operation.rate??1,recipients:operation.recipients??1,mergeable:operation.mergeable!==false,irreversible:Boolean(operation.irreversible),requiresCrashSurvival:Boolean(operation.requiresCrashSurvival),effects};
+  const latencyBudgetMs=operation.latencyBudgetMs??Infinity;if(!Number.isFinite(latencyBudgetMs)&&latencyBudgetMs!==Infinity)throw Error('Invalid invariant operation latency budget');
+  return{id,kind:operation.kind||OP_KIND.MERGEABLE,bytes:operation.bytes??64,rate:operation.rate??1,recipients:operation.recipients??1,mergeable:operation.mergeable!==false,deterministic:Boolean(operation.deterministic),irreversible:Boolean(operation.irreversible),requiresTotalOrder:Boolean(operation.requiresTotalOrder),requiresCrashSurvival:Boolean(operation.requiresCrashSurvival),requiresByzantine:Boolean(operation.requiresByzantine),requiresExternalOrder:Boolean(operation.requiresExternalOrder),requiresPartitionAvailability:Boolean(operation.requiresPartitionAvailability),requiresGuaranteedTermination:Boolean(operation.requiresGuaranteedTermination),rollbackAllowed:operation.rollbackAllowed!==false,latencyBudgetMs,recoveryBytes:operation.recoveryBytes??0,effects};
 }
 
 function boundedCounterWitness(resource,a,b){
@@ -46,16 +47,17 @@ export function compileInvariantCoordination({resources=[],operations=[]}={}){
     if(witnesses.length)conflicts.push({key:effectKey(a,b),left:a.id,right:b.id,resources:shared,witnesses});else safePairs.push({key:effectKey(a,b),left:a.id,right:b.id,resources:shared});
   }
   const conflictIds=new Set(conflicts.flatMap(row=>[row.left,row.right])),safeMap=new Map(ops.map(op=>[op.id,new Set()]));for(const row of safePairs){safeMap.get(row.left).add(row.right);safeMap.get(row.right).add(row.left);}
-  const semanticOperations=ops.map(op=>({id:op.id,kind:op.kind,bytes:op.bytes,rate:op.rate,recipients:op.recipients,mergeable:op.mergeable,irreversible:op.irreversible,requiresCrashSurvival:op.requiresCrashSurvival,requiresTotalOrder:conflictIds.has(op.id)||op.irreversible,rollbackAllowed:!(conflictIds.has(op.id)||op.irreversible),invariants:Object.keys(op.effects),commutesWith:[...safeMap.get(op.id)].sort()}));
+  const semanticOperations=ops.map(op=>{
+    const compiledStrong=conflictIds.has(op.id)||op.irreversible;
+    return{id:op.id,kind:op.kind,bytes:op.bytes,rate:op.rate,recipients:op.recipients,mergeable:op.mergeable,deterministic:op.deterministic,irreversible:op.irreversible,requiresTotalOrder:op.requiresTotalOrder||compiledStrong,requiresCrashSurvival:op.requiresCrashSurvival,requiresByzantine:op.requiresByzantine,requiresExternalOrder:op.requiresExternalOrder,requiresPartitionAvailability:op.requiresPartitionAvailability,requiresGuaranteedTermination:op.requiresGuaranteedTermination,rollbackAllowed:op.rollbackAllowed&&!compiledStrong,latencyBudgetMs:op.latencyBudgetMs,recoveryBytes:op.recoveryBytes,invariants:Object.keys(op.effects),commutesWith:[...safeMap.get(op.id)].sort()};
+  });
   const certificate={schema:'rrp-invariant-kernel/1',resources:resourceRows,operations:ops.map(op=>({id:op.id,effects:op.effects})),conflicts,safePairs};certificate.root=digest(certificate);
   return{resources:resourceRows,operations:ops,semanticOperations,conflicts,safePairs,certificate,coordinationRequired:conflicts.length>0};
 }
 
 export function verifyInvariantCoordinationCertificate(certificate){if(certificate?.schema!=='rrp-invariant-kernel/1'||typeof certificate.root!=='string')return false;try{const rebuilt=compileInvariantCoordination({resources:certificate.resources,operations:certificate.operations});return rebuilt.certificate.root===certificate.root;}catch{return false;}}
 
-function normalizeObjective(objective){
-  const rows=Array.isArray(objective)&&objective.length?objective:[...COST_KEYS];if(new Set(rows).size!==rows.length||rows.some(key=>!COST_KEYS.includes(key)))throw Error('Invalid proof plan objective');return rows;
-}
+function normalizeObjective(objective){const rows=Array.isArray(objective)&&objective.length?objective:[...COST_KEYS];if(new Set(rows).size!==rows.length||rows.some(key=>!COST_KEYS.includes(key)))throw Error('Invalid proof plan objective');return rows;}
 function comparePlan(a,b,objective){for(const key of objective){const delta=a.cost[key]-b.cost[key];if(Math.abs(delta)>1e-9)return delta;}return a.policies.join('|').localeCompare(b.policies.join('|'));}
 function sameCost(a,b){return COST_KEYS.every(key=>Math.abs(Number(a?.[key])-Number(b?.[key]))<1e-9);}
 
@@ -68,11 +70,7 @@ export function synthesizeProofCarryingPlan({resources=[],operations=[],environm
 
 export function verifyProofCarryingPlan(bundle){
   if(bundle?.schema!=='rrp-proof-carrying-plan/1'||typeof bundle.root!=='string'||!verifyInvariantCoordinationCertificate(bundle.invariantCertificate))return false;
-  try{
-    const withoutRoot=clone(bundle);delete withoutRoot.root;if(digest(withoutRoot)!==bundle.root)return false;
-    const synthesized=synthesizeProofCarryingPlan({resources:bundle.resources,operations:bundle.operations,environment:bundle.environment,objective:bundle.objective});if(!synthesized.pass)return false;
-    return synthesized.bundle.selected.policies.join('|')===bundle.selected.policies.join('|')&&sameCost(synthesized.bundle.selected.cost,bundle.selected.cost)&&synthesized.bundle.invariantCertificate.root===bundle.invariantCertificate.root;
-  }catch{return false;}
+  try{const withoutRoot=clone(bundle);delete withoutRoot.root;if(digest(withoutRoot)!==bundle.root)return false;const synthesized=synthesizeProofCarryingPlan({resources:bundle.resources,operations:bundle.operations,environment:bundle.environment,objective:bundle.objective});if(!synthesized.pass)return false;return synthesized.bundle.selected.policies.join('|')===bundle.selected.policies.join('|')&&sameCost(synthesized.bundle.selected.cost,bundle.selected.cost)&&synthesized.bundle.invariantCertificate.root===bundle.invariantCertificate.root;}catch{return false;}
 }
 
 export function proveInvariantCompilerKernel(){
@@ -82,8 +80,10 @@ export function proveInvariantCompilerKernel(){
   const edges=new Set(compiled.conflicts.map(row=>row.key)),safe=new Set(compiled.safePairs.map(row=>row.key)),expectedConflicts=['reserve-a::reserve-b','name-a::name-b','rebirth-a::rebirth-b'];
   const witnessMinimal=expectedConflicts.every(key=>edges.has(key)&&compiled.conflicts.find(row=>row.key===key)?.witnesses.length>0),growOnlySafe=safe.has('discover-a::discover-b');
   const reserveOps=compiled.semanticOperations.filter(op=>op.id.startsWith('reserve-')),discoverOps=compiled.semanticOperations.filter(op=>op.id.startsWith('discover-')),conservativeEscalation=reserveOps.every(op=>op.requiresTotalOrder&&!op.rollbackAllowed)&&discoverOps.every(op=>!op.requiresTotalOrder&&op.rollbackAllowed);
+  const preserved=compileInvariantCoordination({resources:[{id:'x',type:'grow-only-set'}],operations:[{id:'external',effects:{x:{add:'a'}},kind:OP_KIND.EXTERNAL_TXN,requiresExternalOrder:true,requiresByzantine:true,requiresCrashSurvival:true,requiresPartitionAvailability:true,requiresGuaranteedTermination:true,rollbackAllowed:false,recoveryBytes:99,latencyBudgetMs:123}]}).semanticOperations[0];
+  const guaranteePreservation=preserved.requiresExternalOrder&&preserved.requiresByzantine&&preserved.requiresCrashSurvival&&preserved.requiresPartitionAvailability&&preserved.requiresGuaranteedTermination&&preserved.rollbackAllowed===false&&preserved.recoveryBytes===99&&preserved.latencyBudgetMs===123;
   const certificateValid=verifyInvariantCoordinationCertificate(compiled.certificate),tampered=clone(compiled.certificate);tampered.conflicts=[];const tamperRejected=verifyInvariantCoordinationCertificate(tampered)===false;
-  return{pass:witnessMinimal&&growOnlySafe&&conservativeEscalation&&certificateValid&&tamperRejected,compiled,checks:{witnessMinimal,growOnlySafe,conservativeEscalation,certificateValid,tamperRejected},limits:['exact only for the declared bounded-counter, grow-only-set, unique-register and single-use-token resource models','unsafe pairs are conservatively escalated to total order; this is a safety compiler, not proof that total order is always the cheapest coordination primitive','cross-resource application semantics outside declared effects still require a separate invariant model']};
+  return{pass:witnessMinimal&&growOnlySafe&&conservativeEscalation&&guaranteePreservation&&certificateValid&&tamperRejected,compiled,checks:{witnessMinimal,growOnlySafe,conservativeEscalation,guaranteePreservation,certificateValid,tamperRejected},limits:['exact only for the declared bounded-counter, grow-only-set, unique-register and single-use-token resource models','unsafe pairs are conservatively escalated to total order; this is a safety compiler, not proof that total order is always the cheapest coordination primitive','cross-resource application semantics outside declared effects still require a separate invariant model']};
 }
 
 export function proveCompiledSemanticFrontier(){
