@@ -1,5 +1,5 @@
 /* Semantic browser controls keep their behavior; 尽喰廻遊 owns every visible pixel. */
-progress,meter,input[type="range"],input[type="checkbox"]{-webkit-appearance:none;appearance:none}
+progress,meter,input[type="range"]{-webkit-appearance:none;appearance:none}
 
 #boot progress{
   width:min(210px,62vw);height:5px;margin:12px 0 4px;border:1px solid rgba(141,86,64,.42);border-radius:0;overflow:hidden;
