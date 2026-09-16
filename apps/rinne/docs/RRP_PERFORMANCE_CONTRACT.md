@@ -153,4 +153,8 @@ The remaining evidence work is now narrower:
 7. gather enough samples, review the first compatible baseline, then promote selected calibrated values into absolute product SLO candidates;
 8. expand from the initial 2–3 physical peers toward the separate 30-device certification matrix.
 
+## Physical capture loop acceptance
+
+The next implementation loop may be considered complete only when measurement plumbing is usable from a dedicated capture surface without affecting ordinary gameplay. The dedicated route must explicitly opt into the performance probe, keep the one-second observation cadence alive while the capture is active, expose raw Host/Guest capture JSON for the existing evidence builder, and bind `inputToDisplayMs` to a rendered authoritative frame rather than packet receipt. Missing render, migration, freshness, error, GPU, memory, battery, or physical-network evidence must remain missing rather than be synthesized.
+
 No paid runtime or dedicated game server is required by this contract. NAT/TURN reachability, physical 30-device scale, battery and radio behavior remain unproved until their corresponding evidence exists.
