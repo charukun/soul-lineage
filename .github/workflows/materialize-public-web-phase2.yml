@@ -63,12 +63,12 @@ jobs:
           fetch_git_blob "$impact_base/footstep_wood_000.ogg" "1a519c74dc71da391a93e033aa63eb641da80dd9" "assets/vendor/public-web/kenney-impact-sounds/footsteps/wood.ogg"
           fetch_git_blob "https://raw.githubusercontent.com/Boyquotes/kenney-impact-sounds-for-godot/999dd1684873f8b020a3aa5b26e713da21688924/LICENSE" "0e259d42c996742e9e3cba14c677129b2c1b6311" "assets/vendor/public-web/kenney-impact-sounds/LICENSE.txt"
 
-          particle_base="https://raw.githubusercontent.com/Calinou/kenney-particle-pack/ab7086639ee73be31abd87feb21bf1402d4e8144/addons/kenney_particle_pack/src"
-          fetch_git_blob "$particle_base/spark_04.png" "a7a924890cbd9aa4a846cd67e7d16a5289000b6a" "assets/vendor/public-web/kenney-particle-pack/vfx/spark.png"
-          fetch_git_blob "$particle_base/slash_02.png" "08cdabac0df92546b15aa25c669498c1fe781b5a" "assets/vendor/public-web/kenney-particle-pack/vfx/slash.png"
-          fetch_git_blob "$particle_base/smoke_05.png" "1c27826636e410e8c52c41e9f6dc125d01513b0a" "assets/vendor/public-web/kenney-particle-pack/vfx/smoke.png"
-          fetch_git_blob "$particle_base/flare_01.png" "730103838d1a2ba02e78aa722b17bba74ae6a6e4" "assets/vendor/public-web/kenney-particle-pack/vfx/flare.png"
-          fetch_git_blob "$particle_base/magic_05.png" "08fafe3fb508c98a28120b2f856d4e9e91f115ac" "assets/vendor/public-web/kenney-particle-pack/vfx/magic.png"
+          particle_base="https://raw.githubusercontent.com/Calinou/kenney-particle-pack/ab7086639ee73be31abd87feb21bf1402d4e8144/addons/kenney_particle_pack"
+          fetch_git_blob "$particle_base/spark_04.png" "6eaf328696ec8640571a69318b6211223c14224e" "assets/vendor/public-web/kenney-particle-pack/vfx/spark.png"
+          fetch_git_blob "$particle_base/slash_02.png" "307bd547f39287c39fc8e8aca020134592330433" "assets/vendor/public-web/kenney-particle-pack/vfx/slash.png"
+          fetch_git_blob "$particle_base/smoke_05.png" "4a77199d4ddab9d6482d8285ed3cd962983d8ffa" "assets/vendor/public-web/kenney-particle-pack/vfx/smoke.png"
+          fetch_git_blob "$particle_base/flare_01.png" "bd25bd874e47467e95d6623aa0364be1c619617a" "assets/vendor/public-web/kenney-particle-pack/vfx/flare.png"
+          fetch_git_blob "$particle_base/magic_05.png" "67b3582a720af77b76916c06643a260834e2e37b" "assets/vendor/public-web/kenney-particle-pack/vfx/magic.png"
           fetch_git_blob "https://raw.githubusercontent.com/Calinou/kenney-particle-pack/ab7086639ee73be31abd87feb21bf1402d4e8144/addons/kenney_particle_pack/LICENSE.txt" "e198510d3c6ac7e3dc4370f1f0861d8c617362e8" "assets/vendor/public-web/kenney-particle-pack/LICENSE.txt"
 
           pbr_root="assets/vendor/public-web/polyhaven-medieval-blocks-05/1k"
@@ -103,11 +103,11 @@ jobs:
               ('kenney-impact-sounds/combat/generic-light.ogg', 'Boyquotes/kenney-impact-sounds-for-godot', '999dd1684873f8b020a3aa5b26e713da21688924', 'd0a32de2dfbe38e19e0297a047c7dfc77a7ab487', 'CC0-1.0'),
               ('kenney-impact-sounds/footsteps/grass.ogg', 'Boyquotes/kenney-impact-sounds-for-godot', '999dd1684873f8b020a3aa5b26e713da21688924', '5b5ec879a5ca457d18ad01a81af805409e35207f', 'CC0-1.0'),
               ('kenney-impact-sounds/footsteps/wood.ogg', 'Boyquotes/kenney-impact-sounds-for-godot', '999dd1684873f8b020a3aa5b26e713da21688924', '1a519c74dc71da391a93e033aa63eb641da80dd9', 'CC0-1.0'),
-              ('kenney-particle-pack/vfx/spark.png', 'Calinou/kenney-particle-pack', 'ab7086639ee73be31abd87feb21bf1402d4e8144', 'a7a924890cbd9aa4a846cd67e7d16a5289000b6a', 'CC0-1.0'),
-              ('kenney-particle-pack/vfx/slash.png', 'Calinou/kenney-particle-pack', 'ab7086639ee73be31abd87feb21bf1402d4e8144', '08cdabac0df92546b15aa25c669498c1fe781b5a', 'CC0-1.0'),
-              ('kenney-particle-pack/vfx/smoke.png', 'Calinou/kenney-particle-pack', 'ab7086639ee73be31abd87feb21bf1402d4e8144', '1c27826636e410e8c52c41e9f6dc125d01513b0a', 'CC0-1.0'),
-              ('kenney-particle-pack/vfx/flare.png', 'Calinou/kenney-particle-pack', 'ab7086639ee73be31abd87feb21bf1402d4e8144', '730103838d1a2ba02e78aa722b17bba74ae6a6e4', 'CC0-1.0'),
-              ('kenney-particle-pack/vfx/magic.png', 'Calinou/kenney-particle-pack', 'ab7086639ee73be31abd87feb21bf1402d4e8144', '08fafe3fb508c98a28120b2f856d4e9e91f115ac', 'CC0-1.0'),
+              ('kenney-particle-pack/vfx/spark.png', 'Calinou/kenney-particle-pack', 'ab7086639ee73be31abd87feb21bf1402d4e8144', '6eaf328696ec8640571a69318b6211223c14224e', 'CC0-1.0'),
+              ('kenney-particle-pack/vfx/slash.png', 'Calinou/kenney-particle-pack', 'ab7086639ee73be31abd87feb21bf1402d4e8144', '307bd547f39287c39fc8e8aca020134592330433', 'CC0-1.0'),
+              ('kenney-particle-pack/vfx/smoke.png', 'Calinou/kenney-particle-pack', 'ab7086639ee73be31abd87feb21bf1402d4e8144', '4a77199d4ddab9d6482d8285ed3cd962983d8ffa', 'CC0-1.0'),
+              ('kenney-particle-pack/vfx/flare.png', 'Calinou/kenney-particle-pack', 'ab7086639ee73be31abd87feb21bf1402d4e8144', 'bd25bd874e47467e95d6623aa0364be1c619617a', 'CC0-1.0'),
+              ('kenney-particle-pack/vfx/magic.png', 'Calinou/kenney-particle-pack', 'ab7086639ee73be31abd87feb21bf1402d4e8144', '67b3582a720af77b76916c06643a260834e2e37b', 'CC0-1.0'),
           ]
           manifest = {'auditDate': '2026-09-16', 'files': []}
           for rel, repo, commit, git_blob, license_id in files:
