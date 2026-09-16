@@ -1,6 +1,14 @@
 export { PUBLIC_GITHUB_ASSET_SOURCE, publicGithubAssetCatalog, publicGithubAssetsForApp } from './public-github-catalog.js';
 export { PUBLIC_WEB_ASSET_SOURCES, publicWebAssetCatalog, publicWebAssetsForApp } from './public-web-catalog.js';
 export { PUBLIC_WEB_PHASE4_SOURCES, publicWebPhase4AssetCatalog, publicWebPhase4AssetsForApp } from './public-web-phase4-catalog.js';
+export {
+  REVIEW_SKELETON_SOURCE,
+  REVIEW_SKELETON_MODELS,
+  REVIEW_SKELETON_EQUIPMENT,
+  REVIEW_SKELETON_DOWNLOADS,
+  reviewSkeletonModel,
+  reviewSkeletonEquipmentForSlot,
+} from './review-skeleton-library.js';
 
 export const assetCatalog = Object.freeze({
   'furniture.bench.oak.v1': Object.freeze({ id: 'furniture.bench.oak.v1', type: 'furniture', dimensions: [2.2, 1.1, 0.75], color: '#aa7851' }),
