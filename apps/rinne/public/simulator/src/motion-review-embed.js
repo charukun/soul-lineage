@@ -12,6 +12,7 @@ if (params.get('embed') === '1') {
     return {
       ready: !play?.disabled,
       weapon: $('weapon-kind')?.value || 'sword',
+      model: $('performance-model')?.value || 'shino',
       handDetail: Boolean($('hand-detail')?.checked),
       mode: $('mode')?.value || 'sequence',
       playing: play?.getAttribute('aria-pressed') === 'true',
@@ -56,6 +57,7 @@ if (params.get('embed') === '1') {
     if (data?.type !== 'visual-review-performance-control') return;
     switch (data.command) {
       case 'state': break;
+      case 'model': {const select=$('performance-model');if(select&&!select.disabled&&['compact','shino'].includes(data.value)){select.value=data.value;select.onchange?.({target:select});}break;}
       case 'weapon': {const select=$('weapon-kind');if(select&&!select.disabled&&['sword','great','katana','spear','axe'].includes(data.value)){select.value=data.value;select.onchange?.({target:select});}break;}
       case 'hand-detail': if($('hand-detail')){$('hand-detail').checked=Boolean(data.value);$('hand-detail').onchange?.();}break;
       case 'mode': setMode(data.value); break;

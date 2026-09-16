@@ -62,3 +62,37 @@ characters keep their existing motion fallback. Unrelated raw-asset inspection
 clips in the main Lab retain their explicitly selected source/weapon metadata.
 This is not exact auto-battle scheduler parity, new learning logic or a promise
 that every specialized technique is interchangeable with every weapon.
+
+## 30-second compact-character follow-up
+
+This follow-up keeps the technique-first contract above and changes the review
+presentation rather than turning the full score into one bespoke clip.
+
+Acceptance criteria:
+
+- remove visible upper-arm / torso penetration during the 30-second score,
+  including compact-body proportions; preserve hand target, weapon contact
+  clocks and the reusable nine-action source bank;
+- start the 30-second score from a sheathed/rest state, perform a visible draw,
+  execute the existing 序 / 破 / 急 composition, then visibly sheathe and settle
+  before the 30.0-second boundary;
+- replace ad-hoc retreat/lateral travel with reusable step mechanics informed by
+  a pinned public-GitHub / CC0 reference. Reference data is technique evidence,
+  not copied runtime animation or a new hidden dependency;
+- make the existing compact fantasy character the primary 30-second review
+  subject while retaining Shino as an explicit comparison option. The compact
+  model must consume the same score semantics rather than a separate show-only
+  performance;
+- keep the independent Lab branch / Draft boundary. No `develop`, `main`, game
+  combat authority, damage timing, save schema or Production promotion changes.
+
+The exact locomotion-data pin is the repo's already audited Quaternius bundle
+from public GitHub `norio/vrm-game-starter` at
+`b14c236fd8150855348ad085b7820c298eac4b30`,
+`src/assets/AnimationLibrary.glb`, blob
+`8ce67624ba3bb4d2ca20a4ac188fe38ceaaab97e` (CC0 upstream). Current directional
+behavior is additionally checked against `J-Ponzo/gltf-universal-animation-library`
+at `e24c23cf2a1323488a3faa226ea7ea21f644b73e`: eight-direction locomotion,
+controller-owned root movement and synchronized left-foot starts. The review
+implementation reuses those facts as deterministic step phase/travel data and
+does not add another external animation binary.

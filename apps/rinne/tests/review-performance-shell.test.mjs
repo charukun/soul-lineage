@@ -31,6 +31,8 @@ test('Visual Review Lab keeps performance review inside the shared shell', async
   assert.match(shell, /send\('pause'\)/);
   assert.match(shell, /review-primary-switch/);
   assert.match(shell, /notebook\.insertBefore\(performancePage, secondary\)/);
+  assert.match(shell, /motion-library\.knight/);
+  assert.match(shell, /send\('model',latestState\.model\)/);
   assert.match(battleEntry, /button\.dataset\.performanceMode = 'battle'/);
   assert.match(battleEntry, /<span>自動戦闘<\/span><small>Tidebreak<\/small>/);
   assert.match(battleEntry, /data-review-tab="battle"/);
@@ -39,8 +41,11 @@ test('Visual Review Lab keeps performance review inside the shared shell', async
   assert.match(shellCss, /\.performance-stage/);
   assert.match(childHtml, /motion-review-embed\.css/);
   assert.match(childHtml, /motion-review-embed\.js/);
+  assert.match(childHtml, /id="performance-model"/);
+  assert.match(childHtml, /2頭身候補 \/ Knight/);
   assert.match(childBridge, /event\.source !== parent/);
   assert.match(childBridge, /\['posture','sequence','combination','baseline'\]/);
+  assert.match(childBridge, /case 'model'/);
   assert.match(childBridge, /case 'seek'/);
   assert.match(childBridge, /case 'view'/);
   assert.match(childCss, /\.embedded-review \.controls\{display:none!important\}/);

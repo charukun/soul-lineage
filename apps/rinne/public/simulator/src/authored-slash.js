@@ -9,7 +9,7 @@ export const SLASH_SECONDS = .66;
 export const SLASH_TIMING = Object.freeze({active:Object.freeze([.35,.64]),contact:.50,launch:.34,plant:.49,chain:.86,lead:1});
 // Free hand envelope reconciled with develop PR #156.
 export const SWORD_FREE_GUARD=Object.freeze([.16,-.29,.20]);
-export const SLASH_REVISION = 'shino-slash-13';
+export const SLASH_REVISION = 'shino-slash-14';
 const clamp = (x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 
 // Monotone cubic interpolation keeps momentum through intermediate poses without
@@ -70,6 +70,22 @@ export function applyAuthoredSlash(runtime,c,phase,definition=SLASH_TIMING,weapo
   return applySwordPose(runtime,c,weaponPose(pose,weapon,'slash',slashTime(phase,definition.contact)),slashTime(phase,definition.contact),weapon);
 }
 
+/**
+ * Keep cross-body hand targets in front of the torso rather than letting the
+ * shortest IK solution pass an upper arm through the ribs. Clearance is based
+ * on the current rig's measured shoulder span, so compact bodies receive more
+ * useful separation than a fixed Shino-space offset would provide.
+ */
+export function clearSwordArmTarget(runtime,c,target,side,s,{keepSide=false}={}){
+  c.root.updateMatrixWorld(true);
+  const torso=runtime.point(c,'spine'),left=runtime.point(c,'leftUpperArm'),right=runtime.point(c,'rightUpperArm');
+  const span=Math.max(.001,left.distanceTo(right)),half=Math.max(.10*s,span*.28),own=side==='left'?1:-1;
+  const lateral=(target.x-torso.x)*own,near=clamp((half-lateral)/half);
+  if(near>0)target.z=Math.max(target.z,torso.z+Math.max(.07*s,span*.16)*near);
+  if(keepSide&&lateral<half*.42)target.x=torso.x+own*half*.42;
+  return target;
+}
+
 /** Shared rig application: authored keys choose the pose, IK keeps anatomy/grip. */
 export function applySwordPose(runtime,c,pose,p,weapon='sword') {
   const s=c.legLength/.82;
@@ -113,7 +129,7 @@ export function applySwordPose(runtime,c,pose,p,weapon='sword') {
   }
   const [x,y,z]=pose.grip,[yaw,elevation,roll]=pose.blade;
   const carry=new T.Vector3(pose.offset[0],(pose.offset[1]+.028)*.72,pose.offset[2]).multiplyScalar(s);
-  const grip=new T.Vector3(x*s,c.shoulderY+y*s,z*s).add(carry);
+  const grip=clearSwordArmTarget(runtime,c,new T.Vector3(x*s,c.shoulderY+y*s,z*s).add(carry),'right',s);
   const dir=new T.Vector3(Math.sin(yaw)*Math.cos(elevation),Math.sin(elevation),Math.cos(yaw)*Math.cos(elevation));
   // Load with a bent elbow, extend through contact, then fold into recovery.
   // A phase-specific reach cap avoids hitting the same IK limit for every pose.
@@ -127,11 +143,11 @@ export function applySwordPose(runtime,c,pose,p,weapon='sword') {
   const [lx,ly,lz]=pose.shield;
   const torsoYaw=(pose.hips[1]+pose.spine[1]+pose.chest[1])*.75;
   const up=new T.Vector3(0,1,0),free=new T.Vector3(lx*s,ly*s,lz*s).applyAxisAngle(up,torsoYaw);
-  free.y+=c.shoulderY;free.add(carry);
+  free.y+=c.shoulderY;free.add(carry);clearSwordArmTarget(runtime,c,free,'left',s,{keepSide:true});
   const shoulder=runtime.point(c,'leftUpperArm'),elbow=runtime.point(c,'leftLowerArm'),hand=runtime.point(c,'leftHand');
   const maxFreeReach=(shoulder.distanceTo(elbow)+elbow.distanceTo(hand))*.90;
   const extension=free.clone().sub(shoulder);if(extension.length()>maxFreeReach)free.copy(shoulder).add(extension.setLength(maxFreeReach));
-  runtime.solve(c,'left','arm',free,new T.Vector3(.6,-1,0).applyAxisAngle(up,torsoYaw));
+  runtime.solve(c,'left','arm',free,new T.Vector3(.86,-.72,.16).applyAxisAngle(up,torsoYaw));
   runtime.setWorldQ(c,'leftHand',freeHandQ);
   runtime.curl(c,'left',poseCurve([[0,.28],[.30,.50],[.50,.62],[.70,.54],[1,.28]],p)[0]);
   c.root.updateMatrixWorld(true);
