@@ -6,24 +6,32 @@ const COPY_MOVE={
 };
 export const TRAIT_LEARN_CHANCE=.28;
 export const MOVE_LEARN_CHANCE=.22;
-export function feedingGrowth(meals=0){const n=Math.max(0,Math.floor(Number(meals)||0));return{scale:Math.min(1.28,.78+n*.075),hpScale:Math.min(1.04,.72+n*.055),powerScale:Math.min(1.08,.72+n*.06)};}
+export const DEFAULT_MONSTER_SPECIES='night-creature';
+export const MONSTER_GROWTH_PROFILES=Object.freeze({
+ [DEFAULT_MONSTER_SPECIES]:Object.freeze({minScale:.28,maxScale:3.2,fullMeals:10,curve:1.7,minHpScale:.24,maxHpScale:1.55,minPowerScale:.55,maxPowerScale:1.35,minMoveScale:.72,maxMoveScale:1.12,minClearance:.18,maxClearance:.92})
+});
+export function growthProfileFor(species=DEFAULT_MONSTER_SPECIES){return MONSTER_GROWTH_PROFILES[species]||MONSTER_GROWTH_PROFILES[DEFAULT_MONSTER_SPECIES];}
+export function feedingGrowth(meals=0,species=DEFAULT_MONSTER_SPECIES){
+ const profile=growthProfileFor(species),n=Math.max(0,Math.floor(Number(meals)||0)),progress=Math.min(1,n/profile.fullMeals),shaped=1-Math.pow(1-progress,profile.curve),lerp=(a,b)=>a+(b-a)*shaped;
+ return{species:Object.hasOwn(MONSTER_GROWTH_PROFILES,species)?species:DEFAULT_MONSTER_SPECIES,progress,scale:lerp(profile.minScale,profile.maxScale),hpScale:lerp(profile.minHpScale,profile.maxHpScale),powerScale:lerp(profile.minPowerScale,profile.maxPowerScale),moveScale:lerp(profile.minMoveScale,profile.maxMoveScale),clearance:lerp(profile.minClearance,profile.maxClearance)};
+}
 export class RaidSession {
- constructor(village,profile,ports={}){this.village=makeVillage(village);this.profile=profile;this.ports=ports;this.rng=random(hash(village.id));this.time=0;this.eaten=0;this.targetEaten=false;this.finished=false;this.fight=null;this.devour=null;this.events=[];this.scent=0;this.scentCooldown=0;this.shadowCooldown=0;this.wardCooldown=0;this.escapeHold=0;this.gatePush=0;this.safeTime=0;this.idleFor=0;this.roamAngle=this.rng()*Math.PI*2;this.roamTurn=2.5+this.rng()*2;const growth=feedingGrowth(0);this.maxhp=Math.round(this.getMaxHP()*growth.hpScale);this.player={x:this.village.entry.x,z:this.village.entry.z,yaw:Math.PI,hp:this.maxhp,maxhp:this.maxhp,growthScale:growth.scale,powerScale:growth.powerScale,speed:0,walk:0,pose:null,autoRoam:false};}
+ constructor(village,profile,ports={}){this.village=makeVillage(village);this.profile=profile;this.ports=ports;this.monsterSpecies=Object.hasOwn(MONSTER_GROWTH_PROFILES,profile?.monsterSpecies)?profile.monsterSpecies:DEFAULT_MONSTER_SPECIES;this.rng=random(hash(village.id));this.time=0;this.eaten=0;this.targetEaten=false;this.finished=false;this.fight=null;this.devour=null;this.events=[];this.scent=0;this.scentCooldown=0;this.shadowCooldown=0;this.wardCooldown=0;this.escapeHold=0;this.gatePush=0;this.safeTime=0;this.idleFor=0;this.roamAngle=this.rng()*Math.PI*2;this.roamTurn=2.5+this.rng()*2;const growth=feedingGrowth(0,this.monsterSpecies);this.maxhp=Math.round(this.getMaxHP()*growth.hpScale);this.player={x:this.village.entry.x,z:this.village.entry.z,yaw:Math.PI,hp:this.maxhp,maxhp:this.maxhp,growthScale:growth.scale,growthProgress:growth.progress,growthClearance:growth.clearance,powerScale:growth.powerScale,moveScale:growth.moveScale,speed:0,walk:0,pose:null,autoRoam:false};}
  getMaxHP(){return 230+(this.has('smith')?65:0)+(this.profile.form==='brute'?75:0);}
  has(k){return this.profile.unlocked.includes(k);}
- growth(){return feedingGrowth(this.eaten);}
- syncGrowth(healGain=true){if(!this.player)return;const old=this.player.maxhp||0,g=this.growth(),next=Math.round(this.getMaxHP()*g.hpScale);this.maxhp=next;this.player.maxhp=next;this.player.growthScale=g.scale;this.player.powerScale=g.powerScale;if(healGain)this.player.hp=Math.min(next,this.player.hp+Math.max(0,next-old));else this.player.hp=Math.min(next,this.player.hp);}
+ growth(){return feedingGrowth(this.eaten,this.monsterSpecies);}
+ syncGrowth(healGain=true){if(!this.player)return;const old=this.player.maxhp||0,g=this.growth(),next=Math.round(this.getMaxHP()*g.hpScale);this.maxhp=next;this.player.maxhp=next;this.player.growthScale=g.scale;this.player.growthProgress=g.progress;this.player.growthClearance=g.clearance;this.player.powerScale=g.powerScale;this.player.moveScale=g.moveScale;if(healGain)this.player.hp=Math.min(next,this.player.hp+Math.max(0,next-old));else this.player.hp=Math.min(next,this.player.hp);}
  resetIdle(){this.idleFor=0;if(this.player.autoRoam)this.player.speed=0;this.player.autoRoam=false;}
  escapePoints(){const w=this.village,points=[{id:'entry',label:'村口',x:w.entry.x,z:w.entry.z}];if(this.has('gravekeeper'))points.push({id:'graveway',label:'墓道',x:-7,z:-25});return points;}
  nearestEscape(){const p=this.player;return this.escapePoints().map(point=>({...point,distance:Math.hypot(p.x-point.x,p.z-point.z)})).sort((a,b)=>a.distance-b.distance)[0];}
- refreshProfile(p){this.profile=p;this.syncGrowth(true);}
+ refreshProfile(p){this.profile=p;this.monsterSpecies=Object.hasOwn(MONSTER_GROWTH_PROFILES,p?.monsterSpecies)?p.monsterSpecies:this.monsterSpecies||DEFAULT_MONSTER_SPECIES;this.syncGrowth(true);}
  emit(type,data={}){const e={type,...data};this.events.push(e);if(this.events.length>64)this.events.shift();this.ports.event?.(e);}
- walkActor(a,dx,dz,ignoreGate=false){const w=this.village,n=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.18));let moved=0;for(let i=0;i<n;i++){let x=Math.max(-w.bounds,Math.min(w.bounds,a.x+dx/n)),z=Math.max(-w.bounds,Math.min(w.bounds,a.z+dz/n));for(const c of w.colliders){const dd=Math.hypot(x-c.x,z-c.z),rad=c.r+.36;if(dd<rad){if(dd<.001){x=c.x+rad;}else{x=c.x+(x-c.x)/dd*rad;z=c.z+(z-c.z)/dd*rad;}}}
+ walkActor(a,dx,dz,ignoreGate=false){const w=this.village,n=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.18)),clearance=a===this.player?Math.max(.18,Math.min(.92,Number(this.player.growthClearance)||.36)):.36;let moved=0;for(let i=0;i<n;i++){let x=Math.max(-w.bounds,Math.min(w.bounds,a.x+dx/n)),z=Math.max(-w.bounds,Math.min(w.bounds,a.z+dz/n));for(const c of w.colliders){const dd=Math.hypot(x-c.x,z-c.z),rad=c.r+clearance;if(dd<rad){if(dd<.001){x=c.x+rad;}else{x=c.x+(x-c.x)/dd*rad;z=c.z+(z-c.z)/dd*rad;}}}
  if(!ignoreGate&&!w.gate.broken&&Math.abs(x-w.gate.x)<2.5&&Math.abs(z-w.gate.z)<.52){z=a.z>=w.gate.z?w.gate.z+.53:w.gate.z-.53;}
  const sh=w.shelter;if(a===this.player&&!this.has('acolyte')&&Math.hypot(x-sh.x,z-sh.z)<sh.r){const d=Math.hypot(x-sh.x,z-sh.z)||1;x=sh.x+(x-sh.x)/d*sh.r;z=sh.z+(z-sh.z)/d*sh.r;if(this.wardCooldown<=0){this.wardCooldown=3;this.emit('ward',{text:'祈りの結界。祈祷師の特能で踏み込める。'});}}
  moved+=Math.hypot(x-a.x,z-a.z);a.x=x;a.z=z;}return moved;}
  sense(){if(this.scentCooldown>0||this.finished)return;this.scent=9;this.scentCooldown=16;this.emit('scent');}
- shadowStep(v){if(!this.has('arcanist')&&this.profile.form!=='wraith'||this.shadowCooldown>0||this.fight||this.finished)return;const x=this.player.x,z=this.player.z;this.walkActor(this.player,v.x*3.4,v.z*3.4);this.shadowCooldown=7;this.emit('shadow',{x,z,tx:this.player.x,tz:this.player.z});}
+ shadowStep(v){if(!this.has('arcanist')&&this.profile.form!=='wraith'||this.shadowCooldown>0||this.fight||this.finished)return;const x=this.player.x,z=this.player.z,moveScale=this.player.moveScale||1;this.walkActor(this.player,v.x*3.4*moveScale,v.z*3.4*moveScale);this.shadowCooldown=7;this.emit('shadow',{x,z,tx:this.player.x,tz:this.player.z});}
  learnedMoves(){const rows=Object.values(this.profile.adaptations||{}).slice().sort((a,b)=>(b.encounters||0)-(a.encounters||0)),out=[];for(const a of rows)for(const move of a.moves||[])if(!out.includes(move))out.push(move);return out;}
  skillSet(npc){const t=this.templates??=createTidebreakRuntime().templates(),pick=(id,name)=>({...(t.find(r=>r.id===id)||t[0]),name});const learned=this.learnedMoves();let weapon=this.has('knight')?'katana':this.profile.form==='brute'?'great':'fist';const ha=learned[0]||(this.has('arcanist')?'shadow':'dancer'),kyu=learned[1]||(this.has('smith')?'stone':'calm');const label=id=>Object.values(COPY_MOVE).find(m=>m.id===id)?.name||'人の身捌き';return{weapon,loadout:{jo:pick('ember','飢爪・裂肉'),ha:pick(ha,learned[0]?`写し・${label(ha)}`:this.has('arcanist')?'影牙・潜り':'屍爪・返し'),kyu:pick(kyu,learned[1]?`写し・${label(kyu)}`:this.has('smith')?'骸腕・粉砕':'喰顎・断ち')}};}
  rememberFight(f){if(!f||f.learned)return;f.learned=true;this.ports.battle?.(f.npc.role);}
@@ -42,7 +50,7 @@ export class RaidSession {
   this.emit('consume',{npc:n,role:n.role,goal:!!n.marked,at:this.time,reward:{
    healed:Math.max(0,this.player.hp-before.hp),maxHpGain:Math.max(0,this.player.maxhp-before.maxhp),
    memoryNew:traitFirst||(!before.known&&this.profile.unlocked.includes(n.role)),equipped:this.has(n.role),
-   learnedMove:learnedMove?.id||null,moveNew:moveFirst,growthScale:this.player.growthScale,
+   learnedMove:learnedMove?.id||null,moveNew:moveFirst,growthScale:this.player.growthScale,growthProgress:this.player.growthProgress,monsterSpecies:this.monsterSpecies,
    unlockedBefore:before.unlocked,unlockedCount:this.profile.unlocked.length
   }});
  }
@@ -66,7 +74,7 @@ export class RaidSession {
  else{const d=Math.hypot(p.x-f.npc.x,p.z-f.npc.z),ix=v.x||0,iz=v.z||0,im=Math.hypot(ix,iz),ax=(p.x-f.npc.x)/(d||1),az=(p.z-f.npc.z)/(d||1),away=im>.001?(ix*ax+iz*az)/im:0;if(v.amount>.05&&away>.32&&d>3.8)f.retreat=Math.min(2,f.retreat+dt);else f.retreat=Math.max(0,f.retreat-dt*1.35);if(f.retreat>.9&&d>4.6){this.rememberFight(f);f.npc.state='pursue';f.npc.pose=null;this.fight=null;p.pose=null;p.skill=null;this.safeTime=2.1;this.emit('disengage');}}
  }else if(this.devour){advanceDevour(this,dt,v.amount);}
  else{
- const speed=v.dash?4.65:2.85,formBoost=this.profile.form==='stalker'?1.15:1,growthMove=.9+.1*(p.powerScale||1);
+ const speed=v.dash?4.65:2.85,formBoost=this.profile.form==='stalker'?1.15:1,growthMove=p.moveScale||1;
  const dx=v.x*v.amount*speed*formBoost*growthMove*dt,dz=v.z*v.amount*speed*formBoost*growthMove*dt;const moved=this.walkActor(p,dx,dz);p.speed=moved/dt;p.walk+=moved*3.8;if(v.amount>.05){const target=Math.atan2(v.x,v.z);p.yaw+=Math.atan2(Math.sin(target-p.yaw),Math.cos(target-p.yaw))*Math.min(1,dt*(v.autoRoam?3.4:12));}
  if(!w.gate.broken&&this.has('smith')&&v.amount>.1&&Math.hypot(p.x-w.gate.x,p.z-w.gate.z)<2.7){this.gatePush+=dt;if(this.gatePush>.75){w.gate.broken=true;this.emit('gate',{x:w.gate.x,z:w.gate.z});}}else this.gatePush=0;
  for(const n of w.npcs){if(n.eaten)continue;const d=Math.hypot(n.x-p.x,n.z-p.z);if(n.dead){if(d<2.5&&v.amount<.05){this.devour={npc:n,t:0};this.resetIdle();break;}}else if(d<3.9&&this.safeTime<=0&&!this.lineBlocked(p,n)){this.engage(n);break;}}
