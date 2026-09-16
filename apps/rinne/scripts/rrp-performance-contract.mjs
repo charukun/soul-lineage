@@ -13,7 +13,7 @@ const RAW_ARRAY_KEYS=Object.freeze([
   'stateFreshnessMs','positionErrorM','rollbackMs','frameMs','gpuMs','memoryMb','batteryPctPerHour',
   'modelDeliveryMs','modelQueue','modelDarkMs','modelRollbackMs',
 ]);
-const RAW_COUNTER_KEYS=Object.freeze(['connectionAttempts','connectionSuccesses','turnCandidateClassifiedConnections','turnRelayConnections','missingSamples','expectedSamples']);
+const RAW_COUNTER_KEYS=Object.freeze(['bandwidthSkippedBuckets','connectionAttempts','connectionSuccesses','turnCandidateClassifiedConnections','turnRelayConnections','missingSamples','expectedSamples']);
 
 export function mergeRawPerformanceCaptures(captures=[]){
   if(!Array.isArray(captures)||captures.length<1)throw Error('Performance capture list is required');
