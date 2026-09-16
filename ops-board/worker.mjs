@@ -3,7 +3,6 @@ import { buildState } from './collector.mjs';
 import { readStored, writeStored } from './github-client.mjs';
 import { degradedState } from './fallback-state.mjs';
 import { reconcileRetryAlarm } from './retry-alarm.mjs';
-import { shouldReuseFreshState } from './refresh-policy.mjs';
 import { boardAlerts } from './public/health.mjs';
 import {
   PEER_WORLD_REGISTRY_KEY,emptyPeerWorldRegistry,createPeerWorldRoom,listPeerWorldRooms,joinPeerWorldRoom,
@@ -29,9 +28,15 @@ function eventReason(request) {
   const reason = (request.headers.get('x-ops-refresh-reason') || '').trim().toLowerCase();
   return EVENT_REASONS.has(reason) ? `github-event:${reason}` : 'github-event';
 }
+function githubAuthError(source) {
+  return Object.assign(new Error('github_auth_required'), {
+    authRequired: true,
+    githubDiagnostic: { kind: 'auth-required', status: null, scope: 'none', source },
+  });
+}
 
 export class OpsState extends DurableObject {
-  constructor(ctx, env) { super(ctx, env); this.ctx = ctx; this.env = env; this.inflight = null; this.inflightAuthenticated = false; }
+  constructor(ctx, env) { super(ctx, env); this.ctx = ctx; this.env = env; this.inflight = null; }
   async getState() {
     const current = await readStored(this.ctx.storage, STATE_KEY);
     const legacy = await this.ctx.storage.get('ops-state-v1');
@@ -59,19 +64,13 @@ export class OpsState extends DurableObject {
   async peerTelemetry(roomId,token,input){return this.peerApply(updatePeerWorldTelemetry,roomId,token,input);}
   async peerDelete(roomId,token){return this.peerApply(deletePeerWorldRoom,roomId,token);}
   async refresh(source = 'manual', requestToken = '') {
-    if (this.inflight) {
-      if (!requestToken || this.inflightAuthenticated) return this.inflight;
-      // Do not mistake an anonymous Cron result for the explicitly authenticated prime/event refresh.
-      await this.inflight.catch(() => {});
-      return this.refresh(source, requestToken);
-    }
-    const token = requestToken || this.env.OPS_GITHUB_TOKEN || '';
-    this.inflightAuthenticated = Boolean(token);
+    if (this.inflight) return this.inflight;
+    const token = (requestToken || this.env.OPS_GITHUB_TOKEN || '').trim();
+    if (!token) throw githubAuthError(source);
     this.inflight = (async () => {
       let previous = null;
       try {
         previous = await this.getState();
-        if (shouldReuseFreshState(previous, { source, authenticated: Boolean(token) })) return previous;
         const state = await buildState(previous, { storage: this.ctx.storage, token, reason: source });
         state.refreshReason = source;
         state.nextRetryAt = null;
@@ -83,11 +82,12 @@ export class OpsState extends DurableObject {
         await writeStored(this.ctx.storage, STATE_KEY, state);
         await reconcileRetryAlarm(this.ctx.storage, state);
         return state;
-      } finally { this.inflight = null; this.inflightAuthenticated = false; }
+      } finally { this.inflight = null; }
     })();
     return this.inflight;
   }
   async alarm() {
+    if (!this.env.OPS_GITHUB_TOKEN) return;
     await this.refresh('rate-limit-retry');
   }
 }
@@ -123,18 +123,17 @@ export default {
       if (url.pathname === '/api/version' && request.method === 'GET') return json({ app: 'ops-board', commit: env.OPS_BUILD_SHA || null });
       if (url.pathname === '/api/state' && request.method === 'GET') {
         const stub = env.OPS_STATE.getByName('global');
-        const state = await stub.getState() || await stub.refresh('cold-start');
+        let state = await stub.getState();
+        if (!state && env.OPS_GITHUB_TOKEN) state = await stub.refresh('cold-start');
+        if (!state) return json({ error: 'github_auth_required' }, 503);
         return json({ ...publicState(state, env), sharedWorld: await stub.peerSnapshot() });
       }
       if (url.pathname === '/api/refresh' && request.method === 'POST') {
         if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
-        const token = request.headers.get('x-ops-github-token') || '';
+        const token = (request.headers.get('x-ops-github-token') || '').trim();
         if (token.length > 1024) return json({ error: 'invalid_credential' }, 400);
+        if (!token && !env.OPS_GITHUB_TOKEN) return json({ error: 'github_auth_required' }, 503);
         const stub = env.OPS_STATE.getByName('global');
-        if (!token && !env.OPS_GITHUB_TOKEN) {
-          const state = await stub.getState() || await stub.refresh(eventReason(request));
-          return json(publicState(state, env));
-        }
         return json(publicState(await stub.refresh(eventReason(request), token), env));
       }
       if (url.pathname === '/api/rescue-observation' && request.method === 'POST') {
@@ -149,5 +148,8 @@ export default {
       return env.ASSETS.fetch(request);
     } catch (error) { return json({ error: String(error?.message || 'state_unavailable') }, 503); }
   },
-  async scheduled(controller, env, ctx) { ctx.waitUntil(env.OPS_STATE.getByName('global').refresh(`cron:${controller.cron}`)); },
+  async scheduled(controller, env, ctx) {
+    if (!env.OPS_GITHUB_TOKEN) return;
+    ctx.waitUntil(env.OPS_STATE.getByName('global').refresh(`cron:${controller.cron}`));
+  },
 };
