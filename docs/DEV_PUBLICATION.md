@@ -37,6 +37,8 @@ Before deploying, Visual Review confirms that its source SHA is still the curren
 
 Visual Review must not report public success from root HTML markers alone. A successful publication requires the fixed URL to expose `version.json` for the exact source SHA and a focused Chromium interaction check to load the bundled runtime, switch Review panels, load the character/motion iframe route, and observe the built-in battle simulation advancing. JS/CSS/module/request failures or a stale source identity make `visual-review/public` fail even when Wrangler deployment itself succeeded.
 
+The focused browser harness may construct WHATWG `URL` objects for cache-busting and source identity, but every Playwright page-navigation target must be serialized to an HTTPS string before calling `page.goto`. A harness API type mismatch is a verification defect and must be covered by regression tests rather than retried or hidden.
+
 PULSE must discover Visual Review from the exact develop `visual-review/public` commit status rather than requiring a separate top-level workflow run whose name contains `preview` or `visual review`. The publisher is intentionally a nested reusable workflow, so top-level workflow-name discovery is not a liveness contract.
 
 ## PULSE semantics
