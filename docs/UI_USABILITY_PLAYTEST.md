@@ -11,6 +11,13 @@
 - 修正後も `Browser-Playtest: all` で3アプリを再実行し、Fast Lane / browser self-healing / DEV publicationの既存gateを維持する。
 - main / Productionは変更しない。
 
+## 実プレイ記録
+
+- `190a2b65fb930f49384f2a431ecb84a7eac84810` の390×844 Chromiumでは、RINNEの誕生、スワイプ移動、4歳自立、武具装備までは実操作で通過した。
+- 港での自動出航は、実装上 `requestAnimationFrame` の上限50msに丸めた simulation `dt` を1.5秒分積算していた。低FPS時は実時間1.5秒より大幅に長くなり、実ブラウザでは5秒待っても出航しないことを確認した。
+- これはbrowser assertionだけの問題ではなく、低FPS端末で「港へ着いたのに反応しない」と感じる操作性問題として扱う。ゲーム本体の出航待ちだけを実時間基準へ変更し、寿命・戦闘・移動simulationの安全な `dt` 上限は維持する。
+- 類似open PRを `harbor departure port dwell low fps` で確認し、該当なし。既存 #464 の44pxタッチ領域、#500 のnative dialog、#512 のVillage初回導線、#492 のDemon movement-only browser契約は現develop側を継承する。
+
 ## 記録ルール
 
 `static review`、`browser playtest`、`DEV browser verified` を混同しない。実プレイ所見と改善内容は、この文書を同じ作業PR内で更新して残す。
