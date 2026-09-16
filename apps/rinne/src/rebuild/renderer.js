@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { defs, muraBlocked } from '@soul/world/mura';
+import { defs, muraBlocked, muraHasInterior, muraInteriorAt } from '@soul/world/mura';
 import { createMuraModels } from '@soul/rendering/mura';
 import { createMuraTerrain, flattenMuraModel } from '@soul/rendering/mura/terrain';
 import { createAdaptiveQualityGovernor } from '@soul/rendering/adaptive-quality';
@@ -22,15 +22,29 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   scene.add(new THREE.HemisphereLight(0xfff0cb,0x7b6fa5,2.15));
   const sun=new THREE.DirectionalLight(0xffd493,2.65);sun.position.set(-12,25,15);scene.add(sun);
 
-  const root=new THREE.Group(),land=new THREE.Group(),objects=new THREE.Group(),stationsRoot=new THREE.Group(),frontRoot=new THREE.Group();root.add(land,objects,stationsRoot);scene.add(root,frontRoot);frontRoot.visible=false;
+  const root=new THREE.Group(),land=new THREE.Group(),objects=new THREE.Group(),rooms=new THREE.Group(),stationsRoot=new THREE.Group(),frontRoot=new THREE.Group();root.add(land,objects,rooms,stationsRoot);scene.add(root,frontRoot);frontRoot.visible=false;
   // Mura models are environment-only in Rinne. Runtime humanoids are exclusively created by the Character Presentation pool below.
-  const models=createMuraModels(THREE,{createCanvas:()=>doc.createElement('canvas'),textileFibers:2800,textileBlotches:72}),cache=new Map();
+  const models=createMuraModels(THREE,{createCanvas:()=>doc.createElement('canvas'),textileFibers:2800,textileBlotches:72}),cache=new Map(),objectNodes=new Map(),roomNodes=new Map();
   const getProp=kind=>{if(!cache.has('prop:'+kind))cache.set('prop:'+kind,flattenMuraModel(THREE,models.prop(kind,14)));return cache.get('prop:'+kind);};
+  const getRoomShell=o=>{const key='room:'+o.kind;if(!cache.has(key))cache.set(key,flattenMuraModel(THREE,models.interiorShell(o)));return cache.get(key);};
   const terrain=createMuraTerrain({THREE,scene,outside:land,getProp,mat:models.mat,createCanvas:()=>doc.createElement('canvas')});
   for(const o of layout.objects){
     if(o.phase!=='built')continue;const key=`${o.kind}:${o.material}:${o.level}`;
     if(!cache.has(key))cache.set(key,flattenMuraModel(THREE,defs[o.kind].building?models.building(o.kind,o.material,o.level):models.prop(o.kind)));
-    const n=cache.get(key).clone();n.position.set(o.x,.02,o.z);n.rotation.y=o.rot;n.userData.entityId=o.id;objects.add(n);
+    const n=cache.get(key).clone();n.position.set(o.x,.02,o.z);n.rotation.y=o.rot;n.userData.entityId=o.id;objects.add(n);objectNodes.set(o.id,n);
+    if(defs[o.kind].building&&muraHasInterior(o)){
+      const room=new THREE.Group();room.position.set(o.x,.035,o.z);room.rotation.y=o.rot;room.userData.roomId=o.id;room.visible=false;room.add(getRoomShell(o).clone());
+      for(const f of o.room||[]){if(!defs[f.kind]?.furniture)continue;const item=getProp(f.kind).clone();item.position.set(f.x,.04,f.z);item.rotation.y=f.rot;item.userData.entityId=f.id;room.add(item);}
+      rooms.add(room);roomNodes.set(o.id,room);
+    }
+  }
+  let interiorId=null;
+  function syncInterior(position,enabled=true){
+    const host=enabled?muraInteriorAt(layout,position.x,position.z):null,next=host?.id||null;if(next===interiorId)return;
+    if(interiorId){const exterior=objectNodes.get(interiorId),room=roomNodes.get(interiorId);if(exterior)exterior.visible=true;if(room)room.visible=false;}
+    interiorId=next;
+    if(interiorId){const exterior=objectNodes.get(interiorId),room=roomNodes.get(interiorId);if(exterior)exterior.visible=false;if(room)room.visible=true;}
+    if(interiorId)canvas.dataset.interior=interiorId;else delete canvas.dataset.interior;
   }
 
   function mat(color,extra={}){return new THREE.MeshStandardMaterial({color,roughness:.76,metalness:.08,...extra});}
@@ -85,7 +99,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   function canMoveTo(x,z,radius=.32,zone='village'){if(zone==='frontier')return Math.abs(x)<7.15-radius&&z>-6.45+radius&&z<6.1-radius;return !muraBlocked(layout,x,z,radius);}
   function renderState(state,dt=0){
     elapsed+=dt;if(dt>0&&!doc.hidden)qualityGovernor.observeFrame(dt);characterStage.render(state,dt);
-    const village=state.zone==='village';root.visible=village;frontRoot.visible=!village;
+    const village=state.zone==='village';root.visible=village;frontRoot.visible=!village;syncInterior(state.position,village);
     const combatFrame=rinneCombatCameraFrame({player:state.position,enemies:currentFront?.enemies,targetId:state.combat?.targetId,active:!!state.combat});cameraControl.setCombat(!!combatFrame);canvas.dataset.combatCamera=String(!!combatFrame);
     if(combatFrame){target.set(combatFrame.look.x,combatFrame.look.y,combatFrame.look.z);desired.set(target.x+combatFrame.offset.x,target.y+combatFrame.offset.y,target.z+combatFrame.offset.z);}
     else{target.set(state.position.x,1.15,state.position.z);desired.copy(target).add(camOffset);}

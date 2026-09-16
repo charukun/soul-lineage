@@ -5,6 +5,8 @@ export * from './dialogue.js';
 export * from './terrain.js';
 export const MURA_WORLD_SCHEMA=1;
 export const MURA_TERRAIN_ID='terrain.mura.v1';
+const NON_INTERIOR_SHAPES=new Set(['fire','yard','field','market','pond','orchard']);
+const DEFAULT_WALL_THICKNESS=.35;
 export const initialMuraObjects=()=>[
   {id:'b1',kind:'mayor',x:-7,z:-5,rot:0,phase:'built',level:1,material:'base',room:[]},
   {id:'b2',kind:'campfire',x:5,z:8,rot:0,phase:'built',level:1,room:[]},
@@ -25,10 +27,36 @@ export function validateMuraLayout(raw){
   });
   s.objects=objects(s.objects);return s;
 }
-export function muraEntry(o){const d=defs[o.kind],r=d.d/2+2;return{x:o.x+r*Math.sin(o.rot),z:o.z+r*Math.cos(o.rot)};}
+export function muraLocalToWorld(h,x,z){return{x:h.x+x*Math.cos(h.rot)+z*Math.sin(h.rot),z:h.z-x*Math.sin(h.rot)+z*Math.cos(h.rot)};}
+export function muraWorldToLocal(h,x,z){return{x:(x-h.x)*Math.cos(h.rot)-(z-h.z)*Math.sin(h.rot),z:(x-h.x)*Math.sin(h.rot)+(z-h.z)*Math.cos(h.rot)};}
+export function muraHasInterior(value){const d=defs[typeof value==='string'?value:value?.kind];return !!d?.building&&!d.open&&!NON_INTERIOR_SHAPES.has(d.shape);}
+export function muraDoorWidth(value){const d=defs[typeof value==='string'?value:value?.kind];if(!d)return 0;return Math.min(4.2,Math.max(3.2,d.w*.3));}
+export function muraEntry(o,distance=2){const d=defs[o.kind];return muraLocalToWorld(o,0,d.d/2+distance);}
+export function muraInteriorEntry(o,inset=1.6){const d=defs[o.kind];return muraHasInterior(o)?muraLocalToWorld(o,0,d.d/2-inset):muraEntry(o);}
+export function muraInteriorAt(layout,x,z,margin=0){
+  const inset=Math.max(0,Number(margin)||0);
+  for(const o of layout.objects){
+    if(o.phase!=='built'||!muraHasInterior(o))continue;
+    const d=defs[o.kind],p=muraWorldToLocal(o,x,z);
+    if(Math.abs(p.x)<d.w/2-inset&&Math.abs(p.z)<d.d/2-inset)return o;
+  }
+  return null;
+}
+export function muraBuildingBlocked(o,x,z,radius=.35){
+  const d=defs[o.kind];
+  if(o.phase!=='built'||!d?.building||d.open)return false;
+  const p=muraWorldToLocal(o,x,z),r=Math.max(0,Number(radius)||0),hx=d.w/2,hz=d.d/2,ax=Math.abs(p.x),az=Math.abs(p.z);
+  if(ax>=hx+r||az>=hz+r)return false;
+  if(!muraHasInterior(o))return true;
+  const wall=Math.min(Math.min(hx,hz)*.35,Math.max(.18,Number(d.wallThickness)||DEFAULT_WALL_THICKNESS));
+  const sideWall=ax>hx-wall-r;
+  const backWall=p.z<(-hz+wall+r);
+  const frontWall=p.z>(hz-wall-r)&&ax+r>muraDoorWidth(o)/2;
+  return sideWall||backWall||frontWall;
+}
 export function muraBlocked(layout,x,z,radius=.35){
   if(Math.abs(x)>LIMIT-radius||Math.abs(z)>LIMIT-radius||inWater(x,z,radius))return true;
-  return layout.objects.some(o=>{if(o.phase!=='built'||!defs[o.kind].building||defs[o.kind].open)return false;const dx=x-o.x,dz=z-o.z,c=Math.cos(o.rot),s=Math.sin(o.rot),d=defs[o.kind];return Math.abs(dx*c-dz*s)<d.w/2+radius&&Math.abs(dx*s+dz*c)<d.d/2+radius;});
+  return layout.objects.some(o=>muraBuildingBlocked(o,x,z,radius));
 }
 export function safeMuraPosition(layout,position){
   if(!muraBlocked(layout,position.x,position.z))return {...position};
