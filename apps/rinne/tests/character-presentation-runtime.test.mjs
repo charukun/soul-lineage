@@ -33,9 +33,9 @@ test('main-game humanoids default to the pinned KayKit foundation without promot
   assert.equal(RINNE_RUNTIME_CHARACTER_ASSET.productionStage,'REFERENCE');
   assert.equal(RINNE_RUNTIME_CHARACTER_ASSET.modelingMode,'imported-reviewed');
   assert.equal(RINNE_RUNTIME_CHARACTER_ASSET.usage,'dev-runtime-foundation');
-  assert.match(RINNE_RUNTIME_CHARACTER_ASSET.url,/kaykit\/Knight\.glb$/);
+  assert.match(RINNE_RUNTIME_CHARACTER_ASSET.url,/kaykit\/Rogue\.glb$/);
   assert.equal(hero.familyId,KAYKIT_FAMILY_ID);
-  assert.equal(hero.modelId,'kaykit.knight.v1');
+  assert.equal(hero.modelId,'kaykit.rogue.v1');
   assert.equal(mother.modelId,'kaykit.rogue-hooded.v1');
   for(const actor of [hero,mother,...enemies]){
     const presentation=resolveRinneRuntimeCharacter({...actor,distance:1,visible:true,important:actor.kind==='hero'});
