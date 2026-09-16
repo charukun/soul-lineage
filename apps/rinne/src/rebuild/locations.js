@@ -44,7 +44,7 @@ function place(layout,id,kinds,label,activity=null,radius=2.4){
 export function normalizeLayout(raw){return ensurePlayableVillage(raw?validateMuraLayout(raw):defaultMuraLayout());}
 
 function entryStation(object){
-  const entry=muraEntry(object),dx=entry.x-object.x,dz=entry.z-object.z,len=Math.max(.001,Math.hypot(dx,dz)),def=defs[object.kind],insideZ=Math.max(2.2,(def?.d||10)/2-2.0);
+  const entry=muraEntry(object),dx=entry.x-object.x,dz=entry.z-object.z,len=Math.max(.001,Math.hypot(dx,dz)),def=defs[object.kind],insideZ=Math.max(0,(def?.d||10)/2-2.4);
   return {id:`door.${object.id}`,label:def?.label||'建物',x:entry.x,z:entry.z,radius:1.15,enterInterior:true,buildingId:object.id,interiorSpawn:{x:0,z:insideZ},outsideSpawn:{x:entry.x+dx/len*2.0,z:entry.z+dz/len*2.0}};
 }
 
@@ -83,7 +83,7 @@ export function buildStations(layout){
   const dojoObject=built(layout,['dojo']);
   if(dojoObject){
     const entry=muraEntry(dojoObject),dx=entry.x-dojoObject.x,dz=entry.z-dojoObject.z,len=Math.max(.001,Math.hypot(dx,dz));
-    stations.push({id:'training-dummy',label:'かかし',x:entry.x+dx/len*3.0,z:entry.z+dz/len*3.0,radius:1.2,activity:'practice',actionLabel:'かかしで型を反復する',bonusActivities:['repeat','distance','train'],trainingDummy:true});
+    stations.push({id:'training-dummy',label:'かかし',x:entry.x+dx/len*3.0,z:entry.z+dz/len*3.0,radius:1.2,activity:'practice',actionLabel:'かかしで型を反復する',trainingDummy:true});
   }
 
   const a=smith, weaponRows=[
