@@ -1,11 +1,9 @@
 import * as THREE from 'three';
 import { PoseSchedule } from '@soul/characters';
-import { GLTFLoader } from '@soul/rendering';
-import { createMasterCharacterPool, shinoHumanoidFromGLTF } from '@soul/rendering/master-character';
 import { applyStylizedShading } from '@soul/rendering/stylized-shading';
 import { createCoopActors } from './coop-actors.js';
+import { createKaykitCharacterPools } from './kaykit-character-pool.js';
 import {
-  RINNE_RUNTIME_CHARACTER_ASSET,
   createRinneEnemyCharacter,
   createRinneHeroCharacter,
   createRinneMotherCharacter,
@@ -14,14 +12,6 @@ import {
 } from './character-presentation.js';
 
 const armorDye=Object.freeze({cloth:[1,1,1],light:[.72,.84,.78],heavy:[.68,.73,.82]});
-
-async function createRuntimeCharacterPool(renderer){
-  const loader=new GLTFLoader();
-  loader.useCompressedTextures?.(renderer,{transcoderPath:'./basis/'});
-  const gltf=await loader.loadAsync(RINNE_RUNTIME_CHARACTER_ASSET.url);
-  const humanoid=await shinoHumanoidFromGLTF(gltf);
-  return{loader,pool:createMasterCharacterPool({template:gltf.scene,humanoid,capacity:8}),peerPool:createMasterCharacterPool({template:gltf.scene,humanoid,capacity:30}),motherPool:createMasterCharacterPool({template:gltf.scene,humanoid,capacity:30})};
-}
 
 function poseHumanoid(bones,{moving=false,speed=0,combat=false,flash=0,carrier=false}={},time=0){
   const cadence=Math.min(12,6.4+Math.max(0,speed)*.85),stride=moving?Math.sin(time*cadence)*.42:0;
@@ -60,7 +50,7 @@ function createActorRoster({scene,frontRoot,characterPool}){
       enemies.forEach((enemy,index)=>{
         if(enemyActors.has(enemy.id))return;
         const descriptor=createRinneEnemyCharacter(enemy,{lifeSeed:(front?.stage??0)+1,stage:front?.stage??0,index});
-        const poolId=`rinne-runtime-${descriptor.character.id}`,actor=characterPool.spawn(poolId);
+        const poolId=`rinne-runtime-${descriptor.character.id}`,actor=characterPool.spawn(poolId,descriptor.modelId);
         actor.root.name=`Enemy:${enemy.id}`;frontRoot.add(actor.root,actor.attachments);applyStylizedShading(actor.root,'enemy');
         enemyActors.set(enemy.id,{actor,descriptor,poolId,schedule:new PoseSchedule()});
       });
@@ -120,12 +110,12 @@ function renderActors({roster,heroSchedule,motherSchedule,motherMotion},life,dt)
 }
 
 export async function createRinneCharacterStage({renderer,scene,frontRoot,weaponVisual,mat,disposeObject}){
-  const runtime=await createRuntimeCharacterPool(renderer),roster=createActorRoster({scene,frontRoot,characterPool:runtime.pool});
+  const runtime=await createKaykitCharacterPools(renderer),roster=createActorRoster({scene,frontRoot,characterPool:runtime.pool});
   const equipment=createEquipmentController({heroActor:roster.heroActor,weaponVisual,mat,disposeObject});
   const peers=createCoopActors({pool:runtime.peerPool,motherPool:runtime.motherPool,scene,sampleSlot,poseHumanoid,armorDye,createEquipment:heroActor=>createEquipmentController({heroActor,weaponVisual,mat,disposeObject})});
   const animation={roster,heroSchedule:new PoseSchedule(),motherSchedule:new PoseSchedule(),motherMotion:{active:false,moving:false,speed:0}};
   function render(life,dt=0){roster.bindLife(life);equipment.syncEquipment(life.equipment);renderActors(animation,life,dt);peers.render(life,dt);}
   function setCarrierMotion({active=false,moving=false,speed=0}={}){animation.motherMotion={active:Boolean(active),moving:Boolean(moving),speed:Math.max(0,Number(speed)||0)};}
-  function dispose(){peers.dispose();roster.dispose();runtime.pool.dispose();runtime.peerPool.dispose();runtime.motherPool.dispose();runtime.loader.disposeCompressedTextures?.();}
+  function dispose(){peers.dispose();roster.dispose();runtime.dispose();}
   return{render,syncPeers:peers.sync,syncEquipment:equipment.syncEquipment,syncFront:roster.syncFront,updateFront:roster.updateFront,setCarrierMotion,dispose};
 }
