@@ -71,8 +71,12 @@ export async function verifyRebuildPlaythrough(browser,url,output){
     prep.position={x:sword.x,z:sword.z};await load(prep);await page.waitForFunction(()=>document.getElementById('toast')?.textContent.includes('装備'),null,{timeout:4000});
     assert.match(await text(page.locator('#toast')),/片手剣 装備/);assert.equal(await page.locator('#talk').count(),0);await page.screenshot({path:join(output,'02-equipment.png')});
 
-    const departure=stateAt(15,43);departure.equipment.weapon='sword';departure.knownSkills.push('basic.sword');departure.position={x:port.x,z:port.z};departure.lastDepartureCycle=2;await load(departure);
+    const departure=stateAt(15,43);departure.equipment.weapon='sword';departure.knownSkills.push('basic.sword');departure.lastDepartureCycle=2;departure.position={x:port.x+port.radius+.4,z:port.z};await load(departure);
     assert.equal(await text(page.locator('#life-stage')),'4/6 出立');assert.equal(await text(page.locator('#objective')),'港へ');assert.equal(await text(page.locator('#objective-badge')),'出航');assert.equal(await page.locator('#talk').count(),0);
+    // At the harbor itself the automatic voyage activity can briefly own the compact
+    // objective before the 1.5 s departure dwell finishes. Verify the destination
+    // state above, then verify the live automatic transition instead of that transient.
+    departure.position={x:port.x,z:port.z};await load(departure);
     await page.waitForFunction(()=>document.getElementById('life-stage')?.textContent.includes('第1前線'),null,{timeout:5000});await expectTone('frontier');
     assert.match(await text(page.locator('#objective')),/敵へ|戦闘/);assert.equal(await page.locator('#talk').count(),0);await compactHud();await page.screenshot({path:join(output,'03-frontier-arrival.png')});
 
