@@ -43,7 +43,7 @@ try {
 
   const entry = new URL(reviewUrl);
   entry.searchParams.set('source', expectedSha);
-  const response = await page.goto(entry, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  const response = await page.goto(entry.toString(), { waitUntil: 'domcontentloaded', timeout: 30000 });
   assert.ok(response?.ok(), `Visual Review entry returned HTTP ${response?.status() ?? 'unknown'}`);
   assert.equal(await page.title(), '輪廻転焦 Visual Review');
   await page.locator('.review-shell').waitFor({ state: 'visible', timeout: 15000 });
@@ -59,7 +59,6 @@ try {
   await page.locator('[data-view="motion"]').click();
   const motionPanel = page.locator('[data-panel="motion"]');
   await motionPanel.waitFor({ state: 'visible', timeout: 10000 });
-  const motionFrame = motionPanel.locator('iframe');
   await page.waitForFunction(() => document.querySelector('[data-panel="motion"] iframe')?.getAttribute('src')?.includes('characters.html?review=motion'), null, { timeout: 10000 });
   const motionContent = page.frameLocator('[data-panel="motion"] iframe');
   await motionContent.locator('main.review-app').waitFor({ state: 'visible', timeout: 45000 });
