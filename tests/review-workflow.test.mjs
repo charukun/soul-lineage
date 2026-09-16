@@ -5,12 +5,13 @@ import {readFile} from 'node:fs/promises';
 const root=new URL('../',import.meta.url);
 const read=path=>readFile(new URL(path,root),'utf8');
 
-test('Visual Review publication follows exact develop delivery and requires browser verification',async()=>{
-  const [workflow,opsBoard,smoke,collector]=await Promise.all([
+test('Visual Review publication follows exact develop delivery and requires desktop plus mobile browser verification',async()=>{
+  const [workflow,opsBoard,smoke,collector,browserCheck]=await Promise.all([
     read('.github/workflows/review-preview.yml'),
     read('.github/workflows/ops-board.yml'),
     read('scripts/browser/visual-review-smoke.mjs'),
     read('ops-board/collector.mjs'),
+    read('ops-board/browser-check.mjs'),
   ]);
   assert.match(workflow,/workflow_call:/);
   assert.match(workflow,/source_sha:[\s\S]*required: true/);
@@ -33,6 +34,12 @@ test('Visual Review publication follows exact develop delivery and requires brow
   assert.match(smoke,/version\.commit, expectedSha/);
   assert.match(smoke,/page\.goto\(entry\.toString\(\),/);
   assert.doesNotMatch(smoke,/page\.goto\(entry,\s*\{/);
+  assert.match(smoke,/name: 'desktop'[\s\S]*width: 1280[\s\S]*height: 900/);
+  assert.match(smoke,/name: 'mobile'[\s\S]*width: 390[\s\S]*height: 844[\s\S]*isMobile: true[\s\S]*hasTouch: true/);
+  assert.match(smoke,/profile\.hasTouch \? locator\.tap\(\) : locator\.click\(\)/);
+  assert.match(smoke,/document\.documentElement\.scrollWidth <= innerWidth \+ 1/);
+  assert.match(smoke,/public-\$\{profile\.name\}\.png/);
+  assert.match(smoke,/profiles: results/);
   assert.match(smoke,/\[data-view=\\?"motion/);
   assert.match(smoke,/characters\.html\?review=motion/);
   assert.match(smoke,/battle-time/);
@@ -47,6 +54,9 @@ test('Visual Review publication follows exact develop delivery and requires brow
   assert.match(collector,/status\.context === 'visual-review\/public'/);
   assert.match(collector,/VISUAL_REVIEW_PUBLIC_URL/);
   assert.match(collector,/deployedCommit: selected\.state === 'success' \? developSha/);
+
+  assert.match(browserCheck,/page\.locator\('#app-dialog \.app-dialog-close'\)\.click\(\)/);
+  assert.doesNotMatch(browserCheck,/page\.locator\('\.app-dialog-close'\)\.click\(\)/);
 });
 
 test('Review build promotes review.html only inside the dedicated Review bundle',async()=>{
