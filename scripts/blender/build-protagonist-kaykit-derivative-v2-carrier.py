@@ -44,82 +44,11 @@ def _world_center(obj: bpy.types.Object, polygon: bpy.types.MeshPolygon) -> Vect
 
 def _world_bounds(obj: bpy.types.Object) -> tuple[Vector, Vector]:
     points = [obj.matrix_world @ vertex.co for vertex in obj.data.vertices]
+    if not points:
+        raise RuntimeError(f"KayKit source part unexpectedly has no vertices: {obj.name}")
     minimum = Vector(tuple(min(point[axis] for point in points) for axis in range(3)))
     maximum = Vector(tuple(max(point[axis] for point in points) for axis in range(3)))
     return minimum, maximum
-
-
-def _face_components(obj: bpy.types.Object) -> list[list[int]]:
-    vertex_faces: dict[int, list[int]] = {}
-    for polygon in obj.data.polygons:
-        for vertex in polygon.vertices:
-            vertex_faces.setdefault(vertex, []).append(polygon.index)
-    unseen = {polygon.index for polygon in obj.data.polygons}
-    components = []
-    while unseen:
-        seed = unseen.pop()
-        stack = [seed]
-        component = [seed]
-        while stack:
-            face_index = stack.pop()
-            polygon = obj.data.polygons[face_index]
-            for vertex in polygon.vertices:
-                for neighbor in vertex_faces.get(vertex, ()): 
-                    if neighbor in unseen:
-                        unseen.remove(neighbor)
-                        stack.append(neighbor)
-                        component.append(neighbor)
-        components.append(component)
-    return components
-
-
-def _remove_asymmetric_chest_ornament(obj: bpy.types.Object) -> None:
-    """Remove Knight's loose one-sided chest badge while keeping mirrored body panels."""
-    if "Body" not in obj.name:
-        return
-    minimum, maximum = _world_bounds(obj)
-    size = maximum - minimum
-    center = (minimum + maximum) * 0.5
-    components = []
-    for faces in _face_components(obj):
-        centers = [_world_center(obj, obj.data.polygons[index]) for index in faces]
-        point = sum(centers, Vector((0.0, 0.0, 0.0))) / len(centers)
-        components.append({"faces": faces, "point": point, "count": len(faces)})
-
-    candidates = []
-    for component in components:
-        point = component["point"]
-        vertical = (point.z - minimum.z) / max(size.z, 1e-6)
-        front = point.y < center.y - size.y * 0.04
-        off_center = abs(point.x - center.x) > size.x * 0.08
-        if component["count"] <= 20 and 0.40 <= vertical <= 0.80 and front and off_center:
-            candidates.append(component)
-
-    remove = set()
-    for component in candidates:
-        point = component["point"]
-        mirrored_x = 2 * center.x - point.x
-        mirrored = any(
-            other is not component
-            and abs(other["point"].x - mirrored_x) <= size.x * 0.045
-            and abs(other["point"].z - point.z) <= size.z * 0.045
-            and abs(other["point"].y - point.y) <= size.y * 0.055
-            and abs(other["count"] - component["count"]) <= max(2, component["count"] * 0.40)
-            for other in components
-        )
-        if not mirrored:
-            remove.update(component["faces"])
-    if not remove:
-        return
-    for polygon in obj.data.polygons:
-        polygon.select = polygon.index in remove
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
-    bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.delete(type="FACE")
-    bpy.ops.object.mode_set(mode="OBJECT")
-    obj.select_set(False)
 
 
 def _material_slots(obj: bpy.types.Object, materials: list[bpy.types.Material]) -> None:
@@ -129,7 +58,13 @@ def _material_slots(obj: bpy.types.Object, materials: list[bpy.types.Material]) 
 
 
 def villageize_source_parts(meshes: list[bpy.types.Object]) -> None:
-    """Reassign the copied Knight parts as cloth, bare hands, trousers and boots."""
+    """Reassign copied Knight parts as cloth, bare hands, trousers and boots.
+
+    Geometry is intentionally preserved here. The previous attempt to delete a guessed
+    chest ornament could consume a whole connected Knight body island in Blender edit
+    mode. This pass only re-materials the real source mesh, which keeps the KayKit
+    silhouette/rig intact and makes the derivative reversible and auditable.
+    """
     linen = module.material("PROTAGONIST_LINEN", (0.36, 0.26, 0.15, 1.0))
     olive = module.material("PROTAGONIST_OLIVE", (0.15, 0.18, 0.075, 1.0))
     leather = module.material("PROTAGONIST_LEATHER", (0.085, 0.045, 0.020, 1.0))
@@ -140,7 +75,6 @@ def villageize_source_parts(meshes: list[bpy.types.Object]) -> None:
         name = obj.name.lower()
         if "head" in name or "hair" in name:
             continue
-        _remove_asymmetric_chest_ornament(obj)
         minimum, maximum = _world_bounds(obj)
         size = maximum - minimum
 
