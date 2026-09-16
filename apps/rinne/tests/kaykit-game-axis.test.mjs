@@ -5,13 +5,16 @@ import { KAYKIT_GAME_AXIS, isKayKitPlayableModel, primaryKayKitModel } from '../
 
 const source = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 
-test('Rinne declares KayKit as the primary game construction axis', () => {
-  assert.equal(KAYKIT_GAME_AXIS.id, 'kaykit-first-v1');
+test('Rinne declares the license-clean KayKit game construction axis', () => {
+  assert.equal(KAYKIT_GAME_AXIS.id, 'kaykit-first-v2');
   assert.equal(primaryKayKitModel(), 'knight');
   assert.deepEqual(KAYKIT_GAME_AXIS.playableModels, ['knight', 'rogue', 'mage', 'barbarian']);
   assert.ok(KAYKIT_GAME_AXIS.playableModels.every(isKayKitPlayableModel));
+  assert.equal(KAYKIT_GAME_AXIS.comparisonModel, null);
   assert.equal(KAYKIT_GAME_AXIS.policy.shinoIsRequiredForNewGameplay, false);
-  assert.equal(KAYKIT_GAME_AXIS.policy.shinoIsCompatibilityReference, true);
+  assert.equal(KAYKIT_GAME_AXIS.policy.shinoIsCompatibilityReference, false);
+  assert.equal(KAYKIT_GAME_AXIS.policy.conditionalCommercialModelsRetired, true);
+  assert.deepEqual(KAYKIT_GAME_AXIS.policy.activeCharacterLicenses, ['CC0-1.0', 'RINNE-owned']);
   assert.equal(KAYKIT_GAME_AXIS.source.adventurers.commit, '672074b73ba276876a19e8816ecdc5241817ab47');
   assert.equal(KAYKIT_GAME_AXIS.source.adventurers.license, 'CC0-1.0');
 });
