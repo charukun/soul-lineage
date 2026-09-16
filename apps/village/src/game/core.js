@@ -1,4 +1,4 @@
-import {initialMuraObjects,muraLocalToWorld,muraWorldToLocal} from '@soul/world/mura';
+import {initialMuraObjects} from '@soul/world/mura';
 import {BUILDINGS,GARDEN,FURNITURE,defs,RESOURCE_NAMES,MATERIALS,unlocked,recipe,materialOptions,capacityOf,jobsOf,TUTORIAL} from './catalog.js';
 import {LIMIT,SIZE,riverX,inWater,terrainError,terrainHint,TERRAIN_SITES} from './terrain.js';
 export {BUILDINGS,GARDEN,FURNITURE,defs,RESOURCE_NAMES,MATERIALS,unlocked,recipe,materialOptions,capacityOf,jobsOf,TUTORIAL,LIMIT,SIZE,riverX,inWater,terrainHint,TERRAIN_SITES};
@@ -6,8 +6,8 @@ export const VERSION=5,DAY_SECONDS=60,DAYS_YEAR=12,MAX_POPULATION=64;
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const copy=x=>JSON.parse(JSON.stringify(x));
 export const extent=o=>{const d=defs[o.kind],c=Math.abs(Math.cos(o.rot)),s=Math.abs(Math.sin(o.rot));return[d.w*c+d.d*s,d.d*c+d.w*s];};
-export const localToWorld=muraLocalToWorld;
-export const worldToLocal=muraWorldToLocal;
+export const localToWorld=(h,x,z)=>({x:h.x+x*Math.cos(h.rot)+z*Math.sin(h.rot),z:h.z-x*Math.sin(h.rot)+z*Math.cos(h.rot)});
+export const worldToLocal=(h,x,z)=>({x:(x-h.x)*Math.cos(h.rot)-(z-h.z)*Math.sin(h.rot),z:(x-h.x)*Math.sin(h.rot)+(z-h.z)*Math.cos(h.rot)});
 export const entry=o=>localToWorld(o,0,defs[o.kind].d/2+2);
 export const ready=o=>!!o&&(!o.phase||o.phase==='built');
 export const isGuard=p=>p.role==='guard'||p.role==='ranger';
@@ -32,7 +32,7 @@ export class World{
  notify(text,type='life'){this.state.news.unshift({text:String(text).slice(0,250),day:this.state.clock,type});this.state.news=this.state.news.slice(0,80);}
  gain(resource,amount){if(!Object.hasOwn(RESOURCE_NAMES,resource)||!Number.isFinite(amount)||amount<=0)return false;this.state.stock[resource]=Math.min(1e6,this.state.stock[resource]+amount);this.resourceRevision++;if(!this.state.known.includes(resource)){this.state.known.push(resource);this.notify(`${RESOURCE_NAMES[resource]}を初めて手に入れました。新しい暮らしのきっかけです。`,'discovery');}return true;}
  discover(){for(const k of Object.keys(RESOURCE_NAMES))if(this.state.stock[k]>0&&!this.state.known.includes(k)){this.state.known.push(k);this.resourceRevision++;this.notify(`${RESOURCE_NAMES[k]}を手に入れました。`,'discovery');}}
- canAfford(cost){return Object.entries(cost||{}).every(([k,v])=>Object.hasOwn(RESOURCE_NAMES,resource=>resource)&&Number.isFinite(v)&&v>=0&&this.state.stock[k]>=v);}
+ canAfford(cost){return Object.entries(cost||{}).every(([k,v])=>Object.hasOwn(RESOURCE_NAMES,k)&&Number.isFinite(v)&&v>=0&&this.state.stock[k]>=v);}
  spend(cost){if(!this.canAfford(cost))return false;for(const[k,v]of Object.entries(cost||{}))this.state.stock[k]-=v;this.resourceRevision++;return true;}
  deficit(cost){return Object.entries(cost||{}).filter(([k,v])=>this.state.stock[k]<v).map(([k,v])=>`${RESOURCE_NAMES[k]} ${Math.ceil(v-this.state.stock[k])}`);}
  remember(patch){this.history.push(copy(patch));this.history=this.history.slice(-40);this.future=[];this.changed();}
@@ -45,6 +45,7 @@ export class World{
    if(d.defense){if(staff>0)safety+=d.defense*level;else if(d.effect==='watch')safety+=2*level;}
    if(['comfort','rest','learning'].includes(d.effect))comfort+=2*level;
   }
+  // Scattered decorations cannot replace staffed defenses; only those near housing count.
   const homeSites=buildings.filter(o=>capacityOf(o));
   const passive=buildings.filter(o=>defs[o.kind].garden&&defs[o.kind].defense&&homeSites.some(h=>dist(o,h)<25)).reduce((sum,o)=>sum+defs[o.kind].defense,0);
   safety+=Math.min(4,Math.floor(passive));
@@ -91,6 +92,7 @@ export class World{
  applyPatch(p,reverse){const from=reverse?p.after:p.before,to=reverse?p.before:p.after,l=this.list(p.roomId),id=(from||to).id,now=l.find(o=>o.id===id);
   if(p.roomId&&!this.object(p.roomId))return{error:'建物がもうありません'};
   if(!to){if(!p.roomId&&this.people.some(n=>n.homeId===id))return{error:'すでに住人が入居したため取り消せません'};if(!now)return{error:'対象が変更されています'};if(now.upgrade)return{error:'増築中は取り消せません'};
+   // Keep the current built state and later purchases for redo, never rewind simulation.
    if(reverse)p.after=copy(now);else p.before=copy(now);l.splice(l.indexOf(now),1);if(reverse&&p.payment)for(const[k,n]of Object.entries(p.payment))this.gain(k,n);
   }else if(p.transform&&now){const error=this.canPlace(now.kind,to.x,to.z,to.rot,p.roomId,id);if(error)return{error};Object.assign(now,{x:to.x,z:to.z,rot:to.rot});}
   else if(!now){const error=this.canPlace(to.kind,to.x,to.z,to.rot,p.roomId,'undo-restore');if(error)return{error};if(!reverse&&p.payment&&!this.spend(p.payment))return{error:'やり直すための資材が不足しています'};l.push(copy(to));}
