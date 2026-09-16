@@ -22,4 +22,8 @@
 
 ## DEV review
 
+## Tilt-shift and lighting acceptance
+
+The active Rinne renderer must combine a restrained miniature focus effect with cool ambient / warm directional lighting and grounded building/actor contact. Keep the playable focus band and DOM HUD sharp, including camera-height changes, interiors and combat. Bound the post-processing resolution and sample count, reuse render resources, and degrade the effect under sustained frame pressure without changing gameplay or hiding the source scene. Compare the same camera, scene and viewport before/after; report additional passes and software-GPU limitations separately from real-device FPS. Do not promise zero overhead.
+
 Integration後のDEVでは同じ村内経路・同じカメラ条件で、輪郭のギザつき/ぼけと移動時のframe pacingを比較する。実機性能をclaimする場合はphysical-device evidenceを別途取得し、synthetic browser結果と混同しない。
