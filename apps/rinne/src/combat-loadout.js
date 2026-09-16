@@ -28,38 +28,24 @@ export const BODY_ZANSHIN=Object.freeze([
 
 const knownSet=state=>new Set(state?.knownSkills||[]);
 const basicSkill=state=>BASIC_BY_WEAPON[state?.equipment?.weapon]||'basic.fist';
-const isBasic=id=>typeof id==='string'&&id.startsWith('basic.');
-const isAction=(state,id)=>isBasic(id)||(SKILL_BY_ID[id]?.type==='action'&&knownSet(state).has(id));
+const isAction=(state,id)=>id===basicSkill(state)||(SKILL_BY_ID[id]?.type==='action'&&knownSet(state).has(id));
 const supportIds=state=>(state?.knownSkills||[]).filter(id=>SKILL_BY_ID[id]?.type==='support');
 const actionIds=state=>[basicSkill(state),...(state?.knownSkills||[]).filter(id=>SKILL_BY_ID[id]?.type==='action')].filter((id,index,list)=>list.indexOf(id)===index);
 const learned=row=>state=>!row.requiresAny.length||row.requiresAny.some(id=>knownSet(state).has(id));
-function phaseFromLegacy(state,phase){
-  const id=Object.entries(state?.skillWeights?.[phase]||{}).filter(([,value])=>Number(value)>0).sort((a,b)=>Number(b[1])-Number(a[1]))[0]?.[0];
-  return isAction(state,id)?id:basicSkill(state);
-}
+function phaseFromLegacy(state,phase){const id=Object.entries(state?.skillWeights?.[phase]||{}).filter(([,value])=>Number(value)>0).sort((a,b)=>Number(b[1])-Number(a[1]))[0]?.[0];return isAction(state,id)?id:basicSkill(state);}
 function makeCombo(state,index=0,source=null){
   const id=source?.id||`combo-${Date.now().toString(36)}-${index}`;
   return{id,name:String(source?.name||COMBO_NAMES[index]||`第${index+1}連`).slice(0,12),slots:{jo:isAction(state,source?.slots?.jo)?source.slots.jo:phaseFromLegacy(state,'jo'),ha:isAction(state,source?.slots?.ha)?source.slots.ha:phaseFromLegacy(state,'ha'),kyu:isAction(state,source?.slots?.kyu)?source.slots.kyu:phaseFromLegacy(state,'kyu')},favored:PHASES.map(([phase])=>phase).filter(phase=>Boolean(source?.favored?.[phase]||source?.favored?.includes?.(phase))).reduce((out,phase)=>(out[phase]=true,out),{})};
 }
 function optionUnlocked(state,option){return learned(option)(state);}
-function normalizeBody(state,body={}){
-  const pick=(list,id,fallback)=>list.some(row=>row.id===id&&optionUnlocked(state,row))?id:fallback;
-  return{stance:pick(BODY_STANCES,body.stance,'seigan'),style:pick(BODY_STYLES,body.style,'balanced'),zanshin:pick(BODY_ZANSHIN,body.zanshin,'still')};
-}
-function mirrorLegacy(state){
-  const combo=activeCombo(state);if(!combo)return;
-  state.skillWeights??={};for(const [phase] of PHASES)state.skillWeights[phase]={[combo.slots[phase]]:100};
-}
+function normalizeBody(state,body={}){const pick=(list,id,fallback)=>list.some(row=>row.id===id&&optionUnlocked(state,row))?id:fallback;return{stance:pick(BODY_STANCES,body.stance,'seigan'),style:pick(BODY_STYLES,body.style,'balanced'),zanshin:pick(BODY_ZANSHIN,body.zanshin,'still')};}
+function mirrorLegacy(state){const combo=activeCombo(state);if(!combo)return;state.skillWeights??={};for(const [phase] of PHASES)state.skillWeights[phase]={[combo.slots[phase]]:100};}
 
 export function ensureCombatLoadout(state){
-  if(!state)return null;
-  const existing=state.combatLoadout&&typeof state.combatLoadout==='object'?state.combatLoadout:{};
-  const heart=existing.heart&&typeof existing.heart==='object'?existing.heart:{};
-  const knownHeart=supportIds(state);if(!Array.isArray(heart.active))heart.active=[...knownHeart];else heart.active=heart.active.filter(id=>knownHeart.includes(id));
-  const technique=existing.technique&&typeof existing.technique==='object'?existing.technique:{};
-  const rawCombos=Array.isArray(technique.combos)?technique.combos.slice(0,MAX_COMBOS):[];
-  technique.combos=(rawCombos.length?rawCombos:[null]).map((row,index)=>makeCombo(state,index,row));
-  if(!technique.combos.some(row=>row.id===technique.activeComboId))technique.activeComboId=technique.combos[0].id;
+  if(!state)return null;const existing=state.combatLoadout&&typeof state.combatLoadout==='object'?state.combatLoadout:{},heart=existing.heart&&typeof existing.heart==='object'?existing.heart:{},knownHeart=supportIds(state);
+  if(!Array.isArray(heart.active))heart.active=[...knownHeart];else heart.active=heart.active.filter(id=>knownHeart.includes(id));
+  const technique=existing.technique&&typeof existing.technique==='object'?existing.technique:{},rawCombos=Array.isArray(technique.combos)?technique.combos.slice(0,MAX_COMBOS):[];
+  technique.combos=(rawCombos.length?rawCombos:[null]).map((row,index)=>makeCombo(state,index,row));if(!technique.combos.some(row=>row.id===technique.activeComboId))technique.activeComboId=technique.combos[0].id;
   if(!(SKILL_BY_ID[technique.oneMotion]?.type==='action'&&knownSet(state).has(technique.oneMotion)))technique.oneMotion=null;
   state.combatLoadout={heart,technique,body:normalizeBody(state,existing.body)};mirrorLegacy(state);return state.combatLoadout;
 }
