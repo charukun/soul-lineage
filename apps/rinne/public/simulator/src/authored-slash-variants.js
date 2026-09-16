@@ -17,17 +17,17 @@ export function normalizeSlashVariant(value){
 function returnCut(pose,p){
   const out=copyPose(pose),body=Math.sin(Math.PI*p)**2;
   const load=window(p,.10,.24,.39,.50),release=window(p,.36,.48,.70,.84);
-  // Reverse the rotational chain through pelvis -> chest -> weapon, while keeping
-  // the same anatomical lead/rear legs and the same forward contact plane.
+  // Reverse the rotational chain through pelvis -> chest -> weapon while counter-loading
+  // the weapon hand outside the torso. Avoid a cross-body arm path that collapses clearance.
   for(const name of ['hips','spine','chest'])out[name][1]=lerp(out[name][1],-out[name][1]*1.05,body*.96);
   out.head[1]=lerp(out.head[1],-out.head[1]*.60,body*.72);
   out.offset[0]=lerp(out.offset[0],-out.offset[0]*.82,body*.90);
   out.offset[2]+=.030*release;
-  out.grip[0]=lerp(out.grip[0],-out.grip[0]*.96,body*.94);
+  out.grip[0]-=.55*load;
   out.grip[2]+=.035*release;
   out.blade[0]=lerp(out.blade[0],-out.blade[0],body);
   out.blade[2]=lerp(out.blade[2],-out.blade[2]*.90,body*.90);
-  out.shield[0]-=.060*load;
+  out.shield[0]+=.12*load;
   out.shield[2]+=.045*release;
   out.lead[0]+=.035*release;
   out.rear[0]-=.030*load;

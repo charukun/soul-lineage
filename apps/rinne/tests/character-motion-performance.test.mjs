@@ -37,7 +37,7 @@ test('slash v3 preserves the v2 force chain while adding materially different te
 
   const crossLoad=sampleSlashPose(.34,.5,'cross'),returnLoad=sampleSlashPose(.34,.5,'return'),finisherLoad=sampleSlashPose(.34,.5,'finisher');
   const crossHit=sampleSlashPose(.50,.5,'cross'),returnHit=sampleSlashPose(.50,.5,'return'),finisherHit=sampleSlashPose(.50,.5,'finisher');
-  assert.ok(crossLoad.grip[0]<-.35&&returnLoad.grip[0]>.10,'return cut must reverse the weapon-side loading path');
+  assert.ok(crossLoad.grip[0]<-.35&&returnLoad.grip[0]<crossLoad.grip[0]-.50,'return cut must counter-load outside the torso');
   assert.ok(crossHit.hips[1]>.25&&returnHit.hips[1]<-.25,'return cut must reverse the pelvis chain, not only the wrist');
   assert.ok(finisherLoad.grip[1]>.35,'finisher must raise the weapon into a distinct high preparation');
   assert.ok(finisherHit.offset[1]<crossHit.offset[1]-.03,'finisher must absorb contact with a deeper base');
