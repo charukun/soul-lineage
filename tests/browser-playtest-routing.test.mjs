@@ -51,6 +51,18 @@ test('PR smoke reads explicit intent and writes a machine-readable receipt', asy
   assert.match(source, /resolveBrowserPlaytestTargets\(affectedApps, request\)/);
 });
 
+test('Rinne closes the probe context before the independent full playthrough', async () => {
+  const source = await read('scripts/browser/pr-smoke.mjs');
+  const rinneBranch = source.match(/if \(app === 'rinne'\) \{[\s\S]*?\} else if \(app === 'demon'\)/)?.[0] || '';
+  assert.match(rinneBranch, /await finishProbe\(\);/);
+  assert.match(rinneBranch, /verifyRebuildPlaythrough/);
+  assert.ok(
+    rinneBranch.indexOf('await finishProbe();') < rinneBranch.indexOf('verifyRebuildPlaythrough'),
+    'Rinne probe must close before the full playthrough begins',
+  );
+  assert.match(source, /if \(app !== 'rinne'\) await finishProbe\(\);/);
+});
+
 test('no-code develop playtest reuses the existing full verification route', async () => {
   const [deploy, verify, targets] = await Promise.all([
     read('.github/workflows/deploy.yml'),

@@ -1,4 +1,5 @@
 export { PUBLIC_GITHUB_ASSET_SOURCE, publicGithubAssetCatalog, publicGithubAssetsForApp } from './public-github-catalog.js';
+export { PUBLIC_WEB_ASSET_SOURCES, publicWebAssetCatalog, publicWebAssetsForApp } from './public-web-catalog.js';
 
 export const assetCatalog = Object.freeze({
   'furniture.bench.oak.v1': Object.freeze({ id: 'furniture.bench.oak.v1', type: 'furniture', dimensions: [2.2, 1.1, 0.75], color: '#aa7851' }),

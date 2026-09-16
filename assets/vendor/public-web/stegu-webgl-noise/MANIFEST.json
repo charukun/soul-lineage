@@ -1,0 +1,12 @@
+{
+  "source": {
+    "repository": "stegu/webgl-noise",
+    "commit": "22434e04d7753f7e949e8d724ab3da2864c17a0f",
+    "license": "MIT"
+  },
+  "files": [
+    {"path": "noise2D.glsl", "upstreamBlob": "6db208685dfc3b3e06ac8d4696f13e5e3c071755"},
+    {"path": "noise3D.glsl", "upstreamBlob": "0d5858780b7edcededdc2bff9e2c9d4d369fe1ed"},
+    {"path": "LICENSE", "upstreamBlob": "fe03f28c76b4759250822e17e1554eb71635b966"}
+  ]
+}
