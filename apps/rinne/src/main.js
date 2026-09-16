@@ -1,4 +1,5 @@
 import { KAYKIT_GAME_AXIS } from './kaykit-game-axis.js';
+import { installRinneGameplayUpgrade } from './gameplay-upgrade.js';
 import './native-ui-polish.js';
 const info=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__:{name:'100年生',app:'rinne',environment:'local',commit:'UNBUILT'};
 document.title=`100年生 — 輪廻転焦${info.environment==='prod'?'':` | ${String(info.environment).toUpperCase()}`}`;
@@ -8,7 +9,7 @@ $('build-label').textContent=info.commit==='UNBUILT'?'LOCAL':`${String(info.envi
 const storageKey=`soul:v1:${info.environment}:rinne:local:life-v2`;
 const motionKey=`soul:v1:${info.environment}:rinne:title-motion-v1`;
 const afterVisiblePaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null;
+let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null,gameplayUpgrade=null;
 
 const titleCommands=[...title.querySelectorAll('.title-command')];
 function selectTitleCommand(command){
@@ -73,6 +74,8 @@ function showBootFailure(error){
   console.error(error);app.dataset.screen='error';booting=false;launching=false;title.hidden=true;game.hidden=false;game.classList.add('is-loading');game.removeAttribute('aria-busy');
   $('loading-title').textContent='世界を開けませんでした';$('loading-message').textContent=error?.message||String(error);retry.hidden=false;loading.hidden=false;
 }
+function installGameplay(){gameplayUpgrade?.dispose?.();gameplayUpgrade=prepared?installRinneGameplayUpgrade({prepared,buildInfo:info}):null;}
+function disposePrepared(){gameplayUpgrade?.dispose?.();gameplayUpgrade=null;prepared?.dispose?.();}
 
 async function boot(){
   if(booting||prepared)return;booting=true;app.dataset.screen='loading';title.hidden=true;game.hidden=false;game.classList.add('is-loading');game.setAttribute('aria-busy','true');
@@ -81,6 +84,7 @@ async function boot(){
     await afterVisiblePaint();
     runtimeModule=await import('./rebuild/runtime.js');
     prepared=await runtimeModule.prepareRuntime({buildInfo:info,onProgress:message=>setLoading(message)});
+    installGameplay();
     game.dataset.runtime='prepared';showTitle();if(new URLSearchParams(location.hash.slice(1)).has('rinne-coop'))$('open-village').click();
   }catch(error){showBootFailure(error);}
 }
@@ -88,14 +92,14 @@ async function boot(){
 async function enterCoop(coop){
   if(JSON.stringify(coop.layout)!==JSON.stringify(prepared.layout)){
     booting=true;setLoading('友達の村を開いています');
-    try{prepared.dispose();prepared=await runtimeModule.prepareRuntime({buildInfo:info,layoutOverride:coop.layout,onProgress:message=>setLoading(message)});}
+    try{disposePrepared();prepared=await runtimeModule.prepareRuntime({buildInfo:info,layoutOverride:coop.layout,onProgress:message=>setLoading(message)});installGameplay();}
     catch(error){showBootFailure(error);throw error;}finally{booting=false;}
   }
   return launch('coop',coop);
 }
 async function exitGame(coop){
   runtime=null;$('open-coop-game').hidden=true;
-  try{await coopMenu?.leave();if(coop){prepared.dispose();prepared=await runtimeModule.prepareRuntime({buildInfo:info,onProgress:message=>setLoading(message)});}game.dataset.runtime='prepared';showTitle();}
+  try{await coopMenu?.leave();if(coop){disposePrepared();prepared=await runtimeModule.prepareRuntime({buildInfo:info,onProgress:message=>setLoading(message)});installGameplay();}game.dataset.runtime='prepared';showTitle();}
   catch(error){showBootFailure(error);}
 }
 
@@ -111,14 +115,14 @@ async function launch(mode,coop=null){
     $('open-coop-game').hidden=!coop;villageDialog.close();
     game.dataset.runtime='active';launching=false;
   }catch(error){
-    console.error(error);runtime?.dispose?.();runtime=null;if(coop){await coopMenu?.leave().catch(console.error);prepared?.dispose();prepared=null;launching=false;void boot();return;}game.dataset.runtime='prepared';showTitle(`開始できませんでした：${error?.message||error}`);
+    console.error(error);runtime?.dispose?.();runtime=null;if(coop){await coopMenu?.leave().catch(console.error);disposePrepared();prepared=null;launching=false;void boot();return;}game.dataset.runtime='prepared';showTitle(`開始できませんでした：${error?.message||error}`);
   }
 }
 
 refreshContinue();
 retry.addEventListener('click',()=>location.reload());
 $('kaykit-life').addEventListener('click',()=>{ location.href=KAYKIT_GAME_AXIS.primaryRuntime; });
-$('new-life').addEventListener('click',async()=>{if(hasSave&&!await requestLifeReplacement())return;void launch('new');});
+$('new-life').addEventListener('click',()=>{void launch('new');});
 $('continue-life').addEventListener('click',()=>{if(!hasSave){$('boot-status').textContent='旅の記録はまだありません';return;}void launch('continue');});
 $('open-settings').addEventListener('click',()=>settingsDialog.showModal());
 motionToggle.addEventListener('click',()=>applyTitleMotion(motionToggle.getAttribute('aria-checked')!=='true',true));
@@ -140,7 +144,7 @@ $('coop-leave').addEventListener('click',()=>{$('back-title').click();});
 let movementHelpTimer=0;
 $('move-hint').addEventListener('click',()=>{
   const held=$('move-hint').textContent.includes('母'),node=$('toast');
-  node.textContent=held?'抱っこ中も画面をスワイプすると、母に抱かれたまま村を見て回れます。':'画面をスワイプすると、その方向へ移動します。';
+  node.textContent=held?'抱っこ中も画面をスワイプすると、母に抱かれたまま村を見て回れます。':'スワイプで移動。下の「走」を押しながら移動でダッシュ、画面長押しで休憩します。';
   node.hidden=false;clearTimeout(movementHelpTimer);movementHelpTimer=setTimeout(()=>{node.hidden=true;},3200);
 });
 
@@ -160,4 +164,4 @@ if(new URLSearchParams(location.search).has('villageHostLab')){
 }
 
 // Session disposal keeps the prebooted renderer/world alive. Only page/HMR teardown destroys it.
-if(import.meta.hot)import.meta.hot.dispose(()=>{runtime?.dispose?.();void coopMenu?.leave();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});
+if(import.meta.hot)import.meta.hot.dispose(()=>{runtime?.dispose?.();void coopMenu?.leave();gameplayUpgrade?.dispose?.();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});

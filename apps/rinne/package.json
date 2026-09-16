@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@soul/assets": "*",
+    "@soul/audio": "*",
     "@soul/world": "*",
     "@soul/rendering": "*",
     "@soul/shared-ui": "*",
@@ -20,6 +21,7 @@
     "@soul/platform-web": "*",
     "@soul/network": "*",
     "@soul/characters": "*",
+    "@soul/tidebreak-combat": "*",
     "three": "0.186.0",
     "@soul/animations": "*"
   },
