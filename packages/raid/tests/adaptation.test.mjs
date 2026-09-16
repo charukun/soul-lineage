@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {ProfileStore} from '../profile.js';
 import {offerVillages} from '../world.js';
-import {RaidSession,feedingGrowth} from '../session.js';
+import {DEFAULT_MONSTER_SPECIES,MONSTER_GROWTH_PROFILES,RaidSession,feedingGrowth} from '../session.js';
 
 const memory=()=>{const m=new Map();return{getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v)}};
 function storeAt(){let now=1_000;return new ProfileStore(memory(),()=> 'adaptive-player',()=>++now);}
@@ -35,12 +35,21 @@ test('defeat closes one life and begins the next while inherited learning remain
  assert.equal(p.currentLife.number,2);assert.equal(p.currentLife.hunts,0);assert.ok(p.unlocked.includes('traveller'));assert.ok(p.adaptations.traveller.moves.includes('dancer'));
 });
 
-test('each hunt starts small and weak, then meal growth rises into a hard cap',()=>{
- const s=storeAt(),g=new RaidSession(offerVillages(s)[0],s.read());
- const startMax=g.player.maxhp;
- assert.equal(g.player.growthScale,feedingGrowth(0).scale);assert.equal(g.player.growthScale,.78);assert.ok(startMax<g.getMaxHP());
+test('default monster starts knee-high and weak, then grows past villagers into a hard species cap',()=>{
+ const s=storeAt(),g=new RaidSession(offerVillages(s)[0],s.read()),profile=MONSTER_GROWTH_PROFILES[DEFAULT_MONSTER_SPECIES],startMax=g.player.maxhp;
+ assert.equal(profile.minScale,.28);assert.equal(profile.maxScale,3.2);assert.equal(profile.fullMeals,10);
+ assert.equal(g.player.growthScale,.28);assert.equal(g.player.moveScale,.72);assert.equal(g.player.powerScale,.55);assert.ok(startMax<=60);assert.ok(startMax<g.getMaxHP()/3);
+ assert.ok(feedingGrowth(1).scale>.7&&feedingGrowth(1).scale<1);
+ assert.ok(feedingGrowth(2).scale>1.1);
+ assert.ok(feedingGrowth(5).scale>2.2);
+ assert.ok(feedingGrowth(8).scale>=3);
  for(let i=0;i<20;i++)g.consume({id:`meal:${i}`,role:'traveller',marked:false,eaten:false,dead:true});
- assert.equal(g.eaten,20);assert.equal(g.player.growthScale,1.28);assert.ok(g.player.maxhp>startMax);assert.ok(g.player.maxhp<=Math.round(g.getMaxHP()*1.04));
+ assert.equal(g.eaten,20);assert.equal(g.player.growthScale,3.2);assert.equal(g.player.moveScale,1.12);assert.equal(g.player.powerScale,1.35);assert.ok(g.player.maxhp>startMax*5);assert.equal(g.player.maxhp,Math.round(g.getMaxHP()*1.55));
+});
+
+test('unknown future monster species safely falls back to the default growth profile',()=>{
+ assert.deepEqual(feedingGrowth(5,'future-species'),feedingGrowth(5,DEFAULT_MONSTER_SPECIES));
+ assert.equal(feedingGrowth(999).scale,MONSTER_GROWTH_PROFILES[DEFAULT_MONSTER_SPECIES].maxScale);
 });
 
 test('human movement and traits can be acquired on devour, never merely from a fight',()=>{
