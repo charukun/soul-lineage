@@ -19,6 +19,18 @@ export const SUPPORT_SKILLS=Object.freeze([
   {id:'skill.edge',name:'刃筋',type:'support',needs:['forge','maintain'],threshold:.8,effects:{damage:.09}},
   {id:'skill.trail',name:'追歩',type:'support',needs:['track','play'],threshold:.8,effects:{reach:.05,evasion:.02}},
   {id:'skill.resolve',name:'不退',type:'support',needs:['care','combat'],threshold:.8,effects:{mitigation:.07,damage:.04}},
+  {id:'skill.center',name:'軸取り',type:'support',needs:['balance','focus'],threshold:.82,effects:{damage:.04,mitigation:.03,actionSpark:.04}},
+  {id:'skill.soft-step',name:'抜き足',type:'support',needs:['balance','observe'],threshold:.86,effects:{evasion:.04,staminaCost:-.03}},
+  {id:'skill.peripheral',name:'周視',type:'support',needs:['observe','sense'],threshold:.86,effects:{evasion:.04,actionSpark:.08}},
+  {id:'skill.recovery-breath',name:'息継ぎ',type:'support',needs:['breathe','rest'],threshold:.82,effects:{staminaCost:-.07,recovery:.08}},
+  {id:'skill.grip',name:'握り',type:'support',needs:['maintain','practice'],threshold:.9,effects:{damage:.05,staminaCost:-.03}},
+  {id:'skill.weapon-eye',name:'得物見',type:'support',needs:['forge','observe'],threshold:.9,effects:{actionSpark:.1,damage:.03}},
+  {id:'skill.guard-sense',name:'守り勘',type:'support',needs:['care','sense'],threshold:.86,effects:{mitigation:.05,evasion:.02}},
+  {id:'skill.endure',name:'粘り',type:'support',needs:['breathe','practice'],threshold:.92,effects:{mitigation:.04,trainingGain:.08}},
+  {id:'skill.copy-form',name:'型写し',type:'support',needs:['observe','practice'],threshold:.92,effects:{trainingGain:.12,actionSpark:.12}},
+  {id:'skill.flow-step',name:'流歩',type:'support',needs:['play','balance'],threshold:.88,effects:{reach:.04,evasion:.04}},
+  {id:'skill.poise',name:'静軸',type:'support',needs:['focus','breathe'],threshold:.84,effects:{damage:.04,staminaCost:-.04}},
+  {id:'skill.tempo',name:'間拍子',type:'support',needs:['focus','practice'],threshold:.95,effects:{actionSpark:.1,damage:.03}},
 ]);
 
 export const ACTION_SKILLS=Object.freeze([
@@ -30,6 +42,12 @@ export const ACTION_SKILLS=Object.freeze([
   {id:'action.flow',name:'連環',type:'action',needs:['practice'],threshold:2.85,support:['skill.breath','skill.repeat'],effects:{staminaCost:-.09,damage:.06}},
   {id:'action.breakfall',name:'崩し受身',type:'action',needs:['practice'],threshold:3.15,support:['skill.fall','skill.balance'],effects:{mitigation:.08}},
   {id:'action.finish',name:'詰め',type:'action',needs:['practice'],threshold:3.65,support:['skill.edge','skill.focus'],effects:{damage:.18,reach:.05}},
+  {id:'action.side-step',name:'外し歩',type:'action',needs:['practice'],threshold:3.0,support:['skill.balance','skill.peripheral'],effects:{evasion:.1,reach:.03}},
+  {id:'action.circle',name:'廻り込み',type:'action',needs:['practice'],threshold:3.25,support:['skill.flow-step','skill.danger'],effects:{evasion:.07,damage:.06}},
+  {id:'action.crash',name:'打ち崩し',type:'action',needs:['practice'],threshold:3.55,support:['skill.grip','skill.edge'],effects:{damage:.16,staminaCost:.02}},
+  {id:'action.draw',name:'初太刀',type:'action',needs:['practice'],threshold:3.7,support:['skill.weapon-eye','skill.focus'],effects:{damage:.14,reach:.06}},
+  {id:'action.recover',name:'残心',type:'action',needs:['practice'],threshold:3.9,support:['skill.recovery-breath','skill.endure'],effects:{mitigation:.07,staminaCost:-.07}},
+  {id:'action.precision',name:'一点通し',type:'action',needs:['practice'],threshold:4.15,support:['skill.poise','skill.distance'],effects:{damage:.17,reach:.04}},
 ]);
 
 export const DISCOVERIES=Object.freeze([...SUPPORT_SKILLS,...ACTION_SKILLS]);
@@ -44,7 +62,7 @@ export function skillEffects(state){
   total.mitigation=clamp(total.mitigation,0,.58);
   total.evasion=clamp(total.evasion,0,.38);
   total.reach=clamp(total.reach,0,.35);
-  total.staminaCost=clamp(total.staminaCost,-.38,0);
+  total.staminaCost=clamp(total.staminaCost,-.38,.1);
   total.recovery=clamp(total.recovery,0,.5);
   return total;
 }
