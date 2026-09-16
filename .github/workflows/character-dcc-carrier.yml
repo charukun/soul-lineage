@@ -65,7 +65,7 @@ jobs:
           reference_sha=$(sha256sum "$reference" | cut -d' ' -f1)
           builder_sha=$(sha256sum "$builder" | cut -d' ' -f1)
           rig_sha=$(sha256sum "$rig" | cut -d' ' -f1)
-          runtime_base=$(printf '%s' "$slug" | tr '[:lower:]-' '[:upper:]_')_DCC
+          runtime_base=$(printf '%s' "$slug" | tr '[:lower:]' '[:upper:]' | tr '-' '_')_DCC
           {
             echo "DCC_SLUG=$slug"
             echo "DCC_DIR=$dir"
@@ -109,6 +109,11 @@ jobs:
           character_id=$(python3 -c 'import json,sys; v=json.load(open(sys.argv[1], encoding="utf-8")).get("characterId"); assert isinstance(v,str) and v.strip(); print(v)' "$DCC_GENERATED_DIR/build.json")
           model_ext="${models[0]##*.}"
           qa_dir="docs/characters/qa/${DCC_SLUG}-dcc"
+          if [ "$model_ext" = 'glb' ]; then
+            stale_model="apps/rinne/public/simulator/assets/${DCC_RUNTIME_BASE}.vrm"
+          else
+            stale_model="apps/rinne/public/simulator/assets/${DCC_RUNTIME_BASE}.glb"
+          fi
           {
             echo "DCC_CHARACTER_ID=$character_id"
             echo "DCC_BUILD_BLEND=${blends[0]}"
@@ -116,6 +121,7 @@ jobs:
             echo "DCC_MODEL_EXT=$model_ext"
             echo "DCC_CANONICAL_BLEND=$DCC_DIR/model.blend"
             echo "DCC_CANONICAL_MODEL=apps/rinne/public/simulator/assets/${DCC_RUNTIME_BASE}.${model_ext}"
+            echo "DCC_STALE_MODEL=$stale_model"
             echo "DCC_QA_DIR=$qa_dir"
           } >> "$GITHUB_ENV"
 
@@ -140,7 +146,7 @@ jobs:
       - name: Install canonical DCC candidate and evidence
         run: |
           mkdir -p "$DCC_DIR" "$(dirname "$DCC_CANONICAL_MODEL")" "$DCC_QA_DIR"
-          rm -f "apps/rinne/public/simulator/assets/${DCC_RUNTIME_BASE}.glb" "apps/rinne/public/simulator/assets/${DCC_RUNTIME_BASE}.vrm"
+          rm -f "$DCC_STALE_MODEL"
           cp "$DCC_BUILD_BLEND" "$DCC_CANONICAL_BLEND"
           cp "$DCC_BUILD_MODEL" "$DCC_CANONICAL_MODEL"
           cp "$DCC_GENERATED_DIR/blender-audit.json" "$DCC_QA_DIR/blender-audit.json"
@@ -181,11 +187,10 @@ jobs:
             exit 1
           fi
           git stash pop
-          git add -A -- \
-            "$DCC_CANONICAL_BLEND" \
-            "apps/rinne/public/simulator/assets/${DCC_RUNTIME_BASE}.glb" \
-            "apps/rinne/public/simulator/assets/${DCC_RUNTIME_BASE}.vrm" \
-            "$DCC_QA_DIR"
+          git add -- "$DCC_CANONICAL_BLEND" "$DCC_CANONICAL_MODEL" "$DCC_QA_DIR"
+          if git ls-files --error-unmatch "$DCC_STALE_MODEL" >/dev/null 2>&1; then
+            git add -u -- "$DCC_STALE_MODEL"
+          fi
           if git diff --cached --quiet; then
             echo 'Generated DCC candidate is unchanged.'
           else
