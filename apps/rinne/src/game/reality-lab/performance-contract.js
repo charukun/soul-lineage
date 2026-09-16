@@ -6,6 +6,7 @@ export const RRP_SAFETY_KEYS=Object.freeze([
   'committedCanonRollbackEvents','duplicateIrreversibleCommits','staleAuthorityAccepts','splitBrainOpenMs','uncommittedCanonVisibleEvents','recoveryOpenWithoutMaterialEvents',
 ]);
 export const RRP_PERFORMANCE_METRICS=Object.freeze([
+  'inputToAuthoritativeAckP50Ms','inputToAuthoritativeAckP95Ms','inputToAuthoritativeAckP99Ms',
   'inputToDisplayP50Ms','inputToDisplayP95Ms','inputToDisplayP99Ms','canonCommitP50Ms','canonCommitP95Ms','canonCommitP99Ms',
   'hostLossDetectionP95Ms','hostReopenP95Ms','peerUplinkAverageKbps','peerUplinkP95Kbps','peerUplinkPeakKbps','hostUplinkAverageKbps','hostUplinkP95Kbps','hostUplinkPeakKbps',
   'reliableBufferedAmountMaxBytes','presenceBufferedAmountMaxBytes','stateFreshnessP95Ms','stateFreshnessP99Ms','positionErrorP95M','positionErrorMaxM','missingSampleRate',
@@ -20,14 +21,14 @@ export const RRP_ABSOLUTE_SLOS=Object.freeze({
 });
 
 export const PHYSICAL_MULTIPEER_CALIBRATION_METRICS=Object.freeze([
-  'inputToDisplayP95Ms','canonCommitP95Ms','peerUplinkP95Kbps','hostUplinkP95Kbps','reliableBufferedAmountMaxBytes','presenceBufferedAmountMaxBytes',
+  'inputToAuthoritativeAckP95Ms','inputToDisplayP95Ms','canonCommitP95Ms','peerUplinkP95Kbps','hostUplinkP95Kbps','reliableBufferedAmountMaxBytes','presenceBufferedAmountMaxBytes',
   'stateFreshnessP95Ms','positionErrorP95M','rollbackP95Ms','connectionSuccessRate',
 ]);
 export const PHYSICAL_MULTIPEER_REQUIRED_METRICS=Object.freeze([...new Set([...PHYSICAL_MULTIPEER_CALIBRATION_METRICS,'hostLossDetectionP95Ms','hostReopenP95Ms','frameP95Ms'])]);
 
 // Calibration floors only. A measured interval with zero rollback events is still valid rollback evidence.
 export const RRP_MIN_SAMPLE_COUNTS=Object.freeze({
-  inputToDisplayP95Ms:300,canonCommitP95Ms:20,hostLossDetectionP95Ms:20,hostReopenP95Ms:20,
+  inputToAuthoritativeAckP95Ms:300,inputToDisplayP95Ms:300,canonCommitP95Ms:20,hostLossDetectionP95Ms:20,hostReopenP95Ms:20,
   peerUplinkP95Kbps:120,hostUplinkP95Kbps:120,reliableBufferedAmountMaxBytes:120,presenceBufferedAmountMaxBytes:120,
   stateFreshnessP95Ms:300,positionErrorP95M:300,rollbackP95Ms:1,connectionSuccessRate:20,frameP95Ms:300,
 });
@@ -58,6 +59,7 @@ export function aggregateRrpPerformanceSamples(samples={}){
   if(!Number.isInteger(relayed)||relayed<0||!Number.isInteger(classified)||classified<0||classified>success||relayed>classified)throw Error('Invalid TURN sample counts');
   const rollback=finiteSamples(samples.rollbackMs),durationMinutes=Number(samples.durationMinutes??0);if(!Number.isFinite(durationMinutes)||durationMinutes<0)throw Error('Invalid sample duration');
   return Object.freeze({
+    inputToAuthoritativeAckP50Ms:pct(samples.inputToAuthoritativeAckMs,.50),inputToAuthoritativeAckP95Ms:pct(samples.inputToAuthoritativeAckMs,.95),inputToAuthoritativeAckP99Ms:pct(samples.inputToAuthoritativeAckMs,.99),
     inputToDisplayP50Ms:pct(samples.inputToDisplayMs,.50),inputToDisplayP95Ms:pct(samples.inputToDisplayMs,.95),inputToDisplayP99Ms:pct(samples.inputToDisplayMs,.99),
     canonCommitP50Ms:pct(samples.canonCommitMs,.50),canonCommitP95Ms:pct(samples.canonCommitMs,.95),canonCommitP99Ms:pct(samples.canonCommitMs,.99),
     hostLossDetectionP95Ms:pct(samples.hostLossDetectionMs,.95),hostReopenP95Ms:pct(samples.hostReopenMs,.95),
@@ -76,7 +78,7 @@ export function aggregateRrpPerformanceSamples(samples={}){
 export function rrpPerformanceSampleCounts(samples={}){
   if(!plain(samples))throw Error('RRP performance samples must be an object');
   return Object.freeze({
-    inputToDisplayP95Ms:count(samples.inputToDisplayMs),canonCommitP95Ms:count(samples.canonCommitMs),hostLossDetectionP95Ms:count(samples.hostLossDetectionMs),hostReopenP95Ms:count(samples.hostReopenMs),
+    inputToAuthoritativeAckP95Ms:count(samples.inputToAuthoritativeAckMs),inputToDisplayP95Ms:count(samples.inputToDisplayMs),canonCommitP95Ms:count(samples.canonCommitMs),hostLossDetectionP95Ms:count(samples.hostLossDetectionMs),hostReopenP95Ms:count(samples.hostReopenMs),
     peerUplinkP95Kbps:count(samples.peerUplinkKbps),hostUplinkP95Kbps:count(samples.hostUplinkKbps),reliableBufferedAmountMaxBytes:count(samples.reliableBufferedAmountBytes),presenceBufferedAmountMaxBytes:count(samples.presenceBufferedAmountBytes),
     stateFreshnessP95Ms:count(samples.stateFreshnessMs),positionErrorP95M:count(samples.positionErrorM),rollbackP95Ms:count(samples.rollbackMs)||Number(Number(samples.durationMinutes)>0),connectionSuccessRate:Number(samples.connectionAttempts??0),frameP95Ms:count(samples.frameMs),
   });
@@ -121,12 +123,12 @@ export function realityResultToPerformanceEvidence(result,{scenario='steady',can
   return normalizeRrpPerformanceEvidence({evidenceClass:EVIDENCE_CLASS.MODEL,samples:messages,metrics:{hostUplinkAverageKbps:numberOrNull(result.primaryKbps),peerUplinkAverageKbps:numberOrNull(result.maxPeerKbps),modelDeliveryP95Ms:numberOrNull(result.modelDeliveryP95Ms),modelMaxQueue:numberOrNull(result.maxQueue),modelDarkMs:numberOrNull(result.darkMs),modelRollbackMs:numberOrNull(result.rollbackMs),positionErrorMaxM:numberOrNull(result.maxPositionError),missingSampleRate:missing+measured>0?missing/(missing+measured):null},sampleCounts:{modelDeliveryP95Ms:messages,modelMaxQueue:messages},safety,provenance:{scenario,mode:result.mode??null,elapsedSeconds}});
 }
 
-export const RRP_RATCHET=Object.freeze({inputToDisplayP95Ms:1.12,canonCommitP95Ms:1.12,peerUplinkP95Kbps:1.15,hostUplinkP95Kbps:1.15,reliableBufferedAmountMaxBytes:1.20,presenceBufferedAmountMaxBytes:1.20,stateFreshnessP95Ms:1.12,positionErrorP95M:1.15,rollbackP95Ms:1.15,frameP95Ms:1.12,gpuP95Ms:1.15,memoryPeakMb:1.15,batteryPctPerHour:1.15});
+export const RRP_RATCHET=Object.freeze({inputToAuthoritativeAckP95Ms:1.12,inputToDisplayP95Ms:1.12,canonCommitP95Ms:1.12,peerUplinkP95Kbps:1.15,hostUplinkP95Kbps:1.15,reliableBufferedAmountMaxBytes:1.20,presenceBufferedAmountMaxBytes:1.20,stateFreshnessP95Ms:1.12,positionErrorP95M:1.15,rollbackP95Ms:1.15,frameP95Ms:1.12,gpuP95Ms:1.15,memoryPeakMb:1.15,batteryPctPerHour:1.15});
 function compatibleBaseline(baseline,current){const mismatches=[];const same=(key,a,b)=>{if(a!=null&&b!=null&&a!==b)mismatches.push({field:key,baseline:a,current:b});};same('evidenceClass',baseline.evidenceClass,current.evidenceClass);if(baseline.evidenceClass===EVIDENCE_CLASS.PHYSICAL_MULTIPEER){same('provenance.peers',baseline.provenance.peers,current.provenance.peers);same('provenance.networkProfile',baseline.provenance.networkProfile,current.provenance.networkProfile);}if(baseline.evidenceClass===EVIDENCE_CLASS.PHYSICAL_DEVICE||baseline.evidenceClass===EVIDENCE_CLASS.PHYSICAL_MULTIPEER){same('provenance.deviceClass',baseline.provenance.deviceClass,current.provenance.deviceClass);same('provenance.deviceModel',baseline.provenance.deviceModel,current.provenance.deviceModel);}return{comparable:mismatches.length===0,mismatches};}
 export function compareRrpPerformanceEvidence(baselineInput,currentInput,{ratios=RRP_RATCHET}={}){const baseline=normalizeRrpPerformanceEvidence(baselineInput),current=normalizeRrpPerformanceEvidence(currentInput),compatibility=compatibleBaseline(baseline,current);if(!compatibility.comparable)throw Error(`RRP performance evidence is not comparable: ${compatibility.mismatches.map(row=>row.field).join(', ')}`);const regressions=[],improvements=[],checks=[];for(const[key,ratio]of Object.entries(ratios)){const before=baseline.metrics[key],after=current.metrics[key];if(before==null)continue;if(after==null){regressions.push({metric:key,baseline:before,current:null,reason:'measurement-missing'});continue;}const limit=before*Number(ratio),pass=after<=limit+1e-9,row={metric:key,baseline:before,current:after,limit,ratio:Number(ratio),pass};checks.push(row);if(!pass)regressions.push(row);else if(after<before)improvements.push(row);}const contract=evaluateRrpPerformanceContract(current);return Object.freeze({pass:contract.status===PERFORMANCE_STATUS.PASS&&regressions.length===0,compatibility,contract,checks,regressions,improvements});}
 
 function completePhysicalFixture(overrides={}){
-  const safety=Object.fromEntries(RRP_SAFETY_KEYS.map(key=>[key,0])),metrics={inputToDisplayP95Ms:180,canonCommitP95Ms:220,hostLossDetectionP95Ms:4000,hostReopenP95Ms:5000,peerUplinkP95Kbps:320,hostUplinkP95Kbps:900,reliableBufferedAmountMaxBytes:32768,presenceBufferedAmountMaxBytes:8192,stateFreshnessP95Ms:180,positionErrorP95M:.35,rollbackP95Ms:0,connectionSuccessRate:.99,frameP95Ms:30,...(overrides.metrics||{})};
+  const safety=Object.fromEntries(RRP_SAFETY_KEYS.map(key=>[key,0])),metrics={inputToAuthoritativeAckP95Ms:140,inputToDisplayP95Ms:180,canonCommitP95Ms:220,hostLossDetectionP95Ms:4000,hostReopenP95Ms:5000,peerUplinkP95Kbps:320,hostUplinkP95Kbps:900,reliableBufferedAmountMaxBytes:32768,presenceBufferedAmountMaxBytes:8192,stateFreshnessP95Ms:180,positionErrorP95M:.35,rollbackP95Ms:0,connectionSuccessRate:.99,frameP95Ms:30,...(overrides.metrics||{})};
   const sampleCounts=Object.fromEntries(PHYSICAL_MULTIPEER_REQUIRED_METRICS.map(key=>[key,RRP_MIN_SAMPLE_COUNTS[key]??1]));
   return {evidenceClass:EVIDENCE_CLASS.PHYSICAL_MULTIPEER,samples:300,safety:{...safety,...(overrides.safety||{})},metrics,sampleCounts:{...sampleCounts,...(overrides.sampleCounts||{})},provenance:{buildRevision:'proof',runtime:'browser',deviceClass:'physical-mobile',deviceModel:'fixture',peers:3,networkProfile:'fixture',...(overrides.provenance||{})}};
 }
