@@ -59,6 +59,9 @@ test('Ready validation checkout is shallow and fetches only the resolved exact b
   assert.doesNotMatch(build, /fetch-depth: 0/);
   assert.match(build, /name: Fetch exact validation base only/);
   assert.match(build, /git fetch --no-tags --depth=1 origin "\$BASE_SHA"/);
+  assert.match(build, /grep -Fq '\$\{base\}\.\.\.\$\{head\}' \.\.\/control\/scripts\/integration-gate-cost\.mjs/);
+  assert.match(build, /git fetch --no-tags --deepen="\$depth" origin "\$HEAD_SHA"/);
+  assert.match(build, /if \[ "\$depth" -gt 256 \]; then/);
 });
 
 test('Fast Gate guards compare exact trees without merge-base history', () => {
