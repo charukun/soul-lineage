@@ -8,11 +8,13 @@ class Heap{constructor(){this.a=[];}push(n){const a=this.a;a.push(n);let i=a.len
 export class Navigation{
  constructor(world){this.world=world;this.revision=-1;this.cache=new Map();}
  sync(){if(this.revision!==this.world.state.revision){this.revision=this.world.state.revision;this.cache.clear();this.obstacles=this.world.objects.filter(o=>!defs[o.kind].building&&!defs[o.kind].soft).map(o=>({...o,bounds:extent(o)}));this.construction=this.world.objects.filter(o=>defs[o.kind].building&&!ready(o)).map(o=>({...o,bounds:extent(o)}));}}
- blocked(x,z){this.sync();const k=key(x,z);if(this.cache.has(k))return this.cache.get(k);const wx=x*STEP,wz=z*STEP,full=o=>Math.abs(o.x-wx)<o.bounds[0]/2+1.05&&Math.abs(o.z-wz)<o.bounds[1]/2+1.05;const bad=muraBlocked({objects:this.world.objects},wx,wz,.28)||this.construction.some(full)||this.obstacles.some(full);this.cache.set(k,bad);return bad;}
+ worldBlocked(wx,wz){this.sync();const full=o=>Math.abs(o.x-wx)<o.bounds[0]/2+1.05&&Math.abs(o.z-wz)<o.bounds[1]/2+1.05;return muraBlocked({objects:this.world.objects},wx,wz,.28)||this.construction.some(full)||this.obstacles.some(full);}
+ blocked(x,z){this.sync();const k=key(x,z);if(this.cache.has(k))return this.cache.get(k);const bad=this.worldBlocked(x*STEP,z*STEP);this.cache.set(k,bad);return bad;}
+ segmentBlocked(ax,az,bx,bz){for(let i=1;i<=4;i++){const t=i/4;if(this.worldBlocked((ax+(bx-ax)*t)*STEP,(az+(bz-az)*t)*STEP))return true;}return false;}
  free(x,z){if(!this.blocked(x,z))return{x,z};for(let r=1;r<=6;r++)for(let dx=-r;dx<=r;dx++)for(let dz=-r;dz<=r;dz++){if(Math.abs(dx)!==r&&Math.abs(dz)!==r)continue;if(!this.blocked(x+dx,z+dz))return{x:x+dx,z:z+dz};}return null;}
  route(from,to){const a=this.free(cell(from.x),cell(from.z)),b=this.free(cell(to.x),cell(to.z));if(!a||!b)return null;const target=key(b.x,b.z),start=key(a.x,a.z),open=new Heap(),dist=new Map([[start,0]]),prev=new Map(),closed=new Set();open.push({...a,f:0});let found=false;
   while(open.length&&closed.size<18000){const n=open.pop(),k=key(n.x,n.z);if(closed.has(k))continue;if(k===target){found=true;break;}closed.add(k);
-   for(const [dx,dz]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]]){const x=n.x+dx,z=n.z+dz,nk=key(x,z);if(this.blocked(x,z)||closed.has(nk)||dx&&dz&&(this.blocked(n.x+dx,n.z)||this.blocked(n.x,n.z+dz)))continue;
+   for(const [dx,dz]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]]){const x=n.x+dx,z=n.z+dz,nk=key(x,z);if(this.blocked(x,z)||this.segmentBlocked(n.x,n.z,x,z)||closed.has(nk)||dx&&dz&&(this.blocked(n.x+dx,n.z)||this.blocked(n.x,n.z+dz)))continue;
     const wear=this.world.state.traffic[nk]||0,cost=(dx&&dz?1.414:1)*(1-.20*Math.min(1,wear/16)),g=dist.get(k)+cost;if(g>=(dist.get(nk)??Infinity))continue;dist.set(nk,g);prev.set(nk,k);open.push({x,z,f:g+Math.hypot(b.x-x,b.z-z)*.79});}
   }
   if(!found)return null;const path=[];let k=target;while(k!==start){const[x,z]=k.split(',').map(Number);path.push({x:x*STEP,z:z*STEP});k=prev.get(k);if(!k)return null;}path.reverse();return path;
