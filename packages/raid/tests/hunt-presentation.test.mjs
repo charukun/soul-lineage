@@ -69,11 +69,11 @@ test('walls and closed gates cannot be bypassed by the devour timer',()=>{
  assert.equal(s.devour.t,0);assert.equal(s.consumes,0);assert.equal(s.player.devourProgress,null);
 });
 test('feeding progress, capture pose, and the single reward agree',()=>{
- const s=session(),n=s.devour.npc;advanceDevour(s,.5);
- assert.equal(s.player.devourProgress,.5/DEVOUR_SECONDS);assert.equal(n.capturedBy.progress,s.player.devourProgress);assert.equal(s.player.speed,0);
- advanceDevour(s,.5);assert.equal(s.consumes,0);advanceDevour(s,.5);
+ const s=session(),n=s.devour.npc,step=DEVOUR_SECONDS/3;advanceDevour(s,step);
+ assert.equal(s.player.devourProgress,step/DEVOUR_SECONDS);assert.equal(n.capturedBy.progress,s.player.devourProgress);assert.equal(s.player.speed,0);
+ advanceDevour(s,step);assert.equal(s.consumes,0);advanceDevour(s,DEVOUR_SECONDS-s.devour.t);
  assert.equal(s.consumes,1);assert.equal(n.eaten,true);assert.equal(s.devour,null);assert.equal(n.capturedBy,undefined);assert.equal(s.player.devourProgress,null);
- advanceDevour(s,.5);assert.equal(s.consumes,1);
+ advanceDevour(s,step);assert.equal(s.consumes,1);
 });
 test('movement interrupts capture without reward and restart begins at zero',()=>{
  const s=session(),n=s.devour.npc;advanceDevour(s,.7);advanceDevour(s,.1,.09);

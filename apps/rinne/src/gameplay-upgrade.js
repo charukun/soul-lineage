@@ -1,0 +1,50 @@
+import './gameplay-upgrade.css';
+import { createTidebreakRuntime } from '@soul/tidebreak-combat';
+import { createRinneAudio } from './gameplay-audio.js';
+import { createGameplayUI } from './gameplay-ui.js';
+import { ARMOR_LABELS, WEAPON_LABELS, createGameplayWorld, distance, ensureProgression } from './gameplay-world.js';
+
+const SPEED_SCALE=1.32,DASH_SCALE=1.58,DASH_DRAIN=30,REST_RECOVERY=44,HOLD_MS=480,PHASES=new Set(['jo','ha','kyu']);
+const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+function bone(root,names){let out=null;root?.traverse?.(n=>{if(out||!n.isBone)return;const k=norm(n.name);if(names.some(a=>k===a||k.endsWith(a)))out=n;});return out;}
+function toast(text){const n=document.getElementById('toast');if(!n||!text)return;n.textContent=text;n.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>{n.hidden=true;},1900);}
+
+export function installRinneGameplayUpgrade({prepared,buildInfo}={}){
+  if(!prepared?.view||!prepared?.gameScreen)return{dispose(){}};
+  const {view,canvas,gameScreen,stations,layout}=prepared,audio=createRinneAudio(),world=createGameplayWorld({view,layout,stations}),ui=createGameplayUI(gameScreen,{stations,layout,audio}),abort=new AbortController(),signal=abort.signal;
+  let state=null,dash=false,rest=false,hold=null,holdTimer=0,lastTraining='',lastEquipment='',lastDash=false,lastRest=false,lastStep=0,restPose=null,sharedKey='';
+  const originalVector=view.cameraVector.bind(view),originalMove=view.canMoveTo.bind(view),originalRender=view.renderState.bind(view),originalBefore=view.scene.onBeforeRender,originalAfter=view.scene.onAfterRender;
+  const tidebreak=createTidebreakRuntime({weapon:'fist',onImpact:()=>audio.combat(),onLog:()=>{}}),sharedWeapons=new Set(tidebreak.weapons());gameScreen.dataset.sharedCombat=tidebreak.sourceVersion;
+  const sharedWeapon=id=>sharedWeapons.has(id)?id:id==='great'&&sharedWeapons.has('greatsword')?'greatsword':sharedWeapons.has('sword')?'sword':[...sharedWeapons][0]||'fist';
+
+  function acquire(s){
+    const rack=stations.filter(r=>r.equipment&&!r.interiorId).map(r=>({...r,d:distance(s.position,r)})).sort((a,b)=>a.d-b.d)[0];
+    if(!s.moving&&s.zone==='village'&&rack?.d<=1.15&&!s.acquiredStations.includes(rack.id)){s.acquiredStations.push(rack.id);if(rack.equipment.weapon&&!s.inventory.weapons.includes(rack.equipment.weapon))s.inventory.weapons.push(rack.equipment.weapon);if(rack.equipment.armor&&!s.inventory.armors.includes(rack.equipment.armor))s.inventory.armors.push(rack.equipment.armor);if(Object.hasOwn(rack.equipment,'shield')&&!s.inventory.shields.includes(Boolean(rack.equipment.shield)))s.inventory.shields.push(Boolean(rack.equipment.shield));toast(`${rack.label} を受け取った`);audio.item();}
+    const stand=world.armors.map(r=>({...r,d:distance(s.position,r)})).sort((a,b)=>a.d-b.d)[0];if(!s.moving&&s.zone==='village'&&stand?.d<=1.25){if(!s.inventory.armors.includes(stand.armor)){s.inventory.armors.push(stand.armor);toast(`${ARMOR_LABELS[stand.armor]} 一式を受け取った`);audio.item();}s.equipment.armor=stand.armor;}
+    if(s.zone==='frontier')for(const r of world.pickups){const node=world.pickupNodes.get(r.id);if(s.worldPickups.includes(r.id)){if(node)node.visible=false;continue;}if(distance(s.position,r)>1.05)continue;s.worldPickups.push(r.id);if(!s.inventory.weapons.includes(r.weapon))s.inventory.weapons.push(r.weapon);if(node)node.visible=false;toast(`${WEAPON_LABELS[r.weapon]||r.weapon} を拾った`);audio.item();}
+  }
+  function sharedCombat(s,training,dt){
+    const practice=training?.d<2.8?{id:training.id,hp:999,distance:training.d}:null,enemy=s.combat&&s.frontState?.enemies?.find(e=>e.id===s.combat.targetId&&!e.dead),target=practice||(enemy?{...enemy,distance:distance(s.position,enemy)}:null);
+    if(!target||s.down||s.ended){sharedKey='';gameScreen.dataset.sharedCombatActive='false';return;}
+    const weapon=sharedWeapon(s.equipment?.weapon),key=`${s.zone}:${target.id}:${weapon}`;if(key!==sharedKey){sharedKey=key;tidebreak.configure({weapon,hp:Math.max(1,s.hp||1),maxhp:Math.max(1,s.maxHp||1),enemyHp:Math.max(1,target.hp||100),positions:{hero:{x:0,z:0,yaw:0},enemy:{x:0,z:Math.max(1.05,Math.min(3.2,target.distance||1.8)),yaw:Math.PI}}});}
+    tidebreak.input(0,0,0,0);const shared=tidebreak.step(Math.max(0,Math.min(.033,dt||0))),slot=shared.hero.slot;if(s.combat&&PHASES.has(slot))s.combat.phase=slot;if(s.combat)s.combat.sharedSource=tidebreak.sourceVersion;Object.assign(gameScreen.dataset,{sharedCombatActive:'true',sharedCombatAttack:shared.hero.attack||'',sharedCombatReady:String(Boolean(shared.hero.combatReady))});
+  }
+  function applyRestPose(){if(!rest||!state||state.moving||state.combat)return;const root=view.scene.getObjectByName('Player');if(!root)return;const bones={hips:bone(root,['hips']),spine:bone(root,['spine']),lu:bone(root,['upperlegl','leftupperleg']),ru:bone(root,['upperlegr','rightupperleg']),ll:bone(root,['lowerlegl','leftlowerleg']),rl:bone(root,['lowerlegr','rightlowerleg'])};restPose={root,y:root.position.y,x:root.rotation.x,bones:Object.values(bones).filter(Boolean).map(b=>[b,b.rotation.x,b.rotation.z])};root.position.y-=.13;root.rotation.x=.055;if(bones.hips)bones.hips.rotation.x+=.08;if(bones.spine)bones.spine.rotation.x+=.16;if(bones.lu)bones.lu.rotation.x+=.52;if(bones.ru)bones.ru.rotation.x+=.52;if(bones.ll)bones.ll.rotation.x-=.72;if(bones.rl)bones.rl.rotation.x-=.72;}
+  function restoreRestPose(){if(!restPose)return;restPose.root.position.y=restPose.y;restPose.root.rotation.x=restPose.x;for(const [b,x,z] of restPose.bones)b.rotation.set(x,b.rotation.y,z);restPose=null;}
+
+  view.cameraVector=axis=>{const v=originalVector(axis),base=state?.phase==='birth'?1.08:SPEED_SCALE;return v.multiplyScalar(base*(dash&&state?.stamina>2&&!rest?DASH_SCALE:1));};
+  view.canMoveTo=(x,z,r=.32,zone='village',interior=null)=>originalMove(x,z,zone==='village'?Math.min(r,.205):zone==='interior'?Math.min(r,.27):r,zone,interior);
+  view.scene.onBeforeRender=(...a)=>{originalBefore?.apply(view.scene,a);applyRestPose();};view.scene.onAfterRender=(...a)=>{restoreRestPose();originalAfter?.apply(view.scene,a);};
+  view.renderState=(next,dt=0)=>{
+    state=next;ensureProgression(state);ui.bindState(state);const training=world.nearestDummy(state),synthetic=training?.d<2.8&&!state.combat&&!state.down&&!state.ended,oldCombat=state.combat,oldYaw=state.yaw;if(synthetic){state.combat={targetId:training.id,phase:'jo',attackCooldown:999,training:true,sharedSource:tidebreak.sourceVersion};state.yaw=Math.atan2(training.x-state.position.x,training.z-state.position.z);if(lastTraining!==training.id){lastTraining=training.id;toast(`${training.label} · 戦闘態勢`);audio.combat();}}else if(!training||training.d>=3.2)lastTraining='';
+    sharedCombat(state,training,dt);const dashing=dash&&state.moving&&!state.down&&!state.ended&&!rest&&state.stamina>2;if(dashing){state.stamina=Math.max(0,state.stamina-DASH_DRAIN*dt);state.resting=false;}if(rest&&!state.moving&&!state.down&&!state.ended&&!state.combat){state.resting=true;state.stamina=Math.min(state.staminaCap||100,state.stamina+REST_RECOVERY*dt);}acquire(state);
+    const equipment=`${state.equipment.weapon}:${state.equipment.armor}:${Boolean(state.equipment.shield)}`;if(lastEquipment&&equipment!==lastEquipment)ui.refresh();lastEquipment=equipment;const now=performance.now()/1000;if(state.moving&&!rest&&now-lastStep>.18){lastStep=now;audio.step(now);}if(dashing&&!lastDash)audio.dash();if(rest&&!lastRest)audio.rest();lastDash=dashing;lastRest=rest;world.setZone(state);ui.summary(state,{dashing,resting:rest,training});originalRender(state,dt);if(synthetic){state.combat=oldCombat;state.yaw=oldYaw;}
+  };
+
+  const dashOn=e=>{if(e.button!=null&&e.button!==0)return;dash=true;rest=false;audio.unlock();ui.dash.setPointerCapture?.(e.pointerId);e.preventDefault();},dashOff=e=>{dash=false;try{ui.dash.releasePointerCapture?.(e.pointerId);}catch{}e.preventDefault();};ui.dash.addEventListener('pointerdown',dashOn,{signal});ui.dash.addEventListener('pointerup',dashOff,{signal});ui.dash.addEventListener('pointercancel',dashOff,{signal});
+  canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;audio.unlock();hold={id:e.pointerId,x:e.clientX,y:e.clientY};clearTimeout(holdTimer);holdTimer=setTimeout(()=>{if(hold?.id!==e.pointerId)return;rest=true;dash=false;toast('休憩 · スタミナ回復');},HOLD_MS);},{signal,capture:true});canvas.addEventListener('pointermove',e=>{if(hold?.id!==e.pointerId)return;if(Math.hypot(e.clientX-hold.x,e.clientY-hold.y)>10){clearTimeout(holdTimer);rest=false;}},{signal,capture:true});const end=e=>{if(hold?.id===e.pointerId){clearTimeout(holdTimer);hold=null;rest=false;}};canvas.addEventListener('pointerup',end,{signal,capture:true});canvas.addEventListener('pointercancel',end,{signal,capture:true});
+  window.addEventListener('keydown',e=>{if(e.code==='ShiftLeft'||e.code==='ShiftRight'){dash=true;rest=false;}if(e.code==='KeyM')ui.open('map');if(e.code==='KeyI')ui.open('items');},{signal});window.addEventListener('keyup',e=>{if(e.code==='ShiftLeft'||e.code==='ShiftRight')dash=false;},{signal});document.addEventListener('visibilitychange',()=>{if(document.hidden){dash=false;rest=false;}},{signal});
+  const rates=[1,5,10,20];let rateIndex=0;ui.debug.onclick=()=>{rateIndex=(rateIndex+1)%rates.length;const rate=rates[rateIndex],clock=document.getElementById('clock-rate');if(clock){clock.value=String(rate);clock.textContent=`${rate}×`;clock.onchange?.({target:clock});}ui.debug.querySelector('small').textContent=`DEBUG ${rate}×`;audio.ui();};
+  document.querySelector('.clock-rate')?.setAttribute('data-debug-only','true');Object.assign(gameScreen.dataset,{gameplayUpgrade:'2026-09-16',assetUnity:'kaykit-dungeon-shared',build:String(buildInfo?.commit||'')});
+  return{dispose(){abort.abort();clearTimeout(holdTimer);restoreRestPose();view.cameraVector=originalVector;view.canMoveTo=originalMove;view.renderState=originalRender;view.scene.onBeforeRender=originalBefore;view.scene.onAfterRender=originalAfter;world.dispose();ui.dispose();audio.dispose();delete gameScreen.dataset.gameplayUpgrade;}};
+}

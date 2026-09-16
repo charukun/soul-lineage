@@ -3,6 +3,9 @@ import { createSaveEnvelope, readSaveEnvelope } from '@soul/game-data';
 import { createIncrementalPatch, appendJournalEntry, replayJournal, shouldCompactJournal, journalBytes } from '@soul/world/incremental-journal';
 
 export const SAVE_KEY = 'living-v5';
+let peerReadOnly = false;
+export function setVillageSaveReadOnly(value) { peerReadOnly = Boolean(value); return peerReadOnly; }
+export function isVillageSaveReadOnly() { return peerReadOnly; }
 const JOURNAL_KEY = `${SAVE_KEY}.journal.v1`;
 const COMPACT_KEY = `${SAVE_KEY}.compact.v1`;
 const MAX_SAVE_BYTES = 8_000_000;
@@ -120,9 +123,11 @@ export function createSaveStore(platform) {
     }
   }
   async function persist(payload) {
+    if (peerReadOnly) return { skipped: 'peer-read-only' };
     // A failed compaction can leave a newer durable shadow or canonical base.
     // Continue from that revision before publishing another successful save.
     if (reloadBeforeSave) await load();
+    if (peerReadOnly) return { skipped: 'peer-read-only' };
     if (lastPayload === null || baseRevision === 0) {
       const nextRevision = revision + 1;
       await writeWithRetry(SAVE_KEY, envelopeText(nextRevision, payload));
@@ -157,6 +162,7 @@ export function createSaveStore(platform) {
   return {
     load,
     save(world) {
+      if (peerReadOnly) return Promise.resolve({ skipped: 'peer-read-only' });
       if (blocked) return Promise.reject(error || new Error('保存が保護されています'));
       // Capture now, not when an earlier asynchronous write eventually completes.
       const payload = JSON.parse(world.export());
@@ -166,7 +172,9 @@ export function createSaveStore(platform) {
       return operation;
     },
     async recover() {
+      if (peerReadOnly) throw new Error('共通村へ接続中は個人ローカル保存を復旧できません');
       await tail.catch(() => {});
+      if (peerReadOnly) throw new Error('共通村へ接続中は個人ローカル保存を復旧できません');
       await backupSave(platform.storage, platform.clock.now());
       freshVillageLoad = false;
       reset();
@@ -175,5 +183,6 @@ export function createSaveStore(platform) {
     diagnostics: () => Object.freeze({ revision, baseRevision, journalEntries: journal?.entries?.length || 0, journalBytes: journalBytes(journal) }),
     get error() { return error; },
     get blocked() { return blocked; },
+    get readOnly() { return peerReadOnly; },
   };
 }

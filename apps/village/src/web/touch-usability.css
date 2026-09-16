@@ -1,0 +1,33 @@
+/* Touch-first usability overrides. Keep the village visually compact while making
+ * the controls players repeatedly tap large enough to hit reliably on coarse pointers. */
+@media(pointer:coarse){
+  #muraHudToggle,
+  #tutorialAction,
+  #leaveRoom,
+  #muraEndObservation,
+  #tabs button,
+  #drawer footer button,
+  .contextTop button,
+  .actions button,
+  #materialChoices button,
+  dialog button,
+  #muraResetVillage{
+    min-height:44px;
+  }
+
+  .muraHudActions button,
+  #dismissTutorial{
+    width:44px;
+    min-width:44px;
+    height:44px;
+    min-height:44px;
+  }
+
+  .contextTop button{
+    min-width:44px;
+  }
+
+  .rotationControl input{
+    min-height:44px;
+  }
+}

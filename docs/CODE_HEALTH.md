@@ -22,6 +22,8 @@ AI実装を高速・並列に積み重ねても、単一ファイルの肥大化
 
 `.github/workflows/code-health.yml` は週2回、最新`develop`を軽量監査します。`npm ci`やブラウザは起動せず、tracked sourceだけをNodeで解析します。手動`workflow_dispatch`も利用でき、`dispatch=false`なら監査だけを行います。
 
+監査用の一時ファイルはrunner起動後のstepで `RUNNER_TEMP` から初期化します。job-level `env` では `runner` contextを参照できないため、workflow定義時に評価させません。監査・backpressure・既存refactorの重複防止はそのまま維持します。
+
 監査は以下を合成して0〜100のhotspot scoreを作ります。
 
 - source LOC

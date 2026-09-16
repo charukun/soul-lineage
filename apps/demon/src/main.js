@@ -10,16 +10,21 @@ if (!document.querySelector('link[rel="manifest"]')) {
 // Catch module download/initialization errors before the game owns its loading UI.
 const boot = document.querySelector('#boot');
 const progress = document.querySelector('#boot-progress');
+let disposeCombatCamera=()=>{};
 try {
   progress.value = 1;
   await import('./runtime-scale-stack.js');
-  // Install shared human motion presentation before the game creates NightView.
+  // Install shared human motion and monster surface adapters before the game creates NightView.
   await import('./master-humans.js');
+  await import('./monster-player.js');
   await import('./motion-interactions.js');
   await import('./motion-crowd.js');
+  const {installCombatCamera}=await import('./combat-camera.js');
+  disposeCombatCamera=installCombatCamera();
   const game = await import('./web/main.js');
   progress.value = 2;
   await game.boot();
+  document.querySelector('#swipe-hint').onclick = () => document.querySelector('#pause')?.click();
   const {installFirstHuntDirector} = await import('./web/first-hunt-director.js');
   installFirstHuntDirector();
   progress.value = 3;
@@ -42,4 +47,4 @@ const disposeMusic=installMusicLibrary({
   trigger:'hidden',
   contextNote:'この画面では単独狩りを止めています。閉じると設定画面に戻ります。'
 });
-if(import.meta.hot)import.meta.hot.dispose(disposeMusic);
+if(import.meta.hot)import.meta.hot.dispose(()=>{disposeCombatCamera?.();disposeMusic();});

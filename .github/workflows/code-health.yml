@@ -24,12 +24,15 @@ jobs:
     if: github.repository == 'charukun/soul-lineage'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      REPORT_FILE: ${{ runner.temp }}/code-health-report.json
-      MARKER_FILE: ${{ runner.temp }}/code-health-task-start.md
-      BODY_FILE: ${{ runner.temp }}/code-health-pr-body.md
-      DISPATCH_FILE: ${{ runner.temp }}/code-health-dispatch.json
     steps:
+      - name: Initialize audit paths
+        run: |
+          {
+            echo "REPORT_FILE=$RUNNER_TEMP/code-health-report.json"
+            echo "MARKER_FILE=$RUNNER_TEMP/code-health-task-start.md"
+            echo "BODY_FILE=$RUNNER_TEMP/code-health-pr-body.md"
+            echo "DISPATCH_FILE=$RUNNER_TEMP/code-health-dispatch.json"
+          } >> "$GITHUB_ENV"
       - name: Checkout current develop
         uses: actions/checkout@v6
         with:

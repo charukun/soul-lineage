@@ -70,3 +70,9 @@ task-startは通常タスクのDraft PR/branch、Dispatchの既存 `.task-start`
 Repositoryから任意の外部Chat/WORKのツール呼び出しを強制終了することはできない。その範囲はAGENTSの必須参照と最終応答契約で拘束し、機械的強制済みとは主張しない。明示的にIntegration役を担当するタスクには別の責任範囲を適用する。
 
 GitHub経路は通常git → 利用可能なGitHub連携/API → Codespaces＋通常git。一経路の認証/通信/転送制約だけで不能と結論付けない。詳細は [MOBILE_HYBRID_DEVELOPMENT.md](MOBILE_HYBRID_DEVELOPMENT.md)、Draft契約は [DEVELOPMENT.md](DEVELOPMENT.md)、継続監視・公開は [INTEGRATION.md](INTEGRATION.md) を参照する。添付やProject Sourcesの旧 `RINNE_PROJECT_EXECUTION_POLICY` と差がある場合はこのRepositoryの最新版を読む。
+
+## 同じ転送・push許可を再質問しない
+
+ユーザーは、依頼作業に必要なコード・モデル・Blender元データ・Git bundleを `charukun/soul-lineage` と同Repositoryの既存Codespacesへ転送し、作業branchへpushすることを明示承認し、同じ確認の繰り返しを禁止した。依頼されたVisual Review Lab変更の専用branch pushと既存Workerへの公開も含む。正確な範囲・根拠・宛先照合手順は [継続承認記録](DELIVERY_AUTHORIZATION.md)。
+
+AGENTS、Project bootstrap、実装・修復Workerの共通指示からこの記録を読む。転送前に宛先と今回の成果の範囲を確認し、承認レビューへ既存承認を明示する。経路変更だけで再承認待ちにしない。プラットフォームの承認制御を無効化する規則ではなく、別の宛先・機密送信・main/Production・既存gateの解除権限は追加しない。

@@ -56,3 +56,15 @@ Integration Rescueは運用者がスマホで開いた直後に「何が問題�
 - 対応待ちカードは待機理由、依存PR、待機時間、優先度を明示する
 - 完了履歴は対応中・対応待ちから視覚的に分離し、直近の完了件数と結果を確認できるようにする
 - Rescueによる修復成功と、単なるIntegration / DEV状態観測を混同しない。既存の修復証跡判定を維持する
+
+## 作業中タスクのAI再開プロンプト
+
+「作業中」はGitHub上のDraft状態であり、実行中のheartbeatを保証しない。PULSEの開発中タスク欄から、現在のDraftを一括点検して安全に再開・前進させるためのAI向けプロンプトを生成できるようにする。
+
+- ボタンは通常PRのDraftを対象とし、Visual Review Labの長寿命Draftは通常タスクと混ぜない
+- プロンプトには対象PR番号、タイトル、概要、head branch、exact head SHA、最終更新時刻、滞留表示の有無を含める
+- 受け取ったAIは最新developと現在のGitHub状態を正本として各PRを再確認し、`Draft=実行中` と決めつけず、稼働中・停止/中断・外部待ち/明示hold・完了済み/obsoleteを判定する
+- 停止または中断で再開可能なタスクは新規PRを増やさず既存branch/PRを復旧起点にし、現行仕様へ調停して実装・局所検証・push・Ready化・`READY_FOR_INTEGRATION` handoffまで進める
+- 明示hold、未解決review、権限不足、不可逆な契約判断など本当に進められない対象は理由と復旧条件を既存PRへ残し、品質gateを弱めたりmain/Productionへ進めたりしない
+- CI/browserのRunning・Queued・Pendingを待機・pollingしてセッションを延命しない。Ready以後の非同期監視はIntegrationへ引き渡す
+- PULSE自身はこのボタン操作でGitHubを書き換えない。表示中snapshotを使ってコピー可能な実行プロンプトを生成するだけにする

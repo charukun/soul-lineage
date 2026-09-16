@@ -85,7 +85,7 @@ test('GitHub cache revalidates with ETag, saves no credentials and reuses immuta
 });
 test('rate-limited GitHub responses pause further requests until Retry-After', async () => {
   const storage = new Storage(); let calls = 0; const now = 1789171200000;
-  const client = createGithubClient({ storage, now:()=>now, fetchImpl:async()=>{calls++;return jsonResponse({}, {'retry-after':'120'},429);} });
+  const client = createGithubClient({ storage, token:'test-token', now:()=>now, fetchImpl:async()=>{calls++;return jsonResponse({}, {'retry-after':'120'},429);} });
   await assert.rejects(client.get('/branches'), e => e.retryAt === now + 120000);
   await assert.rejects(client.get('/pulls'), /再取得待ち/); assert.equal(calls,1);
 });

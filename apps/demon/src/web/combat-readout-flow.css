@@ -1,0 +1,64 @@
+#skill-name.combat-action-source{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  clip-path:inset(50%)!important;
+  white-space:nowrap!important;
+}
+
+#combat-action-flow{
+  position:relative;
+  display:grid;
+  place-items:center;
+  min-height:22px;
+  margin-top:8px;
+  pointer-events:none;
+  overflow:visible;
+  font-size:13px;
+  letter-spacing:.22em;
+  text-shadow:0 2px 8px #000;
+}
+#combat-action-flow[hidden]{display:none}
+#combat-action-flow>span{
+  grid-area:1/1;
+  display:block;
+  max-width:min(78vw,360px);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  will-change:transform,opacity,filter;
+}
+.combat-action-current{opacity:1;color:#e6dcc2}
+.combat-action-outgoing{opacity:0;color:#b7b4a4}
+.combat-action-enter{animation:combat-action-enter .52s cubic-bezier(.16,.8,.24,1) both}
+.combat-action-exit{animation:combat-action-exit .58s cubic-bezier(.25,.7,.25,1) both}
+
+.phases span.combat-phase-shift{animation:combat-phase-shift .48s cubic-bezier(.2,.8,.2,1) both}
+
+@keyframes combat-action-enter{
+  0%{opacity:0;transform:translateY(12px) scale(.985);filter:blur(2px)}
+  42%{opacity:1;transform:translateY(-1px) scale(1.01);filter:blur(0)}
+  100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}
+}
+@keyframes combat-action-exit{
+  0%{opacity:.82;transform:translateY(0) scale(1);filter:blur(0)}
+  100%{opacity:0;transform:translateY(-18px) scale(.975);filter:blur(1.8px)}
+}
+@keyframes combat-phase-shift{
+  0%{transform:translateY(5px) scale(.9);filter:brightness(1)}
+  38%{transform:translateY(-2px) scale(1.18);filter:brightness(1.55)}
+  100%{transform:translateY(0) scale(1);filter:brightness(1)}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .combat-action-enter{animation:combat-action-fade-in .12s linear both}
+  .combat-action-exit{animation:combat-action-fade-out .12s linear both}
+  .phases span.combat-phase-shift{animation:combat-phase-fade .12s linear both}
+}
+@keyframes combat-action-fade-in{from{opacity:0}to{opacity:1}}
+@keyframes combat-action-fade-out{from{opacity:.7}to{opacity:0}}
+@keyframes combat-phase-fade{50%{filter:brightness(1.35)}}

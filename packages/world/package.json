@@ -12,6 +12,7 @@
     "./incremental-journal": "./src/incremental-journal.js",
     "./mura": "./src/mura/index.js",
     "./mura/catalog": "./src/mura/catalog.js",
+    "./mura/dialogue": "./src/mura/dialogue.js",
     "./mura/terrain": "./src/mura/terrain.js"
   },
   "dependencies": {"@soul/assets": "*"}

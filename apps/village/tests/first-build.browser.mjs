@@ -10,19 +10,78 @@ async function expectVillageReady(page, expect) {
   await expect(page.locator('#game')).toHaveAttribute('data-renderer','ready',{timeout:STARTUP_TIMEOUT_MS});
 }
 
-async function finishFirstRunAutoplay(page, expect) {
-  const intro=page.locator('#muraFirstRunTutorial');
-  if(!(await intro.count())||!(await intro.isVisible()))return false;
-  await expect(page.locator('#game')).toHaveAttribute('data-first-run-tutorial','running');
-  await nativeTap(page,expect,page.locator('#muraFirstRunSkip'));
-  await expect(intro).toHaveCount(0);
-  await expect(page.locator('#game')).toHaveAttribute('data-first-run-tutorial','seen');
+async function finishFirstRunGuide(page, expect) {
+  const guide=page.locator('#muraFirstRunGuide');
+  const canvas=page.locator('#game');
+  await expect(guide).toBeVisible();
+  await expect(canvas).toHaveAttribute('data-first-run-tutorial','running');
+  await expect(guide).toHaveAttribute('data-stage','welcome');
+  const pristineFixture=await page.evaluate(()=>window.village.world.export());
+
+  // Walk the same path a first-time player uses. Nothing below invokes world.add,
+  // placement helpers or synthetic dispatchEvent shortcuts.
+  await nativeTap(page,expect,page.locator('.muraFirstRunStart'));
+  await expect(guide).toHaveAttribute('data-stage','build');
+  await nativeTap(page,expect,page.locator('#build'));
+  await expect(guide).toHaveAttribute('data-stage','catalog');
+  const tentCard=page.locator('#catalog .card[data-kind="tent"]');
+  await expect(tentCard).toBeVisible();
+  await expect(tentCard).toHaveClass(/mura-first-run-target/);
+  await nativeTap(page,expect,tentCard);
+  await expect(guide).toHaveAttribute('data-stage','drag');
+  await expect(page.locator('#placement')).toBeVisible();
+  await expect(canvas).toHaveAttribute('data-placement','center-follow');
+
+  // A premature tap must be taught, not interpreted as a placement shortcut.
+  await tapPlacement(page);
+  await expect(guide).toHaveAttribute('data-stage','drag');
+  expect(await page.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))).toBe(false);
+
+  const candidateBefore=await page.evaluate(()=>({x:window.village.ui.pending.x,z:window.village.ui.pending.z}));
+  await dragPlacement(page,58,38);
+  await expect(guide).toHaveAttribute('data-stage','place');
+  await expect.poll(()=>page.evaluate(({x,z})=>{
+    const p=window.village.ui.pending;return p?Math.hypot(p.x-x,p.z-z):0;
+  },candidateBefore)).toBeGreaterThan(.2);
+
+  // The first real drag can legitimately land on an occupied tile. Follow the
+  // same recovery the guide teaches: keep dragging until the normal placement
+  // validator reports a usable spot, then confirm with a real short tap.
+  if(await page.evaluate(()=>!!window.village.ui.pending?.error))await dragPlacement(page,-58,-38);
+  await expect.poll(()=>page.evaluate(()=>window.village.ui.pending?.error||null)).toBe(null);
+  await tapPlacement(page);
+  await expect(guide).toHaveAttribute('data-stage','done');
+  await expect.poll(()=>page.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))).toBe(true);
+  await expect(page.locator('#muraPlacementUndo')).toHaveCount(0);
+  await nativeTap(page,expect,page.locator('.muraFirstRunFinish'));
+  await expect(guide).toHaveCount(0);
+  await expect(canvas).toHaveAttribute('data-first-run-tutorial','seen');
+
+  // The guide itself is now fully verified. Restore the pristine browser fixture
+  // explicitly instead of abusing product Undo as test setup. Preserve the seen
+  // marker so the reload cannot start a second first-run guide.
+  const restored=await page.evaluate(async fixture=>{
+    const village=window.village;
+    const onboarding=structuredClone(village.world.state.onboarding||{});
+    if(village.ui.pending)village.cancelPlacement();
+    village.deselect();
+    const loaded=village.world.load(fixture);
+    if(loaded.error)return{ok:false,error:loaded.error};
+    village.world.state.onboarding=onboarding;
+    const saved=await village.save();
+    return{ok:saved!==false,error:saved===false?'fixture save failed':null};
+  },pristineFixture);
+  expect(restored).toEqual({ok:true,error:null});
+  await page.reload({waitUntil:'domcontentloaded'});
+  await expectVillageReady(page,expect);
+  await expect(page.locator('#muraFirstRunGuide')).toHaveCount(0);
+  await expect(page.locator('#placement')).toBeHidden();
+  expect(await page.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))).toBe(false);
   return true;
 }
 
 export async function enterVillageForBrowser(page, expect) {
   await expectVillageReady(page, expect);
-  await finishFirstRunAutoplay(page,expect);
   const entry=page.locator('#muraEntry'),enter=page.locator('#muraEnterVillage');
   if(await enter.count()&&await enter.isVisible()){
     await nativeTap(page,expect,enter);
@@ -30,6 +89,7 @@ export async function enterVillageForBrowser(page, expect) {
   }else{
     await expect(entry).toHaveCount(0);
   }
+  await finishFirstRunGuide(page,expect);
 }
 
 async function placementCenter(page){
@@ -53,10 +113,15 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
   expect(settings.width).toBeGreaterThanOrEqual(44);expect(settings.height).toBeGreaterThanOrEqual(44);
   const before=await page.evaluate(()=>({count:window.village.world.objects.length,beds:window.village.world.population().openBeds}));
 
-  // The first tutorial action enters center-follow placement directly. The scene
-  // moves under the ghost with one finger and a short tap commits the candidate.
-  await expect(page.locator('#tutorialAction')).toBeVisible();
-  await nativeTap(page,expect,page.locator('#tutorialAction'));
+  // First-run already taught the first tent, so do not resurrect the legacy
+  // tutorial CTA. Continue through the ordinary build controls a returning
+  // player will actually use: つくる → 空きテント → native placement.
+  await expect(page.locator('#tutorialAction')).toBeHidden();
+  await nativeTap(page,expect,page.locator('#build'));
+  await expect(page.locator('#drawer')).toBeVisible();
+  const tentCard=page.locator('#catalog .card[data-kind="tent"]');
+  await expect(tentCard).toBeVisible();
+  await nativeTap(page,expect,tentCard);
   await expect(page.locator('#drawer')).toBeHidden();
   await expect(page.locator('#placement')).toBeVisible();
   await expect(page.locator('#game')).toHaveAttribute('data-placement','center-follow');
@@ -81,28 +146,20 @@ export async function verifyVillageFirstBuild(page, expect, testInfo, beforeRelo
 
   await tapPlacement(page);
   await expect(page.locator('#placement')).toBeHidden();
-  await expect(page.locator('#muraPlacementUndo')).toBeVisible();
-  let tent=await page.evaluate(()=>window.village.world.objects.find(o=>o.kind==='tent'));
+  await expect(page.locator('#muraPlacementUndo')).toHaveCount(0);
+  const tent=await page.evaluate(()=>window.village.world.objects.find(o=>o.kind==='tent'));
   expect(tent).toBeTruthy();expect(tent.phase).toBe('built');
   expect(await page.evaluate(()=>window.village.world.population().openBeds)).toBe(before.beds+2);
   await expect(page.locator('#toastText')).toContainText('寝床が2床増えました');
   await expect(page.locator('#muraMilestone')).toHaveClass(/visible/);
   if (captureMilestones) await page.screenshot({path:testInfo.outputPath('first-tent-built.png')});
 
-  // Mistakes are recoverable without a confirmation dialog: undo re-enters the
-  // same center-follow placement mode so the player can correct the position.
-  await nativeTap(page,expect,page.locator('#muraPlacementUndo'));
-  await expect(page.locator('#placement')).toBeVisible();
-  expect(await page.evaluate(()=>window.village.world.objects.some(o=>o.kind==='tent'))).toBe(false);
-  expect(await page.evaluate(()=>window.village.world.population().openBeds)).toBe(before.beds);
-  await expect(page.locator('#placementText')).toContainText('タップで配置');
-  await tapPlacement(page);
-  await expect(page.locator('#placement')).toBeHidden();
-  tent=await page.evaluate(()=>window.village.world.objects.find(o=>o.kind==='tent'));
-  expect(tent).toBeTruthy();expect(tent.phase).toBe('built');
-  expect(await page.evaluate(()=>window.village.world.population().openBeds)).toBe(before.beds+2);
-
+  // Placement returns to the normal controls without a temporary Undo overlay.
   await nativeTap(page,expect,page.locator('#deselect'));
+  await nativeTap(page,expect,page.locator('#build'));
+  await expect(page.locator('#drawer')).toBeVisible();
+  await nativeTap(page,expect,page.locator('#closeDrawer'));
+  await expect(page.locator('#drawer')).toBeHidden();
   const facility=await page.evaluate(()=>window.village.world.objects.find(o=>o.kind==='storage'));
   expect(facility?.phase).toBe('built');
   for (let step=0;step<8;step++) {

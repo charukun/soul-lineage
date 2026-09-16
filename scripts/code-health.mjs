@@ -313,7 +313,7 @@ function git(cwd, args, options = {}) {
 }
 
 function changedSourceEntries(cwd, base, head, config) {
-  const output = git(cwd, ['diff', '--name-status', '--find-renames', `${base}...${head}`]);
+  const output = git(cwd, ['diff', '--name-status', '--find-renames', base, head]);
   const entries = [];
   for (const line of output.split('\n')) {
     if (!line.trim()) continue;
