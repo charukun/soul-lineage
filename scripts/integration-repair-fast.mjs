@@ -3,24 +3,26 @@ import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { client } from './integration.mjs';
-import { dependencies, reviewDecision } from './integration-policy.mjs';
+import { dependencies, reviewDecision, scope } from './integration-policy.mjs';
+import { comparison as completeComparison } from './integration-rescue-store.mjs';
 
 export const DEFAULT_REPAIR_LIMIT = 4;
 const TRUSTED = new Set(['OWNER', 'MEMBER', 'COLLABORATOR']);
 const REPAIRABLE_MERGE_STATES = new Set(['clean', 'unstable', 'has_hooks', 'behind']);
 const HOLD_LABELS = new Set(['integration:hold', 'integration:manual', 'do-not-merge']);
+const gitSha = value => typeof value === 'string' && /^[0-9a-f]{40}$/i.test(value);
 
 export function repairValidationMatrix(results = []) {
   return results
     .filter(item => item?.state === 'merged-forward' && Number.isSafeInteger(Number(item.pr)) &&
-      /^[0-9a-f]{40}$/i.test(item.sha || '') && /^[0-9a-f]{40}$/i.test(item.develop || ''))
+      gitSha(item.sha) && gitSha(item.develop))
     .map(item => ({ pr: Number(item.pr), head: item.sha, base: item.develop }));
 }
 
 export function fastRepairCandidate(pr, repository) {
   return pr?.state === 'open' && !pr.draft && pr.base?.ref === 'develop' &&
     pr.base?.repo?.full_name === repository && pr.head?.repo?.full_name === repository &&
-    TRUSTED.has(pr.author_association) && dependencies(pr.body || '').length > 0;
+    TRUSTED.has(pr.author_association);
 }
 
 function explicitHold(pr) {
@@ -45,8 +47,24 @@ async function unresolvedThreads(c, pr) {
   return false;
 }
 
+async function baseDrift(c, pr, develop) {
+  const own = await c.api('GET', `${c.root}/compare/${develop}...${pr.head.sha}`);
+  const base = own.merge_base_commit?.sha;
+  if (!gitSha(base)) throw new Error('INCOMPLETE_BASE_COMPARISON');
+  if (base === develop) return { base, current: true, overlap: false, prFiles: [], baseChanges: [] };
+
+  const [files, baseComparison] = await Promise.all([
+    c.pages(`/pulls/${pr.number}/files`, undefined, { maxPages: 30 }),
+    completeComparison(c, base, develop),
+  ]);
+  const prFiles = files.flatMap(file => [file.filename, file.previous_filename].filter(Boolean));
+  const changedScopes = new Set(baseComparison.files.map(scope));
+  const overlap = prFiles.some(path => changedScopes.has(scope(path)));
+  return { base, current: false, overlap, prFiles, baseChanges: baseComparison.files };
+}
+
 export async function reconcileStackFast(c, expected, develop, { repository = 'charukun/soul-lineage' } = {}) {
-  if (!fastRepairCandidate(expected, repository)) return { state: 'not-stacked' };
+  if (!fastRepairCandidate(expected, repository)) return { state: 'not-ready' };
   const deps = dependencies(expected.body || '');
   const depStates = await Promise.all(deps.map(number => c.api('GET', `${c.root}/pulls/${number}`)));
   if (!depStates.every(dep => (dep.merged || dep.merged_at) && dep.base?.ref === 'develop' && dep.base?.repo?.full_name === repository)) {
@@ -59,20 +77,29 @@ export async function reconcileStackFast(c, expected, develop, { repository = 'c
   const reviews = await c.pages(`/pulls/${pr.number}/reviews`, undefined, { maxPages: 10 });
   if (reviewDecision(reviews, pr.head.sha).rejected || await unresolvedThreads(c, pr)) return { state: 'safety-hold' };
 
+  const drift = await baseDrift(c, pr, develop);
+  if (drift.current) return { state: 'already-current', develop, dependencies: deps };
+  if (deps.length === 0 && drift.overlap) {
+    return { state: 'semantic-overlap', base: drift.base, develop, dependencies: deps };
+  }
+
   const [before, branch] = await Promise.all([
     c.api('GET', `${c.root}/pulls/${pr.number}`),
     c.api('GET', `${c.root}/branches/develop`),
   ]);
   if (before.head.sha !== pr.head.sha || branch.commit.sha !== develop || explicitHold(before)) return { state: 'changed' };
 
+  const suffix = deps.length
+    ? `after dependencies ${deps.map(number => `#${number}`).join(', ')}`
+    : 'after non-overlapping develop drift';
   try {
     const result = await c.api('POST', `${c.root}/merges`, {
       base: pr.head.ref,
       head: develop,
-      commit_message: `Merge develop into ${pr.head.ref} after dependencies ${deps.map(number => `#${number}`).join(', ')}`,
+      commit_message: `Merge develop into ${pr.head.ref} ${suffix}`,
     });
-    if (!result) return { state: 'already-current' };
-    if (!/^[0-9a-f]{40}$/.test(result.sha || '')) throw new Error('FAST_REPAIR_RESULT_INVALID');
+    if (!result) return { state: 'already-current', develop, dependencies: deps };
+    if (!gitSha(result.sha)) throw new Error('FAST_REPAIR_RESULT_INVALID');
     const after = await c.api('GET', `${c.root}/pulls/${pr.number}`);
     if (!fastRepairCandidate(after, repository) || explicitHold(after) || after.body !== pr.body || after.head.ref !== pr.head.ref) {
       return { state: 'changed', reason: 'PR_CHANGED_AFTER_FAST_REPAIR' };
@@ -87,9 +114,17 @@ export async function reconcileStackFast(c, expected, develop, { repository = 'c
         return { state: 'changed', reason: 'FAST_REPAIR_HEAD_NOT_OBSERVED' };
       }
     }
-    return { state: 'merged-forward', sha: result.sha, previousHead: pr.head.sha, develop, dependencies: deps };
+    return {
+      state: 'merged-forward',
+      sha: result.sha,
+      previousHead: pr.head.sha,
+      base: drift.base,
+      develop,
+      dependencies: deps,
+      reason: deps.length ? 'dependency-refresh' : 'non-overlapping-base-refresh',
+    };
   } catch (error) {
-    if (/HTTP 409\b/.test(error.message)) return { state: 'conflict', reason: 'STACK_RECONCILE_CONFLICT' };
+    if (/HTTP 409\b/.test(error.message)) return { state: 'conflict', reason: 'FAST_REPAIR_CONFLICT' };
     throw error;
   }
 }
@@ -98,10 +133,14 @@ export async function repairReadyStacks(c, repository, { limit = DEFAULT_REPAIR_
   const startedAt = new Date().toISOString();
   const develop = (await c.api('GET', `${c.root}/branches/develop`)).commit.sha;
   const open = await c.pages('/pulls?state=open&base=develop&sort=created&direction=asc', undefined, { maxPages: 6 });
-  const candidates = open.filter(pr => fastRepairCandidate(pr, repository)).slice(0, limit);
+  const candidates = open.filter(pr => fastRepairCandidate(pr, repository));
   const results = [];
+  let evaluated = 0;
+  let repaired = 0;
 
   for (const snapshot of candidates) {
+    if (repaired >= limit) break;
+    evaluated++;
     try {
       const [pr, branch] = await Promise.all([
         c.api('GET', `${c.root}/pulls/${snapshot.number}`),
@@ -117,6 +156,7 @@ export async function repairReadyStacks(c, repository, { limit = DEFAULT_REPAIR_
       }
       const outcome = await reconcile(c, pr, develop, { repository });
       results.push({ pr: pr.number, ...outcome });
+      if (outcome?.state === 'merged-forward') repaired++;
     } catch (error) {
       results.push({ pr: snapshot.number, state: 'error', reason: error.message });
     }
@@ -127,7 +167,8 @@ export async function repairReadyStacks(c, repository, { limit = DEFAULT_REPAIR_
     startedAt,
     finishedAt: new Date().toISOString(),
     develop,
-    evaluated: candidates.length,
+    evaluated,
+    repaired,
     results,
     matrix: repairValidationMatrix(results),
   };
