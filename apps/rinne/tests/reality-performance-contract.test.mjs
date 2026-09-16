@@ -1,9 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  EVIDENCE_CLASS,PERFORMANCE_STATUS,PHYSICAL_MULTIPEER_REQUIRED_METRICS,RRP_ABSOLUTE_SLOS,RRP_MIN_SAMPLE_COUNTS,RRP_SAFETY_KEYS,
-  aggregateRrpPerformanceSamples,compareRrpPerformanceEvidence,evaluateRrpPerformanceContract,
-  normalizeRrpPerformanceEvidence,percentile,realityResultToPerformanceEvidence,runRrpPerformanceContractProofSuite,
+  EVIDENCE_CLASS,
+  PERFORMANCE_STATUS,
+  PHYSICAL_MULTIPEER_CALIBRATION_METRICS,
+  PHYSICAL_MULTIPEER_REQUIRED_METRICS,
+  RRP_ABSOLUTE_SLOS,
+  RRP_MIN_SAMPLE_COUNTS,
+  RRP_SAFETY_KEYS,
+  aggregateRrpPerformanceSamples,
+  compareRrpPerformanceEvidence,
+  evaluateRrpPerformanceContract,
+  normalizeRrpPerformanceEvidence,
+  percentile,
+  realityResultToPerformanceEvidence,
+  runRrpPerformanceContractProofSuite,
 } from '../src/game/reality-lab/performance-contract.js';
 
 const zeroSafety=()=>Object.fromEntries(RRP_SAFETY_KEYS.map(key=>[key,0]));
@@ -20,6 +31,8 @@ const physicalBase=(metrics={})=>({
   sampleCounts:sampleCounts(),
   provenance:{buildRevision:'abc',runtime:'Chrome',deviceClass:'pixel-fold-class',deviceModel:'Pixel Fold',peers:3,networkProfile:'wifi-lan'},
 });
+
+const calibratedOptions={calibratedMetrics:PHYSICAL_MULTIPEER_CALIBRATION_METRICS};
 
 test('percentile uses a deterministic nearest-rank definition',()=>{
   assert.equal(percentile([5,1,4,2,3],.5),3);
@@ -59,34 +72,43 @@ test('measured zero rollback is preserved as zero instead of treated as missing'
 test('faster evidence cannot pass when a safety invariant is violated',()=>{
   const input=physicalBase({inputToDisplayP95Ms:1,hostUplinkP95Kbps:1});
   input.safety={...input.safety,committedCanonRollbackEvents:1};
-  const result=evaluateRrpPerformanceContract(input);
+  const result=evaluateRrpPerformanceContract(input,calibratedOptions);
   assert.equal(result.status,PERFORMANCE_STATUS.FAIL);
   assert.equal(result.safety.failures[0].metric,'committedCanonRollbackEvents');
 });
 
-test('physical multipeer evidence passes anchored SLOs only when safety, metrics and sample counts are complete',()=>{
-  const result=evaluateRrpPerformanceContract(physicalBase());
+test('complete first physical capture still requires explicit calibration acceptance',()=>{
+  const result=evaluateRrpPerformanceContract(physicalBase(),{requirePhysicalCertification:true});
+  assert.equal(result.status,PERFORMANCE_STATUS.CALIBRATION_REQUIRED);
+  assert.equal(result.physicalCertificationEligible,false);
+  assert.ok(result.uncalibratedMetrics.includes('inputToAuthoritativeAckP95Ms'));
+  assert.ok(result.uncalibratedMetrics.includes('connectionSuccessRate'));
+});
+
+test('accepted calibrated physical evidence can pass anchored SLOs',()=>{
+  const result=evaluateRrpPerformanceContract(physicalBase(),{...calibratedOptions,requirePhysicalCertification:true});
   assert.equal(result.status,PERFORMANCE_STATUS.PASS);
   assert.equal(result.physicalCertificationEligible,true);
   assert.equal(result.slos.failures.length,0);
   assert.equal(result.insufficientSamples.length,0);
+  assert.equal(result.uncalibratedMetrics.length,0);
 });
 
 test('existing migration SLO regressions fail the contract',()=>{
-  const result=evaluateRrpPerformanceContract(physicalBase({hostLossDetectionP95Ms:RRP_ABSOLUTE_SLOS.hostLossDetectionP95Ms.max+1}));
+  const result=evaluateRrpPerformanceContract(physicalBase({hostLossDetectionP95Ms:RRP_ABSOLUTE_SLOS.hostLossDetectionP95Ms.max+1}),calibratedOptions);
   assert.equal(result.status,PERFORMANCE_STATUS.FAIL);
   assert.equal(result.slos.failures[0].metric,'hostLossDetectionP95Ms');
 });
 
 test('physical frame p95 retains the 30fps-class absolute target',()=>{
-  const result=evaluateRrpPerformanceContract(physicalBase({frameP95Ms:33.35}));
+  const result=evaluateRrpPerformanceContract(physicalBase({frameP95Ms:33.35}),calibratedOptions);
   assert.equal(result.status,PERFORMANCE_STATUS.FAIL);
   assert.ok(result.slos.failures.some(row=>row.metric==='frameP95Ms'));
 });
 
 test('missing physical network or anchored measurements remain calibration gaps instead of passes',()=>{
   const input=physicalBase();delete input.metrics.inputToDisplayP95Ms;delete input.metrics.hostUplinkP95Kbps;delete input.metrics.hostReopenP95Ms;
-  const result=evaluateRrpPerformanceContract(input);
+  const result=evaluateRrpPerformanceContract(input,calibratedOptions);
   assert.equal(result.status,PERFORMANCE_STATUS.CALIBRATION_REQUIRED);
   assert.equal(result.physicalCertificationEligible,false);
   assert.ok(result.calibrationRequired.includes('inputToDisplayP95Ms'));
@@ -96,7 +118,7 @@ test('missing physical network or anchored measurements remain calibration gaps 
 
 test('insufficient physical samples remain calibration gaps instead of passes',()=>{
   const input=physicalBase();input.sampleCounts={...input.sampleCounts,inputToAuthoritativeAckP95Ms:10};
-  const result=evaluateRrpPerformanceContract(input);
+  const result=evaluateRrpPerformanceContract(input,calibratedOptions);
   assert.equal(result.status,PERFORMANCE_STATUS.CALIBRATION_REQUIRED);
   assert.equal(result.physicalCertificationEligible,false);
   assert.ok(result.insufficientSamples.some(row=>row.metric==='inputToAuthoritativeAckP95Ms'));
@@ -114,15 +136,21 @@ test('physical evidence rejects synthetic device provenance',()=>{
   assert.throws(()=>normalizeRrpPerformanceEvidence({...physicalBase(),provenance:{...physicalBase().provenance,deviceClass:'synthetic-pixel-fold-class'}}),/synthetic/);
 });
 
-test('ratchet comparison catches regressions and missing repeated measurements',()=>{
+test('ratchet comparison catches lower-is-better and missing repeated measurements',()=>{
   const baseline=physicalBase(),current=physicalBase({inputToDisplayP95Ms:220});
   const compared=compareRrpPerformanceEvidence(baseline,current);
   assert.equal(compared.pass,false);
-  assert.ok(compared.regressions.some(row=>row.metric==='inputToDisplayP95Ms'));
+  assert.ok(compared.regressions.some(row=>row.metric==='inputToDisplayP95Ms'&&row.direction==='max'));
   const missing=physicalBase();delete missing.metrics.frameP95Ms;
   const missingCompared=compareRrpPerformanceEvidence(baseline,missing);
   assert.equal(missingCompared.pass,false);
   assert.ok(missingCompared.regressions.some(row=>row.metric==='frameP95Ms'&&row.reason==='measurement-missing'));
+});
+
+test('connection success uses a higher-is-better regression ratchet',()=>{
+  const result=compareRrpPerformanceEvidence(physicalBase(),physicalBase({connectionSuccessRate:.90}));
+  assert.equal(result.pass,false);
+  assert.ok(result.regressions.some(row=>row.metric==='connectionSuccessRate'&&row.direction==='min'));
 });
 
 test('incompatible physical baselines are rejected instead of compared',()=>{
@@ -134,13 +162,15 @@ test('performance contract proof suite keeps safety, calibration, sample and anc
   const proof=runRrpPerformanceContractProofSuite();
   assert.equal(proof.pass,true);
   assert.deepEqual(proof.checks,{
-    completePhysicalPasses:true,
+    completePhysicalNeedsCalibration:true,
+    calibratedPhysicalPasses:true,
     unsafeFastFails:true,
     anchoredSloFails:true,
     missingMetricCalibrates:true,
     insufficientSamplesCalibrate:true,
     modelCannotCertify:true,
     ratchetRejectsRegression:true,
+    higherIsBetterRatchet:true,
     anchoredTargetsPreserved:true,
   });
 });
