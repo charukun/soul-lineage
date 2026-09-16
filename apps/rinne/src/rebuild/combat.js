@@ -1,4 +1,4 @@
-import { WEAPONS, ARMORS, spendStamina } from './domain.js';
+import { WEAPONS, ARMORS, spendStamina, skillEffects } from './domain.js';
 
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -136,13 +136,14 @@ export function tickFront(state,front,dt,{advanceEnemies=true,incomingEnemyIds=n
     state.down.elapsed+=dt;if(state.down.elapsed>=40){state.down=null;state.zone='village';state.front=0;state.hp=Math.max(30,state.maxHp*.3);state.stamina=state.staminaCap*.6;state.combat=null;events.push({type:'rescued'});}return events;
   }
 
+  const effects=skillEffects(state);
   if(advanceEnemies)advanceEnemyFormation(state,living,dt,front.stage);
   let nearest=nearestEnemy(state.position,living);
   if(!state.combat&&nearest.distance<=3.25)state.combat={targetId:nearest.enemy.id,phase:'jo',attackCooldown:0};
   if(state.combat&&nearest.distance>4.6){state.combat=null;events.push({type:'disengage'});}
 
   if(state.combat){
-    const weapon=WEAPONS[state.equipment.weapon]||WEAPONS.fist;
+    const baseWeapon=WEAPONS[state.equipment.weapon]||WEAPONS.fist,weapon={...baseWeapon,reach:baseWeapon.reach*(1+effects.reach)};
     state.combat.phase=['jo','ha','kyu'].includes(state.combat.phase)?state.combat.phase:'jo';
     state.combat.attackCooldown=Number.isFinite(state.combat.attackCooldown)?state.combat.attackCooldown-dt:-dt;
     let target=living.find(enemy=>enemy.id===state.combat.targetId&&!enemy.dead)||selectPlayerTarget(state,living,weapon);
@@ -152,10 +153,10 @@ export function tickFront(state,front,dt,{advanceEnemies=true,incomingEnemyIds=n
       const desiredYaw=angleTo(state.position,target);state.yaw=turnToward(state.yaw,desiredYaw,dt*6.2);
       const d=dist(state.position,target),facing=Math.abs(angleDelta(state.yaw,desiredYaw));
       if(state.combat.attackCooldown<=0){
-        const phase=state.combat.phase,skill=chooseSkill(state,phase),cost=weapon.stamina*(phase==='kyu'?1.25:phase==='ha'?1.08:1);
+        const phase=state.combat.phase,skill=chooseSkill(state,phase),cost=baseWeapon.stamina*(phase==='kyu'?1.25:phase==='ha'?1.08:1);
         if(d<=weapon.reach+.35&&facing<=.68&&spendStamina(state,cost)){
-          const mult=phase==='kyu'?1.28:phase==='ha'?1.12:1,damage=weapon.power*mult;target.hp-=damage;target.flash=1;
-          state.combat.attackCooldown=.62+(weapon.stamina/25);events.push({type:'player-hit',targetId:target.id,skill,phase,damage});
+          const mult=phase==='kyu'?1.28:phase==='ha'?1.12:1,damage=baseWeapon.power*mult*(1+effects.damage);target.hp-=damage;target.flash=1;
+          state.combat.attackCooldown=.62+(baseWeapon.stamina/25);events.push({type:'player-hit',targetId:target.id,skill,phase,damage});
           if(target.hp<=0){target.hp=0;target.dead=true;target.moving=false;state.defeats++;const row=state.experiences.combat||{count:0,score:0,last:0};state.experiences.combat={count:row.count+1,score:row.score+1,last:state.ageSeconds};events.push({type:'enemy-down',targetId:target.id});}
           state.combat.phase=phase==='jo'?'ha':phase==='ha'?'kyu':'jo';
         }else state.combat.attackCooldown=.12;
@@ -172,7 +173,9 @@ export function tickFront(state,front,dt,{advanceEnemies=true,incomingEnemyIds=n
 
   const attackers=enemyAttackCandidates(state,incomingEnemyIds?living.filter(enemy=>incomingEnemyIds.has(enemy.id)):living),armor=ARMORS[state.equipment.armor]||ARMORS.cloth,shield=state.equipment.shield?.12:0,simultaneousScale=attackers.length>1?1/Math.sqrt(attackers.length):1;
   for(const row of attackers){
-    if(state.hp<=0)break;const enemy=row.enemy,damage=(8+front.stage*1.6)*(1-armor.guard-shield)*simultaneousScale;
+    if(state.hp<=0)break;const enemy=row.enemy,roll=hash01(`${state.id}:${enemy.id}:${Math.floor(state.ageSeconds*4)}:${state.defeats}`);
+    if(roll<effects.evasion){enemy.cooldown=.82+hash01(`${enemy.id}:evade-recovery`)*.2;enemy.attackWindow=.2;events.push({type:'evaded',sourceId:enemy.id});continue;}
+    const damage=(13+front.stage*2.2)*(1-armor.guard-shield)*(1-effects.mitigation)*simultaneousScale;
     state.hp=clamp(state.hp-damage,0,state.maxHp);enemy.cooldown=1.05+front.stage*.04+hash01(`${enemy.id}:recovery`)*.22;enemy.attackWindow=.32;events.push({type:'enemy-hit',sourceId:enemy.id,damage});
     if(!state.combat)state.combat={targetId:enemy.id,phase:'jo',attackCooldown:0};
     if(state.hp<=0){state.down={elapsed:0};state.combat=null;events.push({type:'downed'});break;}
