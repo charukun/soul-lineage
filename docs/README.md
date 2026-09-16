@@ -8,9 +8,9 @@
 2. `AGENTS.md` のルーティング
 3. 下記の canonical documents
 4. 対象領域の専門資料
-5. 履歴・受入記録・旧設計資料
+5. Git / PR / Actions の履歴
 
-下位資料が上位の現在状態と矛盾する場合、下位資料の古い状態説明を現在の規則として使わない。過去の PR 番号・SHA・日時・一時 branch は、その資料が明示的に履歴を扱う場合だけ証跡として参照する。
+下位資料が上位の現在状態と矛盾する場合、下位資料の古い状態説明を現在の規則として使わない。過去の PR 番号・SHA・日時・一時 branch は GitHub 履歴を証跡として参照する。
 
 ## Canonical documents
 
@@ -52,18 +52,13 @@ latest develop
 
 実装 WORK は Ready / `READY_FOR_INTEGRATION` で終了し、CI・browser・DEV 公開を待って polling しない。main / Production は明示許可時のみ変更する。品質 gate を弱めない。
 
-## 重複資料の扱い
+## 互換入口と履歴
 
-同じ規則を別ファイルへ複製しない。短い入口文書は canonical document へリンクし、詳細規則は1箇所だけに置く。
+同じ規則を別ファイルへ複製しない。短い互換入口は canonical document へリンクし、詳細規則は1箇所だけに置く。
 
-次は current policy ではなく補助資料として扱う。
-
-- `INTEGRATION_FAST_LANE.md`: `INTEGRATION.md` への互換入口。
-- `INTEGRATION_AUTONOMOUS_DELIVERY_V4.md`: 過去の control-plane 設計記録。現在の merge authority ではない。
-- `INTEGRATION_RESULTS.md`, `INTEGRATION_DELIVERY_RECOVERY_145.md`, `INTEGRATION_QUEUE_RECOVERY.md`: 時点付き結果・復旧記録。
-- `INTEGRATION_RESCUE_EVIDENCE.md`, `INTEGRATION_RESCUE_LIVE_ACCEPTANCE.md`, `INTEGRATION_RESCUE_MANUAL_DRAIN.md`, `INTEGRATION_RESCUE_THROUGHPUT.md`, `INTEGRATION_RESCUE_WORK.md`: Rescue 世代の証跡・運用履歴・互換情報。現在の通常 merge 経路は `INTEGRATION.md`、Repair の現在形は `INTEGRATION_RESCUE.md` を優先する。
-
-履歴資料は当時の事実を保存するため、古い SHA や状態を機械的に現在値へ書き換えない。現行規則が必要な箇所からは canonical document だけを参照する。
+- `INTEGRATION_FAST_LANE.md`: `INTEGRATION.md` への短い互換入口。
+- `INTEGRATION_AUTONOMOUS_DELIVERY_V4.md`: 旧 control-plane 設計を指す短い履歴ポインタ。現在の merge authority ではない。
+- 時点付きの統合結果、旧 Rescue の受入・手動排出・throughput・Work復旧記録は repository の現行資料から外し、Git / PR / Actions history を証跡とする。
 
 ## 削除してよいもの
 
@@ -80,5 +75,5 @@ latest develop
 
 - 新しい横断ルールを追加する前に、既存 canonical document のどこへ入れるかを決める。
 - 同じルールを AGENTS / README / DEVELOPMENT / Integration 文書へ重複記載しない。
-- 入口文書は「どこを読むか」、canonical document は「何を守るか」、履歴資料は「何が起きたか」に役割を分ける。
-- 現行経路を置き換えた場合は、旧資料を削除して証跡を失うより、明確に historical / compatibility と表示して canonical へのリンクを残す。ただし参照不要かつ Git 履歴で十分な一時資料・旧実装は削除する。
+- 入口文書は「どこを読むか」、canonical document は「何を守るか」に役割を分ける。
+- 現行経路を置き換えた場合、外部参照互換が必要なら短いポインタだけ残す。不要な時点付き報告や旧実装は Git 履歴へ任せて削除する。
