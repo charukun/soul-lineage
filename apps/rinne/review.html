@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111716">
+  <title>輪廻転焦 Visual Review</title>
+</head>
+<body>
+  <main class="review-shell">
+    <header class="review-header">
+      <div><p class="eyebrow">RINNE · DEVELOP</p><h1>Visual Review</h1></div>
+      <div class="source"><span>source</span><strong id="build-source">develop</strong></div>
+    </header>
+
+    <nav class="review-nav" aria-label="確認項目">
+      <button type="button" class="active" data-view="inspiration">閃き</button>
+      <button type="button" data-view="motion">演舞・モーション</button>
+      <button type="button" data-view="characters">キャラクター</button>
+      <button type="button" data-view="battle">自動戦闘</button>
+    </nav>
+
+    <section class="review-view active" data-panel="inspiration">
+      <div class="section-head"><div><p class="eyebrow">CANONICAL DATA</p><h2>閃き候補</h2></div><div class="catalog-meta"><strong id="catalog-revision">-</strong><span id="motion-count">-</span></div></div>
+      <p class="help">ここに出る候補がゲーム本体の正本です。Review専用の候補表は持ちません。</p>
+      <div id="weapon-tabs" class="weapon-tabs" role="tablist"></div>
+      <div id="inspiration-phases" class="phase-grid"></div>
+      <a class="open-link" href="./characters.html?review=motion">このdevelopの演舞レビューを開く</a>
+    </section>
+
+    <section class="review-view framed" data-panel="motion">
+      <div class="frame-head"><div><p class="eyebrow">CURRENT DEVELOP</p><h2>演舞・モーション</h2></div><a href="./characters.html?review=motion">全画面</a></div>
+      <iframe title="演舞・モーション確認" data-src="./characters.html?review=motion"></iframe>
+    </section>
+
+    <section class="review-view framed" data-panel="characters">
+      <div class="frame-head"><div><p class="eyebrow">CURRENT DEVELOP</p><h2>キャラクター</h2></div><a href="./characters.html">全画面</a></div>
+      <iframe title="キャラクター確認" data-src="./characters.html"></iframe>
+    </section>
+
+    <section class="review-view" data-panel="battle">
+      <div class="section-head"><div><p class="eyebrow">REAL RUNTIME</p><h2>自動戦闘</h2></div><div class="battle-state"><strong id="battle-result">準備中</strong><span id="battle-time">0.0秒</span></div></div>
+      <p class="help">`RaidHost` → `Tidebreak` の現行develop経路をそのまま動かします。Review専用の戦闘ロジックはありません。</p>
+      <canvas id="battle-canvas" width="900" height="420" aria-label="自動戦闘の位置と体力"></canvas>
+      <div class="fighter-grid"><article><span>DEMON</span><strong id="hero-action">-</strong><progress id="hero-hp" max="1" value="1"></progress><small id="hero-meta">-</small></article><article><span>HUMAN</span><strong id="enemy-action">-</strong><progress id="enemy-hp" max="1" value="1"></progress><small id="enemy-meta">-</small></article></div>
+      <div class="battle-actions"><button id="battle-restart" type="button">最初から</button><button id="battle-toggle" type="button">一時停止</button></div>
+    </section>
+  </main>
+  <script type="module" src="./src/develop-review.js"></script>
+</body>
+</html>

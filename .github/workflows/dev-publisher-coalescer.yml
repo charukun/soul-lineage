@@ -19,26 +19,20 @@ jobs:
           script: |
             const { data: branch } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
             const latestSha = branch.commit.sha;
-            const active = [];
-            for (const status of ['queued', 'in_progress', 'waiting', 'requested', 'pending']) {
-              const { data } = await github.rest.actions.listWorkflowRuns({
-                ...context.repo,
-                workflow_id: 'deploy.yml',
-                branch: 'develop',
-                status,
-                per_page: 100,
-              }).catch(error => {
-                if (error.status === 422) return { data: { workflow_runs: [] } };
-                throw error;
-              });
-              active.push(...data.workflow_runs);
-            }
-            const stale = [...new Map(active.map(run => [run.id, run])).values()]
-              .filter(run => run.event === 'push' && run.head_sha !== latestSha);
+            const activeStates = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
+            // One bounded snapshot replaces five status-specific workflow-run list calls.
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              ...context.repo,
+              workflow_id: 'deploy.yml',
+              branch: 'develop',
+              per_page: 100,
+            });
+            const active = data.workflow_runs.filter(run => activeStates.has(run.status));
+            const stale = active.filter(run => run.event === 'push' && run.head_sha !== latestSha);
             for (const run of stale) {
               core.info(`Cancel superseded DEV publisher ${run.id} ${run.head_sha}; latest is ${latestSha}`);
               await github.rest.actions.cancelWorkflowRun({ ...context.repo, run_id: run.id }).catch(error => {
                 if (![409, 422].includes(error.status)) throw error;
               });
             }
-            core.summary.addRaw(`Latest develop: ${latestSha}\nCancelled superseded push publishers: ${stale.length}`).write();
+            core.summary.addRaw(`Latest develop: ${latestSha}\nActive publishers scanned: ${active.length}\nCancelled superseded push publishers: ${stale.length}`).write();

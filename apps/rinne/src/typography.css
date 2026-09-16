@@ -1,0 +1,33 @@
+@import url("https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Old+Mincho:wght@400;500;600;700&display=swap");
+
+:root {
+  --font-rinne-display: "Zen Old Mincho", serif;
+  --font-rinne-ui: "BIZ UDPGothic", sans-serif;
+  font-synthesis: none;
+}
+
+body,
+body * {
+  font-family: var(--font-rinne-ui) !important;
+}
+
+#title-mark,
+.subtitle,
+.tagline,
+.chapter-mark strong,
+.loading-card > strong,
+.life-chip strong,
+.objective-card > strong,
+.dialogue,
+#village-dialog h2 {
+  font-family: var(--font-rinne-display) !important;
+  font-kerning: normal;
+}
+
+.hud-top,
+.objective-meta,
+.waypoint,
+.title-actions,
+.title-screen footer {
+  font-variant-numeric: tabular-nums;
+}

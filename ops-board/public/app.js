@@ -208,7 +208,11 @@ function render(state) {
   renderIntegration(integration);
   renderFailures(state);
   $('#last-updated').textContent = `最終更新: ${time(state.generatedAt)} / 取得試行: ${time(state.lastAttemptAt || state.generatedAt)}`;
-  $('#source').textContent = `${state.syncSource || 'GitHub API'}${Number.isFinite(state.githubRateRemaining) ? ` / API残量 ${state.githubRateRemaining}` : ''}`;
+  const api = state.githubApi;
+  const apiSource = api
+    ? ` / API ${api.scope === 'authenticated' ? '認証' : '公開'} ${api.requests ?? '?'} / ${api.maxRequests ?? '?'} req · cache ${api.cacheHits ?? 0} · 残量 ${Number.isFinite(api.remaining) ? api.remaining : '不明'}`
+    : Number.isFinite(state.githubRateRemaining) ? ` / API残量 ${state.githubRateRemaining}` : '';
+  $('#source').textContent = `${state.syncSource || 'GitHub API'}${apiSource}`;
 }
 
 subscribe((state, error) => {

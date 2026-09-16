@@ -173,10 +173,21 @@ test('return dispatch carries no validation/approval bypass and exact head remai
   assert.match(eligibility({...input,checksPassed:true,unresolved:true}),/unresolved/);
 });
 test('watchdog is independent from PULSE, dispatches only develop scan and reports failures',async()=>{
-  let call;await wakeRescue({RESCUE_GITHUB_TOKEN:'test'},async(url,options)=>{call={url,options};return {ok:true};});
-  assert.deepEqual(JSON.parse(call.options.body),{ref:'develop',inputs:{rescue_mode:'scan'}});
-  assert.ok(!call.url.includes('ops'));await assert.rejects(wakeRescue({},()=>{}),/not configured/);
-  await assert.rejects(wakeRescue({RESCUE_GITHUB_TOKEN:'test'},async()=>({ok:false,status:403})),/HTTP 403/);
+  const calls=[];
+  const request=async(url,options={})=>{
+    calls.push({url,options});
+    if(url.includes('/pulls?'))return {ok:true,status:200,json:async()=>[pr(7),pr(8,{draft:true})]};
+    if(url.endsWith('/actions/workflows/deploy.yml/dispatches'))return {ok:true,status:204};
+    throw new Error(`Unexpected watchdog request ${url}`);
+  };
+  assert.deepEqual(await wakeRescue({RESCUE_GITHUB_TOKEN:'test'},request),{dispatched:true,ready:1});
+  assert.equal(calls.length,2);assert.ok(!calls.some(call=>call.url.includes('ops')));
+  assert.deepEqual(JSON.parse(calls[1].options.body),{ref:'develop',inputs:{rescue_mode:'scan'}});
+  assert.deepEqual(await wakeRescue({RESCUE_GITHUB_TOKEN:'test'},async()=>({ok:true,status:200,json:async()=>[]})),{dispatched:false,ready:0});
+  await assert.rejects(wakeRescue({},()=>{}),/not configured/);
+  await assert.rejects(wakeRescue({RESCUE_GITHUB_TOKEN:'test'},async()=>({ok:false,status:403})),/ready scan: HTTP 403/);
+  await assert.rejects(wakeRescue({RESCUE_GITHUB_TOKEN:'test'},async url=>url.includes('/pulls?')
+    ? {ok:true,status:200,json:async()=>[pr(7)]}:{ok:false,status:403}),/dispatch: HTTP 403/);
 });
 test('real workflow uses matrix isolation with pool cap and per-PR fencing, no force/history rewrite',()=>{
   const workflow=readFileSync('.github/workflows/integration-rescue.yml','utf8');

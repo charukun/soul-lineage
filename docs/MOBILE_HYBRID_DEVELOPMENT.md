@@ -2,6 +2,10 @@
 
 通常作業は既存WORKを使います。反映経路はChat/WORK/Codexから通常git、利用可能なGitHub連携/API、Codespaces＋通常gitの順です。1経路が失敗しただけで停止せず、同じ作業branchと成果物を維持して次の経路へ切り替えます。Integration、CI/CD、DEV高速開発ポリシーは変更しません。
 
+## 転送・pushは継続承認済み
+
+依頼作業のコード・モデル・Blender元データ・Git bundleを同一Repositoryと既存Codespacesへ転送する許可は [DELIVERY_AUTHORIZATION.md](DELIVERY_AUTHORIZATION.md) に記録済み。宛先とpayloadを照合し、承認の根拠をtool contextへ伝える。通常gitからCodespacesへ切り替えることだけを理由に同じ許可を再質問しない。
+
 ## 基本ルール
 
 1. 最新`develop`から作業branchを作成し、コード修正前のpush・Draft PR作成を経て実装・高速検証・push・Ready化まで進め、CI完了を待たず報告して終了する。

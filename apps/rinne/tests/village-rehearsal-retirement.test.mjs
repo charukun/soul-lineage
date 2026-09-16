@@ -22,8 +22,17 @@ test('retirement preserves the main and character-review build entries', () => {
 
 test('main game keeps village joining and opt-in host migration diagnostics', () => {
   const main = read('src/main.js');
-  assert.match(main, /installOnlinePlayer\(document\.getElementById\('village-panel'\)\)/);
-  assert.match(main, /getElementById\('open-village'\)\.addEventListener\('click'/);
+  const html = read('index.html');
+  const villageCode = read('src/village-code-ui.js');
+  assert.match(main, /import\('\.\/coop\/menu\.js'\)/);
+  assert.match(main, /installCoopMenu\(\{container:document\.getElementById\('village-panel'\)/);
+  assert.match(main, /onPlay:enterCoop/);
+  assert.match(main, /return launch\('coop',coop\)/);
+  assert.match(main, /mode,buildInfo:info,name:[^\n]+prepared,coop/);
+  assert.match(main, /\$\('open-coop-game'\)\.addEventListener\('click',\(\)=>\{void openCoopDialog\(\);\}\)/);
+  assert.match(html, /id="open-village-code"[^>]*>村コード<\/button>/);
+  assert.match(villageCode, /open\?\.addEventListener\('click',[\s\S]*dialog\.showModal\(\)/);
+  assert.match(villageCode, /channel\.authorize\(input\.value\)[\s\S]*location\.reload\(\)/);
   assert.match(main, /new URLSearchParams\(location\.search\)\.has\('villageHostLab'\)/);
   assert.match(main, /lab\s*=\s*installVillageHostRehearsal\(/);
 });

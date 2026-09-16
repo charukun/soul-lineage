@@ -10,6 +10,7 @@ Repository: charukun/soul-lineage
 開始時は最新develop SHA → AGENTS.md → npm run context:plan -- --task "<要約>" → 必要文書だけ。取得制限の正本はdocs/CONTEXT_EFFICIENCY.md。checkoutがない場合はAGENTSの案内から必要箇所だけ取得します。
 過去チャット全文・全docs・巨大diff・全CIログを初期投入せず、metadata→ファイル名/失敗job→必要patch/範囲で絞ります。
 Repositoryの開発・通知・経路規則に従い、branch/Draft→実装→高速検証→push→Ready→READY_FOR_INTEGRATIONで終了。CIを待機・pollingしません。1経路の失敗だけで中断しません。
+同一Repository・既存Codespacesへの依頼成果（コード・モデル・Blender元データ・Git bundle）の転送、作業branch push、依頼されたLab公開は継続承認済み。docs/DELIVERY_AUTHORIZATION.mdを参照し、同じ許可を再質問しない。
 引き継ぎはrepository/branch/head SHA/PR/Draft・Ready/exact-head Checks/必要statusで行います。
 main/Productionは明示許可時のみ変更。品質gateを弱めません。
 ```

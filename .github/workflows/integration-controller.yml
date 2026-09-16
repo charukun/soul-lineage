@@ -67,7 +67,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-diagnostics.json
         run: node scripts/integration-fast-lane.mjs
+      - name: Finalize Deep Repair issues for merged PRs
+        if: ${{ !cancelled() && steps.fast-lane.outcome == 'success' && ((steps.fast-lane.outputs.merged_count != '' && steps.fast-lane.outputs.merged_count != '0') || inputs.rescue_mode == 'scan') }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-finalization-api.json
+          DEEP_REPAIR_RECONCILE_MERGED: ${{ inputs.rescue_mode == 'scan' }}
+        run: node scripts/integration-deep-repair-finalize.mjs .deploy-state/integration.json
       - name: Request latest DEV and PULSE publication without waiting
+        id: publication
         if: ${{ !cancelled() && steps.fast-lane.outcome == 'success' }}
         env:
           GH_TOKEN: ${{ github.token }}
@@ -98,8 +107,8 @@ jobs:
               ...context.repo, sha: process.env.FINAL_SHA, context: 'notification/ntfy', state, description,
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             });
-      - name: Refresh PULSE from this existing Integration runner
-        if: always()
+      - name: Fallback refresh PULSE if publication wake failed
+        if: ${{ always() && !cancelled() && steps.publication.outcome == 'failure' }}
         continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -116,7 +125,7 @@ jobs:
             -H "x-ops-github-token: $GH_TOKEN" \
             -H 'x-ops-refresh-reason: integration' \
             -o /tmp/pulse-refresh.json
-          node --input-type=module -e "import fs from 'node:fs';const s=JSON.parse(fs.readFileSync('/tmp/pulse-refresh.json'));console.log('PULSE refresh:',s.pullSync?.mode||'unknown',s.githubApi?.requests??'?','GitHub requests');"
+          node --input-type=module -e "import fs from 'node:fs';const s=JSON.parse(fs.readFileSync('/tmp/pulse-refresh.json'));console.log('PULSE fallback refresh:',s.pullSync?.mode||'unknown',s.githubApi?.requests??'?','GitHub requests');"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -124,6 +133,8 @@ jobs:
           path: |
             .deploy-state/integration.json
             .deploy-state/integration-diagnostics.json
+            .deploy-state/deep-repair-finalization.json
+            .deploy-state/integration-finalization-api.json
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 14

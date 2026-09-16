@@ -12,7 +12,26 @@ export function tutorialReason(step){
  return step?TUTORIAL_REASONS[step.kind]||step.text||'この一手が、次の村の変化につながります。':'';
 }
 
-export function shouldSkipEntry(value){return value==='1';}
+export function shouldSkipEntry(value,{firstRunTutorial=false}={}){return value==='1'&&!firstRunTutorial;}
+
+export function clearEntrySeenForReset(storage=globalThis.localStorage){
+ try{
+  if(!storage)return{available:false,previous:null};
+  const previous=storage.getItem(ENTRY_SEEN_KEY);
+  storage.removeItem(ENTRY_SEEN_KEY);
+  return{available:true,previous};
+ }catch{return{available:false,previous:null};}
+}
+
+export function restoreEntrySeenAfterFailedReset(snapshot,storage=globalThis.localStorage){
+ if(!snapshot?.available)return false;
+ try{
+  if(!storage)return false;
+  if(snapshot.previous===null)storage.removeItem(ENTRY_SEEN_KEY);
+  else storage.setItem(ENTRY_SEEN_KEY,snapshot.previous);
+  return true;
+ }catch{return false;}
+}
 
 export function objectTapRadius({viewportWidth=390,viewportHeight=844,span=40,def={}}={}){
  const mobile=viewportWidth<700,base=mobile?38:28,pixelsPerWorld=viewportHeight/Math.max(10,span);

@@ -4,6 +4,11 @@ import { mkdtemp, writeFile, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { contextExcerpt } from '../scripts/context-excerpt.mjs';
+import {
+  MAX_LOG_BYTES,
+  MAX_SESSION_LOG_BYTES,
+  MAX_SESSION_LOG_EXCERPTS,
+} from '../scripts/context-plan.mjs';
 
 async function fixture(t, content) {
   const root = await mkdtemp(join(tmpdir(), 'context-excerpt-'));
@@ -27,10 +32,11 @@ test('log reads reject successful jobs, whole logs and limits above 64 KiB', asy
   const request = { ...input, kind: 'log', start: 2, end: 3 };
   await assert.rejects(contextExcerpt({ ...request, conclusion: 'success' }), /failed\/cancelled/);
   await assert.rejects(contextExcerpt({ ...input, kind: 'log', conclusion: 'failure' }), /line ranges/);
-  await assert.rejects(contextExcerpt({ ...request, conclusion: 'failure', maxBytes: 65537 }), /cannot exceed/);
+  await assert.rejects(contextExcerpt({ ...request, conclusion: 'failure', maxBytes: MAX_LOG_BYTES + 1 }), /cannot exceed/);
   const result = await contextExcerpt({ ...request, conclusion: 'cancelled' });
   assert.equal(result.text, 'error: broken\nstack\n');
   assert.equal(result.truncated, false);
+  assert.equal(result.sessionLog.excerpts, 1);
 });
 
 test('same content copied through another route is not emitted twice; changed content is', async t => {
@@ -45,6 +51,53 @@ test('same content copied through another route is not emitted twice; changed co
   await writeFile(copy, 'updated specification\n');
   assert.equal((await contextExcerpt({ ...input, file: copy })).duplicate, false);
   assert.ok(!(await readFile(input.ledger, 'utf8')).includes('specification'));
+});
+
+test('CI log ledger stops after three unique excerpts and duplicates do not consume the budget', async t => {
+  const input = await fixture(t, 'one\ntwo\nthree\nfour\n');
+  const request = { ...input, kind: 'log', conclusion: 'failure', maxBytes: 1024 };
+
+  const first = await contextExcerpt({ ...request, start: 1, end: 1 });
+  const duplicate = await contextExcerpt({ ...request, start: 1, end: 1 });
+  assert.equal(duplicate.duplicate, true);
+  assert.equal(duplicate.bytes, 0);
+  assert.equal(duplicate.sessionLog.excerpts, 1);
+  assert.equal(duplicate.sessionLog.bytes, first.bytes);
+
+  await contextExcerpt({ ...request, start: 2, end: 2 });
+  const third = await contextExcerpt({ ...request, start: 3, end: 3 });
+  assert.equal(third.sessionLog.excerpts, MAX_SESSION_LOG_EXCERPTS);
+  assert.equal(third.sessionLog.exhausted, true);
+  await assert.rejects(contextExcerpt({ ...request, start: 4, end: 4 }), /session budget exhausted/);
+
+  const ledger = JSON.parse(await readFile(input.ledger, 'utf8'));
+  assert.equal(ledger.version, 2);
+  assert.equal(ledger.log.excerpts, MAX_SESSION_LOG_EXCERPTS);
+});
+
+test('CI log ledger clips the final slice to the cumulative byte budget and then stops', async t => {
+  const input = await fixture(t, 'x'.repeat(MAX_LOG_BYTES) + '\n' + 'y'.repeat(MAX_LOG_BYTES) + '\n');
+  const request = { ...input, kind: 'log', conclusion: 'failure', maxBytes: MAX_LOG_BYTES };
+
+  const first = await contextExcerpt({ ...request, start: 1, end: 1 });
+  assert.equal(first.bytes, MAX_LOG_BYTES);
+  const second = await contextExcerpt({ ...request, start: 2, end: 2 });
+  assert.equal(second.bytes, MAX_SESSION_LOG_BYTES - MAX_LOG_BYTES);
+  assert.equal(second.sessionLog.bytes, MAX_SESSION_LOG_BYTES);
+  assert.equal(second.sessionLog.exhausted, true);
+  await assert.rejects(contextExcerpt({ ...request, start: 2, end: 2 }), /session budget exhausted/);
+});
+
+test('legacy digest-array ledgers are upgraded without exposing stored content', async t => {
+  const input = await fixture(t, 'new content\n');
+  await writeFile(input.ledger, JSON.stringify(['legacy-digest']));
+  const result = await contextExcerpt(input);
+  assert.equal(result.duplicate, false);
+  const ledger = JSON.parse(await readFile(input.ledger, 'utf8'));
+  assert.equal(ledger.version, 2);
+  assert.deepEqual(ledger.log, { bytes: 0, excerpts: 0 });
+  assert.ok(ledger.digests.includes('legacy-digest'));
+  assert.ok(!JSON.stringify(ledger).includes('new content'));
 });
 
 test('huge single lines and later requested ranges are bounded without whole-file output', async t => {

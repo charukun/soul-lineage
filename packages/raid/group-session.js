@@ -1,5 +1,4 @@
 import {RaidSession as SingleRaidSession} from './session.js';
-import {cancelDevour} from './devour.js';
 import {villagerBehavior} from './world.js';
 
 const AGGRO_DISTANCE=9.2;
@@ -45,27 +44,12 @@ export class RaidSession extends SingleRaidSession {
   if(this._heldEscapeIntent(input)){this.combatInputLatched=false;return input;}
   return{...input,x:0,z:0,amount:0,active:false,dash:false};
  }
- consume(n){
-  if(n.eaten)return;
-  const before={hp:this.player.hp,maxhp:this.player.maxhp,unlocked:this.profile.unlocked.length,known:this.profile.unlocked.includes(n.role)};
-  n.eaten=true;n.dead=true;this.eaten++;this.targetEaten||=n.marked;
-  this.player.hp=Math.min(this.player.maxhp,this.player.hp+(this.has('traveller')?75:42));
-  this.alarm=Math.min(100,this.alarm+(n.role==='bellkeeper'?0:12)*(this.has('bellkeeper')?.5:1));
-  if(n.role==='bellkeeper'){this.alarm=Math.max(0,this.alarm-18);this.emit('bell-silenced');}
-  this.ports.consume?.(n.role);
-  this.emit('consume',{npc:n,role:n.role,goal:!!n.marked,at:this.time,reward:{
-   healed:Math.max(0,this.player.hp-before.hp),maxHpGain:Math.max(0,this.player.maxhp-before.maxhp),
-   memoryNew:!before.known&&this.profile.unlocked.includes(n.role),equipped:this.has(n.role),
-   unlockedBefore:before.unlocked,unlockedCount:this.profile.unlocked.length
-  }});
- }
  engage(npc){
   if(this.finished||npc.dead||npc.eaten||this.isCombatant(npc))return;
   if(!this.fight){super.engage(npc);return;}
   if(this.combatantCount()>=MAX_SIMULTANEOUS){npc.state=this.isAggressive(npc)?'pursue':'flee';return;}
   const record={npc,retreat:0,learned:false,attackCooldown:.35+this.rng()*.45};
   this.combatants.push(record);npc.state='combat';npc.pose=null;npc.speed=0;
-  this.alarm=Math.min(100,this.alarm+4*(this.has('bellkeeper')?.5:1));
   this.resetIdle();this.emit('engage',{npc,group:true,count:this.combatantCount()});
  }
  _rallyAggressors(){
@@ -95,7 +79,7 @@ export class RaidSession extends SingleRaidSession {
   this.combatants.splice(i,1);this.emit('combatant-disengage',{npc:record.npc,count:this.combatantCount()});
  }
  _tickSecondaries(dt,input={}){
-  if(!this.combatants.length||this.finished)return;
+  if(!this.combatants.length||this.finished||this.devour)return;
   const p=this.player,groupSize=Math.max(1,this.combatantCount());
   for(const record of [...this.combatants]){
    const n=record.npc;if(n.dead||n.eaten){this.combatants.splice(this.combatants.indexOf(record),1);continue;}
@@ -122,15 +106,14 @@ export class RaidSession extends SingleRaidSession {
   }
  }
  promoteNextCombatant(){
-  if(this.fight||!this.combatants.length||this.finished)return false;
+  if(this.fight||!this.combatants.length||this.finished||this.devour)return false;
   const live=this.combatants.filter(f=>!f.npc.dead&&!f.npc.eaten);
   if(!live.length){this.combatants=[];return false;}
   const p=this.player,record=live.sort((a,b)=>Math.hypot(a.npc.x-p.x,a.npc.z-p.z)-Math.hypot(b.npc.x-p.x,b.npc.z-p.z))[0];
   this.combatants.splice(this.combatants.indexOf(record),1);
-  if(this.devour)cancelDevour(this);
-  const alarm=this.alarm;this._promoting=true;
+  this._promoting=true;
   try{super.engage(record.npc);}finally{this._promoting=false;}
-  this.alarm=alarm;this.safeTime=0;
+  this.safeTime=0;
   if(this.fight){this.fight.learned=record.learned;this.fight.retreat=Math.min(.35,record.retreat||0);}
   this.emit('retarget',{npc:record.npc,count:this.combatantCount()});
   return !!this.fight;
@@ -144,7 +127,13 @@ export class RaidSession extends SingleRaidSession {
  }
  tick(dt,input){
   if(this.finished)return;
-  const rawInput=input||{},fightAtStart=!!this.fight;
+  const rawInput=input||{};
+  if(this.devour){
+   super.tick(dt,rawInput);
+   this.combatInputLatched=false;
+   return;
+  }
+  const fightAtStart=!!this.fight;
   this._rallyAggressors();
   this._joinNearby();
   const fightBeforeCore=!!this.fight;
@@ -154,11 +143,12 @@ export class RaidSession extends SingleRaidSession {
   super.tick(dt,combatInput);
   if(!fightBeforeCore&&this.fight&&this._inputHeld(rawInput))this.combatInputLatched=true;
   if(this.finished)return;
+  if(this.devour){this.combatInputLatched=false;return;}
   const released=primary&&!this.fight&&!primary.dead&&!primary.eaten;
   if(released&&!this.isAggressive(primary)){primary.state='flee';primary.fear=Math.max(primary.fear||0,3);}
   if(primary&&!this.fight&&this.combatants.length)this.promoteNextCombatant();
   this._rallyAggressors();
-  if(this.fight&&!this.devour)this._joinNearby();
+  if(this.fight)this._joinNearby();
   this._tickSecondaries(Math.min(Math.max(Number(dt)||0,0),1/30),combatInput);
   if(!this.fight&&this.combatants.length)this.promoteNextCombatant();
   if(!this.fight)this.combatInputLatched=false;

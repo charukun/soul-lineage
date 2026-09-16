@@ -27,6 +27,24 @@ When both are true the same ticket becomes `verified`. If PR browser verificatio
 
 The repair path must keep assertion quality, exact-head evidence, hold/review/dependency rules, and `maxAttempts`. It must not weaken Production gates or modify `main`.
 
+## Visual Review publication liveness
+
+The fixed Visual Review URL is a non-blocking observation surface for the latest `develop`. Its publisher must have a trigger that can fire from the existing develop publication path without requiring the workflow file to exist on the repository default branch (`main`). Default-branch-only event types such as `workflow_run` or `workflow_dispatch` must not be the sole liveness path while the Visual Review workflow is intentionally develop-only. A `push` event is also insufficient as the sole path because Integration can update `develop` with `GITHUB_TOKEN`, whose resulting events do not create another workflow run.
+
+The existing develop publisher already invokes the reusable PULSE/control-plane workflow with the exact publication SHA. That reusable workflow fans out an independent Visual Review reusable publisher with the same exact SHA. This fan-out is routing only: Visual Review build/deploy/public-check failure is recorded on `visual-review/public` but must not fail PULSE, normal Integration, or DEV publication.
+
+Before deploying, Visual Review confirms that its source SHA is still the current `develop` head. Newer publication runs coalesce through the fixed `visual-review-develop` concurrency group. The optional `REVIEW_PREVIEW_ENABLED` repository variable is an opt-out switch: an unset value must not silently disable publication, while an explicit `false` may disable it.
+
+Visual Review must not report public success from root HTML markers alone. A successful publication requires the fixed URL to expose `version.json` for the exact source SHA and a focused Chromium interaction check to load the bundled runtime, switch Review panels, load the character/motion iframe route, and observe the built-in battle simulation advancing. JS/CSS/module/request failures or a stale source identity make `visual-review/public` fail even when Wrangler deployment itself succeeded.
+
+The same public success must cover both the desktop review surface and a smartphone touch profile representative of Pixel Fold-class portrait use. The mobile profile must use a narrow viewport around 390×844 with touch/mobile browser semantics, exercise the same Review navigation and embedded routes, and preserve separate screenshot/receipt evidence. A desktop-only pass must not certify mobile Visual Review usability.
+
+The focused browser harness may construct WHATWG `URL` objects for cache-busting and source identity, but every Playwright page-navigation target must be serialized to an HTTPS string before calling `page.goto`. A harness API type mismatch is a verification defect and must be covered by regression tests rather than retried or hidden.
+
+PULSE must discover Visual Review from the exact develop `visual-review/public` commit status rather than requiring a separate top-level workflow run whose name contains `preview` or `visual review`. The publisher is intentionally a nested reusable workflow, so top-level workflow-name discovery is not a liveness contract.
+
+PULSE pre-publication browser checks that operate a dialog must scope controls to the owning dialog. Shared labels/classes such as `閉じる` / `.app-dialog-close` may exist in multiple independent dialogs; a global strict-mode locator must not prevent the updated PULSE entry surface from being published when the intended dialog is otherwise valid.
+
 ## PULSE semantics
 
 PULSE publication health follows the exact public DEV snapshot, not browser-repair state:

@@ -1,3 +1,4 @@
+import {muraResidentReactionLine} from '@soul/world/mura/dialogue';
 import {defs,RESOURCE_NAMES,localToWorld,unlocked} from './game/core.js';
 import {ENTRY_SEEN_KEY,feedbackTone,nearestProjectedObject,shouldCelebrate,shouldSkipEntry,tutorialReason} from './web/playability.js';
 
@@ -22,8 +23,9 @@ document.head.append(css);
 function rememberEntry(){try{localStorage.setItem(ENTRY_SEEN_KEY,'1');}catch{}}
 function installReturnFlow(){
  const entry=$('muraEntry');if(!entry)return;
- let seen=false;try{seen=shouldSkipEntry(localStorage.getItem(ENTRY_SEEN_KEY));}catch{}
- if(seen){entry.remove();document.body.classList.remove('mura-entry-open');activity();return;}
+ const firstRunTutorial=$('game')?.dataset.firstRunTutorial==='running';
+ let seen=false;try{seen=shouldSkipEntry(localStorage.getItem(ENTRY_SEEN_KEY),{firstRunTutorial});}catch{}
+ if(seen){ui.entryOpen=false;entry.remove();document.body.classList.remove('mura-entry-open');activity();return;}
  const enter=$('muraEnterVillage');if(!enter)return;
  enter.addEventListener('click',rememberEntry,{capture:true,once:true});
  enter.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' ')rememberEntry();},{capture:true});
@@ -44,9 +46,9 @@ function playCue(tone){
  const now=context.currentTime,osc=context.createOscillator(),gain=context.createGain();osc.type=tone==='danger'?'sawtooth':'triangle';osc.frequency.setValueAtTime(pair[0],now);osc.frequency.exponentialRampToValueAtTime(pair[1],now+.13);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(tone==='danger'?.018:.032,now+.018);gain.gain.exponentialRampToValueAtTime(.0001,now+.17);osc.connect(gain);gain.connect(context.destination);osc.start(now);osc.stop(now+.18);
 }
 function residentReaction(tone){
- const lines={growth:'村が少し育ったね',unlock:'新しい仕事ができそう',danger:'みんな、気をつけて',event:'村で何か起きている'};if(!lines[tone])return;
+ const line=muraResidentReactionLine(tone);if(!line)return;
  const person=(tone==='danger'?world.people.find(p=>p.id==='guard-npc'):world.people.find(p=>p.role==='mayor'))||world.people.find(p=>!p.dead&&!p.hidden);if(!person)return;
- person.bubble={text:lines[tone],id:world.state.nextId++,until:sim.elapsed+4};
+ person.bubble={text:line,id:world.state.nextId++,until:sim.elapsed+4};
 }
 function announce(text,type='life',force=false){
  text=String(text||'').trim();if(!text||(!force&&!shouldCelebrate(text,type)))return;

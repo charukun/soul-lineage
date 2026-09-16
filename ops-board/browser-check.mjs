@@ -72,10 +72,10 @@ try {
   await page.waitForSelector('.app-summary-card');
   await page.locator('.app-more').first().click();
   assert.equal(await page.locator('#app-dialog').isVisible(), true);
-  assert.match(await page.locator('#app-dialog').innerText(), /公開済みの版/);
+  assert.match(await page.locator('#app-dialog').innerText(), /現在見えている版（SHA）/);
   await page.evaluate(() => import('./view-state.js').then(module => module.loadBoard()));
   assert.equal(await page.locator('#app-dialog').isVisible(), true);
-  await page.locator('.app-dialog-close').click();
+  await page.locator('#app-dialog .app-dialog-close').click();
   check('app exact metadata dialog remains open through snapshot updates');
   for (const width of [320,390,673]) {
     await page.setViewportSize({ width, height:844 });

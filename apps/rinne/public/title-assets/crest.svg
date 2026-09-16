@@ -1,1 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#101d23"/><g fill="none" stroke="#dfc087"><circle cx="32" cy="32" r="24"/><circle cx="32" cy="32" r="19" stroke-dasharray="30 12"/><path d="M32 11 39 27 54 32 39 37 32 53 25 37 10 32 25 27Z"/><path d="M32 23v18m-9-9h18"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title id="title">100年生 世界樹の紋章</title>
+  <defs>
+    <linearGradient id="gold" x1=".18" y1=".1" x2=".82" y2=".92">
+      <stop offset="0" stop-color="#fff0b6"/>
+      <stop offset=".28" stop-color="#d9ad62"/>
+      <stop offset=".56" stop-color="#fff2c7"/>
+      <stop offset="1" stop-color="#a97835"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="1.7" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <mask id="crescent"><rect width="256" height="256" fill="#fff"/><circle cx="137" cy="24" r="13" fill="#000"/></mask>
+  </defs>
+  <g fill="none" stroke="url(#gold)" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="128" cy="128" r="112" stroke-width="2.4" opacity=".88"/>
+    <circle cx="128" cy="128" r="105" stroke-width=".8" opacity=".48"/>
+    <path d="M128 220c-4-25-3-46 1-66 4-19 5-38-1-57M128 220c10-27 9-50 2-69-7-18-9-35-2-54M128 220c-13-28-12-51-4-70 8-19 10-35 4-53" stroke-width="4.6"/>
+    <path d="M127 107c-17-15-31-28-50-33M128 112c19-18 34-31 54-37M127 123c-28-14-49-17-72-15M129 125c26-14 49-18 73-15M126 139c-31-6-55-1-77 11M130 139c31-7 54-1 77 11" stroke-width="2.7"/>
+    <path d="M111 98c-5-16-14-27-26-36M145 99c5-16 14-27 26-36M93 111c-10-12-22-19-37-23M163 112c10-12 22-19 37-23M86 137c-14 2-26 8-37 18M171 137c14 2 26 8 37 18" stroke-width="1.8" opacity=".92"/>
+    <path d="M128 219c-18-2-31-9-43-20M128 219c18-2 31-9 43-20M115 211c-22 2-38 9-51 20M141 211c22 2 38 9 51 20M105 199c-19-2-34-8-48-18M151 199c19-2 34-8 48-18" stroke-width="2.2"/>
+  </g>
+  <g fill="url(#gold)" opacity=".96">
+    <ellipse cx="75" cy="71" rx="4.8" ry="9" transform="rotate(-48 75 71)"/><ellipse cx="92" cy="60" rx="4.6" ry="8.6" transform="rotate(-31 92 60)"/><ellipse cx="107" cy="72" rx="4.3" ry="8.2" transform="rotate(-20 107 72)"/>
+    <ellipse cx="181" cy="72" rx="4.8" ry="9" transform="rotate(48 181 72)"/><ellipse cx="164" cy="60" rx="4.6" ry="8.6" transform="rotate(31 164 60)"/><ellipse cx="149" cy="72" rx="4.3" ry="8.2" transform="rotate(20 149 72)"/>
+    <ellipse cx="56" cy="90" rx="4.6" ry="8.5" transform="rotate(-64 56 90)"/><ellipse cx="80" cy="99" rx="4.5" ry="8.5" transform="rotate(-58 80 99)"/><ellipse cx="61" cy="118" rx="4.4" ry="8.2" transform="rotate(-78 61 118)"/>
+    <ellipse cx="200" cy="90" rx="4.6" ry="8.5" transform="rotate(64 200 90)"/><ellipse cx="176" cy="99" rx="4.5" ry="8.5" transform="rotate(58 176 99)"/><ellipse cx="195" cy="118" rx="4.4" ry="8.2" transform="rotate(78 195 118)"/>
+    <ellipse cx="48" cy="148" rx="4.6" ry="8.4" transform="rotate(-102 48 148)"/><ellipse cx="75" cy="145" rx="4.4" ry="8.3" transform="rotate(-83 75 145)"/>
+    <ellipse cx="208" cy="148" rx="4.6" ry="8.4" transform="rotate(102 208 148)"/><ellipse cx="181" cy="145" rx="4.4" ry="8.3" transform="rotate(83 181 145)"/>
+  </g>
+  <g fill="url(#gold)" filter="url(#glow)">
+    <circle cx="128" cy="24" r="16" mask="url(#crescent)"/>
+    <path d="M128 2l2.8 8.2 8.2 2.8-8.2 2.8-2.8 8.2-2.8-8.2-8.2-2.8 8.2-2.8z"/>
+    <path d="M128 239l2.6 7.5 7.5 2.5-7.5 2.6-2.6 7.4-2.6-7.4-7.5-2.6 7.5-2.5z" transform="translate(0 -3)"/>
+  </g>
+</svg>
