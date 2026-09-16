@@ -9,9 +9,9 @@ import {defaultMuraLayout} from '@soul/world/mura';
 const text=async locator=>(await locator.textContent()||'').trim();
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
-export async function verifyRebuildPlaythrough(browser,url,output){
+export async function verifyRebuildPlaythrough(browser,url,output,{recordVideo=false}={}){
   await mkdir(output,{recursive:true});
-  const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,reducedMotion:'reduce'}),page=await context.newPage(),errors=[];
+  const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,reducedMotion:'reduce',...(recordVideo?{recordVideo:{dir:join(output,'video'),size:{width:390,height:844}}}:{})}),page=await context.newPage(),errors=[];
   page.setDefaultTimeout(30000);page.on('pageerror',error=>errors.push(error.message));page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
   const stations=buildStations(defaultMuraLayout()),sword=stations.find(row=>row.id==='rack.weapon.sword'),port=stations.find(row=>row.id==='port-prayer');
   assert.ok(sword&&port,'default village must expose a sword rack and port');
