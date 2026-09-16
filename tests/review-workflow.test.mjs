@@ -6,10 +6,11 @@ const root=new URL('../',import.meta.url);
 const read=path=>readFile(new URL(path,root),'utf8');
 
 test('Visual Review publication follows exact develop delivery and requires browser verification',async()=>{
-  const [workflow,opsBoard,smoke]=await Promise.all([
+  const [workflow,opsBoard,smoke,collector]=await Promise.all([
     read('.github/workflows/review-preview.yml'),
     read('.github/workflows/ops-board.yml'),
     read('scripts/browser/visual-review-smoke.mjs'),
+    read('ops-board/collector.mjs'),
   ]);
   assert.match(workflow,/workflow_call:/);
   assert.match(workflow,/source_sha:[\s\S]*required: true/);
@@ -39,6 +40,11 @@ test('Visual Review publication follows exact develop delivery and requires brow
   assert.match(opsBoard,/visual-review:[\s\S]*uses: \.\/\.github\/workflows\/review-preview\.yml/);
   assert.match(opsBoard,/source_sha: \$\{\{ inputs\.source_sha \|\| github\.sha \}\}/);
   assert.match(opsBoard,/secrets: inherit/);
+
+  assert.match(collector,/\/commits\/\$\{developSha\}\/status/);
+  assert.match(collector,/status\.context === 'visual-review\/public'/);
+  assert.match(collector,/VISUAL_REVIEW_PUBLIC_URL/);
+  assert.match(collector,/deployedCommit: selected\.state === 'success' \? developSha/);
 });
 
 test('Review build promotes review.html only inside the dedicated Review bundle',async()=>{
