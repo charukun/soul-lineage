@@ -1,4 +1,6 @@
 /* Consumer controls must belong to 100年生, never to browser/OS chrome. */
+[hidden]{display:none!important}
+
 .clock-rate button{
   appearance:none;-webkit-appearance:none;
   min-width:34px;min-height:28px;padding:3px 4px;border:0;
