@@ -3,10 +3,12 @@
  * Source: visual study of user reference 1000003098.mp4, not extracted motion data.
  */
 import * as T from '../vendor/three.js';
+import {SLASH_VARIANTS,normalizeSlashVariant,applySlashVariant} from './authored-slash-variants.js';
 
 export const SLASH_SECONDS = .66;
 export const SLASH_TIMING = Object.freeze({active:Object.freeze([.35,.64]),contact:.50,launch:.34,plant:.49,chain:.86,lead:1});
-export const SLASH_REVISION = 'shino-slash-2';
+export const SLASH_REVISION = 'shino-slash-3-combo';
+export {SLASH_VARIANTS};
 export const SWORD_FREE_GUARD = Object.freeze([.16,-.29,.20]);
 export const SLASH_ROOT_TRAVEL = Object.freeze({forward:.55,standoff:1.05,source:'controller-owned-bounded-warp',units:'world-metres',authoritative:false});
 export const SLASH_WARP_WINDOW = Object.freeze({turnEnd:.14,warpStart:.18,contact:SLASH_TIMING.contact,maxDistance:.55,maxAcquireDistance:2.60,maxAcquireAngle:Math.PI*.75});
@@ -34,9 +36,9 @@ export function poseCurve(rows, t) {
   });
 }
 
-// v2 keeps the combat clock fixed while making the force chain legible at 1x:
-// settle low, counter-rotate through the torso, release through contact, then brake
-// through the whole body instead of snapping the sword back to guard.
+// v2 base phrase: settle low, counter-rotate through the torso, release through
+// contact, then brake through the whole body instead of snapping to guard. v3 keeps
+// this as `cross` and derives two structurally different full-body cuts from it.
 const body = {
   hips:[[0,0,0,0],[.20,-.05,-.28,-.04],[.32,-.12,-.42,-.065],[.39,-.14,-.44,-.06],[.46,-.13,-.05,-.04],[.50,-.14,.36,-.015],[.60,-.10,.58,.035],[.72,-.065,.48,.025],[.84,-.035,.24,.015],[1,0,0,0]],
   spine:[[0,0,0,0],[.22,.04,-.10,.06],[.34,.02,-.25,.06],[.40,-.02,-.27,.05],[.50,-.12,.13,-.09],[.60,-.11,.32,-.08],[.72,-.07,.28,-.05],[.84,-.03,.13,-.02],[1,0,0,0]],
@@ -58,13 +60,14 @@ export function slashSupport(side, phase, contact) {
   const p=slashTime(phase,contact);
   return side==='left' ? p<.16||(p>=.46&&p<=.73)||p>=.99 : p<=.35||p>=.88;
 }
-export function sampleSlashPose(phase, contact) {
-  const p=slashTime(phase,contact);
-  return Object.fromEntries(Object.entries(body).map(([name,rows])=>[name,poseCurve(rows,p)]));
+export function sampleSlashPose(phase, contact, variant='cross') {
+  const p=slashTime(phase,contact),base=Object.fromEntries(Object.entries(body).map(([name,rows])=>[name,poseCurve(rows,p)]));
+  return applySlashVariant(base,p,variant);
 }
 
 export function applyAuthoredSlash(runtime,c,phase,definition=SLASH_TIMING) {
-  const pose=sampleSlashPose(phase,definition.contact),s=c.legLength/.82;
+  const variant=normalizeSlashVariant(runtime?._slashPresentationVariant??definition?.presentationVariant),pose=sampleSlashPose(phase,definition.contact,variant),s=c.legLength/.82;
+  c.authoredSlashVariant=variant;
   const flip=c.vrm.meta.metaVersion==='1'?-1:1;
   for(const name of ['hips','spine','chest','head']){
     const b=c.bones[name];if(!b)continue;
