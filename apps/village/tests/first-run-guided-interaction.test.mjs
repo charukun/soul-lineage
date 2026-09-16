@@ -58,6 +58,25 @@ test('first-run guide is non-blocking and tactile rather than a full-screen flat
  assert.equal(style.includes('aria-modal'),false);
 });
 
+test('quality pass keeps action coaching compact, legible and touch-safe',()=>{
+ for(const required of [
+  "layer.dataset.mode=next==='welcome'||next==='done'?'card':'coach'",
+  'class="muraFirstRunStep"',
+  '--mura-first-run-progress',
+  "nodes.cue.textContent='できた'",
+  "nodes.cue.textContent='もう一度'",
+ ])assert.ok(view.includes(required),required);
+ for(const required of [
+  '#muraFirstRunGuide[data-mode="card"] .muraFirstRunGuideCard',
+  '.muraFirstRunProgress i',
+  '.muraFirstRunCue[data-state="success"]',
+  '@media(max-width:340px)',
+  '.muraFirstRunGuideCard button{min-height:44px',
+ ])assert.ok(style.includes(required),required);
+ const actionTexts=['画面下の「つくる」を1回タップ。','光っている「空きテント」を1回タップ。','1本指で画面をなぞり、テントを置きたい場所へ。','場所がよければ、画面を短く1回タップ。'];
+ for(const text of actionTexts)assert.ok(view.includes(text),text);
+});
+
 test('first-run acceptance contract requires user input and no direct placement shortcut',()=>{
  for(const required of [
   '通常プレイと同じDOM / pointer入力経路',
@@ -65,6 +84,9 @@ test('first-run acceptance contract requires user input and no direct placement 
   'デモ後はユーザー本人の同じ操作を待ち',
   '直接 `world.add` / `world.move` / `commitPlacement` を呼んで建築を成立させない',
   'Pixel Fold級',
+  'Quality pass',
+  '`1 / 4` の数値と細い進行線',
+  '主要ボタンを44px相当以上',
  ])assert.ok(contract.includes(required),required);
 });
 
