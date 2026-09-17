@@ -6,6 +6,8 @@ import { createHash } from 'node:crypto';
 export const toolingPath = path => /^(scripts\/|templates\/|tests\/|\.github\/workflows\/|package(?:-lock)?\.json$|\.nvmrc$|\.npmrc$)/.test(path);
 export const documentationPath = path => /^(docs\/|README\.md$|LICENSE(?:\..*)?$)/.test(path) || /\/README\.md$/.test(path);
 export const workspaceManifestPath = path => /^(apps|packages)\/[^/]+\/package\.json$/.test(path);
+export const devGlobalBuildPath = path => /^(?:package(?:-lock)?\.json|\.nvmrc|\.npmrc)$/.test(path);
+export const devControlPlanePath = path => /^(?:scripts\/|templates\/|tests\/|\.github\/)/.test(path);
 
 export function graph(root = process.cwd()) {
   const nodes = new Map();
@@ -60,6 +62,22 @@ export function affected(nodes, paths) {
     if (documentationPath(path)) continue;
     const owner = [...nodes.values()].find(n => path.startsWith(`${n.dir}/`));
     // Unknown/deleted workspaces and configuration fail closed to all apps.
+    if (!owner) return all;
+    changed.add(owner.name);
+  }
+  return apps(nodes).filter(n => [...closure(nodes, n.name)].some(name => changed.has(name))).map(n => n.id);
+}
+
+// DEV deliberately does not turn control-plane-only edits into game rebuilds.
+// Production/full validation keeps using affected(), which remains fail-closed.
+export function affectedForDev(nodes, paths) {
+  const all = apps(nodes).map(n => n.id);
+  const changed = new Set();
+  for (const path of paths) {
+    if (documentationPath(path) || devControlPlanePath(path)) continue;
+    if (devGlobalBuildPath(path)) return all;
+    const owner = [...nodes.values()].find(n => path.startsWith(`${n.dir}/`));
+    // Unknown runtime/configuration paths still fail closed even in DEV.
     if (!owner) return all;
     changed.add(owner.name);
   }
