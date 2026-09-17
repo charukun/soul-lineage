@@ -34,8 +34,8 @@ test('title input unlocks persistent game audio and provides selection and confi
 
 test('title background uses layered motion with a reduced-motion escape hatch',()=>{
   for(const name of ['title-world-rays','title-world-clouds-back','title-world-clouds-front','title-world-motes','title-world-lens'])assert.match(html,new RegExp(name));
-  assert.match(rich,/@keyframes title-rich-camera/);
-  assert.match(rich,/@keyframes title-rich-clouds-back/);
+  assert.match(rich,/@keyframes title-live-camera/);
+  assert.match(rich,/@keyframes title-live-clouds-back/);
   assert.match(rich,/@media\(prefers-reduced-motion:reduce\)/);
   assert.match(rich,/\[data-motion="off"\]/);
 });
