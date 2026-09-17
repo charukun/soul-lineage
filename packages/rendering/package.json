@@ -45,6 +45,7 @@
     "./mura/nature-data": "./src/mura/nature-data.js",
     "./mura/terrain": "./src/mura/terrain.js",
     "./mura/kaykit-detail": "./src/mura/kaykit-detail.js",
+    "./mura/building-visual": "./src/mura/building-visual.js",
     "./motion-quality": "./src/motion-quality.js",
     "./motion-runtime": "./src/motion-runtime.js"
   },
@@ -53,6 +54,7 @@
     "@soul/assets": "*",
     "@soul/characters": "*",
     "@soul/world": "*",
-    "@soul/animations": "*"
+    "@soul/animations": "*",
+    "@soul/housing-assets": "*"
   }
 }
