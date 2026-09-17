@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {normalizeReviewBattlePhase,reviewBattleCameraFrame,reviewBattleLoopDue,reviewBattlePhaseState} from '../src/review-battle-state.js';
 
-test('phase state uses Tidebreak slot and keeps the last valid phase between attacks',()=>{
+test('phase state follows the live Tidebreak slot and clears between attacks',()=>{
   const active=reviewBattlePhaseState({hero:{slot:'ha',skill:'崩し'},enemy:{slot:'jo'}});
   assert.deepEqual(active,{phase:'ha',heroPhase:'ha',enemyPhase:'jo',source:'left',skill:'崩し'});
-  const between=reviewBattlePhaseState({hero:{slot:null},enemy:{slot:null}},active.phase);
-  assert.equal(between.phase,'ha');
+  const between=reviewBattlePhaseState({hero:{slot:null},enemy:{slot:null}});
+  assert.equal(between.phase,'');
   assert.equal(between.source,'');
   assert.equal(normalizeReviewBattlePhase('fake'),'');
 });
