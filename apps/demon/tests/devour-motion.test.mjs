@@ -44,12 +44,13 @@ test('fall side mirrors silhouette without changing collapse timing',()=>{
  }
 });
 
-test('immediate feeding finishes the KO contact beat before visible capture pull',()=>{
- const falling=samplePreyMotion(.10,.12,1,1),contact=samplePreyMotion(.14,.20,1,1),pull=samplePreyMotion(.25,.37,1,1);
- assert.equal(falling.capture,0);assert.equal(contact.capture,0);
+test('immediate feeding finishes KO contact and hand reach before prey translation',()=>{
+ const falling=samplePreyMotion(.10,.12,1,1),contact=samplePreyMotion(.14,.20,1,1),reach=samplePreyMotion(.25,.37,1,1),pull=samplePreyMotion(.32,.47,1,1);
+ assert.equal(falling.capture,0);assert.equal(contact.capture,0);assert.equal(reach.capture,0);
  assert.ok(falling.down>.5,'capture clock should advance the collapse even when renderer dt is sparse');
  assert.ok(contact.contact>.8,'ground contact must be readable before the prey is lifted');
- assert.ok(pull.capture>0&&pull.down===1,'visible capture starts only after the collapse has completed');
+ assert.ok(sampleDevourContact(.25).grip>0,'hands should already be establishing contact before translation');
+ assert.ok(pull.capture>0&&pull.down===1,'prey translation begins only after the grip beat');
 });
 
 test('devour contact weights establish grip before bite and keep the lock through swallow',()=>{
@@ -58,6 +59,13 @@ test('devour contact weights establish grip before bite and keep the lock throug
  assert.ok(pull.grip>.85&&pull.haul>.2);
  assert.ok(bite.grip>.95&&bite.mouth>.95&&bite.bite>.99);
  assert.ok(swallow.lock>.95&&swallow.swallow>.5,'mouth/prey relation should stay locked into swallow');
+});
+
+test('predator-only frame reaches toward the valid prey distance instead of grabbing itself',()=>{
+ const capture={x:1,z:-2,yaw:.3,scale:1},motion=samplePreyMotion(.24,1,1,devourInteractionSide(capture));
+ const frame=devourInteractionFrame(capture,capture,motion),rootDistance=Math.hypot(frame.root.x-capture.x,frame.root.z-capture.z);
+ assert.equal(motion.capture,0);
+ assert.ok(rootDistance>.6&&rootDistance<.8,'reach target should approximate the existing DEVOUR_REACH envelope');
 });
 
 test('bite socket reaches the mouth while two grip points remain distinct',()=>{
@@ -84,8 +92,8 @@ test('predator scale changes feeding height instead of reusing one floating pose
 
 test('shared contact frame remains continuous during pull, bite and swallow',()=>{
  const capture={x:.4,z:-.8,yaw:-.5,scale:1.15},origin={x:2.2,z:1.1,yaw:.2},side=devourInteractionSide(capture);
- let previous=devourInteractionFrame(origin,capture,samplePreyMotion(.15,1,1,side));
- for(let i=151;i<=950;i++){
+ let previous=devourInteractionFrame(origin,capture,samplePreyMotion(.28,1,1,side));
+ for(let i=281;i<=950;i++){
   const p=i/1000,current=devourInteractionFrame(origin,capture,samplePreyMotion(p,1,1,side));
   assert.ok(distance(current.root,previous.root)<.08,`root jumped at ${p}`);
   assert.ok(distance(current.upper,previous.upper)<.08,`upper grip jumped at ${p}`);
