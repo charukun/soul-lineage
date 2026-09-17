@@ -1,5 +1,6 @@
 import {defs,muraBlocked,safeMuraPosition,LIMIT} from '@soul/world/mura';
 import {createMuraModels} from '@soul/rendering/mura';
+import {createMuraBuildingVisual} from '@soul/rendering/mura/building-visual';
 import {createMuraTerrain,flattenMuraModel} from '@soul/rendering/mura/terrain';
 import {storyPlaces} from '../game/story-world.js';
 
@@ -16,7 +17,7 @@ export async function createStoryScene(port,doc,initialLayout){
   let layout=initialLayout,layoutSignature='';
   function updateLayout(next){if(next===layout&&layoutSignature)return;const signature=JSON.stringify(next);if(signature===layoutSignature)return;layoutSignature=signature;layout=next;
     objects.traverse(o=>{if(o.userData.label){o.material.map.dispose();o.material.dispose();}});objects.clear();
-    const node=o=>{const key=`${o.kind}:${o.material}:${o.level}`;if(!cache.has(key))cache.set(key,flattenMuraModel(T,defs[o.kind].building?models.building(o.kind,o.material,o.level):models.prop(o.kind)));
+    const node=o=>{const key=`${o.kind}:${o.material}:${o.level}`;if(!cache.has(key))cache.set(key,flattenMuraModel(T,defs[o.kind].building?createMuraBuildingVisual(T,models,o.kind,o.material,o.level):models.prop(o.kind)));
       const n=cache.get(key).clone();n.position.set(o.x,.025,o.z);n.rotation.y=o.rot;n.userData.entityId=o.id;n.userData.assetId=o.assetId;
       if(o.phase!=='built')n.visible=false;return n;};
     for(const o of layout.objects){const n=node(o);objects.add(n);if(o.phase==='built'){const l=label(objects,defs[o.kind].label,o.x,6,o.z);l.scale.set(3,.56,1);l.userData.label=true;}

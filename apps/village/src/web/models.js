@@ -1,5 +1,6 @@
 import {THREE} from '@soul/rendering';
 import {createMuraModels} from '@soul/rendering/mura';
+import {createMuraBuildingVisual} from '@soul/rendering/mura/building-visual';
 const models=createMuraModels(THREE,{createCanvas:()=>document.createElement('canvas')});
 const T=THREE;
 const material=color=>new T.MeshStandardMaterial({color,roughness:.95});
@@ -23,4 +24,4 @@ function decorateWorkSite(g,kind){
  return g;
 }
 export const {mat,prop,person,interiorShell,floorFor,sailingShip,animal}=models;
-export function building(kind,material='base',level=1){return decorateWorkSite(models.building(kind,material,level),kind);}
+export function building(kind,material='base',level=1){return decorateWorkSite(createMuraBuildingVisual(T,models,kind,material,level),kind);}

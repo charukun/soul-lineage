@@ -1,82 +1,61 @@
-import {createAuthoredEffectPlayer} from './authored-effect-player.js';
-import {authoredEffectBase,createEffekseerBackend} from './effekseer-loader.js';
-import {createImpactDirector} from './impact-director.js';
-import {createImpactPresentationRuntime} from './impact-presentation-runtime.js';
-import {clearRinneImpactAudio,presentRinneImpactAudio} from '../gameplay-audio.js';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createImpactDirector,impactEnergyForEvent,impactProfile,weaponAnchor} from '../src/rebuild/impact-director.js';
+import {createAuthoredEffectPlayer} from '../src/rebuild/authored-effect-player.js';
 
-function anchorMap(director,state,front){
-  const anchors={},hero=director.weaponAnchor(state);if(hero)anchors.hero=hero;
-  for(const enemy of front?.enemies||[]){if(enemy.dead)continue;const anchor=director.weaponAnchor(enemy);if(anchor)anchors[`enemy:${enemy.id}`]=anchor;}
-  return anchors;
-}
-function anticipationCue(row){const color=row.enemy?[255,126,96,220]:[255,236,196,245];return{effect:'slash',position:{...row.anchor.position},rotation:{...row.anchor.rotation},scale:row.enemy?.72:.92,lifetime:.46,color,priority:1,kind:'anticipation-trail',followKey:row.followKey};}
+function hero({weapon='sword',attack='slash',progress=.72}={}){return{id:'hero-life',zone:'frontier',phase:'living',position:{x:1,z:2},yaw:0,equipment:{weapon},maxHp:100,hp:100,combat:{tidebreakPose:{attack,progress,skill:'basic.sword',slot:'jo',pose:{hand:[0,1,.1],tip:[0,1,1.1]}}}};}
+function foe({id='e1',x=1,z=3,attack='slash',progress=.7}={}){return{id,x,z,yaw:Math.PI,weapon:'sword',maxHp:100,hp:100,dead:false,tidebreakPose:{attack,progress,skill:'enemy',slot:'jo',pose:{hand:[0,1,.1],tip:[0,1,1.1]}}};}
 
-/** Install into the existing scene pass, including its HDR/depth/focus target. */
-export function installCombatEffects(view,{document,canvas,backendFactory=createEffekseerBackend}={}){
-  const T=view.THREE,win=document.defaultView||globalThis;
-  const mobile=Boolean(win.matchMedia?.('(pointer: coarse)').matches);
-  const motion=win.matchMedia?.('(prefers-reduced-motion: reduce)');
-  const baseUrl=authoredEffectBase(document),abort=new AbortController();
-  const player=createAuthoredEffectPlayer({mobile,reducedMotion:Boolean(motion?.matches)}),director=createImpactDirector({mobile,reducedMotion:Boolean(motion?.matches)});
-  const presentation=typeof T?.Vector3==='function'?createImpactPresentationRuntime({view,director}):{beforeRender(){},afterRender(){},clear(){}};
-  let disposed=false,booted=false,front=null;
-  const geometry=new T.PlaneGeometry(1,1);
-  const material=new T.MeshBasicMaterial({transparent:true,opacity:0,colorWrite:false,depthWrite:false,depthTest:false,toneMapped:false});
-  const stage=new T.Mesh(geometry,material);
-  stage.name='TidebreakAuthoredEffects';stage.frustumCulled=false;stage.renderOrder=Number.MAX_SAFE_INTEGER;
-  stage.castShadow=false;stage.receiveShadow=false;
-  stage.onAfterRender=(renderer,_scene,camera)=>{
-    if(disposed)return;
-    if(!booted){
-      booted=true;stage.visible=false;
-      Promise.resolve().then(()=>{
-        if(disposed)return null;
-        return backendFactory({renderer,document,baseUrl,signal:abort.signal,budget:player.snapshot().budget});
-      }).then(backend=>{if(backend)player.attach(backend);}).catch(error=>player.fail(error));
-      return;
-    }
-    player.draw(camera);
-  };
-  view.scene.add(stage);
-  const previousBefore=view.scene.onBeforeRender,previousAfter=view.scene.onAfterRender;
-  view.scene.onBeforeRender=(...args)=>{previousBefore?.apply(view.scene,args);presentation.beforeRender();};
-  view.scene.onAfterRender=(...args)=>{presentation.afterRender();previousAfter?.apply(view.scene,args);};
-  const original={renderState:view.renderState,syncFront:view.syncFront,updateFront:view.updateFront,
-    dispose:view.dispose,visualSnapshot:view.visualSnapshot};
-  view.syncFront=(next)=>{front=next;return original.syncFront(next);};
-  view.updateFront=(next)=>{front=next;return original.updateFront(next);};
-  view.presentCombatEvents=(events,context)=>{
-    if(disposed||document.hidden||context.state?.zone!=='frontier')return;
-    const currentFront=context.front||front,result=director.present(events,{...context,front:currentFront});
-    const anchors=anchorMap(director,context.state,currentFront);player.present(events,{...context,front:currentFront,anchors});
-    if(result.strongest)presentRinneImpactAudio({energy:result.strongest.profile.energy,prehit:false});
-  };
-  view.clearCombatEffects=()=>{player.clear();director.clear();presentation.clear();clearRinneImpactAudio();};
-  view.renderState=(state,dt=0)=>{
-    if(state?.zone!=='frontier'){director.clear();presentation.clear();clearRinneImpactAudio();}
-    const level=original.visualSnapshot?.().focus?.level||0,reduced=Boolean(motion?.matches),hidden=Boolean(document.hidden),snap=director.frame(dt,{level,reduced,hidden});
-    const restorePose=director.applyPoseLag(state,front,dt,snap.timeScale);
-    try{
-      const anchors=anchorMap(director,state,front),anticipation=state?.zone==='frontier'?director.anticipation(state,front):[];
-      if(anticipation.length){
-        player.presentCues(anticipation.map(anticipationCue));
-        const hero=anticipation.find(row=>!row.enemy),danger=anticipation.find(row=>row.enemy&&(front?.enemies||[]).find(e=>`enemy:${e.id}`===row.followKey)?.attentionTargetId===state.id);
-        if(hero||danger)presentRinneImpactAudio({energy:hero?.attack==='heavy' ? .78 : .58,prehit:true});
-      }
-      // Only pose/VFX presentation consumes the local scale. The base renderer receives real dt so performance and simulation clocks stay truthful.
-      player.frame(state,front,dt*snap.timeScale,{level,reduced,hidden,anchors});
-      const mayBoot=!hidden&&state?.zone==='frontier'&&state?.phase!=='birth'&&!state?.ended;
-      stage.visible=(!booted&&mayBoot)||player.snapshot().active>0;
-      return original.renderState(state,dt);
-    }finally{restorePose();}
-  };
-  view.visualSnapshot=()=>({...original.visualSnapshot?.(),combatEffects:player.snapshot(),impactDirector:director.snapshot()});
-  const lost=()=>{abort.abort();player.fail(Error('WebGL context lost; effects disabled for this view'));director.clear();presentation.clear();clearRinneImpactAudio();};
-  canvas.addEventListener('webglcontextlost',lost);
-  view.dispose=()=>{
-    if(disposed)return;disposed=true;abort.abort();player.dispose();director.clear();presentation.clear();clearRinneImpactAudio();canvas.removeEventListener('webglcontextlost',lost);
-    view.scene.onBeforeRender=previousBefore;view.scene.onAfterRender=previousAfter;
-    stage.onAfterRender=()=>{};stage.removeFromParent();geometry.dispose();material.dispose();original.dispose();
-  };
-  return view;
-}
+test('Impact Energy reflects weapon and attack commitment rather than damage alone',()=>{
+  const light=hero({weapon:'sword',attack:'slash'}),heavy=hero({weapon:'great',attack:'heavy'}),front={stage:0,enemies:[foe()]},event={type:'player-hit',targetId:'e1',damage:14};
+  const a=impactEnergyForEvent({...event,phase:'jo'},{state:light,front}),b=impactEnergyForEvent({...event,phase:'kyu'},{state:heavy,front});
+  assert.ok(b>a);assert.ok(b>.7);
+});
+
+test('reduced motion disables hit stop and slow while retaining a bounded camera cue',()=>{
+  const profile=impactProfile(.95,{reduced:true});assert.equal(profile.stop,0);assert.equal(profile.slow,0);assert.equal(profile.scale,1);assert.ok(profile.camera>0);
+});
+
+test('medium impacts still expose one visible hit-stop frame at 60fps',()=>{
+  const state=hero({weapon:'dagger',attack:'slash'}),front={stage:0,enemies:[foe()]},director=createImpactDirector();
+  director.present([{type:'player-hit',targetId:'e1',damage:2,phase:'jo'}],{state,front});const frame=director.frame(.016);
+  assert.equal(frame.timeScale,.002);assert.ok(director.snapshot().timeScale>.002);
+});
+
+test('impact presentation never mutates simulation state or enemy health',()=>{
+  const state=hero({weapon:'great',attack:'heavy'}),front={stage:5,enemies:[foe()]},before=structuredClone({state,front}),director=createImpactDirector();
+  const result=director.present([{type:'player-hit',targetId:'e1',damage:25,phase:'kyu'}],{state,front});
+  assert.ok(result.strongest);assert.ok(director.snapshot().timeScale<1);assert.deepEqual({state,front},before);
+});
+
+test('enemy hits always target the local hero presentation reaction',()=>{
+  const state=hero(),enemy=foe({attack:'heavy'}),front={stage:0,enemies:[enemy]},director=createImpactDirector();
+  director.present([{type:'enemy-hit',sourceId:'e1',damage:20,part:'leftArm',sector:'flank'}],{state,front});
+  const [reaction]=director.snapshot().reactions;assert.equal(reaction.actorKey,'hero');assert.equal(reaction.part,'leftArm');
+});
+
+test('weapon anchors follow Tidebreak hand and tip in world space',()=>{
+  const state=hero();state.position={x:4,z:7};state.yaw=Math.PI/2;const anchor=weaponAnchor(state);
+  assert.ok(anchor);assert.ok(Math.abs(anchor.hand.x-4.1)<1e-6);assert.ok(Math.abs(anchor.tip.x-5.1)<1e-6);assert.ok(Math.abs(anchor.tip.z-7)<1e-6);
+});
+
+test('anticipation trail fires once per attack cycle and rearms after progress resets',()=>{
+  const state=hero({progress:.45}),front={stage:0,enemies:[]},director=createImpactDirector();
+  assert.equal(director.anticipation(state,front).length,1);assert.equal(director.anticipation(state,front).length,0);
+  state.combat.tidebreakPose.progress=.1;assert.equal(director.anticipation(state,front).length,0);
+  state.combat.tidebreakPose.progress=.46;assert.equal(director.anticipation(state,front).length,1);
+});
+
+test('local micro slow swaps only displayed Tidebreak pose and restores the exact simulation snapshot',()=>{
+  const state=hero({attack:'slash',progress:.2}),front={stage:0,enemies:[foe()]},director=createImpactDirector();director.applyPoseLag(state,front,.016)();
+  const exact={attack:'heavy',progress:.9,skill:'basic.great',slot:'kyu',pose:{hand:[0,1,0],tip:[1,1,1]}};state.combat.tidebreakPose=exact;
+  director.present([{type:'player-hit',targetId:'e1',damage:28,phase:'kyu'}],{state,front});const frame=director.frame(.016),restore=director.applyPoseLag(state,front,.016,frame.timeScale);
+  assert.notEqual(state.combat.tidebreakPose,exact);restore();assert.equal(state.combat.tidebreakPose,exact);
+});
+
+test('weapon-following VFX updates one existing handle without replaying it',()=>{
+  const calls={played:0,locations:[]},backend={play(){calls.played++;return{exists:true,setLocation(x,y,z){calls.locations.push([x,y,z]);},setRotation(){},stop(){this.exists=false;}};},update(){},draw(){},clear(){},dispose(){}};
+  const player=createAuthoredEffectPlayer();player.attach(backend);player.presentCues([{effect:'slash',position:{x:0,y:1,z:0},rotation:{x:0,y:0,z:0},scale:1,lifetime:.5,color:[255,255,255,255],priority:1,followKey:'hero'}]);
+  player.frame(hero(),{stage:0},.016,{anchors:{hero:{position:{x:1,y:2,z:3},rotation:{x:0,y:.3,z:0}}}});player.frame(hero(),{stage:0},.016,{anchors:{hero:{position:{x:2,y:2,z:3},rotation:{x:0,y:.4,z:0}}}});
+  assert.equal(calls.played,1);assert.deepEqual(calls.locations,[[1,2,3],[2,2,3]]);player.dispose();
+});

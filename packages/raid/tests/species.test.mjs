@@ -14,8 +14,17 @@ test('catalog contains the procedural monster plus five distinct imported specie
   const species=MONSTER_SPECIES[id],start=feedingGrowth(0,id),full=feedingGrowth(species.growth.fullMeals,id);
   assert.equal(start.scale,species.growth.minScale,id);assert.equal(full.scale,species.growth.maxScale,id);
   assert.ok(start.hpScale<full.hpScale,id);assert.ok(start.moveScale>0&&full.moveScale>0,id);
-  assert.ok(species.growth.maxScale<=3.2,id);assert.ok(species.growth.fullMeals>=6,id);
+  assert.ok(species.growth.maxScale<=3.2,id);assert.ok(species.growth.fullMeals>=6,id);assert.ok(species.growth.pace>1,id);
  }
+});
+
+test('early feeding growth remains visible without jumping close to human scale',()=>{
+ const start=feedingGrowth(0),first=feedingGrowth(1),second=feedingGrowth(2),third=feedingGrowth(3),full=feedingGrowth(MONSTER_SPECIES[DEFAULT_MONSTER_SPECIES].growth.fullMeals);
+ assert.equal(start.scale,.28);
+ assert.ok(first.scale>start.scale&&first.scale<.5,`first meal scale ${first.scale}`);
+ assert.ok(second.scale>first.scale&&second.scale<.7,`second meal scale ${second.scale}`);
+ assert.ok(third.scale>second.scale&&third.scale<1,`third meal scale ${third.scale}`);
+ assert.equal(full.scale,3.2);
 });
 
 test('each village receives one deterministic species while explicit future selection can override it',()=>{
@@ -39,8 +48,11 @@ test('species override is stable through a hunt and each species exposes its own
  assert.equal(signatures.size,MONSTER_SPECIES_IDS.length);
 });
 
-test('species make different bodies without changing the feeding loop contract',()=>{
- const runt=feedingGrowth(6,'goblin-runt'),brute=feedingGrowth(6,'horn-brute'),bat=feedingGrowth(6,'night-bat'),ogre=feedingGrowth(6,'grave-ogre');
+test('species make different mature bodies without changing the feeding loop contract',()=>{
+ const runt=feedingGrowth(MONSTER_SPECIES['goblin-runt'].growth.fullMeals,'goblin-runt');
+ const brute=feedingGrowth(MONSTER_SPECIES['horn-brute'].growth.fullMeals,'horn-brute');
+ const bat=feedingGrowth(MONSTER_SPECIES['night-bat'].growth.fullMeals,'night-bat');
+ const ogre=feedingGrowth(MONSTER_SPECIES['grave-ogre'].growth.fullMeals,'grave-ogre');
  assert.equal(runt.progress,1);assert.ok(runt.scale<brute.scale);assert.ok(bat.moveScale>brute.moveScale);assert.ok(ogre.hpScale>bat.hpScale);
  for(const id of MONSTER_SPECIES_IDS){const g=feedingGrowth(999,id);assert.equal(g.progress,1);assert.equal(g.scale,MONSTER_SPECIES[id].growth.maxScale);}
 });

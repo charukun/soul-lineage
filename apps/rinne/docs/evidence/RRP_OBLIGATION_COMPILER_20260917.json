@@ -1,0 +1,117 @@
+{
+  "version": "rrp-obligation-compiler-evidence-v1",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "runner": "dependency-free isolated research model"
+  },
+  "focused": {
+    "mutation": "none",
+    "exit": 0,
+    "error": null,
+    "passed": 17,
+    "failed": 0,
+    "invariantFailure": false,
+    "failures": []
+  },
+  "mutations": [
+    {
+      "mutation": "silence-is-absence",
+      "exit": 1,
+      "error": null,
+      "passed": 16,
+      "failed": 1,
+      "invariantFailure": true,
+      "failures": [
+        "silence cannot prove a global negative fact in an asynchronous network"
+      ],
+      "killed": true
+    },
+    {
+      "mutation": "bearer-is-linear",
+      "exit": 1,
+      "error": null,
+      "passed": 16,
+      "failed": 1,
+      "invariantFailure": true,
+      "failures": [
+        "attenuated bearer capability still needs durable replay protection at the effect sink"
+      ],
+      "killed": true
+    },
+    {
+      "mutation": "ignore-revocation",
+      "exit": 1,
+      "error": null,
+      "passed": 16,
+      "failed": 1,
+      "invariantFailure": true,
+      "failures": [
+        "capability revocation is enforced by learned issuer generation, not by token authenticity alone"
+      ],
+      "killed": true
+    },
+    {
+      "mutation": "local-commit-is-global",
+      "exit": 1,
+      "error": null,
+      "passed": 16,
+      "failed": 1,
+      "invariantFailure": true,
+      "failures": [
+        "one-domain partial certificate cannot authorize a cross-domain irreversible action"
+      ],
+      "killed": true
+    },
+    {
+      "mutation": "ignore-prepared-version",
+      "exit": 1,
+      "error": null,
+      "passed": 16,
+      "failed": 1,
+      "invariantFailure": true,
+      "failures": [
+        "prepared-version validation prevents stale independently valid capsules from composing"
+      ],
+      "killed": true
+    },
+    {
+      "mutation": "ignore-rule-root",
+      "exit": 1,
+      "error": null,
+      "passed": 16,
+      "failed": 1,
+      "invariantFailure": true,
+      "failures": [
+        "rule-version root fences stale proof capsules after semantics evolve"
+      ],
+      "killed": true
+    },
+    {
+      "mutation": "signed-is-complete",
+      "exit": 1,
+      "error": null,
+      "passed": 16,
+      "failed": 1,
+      "invariantFailure": true,
+      "failures": [
+        "signature checking alone cannot replace predicate/dependency checking"
+      ],
+      "killed": true
+    }
+  ],
+  "sourceHashes": {
+    "reality-obligation-compiler-model.mjs": "cfcc28b47f8a5df707825e932e59d7de9335aef9dccd884d3402090613b35947",
+    "reality-obligation-compiler.test.mjs": "f9ce28700cf6560cca812ae80a7d98e654cfb1b09d506deabdf4df51ae37ad84",
+    "reality-obligation-compiler-proof.mjs": "560d2380152c1bf4d67c4d83e14bf8fa6c8a2f7b32e9ca4efbd4b6fa238e6d04"
+  },
+  "pass": true,
+  "classification": "B bounded executable counterexamples and mutation sensitivity; A/F arguments are documented separately.",
+  "notClaims": [
+    "not a production authorization system",
+    "not a cross-domain transaction implementation",
+    "not a cryptographic proof of manifest completeness",
+    "not an unbounded model check",
+    "not a performance benchmark"
+  ]
+}
