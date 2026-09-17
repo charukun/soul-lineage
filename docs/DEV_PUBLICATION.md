@@ -1,14 +1,16 @@
 # DEV publication fast path
 
-DEV is the fast visual-review environment. Publication must not wait for browser or full-regression verification.
+DEV is the fast visual-review environment. Publication must not wait for tests, browser or full-regression verification.
 
-This document is the focused contract for normal DEV publication. Normal develop delivery is build/snapshot/public-source gated. Gameplay/WebGL browser automation is opt-in rather than an asynchronous default gate.
+This document is the focused contract for normal DEV publication. Normal develop delivery is snapshot/public-source gated. Gameplay/WebGL browser automation and full regression are opt-in rather than asynchronous default gates.
 
 ## Required DEV publication path
 
-`develop -> assemble/build affected apps -> exact source/snapshot checks -> candidate manifest check -> GitHub Pages promotion -> public HTTP/source verification -> DEV_DEPLOYED`
+`develop -> plan changed app inputs -> build only changed apps when needed -> exact source/snapshot checks -> candidate manifest check -> GitHub Pages promotion -> public HTTP/source verification -> DEV_DEPLOYED`
 
-Blocking DEV publication checks are limited to work needed to prove that the generated snapshot is structurally valid and that the published public files belong to the intended develop SHA. Browser/WebGL/gameplay scenarios are not a prerequisite for DEV visibility.
+Blocking DEV publication checks are limited to work needed to prove that the generated snapshot is structurally valid and that the published public files belong to the intended develop SHA. `node --test`, Browser/WebGL/gameplay scenarios, and unrelated app builds are not prerequisites for DEV visibility.
+
+DEV app input hashes exclude control-plane-only `.github/**`, Integration/operational scripts, root tests and documentation. When those files change without changing game/build inputs, the publisher reuses the already published app outputs, skips `npm ci` and app validation/build preparation, and advances only the exact DEV source/snapshot identity. Build-system inputs such as root package/lock configuration and the app build coordinator remain hash inputs and may rebuild affected apps.
 
 The normal `publish` job on `refs/heads/develop` does not invoke `verify-browser.mjs`, does not upload `dev-browser-*` evidence, and does not create a develop browser-repair ticket. Last Known Good DEV snapshots are retained after successful public HTTP/source verification.
 
@@ -20,7 +22,7 @@ Browser verification still runs when explicitly requested through the browser pl
 
 A failure from an explicit browser run is evidence for diagnosis. If it proves a source-level defect, route semantic repair through the normal Chat Repair handoff without weakening assertions or turning browser automation back into the default develop gate.
 
-Historical `browser-repair:v1` records and old `pr-browser-*` / `dev-browser-*` artifacts remain evidence only. They do not automatically trigger new develop browser work.
+Historical `browser-repair:v1` records and old `pr-browser-*` / `dev-browser-*` artifacts remain evidence only. The legacy browser repair recorder workflow/input/script are retired and do not trigger new develop browser work.
 
 ## Visual Review publication liveness
 
