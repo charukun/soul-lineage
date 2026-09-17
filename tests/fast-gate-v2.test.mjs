@@ -32,7 +32,7 @@ test('unrelated Rinne UI changes skip rig QA while motion and shared character c
   assert.deepEqual(related.skippedHeavy, []);
 });
 
-test('broad validation never drops a test', () => {
+test('broad validation never drops a test outside DEV mode', () => {
   const tests = ['tests/control.test.mjs', ...heavy];
   const plan = splitFastTests(tests, ['scripts/validate.mjs'], { broad: true });
   assert.deepEqual(plan.light, tests);
@@ -50,6 +50,13 @@ test('validator uses gate-cost profile and direct workspace checks for narrow fa
   assert.match(validate, /plan\.infrastructure/);
   assert.match(check, /requested\[0\] === '--direct'/);
   assert.match(check, /if \(!direct\) for \(const file of readdirSync\('scripts'/);
+});
+
+test('DEV validation records zero tests and keeps the test runner in the non-DEV branch', () => {
+  const validate = source('scripts/validate.mjs');
+  assert.match(validate, /const dev = mode === 'dev'/);
+  assert.match(validate, /if \(dev\) \{[\s\S]*tests: 0[\s\S]*\} else \{/);
+  assert.match(validate, /else \{[\s\S]*splitFastTests\(uniqueTests[\s\S]*\['--test', \.\.\.split\.light\]/);
 });
 
 test('Ready validation checkout is shallow and fetches only the resolved exact base', () => {
