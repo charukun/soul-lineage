@@ -43,7 +43,7 @@ function markDown(state,enemy,events,source='world-contact'){
 
 export function applyMultiTargetContact(state,front,event,events){
   if(event.type!=='player-hit'||event.projectile||event.multiTarget||!(event.damage>0))return[];const attack=String(state.combat?.tidebreakPose?.attack||'');if(STOP_ON_FIRST.has(attack))return[];
-  const hits=[],factor=attack==='spin'||attack==='round'||attack==='barrage'?.82:.7;for(const enemy of worldContactCandidates(state,front,event)){
+  const hits=[],factor=(attack==='spin'||attack==='round'||attack==='barrage')?.82:.7;for(const enemy of worldContactCandidates(state,front,event)){
     const damage=Math.min(enemy.hp,event.damage*factor);if(!(damage>0))continue;enemy.hp=Math.max(0,enemy.hp-damage);enemy.flash=1;const row={type:'player-hit',targetId:enemy.id,skill:event.skill,phase:event.phase,damage,multiTarget:true,engine:'world-contact'};events.push(row);hits.push(row);if(enemy.hp<=.001)markDown(state,enemy,events);
   }return hits;
 }
