@@ -26,6 +26,7 @@ const SOURCE_PATHS=Object.freeze({
   laser03:'samples/00_Basic/Laser03.efkefc',
   fireworks:'samples/00_Basic/Simple_Turbulence_Fireworks.efkefc',
   toonWater:'samples/02_Tktk03/ToonWater.efkefc',
+  hanmadoHit:'samples/03_Hanmado01/Effect/hit_hanmado_0409.efkefc',
 });
 
 export const EFFECT_ASSETS = Object.freeze([
@@ -66,6 +67,20 @@ export const EFFECT_ASSETS = Object.freeze([
   asset('samples/02_Tktk03/Parts/ToonBase.efkmat', 14791, '1b6c1849725cd3f55e2147890c17fffeb25b77c7'),
   asset('samples/02_Tktk03/Parts/ToonImpact.efkmat', 15538, '7fd609a5e201e8069adf9cfef1b0f5a98cebe402'),
   asset('samples/02_Tktk03/Parts/ToonWaterTube.efkmat', 15489, '7766aa3b76a76e22387b737879db8c81daac678d'),
+  asset(SOURCE_PATHS.hanmadoHit, 28254, '6ddf265e9a5a876e021ab96e1bf9441f16b9bded', {infoVersion:1610,dependencyRoot:'samples/03_Hanmado01'}),
+  asset('samples/03_Hanmado01/Texture/black.png', 137, 'ef9d7521c42cdb6a7371062d24cafebd359b5e46'),
+  asset('samples/03_Hanmado01/Texture/bwgradation1216.png', 2294, '88c75d471f66d79bd08f2d2fbea5b7791999413c'),
+  asset('samples/03_Hanmado01/Texture/bwgradation1229.png', 937, 'c8b3f8894dc7fa2939204d209b4f520e1742712f'),
+  asset('samples/03_Hanmado01/Texture/ColorNoise.png', 330737, '0e61944149fa896dc642f9f60a71fe86a4b356a3'),
+  asset('samples/03_Hanmado01/Texture/Particle1.png', 2608, '5bf4b4dd8ad2987a819a96e1e75fc5f1f6153c59'),
+  asset('samples/03_Hanmado01/Texture/tex_eff_light02.png', 9491, 'a06e786c5f8944242921fe7ab3bcc50232445ee5'),
+  asset('samples/03_Hanmado01/Texture/Flash01.png', 24652, '3c08b3fbcec5a6423e2a2a1cb4f8b844c0b05363'),
+  asset('samples/03_Hanmado01/Texture/tex_eff_hit_common_02.png', 7414, 'd3136b3ec0d7a7a81a5d87e7659d65b542e397e0'),
+  asset('samples/03_Hanmado01/Texture/ef_common_flashlight01_t.png', 10350, '0e70e8f4cda8405054e6e271ef70ed51e92c17f7'),
+  asset('samples/03_Hanmado01/Texture/howaa128.png', 2987, 'cc8f7f7c8f3e86baf07029f74a1c3fd0fab0627a'),
+  asset('samples/03_Hanmado01/Texture/hit.png', 60931, '7d26bad4211d27213b521006d05e261081d5e795'),
+  asset('samples/03_Hanmado01/Material/mat_eff_yugami.efkmat', 7892, '9518431a3887a99b421e7b1423258f6dea0f1211'),
+  asset('samples/03_Hanmado01/Material/mat_eff_hit_himatsu.efkmat', 15638, 'c95912f52b5ddf49227dfa149f3ad243a20df8ed'),
 ]);
 export const RUNTIME_ASSETS = Object.freeze([
   asset('docs/effekseer.js', 216603, '9d90abff9ec9e24812aea2ce07d93c8798a10920'),
@@ -85,4 +100,5 @@ export const REVIEW_AUTHORED_EFFECTS = Object.freeze({
   laser03: definition(SOURCE_PATHS.laser03,'Effekseer',.2,1.1),
   fireworks: definition(SOURCE_PATHS.fireworks,'Effekseer',.18,1.7),
   toonWater: definition(SOURCE_PATHS.toonWater,'tktk',.055,1.8),
+  hanmadoHit: definition(SOURCE_PATHS.hanmadoHit,'hanmado',.055,1.35),
 });
