@@ -22,6 +22,16 @@ test('incapacitation uses five full-body phases with weight transfer before grou
  assert.ok(settle.armDrop>.9&&settle.legSpread>.95,'the final pose should remain visibly slack');
 });
 
+test('incapacitation sampler stays continuous across the whole fall',()=>{
+ let previous=sampleIncapacitationMotion(0);
+ for(let i=1;i<=1000;i++){
+  const current=sampleIncapacitationMotion(i/1000);
+  for(const key of ['rootRoll','rootPitch','bodyPitch','bodyTwist','bodyRoll','headPitch','headYaw','headRoll','legBend','armDrop','brace'])
+   assert.ok(Math.abs(current[key]-previous[key])<.02,`${key} jumped at ${i/1000}`);
+  previous=current;
+ }
+});
+
 test('fall side mirrors silhouette without changing collapse timing',()=>{
  for(const p of [.08,.24,.48,.72,1]){
   const left=sampleIncapacitationMotion(p,-1),right=sampleIncapacitationMotion(p,1);
