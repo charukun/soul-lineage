@@ -1,9 +1,10 @@
 import {PREY,FORMS} from '@soul/raid/world';
+import {DEVOUR_BITE_BEATS} from './devour-motion.js';
 
 const clamp=x=>Math.max(0,Math.min(1,x));
 const ease=x=>{const t=clamp(x);return t*t*(3-2*t);};
 export const FEAST_SECONDS=2.4;
-export const BITE_BEATS=Object.freeze([.51,.68]);
+export const BITE_BEATS=DEVOUR_BITE_BEATS;
 
 /** Presentation envelopes only: never advance capture, health or combat clocks. */
 export function feastEnvelope(progress,age=Infinity,{reducedMotion=false}={}){

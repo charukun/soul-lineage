@@ -15,13 +15,51 @@ const keys=[
  [1,rest]
 ];
 export const DEVOUR_PHASES=Object.freeze(['lower','reach','pull','bite','swallow','recover']);
-export const smooth=value=>{const x=Math.max(0,Math.min(1,value));return x*x*(3-2*x);};
+export const DEVOUR_BITE_BEATS=Object.freeze([.51,.68]);
+const clamp=value=>Math.max(0,Math.min(1,value));
+export const smooth=value=>{const x=clamp(value);return x*x*(3-2*x);};
+const pulse=(progress,at,width=.055)=>Math.max(0,1-Math.abs(progress-at)/width);
 export function sampleDevourMotion(progress){
- const p=Math.max(0,Math.min(1,Number.isFinite(progress)?progress:0));
+ const p=clamp(Number.isFinite(progress)?progress:0);
  const next=keys.findIndex(([at])=>at>=p),i=Math.max(1,next),[a,av]=keys[i-1],[b,bv]=keys[i];
  const t=smooth((p-a)/(b-a)),v=av.map((x,j)=>x+(bv[j]-x)*t);
  const [drop,pitch,twist,roll,headPitch,headYaw,headRoll,jaw,handX,handY,handZ,preyLift,throat]=v;
  return{progress:p,phase:DEVOUR_PHASES[p<.17?0:p<.30?1:p<.44?2:p<.76?3:p<.92?4:5],
   drop,pitch,twist,roll,headPitch,headYaw,headRoll,jaw,handX,handY,handZ,preyLift,throat,
   stance:smooth(Math.min(p/.17,(1-p)/.12)),hold:smooth(p/.30)*(1-smooth((p-.88)/.12))};
+}
+
+/**
+ * Presentation-only state for a defeated human. The same normalized capture clock
+ * drives both the predator and prey, while captureWeight lets a cancelled grab
+ * settle back to the ground instead of snapping to the simulation transform.
+ */
+export function samplePreyMotion(progress=null,downProgress=1,captureWeight=1){
+ const down=smooth(downProgress),feeding=Number.isFinite(progress),p=feeding?clamp(progress):0,weight=feeding?clamp(captureWeight):0;
+ const predator=sampleDevourMotion(p);
+ const capture=smooth((p-.045)/.255)*weight;
+ const bite=(feeding?Math.max(...DEVOUR_BITE_BEATS.map(at=>pulse(p,at))):0)*weight;
+ const swallow=(feeding?smooth((p-.70)/.22):0)*weight;
+ const settle=(feeding?smooth((p-.90)/.10):0)*weight;
+ const slack=Math.max(down,capture);
+ return {progress:p,feeding,down,capture,bite,swallow,settle,slack,
+  rootRoll:1.45*down-.25*capture+.10*bite+.08*swallow,
+  rootY:.13*down+.07*capture,
+  bodyPitch:.12*down+.18*capture-.11*swallow,
+  bodyRoll:.06*down-.10*capture+.07*bite,
+  headPitch:.08*down-.18*capture+.16*bite,
+  headRoll:-.24*down+.18*capture-.13*bite,
+  lift:(predator.preyLift*capture)+.34*swallow,
+  forward:.66-predator.preyLift*.35-.18*swallow,
+  lateral:1.15-.14*capture-.55*swallow,
+  compression:.14*swallow+.035*settle};
+}
+
+export function preyCapturePoint(origin,capture,motion){
+ const ox=Number.isFinite(origin?.x)?origin.x:0,oz=Number.isFinite(origin?.z)?origin.z:0,k=motion?.capture||0;
+ if(!capture||k<=0)return{x:ox,z:oz};
+ const growth=Math.max(.28,Math.min(3.2,Number(capture.growthScale)||1)),size=(capture.form==='brute'?1.12:capture.form==='stalker'?1.04:1)*growth;
+ const yaw=capture.yaw||0,cs=Math.cos(yaw),sn=Math.sin(yaw),lateral=motion.lateral*Math.max(.42,Math.min(1.7,size));
+ const tx=capture.x+cs*lateral+sn*motion.forward*size,tz=capture.z-sn*lateral+cs*motion.forward*size;
+ return{x:ox+(tx-ox)*k,z:oz+(tz-oz)*k};
 }

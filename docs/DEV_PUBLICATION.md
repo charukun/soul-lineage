@@ -14,6 +14,14 @@ DEV app input hashes exclude control-plane-only `.github/**`, Integration/operat
 
 The normal `publish` job on `refs/heads/develop` does not invoke `verify-browser.mjs`, does not upload `dev-browser-*` evidence, and does not create a develop browser-repair ticket. Last Known Good DEV snapshots are retained after successful public HTTP/source verification.
 
+## Develop event budget
+
+Normal develop PR automation is source/state driven. PR Checks may run for `opened`, `synchronize`, `reopened`, `ready_for_review`, and `converted_to_draft`, but body edits, label churn, and review-comment activity do not create new validation runs because they do not change the exact source head. Integration still consumes the exact-head validation result and live GitHub PR state when deciding whether a Ready PR is eligible.
+
+Automatic DEV publication has two legitimate wake routes. An external `develop` push can start `deploy.yml` directly. Integration merges performed with the workflow `GITHUB_TOKEN` explicitly dispatch the automatic publisher because token-generated branch updates do not fan out into another Actions push run. For one exact develop SHA, an existing active publisher or accepted wake receipt absorbs duplicate Controller requests; an idle recovery pass may repair an orphaned wake that never produced a real publisher. Superseded automatic publishers, whether started by `push` or automatic `workflow_dispatch`, coalesce toward the current develop head.
+
+Normal work/feat/fix branch pushes do not run the PULSE browser verification workflow. PULSE verification/deployment is performed after the relevant source reaches `develop`, or when PULSE is explicitly dispatched. Normal DEV publication may refresh existing PULSE state, but it must not fan out optional browser/visual-review work.
+
 ## Browser verification is opt-in on develop
 
 Normal develop PRs do not automatically run affected-browser smoke. Normal DEV publication does not run a candidate browser pass or a post-publication browser pass.
@@ -24,13 +32,11 @@ A failure from an explicit browser run is evidence for diagnosis. If it proves a
 
 Historical `browser-repair:v1` records and old `pr-browser-*` / `dev-browser-*` artifacts remain evidence only. The legacy browser repair recorder workflow/input/script are retired and do not trigger new develop browser work.
 
-## Visual Review publication liveness
+## Visual Review is explicit on develop
 
-The fixed Visual Review URL is a non-blocking observation surface for the latest `develop`. Its publisher must have a trigger that can fire from the existing develop publication path without requiring the workflow file to exist on the repository default branch (`main`). Default-branch-only event types such as `workflow_run` or `workflow_dispatch` must not be the sole liveness path while the Visual Review workflow is intentionally develop-only. A `push` event is also insufficient as the sole path because Integration can update `develop` with `GITHUB_TOKEN`, whose resulting events do not create another workflow run.
+The fixed Visual Review URL is a non-blocking observation surface, not a normal DEV publication stage. Routine develop publication and PULSE refresh do not invoke the Visual Review publisher. Visual Review runs only from an explicit `Rinne Ops Board` workflow dispatch on `develop`, or as a reusable workflow called by a dedicated evidence route.
 
-The existing develop publisher already invokes the reusable PULSE/control-plane workflow with the exact publication SHA. That reusable workflow fans out an independent Visual Review reusable publisher with the same exact SHA. This fan-out is routing only: Visual Review build/deploy/public-check failure is recorded on `visual-review/public` but must not fail PULSE, normal Integration, or DEV publication.
-
-Before deploying, Visual Review confirms that its source SHA is still the current `develop` head. Newer publication runs coalesce through the fixed `visual-review-develop` concurrency group. The optional `REVIEW_PREVIEW_ENABLED` repository variable is an opt-out switch: an unset value must not silently disable publication, while an explicit `false` may disable it.
+When invoked, Visual Review resolves an exact develop source SHA, confirms that source is still current before publication, and coalesces newer requests through the fixed `visual-review-develop` concurrency group. The optional `REVIEW_PREVIEW_ENABLED` repository variable remains an opt-out switch: an unset value must not silently disable an explicit publication, while an explicit `false` may disable it.
 
 Visual Review must not report public success from root HTML markers alone. A successful publication requires the fixed URL to expose `version.json` for the exact source SHA and a focused Chromium interaction check to load the bundled runtime, switch Review panels, load the character/motion iframe route, and observe the built-in battle simulation advancing. JS/CSS/module/request failures or a stale source identity make `visual-review/public` fail even when Wrangler deployment itself succeeded.
 
@@ -38,7 +44,7 @@ The same public success must cover both the desktop review surface and a smartph
 
 The focused browser harness may construct WHATWG `URL` objects for cache-busting and source identity, but every Playwright page-navigation target must be serialized to an HTTPS string before calling `page.goto`. A harness API type mismatch is a verification defect and must be covered by regression tests rather than retried or hidden.
 
-PULSE must discover Visual Review from the exact develop `visual-review/public` commit status rather than requiring a separate top-level workflow run whose name contains `preview` or `visual review`. The publisher is intentionally a nested reusable workflow, so top-level workflow-name discovery is not a liveness contract.
+PULSE discovers Visual Review from the exact develop `visual-review/public` commit status when that explicit evidence exists. Absence of a fresh Visual Review status is not DEV publication failure and must not keep an otherwise verified DEV snapshot in a pending state.
 
 PULSE pre-publication browser checks that operate a dialog must scope controls to the owning dialog. Shared labels/classes such as `閉じる` / `.app-dialog-close` may exist in multiple independent dialogs; a global strict-mode locator must not prevent the updated PULSE entry surface from being published when the intended dialog is otherwise valid.
 
