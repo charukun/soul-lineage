@@ -56,3 +56,8 @@ test('main UI keeps four plan entrances, no debug entrance, and no direct equipm
   const ui=await readFile(new URL('../src/gameplay-ui.js',import.meta.url),'utf8'),upgrade=await readFile(new URL('../src/gameplay-upgrade.js',import.meta.url),'utf8'),css=await readFile(new URL('../src/gameplay-ui-contract.css',import.meta.url),'utf8'),index=await readFile(new URL('../index.html',import.meta.url),'utf8');
   assert.match(ui,/data-combat/);assert.match(ui,/data-items/);assert.match(ui,/data-map/);assert.match(ui,/data-record/);assert.doesNotMatch(ui,/data-debug/);assert.doesNotMatch(ui,/state\.equipment\.(weapon|armor|shield)\s*=/);assert.doesNotMatch(upgrade,/data-debug/);assert.match(css,/\.upgrade-panel\{overflow:hidden!important/);assert.match(index,/gameplay-ui-contract\.css/);
 });
+
+test('record UI uses readable life experience labels and an explicit four-rate world clock selector',async()=>{
+  const ui=await readFile(new URL('../src/gameplay-ui.js',import.meta.url),'utf8'),css=await readFile(new URL('../src/gameplay-record-alignment.css',import.meta.url),'utf8'),index=await readFile(new URL('../index.html',import.meta.url),'utf8');
+  assert.match(ui,/EXPERIENCES\[kind\]\|\|kind/);assert.match(ui,/record-tabs/);assert.match(ui,/time-rate-panel/);assert.match(ui,/\[1,5,10,20\]/);assert.match(ui,/clock\.onchange/);assert.doesNotMatch(ui,/state\.clockRate\s*=/);assert.match(css,/\.record-tabs/);assert.match(css,/\.time-rate-panel/);assert.match(index,/gameplay-record-alignment\.css/);
+});
