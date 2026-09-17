@@ -6,7 +6,11 @@ import {
   KAYKIT_FOUNDATION,
   KAYKIT_RIG_ID
 } from './kaykit-foundation.js';
-import { BLOCKED_RERIG_CHARACTER_IDS, RETIRED_CONDITIONAL_CHARACTER_IDS } from './license-policy.js';
+import {
+  BLOCKED_RERIG_CHARACTER_IDS,
+  RETIRED_CONDITIONAL_CHARACTER_IDS,
+  RETIRED_GENERATIVE_CHARACTER_IDS
+} from './license-policy.js';
 import {
   CHARACTER_REFERENCE_MODEL_VERSION,
   CHARACTER_REFERENCE_MODELS as REGISTERED_REFERENCE_MODELS,
@@ -17,12 +21,16 @@ import {
 // Shared character descriptors. App gameplay remains outside this package.
 // Only unconditional game-facing character foundations belong in the active catalog.
 // Legacy Shino schema exports remain available for save/migration compatibility, but
-// conditional or Shino-rigged model assets are excluded from active selection.
+// retired, conditional or blocked model assets are excluded from active selection.
 export const catalogVersion = 4;
 export const defaultCatalogId = DEFAULT_CHARACTER_FAMILY_ID;
 export const catalog = Object.freeze({ [KAYKIT_FAMILY_ID]: KAYKIT_FOUNDATION });
 
-const inactiveReferenceIds = new Set([...RETIRED_CONDITIONAL_CHARACTER_IDS, ...BLOCKED_RERIG_CHARACTER_IDS]);
+const inactiveReferenceIds = new Set([
+  ...RETIRED_CONDITIONAL_CHARACTER_IDS,
+  ...RETIRED_GENERATIVE_CHARACTER_IDS,
+  ...BLOCKED_RERIG_CHARACTER_IDS
+]);
 function activeReference(model) {
   if (model.kind !== 'runtime-reference-model') return model;
   return deepFreeze({
