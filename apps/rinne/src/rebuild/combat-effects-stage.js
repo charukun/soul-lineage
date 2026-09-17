@@ -55,7 +55,7 @@ export function installCombatEffects(view,{document,canvas,backendFactory=create
   view.renderState=(state,dt=0)=>{
     if(state?.zone!=='frontier'){director.clear();presentation.clear();clearRinneImpactAudio();}
     const level=original.visualSnapshot?.().focus?.level||0,reduced=Boolean(motion?.matches),hidden=Boolean(document.hidden),snap=director.frame(dt,{level,reduced,hidden});
-    const restorePose=director.applyPoseLag(state,front,dt);
+    const restorePose=director.applyPoseLag(state,front,dt,snap.timeScale);
     try{
       const anchors=anchorMap(director,state,front),anticipation=state?.zone==='frontier'?director.anticipation(state,front):[];
       if(anticipation.length){
