@@ -9,6 +9,9 @@ export const RETIRED_CONDITIONAL_CHARACTER_IDS = Object.freeze([
   'review.vroid-c',
   'review.tsukuyomi-type-a'
 ]);
+export const RETIRED_GENERATIVE_CHARACTER_IDS = Object.freeze([
+  'reconstructed-wayfarer.reference.v1'
+]);
 export const BLOCKED_RERIG_CHARACTER_IDS = Object.freeze([
   'arcanist.atlas-dcc.v1'
 ]);
@@ -46,6 +49,9 @@ export function evaluateCharacterLicensePolicy({
   rigId = '',
   rigProvenance = ''
 } = {}) {
+  if (RETIRED_GENERATIVE_CHARACTER_IDS.includes(id)) {
+    return Object.freeze({ status: 'retired', allowed: false, reason: 'retired-generative-character' });
+  }
   if (RETIRED_CONDITIONAL_CHARACTER_IDS.includes(id)) {
     return Object.freeze({ status: 'retired', allowed: false, reason: 'retired-conditional-character' });
   }

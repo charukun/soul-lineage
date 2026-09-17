@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {BITE_BEATS,feastEnvelope,feastReward,FEAST_SECONDS} from './feast-state.js';
-import {preyCapturePoint,samplePreyMotion} from './devour-motion.js';
+import {devourInteractionFrame,devourInteractionSide,samplePreyMotion} from './devour-motion.js';
 
 const PARTICLES=84;
 const clamp=x=>Math.max(0,Math.min(1,x));
@@ -34,13 +34,16 @@ export class FeastEffects {
   this.root.visible=active&&(s.feeding||s.release);this.beacon.visible=active&&!!target;
   if(target){this.beacon.position.set(target.npc.x,.045,target.npc.z);this.beacon.scale.setScalar(target.npc.dead?1:1.15);this.beacon.material.opacity=.55+Math.sin(game.time*3)*.15;}
   const intensity=this.release?.reward?.kind==='form'?1.25:this.release?.reward?.kind==='memory'?1:.76;
-  this.light.intensity=active?(s.charge*10+s.bite*14+s.bloom*38*intensity):0;this.light.position.set(p.x,1.5,p.z);
-  if(!this.root.visible)return s;
+  this.light.intensity=active?(s.charge*10+s.bite*14+s.bloom*38*intensity):0;
+  if(!this.root.visible){this.light.position.set(p.x,1.5,p.z);return s;}
   const color=this.release?.reward?.color||0x9effcd;
   this.souls.material.color.setHex(color);this.core.material.color.setHex(color);this.light.color.setHex(color);
-  const yaw=p.yaw||0,mouth={x:p.x+Math.sin(yaw)*.34,y:s.feeding?.85:1.5,z:p.z+Math.cos(yaw)*.34};
-  const n=game.devour?.npc,preyMotion=n?.capturedBy&&Number.isFinite(progress)?samplePreyMotion(progress,1,1):null;
-  const from=n?.capturedBy?preyCapturePoint(n,n.capturedBy,preyMotion):{x:n?.x??p.x,z:n?.z??p.z};
+  const n=game.devour?.npc,capture=n?.capturedBy,preyMotion=capture&&Number.isFinite(progress)?samplePreyMotion(progress,1,1,devourInteractionSide(capture)):null;
+  const interaction=capture&&preyMotion?devourInteractionFrame(n,capture,preyMotion):null;
+  const yaw=p.yaw||0,mouth=interaction?.mouth||{x:p.x+Math.sin(yaw)*.34,y:1.5,z:p.z+Math.cos(yaw)*.34};
+  const from=interaction?.upper||{x:n?.x??p.x,y:.16,z:n?.z??p.z};
+  const bitePoint=interaction?.bite||from;
+  this.light.position.set(mouth.x,mouth.y,mouth.z);
   this.core.position.set(mouth.x,mouth.y,mouth.z);this.core.scale.setScalar(s.feeding?.7+s.charge*.85+s.bite*.62:1+s.bloom*2.8*intensity);
   this.core.material.opacity=s.feeding?s.charge*.32+s.bite*.34:s.bloom*.66;
   this.souls.material.opacity=s.feeding?Math.min(1,s.charge*.78+s.bite*.34):s.bloom;
@@ -51,7 +54,7 @@ export class FeastEffects {
     const t=(clamp(progress)*2.7+i/PARTICLES)%1,spiral=Math.sin(t*Math.PI)*(.18+j*.25),spin=a+t*9;
     x=from.x+(mouth.x-from.x)*t+Math.cos(spin)*spiral;
     z=from.z+(mouth.z-from.z)*t+Math.sin(spin)*spiral;
-    y=.16+(mouth.y-.16)*t+Math.sin(t*Math.PI)*(.48+j*.6);
+    y=from.y+(mouth.y-from.y)*t+Math.sin(t*Math.PI)*(.28+j*.44);
    }else{
     const t=clamp(age/(1.05+j)),r=(.12+(1-Math.pow(1-t,3))*(1.25+j*1.8)*intensity)*(reducedMotion?.65:1);
     x=p.x+Math.cos(a+t*1.4)*r;z=p.z+Math.sin(a+t*1.4)*r;
@@ -63,11 +66,11 @@ export class FeastEffects {
   for(const [i,ring] of this.rings.entries()){
    const bitePhase=s.feeding?(progress-BITE_BEATS[i])/.075:Infinity;
    if(s.feeding&&Math.abs(bitePhase)<1){
-    const t=(bitePhase+1)/2;ring.visible=true;ring.position.set(from.x,.08+i*.015,from.z);
-    ring.scale.setScalar((.38+t*1.55)*(reducedMotion?.72:1));ring.material.opacity=Math.sin(t*Math.PI)*.82;
+    const t=(bitePhase+1)/2;ring.visible=true;ring.position.set(bitePoint.x,bitePoint.y,bitePoint.z);
+    ring.rotation.set(0,capture?.yaw||yaw,0);ring.scale.setScalar((.30+t*1.12)*(reducedMotion?.72:1));ring.material.opacity=Math.sin(t*Math.PI)*.82;
    }else{
     const t=clamp((age-i*.16)/1.35);ring.visible=s.release&&age>=i*.16;
-    ring.position.set(this.release?.x??p.x,.025+i*.012,this.release?.z??p.z);
+    ring.rotation.set(-Math.PI/2,0,0);ring.position.set(this.release?.x??p.x,.025+i*.012,this.release?.z??p.z);
     ring.scale.setScalar(.35+(1-Math.pow(1-t,3))*(i?4.7:3.5)*(reducedMotion?.7:1));
     ring.material.opacity=(1-t)*.8;
    }
@@ -76,10 +79,10 @@ export class FeastEffects {
   for(let strand=0;strand<3;strand++)for(let i=0;i<28;i++)for(let end=0;end<2;end++){
    const t=(i+end)/28;let x,y,z;
    if(s.feeding){
-    const arc=Math.sin(t*Math.PI),angle=strand*Math.PI*2/3+t*5.4+game.time*1.6,spiral=(.08+.22*arc)*(reducedMotion?.55:1);
+    const arc=Math.sin(t*Math.PI),angle=strand*Math.PI*2/3+t*5.4+game.time*1.6,spiral=(.06+.16*arc)*(reducedMotion?.55:1);
     x=from.x+(mouth.x-from.x)*t+Math.cos(angle)*spiral;
     z=from.z+(mouth.z-from.z)*t+Math.sin(angle)*spiral;
-    y=.17+(mouth.y-.17)*t+arc*(.38+strand*.08+s.bite*.14);
+    y=from.y+(mouth.y-from.y)*t+arc*(.22+strand*.06+s.bite*.10);
    }else{
     const angle=strand*Math.PI*2/3+t*6.3+game.time*2.3,radius=(1.05+s.bloom*.4)*(1-t*.66);
     x=p.x+Math.cos(angle)*radius;z=p.z+Math.sin(angle)*radius;y=.07+t*2.65;

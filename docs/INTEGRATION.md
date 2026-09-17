@@ -4,27 +4,33 @@
 
 通常の develop Integration は **PRで最低限守り、通るものから即流す**。DEV公開や、別PRの失敗を通常merge laneへ伝播させない。通常developの自動CIはtest-freeとし、browserもopt-inにする。局所テストは実装セッション側、重い品質認定は明示検証またはmain / Production側が担当する。
 
-実装セッションの終了条件は [実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md)。通常実装は Draft PR → 実装 → 局所検証 → push → Ready → `READY_FOR_INTEGRATION` で終了し、CI/DEV完了を待機・pollingしない。
+実装セッションの終了条件は [実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md)。通常実装は Draft PR → 実装 → 局所検証 → **current develop を work branch へ merge-forward → 局所再検証 → push → final freshness verify** → Ready → `READY_FOR_INTEGRATION` で終了し、CI/DEV完了を待機・pollingしない。
+
+Integration は実装セッションの代わりに通常のbase追従を行う第二工程ではない。正常な Ready PR は Ready 直前に観測した develop を既に含む。Integration は Ready 後に発生しうる短い race を吸収しつつ、single serialized expected-head writerとして最終的な原子性を守る薄い改札とする。
 
 ## 通常経路
 
 ```text
-Ready PR
-  -> Validate and build (DEV tests=0)
-  -> exact-head pr-fast artifact
-  -> Fast Lane
-       success -> serialized expected-head merge
-       mechanically repairable -> Fast Repair (GitHub Actions)
-            -> exact-head DEV checks/build (tests=0) -> Fast Lane wake
-       semantic/unsafe -> owner-notified Chat Repair Issue / HUMAN_REQUIRED
-  -> develop push
-  -> DEV Publisher
-  -> candidate manifest / public HTTP + source verification
+implementation worker
+  -> current develop merge-forward / focused revalidation / push / freshness verify
+  -> Ready PR
+       -> Validate and build (DEV tests=0)
+       -> exact-head pr-fast artifact
+       -> Fast Lane
+            develop unchanged since Ready -> serialized expected-head merge
+            develop advanced after Ready, mechanically safe -> Fast Repair
+                 -> merge-forward latest develop
+                 -> exact-head DEV checks/build (tests=0)
+                 -> Fast Lane wake
+            semantic/unsafe -> owner-notified Chat Repair Issue / HUMAN_REQUIRED
+       -> develop push
+       -> DEV Publisher
+       -> candidate manifest / public HTTP + source verification
 ```
 
 通常develop CIでは `node --test`、PR browser smoke、DEV candidate browser、DEV post-publish browserを自動実行しない。ブラウザ検証は明示依頼、`full_verification=true`、専門workflowのevidence契約、main / Productionでだけ実行する。
 
-正常PRはFast Repairを通らない。Fast Repairは第二のmerge queueではなく、Fast Laneの横にある短命executorだけとする。Chat repair待ちのPRは独立eligible PRを止めない。
+正常PRはFast Repairを通らない。Fast Repairは第二のmerge queueでも、実装workerが省略した通常のpre-Ready reconciliationを肩代わりする常設工程でもない。Ready後にdevelopが進んだrace、依存PR merge後など、hand-off後に生じた機械的に安全なbase更新だけを短命executorとして扱う。Chat repair待ちのPRは独立eligible PRを止めない。
 
 ### merge前の必須条件
 
@@ -43,11 +49,13 @@ Fast Laneはmerge直前にcurrent GitHub stateを再取得し、次をすべて�
 
 `Validate and build` のdevelop契約はtest-freeであり、exact-headの差分/構文・静的check・code-health・必要なbuild可否を確認する。テスト成功を意味しない。merge APIにはcurrent exact head SHAを渡す。develop writerは単一laneで、force pushやhistory rewriteをしない。
 
+Ready直前のfreshness verifyはraceを減らすための実装worker契約であり、Integration側のcurrent-state再取得やexpected-head mergeを省略する根拠にはしない。Ready直後でも別PRがmergeされ得るため、最後のcompare-and-swapは必ずIntegrationに残す。
+
 ## Fast Repair
 
 `rescue_mode=scan` は既定branch互換のwake入力として残すが、通常経路では旧RescueのCoordinator/Wave/claim/heartbeat/`AWAITING_PUSH`/Work push relay/Return queueを使わない。
 
-Fast Repairが扱うのは、依存PRのmerge後に最新developを取り込むなど **機械的に安全性を証明できるstack/base更新** だけ。実行直前にcurrent PR/head/develop、Draft、repository、author、hold、review thread、Depends-Onを再確認し、元PR branchへ通常のmerge-forwardを行う。更新後は同じtrusted runでtest-freeのDEV checks/buildを行い、`integration/stack-fast` と `pr-fast-<PR>-<SHA>` の実証拠を作ってFast Laneを即wakeする。
+Fast Repairが扱うのは、**Ready後にdevelopが進んだrace**、依存PRのmerge後に最新developを取り込むなど **機械的に安全性を証明できるstack/base更新** だけ。実行直前にcurrent PR/head/develop、Draft、repository、author、hold、review thread、Depends-Onを再確認し、元PR branchへ通常のmerge-forwardを行う。更新後は同じtrusted runでtest-freeのDEV checks/buildを行い、`integration/stack-fast` と `pr-fast-<PR>-<SHA>` の実証拠を作ってFast Laneを即wakeする。
 
 Fast Repairのmerge成功直後にPR情報が旧headを返す場合は、元headから変わっていない安全条件と実branch refを照合し、返却されたmerge SHAへの更新を確認できた場合だけ検証へ進める。別writerのhead・Draft・hold・依存本文変更は採用しない。
 
@@ -59,7 +67,7 @@ Deep RepairはバックグラウンドAI workerではない。Fast Laneがcurren
 
 通知を受けたユーザーが通常Chatを手動開始した場合だけ修復する。Chatはrecorded SHAを正本にせずcurrent PR head / latest developを再取得し、PR側・develop側の意図と確定契約を読み、双方を両立できる第三の修復を作る。無条件ours/theirs、blind cherry-pick、assertion削除、品質gate弱体化は禁止。
 
-修復は同じsource PR branchだけへpushし、focused checks / local tests / build後にReady / `READY_FOR_INTEGRATION`へ戻す。通常git → 接続済みGitHub API → 必要時のみ同branchの既存Codespaces＋通常gitの順で反映する。ChatはCI/DEVを待機・pollingしない。
+修復は同じsource PR branchだけへpushし、current develop を branch へ reconcile したうえで focused checks / local tests / build、push、freshness verify後にReady / `READY_FOR_INTEGRATION`へ戻す。通常git → 接続済みGitHub API → 必要時のみ同branchの既存Codespaces＋通常gitの順で反映する。ChatはCI/DEVを待機・pollingしない。
 
 Integration復旧では ChatGPT Work、Codex、OpenAI API、追加有料モデルAPI、専用PATを自動起動・fallback・watchdogに使わない。旧Work repair文書/scripts/stateは互換・履歴参照用であり現行実行経路ではない。
 
@@ -108,7 +116,9 @@ explicit hold、dependency、review objection、merge conflict、exact-head DEV 
 
 ## Draft / Ready
 
-Draftではlightweight checkのみ。Readyになると `Validate and build` を開始する。**developのこのjobはtests=0で、Request Integrationはcheck/build成功・失敗の直後に起動する。browser jobも通常develop経路に存在しない。** current exact-head source repairが必要な失敗はChat Repair Issueへ送る。
+Draftは実装workerが作業し、Ready化前にpre-Ready reconciliationを完了する領域。Draftではlightweight checkのみ。Readyになると `Validate and build` を開始する。**developのこのjobはtests=0で、Request Integrationはcheck/build成功・失敗の直後に起動する。browser jobも通常develop経路に存在しない。** current exact-head source repairが必要な失敗はChat Repair Issueへ送る。
+
+Integrationは「Readyにされた古いbaseを毎回更新する工程」ではない。Ready時点でheadが直前に取得したdevelopを含むことを標準契約とし、その後のraceだけをFast Repair fallbackで扱う。
 
 ## main / Production
 
@@ -124,13 +134,14 @@ Draftではlightweight checkのみ。Readyになると `Validate and build` を�
 
 ## 受入条件
 
-- 正常Ready PRはRepair stateやWorkを経由せず `Validate and build (tests=0) -> Fast Lane -> merge` で流れる
-- mechanically repairableなstack/base更新はGitHub Actionsだけで更新・test-free DEV検証・Fast Lane wakeまで進む
+- 実装workerはReady直前にcurrent developをwork branchへmerge-forwardし、reconciled headをfocused validation・push・freshness verifyしてからReadyにする
+- 正常Ready PRはRepair stateやWorkを経由せず `Validate and build (tests=0) -> Fast Lane -> serialized expected-head merge` で流れる
+- Fast RepairはReady後のdevelop advanceやdependency mergeなどhandoff後に生じた mechanically repairableなstack/base更新だけをGitHub Actionsで更新・test-free DEV検証・Fast Lane wakeする
 - semantic conflict / source-level DEV check/build repairはexact headごとに1件だけowner通知Chat Repair Issueを作る
 - 通知Issueに通常Chat用promptがあり、修復時はcurrent GitHub stateを再取得する
 - `AWAITING_PUSH` / Work relay / periodic Work watchdogを通常Repairの待ち時間にしない
 - normal developでtests=0・browserはopt-in、明示full verificationとProduction品質gateは維持
-- develop writerはsingle expected-head writer
+- develop writerはsingle expected-head writerで、Ready前reconciliationを理由にCAS gateを削除しない
 - stale DEV push publisherはcancel/coalesceされlatest developへ収束する
 - ChatGPT Work / Codex / OpenAI API / paid fallbackなし
 - main / Production品質gateは不変

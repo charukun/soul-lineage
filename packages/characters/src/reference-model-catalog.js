@@ -5,7 +5,6 @@ import { validateVisualIdentity } from './visual-identity.js';
 
 export { CHARACTER_REFERENCE_MODEL_VERSION };
 export const PROTAGONIST_VILLAGER_MODEL_ID = 'protagonist.villager.v1';
-export const RECONSTRUCTED_WAYFARER_MODEL_ID = 'reconstructed-wayfarer.reference.v1';
 
 const base = BASE_CHARACTER_REFERENCE_MODELS['child-boy.reference.v1'];
 const profile = canonicalAppearanceParts({
@@ -97,101 +96,8 @@ const protagonist = {
 validateVisualIdentity(protagonist);
 export const PROTAGONIST_VILLAGER_MODEL = deepFreeze(protagonist);
 
-const seedKnight = BASE_CHARACTER_REFERENCE_MODELS['knight.reference.v1'];
-const reconstructedProfile = canonicalAppearanceParts({
-  version: 1,
-  face: 'round',
-  hair: 'bob',
-  body: 'compact',
-  outfit: 'tunic',
-  accessory: 'scarf'
-});
-const MESHY_WAYFARER_SOURCE_URL = 'https://www.meshy.ai/3d-models/A-stylized-3D-model-of-a-chibistyle-female-adventurer-A-young-hero-with-a-short-green-hoodie-under-a-light-brown-leather-tunic-dark-short-skirt-leather-boots-and-a-simple-belt-Tousled-long-brown-hair-and-expressive-bright-blue-eyes-Confident-pose-stylized-for-a-fantasy-actionadventure-gameStylized-Fantasy-Game-Assets-Legend-of-Zelda-Pixar-Style-World-of-Warcraft-Chibi-Full-Body-APose-v2-0196ad16-605f-735d-9d1c-ec04032a2e02';
-const reconstructedWayfarer = {
-  ...seedKnight,
-  version: 1,
-  seed: 0x4d575632,
-  role: 'traveller',
-  ageBand: 'adult',
-  parts: reconstructedProfile,
-  front: 'swept',
-  back: 'layered',
-  face: { ...seedKnight.face, jaw: .91, cheek: 1.08, nose: .91, eyeWidth: 1.12, eyeHeight: 1.13, eyeSpacing: 1.03, browWeight: .82, browSlant: .012, chin: .92 },
-  proportions: { shoulders: .90, arms: .95, legs: .90, head: 1.12 },
-  gear: 'satchel',
-  cloth: [.43, .29, .18],
-  trim: [.73, .65, .50],
-  hairValue: .94,
-  id: RECONSTRUCTED_WAYFARER_MODEL_ID,
-  label: '再構築 Wayfarer / Meshy CC0 Seed',
-  kind: 'runtime-reference-model',
-  characterId: 'Reference_Reconstructed_Wayfarer',
-  assetId: 'runtime.reconstructed-wayfarer.reference.v1',
-  productionStage: 'BLOCKOUT',
-  modelingMode: 'runtime-procedural',
-  productionReady: false,
-  referencePath: MESHY_WAYFARER_SOURCE_URL,
-  profile: reconstructedProfile,
-  referenceStyle: deepFreeze({
-    version: 2,
-    design: 'meshy-seed-rinne-wayfarer',
-    scale: .78,
-    palette: {
-      skin: [.91, .70, .59],
-      hair: [.30, .18, .11],
-      eyes: [.20, .48, .72],
-      primary: [.43, .29, .18],
-      secondary: [.22, .35, .19],
-      accent: [.73, .65, .50],
-      dark: [.13, .12, .15],
-      metal: [.46, .48, .50],
-      leather: [.29, .17, .10],
-      wood: [.34, .23, .14]
-    },
-    armStyle: 'shirt',
-    legStyle: 'bare',
-    footwear: 'boots',
-    prop: 'satchel',
-    topologyPreset: 'procedural-humanoid-rebuild-v2-meshy-visual-seed',
-    surfacePreset: 'rinne-flat-cloth-leather-v2',
-    designDna: [
-      'compact-chibi-proportions',
-      'short-green-hood',
-      'layered-leather-tunic',
-      'short-dark-skirt',
-      'simple-utility-belt',
-      'tousled-brown-hair',
-      'bright-blue-eyes',
-      'leather-boots'
-    ]
-  }),
-  sourceReference: deepFreeze({
-    provider: 'Meshy',
-    source: 'Meshy Community / chibi-style female adventurer',
-    author: 'ktmarine1999',
-    modelId: '0196ad16-605f-735d-9d1c-ec04032a2e02',
-    url: MESHY_WAYFARER_SOURCE_URL,
-    license: 'CC0',
-    use: 'public-preview-visual-form-seed-only',
-    reusedGeometry: false,
-    reusedTextures: false,
-    transformation: [
-      'observe-public-preview-and-prompt-only',
-      'discard-source-geometry-and-textures',
-      'rebuild-topology-on-audited-humanoid-rig',
-      'redesign-proportions-and-silhouette-for-rinne',
-      'replace-surface-with-rinne-stylized-material-palette',
-      'reinterpret-chibi-adventurer-as-rinne-wayfarer'
-    ]
-  }),
-  note: 'Meshy Communityの公開CC0モデル（@ktmarine1999 / 0196ad16-605f-735d-9d1c-ec04032a2e02）を視覚的な種としてのみ参照するBLOCKOUT実験。公開プレビューと公開promptから、コンパクトな頭身、短い緑フード、革チュニック、暗色ショートスカート、簡素なベルト、茶髪、青い瞳、革ブーツというDesign DNAだけを抽出する。元mesh・texture/materialは再利用せず、共通Humanoid rig上でTopologyと表面材質を組み直し、顔・輪郭・装備配置を輪廻転焦の旅人へ再設計する。'
-};
-validateVisualIdentity(reconstructedWayfarer);
-export const RECONSTRUCTED_WAYFARER_MODEL = deepFreeze(reconstructedWayfarer);
-
 export const CHARACTER_REFERENCE_MODELS = deepFreeze({
   [PROTAGONIST_VILLAGER_MODEL_ID]: PROTAGONIST_VILLAGER_MODEL,
-  [RECONSTRUCTED_WAYFARER_MODEL_ID]: RECONSTRUCTED_WAYFARER_MODEL,
   ...BASE_CHARACTER_REFERENCE_MODELS
 });
 
