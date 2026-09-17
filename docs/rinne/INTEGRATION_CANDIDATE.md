@@ -25,3 +25,14 @@ Shinoのraw glTF poolは独立した描画基盤レビューであり、本編VR
 `node scripts/check-push-route.mjs origin/develop HEAD` は5モデル（11.5–17.7MiB）を検出しCODESPACES_GIT。既存ルールに従ってconnectorで分割/Base64再送しない。bundleを同じbranchへ取込んで通常git pushを行う。未検証のため最初はDraft PRとし、画面確認/CI成功後にReadyへ変更する。Integrationは所有者承認記録・最新head/CI/artifact/review/競合確認・expected-head merge・integration/develop成功までが完了条件。
 
 main/Productionは一切変更しない。
+
+## 住宅外観の共通化（2026-09-17）
+
+輪廻転生本編とMURAAAAAAAの住宅外観は、尽喰廻遊で現在使用している `@soul/housing-assets` の住宅モデルを共有描画層から使用する。アプリ間でモデル生成コードをコピーしない。
+
+受入条件:
+- `apps/rinne` と `apps/village` の住宅は同じ共有アダプタを経由し、尽喰廻遊の `cottage / tallhouse / manor / roundhouse` 系のシルエットへ置き換わる。
+- 村の建物ID、配置座標、当たり判定用の敷地寸法、増築レベル、室内・生活進行の契約は変更しない。変更対象は外観モデルである。
+- テント、畑、池、伐採場など住宅ではない専用形状は従来表現を維持する。
+- 尽喰廻遊側の夜間マテリアル演出は同アプリに残し、共有住宅モデルそのものを暗色化しない。
+- 共有描画テストと輪廻転生・村アプリのbuildで、住宅モデルの生成と既存契約の維持を確認する。
