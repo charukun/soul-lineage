@@ -18,8 +18,8 @@ test('Visual Review publication verifies direct navigation, real models and VFX 
   assert.match(opsBoard,/visual-review:[\s\S]*uses: \.\/\.github\/workflows\/review-preview\.yml/);assert.match(collector,/status\.context === 'visual-review\/public'/);assert.match(browserCheck,/page\.locator\('#app-dialog \.app-dialog-close'\)\.click\(\)/);
 });
 
-test('Review build promotes review.html only inside the dedicated Review bundle',async()=>{
-  const build=await read('scripts/build-review.mjs');assert.match(build,/npm.*build:rinne/s);assert.match(build,/review\.html/);assert.match(build,/game\.html/);assert.match(build,/copyFileSync\(reviewIndex,appIndex\)/);
+test('Review build promotes review.html without deleting its direct route',async()=>{
+  const build=await read('scripts/build-review.mjs');assert.match(build,/npm.*build:rinne/s);assert.match(build,/review\.html/);assert.match(build,/game\.html/);assert.match(build,/copyFileSync\(reviewIndex,appIndex\)/);assert.doesNotMatch(build,/rmSync\(reviewIndex\)/);
 });
 
 test('Review launcher contains no embedded specialist runtime',async()=>{
