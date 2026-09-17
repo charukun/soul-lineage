@@ -7,14 +7,16 @@ const css = readFileSync(new URL('../ops-board/public/progressive-disclosure.css
 const polish = readFileSync(new URL('../ops-board/public/review-polish.css', import.meta.url), 'utf8');
 const browserCheck = readFileSync(new URL('../ops-board/browser-check.mjs', import.meta.url), 'utf8');
 
-test('PULSE puts DEV publication first in the mobile overview', () => {
+test('PULSE puts DEV publication first and exposes Astra outcome state in the mobile overview', () => {
   const publication = html.indexOf('id="overview-app-card"');
   const attention = html.indexOf('id="overview-alert-card"');
   const development = html.indexOf('id="overview-task-card"');
   assert.ok(publication >= 0 && publication < attention && attention < development);
   assert.match(html, /<span class="overview-label">DEV公開<\/span>/);
   assert.match(html, /<span class="overview-label">今やること<\/span>/);
-  assert.match(html, /<span class="overview-label">開発中<\/span>/);
+  assert.match(html, /<span class="overview-label">開発状態<\/span>/);
+  assert.match(html, /WORKING \/ READY \/ BLOCKED/);
+  assert.match(html, /Fast Lane・Repair・CI/);
 });
 
 test('DEV publication card spans the overview width and uses larger text', () => {
