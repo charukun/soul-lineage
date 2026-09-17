@@ -25,7 +25,7 @@ current develop
 
 `BLOCKED` is reserved for a real product/permission/external-input choice that cannot be solved safely from the repository contract and user intent. CI pending, ordinary base drift, same-file edits, technical difficulty, or a mechanically repairable conflict do not by themselves make a task `BLOCKED`.
 
-Draft is an optional GitHub visibility mechanism, not a required implementation stage. Use it when long-running work, dispatch, or intermediate collaboration benefits from an observable `WORKING` PR. A short-lived task may stay on its work branch until the Ready outcome is complete and then create a Ready PR directly. Do not classify work as `Micro Patch` versus `Normal` merely to choose a route; Astra chooses the smallest sufficient context and validation from the actual risk.
+Draft is an optional GitHub visibility mechanism, not a required implementation stage. Use it when long-running work, dispatch, or intermediate collaboration benefits from an observable `WORKING` PR. A short-lived task may stay on its work branch until the Ready outcome is complete and then create a Ready PR directly. Do not create worker-facing route classes from file-count, line-count, or ceremony thresholds; Astra chooses the smallest sufficient context and validation from the actual risk.
 
 Before `READY`, the pushed exact head must include the current `develop` ancestry, preserve both task intent and current repository contracts, and have necessary evidence run on that final reconciled head. Earlier tests are optional debugging tools, not a mandatory second validation pass. With a checkout, `npm run pre-ready:sync` and `npm run pre-ready:verify` are available helpers; they are not a substitute for semantic judgment. Without a checkout, the connected GitHub/API route must produce the same reconciled ancestry and evidence.
 
@@ -62,8 +62,6 @@ Read only the rows that match the task.
 | Character/model/rig/material/DCC work | [`docs/art/README.md`](docs/art/README.md) and the routed `docs/characters/` contract |
 | Character motion / stance / locomotion | [`docs/characters/MOTION_AUTHORING.md`](docs/characters/MOTION_AUTHORING.md) and [`docs/characters/MOTION_QUALITY.md`](docs/characters/MOTION_QUALITY.md) |
 | User asks for the current motion video (`動画ください`) | [`docs/characters/MOTION_VIDEO_HANDOFF.md`](docs/characters/MOTION_VIDEO_HANDOFF.md) |
-
-[`docs/MICRO_PATCH_FAST_LANE.md`](docs/MICRO_PATCH_FAST_LANE.md) is retained only as compatibility history for the old authoring split. Do not make a worker choose that lane; risk and affected scope drive evidence directly under the Outcome Contract.
 
 ## Specialized execution
 
