@@ -6,7 +6,7 @@ import { activeCombo, bodyRuntime, comboById, ensureCombatLoadout, selectCombatC
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const finite=(n,lo,hi)=>typeof n==='number'&&Number.isFinite(n)&&n>=lo&&n<=hi;
-const TAU=Math.PI*2,ARENA={minX:-6.75,maxX:6.75,minZ:-5.85,maxZ:5.65};
+const TAU=Math.PI*2,ARENA={minX:-6.75,maxX:6.75,minZ:-5.85,maxZ:5.65},THREAT_RADIUS=3.55;
 const SESSIONS=new WeakMap();
 
 function wrapAngle(value){value=Number(value)||0;while(value>Math.PI)value-=TAU;while(value<-Math.PI)value+=TAU;return value;}
@@ -99,6 +99,10 @@ export function tidebreakLoadoutFor(state,comboId=state?.combat?.comboId){
   ensureCombatLoadout(state);const weapon=tidebreakWeaponFor(state.equipment.weapon),combo=comboById(state,comboId)||activeCombo(state);
   return{jo:phaseRecipe(state,'jo',weapon,combo),ha:phaseRecipe(state,'ha',weapon,combo),kyu:phaseRecipe(state,'kyu',weapon,combo),uke:reactionRecipe(state,weapon)};
 }
+function defensiveLoadoutFor(state){
+  const weapon=tidebreakWeaponFor(state.equipment.weapon),uke=reactionRecipe(state,weapon),hold={id:'rinne-threat-guard',name:'受勢',type:'normal',weapon,element:'steel',rhythm:'flow',tempo:1,aura:'none',steps:[{kind:'guard',footwork:'stay',charge:'none'},{kind:'brace',footwork:'stay',charge:'none'},{kind:'ready',footwork:'stay',charge:'none'}]};
+  return{jo:hold,ha:hold,kyu:hold,uke};
+}
 export function tidebreakMindsetFor(state){
   ensureCombatLoadout(state);const body=bodyRuntime(state),heart=activeHeart(state),ratio=state.maxHp>0?state.hp/state.maxHp:0;
   if(ratio<.32)return'survival';
@@ -122,15 +126,18 @@ function enemyWeapon(front,target){
 function enemyStyle(front,target){
   if(front.stage>=5)return'assault';const pool=['balanced','assault','defensive','counter','patient'],index=Math.floor(hash01(`${target.id}:mind`)*pool.length)%pool.length;return pool[index];
 }
-function combatSignature(state,target,front){return JSON.stringify({target:target.id,weapon:tidebreakWeaponFor(state.equipment.weapon),mind:tidebreakMindsetFor(state),loadout:tidebreakLoadoutFor(state),armor:state.equipment.armor,shield:state.equipment.shield,enemyWeapon:enemyWeapon(front,target),enemyStyle:enemyStyle(front,target)});}
-function createSession(state,target,front,signature){
-  const weapon=tidebreakWeaponFor(state.equipment.weapon),loadout=tidebreakLoadoutFor(state),mindset=tidebreakMindsetFor(state),hScale=heroHpScale(state),eScale=enemyHpScale(state);
-  const runtime=createTidebreakRuntime({seed:hashSeed(`${state.seed}:${state.generation}:${target.id}`),weapon});
+function sessionMap(state){let map=SESSIONS.get(state);if(!map){map=new Map();SESSIONS.set(state,map);}return map;}
+function combatSignature(state,target,front,secondary){return JSON.stringify({target:target.id,role:secondary?'threat':'primary',weapon:tidebreakWeaponFor(state.equipment.weapon),mind:tidebreakMindsetFor(state),loadout:secondary?defensiveLoadoutFor(state):tidebreakLoadoutFor(state),armor:state.equipment.armor,shield:state.equipment.shield,enemyWeapon:enemyWeapon(front,target),enemyStyle:enemyStyle(front,target)});}
+function createSession(state,target,front,signature,{secondary=false}={}){
+  const weapon=tidebreakWeaponFor(state.equipment.weapon),loadout=secondary?defensiveLoadoutFor(state):tidebreakLoadoutFor(state),mindset=tidebreakMindsetFor(state),hScale=heroHpScale(state),eScale=enemyHpScale(state);
+  const runtime=createTidebreakRuntime({seed:hashSeed(`${state.seed}:${state.generation}:${target.id}:${secondary?'threat':'primary'}`),weapon});
   const snapshot=runtime.configure({weapon,enemyWeapon:enemyWeapon(front,target),enemyStyle:enemyStyle(front,target),loadout,mindset,hp:Math.max(.001,state.hp/hScale),maxhp:Math.max(.001,state.maxHp/hScale),enemyHp:Math.max(.001,target.hp/eScale),positions:{hero:{x:state.position.x,z:state.position.z,yaw:state.yaw},enemy:{x:target.x,z:target.z,yaw:target.yaw}}});
-  const session={runtime,targetId:target.id,signature,heroHpScale:hScale,enemyHpScale:eScale,last:snapshot,lastAttackKey:snapshot.hero.attack?`${snapshot.hero.slot||''}:${snapshot.hero.attack}`:null,oneMotionArmed:null,invalid:false,rotateAfterKyu:false};SESSIONS.set(state,session);return session;
+  const session={runtime,targetId:target.id,signature,secondary,heroHpScale:hScale,enemyHpScale:eScale,last:snapshot,lastAttackKey:snapshot.hero.attack?`${snapshot.hero.slot||''}:${snapshot.hero.attack}`:null,oneMotionArmed:null,invalid:false,rotateAfterKyu:false};sessionMap(state).set(target.id,session);return session;
 }
-function sessionFor(state,target,front){const signature=combatSignature(state,target,front),existing=SESSIONS.get(state);return !existing||existing.targetId!==target.id||existing.signature!==signature||existing.invalid?createSession(state,target,front,signature):existing;}
-function clearSession(state){SESSIONS.delete(state);}
+function sessionDrift(session,state,target){const h=session.last?.hero,e=session.last?.enemy;if(!h||!e)return Infinity;return Math.max(Math.hypot(h.x-state.position.x,h.z-state.position.z),Math.hypot(e.x-target.x,e.z-target.z));}
+function sessionFor(state,target,front,{secondary=false}={}){const signature=combatSignature(state,target,front,secondary),existing=sessionMap(state).get(target.id);return !existing||existing.signature!==signature||existing.secondary!==secondary||existing.invalid||sessionDrift(existing,state,target)>1.15?createSession(state,target,front,signature,{secondary}):existing;}
+function clearSession(state,targetId=null){const map=SESSIONS.get(state);if(!map)return;if(targetId!==null){map.delete(targetId);if(!map.size)SESSIONS.delete(state);}else SESSIONS.delete(state);}
+function pruneSessions(state,keep){const map=SESSIONS.get(state);if(!map)return;for(const id of map.keys())if(!keep.has(id))map.delete(id);if(!map.size)SESSIONS.delete(state);}
 
 function nearestEnemy(position,enemies){let best=null,bestDistance=Infinity;for(const enemy of enemies){const d=dist(position,enemy);if(d<bestDistance){best=enemy;bestDistance=d;}}return{enemy:best,distance:bestDistance};}
 function advanceEnemyClock(front,dt){for(const enemy of front.enemies){enemy.flash=Math.max(0,enemy.flash-dt*4);enemy.attackWindow=Math.max(0,(enemy.attackWindow||0)-dt);if(!enemy.dead)enemy.cooldown=Math.max(-1,(Number(enemy.cooldown)||0)-dt);else enemy.moving=false;}}
@@ -146,63 +153,72 @@ function advanceEnemyFormation(state,living,dt,stage,skipId=null){
   });
   for(const move of planned){const enemy=living.find(row=>row.id===move.id);if(!enemy)continue;const beforeX=enemy.x,beforeZ=enemy.z;enemy.x=clamp(enemy.x+move.vx*dt,ARENA.minX,ARENA.maxX);enemy.z=clamp(enemy.z+move.vz*dt,ARENA.minZ,ARENA.maxZ);enemy.yaw=turnToward(enemy.yaw,angleTo(enemy,state.position),dt*5.4);enemy.moving=Math.hypot(enemy.x-beforeX,enemy.z-beforeZ)>.002;}
 }
+function advanceSharedEnemyFormation(states,living,dt,stage){
+  if(!states.length||!living.length||dt<=0)return;const snapshot=living.map(enemy=>({id:enemy.id,x:enemy.x,z:enemy.z,cooldown:enemy.cooldown,attackWindow:enemy.attackWindow||0}));
+  for(const row of snapshot){const target=[...states].sort((a,b)=>{const lockA=a.combat?.targetId===row.id?-.65:0,lockB=b.combat?.targetId===row.id?-.65:0;return dist(row,a.position)+lockA-(dist(row,b.position)+lockB)||a.id.localeCompare(b.id);})[0];if(!target)continue;
+    const dx=row.x-target.position.x,dz=row.z-target.position.z,d=Math.max(.001,Math.hypot(dx,dz)),ox=dx/d,oz=dz/d,orbit=hash01(`${row.id}:orbit`)<.5?-1:1,ready=row.cooldown<=.12,committed=row.attackWindow>0,preferred=stage>=5?1.65:ready?1.48:1.86+hash01(`${row.id}:ring`)*.42,radial=clamp((d-preferred)*(d>3.2?1.15:.82),-.75,1.45),tx=-oz*orbit,tz=ox*orbit,orbitSpeed=d>3.35?.12:(ready?.24:.48+hash01(`${row.id}:pace`)*.2);let vx=-ox*radial+tx*orbitSpeed,vz=-oz*radial+tz*orbitSpeed;
+    for(const other of snapshot){if(other.id===row.id)continue;const sx=row.x-other.x,sz=row.z-other.z,separation=Math.hypot(sx,sz);if(separation>0&&separation<1.08){const push=(1-separation/1.08)*1.55;vx+=sx/separation*push;vz+=sz/separation*push;}}
+    if(committed){vx*=.22;vz*=.22;}const magnitude=Math.hypot(vx,vz),speed=1.02+Math.min(.28,stage*.045)+(d>3.2?.5:0),scale=magnitude>speed?speed/magnitude:1,enemy=living.find(item=>item.id===row.id),beforeX=enemy.x,beforeZ=enemy.z;enemy.x=clamp(enemy.x+vx*scale*dt,ARENA.minX,ARENA.maxX);enemy.z=clamp(enemy.z+vz*scale*dt,ARENA.minZ,ARENA.maxZ);enemy.yaw=turnToward(enemy.yaw,angleTo(enemy,target.position),dt*5.4);enemy.moving=Math.hypot(enemy.x-beforeX,enemy.z-beforeZ)>.002;
+  }
+}
 function allowedLiving(front,allowedEnemyIds){const living=front.enemies.filter(enemy=>!enemy.dead);return allowedEnemyIds?living.filter(enemy=>allowedEnemyIds.has(enemy.id)):living;}
 function recordEnemyDown(state,target,events){
   if(target.dead)return;target.hp=0;target.dead=true;target.moving=false;state.defeats++;const row=state.experiences.combat||{count:0,score:0,last:0};state.experiences.combat={count:row.count+1,score:row.score+1,last:state.ageSeconds};events.push({type:'enemy-down',targetId:target.id,engine:'tidebreak'});
 }
 function chargeAttackStamina(state,session,next){
-  const key=next.hero.attack?`${next.hero.slot||''}:${next.hero.attack}`:null;if(key&&key!==session.lastAttackKey&&!session.oneMotionArmed){const base=WEAPONS[state.equipment.weapon]||WEAPONS.fist,phase=next.hero.slot,cost=base.stamina*(phase==='kyu'?1.25:phase==='ha'?1.08:1);if(!spendStamina(state,cost))state.stamina=0;}session.lastAttackKey=key;
+  const key=next.hero.attack?`${next.hero.slot||''}:${next.hero.attack}`:null;if(key&&key!==session.lastAttackKey&&!session.oneMotionArmed&&!session.secondary){const base=WEAPONS[state.equipment.weapon]||WEAPONS.fist,phase=next.hero.slot,cost=base.stamina*(phase==='kyu'?1.25:phase==='ha'?1.08:1);if(!spendStamina(state,cost))state.stamina=0;}session.lastAttackKey=key;
 }
 function armOneMotion(state,session,dt){
-  const queued=state.combat?.oneMotionQueued;if(!queued)return;
+  const queued=state.combat?.oneMotionQueued;if(!queued||session.secondary)return;
   queued.ttl-=dt;if(queued.ttl<=0){state.combat.oneMotionQueued=null;return;}
   if(session.last.hero.attack)return;const base=WEAPONS[state.equipment.weapon]||WEAPONS.fist,cost=Math.max(22,base.stamina*2.6);if(!spendStamina(state,cost))return;session.oneMotionArmed=queued.skill;state.combat.oneMotionQueued=null;
 }
-function applyTidebreakStep(state,target,front,dt,events){
-  const session=sessionFor(state,target,front);armOneMotion(state,session,dt);
-  const manual=state.moving?.67:0;session.runtime.input(Math.sin(state.yaw),Math.cos(state.yaw),manual,0);
+function applyTidebreakStep(state,target,front,dt,events,{primary=false,heroPositionAuthority=true,enemyPositionAuthority=true}={}){
+  const session=sessionFor(state,target,front,{secondary:!primary});armOneMotion(state,session,dt);
+  const manual=primary&&state.moving?.67:0;session.runtime.input(Math.sin(state.yaw),Math.cos(state.yaw),manual,0);
   const beforeHero=state.hp,beforeEnemy=target.hp,beforeX=state.position.x,beforeZ=state.position.z,beforeEnemyX=target.x,beforeEnemyZ=target.z,previous=session.last,next=session.runtime.step(dt);
   chargeAttackStamina(state,session,next);
-  state.position.x=clamp(next.hero.x,ARENA.minX,ARENA.maxX);state.position.z=clamp(next.hero.z,ARENA.minZ,ARENA.maxZ);state.yaw=wrapAngle(next.hero.yaw);state.moving=state.moving||Math.hypot(state.position.x-beforeX,state.position.z-beforeZ)>.002;
-  target.x=clamp(next.enemy.x,ARENA.minX,ARENA.maxX);target.z=clamp(next.enemy.z,ARENA.minZ,ARENA.maxZ);target.yaw=wrapAngle(next.enemy.yaw);target.moving=Math.hypot(target.x-beforeEnemyX,target.z-beforeEnemyZ)>.002;target.attackWindow=next.enemy.attack?.32:0;target.cooldown=next.enemy.attack?.55:Math.max(-1,target.cooldown);
-  state.hp=clamp(next.hero.hp*session.heroHpScale,0,state.maxHp);target.hp=clamp(next.enemy.hp*session.enemyHpScale,0,target.maxHp);
-  let dealt=Math.max(0,beforeEnemy-target.hp),taken=Math.max(0,beforeHero-state.hp);const slot=['jo','ha','kyu'].includes(next.hero.slot)?next.hero.slot:null;if(slot)state.combat.phase=slot;
-  state.combat.engine='tidebreak';state.combat.tidebreakVersion=session.runtime.sourceVersion;state.combat.attackCooldown=next.hero.attack?1.3:0;
-  const armed=session.oneMotionArmed;if(dealt>.001&&armed){const extra=Math.min(target.hp,dealt*.78);target.hp-=extra;dealt+=extra;session.oneMotionArmed=null;session.invalid=true;state.combat.zanshinSeconds=.95;events.push({type:'one-motion',targetId:target.id,skill:armed,damage:dealt,engine:'tidebreak'});}
-  if(dealt>.001)events.push({type:'player-hit',targetId:target.id,skill:armed?techniqueName(armed):(next.hero.skill||techniqueName(comboById(state,state.combat.comboId)?.slots?.[slot||state.combat.phase])),phase:armed?'one':(slot||state.combat.phase||'jo'),damage:dealt,manual:Boolean(armed),engine:'tidebreak'});
+  if(primary&&heroPositionAuthority){state.position.x=clamp(next.hero.x,ARENA.minX,ARENA.maxX);state.position.z=clamp(next.hero.z,ARENA.minZ,ARENA.maxZ);state.yaw=wrapAngle(next.hero.yaw);state.moving=state.moving||Math.hypot(state.position.x-beforeX,state.position.z-beforeZ)>.002;}
+  if(primary&&enemyPositionAuthority){target.x=clamp(next.enemy.x,ARENA.minX,ARENA.maxX);target.z=clamp(next.enemy.z,ARENA.minZ,ARENA.maxZ);target.yaw=wrapAngle(next.enemy.yaw);target.moving=Math.hypot(target.x-beforeEnemyX,target.z-beforeEnemyZ)>.002;}
+  target.attackWindow=Math.max(target.attackWindow||0,next.enemy.attack?.32:0);if(next.enemy.attack)target.cooldown=Math.max(target.cooldown,.55);
+  const runtimeHeroBefore=previous.hero.hp*session.heroHpScale,runtimeHeroAfter=next.hero.hp*session.heroHpScale,runtimeEnemyBefore=previous.enemy.hp*session.enemyHpScale,runtimeEnemyAfter=next.enemy.hp*session.enemyHpScale;
+  let taken=Math.max(0,runtimeHeroBefore-runtimeHeroAfter),dealt=Math.max(0,runtimeEnemyBefore-runtimeEnemyAfter);state.hp=clamp(beforeHero-taken,0,state.maxHp);target.hp=clamp(beforeEnemy-dealt,0,target.maxHp);
+  const slot=['jo','ha','kyu'].includes(next.hero.slot)?next.hero.slot:null;if(primary&&slot)state.combat.phase=slot;
+  if(primary){state.combat.engine='tidebreak';state.combat.tidebreakVersion=session.runtime.sourceVersion;state.combat.attackCooldown=next.hero.attack?1.3:0;}
+  const armed=primary?session.oneMotionArmed:null;if(dealt>.001&&armed){const extra=Math.min(target.hp,dealt*.78);target.hp-=extra;dealt+=extra;session.oneMotionArmed=null;session.invalid=true;state.combat.zanshinSeconds=.95;events.push({type:'one-motion',targetId:target.id,skill:armed,damage:dealt,engine:'tidebreak'});}
+  if(dealt>.001)events.push({type:'player-hit',targetId:target.id,skill:armed?techniqueName(armed):(next.hero.skill||(!primary?'受け返し':techniqueName(comboById(state,state.combat.comboId)?.slots?.[slot||state.combat.phase]))),phase:armed?'one':(!primary?'uke':(slot||state.combat.phase||'jo')),damage:dealt,manual:Boolean(armed),engine:'tidebreak'});
   if(taken>.001)events.push({type:'enemy-hit',sourceId:target.id,damage:taken,engine:'tidebreak'});
   const counters=(next.stats?.counters||0)-(previous.stats?.counters||0);if(counters>0&&taken<=.001)events.push({type:'evaded',sourceId:target.id,defense:'counter',engine:'tidebreak'});
-  const kyuUses=(next.stats?.uses?.kyu||0)-(previous.stats?.uses?.kyu||0);if(kyuUses>0)session.rotateAfterKyu=true;
-  if(session.rotateAfterKyu&&!next.hero.attack&&state.combat){selectCombatCombo(state,state.combat,{advance:true});state.combat.phase='jo';session.rotateAfterKyu=false;session.invalid=true;}
+  if(primary){const kyuUses=(next.stats?.uses?.kyu||0)-(previous.stats?.uses?.kyu||0);if(kyuUses>0)session.rotateAfterKyu=true;if(session.rotateAfterKyu&&!next.hero.attack&&state.combat){selectCombatCombo(state,state.combat,{advance:true});state.combat.phase='jo';session.rotateAfterKyu=false;session.invalid=true;}}
   session.last=next;
   if(target.hp<=.001)recordEnemyDown(state,target,events);
   if(state.hp<=.001&&!state.ended&&!state.down){const fatalChance=frontierFatalityChance(state),fatalRoll=hash01(`${state.seed}:${target.id}:fatal:${front.stage}:${Math.floor(state.ageSeconds)}:${state.defeats}`);clearSession(state);if(fatalRoll<fatalChance){endLifeEarly(state,`第${front.stage+1}前線の戦い`);events.push({type:'life-end',cause:'combat',fatalChance,engine:'tidebreak'});}else{state.down={elapsed:0,rescueSeconds:40,frontier:true};state.combat=null;events.push({type:'downed',fatalChance,engine:'tidebreak'});}}
-  if(target.dead){clearSession(state);state.combat=null;}
+  if(target.dead){clearSession(state,target.id);if(primary&&state.combat?.targetId===target.id)state.combat=null;}
 }
 
-export function tickFront(state,front,dt,{advanceEnemies=true,allowedEnemyIds=null}={}){
+export function tickFront(state,front,dt,{advanceEnemies=true,allowedEnemyIds=null,advanceFormation=true,heroPositionAuthority=true,enemyPositionAuthority=true}={}){
   const events=[];if(state.zone!=='frontier'||state.ended)return events;if(advanceEnemies)advanceEnemyClock(front,dt);
   const allLiving=front.enemies.filter(enemy=>!enemy.dead);if(!allLiving.length){front.cleared=true;if(advanceEnemies)front.clearSeconds+=dt;state.combat=null;clearSession(state);return[{type:'front-cleared',stage:front.stage,engine:'tidebreak'}];}
   if(state.down){clearSession(state);if(advanceEnemies)for(const enemy of allLiving)enemy.moving=false;state.down.elapsed+=dt;if(state.down.elapsed>=40){state.down=null;state.zone='village';state.front=0;state.hp=Math.max(30,state.maxHp*.3);state.stamina=state.staminaCap*.6;state.combat=null;events.push({type:'rescued'});}return events;}
   let living=allowedLiving(front,allowedEnemyIds);if(!living.length){if(state.combat){state.combat=null;clearSession(state);}return events;}
   let nearest=nearestEnemy(state.position,living),target=state.combat?living.find(enemy=>enemy.id===state.combat.targetId&&!enemy.dead):null;
   if(!state.combat&&nearest.distance<=3.25){state.combat=beginCombatState(state,nearest.enemy.id);state.combat.engine='tidebreak';target=nearest.enemy;}
-  if(state.combat&&!target){if(nearest.distance<=3.25){state.combat.targetId=nearest.enemy.id;target=nearest.enemy;clearSession(state);}else{state.combat=null;clearSession(state);}}
-  if(state.combat&&target&&dist(state.position,target)>5.4){state.combat=null;clearSession(state);target=null;events.push({type:'disengage'});}
-  advanceEnemyFormation(state,living,dt,front.stage,target?.id||null);
-  if(state.combat&&target)applyTidebreakStep(state,target,front,dt,events);
+  if(state.combat&&!target){if(nearest.distance<=3.25){state.combat.targetId=nearest.enemy.id;target=nearest.enemy;}else{state.combat=null;}}
+  if(state.combat&&target&&dist(state.position,target)>5.4){clearSession(state,target.id);state.combat=null;target=null;events.push({type:'disengage'});}
+  if(advanceFormation)advanceEnemyFormation(state,living,dt,front.stage,target?.id||null);
+  if(state.combat&&target)applyTidebreakStep(state,target,front,dt,events,{primary:true,heroPositionAuthority,enemyPositionAuthority});
+  living=allowedLiving(front,allowedEnemyIds);const threats=living.filter(enemy=>!enemy.dead&&enemy.id!==state.combat?.targetId&&dist(state.position,enemy)<=THREAT_RADIUS);
+  for(const threat of threats){if(state.down||state.ended)break;applyTidebreakStep(state,threat,front,dt,events,{primary:false,heroPositionAuthority:false,enemyPositionAuthority:false});}
+  const keep=new Set(threats.map(enemy=>enemy.id));if(state.combat?.targetId)keep.add(state.combat.targetId);pruneSessions(state,keep);if(state.combat)state.combat.threatIds=[...keep];
   if(front.enemies.every(enemy=>enemy.dead)){front.cleared=true;if(advanceEnemies)front.clearSeconds+=dt;state.combat=null;clearSession(state);}
   return events;
 }
 
-/** Shared frontier keeps one authoritative owner per enemy; each owned duel resolves in Tidebreak. */
+/** Shared frontier is many-to-many: enemies may threaten several players and several players may damage the same enemy. */
 export function tickSharedFront(states,front,dt){
   const ordered=[...states].sort((a,b)=>a.id.localeCompare(b.id)),events=new Map();if(!ordered.length)return events;if(ordered.length===1){events.set(ordered[0].id,tickFront(ordered[0],front,dt));return events;}
-  advanceEnemyClock(front,dt);const eligible=ordered.filter(state=>!state.down&&!state.ended),assignments=new Map(ordered.map(state=>[state.id,new Set()]));
-  for(const enemy of front.enemies.filter(row=>!row.dead)){
-    const owner=[...eligible].sort((a,b)=>{const lockA=a.combat?.targetId===enemy.id?-1.15:0,lockB=b.combat?.targetId===enemy.id?-1.15:0;return dist(enemy,a.position)+lockA-(dist(enemy,b.position)+lockB)||a.id.localeCompare(b.id);})[0];if(owner)assignments.get(owner.id).add(enemy.id);
-  }
-  for(const state of ordered)events.set(state.id,tickFront(state,front,dt,{advanceEnemies:false,allowedEnemyIds:assignments.get(state.id)}));
+  advanceEnemyClock(front,dt);const eligible=ordered.filter(state=>!state.down&&!state.ended),living=front.enemies.filter(row=>!row.dead);advanceSharedEnemyFormation(eligible,living,dt,front.stage);
+  for(const state of ordered)events.set(state.id,tickFront(state,front,dt,{advanceEnemies:false,advanceFormation:false,heroPositionAuthority:true,enemyPositionAuthority:false}));
   if(front.enemies.every(enemy=>enemy.dead)){front.cleared=true;front.clearSeconds+=dt;}
   return events;
 }
