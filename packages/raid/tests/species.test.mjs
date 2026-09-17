@@ -48,8 +48,11 @@ test('species override is stable through a hunt and each species exposes its own
  assert.equal(signatures.size,MONSTER_SPECIES_IDS.length);
 });
 
-test('species make different bodies without changing the feeding loop contract',()=>{
- const runt=feedingGrowth(6,'goblin-runt'),brute=feedingGrowth(6,'horn-brute'),bat=feedingGrowth(6,'night-bat'),ogre=feedingGrowth(6,'grave-ogre');
+test('species make different mature bodies without changing the feeding loop contract',()=>{
+ const runt=feedingGrowth(MONSTER_SPECIES['goblin-runt'].growth.fullMeals,'goblin-runt');
+ const brute=feedingGrowth(MONSTER_SPECIES['horn-brute'].growth.fullMeals,'horn-brute');
+ const bat=feedingGrowth(MONSTER_SPECIES['night-bat'].growth.fullMeals,'night-bat');
+ const ogre=feedingGrowth(MONSTER_SPECIES['grave-ogre'].growth.fullMeals,'grave-ogre');
  assert.equal(runt.progress,1);assert.ok(runt.scale<brute.scale);assert.ok(bat.moveScale>brute.moveScale);assert.ok(ogre.hpScale>bat.hpScale);
  for(const id of MONSTER_SPECIES_IDS){const g=feedingGrowth(999,id);assert.equal(g.progress,1);assert.equal(g.scale,MONSTER_SPECIES[id].growth.maxScale);}
 });
