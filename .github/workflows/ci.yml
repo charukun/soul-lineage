@@ -1,6 +1,6 @@
 name: PR Checks
-# Develop PRs use deterministic fast validation/build as the automatic gate.
-# Browser/gameplay verification is opt-in and belongs to explicit verification or Production routes.
+# Develop PRs use deterministic no-test checks/build as the automatic gate.
+# Tests and browser/gameplay verification are opt-in on develop and remain available on Production routes.
 run-name: >-
   CI ${{ (github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review","converted_to_draft"]'), github.event.action)) && 'validation' || 'observation' }} #${{ github.event.pull_request.number }} ${{ github.event.pull_request.head.sha }}
 on:
@@ -90,7 +90,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Check patch whitespace only (no install, build or deploy)
+      - name: Check patch whitespace only (no install, test, build or deploy)
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -147,7 +147,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           if [ ! -f control/scripts/integration-rescue-fast-evidence.mjs ]; then
-            echo 'Trusted reuse verifier is not on develop yet; run normal fast CI for this bootstrap PR.'
+            echo 'Trusted reuse verifier is not on develop yet; run normal DEV CI for this bootstrap PR.'
             echo 'reuse=false' >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -223,13 +223,19 @@ jobs:
         if: >-
           steps.rescue-fast.outputs.reuse != 'true' &&
           (steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.has_packages == 'true' || steps.plan.outputs.infrastructure == 'true')
-      - name: Fast verification (responsibility-scoped)
+      - name: DEV no-test validation or main fast verification
         if: steps.rescue-fast.outputs.reuse != 'true'
         working-directory: work
         env:
           BASE_SHA: ${{ steps.base.outputs.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: node scripts/validate.mjs fast "$BASE_SHA" "$HEAD_SHA"
+          TARGET_BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          if [ "$TARGET_BASE" = "develop" ]; then
+            node scripts/validate.mjs dev "$BASE_SHA" "$HEAD_SHA"
+          else
+            node scripts/validate.mjs fast "$BASE_SHA" "$HEAD_SHA"
+          fi
       - name: Record PR/head identity for Integration
         working-directory: work
         env:
