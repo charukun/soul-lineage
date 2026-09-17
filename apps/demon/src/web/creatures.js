@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {sampleDevourMotion,samplePreyMotion} from './devour-motion.js';
+import {preyCapturePoint,sampleDevourMotion,samplePreyMotion} from './devour-motion.js';
 import {blendPoint,stepCombatPresentation} from '../combat-presentation.js';
 const up=new T.Vector3(0,1,0),temp=new T.Vector3();
 const palette=new Map();
@@ -67,7 +67,7 @@ export function animateCreature(g,a,time,options={}){
    u.downBlend=Math.min(1,(u.downBlend||0)+Math.min(frameDt,.1)/.46);
    if(a.capturedBy){u.captureVisual={...a.capturedBy};u.captureBlend=1;}
    else if(u.captureVisual){u.captureBlend=Math.max(0,(u.captureBlend??1)-Math.min(frameDt,.1)/.22);if(u.captureBlend<=0){u.captureVisual=null;u.captureBlend=0;}}
-   applyIncapacitatedPose(g,samplePreyMotion(u.captureVisual?.progress,u.downBlend,u.captureBlend??0),u.captureVisual);
+   applyIncapacitatedPose(g,samplePreyMotion(u.captureVisual?.progress,u.downBlend,u.captureBlend??0),u.captureVisual,a);
   }
  }else{u.downBlend=0;u.captureVisual=null;u.captureBlend=0;}
 }
@@ -107,7 +107,7 @@ function applyDevourPose(g,p){
   }
  }
 }
-function applyIncapacitatedPose(g,p,capture){
+function applyIncapacitatedPose(g,p,capture,origin){
  const u=g.userData,k=p.slack;
  g.rotation.z=p.rootRoll;g.position.y+=p.rootY;
  u.body.rotation.x+=(p.bodyPitch-u.body.rotation.x)*k;
@@ -129,10 +129,8 @@ function applyIncapacitatedPose(g,p,capture){
   connect(arm.upper,[s*.28,1.47,-.025],elbow);connect(arm.lower,elbow,hand);arm.hand.position.set(...hand);if(s===1)u.weapon.position.set(...hand);
  }
  if(!capture||p.capture<=0)return;
- const growth=Math.max(.28,Math.min(3.2,Number(capture.growthScale)||1)),size=(capture.form==='brute'?1.12:capture.form==='stalker'?1.04:1)*growth;
- const yaw=capture.yaw||0,cs=Math.cos(yaw),sn=Math.sin(yaw),lateral=p.lateral*Math.max(.42,Math.min(1.7,size));
- const tx=capture.x+cs*lateral+sn*p.forward*size,tz=capture.z-sn*lateral+cs*p.forward*size;
- g.position.x+=(tx-g.position.x)*p.capture;g.position.z+=(tz-g.position.z)*p.capture;g.position.y+=p.lift*p.capture;
+ const anchor=preyCapturePoint(origin,capture,p),yaw=capture.yaw||0;
+ g.position.x=anchor.x;g.position.z=anchor.z;g.position.y+=p.lift*p.capture;
  g.rotation.y+=Math.atan2(Math.sin(yaw-g.rotation.y),Math.cos(yaw-g.rotation.y))*p.capture;
  g.scale.setScalar(1-p.compression*p.capture);
 }
