@@ -1,4 +1,5 @@
 import { ARMOR_LABELS, WEAPON_LABELS, ensureProgression } from './gameplay-world.js';
+import { EXPERIENCES } from './rebuild/domain.js';
 import { createConversationInput } from './rebuild/conversation-input.js';
 import { rebirthPreview } from './rebuild/gameplay-contract.js';
 import { createSkillSetter } from './skill-setter.js';
@@ -45,7 +46,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     oneMotion:q('[data-one-motion]'),oneMotionName:q('[data-one-motion-name]'),panel,title:q('[data-title]'),body:panel.querySelector('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
     rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),name:q('[data-name]'),equip:q('[data-equip]'),state:q('[data-state]')
   };
-  let state=null,sheetDrag=null,movementHelpTimer=0,toastTimer=0,guidance=null,inventoryKind='weapon',inventoryPages={weapon:0,armor:0,shield:0},recordPage=0,lastPhase='';
+  let state=null,sheetDrag=null,movementHelpTimer=0,toastTimer=0,guidance=null,inventoryKind='weapon',inventoryPages={weapon:0,armor:0,shield:0},recordPage=0,recordSection='life',lastPhase='';
   const speech=createConversationInput({document,window,root:gameScreen,getState:()=>state});
   const tracker=createSkillSetter({ui,audio,getState:()=>state});
   const loadoutUI=createHeartTechniqueBodyUI({ui,audio,getState:()=>state,tracker});
@@ -74,9 +75,18 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     const marks=rows.map(row=>{const mark=point(row.x,row.z);return `<i class="map-mark" style="left:${mark.x}%;top:${mark.y}%" title="${String(row.label||row.id)}"><span>${String(row.label||row.id).slice(0,3)}</span></i>`;}).join('');let route='',targetMark='';if(target){const end=point(target.x,target.z),dx=end.x-me.x,dy=end.y-me.y,len=Math.hypot(dx,dy),angle=Math.atan2(dy,dx)*180/Math.PI;route=`<i class="map-guide-line" style="left:${me.x}%;top:${me.y}%;width:${len}%;transform:rotate(${angle}deg)"></i>`;targetMark=`<b class="map-target" style="left:${end.x}%;top:${end.y}%"><span>${target.label}</span></b>`;}
     ui.body.innerHTML=`<div class="upgrade-map"><div class="map-grid"></div>${route}${marks}${targetMark}<b class="map-player" style="left:${me.x}%;top:${me.y}%"></b></div><p class="map-caption">${layout.name||'村'}${target?` · ${target.text}`:' · 現在地と主要施設'}</p>`;
   }
+  function recordTabs(){const nav=document.createElement('nav');nav.className='record-tabs';nav.setAttribute('aria-label','人生記録の分類');for(const [section,label] of [['life','今生'],['lineage','系譜']]){const button=document.createElement('button');button.type='button';button.dataset.active=String(recordSection===section);button.textContent=label;button.onclick=()=>{recordSection=section;audio.ui();record();};nav.append(button);}return nav;}
+  function timeRatePanel(){
+    const clock=document.getElementById('clock-rate'),locked=Boolean(clock?.disabled),current=Number(clock?.value||state.clockRate)||1,section=document.createElement('section');section.className='time-rate-panel';section.innerHTML='<header><strong>世界時計</strong><small></small></header><div></div>';section.querySelector('small').textContent=locked?'共有世界では変更できません':'人生の時計だけを変更';
+    for(const rate of [1,5,10,20]){const button=document.createElement('button');button.type='button';button.textContent=`${rate}×`;button.dataset.active=String(current===rate);button.disabled=!clock||locked;button.onclick=()=>{if(!clock||locked)return;clock.value=String(rate);clock.textContent=`${rate}×`;clock.onchange?.({target:clock});audio.ui();record();};section.querySelector('div').append(button);}return section;
+  }
+  function inheritanceBrief(){const preview=rebirthPreview(state),section=document.createElement('section');section.className='record-inheritance-brief';section.innerHTML='<h3>次の人生</h3><div><b>残る</b><span></span><b>新生で戻る</b><span></span></div>';section.querySelectorAll('span')[0].textContent='一族の記録・帰還して刻んだ故郷';section.querySelectorAll('span')[1].textContent='年齢・体力・装備・戦技編成・この生涯の経験';section.dataset.lifeYears=String(preview.lifeYears);return section;}
   function record(){
-    ui.title.textContent='記 · 人生と系譜';ui.body.innerHTML='';const current=document.createElement('section');current.className='life-record-current';current.innerHTML='<span>現在の人生</span><strong></strong><small></small>';current.querySelector('strong').textContent=`${state.generation}代目 · ${Math.floor(state.ageYears||0)}歳`;current.querySelector('small').textContent=`撃破 ${state.defeats||0} · 凱旋 ${state.returns||0} · 故郷 ${state.homelands?.length||0}`;ui.body.append(current);
-    const experiences=Object.entries(state.experiences||{}).sort((a,b)=>Number(b[1]?.score||0)-Number(a[1]?.score||0)).slice(0,4);if(experiences.length){const exp=document.createElement('section');exp.className='life-record-experience';exp.innerHTML='<h3>この生涯の経験</h3>';for(const [kind,row] of experiences){const item=document.createElement('p');item.innerHTML=`<strong>${kind}</strong><span>${Number(row?.score||0).toFixed(1)}</span>`;exp.append(item);}ui.body.append(exp);}
+    ui.title.textContent='記 · 人生と系譜';ui.body.innerHTML='';ui.body.append(recordTabs());
+    if(recordSection==='life'){
+      const current=document.createElement('section');current.className='life-record-current';current.innerHTML='<span>現在の人生</span><strong></strong><small></small>';current.querySelector('strong').textContent=`${state.generation}代目 · ${Math.floor(state.ageYears||0)}歳`;current.querySelector('small').textContent=`撃破 ${state.defeats||0} · 凱旋 ${state.returns||0} · 故郷 ${state.homelands?.length||0}`;ui.body.append(current,timeRatePanel());
+      const experiences=Object.entries(state.experiences||{}).sort((a,b)=>Number(b[1]?.score||0)-Number(a[1]?.score||0)).slice(0,4);if(experiences.length){const exp=document.createElement('section');exp.className='life-record-experience';exp.innerHTML='<h3>この生涯の経験</h3>';for(const [kind,row] of experiences){const item=document.createElement('p');item.innerHTML='<strong></strong><span></span>';item.querySelector('strong').textContent=EXPERIENCES[kind]||kind;item.querySelector('span').textContent=Number(row?.score||0).toFixed(1);exp.append(item);}ui.body.append(exp);}ui.body.append(inheritanceBrief());return;
+    }
     const lineage=[...(state.lineage||[])].reverse(),pages=Math.max(1,Math.ceil(lineage.length/3));recordPage=Math.min(recordPage,pages-1);const list=document.createElement('section');list.className='lineage-list';list.innerHTML='<h3>一族の記録</h3>';const pageRows=lineage.slice(recordPage*3,recordPage*3+3);if(!pageRows.length){const empty=document.createElement('p');empty.className='loadout-empty';empty.textContent='まだ前世の記録はありません。';list.append(empty);}for(const row of pageRows){const card=document.createElement('article');card.className='lineage-card';card.innerHTML='<span></span><strong></strong><small></small>';card.querySelector('span').textContent=`${row.generation}代目`;card.querySelector('strong').textContent=`${row.name||'旅人'} · ${row.age||0}歳`;card.querySelector('small').textContent=`撃破 ${row.defeats||0}${row.returnedHome?' · 帰還済み':''}`;list.append(card);}ui.body.append(list);const nav=pager(lineage.length,recordPage,next=>{recordPage=next;audio.ui();record();});if(nav)ui.body.append(nav);
   }
   function markOpenControl(type){ui.combat.dataset.active=String(['heart','technique','body'].includes(type));ui.items.dataset.active=String(type==='items');ui.map.dataset.active=String(type==='map');ui.record.dataset.active=String(type==='record');}
@@ -86,7 +96,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     if(!silent)audio.ui();
   }
   function close(){ui.panel.hidden=true;delete ui.panel.dataset.type;ui.panel.style.removeProperty('--loadout-sheet-drag');delete ui.panel.dataset.dragging;markOpenControl('');audio.ui();}
-  function bindState(next){state=next;const lifeChanged=tracker.bindState(next);if(lifeChanged){loadoutUI.reset();recordPage=0;inventoryPages={weapon:0,armor:0,shield:0};if(!ui.panel.hidden){ui.panel.hidden=true;delete ui.panel.dataset.type;markOpenControl('');}}}
+  function bindState(next){state=next;const lifeChanged=tracker.bindState(next);if(lifeChanged){loadoutUI.reset();recordPage=0;recordSection='life';inventoryPages={weapon:0,armor:0,shield:0};if(!ui.panel.hidden){ui.panel.hidden=true;delete ui.panel.dataset.type;markOpenControl('');}}}
   function refresh(){if(ui.panel.hidden||!state)return;open(ui.panel.dataset.type||'items',{silent:true});}
   function setGuidance(next){guidance=next;if(!ui.panel.hidden&&ui.panel.dataset.type==='map')map();}
   function summary(s,{dashing=false,resting=false,training=null}={}){
