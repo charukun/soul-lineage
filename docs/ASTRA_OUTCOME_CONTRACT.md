@@ -36,7 +36,7 @@ Ready にする exact head は次をすべて満たす。
 - test、review、exact-head、Production gate を弱めて通す。
 - true semantic conflict を無条件の ours / theirs で潰す。
 - main / Production を明示許可なしで変更する。
-- `Micro Patch` / `Normal` / `Repair` の名称を守るために変更を不自然に分割する。
+- route 名や固定分類を守るために変更を不自然に分割する。
 - CI、browser、DEV publication の完了を worker が待機・pollingする。
 
 ## Validation ownership
