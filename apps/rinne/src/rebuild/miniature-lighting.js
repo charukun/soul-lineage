@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { createStaticBatchController } from '@soul/rendering/static-world-batch';
 
 export function miniatureShadowCell(x,z){return{x:Math.round(x/24)*24,z:Math.round(z/24)*24};}
 
@@ -9,6 +10,10 @@ export function createMiniatureLighting({renderer,scene,staticRoots=[]}){
   sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=sun.shadow.camera.bottom=-48;sun.shadow.camera.right=sun.shadow.camera.top=48;
   sun.shadow.camera.near=1;sun.shadow.camera.far=160;sun.shadow.camera.updateProjectionMatrix();
   sun.shadow.bias=-.0004;sun.shadow.normalBias=.09;sun.shadow.autoUpdate=false;
+  // The caller already supplies presentation-only static roots. Batch exact
+  // geometry/material repeats across cloned transform owners once at setup.
+  const staticBatch=createStaticBatchController({roots:staticRoots,minInstances:2,maxInstances:384,requireOptIn:false});
+  staticBatch.refresh();
   const casters=new WeakSet();
   for(const root of staticRoots)root.traverse(node=>{
     const materials=Array.isArray(node.material)?node.material:[node.material];
@@ -29,7 +34,7 @@ export function createMiniatureLighting({renderer,scene,staticRoots=[]}){
     if(enabled&&sun.shadow.needsUpdate)scene.traverse(node=>{if(node.isMesh)node.castShadow=casters.has(node);});
   }
   update();
-  return{update,snapshot:()=>({cachedSunShadow:enabled,shadowMapSize:1024,shadowUpdates:updates,ambientIntensity:ambient.intensity,keyIntensity:sun.intensity}),dispose(){ambient.removeFromParent();sun.removeFromParent();sun.target.removeFromParent();sun.dispose();}};
+  return{update,snapshot:()=>({cachedSunShadow:enabled,shadowMapSize:1024,shadowUpdates:updates,ambientIntensity:ambient.intensity,keyIntensity:sun.intensity,staticBatch:staticBatch.snapshot()}),dispose(){staticBatch.dispose();ambient.removeFromParent();sun.removeFromParent();sun.target.removeFromParent();sun.dispose();}};
 }
 
 export function createActorContactShadows(scene,groups,{capacity=128}={}){
