@@ -1,33 +1,45 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile, readdir} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const assetNames = [0, 1, 2, 3].map((index) => `world-loading-${index}.webp`);
 
-test('world-building loading screen uses the approved static artwork', async () => {
+test('world-building loading screen is live UI instead of a baked screenshot', async () => {
   const html = await readFile(resolve(appRoot, 'index.html'), 'utf8');
   const css = await readFile(resolve(appRoot, 'src/title-loading-screen.css'), 'utf8');
-  let totalBytes = 0;
-
-  assert.match(html, /id="loading-card"/);
-  assert.match(html, />世界をつくっています</);
-  assert.match(html, />景色を描いています</);
-  assert.match(html, /class="loading-world-art-track"/);
-
-  for (const name of assetNames) {
-    assert.ok(html.includes(`./title-assets/${name}`), `${name} must be mounted by the loading screen`);
-    const bytes = await readFile(resolve(appRoot, 'title-assets', name));
-    totalBytes += bytes.length;
-    assert.equal(bytes.subarray(0, 4).toString(), 'RIFF');
-    assert.equal(bytes.subarray(8, 12).toString(), 'WEBP');
-    assert.ok(bytes.length < 30_000, `${name} should stay lightweight`);
+  const progress = await readFile(resolve(appRoot, 'src/loading-screen.js'), 'utf8');
+  let titleAssets = [];
+  try {
+    titleAssets = await readdir(resolve(appRoot, 'title-assets'));
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
   }
 
-  assert.ok(totalBytes < 60_000, 'loading artwork should remain lightweight enough for boot');
-  assert.match(css, /min-aspect-ratio:12\/19/);
-  assert.match(css, /data-screen="error"/);
+  assert.match(html, /id="loading-card"/);
+  assert.match(html, /id="loading-title">世界をつくっています</);
+  assert.match(html, /id="loading-message">世界のしくみを呼び出しています</);
+  assert.match(html, /id="loading-progress"[^>]*role="progressbar"/);
+  assert.match(html, /src="\.\/src\/loading-screen\.js"/);
+  assert.doesNotMatch(html, /world-loading-/);
+  assert.doesNotMatch(html, /loading-world-art/);
+
+  assert.match(css, /#loading-card\[data-world-ready="true"\]/);
+  assert.match(css, /\.loading-progress>i/);
+  assert.match(css, /@keyframes loading-orbit-turn/);
   assert.doesNotMatch(css, /backdrop-filter/);
+  assert.doesNotMatch(css, /url\(/);
+
+  assert.match(progress, /村の地図をひらいています/);
+  assert.match(progress, /景色を描いています/);
+  assert.match(progress, /旅人を迎えています/);
+  assert.match(progress, /MutationObserver/);
+  assert.match(progress, /gameCanvas\.dataset\.runtime==='prepared'/);
+
+  assert.deepEqual(
+    titleAssets.filter((name) => name.startsWith('world-loading-')),
+    [],
+    'baked loading artwork should not remain in the app assets',
+  );
 });

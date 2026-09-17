@@ -1,5 +1,6 @@
 import { subscribe, disclosure, preserveView } from './view-state.js';
-import { boardAlerts, snapshotAge, ageLabel, STALE_SNAPSHOT_MS, FAILED_CONCLUSIONS } from './health.mjs';
+import { FAILED_CONCLUSIONS } from './health.mjs';
+import { eventDrivenAlerts, syncPresentation } from './freshness.mjs';
 const $ = selector => document.querySelector(selector);
 const fmt = new Intl.DateTimeFormat('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'short' });
 
@@ -176,16 +177,18 @@ let currentState = null;
 let currentError = null;
 function renderFreshness() {
   const state = currentState;
-  const age = snapshotAge(state);
-  const stale = age === null || age >= STALE_SNAPSHOT_MS;
-  const failed = Boolean(currentError) || state?.syncStatus === 'degraded';
+  const now = Date.now();
+  const presentation = syncPresentation(state, now, currentError);
   const stamp = $('#sync-freshness');
   if (stamp) {
-    stamp.textContent = `${failed ? '更新失敗 · ' : stale ? '更新確認 · ' : ''}最終取得 ${ageLabel(age)}`;
-    stamp.className = `sync-freshness ${failed ? 'danger' : stale ? 'warning' : 'info'}`;
-    stamp.title = `最終取得 ${time(state?.generatedAt)} / 取得試行 ${time(state?.lastAttemptAt || state?.generatedAt)}`;
+    const titleNode = stamp.querySelector('[data-sync-title]');
+    const metaNode = stamp.querySelector('[data-sync-meta]');
+    if (titleNode) titleNode.textContent = presentation.title;
+    if (metaNode) metaNode.textContent = presentation.meta;
+    stamp.className = `sync-freshness ${presentation.tone}`;
+    stamp.title = `最終反映 ${time(state?.generatedAt)} / 取得試行 ${time(state?.lastAttemptAt || state?.generatedAt)}`;
   }
-  renderAlerts(boardAlerts(state, Date.now(), currentError));
+  renderAlerts(eventDrivenAlerts(state, now, currentError));
 }
 
 function render(state) {

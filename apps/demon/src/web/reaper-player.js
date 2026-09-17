@@ -2,7 +2,7 @@ import * as T from 'three';
 import {createShinoProductionPool} from '@soul/rendering/master-character-production';
 import {loadDemonMasterModel} from '../master-model.js';
 import {dressReaper} from './reaper-wardrobe.js';
-import {sampleDevourMotion} from './devour-motion.js';
+import {devourInteractionFrame,devourInteractionSide,sampleDevourMotion,samplePreyMotion} from './devour-motion.js';
 import {blendPoint,stepCombatPresentation} from '../combat-presentation.js';
 
 const X=new T.Vector3(1,0,0),Y=new T.Vector3(0,1,0),Z=new T.Vector3(0,0,1);
@@ -44,6 +44,9 @@ export function createReaperPlayer({gltf,rig}) {
   function update(player,time,dt,{eating=false,preview=false,dead=false}={}) {
     const q=preview?null:player.pose;
     const devour=eating&&Number.isFinite(player.devourProgress)?sampleDevourMotion(player.devourProgress):null;
+    const capture=devour?{x:player.x,z:player.z,yaw:player.yaw||0,scale:1}:null;
+    const preyMotion=devour?samplePreyMotion(player.devourProgress,1,1,devourInteractionSide(capture)):null;
+    const interaction=devour?devourInteractionFrame({x:player.x,z:player.z,yaw:player.yaw||0},capture,preyMotion):null;
     combatPresentation=stepCombatPresentation(combatPresentation,!devour&&!preview&&!dead?q:null,dt);root.userData.combatBlend=combatPresentation.eased;
     const pose=combatPresentation.pose,cw=combatPresentation.eased,moving=!preview&&(player.speed||0)>.05;
     const phase=player.walk||0,stride=moving?Math.sin(phase)*.38*(1-cw):0;
@@ -52,18 +55,26 @@ export function createReaperPlayer({gltf,rig}) {
       const turn=(bone,axis,value)=>bone.quaternion.multiply(rotation.setFromAxisAngle(axis,value));
       turn(bones.leftUpperLeg,X,stride);turn(bones.rightUpperLeg,X,-stride);
       turn(bones.leftLowerLeg,X,Math.max(0,-stride)*1.2);turn(bones.rightLowerLeg,X,Math.max(0,stride)*1.2);
-      turn(bones.spine,X,clamp(devour?devour.pitch*.65:(pose?.pitch||0)*cw,-.65,.8));
-      turn(bones.spine,Y,clamp(devour?devour.twist:(pose?.twist||0)*cw,-1.1,1.1));
-      turn(bones.spine,Z,clamp((pose?.roll||0)*cw,-.45,.45));
+      turn(bones.spine,X,clamp(devour?devour.pitch*.65-(interaction?.recoil||0)*.08:(pose?.pitch||0)*cw,-.65,.8));
+      turn(bones.spine,Y,clamp(devour?devour.twist-(interaction?.side||1)*(interaction?.recoil||0)*.035:(pose?.twist||0)*cw,-1.1,1.1));
+      turn(bones.spine,Z,clamp((pose?.roll||0)*cw+(interaction?.side||1)*(interaction?.recoil||0)*.025,-.45,.45));
       if(!devour)for(const finger of ['Index','Middle','Ring','Little'])for(const joint of ['Proximal','Intermediate','Distal']){const b=bones['left'+finger+joint];if(b)turn(b,Z,joint==='Proximal'?-.65:-.8);}
-      turn(bones.head,X,devour?devour.headPitch*.5:-.04);
+      turn(bones.head,X,devour?devour.headPitch*.5+(interaction?.recoil||0)*.055:-.04);
       turn(bones.head,Y,devour?devour.headYaw:Math.sin(time*.6)*.035);
       bones.hips.position.y+=(pose?.crouch||0)*.18*cw+(pose?.lift||0)*.5*cw+(moving?Math.abs(Math.sin(phase))*.012*(1-cw):Math.sin(time*1.5)*.004);
       if(devour){bones.hips.position.y+=devour.drop*.28;turn(bones.leftUpperLeg,X,-.2);turn(bones.rightUpperLeg,X,-.2);turn(bones.leftLowerLeg,X,.35);turn(bones.rightLowerLeg,X,.35);}
     });
     const baseRight=[.43,1.02,.14],baseLeft=[-.33,1.08,.12-Math.sin(phase)*Number(moving)*(1-cw)*.15];
-    const right=devour?[.32,devour.handY,devour.handZ]:blendPoint(baseRight,pose?.hand||baseRight,combatPresentation.weight);
-    const left=devour?[-.32,devour.handY+.04,devour.handZ]:blendPoint(baseLeft,pose?.left||baseLeft,combatPresentation.weight);
+    const authoredRight=devour?[.32,devour.handY,devour.handZ]:blendPoint(baseRight,pose?.hand||baseRight,combatPresentation.weight);
+    const authoredLeft=devour?[-.32,devour.handY+.04,devour.handZ]:blendPoint(baseLeft,pose?.left||baseLeft,combatPresentation.weight);
+    let right=authoredRight,left=authoredLeft;
+    if(interaction){
+      root.updateWorldMatrix(true,true);
+      const upper=root.worldToLocal(new T.Vector3(interaction.upper.x,interaction.upper.y,interaction.upper.z)).toArray();
+      const lower=root.worldToLocal(new T.Vector3(interaction.lower.x,interaction.lower.y,interaction.lower.z)).toArray();
+      const plus=interaction.side===1?lower:upper,minus=interaction.side===1?upper:lower,grip=interaction.grip*interaction.gripReach;
+      right=blendPoint(authoredRight,plus,grip);left=blendPoint(authoredLeft,minus,grip);
+    }
     // Legacy +X weapon hand maps to the raw VRM left-side chain.
     armIK(actor,root,'left',right);armIK(actor,root,'right',left);
     if(actor.expressionNames.includes('blink')){const blink=time%4;actor.setExpression('blink',blink<.15?Math.sin(blink/.15*Math.PI):0);}

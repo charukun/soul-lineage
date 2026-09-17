@@ -7,6 +7,7 @@
     ".": "./src/index.js",
     "./master-character": "./src/master-character.js",
     "./kaykit-rig": "./src/kaykit-rig.js",
+    "./kaykit-runtime-model": "./src/kaykit-runtime-model.js",
     "./master-character-production": "./src/master-character-production-stylized.js",
     "./master-character-modular": "./src/master-character-modular.js",
     "./master-character-reference": "./src/master-character-reference.js",
