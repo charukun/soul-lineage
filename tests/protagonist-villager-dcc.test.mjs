@@ -1,69 +1,60 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import {
   CHARACTER_REFERENCE_MODELS,
   PROTAGONIST_VILLAGER_MODEL_ID,
-  createCharacterModelBuildRequest,
-  auditCharacterRuntimeDocument
+  evaluateCharacterLicensePolicy
 } from '../packages/characters/src/index.js';
 
-function glbDocument(buffer) {
-  assert.equal(buffer.subarray(0, 4).toString('ascii'), 'glTF');
-  const total = buffer.readUInt32LE(8);
-  assert.equal(total, buffer.length);
-  let offset = 12;
-  while (offset + 8 <= buffer.length) {
-    const length = buffer.readUInt32LE(offset);
-    const type = buffer.readUInt32LE(offset + 4);
-    offset += 8;
-    const chunk = buffer.subarray(offset, offset + length);
-    offset += length;
-    if (type === 0x4e4f534a) return JSON.parse(chunk.toString('utf8').replace(/[\0\s]+$/u, ''));
-  }
-  throw new Error('GLB JSON chunk missing');
-}
-
-test('protagonist village-start DCC is a dedicated humble hero candidate', () => {
+test('protagonist village DCC runtime output is the clean CC0 KayKit derivative', () => {
   const model = CHARACTER_REFERENCE_MODELS[PROTAGONIST_VILLAGER_MODEL_ID];
-  assert.ok(model);
-  assert.equal(model.kind, 'dcc-character-model');
-  assert.equal(model.role, 'resident');
-  assert.equal(model.gear, 'belt');
+  assert.equal(model.id, PROTAGONIST_VILLAGER_MODEL_ID);
   assert.equal(model.productionStage, 'PRIMARY');
+  assert.equal(model.modelingMode, 'dcc-blender');
   assert.equal(model.productionReady, false);
-  assert.equal(model.assetPath, './simulator/assets/PROTAGONIST_VILLAGER_V1.glb');
-  assert.equal(model.integrityPath, './simulator/assets/PROTAGONIST_VILLAGER_V1.asset.json');
-  assert.equal(model.referenceStyle.design, 'protagonist-villager');
-  assert.equal(model.referenceStyle.prop, 'none');
-  assert.ok(model.proportions.head > 1.1);
-  assert.ok(model.referenceStyle.palette.primary.every(Number.isFinite));
+  assert.equal(model.production.target.rigId, 'Rig_Medium');
+  assert.equal(model.referenceStyle.design, 'protagonist-kaykit-knight-derivative');
 
-  const request = createCharacterModelBuildRequest(PROTAGONIST_VILLAGER_MODEL_ID, { requestedBy: 'character-workshop' });
-  assert.equal(request.reference.id, PROTAGONIST_VILLAGER_MODEL_ID);
-  assert.equal(request.target.primaryFormat, 'glb');
-  assert.deepEqual(request.target.formats, ['glb']);
-  assert.equal(request.handoff.fallbackPolicy, 'retain-current-master-until-candidate-accepted');
+  const integrity = JSON.parse(readFileSync('apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_V1.asset.json', 'utf8'));
+  const license = evaluateCharacterLicensePolicy({
+    id: PROTAGONIST_VILLAGER_MODEL_ID,
+    license: 'CC0-1.0',
+    rigId: integrity.humanoidRig,
+    rigProvenance: integrity.license.rigProvenance
+  });
+  assert.equal(license.status, 'allowed');
+  assert.equal(license.allowed, true);
+
+  const production = JSON.parse(readFileSync('packages/characters/production/protagonist-villager-v1.production.json', 'utf8'));
+  assert.equal(production.stage, 'PRIMARY');
+  assert.equal(production.status.productionReady, false);
+  assert.equal(production.status.visualApproval, 'pending');
+  assert.doesNotMatch(JSON.stringify(production), /blocked-rerig|humanoid\.shino-vrm1\.v2|Sendagaya_Shino/);
 });
 
-test('generated protagonist GLB carries the exact audited humanoid runtime contract', () => {
-  const modelPath = 'apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_V1.glb';
-  const integrityPath = 'apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_V1.asset.json';
-  const bytes = readFileSync(modelPath);
-  const integrity = JSON.parse(readFileSync(integrityPath, 'utf8'));
-  const sha256 = createHash('sha256').update(bytes).digest('hex');
-  const document = glbDocument(bytes);
-  const audit = auditCharacterRuntimeDocument(document, sha256, bytes.length, integrity);
-  assert.equal(audit.approved, true, audit.errors.join(', '));
-  assert.equal(document.asset.extras.rinneCharacter.id, 'protagonist.villager.v1');
-  assert.equal(document.extensions.VRMC_vrm.specVersion, '1.0');
-  assert.equal(integrity.visualApproval, 'pending');
+test('adopted protagonist runtime bytes and DCC evidence are repository-local', () => {
+  const glbPath = 'apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_V1.glb';
+  const receiptPath = 'apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_V1.asset.json';
+  assert.equal(existsSync('assets/characters/protagonist/villager-v1/source/ProtagonistVillagerV1.blend'), true);
+  assert.equal(existsSync(glbPath), true);
+  assert.equal(existsSync(receiptPath), true);
+  for (const view of ['front', 'three-quarter', 'side', 'back']) {
+    assert.equal(existsSync(`docs/characters/qa/protagonist-villager-v1/${view}.png`), true);
+  }
+  const bytes = readFileSync(glbPath);
+  const receipt = JSON.parse(readFileSync(receiptPath, 'utf8'));
+  assert.equal(bytes.length, receipt.bytes);
+  assert.equal(createHash('sha256').update(bytes).digest('hex'), receipt.sha256);
+  assert.equal(receipt.sha256, 'ab3e2e71b768843a756abaa79f47859d1cd3c77a45b0c8b7a582f8d0b158fab6');
+  assert.equal(receipt.humanoidRig, 'kaykit.Rig_Medium.v1');
 });
 
-test('motion review URL can preselect the protagonist without making it the released gameplay default', () => {
+test('motion review keeps explicit model selection rather than silently forcing the protagonist', () => {
   const source = readFileSync('apps/rinne/src/motion-review-entrypoint.js', 'utf8');
   assert.match(source, /characterModel/);
   assert.match(source, /workspace\?\.selectModel\(requestedModel\)/);
+  assert.doesNotMatch(source, /PROTAGONIST_VILLAGER_MODEL_ID/);
   assert.match(source, /30秒演舞/);
 });

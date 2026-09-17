@@ -55,7 +55,8 @@ export const SKILL_BY_ID=Object.freeze(Object.fromEntries(DISCOVERIES.map(row=>[
 
 export function skillEffects(state){
   const total={trainingGain:0,actionSpark:0,damage:0,mitigation:0,evasion:0,reach:0,staminaCost:0,recovery:0};
-  for(const id of state?.knownSkills||[]){const row=SKILL_BY_ID[id];if(!row)continue;for(const [key,value] of Object.entries(row.effects||{}))total[key]=(total[key]||0)+value;}
+  const activeHeart=Array.isArray(state?.combatLoadout?.heart?.active)?new Set(state.combatLoadout.heart.active):null;
+  for(const id of state?.knownSkills||[]){const row=SKILL_BY_ID[id];if(!row)continue;if(row.type==='support'&&activeHeart&&!activeHeart.has(id))continue;for(const [key,value] of Object.entries(row.effects||{}))total[key]=(total[key]||0)+value;}
   total.trainingGain=clamp(total.trainingGain,0,.85);
   total.actionSpark=clamp(total.actionSpark,0,.75);
   total.damage=clamp(total.damage,0,.7);

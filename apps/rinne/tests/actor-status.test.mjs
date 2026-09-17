@@ -24,3 +24,14 @@ test('floating actor status follows the projected actor head and can be reused f
   status.show('疲れている…',{duration:60_000});assert.equal(h.children.length,2);
   status.clear();assert.equal(h.children.every(node=>node.removed),true);
 });
+
+test('status reuses the actor and viewport until replacement or resize without layout reads',()=>{
+  const h=harness();let lookups=0;
+  const makeActor=()=>({name:'Player',parent:h.view.scene,localToWorld:v=>v});let current=makeActor();
+  h.view.scene.getObjectByName=()=>{lookups++;return current;};h.view.viewport={width:100,height:200};
+  Object.defineProperty(h.canvas,'clientWidth',{get(){throw Error('forced layout read');}});Object.defineProperty(h.canvas,'clientHeight',{get(){throw Error('forced layout read');}});
+  const status=createActorStatus(h);status.show('移動中',{duration:60000});
+  for(let i=0;i<120;i++)status.sync();assert.equal(lookups,1);
+  h.view.viewport.width=200;status.sync();assert.equal(h.children[0].style.left,'100px');assert.equal(lookups,1);
+  current.parent=null;current=makeActor();status.sync();assert.equal(lookups,2);status.dispose();
+});

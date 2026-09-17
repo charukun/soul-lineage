@@ -1,49 +1,44 @@
 const finite = value => typeof value === 'number' && Number.isFinite(value);
-const percentile = (values, p) => {
-  if (!values.length) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * p) - 1))];
-};
+
+// Fixed storage: sampling never shifts a rolling window or computes percentiles.
+class MetricWindow {
+  constructor(capacity) { this.values=new Float64Array(capacity);this.reset(); }
+  reset() { this.cursor=0;this.size=0;this.cached=null; }
+  push(value) { this.values[this.cursor]=value;this.cursor=(this.cursor+1)%this.values.length;this.size=Math.min(this.size+1,this.values.length);this.cached=null; }
+  stats() {
+    if(this.cached)return this.cached;
+    const values=new Array(this.size),start=(this.cursor-this.size+this.values.length)%this.values.length;
+    for(let i=0;i<this.size;i++)values[i]=this.values[(start+i)%this.values.length];
+    const average=this.size?values.reduce((a,b)=>a+b,0)/this.size:null;
+    values.sort((a,b)=>a-b);
+    const at=p=>this.size?values[Math.min(this.size-1,Math.max(0,Math.ceil(this.size*p)-1))]:null;
+    return this.cached={average,p50:at(.5),p95:at(.95),p99:at(.99)};
+  }
+}
 
 export function createPerformanceRecorder({ label = 'runtime', maxSamples = 1800, snapshotOnSample = true } = {}) {
-  const frames = [], gpu = [], calls = [], triangles = [], memory = [], transparentCalls = [], transparentTriangles = [];
-  let longFrames = 0, startedAt = Date.now();
-  const trim = list => { while (list.length > maxSamples) list.shift(); };
+  if(!Number.isInteger(maxSamples)||maxSamples<1)throw new Error('Invalid performance sample capacity');
+  const windows=Array.from({length:7},()=>new MetricWindow(maxSamples));
+  const [frames,gpu,calls,triangles,memory,transparentCalls,transparentTriangles]=windows;
+  let longFrames=0,startedAt=Date.now();
+  const record=(window,value,positive=false)=>{if(finite(value)&&(positive?value>0:value>=0))window.push(value);};
+  const summary=window=>{const s=window.stats();return{average:s.average,p95:s.p95};};
   return {
-    sample({ frameMs, gpuMs = null, drawCalls = null, triangles: tris = null, textureBytes = null, transparentDrawCalls = null, transparentTriangleUpperBound = null } = {}) {
-      if (finite(frameMs) && frameMs > 0) { frames.push(frameMs); if (frameMs > 50) longFrames++; trim(frames); }
-      if (finite(gpuMs) && gpuMs >= 0) { gpu.push(gpuMs); trim(gpu); }
-      if (finite(drawCalls) && drawCalls >= 0) { calls.push(drawCalls); trim(calls); }
-      if (finite(tris) && tris >= 0) { triangles.push(tris); trim(triangles); }
-      if (finite(textureBytes) && textureBytes >= 0) { memory.push(textureBytes); trim(memory); }
-      if (finite(transparentDrawCalls) && transparentDrawCalls >= 0) { transparentCalls.push(transparentDrawCalls); trim(transparentCalls); }
-      if (finite(transparentTriangleUpperBound) && transparentTriangleUpperBound >= 0) { transparentTriangles.push(transparentTriangleUpperBound); trim(transparentTriangles); }
-      // Frame-loop consumers read diagnostics explicitly. Sorting the full
-      // rolling window here makes the measurement itself a growing CPU cost.
-      return snapshotOnSample ? this.snapshot?.() : undefined;
+    sample({frameMs,gpuMs=null,drawCalls=null,triangles:tris=null,textureBytes=null,transparentDrawCalls=null,transparentTriangleUpperBound=null}={}) {
+      record(frames,frameMs,true);if(finite(frameMs)&&frameMs>50)longFrames++;
+      record(gpu,gpuMs);record(calls,drawCalls);record(triangles,tris);record(memory,textureBytes);record(transparentCalls,transparentDrawCalls);record(transparentTriangles,transparentTriangleUpperBound);
+      return snapshotOnSample?this.snapshot?.():undefined;
     },
     snapshot() {
-      const average = list => list.length ? list.reduce((a, b) => a + b, 0) / list.length : null;
-      return Object.freeze({
-        label,
-        startedAt,
-        samples: frames.length,
-        frame: { averageMs: average(frames), p50Ms: percentile(frames, .5), p95Ms: percentile(frames, .95), p99Ms: percentile(frames, .99), longFrames },
-        gpu: { averageMs: average(gpu), p95Ms: percentile(gpu, .95), samples: gpu.length },
-        drawCalls: { average: average(calls), p95: percentile(calls, .95) },
-        triangles: { average: average(triangles), p95: percentile(triangles, .95) },
-        textureBytes: { average: average(memory), p95: percentile(memory, .95) },
-        transparency: {
-          drawCalls: { average: average(transparentCalls), p95: percentile(transparentCalls, .95) },
-          triangleUpperBound: { average: average(transparentTriangles), p95: percentile(transparentTriangles, .95) },
-        },
+      const f=frames.stats(),g=gpu.stats();
+      return Object.freeze({label,startedAt,samples:frames.size,
+        frame:{averageMs:f.average,p50Ms:f.p50,p95Ms:f.p95,p99Ms:f.p99,longFrames},
+        gpu:{averageMs:g.average,p95Ms:g.p95,samples:gpu.size},
+        drawCalls:summary(calls),triangles:summary(triangles),textureBytes:summary(memory),
+        transparency:{drawCalls:summary(transparentCalls),triangleUpperBound:summary(transparentTriangles)},
       });
     },
-    reset() {
-      frames.length = gpu.length = calls.length = triangles.length = memory.length = transparentCalls.length = transparentTriangles.length = 0;
-      longFrames = 0;
-      startedAt = Date.now();
-    },
+    reset() { for(const window of windows)window.reset();longFrames=0;startedAt=Date.now(); },
   };
 }
 

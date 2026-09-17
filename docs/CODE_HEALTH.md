@@ -13,8 +13,9 @@ AI実装を高速・並列に積み重ねても、単一ファイルの肥大化
 - 既に600 LOCを超えるsourceへ一度に120 LOC以上を追加する
 - 長い関数をさらに約40行以上成長させる
 - 大きいsourceで分岐数と分岐密度を同時に大きく増やす
-- 新規sourceを900 LOC以上、または約180行以上の巨大関数として追加する
-- 1800 LOC / 約300行関数のhard boundaryを新たに跨ぐ
+- 既に16 KiBを超えるsourceへ一度に8 KiB以上のAI context surfaceを追加する
+- 新規sourceを900 LOC以上、約180行以上の巨大関数、または24 KiB以上として追加する
+- 1800 LOC / 約300行関数 / 48 KiB sourceのhard boundaryを新たに跨ぐ
 
 このguardは「変更を禁止する」ものではありません。同じ責務を別moduleへ分ける、既存packageへ寄せる、重複を共通化する方向へ実装を促します。現在ある負債を理由に通常PRを全面停止しないratchetです。
 
@@ -30,6 +31,10 @@ AI実装を高速・並列に積み重ねても、単一ファイルの肥大化
 - 推定した最長function block
 - decisions / 100 LOC
 - 8 meaningful lines以上の実質的なcross-file duplicate block
+- UTF-8 source bytes。`context:plan` の全文取得境界と同じ16 KiBからAI context pressureとして加点し、32 KiB付近で単独でもactionableになり得る
+- unique direct dependency数。import / re-export / requireの広さを、追加で読む可能性がある周辺contextの近似として加点する
+
+この追加metricにより、1行へ圧縮された巨大sourceや、LOCだけでは軽く見えるファイルもcontext hotspotとして検出できます。source bytesとdependency数は意味的複雑さそのものではなく、AIが安全に変更する際の読み込み面積を近似する指標です。
 
 閾値は `scripts/code-health.config.json` にあります。これはヒューリスティックであり、意味的な正しさの証明ではありません。scoreだけを理由に公開APIやゲーム仕様を変更してはいけません。
 
@@ -50,6 +55,7 @@ Code Health自身は実装しません。最新developから `dispatch/code-heal
 自動Requestは最上位hotspot 1つと、直接関係するduplicate locationだけを対象にします。
 
 - 行数を別の巨大fileへ移すだけの変更は禁止
+- AI context hotspotでは、タスクごとに必要な責務だけを読めるmodule境界への分離を優先する
 - public API、ゲーム挙動、save/network authority、render/input timingは維持
 - test、browser assertion、Integration gateを削除・緩和しない
 - consumer/exportを確認してから責務分離する
@@ -68,7 +74,7 @@ Code Health自身は実装しません。最新developから `dispatch/code-heal
 ```bash
 npm run health
 node scripts/code-health.mjs guard origin/develop HEAD
-node --test tests/code-health.test.mjs
+node --test tests/code-health.test.mjs tests/code-health-context-surface.test.mjs
 ```
 
 `npm run health` はrepository全体の監査結果を表示します。guardは差分ratchetです。どちらも既存のsemantic testや実ブラウザ検証の代わりではありません。

@@ -33,7 +33,7 @@ export function deliveryMessage(stage, { report, sha, repository, runUrl }) {
     branch: 'develop',
     commit: sha,
     verification: 'FAST_CHECKS+DEV_PUBLIC+HTTP_SOURCE',
-    browser: 'ASYNC_DIAGNOSTICS',
+    browser: 'OPT_IN',
     action: 'NONE',
     run_url: runUrl,
   } });
@@ -59,6 +59,7 @@ export function devChangeEmailMessage({ pr, repository }) {
     'DEV反映完了',
     `「${label}」をDEVに反映しました。`,
     `DEVを確認: ${PERSONAL_DEV_URL}`,
+    `確認画像・動画の報告: https://github.com/${repository}/pull/${pr.number}`,
   ].join('\n');
 }
 
@@ -96,7 +97,7 @@ export async function recordDevelopDeliveryStatus({ token = '', repository, sha,
     body: {
       state: 'success',
       context: 'integration/develop',
-      description: 'DEV published; HTTP/source verified; browser diagnostics are asynchronous',
+      description: 'DEV published; HTTP/source verified; browser verification is opt-in',
       target_url: runUrl,
     },
   });

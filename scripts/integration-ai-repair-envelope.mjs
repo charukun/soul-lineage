@@ -11,7 +11,8 @@ export const AI_REPAIR_CONSTRAINTS = Object.freeze([
   'do not clear integration holds, review objections or human-required decisions',
   'preserve exact-head, review, thread, check, browser and Production gates',
   'run repository fast validation before returning the PR to Integration',
-  'no force push and no main or Production changes',
+  'use a manually started normal Chat for semantic repair; never start ChatGPT Work, Codex or OpenAI API repair',
+  'no paid model API fallback, no force push and no main or Production changes',
   ...DEV_FEEDBACK_CONSTRAINTS,
 ]);
 

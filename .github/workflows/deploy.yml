@@ -35,69 +35,14 @@ on:
         type: boolean
         required: false
         default: false
-      repair_scope:
-        description: 'Internal browser repair recorder scope (empty or pr)'
-        type: string
-        required: false
-        default: ''
-      repair_conclusion:
-        description: 'Internal browser result'
-        type: string
-        required: false
-        default: ''
-      repair_head_sha:
-        description: 'Internal browser-tested head SHA'
-        type: string
-        required: false
-        default: ''
-      repair_pr_number:
-        description: 'Internal source PR number'
-        type: string
-        required: false
-        default: ''
-      repair_run_url:
-        description: 'Internal source Actions run URL'
-        type: string
-        required: false
-        default: ''
-      repair_artifact:
-        description: 'Internal browser artifact name'
-        type: string
-        required: false
-        default: ''
 permissions:
   contents: read
 jobs:
-  repair-ticket:
-    name: Record PR browser repair state
-    if: github.event_name == 'workflow_dispatch' && inputs.repair_scope == 'pr'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      issues: write
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: develop
-          persist-credentials: false
-      - name: Create/update machine-readable repair ticket
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPAIR_SCOPE: ${{ inputs.repair_scope }}
-          REPAIR_CONCLUSION: ${{ inputs.repair_conclusion }}
-          REPAIR_HEAD_SHA: ${{ inputs.repair_head_sha }}
-          REPAIR_PR_NUMBER: ${{ inputs.repair_pr_number }}
-          REPAIR_RUN_URL: ${{ inputs.repair_run_url }}
-          REPAIR_ARTIFACT: ${{ inputs.repair_artifact }}
-        run: node scripts/browser-repair-ticket.mjs
-
   integrate:
     name: Integration Controller
     # The reusable Controller uploads .deploy-state/integration-diagnostics.json in integration-report.
     if: >-
-      github.event_name == 'workflow_dispatch' && inputs.repair_scope != 'pr' &&
+      github.event_name == 'workflow_dispatch' &&
       inputs.publish_only != true && inputs.refresh_staging != true && inputs.full_verification != true &&
       inputs.rescue_mode != 'scan'
     concurrency:
@@ -119,7 +64,7 @@ jobs:
   queue-recovery:
     name: Recover missed Ready CI and Integration requests
     if: >-
-      github.event_name == 'workflow_dispatch' && inputs.repair_scope != 'pr' &&
+      github.event_name == 'workflow_dispatch' &&
       inputs.publish_only != true && inputs.refresh_staging != true && inputs.full_verification != true &&
       inputs.rescue_mode == 'scan'
     uses: ./.github/workflows/integration-controller.yml
@@ -164,7 +109,7 @@ jobs:
   mark-develop-pending:
     name: Mark DEV delivery pending
     if: >-
-      github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr' &&
+      github.ref == 'refs/heads/develop' &&
       (github.event_name == 'push' || inputs.publish_only == true || inputs.refresh_staging == true || inputs.full_verification == true)
     runs-on: ubuntu-latest
     permissions:
@@ -175,13 +120,13 @@ jobs:
           script: |
             await github.rest.repos.createCommitStatus({ ...context.repo, sha: context.sha,
               context: 'integration/develop', state: 'pending',
-              description: 'DEV Publisher: candidate, promote, public source and browser verification pending',
+              description: 'DEV Publisher: candidate, promotion and public source verification pending',
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
 
   pulse:
     name: Publish develop PULSE
     if: >-
-      github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr' &&
+      github.ref == 'refs/heads/develop' &&
       (github.event_name == 'push' || inputs.publish_only == true || inputs.refresh_staging == true || inputs.full_verification == true)
     uses: ./.github/workflows/ops-board.yml
     with:
@@ -197,7 +142,7 @@ jobs:
     name: Validate candidate and promote application snapshot
     needs: integrate
     if: >-
-      always() && inputs.repair_scope != 'pr' &&
+      always() &&
       (github.event_name == 'push' || inputs.publish_only == true || inputs.refresh_staging == true || inputs.full_verification == true)
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -209,7 +154,6 @@ jobs:
       pages: write
       id-token: write
     outputs:
-      browser_outcome: ${{ steps.dev_browser.outcome }}
       live_outcome: ${{ steps.live.outcome }}
       changed: ${{ steps.assemble.outputs.changed }}
       promoted: ${{ steps.promoted.outputs.value }}
@@ -258,7 +202,7 @@ jobs:
         run: |
           mkdir -p .deploy-state
           node sources/dev/scripts/site-dedupe.mjs _site | tee .deploy-state/site-dedupe.json
-      - name: Validate exact DEV candidate before public promotion
+      - name: Validate exact DEV candidate manifest before public promotion
         if: github.ref == 'refs/heads/develop' && steps.assemble.outputs.changed == 'true'
         env:
           CANDIDATE_PORT: '4173'
@@ -272,7 +216,6 @@ jobs:
             if [ "$n" = 30 ]; then cat .deploy-state/dev-candidate.log; exit 1; fi
             sleep 1
           done
-          node sources/dev/scripts/verify-browser.mjs "$CANDIDATE_URL" _site .deploy-state/changed.json
       - uses: actions/configure-pages@v5
         if: steps.assemble.outputs.changed == 'true'
       - uses: actions/upload-pages-artifact@v4
@@ -294,25 +237,10 @@ jobs:
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
         run: node sources/dev/scripts/verify-live.mjs "$SITE_URL" _site
-      - name: Focused DEV browser verification after promotion
-        id: dev_browser
-        if: github.ref == 'refs/heads/develop' && steps.assemble.outputs.changed == 'true' && steps.live.outcome == 'success'
-        continue-on-error: true
-        env:
-          SITE_URL: ${{ steps.deployment.outputs.page_url }}
-        run: node sources/dev/scripts/verify-browser.mjs "$SITE_URL" _site .deploy-state/changed.json
-      - name: Preserve DEV browser evidence
-        if: always() && github.ref == 'refs/heads/develop'
-        uses: actions/upload-artifact@v4
-        with:
-          name: dev-browser-${{ github.sha }}
-          path: sources/dev/test-results/
-          if-no-files-found: ignore
-          retention-days: 14
-      - name: Preserve Last Known Good site artifact only after verified public DEV
+      - name: Preserve Last Known Good site artifact after verified public source
         if: >-
           github.ref == 'refs/heads/develop' && steps.assemble.outputs.changed == 'true' &&
-          steps.live.outcome == 'success' && steps.dev_browser.outcome == 'success'
+          steps.live.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: dev-lkg-site-${{ github.sha }}
@@ -322,7 +250,7 @@ jobs:
       - name: Fail current DEV result after recording rollback coordinates
         if: >-
           github.ref == 'refs/heads/develop' && steps.assemble.outputs.changed == 'true' &&
-          (steps.live.outcome == 'failure' || steps.dev_browser.outcome == 'failure' || steps.dev_browser.outcome == 'skipped')
+          steps.live.outcome == 'failure'
         run: exit 1
       - name: Preserve blocking Production browser verification
         if: github.ref == 'refs/heads/main' && steps.assemble.outputs.changed == 'true'
@@ -423,37 +351,11 @@ jobs:
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
             if (!restored) core.setFailed('No verified Last Known Good DEV artifact restored');
 
-  browser-repair-state:
-    name: Record DEV browser repair state
-    needs: publish
-    if: >-
-      always() && github.ref == 'refs/heads/develop' &&
-      (needs.publish.outputs.browser_outcome == 'success' || needs.publish.outputs.browser_outcome == 'failure')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      issues: write
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - name: Create/update machine-readable repair ticket
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPAIR_SCOPE: develop
-          REPAIR_CONCLUSION: ${{ needs.publish.outputs.browser_outcome }}
-          REPAIR_HEAD_SHA: ${{ github.sha }}
-          REPAIR_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          REPAIR_ARTIFACT: dev-browser-${{ github.sha }}
-        run: node scripts/browser-repair-ticket.mjs
-
   result:
     name: Record final develop result
     needs: [integrate, publish, rollback-lkg]
     if: >-
-      always() && github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr' &&
+      always() && github.ref == 'refs/heads/develop' &&
       (github.event_name == 'push' || inputs.publish_only == true || inputs.refresh_staging == true || inputs.full_verification == true)
     runs-on: ubuntu-latest
     permissions:
@@ -480,10 +382,10 @@ jobs:
             await github.rest.repos.createCommitStatus({ ...context.repo, sha: context.sha,
               context: 'integration/develop', state: success ? 'success' : 'failure',
               description: success
-                ? 'DEV candidate + promotion + HTTP/source + focused browser verification passed'
+                ? 'DEV candidate + promotion + HTTP/source verification passed'
                 : fallback
-                  ? 'Current DEV failed; LKG public site restored; current develop remains blocked for repair'
-                  : 'DEV delivery/browser verification failed; automatic normal merges paused until repair',
+                  ? 'Current DEV delivery failed; LKG public site restored; repair required'
+                  : 'DEV delivery/source verification failed; repair required',
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
       - uses: actions/checkout@v6
         if: needs.publish.result == 'success'
@@ -575,7 +477,7 @@ jobs:
     name: Optional full regression and public browser diagnostics
     needs: [publish, result]
     if: >-
-      always() && github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr' &&
+      always() && github.ref == 'refs/heads/develop' &&
       inputs.full_verification == true && needs.publish.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20

@@ -46,7 +46,7 @@ test('delivery contract explicitly separates develop merge from verified DEV pub
   assert.match(deployed, /outcome: VERIFIED/);
   assert.match(deployed, /action: NONE/);
   assert.match(deployed, /verification: FAST_CHECKS\+DEV_PUBLIC\+HTTP_SOURCE/);
-  assert.match(deployed, /browser: ASYNC_DIAGNOSTICS/);
+  assert.match(deployed, /browser: OPT_IN/);
   assert.doesNotMatch(deployed, /DEV反映完了/);
 });
 
@@ -63,6 +63,7 @@ test('personal DEV email uses the first PR body line and exposes only short Japa
     'DEV反映完了',
     '「戦闘テンポを少し遅くする修正」をDEVに反映しました。',
     'DEVを確認: https://charukun.github.io/soul-lineage/dev/',
+    '確認画像・動画の報告: https://github.com/charukun/soul-lineage/pull/348',
   ].join('\n'));
   assert.doesNotMatch(email, /commit:|Run:|PR:|VERIFIED_DEV_PUBLICATION|GitHub|\[DEV_DEPLOYED\]/);
 });
