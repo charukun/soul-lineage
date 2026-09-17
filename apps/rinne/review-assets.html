@@ -6,25 +6,33 @@
 </head>
 <body>
 <main class="asset-review">
+<header class="asset-topbar">
+<a class="asset-back" href="./review.html" aria-label="確認メニューへ戻る">‹</a>
+<h1>着せ替え確認</h1>
+</header>
 <section class="asset-stage" aria-label="キャラクターと装備のプレビュー">
-<canvas id="asset-stage"></canvas>
-<p class="asset-badge">プレビュー</p>
-<p class="asset-help">ドラッグで回転 · ピンチで拡大</p>
+<div class="asset-canvas-wrap"><canvas id="asset-stage"></canvas></div>
+<nav id="asset-camera-strip" class="asset-camera-strip" aria-label="カメラの向き">
+<button type="button" data-asset-camera="front">正面</button>
+<button type="button" data-asset-camera="side">横</button>
+<button type="button" data-asset-camera="back">背面</button>
+<button type="button" data-asset-camera="full">全身</button>
+</nav>
 </section>
 <aside class="asset-controls">
 <header class="asset-heading">
-<h1>着せ替え確認</h1>
-<p>キャラクターと装備を選んで、見た目を確認できます。ゲーム本編のデータは変わりません。</p>
+<p>キャラクターと装備を選んで、見た目を確認します。</p>
+<small>ドラッグ: 回転　ピンチ: 拡大</small>
 </header>
-<h2><span class="asset-step">1</span>キャラクターを選ぶ</h2>
+<h2>キャラクター</h2>
 <div id="model-options" class="model-options" role="group" aria-label="Skeletonモデル"></div>
-<h2><span class="asset-step">2</span>装備を選ぶ</h2>
+<h2>装備</h2>
 <div class="slot-grid">
 <label>右手<select id="slot-main" aria-label="右手装備"></select></label>
 <label>左手<select id="slot-off" aria-label="左手装備"></select></label>
 <label>背中<select id="slot-back" aria-label="背中装備"></select></label>
 </div>
-<button id="asset-reset" class="asset-reset" type="button">装備をすべて外す</button>
+<button id="asset-reset" class="asset-reset" type="button">すべて外す</button>
 <output id="asset-status" class="asset-status" role="status" aria-live="polite">読み込み中…</output>
 <details class="asset-details"><summary>素材情報</summary><p id="asset-provenance" class="asset-provenance"></p></details>
 </aside>
