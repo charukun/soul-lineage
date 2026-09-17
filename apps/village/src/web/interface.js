@@ -1,4 +1,4 @@
-import {defs,ready,capacityOf,RESOURCE_NAMES,DAYS_YEAR} from '../game/core.js';
+import {defs,ready,RESOURCE_NAMES,DAYS_YEAR} from '../game/core.js';
 import {installEventChronicle} from './event-chronicle.js';
 import {installPopulationHistory} from './population-history.js';
 
@@ -22,10 +22,11 @@ const text=(node,value)=>{if(node.textContent!==value)node.textContent=value;};
 export function installInterface(village){
  const {world,view,ui,more,observePerson,frameHooks}=village;
  const $=id=>document.getElementById(id);
- const hud=$('idleStatus');hud.setAttribute('aria-label','村の今');
- hud.innerHTML=`<div class="muraHudMain"><button id="muraHudToggle" aria-expanded="false" aria-controls="muraHudDetails"><span class="muraHudClock"></span><span class="muraHudBrief"></span><span class="muraHudChevron" aria-hidden="true">⌄</span></button><div class="muraHudActions"><button id="muraFollowMayor" aria-label="村長を追う" title="村長">${svg('mayor')}</button><button id="muraEventButton" aria-label="出来事" title="出来事">${svg('events')}</button><button id="muraSettingsButton" aria-label="設定" title="設定">${svg('settings')}</button></div></div><div id="muraHudDetails" hidden><div class="muraHudStats"></div><div class="muraHudResources"></div></div>`;
- const toggle=$('muraHudToggle'),details=$('muraHudDetails'),clock=hud.querySelector('.muraHudClock'),brief=hud.querySelector('.muraHudBrief');
- toggle.onclick=()=>{details.hidden=!details.hidden;toggle.setAttribute('aria-expanded',String(!details.hidden));hud.classList.toggle('muraHudExpanded',!details.hidden);};
+ const hud=$('idleStatus');hud.setAttribute('aria-label','村の状況');
+ hud.innerHTML=`<div class="muraHudMain"><button id="muraHudToggle" aria-expanded="false" aria-controls="muraHudDetails"><span class="muraHudKicker">村のようす</span><span class="muraHudClock"></span><span class="muraHudBrief"></span><span class="muraHudChevron" aria-hidden="true">⌄</span></button><div class="muraHudActions"><button id="muraFollowMayor" aria-label="村長を追う" title="村長">${svg('mayor')}</button><button id="muraEventButton" aria-label="出来事" title="出来事">${svg('events')}</button><button id="muraSettingsButton" aria-label="設定" title="設定">${svg('settings')}</button></div></div><div id="muraHudDetails" hidden><section class="muraHudSection" aria-labelledby="muraHudLifeTitle"><div class="muraHudSectionHead"><strong id="muraHudLifeTitle">暮らし</strong><small class="muraHudCapacityHint"></small></div><dl class="muraHudStats"></dl></section><section class="muraHudSection" aria-labelledby="muraHudResourceTitle"><div class="muraHudSectionHead"><strong id="muraHudResourceTitle">資材</strong><small>いま使える在庫</small></div><div class="muraHudResources"></div></section></div>`;
+ const toggle=$('muraHudToggle'),details=$('muraHudDetails'),clock=hud.querySelector('.muraHudClock'),brief=hud.querySelector('.muraHudBrief'),capacityHint=hud.querySelector('.muraHudCapacityHint');
+ const setExpanded=expanded=>{details.hidden=!expanded;toggle.setAttribute('aria-expanded',String(expanded));toggle.setAttribute('aria-label',expanded?'村の状況を閉じる':'村の状況を詳しく見る');hud.classList.toggle('muraHudExpanded',expanded);};
+ setExpanded(false);toggle.onclick=()=>setExpanded(details.hidden);
  $('muraFollowMayor').onclick=()=>{const p=world.people.find(p=>p.role==='mayor');if(p)observePerson(p.id);};
  const chronicle=installEventChronicle({world,eventButton:$('muraEventButton')}),populationHistory=installPopulationHistory({world});
  const openSettings=()=>{more();populationHistory.attachSettings($('dialogContent'),openSettings);};
@@ -39,15 +40,17 @@ export function installInterface(village){
  const progress=document.createElement('div');progress.id='muraConstructionLayer';document.body.append(progress);
  const bars=new Map();let lastTick=0,resourceSignature='',statsSignature='',lastRoom=null,lastObserved=null;
  function statusTick(now){
-  const climate=window.__MURAAAAAAA_V2_UI__?.currentClimate(),year=Math.floor(world.state.clock/DAYS_YEAR)+1;
+  const climate=window.__MURAAAAAAA_V2_UI__?.currentClimate(),year=Math.floor(world.state.clock/DAYS_YEAR)+1,population=world.population();
   const seasons={spring:'春',summer:'夏',autumn:'秋',winter:'冬'},weather={clear:'晴',rain:'雨',cloudy:'曇',snow:'雪',wind:'風'};
   const hour=Math.floor(world.state.time),min=Math.floor((world.state.time-hour)*60);
   text(clock,`${seasons[climate?.season]||'春'} · ${weather[climate?.weather]||'晴'} · ${String(hour).padStart(2,'0')}:${String(min).padStart(2,'0')}`);
-  text(brief,`${year}年 · ${world.population().people}人`);
-  const built=world.objects.filter(o=>ready(o)&&defs[o.kind]?.building),counts=[built.length,world.population().people,built.filter(o=>capacityOf(o)).length];
-  if(counts.join()!==statsSignature){statsSignature=counts.join();hud.querySelector('.muraHudStats').innerHTML=counts.map((n,i)=>`<span title="${['施設','人口','住宅'][i]}">${svg(['facility','people','homes'][i])}<b>${n}</b></span>`).join('');}
-  const resources=world.state.known.filter(k=>world.state.stock[k]>=1),sig=resources.map(k=>k+Math.floor(world.state.stock[k])).join();
-  if(sig!==resourceSignature){resourceSignature=sig;const list=hud.querySelector('.muraHudResources');list.replaceChildren(...resources.map(k=>{const chip=document.createElement('span');chip.title=RESOURCE_NAMES[k];chip.setAttribute('aria-label',`${RESOURCE_NAMES[k]} ${Math.floor(world.state.stock[k])}`);chip.innerHTML=svg(k)+`<b>${Math.floor(world.state.stock[k])}</b>`;return chip;}));}
+  text(brief,`${year}年目 · ${population.people}人暮らし`);
+  const built=world.objects.filter(o=>ready(o)&&defs[o.kind]?.building),reception=Math.min(population.limit,population.openBeds),headroom=Math.max(0,reception-population.people);
+  text(capacityHint,headroom>0?`あと${headroom}人迎えられます`:population.openBeds<=population.people?'寝床を増やすと次の住人を迎えられます':population.reason);
+  const stats=[['people','住人',population.people,'人'],['homes','寝床',population.openBeds,'人分'],['people','受入目安',population.limit,'人'],['generic','守り',population.safety,''],['food','食事',population.food,''],['facility','施設',built.length,'棟']],sig=stats.map(([,label,value])=>`${label}:${value}`).join('|');
+  if(sig!==statsSignature){statsSignature=sig;hud.querySelector('.muraHudStats').innerHTML=stats.map(([icon,label,value,unit])=>`<div class="muraHudStat">${svg(icon)}<dt>${label}</dt><dd><b>${value}</b>${unit?`<small>${unit}</small>`:''}</dd></div>`).join('');}
+  const resources=world.state.known.filter(k=>world.state.stock[k]>=1),resourceSig=resources.map(k=>k+Math.floor(world.state.stock[k])).join();
+  if(resourceSig!==resourceSignature){resourceSignature=resourceSig;const list=hud.querySelector('.muraHudResources');if(!resources.length){const empty=document.createElement('p');empty.className='muraHudEmpty';empty.textContent='まだ資材はありません';list.replaceChildren(empty);}else list.replaceChildren(...resources.map(k=>{const chip=document.createElement('span'),value=Math.floor(world.state.stock[k]);chip.title=`${RESOURCE_NAMES[k]} ${value}`;chip.setAttribute('aria-label',`${RESOURCE_NAMES[k]} ${value}`);chip.innerHTML=svg(k)+`<small>${RESOURCE_NAMES[k]}</small><b>${value}</b>`;return chip;}));}
   const observing=view.observation?.id||null;
   if(lastRoom!==view.roomId||lastObserved!==observing){
    lastRoom=view.roomId;lastObserved=observing;
@@ -83,7 +86,7 @@ function installUiFeedback({info}){
    let volume=.4;try{volume=JSON.parse(localStorage.getItem(`soul.${info.environment}.village.device.music.v1`))?.volume??.4;}catch{}
    const o=ctx.createOscillator(),g=ctx.createGain(),now=ctx.currentTime;
    o.type='sine';o.frequency.setValueAtTime(kind==='confirm'?660:440,now);o.frequency.exponentialRampToValueAtTime(kind==='confirm'?880:520,now+.065);
-   g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(Math.max(.0001,volume*.09),now+.008);g.gain.exponentialRampToValueAtTime(.0001,now+.11);
+   g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(Math.max(.0001,volume*.09),now+.008);g.gain.exponentialRampToValueAtTime(.0001,now+.11);osc.connect?null:null;
    o.connect(g).connect(ctx.destination);o.onended=()=>{o.disconnect();g.disconnect();};o.start(now);o.stop(now+.12);
   }catch{/* Audio failure must not prevent a UI action. */}
  };
