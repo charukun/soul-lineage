@@ -40,14 +40,18 @@ test('broad validation never drops a test outside DEV mode', () => {
   assert.deepEqual(plan.skippedHeavy, []);
 });
 
-test('validator uses gate-cost profile and direct workspace checks for narrow or DEV scope', () => {
+test('validator uses trusted current-develop helpers for DEV while preserving repository helpers elsewhere', () => {
   const validate = source('scripts/validate.mjs');
   const check = source('scripts/check.mjs');
+  assert.match(validate, /const trustedControlDir = dirname\(fileURLToPath\(import\.meta\.url\)\)/);
+  assert.match(validate, /const scriptPath = name => dev \? resolve\(trustedControlDir, name\) : `scripts\/\$\{name\}`/);
+  assert.match(validate, /\[scriptPath\('affected\.mjs'\), \.\.\.affectedArgs\]/);
+  assert.match(validate, /\(dev \|\| narrowFast\) \? \[scriptPath\('check\.mjs'\), '--direct'/);
+  assert.match(validate, /scriptPath\('visual-budget\.mjs'\)/);
+  assert.match(validate, /scriptPath\('code-health\.mjs'\)/);
   assert.match(validate, /gateCostPlan\(plan\.paths \|\| \[\]\)\.profile/);
   assert.match(validate, /fastGateScope\(plan, profile\)/);
-  assert.match(validate, /\(dev \|\| narrowFast\) \? \['scripts\/check\.mjs', '--direct'/);
   assert.match(validate, /splitFastTests\(uniqueTests, plan\.paths/);
-  assert.match(validate, /plan\.infrastructure/);
   assert.match(check, /requested\[0\] === '--direct'/);
   assert.match(check, /if \(!direct\) for \(const file of readdirSync\('scripts'/);
 });
@@ -60,9 +64,11 @@ test('DEV PR and normal DEV publication both record zero tests', () => {
   assert.match(validate, /else \{[\s\S]*splitFastTests\(uniqueTests[\s\S]*\['--test', \.\.\.split\.light\]/);
 });
 
-test('develop CI installs dependencies only when an app/global build needs them', () => {
+test('develop CI plans and validates with trusted control checkout while main keeps PR fast validation', () => {
   const workflow = source('.github/workflows/ci.yml');
   const build = workflow.slice(workflow.indexOf('\n  build:'), workflow.indexOf('\n  integration-request:'));
+  assert.match(build, /TARGET_BASE: \$\{\{ github\.event\.pull_request\.base\.ref \}\}[\s\S]*node \.\.\/control\/scripts\/affected\.mjs "\$BASE_SHA" "\$HEAD_SHA" dev/);
+  assert.match(build, /if \[ "\$TARGET_BASE" = "develop" \]; then[\s\S]*node \.\.\/control\/scripts\/validate\.mjs dev "\$BASE_SHA" "\$HEAD_SHA"[\s\S]*else[\s\S]*node scripts\/validate\.mjs fast "\$BASE_SHA" "\$HEAD_SHA"/);
   assert.match(build, /github\.event\.pull_request\.base\.ref == 'main' \|\| steps\.plan\.outputs\.has_apps == 'true' \|\| steps\.plan\.outputs\.infrastructure == 'true'/);
   assert.doesNotMatch(build, /has_packages == 'true'/);
 });
