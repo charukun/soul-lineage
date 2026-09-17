@@ -14,11 +14,10 @@ export function normalizeReviewBattlePhase(value){
   return PHASE_SET.has(value)?value:'';
 }
 
-export function reviewBattlePhaseState(core,previousPhase=''){
+export function reviewBattlePhaseState(core){
   const heroPhase=normalizeReviewBattlePhase(core?.hero?.slot);
   const enemyPhase=normalizeReviewBattlePhase(core?.enemy?.slot);
-  const fallback=normalizeReviewBattlePhase(previousPhase);
-  const phase=heroPhase||enemyPhase||fallback;
+  const phase=heroPhase||enemyPhase;
   return Object.freeze({
     phase,
     heroPhase,
