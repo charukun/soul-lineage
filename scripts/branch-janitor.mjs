@@ -6,8 +6,7 @@ import { client } from './integration.mjs';
 
 export const DEFAULT_DELETE_LIMIT = 30;
 const SHORT_LIVED_PREFIXES = [
-  'audit/', 'chore/', 'ci/', 'cleanup/', 'claude/', 'codex/', 'dcc/', 'diagnostics/', 'dispatch/',
-  'docs/', 'feat/', 'fix/', 'perf/', 'refactor/', 'task/', 'work/',
+  'chore/', 'ci/', 'cleanup/', 'docs/', 'fix/', 'perf/', 'refactor/', 'task/', 'work/',
 ];
 const RESERVED_BRANCHES = new Set(['develop', 'main', 'gh-pages', 'production']);
 const gitSha = value => typeof value === 'string' && /^[0-9a-f]{40}$/i.test(value);
@@ -31,10 +30,29 @@ export async function containedInDevelop(c, branchSha, developSha) {
   return comparison?.merge_base_commit?.sha === branchSha;
 }
 
-async function openPrForBranch(c, owner, branch) {
+function branchUrlReferenced(body = '', branch = '') {
+  if (!branch) return false;
+  const escaped = branch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?:blob|tree)/${escaped}(?:/|\\b)`, 'i').test(body);
+}
+
+async function pullsForBranch(c, owner, branch, state) {
   const encoded = encodeURIComponent(`${owner}:${branch}`);
-  const pulls = await c.pages(`/pulls?state=open&head=${encoded}&per_page=100`, undefined, { maxPages: 2 });
-  return pulls.length > 0;
+  return c.pages(`/pulls?state=${state}&head=${encoded}&per_page=100`, undefined, { maxPages: 3 });
+}
+
+async function mergedPrProof(c, owner, branch) {
+  const pulls = await pullsForBranch(c, owner, branch, 'closed');
+  const merged = pulls.filter(pr => Boolean(pr.merged_at));
+  if (merged.length === 0) return { ok: false, reason: 'no-merged-pr-proof' };
+  if (merged.some(pr => branchUrlReferenced(pr.body || '', branch))) {
+    return { ok: false, reason: 'branch-linked-evidence-in-pr-body' };
+  }
+  return { ok: true, mergedPrs: merged.map(pr => pr.number) };
+}
+
+async function openPrForBranch(c, owner, branch) {
+  return (await pullsForBranch(c, owner, branch, 'open')).length > 0;
 }
 
 export async function cleanMergedBranches(c, repository, { apply = false, limit = DEFAULT_DELETE_LIMIT } = {}) {
@@ -79,17 +97,28 @@ export async function cleanMergedBranches(c, repository, { apply = false, limit 
       continue;
     }
 
-    report.candidates.push({ branch: branch.name, sha: branch.commit.sha });
+    const proof = await mergedPrProof(c, owner, branch.name);
+    if (!proof.ok) {
+      report.skipped.push({ branch: branch.name, reason: proof.reason });
+      continue;
+    }
+
+    report.candidates.push({ branch: branch.name, sha: branch.commit.sha, mergedPrs: proof.mergedPrs });
     if (!apply) continue;
 
     const refPath = branch.name.split('/').map(encodeURIComponent).join('/');
-    const [currentDevelop, ref, hasOpenPr] = await Promise.all([
+    const [currentDevelop, ref, hasOpenPr, currentProof] = await Promise.all([
       c.api('GET', `${c.root}/branches/develop`),
       c.api('GET', `${c.root}/git/ref/heads/${refPath}`),
       openPrForBranch(c, owner, branch.name),
+      mergedPrProof(c, owner, branch.name),
     ]);
     if (hasOpenPr) {
       report.skipped.push({ branch: branch.name, reason: 'open-pr-head-at-delete' });
+      continue;
+    }
+    if (!currentProof.ok) {
+      report.skipped.push({ branch: branch.name, reason: `proof-changed-at-delete:${currentProof.reason}` });
       continue;
     }
     if (ref?.object?.type !== 'commit' || ref.object.sha !== branch.commit.sha) {
@@ -101,7 +130,7 @@ export async function cleanMergedBranches(c, repository, { apply = false, limit 
       continue;
     }
     await c.api('DELETE', `${c.root}/git/refs/heads/${refPath}`);
-    report.deleted.push({ branch: branch.name, sha: ref.object.sha });
+    report.deleted.push({ branch: branch.name, sha: ref.object.sha, mergedPrs: currentProof.mergedPrs });
   }
 
   report.finishedAt = new Date().toISOString();
