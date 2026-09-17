@@ -44,3 +44,16 @@ PULSEの更新停止を局所的なcurl修正で再発させないため、Actio
 - PULSE公開prime、runtime再利用refresh、DEV結果後refreshは同じclientを使用する。workflow内に独自の`api/refresh` curlを増やさない。
 - DEV publication自体の成功とPULSE state refreshは分離する。refresh失敗でDEV公開済み事実を巻き戻さない一方、失敗を`|| true`で消さず、専用statusへ記録して診断可能にする。
 - control-plane testはYAMLの特定の行配置や`split()`前提を固定せず、上記のcredential forwarding・共通client利用・失敗可視化という契約を検証する。
+
+## Event-driven freshness 契約
+
+PULSEの「鮮度」は単純な経過時間ではなく、最後に観測したGitHub状態が現在まで有効かで判定する。GitHub側に変化がない間、数時間経過した正常snapshotを異常扱いしない。
+
+- PULSE表示へ影響するGitHub eventは薄いwake workflowで受け、状態取得ロジックを複製せず既存の`pulse-refresh.yml`だけを呼ぶ。
+- wake対象は少なくともdevelop更新、PRのopen/close/synchronize/ready/draft、review状態変化、PULSEが参照する主要workflowの完了を含む。
+- event refreshの重複実行はconcurrencyでcoalesceし、refresh protocolとcredential処理は`pulse-refresh.yml`/shared clientへ一本化したまま維持する。
+- 保険として低頻度reconcileを許可する。reconcileはGitHub/PULSEのsource identityを比較し、差分が無ければ重い処理や再公開を行わない。
+- UIは「最終取得からの時間」と「同期状態」を分離する。正常なら「GitHub状態を反映済み」と最終反映時刻を表示し、経過時間だけを理由に赤警告を出さない。
+- 赤い更新遅延警告は、GitHub側の変化を検知したのにrefreshが失敗/未完了、snapshot sourceがcurrent developと不一致、またはsyncStatusが異常である場合に限定する。
+- ブラウザの「最新に更新」はPULSE snapshotを再取得する操作であり、GitHub APIを直接叩くトリガーにしない。
+- 既存のrate-limit/auth診断、exact-head Integration、DEV/Production品質gateを弱めない。
