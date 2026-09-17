@@ -20,10 +20,10 @@ BLOCKED
   product / permission / external-input choice
 ```
 
-Draft、Micro Patch、Repair はこの 3 状態と同列の worker state ではない。
+GitHub Draft と Integration の Fast Repair は、この3状態と同列の worker state ではない。
 
 - Draft は GitHub 上で途中作業を可視化したい時だけ使う transport state。
-- 小変更か大変更かは route 名ではなく、影響範囲と risk から validation scope を変える。
+- 小変更か大変更かで worker route を分けず、影響範囲と risk から validation scope を変える。
 - Ready 後の mechanical base race / Fast Repair は Integration の内部実装。
 - semantic source repair が必要なら同じ PR を `WORKING` に戻し、current state から Astra が解き直す。
 
@@ -140,12 +140,6 @@ Implementation が current develop を reconcile 済みでも、Ready と merge 
 通常 develop CI は exact-head の deterministic gate であり、実装者の semantic validation を置き換えない。現在の trusted control checkout から差分衛生・syntax/static・code-health・必要 build を実行し、通常 develop では `node --test` / browser gameplay を自動常時実行しない。
 
 重い全体回帰、browser/WebGL/P2P はユーザー明示playtest、`full_verification=true`、専門 evidence workflow、main / Production gate で使う。main / Production の blocking gate は不変。
-
-## Micro Patch compatibility
-
-旧 [`MICRO_PATCH_FAST_LANE.md`](MICRO_PATCH_FAST_LANE.md) の目的だった「小変更の固定費を減らす」は Outcome Contract に吸収した。worker は Micro Patch 適用条件を判定して別routeへ入る必要はない。
-
-小さく安全な変更なら Astra が自然に小さい context / evidence を選び、Ready PRを直接作る。high-risk / shared / control-plane なら自然に evidence が増える。fast path を維持するための不自然な分割は禁止。
 
 ## PULSE
 
