@@ -12,10 +12,11 @@
 
 Depends-On: none
 
-## 高速検証
+## Final head evidence
 
-- 実行した検証と結果:
-- 残るリスク・仕様判断:
+- final reconciled exact headで実行したevidenceと結果:
+- reconciled develop SHA:
+- 未確認事項 / BLOCKED判断:
 
 ## DEVでの確認
 
@@ -25,16 +26,17 @@ Depends-On: none
 
 ## 確認エビデンス
 
-- キャプチャー／動画（最終応答にも画像を直接表示、または動画を添付）:
+- キャプチャー／動画（取得した場合は最終応答にも画像を直接表示、または動画を添付）:
 - 撮影対象SHA / 確認環境:
 - 確認した画面・操作 / 結果 / 未確認範囲:
-- 未取得の場合の理由・非同期追記先（CI待ちはしない）:
+- 未取得の場合の理由（CI待ちはしない）:
 
-## Integration handoff
+## Outcome handoff
 
-- branch / commit SHA:
-- Ready for review: 未完了（Ready時に更新）
-- Worker結果: 未完了（完了時 `READY_FOR_INTEGRATION`）
-- CI/browser監視担当: Integration
+- branch / exact head SHA:
+- Outcome: WORKING / READY / BLOCKED
+- Ready for review: 未完了（READY時に更新）
+- Worker結果: 未完了（READY時 `READY_FOR_INTEGRATION`）
+- CI/browser/merge/DEV監視担当: Integration
 
-[実行ポリシー](../docs/RINNE_PROJECT_EXECUTION_POLICY.md)に従い、Ready化後はCIのRunning/Queued/Pendingを待たず結果を返して終了する。未完了・未解決の重大な契約/権限判断はdraftまたはintegration:hold。確定要件内の可逆的な細部はAIが決め、通常gateを通してDEV公開後のフィードバックで改善する。
+[Astra Outcome Contract](../docs/ASTRA_OUTCOME_CONTRACT.md) と [実行ポリシー](../docs/RINNE_PROJECT_EXECUTION_POLICY.md) に従う。Draftは長時間作業・dispatch・途中共有のoptional visibilityであり、通常タスクの必須工程ではない。READY化後はCIのRunning/Queued/Pendingを待たず結果を返して終了する。repository contractとuser intentだけでは安全に解けないproduct/permission/external-input choiceだけをBLOCKEDとし、可逆的な細部はAIが判断する。main/Productionと品質gateは明示契約どおり維持する。
