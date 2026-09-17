@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {worldScaleTier} from '../packages/world/src/scale-policy.js';
-import {defaultMuraLayout,muraHasInterior} from '../packages/world/src/mura/index.js';
+import {defaultMuraLayout,muraDoorWidth,muraHasInterior} from '../packages/world/src/mura/index.js';
 import {BUILDINGS,defs as muraDefs} from '../packages/world/src/mura/catalog.js';
 import {defs as villageDefs} from '../apps/village/src/game/catalog.js';
 import {createMuraModels} from '../packages/rendering/src/mura/models.js';
@@ -41,6 +41,9 @@ test('Village and Rinne share one canonical human-scale MURA metre catalogue',()
  };
  for(const [kind,size] of Object.entries(expected))assert.deepEqual([muraDefs[kind].w,muraDefs[kind].d],size,kind);
  for(const row of BUILDINGS.filter(row=>muraHasInterior(row.id)))assert.ok(Math.max(row.w,row.d)<=14,`${row.id} footprint ${row.w}x${row.d}m`);
+ assert.equal(muraDoorWidth('home'),1.8);
+ assert.equal(muraDoorWidth('smith'),2.1);
+ assert.equal(muraDoorWidth('clanManor'),2.4);
 });
 
 test('residential tents are compact human-scale assets in every MURA renderer',()=>{
