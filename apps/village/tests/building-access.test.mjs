@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {muraBlocked,muraEntry,muraInteriorAt,muraInteriorEntry,muraLocalToWorld} from '@soul/world/mura';
-import {World} from '../src/game/core.js';
+import {World,FURNITURE} from '../src/game/core.js';
 import {Simulation} from '../src/game/simulation.js';
+import {availableFurniture,canEditRoom} from '../src/game/housing-access.js';
 
 test('resident walks through the shared doorway instead of teleporting across the wall',()=>{
   const world=new World(),home=world.object('b1'),person=world.people.find(p=>p.homeId===home.id),sim=new Simulation(world),outside=muraEntry(home,5),inside=muraInteriorEntry(home);
@@ -36,4 +37,13 @@ test('navigation from behind a building goes around to its doorway without cross
     }
     previous=next;
   }
+});
+
+test('a resident tent remains a furniture-editable housing room',()=>{
+  const world=new World();
+  world.state.objects.push({id:'housing-tent-test',kind:'tent',x:30,z:30,rot:0,phase:'built',level:1,material:'base',room:[]});
+  assert.equal(canEditRoom(world,'housing-tent-test'),true);
+  const furniture=availableFurniture(world,'housing-tent-test',FURNITURE);
+  assert.ok(furniture.some(item=>item.id==='bed'));
+  assert.ok(furniture.some(item=>item.id==='table'));
 });
