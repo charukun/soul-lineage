@@ -64,6 +64,7 @@ test('Repair workflow updates stacks directly, uses trusted test-free DEV valida
   assert.match(workflow, /stack-fast:[\s\S]*Stack Validate and build[\s\S]*max-parallel: 4/);
   assert.match(workflow, /node \.\.\/control\/scripts\/affected\.mjs "\$BASE_SHA" "\$HEAD_SHA" dev/);
   assert.match(workflow, /node \.\.\/control\/scripts\/validate\.mjs dev "\$BASE_SHA" "\$HEAD_SHA"/);
+  assert.match(workflow, /Bind trusted DEV validator to exact PR dependencies[\s\S]*ln -s \.\.\/work\/node_modules control\/node_modules[\s\S]*Keep trusted validation controls immutable from PR code/);
   assert.match(workflow, /pr-fast-\$\{\{ matrix\.pr \}\}-\$\{\{ matrix\.head \}\}/);
   assert.match(workflow, /context: 'integration\/stack-fast'/);
   assert.match(workflow, /Wake Fast Lane immediately for this validated head[\s\S]*createWorkflowDispatch/);

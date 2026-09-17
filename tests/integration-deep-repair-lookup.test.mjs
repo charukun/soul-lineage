@@ -24,7 +24,8 @@ function fixture({ indexed = [], recent = [], current = [], statuses = [], searc
       assert.equal(method, 'GET'); calls.push(path);
       if (path.startsWith('/search/issues?')) {
         const query = new URL(`https://api.github.com${path}`).searchParams.get('q');
-        assert.ok(query.includes(`repo:${repository}`) && query.includes('is:issue') && query.includes(`"${head}"`));
+        assert.ok(query.includes(`repo:${repository}`) && query.includes('is:issue') && query.includes('is:open') &&
+          query.includes('"pr:329:head:"'));
         return { incomplete_results: false, total_count: indexed.length, items: indexed, ...searchFields };
       }
       if (path === `${c.root}/issues?state=open&sort=created&direction=desc&per_page=100`) return recent;
@@ -43,6 +44,18 @@ test('repair lookup does not enumerate repository-wide history beyond 300 PRs/is
   assert.equal((await findDeepRepairIssue(f.c, { repository, pr })).number, 10);
   assert.equal(f.calls.length, 4);
   assert.ok(!f.calls.some(path => path.includes('state=all') || /[?&]page=/.test(path)));
+});
+
+test('open prior-head ticket is reused as the same source-PR repair incident', async () => {
+  const previousHead = 'c'.repeat(40);
+  const previousPr = { ...pr, head: { ...pr.head, sha: previousHead } };
+  const expected = {
+    number: 350,
+    state: 'open',
+    body: deepRepairIssueMarker(deepRepairIssueState({ pr: previousPr, develop, reason: 'DEVELOP_OVERLAP' })),
+  };
+  const f = fixture({ indexed: [expected], current: [expected] });
+  assert.equal((await findDeepRepairIssue(f.c, { repository, pr })).number, 350);
 });
 
 test('recent open ticket covers indexing delay before a receipt exists', async () => {
@@ -64,7 +77,7 @@ test('current Issue body wins over stale search results and preserves terminal d
   assert.deepEqual(await findDeepRepairIssue(f.c, { repository, pr }), expected);
 });
 
-test('working claim wins over pending duplicates and closure of an unclaimed duplicate', async () => {
+test('working claim wins over pending duplicates for the current exact head', async () => {
   const indexed = [issue(10, {}, { state: 'closed' }), issue(11), issue(12, { state: 'working', attempt: 1 })];
   const f = fixture({ indexed, current: indexed });
   assert.equal((await findDeepRepairIssue(f.c, { repository, pr })).number, 12);
@@ -77,7 +90,7 @@ test('an incomplete or capped search is never treated as absence', async () => {
   }
 });
 
-test('foreign receipt, false-positive head and PR records cannot become repair tickets', async () => {
+test('foreign receipt, malformed sourceKey/head and PR records cannot become repair tickets', async () => {
   const wrong = issue(20, { head: 'c'.repeat(40) });
   const isPr = issue(21, {}, { pull_request: {} });
   const f = fixture({ indexed: [wrong, isPr], recent: [wrong, isPr], statuses: [{
