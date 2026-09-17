@@ -1,4 +1,4 @@
-import { SKILL_BY_ID } from './rebuild/skill-system.js';
+import { ACTION_SKILLS, SUPPORT_SKILLS, SKILL_BY_ID } from './rebuild/skill-system.js';
 
 export const PHASES=Object.freeze([['jo','序'],['ha','破'],['kyu','急']]);
 export const MAX_COMBOS=6;
@@ -26,12 +26,11 @@ export const BODY_ZANSHIN=Object.freeze([
   {id:'guard',label:'守り残心',description:'攻撃後すぐ守りへ戻る。',requiresAny:['skill.guard-sense','skill.endure','skill.balance'],recoveryScale:1.04,staminaRefund:.02,guardBonus:.045},
 ]);
 
-const knownSet=state=>new Set(state?.knownSkills||[]);
 const basicSkill=state=>BASIC_BY_WEAPON[state?.equipment?.weapon]||'basic.fist';
-const isAction=(state,id)=>id===basicSkill(state)||(SKILL_BY_ID[id]?.type==='action'&&knownSet(state).has(id));
-const supportIds=state=>(state?.knownSkills||[]).filter(id=>SKILL_BY_ID[id]?.type==='support');
-const actionIds=state=>[basicSkill(state),...(state?.knownSkills||[]).filter(id=>SKILL_BY_ID[id]?.type==='action')].filter((id,index,list)=>list.indexOf(id)===index);
-const learned=row=>state=>!row.requiresAny.length||row.requiresAny.some(id=>knownSet(state).has(id));
+const isAction=(state,id)=>id===basicSkill(state)||SKILL_BY_ID[id]?.type==='action';
+const supportIds=()=>SUPPORT_SKILLS.map(row=>row.id);
+const actionIds=state=>[basicSkill(state),...ACTION_SKILLS.map(row=>row.id)];
+const learned=()=>()=>true;
 function phaseFromLegacy(state,phase){const id=Object.entries(state?.skillWeights?.[phase]||{}).filter(([,value])=>Number(value)>0).sort((a,b)=>Number(b[1])-Number(a[1]))[0]?.[0];return isAction(state,id)?id:basicSkill(state);}
 function makeCombo(state,index=0,source=null){
   const id=source?.id||`combo-${index+1}`;
@@ -42,25 +41,25 @@ function normalizeBody(state,body={}){const pick=(list,id,fallback)=>list.some(r
 function mirrorLegacy(state){const combo=activeCombo(state);if(!combo)return;state.skillWeights??={};for(const [phase] of PHASES)state.skillWeights[phase]={[combo.slots[phase]]:100};}
 
 export function ensureCombatLoadout(state){
-  if(!state)return null;const existing=state.combatLoadout&&typeof state.combatLoadout==='object'?state.combatLoadout:{},heart=existing.heart&&typeof existing.heart==='object'?existing.heart:{},knownHeart=supportIds(state);
-  if(!Array.isArray(heart.active))heart.active=[...knownHeart];else heart.active=heart.active.filter(id=>knownHeart.includes(id));
+  if(!state)return null;const existing=state.combatLoadout&&typeof state.combatLoadout==='object'?state.combatLoadout:{},heart=existing.heart&&typeof existing.heart==='object'?existing.heart:{},availableHeart=supportIds();
+  if(!Array.isArray(heart.active))heart.active=[];else heart.active=heart.active.filter(id=>availableHeart.includes(id));
   const technique=existing.technique&&typeof existing.technique==='object'?existing.technique:{},rawCombos=Array.isArray(technique.combos)?technique.combos.slice(0,MAX_COMBOS):[];
   technique.combos=(rawCombos.length?rawCombos:[null]).map((row,index)=>makeCombo(state,index,row));if(!technique.combos.some(row=>row.id===technique.activeComboId))technique.activeComboId=technique.combos[0].id;
-  if(!(SKILL_BY_ID[technique.oneMotion]?.type==='action'&&knownSet(state).has(technique.oneMotion)))technique.oneMotion=null;
+  if(SKILL_BY_ID[technique.oneMotion]?.type!=='action')technique.oneMotion=null;
   state.combatLoadout={heart,technique,body:normalizeBody(state,existing.body)};mirrorLegacy(state);return state.combatLoadout;
 }
-export function learnedHeartSkills(state){ensureCombatLoadout(state);return supportIds(state);}
+export function learnedHeartSkills(state){ensureCombatLoadout(state);return supportIds();}
 export function learnedTechniqueSkills(state,{oneMotion=false}={}){ensureCombatLoadout(state);const ids=actionIds(state);return oneMotion?ids.filter(id=>SKILL_BY_ID[id]?.type==='action'):ids;}
 export function techniqueName(id){return SKILL_BY_ID[id]?.name||BASIC_LABELS[id]||id||'未設定';}
 export function activeCombo(state){const loadout=state?.combatLoadout||ensureCombatLoadout(state);return loadout?.technique?.combos?.find(row=>row.id===loadout.technique.activeComboId)||loadout?.technique?.combos?.[0]||null;}
 export function comboById(state,id){ensureCombatLoadout(state);return state.combatLoadout.technique.combos.find(row=>row.id===id)||activeCombo(state);}
-export function setHeartActive(state,id,active){const loadout=ensureCombatLoadout(state);if(!supportIds(state).includes(id))return false;const set=new Set(loadout.heart.active);active?set.add(id):set.delete(id);loadout.heart.active=[...set];return true;}
+export function setHeartActive(state,id,active){const loadout=ensureCombatLoadout(state);if(!supportIds().includes(id))return false;const set=new Set(loadout.heart.active);active?set.add(id):set.delete(id);loadout.heart.active=[...set];return true;}
 export function addCombo(state){const loadout=ensureCombatLoadout(state),rows=loadout.technique.combos;if(rows.length>=MAX_COMBOS)return null;const source=activeCombo(state),ids=new Set(rows.map(row=>row.id));let serial=1;while(ids.has(`combo-${serial}`))serial++;const combo=makeCombo(state,rows.length,{id:`combo-${serial}`,slots:{...source.slots}});rows.push(combo);return combo;}
 export function removeCombo(state,id){const loadout=ensureCombatLoadout(state),rows=loadout.technique.combos;if(rows.length<=1)return false;const index=rows.findIndex(row=>row.id===id);if(index<0)return false;rows.splice(index,1);if(loadout.technique.activeComboId===id)loadout.technique.activeComboId=rows[0].id;mirrorLegacy(state);return true;}
 export function setActiveCombo(state,id){const loadout=ensureCombatLoadout(state);if(!loadout.technique.combos.some(row=>row.id===id))return false;loadout.technique.activeComboId=id;mirrorLegacy(state);return true;}
 export function setComboSkill(state,comboId,phase,skill){const combo=comboById(state,comboId);if(!combo||!PHASES.some(([id])=>id===phase)||!isAction(state,skill))return false;combo.slots[phase]=skill;if(combo.id===state.combatLoadout.technique.activeComboId)mirrorLegacy(state);return true;}
 export function toggleFavored(state,comboId,phase){const combo=comboById(state,comboId);if(!combo||!PHASES.some(([id])=>id===phase))return false;combo.favored[phase]=!combo.favored[phase];return combo.favored[phase];}
-export function setOneMotion(state,skill){const loadout=ensureCombatLoadout(state);if(skill===null){loadout.technique.oneMotion=null;return true;}if(!(SKILL_BY_ID[skill]?.type==='action'&&knownSet(state).has(skill)))return false;loadout.technique.oneMotion=skill;return true;}
+export function setOneMotion(state,skill){const loadout=ensureCombatLoadout(state);if(skill===null){loadout.technique.oneMotion=null;return true;}if(SKILL_BY_ID[skill]?.type!=='action')return false;loadout.technique.oneMotion=skill;return true;}
 export function setBodyChoice(state,kind,id){const loadout=ensureCombatLoadout(state),map={stance:BODY_STANCES,style:BODY_STYLES,zanshin:BODY_ZANSHIN},list=map[kind];if(!list)return false;const row=list.find(item=>item.id===id);if(!row||!optionUnlocked(state,row))return false;loadout.body[kind]=id;return true;}
 export function unlockedBodyOptions(state,kind){ensureCombatLoadout(state);const map={stance:BODY_STANCES,style:BODY_STYLES,zanshin:BODY_ZANSHIN};return(map[kind]||[]).filter(row=>optionUnlocked(state,row));}
 export function bodyRuntime(state){const loadout=ensureCombatLoadout(state),stance=BODY_STANCES.find(row=>row.id===loadout.body.stance)||BODY_STANCES[0],style=BODY_STYLES.find(row=>row.id===loadout.body.style)||BODY_STYLES[0],zanshin=BODY_ZANSHIN.find(row=>row.id===loadout.body.zanshin)||BODY_ZANSHIN[0];return{stance,style,zanshin,guardBonus:(stance.guardBonus||0)+(zanshin.guardBonus||0)};}

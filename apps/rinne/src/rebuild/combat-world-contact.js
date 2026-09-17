@@ -1,5 +1,5 @@
 import { WEAPONS } from './domain.js';
-import { ensureCombatGrowthState } from './combat-growth.js';
+import { ensureCombatInjuryState } from './combat-injury.js';
 
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
 const TAU=Math.PI*2;
@@ -39,7 +39,7 @@ export function enemySweepTargets(attacker,states,primaryId,front){
 }
 
 function markDown(state,enemy,events,source='world-contact'){
-  if(enemy.dead)return;enemy.hp=0;enemy.dead=true;enemy.moving=false;enemy.attacking=false;state.defeats=(Number(state.defeats)||0)+1;const combat=state.experiences.combat||{count:0,score:0,last:0};state.experiences.combat={count:combat.count+1,score:combat.score+1,last:state.ageSeconds};events.push({type:'enemy-down',targetId:enemy.id,engine:source});
+  if(enemy.dead)return;enemy.hp=0;enemy.dead=true;enemy.moving=false;enemy.attacking=false;state.defeats=(Number(state.defeats)||0)+1;events.push({type:'enemy-down',targetId:enemy.id,engine:source});
 }
 
 export function applyMultiTargetContact(state,front,event,events){
@@ -47,7 +47,7 @@ export function applyMultiTargetContact(state,front,event,events){
   const hits=[],factor=(attack==='spin'||attack==='round'||attack==='barrage') ? .82 : .7;for(const enemy of worldContactCandidates(state,front,event)){const damage=Math.min(enemy.hp,event.damage*factor);if(!(damage>0))continue;enemy.hp=Math.max(0,enemy.hp-damage);enemy.flash=1;const row={type:'player-hit',targetId:enemy.id,skill:event.skill,phase:event.phase,damage,multiTarget:true,engine:'world-contact'};events.push(row);hits.push(row);if(enemy.hp<=.001)markDown(state,enemy,events);}return hits;
 }
 
-function projectileState(state){ensureCombatGrowthState(state);state.rangedCombat??={cooldown:0,serial:0,projectiles:[]};if(!Array.isArray(state.rangedCombat.projectiles))state.rangedCombat.projectiles=[];return state.rangedCombat;}
+function projectileState(state){ensureCombatInjuryState(state);state.rangedCombat??={cooldown:0,serial:0,projectiles:[]};if(!Array.isArray(state.rangedCombat.projectiles))state.rangedCombat.projectiles=[];return state.rangedCombat;}
 function nearestRangedTarget(state,front){return front.enemies.filter(e=>!e.dead).map(enemy=>({enemy,distance:dist(state.position,enemy)})).filter(row=>row.distance>1.75&&row.distance<=7.5&&!lineBlocked(front,state.position,row.enemy)).sort((a,b)=>a.distance-b.distance)[0]?.enemy||null;}
 function firstProjectileHit(front,a,b){let best=null,bestD=Infinity;for(const enemy of front.enemies){if(enemy.dead)continue;const d=segmentDistance(a.x,a.z,b.x,b.z,enemy.x,enemy.z);if(d>.42)continue;const along=dist(a,enemy);if(along<bestD){best=enemy;bestD=along;}}return best;}
 
