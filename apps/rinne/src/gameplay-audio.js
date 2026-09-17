@@ -6,19 +6,51 @@ export const selectRinneAudio=()=>activeAudio?.select?.();
 export const confirmRinneAudio=()=>activeAudio?.commit?.();
 
 export function createRinneAudio(){
-  const music=new Audio(audioURLs.r01);music.loop=true;music.volume=.2;music.preload='auto';let context=null,lastStep=0,disposed=false;
-  async function unlock(){
-    if(disposed)return false;
-    const C=globalThis.AudioContext||globalThis.webkitAudioContext;
-    try{if(C&&!context)context=new C();}catch(error){console.warn('Rinne AudioContext creation failed',error);}
+  const music=new Audio(audioURLs.r01);music.loop=true;music.volume=.2;music.preload='auto';
+  const pageHidden=()=>typeof document!=='undefined'&&(document.hidden||document.visibilityState==='hidden');
+  let context=null,lastStep=0,disposed=false,unlocked=false,backgrounded=pageHidden();
+
+  function suspendForBackground(){
+    backgrounded=true;
+    music.pause();
+    if(context?.state==='running')void context.suspend().catch(error=>{console.warn('Rinne AudioContext suspend failed',error);});
+  }
+  async function resumePlayback(){
+    if(disposed||backgrounded||pageHidden()||!unlocked)return false;
     const resume=context?.state==='suspended'?context.resume().catch(error=>{console.warn('Rinne AudioContext resume failed',error);}):Promise.resolve();
     const playback=music.paused?music.play().catch(error=>{console.warn('Rinne music start failed',error);}):Promise.resolve();
     await Promise.allSettled([resume,playback]);
+    if(disposed||backgrounded||pageHidden()){
+      suspendForBackground();
+      return false;
+    }
     return Boolean(context?.state==='running'||!music.paused);
   }
+  async function unlock(){
+    if(disposed)return false;
+    unlocked=true;
+    if(pageHidden()){
+      suspendForBackground();
+      return false;
+    }
+    backgrounded=false;
+    const C=globalThis.AudioContext||globalThis.webkitAudioContext;
+    try{if(C&&!context)context=new C();}catch(error){console.warn('Rinne AudioContext creation failed',error);}
+    return resumePlayback();
+  }
+  function onVisibilityChange(){
+    if(pageHidden()){
+      suspendForBackground();
+      return;
+    }
+    backgrounded=false;
+    if(unlocked)void resumePlayback();
+  }
+  document?.addEventListener?.('visibilitychange',onVisibilityChange);
+
   function tone(freq,duration=.06,gain=.02,type='sine'){
-    if(disposed||!context)return;
-    if(context.state==='suspended'){void context.resume().then(()=>tone(freq,duration,gain,type)).catch(()=>{});return;}
+    if(disposed||backgrounded||pageHidden()||!context)return;
+    if(context.state==='suspended'){void context.resume().then(()=>{if(!backgrounded&&!pageHidden())tone(freq,duration,gain,type);}).catch(()=>{});return;}
     if(context.state!=='running')return;
     const now=context.currentTime,osc=context.createOscillator(),amp=context.createGain();osc.type=type;osc.frequency.value=freq;amp.gain.setValueAtTime(.0001,now);amp.gain.exponentialRampToValueAtTime(gain,now+.006);amp.gain.exponentialRampToValueAtTime(.0001,now+duration);osc.connect(amp).connect(context.destination);osc.start(now);osc.stop(now+duration+.02);
   }
@@ -29,7 +61,7 @@ export function createRinneAudio(){
     item(){tone(620,.08,.024,'triangle');setTimeout(()=>tone(840,.08,.018,'triangle'),55);},
     combat:()=>tone(128,.11,.032,'sawtooth'),rest:()=>tone(260,.14,.014),dash:()=>tone(170,.07,.022,'square'),
     step(now){if(now-lastStep<.25)return;lastStep=now;tone(92,.035,.012);},
-    dispose(){if(disposed)return;disposed=true;if(activeAudio===controller)activeAudio=null;music.pause();music.src='';void context?.close?.();context=null;}
+    dispose(){if(disposed)return;disposed=true;if(activeAudio===controller)activeAudio=null;document?.removeEventListener?.('visibilitychange',onVisibilityChange);music.pause();music.src='';void context?.close?.();context=null;}
   };
   activeAudio=controller;
   return controller;
