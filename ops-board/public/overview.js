@@ -39,11 +39,15 @@ function publicationHeadline(progress) {
   })[progress?.state] || progress?.value || 'DEV状態を確認中';
 }
 
+function needsHumanAction(state, impact) {
+  return (state?.controlTower?.incidents || []).some(item => item.userActionRequired === true && (!impact || item.impact === impact));
+}
+
 function renderAttention(state, error) {
   const alerts = eventDrivenAlerts(state, Date.now(), error);
-  const danger = alerts.filter(item => item.tone === 'danger').length;
-  const tone = danger ? 'danger' : alerts.length ? 'warning' : 'ok';
-  setCard('overview-alert', alerts.length ? `${alerts.length}件` : '0件', alerts.length ? (danger ? `重大 ${danger}` : '確認あり') : '問題なし', tone);
+  const danger = alerts.filter(item => item.tone === 'danger' || item.userActionRequired).length;
+  const tone = alerts.length ? 'danger' : 'ok';
+  setCard('overview-alert', alerts.length ? `${alerts.length}件` : '0件', alerts.length ? (danger ? `確認が必要 ${danger}` : '確認あり') : '問題なし', tone);
 }
 
 function renderDevelopment(state) {
@@ -57,11 +61,13 @@ function renderApplications(state) {
   const dev = (state?.environments || []).find(env => env.id === 'dev');
   const publication = devPublicationProgress(state, Date.now());
   if (publication) {
+    const human = needsHumanAction(state, 'dev-publication');
+    const tone = publication.tone === 'danger' && !human ? 'progress' : publication.tone;
     setCard(
       'overview-app',
       publicationHeadline(publication),
       publication.currentVersionAvailable ? '現在のDEVは今すぐ開けます' : '現在のDEV公開は未確認です',
-      publication.tone,
+      tone,
     );
     setPublicationRows(publication.current, publication.next, publication.eta);
     return;
@@ -86,7 +92,8 @@ function renderApplications(state) {
     const [, tone] = appHealth(app);
     counts[tone] = (counts[tone] || 0) + 1;
   }
-  const tone = counts.danger ? 'danger' : counts.warning ? 'warning' : counts.progress ? 'progress' : 'info';
+  const human = needsHumanAction(state, 'dev-publication');
+  const tone = human ? 'danger' : counts.warning ? 'warning' : counts.progress || counts.danger ? 'progress' : 'info';
   setCard('overview-app', 'DEV状態を確認中', dev.deployedCommit ? '現在のDEVは開けます' : '公開版を確認できていません', tone);
   setPublicationRows('公開版と最新developを照合しています', '一致状態を確認します', '確認中');
 }
