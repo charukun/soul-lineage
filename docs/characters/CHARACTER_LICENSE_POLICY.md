@@ -13,6 +13,8 @@ New or active game-facing character model assets must satisfy one of these sourc
 
 A permissive commercial-use clause with attribution, redistribution, field-of-use, embedded VRM, character-license or other model-specific conditions does not satisfy this policy.
 
+Discovery through Fab, Blendkit, Sketchfab, Quaternius, CGTrader or another catalog does not make an asset eligible. `CHARACTER_ASSET_SOURCING.md` defines where workers should search first; this policy still decides whether a discovered candidate may become an active game-facing character asset.
+
 ## Retired conditional models
 
 Conditional third-party character models are retired from active runtime, review candidate lists and new character production. Existing historical provenance may remain in Git history or documentation, but retirement must prevent the asset from being selected, materialized or shipped as an active candidate.
@@ -28,6 +30,8 @@ Current DCC assets that use the Sendagaya_Shino carrier rig may remain as non-Pr
 ## Default foundation
 
 `kaykit.adventurers.v1` remains the default external character foundation because its pinned source is recorded as CC0-1.0. New game-facing character work should prefer that foundation or fully RINNE-authored assets.
+
+When a new role needs a different model, use the catalog-first acquisition flow in `CHARACTER_ASSET_SOURCING.md` before falling back to generated geometry. Only candidates that satisfy this license policy may progress as active imported character assets.
 
 ## Enforcement
 
