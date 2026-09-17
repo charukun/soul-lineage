@@ -4,9 +4,18 @@ import { readFileSync, readdirSync } from 'node:fs';
 
 const text = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
+function topLevelJob(yaml, id) {
+  const marker = `  ${id}:\n`;
+  const start = yaml.indexOf(marker);
+  assert.notEqual(start, -1, `missing workflow job: ${id}`);
+  const rest = yaml.slice(start + marker.length);
+  const next = rest.search(/\n  [A-Za-z0-9_-]+:\n/);
+  return next >= 0 ? rest.slice(0, next) : rest;
+}
+
 test('Ready handoff no longer duplicates the normal Fast Lane wake', () => {
   const ci = text('.github/workflows/ci.yml');
-  const handoff = ci.split('  request-rescue:')[1].split('\n  draft-check:')[0];
+  const handoff = topLevelJob(ci, 'request-rescue');
   assert.match(handoff, /name: Record Ready handoff/);
   assert.match(handoff, /\["opened","synchronize","reopened","ready_for_review"\]/);
   assert.doesNotMatch(handoff, /rescue_mode|createWorkflowDispatch/);
