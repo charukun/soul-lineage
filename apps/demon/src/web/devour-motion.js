@@ -95,7 +95,11 @@ export function devourInteractionFrame(origin={},capture={},motion=samplePreyMot
  const targetRootX=mouthLocal.x-biteOffsetX+side*(1-lock)*.08;
  const targetRootY=Math.max(.06,mouthLocal.y-biteOffsetY-(1-lock)*.18*Math.min(1.2,predatorScale));
  const targetRootZ=mouthLocal.z-.035+(1-lock)*.17*predatorScale;
- const targetXZ=localXZ(capture,targetRootX,targetRootZ),ox=Number(origin?.x)||0,oz=Number(origin?.z)||0;
+ const targetXZ=localXZ(capture,targetRootX,targetRootZ),cx=Number(capture?.x)||0,cz=Number(capture?.z)||0;
+ let ox=Number(origin?.x)||0,oz=Number(origin?.z)||0;
+ // Predator rendering does not own the NPC object. When origin equals the predator,
+ // approximate the already-valid DEVOUR_REACH contact point in front of the body.
+ if(Math.hypot(ox-cx,oz-cz)<.05){const estimated=localXZ(capture,0,.70);ox=estimated.x;oz=estimated.z;}
  const baseY=Math.max(0,Number(motion?.rootY)||0),root={
   x:mix(ox,targetXZ.x,captureWeight),
   y:mix(baseY,targetRootY,captureWeight),
@@ -115,13 +119,13 @@ export function devourInteractionFrame(origin={},capture={},motion=samplePreyMot
 
 /**
  * Presentation-only state for a defeated human. The same normalized capture clock
- * drives both the predator and prey. During an immediate post-KO feed, lower/reach
- * gives the collapse enough screen time before the prey is visibly pulled upward.
+ * drives both the predator and prey. The visible prey does not translate until the
+ * reaching hands have nearly established a grip.
  */
 export function samplePreyMotion(progress=null,downProgress=1,captureWeight=1,fallSide=1){
  const feeding=Number.isFinite(progress),p=feeding?clamp(progress):0,weight=feeding?clamp(captureWeight):0;
  const collapseProgress=Math.max(clamp(downProgress),feeding?clamp(p/.17):0),fall=sampleIncapacitationMotion(collapseProgress,fallSide);
- const predator=sampleDevourMotion(p),capture=smooth((p-.15)/.19)*weight;
+ const predator=sampleDevourMotion(p),capture=smooth((p-.28)/.15)*weight;
  const bite=(feeding?Math.max(...DEVOUR_BITE_BEATS.map(at=>pulse(p,at))):0)*weight;
  const swallow=(feeding?smooth((p-.70)/.22):0)*weight;
  const settle=(feeding?smooth((p-.90)/.10):0)*weight;
