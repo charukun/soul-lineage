@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createLife} from '../src/rebuild/domain.js';
+import {createLife,deserializeLife,rebirth,serializeLife,tickLife} from '../src/rebuild/domain.js';
 import {applyCombatInjury,injuryEffects,noteTechniqueUse,techniqueMutationFor,evolveTechniqueForm} from '../src/rebuild/combat-growth.js';
 import {applyMultiTargetContact,ensureCombatTerrain,lineBlocked,tickRangedProjectiles} from '../src/rebuild/combat-world-contact.js';
 import {assignSquadRoles,enemyLearningResponse,recordEnemyPattern} from '../src/rebuild/combat-squad-ai.js';
@@ -23,12 +23,12 @@ test('combat terrain blocks movement and line of fire through deterministic cove
 
 test('injuries persist, affect body capabilities, and heal with elapsed life time',()=>{
   const s=state();const hit=applyCombatInjury(s,{damage:38,sector:'back',sourceId:'ogre'}),before=injuryEffects(s);assert.ok(hit.severity>0);assert.ok(before.attackScale<1||before.movementScale<1||before.judgmentScale<1||before.staminaScale<1);
-  s.ageSeconds+=240;const after=injuryEffects(s);assert.ok(after.severity<before.severity);
+  const restored=deserializeLife(serializeLife(s));assert.ok(Object.values(restored.injuries).some(row=>row.severity>0));restored.ageSeconds+=240;const after=injuryEffects(restored);assert.ok(after.severity<before.severity);
 });
 
-test('repeated lived technique use mutates footwork rhythm and charge without changing the skill id',()=>{
-  const s=state();for(let i=0;i<36;i++)noteTechniqueUse(s,'action.counter',{phase:i%3===0?'kyu':'ha',hit:true});const mutation=techniqueMutationFor(s,'action.counter');assert.equal(mutation.tier,3);
-  const original={kinds:['parry','counter','thrust'],feet:['stay','stay','chase'],charges:['none','none','none'],rhythm:'sharp',tempo:1},form=evolveTechniqueForm(s,'action.counter',original);assert.deepEqual(form.kinds,original.kinds);assert.ok(JSON.stringify(form)!==JSON.stringify(original));
+test('repeated lived technique use mutates form and leaves a partial blood-lineage head start',()=>{
+  const s=state();for(let i=0;i<60;i++)noteTechniqueUse(s,'action.counter',{phase:i%3===0?'kyu':'ha',hit:true});const mutation=techniqueMutationFor(s,'action.counter');assert.equal(mutation.tier,3);
+  const original={kinds:['parry','counter','thrust'],feet:['stay','stay','chase'],charges:['none','none','none'],rhythm:'sharp',tempo:1},form=evolveTechniqueForm(s,'action.counter',original);assert.deepEqual(form.kinds,original.kinds);assert.ok(JSON.stringify(form)!==JSON.stringify(original));s.ended=true;s.phase='ended';const child=rebirth(s);assert.ok(child.lineage.at(-1).combatLegacy.forms['action.counter']);assert.ok(child.techniqueEvolution['action.counter'].uses>0&&child.techniqueEvolution['action.counter'].uses<12);
 });
 
 test('enemy squad roles coordinate without capping attackers and repeated patterns trigger learning',()=>{
@@ -36,8 +36,9 @@ test('enemy squad roles coordinate without capping attackers and repeated patter
   for(let i=0;i<4;i++)recordEnemyPattern(enemies[0],s.id,'action.counter');assert.equal(enemyLearningResponse(enemies[0],s.id).kind,'counter');
 });
 
-test('ranged staff uses finite charges and world-space projectile contact',()=>{
+test('ranged staff uses finite charges, world-space contact, and village rest can resupply',()=>{
   const s=state();s.equipment.weapon='staff';const target=enemy('far',0,4,120),f=front([target]);let events=[];for(let i=0;i<6;i++)tickRangedProjectiles(s,f,.1,events);assert.equal(s.ammo.staffCharges,7);assert.ok(events.some(e=>e.type==='projectile-fired'));assert.ok(target.hp<120);assert.ok(events.some(e=>e.projectile));
+  s.zone='village';s.combat=null;s.moving=false;s.resting=true;s.ammo.staffCharges=0;for(let i=0;i<28;i++)tickLife(s,{realDelta:.25,lifeDelta:.25});assert.ok(s.ammo.staffCharges>=1);
 });
 
 test('compact combat replay digest is deterministic for the same inputs',()=>{
