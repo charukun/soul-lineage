@@ -108,17 +108,55 @@ export function normalChatRepairPrompt({ repository, state, pr, ciFailure }) {
     `必要なfocused checkとfast validationを行い、検証済み修復を同じPRへpushしてください。push後は自分がclaimした同じIssueを \`state=ready-for-integration\` に更新し、\`repairHead\` と検証結果を記録してください。PRをReady for review → READY_FOR_INTEGRATIONまで戻してください。CI/browser/DEV完了は待機・pollingしないでください。main / Productionは変更しないでください。`;
 }
 
-function chatRepairSection({ repository, state, pr, develop, reason, repairKind, ciFailure }) {
+function chatRepairSection({ repository, state, pr, develop, reason, repairKind, ciFailure, notifyOwner = true }) {
   const bundle = chatRepairBundle({ repository, pr, develop, reason, repairKind, ciFailure });
   const prompt = normalChatRepairPrompt({ repository, state, pr, ciFailure });
   const failure = ciFailure
     ? `\nFailed validation: ${ciFailure.jobUrl}\nRun: ${ciFailure.runId}, attempt: ${ciFailure.runAttempt}, job: ${ciFailure.jobId} (${ciFailure.jobName})\n通常Chatは編集前に必要なfailed job steps/log範囲だけ確認し、assertionを弱めないでください。\n`
     : '';
-  return `${chatRepairIssueMarker(bundle)}\n\n@${chatRepairOwner}\n\nCHAT_REPAIR_REQUIRED\n\n` +
+  const notice = notifyOwner
+    ? `@${chatRepairOwner}\n\nCHAT_REPAIR_REQUIRED`
+    : 'CHAT_REPAIR_REFRESHED\n\n同じsource PRの未解決Chat Repair Issueをcurrent exact-headへ更新しました。owner mention / assignment通知は再送しません。';
+  const footer = notifyOwner
+    ? 'このIssue/メールは起動通知です。修復時は必ずcurrent GitHub stateを再取得してください。GitHub通知メールの配送有無はownerのGitHub通知設定に従います。'
+    : 'これは既存repair incidentのexact-head更新です。新しい起動メールは作らず、修復時はcurrent GitHub stateを再取得してください。';
+  return `${chatRepairIssueMarker(bundle)}\n\n${notice}\n\n` +
     `Fast Lane found a current exact-head ${ciFailure ? 'CI failure' : 'semantic conflict'} that requires source repair. ChatGPT Work/Codex/APIによる自動修復は使用しません。\n\n` +
     `PR: ${pr.html_url}\nRecorded head: \`${pr.head.sha}\`\nRecorded develop: \`${develop}\`\nReason: ${state.reason}\n${failure}\n` +
-    `## 通常Chatへ貼り付けるプロンプト\n\n\`\`\`text\n${prompt}\n\`\`\`\n\n` +
-    `このIssue/メールは起動通知です。修復時は必ずcurrent GitHub stateを再取得してください。GitHub通知メールの配送有無はownerのGitHub通知設定に従います。`;
+    `## 通常Chatへ貼り付けるプロンプト\n\n\`\`\`text\n${prompt}\n\`\`\`\n\n${footer}`;
+}
+
+function repairEnvelope({ pr, develop, reason, repairKind, ciFailure }) {
+  return aiRepairEnvelope({
+    pr: pr.number,
+    branch: pr.head.ref,
+    head: pr.head.sha,
+    develop,
+    repairKind,
+    reason,
+    attempt: 0,
+    maxAttempts: deepRepairMaxAttempts,
+    source: 'integration-fast-lane',
+    deep: true,
+    ...(ciFailure ? { ciFailure } : {}),
+  });
+}
+
+function currentIssueBody({ repository, state, pr, develop, reason, repairKind, ciFailure, notifyOwner }) {
+  const marker = deepRepairIssueMarker(state);
+  const envelope = repairEnvelope({ pr, develop, reason, repairKind, ciFailure });
+  const section = chatRepairSection({ repository, state, pr, develop, reason, repairKind, ciFailure, notifyOwner });
+  return `${marker}\n${aiRepairEnvelopeMarker(envelope)}\n\n${section}`;
+}
+
+function generationMatches(existing, state) {
+  return existing?.sourceKey === state.sourceKey && existing?.head === state.head &&
+    existing?.develop === state.develop && existing?.repairKind === state.repairKind;
+}
+
+function terminalIncident(issue, state) {
+  return issue?.state === 'closed' || state?.state === 'human-required' || state?.state === 'completed' ||
+    state?.attempt >= state?.maxAttempts;
 }
 
 export async function signalDeepRepair(c, { pr, repository, develop, reason, repairKind = 'semantic', ciFailure, dependenciesMerged,
@@ -130,40 +168,35 @@ export async function signalDeepRepair(c, { pr, repository, develop, reason, rep
 
   if (ciFailure) assert.equal(ciFailure.head, pr.head.sha, 'DEEP_REPAIR_FAILURE_HEAD_MISMATCH');
   const state = deepRepairIssueState({ pr, develop, reason, repairKind, ciFailure });
-  const marker = deepRepairIssueMarker(state);
   let issue = await findDeepRepairIssue(c, { repository, pr });
   const existing = issue && parseDeepRepairIssue(issue.body);
-  if (existing && (issue.state === 'closed' || !['pending', 'working'].includes(existing.state) ||
-      existing.attempt >= existing.maxAttempts)) {
-    return { signaled: false, blocked: `Deep Repair #${issue.number} already owns this head in ${existing.state}`, issue: issue.number };
+  if (existing && terminalIncident(issue, existing)) {
+    return { signaled: false, blocked: `Deep Repair #${issue.number} already owns PR #${pr.number} in ${existing.state}`, issue: issue.number };
   }
 
-  const section = chatRepairSection({ repository, state, pr, develop, reason, repairKind, ciFailure });
   if (!issue) {
-    const envelope = aiRepairEnvelope({
-      pr: pr.number,
-      branch: pr.head.ref,
-      head: pr.head.sha,
-      develop,
-      repairKind,
-      reason,
-      attempt: 0,
-      maxAttempts: deepRepairMaxAttempts,
-      source: 'integration-fast-lane',
-      deep: true,
-    });
     issue = await c.api('POST', `${c.root}/issues`, {
-      title: `[RINNE 要Chat修復] PR #${pr.number} ${pr.head.sha.slice(0, 12)}`,
+      title: `[RINNE 要Chat修復] PR #${pr.number}`,
       assignees: [chatRepairOwner],
-      body: `${marker}\n${aiRepairEnvelopeMarker(envelope)}\n\n${section}`,
+      body: currentIssueBody({ repository, state, pr, develop, reason, repairKind, ciFailure, notifyOwner: true }),
     });
   } else if (!parseChatRepairIssueMarker(issue.body)) {
-    const migratedBody = `${issue.body || marker}\n\n---\n\nWORK_REPAIR_RETIRED\n\n${section}`;
+    const current = currentIssueBody({ repository, state, pr, develop, reason, repairKind, ciFailure, notifyOwner: true });
     issue = await c.api('PATCH', `${c.root}/issues/${issue.number}`, {
-      title: `[RINNE 要Chat修復] PR #${pr.number} ${pr.head.sha.slice(0, 12)}`,
+      title: `[RINNE 要Chat修復] PR #${pr.number}`,
       assignees: [chatRepairOwner],
-      body: migratedBody,
+      body: `${current}\n\n---\n\nWORK_REPAIR_RETIRED\n\n${issue.body || ''}`,
     });
+  } else if (!generationMatches(existing, state)) {
+    if (existing.state === 'working') {
+      return { signaled: false, blocked: `Deep Repair #${issue.number} is working on the previous exact-head generation`, issue: issue.number };
+    }
+    issue = await c.api('PATCH', `${c.root}/issues/${issue.number}`, {
+      title: `[RINNE 要Chat修復] PR #${pr.number}`,
+      body: currentIssueBody({ repository, state, pr, develop, reason, repairKind, ciFailure, notifyOwner: false }),
+    });
+  } else if (!['pending', 'working'].includes(existing.state)) {
+    return { signaled: false, blocked: `Deep Repair #${issue.number} already owns this exact-head generation in ${existing.state}`, issue: issue.number };
   }
 
   await c.api('POST', `${c.root}/statuses/${pr.head.sha}`, {
