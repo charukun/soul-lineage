@@ -9,13 +9,7 @@ import {
 export {applyCombatInjury,injuryEffects,recoverPersistentInjuries,stripCombatProgressionState};
 
 /** @deprecated Compatibility alias. Combat history no longer creates progression. */
-export function ensureCombatGrowthState(state){
-  ensureCombatInjuryState(state);
-  // Older callers expect this object to exist briefly. It is intentionally empty
-  // and is stripped again by save validation / injury normalization.
-  state.combatLegacy={forms:{},lessons:{}};
-  return state;
-}
+export function ensureCombatGrowthState(state){return ensureCombatInjuryState(state);}
 
 /** @deprecated Defeat/hit history never unlocks or improves character abilities. */
 export function recordCombatLesson(){return{recorded:false,unlocked:[],names:[]};}
@@ -29,7 +23,7 @@ export function techniqueMutationFor(){return{tier:0,axis:null,rhythm:null,tempo
 /** @deprecated Preserve the authored form unchanged. */
 export function evolveTechniqueForm(_state,_skill,form){return{...form,kinds:[...(form?.kinds||[])],feet:[...(form?.feet||[])],charges:[...(form?.charges||[])]};}
 
-/** @deprecated Kept only so legacy lineage records can be read without restoring power. */
+/** @deprecated Legacy read surface only. Never persist or inherit this result. */
 export function combatLegacySnapshot(state){
   ensureCombatInjuryState(state);
   return{forms:{},lessons:{},injuries:Object.fromEntries(Object.entries(state.injuries||{}).map(([part,row])=>[part,Number(row?.severity)||0]))};
