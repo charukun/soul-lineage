@@ -1,18 +1,15 @@
 name: PR Checks
 # Develop PRs use deterministic no-test checks/build as the automatic gate.
 # Tests and browser/gameplay verification are opt-in on develop and remain available on Production routes.
-run-name: >-
-  CI ${{ (github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review","converted_to_draft"]'), github.event.action)) && 'validation' || 'observation' }} #${{ github.event.pull_request.number }} ${{ github.event.pull_request.head.sha }}
+run-name: CI validation #${{ github.event.pull_request.number }} ${{ github.event.pull_request.head.sha }}
 on:
   pull_request:
     branches: [develop, main]
-    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited, labeled, unlabeled]
-  pull_request_review:
-    types: [submitted, edited, dismissed]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
 permissions:
   contents: read
 concurrency:
-  group: ci-${{ github.event.pull_request.number }}-${{ (github.event_name == 'pull_request' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review","converted_to_draft"]'), github.event.action)) && 'validation' || 'observation' }}
+  group: ci-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
   readiness:
@@ -38,7 +35,6 @@ jobs:
     name: Record Ready handoff
     needs: readiness
     if: >-
-      github.event_name == 'pull_request' &&
       contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action) &&
       github.event.pull_request.base.ref == 'develop' && needs.readiness.outputs.ready == 'true' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
@@ -101,7 +97,7 @@ jobs:
     needs: readiness
     if: >-
       github.event.pull_request.base.ref == 'main' ||
-      (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'develop' &&
+      (github.event.pull_request.base.ref == 'develop' &&
       needs.readiness.outputs.ready == 'true' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action))
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -273,9 +269,7 @@ jobs:
     needs: [readiness, build]
     if: >-
       always() && !cancelled() &&
-      (needs.build.result == 'success' || needs.build.result == 'failure' ||
-      (needs.build.result == 'skipped' && (github.event_name == 'pull_request_review' ||
-      contains(fromJSON('["edited","labeled","unlabeled"]'), github.event.action)))) &&
+      (needs.build.result == 'success' || needs.build.result == 'failure') &&
       github.event.pull_request.base.ref == 'develop' &&
       needs.readiness.outputs.ready == 'true' &&
       github.event.pull_request.head.repo.full_name == github.repository

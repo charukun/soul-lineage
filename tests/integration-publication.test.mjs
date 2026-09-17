@@ -59,6 +59,16 @@ test('a merged batch explicitly requests one existing DEV/PULSE publisher using 
   assert.equal(f.calls.filter(item => item.method === 'GET' && item.path.includes('/actions/workflows/deploy.yml/runs?')).length, 1);
 });
 
+test('an accepted exact-source wake absorbs a duplicate merged Controller before the run becomes visible', async () => {
+  for (const state of ['pending', 'success']) {
+    const f = fixture({ statuses: [{ context: publicationWakeContext, state, description: initialWakeDescription }] });
+    assert.deepEqual(await requestDevelopPublication(f.c, report), {
+      state: 'already-requested-or-published', sha, cancelled: [],
+    });
+    assert.equal(f.writes().filter(item => item.path.endsWith('/dispatches')).length, 0);
+  }
+});
+
 test('an idle pass bootstraps the unpublished SHA left by the previous Controller', async () => {
   const f = fixture();
   assert.equal((await requestDevelopPublication(f.c, idle)).state, 'requested');
