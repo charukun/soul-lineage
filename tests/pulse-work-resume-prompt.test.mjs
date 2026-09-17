@@ -43,7 +43,9 @@ test('WORKING recovery prompt requires current GitHub audit and Astra outcome se
   assert.match(prompt, /GitHubから現在openかつDraftの通常PRを全件列挙/);
   assert.match(prompt, /Draft=実行中とは扱わない/);
   assert.match(prompt, /final reconciled exact head \+ sufficient evidence \+ pushed source/);
-  assert.match(prompt, /固定の二重検証やMicro Patch分類を追加しない/);
+  assert.match(prompt, /固定の二重検証やworker-facing route分類を追加しない/);
+  assert.match(prompt, /route名や固定分類を守るために作業を分岐・分割しない/);
+  assert.doesNotMatch(prompt, /Micro Patch|Normal \/ Repair/);
   assert.match(prompt, /READY_FOR_INTEGRATION/);
   assert.match(prompt, /main \/ Productionは変更しない/);
   assert.match(prompt, /Running \/ Queued \/ Pendingを待機・polling/);
