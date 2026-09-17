@@ -4,17 +4,20 @@
   "id": "protagonist.villager.v1",
   "stage": "PRIMARY",
   "modelingMode": "dcc-blender",
+  "license": "CC0-1.0",
   "source": {
     "referencePaths": [
       "docs/characters/references/protagonist-villager-v1.svg"
     ],
     "meshPath": "apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_V1.glb",
     "integrityPath": "apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_V1.asset.json",
+    "rigId": "kaykit.Rig_Medium.v1",
+    "rigProvenance": "KayKit Character Pack Adventures 1.0 Knight.glb Rig_Medium at revision 672074b73ba276876a19e8816ecdc5241817ab47, CC0-1.0",
     "dcc": {
       "tool": "Blender",
       "version": "4.0.2",
       "sourcePath": "assets/characters/protagonist/villager-v1/source/ProtagonistVillagerV1.blend",
-      "sourceSha256": "b3339de3aa185ae06e899b29c85c19318d080a916cac0baeb4ab6671294525e2"
+      "sourceSha256": "37fb3ee22c85ed49088c3b96f5fa1246309a120376052ce67ca32617c1a037da"
     }
   },
   "evidence": {
@@ -44,19 +47,19 @@
         "skin",
         "hair",
         "clothing",
-        "accessories"
+        "source-kaykit-parts"
       ],
       "auditPath": "docs/characters/qa/protagonist-villager-v1/blender-audit.json",
-      "meshObjects": 32,
-      "triangles": 1728,
-      "materials": 8
+      "meshObjects": 6,
+      "triangles": 4268,
+      "materials": 5
     }
   },
   "status": {
     "visualApproval": "pending",
     "productionReady": false,
-    "licensePolicy": "blocked-rerig",
-    "distributionEligible": false,
-    "note": "RINNE-authored surfaces are retained for re-rig migration only. The current output uses the retired conditional Shino carrier rig and cannot advance to RUNTIME_READY until rebuilt on CC0 or RINNE-owned rig provenance."
+    "licensePolicy": "allowed-cc0",
+    "distributionEligible": true,
+    "note": "Character DCC Carrier output rebuilt on KayKit Rig_Medium. Export/audit and CC0 eligibility do not grant deformation, motion, polish, device performance, RUNTIME_READY, or human visual approval."
   }
 }

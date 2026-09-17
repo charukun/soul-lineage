@@ -18,6 +18,7 @@ const retry = document.querySelector('#retry');
 const recover = document.querySelector('#recover');
 const recoverDialog = document.querySelector('#recoverDialog');
 const disposeMusic=installMusicLibrary({game:'village',environment:__BUILD_INFO__.environment,defaultTrack:'v01',autoStart:false,preferDefault:true,trigger:'hidden'});
+let disposeSpeech=()=>{};
 let finished = false;
 const watchdog = setTimeout(() => {
   if (finished) return;
@@ -53,11 +54,17 @@ try {
   await import('./mura-patch.js');
   await import('./runtime-scale-stack.js');
   const { boot } = await import('./web/main.js');
-  await boot({
+  const village=await boot({
     onProgress(value, text) { progress.value = value; message.textContent = text; },
   });
-  // Keep post-boot behavior behind one ordered enhancement graph.
+  const {installSharedVillageSpeech}=await import('./shared-speech-bubbles.js');
+  disposeSpeech=installSharedVillageSpeech(village);
+  // Preserve the single enhancement graph introduced on develop. Retired
+  // entries are side-effect-free compatibility modules after consolidation.
   await import('./mura-enhancements.js');
+  // Character runtime metadata wraps the final syncActor chain so later
+  // presentation enhancers cannot replace the shared semantic state adapter.
+  await import('./character-runtime-integration.js');
   const {installInterface}=await import('./web/interface.js');
   installInterface(window.village);
   await import('./mura-village-visual-language.js');
@@ -71,5 +78,5 @@ try {
 }
 if (import.meta.hot) {
   import.meta.hot.accept(() => location.reload());
-  import.meta.hot.dispose(disposeMusic);
+  import.meta.hot.dispose(()=>{disposeSpeech();disposeMusic();});
 }

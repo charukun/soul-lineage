@@ -2,6 +2,7 @@ import { stylizedDensityForDistance } from '@soul/characters';
 import { THREE as T } from '@soul/rendering';
 import { applyStylizedArtProfile, installStylizedGeometryLOD, stylizedArtDiagnostics } from '@soul/rendering/stylized-art';
 import { View } from './web/view.js';
+import { instanceDensityIndex } from '@soul/rendering/spatial-instances';
 
 const once = (root, profileId, { cloneMaterials = false } = {}) => {
   if (!root?.traverse || root.userData?.stylizedArt?.profileId === profileId) return root;
@@ -63,7 +64,7 @@ function applyVegetationDensity(view) {
       position.setFromMatrixPosition(base[i]);
       const distance = Math.hypot(position.x - target.x, position.z - target.z);
       const density = stylizedDensityForDistance('environment', distance);
-      instanced.setMatrixAt(i, densityHash(i + instanced.id * 17) <= density ? base[i] : hidden);
+      instanced.setMatrixAt(i, densityHash(instanceDensityIndex(instanced,i,17)) <= density ? base[i] : hidden);
     }
     instanced.instanceMatrix.needsUpdate = true;
   }

@@ -46,3 +46,15 @@ test('weapon age gate and uniform socket scaling; caller-owned weapon survives d
   assert.equal(a.detachWeapon('sword'), weapon); assert.equal(weapon.parent, null);
   pool.dispose(); weapon.geometry.dispose(); weapon.material.dispose();
 });
+
+test('attachment sampling avoids unrelated hierarchy walks while following moved parents and socket poses',()=>{
+  const f=fixture(),pool=createMasterCharacterPool(f),a=pool.spawn('socket-cost'),parent=new Group();parent.position.set(4,1,-3);parent.rotation.y=.4;parent.add(a.root,a.attachments);
+  let unrelatedUpdates=0;const unrelated=new Group();unrelated.updateWorldMatrix=()=>{unrelatedUpdates++;};a.visual.add(unrelated);
+  a.sample(look(22));a.updateAttachments();assert.equal(unrelatedUpdates,0,'unarmed actor needs no socket traversal');
+  const weapon=new Group();a.attachWeapon('sword',weapon,{position:[.1,.2,0],scale:.7});
+  for(let i=0;i<12;i++){
+    parent.position.x+=.5;a.root.rotation.y+=.1;a.sample(look(22),i,bones=>{bones.rightHand.position.z+=.3;});
+    a.attachments.updateMatrixWorld(true);const actual=weapon.parent.getWorldPosition(new Vector3()),socket=a.bones.rightHand.children.find(n=>n.position.x===.1),expected=socket.getWorldPosition(new Vector3());assert.ok(actual.distanceTo(expected)<1e-10);
+  }
+  assert.equal(unrelatedUpdates,0,'armed actor updates only the socket ancestor chain');pool.dispose();
+});

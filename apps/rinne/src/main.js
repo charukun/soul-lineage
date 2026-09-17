@@ -8,8 +8,10 @@ const villageDialog=$('village-dialog'),settingsDialog=$('title-settings-dialog'
 $('build-label').textContent=info.commit==='UNBUILT'?'LOCAL':`${String(info.environment).toUpperCase()} · ${String(info.commit).slice(0,7)}`;
 const storageKey=`soul:v1:${info.environment}:rinne:local:life-v2`;
 const motionKey=`soul:v1:${info.environment}:rinne:title-motion-v1`;
+const rrpCaptureRequested=new URLSearchParams(location.search).has('rrpCapture');
+if(rrpCaptureRequested)document.documentElement.dataset.rrpCapture='true';
 const afterVisiblePaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null,gameplayUpgrade=null,titleAudioReady=false,titleSelected=null,titleParallaxRaf=0;
+let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null,rrpCapture=null,gameplayUpgrade=null,titleAudioReady=false,titleSelected=null,titleParallaxRaf=0;
 
 const titleCommands=[...title.querySelectorAll('.title-command')];
 function unlockTitleAudio(){void Promise.resolve(unlockRinneAudio()).then(ok=>{titleAudioReady=Boolean(ok)||titleAudioReady;}).catch(()=>{});titleAudioReady=true;}
@@ -88,7 +90,12 @@ async function openCoopDialog(){
   try{
     if(!villageInstalled){
       const {installCoopMenu}=await import('./coop/menu.js');
-      coopMenu=installCoopMenu({container:document.getElementById('village-panel'),buildInfo:info,getPrepared:()=>prepared,getName:()=>$('life-name').value,onPlay:enterCoop,onLeave:async()=>{villageDialog.close();if(runtime)await $('back-title').onclick();else await coopMenu.leave();}});
+      let performanceProbeFactory=null;
+      if(rrpCaptureRequested){
+        const {installRrpPerformanceCapture}=await import('./coop/performance-capture.js');
+        rrpCapture=installRrpPerformanceCapture({getSession:()=>coopMenu?.session,buildInfo:info});performanceProbeFactory=rrpCapture.performanceProbeFactory;
+      }
+      coopMenu=installCoopMenu({container:document.getElementById('village-panel'),buildInfo:info,getPrepared:()=>prepared,getName:()=>$('life-name').value,onPlay:enterCoop,performanceProbeFactory,onLeave:async()=>{villageDialog.close();if(runtime)await $('back-title').onclick();else await coopMenu.leave();}});
       villageInstalled=true;
     }
     if(!villageDialog.open)villageDialog.showModal();
@@ -103,7 +110,7 @@ async function boot(){
     runtimeModule=await import('./rebuild/runtime.js');
     prepared=await runtimeModule.prepareRuntime({buildInfo:info,onProgress:message=>setLoading(message)});
     installGameplay();
-    game.dataset.runtime='prepared';showTitle();if(new URLSearchParams(location.hash.slice(1)).has('rinne-coop'))void openCoopDialog();
+    game.dataset.runtime='prepared';showTitle();if(rrpCaptureRequested||new URLSearchParams(location.hash.slice(1)).has('rinne-coop'))void openCoopDialog();
   }catch(error){showBootFailure(error);}
 }
 
@@ -166,4 +173,4 @@ if(new URLSearchParams(location.search).has('villageHostLab')){
   })().catch(error=>{console.error(error);$('boot-status').textContent=`村診断失敗：${error?.message||error}`;});
 }
 
-if(import.meta.hot)import.meta.hot.dispose(()=>{cancelAnimationFrame(titleParallaxRaf);runtime?.dispose?.();void coopMenu?.leave();gameplayUpgrade?.dispose?.();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});
+if(import.meta.hot)import.meta.hot.dispose(()=>{cancelAnimationFrame(titleParallaxRaf);runtime?.dispose?.();void coopMenu?.leave();rrpCapture?.dispose?.();gameplayUpgrade?.dispose?.();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});

@@ -6,6 +6,8 @@ This layer extends the Stylized Low / Mid Poly runtime with performance decision
 
 The system is presentation-only. Gameplay state, collision, save data, damage authority and multiplayer/network authority remain independent.
 
+Cross-app runtime optimization must inspect the active `rinne`, `village` and `demon` entry points together. Repeated diagnostics, temporary allocation and scene/character traversal belong outside the frame loop when their inputs have not changed. Preserve the current models, animation/contact timing and visible quality; compare the same workload before and after, and distinguish operation counts and software-rendered checks from hardware FPS. Diagnostic replay must remain explicitly available without competing with ordinary play.
+
 ## GPU-aware quality
 
 `@soul/rendering/gpu-timer` uses `EXT_disjoint_timer_query_webgl2` when the browser/driver exposes it. Queries are asynchronous and bounded. Unsupported or disjoint devices fail open and continue using frame-time-only quality control.
@@ -110,6 +112,29 @@ npm run performance:compare -- --baseline before.json --current after.json
 Default hard regression thresholds are ratio-based. Frame p95, GPU p95 and draw calls fail the comparison; triangle/texture growth is reported for review unless accompanied by a hard runtime regression.
 
 Do not compare timings from unrelated hardware as if they were the same benchmark.
+
+### Cross-app runtime regression workload
+
+Static opaque terrain instances are partitioned into local-space cells before density masking. Each cell retains its original transforms, colors and density indices. Full-size bounds remain conservative when density is reduced and restored. Transparent, morphed and explicitly unculled batches are excluded. Smaller visible instance submissions trade against more batch objects; this is not a guarantee of lower draw-call counts from every camera.
+
+Frame telemetry uses fixed-capacity windows and deferred summaries in the live village/demon adapters. Synthetic world-scale replay runs only when diagnostics request it. Shared character sockets update their ancestor paths without walking unrelated meshes, and the active Rinne status overlay caches its actor/viewport. Demon advice consumers use a small detached in-memory presentation snapshot; the complete diagnostic snapshot remains available explicitly.
+
+Run the deterministic operation-count comparison from the repository root:
+
+```sh
+node packages/rendering/tests/cross-app-runtime.bench.mjs 57d2d5b12c7155c2408a216488268517f071ef44
+```
+
+| Fixed workload | Before | After |
+| --- | ---: | ---: |
+| Rinne camera, potential tree instance submissions | 210 | 43 |
+| Village camera, potential tree instance submissions | 210 | 39 |
+| Demon camera, potential floor instance submissions | 1,024 | 432 |
+| 2,400 telemetry samples, array sorts during sampling | 21,600 | 0 |
+| 2,400 telemetry samples, array shifts during sampling | 4,200 | 0 |
+| 120 character frames, world-matrix hierarchy visits | 55,200 | 1,440 |
+
+Trees use the shared placement list with synthetic geometry; the floor uses a synthetic grid. Cameras are fixed, not a recorded gameplay path. Character traversal uses a rig with 200 unrelated nodes, and telemetry compares the former eager Demon sampling path with explicit deferred sampling. The complete final telemetry reports must match. These counts isolate avoidable work; they are neither total scene costs nor measured device FPS. Browser startup checks with Chromium/SwiftShader verify that each app reaches play, but do not establish mobile performance, combat, long sessions or deployed DEV behavior.
 
 ## Target usage
 
