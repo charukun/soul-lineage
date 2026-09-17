@@ -117,7 +117,7 @@ const reconstructedWayfarer = {
   front: 'swept',
   back: 'layered',
   face: { ...seedKnight.face, jaw: .91, cheek: 1.08, nose: .91, eyeWidth: 1.12, eyeHeight: 1.13, eyeSpacing: 1.03, browWeight: .82, browSlant: .012, chin: .92 },
-  proportions: { shoulders: .90, arms: .95, legs: .90, head: 1.18 },
+  proportions: { shoulders: .90, arms: .95, legs: .90, head: 1.12 },
   gear: 'satchel',
   cloth: [.43, .29, .18],
   trim: [.73, .65, .50],
