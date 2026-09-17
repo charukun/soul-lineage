@@ -20,7 +20,7 @@ export function verifyEffectBytes(row,bytes){
 }
 
 /** Read reviewed INFO dependency layouts without regenerating authored binaries. */
-export function effectDependencies(bytes,expectedVersion=null){
+export function effectDependencies(bytes,expectedVersion=null,{allowParent=false}={}){
   const b=Buffer.from(bytes);if(b.length<8||b.toString('ascii',0,4)!=='EFKE')throw Error('Not an EFKE original');
   for(let p=8;p+8<=b.length;){
     const tag=b.toString('ascii',p,p+4),size=b.readUInt32LE(p+4),end=p+8+size;
@@ -36,7 +36,8 @@ export function effectDependencies(bytes,expectedVersion=null){
         for(let i=0;i<count;i++){
           const length=read()*2;if(length<2||length>4096||cursor+length>end)throw Error('Invalid effect dependency');
           const value=b.toString('utf16le',cursor,cursor+length).replace(/\0$/,'');cursor+=length;
-          if(!value||value.includes('\\')||value.startsWith('/')||value.split('/').includes('..')||value.includes(':'))throw Error('Unsafe effect dependency');
+          const segments=value.split('/');
+          if(!value||value.includes('\\')||value.startsWith('/')||value.includes(':')||(!allowParent&&segments.includes('..')))throw Error('Unsafe effect dependency');
           result.push(value);
         }
       }
@@ -50,9 +51,11 @@ export function effectDependencies(bytes,expectedVersion=null){
 
 export function verifyEffectClosure(row,bytes){
   if(!Number.isInteger(row.infoVersion))throw Error(`Missing reviewed effect version: ${row.path}`);
-  const declared=new Set(EFFECT_ASSETS.map(item=>item.path));
-  for(const dependency of effectDependencies(bytes,row.infoVersion)){
-    const target=path.posix.join(path.posix.dirname(row.path),dependency);
+  const declared=new Set(EFFECT_ASSETS.map(item=>item.path)),root=row.dependencyRoot||null;
+  if(root&&(path.posix.normalize(root)!==root||root.startsWith('/')||root.includes(':')||root.split('/').includes('..')))throw Error(`Unsafe effect dependency root: ${root}`);
+  for(const dependency of effectDependencies(bytes,row.infoVersion,{allowParent:Boolean(root)})){
+    const target=path.posix.normalize(path.posix.join(path.posix.dirname(row.path),dependency));
+    if(root&&target!==root&&!target.startsWith(`${root}/`))throw Error(`Effect dependency escapes reviewed root: ${target}`);
     if(!declared.has(target))throw Error(`Unpinned effect dependency: ${target}`);
   }
 }
@@ -96,6 +99,6 @@ export async function prepareRinneEffects({outputRoot=path.join(appRoot,'public'
     }))));
   }
   await writeFile(path.join(outputRoot,'NOTICE.txt'),
-    'Effekseer for WebGL 1.70: MIT (LICENSE-MIT.txt).\nEffekseer ResourceData selected authored originals (Basic and tktk samples): CC0-1.0 (LICENSE-SAMPLES.txt).\nUnmodified originals; game/review-side placement and intensity are adaptations.\nSources and exact revisions: apps/rinne/src/rebuild/authored-effect-manifest.js\n');
+    'Effekseer for WebGL 1.70: MIT (LICENSE-MIT.txt).\nEffekseer ResourceData selected authored originals (Basic, tktk and hanmado samples): CC0-1.0 (LICENSE-SAMPLES.txt).\nUnmodified originals; game/review-side placement and intensity are adaptations.\nSources and exact revisions: apps/rinne/src/rebuild/authored-effect-manifest.js\n');
   return rows;
 }
