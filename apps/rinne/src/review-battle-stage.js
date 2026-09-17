@@ -131,6 +131,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   return Object.freeze({
     models:REVIEW_BATTLE_MODELS,
     setModel(side,modelId){install(side,modelId);},
+    resetRound(){for(const side of Object.values(sides)){side.previous=null;side.hp=null;side.hitUntil=0;}},
     sync,
     snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on'});},
     dispose(){observer.disconnect();for(const side of Object.values(sides))if(side.actor)pool.despawn(side.actorId);runtime.dispose();ground.geometry.dispose();ground.material.dispose();contact.geometry.dispose();contact.material.dispose();for(const side of Object.values(sides)){side.marker.geometry.dispose();side.marker.material.dispose();}renderer.dispose();}
