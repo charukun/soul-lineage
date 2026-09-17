@@ -8,6 +8,7 @@ export const documentationPath = path => /^(docs\/|README\.md$|LICENSE(?:\..*)?$
 export const workspaceManifestPath = path => /^(apps|packages)\/[^/]+\/package\.json$/.test(path);
 export const devGlobalBuildPath = path => /^(?:package(?:-lock)?\.json|\.nvmrc|\.npmrc)$/.test(path);
 export const devControlPlanePath = path => /^(?:scripts\/|templates\/|tests\/|\.github\/)/.test(path);
+export const devBuildToolingPath = path => /^(?:package(?:-lock)?\.json|\.nvmrc|\.npmrc|scripts\/(?:vite-app|workspaces|application-catalog)\.mjs)$/.test(path);
 
 export function graph(root = process.cwd()) {
   const nodes = new Map();
@@ -84,17 +85,18 @@ export function affectedForDev(nodes, paths) {
   return apps(nodes).filter(n => [...closure(nodes, n.name)].some(name => changed.has(name))).map(n => n.id);
 }
 
-export function inputFiles(root, nodes, id) {
+export function inputFiles(root, nodes, id, environment = '') {
   const dirs = [...closure(nodes, appNode(nodes, id).name)].map(name => `${nodes.get(name).dir}/`);
+  const includeTooling = environment === 'dev' ? devBuildToolingPath : toolingPath;
   return execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { cwd: root, encoding: 'utf8' })
     .split('\0').filter(Boolean).filter(path => existsSync(resolve(root, path)))
-    .filter(path => toolingPath(path) || (!documentationPath(path) && (dirs.some(dir => path.startsWith(dir)) || !/^(apps|packages)\//.test(path))))
+    .filter(path => includeTooling(path) || (!documentationPath(path) && (dirs.some(dir => path.startsWith(dir)) || !/^(apps|packages)\//.test(path))))
     .sort();
 }
 
 export function inputHash(root, nodes, id, environment) {
   const hash = createHash('sha256').update(`monorepo-v1\0${environment}\0${id}\0`);
-  for (const file of [...new Set(inputFiles(root, nodes, id))]) {
+  for (const file of [...new Set(inputFiles(root, nodes, id, environment))]) {
     hash.update(file).update('\0').update(readFileSync(resolve(root, file))).update('\0');
   }
   return hash.digest('hex');
