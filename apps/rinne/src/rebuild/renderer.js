@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { defs, muraBlocked } from '@soul/world/mura';
 import { createMuraModels } from '@soul/rendering/mura';
+import { createMuraBuildingVisual } from '@soul/rendering/mura/building-visual';
 import { createMuraTerrain, flattenMuraModel } from '@soul/rendering/mura/terrain';
 import { createAdaptiveQualityGovernor } from '@soul/rendering/adaptive-quality';
 import { createForegroundOcclusionFader } from '@soul/rendering/occlusion';
@@ -58,7 +59,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   const terrain=createMuraTerrain({THREE,scene,outside:land,getProp,mat:models.mat,createCanvas:()=>doc.createElement('canvas')});
   for(const o of layout.objects){
     if(o.phase!=='built')continue;const key=`${o.kind}:${o.material}:${o.level}`;
-    if(!cache.has(key))cache.set(key,flattenMuraModel(THREE,defs[o.kind].building?models.building(o.kind,o.material,o.level):models.prop(o.kind)));
+    if(!cache.has(key))cache.set(key,flattenMuraModel(THREE,defs[o.kind].building?createMuraBuildingVisual(THREE,models,o.kind,o.material,o.level):models.prop(o.kind)));
     const n=cache.get(key).clone();n.position.set(o.x,.02,o.z);n.rotation.y=o.rot;n.userData.entityId=o.id;objects.add(n);
   }
 

@@ -111,10 +111,11 @@ function rawAsset(name,colors,scale=[1,1,1]){
  for(const[k,geo]of Object.entries(geos)){const n=mesh(group,geo,mat(colors[k]||colors.default||0xb69e7d,true,{side:T.DoubleSide}));n.userData.source='Kenney CC0 acquired topology';}
  group.scale.set(...scale);group.userData.assetBacked=true;return group;
 }
-function tentModel(w,d,color){return rawAsset('tent',{cloth:color,patch:new T.Color(color).multiplyScalar(.77).getHex(),wood:0x78624d},[w/.5476,6/.56113,d/.6664]);}
+const RESIDENTIAL_TENTS=new Set(['mayor','guardhome','tent']);
+function tentModel(w,d,color,height=6){return rawAsset('tent',{cloth:color,patch:new T.Color(color).multiplyScalar(.77).getHex(),wood:0x78624d},[w/.5476,height/.56113,d/.6664]);}
 function building(kind,material='base',level=1){const d=defs[kind];if(!d)return new T.Group();
  let g;
- if(d.shape==='tent'){g=tentModel(d.w,d.d,d.roof);}
+ if(d.shape==='tent'){g=tentModel(d.w,d.d,d.roof,RESIDENTIAL_TENTS.has(kind)?3.6:6);}
  else if(d.shape==='fire'){g=rawAsset('campfire',{wood:0x775b44},[9,9,9]);}
  else if(['yard','field','market','pond','orchard'].includes(d.shape)){
   g=new T.Group();
