@@ -53,12 +53,18 @@ export const ACTION_SKILLS=Object.freeze([
 export const DISCOVERIES=Object.freeze([...SUPPORT_SKILLS,...ACTION_SKILLS]);
 export const SKILL_BY_ID=Object.freeze(Object.fromEntries(DISCOVERIES.map(row=>[row.id,row])));
 
+function selectedSkillIds(state){
+  const ids=new Set(),loadout=state?.combatLoadout;
+  for(const id of loadout?.heart?.active||[])if(SKILL_BY_ID[id]?.type==='support')ids.add(id);
+  const technique=loadout?.technique,combo=(technique?.combos||[]).find(row=>row.id===technique?.activeComboId)||technique?.combos?.[0];
+  for(const id of Object.values(combo?.slots||{}))if(SKILL_BY_ID[id]?.type==='action')ids.add(id);
+  if(SKILL_BY_ID[technique?.oneMotion]?.type==='action')ids.add(technique.oneMotion);
+  return ids;
+}
+
 export function skillEffects(state){
   const total={trainingGain:0,actionSpark:0,damage:0,mitigation:0,evasion:0,reach:0,staminaCost:0,recovery:0};
-  const activeHeart=Array.isArray(state?.combatLoadout?.heart?.active)?new Set(state.combatLoadout.heart.active):null;
-  for(const id of state?.knownSkills||[]){const row=SKILL_BY_ID[id];if(!row)continue;if(row.type==='support'&&activeHeart&&!activeHeart.has(id))continue;for(const [key,value] of Object.entries(row.effects||{}))total[key]=(total[key]||0)+value;}
-  total.trainingGain=clamp(total.trainingGain,0,.85);
-  total.actionSpark=clamp(total.actionSpark,0,.75);
+  for(const id of selectedSkillIds(state)){const row=SKILL_BY_ID[id];for(const [key,value] of Object.entries(row?.effects||{})){if(key==='trainingGain'||key==='actionSpark')continue;total[key]=(total[key]||0)+value;}}
   total.damage=clamp(total.damage,0,.7);
   total.mitigation=clamp(total.mitigation,0,.58);
   total.evasion=clamp(total.evasion,0,.38);
@@ -68,19 +74,6 @@ export function skillEffects(state){
   return total;
 }
 
-function experienceScore(state,kind){return Number(state?.experiences?.[kind]?.score||0);}
-function supportReady(state,row){return (row.support||[]).every(id=>state.knownSkills?.includes(id));}
-
-export function eligibleDiscoveries(state){
-  const effects=skillEffects(state),known=new Set([...(state?.knownSkills||[]),...(state?.pendingDiscoveries||[])]),rows=[];
-  for(const row of DISCOVERIES){
-    if(known.has(row.id))continue;
-    const threshold=row.type==='action'?row.threshold/(1+effects.actionSpark):row.threshold;
-    if(!(row.needs||[]).every(kind=>experienceScore(state,kind)>=threshold))continue;
-    if(row.type==='action'&&!supportReady(state,row))continue;
-    rows.push(row);
-  }
-  return rows;
-}
-
+/** Combat/life history never unlocks character power. Kept as a compatibility surface for older callers. */
+export function eligibleDiscoveries(){return [];}
 export function skillName(id){return SKILL_BY_ID[id]?.name||id;}
