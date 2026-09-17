@@ -54,3 +54,12 @@ export function samplePreyMotion(progress=null,downProgress=1,captureWeight=1){
   lateral:1.15-.14*capture-.55*swallow,
   compression:.14*swallow+.035*settle};
 }
+
+export function preyCapturePoint(origin,capture,motion){
+ const ox=Number.isFinite(origin?.x)?origin.x:0,oz=Number.isFinite(origin?.z)?origin.z:0,k=motion?.capture||0;
+ if(!capture||k<=0)return{x:ox,z:oz};
+ const growth=Math.max(.28,Math.min(3.2,Number(capture.growthScale)||1)),size=(capture.form==='brute'?1.12:capture.form==='stalker'?1.04:1)*growth;
+ const yaw=capture.yaw||0,cs=Math.cos(yaw),sn=Math.sin(yaw),lateral=motion.lateral*Math.max(.42,Math.min(1.7,size));
+ const tx=capture.x+cs*lateral+sn*motion.forward*size,tz=capture.z-sn*lateral+cs*motion.forward*size;
+ return{x:ox+(tx-ox)*k,z:oz+(tz-oz)*k};
+}
