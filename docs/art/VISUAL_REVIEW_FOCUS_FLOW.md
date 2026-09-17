@@ -1,29 +1,29 @@
 # Visual Review Focus Flow
 
-This task-specific interaction contract refines the existing `docs/art/VISUAL_REVIEW.md` review requirements without changing the underlying model, motion, VFX, gameplay, or Integration source-of-truth rules.
+This interaction contract refines `docs/art/VISUAL_REVIEW.md` without changing model, motion, VFX, gameplay, or Integration source-of-truth rules.
 
 ## Goal
 
-Visual Review must behave like a fast inspection tool rather than a control dashboard. The reviewer should choose what to inspect, then immediately spend the viewport on the inspected content.
+Visual Review is a launcher, not a dashboard. The reviewer chooses one thing to inspect and immediately enters the dedicated inspection surface.
 
-## Focus-first flow
+## Direct-launch flow
 
-- The landing state is a small chooser for the review target. It must not front-load the full canonical catalog, workflow explanation, source metadata, and app diagnostics.
-- Choosing Character, Motion, Equipment/Objects, Effects, or Battle enters a focused inspection state.
-- In a focused state, the landing chooser/navigation is hidden. Only a compact Back control, the current target, source status, and controls that materially affect that target remain visible.
-- On mobile, the focused surface uses the viewport height and must not keep the full app selector + review menu stacked above the inspected content.
-- Returning Back restores the chooser without losing the selected app context.
-- Canonical-source explanations remain available as secondary information, not the default first screen.
+- `review.html` contains only five primary destinations: Character, Motion, Equipment/Objects, Effects, Battle.
+- Character, Motion, Equipment/Objects and Effects navigate directly to their existing dedicated review pages. Do not embed them in iframes and do not keep a Visual Review shell above them.
+- Battle has its own dedicated `review-battle.html` surface because it needs the real `RaidHost -> Tidebreak` state plus runtime-model controls.
+- The browser/device Back action is the primary return path. Dedicated pages may expose a small `← Review` link, but no persistent global launcher, app-context bar, source dashboard or workflow explanation may remain above the inspected content.
+- Canonical-source explanations and cross-app contracts remain in repository docs and inside the specialist tools where relevant. The launcher must not front-load them.
+- On mobile, the launcher should fit as a simple single-screen choice surface and the destination page should own the viewport.
 
 ## App context
 
-App context remains useful, but it is a filter/presentation dimension rather than a second primary navigation layer. Keep it compact and preserve the selected context across review targets. A focused tool may show the current app as one compact control instead of three persistent top-level buttons.
+App context belongs inside the specialist surface that can actually apply it. Character/Motion may expose their existing context controls. The launcher does not maintain a second global app-context state.
 
 ## Battle review
 
 Battle review must continue to consume the real current `RaidHost -> Tidebreak` battle state and must not invent a second combat clock or hit logic.
 
-The visual representation, however, must use real repository runtime character models instead of abstract circles. Requirements:
+The visual representation must use real repository runtime character models instead of abstract circles. Requirements:
 
 - render two actual shared runtime models in a 3D combat stage;
 - drive positions, facing, combat pose timing, hit state, HP and result from the existing battle state;
@@ -37,9 +37,9 @@ The visual representation, however, must use real repository runtime character m
 
 The PR implementing this contract must carry `Browser-Playtest: rinne` and the exact PR head must be exercised in Chromium. The playtest must prove at least:
 
-1. landing chooser is visible and simple;
-2. tapping a review target hides the chooser and opens the focused view;
-3. Back returns to the chooser;
-4. the mobile focused view does not retain the full navigation above the content;
+1. the launcher exposes exactly the five primary destinations without the old dashboard layers;
+2. one tap navigates to each dedicated review page;
+3. browser Back returns to the launcher;
+4. no iframe-based specialist surface remains in the launcher;
 5. Battle shows actual model geometry, battle time advances, pause/restart work, and both model selectors change the rendered model;
-6. Character/Motion/Equipment/Effects focused views still open their current real review surfaces.
+6. Character/Motion/Equipment/Effects still load their current real review surfaces.
