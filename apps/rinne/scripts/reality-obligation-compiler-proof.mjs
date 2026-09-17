@@ -5,7 +5,7 @@ import { dirname, resolve, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const testFile = resolve(here, 'reality-obligation-compiler.test.mjs');
+const testFile = resolve(here, '../tests/reality-obligation-compiler.test.mjs');
 const modelFile = resolve(here, 'reality-obligation-compiler-model.mjs');
 function run(mutation = 'none') {
   const child = spawnSync(process.execPath, ['--test', testFile], {
