@@ -38,6 +38,14 @@ test('terminal flick direction wins over the earlier drag direction',()=>{
  assert.ok(v.screenY>.99,`screenY=${v.screenY}`);
 });
 
+test('fast drag followed by a hold still stops on release',()=>{
+ const input=new SwipeInput();
+ input.down(1,100,100,0);
+ input.move(1,220,100,80);
+ assert.equal(input.up(1,220,100,320),false);
+ assert.equal(input.dash,false);
+});
+
 test('slow release remains ordinary movement and next input cancels an active dash',()=>{
  const input=new SwipeInput();
  input.down(1,100,100,0);
