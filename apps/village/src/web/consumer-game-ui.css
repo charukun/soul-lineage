@@ -36,7 +36,7 @@ button:focus-visible{
   color:var(--village-ink);
 }
 
-/* HUD is a narrow field ledger, not a floating rounded card. */
+/* HUD is a small village ledger: the first glance is calm, details explain themselves. */
 #idleStatus{
   left:8px;right:8px;top:max(7px,env(safe-area-inset-top));padding:3px 6px;
   border-radius:4px;clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%,0 7px);
@@ -44,13 +44,37 @@ button:focus-visible{
 }
 .muraHudMain{min-height:44px;gap:4px}
 .muraHudActions button{width:40px;height:40px;padding:8px;border-radius:4px}
-#muraHudToggle{border:0;background:none;box-shadow:none;border-radius:0;transform:none}
-#muraHudToggle:focus-visible{box-shadow:inset 0 0 0 2px var(--village-brass)}
-#muraHudDetails{border-top:1px solid rgba(101,80,53,.33)}
-.muraHudStats span,.muraHudResources span{
-  padding:3px 6px;border:0;border-radius:2px;background:rgba(255,248,224,.35);
-  box-shadow:inset 2px 0 rgba(138,111,68,.35);
+#muraHudToggle{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto auto;
+  grid-template-areas:"kicker chevron" "clock chevron" "brief chevron";align-content:center;column-gap:7px;row-gap:0;
+  border:0;background:none;box-shadow:none;border-radius:0;transform:none;
 }
+#muraHudToggle:focus-visible{box-shadow:inset 0 0 0 2px var(--village-brass)}
+.muraHudKicker{grid-area:kicker;font-size:7px;line-height:1.1;letter-spacing:.16em;color:#81775f;font-weight:700}
+.muraHudClock{grid-area:clock;font-size:11px;line-height:1.25;font-weight:750;letter-spacing:.02em;color:#3f4b3d}
+.muraHudBrief{grid-area:brief;font-size:9px;line-height:1.25;color:#6c715f;opacity:1}
+.muraHudChevron{grid-area:chevron;align-self:center;font-size:15px;color:#776d58;opacity:.8}
+#muraHudDetails{padding:7px 6px 8px;border-top:1px solid rgba(101,80,53,.33);max-height:min(34dvh,210px);overflow:auto;overscroll-behavior:contain}
+.muraHudSection+.muraHudSection{margin-top:8px;padding-top:7px;border-top:1px dashed rgba(105,85,58,.25)}
+.muraHudSectionHead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 1px 5px}
+.muraHudSectionHead strong{font-size:9px;line-height:1.2;letter-spacing:.09em;color:#4e5749}
+.muraHudSectionHead small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7.5px;line-height:1.25;color:#777361}
+.muraHudStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin:0}
+.muraHudStat{
+  display:grid;grid-template-columns:15px minmax(0,1fr);grid-template-rows:auto auto;align-items:center;column-gap:5px;
+  min-width:0;padding:4px 5px;border:0;border-radius:2px;background:rgba(255,248,224,.35);box-shadow:inset 2px 0 rgba(138,111,68,.35);
+}
+.muraHudStat svg{grid-row:1/3;width:15px;height:15px;opacity:.68}
+.muraHudStat dt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7.5px;line-height:1.1;color:#787461}
+.muraHudStat dd{display:flex;align-items:baseline;gap:2px;min-width:0;margin:0;line-height:1.05;color:#3e493c}
+.muraHudStat dd b{font-size:11px;font-weight:800;font-variant-numeric:tabular-nums}.muraHudStat dd small{font-size:7px;color:#777361}
+.muraHudResources{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.muraHudResources span{
+  display:grid;grid-template-columns:14px minmax(0,1fr) auto;align-items:center;gap:4px;min-width:0;
+  padding:4px 5px;border:0;border-radius:2px;background:rgba(255,248,224,.35);box-shadow:inset 2px 0 rgba(138,111,68,.35);
+}
+.muraHudResources svg{width:14px;height:14px;opacity:.68}.muraHudResources small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7.5px;color:#706e5d}.muraHudResources b{font-size:10px;font-weight:800;font-variant-numeric:tabular-nums;color:#3e493c}
+.muraHudEmpty{grid-column:1/-1;margin:0;padding:5px 6px;background:rgba(255,248,224,.27);font-size:8px;line-height:1.35;color:#777361}
 #muraModeLabel{
   border:1px solid rgba(91,72,48,.45);border-radius:3px;background:#e8ddc5e8;backdrop-filter:none;
   box-shadow:0 2px 0 rgba(82,64,44,.4);letter-spacing:.04em;
@@ -154,6 +178,11 @@ dialog .dialogClose{border:1px solid #776346;background-image:var(--village-fibr
   #drawer{left:6px;right:6px}
   #idleStatus{left:6px;right:6px}
   #context,#placement{left:6px}
+}
+@media(max-width:420px){
+  #muraHudDetails{max-height:min(31dvh,188px)}
+  .muraHudSectionHead small{max-width:72%}
+  .muraHudStat{padding:4px}.muraHudResources span{padding:4px}
 }
 
 @media(prefers-reduced-motion:reduce){button{transition:none}}
