@@ -14,7 +14,7 @@ export function combatEffectBudget(level = 0, mobile = false, reducedMotion = fa
     intensity:reducedMotion ? .55 : 1, instanceMaxCount:512, squareMaxCount:512});
 }
 
-export function combatEffectCues(events, {state, front, hostiles=[]}={}) {
+export function combatEffectCues(events, {state, front, hostiles=[], anchors={}}={}) {
   if(!Array.isArray(events)||!state||state.phase==='birth'||state.interior)return [];
   const hero=point(state.position), foes=new Map([...(front?.enemies||[]),...hostiles].map(e=>[e.id,e]));
   if(!hero)return [];
@@ -36,9 +36,8 @@ export function combatEffectCues(events, {state, front, hostiles=[]}={}) {
     // The dedicated finisher keeps its authored burst; no synthetic hit is added.
     cues.push({effect:heavy?'finisher':'impact',position:{...to},rotation,scale:heavy?1.15:1,
       lifetime:heavy?1.8:1.2,color,priority:heavy?3:2,kind:heavy?'finisher':'contact'});
-    // The source ribbon already contains its authored swing; no synthetic spin.
-    if(outgoing)cues.push({effect:'slash',position:{x:(from.x+to.x)/2,y:from.y,z:(from.z+to.z)/2},
-      rotation,scale:heavy?1.35:1,lifetime:.65,color,priority:1,kind:'contact-trail'});
+    // The authored ribbon follows the same Tidebreak hand/tip snapshot used by the visible weapon pose when available.
+    if(outgoing){const anchor=anchors.hero,cuePosition=anchor?.position||{x:(from.x+to.x)/2,y:from.y,z:(from.z+to.z)/2};cues.push({effect:'slash',position:{...cuePosition},rotation:anchor?.rotation||rotation,scale:heavy?1.35:1,lifetime:.65,color,priority:1,kind:'contact-trail',followKey:anchor?'hero':null});}
   }
   return cues;
 }
