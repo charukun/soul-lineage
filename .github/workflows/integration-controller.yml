@@ -125,7 +125,7 @@ jobs:
     name: Fallback refresh PULSE if publication wake failed
     needs: integrate
     if: >-
-      always() && needs.integrate.result == 'success' &&
+      always() &&
       needs.integrate.outputs.publication_outcome == 'failure' &&
       needs.integrate.outputs.sha != ''
     uses: ./.github/workflows/pulse-refresh.yml
