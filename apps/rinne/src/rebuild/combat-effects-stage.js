@@ -29,7 +29,6 @@ export function installCombatEffects(view,{document,canvas,backendFactory=create
     if(disposed)return;
     if(!booted){
       booted=true;stage.visible=false;
-      // Native initialization may compile shaders. Do it outside Three's render stack.
       Promise.resolve().then(()=>{
         if(disposed)return null;
         return backendFactory({renderer,document,baseUrl,signal:abort.signal,budget:player.snapshot().budget});
@@ -54,10 +53,11 @@ export function installCombatEffects(view,{document,canvas,backendFactory=create
   };
   view.clearCombatEffects=()=>{player.clear();director.clear();presentation.clear();clearRinneImpactAudio();};
   view.renderState=(state,dt=0)=>{
+    if(state?.zone!=='frontier'){director.clear();presentation.clear();clearRinneImpactAudio();}
     const level=original.visualSnapshot?.().focus?.level||0,reduced=Boolean(motion?.matches),hidden=Boolean(document.hidden),snap=director.frame(dt,{level,reduced,hidden});
     const restorePose=director.applyPoseLag(state,front,dt);
     try{
-      const anchors=anchorMap(director,state,front),anticipation=director.anticipation(state,front);
+      const anchors=anchorMap(director,state,front),anticipation=state?.zone==='frontier'?director.anticipation(state,front):[];
       if(anticipation.length){
         player.presentCues(anticipation.map(anticipationCue));
         const hero=anticipation.find(row=>!row.enemy),danger=anticipation.find(row=>row.enemy&&(front?.enemies||[]).find(e=>`enemy:${e.id}`===row.followKey)?.attentionTargetId===state.id);
