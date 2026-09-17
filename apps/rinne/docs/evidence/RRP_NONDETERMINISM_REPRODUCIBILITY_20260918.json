@@ -1,0 +1,137 @@
+{
+  "generatedAt": "2026-09-17T16:24:42.881Z",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "arch": "x64"
+  },
+  "classification": "B-bounded-executable-evidence",
+  "focusedTests": {
+    "passed": 12,
+    "failed": 0
+  },
+  "witnessChecks": {
+    "framePartitionDiverges": true,
+    "hiddenEntropyDiverges": true,
+    "approximationCanFlipBoundary": true,
+    "historicalOracleDiffersFromCurrent": true,
+    "robustMarginCertifies": true,
+    "robustBoundaryEscalates": true,
+    "pointEstimateMutationKilled": true,
+    "exactIntegerKernelReplays": true,
+    "causalClosureDetectsMissing": true
+  },
+  "counterexamples": {
+    "framePartition": {
+      "coarse": {
+        "x": 0.2,
+        "life": 0.1
+      },
+      "split": {
+        "x": 0.4,
+        "life": 0.1
+      },
+      "sameWallTime": true,
+      "sameSimulation": false
+    },
+    "hiddenEntropy": {
+      "first": {
+        "score": 5,
+        "critical": true,
+        "entropy": 17
+      },
+      "second": {
+        "score": 5,
+        "critical": false,
+        "entropy": 917
+      },
+      "sameInput": true,
+      "sameOutcome": false
+    },
+    "approximationBoundary": {
+      "implementationA": 0.64421768723769,
+      "implementationB": 0.644217687237692,
+      "decisionA": false,
+      "decisionB": true,
+      "diverges": true
+    },
+    "historicalOracle": {
+      "fromRecorded": {
+        "request": {
+          "item": "unique-sword"
+        },
+        "response": {
+          "allowed": true,
+          "epoch": 8
+        },
+        "outcome": "ALLOW"
+      },
+      "fromCurrent": {
+        "request": {
+          "item": "unique-sword"
+        },
+        "response": {
+          "allowed": false,
+          "epoch": 9
+        },
+        "outcome": "DENY"
+      },
+      "stable": false
+    },
+    "causalClosure": {
+      "pass": false,
+      "missing": [
+        "effective-dt-sequence",
+        "entropy-or-oracle-result"
+      ]
+    }
+  },
+  "reconstructedContract": {
+    "replayClasses": [
+      "exact-deterministic",
+      "bounded-robust",
+      "authority-only",
+      "unclassified"
+    ],
+    "exactRequires": [
+      "versioned deterministic transition kernel",
+      "ordered semantic inputs",
+      "all decision-relevant entropy/oracle results",
+      "stable numeric semantics"
+    ],
+    "robustRequires": [
+      "proved error bound",
+      "decision predicate margin outside error interval"
+    ],
+    "authorityOnlyMeans": "replay can verify receipt/integrity but not independently derive the historical truth"
+  },
+  "sourceSha256": {
+    "reality-reproducibility-model.mjs": "5fde069dddeb54cf2fc9fc1c080b001531e850a6a5d988419ea8e385a6112378",
+    "reality-reproducibility.test.mjs": "9e4d0d53639ec7111626adc0a6f9e2a10aa7e6fabf7f743301cd2b2b1b60a5f7",
+    "reality-reproducibility-proof.mjs": "14d92cbcc13bda55cd87d2faedb64b145b9db2ac9f326bdb4edef0023215f015"
+  },
+  "boundaries": {
+    "A": [
+      "input-only replay is insufficient when decision-relevant nondeterminism is not a function of recorded input",
+      "bit-identical replay requires a deterministic transition relation under the selected machine semantics",
+      "a bounded numerical replay cannot certify a threshold decision when its error interval crosses the decision boundary"
+    ],
+    "B": "finite executable witnesses in this evidence",
+    "C": [
+      "claimed error bounds are valid",
+      "semantic inputs and external results are complete",
+      "deterministic-kernel implementation semantics remain within the declared version contract"
+    ],
+    "D": [
+      "which effects merit exact replay versus robust replay versus authority-only"
+    ],
+    "E": [
+      "browser/device cross-engine divergence, CPU/battery, trace bytes and replay latency"
+    ],
+    "F": [
+      "derive a complete Rinne semantic input schema for protected Canon decisions",
+      "prove or replace cross-engine numerical determinism for the chosen Canon kernel",
+      "connect actual Tidebreak outcomes to a replayability class without changing gameplay semantics"
+    ]
+  }
+}
