@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {preyCapturePoint,sampleDevourMotion,samplePreyMotion} from './devour-motion.js';
+import {INCAPACITATION_SECONDS,preyCapturePoint,sampleDevourMotion,samplePreyMotion} from './devour-motion.js';
 import {blendPoint,stepCombatPresentation} from '../combat-presentation.js';
 const up=new T.Vector3(0,1,0),temp=new T.Vector3();
 const palette=new Map();
@@ -41,6 +41,13 @@ export function createCreature(monster=false,role='traveller'){
  if(monster)for(const s of [-1,1]){const pts=[[s*.2,1.49,-.16],[s*.68,2.03,-.43],[s*1.47,1.86,-.61],[s*1.0,.98,-.45],[s*.71,1.26,-.32],[s*.48,.72,-.33]];const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute([0,1,2,0,2,3,0,3,4,0,4,5].flatMap(i=>pts[i]),3));geometry.computeVertexNormals();const wm=new T.MeshStandardMaterial({color:0x3d524c,roughness:.9,side:T.DoubleSide});const mesh=new T.Mesh(geometry,wm);mesh.castShadow=true;wings.add(mesh);for(const i of [1,2,3,4,5]){const sp=segment(wings,0x8b9c87,.028);connect(sp,pts[0],pts[i]);}}
  g.userData={monster,body,head,jaw,torso,limbs,weapon,wings};return g;
 }
+function stableFallSide(actor,pose){
+ const lean=(Number(pose?.roll)||0)+(Number(pose?.twist)||0)*.35;
+ if(Math.abs(lean)>.045)return lean<0?-1:1;
+ const text=String(actor?.id||actor?.role||'down');let hash=0;
+ for(let i=0;i<text.length;i++)hash=(hash*31+text.charCodeAt(i))|0;
+ return(hash&1)?1:-1;
+}
 export function animateCreature(g,a,time,options={}){
  const u=g.userData,m=u.monster,rawPose=a.dead?null:a.pose;
  const frameDt=Number.isFinite(options.dt)?options.dt:Number.isFinite(u.combatTime)?Math.max(0,time-u.combatTime):1/60;u.combatTime=time;
@@ -64,12 +71,13 @@ export function animateCreature(g,a,time,options={}){
  if(a.dead){
   if(m){g.rotation.z=.35;g.position.y=.13;u.body.rotation.x=.12;}
   else{
-   u.downBlend=Math.min(1,(u.downBlend||0)+Math.min(frameDt,.1)/.46);
+   if(!u.downSide)u.downSide=stableFallSide(a,transition.pose);
+   u.downBlend=Math.min(1,(u.downBlend||0)+Math.min(frameDt,.1)/INCAPACITATION_SECONDS);
    if(a.capturedBy){u.captureVisual={...a.capturedBy};u.captureBlend=1;}
    else if(u.captureVisual){u.captureBlend=Math.max(0,(u.captureBlend??1)-Math.min(frameDt,.1)/.22);if(u.captureBlend<=0){u.captureVisual=null;u.captureBlend=0;}}
-   applyIncapacitatedPose(g,samplePreyMotion(u.captureVisual?.progress,u.downBlend,u.captureBlend??0),u.captureVisual,a);
+   applyIncapacitatedPose(g,samplePreyMotion(u.captureVisual?.progress,u.downBlend,u.captureBlend??0,u.downSide),u.captureVisual,a);
   }
- }else{u.downBlend=0;u.captureVisual=null;u.captureBlend=0;}
+ }else{u.downBlend=0;u.downSide=0;u.captureVisual=null;u.captureBlend=0;}
 }
 
 const pivot=new T.Vector3(0,.91,0),inverse=new T.Quaternion(),point=new T.Vector3();
@@ -108,25 +116,26 @@ function applyDevourPose(g,p){
  }
 }
 function applyIncapacitatedPose(g,p,capture,origin){
- const u=g.userData,k=p.slack;
- g.rotation.z=p.rootRoll;g.position.y+=p.rootY;
+ const u=g.userData,k=p.slack,side=p.side||1;
+ g.rotation.x=p.rootPitch;g.rotation.z=p.rootRoll;g.position.y+=p.rootY;
  u.body.rotation.x+=(p.bodyPitch-u.body.rotation.x)*k;
- u.body.rotation.y+=(p.capture*.08+p.bite*.06-u.body.rotation.y)*k;
+ u.body.rotation.y+=(p.bodyTwist-u.body.rotation.y)*k;
  u.body.rotation.z+=(p.bodyRoll-u.body.rotation.z)*k;
  u.head.rotation.x+=(p.headPitch-u.head.rotation.x)*k;
- u.head.rotation.y+=(-.08*p.capture-u.head.rotation.y)*k;
+ u.head.rotation.y+=(p.headYaw-u.head.rotation.y)*k;
  u.head.rotation.z+=(p.headRoll-u.head.rotation.z)*k;
  u.jaw.rotation.x+=(p.bite*.12-u.jaw.rotation.x)*k;
  for(const {leg,arm} of u.limbs){
-  const s=leg.s,currentFoot=leg.foot.position.toArray(),currentHand=arm.hand.position.toArray();
-  const footTarget=[s*(.18+.035*k),.07,.11+s*.10*k+.04*p.bite];
-  const kneeTarget=[s*(.19+.045*k),.46-.08*k,.11+s*.15*k+.055*p.bite];
+  const s=leg.s,ground=s===side?1:0,currentFoot=leg.foot.position.toArray(),currentHand=arm.hand.position.toArray();
+  const footTarget=[s*(.17+.055*p.legSpread),.07,.10+s*side*.12*p.legSpread+.035*p.contact*(ground?1:-.45)];
+  const kneeTarget=[s*(.19+.06*p.legSpread),.46-.16*p.legBend-.05*p.contact*ground,.12+.18*p.legBend+s*side*.10*p.legSpread];
   const foot=blendPoint(currentFoot,footTarget,k),knee=blendPoint([s*.19,.46,.12],kneeTarget,k);
   connect(leg.upper,[s*.16,.91,0],knee);connect(leg.lower,knee,foot);leg.foot.position.set(...foot);
-  const handTarget=[s*(.36-.075*k),1.03-.28*k,.08+s*.17*k+.065*p.bite];
-  const hand=blendPoint(currentHand,handTarget,k),elbowTarget=[s*.31,1.18-.13*k,.02+s*.10*k];
+  const handTarget=[s*(.36-.05*p.armDrop+.10*p.brace*(ground?1:-.4)),1.03-.58*p.armDrop-.18*p.brace*ground+.06*p.contact*(ground?1:-1),.08+s*.14*p.armDrop+side*.20*p.brace*(ground?1:-.25)];
+  const hand=blendPoint(currentHand,handTarget,k),elbowTarget=[s*(.38-.07*p.armDrop),1.24-.20*p.armDrop-.10*p.brace*ground,.02+s*.12*p.armDrop+side*.10*p.brace];
   const elbow=blendPoint([s*.38,1.24,.02],elbowTarget,k);
-  connect(arm.upper,[s*.28,1.47,-.025],elbow);connect(arm.lower,elbow,hand);arm.hand.position.set(...hand);if(s===1)u.weapon.position.set(...hand);
+  connect(arm.upper,[s*.28,1.47,-.025],elbow);connect(arm.lower,elbow,hand);arm.hand.position.set(...hand);
+  if(s===1){u.weapon.position.set(...hand);u.weapon.rotateZ(side*.42*p.weaponDrop);}
  }
  if(!capture||p.capture<=0)return;
  const anchor=preyCapturePoint(origin,capture,p),yaw=capture.yaw||0;
