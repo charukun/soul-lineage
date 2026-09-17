@@ -64,6 +64,7 @@ export async function createCoopHost({world,contentVersion,save,RTCPeerConnectio
   async function dispose(){if(closed)return;closed=true;clearInterval(timer);pending?.connection?.close();for(const link of links.values())link.connection.close();links.clear();if(!writer.failure)await writer.request();}
   return{role:'host',selfId,layout:world.layout,worldId:world.data.worldId,invite,accept,
     input:direction=>{if(open()&&!writer.pendingIds().has(selfId))world.acceptInput(selfId,{seq:++inputSeq,...direction});},
+    frameRendered:frameMs=>probe?.recordFrame(frameMs)??false,
     setRate:async rate=>{if(!open())throw Error('村の再開を待ってください。');world.setRate(selfId,rate);await persist();},
     rebirth:(villageId,lifeId=writer.committed.world.players[selfId].life.id)=>rebirth(selfId,lifeId,villageId),pause,dispose,
     snapshot:()=>({phase:open()?'open':'closed',error,historyPending:writer.pending,view:latest&&{...latest,connected:links.size+1}}),performance:()=>probe?.snapshot()??null,save:()=>writer.failure?Promise.reject(writer.failure):persist()};

@@ -8,6 +8,8 @@ const TRUSTED = new Set(['OWNER', 'MEMBER', 'COLLABORATOR']);
 const HOLD_LABELS = new Set(['integration:hold', 'integration:manual', 'do-not-merge']);
 export const deepRepairStatus = 'integration/deep-repair';
 export const deepRepairMaxAttempts = 2;
+export const chatRepairSchema = 'chat-repair:v1';
+export const chatRepairOwner = 'charukun';
 
 function labels(pr) {
   return (pr?.labels || []).map(label => label.name);
@@ -15,6 +17,10 @@ function labels(pr) {
 
 function explicitHold(pr) {
   return labels(pr).some(label => HOLD_LABELS.has(label)) || /^Integration-Hold:\s*\S+/im.test(pr?.body || '');
+}
+
+function compact(value, max = 800) {
+  return String(value || '').replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
 export function deepRepairSafety({ pr, repository, dependenciesMerged, unresolved, reviews = [] }) {
@@ -43,12 +49,76 @@ export function deepRepairIssueState({ pr, develop, reason, repairKind = 'semant
     develop,
     repairKind,
     ...(ciFailure ? { ciFailure } : {}),
-    reason: String(reason || '').replace(/\s+/g, ' ').trim().slice(0, 800),
+    reason: compact(reason),
   };
 }
 
 export function deepRepairIssueMarker(state) {
   return `<!-- integration-deep-repair:v1\n${JSON.stringify(state)}\n-->`;
+}
+
+export function chatRepairBundle({ repository, pr, develop, reason, repairKind = 'semantic', ciFailure }) {
+  assert.match(repository || '', /^[\w.-]+\/[\w.-]+$/, 'CHAT_REPAIR_REPOSITORY_REQUIRED');
+  assert.ok(Number.isSafeInteger(Number(pr?.number)) && Number(pr.number) > 0, 'CHAT_REPAIR_PR_REQUIRED');
+  assert.match(pr?.head?.sha || '', /^[0-9a-f]{40}$/i, 'CHAT_REPAIR_HEAD_REQUIRED');
+  assert.match(develop || '', /^[0-9a-f]{40}$/i, 'CHAT_REPAIR_DEVELOP_REQUIRED');
+  return {
+    schema: chatRepairSchema,
+    version: 1,
+    sourceKey: `pr:${pr.number}:head:${pr.head.sha}`,
+    repository,
+    pr: Number(pr.number),
+    branch: pr.head.ref,
+    head: pr.head.sha,
+    develop,
+    repairKind,
+    ...(ciFailure ? { ciFailure } : {}),
+    reason: compact(reason),
+    execution: 'normal-chat-manual-start',
+    prohibited: ['chatgpt-work', 'codex', 'openai-api', 'paid-model-api'],
+  };
+}
+
+export function chatRepairIssueMarker(bundle) {
+  return `<!-- chat-repair:v1\n${JSON.stringify(bundle)}\n-->`;
+}
+
+export function parseChatRepairIssueMarker(body = '') {
+  const match = String(body).match(/<!-- chat-repair:v1\n([^\n]+)\n-->/);
+  if (!match) return null;
+  try {
+    const value = JSON.parse(match[1]);
+    if (value?.schema !== chatRepairSchema || value?.execution !== 'normal-chat-manual-start') return null;
+    if (!/^[0-9a-f]{40}$/i.test(value.head || '') || !/^[0-9a-f]{40}$/i.test(value.develop || '')) return null;
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+export function normalChatRepairPrompt({ repository, state, pr, ciFailure }) {
+  const task = ciFailure ? `PR #${pr.number} exact-head CI source repair` : `PR #${pr.number} semantic conflict repair`;
+  return `Repository: ${repository}\n\n` +
+    `GitHub上の意味的競合/CI source repairを通常Chatで修復してください。Work / Codex / OpenAI API /追加の有料APIは使わないでください。\n\n` +
+    `復旧座標は sourceKey \`${state.sourceKey}\`、source PR #${pr.number}、記録head \`${state.head}\`、記録develop \`${state.develop}\` です。これらは開始座標であり正本ではありません。最初にsourceKeyで同じGitHub Issueを取得し、現在のGitHub状態、current PR head、latest developを再取得してください。\n\n` +
+    `Issueの \`integration-deep-repair:v1\` を再読し、closed / human-required / attempt上限ならコードを変更せず停止してください。別のclaimが \`working\` なら並行修復しないでください。\`pending\` なら編集前に同じIssueを \`state=working\`、\`attempt+1\`、\`claimedBy=normal-chat\`、\`claimedAt=<current ISO time>\` へ更新し、再取得して自分のclaimを確認してから作業してください。\n\n` +
+    `最新develop SHA → AGENTS.md → checkoutがあれば \`npm run context:plan -- --task "${task}"\` → 必要文書だけ、の順で確認してください。過去チャット全文、全docs、巨大diff、全CIログを初期投入しないでください。\n\n` +
+    `source PR側の意図とcurrent develop側の意図、関連する確定仕様・テストを読み、両立できる意図は両方残してください。無条件ours/theirs、blind cherry-pick、assertion削除、品質gate弱体化は禁止です。真のproduct/schema/save/protocol判断が必要で現在の契約から解けない場合だけ、このIssueをhuman-requiredにして必要な判断を具体化してください。\n\n` +
+    `修復先は既存source PR branchだけです。通常git → 接続済みGitHub API → 必要時のみ同じbranchの既存Codespaces＋通常gitの順で経路を選び、1経路の失敗だけで停止しないでください。force pushは禁止です。\n\n` +
+    `必要なfocused checkとfast validationを行い、検証済み修復を同じPRへpushしてください。push後は自分がclaimした同じIssueを \`state=ready-for-integration\` に更新し、\`repairHead\` と検証結果を記録してください。PRをReady for review → READY_FOR_INTEGRATIONまで戻してください。CI/browser/DEV完了は待機・pollingしないでください。main / Productionは変更しないでください。`;
+}
+
+function chatRepairSection({ repository, state, pr, develop, reason, repairKind, ciFailure }) {
+  const bundle = chatRepairBundle({ repository, pr, develop, reason, repairKind, ciFailure });
+  const prompt = normalChatRepairPrompt({ repository, state, pr, ciFailure });
+  const failure = ciFailure
+    ? `\nFailed validation: ${ciFailure.jobUrl}\nRun: ${ciFailure.runId}, attempt: ${ciFailure.runAttempt}, job: ${ciFailure.jobId} (${ciFailure.jobName})\n通常Chatは編集前に必要なfailed job steps/log範囲だけ確認し、assertionを弱めないでください。\n`
+    : '';
+  return `${chatRepairIssueMarker(bundle)}\n\n@${chatRepairOwner}\n\nCHAT_REPAIR_REQUIRED\n\n` +
+    `Fast Lane found a current exact-head ${ciFailure ? 'CI failure' : 'semantic conflict'} that requires source repair. ChatGPT Work/Codex/APIによる自動修復は使用しません。\n\n` +
+    `PR: ${pr.html_url}\nRecorded head: \`${pr.head.sha}\`\nRecorded develop: \`${develop}\`\nReason: ${state.reason}\n${failure}\n` +
+    `## 通常Chatへ貼り付けるプロンプト\n\n\`\`\`text\n${prompt}\n\`\`\`\n\n` +
+    `このIssue/メールは起動通知です。修復時は必ずcurrent GitHub stateを再取得してください。GitHub通知メールの配送有無はownerのGitHub通知設定に従います。`;
 }
 
 export async function signalDeepRepair(c, { pr, repository, develop, reason, repairKind = 'semantic', ciFailure, dependenciesMerged,
@@ -68,6 +138,7 @@ export async function signalDeepRepair(c, { pr, repository, develop, reason, rep
     return { signaled: false, blocked: `Deep Repair #${issue.number} already owns this head in ${existing.state}`, issue: issue.number };
   }
 
+  const section = chatRepairSection({ repository, state, pr, develop, reason, repairKind, ciFailure });
   if (!issue) {
     const envelope = aiRepairEnvelope({
       pr: pr.number,
@@ -82,15 +153,23 @@ export async function signalDeepRepair(c, { pr, repository, develop, reason, rep
       deep: true,
     });
     issue = await c.api('POST', `${c.root}/issues`, {
-      title: `Deep Repair #${pr.number} ${pr.head.sha.slice(0, 12)}`,
-      body: `${marker}\n${aiRepairEnvelopeMarker(envelope)}\nAI_DEEP_REPAIR_REQUIRED\n\nFast Lane found a current exact-head ${ciFailure ? 'CI failure' : 'conflict'} that requires source repair.\n\nPR: ${pr.html_url}\nDevelop: \`${develop}\`\nReason: ${state.reason}\n${ciFailure ? `\nFailed validation: ${ciFailure.jobUrl}\nRun: ${ciFailure.runId}, attempt: ${ciFailure.runAttempt}, job: ${ciFailure.jobId} (${ciFailure.jobName})\nRead the failed job steps/log excerpt before editing; do not weaken assertions.\n` : ''}\nChatGPT Work must re-read current GitHub state before claiming this issue. Repair the existing PR branch only, preserve both sides where compatible, fast-validate, and return the new exact head to the same Fast Lane. Do not clear holds/review objections or change main/Production.`,
+      title: `[RINNE 要Chat修復] PR #${pr.number} ${pr.head.sha.slice(0, 12)}`,
+      assignees: [chatRepairOwner],
+      body: `${marker}\n${aiRepairEnvelopeMarker(envelope)}\n\n${section}`,
+    });
+  } else if (!parseChatRepairIssueMarker(issue.body)) {
+    const migratedBody = `${issue.body || marker}\n\n---\n\nWORK_REPAIR_RETIRED\n\n${section}`;
+    issue = await c.api('PATCH', `${c.root}/issues/${issue.number}`, {
+      title: `[RINNE 要Chat修復] PR #${pr.number} ${pr.head.sha.slice(0, 12)}`,
+      assignees: [chatRepairOwner],
+      body: migratedBody,
     });
   }
 
   await c.api('POST', `${c.root}/statuses/${pr.head.sha}`, {
     state: 'pending',
     context: deepRepairStatus,
-    description: `Exact-head ${ciFailure ? 'CI failure' : 'conflict'} handed to AI Deep Repair`,
+    description: `Exact-head ${ciFailure ? 'CI failure' : 'conflict'} requires normal Chat repair`,
     target_url: issue.html_url || pr.html_url,
   });
 

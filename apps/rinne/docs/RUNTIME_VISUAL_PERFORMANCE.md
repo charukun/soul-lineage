@@ -20,6 +20,15 @@
 4. 敵actorの生成/破棄はroster変更時だけ行い、位置・flash等の軽いvisual更新と分離する。
 5. focused testで上記の品質設定とhot-loop回帰を固定し、既存gameplay/save契約を弱めない。
 
+## Tilt-shift and lighting acceptance
+
+The active Rinne renderer must combine a restrained miniature focus effect with cool ambient / warm directional lighting and grounded building/actor contact. Keep the playable focus band and DOM HUD sharp, including camera-height changes, interiors and combat. Bound the post-processing resolution and sample count, reuse render resources, and degrade the effect under sustained frame pressure without changing gameplay or hiding the source scene. Compare the same camera, scene and viewport before/after; report additional passes and software-GPU limitations separately from real-device FPS. Do not promise zero overhead.
+
+- Lighting retains two lights, with a cooler, weaker hemisphere fill and warm directional key. A 1024² sun shadow caches static scenery within a 96 m area, recentred on a 24 m grid. No animated actor/weapon may enter this cache. Refresh happens on region/zone/quality transitions, not every frame; it can still produce occasional extra work.
+- Moving actors use one bounded instanced contact-shadow batch, excluding hidden/airborne actors and hidden zones. It is a visual grounding approximation, not an animated silhouette shadow.
+- Tilt-shift keeps the source scene at the existing adaptive resolution, with a two-sample HDR target. Blur runs at 1/2, 3/8 or 1/4 width/height with at most 9/5/5 reads per blur pixel; one composite handles tone mapping and output color exactly once. The DOM HUD is outside this pipeline.
+- The clear band follows the projected player and widens in combat/interiors. Tier 2 drops the cached sun shadow; tier 3 bypasses post-processing. Unsupported float color buffers or more than 2.4 million scene pixels also use direct rendering. Lighting/contact improvements remain active. Extra targets are reused and disposed with the renderer.
+
 ## DEV review
 
 Integration後のDEVでは同じ村内経路・同じカメラ条件で、輪郭のギザつき/ぼけと移動時のframe pacingを比較する。実機性能をclaimする場合はphysical-device evidenceを別途取得し、synthetic browser結果と混同しない。

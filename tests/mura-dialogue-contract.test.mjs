@@ -39,3 +39,26 @@ test('Rinne and Village consume the shared MURA dialogue module instead of local
   assert.match(village,/muraResidentReactionLine\(tone\)/);
   assert.doesNotMatch(village,/const lines=\{growth:/);
 });
+
+test('Rinne and Village render village speech through the same shared bubble runtime',async()=>{
+  const [birth,villageAdapter,sharedUi]=await Promise.all([
+    read('apps/rinne/src/rebuild/birth-experience.js'),
+    read('apps/village/src/shared-speech-bubbles.js'),
+    read('packages/shared-ui/src/speech-bubbles.js'),
+  ]);
+  assert.match(birth,/@soul\/shared-ui\/speech-bubbles/);
+  assert.match(birth,/createSpeechBubbles/);
+  assert.doesNotMatch(birth,/dialogue\('母'/);
+  assert.match(villageAdapter,/@soul\/shared-ui\/speech-bubbles/);
+  assert.match(villageAdapter,/createSpeechBubbles/);
+  assert.match(sharedUi,/soul-speech-bubble/);
+  assert.match(sharedUi,/maxVisible=3/);
+  assert.match(sharedUi,/duration=5000/);
+});
+
+test('Rinne mobile command row does not expose a dedicated run button',async()=>{
+  const gameplay=await read('apps/rinne/src/gameplay-ui.js');
+  assert.doesNotMatch(gameplay,/data-dash/);
+  assert.doesNotMatch(gameplay,/>走<\/span>/);
+  assert.match(gameplay,/画面長押しで休憩/);
+});

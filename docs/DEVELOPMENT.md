@@ -8,14 +8,14 @@
 latest develop
   -> work branch / Draft PR
   -> implementation
-  -> affected fast validation
+  -> affected focused validation
   -> push
   -> Ready for review
   -> READY_FOR_INTEGRATION
   -> session ends
 ```
 
-Ready 後の CI 監視、develop merge、DEV 公開、browser gate、repair は Integration の責任。実装 WORK は Running / Queued / Pending の check を完了まで watch・sleep・polling しない。
+Ready 後の CI 監視、develop merge、DEV 公開、明示browser verification、repair は Integration または専用経路の責任。実装 WORK は Running / Queued / Pending の check を完了まで watch・sleep・polling しない。
 
 ## 標準手順
 
@@ -23,9 +23,9 @@ Ready 後の CI 監視、develop merge、DEV 公開、browser gate、repair は 
 2. 最新 `develop` から専用 branch を作る。コード変更を伴う通常タスクは、コード編集前に branch を push して develop 向け Draft PR を作る。
 3. GitHub は差分のない branch から PR を作れないため、必要なら既存仕様・運用文書へ今回の受入条件を最小限追記して最初の意味ある差分にする。ダミーファイル、空 commit、恒久的に無意味な履歴は作らない。文章・資料だけを更新するタスクは、その意味ある資料差分自体を最初の commit にしてよい。
 4. 実装する。確定要件と現在の `develop` 契約を守る範囲の可逆的な細部は AI が選び、重要な仮定を PR に短く残す。
-5. 影響範囲だけ高速検証する。通常は `npm ci`、`node scripts/validate.mjs fast origin/develop HEAD`、変更 app/package の check/test/build。基盤変更は該当する基盤テストも実行する。毎回の全体 E2E・全ゲーム browser 総点検は不要。
+5. **実装セッション内では**変更した機能に必要な局所テスト・check・buildを行う。通常は `npm ci`、対象app/packageの focused test/check/build、必要なら `node scripts/validate.mjs fast origin/develop HEAD` を使う。基盤変更は関連する基盤contractを確認する。毎回の全体 E2E・全ゲーム browser 総点検は不要。
 6. push 前に `npm run push:route -- origin/develop HEAD` を使える環境では実行する。通常 git → 接続済み GitHub API → 同じ branch の既存 Codespaces + 通常 git の順に復旧する。1経路の失敗だけで終了しない。
-7. 実装と必要な高速検証が完了したら PR 本文を実施結果へ更新し、Ready for review にする。
+7. 実装と必要な局所検証が完了したら PR 本文を実施結果へ更新し、Ready for review にする。
 8. branch / exact head SHA / PR / Ready / 実行済み検証を報告し、`READY_FOR_INTEGRATION` で終了する。handoff recorder、通知、CI、DEV 公開の完了待ちはしない。
 
 ## PR 契約
@@ -67,25 +67,31 @@ GitHub 標準状態をそのまま使う。
 
 技術的に難しい、同じ file を触っている、見た目を後で調整できる、DEV で実物を見たい、という理由だけでは Draft / human-required に止めない。現在仕様へ安全に適応できる古い PR や機械的競合は修復対象。
 
-未実装、高速検証失敗、権限不足、互換性を壊す save/schema/protocol 等の未承認選択、確定仕様から解けない重大な契約矛盾は Ready にしない。実行可能な修復を行い、それでも人間判断が必要な対象だけ理由を具体化する。
+未実装、局所検証失敗、権限不足、互換性を壊す save/schema/protocol 等の未承認選択、確定仕様から解けない重大な契約矛盾は Ready にしない。実行可能な修復を行い、それでも人間判断が必要な対象だけ理由を具体化する。
 
-## Validation と品質境界
+## develop CI と品質境界
 
-通常実装は速度のため「必要な局所確認」に絞るが、品質 gate を削除・弱体化しない。重い browser / public verification は Integration 側で非同期に扱う。main / Production の blocking gate は不変。
+**develop向けGitHub CIは自動テストを実行しない。** Ready後の `Validate and build` は、exact-headの差分/構文・静的check・code-health・必要なbuild可否とIntegration用artifactを確認するだけで、`node --test`、browser smoke、gameplay/WebGLテストは実行しない。Fast Repairのexact-head再検証も同じtest-free DEV contractを使う。
+
+DEV CIの検証制御は **current develop側のtrusted control checkout** を正本として実行する。古いReady PRがbranch内に旧 `scripts/validate.mjs` / `affected.mjs` / check helperを保持していても、それをDEV gateの制御実装として実行しない。検証対象のapp/package/source bytesはPR exact headを使い、検証ルールだけをcurrent developから適用する。これによりCI契約の更新だけを理由に既存Ready PRを一斉にsource repairへ落とさない。main / Productionの検証経路はこの互換処理の対象外とする。
+
+さらにDEV CIの作業量は変更責任に限定する。`docs/**` だけの変更ではinstall/buildを行わず、`.github/**`・Integration/運用script・root `tests/**` などcontrol-planeだけの変更でもgame app/packageをaffected扱いせず、`npm ci`・app buildを起動しない。app変更はそのapp、shared package変更は実際のconsumer app、workspace manifest / lockfile / build基盤の変更だけが必要範囲を広げる。control-plane変更を理由に全app buildへ拡大しない。
+
+これはテストの削除ではない。実装セッションはReady前に変更機能の局所テストを行い、既存テスト資産は保持する。全体回帰、browser/WebGL、P2P等の重い検証は、ユーザー明示playtest、`full_verification=true`、専門evidence workflow、main / Productionの品質gateで実行する。main / Production の blocking gate は不変。
 
 テストは実装の書き方ではなく、ユーザー・ドメイン・公開インターフェースから観測できる契約を優先する。特に UI / browser テストでは、次を原則とする。
 
 - 表示文言そのものが仕様である場合を除き、完全一致コピーより状態・役割・可視性・操作結果を検証する。
 - DOM id / class / matcher 名 / helper 呼び出し文字列など、同じ挙動を別実装でも成立させられる内部表現を二重に固定しない。
 - 別テストファイルを文字列として読み込み、「そのテストが `toBeHidden()` を使う」「この selector を直接書く」などのテスト実装詳細を検査しない。必要なら共有 helper / 公開 contract / 実ブラウザ挙動を直接検証する。
-- 起動、主要入力、保存、復元、致命的 console/page error、重要なゲーム状態遷移など、ユーザー影響が大きい失敗は引き続き厳格に fail させる。
-- timeout 延長、force click、assertion 削除、常時 retry で不安定さを隠さない。過剰固定を外すことと品質 gate を弱めることは別扱いにする。
+- 起動、主要入力、保存、復元、致命的 console/page error、重要なゲーム状態遷移など、ユーザー影響が大きい失敗は明示検証またはProduction gateでは引き続き厳格に fail させる。
+- timeout 延長、force click、assertion 削除、常時 retry で不安定さを隠さない。DEV CIでテストを自動実行しないことと、テスト自体を弱めることは別扱いにする。
 
 単一 app の変更を root ゲーム構成へ戻さず、`apps/<id>` と `packages/<id>` の境界を維持する。詳細は [`MONOREPO.md`](MONOREPO.md) と [`PLATFORMS.md`](PLATFORMS.md)。
 
 ## GitHub / Codespaces 経路
 
-Codespaces は別開発フローではなく搬送経路の代替。branch、PR、fast validation、Ready handoff は変えない。容量・Base64・payload 上限のときは同じ branch を Codespaces で開き通常 `git push` へ切り替える。大きなバイナリを API 経由で分割再送しない。詳細は [`MOBILE_HYBRID_DEVELOPMENT.md`](MOBILE_HYBRID_DEVELOPMENT.md)。
+Codespaces は別開発フローではなく搬送経路の代替。branch、PR、局所検証、Ready handoff は変えない。容量・Base64・payload 上限のときは同じ branch を Codespaces で開き通常 `git push` へ切り替える。大きなバイナリを API 経由で分割再送しない。詳細は [`MOBILE_HYBRID_DEVELOPMENT.md`](MOBILE_HYBRID_DEVELOPMENT.md)。
 
 依頼成果を同 Repository / 既存 Codespaces へ転送・push する許可は [`DELIVERY_AUTHORIZATION.md`](DELIVERY_AUTHORIZATION.md) に記録済み。同じ範囲の許可を再質問しない。
 
@@ -95,12 +101,12 @@ Codespaces は別開発フローではなく搬送経路の代替。branch、PR�
 
 必要な引き継ぎ情報は repository、branch、head SHA、PR、Draft/Ready、base、必要な exact-head Checks/status。過去チャット全文や古い handoff を正本にしない。
 
-Ready なら修正依頼なしに CI 待機セッションを再開しない。失敗が返された場合は同じ PR / branch で必要な修正 → 高速検証 → push → Ready まで進め、再び Integration へ返す。
+Ready なら修正依頼なしに CI 待機セッションを再開しない。失敗が返された場合は同じ PR / branch で必要な修正 → 局所検証 → push → Ready まで進め、再び Integration へ返す。
 
 ## 関連資料
 
 - Integration: [`INTEGRATION.md`](INTEGRATION.md)
 - Repair / legacy Rescue compatibility: [`INTEGRATION_RESCUE.md`](INTEGRATION_RESCUE.md)
 - Context budget: [`CONTEXT_EFFICIENCY.md`](CONTEXT_EFFICIENCY.md)
-- Browser repair: [`BROWSER_SELF_HEALING.md`](BROWSER_SELF_HEALING.md)
+- Browser verification / repair: [`BROWSER_SELF_HEALING.md`](BROWSER_SELF_HEALING.md)
 - Documentation map: [`README.md`](README.md)

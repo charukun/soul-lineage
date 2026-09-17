@@ -10,7 +10,6 @@ export const RETIRED_CONDITIONAL_CHARACTER_IDS = Object.freeze([
   'review.tsukuyomi-type-a'
 ]);
 export const BLOCKED_RERIG_CHARACTER_IDS = Object.freeze([
-  'protagonist.villager.v1',
   'arcanist.atlas-dcc.v1'
 ]);
 export const NON_DISTRIBUTABLE_CHARACTER_FILES = Object.freeze([
@@ -21,8 +20,6 @@ export const NON_DISTRIBUTABLE_CHARACTER_FILES = Object.freeze([
   'apps/rinne/public/simulator/assets/TSUKU_review.vrm',
   'apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.vrm',
   'apps/rinne/public/simulator/assets/SHINO_REFERENCE_V2.asset.json',
-  'apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_V1.glb',
-  'apps/rinne/public/simulator/assets/PROTAGONIST_VILLAGER_V1.asset.json',
   'apps/rinne/public/simulator/assets/ARCANIST_ATLAS_DCC.glb',
   'apps/rinne/public/simulator/assets/ARCANIST_ATLAS_DCC.asset.json',
   'apps/rinne/public/simulator/assets/portrait_A.webp',

@@ -1,31 +1,28 @@
 # DEV publication fast path
 
-DEV is the fast visual-review environment. Publication must not wait for heavy browser or full-regression verification.
+DEV is the fast visual-review environment. Publication must not wait for tests, browser or full-regression verification.
 
-This document is the focused contract for normal DEV publication. Where older Integration or browser-repair wording describes focused DEV browser checks as part of the publication gate, this fast-path contract governs: publication is build/snapshot/public-source gated, while browser diagnostics remain asynchronous repair evidence.
+This document is the focused contract for normal DEV publication. Normal develop delivery is snapshot/public-source gated. Gameplay/WebGL browser automation and full regression are opt-in rather than asynchronous default gates.
 
 ## Required DEV publication path
 
-`develop -> assemble/build affected apps -> exact source/snapshot checks -> GitHub Pages promotion -> public HTTP/source verification -> DEV_DEPLOYED`
+`develop -> plan changed app inputs -> build only changed apps when needed -> exact source/snapshot checks -> candidate manifest check -> GitHub Pages promotion -> public HTTP/source verification -> DEV_DEPLOYED`
 
-Blocking DEV publication checks are limited to work needed to prove that the generated snapshot is structurally valid and that the published public files belong to the intended develop SHA. Browser/WebGL/gameplay scenarios are not a prerequisite for DEV visibility.
+Blocking DEV publication checks are limited to work needed to prove that the generated snapshot is structurally valid and that the published public files belong to the intended develop SHA. `node --test`, Browser/WebGL/gameplay scenarios, and unrelated app builds are not prerequisites for DEV visibility.
 
-The shared `verify-browser.mjs` keeps its assertions for PR, optional full verification, and Production use. The `publish` job on `refs/heads/develop` takes the fast path and does not execute those heavy scenarios.
+DEV app input hashes exclude control-plane-only `.github/**`, Integration/operational scripts, root tests and documentation. When those files change without changing game/build inputs, the publisher reuses the already published app outputs, skips `npm ci` and app validation/build preparation, and advances only the exact DEV source/snapshot identity. Build-system inputs such as root package/lock configuration and the app build coordinator remain hash inputs and may rebuild affected apps.
 
-## Browser verification and repair
+The normal `publish` job on `refs/heads/develop` does not invoke `verify-browser.mjs`, does not upload `dev-browser-*` evidence, and does not create a develop browser-repair ticket. Last Known Good DEV snapshots are retained after successful public HTTP/source verification.
 
-Normal DEV publication does not launch a second all-app browser sweep. Browser failures originate from the existing asynchronous PR affected-browser smoke. If a failed PR browser result arrives after merge, the recorder promotes it to the current develop repair generation instead of discarding it.
+## Browser verification is opt-in on develop
 
-A `browser-repair:v1` ticket is claimed by a separate repair worker. The worker fixes latest develop through a repair PR and returns it to Integration. The repair PR must obtain real browser success through the existing PR browser path. For a develop-scoped repair, that browser success moves the same ticket to `ready-for-integration`.
+Normal develop PRs do not automatically run affected-browser smoke. Normal DEV publication does not run a candidate browser pass or a post-publication browser pass.
 
-Final repair completion requires both pieces of evidence, without adding another heavy DEV browser pass:
+Browser verification still runs when explicitly requested through the browser playtest route, when `deploy.yml` is explicitly dispatched with `full_verification=true`, or when a specialist workflow owns a browser-evidence contract. These diagnostics are separate from normal DEV delivery.
 
-1. the repair PR's browser verification is green; and
-2. the repaired head is contained in a successfully published DEV SHA whose public HTTP/source identity is verified.
+A failure from an explicit browser run is evidence for diagnosis. If it proves a source-level defect, route semantic repair through the normal Chat Repair handoff without weakening assertions or turning browser automation back into the default develop gate.
 
-When both are true the same ticket becomes `verified`. If PR browser verification fails again, the same ticket returns to `pending` until the configured finite attempt limit is reached. This preserves the existing self-healing loop without putting browser latency back into DEV publication.
-
-The repair path must keep assertion quality, exact-head evidence, hold/review/dependency rules, and `maxAttempts`. It must not weaken Production gates or modify `main`.
+Historical `browser-repair:v1` records and old `pr-browser-*` / `dev-browser-*` artifacts remain evidence only. The legacy browser repair recorder workflow/input/script are retired and do not trigger new develop browser work.
 
 ## Visual Review publication liveness
 
@@ -47,13 +44,13 @@ PULSE pre-publication browser checks that operate a dialog must scope controls t
 
 ## PULSE semantics
 
-PULSE publication health follows the exact public DEV snapshot, not browser-repair state:
+PULSE publication health follows the exact public DEV snapshot, not historical browser-repair state:
 
 - publication pending: the exact develop snapshot is not public yet
 - published: public HTTP/source identity is verified
-- browser repair: tracked through the existing repair/Rescue diagnostics and must not keep an already published DEV snapshot in `DEV 公開待ち`
+- explicit browser diagnostics: tracked separately and do not keep an already published DEV snapshot in `DEV 公開待ち`
 
-If automatic repair exhausts its configured attempts, the repair ticket remains the authoritative escalation record. PULSE may surface that existing diagnostic state, but it must not rewrite it as publication latency.
+PULSE may surface explicit diagnostic failures, but it must not rewrite them as publication latency or make them a normal develop merge requirement.
 
 ## Production
 

@@ -1,4 +1,5 @@
 import {muraSharedLine} from '@soul/world/mura/dialogue';
+import {createSpeechBubbles} from '@soul/shared-ui/speech-bubbles';
 import {createActorStatus} from './actor-status.js';
 import {birthTourPace,createBirthTour} from './birth-tour.js';
 import {nearestStation} from './locations.js';
@@ -6,11 +7,13 @@ import {nearestStation} from './locations.js';
 const STEER=Object.freeze([0,.42,-.42,.82,-.82,1.2,-1.2]);
 const magnitude=axis=>Math.hypot(axis?.x||0,axis?.y||0);
 
-export function createBirthExperience({document,canvas,gameScreen,view,stations,getState,dialogue}){
+export function createBirthExperience({document,canvas,gameScreen,view,stations,getState}){
   const tour=createBirthTour(stations),pace=birthTourPace(stations),status=createActorStatus({document,canvas,view,actorName:'Player'}),mother=view.scene.getObjectByName('Mother');
-  let introTimer=0,introRemaining=0,stuck=0,motionTime=0,carrierSpeed=0;
+  const speech=createSpeechBubbles({document,layer:document.getElementById('actor-status-layer'),duration:5000,maxVisible:3}),speechPoint=new view.THREE.Vector3();
+  let introTimer=0,introRemaining=0,stuck=0,motionTime=0,carrierSpeed=0,speechSequence=0;
 
   const active=()=>{const state=getState();return state?.zone==='village'&&!state?.down&&!state?.ended&&state?.phase==='birth';};
+  const say=text=>text&&speech.show({id:`rinne-mother-${++speechSequence}`,text,personId:'Mother'});
   function move(direction,speed,dt){
     const state=getState(),nx=state.position.x+direction.x*speed*dt,nz=state.position.z+direction.z*speed*dt;
     if(!view.canMoveTo(nx,nz,.42,'village'))return false;
@@ -22,7 +25,15 @@ export function createBirthExperience({document,canvas,gameScreen,view,stations,
     for(const offset of STEER){const angle=base+offset;if(move({x:Math.sin(angle),z:Math.cos(angle)},pace.autoSpeed,dt))return true;}
     return false;
   }
-  function speakStation(station){const line=tour.observe(station);if(line)dialogue('母',line);}
+  function speakStation(station){const line=tour.observe(station);if(line)say(line);}
+  function syncSpeech(){
+    speech.sync({resolve:()=>{
+      const actor=view.scene.getObjectByName('Mother');if(!actor)return null;
+      speechPoint.set(0,1.85,0);actor.localToWorld(speechPoint);speechPoint.project(view.camera);
+      const width=view.viewport?.width??canvas.clientWidth,height=view.viewport?.height??canvas.clientHeight,x=(speechPoint.x*.5+.5)*width,y=(-.5*speechPoint.y+.5)*height;
+      return{x,y:y-8,scale:1,visible:speechPoint.z>=-1&&speechPoint.z<=1,hidden:x<12||x>width-12||y<44||y>height-70};
+    }});
+  }
   function step(dt,axis){
     if(!active()){carrierSpeed=0;return{handled:false,moved:false,carrierMoving:false};}
     if(document.hidden){carrierSpeed=0;return{handled:true,moved:false,carrierMoving:false};}
@@ -30,7 +41,7 @@ export function createBirthExperience({document,canvas,gameScreen,view,stations,
     if(manual){tour.tick(dt,state.position,true);speed=pace.manualSpeed;moved=move(view.cameraVector(axis),speed,dt);stuck=0;}
     else if(introRemaining>0){carrierSpeed=0;return{handled:true,moved:false,carrierMoving:false,manual:false};}
     else{
-      const next=tour.tick(dt,state.position,false);if(next.line)dialogue('母',next.line);
+      const next=tour.tick(dt,state.position,false);if(next.line)say(next.line);
       if(next.mode==='travel'&&next.target){speed=pace.autoSpeed;moved=toward(next.target,dt);if(moved)stuck=0;else if((stuck+=dt)>=1.6){tour.advance();stuck=0;}}
       else stuck=0;
     }
@@ -46,13 +57,13 @@ export function createBirthExperience({document,canvas,gameScreen,view,stations,
       if(active()&&carrierMoving)legs.forEach((leg,i)=>leg.rotation.x=Math.sin(motionTime*cadence+(i%2)*Math.PI)*.38);else legs.forEach(leg=>leg.rotation.x*=.72);
       const body=mother.userData.body;if(body)body.rotation.z=active()?Math.sin(motionTime*(carrierMoving?2.6:1.15))*.01:0;
     }
-    status.sync();
+    status.sync();syncSpeech();
   }
   function showIntro(){
     if(!active())return;tour.reset();stuck=0;carrierSpeed=0;introRemaining=2.5;gameScreen.dataset.birthTour='true';status.show('抱っこされている…');
-    clearTimeout(introTimer);introTimer=setTimeout(()=>{const state=getState(),line=muraSharedLine('first-outing');if(active()&&line)dialogue('母',`${state.name}、${line}`);},650);
+    clearTimeout(introTimer);introTimer=setTimeout(()=>{const state=getState(),line=muraSharedLine('first-outing');if(active()&&line)say(`${state.name}、${line}`);},650);
   }
-  function release(){clearTimeout(introTimer);introRemaining=0;carrierSpeed=0;view.setCarrierMotion?.({active:false,moving:false,speed:0});gameScreen.dataset.birthTour='false';status.show('自分の足で歩けるようになった');const line=muraSharedLine('walk-alone');if(line)dialogue('母',line);}
-  function dispose(){clearTimeout(introTimer);introRemaining=0;carrierSpeed=0;view.setCarrierMotion?.({active:false,moving:false,speed:0});status.dispose();gameScreen.dataset.birthTour='false';}
+  function release(){clearTimeout(introTimer);introRemaining=0;carrierSpeed=0;view.setCarrierMotion?.({active:false,moving:false,speed:0});gameScreen.dataset.birthTour='false';status.show('自分の足で歩けるようになった');const line=muraSharedLine('walk-alone');if(line)say(line);}
+  function dispose(){clearTimeout(introTimer);introRemaining=0;carrierSpeed=0;view.setCarrierMotion?.({active:false,moving:false,speed:0});speech.dispose();status.dispose();gameScreen.dataset.birthTour='false';}
   return{active,step,afterRender,showIntro,release,floatStatus:status.show,dispose,tour,pace};
 }
