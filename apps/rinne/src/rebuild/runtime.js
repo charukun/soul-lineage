@@ -3,7 +3,7 @@ import { createSharedWorldChannel } from '@soul/platform-web/shared-world';
 import { defaultMuraLayout, validateMuraLayout, safeMuraPosition } from '@soul/world/mura';
 import { createLife, deserializeLife, serializeLife, setClockRate, setMoving, tickLife, rebirth, LIFE_YEARS, canDepart, depart, advanceFront, returnHome, enterBuilding, leaveBuilding } from './domain.js';
 import { buildStations, nearestStation, normalizeLayout } from './locations.js';
-import { createWorldRenderer } from './renderer.js';
+import { createWorldRenderer } from './combat-effects-renderer.js';
 import { createBirthExperience } from './birth-experience.js';
 import { createFront, normalizeFront, tickFront } from './combat.js';
 import { createVillageSkirmish, tickVillageSkirmish, villageSkirmishAnchor } from './village-skirmish.js';
@@ -94,6 +94,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   function dialogue(speaker,text){$('speaker').textContent=speaker;$('dialogue-text').textContent=text;$('dialogue').hidden=false;clearTimeout(dialogue.timer);dialogue.timer=setTimeout(()=>$('dialogue').hidden=true,4200);}
   function showBirthIntro(){birth.showIntro();}
   function endLife(){
+    view.clearCombatEffects?.();
     if(endDialog?.open)return;
     endDialog=document.createElement('dialog');endDialog.className='life-end-dialog';
     endDialog.innerHTML='<form method="dialog"><p id="life-end-age"></p><h2 id="life-end-name"></h2><p class="life-end-summary"><span id="life-end-defeats"></span>撃破 · 凱旋<span id="life-end-returns"></span>回 · 技<span id="life-end-skills"></span></p><label>次の出生<select id="rebirth-village"></select></label><p class="life-end-help">次の人生は0歳・基礎装備から。残るのは一族の記録と、帰還して刻んだ故郷だけ。</p><button value="rebirth" id="rebirth">次の人生へ</button></form>';
@@ -108,7 +109,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
       state=rebirth(state,{villageId:select.value||null,villageIds:[layout.id]});front=null;state.frontState=null;view.syncFront(null);skirmish=createVillageSkirmish(skirmishAnchor,state.seed);view.syncSkirmish(skirmish);state.position=safeMuraPosition(layout,state.position);lastChapter='';await save();endDialog.remove();endDialog=null;syncUI();armMovementHint();showBirthIntro();toast(`${state.generation}代目 · 0歳`);
     }else endDialog.showModal();});endDialog.showModal();
   }
-  function handleEvents(events){for(const event of events){
+  function handleEvents(events,eventKey){view.presentCombatEvents?.(events,{state,front,eventKey});for(const event of events){
     if(event.type==='release'){toast('4歳 · 自立');birth.release();armMovementHint();}
     if(event.type==='equipment')toast(`${event.station.label} 装備`);
     if(event.type==='activity-start')toast(event.station.actionLabel||event.station.label);
@@ -144,7 +145,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
       coopHistoryRevision=shared.historyRevision;
       coopTick=shared.tick;coopEpoch=shared.epoch;Object.assign(canvas.dataset,{coopWorld:coop.worldId,coopPlayer:coop.selfId,coopTick:String(shared.tick),coopEpoch:String(shared.epoch),coopSeconds:String(shared.worldSeconds),coopPosition:JSON.stringify(shared.me.position),coopPeers:JSON.stringify(shared.peers.map(peer=>({id:peer.playerId,position:peer.position})))});const oldId=state.id;const previousStage=front?.stage;state=shared.me;front=shared.front;
       if(oldId!==state.id){rebirthPending=false;lastChapter='';showBirthIntro();}
-      if(previousStage!==front?.stage)view.syncFront(front);else view.updateFront(front);view.syncPeers(shared.peers);handleEvents(shared.events||[]);
+      if(previousStage!==front?.stage)view.syncFront(front);else view.updateFront(front);view.syncPeers(shared.peers);handleEvents(shared.events||[],`coop:${coop.worldId}:${shared.epoch}:${shared.tick}`);
       $('coop-people').textContent=shared.historyPending?'人生を記録しています。':`接続 ${shared.connected||1}人 · ${shared.peers.map(peer=>peer.name).join(' / ')}`;
     }
     uiElapsed+=dt;if(uiElapsed>=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval){uiElapsed=0;syncUI();}
@@ -183,14 +184,14 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   }
 
   function pagehide(){void save();}
-  function visibility(){last=performance.now();coop?.pause(document.hidden);if(document.hidden){keys.clear();pointer=null;setAxis({x:0,y:0});}}
+  function visibility(){last=performance.now();coop?.pause(document.hidden);if(document.hidden){view.clearCombatEffects?.();keys.clear();pointer=null;setAxis({x:0,y:0});}}
   document.addEventListener('visibilitychange',visibility);
   window.addEventListener('pagehide',pagehide);
   if(front)view.syncFront(front);else view.syncFront(null);view.renderState(state,.016);birth.afterRender(.016,{carrierMoving:false});syncUI();uiElapsed=0;loading.hidden=true;canvas.dataset.runtime='active';
   armMovementHint();showBirthIntro();raf=requestAnimationFrame(frame);void save();
 
   function dispose(){
-    if(!active)return;active=false;host.active=false;cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);birth.dispose();unsubscribeWorld();
+    if(!active)return;active=false;host.active=false;view.clearCombatEffects?.();cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);birth.dispose();unsubscribeWorld();
     window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('pagehide',pagehide);canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);
     document.removeEventListener('visibilitychange',visibility);for(const key of Object.keys(canvas.dataset))if(key.startsWith('coop'))delete canvas.dataset[key];view.syncPeers([]);$('coop-darkness').hidden=true;$('coop-people').textContent='';$('clock-rate').disabled=false;
     keys.clear();pointer=null;setAxis({x:0,y:0});endDialog?.remove();endDialog=null;$('dialogue').hidden=true;$('toast').hidden=true;canvas.dataset.runtime='prepared';
