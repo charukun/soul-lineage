@@ -19,8 +19,7 @@ test('retired compatibility modules cannot overwrite renderer visibility',()=>{
  const main=fs.readFileSync(new URL('../src/web/main.js',import.meta.url),'utf8');
  assert.match(main,/availableFurniture\(world,view\.roomId,FURNITURE\)/);
  for(const file of ['mura-ux-polish-4.js','mura-ux-polish-4b.js']){
-  const source=fs.readFileSync(new URL(`../src/${file}`,import.meta.url),'utf8');
-  assert.ok(!source.includes('setInterval('));
-  assert.ok(!source.includes('card.hidden='));
+  assert.equal(fs.existsSync(new URL(`../src/${file}`,import.meta.url)),false);
+  assert.ok(!main.includes(file));
  }
 });
