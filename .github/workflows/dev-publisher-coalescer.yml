@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   coalesce:
-    name: Cancel superseded DEV push publishers
+    name: Coalesce automatic DEV publishers
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
@@ -20,6 +20,9 @@ jobs:
             const { data: branch } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
             const latestSha = branch.commit.sha;
             const activeStates = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
+            const automatic = run => run.head_branch === 'develop' &&
+              (run.event === 'push' ||
+                (run.event === 'workflow_dispatch' && run.display_title === 'DEV Publisher (automatic)'));
             // One bounded snapshot replaces five status-specific workflow-run list calls.
             const { data } = await github.rest.actions.listWorkflowRuns({
               ...context.repo,
@@ -27,12 +30,19 @@ jobs:
               branch: 'develop',
               per_page: 100,
             });
-            const active = data.workflow_runs.filter(run => activeStates.has(run.status));
-            const stale = active.filter(run => run.event === 'push' && run.head_sha !== latestSha);
-            for (const run of stale) {
-              core.info(`Cancel superseded DEV publisher ${run.id} ${run.head_sha}; latest is ${latestSha}`);
+            const active = data.workflow_runs.filter(run => activeStates.has(run.status) && automatic(run));
+            const stale = active.filter(run => run.head_sha !== latestSha);
+            const current = active.filter(run => run.head_sha === latestSha)
+              .sort((a, b) => {
+                const rank = status => status === 'in_progress' ? 0 : status === 'waiting' ? 1 : 2;
+                return rank(a.status) - rank(b.status) || new Date(a.created_at) - new Date(b.created_at);
+              });
+            const duplicate = current.slice(1);
+            const cancel = [...stale, ...duplicate];
+            for (const run of cancel) {
+              core.info(`Cancel redundant DEV publisher ${run.id} ${run.head_sha}; latest is ${latestSha}`);
               await github.rest.actions.cancelWorkflowRun({ ...context.repo, run_id: run.id }).catch(error => {
                 if (![409, 422].includes(error.status)) throw error;
               });
             }
-            core.summary.addRaw(`Latest develop: ${latestSha}\nActive publishers scanned: ${active.length}\nCancelled superseded push publishers: ${stale.length}`).write();
+            core.summary.addRaw(`Latest develop: ${latestSha}\nAutomatic publishers scanned: ${active.length}\nCancelled superseded: ${stale.length}\nCancelled same-source duplicates: ${duplicate.length}`).write();
