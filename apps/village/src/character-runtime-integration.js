@@ -6,14 +6,14 @@ import {VILLAGE_CHARACTER_RUNTIME,resolveVillageCharacterRuntime} from './charac
 
 const village=typeof window==='undefined'?null:window.village;
 const view=village?.view;
-const MODELS=Object.freeze({resident:KAYKIT_MODEL_BY_KEY.rogue,guard:KAYKIT_MODEL_BY_KEY.knight});
+const MODELS=Object.freeze([KAYKIT_MODEL_BY_KEY.rogue,KAYKIT_MODEL_BY_KEY.knight]);
 const POOL_SHARDS=3,POOL_CAPACITY=30;
 const AXIS_X=new T.Vector3(1,0,0),AXIS_Y=new T.Vector3(0,1,0),AXIS_Z=new T.Vector3(0,0,1),Q=new T.Quaternion();
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const clean=value=>String(value||'resident').replace(/[^a-zA-Z0-9._:-]/g,'-').slice(0,72)||'resident';
 function hash(value){let h=2166136261;for(const c of String(value)){h^=c.codePointAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 function fileFor(model){return model.source.path.split('/').at(-1);}
-function modelFor(person){return person?.role==='guard'?MODELS.guard:MODELS.resident;}
+function modelFor(person){return MODELS[hash(person?.id||'resident')%MODELS.length];}
 function human(person,monster){return !monster&&!person?.species;}
 function characterFor(person){
   const seed=hash(`${person?.id||'resident'}:${person?.seed||0}`),age=Number.isFinite(person?.ageYears)?clamp(person.ageYears,0,89):18+(hash(`age:${person?.id}`)%58);
@@ -40,7 +40,7 @@ function pose(bones,time,person){
 
 if(view&&!view.__sharedHumanRuntimeIntegrated){
   const state={status:'loading',error:null,pools:new Map(),entries:new Map(),models:new Map()};
-  const snapshot=()=>({version:2,status:state.status,error:state.error,active:state.entries.size,capacity:Object.values(MODELS).length*POOL_SHARDS*POOL_CAPACITY,family:VILLAGE_CHARACTER_RUNTIME.family,rig:VILLAGE_CHARACTER_RUNTIME.rigFamily,models:[...state.models.keys()]});
+  const snapshot=()=>({version:2,status:state.status,error:state.error,active:state.entries.size,capacity:MODELS.length*POOL_SHARDS*POOL_CAPACITY,family:VILLAGE_CHARACTER_RUNTIME.family,rig:VILLAGE_CHARACTER_RUNTIME.rigFamily,models:[...state.models.keys()]});
   window.__VILLAGE_SHARED_HUMANS__={snapshot};
   view.canvas.dataset.characterRuntime=VILLAGE_CHARACTER_RUNTIME.id;
   view.canvas.dataset.characterRuntimeModel='loading';
@@ -88,7 +88,7 @@ if(view&&!view.__sharedHumanRuntimeIntegrated){
   view.removeActor=id=>{release(id);return originalRemove(id);};
   view.__sharedHumanRuntimeIntegrated=true;
 
-  Promise.all(Object.values(MODELS).map(async model=>{
+  Promise.all(MODELS.map(async model=>{
     const url=new URL(`./assets/kaykit/${fileFor(model)}`,location.href).href;
     const loaded=await loadKaykitRuntimeModel({model,url,renderer:view.renderer,transcoderPath:`${import.meta.env.BASE_URL}basis/`});
     const pools=Array.from({length:POOL_SHARDS},()=>createCharacterProductionPool({template:loaded.gltf.scene,humanoid:loaded.rig.humanoid,rig:loaded.rig,capacity:POOL_CAPACITY}));
