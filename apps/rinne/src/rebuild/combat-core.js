@@ -1,12 +1,17 @@
 import { createTidebreakRuntime } from '@soul/tidebreak-combat';
 import { WEAPONS, ARMORS, endLifeEarly, spendStamina, skillEffects } from './domain.js';
 import { beginCombatState } from './combat-loadout-runtime.js';
-import { activeCombo, bodyRuntime, comboById, ensureCombatLoadout, selectCombatCombo, techniqueName } from '../combat-loadout.js';
+import { bodyRuntime, comboById, selectCombatCombo, techniqueName } from '../combat-loadout.js';
 import {
-  applySkillComponents,chooseEnemyAttention,decayEnemyThreat,directionalDefenseFor,
-  noteEnemyThreat,resolveBodyIntent,staminaPolicyFor,tidebreakMindVectorFor,tidebreakMindsetFromVector
+  chooseEnemyAttention,decayEnemyThreat,directionalDefenseFor,
+  noteEnemyThreat,resolveBodyIntent,staminaPolicyFor,tidebreakMindVectorFor
 } from './combat-tactics.js';
 import { tidebreakFrameFromSnapshot } from './tidebreak-pose.js';
+import {
+  defensiveLoadoutFor,passiveEnemyLoadout,tidebreakLoadoutFor,
+  tidebreakMindsetFor,tidebreakWeaponFor
+} from './tidebreak-loadout.js';
+export { tidebreakLoadoutFor, tidebreakMindVector, tidebreakMindsetFor, tidebreakWeaponFor } from './tidebreak-loadout.js';
 
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -35,21 +40,6 @@ export function normalizeFront(raw,stage=0,seed=1){
 }
 
 export function frontierFatalityChance(state){const effects=skillEffects(state),body=bodyRuntime(state),armor=ARMORS[state.equipment.armor]||ARMORS.cloth,shield=state.equipment.shield?.12:0,survival=armor.guard+shield+body.guardBonus+effects.mitigation+effects.evasion*.35+effects.recovery*.2;return clamp(.84-survival*.86,.2,.84);}
-
-const TIDE_WEAPON=Object.freeze({fist:'fist',sword:'sword',dagger:'sword',great:'great',spear:'spear',axe:'axe',staff:'spear'});
-export function tidebreakWeaponFor(weapon){return TIDE_WEAPON[weapon]||'fist';}
-const FIST_KIND=Object.freeze({slash:'jab',back:'hook',thrust:'straight',heavy:'oneinch',dash:'straight',spin:'barrage',leap:'risingfist',uppercut:'risingfist',sweep:'bodyblow',diagonal:'hook',crosscut:'barrage',round:'hook',pierce:'oneinch',sky:'risingfist',pommel:'bodyblow',bash:'straight',bullrush:'rushfist',meteor:'rushfist'});
-const BASIC_FORMS=Object.freeze({fist:{kinds:['jab','straight','hook'],feet:['forward','chase','sideL'],rhythm:'sharp'},sword:{kinds:['slash','thrust','back'],feet:['forward','chase','orbitR'],rhythm:'flow'},dagger:{kinds:['thrust','back','slash'],feet:['rush','sideL','retreat'],rhythm:'sharp',tempo:1.08},great:{kinds:['slash','sweep','heavy'],feet:['forward','orbitL','chase'],rhythm:'weight'},spear:{kinds:['thrust','sweep','pierce'],feet:['forward','orbitR','chase'],rhythm:'sharp'},axe:{kinds:['diagonal','sweep','heavy'],feet:['forward','sideL','chase'],rhythm:'weight'},staff:{kinds:['sweep','pommel','thrust'],feet:['orbitL','forward','retreat'],rhythm:'flow'}});
-const ACTION_FORMS=Object.freeze({'action.guard-step':{kinds:['guard','bash','back'],feet:['stay','forward','retreat'],rhythm:'weight'},'action.slip':{kinds:['slip','back','ready'],feet:['sideL','cross','stay'],rhythm:'flow',tempo:1.08},'action.lunge':{kinds:['thrust','dash','pierce'],feet:['forward','rush','chase'],rhythm:'sharp',tempo:1.06},'action.counter':{kinds:['parry','counter','thrust'],feet:['stay','stay','chase'],rhythm:'sharp',tempo:1.08},'action.feint':{kinds:['ready','slash','back'],feet:['sideR','cross','retreat'],rhythm:'elastic',tempo:1.05},'action.flow':{kinds:['slash','crosscut','round'],feet:['forward','cross','spiral'],rhythm:'seamless',tempo:1.08},'action.breakfall':{kinds:['brace','back','ready'],feet:['stay','retreat','stay'],rhythm:'flow'},'action.finish':{kinds:['heavy','pierce','round'],feet:['chase','rush','forward'],charges:['breath','deep','none'],rhythm:'weight'},'action.side-step':{kinds:['slip','slash','back'],feet:['sideL','cross','sideR'],rhythm:'flow',tempo:1.08},'action.circle':{kinds:['slash','crosscut','round'],feet:['orbitL','cross','orbitR'],rhythm:'flow',tempo:1.06},'action.crash':{kinds:['bash','heavy','diagonal'],feet:['forward','chase','forward'],charges:['none','breath','none'],rhythm:'weight'},'action.draw':{kinds:['dash','diagonal','back'],feet:['rush','forward','retreat'],rhythm:'sharp',tempo:1.1},'action.recover':{kinds:['guard','back','ready'],feet:['stay','retreat','stay'],rhythm:'flow'},'action.precision':{kinds:['thrust','pierce','thrust'],feet:['forward','chase','stay'],charges:['none','breath','focus'],rhythm:'sharp',tempo:1.04}});
-function adaptKind(kind,weapon){return weapon==='fist'?(FIST_KIND[kind]||kind):kind;}
-function formForSkill(skill,originalWeapon){return ACTION_FORMS[skill]||BASIC_FORMS[originalWeapon]||BASIC_FORMS.fist;}
-function phaseRecipe(state,phase,weapon,combo){const skill=combo?.slots?.[phase]||`basic.${state.equipment.weapon}`,raw=applySkillComponents(state,skill,phase,formForSkill(skill,state.equipment.weapon)),kinds=raw.kinds.map(kind=>adaptKind(kind,weapon));return{id:`rinne-${phase}-${skill}`,name:techniqueName(skill),type:'normal',weapon,element:'steel',rhythm:raw.rhythm,tempo:raw.tempo,aura:'none',steps:kinds.map((kind,index)=>({kind,footwork:raw.feet[index]||'forward',charge:raw.charges[index]||'none'}))};}
-function reactionRecipe(state,weapon,target){const defense=target?directionalDefenseFor(state,target):{receive:'basic'},receive=defense.receive,counter=['backcounter','turncounter','thrustcounter','rising'].includes(receive);return{id:`rinne-uke-${receive}`,name:'受け',type:'reaction',weapon,element:'steel',rhythm:'flow',tempo:1,aura:'none',receive,steps:[{kind:counter?adaptKind('thrust',weapon):receive==='none'?'ready':'brace',footwork:counter?'chase':'stay',charge:'none'},{kind:counter?'guard':'retreat',footwork:'retreat',charge:'none'},{kind:'ready',footwork:'stay',charge:'none'}]};}
-export function tidebreakLoadoutFor(state,comboId=state?.combat?.comboId,target=null){ensureCombatLoadout(state);const weapon=tidebreakWeaponFor(state.equipment.weapon),combo=comboById(state,comboId)||activeCombo(state);return{jo:phaseRecipe(state,'jo',weapon,combo),ha:phaseRecipe(state,'ha',weapon,combo),kyu:phaseRecipe(state,'kyu',weapon,combo),uke:reactionRecipe(state,weapon,target)};}
-function defensiveLoadoutFor(state,target){const weapon=tidebreakWeaponFor(state.equipment.weapon),uke=reactionRecipe(state,weapon,target),policy=staminaPolicyFor(state),kind=policy.band==='critical'?'retreat':'guard',hold={id:'rinne-threat-guard',name:'受勢',type:'normal',weapon,element:'steel',rhythm:'flow',tempo:policy.tempoScale,aura:'none',steps:[{kind,footwork:kind==='retreat'?'retreat':'stay',charge:'none'},{kind:'brace',footwork:'stay',charge:'none'},{kind:'ready',footwork:'stay',charge:'none'}]};return{jo:hold,ha:hold,kyu:hold,uke};}
-function passiveEnemyLoadout(weapon){const hold={id:'rinne-enemy-observe',name:'注視',type:'normal',weapon,element:'steel',rhythm:'flow',tempo:.8,aura:'none',steps:[{kind:'guard',footwork:'stay',charge:'none'},{kind:'ready',footwork:'stay',charge:'none'},{kind:'ready',footwork:'stay',charge:'none'}]};return{jo:hold,ha:hold,kyu:hold};}
-export function tidebreakMindVector(state){return tidebreakMindVectorFor(state);}
-export function tidebreakMindsetFor(state){return tidebreakMindsetFromVector(tidebreakMindVectorFor(state));}
 
 function heroHpScale(state){const effects=skillEffects(state),body=bodyRuntime(state),armor=ARMORS[state.equipment.armor]||ARMORS.cloth,shield=state.equipment.shield?.12:0,guard=clamp(armor.guard+shield+body.guardBonus,0,.72);return clamp((1-guard)*(1-effects.mitigation),.18,1);}
 function enemyHpScale(state){return clamp(1+skillEffects(state).damage,1,1.7);}
