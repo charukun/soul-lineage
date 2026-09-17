@@ -1,4 +1,3 @@
-import {createHash} from 'node:crypto';
 import {createCompressedGLTFLoader} from './compressed-gltf.js';
 import {kaykitHumanoidFromGLTF} from './kaykit-rig.js';
 
