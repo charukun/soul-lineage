@@ -5,7 +5,7 @@ import {readFile} from 'node:fs/promises';
 const root=new URL('../',import.meta.url);
 const read=path=>readFile(new URL(path,root),'utf8');
 
-test('Visual Review publication follows exact develop delivery and requires desktop plus mobile browser verification',async()=>{
+test('Visual Review stays exact-source and browser-verified but only explicit on develop',async()=>{
   const [workflow,opsBoard,smoke,collector,browserCheck,reviewCss]=await Promise.all([
     read('.github/workflows/review-preview.yml'),
     read('.github/workflows/ops-board.yml'),
@@ -51,7 +51,9 @@ test('Visual Review publication follows exact develop delivery and requires desk
   assert.match(reviewCss,/@media\(max-width:700px\)\{[\s\S]*\.review-nav\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.doesNotMatch(reviewCss,/@media\(max-width:700px\)\{[\s\S]*\.review-nav\{grid-template-columns:1fr 1fr/);
 
-  assert.match(opsBoard,/visual-review:[\s\S]*uses: \.\/\.github\/workflows\/review-preview\.yml/);
+  const opsTriggers=opsBoard.split('permissions:')[0];
+  assert.doesNotMatch(opsTriggers,/\bpush:/);
+  assert.match(opsBoard,/visual-review:[\s\S]*github\.event_name == 'workflow_dispatch'[\s\S]*uses: \.\/\.github\/workflows\/review-preview\.yml/);
   assert.match(opsBoard,/source_sha: \$\{\{ inputs\.source_sha \|\| github\.sha \}\}/);
   assert.match(opsBoard,/secrets: inherit/);
 
