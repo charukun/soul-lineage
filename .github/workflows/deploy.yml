@@ -436,24 +436,33 @@ jobs:
               await github.rest.actions.createWorkflowDispatch({ ...context.repo,
                 workflow_id: 'deploy.yml', ref: 'develop', inputs: { rescue_mode: 'scan' } });
             }
-      - name: Refresh Ops Board after DEV deploy result
-        if: always()
-        continue-on-error: true
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          OPS_BOARD_URL: https://rinne-ops.c-okamoto.workers.dev/
-        run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then exit 0; fi
-          token=$(printf '%s' "$CLOUDFLARE_API_TOKEN|$GITHUB_REPOSITORY|rinne-ops-refresh-v1" | sha256sum | awk '{print $1}')
-          echo "::add-mask::$token"
-          curl -fsS --retry 2 -X POST -H "Authorization: Bearer $token" "${OPS_BOARD_URL}api/refresh" >/dev/null || true
+
+  pulse-result-refresh:
+    name: Refresh PULSE after DEV result
+    needs: [publish, result]
+    if: >-
+      always() && github.ref == 'refs/heads/develop' &&
+      (github.event_name == 'push' || inputs.publish_only == true || inputs.refresh_staging == true || inputs.full_verification == true)
+    uses: ./.github/workflows/pulse-refresh.yml
+    with:
+      source_sha: ${{ github.sha }}
+      reason: deployment
+      fail_on_error: false
+      record_public_status: false
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+      statuses: write
+    secrets: inherit
 
   canary:
     name: Control-plane end-to-end canary
-    needs: [pulse, publish, result]
+    needs: [pulse, publish, result, pulse-result-refresh]
     if: >-
       always() && github.ref == 'refs/heads/develop' && needs.publish.result == 'success' &&
-      needs.result.result == 'success' && needs.pulse.result == 'success'
+      needs.result.result == 'success' && needs.pulse.result == 'success' &&
+      needs.pulse-result-refresh.outputs.refreshed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     permissions:
