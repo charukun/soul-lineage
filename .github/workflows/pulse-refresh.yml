@@ -69,7 +69,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           OPS_URL: https://rinne-ops.c-okamoto.workers.dev/
           OPS_REFRESH_REASON: ${{ inputs.reason }}
+          PULSE_STATE_OUTPUT: .pulse-refresh-state.json
         run: node ops-board/refresh-client.mjs
+      - name: Notify only a new human-action transition
+        if: steps.refresh.outcome == 'success'
+        continue-on-error: true
+        env:
+          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+        run: node ops-board/control-notify.mjs .pulse-refresh-state.json
       - name: Resolve refresh outcome
         id: result
         if: always()
