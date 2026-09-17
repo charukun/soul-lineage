@@ -21,6 +21,7 @@ export const INCAPACITATION_PHASES=Object.freeze(['impact','buckle','drop','cont
 const clamp=value=>Math.max(0,Math.min(1,value));
 export const smooth=value=>{const x=clamp(value);return x*x*(3-2*x);};
 const pulse=(progress,at,width=.055)=>Math.max(0,1-Math.abs(progress-at)/width);
+const mix=(a,b,t)=>a+(b-a)*clamp(t);
 const collapseKeys=[
  [0,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]],
  [.12,[.06,-.045,0,-.18,.10,-.06,.10,-.06,-.04,.08,.02,.04,0,0,.06]],
@@ -29,8 +30,8 @@ const collapseKeys=[
  [.82,[1.52,.10,.13,.18,.05,.10,.16,-.04,-.28,.62,.95,1,.90,1,1]],
  [1,[1.45,.06,.13,.12,0,.06,.08,0,-.24,.54,1,.95,.35,0,1]]
 ];
-function interpolate(keys,p){
- const next=keys.findIndex(([at])=>at>=p),i=Math.max(1,next),[a,av]=keys[i-1],[b,bv]=keys[i];
+function interpolate(samples,p){
+ const next=samples.findIndex(([at])=>at>=p),i=Math.max(1,next),[a,av]=samples[i-1],[b,bv]=samples[i];
  const t=smooth((p-a)/(b-a));return av.map((x,j)=>x+(bv[j]-x)*t);
 }
 export function sampleDevourMotion(progress){
@@ -48,6 +49,68 @@ export function sampleIncapacitationMotion(progress,side=1){
  return{progress:p,side:s,phase:INCAPACITATION_PHASES[p<=.12?0:p<=.34?1:p<=.62?2:p<.90?3:4],
   rootRoll:rootRoll*s,rootPitch,rootY,bodyPitch,bodyTwist:bodyTwist*s,bodyRoll:bodyRoll*s,
   headPitch,headYaw:headYaw*s,headRoll:headRoll*s,legBend,legSpread,armDrop,brace,contact,poseWeight};
+}
+
+/** Contact weights shared by predator hands, prey body, mouth, particles and sound accents. */
+export function sampleDevourContact(progress){
+ const p=clamp(Number.isFinite(progress)?progress:0),bite=Math.max(...DEVOUR_BITE_BEATS.map(at=>pulse(p,at,.06)));
+ const reach=smooth((p-.08)/.15),grip=smooth((p-.22)/.10)*(1-smooth((p-.90)/.08));
+ const haul=smooth((p-.27)/.17)*(1-smooth((p-.91)/.07)),mouth=smooth((p-.40)/.08)*(1-smooth((p-.84)/.10));
+ const swallow=smooth((p-.70)/.22),release=smooth((p-.90)/.10),recoil=bite*(1-swallow*.45);
+ return{progress:p,reach,grip,haul,mouth,bite,swallow,release,recoil,lock:Math.max(mouth,swallow)};
+}
+
+export function devourActorScale(capture={}){
+ if(Number.isFinite(capture.scale))return Math.max(.28,Math.min(3.6,capture.scale));
+ const growth=Math.max(.28,Math.min(3.2,Number(capture.growthScale)||1));
+ const form=capture.form==='brute'?1.12:capture.form==='stalker'?1.04:1;
+ return growth*form;
+}
+export function devourInteractionSide(capture={}){
+ const x=Number(capture.x)||0,z=Number(capture.z)||0,yaw=Number(capture.yaw)||0;
+ const wave=Math.sin(x*12.9898+z*78.233+yaw*37.719)*43758.5453;
+ return wave-Math.floor(wave)>=.5?1:-1;
+}
+function localXZ(capture,lx,lz){
+ const yaw=Number(capture?.yaw)||0,cs=Math.cos(yaw),sn=Math.sin(yaw),x=Number(capture?.x)||0,z=Number(capture?.z)||0;
+ return{x:x+cs*lx+sn*lz,z:z-sn*lx+cs*lz};
+}
+function socketAt(root,yaw,roll,scale,[lx,ly,lz]){
+ const cr=Math.cos(roll),sr=Math.sin(roll),rx=(lx*cr-ly*sr)*scale,ry=(lx*sr+ly*cr)*scale,rz=lz*scale;
+ const cs=Math.cos(yaw),sn=Math.sin(yaw);
+ return{x:root.x+cs*rx+sn*rz,y:root.y+ry,z:root.z-sn*rx+cs*rz};
+}
+
+/**
+ * Shared world-space contact frame. It deliberately owns no gameplay state: it only
+ * explains where the visible prey, the two grips and the mouth should meet.
+ */
+export function devourInteractionFrame(origin={},capture={},motion=samplePreyMotion(null,1,0)){
+ const p=clamp(Number(motion?.progress)||0),contact=sampleDevourContact(p),predatorScale=devourActorScale(capture),side=devourInteractionSide(capture);
+ const captureWeight=clamp(Number(motion?.capture)||0),preyScale=Math.max(.82,1-(Number(motion?.compression)||0)*captureWeight);
+ const sizeT=clamp((predatorScale-.28)/.92),biteHeight=mix(.46,1.38,sizeT),upperHeight=Math.max(.38,biteHeight-.16),lowerHeight=Math.max(.24,biteHeight-.55);
+ const heldRoll=side*mix(1.38,1.18,sizeT),lock=contact.lock;
+ const mouthLocal={x:0,y:Math.max(.43,1.60*predatorScale),z:.30*predatorScale};
+ const biteOffsetX=-Math.sin(heldRoll)*biteHeight*preyScale,biteOffsetY=Math.cos(heldRoll)*biteHeight*preyScale;
+ const targetRootX=mouthLocal.x-biteOffsetX+side*(1-lock)*.08;
+ const targetRootY=Math.max(.06,mouthLocal.y-biteOffsetY-(1-lock)*.18*Math.min(1.2,predatorScale));
+ const targetRootZ=mouthLocal.z-.035+(1-lock)*.17*predatorScale;
+ const targetXZ=localXZ(capture,targetRootX,targetRootZ),ox=Number(origin?.x)||0,oz=Number(origin?.z)||0;
+ const baseY=Math.max(0,Number(motion?.rootY)||0),root={
+  x:mix(ox,targetXZ.x,captureWeight),
+  y:mix(baseY,targetRootY,captureWeight),
+  z:mix(oz,targetXZ.z,captureWeight),
+  yaw:mix(Number(origin?.yaw)||Number(capture?.yaw)||0,Number(capture?.yaw)||0,captureWeight),
+  roll:mix(Number(motion?.rootRoll)||0,heldRoll,captureWeight),
+  scale:preyScale
+ };
+ const yaw=root.yaw;
+ const upper=socketAt(root,yaw,root.roll,preyScale,[0,upperHeight,.025]);
+ const lower=socketAt(root,yaw,root.roll,preyScale,[0,lowerHeight,-.015]);
+ const biteSocket=socketAt(root,yaw,root.roll,preyScale,[0,biteHeight,.035]);
+ const mouthXZ=localXZ(capture,mouthLocal.x,mouthLocal.z),mouth={x:mouthXZ.x,y:mouthLocal.y,z:mouthXZ.z};
+ const gripReach=clamp((predatorScale-.34)/.62);
+ return{progress:p,side,predatorScale,preyScale,root,upper,lower,bite:biteSocket,mouth,gripReach,...contact};
 }
 
 /**
@@ -82,10 +145,6 @@ export function samplePreyMotion(progress=null,downProgress=1,captureWeight=1,fa
 }
 
 export function preyCapturePoint(origin,capture,motion){
- const ox=Number.isFinite(origin?.x)?origin.x:0,oz=Number.isFinite(origin?.z)?origin.z:0,k=motion?.capture||0;
- if(!capture||k<=0)return{x:ox,z:oz};
- const growth=Math.max(.28,Math.min(3.2,Number(capture.growthScale)||1)),size=(capture.form==='brute'?1.12:capture.form==='stalker'?1.04:1)*growth;
- const yaw=capture.yaw||0,cs=Math.cos(yaw),sn=Math.sin(yaw),lateral=motion.lateral*Math.max(.42,Math.min(1.7,size));
- const tx=capture.x+cs*lateral+sn*motion.forward*size,tz=capture.z-sn*lateral+cs*motion.forward*size;
- return{x:ox+(tx-ox)*k,z:oz+(tz-oz)*k};
+ const frame=devourInteractionFrame(origin,capture,motion);
+ return{x:frame.root.x,z:frame.root.z};
 }
