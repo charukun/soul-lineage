@@ -1,13 +1,15 @@
-import { createCharacterRuntimeAdapter } from '@soul/characters';
+import { KAYKIT_FAMILY_ID, KAYKIT_MODEL_BY_KEY, KAYKIT_RIG_ID, createCharacterRuntimeAdapter } from '@soul/characters';
+
+const MODEL = KAYKIT_MODEL_BY_KEY.rogue;
 
 export const VILLAGE_CHARACTER_RUNTIME = createCharacterRuntimeAdapter({
-  id: 'village.procedural-resident.runtime.v1',
-  family: 'village.procedural-resident.v1',
-  rigFamily: 'procedural-humanoid-v1',
-  format: 'procedural',
+  id: 'village.kaykit-human.runtime.v2',
+  family: KAYKIT_FAMILY_ID,
+  rigFamily: KAYKIT_RIG_ID,
+  format: 'glb',
   asset: {
-    id: 'procedural-resident-presentation',
-    provenance: { source: 'apps/village', license: 'package-native' }
+    id: MODEL.id,
+    provenance: { source: 'packages/characters/src/kaykit-foundation.js', license: MODEL.license }
   },
   geometry: {
     upAxis: 'y',
@@ -18,14 +20,14 @@ export const VILLAGE_CHARACTER_RUNTIME = createCharacterRuntimeAdapter({
     collider: { shape: 'capsule', radiusRatio: 0.24, heightRatio: 0.9 }
   },
   motion: {
-    idle: 'procedural:idle',
-    walk: 'procedural:locomotion',
-    run: 'procedural:locomotion',
-    dash: 'procedural:locomotion',
-    rest: 'procedural:idle',
-    'combat-idle': 'procedural:defending',
-    attack: 'procedural:defending',
-    hit: 'procedural:defending',
+    idle: 'shared-motion:idle',
+    walk: 'shared-motion:locomotion',
+    run: 'shared-motion:locomotion',
+    dash: 'shared-motion:locomotion',
+    rest: 'shared-motion:idle',
+    'combat-idle': 'shared-motion:guard',
+    attack: 'shared-motion:attack',
+    hit: 'shared-motion:impact',
     death: 'visibility:dead'
   }
 });
