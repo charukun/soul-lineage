@@ -11,7 +11,7 @@ When guidance conflicts, use this order:
 3. Approved character/environment reference sheets and accepted in-game visual direction.
 4. Existing reviewed source assets, provenance and license ledger.
 5. This directory's production methods and review procedure.
-6. External tutorials, generators and tool-specific workflows as non-normative technique references.
+6. External tutorials and tool-specific workflows as non-normative technique references.
 
 Never let a tutorial silently override an audited asset, license restriction, gameplay contract, rig/socket requirement, collision rule, renderer boundary or performance gate.
 
@@ -30,7 +30,7 @@ Read only the standards relevant to the task:
 
 KayKit-first is the current Rinne game-construction axis. Read `KAYKIT_GAME_AXIS.md` for the playable runtime direction, `docs/characters/KAYKIT_FOUNDATION.md` for the game-facing CC0 foundation, and `docs/characters/CHARACTER_LICENSE_POLICY.md` for the asset-adoption gate. New gameplay character and motion work uses KayKit or a fully RINNE-owned asset by default. Models with model-specific commercial-use conditions are retired from active runtime, review candidates and Production distribution. Legacy IDs/schema may remain only where migration compatibility requires them.
 
-When a task adds or replaces character geometry, follow `docs/characters/CHARACTER_ASSET_SOURCING.md` before generating a new mesh: inspect reviewed repository assets, search the approved external discovery catalogs, apply the existing license/provenance gate, and import the real eligible source asset before DCC adaptation. A generative 3D service is a fallback when no eligible source can satisfy the role. Rebuilding an available imported model with runtime primitives is not a reproduction; it remains `BLOCKOUT`.
+When a task adds or replaces character geometry, follow `docs/characters/CHARACTER_ASSET_SOURCING.md`: inspect reviewed repository assets, search the approved external discovery catalogs, apply the existing license/provenance gate, and import the real eligible source asset before DCC adaptation. Generative 3D services are not an authorized character asset source or fallback. If no eligible source can satisfy the role, create a fully RINNE-owned asset through the normal DCC pipeline. Rebuilding an available imported model with runtime primitives is not a reproduction; it remains `BLOCKOUT`.
 
 ## Core rule
 
@@ -42,7 +42,7 @@ Use real editable assets, preserve already-approved work, and make local changes
 
 ## Minimal character refinement loop
 
-For short-term quality improvement while generation quality is still uneven, prefer a small repeatable loop over free-form regeneration:
+For short-term quality improvement, prefer a small repeatable loop over broad model replacement:
 
 1. Reuse the current reviewed DCC/source asset as the base when it is compatible with the character license policy; do not restart the whole character by default.
 2. Compare the same candidate in fixed `front`, `three-quarter`, `side`, and `back` views.
@@ -52,14 +52,6 @@ For short-term quality improvement while generation quality is still uneven, pre
 6. Search external/open-source references only for the unresolved failing part, with provenance/license review before reuse. Replacing the whole model is a fallback, not the first response.
 
 The provider-neutral model build request and Character Workshop QA should expose the same checklist and three-round limit so humans and implementation workers review the same contract. This loop does not grant visual approval or advance Character Production stages by itself.
-
-## External technique reference
-
-Non-normative reference checked 2026-09-13:
-
-- Tripo, "GPT-6 Astra 3D Character Workflow: Rig and Animate from One Image": https://www.tripo3d.ai/blog/gpt-6-astra-3d-character-workflow
-
-Useful ideas adopted here include clear full-character references, optional body/head/hair decomposition, read-only scene verification before edits, preserving approved silhouette/UV/material/rig data, reusing a working armature where possible, testing deformation with explicit poses, checking materials under consistent lighting, and starting animation review with a short readable action. Tripo, Blender MCP and three-part generation are not mandatory repository dependencies.
 
 ## Growth rule
 

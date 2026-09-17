@@ -15,13 +15,13 @@ Use this order for new game-facing character geometry:
 3. Apply the repository license/provenance gate before downloading or adopting the candidate.
 4. Import the original asset into the DCC/runtime path and verify that mesh, materials, rig, morphs and animations survived the import.
 5. Repair or adapt the imported asset in Blender only where needed for RINNE style, topology, rig, clothing, sockets or performance.
-6. Only when no eligible existing asset can satisfy the role, create a new RINNE-authored asset or use a generative 3D service as a fallback input to the normal DCC pipeline.
+6. Only when no eligible existing asset can satisfy the role, create a new fully RINNE-authored asset and pass it through the normal DCC production pipeline.
 
-A generation service is a fallback, not the first search step.
+Generative 3D services are retired from the character asset acquisition path. Do not use Meshy, Tripo or equivalent generated 3D output as game-facing character geometry, a Character Reference Catalog model, a DCC source/carrier input, or a fallback replacement for catalog search.
 
 ## Discovery catalogs
 
-Search these sources before using a generative character service:
+Search these sources before authoring new character geometry:
 
 | Source | Intended use | Repository rule |
 | --- | --- | --- |
@@ -87,13 +87,18 @@ Prefer candidates that reduce downstream repair cost:
 
 Do not choose a visibly worse candidate merely because it is easier to download.
 
-## Generator fallback
+## Generative 3D retirement
 
-Meshy, Tripo and similar generative 3D services are fallback sources when the catalog search finds no eligible model that can be adapted without excessive rework.
+Meshy, Tripo and equivalent generative 3D services are not character asset sources for this repository.
 
-A generated asset must enter the same DCC/import, provenance, deformation, motion, polish and runtime gates as any other model. Generation success does not bypass Character Production stages.
+Do not:
 
-When an eligible external asset exists, do not regenerate an approximate lookalike merely to avoid importing it.
+- add generated models to the active Character Reference Catalog;
+- use generated geometry as a DCC source or re-rig carrier input;
+- retain provider-specific generated-model IDs/URLs as active character provenance;
+- substitute generated or procedural lookalikes when an eligible imported source is unavailable.
+
+If catalog search finds no eligible model, author a RINNE-owned character asset through the normal DCC pipeline. Runtime primitives remain `BLOCKOUT` only and are not a substitute for a production character model.
 
 ## Worker procedure
 
@@ -111,6 +116,6 @@ If direct catalog access or download is unavailable in the current execution rou
 
 ## Recurrence prevention
 
-A future character task that starts by generating a new model without first checking the reviewed repository assets and the discovery catalogs above is out of process unless the task explicitly requires an original generated design.
+A future character task that starts by generating a new model without first checking the reviewed repository assets and the discovery catalogs above is out of process. Generative 3D services are not an authorized fallback for character assets.
 
 A future task that claims to have reproduced an external GLB while replacing it with runtime primitives is also out of process. The production pipeline must preserve the distinction between imported real geometry and `BLOCKOUT` geometry.

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   catalog,
+  CHARACTER_REFERENCE_MODELS,
   evaluateCharacterLicensePolicy,
   KAYKIT_FAMILY_ID,
   MASTER_ID
@@ -25,4 +26,14 @@ test('conditional review models and Shino carrier rigs fail closed', () => {
   assert.equal(evaluateCharacterLicensePolicy({ ownership: 'RINNE-owned', rigId: 'humanoid.shino-vrm1.v2' }).status, 'blocked-rerig');
   assert.equal(evaluateCharacterLicensePolicy({ ownership: 'RINNE-owned', rigProvenance: 'Sendagaya_Shino carrier rig' }).status, 'blocked-rerig');
   assert.equal(evaluateCharacterLicensePolicy({ license: 'commercial allowed with conditions' }).allowed, false);
+});
+
+test('retired generative character candidates stay out of reference catalogs and fail closed', () => {
+  const id = 'reconstructed-wayfarer.reference.v1';
+  assert.equal(Object.hasOwn(CHARACTER_REFERENCE_MODELS, id), false);
+  assert.deepEqual(evaluateCharacterLicensePolicy({ id, license: 'CC0-1.0' }), {
+    status: 'retired',
+    allowed: false,
+    reason: 'retired-generative-character'
+  });
 });
