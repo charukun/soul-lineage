@@ -71,18 +71,19 @@ backend for the current view instead of retrying indefinitely.
 
 ## Validation and evidence
 
-Focused validation:
+Focused validation command:
 
 ```sh
 node --test apps/rinne/tests/authored-combat-effects.test.mjs apps/rinne/tests/authored-effect-assets.test.mjs apps/rinne/tests/effekseer-loader.test.mjs apps/rinne/tests/authored-effect-wiring.test.mjs
 ```
 
-The hermetic Node suite covers event mapping, actual-hit-only behavior, the
-dedicated finisher route, paired-event and co-op deduplication, budgets, priority,
-lifetime, pause/scene cleanup, renderer callback ownership, asset pins/closure/
-corruption/fallback, native callback cancellation and partial initialization
-failure. SDK/GPU/DOM in these tests are controlled doubles, not evidence of actual
-visual playback or performance.
+The pre-finisher implementation head completed that hermetic suite at 35 passed /
+0 failed. The dedicated-finisher patch additionally ran direct Node syntax and
+behavior checks for the new manifest and cue route: normal contact remains
+`ToonHit`; `kyu`/manual contact routes to `Light`; paired manual/player-hit remains
+deduplicated. The full four-file suite was not rerun in this connector-only session.
+SDK/GPU/DOM tests use controlled doubles and are not evidence of actual visual
+playback or performance.
 
 This execution environment has no repository checkout/dependencies and its
 ordinary network route fails DNS resolution. Full Vite build, complete real asset
