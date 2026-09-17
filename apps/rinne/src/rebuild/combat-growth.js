@@ -19,13 +19,13 @@ export function ensureCombatGrowthState(state){
   state.combatLessons??={};state.combatLessonRecent??={};state.techniqueEvolution??={};state.injuries??={};
   for(const part of PARTS)state.injuries[part]=injuryRow(state.injuries[part],state.ageSeconds||0);
   state.ammo??={};if(!Number.isFinite(state.ammo.staffCharges))state.ammo.staffCharges=8;if(!Number.isFinite(state.ammo.staffMax))state.ammo.staffMax=8;
-  state.combatLegacy??={forms:{},lessons:{}};
+  state.combatLegacy??={};state.combatLegacy.forms??={};state.combatLegacy.lessons??={};
   return state;
 }
 
 export function recoverPersistentInjuries(state){
   ensureCombatGrowthState(state);const now=Number(state.ageSeconds)||0,resting=Boolean(state.resting)||state.zone==='village';
-  for(const part of PARTS){const row=state.injuries[part],elapsed=Math.max(0,now-row.at),rate=resting?.0042:.0016;row.severity=clamp(row.severity-elapsed*rate,0,1);row.at=now;}
+  for(const part of PARTS){const row=state.injuries[part],elapsed=Math.max(0,now-row.at),rate=resting ? .0042 : .0016;row.severity=clamp(row.severity-elapsed*rate,0,1);row.at=now;}
   return state.injuries;
 }
 
@@ -73,7 +73,7 @@ export function noteTechniqueUse(state,skill,{phase='jo',hit=true}={}){
 
 export function techniqueMutationFor(state,skill){
   ensureCombatGrowthState(state);const row=state.techniqueEvolution[String(skill||'basic')]||{uses:0,jo:0,ha:0,kyu:0,seed:hash01(`${state.seed}:${skill}`)},tier=Math.min(3,Math.floor(row.uses/12)),axis=row.seed<.34?'advance':row.seed<.67?'flank':'retreat',dominant=row.kyu>row.jo&&row.kyu>row.ha?'weight':row.ha>row.jo?'flow':'sharp';
-  return{tier,axis,rhythm:tier>=2?dominant:null,tempoScale:1+(axis==='advance'?.025:axis==='flank'?.012:-.01)*tier,chargeBias:tier>=3?(dominant==='weight'?'breath':'none'):null,footworkBias:tier?axis:null};
+  return{tier,axis,rhythm:tier>=2?dominant:null,tempoScale:1+(axis==='advance' ? .025 : axis==='flank' ? .012 : -.01)*tier,chargeBias:tier>=3?(dominant==='weight'?'breath':'none'):null,footworkBias:tier?axis:null};
 }
 
 export function evolveTechniqueForm(state,skill,form){
