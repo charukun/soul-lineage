@@ -50,7 +50,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio}){
   const showMovementHelp=event=>{
     event.stopImmediatePropagation();
     const node=document.getElementById('toast');if(!node)return;
-    node.textContent=moveHint?.textContent?.includes('母')?'抱っこ中も画面をスワイプすると、母に抱かれたまま村を見て回れます。':'スワイプで移動。画面長押しで休憩し、息を回復します。';
+    node.textContent=moveHint?.textContent?.includes('母')?'抱っこ中も画面をスワイプすると、母に抱かれたまま村を見て回れます。':'スワイプで移動。素早くフリックするとダッシュ、画面長押しで休憩して息を回復します。';
     node.hidden=false;clearTimeout(movementHelpTimer);movementHelpTimer=setTimeout(()=>{node.hidden=true;},3200);
   };
   moveHint?.addEventListener('click',showMovementHelp,{capture:true});
