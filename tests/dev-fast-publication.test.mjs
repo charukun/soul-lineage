@@ -6,6 +6,7 @@ const notify = readFileSync('scripts/notify-delivery.mjs', 'utf8');
 const ci = readFileSync('.github/workflows/ci.yml', 'utf8');
 const deploy = readFileSync('.github/workflows/deploy.yml', 'utf8');
 const pulse = readFileSync('.github/workflows/ops-board.yml', 'utf8');
+const pulseAudit = readFileSync('.github/workflows/pulse-environment-audit.yml', 'utf8');
 const coalescer = readFileSync('.github/workflows/dev-publisher-coalescer.yml', 'utf8');
 const publisher = readFileSync('scripts/deploy.mjs', 'utf8');
 const validator = readFileSync('scripts/validate.mjs', 'utf8');
@@ -36,6 +37,10 @@ test('develop hot path ignores non-source PR chatter and branch-push PULSE brows
   assert.match(pulseTriggers, /workflow_call:/);
   assert.match(pulse, /visual-review:[\s\S]*github\.event_name == 'workflow_dispatch'/);
   assert.match(pulse, /Publish Visual Review on explicit Ops Board dispatch/);
+
+  const auditTriggers = pulseAudit.split('permissions:')[0];
+  assert.doesNotMatch(auditTriggers, /pull_request:/);
+  assert.match(auditTriggers, /workflow_dispatch:/);
 });
 
 test('automatic DEV publishers coalesce both push and Integration dispatch routes', () => {
