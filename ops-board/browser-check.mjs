@@ -11,8 +11,22 @@ const fixture = {
   repository: 'charukun/soul-lineage', generatedAt: rawDate, syncStatus: 'ok', alerts: [],
   pullRequests: { normal: ['Draft', 'Ready', 'Merged', 'Closed'].map((state, i) => ({ number: i + 1, title: `検証用タスク ${i + 1}`, detail: '変更概要と対象アプリの確認', state, updatedAt: rawDate, url: `https://github.com/charukun/soul-lineage/pull/${i+1}`, targets: [{ id: 'rinne', label: '輪廻転焦' }], targetsStatus: 'ready', targetsComplete: true })), visualReview: [] },
   applications: ['rinne','village','demon','portal','ops-board','visual-review'].map((id,i) => ({ id, name: ['輪廻転焦','MURAAAAAAA','魔物側','WAYFINDER','開発状況ボード','Visual Review Lab'][i], kind: i < 3 ? 'game' : 'tool', targets: [{ id, label: '開発版', state: i === 3 ? 'unknown' : 'success', commit: 'a'.repeat(40), deployedAt: rawDate, url: base, source: '検証データ' }] })),
-  environments: [{ id:'dev', name:'DEV', deployState:'success', deployedCommit:'a'.repeat(40), deployedAt:rawDate, url:base, branch:'develop', reflectedPrCount:1, reflectedPrs:[{number:3,title:'長い公開PR名 ' + 'SharedVillageVisualsAndCharacterWorkshop'.repeat(6),url:'https://github.com/charukun/soul-lineage/pull/3',mergedAt:rawDate}], historyComplete:true }],
+  environments: [{ id:'dev', name:'DEV', deployState:'success', deployedCommit:'a'.repeat(40), branchCommit:'a'.repeat(40), deployedAt:rawDate, url:base, branch:'develop', exactCommit:true, reflectedPrCount:1, reflectedPrs:[{number:3,title:'長い公開PR名 ' + 'SharedVillageVisualsAndCharacterWorkshop'.repeat(6),url:'https://github.com/charukun/soul-lineage/pull/3',mergedAt:rawDate}], historyComplete:true }],
   environmentDiff:{ count:1, label:'DEVはProductionより +1 PR', pulls:[] }, integration:{ phase:'delivery', tone:'progress', queue:[{number:999,title:'長い統合タスク ' + 'IntegrationAndCharacterAppearance'.repeat(5),label:'自動テスト中',tone:'progress',url:base,reason:'CI実行中'}], watchdog:{staleReadyCount:0,stalledThresholdMinutes:10} }, recentActionFailures:[], actionHistory:[],
+  controlTower: {
+    status:'SYNCED', headline:'放置でOK', summary:'GitHub状態とDEV公開を確認済みです', enteredAt:rawDate,
+    cause:'current state confirmed', nextAction:'次のGitHubイベントを待ちます', userActionRequired:false,
+    completeness:{ state:'confirmed', label:'状態確定' }, confidence:1,
+    sourceIdentity:'a'.repeat(40), publishedIdentity:'a'.repeat(40), fingerprint:'fixture-synced',
+    lastGitHubChangeAt:rawDate, lastRefreshedAt:rawDate, counts:{draft:1,ready:1,userActions:0},
+    flow:[{id:'implementation',label:'実装',state:'active',count:1},{id:'ready',label:'Ready',state:'active',count:1},{id:'integration',label:'Integration',state:'active',count:1},{id:'develop',label:'develop',state:'done',count:0},{id:'dev',label:'DEV公開',state:'done',count:0},{id:'pulse',label:'PULSE',state:'done',count:0}],
+    impacts:[], impactLabels:[], incidents:[], timeline:[{at:rawDate,status:'SYNCED',headline:'放置でOK',cause:'current state confirmed'}],
+    selfHealth:[{id:'runtime',label:'PULSE runtime',state:'ok',detail:'公開中'},{id:'event',label:'GitHub event',state:'ok',detail:'受信済み'},{id:'snapshot',label:'snapshot',state:'ok',detail:'状態確定'},{id:'ui',label:'UI',state:'ok',detail:'表示可能'}],
+  },
+  history:{
+    snapshots:[{at:rawDate,status:'SYNCED',cause:'current state confirmed',sourceIdentity:'a'.repeat(40),publishedIdentity:'a'.repeat(40),counts:{draft:1,ready:1,userActions:0}}],
+    publications:[{commit:'a'.repeat(40),publishedAt:rawDate,observedAt:rawDate,durationMs:120000,reflectedPrCount:1,url:base}],
+  },
 };
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width:390, height:844 }, isMobile:true, hasTouch:true, deviceScaleFactor:1, locale:'ja-JP', timezoneId:'Asia/Tokyo' });
@@ -32,8 +46,12 @@ try {
   await page.goto(base, { waitUntil:'domcontentloaded', timeout:45000 });
   await page.waitForSelector('#overview-task-card');
   await page.waitForFunction(() => document.querySelector('#overview-task-value')?.textContent !== '確認中');
+  await page.waitForFunction(() => document.querySelector('#control-headline')?.textContent !== '状態を確認中');
+  assert.match(await page.locator('#control-headline').innerText(), /放置でOK|自動対応中|確認が必要/);
+  check('Control Tower exposes the user-action decision first');
   assert.equal(await page.locator('#tasks-section').getAttribute('open'), null);
   assert.equal(await page.locator('#apps-section').getAttribute('open'), null);
+  assert.equal(await page.locator('#history-section').getAttribute('open'), null);
   assert.equal(await page.locator('#details-section').getAttribute('open'), null);
   check('summary-first sections are collapsed by default');
   if (!fixtureMode) {
@@ -44,6 +62,7 @@ try {
     report.version = version;
     assert.equal(latestState?.schemaVersion, 2);
     assert.equal(latestState?.syncStatus, 'ok');
+    assert.ok(latestState?.controlTower?.status);
     check('live snapshot and exact deployed SHA', version.commit);
   }
   await page.locator('#overview-task-card').click();
@@ -105,30 +124,61 @@ try {
   const afterScroll = await page.evaluate(() => scrollY);
   assert.ok(Math.abs(afterScroll - beforeScroll) <= 3, `scroll jumped ${beforeScroll} -> ${afterScroll}`);
   check('background-style update preserves reading position');
+
+  await page.locator('#history-section > summary').click();
+  assert.ok(await page.locator('#publication-history .publication-history-row').count() >= 1);
+  assert.match(await page.locator('#publication-history').innerText(), /公開処理/);
+  check('publication history exposes publication time and duration');
+
   report.state = latestState;
-  const stale = structuredClone(fixtureMode ? fixture : latestState);
-  stale.generatedAt = new Date(Date.now()-7*60000).toISOString(); stale.syncStatus='degraded'; stale.syncError='browser test: HTTP 429'; stale.alerts=[];
-  stale.integration.queue=[{ number:85, title:'CI failure test', stage:'CI_FAILED', tone:'danger', label:'CI失敗', reason:'failure' }];
-  stale.applications=[{id:'unknown',name:'未確認のアプリ',kind:'tool',targets:[{id:'unknown',label:'公開先',state:'unknown'}]}];
+  const recovering = structuredClone(fixtureMode ? fixture : latestState);
+  recovering.generatedAt = new Date(Date.now()-7*60000).toISOString();
+  recovering.syncStatus='degraded';
+  recovering.syncError='browser test: HTTP 429';
+  recovering.alerts=[];
+  recovering.applications=[{id:'unknown',name:'未確認のアプリ',kind:'tool',targets:[{id:'unknown',label:'公開先',state:'unknown'}]}];
+  recovering.controlTower = {
+    ...(recovering.controlTower || {}),
+    status:'RECOVERING', headline:'自動対応中', summary:'GitHub同期を自動で再確認しています',
+    userActionRequired:false, incidents:[], enteredAt:new Date(Date.now()-2*60000).toISOString(),
+    completeness:{state:'last-known-good',label:'前回確定値'},
+  };
   await page.unroute('**/api/state');
-  await page.route('**/api/state', route => route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(stale)}));
+  await page.route('**/api/state', route => route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(recovering)}));
   await reload();
-  assert.match(await page.locator('#alerts').innerText(), /最新情報を取得できていません/);
-  assert.match(await page.locator('#alerts').innerText(), /#85/);
-  assert.match(await page.locator('#sync-freshness').innerText(), /更新失敗/);
+  assert.match(await page.locator('#control-headline').innerText(), /自動対応中/);
+  assert.match(await page.locator('#sync-freshness').innerText(), /GitHub同期を自動再確認中/);
   assert.doesNotMatch(await page.locator('#app-summary').innerText(), /正常/);
+  check('recoverable sync degradation stays visible without becoming a human action');
+
+  const humanAction = structuredClone(recovering);
+  humanAction.integration.queue=[{ number:85, title:'CI failure test', stage:'CI_FAILED', tone:'danger', label:'CI失敗', reason:'failure' }];
+  humanAction.controlTower = {
+    ...humanAction.controlTower,
+    status:'NEEDS_USER', headline:'確認が必要', summary:'#85 の自動テスト結果を確認してください',
+    userActionRequired:true, counts:{...(humanAction.controlTower?.counts || {}),userActions:1},
+    incidents:[{type:'ci-failed',prNumber:85,tone:'danger',title:'#85 の自動テストが失敗',detail:'failure',userActionRequired:true}],
+  };
+  await page.unroute('**/api/state');
+  await page.route('**/api/state', route => route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(humanAction)}));
+  await reload();
+  assert.match(await page.locator('#alerts').innerText(), /#85/);
+  assert.match(await page.locator('#sync-freshness').innerText(), /確認が必要/);
   assert.match(await page.locator('#overview-alert-value').innerText(), /[1-9]/);
   await page.evaluate(() => scrollTo(0,0)); await page.screenshot({path:`${out}/simulated-alerts.png`});
-  check('simulated stale sync and CI failure are visible; unknown app is not healthy');
+  check('true human action is red while automatic recovery is not');
+
   const cards = await page.locator('.app-summary-card').count();
   await page.unroute('**/api/state');
   await page.route('**/api/state', route => route.fulfill({status:503,contentType:'application/json',body:'{"error":"test outage"}'}));
-  await reload(); assert.equal(await page.locator('.app-summary-card').count(), cards);
-  assert.match(await page.locator('#alerts').innerText(), /HTTP 503/);
+  await reload();
+  assert.equal(await page.locator('.app-summary-card').count(), cards);
+  assert.match(await page.locator('#sync-freshness').innerText(), /表示更新を再試行中/);
   check('temporary outage keeps previous data with visible warning');
   await page.unroute('**/api/state');
   if (fixtureMode) await page.route('**/api/state', route => route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(fixture)}));
-  await reload(); assert.doesNotMatch(await page.locator('#sync-freshness').innerText(), /更新失敗/);
+  await reload();
+  assert.doesNotMatch(await page.locator('#sync-freshness').innerText(), /自動再確認中|表示更新を再試行中|確認が必要/);
   check('recovery clears transient failure');
   assert.equal(report.errors.length,0,JSON.stringify(report.errors));
   assert.equal(report.githubRequests.length,0,JSON.stringify(report.githubRequests));
