@@ -57,14 +57,30 @@ test('PULSE exposes the API budget used by the current snapshot', () => {
   assert.match(app, /API \$\{api\.scope === 'authenticated' \? '認証' : '公開'\}/);
 });
 
-test('normal develop delivery refreshes state without redeploying an unchanged PULSE runtime', () => {
-  const workflow = text('.github/workflows/ops-board.yml');
-  const branchBlock = workflow.split('  push:')[1].split('    paths:')[0];
-  assert.doesNotMatch(branchBlock, /- develop/);
-  assert.match(workflow, /name: Plan PULSE publication/);
-  assert.match(workflow, /node ops-board\/publication-plan\.mjs/);
-  assert.match(workflow, /name: Refresh existing PULSE state/);
-  assert.match(workflow, /needs\.plan\.outputs\.deploy_required == 'false'/);
-  assert.match(workflow, /x-ops-github-token: \$GH_TOKEN/);
-  assert.match(workflow, /PULSE runtime unchanged; authenticated state refresh passed/);
+test('normal develop delivery uses one authenticated refresh contract without redeploying unchanged PULSE', () => {
+  const opsWorkflow = text('.github/workflows/ops-board.yml');
+  const refreshWorkflow = text('.github/workflows/pulse-refresh.yml');
+  const deployWorkflow = text('.github/workflows/deploy.yml');
+  const prime = text('ops-board/prime.mjs');
+
+  assert.doesNotMatch(opsWorkflow, /^  push:/m);
+  assert.match(opsWorkflow, /name: Plan PULSE publication/);
+  assert.match(opsWorkflow, /node ops-board\/publication-plan\.mjs/);
+  assert.match(opsWorkflow, /name: Refresh existing PULSE state/);
+  assert.match(opsWorkflow, /uses: \.\/\.github\/workflows\/pulse-refresh\.yml/);
+  assert.match(opsWorkflow, /record_public_status: true/);
+
+  assert.match(refreshWorkflow, /node ops-board\/refresh-client\.mjs/);
+  assert.match(refreshWorkflow, /GH_TOKEN: \$\{\{ github\.token \}\}/);
+  assert.match(refreshWorkflow, /context: 'ops-board\/refresh'/);
+  assert.match(refreshWorkflow, /PULSE runtime unchanged; authenticated state refresh passed/);
+  assert.doesNotMatch(refreshWorkflow, /curl[^\n]*api\/refresh/);
+
+  assert.match(prime, /refreshPulseState/);
+  assert.doesNotMatch(prime, /fetch\(new URL\('api\/refresh'/);
+
+  assert.match(deployWorkflow, /pulse-result-refresh:/);
+  assert.match(deployWorkflow, /uses: \.\/\.github\/workflows\/pulse-refresh\.yml/);
+  assert.match(deployWorkflow, /fail_on_error: false/);
+  assert.doesNotMatch(deployWorkflow, /curl[^\n]*api\/refresh/);
 });
