@@ -15,8 +15,9 @@ GitHub event
           -> exact-head DEV checks/build (tests=0)
           -> Fast Lane wake
        semantic conflict / source-level DEV check repair
-          -> one exact-head Chat Repair Issue
-          -> owner GitHub notification / email route
+          -> one open Chat Repair incident per source PR
+          -> first owner-action-required transition only: GitHub notification / email route
+          -> later head/develop changes: refresh the same Issue without owner re-notification
           -> user manually starts normal Chat
           -> same PR repair -> Fast Lane
        true unresolved product decision -> HUMAN_REQUIRED
@@ -31,7 +32,7 @@ GitHub event
 | Fast Lane | `scripts/integration-fast-lane.mjs` | current Ready PR再取得、complete base comparison、exact-head gate、expected-head merge、真のconflict・exact-head DEV check/build failureのhandoff |
 | Fast Repair | `scripts/integration-repair-fast.mjs` | Depends-On・review・hold・thread・head・developを再確認し、元PR branchを機械的に安全な場合だけmerge-forward |
 | Repair workflow | `.github/workflows/integration-rescue.yml` | Fast Repair、test-free exact-head DEV checks/build、Fast Lane wake |
-| Chat Repair handoff | `scripts/integration-deep-repair-handoff.mjs` | exact-headごとに `integration-deep-repair:v1` + `chat-repair:v1` Issueを作成しownerへ通知 |
+| Chat Repair handoff | `scripts/integration-deep-repair-handoff.mjs` | source PRごとにopen Chat Repair incidentを1件維持し、current exact-head座標を更新。owner通知はincident開始時だけ |
 | Deep Repair finalization | `scripts/integration-deep-repair-finalize.mjs` | 修復PRのdevelop merge後に同Issueをcompleted/closeしstatusをfinalize |
 | Legacy rescue compatibility | `scripts/integration-rescue-*` | 旧stateの互換・診断・移行のみ。Work起動権限を持たない |
 | PULSE | `ops-board/rescue.mjs` 等 | 観測のみ。merge/Repair権限を持たない |
@@ -48,13 +49,13 @@ Fast Repairは、依存PRのmerge後に最新developを取り込むなど **機�
 6. 更新headをtrusted GitHub runnerで `scripts/validate.mjs dev` に通し、**自動テストなし**でexact-headのstatic checks / code-health / build証拠を作る。
 7. 成功したheadだけFast Laneをwakeする。
 
-Fast Repairは意味的な同file衝突を推測で解かない。HTTP 409 / `mergeable=false, dirty` などで機械的に安全なmerge-forwardが成立しない場合は、同じexact headのChat repair handoffへ送る。
+Fast Repairは意味的な同file衝突を推測で解かない。HTTP 409 / `mergeable=false, dirty` などで機械的に安全なmerge-forwardが成立しない場合は、同じsource PRのChat repair handoffへ送る。
 
 Fast Repair workflowには `stack-browser`、Playwright/Chromium install、`pr-browser-*` artifact、browser repair recorder dispatchを置かない。browserは通常Repairの仕事ではない。
 
 ## 意味的競合の通常Chat handoff
 
-Fast Laneがcurrent exact headの真の競合、またはsource-level修復が必要なexact-head DEV check/build failureを確定した場合、そのpass内でGitHub Issueを1件作る。
+Fast Laneがcurrent exact headの真の競合、またはsource-level修復が必要なexact-head DEV check/build failureを確定した場合、そのsource PRに未解決のopen Chat Repair incidentがなければGitHub Issueを1件作り、ownerへ起動通知する。すでに同じsource PRのopen incidentがある場合は、新しいIssueを作らず、そのIssueのcurrent exact-head/develop/reasonを更新する。
 
 Issueは次を含む。
 
@@ -63,11 +64,13 @@ Issueは次を含む。
 - 互換の `rinne-ai-repair:v1` envelope
 - PR URL、recorded head/develop、reason、必要ならfailed run/job identity
 - normal Chatへそのまま貼れる復旧prompt
-- owner assignment / mention
+- incident開始時だけowner assignment / mention
 
-同じ `sourceKey=pr:<N>:head:<SHA>` は1 Issueだけ。再評価で重複Issue・重複通知を作らない。旧Work時代の同exact-head Issueを発見した場合は、同IssueへChat handoffを追加して移行し、別Issueを増やさない。
+通知identityと検証identityを分離する。**通知identityはopen source PR repair incident単位**、検証identityは引き続き `sourceKey=pr:<N>:head:<SHA>` のexact-head単位とする。headやdevelopが動いても同じ未解決PRなら同Issue内のmarkerをcurrent座標へ更新し、owner mention / assignmentを再送しない。これによりexact-head safetyを維持したまま、修復pushのたびに新しいメールが増殖することを防ぐ。
 
-GitHub Issue/mention/assignmentは既存GitHub通知経路を使う。メール配送はownerのGitHub通知設定に従い、独自SMTP・外部メール配信サービス・通知queueは追加しない。
+同じexact-head generationの再評価ではIssue bodyも再通知も増やさない。前generationが `ready-for-integration` / `pending` でcurrent head/developが変わった場合は同Issueを `pending` のcurrent generationへ更新する。`working` claim中は別generationで上書きせず、`human-required` / attempt上限 / completedを自動解除しない。旧Work時代のIssueを発見した場合は同IssueへChat handoffを追加して移行し、別Issueを増やさない。
+
+GitHub Issue/mention/assignmentは既存GitHub通知経路を使う。メール配送はownerのGitHub通知設定に従い、独自SMTP・外部メール配信サービス・通知queueは追加しない。ownerへの起動メールは同じopen repair incidentで1回だけを意図し、exact-head refreshはIssue更新だけで行う。
 
 通知を受けたユーザーが**通常Chatを手動開始した場合だけ** semantic repairを行う。通常Chatはメールやrecorded SHAを正本にせず、current PR headとlatest developを再取得する。PR側とdevelop側の意図、関連契約・テストを読み、両立可能な目的は双方残す。無条件ours/theirs、blind cherry-pick、assertion削除、gate弱体化は禁止。
 
@@ -113,13 +116,16 @@ DEV PublisherはFast Laneから分離しlatest developへcoalesceする。normal
 - PR branch更新は通常merge-forwardまたは通常Chatで局所検証済みの修復だけ。force push禁止
 - テスト資産・browser assertions・main / Production gateを削除/弱体化しない
 - main / Productionを自動Repair対象にしない
-- 同じexact headでChat repair Issue/notificationを重複生成しない
+- 同じopen source PR repair incidentでowner起動通知を重複生成しない
+- exact-head `sourceKey` / status evidenceはhead更新後もcurrent generationへ追従する
+- `working` / `human-required` / attempt上限をhead変更だけで自動解除しない
 
 ## 受入条件
 
 - 正常Ready PRは旧Rescue stateやWorkを通らずmergeできる
 - mechanically repairableなstack/base更新はGitHub Actionsだけで更新・test-free DEV checks/build・Fast Lane wakeまで進む
-- 真のsemantic conflict / source-level DEV check/build repairは同じFast Lane passで1件のowner通知Chat Repair Issueへhandoffされる
+- 真のsemantic conflict / source-level DEV check/build repairはsource PRごとに1件のopen owner通知Chat Repair incidentへhandoffされる
+- 同じ未解決PRのhead/developが更新されても新しいIssue/owner mention/assignmentを増やさず、同Issueのexact-head markerだけをcurrent generationへ更新する
 - Issueメールには通常Chatへ貼るpromptが含まれ、修復時はcurrent GitHub stateを再取得する
 - 両側の互換な意図を保持し、片側丸捨てを自動化しない
 - normal develop tests=0 / browser opt-in、Production品質gateは不変
