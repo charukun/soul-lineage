@@ -114,7 +114,11 @@ export function devourInteractionFrame(origin={},capture={},motion=samplePreyMot
  const biteSocket=socketAt(root,yaw,root.roll,preyScale,[0,biteHeight,.035]);
  const mouthXZ=localXZ(capture,mouthLocal.x,mouthLocal.z),mouth={x:mouthXZ.x,y:mouthLocal.y,z:mouthXZ.z};
  const gripReach=clamp((predatorScale-.34)/.62);
- return{progress:p,side,predatorScale,preyScale,root,upper,lower,bite:biteSocket,mouth,gripReach,...contact};
+ return{
+  progress:p,side,predatorScale,preyScale,root,upper,lower,bite:biteSocket,mouth,gripReach,
+  reach:contact.reach,grip:contact.grip,haul:contact.haul,mouthWeight:contact.mouth,biteWeight:contact.bite,
+  swallow:contact.swallow,release:contact.release,recoil:contact.recoil,lock:contact.lock
+ };
 }
 
 /**
