@@ -62,7 +62,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio}){
   }
   function markOpenControl(type){ui.heart.dataset.active=String(type==='heart');ui.techniques.dataset.active=String(type==='technique');ui.bodyButton.dataset.active=String(type==='body');ui.items.dataset.active=String(type==='items');}
   function open(type,{skillId=null,silent=false,keepScroll=false}={}){
-    if(!state)return;const oldScroll=keepScroll?ui.panel.scrollTop:0;ui.panel.hidden=false;ui.panel.dataset.type=type;markOpenControl(type);
+    if(!state||type==='map')return;const oldScroll=keepScroll?ui.panel.scrollTop:0;ui.panel.hidden=false;ui.panel.dataset.type=type;markOpenControl(type);
     if(type==='heart')loadoutUI.renderHeart(skillId);else if(type==='technique')loadoutUI.renderTechnique(skillId);else if(type==='body')loadoutUI.renderBody();else inventory();
     if(keepScroll)requestAnimationFrame(()=>{ui.panel.scrollTop=oldScroll;});if(!silent)audio.ui();
   }
