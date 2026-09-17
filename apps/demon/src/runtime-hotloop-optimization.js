@@ -45,8 +45,8 @@ NightView.prototype.update=function optimizedDemonUpdate(game,dt,title=false){
   if(this.rain){this.rain.position.set(p.x,0,p.z);const position=this.rain.geometry.attributes.position,show=this.rain.userData.rain;for(let i=0;i<position.count;i+=2){const y=position.getY(i)-dt*(show?10:.35),nextY=y<0?20:y;position.setY(i,nextY);position.setY(i+1,nextY+(show?.45:.02));}position.needsUpdate=true;}
   for(let i=this.fx.length-1;i>=0;i--){const fx=this.fx[i];fx.age+=dt;fx.mesh.material.opacity=1-fx.age/fx.life;if(fx.vel){const position=fx.mesh.geometry.attributes.position;for(let j=0;j<fx.vel.length;j++){const velocity=fx.vel[j];position.setXYZ(j,position.getX(j)+velocity[0]*dt,position.getY(j)+velocity[1]*dt,position.getZ(j)+velocity[2]*dt);velocity[1]-=dt*5;}position.needsUpdate=true;}if(fx.age>fx.life){this.effects.remove(fx.mesh);if(typeof fx.recycle==='function')fx.recycle();else{fx.mesh.geometry.dispose();fx.mesh.material.dispose();}this.fx.splice(i,1);}}
   this.updateBatches();let shadowIndex=0;
-  const submitShadow=(actor,isPlayer=false)=>{if(actor.eaten||shadowIndex>=32)return;const scale=isPlayer?frame.shadow:.60;s.shadowPosition.set(actor.x,.012,actor.z);s.shadowScale.set(scale,scale,1);s.shadowMatrix.compose(s.shadowPosition,s.shadowRotation,s.shadowScale);this.contactShadow.setMatrixAt(shadowIndex++,s.shadowMatrix);};
-  submitShadow(p,true);for(const npc of w.npcs)submitShadow(npc,false);
+  if(!p.eaten){s.shadowPosition.set(p.x,.012,p.z);s.shadowScale.set(frame.shadow,frame.shadow,1);s.shadowMatrix.compose(s.shadowPosition,s.shadowRotation,s.shadowScale);this.contactShadow.setMatrixAt(shadowIndex++,s.shadowMatrix);}
+  for(const npc of w.npcs){if(npc.eaten||shadowIndex>=32)continue;s.shadowPosition.set(npc.x,.012,npc.z);s.shadowScale.set(.60,.60,1);s.shadowMatrix.compose(s.shadowPosition,s.shadowRotation,s.shadowScale);this.contactShadow.setMatrixAt(shadowIndex++,s.shadowMatrix);}
   this.contactShadow.count=shadowIndex;this.contactShadow.instanceMatrix.needsUpdate=true;this.renderer.render(this.scene,this.camera);
 };
 NightView.prototype.update.__runtimeHotloopOptimized=true;
