@@ -16,11 +16,11 @@ The normal `publish` job on `refs/heads/develop` does not invoke `verify-browser
 
 ## Develop event budget
 
-Normal develop PR automation is source/state driven. PR Checks may run for `opened`, `synchronize`, `reopened`, `ready_for_review`, and `converted_to_draft`, but body edits, label churn, and review-comment activity do not create new validation runs because they do not change the exact source head. Integration still consumes the exact-head validation result and GitHub PR state when deciding whether a Ready PR is eligible.
+Normal develop PR automation is source/state driven. PR Checks may run for `opened`, `synchronize`, `reopened`, `ready_for_review`, and `converted_to_draft`, but body edits, label churn, and review-comment activity do not create new validation runs because they do not change the exact source head. Integration still consumes the exact-head validation result and live GitHub PR state when deciding whether a Ready PR is eligible.
 
-A merge into `develop` uses the resulting `push` event as the primary automatic DEV publisher wake. Integration must not immediately dispatch a second publisher for the same merge batch merely to prove liveness. A bounded idle/recovery scan may dispatch the automatic publisher only when the exact develop SHA has no active or terminal publisher evidence. Superseded automatic publishers, whether started by `push` or recovery `workflow_dispatch`, are coalesced toward the current develop head.
+Automatic DEV publication has two legitimate wake routes. An external `develop` push can start `deploy.yml` directly. Integration merges performed with the workflow `GITHUB_TOKEN` explicitly dispatch the automatic publisher because token-generated branch updates do not fan out into another Actions push run. For one exact develop SHA, an existing active publisher or accepted wake receipt absorbs duplicate Controller requests; an idle recovery pass may repair an orphaned wake that never produced a real publisher. Superseded automatic publishers, whether started by `push` or automatic `workflow_dispatch`, coalesce toward the current develop head.
 
-Normal DEV publication may refresh PULSE state, but it must not fan out optional browser/visual-review work. Expensive observation surfaces remain independently invokable and cannot hold the DEV publication path open.
+Normal work/feat/fix branch pushes do not run the PULSE browser verification workflow. PULSE verification/deployment is performed after the relevant source reaches `develop`, or when PULSE is explicitly dispatched. Normal DEV publication may refresh existing PULSE state, but it must not fan out optional browser/visual-review work.
 
 ## Browser verification is opt-in on develop
 
@@ -34,7 +34,7 @@ Historical `browser-repair:v1` records and old `pr-browser-*` / `dev-browser-*` 
 
 ## Visual Review is explicit on develop
 
-The fixed Visual Review URL is a non-blocking observation surface, not a normal DEV publication stage. Routine develop publication and PULSE refresh do not invoke the Visual Review publisher. Visual Review runs only through an explicit manual/specialist request or as a reusable workflow called by a dedicated evidence route.
+The fixed Visual Review URL is a non-blocking observation surface, not a normal DEV publication stage. Routine develop publication and PULSE refresh do not invoke the Visual Review publisher. Visual Review runs only from an explicit `Rinne Ops Board` workflow dispatch on `develop`, or as a reusable workflow called by a dedicated evidence route.
 
 When invoked, Visual Review resolves an exact develop source SHA, confirms that source is still current before publication, and coalesces newer requests through the fixed `visual-review-develop` concurrency group. The optional `REVIEW_PREVIEW_ENABLED` repository variable remains an opt-out switch: an unset value must not silently disable an explicit publication, while an explicit `false` may disable it.
 
