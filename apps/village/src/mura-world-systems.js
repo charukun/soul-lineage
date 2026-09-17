@@ -22,6 +22,8 @@ function systems(){
  const s=world.state,year=Math.floor(s.clock/DAYS_YEAR);
  s.muraSystems??={version:3,virtualResidents:0,virtualCohorts:{child:0,youth:0,adult:0,elder:0},lastLifecycleDay:Math.floor(s.clock),lastVirtualYear:year,storageV2:false};
  s.muraSystems.version=3;
+ s.muraSystems.lastLifecycleDay=Number.isFinite(s.muraSystems.lastLifecycleDay)?Math.floor(s.muraSystems.lastLifecycleDay):Math.floor(s.clock);
+ s.muraSystems.lastVirtualYear=Number.isFinite(s.muraSystems.lastVirtualYear)?Math.floor(s.muraSystems.lastVirtualYear):year;
  s.muraSystems.virtualResidents=Math.max(0,Math.floor(s.muraSystems.virtualResidents||0));
  s.muraSystems.virtualCohorts=normalizeVirtualCohorts(s.muraSystems.virtualCohorts,s.muraSystems.virtualResidents);
  s.muraSystems.virtualResidents=s.muraSystems.virtualCohorts.child+s.muraSystems.virtualCohorts.youth+s.muraSystems.virtualCohorts.adult+s.muraSystems.virtualCohorts.elder;
@@ -137,7 +139,7 @@ function durationFor(o){
  if(area>=140)return 90;
  return 18+area*.12;
 }
-function workerFactor(){const healthy=world.people.filter(p=>!p.downed&&ageYears(p)>=12).length;return 1+Math.min(5,Math.floor(healthy/12));}
+function workerFactor(){const healthy=world.people.filter(p=>!p.downed&&ageYears(p)>=16).length;return 1+Math.min(5,Math.floor(healthy/12));}
 function constructionLabel(seconds){if(seconds>=3600)return`${(seconds/3600).toFixed(seconds>=7200?0:1)}時間`;if(seconds>=60)return`${Math.ceil(seconds/60)}分`;return`${Math.ceil(seconds)}秒`;}
 
 sim.construction=dt=>{
@@ -198,15 +200,15 @@ function virtualUpkeep(){
  }
 }
 function eligibleParents(){return world.people.filter(p=>p.role!=='mayor'&&p.id!=='guard-npc'&&p.source!=='rinne-player'&&p.source!=='local-player-demo'&&!p.dead&&!p.downed&&ageYears(p)>=20&&ageYears(p)<=44);}
-function detailedBirth(){
+function detailedBirth(index){
  const parents=eligibleParents();if(parents.length<2||world.people.length>=ACTIVE_DETAIL_LIMIT)return false;
  const homes=world.objects.filter(o=>ready(o)&&capacityOf(o)&&!defs[o.kind].reserved&&!defs[o.kind].clanOnly&&world.safetyAt(o)&&world.people.filter(p=>p.homeId===o.id&&!p.dead).length<capacityOf(o));if(!homes.length)return false;
  const primary=parents.find(p=>homes.some(h=>h.id===p.homeId))||parents[0],home=homes.find(h=>h.id===primary.homeId)||homes[Math.floor(world.random()*homes.length)],secondary=parents.filter(p=>p.id!==primary.id).sort((a,b)=>Math.hypot(a.x-primary.x,a.z-primary.z)-Math.hypot(b.x-primary.x,b.z-primary.z))[0];if(!secondary)return false;
- const index=systemState.demography.totalBirths,e=entry(home),base=BIRTH_NAMES[index%BIRTH_NAMES.length],name=index<BIRTH_NAMES.length?base:`${base} ${1+Math.floor(index/BIRTH_NAMES.length)}`;
+ const e=entry(home),base=BIRTH_NAMES[index%BIRTH_NAMES.length],name=index<BIRTH_NAMES.length?base:`${base} ${1+Math.floor(index/BIRTH_NAMES.length)}`;
  const child={id:'npc'+world.state.nextId++,name,source:'local-npc',role:'resident',homeId:home.id,jobId:null,x:e.x,z:e.z,task:'idle',timer:2,path:[],hunger:90,purse:0,health:100,happiness:86,skill:0,seed:world.random()*20,angle:0,hidden:false,favorite:'家族と過ごす',memories:[],ageBaseYears:0,ageAnchorDay:world.state.clock,birthClock:world.state.clock,ageStage:'child',parentIds:[primary.id,secondary.id]};
  world.people.push(child);ensureProfile(child);sim.remember?.(child,`${primary.name}たちの家族として生まれた`,'おぎゃあ');sim.emit(`${name}が${defs[home.kind].label}の家族に生まれました`,'life');world.changed();return true;
 }
-function addBirths(count){let births=0;for(let i=0;i<count;i++){if(detailedBirth())births++;else{systemState.virtualCohorts.child=(systemState.virtualCohorts.child||0)+1;systemState.virtualResidents++;births++;}}if(births)noteDemography('births',births);return births;}
+function addBirths(count){let births=0;for(let i=0;i<count;i++){const index=systemState.demography.totalBirths+births;if(detailedBirth(index))births++;else{systemState.virtualCohorts.child=(systemState.virtualCohorts.child||0)+1;systemState.virtualResidents++;births++;}}if(births)noteDemography('births',births);return births;}
 function demographicYear(){
  const pop=world.population(),parents=eligibleParents().length+Math.floor((systemState.virtualCohorts.adult||0)*.55),plan=planDemographicYear({population:pop.people,limit:pop.limit,openBeds:pop.openBeds,eligibleAdults:parents,comfort:pop.comfort,foodStock:world.state.stock.food,birthCarry:systemState.demography.birthCarry,protectedResidents:2});
  systemState.demography.birthCarry=plan.birthCarry;if(plan.departures)removeResidents(plan.departures,'食料や守りに余裕がなく');if(plan.births)addBirths(plan.births);
