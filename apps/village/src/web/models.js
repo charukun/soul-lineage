@@ -1,13 +1,8 @@
 import {THREE} from '@soul/rendering';
 import {createMuraModels} from '@soul/rendering/mura';
 import {createMuraBuildingVisual} from '@soul/rendering/mura/building-visual';
-import {defs as canonicalDefs} from '@soul/world/mura/catalog';
-import {defs as localDefs} from '../game/catalog.js';
 const models=createMuraModels(THREE,{createCanvas:()=>document.createElement('canvas')});
 const T=THREE;
-const COMPACT_TENTS=new Set(['mayor','guardhome','tent']);
-const compactRatio=kind=>[localDefs[kind].w/canonicalDefs[kind].w,localDefs[kind].d/canonicalDefs[kind].d];
-const compactTent=(g,kind)=>{const[x,z]=compactRatio(kind);g.scale.set(g.scale.x*x,g.scale.y*.6,g.scale.z*z);g.userData.villageCompactTent=true;return g;};
 const material=color=>new T.MeshStandardMaterial({color,roughness:.95});
 const workMaterials={
  wood:material(0x8c6848),trim:material(0x69563e),leaf:material(0x748b5f),
@@ -34,8 +29,7 @@ function decorateWorkSite(g,kind){
  return g;
 }
 
-const {mat,prop,person:basePerson,interiorShell,floorFor:baseFloorFor,sailingShip,animal}=models;
-function floorFor(host){const g=baseFloorFor(host);if(!COMPACT_TENTS.has(host?.kind))return g;const[x,z]=compactRatio(host.kind);g.scale.set(x,1,z);return g;}
+const {mat,prop,person:basePerson,interiorShell,floorFor,sailingShip,animal}=models;
 const residentMaterials=new Map();
 const residentMaterial=color=>{
  if(!residentMaterials.has(color))residentMaterials.set(color,new T.MeshStandardMaterial({color,roughness:1,metalness:0,flatShading:true}));
@@ -99,4 +93,4 @@ function person(seed=0,monster=false,role='resident'){
 }
 
 export {mat,prop,person,interiorShell,floorFor,sailingShip,animal};
-export function building(kind,material='base',level=1){const g=COMPACT_TENTS.has(kind)?compactTent(models.building(kind,material,level),kind):createMuraBuildingVisual(T,models,kind,material,level);return decorateWorkSite(g,kind);}
+export function building(kind,material='base',level=1){return decorateWorkSite(createMuraBuildingVisual(T,models,kind,material,level),kind);}
