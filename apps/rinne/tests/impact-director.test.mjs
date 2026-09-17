@@ -16,6 +16,12 @@ test('reduced motion disables hit stop and slow while retaining a bounded camera
   const profile=impactProfile(.95,{reduced:true});assert.equal(profile.stop,0);assert.equal(profile.slow,0);assert.equal(profile.scale,1);assert.ok(profile.camera>0);
 });
 
+test('medium impacts still expose one visible hit-stop frame at 60fps',()=>{
+  const state=hero({weapon:'dagger',attack:'slash'}),front={stage:0,enemies:[foe()]},director=createImpactDirector();
+  director.present([{type:'player-hit',targetId:'e1',damage:2,phase:'jo'}],{state,front});const frame=director.frame(.016);
+  assert.equal(frame.timeScale,.002);assert.ok(director.snapshot().timeScale>.002);
+});
+
 test('impact presentation never mutates simulation state or enemy health',()=>{
   const state=hero({weapon:'great',attack:'heavy'}),front={stage:5,enemies:[foe()]},before=structuredClone({state,front}),director=createImpactDirector();
   const result=director.present([{type:'player-hit',targetId:'e1',damage:25,phase:'kyu'}],{state,front});
@@ -43,7 +49,7 @@ test('anticipation trail fires once per attack cycle and rearms after progress r
 test('local micro slow swaps only displayed Tidebreak pose and restores the exact simulation snapshot',()=>{
   const state=hero({attack:'slash',progress:.2}),front={stage:0,enemies:[foe()]},director=createImpactDirector();director.applyPoseLag(state,front,.016)();
   const exact={attack:'heavy',progress:.9,skill:'basic.great',slot:'kyu',pose:{hand:[0,1,0],tip:[1,1,1]}};state.combat.tidebreakPose=exact;
-  director.present([{type:'player-hit',targetId:'e1',damage:28,phase:'kyu'}],{state,front});const restore=director.applyPoseLag(state,front,.016);
+  director.present([{type:'player-hit',targetId:'e1',damage:28,phase:'kyu'}],{state,front});const frame=director.frame(.016),restore=director.applyPoseLag(state,front,.016,frame.timeScale);
   assert.notEqual(state.combat.tidebreakPose,exact);restore();assert.equal(state.combat.tidebreakPose,exact);
 });
 
