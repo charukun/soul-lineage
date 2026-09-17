@@ -22,8 +22,16 @@
         <p class="eyebrow">いまの開発状況</p>
         <h1 class="pulse-wordmark">PULSE</h1>
       </div>
-      <div class="refresh-area"><button id="reload" class="reload" type="button">最新に更新</button>
-        <p id="sync-freshness" class="sync-freshness" role="status">最終取得 未取得</p></div>
+      <div class="refresh-area">
+        <div id="sync-freshness" class="sync-freshness info" role="status" aria-live="polite">
+          <span class="sync-dot" aria-hidden="true"></span>
+          <span class="sync-copy">
+            <strong data-sync-title>GitHub状態を確認中</strong>
+            <span data-sync-meta>最終反映を確認しています</span>
+          </span>
+        </div>
+        <button id="reload" class="reload" type="button">表示を再読込</button>
+      </div>
     </header>
 
     <nav class="section-tabs pulse-overview" aria-label="現在の状況">

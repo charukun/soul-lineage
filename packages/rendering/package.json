@@ -54,6 +54,7 @@
     "@soul/assets": "*",
     "@soul/characters": "*",
     "@soul/world": "*",
-    "@soul/animations": "*"
+    "@soul/animations": "*",
+    "@soul/housing-assets": "*"
   }
 }

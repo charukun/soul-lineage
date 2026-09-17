@@ -255,3 +255,23 @@ jobs:
                 pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
                 pr.head.sha !== context.payload.pull_request.head.sha) return;
             await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'deploy.yml', ref: 'develop' });
+
+  pulse-result-refresh:
+    name: Refresh PULSE after PR checks
+    needs: [build, integration-request]
+    if: >-
+      always() && !cancelled() &&
+      github.event.pull_request.base.ref == 'develop' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    uses: ./.github/workflows/pulse-refresh.yml
+    with:
+      source_sha: ${{ github.event.pull_request.base.sha }}
+      reason: pr-event
+      fail_on_error: false
+      record_public_status: false
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+      statuses: write
+    secrets: inherit
