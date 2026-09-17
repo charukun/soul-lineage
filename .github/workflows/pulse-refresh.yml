@@ -72,7 +72,7 @@ jobs:
           PULSE_STATE_OUTPUT: .pulse-refresh-state.json
         run: node ops-board/refresh-client.mjs
       - name: Notify only a new human-action transition
-        if: steps.refresh.outcome == 'success'
+        if: always() && steps.credential.outcome == 'success'
         continue-on-error: true
         env:
           NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
