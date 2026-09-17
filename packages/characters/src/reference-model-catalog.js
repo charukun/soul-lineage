@@ -100,76 +100,91 @@ export const PROTAGONIST_VILLAGER_MODEL = deepFreeze(protagonist);
 const seedKnight = BASE_CHARACTER_REFERENCE_MODELS['knight.reference.v1'];
 const reconstructedProfile = canonicalAppearanceParts({
   version: 1,
-  face: 'sharp',
-  hair: 'crop',
-  body: 'slender',
+  face: 'round',
+  hair: 'bob',
+  body: 'compact',
   outfit: 'tunic',
   accessory: 'scarf'
 });
+const MESHY_WAYFARER_SOURCE_URL = 'https://www.meshy.ai/3d-models/A-stylized-3D-model-of-a-chibistyle-female-adventurer-A-young-hero-with-a-short-green-hoodie-under-a-light-brown-leather-tunic-dark-short-skirt-leather-boots-and-a-simple-belt-Tousled-long-brown-hair-and-expressive-bright-blue-eyes-Confident-pose-stylized-for-a-fantasy-actionadventure-gameStylized-Fantasy-Game-Assets-Legend-of-Zelda-Pixar-Style-World-of-Warcraft-Chibi-Full-Body-APose-v2-0196ad16-605f-735d-9d1c-ec04032a2e02';
 const reconstructedWayfarer = {
   ...seedKnight,
   version: 1,
-  seed: 0x52425731,
+  seed: 0x4d575632,
   role: 'traveller',
   ageBand: 'adult',
   parts: reconstructedProfile,
   front: 'swept',
   back: 'layered',
-  face: { ...seedKnight.face, jaw: .98, cheek: .97, nose: 1.02, eyeWidth: 1.03, eyeHeight: .98, eyeSpacing: .99, browWeight: .96, browSlant: .025, chin: 1.01 },
-  proportions: { shoulders: 1.01, arms: 1.04, legs: 1.06, head: .98 },
+  face: { ...seedKnight.face, jaw: .91, cheek: 1.08, nose: .91, eyeWidth: 1.12, eyeHeight: 1.13, eyeSpacing: 1.03, browWeight: .82, browSlant: .012, chin: .92 },
+  proportions: { shoulders: .90, arms: .95, legs: .90, head: 1.18 },
   gear: 'satchel',
-  cloth: [.18, .31, .29],
-  trim: [.72, .46, .22],
-  hairValue: .91,
+  cloth: [.43, .29, .18],
+  trim: [.73, .65, .50],
+  hairValue: .94,
   id: RECONSTRUCTED_WAYFARER_MODEL_ID,
-  label: '再構築 Wayfarer / CC0 Seed',
+  label: '再構築 Wayfarer / Meshy CC0 Seed',
   kind: 'runtime-reference-model',
   characterId: 'Reference_Reconstructed_Wayfarer',
   assetId: 'runtime.reconstructed-wayfarer.reference.v1',
   productionStage: 'BLOCKOUT',
   modelingMode: 'runtime-procedural',
   productionReady: false,
-  referencePath: 'apps/rinne/public/simulator/licenses/KAYKIT_FOUNDATION_SOURCE.txt',
+  referencePath: MESHY_WAYFARER_SOURCE_URL,
   profile: reconstructedProfile,
   referenceStyle: deepFreeze({
-    version: 1,
-    design: 'reconstructed-wayfarer',
-    scale: .88,
+    version: 2,
+    design: 'meshy-seed-rinne-wayfarer',
+    scale: .78,
     palette: {
-      skin: [.82, .63, .52],
-      hair: [.16, .12, .10],
-      eyes: [.25, .36, .34],
-      primary: [.18, .31, .29],
-      secondary: [.56, .50, .39],
-      accent: [.72, .46, .22],
-      dark: [.10, .12, .11],
-      metal: [.45, .48, .46],
-      leather: [.28, .17, .10],
-      wood: [.34, .22, .12]
+      skin: [.91, .70, .59],
+      hair: [.30, .18, .11],
+      eyes: [.20, .48, .72],
+      primary: [.43, .29, .18],
+      secondary: [.22, .35, .19],
+      accent: [.73, .65, .50],
+      dark: [.13, .12, .15],
+      metal: [.46, .48, .50],
+      leather: [.29, .17, .10],
+      wood: [.34, .23, .14]
     },
     armStyle: 'shirt',
-    legStyle: 'pants',
+    legStyle: 'bare',
     footwear: 'boots',
     prop: 'satchel',
-    topologyPreset: 'procedural-humanoid-rebuild-v1',
-    surfacePreset: 'new-flat-stylized-materials-v1'
+    topologyPreset: 'procedural-humanoid-rebuild-v2-meshy-visual-seed',
+    surfacePreset: 'rinne-flat-cloth-leather-v2',
+    designDna: [
+      'compact-chibi-proportions',
+      'short-green-hood',
+      'layered-leather-tunic',
+      'short-dark-skirt',
+      'simple-utility-belt',
+      'tousled-brown-hair',
+      'bright-blue-eyes',
+      'leather-boots'
+    ]
   }),
   sourceReference: deepFreeze({
-    source: 'KayKit Character Pack: Adventurers / Knight.glb',
-    license: 'CC0-1.0',
-    provenancePath: 'apps/rinne/public/simulator/licenses/KAYKIT_FOUNDATION_SOURCE.txt',
-    use: 'visual-form-seed-only',
+    provider: 'Meshy',
+    source: 'Meshy Community / chibi-style female adventurer',
+    author: 'ktmarine1999',
+    modelId: '0196ad16-605f-735d-9d1c-ec04032a2e02',
+    url: MESHY_WAYFARER_SOURCE_URL,
+    license: 'CC0',
+    use: 'public-preview-visual-form-seed-only',
     reusedGeometry: false,
     reusedTextures: false,
     transformation: [
-      'discard-source-mesh-and-materials',
-      'rebuild-on-audited-humanoid-rig',
-      'replace-topology-with-runtime-procedural-geometry',
-      'replace-surface-with-new-stylized-material-palette',
-      'restyle-armored-knight-as-itinerant-wayfarer'
+      'observe-public-preview-and-prompt-only',
+      'discard-source-geometry-and-textures',
+      'rebuild-topology-on-audited-humanoid-rig',
+      'redesign-proportions-and-silhouette-for-rinne',
+      'replace-surface-with-rinne-stylized-material-palette',
+      'reinterpret-chibi-adventurer-as-rinne-wayfarer'
     ]
   }),
-  note: 'CC0 KayKit Knightを視覚的な種だけに使い、元mesh・元texture/materialを再利用せず、監査済み共通Humanoid rig上で別Topologyのランタイム3Dへ再構築した実験モデル。鎧シルエットを旅人服・スカーフ・鞄へ変更し、表面色と材質も独自パレットへ置換する。'
+  note: 'Meshy Communityの公開CC0モデル（@ktmarine1999 / 0196ad16-605f-735d-9d1c-ec04032a2e02）を視覚的な種としてのみ参照するBLOCKOUT実験。公開プレビューと公開promptから、コンパクトな頭身、短い緑フード、革チュニック、暗色ショートスカート、簡素なベルト、茶髪、青い瞳、革ブーツというDesign DNAだけを抽出する。元mesh・texture/materialは再利用せず、共通Humanoid rig上でTopologyと表面材質を組み直し、顔・輪郭・装備配置を輪廻転焦の旅人へ再設計する。'
 };
 validateVisualIdentity(reconstructedWayfarer);
 export const RECONSTRUCTED_WAYFARER_MODEL = deepFreeze(reconstructedWayfarer);
