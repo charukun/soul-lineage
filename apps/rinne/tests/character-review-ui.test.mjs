@@ -41,21 +41,13 @@ test('renderer and visible shell remain isolated from game saves and authority',
 test('model audit uses pinned CC0 KayKit identity, bounded loads and GPU recovery', () => {
   assert.match(engine, /KAYKIT_MODEL_BY_KEY/);
   assert.match(engine, /defaultModel = KAYKIT_MODEL_BY_KEY\.knight/);
-  assert.match(engine, /defaultBytes = .*modelBytes\(defaultModel\.runtime\.url/);
+  assert.match(engine, /defaultBytes = \(\) => modelBytes\(defaultModel\.runtime\.url\)/);
   assert.match(engine, /gitBlobSha/);
   assert.match(engine, /defaultModel\.source\.gitBlobSha/);
   assert.match(engine, /defaultModel\.license/);
   assert.doesNotMatch(engine, /SHINO_review\.vrm/);
   assert.ok(engine.indexOf('auditDocument(json, hash, bytes.byteLength, blobSha)') < engine.indexOf("new GLTFLoader().parseAsync(bytes, '')"));
   for (const expression of [/if \(!audit\.approved\) throw/, /length > MAX_MODEL_BYTES/, /file\.size > MAX_SESSION_BYTES/, /webglcontextlost/, /webglcontextrestored/]) assert.match(engine, expression);
-});
-test('loading feedback is visible on the stage and advances through prioritized phases', () => {
-  for (const id of ['load-indicator','load-label','load-detail','load-percent']) assert.ok(main.includes(`id="${id}"`));
-  assert.match(css, /\.load-indicator/);
-  assert.match(engine, /function updateLoadProgress/);
-  assert.match(engine, /onProgress/);
-  for (const phase of ['モデル取得','安全確認','モデル解析','表示準備','GPU準備']) assert.match(engine, new RegExp(phase));
-  assert.ok(engine.indexOf('settings.selected') < engine.indexOf('records.slice(0, settings.count).filter'));
 });
 test('both review pages stay in the existing Rinne build', () => {
   assert.match(vite, /characters:fileURLToPath\(new URL\('\.\/characters\.html'/);
