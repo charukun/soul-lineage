@@ -134,9 +134,9 @@ export class HuntFlowUi {
     const detail = defeated ? `戦利品 ${totalLost}、特能、写した技、肉体強化、章進行を失った。喰痕と転生史だけが残る。` : r.extracted ? `回収 ${r.carried}${r.bonus ? ` ＋ 目標報酬 ${r.bonus}` : ''}` : `未確保の戦利品 ${r.lost} を失った。この生で確保済みの力は残る。`;
     const upgrades = defeated ? '' : this.upgradeHtml(profile);
     const prompt = defeated ? '新しい生では、種族を選び直して最初の帰還から始める。' : message || (Object.keys(UPGRADES).some(k => upgradeQuote(profile, k).affordable) ? '強化できる。次の狩りを有利に。' : '生還を重ねるほど、この生は強くなる。');
-    const html = `<div class="hunt-result"><div><small>${defeated ? 'この生で失った戦利品' : r.extracted ? '確保した戦利品' : '失った戦利品'}</small><strong>${defeated ? '−' + totalLost : !r.extracted ? '−' + r.lost : '+' + r.gained}</strong></div><div><small>保有</small><strong>${p.essence}</strong></div></div><p class="hunt-result-detail">${esc(detail)}</p><p class="hunt-gain" role="status">${esc(prompt)}</p>${upgrades}<p class="hunt-next">次：${esc(goalText(next))}</p><button class="primary" id="next-night">${defeated ? '新しい生を始める' : '次の狩りへ'}</button>`;
+    const html = `<div class="hunt-result"><div><small>${defeated ? 'この生で失った戦利品' : r.extracted ? '確保した戦利品' : '失った戦利品'}</small><strong>${defeated ? '−' + totalLost : !r.extracted ? '−' + r.lost : '+' + r.gained}</strong></div><div><small>保有</small><strong>${p.essence}</strong></div></div><p class="hunt-result-detail">${esc(detail)}</p><p class="hunt-gain" role="status">${esc(prompt)}</p>${upgrades}<p class="hunt-next">次：${esc(goalText(next))}</p><button class="primary" id="next-night">${defeated ? '種族を選んで新しい生へ' : '次の狩りへ'}</button>`;
     this.sheet(headline, defeated ? '全ロスト' : '狩りの結果', html, 'result');
     if (!defeated) this.bindUpgrades(note => this.result(event, game, note));
-    byId('next-night').onclick = () => this.start('mission');
+    byId('next-night').onclick = defeated ? () => this.speciesPicker() : () => this.start('mission');
   }
 }

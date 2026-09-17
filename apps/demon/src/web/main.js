@@ -20,7 +20,7 @@ let view, game, store, profile, flow, error = null, mode = 'title', paused = fal
 let toastUntil = 0, last = 0, acc = 0, returnMode = false, lastHud = 0, disposeCharacterSelection = null;
 const swipe = new SwipeInput(), audio = new NightAudio();
 function safe(fn) { try { return fn(); } catch (e) { console.error(e); showError(e.message || String(e)); } }
-function pauseInput() { game?.resetIdle(); swipe.cancel(); $('move-pad').hidden = true; $('dash-stop').hidden = true; }
+function pauseInput() { game?.cancelAutoReturn?.(); game?.resetIdle(); swipe.cancel(); $('move-pad').hidden = true; $('dash-stop').hidden = true; }
 function sheet(title, kicker, html, kind) {
   pauseInput(); $('sheet-title').textContent = title; $('sheet-kicker').textContent = kicker;
   $('sheet-body').innerHTML = html; $('sheet').hidden = false; sheetKind = kind;
@@ -74,7 +74,7 @@ async function claimAndEnter(v) {
 }
 async function randomHunt(route = 'mission') {
   if (entering) return;
-  try { refresh(); const v = chooseHunt(offerVillages(store), profile, route); await claimAndEnter(v); }
+  try { refresh(); if (!profile.monsterSpecies) { flow?.speciesPicker(); return; } const v = chooseHunt(offerVillages(store), profile, route); await claimAndEnter(v); }
   catch (e) { showError(e.message || String(e)); }
 }
 function lineage() { refresh(); sheet('転生史', '身体に残ったもの', renderLineage(profile), 'lineage'); }
