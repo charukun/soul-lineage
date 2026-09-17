@@ -1,14 +1,11 @@
 import {createSharedMotionRuntime} from '@soul/rendering/motion-runtime';
 
 /**
- * Compatibility marker for the retired Shino-backed resident renderer.
- *
- * The module path remains present because Integration's exact-tree syntax
- * preflight validates removed JavaScript paths. It deliberately performs no
- * runtime installation and contains no model URL, loader, hash, or asset
- * reference. The authoritative procedural village resident presentation stays
- * active until a CC0 or RINNE-owned replacement is integrated.
+ * Compatibility marker retained for integrations that inspect the old resident
+ * renderer module. Human residents now resolve through the shared KayKit
+ * foundation in character-runtime-integration.js; procedural people are only a
+ * load-failure fallback and are not the normal presentation contract.
  */
-export const MASTER_RESIDENT_RENDERER_STATE = 'retired-conditional-model';
-export const MASTER_RESIDENT_REPLACEMENT = 'procedural-resident-presentation';
+export const MASTER_RESIDENT_RENDERER_STATE = 'shared-kaykit-runtime';
+export const MASTER_RESIDENT_REPLACEMENT = 'kaykit.adventurers.v1';
 export const MASTER_RESIDENT_MOTION_RUNTIME = createSharedMotionRuntime();
