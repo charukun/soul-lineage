@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="./pr-board.css">
   <link rel="stylesheet" href="./app-board.css">
   <link rel="stylesheet" href="./review-polish.css">
+  <link rel="stylesheet" href="./control-tower.css">
   <link rel="stylesheet" href="./rescue-board.css">
   <link rel="stylesheet" href="./flow-board.css">
   <link rel="stylesheet" href="./world-board.css">
@@ -34,6 +35,34 @@
       </div>
     </header>
 
+    <section id="control-tower" class="control-tower warning" aria-live="polite">
+      <div class="control-hero">
+        <div>
+          <span class="control-kicker">YOUR ACTION</span>
+          <h2 id="control-headline">状態を確認中</h2>
+          <p id="control-summary" class="control-summary">GitHubと公開状態を照合しています</p>
+        </div>
+        <span id="control-since" class="control-since">この状態 未記録</span>
+      </div>
+      <div class="control-meta" aria-label="状態の確からしさと時刻">
+        <span id="control-completeness">確認中</span>
+        <span id="control-github-change">GitHub変化 未記録</span>
+        <span id="control-refreshed">PULSE反映 未記録</span>
+      </div>
+      <p id="control-delta" class="control-delta">前回閲覧との差分を確認しています</p>
+      <div id="control-flow" class="control-flow" aria-label="現在の開発フロー"></div>
+      <div class="control-next"><span class="control-next-label">次</span><strong id="control-next">次の状態更新を待ちます</strong></div>
+      <div id="control-impact" class="control-impact" aria-label="影響範囲"></div>
+      <details class="nested-disclosure" data-disclosure="control:timeline">
+        <summary>自動処理と状態遷移</summary>
+        <div id="control-timeline" class="control-timeline"></div>
+      </details>
+      <details class="nested-disclosure" data-disclosure="control:self-health">
+        <summary>PULSE自身の監視状態</summary>
+        <div id="control-self-health" class="control-health"></div>
+      </details>
+    </section>
+
     <nav class="section-tabs pulse-overview" aria-label="現在の状況">
       <a id="overview-app-card" class="overview-card overview-publication-card info" href="#apps-section" data-open-disclosure="apps-section">
         <span class="overview-label">DEV公開</span>
@@ -48,7 +77,7 @@
       <a id="overview-alert-card" class="overview-card info" href="#alert-section">
         <span class="overview-label">今やること</span>
         <strong id="overview-alert-value">確認中</strong>
-        <span id="overview-alert-detail" class="overview-detail">止まっているものだけ表示</span>
+        <span id="overview-alert-detail" class="overview-detail">あなたの確認が必要なものだけ</span>
       </a>
       <a id="overview-task-card" class="overview-card info" href="#tasks-section" data-open-disclosure="tasks-section">
         <span class="overview-label">開発中</span>
@@ -58,7 +87,7 @@
     </nav>
 
     <section id="alert-section" class="board-section attention-section" hidden>
-      <div class="section-head"><h2>要対応タスク</h2><span id="alert-count" class="muted"></span></div>
+      <div class="section-head"><h2>あなたの確認が必要</h2><span id="alert-count" class="muted"></span></div>
       <div id="alerts" class="alerts"></div>
     </section>
 
@@ -112,6 +141,27 @@
         </div>
       </details>
 
+      <details id="history-section" class="board-section board-disclosure" data-disclosure="section:history">
+        <summary>
+          <span class="disclosure-heading"><span class="disclosure-kicker">履歴</span><strong>公開履歴と時間</strong></span>
+          <span id="history-summary" class="disclosure-meta">履歴を確認中</span>
+        </summary>
+        <div class="board-disclosure-body">
+          <p class="section-description">DEVがいつ公開されたか、公開処理に何分かかったか、PULSEの状態がどう変わったかを確認できます。</p>
+          <div class="history-columns">
+            <section class="history-block">
+              <h3>DEV公開履歴</h3>
+              <div id="publication-history" class="publication-history-list"><p class="empty">公開履歴を確認中</p></div>
+            </section>
+            <section class="history-block">
+              <h3>PULSE状態履歴</h3>
+              <div id="control-history" class="control-history-list"><p class="empty">状態履歴を確認中</p></div>
+            </section>
+          </div>
+          <div id="history-replay" class="history-replay" hidden></div>
+        </div>
+      </details>
+
       <details id="details-section" class="board-section board-disclosure" data-disclosure="section:operations">
         <summary>
           <span class="disclosure-heading"><span class="disclosure-kicker">運用</span><strong>技術詳細</strong></span>
@@ -150,9 +200,9 @@
           <details class="usage-guide nested-disclosure" data-disclosure="section:guide">
             <summary>使い方</summary>
             <ol>
-              <li><strong>今やること</strong>が0件なら、まず開発・公開の要約だけ見れば十分です。</li>
-              <li><strong>開発中のタスク</strong>を開くと作業中・統合待ち・完了PRとRescue詳細を確認できます。</li>
-              <li><strong>アプリの公開状況</strong>を開くと環境別の公開先を確認できます。</li>
+              <li><strong>最上段</strong>の「放置でOK / 自動対応中 / 確認が必要」で、まず自分が動く必要があるか判断します。</li>
+              <li><strong>今やること</strong>は、人の確認が本当に必要な項目だけを表示します。</li>
+              <li><strong>公開履歴と時間</strong>ではDEV公開時刻・所要時間・過去のPULSE状態を確認できます。</li>
               <li><strong>技術詳細</strong>はSHA、Actions、Integrationなどの診断が必要なときだけ開きます。</li>
             </ol>
           </details>
@@ -166,6 +216,7 @@
     </footer>
   </main>
   <script type="module" src="./app.js"></script>
+  <script type="module" src="./control-tower.js"></script>
   <script type="module" src="./app-board.js"></script>
   <script type="module" src="./pull-board.js"></script>
   <script type="module" src="./flow-board.js"></script>
