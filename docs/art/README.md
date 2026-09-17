@@ -23,6 +23,7 @@ Read only the standards relevant to the task:
 | --- | --- |
 | Rinne game construction, default playable character/art direction, KayKit reuse | `KAYKIT_GAME_AXIS.md` + `docs/characters/CHARACTER_LICENSE_POLICY.md` |
 | Character mesh, face, hair, body, clothing, accessories, Blender character assembly, variant art | `CHARACTER_MODELING.md` + `docs/characters/CHARACTER_LICENSE_POLICY.md` |
+| Facial expressions, smile/blink/visemes, reference-guided shape keys | [FACIAL_EXPRESSION_WORKFLOW.md](FACIAL_EXPRESSION_WORKFLOW.md) + `CHARACTER_MODELING.md` section 7 |
 | Visual polish, model comparison, render/runtime acceptance, before/after evidence | `VISUAL_REVIEW.md` |
 | Rig/animation/material/export work that also changes character appearance | both files, plus the applicable `docs/characters/*` contract |
 | Pure UI/code work with no 3D appearance or asset impact | these files are not required |
