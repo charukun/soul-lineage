@@ -5,7 +5,8 @@ export {
   tidebreakWeaponFor,
   tidebreakLoadoutFor,
   tidebreakMindVector,
-  tidebreakMindsetFor,
-  tickFront,
-  tickSharedFront
+  tidebreakMindsetFor
 } from './combat-core.js';
+
+export { combatEvolutionSnapshot } from './combat-evolution-runtime.js';
+export { tickEvolvedFront as tickFront, tickEvolvedSharedFront as tickSharedFront } from './combat-evolution-runtime.js';

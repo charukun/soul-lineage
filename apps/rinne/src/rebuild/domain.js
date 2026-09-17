@@ -1,5 +1,6 @@
 import { DISCOVERIES, eligibleDiscoveries, skillEffects, skillName } from './skill-system.js';
 import { enterInteriorState, leaveInteriorState } from './interior-state.js';
+import { combatLegacySnapshot, ensureCombatGrowthState, recoverPersistentInjuries } from './combat-growth.js';
 
 export { DISCOVERIES, skillEffects, skillName };
 export const SAVE_SCHEMA = 2;
@@ -63,7 +64,7 @@ export function createLife({name='旅人', seed=1, generation=1, lineage=[], hom
     if(!available.includes(birthVillageId))throw Error('その故郷は現在の出生先に選べません。');
     village=birthVillageId;
   }else village=chooseBirthVillage(seed,available);
-  return {
+  const state={
     schemaVersion:SAVE_SCHEMA,
     id:nowId(seed), name:cleanName(name), seed, generation,
     phase:'birth', zone:'village', front:0, lastDepartureCycle:2, ended:false,
@@ -78,6 +79,7 @@ export function createLife({name='旅人', seed=1, generation=1, lineage=[], hom
     history:[], lineage:Array.isArray(lineage)?clone(lineage):[],
     events:[{type:'born',worldSecond:0,text:`${cleanName(name)}が${village}に生まれた。`}],
   };
+  ensureCombatGrowthState(state);return state;
 }
 
 export function validateLife(raw) {
@@ -96,7 +98,7 @@ export function validateLife(raw) {
     if(!row||typeof row.buildingId!=='string'||!row.buildingId||row.buildingId.length>100||!p||!Number.isFinite(p.x)||!Number.isFinite(p.z))throw Error('建物内の位置データが不正です。');
     state.interior={buildingId:row.buildingId,returnPosition:{x:p.x,z:p.z}};
   }
-  state.name=cleanName(state.name); state.ageYears=state.ageSeconds/YEAR_SECONDS; return state;
+  state.name=cleanName(state.name);state.ageYears=state.ageSeconds/YEAR_SECONDS;ensureCombatGrowthState(state);recoverPersistentInjuries(state);return state;
 }
 
 export function serializeLife(state) { return JSON.stringify(validateLife(state)); }
@@ -185,7 +187,7 @@ export function setMoving(state, moving, yaw=state.yaw) {
 }
 
 function recover(state, dt) {
-  const armor=ARMORS[state.equipment.armor], capBase=100*armor.staminaScale,effects=skillEffects(state);
+  ensureCombatGrowthState(state);recoverPersistentInjuries(state);const armor=ARMORS[state.equipment.armor], capBase=100*armor.staminaScale,effects=skillEffects(state);
   state.staminaCap=clamp(Math.min(state.staminaCap,capBase),22,100);
   state.lastSpendSeconds+=dt;
   if(state.moving){state.stamina=Math.min(state.staminaCap,state.stamina+4*dt);return;}
@@ -196,6 +198,7 @@ function recover(state, dt) {
   if(rest)state.staminaCap=Math.min(capBase,state.staminaCap+8*dt);
   else if(state.lastSpendSeconds>=6)state.staminaCap=Math.min(capBase,state.staminaCap+.2*dt);
   if(rest && state.hp<state.maxHp)state.hp=Math.min(state.maxHp,state.hp+1.2*(1+effects.recovery)*dt);
+  if(rest&&state.zone==='village'&&state.ammo.staffCharges<state.ammo.staffMax){state.ammoRecovery=(Number(state.ammoRecovery)||0)+dt;if(state.ammoRecovery>=6){state.ammo.staffCharges=Math.min(state.ammo.staffMax,state.ammo.staffCharges+1);state.ammoRecovery=0;}}
 }
 
 export function spendStamina(state, amount) {
@@ -216,7 +219,7 @@ export function tickLife(state,{realDelta,lifeDelta=realDelta,station=null,pause
   if(paused||state.ended)return events;
   const beforeYear=Math.floor(state.ageYears);
   state.ageSeconds=Math.min(LIFE_SECONDS,state.ageSeconds+lifeDelta*state.clockRate);
-  state.ageYears=state.ageSeconds/YEAR_SECONDS;
+  state.ageYears=state.ageSeconds/YEAR_SECONDS;recoverPersistentInjuries(state);
   const afterYear=Math.floor(state.ageYears);
   if(beforeYear<4&&afterYear>=4&&state.phase==='birth'){
     state.phase='living';state.resting=false;pushEvent(state,'release','4歳。自分の足で歩き始めた。');events.push({type:'release'});
@@ -276,10 +279,12 @@ export function objectiveFor(state) {
 }
 
 export function lineageRecord(state,memento=null) {
-  return {generation:state.generation,name:state.name,age:Math.floor(state.ageYears),birthVillageId:state.birthVillageId,returnedHome:state.returns>0,memento:memento||null,defeats:state.defeats,equipment:clone(state.equipment),experiences:clone(state.experiences),skills:[...state.knownSkills]};
+  return {generation:state.generation,name:state.name,age:Math.floor(state.ageYears),birthVillageId:state.birthVillageId,returnedHome:state.returns>0,memento:memento||null,defeats:state.defeats,equipment:clone(state.equipment),experiences:clone(state.experiences),skills:[...state.knownSkills],combatLegacy:combatLegacySnapshot(state)};
 }
 
+function inheritedTechniqueSeed(seed,skill){let n=seed>>>0;for(const c of String(skill)){n=Math.imul(n^c.charCodeAt(0),16777619);}return(n>>>0)/4294967295;}
 export function rebirth(state,{name=state.name,memento=null,seed=(state.seed+0x9e3779b9)>>>0,villageId=null,villageIds=[state.birthVillageId]}={}) {
-  const record=lineageRecord(state,memento);
-  return createLife({name,seed,generation:state.generation+1,lineage:[...state.lineage,record],homelands:state.homelands,villageIds,birthVillageId:villageId});
+  const record=lineageRecord(state,memento),next=createLife({name,seed,generation:state.generation+1,lineage:[...state.lineage,record],homelands:state.homelands,villageIds,birthVillageId:villageId}),forms=record.combatLegacy?.forms||{};ensureCombatGrowthState(next);
+  for(const [skill,form] of Object.entries(forms)){const carried=Math.min(11,Math.floor((Number(form.uses)||0)*.22));if(carried<=0)continue;next.techniqueEvolution[skill]={uses:carried,hits:carried,jo:0,ha:carried,kyu:0,seed:inheritedTechniqueSeed(seed,skill),inheritedFrom:state.generation};}
+  next.combatLegacy.inheritedFrom=state.generation;return next;
 }
