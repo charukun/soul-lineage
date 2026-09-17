@@ -37,10 +37,10 @@ export async function requestDevelopPublication(c, report, { targetUrl } = {}) {
   const publicVerified = status('integration/develop')?.state === 'success' &&
     status('ops-board/public')?.state === 'success';
 
-  // A failed initial request may recover once after the underlying fault is fixed.
-  // A failed recovery is terminal for idle scans; public verification stays authoritative.
+  // Exact-source public success is authoritative even if a duplicate Controller report still
+  // contains merged entries. A failed recovery remains terminal only for idle recovery scans.
   const exhaustedRecovery = wake?.state === 'failure' && wake.description === failedRecoveryReceipt;
-  if (!report.merged.length && (publicVerified || exhaustedRecovery)) {
+  if (publicVerified || (!report.merged.length && exhaustedRecovery)) {
     return { state: 'already-requested-or-published', sha };
   }
 
@@ -67,6 +67,13 @@ export async function requestDevelopPublication(c, report, { targetUrl } = {}) {
     if (existing) {
       await record('success', `DEV/PULSE publisher ${existing.id} already active; public verification pending`);
       return { state: 'already-active', sha, run: existing.id, cancelled };
+    }
+
+    // The pending/success wake status is written before dispatch. If another serialized Controller
+    // reaches the same exact SHA before GitHub exposes the workflow run, absorb that duplicate here.
+    // An idle recovery pass still verifies that a real publisher exists and can repair an orphan.
+    if (report.merged.length && wake && ['pending', 'success'].includes(wake.state)) {
+      return { state: 'already-requested-or-published', sha, cancelled };
     }
 
     // A wake receipt proves only that dispatch was attempted. For an idle pass, require a real

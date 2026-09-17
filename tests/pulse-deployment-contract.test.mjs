@@ -51,7 +51,7 @@ test('PULSE title, canonical names and deployment metadata are wired together', 
   assert.equal(existsSync(new URL('../.github/workflows/pulse-task-worker.yml', import.meta.url)), false);
 });
 
-test('delivery wiring initializes only missing releases and preserves public/browser checks', () => {
+test('delivery wiring keeps PULSE verification after develop while branch pushes stay lightweight', () => {
   const workflow = text('.github/workflows/deploy.yml');
   assert.match(workflow, /INITIALIZE_GAME_ENVIRONMENTS: 'true'/);
   assert.match(workflow, /refresh_staging:/);
@@ -59,8 +59,11 @@ test('delivery wiring initializes only missing releases and preserves public/bro
   assert.match(workflow, /scripts\/verify-live\.mjs/);
   assert.match(workflow, /scripts\/verify-browser\.mjs/);
   const boardWorkflow = text('.github/workflows/ops-board.yml');
+  const triggers = boardWorkflow.split('permissions:')[0];
+  assert.doesNotMatch(triggers, /\bpush:/);
+  assert.match(triggers, /workflow_call:/);
+  assert.match(triggers, /workflow_dispatch:/);
   assert.match(boardWorkflow, /node ops-board\/publication-check\.mjs/);
   assert.match(text('ops-board/publication-check.mjs'), /PULSE_PUBLIC_VERIFIED/);
-  assert.match(boardWorkflow, /scripts\/application-catalog\.mjs/);
   assert.doesNotMatch(boardWorkflow, /grep -q '開発状況ボード'/);
 });
