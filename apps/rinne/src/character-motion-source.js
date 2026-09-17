@@ -1,6 +1,6 @@
 import { QA_FPS, qaSequenceAt, blendHumanoidPose, stabilizeMotionBoundaries } from '@soul/animations';
 import { captureMotionRest, captureNormalizedMotion } from '@soul/rendering/motion-quality';
-import { thirtySecondSlashBeat } from './character-motion-performance.js';
+import { thirtySecondEnbuState } from './character-motion-performance.js';
 
 export const WORKSHOP_MOTION_SOURCE_STATE='retired-conditional-model';
 
@@ -30,10 +30,15 @@ export async function bakeWorkshopMotionSource(runtime,{slashSeconds,revision,pr
   for(let frame=0;frame<=30*QA_FPS;frame++) {
     const time=frame/QA_FPS,row=qaSequenceAt(time),phase=row.localTime;
     actor._humanoidClock=time;actor._humanoidPhase=time;actor.vx=0;actor.vz=row.id==='walk'?1:row.id==='run'?3:0;
-    actor.attack=null;actor.combatReady=['draw','guard','slash','sheathe'].includes(row.id);actor.weaponTransition=['draw','sheathe'].includes(row.id);
+    actor.attack=null;actor.parryMotion=null;actor.zanshin=null;actor.combatReady=['draw','guard','slash','sheathe'].includes(row.id);actor.weaponTransition=['draw','sheathe'].includes(row.id);
     actor.weaponDraw=['guard','slash'].includes(row.id)?1:row.id==='draw'?row.progress:row.id==='sheathe'?1-row.progress:0;
-    const slashBeat=row.id==='slash'?thirtySecondSlashBeat(phase,slashSeconds):null;
-    if(slashBeat)actor.attack={id:`qa-slash-${slashBeat.index}`,kind:'slash',t:slashBeat.time,duration:slashSeconds};
+    if(row.id==='slash'){
+      const enbu=thirtySecondEnbuState(phase,slashSeconds);
+      if(enbu?.mode==='slash')actor.attack={id:`qa-enbu-slash-${enbu.index}`,kind:'slash',t:enbu.time,duration:slashSeconds};
+      else if(enbu?.mode==='parry')actor.parryMotion={sourceId:'qa-enbu-parry',t:enbu.time,duration:enbu.duration};
+      else if(enbu?.mode==='zanshin')actor.zanshin={id:'quiet',t:enbu.time,duration:enbu.duration};
+      else if(enbu?.mode==='move'){actor.vx=enbu.vx;actor.vz=enbu.vz;actor._humanoidPhase=phase*1.35;}
+    }
     // Bake primary animation, not elapsed spring simulation. Secondary motion is
     // deliberately reset for reproducible screenshots and remains a separate review.
     c.resetSpring=true;
@@ -45,5 +50,5 @@ export async function bakeWorkshopMotionSource(runtime,{slashSeconds,revision,pr
   for(let i=frames.length-31;i<frames.length;i++)frames[i]=blendHumanoidPose(frames[i],frames[0],(i-(frames.length-31))/30);
   const transitionRanges=[[2.9,3.15],[6.9,7.15],[10.98,11.5],[13.9,14.15],[23,23.3],[26.5,27.2]];
   const qualityFrames=stabilizeMotionBoundaries({frames,fps:QA_FPS,duration:30},transitionRanges);
-  return {version:1,fps:QA_FPS,duration:30,revision,sourceHeight:c.sourceHeight,frames,qualityFrames,transitionRanges,attachments,socket,sourceRest:rest,sources:['idle-01','walk','run-slow','runtime.weaponDraw','runtime.guard','runtime.naturalWeaponStance','authored-slash']};
+  return {version:1,fps:QA_FPS,duration:30,revision,sourceHeight:c.sourceHeight,frames,qualityFrames,transitionRanges,attachments,socket,sourceRest:rest,sources:['idle-01','walk','run-slow','runtime.weaponDraw','runtime.guard','runtime.naturalWeaponStance','runtime.parry','runtime.zanshin','authored-slash']};
 }
