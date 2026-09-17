@@ -1,3 +1,5 @@
+import './title-live-world.js';
+
 const clockRates=['1','5','10','20'];
 
 function installClockRateButton(){
