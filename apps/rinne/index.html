@@ -57,20 +57,22 @@
     <div class="world-vignette" aria-hidden="true"></div>
     <div id="actor-status-layer" class="actor-status-layer" aria-hidden="true"></div>
     <div id="chapter-mark" class="chapter-mark" hidden aria-hidden="true"><span>輪廻転焦</span><strong id="chapter-title"></strong><i></i></div>
-    <div id="loading-card" class="loading-card" aria-live="polite">
-      <div class="loading-world-art" aria-hidden="true">
-        <div class="loading-world-art-track">
-          <img src="./title-assets/world-loading-0.webp" alt="" fetchpriority="high" decoding="async">
-          <img src="./title-assets/world-loading-1.webp" alt="" decoding="async">
-          <img src="./title-assets/world-loading-2.webp" alt="" decoding="async">
-          <img src="./title-assets/world-loading-3.webp" alt="" decoding="async">
-        </div>
+    <div id="loading-card" class="loading-card" aria-live="polite" data-loading-step="1">
+      <div class="loading-live-world" aria-hidden="true">
+        <div class="loading-light"></div>
+        <div class="loading-mist loading-mist-far"></div>
+        <div class="loading-mist loading-mist-near"></div>
+        <div class="loading-orbit"><i></i><i></i><b></b></div>
       </div>
-      <div class="loading-emblem" aria-hidden="true"><span></span><i></i></div>
-      <strong id="loading-title">世界をつくっています</strong>
-      <small id="loading-message">景色を描いています</small>
-      <div class="loading-dots" aria-hidden="true"><i></i><i></i><i></i></div>
-      <button id="boot-retry" class="primary loading-retry" type="button" hidden><strong>もう一度</strong><small>世界を開き直す</small></button>
+      <div class="loading-panel">
+        <div class="loading-emblem" aria-hidden="true"><span></span><i></i></div>
+        <strong id="loading-title">世界をつくっています</strong>
+        <small id="loading-message">世界のしくみを呼び出しています</small>
+        <div id="loading-progress" class="loading-progress" role="progressbar" aria-label="世界生成の進捗" aria-valuemin="0" aria-valuemax="4" aria-valuenow="1"><i id="loading-progress-bar"></i></div>
+        <small id="loading-progress-meta" class="loading-progress-meta">1 / 4 · 仕組み</small>
+        <div class="loading-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <button id="boot-retry" class="primary loading-retry" type="button" hidden><strong>もう一度</strong><small>世界を開き直す</small></button>
+      </div>
     </div>
     <header class="hud-top">
       <button id="back-title" class="icon-button" type="button" aria-label="タイトルへ戻る">‹</button>
@@ -112,6 +114,7 @@
   </form>
 </dialog>
 <noscript>100年生を開くにはJavaScriptを有効にしてください。</noscript>
+<script type="module" src="./src/loading-screen.js"></script>
 <script type="module" src="./src/main.js"></script>
 <script type="module" src="./src/village-code-ui.js"></script>
 </body>
