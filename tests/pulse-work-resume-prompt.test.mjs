@@ -26,7 +26,7 @@ const fixture = {
   ],
 };
 
-test('Draft recovery prompt targets ordinary Drafts only and keeps exact recovery metadata', () => {
+test('WORKING recovery prompt targets observable ordinary Drafts only and keeps exact recovery metadata', () => {
   const items = draftWorkItems(fixture);
   assert.equal(items.length, 1);
   assert.equal(items[0].number, 424);
@@ -36,12 +36,14 @@ test('Draft recovery prompt targets ordinary Drafts only and keeps exact recover
   assert.deepEqual(items[0].targets, ['MasterCharacter']);
 });
 
-test('Draft recovery prompt requires a current GitHub-wide audit before acting', () => {
+test('WORKING recovery prompt requires current GitHub audit and Astra outcome semantics', () => {
   const prompt = buildWorkResumePrompt(fixture, '2026-09-16T05:30:00+09:00');
   assert.match(prompt, /charukun\/soul-lineage/);
+  assert.match(prompt, /Draft は optional transport/);
   assert.match(prompt, /GitHubから現在openかつDraftの通常PRを全件列挙/);
   assert.match(prompt, /Draft=実行中とは扱わない/);
-  assert.match(prompt, /STOPPED \/ INTERRUPTED/);
+  assert.match(prompt, /final reconciled exact head \+ sufficient evidence \+ pushed source/);
+  assert.match(prompt, /固定の二重検証やMicro Patch分類を追加しない/);
   assert.match(prompt, /READY_FOR_INTEGRATION/);
   assert.match(prompt, /main \/ Productionは変更しない/);
   assert.match(prompt, /Running \/ Queued \/ Pendingを待機・polling/);
@@ -52,13 +54,14 @@ test('Draft recovery prompt requires a current GitHub-wide audit before acting',
   assert.doesNotMatch(prompt, /"number": 23/);
 });
 
-test('PULSE exposes a mobile-safe button, dialog and copy action for the resume prompt', async () => {
+test('PULSE exposes a mobile-safe button, dialog and copy action for observable WORKING recovery', async () => {
   const [board, css] = await Promise.all([
     readFile(new URL('../ops-board/public/pull-board.js', import.meta.url), 'utf8'),
     readFile(new URL('../ops-board/public/pr-board.css', import.meta.url), 'utf8'),
   ]);
   assert.match(board, /buildWorkResumePrompt/);
-  assert.match(board, /作業中が本当に動いているかAIで全件確認/);
+  assert.match(board, /GitHubで見えているWORKINGをAIで再確認/);
+  assert.match(board, /DraftはWORKINGの全量ではありません/);
   assert.match(board, /AI再開プロンプト/);
   assert.match(board, /work-resume-prompt-dialog/);
   assert.match(board, /プロンプトをコピー/);
