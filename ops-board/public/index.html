@@ -51,9 +51,9 @@
         <span id="overview-alert-detail" class="overview-detail">止まっているものだけ表示</span>
       </a>
       <a id="overview-task-card" class="overview-card info" href="#tasks-section" data-open-disclosure="tasks-section">
-        <span class="overview-label">開発中</span>
+        <span class="overview-label">開発状態</span>
         <strong id="overview-task-value">確認中</strong>
-        <span id="overview-task-detail" class="overview-detail">作業中と統合待ち</span>
+        <span id="overview-task-detail" class="overview-detail">WORKING / READY / BLOCKED</span>
       </a>
     </nav>
 
@@ -73,7 +73,7 @@
 
       <details id="tasks-section" class="board-section board-disclosure" data-disclosure="section:tasks">
         <summary>
-          <span class="disclosure-heading"><span class="disclosure-kicker">作業</span><strong>開発中のタスク</strong></span>
+          <span class="disclosure-heading"><span class="disclosure-kicker">Astra</span><strong>開発タスク</strong></span>
           <span id="task-summary" class="disclosure-meta">確認中</span>
         </summary>
         <div class="board-disclosure-body">
@@ -89,11 +89,11 @@
 
           <details id="rescue-section" class="nested-disclosure" data-disclosure="section:rescue">
             <summary>
-              <span class="disclosure-heading"><span class="disclosure-kicker">自動修復</span><strong>自動統合と修復</strong></span>
-              <span class="disclosure-meta">Worker・修復工程</span>
+              <span class="disclosure-heading"><span class="disclosure-kicker">技術詳細</span><strong>自動統合と修復</strong></span>
+              <span class="disclosure-meta">Fast Lane・Repair・CI</span>
             </summary>
             <div class="nested-disclosure-body">
-              <p class="section-description">PRが何件たまっているか、どこで時間がかかっているか、あなたの確認が必要かを先に表示します。</p>
+              <p class="section-description">WORKING / READY / BLOCKED の裏側で、Integrationがどこまで進んでいるかを確認するための技術情報です。</p>
               <div id="integration-flow" class="card"><p class="empty">自動統合の状態を確認中</p></div>
               <div id="integration-rescue" class="card"><p class="empty">修復Workerの状態を確認中</p></div>
             </div>
@@ -151,7 +151,7 @@
             <summary>使い方</summary>
             <ol>
               <li><strong>今やること</strong>が0件なら、まず開発・公開の要約だけ見れば十分です。</li>
-              <li><strong>開発中のタスク</strong>を開くと作業中・統合待ち・完了PRとRescue詳細を確認できます。</li>
+              <li><strong>開発タスク</strong>は WORKING / READY / BLOCKED を先に見ます。Fast LaneやRepairは必要なときだけ技術詳細を開きます。</li>
               <li><strong>アプリの公開状況</strong>を開くと環境別の公開先を確認できます。</li>
               <li><strong>技術詳細</strong>はSHA、Actions、Integrationなどの診断が必要なときだけ開きます。</li>
             </ol>
