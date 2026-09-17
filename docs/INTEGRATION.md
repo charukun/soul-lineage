@@ -16,7 +16,7 @@ Integration は [`ASTRA_OUTCOME_CONTRACT.md`](ASTRA_OUTCOME_CONTRACT.md) の `RE
 - validated head と pushed head が一致する。
 - unresolved product choice がない。
 
-Draft は optional `WORKING` transport であり、Integration の prerequisite ではない。短寿命workerが最終 outcome 完成後に Ready PR を直接作ってもよい。Micro Patch / Normal の authoring route 名も Integration の入力契約にしない。
+Draft は optional `WORKING` transport であり、Integration の prerequisite ではない。短寿命workerが最終 outcome 完成後に Ready PR を直接作ってもよい。worker側の細分類やroute名を Integration の入力契約にしない。
 
 ```text
 Astra WORKING
@@ -140,7 +140,7 @@ Fast Lane、Repair、Reconciliation、CI phaseは技術詳細として表示し�
 ## 受入条件
 
 - Ready入力は Astra Outcome Contract を満たす final reconciled exact head
-- Draft / Micro Patch分類を Integration prerequisite にしない
+- optional Draft や worker側のroute分類を Integration prerequisite にしない
 - `Validate and build (tests=0) -> Fast Lane -> serialized expected-head/CAS merge` を維持
 - Fast RepairはReady後の mechanically safe な race/base driftだけを扱う
 - semantic/source repairは同じPRを `WORKING` に戻す
