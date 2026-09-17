@@ -12,10 +12,13 @@ const reviewNavigationEntries=new Set([
 
 config.plugins=[...(config.plugins||[]),{
   name:'rinne-review-navigation',
-  transformIndexHtml(html,ctx){
-    const path=ctx.path?.split('?')[0];
-    if(!reviewNavigationEntries.has(path))return html;
-    return {html,tags:[{tag:'script',attrs:{type:'module',src:'./src/review-navigation.js'},injectTo:'body'}]};
+  transformIndexHtml:{
+    order:'pre',
+    handler(html,ctx){
+      const path=ctx.path?.split('?')[0];
+      if(!reviewNavigationEntries.has(path))return html;
+      return {html,tags:[{tag:'script',attrs:{type:'module',src:'./src/review-navigation.js'},injectTo:'body'}]};
+    },
   },
 }];
 
