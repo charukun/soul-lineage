@@ -1,17 +1,19 @@
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
 const PARTS=Object.freeze(['head','torso','leftArm','rightArm','leftLeg','rightLeg']);
 const LEGACY_PROGRESS_KEYS=Object.freeze(['combatLessons','combatLessonRecent','techniqueEvolution','combatLegacy','combatLegacyFinal']);
+const BASIC_SKILL=id=>typeof id==='string'&&id.startsWith('basic.');
 
 function hash01(value){const text=String(value);let hash=2166136261;for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}return(hash>>>0)/4294967295;}
 function cleanSeverity(value){return clamp(Number(value)||0,0,1);}
 function injuryRow(value,ageSeconds=0){if(value&&typeof value==='object')return{severity:cleanSeverity(value.severity),at:Number.isFinite(value.at)?value.at:ageSeconds};return{severity:cleanSeverity(value),at:ageSeconds};}
 
-/** Removes progression fields accidentally introduced by the combat-evolution merge. */
+/** Removes progression fields accidentally introduced by the old discovery/combat-growth systems. */
 export function stripCombatProgressionState(state){
   if(!state||typeof state!=='object')return state;
   for(const key of LEGACY_PROGRESS_KEYS)delete state[key];
   if(state.experiences&&typeof state.experiences==='object')delete state.experiences.combat;
-  if(Array.isArray(state.lineage))state.lineage=state.lineage.map(row=>{if(!row||typeof row!=='object')return row;const clean={...row};delete clean.combatLegacy;if(clean.experiences&&typeof clean.experiences==='object'){clean.experiences={...clean.experiences};delete clean.experiences.combat;}return clean;});
+  if(Array.isArray(state.knownSkills))state.knownSkills=state.knownSkills.filter(BASIC_SKILL);
+  if(Array.isArray(state.lineage))state.lineage=state.lineage.map(row=>{if(!row||typeof row!=='object')return row;const clean={...row};delete clean.combatLegacy;if(clean.experiences&&typeof clean.experiences==='object'){clean.experiences={...clean.experiences};delete clean.experiences.combat;}if(Array.isArray(clean.skills))clean.skills=clean.skills.filter(BASIC_SKILL);return clean;});
   state.pendingDiscoveries=[];
   return state;
 }
