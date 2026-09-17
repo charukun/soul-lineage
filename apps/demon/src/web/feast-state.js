@@ -14,7 +14,7 @@ export function feastEnvelope(progress,age=Infinity,{reducedMotion=false}={}){
  const release=Number.isFinite(age)&&age>=0&&age<FEAST_SECONDS;
  const bloom=release?ease(age/.10)*(1-ease((age-.24)/1.65)):0;
  const bite=feeding?Math.max(...BITE_BEATS.map(at=>pulse(p,at,.055))):0;
- const omen=feeding?ease((p-.04)/.12)*(1-ease((p-.30)/.12)):0;
+ const omen=feeding?ease((p-.02)/.10)*(1-ease((p-.30)/.12)):0;
  const bind=feeding?ease((p-.18)/.16)*(1-ease((p-.76)/.16)):0;
  const eclipse=feeding?Math.max(...BITE_BEATS.map(at=>pulse(p,at,.09))):0;
  const torrent=feeding?ease((p-.60)/.14)*(1-ease((p-.94)/.06)):0;
