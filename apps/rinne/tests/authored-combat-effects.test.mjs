@@ -29,10 +29,10 @@ test('enemy impact is at the player, not the attacking enemy',()=>{
   const [cue]=combatEffectCues([{type:'enemy-hit',sourceId:'e2',damage:2}],context);
   assert.deepEqual(cue.position,{x:2,y:1,z:3});assert.deepEqual(cue.color,[255,126,96,255]);
 });
-test('paired one-motion and player-hit produce one finisher, with a stronger kyu impact',()=>{
+test('paired one-motion and player-hit produce one dedicated authored finisher',()=>{
   const cues=combatEffectCues([{type:'one-motion',targetId:'e1',damage:12},{...hit,manual:true,phase:'one'}],context);
-  assert.equal(cues.length,2);assert.equal(cues[0].kind,'finisher');assert.equal(cues[0].scale,1.8);
-  assert.equal(combatEffectCues([{...hit,phase:'kyu'}],context)[0].kind,'finisher');
+  assert.equal(cues.length,2);assert.equal(cues[0].kind,'finisher');assert.equal(cues[0].effect,'finisher');assert.equal(cues[0].scale,1.15);assert.equal(cues[0].lifetime,1.8);
+  const kyu=combatEffectCues([{...hit,phase:'kyu'}],context)[0];assert.equal(kyu.kind,'finisher');assert.equal(kyu.effect,'finisher');
 });
 test('multiple real contacts in the same batch are retained; a standalone manual event works',()=>{
   assert.equal(combatEffectCues([hit,{...hit,targetId:'e2'},hit],context).filter(c=>c.effect==='impact').length,3);
