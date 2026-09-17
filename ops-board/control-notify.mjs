@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 export async function notifyControlState(state, {
@@ -25,11 +25,14 @@ export async function notifyControlState(state, {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const path = process.argv[2];
-  if (!path) throw new Error('PULSE_STATE_PATH_REQUIRED');
-  const state = JSON.parse(readFileSync(path, 'utf8'));
-  const result = await notifyControlState(state, {
-    url: process.env.NTFY_TOPIC_URL || '',
-    token: process.env.NTFY_TOKEN || '',
-  });
-  console.log(`PULSE_ACTION_NOTIFY=${result}`);
+  if (!path || !existsSync(path)) {
+    console.log('PULSE_ACTION_NOTIFY=skipped-no-state');
+  } else {
+    const state = JSON.parse(readFileSync(path, 'utf8'));
+    const result = await notifyControlState(state, {
+      url: process.env.NTFY_TOPIC_URL || '',
+      token: process.env.NTFY_TOKEN || '',
+    });
+    console.log(`PULSE_ACTION_NOTIFY=${result}`);
+  }
 }
