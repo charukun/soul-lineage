@@ -12,6 +12,7 @@ test('Visual Review publication verifies direct navigation, real models and VFX 
   assert.match(workflow,/workflow_call:/);assert.match(workflow,/source_sha:[\s\S]*required: true/);assert.match(workflow,/npm run build:review/);assert.match(workflow,/visual-review\/public/);assert.match(workflow,/browser-verified/);
   assert.match(smoke,/version\.json/);assert.match(smoke,/version\.commit,expectedSha|version\.commit, expectedSha/);
   assert.match(smoke,/name:\s*'desktop'[\s\S]*1280[\s\S]*900/);assert.match(smoke,/name:\s*'mobile'[\s\S]*390[\s\S]*844[\s\S]*isMobile:\s*true/);
+  assert.match(smoke,/new URL\('review\.html',reviewUrl\)/);assert.match(smoke,/reviewHtmlDirect:true/);
   assert.match(smoke,/data-review-target/);assert.match(smoke,/page\.goBack/);assert.match(smoke,/characters\.html\?review=motion/);assert.match(smoke,/review-assets\.html/);assert.match(smoke,/review-effects\.html/);assert.match(smoke,/review-battle\.html/);
   assert.match(smoke,/battleGeometry.*runtime-models/);assert.match(smoke,/battleModels.*ready/);assert.match(smoke,/kaykit\.mage\.v1/);assert.match(smoke,/kaykit\.barbarian\.v1/);assert.match(smoke,/battle-toggle/);assert.match(smoke,/battle-restart/);assert.match(smoke,/fx-status/);assert.match(smoke,/原本再生可能/);
   assert.equal((review.match(/data-review-target=/g)||[]).length,5);assert.doesNotMatch(review,/<iframe\b/);assert.doesNotMatch(review,/develop-review\.js|focus-shell|app-context/);
