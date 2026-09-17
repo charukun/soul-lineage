@@ -217,12 +217,18 @@ jobs:
         env:
           BASE_SHA: ${{ steps.base.outputs.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: node scripts/affected.mjs "$BASE_SHA" "$HEAD_SHA"
+          TARGET_BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          if [ "$TARGET_BASE" = "develop" ]; then
+            node ../control/scripts/affected.mjs "$BASE_SHA" "$HEAD_SHA" dev
+          else
+            node scripts/affected.mjs "$BASE_SHA" "$HEAD_SHA"
+          fi
       - run: npm ci
         working-directory: work
         if: >-
           steps.rescue-fast.outputs.reuse != 'true' &&
-          (steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.has_packages == 'true' || steps.plan.outputs.infrastructure == 'true')
+          (github.event.pull_request.base.ref == 'main' || steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.infrastructure == 'true')
       - name: DEV no-test validation or main fast verification
         if: steps.rescue-fast.outputs.reuse != 'true'
         working-directory: work
@@ -232,7 +238,7 @@ jobs:
           TARGET_BASE: ${{ github.event.pull_request.base.ref }}
         run: |
           if [ "$TARGET_BASE" = "develop" ]; then
-            node scripts/validate.mjs dev "$BASE_SHA" "$HEAD_SHA"
+            node ../control/scripts/validate.mjs dev "$BASE_SHA" "$HEAD_SHA"
           else
             node scripts/validate.mjs fast "$BASE_SHA" "$HEAD_SHA"
           fi

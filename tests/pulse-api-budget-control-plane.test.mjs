@@ -13,15 +13,11 @@ test('Ready handoff no longer duplicates the normal Fast Lane wake', () => {
   assert.doesNotMatch(handoff, /actions: write/);
 });
 
-test('normal develop CI does not dispatch browser repair while the legacy recorder remains explicit-only', () => {
+test('normal develop has no browser repair dispatch or legacy recorder workflow input', () => {
   const ci = text('.github/workflows/ci.yml');
   const deploy = text('.github/workflows/deploy.yml');
-  assert.doesNotMatch(ci, /browser-repair-dispatch:/);
-  assert.doesNotMatch(ci, /repair_scope:\s*'pr'/);
-  const repair = deploy.split('  repair-ticket:')[1].split('\n  integrate:')[0];
-  assert.match(repair, /name: Record explicit legacy PR browser repair state/);
-  assert.match(repair, /github\.event_name == 'workflow_dispatch' && inputs\.repair_scope == 'pr'/);
-  assert.match(repair, /node scripts\/browser-repair-ticket\.mjs/);
+  assert.doesNotMatch(ci, /browser-repair-dispatch:|repair_scope:\s*'pr'/);
+  assert.doesNotMatch(deploy, /repair-ticket:|repair_scope|repair_conclusion|repair_head_sha|repair_pr_number|repair_run_url|repair_artifact|browser-repair-ticket\.mjs/);
 });
 
 test('publisher coalescing reads one bounded workflow snapshot', () => {

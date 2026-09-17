@@ -132,16 +132,16 @@ jobs:
         env:
           BASE_SHA: ${{ matrix.base }}
           HEAD_SHA: ${{ matrix.head }}
-        run: node scripts/affected.mjs "$BASE_SHA" "$HEAD_SHA"
+        run: node ../control/scripts/affected.mjs "$BASE_SHA" "$HEAD_SHA" dev
       - run: npm ci
         working-directory: work
-        if: steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.has_packages == 'true' || steps.plan.outputs.infrastructure == 'true'
+        if: steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.infrastructure == 'true'
       - name: DEV no-test validation
         working-directory: work
         env:
           BASE_SHA: ${{ matrix.base }}
           HEAD_SHA: ${{ matrix.head }}
-        run: node scripts/validate.mjs dev "$BASE_SHA" "$HEAD_SHA"
+        run: node ../control/scripts/validate.mjs dev "$BASE_SHA" "$HEAD_SHA"
       - name: Record exact stack DEV evidence for Integration
         working-directory: work
         env:
