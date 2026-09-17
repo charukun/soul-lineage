@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {INCAPACITATION_SECONDS,preyCapturePoint,sampleDevourMotion,samplePreyMotion} from './devour-motion.js';
+import {INCAPACITATION_SECONDS,devourActorScale,devourInteractionFrame,devourInteractionSide,sampleDevourMotion,samplePreyMotion} from './devour-motion.js';
 import {blendPoint,stepCombatPresentation} from '../combat-presentation.js';
 const up=new T.Vector3(0,1,0),temp=new T.Vector3();
 const palette=new Map();
@@ -48,6 +48,10 @@ function stableFallSide(actor,pose){
  for(let i=0;i<text.length;i++)hash=(hash*31+text.charCodeAt(i))|0;
  return(hash&1)?1:-1;
 }
+function worldToActor(capture,world){
+ const scale=devourActorScale(capture),yaw=Number(capture?.yaw)||0,cs=Math.cos(yaw),sn=Math.sin(yaw),dx=world.x-(Number(capture?.x)||0),dz=world.z-(Number(capture?.z)||0);
+ return[(cs*dx-sn*dz)/scale,world.y/scale,(sn*dx+cs*dz)/scale];
+}
 export function animateCreature(g,a,time,options={}){
  const u=g.userData,m=u.monster,rawPose=a.dead?null:a.pose;
  const frameDt=Number.isFinite(options.dt)?options.dt:Number.isFinite(u.combatTime)?Math.max(0,time-u.combatTime):1/60;u.combatTime=time;
@@ -65,8 +69,10 @@ export function animateCreature(g,a,time,options={}){
  const baseHand=[s*(m?.47:.36),m?.71:1.03,.05-sw*step*.8],combatHand=q?(s===1?q.hand:q.left):baseHand,hand=blendPoint(baseHand,combatHand,transition.weight);
  const shoulder=[s*.28,1.47,-.025],elbow=[s*(m?.58:.38),(1.47+hand[1])*.5-.1,hand[2]*.47-.10];connect(arm.upper,shoulder,elbow);connect(arm.lower,elbow,hand);arm.hand.position.set(...hand);for(let j=0;j<arm.claws.length;j++){let c=arm.claws[j];c.position.set(hand[0]+(j-1)*.066,hand[1]-.12,hand[2]+.085);c.rotation.x=Math.PI*.83;}
  if(s===1){const baseTip=[baseHand[0],baseHand[1]+.9,baseHand[2]+.3],combatTip=q?.tip||baseTip,tip=blendPoint(baseTip,combatTip,transition.weight);u.weapon.position.set(...hand);u.weapon.quaternion.setFromUnitVectors(up,temp.set(tip[0]-hand[0],tip[1]-hand[1],tip[2]-hand[2]).normalize());}}
- if(m&&!a.dead&&options.eating&&Number.isFinite(a.devourProgress))applyDevourPose(g,sampleDevourMotion(a.devourProgress));
- else if(m&&!a.dead&&!rawPose&&!locomotion&&options.feast>0)applyFeastPose(g,options.feast);
+ if(m&&!a.dead&&options.eating&&Number.isFinite(a.devourProgress)){
+  const capture={x:a.x,z:a.z,yaw:a.yaw||0,form:options.form,growthScale:a.growthScale,scale:formScale*mealGrowth},motion=samplePreyMotion(a.devourProgress,1,1,devourInteractionSide(capture));
+  applyDevourPose(g,sampleDevourMotion(a.devourProgress),devourInteractionFrame({x:a.x,z:a.z,yaw:a.yaw||0},capture,motion),capture);
+ }else if(m&&!a.dead&&!rawPose&&!locomotion&&options.feast>0)applyFeastPose(g,options.feast);
  u.weapon.visible=!m||!a.dead;
  if(a.dead){
   if(m){g.rotation.z=.35;g.position.y=.13;u.body.rotation.x=.12;}
@@ -91,27 +97,36 @@ function applyFeastPose(g,strength){
  g.userData.torso.scale.x*=1+k*.10;
 }
 function bodyLocal(body,x,y,z){return point.set(x,y,z).sub(body.position).applyQuaternion(inverse).toArray();}
-function applyDevourPose(g,p){
- const u=g.userData;
- u.body.rotation.set(p.pitch,p.twist,p.roll);
+function applyDevourPose(g,p,interaction=null,capture=null){
+ const u=g.userData,recoil=interaction?.recoil||0,side=interaction?.side||1;
+ u.body.rotation.set(p.pitch-recoil*.10,p.twist-side*recoil*.045,p.roll+side*recoil*.035);
  u.body.position.copy(pivot).sub(point.copy(pivot).applyQuaternion(u.body.quaternion));
  u.body.position.y+=p.drop;inverse.copy(u.body.quaternion).invert();
- u.head.rotation.set(p.headPitch,p.headYaw,p.headRoll);u.jaw.rotation.x=p.jaw;
- u.torso.scale.z*=1+p.throat*.10;
+ let headYaw=p.headYaw,headPitch=p.headPitch;
+ if(interaction&&capture){
+  const bite=worldToActor(capture,interaction.bite),yaw=Math.atan2(bite[0],Math.max(.06,bite[2])),dy=bite[1]-1.78,flat=Math.hypot(bite[0],bite[2]);
+  headYaw+=(yaw-headYaw)*interaction.mouthWeight*.72;headPitch+=(Math.atan2(-dy,Math.max(.12,flat))-headPitch)*interaction.mouthWeight*.34;
+ }
+ u.head.rotation.set(headPitch,headYaw,p.headRoll-side*recoil*.04);u.jaw.rotation.x=p.jaw;
+ u.torso.scale.z*=1+p.throat*.10;u.torso.scale.x*=1+recoil*.045;
  u.wings.rotation.y=p.twist*.55;
  for(const {leg,arm} of u.limbs){
-  const s=leg.s,stance=p.stance;
-  const foot=bodyLocal(u.body,s*(.17+.065*stance),.07,.08+s*.07*stance);
+  const s=leg.s,stance=p.stance+(interaction?.haul||0)*.08;
+  const foot=bodyLocal(u.body,s*(.17+.065*stance),.07,.08+s*.07*stance-side*(interaction?.haul||0)*.025);
   const knee=bodyLocal(u.body,s*(.19+.075*stance),.46+p.drop*.5,.14+.20*stance);
   connect(leg.upper,[s*.16,.91,0],knee);connect(leg.lower,knee,foot);
   leg.foot.position.set(...foot);leg.foot.quaternion.copy(inverse);
-  const hand=bodyLocal(u.body,s*p.handX,p.handY+(s<0?.035*stance:0),p.handZ+(s<0?.025*stance:0));
-  const shoulder=[s*.28,1.47,-.025];
-  const elbow=[s*(.58-.10*stance),(1.47+hand[1])*.5-.12,hand[2]*.45-.10];
+  const authored=bodyLocal(u.body,s*p.handX,p.handY+(s<0?.035*stance:0),p.handZ+(s<0?.025*stance:0));
+  let hand=authored,grip=0;
+  if(interaction&&capture){
+   const targetWorld=s===interaction.side?interaction.lower:interaction.upper,targetRoot=worldToActor(capture,targetWorld),target=bodyLocal(u.body,...targetRoot);
+   grip=interaction.grip*interaction.gripReach;hand=blendPoint(authored,target,grip);
+  }
+  const shoulder=[s*.28,1.47,-.025],elbow=[s*(.58-.10*stance),(1.47+hand[1])*.5-.12-grip*.035,hand[2]*.45-.10];
   connect(arm.upper,shoulder,elbow);connect(arm.lower,elbow,hand);arm.hand.position.set(...hand);
   for(const [j,claw] of arm.claws.entries()){
    claw.position.set(hand[0]+(j-1)*.054,hand[1]-.08,hand[2]+.045);
-   claw.rotation.x=Math.PI*(.83-.22*stance);
+   claw.rotation.x=Math.PI*(.83-.22*stance-.10*grip);
   }
  }
 }
@@ -138,8 +153,8 @@ function applyIncapacitatedPose(g,p,capture,origin){
   if(s===1){u.weapon.position.set(...hand);u.weapon.rotateZ(side*.42*p.weaponDrop);}
  }
  if(!capture||p.capture<=0)return;
- const anchor=preyCapturePoint(origin,capture,p),yaw=capture.yaw||0;
- g.position.x=anchor.x;g.position.z=anchor.z;g.position.y+=p.lift*p.capture;
- g.rotation.y+=Math.atan2(Math.sin(yaw-g.rotation.y),Math.cos(yaw-g.rotation.y))*p.capture;
- g.scale.setScalar(1-p.compression*p.capture);
+ const frame=devourInteractionFrame(origin,capture,p);
+ g.position.set(frame.root.x,frame.root.y,frame.root.z);g.rotation.x=p.rootPitch*(1-p.capture*.55);g.rotation.y=frame.root.yaw;g.rotation.z=frame.root.roll;g.scale.setScalar(frame.root.scale);
+ u.body.rotation.x-=frame.recoil*.055;u.body.rotation.z+=frame.side*frame.recoil*.045;
+ u.head.rotation.x+=frame.recoil*.08;u.head.rotation.z-=frame.side*frame.recoil*.06;
 }
