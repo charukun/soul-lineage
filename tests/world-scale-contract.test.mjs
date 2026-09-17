@@ -7,7 +7,8 @@ import {defs as muraDefs} from '../packages/world/src/mura/catalog.js';
 import {defs as villageDefs} from '../apps/village/src/game/catalog.js';
 import {createMuraModels} from '../packages/rendering/src/mura/models.js';
 import {resolveMuraHouseVisual} from '../packages/rendering/src/mura/building-visual.js';
-import {HOUSING_WORLD_UNITS} from '../packages/housing/catalog.js';
+import {HOUSING_WORLD_UNITS,ITEMS} from '../packages/housing/catalog.js';
+import {makeModel} from '../packages/housing/models.js';
 import {makeVillage,RAID_WORLD_UNITS} from '../packages/raid/world.js';
 import {worldScaleKernel} from '../packages/platform-web/src/world-scale-kernel.js';
 import {presencePolicy} from '../packages/network/src/presence-lod.js';
@@ -49,10 +50,14 @@ test('residential tents are compact human-scale assets in every MURA renderer',(
  assert.ok(resolveMuraHouseVisual('home'),'permanent homes still use the shared authored house visual');
 });
 
-test('尽喰廻遊 raid villages use the same metre unit contract',()=>{
+test('尽喰廻遊 raid villages and housing visuals use metre-scale dimensions',()=>{
  assert.equal(HOUSING_WORLD_UNITS,'metres');
  assert.equal(RAID_WORLD_UNITS,'metres');
  const village=makeVillage({id:'world-scale-test',seed:7,name:'scale',target:'traveller',source:'generated',raidScale:'small'});
  assert.equal(village.units,'metres');
  assert.ok(village.entities.length>0);
+ const cottage=boundsOf(makeModel('cottage',0,1,{optimize:false})),declared=ITEMS.cottage;
+ assert.ok(Math.abs(cottage.x-declared.w)<.4,`Jinku cottage width ${cottage.x}m vs ${declared.w}m`);
+ assert.ok(Math.abs(cottage.z-declared.d)<.4,`Jinku cottage depth ${cottage.z}m vs ${declared.d}m`);
+ assert.ok(cottage.y>2&&cottage.y<4.5,`Jinku cottage height ${cottage.y}m`);
 });
