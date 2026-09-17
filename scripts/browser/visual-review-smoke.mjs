@@ -23,6 +23,10 @@ async function verifyProfile(profile){
   const activate=locator=>profile.hasTouch?locator.tap():locator.click();
   const home=async()=>{await page.goBack({waitUntil:'domcontentloaded'});await page.locator('.review-launcher').waitFor({state:'visible',timeout:15000});};
   try{
+    const directEntry=new URL('review.html',reviewUrl);directEntry.searchParams.set('source',expectedSha);directEntry.searchParams.set('profile',profile.name);
+    const directResponse=await page.goto(directEntry.toString(),{waitUntil:'domcontentloaded',timeout:30000});assert.ok(directResponse?.ok());
+    assert.equal(await page.title(),'輪廻転焦 Visual Review');await page.locator('.review-launcher').waitFor({state:'visible',timeout:15000});
+
     const entry=new URL(reviewUrl);entry.searchParams.set('source',expectedSha);entry.searchParams.set('profile',profile.name);
     const response=await page.goto(entry.toString(),{waitUntil:'domcontentloaded',timeout:30000});assert.ok(response?.ok());
     assert.equal(await page.title(),'輪廻転焦 Visual Review');await page.locator('.review-launcher').waitFor({state:'visible',timeout:15000});
@@ -53,9 +57,9 @@ async function verifyProfile(profile){
 
     assert.deepEqual(pageErrors,[]);assert.deepEqual(requestFailures,[]);
     const screenshot=profile.name==='desktop'?'public.png':`public-${profile.name}.png`;await page.screenshot({path:resolve(reportDir,screenshot),fullPage:true});
-    return{name:profile.name,viewport:profile.viewport,isMobile:profile.isMobile,hasTouch:profile.hasTouch,widthOk,effectStatus,effectScreenshot,battleTime,battleResult,heroModel,enemyModel,modelStatus,battleScreenshot,pageErrors,requestFailures,screenshot};
+    return{name:profile.name,viewport:profile.viewport,isMobile:profile.isMobile,hasTouch:profile.hasTouch,widthOk,reviewHtmlDirect:true,effectStatus,effectScreenshot,battleTime,battleResult,heroModel,enemyModel,modelStatus,battleScreenshot,pageErrors,requestFailures,screenshot};
   }catch(error){await page.screenshot({path:resolve(reportDir,`failure-${profile.name}.png`),fullPage:true}).catch(()=>{});writeFileSync(resolve(reportDir,'failure.json'),JSON.stringify({sourceSha:expectedSha,url:reviewUrl.toString(),version,profile,completedProfiles:results,pageErrors,requestFailures,failures:[String(error?.stack||error)],checkedAt:new Date().toISOString()},null,2));throw error;}finally{await context.close().catch(()=>{});}
 }
 
 try{browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader']});for(const profile of profiles)results.push(await verifyProfile(profile));writeFileSync(resolve(reportDir,'receipt.json'),JSON.stringify({sourceSha:expectedSha,url:reviewUrl.toString(),version,profiles:results,checkedAt:new Date().toISOString()},null,2));}finally{if(browser)await browser.close().catch(()=>{});}
-console.log('VISUAL REVIEW BROWSER VERIFIED',JSON.stringify({sourceSha:expectedSha,url:reviewUrl.toString(),profiles:results.map(row=>row.name),directNavigation:true,runtimeModels:true}));
+console.log('VISUAL REVIEW BROWSER VERIFIED',JSON.stringify({sourceSha:expectedSha,url:reviewUrl.toString(),profiles:results.map(row=>row.name),directNavigation:true,reviewHtmlDirect:true,runtimeModels:true}));
