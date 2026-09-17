@@ -16,8 +16,8 @@ const phaseLabels = Object.freeze({open:'序候補',middle:'破候補',finish:'�
 const appLabels=Object.freeze({rinne:'輪廻転焦',village:'MURAAAAAAA',demon:'尽喰廻遊'});
 const appContexts=Object.freeze({
   rinne:{model:PROTAGONIST_VILLAGER_MODEL_ID,detail:'主人公はKayKit Rig_Medium互換PRIMARY。母・敵も同じKayKit familyから解決。',camera:'工房の固定カメラ'},
-  village:{model:`${KAYKIT_MODEL_BY_KEY.rogue.id} / guard: ${KAYKIT_MODEL_BY_KEY.knight.id}`,detail:'住民の通常描画をKayKitへ統一。procedural人体はモデル読込失敗時だけfallback。',camera:'Village通常距離'},
-  demon:{model:KAYKIT_MODEL_BY_KEY.knight.id,detail:'人間NPCは固定KayKit Knightを共有loaderで読込。魔物プレイヤーは別の非人間contract。',camera:'Demon通常距離'}
+  village:{model:`identity: ${KAYKIT_MODEL_BY_KEY.rogue.id} / ${KAYKIT_MODEL_BY_KEY.knight.id}`,detail:'住民は人物IDでKayKitモデルを固定。護衛化しても人物の顔・体型を変えず、roleは衣装・装備だけに反映。procedural人体は読込失敗時だけfallback。',camera:'Village通常距離'},
+  demon:{model:KAYKIT_MODEL_BY_KEY.knight.id,detail:'人間NPCはKayKit基盤を共有loaderで読込し、人物ID由来の顔・体型をrole変更から分離。魔物プレイヤーは別の非人間contract。',camera:'Demon通常距離'}
 });
 
 const build = typeof __BUILD_INFO__ === 'object' && __BUILD_INFO__ ? __BUILD_INFO__ : {branch:'develop',commit:'local'};
@@ -65,7 +65,7 @@ function applyEmbeddedContext(frame){
     const win=frame?.contentWindow,doc=frame?.contentDocument;if(!win||!doc)return;
     const mapped=selectedApp==='village'?'village':selectedApp==='demon'?'demon':'studio';
     const select=doc.getElementById('quality-context');
-    if(select&&select.value!==mapped){select.value=mapped;select.dispatchEvent(new Event('change',{bubbles:true}));}
+    if(select&&select.value!==mapped){select.value=mapped;select.dispatchEvent(new win.Event('change',{bubbles:true}));}
     const studio=win.characterStudio;
     if(studio?.review?.ready){studio.review.aim(selectedApp==='village'?'village':selectedApp==='demon'?'demon':'front');}
   }catch{/* A still-loading embedded tool keeps its own defaults. */}
