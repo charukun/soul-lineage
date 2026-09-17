@@ -73,6 +73,8 @@ GitHub 標準状態をそのまま使う。
 
 **develop向けGitHub CIは自動テストを実行しない。** Ready後の `Validate and build` は、exact-headの差分/構文・静的check・code-health・必要なbuild可否とIntegration用artifactを確認するだけで、`node --test`、browser smoke、gameplay/WebGLテストは実行しない。Fast Repairのexact-head再検証も同じtest-free DEV contractを使う。
 
+さらにDEV CIの作業量は変更責任に限定する。`docs/**` だけの変更ではinstall/buildを行わず、`.github/**`・Integration/運用script・root `tests/**` などcontrol-planeだけの変更でもgame app/packageをaffected扱いせず、`npm ci`・app buildを起動しない。app変更はそのapp、shared package変更は実際のconsumer app、workspace manifest / lockfile / build基盤の変更だけが必要範囲を広げる。control-plane変更を理由に全app buildへ拡大しない。
+
 これはテストの削除ではない。実装セッションはReady前に変更機能の局所テストを行い、既存テスト資産は保持する。全体回帰、browser/WebGL、P2P等の重い検証は、ユーザー明示playtest、`full_verification=true`、専門evidence workflow、main / Productionの品質gateで実行する。main / Production の blocking gate は不変。
 
 テストは実装の書き方ではなく、ユーザー・ドメイン・公開インターフェースから観測できる契約を優先する。特に UI / browser テストでは、次を原則とする。
