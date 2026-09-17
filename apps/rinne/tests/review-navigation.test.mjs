@@ -20,6 +20,7 @@ test('all Visual Review specialist pages receive the shared navigation module',a
   const entries=vite.match(/const reviewNavigationEntries=new Set\(\[([\s\S]*?)\]\);/)?.[1]||'';
   for(const page of ['/characters.html','/characters-advanced.html','/review-assets.html','/review-effects.html','/review-battle.html'])assert.match(entries,new RegExp(`'${page.replaceAll('.','\\.')}'`));
   assert.doesNotMatch(entries,/'\/review\.html'/);
+  assert.match(vite,/order:'pre'/);
   assert.match(vite,/src:'\.\/src\/review-navigation\.js'/);
 });
 
