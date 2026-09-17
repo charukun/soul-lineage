@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {KAYKIT_MODELS,YEAR_MS,appearanceForCharacter,createCharacter} from '@soul/characters';
 import {createKaykitCharacterPools} from './rebuild/kaykit-character-pool.js';
 import {applyTidebreakPose,tidebreakFrameFromSnapshot} from './rebuild/tidebreak-pose.js';
+import {reviewBattleCameraFrame} from './review-battle-state.js';
 
 export const REVIEW_BATTLE_MODELS=Object.freeze(KAYKIT_MODELS.map(model=>Object.freeze({id:model.id,label:model.label})));
 
@@ -44,7 +45,8 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   renderer.setPixelRatio(Math.min(Number(globalThis.devicePixelRatio)||1,1.5));
 
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b1110);scene.fog=new THREE.Fog(0x0b1110,10,24);
-  const camera=new THREE.PerspectiveCamera(38,1,.08,50);camera.position.set(0,4.7,7.5);camera.lookAt(0,.95,0);
+  const camera=new THREE.PerspectiveCamera(38,1,.08,50);camera.position.set(0,4.7,7.5);
+  const cameraLook=new THREE.Vector3(0,.95,0),cameraTargetPosition=new THREE.Vector3(),cameraTargetLook=new THREE.Vector3();camera.lookAt(cameraLook);
   scene.add(new THREE.HemisphereLight(0xdde8e3,0x24302d,2.35));
   const key=new THREE.DirectionalLight(0xffedca,3.4);key.position.set(-4,7,5);scene.add(key);
   const rim=new THREE.DirectionalLight(0x9bc7d1,1.5);rim.position.set(5,4,-4);scene.add(rim);
@@ -104,9 +106,18 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   }
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
 
-  function sync(core,dt=0){
+  function updateCamera(core,dt,followCamera){
+    const frame=reviewBattleCameraFrame(core,{follow:followCamera});
+    cameraTargetPosition.set(frame.position.x,frame.position.y,frame.position.z);cameraTargetLook.set(frame.look.x,frame.look.y,frame.look.z);
+    const step=Math.max(1/120,Math.min(.05,Number(dt)||1/60)),blend=1-Math.exp(-step*8);
+    camera.position.lerp(cameraTargetPosition,blend);cameraLook.lerp(cameraTargetLook,blend);camera.lookAt(cameraLook);
+    canvas.dataset.cameraFollow=followCamera?'on':'off';
+  }
+
+  function sync(core,dt=0,{followCamera=true}={}){
     resize();const now=performance.now()/1000;
     if(core){animateSide('hero',core.hero,core.enemy,now,dt);animateSide('enemy',core.enemy,core.hero,now,dt);}
+    updateCamera(core,dt,followCamera);
     const heroActual=sides.hero.actor?.root?.userData?.characterModel||'';
     const enemyActual=sides.enemy.actor?.root?.userData?.characterModel||'';
     canvas.dataset.heroModel=heroActual;canvas.dataset.enemyModel=enemyActual;
@@ -121,7 +132,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     models:REVIEW_BATTLE_MODELS,
     setModel(side,modelId){install(side,modelId);},
     sync,
-    snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready'});},
+    snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on'});},
     dispose(){observer.disconnect();for(const side of Object.values(sides))if(side.actor)pool.despawn(side.actorId);runtime.dispose();ground.geometry.dispose();ground.material.dispose();contact.geometry.dispose();contact.material.dispose();for(const side of Object.values(sides)){side.marker.geometry.dispose();side.marker.material.dispose();}renderer.dispose();}
   });
 }
