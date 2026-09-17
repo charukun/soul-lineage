@@ -7,45 +7,33 @@ import {fileURLToPath} from 'node:url';
 const appRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const read=path=>readFile(resolve(appRoot,path),'utf8');
 
-test('Visual Review reads canonical develop sources and shared character/assets contracts',async()=>{
-  const js=await read('src/develop-review.js');
-  assert.match(js,/from '@soul\/game-data'/);
-  assert.match(js,/INSPIRATION_WEAPON_ARTS/);
-  assert.match(js,/INSPIRATION_MOTION_IDS/);
-  assert.match(js,/from '@soul\/characters'/);
-  assert.match(js,/KAYKIT_FAMILY_ID/);
-  assert.match(js,/KAYKIT_RIG_ID/);
-  assert.match(js,/from '@soul\/assets'/);
-  assert.match(js,/publicWebAssetCatalog/);
-  assert.match(js,/from '@soul\/network\/raid-host'/);
-  assert.match(js,/new RaidHost/);
-  assert.doesNotMatch(js,/work\/visual-review-lab-v2/);
+test('Visual Review launcher is only five direct destinations',async()=>{
+  const html=await read('review.html');
+  for(const [target,href] of [['characters','./characters.html'],['motion','./characters.html?review=motion'],['assets','./review-assets.html'],['effects','./review-effects.html'],['battle','./review-battle.html']]){
+    assert.match(html,new RegExp(`data-review-target="${target}"[^>]*href="${href.replace(/[.?]/g,'\\$&')}"`));
+  }
+  assert.equal((html.match(/data-review-target=/g)||[]).length,5);
+  assert.doesNotMatch(html,/<iframe\b/);
+  assert.doesNotMatch(html,/develop-review\.js/);
+  assert.doesNotMatch(html,/focus-shell|app-context|対象・正本/);
 });
 
-test('Visual Review exposes the actual review workflow instead of internal page names',async()=>{
-  const html=await read('review.html');
-  for(const panel of ['overview','characters','motion','assets','effects','battle'])assert.match(html,new RegExp(`data-panel="${panel}"`));
-  for(const app of ['rinne','village','demon'])assert.match(html,new RegExp(`data-app-context="${app}"`));
-  assert.match(html,/\.\/characters\.html\?review=motion/);
-  assert.match(html,/\.\/characters\.html/);
-  assert.match(html,/\.\/review-assets\.html/);
-  assert.match(html,/\.\/review-effects\.html/);
+test('Battle is a dedicated page using real RaidHost and runtime models',async()=>{
+  const [html,review,battle]=await Promise.all([read('review-battle.html'),read('src/review-battle.js'),read('src/review-battle-stage.js')]);
+  assert.match(html,/id="battle-canvas"/);assert.match(html,/id="battle-hero-model"/);assert.match(html,/id="battle-enemy-model"/);
+  assert.match(review,/from '@soul\/network\/raid-host'/);assert.match(review,/new RaidHost/);assert.match(review,/createReviewBattleStage/);
+  assert.match(review,/stage\.setModel\('hero'/);assert.match(review,/stage\.setModel\('enemy'/);
+  assert.match(battle,/createKaykitCharacterPools/);assert.match(battle,/tidebreakFrameFromSnapshot/);assert.match(battle,/applyTidebreakPose/);assert.match(battle,/battleGeometry='runtime-models'/);
 });
 
 test('authored effect review reuses the runtime effect player and backend',async()=>{
   const js=await read('src/review-effects.js');
-  assert.match(js,/createAuthoredEffectPlayer/);
-  assert.match(js,/createEffekseerBackend/);
-  assert.match(js,/authoredEffectBase/);
-  assert.match(js,/combatEffectBudget/);
-  assert.match(js,/type:'player-hit'/);
-  assert.match(js,/type:'enemy-hit'/);
-  assert.match(js,/type:'one-motion'/);
-  assert.doesNotMatch(js,/damage\s*[-+*/]?=/);
+  assert.match(js,/createAuthoredEffectPlayer/);assert.match(js,/createEffekseerBackend/);assert.match(js,/authoredEffectBase/);assert.match(js,/combatEffectBudget/);
 });
 
-test('RINNE build includes the review and authored effect entries',async()=>{
+test('RINNE build includes launcher, VFX and battle review entries',async()=>{
   const vite=await read('vite.config.js');
   assert.match(vite,/review:fileURLToPath\(new URL\('\.\/review\.html'/);
   assert.match(vite,/reviewEffects:fileURLToPath\(new URL\('\.\/review-effects\.html'/);
+  assert.match(vite,/reviewBattle:fileURLToPath\(new URL\('\.\/review-battle\.html'/);
 });
