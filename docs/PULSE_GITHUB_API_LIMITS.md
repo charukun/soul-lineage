@@ -57,3 +57,19 @@ PULSEの「鮮度」は単純な経過時間ではなく、最後に観測した
 - 赤い更新遅延警告は、GitHub側の変化を検知したのにrefreshが失敗/未完了、snapshot sourceがcurrent developと不一致、またはsyncStatusが異常である場合に限定する。
 - ブラウザの「最新に更新」はPULSE snapshotを再取得する操作であり、GitHub APIを直接叩くトリガーにしない。
 - 既存のrate-limit/auth診断、exact-head Integration、DEV/Production品質gateを弱めない。
+
+## Control tower state 契約
+
+PULSEは個別カードが独自に正常/異常を判定するのではなく、snapshot全体から一度だけ導出した上位状態を正本としてUI・通知・履歴に共有する。
+
+- 上位状態は少なくとも `SYNCED` / `PROCESSING` / `RECOVERING` / `NEEDS_USER` / `UNKNOWN` を持ち、`enteredAt`、`cause`、`nextAction`、`userActionRequired` を含む。
+- `NEEDS_USER` は人間の確認・判断・操作が必要な時だけ使用する。自動復旧中・自動再試行中・通常の公開待ちは `RECOVERING` / `PROCESSING` とし、赤警告やスマホ通知を発生させない。
+- alert/incidentには影響範囲を付け、PULSE表示のみ、DEV公開、Integration、Productionなどを区別する。Productionに影響しない事象をProduction障害のように見せない。
+- snapshotの完全性を `confirmed` / `partial` / `last-known-good` / `unknown` として明示し、取得失敗時に過去値を現在値として断定しない。
+- 「何も起きていない」は正常状態として扱い、最終GitHub変化時刻と最終PULSE反映時刻を分離する。
+- control stateの変化・自動復旧開始/完了をbounded timelineとして保持し、「いつから・なぜ・次に何をするか」を表示できるようにする。
+- ブラウザは最後に見たsnapshot identityを端末内に保存し、次回表示時に前回閲覧からの差分を計算する。これだけのためにGitHub APIを消費しない。
+- Durable Objectにはboundedなcompact snapshot historyを保存し、過去時点のcontrol state / environment source / PR counts / incidentsをリプレイできるようにする。履歴保存を理由に無制限成長させない。
+- PULSE自身のhealthを runtime / event refresh / snapshot / UI の層で分離し、監視系の故障と監視対象の故障を混同しない。
+- 通知判定はPULSEと同じpure decision engineを利用し、`NEEDS_USER`への遷移だけをaction通知の対象にできる構造にする。既存のDEV反映完了通知など事実通知は別種として維持してよいが、要対応判定を独自実装しない。
+- Top UIはまず「放置でOK / 自動対応中 / 確認が必要」を1行で示し、その下に前回閲覧との差分、現在フロー、影響、次の自動アクションを表示する。SHA・Actions・API診断は詳細へ残す。
