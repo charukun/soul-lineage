@@ -22,7 +22,7 @@ marker(-1.55,0,'#d7c18e','HUMAN');marker(1.55,0,'#9bbac0','ENEMY');marker(1.1,1.
 
 const state={id:'visual-review-vfx',zone:'frontier',phase:'alive',interior:null,position:{x:-1.55,y:1,z:0}};
 const front={stage:1,enemies:[{id:'target',x:1.55,y:1,z:0},{id:'target-b',x:1.1,y:1,z:1.7},{id:'target-c',x:1.1,y:1,z:-1.7}]};
-const mobile=Boolean(matchMedia?.('(pointer: coarse)').matches);let paused=false,speed=1,tier=0,reduced=false,selected='slash',serial=0,lastTrigger=-Infinity,disposed=false;
+const mobile=Boolean(globalThis.matchMedia?.('(pointer: coarse)').matches);let paused=false,speed=1,tier=0,reduced=false,selected='slash',serial=0,lastTrigger=-Infinity,disposed=false;
 const abort=new AbortController();
 const player=createAuthoredEffectPlayer({mobile,onError:error=>{q('fx-status').textContent=`VFX停止: ${error}`;}});
 
@@ -35,6 +35,12 @@ function eventsFor(preset){
     {type:'enemy-hit',sourceId:'target-c',damage:16}
   ];
   return[{type:'player-hit',targetId:'target',damage:24,phase:'ha'}];
+}
+function effectLabel(preset){
+  if(preset==='impact')return'ToonHit';
+  if(preset==='finisher')return'Light + Simple_Ribbon_Sword';
+  if(preset==='storm')return'Light + ToonHit + Simple_Ribbon_Sword';
+  return'ToonHit + Simple_Ribbon_Sword';
 }
 function trigger(preset=selected){
   selected=preset;serial++;lastTrigger=performance.now();
@@ -56,7 +62,7 @@ function frame(now){
   if(!paused){player.frame(state,front,dt*speed,{level:tier,reduced,hidden:document.hidden});if(q('fx-loop').checked&&now-lastTrigger>1500/Math.max(.25,speed))trigger(selected);}
   renderer.render(scene,camera);player.draw(camera);renderer.resetState();
   const snapshot=player.snapshot();q('fx-metrics').textContent=`backend ${snapshot.phase} · active ${snapshot.active}/${snapshot.budget.maxActive} · played ${snapshot.played} · dropped ${snapshot.dropped} · trails ${snapshot.budget.trails?'ON':'OFF'} · tier ${tier}`;
-  if(snapshot.phase==='ready')q('fx-status').textContent=`原本再生可能 · ${selected==='finisher'||selected==='storm'?'Light / ToonHit / Ribbon':'ToonHit / Ribbon'}`;
+  if(snapshot.phase==='ready')q('fx-status').textContent=`原本再生可能 · ${effectLabel(selected)}`;
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
