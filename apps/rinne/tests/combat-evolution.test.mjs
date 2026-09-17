@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createLife,deserializeLife,rebirth,serializeLife,tickLife} from '../src/rebuild/domain.js';
 import {applyCombatInjury,injuryEffects,noteTechniqueUse,techniqueMutationFor,evolveTechniqueForm} from '../src/rebuild/combat-growth.js';
-import {applyMultiTargetContact,ensureCombatTerrain,lineBlocked,tickRangedProjectiles} from '../src/rebuild/combat-world-contact.js';
+import {applyMultiTargetContact,enemySweepTargets,ensureCombatTerrain,lineBlocked,tickRangedProjectiles} from '../src/rebuild/combat-world-contact.js';
 import {assignSquadRoles,enemyLearningResponse,recordEnemyPattern} from '../src/rebuild/combat-squad-ai.js';
 import {combatReplayDigest,recordCombatReplay} from '../src/rebuild/combat-replay.js';
 
@@ -15,6 +15,10 @@ test('one Tidebreak sweep can damage several world targets while thrust remains 
   const s=state(),a=enemy('a',0,1),b=enemy('b',.75,1.05),c=enemy('c',-.72,.95),f=front([a,b,c]);s.combat={tidebreakPose:{attack:'spin',pose:{hand:[0,1,0],tip:[0,1,1]}}};
   const events=[{type:'player-hit',targetId:'a',skill:'basic.sword',phase:'jo',damage:12,engine:'tidebreak'}];applyMultiTargetContact(s,f,events[0],events);assert.ok(b.hp<100&&c.hp<100);assert.ok(events.filter(e=>e.multiTarget).length>=2);
   const d=enemy('d',.7,1,100),f2=front([enemy('main',0,1),d]);s.combat.tidebreakPose.attack='thrust';const rows=[{type:'player-hit',targetId:'main',skill:'basic.sword',phase:'jo',damage:12,engine:'tidebreak'}];applyMultiTargetContact(s,f2,rows[0],rows);assert.equal(d.hp,100);
+});
+
+test('enemy sweep trajectory can catch multiple players with no attacker cap',()=>{
+  const attacker=enemy('boss',0,0,500);attacker.yaw=0;attacker.tidebreakPose={attack:'spin'};const a=state(1),b=state(2),c=state(3);a.position={x:0,z:1};b.position={x:1,z:1};c.position={x:-1,z:1};const f=front([attacker]);const victims=enemySweepTargets(attacker,[a,b,c],a.id,f);assert.deepEqual(new Set(victims.map(v=>v.id)),new Set([b.id,c.id]));
 });
 
 test('combat terrain blocks movement and line of fire through deterministic cover',()=>{
