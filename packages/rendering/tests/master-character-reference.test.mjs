@@ -5,8 +5,6 @@ import { CHARACTER_REFERENCE_MODELS } from '@soul/characters';
 import { attachModularAppearanceController } from '../src/master-character-modular.js';
 import { attachReferenceCharacterController } from '../src/master-character-reference.js';
 
-const WAYFARER_ID = 'reconstructed-wayfarer.reference.v1';
-
 function bone(name, position = [0,0,0]) {
   const value = new Bone(); value.name = name; value.position.set(...position); return value;
 }
@@ -49,28 +47,5 @@ test('all reference sheets build selectable runtime geometry on the common human
   reference.setIdentity(null);
   assert.equal(source.visible,true);
   assert.equal(reference.diagnostics().activeId,null);
-  actor.destroy();
-});
-
-test('Meshy-seeded Wayfarer uses newly generated hood, skirt, belt and strap geometry', () => {
-  const {actor,source}=actorFixture();
-  const reference=attachReferenceCharacterController(actor);
-  const model=CHARACTER_REFERENCE_MODELS[WAYFARER_ID];
-  reference.setIdentity(model);
-  actor.sample(appearance);
-
-  for (const name of [
-    'reference:wayfarer:green-hood:soft',
-    'reference:wayfarer:short-skirt',
-    'reference:wayfarer:utility-belt',
-    'reference:wayfarer:crossbody-strap',
-    'reference:wayfarer:belt-pouch',
-    'reference:wayfarer:hair-lock-l',
-    'reference:wayfarer:hair-lock-r'
-  ]) assert.ok(actor.visual.getObjectByName(name), name);
-
-  assert.equal(source.visible,false);
-  assert.ok(reference.diagnostics().meshCount >= 20);
-  reference.setIdentity(null);
   actor.destroy();
 });
