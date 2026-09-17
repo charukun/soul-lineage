@@ -10,7 +10,8 @@ function injuryRow(value,ageSeconds=0){if(value&&typeof value==='object')return{
 export function stripCombatProgressionState(state){
   if(!state||typeof state!=='object')return state;
   for(const key of LEGACY_PROGRESS_KEYS)delete state[key];
-  if(Array.isArray(state.lineage))state.lineage=state.lineage.map(row=>{if(!row||typeof row!=='object')return row;const clean={...row};delete clean.combatLegacy;return clean;});
+  if(state.experiences&&typeof state.experiences==='object')delete state.experiences.combat;
+  if(Array.isArray(state.lineage))state.lineage=state.lineage.map(row=>{if(!row||typeof row!=='object')return row;const clean={...row};delete clean.combatLegacy;if(clean.experiences&&typeof clean.experiences==='object'){clean.experiences={...clean.experiences};delete clean.experiences.combat;}return clean;});
   state.pendingDiscoveries=[];
   return state;
 }
