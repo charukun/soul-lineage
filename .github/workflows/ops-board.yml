@@ -227,50 +227,18 @@ jobs:
     name: Refresh existing PULSE state
     needs: plan
     if: github.ref == 'refs/heads/develop' && needs.plan.outputs.deploy_required == 'false'
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
+    uses: ./.github/workflows/pulse-refresh.yml
+    with:
+      source_sha: ${{ inputs.source_sha || github.sha }}
+      reason: deployment
+      fail_on_error: true
+      record_public_status: true
     permissions:
       contents: read
       pull-requests: read
       actions: read
       statuses: write
-    steps:
-      - name: Refresh state with this Actions token, without redeploying PULSE
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          GH_TOKEN: ${{ github.token }}
-          OPS_URL: https://rinne-ops.c-okamoto.workers.dev/
-        run: |
-          test -n "$CLOUDFLARE_API_TOKEN"
-          refresh_token=$(printf '%s' "$CLOUDFLARE_API_TOKEN|$GITHUB_REPOSITORY|rinne-ops-refresh-v1" | sha256sum | awk '{print $1}')
-          echo "::add-mask::$refresh_token"
-          curl --fail-with-body --silent --show-error --max-time 120 \
-            -X POST "${OPS_URL}api/refresh" \
-            -H "Authorization: Bearer $refresh_token" \
-            -H "x-ops-github-token: $GH_TOKEN" \
-            -H 'x-ops-refresh-reason: deployment' \
-            -o /tmp/pulse-refresh.json
-          node --input-type=module <<'JS'
-          import fs from 'node:fs';
-          const s=JSON.parse(fs.readFileSync('/tmp/pulse-refresh.json','utf8'));
-          if(s.repository!=='charukun/soul-lineage'||s.schemaVersion!==2||s.syncStatus!=='ok') throw new Error(`PULSE refresh not healthy: ${s.syncError||s.syncStatus||'invalid'}`);
-          console.log(`PULSE refresh: ${s.githubApi?.scope||'?'} ${s.githubApi?.requests??'?'} requests, ${s.githubApi?.cacheHits??0} cache hits`);
-          JS
-      - name: Record reused PULSE runtime for this develop source
-        if: always()
-        uses: actions/github-script@v8
-        env:
-          RESULT: ${{ job.status }}
-          SOURCE_SHA: ${{ env.OPS_SOURCE_SHA }}
-        with:
-          script: |
-            const success = process.env.RESULT === 'success';
-            await github.rest.repos.createCommitStatus({
-              ...context.repo, sha: process.env.SOURCE_SHA, context: 'ops-board/public',
-              state: success ? 'success' : 'failure',
-              description: success ? 'PULSE runtime unchanged; authenticated state refresh passed' : 'PULSE state refresh failed',
-              target_url: success ? 'https://rinne-ops.c-okamoto.workers.dev/' : `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-            });
+    secrets: inherit
 
   visual-review:
     name: Publish Visual Review on explicit Ops Board dispatch

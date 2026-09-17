@@ -18,7 +18,7 @@ const retry = document.querySelector('#retry');
 const recover = document.querySelector('#recover');
 const recoverDialog = document.querySelector('#recoverDialog');
 const disposeMusic=installMusicLibrary({game:'village',environment:__BUILD_INFO__.environment,defaultTrack:'v01',autoStart:false,preferDefault:true,trigger:'hidden'});
-let disposeSpeech=()=>{};
+let disposeSpeech=()=>{},disposeResidentAging=()=>{};
 let finished = false;
 const watchdog = setTimeout(() => {
   if (finished) return;
@@ -57,6 +57,8 @@ try {
   const village=await boot({
     onProgress(value, text) { progress.value = value; message.textContent = text; },
   });
+  const {installResidentAging}=await import('./resident-aging.js');
+  disposeResidentAging=installResidentAging(village);
   const {installSharedVillageSpeech}=await import('./shared-speech-bubbles.js');
   disposeSpeech=installSharedVillageSpeech(village);
   // Preserve the single enhancement graph introduced on develop. Retired
@@ -78,5 +80,5 @@ try {
 }
 if (import.meta.hot) {
   import.meta.hot.accept(() => location.reload());
-  import.meta.hot.dispose(()=>{disposeSpeech();disposeMusic();});
+  import.meta.hot.dispose(()=>{disposeResidentAging();disposeSpeech();disposeMusic();});
 }

@@ -32,3 +32,15 @@ PULSE runtimeからGitHub REST APIへ行う取得は、例外なく認証済みc
 - `/api/refresh` はrefresh credentialだけではGitHub取得を許可しない。`x-ops-github-token` またはWorker側 `OPS_GITHUB_TOKEN` が必要。
 - ブラウザの `/api/state` GET と「最新に更新」は引き続きGitHub APIを直接呼ばない。
 - 新しい未認証GitHub API経路を再導入しないことをfocused test / contract testで固定する。
+
+## 更新経路の単一契約
+
+PULSEの更新停止を局所的なcurl修正で再発させないため、Actionsから`/api/refresh`を呼ぶ実装は共通のauthenticated refresh clientへ集約する。workflowごとにAuthorization headerやGitHub credential forwardingを手書きしない。
+
+- event refreshは常にserver-side refresh credentialと、そのrunの一時`GITHUB_TOKEN`の両方を同じ共通clientへ渡す。
+- 共通clientはnetwork送信前に両credentialの存在を検証し、GitHub token欠落時はrequestを1件も送らずfail closedにする。
+- 成功はHTTP 2xxだけで判定しない。`repository`、`schemaVersion`、`syncStatus=ok`、`githubApi.scope=authenticated`、有効な`generatedAt`を検証したresponseだけを成功とする。
+- 429 / 5xx / transport errorのretryは共通client内の有限回数に限定し、permission/auth/schema failureはretryで隠さない。
+- PULSE公開prime、runtime再利用refresh、DEV結果後refreshは同じclientを使用する。workflow内に独自の`api/refresh` curlを増やさない。
+- DEV publication自体の成功とPULSE state refreshは分離する。refresh失敗でDEV公開済み事実を巻き戻さない一方、失敗を`|| true`で消さず、専用statusへ記録して診断可能にする。
+- control-plane testはYAMLの特定の行配置や`split()`前提を固定せず、上記のcredential forwarding・共通client利用・失敗可視化という契約を検証する。
