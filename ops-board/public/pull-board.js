@@ -1,5 +1,6 @@
 import { subscribe, preserveView, disclosure } from './view-state.js';
 import { ageLabel } from './health.mjs';
+import { developmentOutcomeForPull } from './development-outcome.mjs';
 import { buildWorkResumePrompt, draftWorkItems } from './work-resume-prompt.js';
 const $ = selector => document.querySelector(selector);
 const fmt = new Intl.DateTimeFormat('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
@@ -9,23 +10,25 @@ const el = (tag, className, text) => {
   if (text !== undefined && text !== null) node.textContent = String(text);
   return node;
 };
-const stateLabel = state => ({ Draft: '作業中', Ready: '統合待ち', Merged: '統合済み', Closed: '終了' })[state] || state;
-const badgeTone = state => ({ Draft: 'progress', Ready: 'warning', Merged: 'ok', Closed: 'info' })[state] || 'info';
-const filterOptions = [['all', 'すべて', 'info'], ['Draft', '作業中', 'progress'], ['Ready', '統合待ち', 'warning'], ['Merged', '統合済み', 'ok'], ['Closed', '終了', 'info']];
+const badgeTone = state => ({ WORKING: 'progress', READY: 'warning', BLOCKED: 'danger', Merged: 'ok', Closed: 'info' })[state] || 'info';
+const filterOptions = [['all', 'すべて', 'info'], ['WORKING', 'WORKING', 'progress'], ['READY', 'READY', 'warning'], ['BLOCKED', 'BLOCKED', 'danger'], ['Merged', '統合済み', 'ok'], ['Closed', '終了', 'info']];
 let selectedFilter = 'all';
 try { const saved = sessionStorage.getItem('rinne-ops:filter'); if (filterOptions.some(([id]) => id === saved)) selectedFilter = saved; } catch { /* storage optional */ }
 let currentPullData = {};
+let currentIntegrationQueue = [];
 let promptReturnFocus = null;
+
+const displayState = pr => developmentOutcomeForPull(pr, currentIntegrationQueue) || pr.state;
 
 const promptDialog = el('dialog', 'app-dialog work-prompt-dialog');
 promptDialog.id = 'work-resume-prompt-dialog';
 promptDialog.setAttribute('aria-labelledby', 'work-resume-prompt-title');
 const promptHead = el('div', 'app-dialog-head');
-const promptTitle = el('h2', '', '作業中を確認・進めるAIプロンプト');
+const promptTitle = el('h2', '', 'WORKINGを確認・進めるAIプロンプト');
 promptTitle.id = 'work-resume-prompt-title';
 const promptClose = el('button', 'app-dialog-close', '閉じる');
 promptClose.type = 'button';
-const promptLead = el('p', 'work-prompt-lead', '表示中のDraftを手掛かりに、GitHubで全件を再確認して停止作業を既存PRから再開するためのプロンプトです。');
+const promptLead = el('p', 'work-prompt-lead', 'GitHubで観測できるDraftを手掛かりに、停止中のWORKINGを再確認して既存PRから再開するためのプロンプトです。DraftはWORKINGの全量ではありません。');
 const promptText = el('textarea', 'work-prompt-text');
 promptText.readOnly = true;
 promptText.spellcheck = false;
@@ -91,8 +94,9 @@ function row(pr) {
   const top = el('div', 'pull-row-top');
   const title = el('strong', 'pull-title', pr.title || `PR #${pr.number}`);
   title.title = pr.title || '';
-  const status = el('span', `badge ${badgeTone(pr.state)}`, stateLabel(pr.state));
-  status.title = pr.state;
+  const outcome = displayState(pr);
+  const status = el('span', `badge ${badgeTone(outcome)}`, outcome);
+  status.title = pr.state === outcome ? outcome : `${outcome} / GitHub ${pr.state}`;
   top.append(title, status);
   const bottom = el('div', 'pull-row-bottom');
   const detail = el('span', 'pull-detail', pr.detail || '詳細未記載');
@@ -106,7 +110,7 @@ function row(pr) {
   const time = el('time', '', `更新 ${updated}`);
   if (Number.isFinite(date)) { time.dateTime = new Date(date).toISOString(); time.title = ageLabel(Math.max(0, Date.now() - date)); }
   meta.append(targets, el('span', 'pull-number', `#${pr.number}`), time);
-  if (pr.monitoringOwner === 'Integration') meta.append(el('span', 'pull-target', 'CI監視: Integration'));
+  if (pr.monitoringOwner === 'Integration') meta.append(el('span', 'pull-target', 'owner: Integration'));
   if (pr.staleDraft && !pr.visualReview) meta.append(el('span', 'stale-note', 'しばらく更新なし'));
   bottom.append(meta); link.append(top, bottom);
   return link;
@@ -119,9 +123,9 @@ function rows(items, emptyText) {
 }
 function filterBar(items) {
   const root = el('div', 'pull-filters');
-  root.setAttribute('aria-label', '開発タスクの状態フィルタ');
+  root.setAttribute('aria-label', '開発タスクのOutcomeフィルタ');
   for (const [state, label, tone] of filterOptions) {
-    const count = state === 'all' ? items.length : items.filter(item => item.state === state).length;
+    const count = state === 'all' ? items.length : items.filter(item => displayState(item) === state).length;
     const button = el('button', `pull-filter ${tone}${selectedFilter === state ? ' active' : ''}`, `${label} ${count}`);
     button.type = 'button'; button.dataset.state = state; button.dataset.viewKey = `filter:${state}`;
     button.setAttribute('aria-pressed', String(selectedFilter === state));
@@ -129,7 +133,7 @@ function filterBar(items) {
       if (selectedFilter === state) return;
       selectedFilter = state;
       try { sessionStorage.setItem('rinne-ops:filter', state); } catch { /* storage optional */ }
-      preserveView(() => render(currentPullData));
+      preserveView(() => render(currentPullData, currentIntegrationQueue));
     });
     root.append(button);
   }
@@ -141,8 +145,8 @@ function resumePromptAction(data) {
   const root = el('div', 'work-resume-action');
   const copy = el('div', 'work-resume-copy');
   copy.append(
-    el('strong', '', '作業中が本当に動いているかAIで全件確認'),
-    el('span', '', drafts.length ? `${drafts.length}件のDraftを手掛かりに、停止・待機・稼働中を再判定します。` : data?.truncated ? '表示外も含め、GitHub側の通常Draftを全件再確認します。' : '現在の通常Draftはありません。'),
+    el('strong', '', 'GitHubで見えているWORKINGをAIで再確認'),
+    el('span', '', drafts.length ? `${drafts.length}件のDraftを手掛かりに、停止・待機・稼働中を再判定します。` : data?.truncated ? '表示外も含め、GitHub側の通常Draftを再確認します。' : '現在GitHubで観測できるDraft WORKINGはありません。'),
   );
   if (data?.truncated) copy.append(el('span', 'work-resume-warning', '表示外があるため、プロンプトはGitHub側の全Draft列挙を必須にします。'));
   const button = el('button', 'work-resume-button', drafts.length ? `AI再開プロンプト ${drafts.length}件` : data?.truncated ? 'AI再開プロンプト 全件確認' : 'AI再開プロンプト');
@@ -160,17 +164,18 @@ function resumePromptAction(data) {
   root.append(copy, button);
   return root;
 }
-function render(data = {}) {
+function render(data = {}, integrationQueue = []) {
   currentPullData = data;
+  currentIntegrationQueue = Array.isArray(integrationQueue) ? integrationQueue : [];
   const items = data.normal || [];
-  const active = items.filter(item => ['Draft', 'Ready'].includes(item.state));
+  const active = items.filter(item => ['WORKING', 'READY', 'BLOCKED'].includes(displayState(item)));
   const completed = items.filter(item => ['Merged', 'Closed'].includes(item.state));
   const root = $('#pulls');
   root.replaceChildren(resumePromptAction(data), filterBar(items));
   if (selectedFilter === 'all') {
-    root.append(rows(active, '現在、作業中・統合待ちのPRはありません'),
+    root.append(rows(active, '現在、WORKING / READY / BLOCKED のPRはありません'),
       disclosure('completed-pulls', `完了・終了 ${completed.length}件`, rows(completed, '完了PRなし'), 'completed-pulls'));
-  } else root.append(rows(items.filter(item => item.state === selectedFilter), `${stateLabel(selectedFilter)}のPRはありません`));
+  } else root.append(rows(items.filter(item => displayState(item) === selectedFilter), `${selectedFilter}のPRはありません`));
   if (data.truncated) root.append(el('p', 'empty', `取得できた${data.total || items.length}件を表示しています。未取得の履歴があります。`));
   if (data.targetLookup?.pending || data.targetLookup?.unavailable) root.append(el('p', 'empty targets-notice', '対象アプリはサーバーで順次確認しています。未取得のPRは取得でき次第更新されます。'));
   const visual = data.visualReview || [];
@@ -178,6 +183,6 @@ function render(data = {}) {
   $('#visual-review-section').hidden = visual.length === 0;
 }
 subscribe((state, error) => {
-  if (state && !error) render(state.pullRequests || {});
+  if (state && !error) render(state.pullRequests || {}, state.integration?.queue || []);
   else if (!state) $('#pulls').replaceChildren(el('p', 'empty', 'PR一覧を取得できません。上部の取得状態を確認してください。'));
 });
