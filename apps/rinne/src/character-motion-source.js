@@ -2,17 +2,23 @@ import { QA_FPS, qaSequenceAt, blendHumanoidPose, stabilizeMotionBoundaries } fr
 import { captureMotionRest, captureNormalizedMotion } from '@soul/rendering/motion-quality';
 import { thirtySecondEnbuState } from './character-motion-performance.js';
 
+export const WORKSHOP_MOTION_SOURCE_STATE='retired-conditional-model';
+
 /** Bake the existing runtime once, then release its model/controllers. A crowd shares
  * immutable canonical poses, never a mixer, VRM bridge, spring history or model clone.
  * The source resolver is injected so Node rig tests use the exact same bake path.
  */
 export async function loadWorkshopMotionSource({resolveModule,readAsset,progress=()=>{}}) {
+  void resolveModule;void readAsset;void progress;
+  throw new Error('Motion QA source retired: the conditional Shino runtime asset is not distributable; use the license-clean Workshop model review until a KayKit/RINNE-owned motion source is integrated.');
+  /* c8 ignore start -- retained migration baker, unreachable until a clean source adapter replaces the retired source */
   const [{HumanoidRuntime},{SLASH_SECONDS,SLASH_TIMING,SLASH_REVISION},{createReviewSword}]=await Promise.all([
     resolveModule('humanoid.js'),resolveModule('authored-slash.js'),resolveModule('review-sword.js')]);
   const runtime=new HumanoidRuntime({readAsset,weapons:{sword:{base:.21,tip:1.62,width:.065}},strikes:{slash:{}},clips:{slash:SLASH_TIMING},windows:{},
     progress:(a,t)=>Math.min(1,Math.max(0,(t??a.attack?.t??0)/SLASH_SECONDS)),window:(_kind,p)=>p>=SLASH_TIMING.active[0]&&p<=SLASH_TIMING.active[1]?0:-1});
   try {await runtime.load('SHINO');return {...await bakeWorkshopMotionSource(runtime,{slashSeconds:SLASH_SECONDS,revision:SLASH_REVISION,progress}),createSword:createReviewSword};}
   finally {if(runtime.current)runtime.dispose(runtime.current);}
+  /* c8 ignore stop */
 }
 export async function bakeWorkshopMotionSource(runtime,{slashSeconds,revision,progress=()=>{}}) {
   const c=runtime.current;
