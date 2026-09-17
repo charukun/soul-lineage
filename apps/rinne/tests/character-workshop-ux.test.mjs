@@ -33,8 +33,21 @@ test('mobile stage remains dominant and edit footer leaves review modes', () => 
   assert.match(css, /\.stage-actions\{grid-template-columns:repeat\(3/);
 });
 
+test('Visual Review gets dedicated simple character and motion modes', () => {
+  assert.match(entry, /const REVIEW_MODES = Object\.freeze/);
+  assert.match(entry, /character: \{/);
+  assert.match(entry, /motion: \{/);
+  assert.match(entry, /dataset\.reviewMode = mode/);
+  assert.match(entry, /simple-review-guide/);
+  assert.match(entry, /simple-motion-controls/);
+  assert.match(css, /body\.simple-review \.mode-tabs/);
+  assert.match(css, /data-review-mode="motion"/);
+});
+
 test('restored UX is loaded by the existing workshop entry without adding authority', () => {
   assert.match(entry, /import '\.\/character-workshop-ux\.js'/);
-  assert.doesNotMatch(ux, /localStorage|sessionStorage|indexedDB|WebSocket|RTCPeerConnection/);
-  assert.doesNotMatch(ux, /fetch\(|gameState|saveGame/);
+  for (const code of [ux, entry]) {
+    assert.doesNotMatch(code, /localStorage|sessionStorage|indexedDB|WebSocket|RTCPeerConnection/);
+    assert.doesNotMatch(code, /fetch\(|gameState|saveGame/);
+  }
 });
