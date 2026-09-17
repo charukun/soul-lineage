@@ -1,6 +1,7 @@
 import { subscribe } from './view-state.js';
 import { appHealth, devPublicationProgress } from './health.mjs';
 import { eventDrivenAlerts } from './freshness.mjs';
+import { developmentOutcomeSummary } from './development-outcome.mjs';
 
 const $ = selector => document.querySelector(selector);
 const toneNames = ['ok', 'progress', 'warning', 'danger', 'info'];
@@ -46,19 +47,10 @@ function renderAttention(state, error) {
 }
 
 function renderDevelopment(state) {
-  const pulls = state?.pullRequests?.normal || [];
-  const draft = pulls.filter(item => item.state === 'Draft').length;
-  const ready = pulls.filter(item => item.state === 'Ready').length;
-  const active = draft + ready;
-  const rescue = state?.integrationRescue;
-  const rescueActive = rescue?.available ? Number(rescue.counts?.active || 0) : 0;
-  const stalled = Boolean(state?.integration?.stalled);
-  const tone = stalled ? 'danger' : ready ? 'warning' : draft || rescueActive ? 'progress' : 'ok';
-  const value = stalled ? '要確認' : active ? `${active}件進行` : rescueActive ? `Rescue ${rescueActive}` : '待ちなし';
-  const detail = `作業 ${draft} / 統合待ち ${ready}${rescueActive ? ` / Rescue ${rescueActive}` : ''}`;
-  setCard('overview-task', value, detail, tone);
+  const outcome = developmentOutcomeSummary(state);
+  setCard('overview-task', outcome.headline, outcome.detail, outcome.tone);
   const summary = $('#task-summary');
-  if (summary) summary.textContent = detail;
+  if (summary) summary.textContent = outcome.detail;
 }
 
 function renderApplications(state) {
