@@ -1,5 +1,6 @@
 import { createLife, validateLife, tickLife, setMoving, setClockRate, canDepart, depart, advanceFront, returnHome, rebirth } from './domain.js';
 import { createFront, normalizeFront, tickSharedFront } from './combat.js';
+import { injuryEffects } from './combat-growth.js';
 import { buildStations, nearestStation } from './locations.js';
 import { validateMuraLayout, safeMuraPosition, muraBlocked } from '@soul/world/mura';
 
@@ -8,7 +9,7 @@ export const COOP_PROTOCOL='rinne-coop-dev-2';
 const clone=value=>structuredClone(value),identifier=value=>typeof value==='string'&&/^[\w:.-]{1,120}$/.test(value);
 const seedOf=text=>{let n=2166136261;for(const c of text)n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0;};
 const speed=age=>age<4?1.2:age<7?2.15:age<65?4.15:Math.max(2.3,4.15-(age-65)*.035);
-const visibleLife=s=>({id:s.id,name:s.name,seed:s.seed,birthVillageId:s.birthVillageId,ageSeconds:s.ageSeconds,ageYears:s.ageYears,phase:s.phase,zone:s.zone,front:s.front,position:clone(s.position),yaw:s.yaw,moving:s.moving,equipment:clone(s.equipment),combat:Boolean(s.combat),ended:s.ended});
+const visibleLife=s=>({id:s.id,name:s.name,seed:s.seed,birthVillageId:s.birthVillageId,ageSeconds:s.ageSeconds,ageYears:s.ageYears,phase:s.phase,zone:s.zone,front:s.front,position:clone(s.position),yaw:s.yaw,moving:s.moving,equipment:clone(s.equipment),combat:Boolean(s.combat),combatPose:s.combat?.tidebreakPose?clone(s.combat.tidebreakPose):null,combatIntent:s.combat?.bodyIntent||null,rangedCombat:s.rangedCombat?clone(s.rangedCombat):null,ended:s.ended});
 
 export class CoopWorld {
   constructor({worldId,ownerId,name,layout,saved=null}){
@@ -47,8 +48,8 @@ export class CoopWorld {
       if(blocked.has(id)){this.clearInput(id);continue;}
       const life=row.life,input=this.inputs.get(id),beforeEnded=life.ended;let moved=false;
       if(input&&input.until>=this.data.tick&&!life.ended&&!life.down){
-        const step=speed(life.ageYears)*(life.combat?.72:1)*dt,nx=life.position.x+input.x*step,nz=life.position.z+input.z*step;
-        const allowed=life.zone==='frontier'?Math.abs(nx)<6.82&&nz> -6.12&&nz<5.77:!muraBlocked(this.layout,nx,nz,.32);
+        const injuryScale=injuryEffects(life).movementScale,step=speed(life.ageYears)*(life.combat?.72:1)*injuryScale*dt,nx=life.position.x+input.x*step,nz=life.position.z+input.z*step;
+        const allowed=life.zone==='frontier'?Math.abs(nx)<6.82&&nz>-6.12&&nz<5.77:!muraBlocked(this.layout,nx,nz,.32);
         if(allowed&&Math.hypot(input.x,input.z)>.08){life.position={x:nx,z:nz};life.yaw=Math.atan2(input.x,input.z);moved=true;}
       }
       row.carrierMoving=moved&&life.phase==='birth';setMoving(life,moved&&life.phase!=='birth',life.yaw);

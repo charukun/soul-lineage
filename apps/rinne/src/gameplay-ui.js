@@ -13,9 +13,10 @@ export function createGameplayUI(gameScreen,{stations,layout,audio}){
     <div class="rinne-player-strip"><span data-name>旅人</span><i></i><span data-equip>素手 · 旅装</span><span data-state>探索</span></div>
     <nav class="rinne-bottom-controls" aria-label="プレイ操作">
       <button data-heart class="upgrade-control is-heart"><span>心</span><small>心得</small><em data-heart-badge hidden>0</em></button>
-      <button data-techniques class="upgrade-control is-technique"><span>技</span><small>技</small><em data-tech-badge hidden>0</em></button>
+      <button data-techniques class="upgrade-control is-technique"><span>技</span><small>連技</small><em data-tech-badge hidden>0</em></button>
       <button data-body class="upgrade-control is-body"><span>体</span><small>構え</small></button>
       <button data-items class="upgrade-control"><span>具</span><small>所持品</small></button>
+      <button data-map class="upgrade-control"><span>図</span><small>地図</small></button>
       <button data-debug class="upgrade-control is-debug"><span>時</span><small>DEBUG</small></button>
     </nav>
     <button data-one-motion class="one-motion-control" type="button" hidden>
@@ -26,17 +27,18 @@ export function createGameplayUI(gameScreen,{stations,layout,audio}){
       <div data-body></div>
     </section>
     <aside data-spark class="technique-spark" role="status" aria-live="polite" hidden>
-      <div><span>閃き</span><strong data-spark-name></strong><small>長押しで詳細を確認できる</small></div>
-      <button data-spark-set type="button">確認</button>
+      <div><span>閃き</span><strong data-spark-name></strong><small>心・技へ刻める</small></div>
+      <button data-spark-set type="button">今セット</button>
     </aside>
     <div data-rest class="upgrade-rest" hidden><span></span><strong>休憩中</strong><small>長押し中、息を整えている</small></div>
     <div data-training class="upgrade-training" hidden><strong>稽古態勢</strong><span data-training-name>かかし</span></div>`;
   gameScreen.append(root);
 
-  // Dash stays an internal runtime input. The mobile HUD deliberately has no dedicated run key.
+  // Keep the internal dash input hook for keyboard/runtime compatibility, but do
+  // not expose a dedicated run button in the mobile command row.
   const dash=document.createElement('button');dash.type='button';dash.hidden=true;
   const q=s=>root.querySelector(s),ui={
-    root,dash,heart:q('[data-heart]'),heartBadge:q('[data-heart-badge]'),techniques:q('[data-techniques]'),techBadge:q('[data-tech-badge]'),bodyButton:q('[data-body]'),items:q('[data-items]'),debug:q('[data-debug]'),
+    root,dash,heart:q('[data-heart]'),heartBadge:q('[data-heart-badge]'),techniques:q('[data-techniques]'),techBadge:q('[data-tech-badge]'),bodyButton:q('[data-body]'),items:q('[data-items]'),map:q('[data-map]'),debug:q('[data-debug]'),
     oneMotion:q('[data-one-motion]'),oneMotionName:q('[data-one-motion-name]'),panel:q('[data-panel]'),title:q('[data-title]'),body:q('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
     rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),name:q('[data-name]'),equip:q('[data-equip]'),state:q('[data-state]')
   };
@@ -48,25 +50,30 @@ export function createGameplayUI(gameScreen,{stations,layout,audio}){
   const showMovementHelp=event=>{
     event.stopImmediatePropagation();
     const node=document.getElementById('toast');if(!node)return;
-    node.textContent=moveHint?.textContent?.includes('母')?'抱っこ中も画面をスワイプすると、母に抱かれたまま村を見て回れます。':'スワイプで移動。素早いスワイプで疾走し、画面長押しで休憩して息を回復します。';
+    node.textContent=moveHint?.textContent?.includes('母')?'抱っこ中も画面をスワイプすると、母に抱かれたまま村を見て回れます。':'スワイプで移動。画面長押しで休憩し、息を回復します。';
     node.hidden=false;clearTimeout(movementHelpTimer);movementHelpTimer=setTimeout(()=>{node.hidden=true;},3200);
   };
   moveHint?.addEventListener('click',showMovementHelp,{capture:true});
 
   function inventory(){
-    ensureProgression(state);ui.title.textContent='具';ui.body.innerHTML='<div class="loadout-section-title"><i></i><strong>所持品</strong><i></i></div>';
+    ensureProgression(state);ui.title.textContent='所持品';ui.body.innerHTML='<p class="upgrade-panel-copy">施設で受け取った装備や、冒険で拾った装備を持ち替えます。</p>';
     const group=(title,items,active,set,label)=>{const section=document.createElement('section');section.className='inventory-group';section.innerHTML=`<h3>${title}</h3>`;const list=document.createElement('div');list.className='inventory-list';for(const item of items){const button=document.createElement('button');button.dataset.active=String(item===active);button.textContent=label(item);button.onclick=()=>{set(item);audio.item();inventory();};list.append(button);}section.append(list);ui.body.append(section);};
     group('武器',state.inventory.weapons,state.equipment.weapon,value=>state.equipment.weapon=value,value=>WEAPON_LABELS[value]||value);
     group('防具',state.inventory.armors,state.equipment.armor,value=>state.equipment.armor=value,value=>ARMOR_LABELS[value]||value);
     group('盾',state.inventory.shields,Boolean(state.equipment.shield),value=>state.equipment.shield=Boolean(value),value=>value?'盾あり':'盾なし');
   }
-  function markOpenControl(type){ui.heart.dataset.active=String(type==='heart');ui.techniques.dataset.active=String(type==='technique');ui.bodyButton.dataset.active=String(type==='body');ui.items.dataset.active=String(type==='items');}
+  function map(){
+    ui.title.textContent='地図';const rows=stations.filter(row=>!row.interiorId&&!row.id.startsWith('rack.')&&!row.id.includes('dummy')).slice(0,20),xs=rows.map(row=>row.x).concat(state.position.x),zs=rows.map(row=>row.z).concat(state.position.z),minX=Math.min(...xs)-6,maxX=Math.max(...xs)+6,minZ=Math.min(...zs)-6,maxZ=Math.max(...zs)+6,w=Math.max(1,maxX-minX),h=Math.max(1,maxZ-minZ),point=(x,z)=>({x:(x-minX)/w*100,y:(z-minZ)/h*100}),me=point(state.position.x,state.position.z);
+    const marks=rows.map(row=>{const mark=point(row.x,row.z);return `<i class="map-mark" style="left:${mark.x}%;top:${mark.y}%"><span>${String(row.label||row.id).slice(0,3)}</span></i>`;}).join('');
+    ui.body.innerHTML=`<div class="upgrade-map"><div class="map-grid"></div>${marks}<b class="map-player" style="left:${me.x}%;top:${me.y}%"></b></div><p class="map-caption">${layout.name||'村'} · 現在地と主要施設</p>`;
+  }
+  function markOpenControl(type){ui.heart.dataset.active=String(type==='heart');ui.techniques.dataset.active=String(type==='technique');ui.bodyButton.dataset.active=String(type==='body');ui.items.dataset.active=String(type==='items');ui.map.dataset.active=String(type==='map');}
   function open(type,{skillId=null,silent=false,keepScroll=false}={}){
-    if(!state||type==='map')return;const oldScroll=keepScroll?ui.panel.scrollTop:0;ui.panel.hidden=false;ui.panel.dataset.type=type;markOpenControl(type);
-    if(type==='heart')loadoutUI.renderHeart(skillId);else if(type==='technique')loadoutUI.renderTechnique(skillId);else if(type==='body')loadoutUI.renderBody();else inventory();
+    if(!state)return;const oldScroll=keepScroll?ui.panel.scrollTop:0;ui.panel.hidden=false;ui.panel.dataset.type=type;markOpenControl(type);
+    if(type==='heart')loadoutUI.renderHeart(skillId);else if(type==='technique')loadoutUI.renderTechnique(skillId);else if(type==='body')loadoutUI.renderBody();else if(type==='items')inventory();else map();
     if(keepScroll)requestAnimationFrame(()=>{ui.panel.scrollTop=oldScroll;});if(!silent)audio.ui();
   }
-  function close(){ui.panel.hidden=true;delete ui.panel.dataset.type;ui.panel.style.removeProperty('--loadout-sheet-drag');delete ui.panel.dataset.dragging;ui.panel.querySelector('.loadout-detail-popover')?.remove();markOpenControl('');audio.ui();}
+  function close(){ui.panel.hidden=true;delete ui.panel.dataset.type;ui.panel.style.removeProperty('--loadout-sheet-drag');delete ui.panel.dataset.dragging;markOpenControl('');audio.ui();}
   function bindState(next){state=next;const lifeChanged=tracker.bindState(next);if(lifeChanged){loadoutUI.reset();if(!ui.panel.hidden){ui.panel.hidden=true;delete ui.panel.dataset.type;markOpenControl('');}}}
   function refresh(){if(ui.panel.hidden||!state)return;open(ui.panel.dataset.type||'items',{silent:true,keepScroll:true});}
   function summary(s,{dashing=false,resting=false,training=null}={}){
@@ -80,6 +87,6 @@ export function createGameplayUI(gameScreen,{stations,layout,audio}){
   }
 
   tracker.bindInteractions({openHeart:skillId=>open('heart',{skillId}),openTechnique:skillId=>open('technique',{skillId})});bindSheetGesture();
-  ui.heart.onclick=()=>open('heart',{skillId:tracker.firstUnseen('heart')});ui.techniques.onclick=()=>open('technique',{skillId:tracker.firstUnseen('technique')});ui.bodyButton.onclick=()=>open('body');ui.items.onclick=()=>open('items');ui.close.onclick=close;
+  ui.heart.onclick=()=>open('heart',{skillId:tracker.firstUnseen('heart')});ui.techniques.onclick=()=>open('technique',{skillId:tracker.firstUnseen('technique')});ui.bodyButton.onclick=()=>open('body');ui.items.onclick=()=>open('items');ui.map.onclick=()=>open('map');ui.close.onclick=close;
   return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,dispose(){clearTimeout(movementHelpTimer);moveHint?.removeEventListener('click',showMovementHelp,{capture:true});loadoutUI.dispose();tracker.dispose();speech.dispose();root.remove();}};
 }

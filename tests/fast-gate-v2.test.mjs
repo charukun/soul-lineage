@@ -32,7 +32,7 @@ test('unrelated Rinne UI changes skip rig QA while motion and shared character c
   assert.deepEqual(related.skippedHeavy, []);
 });
 
-test('broad validation never drops a test', () => {
+test('broad validation never drops a test outside DEV mode', () => {
   const tests = ['tests/control.test.mjs', ...heavy];
   const plan = splitFastTests(tests, ['scripts/validate.mjs'], { broad: true });
   assert.deepEqual(plan.light, tests);
@@ -40,16 +40,39 @@ test('broad validation never drops a test', () => {
   assert.deepEqual(plan.skippedHeavy, []);
 });
 
-test('validator uses gate-cost profile and direct workspace checks for narrow fast scope', () => {
+test('validator uses trusted current-develop helpers for DEV while preserving repository helpers elsewhere', () => {
   const validate = source('scripts/validate.mjs');
   const check = source('scripts/check.mjs');
+  assert.match(validate, /const trustedControlDir = dirname\(fileURLToPath\(import\.meta\.url\)\)/);
+  assert.match(validate, /const scriptPath = name => dev \? resolve\(trustedControlDir, name\) : `scripts\/\$\{name\}`/);
+  assert.match(validate, /\[scriptPath\('affected\.mjs'\), \.\.\.affectedArgs\]/);
+  assert.match(validate, /\(dev \|\| narrowFast\) \? \[scriptPath\('check\.mjs'\), '--direct'/);
+  assert.match(validate, /scriptPath\('visual-budget\.mjs'\)/);
+  assert.match(validate, /scriptPath\('code-health\.mjs'\)/);
   assert.match(validate, /gateCostPlan\(plan\.paths \|\| \[\]\)\.profile/);
   assert.match(validate, /fastGateScope\(plan, profile\)/);
-  assert.match(validate, /narrowFast \? \['scripts\/check\.mjs', '--direct'/);
   assert.match(validate, /splitFastTests\(uniqueTests, plan\.paths/);
-  assert.match(validate, /plan\.infrastructure/);
   assert.match(check, /requested\[0\] === '--direct'/);
   assert.match(check, /if \(!direct\) for \(const file of readdirSync\('scripts'/);
+});
+
+test('DEV PR and normal DEV publication both record zero tests', () => {
+  const validate = source('scripts/validate.mjs');
+  assert.match(validate, /const dev = mode === 'dev'/);
+  assert.match(validate, /const deploy = mode === 'deploy'/);
+  assert.match(validate, /if \(dev \|\| deploy\) \{[\s\S]*tests: 0[\s\S]*\} else \{/);
+  assert.match(validate, /else \{[\s\S]*splitFastTests\(uniqueTests[\s\S]*\['--test', \.\.\.split\.light\]/);
+});
+
+test('develop CI plans and validates with trusted control checkout while main keeps PR fast validation', () => {
+  const workflow = source('.github/workflows/ci.yml');
+  const build = workflow.slice(workflow.indexOf('\n  build:'), workflow.indexOf('\n  integration-request:'));
+  assert.match(build, /TARGET_BASE: \$\{\{ github\.event\.pull_request\.base\.ref \}\}[\s\S]*node \.\.\/control\/scripts\/affected\.mjs "\$BASE_SHA" "\$HEAD_SHA" dev/);
+  assert.match(build, /if \[ "\$TARGET_BASE" = "develop" \]; then[\s\S]*node \.\.\/control\/scripts\/validate\.mjs dev "\$BASE_SHA" "\$HEAD_SHA"[\s\S]*else[\s\S]*node scripts\/validate\.mjs fast "\$BASE_SHA" "\$HEAD_SHA"/);
+  assert.match(build, /github\.event\.pull_request\.base\.ref == 'main' \|\| steps\.plan\.outputs\.has_apps == 'true' \|\| steps\.plan\.outputs\.infrastructure == 'true'/);
+  assert.doesNotMatch(build, /has_packages == 'true'/);
+  assert.match(build, /Bind trusted DEV validator to exact PR dependencies[\s\S]*ln -s \.\.\/work\/node_modules control\/node_modules/);
+  assert.ok(build.indexOf('Bind trusted DEV validator to exact PR dependencies') < build.indexOf('DEV no-test validation or main fast verification'));
 });
 
 test('Ready validation checkout is shallow and fetches only the resolved exact base', () => {

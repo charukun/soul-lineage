@@ -35,69 +35,14 @@ on:
         type: boolean
         required: false
         default: false
-      repair_scope:
-        description: 'Legacy explicit browser repair recorder scope (empty or pr); not dispatched by normal develop CI'
-        type: string
-        required: false
-        default: ''
-      repair_conclusion:
-        description: 'Legacy explicit browser result'
-        type: string
-        required: false
-        default: ''
-      repair_head_sha:
-        description: 'Legacy explicit browser-tested head SHA'
-        type: string
-        required: false
-        default: ''
-      repair_pr_number:
-        description: 'Legacy explicit source PR number'
-        type: string
-        required: false
-        default: ''
-      repair_run_url:
-        description: 'Legacy explicit source Actions run URL'
-        type: string
-        required: false
-        default: ''
-      repair_artifact:
-        description: 'Legacy explicit browser artifact name'
-        type: string
-        required: false
-        default: ''
 permissions:
   contents: read
 jobs:
-  repair-ticket:
-    name: Record explicit legacy PR browser repair state
-    if: github.event_name == 'workflow_dispatch' && inputs.repair_scope == 'pr'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      issues: write
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: develop
-          persist-credentials: false
-      - name: Create/update machine-readable repair ticket
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPAIR_SCOPE: ${{ inputs.repair_scope }}
-          REPAIR_CONCLUSION: ${{ inputs.repair_conclusion }}
-          REPAIR_HEAD_SHA: ${{ inputs.repair_head_sha }}
-          REPAIR_PR_NUMBER: ${{ inputs.repair_pr_number }}
-          REPAIR_RUN_URL: ${{ inputs.repair_run_url }}
-          REPAIR_ARTIFACT: ${{ inputs.repair_artifact }}
-        run: node scripts/browser-repair-ticket.mjs
-
   integrate:
     name: Integration Controller
     # The reusable Controller uploads .deploy-state/integration-diagnostics.json in integration-report.
     if: >-
-      github.event_name == 'workflow_dispatch' && inputs.repair_scope != 'pr' &&
+      github.event_name == 'workflow_dispatch' &&
       inputs.publish_only != true && inputs.refresh_staging != true && inputs.full_verification != true &&
       inputs.rescue_mode != 'scan'
     concurrency:
@@ -119,7 +64,7 @@ jobs:
   queue-recovery:
     name: Recover missed Ready CI and Integration requests
     if: >-
-      github.event_name == 'workflow_dispatch' && inputs.repair_scope != 'pr' &&
+      github.event_name == 'workflow_dispatch' &&
       inputs.publish_only != true && inputs.refresh_staging != true && inputs.full_verification != true &&
       inputs.rescue_mode == 'scan'
     uses: ./.github/workflows/integration-controller.yml
@@ -164,7 +109,7 @@ jobs:
   mark-develop-pending:
     name: Mark DEV delivery pending
     if: >-
-      github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr' &&
+      github.ref == 'refs/heads/develop' &&
       (github.event_name == 'push' || inputs.publish_only == true || inputs.refresh_staging == true || inputs.full_verification == true)
     runs-on: ubuntu-latest
     permissions:
@@ -181,7 +126,7 @@ jobs:
   pulse:
     name: Publish develop PULSE
     if: >-
-      github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr' &&
+      github.ref == 'refs/heads/develop' &&
       (github.event_name == 'push' || inputs.publish_only == true || inputs.refresh_staging == true || inputs.full_verification == true)
     uses: ./.github/workflows/ops-board.yml
     with:
@@ -197,7 +142,7 @@ jobs:
     name: Validate candidate and promote application snapshot
     needs: integrate
     if: >-
-      always() && inputs.repair_scope != 'pr' &&
+      always() &&
       (github.event_name == 'push' || inputs.publish_only == true || inputs.refresh_staging == true || inputs.full_verification == true)
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -410,7 +355,7 @@ jobs:
     name: Record final develop result
     needs: [integrate, publish, rollback-lkg]
     if: >-
-      always() && github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr' &&
+      always() && github.ref == 'refs/heads/develop' &&
       (github.event_name == 'push' || inputs.publish_only == true || inputs.refresh_staging == true || inputs.full_verification == true)
     runs-on: ubuntu-latest
     permissions:
@@ -532,7 +477,7 @@ jobs:
     name: Optional full regression and public browser diagnostics
     needs: [publish, result]
     if: >-
-      always() && github.ref == 'refs/heads/develop' && inputs.repair_scope != 'pr' &&
+      always() && github.ref == 'refs/heads/develop' &&
       inputs.full_verification == true && needs.publish.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
