@@ -75,8 +75,9 @@ export function affectedForDev(nodes, paths) {
   const all = apps(nodes).map(n => n.id);
   const changed = new Set();
   for (const path of paths) {
-    if (documentationPath(path) || devControlPlanePath(path)) continue;
-    if (devGlobalBuildPath(path)) return all;
+    if (documentationPath(path)) continue;
+    if (devBuildToolingPath(path) || devGlobalBuildPath(path)) return all;
+    if (devControlPlanePath(path)) continue;
     const owner = [...nodes.values()].find(n => path.startsWith(`${n.dir}/`));
     // Unknown runtime/configuration paths still fail closed even in DEV.
     if (!owner) return all;
