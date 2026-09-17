@@ -13,9 +13,14 @@ const HOLD_LABELS = new Set(['integration:hold', 'integration:manual', 'do-not-m
 const gitSha = value => typeof value === 'string' && /^[0-9a-f]{40}$/i.test(value);
 
 export function staleReadyCandidate(pr, repository) {
-  return pr?.state === 'open' && !pr.draft && pr.base?.ref === 'develop' &&
-    pr.base?.repo?.full_name === repository && pr.head?.repo?.full_name === repository &&
-    TRUSTED.has(pr.author_association) && dependencies(pr.body || '').length === 0;
+  if (!(pr?.state === 'open' && !pr.draft && pr.base?.ref === 'develop' &&
+      pr.base?.repo?.full_name === repository && pr.head?.repo?.full_name === repository &&
+      TRUSTED.has(pr.author_association))) return false;
+  try {
+    return dependencies(pr.body || '').length === 0;
+  } catch {
+    return false;
+  }
 }
 
 function explicitHold(pr) {
