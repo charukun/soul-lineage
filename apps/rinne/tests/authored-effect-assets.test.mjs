@@ -13,13 +13,13 @@ function effectFixture(dependencies,version=1500){
   return Buffer.concat([Buffer.from('EFKE'),word(0),Buffer.from('INFO'),word(info.length),info]);
 }
 test('selected authored originals, expanded review catalog, runtime and license notices are immutable pins',()=>{
-  assert.equal(EFFECT_DOWNLOADS.length,41);assert.equal(new Set(EFFECT_DOWNLOADS.map(r=>r.target)).size,41);
+  assert.equal(EFFECT_DOWNLOADS.length,55);assert.equal(new Set(EFFECT_DOWNLOADS.map(r=>r.target)).size,55);
   for(const row of EFFECT_DOWNLOADS){assert.match(row.revision,/^[a-f0-9]{40}$/);assert.match(row.gitBlobSha,/^[a-f0-9]{40}$/);assert.ok(row.byteLength>0);}
   assert.equal(EFFECT_DOWNLOADS.some(r=>r.target==='LICENSE-SAMPLES.txt'),true);
   assert.equal(EFFECT_DOWNLOADS.some(r=>r.target==='LICENSE-MIT.txt'),true);
-  assert.equal(Object.keys(AUTHORED_EFFECTS).length,3);assert.equal(Object.keys(REVIEW_AUTHORED_EFFECTS).length,8);assert.equal(EFFECT_ASSETS.some(r=>r.path.endsWith('.fbx')),false);
+  assert.equal(Object.keys(AUTHORED_EFFECTS).length,3);assert.equal(Object.keys(REVIEW_AUTHORED_EFFECTS).length,9);assert.equal(EFFECT_ASSETS.some(r=>r.path.endsWith('.fbx')),false);
   assert.equal(AUTHORED_EFFECTS.finisher.path,'samples/02_Tktk03/Light.efkefc');
-  assert.deepEqual(EFFECT_ASSETS.filter(r=>r.path.endsWith('.efkefc')).map(r=>r.infoVersion),[1500,1500,1610,1500,1500,1500,1500,1610]);
+  assert.deepEqual(EFFECT_ASSETS.filter(r=>r.path.endsWith('.efkefc')).map(r=>r.infoVersion),[1500,1500,1610,1500,1500,1500,1500,1610,1610]);
 });
 test('INFO parser reads reviewed v1500/v1610 layouts and complete dependency closure',()=>{
   const bytes=effectFixture(['Texture/SwordLine01.png']);assert.deepEqual(effectDependencies(bytes),['Texture/SwordLine01.png']);
@@ -28,6 +28,9 @@ test('INFO parser reads reviewed v1500/v1610 layouts and complete dependency clo
   const light=EFFECT_ASSETS.find(row=>row.path.endsWith('/Light.efkefc'));
   assert.throws(()=>verifyEffectClosure(light,effectFixture([],1500)),/version mismatch/);
   assert.throws(()=>verifyEffectClosure(EFFECT_ASSETS[0],effectFixture(['Texture/missing.png'])),/Unpinned/);
+  const hanmado=EFFECT_ASSETS.find(row=>row.path.endsWith('/hit_hanmado_0409.efkefc'));
+  assert.doesNotThrow(()=>verifyEffectClosure(hanmado,effectFixture(['../Texture/hit.png'],1610)));
+  assert.throws(()=>verifyEffectClosure(hanmado,effectFixture(['../../outside.png'],1610)),/escapes reviewed root/);
 });
 test('unsafe paths, unknown versions and truncation cannot pass as authored data',()=>{
   for(const value of ['../escape.png','/tmp/x.png','https:asset.png','Texture\\bad.png'])assert.throws(()=>effectDependencies(effectFixture([value])));
