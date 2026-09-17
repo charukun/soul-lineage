@@ -1,0 +1,91 @@
+{
+  "generatedAt": "2026-09-17T17:40:09.776Z",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "arch": "x64"
+  },
+  "classification": "B-bounded-executable-evidence",
+  "focusedTests": {
+    "passed": 19,
+    "failed": 0
+  },
+  "witnessRegistry": {
+    "count": 13,
+    "names": [
+      "seed-grinding",
+      "selective-abort",
+      "vrf-input-key-grinding",
+      "beacon-round-ticket-grinding",
+      "modulo-bias",
+      "domain-correlation",
+      "untrusted-source-key",
+      "adaptive-distribution",
+      "representation-grinding",
+      "admission-censorship",
+      "sybil-multiplicity",
+      "order-cycle",
+      "fallback-downgrade"
+    ]
+  },
+  "boundedWitnesses": {
+    "seedGrinding": {
+      "value": 34,
+      "result": 0
+    },
+    "vrfInputGrinding": {
+      "value": "input-14",
+      "result": 0
+    },
+    "vrfKeyGrinding": {
+      "value": "key-11",
+      "result": 0
+    },
+    "beaconRoundGrinding": {
+      "value": 104,
+      "result": 0
+    },
+    "moduloSix": [43,43,43,43,42,42],
+    "rejectionSix": {
+      "counts": [42,42,42,42,42,42],
+      "rejected": 4
+    },
+    "selectiveAbort": {
+      "completion": 0.5,
+      "conditional": {"0":0,"1":1}
+    },
+    "bestOf64": {
+      "base": 0.0625,
+      "after": 0.9839246036490473
+    },
+    "currentRinneDateNowBounded": {
+      "value": 4,
+      "result": 0.8887792513446834
+    },
+    "orderCycle": {
+      "orders": [["A","B","C"],["B","C","A"],["C","A","B"]],
+      "edges": [["A","B"],["C","A"],["B","C"]],
+      "cyclic": true
+    },
+    "sybil": {
+      "one": 0.5,
+      "ten": 0.9090909090909091
+    }
+  },
+  "sourceSha256": {
+    "reality-randomness-model.mjs": "406f457872a037646e18050685fbf4ba2575f10c3704bb18a4d4f4643b8abede",
+    "reality-randomness.test.mjs": "d12a6de674563b4e756ffe7f7e2375431f3a9f2888b699352c066f617b3bf7b6",
+    "reality-randomness-proof.mjs": "fbf9bc3361d5b49bcc67852cb983f824d6764f73c840150ae52b2a10dc654689"
+  },
+  "boundary": {
+    "proves": "finite deterministic counterexamples and structural contract checks only",
+    "doesNotProve": [
+      "production VRF/beacon security",
+      "Sybil-resistant identity",
+      "Byzantine fair-ordering protocol correctness",
+      "runtime enforcement of binding times",
+      "browser/device timing fairness",
+      "performance or availability"
+    ]
+  }
+}
