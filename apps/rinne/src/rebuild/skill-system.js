@@ -64,9 +64,7 @@ function selectedSkillIds(state){
 
 export function skillEffects(state){
   const total={trainingGain:0,actionSpark:0,damage:0,mitigation:0,evasion:0,reach:0,staminaCost:0,recovery:0};
-  for(const id of selectedSkillIds(state)){const row=SKILL_BY_ID[id];for(const [key,value] of Object.entries(row?.effects||{}))total[key]=(total[key]||0)+value;}
-  total.trainingGain=clamp(total.trainingGain,0,.85);
-  total.actionSpark=clamp(total.actionSpark,0,.75);
+  for(const id of selectedSkillIds(state)){const row=SKILL_BY_ID[id];for(const [key,value] of Object.entries(row?.effects||{})){if(key==='trainingGain'||key==='actionSpark')continue;total[key]=(total[key]||0)+value;}}
   total.damage=clamp(total.damage,0,.7);
   total.mitigation=clamp(total.mitigation,0,.58);
   total.evasion=clamp(total.evasion,0,.38);
