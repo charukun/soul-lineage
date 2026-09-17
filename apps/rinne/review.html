@@ -4,49 +4,78 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#111716">
-  <title>輪廻転焦 Visual Review</title>
+  <title>輪廻転焦 Visual Review Lab</title>
 </head>
 <body>
   <main class="review-shell">
     <header class="review-header">
-      <div><p class="eyebrow">RINNE · DEVELOP</p><h1>Visual Review</h1></div>
+      <div><p class="eyebrow">RINNE · DEVELOP</p><h1>Visual Review Lab</h1></div>
       <div class="source"><span>source</span><strong id="build-source">develop</strong></div>
     </header>
 
-    <nav class="review-nav" aria-label="確認項目">
-      <button type="button" class="active" data-view="inspiration">閃き</button>
-      <button type="button" data-view="motion">演舞・モーション</button>
-      <button type="button" data-view="characters">キャラクター</button>
-      <button type="button" data-view="assets">モデル・装備</button>
-      <button type="button" data-view="battle">自動戦闘</button>
-    </nav>
-
-    <section class="review-view active" data-panel="inspiration">
-      <div class="section-head"><div><p class="eyebrow">CANONICAL DATA</p><h2>閃き候補</h2></div><div class="catalog-meta"><strong id="catalog-revision">-</strong><span id="motion-count">-</span></div></div>
-      <p class="help">ここに出る候補がゲーム本体の正本です。Review専用の候補表は持ちません。</p>
-      <div id="weapon-tabs" class="weapon-tabs" role="tablist"></div>
-      <div id="inspiration-phases" class="phase-grid"></div>
-      <a class="open-link" href="./characters.html?review=motion">このdevelopの演舞レビューを開く</a>
+    <section class="app-context" aria-label="確認するアプリ文脈">
+      <span>APP CONTEXT</span>
+      <div class="app-context-buttons">
+        <button type="button" class="active" data-app-context="rinne">輪廻転焦</button>
+        <button type="button" data-app-context="village">MURAAAAAAA</button>
+        <button type="button" data-app-context="demon">尽喰廻遊</button>
+      </div>
+      <output id="context-summary">輪廻転焦の通常文脈で確認</output>
     </section>
 
-    <section class="review-view framed" data-panel="motion">
-      <div class="frame-head"><div><p class="eyebrow">CURRENT DEVELOP</p><h2>演舞・モーション</h2></div><a href="./characters.html?review=motion">全画面</a></div>
-      <iframe title="演舞・モーション確認" data-src="./characters.html?review=motion"></iframe>
+    <nav class="review-nav" aria-label="確認手順">
+      <button type="button" class="active" data-view="overview">対象・正本</button>
+      <button type="button" data-view="characters">キャラ</button>
+      <button type="button" data-view="motion">モーション</button>
+      <button type="button" data-view="assets">装備・物体</button>
+      <button type="button" data-view="effects">エフェクト</button>
+      <button type="button" data-view="battle">実戦</button>
+    </nav>
+
+    <section class="review-view active" data-panel="overview">
+      <div class="section-head"><div><p class="eyebrow">SHARED WORLD CONTRACT</p><h2>何を確認するか</h2></div><div class="catalog-meta"><strong id="foundation-id">-</strong><span id="foundation-rig">-</span></div></div>
+      <p class="help">人間系キャラクターは3アプリで同じKayKit正本family / Rig_Mediumを使い、アプリ固有差は役割装備・状態・カメラ・ライティング・LODとして上乗せします。対象を変えずに右へ進み、最後に実戦文脈で確認します。</p>
+      <div id="app-status-grid" class="app-status-grid"></div>
+      <div class="workflow-grid" aria-label="レビュー操作">
+        <article><strong>1 · キャラ</strong><span>個体・役割・年齢を決め、正面/横/背面/顔とアプリ通常距離を見る。</span></article>
+        <article><strong>2 · モーション</strong><span>再生/停止、速度、ループ、タイムライン、±1コマ、補正前後、8方向を見る。</span></article>
+        <article><strong>3 · 装備・物体</strong><span>右手/左手/背中の装着と、アプリで使うワールド物体の出典・用途を分けて確認。</span></article>
+        <article><strong>4 · エフェクト</strong><span>斬撃・命中・急/大技を原本backendで再生し、遮蔽・派手さ・Reduced motion・負荷tierを見る。</span></article>
+        <article><strong>5 · 実戦</strong><span>Review専用戦闘を作らず、RaidHost → Tidebreakの現行経路で時間・行動・HPを見る。</span></article>
+      </div>
+      <div class="section-head compact"><div><p class="eyebrow">CANONICAL MOTION DATA</p><h2>技・閃き候補</h2></div><div class="catalog-meta"><strong id="catalog-revision">-</strong><span id="motion-count">-</span></div></div>
+      <div id="weapon-tabs" class="weapon-tabs" role="tablist"></div>
+      <div id="inspiration-phases" class="phase-grid"></div>
+      <div class="object-catalog"><h3>共有ワールド物体 / 素材</h3><div id="world-object-grid"></div></div>
     </section>
 
     <section class="review-view framed" data-panel="characters">
-      <div class="frame-head"><div><p class="eyebrow">CURRENT DEVELOP</p><h2>キャラクター</h2></div><a href="./characters.html">全画面</a></div>
+      <div class="frame-head"><div><p class="eyebrow">IDENTITY · AGE · ROLE · CAMERA</p><h2>キャラクター</h2></div><a href="./characters.html">全画面</a></div>
+      <p class="panel-guide">見た目、色・年齢、表情、量産個体、Village/Demon通常カメラを同じ個体で確認します。</p>
       <iframe title="キャラクター確認" data-src="./characters.html"></iframe>
     </section>
 
+    <section class="review-view framed" data-panel="motion">
+      <div class="frame-head"><div><p class="eyebrow">TIMELINE · FRAME · CONTACT</p><h2>演舞・モーション</h2></div><a href="./characters.html?review=motion">全画面</a></div>
+      <p class="panel-guide">30秒演舞と技単体を、速度・ループ・±1コマ・補正前後・8方向で確認します。</p>
+      <iframe title="演舞・モーション確認" data-src="./characters.html?review=motion"></iframe>
+    </section>
+
     <section class="review-view framed" data-panel="assets">
-      <div class="frame-head"><div><p class="eyebrow">REVIEW ONLY · PINNED CC0</p><h2>モデル・装備</h2></div><a href="./review-assets.html">全画面</a></div>
+      <div class="frame-head"><div><p class="eyebrow">EQUIPMENT · WORLD OBJECTS</p><h2>装備・物体</h2></div><a href="./review-assets.html">全画面</a></div>
+      <p class="panel-guide">装備はモデルへの実装着を確認。ワールド物体は「対象・正本」の共有カタログで採用アプリと出典を確認し、ゲーム文脈で最終確認します。</p>
       <iframe title="モデル・装備確認" data-src="./review-assets.html"></iframe>
+    </section>
+
+    <section class="review-view framed" data-panel="effects">
+      <div class="frame-head"><div><p class="eyebrow">EFFEKSEER · AUTHORED ORIGINALS</p><h2>派手な戦闘エフェクト</h2></div><a href="./review-effects.html">全画面</a></div>
+      <p class="panel-guide">Simple_Ribbon_Sword / ToonHit / Lightを、ゲーム本体と同じeffect player/backendで確認します。</p>
+      <iframe title="戦闘エフェクト確認" data-src="./review-effects.html"></iframe>
     </section>
 
     <section class="review-view" data-panel="battle">
       <div class="section-head"><div><p class="eyebrow">REAL RUNTIME</p><h2>自動戦闘</h2></div><div class="battle-state"><strong id="battle-result">準備中</strong><span id="battle-time">0.0秒</span></div></div>
-      <p class="help">`RaidHost` → `Tidebreak` の現行develop経路をそのまま動かします。Review専用の戦闘ロジックはありません。</p>
+      <p class="help">`RaidHost` → `Tidebreak` の現行develop経路をそのまま動かします。Review専用の戦闘ロジックはありません。VFXの単体確認後、ここで戦闘テンポとの関係を確認します。</p>
       <canvas id="battle-canvas" width="900" height="420" aria-label="自動戦闘の位置と体力"></canvas>
       <div class="fighter-grid"><article><span>DEMON</span><strong id="hero-action">-</strong><progress id="hero-hp" max="1" value="1"></progress><small id="hero-meta">-</small></article><article><span>HUMAN</span><strong id="enemy-action">-</strong><progress id="enemy-hp" max="1" value="1"></progress><small id="enemy-meta">-</small></article></div>
       <div class="battle-actions"><button id="battle-restart" type="button">最初から</button><button id="battle-toggle" type="button">一時停止</button></div>
