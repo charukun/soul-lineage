@@ -37,9 +37,9 @@ export function createGameplayUI(gameScreen,{stations,layout,audio}){
   // Keep the internal dash input hook for keyboard/runtime compatibility, but do
   // not expose a dedicated run button in the mobile command row.
   const dash=document.createElement('button');dash.type='button';dash.hidden=true;
-  const q=s=>root.querySelector(s),ui={
-    root,dash,heart:q('[data-heart]'),heartBadge:q('[data-heart-badge]'),techniques:q('[data-techniques]'),techBadge:q('[data-tech-badge]'),bodyButton:q('[data-body]'),items:q('[data-items]'),map:q('[data-map]'),debug:q('[data-debug]'),
-    oneMotion:q('[data-one-motion]'),oneMotionName:q('[data-one-motion-name]'),panel:q('[data-panel]'),title:q('[data-title]'),body:q('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
+  const q=s=>root.querySelector(s),panel=q('[data-panel]'),ui={
+    root,dash,heart:q('[data-heart]'),heartBadge:q('[data-heart-badge]'),techniques:q('[data-techniques]'),techBadge:q('[data-tech-badge]'),bodyButton:q('.rinne-bottom-controls [data-body]'),items:q('[data-items]'),map:q('[data-map]'),debug:q('[data-debug]'),
+    oneMotion:q('[data-one-motion]'),oneMotionName:q('[data-one-motion-name]'),panel,title:q('[data-title]'),body:panel.querySelector('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
     rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),name:q('[data-name]'),equip:q('[data-equip]'),state:q('[data-state]')
   };
   let state=null,sheetDrag=null,movementHelpTimer=0;
