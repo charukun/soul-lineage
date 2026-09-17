@@ -3,6 +3,8 @@ import './review-slot-picker.css';
 let serial=0;
 let opened=null;
 
+function sourceButtons(group){return [...group.querySelectorAll('button:not(.simple-review-technical)')];}
+
 function labelOf(button){
   const explicit=button.dataset.reviewSlotOptionLabel||button.getAttribute('aria-label');
   if(explicit)return explicit.trim();
@@ -12,7 +14,7 @@ function labelOf(button){
 }
 
 function selectedButton(group){
-  const list=[...group.querySelectorAll('button')].filter(button=>!button.disabled);
+  const list=sourceButtons(group).filter(button=>!button.disabled);
   return list.find(button=>button.getAttribute('aria-pressed')==='true')||list.find(button=>button.classList.contains('primary'))||list[0]||null;
 }
 
@@ -69,7 +71,7 @@ export function mountReviewGroup(group,label){
   if(!group||group.dataset.reviewSlotMounted==='true')return null;
   group.dataset.reviewSlotMounted='true';
   const shell=shellFor(label||group.getAttribute('aria-label')||'選択',group.id,current=>{
-    const value=current.querySelector('.review-slot-value');const grid=current.querySelector('.review-slot-grid');const sources=[...group.querySelectorAll('button')];const chosen=selectedButton(group);value.textContent=chosen?labelOf(chosen):'選択';
+    const value=current.querySelector('.review-slot-value');const grid=current.querySelector('.review-slot-grid');const sources=sourceButtons(group);const chosen=selectedButton(group);value.textContent=chosen?labelOf(chosen):'選択';
     grid.replaceChildren(...sources.map(source=>{const button=document.createElement('button');button.type='button';button.className='review-slot-option';button.textContent=labelOf(source);button.disabled=source.disabled;button.setAttribute('role','option');button.setAttribute('aria-selected',String(source===chosen));button.addEventListener('click',()=>{source.click();value.textContent=labelOf(source);close(current,true);});return button;}));
   });
   group.insertAdjacentElement('afterend',shell);group.classList.add('review-slot-source-group');group.setAttribute('aria-hidden','true');const chosen=selectedButton(group);shell.querySelector('.review-slot-value').textContent=chosen?labelOf(chosen):'選択';return shell;
