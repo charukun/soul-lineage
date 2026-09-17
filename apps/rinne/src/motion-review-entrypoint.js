@@ -90,6 +90,21 @@ function compactCharacterModelLabels() {
   }
 }
 
+function prepareCharacterCameraStrip() {
+  const actions = qs('.stage-actions');
+  if (!actions) return;
+  byId('camera-cycle')?.classList.add('simple-review-technical');
+  byId('pause')?.classList.add('simple-review-technical');
+  byId('capture')?.classList.add('simple-review-technical');
+  actions.querySelector('[data-camera="overview"]')?.classList.add('simple-review-technical');
+  for (const preset of ['front', 'side', 'back', 'face']) {
+    const button = actions.querySelector(`[data-camera="${preset}"]`);
+    if (!button) continue;
+    button.hidden = false;
+    button.removeAttribute('aria-hidden');
+  }
+}
+
 function moveCameraControlsToStage() {
   const actions = qs('.stage-actions');
   const cameras = byId('qa-cameras');
@@ -125,9 +140,9 @@ function prepareCharacterReview() {
   const title = byId('character-model-title');
   if (title) title.textContent = 'キャラクター';
   compactCharacterModelLabels();
+  prepareCharacterCameraStrip();
   qs('[data-character-build-request]')?.classList.add('simple-review-technical');
   byId('character-model-note')?.classList.add('simple-review-technical');
-  byId('capture')?.classList.add('simple-review-technical');
 }
 
 function prepareMotionReview() {
