@@ -222,7 +222,7 @@ jobs:
         working-directory: work
         if: >-
           steps.rescue-fast.outputs.reuse != 'true' &&
-          (steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.has_packages == 'true' || steps.plan.outputs.infrastructure == 'true')
+          (github.event.pull_request.base.ref == 'main' || steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.infrastructure == 'true')
       - name: DEV no-test validation or main fast verification
         if: steps.rescue-fast.outputs.reuse != 'true'
         working-directory: work

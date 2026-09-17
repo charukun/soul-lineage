@@ -1,14 +1,14 @@
 # Browser verification and repair
 
-Browser automation is **opt-in for normal develop work**. The source of truth for normal integration is the exact-head fast validation/build result and current GitHub state. main / Production browser gates remain unchanged.
+Browser automation is **opt-in for normal develop work**. The source of truth for normal Integration is the exact-head DEV checks/build result and current GitHub state. main / Production browser gates remain unchanged.
 
 Normal PRs targeting `develop` and normal DEV publication do not automatically launch gameplay/WebGL browser scenarios, create browser evidence artifacts, or create browser-repair tickets. A stale UI selector or presentation-only browser assertion must not turn an otherwise valid develop change red.
 
 ## Default develop route
 
-`PR -> fast validation/build -> Integration Fast Lane -> develop -> DEV publication -> HTTP/source verification`
+`PR -> test-free DEV checks/build -> Integration Fast Lane -> develop -> DEV publication -> HTTP/source verification`
 
-The default route deliberately excludes automatic PR browser smoke, DEV candidate browser verification, post-publication DEV browser verification, and browser self-healing dispatch. Unit/integration tests, syntax checks, workspace boundaries, code-health, builds, exact-head evidence, deployment identity and HTTP/source verification remain active.
+The default route deliberately excludes automatic unit/integration test execution, PR browser smoke, DEV candidate browser verification, post-publication DEV browser verification, and browser self-healing dispatch. Diff/syntax/static checks, code-health, affected builds when game inputs changed, exact-head evidence, deployment identity and HTTP/source verification remain active. Implementation sessions still run the focused tests they need before Ready.
 
 ## When browser verification runs
 
@@ -33,7 +33,7 @@ The repair Chat must:
 - identify the smallest root-cause fix without weakening browser assertions, forcing input, or increasing deadlines to hide defects;
 - repair the existing PR branch when the source PR is still open;
 - create a normal short-lived repair branch/Draft PR from latest develop for a develop-scope defect;
-- run focused checks/fast validation, push, Ready -> `READY_FOR_INTEGRATION`, then stop without polling CI/browser/DEV;
+- run focused checks/tests/build as appropriate, push, Ready -> `READY_FOR_INTEGRATION`, then stop without polling CI/browser/DEV;
 - leave a true unresolved product/schema/save/protocol decision as `human-required` with the exact decision needed.
 
 ## Native input during animated UI transitions
@@ -42,6 +42,6 @@ When browser verification is explicitly run, a visible control may still be movi
 
 ## Legacy browser-repair records
 
-Existing `browser-repair:v1` Issues and old `pr-browser-*` / `dev-browser-*` artifacts remain historical evidence. They do not trigger new automatic develop browser runs or source-repair work. Do not recreate the retired ChatGPT Work browser-repair trigger.
+Existing `browser-repair:v1` Issues and old `pr-browser-*` / `dev-browser-*` artifacts remain historical evidence only. The legacy `deploy.yml` repair recorder inputs/job and `scripts/browser-repair-ticket.mjs` execution entrypoint are retired; no normal or manual develop workflow recreates those tickets. Historical state parsing may remain solely for reading old evidence. Do not recreate the retired ChatGPT Work browser-repair trigger.
 
 Explicit holds, Changes requested, unresolved threads, external/untrusted PRs, main and Production remain protected by their existing gates. Production target selection and blocking browser verification remain unchanged.

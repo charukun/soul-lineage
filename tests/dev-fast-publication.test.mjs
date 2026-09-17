@@ -5,6 +5,8 @@ import { readFileSync } from 'node:fs';
 const notify = readFileSync('scripts/notify-delivery.mjs', 'utf8');
 const ci = readFileSync('.github/workflows/ci.yml', 'utf8');
 const deploy = readFileSync('.github/workflows/deploy.yml', 'utf8');
+const publisher = readFileSync('scripts/deploy.mjs', 'utf8');
+const validator = readFileSync('scripts/validate.mjs', 'utf8');
 const contract = readFileSync('docs/DEV_PUBLICATION.md', 'utf8');
 
 test('normal develop PR and publication omit automatic browser work without weakening Production verification', () => {
@@ -14,10 +16,19 @@ test('normal develop PR and publication omit automatic browser work without weak
   assert.doesNotMatch(deploy, /Focused DEV browser verification after promotion/);
   assert.doesNotMatch(deploy, /name: Preserve DEV browser evidence/);
   assert.doesNotMatch(deploy, /browser_outcome:/);
-  assert.doesNotMatch(deploy, /browser-repair-state:/);
+  assert.doesNotMatch(deploy, /repair_scope|browser-repair-ticket\.mjs/);
   assert.match(deploy, /Validate exact DEV candidate manifest before public promotion/);
   assert.match(deploy, /Preserve blocking Production browser verification/);
   assert.match(deploy, /github\.ref == 'refs\/heads\/main'.*verify-browser/s);
+});
+
+test('normal DEV publisher skips tests and install when no app input changed', () => {
+  assert.match(publisher, /const changedDevApps = .*environment === 'dev'/);
+  assert.match(publisher, /if \(full \|\| \(devOnly && changedDevApps\.length\)\)/);
+  assert.match(publisher, /DEV app inputs unchanged; skip npm ci and validation\/build preparation/);
+  assert.match(publisher, /if \(!entry\.legacy && !devOnly\) run\(entry\.root, 'npm', \['test'\]/);
+  assert.match(publisher, /if \(!entry\.legacy && !devOnly\) run\(entry\.root, 'npm', \['run', 'test:app'/);
+  assert.match(validator, /if \(dev \|\| deploy\) \{[\s\S]*tests: 0/);
 });
 
 test('explicit full verification retains public browser/WebGL diagnostics outside the DEV delivery gate', () => {
@@ -39,10 +50,11 @@ test('DEV_DEPLOYED copy does not claim browser certification', async () => {
     'GitHub delivery status must be recorded before advisory smartphone notification');
 });
 
-test('the focused DEV contract makes browser verification opt-in and preserves Production', () => {
-  assert.match(contract, /Browser\/WebGL\/gameplay scenarios are not a prerequisite for DEV visibility/);
+test('the focused DEV contract makes tests/browser opt-in and preserves Production', () => {
+  assert.match(contract, /`node --test`.*not prerequisites for DEV visibility/);
+  assert.match(contract, /skips `npm ci` and app validation\/build preparation/);
   assert.match(contract, /Normal develop PRs do not automatically run affected-browser smoke/);
   assert.match(contract, /full_verification=true/);
-  assert.match(contract, /Historical `browser-repair:v1` records/);
+  assert.match(contract, /legacy browser repair recorder workflow\/input\/script are retired/);
   assert.match(contract, /Production remains unchanged/);
 });

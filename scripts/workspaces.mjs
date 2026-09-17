@@ -6,6 +6,9 @@ import { createHash } from 'node:crypto';
 export const toolingPath = path => /^(scripts\/|templates\/|tests\/|\.github\/workflows\/|package(?:-lock)?\.json$|\.nvmrc$|\.npmrc$)/.test(path);
 export const documentationPath = path => /^(docs\/|README\.md$|LICENSE(?:\..*)?$)/.test(path) || /\/README\.md$/.test(path);
 export const workspaceManifestPath = path => /^(apps|packages)\/[^/]+\/package\.json$/.test(path);
+export const devGlobalBuildPath = path => /^(?:package(?:-lock)?\.json|\.nvmrc|\.npmrc)$/.test(path);
+export const devBuildToolingPath = path => /^(?:package(?:-lock)?\.json|\.nvmrc|\.npmrc|scripts\/(?:vite-app|workspaces|application-catalog|prepare-basis-assets|prepare-kaykit-foundation|strip-retired-character-assets|verify-build)\.mjs)$/.test(path);
+export const devControlPlanePath = path => /^(?:\.github\/|tests\/|templates\/|scripts\/(?:integration-|context-|browser\/|affected\.mjs$|validate\.mjs$|check\.mjs$|test-app\.mjs$|deploy\.mjs$|dev-|site-dedupe\.mjs$|verify-live\.mjs$|implementation-handoff\.mjs$|notify-|code-health\.mjs$|visual-budget\.mjs$|completion-evidence\.mjs$|check-push-route\.mjs$|performance-|physical-performance-|ops-|pulse-|review-))/i.test(path);
 
 export function graph(root = process.cwd()) {
   const nodes = new Map();
@@ -66,17 +69,37 @@ export function affected(nodes, paths) {
   return apps(nodes).filter(n => [...closure(nodes, n.name)].some(name => changed.has(name))).map(n => n.id);
 }
 
-export function inputFiles(root, nodes, id) {
+// DEV deliberately does not turn known control-plane-only edits into game rebuilds.
+// Unknown root/tooling changes and Production/full validation remain fail-closed.
+export function affectedForDev(nodes, paths) {
+  const all = apps(nodes).map(n => n.id);
+  const changed = new Set();
+  for (const path of paths) {
+    if (documentationPath(path)) continue;
+    if (devBuildToolingPath(path) || devGlobalBuildPath(path)) return all;
+    if (devControlPlanePath(path)) continue;
+    const owner = [...nodes.values()].find(n => path.startsWith(`${n.dir}/`));
+    if (!owner) return all;
+    changed.add(owner.name);
+  }
+  return apps(nodes).filter(n => [...closure(nodes, n.name)].some(name => changed.has(name))).map(n => n.id);
+}
+
+export function inputFiles(root, nodes, id, environment = '') {
   const dirs = [...closure(nodes, appNode(nodes, id).name)].map(name => `${nodes.get(name).dir}/`);
-  return execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { cwd: root, encoding: 'utf8' })
-    .split('\0').filter(Boolean).filter(path => existsSync(resolve(root, path)))
+  const files = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { cwd: root, encoding: 'utf8' })
+    .split('\0').filter(Boolean).filter(path => existsSync(resolve(root, path)));
+  if (environment === 'dev') {
+    return files.filter(path => devBuildToolingPath(path) || (!documentationPath(path) && dirs.some(dir => path.startsWith(dir)))).sort();
+  }
+  return files
     .filter(path => toolingPath(path) || (!documentationPath(path) && (dirs.some(dir => path.startsWith(dir)) || !/^(apps|packages)\//.test(path))))
     .sort();
 }
 
 export function inputHash(root, nodes, id, environment) {
   const hash = createHash('sha256').update(`monorepo-v1\0${environment}\0${id}\0`);
-  for (const file of [...new Set(inputFiles(root, nodes, id))]) {
+  for (const file of [...new Set(inputFiles(root, nodes, id, environment))]) {
     hash.update(file).update('\0').update(readFileSync(resolve(root, file))).update('\0');
   }
   return hash.digest('hex');
