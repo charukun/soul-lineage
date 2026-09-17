@@ -139,6 +139,52 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  stale-ready-refresh:
+    name: Refresh non-overlapping stale Ready PRs
+    needs: integrate
+    if: always() && needs.integrate.result == 'success' && needs.integrate.outputs.merged_count == '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Merge-forward only dependency-free Ready PRs whose develop drift is scope-disjoint
+        id: refresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-stale-refresh-api.json
+        run: node scripts/integration-stale-ready-refresh.mjs
+      - name: Wake Fast Lane for refreshed exact heads
+        if: steps.refresh.outputs.has_work == 'true'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo,
+              workflow_id: 'deploy.yml',
+              ref: 'develop',
+            });
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-stale-refresh-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .deploy-state/integration-stale-refresh.json
+            .deploy-state/integration-stale-refresh-api.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
+
   repair:
     name: Fast Repair executor
     if: inputs.rescue_mode == 'scan'
