@@ -4,8 +4,8 @@ import {EFFECT_ASSETS,REVIEW_AUTHORED_EFFECTS} from '../src/rebuild/authored-eff
 import {REVIEW_EFFECT_CATALOG,REVIEW_EFFECT_CATEGORIES,REVIEW_EFFECT_SCENARIOS,effectsForCategory,reviewEffectById,reviewScenarioById} from '../src/review-effects-catalog.js';
 
 test('review catalog exposes a broad pinned authored selection',()=>{
-  assert.equal(Object.keys(REVIEW_AUTHORED_EFFECTS).length,8);
-  assert.equal(REVIEW_EFFECT_CATALOG.length,8);
+  assert.equal(Object.keys(REVIEW_AUTHORED_EFFECTS).length,9);
+  assert.equal(REVIEW_EFFECT_CATALOG.length,9);
   const pinned=new Set(EFFECT_ASSETS.map(row=>row.path));
   for(const row of REVIEW_EFFECT_CATALOG){
     assert.ok(REVIEW_AUTHORED_EFFECTS[row.effect],`missing definition for ${row.effect}`);
@@ -15,6 +15,7 @@ test('review catalog exposes a broad pinned authored selection',()=>{
   assert.ok(REVIEW_EFFECT_CATALOG.some(row=>row.id==='laser02'));
   assert.ok(REVIEW_EFFECT_CATALOG.some(row=>row.id==='fireworks'));
   assert.ok(REVIEW_EFFECT_CATALOG.some(row=>row.id==='toonWater'));
+  assert.ok(REVIEW_EFFECT_CATALOG.some(row=>row.id==='hanmadoHit'));
 });
 
 test('review categories and combat-like preview scenarios remain navigable',()=>{
