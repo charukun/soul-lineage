@@ -22,13 +22,15 @@ Read only the standards relevant to the task:
 | Task | Required standard |
 | --- | --- |
 | Rinne game construction, default playable character/art direction, KayKit reuse | `KAYKIT_GAME_AXIS.md` + `docs/characters/CHARACTER_LICENSE_POLICY.md` |
-| Character mesh, face, hair, body, clothing, accessories, Blender character assembly, variant art | `CHARACTER_MODELING.md` + `docs/characters/CHARACTER_LICENSE_POLICY.md` |
+| Character mesh, face, hair, body, clothing, accessories, Blender character assembly, variant art | `CHARACTER_MODELING.md` + `docs/characters/CHARACTER_ASSET_SOURCING.md` + `docs/characters/CHARACTER_LICENSE_POLICY.md` |
 | Facial expressions, smile/blink/visemes, reference-guided shape keys | [FACIAL_EXPRESSION_WORKFLOW.md](FACIAL_EXPRESSION_WORKFLOW.md) + `CHARACTER_MODELING.md` section 7 |
 | Visual polish, model comparison, render/runtime acceptance, before/after evidence | `VISUAL_REVIEW.md` |
 | Rig/animation/material/export work that also changes character appearance | both files, plus the applicable `docs/characters/*` contract |
 | Pure UI/code work with no 3D appearance or asset impact | these files are not required |
 
 KayKit-first is the current Rinne game-construction axis. Read `KAYKIT_GAME_AXIS.md` for the playable runtime direction, `docs/characters/KAYKIT_FOUNDATION.md` for the game-facing CC0 foundation, and `docs/characters/CHARACTER_LICENSE_POLICY.md` for the asset-adoption gate. New gameplay character and motion work uses KayKit or a fully RINNE-owned asset by default. Models with model-specific commercial-use conditions are retired from active runtime, review candidates and Production distribution. Legacy IDs/schema may remain only where migration compatibility requires them.
+
+When a task adds or replaces character geometry, follow `docs/characters/CHARACTER_ASSET_SOURCING.md` before generating a new mesh: inspect reviewed repository assets, search the approved external discovery catalogs, apply the existing license/provenance gate, and import the real eligible source asset before DCC adaptation. A generative 3D service is a fallback when no eligible source can satisfy the role. Rebuilding an available imported model with runtime primitives is not a reproduction; it remains `BLOCKOUT`.
 
 ## Core rule
 
