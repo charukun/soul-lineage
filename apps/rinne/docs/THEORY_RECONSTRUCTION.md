@@ -1,71 +1,72 @@
 # Independent RRP reconstruction and falsification
 
-## Status and evidence language
+## Status
 
-Start source of truth: `develop` `97d6c5015f2241f97646c5aa1df386478c26d8ba` (2026-09-17).
-PR #716 is still open/Draft at `df678cb59f42f0ec5502663febfe641e75f2549f`; this review treats its conclusions as hypotheses rather than inherited proofs.
+Source of truth at task start: `develop` `97d6c5015f2241f97646c5aa1df386478c26d8ba` (2026-09-17).
+PR #716 remains historical input only while it is open/Draft at `df678cb59f42f0ec5502663febfe641e75f2549f`; this review does not inherit its proof claims.
 
-This document deliberately does **not** use a finite checklist as a claim of theory completion. Every statement is tagged conceptually as one of:
+The result is intentionally narrower than the earlier RRP claims. It does not declare a new consensus theorem, universal dominance, or “theory complete” state.
 
-- **A — conditional theorem / impossibility result**: deductive result under stated assumptions.
-- **B — bounded-model evidence**: executable exploration or finite test evidence only.
-- **C — assumption**: required premise, not established by this repository.
-- **D — heuristic / architecture hypothesis**: useful design idea without a proof of optimality.
-- **E — empirical**: requires measurement on real browsers/devices/networks/storage.
-- **F — unknown**: not yet closed by theory or measurement.
+Evidence classes used throughout:
+
+- **A — theorem / impossibility result**: deductive result under explicit assumptions.
+- **B — bounded executable evidence**: finite model/test exploration only.
+- **C — assumption**: required premise, not proved here.
+- **D — heuristic / architecture hypothesis**: plausible engineering rule without optimality proof.
+- **E — empirical**: requires measurements on real devices, browsers, networks or storage.
+- **F — unknown/open**: not closed by the current theory or evidence.
+
+A finite checklist is never treated as proof of completeness.
 
 ## Executive result
 
-The previous direction contained useful engineering ideas, but the strong claim that the remaining work was only physical validation does not survive independent review.
+The prior work contained useful engineering ideas, but the claim that only physical validation remained does not survive independent review.
 
-The central result is narrower and more defensible:
+1. **Semantic separation survives as architecture, not as a new general theorem.** RedBlue consistency, invariant confluence / coordination avoidance, CALM, CRDTs, causal consistency and HAT work already cover much of the principle “coordinate only the operations whose semantics require it.”
+2. **Canon Nucleus is not established as a new consensus protocol.** The #716 packet model directly reads global node liveness and remote durable state and performs recovery through globally visible stores. It is useful as a centralized specification/oracle, not proof that a node-local protocol implements the same behavior.
+3. **The strongest practical architecture is a semantic router over established mechanisms.** Reversible realtime state uses prediction/rollback/state synchronization; monotone or invariant-confluent facts use causal/CRDT paths; irreversible shared facts use a proven replicated log/consensus service; external side effects keep their own idempotency/transaction boundary.
+4. **The Rinne-specific residuals are narrower:** observer-specific causal suppression, an irreversible speculation frontier, lineage-oriented identity, and fail-closed routing from declared game invariants. These are novelty candidates only, not discoveries.
+5. **Quantum mechanics yields constraints, not transport tricks.** No-signalling rules out entanglement as a latency bypass. “measurement = Canon commit” is discarded as mathematics. The useful residue is classical causal/information reasoning.
+6. **Philosophical ideas survive only after translation to invariants.** Process, relational and observer-relative views motivate event lineage, sufficient-statistic replication and projections, but correctness is decided by ordinary distributed-systems reasoning.
 
-1. **Semantic separation is useful, but not a new general distributed-systems theorem.** RedBlue consistency, invariant confluence / coordination avoidance, CALM, CRDTs, causal consistency and HAT work already formalize large parts of the idea that only some operations need coordination.
-2. **Canon Nucleus as a custom consensus protocol is not established.** The packet/state-space proof in #716 is a centralized executable specification with direct access to global liveness and remote durable state. That can serve as an oracle/specification, but not as evidence that a node-local protocol implements the same behavior.
-3. **The strongest practical reconstruction is a semantic router over known protocols**, not a new monolithic consensus algorithm: reversible realtime work uses prediction/rollback/state-sync; monotone or invariant-confluent work uses local/causal/CRDT paths; irreversible shared facts use a proven replicated log/consensus service; external side effects keep their own idempotency/transaction boundary.
-4. **Two potentially useful Rinne-specific residuals remain**, but neither is yet established as a novel theorem: (a) a causal observation horizon that suppresses updates that provably cannot affect an observer yet, and (b) an irreversible frontier that prevents speculative state from crossing a non-rollbackable game/external boundary without strong evidence.
-5. **Quantum mechanics supplies constraints, not transport tricks.** No-signalling rules out using entanglement to bypass communication latency. “Measurement = Canon commit” has no quantum mathematical content and is discarded. The useful residue is classical information/causality reasoning.
-6. **Philosophical ideas are useful only after translation into invariants.** Process/relational/phenomenological views motivate event projections, relation sufficiency and observer-relative views; those become ordinary distributed-systems conditions once formalized.
-
-No universal dominance claim remains.
+No universal winner is claimed.
 
 ## What broke in the inherited theory
 
-| Prior claim / mechanism | Independent attack | Classification after attack |
+| Prior claim / mechanism | Counterexample / audit result | Classification now |
 | --- | --- | --- |
-| live durable quorum before visibility | #716 `canon-packet-proof.js` computes `live()` and `holders()` by directly reading all nodes' true state; ACK handling also inspects the remote sender store | **B only as centralized specification**, not a node-local protocol proof |
-| recovery-complete crash recovery | `bestSurvivingProposal()` scans all surviving stores and recovery writes the chosen record into every survivor in one local loop | **C hidden oracle / atomic-copy assumption** in the proof model |
-| bounded state-space closes packet ordering | explorer executes that centralized model and covers one operation / three nodes / one crash; retries and duplicates are outside that particular search scope | **B**, useful but much narrower than a protocol proof |
-| invariant compiler certificate | duplicate resource IDs can overwrite in a `Map`; pair enumeration omits same-definition concurrent invocations; effect grammar accepts insufficiently checked shapes | **broken**, rebuilt with fail-closed grammar and self-pair checks |
-| policy handoff generations compose globally | handoff instances can be constructed independently with caller-supplied `initialState` and generation; sequential proof manually threads one snapshot | **B pairwise only**; global transition lineage was unproved |
-| uncertain completion solved by retry | retry/dedupe solves duplicate execution when the client retries with the same ID, but not the history where the client disappears forever | **A impossibility of client knowledge without later evidence**, server-side safety can still hold |
-| election safety ∧ commit safety ∧ handoff safety ⇒ system safety | generation is a cross-component state variable; a commit rule that ignores the handoff generation can accept an old-generation write after a separately safe handoff | **false composition rule**; shared invariants are required |
-| weighted comparison demonstrates architectural superiority | coefficient choices are designer-dependent and prior baselines did not always receive the same semantic split/topology freedom | **D only**; replace with symbolic/Pareto comparison and measurement |
-| theory saturation checklist | `theory-saturation.js` defines a finite boolean list and declares saturation when all entries are true | **not a completeness argument**; an unlisted counterexample falsifies it immediately |
-
-The repository therefore keeps #716 as useful prior exploration, not as the proof foundation of this reconstruction.
+| live durable quorum before visibility | #716 `canon-packet-proof.js` computes global `live()`/`holders()` and ACK processing reads the sender's actual durable store | **B centralized specification**, not a node-local protocol proof |
+| recovery-complete crash recovery | recovery scans all surviving stores and installs the chosen value into survivors through one global model operation | hidden **C oracle / atomic-copy assumption** |
+| bounded packet state-space closes the protocol | explorer runs that centralized model; one bounded search is one operation / three nodes / one crash | **B only** |
+| invariant certificate proves supported semantics | duplicate resource IDs were not rejected, same-definition concurrent invocations were omitted from pair analysis, and effect grammar was insufficiently strict | **broken**, rebuilt fail-closed |
+| pairwise handoff fencing composes globally | independent handoff instances can be created with caller-supplied state/generation; the sequential example manually threads one snapshot | pairwise **B**, global transition lineage unproved |
+| retry solves uncertain completion | stable retry can make re-execution idempotent, but a client that disappears permanently cannot distinguish “committed/reply lost” from “not committed” without later evidence | **A knowledge boundary** |
+| safe election AND safe commit AND safe handoff implies safe system | stale generation can cross component boundaries unless generation/transition evidence is part of the shared commit invariant | conjunction is **false** as a composition rule |
+| weighted cost score proves superiority | coefficients are designer-selected and unfair baselines can be deprived of the same semantic split/topology freedom | **D**, use Pareto comparison + measured inputs |
+| `theory-saturation` boolean list proves completion | an unlisted counterexample invalidates completeness immediately | not a completeness argument |
 
 ## Independent node-local model
 
-Executable evidence lives in:
+Executable evidence:
 
 - `src/game/reality-lab/independent-reconstruction.js`
+- `src/game/reality-lab/independent-boundaries.js`
 - `tests/reality-independent-reconstruction.test.mjs`
+- `tests/reality-independent-boundaries.test.mjs`
 - `scripts/reality-independent-reconstruction-proof.mjs`
+- `scripts/reality-independent-architecture-proof.mjs`
 
-A protocol node in that model can read only:
+A modeled protocol node may read only:
 
-- its persistent state;
-- its volatile state;
-- one delivered message at a time.
+- its own persistent state;
+- its own volatile state;
+- the currently delivered message.
 
-The **scheduler** may crash/pause/resume processes, reorder/drop/duplicate messages and inspect the whole experiment. The **independent oracle** may inspect all nodes after a trace. Neither scheduler nor oracle is a capability of a protocol node.
+The adversarial scheduler may crash/pause/resume processes and deliver/drop/reorder/duplicate messages. The independent test oracle may inspect the experiment after a trace. Neither scheduler nor oracle is a node capability.
 
-The model intentionally fails closed where it has not proved liveness. It is not proposed as a production replacement for Raft/Paxos/VR.
+### Persistent state
 
-### Local persistent state
-
-Each modeled node persists:
+Each node persists:
 
 - authority epoch and one-vote-per-epoch record;
 - active semantic generation;
@@ -77,310 +78,356 @@ Each modeled node persists:
 
 ### Commit evidence
 
-A leader proposes `(epoch, generation, parent, operationTypeId, invocationId, payload)`.
-Followers persist a prepare before sending `PREPARED_ACK`. The leader creates a commit certificate only from a quorum of delivered ACK messages, persists its own commit, then sends the certificate. A client result is emitted only after a quorum of `COMMIT_ACK`s produced after local commit persistence.
+A proposal binds:
 
-This is **B bounded evidence**, not a proof of an unbounded consensus protocol. In particular, the model does not claim a complete leader-change/recovery algorithm with Raft/Paxos-level liveness.
+`(epoch, generation, parent, operationTypeId, invocationId, payload)`.
 
-### Recovery evidence
+A follower persists a prepare before `PREPARED_ACK`. The leader derives a commit certificate from delivered quorum ACKs, persists its own commit, and sends the certificate. A client result is emitted only after a quorum of `COMMIT_ACK`s generated after local commit persistence.
 
-Recovery is message-driven: `RECOVERY_QUERY` → local `RECOVERY_REPLY` → candidate grouping of received evidence → `RECOVERY_INSTALL`. No protocol node directly reads another node's store, and installation occurs only when each destination receives a message.
+This is **B bounded evidence**. It is deliberately not promoted into a new production consensus implementation.
 
-The conservative base model requires a quorum of identical state evidence and may fail closed even when a more sophisticated consensus recovery protocol could safely progress. The production conclusion is therefore to **delegate the strong plane to a mature consensus/replication protocol** rather than turn this bounded research model into another bespoke consensus algorithm.
+### Recovery
+
+Recovery is message-driven:
+
+`RECOVERY_QUERY -> RECOVERY_REPLY -> RECOVERY_INSTALL -> RECOVERY_ACK`.
+
+No node directly reads another node's store, no global alive set is a protocol input, and no atomic copy is available. The conservative model requires quorum evidence and may fail closed even where a mature protocol could progress. Production strong-state recovery should therefore be delegated to the chosen consensus/replication system.
 
 ### Operation identity
 
-`operationTypeId` and `invocationId` are separate. Dedupe is per invocation, so two legal concurrent uses of the same operation definition are distinct, while a retry of one invocation remains idempotent.
+`operationTypeId` and `invocationId` are distinct. Two concurrent legal invocations of one operation definition remain distinct; retry of the same invocation is idempotent.
 
-### Handoff fencing
+### Policy / semantic generation handoff
 
-A source generation records a durable fence **before** acknowledging `FENCE_PREPARE`. A target generation can be activated only by a quorum certificate of those fence acknowledgements. Transition records bind:
+A source generation persists its fence **before** acknowledging `FENCE_PREPARE`. Target activation requires quorum fence evidence. A transition binds:
 
 `(sourceGeneration, targetGeneration, predecessorTransitionRoot, stateRoot)`.
 
-The predecessor and generation checks are shared with commit acceptance. This closes the specific stale-reactivation hole in the bounded model. Arbitrary membership changes and unbounded compositions remain outside this proof.
+Commit acceptance and transition activation share generation checks. The transition predecessor closes the specific multi-handoff detach/reactivation hole in the bounded model.
+
+### Failure domains
+
+Replica count and independent failure domains are separate quantities. Two durable copies behind one correlated failure domain can both disappear under one domain failure; two copies therefore do not imply one-domain fault tolerance.
+
+The exact real-world failure-domain map is **E empirical/C declared**, not inferable from process IDs.
+
+### Membership rotation
+
+Directly replacing `{a,b,c}` with `{c,d,e}` permits an old quorum `{a,b}` and a new quorum `{d,e}` with zero intersection. A direct switch can therefore certify conflicting successors without a joint transition.
+
+The reconstruction does not invent another reconfiguration protocol. Membership change is delegated to the selected consensus protocol's proven reconfiguration mechanism, or requires an equivalent proof.
 
 ### Declared invariant compiler
 
-The reconstructed compiler is deliberately smaller than #716's implied ambition. It supports only a finite declared grammar:
+The reconstructed compiler is intentionally finite and fail-closed:
 
 - bounded counter: integer `delta`;
 - grow-only set: `add`;
 - unique register: `assign`;
 - single-use token: `consume=true`.
 
-Unknown effects fail closed. Resource and operation IDs must be unique. Pair analysis includes `(operation, same operation)` to test concurrent invocations of the same definition. This is **not** a general I-confluence decision procedure.
+Unknown effects are rejected. Resource IDs and operation definition IDs must be unique. Pair analysis includes `(operation, same operation)` so simultaneous invocations of the same definition are tested. This is **not** a general I-confluence decision procedure.
 
-## Bounded executable evidence
+## Executable evidence
 
-Focused local run on Node 22.16:
+Focused validation on Node 22.16:
 
 ```text
-node --test apps/rinne/tests/reality-independent-reconstruction.test.mjs
-23 tests / 23 pass / 0 fail
+node --test \
+  apps/rinne/tests/reality-independent-reconstruction.test.mjs \
+  apps/rinne/tests/reality-independent-boundaries.test.mjs
+# 27 tests / 27 pass / 0 fail
+
+node apps/rinne/scripts/reality-independent-reconstruction-proof.mjs
+# pass=true
+# bounded state-space: 1,738 states / 4,937 transitions / 404 result-bearing states
+
+node apps/rinne/scripts/reality-independent-architecture-proof.mjs
+# pass=true
+# retained correlated-failure and direct-membership-switch counterexamples
 ```
 
-Bounded explorer (`maxDepth=8`) currently visits **1,738 unique states and 4,937 transitions**, including arbitrary delivery/drop order and at most one process crash for a single invocation. It observes 404 result-bearing states and finds no base-model oracle violation.
+Bounded exploration scope: three crash-fault nodes, one invocation, arbitrary delivery/drop/reorder at explored depths, at most one process crash, `maxDepth=8`, no unbounded liveness claim.
 
-Mutation/counterexample tests deliberately make the model unsafe and verify the independent checks fail or a forbidden transition becomes possible:
+The focused suite covers or explicitly attacks:
 
-- quorum reduced by one → visible result with fewer than the declared quorum of durable copies;
-- dedupe removed → one invocation ID obtains two committed roots;
-- parent check removed → history fork;
-- durable fence removed → old-generation quorum can acknowledge after handoff fencing;
-- transition generation check removed → persisted fence can be bypassed and a chained transition can roll generation backward;
-- transition predecessor check removed → a detached multi-handoff lineage can activate;
-- recovery quorum removed → one reply can install a state that rolls committed history backward;
-- unsupported effect grammar → rejected rather than silently classified;
-- duplicate resource ID → rejected;
-- same operation definition executed concurrently → analyzed as a self-pair.
+- process crash/restart;
+- pause/resume;
+- delayed, lost, duplicated and reordered messages;
+- old epoch and old generation messages;
+- stable retry and permanent client disappearance as separate cases;
+- storage loss as distinct from process restart;
+- concurrent same-epoch election voting;
+- policy switch and chained generation handoff;
+- correlated failure-domain placement;
+- direct membership rotation counterexample;
+- same-operation concurrent invocation;
+- unsupported effect grammar and duplicate resource IDs.
 
-This is **B**, not an unbounded proof. Passing these tests means the tests are sensitive to the listed mechanisms, not that all counterexamples have been enumerated.
+Mutation sensitivity intentionally breaks one mechanism at a time:
 
-## A–F ledger
+- quorum reduced by one -> client-visible result below declared durable quorum;
+- fence removed -> old-generation acknowledgements remain possible;
+- dedupe removed -> one invocation obtains multiple committed roots;
+- parent check removed -> history fork;
+- recovery quorum removed -> one reply can roll installed history backward;
+- generation check removed -> stale generation can bypass a persisted fence / generation can roll backward;
+- transition predecessor removed -> detached multi-handoff lineage activates.
+
+Passing the finite suite means the checks are sensitive to these mutations. It does **not** mean every execution has been explored.
+
+## A-F ledger
 
 ### A — conditional theorems / impossibility results
 
-1. **Quorum intersection.** Under one fixed membership set, any two strict majorities intersect. This is elementary set arithmetic; it does not by itself prove a consensus protocol.
-2. **Client disappearance ambiguity.** If the only client observation is a timeout, the histories “operation committed, reply lost” and “operation not committed, no reply” are indistinguishable to that client without later communication or a trusted witness. Stable retry IDs can make retry safe, but cannot manufacture knowledge when the client never communicates again.
-3. **Component safety is not compositional by conjunction.** Election, commit and handoff can each satisfy their local predicate while the combined system accepts a stale-generation commit unless generation/transition evidence is part of the shared commit invariant.
-4. **Causal observation horizon, conditional form.** If a directed dependency graph is causally complete and every edge carries a sound nonnegative lower bound on influence delay, the shortest-path sum is a lower bound on when a source event can affect that observer. Before that bound the event need not be materialized for that observer. Omit a shortcut dependency and the result becomes unsafe.
-5. **FLP boundary.** In a fully asynchronous message-passing model, deterministic consensus has an execution that does not terminate with even one crash fault. Any production liveness claim therefore needs assumptions beyond that model, such as partial synchrony/failure-detector behavior or randomized techniques.
-6. **CAP/partition boundary.** Atomic consistency plus a guaranteed response to every request cannot both be guaranteed across arbitrary partitions in the usual asynchronous partition model.
+1. **Majority intersection.** Under one fixed membership, two strict majorities intersect. This does not by itself prove a consensus protocol.
+2. **Client disappearance ambiguity.** With only a timeout observation, “committed and reply lost” and “not committed” are indistinguishable to the disappeared client until later communication or a trusted witness.
+3. **Component safety does not compose by conjunction.** Election, commit and handoff can each satisfy a local predicate while a stale-generation commit crosses their boundary unless generation/transition evidence is shared by the commit invariant.
+4. **Direct membership switch counterexample.** Old/new configurations can have valid disjoint quorums; reconfiguration therefore requires a joint/equivalent safety mechanism.
+5. **Failure-domain boundary.** Replica count alone says nothing about correlated-domain tolerance without placement assumptions.
+6. **Causal observation horizon, conditional form.** If the dependency graph is causally complete and every edge has a sound nonnegative minimum influence delay, the shortest-path delay is a lower bound on when the source can affect that observer. A hidden shortcut invalidates it.
+7. **FLP boundary.** Fully asynchronous deterministic consensus has a nonterminating execution with one crash fault.
+8. **CAP partition boundary.** Atomic consistency and guaranteed response cannot both be guaranteed across arbitrary partitions in the usual model.
 
 ### B — bounded model evidence
 
-- node-local message model described above;
-- 1,738-state / 4,937-transition bounded exploration;
-- 23 focused tests including mutation sensitivity;
-- one-vote-per-epoch same-epoch election example;
-- pairwise durable generation fence and chained transition example.
+- node-local message transition model;
+- 1,738 states / 4,937 transitions / 404 result-bearing states at the declared bound;
+- 27 focused proof/mutation tests;
+- persistent one-vote-per-epoch same-epoch election example;
+- durable generation fence and multi-handoff predecessor chain;
+- combined commit -> policy fence -> restart -> delayed old message -> stable retry scenario.
 
 ### C — assumptions
 
-- protocol-following crash faults unless an explicitly Byzantine plane is selected;
-- persistent storage writes/ordering mean what the runtime adapter claims they mean;
-- node identity/authentication is trustworthy enough for quorum membership;
-- modeled certificate member IDs stand for authenticated evidence in a real implementation;
-- the model's FNV-like `modelRoot` is **not cryptographic** and has no production security meaning;
-- the causal graph used by an observation horizon is complete for the output being suppressed;
-- minimum influence-delay bounds are sound;
-- semantic effect declarations completely cover the invariant-relevant side effects of the operation;
-- a fixed membership is used inside each bounded quorum argument unless reconfiguration is explicitly modeled.
+- protocol-following crash faults unless a Byzantine plane is explicitly selected;
+- local durable storage means what its adapter claims and preserves ordering/durability as specified;
+- node identities and quorum evidence are authenticated in production;
+- test `modelRoot` is deterministic only and **not** a cryptographic certificate;
+- causal dependency graphs used for suppression are complete for the affected output;
+- minimum influence delays are sound lower bounds;
+- declared effects include every invariant-relevant side effect;
+- failure-domain labels are accurate;
+- fixed-membership quorum arguments do not automatically extend across reconfiguration.
 
 ### D — heuristics / architecture hypotheses
 
-- identity as lineage/event ancestry rather than only mutable entity state;
-- relation replication instead of full entity state when relation state is a sufficient statistic for all future relevant observations;
-- using an observer-specific causal horizon to reduce update dissemination beyond geometric AOI;
-- using an irreversible frontier to choose when speculative state must become strongly ordered/durable;
-- selecting among direct peer, relay and SFU paths based on measured Pareto trade-offs.
+- use lineage/event ancestry as the durable identity core;
+- replicate relations rather than full entity state when relations form a sufficient statistic for all relevant future outcomes;
+- combine geometric AOI with causal observer dependencies;
+- use an irreversible frontier to decide when prediction must stop and strong evidence is required;
+- select direct peer, relay and SFU topology from a measured Pareto frontier.
 
-### E — physical measurements required
+### E — empirical measurements required
 
-- WebRTC/SCTP RTT, jitter, reordering, retransmission, buffering and head-of-line behavior under the game's channels;
-- ICE/STUN/TURN path distribution and failure behavior;
-- browser suspension/background/resume timing;
-- IndexedDB/storage durability and loss behavior on target browsers/devices;
-- Pixel-Fold-class CPU/frame/thermal/battery cost of prediction, relay and recovery;
-- real packet-loss correlation and common failure domains (Wi-Fi, carrier, power, device/browser process);
-- SFU cost/latency and direct-vs-relay crossover points;
-- empirical prediction error envelopes used by the speculation boundary;
-- AOI/causal-horizon false-negative rate under actual gameplay dependencies;
-- bandwidth/latency coefficients. They are measurements, not theory constants.
+- WebRTC/SCTP RTT, jitter, reorder, retransmission, buffering and head-of-line effects;
+- ICE/STUN/TURN path distribution and reachability failures;
+- browser background/suspension/resume behavior;
+- IndexedDB / target-storage durability and loss behavior;
+- target-mobile CPU, frame-time, thermal and battery cost of prediction/relay/recovery;
+- real common failure domains across power, Wi-Fi, carrier, device and browser process;
+- SFU versus peer/direct/relay crossover points;
+- empirical prediction-error envelopes used by the speculation boundary;
+- causal-horizon/AOI false-negative rate under real gameplay dependencies;
+- latency/bandwidth/cost coefficients used for architecture selection.
 
 ### F — open
 
 - unbounded machine-checked composition of election + commit + reconfiguration + semantic handoff;
-- safe/lively dynamic membership under the exact desired peer/offline failure model;
-- Byzantine/Sybil/cheating model for peer-hosted Canon, if peer authority is retained;
-- authenticated certificate format and key lifecycle;
-- storage corruption / correlated permanent storage loss model;
-- starvation/fairness and liveness under an explicitly chosen synchrony model;
-- automatic inference of arbitrary game invariants/effects;
-- proof that causal-horizon suppression materially beats a strong conventional AOI implementation on Rinne workloads;
-- proof that any remaining RRP-specific construction is novel relative to existing partial-replication, distributed-simulation and consistency literature.
+- liveness/fairness under an explicitly chosen synchrony/failure-detector model;
+- safe/lively dynamic membership under the exact desired peer/offline topology;
+- Byzantine/Sybil/cheating behavior if peers can participate in Canon authority;
+- authenticated certificate/key lifecycle;
+- permanent/correlated storage loss and re-replication policy;
+- automatic inference of arbitrary JavaScript/game invariants;
+- proof that causal observer suppression beats a strong conventional AOI implementation on actual Rinne workloads;
+- proof that any remaining Rinne-specific construction is novel relative to partial replication, distributed simulation, prediction and consistency literature.
 
 ## Fair comparison with known theory
 
-The baseline rule is strict: every architecture below may use the same semantic split, batching, interest management and topology selection. “Raft” does **not** mean “replicate every realtime tick through Raft.” A fair baseline is Canon-only Raft plus a weak/realtime plane.
+Every baseline receives the same freedoms: semantic split, batching, interest management, topology selection, and an irreversible-only strong path. “Raft baseline” therefore means **Canon-only Raft**, not “put every realtime tick through Raft.”
 
-| Theory / family | What it already gives | Consequence for RRP reconstruction |
-| --- | --- | --- |
-| **Raft** | crash-fault replicated log, leader election and membership work with a well-defined safety story | strong Canon can be a small Raft log; semantic split is independent of Raft |
-| **Paxos / Multi-Paxos** | classic crash-fault consensus/replicated-log foundation | no reason to re-prove majority consensus merely to keep realtime state off the log |
-| **Flexible Paxos** | only cross-phase quorum intersection is fundamentally required in its model | custom “majority geometry” is not automatically optimal; alternative quorum trade-offs already exist |
-| **Fast Paxos** | lower-latency fast rounds under stronger quorum/conflict conditions | relevant if Canon latency justifies complexity; not dominated by an RRP label |
-| **EPaxos** | leaderless command replication with dependency/conflict ordering and fast common cases | directly challenges a blanket total-order Canon requirement when commands commute |
-| **Viewstamped Replication** | primary/backup crash replication, view change, rejoin and reconfiguration | mature alternative for the strong plane |
-| **Chain Replication** | fail-stop storage replication designed for strong consistency and throughput | useful strong-storage baseline; master/reconfiguration service remains a separate concern |
-| **PBFT / HotStuff** | Byzantine replication under their respective assumptions; HotStuff targets partial synchrony/responsiveness and linear communication | if peers may lie, crash-only Canon is the wrong failure model; use BFT or trusted authority instead |
-| **Dynamo** | high availability via partitioning, versioning, quorum-like techniques and conflict reconciliation with weaker consistency | useful weak/eventual baseline, not a substitute for unique irreversible facts |
-| **CRDT** | datatype-level convergence under defined merge/update algebra | many mergeable game facts already fit known theory; “weak path” is not novel by itself |
-| **RedBlue consistency** | separates operations that require strong order from operations that can execute more freely; generator/shadow transformation expands blue operations | close prior art for Semantic Frontier's core motivation |
-| **I-confluence / coordination avoidance** | necessary-and-sufficient condition, within its formal model, for invariant-preserving coordination-free execution | the correct comparison target for an invariant compiler; our finite grammar is much weaker |
-| **CALM** | monotonic programs characterize coordination-free consistent distributed computation in its logic setting | reinforces that “only coordinate non-monotone work” is established theory |
-| **causal consistency / COPS** | causal dependencies can be tracked and made visible in dependency order at scale | causal frontier/observer dependencies need a more specific residual to be novel |
-| **eventual consistency** | convergence eventually, without linearizable real-time order | valid for presentation/discovery state only when game invariants permit it |
-| **HATs** | classifies which transaction/consistency guarantees can coexist with high availability under partitions | prevents vague claims that a semantic split evades CAP trade-offs |
-| **deterministic lockstep** | transmit inputs and replay the same deterministic simulation | low bandwidth but waits for inputs and requires determinism; valid realtime baseline |
-| **GGPO / rollback** | input prediction, speculative execution, save/load and re-simulation | directly matches reversible combat/movement when deterministic rollback is practical |
-| **snapshot interpolation** | render delayed snapshots without a matching remote simulation | bandwidth/latency trade-off baseline for non-authoritative presentation |
-| **state synchronization** | run simulation on both sides while sending selected state+input; does not require perfect determinism | strong practical baseline for physics/gameplay state |
-| **server authoritative networking** | centralized trust/order for gameplay decisions | likely simplest anti-cheat/Canon boundary when infrastructure is acceptable |
-| **peer-host networking** | avoids permanent game server for the realtime host but moves trust/failure/rehost complexity to peers | topology option, not a consistency theorem |
-| **SFU / selective forwarding** | established point-to-multipoint forwarding topology | solves fan-out placement, not application consistency; must remain an equal Pareto option |
-| **gossip / epidemic dissemination** | randomized eventual propagation/anti-entropy | useful presence/discovery dissemination; not a unique RRP relay insight |
-| **multicast trees** | structured fan-out reduces sender degree at added path/failure complexity | another topology baseline for dense dissemination |
-| **interest management / AOI** | filters updates in distributed virtual environments to improve scalability | observation frontier must beat/extend this baseline, not rename it |
-| **HLA** | standardized distributed-simulation federation, services/interfaces and coordinated exchange | global Cartesian state is not required by distributed simulation practice |
-| **optimistic simulation / Time Warp** | speculative event processing with rollback and antimessages | establishes that speculative distributed histories are old territory; game-specific irreversible boundaries are the interesting residue |
+### Strong replication / consensus families
 
-### Fair hybrid baselines
+- **Raft**: crash-fault replicated log, election, membership/reconfiguration machinery. Strong Canon can be a small Raft log without forcing realtime state into it.
+- **Paxos / Multi-Paxos**: classic crash-fault consensus/replicated-log foundation.
+- **Flexible Paxos**: shows that cross-phase quorum intersection, rather than identical majority quorums everywhere, is the key condition in its model.
+- **Fast Paxos**: fast rounds trade latency against larger quorum/conflict constraints.
+- **EPaxos**: leaderless command replication and dependency/conflict ordering; directly challenges blanket total-order requirements for commuting commands.
+- **Viewstamped Replication**: primary/backup replication, view change and recovery/reconfiguration lineage.
+- **Chain Replication**: strong fail-stop storage replication with throughput-oriented chain structure; membership/master concerns remain explicit.
+- **PBFT / HotStuff**: Byzantine replication under their assumptions. If peers can lie, crash-only Canon is the wrong model rather than a cheaper substitute.
 
-At minimum, future performance experiments must include:
+### Weak / semantic coordination families
 
-1. **Canon-only Raft + authoritative realtime prediction/rollback + AOI/SFU**.
-2. **CRDT/causal weak plane + Raft irreversible log + rollback realtime**.
-3. **VR or Chain Replication strong plane + state synchronization realtime**.
-4. **EPaxos-style conflict/dependency ordering for Canon commands + CRDT weak plane** where operational assumptions are acceptable.
-5. **peer-host realtime + external durable Canon service**.
-6. **custom peer Canon candidate**, but only after the same crash/BFT/storage assumptions are declared.
+- **Dynamo**: availability-first versioning/reconciliation baseline for weaker state.
+- **CRDTs**: convergence for declared replicated data types.
+- **RedBlue consistency**: explicit strong/weak operation split and transformations that expand the weak side. This is close prior art to Semantic Frontier's core motivation.
+- **I-confluence / coordination avoidance**: the right comparison point for invariant-based coordination decisions; the local finite compiler is much weaker than the general formal framework.
+- **CALM**: monotonicity characterizes coordination-free consistent computation in its logical setting.
+- **causal consistency / COPS**: tracks dependencies and constrains visibility order.
+- **eventual consistency**: valid only where the game permits convergence without immediate agreement.
+- **HATs**: makes precise which guarantees can remain highly available under partition and which cannot.
 
-No weighted scalar score is allowed to declare a winner until the coefficients come from an explicit product objective or measurement. Keep a Pareto set when objectives conflict.
+### Realtime game / dissemination / simulation families
 
-## Quantum mechanics: what survives and what is discarded
+- **deterministic lockstep**: communicates inputs and reproduces deterministic simulation; low bandwidth but synchronization/determinism costs remain.
+- **GGPO / rollback networking**: prediction, saved states and re-simulation for reversible interaction.
+- **snapshot interpolation**: delayed interpolation of authoritative snapshots.
+- **state synchronization**: runs local simulation while synchronizing selected state/input, avoiding full deterministic lockstep.
+- **server-authoritative networking**: simple trust/order baseline when infrastructure is acceptable.
+- **peer-host networking**: avoids a permanent realtime server but shifts trust/rehost/failure complexity to peers.
+- **SFU**: established selective forwarding topology; solves fan-out placement, not application consistency.
+- **gossip / epidemic dissemination**: eventual randomized propagation/anti-entropy.
+- **multicast trees**: reduce sender fan-out at the cost of extra path/failure structure.
+- **interest management / AOI**: long-established filtering of virtual-world updates. Observation frontier must extend this baseline rather than rename it.
+- **HLA**: established distributed-simulation federation architecture; distributed simulation does not require one globally materialized Cartesian state at each tick.
+- **optimistic simulation / Time Warp**: speculative event execution with rollback/anti-messages; speculative histories are established territory.
 
-| Physical concept | Physics meaning relevant here | Classical distributed abstraction | Verdict |
+### Fair hybrid baselines for measurement
+
+At minimum compare:
+
+1. Canon-only Raft + authoritative realtime prediction/rollback + AOI/SFU.
+2. CRDT/causal weak plane + Raft irreversible log + rollback realtime.
+3. VR or Chain Replication strong plane + state synchronization realtime.
+4. EPaxos-style dependency/conflict ordering + CRDT weak plane where assumptions fit.
+5. peer-host realtime + external durable Canon service.
+6. custom peer Canon candidate only under the same declared crash/BFT/storage assumptions.
+
+Do not collapse them into a designer-weighted scalar winner before the product objective and coefficients are measured. Preserve the Pareto set when objectives conflict.
+
+## Quantum mechanics: retained and rejected
+
+| Concept | Physics meaning | Distributed abstraction | Verdict |
 | --- | --- | --- | --- |
-| entanglement + **no-signalling** | nonlocal correlations do not provide controllable superluminal messaging | information that changes another device's output still requires a causal communication path | **A negative constraint**; no latency bypass |
-| measurement | an operation in quantum theory with probabilistic/state-update semantics depending on formulation | “commit makes a fact irreversible to the application” | **discard as mathematics**; at most a metaphor |
-| decoherence | loss of observable quantum coherence through environment interaction | none required for game networking | **discard as protocol mechanism** |
-| Quantum Darwinism / environment as witness | selected information becomes redundantly recorded in environment fragments and independently accessible to observers | redundancy/dissemination can make a record widely observable | **analogy only**; classical replication/gossip already model the useful part |
-| quantum uncertainty | constraints on quantum observables/state knowledge | prediction error envelope for rollback | **do not identify them**; game uncertainty budget is classical estimation |
-| causal/no-signalling horizon | influences cannot be used as an arbitrary faster-than-light channel | suppress data until a sound dependency path can affect an observer | **classical formalization is useful**, quantum label is unnecessary |
-| probability/information theory | quantitative uncertainty/information measures are real mathematical tools | entropy/coding/prediction models may inform compression or estimation | **potentially useful mathematics**, but no special quantum protocol follows |
+| entanglement + no-signalling | nonlocal correlations cannot carry controllable superluminal information | a remote device cannot react to new information without a causal information path | **A negative constraint**; no latency bypass |
+| measurement | quantum measurement/state-update rule, interpretation-dependent details | “application fact becomes irreversible” | **discard as mathematics**; metaphor only |
+| decoherence | environment-induced loss of observable coherence | no required game-network primitive | discard as protocol mechanism |
+| environment as witness / Quantum Darwinism | selected information becomes redundantly accessible through environment fragments | redundant observable records resemble dissemination/replication | analogy only; classical replication/gossip already provides the usable mechanism |
+| quantum uncertainty | quantum-state/observable limits | rollback prediction error | do **not** identify them; game uncertainty is classical estimation |
+| causal/no-signalling horizon | influence cannot be used for arbitrary superluminal signalling | defer observer materialization before a sound causal lower bound | useful classical formalization; quantum label unnecessary |
+| information/probability theory | quantitative information/uncertainty mathematics | coding, prediction and estimation | potentially useful mathematics, but not a quantum protocol |
 
-The key rule is therefore simple: **nothing in this architecture assumes quantum computation, quantum communication, collapse, or entanglement.** The implementation target remains WebRTC/browser/mobile classical networking.
+No quantum computer, quantum channel, collapse mechanism or entanglement-based networking is assumed.
 
-## Philosophy: only the formal residue survives
+## Philosophy: formal residue only
 
-Philosophy is used here to challenge ontology, not to certify a protocol.
-
-| Idea | Formalization attempt | Invariant / counterexample | Result |
+| Idea | Formalization | Falsifier / invariant | Result |
 | --- | --- | --- | --- |
-| Heraclitus / process philosophy: entities are processes rather than static substances | mutable state is a projection/fold of an event lineage | replay/projection must reproduce every future invariant-relevant decision; hidden mutable state breaks equivalence | useful design lens; technically event sourcing/process state |
-| Nāgārjuna / dependent origination and relational ontology | replicate relationships instead of intrinsic entity records | relation state is sufficient only if it is a sufficient statistic for all future observer-visible/irreversible outcomes; a hidden intrinsic variable that later changes damage is a counterexample | conditional optimization, not ontology theorem |
-| Hume on causation | represent only declared causal dependencies | omitting a real dependency makes the observation horizon unsound | reduces to causal graphs/causal consistency/interest management |
-| Kant / phenomenology: observer experience differs from thing-in-itself | server/world substrate may differ from each client's projected view | two clients need equal outputs only where game rules require shared facts; presentation may differ | established partial replication/client projection idea |
-| structural realism | preserve invariant relations rather than byte-identical whole-world state | if all future rule outcomes depend only on those relations, full hidden representation equality is unnecessary | useful correctness criterion candidate |
-| Leibniz / identity through continuity and relation | identity represented as genesis + ancestry of identity-transforming events | ancestry collision/fork must be rejected on irreversible identity changes | game-specific lineage model; adjacent to event sourcing/Merkle history |
-| Parmenidean “single being” / Cartesian global-state intuition | demand one complete global state at every instant | distributed simulation, causal consistency and partial replication show this is unnecessary for many workloads | reject as a default architecture premise |
+| Heraclitus / process philosophy | mutable state is a projection/fold of event lineage | replay/projection must preserve every future invariant-relevant decision | useful design lens; technically event sourcing/process state |
+| Nāgārjuna / dependent origination / relational ontology | replicate relationships rather than intrinsic records | relation state must be a sufficient statistic; hidden intrinsic state that later affects damage is a counterexample | conditional compression rule |
+| Hume on causation | explicit causal dependency graph | omit one real dependency and causal suppression becomes unsound | ordinary causal consistency/interest reasoning |
+| Kant / phenomenology | observer view differs from substrate/world representation | observers need equality only where game rules require shared facts | client projection / partial replication |
+| structural realism | preserve invariant relations rather than byte-identical representation | all future relevant outcomes must depend only on preserved structure | candidate correctness criterion |
+| Leibniz / continuity of identity | genesis + ancestry of identity-transforming events | irreversible identity ancestry must not fork | game-specific lineage model, adjacent to event sourcing/Merkle history |
+| Parmenides / Cartesian global-state intuition | require one complete global state at every instant | partial replication, causal systems and distributed simulation are counterexamples to necessity | reject as default premise |
 
-Nothing in this section is a safety proof by quotation from a philosopher. Once translated, each surviving claim is evaluated by ordinary mathematics and counterexamples.
+The philosophers are not authorities for protocol correctness. Their surviving ideas are evaluated only after translation into testable conditions.
 
 ## Reconstructed architecture for 輪廻転焦
 
-No new grand name is assigned because the general ingredients are known. The recommended structure is descriptive and layered.
+No new grand protocol name is assigned because the general mechanisms are established.
 
 ### 1. Observer projection plane
 
-Maintain per-observer interest based on geometry **plus declared causal dependencies**. Do not send an event merely because it exists globally; send it when it can affect that observer's permitted outputs or when prefetch margin requires it.
+Filter by geometry **and declared causal dependencies**. An event is sent/materialized when it can affect the observer's permitted outputs or when a prefetch margin requires it.
 
-A causal observation horizon may defer materialization only when the dependency graph is complete and edge delay lower bounds are sound. Otherwise fall back to conventional AOI/interest management.
+A causal observation horizon is usable only with a complete dependency graph and sound lower-bound delays. Otherwise fall back to conventional AOI/interest management.
 
 ### 2. Reversible realtime plane
 
-Movement, animation, transient combat presentation and other rollbackable state use the fastest topology compatible with the active trust model:
+Movement, animation and rollbackable combat state use the fastest topology consistent with the trust model:
 
-- authoritative client/server prediction;
-- peer-host + prediction;
-- GGPO-like rollback when deterministic save/load is viable;
-- state synchronization or snapshot interpolation where determinism is not viable.
+- authoritative prediction/reconciliation;
+- peer-host + prediction where appropriate;
+- GGPO-like rollback when deterministic save/load is practical;
+- state synchronization or snapshot interpolation otherwise.
 
-Realtime nodes may disagree temporarily. The contract is bounded correction, not global-tick identity.
+Temporary observer disagreement is allowed. The contract is bounded correction, not one shared tick.
 
 ### 3. Confluent / causal plane
 
-Monotone discoveries, grow-only facts and genuinely mergeable social/presence data use CRDT/causal/eventual mechanisms only when declared semantics prove the weak path safe. Unknown effects escalate rather than being guessed mergeable.
+Monotone discoveries and genuinely mergeable facts use CRDT/causal/eventual mechanisms only when declared semantics establish safety. Unknown effects escalate rather than being guessed safe.
 
 ### 4. Irreversible Canon plane
 
-Deaths/rebirth lineage, unique ownership/consumption, irreversible rewards and other shared nonrollbackable facts enter a small strong plane.
+Deaths/rebirth lineage, unique ownership/consumption, irreversible rewards and other nonrollbackable shared facts enter a small strong plane.
 
-**Recommendation:** start with a mature crash-fault replicated log/service such as Raft/VR/Paxos-family infrastructure rather than custom peer consensus. If malicious clients can participate as replicas, either keep authority in trusted infrastructure or adopt an explicitly Byzantine design; crash-only quorum proofs are insufficient.
+Start with a mature crash-fault replicated log/service such as Raft/VR/Paxos-family infrastructure rather than custom peer consensus. If malicious peers can participate as replicas, keep authority trusted or adopt an explicitly Byzantine design.
 
-Consensus decides the irreversible event/order/evidence needed by the application. It does **not** replicate every realtime tick.
+Consensus orders the irreversible facts that actually need it. It does not carry every realtime tick.
 
 ### 5. External effect plane
 
-Payments, platform inventory, external persistence or any non-rollbackable third-party side effect keep an external idempotency/transaction/outbox contract. A local Canon event is not proof that a remote external system performed the side effect.
+Payments, platform inventory and third-party persistence retain their own idempotency/transaction/outbox contract. A local Canon commit is not evidence that an external system performed its side effect.
 
 ### 6. Reconfiguration plane
 
-Membership and semantic-policy transitions are themselves strong state. A generation change must be chained to its predecessor and fenced through the same strong authority mechanism. Do not run an unrelated local handoff protocol beside a consensus membership protocol and assume the two compose.
+Membership and semantic-policy changes are strong state. Generation changes must be chained/fenced through the same authority model. Do not run a local handoff protocol beside an unrelated consensus membership protocol and assume their safety predicates compose.
 
-## “World state” after reconstruction
+## World model after reconstruction
 
-The architecture no longer assumes a single materialized Cartesian state shared by all players at one tick.
+The game does not require one fully materialized Cartesian world state shared by all players at one tick.
 
-A more precise model is:
+Use distinct types:
 
-- **durable fact history**: the small set of irreversible facts that need globally agreed ancestry/order;
+- **durable fact history**: irreversible facts with agreed ancestry/order;
 - **causal/mergeable facts**: partially ordered or convergent information;
-- **observer projection**: the state a client currently needs to render/decide;
+- **observer projection**: what one client currently needs to render/decide;
 - **speculative local trajectory**: reversible predicted state;
 - **external facts**: facts whose authority belongs to another service.
 
-A player's view and durable world truth are therefore intentionally different types. They coincide only at invariants that require it.
+Observer-visible state and durable world truth are intentionally different types. They coincide only where game invariants require it.
 
-## Identity and replication
+## Identity and relationship replication
 
-Entity ID remains useful as an address, but irreversible identity can be represented by **lineage**:
+Entity ID remains an address. Irreversible identity can additionally be represented as:
 
 `identity = genesis + ordered identity-transforming ancestry`.
 
-Mutable presentation state is then a projection over lineage plus current local/causal facts. This can improve dedupe/recovery semantics in a reincarnation game, but it is not a newly discovered distributed identity theorem.
+Mutable presentation state is a projection over that lineage and current local/causal facts. This fits a reincarnation game but is not a new general distributed-identity theorem.
 
-Relationship-only replication is allowed only under a **sufficient-statistic condition**: if two hidden world states have the same replicated relation state, then every future permitted input sequence over the declared horizon must produce the same observer-visible and irreversible outcomes. One counterexample invalidates the compression.
+Relationship-only replication is valid only under a **sufficient-statistic condition**: if two hidden world states have the same replicated relation state, every future permitted input sequence in the declared horizon must produce the same observer-visible and irreversible outcomes. One counterexample invalidates the compression.
 
-## Uncertainty / speculation budget
+## Classical uncertainty / speculation budget
 
-The only retained “uncertainty budget” is classical:
+The retained uncertainty rule is classical:
 
-- let `epsilon(t)` be a defensible upper bound on prediction error relevant to a rule;
-- let `margin(t)` be distance to the nearest discrete/irreversible decision boundary;
-- local speculation is admissible only while the output is rollbackable and `epsilon(t) < margin(t)`;
-- reconcile before the inequality can fail or before crossing an external/irreversible boundary.
+- `epsilon(t)` = defensible upper bound on prediction error relevant to a rule;
+- `margin(t)` = distance to the nearest discrete/irreversible decision boundary;
+- speculate only while the output is rollbackable and `epsilon(t) < margin(t)`;
+- reconcile before the inequality can fail or before any external/irreversible boundary.
 
-The error envelope is **E empirical** for real gameplay. This is not the Heisenberg uncertainty principle.
+`epsilon(t)` is **E empirical** for real gameplay. This is not Heisenberg uncertainty.
 
-## Lower bounds and impossibility boundaries
+## Impossibility / lower-bound boundary
 
-The reconstruction explicitly does not claim to defeat:
+The architecture does not claim to defeat:
 
 - FLP liveness limits in full asynchrony with crash faults;
-- CAP-style consistency/availability trade-offs under partition;
-- quorum-intersection requirements of the chosen strong protocol;
-- the need for communication when one machine's new information must causally change another machine's output;
-- information-theoretic bandwidth needed to distinguish genuinely different observer outputs;
-- Byzantine replica bounds when arbitrary/malicious faults are in scope;
+- CAP consistency/availability trade-offs under partition;
+- quorum/intersection requirements of the chosen strong protocol;
+- communication needed when new information on one device must causally change another device's output;
+- information-theoretic bits needed to distinguish genuinely different observer outputs;
+- Byzantine replica requirements when arbitrary faults are in scope;
 - client knowledge limits after uncertain completion and permanent disappearance.
 
-There is also no theory-only lower bound proving the proposed Rinne mix uses less bandwidth/latency than every fair hybrid. That requires workload distribution and measured cost parameters.
+There is no theory-only proof that the Rinne mix beats every fair hybrid in latency/bandwidth. That question needs a real workload distribution and measured parameters.
 
-## Stop condition for this loop
+## Stop condition for this reconstruction loop
 
-The loop stops here **only because every currently identified question is assigned to one of four explicit destinations**, not because a checklist passed:
+The loop stops here only because every identified obligation is assigned to one of four destinations:
 
-1. **closed by conditional reasoning**: quorum intersection, client-timeout ambiguity, composition counterexample, conditional causal-horizon theorem;
-2. **delegated to known theory**: strong consensus/replication, CRDT/causal consistency, rollback/state-sync, interest management, distributed simulation;
-3. **left as bounded executable evidence**: this repository's node-local model and mutation tests;
-4. **requires external evidence or remains open**: physical performance/durability, Byzantine threat, dynamic membership, unbounded composition/optimality/novelty.
+1. **closed by conditional reasoning**: majority/failure-domain geometry, client-timeout ambiguity, composition and direct-membership counterexamples, conditional causal horizon;
+2. **delegated to established theory**: consensus/replication, CRDT/causal consistency, rollback/state-sync, interest management, distributed simulation and membership reconfiguration;
+3. **retained as bounded executable evidence**: node-local model, state-space search, mutation/counterexample suite;
+4. **empirical/open**: physical performance/durability, Byzantine threat, unbounded composition/liveness, workload optimality and novelty.
 
-This stopping condition is itself falsifiable: a new counterexample or an unclassified obligation reopens the theory loop immediately.
+This stopping condition is itself falsifiable. A new counterexample or an unclassified obligation immediately reopens the loop.
 
-## Primary / canonical sources used for the comparison
+## Primary / canonical references
 
 - Fischer, Lynch, Paterson, **Impossibility of Distributed Consensus with One Faulty Process**: <https://www.cs.cornell.edu/courses/cs614/2004sp/papers/FLP85.pdf>
 - Gilbert and Lynch, **Brewer's Conjecture and the Feasibility of Consistent, Available, Partition-Tolerant Web Services**: <https://groups.csail.mit.edu/tds/papers/Gilbert/Brewer2.pdf>
@@ -399,27 +446,27 @@ This stopping condition is itself falsifiable: a new counterexample or an unclas
 - Hellerstein and Alvaro, **Keeping CALM**: <https://arxiv.org/abs/1901.01930>
 - Shapiro et al., **CRDTs**: <https://inria.hal.science/inria-00609399>
 - Lloyd et al., **COPS causal consistency**: <https://www.cs.cmu.edu/~dga/papers/cops-sosp2011-abstract.html>
-- Bailis et al., **Highly Available Transactions**: <https://dsf.berkeley.edu/papers/vldb14-hats.pdf>
-- GGPO official overview and developer guide: <https://www.ggpo.net/> and <https://github.com/pond3r/ggpo/blob/master/doc/DeveloperGuide.md>
+- Bailis et al., **Highly Available Transactions**: <https://amplab.cs.berkeley.edu/publication/highly-available-transactions-virtues-and-limitations/>
+- GGPO: <https://www.ggpo.net/> and <https://github.com/pond3r/ggpo/blob/master/doc/DeveloperGuide.md>
 - Fiedler, **Snapshot Interpolation / State Synchronization**: <https://gafferongames.com/post/snapshot_interpolation/> and <https://www.gafferongames.com/post/state_synchronization/>
-- Jefferson, **Virtual Time / Time Warp**, DOI `10.1145/3916.3988`.
+- Jefferson, **Virtual Time / Time Warp**, DOI `10.1145/3916.3988`
 - IEEE 1516-2025, **High Level Architecture (HLA)**: <https://standards.ieee.org/ieee/1516/6687/>
-- Demers et al., **Epidemic Algorithms for Replicated Database Maintenance**, DOI `10.1145/41840.41841`.
+- Demers et al., **Epidemic Algorithms for Replicated Database Maintenance**, DOI `10.1145/41840.41841`
 - Liu and Theodoropoulos, **Interest management for distributed virtual environments: A survey**: <https://research.ibm.com/publications/interest-management-for-distributed-virtual-environments-a-survey>
 - RFC 7667, **RTP Topologies / Selective Forwarding Middlebox**: <https://www.rfc-editor.org/rfc/rfc7667.html>
 - Bruss et al., **Approximate quantum cloning and the impossibility of superluminal information transfer**: <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.62.062302>
 - Ollivier, Poulin, Zurek, **Environment as a witness**: <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.72.042113>
 - Riedel and Zurek, **Quantum Darwinism in an Everyday Environment**: <https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.105.020404>
 
-## Current novelty claim
+## Novelty claim
 
 No new general consensus theorem is claimed.
 
-The only **novelty candidates** worth further literature review and experiment are the Rinne-specific composition of:
+The remaining **F novelty candidates** are the Rinne-specific composition of:
 
 1. observer projection driven by a causally complete game dependency graph rather than geometry alone;
-2. a measured speculation margin tied explicitly to irreversible gameplay boundaries;
-3. lineage identity as the durable core of a reincarnation game while most mutable presentation state remains partial/speculative;
-4. an invariant/effect declaration that routes operations to known consistency mechanisms and fails closed on unsupported semantics.
+2. measured speculation margin tied explicitly to irreversible gameplay boundaries;
+3. lineage identity as the durable core of a reincarnation game while most presentation state remains partial/speculative;
+4. invariant/effect declarations that route operations to established consistency mechanisms and fail closed on unsupported semantics.
 
-Each of these could still reduce to known partial replication, robust prediction, event sourcing or invariant-routing work. Until that residual search is done, call them **F novelty candidates**, not discoveries.
+Each may still reduce to known partial replication, event sourcing, robust prediction or invariant-routing work. Until residual literature review and empirical comparison close that gap, they remain candidates only.
