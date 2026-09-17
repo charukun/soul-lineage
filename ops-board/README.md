@@ -25,8 +25,13 @@ PULSEの鮮度は「短周期で全履歴を取り直すこと」ではなく、
 
 PULSEは情報量が増えても、トップ画面の判断密度を上げすぎない。運用者がスマホで開いた直後に必要な判断を先に出し、詳細は必要な人だけが一段潜って確認する。
 
-- トップでは「要対応」「開発の流れ」「公開状況」の要約を優先し、正常時の詳細一覧は初期表示しない
-- 異常や滞留は折りたたまず前面に出し、正常系のPR一覧、Rescue詳細、環境メタデータ、Actions履歴は段階的に開く
+- トップでは「要対応」「開発状態」「公開状況」の要約を優先し、正常時の詳細一覧は初期表示しない
+- 開発状態は [`Astra Outcome Contract`](../docs/ASTRA_OUTCOME_CONTRACT.md) と同じ `WORKING / READY / BLOCKED` を正面に出す
+- `WORKING`: GitHubで観測できるDraft、またはexact-head failureでimplementation ownershipへ戻った対象
+- `READY`: Ready handoff後にIntegrationが所有する対象。CI、Fast Lane、mechanical repair、dependency waitはtechnical detailであり追加の利用者向けstateにしない
+- `BLOCKED`: 明示holdなど、人間介入が必要だとcurrent GitHub stateから確認できる対象
+- Draftはoptional transportなので、PULSEはPR未作成の短寿命workerを推測しない。第二のtask DB、独自heartbeat、作業中推測を追加しない
+- 異常や滞留は折りたたまず前面に出し、正常系のPR一覧、Repair詳細、環境メタデータ、Actions履歴は段階的に開く
 - 要約だけで現在の状態を判断できる短いラベルと件数を維持し、SHA・時刻・理由・Worker工程などの詳細は潜った先に置く
 - 既存のDOM ID、取得データ、監視条件、Integration / Rescue判定は維持し、見た目の簡素化を理由に情報や品質gateを削除しない
 - スマホでは縦に長い一覧を最初から並べず、タップ対象を大きくし、開閉しても現在位置や選択状態を失わない
@@ -46,26 +51,32 @@ PULSEは情報量が増えても、トップ画面の判断密度を上げすぎ
 - 10分以上更新が無い場合だけ通常の待ち表示から `遅延` へ昇格し、実行ログまたは修復状態へ導線を出す
 - UI文言は利用者がGitHub ActionsやIntegration内部語を知らなくても理解できる日本語を主表示とし、SHAやworkflow名は詳細へ置く
 - トップの「DEV公開」は最優先の1枚として横幅いっぱいに表示し、現在段階・経過時間・残り目安を省略せず読めるようにする
-- 「今やること」「開発中」はその下で簡潔に分け、主要な状態文言は1行省略せず複数行表示を許可する
+- 「今やること」「開発状態」はその下で簡潔に分け、主要な状態文言は1行省略せず複数行表示を許可する
 
-## Integration Rescue表示契約
+## Integration / Repair表示契約
 
-Integration Rescueは運用者がスマホで開いた直後に「何が問題で、どれが対応中・対応待ち・完了なのか」を判断できることを最優先にする。
+Fast Lane、Reconciliation、Repairは `READY` の内側にある機械工程として、必要時だけ詳細表示する。
 
-- 最上段では未解決件数、対応中、対応待ち、直近24時間の完了を主要指標として要約する
+- 最上段の開発カードでは内部lane名を主要stateにしない
+- 詳細を開くと、未解決件数、対応中、対応待ち、直近完了、exact-head CI、dependency等を診断できる
 - 対応中カードは問題の理由、現在の作業、次の工程、Worker状態を同じ視線上で確認できるようにする
 - 対応待ちカードは待機理由、依存PR、待機時間、優先度を明示する
-- 完了履歴は対応中・対応待ちから視覚的に分離し、直近の完了件数と結果を確認できるようにする
-- Rescueによる修復成功と、単なるIntegration / DEV状態観測を混同しない。既存の修復証跡判定を維持する
+- 完了履歴は対応中・対応待ちから視覚的に分離する
+- Repair成功と単なるIntegration / DEV状態観測を混同しない。既存の修復証跡判定を維持する
 
-## 作業中タスクのAI再開プロンプト
+## WORKINGのAI再開プロンプト
 
-「作業中」はGitHub上のDraft状態であり、実行中のheartbeatを保証しない。PULSEの開発中タスク欄から、現在のDraftを一括点検して安全に再開・前進させるためのAI向けプロンプトを生成できるようにする。
+PULSEで観測できる `WORKING` Draftは、Astraが実際に現在動いているheartbeatを意味しない。Draftはoptional transportであり、短寿命workerの全量でもない。
+
+開発タスク欄から、GitHub上に残っているDraftを一括点検して安全に再開・前進させるAI向けプロンプトを生成できるようにする。
 
 - ボタンは通常PRのDraftを対象とし、Visual Review Labの長寿命Draftは通常タスクと混ぜない
 - プロンプトには対象PR番号、タイトル、概要、head branch、exact head SHA、最終更新時刻、滞留表示の有無を含める
-- 受け取ったAIは最新developと現在のGitHub状態を正本として各PRを再確認し、`Draft=実行中` と決めつけず、稼働中・停止/中断・外部待ち/明示hold・完了済み/obsoleteを判定する
-- 停止または中断で再開可能なタスクは新規PRを増やさず既存branch/PRを復旧起点にし、現行仕様へ調停して実装・局所検証・push・Ready化・`READY_FOR_INTEGRATION` handoffまで進める
-- 明示hold、未解決review、権限不足、不可逆な契約判断など本当に進められない対象は理由と復旧条件を既存PRへ残し、品質gateを弱めたりmain/Productionへ進めたりしない
-- CI/browserのRunning・Queued・Pendingを待機・pollingしてセッションを延命しない。Ready以後の非同期監視はIntegrationへ引き渡す
-- PULSE自身はこのボタン操作でGitHubを書き換えない。表示中snapshotを使ってコピー可能な実行プロンプトを生成するだけにする
+- 受け取ったAstraは最新developとcurrent GitHub stateを正本として各PRを再確認し、`Draft=ACTIVE` と決めつけない
+- STOPPED / INTERRUPTEDは新規PRを量産せず既存branch/PRを復旧起点にする
+- current developと意味的にreconcileし、**final reconciled head** に必要十分なevidenceを実行してpushし、READY / `READY_FOR_INTEGRATION`へ進める
+- 旧Micro Patch / Normal分類や、reconcile前後の固定二重検証を復旧の儀式として再導入しない
+- `BLOCKED` はproduct/permission/external-input choiceなど本当に外部判断が必要な場合だけ。base drift、同file、CI pending、技術的難しさだけでBLOCKEDにしない
+- 明示hold、unresolved review等の既存制御は維持し、quality gateを解除して通さない
+- CI/browserのRunning・Queued・Pendingを待機・pollingしてセッションを延命しない。READY後の非同期監視はIntegrationへ引き渡す
+- PULSE自身はこのボタン操作でGitHubを書き換えない。表示中snapshotを使ってコピー可能な実行promptを生成するだけにする
