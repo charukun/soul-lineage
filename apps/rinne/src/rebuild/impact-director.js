@@ -9,21 +9,22 @@ function actorWeapon(actor){return actor?.equipment?.weapon||actor?.weapon||'swo
 function targetForEvent(event,{state,front}){return event.type==='player-hit'||event.type==='one-motion'?(front?.enemies||[]).find(row=>row.id===event.targetId)||null:state;}
 function sourceForEvent(event,{state,front}){return event.type==='enemy-hit'?(front?.enemies||[]).find(row=>row.id===event.sourceId)||null:state;}
 function phaseForce(event){if(event.type==='one-motion'||event.manual===true||event.phase==='one')return 1.5;if(event.phase==='kyu')return 1.3;if(event.phase==='ha')return 1.08;return 1;}
+function directionForce(event){const sector=event.attackSector||event.sector;return sector==='back'?1.08:sector==='flank'||sector==='left'||sector==='right'?1.035:1;}
 function impactPart(event,pose){if(event.part)return event.part;const attack=String(pose?.attack||'');if(['uppercut','risingfist','meteor'].includes(attack))return'head';if(['sweep','round','spin'].includes(attack))return event.attackSector==='flank'?'rightArm':'torso';if(['thrust','pierce','straight','oneinch'].includes(attack))return'torso';return'torso';}
 
 export function impactEnergyForEvent(event,context={}){
   if(!event||!['player-hit','enemy-hit','one-motion'].includes(event.type)||!(Number(event.damage)>0))return 0;
   const source=sourceForEvent(event,context),target=targetForEvent(event,context),pose=actorPose(source),attack=String(pose?.attack||event.attack||'slash');
-  const mass=WEAPON_MASS[actorWeapon(source)]||1,force=ATTACK_FORCE[attack]||1,phase=phaseForce(event),maxHp=Math.max(1,Number(target?.maxHp)||100),damageRatio=clamp(Number(event.damage)/maxHp,0,.7),direct=(event.guarded||event.blocked)?.72:1,projectile=event.projectile?.88:1;
-  return clamp(.08+mass*.19+force*.18+phase*.13+Math.sqrt(damageRatio)*.28,0,1)*direct*projectile;
+  const mass=WEAPON_MASS[actorWeapon(source)]||1,force=ATTACK_FORCE[attack]||1,phase=phaseForce(event),progress=clamp(pose?.progress),timing=.9+.1*Math.sin(progress*Math.PI),direction=directionForce(event),maxHp=Math.max(1,Number(target?.maxHp)||100),damageRatio=clamp(Number(event.damage)/maxHp,0,.7),direct=(event.guarded||event.blocked) ? .72 : 1,projectile=event.projectile ? .88 : 1;
+  return clamp((.07+mass*.185+force*.175+phase*.125+Math.sqrt(damageRatio)*.27)*timing*direction,0,1)*direct*projectile;
 }
 
 export function impactProfile(energy,{reduced=false,qualityLevel=0}={}){
   energy=clamp(energy);const lowQuality=Number(qualityLevel)>=2;
   if(reduced||energy<.34)return Object.freeze({tier:'light',energy,stop:0,slow:0,scale:1,camera:energy*.018,fov:0,duck:0});
-  if(energy<.58)return Object.freeze({tier:'medium',energy,stop:lowQuality?.008:.014,slow:lowQuality?.05:.075,scale:.72,camera:.026+energy*.025,fov:0,duck:.18});
-  if(energy<.8)return Object.freeze({tier:'heavy',energy,stop:lowQuality?.014:.026,slow:lowQuality?.085:.14,scale:.5,camera:.045+energy*.035,fov:lowQuality?.45:1.15,duck:.34});
-  return Object.freeze({tier:'critical',energy,stop:lowQuality?.018:.04,slow:lowQuality?.12:.23,scale:.34,camera:.07+energy*.05,fov:lowQuality?.8:2.25,duck:.52});
+  if(energy<.58)return Object.freeze({tier:'medium',energy,stop:lowQuality ? .008 : .014,slow:lowQuality ? .05 : .075,scale:.72,camera:.026+energy*.025,fov:0,duck:.18});
+  if(energy<.8)return Object.freeze({tier:'heavy',energy,stop:lowQuality ? .014 : .026,slow:lowQuality ? .085 : .14,scale:.5,camera:.045+energy*.035,fov:lowQuality ? .45 : 1.15,duck:.34});
+  return Object.freeze({tier:'critical',energy,stop:lowQuality ? .018 : .04,slow:lowQuality ? .12 : .23,scale:.34,camera:.07+energy*.05,fov:lowQuality ? .8 : 2.25,duck:.52});
 }
 
 function localPoint(actor,point){
@@ -42,8 +43,8 @@ function blendFrame(previous,current,t,slow){if(!current)return null;if(!previou
 export function createImpactDirector({mobile=false,reducedMotion=false}={}){
   let stop=0,slow=0,slowDuration=0,slowScale=1,qualityLevel=0,reduced=reducedMotion,hidden=false,camera={x:0,z:0,strength:0,fov:0},reactions=[],poseDisplay=new Map(),attackTrack=new Map(),strongest=null;
   function present(events,context={}){
-    if(hidden||!Array.isArray(events))return{impacts:[],strongest:null};const impacts=[];
-    for(const event of events){const energy=impactEnergyForEvent(event,context);if(!(energy>0))continue;const profile=impactProfile(energy,{reduced,qualityLevel}),source=sourceForEvent(event,context),target=targetForEvent(event,context),vector=attackVector(source,target),targetKey=event.type==='enemy-hit'?'hero':`enemy:${event.targetId}`;
+    if(hidden||!Array.isArray(events))return{impacts:[],strongest:null};const impacts=[],hitTargets=new Set(events.filter(event=>event?.type==='player-hit'&&Number(event.damage)>0).map(event=>event.targetId)),downTargets=new Set(events.filter(event=>event?.type==='enemy-down').map(event=>event.targetId));
+    for(const event of events){if(event?.type==='one-motion'&&hitTargets.has(event.targetId))continue;let energy=impactEnergyForEvent(event,context);if(downTargets.has(event?.targetId))energy=clamp(energy+.1);if(!(energy>0))continue;const profile=impactProfile(energy,{reduced,qualityLevel}),source=sourceForEvent(event,context),target=targetForEvent(event,context),vector=attackVector(source,target),targetKey=event.type==='enemy-hit'?'hero':`enemy:${event.targetId}`;
       impacts.push({event,profile,source,target,vector,targetKey,part:impactPart(event,actorPose(source))});
     }
     impacts.sort((a,b)=>b.profile.energy-a.profile.energy);strongest=impacts[0]||null;if(strongest){const p=strongest.profile;stop=Math.max(stop,p.stop);slow=Math.max(slow,p.slow);slowDuration=Math.max(slowDuration,p.slow);slowScale=Math.min(slowScale,p.scale);camera={x:strongest.vector.x,z:strongest.vector.z,strength:Math.max(camera.strength,p.camera),fov:Math.max(camera.fov,p.fov)};}
