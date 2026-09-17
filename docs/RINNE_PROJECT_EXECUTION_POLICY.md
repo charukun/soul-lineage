@@ -14,7 +14,7 @@ worker-facing stateは次だけ。
 | `READY` | final reconciled exact head + sufficient evidence + pushed source が揃い Integration へ handoff 済み |
 | `BLOCKED` | repository contract + user intentだけでは安全に解けない product / permission / external-input choice |
 
-DraftはoptionalなGitHub可視化手段。Micro Patch / Normal / Repairはworker-facing lifecycle stateではない。
+DraftはoptionalなGitHub可視化手段。Fast Repair等の内部laneや細かなroute名をworker-facing lifecycle stateとして増やさない。
 
 ## 終了境界
 
