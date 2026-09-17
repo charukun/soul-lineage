@@ -100,7 +100,7 @@ export class OpsState extends DurableObject {
   async peerJoin(roomId,input,token){return this.peerApply(joinPeerWorldRoom,roomId,{...input,inviteToken:token});}
   async peerHostEvents(roomId,token,after){return this.peerApply(readHostEvents,roomId,token,after);}
   async peerOffer(roomId,joinId,token,offer){return this.peerApply(postPeerWorldOffer,roomId,joinId,token,offer);}
-  async peerGuestEvents(roomId,joinId,token,after){return this.peerApply(readGuestEvents,roomId,joinId,token,Number(url.searchParams.get('after')||0));}
+  async peerGuestEvents(roomId,joinId,token,after){return this.peerApply(readGuestEvents,roomId,joinId,token,after);}
   async peerAnswer(roomId,joinId,token,answer){return this.peerApply(postPeerWorldAnswer,roomId,joinId,token,answer);}
   async peerTelemetry(roomId,token,input){return this.peerApply(updatePeerWorldTelemetry,roomId,token,input);}
   async peerDelete(roomId,token){return this.peerApply(deletePeerWorldRoom,roomId,token);}
