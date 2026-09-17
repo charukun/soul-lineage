@@ -1,4 +1,5 @@
 import { bodyRuntime, ensureCombatLoadout } from '../combat-loadout.js';
+import { injuryEffects } from './combat-growth.js';
 
 const clamp=(n,lo=0,hi=1)=>Math.min(hi,Math.max(lo,n));
 const TAU=Math.PI*2;
@@ -18,7 +19,7 @@ export function staminaPolicyFor(state){
 }
 
 export function tidebreakMindVectorFor(state){
-  ensureCombatLoadout(state);const body=bodyRuntime(state),heart=activeHeartIds(state),hp=state?.maxHp>0?clamp(state.hp/state.maxHp):0,stamina=staminaPolicyFor(state);
+  ensureCombatLoadout(state);const body=bodyRuntime(state),heart=activeHeartIds(state),hp=state?.maxHp>0?clamp(state.hp/state.maxHp):0,stamina=staminaPolicyFor(state),injury=injuryEffects(state);
   const v={attack:.5,guard:.46,spacing:.5,counter:.28,mobility:.42,survival:.28};
   const add=(key,value)=>{v[key]=clamp(v[key]+value);};
   const style=body.style?.id,stance=body.stance?.id,zanshin=body.zanshin?.id;
@@ -26,6 +27,8 @@ export function tidebreakMindVectorFor(state){
   if(zanshin==='guard')add('guard',.14);if(zanshin==='pursuit')add('attack',.1);if(zanshin==='breath')add('survival',.1);
   if(heart.has('skill.resolve'))add('attack',.13);if(heart.has('skill.edge')||heart.has('skill.grip'))add('attack',.09);if(heart.has('skill.distance'))add('spacing',.16);if(heart.has('skill.read'))add('counter',.2);if(heart.has('skill.patience')){add('counter',.13);add('attack',-.06);}if(heart.has('skill.danger')){add('guard',.1);add('survival',.12);}if(heart.has('skill.peripheral')){add('guard',.08);add('mobility',.12);}if(heart.has('skill.flow-step')||heart.has('skill.soft-step'))add('mobility',.18);if(heart.has('skill.guard-sense'))add('guard',.16);if(heart.has('skill.endure')||heart.has('skill.balance'))add('survival',.12);
   add('survival',(1-hp)*.48);add('attack',-(1-hp)*.2);add('guard',stamina.guardBias);add('survival',stamina.recoveryBias*.24);add('attack',stamina.allowOffense?0:-.38);
+  // Head/torso injuries do not grant protection. They blur specialized decisions toward neutral values, making poor positioning harder to recover from.
+  for(const key of Object.keys(v))v[key]=clamp(.5+(v[key]-.5)*injury.judgmentScale);if(injury.judgmentScale<.72)add('survival',(1-injury.judgmentScale)*.16);
   return Object.freeze(v);
 }
 
