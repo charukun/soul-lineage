@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-09-17T17:55:26.972Z",
+  "environment": {"node":"v22.16.0","platform":"linux","arch":"x64"},
+  "classification": "B-bounded-executable-evidence",
+  "focusedTests": {"passed":17,"failed":0},
+  "witnesses": {
+    "count": 9,
+    "names": ["unauthenticated-action-time-indistinguishability","receive-time-semantics-differs-from-action-time","finite-grace-unbounded-delay","secure-time-sync-not-action-attestation","game-vs-wall-vs-monotonic-domain","wall-clock-jump-vs-monotonic","retry-after-deadline-idempotency","deadline-generation-binding","uncertainty-interval-ambiguity"],
+    "unauthTimestamp": {"honest":{"actualActionTime":99,"claimedActionTime":99,"arrival":200},"dishonest":{"actualActionTime":101,"claimedActionTime":99,"arrival":200},"localAuthorityObservation":{"claimedActionTime":99,"arrival":200},"indistinguishable":true,"desired":{"honest":"accept","dishonest":"reject"}},
+    "finiteGrace": {"actionTime":99.999,"arrivalTime":111,"deadline":100,"grace":10,"honestBefore":true,"rejected":true},
+    "secureTimeVsAction": {"secureTimeSync":{"authenticatedClockSample":true,"bindsGameAction":false},"eventAttestation":{"authenticatedClockSample":true,"bindsGameAction":true}},
+    "wallJump": {"wall":{"before":1000,"after":900,"elapsed":-100},"monotonic":{"before":5000,"after":5100,"elapsed":100}},
+    "deadlineGeneration": {"action":{"operationId":"op1","arrivalTime":90,"payload":{"x":1},"policyGen":1},"oldPolicy":{"deadline":100,"generation":1},"newPolicy":{"deadline":80,"generation":2},"acceptedUnderOld":true,"acceptedUnderNew":false,"generationMismatch":true},
+    "timeDomains": {"lifetime":{"domain":"game","description":"age/world progression follows configured game clock rate"},"inviteExpiry":{"domain":"authority-wall","description":"real-world expiry window"},"saveStall":{"domain":"monotonic","description":"elapsed process duration"},"adversarialActionDeadline":{"domain":"attested-action-time-or-authority-receive","description":"must declare which observer defines timeliness"}},
+    "uncertainty": {"wide":{"earliest":92,"latest":102,"deadline":100,"verdict":"AMBIGUOUS"},"narrow":{"earliest":96,"latest":98,"deadline":100,"verdict":"ALLOW"}}
+  },
+  "sourceSha256": {"model":"a82489950bbcdc33a7f78c2d5f2a5ce0f4c7393ad6b04cd793d1e29b6eb61fa9","test":"3dfec5f13b4fa0fe1f46eac9054b231504e5aca0d9bfd205d8db77fc5342d1ed","proof":"9f2df57ecd3bb1da3be9c88d69993f6250d2ff5c44ec28c4877f3e94aed12cd6"},
+  "boundary": {"proves":"finite temporal indistinguishability and contract witnesses only","doesNotProve":["secure action timestamp attestation","bounded real network delay","production TrueTime/NTS behavior","real browser clock guarantees","performance/availability"]}
+}
