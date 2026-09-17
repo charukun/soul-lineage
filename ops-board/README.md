@@ -63,6 +63,7 @@ Fast Lane、Reconciliation、Repairは `READY` の内側にある機械工程と
 - 対応待ちカードは待機理由、依存PR、待機時間、優先度を明示する
 - 完了履歴は対応中・対応待ちから視覚的に分離する
 - Repair成功と単なるIntegration / DEV状態観測を混同しない。既存の修復証跡判定を維持する
+- 旧Planner / Virtual Train / Draft→Ready latencyの表示契約は廃止済み。現行の診断に必要なcurrent exact-head / merge / repair / DEV情報だけを表示する
 
 ## WORKINGのAI再開プロンプト
 
@@ -75,7 +76,7 @@ PULSEで観測できる `WORKING` Draftは、Astraが実際に現在動いてい
 - 受け取ったAstraは最新developとcurrent GitHub stateを正本として各PRを再確認し、`Draft=ACTIVE` と決めつけない
 - STOPPED / INTERRUPTEDは新規PRを量産せず既存branch/PRを復旧起点にする
 - current developと意味的にreconcileし、**final reconciled head** に必要十分なevidenceを実行してpushし、READY / `READY_FOR_INTEGRATION`へ進める
-- 旧Micro Patch / Normal分類や、reconcile前後の固定二重検証を復旧の儀式として再導入しない
+- worker-facing route分類や、reconcile前後の固定二重検証を復旧の儀式として再導入しない
 - `BLOCKED` はproduct/permission/external-input choiceなど本当に外部判断が必要な場合だけ。base drift、同file、CI pending、技術的難しさだけでBLOCKEDにしない
 - 明示hold、unresolved review等の既存制御は維持し、quality gateを解除して通さない
 - CI/browserのRunning・Queued・Pendingを待機・pollingしてセッションを延命しない。READY後の非同期監視はIntegrationへ引き渡す
