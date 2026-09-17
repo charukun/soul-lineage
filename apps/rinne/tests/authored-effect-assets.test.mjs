@@ -12,11 +12,13 @@ function effectFixture(dependencies,version=1500){
   return Buffer.concat([Buffer.from('EFKE'),word(0),Buffer.from('INFO'),word(info.length),info]);
 }
 test('selected authored originals, runtime and license notices are immutable pins',()=>{
-  assert.equal(EFFECT_DOWNLOADS.length,16);assert.equal(new Set(EFFECT_DOWNLOADS.map(r=>r.target)).size,16);
+  assert.equal(EFFECT_DOWNLOADS.length,25);assert.equal(new Set(EFFECT_DOWNLOADS.map(r=>r.target)).size,25);
   for(const row of EFFECT_DOWNLOADS){assert.match(row.revision,/^[a-f0-9]{40}$/);assert.match(row.gitBlobSha,/^[a-f0-9]{40}$/);assert.ok(row.byteLength>0);}
   assert.equal(EFFECT_DOWNLOADS.some(r=>r.target==='LICENSE-SAMPLES.txt'),true);
   assert.equal(EFFECT_DOWNLOADS.some(r=>r.target==='LICENSE-MIT.txt'),true);
-  assert.equal(Object.keys(AUTHORED_EFFECTS).length,2);assert.equal(EFFECT_ASSETS.some(r=>r.path.endsWith('.fbx')),false);
+  assert.equal(Object.keys(AUTHORED_EFFECTS).length,3);assert.equal(EFFECT_ASSETS.some(r=>r.path.endsWith('.fbx')),false);
+  assert.equal(AUTHORED_EFFECTS.finisher.path,'samples/02_Tktk03/Light.efkefc');
+  assert.equal(EFFECT_ASSETS.filter(r=>r.path.endsWith('.efkefc')).length,3);
 });
 test('INFO parser reads dependencies and accepts only the reviewed complete dependency closure',()=>{
   const bytes=effectFixture(['Texture/SwordLine01.png']);assert.deepEqual(effectDependencies(bytes),['Texture/SwordLine01.png']);
