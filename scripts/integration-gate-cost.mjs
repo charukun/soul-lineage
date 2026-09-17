@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -38,7 +38,10 @@ function gitPaths(work, base, head) {
 
 export function runCheapPreflight(work, base, head, paths) {
   execFileSync('git', ['diff', '--check', base, head], { cwd: work, stdio: 'inherit' });
-  const syntax = paths.filter(path => JS.test(path) && !path.includes('/node_modules/') && !path.endsWith('.min.js')).slice(0, 80);
+  const syntax = paths
+    .filter(path => JS.test(path) && !path.includes('/node_modules/') && !path.endsWith('.min.js'))
+    .filter(path => existsSync(resolve(work, path)))
+    .slice(0, 80);
   const failures = [];
   for (const path of syntax) {
     const result = spawnSync(process.execPath, ['--check', path], { cwd: work, encoding: 'utf8' });
