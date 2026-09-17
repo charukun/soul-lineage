@@ -10,7 +10,7 @@
 
 既存 `/dev/` は輪廻転焦へ転送します。現在の `/prod/` はmainの既存実装を維持します。mainへ各appを昇格すると、対応するProductionパスを自動検出します。URLは公開・ログイン不要です。
 
-資料の入口と正本の優先順位は [Documentation map](docs/README.md) を参照してください。全docsを最初から読むのではなく、`AGENTS.md` と `npm run context:plan -- --task "<要約>"` から必要資料だけ選びます。
+資料の入口と正本の優先順位は [Documentation map](docs/README.md) を参照してください。全docsを最初から読むのではなく、`AGENTS.md` と `npm run context:plan -- --task "<要約>"` から必要資料だけ選びます。通常実装の責任境界は [Astra Outcome Contract](docs/ASTRA_OUTCOME_CONTRACT.md) が正本です。
 
 ## 開発・独立build
 
@@ -58,19 +58,22 @@ npm run affected -- origin/develop HEAD
 通常の責任分界だけをここに示し、詳細規則は重複記載しません。
 
 ```text
-Implementation WORK
-  Draft PR -> implement -> fast validation -> push -> Ready
+Astra
+  WORKING: implementation / semantic reconciliation / validation choice
+  -> READY: final reconciled exact head + sufficient evidence + pushed source
   -> READY_FOR_INTEGRATION
 
-Integration Fast Lane
-  current exact-head fast evidence + safety gates
-  -> single expected-head writer -> develop
-  -> asynchronous latest-only DEV publication / browser repair
+Deterministic Integration
+  exact-head static/build + safety gates
+  -> serialized expected-head/CAS merge -> develop
+  -> asynchronous latest-only DEV publication
 ```
 
-実装WORKはReadyで終了し、CI・browser・DEV公開を待機・反復pollingしません。Integrationは1件の失敗やDEV delivery/browser failureを独立したeligible PRのglobal blockerにせず、通るPRから処理します。main / Productionの品質gateは変更しません。
+Draftは長時間作業・dispatch・途中共有でWORKINGを可視化したい場合だけ使うoptional transportです。小変更・大変更で別のauthoring routeを作らず、Astraが実際のriskから必要evidenceを選びます。
 
-運用の正本は [Development WORK](docs/DEVELOPMENT.md) と [develop Integration Fast Lane](docs/INTEGRATION.md)。monorepo・build・配信構造の詳細は [CI/CD運用](docs/MONOREPO.md) を参照してください。
+実装WORKはREADYで終了し、CI・browser・DEV公開を待機・反復pollingしません。Integrationは1件の失敗やDEV delivery/browser failureを独立したeligible PRのglobal blockerにせず、通るPRから処理します。main / Productionの品質gateは変更しません。
+
+運用の正本は [Astra Outcome Contract](docs/ASTRA_OUTCOME_CONTRACT.md)、[Development WORK](docs/DEVELOPMENT.md)、[develop Integration Fast Lane](docs/INTEGRATION.md)。monorepo・build・配信構造の詳細は [CI/CD運用](docs/MONOREPO.md) を参照してください。
 
 参考: [GitHub Pages公式Workflow](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)、[npm workspaces](https://docs.npmjs.com/cli/v11/using-npm/workspaces/)、[Vite相対base](https://vite.dev/config/shared-options#base)。
 
