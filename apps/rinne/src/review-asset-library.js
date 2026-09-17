@@ -111,10 +111,25 @@ async function reapplyEquipment() {
   const wanted={main:selection.main,off:selection.off,back:selection.back};
   for(const slot of ['main','off','back']){selection[slot]=null;await setEquipment(slot,wanted[slot]);}
 }
-function frameModel() {
-  if(!modelRoot)return; modelRoot.updateMatrixWorld(true); const box=new THREE.Box3().setFromObject(modelRoot),center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
-  const height=Math.max(size.y,.5),radius=Math.max(size.x,size.y,size.z); controls.target.set(center.x,box.min.y+height*.5,center.z); camera.position.set(center.x+radius*.8,box.min.y+height*.58,center.z+radius*1.7); controls.update();
+function cameraFrame() {
+  if(!modelRoot)return null;
+  modelRoot.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(modelRoot),center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
+  const height=Math.max(size.y,.5),radius=Math.max(size.x,size.y,size.z,.5);
+  return {box,center,height,radius,target:new THREE.Vector3(center.x,box.min.y+height*.5,center.z)};
 }
+function setCameraPreset(preset='full') {
+  const frame=cameraFrame(); if(!frame)return;
+  const {box,center,height,radius,target}=frame,eyeY=box.min.y+height*.58,distance=radius*1.7;
+  controls.target.copy(target);
+  if(preset==='front')camera.position.set(center.x,eyeY,center.z+distance);
+  else if(preset==='side')camera.position.set(center.x+distance,eyeY,center.z);
+  else if(preset==='back')camera.position.set(center.x,eyeY,center.z-distance);
+  else camera.position.set(center.x+radius*.8,eyeY,center.z+radius*1.7);
+  controls.update();
+  for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed',String(button.dataset.assetCamera===preset));
+}
+function frameModel() { setCameraPreset('full'); }
 async function loadModel(id) {
   const model=REVIEW_SKELETON_MODELS.find(row=>row.id===id); if(!model)throw new Error(`Unknown review model: ${id}`); const sequence=++loadSequence; selection.model=id; status(`${model.label} を読み込み中…`);
   for(const root of mounted.values())disposeRoot(root);mounted.clear(); if(modelRoot)disposeRoot(modelRoot); modelRoot=null; mixer?.stopAllAction();mixer=null;
@@ -130,6 +145,8 @@ function populate() {
   for(const slot of ['main','off','back']){
     const select=q(`#slot-${slot}`);select.append(new Option('なし',''));for(const item of reviewSkeletonEquipmentForSlot(slot))select.append(new Option(item.label,item.id));select.addEventListener('change',()=>setEquipment(slot,select.value||null).then(()=>status('装備プレビューを更新しました。')).catch(error=>status(error.message,true)));
   }
+  for(const button of document.querySelectorAll('[data-asset-camera]'))button.addEventListener('click',()=>setCameraPreset(button.dataset.assetCamera));
+  controls.addEventListener('start',()=>{for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed','false');});
   q('#asset-provenance').textContent=`${REVIEW_SKELETON_SOURCE.repository}@${REVIEW_SKELETON_SOURCE.commit} · ${REVIEW_SKELETON_SOURCE.license}`;
   q('#asset-reset').addEventListener('click',()=>{for(const slot of ['main','off','back']){q(`#slot-${slot}`).value='';void setEquipment(slot,null);}frameModel();});
   renderSelection();
