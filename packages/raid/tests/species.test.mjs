@@ -14,8 +14,17 @@ test('catalog contains the procedural monster plus five distinct imported specie
   const species=MONSTER_SPECIES[id],start=feedingGrowth(0,id),full=feedingGrowth(species.growth.fullMeals,id);
   assert.equal(start.scale,species.growth.minScale,id);assert.equal(full.scale,species.growth.maxScale,id);
   assert.ok(start.hpScale<full.hpScale,id);assert.ok(start.moveScale>0&&full.moveScale>0,id);
-  assert.ok(species.growth.maxScale<=3.2,id);assert.ok(species.growth.fullMeals>=6,id);
+  assert.ok(species.growth.maxScale<=3.2,id);assert.ok(species.growth.fullMeals>=6,id);assert.ok(species.growth.pace>1,id);
  }
+});
+
+test('early feeding growth remains visible without jumping close to human scale',()=>{
+ const start=feedingGrowth(0),first=feedingGrowth(1),second=feedingGrowth(2),third=feedingGrowth(3),full=feedingGrowth(MONSTER_SPECIES[DEFAULT_MONSTER_SPECIES].growth.fullMeals);
+ assert.equal(start.scale,.28);
+ assert.ok(first.scale>start.scale&&first.scale<.5,`first meal scale ${first.scale}`);
+ assert.ok(second.scale>first.scale&&second.scale<.7,`second meal scale ${second.scale}`);
+ assert.ok(third.scale>second.scale&&third.scale<1,`third meal scale ${third.scale}`);
+ assert.equal(full.scale,3.2);
 });
 
 test('each village receives one deterministic species while explicit future selection can override it',()=>{
