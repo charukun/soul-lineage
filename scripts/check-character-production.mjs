@@ -1,11 +1,18 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import {
+import { pathToFileURL } from 'node:url';
+
+// This script is intentionally executed from trusted control-plane code during
+// develop validation, while the repository cwd is the candidate PR checkout.
+// Resolve the character package from that candidate cwd instead of relative to
+// this script's control checkout so the trusted validator inspects the exact PR
+// contents without requiring packages/** in the sparse control checkout.
+const {
   CHARACTER_REFERENCE_MODELS,
   evaluateCharacterLicensePolicy,
   evaluateCharacterProduction,
   referenceModelProductionStage
-} from '../packages/characters/src/index.js';
+} = await import(pathToFileURL(resolve('packages/characters/src/index.js')).href);
 
 const productionDir = resolve('packages/characters/production');
 const failures = [];
