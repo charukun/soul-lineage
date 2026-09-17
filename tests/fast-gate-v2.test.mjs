@@ -40,23 +40,31 @@ test('broad validation never drops a test outside DEV mode', () => {
   assert.deepEqual(plan.skippedHeavy, []);
 });
 
-test('validator uses gate-cost profile and direct workspace checks for narrow fast scope', () => {
+test('validator uses gate-cost profile and direct workspace checks for narrow or DEV scope', () => {
   const validate = source('scripts/validate.mjs');
   const check = source('scripts/check.mjs');
   assert.match(validate, /gateCostPlan\(plan\.paths \|\| \[\]\)\.profile/);
   assert.match(validate, /fastGateScope\(plan, profile\)/);
-  assert.match(validate, /narrowFast \? \['scripts\/check\.mjs', '--direct'/);
+  assert.match(validate, /\(dev \|\| narrowFast\) \? \['scripts\/check\.mjs', '--direct'/);
   assert.match(validate, /splitFastTests\(uniqueTests, plan\.paths/);
   assert.match(validate, /plan\.infrastructure/);
   assert.match(check, /requested\[0\] === '--direct'/);
   assert.match(check, /if \(!direct\) for \(const file of readdirSync\('scripts'/);
 });
 
-test('DEV validation records zero tests and keeps the test runner in the non-DEV branch', () => {
+test('DEV PR and normal DEV publication both record zero tests', () => {
   const validate = source('scripts/validate.mjs');
   assert.match(validate, /const dev = mode === 'dev'/);
-  assert.match(validate, /if \(dev\) \{[\s\S]*tests: 0[\s\S]*\} else \{/);
+  assert.match(validate, /const deploy = mode === 'deploy'/);
+  assert.match(validate, /if \(dev \|\| deploy\) \{[\s\S]*tests: 0[\s\S]*\} else \{/);
   assert.match(validate, /else \{[\s\S]*splitFastTests\(uniqueTests[\s\S]*\['--test', \.\.\.split\.light\]/);
+});
+
+test('develop CI installs dependencies only when an app/global build needs them', () => {
+  const workflow = source('.github/workflows/ci.yml');
+  const build = workflow.slice(workflow.indexOf('\n  build:'), workflow.indexOf('\n  integration-request:'));
+  assert.match(build, /github\.event\.pull_request\.base\.ref == 'main' \|\| steps\.plan\.outputs\.has_apps == 'true' \|\| steps\.plan\.outputs\.infrastructure == 'true'/);
+  assert.doesNotMatch(build, /has_packages == 'true'/);
 });
 
 test('Ready validation checkout is shallow and fetches only the resolved exact base', () => {

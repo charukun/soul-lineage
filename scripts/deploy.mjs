@@ -99,6 +99,7 @@ async function main() {
   const desired = [...retained, ...initial];
   const old = new Map(previous.entries.map(entry => [entry.path, entry]));
   const changed = desired.filter(entry => needsBuild(entry, old.get(entry.path)));
+  const changedDevApps = [...new Set(changed.filter(entry => entry.environment === 'dev').map(entry => entry.app))];
   const removed = previous.entries.some(entry => !desired.some(next => next.path === entry.path));
   const publish = changed.length > 0 || removed || full || devOnly;
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `changed=${publish}\n`);
@@ -107,10 +108,11 @@ async function main() {
   if (!publish) { console.log('All app inputs unchanged; no build, test or Pages deployment needed.'); return; }
   await rm(output, { recursive: true, force: true }); await mkdir(output, { recursive: true });
   const installed = new Set();
-  if (full || devOnly) {
+  if (full || (devOnly && changedDevApps.length)) {
     run(sources.dev, 'npm', ['ci']); installed.add(sources.dev);
-    run(sources.dev, 'node', ['scripts/validate.mjs', ...(full ? ['full'] :
-      ['deploy', ...changed.filter(e => e.environment === 'dev').map(e => e.app)])]);
+    run(sources.dev, 'node', ['scripts/validate.mjs', ...(full ? ['full'] : ['deploy', ...changedDevApps])]);
+  } else if (devOnly) {
+    console.log('DEV app inputs unchanged; skip npm ci and validation/build preparation.');
   }
   const entries = [];
   for (const entry of desired) {
@@ -122,11 +124,11 @@ async function main() {
     const env = { APP_ENV: entry.environment, APP_BRANCH: entry.branch };
     if (!installed.has(entry.root)) {
       run(entry.root, 'npm', ['ci'], env); installed.add(entry.root);
-      if (!entry.legacy) run(entry.root, 'npm', ['test'], env);
+      if (!entry.legacy && !devOnly) run(entry.root, 'npm', ['test'], env);
     }
     if (!((full || devOnly) && entry.environment === 'dev')) {
       run(entry.root, 'npm', ['run', 'check', ...(entry.legacy ? [] : ['--', entry.app])], env);
-      if (!entry.legacy) run(entry.root, 'npm', ['run', 'test:app', '--', entry.app], env);
+      if (!entry.legacy && !devOnly) run(entry.root, 'npm', ['run', 'test:app', '--', entry.app], env);
     }
     run(entry.root, 'npm', ['run', 'build', ...(entry.legacy ? [] : ['--workspace', `@soul/${entry.app}`])], env);
     const dist = resolve(entry.root, 'dist', entry.legacy ? '' : entry.app);
