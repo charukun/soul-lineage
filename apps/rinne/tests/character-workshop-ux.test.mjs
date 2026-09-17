@@ -40,6 +40,7 @@ test('Visual Review gets dedicated simple character and motion modes', () => {
   assert.match(entry, /dataset\.reviewMode = mode/);
   assert.match(entry, /simple-review-summary/);
   assert.match(entry, /simple-review-subject/);
+  assert.match(entry, /prepareCharacterCameraStrip/);
   assert.match(entry, /moveCameraControlsToStage/);
   assert.doesNotMatch(entry, /simple-review-guide/);
   assert.doesNotMatch(entry, /simple-review-badge/);
