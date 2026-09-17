@@ -56,13 +56,14 @@ test('stale, untrusted or incomplete stack evidence fails closed', async () => {
   }
 });
 
-test('Repair workflow updates stacks directly, runs test-free DEV validation and wakes Fast Lane per successful head', () => {
+test('Repair workflow updates stacks directly, uses trusted test-free DEV validation and wakes Fast Lane per successful head', () => {
   const workflow = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');
   const fastLane = readFileSync('scripts/integration-fast-lane.mjs', 'utf8');
   const repair = readFileSync('scripts/integration-repair-fast.mjs', 'utf8');
   assert.match(workflow, /repair:[\s\S]*Fast Repair[\s\S]*integration-repair-fast\.mjs/);
   assert.match(workflow, /stack-fast:[\s\S]*Stack Validate and build[\s\S]*max-parallel: 4/);
-  assert.match(workflow, /node scripts\/validate\.mjs dev "\$BASE_SHA" "\$HEAD_SHA"/);
+  assert.match(workflow, /node \.\.\/control\/scripts\/affected\.mjs "\$BASE_SHA" "\$HEAD_SHA" dev/);
+  assert.match(workflow, /node \.\.\/control\/scripts\/validate\.mjs dev "\$BASE_SHA" "\$HEAD_SHA"/);
   assert.match(workflow, /pr-fast-\$\{\{ matrix\.pr \}\}-\$\{\{ matrix\.head \}\}/);
   assert.match(workflow, /context: 'integration\/stack-fast'/);
   assert.match(workflow, /Wake Fast Lane immediately for this validated head[\s\S]*createWorkflowDispatch/);
