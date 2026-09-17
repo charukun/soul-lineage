@@ -3,6 +3,7 @@ import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { client } from './integration.mjs';
+import { dependencyState } from './integration-dependency-state.mjs';
 import { dependencies, reviewDecision } from './integration-policy.mjs';
 
 export const DEFAULT_REPAIR_LIMIT = 4;
@@ -55,6 +56,10 @@ export async function reconcileStackFast(c, expected, develop, { repository = 'c
 
   const pr = await c.api('GET', `${c.root}/pulls/${expected.number}`);
   if (!fastRepairCandidate(pr, repository) || pr.head.sha !== expected.head.sha || explicitHold(pr)) return { state: 'safety-hold' };
+
+  const dependency = await dependencyState(c, pr, { dependencyPulls: depStates });
+  if (dependency.incorporated) return { state: 'dependency-current', dependencies: deps };
+
   if (pr.mergeable !== true || !REPAIRABLE_MERGE_STATES.has(pr.mergeable_state)) return { state: 'safety-hold' };
   const reviews = await c.pages(`/pulls/${pr.number}/reviews`, undefined, { maxPages: 10 });
   if (reviewDecision(reviews, pr.head.sha).rejected || await unresolvedThreads(c, pr)) return { state: 'safety-hold' };
@@ -69,7 +74,7 @@ export async function reconcileStackFast(c, expected, develop, { repository = 'c
     const result = await c.api('POST', `${c.root}/merges`, {
       base: pr.head.ref,
       head: develop,
-      commit_message: `Merge develop into ${pr.head.ref} after dependencies ${deps.map(number => `#${number}`).join(', ')}`,
+      commit_message: `Merge develop into ${pr.head.ref} after dependencies ${dependency.missing.map(number => `#${number}`).join(', ')}`,
     });
     if (!result) return { state: 'already-current' };
     if (!/^[0-9a-f]{40}$/.test(result.sha || '')) throw new Error('FAST_REPAIR_RESULT_INVALID');

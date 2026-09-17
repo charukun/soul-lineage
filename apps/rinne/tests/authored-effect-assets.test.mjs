@@ -8,7 +8,8 @@ import {AUTHORED_EFFECTS,EFFECT_ASSETS} from '../src/rebuild/authored-effect-man
 
 function effectFixture(dependencies,version=1500){
   const word=n=>{const b=Buffer.alloc(4);b.writeUInt32LE(n);return b;};
-  const info=Buffer.concat([word(version),word(dependencies.length),...dependencies.flatMap(s=>[word(s.length+1),Buffer.from(`${s}\0`,'utf16le')]),...Array.from({length:5},()=>word(0))]);
+  const trailingGroups=version===1610?6:5;
+  const info=Buffer.concat([word(version),word(dependencies.length),...dependencies.flatMap(s=>[word(s.length+1),Buffer.from(`${s}\0`,'utf16le')]),...Array.from({length:trailingGroups},()=>word(0))]);
   return Buffer.concat([Buffer.from('EFKE'),word(0),Buffer.from('INFO'),word(info.length),info]);
 }
 test('selected authored originals, runtime and license notices are immutable pins',()=>{
@@ -20,7 +21,7 @@ test('selected authored originals, runtime and license notices are immutable pin
   assert.equal(AUTHORED_EFFECTS.finisher.path,'samples/02_Tktk03/Light.efkefc');
   assert.deepEqual(EFFECT_ASSETS.filter(r=>r.path.endsWith('.efkefc')).map(r=>r.infoVersion),[1500,1500,1610]);
 });
-test('INFO parser reads dependencies and accepts only the reviewed complete dependency closure',()=>{
+test('INFO parser reads reviewed v1500/v1610 layouts and complete dependency closure',()=>{
   const bytes=effectFixture(['Texture/SwordLine01.png']);assert.deepEqual(effectDependencies(bytes),['Texture/SwordLine01.png']);
   assert.doesNotThrow(()=>verifyEffectClosure(EFFECT_ASSETS[0],bytes));
   assert.deepEqual(effectDependencies(effectFixture([],1610)),[]);

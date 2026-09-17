@@ -11,7 +11,8 @@ GitHub event
   -> Fast Lane
        eligible -> expected-head merge
        mechanically repairable -> Fast Repair (GitHub Actions)
-          -> PR branch merge-forward
+          -> declared dependency mergeがPR head ancestryに未取り込みのときだけPR branch merge-forward
+          -> declared dependency mergeが既に取り込み済みならbranch pushなし
           -> exact-head DEV checks/build (tests=0)
           -> Fast Lane wake
        semantic conflict / source-level DEV check repair
@@ -30,7 +31,7 @@ GitHub event
 | 構成 | 実装 | 責任 |
 | --- | --- | --- |
 | Fast Lane | `scripts/integration-fast-lane.mjs` | current Ready PR再取得、complete base comparison、exact-head gate、expected-head merge、真のconflict・exact-head DEV check/build failureのhandoff |
-| Fast Repair | `scripts/integration-repair-fast.mjs` | Depends-On・review・hold・thread・head・developを再確認し、元PR branchを機械的に安全な場合だけmerge-forward |
+| Fast Repair | `scripts/integration-repair-fast.mjs` | Depends-On・review・hold・thread・head・developを再確認し、未取り込みのdeclared dependency mergeがある場合だけ元PR branchをmerge-forward。依存取り込み済みの単なるdevelop進行ではbranchを更新しない |
 | Repair workflow | `.github/workflows/integration-rescue.yml` | Fast Repair、test-free exact-head DEV checks/build、Fast Lane wake |
 | Chat Repair handoff | `scripts/integration-deep-repair-handoff.mjs` | source PRごとにopen Chat Repair incidentを1件維持し、current exact-head座標を更新。owner通知はincident開始時だけ |
 | Deep Repair finalization | `scripts/integration-deep-repair-finalize.mjs` | 修復PRのdevelop merge後に同Issueをcompleted/closeしstatusをfinalize |
@@ -39,15 +40,16 @@ GitHub event
 
 ## Fast Repairの対象
 
-Fast Repairは、依存PRのmerge後に最新developを取り込むなど **機械的に安全性を証明できるstack/base更新** を担当する。
+Fast Repairは、依存PRのmerge後にその依存mergeをまだ含んでいないstackへ取り込むなど **機械的に安全性を証明できるstack/base更新** を担当する。declared dependency mergeが一度PR head ancestryへ入った後は、無関係なdevelop更新を追い掛けて同PR branchへmerge-forwardし続けない。以後のbase driftはFast Laneのcomplete fail-closed comparisonで判定する。
 
 1. current open/non-Draft develop PRをGitHubから再取得する。
 2. same repository / trusted author / 必要なDepends-On条件だけを見る。
-3. hold、Changes requested、unresolved thread、head変更、dependency、mergeabilityを再確認する。
-4. develop SHAとPR exact headをmutation直前に再取得する。
-5. 元PR branchへ通常merge-forwardする。force push/history rewriteはしない。
-6. 更新headをtrusted GitHub runnerで `scripts/validate.mjs dev` に通し、**自動テストなし**でexact-headのstatic checks / code-health / build証拠を作る。
-7. 成功したheadだけFast Laneをwakeする。
+3. declared dependency PRがmergedであることと、その `merge_commit_sha` がPR exact headのancestryに入っているかを再確認する。
+4. hold、Changes requested、unresolved thread、head変更、dependency、mergeabilityを再確認する。
+5. develop SHAとPR exact headをmutation直前に再取得する。
+6. 未取り込みのdeclared dependency mergeがある場合だけ元PR branchへ通常merge-forwardする。全依存mergeが取り込み済みならbranch mutationを行わない。force push/history rewriteはしない。
+7. branchを更新したheadをtrusted GitHub runnerで `scripts/validate.mjs dev` に通し、**自動テストなし**でexact-headのstatic checks / code-health / build証拠を作る。
+8. 更新したheadだけFast Laneをwakeする。依存取り込み済みでbranch mutationが不要だったscanは追加wakeしない。
 
 Fast Repairは意味的な同file衝突を推測で解かない。HTTP 409 / `mergeable=false, dirty` などで機械的に安全なmerge-forwardが成立しない場合は、同じsource PRのChat repair handoffへ送る。
 
@@ -113,7 +115,7 @@ DEV PublisherはFast Laneから分離しlatest developへcoalesceする。normal
 - explicit hold / review objection / unresolved threadをRepairが解除しない
 - current PR/head/developをmutation直前に再取得する
 - Fast Laneのsingle develop writerを維持する
-- PR branch更新は通常merge-forwardまたは通常Chatで局所検証済みの修復だけ。force push禁止
+- PR branch更新は未取り込みdeclared dependencyの通常merge-forwardまたは通常Chatで局所検証済みの修復だけ。依存取り込み済みの単なるdevelop進行ではbranchを更新しない。force push禁止
 - テスト資産・browser assertions・main / Production gateを削除/弱体化しない
 - main / Productionを自動Repair対象にしない
 - 同じopen source PR repair incidentでowner起動通知を重複生成しない
@@ -123,7 +125,9 @@ DEV PublisherはFast Laneから分離しlatest developへcoalesceする。normal
 ## 受入条件
 
 - 正常Ready PRは旧Rescue stateやWorkを通らずmergeできる
-- mechanically repairableなstack/base更新はGitHub Actionsだけで更新・test-free DEV checks/build・Fast Lane wakeまで進む
+- mechanically repairableなstackでdeclared dependency mergeがPR head ancestryに未取り込みなら、GitHub Actionsだけで1回のmerge-forward・test-free DEV checks/build・Fast Lane wakeまで進む
+- declared dependency mergeが既にPR head ancestryへ入った後のdevelop進行では、Fast Repairが同PR branchを再pushせず、同じ `Merge develop into ... after dependencies ...` 通知を増殖させない
+- dependency取り込み済みのbase driftはFast Laneのcomplete fail-closed comparisonで安全性を判定する
 - 真のsemantic conflict / source-level DEV check/build repairはsource PRごとに1件のopen owner通知Chat Repair incidentへhandoffされる
 - 同じ未解決PRのhead/developが更新されても新しいIssue/owner mention/assignmentを増やさず、同Issueのexact-head markerだけをcurrent generationへ更新する
 - Issueメールには通常Chatへ貼るpromptが含まれ、修復時はcurrent GitHub stateを再取得する

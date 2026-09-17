@@ -13,13 +13,17 @@ Use metadata → changed filenames / failed job → necessary patch / range. CI 
 
 ## Delivery boundary
 
-Normal implementation work follows [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md): latest `develop` → work branch / Draft PR → implementation → fast validation → push → Ready for review → `READY_FOR_INTEGRATION` → final response.
+Normal implementation work follows [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md): latest `develop` → work branch / Draft PR → implementation → focused validation → **merge-forward current `develop` into the work branch** → focused revalidation → push → final develop freshness verify → Ready for review → `READY_FOR_INTEGRATION` → final response.
 
-Ready ends the implementation session. Running / Queued / Pending CI, browser checks, handoff recorder, Integration, and DEV publication must not keep the worker alive. Do not watch, sleep, or poll for completion. Integration owns asynchronous merge/publication/repair. The detailed boundary and mandatory screenshot/video presentation in completion reports are canonical in [`docs/RINNE_PROJECT_EXECUTION_POLICY.md`](docs/RINNE_PROJECT_EXECUTION_POLICY.md); do not fetch the full policy unconditionally. Read the relevant evidence section for final delivery.
+A qualifying micro patch follows [`docs/MICRO_PATCH_FAST_LANE.md`](docs/MICRO_PATCH_FAST_LANE.md), but uses the same pre-Ready freshness rule: latest `develop` → short-lived branch → small implementation → affected focused validation → current develop merge-forward / revalidation → push → final freshness verify → **Ready PR directly** → `READY_FOR_INTEGRATION`. Do not create a Draft PR or start Draft CI just to carry a tiny safe edit. If the patch touches control-plane, shared contracts, dependencies, schema/save/protocol, auth/security, infrastructure, generated/binary assets, or otherwise falls outside that contract, use the normal Draft route.
+
+With a checkout, use `npm run pre-ready:sync` before the final validation/push and `npm run pre-ready:verify` immediately before Ready. If develop advanced again, repeat sync → focused validation → push → verify. True conflicts are resolved by the implementation worker using both the current develop contract and the task intent; never select ours/theirs blindly or weaken quality gates. Without a checkout, the connected GitHub/API route must produce the same reconciled work-branch ancestry before Ready.
+
+Ready ends the implementation session. Running / Queued / Pending CI, browser checks, handoff recorder, Integration, and DEV publication must not keep the worker alive. Do not watch, sleep, or poll for completion. Integration remains the thin serialized expected-head guard for the race after Ready and owns asynchronous merge/publication/repair. The detailed boundary and mandatory screenshot/video presentation in completion reports are canonical in [`docs/RINNE_PROJECT_EXECUTION_POLICY.md`](docs/RINNE_PROJECT_EXECUTION_POLICY.md); do not fetch the full policy unconditionally. Read the relevant evidence section for final delivery.
 
 Use normal git first, then the connected GitHub API, then the same branch in existing GitHub Codespaces when transport or binary limits require it. One failed route is not task failure. Large binaries must not be split/Base64-retried through the connector. See [`docs/MOBILE_HYBRID_DEVELOPMENT.md`](docs/MOBILE_HYBRID_DEVELOPMENT.md).
 
-For user-requested work in `charukun/soul-lineage`, transfer of project code/assets to this repository or its existing Codespaces, work-branch push, PR create/update, and explicitly requested Lab publication are already authorized within the limits recorded in [`docs/DELIVERY_AUTHORIZATION.md`](docs/DELIVERY_AUTHORIZATION.md). Do not ask the same permission again. This does not authorize unrelated data, new paid resources, credential/security changes, destructive operations, develop merge by an implementation worker, or main/Production publication.
+For user-requested work in `charukun/soul-lineage`, transfer of project code/assets to this repository or its existing Codespaces, work-branch push, PR create/update, pre-Ready merge-forward of current `develop` **into the work branch**, and explicitly requested Lab publication are already authorized within the limits recorded in [`docs/DELIVERY_AUTHORIZATION.md`](docs/DELIVERY_AUTHORIZATION.md). Do not ask the same permission again. This does not authorize unrelated data, new paid resources, credential/security changes, destructive operations, writing/merging the implementation branch **into `develop`** by an implementation worker, or main/Production publication.
 
 Never modify `main` or Production unless the user explicitly requests it. Never weaken tests, browser assertions, review requirements, exact-head gates, repair attempt limits, or Production gates to make a change pass.
 
@@ -38,6 +42,7 @@ Read only the rows that match the task.
 | Task | Canonical / specialist document |
 | --- | --- |
 | Routine implementation | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) |
+| Qualifying tiny/safe code edit | [`docs/MICRO_PATCH_FAST_LANE.md`](docs/MICRO_PATCH_FAST_LANE.md) |
 | Integration / merge / DEV publication | [`docs/INTEGRATION.md`](docs/INTEGRATION.md) |
 | Integration control-plane reconciliation | [`docs/INTEGRATION_RECONCILIATION.md`](docs/INTEGRATION_RECONCILIATION.md) |
 | Fast Repair / legacy Rescue compatibility | [`docs/INTEGRATION_RESCUE.md`](docs/INTEGRATION_RESCUE.md) |
