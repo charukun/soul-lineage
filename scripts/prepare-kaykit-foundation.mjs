@@ -2,13 +2,13 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { KAYKIT_MODELS, KAYKIT_SOURCE_REPOSITORY, KAYKIT_SOURCE_REVISION } from '../packages/characters/src/kaykit-foundation.js';
+import { KAYKIT_MODELS, KAYKIT_MODEL_BY_KEY, KAYKIT_SOURCE_REPOSITORY, KAYKIT_SOURCE_REVISION } from '../packages/characters/src/kaykit-foundation.js';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const OUTPUT_ROOTS = Object.freeze({
-  rinne: path.join(repoRoot, 'apps/rinne/public/simulator/assets/kaykit'),
-  village: path.join(repoRoot, 'apps/village/public/assets/kaykit'),
-  demon: path.join(repoRoot, 'apps/demon/public/assets/kaykit')
+const TARGETS = Object.freeze({
+  rinne: Object.freeze({root:path.join(repoRoot, 'apps/rinne/public/simulator/assets/kaykit'),models:KAYKIT_MODELS}),
+  village: Object.freeze({root:path.join(repoRoot, 'apps/village/public/assets/kaykit'),models:Object.freeze([KAYKIT_MODEL_BY_KEY.rogue,KAYKIT_MODEL_BY_KEY.knight])}),
+  demon: Object.freeze({root:path.join(repoRoot, 'apps/demon/public/assets/kaykit'),models:Object.freeze([KAYKIT_MODEL_BY_KEY.knight])})
 });
 
 export function gitBlobSha(bytes) {
@@ -70,18 +70,18 @@ async function acquireModel(model, target) {
 
 function normalizeTargets(targets) {
   const requested = Array.isArray(targets) ? targets : [targets];
-  const expanded = requested.flatMap(value => value === 'all' ? Object.keys(OUTPUT_ROOTS) : [value || 'rinne']);
+  const expanded = requested.flatMap(value => value === 'all' ? Object.keys(TARGETS) : [value || 'rinne']);
   const unique = [...new Set(expanded)];
-  for (const app of unique) if (!Object.hasOwn(OUTPUT_ROOTS, app)) throw new Error(`Unknown KayKit app target: ${app}`);
+  for (const app of unique) if (!Object.hasOwn(TARGETS, app)) throw new Error(`Unknown KayKit app target: ${app}`);
   return unique;
 }
 
 export async function prepareKayKitFoundation(targets = ['rinne']) {
   const rows = [];
   for (const app of normalizeTargets(targets)) {
-    const outputRoot = OUTPUT_ROOTS[app];
+    const {root:outputRoot,models}=TARGETS[app];
     await mkdir(outputRoot, { recursive: true });
-    for (const model of KAYKIT_MODELS) {
+    for (const model of models) {
       const target = path.join(outputRoot, path.basename(model.runtime.localPath));
       rows.push({ app, ...await acquireModel(model, target) });
     }
