@@ -6,6 +6,7 @@ const HOUSE_TYPES=Object.freeze({
   lodge:Object.freeze({base:'tallhouse',timber:'roundhouse',stone:'manor',earth:'tallhouse'}),
   clanManor:Object.freeze({base:'manor',timber:'manor',stone:'manor',earth:'manor'})
 });
+const RESIDENTIAL_TENTS=new Set(['mayor','guardhome','tent']);
 const PALETTES=Object.freeze({base:2,timber:3,stone:5,earth:0});
 
 export function resolveMuraHouseVisual(kind,material='base',level=1){
@@ -36,6 +37,13 @@ function fitHouseToMuraFootprint(T,group,kind){
   return group;
 }
 
+function compactResidentialTent(group,kind){
+  if(!RESIDENTIAL_TENTS.has(kind))return group;
+  group.scale.y*=.6;
+  group.userData.sharedResidentialTent=true;
+  return group;
+}
+
 /**
  * Permanent residential MURA buildings reuse the authored house silhouettes from
  * 尽喰廻遊, fitted to the canonical metre footprint. Residential tents remain
@@ -43,7 +51,7 @@ function fitHouseToMuraFootprint(T,group,kind){
  */
 export function createMuraBuildingVisual(T,models,kind,material='base',level=1){
   const house=resolveMuraHouseVisual(kind,material,level);
-  if(!house)return models.building(kind,material,level);
+  if(!house)return compactResidentialTent(models.building(kind,material,level),kind);
   const group=fitHouseToMuraFootprint(T,makeModel(house.type,house.palette,house.floors),kind);
   group.userData.assetBacked=true;
   group.userData.sharedHouseVisual=true;
