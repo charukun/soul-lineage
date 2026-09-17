@@ -1,0 +1,2 @@
+CONFLICT_REPAIR stops after successful merge-forward/reconciliation.
+CI_REPAIR is separate.
