@@ -16,8 +16,10 @@ test('carpenter worksite detail stays inside the facility-scale silhouette',asyn
  }finally{if(previous===undefined)delete globalThis.document;else globalThis.document=previous;}
 });
 
-test('unused footpath is visually gone after four village days',()=>{
- const traffic={'100,100':15};
- decayTrailTraffic(traffic,4);
- assert.ok((traffic['100,100']||0)<1.1);
+test('unused footpath is visually gone after four village days even at maximum wear',()=>{
+ for(const wear of [15,40]){
+  const traffic={'100,100':wear};
+  decayTrailTraffic(traffic,4);
+  assert.ok((traffic['100,100']||0)<1.1,`wear ${wear} should no longer render as a path`);
+ }
 });
