@@ -1,5 +1,6 @@
 import {defs,ready,capacityOf,RESOURCE_NAMES,DAYS_YEAR} from '../game/core.js';
 import {installEventChronicle} from './event-chronicle.js';
+import {installPopulationHistory} from './population-history.js';
 
 const ICONS={
  people:'<circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 21v-3c0-6 12-6 12 0v3m1-8c4-1 7 1 7 5v3"/>',
@@ -25,9 +26,10 @@ export function installInterface(village){
  hud.innerHTML=`<div class="muraHudMain"><button id="muraHudToggle" aria-expanded="false" aria-controls="muraHudDetails"><span class="muraHudClock"></span><span class="muraHudBrief"></span><span class="muraHudChevron" aria-hidden="true">⌄</span></button><div class="muraHudActions"><button id="muraFollowMayor" aria-label="村長を追う" title="村長">${svg('mayor')}</button><button id="muraEventButton" aria-label="出来事" title="出来事">${svg('events')}</button><button id="muraSettingsButton" aria-label="設定" title="設定">${svg('settings')}</button></div></div><div id="muraHudDetails" hidden><div class="muraHudStats"></div><div class="muraHudResources"></div></div>`;
  const toggle=$('muraHudToggle'),details=$('muraHudDetails'),clock=hud.querySelector('.muraHudClock'),brief=hud.querySelector('.muraHudBrief');
  toggle.onclick=()=>{details.hidden=!details.hidden;toggle.setAttribute('aria-expanded',String(!details.hidden));hud.classList.toggle('muraHudExpanded',!details.hidden);};
- $('muraSettingsButton').onclick=more;
  $('muraFollowMayor').onclick=()=>{const p=world.people.find(p=>p.role==='mayor');if(p)observePerson(p.id);};
- const chronicle=installEventChronicle({world,eventButton:$('muraEventButton')});
+ const chronicle=installEventChronicle({world,eventButton:$('muraEventButton')}),populationHistory=installPopulationHistory({world});
+ const openSettings=()=>{more();populationHistory.attachSettings($('dialogContent'),openSettings);};
+ $('muraSettingsButton').onclick=openSettings;
  $('muraEndObservation').onclick=()=>{view.endObservation();view.focus(view.target.x,view.target.z,Math.max(32,view.span));village.activity();};
  const modes=$('muraModeControls'),modeLabel=document.createElement('small');modeLabel.id='muraModeLabel';modes.prepend(modeLabel);
  // Put related surfaces in ordinary document flow. Header expansion moves
