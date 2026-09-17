@@ -51,8 +51,8 @@ test('Visual Review gets dedicated simple character and motion modes', () => {
 
 test('simple review keeps preview chrome quiet and controls compact', () => {
   assert.match(css, /body\.simple-review \.stage-status #status:not\(\[data-error="true"\]\)/);
-  assert.match(css, /body\.simple-review #frame-model/);
-  assert.match(css, /body\.simple-review \.model-options/);
+  assert.match(css, /body\.simple-review \.stage-actions #frame-model/);
+  assert.match(css, /body\[data-review-mode="character"\] #character-model-options/);
   assert.match(css, /body\.simple-review \.workshop-secondary-tabs/);
 });
 
