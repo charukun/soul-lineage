@@ -1,61 +1,76 @@
-/** Presentation only: never infer a hit from proximity, cooldowns or a pose. */
-const finite = Number.isFinite;
-const point = (row, height = 1) => row && finite(row.x) && finite(row.z)
-  ? {x:row.x, y:finite(row.y)?row.y:height, z:row.z} : null;
+import {combatEffectBudget,combatEffectCues,combatEffectScope,createCombatEffectGate} from './combat-effect-cues.js';
 
-export function combatEffectScope(state, front) {
-  return `${state?.id||''}:${state?.zone||''}:${state?.interior?.buildingId||''}:${front?.stage??''}`;
-}
-
-export function combatEffectBudget(level = 0, mobile = false, reducedMotion = false) {
-  const tier=finite(level)?Math.min(3,Math.max(0,Math.floor(level))):3;
-  return Object.freeze({maxActive:reducedMotion?1:(mobile?[4,3,2,1]:[6,4,2,1])[tier],
-    maxPerBatch:reducedMotion?1:(tier>=2?2:4), trails:!reducedMotion&&tier<3,
-    intensity:reducedMotion ? .55 : 1, instanceMaxCount:512, squareMaxCount:512});
-}
-
-export function combatEffectCues(events, {state, front, hostiles=[], anchors={}}={}) {
-  if(!Array.isArray(events)||!state||state.phase==='birth'||state.interior)return [];
-  const hero=point(state.position), foes=new Map([...(front?.enemies||[]),...hostiles].map(e=>[e.id,e]));
-  if(!hero)return [];
-  const hitTargets=new Set(events.filter(e=>e?.type==='player-hit'&&finite(e.damage)&&e.damage>0).map(e=>e.targetId));
-  const cues=[];
-  for(const event of events){
-    if(!event||!finite(event.damage)||event.damage<=0)continue;
-    const manual=event.type==='one-motion';
-    if(manual&&hitTargets.has(event.targetId))continue;
-    const outgoing=event.type==='player-hit'||manual;
-    if(!outgoing&&event.type!=='enemy-hit')continue;
-    const enemy=point(foes.get(outgoing?event.targetId:event.sourceId));
-    // Unknown/despawned source is not drawn at the origin or at another actor.
-    if(!enemy)continue;
-    const from=outgoing?hero:enemy,to=outgoing?enemy:hero;
-    const heavy=outgoing&&(manual||event.manual===true||event.phase==='one'||event.phase==='kyu');
-    const rotation={x:0,y:Math.atan2(to.x-from.x,to.z-from.z),z:0};
-    const color=outgoing?[255,236,196,255]:[255,126,96,255];
-    // The dedicated finisher keeps its authored burst; no synthetic hit is added.
-    cues.push({effect:heavy?'finisher':'impact',position:{...to},rotation,scale:heavy?1.15:1,
-      lifetime:heavy?1.8:1.2,color,priority:heavy?3:2,kind:heavy?'finisher':'contact'});
-    // The authored ribbon follows the same Tidebreak hand/tip snapshot used by the visible weapon pose when available.
-    if(outgoing){const anchor=anchors.hero,cuePosition=anchor?.position||{x:(from.x+to.x)/2,y:from.y,z:(from.z+to.z)/2};cues.push({effect:'slash',position:{...cuePosition},rotation:anchor?.rotation||rotation,scale:heavy?1.35:1,lifetime:.65,color,priority:1,kind:'contact-trail',followKey:anchor?'hero':null});}
+/** Renderer-independent bounded owner of authored native playback handles. */
+export function createAuthoredEffectPlayer({mobile=false,reducedMotion=false,onError=()=>{}}={}){
+  const gate=createCombatEffectGate();let backend=null,disposed=false,phase='loading',error='';
+  let budget=combatEffectBudget(0,mobile,reducedMotion),active=[];
+  const stats={played:0,dropped:0,replayed:0,followed:0};
+  const stop=handle=>{try{handle.stop();}catch{/* A failed optional native handle cannot stop gameplay. */}};
+  function clear(){for(const row of active)stop(row.handle);active=[];try{backend?.clear();}catch{}}
+  function fail(reason){
+    if(disposed||phase==='failed')return;
+    error=String(reason?.message||reason);phase='failed';
+    try{clear();}finally{try{backend?.dispose();}catch{}backend=null;try{onError(error);}catch{/* Diagnostics are optional too. */}}
   }
-  return cues;
-}
-
-/** Drops replayed co-op event batches while retaining different same-tick hits. */
-export function createCombatEffectGate(capacity=64) {
-  const seen=new Set();let scope=null;
-  return {
-    enter(nextScope,key){
-      const changed=scope!==nextScope;
-      if(changed){scope=nextScope;seen.clear();}
-      if(key!=null){
-        const id=String(key);if(seen.has(id))return {accept:false,changed};
-        seen.add(id);if(seen.size>capacity)seen.delete(seen.values().next().value);
+  function changeScope(state,front,key){
+    const decision=gate.enter(combatEffectScope(state,front),key);
+    if(decision.changed)clear();return decision.accept;
+  }
+  function playCues(cues){
+    cues=(Array.isArray(cues)?cues:[]).filter(c=>budget.trails||c.effect!=='slash').sort((a,b)=>b.priority-a.priority);
+    if(phase!=='ready'){stats.dropped+=cues.length;return;}
+    let started=0;
+    try{
+      for(const original of cues){
+        if(started>=budget.maxPerBatch){stats.dropped++;continue;}
+        if(active.length>=budget.maxActive){
+          const lowest=active.reduce((best,row,i)=>row.priority<active[best].priority?i:best,0);
+          if(active[lowest].priority>=original.priority){stats.dropped++;continue;}
+          stop(active.splice(lowest,1)[0].handle);stats.dropped++;
+        }
+        const cue={...original,scale:original.scale*budget.intensity};
+        const handle=backend.play(cue);if(!handle){stats.dropped++;continue;}
+        active.push({handle,effect:cue.effect,remaining:cue.lifetime,priority:cue.priority,followKey:cue.followKey||null});started++;stats.played++;
       }
-      return {accept:true,changed};
+    }catch(reason){fail(reason);}
+  }
+  function followHandles(anchors){
+    if(!anchors||phase!=='ready')return;
+    try{
+      for(const row of active){if(!row.followKey)continue;const anchor=anchors[row.followKey];if(!anchor)continue;const p=anchor.position,r=anchor.rotation;row.handle.setLocation?.(p.x,p.y,p.z);row.handle.setRotation?.(r.x,r.y,r.z);stats.followed++;}
+    }catch(reason){fail(reason);}
+  }
+  return {
+    attach(next){if(disposed||phase==='failed'){try{next.dispose();}catch{}return false;}backend=next;phase='ready';return true;},
+    fail,
+    present(events,context){
+      if(disposed)return;
+      if(!changeScope(context.state,context.front,context.eventKey)){stats.replayed++;return;}
+      playCues(combatEffectCues(events,context));
     },
-    reset(){scope=null;seen.clear();},
-    size:()=>seen.size,
+    presentCues(cues){if(disposed)return;playCues(cues);},
+    frame(state,front,dt,{level=0,reduced=reducedMotion,hidden=false,anchors=null}={}){
+      if(disposed)return;changeScope(state,front);
+      budget=combatEffectBudget(level,mobile,reduced);
+      if(hidden||state?.ended||state?.phase==='birth'){clear();return;}
+      // A live preference/quality change also applies to already playing trails.
+      if(!budget.trails)active=active.filter(row=>{if(row.effect!=='slash')return true;stop(row.handle);return false;});
+      while(active.length>budget.maxActive){
+        const lowest=active.reduce((best,row,i)=>row.priority<active[best].priority?i:best,0);
+        stop(active.splice(lowest,1)[0].handle);
+      }
+      followHandles(anchors);
+      if(phase!=='ready'||!Number.isFinite(dt)||dt<=0)return;
+      try{
+        // Age by local presentation delta. Never replay a backlog after a hidden tab.
+        for(const row of active)row.remaining-=dt;
+        active=active.filter(row=>{if(row.remaining<=0){stop(row.handle);return false;}return row.handle.exists!==false;});
+        if(active.length)backend.update(dt);
+      }catch(reason){fail(reason);}
+    },
+    draw(camera){if(phase!=='ready'||active.length===0)return;try{backend.draw(camera);}catch(reason){fail(reason);}},
+    clear,
+    snapshot:()=>({phase,error,active:active.length,budget:{...budget},...stats}),
+    dispose(){if(disposed)return;disposed=true;clear();try{backend?.dispose();}catch{}backend=null;gate.reset();phase='disposed';},
   };
 }

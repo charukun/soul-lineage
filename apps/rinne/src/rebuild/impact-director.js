@@ -1,66 +1,61 @@
-const clamp=(n,lo=0,hi=1)=>Math.min(hi,Math.max(lo,Number(n)||0));
-const clone=value=>value==null?value:structuredClone(value);
-const WEAPON_MASS=Object.freeze({fist:.58,dagger:.68,sword:1,great:1.52,spear:1.08,axe:1.38,staff:.82});
-const ATTACK_FORCE=Object.freeze({jab:.72,straight:.82,slash:1,back:.92,thrust:1.02,pierce:1.08,sweep:1.16,diagonal:1.12,crosscut:1.18,round:1.22,spin:1.28,barrage:1.24,heavy:1.42,meteor:1.52,bullrush:1.45,oneinch:1.38,rushfist:1.34,uppercut:1.22,risingfist:1.26});
-const GUARD_ATTACKS=new Set(['guard','parry','counter','brace','ward','slip','ready']);
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createImpactDirector,impactEnergyForEvent,impactProfile,weaponAnchor} from '../src/rebuild/impact-director.js';
+import {createAuthoredEffectPlayer} from '../src/rebuild/authored-effect-player.js';
 
-function actorPose(actor){return actor?.combat?.tidebreakPose||actor?.tidebreakPose||null;}
-function actorWeapon(actor){return actor?.equipment?.weapon||actor?.weapon||'sword';}
-function targetForEvent(event,{state,front}){return event.type==='player-hit'||event.type==='one-motion'?(front?.enemies||[]).find(row=>row.id===event.targetId)||null:state;}
-function sourceForEvent(event,{state,front}){return event.type==='enemy-hit'?(front?.enemies||[]).find(row=>row.id===event.sourceId)||null:state;}
-function phaseForce(event){if(event.type==='one-motion'||event.manual===true||event.phase==='one')return 1.5;if(event.phase==='kyu')return 1.3;if(event.phase==='ha')return 1.08;return 1;}
-function directionForce(event){const sector=event.attackSector||event.sector;return sector==='back'?1.08:sector==='flank'||sector==='left'||sector==='right'?1.035:1;}
-function impactPart(event,pose){if(event.part)return event.part;const attack=String(pose?.attack||'');if(['uppercut','risingfist','meteor'].includes(attack))return'head';if(['sweep','round','spin'].includes(attack))return event.attackSector==='flank'?'rightArm':'torso';if(['thrust','pierce','straight','oneinch'].includes(attack))return'torso';return'torso';}
+function hero({weapon='sword',attack='slash',progress=.72}={}){return{id:'hero-life',zone:'frontier',phase:'living',position:{x:1,z:2},yaw:0,equipment:{weapon},maxHp:100,hp:100,combat:{tidebreakPose:{attack,progress,skill:'basic.sword',slot:'jo',pose:{hand:[0,1,.1],tip:[0,1,1.1]}}}};}
+function foe({id='e1',x=1,z=3,attack='slash',progress=.7}={}){return{id,x,z,yaw:Math.PI,weapon:'sword',maxHp:100,hp:100,dead:false,tidebreakPose:{attack,progress,skill:'enemy',slot:'jo',pose:{hand:[0,1,.1],tip:[0,1,1.1]}}};}
 
-export function impactEnergyForEvent(event,context={}){
-  if(!event||!['player-hit','enemy-hit','one-motion'].includes(event.type)||!(Number(event.damage)>0))return 0;
-  const source=sourceForEvent(event,context),target=targetForEvent(event,context),pose=actorPose(source),attack=String(pose?.attack||event.attack||'slash');
-  const mass=WEAPON_MASS[actorWeapon(source)]||1,force=ATTACK_FORCE[attack]||1,phase=phaseForce(event),progress=clamp(pose?.progress),timing=.9+.1*Math.sin(progress*Math.PI),direction=directionForce(event),maxHp=Math.max(1,Number(target?.maxHp)||100),damageRatio=clamp(Number(event.damage)/maxHp,0,.7),direct=(event.guarded||event.blocked) ? .72 : 1,projectile=event.projectile ? .88 : 1;
-  return clamp((.07+mass*.185+force*.175+phase*.125+Math.sqrt(damageRatio)*.27)*timing*direction,0,1)*direct*projectile;
-}
+test('Impact Energy reflects weapon and attack commitment rather than damage alone',()=>{
+  const light=hero({weapon:'sword',attack:'slash'}),heavy=hero({weapon:'great',attack:'heavy'}),front={stage:0,enemies:[foe()]},event={type:'player-hit',targetId:'e1',damage:14};
+  const a=impactEnergyForEvent({...event,phase:'jo'},{state:light,front}),b=impactEnergyForEvent({...event,phase:'kyu'},{state:heavy,front});
+  assert.ok(b>a);assert.ok(b>.7);
+});
 
-export function impactProfile(energy,{reduced=false,qualityLevel=0}={}){
-  energy=clamp(energy);const lowQuality=Number(qualityLevel)>=2;
-  if(reduced||energy<.34)return Object.freeze({tier:'light',energy,stop:0,slow:0,scale:1,camera:energy*.018,fov:0,duck:0});
-  if(energy<.58)return Object.freeze({tier:'medium',energy,stop:lowQuality ? .008 : .014,slow:lowQuality ? .05 : .075,scale:.72,camera:.026+energy*.025,fov:0,duck:.18});
-  if(energy<.8)return Object.freeze({tier:'heavy',energy,stop:lowQuality ? .014 : .026,slow:lowQuality ? .085 : .14,scale:.5,camera:.045+energy*.035,fov:lowQuality ? .45 : 1.15,duck:.34});
-  return Object.freeze({tier:'critical',energy,stop:lowQuality ? .018 : .04,slow:lowQuality ? .12 : .23,scale:.34,camera:.07+energy*.05,fov:lowQuality ? .8 : 2.25,duck:.52});
-}
+test('reduced motion disables hit stop and slow while retaining a bounded camera cue',()=>{
+  const profile=impactProfile(.95,{reduced:true});assert.equal(profile.stop,0);assert.equal(profile.slow,0);assert.equal(profile.scale,1);assert.ok(profile.camera>0);
+});
 
-function localPoint(actor,point){
-  if(!actor||!Array.isArray(point))return null;const origin=actor.position||actor,yaw=Number(actor.yaw)||0,x=Number(point[0])||0,y=Number(point[1])||0,z=Number(point[2])||0,c=Math.cos(yaw),s=Math.sin(yaw);
-  return{x:(Number(origin.x)||0)+x*c+z*s,y,z:(Number(origin.z)||0)-x*s+z*c};
-}
-export function weaponAnchor(actor){
-  const frame=actorPose(actor),hand=frame?.pose?.hand,tip=frame?.pose?.tip,a=localPoint(actor,hand),b=localPoint(actor,tip);if(!a||!b)return null;const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,h=Math.max(.001,Math.hypot(dx,dz));return{position:{x:b.x,y:b.y,z:b.z},rotation:{x:-Math.atan2(dy,h),y:Math.atan2(dx,dz),z:0},hand:a,tip:b};
-}
+test('medium impacts still expose one visible hit-stop frame at 60fps',()=>{
+  const state=hero({weapon:'dagger',attack:'slash'}),front={stage:0,enemies:[foe()]},director=createImpactDirector();
+  director.present([{type:'player-hit',targetId:'e1',damage:2,phase:'jo'}],{state,front});const frame=director.frame(.016);
+  assert.equal(frame.timeScale,.002);assert.ok(director.snapshot().timeScale>.002);
+});
 
-function attackVector(source,target){const anchor=weaponAnchor(source);if(anchor){const dx=anchor.tip.x-anchor.hand.x,dz=anchor.tip.z-anchor.hand.z,len=Math.max(.001,Math.hypot(dx,dz));return{x:dx/len,z:dz/len};}const a=source?.position||source,b=target?.position||target,dx=(Number(b?.x)||0)-(Number(a?.x)||0),dz=(Number(b?.z)||0)-(Number(a?.z)||0),len=Math.max(.001,Math.hypot(dx,dz));return{x:dx/len,z:dz/len};}
+test('impact presentation never mutates simulation state or enemy health',()=>{
+  const state=hero({weapon:'great',attack:'heavy'}),front={stage:5,enemies:[foe()]},before=structuredClone({state,front}),director=createImpactDirector();
+  const result=director.present([{type:'player-hit',targetId:'e1',damage:25,phase:'kyu'}],{state,front});
+  assert.ok(result.strongest);assert.ok(director.snapshot().timeScale<1);assert.deepEqual({state,front},before);
+});
 
-function lerpValue(a,b,t){if(Number.isFinite(a)&&Number.isFinite(b))return a+(b-a)*t;if(Array.isArray(a)&&Array.isArray(b)&&a.length===b.length)return a.map((v,i)=>lerpValue(v,b[i],t));if(a&&b&&typeof a==='object'&&typeof b==='object'){const out={...a};for(const key of Object.keys(b))out[key]=lerpValue(a[key],b[key],t);return out;}return t>.65?clone(b):clone(a??b);}
-function blendFrame(previous,current,t,slow){if(!current)return null;if(!previous||!slow)return clone(current);const same=previous.attack===current.attack&&previous.skill===current.skill;if(!same&&t<.72)return clone(previous);return lerpValue(previous,current,t);}
+test('enemy hits always target the local hero presentation reaction',()=>{
+  const state=hero(),enemy=foe({attack:'heavy'}),front={stage:0,enemies:[enemy]},director=createImpactDirector();
+  director.present([{type:'enemy-hit',sourceId:'e1',damage:20,part:'leftArm',sector:'flank'}],{state,front});
+  const [reaction]=director.snapshot().reactions;assert.equal(reaction.actorKey,'hero');assert.equal(reaction.part,'leftArm');
+});
 
-export function createImpactDirector({mobile=false,reducedMotion=false}={}){
-  let stop=0,slow=0,slowDuration=0,slowScale=1,qualityLevel=0,reduced=reducedMotion,hidden=false,camera={x:0,z:0,strength:0,fov:0},reactions=[],poseDisplay=new Map(),attackTrack=new Map(),strongest=null;
-  function present(events,context={}){
-    if(hidden||!Array.isArray(events))return{impacts:[],strongest:null};const impacts=[],hitTargets=new Set(events.filter(event=>event?.type==='player-hit'&&Number(event.damage)>0).map(event=>event.targetId)),downTargets=new Set(events.filter(event=>event?.type==='enemy-down').map(event=>event.targetId));
-    for(const event of events){if(event?.type==='one-motion'&&hitTargets.has(event.targetId))continue;let energy=impactEnergyForEvent(event,context);if(downTargets.has(event?.targetId))energy=clamp(energy+.1);if(!(energy>0))continue;const profile=impactProfile(energy,{reduced,qualityLevel}),source=sourceForEvent(event,context),target=targetForEvent(event,context),vector=attackVector(source,target),targetKey=event.type==='enemy-hit'?'hero':`enemy:${event.targetId}`;
-      impacts.push({event,profile,source,target,vector,targetKey,part:impactPart(event,actorPose(source))});
-    }
-    impacts.sort((a,b)=>b.profile.energy-a.profile.energy);strongest=impacts[0]||null;if(strongest){const p=strongest.profile;stop=Math.max(stop,p.stop);slow=Math.max(slow,p.slow);slowDuration=Math.max(slowDuration,p.slow);slowScale=Math.min(slowScale,p.scale);camera={x:strongest.vector.x,z:strongest.vector.z,strength:Math.max(camera.strength,p.camera),fov:Math.max(camera.fov,p.fov)};}
-    for(const row of impacts)reactions.push({actorKey:row.targetKey,part:row.part,vector:row.vector,energy:row.profile.energy,remaining:.12+row.profile.energy*.12,duration:.12+row.profile.energy*.12});
-    reactions=reactions.sort((a,b)=>b.energy-a.energy).slice(0,8);return{impacts,strongest};
-  }
-  function setMode({level=0,reduced:nextReduced=reducedMotion,isHidden=false}={}){qualityLevel=Number(level)||0;reduced=Boolean(nextReduced);hidden=Boolean(isHidden);if(hidden){stop=slow=0;camera.strength=0;camera.fov=0;reactions=[];}}
-  function timeScale(){if(reduced||hidden)return 1;if(stop>0)return .002;if(slow<=0)return 1;const p=slowDuration>0?1-clamp(slow/slowDuration):1,release=p*p;return slowScale+(1-slowScale)*release;}
-  function anticipation(state,front){
-    if(hidden||reduced||qualityLevel>=3)return[];const actors=[{key:'hero',actor:state},...(front?.enemies||[]).filter(e=>!e.dead).map(actor=>({key:`enemy:${actor.id}`,actor}))],cues=[];
-    for(const {key,actor} of actors){const frame=actorPose(actor),attack=String(frame?.attack||''),progress=clamp(frame?.progress);const prior=attackTrack.get(key)||{attack:'',progress:0,fired:false};if(!attack||GUARD_ATTACKS.has(attack)){attackTrack.set(key,{attack:'',progress:0,fired:false});continue;}const restarted=attack!==prior.attack||progress+0.18<prior.progress,next={attack,progress,fired:restarted?false:prior.fired};if(!next.fired&&progress>=.42){const anchor=weaponAnchor(actor);if(anchor){next.fired=true;cues.push({key:`${key}:${attack}:${frame?.skill||''}:${frame?.slot||''}`,followKey:key,anchor,attack,progress,enemy:key!=='hero'});}}attackTrack.set(key,next);}
-    return cues;
-  }
-  function applyPoseLag(state,front,realDt,presentationScale=null){const scale=Number.isFinite(presentationScale)?clamp(presentationScale,.001,1):timeScale(),actors=[{key:'hero',holder:state.combat,field:'tidebreakPose'},...(front?.enemies||[]).map(enemy=>({key:`enemy:${enemy.id}`,holder:enemy,field:'tidebreakPose'}))],restore=[];for(const row of actors){if(!row.holder)continue;const current=row.holder[row.field];if(!current){poseDisplay.delete(row.key);continue;}const previous=poseDisplay.get(row.key),alpha=clamp(realDt*(scale<.99?8+18*scale:45),0,1),display=blendFrame(previous,current,alpha,scale<.99);poseDisplay.set(row.key,clone(display));if(scale<.995){restore.push([row.holder,row.field,current]);row.holder[row.field]=display;}}return()=>{for(const [holder,field,value] of restore)holder[field]=value;};}
-  function frame(realDt,{level=qualityLevel,reduced:nextReduced=reduced,hidden:isHidden=hidden}={}){setMode({level,reduced:nextReduced,isHidden});const renderScale=timeScale();realDt=Math.max(0,Math.min(.08,Number(realDt)||0));if(stop>0)stop=Math.max(0,stop-realDt);else if(slow>0)slow=Math.max(0,slow-realDt);if(slow<=0){slowScale=1;slowDuration=0;}camera.strength*=Math.exp(-realDt*16);camera.fov*=Math.exp(-realDt*13);for(const row of reactions)row.remaining=Math.max(0,row.remaining-realDt);reactions=reactions.filter(row=>row.remaining>0);return{...snapshot(),timeScale:renderScale};}
-  function snapshot(){return{timeScale:timeScale(),camera:{...camera},reactions:reactions.map(row=>({...row})),strongest:strongest?{profile:strongest.profile,targetKey:strongest.targetKey,part:strongest.part,vector:{...strongest.vector}}:null,qualityLevel,reduced,hidden};}
-  function clear(){stop=slow=slowDuration=0;slowScale=1;camera={x:0,z:0,strength:0,fov:0};reactions=[];poseDisplay.clear();attackTrack.clear();strongest=null;}
-  return{present,frame,snapshot,anticipation,applyPoseLag,weaponAnchor,clear};
-}
+test('weapon anchors follow Tidebreak hand and tip in world space',()=>{
+  const state=hero();state.position={x:4,z:7};state.yaw=Math.PI/2;const anchor=weaponAnchor(state);
+  assert.ok(anchor);assert.ok(Math.abs(anchor.hand.x-4.1)<1e-6);assert.ok(Math.abs(anchor.tip.x-5.1)<1e-6);assert.ok(Math.abs(anchor.tip.z-7)<1e-6);
+});
+
+test('anticipation trail fires once per attack cycle and rearms after progress resets',()=>{
+  const state=hero({progress:.45}),front={stage:0,enemies:[]},director=createImpactDirector();
+  assert.equal(director.anticipation(state,front).length,1);assert.equal(director.anticipation(state,front).length,0);
+  state.combat.tidebreakPose.progress=.1;assert.equal(director.anticipation(state,front).length,0);
+  state.combat.tidebreakPose.progress=.46;assert.equal(director.anticipation(state,front).length,1);
+});
+
+test('local micro slow swaps only displayed Tidebreak pose and restores the exact simulation snapshot',()=>{
+  const state=hero({attack:'slash',progress:.2}),front={stage:0,enemies:[foe()]},director=createImpactDirector();director.applyPoseLag(state,front,.016)();
+  const exact={attack:'heavy',progress:.9,skill:'basic.great',slot:'kyu',pose:{hand:[0,1,0],tip:[1,1,1]}};state.combat.tidebreakPose=exact;
+  director.present([{type:'player-hit',targetId:'e1',damage:28,phase:'kyu'}],{state,front});const frame=director.frame(.016),restore=director.applyPoseLag(state,front,.016,frame.timeScale);
+  assert.notEqual(state.combat.tidebreakPose,exact);restore();assert.equal(state.combat.tidebreakPose,exact);
+});
+
+test('weapon-following VFX updates one existing handle without replaying it',()=>{
+  const calls={played:0,locations:[]},backend={play(){calls.played++;return{exists:true,setLocation(x,y,z){calls.locations.push([x,y,z]);},setRotation(){},stop(){this.exists=false;}};},update(){},draw(){},clear(){},dispose(){}};
+  const player=createAuthoredEffectPlayer();player.attach(backend);player.presentCues([{effect:'slash',position:{x:0,y:1,z:0},rotation:{x:0,y:0,z:0},scale:1,lifetime:.5,color:[255,255,255,255],priority:1,followKey:'hero'}]);
+  player.frame(hero(),{stage:0},.016,{anchors:{hero:{position:{x:1,y:2,z:3},rotation:{x:0,y:.3,z:0}}}});player.frame(hero(),{stage:0},.016,{anchors:{hero:{position:{x:2,y:2,z:3},rotation:{x:0,y:.4,z:0}}}});
+  assert.equal(calls.played,1);assert.deepEqual(calls.locations,[[1,2,3],[2,2,3]]);player.dispose();
+});
