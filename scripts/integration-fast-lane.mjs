@@ -13,7 +13,8 @@ import {
 import { signalDeepRepair } from './integration-deep-repair-handoff.mjs';
 import { exactHeadFastFailure } from './integration-ci-failure.mjs';
 import { trustedStackFastEvidence } from './integration-stack-fast-evidence.mjs';
-import { dependencies, eligibility } from './integration-policy.mjs';
+import { dependencyState } from './integration-dependency-state.mjs';
+import { eligibility } from './integration-policy.mjs';
 import { comparison as completeComparison } from './integration-rescue-store.mjs';
 
 export const maxFastLaneMerges = 24;
@@ -86,12 +87,6 @@ async function queueStatus(c, item, state, description, targetUrl) {
   });
 }
 
-async function dependencyState(c, pr) {
-  const numbers = dependencies(pr.body || '');
-  const values = await Promise.all(numbers.map(number => c.api('GET', `${c.root}/pulls/${number}`)));
-  return values.every(item => item.merged && item.base.ref === 'develop' && item.base.repo.full_name === pr.base.repo.full_name);
-}
-
 async function settleMergeability(c, pr, wait) {
   let current = pr;
   for (let attempt = 0; current.mergeable === null && attempt < 3; attempt++) {
@@ -139,9 +134,9 @@ export async function integrateFastLane(c, repository, options = {}) {
         continue;
       }
 
-      const [files, dependencyMerged, unresolved, checksPassed] = await Promise.all([
+      const [files, dependency, unresolved, checksPassed] = await Promise.all([
         c.pages(`/pulls/${pr.number}/files`, undefined, { maxPages: 30, cache: true }).then(items => items.flatMap(file => [file.filename, file.previous_filename].filter(Boolean))),
-        dependencyState(c, pr),
+        dependencyState(c, pr, { cache: true }),
         unresolvedThreads(c, pr),
         exactHeadFastGate(c, pr, { cache: true }),
       ]);
@@ -155,7 +150,7 @@ export async function integrateFastLane(c, repository, options = {}) {
           develop: expected,
           reason: 'MERGE_CONFLICT: current PR head cannot be merged cleanly into current develop',
           repairKind: 'semantic',
-          dependenciesMerged: dependencyMerged,
+          dependenciesMerged: dependency.merged,
           unresolved,
           reviews,
         });
@@ -173,10 +168,11 @@ export async function integrateFastLane(c, repository, options = {}) {
           const fresh = await c.api('GET', `${c.root}/pulls/${pr.number}`);
           if (fresh.head.sha !== pr.head.sha) throw new Error('PR head changed before CI failure handoff');
           const develop = (await branch()).commit.sha;
+          const freshDependency = await dependencyState(c, fresh);
           const deep = await signalDeepRepair(c, {
             pr: fresh, repository, develop, repairKind: 'ci-failure', ciFailure: failure,
             reason: `CI_FAILURE: ${failure.jobName} ${failure.conclusion}; ${failure.jobUrl}`,
-            dependenciesMerged: await dependencyState(c, fresh),
+            dependenciesMerged: freshDependency.merged,
             unresolved: await unresolvedThreads(c, fresh),
             reviews: await c.pages(`/pulls/${fresh.number}/reviews`, undefined, { maxPages: 10 }),
           });
@@ -199,7 +195,8 @@ export async function integrateFastLane(c, repository, options = {}) {
         files,
         reviews,
         unresolved,
-        dependenciesMerged: dependencyMerged,
+        dependenciesMerged: dependency.merged,
+        dependenciesCurrent: dependency.incorporated,
         checksPassed,
         baseChanges: baseComparison.files,
         recovery: false,
@@ -214,10 +211,11 @@ export async function integrateFastLane(c, repository, options = {}) {
         const fresh = await c.api('GET', `${c.root}/pulls/${pr.number}`);
         if (fresh.head.sha !== pr.head.sha) throw new Error('PR head changed before overlap repair handoff');
         if ((await branch()).commit.sha !== expected) throw new Error('develop moved before overlap repair handoff');
+        const freshDependency = await dependencyState(c, fresh);
         const deep = await signalDeepRepair(c, {
           pr: fresh, repository, develop: expected, repairKind: 'semantic',
           reason: 'DEVELOP_OVERLAP: review both current scopes and reconcile the source branch before returning to Fast Lane',
-          dependenciesMerged: await dependencyState(c, fresh),
+          dependenciesMerged: freshDependency.merged,
           unresolved: await unresolvedThreads(c, fresh),
           reviews: await c.pages(`/pulls/${fresh.number}/reviews`, undefined, { maxPages: 10 }),
         });
@@ -245,7 +243,14 @@ export async function integrateFastLane(c, repository, options = {}) {
       if (await unresolvedThreads(c, fresh) || !await exactHeadFastGate(c, fresh)) {
         throw new Error('current exact-head fast check/review changed before merge');
       }
-      const freshCriteria = { ...criteria(), pr: fresh, reviews: freshReviews };
+      const freshDependency = await dependencyState(c, fresh);
+      const freshCriteria = {
+        ...criteria(),
+        pr: fresh,
+        reviews: freshReviews,
+        dependenciesMerged: freshDependency.merged,
+        dependenciesCurrent: freshDependency.incorporated,
+      };
       const freshReason = eligibility(freshCriteria);
       if (freshReason) throw new Error(freshReason);
 
