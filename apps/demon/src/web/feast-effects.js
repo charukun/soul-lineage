@@ -16,6 +16,8 @@ function makeSealGeometry(){
 /** Fixed preallocated visual budget: feeding never creates geometry, materials or timers. */
 export class FeastEffects {
  constructor(scene,texture){
+  this.scene=scene;this.baseFogDensity=Number.isFinite(scene.fog?.density)?scene.fog.density:null;this.baseBackground=scene.background?.isColor?scene.background.clone():null;
+  this.worldLights=scene.children.filter(o=>o.isHemisphereLight||o.isDirectionalLight).map(light=>({light,intensity:light.intensity}));
   this.root=new T.Group();this.root.name='feast-effects';scene.add(this.root);
   this.positions=new Float32Array(PARTICLES*3);
   const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.BufferAttribute(this.positions,3));
@@ -36,8 +38,14 @@ export class FeastEffects {
   this.light=new T.PointLight(0x9effcd,0,7,2);scene.add(this.light);
   this.reset();
  }
+ applyWorldVeil(value){
+  const v=clamp(value);
+  if(this.scene.fog&&this.baseFogDensity!==null)this.scene.fog.density=this.baseFogDensity*(1+v*.72);
+  if(this.baseBackground&&this.scene.background?.isColor)this.scene.background.copy(this.baseBackground).multiplyScalar(1-v*.34);
+  for(const {light,intensity} of this.worldLights)light.intensity=intensity*(1-v*.48);
+ }
  reset(){
-  this.release=null;this.root.visible=false;this.beacon.visible=false;this.light.intensity=0;this.state=feastEnvelope(null);
+  this.release=null;this.root.visible=false;this.beacon.visible=false;this.light.intensity=0;this.state=feastEnvelope(null);this.applyWorldVeil(0);
   this.seal.visible=false;this.seal.material.opacity=0;this.eclipseCore.visible=false;this.eclipseRim.visible=false;this.eclipseCore.material.opacity=0;this.eclipseRim.material.opacity=0;
  }
  event(e){if(e.type!=='consume')return;this.release={at:e.at,reward:feastReward(e),x:e.npc.x,z:e.npc.z};}
@@ -45,7 +53,7 @@ export class FeastEffects {
   const p=game.player,progress=active&&!game.finished?p.devourProgress:null;
   const age=active&&!game.finished&&this.release?game.time-this.release.at:Infinity;
   if(age>=FEAST_SECONDS)this.release=null;
-  const s=this.state=feastEnvelope(progress,age,{reducedMotion});
+  const s=this.state=feastEnvelope(progress,age,{reducedMotion});this.applyWorldVeil(active?s.veil:0);
   this.root.visible=active&&(s.feeding||s.release);this.beacon.visible=active&&!!target;
   if(target){this.beacon.position.set(target.npc.x,.045,target.npc.z);this.beacon.scale.setScalar(target.npc.dead?1:1.15);this.beacon.material.opacity=.55+Math.sin(game.time*3)*.15;}
   const intensity=this.release?.reward?.kind==='form'?1.25:this.release?.reward?.kind==='memory'?1:.76;
@@ -126,7 +134,7 @@ export class FeastEffects {
   return s;
  }
  dispose(){
-  this.root.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});
+  this.applyWorldVeil(0);this.root.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});
   this.root.removeFromParent();this.beacon.geometry.dispose();this.beacon.material.dispose();this.beacon.removeFromParent();this.light.removeFromParent();
  }
 }
