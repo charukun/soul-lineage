@@ -25,7 +25,7 @@ export function normalizeVirtualCohorts(raw={},fallbackAdults=0){
 
 /** Advance coarse LOD residents by one village year without needing per-person objects. */
 export function advanceVirtualCohorts(raw){
- const before=normalizeVirtualCohorts(raw),child=transfer(before.child,1/13,before.carry.childToYouth),youth=transfer(before.youth,1/5,before.carry.youthToAdult),adult=transfer(before.adult,1/44,before.carry.adultToElder),elder=transfer(before.elder,1/14,before.carry.elderDeaths);
+ const before=normalizeVirtualCohorts(raw),child=transfer(before.child,1/13,before.carry.childToYouth),youth=transfer(before.youth,1/5,before.carry.youthToAdult),adult=transfer(before.adult,1/42,before.carry.adultToElder),elder=transfer(before.elder,1/14,before.carry.elderDeaths);
  const cohorts={
   child:before.child-child.moved,
   youth:before.youth+child.moved-youth.moved,
