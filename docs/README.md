@@ -17,6 +17,7 @@
 | 目的 | 正本 |
 | --- | --- |
 | コンテキスト取得量・読み方 | [`CONTEXT_EFFICIENCY.md`](CONTEXT_EFFICIENCY.md) |
+| Astra の worker outcome / 状態境界 | [`ASTRA_OUTCOME_CONTRACT.md`](ASTRA_OUTCOME_CONTRACT.md) |
 | 通常の実装 WORK | [`DEVELOPMENT.md`](DEVELOPMENT.md) |
 | 実装終了・非同期待機・通知境界 | [`RINNE_PROJECT_EXECUTION_POLICY.md`](RINNE_PROJECT_EXECUTION_POLICY.md) |
 | develop Integration / Fast Lane / DEV 公開 | [`INTEGRATION.md`](INTEGRATION.md) |
@@ -40,15 +41,16 @@ latest develop
   -> AGENTS.md
   -> context:plan（checkout がある場合）
   -> task-specific docs only
-  -> work branch / Draft PR
-  -> implementation
-  -> fast validation
-  -> push / Ready
+  -> short-lived work branch
+  -> WORKING: Astra owns implementation / semantic reconciliation / validation choice
+  -> READY: final reconciled exact head + sufficient evidence + pushed source
   -> READY_FOR_INTEGRATION
-  -> Integration Fast Lane
+  -> deterministic Integration / exact-head / CAS
   -> develop
-  -> asynchronous DEV publication / browser repair
+  -> asynchronous DEV publication
 ```
+
+`BLOCKED` は repository contract と user intent だけでは安全に解けない product / permission / external-input choice に限定する。Draft は長時間作業や途中共有を GitHub 上で可視化したい場合だけ使う optional transport であり、短寿命タスクの必須工程ではない。Micro Patch / Normal の worker-facing 分岐も廃止し、変更 risk から必要 evidence を直接選ぶ。
 
 実装 WORK は Ready / `READY_FOR_INTEGRATION` で終了し、CI・browser・DEV 公開を待って polling しない。main / Production は明示許可時のみ変更する。品質 gate を弱めない。
 
@@ -58,6 +60,7 @@ latest develop
 
 次は current policy ではなく補助資料として扱う。
 
+- `MICRO_PATCH_FAST_LANE.md`: 旧 authoring split の compatibility/history。現在の worker route ではない。
 - `INTEGRATION_FAST_LANE.md`: `INTEGRATION.md` への互換入口。
 - `INTEGRATION_AUTONOMOUS_DELIVERY_V4.md`: 過去の control-plane 設計記録。現在の merge authority ではない。
 - `INTEGRATION_RESULTS.md`, `INTEGRATION_DELIVERY_RECOVERY_145.md`, `INTEGRATION_QUEUE_RECOVERY.md`: 時点付き結果・復旧記録。
