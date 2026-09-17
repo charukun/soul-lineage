@@ -1,4 +1,5 @@
 // Portable, renderer-independent content. Dimensions are world metres, Y-up.
+export const HOUSING_WORLD_UNITS='metres';
 export const PALETTES = [
  {name:'苺の屋根', roof:'#ab5963',wall:'#efdec5'},
  {name:'青い夜',roof:'#567f96',wall:'#e9e0c9'},

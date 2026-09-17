@@ -1,4 +1,5 @@
-import {ITEMS} from '@soul/housing-assets/catalog';
+import {HOUSING_WORLD_UNITS,ITEMS} from '@soul/housing-assets/catalog';
+export const RAID_WORLD_UNITS=HOUSING_WORLD_UNITS;
 export const PREY={
  traveller:{name:'旅人',power:'命の余熱',glyph:'雫',desc:'捕食時の回復が増える。喰らった息が次の狩りを支える。',hp:38,weapon:'fist',color:0x8c7763},
  bellkeeper:{name:'鐘番',power:'声喰い',glyph:'黙',desc:'気配と悲鳴を抑え、近くの村人に見つかりにくくなる。',hp:52,weapon:'fist',color:0xa99b76},
@@ -39,7 +40,7 @@ export function makeVillage(v){const r=random(v.seed||hash(v.id)),entities=[],co
  const role=i===6?v.target:keys[i],d=PREY[role];if(i===6){x=-3;z=role==='traveller'?10:['arcanist','acolyte'].includes(role)?-18:-12;}
  const names=['イェル','ルッツ','サラ','エッダ','グラム','ノア','ヴェラ','クルト'];npcs.push({id:`${v.id}:human:${i}`,kind:'human',adult:true,role,behavior:villagerBehavior(role),name:i===6?d.name+' '+names[Math.floor(r()*names.length)]:d.name,x,z,homeX:x,homeZ:z,yaw:r()*6.28,hp:d.hp+(i===6?18:0),maxhp:d.hp+(i===6?18:0),state:'idle',clock:r()*5,walk:0,marked:i===6,dead:false,eaten:false,fear:0});}
  if(v.source!=='imported-local')colliders.push({x:0,z:-26,r:3.2,type:'chapel'});
- return{...v,entities,colliders,npcs,entry,bell,chapel,bounds:ext,gate:{x:0,z:1.5,r:2.05,broken:false},shelter:{x:0,z:-23,r:3.1}};
+ return{...v,units:RAID_WORLD_UNITS,entities,colliders,npcs,entry,bell,chapel,bounds:ext,gate:{x:0,z:1.5,r:2.05,broken:false},shelter:{x:0,z:-23,r:3.1}};
 }
 export function describeVillage(v){
  const world=makeVillage(v),homes=world.entities.filter(isHouse).length;
@@ -57,5 +58,5 @@ export function importHousing(data){if(!data||data.gameId!=='village'||!data.pay
  const canonical=data.villageId??data.payload.villageId;if(canonical!==undefined&&(typeof canonical!=='string'||!canonical.trim()||canonical.length>180))throw Error('村IDが不正です。');const id=canonical?'housing:'+canonical:'legacy-housing:'+owner+':primary';
  if(id.length>200||data.payload.entities.length>1000)throw Error('村のデータが大きすぎるか、識別子が不正です。');
  const seen=new Set();const entities=data.payload.entities.map(e=>{if(!e||!Object.hasOwn(ITEMS,e.type)||![e.x,e.z].every(Number.isFinite)||Math.abs(e.x)>100||Math.abs(e.z)>100||e.r!==undefined&&!Number.isFinite(e.r))throw Error('対応していない村オブジェクトが含まれています。');if((typeof e.id!=='string'&&typeof e.id!=='number')||!String(e.id)||seen.has(String(e.id)))throw Error('村オブジェクトIDが重複、または不正です。');seen.add(String(e.id));if(e.room!==undefined&&(!Number.isInteger(e.room)||e.room<0))throw Error('部屋IDが不正です。');return{id:String(e.id),type:e.type,x:e.x,z:e.z,r:e.r||0,palette:Math.min(5,Math.max(0,e.palette|0)),floors:Math.min(3,Math.max(1,e.floors|0)),room:e.room|0};});
- return{id,ownerId:owner,name:String(data.payload.name||'読み込んだ村').slice(0,60),seed:hash(id),entities,target:'arcanist',source:'imported-local',level:2,weather:'fog',revision:data.revision||0,legacyIdentity:!canonical};
+ return{id,ownerId:owner,name:String(data.payload.name||'読み込んだ村').slice(0,60),seed:hash(id),entities,target:'arcanist',source:'imported-local',level:2,weather:'fog',revision:data.revision||0,legacyIdentity:!canonical,units:RAID_WORLD_UNITS};
 }

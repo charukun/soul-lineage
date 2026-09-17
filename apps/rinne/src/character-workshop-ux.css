@@ -35,6 +35,39 @@ html:not([data-motion-debug="on"]) #motion-debug-controls{display:none!important
 .workshop-compare-quick button{min-height:44px}
 .workshop-compare-details .compare-counts{margin-top:6px}
 
+/* Visual Review routes: keep the Workshop engine, remove Workshop complexity. */
+body.simple-review .mode-tabs,
+body.simple-review .about,
+body.simple-review .editor-footer,
+body.simple-review #advanced-link,
+body.simple-review .simple-review-technical{display:none!important}
+body.simple-review .editor-dock{grid-template-rows:minmax(0,1fr)!important}
+body.simple-review .review-controls{padding:10px 12px 14px}
+body.simple-review .scope-label{display:none}
+body.simple-review .stage-head h1{font-size:18px;letter-spacing:0}
+body.simple-review .stage-head h1 small{display:none}
+.simple-review-guide{margin:0 0 10px;padding:11px 12px;border:1px solid color-mix(in srgb,var(--line) 82%,transparent);border-radius:12px;background:color-mix(in srgb,var(--panel) 88%,#0c1110);color:#e9e5dc}
+.simple-review-description{margin:0 0 9px;color:var(--muted);font-size:12px;line-height:1.55}
+.simple-review-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.simple-review-step{display:flex;align-items:center;gap:5px;min-width:0;padding:7px 6px;border-radius:9px;background:#171d1b;color:#d9ddd9;font-size:10px;line-height:1.25}
+.simple-review-step b{display:grid;place-items:center;flex:0 0 20px;height:20px;border-radius:50%;background:#e0d9c4;color:#121715;font-size:10px}
+.simple-review-badge,.simple-review-help{position:absolute;z-index:8;top:10px;margin:0;padding:6px 9px;border:1px solid #44504b;border-radius:999px;background:#101615d9;color:#d8ddd9;font:10px/1.2 system-ui,sans-serif;pointer-events:none}
+.simple-review-badge{left:10px}
+.simple-review-help{right:10px;color:#bfc7c2}
+body[data-review-mode="motion"] #workshop-secondary-tabs{display:none!important}
+body[data-review-mode="motion"] #motion-qa>h2{display:none}
+body[data-review-mode="motion"] #qa-start{font-size:0!important}
+body[data-review-mode="motion"] #qa-start::before{content:"▶ 30秒まとめて再生";font-size:14px}
+body[data-review-mode="motion"] #motion-qa>.hint{display:none}
+.simple-motion-controls{display:grid;gap:8px;margin:0 0 10px;padding:10px;border:1px solid color-mix(in srgb,var(--line) 82%,transparent);border-radius:11px;background:#111715}
+.simple-motion-controls>label{display:grid;gap:5px;color:#c7cec9;font-size:11px}
+.simple-motion-controls>label select{width:100%}
+.simple-motion-controls .qa-playback{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.simple-motion-controls h3{margin:4px 0 0;font-size:11px;color:#e4dfd2}
+.simple-motion-controls .qa-cameras{margin:0}
+body[data-review-mode="character"] .workshop-secondary-tabs{margin-top:0}
+body[data-review-mode="character"] #character-model-title{margin-top:4px}
+
 @media(max-width:760px){
   .review-app{grid-template-rows:minmax(0,64fr) minmax(0,36fr)!important}
   .stage-shell{grid-template-rows:42px minmax(0,1fr) 44px auto!important}
@@ -51,9 +84,18 @@ html:not([data-motion-debug="on"]) #motion-debug-controls{display:none!important
   .editor-footer{padding:2px 9px calc(4px + env(safe-area-inset-bottom))}
   .save-line{min-height:16px}
   .footer-actions button{min-height:40px}
+  body.simple-review .review-app{grid-template-rows:minmax(0,56fr) minmax(0,44fr)!important}
+  body.simple-review .editor-dock{grid-template-rows:minmax(0,1fr)!important}
+  body.simple-review .review-controls{padding:8px 9px calc(10px + env(safe-area-inset-bottom))}
+  .simple-review-guide{padding:9px 10px;margin-bottom:8px}
+  .simple-review-description{font-size:11px;margin-bottom:7px}
+  .simple-review-step{padding:6px 4px;font-size:9px;gap:4px}
+  .simple-review-step b{flex-basis:18px;height:18px;font-size:9px}
+  .simple-review-help{font-size:9px;padding:6px 8px}
 }
 
 @media(max-height:620px) and (orientation:portrait){
   .review-app{grid-template-rows:minmax(0,61fr) minmax(0,39fr)!important}
   .stage-shell{grid-template-rows:38px minmax(0,1fr) 42px auto!important}
+  body.simple-review .review-app{grid-template-rows:minmax(0,54fr) minmax(0,46fr)!important}
 }

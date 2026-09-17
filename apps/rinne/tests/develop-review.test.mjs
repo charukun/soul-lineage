@@ -9,7 +9,7 @@ const read=path=>readFile(resolve(appRoot,path),'utf8');
 
 test('Visual Review launcher is only five direct destinations',async()=>{
   const html=await read('review.html');
-  for(const [target,href] of [['characters','./characters.html'],['motion','./characters.html?review=motion'],['assets','./review-assets.html'],['effects','./review-effects.html'],['battle','./review-battle.html']]){
+  for(const [target,href] of [['characters','./characters.html?review=character'],['motion','./characters.html?review=motion'],['assets','./review-assets.html'],['effects','./review-effects.html'],['battle','./review-battle.html']]){
     assert.match(html,new RegExp(`data-review-target="${target}"[^>]*href="${href.replace(/[.?]/g,'\\$&')}"`));
   }
   assert.equal((html.match(/data-review-target=/g)||[]).length,5);

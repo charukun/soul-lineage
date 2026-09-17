@@ -25,7 +25,7 @@ test('elapsed time alone does not become a PULSE action item', () => {
   assert.match(presentation.meta, /イベント駆動/);
 });
 
-test('real sync degradation remains visible even with a previous healthy snapshot', () => {
+test('real sync degradation stays visible as automatic recovery while previous facts remain available', () => {
   const state = {
     ...healthyState(new Date(now - 5 * 60 * 1000).toISOString()),
     syncStatus: 'degraded',
@@ -34,9 +34,26 @@ test('real sync degradation remains visible even with a previous healthy snapsho
   const alerts = eventDrivenAlerts(state, now);
   assert.ok(alerts.some(item => item.type === 'sync-failed' && item.tone === 'danger'));
   const presentation = syncPresentation(state, now);
-  assert.equal(presentation.tone, 'danger');
-  assert.equal(presentation.title, 'GitHub同期に問題');
+  assert.equal(presentation.tone, 'warning');
+  assert.equal(presentation.title, 'GitHub同期を自動再確認中');
   assert.match(presentation.meta, /確定情報/);
+});
+
+test('Control Tower NEEDS_USER keeps a true human-action sync problem red', () => {
+  const state = {
+    ...healthyState(new Date(now - 5 * 60 * 1000).toISOString()),
+    syncStatus: 'degraded',
+    controlTower: {
+      status: 'NEEDS_USER',
+      summary: 'GitHub認証を確認してください',
+      incidents: [{ type: 'github-auth', tone: 'danger', title: '認証が必要', userActionRequired: true }],
+    },
+  };
+  const presentation = syncPresentation(state, now);
+  assert.equal(presentation.tone, 'danger');
+  assert.equal(presentation.title, '確認が必要');
+  assert.match(presentation.meta, /認証/);
+  assert.equal(eventDrivenAlerts(state, now).length, 1);
 });
 
 test('missing snapshot identity remains a visible confirmation state', () => {

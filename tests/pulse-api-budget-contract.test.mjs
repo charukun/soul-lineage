@@ -17,9 +17,11 @@ test('PULSE keeps 30-minute reconciliation but never uses tokenless GitHub acces
   assert.match(worker, /if \(!state\) return json\(\{ error: 'github_auth_required' \}, 503\)/);
   assert.match(worker, /if \(!token && !env\.OPS_GITHUB_TOKEN\) return json\(\{ error: 'github_auth_required' \}, 503\)/);
   assert.doesNotMatch(worker, /shouldReuseFreshState/);
-  assert.match(integration, /Fallback refresh PULSE if publication wake failed/);
-  assert.match(integration, /steps\.publication\.outcome == 'failure'/);
-  assert.doesNotMatch(integration, /Refresh PULSE from this existing Integration runner/);
+  assert.match(integration, /pulse-fallback:/);
+  assert.match(integration, /name: Fallback refresh PULSE if publication wake failed/);
+  assert.match(integration, /needs\.integrate\.outputs\.publication_outcome == 'failure'/);
+  assert.match(integration, /uses: \.\/\.github\/workflows\/pulse-refresh\.yml/);
+  assert.doesNotMatch(integration, /curl[\s\S]*api\/refresh/);
 });
 
 test('PULSE GitHub client requires authentication and records request-budget observability', () => {
@@ -49,9 +51,11 @@ test('PULSE GitHub client requires authentication and records request-budget obs
 
 test('deployment prime performs one authenticated refresh and leaves remaining attribution to later events', () => {
   const prime = text('ops-board/prime.mjs');
-  assert.match(prime, /const response = await refreshOnce\(\)/);
+  assert.equal((prime.match(/refreshPulseState\s*\(\{/g) || []).length, 1);
   assert.doesNotMatch(prime, /for \(let batch/);
   assert.match(prime, /later authenticated event\/reconcile refreshes will continue it/);
-  assert.match(prime, /'x-ops-refresh-reason': 'prime'/);
-  assert.match(prime, /githubToken/);
+  assert.match(prime, /reason: 'prime'/);
+  assert.match(prime, /githubToken: process\.env\.GH_TOKEN/);
+  assert.match(prime, /refreshToken: process\.env\.OPS_REFRESH_TOKEN/);
+  assert.doesNotMatch(prime, /fetch\(|\bcurl\b|api\/refresh/);
 });

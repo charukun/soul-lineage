@@ -25,8 +25,7 @@ try {
   progress.value = 2;
   await game.boot();
   document.querySelector('#swipe-hint').onclick = () => document.querySelector('#pause')?.click();
-  const {installFirstHuntDirector} = await import('./web/first-hunt-director.js');
-  installFirstHuntDirector();
+  // HuntFlowUi is the single owner of progression and next-action guidance.
   progress.value = 3;
 } catch (error) {
   console.error(error);
