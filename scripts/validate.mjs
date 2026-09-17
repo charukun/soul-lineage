@@ -42,8 +42,9 @@ run(process.execPath, (dev || narrowFast) ? ['scripts/check.mjs', '--direct', ..
 if (full || selected.includes('@soul/characters')) run(process.execPath, ['scripts/check-character-production.mjs']);
 if (!full && !deploy) run(process.execPath, ['scripts/code-health.mjs', 'guard', process.argv[3], process.argv[4]]);
 
-if (dev) {
-  console.log(JSON.stringify({ devGate: { scope, profile, checkedWorkspaces: selected, tests: 0, builds: plan.apps.length, controlPlane: !!plan.controlPlane } }, null, 2));
+// Both develop PR validation and normal DEV publication are test-free.
+if (dev || deploy) {
+  console.log(JSON.stringify({ devGate: { mode, scope, profile, checkedWorkspaces: selected, tests: 0, builds: dev ? plan.apps.length : 0, controlPlane: !!plan.controlPlane } }, null, 2));
 } else {
   const tests = selected.flatMap(name => {
     const dir = `${nodes.get(name).dir}/tests`;
