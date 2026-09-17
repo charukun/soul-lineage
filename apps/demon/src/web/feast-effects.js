@@ -1,5 +1,5 @@
 import * as T from 'three';
-import {feastEnvelope,feastReward,FEAST_SECONDS} from './feast-state.js';
+import {BITE_BEATS,feastEnvelope,feastReward,FEAST_SECONDS} from './feast-state.js';
 
 const PARTICLES=84;
 const clamp=x=>Math.max(0,Math.min(1,x));
@@ -33,16 +33,16 @@ export class FeastEffects {
   this.root.visible=active&&(s.feeding||s.release);this.beacon.visible=active&&!!target;
   if(target){this.beacon.position.set(target.npc.x,.045,target.npc.z);this.beacon.scale.setScalar(target.npc.dead?1:1.15);this.beacon.material.opacity=.55+Math.sin(game.time*3)*.15;}
   const intensity=this.release?.reward?.kind==='form'?1.25:this.release?.reward?.kind==='memory'?1:.76;
-  this.light.intensity=active?(s.charge*10+s.bloom*38*intensity):0;this.light.position.set(p.x,1.5,p.z);
+  this.light.intensity=active?(s.charge*10+s.bite*14+s.bloom*38*intensity):0;this.light.position.set(p.x,1.5,p.z);
   if(!this.root.visible)return s;
   const color=this.release?.reward?.color||0x9effcd;
   this.souls.material.color.setHex(color);this.core.material.color.setHex(color);this.light.color.setHex(color);
   const yaw=p.yaw||0,mouth={x:p.x+Math.sin(yaw)*.34,y:s.feeding?.85:1.5,z:p.z+Math.cos(yaw)*.34};
   const n=game.devour?.npc,from={x:n?.x??p.x,z:n?.z??p.z};
-  this.core.position.set(mouth.x,mouth.y,mouth.z);this.core.scale.setScalar(s.feeding?.7+s.charge*.85+s.bite*.5:1+s.bloom*2.8*intensity);
-  this.core.material.opacity=s.feeding?s.charge*.32+s.bite*.27:s.bloom*.66;
-  this.souls.material.opacity=s.feeding?s.charge*.9:s.bloom;
-  this.souls.material.size=reducedMotion?.23:s.feeding?.28:.36;
+  this.core.position.set(mouth.x,mouth.y,mouth.z);this.core.scale.setScalar(s.feeding?.7+s.charge*.85+s.bite*.62:1+s.bloom*2.8*intensity);
+  this.core.material.opacity=s.feeding?s.charge*.32+s.bite*.34:s.bloom*.66;
+  this.souls.material.opacity=s.feeding?Math.min(1,s.charge*.78+s.bite*.34):s.bloom;
+  this.souls.material.size=reducedMotion?.23:s.feeding?.28+s.bite*.08:.36;
   for(let i=0;i<PARTICLES;i++){
    const a=i*2.399963,j=i%7/7;let x,y,z;
    if(s.feeding){
@@ -59,16 +59,30 @@ export class FeastEffects {
   }
   this.souls.geometry.attributes.position.needsUpdate=true;
   for(const [i,ring] of this.rings.entries()){
-   const t=clamp((age-i*.16)/1.35);ring.visible=s.release&&age>=i*.16;
-   ring.position.set(this.release?.x??p.x,.025+i*.012,this.release?.z??p.z);
-   ring.scale.setScalar(.35+(1-Math.pow(1-t,3))*(i?4.7:3.5)*(reducedMotion?.7:1));
-   ring.material.opacity=(1-t)*.8;
+   const bitePhase=s.feeding?(progress-BITE_BEATS[i])/.075:Infinity;
+   if(s.feeding&&Math.abs(bitePhase)<1){
+    const t=(bitePhase+1)/2;ring.visible=true;ring.position.set(from.x,.08+i*.015,from.z);
+    ring.scale.setScalar((.38+t*1.55)*(reducedMotion?.72:1));ring.material.opacity=Math.sin(t*Math.PI)*.82;
+   }else{
+    const t=clamp((age-i*.16)/1.35);ring.visible=s.release&&age>=i*.16;
+    ring.position.set(this.release?.x??p.x,.025+i*.012,this.release?.z??p.z);
+    ring.scale.setScalar(.35+(1-Math.pow(1-t,3))*(i?4.7:3.5)*(reducedMotion?.7:1));
+    ring.material.opacity=(1-t)*.8;
+   }
   }
-  this.wisps.material.opacity=s.feeding?s.charge*.48:s.bloom*.58;
+  this.wisps.material.opacity=s.feeding?Math.min(.72,s.charge*.42+s.bite*.34):s.bloom*.58;
   for(let strand=0;strand<3;strand++)for(let i=0;i<28;i++)for(let end=0;end<2;end++){
-   const t=(i+end)/28,angle=strand*Math.PI*2/3+t*6.3+game.time*2.3;
-   const radius=(s.feeding?.55:1.05+s.bloom*.4)*(1-t*.66);
-   this.wispPositions.set([p.x+Math.cos(angle)*radius,.07+t*(s.feeding?1.45:2.65),p.z+Math.sin(angle)*radius],(strand*56+i*2+end)*3);
+   const t=(i+end)/28;let x,y,z;
+   if(s.feeding){
+    const arc=Math.sin(t*Math.PI),angle=strand*Math.PI*2/3+t*5.4+game.time*1.6,spiral=(.08+.22*arc)*(reducedMotion?.55:1);
+    x=from.x+(mouth.x-from.x)*t+Math.cos(angle)*spiral;
+    z=from.z+(mouth.z-from.z)*t+Math.sin(angle)*spiral;
+    y=.17+(mouth.y-.17)*t+arc*(.38+strand*.08+s.bite*.14);
+   }else{
+    const angle=strand*Math.PI*2/3+t*6.3+game.time*2.3,radius=(1.05+s.bloom*.4)*(1-t*.66);
+    x=p.x+Math.cos(angle)*radius;z=p.z+Math.sin(angle)*radius;y=.07+t*2.65;
+   }
+   this.wispPositions.set([x,y,z],(strand*56+i*2+end)*3);
   }
   this.wisps.geometry.attributes.position.needsUpdate=true;
   return s;
