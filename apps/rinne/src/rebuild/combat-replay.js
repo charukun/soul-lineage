@@ -1,0 +1,24 @@
+const MAX_FRAMES=96;
+const round=n=>Math.round((Number(n)||0)*1000)/1000;
+function hash(text){let h=2166136261;for(const c of String(text)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return(h>>>0).toString(16).padStart(8,'0');}
+function actorRow(state){return{id:state.id,seed:state.seed,generation:state.generation,x:round(state.position?.x),z:round(state.position?.z),yaw:round(state.yaw),hp:round(state.hp),stamina:round(state.stamina),weapon:state.equipment?.weapon,phase:state.combat?.phase||null,target:state.combat?.targetId||null,intent:state.combat?.bodyIntent||null};}
+function enemyRows(front){return(front.enemies||[]).map(e=>({id:e.id,x:round(e.x),z:round(e.z),hp:round(e.hp),dead:Boolean(e.dead),role:e.squadRole||null,target:e.attentionTargetId||null}));}
+function eventRows(events){return(events||[]).filter(e=>['player-hit','enemy-hit','enemy-down','life-end','downed','projectile-fired','projectile-blocked'].includes(e.type)).map(e=>({type:e.type,targetId:e.targetId||null,sourceId:e.sourceId||null,skill:e.skill||null,phase:e.phase||null,damage:round(e.damage),part:e.part||null,sector:e.sector||null}));}
+
+export function ensureCombatReplay(state,front){
+  const key=`${state.id}:${state.generation}:${front.stage}`;if(state.combatReplay?.key===key)return state.combatReplay;state.combatReplay={version:1,key,seed:state.seed,stage:front.stage,startedAt:round(state.ageSeconds),clock:0,sampleClock:0,initial:{actor:actorRow(state),enemies:enemyRows(front)},frames:[],digest:null};return state.combatReplay;
+}
+
+export function recordCombatReplay(state,front,dt,events,{force=false}={}){
+  const replay=ensureCombatReplay(state,front);replay.clock+=Number(dt)||0;replay.sampleClock+=Number(dt)||0;if(!force&&replay.sampleClock<.1&&!eventRows(events).length)return replay;replay.sampleClock=0;
+  const row={t:round(replay.clock),actor:actorRow(state),enemies:enemyRows(front),events:eventRows(events)};replay.frames.push(row);if(replay.frames.length>MAX_FRAMES)replay.frames.shift();replay.digest=combatReplayDigest(replay);return replay;
+}
+
+export function combatReplayDigest(replay){const stable={version:replay?.version||1,seed:replay?.seed,stage:replay?.stage,initial:replay?.initial,frames:replay?.frames||[]};return hash(JSON.stringify(stable));}
+
+export function finalizeCombatReplay(state){if(!state.combatReplay)return null;state.combatReplay.digest=combatReplayDigest(state.combatReplay);state.lastCombatReplay=structuredClone(state.combatReplay);delete state.combatReplay;return state.lastCombatReplay;}
+
+/** Replays a compact trace through an injected deterministic reducer. This keeps the recorder independent of Tidebreak internals. */
+export function replayCombatTrace(trace,reducer){let model=structuredClone(trace.initial);for(const frame of trace.frames)model=reducer(model,structuredClone(frame));return model;}
+
+export function replaySummary(state){const r=state.lastCombatReplay||state.combatReplay;if(!r)return null;return{seed:r.seed,stage:r.stage,frames:r.frames.length,digest:r.digest||combatReplayDigest(r),seconds:round(r.clock)};}
