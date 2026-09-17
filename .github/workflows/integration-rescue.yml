@@ -135,7 +135,7 @@ jobs:
         run: node scripts/affected.mjs "$BASE_SHA" "$HEAD_SHA" dev
       - run: npm ci
         working-directory: work
-        if: steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.has_packages == 'true' || steps.plan.outputs.infrastructure == 'true'
+        if: steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.infrastructure == 'true'
       - name: DEV no-test validation
         working-directory: work
         env:
