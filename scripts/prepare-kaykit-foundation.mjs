@@ -5,7 +5,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { KAYKIT_MODELS, KAYKIT_SOURCE_REPOSITORY, KAYKIT_SOURCE_REVISION } from '../packages/characters/src/kaykit-foundation.js';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const outputRoot = path.join(repoRoot, 'apps/rinne/public/simulator/assets/kaykit');
+const OUTPUT_ROOTS = Object.freeze({
+  rinne: path.join(repoRoot, 'apps/rinne/public/simulator/assets/kaykit'),
+  village: path.join(repoRoot, 'apps/village/public/assets/kaykit'),
+  demon: path.join(repoRoot, 'apps/demon/public/assets/kaykit')
+});
 
 export function gitBlobSha(bytes) {
   const body = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes);
@@ -35,15 +39,14 @@ async function currentBytes(target) {
   }
 }
 
-async function downloadModel(model) {
-  const target = path.join(repoRoot, model.runtime.localPath);
+async function acquireModel(model, target) {
   const existing = await currentBytes(target);
   if (existing) {
     try {
       verifyKayKitBytes(model, existing);
       return { model: model.label, target, source: 'verified-cache' };
     } catch {
-      // A stale or partial cache is replaced only by the exact pinned upstream blob.
+      // Replace stale/partial bytes only with the exact pinned upstream blob.
     }
   }
 
@@ -65,17 +68,32 @@ async function downloadModel(model) {
   return { model: model.label, target, source: 'pinned-upstream' };
 }
 
-export async function prepareKayKitFoundation() {
-  await mkdir(outputRoot, { recursive: true });
+function normalizeTargets(targets) {
+  const requested = Array.isArray(targets) ? targets : [targets];
+  const expanded = requested.flatMap(value => value === 'all' ? Object.keys(OUTPUT_ROOTS) : [value || 'rinne']);
+  const unique = [...new Set(expanded)];
+  for (const app of unique) if (!Object.hasOwn(OUTPUT_ROOTS, app)) throw new Error(`Unknown KayKit app target: ${app}`);
+  return unique;
+}
+
+export async function prepareKayKitFoundation(targets = ['rinne']) {
   const rows = [];
-  for (const model of KAYKIT_MODELS) rows.push(await downloadModel(model));
-  return Object.freeze(rows);
+  for (const app of normalizeTargets(targets)) {
+    const outputRoot = OUTPUT_ROOTS[app];
+    await mkdir(outputRoot, { recursive: true });
+    for (const model of KAYKIT_MODELS) {
+      const target = path.join(outputRoot, path.basename(model.runtime.localPath));
+      rows.push({ app, ...await acquireModel(model, target) });
+    }
+  }
+  return Object.freeze(rows.map(Object.freeze));
 }
 
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 if (isMain) {
-  prepareKayKitFoundation().then(rows => {
-    for (const row of rows) console.log(`KayKit ${row.model}: ${row.source}`);
+  const targets = process.argv.slice(2);
+  prepareKayKitFoundation(targets.length ? targets : ['rinne']).then(rows => {
+    for (const row of rows) console.log(`KayKit ${row.app}/${row.model}: ${row.source}`);
   }).catch(error => {
     console.error(`KayKit foundation preparation failed: ${error.message}`);
     process.exitCode = 1;
