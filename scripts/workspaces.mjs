@@ -87,10 +87,13 @@ export function affectedForDev(nodes, paths) {
 
 export function inputFiles(root, nodes, id, environment = '') {
   const dirs = [...closure(nodes, appNode(nodes, id).name)].map(name => `${nodes.get(name).dir}/`);
-  const includeTooling = environment === 'dev' ? devBuildToolingPath : toolingPath;
-  return execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { cwd: root, encoding: 'utf8' })
-    .split('\0').filter(Boolean).filter(path => existsSync(resolve(root, path)))
-    .filter(path => includeTooling(path) || (!documentationPath(path) && (dirs.some(dir => path.startsWith(dir)) || !/^(apps|packages)\//.test(path))))
+  const files = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { cwd: root, encoding: 'utf8' })
+    .split('\0').filter(Boolean).filter(path => existsSync(resolve(root, path)));
+  if (environment === 'dev') {
+    return files.filter(path => devBuildToolingPath(path) || (!documentationPath(path) && dirs.some(dir => path.startsWith(dir)))).sort();
+  }
+  return files
+    .filter(path => toolingPath(path) || (!documentationPath(path) && (dirs.some(dir => path.startsWith(dir)) || !/^(apps|packages)\//.test(path))))
     .sort();
 }
 
