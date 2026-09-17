@@ -5,7 +5,7 @@ import {readFile} from 'node:fs/promises';
 const root=new URL('../',import.meta.url);
 const read=path=>readFile(new URL(path,root),'utf8');
 
-test('Visual Review stays exact-source and browser-verified but only explicit on develop',async()=>{
+test('Visual Review publication follows exact develop delivery and verifies workflow plus VFX on desktop and mobile',async()=>{
   const [workflow,opsBoard,smoke,collector,browserCheck,reviewCss]=await Promise.all([
     read('.github/workflows/review-preview.yml'),
     read('.github/workflows/ops-board.yml'),
@@ -34,26 +34,29 @@ test('Visual Review stays exact-source and browser-verified but only explicit on
   assert.match(smoke,/version\.json/);
   assert.match(smoke,/version\.commit, expectedSha/);
   assert.match(smoke,/page\.goto\(entry\.toString\(\),/);
-  assert.doesNotMatch(smoke,/page\.goto\(entry,\s*\{/);
   assert.match(smoke,/name: 'desktop'[\s\S]*width: 1280[\s\S]*height: 900/);
   assert.match(smoke,/name: 'mobile'[\s\S]*width: 390[\s\S]*height: 844[\s\S]*isMobile: true[\s\S]*hasTouch: true/);
   assert.match(smoke,/profile\.hasTouch \? locator\.tap\(\) : locator\.click\(\)/);
   assert.match(smoke,/document\.documentElement\.scrollWidth <= innerWidth \+ 1/);
   assert.match(smoke,/public-\$\{profile\.name\}\.png/);
   assert.match(smoke,/profiles: results/);
-  assert.match(smoke,/\[data-view=\\?"motion/);
+  assert.match(smoke,/data-app-context.*village/);
+  assert.match(smoke,/data-view.*motion/);
   assert.match(smoke,/characters\.html\?review=motion/);
+  assert.match(smoke,/data-view.*effects/);
+  assert.match(smoke,/review-effects\.html/);
+  assert.match(smoke,/fx-status/);
+  assert.match(smoke,/原本再生可能/);
+  assert.match(smoke,/effects-\$\{profile\.name\}\.png/);
   assert.match(smoke,/battle-time/);
   assert.match(smoke,/pageerror/);
   assert.match(smoke,/requestfailed/);
 
-  assert.match(reviewCss,/\.review-nav\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(reviewCss,/\.review-nav\{[^}]*grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
   assert.match(reviewCss,/@media\(max-width:700px\)\{[\s\S]*\.review-nav\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.doesNotMatch(reviewCss,/@media\(max-width:700px\)\{[\s\S]*\.review-nav\{grid-template-columns:1fr 1fr/);
 
-  const opsTriggers=opsBoard.split('permissions:')[0];
-  assert.doesNotMatch(opsTriggers,/\bpush:/);
-  assert.match(opsBoard,/visual-review:[\s\S]*github\.event_name == 'workflow_dispatch'[\s\S]*uses: \.\/\.github\/workflows\/review-preview\.yml/);
+  assert.match(opsBoard,/visual-review:[\s\S]*uses: \.\/\.github\/workflows\/review-preview\.yml/);
   assert.match(opsBoard,/source_sha: \$\{\{ inputs\.source_sha \|\| github\.sha \}\}/);
   assert.match(opsBoard,/secrets: inherit/);
 
