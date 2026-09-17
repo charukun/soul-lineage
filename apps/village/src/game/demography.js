@@ -8,12 +8,12 @@ const transfer=(count,rate,carry)=>{
 };
 
 export function normalizeVirtualCohorts(raw={},fallbackAdults=0){
- const legacy=!Object.hasOwn(raw||{},'child')&&!Object.hasOwn(raw||{},'youth');
+ const legacy=!Object.hasOwn(raw||{},'child')&&!Object.hasOwn(raw||{},'youth'),elder=whole(raw?.elder),rawAdult=whole(raw?.adult),fallback=whole(fallbackAdults),adult=legacy?rawAdult+Math.max(0,fallback-rawAdult-elder):rawAdult;
  return{
   child:whole(raw?.child),
   youth:whole(raw?.youth),
-  adult:whole(legacy?Math.max(Number(raw?.adult)||0,Number(fallbackAdults)||0):raw?.adult),
-  elder:whole(raw?.elder),
+  adult,
+  elder,
   carry:{
    childToYouth:fraction(raw?.carry?.childToYouth),
    youthToAdult:fraction(raw?.carry?.youthToAdult),
