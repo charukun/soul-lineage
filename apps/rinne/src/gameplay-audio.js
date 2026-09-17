@@ -7,7 +7,7 @@ export const confirmRinneAudio=()=>activeAudio?.commit?.();
 
 export function createRinneAudio(){
   const music=new Audio(audioURLs.r01);music.loop=true;music.volume=.2;music.preload='auto';
-  const pageHidden=()=>typeof document!=='undefined'&&(document.hidden||document.visibilityState==='hidden');
+  const doc=globalThis.document,pageHidden=()=>Boolean(doc&&(doc.hidden||doc.visibilityState==='hidden'));
   let context=null,lastStep=0,disposed=false,unlocked=false,backgrounded=pageHidden();
 
   function suspendForBackground(){
@@ -46,7 +46,7 @@ export function createRinneAudio(){
     backgrounded=false;
     if(unlocked)void resumePlayback();
   }
-  document?.addEventListener?.('visibilitychange',onVisibilityChange);
+  doc?.addEventListener?.('visibilitychange',onVisibilityChange);
 
   function tone(freq,duration=.06,gain=.02,type='sine'){
     if(disposed||backgrounded||pageHidden()||!context)return;
@@ -61,7 +61,7 @@ export function createRinneAudio(){
     item(){tone(620,.08,.024,'triangle');setTimeout(()=>tone(840,.08,.018,'triangle'),55);},
     combat:()=>tone(128,.11,.032,'sawtooth'),rest:()=>tone(260,.14,.014),dash:()=>tone(170,.07,.022,'square'),
     step(now){if(now-lastStep<.25)return;lastStep=now;tone(92,.035,.012);},
-    dispose(){if(disposed)return;disposed=true;if(activeAudio===controller)activeAudio=null;document?.removeEventListener?.('visibilitychange',onVisibilityChange);music.pause();music.src='';void context?.close?.();context=null;}
+    dispose(){if(disposed)return;disposed=true;if(activeAudio===controller)activeAudio=null;doc?.removeEventListener?.('visibilitychange',onVisibilityChange);music.pause();music.src='';void context?.close?.();context=null;}
   };
   activeAudio=controller;
   return controller;
