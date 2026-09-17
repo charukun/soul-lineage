@@ -4,6 +4,8 @@ import {
   INSPIRATION_WEAPONS,
   INSPIRATION_MOTION_IDS,
 } from '@soul/game-data';
+import {assetCatalog,publicWebAssetCatalog} from '@soul/assets';
+import {KAYKIT_FAMILY_ID,KAYKIT_MODEL_BY_KEY,KAYKIT_RIG_ID,PROTAGONIST_VILLAGER_MODEL_ID} from '@soul/characters';
 import { RaidHost } from '@soul/network/raid-host';
 import './develop-review.css';
 
@@ -11,11 +13,18 @@ const q = selector => document.querySelector(selector);
 const qa = selector => [...document.querySelectorAll(selector)];
 const weaponLabels = Object.freeze({sword:'片手剣',great:'大剣',spear:'槍',axe:'戦斧',fist:'拳',katana:'刀'});
 const phaseLabels = Object.freeze({open:'序候補',middle:'破候補',finish:'急候補'});
+const appLabels=Object.freeze({rinne:'輪廻転焦',village:'MURAAAAAAA',demon:'尽喰廻遊'});
+const appContexts=Object.freeze({
+  rinne:{model:PROTAGONIST_VILLAGER_MODEL_ID,detail:'主人公はKayKit Rig_Medium互換PRIMARY。母・敵も同じKayKit familyから解決。',camera:'工房の固定カメラ'},
+  village:{model:`${KAYKIT_MODEL_BY_KEY.rogue.id} / guard: ${KAYKIT_MODEL_BY_KEY.knight.id}`,detail:'住民の通常描画をKayKitへ統一。procedural人体はモデル読込失敗時だけfallback。',camera:'Village通常距離'},
+  demon:{model:KAYKIT_MODEL_BY_KEY.knight.id,detail:'人間NPCは固定KayKit Knightを共有loaderで読込。魔物プレイヤーは別の非人間contract。',camera:'Demon通常距離'}
+});
 
 const build = typeof __BUILD_INFO__ === 'object' && __BUILD_INFO__ ? __BUILD_INFO__ : {branch:'develop',commit:'local'};
 q('#build-source').textContent = `${build.branch || 'develop'} · ${String(build.commit || 'local').slice(0,12)}`;
 q('#catalog-revision').textContent = inspirationCatalogRevision;
 q('#motion-count').textContent = `${INSPIRATION_MOTION_IDS.length} 基礎動作`;
+q('#foundation-id').textContent=KAYKIT_FAMILY_ID;q('#foundation-rig').textContent=KAYKIT_RIG_ID;
 
 let selectedWeapon = INSPIRATION_WEAPONS[0];
 function renderCatalog() {
@@ -37,12 +46,46 @@ function renderCatalog() {
 }
 renderCatalog();
 
+q('#app-status-grid').replaceChildren(...Object.entries(appContexts).map(([app,row])=>{
+  const article=document.createElement('article');article.dataset.appStatus=app;
+  const heading=document.createElement('div'),title=document.createElement('strong'),badge=document.createElement('span'),model=document.createElement('code'),detail=document.createElement('p');
+  title.textContent=appLabels[app];badge.textContent=`${KAYKIT_RIG_ID} · shared`;heading.append(title,badge);model.textContent=row.model;detail.textContent=row.detail;article.append(heading,model,detail);return article;
+}));
+const objectRows=[
+  ...Object.entries(assetCatalog).map(([id,row])=>[id,{...row,status:'SHARED PACKAGE',apps:['rinne','village','demon']}]),
+  ...Object.entries(publicWebAssetCatalog).filter(([,row])=>['3d','pbr-material'].includes(row.category)&&row.status==='MATERIALIZED')
+].slice(0,12);
+q('#world-object-grid').replaceChildren(...objectRows.map(([id,row])=>{
+  const card=document.createElement('article'),title=document.createElement('code'),meta=document.createElement('span');title.textContent=id;meta.textContent=`${row.category||row.type||'asset'} · ${row.status||'shared'} · ${(row.apps||[]).join(' / ')||'shared'}`;card.append(title,meta);return card;
+}));
+
+let selectedApp='rinne';
+function applyEmbeddedContext(frame){
+  try{
+    const win=frame?.contentWindow,doc=frame?.contentDocument;if(!win||!doc)return;
+    const mapped=selectedApp==='village'?'village':selectedApp==='demon'?'demon':'studio';
+    const select=doc.getElementById('quality-context');
+    if(select&&select.value!==mapped){select.value=mapped;select.dispatchEvent(new Event('change',{bubbles:true}));}
+    const studio=win.characterStudio;
+    if(studio?.review?.ready){studio.review.aim(selectedApp==='village'?'village':selectedApp==='demon'?'demon':'front');}
+  }catch{/* A still-loading embedded tool keeps its own defaults. */}
+}
+function renderAppContext(){
+  qa('[data-app-context]').forEach(button=>button.classList.toggle('active',button.dataset.appContext===selectedApp));
+  qa('[data-app-status]').forEach(card=>card.classList.toggle('active',card.dataset.appStatus===selectedApp));
+  const row=appContexts[selectedApp];q('#context-summary').textContent=`${appLabels[selectedApp]} · ${row.camera} · ${KAYKIT_RIG_ID}`;
+  qa('iframe[src]').forEach(applyEmbeddedContext);
+}
+qa('[data-app-context]').forEach(button=>button.addEventListener('click',()=>{selectedApp=button.dataset.appContext;renderAppContext();}));
+renderAppContext();
+
 function openPanel(name) {
   qa('[data-view]').forEach(button=>button.classList.toggle('active',button.dataset.view===name));
   qa('[data-panel]').forEach(panel=>panel.classList.toggle('active',panel.dataset.panel===name));
   const panel=q(`[data-panel="${name}"]`);
   const frame=panel?.querySelector('iframe[data-src]');
-  if(frame && !frame.getAttribute('src')) frame.setAttribute('src',frame.dataset.src);
+  if(frame && !frame.getAttribute('src')){frame.addEventListener('load',()=>applyEmbeddedContext(frame),{once:true});frame.setAttribute('src',frame.dataset.src);}
+  else if(frame)applyEmbeddedContext(frame);
 }
 qa('[data-view]').forEach(button=>button.addEventListener('click',()=>openPanel(button.dataset.view)));
 
