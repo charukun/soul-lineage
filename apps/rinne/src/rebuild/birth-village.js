@@ -33,7 +33,7 @@ export function createRinneBirthVillage(){
       building('birth-dojo','dojo',-11,22,-.03,[['bench',-2.8,1.5],['bench',2.8,1.5],['rug',0,0],['shelf',-3,-2.5],['lamp',3,-2.5]]),
       building('birth-school','school',1,22,.02,[['shelf',-2.8,-2.4],['shelf',2.8,-2.4],['table',0,0],['chair',-2,1.8],['chair',2,1.8],['lamp',0,-3.2]]),
       building('birth-chapel','chapel',13,21,-.03,[['bench',-2.4,1.5],['bench',2.4,1.5],['table',0,-2.8],['plant',-2.8,-4],['lamp',2.8,-4]]),
-      building('birth-smith','smith',14,8,.02,[['workbench',-1.4,-1.2],['counter',1.4,-1.2],['bench',0,1.8],['lamp',2.2,2]]),
+      building('birth-smith','smith',26,6,.02,[['workbench',-1.4,-1.2],['counter',1.4,-1.2],['bench',0,1.8],['lamp',2.2,2]]),
       building('birth-clinic','clinic',14,-3,-.02,[['bed',-1.8,-1.5],['bed',1.6,-1.5],['table',0,1.5],['plant',2.4,1.8],['shelf',-2.3,2]]),
       building('birth-guardpost','guardpost',0,-17,Math.PI,[['bench',-1.2,.8],['table',1,.8],['shelf',-1.3,-1.5],['lamp',1.7,-1.5]]),
       building('birth-barracks','barracks',10,-26,.02,[['bed',-2.5,-2.5],['bed',2.5,-2.5],['bench',0,1.8],['table',0,-.5],['lamp',3.2,3.2]]),
