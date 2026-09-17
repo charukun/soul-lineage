@@ -1,11 +1,5 @@
 name: PULSE public environment audit
 on:
-  pull_request:
-    paths:
-      - 'ops-board/**'
-      - 'scripts/deploy.mjs'
-      - 'scripts/application-catalog.mjs'
-      - '.github/workflows/pulse-environment-audit.yml'
   workflow_dispatch:
 permissions:
   contents: read
