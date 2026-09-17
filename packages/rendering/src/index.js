@@ -54,3 +54,6 @@ export class GLTFLoader extends ThreeGLTFLoader {
 export * as THREE from 'three';
 export { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 export {applyVillageVisualPreset,gradeVillageMaterial,VILLAGE_VISUAL_PRESETS} from './village-visuals.js';
+export { auditTextureBudget, applyTextureQuality, estimateTextureBytes } from './texture-quality.js';
+export { auditStaticBatchOpportunities, batchStaticMeshes } from './instance-atlas.js';
+export { auditSceneBudget, createRenderingBudgetSnapshot } from './scene-budget.js';
