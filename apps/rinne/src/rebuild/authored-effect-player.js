@@ -10,14 +10,14 @@ export function createAuthoredEffectPlayer({mobile=false,reducedMotion=false,onE
   function fail(reason){
     if(disposed||phase==='failed')return;
     error=String(reason?.message||reason);phase='failed';
-    try{clear();}finally{try{backend?.dispose();}catch{}backend=null;onError(error);}
+    try{clear();}finally{try{backend?.dispose();}catch{}backend=null;try{onError(error);}catch{/* Diagnostics are optional too. */}}
   }
   function changeScope(state,front,key){
     const decision=gate.enter(combatEffectScope(state,front),key);
     if(decision.changed)clear();return decision.accept;
   }
   return {
-    attach(next){if(disposed||phase==='failed'){next.dispose();return false;}backend=next;phase='ready';return true;},
+    attach(next){if(disposed||phase==='failed'){try{next.dispose();}catch{}return false;}backend=next;phase='ready';return true;},
     fail,
     present(events,context){
       if(disposed)return;
@@ -36,7 +36,7 @@ export function createAuthoredEffectPlayer({mobile=false,reducedMotion=false,onE
           }
           const cue={...original,scale:original.scale*budget.intensity};
           const handle=backend.play(cue);if(!handle){stats.dropped++;continue;}
-          active.push({handle,remaining:cue.lifetime,priority:cue.priority});started++;stats.played++;
+          active.push({handle,effect:cue.effect,remaining:cue.lifetime,priority:cue.priority});started++;stats.played++;
         }
       }catch(reason){fail(reason);}
     },
@@ -44,6 +44,8 @@ export function createAuthoredEffectPlayer({mobile=false,reducedMotion=false,onE
       if(disposed)return;changeScope(state,front);
       budget=combatEffectBudget(level,mobile,reduced);
       if(hidden||state?.ended||state?.phase==='birth'){clear();return;}
+      // A live preference/quality change also applies to already playing trails.
+      if(!budget.trails)active=active.filter(row=>{if(row.effect!=='slash')return true;stop(row.handle);return false;});
       while(active.length>budget.maxActive){
         const lowest=active.reduce((best,row,i)=>row.priority<active[best].priority?i:best,0);
         stop(active.splice(lowest,1)[0].handle);

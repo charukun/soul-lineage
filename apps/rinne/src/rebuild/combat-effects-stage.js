@@ -44,7 +44,9 @@ export function installCombatEffects(view,{document,canvas,backendFactory=create
   view.renderState=(state,dt=0)=>{
     const level=original.visualSnapshot?.().focus?.level||0;
     player.frame(state,front,dt,{level,reduced:Boolean(motion?.matches),hidden:Boolean(document.hidden)});
-    stage.visible=!booted||player.snapshot().active>0;
+    // Warm only on entry to combat space, never during birth/title/village.
+    const mayBoot=!document.hidden&&state?.zone==='frontier'&&state?.phase!=='birth'&&!state?.ended;
+    stage.visible=(!booted&&mayBoot)||player.snapshot().active>0;
     return original.renderState(state,dt);
   };
   view.visualSnapshot=()=>({...original.visualSnapshot?.(),combatEffects:player.snapshot()});
