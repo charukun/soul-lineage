@@ -52,11 +52,16 @@ async function verifyProfile(profile) {
     entry.searchParams.set('profile', profile.name);
     const response = await page.goto(entry.toString(), { waitUntil: 'domcontentloaded', timeout: 30000 });
     assert.ok(response?.ok(), `Visual Review ${profile.name} entry returned HTTP ${response?.status() ?? 'unknown'}`);
-    assert.equal(await page.title(), '輪廻転焦 Visual Review');
+    assert.equal(await page.title(), '輪廻転焦 Visual Review Lab');
     await page.locator('.review-shell').waitFor({ state: 'visible', timeout: 15000 });
     await page.waitForFunction(prefix => document.querySelector('#build-source')?.textContent?.includes(prefix), expectedSha.slice(0, 12), { timeout: 15000 });
     const widthOk = await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
     assert.equal(widthOk, true, `Visual Review ${profile.name} layout overflows the viewport`);
+
+    const contextButtons=page.locator('[data-app-context]');
+    assert.equal(await contextButtons.count(),3,`Visual Review ${profile.name} app contexts are incomplete`);
+    await activate(page.locator('[data-app-context="village"]'));
+    assert.ok(await page.locator('[data-app-context="village"]').evaluate(node=>node.classList.contains('active')),`Visual Review ${profile.name} app context did not switch`);
 
     const weaponTabs = page.locator('#weapon-tabs button[data-weapon]');
     assert.ok(await weaponTabs.count() >= 2, `Visual Review ${profile.name} inspiration weapon tabs were not rendered`);
@@ -64,6 +69,7 @@ async function verifyProfile(profile) {
     await activate(secondWeapon);
     assert.ok(await secondWeapon.evaluate(node => node.classList.contains('active')), `Visual Review ${profile.name} weapon tab interaction did not update state`);
     assert.equal(await page.locator('#inspiration-phases article').count(), 3, `Visual Review ${profile.name} inspiration phases did not render`);
+    assert.ok(await page.locator('#world-object-grid article').count() >= 3,`Visual Review ${profile.name} world object catalog did not render`);
 
     await activate(page.locator('[data-view="motion"]'));
     const motionPanel = page.locator('[data-panel="motion"]');
@@ -79,6 +85,26 @@ async function verifyProfile(profile) {
     await page.waitForFunction(() => document.querySelector('[data-panel="characters"] iframe')?.getAttribute('src')?.includes('characters.html'), null, { timeout: 10000 });
     const charactersContent = page.frameLocator('[data-panel="characters"] iframe');
     await charactersContent.locator('main.review-app').waitFor({ state: 'visible', timeout: 45000 });
+
+    await activate(page.locator('[data-view="effects"]'));
+    const effectsPanel=page.locator('[data-panel="effects"]');
+    await effectsPanel.waitFor({state:'visible',timeout:10000});
+    await page.waitForFunction(()=>document.querySelector('[data-panel="effects"] iframe')?.getAttribute('src')?.includes('review-effects.html'),null,{timeout:10000});
+    const effectsContent=page.frameLocator('[data-panel="effects"] iframe');
+    await effectsContent.locator('#fx-stage').waitFor({state:'visible',timeout:30000});
+    await effectsContent.locator('#fx-status').waitFor({state:'visible',timeout:10000});
+    await effectsContent.locator('#fx-status').evaluate((node)=>new Promise((resolve,reject)=>{
+      const done=()=>{if(node.textContent?.includes('原本再生可能')){observer.disconnect();resolve();}};
+      const observer=new MutationObserver(done);observer.observe(node,{childList:true,subtree:true,characterData:true});done();setTimeout(()=>{observer.disconnect();reject(new Error(`Authored VFX did not become ready: ${node.textContent}`));},60000);
+    }));
+    await activate(effectsContent.locator('[data-preset="finisher"]'));
+    await effectsContent.locator('#fx-metrics').evaluate((node)=>new Promise((resolve,reject)=>{
+      const done=()=>{const match=node.textContent?.match(/played (\d+)/);if(match&&Number(match[1])>0){observer.disconnect();resolve();}};
+      const observer=new MutationObserver(done);observer.observe(node,{childList:true,subtree:true,characterData:true});done();setTimeout(()=>{observer.disconnect();reject(new Error(`Authored VFX never played: ${node.textContent}`));},15000);
+    }));
+    const effectStatus=await effectsContent.locator('#fx-status').textContent();
+    const effectMetrics=await effectsContent.locator('#fx-metrics').textContent();
+    const effectScreenshot=`effects-${profile.name}.png`;await page.screenshot({path:resolve(reportDir,effectScreenshot),fullPage:true});
 
     await activate(page.locator('[data-view="battle"]'));
     await page.locator('[data-panel="battle"]').waitFor({ state: 'visible', timeout: 10000 });
@@ -102,6 +128,7 @@ async function verifyProfile(profile) {
       hasTouch: profile.hasTouch,
       input: profile.hasTouch ? 'tap' : 'click',
       widthOk,
+      effectStatus,effectMetrics,effectScreenshot,
       battleTime,
       battleResult,
       pageErrors,
@@ -139,6 +166,7 @@ try {
     sourceSha: expectedSha,
     url: reviewUrl.toString(),
     version,
+    authoredVfx:{status:desktop?.effectStatus||null,metrics:desktop?.effectMetrics||null},
     battleTime: desktop?.battleTime || null,
     battleResult: desktop?.battleResult || null,
     pageErrors: results.flatMap(result => result.pageErrors),
@@ -150,4 +178,4 @@ try {
   if (browser) await browser.close().catch(() => {});
 }
 
-console.log('VISUAL REVIEW BROWSER VERIFIED', JSON.stringify({ sourceSha: expectedSha, url: reviewUrl.toString(), profiles: results.map(result => result.name) }));
+console.log('VISUAL REVIEW BROWSER VERIFIED', JSON.stringify({ sourceSha: expectedSha, url: reviewUrl.toString(), profiles: results.map(result => result.name), authoredVfx:true }));
