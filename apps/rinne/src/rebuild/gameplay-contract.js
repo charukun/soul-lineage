@@ -39,6 +39,7 @@ export function requestEquipmentChange(state,{kind,value,stations=[]}={}){
   const before=state.equipment?.[kind];
   if(before===value)return{ok:true,changed:false,reason:'',station:access.station,equipment:{...state.equipment}};
   state.equipment={...state.equipment,[kind]:value};
+  if(kind==='weapon'&&WEAPONS[value]?.skill){state.knownSkills=Array.isArray(state.knownSkills)?state.knownSkills:[];if(!state.knownSkills.includes(WEAPONS[value].skill))state.knownSkills.push(WEAPONS[value].skill);}
   return{ok:true,changed:true,reason:'',station:access.station,equipment:{...state.equipment}};
 }
 
