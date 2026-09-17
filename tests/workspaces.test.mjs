@@ -64,6 +64,7 @@ test('DEV input hash ignores control-plane scripts while Production input hash r
   const write = (path, body) => { const absolute = join(root, path); mkdirSync(join(absolute, '..'), { recursive: true }); writeFileSync(absolute, body); };
   try {
     execFileSync('git', ['init', '-q', root]);
+    mkdirSync(join(root, 'packages'), { recursive: true });
     write('apps/one/package.json', JSON.stringify({ name: '@soul/one' }));
     write('apps/one/main.js', 'export const value = 1;');
     write('scripts/integration-fast-lane.mjs', 'export const lane = 1;');
