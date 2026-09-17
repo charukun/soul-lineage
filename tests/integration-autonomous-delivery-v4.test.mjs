@@ -136,6 +136,8 @@ test('workflow contracts keep exact-head fast merge, browser opt-in DEV verifica
   assert.match(coalescer,/run\.event === 'push' && run\.head_sha !== latestSha/);
   assert.match(repair,/Fast Repair/);
   assert.match(repair,/integration-repair-fast\.mjs/);
+  assert.match(repair,/Stack Validate and build/);
+  assert.doesNotMatch(repair,/stack-browser:|Stack browser smoke|playwright install|pr-browser-|repair_scope|browser-repair-ticket/);
   assert.doesNotMatch(repair,/Observe repair pressure and knowledge|Plan repair executor wave|AWAITING_PUSH/);
   assert.doesNotMatch(`${ci}\n${deploy}\n${controller}\n${coalescer}\n${repair}`,/OPENAI_API_KEY|openai\/codex-action|RINNE_CODEX_MODEL/);
 });
