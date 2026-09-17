@@ -1,6 +1,7 @@
 function installTitleLiveWorld(){
   const title=document.getElementById('title-screen'),source=document.getElementById('game'),world=title?.querySelector('.title-world');
   if(!title||!source||!world||world.querySelector('.title-live-canvas'))return;
+  world.style.backgroundImage="url('./title-assets/world.webp')";world.style.backgroundSize='cover';world.style.backgroundPosition='51% 50%';
   const canvas=document.createElement('canvas');canvas.className='title-live-canvas';canvas.setAttribute('aria-hidden','true');world.prepend(canvas);
   const ctx=canvas.getContext('2d',{alpha:false,desynchronized:true});if(!ctx)return;
   let raf=0,lastSize='',hasFrame=false;
