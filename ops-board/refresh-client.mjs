@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 
@@ -58,6 +59,7 @@ export async function refreshPulseState({
   now = Date.now,
   sleep = delay,
   maxAttempts = DEFAULT_MAX_ATTEMPTS,
+  captureState = null,
 } = {}) {
   const serverCredential = requiredCredential(refreshToken, 'OPS_REFRESH_TOKEN');
   const githubCredential = requiredCredential(githubToken, 'GH_TOKEN');
@@ -104,6 +106,7 @@ export async function refreshPulseState({
     } catch (error) {
       throw new Error(`PULSE refresh returned invalid JSON: ${error.message}`);
     }
+    if (typeof captureState === 'function') captureState(state);
     return assertAuthenticatedRefreshState(state, { expectedBuildCommit, now: nowFn() });
   }
 
@@ -117,6 +120,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     githubToken: process.env.GH_TOKEN,
     reason: process.env.OPS_REFRESH_REASON || 'deployment',
     expectedBuildCommit: process.env.OPS_EXPECTED_BUILD_SHA || null,
+    captureState: value => {
+      if (process.env.PULSE_STATE_OUTPUT) writeFileSync(process.env.PULSE_STATE_OUTPUT, JSON.stringify(value));
+    },
   });
-  console.log(`PULSE_REFRESH_OK reason=${process.env.OPS_REFRESH_REASON || 'deployment'} generatedAt=${state.generatedAt} api=${state.githubApi?.requests ?? '?'} cacheHits=${state.githubApi?.cacheHits ?? 0}`);
+  console.log(`PULSE_REFRESH_OK reason=${process.env.OPS_REFRESH_REASON || 'deployment'} generatedAt=${state.generatedAt} api=${state.githubApi?.requests ?? '?'} cacheHits=${state.githubApi?.cacheHits ?? 0} control=${state.controlTower?.status || 'legacy'}`);
 }

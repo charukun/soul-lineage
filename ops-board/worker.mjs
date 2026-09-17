@@ -4,6 +4,7 @@ import { readStored, writeStored } from './github-client.mjs';
 import { degradedState } from './fallback-state.mjs';
 import { reconcileRetryAlarm } from './retry-alarm.mjs';
 import { boardAlerts } from './public/health.mjs';
+import { appendControlHistory, deriveControlTower, publicControlHistory } from './control-tower.mjs';
 import {
   PEER_WORLD_REGISTRY_KEY,emptyPeerWorldRegistry,createPeerWorldRoom,listPeerWorldRooms,joinPeerWorldRoom,
   readHostEvents,postPeerWorldOffer,readGuestEvents,postPeerWorldAnswer,updatePeerWorldTelemetry,
@@ -11,6 +12,9 @@ import {
 } from './peer-world-registry.mjs';
 export { buildState } from './collector.mjs';
 const STATE_KEY = 'ops-state-v2';
+const HISTORY_KEY = 'ops-history-v1';
+const ACTION_NOTIFY_KEY = 'ops-action-notify-v1';
+const ACTION_NOTIFY_LEASE_MS = 2 * 60 * 1000;
 const PEER_CORS={
   'access-control-allow-origin':'*',
   'access-control-allow-methods':'GET,POST,DELETE,OPTIONS',
@@ -46,9 +50,46 @@ export class OpsState extends DurableObject {
     if (rescue && Date.parse(rescue.generatedAt) > Date.parse(state.integrationRescue?.generatedAt || 0)) return { ...state, integrationRescue: rescue };
     return state;
   }
+  async getHistory() {
+    return publicControlHistory(await readStored(this.ctx.storage, HISTORY_KEY));
+  }
+  async recordHistory(state) {
+    const history = appendControlHistory(await readStored(this.ctx.storage, HISTORY_KEY), state);
+    await writeStored(this.ctx.storage, HISTORY_KEY, history);
+    return publicControlHistory(history);
+  }
+  async claimActionNotification(key) {
+    if (typeof key !== 'string' || !key || key.length > 800) return { claimed: false, reason: 'invalid-key' };
+    const current = await readStored(this.ctx.storage, ACTION_NOTIFY_KEY);
+    const now = Date.now();
+    const claimedAt = Date.parse(current?.claimedAt || '');
+    if (current?.key === key && current?.sentAt) return { claimed: false, reason: 'already-sent' };
+    if (current?.key === key && Number.isFinite(claimedAt) && now - claimedAt < ACTION_NOTIFY_LEASE_MS) return { claimed: false, reason: 'leased' };
+    await writeStored(this.ctx.storage, ACTION_NOTIFY_KEY, { key, claimedAt: new Date(now).toISOString(), sentAt: null });
+    return { claimed: true, key };
+  }
+  async completeActionNotification(key, success) {
+    const current = await readStored(this.ctx.storage, ACTION_NOTIFY_KEY);
+    if (!current || current.key !== key) return { accepted: false, reason: 'claim-mismatch' };
+    if (success) {
+      await writeStored(this.ctx.storage, ACTION_NOTIFY_KEY, { ...current, sentAt: new Date().toISOString() });
+      return { accepted: true, sent: true };
+    }
+    await this.ctx.storage.delete(ACTION_NOTIFY_KEY);
+    return { accepted: true, sent: false };
+  }
   async observeRescue(snapshot) {
     const previous = await readStored(this.ctx.storage, 'rescue-observation-v1');
-    if (!previous || Date.parse(snapshot.generatedAt) > Date.parse(previous.generatedAt)) await writeStored(this.ctx.storage, 'rescue-observation-v1', snapshot);
+    if (!previous || Date.parse(snapshot.generatedAt) > Date.parse(previous.generatedAt)) {
+      await writeStored(this.ctx.storage, 'rescue-observation-v1', snapshot);
+      const current = await readStored(this.ctx.storage, STATE_KEY);
+      if (current) {
+        const state = { ...current, integrationRescue: snapshot };
+        state.controlTower = deriveControlTower(state, current.controlTower);
+        await writeStored(this.ctx.storage, STATE_KEY, state);
+        await this.recordHistory(state);
+      }
+    }
     return { accepted: true };
   }
   async peerRegistry(){return await readStored(this.ctx.storage,PEER_WORLD_REGISTRY_KEY)||emptyPeerWorldRegistry();}
@@ -74,12 +115,16 @@ export class OpsState extends DurableObject {
         const state = await buildState(previous, { storage: this.ctx.storage, token, reason: source });
         state.refreshReason = source;
         state.nextRetryAt = null;
+        state.controlTower = deriveControlTower(state, previous?.controlTower);
         await writeStored(this.ctx.storage, STATE_KEY, state);
+        await this.recordHistory(state);
         await reconcileRetryAlarm(this.ctx.storage, state);
         return state;
       } catch (error) {
         const state = await degradedState(previous, error, { source });
+        state.controlTower = deriveControlTower(state, previous?.controlTower);
         await writeStored(this.ctx.storage, STATE_KEY, state);
+        await this.recordHistory(state);
         await reconcileRetryAlarm(this.ctx.storage, state);
         return state;
       } finally { this.inflight = null; }
@@ -126,7 +171,20 @@ export default {
         let state = await stub.getState();
         if (!state && env.OPS_GITHUB_TOKEN) state = await stub.refresh('cold-start');
         if (!state) return json({ error: 'github_auth_required' }, 503);
-        return json({ ...publicState(state, env), sharedWorld: await stub.peerSnapshot() });
+        return json({ ...publicState(state, env), history: await stub.getHistory(), sharedWorld: await stub.peerSnapshot() });
+      }
+      if (url.pathname === '/api/history' && request.method === 'GET') {
+        return json(await env.OPS_STATE.getByName('global').getHistory());
+      }
+      if (url.pathname === '/api/action-notification/claim' && request.method === 'POST') {
+        if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
+        const body = await request.json();
+        return json(await env.OPS_STATE.getByName('global').claimActionNotification(body?.key));
+      }
+      if (url.pathname === '/api/action-notification/complete' && request.method === 'POST') {
+        if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
+        const body = await request.json();
+        return json(await env.OPS_STATE.getByName('global').completeActionNotification(body?.key, body?.success === true));
       }
       if (url.pathname === '/api/refresh' && request.method === 'POST') {
         if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
