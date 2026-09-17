@@ -21,17 +21,18 @@ test('default context stays minimal instead of preloading the documentation tree
   assert.deepEqual(selectContextDocs(), ['AGENTS.md']);
 });
 
-test('routine implementation selects development contract without integration policy preload', () => {
+test('routine implementation selects outcome and development contracts without integration policy preload', () => {
   const docs = selectContextDocs({ task: 'UIを修正して操作性を改善する' });
-  assert.deepEqual(docs, ['AGENTS.md', 'docs/DEVELOPMENT.md']);
+  assert.deepEqual(docs, ['AGENTS.md', 'docs/ASTRA_OUTCOME_CONTRACT.md', 'docs/DEVELOPMENT.md']);
   assert.ok(!docs.includes('docs/INTEGRATION.md'));
   assert.ok(!docs.includes('docs/RINNE_PROJECT_EXECUTION_POLICY.md'));
 });
 
-test('integration rescue task selects delivery docs without unrelated motion/browser docs', () => {
+test('integration rescue task selects outcome and delivery docs without unrelated motion/browser docs', () => {
   const docs = selectContextDocs({ task: 'Integration RescueでReady PRのマージ渋滞を修復する' });
   assert.deepEqual(docs, [
     'AGENTS.md',
+    'docs/ASTRA_OUTCOME_CONTRACT.md',
     'docs/DEVELOPMENT.md',
     'docs/INTEGRATION.md',
     'docs/RINNE_PROJECT_EXECUTION_POLICY.md',
@@ -41,10 +42,11 @@ test('integration rescue task selects delivery docs without unrelated motion/bro
   assert.ok(!docs.includes('docs/BROWSER_SELF_HEALING.md'));
 });
 
-test('motion task selects authoring and quality references', () => {
+test('motion task selects outcome, authoring and quality references', () => {
   const docs = selectContextDocs({ task: '構えと武器保持モーションの姿勢を修正' });
   assert.deepEqual(docs, [
     'AGENTS.md',
+    'docs/ASTRA_OUTCOME_CONTRACT.md',
     'docs/DEVELOPMENT.md',
     'docs/characters/MOTION_AUTHORING.md',
     'docs/characters/MOTION_QUALITY.md',
@@ -58,6 +60,7 @@ test('paths route workflow, browser, and monorepo changes to focused references'
     'tests/browser/smoke.spec.mjs',
     'packages/rendering/package.json',
   ] });
+  assert.ok(docs.includes('docs/ASTRA_OUTCOME_CONTRACT.md'));
   assert.ok(docs.includes('docs/DEVELOPMENT.md'));
   assert.ok(docs.includes('docs/INTEGRATION.md'));
   assert.ok(docs.includes('docs/BROWSER_SELF_HEALING.md'));
@@ -184,19 +187,20 @@ test('plan caps CI log retrieval and records exact-head cache discipline', () =>
 test('plan explicitly records retrieval and product-context boundaries', () => {
   const plan = buildContextPlan({ task: 'code health refactor', paths: ['scripts/code-health.mjs'] });
   assert.equal(plan.sourceOfTruth, 'latest develop + current GitHub branch/commit/PR state');
+  assert.ok(plan.read.includes('docs/ASTRA_OUTCOME_CONTRACT.md'));
   assert.ok(plan.read.includes('docs/DEVELOPMENT.md'));
   assert.ok(plan.read.includes('docs/CODE_HEALTH.md'));
   assert.ok(plan.avoidPreload.includes('past chat history'));
   assert.match(plan.boundary, /product-injected system\/Project\/memory context/);
 });
 
-test('repository entrypoints wire the lean context policy and command', () => {
+test('repository entrypoints wire lean context and Outcome Contract', () => {
   const agents = readFileSync('AGENTS.md', 'utf8');
   const policy = readFileSync('docs/CONTEXT_EFFICIENCY.md', 'utf8');
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
   assert.match(agents, /docs\/CONTEXT_EFFICIENCY\.md/);
   assert.match(agents, /npm run context:plan/);
-  assert.match(agents, /do not fetch the full policy unconditionally/);
+  assert.match(agents, /ASTRA_OUTCOME_CONTRACT\.md/);
   assert.match(policy, /過去会話、closed PR、Actions履歴、全docs、全diffを一括取得しない/);
   assert.match(policy, /既定値は48 KiB/);
   assert.match(policy, /16 KiB/);
