@@ -38,7 +38,7 @@ export function installInterface(village){
  const stack=document.createElement('div');stack.id='muraTopStack';document.body.append(stack);
  stack.append(hud,modes,$('tutorial'));
  const progress=document.createElement('div');progress.id='muraConstructionLayer';document.body.append(progress);
- const bars=new Map();let lastTick=0,resourceSignature='',statsSignature='',lastRoom=null,lastObserved=null;
+ const bars=new Map();let lastTick=0,resourceSignature=null,statsSignature='',lastRoom=null,lastObserved=null;
  function statusTick(now){
   const climate=window.__MURAAAAAAA_V2_UI__?.currentClimate(),year=Math.floor(world.state.clock/DAYS_YEAR)+1,population=world.population();
   const seasons={spring:'春',summer:'夏',autumn:'秋',winter:'冬'},weather={clear:'晴',rain:'雨',cloudy:'曇',snow:'雪',wind:'風'};
@@ -47,8 +47,8 @@ export function installInterface(village){
   text(brief,`${year}年目 · ${population.people}人暮らし`);
   const built=world.objects.filter(o=>ready(o)&&defs[o.kind]?.building),reception=Math.min(population.limit,population.openBeds),headroom=Math.max(0,reception-population.people);
   text(capacityHint,headroom>0?`あと${headroom}人迎えられます`:population.openBeds<=population.people?'寝床を増やすと次の住人を迎えられます':population.reason);
-  const stats=[['people','住人',population.people,'人'],['homes','寝床',population.openBeds,'人分'],['people','受入目安',population.limit,'人'],['generic','守り',population.safety,''],['food','食事',population.food,''],['facility','施設',built.length,'棟']],sig=stats.map(([,label,value])=>`${label}:${value}`).join('|');
-  if(sig!==statsSignature){statsSignature=sig;hud.querySelector('.muraHudStats').innerHTML=stats.map(([icon,label,value,unit])=>`<div class="muraHudStat">${svg(icon)}<dt>${label}</dt><dd><b>${value}</b>${unit?`<small>${unit}</small>`:''}</dd></div>`).join('');}
+  const stats=[['people','住人',population.people,'人'],['homes','寝床',population.openBeds,'人分'],['people','受入目安',population.limit,'人'],['generic','守り',population.safety,''],['food','食事',population.food,''],['facility','施設',built.length,'棟']],statsSig=stats.map(([,label,value])=>`${label}:${value}`).join('|');
+  if(statsSig!==statsSignature){statsSignature=statsSig;hud.querySelector('.muraHudStats').innerHTML=stats.map(([icon,label,value,unit])=>`<div class="muraHudStat">${svg(icon)}<dt>${label}</dt><dd><b>${value}</b>${unit?`<small>${unit}</small>`:''}</dd></div>`).join('');}
   const resources=world.state.known.filter(k=>world.state.stock[k]>=1),resourceSig=resources.map(k=>k+Math.floor(world.state.stock[k])).join();
   if(resourceSig!==resourceSignature){resourceSignature=resourceSig;const list=hud.querySelector('.muraHudResources');if(!resources.length){const empty=document.createElement('p');empty.className='muraHudEmpty';empty.textContent='まだ資材はありません';list.replaceChildren(empty);}else list.replaceChildren(...resources.map(k=>{const chip=document.createElement('span'),value=Math.floor(world.state.stock[k]);chip.title=`${RESOURCE_NAMES[k]} ${value}`;chip.setAttribute('aria-label',`${RESOURCE_NAMES[k]} ${value}`);chip.innerHTML=svg(k)+`<small>${RESOURCE_NAMES[k]}</small><b>${value}</b>`;return chip;}));}
   const observing=view.observation?.id||null;
@@ -86,7 +86,7 @@ function installUiFeedback({info}){
    let volume=.4;try{volume=JSON.parse(localStorage.getItem(`soul.${info.environment}.village.device.music.v1`))?.volume??.4;}catch{}
    const o=ctx.createOscillator(),g=ctx.createGain(),now=ctx.currentTime;
    o.type='sine';o.frequency.setValueAtTime(kind==='confirm'?660:440,now);o.frequency.exponentialRampToValueAtTime(kind==='confirm'?880:520,now+.065);
-   g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(Math.max(.0001,volume*.09),now+.008);g.gain.exponentialRampToValueAtTime(.0001,now+.11);osc.connect?null:null;
+   g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(Math.max(.0001,volume*.09),now+.008);g.gain.exponentialRampToValueAtTime(.0001,now+.11);
    o.connect(g).connect(ctx.destination);o.onended=()=>{o.disconnect();g.disconnect();};o.start(now);o.stop(now+.12);
   }catch{/* Audio failure must not prevent a UI action. */}
  };
