@@ -12,10 +12,12 @@ function removeNode(node,delta){
 }
 function exterior(view,o){
  const node=view.node(o);node.userData.hostId=o.id;
- if(defs[o.kind].building)node.traverse(mesh=>{
+ // Ready buildings can safely share their cached materials. Only construction
+ // phases need private transparency/color state.
+ if(defs[o.kind].building&&!ready(o))node.traverse(mesh=>{
   if(!mesh.isMesh)return;
   mesh.material=mesh.material.clone();mesh.userData.privateMaterial=true;
-  if(!ready(o)){mesh.material.transparent=true;mesh.material.opacity=o.phase==='building'?.50:.22;mesh.material.color.lerp(new T.Color(0xb5d9dd),.6);mesh.castShadow=false;}
+  mesh.material.transparent=true;mesh.material.opacity=o.phase==='building'?.50:.22;mesh.material.color.lerp(new T.Color(0xb5d9dd),.6);mesh.castShadow=false;
  });
  return node;
 }

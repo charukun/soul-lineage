@@ -82,6 +82,8 @@ When a deformation fails, isolate whether the cause is mesh shape, topology, wei
 
 ## 7. Expressions must visibly deform correctly
 
+For reference-guided facial work, follow [Facial Expression Workflow](FACIAL_EXPRESSION_WORKFLOW.md): capture four real neutral front/side clean/topology views, generate separately labeled expression references, then deform the original mesh into shape keys without treating generated dots as vertex correspondence. Preserve Basis/topology/identity, inspect intermediate weights and intended expression combinations in the real mesh and exported runtime, and retain the source under a separate filename. The guide defines the topology-readiness check and evidence boundary; adopting it alone does not implement expressions.
+
 Named sliders or shape-key entries are not proof of a working face. If expressions are in scope, visually test neutral, partial blink, full blink and at least one mouth/smile state as applicable. Inspect eyelid edge, lashes/hair intersections, mouth interior and skin/material continuity in close-up.
 
 Discrete expression variants and continuous facial deformation are different implementations. State which one actually exists. If continuous blinking or mouth motion is required, the geometry must support it; add or fit missing eyelid/mouth surfaces when needed instead of pretending that a named control is enough.
