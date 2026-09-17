@@ -53,6 +53,35 @@ export const ACTION_SKILLS=Object.freeze([
 export const DISCOVERIES=Object.freeze([...SUPPORT_SKILLS,...ACTION_SKILLS]);
 export const SKILL_BY_ID=Object.freeze(Object.fromEntries(DISCOVERIES.map(row=>[row.id,row])));
 
+const experienceScore=(state,kind)=>Math.max(0,Number(state?.experiences?.[kind]?.score)||0);
+const knownSet=state=>new Set(Array.isArray(state?.knownSkills)?state.knownSkills:[]);
+export function skillUnlockProgress(state,rowOrId){
+  const row=typeof rowOrId==='string'?SKILL_BY_ID[rowOrId]:rowOrId;
+  if(!row)return{ready:false,progress:0,missingNeeds:[],missingSupport:[]};
+  const scores=(row.needs||[]).map(kind=>({kind,score:experienceScore(state,kind)}));
+  const threshold=Math.max(.01,Number(row.threshold)||1),needProgress=scores.length?Math.min(...scores.map(item=>item.score/threshold)):1;
+  const known=knownSet(state),missingNeeds=scores.filter(item=>item.score<threshold).map(item=>item.kind),missingSupport=(row.support||[]).filter(id=>!known.has(id));
+  return{ready:missingNeeds.length===0&&missingSupport.length===0,progress:clamp(needProgress,0,1),threshold,missingNeeds,missingSupport,scores};
+}
+export function eligibleDiscoveries(state){
+  const known=knownSet(state);
+  return DISCOVERIES.filter(row=>!known.has(row.id)&&skillUnlockProgress(state,row).ready);
+}
+export function discoverAvailableSkills(state){
+  if(!state)return[];state.knownSkills=Array.isArray(state.knownSkills)?state.knownSkills:[];state.pendingDiscoveries=Array.isArray(state.pendingDiscoveries)?state.pendingDiscoveries:[];
+  const known=knownSet(state),found=[];let changed=true;
+  while(changed){
+    changed=false;
+    for(const row of DISCOVERIES){
+      if(known.has(row.id))continue;
+      if(!skillUnlockProgress({...state,knownSkills:[...known]},row).ready)continue;
+      known.add(row.id);state.knownSkills.push(row.id);found.push(row.id);changed=true;
+    }
+  }
+  if(found.length)state.pendingDiscoveries=Array.from(new Set([...state.pendingDiscoveries,...found]));
+  return found;
+}
+
 function selectedSkillIds(state){
   const ids=new Set(),loadout=state?.combatLoadout;
   for(const id of loadout?.heart?.active||[])if(SKILL_BY_ID[id]?.type==='support')ids.add(id);
@@ -74,6 +103,4 @@ export function skillEffects(state){
   return total;
 }
 
-/** Combat/life history never unlocks character power. Kept as a compatibility surface for older callers. */
-export function eligibleDiscoveries(){return [];}
 export function skillName(id){return SKILL_BY_ID[id]?.name||id;}
