@@ -46,9 +46,29 @@ Report which file/revision was reviewed. For material/animation/export-sensitive
 
 Character Studio (`apps/rinne/characters.html`, as documented in `docs/characters/CHARACTER_STUDIO.md`) is the production inspection surface for MasterCharacter identities, modular parts, deterministic comparison and workspace continuity. Use it when the task affects that pipeline.
 
-Visual Review Lab is a separate fast human-review lane with its own long-lived branch/preview contract. Use it when a reviewable visual preview materially helps the task, but do not rewrite normal implementation/Integration flow around it and do not treat Lab publication itself as proof of visual acceptance.
+Visual Review Lab is the current develop-backed fast human-review lane. Use it when a reviewable visual preview materially helps the task, but do not rewrite normal implementation/Integration flow around it and do not treat Lab publication itself as proof of visual acceptance.
 
 A good review surface should make the real asset easy to inspect rather than decorate it: stable viewport, predictable camera controls, explicit selected actor/variant, deterministic comparison, clear pose/expression controls and no hidden randomization of the subject under review.
+
+### Cross-app character and VFX review contract
+
+Human characters that represent the same shared-world character foundation must resolve from the same canonical model family and rig across `rinne`, `village`, and `demon`. An app may change role equipment, damage/condition, camera, lighting, LOD, crowd cadence, scene dressing or other presentation context, but it must not silently replace the human body with an unrelated procedural or retired model in its normal runtime path. A deliberate non-human transformation remains a separate character contract.
+
+The Lab must let a reviewer keep the subject fixed while changing review dimensions instead of forcing navigation between unrelated pages. At minimum the review flow exposes:
+
+- app context: Rinne / MURAAAAAAA / 尽喰廻遊;
+- model or deterministic individual, role and age;
+- fixed front / three-quarter / side / back / face views plus app-normal camera distance;
+- motion selection, play/pause, speed, loop, frame/time scrub and one-frame stepping where the source supports it;
+- before/after correction comparison for motion defects;
+- equipment slots and relevant world props;
+- one-body and two-body/contact states when interaction is part of the motion;
+- crowd/LOD counts when scale changes the delivered appearance;
+- a direct route to the real app surface when the final question is app-specific.
+
+VFX review must use the same repository/runtime effect sources that the games consume. The Lab may provide a neutral inspection stage, but it must not invent a second combat clock or fake gameplay effect contract. Review controls should expose effect family/preset, intensity tier, play/pause, time scrub where deterministic, motion/contact synchronization, and at least neutral-stage plus combat-context viewing. Flash, trail, spark, smoke/dust and magic/aura families should remain distinguishable enough to judge timing, silhouette obstruction, hit readability and mobile cost.
+
+Object review is not limited to weapon attachment. The reviewer must be able to distinguish character equipment from scene/world props and identify which app actually consumes the asset. A review-only pinned candidate must be labelled as such and must not be presented as already adopted gameplay content.
 
 ### Machine review consumer
 
@@ -96,9 +116,7 @@ When performance is measured, record the model/build revision and enough environ
 For requested character/motion inspection, first start the actual Lab inside the
 worker. A remote cloud browser's missing WebGL context or blocked localhost is
 not evidence that a locally launched Chromium/SwiftShader cannot render it.
-For the independent 30-second sword viewer, use the current Lab branch
-`work/visual-review-lab-v2` and its `apps/rinne/docs/VISUAL_REVIEW_PREVIEW.md`:
-`npm run review:local:setup`, then `npm run review:local -- --mode sequence --time 3.33 --playback`.
+Use the current develop-backed review route and current character/motion entrypoints; do not revive a stale long-lived Lab branch merely to obtain a renderer.
 Keep the server and its browser client in the same process tree when execution
 calls have isolated networks. Do not weaken sandbox/network policy to connect them.
 Retain exact source hashes and distinguish browser preparation, local HTTP,
@@ -106,7 +124,7 @@ WebGL2 rendering, captures, recorded playback, observed 1x review and physical
 device evidence. Try another authorized local browser preparation route before
 falling back to CPU mesh captures; neither fallback grants visual approval.
 This is a bounded authoring check, not a requirement to wait for public CI or
-run unrelated full E2E. The Lab remains independently published and Draft.
+run unrelated full E2E.
 
 ### Findings
 
