@@ -143,6 +143,19 @@ export async function integrateFastLane(c, repository, options = {}) {
       let reviews = await reviewsWithTrustedStatus(c, pr,
         await c.pages(`/pulls/${pr.number}/reviews`, undefined, { maxPages: 10, cache: true }), { cache: true });
 
+      if (!dependency.merged) {
+        const reason = 'dependency PR is not merged into develop';
+        report.held.push({ pr: pr.number, head: pr.head.sha, reason });
+        await queueStatus(c, pr, 'pending', reason, targetUrl);
+        continue;
+      }
+      if (!dependency.incorporated && !(pr.mergeable === false && pr.mergeable_state === 'dirty')) {
+        const reason = 'dependency merge-forward required';
+        report.held.push({ pr: pr.number, head: pr.head.sha, reason });
+        await queueStatus(c, pr, 'pending', reason, targetUrl);
+        continue;
+      }
+
       if (pr.mergeable === false && pr.mergeable_state === 'dirty') {
         const deep = await signalDeepRepair(c, {
           pr,
