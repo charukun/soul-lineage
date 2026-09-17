@@ -2,146 +2,150 @@
 
 ## 目的
 
-通常の develop Integration は **PRで最低限守り、通るものから即流す**。DEV公開や、別PRの失敗を通常merge laneへ伝播させない。通常developの自動CIはtest-freeとし、browserもopt-inにする。局所テストは実装セッション側、重い品質認定は明示検証またはmain / Production側が担当する。
+Integration は [`ASTRA_OUTCOME_CONTRACT.md`](ASTRA_OUTCOME_CONTRACT.md) の `READY` を受け取り、**人間やAstraの意味判断を再実装せず、機械的に証明できる最後の原子性だけを守る deterministic layer** とする。
 
-実装セッションの終了条件は [実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md)。通常実装は Draft PR → 実装 → 局所検証 → **current develop を work branch へ merge-forward → 局所再検証 → push → final freshness verify** → Ready → `READY_FOR_INTEGRATION` で終了し、CI/DEV完了を待機・pollingしない。
+通常の develop Integration は PR 単位で最低限守り、通るものから即流す。別PRの失敗やDEV公開を独立PRのmerge lockにしない。通常developの自動CIはtest-free、browserはopt-in。semantic validation は Ready 前の Astra、重い品質認定は明示検証または main / Production が担当する。
 
-Integration は実装セッションの代わりに通常のbase追従を行う第二工程ではない。正常な Ready PR は Ready 直前に観測した develop を既に含む。Integration は Ready 後に発生しうる短い race を吸収しつつ、single serialized expected-head writerとして最終的な原子性を守る薄い改札とする。
+## Outcome handoff
 
-## 通常経路
+正常な Ready PR は次を前提にする。
+
+- worker-facing state は `READY`。
+- Ready直前に観測した current `develop` を work head が ancestry に含む。
+- final reconciled exact head に必要十分な semantic evidence がある。
+- validated head と pushed head が一致する。
+- unresolved product choice がない。
+
+Draft は optional `WORKING` transport であり、Integration の prerequisite ではない。短寿命workerが最終 outcome 完成後に Ready PR を直接作ってもよい。Micro Patch / Normal の authoring route 名も Integration の入力契約にしない。
 
 ```text
-implementation worker
-  -> current develop merge-forward / focused revalidation / push / freshness verify
-  -> Ready PR
+Astra WORKING
+  -> final reconcile + sufficient evidence
+  -> READY PR
        -> Validate and build (DEV tests=0)
        -> exact-head pr-fast artifact
        -> Fast Lane
-            develop unchanged since Ready -> serialized expected-head merge
-            develop advanced after Ready, mechanically safe -> Fast Repair
-                 -> merge-forward latest develop
-                 -> exact-head DEV checks/build (tests=0)
-                 -> Fast Lane wake
-            semantic/unsafe -> owner-notified Chat Repair Issue / HUMAN_REQUIRED
-       -> develop push
-       -> DEV Publisher
-       -> candidate manifest / public HTTP + source verification
+            current develop unchanged -> serialized expected-head / CAS merge
+            develop advanced after Ready + mechanically safe -> Fast Repair
+            semantic/source repair required -> same PR returns to WORKING via Chat Repair handoff
+       -> develop
+       -> latest-only DEV publication / source verification
 ```
 
-通常develop CIでは `node --test`、PR browser smoke、DEV candidate browser、DEV post-publish browserを自動実行しない。ブラウザ検証は明示依頼、`full_verification=true`、専門workflowのevidence契約、main / Productionでだけ実行する。
+## merge前の必須条件
 
-正常PRはFast Repairを通らない。Fast Repairは第二のmerge queueでも、実装workerが省略した通常のpre-Ready reconciliationを肩代わりする常設工程でもない。Ready後にdevelopが進んだrace、依存PR merge後など、hand-off後に生じた機械的に安全なbase更新だけを短命executorとして扱う。Chat repair待ちのPRは独立eligible PRを止めない。
-
-### merge前の必須条件
-
-Fast Laneはmerge直前にcurrent GitHub stateを再取得し、次をすべて満たすPRだけをmergeする。
+Fast Lane はmerge直前にcurrent GitHub stateを再取得し、次をすべて満たす exact head だけをmergeする。
 
 - open / non-Draft / base=`develop`
-- same repository、trusted author
+- same repository / trusted author
 - `integration:hold` / `integration:manual` / `do-not-merge` / `Integration-Hold:` なし
 - `Depends-On` 完了
 - GitHub mergeable
-- Changes requestedなし、未解決review threadなし
-- **current exact head** の `Validate and build` が成功
-- 同じPR/headの `pr-fast-<PR>-<SHA>` artifactが存在
-- `.github/**` / `scripts/**` / Integration文書などcontrol-plane変更はcurrent exact-head trusted review条件を維持
-- develop進行後に重複scopeが生じた場合も既存review条件を維持
+- Changes requestedなし / unresolved review threadなし
+- **current exact head** の `Validate and build` 成功
+- 同じ PR/head の `pr-fast-<PR>-<SHA>` artifact
+- control-plane変更はcurrent exact-head trusted review条件を維持
 
-`Validate and build` のdevelop契約はtest-freeであり、exact-headの差分/構文・静的check・code-health・必要なbuild可否を確認する。テスト成功を意味しない。merge APIにはcurrent exact head SHAを渡す。develop writerは単一laneで、force pushやhistory rewriteをしない。
+`Validate and build` のdevelop契約はtest-freeであり、exact-headの差分衛生、syntax/static、code-health、必要なbuild可否を確認する。Astraが行ったsemantic testの代替ではない。merge APIにはcurrent exact head SHAを渡し、develop writerはsingle serialized laneとする。force push / history rewriteはしない。
 
-Ready直前のfreshness verifyはraceを減らすための実装worker契約であり、Integration側のcurrent-state再取得やexpected-head mergeを省略する根拠にはしない。Ready直後でも別PRがmergeされ得るため、最後のcompare-and-swapは必ずIntegrationに残す。
+Ready前にworkerがfreshnessを確認しても、Readyとmergeの間には必ずraceが残る。したがって current-state re-fetch と expected-head/CAS merge は削除しない。
 
 ## Fast Repair
 
-`rescue_mode=scan` は既定branch互換のwake入力として残すが、通常経路では旧RescueのCoordinator/Wave/claim/heartbeat/`AWAITING_PUSH`/Work push relay/Return queueを使わない。
+Fast Repair は worker が省略した通常作業を肩代わりする第二実装工程ではない。扱うのは handoff **後** に発生した mechanically safe な変化だけ。
 
-Fast Repairが扱うのは、**Ready後にdevelopが進んだrace**、依存PRのmerge後に最新developを取り込むなど **機械的に安全性を証明できるstack/base更新** だけ。実行直前にcurrent PR/head/develop、Draft、repository、author、hold、review thread、Depends-Onを再確認し、元PR branchへ通常のmerge-forwardを行う。更新後は同じtrusted runでtest-freeのDEV checks/buildを行い、`integration/stack-fast` と `pr-fast-<PR>-<SHA>` の実証拠を作ってFast Laneを即wakeする。
+例:
 
-Fast Repairのmerge成功直後にPR情報が旧headを返す場合は、元headから変わっていない安全条件と実branch refを照合し、返却されたmerge SHAへの更新を確認できた場合だけ検証へ進める。別writerのhead・Draft・hold・依存本文変更は採用しない。
+- Ready後に別PRがdevelopへmergeされた。
+- dependency PRがmergeされ、base ancestryだけ更新すればよい。
+- scope-disjointなdevelop driftをcurrent stateから機械的に安全と証明できる。
 
-同一fileや契約の意味衝突、true merge conflict、source-level修復が必要なDEV check/build failureはGitHub Actionsが片側を選ばず、[Deep Repair / Chat handoff](INTEGRATION_DEEP_REPAIR.md) へ送る。
+実行直前に PR/head/develop、Draft、repository、author、hold、review、Depends-On を再確認し、同じ source branch を merge-forwardする。更新後は trusted exact-head DEV checks/build (tests=0) と `pr-fast-<PR>-<SHA>` evidence を作り Fast Lane をwakeする。
 
-## semantic repairはWorkを使わない
+same-file semantic conflict、true merge conflict、source-level修復が必要なDEV check/build failureをGitHub Actionsがours/theirsで選ばない。これらは同じ source PR を implementation ownershipへ戻す。
 
-Deep RepairはバックグラウンドAI workerではない。Fast Laneがcurrent exact headごとに1件だけGitHub Issueを作り、ownerへ既存GitHub通知を送る。Issueには `integration-deep-repair:v1`、`chat-repair:v1`、PR/head/develop/reasonと、**通常Chatへそのまま貼れる復旧prompt**を含める。
+## Semantic repair
 
-通知を受けたユーザーが通常Chatを手動開始した場合だけ修復する。Chatはrecorded SHAを正本にせずcurrent PR head / latest developを再取得し、PR側・develop側の意図と確定契約を読み、双方を両立できる第三の修復を作る。無条件ours/theirs、blind cherry-pick、assertion削除、品質gate弱体化は禁止。
+Deep/Chat RepairはバックグラウンドAI workerではない。current exact headごとに1件だけ owner 通知 Issue を作り、通常Chatで current PR head / latest develop を再取得して修復する。
 
-修復は同じsource PR branchだけへpushし、current develop を branch へ reconcile したうえで focused checks / local tests / build、push、freshness verify後にReady / `READY_FOR_INTEGRATION`へ戻す。通常git → 接続済みGitHub API → 必要時のみ同branchの既存Codespaces＋通常gitの順で反映する。ChatはCI/DEVを待機・pollingしない。
+修復Chatは recorded SHA を盲信せず、PR側・develop側・現在契約を読み、第三の意味解を作る。blind ours/theirs、blind cherry-pick、assertion削除、gate弱体化は禁止。
 
-Integration復旧では ChatGPT Work、Codex、OpenAI API、追加有料モデルAPI、専用PATを自動起動・fallback・watchdogに使わない。旧Work repair文書/scripts/stateは互換・履歴参照用であり現行実行経路ではない。
+修復中の outcome は `WORKING`。同じ source branch に修正し、current develop とreconcileした final headに必要な semantic evidence を実行し、push後に `READY` / `READY_FOR_INTEGRATION` へ戻す。ChatはCI/DEVを待機・pollingしない。
 
-current repository contractsから解けないschema/save/protocol/API等の真のproduct choiceだけを `human-required` とする。同file競合・技術的難しさ・目視未確認だけでhuman-requiredにしない。
+current repository contracts から解けない schema/save/protocol/API、権限、不可逆選択などだけを `BLOCKED` / human-required とする。同file競合・技術的難しさ・未実施visual確認だけで human-required にしない。
 
-## develop CIはtests=0 / browserはopt-in
+Integration復旧で ChatGPT Work、Codex、OpenAI API、追加有料モデルAPI、専用PATを自動起動/fallback/watchdogに使わない。
 
-通常のdevelop PRとFast Repairでは自動テストを実行しない。`scripts/validate.mjs dev` はstatic checks / code-health / buildを行うが、`node --test` を起動しない。テスト資産は削除せず、実装セッションの局所検証、明示full verification、main / Productionで利用する。
+## develop CI: tests=0 / browser opt-in
 
-ブラウザ検証は次の場合だけ行う。
+通常develop PRとFast Repairの自動gateは `node --test` を常時実行しない。trusted control checkoutから static checks / code-health / 必要 build を行う。test資産は削除せず、Ready前のAstra evidence、明示full verification、main / Productionで使う。
 
-- ユーザーが明示的にブラウザ操作・playtest・確認を依頼した場合
-- `deploy.yml` を `full_verification=true` で明示実行した場合
-- motion / Visual Review等の専門workflowが自身のevidence契約として必要とする場合
-- main / Productionのblocking gate
+browser検証は次だけで行う。
 
-明示ブラウザ検証が失敗した場合も、assertion削除や恣意的timeout延長で通すことは禁止。true source semantic repairが必要ならnormal Chat handoffへ送る。過去の `browser-repair:v1`、`pr-browser-*`、`dev-browser-*` は履歴証拠であり、通常developの自動実行トリガーにしない。
+- ユーザーがブラウザ操作 / playtest / visual確認を明示した場合
+- `full_verification=true`
+- motion / Visual Review等の専門workflowが evidence として要求する場合
+- main / Production blocking gate
 
-## DEV deliveryはmerge healthと分離する
+明示browser検証が失敗しても assertion削除や恣意的timeout延長で通さない。
 
-`integration/develop` は **DEV delivery health** であり、通常PRのglobal merge lockではない。
+## DEV deliveryはmerge healthと分離
 
-- `pending`: DEV公開・source検証中
-- `success`: そのdevelop SHAのDEV公開とHTTP/source確認成功
-- `failure`: そのdevelop SHAのDEV delivery/source確認失敗。repair対象だが独立Ready PRのmergeは止めない
+`integration/develop` は DEV delivery health であり、通常PRのglobal merge lockではない。
 
-DEV側の公開・候補manifest・HTTP/source照合・LKG rollbackは維持する。通常develop deliveryの成功条件にtest/browser結果は含めない。
+- `pending`: DEV公開/source verification中
+- `success`: そのdevelop SHAのDEV公開とsource確認成功
+- `failure`: そのdevelop SHAのDEV delivery/source確認失敗。delivery repair対象だが独立Ready PRを止めない
+
+DEV publication、candidate manifest、HTTP/source照合、LKG rollbackは維持する。通常develop deliveryの成功条件にtest/browser結果は含めない。
 
 ## latest-only DEV Publisher
 
-Fast Laneが`GITHUB_TOKEN`でmergeした更新は`push` workflowを連鎖起動しないため、merge batch完了時に最新developを対象とする`deploy.yml`の`publish_only=true`を明示dispatchする。公開要求の受理と公開検証成功を区別し、dispatch失敗を成功扱いしない。
+Fast Laneのmerge batch完了後は最新developを対象に publisher をwakeする。同一SHAの重複publisherを増やさず、古い自動publisherはlatest developへcoalesceする。publish直前にdevelop SHAを再確認し、superseded snapshotをpublicへ昇格させない。
 
-自動公開要求は同じSHAの実行中publisherへ重複要求せず、古い自動publisherはlatest developへまとめる。通常Integration、repair、人が開始した公開、main/Production runは取消対象にしない。publish直前にdevelop SHAを再確認し、superseded snapshotをpublicへ昇格させない。
+publication wake失敗をmerge成功と混同しない。通知失敗もadvisoryでありmerge判定を変更しない。
 
-## 1件の失敗で全体を止めない
+## 独立PRを止めない
 
-Fast LaneはReady PRをPR単位で評価する。
+Fast LaneはPR単位で評価する。
 
 ```text
-A: exact-head DEV check/build failure -> AだけChat repair/保留
-B: exact-head DEV check/build success -> merge
-C: exact-head DEV check/build success -> merge
+A: exact-head source failure -> Aだけ WORKING / Chat Repair
+B: exact-head gate success   -> merge
+C: exact-head gate success   -> merge
 ```
 
-explicit hold、dependency、review objection、merge conflict、exact-head DEV check/build failureは対象PRだけを止める。developが外部writerで予期せず移動した場合のみ、そのFast Lane passを停止してcurrent stateから再評価する。
+explicit hold、dependency、review objection、merge conflict、exact-head DEV failureは対象PRだけを止める。develop writer自体が予期せず動いた場合のみ current state から再評価する。
 
-## Draft / Ready
+## PULSE state mapping
 
-Draftは実装workerが作業し、Ready化前にpre-Ready reconciliationを完了する領域。Draftではlightweight checkのみ。Readyになると `Validate and build` を開始する。**developのこのjobはtests=0で、Request Integrationはcheck/build成功・失敗の直後に起動する。browser jobも通常develop経路に存在しない。** current exact-head source repairが必要な失敗はChat Repair Issueへ送る。
+利用者向けPULSEでは worker mental model を `WORKING / READY / BLOCKED` に保つ。
 
-Integrationは「Readyにされた古いbaseを毎回更新する工程」ではない。Ready時点でheadが直前に取得したdevelopを含むことを標準契約とし、その後のraceだけをFast Repair fallbackで扱う。
+- Draft または source exact-head failureでimplementation ownershipに戻ったもの: `WORKING`
+- Ready後の CI / Fast Lane / mechanical repair / dependency wait: `READY`
+- explicit holdなど、人間介入がGitHub stateから確認できるもの: `BLOCKED`
+
+Fast Lane、Repair、Reconciliation、CI phaseは技術詳細として表示してよいが、トップレベルの追加ライフサイクル状態にはしない。
 
 ## main / Production
 
-このFast Laneはdevelop専用。main / Productionの既存test/full regression、blocking browser、public source確認などの品質gateは変更しない。Productionへの昇格は明示許可がある場合のみ。
+このFast Laneはdevelop専用。main / Productionのtest/full regression、blocking browser、public source確認など既存品質gateは変更しない。Productionへの昇格は明示許可がある場合のみ。
 
-## 通知とPULSE
+## 通知
 
-`INTEGRATED` と `DEV_DEPLOYED` は別イベントとして扱う。通知失敗はadvisoryでありmerge/publication判定を変更しない。PULSEはmerge状態とDEV delivery healthを混同しない。
+`INTEGRATED` と `DEV_DEPLOYED` は別イベントとして扱う。semantic repairはGitHub Issue assignment/mentionで owner に通知し、独自SMTP・外部メールサービス・第二queueを追加しない。同じexact headは1 Issueだけ。
 
-意味的競合のChat修復要求はGitHub Issue assignment/mentionを使い、既存GitHub通知メール経路でownerへ届ける。独自SMTP・外部メールサービス・通知queueは追加しない。同じexact headは1 Issueだけで重複通知を防ぐ。メール配送可否はownerのGitHub通知設定に従う。
-
-ユーザーが修正依頼した内容のDEV反映連絡も既存GitHub PR購読メールを利用する。詳細は [開発中のDEV反映メール通知](DEV_NOTIFICATION.md) を参照する。
+ユーザーが修正依頼した内容のDEV反映連絡も既存GitHub PR購読メールを利用する。詳細は [`DEV_NOTIFICATION.md`](DEV_NOTIFICATION.md)。
 
 ## 受入条件
 
-- 実装workerはReady直前にcurrent developをwork branchへmerge-forwardし、reconciled headをfocused validation・push・freshness verifyしてからReadyにする
-- 正常Ready PRはRepair stateやWorkを経由せず `Validate and build (tests=0) -> Fast Lane -> serialized expected-head merge` で流れる
-- Fast RepairはReady後のdevelop advanceやdependency mergeなどhandoff後に生じた mechanically repairableなstack/base更新だけをGitHub Actionsで更新・test-free DEV検証・Fast Lane wakeする
-- semantic conflict / source-level DEV check/build repairはexact headごとに1件だけowner通知Chat Repair Issueを作る
-- 通知Issueに通常Chat用promptがあり、修復時はcurrent GitHub stateを再取得する
-- `AWAITING_PUSH` / Work relay / periodic Work watchdogを通常Repairの待ち時間にしない
-- normal developでtests=0・browserはopt-in、明示full verificationとProduction品質gateは維持
-- develop writerはsingle expected-head writerで、Ready前reconciliationを理由にCAS gateを削除しない
-- stale DEV push publisherはcancel/coalesceされlatest developへ収束する
-- ChatGPT Work / Codex / OpenAI API / paid fallbackなし
+- Ready入力は Astra Outcome Contract を満たす final reconciled exact head
+- Draft / Micro Patch分類を Integration prerequisite にしない
+- `Validate and build (tests=0) -> Fast Lane -> serialized expected-head/CAS merge` を維持
+- Fast RepairはReady後の mechanically safe な race/base driftだけを扱う
+- semantic/source repairは同じPRを `WORKING` に戻す
+- human-required / `BLOCKED` は真の外部判断だけ
+- normal developはtests=0 / browser opt-in、Production品質gateは不変
+- one PR failure does not block independently eligible PRs
+- DEV publisherはlatest-onlyへ収束
 - main / Production品質gateは不変
