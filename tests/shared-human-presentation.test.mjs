@@ -5,13 +5,14 @@ import {readFile} from 'node:fs/promises';
 const root=new URL('../',import.meta.url),read=path=>readFile(new URL(path,root),'utf8');
 
 test('all three apps keep the shared human presentation contract',async()=>{
-  const [resolver,rinne,villageAdapter,villageIntegration,demonAdapter,demonModel]=await Promise.all([
+  const [resolver,rinne,villageAdapter,villageIntegration,demonAdapter,demonModel,demonHumans]=await Promise.all([
     read('packages/characters/src/presentation-resolver.js'),
     read('apps/rinne/src/rebuild/character-presentation.js'),
     read('apps/village/src/character-runtime-adapter.js'),
     read('apps/village/src/character-runtime-integration.js'),
     read('apps/demon/src/character-runtime-adapter.js'),
-    read('apps/demon/src/master-model.js')
+    read('apps/demon/src/master-model.js'),
+    read('apps/demon/src/master-humans.js')
   ]);
   assert.match(resolver,/\['rinne', 'village', 'demon'\]/);
   assert.match(rinne,/KAYKIT_FOUNDATION/);
@@ -20,11 +21,15 @@ test('all three apps keep the shared human presentation contract',async()=>{
   assert.match(villageAdapter,/KAYKIT_RIG_ID/);
   assert.match(villageIntegration,/loadKaykitRuntimeModel/);
   assert.match(villageIntegration,/manifestationSource='kaykit-model'/);
+  assert.match(villageIntegration,/function modelFor\(person\)\{return MODELS\[hash\(person\?\.id\|\|'resident'\)%MODELS\.length\];\}/);
+  assert.doesNotMatch(villageIntegration,/function modelFor\([^)]*\)[^{]*\{[^}]*role/);
   assert.doesNotMatch(villageIntegration,/SHINO_review|Sendagaya_Shino/);
   assert.match(demonAdapter,/KAYKIT_MODEL_BY_KEY\.knight/);
   assert.match(demonModel,/loadKaykitRuntimeModel/);
   assert.match(demonModel,/\.\/assets\/kaykit\//);
   assert.doesNotMatch(demonModel,/\.\.\/rinne\//);
+  assert.match(demonHumans,/const random=rng\(hashHuman\(npc\?\.id\|\|'human'\)\)/);
+  assert.doesNotMatch(demonHumans,/hashHuman\(`\$\{npc\?\.id\|\|'human'\}:\$\{npc\?\.role/);
 });
 
 test('Village and Demon materialize the same pinned KayKit foundation inside their own app',async()=>{
