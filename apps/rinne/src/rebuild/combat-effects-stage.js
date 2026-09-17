@@ -48,8 +48,8 @@ export function installCombatEffects(view,{document,canvas,backendFactory=create
   view.updateFront=(next)=>{front=next;return original.updateFront(next);};
   view.presentCombatEvents=(events,context)=>{
     if(disposed||document.hidden||context.state?.zone!=='frontier')return;
-    const result=director.present(events,{...context,front:context.front||front});
-    const anchors=anchorMap(director,context.state,context.front||front);player.present(events,{...context,front:context.front||front,anchors});
+    const currentFront=context.front||front,result=director.present(events,{...context,front:currentFront});
+    const anchors=anchorMap(director,context.state,currentFront);player.present(events,{...context,front:currentFront,anchors});
     if(result.strongest)presentRinneImpactAudio({energy:result.strongest.profile.energy,prehit:false});
   };
   view.clearCombatEffects=()=>{player.clear();director.clear();presentation.clear();clearRinneImpactAudio();};
@@ -58,7 +58,11 @@ export function installCombatEffects(view,{document,canvas,backendFactory=create
     const restorePose=director.applyPoseLag(state,front,dt);
     try{
       const anchors=anchorMap(director,state,front),anticipation=director.anticipation(state,front);
-      if(anticipation.length){player.presentCues(anticipation.map(anticipationCue));const hero=anticipation.find(row=>!row.enemy),danger=anticipation.find(row=>row.enemy&&(front?.enemies||[]).find(e=>`enemy:${e.id}`===row.followKey)?.attentionTargetId===state.id);if(hero||danger)presentRinneImpactAudio({energy:hero?.attack==='heavy'?.78:.58,prehit:true});}
+      if(anticipation.length){
+        player.presentCues(anticipation.map(anticipationCue));
+        const hero=anticipation.find(row=>!row.enemy),danger=anticipation.find(row=>row.enemy&&(front?.enemies||[]).find(e=>`enemy:${e.id}`===row.followKey)?.attentionTargetId===state.id);
+        if(hero||danger)presentRinneImpactAudio({energy:hero?.attack==='heavy' ? .78 : .58,prehit:true});
+      }
       // Only pose/VFX presentation consumes the local scale. The base renderer receives real dt so performance and simulation clocks stay truthful.
       player.frame(state,front,dt*snap.timeScale,{level,reduced,hidden,anchors});
       const mayBoot=!hidden&&state?.zone==='frontier'&&state?.phase!=='birth'&&!state?.ended;
@@ -71,7 +75,7 @@ export function installCombatEffects(view,{document,canvas,backendFactory=create
   canvas.addEventListener('webglcontextlost',lost);
   view.dispose=()=>{
     if(disposed)return;disposed=true;abort.abort();player.dispose();director.clear();presentation.clear();clearRinneImpactAudio();canvas.removeEventListener('webglcontextlost',lost);
-    if(view.scene.onBeforeRender) view.scene.onBeforeRender=previousBefore;if(view.scene.onAfterRender)view.scene.onAfterRender=previousAfter;
+    view.scene.onBeforeRender=previousBefore;view.scene.onAfterRender=previousAfter;
     stage.onAfterRender=()=>{};stage.removeFromParent();geometry.dispose();material.dispose();original.dispose();
   };
   return view;
