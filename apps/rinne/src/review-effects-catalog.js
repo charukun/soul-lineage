@@ -24,6 +24,7 @@ export const REVIEW_EFFECT_SCENARIOS=Object.freeze([
 export const REVIEW_EFFECT_CATALOG=Object.freeze([
   entry('slash',{label:'剣閃リボン',category:'slash',author:'Effekseer',use:'通常斬撃 / 追撃',scenario:'sweep',cueScale:1.12,lifetime:.75,color:[255,238,198,255],summary:'武器軌跡を太く残す原本。通常攻撃の輪郭確認向け。'}),
   entry('impact',{label:'Toon Hit',category:'impact',author:'tktk',use:'命中 / 被弾',scenario:'incoming',cueScale:1.08,lifetime:1.2,color:[255,174,116,255],summary:'接触点が一瞬で読めるトゥーン系ヒット。'}),
+  entry('hanmadoHit',{label:'HDR Impact',category:'impact',author:'hanmado',use:'強打 / クリティカル',scenario:'kyu',cueScale:1.12,lifetime:1.4,color:[255,236,210,255],summary:'フラッシュ・火花・歪みを重ねたHDR前提の強打原本。大技の命中核候補。'}),
   entry('finisher',{label:'Light',category:'finisher',author:'tktk',use:'溜め / 急 / 大技',scenario:'finisher',cueScale:1.22,lifetime:1.9,color:[255,236,170,255],summary:'大きな光量と余韻を持つ大技候補。'}),
   entry('laser01',{label:'Laser 01',category:'beam',author:'Effekseer',use:'直線技 / 斬撃補助',scenario:'forward',cueScale:1.0,lifetime:1.35,color:[182,228,255,255],summary:'細身の直線光。方向性と速度感の確認向け。'}),
   entry('laser02',{label:'Laser 02',category:'beam',author:'Effekseer',use:'雷光 / 急 / 必殺',scenario:'kyu',cueScale:1.12,lifetime:1.6,color:[217,236,255,255],summary:'雷・粒子・バーストを重ねた派手な光線原本。'}),
