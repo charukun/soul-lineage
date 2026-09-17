@@ -14,7 +14,7 @@ function impactPart(event,pose){if(event.part)return event.part;const attack=Str
 export function impactEnergyForEvent(event,context={}){
   if(!event||!['player-hit','enemy-hit','one-motion'].includes(event.type)||!(Number(event.damage)>0))return 0;
   const source=sourceForEvent(event,context),target=targetForEvent(event,context),pose=actorPose(source),attack=String(pose?.attack||event.attack||'slash');
-  const mass=WEAPON_MASS[actorWeapon(source)]||1,force=ATTACK_FORCE[attack]||1,phase=phaseForce(event),maxHp=Math.max(1,Number(target?.maxHp)||100),damageRatio=clamp(Number(event.damage)/maxHp,0,.7),direct=event.guarded||event.blocked?.72:1,projectile=event.projectile?.88:1;
+  const mass=WEAPON_MASS[actorWeapon(source)]||1,force=ATTACK_FORCE[attack]||1,phase=phaseForce(event),maxHp=Math.max(1,Number(target?.maxHp)||100),damageRatio=clamp(Number(event.damage)/maxHp,0,.7),direct=(event.guarded||event.blocked)?.72:1,projectile=event.projectile?.88:1;
   return clamp(.08+mass*.19+force*.18+phase*.13+Math.sqrt(damageRatio)*.28,0,1)*direct*projectile;
 }
 
@@ -41,10 +41,9 @@ function blendFrame(previous,current,t,slow){if(!current)return null;if(!previou
 
 export function createImpactDirector({mobile=false,reducedMotion=false}={}){
   let stop=0,slow=0,slowDuration=0,slowScale=1,qualityLevel=0,reduced=reducedMotion,hidden=false,camera={x:0,z:0,strength:0,fov:0},reactions=[],poseDisplay=new Map(),attackTrack=new Map(),strongest=null;
-  const actorKey=(actor,fallback)=>String(actor?.id||fallback);
   function present(events,context={}){
     if(hidden||!Array.isArray(events))return{impacts:[],strongest:null};const impacts=[];
-    for(const event of events){const energy=impactEnergyForEvent(event,context);if(!(energy>0))continue;const profile=impactProfile(energy,{reduced,qualityLevel}),source=sourceForEvent(event,context),target=targetForEvent(event,context),vector=attackVector(source,target),targetKey=event.type==='enemy-hit'?actorKey(context.state,'hero'):`enemy:${event.targetId}`;
+    for(const event of events){const energy=impactEnergyForEvent(event,context);if(!(energy>0))continue;const profile=impactProfile(energy,{reduced,qualityLevel}),source=sourceForEvent(event,context),target=targetForEvent(event,context),vector=attackVector(source,target),targetKey=event.type==='enemy-hit'?'hero':`enemy:${event.targetId}`;
       impacts.push({event,profile,source,target,vector,targetKey,part:impactPart(event,actorPose(source))});
     }
     impacts.sort((a,b)=>b.profile.energy-a.profile.energy);strongest=impacts[0]||null;if(strongest){const p=strongest.profile;stop=Math.max(stop,p.stop);slow=Math.max(slow,p.slow);slowDuration=Math.max(slowDuration,p.slow);slowScale=Math.min(slowScale,p.scale);camera={x:strongest.vector.x,z:strongest.vector.z,strength:Math.max(camera.strength,p.camera),fov:Math.max(camera.fov,p.fov)};}
