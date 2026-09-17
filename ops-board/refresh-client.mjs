@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 
@@ -118,5 +119,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     reason: process.env.OPS_REFRESH_REASON || 'deployment',
     expectedBuildCommit: process.env.OPS_EXPECTED_BUILD_SHA || null,
   });
-  console.log(`PULSE_REFRESH_OK reason=${process.env.OPS_REFRESH_REASON || 'deployment'} generatedAt=${state.generatedAt} api=${state.githubApi?.requests ?? '?'} cacheHits=${state.githubApi?.cacheHits ?? 0}`);
+  if (process.env.PULSE_STATE_OUTPUT) writeFileSync(process.env.PULSE_STATE_OUTPUT, JSON.stringify(state));
+  console.log(`PULSE_REFRESH_OK reason=${process.env.OPS_REFRESH_REASON || 'deployment'} generatedAt=${state.generatedAt} api=${state.githubApi?.requests ?? '?'} cacheHits=${state.githubApi?.cacheHits ?? 0} control=${state.controlTower?.status || 'legacy'}`);
 }
