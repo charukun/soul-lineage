@@ -11,7 +11,7 @@ export function combatEffectBudget(level = 0, mobile = false, reducedMotion = fa
   const tier=finite(level)?Math.min(3,Math.max(0,Math.floor(level))):3;
   return Object.freeze({maxActive:reducedMotion?1:(mobile?[4,3,2,1]:[6,4,2,1])[tier],
     maxPerBatch:reducedMotion?1:(tier>=2?2:4), trails:!reducedMotion&&tier<3,
-    intensity:reducedMotion?.55:1, instanceMaxCount:512, squareMaxCount:512});
+    intensity:reducedMotion ? .55 : 1, instanceMaxCount:512, squareMaxCount:512});
 }
 
 export function combatEffectCues(events, {state, front, hostiles=[]}={}) {
@@ -33,11 +33,12 @@ export function combatEffectCues(events, {state, front, hostiles=[]}={}) {
     const heavy=outgoing&&(manual||event.manual===true||event.phase==='one'||event.phase==='kyu');
     const rotation={x:0,y:Math.atan2(to.x-from.x,to.z-from.z),z:0};
     const color=outgoing?[255,236,196,255]:[255,126,96,255];
+    // The dedicated finisher keeps its authored burst; no synthetic hit is added.
+    cues.push({effect:heavy?'finisher':'impact',position:{...to},rotation,scale:heavy?1.15:1,
+      lifetime:heavy?1.8:1.2,color,priority:heavy?3:2,kind:heavy?'finisher':'contact'});
     // The source ribbon already contains its authored swing; no synthetic spin.
-    cues.push({effect:'impact',position:{...to},rotation,scale:heavy?1.8:1,
-      lifetime:heavy?1.5:1.2,color,priority:heavy?3:2,kind:heavy?'finisher':'contact'});
     if(outgoing)cues.push({effect:'slash',position:{x:(from.x+to.x)/2,y:from.y,z:(from.z+to.z)/2},
-      rotation,scale:heavy?1.3:1,lifetime:.65,color,priority:1,kind:'contact-trail'});
+      rotation,scale:heavy?1.35:1,lifetime:.65,color,priority:1,kind:'contact-trail'});
   }
   return cues;
 }
