@@ -73,11 +73,18 @@ try {
   await page.locator('.app-more').first().click();
   assert.equal(await page.locator('#app-dialog').isVisible(), true);
   assert.match(await page.locator('#app-dialog').innerText(), /現在見えている版（SHA）/);
+  const visibleCommit = await page.evaluate(() => {
+    const label = [...document.querySelectorAll('#app-dialog dt')].find(node => node.textContent?.trim() === '現在見えている版（SHA）');
+    return label?.nextElementSibling?.textContent?.trim() || '';
+  });
+  if (fixtureMode) assert.equal(visibleCommit, 'a'.repeat(40));
+  else assert.match(visibleCommit, /^[0-9a-f]{40}$/);
   await page.evaluate(() => import('./view-state.js').then(module => module.loadBoard()));
   assert.equal(await page.locator('#app-dialog').isVisible(), true);
   await page.locator('#app-dialog .app-dialog-close').click();
   check('app exact metadata dialog remains open through snapshot updates');
-  for (const width of [320,390,673]) {
+  for (const width of [320,390,519,520,673]) {
+    const expectedColumns = width < 520 ? 2 : 3;
     await page.setViewportSize({ width, height:844 });
     await page.locator('.section-tabs a[href="#apps-section"]').click();
     await page.waitForTimeout(400);
@@ -87,10 +94,10 @@ try {
       fonts:[...document.querySelectorAll('#applications strong,#applications span,#applications h3,#applications button')].filter(node => node.textContent.trim()).map(node => parseFloat(getComputedStyle(node).fontSize)) }));
     await writeFile(`${out}/layout-${width}.json`, JSON.stringify(metrics, null, 2));
     assert.ok(metrics.scrollWidth <= width + 1, JSON.stringify(metrics));
-    assert.ok(metrics.grids.every(n => n === 3), JSON.stringify(metrics));
+    assert.ok(metrics.grids.every(n => n === expectedColumns), JSON.stringify(metrics));
     assert.ok(Math.min(...metrics.fonts) >= 11, JSON.stringify(metrics));
     await page.screenshot({ path:`${out}/apps-${width}.png` });
-    check(`three-column readable layout at ${width}px`, metrics);
+    check(`${expectedColumns}-column readable layout at ${width}px`, metrics);
   }
   await page.setViewportSize({ width:390, height:844 });
   const beforeScroll = await page.evaluate(() => scrollY);

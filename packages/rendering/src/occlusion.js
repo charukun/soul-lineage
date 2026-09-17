@@ -92,3 +92,5 @@ export function createConservativeOcclusionCuller({ maxChecksPerUpdate = 8, minD
     snapshot,
   };
 }
+
+export { createForegroundOcclusionFader } from './foreground-occlusion.js';
