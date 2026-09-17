@@ -15,12 +15,12 @@ export const EFFECT_RUNTIME = Object.freeze({
   license: 'MIT',
 });
 export const EFFECT_PUBLIC_PATH = 'simulator/assets/effekseer/';
-const asset = (path, byteLength, gitBlobSha) => Object.freeze({path, byteLength, gitBlobSha});
+const asset = (path, byteLength, gitBlobSha, metadata={}) => Object.freeze({path, byteLength, gitBlobSha, ...metadata});
 export const EFFECT_ASSETS = Object.freeze([
-  asset('samples/00_Basic/Simple_Ribbon_Sword.efkefc', 1460, 'ed915a21497404acb35ae3e8fd92f50f60b192d1'),
+  asset('samples/00_Basic/Simple_Ribbon_Sword.efkefc', 1460, 'ed915a21497404acb35ae3e8fd92f50f60b192d1', {infoVersion:1500}),
   asset('samples/00_Basic/Texture/SwordLine01.png', 6493, '3b61f140cee86c35cf9e028d42cd3097cb06f2be'),
-  asset('samples/02_Tktk03/ToonHit.efkefc', 10131, '6f676ce9103841abb854f46e01033f97c6627c6d'),
-  asset('samples/02_Tktk03/Light.efkefc', 29679, 'd3057b829b56b2deac38b58d62f0c83f365a26b1'),
+  asset('samples/02_Tktk03/ToonHit.efkefc', 10131, '6f676ce9103841abb854f46e01033f97c6627c6d', {infoVersion:1500}),
+  asset('samples/02_Tktk03/Light.efkefc', 29679, 'd3057b829b56b2deac38b58d62f0c83f365a26b1', {infoVersion:1610}),
   asset('samples/02_Tktk03/Parts/Aura.png', 92262, '65385068ec4e16981902d8ab5ce23cc1f0c6a21c'),
   asset('samples/02_Tktk03/Parts/AuraTube.efkmat', 10619, '9601511a558a98bce619dd79098c424691529c60'),
   asset('samples/02_Tktk03/Parts/AuraTubeModel.efkmodel', 119136, '35a8ab1a7de419a5054e8d2b7695e53f23916e37'),

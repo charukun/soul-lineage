@@ -18,11 +18,14 @@ test('selected authored originals, runtime and license notices are immutable pin
   assert.equal(EFFECT_DOWNLOADS.some(r=>r.target==='LICENSE-MIT.txt'),true);
   assert.equal(Object.keys(AUTHORED_EFFECTS).length,3);assert.equal(EFFECT_ASSETS.some(r=>r.path.endsWith('.fbx')),false);
   assert.equal(AUTHORED_EFFECTS.finisher.path,'samples/02_Tktk03/Light.efkefc');
-  assert.equal(EFFECT_ASSETS.filter(r=>r.path.endsWith('.efkefc')).length,3);
+  assert.deepEqual(EFFECT_ASSETS.filter(r=>r.path.endsWith('.efkefc')).map(r=>r.infoVersion),[1500,1500,1610]);
 });
 test('INFO parser reads dependencies and accepts only the reviewed complete dependency closure',()=>{
   const bytes=effectFixture(['Texture/SwordLine01.png']);assert.deepEqual(effectDependencies(bytes),['Texture/SwordLine01.png']);
   assert.doesNotThrow(()=>verifyEffectClosure(EFFECT_ASSETS[0],bytes));
+  assert.deepEqual(effectDependencies(effectFixture([],1610)),[]);
+  const light=EFFECT_ASSETS.find(row=>row.path.endsWith('/Light.efkefc'));
+  assert.throws(()=>verifyEffectClosure(light,effectFixture([],1500)),/version mismatch/);
   assert.throws(()=>verifyEffectClosure(EFFECT_ASSETS[0],effectFixture(['Texture/missing.png'])),/Unpinned/);
 });
 test('unsafe paths, unknown versions and truncation cannot pass as authored data',()=>{

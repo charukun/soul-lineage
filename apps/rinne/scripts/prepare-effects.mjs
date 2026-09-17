@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {EFFECT_SOURCE,EFFECT_RUNTIME,EFFECT_ASSETS,RUNTIME_ASSETS,EFFECT_PUBLIC_PATH} from '../src/rebuild/authored-effect-manifest.js';
 
 const appRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const REVIEWED_EFFECT_VERSIONS=new Set(EFFECT_ASSETS.filter(row=>row.path.endsWith('.efkefc')).map(row=>row.infoVersion));
 export const EFFECT_DOWNLOADS=Object.freeze([
   ...EFFECT_ASSETS.map(row=>({...row,...{repository:EFFECT_SOURCE.repository,revision:EFFECT_SOURCE.revision,target:row.path}})),
   ...RUNTIME_ASSETS.map(row=>({...row,...{repository:EFFECT_RUNTIME.repository,revision:EFFECT_RUNTIME.revision,target:row.path==='LICENSE'?'LICENSE-MIT.txt':path.posix.basename(row.path)}})),
@@ -17,15 +18,17 @@ export function verifyEffectBytes(row,bytes){
   return true;
 }
 
-/** Read the v1.5 INFO dependency lists without regenerating the authored binary. */
-export function effectDependencies(bytes){
+/** Read the reviewed INFO dependency lists without regenerating the authored binary. */
+export function effectDependencies(bytes,expectedVersion=null){
   const b=Buffer.from(bytes);if(b.length<8||b.toString('ascii',0,4)!=='EFKE')throw Error('Not an EFKE original');
   for(let p=8;p+8<=b.length;){
     const tag=b.toString('ascii',p,p+4),size=b.readUInt32LE(p+4),end=p+8+size;
     if(end>b.length)throw Error('Truncated effect chunk');
     if(tag==='INFO'){
       let cursor=p+8;const read=()=>{if(cursor+4>end)throw Error('Truncated INFO');const n=b.readUInt32LE(cursor);cursor+=4;return n;};
-      const version=read();if(version!==1500)throw Error(`Unreviewed effect version: ${version}`);
+      const version=read();
+      if(!REVIEWED_EFFECT_VERSIONS.has(version))throw Error(`Unreviewed effect version: ${version}`);
+      if(expectedVersion!=null&&version!==expectedVersion)throw Error(`Effect INFO version mismatch: expected ${expectedVersion}, got ${version}`);
       const result=[];
       for(let group=0;group<6;group++){
         const count=read();if(count>128)throw Error('Too many effect dependencies');
@@ -45,8 +48,9 @@ export function effectDependencies(bytes){
 }
 
 export function verifyEffectClosure(row,bytes){
+  if(!Number.isInteger(row.infoVersion))throw Error(`Missing reviewed effect version: ${row.path}`);
   const declared=new Set(EFFECT_ASSETS.map(item=>item.path));
-  for(const dependency of effectDependencies(bytes)){
+  for(const dependency of effectDependencies(bytes,row.infoVersion)){
     const target=path.posix.join(path.posix.dirname(row.path),dependency);
     if(!declared.has(target))throw Error(`Unpinned effect dependency: ${target}`);
   }
