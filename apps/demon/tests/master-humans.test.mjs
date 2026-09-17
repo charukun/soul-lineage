@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MASTER_HUMAN_LIMIT,hashHuman,humanAppearance,masterHumanModelUrl,masterHumanScore} from '../src/master-humans.js';
 
-test('human appearance is deterministic and role-specific',()=>{
+test('human identity is deterministic while role only changes presentation overlay',()=>{
  const npc={id:'npc-7',role:'hunter'};
  const a=humanAppearance(npc),b=humanAppearance({...npc});
  assert.deepEqual(a,b);
@@ -11,7 +11,10 @@ test('human appearance is deterministic and role-specific',()=>{
  assert.ok(a.height>=.91&&a.height<=1.09);
  assert.ok(a.width>=.89&&a.width<=1.11);
  for(const key of ['hair','eyes','skin','dye'])assert.equal(a[key].length,3);
- assert.deepEqual(humanAppearance({id:'knight',role:'knight'}).dye,[.9,.55,.44]);
+ const knight=humanAppearance({...npc,role:'knight'});
+ for(const key of ['scale','headScale','gray','stoop','skinAge','height','width','adultHeightMetres'])assert.equal(knight[key],a[key]);
+ for(const key of ['hair','eyes','skin'])assert.deepEqual(knight[key],a[key]);
+ assert.deepEqual(knight.dye,[.9,.55,.44]);
 });
 
 test('marked and combat roles receive near-detail priority',()=>{
