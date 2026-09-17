@@ -30,14 +30,14 @@ test('docs skip apps; lock/config and unknown/deleted paths fail closed', () => 
   for (const path of ['package-lock.json', 'scripts/deploy.mjs', 'packages/removed/src/main.js', 'new.config.js']) assert.deepEqual(affected(nodes, [path]), all);
 });
 test('DEV control-plane files do not rebuild games while runtime/config and build tooling stay scoped or fail closed', () => {
-  assert.deepEqual(affectedForDev(nodes, ['README.md', 'docs/PLATFORMS.md', '.github/workflows/ci.yml', 'scripts/integration-fast-lane.mjs', 'tests/integration.test.mjs']), []);
+  assert.deepEqual(affectedForDev(nodes, ['README.md', 'docs/PLATFORMS.md', '.github/workflows/ci.yml', 'scripts/integration-fast-lane.mjs', 'scripts/deploy.mjs', 'tests/integration.test.mjs']), []);
   assert.deepEqual(affectedForDev(nodes, ['apps/village/src/app.js']), ['village']);
   assert.deepEqual(affectedForDev(nodes, ['packages/assets/src/index.js']), all);
-  for (const path of ['package-lock.json', 'scripts/vite-app.mjs', 'scripts/workspaces.mjs', 'scripts/application-catalog.mjs', 'new.config.js']) assert.deepEqual(affectedForDev(nodes, [path]), all, path);
+  for (const path of ['package-lock.json', 'scripts/vite-app.mjs', 'scripts/workspaces.mjs', 'scripts/application-catalog.mjs', 'scripts/prepare-basis-assets.mjs', 'scripts/prepare-kaykit-foundation.mjs', 'scripts/strip-retired-character-assets.mjs', 'scripts/verify-build.mjs', 'scripts/unknown-tool.mjs', 'new.config.js']) assert.deepEqual(affectedForDev(nodes, [path]), all, path);
 });
 test('DEV deployment hashes include only build-affecting root tooling', () => {
-  for (const path of ['package.json', 'package-lock.json', 'scripts/vite-app.mjs', 'scripts/workspaces.mjs', 'scripts/application-catalog.mjs']) assert.equal(devBuildToolingPath(path), true, path);
-  for (const path of ['.github/workflows/ci.yml', 'scripts/integration-fast-lane.mjs', 'tests/integration.test.mjs', 'docs/INTEGRATION.md']) assert.equal(devBuildToolingPath(path), false, path);
+  for (const path of ['package.json', 'package-lock.json', 'scripts/vite-app.mjs', 'scripts/workspaces.mjs', 'scripts/application-catalog.mjs', 'scripts/prepare-basis-assets.mjs', 'scripts/prepare-kaykit-foundation.mjs', 'scripts/strip-retired-character-assets.mjs', 'scripts/verify-build.mjs']) assert.equal(devBuildToolingPath(path), true, path);
+  for (const path of ['.github/workflows/ci.yml', 'scripts/integration-fast-lane.mjs', 'scripts/deploy.mjs', 'tests/integration.test.mjs', 'docs/INTEGRATION.md']) assert.equal(devBuildToolingPath(path), false, path);
 });
 test('workspace cycles are rejected', () => {
   const fake = new Map([['a', { dependencies: ['b'] }], ['b', { dependencies: ['a'] }]]);
