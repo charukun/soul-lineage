@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DEVOUR_BITE_BEATS,sampleDevourMotion,samplePreyMotion} from '../src/web/devour-motion.js';
+import {DEVOUR_BITE_BEATS,preyCapturePoint,sampleDevourMotion,samplePreyMotion} from '../src/web/devour-motion.js';
 
 test('predator and prey share finite normalized capture timing',()=>{
  for(let i=0;i<=400;i++){
@@ -32,4 +32,13 @@ test('bite beats drive the defeated body and cancellation can ease back to the s
  assert.equal(released.capture,0);
  assert.equal(released.bite,0);
  assert.equal(released.swallow,0);
+});
+
+test('shared prey anchor follows the same capture motion used by rendering and effects',()=>{
+ const origin={x:4,z:-2},capture={x:0,z:0,yaw:.4,form:'hollow',growthScale:1};
+ const early=preyCapturePoint(origin,capture,samplePreyMotion(.05,1));
+ const bite=preyCapturePoint(origin,capture,samplePreyMotion(.68,1));
+ const late=preyCapturePoint(origin,capture,samplePreyMotion(.97,1));
+ for(const point of [early,bite,late])assert.ok(Number.isFinite(point.x)&&Number.isFinite(point.z));
+ assert.ok(Math.hypot(late.x-capture.x,late.z-capture.z)<Math.hypot(bite.x-capture.x,bite.z-capture.z));
 });
