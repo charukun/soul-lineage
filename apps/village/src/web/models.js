@@ -7,7 +7,7 @@ const models=createMuraModels(THREE,{createCanvas:()=>document.createElement('ca
 const T=THREE;
 const COMPACT_TENTS=new Set(['mayor','guardhome','tent']);
 const compactRatio=kind=>[localDefs[kind].w/canonicalDefs[kind].w,localDefs[kind].d/canonicalDefs[kind].d];
-const compactTent=(g,kind)=>{const[x,z]=compactRatio(kind);g.scale.set(x,.6,z);g.userData.villageCompactTent=true;return g;};
+const compactTent=(g,kind)=>{const[x,z]=compactRatio(kind);g.scale.set(g.scale.x*x,g.scale.y*.6,g.scale.z*z);g.userData.villageCompactTent=true;return g;};
 const material=color=>new T.MeshStandardMaterial({color,roughness:.95});
 const workMaterials={
  wood:material(0x8c6848),trim:material(0x69563e),leaf:material(0x748b5f),
