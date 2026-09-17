@@ -1,4 +1,5 @@
 import {defs,RESOURCE_NAMES,DAYS_YEAR,ready,capacityOf} from './game/core.js';
+import {decayTrailTraffic} from './game/trail-lifecycle.js';
 import {t,exposeI18n} from './mura-i18n.js';
 
 const village=window.village;
@@ -166,7 +167,11 @@ function virtualUpkeep(){
 
 const originalStep=sim.step.bind(sim);
 sim.step=dt=>{
- const result=originalStep(dt),day=Math.floor(world.state.clock),year=Math.floor(world.state.clock/DAYS_YEAR);
+ const beforeClock=world.state.clock;
+ // Retire the legacy wall-clock trail decay; roads now age only when village time advances.
+ sim.decayTimer=0;
+ const result=originalStep(dt),elapsedVillageDays=Math.max(0,world.state.clock-beforeClock),day=Math.floor(world.state.clock),year=Math.floor(world.state.clock/DAYS_YEAR);
+ if(decayTrailTraffic(world.state.traffic,elapsedVillageDays))sim.trafficRevision++;
  if(day!==systemState.lastLifecycleDay){systemState.lastLifecycleDay=day;activeAging();virtualUpkeep();if(year!==systemState.lastVirtualYear)virtualAging(year);save();}
  return result;
 };
