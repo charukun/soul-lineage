@@ -21,7 +21,7 @@ Ready 後の CI 監視、develop merge、DEV 公開、明示browser verification
 
 1. 最新 `develop` SHA と `AGENTS.md` を確認する。checkout があれば `npm run context:plan -- --task "<要約>"` を実行し、必要資料だけ読む。
 2. 最新 `develop` から専用 branch を作る。コード変更を伴う通常タスクは、コード編集前に branch を push して develop 向け Draft PR を作る。
-3. GitHub は差分のない branch から PR を作れないため、必要なら既存仕様・運用文書へ今回の受入条件を最小限追記して最初の意味ある差分にする。ダミーファイル、恒久的に無意味な履歴は作らない。文章・資料だけを更新するタスクは、その意味ある資料差分自体を最初の commit にしてよい。
+3. GitHub は差分のない branch から PR を作れないため、必要なら既存仕様・運用文書へ今回の受入条件を最小限追記して最初の意味ある差分にする。ダミーファイル、空 commit、恒久的に無意味な履歴は作らない。文章・資料だけを更新するタスクは、その意味ある資料差分自体を最初の commit にしてよい。
 4. 実装する。確定要件と現在の `develop` 契約を守る範囲の可逆的な細部は AI が選び、重要な仮定を PR に短く残す。
 5. **実装セッション内では**変更した機能に必要な局所テスト・check・buildを行う。通常は `npm ci`、対象app/packageの focused test/check/build、必要なら `node scripts/validate.mjs fast origin/develop HEAD` を使う。基盤変更は関連する基盤contractを確認する。毎回の全体 E2E・全ゲーム browser 総点検は不要。
 6. push 前に `npm run push:route -- origin/develop HEAD` を使える環境では実行する。通常 git → 接続済み GitHub API → 同じ branch の既存 Codespaces + 通常 git の順に復旧する。1経路の失敗だけで終了しない。
