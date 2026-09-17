@@ -132,7 +132,7 @@ jobs:
         env:
           BASE_SHA: ${{ matrix.base }}
           HEAD_SHA: ${{ matrix.head }}
-        run: node scripts/affected.mjs "$BASE_SHA" "$HEAD_SHA"
+        run: node scripts/affected.mjs "$BASE_SHA" "$HEAD_SHA" dev
       - run: npm ci
         working-directory: work
         if: steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.has_packages == 'true' || steps.plan.outputs.infrastructure == 'true'
