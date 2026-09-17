@@ -8,8 +8,10 @@ import {
   buildContextPlan,
   budgetContextDocs,
   chooseDiffStrategy,
+  classifyRelevantFiles,
   DEFAULT_MAX_BYTES,
   MAX_LOG_BYTES,
+  RELEVANT_FILE_FULL_READ_MAX_BYTES,
   selectContextDocs,
   WHOLE_DIFF_MAX_FILES,
   WHOLE_DIFF_MAX_LINES,
@@ -126,6 +128,32 @@ test('default document budget is 48 KiB and is explicitly not a token estimate',
   assert.match(plan.budget.note, /not a token estimate/);
 });
 
+test('large relevant files are narrowed before full retrieval', t => {
+  const root = mkdtempSync(join(tmpdir(), 'context-file-budget-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  writeFileSync(join(root, 'small.js'), 'x'.repeat(RELEVANT_FILE_FULL_READ_MAX_BYTES));
+  writeFileSync(join(root, 'large.js'), 'x'.repeat(RELEVANT_FILE_FULL_READ_MAX_BYTES + 1));
+  const files = classifyRelevantFiles({ paths: ['small.js', 'large.js', 'missing.js'], root });
+  assert.equal(RELEVANT_FILE_FULL_READ_MAX_BYTES, 16 * 1024);
+  assert.equal(files.find(item => item.path === 'small.js').strategy, 'full-file-if-needed');
+  assert.equal(files.find(item => item.path === 'large.js').strategy, 'search-or-line-range');
+  assert.equal(files.find(item => item.path === 'large.js').reason, 'large-file');
+  assert.equal(files.find(item => item.path === 'missing.js').strategy, 'metadata-or-search');
+});
+
+test('context plan exposes narrow-first guidance for a large task path', t => {
+  const root = mkdtempSync(join(tmpdir(), 'context-plan-path-budget-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  writeFileSync(join(root, 'AGENTS.md'), '# local\n');
+  writeFileSync(join(root, 'large.js'), 'x'.repeat(RELEVANT_FILE_FULL_READ_MAX_BYTES + 10));
+  const plan = buildContextPlan({ root, paths: ['large.js'], base: 'missing-base', head: 'missing-head' });
+  assert.equal(plan.pathRetrieval.fullReadMaxBytes, RELEVANT_FILE_FULL_READ_MAX_BYTES);
+  assert.equal(plan.pathRetrieval.narrowFirst.length, 1);
+  assert.equal(plan.pathRetrieval.narrowFirst[0].path, 'large.js');
+  assert.equal(plan.pathRetrieval.narrowFirst[0].strategy, 'search-or-line-range');
+  assert.match(plan.pathRetrieval.note, /Initial retrieval guidance/);
+});
+
 test('large or binary diffs force per-file retrieval', () => {
   assert.equal(
     chooseDiffStrategy({ fileCount: WHOLE_DIFF_MAX_FILES + 1, changedLines: 1, binaryFiles: 0 }),
@@ -171,5 +199,6 @@ test('repository entrypoints wire the lean context policy and command', () => {
   assert.match(agents, /do not fetch the full policy unconditionally/);
   assert.match(policy, /過去会話、closed PR、Actions履歴、全docs、全diffを一括取得しない/);
   assert.match(policy, /既定値は48 KiB/);
+  assert.match(policy, /16 KiB/);
   assert.equal(pkg.scripts['context:plan'], 'node scripts/context-plan.mjs');
 });

@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
-import { GENES, appearanceForCharacter, auditShinoDocument } from '@soul/characters';
+import { existsSync, readFileSync } from 'node:fs';
+import { GENES, appearanceForCharacter, evaluateCharacterLicensePolicy } from '@soul/characters';
 import { reviewSettings, createReviewCohort, editReviewCharacter, canonicalCohort, serializeReviewSession, deserializeReviewSession, reviewGlbDocument } from '../src/character-review-state.js';
 const buffer = b => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
 function glb(doc, bin) {
@@ -57,9 +56,10 @@ test('GLB validation rejects truncation, duplicates, external resources and mism
   const bad = binary.slice(0); new DataView(bad).setUint32(12, 0xffffffff, true); assert.throws(() => reviewGlbDocument(bad));
   assert.throws(() => reviewGlbDocument(new ArrayBuffer(3)));
 });
-test('repository Shino asset still passes the unchanged content and license audit', () => {
-  const bytes = readFileSync(new URL('../public/simulator/assets/SHINO_review.vrm', import.meta.url));
-  const doc = reviewGlbDocument(buffer(bytes)), hash = createHash('sha256').update(bytes).digest('hex');
-  const audit = auditShinoDocument(doc, hash); assert.equal(audit.approved, true, audit.errors.join(', '));
-  assert.ok(doc.extensions.VRMC_vrm.expressions); assert.ok(doc.extensions.VRMC_springBone);
+test('repository Shino asset remains retired and unavailable to active review', () => {
+  const file = new URL('../public/simulator/assets/SHINO_review.vrm', import.meta.url);
+  assert.equal(existsSync(file), false);
+  assert.deepEqual(evaluateCharacterLicensePolicy({ id: 'shino.reference.v2' }), {
+    status: 'retired', allowed: false, reason: 'retired-conditional-character'
+  });
 });

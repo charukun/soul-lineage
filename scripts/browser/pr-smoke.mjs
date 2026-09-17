@@ -3,7 +3,7 @@ import {verifyHuntClarity} from './play-clarity.mjs';
 import {capturePlayedAudio,mediaDiagnostics} from './media-diagnostics.mjs';
 import {parseBrowserPlaytest,parseBrowserPlaytestValue,resolveBrowserPlaytestTargets} from './playtest-routing.mjs';
 import { execFileSync, spawn } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
@@ -31,10 +31,13 @@ const ports = { rinne: 5273, village: 5274, demon: 5275 };
 const viteBin = resolve(root, 'node_modules/vite/bin/vite.js');
 const resultDir = resolve(root, 'test-results/pr-browser');
 const receiptPath = resolve(resultDir, 'playtest-receipt.json');
+// Never mix old media from a previous local run with this head's receipt.
+rmSync(resultDir, { recursive: true, force: true });
 mkdirSync(resultDir, { recursive: true });
 
 const receipt = {
   schema: 1,
+  startedAt: new Date().toISOString(),
   base,
   head,
   request: {
@@ -158,7 +161,8 @@ for (const app of apps) {
   try {
     await waitFor(url, preview);
     browser = await chromium.launch({ headless: true, args: ['--use-angle=swiftshader', '--enable-webgl', '--enable-unsafe-swiftshader'] });
-    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 },
+      recordVideo: { dir: resolve(resultDir, `${app}-video`), size: { width: 390, height: 844 } } });
     await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
     const page = await context.newPage();
     const errors = [];
@@ -200,6 +204,7 @@ for (const app of apps) {
       const media = await mediaDiagnostics(rawRequests, playedSources, new URL(url).origin);
       writeFileSync(resolve(root, `test-results/pr-browser/${app}-media.json`), JSON.stringify(media, null, 2));
       if (errors.length || media.failedRequests.length) throw new Error(`Play clarity failed: ${JSON.stringify({errors,...media})}`);
+      await page.screenshot({ path: resolve(resultDir, `${app}-after-actions.png`), fullPage: true });
       await context.tracing.stop({ path: resolve(root, `test-results/pr-browser/${app}-trace.zip`) });
       await context.close();
     };
@@ -212,7 +217,7 @@ for (const app of apps) {
       // not contend for renderer/startup resources or lifecycle state.
       await finishProbe();
       const {verifyRebuildPlaythrough}=await import('../../apps/rinne/tests/rebuild-playthrough.browser.mjs');
-      await verifyRebuildPlaythrough(browser,url,resolve(root,'test-results/pr-browser/rinne-playthrough'));
+      await verifyRebuildPlaythrough(browser,url,resolve(root,'test-results/pr-browser/rinne-playthrough'),{recordVideo:true});
     } else if (app === 'demon') {
       await page.locator('#begin').click();
       await page.locator('[data-village]').first().click();
@@ -263,6 +268,8 @@ for (const app of apps) {
     }
     throw error;
   } finally {
+    // Explicit context close flushes recordings even after an assertion fails.
+    if (browser) for (const context of browser.contexts()) await context.close().catch(() => {});
     if (browser) await browser.close().catch(() => {});
     await stopPreview(preview);
   }

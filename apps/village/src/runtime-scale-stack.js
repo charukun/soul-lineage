@@ -1,4 +1,5 @@
 // One module graph keeps browser fetching parallel while preserving prototype patch order.
+import './runtime-render-optimization.js';
 import './asset-visuals.js';
 import './authored-visual-lod.js';
 import './stylized-visual-target.js';

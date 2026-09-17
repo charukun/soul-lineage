@@ -9,13 +9,13 @@ This repository contains 輪廻転焦, village housing, and demon-army apps. `de
 3. When a checkout is available, run `npm run context:plan -- --task "<short task summary>"` and read only the returned documents that are actually needed.
 4. Keep retrieval lean per [`docs/CONTEXT_EFFICIENCY.md`](docs/CONTEXT_EFFICIENCY.md). Do not preload past chats, all docs, merged PR history, whole large diffs, or all CI logs.
 
-Use metadata → changed filenames / failed job → necessary patch / range. CI log retrieval is capped by the shared context ledger. On budget exhaustion, summarize the evidence and hand off instead of mining more logs or polling.
+Use metadata → changed filenames / failed job → necessary patch / range. CI log retrieval is capped by the shared context ledger: stop after 3 unique excerpts or 96 KiB total, and do not switch ranges/jobs to evade that limit. On budget exhaustion, summarize the evidence and hand off instead of mining more logs or polling.
 
 ## Delivery boundary
 
 Normal implementation work follows [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md): latest `develop` → work branch / Draft PR → implementation → fast validation → push → Ready for review → `READY_FOR_INTEGRATION` → final response.
 
-Ready ends the implementation session. Running / Queued / Pending CI, browser checks, handoff recorder, Integration, and DEV publication must not keep the worker alive. Do not watch, sleep, or poll for completion. Integration owns asynchronous merge/publication/repair. The detailed boundary is canonical in [`docs/RINNE_PROJECT_EXECUTION_POLICY.md`](docs/RINNE_PROJECT_EXECUTION_POLICY.md); do not fetch the full policy unconditionally when the summary here and the task-specific document are sufficient.
+Ready ends the implementation session. Running / Queued / Pending CI, browser checks, handoff recorder, Integration, and DEV publication must not keep the worker alive. Do not watch, sleep, or poll for completion. Integration owns asynchronous merge/publication/repair. The detailed boundary and mandatory screenshot/video presentation in completion reports are canonical in [`docs/RINNE_PROJECT_EXECUTION_POLICY.md`](docs/RINNE_PROJECT_EXECUTION_POLICY.md); do not fetch the full policy unconditionally. Read the relevant evidence section for final delivery.
 
 Use normal git first, then the connected GitHub API, then the same branch in existing GitHub Codespaces when transport or binary limits require it. One failed route is not task failure. Large binaries must not be split/Base64-retried through the connector. See [`docs/MOBILE_HYBRID_DEVELOPMENT.md`](docs/MOBILE_HYBRID_DEVELOPMENT.md).
 
@@ -47,6 +47,7 @@ Read only the rows that match the task.
 | Mobile / Codespaces / push routing | [`docs/MOBILE_HYBRID_DEVELOPMENT.md`](docs/MOBILE_HYBRID_DEVELOPMENT.md) |
 | Character/model/rig/material/DCC work | [`docs/art/README.md`](docs/art/README.md) and the routed `docs/characters/` contract |
 | Character motion / stance / locomotion | [`docs/characters/MOTION_AUTHORING.md`](docs/characters/MOTION_AUTHORING.md) and [`docs/characters/MOTION_QUALITY.md`](docs/characters/MOTION_QUALITY.md) |
+| User asks for the current motion video (`動画ください`) | [`docs/characters/MOTION_VIDEO_HANDOFF.md`](docs/characters/MOTION_VIDEO_HANDOFF.md) |
 
 ## Specialized execution
 
@@ -55,5 +56,7 @@ Character production must follow [`docs/characters/CHARACTER_PRODUCTION_PIPELINE
 When a requested Blender character build needs repository-hosted headless execution, follow [`docs/characters/CHARACTER_DCC_CARRIER.md`](docs/characters/CHARACTER_DCC_CARRIER.md): use a short-lived `dcc/<slug>` branch and the carrier contract. Do not repurpose RINNE Dispatch merely to obtain Blender, and do not wait/poll for the carrier.
 
 When the user explicitly requests a dedicated worker (`派生して`, `別セッションで`, etc.), use RINNE Dispatch only for a self-contained implementation task. Bootstrap the Draft PR and request marker as described in [`docs/DISPATCHER.md`](docs/DISPATCHER.md); the dispatched worker implements and returns the same PR to normal Integration.
+
+When the user asks for a motion video, do not synthesize a stick figure or schematic as a substitute. Resolve the target PR's current exact head and use the corresponding `pr-browser-<pr>-<head>` artifact described by [`docs/characters/MOTION_VIDEO_HANDOFF.md`](docs/characters/MOTION_VIDEO_HANDOFF.md). Only call it an actual motion video when the receipt identifies the real model/runtime and exact head.
 
 Visual/motion review observes current `develop`; it is not a second source of gameplay or motion truth. Preserve native gameplay/contact timing and shared sources. Use the current review routes documented by the character/motion guides rather than reviving a long-lived review branch.

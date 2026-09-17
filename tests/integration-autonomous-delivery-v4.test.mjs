@@ -107,7 +107,7 @@ test('control canary treats notification as advisory while preserving delivery g
   assert.equal(broken.ok, false);
 });
 
-test('workflow contracts keep exact-head fast merge, asynchronous browser repair, DEV verification, LKG fallback and no paid model API', async () => {
+test('workflow contracts keep exact-head fast merge, browser opt-in DEV verification, LKG fallback and no paid model API', async () => {
   const { readFileSync } = await import('node:fs');
   const ci = readFileSync('.github/workflows/ci.yml','utf8');
   const deploy = readFileSync('.github/workflows/deploy.yml','utf8');
@@ -115,15 +115,19 @@ test('workflow contracts keep exact-head fast merge, asynchronous browser repair
   const coalescer = readFileSync('.github/workflows/dev-publisher-coalescer.yml','utf8');
   const repair = readFileSync('.github/workflows/integration-rescue.yml','utf8');
   assert.match(ci,/Validate and build/);
-  assert.match(ci,/Affected browser smoke/);
+  assert.doesNotMatch(ci,/Affected browser smoke/);
+  assert.doesNotMatch(ci,/browser-repair-dispatch:/);
   assert.match(ci,/integration-stack-ci\.mjs/);
   assert.match(ci,/integration-gate-cost\.mjs/);
   assert.match(ci,/integration-request:[\s\S]*needs: \[readiness, build\]/);
   assert.doesNotMatch(ci,/integration-request:[\s\S]*needs: \[readiness, build, browser\]/);
-  assert.match(deploy,/Validate exact DEV candidate before public promotion/);
+  assert.match(deploy,/Validate exact DEV candidate manifest before public promotion/);
   assert.match(deploy,/Promote candidate to DEV Pages/);
+  assert.match(deploy,/Verify public app URLs, assets and source commits/);
   assert.match(deploy,/Restore Last Known Good DEV/);
   assert.match(deploy,/integration\/dev-fallback/);
+  assert.match(deploy,/Preserve blocking Production browser verification/);
+  assert.match(deploy,/full-verification:[\s\S]*Public Chromium \/ WebGL2/);
   assert.match(controller,/integration-controller-develop/);
   assert.match(controller,/Integration Fast Lane/);
   assert.match(controller,/integration-fast-lane\.mjs/);

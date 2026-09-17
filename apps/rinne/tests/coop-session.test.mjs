@@ -5,6 +5,7 @@ import { defaultMuraLayout } from '@soul/world/mura';
 import { CoopWorld } from '../src/rebuild/coop-world.js';
 import { LIFE_SECONDS } from '../src/rebuild/domain.js';
 import { createCoopHost, joinCoopHost } from '../src/coop/session.js';
+import { createCoopPerformanceProbe } from '../src/coop/performance.js';
 
 // Protocol fault fixture, not evidence of ICE/NAT/WebRTC compatibility.
 // A remote HELLO may arrive before the offering side observes its channel-open event.
@@ -90,5 +91,16 @@ test('silence closes a guest even when transport reports no disconnect, then fre
     assert(hostPC);const channel=hostPC.channels[0],send=channel.send;channel.send=()=>{};clock=3000;
     await until(()=>guest.snapshot().phase==='closed');assert.match(guest.snapshot().error,/つながり/);
     channel.send=send;await until(()=>guest.snapshot().phase==='open');assert.equal(guest.snapshot().error,'');
+  }finally{guest?.dispose();await host.dispose();}
+});
+
+test('guest display timing waits for the frame after authoritative state was submitted to WebGL',async()=>{
+  const world=room(),host=await createCoopHost({world,contentVersion:'test',RTCPeerConnection:MemoryRTC,save:async()=>{}});let guest,clock=10,queued=null;
+  const probe=createCoopPerformanceProbe({role:'peer',now:()=>clock});
+  try{
+    guest=await connect(host,{now:()=>clock,performanceProbe:probe,afterFrame:callback=>{queued=callback;return 1;}});await until(()=>guest.snapshot().phase==='open');
+    assert.equal(guest.input({x:0,z:1}),true);await until(()=>Number.isSafeInteger(guest.snapshot().view.ackInputSeq));const ack=guest.snapshot().view.ackInputSeq;
+    assert.equal(guest.inputDisplayed(ack),true);assert.equal(typeof queued,'function');assert.deepEqual(guest.performance().inputToDisplayMs,[]);
+    clock=50;queued();assert.deepEqual(guest.performance().inputToDisplayMs,[40]);guest.frameRendered(16.7);assert.deepEqual(guest.performance().frameMs,[16.7]);
   }finally{guest?.dispose();await host.dispose();}
 });

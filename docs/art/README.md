@@ -21,13 +21,14 @@ Read only the standards relevant to the task:
 
 | Task | Required standard |
 | --- | --- |
-| Rinne game construction, default playable character/art direction, KayKit reuse | `KAYKIT_GAME_AXIS.md` |
-| Character mesh, face, hair, body, clothing, accessories, Blender character assembly, variant art | `CHARACTER_MODELING.md` |
+| Rinne game construction, default playable character/art direction, KayKit reuse | `KAYKIT_GAME_AXIS.md` + `docs/characters/CHARACTER_LICENSE_POLICY.md` |
+| Character mesh, face, hair, body, clothing, accessories, Blender character assembly, variant art | `CHARACTER_MODELING.md` + `docs/characters/CHARACTER_LICENSE_POLICY.md` |
+| Facial expressions, smile/blink/visemes, reference-guided shape keys | [FACIAL_EXPRESSION_WORKFLOW.md](FACIAL_EXPRESSION_WORKFLOW.md) + `CHARACTER_MODELING.md` section 7 |
 | Visual polish, model comparison, render/runtime acceptance, before/after evidence | `VISUAL_REVIEW.md` |
 | Rig/animation/material/export work that also changes character appearance | both files, plus the applicable `docs/characters/*` contract |
 | Pure UI/code work with no 3D appearance or asset impact | these files are not required |
 
-KayKit-first is the current Rinne game-construction axis. Read `KAYKIT_GAME_AXIS.md` for the playable runtime direction and `docs/characters/KAYKIT_FOUNDATION.md` for the current game-facing character foundation; new gameplay character and motion work uses that KayKit family by default. Sendagaya_Shino / MasterCharacter remains a supported compatibility and comparison path, not the default foundation for new game-facing work. When explicitly changing Shino/MasterCharacter, read `docs/characters/MASTER_CHARACTER.md`, `MODULAR_APPEARANCE.md`, and `CHARACTER_STUDIO.md` as applicable before using this standard.
+KayKit-first is the current Rinne game-construction axis. Read `KAYKIT_GAME_AXIS.md` for the playable runtime direction, `docs/characters/KAYKIT_FOUNDATION.md` for the game-facing CC0 foundation, and `docs/characters/CHARACTER_LICENSE_POLICY.md` for the asset-adoption gate. New gameplay character and motion work uses KayKit or a fully RINNE-owned asset by default. Models with model-specific commercial-use conditions are retired from active runtime, review candidates and Production distribution. Legacy IDs/schema may remain only where migration compatibility requires them.
 
 ## Core rule
 
@@ -41,7 +42,7 @@ Use real editable assets, preserve already-approved work, and make local changes
 
 For short-term quality improvement while generation quality is still uneven, prefer a small repeatable loop over free-form regeneration:
 
-1. Reuse the current reviewed DCC/source asset as the base when it is compatible; do not restart the whole character by default.
+1. Reuse the current reviewed DCC/source asset as the base when it is compatible with the character license policy; do not restart the whole character by default.
 2. Compare the same candidate in fixed `front`, `three-quarter`, `side`, and `back` views.
 3. Check the repository's small structural checklist for silhouette/proportion, side profile, joint readability, hands, hair consistency, and back-view identity.
 4. Repair only failed regions and preserve regions that already pass.

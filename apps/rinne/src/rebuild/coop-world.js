@@ -8,7 +8,7 @@ export const COOP_PROTOCOL='rinne-coop-dev-2';
 const clone=value=>structuredClone(value),identifier=value=>typeof value==='string'&&/^[\w:.-]{1,120}$/.test(value);
 const seedOf=text=>{let n=2166136261;for(const c of text)n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0;};
 const speed=age=>age<4?1.2:age<7?2.15:age<65?4.15:Math.max(2.3,4.15-(age-65)*.035);
-const visibleLife=s=>({id:s.id,name:s.name,seed:s.seed,birthVillageId:s.birthVillageId,ageSeconds:s.ageSeconds,ageYears:s.ageYears,phase:s.phase,zone:s.zone,front:s.front,position:clone(s.position),yaw:s.yaw,moving:s.moving,equipment:clone(s.equipment),combat:Boolean(s.combat),ended:s.ended});
+const visibleLife=s=>({id:s.id,name:s.name,seed:s.seed,birthVillageId:s.birthVillageId,ageSeconds:s.ageSeconds,ageYears:s.ageYears,phase:s.phase,zone:s.zone,front:s.front,position:clone(s.position),yaw:s.yaw,moving:s.moving,equipment:clone(s.equipment),combat:Boolean(s.combat),combatPose:s.combat?.tidebreakPose?clone(s.combat.tidebreakPose):null,combatIntent:s.combat?.bodyIntent||null,ended:s.ended});
 
 export class CoopWorld {
   constructor({worldId,ownerId,name,layout,saved=null}){

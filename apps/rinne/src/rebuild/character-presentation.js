@@ -9,14 +9,16 @@ import {
   resolveCharacterPresentations,
   selectKaykitModel
 } from '@soul/characters';
+import { RINNE_PROTAGONIST_RUNTIME_ASSET } from './protagonist-runtime-asset.js';
 
 export const RINNE_RUNTIME_CHARACTER_FAMILY = KAYKIT_FOUNDATION;
-// Compatibility export for consumers that need one representative asset.
+// Compatibility export for consumers that need one representative foundation asset.
 export const RINNE_RUNTIME_CHARACTER_ASSET = kaykitRuntimeAsset(KAYKIT_FOUNDATION.defaultModelId);
+export { RINNE_PROTAGONIST_RUNTIME_ASSET };
 
 const ROLE_SEQUENCE=Object.freeze(['guard','knight','hunter']);
 // The domain model still accepts the historical MasterCharacter outfit ids.
-// They preserve save/identity compatibility only; KayKit owns the rendered surface.
+// They preserve save/identity compatibility only; the runtime surface is selected separately.
 const LEGACY_IDENTITY_OUTFIT_BY_KIND=Object.freeze({hero:'shino.uniform.original.v1',mother:'shino.uniform.moss.v1',enemy:'shino.uniform.ember.v1'});
 const cleanId=value=>String(value||'actor').replace(/[^a-zA-Z0-9._:-]/g,'-').slice(0,80)||'actor';
 const mixSeed=(seed,text)=>{
@@ -30,7 +32,7 @@ export function rinneRuntimeAgeMs(ageSeconds){
   return Math.min(ms,LIFESPAN_MS-1);
 }
 
-export function createRinneRuntimeCharacter({kind,id,seed,ageSeconds,role=null}={}){
+export function createRinneRuntimeCharacter({kind,id,seed,ageSeconds,role=null,runtimeAsset=null}={}){
   if(!Object.hasOwn(LEGACY_IDENTITY_OUTFIT_BY_KIND,kind))throw Error(`Unknown Rinne runtime character kind: ${kind}`);
   const actorId=`rinne.${kind}.${cleanId(id)}`,character=createCharacter({
     id:actorId,
@@ -38,19 +40,19 @@ export function createRinneRuntimeCharacter({kind,id,seed,ageSeconds,role=null}=
     ageMs:rinneRuntimeAgeMs(ageSeconds),
     outfitId:LEGACY_IDENTITY_OUTFIT_BY_KIND[kind]
   });
-  const model=selectKaykitModel({kind,key:`${actorId}:${seed||0}`}),asset=kaykitRuntimeAsset(model.id);
+  const model=runtimeAsset?null:selectKaykitModel({kind,key:`${actorId}:${seed||0}`}),asset=runtimeAsset||kaykitRuntimeAsset(model.id);
   return Object.freeze({
     kind,
     role:role||({hero:'traveler',mother:'villager',enemy:'guard'}[kind]),
-    familyId:KAYKIT_FAMILY_ID,
-    modelId:model.id,
+    familyId:asset.familyId||KAYKIT_FAMILY_ID,
+    modelId:asset.modelId,
     character,
     asset
   });
 }
 
 export function createRinneHeroCharacter(state){
-  return createRinneRuntimeCharacter({kind:'hero',id:state?.id||'player',seed:state?.seed||1,ageSeconds:state?.ageSeconds||0,role:'traveler'});
+  return createRinneRuntimeCharacter({kind:'hero',id:state?.id||'player',seed:state?.seed||1,ageSeconds:state?.ageSeconds||0,role:'traveler',runtimeAsset:RINNE_PROTAGONIST_RUNTIME_ASSET});
 }
 
 export function createRinneMotherCharacter(state){

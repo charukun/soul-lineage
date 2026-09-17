@@ -1,78 +1,78 @@
 # Integration Deep Repair Handoff
 
-Fast Laneは通常Ready PRの唯一のmerge入口であり、Fast RepairはGitで機械的に安全なmerge-forwardだけを処理する。
+Fast Lane is the only normal merge entry for Ready PRs. Fast Repair handles only mechanically safe reconciliation in GitHub Actions. True semantic source repair must not silently choose one side of a conflict or weaken an existing gate.
 
-Fast Laneが真のmerge conflictまたはcurrent exact-headのCI failureを検出した場合、旧Rescue queueや1時間watchdogを通常の起動条件にせず、そのcurrent exact headに対するDeep Repair handoffを同じIntegration passで即時に記録する。large-base reconciliationはcomplete fail-closed comparisonでFast Laneに残し、サイズだけを理由にDeep Repairへ落とさない。
+## Work-free recovery model
 
-## Repository側の即時handoff
+The Integration control plane does **not** start ChatGPT Work, Codex, OpenAI API, a paid model API, a dedicated PAT, or a second autonomous worker when Fast Repair cannot safely finish.
 
-Deep Repair handoffは次を満たす。
+Recovery is split into two layers:
 
-- GitHub current stateだけを正本にし、PR番号、branch、exact head、current develop、reasonを固定する。
-- `integration/deep-repair` statusと `integration-deep-repair:v1` machine-readable Issueを即時に作る。
-- Issueには既存 `rinne-ai-repair:v1` envelopeも含め、既存Work repair契約と同じ座標・安全条件を渡す。
-- exact headごとの `sourceKey` で冪等化し、同じheadをFast Laneが再評価してもIssueを重複生成しない。
-- explicit hold、Changes requested、未解決thread、未merge dependency、external PR、main / Productionを自動修復へ送らない。
-- Deep Repair自身はmerge権限を持たない。元PR branchをfast-forwardで修復し、fast validation後に同じFast Laneへ戻す。
-- OpenAI API、Codex Action、専用PAT、有料fallbackを通常Deep Repair起動条件に追加しない。
-- 旧periodic Work/watchdogは取りこぼし復旧のfallbackとして残してよいが、Deep Repair要求の発見や状態生成を担当しない。
+1. **GitHub repair layer**: GitHub Actions performs deterministic recovery such as dependency follow-up, safe merge-forward, exact-head validation, browser rechecks, bounded retry and other repository-owned mechanical repair.
+2. **Normal Chat handoff**: when a current exact head still requires semantic source repair, Fast Lane creates one machine-readable GitHub Issue for that exact head, assigns the repository owner, and includes a copy/paste prompt for a normal Chat session. The Issue is the recovery coordinate. GitHub notification delivery, including email, follows the owner's GitHub notification settings.
 
-Fast Repair可能な `behind` / dependency追従は従来どおり軽量executorで処理し、Deep Repair Issueを作らない。
+No background ChatGPT task is required. A normal Chat starts only when the user chooses to open one from the notification.
 
-Deep Repairは人への差し戻しと同義ではない。[実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md#devで実物を確認する標準開発) に従い、確定仕様への適応と可逆的な実装判断をAIが行い、通常gateを通してDEV公開後のユーザーフィードバックへつなぐ。同file競合・技術的難しさ・目視未確認だけでhuman-requiredにしない。仕様判断で止める場合は、根拠の契約、互換修復の検討結果、可逆的なDEV候補では解決できない理由と必要な判断を残す。
+## Repository-side handoff
 
-## ChatGPT Work GitHub event trigger
+A semantic repair handoff must:
 
-WorkのGitHub triggerはPR opened / ready_for_review / closedに対応し、synchronizeとhuman reviewを追加選択できる。Issue opened/edited、CI completed、botのPRコメントは起動条件にできない。Issue発行だけで自動修復が稼働していると扱わない。
+- Treat current GitHub state as canonical and pin source PR number, branch, exact head, current develop and reason.
+- Create `integration/deep-repair` status plus one `integration-deep-repair:v1` Issue for the current exact head.
+- Include a `chat-repair:v1` bundle and keep the existing `rinne-ai-repair:v1` envelope for compatibility with repository lookup/finalization.
+- Deduplicate by `sourceKey=pr:<N>:head:<SHA>` so the same exact head produces at most one notification Issue.
+- Assign `charukun` and mention the owner once on first creation so normal GitHub notification/email routing can surface the request. Re-evaluating the same head must not create a second notification.
+- Never send explicit hold, Changes requested, unresolved review thread, unmerged dependency, external PR, main or Production into automatic source repair.
+- Never invoke ChatGPT Work, Codex or OpenAI API as fallback.
 
-通常起動は `charukun/soul-lineage` のPR event triggerを1つ登録し、`enable_commit_updates=true`・`enable_reviews=true` とする。IssueのsourceKey/state/attemptを修復の正本として維持し、PR eventはIntegration担当を起こす信号にだけ使う。Draft/外部PR/main/Productionは対象外。closed eventでは新たにdependencyを満たしたReady PRを再評価する。
+Fast Repair capable `behind` / dependency reconciliation remains in the lightweight GitHub executor and does not create a Chat repair request.
 
-Ready/更新eventはCI結果より早く届くため、ここから起動するWORKは**Integration役**として当該current headのValidate and buildを有限に確認する。観測は最大15分、API取得間隔は最低60秒、1回のtool waitは60秒以下とし、独立した処理可能PRを先に進める。head変更時は旧観測を停止する。期限超過を成功扱いせず既存PR/Issueへ記録する。通常の実装WORKは引き続きReadyで終了し、修復担当も修復push後は次のevent/Fast Laneへ返す。
+## Chat repair bundle
 
-RepositoryのFast Laneが作成した修復Issueを再取得し、open・pending・attempt<maxAttempts・source PR/head一致・hold/review/thread/dependencyを確認する。着手可能なら同じIssueをclaimして実際の修復に進む。現PR/headの失敗が確定してIssueがまだない場合だけ、current developのhandoff契約で冪等に作成する。他のworking claim、closed、human-required、試行上限を新しいIssueで迂回しない。
+The Issue body contains a copy/paste prompt for a **normal Chat**. The prompt is a wake-up instruction, not a frozen source of truth. The Chat must re-read current GitHub state before editing.
 
-旧Integration Rescueの定期タスクは、旧queue/Work relayを走らせず、現Ready PRとDeep Repair Issueを読む取りこぼし回収へ更新する。通常起動はPR event、1時間のfallbackはevent取りこぼし・有限観測の期限超過だけを回収する。新しいTask-ID/queue/DB、有料API/PATは追加しない。アカウント側のtrigger登録と有効化はRepository外の設定なので、文書追加だけで設定済みとは報告しない。
+The prompt requires the Chat to:
 
-Workerの実行契約は次のとおり。
+1. Open the recorded Issue and source PR, then re-read current PR head and latest `develop`. If the recorded exact head is stale, do not repair the stale head; reconcile against current GitHub state or mark the Issue stale as appropriate.
+2. Follow `AGENTS.md`. If a checkout exists, run `npm run context:plan -- --task "PR #<N> semantic repair"` and read only the returned documents that are needed.
+3. Read the PR-side intent, develop-side intent, relevant governing contracts and focused tests. Preserve both intents when compatible. Unconditional `ours` / `theirs`, blind cherry-pick, assertion deletion and gate weakening are prohibited.
+4. Repair only the existing source PR branch. Use normal git first, then the connected GitHub API, then the same branch in existing Codespaces when transport requires it.
+5. Do not use ChatGPT Work, Codex, OpenAI API or any additional paid API/service.
+6. Run the necessary focused checks and repository fast validation, push the validated repair, update the Issue recovery state, and return the same PR to normal Fast Lane / `READY_FOR_INTEGRATION`.
+7. Never clear explicit holds, requested changes or unresolved review threads, never force-push, and never modify `main` or Production.
+8. If the two sides require a real unresolved product/schema/save/protocol decision that cannot be made from confirmed repository contracts, mark the Issue `human-required` and record the exact decision needed instead of discarding one side.
 
-- latest develop・AGENTS・Integration/実行ポリシーを読み、現在のPR/head/Issueを再取得する。
-- pendingからworkingへ変更しattemptを1増やしてclaimedBy/claimedAt/repairDevelopを記録し、再取得で自分のclaimを確認する。他のclaimを奪わない。
-- 両側の確定仕様と差分を読み、元PR branchへ互換修復する。無条件ours/theirs、assertion削除、hold/review/thread解除、force pushは禁止。
-- fast validationとpushするsource treeの同一性を確認する。merge-forwardは元headと検証したdevelopを両親に持つcommitとする。
-- push後はIssueへrepairHead・検証結果・ready-for-integrationを記録し、既存single-writer Fast Laneへ戻す。独自の成功statusや自己承認でreview gateを通さない。
-- 古いhuman-requiredは現仕様・現在の権限・残attemptを個別に再評価し、適応できる根拠なしに解除しない。
-- 登録成功、実起動、claim、修復push、再検証、merge/DEVを別の証拠として記録する。未着手のまま「自動修復完了」と報告しない。
-- GitHubの既存PR/Issueへ成果を残す。追加のGmail/Slack/ntfy直接送信やChatGPT通知を作らない。
+## Meaning-preserving conflict handling
 
-## browser / DEVとの並列性
+A true conflict is not resolved merely because Git can produce a tree. The repair Chat must compare both sides and construct a compatible third result when possible.
 
-Browser smokeはFast Laneと並行して走り、失敗は `browser-repair:v1` Issueへ送る。Browser Work repairはIssue単位でclaimし、最大attempt内で同じPR/repair branchを修復する。browserが赤でも独立Ready PRのmerge laneは停止しない。
+Examples include preserving a PR's gameplay improvement while adapting it to a newer stamina/save/rendering contract already present in develop. The desired outcome is not "pick PR" or "pick develop"; it is "preserve both confirmed intents without regressing gates".
 
-DEV publicationは各Fast Lane pass後に最新develop SHAへ明示dispatchされ、古いautomatic publisherをcancel/coalesceする。公開中にさらにPRがmergeされた場合は新しいdevelop SHAのpublisherが優先され、古いDEV publish完了を待ってから次PRをmergeする構成にはしない。
+Same-file overlap, technical difficulty or lack of immediate visual approval are not by themselves `human-required`. A stop is justified only when current repository contracts cannot determine a compatible implementation without an unapproved product decision.
 
-## 受入条件
+## CI failure handoff
 
-1. 真のconflictを検出したFast Lane passが、同じexact headへ一度だけDeep Repair Issue/statusを作る。
-2. 同じheadを再評価してもIssueを重複生成しない。
-3. headが変わった場合は新しいexact headとして再評価する。
-4. Fast Repair可能なbehind/stack更新はDeep Repairへ送らない。
-5. large-baseはcomplete comparisonでFast Laneに残し、サイズだけでDeep Repairへ送らない。
-6. Deep Repair要求中でも他のeligible PRはmergeされる。
-7. Browser/DEV repair/publication中でも新しい独立Ready PRはFast Laneへ入れる。
-8. main / Production gate、review/hold/thread/dependency gate、exact-head validationを弱めない。
-9. 追加OpenAI API/PAT/有料fallbackをRepositoryの通常制御面へ追加しない。
-10. Deep Repair対象PRが検証済みの修復headでdevelopへmergeされたら、同じsource PRに紐づくopenなDeep Repair Issueをmachine-readable `completed` へ更新してcloseする。処理は冪等で、未merge PR、別PR、`human-required`、試行上限到達などの停止判断を誤って完了扱いしない。merge直後のfinalizationが一時的に失敗しても、既存 `rescue_mode=scan` がopen Deep Repair Issueのsource PRを再取得し、すでにdevelopへmerge済みのfinalizable stateだけを後から回収する。
+A current exact-head `Validate and build` failure/timed_out may use the same Issue route when source repair is required. The Issue records `repairKind=ci-failure` and the exact run/job identity. The normal Chat reads only the needed failed job steps/log excerpt before editing and must not weaken assertions to make the run green.
 
-## Ready CI failureの修復契約
+Stale heads, Draft observations, skipped/cancelled validation, old attempts and successful observation-only jobs are not repair evidence.
 
-Ready PRのcurrent exact-head `Validate and build` がfailure/timed_outで完了した場合も、失敗run/jobを特定して既存Deep Repair Issueへ送る。CIはbuild成功・失敗の両方でIntegrationをwakeし、開始時点の観測だけで停止させない。自身のwake jobが実行中でもbuild jobの完了を根拠にできる。
+## Browser / DEV boundary
 
-最新validation runのjobだけを調べ、成功したobservation/Draft run、旧head、実行中・skipped・cancelledの検証、旧rerun attemptは失敗の根拠にしない。`repairKind=ci-failure` と `ciFailure` にhead/runId/runAttempt/jobId/jobName/conclusion/runUrl/jobUrlを記録する。Workはその失敗jobのstepsと必要なlog範囲から調査する。
+Browser smoke and DEV publication remain asynchronous GitHub lanes. Mechanical rerun/recheck stays in GitHub Actions. If a browser failure exposes a true source-level semantic repair requirement, it should be converted to the same owner-notified normal-Chat handoff rather than starting Work.
 
-handoff直前にcurrent PR/head/developとhold/review/thread/dependencyを再取得する。同じheadのclosed・上限到達・human-required Issueも再生成せず、claim/attempt制限を維持する。修復中も独立PRのIntegrationは継続する。
+Independent Ready PRs continue through Fast Lane while another PR is waiting for a Chat repair. DEV publication continues to coalesce toward the latest develop SHA.
 
-## Issue件数に依存しないhandoff
+## Finalization
 
-同じexact headの修復Issue確認にRepository全体のopen/closed PR・Issue一覧走査を使わない。exact-head検索、既存statusのIssue参照、検索index反映待ちを補う直近open 100件から候補を取得し、Issue本体を再取得してsourceKey・state・attemptを確認する。closed/上限到達/human-requiredは維持する。検索結果が不完全なら修復Issueを新規作成せず、不完全な検索を「既存なし」と扱わない。
+When the repaired source PR is later merged into develop, Integration updates the same `integration-deep-repair:v1` Issue to `completed`, records the final repair head and merge commit, closes the Issue, and marks `integration/deep-repair` successful. This remains idempotent and never converts `human-required` or attempt-exhausted decisions into success.
 
-同じheadの重複Issueが既に存在する場合は、human-requiredや試行上限などの停止判断を優先する。停止判断がなければ既存working claim、open pendingの順に再利用し、閉じた未着手の重複Issueで進行中のclaimを隠さない。closed Issueしか残っていない場合も新規生成や再openは行わない。
+## Acceptance criteria
+
+1. Mechanical recovery remains GitHub Actions only.
+2. One semantic/CI source-repair request is created per source PR exact head.
+3. The request contains `integration-deep-repair:v1`, `chat-repair:v1`, the compatibility envelope, current recovery coordinates and a normal-Chat copy/paste prompt.
+4. First creation assigns/mentions the owner; re-evaluation of the same head does not duplicate the Issue or notification.
+5. No ChatGPT Work, Codex, OpenAI API, dedicated PAT or paid fallback is required by Integration recovery.
+6. Normal Chat repair preserves both compatible intents and all exact-head/review/thread/check/browser/Production gates.
+7. Unresolvable product decisions become explicit `human-required` stops instead of blind conflict resolution.
+8. `main` and Production remain unchanged by repair handoff.

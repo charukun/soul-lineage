@@ -137,7 +137,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   $('back-title').onclick=async()=>{await save();dispose();await onExit?.();};
   const unsubscribeWorld=channel.subscribe(next=>{if(!next||next.id!==layout.id)return;toast('村更新 · 次回起動');},error=>console.warn(error));
 
-  function renderCoopFrame(dt){
+  function renderCoopFrame(dt,frameMs){
     const snapshot=coop.snapshot(),shared=snapshot.view,open=snapshot.phase==='open';$('coop-darkness').hidden=open;
     inputElapsed+=dt;if(inputElapsed>=.05){inputElapsed=0;const direction=open&&!document.hidden&&!document.querySelector('dialog[open]')?view.cameraVector(axis):{x:0,z:0};coop.input({x:direction.x*Math.min(1,Math.hypot(axis.x,axis.y)),z:direction.z*Math.min(1,Math.hypot(axis.x,axis.y))});}
     if(shared&&(shared.tick!==coopTick||shared.epoch!==coopEpoch||shared.historyRevision!==coopHistoryRevision)){
@@ -149,11 +149,13 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     }
     uiElapsed+=dt;if(uiElapsed>=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval){uiElapsed=0;syncUI();}
     if(Math.hypot(axis.x,axis.y)>.08&&open&&movementHint){movementHint=false;$('move-hint').hidden=true;}if(state.ended&&!rebirthPending)endLife();view.renderState(state,open?dt:0);birth.afterRender(open?dt:0,{carrierMoving:open&&Math.hypot(axis.x,axis.y)>.08});
+    if(open&&Number.isSafeInteger(shared?.ackInputSeq))coop.inputDisplayed?.(shared.ackInputSeq);
+    if(!document.hidden&&Number.isFinite(frameMs)&&frameMs>=0)coop.frameRendered?.(frameMs);
   }
 
   function frame(now){
-    if(!active)return;raf=requestAnimationFrame(frame);const elapsed=Math.max(0,(now-last)/1000);last=now;const {simulationDelta:dt,lifeDelta}=splitRuntimeFrameDelta(elapsed,{paused:document.hidden});
-    if(coop){renderCoopFrame(dt);return;}
+    if(!active)return;raf=requestAnimationFrame(frame);const frameMs=Math.max(0,now-last),elapsed=frameMs/1000;last=now;const {simulationDelta:dt,lifeDelta}=splitRuntimeFrameDelta(elapsed,{paused:document.hidden});
+    if(coop){renderCoopFrame(dt,frameMs);return;}
     let moved=false,carrierMoving=false;const mag=Math.hypot(axis.x,axis.y),birthStep=birth.step(dt,axis);
     if(birthStep.handled){moved=birthStep.moved;carrierMoving=birthStep.carrierMoving;}
     else if(mag>.08&&!state.ended&&!state.down){const direction=view.cameraVector(axis),speed=speedForAge(state.ageYears)*(state.combat?.72:1),nx=state.position.x+direction.x*speed*dt,nz=state.position.z+direction.z*speed*dt;

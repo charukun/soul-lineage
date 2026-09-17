@@ -12,6 +12,7 @@ import { createThermalTrendGovernor } from '@soul/rendering/thermal-governor';
 import { applyVisualQualityFloor } from '@soul/rendering/visual-quality-floor';
 import { deviceCapabilityProfile, saveDeviceCapability } from '@soul/platform-web/device-capability';
 import { visualSceneTrackerFor } from './visual-scene-tracker.js';
+import { instanceDensityIndex } from '@soul/rendering/spatial-instances';
 import { View } from './web/view.js';
 
 const governors = new WeakMap(), densityMatrix = new T.Matrix4(), hiddenMatrix = new T.Matrix4().makeScale(0,0,0), densityPosition = new T.Vector3();
@@ -24,7 +25,7 @@ function applyAdaptiveVegetation(view, scale) {
   view.__adaptiveDensityTarget={x:target.x,z:target.z,level:view.__stylizedQuality?.level??0,scale,stylizedTarget:view.__stylizedDensityTarget};
   for(const instanced of [...(view.forestMeshes||[]),...(view.flowerMeshes||[])]){
     const base=instanced.userData.stylizedDensityBase;if(!base?.length)continue;
-    for(let i=0;i<base.length;i++){densityMatrix.copy(base[i]);densityPosition.setFromMatrixPosition(densityMatrix);const distance=Math.hypot(densityPosition.x-target.x,densityPosition.z-target.z);const density=stylizedDensityForDistance('environment',distance)*scale;instanced.setMatrixAt(i,densityHash(i+instanced.id*31)<=density?base[i]:hiddenMatrix);}
+    for(let i=0;i<base.length;i++){densityMatrix.copy(base[i]);densityPosition.setFromMatrixPosition(densityMatrix);const distance=Math.hypot(densityPosition.x-target.x,densityPosition.z-target.z);const density=stylizedDensityForDistance('environment',distance)*scale;instanced.setMatrixAt(i,densityHash(instanceDensityIndex(instanced,i,31))<=density?base[i]:hiddenMatrix);}
     instanced.instanceMatrix.needsUpdate=true;
   }
 }

@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { directDependencyCount } from './code-health-context.mjs';
 
 const CONFIG_PATH = fileURLToPath(new URL('./code-health.config.json', import.meta.url));
 
@@ -137,6 +138,8 @@ export function analyzeSource(source, path = 'source.js') {
   const decisions = countMatches(sanitized, /\b(?:if|for|while|case|catch)\b|&&|\|\||\?\?/g);
   return {
     path: normalizePath(path),
+    sourceBytes: Buffer.byteLength(source, 'utf8'),
+    directDependencies: directDependencyCount(source),
     loc,
     decisions,
     decisionDensity: loc ? Number((decisions * 100 / loc).toFixed(2)) : 0,
@@ -226,14 +229,19 @@ export function scoreMetric(metric, config) {
   const functionScore = scale(metric.maxFunctionSpan, t.functionLinesSoft, t.functionLinesHard, 30);
   const complexityScore = metric.loc >= 250 ? scale(metric.decisionDensity, t.decisionDensitySoft, t.decisionDensityHard, 15) : 0;
   const duplicateScore = scale(metric.duplicateLines || 0, t.duplicateLinesSoft, t.duplicateLinesHard, 20);
-  const score = Math.min(100, Math.round(locScore + functionScore + complexityScore + duplicateScore));
+  const contextSizeScore = scale(metric.sourceBytes || 0, t.contextBytesSoft, t.contextBytesHard, 60);
+  const dependencyScore = scale(metric.directDependencies || 0, t.directDependenciesSoft, t.directDependenciesHard, 15);
+  const score = Math.min(100, Math.round(locScore + functionScore + complexityScore + duplicateScore + contextSizeScore + dependencyScore));
   const reasons = [];
   if (metric.loc > t.fileLocSoft) reasons.push(`${metric.loc} LOC`);
   if (metric.maxFunctionSpan > t.functionLinesSoft) reasons.push(`longest function ≈ ${metric.maxFunctionSpan} lines`);
   if (metric.decisionDensity > t.decisionDensitySoft && metric.loc >= 250) reasons.push(`${metric.decisionDensity} decisions / 100 LOC`);
   if ((metric.duplicateLines || 0) > t.duplicateLinesSoft) reasons.push(`${metric.duplicateLines} duplicate-covered lines`);
+  if ((metric.sourceBytes || 0) > t.contextBytesSoft) reasons.push(`${(metric.sourceBytes / 1024).toFixed(1)} KiB source context`);
+  if ((metric.directDependencies || 0) > t.directDependenciesSoft) reasons.push(`${metric.directDependencies} direct dependencies`);
   const actionable = score >= t.dispatchScore || metric.loc >= t.hardActionFileLoc ||
-    metric.maxFunctionSpan >= t.hardActionFunctionLines || (metric.duplicateLines || 0) >= t.hardActionDuplicateLines;
+    metric.maxFunctionSpan >= t.hardActionFunctionLines || (metric.duplicateLines || 0) >= t.hardActionDuplicateLines ||
+    (metric.sourceBytes || 0) >= t.hardActionContextBytes;
   return { ...metric, score, reasons, actionable };
 }
 
@@ -245,11 +253,13 @@ export function buildAuditReport(entries, config, generatedAt = new Date().toISO
       coverage.get(occurrence.path)?.push([occurrence.startLine, occurrence.endLine]);
     }
   }
-  const candidates = entries.map(entry => {
+  const metrics = entries.map(entry => {
     const metric = analyzeSource(entry.source, entry.path);
     metric.duplicateLines = mergeCoverage(coverage.get(entry.path) || []);
-    return scoreMetric(metric, config);
-  }).sort((a, b) => b.score - a.score || b.loc - a.loc)
+    return metric;
+  });
+  const candidates = metrics.map(metric => scoreMetric(metric, config))
+    .sort((a, b) => b.score - a.score || b.sourceBytes - a.sourceBytes || b.loc - a.loc)
     .slice(0, config.thresholds.maxCandidates);
   const actionableCandidates = candidates.filter(candidate => candidate.actionable);
   return {
@@ -257,7 +267,9 @@ export function buildAuditReport(entries, config, generatedAt = new Date().toISO
     generatedAt,
     summary: {
       scannedFiles: entries.length,
-      totalLoc: entries.reduce((total, entry) => total + analyzeSource(entry.source, entry.path).loc, 0),
+      totalLoc: metrics.reduce((total, metric) => total + metric.loc, 0),
+      totalSourceBytes: metrics.reduce((total, metric) => total + metric.sourceBytes, 0),
+      contextHotspots: metrics.filter(metric => metric.sourceBytes > config.thresholds.contextBytesSoft).length,
       duplicateGroups: groups.length,
       actionableCandidates: actionableCandidates.length,
       topScore: candidates[0]?.score || 0,
@@ -270,11 +282,11 @@ export function buildAuditReport(entries, config, generatedAt = new Date().toISO
 
 export function formatMarkdownReport(report) {
   const rows = report.candidates.slice(0, 10).map(candidate =>
-    `| ${candidate.score} | \`${candidate.path}\` | ${candidate.loc} | ${candidate.maxFunctionSpan || '-'} | ${candidate.duplicateLines || 0} | ${candidate.actionable ? 'yes' : 'no'} |`).join('\n');
+    `| ${candidate.score} | \`${candidate.path}\` | ${(candidate.sourceBytes / 1024).toFixed(1)} | ${candidate.directDependencies || 0} | ${candidate.loc} | ${candidate.maxFunctionSpan || '-'} | ${candidate.duplicateLines || 0} | ${candidate.actionable ? 'yes' : 'no'} |`).join('\n');
   return `## Code Health audit\n\n` +
-    `Scanned **${report.summary.scannedFiles}** source files / **${report.summary.totalLoc}** LOC. ` +
-    `Actionable hotspots: **${report.summary.actionableCandidates}**. Duplicate groups: **${report.summary.duplicateGroups}**.\n\n` +
-    `| score | file | LOC | longest function | duplicate lines | actionable |\n| ---: | --- | ---: | ---: | ---: | :---: |\n${rows || '| 0 | none | 0 | - | 0 | no |'}\n`;
+    `Scanned **${report.summary.scannedFiles}** source files / **${report.summary.totalLoc}** LOC / **${(report.summary.totalSourceBytes / 1024).toFixed(1)} KiB**. ` +
+    `Context hotspots: **${report.summary.contextHotspots}**. Actionable hotspots: **${report.summary.actionableCandidates}**. Duplicate groups: **${report.summary.duplicateGroups}**.\n\n` +
+    `| score | file | KiB | direct deps | LOC | longest function | duplicate lines | actionable |\n| ---: | --- | ---: | ---: | ---: | ---: | ---: | :---: |\n${rows || '| 0 | none | 0 | 0 | 0 | - | 0 | no |'}\n`;
 }
 
 export function evaluateGuard(baseMetric, currentMetric, config, path) {
@@ -285,11 +297,13 @@ export function evaluateGuard(baseMetric, currentMetric, config, path) {
   if (!baseMetric) {
     if (currentMetric.loc >= g.newFileLoc) reasons.push(`new source file has ${currentMetric.loc} LOC (limit ${g.newFileLoc})`);
     if (currentMetric.maxFunctionSpan >= g.newFileFunctionLines) reasons.push(`new source file contains ≈${currentMetric.maxFunctionSpan}-line function (limit ${g.newFileFunctionLines})`);
+    if (currentMetric.sourceBytes >= g.newFileContextBytes) reasons.push(`new source file has ${(currentMetric.sourceBytes / 1024).toFixed(1)} KiB of AI context surface (limit ${(g.newFileContextBytes / 1024).toFixed(0)} KiB)`);
     return reasons.map(reason => ({ path, reason }));
   }
   const locDelta = currentMetric.loc - baseMetric.loc;
   const functionDelta = currentMetric.maxFunctionSpan - baseMetric.maxFunctionSpan;
   const decisionDelta = currentMetric.decisions - baseMetric.decisions;
+  const contextByteDelta = currentMetric.sourceBytes - baseMetric.sourceBytes;
   if (locDelta >= g.existingLocIncrease && currentMetric.loc > t.fileLocSoft) {
     reasons.push(`source grew by ${locDelta} LOC to ${currentMetric.loc}; split responsibilities instead of extending the hotspot`);
   }
@@ -299,11 +313,17 @@ export function evaluateGuard(baseMetric, currentMetric, config, path) {
   if (decisionDelta >= g.existingDecisionIncrease && currentMetric.loc >= 250 && currentMetric.decisionDensity > t.decisionDensitySoft) {
     reasons.push(`decision count grew by ${decisionDelta} and density is ${currentMetric.decisionDensity}/100 LOC`);
   }
+  if (contextByteDelta >= g.existingContextByteIncrease && currentMetric.sourceBytes > t.contextBytesSoft) {
+    reasons.push(`AI context surface grew by ${(contextByteDelta / 1024).toFixed(1)} KiB to ${(currentMetric.sourceBytes / 1024).toFixed(1)} KiB; split independently readable responsibilities instead of extending the hotspot`);
+  }
   if (baseMetric.loc < g.hardFileLoc && currentMetric.loc >= g.hardFileLoc) {
     reasons.push(`file crossed hard ${g.hardFileLoc} LOC boundary`);
   }
   if (baseMetric.maxFunctionSpan < g.hardFunctionLines && currentMetric.maxFunctionSpan >= g.hardFunctionLines) {
     reasons.push(`function crossed hard ≈${g.hardFunctionLines}-line boundary`);
+  }
+  if (baseMetric.sourceBytes < g.hardContextBytes && currentMetric.sourceBytes >= g.hardContextBytes) {
+    reasons.push(`source crossed hard ${(g.hardContextBytes / 1024).toFixed(0)} KiB AI context boundary`);
   }
   return reasons.map(reason => ({ path, reason }));
 }
