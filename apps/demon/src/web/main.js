@@ -48,7 +48,7 @@ function event(e) {
   }
   if (e.type === 'ward') toast('結界。別の道を探そう');
   if (e.type === 'gate') toast('封鎖を砕いた');
-  if (e.type === 'disengage') toast('戦闘を離れた');
+  if (e.type === 'disengage') toast('追跡を振り切った');
   if (e.type === 'finish') { mode = 'result'; pauseInput(); showResult(e); }
 }
 function newSession(v) {
@@ -70,7 +70,7 @@ async function claimAndEnter(v) {
     store.claim(v); closeSheet(); newSession(v); mode = 'hunt'; paused = false; returnMode = false;
     $('title').hidden = true; $('hud').hidden = false; audio.start(); last = 0; acc = 0; toastUntil = 0;
   } catch (e) { showError(e.message || String(e)); }
-  finally { entering = false; $('begin').disabled = false; }
+  finally { entering = false; $('begin').disabled = false; flow?.refreshHub(store.read()); }
 }
 async function randomHunt(route = 'mission') {
   if (entering) return;
@@ -79,7 +79,7 @@ async function randomHunt(route = 'mission') {
 }
 function lineage() { refresh(); sheet('転生史', '身体に残ったもの', renderLineage(profile), 'lineage'); }
 function help() {
-  sheet('狩りかた', '遊びながら覚える', '<p>指を滑らせて移動。接敵すると自動で戦う。</p><p>倒した獲物のそばで止まると捕食。危険なら敵から離れる。</p><p>帰還口の輪で止まれば、戦利品を確保。持ち帰った戦利品で肉体を強化する。</p><p>死亡すると未確保の戦利品を失う。特能と恒久強化は残る。</p>', 'help');
+  sheet('狩りかた', '遊びながら覚える', '<p>滑らせて移動。止まると自分で村人を探して狩りに向かう。</p><p>接敵すると自動戦闘。危険なら敵から離れ続ければ追跡を振り切れる。</p><p>帰還表示を長押しすると帰還口まで自動で向かう。</p><p>死亡すると、その生の特能・技・強化・戦利品・進行をすべて失う。</p>', 'help');
 }
 function settings() {
   let html = '<button class="inline-action" id="movement-help">狩りかた</button><button class="inline-action" id="sound-toggle">環境音・効果音：' + (audio.enabled ? '入' : '切') + '</button><button class="inline-action" id="visit-log">喰痕</button><button class="inline-action" id="credits">素材と接続状況</button><button class="inline-action" id="music-library">音楽室・BGM音量</button><button class="inline-action" id="settings-memory">転生史</button>';
@@ -104,7 +104,7 @@ function showResult(e) { flow.result(e, game); }
 function toggleReturn() { if (mode !== 'hunt' || game.eaten < 1 || game.devour) return; pauseInput(); returnMode = !returnMode; }
 function hud(now) {
   if (!game) return;
-  const p = game.player, ui = huntUiState(game, {returning: returnMode}), count = ui.fight ? game.combatantCount?.() || 1 : 0;
+  const p = game.player, ui = huntUiState(game, {returning: returnMode || game.autoReturn}), count = ui.fight ? game.combatantCount?.() || 1 : 0;
   $('life-fill').style.width = Math.max(0, p.hp) / p.maxhp * 100 + '%'; $('life-text').textContent = `${Math.ceil(Math.max(0, p.hp))} / ${p.maxhp}`;
   $('form-name').textContent = FORMS[profile.form].name; $('village-name').textContent = game.village.name;
   $('night-label').textContent = `LIFE ${profile.currentLife?.number || 1} · NIGHT ${profile.hunts + 1}`;
@@ -124,7 +124,8 @@ function installInput() {
   const el = $('game'); el.oncontextmenu = e => e.preventDefault();
   el.addEventListener('pointerdown', e => {
     if (mode !== 'hunt' || !$('sheet').hidden || paused || e.pointerType === 'mouse' && e.button !== 0) return;
-    e.preventDefault(); if (!swipe.down(e.pointerId, e.clientX, e.clientY, performance.now())) return;
+    e.preventDefault(); returnMode = false; game.cancelAutoReturn?.();
+    if (!swipe.down(e.pointerId, e.clientX, e.clientY, performance.now())) return;
     game.resetIdle(); el.setPointerCapture(e.pointerId); $('move-pad').hidden = false;
     $('move-pad').style.left = e.clientX + 'px'; $('move-pad').style.top = e.clientY + 'px'; $('move-nub').style.transform = '';
   });
@@ -172,7 +173,8 @@ export async function boot() {
   const preview = {id:'title-only-not-entered', name:'森の向こうの灯', seed:67002, target:'arcanist', level:1, weather:'fog', source:'generated'};
   game = new RaidSession(preview, profile, {}); view.build(game.village); await view.prepareCharacter(activeCharacter(profile).id);
   game.player.x = 1; game.player.z = 20; game.player.yaw = .5; view.camera.position.set(5, 3.6, 27); view.cameraLook.set(1, .95, 18); view.update(game, 0, true);
-  flow = new HuntFlowUi({sheet, start: randomHunt, profile: () => profile, species: () => game.monsterSpecies, toggleReturn,
+  flow = new HuntFlowUi({sheet, start: randomHunt, profile: () => profile, species: () => profile.monsterSpecies || game.monsterSpecies, toggleReturn,
+    selectSpecies: id => safe(() => { const changed = store.species(id); refresh(); return changed; }),
     upgrade: key => safe(() => { const changed = store.upgrade(key); refresh(); return changed; })});
   $('game').dataset.renderer = 'ready'; Object.assign($('game').dataset, {app:'demon', commit:__BUILD_INFO__.commit, environment:__BUILD_INFO__.environment, platform:'web', world:'night-hunt.v5', asset:'kaykit.floor_tile_small'});
   $('emblem').src = sharedEmblemUrl; $('boot').hidden = true; $('title').hidden = false;
@@ -188,9 +190,9 @@ export async function boot() {
   window.addEventListener('resize', () => view.resize()); installInput(); requestAnimationFrame(frame);
   window.__NIGHT_HUNT__ = {
     snapshot: () => ({mode, paused: !$('sheet').hidden || paused, source: game.village.source, village: game.village.id, visited: Object.keys(store.read().visits), profile: store.read(),
-      player: JSON.parse(JSON.stringify(game.player)), npcs: game.village.npcs.map(n => ({id:n.id, kind:n.kind, adult:n.adult, role:n.role, hp:n.hp, dead:n.dead, eaten:n.eaten, x:n.x, z:n.z, marked:n.marked, state:n.state})),
+      player: JSON.parse(JSON.stringify(game.player)), npcs: game.village.npcs.map(n => ({id:n.id, kind:n.kind, adult:n.adult, role:n.role, hp:n.hp, dead:n.dead, eaten:n.eaten, x:n.x, z:n.z, marked:n.marked, elite:!!n.elite, state:n.state})),
       devouring: !!game.devour, combat: game.fight ? {...game.fight.core.state(), retreat:game.fight.retreat, count:game.combatantCount?.() || 1} : null,
-      eaten:game.eaten, time:game.time, finished:game.finished, hunt:{plan:game.huntPlan, carried:game.carried, ready:game.goalReady(), stats:game.huntStats()}, metrics:view.metrics(),
+      eaten:game.eaten, time:game.time, finished:game.finished, hunt:{plan:game.huntPlan, carried:game.carried, ready:game.goalReady(), stats:game.huntStats(), autoReturn:game.autoReturn}, metrics:view.metrics(),
       input:{id:swipe.id, dx:swipe.dx, dy:swipe.dy, amount:swipe.amount, dash:swipe.dash}}),
     presentationSnapshot: () => huntPresentationSnapshot({mode, paused: !$('sheet').hidden || paused, game, profile}), enterRandomHunt: randomHunt
   };
