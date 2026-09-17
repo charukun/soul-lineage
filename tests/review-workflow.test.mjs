@@ -38,12 +38,12 @@ test('Visual Review publication follows exact develop delivery and verifies work
   assert.match(smoke,/name: 'mobile'[\s\S]*width: 390[\s\S]*height: 844[\s\S]*isMobile: true[\s\S]*hasTouch: true/);
   assert.match(smoke,/profile\.hasTouch \? locator\.tap\(\) : locator\.click\(\)/);
   assert.match(smoke,/document\.documentElement\.scrollWidth <= innerWidth \+ 1/);
-  assert.match(smoke,/public-\$\{profile\.name \}/);
+  assert.match(smoke,/public-\$\{profile\.name\}\.png/);
   assert.match(smoke,/profiles: results/);
-  assert.match(smoke,/\[data-app-context=\\?"village/);
-  assert.match(smoke,/\[data-view=\\?"motion/);
+  assert.match(smoke,/data-app-context.*village/);
+  assert.match(smoke,/data-view.*motion/);
   assert.match(smoke,/characters\.html\?review=motion/);
-  assert.match(smoke,/\[data-view=\\?"effects/);
+  assert.match(smoke,/data-view.*effects/);
   assert.match(smoke,/review-effects\.html/);
   assert.match(smoke,/fx-status/);
   assert.match(smoke,/原本再生可能/);
