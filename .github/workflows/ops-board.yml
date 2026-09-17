@@ -1,22 +1,6 @@
 name: Rinne Ops Board
 
 on:
-  push:
-    branches:
-      - 'feat/**'
-      - 'fix/**'
-      - 'work/**'
-    paths:
-      - 'ops-board/**'
-      - 'scripts/application-catalog.mjs'
-      - 'scripts/integration-rescue-*.mjs'
-      - 'wrangler.rescue-watchdog.jsonc'
-      - 'tests/fixtures/integration-rescue-state.mjs'
-      - 'apps/*/package.json'
-      - 'tests/pulse-*.test.mjs'
-      - 'wrangler.ops.jsonc'
-      - '.github/workflows/ops-board.yml'
-      - 'tests/ops-*.test.mjs'
   workflow_dispatch:
   workflow_call:
     inputs:
