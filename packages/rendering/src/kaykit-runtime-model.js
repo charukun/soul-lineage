@@ -8,7 +8,8 @@ export function gitBlobSha(bytes){
   const header=new TextEncoder().encode(`blob ${body.byteLength}\0`);
   const joined=new Uint8Array(header.byteLength+body.byteLength);
   joined.set(header);joined.set(body,header.byteLength);
-  return crypto.subtle.digest('SHA-1',joined).then(digest=>[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join(''));
+  if(!globalThis.crypto?.subtle)throw Error('Web Crypto is required for KayKit integrity verification');
+  return globalThis.crypto.subtle.digest('SHA-1',joined).then(digest=>[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join(''));
 }
 
 export async function verifyKaykitRuntimeBytes(model,bytes,{maxBytes=DEFAULT_MAX_BYTES}={}){
@@ -29,7 +30,8 @@ export async function loadKaykitRuntimeModel({model,url,renderer=null,transcoder
   const bytes=await verifyKaykitRuntimeBytes(model,await response.arrayBuffer(),{maxBytes});
   const compressed=createCompressedGLTFLoader({renderer,transcoderPath});
   try{
-    const gltf=await compressed.parseAsync(bytes,url),humanoid=kaykitHumanoidFromGLTF(gltf);
+    const base=new URL('.',url).href;
+    const gltf=await compressed.parseAsync(bytes,base),humanoid=kaykitHumanoidFromGLTF(gltf);
     return Object.freeze({
       url,gltf,
       rig:Object.freeze({humanoid,expressions:[],springs:[],warnings:[`KayKit ${model.rigId} / ${model.license} foundation`]}),
