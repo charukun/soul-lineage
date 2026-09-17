@@ -11,21 +11,26 @@
 ```text
 implementation
   -> affected fast validation
+  -> current develop merge-forward into work branch
+  -> affected fast revalidation
   -> commit / push
+  -> final develop freshness verify
   -> Ready for review
   -> READY_FOR_INTEGRATION
   -> final response / session ends
 ```
 
+Ready の前には latest `develop` を work branch へ取り込み、reconciled head で必要な局所検証をやり直す。Ready 化の直前に current develop が current head の ancestor であることを再確認する。checkout がある場合の標準コマンドと conflict handling は [`DEVELOPMENT.md`](DEVELOPMENT.md) の Pre-Ready Reconciliation を正本とする。
+
 CI / GitHub Actions / Playwright / browser check が Running / Queued / Pending でも待たない。`gh run watch`、`gh pr checks --watch`、一定間隔の Actions API 取得、sleep を使う polling loopは禁止。push 直後に1回だけ短時間確認し、起動・即時失敗・明白な設定誤りを確認するのはよい。未完了ならそのまま Integration へ handoff する。
 
-Ready 後の CI 監視、develop 統合、DEV 公開、明示browser verification、Integration Repair / Deep Repair、有限 retry は Integration または専用経路の責任。実装 worker が「裏で追跡中」を理由に返答を保留しない。
+Ready 後の CI 監視、develop 統合、DEV 公開、明示browser verification、Integration Repair / Deep Repair、有限 retry は Integration または専用経路の責任。Ready 化から merge までの短い race で develop がさらに進む可能性は Integration の serialized expected-head gate / Fast Repair が吸収する。実装 worker が「裏で追跡中」を理由に返答を保留しない。
 
 状態名は工程を混同しない。
 
 | 状態 | 意味 |
 | --- | --- |
-| `READY_FOR_INTEGRATION` | 実装・必要な高速検証・push・Ready 完了 |
+| `READY_FOR_INTEGRATION` | 実装・latest develop reconciliation・reconciled head の必要検証・push・freshness verify・Ready 完了 |
 | `INTEGRATED` | develop へ統合済み |
 | `DEV_DEPLOYED` | 対象 develop SHA の DEV 公開・HTTP/source検証成功 |
 | `FAILED` | 実装を完遂できず、理由と復旧情報を残した |
@@ -34,7 +39,7 @@ Ready は CI 成功、merge、DEV 公開成功を意味しない。
 
 ## DEVで実物を確認する標準開発
 
-標準ループは **AI実装 → 高速検証 → Ready → Integrationがdevelopへ統合・DEV公開 → ユーザーが実物を確認 → 指摘をAIが修正**。
+標準ループは **AI実装 → 高速検証 → latest develop reconciliation → 再検証 → Ready → Integrationがdevelopへ統合・DEV公開 → ユーザーが実物を確認 → 指摘をAIが修正**。
 
 明示要件・禁止事項・最新 `develop` の確定仕様を守る範囲で、見た目、操作感、文言、実装方法などの可逆的な細部は AI が選んで実装し、重要な仮定を PR に短く記録する。任意の目視確認を公開前の追加承認工程にしない。
 
@@ -55,14 +60,14 @@ DEV の人間目視と、browser検証・Production 品質認定は別。通常d
 
 ## Ready handoff
 
-GitHub の `open + base=develop + draft=false` が通常 handoff の境界。exact head の `implementation/handoff` status / PR comment は受領記録であり、独自 Task-ID や別の永続 queue を追加しない。
+GitHub の `open + base=develop + draft=false` が通常 handoff の境界。ただし Ready 化前に、current develop の merge-forward、reconciled head の必要局所検証、push、final freshness verify が完了していることを前提とする。exact head の `implementation/handoff` status / PR comment は受領記録であり、独自 Task-ID や別の永続 queue を追加しない。
 
 通知・status は工程別に扱う。
 
 | 工程 | GitHub 正本 | 通知 |
 | --- | --- | --- |
 | 作業中 | work branch / Draft PR / current commit | 開始・push 到達。最終成功ではない |
-| 実装完了 | Ready PR / exact head / `implementation/handoff` | `READY_FOR_INTEGRATION` |
+| 実装完了 | Ready PR / exact head / reconciled develop SHA / `implementation/handoff` | `READY_FOR_INTEGRATION` |
 | develop 統合 | merged PR / merge commit / Integration status | `INTEGRATED` |
 | DEV 完了 | target develop SHA の `integration/develop=success` | `DEV_DEPLOYED` |
 | 実装失敗 | branch / commit / Draft or hold / reason | `FAILED` |
@@ -73,12 +78,13 @@ GitHub の `open + base=develop + draft=false` が通常 handoff の境界。exa
 
 ## 失敗と復旧
 
-単発確認時に即時失敗が判明し、その場で安全に直せる場合は同じ branch / PR で修正 → 高速検証 → push → Ready まで進めてよい。後から判明した失敗は Integration が exact head、失敗 run、対象 test/log を根拠に Repair へ返す。修正 worker も Ready で終了する。
+単発確認時に即時失敗が判明し、その場で安全に直せる場合は同じ branch / PR で修正 → current develop reconciliation → 高速検証 → push → freshness verify → Ready まで進めてよい。後から判明した失敗は Integration が exact head、失敗 run、対象 test/log を根拠に Repair へ返す。修正 worker も同じ pre-Ready reconciliation を行って Ready で終了する。
 
 セッション停止時は、過去チャットから再構築せず、次の現在状態から同じ PR を復旧する。
 
 - repository / branch / exact head SHA
 - PR URL / Draft or Ready / base
+- Ready 前に取り込んだ reconciled develop SHA
 - `implementation/handoff`
 - 必要な Integration / DEV status
 - exact-head Checks / run / artifact
@@ -92,9 +98,9 @@ browser verification / repair は [`BROWSER_SELF_HEALING.md`](BROWSER_SELF_HEALI
 
 ## 転送・push の既存承認
 
-依頼作業に必要なコード、モデル、VRM/GLB、Blender/DCC 元データ、文書、検証証拠、Git bundle を `charukun/soul-lineage` と同 Repository の既存 Codespaces 間で転送し、依頼された work branch を commit/push、PR 作成・更新する範囲は既存承認済み。詳細な許可範囲と例外は [`DELIVERY_AUTHORIZATION.md`](DELIVERY_AUTHORIZATION.md) を正本とし、同じ許可を再質問しない。
+依頼作業に必要なコード、モデル、VRM/GLB、Blender/DCC 元データ、文書、検証証拠、Git bundle を `charukun/soul-lineage` と同 Repository の既存 Codespaces 間で転送し、依頼された work branch を commit/push、PR 作成・更新する範囲は既存承認済み。Ready 前に current develop を **work branch へ merge-forward** することも同じ work-branch 更新の範囲として扱う。詳細な許可範囲と例外は [`DELIVERY_AUTHORIZATION.md`](DELIVERY_AUTHORIZATION.md) を正本とし、同じ許可を再質問しない。
 
-この承認は、無関係なデータ、別 Repository / account / provider、新規課金、credential/security 変更、破壊的操作、実装 worker による develop merge、main / Production 公開を許可しない。
+この承認は、無関係なデータ、別 Repository / account / provider、新規課金、credential/security 変更、破壊的操作、**実装 worker が develop branch 自体へ merge/write すること**、main / Production 公開を許可しない。develop を work branch 側へ取り込む pre-Ready reconciliation と、develop branch 自体への統合は区別する。
 
 ## 完了報告の画像・動画エビデンス
 
@@ -130,6 +136,7 @@ GitHub Actions artifactを使う明示browser/evidence workflowでは保存期�
 - exact head commit SHA
 - PR 番号 / URL
 - Ready for review 化済み
+- Ready 前に取り込んだ reconciled develop SHA
 - `READY_FOR_INTEGRATION`
 - 実行した高速検証
 - 取得したキャプチャー／動画と短い確認内容、または未取得理由
