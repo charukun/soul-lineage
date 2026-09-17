@@ -6,7 +6,6 @@ import { gearGeometry, hairGeometry, outfitGeometry } from './master-character-w
 
 const UP = new Vector3(0, 1, 0);
 const REFERENCE_KEY = Symbol('master-character-reference-runtime');
-const MESHY_WAYFARER_DESIGN = 'meshy-seed-rinne-wayfarer';
 
 function material(name, roughness = .82, metalness = 0) {
   return new MeshStandardMaterial({ name, roughness, metalness, side: DoubleSide });
@@ -59,34 +58,25 @@ function paletteMaterials(materials, style) {
 
 function addHumanoid(state, actor, style, materials) {
   const b = actor.bones;
-  const wayfarer = style.design === MESHY_WAYFARER_DESIGN;
-  const compact = wayfarer || style.scale < .72;
+  const compact = style.scale < .72;
   const broad = ['guard','knight','blacksmith','laborer'].includes(style.design);
-  const torsoX = broad ? .185 : wayfarer ? .148 : compact ? .155 : .17;
-  const torsoY = wayfarer ? .205 : compact ? .22 : .255;
-  const torsoZ = broad ? .135 : wayfarer ? .108 : .12;
+  const torsoX = broad ? .185 : compact ? .155 : .17;
+  const torsoY = compact ? .22 : .255;
+  const torsoZ = broad ? .135 : .12;
 
   addMesh(state, b.spine, new SphereGeometry(1, 18, 12), materials.secondary, 'reference:torso', [0, .03, 0], [torsoX, torsoY, torsoZ]);
-  addMesh(state, b.hips, new SphereGeometry(1, 16, 10), materials.dark, 'reference:pelvis', [0, .055, 0], [torsoX * .93, wayfarer ? .095 : compact ? .11 : .13, torsoZ * .96]);
+  addMesh(state, b.hips, new SphereGeometry(1, 16, 10), materials.dark, 'reference:pelvis', [0, .055, 0], [torsoX * .93, compact ? .11 : .13, torsoZ * .96]);
 
-  const headScale = wayfarer ? [.135,.151,.122] : compact ? [.115,.132,.105] : [.11,.128,.102];
+  const headScale = compact ? [.115,.132,.105] : [.11,.128,.102];
   addMesh(state, b.head, new SphereGeometry(1, 20, 14), materials.skin, 'reference:head', [0, .078, .008], headScale);
-  const eyeX = wayfarer ? .044 : .038;
-  const eyeY = wayfarer ? .090 : .087;
-  const eyeZ = wayfarer ? .114 : .097;
-  for (const x of [-eyeX, eyeX]) {
-    addMesh(state, b.head, new SphereGeometry(1, 10, 7), materials.eyes, `reference:eye:${x < 0 ? 'l' : 'r'}`, [x, eyeY, eyeZ], wayfarer ? [.024,.029,.009] : [.019,.024,.008]);
-    addMesh(state, b.head, new SphereGeometry(1, 8, 6), materials.dark, `reference:pupil:${x < 0 ? 'l' : 'r'}`, [x, eyeY - .001, eyeZ + .007], wayfarer ? [.009,.014,.004] : [.008,.012,.004]);
+  for (const x of [-.038, .038]) {
+    addMesh(state, b.head, new SphereGeometry(1, 10, 7), materials.eyes, `reference:eye:${x < 0 ? 'l' : 'r'}`, [x, .087, .097], [.019,.024,.008]);
+    addMesh(state, b.head, new SphereGeometry(1, 8, 6), materials.dark, `reference:pupil:${x < 0 ? 'l' : 'r'}`, [x, .086, .103], [.008,.012,.004]);
   }
-  addMesh(state, b.head, new BoxGeometry(1,1,1), materials.accent, 'reference:mouth', [0,wayfarer ? .032 : .038,wayfarer ? .119 : .101], [wayfarer ? .024 : .028,.004,.004]);
+  addMesh(state, b.head, new BoxGeometry(1,1,1), materials.accent, 'reference:mouth', [0,.038,.101], [.028,.004,.004]);
 
   const hair = hairGeometry(style.hairFamily, style.hairFront, style.hairBack);
   addMesh(state, b.head, hair, materials.hair, 'reference:hair');
-  if (wayfarer) {
-    addMesh(state,b.head,new SphereGeometry(1,14,10),materials.hair,'reference:wayfarer:hair-lock-l',[-.092,.015,-.018],[.050,.145,.040],[0,0,.12]);
-    addMesh(state,b.head,new SphereGeometry(1,14,10),materials.hair,'reference:wayfarer:hair-lock-r',[.092,.015,-.018],[.050,.145,.040],[0,0,-.12]);
-    addMesh(state,b.head,new SphereGeometry(1,14,10),materials.hair,'reference:wayfarer:hair-back',[0,.018,-.100],[.105,.150,.055]);
-  }
   if (style.hairExtra === 'bun') addMesh(state, b.head, new SphereGeometry(1,14,10), materials.hair, 'reference:hair-bun', [0,.135,-.12], [.068,.062,.055]);
   if (style.prop === 'ribbon') {
     addMesh(state, b.head, new BoxGeometry(1,1,1), materials.accent, 'reference:ribbon-left', [-.072,.148,-.05], [.045,.025,.009], [0,0,.48]);
@@ -95,26 +85,22 @@ function addHumanoid(state, actor, style, materials) {
 
   const upperArmMat = style.armStyle === 'armor' ? materials.metal : materials.secondary;
   const lowerArmMat = style.armStyle === 'rolled' ? materials.skin : style.armStyle === 'armor' ? materials.metal : materials.secondary;
-  const upperRadius = wayfarer ? .038 : broad ? .047 : .041;
-  const lowerRadius = wayfarer ? .034 : .037;
-  addSegment(state,b,'leftUpperArm','leftLowerArm',upperRadius,upperArmMat,'reference:left-upper-arm');
-  addSegment(state,b,'rightUpperArm','rightLowerArm',upperRadius,upperArmMat,'reference:right-upper-arm');
-  addSegment(state,b,'leftLowerArm','leftHand',lowerRadius,lowerArmMat,'reference:left-lower-arm');
-  addSegment(state,b,'rightLowerArm','rightHand',lowerRadius,lowerArmMat,'reference:right-lower-arm');
+  addSegment(state,b,'leftUpperArm','leftLowerArm', broad ? .047 : .041,upperArmMat,'reference:left-upper-arm');
+  addSegment(state,b,'rightUpperArm','rightLowerArm',broad ? .047 : .041,upperArmMat,'reference:right-upper-arm');
+  addSegment(state,b,'leftLowerArm','leftHand',.037,lowerArmMat,'reference:left-lower-arm');
+  addSegment(state,b,'rightLowerArm','rightHand',.037,lowerArmMat,'reference:right-lower-arm');
   for (const [side,bone] of [['left',b.leftHand],['right',b.rightHand]]) {
     const handMat = style.armStyle === 'armor' ? materials.dark : materials.skin;
-    addMesh(state,bone,new SphereGeometry(1,10,8),handMat,`reference:${side}-hand`,[0,.018,0],wayfarer ? [.039,.050,.029] : [.043,.055,.03]);
+    addMesh(state,bone,new SphereGeometry(1,10,8),handMat,`reference:${side}-hand`,[0,.018,0],[.043,.055,.03]);
   }
 
   const legMat = style.legStyle === 'bare' ? materials.skin : style.legStyle === 'armor' ? materials.metal : materials.dark;
-  const thighRadius = wayfarer ? .052 : broad ? .065 : .058;
-  const thighRadiusZ = wayfarer ? .048 : broad ? .06 : .053;
-  addSegment(state,b,'leftUpperLeg','leftLowerLeg',thighRadius,legMat,'reference:left-thigh',thighRadiusZ);
-  addSegment(state,b,'rightUpperLeg','rightLowerLeg',thighRadius,legMat,'reference:right-thigh',thighRadiusZ);
-  addSegment(state,b,'leftLowerLeg','leftFoot',style.legStyle==='armor'?.057:wayfarer?.045:.05,legMat,'reference:left-calf',wayfarer?.043:.047);
-  addSegment(state,b,'rightLowerLeg','rightFoot',style.legStyle==='armor'?.057:wayfarer?.045:.05,legMat,'reference:right-calf',wayfarer?.043:.047);
+  addSegment(state,b,'leftUpperLeg','leftLowerLeg',broad?.065:.058,legMat,'reference:left-thigh',broad?.06:.053);
+  addSegment(state,b,'rightUpperLeg','rightLowerLeg',broad?.065:.058,legMat,'reference:right-thigh',broad?.06:.053);
+  addSegment(state,b,'leftLowerLeg','leftFoot',style.legStyle==='armor'?.057:.05,legMat,'reference:left-calf',.047);
+  addSegment(state,b,'rightLowerLeg','rightFoot',style.legStyle==='armor'?.057:.05,legMat,'reference:right-calf',.047);
   const footMat = style.footwear === 'greaves' ? materials.metal : materials.leather;
-  for (const [side,bone] of [['left',b.leftFoot],['right',b.rightFoot]]) addMesh(state,bone,new BoxGeometry(1,1,1),footMat,`reference:${side}-foot`,[0,.015,.045],wayfarer ? [.062,.066,.115] : [.065,.055,.12]);
+  for (const [side,bone] of [['left',b.leftFoot],['right',b.rightFoot]]) addMesh(state,bone,new BoxGeometry(1,1,1),footMat,`reference:${side}-foot`,[0,.015,.045],[.065,.055,.12]);
 }
 
 function addWardrobe(state, actor, style, materials) {
@@ -134,16 +120,6 @@ function addWardrobe(state, actor, style, materials) {
     addMesh(state,spine,capeTrim,materials.accent,'reference:shino:capelet-trim',[0,.16,0],[.90,.42,.92]);
     addMesh(state,spine,new TorusGeometry(.17,.012,6,22),materials.leather,'reference:shino:belt',[0,-.035,0],[1,1,.80],[Math.PI/2,0,0]);
     addGear(state,spine,'satchel',materials.leather,materials.metal,'reference:shino:satchel');
-  }
-
-  if (design === MESHY_WAYFARER_DESIGN) {
-    bodyMesh.scale.set(.92,.76,.90); bodyMesh.position.y = .085;
-    addGear(state,spine,'cowl',materials.secondary,materials.metal,'reference:wayfarer:green-hood');
-    addMesh(state,spine,new CylinderGeometry(.19,.235,.285,16,1,true),materials.dark,'reference:wayfarer:short-skirt',[0,-.235,0]);
-    addMesh(state,spine,new TorusGeometry(.165,.012,6,22),materials.leather,'reference:wayfarer:utility-belt',[0,-.055,0],[1,1,.80],[Math.PI/2,0,0]);
-    addMesh(state,spine,new BoxGeometry(1,1,1),materials.leather,'reference:wayfarer:crossbody-strap',[0,.055,.135],[.018,.345,.014],[0,0,.56]);
-    addMesh(state,spine,new BoxGeometry(1,1,1),materials.leather,'reference:wayfarer:belt-pouch',[-.155,-.115,.105],[.055,.070,.032],[0,0,-.08]);
-    addMesh(state,spine,new BoxGeometry(1,1,1),materials.accent,'reference:wayfarer:underlayer',[0,.145,.114],[.125,.105,.014]);
   }
 
   if (['guard','knight'].includes(design)) addGear(state,spine,'armor',materials.secondary,materials.metal,`reference:${design}:armor`);
