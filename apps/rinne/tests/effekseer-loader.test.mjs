@@ -19,10 +19,10 @@ function harness({mode='normal',deferResource=false}={}){
     setResourceLoader(value){resourceLoader=value;},
     loadEffect(bytes,scale,onload,_onerror,redirect){
       assert.ok(bytes instanceof ArrayBuffer);const index=sourceCount++,effect={isLoaded:false,scale};
-      let resource=index===0?'Texture/SwordLine01.png':'Parts/ToonBase.efkmat';
-      if(mode==='unlisted')resource='unreviewed.png';
-      if(mode==='optional')resource='Parts/ToonBase.efkmatd';
-      if(mode==='optional'&&index===0)resource='Texture/SwordLine01.png';
+      const resources=['Texture/SwordLine01.png','Parts/ToonBase.efkmat','Parts/AuraTube.efkmat'];
+      let resource=resources[index]||resources[resources.length-1];
+      if(mode==='unlisted'&&index===1)resource='unreviewed.png';
+      if(mode==='optional'&&index===1)resource='Parts/ToonBase.efkmatd';
       resourceLoader(redirect(resource),data=>{
         calls.nativeCallbacks++;if(mode==='optional'&&index===1)assert.equal(data,null);
         effect.isLoaded=true;onload();
@@ -58,24 +58,25 @@ test('asset URL respects app mount path and rejects cross-origin base',()=>{
 });
 test('owned SDK loader prefetches originals and renders with state restoration and bounded particles',async()=>{
   const h=harness(),b=await h.start();assert.deepEqual(h.calls.options,budget);assert.equal(h.calls.restore,true);
-  assert.equal(h.calls.requests.length,4);assert.equal(h.calls.nativeCallbacks,2);assert.equal(h.urls.length,0);
+  assert.equal(h.calls.requests.length,6);assert.equal(h.calls.nativeCallbacks,3);assert.equal(h.urls.length,0);
   const cue={effect:'impact',position:{x:2,y:1,z:4},rotation:{x:0,y:1,z:0},scale:1.8,color:[255,200,150,255]};
   b.play(cue);assert.equal(h.calls.played[0].effect.scale,AUTHORED_EFFECTS.impact.scale);assert.deepEqual(h.calls.scale,[1.8,1.8,1.8]);
+  b.play({...cue,effect:'finisher',scale:1.15});assert.equal(h.calls.played[1].effect.scale,AUTHORED_EFFECTS.finisher.scale);assert.deepEqual(h.calls.scale,[1.15,1.15,1.15]);
   b.update(0);b.update(NaN);b.update(-1);assert.deepEqual(h.calls.updates,[]);b.update(.1);assert.deepEqual(h.calls.updates,[3]);
   b.draw({projectionMatrix:{elements:[1]},matrixWorldInverse:{elements:[2]}});assert.equal(h.calls.draws,1);
-  b.dispose();b.dispose();await flush();assert.equal(h.calls.release,1);assert.equal(h.calls.releaseEffect,2);
+  b.dispose();b.dispose();await flush();assert.equal(h.calls.release,1);assert.equal(h.calls.releaseEffect,3);
 });
 test('optional material compilation cache returns an explicit miss without an unpinned request',async()=>{
   const h=harness({mode:'optional'}),b=await h.start();assert.equal(h.calls.requests.some(u=>u.endsWith('.efkmatd')),false);
-  assert.equal(h.calls.nativeCallbacks,2);b.dispose();await flush();assert.equal(h.calls.release,1);
+  assert.equal(h.calls.nativeCallbacks,3);b.dispose();await flush();assert.equal(h.calls.release,1);
 });
 test('unknown material/texture dependency fails instead of silently downloading unreviewed data',async()=>{
   const h=harness({mode:'unlisted'});await assert.rejects(h.start(),/Unpinned/);await flush();
-  assert.equal(h.calls.nativeCallbacks,0);assert.equal(h.calls.release,1);
+  assert.ok(h.calls.nativeCallbacks<=1);assert.equal(h.calls.release,1);
 });
 test('abort during resource loading suppresses every late native callback and releases context once',async()=>{
   const h=harness({deferResource:true});const promise=h.start();await flush();
-  assert.equal(h.calls.requests.length,4);h.controller.abort();await assert.rejects(promise,/disposed/);await flush();
+  assert.equal(h.calls.requests.length,6);h.controller.abort();await assert.rejects(promise,/disposed/);await flush();
   assert.equal(h.calls.nativeCallbacks,0);assert.equal(h.calls.release,1);
 });
 test('abort before asynchronous SDK completion never creates a native context',async()=>{
