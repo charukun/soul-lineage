@@ -50,7 +50,7 @@ latest develop
   -> asynchronous DEV publication
 ```
 
-`BLOCKED` は repository contract と user intent だけでは安全に解けない product / permission / external-input choice に限定する。Draft は長時間作業や途中共有を GitHub 上で可視化したい場合だけ使う optional transport であり、短寿命タスクの必須工程ではない。Micro Patch / Normal の worker-facing 分岐も廃止し、変更 risk から必要 evidence を直接選ぶ。
+`BLOCKED` は repository contract と user intent だけでは安全に解けない product / permission / external-input choice に限定する。Draft は長時間作業や途中共有を GitHub 上で可視化したい場合だけ使う optional transport であり、短寿命タスクの必須工程ではない。worker-facing routeを変更行数や固定分類で分岐せず、変更 risk から必要 evidence を直接選ぶ。
 
 実装 WORK は Ready / `READY_FOR_INTEGRATION` で終了し、CI・browser・DEV 公開を待って polling しない。main / Production は明示許可時のみ変更する。品質 gate を弱めない。
 
@@ -60,17 +60,15 @@ latest develop
 
 次は current policy ではなく補助資料として扱う。
 
-- `MICRO_PATCH_FAST_LANE.md`: 旧 authoring split の compatibility/history。現在の worker route ではない。
-- `INTEGRATION_FAST_LANE.md`: `INTEGRATION.md` への互換入口。
 - `INTEGRATION_AUTONOMOUS_DELIVERY_V4.md`: 過去の control-plane 設計記録。現在の merge authority ではない。
 - `INTEGRATION_RESULTS.md`, `INTEGRATION_DELIVERY_RECOVERY_145.md`, `INTEGRATION_QUEUE_RECOVERY.md`: 時点付き結果・復旧記録。
 - `INTEGRATION_RESCUE_EVIDENCE.md`, `INTEGRATION_RESCUE_LIVE_ACCEPTANCE.md`, `INTEGRATION_RESCUE_MANUAL_DRAIN.md`, `INTEGRATION_RESCUE_THROUGHPUT.md`, `INTEGRATION_RESCUE_WORK.md`: Rescue 世代の証跡・運用履歴・互換情報。現在の通常 merge 経路は `INTEGRATION.md`、Repair の現在形は `INTEGRATION_RESCUE.md` を優先する。
 
-履歴資料は当時の事実を保存するため、古い SHA や状態を機械的に現在値へ書き換えない。現行規則が必要な箇所からは canonical document だけを参照する。
+履歴資料は当時の事実を保存するため、古い SHA や状態を機械的に現在値へ書き換えない。一方、別の正本へ転送するだけのshimや、置換後に一意な履歴・証拠を持たないroute文書は残さない。Git履歴で追えるため、現行workerを古い経路へ誘導する互換入口を常設しない。
 
 ## 更新ルール
 
 - 新しい横断ルールを追加する前に、既存 canonical document のどこへ入れるかを決める。
 - 同じルールを AGENTS / README / DEVELOPMENT / Integration 文書へ重複記載しない。
 - 入口文書は「どこを読むか」、canonical document は「何を守るか」、履歴資料は「何が起きたか」に役割を分ける。
-- 現行経路を置き換えた場合は、旧資料を削除して証跡を失うより、明確に historical / compatibility と表示して canonical へのリンクを残す。
+- 現行経路を置き換えた場合、固有の歴史的証拠がある資料は historical と明示して残し、単なる互換shimや重複routeは削除する。
