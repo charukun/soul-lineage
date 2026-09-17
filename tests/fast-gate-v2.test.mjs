@@ -71,6 +71,8 @@ test('develop CI plans and validates with trusted control checkout while main ke
   assert.match(build, /if \[ "\$TARGET_BASE" = "develop" \]; then[\s\S]*node \.\.\/control\/scripts\/validate\.mjs dev "\$BASE_SHA" "\$HEAD_SHA"[\s\S]*else[\s\S]*node scripts\/validate\.mjs fast "\$BASE_SHA" "\$HEAD_SHA"/);
   assert.match(build, /github\.event\.pull_request\.base\.ref == 'main' \|\| steps\.plan\.outputs\.has_apps == 'true' \|\| steps\.plan\.outputs\.infrastructure == 'true'/);
   assert.doesNotMatch(build, /has_packages == 'true'/);
+  assert.match(build, /Bind trusted DEV validator to exact PR dependencies[\s\S]*ln -s \.\.\/work\/node_modules control\/node_modules/);
+  assert.ok(build.indexOf('Bind trusted DEV validator to exact PR dependencies') < build.indexOf('DEV no-test validation or main fast verification'));
 });
 
 test('Ready validation checkout is shallow and fetches only the resolved exact base', () => {

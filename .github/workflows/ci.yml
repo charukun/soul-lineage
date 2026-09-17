@@ -136,6 +136,9 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: work/package-lock.json
+      - name: Bind trusted DEV validator to exact PR dependencies
+        if: github.event.pull_request.base.ref == 'develop'
+        run: ln -s ../work/node_modules control/node_modules
       - name: Reuse exact Rescue fast verification when the trusted evidence matches
         id: rescue-fast
         if: >-

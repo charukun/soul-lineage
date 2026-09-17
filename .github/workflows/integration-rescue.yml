@@ -83,6 +83,8 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: work/package-lock.json
+      - name: Bind trusted DEV validator to exact PR dependencies
+        run: ln -s ../work/node_modules control/node_modules
       - name: Keep trusted validation controls immutable from PR code
         run: |
           sudo chown -R root:root control
