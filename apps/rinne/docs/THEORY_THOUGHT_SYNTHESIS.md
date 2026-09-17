@@ -2,7 +2,7 @@
 
 ## Status
 
-Source of truth at task start: develop `4a3a328e143f92e5c5f297d6d6bac453e4627f36` on 2026-09-17. This task is isolated in PR #766. PR #752 is open/Ready research and is **not** assumed integrated, correct, or composition-safe; its observation/decision-capsule ideas are hypotheses under further attack.
+Source of truth at task start: develop `4a3a328e143f92e5c5f297d6d6bac453e4627f36` on 2026-09-17. During the loop, develop advanced to `df127fa3d735d7510de5867077282573de9cdb77`; comparison showed that the prior reconstruction artifacts had entered develop, and this branch was explicitly reconciled onto that exact commit. PR #752 can therefore remain historical/reference context, while the current develop copies of `THEORY_RECONSTRUCTION*` are the inherited repository truth under attack. This task remains isolated in PR #766.
 
 This review adds no new protocol name. The strongest surviving candidate is a game-specific compiler/control plane assembled from known ideas: conservative knowledge/abstraction, explicit action preconditions, resource rights, dependency/local-to-global checks, and a known consensus or trusted transaction kernel when local evidence is insufficient. Whether that integrated compiler is novel, correct for Rinne, or faster than equally optimized hybrids remains **F/E**.
 
