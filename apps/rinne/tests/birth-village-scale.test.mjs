@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {defs} from '@soul/world/mura/catalog';
 import {createRinneBirthVillage} from '../src/rebuild/birth-village.js';
+import {buildStations} from '../src/rebuild/locations.js';
 
 const halfExtents=o=>{
  const d=defs[o.kind],c=Math.abs(Math.cos(o.rot||0)),s=Math.abs(Math.sin(o.rot||0));
@@ -32,5 +33,14 @@ test('compact birth-village furniture remains inside its host building footprint
    assert.ok(Math.abs(item.x)+hx<=hd.w/2-wall+.001,`${host.id}/${item.id} exceeds width`);
    assert.ok(Math.abs(item.z)+hz<=hd.d/2-wall+.001,`${host.id}/${item.id} exceeds depth`);
   }
+ }
+});
+
+test('compact smith equipment yard stays clear of village facilities',()=>{
+ const layout=createRinneBirthVillage(),facilities=layout.objects.filter(o=>defs[o.kind]?.building),racks=buildStations(layout).filter(row=>row.equipment);
+ assert.ok(racks.length>=12);
+ for(const rack of racks)for(const facility of facilities){
+  const h=halfExtents(facility),clear=Math.abs(rack.x-facility.x)>=h.x+.45||Math.abs(rack.z-facility.z)>=h.z+.45;
+  assert.ok(clear,`${rack.id} intrudes ${facility.id}`);
  }
 });
