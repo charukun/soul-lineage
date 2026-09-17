@@ -1,0 +1,337 @@
+{
+  "format": "rrp-semantic-evolution-evidence-v1",
+  "startDevelop": "d293f9a0f3fa00bd58c025457bfd03e32a7a9994",
+  "classification": "B: executable finite evidence; conditional A arguments are in THEORY_SEMANTIC_EVOLUTION.md",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "arch": "x64",
+    "workspace": "isolated repository-like authoring workspace; no full checkout"
+  },
+  "focused": {
+    "exit": 0,
+    "error": null,
+    "passed": 30,
+    "failed": 0,
+    "invariantFailure": false,
+    "failures": []
+  },
+  "negativeControls": [
+    {
+      "mutation": "missing-row",
+      "exit": 1,
+      "error": null,
+      "passed": 29,
+      "failed": 1,
+      "invariantFailure": true,
+      "failures": [
+        "cutover waits for every materialized row rather than trusting a version label"
+      ],
+      "killed": true
+    },
+    {
+      "mutation": "skip-catchup",
+      "exit": 1,
+      "error": null,
+      "passed": 29,
+      "failed": 1,
+      "invariantFailure": true,
+      "failures": [
+        "copy completion is not tail completion: accepted old writes must be replayed"
+      ],
+      "killed": true
+    },
+    {
+      "mutation": "late-copy",
+      "exit": 1,
+      "error": null,
+      "passed": 29,
+      "failed": 1,
+      "invariantFailure": true,
+      "failures": [
+        "a delayed duplicate base-copy must not overwrite a replayed row"
+      ],
+      "killed": true
+    },
+    {
+      "mutation": "duplicate-delta",
+      "exit": 1,
+      "error": null,
+      "passed": 29,
+      "failed": 1,
+      "invariantFailure": true,
+      "failures": [
+        "a duplicate delta callback is not another semantic update"
+      ],
+      "killed": true
+    },
+    {
+      "mutation": "forget-receipts",
+      "exit": 1,
+      "error": null,
+      "passed": 27,
+      "failed": 3,
+      "invariantFailure": true,
+      "failures": [
+        "operation identity survives schema change, including uncertain old-client retry",
+        "one combined history survives interleaved copying, writes, restart and cross-version retry",
+        "ordinary identifiers that shadow Object prototype names remain valid"
+      ],
+      "killed": true
+    },
+    {
+      "mutation": "units",
+      "exit": 1,
+      "error": null,
+      "passed": 28,
+      "failed": 2,
+      "invariantFailure": true,
+      "failures": [
+        "new-unit writes are decoded once, not reapplied as old units",
+        "one combined history survives interleaved copying, writes, restart and cross-version retry"
+      ],
+      "killed": true
+    },
+    {
+      "mutation": "old-writer",
+      "exit": 1,
+      "error": null,
+      "passed": 29,
+      "failed": 1,
+      "invariantFailure": true,
+      "failures": [
+        "a queued old writer after the cut cannot update a retired representation"
+      ],
+      "killed": true
+    },
+    {
+      "mutation": "reinterpret-history",
+      "exit": 1,
+      "error": null,
+      "passed": 28,
+      "failed": 2,
+      "invariantFailure": true,
+      "failures": [
+        "original record is judged by original rules, not silently reinterpreted",
+        "a missing historical interpreter yields UNKNOWN, not a new-rule replacement"
+      ],
+      "killed": true
+    },
+    {
+      "mutation": "unchecked-range",
+      "exit": 1,
+      "error": null,
+      "passed": 28,
+      "failed": 2,
+      "invariantFailure": true,
+      "failures": [
+        "a valid source integer need not fit the target unit domain; migration blocks",
+        "a copy that fits can be followed by a delta that leaves the target range"
+      ],
+      "killed": true
+    }
+  ],
+  "syntax": [
+    {
+      "file": "scripts/reality-semantic-evolution-proof.mjs",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "scripts/rrp-evolution/cutover.mjs",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "scripts/rrp-evolution/examples.mjs",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "scripts/rrp-evolution/exploration.mjs",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "scripts/rrp-evolution/finite.mjs",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "scripts/rrp-evolution/oracle.mjs",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "tests/reality-semantic-evolution.test.mjs",
+      "pass": true,
+      "error": null
+    }
+  ],
+  "architecture": {
+    "pass": true,
+    "ownerImports": [
+      "./finite.mjs"
+    ],
+    "oracleImports": [],
+    "scope": "Structural module dependency inspection plus pure local-input test; not a formal information-flow proof or original full-repository architecture runner."
+  },
+  "algebra": {
+    "forward": {
+      "pass": true,
+      "statesChecked": 8,
+      "stepsChecked": 24,
+      "scope": "declared deterministic closed tables and all mapped actions",
+      "contractRoot": "dea2e8282385161d99e4cbac519f9103a3eb6d42c4afa641d398dc859de5de97"
+    },
+    "backward": {
+      "pass": false,
+      "kind": "result",
+      "witness": {
+        "next": {
+          "from": "n1:0:living",
+          "action": "fatal",
+          "to": "n1:0:battle",
+          "result": "ended"
+        },
+        "translatedNext": {
+          "from": "o1:0",
+          "action": "idle",
+          "to": "o1:0",
+          "result": "unchanged"
+        }
+      },
+      "statesChecked": 1,
+      "stepsChecked": 4
+    },
+    "lossyMerge": {
+      "pass": false,
+      "kind": "merge",
+      "pairs": 7,
+      "witness": {
+        "left": [
+          "a"
+        ],
+        "right": [
+          "b"
+        ],
+        "translated": 2,
+        "joined": 1
+      }
+    },
+    "preservingMerge": {
+      "pass": true,
+      "pairs": 16,
+      "scope": "all pairs in declared finite merge domains"
+    },
+    "retentionNow": {
+      "pass": true,
+      "pairs": 1,
+      "scope": "only the supplied finite history set and query family"
+    },
+    "retentionAfterNewRule": {
+      "pass": false,
+      "pairs": 1,
+      "witness": {
+        "i": 0,
+        "j": 1,
+        "query": "battleReward",
+        "left": false,
+        "right": true
+      }
+    },
+    "pathDependence": {
+      "input": 155,
+      "directCents": 155,
+      "throughWholeUnitsCents": 100
+    },
+    "unknownFields": {
+      "source": {
+        "name": "A",
+        "hp": 0,
+        "dead": true
+      },
+      "lossyRoundtrip": {
+        "name": "A",
+        "hp": 0
+      },
+      "retainedButInvalidEdit": {
+        "name": "A",
+        "hp": 1,
+        "dead": true
+      }
+    }
+  },
+  "spaces": [
+    {
+      "seed": "start",
+      "passWithinExploredStates": true,
+      "maxDepth": 12,
+      "maxStates": 16000,
+      "states": 16000,
+      "transitions": 35350,
+      "completedDepth": 8,
+      "cutoff": "state-budget",
+      "activatedStates": 0,
+      "eventKinds": [
+        "activate",
+        "begin",
+        "command",
+        "copy",
+        "crash",
+        "flush",
+        "replay",
+        "restart",
+        "seal"
+      ],
+      "violation": null,
+      "bounds": "One trusted owner, two rows, at most two submitted command identities and one crash/restart. Request/flush are separate. No network quorum, storage loss or unbounded liveness proof."
+    },
+    {
+      "seed": "snapshot-plus-tail",
+      "passWithinExploredStates": true,
+      "maxDepth": 12,
+      "maxStates": 16000,
+      "states": 1333,
+      "transitions": 3053,
+      "completedDepth": 12,
+      "cutoff": "depth-bound",
+      "activatedStates": 82,
+      "eventKinds": [
+        "activate",
+        "command",
+        "crash",
+        "flush",
+        "replay",
+        "restart",
+        "seal"
+      ],
+      "violation": null,
+      "bounds": "One trusted owner, two rows, at most two submitted command identities and one crash/restart. Request/flush are separate. No network quorum, storage loss or unbounded liveness proof."
+    }
+  ],
+  "crashPositions": {
+    "pass": true,
+    "completed": 21,
+    "traceEvents": 20,
+    "scope": "Each crash cut in one two-row/three-command trace, followed by explicit fair local completion; only accepted commands must survive."
+  },
+  "sourceHashes": {
+    "scripts/reality-semantic-evolution-proof.mjs": "a55d69bedb1730eaa0e6490eb00521d35a440c43db74733abe09aa2d78b1c4ce",
+    "scripts/rrp-evolution/cutover.mjs": "860572386d2e24779d32c55d776769eb56fa18e57544d8bfad06ac40af995789",
+    "scripts/rrp-evolution/examples.mjs": "54a68f95ec542b2b823dea6f5d85ef548a2d5f06ac901c627c422ca17b6949b6",
+    "scripts/rrp-evolution/exploration.mjs": "02e894e527c43b47c2740e0335f3d09f426c4cf5e1ebe7ff6aae379b6e62c13c",
+    "scripts/rrp-evolution/finite.mjs": "275229cf371bf872c8110dbf49600c49161e6567e6831a170a4c8c4cccf5ff8b",
+    "scripts/rrp-evolution/oracle.mjs": "b4a933cb08a3a336a7f3e7a510e3fd932d9c7d3c79f2f36a50998b551a7ec0f6",
+    "tests/reality-semantic-evolution.test.mjs": "b4199332cd0fcffbf2ef6cc50a8e71b1e0f6c9fc0cc99912f89bf0790c48d3f5"
+  },
+  "notExecuted": [
+    "context:plan / npm ci / repository-wide gates: no checkout; normal git failed GitHub DNS",
+    "Node 24 validation",
+    "original reality-architecture-proof.mjs",
+    "browser/WebRTC/device tests",
+    "runtime game migration or production schema change",
+    "unbounded refinement or liveness proof"
+  ],
+  "pass": true
+}
