@@ -1,15 +1,16 @@
 import { SKILL_BY_ID } from './rebuild/skill-system.js';
+import { techniqueForSourceSkill } from './combat-loadout.js';
 
 const haptic=pattern=>{try{globalThis.navigator?.vibrate?.(pattern);}catch{}};
 const skillType=id=>SKILL_BY_ID[id]?.type||null;
-const skillName=id=>SKILL_BY_ID[id]?.name||id;
+const displayName=(state,id)=>skillType(id)==='action'?(techniqueForSourceSkill(state,id)?.name||SKILL_BY_ID[id]?.name||id):(SKILL_BY_ID[id]?.name||id);
 
 function updateBadges(model){
   const heart=model.unseenHeart.size,tech=model.unseenTechnique.size;
   if(model.ui.heartBadge){model.ui.heartBadge.textContent=String(heart);model.ui.heartBadge.hidden=heart===0;}
   if(model.ui.techBadge){model.ui.techBadge.textContent=String(tech);model.ui.techBadge.hidden=tech===0;}
-  model.ui.heart?.setAttribute('aria-label',heart?`心。未確認の心得 ${heart}件`:'心・心得');
-  model.ui.techniques?.setAttribute('aria-label',tech?`技。未確認の技 ${tech}件`:'技・連技');
+  model.ui.heart?.setAttribute('aria-label',heart?`心。未確認の心得 ${heart}件`:'心');
+  model.ui.techniques?.setAttribute('aria-label',tech?`技。未確認の技 ${tech}件`:'技');
 }
 function resetLife(model,nextId,current){
   const hadLife=model.lifeId!==null;model.lifeId=nextId;model.knownSnapshot=current;model.unseenHeart.clear();model.unseenTechnique.clear();model.latestDiscoveries=[];
@@ -23,7 +24,7 @@ function discover(model,ids){
   const fresh=[...new Set(ids)].filter(id=>SKILL_BY_ID[id]);if(!fresh.length)return;
   model.latestDiscoveries=fresh;
   for(const id of fresh){if(skillType(id)==='support')model.unseenHeart.add(id);else if(skillType(id)==='action')model.unseenTechnique.add(id);}
-  updateBadges(model);model.ui.sparkName.textContent=fresh.slice(0,2).map(skillName).join('・')+(fresh.length>2?' ほか':'');model.ui.spark.hidden=false;
+  updateBadges(model);const state=model.getState();model.ui.sparkName.textContent=fresh.slice(0,2).map(id=>displayName(state,id)).join('・')+(fresh.length>2?' ほか':'');model.ui.spark.hidden=false;
   clearTimeout(model.sparkTimer);model.sparkTimer=setTimeout(()=>{model.ui.spark.hidden=true;},7200);model.audio.item();haptic([18,28,12]);
 }
 function observeKnownSkills(model,next){
