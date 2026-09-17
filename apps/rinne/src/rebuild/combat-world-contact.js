@@ -33,6 +33,11 @@ export function worldContactCandidates(state,front,event){
   return front.enemies.filter(enemy=>!enemy.dead&&enemy.id!==event.targetId&&dist(origin,enemy)<=radius).filter(enemy=>{const angle=Math.atan2(enemy.x-origin.x,enemy.z-origin.z);return Math.abs(wrap(angle-profile.yaw))<=halfArc&&!lineBlocked(front,origin,enemy);}).sort((a,b)=>dist(origin,a)-dist(origin,b));
 }
 
+export function enemySweepTargets(attacker,states,primaryId,front){
+  const attack=String(attacker?.tidebreakPose?.attack||'');if(!SWEEP_ATTACKS.has(attack)||STOP_ON_FIRST.has(attack))return[];const full=attack==='spin'||attack==='round'||attack==='barrage',radius=full?2.35:1.95,halfArc=full?Math.PI:1.02,origin=attacker,yaw=Number(attacker.yaw)||0;
+  return(states||[]).filter(state=>state.id!==primaryId&&!state.down&&!state.ended&&dist(origin,state.position)<=radius).filter(state=>{const angle=Math.atan2(state.position.x-origin.x,state.position.z-origin.z);return Math.abs(wrap(angle-yaw))<=halfArc&&!lineBlocked(front,origin,state.position);}).sort((a,b)=>dist(origin,a.position)-dist(origin,b.position));
+}
+
 function markDown(state,enemy,events,source='world-contact'){
   if(enemy.dead)return;enemy.hp=0;enemy.dead=true;enemy.moving=false;enemy.attacking=false;state.defeats=(Number(state.defeats)||0)+1;const combat=state.experiences.combat||{count:0,score:0,last:0};state.experiences.combat={count:combat.count+1,score:combat.score+1,last:state.ageSeconds};events.push({type:'enemy-down',targetId:enemy.id,engine:source});
 }
