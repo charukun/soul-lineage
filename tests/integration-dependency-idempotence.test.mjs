@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { reconcileStackFast } from '../scripts/integration-repair-fast.mjs';
 import { dependencyState } from '../scripts/integration-dependency-state.mjs';
 import { eligibility } from '../scripts/integration-policy.mjs';
@@ -113,4 +114,12 @@ test('Fast Lane may accept a behind PR only after dependency ancestry is current
   };
   assert.equal(eligibility(input), 'dependency merge-forward required');
   assert.equal(eligibility({ ...input, dependenciesCurrent: true }), null);
+});
+
+test('Fast Lane routes missing dependency ancestry before CI failure handoff', () => {
+  const source = readFileSync('scripts/integration-fast-lane.mjs', 'utf8');
+  const dependencyGuard = source.indexOf("if (!dependency.incorporated");
+  const ciFailureGate = source.indexOf('if (!checksPassed)');
+  assert.ok(dependencyGuard >= 0);
+  assert.ok(ciFailureGate > dependencyGuard);
 });
