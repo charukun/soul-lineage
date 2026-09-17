@@ -28,7 +28,7 @@ enemySelect.addEventListener('change',()=>{void ensureBattleStage().then(stage=>
 
 const memory=new Map();
 const storage={getItem:key=>memory.has(key)?memory.get(key):null,setItem:(key,value)=>memory.set(key,String(value))};
-let host=null,playing=true,last=performance.now(),lastCore=null,lastPhase='',loopEnabled=true,followCamera=true,uiSkin='rinne',finishedAt=0;
+let host=null,playing=true,last=performance.now(),lastCore=null,loopEnabled=true,followCamera=true,uiSkin='rinne',finishedAt=0;
 
 function setPressed(button,pressed,label){
   button.setAttribute('aria-pressed',String(pressed));
@@ -43,7 +43,7 @@ function setUiSkin(next){
 
 function resetBattle({preservePlaying=false}={}){
   const resume=preservePlaying?playing:true;
-  memory.clear();lastCore=null;lastPhase='';finishedAt=0;
+  memory.clear();lastCore=null;finishedAt=0;battleStage?.resetRound();
   host=new RaidHost({villageId:'develop-visual-review',storage,now:()=>Date.now()});
   host.join('demon',{type:'join',app:'demon',role:'demon',playerId:'review-demon',name:'Demon'});
   host.join('human',{type:'join',app:'rinne',role:'human',playerId:'review-human',name:'Human'});
@@ -53,7 +53,7 @@ function resetBattle({preservePlaying=false}={}){
 }
 
 function renderPhase(core){
-  const state=reviewBattlePhaseState(core,lastPhase);if(state.phase)lastPhase=state.phase;
+  const state=reviewBattlePhaseState(core);
   phasePanel.dataset.phase=state.phase||'idle';phaseCurrent.textContent=REVIEW_BATTLE_PHASE_LABELS[state.phase]||'待';
   for(const step of phaseSteps){const active=step.dataset.phaseStep===state.phase;step.dataset.active=String(active);step.setAttribute('aria-current',active?'step':'false');}
   const left=REVIEW_BATTLE_PHASE_LABELS[state.heroPhase]||'—',right=REVIEW_BATTLE_PHASE_LABELS[state.enemyPhase]||'—';
