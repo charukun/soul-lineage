@@ -10,7 +10,7 @@ const DEFAULT_WALL_THICKNESS=.35;
 export const initialMuraObjects=()=>[
   {id:'b1',kind:'mayor',x:-7,z:-5,rot:0,phase:'built',level:1,material:'base',room:[]},
   {id:'b2',kind:'campfire',x:5,z:8,rot:0,phase:'built',level:1,room:[]},
-  {id:'b3',kind:'guardhome',x:12,z:-7,rot:0,phase:'built',level:1,room:[]},
+  {id:'b3',kind:'guardhome',x:12,z:-7,rot:0,phase:'built',level:1,material:'base',room:[]},
 ];
 export function defaultMuraLayout(){return projectMuraLayout({villageId:'local-hoshitsugi',name:'MURAAAAAAA',revision:0,objects:initialMuraObjects()});}
 /** World geometry only: village economy, Rinne lives and demon admission stay owned by their games. */
@@ -30,7 +30,7 @@ export function validateMuraLayout(raw){
 export function muraLocalToWorld(h,x,z){return{x:h.x+x*Math.cos(h.rot)+z*Math.sin(h.rot),z:h.z-x*Math.sin(h.rot)+z*Math.cos(h.rot)};}
 export function muraWorldToLocal(h,x,z){return{x:(x-h.x)*Math.cos(h.rot)-(z-h.z)*Math.sin(h.rot),z:(x-h.x)*Math.sin(h.rot)+(z-h.z)*Math.cos(h.rot)};}
 export function muraHasInterior(value){const d=defs[typeof value==='string'?value:value?.kind];return !!d?.building&&!d.open&&!NON_INTERIOR_SHAPES.has(d.shape);}
-export function muraDoorWidth(value){const d=defs[typeof value==='string'?value:value?.kind];if(!d)return 0;return Math.min(4.2,Math.max(3.2,d.w*.3));}
+export function muraDoorWidth(value){const d=defs[typeof value==='string'?value:value?.kind];if(!d)return 0;return Math.min(2.4,Math.max(1.6,d.w*.3));}
 export function muraEntry(o,distance=2){const d=defs[o.kind];return muraLocalToWorld(o,0,d.d/2+distance);}
 export function muraInteriorEntry(o,inset=1.6){const d=defs[o.kind];return muraHasInterior(o)?muraLocalToWorld(o,0,d.d/2-inset):muraEntry(o);}
 export function muraInteriorAt(layout,x,z,margin=0){
