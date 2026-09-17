@@ -196,7 +196,7 @@ function render(state, error) {
   const tone = error ? 'warning' : toneFor(tower.status);
   root.className = `control-tower ${tone}`;
   $('#control-headline').textContent = tower.headline || '状態を確認中';
-  $('#control-summary').textContent = error ? '表示更新を再試行しています。前回確定値を保持しています。' : tower.summary || '';
+  $('#control-summary').textContent = error ? '表示更新を再試行しています。前回確定値を保持しています。' : `${tower.summary || ''}${tower.cause ? ` · 理由: ${tower.cause}` : ''}`;
   $('#control-since').textContent = `この状態 ${elapsed(tower.enteredAt)}`;
   $('#control-next').textContent = tower.nextAction || '次の状態更新を待ちます';
   $('#control-completeness').textContent = tower.completeness?.label || '確認中';
