@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 const text = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -74,7 +74,6 @@ test('normal develop delivery uses one authenticated refresh contract without re
   assert.match(refreshWorkflow, /GH_TOKEN: \$\{\{ github\.token \}\}/);
   assert.match(refreshWorkflow, /context: 'ops-board\/refresh'/);
   assert.match(refreshWorkflow, /PULSE runtime unchanged; authenticated state refresh passed/);
-  assert.doesNotMatch(refreshWorkflow, /curl[^\n]*api\/refresh/);
 
   assert.match(prime, /refreshPulseState/);
   assert.doesNotMatch(prime, /fetch\(new URL\('api\/refresh'/);
@@ -82,5 +81,12 @@ test('normal develop delivery uses one authenticated refresh contract without re
   assert.match(deployWorkflow, /pulse-result-refresh:/);
   assert.match(deployWorkflow, /uses: \.\/\.github\/workflows\/pulse-refresh\.yml/);
   assert.match(deployWorkflow, /fail_on_error: false/);
-  assert.doesNotMatch(deployWorkflow, /curl[^\n]*api\/refresh/);
+});
+
+test('Actions workflows cannot hand-roll the PULSE refresh HTTP protocol again', () => {
+  const directory = new URL('../.github/workflows/', import.meta.url);
+  const offenders = readdirSync(directory)
+    .filter(name => /\.ya?ml$/.test(name))
+    .filter(name => /api\/refresh/.test(readFileSync(new URL(name, directory), 'utf8')));
+  assert.deepEqual(offenders, [], 'workflow refresh callers must use pulse-refresh.yml + refresh-client.mjs');
 });
