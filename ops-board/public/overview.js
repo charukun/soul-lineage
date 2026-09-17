@@ -1,5 +1,6 @@
 import { subscribe } from './view-state.js';
-import { appHealth, boardAlerts, devPublicationProgress } from './health.mjs';
+import { appHealth, devPublicationProgress } from './health.mjs';
+import { eventDrivenAlerts } from './freshness.mjs';
 
 const $ = selector => document.querySelector(selector);
 const toneNames = ['ok', 'progress', 'warning', 'danger', 'info'];
@@ -38,7 +39,7 @@ function publicationHeadline(progress) {
 }
 
 function renderAttention(state, error) {
-  const alerts = boardAlerts(state, Date.now(), error);
+  const alerts = eventDrivenAlerts(state, Date.now(), error);
   const danger = alerts.filter(item => item.tone === 'danger').length;
   const tone = danger ? 'danger' : alerts.length ? 'warning' : 'ok';
   setCard('overview-alert', alerts.length ? `${alerts.length}件` : '0件', alerts.length ? (danger ? `重大 ${danger}` : '確認あり') : '問題なし', tone);
