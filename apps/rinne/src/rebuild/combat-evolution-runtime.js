@@ -7,7 +7,6 @@ import { applyMultiTargetContact,ensureCombatTerrain,lineBlocked,terrainMovement
 import { applySquadTactics,assignSquadRoles,recordEnemyPattern,squadSnapshot } from './combat-squad-ai.js';
 import { finalizeCombatReplay,recordCombatReplay,replaySummary } from './combat-replay.js';
 
-const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
 const TAU=Math.PI*2;
 const dist=(a,b)=>Math.hypot((a.x||0)-(b.x||0),(a.z||0)-(b.z||0));
 function wrap(a){while(a>Math.PI)a-=TAU;while(a<-Math.PI)a+=TAU;return a;}
@@ -21,16 +20,19 @@ function targetEnemy(front,id){return front.enemies.find(e=>e.id===id)||null;}
 function skillEvents(result,events){if(result?.unlocked?.length)events.push({type:'skills',ids:result.unlocked,names:result.names,source:'combat-growth'});}
 function attackSector(state,target){const fromTarget=Math.atan2(state.position.x-target.x,state.position.z-target.z),delta=Math.abs(wrap(fromTarget-(Number(target.yaw)||0)));return delta<=Math.PI*.28?'front':delta<=Math.PI*.62?'flank':'back';}
 function positionalScale(sector){return sector==='back'?1.25:sector==='flank'?1.1:1;}
-function markExtraDown(state,target,events){if(target.dead||target.hp>.001)return;target.hp=0;target.dead=true;target.moving=false;target.attacking=false;state.defeats=(Number(state.defeats)||0)+1;events.push({type:'enemy-down',targetId:target.id,engine:'combat-position'});}
+function markExtraDown(state,target,events){if(target.dead||target.hp>.001)return;target.hp=0;target.dead=true;target.moving=false;target.attacking=false;state.defeats=(Number(state.defeats)||0)+1;const combat=state.experiences.combat||{count:0,score:0,last:0};state.experiences.combat={count:combat.count+1,score:combat.score+1,last:state.ageSeconds};events.push({type:'enemy-down',targetId:target.id,engine:'combat-position'});}
+function undoCoreDown(state,target,events){
+  if(!target?.dead||!(target.hp>0))return;target.dead=false;target.moving=false;target.attacking=false;state.defeats=Math.max(0,(Number(state.defeats)||0)-1);const combat=state.experiences.combat;if(combat){combat.count=Math.max(0,(Number(combat.count)||0)-1);combat.score=Math.max(0,(Number(combat.score)||0)-1);}for(let i=events.length-1;i>=0;i--)if(events[i].type==='enemy-down'&&events[i].targetId===target.id&&events[i].engine==='tidebreak')events.splice(i,1);
+}
 
 function processCombatEvents(state,front,events){
   const effects=injuryEffects(state),baseWeapon=WEAPONS[state.equipment?.weapon]||WEAPONS.fist,original=[...events];
   for(const event of original){
     if(event.type==='player-hit'&&event.damage>0){
-      const target=targetEnemy(front,event.targetId);if(target&&event.engine!=='world-contact'&&lineBlocked(front,state.position,target)){target.hp=Math.min(target.maxHp,target.hp+event.damage);event.blockedByTerrain=true;event.damage=0;events.push({type:'weapon-blocked',targetId:target.id,engine:'world-contact'});noteTechniqueUse(state,event.skill,{phase:event.phase,hit:false});continue;}
-      if(!event.projectile&&event.engine!=='world-contact'&&effects.attackScale<.999&&target){const restore=event.damage*(1-effects.attackScale);target.hp=Math.min(target.maxHp,target.hp+restore);event.damage*=effects.attackScale;}
+      const target=targetEnemy(front,event.targetId);if(target&&event.engine!=='world-contact'&&lineBlocked(front,state.position,target)){target.hp=Math.min(target.maxHp,target.hp+event.damage);undoCoreDown(state,target,events);event.blockedByTerrain=true;event.damage=0;events.push({type:'weapon-blocked',targetId:target.id,engine:'world-contact'});noteTechniqueUse(state,event.skill,{phase:event.phase,hit:false});continue;}
+      if(!event.projectile&&event.engine!=='world-contact'&&effects.attackScale<.999&&target){const restore=event.damage*(1-effects.attackScale);target.hp=Math.min(target.maxHp,target.hp+restore);event.damage*=effects.attackScale;undoCoreDown(state,target,events);}
       if(target&&event.damage>0){const sector=attackSector(state,target),scale=positionalScale(sector);event.attackSector=sector;if(scale>1&&!event.projectile){const extra=Math.min(target.hp,event.damage*(scale-1));target.hp=Math.max(0,target.hp-extra);event.damage+=extra;markExtraDown(state,target,events);}}
-      noteTechniqueUse(state,event.skill,{phase:event.phase,hit:event.damage>0});if(target)recordEnemyPattern(target,state.id,event.skill);if(event.damage>0)applyMultiTargetContact(state,front,event,events);
+      noteTechniqueUse(state,event.skill,{phase:event.phase,hit:event.damage>0});if(target)recordEnemyPattern(target,state.id,event.skill);if(event.damage>0){const extras=applyMultiTargetContact(state,front,event,events);for(const extra of extras){const secondary=targetEnemy(front,extra.targetId);if(secondary)recordEnemyPattern(secondary,state.id,extra.skill);}}
     }
     if(event.type==='enemy-hit'&&event.damage>0){
       const injury=applyCombatInjury(state,{damage:event.damage,sector:event.sector||'front',sourceId:event.sourceId});event.part=injury.part;event.injuryGain=injury.gain;events.push({type:'injury',part:injury.part,severity:injury.severity,sourceId:event.sourceId,engine:'combat-growth'});
