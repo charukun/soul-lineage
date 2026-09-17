@@ -4,6 +4,8 @@
 
 ## 完了境界
 
+通常実装:
+
 ```text
 latest develop
   -> work branch / Draft PR
@@ -15,18 +17,39 @@ latest develop
   -> session ends
 ```
 
+適用条件を満たす Micro Patch:
+
+```text
+latest develop
+  -> short-lived branch
+  -> micro implementation
+  -> affected focused validation
+  -> push
+  -> Ready PR directly
+  -> READY_FOR_INTEGRATION
+  -> session ends
+```
+
+Micro Patch の適用条件・除外条件は [`MICRO_PATCH_FAST_LANE.md`](MICRO_PATCH_FAST_LANE.md) を正本とする。Ready 後の CI / Integration / DEV publication の品質境界は通常実装と同じであり、fast path を理由に exact-head gate を省略しない。
+
 Ready 後の CI 監視、develop merge、DEV 公開、明示browser verification、repair は Integration または専用経路の責任。実装 WORK は Running / Queued / Pending の check を完了まで watch・sleep・polling しない。
 
 ## 標準手順
 
 1. 最新 `develop` SHA と `AGENTS.md` を確認する。checkout があれば `npm run context:plan -- --task "<要約>"` を実行し、必要資料だけ読む。
-2. 最新 `develop` から専用 branch を作る。コード変更を伴う通常タスクは、コード編集前に branch を push して develop 向け Draft PR を作る。
-3. GitHub は差分のない branch から PR を作れないため、必要なら既存仕様・運用文書へ今回の受入条件を最小限追記して最初の意味ある差分にする。ダミーファイル、空 commit、恒久的に無意味な履歴は作らない。文章・資料だけを更新するタスクは、その意味ある資料差分自体を最初の commit にしてよい。
+2. 最新 `develop` から専用 branch を作る。コード変更を伴う通常タスクは、コード編集前に branch を push して develop 向け Draft PR を作る。`MICRO_PATCH_FAST_LANE.md` の全条件を満たす小変更だけは例外で、実装と focused validation を branch head で完了してから意味のある差分を push し、develop 向け Ready PR を直接作る。
+3. GitHub は差分のない branch から PR を作れないため、通常タスクで Draft PR を先に必要とする場合は、必要なら既存仕様・運用文書へ今回の受入条件を最小限追記して最初の意味ある差分にする。ダミーファイル、空 commit、恒久的に無意味な履歴は作らない。文章・資料だけを更新するタスクは、その意味ある資料差分自体を最初の commit にしてよい。Micro Patch では PR 作成だけのための文書差分を作らない。
 4. 実装する。確定要件と現在の `develop` 契約を守る範囲の可逆的な細部は AI が選び、重要な仮定を PR に短く残す。
 5. **実装セッション内では**変更した機能に必要な局所テスト・check・buildを行う。通常は `npm ci`、対象app/packageの focused test/check/build、必要なら `node scripts/validate.mjs fast origin/develop HEAD` を使う。基盤変更は関連する基盤contractを確認する。毎回の全体 E2E・全ゲーム browser 総点検は不要。
 6. push 前に `npm run push:route -- origin/develop HEAD` を使える環境では実行する。通常 git → 接続済み GitHub API → 同じ branch の既存 Codespaces + 通常 git の順に復旧する。1経路の失敗だけで終了しない。
-7. 実装と必要な局所検証が完了したら PR 本文を実施結果へ更新し、Ready for review にする。
+7. 通常タスクは実装と必要な局所検証が完了したら PR 本文を実施結果へ更新し、Ready for review にする。Micro Patch はこの時点で初めて Ready PR を作る。
 8. branch / exact head SHA / PR / Ready / 実行済み検証を報告し、`READY_FOR_INTEGRATION` で終了する。handoff recorder、通知、CI、DEV 公開の完了待ちはしない。
+
+## Micro Patch Fast Lane
+
+Micro Patch は「変更行が少ない」だけでは成立しない。原則 3 files 以下・30 changed lines 以下の既存ファイル小編集で、control-plane、shared package、dependency/manifest/lockfile、schema/save/protocol/API contract、auth/security、migration、infrastructure、build system、generated/binary assetを触らず、影響範囲と期待挙動が明確で focused validation 済みの場合だけ使う。
+
+条件を外れた、実装中に範囲が広がった、または判断に迷う場合は同じ branch を捨てずに通常の Draft PR 経路へ戻す。fast pathを維持するために変更を不自然に分割したり、テスト・review・exact-head gateを弱めたりしない。詳細は [`MICRO_PATCH_FAST_LANE.md`](MICRO_PATCH_FAST_LANE.md)。
 
 ## PR 契約
 
@@ -71,7 +94,9 @@ GitHub 標準状態をそのまま使う。
 
 ## develop CI と品質境界
 
-**develop向けGitHub CIは自動テストを実行しない。** Ready後の `Validate and build` は、exact-headの差分/構文・静的check・code-health・必要なbuild可否とIntegration用artifactを確認するだけで、`node --test`、browser smoke、gameplay/WebGLテストは実行しない。Fast Repairのexact-head再検証も同じtest-free DEV contractを使う。
+**develop向けGitHub CIは自動テストを実行しない。** Ready後の `Validate and build` は、exact-headの差分衛生検査・構文・静的check・code-health・必要なbuild可否とIntegration用artifactを確認するだけで、`node --test`、browser smoke、gameplay/WebGLテストは実行しない。Fast Repairのexact-head再検証も同じtest-free DEV contractを使う。
+
+Draft PR の opened / synchronize / converted-to-draft event は Ready gate のための runner を起動しない。Draft中の `git diff --check` 専用runnerは廃止し、その差分衛生検査を Ready exact-head の `Validate and build` に統合する。これにより検査回数を減らしても、Integrationへ渡るheadの差分検査自体は省略しない。
 
 DEV CIの検証制御は **current develop側のtrusted control checkout** を正本として実行する。古いReady PRがbranch内に旧 `scripts/validate.mjs` / `affected.mjs` / check helperを保持していても、それをDEV gateの制御実装として実行しない。検証対象のapp/package/source bytesはPR exact headを使い、検証ルールだけをcurrent developから適用する。これによりCI契約の更新だけを理由に既存Ready PRを一斉にsource repairへ落とさない。main / Productionの検証経路はこの互換処理の対象外とする。
 
@@ -105,6 +130,7 @@ Ready なら修正依頼なしに CI 待機セッションを再開しない。�
 
 ## 関連資料
 
+- Micro Patch Fast Lane: [`MICRO_PATCH_FAST_LANE.md`](MICRO_PATCH_FAST_LANE.md)
 - Integration: [`INTEGRATION.md`](INTEGRATION.md)
 - Repair / legacy Rescue compatibility: [`INTEGRATION_RESCUE.md`](INTEGRATION_RESCUE.md)
 - Context budget: [`CONTEXT_EFFICIENCY.md`](CONTEXT_EFFICIENCY.md)

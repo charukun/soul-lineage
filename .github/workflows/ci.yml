@@ -1,5 +1,6 @@
 name: PR Checks
 # Develop PRs use deterministic no-test checks/build as the automatic gate.
+# Draft develop events do not allocate validation runners; Ready exact heads own the gate.
 # Tests and browser/gameplay verification are opt-in on develop and remain available on Production routes.
 run-name: CI validation #${{ github.event.pull_request.number }} ${{ github.event.pull_request.head.sha }}
 on:
@@ -12,31 +13,11 @@ concurrency:
   group: ci-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
-  readiness:
-    name: Resolve current PR state
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    permissions:
-      pull-requests: read
-    outputs:
-      ready: ${{ steps.current.outputs.ready }}
-      draft: ${{ steps.current.outputs.draft }}
-    steps:
-      - id: current
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: context.payload.pull_request.number });
-            const current = pr.state === 'open' && pr.head.sha === context.payload.pull_request.head.sha;
-            core.setOutput('ready', current && !pr.draft);
-            core.setOutput('draft', current && pr.draft);
-
   request-rescue:
     name: Record Ready handoff
-    needs: readiness
     if: >-
       contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action) &&
-      github.event.pull_request.base.ref == 'develop' && needs.readiness.outputs.ready == 'true' &&
+      github.event.pull_request.base.ref == 'develop' && github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
     runs-on: ubuntu-latest
@@ -74,31 +55,12 @@ jobs:
               warn: message => core.warning(message) });
             core.summary.addRaw(JSON.stringify(result)).write();
 
-  draft-check:
-    name: Draft lightweight check
-    needs: readiness
-    if: github.event.pull_request.base.ref == 'develop' && needs.readiness.outputs.draft == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Check patch whitespace only (no install, test, build or deploy)
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: git diff --check "$BASE_SHA...$HEAD_SHA"
-
   build:
     name: Validate and build
-    needs: readiness
     if: >-
       github.event.pull_request.base.ref == 'main' ||
-      (github.event.pull_request.base.ref == 'develop' &&
-      needs.readiness.outputs.ready == 'true' && contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action))
+      (github.event.pull_request.base.ref == 'develop' && github.event.pull_request.draft == false &&
+      contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -203,6 +165,13 @@ jobs:
               depth=$((depth * 2))
             done
           fi
+      - name: Check exact patch whitespace
+        if: github.event.pull_request.base.ref == 'develop'
+        working-directory: work
+        env:
+          BASE_SHA: ${{ steps.base.outputs.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: git diff --check "$BASE_SHA" "$HEAD_SHA"
       - name: Cheap gate-cost preflight before dependency install
         id: gate-cost
         if: steps.rescue-fast.outputs.reuse != 'true'
@@ -266,12 +235,11 @@ jobs:
 
   integration-request:
     name: Request Integration
-    needs: [readiness, build]
+    needs: build
     if: >-
       always() && !cancelled() &&
       (needs.build.result == 'success' || needs.build.result == 'failure') &&
-      github.event.pull_request.base.ref == 'develop' &&
-      needs.readiness.outputs.ready == 'true' &&
+      github.event.pull_request.base.ref == 'develop' && github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 2
