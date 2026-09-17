@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 const html = readFileSync(new URL('../ops-board/public/index.html', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../ops-board/public/progressive-disclosure.css', import.meta.url), 'utf8');
 const polish = readFileSync(new URL('../ops-board/public/review-polish.css', import.meta.url), 'utf8');
+const browserCheck = readFileSync(new URL('../ops-board/browser-check.mjs', import.meta.url), 'utf8');
 
 test('PULSE puts DEV publication first in the mobile overview', () => {
   const publication = html.indexOf('id="overview-app-card"');
@@ -33,4 +34,11 @@ test('overview status and ETA text are allowed to wrap instead of being ellipsiz
 test('app cards use two columns on narrow screens and return to three on wider screens', () => {
   assert.match(polish, /\.app-grid\s*\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/s);
   assert.match(polish, /@media\(min-width:520px\)[^{]*\{[^}]*\.app-grid\s*\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/s);
+});
+
+test('focused browser verification uses the same 520px app-grid contract', () => {
+  assert.match(browserCheck, /for \(const width of \[320,390,519,520,673\]\)/);
+  assert.match(browserCheck, /const expectedColumns = width < 520 \? 2 : 3;/);
+  assert.match(browserCheck, /metrics\.grids\.every\(n => n === expectedColumns\)/);
+  assert.doesNotMatch(browserCheck, /metrics\.grids\.every\(n => n === 3\)/);
 });
