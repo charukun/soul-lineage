@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {worldScaleTier} from '../packages/world/src/scale-policy.js';
-import {defaultMuraLayout} from '../packages/world/src/mura/index.js';
-import {defs as muraDefs} from '../packages/world/src/mura/catalog.js';
+import {defaultMuraLayout,muraDoorWidth,muraHasInterior} from '../packages/world/src/mura/index.js';
+import {BUILDINGS,defs as muraDefs} from '../packages/world/src/mura/catalog.js';
 import {defs as villageDefs} from '../apps/village/src/game/catalog.js';
 import {createMuraModels} from '../packages/rendering/src/mura/models.js';
 import {resolveMuraHouseVisual} from '../packages/rendering/src/mura/building-visual.js';
@@ -31,21 +31,42 @@ test('world, worker, network and audio adapters share the same distance tiers',(
  }
 });
 
-test('Village and Rinne share one canonical MURA metre catalogue',()=>{
+test('Village and Rinne share one canonical human-scale MURA metre catalogue',()=>{
  assert.equal(defaultMuraLayout().units,'metres');
  assert.strictEqual(villageDefs,muraDefs,'Village must not fork shared MURA dimensions');
- for(const kind of ['mayor','guardhome','tent'])assert.deepEqual([muraDefs[kind].w,muraDefs[kind].d],[5,6],kind);
- assert.deepEqual([muraDefs.clanManor.w,muraDefs.clanManor.d],[28,26]);
+ const expected={
+  mayor:[5,6],guardhome:[5,6],tent:[5,6],home:[6,7],lodge:[9,10],clanManor:[12,14],
+  guardpost:[6,6],watchtower:[5,5],barracks:[10,10],chapel:[9,12],smith:[7,7],dojo:[10,9],
+  school:[10,9],clinic:[8,8],inn:[9,10],diner:[8,8],restaurant:[10,9],weapons:[7,7],armor:[7,7]
+ };
+ for(const [kind,size] of Object.entries(expected))assert.deepEqual([muraDefs[kind].w,muraDefs[kind].d],size,kind);
+ for(const row of BUILDINGS.filter(row=>muraHasInterior(row.id)))assert.ok(Math.max(row.w,row.d)<=14,`${row.id} footprint ${row.w}x${row.d}m`);
+ assert.equal(muraDoorWidth('home'),1.8);
+ assert.equal(muraDoorWidth('smith'),2.1);
+ assert.equal(muraDoorWidth('clanManor'),2.4);
 });
 
-test('residential tents are compact human-scale assets in every MURA renderer',()=>{
+test('tent semantics are residential-only and render as round ger-style homes',()=>{
  const models=createMuraModels(THREE,{createCanvas:fakeCanvas,textileFibers:0,textileBlotches:0});
- for(const kind of ['mayor','guardhome','tent']){
-  assert.equal(resolveMuraHouseVisual(kind),null,`${kind} must stay a tent, not a house silhouette`);
-  const size=boundsOf(models.building(kind));
-  assert.ok(Math.abs(size.x-5)<.03,`${kind} width ${size.x}`);
-  assert.ok(Math.abs(size.y-3.6)<.03,`${kind} height ${size.y}`);
-  assert.ok(Math.abs(size.z-6)<.03,`${kind} depth ${size.z}`);
+ const tentKinds=BUILDINGS.filter(row=>row.shape==='tent').map(row=>row.id);
+ assert.deepEqual(tentKinds,['mayor','guardhome','tent']);
+ assert.equal(muraDefs.carpenter.shape,undefined,'carpenter must use a permanent work-building silhouette');
+ assert.equal(muraDefs.guardpost.shape,undefined,'guard post must use a permanent guard-building silhouette');
+ for(const kind of tentKinds){
+  assert.equal(resolveMuraHouseVisual(kind),null,`${kind} must stay a distinct residential tent, not a permanent house silhouette`);
+  assert.ok(muraDefs[kind].capacity>0,`${kind} must remain residential`);
+  assert.equal(muraDefs[kind].jobs,0,`${kind} must not become a work facility`);
+  const group=models.building(kind),size=boundsOf(group);
+  assert.equal(group.userData.residentialTent,'ger-v1');
+  assert.equal(group.userData.circularHousing,true);
+  assert.ok(Math.abs(size.x-size.z)<.16,`${kind} must read as round, got ${size.x} x ${size.z}`);
+  assert.ok(size.x<=muraDefs[kind].w+.05&&size.z<=muraDefs[kind].d+.05,`${kind} must fit its canonical footprint`);
+  assert.ok(size.y>3&&size.y<3.7,`${kind} ger height ${size.y}`);
+ }
+ for(const kind of ['logging','storage','quarry','clay','hunting','market']){
+  const group=models.building(kind),nodes=[];group.traverse(node=>nodes.push(node));
+  assert.equal(nodes.some(node=>node.userData?.residentialTent),false,`${kind} must not reuse a residential tent`);
+  assert.equal(nodes.some(node=>node.userData?.workShelter==='open-shed-v1'),true,`${kind} should use a work shelter instead`);
  }
  assert.ok(resolveMuraHouseVisual('home'),'permanent homes still use the shared authored house visual');
 });

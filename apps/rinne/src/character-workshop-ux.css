@@ -65,6 +65,13 @@ body[data-review-mode="motion"] #motion-qa>.hint{display:none}
 .simple-motion-controls .qa-playback{display:grid;grid-template-columns:1fr 1fr;gap:7px}
 .simple-motion-controls h3{margin:4px 0 0;font-size:11px;color:#e4dfd2}
 .simple-motion-controls .qa-cameras{margin:0}
+body.simple-review .stage-actions{display:flex!important;align-items:center;justify-content:center;gap:4px;padding:2px 8px!important}
+body.simple-review .stage-actions>button,
+body.simple-review .qa-cameras button{flex:0 0 auto!important;min-height:28px!important;height:28px;padding:2px 8px!important;border:1px solid #3b4641;border-radius:5px;background:transparent;color:#bfc7c2;font-size:10px!important;font-weight:500!important;box-shadow:none}
+body.simple-review .stage-actions>button[aria-pressed="true"],
+body.simple-review .qa-cameras button[aria-pressed="true"]{border-color:#6c7771;background:#171d1b;color:#ece8df}
+body.simple-review .qa-cameras{display:flex;flex-wrap:wrap;gap:4px;margin:0}
+body.simple-review .stage-shell{grid-template-rows:48px minmax(0,1fr) 34px auto}
 body[data-review-mode="character"] .workshop-secondary-tabs{margin-top:0}
 body[data-review-mode="character"] #character-model-title{margin-top:4px}
 
@@ -85,6 +92,7 @@ body[data-review-mode="character"] #character-model-title{margin-top:4px}
   .save-line{min-height:16px}
   .footer-actions button{min-height:40px}
   body.simple-review .review-app{grid-template-rows:minmax(0,56fr) minmax(0,44fr)!important}
+  body.simple-review .stage-shell{grid-template-rows:42px minmax(0,1fr) 34px auto!important}
   body.simple-review .editor-dock{grid-template-rows:minmax(0,1fr)!important}
   body.simple-review .review-controls{padding:8px 9px calc(10px + env(safe-area-inset-bottom))}
   .simple-review-guide{padding:9px 10px;margin-bottom:8px}
@@ -98,4 +106,5 @@ body[data-review-mode="character"] #character-model-title{margin-top:4px}
   .review-app{grid-template-rows:minmax(0,61fr) minmax(0,39fr)!important}
   .stage-shell{grid-template-rows:38px minmax(0,1fr) 42px auto!important}
   body.simple-review .review-app{grid-template-rows:minmax(0,54fr) minmax(0,46fr)!important}
+  body.simple-review .stage-shell{grid-template-rows:38px minmax(0,1fr) 34px auto!important}
 }
