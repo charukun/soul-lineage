@@ -13,6 +13,8 @@ import {
 export { buildState } from './collector.mjs';
 const STATE_KEY = 'ops-state-v2';
 const HISTORY_KEY = 'ops-history-v1';
+const ACTION_NOTIFY_KEY = 'ops-action-notify-v1';
+const ACTION_NOTIFY_LEASE_MS = 2 * 60 * 1000;
 const PEER_CORS={
   'access-control-allow-origin':'*',
   'access-control-allow-methods':'GET,POST,DELETE,OPTIONS',
@@ -56,6 +58,26 @@ export class OpsState extends DurableObject {
     await writeStored(this.ctx.storage, HISTORY_KEY, history);
     return publicControlHistory(history);
   }
+  async claimActionNotification(key) {
+    if (typeof key !== 'string' || !key || key.length > 800) return { claimed: false, reason: 'invalid-key' };
+    const current = await readStored(this.ctx.storage, ACTION_NOTIFY_KEY);
+    const now = Date.now();
+    const claimedAt = Date.parse(current?.claimedAt || '');
+    if (current?.key === key && current?.sentAt) return { claimed: false, reason: 'already-sent' };
+    if (current?.key === key && Number.isFinite(claimedAt) && now - claimedAt < ACTION_NOTIFY_LEASE_MS) return { claimed: false, reason: 'leased' };
+    await writeStored(this.ctx.storage, ACTION_NOTIFY_KEY, { key, claimedAt: new Date(now).toISOString(), sentAt: null });
+    return { claimed: true, key };
+  }
+  async completeActionNotification(key, success) {
+    const current = await readStored(this.ctx.storage, ACTION_NOTIFY_KEY);
+    if (!current || current.key !== key) return { accepted: false, reason: 'claim-mismatch' };
+    if (success) {
+      await writeStored(this.ctx.storage, ACTION_NOTIFY_KEY, { ...current, sentAt: new Date().toISOString() });
+      return { accepted: true, sent: true };
+    }
+    await this.ctx.storage.delete(ACTION_NOTIFY_KEY);
+    return { accepted: true, sent: false };
+  }
   async observeRescue(snapshot) {
     const previous = await readStored(this.ctx.storage, 'rescue-observation-v1');
     if (!previous || Date.parse(snapshot.generatedAt) > Date.parse(previous.generatedAt)) {
@@ -78,7 +100,7 @@ export class OpsState extends DurableObject {
   async peerJoin(roomId,input,token){return this.peerApply(joinPeerWorldRoom,roomId,{...input,inviteToken:token});}
   async peerHostEvents(roomId,token,after){return this.peerApply(readHostEvents,roomId,token,after);}
   async peerOffer(roomId,joinId,token,offer){return this.peerApply(postPeerWorldOffer,roomId,joinId,token,offer);}
-  async peerGuestEvents(roomId,joinId,token,after){return this.peerApply(readGuestEvents,roomId,joinId,token,after);}
+  async peerGuestEvents(roomId,joinId,token,after){return this.peerApply(readGuestEvents,roomId,joinId,token,Number(url.searchParams.get('after')||0));}
   async peerAnswer(roomId,joinId,token,answer){return this.peerApply(postPeerWorldAnswer,roomId,joinId,token,answer);}
   async peerTelemetry(roomId,token,input){return this.peerApply(updatePeerWorldTelemetry,roomId,token,input);}
   async peerDelete(roomId,token){return this.peerApply(deletePeerWorldRoom,roomId,token);}
@@ -153,6 +175,16 @@ export default {
       }
       if (url.pathname === '/api/history' && request.method === 'GET') {
         return json(await env.OPS_STATE.getByName('global').getHistory());
+      }
+      if (url.pathname === '/api/action-notification/claim' && request.method === 'POST') {
+        if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
+        const body = await request.json();
+        return json(await env.OPS_STATE.getByName('global').claimActionNotification(body?.key));
+      }
+      if (url.pathname === '/api/action-notification/complete' && request.method === 'POST') {
+        if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
+        const body = await request.json();
+        return json(await env.OPS_STATE.getByName('global').completeActionNotification(body?.key, body?.success === true));
       }
       if (url.pathname === '/api/refresh' && request.method === 'POST') {
         if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
