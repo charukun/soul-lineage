@@ -5,14 +5,12 @@ const REVIEW_MODES = Object.freeze({
   character: {
     title: 'キャラ確認',
     tab: 'parts',
-    description: 'キャラクターを切り替えて、向きや見た目を確認できます。ゲーム本編のデータは変わりません。',
-    steps: ['キャラを選ぶ', '向きを変える', '見た目を比べる']
+    description: 'キャラクターを選んで、見た目を確認します。'
   },
   motion: {
     title: 'モーション確認',
     tab: 'qa',
-    description: '動きを選んで再生し、速度や角度を変えて確認できます。ゲーム本編のデータは変わりません。',
-    steps: ['動きを選ぶ', '再生する', '角度・速度を変える']
+    description: '動きを選んで、そのまま再生して確認します。'
   }
 });
 
@@ -38,54 +36,84 @@ function replaceLabelText(control, text) {
   else label.prepend(document.createTextNode(text));
 }
 
-function addPreviewHints() {
-  const wrap = qs('.canvas-wrap');
-  if (!wrap) return;
-  if (!byId('simple-review-badge')) {
-    const badge = document.createElement('span');
-    badge.id = 'simple-review-badge';
-    badge.className = 'simple-review-badge';
-    badge.textContent = 'プレビュー';
-    wrap.append(badge);
-  }
-  if (!byId('simple-review-help')) {
-    const help = document.createElement('span');
-    help.id = 'simple-review-help';
-    help.className = 'simple-review-help';
-    help.textContent = 'ドラッグで回転 · ピンチで拡大';
-    wrap.append(help);
+function addSummary(mode) {
+  const controls = qs('.review-controls');
+  if (!controls || byId('simple-review-summary')) return;
+  const spec = REVIEW_MODES[mode];
+  const summary = document.createElement('section');
+  summary.id = 'simple-review-summary';
+  summary.className = 'simple-review-summary';
+  summary.setAttribute('aria-label', `${spec.title}の説明`);
+
+  const description = document.createElement('p');
+  description.textContent = spec.description;
+  const gestures = document.createElement('small');
+  gestures.textContent = 'ドラッグ: 回転　ピンチ: 拡大';
+  summary.append(description, gestures);
+  controls.prepend(summary);
+}
+
+function moveSubjectSwitcher() {
+  const controls = qs('.review-controls');
+  const subject = qs('.subject-row');
+  const summary = byId('simple-review-summary');
+  if (!controls || !subject || subject.classList.contains('simple-review-subject')) return;
+  subject.classList.add('simple-review-subject');
+  if (summary?.nextSibling) controls.insertBefore(subject, summary.nextSibling);
+  else controls.prepend(subject);
+}
+
+function moveFrameButtonToStage() {
+  const actions = qs('.stage-actions');
+  const frame = byId('frame-model');
+  if (!actions || !frame || actions.contains(frame)) return;
+  frame.textContent = '全身';
+  frame.title = 'モデル全体を表示';
+  actions.append(frame);
+}
+
+function compactCharacterModelLabels() {
+  const aliases = [
+    [/^量産|量産モデル/i, '量産'],
+    [/child\s*boy|少年/i, '少年'],
+    [/child\s*girl|少女/i, '少女'],
+    [/elderly\s*man|老人.*男/i, '老人 男'],
+    [/elderly\s*woman|老人.*女/i, '老人 女'],
+    [/kaykit\s*knight|主人公/i, '主人公']
+  ];
+  for (const button of document.querySelectorAll('#character-model-options [data-character-model]')) {
+    const full = button.getAttribute('aria-label') || button.textContent.trim();
+    if (!full) continue;
+    button.setAttribute('aria-label', full);
+    const alias = aliases.find(([pattern]) => pattern.test(full))?.[1];
+    if (alias) button.textContent = alias;
   }
 }
 
-function addGuide(mode) {
-  const controls = qs('.review-controls');
-  if (!controls) return;
-  let guide = byId('simple-review-guide');
-  if (!guide) {
-    const spec = REVIEW_MODES[mode];
-    guide = document.createElement('section');
-    guide.id = 'simple-review-guide';
-    guide.className = 'simple-review-guide';
-    guide.setAttribute('aria-label', `${spec.title}の使い方`);
-
-    const description = document.createElement('p');
-    description.className = 'simple-review-description';
-    description.textContent = spec.description;
-    guide.append(description);
-
-    const steps = document.createElement('div');
-    steps.className = 'simple-review-steps';
-    spec.steps.forEach((label, index) => {
-      const step = document.createElement('span');
-      step.className = 'simple-review-step';
-      const number = document.createElement('b');
-      number.textContent = String(index + 1);
-      step.append(number, document.createTextNode(label));
-      steps.append(step);
-    });
-    guide.append(steps);
+function prepareCharacterCameraStrip() {
+  const actions = qs('.stage-actions');
+  if (!actions) return;
+  byId('camera-cycle')?.classList.add('simple-review-technical');
+  byId('pause')?.classList.add('simple-review-technical');
+  byId('capture')?.classList.add('simple-review-technical');
+  actions.querySelector('[data-camera="overview"]')?.classList.add('simple-review-technical');
+  for (const preset of ['front', 'side', 'back', 'face']) {
+    const button = actions.querySelector(`[data-camera="${preset}"]`);
+    if (!button) continue;
+    button.hidden = false;
+    button.removeAttribute('aria-hidden');
   }
-  controls.prepend(guide);
+}
+
+function moveCameraControlsToStage() {
+  const actions = qs('.stage-actions');
+  const cameras = byId('qa-cameras');
+  if (!actions || !cameras || actions.contains(cameras)) return;
+  for (const node of [...actions.children]) {
+    if (node !== byId('frame-model')) node.classList.add('simple-review-technical');
+  }
+  cameras.classList.add('simple-review-camera-strip');
+  actions.prepend(cameras);
 }
 
 function prepareShell(mode) {
@@ -102,19 +130,19 @@ function prepareShell(mode) {
     back.href = './review.html';
     back.setAttribute('aria-label', '確認メニューへ戻る');
   }
-  const dock = qs('.editor-dock');
-  dock?.setAttribute('aria-label', spec.title);
-  addPreviewHints();
-  addGuide(mode);
+  qs('.editor-dock')?.setAttribute('aria-label', spec.title);
+  addSummary(mode);
+  moveSubjectSwitcher();
+  moveFrameButtonToStage();
 }
 
 function prepareCharacterReview() {
   const title = byId('character-model-title');
-  if (title) title.textContent = 'キャラクターを選ぶ';
-  const buildRequest = qs('[data-character-build-request]');
-  buildRequest?.classList.add('simple-review-technical');
+  if (title) title.textContent = 'キャラクター';
+  compactCharacterModelLabels();
+  prepareCharacterCameraStrip();
+  qs('[data-character-build-request]')?.classList.add('simple-review-technical');
   byId('character-model-note')?.classList.add('simple-review-technical');
-  byId('capture')?.classList.add('simple-review-technical');
 }
 
 function prepareMotionReview() {
@@ -126,40 +154,30 @@ function prepareMotionReview() {
   setText('qa-prev', '1コマ戻す');
   setText('qa-next', '1コマ進む');
   setText('qa-before', '修正前と比較');
-  const start = byId('qa-start');
-  start?.setAttribute('aria-label', '30秒まとめて再生');
-  replaceLabelText(byId('qa-motion'), '動きを選ぶ');
+  byId('qa-start')?.setAttribute('aria-label', '30秒まとめて再生');
+  replaceLabelText(byId('qa-motion'), '動き');
   replaceLabelText(byId('qa-speed'), '速度');
   replaceLabelText(byId('qa-tour'), '自動で全方向を見る');
 
   const basics = document.createElement('section');
   basics.id = 'simple-motion-controls';
   basics.className = 'simple-motion-controls';
-  basics.setAttribute('aria-label', '基本操作');
+  basics.setAttribute('aria-label', 'モーション操作');
 
   const motionLabel = byId('qa-motion')?.closest('label');
   const playback = byId('qa-speed')?.closest('.qa-playback');
   if (motionLabel) basics.append(motionLabel);
   if (playback) basics.append(playback);
 
-  const cameras = byId('qa-cameras');
-  const tour = byId('qa-tour')?.closest('label');
-  if (cameras || tour) {
-    const viewTitle = document.createElement('h3');
-    viewTitle.textContent = '角度';
-    basics.append(viewTitle);
-    if (cameras) basics.append(cameras);
-    if (tour) basics.append(tour);
-  }
-
-  const quickbar = start?.parentElement;
+  const quickbar = byId('qa-start')?.parentElement;
   if (quickbar) root.insertBefore(basics, quickbar);
   else root.prepend(basics);
 
+  moveCameraControlsToStage();
+  byId('qa-tour')?.closest('label')?.classList.add('simple-review-technical');
   const details = byId('workshop-qa-details');
   const summary = details?.querySelector(':scope > summary');
-  if (summary) summary.textContent = '詳細・問題記録';
-
+  if (summary) summary.textContent = '詳細';
   root.querySelector('[data-qa-count]')?.parentElement?.classList.add('simple-review-technical');
   byId('qa-record-count')?.classList.add('simple-review-technical');
   byId('qa-export')?.parentElement?.classList.add('simple-review-technical');
@@ -175,6 +193,8 @@ function normalizeSimpleReviewLabels() {
     setText('qa-prev', '1コマ戻す');
     setText('qa-next', '1コマ進む');
     setText('qa-before', '修正前と比較');
+  } else if (mode === 'character') {
+    compactCharacterModelLabels();
   }
 }
 
@@ -183,7 +203,6 @@ function openRequestedReview() {
   const mode = requestedReviewMode(url);
   const requestedModel = url.searchParams.get(CHARACTER_MODEL_QUERY);
   if (!mode && !requestedModel) return;
-  if (mode) prepareShell(mode);
 
   let frames = 0;
   const open = () => {
@@ -198,9 +217,8 @@ function openRequestedReview() {
         }
       }
       if (mode) {
-        const tab = byId(`tab-${REVIEW_MODES[mode].tab}`);
-        tab?.click();
         prepareShell(mode);
+        byId(`tab-${REVIEW_MODES[mode].tab}`)?.click();
         if (mode === 'character') prepareCharacterReview();
         else prepareMotionReview();
 
