@@ -1,5 +1,6 @@
 import * as T from 'three';
 import {BITE_BEATS,feastEnvelope,feastReward,FEAST_SECONDS} from './feast-state.js';
+import {preyCapturePoint,samplePreyMotion} from './devour-motion.js';
 
 const PARTICLES=84;
 const clamp=x=>Math.max(0,Math.min(1,x));
@@ -38,7 +39,8 @@ export class FeastEffects {
   const color=this.release?.reward?.color||0x9effcd;
   this.souls.material.color.setHex(color);this.core.material.color.setHex(color);this.light.color.setHex(color);
   const yaw=p.yaw||0,mouth={x:p.x+Math.sin(yaw)*.34,y:s.feeding?.85:1.5,z:p.z+Math.cos(yaw)*.34};
-  const n=game.devour?.npc,from={x:n?.x??p.x,z:n?.z??p.z};
+  const n=game.devour?.npc,preyMotion=n?.capturedBy&&Number.isFinite(progress)?samplePreyMotion(progress,1,1):null;
+  const from=n?.capturedBy?preyCapturePoint(n,n.capturedBy,preyMotion):{x:n?.x??p.x,z:n?.z??p.z};
   this.core.position.set(mouth.x,mouth.y,mouth.z);this.core.scale.setScalar(s.feeding?.7+s.charge*.85+s.bite*.62:1+s.bloom*2.8*intensity);
   this.core.material.opacity=s.feeding?s.charge*.32+s.bite*.34:s.bloom*.66;
   this.souls.material.opacity=s.feeding?Math.min(1,s.charge*.78+s.bite*.34):s.bloom;
