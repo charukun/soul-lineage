@@ -10,9 +10,10 @@ export class SwipeInput {
  up(id,x,y,t){
   if(this.id!==id)return false;
   const elapsed=t-this.started,dx=x-this.x,dy=y-this.y,d=Math.hypot(dx,dy),recent=this.samples.find(p=>p.t>=t-SWIPE_RULES.releaseWindowMs)||this.samples.at(-1);
-  const releaseDx=recent?x-recent.x:dx,releaseDy=recent?y-recent.y:dy,releaseDist=Math.hypot(releaseDx,releaseDy),releaseDt=recent?Math.max(12,t-recent.t):Math.max(12,elapsed);
-  const terminal=releaseDist>=SWIPE_RULES.releaseMinPx&&releaseDist/releaseDt>=SWIPE_RULES.releaseVelocity;
-  const quick=elapsed<=SWIPE_RULES.flickMs&&d>=SWIPE_RULES.flickMinPx&&d/Math.max(24,elapsed)>=SWIPE_RULES.flickVelocity;
+  const releaseDx=recent?x-recent.x:dx,releaseDy=recent?y-recent.y:dy,releaseDist=Math.hypot(releaseDx,releaseDy),releaseDt=recent?Math.max(12,t-recent.t):Math.max(12,elapsed),releaseVelocity=releaseDist/releaseDt;
+  const terminal=releaseDist>=SWIPE_RULES.releaseMinPx&&releaseVelocity>=SWIPE_RULES.releaseVelocity;
+  const releaseMoving=releaseDist>=SWIPE_RULES.releaseMinPx*.5&&releaseVelocity>=SWIPE_RULES.releaseVelocity*.75;
+  const quick=elapsed<=SWIPE_RULES.flickMs&&d>=SWIPE_RULES.flickMinPx&&d/Math.max(24,elapsed)>=SWIPE_RULES.flickVelocity&&releaseMoving;
   const flick=terminal||quick,aimX=terminal?releaseDx:dx,aimY=terminal?releaseDy:dy,aimDist=terminal?releaseDist:d;
   this.cancel();if(flick&&aimDist>0){this.dash=true;this.dashX=aimX/aimDist;this.dashY=aimY/aimDist;}return flick;
  }
