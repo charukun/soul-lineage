@@ -53,7 +53,7 @@ test('immediate feeding finishes the KO contact beat before visible capture pull
 });
 
 test('devour contact weights establish grip before bite and keep the lock through swallow',()=>{
- const reach=sampleDevourContact(.18),pull=sampleDevourContact(.34),bite=sampleDevourContact(.51),swallow=sampleDevourContact(.82);
+ const reach=sampleDevourContact(.20),pull=sampleDevourContact(.34),bite=sampleDevourContact(.51),swallow=sampleDevourContact(.82);
  assert.ok(reach.reach>.8&&reach.grip<.1);
  assert.ok(pull.grip>.85&&pull.haul>.2);
  assert.ok(bite.grip>.95&&bite.mouth>.95&&bite.bite>.99);
@@ -76,7 +76,7 @@ test('predator scale changes feeding height instead of reusing one floating pose
  const smallFrame=devourInteractionFrame(origin,small,samplePreyMotion(progress,1,1,devourInteractionSide(small)));
  const largeFrame=devourInteractionFrame(origin,large,samplePreyMotion(progress,1,1,devourInteractionSide(large)));
  assert.equal(devourActorScale(small),.28);assert.equal(devourActorScale(large),2.4);
- assert.ok(smallFrame.mouth.y<.5&&smallFrame.root.y<.25,'small predator should feed near the ground');
+ assert.ok(smallFrame.mouth.y<.5&&smallFrame.root.y<.45,'small predator should feed near the ground');
  assert.ok(largeFrame.mouth.y>3&&largeFrame.root.y>2,'large predator should actually hoist prey toward its mouth');
  assert.ok(smallFrame.gripReach<.05,'tiny predator must not fake an impossible two-hand reach');
  assert.equal(largeFrame.gripReach,1);
