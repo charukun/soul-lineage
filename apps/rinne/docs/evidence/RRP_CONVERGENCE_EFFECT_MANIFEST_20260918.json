@@ -1,0 +1,69 @@
+{
+  "format": "rrp-convergence-effect-manifest-v1",
+  "sourceDevelop": "d23c28671a221a5fc39f81c56af99ea32e6e5beb",
+  "trustMode": "current friend-hosted DEV trusts the host",
+  "protectedCurrent": [
+    {
+      "effect": "player.birth",
+      "source": "CoopWorld.addPlayer -> session welcome persist -> appendHistory born",
+      "subject": "playerId + lifeId",
+      "strongReason": "participant/life identity becomes shared durable history",
+      "candidateJournalMaterial": "full initial actor recovery state + protected projection + operation/epoch identity"
+    },
+    {
+      "effect": "life.seal",
+      "source": "CoopWorld.advance detects life.ended -> dirtyHistory -> appendHistory life-ended",
+      "subject": "playerId + lifeId",
+      "strongReason": "the predecessor must not resurrect or change lineage inputs after commitment",
+      "candidateJournalMaterial": "terminal protected delta + one lineage record + operation/epoch identity",
+      "scopeNote": "current coop structural rule is lifespan-based; early-death gameplay semantics are not certified by this manifest"
+    },
+    {
+      "effect": "life.rebirth",
+      "source": "applyRebirthIntent -> persist -> rebirth ACK",
+      "subject": "playerId + previousLifeId + resultLifeId + optional villageId",
+      "strongReason": "generation and lineage extension must be idempotent and predecessor-bound",
+      "candidateJournalMaterial": "intent/receipt + one lineage record + new actor creation state without repeated lineage prefix + operation/epoch identity"
+    },
+    {
+      "effect": "authority.epoch.acquire",
+      "source": "history-store acquire/restore fencing",
+      "subject": "worldId + fromEpoch + toEpoch",
+      "strongReason": "stale writers must not reopen old authority",
+      "candidateJournalMaterial": "generation transition and authority evidence appropriate to the selected trust mode"
+    }
+  ],
+  "provisionalOrRecoveryCurrent": [
+    {
+      "state": "movement / position / transient HP-stamina / front realtime / animation",
+      "currentMeaning": "replaceable or rollback-tolerant recent gameplay state",
+      "promotionRule": "promote only if a product invariant makes a particular transition irreversible"
+    },
+    {
+      "state": "equipment / experiences / known skills / defeats during a life",
+      "currentMeaning": "progress may be provisional between checkpoints, but the terminal values are consumed into life.seal / lineage",
+      "promotionRule": "immediate irreversible reward promises would require earlier protected events or verifiable receipts"
+    },
+    {
+      "state": "return-home / homelands",
+      "currentMeaning": "currently checkpointed and later consumed by lineage/rebirth dependencies, not a separate coop history event",
+      "promotionRule": "if product promises homeland unlock is immediately irreversible, add a dedicated protected homecoming effect"
+    },
+    {
+      "state": "clockRate and room/world recovery state",
+      "currentMeaning": "durable host control/recovery input, not itself current lineage canon",
+      "promotionRule": "authority changes or external time guarantees may impose a stronger temporal contract"
+    }
+  ],
+  "derivedNotSeparateCommands": [
+    "lineage.append is a consequence of a valid rebirth from a sealed predecessor in the current model"
+  ],
+  "notClaimed": [
+    "honest combat or anti-cheat proof",
+    "hostile-host safety",
+    "global cloud canon",
+    "zero rollback for all realtime state",
+    "automatic host migration",
+    "a proof that endLifeEarly currently reaches coop history"
+  ]
+}
