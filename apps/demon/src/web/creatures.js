@@ -105,7 +105,7 @@ function applyDevourPose(g,p,interaction=null,capture=null){
  let headYaw=p.headYaw,headPitch=p.headPitch;
  if(interaction&&capture){
   const bite=worldToActor(capture,interaction.bite),yaw=Math.atan2(bite[0],Math.max(.06,bite[2])),dy=bite[1]-1.78,flat=Math.hypot(bite[0],bite[2]);
-  headYaw+=(yaw-headYaw)*interaction.mouth*.72;headPitch+=(Math.atan2(-dy,Math.max(.12,flat))-headPitch)*interaction.mouth*.34;
+  headYaw+=(yaw-headYaw)*interaction.mouthWeight*.72;headPitch+=(Math.atan2(-dy,Math.max(.12,flat))-headPitch)*interaction.mouthWeight*.34;
  }
  u.head.rotation.set(headPitch,headYaw,p.headRoll-side*recoil*.04);u.jaw.rotation.x=p.jaw;
  u.torso.scale.z*=1+p.throat*.10;u.torso.scale.x*=1+recoil*.045;
