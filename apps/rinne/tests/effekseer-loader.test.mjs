@@ -4,7 +4,8 @@ import {authoredEffectBase,createEffekseerBackend,loadEffekseer} from '../src/re
 import {EFFECT_ASSETS,AUTHORED_EFFECTS} from '../src/rebuild/authored-effect-manifest.js';
 
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
-const baseUrl=new URL('https://game.test/dev/rinne/simulator/assets/effekseer/');
+const fixtureUrl=value=>new URL(value);
+const baseUrl=fixtureUrl('https://game.test/dev/rinne/simulator/assets/effekseer/');
 const budget={instanceMaxCount:512,squareMaxCount:512};
 function harness({mode='normal',deferResource=false}={}){
   const calls={requests:[],nativeCallbacks:0,release:0,releaseEffect:0,updates:[],draws:0,reset:0,stop:0,played:[]};

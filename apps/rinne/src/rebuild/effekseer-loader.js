@@ -35,7 +35,7 @@ export function loadEffekseer(document,baseUrl,{fetchImpl=globalThis.fetch}={}){
   if(runtimes.has(document))return runtimes.get(document);
   const promise=new Promise((resolve,reject)=>{
     const win=document.defaultView||globalThis,abort=new AbortController();let settled=false,wasmUrl;
-    const script=document.createElement('script');script.async=true;script.src=new URL('effekseer.js',baseUrl).href;
+    const script=document.createElement('script');script.async=true;script.src=new URL('./effekseer.js',baseUrl).href;
     const finish=(error,sdk)=>{
       if(settled)return;settled=true;clearTimeout(timer);abort.abort();script.onload=null;script.onerror=null;
       if(wasmUrl)win.URL.revokeObjectURL(wasmUrl);
@@ -47,7 +47,7 @@ export function loadEffekseer(document,baseUrl,{fetchImpl=globalThis.fetch}={}){
     script.onload=async()=>{
       try{
         const sdk=win.effekseer;if(typeof sdk?.initRuntime!=='function')throw Error('Effekseer runtime invalid');
-        const bytes=await fetchBytes(new URL('effekseer.wasm',baseUrl),abort.signal,fetchImpl,1201973);
+        const bytes=await fetchBytes(new URL('./effekseer.wasm',baseUrl),abort.signal,fetchImpl,1201973);
         const magic=new Uint8Array(bytes,0,4);if(magic[0]!==0||magic[1]!==97||magic[2]!==115||magic[3]!==109)throw Error('Effekseer WASM invalid');
         if(settled)return;wasmUrl=win.URL.createObjectURL(new win.Blob([bytes],{type:'application/wasm'}));
         sdk.initRuntime(wasmUrl,()=>finish(null,sdk),()=>finish(Error('Effekseer WASM unavailable')));
