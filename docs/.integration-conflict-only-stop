@@ -1,0 +1,1 @@
+Stop condition: reconciled source PR branch returned to Fast Lane. Do not recursively repair later CI/build/check failures in CONFLICT_REPAIR.
