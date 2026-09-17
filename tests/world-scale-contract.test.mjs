@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {worldScaleTier} from '../packages/world/src/scale-policy.js';
-import {defaultMuraLayout} from '../packages/world/src/mura/index.js';
-import {defs as muraDefs} from '../packages/world/src/mura/catalog.js';
+import {defaultMuraLayout,muraHasInterior} from '../packages/world/src/mura/index.js';
+import {BUILDINGS,defs as muraDefs} from '../packages/world/src/mura/catalog.js';
 import {defs as villageDefs} from '../apps/village/src/game/catalog.js';
 import {createMuraModels} from '../packages/rendering/src/mura/models.js';
 import {resolveMuraHouseVisual} from '../packages/rendering/src/mura/building-visual.js';
@@ -31,11 +31,16 @@ test('world, worker, network and audio adapters share the same distance tiers',(
  }
 });
 
-test('Village and Rinne share one canonical MURA metre catalogue',()=>{
+test('Village and Rinne share one canonical human-scale MURA metre catalogue',()=>{
  assert.equal(defaultMuraLayout().units,'metres');
  assert.strictEqual(villageDefs,muraDefs,'Village must not fork shared MURA dimensions');
- for(const kind of ['mayor','guardhome','tent'])assert.deepEqual([muraDefs[kind].w,muraDefs[kind].d],[5,6],kind);
- assert.deepEqual([muraDefs.clanManor.w,muraDefs.clanManor.d],[28,26]);
+ const expected={
+  mayor:[5,6],guardhome:[5,6],tent:[5,6],home:[6,7],lodge:[9,10],clanManor:[12,14],
+  guardpost:[6,6],watchtower:[5,5],barracks:[10,10],chapel:[9,12],smith:[7,7],dojo:[10,9],
+  school:[10,9],clinic:[8,8],inn:[9,10],diner:[8,8],restaurant:[10,9],weapons:[7,7],armor:[7,7]
+ };
+ for(const [kind,size] of Object.entries(expected))assert.deepEqual([muraDefs[kind].w,muraDefs[kind].d],size,kind);
+ for(const row of BUILDINGS.filter(row=>muraHasInterior(row.id)))assert.ok(Math.max(row.w,row.d)<=14,`${row.id} footprint ${row.w}x${row.d}m`);
 });
 
 test('residential tents are compact human-scale assets in every MURA renderer',()=>{
