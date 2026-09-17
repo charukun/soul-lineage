@@ -65,7 +65,7 @@ Astra Outcome Contractでは Draft は optional transport です。DraftがWORKI
 判定と対応:
 - ACTIVE: 現在明確に作業が進行中なら重複worker/PRを作らない。
 - STOPPED / INTERRUPTED: 同じbranch/PRを復旧起点にする。current developとtask intentを意味的にreconcileし、最終reconciled headに必要十分なevidenceを実行してpushし、READY / READY_FOR_INTEGRATIONへ進める。
-- READYABLE: implementationが完成済みなら、足りない最終head evidenceだけ補いREADYへ進める。固定の二重検証やMicro Patch分類を追加しない。
+- READYABLE: implementationが完成済みなら、足りない最終head evidenceだけ補いREADYへ進める。固定の二重検証やworker-facing route分類を追加しない。
 - BLOCKED: repository contractとuser intentだけでは安全に解けないproduct/permission/external-input choiceだけ。CI pending、base drift、同file、技術的難しさだけでBLOCKEDにしない。
 - HOLD: integration:hold、Changes requested、unresolved review等の既存制御を勝手に解除しない。何待ちかと再開条件を残す。
 - OBSOLETE / DUPLICATE: exactな変更がdevelopへ統合済み、または後継PRへ完全置換済みとcurrent stateから確認できる場合だけ整理する。
@@ -75,7 +75,7 @@ Outcome rules:
 - READY: final reconciled exact head + sufficient evidence + pushed sourceが揃い、Integrationへhandoff済み。
 - BLOCKED: 本当に外部判断が必要。
 - DraftはWORKINGを可視化する方法の1つであり、Draft=実行中とは扱わない。
-- workerはMicro Patch / Normal / Repairというroute名を守るために作業を分岐・分割しない。
+- workerはroute名や固定分類を守るために作業を分岐・分割しない。
 - Ready後のexact-head gate、CAS merge、mechanical race、DEV publicationはIntegrationが所有する。
 
 運用:
