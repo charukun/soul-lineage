@@ -1,5 +1,5 @@
 const distance=(a,b)=>Math.hypot((a?.x||0)-(b?.x||0),(a?.z||0)-(b?.z||0));
-const target=(row,label=row?.label)=>row?{x:row.x,z:row.z,label}:null;
+const target=(row,label=row?.label)=>row?{id:String(row.id||label||'target'),x:row.x,z:row.z,label}:null;
 const score=(state,kind)=>Number(state.experiences?.[kind]?.score||0);
 const SUPPORT_EXPERIENCES=Object.freeze(['breathe','balance','fall','focus','sense','adapt','read','observe','maintain','care','rest']);
 
@@ -37,7 +37,7 @@ function activityLabel(row){return row?.actionLabel||row?.label||'暮らす';}
 
 export function guidanceFor({state,stations=[],front=null}){
   const age=Number(state.ageYears)||0;
-  if(state.ended||state.phase==='ended')return {stage:'6/6 輪廻',objective:'記憶を選ぶ',badge:'転生',target:null,tone:'rebirth'};
+  if(state.ended||state.phase==='ended')return {stage:'6/6 輪廻',objective:'生涯を記録する',badge:'転生',target:null,tone:'rebirth'};
   if(state.down){
     const rescue=Number(state.down.rescueSeconds)||40,remain=Math.max(0,rescue-Number(state.down.elapsed||0));
     return {stage:'5/6 救助',objective:'救助待ち',badge:`${Math.ceil(remain)}秒`,target:null,tone:'down'};
@@ -48,8 +48,8 @@ export function guidanceFor({state,stations=[],front=null}){
       const enemy=[...living].sort((a,b)=>distance(state.position,a)-distance(state.position,b))[0];
       return {stage:`4/6 第${state.front+1}前線`,objective:state.combat?'戦闘':'敵へ',badge:`敵 ${living.length}`,target:target(enemy,'敵'),tone:'danger'};
     }
-    if(front?.cleared&&state.front<5)return {stage:`4/6 第${state.front+1}前線`,objective:'奥へ',badge:'突破',target:{x:0,z:-6.05,label:'次の前線'},tone:'clear'};
-    return {stage:'5/6 帰還',objective:'帰還へ',badge:'突破',target:{x:0,z:5.2,label:'帰還地点'},tone:'clear'};
+    if(front?.cleared&&state.front<5)return {stage:`4/6 第${state.front+1}前線`,objective:'奥へ',badge:'突破',target:{id:'front-next',x:0,z:-6.05,label:'次の前線'},tone:'clear'};
+    return {stage:'5/6 帰還',objective:'帰還へ',badge:'突破',target:{id:'front-return',x:0,z:5.2,label:'帰還地点'},tone:'clear'};
   }
   if(state.phase==='birth')return {stage:'1/6 誕生',objective:'母と村巡り',badge:'自立 4歳',target:null,tone:'calm'};
   if(state.activity){
