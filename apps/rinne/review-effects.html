@@ -7,24 +7,38 @@
 </head>
 <body>
 <main class="fx-review">
-<header><div><p class="eyebrow">AUTHORED RUNTIME VFX</p><h1>戦闘エフェクト</h1></div><output id="fx-status" role="status">原本を準備中</output></header>
-<section class="stage-shell"><canvas id="fx-stage" aria-label="派手な戦闘エフェクト確認。ドラッグで回転、ピンチで拡大"></canvas><div class="stage-label"><span>HUMAN</span><span>CONTACT</span><span>ENEMY</span></div></section>
-<section class="controls" aria-label="エフェクト確認操作">
-<div class="preset-grid">
-<button type="button" data-preset="slash" class="primary">斬撃＋命中</button>
-<button type="button" data-preset="impact">被弾</button>
-<button type="button" data-preset="finisher">急・大技</button>
-<button type="button" data-preset="storm">派手さ確認</button>
-</div>
-<div class="control-row">
-<label>再生速度<select id="fx-speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select></label>
-<label>負荷tier<select id="fx-tier"><option value="0">FULL</option><option value="1">MID</option><option value="2">LOW</option><option value="3">MIN</option></select></label>
-<label class="check"><input id="fx-loop" type="checkbox">反復</label>
-<label class="check"><input id="fx-reduced" type="checkbox">Reduced motion</label>
-</div>
-<div class="control-row actions"><button id="fx-pause" type="button">一時停止</button><button id="fx-clear" type="button">消去</button><button id="fx-camera" type="button">カメラを戻す</button></div>
-<output id="fx-metrics">backend: loading</output>
-<details><summary>原本・確認境界</summary><p id="fx-provenance"></p><p>この画面はゲーム本体と同じ authored effect player / Effekseer backend を使います。レビュー用イベントは見た目を発火するためだけの入力で、ダメージ判定や戦闘ルールを複製しません。</p></details>
+<header class="topbar">
+  <a class="review-back" href="./review.html" aria-label="Visual Reviewへ戻る">← Review</a>
+  <div class="heading"><p class="eyebrow">AUTHORED RUNTIME VFX</p><h1>戦闘エフェクト</h1></div>
+  <output id="fx-status" role="status">原本とモデルを準備中</output>
+</header>
+<section class="stage-shell" aria-label="実戦エフェクトプレビュー">
+  <canvas id="fx-stage" aria-label="実モデル上で戦闘エフェクトを確認。ドラッグで回転、ピンチで拡大"></canvas>
+  <div class="stage-copy" aria-live="polite"><span id="fx-category-label">斬撃</span><strong id="fx-title">剣閃リボン</strong><span id="fx-use">通常斬撃 / 追撃</span></div>
+  <div id="fx-model-status" class="model-status">実モデル準備中</div>
+</section>
+<section class="scenario-strip" aria-label="実戦プレビュー場面" id="fx-scenarios"></section>
+<section class="review-panel">
+  <div class="panel-heading"><div><p class="eyebrow">AUTHORED CATALOG</p><h2>原本を選ぶ</h2></div><span id="fx-count"></span></div>
+  <nav class="category-strip" id="fx-categories" aria-label="エフェクト分類"></nav>
+  <div class="effect-grid" id="fx-catalog" aria-live="polite"></div>
+  <div class="controls" aria-label="エフェクト確認操作">
+    <div class="control-row primary-actions">
+      <button id="fx-replay" class="accent" type="button">もう一度</button>
+      <button id="fx-candidate" type="button" aria-pressed="false">☆ 採用候補</button>
+      <button id="fx-clear" type="button">消去</button>
+      <button id="fx-camera" type="button">カメラを戻す</button>
+    </div>
+    <div class="control-row settings-row">
+      <label>再生速度<select id="fx-speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select></label>
+      <label>負荷tier<select id="fx-tier"><option value="0">FULL</option><option value="1">MID</option><option value="2">LOW</option><option value="3">MIN</option></select></label>
+      <label class="check"><input id="fx-loop" type="checkbox">反復</label>
+      <label class="check"><input id="fx-reduced" type="checkbox">Reduced motion</label>
+    </div>
+    <output id="fx-metrics">backend: loading</output>
+    <div class="selected-note"><p id="fx-summary"></p><p id="fx-source"></p></div>
+    <details><summary>原本・確認境界</summary><p id="fx-provenance"></p><p>この画面はゲーム本体と同じ authored effect player / Effekseer backend を使います。場面切替は表示位置・向き・回数だけを変え、ダメージ判定・HP・AI・戦闘クロックは複製しません。実戦採用前の比較用です。</p></details>
+  </div>
 </section>
 </main>
 <script type="module" src="./src/review-effects.js"></script>
