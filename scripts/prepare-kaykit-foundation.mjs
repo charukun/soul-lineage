@@ -2,10 +2,14 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { KAYKIT_MODELS, KAYKIT_SOURCE_REPOSITORY, KAYKIT_SOURCE_REVISION } from '../packages/characters/src/kaykit-foundation.js';
+import { KAYKIT_MODELS, KAYKIT_MODEL_BY_KEY, KAYKIT_SOURCE_REPOSITORY, KAYKIT_SOURCE_REVISION } from '../packages/characters/src/kaykit-foundation.js';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const outputRoot = path.join(repoRoot, 'apps/rinne/public/simulator/assets/kaykit');
+const TARGETS = Object.freeze({
+  rinne: Object.freeze({root:path.join(repoRoot, 'apps/rinne/public/simulator/assets/kaykit'),models:KAYKIT_MODELS}),
+  village: Object.freeze({root:path.join(repoRoot, 'apps/village/public/assets/kaykit'),models:Object.freeze([KAYKIT_MODEL_BY_KEY.rogue,KAYKIT_MODEL_BY_KEY.knight])}),
+  demon: Object.freeze({root:path.join(repoRoot, 'apps/demon/public/assets/kaykit'),models:Object.freeze([KAYKIT_MODEL_BY_KEY.knight])})
+});
 
 export function gitBlobSha(bytes) {
   const body = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes);
@@ -35,15 +39,14 @@ async function currentBytes(target) {
   }
 }
 
-async function downloadModel(model) {
-  const target = path.join(repoRoot, model.runtime.localPath);
+async function acquireModel(model, target) {
   const existing = await currentBytes(target);
   if (existing) {
     try {
       verifyKayKitBytes(model, existing);
       return { model: model.label, target, source: 'verified-cache' };
     } catch {
-      // A stale or partial cache is replaced only by the exact pinned upstream blob.
+      // Replace stale/partial bytes only with the exact pinned upstream blob.
     }
   }
 
@@ -65,17 +68,32 @@ async function downloadModel(model) {
   return { model: model.label, target, source: 'pinned-upstream' };
 }
 
-export async function prepareKayKitFoundation() {
-  await mkdir(outputRoot, { recursive: true });
+function normalizeTargets(targets) {
+  const requested = Array.isArray(targets) ? targets : [targets];
+  const expanded = requested.flatMap(value => value === 'all' ? Object.keys(TARGETS) : [value || 'rinne']);
+  const unique = [...new Set(expanded)];
+  for (const app of unique) if (!Object.hasOwn(TARGETS, app)) throw new Error(`Unknown KayKit app target: ${app}`);
+  return unique;
+}
+
+export async function prepareKayKitFoundation(targets = ['rinne']) {
   const rows = [];
-  for (const model of KAYKIT_MODELS) rows.push(await downloadModel(model));
-  return Object.freeze(rows);
+  for (const app of normalizeTargets(targets)) {
+    const {root:outputRoot,models}=TARGETS[app];
+    await mkdir(outputRoot, { recursive: true });
+    for (const model of models) {
+      const target = path.join(outputRoot, path.basename(model.runtime.localPath));
+      rows.push({ app, ...await acquireModel(model, target) });
+    }
+  }
+  return Object.freeze(rows.map(Object.freeze));
 }
 
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 if (isMain) {
-  prepareKayKitFoundation().then(rows => {
-    for (const row of rows) console.log(`KayKit ${row.model}: ${row.source}`);
+  const targets = process.argv.slice(2);
+  prepareKayKitFoundation(targets.length ? targets : ['rinne']).then(rows => {
+    for (const row of rows) console.log(`KayKit ${row.app}/${row.model}: ${row.source}`);
   }).catch(error => {
     console.error(`KayKit foundation preparation failed: ${error.message}`);
     process.exitCode = 1;

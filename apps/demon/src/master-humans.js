@@ -22,16 +22,16 @@ export function hashHuman(value){let h=2166136261;for(const c of String(value)){
 function rng(seed){let s=seed>>>0;return()=>{s=(s+0x6d2b79f5)>>>0;let x=Math.imul(s^(s>>>15),1|s);x^=x+Math.imul(x^(x>>>7),61|x);return((x^(x>>>14))>>>0)/4294967296;};}
 function pick(random,palette){return[...palette[Math.min(palette.length-1,Math.floor(random()*palette.length))]];}
 export function humanAppearance(npc){
- const random=rng(hashHuman(`${npc?.id||'human'}:${npc?.role||'traveller'}`));
+ const random=rng(hashHuman(npc?.id||'human'));
  const age=19+random()*39,gray=clamp((age-42)/40,0,1),stoop=.25*clamp((age-55)/35,0,1);
  return{scale:age<22?.98:1,headScale:1,gray,stoop,skinAge:clamp((age-50)/40,0,1),canEquipWeapon:true,
   height:.91+random()*.18,width:.89+random()*.22,adultHeightMetres:2.02,
   hair:pick(random,HAIR),eyes:pick(random,EYES),skin:pick(random,SKIN),dye:[...(ROLE_DYE[npc?.role]||[1,1,1])],dead:false};
 }
-/** Keep existing NPC age/colour derivation; role is gear, never combat state. */
+/** Identity is derived from person id only. Role may change outfit/gear, never face/body/age. */
 export function humanVisualIdentity(npc){
  const seed=hashHuman(npc?.id||'human');
- const age=19+rng(hashHuman(`${npc?.id||'human'}:${npc?.role||'traveller'}`))()*39;
+ const age=19+rng(seed)()*39;
  const character=createCharacter({id:`human.${seed.toString(16)}`,seed,ageMs:Math.round(age*YEAR_MS)});
  return visualIdentityForCharacter(character,{role:npc?.role||'traveller'});
 }
