@@ -90,7 +90,7 @@ try {
 
   const merge = git(['merge', '--no-edit', baseRef], { inherit: true, allowFailure: true });
   if (merge.status !== 0) {
-    console.error(`[pre-ready] PRE_READY_CONFLICT branch=${branch} develop=${developSha}; resolve the merge semantically, revalidate, then rerun sync`);
+    console.error(`[pre-ready] PRE_READY_CONFLICT branch=${branch} develop=${developSha}; resolve and commit the merge semantically, revalidate, then rerun sync`);
     process.exit(3);
   }
 
