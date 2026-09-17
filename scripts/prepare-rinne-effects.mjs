@@ -93,7 +93,7 @@ export async function prepareRinneEffects({outputRoot=path.join(root,'apps/rinne
     }))));
   }
   await writeFile(path.join(outputRoot,'NOTICE.txt'),
-    'Effekseer for WebGL 1.70: MIT (LICENSE-MIT.txt).\nEffekseer Simple_Ribbon_Sword and tktk ToonHit: CC0-1.0 (LICENSE-SAMPLES.txt).\nUnmodified originals; game-side placement and intensity are adaptations.\nSources and exact revisions: apps/rinne/src/rebuild/authored-effect-manifest.js\n');
+    'Effekseer for WebGL 1.70: MIT (LICENSE-MIT.txt).\nEffekseer Simple_Ribbon_Sword and tktk ToonHit/Light: CC0-1.0 (LICENSE-SAMPLES.txt).\nUnmodified originals; game-side placement and intensity are adaptations.\nSources and exact revisions: apps/rinne/src/rebuild/authored-effect-manifest.js\n');
   return rows;
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){
