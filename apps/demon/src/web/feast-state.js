@@ -3,19 +3,29 @@ import {DEVOUR_BITE_BEATS} from './devour-motion.js';
 
 const clamp=x=>Math.max(0,Math.min(1,x));
 const ease=x=>{const t=clamp(x);return t*t*(3-2*t);};
+const pulse=(value,at,width)=>Math.max(0,1-Math.abs(value-at)/width);
 export const FEAST_SECONDS=2.4;
 export const BITE_BEATS=DEVOUR_BITE_BEATS;
+export const DEVOUR_SPECTACLE_PHASES=Object.freeze(['omen','bind','eclipse','torrent','recover','apotheosis']);
 
 /** Presentation envelopes only: never advance capture, health or combat clocks. */
 export function feastEnvelope(progress,age=Infinity,{reducedMotion=false}={}){
  const feeding=Number.isFinite(progress),p=feeding?clamp(progress):0;
  const release=Number.isFinite(age)&&age>=0&&age<FEAST_SECONDS;
  const bloom=release?ease(age/.10)*(1-ease((age-.24)/1.65)):0;
- const bite=feeding?Math.max(...BITE_BEATS.map(at=>Math.max(0,1-Math.abs(p-at)/.055))):0;
- return {feeding,release,charge:feeding?ease(p/.32)*(1-ease((p-.85)/.15)):0,
+ const bite=feeding?Math.max(...BITE_BEATS.map(at=>pulse(p,at,.055))):0;
+ const omen=feeding?ease((p-.02)/.10)*(1-ease((p-.30)/.12)):0;
+ const bind=feeding?ease((p-.18)/.16)*(1-ease((p-.76)/.16)):0;
+ const eclipse=feeding?Math.max(...BITE_BEATS.map(at=>pulse(p,at,.09))):0;
+ const torrent=feeding?ease((p-.60)/.14)*(1-ease((p-.94)/.06)):0;
+ const apotheosis=release?ease(age/.10)*(1-ease((age-1.15)/.75)):0;
+ const veil=feeding?clamp(omen*.28+bind*.32+eclipse*.58+torrent*.42):apotheosis*.28;
+ const phase=release?'apotheosis':p<.20?'omen':p<.44?'bind':p<.75?'eclipse':p<.92?'torrent':'recover';
+ return {feeding,release,phase,charge:feeding?ease(p/.32)*(1-ease((p-.85)/.15)):0,
   bite,bloom,body:release?ease(age/.12)*(1-ease((age-.18)/.68)):0,
   wave:release?ease(age/1.25):0,
-  camera:reducedMotion?0:(feeding?ease(p/.35)*.12*(1-ease((p-.85)/.15)):bloom*.055)};
+  omen,bind,eclipse,torrent,apotheosis,crown:apotheosis,veil,
+  camera:reducedMotion?0:(feeding?clamp(bind*.035+eclipse*.075+torrent*.085):apotheosis*.04)};
 }
 
 /** Facts come from the single successful consume event, including auto-equipped HP. */

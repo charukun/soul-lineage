@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as T from 'three';
 import {RaidSession} from '@soul/raid';
 import {ProfileStore} from '@soul/raid/profile';
-import {feastEnvelope,feastReward,nextPrey,scentBearing} from '../src/web/feast-state.js';
+import {DEVOUR_SPECTACLE_PHASES,feastEnvelope,feastReward,nextPrey,scentBearing} from '../src/web/feast-state.js';
 import {FeastEffects} from '../src/web/feast-effects.js';
 import {createCreature,animateCreature} from '../src/web/creatures.js';
 import {NightAudio} from '../src/web/audio.js';
@@ -54,6 +54,19 @@ test('reward envelopes are finite, reduced motion has no dolly, and effects expi
  }
  assert.equal(feastEnvelope(null,2.4).release,false);assert.equal(feastEnvelope(null).feeding,false);
 });
+test('devour spectacle progresses omen to bind to eclipse to torrent and rewards only after consume',()=>{
+ assert.deepEqual(DEVOUR_SPECTACLE_PHASES,['omen','bind','eclipse','torrent','recover','apotheosis']);
+ const omen=feastEnvelope(.12),bind=feastEnvelope(.30),bite=feastEnvelope(.51),torrent=feastEnvelope(.80),recover=feastEnvelope(.97);
+ assert.equal(omen.phase,'omen');assert.ok(omen.omen>.8&&omen.apotheosis===0);
+ assert.equal(bind.phase,'bind');assert.ok(bind.bind>.4);
+ assert.equal(bite.phase,'eclipse');assert.ok(bite.eclipse>.99&&bite.veil>.5);
+ assert.equal(torrent.phase,'torrent');assert.ok(torrent.torrent>.8);
+ assert.equal(recover.phase,'recover');
+ const cancelled=feastEnvelope(null,Infinity),reward=feastEnvelope(null,.25),reduced=feastEnvelope(.68,Infinity,{reducedMotion:true});
+ assert.equal(cancelled.apotheosis,0);assert.equal(cancelled.crown,0);assert.equal(cancelled.veil,0);
+ assert.equal(reward.phase,'apotheosis');assert.ok(reward.apotheosis>.9&&reward.crown>.9);
+ assert.equal(reduced.camera,0);assert.ok(reduced.eclipse>.9&&reduced.veil>.4,'reduced motion keeps semantic eclipse/veil cues');
+});
 test('next prey prefers unknown memory and yields to return, battle and sealed sanctuary',()=>{
  const {game}=fixture();game.profile.unlocked=['traveller'];game.village.npcs=[
   {id:'known',role:'traveller',x:0,z:1}, {id:'fresh',role:'bellkeeper',x:4,z:4},
@@ -69,16 +82,17 @@ test('screen bearings agree with the real game camera right and forward axes',()
  assert.ok(Math.abs(scentBearing(p,{x:-Math.sin(a),z:-Math.cos(a)}))<1e-12);
  assert.ok(Math.abs(scentBearing(p,{x:Math.cos(a),z:-Math.sin(a)})-Math.PI/2)<1e-12);
 });
-test('real Three effects keep a fixed object budget and clear particles/light on cancel and new village',()=>{
- const {game}=fixture(),scene=new T.Scene(),fx=new FeastEffects(scene,new T.Texture()),count=fx.root.children.length;
- game.player.devourProgress=.55;game.devour={npc:game.village.npcs[0]};fx.update(game);
- assert.equal(fx.root.visible,true);assert.equal(fx.souls.geometry.attributes.position.count,84);
- assert.ok([...fx.positions].every(Number.isFinite));
- game.player.devourProgress=null;game.devour=null;fx.update(game);assert.equal(fx.root.visible,false);assert.equal(fx.light.intensity,0);
+test('real Three effects keep a fixed object budget, veil the world, and fully restore on cancel',()=>{
+ const {game}=fixture(),scene=new T.Scene();scene.background=new T.Color(0x081317);scene.fog=new T.FogExp2(0x182d2e,.024);
+ const baseFog=scene.fog.density,baseBackground=scene.background.clone(),fx=new FeastEffects(scene,new T.Texture()),count=fx.root.children.length;
+ game.player.devourProgress=.51;game.devour={npc:game.village.npcs[0]};fx.update(game);
+ assert.equal(fx.root.visible,true);assert.equal(fx.souls.geometry.attributes.position.count,84);assert.equal(fx.eclipseCore.visible,true);assert.ok(fx.seal.visible);
+ assert.ok(scene.fog.density>baseFog);assert.ok(scene.background.r<baseBackground.r);assert.ok([...fx.positions].every(Number.isFinite));
+ game.player.devourProgress=null;game.devour=null;fx.update(game);assert.equal(fx.root.visible,false);assert.equal(fx.light.intensity,0);assert.equal(scene.fog.density,baseFog);assert.ok(scene.background.equals(baseBackground));
  game.consume(game.village.npcs[0]);const e=consumeEvent(game);
  for(let i=0;i<40;i++){fx.event({...e,at:game.time});game.time+=.1;fx.update(game);assert.equal(fx.root.children.length,count);assert.ok([...fx.positions,...fx.wispPositions].every(Number.isFinite));}
  game.time+=3;fx.update(game);assert.equal(fx.root.visible,false);assert.equal(fx.light.intensity,0);
- fx.reset();assert.equal(fx.beacon.visible,false);fx.dispose();assert.equal(scene.children.length,0);
+ fx.reset();assert.equal(fx.beacon.visible,false);assert.equal(scene.fog.density,baseFog);fx.dispose();assert.equal(scene.children.length,0);
 });
 test('monster renderer spans knee-high infancy through giant late-hunt size',()=>{
  const g=createCreature(true),a={x:0,z:0,yaw:0,speed:0,growthScale:.28};
@@ -100,7 +114,8 @@ test('release opens real creature arms, keeps soles planted and yields to moveme
 });
 test('audio bite accents cross each authored bite only once, including low frame rate',()=>{
  const a=new NightAudio(),calls=[];a.tone=(...args)=>calls.push(args);a.crunch=()=>calls.push('crunch');
- for(const p of [0,.29,.52,.53,.72,.74,null])a.feed(p);
+ for(const p of [0,.13,.31,.52,.53,.72,.77,null])a.feed(p);
  assert.equal(calls.filter(c=>c==='crunch').length,2);
+ assert.ok(calls.length>6,'omen, bind, eclipse and torrent should each contribute an accent');
  a.feed(.2);a.feed(null);assert.equal(calls.filter(c=>c==='crunch').length,2);
 });
