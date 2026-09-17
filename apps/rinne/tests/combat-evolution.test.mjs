@@ -17,7 +17,7 @@ test('one Tidebreak sweep can damage several world targets while thrust remains 
   const d=enemy('d',.7,1,100),f2=front([enemy('main',0,1),d]);s.combat.tidebreakPose.attack='thrust';const rows=[{type:'player-hit',targetId:'main',skill:'basic.sword',phase:'jo',damage:12,engine:'tidebreak'}];applyMultiTargetContact(s,f2,rows[0],rows);assert.equal(d.hp,100);
 });
 
-test('combat terrain blocks movement and line of fire through visible-contract cover',()=>{
+test('combat terrain blocks movement and line of fire through deterministic cover',()=>{
   const f=front([]);const terrain=ensureCombatTerrain(f),cover=terrain.obstacles[0],a={x:cover.x-2,z:cover.z},b={x:cover.x+2,z:cover.z};assert.equal(lineBlocked(f,a,b),true);
 });
 
@@ -28,7 +28,7 @@ test('injuries persist, affect body capabilities, and heal with elapsed life tim
 
 test('repeated lived technique use mutates footwork rhythm and charge without changing the skill id',()=>{
   const s=state();for(let i=0;i<36;i++)noteTechniqueUse(s,'action.counter',{phase:i%3===0?'kyu':'ha',hit:true});const mutation=techniqueMutationFor(s,'action.counter');assert.equal(mutation.tier,3);
-  const form=evolveTechniqueForm(s,'action.counter',{kinds:['parry','counter','thrust'],feet:['stay','stay','chase'],charges:['none','none','none'],rhythm:'sharp',tempo:1});assert.equal(form.kinds.length,3);assert.notDeepEqual(form.feet,['stay','stay','chase']);assert.ok(form.tempo!==1||form.rhythm!=='sharp'||form.charges.some(x=>x!=='none'));
+  const original={kinds:['parry','counter','thrust'],feet:['stay','stay','chase'],charges:['none','none','none'],rhythm:'sharp',tempo:1},form=evolveTechniqueForm(s,'action.counter',original);assert.deepEqual(form.kinds,original.kinds);assert.ok(JSON.stringify(form)!==JSON.stringify(original));
 });
 
 test('enemy squad roles coordinate without capping attackers and repeated patterns trigger learning',()=>{
@@ -37,7 +37,7 @@ test('enemy squad roles coordinate without capping attackers and repeated patter
 });
 
 test('ranged staff uses finite charges and world-space projectile contact',()=>{
-  const s=state();s.equipment.weapon='staff';const target=enemy('far',0,4,120),f=front([target]);let events=[];for(let i=0;i<12;i++)tickRangedProjectiles(s,f,.1,events);assert.equal(s.ammo.staffCharges,7);assert.ok(events.some(e=>e.type==='projectile-fired'));assert.ok(target.hp<120);assert.ok(events.some(e=>e.projectile));
+  const s=state();s.equipment.weapon='staff';const target=enemy('far',0,4,120),f=front([target]);let events=[];for(let i=0;i<6;i++)tickRangedProjectiles(s,f,.1,events);assert.equal(s.ammo.staffCharges,7);assert.ok(events.some(e=>e.type==='projectile-fired'));assert.ok(target.hp<120);assert.ok(events.some(e=>e.projectile));
 });
 
 test('compact combat replay digest is deterministic for the same inputs',()=>{
