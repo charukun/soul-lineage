@@ -1,7 +1,7 @@
 import {hash,random} from './world.js';
 
 export const DEFAULT_MONSTER_SPECIES='night-creature';
-const profile=(minScale,maxScale,fullMeals,curve,minHpScale,maxHpScale,minPowerScale,maxPowerScale,minMoveScale,maxMoveScale,minClearance,maxClearance)=>Object.freeze({minScale,maxScale,fullMeals,curve,minHpScale,maxHpScale,minPowerScale,maxPowerScale,minMoveScale,maxMoveScale,minClearance,maxClearance});
+const profile=(minScale,maxScale,fullMeals,curve,minHpScale,maxHpScale,minPowerScale,maxPowerScale,minMoveScale,maxMoveScale,minClearance,maxClearance,pace=1.75)=>Object.freeze({minScale,maxScale,fullMeals,curve,minHpScale,maxHpScale,minPowerScale,maxPowerScale,minMoveScale,maxMoveScale,minClearance,maxClearance,pace});
 const technique=(id,name)=>Object.freeze({id,name});
 
 export const MONSTER_SPECIES=Object.freeze({
@@ -46,6 +46,6 @@ export function chooseMonsterSpecies(villageId,preferred=null){
  const rng=random(hash(`monster:${String(villageId||'village')}`));return MONSTER_SPECIES_IDS[Math.min(MONSTER_SPECIES_IDS.length-1,Math.floor(rng()*MONSTER_SPECIES_IDS.length))];
 }
 export function feedingGrowth(meals=0,species=DEFAULT_MONSTER_SPECIES){
- const growth=growthProfileFor(species),n=Math.max(0,Math.floor(Number(meals)||0)),progress=Math.min(1,n/growth.fullMeals),shaped=1-Math.pow(1-progress,growth.curve),lerp=(a,b)=>a+(b-a)*shaped;
+ const growth=growthProfileFor(species),n=Math.max(0,Math.floor(Number(meals)||0)),progress=Math.min(1,n/growth.fullMeals),paced=Math.pow(progress,growth.pace||1),shaped=1-Math.pow(1-paced,growth.curve),lerp=(a,b)=>a+(b-a)*shaped;
  return{species:monsterSpeciesFor(species).id,progress,scale:lerp(growth.minScale,growth.maxScale),hpScale:lerp(growth.minHpScale,growth.maxHpScale),powerScale:lerp(growth.minPowerScale,growth.maxPowerScale),moveScale:lerp(growth.minMoveScale,growth.maxMoveScale),clearance:lerp(growth.minClearance,growth.maxClearance)};
 }
