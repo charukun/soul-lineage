@@ -1,10 +1,16 @@
 import {RaidHost} from '@soul/network/raid-host';
 import {REVIEW_BATTLE_MODELS,createReviewBattleStage} from './review-battle-stage.js';
+import {REVIEW_BATTLE_PHASE_LABELS,reviewBattleLoopDue,reviewBattlePhaseState} from './review-battle-state.js';
 
 const q=id=>document.getElementById(id);
 const heroSelect=q('battle-hero-model'),enemySelect=q('battle-enemy-model');
 for(const select of [heroSelect,enemySelect])select.replaceChildren(...REVIEW_BATTLE_MODELS.map(row=>{const option=document.createElement('option');option.value=row.id;option.textContent=row.label;return option;}));
 heroSelect.value='kaykit.rogue.v1';enemySelect.value='kaykit.knight.v1';
+
+const phasePanel=q('battle-phase'),phaseBrand=q('phase-brand'),phaseCurrent=q('phase-current'),phaseMeta=q('phase-meta');
+const phaseSteps=[...document.querySelectorAll('[data-phase-step]')];
+const skinButtons=[...document.querySelectorAll('[data-battle-skin]')];
+const skinLabels=Object.freeze({rinne:'輪廻転焦',jinku:'尽喰廻遊'});
 
 let battleStage=null,battleStagePromise=null;
 async function ensureBattleStage(){
@@ -22,36 +28,72 @@ enemySelect.addEventListener('change',()=>{void ensureBattleStage().then(stage=>
 
 const memory=new Map();
 const storage={getItem:key=>memory.has(key)?memory.get(key):null,setItem:(key,value)=>memory.set(key,String(value))};
-let host=null,playing=true,last=performance.now(),lastCore=null;
-function resetBattle(){
-  memory.clear();lastCore=null;
+let host=null,playing=true,last=performance.now(),lastCore=null,lastPhase='',loopEnabled=true,followCamera=true,uiSkin='rinne',finishedAt=0;
+
+function setPressed(button,pressed,label){
+  button.setAttribute('aria-pressed',String(pressed));
+  button.textContent=`${label} ${pressed?'ON':'OFF'}`;
+}
+
+function setUiSkin(next){
+  if(!skinLabels[next])return;
+  uiSkin=next;phasePanel.dataset.skin=next;phaseBrand.textContent=skinLabels[next];
+  for(const button of skinButtons)button.setAttribute('aria-pressed',String(button.dataset.battleSkin===next));
+}
+
+function resetBattle({preservePlaying=false}={}){
+  const resume=preservePlaying?playing:true;
+  memory.clear();lastCore=null;lastPhase='';finishedAt=0;
   host=new RaidHost({villageId:'develop-visual-review',storage,now:()=>Date.now()});
   host.join('demon',{type:'join',app:'demon',role:'demon',playerId:'review-demon',name:'Demon'});
   host.join('human',{type:'join',app:'rinne',role:'human',playerId:'review-human',name:'Human'});
   host.input('demon',{type:'state',x:-1.2,z:0,yaw:Math.PI/2,state:'combat',action:null});
   host.input('human',{type:'state',x:1.2,z:0,yaw:-Math.PI/2,state:'combat',action:null});
-  host.tick(1/60);lastCore=host.battle?.core?.state?.()||null;playing=true;q('battle-toggle').textContent='一時停止';last=performance.now();
+  host.tick(1/60);lastCore=host.battle?.core?.state?.()||null;playing=resume;q('battle-toggle').textContent=playing?'一時停止':'再開';last=performance.now();
+}
+
+function renderPhase(core){
+  const state=reviewBattlePhaseState(core,lastPhase);if(state.phase)lastPhase=state.phase;
+  phasePanel.dataset.phase=state.phase||'idle';phaseCurrent.textContent=REVIEW_BATTLE_PHASE_LABELS[state.phase]||'待';
+  for(const step of phaseSteps){const active=step.dataset.phaseStep===state.phase;step.dataset.active=String(active);step.setAttribute('aria-current',active?'step':'false');}
+  const left=REVIEW_BATTLE_PHASE_LABELS[state.heroPhase]||'—',right=REVIEW_BATTLE_PHASE_LABELS[state.enemyPhase]||'—';
+  phaseMeta.textContent=`LEFT ${left} · RIGHT ${right}${state.skill?` · ${state.skill}`:''}`;
 }
 
 function syncBattle(dt){
   const battle=host?.battle,currentCore=battle?.core?.state?.();if(currentCore)lastCore=currentCore;const core=currentCore||lastCore;if(!core)return;
+  const heroMax=Math.max(1,Number(core.hero.maxhp)||1),enemyMax=Math.max(1,Number(core.enemy.maxhp)||1);
   q('hero-action').textContent=core.hero.attack||'構え';q('enemy-action').textContent=core.enemy.attack||'構え';
-  q('hero-hp').value=Math.max(0,core.hero.hp/core.hero.maxhp);q('enemy-hp').value=Math.max(0,core.enemy.hp/core.enemy.maxhp);
-  q('hero-meta').textContent=`${Math.ceil(core.hero.hp)} / ${core.hero.maxhp} HP · ${core.hero.weapon}`;
-  q('enemy-meta').textContent=`${Math.ceil(core.enemy.hp)} / ${core.enemy.maxhp} HP · ${core.enemy.weapon}`;
+  q('hero-hp').value=Math.max(0,(Number(core.hero.hp)||0)/heroMax);q('enemy-hp').value=Math.max(0,(Number(core.enemy.hp)||0)/enemyMax);
+  q('hero-meta').textContent=`${Math.ceil(Number(core.hero.hp)||0)} / ${heroMax} HP · ${core.hero.weapon}`;
+  q('enemy-meta').textContent=`${Math.ceil(Number(core.enemy.hp)||0)} / ${enemyMax} HP · ${core.enemy.weapon}`;
   q('battle-time').textContent=`${(battle?.time||0).toFixed(1)}秒`;
   q('battle-result').textContent=battle?.finished?`${battle.winner==='demon'?'LEFT':'RIGHT'} 勝利`:'戦闘中';
-  battleStage?.sync(core,dt);
+  renderPhase(core);battleStage?.sync(core,dt,{followCamera});
+}
+
+function advanceBattle(dt){
+  const runtime=host?.battle?.core;if(!runtime)return;
+  const before=runtime.state?.();if(before)lastCore=before;
+  host.tick(dt);
+  const after=runtime.state?.();if(after)lastCore=after;
 }
 
 function frame(now){
   const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
-  if(playing&&host?.battle&&!host.battle.finished)host.tick(dt);
+  if(playing&&host?.battle&&!host.battle.finished)advanceBattle(dt);
+  const finished=Boolean(host?.battle?.finished);
+  if(finished&&!finishedAt)finishedAt=now;else if(!finished)finishedAt=0;
+  if(reviewBattleLoopDue({loopEnabled,playing,finished,finishedAt,now})){resetBattle({preservePlaying:true});}
   syncBattle(dt);requestAnimationFrame(frame);
 }
 
-q('battle-restart').addEventListener('click',resetBattle);
+q('battle-restart').addEventListener('click',()=>resetBattle());
 q('battle-toggle').addEventListener('click',()=>{playing=!playing;q('battle-toggle').textContent=playing?'一時停止':'再開';last=performance.now();});
+q('battle-loop').addEventListener('click',()=>{loopEnabled=!loopEnabled;setPressed(q('battle-loop'),loopEnabled,'ループ');});
+q('battle-camera').addEventListener('click',()=>{followCamera=!followCamera;setPressed(q('battle-camera'),followCamera,'追従');});
+for(const button of skinButtons)button.addEventListener('click',()=>setUiSkin(button.dataset.battleSkin));
 window.addEventListener('pagehide',()=>battleStage?.dispose(),{once:true});
 
+setPressed(q('battle-loop'),loopEnabled,'ループ');setPressed(q('battle-camera'),followCamera,'追従');setUiSkin(uiSkin);
 resetBattle();void ensureBattleStage();requestAnimationFrame(frame);
