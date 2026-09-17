@@ -32,10 +32,10 @@ test('injuries persist, affect body capabilities, and heal without becoming perm
   const restored=deserializeLife(serializeLife(s));assert.ok(Object.values(restored.injuries).some(row=>row.severity>0));restored.ageSeconds+=240;const after=injuryEffects(restored);assert.ok(after.severity<before.severity);
 });
 
-test('combat history never mutates techniques, unlocks skills, or creates inherited power',()=>{
+test('combat history never mutates techniques, unlocks skills, creates XP, or creates inherited power',()=>{
   const s=state(),form={kinds:['parry','counter','thrust'],feet:['stay','stay','chase'],charges:['none','none','none'],rhythm:'sharp',tempo:1};
-  s.combatLessons={backHit:9};s.combatLessonRecent={backHit:10};s.techniqueEvolution={'action.counter':{uses:99,hits:99,ha:99}};s.combatLegacy={forms:{'action.counter':{tier:3,uses:99}},lessons:{backHit:9}};
-  stripCombatProgressionState(s);assert.equal('combatLessons'in s,false);assert.equal('techniqueEvolution'in s,false);assert.equal('combatLegacy'in s,false);
+  s.experiences.combat={count:99,score:99,last:1};s.combatLessons={backHit:9};s.combatLessonRecent={backHit:10};s.techniqueEvolution={'action.counter':{uses:99,hits:99,ha:99}};s.combatLegacy={forms:{'action.counter':{tier:3,uses:99}},lessons:{backHit:9}};s.lineage=[{experiences:{combat:{count:9,score:9,last:1}},combatLegacy:{forms:{x:{tier:3}}}}];
+  stripCombatProgressionState(s);assert.equal('combatLessons'in s,false);assert.equal('techniqueEvolution'in s,false);assert.equal('combatLegacy'in s,false);assert.equal('combat'in s.experiences,false);assert.equal('combatLegacy'in s.lineage[0],false);assert.equal('combat'in s.lineage[0].experiences,false);
   assert.deepEqual(recordCombatLesson(s,'backHit'),{recorded:false,unlocked:[],names:[]});assert.equal(techniqueMutationFor(s,'action.counter').tier,0);assert.deepEqual(evolveTechniqueForm(s,'action.counter',form),form);
 });
 
@@ -54,6 +54,6 @@ test('compact combat replay digest is deterministic for the same inputs',()=>{
 });
 
 test('combat evolution deliberately contains neither anti-stunlock rescue nor player progression hooks',async()=>{
-  const source=await readFile(new URL('../src/rebuild/combat-evolution-runtime.js',import.meta.url),'utf8');assert.doesNotMatch(source,/attackerCap|stunImmunity|recoveryIFrames|postHitInvulnerability/);
+  const source=await readFile(new URL('../src/rebuild/combat-evolution-runtime.js',import.meta.url),'utf8');assert.doesNotMatch(source,/attackerCap|stunImmunity|recoveryIFrames|postHitInvulnerability|recordCombatLesson|noteTechniqueUse|combatLegacy/);
   const growth=await readFile(new URL('../src/rebuild/combat-growth.js',import.meta.url),'utf8');assert.doesNotMatch(growth,/eligibleDiscoveries|techniqueEvolution\[|combatLessons\[/);
 });
