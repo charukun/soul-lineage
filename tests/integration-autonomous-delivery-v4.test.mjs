@@ -119,7 +119,7 @@ test('workflow contracts keep exact-head fast merge, browser opt-in DEV verifica
   assert.doesNotMatch(ci,/browser-repair-dispatch:/);
   assert.match(ci,/integration-stack-ci\.mjs/);
   assert.match(ci,/integration-gate-cost\.mjs/);
-  assert.match(ci,/merge-ready:[\s\S]*uses: \.\/\.github\/workflows\/integration-controller\.yml/);
+  assert.match(ci,/merge-ready:[\s\S]*uses: \.\/\.github\/workflows\/develop-merge\.yml/);
   assert.doesNotMatch(ci,/integration-request:/);
   assert.match(deploy,/Validate exact DEV candidate manifest before public promotion/);
   assert.match(deploy,/Promote candidate to DEV Pages/);
