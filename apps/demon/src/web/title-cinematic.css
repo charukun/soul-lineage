@@ -1,0 +1,73 @@
+/* 尽喰廻遊: cinematic sumi-e title surface. The pre-rendered movie owns the large motion. */
+#title-cinematic{position:fixed;inset:0;z-index:6;overflow:hidden;background:#e9e6dc;pointer-events:none;color:#171512}
+#title-cinematic::before{content:"";position:absolute;inset:-4%;background:radial-gradient(ellipse at 50% 45%,rgba(255,255,251,.9),rgba(224,219,207,.9) 78%),repeating-linear-gradient(87deg,rgba(54,45,35,.018) 0 1px,transparent 1px 9px);opacity:1}
+#title-cinematic::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 48%,transparent 55%,rgba(41,35,29,.08) 100%);opacity:.55}
+.title-cinematic-poster,.title-cinematic-media{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:50% 50%;background:transparent}.title-cinematic-poster{opacity:1}.title-cinematic-media{opacity:0;transition:opacity .18s linear}
+#title-cinematic[data-state="intro"] #title-intro-video,#title-cinematic[data-state="living"] #title-living-video{opacity:1}
+.title-cinematic-paper{position:absolute;inset:0;background:linear-gradient(90deg,rgba(232,228,216,.65),transparent 18% 82%,rgba(232,228,216,.65));mix-blend-mode:multiply}
+.title-cinematic-grain{position:absolute;inset:0;opacity:.055;background-image:radial-gradient(circle at 30% 20%,#271f17 0 .45px,transparent .7px),radial-gradient(circle at 70% 72%,#271f17 0 .4px,transparent .65px);background-size:9px 11px,13px 15px;mix-blend-mode:multiply}
+body[data-title-surface="true"] #game{visibility:hidden}
+body[data-title-surface="true"]>.vignette,body[data-title-surface="true"]>.grain{opacity:0}
+
+#title{z-index:8;background:none;color:#171512;overflow:hidden;text-shadow:none}
+#title::before,#title::after{display:none!important}
+#title .title-top,.brand,.title-actions,.build{display:none!important}
+#title .title-ink-ui{position:absolute;z-index:2;left:50%;top:55%;transform:translate(-50%,-4%);width:min(680px,86vw);display:flex;flex-direction:column;align-items:center;pointer-events:none}
+.title-logo{margin:0;width:min(660px,82vw);line-height:0;opacity:0;filter:blur(2.6px);transform:translateY(5px);transition:opacity .9s ease,filter 1.25s ease,transform 1.1s ease}
+.title-logo img{display:block;width:100%;height:auto;filter:contrast(1.1) saturate(.82);pointer-events:none}
+.title-menu{margin-top:clamp(15px,2.7vh,34px);display:flex;flex-direction:column;align-items:center;gap:clamp(2px,1vh,10px);pointer-events:auto}
+.title-menu-item{position:relative;min-width:220px;padding:7px 38px;color:#191713;font-size:clamp(17px,2.3vh,25px);line-height:1.35;letter-spacing:.12em;text-align:center;opacity:0;transform:translateY(3px);transition:opacity .75s ease,transform .75s ease,color .18s ease;text-shadow:0 1px rgba(255,255,255,.28)}
+.title-menu-item::before{content:"◆";position:absolute;left:13px;top:50%;transform:translateY(-52%) rotate(0deg);color:#8e1515;font-size:.72em;opacity:0;filter:drop-shadow(0 1px 0 #f5eee4);transition:opacity .18s ease}
+.title-menu-item.is-primary::before,.title-menu-item:hover::before,.title-menu-item:focus-visible::before{opacity:1}
+.title-menu-item:hover,.title-menu-item:focus-visible{color:#0a0908;outline:none}
+.title-menu-item:focus-visible{background:linear-gradient(90deg,transparent,rgba(129,20,17,.06),transparent)}
+.title-menu-item:active:not(:disabled){filter:none;transform:translateY(1px)}
+#title-character{pointer-events:auto;margin-top:7px;color:#4f4840;font-size:10px;letter-spacing:.13em;opacity:0;transition:opacity .7s ease}
+.title-meta{position:absolute;z-index:2;right:calc(16px + env(safe-area-inset-right));bottom:calc(13px + env(safe-area-inset-bottom));padding:8px 4px;color:#5f5850;font-size:9px;letter-spacing:.12em;pointer-events:auto;opacity:0;transition:opacity .7s ease}
+.title-meta::before{content:"朱";display:inline-grid;place-items:center;width:18px;height:18px;margin-right:8px;border:1px solid #8e1e19;color:#8e1e19;font-size:8px;transform:rotate(-3deg)}
+#title[data-stage="logo"] .title-logo,#title[data-stage="menu"] .title-logo{opacity:1;filter:blur(0);transform:none}
+#title[data-stage="menu"] .title-menu-item,#title[data-stage="menu"] #title-character,#title[data-stage="menu"] .title-meta{opacity:1;transform:none}
+#title[data-stage="menu"] .title-menu-item:nth-child(2){transition-delay:.09s}
+#title[data-stage="menu"] .title-menu-item:nth-child(3){transition-delay:.18s}
+
+/* Title-origin sheets remain part of the same living scroll rather than returning to Web UI. */
+#sheet[data-surface="title"]{z-index:14;background:rgba(232,228,216,.74);backdrop-filter:none;color:#171512}
+#sheet[data-surface="title"] .sheet-perspective{width:min(520px,94vw)}
+#sheet[data-surface="title"] .sheet-content{position:relative;width:100%;max-height:min(78dvh,760px);padding:28px 30px 32px;background:rgba(239,235,224,.94);color:#171512;border:0;box-shadow:0 18px 70px rgba(43,34,27,.19);clip-path:polygon(.7% 1.2%,99.2% 0,100% 98.7%,1.1% 100%);scrollbar-color:#91877b #e8e2d6}
+#sheet[data-surface="title"] .sheet-content::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(91deg,transparent 0 4%,rgba(33,26,20,.035) 4.15%,transparent 4.4%),radial-gradient(circle at 70% 12%,rgba(35,27,20,.06) 0 .6px,transparent .8px);background-size:auto,12px 15px;mix-blend-mode:multiply}
+#sheet[data-surface="title"] .sheet-heading small,#sheet[data-surface="title"] .sheet-heading button,#sheet[data-surface="title"] h2,#sheet[data-surface="title"] #sheet-body p,#sheet[data-surface="title"] .credits,#sheet[data-surface="title"] .provenance{color:#312c27}
+#sheet[data-surface="title"] .sheet-heading small{letter-spacing:.24em;color:#7d1d18}
+#sheet[data-surface="title"] h2{font-weight:500;text-shadow:none}
+#sheet[data-surface="title"] .inline-action,#sheet[data-surface="title"] .route-card{color:#1b1815;border-color:rgba(40,31,24,.16);background:none}
+#sheet[data-surface="title"] .inline-action:hover,#sheet[data-surface="title"] .inline-action:focus-visible{background:linear-gradient(90deg,rgba(124,27,20,.07),transparent);outline:none}
+#sheet[data-surface="title"] .inline-action::before{content:"";display:inline-block;width:13px;height:1px;margin-right:10px;background:#4e4640;vertical-align:middle;transform:rotate(-4deg)}
+#sheet[data-surface="title"] .primary{color:#171512;border-color:#6f5e50;background:none;box-shadow:none;text-shadow:none}
+#sheet[data-surface="title"] .memory-chip,#sheet[data-surface="title"] .slot{color:#28221d;background:none;border-color:rgba(45,34,26,.26)}
+#sheet[data-surface="title"] .memory-chip strong,#sheet[data-surface="title"] .memory-chip small,#sheet[data-surface="title"] .visit-row,#sheet[data-surface="title"] .visit-row span{color:#453d36}
+
+@media (orientation:landscape){
+  #title-cinematic{background-size:auto 100%}
+  #title .title-ink-ui{top:48%;width:min(500px,42vw)}
+  .title-logo{width:min(500px,40vw)}
+  .title-menu{margin-top:10px;gap:0}
+  .title-menu-item{font-size:clamp(15px,2.3vw,22px);padding-block:5px}
+}
+@media (max-height:700px){
+  #title .title-ink-ui{top:50%}
+  .title-logo{width:min(520px,70vw)}
+  .title-menu{margin-top:8px;gap:0}
+  .title-menu-item{font-size:16px;padding:4px 34px}
+}
+@media (prefers-reduced-motion:reduce){
+  .title-cinematic-media{display:none!important}
+  .title-logo,.title-menu-item,#title-character,.title-meta{transition:none!important;transform:none!important;filter:none!important}
+}
+
+#title .build{display:none!important}
+/* Canonical menu lettering is sampled from the supplied title art, not a generic web font. */
+.title-menu-glyph{display:block;width:260px;height:44px;background-repeat:no-repeat;background-size:260px 135px;background-position-x:0;filter:contrast(1.12) saturate(.82)}
+.glyph-hunt{background-position-y:-1px}.glyph-lineage{background-position-y:-45px}.glyph-settings{background-position-y:-89px}
+.title-menu-item{display:grid;place-items:center;min-width:286px;padding:2px 10px;font-size:0;line-height:1}
+.title-menu-item.is-primary::before{display:none}
+.title-menu-item:not(.is-primary):hover::before,.title-menu-item:not(.is-primary):focus-visible::before{left:5px}
+@media(max-height:700px){.title-menu-glyph{width:220px;height:37px;background-size:220px 114px}.glyph-hunt{background-position-y:-1px}.glyph-lineage{background-position-y:-38px}.glyph-settings{background-position-y:-75px}.title-menu-item{min-width:242px}}
