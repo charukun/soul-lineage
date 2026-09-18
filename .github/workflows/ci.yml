@@ -1,11 +1,10 @@
 name: PR Checks
-# Develop PRs use deterministic no-test checks/build as the automatic gate.
-# Draft develop events do not allocate validation runners; Ready exact heads own the gate.
-# Tests and browser/gameplay verification are opt-in on develop and remain available on Production routes.
+# Production PR validation only. develop PRs intentionally do not trigger GitHub CI.
+# develop changes are validated by the implementation worker before merge.
 run-name: CI validation #${{ github.event.pull_request.number }} ${{ github.event.pull_request.head.sha }}
 on:
   pull_request:
-    branches: [develop, main]
+    branches: [main]
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
 permissions:
   contents: read
