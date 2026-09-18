@@ -125,6 +125,23 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   const skirmishRenderer=createSkirmishRenderer({characterStage,skirmishRoot,mat});
 
   const target=new THREE.Vector3(),cameraLook=new THREE.Vector3(),desired=new THREE.Vector3(),moveVector=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),camOffset=new THREE.Vector3(10.5,11.5,14.5),firstPersonForward=new THREE.Vector3();let elapsed=0,cameraLookReady=false,lastSpace='',interiorYaw=0;
+  const TITLE_PREVIEW_DURATION=8.2;
+  const titleCameraKeys=[
+    {t:0,pos:[-23,14.5,22],look:[5.5,1.9,-4.5],fov:49},
+    {t:.24,pos:[17,9.5,19],look:[-3,1.5,3.5],fov:46},
+    {t:.50,pos:[-9.5,5.2,8.2],look:[.2,1.35,.5],fov:39},
+    {t:.73,pos:[7.2,6.3,8.6],look:[1.6,1.5,-1.6],fov:41},
+    {t:1,pos:[11.2,9.4,14.2],look:[0,1.35,0],fov:43},
+  ];
+  const smoothTitle=n=>{const x=Math.min(1,Math.max(0,n));return x*x*x*(x*(x*6-15)+10);};
+  function applyTitlePreviewCamera(state,titleTime=0,titleIdleTime=0){
+    const normalized=Math.min(1,Math.max(0,titleTime/TITLE_PREVIEW_DURATION)),scaled=normalized*(titleCameraKeys.length-1),index=Math.min(titleCameraKeys.length-2,Math.floor(scaled)),a=titleCameraKeys[index],b=titleCameraKeys[index+1],mix=smoothTitle(scaled-index),lerp=(x,y)=>x+(y-x)*mix;
+    const idle=normalized>=1?Math.max(0,titleIdleTime):0,idleX=Math.sin(idle*.31)*.28,idleY=Math.sin(idle*.23)*.12,idleZ=Math.cos(idle*.27)*.22,lookX=Math.sin(idle*.19)*.08,lookZ=Math.cos(idle*.17)*.08;
+    desired.set(state.position.x+lerp(a.pos[0],b.pos[0])+idleX,lerp(a.pos[1],b.pos[1])+idleY,state.position.z+lerp(a.pos[2],b.pos[2])+idleZ);
+    target.set(state.position.x+lerp(a.look[0],b.look[0])+lookX,lerp(a.look[1],b.look[1]),state.position.z+lerp(a.look[2],b.look[2])+lookZ);
+    const nextFov=lerp(a.fov,b.fov)+Math.sin(idle*.21)*.22;if(Math.abs(camera.fov-nextFov)>.01){camera.fov=nextFov;camera.updateProjectionMatrix();}
+    return normalized>=1?'title-living-still':'title-cinematic';
+  }
   const cameraControl=createCameraPositionControl({document:doc,container:canvas.parentElement,onChange:position=>{camOffset.set(...cameraOffsetForPosition(position));canvas.dataset.cameraPosition=String(Math.round(position*100));}});
   const viewport={width:1,height:1},focusPoint=new THREE.Vector3();
   function resize(){const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);viewport.width=w;viewport.height=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();focusEffect.resize();}
@@ -147,22 +164,26 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     if(zone==='interior')return !interiorBlocked(interiorById.get(interiorId),x,z,radius);
     return !muraBlocked(layout,x,z,radius);
   }
-  function renderState(state,dt=0){
+  function renderState(state,dt=0,{titlePreview=false,titleTime=0,titleIdleTime=0}={}){
     elapsed+=dt;if(dt>0&&!doc.hidden)qualityGovernor.observeFrame(dt);characterStage.render(state,dt);
-    const village=state.zone==='village',inside=village&&!!state.interior,space=inside?`interior:${state.interior.buildingId}`:state.zone,spaceChanged=space!==lastSpace;lastSpace=space;
+    const village=state.zone==='village',inside=village&&!!state.interior,titleFrame=Boolean(titlePreview&&village&&!inside),baseSpace=inside?`interior:${state.interior.buildingId}`:state.zone,space=titleFrame?'title-preview':baseSpace,spaceChanged=space!==lastSpace;lastSpace=space;
     root.visible=village&&!inside;interiorRoot.visible=inside;skirmishRoot.visible=village&&!inside;frontRoot.visible=state.zone==='frontier';scene.background=inside?indoorSky:outdoorSky;
     for(const [id,g] of interiorGroups)g.visible=inside&&id===state.interior?.buildingId;
-    const combatFrame=state.zone==='frontier'?rinneCombatCameraFrame({player:state.position,enemies:currentFront?.enemies,targetId:state.combat?.targetId,active:!!state.combat}):null;cameraControl.setCombat(!!combatFrame);canvas.dataset.combatCamera=String(!!combatFrame);canvas.dataset.worldSpace=space;canvas.dataset.villageThreats=String(skirmishRenderer.current()?.hostiles?.filter(row=>!row.dead).length||0);
-    if(inside){
+    const combatFrame=!titleFrame&&state.zone==='frontier'?rinneCombatCameraFrame({player:state.position,enemies:currentFront?.enemies,targetId:state.combat?.targetId,active:!!state.combat}):null;cameraControl.setCombat(!!combatFrame);canvas.dataset.combatCamera=String(!!combatFrame);canvas.dataset.worldSpace=space;canvas.dataset.villageThreats=String(skirmishRenderer.current()?.hostiles?.filter(row=>!row.dead).length||0);
+    if(titleFrame){
+      canvas.dataset.cameraMode=applyTitlePreviewCamera(state,titleTime,titleIdleTime);
+    }else if(inside){
+      if(Math.abs(camera.fov-43)>.01){camera.fov=43;camera.updateProjectionMatrix();}
       const step=Math.min(.05,dt||.016),turnBlend=1-Math.exp(-13.5*step),yawDelta=Math.atan2(Math.sin(state.yaw-interiorYaw),Math.cos(state.yaw-interiorYaw));interiorYaw+=yawDelta*turnBlend;
       firstPersonForward.set(Math.sin(interiorYaw),0,Math.cos(interiorYaw));desired.set(state.position.x,1.48,state.position.z).addScaledVector(firstPersonForward,.08);target.copy(desired).addScaledVector(firstPersonForward,4.2);target.y=1.45;
       canvas.dataset.cameraMode='interior-first-person';
     }else{
+      if(Math.abs(camera.fov-43)>.01){camera.fov=43;camera.updateProjectionMatrix();}
       canvas.dataset.cameraMode=combatFrame?'combat-third-person':'third-person';
       if(combatFrame){target.set(combatFrame.look.x,combatFrame.look.y,combatFrame.look.z);desired.set(target.x+combatFrame.offset.x,target.y+combatFrame.offset.y,target.z+combatFrame.offset.z);}
       else{target.set(state.position.x,1.15,state.position.z);desired.copy(target).add(camOffset);}
     }
-    if(spaceChanged){if(inside)interiorYaw=state.yaw;camera.position.copy(desired);cameraLook.copy(target);cameraLookReady=true;}else{const step=Math.min(.05,dt||.016),positionBlend=1-Math.exp(-(inside?13.5:combatFrame?5.6:6.9)*step),lookBlend=1-Math.exp(-(inside?15:combatFrame?7.2:9.2)*step);camera.position.lerp(desired,positionBlend);if(!cameraLookReady){cameraLook.copy(target);cameraLookReady=true;}else cameraLook.lerp(target,lookBlend);}camera.lookAt(cameraLook);
+    if(titleFrame){camera.position.copy(desired);cameraLook.copy(target);cameraLookReady=true;}else if(spaceChanged){if(inside)interiorYaw=state.yaw;camera.position.copy(desired);cameraLook.copy(target);cameraLookReady=true;}else{const step=Math.min(.05,dt||.016),positionBlend=1-Math.exp(-(inside?13.5:combatFrame?5.6:6.9)*step),lookBlend=1-Math.exp(-(inside?15:combatFrame?7.2:9.2)*step);camera.position.lerp(desired,positionBlend);if(!cameraLookReady){cameraLook.copy(target);cameraLookReady=true;}else cameraLook.lerp(target,lookBlend);}camera.lookAt(cameraLook);
     const occlusion=foregroundOcclusion.update({camera,target,occluderRoot:objects,enabled:village&&!inside,dt});canvas.dataset.occludedObjects=String(occlusion.occluded);
     if(village&&!inside){terrain.waterMat.uniforms.time.value=elapsed;terrain.motes.position.y=Math.sin(elapsed*.35)*.15;}
     lighting.update({x:state.position.x,z:state.position.z,inside,frontier:!village,level:qualityLevel});contacts.update();

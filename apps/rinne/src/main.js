@@ -96,7 +96,8 @@ function setLoading(message,titleText='世界をつくっています'){
   $('loading-title').textContent=titleText;$('loading-message').textContent=message;retry.hidden=true;loading.hidden=false;
 }
 function showTitle(status=''){
-  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;loading.hidden=true;title.hidden=false;launching=false;booting=false;refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(Boolean(prepared),status);beginTitleIntro();
+  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,cinematic=!titleIntroPlayed&&title.dataset.motion==='on'&&!reduced;
+  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;loading.hidden=true;title.hidden=false;launching=false;booting=false;refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(Boolean(prepared),status);prepared?.startTitlePreview?.({cinematic});beginTitleIntro();
 }
 function showBootFailure(error){
   console.error(error);app.dataset.screen='error';booting=false;launching=false;title.hidden=true;game.hidden=false;game.classList.add('is-loading');game.removeAttribute('aria-busy');
@@ -123,8 +124,8 @@ async function openCoopDialog(){
 
 async function boot(){
   if(booting||prepared)return;
-  booting=true;app.dataset.screen='loading';title.hidden=false;game.hidden=false;game.classList.add('is-loading');game.setAttribute('aria-busy','true');loading.hidden=true;
-  refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(false,'世界を準備しています');beginTitleIntro();
+  booting=true;app.dataset.screen='loading';title.hidden=false;title.dataset.intro='pending';game.hidden=false;game.classList.add('is-loading');game.setAttribute('aria-busy','true');loading.hidden=true;
+  refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(false,'世界を準備しています');
   try{
     await afterVisiblePaint();
     runtimeModule=await import('./rebuild/runtime.js');

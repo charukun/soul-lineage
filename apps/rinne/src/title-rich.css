@@ -122,19 +122,24 @@
 .title-screen[data-ready="false"][data-intro="idle"] .title-controller-hints{opacity:0;pointer-events:none}
 .title-screen[data-ready="false"][data-intro="idle"] .boot-status{opacity:1}
 
-.title-screen[data-intro="cinematic"] .title-world-base,
-.title-screen[data-intro="cinematic"] .title-live-canvas{
+.title-screen[data-intro="cinematic"] .title-world-base{
   animation:title-cinematic-flight 8.2s cubic-bezier(.16,.74,.24,1) both!important;
   will-change:transform,filter;
 }
-.title-screen[data-intro="settling"] .title-world-base,
-.title-screen[data-intro="settling"] .title-live-canvas{
+.title-screen[data-intro="settling"] .title-world-base{
   animation:title-cinematic-settle 1.7s cubic-bezier(.16,.74,.24,1) both!important;
 }
-.title-screen[data-intro="idle"] .title-world-base,
-.title-screen[data-intro="idle"] .title-live-canvas{
+.title-screen[data-intro="idle"] .title-world-base{
   animation:title-living-still-camera 18s ease-in-out infinite alternate!important;
 }
+/* The prepared Three.js world owns camera motion once live. CSS only keeps a tiny optical settle. */
+.title-screen[data-live-world="ready"] .title-live-canvas{
+  animation:none!important;
+  transform:scale(1.012);
+  filter:saturate(1.08) contrast(.98) brightness(1.08);
+}
+.title-screen[data-live-world="ready"][data-intro="settling"] .title-live-canvas{transform:scale(1.008)}
+.title-screen[data-live-world="ready"][data-intro="idle"] .title-live-canvas{transform:scale(1.01)}
 
 /* Keep the title quiet and airy. The landscape, not a UI panel, is the hero. */
 .title-lockup{top:max(calc(env(safe-area-inset-top) + 28px),4.5vh);filter:drop-shadow(0 3px 13px rgba(23,65,70,.34))}
