@@ -4,6 +4,22 @@ let snapshot = null;
 let inflight = null;
 const disclosureState = new Map();
 const savedKey = 'rinne-ops:disclosures:v1';
+const snapshotKey = 'rinne-ops:last-known-good:v1';
+const SNAPSHOT_STORAGE_LIMIT = 1_500_000;
+const validSnapshot = value => value?.repository === 'charukun/soul-lineage' && Array.isArray(value?.environments) && value?.schemaVersion === 2;
+const readCachedSnapshot = () => {
+  try {
+    const value = JSON.parse(localStorage.getItem(snapshotKey) || 'null');
+    return validSnapshot(value) ? value : null;
+  } catch { return null; }
+};
+const writeCachedSnapshot = value => {
+  if (!validSnapshot(value)) return;
+  try {
+    const text = JSON.stringify(value);
+    if (text.length <= SNAPSHOT_STORAGE_LIMIT) localStorage.setItem(snapshotKey, text);
+  } catch { /* optional storage */ }
+};
 try { for (const entry of JSON.parse(sessionStorage.getItem(savedKey) || '[]')) disclosureState.set(...entry); } catch { /* optional storage */ }
 
 function rememberDetails(root = document) {
@@ -73,9 +89,11 @@ export async function loadBoard() {
       const data = await response.json();
       if (data?.repository !== 'charukun/soul-lineage' || !Array.isArray(data.environments)) throw new Error('取得データの形式が不正です');
       snapshot = data;
+      writeCachedSnapshot(data);
       preserveView(() => { for (const fn of subscribers) fn(snapshot, null); });
       document.dispatchEvent(new CustomEvent('ops:updated', { detail: { generatedAt: data.generatedAt } }));
     } catch (error) {
+      if (!snapshot) snapshot = readCachedSnapshot();
       preserveView(() => { for (const fn of subscribers) fn(snapshot, error); });
     } finally {
       if (button) button.disabled = false;
