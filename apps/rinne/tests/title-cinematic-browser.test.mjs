@@ -97,7 +97,7 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
     const introEnd=await page.locator('#title-cinematic-video').evaluate(video=>video.currentTime);
     await page.locator('#new-life').click();
     await page.waitForFunction(()=>document.getElementById('title-screen')?.hidden===true,{timeout:12000});
-    await page.waitForFunction(()=>!document.getElementById('back-title')?.hidden,{timeout:12000});
+    await page.waitForFunction(()=>document.getElementById('game-screen')?.dataset.runtime==='active',{timeout:12000});
     await page.locator('#back-title').click();
     await title.waitFor({state:'visible',timeout:12000});
     await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.intro==='idle',{timeout:4000});
