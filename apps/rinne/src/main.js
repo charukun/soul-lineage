@@ -11,7 +11,7 @@ const motionKey=`soul:v1:${info.environment}:rinne:title-motion-v1`;
 const rrpCaptureRequested=new URLSearchParams(location.search).has('rrpCapture');
 if(rrpCaptureRequested)document.documentElement.dataset.rrpCapture='true';
 const afterVisiblePaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null,rrpCapture=null,gameplayUpgrade=null,titleAudioReady=false,titleSelected=null,titleParallaxRaf=0;
+let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null,rrpCapture=null,gameplayUpgrade=null,titleAudioReady=false,titleSelected=null,titleParallaxRaf=0,titleIntroPlayed=false,titleIntroTimers=[];
 
 const titleCommands=[...title.querySelectorAll('.title-command')];
 function unlockTitleAudio(){void Promise.resolve(unlockRinneAudio()).then(ok=>{titleAudioReady=Boolean(ok)||titleAudioReady;}).catch(()=>{});titleAudioReady=true;}
@@ -30,7 +30,7 @@ for(const command of titleCommands){
 }
 title.addEventListener('pointerdown',unlockTitleAudio,{capture:true,passive:true});
 title.addEventListener('keydown',event=>{
-  if(villageDialog.open||settingsDialog.open)return;
+  if(villageDialog.open||settingsDialog.open||title.dataset.intro!=='idle'||title.dataset.ready!=='true')return;
   if(event.key!=='ArrowDown'&&event.key!=='ArrowUp'&&event.key!=='Enter')return;
   unlockTitleAudio();
   const selected=titleCommands.findIndex(item=>item.dataset.selected==='true');
@@ -64,6 +64,25 @@ let initialMotion=!window.matchMedia?.('(prefers-reduced-motion: reduce)').match
 try{const stored=localStorage.getItem(motionKey);if(stored==='on'||stored==='off')initialMotion=stored==='on';}catch{}
 applyTitleMotion(initialMotion);
 
+function clearTitleIntroTimers(){for(const timer of titleIntroTimers)clearTimeout(timer);titleIntroTimers=[];}
+function setTitleReady(ready,status=''){
+  title.dataset.ready=ready?'true':'false';
+  for(const command of titleCommands)command.disabled=!ready;
+  if(status!==undefined)$('boot-status').textContent=status;
+}
+function beginTitleIntro(){
+  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if(titleIntroPlayed){
+    if(title.dataset.intro!=='cinematic'&&title.dataset.intro!=='settling')title.dataset.intro='idle';
+    return;
+  }
+  clearTitleIntroTimers();
+  titleIntroPlayed=true;
+  if(title.dataset.motion!=='on'||reduced){title.dataset.intro='idle';return;}
+  title.dataset.intro='cinematic';
+  titleIntroTimers.push(setTimeout(()=>{if(!title.hidden)title.dataset.intro='settling';},6500));
+  titleIntroTimers.push(setTimeout(()=>{if(!title.hidden)title.dataset.intro='idle';},8200));
+}
 function refreshContinue(){
   let saved=null;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
   hasSave=Boolean(saved);const button=$('continue-life');
@@ -77,7 +96,7 @@ function setLoading(message,titleText='世界をつくっています'){
   $('loading-title').textContent=titleText;$('loading-message').textContent=message;retry.hidden=true;loading.hidden=false;
 }
 function showTitle(status=''){
-  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;loading.hidden=true;title.hidden=false;launching=false;booting=false;$('boot-status').textContent=status;refreshContinue();selectTitleCommand($('new-life'),{sound:false});
+  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;loading.hidden=true;title.hidden=false;launching=false;booting=false;refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(Boolean(prepared),status);beginTitleIntro();
 }
 function showBootFailure(error){
   console.error(error);app.dataset.screen='error';booting=false;launching=false;title.hidden=true;game.hidden=false;game.classList.add('is-loading');game.removeAttribute('aria-busy');
@@ -103,12 +122,13 @@ async function openCoopDialog(){
 }
 
 async function boot(){
-  if(booting||prepared)return;booting=true;app.dataset.screen='loading';title.hidden=true;game.hidden=false;game.classList.add('is-loading');game.setAttribute('aria-busy','true');
-  setLoading('世界のしくみを呼び出しています');
+  if(booting||prepared)return;
+  booting=true;app.dataset.screen='loading';title.hidden=false;game.hidden=false;game.classList.add('is-loading');game.setAttribute('aria-busy','true');loading.hidden=true;
+  refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(false,'世界を準備しています');beginTitleIntro();
   try{
     await afterVisiblePaint();
     runtimeModule=await import('./rebuild/runtime.js');
-    prepared=await runtimeModule.prepareRuntime({buildInfo:info,onProgress:message=>setLoading(message)});
+    prepared=await runtimeModule.prepareRuntime({buildInfo:info,onProgress:message=>{$('boot-status').textContent=message;}});
     installGameplay();
     game.dataset.runtime='prepared';showTitle();if(rrpCaptureRequested||new URLSearchParams(location.hash.slice(1)).has('rinne-coop'))void openCoopDialog();
   }catch(error){showBootFailure(error);}
@@ -173,4 +193,4 @@ if(new URLSearchParams(location.search).has('villageHostLab')){
   })().catch(error=>{console.error(error);$('boot-status').textContent=`村診断失敗：${error?.message||error}`;});
 }
 
-if(import.meta.hot)import.meta.hot.dispose(()=>{cancelAnimationFrame(titleParallaxRaf);runtime?.dispose?.();void coopMenu?.leave();rrpCapture?.dispose?.();gameplayUpgrade?.dispose?.();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});
+if(import.meta.hot)import.meta.hot.dispose(()=>{clearTitleIntroTimers();cancelAnimationFrame(titleParallaxRaf);runtime?.dispose?.();void coopMenu?.leave();rrpCapture?.dispose?.();gameplayUpgrade?.dispose?.();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});
