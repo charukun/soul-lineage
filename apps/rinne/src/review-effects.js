@@ -2,20 +2,14 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {createAuthoredEffectPlayer} from './rebuild/authored-effect-player.js';
 import {combatEffectBudget} from './rebuild/combat-effect-cues.js';
-import {AUTHORED_EFFECTS,EFFECT_RUNTIME,EFFECT_SOURCE} from './rebuild/authored-effect-manifest.js';
+import {REVIEW_AUTHORED_EFFECTS,EFFECT_RUNTIME,EFFECT_SOURCE,REVIEW_EFFECT_SOURCE} from './rebuild/authored-effect-manifest.js';
+import {REVIEW_EFFECT_CATALOG,REVIEW_EFFECT_CATEGORIES} from './review-effect-catalog.js';
 import {authoredEffectBase,createEffekseerBackend} from './rebuild/effekseer-loader.js';
 import './review-effects.css';
 
 const q=id=>document.getElementById(id);
-const CATEGORY_LABELS=Object.freeze({attack:'攻撃',impact:'被弾',finisher:'大技',combo:'複合'});
-const effectName=key=>AUTHORED_EFFECTS[key]?.path?.split('/').pop()?.replace(/\.efkefc$/,'')||key;
-const REVIEW_CATALOG=Object.freeze([
-  Object.freeze({id:'slash',label:'斬撃＋命中',category:'attack',effects:['impact','slash'],tags:['斬撃','近接','命中','剣']}),
-  Object.freeze({id:'impact',label:'被弾',category:'impact',effects:['impact'],tags:['被弾','ヒット','衝撃']}),
-  Object.freeze({id:'finisher',label:'急・大技',category:'finisher',effects:['finisher','slash'],tags:['急','大技','フィニッシャー','光']}),
-  Object.freeze({id:'storm',label:'派手さ確認',category:'combo',effects:['finisher','impact','slash'],tags:['複合','派手','ストレステスト']}),
-]);
-const catalogById=new Map(REVIEW_CATALOG.map(entry=>[entry.id,entry]));
+const effectName=key=>REVIEW_AUTHORED_EFFECTS[key]?.path?.split('/').pop()?.replace(/\.efkefc$/,'')||key;
+const catalogById=new Map(REVIEW_EFFECT_CATALOG.map(entry=>[entry.id,entry]));
 const REVIEW_CONTEXTS=Object.freeze({
   slash:Object.freeze({label:'SINGLE ATTACK',secondary:false,area:0,source:[-1.2,1.18,.08],impact:[1.48,1.15,.24]}),
   impact:Object.freeze({label:'IMPACT CHECK',secondary:false,area:0,source:[1.15,1.12,.08],impact:[1.55,1.16,.25]}),
@@ -106,7 +100,8 @@ function effectLabel(preset){
   return entry?entry.effects.map(effectName).join(' + '):preset;
 }
 function applyReviewContext(preset){
-  const context=REVIEW_CONTEXTS[preset]||REVIEW_CONTEXTS.slash;
+  const entry=catalogById.get(preset);
+  const context=REVIEW_CONTEXTS[entry?.context||preset]||REVIEW_CONTEXTS.slash;
   secondaryB.visible=context.secondary;secondaryC.visible=context.secondary;
   sourceGuide.position.set(...context.source);impactGuide.position.set(...context.impact);
   areaGuide.visible=context.area>0;
@@ -124,26 +119,50 @@ function syncActiveCard(){
   q('fx-selected-meta').textContent=effectLabel(entry.id);
   applyReviewContext(selected);
 }
+function rawCuesFor(entry){
+  const context=REVIEW_CONTEXTS[entry.context]||REVIEW_CONTEXTS.slash;
+  const dx=context.impact[0]-context.source[0],dz=context.impact[2]-context.source[2];
+  const rotation={x:0,y:Math.atan2(dx,dz),z:0};
+  return entry.cues.map(spec=>{
+    const anchor=spec.anchor==='source'?context.source:context.impact;
+    const [ox,oy,oz]=spec.offset;
+    const definition=REVIEW_AUTHORED_EFFECTS[spec.effect];
+    return {
+      effect:spec.effect,
+      position:{x:anchor[0]+ox,y:anchor[1]+oy,z:anchor[2]+oz},
+      rotation,
+      scale:spec.scale,
+      lifetime:spec.lifetime??definition?.lifetime??1.5,
+      color:[255,255,255,255],
+      priority:spec.priority,
+      kind:'review-original',
+    };
+  });
+}
 function trigger(preset=selected){
-  if(!catalogById.has(preset))return;
+  const entry=catalogById.get(preset);if(!entry)return;
+  if(selected!==preset)player.clear();
   selected=preset;serial++;lastTrigger=performance.now();
   applyReviewContext(preset);
-  player.present(eventsFor(preset),{state,front,eventKey:`review:${preset}:${serial}`});
+  if(entry.mode==='combat')player.present(eventsFor(preset),{state,front,eventKey:`review:${preset}:${serial}`});
+  else player.presentCues(rawCuesFor(entry));
   syncActiveCard();
 }
 function cardFor(entry){
   const wrap=document.createElement('div');wrap.setAttribute('role','listitem');
   const button=document.createElement('button');button.type='button';button.className='fx-option';button.dataset.preset=entry.id;button.setAttribute('aria-pressed',String(entry.id===selected));
-  const category=document.createElement('span');category.className='fx-option-category';category.textContent=CATEGORY_LABELS[entry.category]||entry.category;
+  const category=document.createElement('span');category.className='fx-option-category';category.textContent=REVIEW_EFFECT_CATEGORIES[entry.category]||entry.category;
   const title=document.createElement('strong');title.textContent=entry.label;
-  button.append(category,title);button.addEventListener('click',()=>trigger(entry.id));wrap.append(button);return wrap;
+  const origin=document.createElement('small');origin.className='fx-option-origin';origin.textContent=entry.kind==='original'?'原本':entry.kind==='composition'?'比較構成':'ゲーム採用';
+  button.append(category,title,origin);button.addEventListener('click',()=>trigger(entry.id));wrap.append(button);return wrap;
 }
 function renderCatalog(){
   const needle=q('fx-search').value.trim().toLocaleLowerCase('ja');
-  const visible=REVIEW_CATALOG.filter(entry=>{
-    if(activeFilter!=='all'&&entry.category!==activeFilter)return false;
+  const visible=REVIEW_EFFECT_CATALOG.filter(entry=>{
+    if(activeFilter==='original'&&entry.kind!=='original')return false;
+    if(activeFilter!=='all'&&activeFilter!=='original'&&entry.category!==activeFilter)return false;
     if(!needle)return true;
-    const haystack=[entry.label,CATEGORY_LABELS[entry.category],...entry.tags,...entry.effects.map(effectName)].join(' ').toLocaleLowerCase('ja');
+    const haystack=[entry.label,REVIEW_EFFECT_CATEGORIES[entry.category],...entry.tags,...entry.effects.map(effectName)].join(' ').toLocaleLowerCase('ja');
     return haystack.includes(needle);
   });
   q('fx-catalog').replaceChildren(...visible.map(cardFor));
@@ -153,7 +172,7 @@ function renderCatalog(){
 function resetCamera(){camera.position.set(4.8,3.2,6.2);controls.target.set(0,1,0);controls.update();}
 function syncControls(){speed=Number(q('fx-speed').value)||1;tier=Number(q('fx-tier').value)||0;reduced=q('fx-reduced').checked;}
 
-const discoveryNeeded=REVIEW_CATALOG.length>10;
+const discoveryNeeded=REVIEW_EFFECT_CATALOG.length>10;
 q('fx-discovery-tools').hidden=!discoveryNeeded;
 q('fx-search').addEventListener('input',renderCatalog);
 for(const button of document.querySelectorAll('[data-filter]'))button.addEventListener('click',()=>{
@@ -164,14 +183,14 @@ for(const button of document.querySelectorAll('[data-filter]'))button.addEventLi
 for(const id of ['fx-speed','fx-tier','fx-reduced'])q(id).addEventListener('change',syncControls);
 q('fx-pause').addEventListener('click',()=>{paused=!paused;q('fx-pause').textContent=paused?'再開':'一時停止';});
 q('fx-clear').addEventListener('click',()=>player.clear());q('fx-camera').addEventListener('click',resetCamera);
-q('fx-provenance').textContent=`${EFFECT_SOURCE.repository}@${EFFECT_SOURCE.revision} / ${EFFECT_SOURCE.license} · Effekseer WebGL ${EFFECT_RUNTIME.version} / ${EFFECT_RUNTIME.license} · ${Object.keys(AUTHORED_EFFECTS).join(' / ')}`;
+q('fx-provenance').textContent=`${EFFECT_SOURCE.repository}@${EFFECT_SOURCE.revision} / ${EFFECT_SOURCE.license} · ${REVIEW_EFFECT_SOURCE.repository}@${REVIEW_EFFECT_SOURCE.revision} / ${REVIEW_EFFECT_SOURCE.license} · Effekseer WebGL ${EFFECT_RUNTIME.version} · ${Object.keys(REVIEW_AUTHORED_EFFECTS).join(' / ')}`;
 renderCatalog();
 
 const observer=new ResizeObserver(()=>{const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();});observer.observe(canvas);
 let last=performance.now();
 function frame(now){
   if(disposed)return;const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;syncControls();controls.update();
-  if(!paused){player.frame(state,front,dt*speed,{level:tier,reduced,hidden:document.hidden});if(q('fx-loop').checked&&now-lastTrigger>1500/Math.max(.25,speed))trigger(selected);}
+  if(!paused){player.frame(state,front,dt*speed,{level:tier,reduced,hidden:document.hidden});if(q('fx-loop').checked&&now-lastTrigger>1700/Math.max(.25,speed))trigger(selected);}
   renderer.render(scene,camera);player.draw(camera);renderer.resetState();
   const snapshot=player.snapshot();q('fx-metrics').textContent=`backend ${snapshot.phase} · active ${snapshot.active}/${snapshot.budget.maxActive} · played ${snapshot.played} · dropped ${snapshot.dropped} · trails ${snapshot.budget.trails?'ON':'OFF'} · tier ${tier}`;
   if(snapshot.phase==='ready')q('fx-status').textContent=`原本再生可能 · ${effectLabel(selected)}`;
@@ -179,7 +198,7 @@ function frame(now){
 }
 requestAnimationFrame(frame);
 
-createEffekseerBackend({renderer,document,baseUrl:authoredEffectBase(document),signal:abort.signal,budget:combatEffectBudget(0,mobile,false)})
+createEffekseerBackend({renderer,document,baseUrl:authoredEffectBase(document),signal:abort.signal,budget:combatEffectBudget(0,mobile,false),effectDefinitions:REVIEW_AUTHORED_EFFECTS})
   .then(backend=>{if(player.attach(backend)){q('fx-status').textContent='原本再生可能';trigger('slash');}})
   .catch(error=>player.fail(error));
 window.addEventListener('pagehide',()=>{
