@@ -114,5 +114,5 @@ test('public UI exposes action-first control tower, previous-view delta, flow an
   assert.match(ui, /公開処理/);
   assert.match(worker, /ops-history-v1/);
   assert.match(worker, /\/api\/history/);
-  assert.match(worker, /action-notification\/claim/);
+  assert.doesNotMatch(worker, /action-notification\/claim|action-notification\/complete/);
 });
