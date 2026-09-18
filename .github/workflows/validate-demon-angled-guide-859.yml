@@ -1,0 +1,79 @@
+name: Validate demon angled guide 859
+
+on:
+  push:
+    branches:
+      - work/validate-demon-angled-guide-859
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-demon-angled-guide-859
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      APP_ENV: dev
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Resolve exact implementation head
+        shell: bash
+        run: |
+          git fetch --no-tags origin develop
+          app_head="$(git rev-parse HEAD^)"
+          git diff --check origin/develop "$app_head"
+          git checkout --detach "$app_head"
+          test "$(git rev-parse HEAD)" = "$app_head"
+      - name: Context plan
+        run: npm run context:plan -- --task "尽喰廻遊の説明系UIを斜め台形・奥行き型の共通UIへ刷新"
+      - run: npm ci
+      - name: Demon unit tests with develop baseline comparison
+        shell: bash
+        run: |
+          set +e
+          npm run test:app -- demon > /tmp/candidate-tests.log 2>&1
+          candidate_status=$?
+          set -e
+          git worktree add --detach /tmp/develop-baseline origin/develop
+          ln -s "$GITHUB_WORKSPACE/node_modules" /tmp/develop-baseline/node_modules
+          set +e
+          (cd /tmp/develop-baseline && npm run test:app -- demon > /tmp/baseline-tests.log 2>&1)
+          set -e
+          cat /tmp/candidate-tests.log
+          grep '^✖ ' /tmp/candidate-tests.log | sed -E 's/ \([0-9.]+ms\)$//' | sort -u > /tmp/candidate-failures.txt || true
+          grep '^✖ ' /tmp/baseline-tests.log | sed -E 's/ \([0-9.]+ms\)$//' | sort -u > /tmp/baseline-failures.txt || true
+          comm -13 /tmp/baseline-failures.txt /tmp/candidate-failures.txt > /tmp/new-failures.txt
+          if [ -s /tmp/new-failures.txt ]; then
+            echo "Candidate introduced new failures:" >&2
+            cat /tmp/new-failures.txt >&2
+            exit 1
+          fi
+          if [ "$candidate_status" -ne 0 ] && [ ! -s /tmp/candidate-failures.txt ]; then
+            echo "Candidate failed without a parseable TAP failure" >&2
+            exit 1
+          fi
+      - name: Demon build
+        run: npm run build:demon
+      - name: Affected validation
+        run: npm run affected -- origin/develop HEAD
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Focused Demon angled-guide browser playtest
+        run: DEMON_GUIDE_HEAD="$(git rev-parse HEAD)" node apps/demon/tests/angled-guide.browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: demon-angled-guide-859-evidence
+          path: test-results/demon-angled-guide/
+          if-no-files-found: ignore
+          retention-days: 7
