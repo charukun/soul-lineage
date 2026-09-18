@@ -21,7 +21,7 @@ A semantic repair handoff must:
 - Create `integration/deep-repair` status plus one `integration-deep-repair:v1` Issue for the current exact head.
 - Include a `chat-repair:v1` bundle and keep the existing `rinne-ai-repair:v1` envelope for compatibility with repository lookup/finalization.
 - Deduplicate by `sourceKey=pr:<N>:head:<SHA>` so the same exact head produces at most one notification Issue.
-- Assign `charukun` and mention the owner once on first creation so normal GitHub notification/email routing can surface the request. Re-evaluating the same head must not create a second notification.
+- Assign `charukun` on first creation and use that assignment as the single owner wake-up event. Do not also `@mention` the owner in the Issue body because GitHub treats assignment and mention as separate notification causes. Re-evaluating the same head must not create a second notification.
 - Never send explicit hold, Changes requested, unresolved review thread, unmerged dependency, external PR, main or Production into automatic source repair.
 - Never invoke ChatGPT Work, Codex or OpenAI API as fallback.
 
@@ -71,7 +71,7 @@ When the repaired source PR is later merged into develop, Integration updates th
 1. Mechanical recovery remains GitHub Actions only.
 2. One semantic/CI source-repair request is created per source PR exact head.
 3. The request contains `integration-deep-repair:v1`, `chat-repair:v1`, the compatibility envelope, current recovery coordinates and a normal-Chat copy/paste prompt.
-4. First creation assigns/mentions the owner; re-evaluation of the same head does not duplicate the Issue or notification.
+4. First creation assigns the owner exactly once and does not also `@mention` them; re-evaluation of the same head does not duplicate the Issue or notification.
 5. No ChatGPT Work, Codex, OpenAI API, dedicated PAT or paid fallback is required by Integration recovery.
 6. Normal Chat repair preserves both compatible intents and all exact-head/review/thread/check/browser/Production gates.
 7. Unresolvable product decisions become explicit `human-required` stops instead of blind conflict resolution.
