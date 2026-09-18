@@ -108,9 +108,9 @@ A standalone `shadow-extractor.mjs` now narrows the refinement gap over checkpoi
 
 - ignores movement/HP/current homecoming changes under the current product contract;
 - derives natural-lifetime `life-seal`, `rebirth`, `epoch-acquire` and `birth` actions;
-- rejects player deletion, same-life lineage rewrite, sealed-record mutation and an early-ended life that violates the current co-op lifespan-only terminal invariant.
+- rejects player deletion, same-life lineage rewrite and sealed-record mutation; it now accepts both natural lifespan completion and combat-ended lives as `life.seal`.
 
-The early-death rejection is deliberate honesty about current `history.js`, not a claim that early death should be impossible. `domain.js` contains `endLifeEarly`; reachability into a failing current co-op commit was not proved here. This source-shaped extractor is still not wired into the runtime commit path, so live refinement remains F.
+That early-death boundary was not merely theoretical. `combat-core.js` and `combat-evolution-runtime.js` call `endLifeEarly` from the same shared-front path used by `CoopWorld.advance`, while the pre-change `history.js` required `ended === (ageSeconds === LIFE_SECONDS)`. The branch repairs that structural mismatch: an ended life must be in phase `ended`; a non-ended life must remain below `LIFE_SECONDS`; an early combat-ended life is sealed and its terminal record remains immutable. A focused co-op history test now commits an early combat death and rebirths from that exact sealed predecessor. This is a runtime correctness fix discovered by the convergence loop, not a change to combat fatality policy.
 
 ## Fair cost envelope
 
@@ -180,7 +180,7 @@ A shadow mismatch is a **hard candidate failure but not a gameplay failure**: it
 
 The first durable checkpoint of a host process is a warm baseline. Therefore a restart's already-completed epoch acquisition is not retrospectively proven by this in-memory shadow. Persistent shadow recovery and restart-to-restart epoch coverage remain Stage 2/F, rather than being hidden behind a green first sample.
 
-Focused runtime evidence added after the research model: 9/9 tests pass for warm start, replaceable-state exclusion, life seal, rebirth, later epoch transition, guest birth, lineage-rewrite divergence, history-sequence disagreement, current early-death rejection and shadow/live-failure isolation (the last test shares the same file, so there are nine test cases total). `node --check` passes for the new shadow module, checkpoint-writer integration and its focused test in the isolated workspace. These tests are separate from the earlier 37-test research evidence bundle, whose files are unchanged.
+Focused runtime evidence added after the research model: 10/10 shadow tests pass for warm start, replaceable-state exclusion, natural life seal, rebirth, later epoch transition, guest birth, lineage-rewrite divergence, history-sequence disagreement, combat-ended sealing, shadow/live-failure isolation and capture of checkpoint-vs-journal bytes (the last two concerns share the ten-test file). `node --check` passes for the shadow, checkpoint-writer and performance modules plus the focused test in the isolated workspace. A separate exact-history-body fixture, with only domain helpers stubbed, passes 2/2 checks for early combat sealing/immutability and rejection of a living life at the lifespan boundary. The full repository co-op-history test for combat death is added but cannot be executed in this no-checkout workspace because its normal package graph is unavailable. These runtime checks are separate from the earlier 37-test research evidence bundle.
 
 ### Stage 2: shadow recovery
 
@@ -230,7 +230,7 @@ D: provisional RPO, compaction interval, event-vs-checkpoint encoding and promot
 
 E before practical-superiority claims: matched physical bytes/latency/queues/frame/battery, rollback distributions, Wi-Fi/WAN/TURN/device cohorts and the fair baseline in the same environment.
 
-F: live runtime-to-journal refinement; homecoming/immediate-reward product decisions; early-death/history-rule resolution; bounded receipt/dedupe GC; shadow recovery; stronger membership/hostile-host authority only where required; future schema/policy migration.
+F: persistent/restart-spanning shadow refinement (the current live shadow warm-starts each Host process); homecoming/immediate-reward product decisions; bounded receipt/dedupe GC; shadow recovery; stronger membership/hostile-host authority only where required; future schema/policy migration. The early-combat-death/history mismatch is no longer F in this branch: its direct source path is identified and the co-op structural history rule is repaired.
 
 **Theory stop condition:** do not create more conceptual RRP loops just to invent terminology. Reopen theory only when live refinement or physical evidence falsifies this boundary/cost model.
 
