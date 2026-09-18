@@ -90,7 +90,7 @@ function dispatcherFor(sdk){
  * before releasing native memory; an SDK callback cannot revive a torn-down view.
  */
 export async function createEffekseerBackend({renderer,document,baseUrl,signal,
-  fetchImpl=globalThis.fetch,sdkLoader=loadEffekseer,budget}){
+  fetchImpl=globalThis.fetch,sdkLoader=loadEffekseer,budget,effectDefinitions=AUTHORED_EFFECTS}){
   const sdk=await sdkLoader(document,baseUrl,{fetchImpl});
   if(signal?.aborted)throw Error('VFX view disposed');
   const abort=new AbortController(),cancel=()=>abort.abort();signal?.addEventListener('abort',cancel,{once:true});
@@ -114,9 +114,10 @@ export async function createEffekseerBackend({renderer,document,baseUrl,signal,
   const timeout=setTimeout(()=>owner.fail(Error('VFX resource loading timed out')),15_000);
   const onAbort=()=>{owner.fail(Error('VFX view disposed'));};signal?.addEventListener('abort',onAbort,{once:true});
   try{
-    const originals=await Promise.all(Object.entries(AUTHORED_EFFECTS).map(async([key,asset])=>{
-      const row=allowed.get(new URL(asset.path,baseUrl).href);
-      return [key,asset,await fetchBytes(new URL(asset.path,baseUrl),abort.signal,fetchImpl,row.byteLength)];
+    const originals=await Promise.all(Object.entries(effectDefinitions).map(async([key,asset])=>{
+      const url=new URL(asset.path,baseUrl),row=allowed.get(url.href);
+      if(!row)throw Error(`Unpinned authored VFX: ${asset.path}`);
+      return [key,asset,await fetchBytes(url,abort.signal,fetchImpl,row.byteLength)];
     }));
     if(disposed||abort.signal.aborted)throw failed||Error('VFX view disposed');
     context=sdk.createContext();context.init(renderer.getContext(),{instanceMaxCount:budget.instanceMaxCount,squareMaxCount:budget.squareMaxCount});
