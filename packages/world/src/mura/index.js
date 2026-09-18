@@ -30,7 +30,33 @@ export function validateMuraLayout(raw){
 export function muraLocalToWorld(h,x,z){return{x:h.x+x*Math.cos(h.rot)+z*Math.sin(h.rot),z:h.z-x*Math.sin(h.rot)+z*Math.cos(h.rot)};}
 export function muraWorldToLocal(h,x,z){return{x:(x-h.x)*Math.cos(h.rot)-(z-h.z)*Math.sin(h.rot),z:(x-h.x)*Math.sin(h.rot)+(z-h.z)*Math.cos(h.rot)};}
 export function muraHasInterior(value){const d=defs[typeof value==='string'?value:value?.kind];return !!d?.building&&!d.open&&!NON_INTERIOR_SHAPES.has(d.shape);}
-export function muraDoorWidth(value){const d=defs[typeof value==='string'?value:value?.kind];if(!d)return 0;return Math.min(2.4,Math.max(1.6,d.w*.3));}
+export function muraDoorWidth(value){
+  const d=defs[typeof value==='string'?value:value?.kind];if(!d)return 0;
+  const explicit=Number(d.doorWidth);
+  return Math.min(2.4,Math.max(1.2,Number.isFinite(explicit)?explicit:d.w*.3));
+}
+const INTERIOR_CLASS_RANK=Object.freeze({compact:0,standard:1,large:2});
+export function muraInteriorClass(value){
+  const d=defs[typeof value==='string'?value:value?.kind];if(!d||!muraHasInterior(value))return null;
+  if(Object.hasOwn(INTERIOR_CLASS_RANK,d.interiorClass))return d.interiorClass;
+  const area=d.w*d.d;return area>=70?'large':area>=36?'standard':'compact';
+}
+export function muraUsableInterior(value,margin=.15){
+  const d=defs[typeof value==='string'?value:value?.kind];if(!d||!muraHasInterior(value))return null;
+  const inset=Math.max(0,Number(margin)||0);
+  if(d.shape==='tent'){
+    const radius=Math.max(.8,Math.min(d.w,d.d)*.47-.22-inset);
+    return Object.freeze({shape:'circle',radius,doorWidth:muraDoorWidth(value),interiorClass:muraInteriorClass(value)});
+  }
+  return Object.freeze({shape:'rect',halfWidth:Math.max(.5,d.w/2-.65-inset),halfDepth:Math.max(.5,d.d/2-.65-inset),doorWidth:muraDoorWidth(value),interiorClass:muraInteriorClass(value)});
+}
+export function muraFurnitureFits(value,furniture){
+  const room=muraUsableInterior(value),f=defs[typeof furniture==='string'?furniture:furniture?.kind||furniture?.id];
+  if(!room||!f?.furniture)return false;
+  const roomRank=INTERIOR_CLASS_RANK[room.interiorClass]??-1,required=INTERIOR_CLASS_RANK[f.minInteriorClass||'compact']??0;
+  const carrySpan=Math.min(Number(f.w)||Infinity,Number(f.d)||Infinity);
+  return roomRank>=required&&carrySpan<=room.doorWidth+.1;
+}
 export function muraEntry(o,distance=2){const d=defs[o.kind];return muraLocalToWorld(o,0,d.d/2+distance);}
 export function muraInteriorEntry(o,inset=1.6){const d=defs[o.kind];return muraHasInterior(o)?muraLocalToWorld(o,0,d.d/2-inset):muraEntry(o);}
 export function muraInteriorAt(layout,x,z,margin=0){
