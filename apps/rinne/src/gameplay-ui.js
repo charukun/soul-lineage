@@ -158,6 +158,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     if(!silent)audio.ui();
   }
   function close(){ui.panel.hidden=true;delete ui.panel.dataset.type;ui.panel.style.removeProperty('--loadout-sheet-drag');delete ui.panel.dataset.dragging;markOpenControl('');audio.ui();}
+  function toggle(type,options={}){if(!ui.panel.hidden&&ui.panel.dataset.type===type){close();return;}open(type,options);}
   function bindState(next){state=next;const lifeChanged=tracker.bindState(next);if(lifeChanged){loadoutUI.reset();recordPage=0;recordSection='life';inventoryPages={weapon:0,armor:0,shield:0};if(!ui.panel.hidden){ui.panel.hidden=true;delete ui.panel.dataset.type;markOpenControl('');}}}
   function refresh(){if(ui.panel.hidden||!state)return;open(ui.panel.dataset.type||'items',{silent:true});}
   function setGuidance(next){guidance=next;updateRadar();if(!ui.panel.hidden&&ui.panel.dataset.type==='map')map();}
@@ -179,6 +180,6 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   const observer=new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes){if(!(node instanceof Element))continue;const dialog=node.matches?.('.life-end-dialog')?node:node.querySelector?.('.life-end-dialog');if(dialog)enhanceLifeEndDialog(dialog);}});observer.observe(document.body,{childList:true,subtree:true});
 
   tracker.bindInteractions({openHeart:skillId=>open('heart',{skillId}),openTechnique:skillId=>open('technique',{skillId})});bindSheetGesture();
-  ui.heart.onclick=()=>open('heart',{skillId:tracker.firstUnseen('heart')});ui.techniques.onclick=()=>open('technique',{skillId:tracker.firstUnseen('technique')});ui.bodyButton.onclick=()=>open('body');ui.items.onclick=()=>open('items');ui.map.onclick=()=>open('map');ui.record.onclick=()=>open('record');ui.close.onclick=close;
+  ui.heart.onclick=()=>toggle('heart',{skillId:tracker.firstUnseen('heart')});ui.techniques.onclick=()=>toggle('technique',{skillId:tracker.firstUnseen('technique')});ui.bodyButton.onclick=()=>toggle('body');ui.items.onclick=()=>toggle('items');ui.map.onclick=()=>toggle('map');ui.record.onclick=()=>toggle('record');ui.close.onclick=close;
   return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,setGuidance,dispose(){clearTimeout(movementHelpTimer);clearTimeout(toastTimer);observer.disconnect();moveHint?.removeEventListener('click',showMovementHelp,{capture:true});loadoutUI.dispose();tracker.dispose();speech.dispose();root.remove();}};
 }
