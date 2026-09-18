@@ -9,10 +9,10 @@ export const PERSONAL_DEV_EMAIL_LOGIN = 'charukun';
 export const PERSONAL_DEV_URL = 'https://charukun.github.io/soul-lineage/dev/';
 
 export function deliveryMessage(stage, { report, sha, repository, runUrl }) {
-  if (stage === 'INTEGRATED') {
+  if (stage === 'MERGED_TO_DEVELOP' || stage === 'INTEGRATED') {
     if (!report?.merged?.length) return null;
     const fields = {
-      phase: 'INTEGRATION',
+      phase: 'DEVELOP_MERGE',
       outcome: 'MERGED',
       branch: 'develop',
       dev_publication: 'PENDING',
@@ -24,7 +24,7 @@ export function deliveryMessage(stage, { report, sha, repository, runUrl }) {
       fields[`pr_${slot}`] = `https://github.com/${repository}/pull/${item.pr}`;
       fields[`commit_${slot}`] = item.merge;
     });
-    return lifecycleMessage('INTEGRATED', { fields });
+    return lifecycleMessage('MERGED_TO_DEVELOP', { fields });
   }
   if (stage !== 'DEV_DEPLOYED' || !/^[a-f0-9]{40}$/.test(sha || '')) throw new Error('INVALID_DELIVERY_RESULT');
   return lifecycleMessage('DEV_DEPLOYED', { fields: {
@@ -96,7 +96,7 @@ export async function recordDevelopDeliveryStatus({ token = '', repository, sha,
     method: 'POST',
     body: {
       state: 'success',
-      context: 'integration/develop',
+      context: 'dev/delivery',
       description: 'DEV published; HTTP/source verified; browser verification is opt-in',
       target_url: runUrl,
     },

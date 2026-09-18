@@ -1,12 +1,12 @@
-# develop Integration Fast Lane
+# develop Merge Lane
 
 ## 目的
 
-通常の develop Integration は **PRで最低限守り、通るものから即流す**。DEV公開や、別PRの失敗を通常merge laneへ伝播させない。通常developの自動CIはtest-freeとし、browserもopt-inにする。局所テストは実装セッション側、重い品質認定は明示検証またはmain / Production側が担当する。
+通常の develop merge は **PRで最低限守り、通るものから即流す**。DEV公開や、別PRの失敗を通常merge laneへ伝播させない。通常developの自動CIはtest-freeとし、browserもopt-inにする。局所テストは実装セッション側、重い品質認定は明示検証またはmain / Production側が担当する。
 
 実装セッションの終了条件は [実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md)。通常実装は Draft PR → 実装 → 局所検証 → **current develop を work branch へ merge-forward → 局所再検証 → push → final freshness verify** → Ready まで進め、CI/DEV完了を待機・pollingしない。
 
-このRepositoryでは Integration を別担当・別hand-off工程として扱わない。正常な Ready PR は Ready 直前に観測した develop を既に含み、exact-head `Validate and build` が成功すると **同じ PR Checks workflow から** single serialized expected-head writer を直接呼び出す。Fast Lane は人間的な第二工程ではなく、merge API の原子性と Ready 後の短い race だけを守る機械的な改札である。
+正常な Ready PR は Ready 直前に観測した develop を既に含み、exact-head `Validate and build` が成功すると **同じ PR Checks workflow から** single serialized expected-head writer を直接呼び出す。Fast Lane は人間的な第二工程ではなく、merge API の原子性と Ready 後の短い race だけを守る機械的な改札である。
 
 ## 通常経路
 
@@ -38,13 +38,13 @@ Fast Laneはmerge直前にcurrent GitHub stateを再取得し、次をすべて�
 
 - open / non-Draft / base=`develop`
 - same repository、trusted author
-- `integration:hold` / `integration:manual` / `do-not-merge` / `Integration-Hold:` なし
+- `merge:hold` / `merge:manual` / `do-not-merge` / `Merge-Hold:` なし
 - `Depends-On` 完了
 - GitHub mergeable
 - Changes requestedなし、未解決review threadなし
 - **current exact head** の `Validate and build` が成功
 - 同じPR/headの `pr-fast-<PR>-<SHA>` artifactが存在
-- `.github/**` / `scripts/**` / Integration文書などcontrol-plane変更はcurrent exact-head trusted review条件を維持
+- `.github/**` / `scripts/**` / merge-control文書などcontrol-plane変更はcurrent exact-head trusted review条件を維持
 - develop進行後に重複scopeが生じた場合も既存review条件を維持
 
 `Validate and build` のdevelop契約はtest-freeであり、exact-headの差分/構文・静的check・code-health・必要なbuild可否を確認する。テスト成功を意味しない。merge APIにはcurrent exact head SHAを渡す。develop writerは単一laneで、force pushやhistory rewriteをしない。
@@ -69,7 +69,7 @@ Deep RepairはバックグラウンドAI workerではない。Fast Laneがcurren
 
 修復は同じsource PR branchだけへpushし、current develop を branch へ reconcile したうえで focused checks / local tests / build、push、freshness verify後にReadyへ戻す。通常git → 接続済みGitHub API → 必要時のみ同branchの既存Codespaces＋通常gitの順で反映する。ChatはCI/DEVを待機・pollingしない。
 
-Integration復旧では ChatGPT Work、Codex、OpenAI API、追加有料モデルAPI、専用PATを自動起動・fallback・watchdogに使わない。旧Work repair文書/scripts/stateは互換・履歴参照用であり現行実行経路ではない。
+merge復旧では ChatGPT Work、Codex、OpenAI API、追加有料モデルAPI、専用PATを自動起動・fallback・watchdogに使わない。旧Work repair文書/scripts/stateは互換・履歴参照用であり現行実行経路ではない。
 
 current repository contractsから解けないschema/save/protocol/API等の真のproduct choiceだけを `human-required` とする。同file競合・技術的難しさ・目視未確認だけでhuman-requiredにしない。
 
@@ -88,7 +88,7 @@ current repository contractsから解けないschema/save/protocol/API等の真�
 
 ## DEV deliveryはmerge healthと分離する
 
-`integration/develop` は **DEV delivery health** であり、通常PRのglobal merge lockではない。
+`dev/delivery` は **DEV delivery health** であり、通常PRのglobal merge lockではない。
 
 - `pending`: DEV公開・source検証中
 - `success`: そのdevelop SHAのDEV公開とHTTP/source確認成功
@@ -100,7 +100,7 @@ DEV側の公開・候補manifest・HTTP/source照合・LKG rollbackは維持す�
 
 Fast Laneが`GITHUB_TOKEN`でmergeした更新は`push` workflowを連鎖起動しないため、merge batch完了時に最新developを対象とする`deploy.yml`の`publish_only=true`を明示dispatchする。公開要求の受理と公開検証成功を区別し、dispatch失敗を成功扱いしない。
 
-自動公開要求は同じSHAの実行中publisherへ重複要求せず、古い自動publisherはlatest developへまとめる。通常Integration、repair、人が開始した公開、main/Production runは取消対象にしない。publish直前にdevelop SHAを再確認し、superseded snapshotをpublicへ昇格させない。
+自動公開要求は同じSHAの実行中publisherへ重複要求せず、古い自動publisherはlatest developへまとめる。通常merge、repair、人が開始した公開、main/Production runは取消対象にしない。publish直前にdevelop SHAを再確認し、superseded snapshotをpublicへ昇格させない。
 
 ## 1件の失敗で全体を止めない
 
@@ -116,9 +116,9 @@ explicit hold、dependency、review objection、merge conflict、exact-head DEV 
 
 ## Draft / Ready
 
-Draftは実装workerが作業し、Ready化前にpre-Ready reconciliationを完了する領域。Draftではlightweight checkのみ。Readyになると `Validate and build` を開始する。**developのこのjobはtests=0で、成功した exact head は同じ PR Checks workflow から Fast Lane を直接呼び出す。別の Request Integration dispatch は通常経路に存在しない。browser jobも通常develop経路に存在しない。** current exact-head source repairが必要な失敗はChat Repair Issueへ送る。
+Draftは実装workerが作業し、Ready化前にpre-Ready reconciliationを完了する領域。Draftではlightweight checkのみ。Readyになると `Validate and build` を開始する。**developのこのjobはtests=0で、成功した exact head は同じ PR Checks workflow から Fast Lane を直接呼び出す。別のmerge-dispatch工程は通常経路に存在しない。browser jobも通常develop経路に存在しない。** current exact-head source repairが必要な失敗はChat Repair Issueへ送る。
 
-Integrationは「Readyにされた古いbaseを毎回更新する工程」ではない。Ready時点でheadが直前に取得したdevelopを含むことを標準契約とし、その後のraceだけをFast Repair fallbackで扱う。
+merge laneは「Readyにされた古いbaseを毎回更新する工程」ではない。Ready時点でheadが直前に取得したdevelopを含むことを標準契約とし、その後のraceだけをFast Repair fallbackで扱う。
 
 ## main / Production
 
@@ -126,7 +126,7 @@ Integrationは「Readyにされた古いbaseを毎回更新する工程」では
 
 ## 通知とPULSE
 
-`INTEGRATED` と `DEV_DEPLOYED` は別イベントとして扱う。通知失敗はadvisoryでありmerge/publication判定を変更しない。PULSEはmerge状態とDEV delivery healthを混同しない。
+`MERGED_TO_DEVELOP` と `DEV_DEPLOYED` は別イベントとして扱う。通知失敗はadvisoryでありmerge/publication判定を変更しない。PULSEはmerge状態とDEV delivery healthを混同しない。
 
 意味的競合のChat修復要求はGitHub Issue assignment/mentionを使い、既存GitHub通知メール経路でownerへ届ける。独自SMTP・外部メールサービス・通知queueは追加しない。同じexact headは1 Issueだけで重複通知を防ぐ。メール配送可否はownerのGitHub通知設定に従う。
 

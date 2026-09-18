@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-test('Integration Controller grants Fast Lane and optional Repair only their required permissions', () => {
-  const controller = readFileSync('.github/workflows/integration-controller.yml', 'utf8');
+test('Develop Merge Gate grants merge lane and optional Repair only their required permissions', () => {
+  const controller = readFileSync('.github/workflows/develop-merge.yml', 'utf8');
   const repair = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');
-  const fastLane = controller.match(/\n  integrate:\n[\s\S]*?\n  repair:/)?.[0] || '';
+  const fastLane = controller.match(/\n  merge:\n[\s\S]*?\n  repair:/)?.[0] || '';
   const caller = controller.match(/\n  repair:\n[\s\S]*$/)?.[0] || '';
   const repairJob = repair.match(/\n  repair:\n[\s\S]*?\n  stack-fast:/)?.[0] || '';
 

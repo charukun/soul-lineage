@@ -1,6 +1,6 @@
 # 実装セッション実行ポリシー
 
-この文書は、通常の Chat / WORK / Codex 実装セッションの終了境界、DEV確認、通知、復旧を定義する。実装手順は [`DEVELOPMENT.md`](DEVELOPMENT.md)、Ready後の serialized merge guard / DEV 公開は [`INTEGRATION.md`](INTEGRATION.md) を正本とする。
+この文書は、通常の Chat / WORK / Codex 実装セッションの終了境界、DEV確認、通知、復旧を定義する。実装手順は [`DEVELOPMENT.md`](DEVELOPMENT.md)、Ready後の serialized merge guard / DEV 公開は [`DEVELOP_MERGE.md`](DEVELOP_MERGE.md) を正本とする。
 
 ## 正本と終了境界
 
@@ -32,7 +32,7 @@ Ready 後の CI 監視、develop 統合、DEV 公開、明示browser verificatio
 
 | 状態 | 意味 |
 | --- | --- |
-| `INTEGRATED` | develop へ統合済み |
+| `MERGED_TO_DEVELOP` | develop へ統合済み |
 | `DEV_DEPLOYED` | 対象 develop SHA の DEV 公開・HTTP/source検証成功 |
 | `FAILED` | 実装を完遂できず、理由と復旧情報を残した |
 
@@ -69,8 +69,8 @@ GitHub の `open + base=develop + draft=false` が通常 handoff の境界。た
 | --- | --- | --- |
 | 作業中 | work branch / Draft PR / current commit | 開始・push 到達。最終成功ではない |
 | 実装完了 | Ready PR / exact head / reconciled develop SHA / `implementation/handoff` | Ready。以後は同PRの自動merge経路 |
-| develop 統合 | merged PR / merge commit / Integration status | `INTEGRATED` |
-| DEV 完了 | target develop SHA の `integration/develop=success` | `DEV_DEPLOYED` |
+| develop 統合 | merged PR / merge commit / merge status | `MERGED_TO_DEVELOP` |
+| DEV 完了 | target develop SHA の `dev/delivery=success` | `DEV_DEPLOYED` |
 | 実装失敗 | branch / commit / Draft or hold / reason | `FAILED` |
 
 通知は既存の設定済み経路を再利用する。`NTFY_TOPIC_URL` / `NTFY_TOKEN` が未設定・送信失敗なら GitHub 側へ記録し、スマホ到達を確認済みと報告しない。通知成功は code / CI / DEV 成功の証拠ではなく、通知失敗も実装失敗には置き換えない。ChatGPT アプリ自身の push / 応答表示は完了判定に使わない。

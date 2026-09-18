@@ -37,8 +37,8 @@ function cheapHoldReason(pr, repository) {
   if (pr.head.repo?.full_name !== repository || !['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.author_association)) {
     return 'external contribution requires Integration review';
   }
-  if (labels(pr).some(value => ['integration:hold', 'integration:manual', 'do-not-merge'].includes(value)) ||
-      /^Integration-Hold:\s*\S+/im.test(pr.body || '')) return 'explicit Integration hold';
+  if (labels(pr).some(value => ['merge:hold', 'merge:manual', 'integration:hold', 'integration:manual', 'do-not-merge'].includes(value)) ||
+      /^(?:Merge-Hold|Integration-Hold):\s*\S+/im.test(pr.body || '')) return 'explicit merge hold';
   return null;
 }
 
