@@ -8,7 +8,7 @@ const FAILURE_CONCLUSIONS = new Set([
   'failure', 'timed_out', 'action_required', 'startup_failure', 'stale',
 ]);
 const ACTIVE_RUN_STATES = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
-const HOLD_LABELS = new Set(['integration:hold', 'integration:manual', 'do-not-merge']);
+const HOLD_LABELS = new Set(['merge:hold', 'merge:manual', 'integration:hold', 'integration:manual', 'do-not-merge']);
 
 export function shortSha(value) {
   return typeof value === 'string' && value.length >= 7 ? value.slice(0, 12) : null;
@@ -57,7 +57,7 @@ export function latestRunForSha(runs, sha, workflowName = 'CI') {
 
 function explicitMergeHold(pr) {
   const labels = new Set((pr?.labels || []).map(item => item?.name).filter(Boolean));
-  return [...HOLD_LABELS].some(label => labels.has(label)) || /^Merge-Hold:\s*\S+/im.test(pr?.body || '');
+  return [...HOLD_LABELS].some(label => labels.has(label)) || /^(?:Merge-Hold|Integration-Hold):\s*\S+/im.test(pr?.body || '');
 }
 
 export function classifyPull(pr, runs = [], developRuns = [], now = Date.now()) {
