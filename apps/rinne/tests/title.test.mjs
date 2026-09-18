@@ -36,7 +36,7 @@ test('clean bootstrap prewarms renderer/world and start buttons only bind a life
  const launch=main.slice(main.indexOf('async function launch'),main.indexOf('retry.addEventListener'));
  assert.match(boot,/import\('\.\/rebuild\/runtime\.js'\)/);assert.match(boot,/prepareRuntime\(/);assert.match(main,/void boot\(\)/);
  assert.match(launch,/startRuntime\(/);assert.match(launch,/prepared,/);assert.doesNotMatch(launch,/import\(/);assert.doesNotMatch(launch,/prepareRuntime\(/);
- assert.match(main,/prepared\?\.dispose\?\.\(\)/);assert.match(main,/beginTitleIntro\(\);[\s\S]*prepareRuntime\(/);assert.doesNotMatch(main,/from ['"]\.\/title\/controller\.js['"]/);assert.doesNotMatch(main,/from ['"]\.\/story\/controller\.js['"]/);
+ assert.match(main,/prepared\?\.dispose\?\.\(\)/);assert.match(main,/titleCinematic\.begin\(\);[\s\S]*prepareRuntime\(/);assert.doesNotMatch(main,/from ['"]\.\/title\/controller\.js['"]/);assert.doesNotMatch(main,/from ['"]\.\/story\/controller\.js['"]/);
  assert.doesNotMatch(main,/setTimeout\([^)]*3800/);assert.doesNotMatch(main,/setTimeout\([^)]*650/);
 });
 

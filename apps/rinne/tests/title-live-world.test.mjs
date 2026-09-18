@@ -9,6 +9,7 @@ const live=readFileSync(join(here,'../src/title-live-world.js'),'utf8');
 const polish=readFileSync(join(here,'../src/native-ui-polish.js'),'utf8');
 const css=readFileSync(join(here,'../src/title-rich.css'),'utf8');
 const main=readFileSync(join(here,'../src/main.js'),'utf8');
+const cinematic=readFileSync(join(here,'../src/title-cinematic.js'),'utf8');
 const runtime=readFileSync(join(here,'../src/rebuild/runtime.js'),'utf8');
 const renderer=readFileSync(join(here,'../src/rebuild/renderer.js'),'utf8');
 
@@ -30,10 +31,10 @@ test('title menu is a game surface rather than transparent web links',()=>{
 
 
 test('generated movie owns the cinematic while the prepared 3D world remains fallback',()=>{
-  assert.match(main,/title-cinematic-media\.js/);
-  assert.match(main,/titleVideo\.addEventListener\('timeupdate',onTitleVideoTimeUpdate\)/);
-  assert.match(main,/requestVideoFrameCallback/);
-  assert.match(main,/prepared\?\.startTitlePreview\?\.\(\{cinematic:false\}\)/);
+  assert.match(main,/createTitleCinematicController/);assert.match(cinematic,/title-cinematic-media\.js/);
+  assert.match(cinematic,/video\.addEventListener\('timeupdate',onTitleVideoTimeUpdate\)/);
+  assert.match(cinematic,/requestVideoFrameCallback/);
+  assert.match(cinematic,/getPrepared\(\)\?\.startTitlePreview\?\.\(\{cinematic:false\}\)/);
   assert.match(runtime,/startTitlePreview/);
   assert.match(renderer,/title-living-still/);
   assert.match(css,/data-media="video"/);

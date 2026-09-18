@@ -2,17 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
-const [html,main,css,media]=await Promise.all([
+const [html,main,css,media,cinematic,movie,poster]=await Promise.all([
   readFile(new URL('../index.html',import.meta.url),'utf8'),
   readFile(new URL('../src/main.js',import.meta.url),'utf8'),
   readFile(new URL('../src/title-rich.css',import.meta.url),'utf8'),
   readFile(new URL('../src/title-cinematic-media.js',import.meta.url),'utf8'),
+  readFile(new URL('../src/title-cinematic.js',import.meta.url),'utf8'),
+  readFile(new URL('../public/title-assets/title-cinematic.mp4',import.meta.url)),
+  readFile(new URL('../public/title-assets/title-cinematic-poster.webp',import.meta.url)),
 ]);
 
 test('cinematic title uses real generated movie media as the primary path',()=>{
   assert.match(html,/id="title-cinematic-video"[^>]*preload="auto"[^>]*muted[^>]*playsinline/);
-  assert.match(media,/data:video\/mp4;base64,/);assert.match(media,/data:image\/webp;base64,/);
-  assert.ok(media.length>400000,'embedded movie payload should be present');
+  assert.match(media,/title-cinematic\.mp4/);assert.match(media,/title-cinematic-poster\.webp/);
+  assert.doesNotMatch(media,/base64/);assert.ok(media.length<2048,'media manifest stays source-light');
+  assert.equal(movie.subarray(4,8).toString(),'ftyp');assert.ok(movie.length>400000);
+  assert.ok(poster.length>50000);
   assert.match(css,/data-media="video"/);
   assert.match(css,/data-media="fallback"\]\[data-intro="cinematic"\]/);
 });
@@ -20,24 +25,24 @@ test('cinematic title uses real generated movie media as the primary path',()=>{
 test('cinematic boot is event-driven and overlaps world preparation',()=>{
   const boot=main.slice(main.indexOf('async function boot'),main.indexOf('async function enterCoop'));
   assert.ok(boot.indexOf('beginTitleIntro()')<boot.indexOf('prepareRuntime('));
-  assert.match(main,/addEventListener\('loadeddata',onTitleVideoLoaded\)/);
-  assert.match(main,/addEventListener\('canplay',onTitleVideoCanPlay\)/);
-  assert.match(main,/addEventListener\('timeupdate',onTitleVideoTimeUpdate\)/);
-  assert.match(main,/requestVideoFrameCallback/);
-  assert.match(main,/intro load timeout/);
+  assert.match(cinematic,/addEventListener\('loadeddata',onTitleVideoLoaded\)/);
+  assert.match(cinematic,/addEventListener\('canplay',onTitleVideoCanPlay\)/);
+  assert.match(cinematic,/addEventListener\('timeupdate',onTitleVideoTimeUpdate\)/);
+  assert.match(cinematic,/requestVideoFrameCallback/);
+  assert.match(cinematic,/intro load timeout/);
 });
 
 test('cinematic handoff reveals title before menu and return skips the long intro',()=>{
-  assert.match(main,/function settleTitleUi\(\)[\s\S]*dataset\.intro='settling'[\s\S]*dataset\.intro='idle'/);
+  assert.match(cinematic,/function settleTitleUi\(\)[\s\S]*dataset\.intro='settling'[\s\S]*dataset\.intro='idle'/);
   assert.match(css,/data-intro="settling"\] \.title-lockup\{opacity:1/);
   assert.match(css,/data-intro="settling"\] \.title-actions\{opacity:0/);
-  assert.match(main,/if\(titleIntroPlayed\)\{[\s\S]*seekToLivingStill\(\{play:true\}\);return;/);
-  assert.match(main,/pauseTitleMedia\(\);title\.hidden=true/);
+  assert.match(cinematic,/if\(introPlayed\)\{[\s\S]*seekToLivingStill\(\{play:true\}\);return;/);
+  assert.match(main,/titleCinematic\.pause\(\);title\.hidden=true/);
 });
 
 test('reduced motion, motion-off, and media failure retain an operable title fallback',()=>{
-  assert.match(main,/prefersReducedTitleMotion/);assert.match(main,/title\.dataset\.motion==='on'/);
-  assert.match(main,/activateTitleFallback/);assert.match(main,/prepared\?\.startTitlePreview\?\.\(\{cinematic:false\}\)/);
+  assert.match(cinematic,/prefersReducedMotion/);assert.match(cinematic,/title\.dataset\.motion==='on'/);
+  assert.match(cinematic,/activateFallback/);assert.match(cinematic,/getPrepared\(\)\?\.startTitlePreview\?\.\(\{cinematic:false\}\)/);
   assert.match(css,/data-motion="off"\] \.title-cinematic-video/);
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
 });

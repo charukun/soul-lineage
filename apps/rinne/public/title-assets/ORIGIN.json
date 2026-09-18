@@ -15,21 +15,10 @@
       "sha256": "542f77d3368eb547653f5b695508fac47d99a17679d4f3c25c5cd8075fad4e70"
     }
   ],
-  "embedded_media": {
-    "movie": {
-      "format": "H.264 MP4 single timeline",
-      "intro_end_seconds": 8.45,
-      "total_duration_seconds": 13.5,
-      "living_loop_seconds": 5.05,
-      "resolution": "960x540",
-      "sha256": "20fba474a9565a2b7fda1d6a7a385ab9fca9ae935d9929ea7548dec282c0b615"
-    },
-    "poster": {
-      "format": "WebP",
-      "resolution": "960x540",
-      "sha256": "46794a6d3cde2aac3aa609b1d17920d42bb2d58557234e48f7d35e0d7d629833"
-    }
-  },
-  "processing": "Three generated key visuals are reframed from clean image regions and interpolated into one H.264 timeline: the first 8.45s is the cinematic flight, followed immediately by a 5.05s subtle-motion Living Still section. Runtime loops only that tail segment in the same video element, so intro->title has no source swap. The title and menu remain live HTML and are not baked into the media. Media is embedded as data URLs so DEV/build deployments are self-contained.",
-  "fallback": "Existing title-assets/world.webp and prepared title-live canvas are used only when movie playback is unavailable or motion is disabled."
+  "processing": "Generated key visuals are reframed into one H.264 timeline: 0-8.45s cinematic flight, followed by a 5.05s Living Still tail looped inside the same video element. Binary movie/poster assets live under public/title-assets; title and menu remain live HTML.",
+  "fallback": "Existing title-assets/world.webp and prepared title-live canvas are used only when movie playback is unavailable or motion is disabled.",
+  "media_assets": {
+    "movie": "title-cinematic.mp4",
+    "poster": "title-cinematic-poster.webp"
+  }
 }
