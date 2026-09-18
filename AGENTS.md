@@ -13,9 +13,9 @@ Use metadata → changed filenames / failed job → necessary patch / range. CI 
 
 ## Delivery boundary
 
-Normal implementation work follows [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md): latest `develop` → work branch / Draft PR → implementation → focused validation → **merge-forward current `develop` into the work branch** → focused revalidation → push → final develop freshness verify → Ready for review → exact-head CI → serialized expected-head merge to `develop` → asynchronous DEV publication. A separate human/Chat Integration handoff is not part of the normal path.
+Normal implementation work follows [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md): latest `develop` → work branch / Draft PR → implementation → focused validation → **merge-forward current `develop` into the work branch** → focused revalidation → push → final develop freshness verify → Ready for review → exact-head CI → serialized expected-head merge to `develop` → asynchronous DEV publication. There is no separate Integration stage.
 
-A qualifying micro patch follows [`docs/MICRO_PATCH_FAST_LANE.md`](docs/MICRO_PATCH_FAST_LANE.md), but uses the same pre-Ready freshness rule: latest `develop` → short-lived branch → small implementation → affected focused validation → current develop merge-forward / revalidation → push → final freshness verify → **Ready PR directly** → `READY_FOR_INTEGRATION`. Do not create a Draft PR or start Draft CI just to carry a tiny safe edit. If the patch touches control-plane, shared contracts, dependencies, schema/save/protocol, auth/security, infrastructure, generated/binary assets, or otherwise falls outside that contract, use the normal Draft route.
+A qualifying micro patch follows [`docs/MICRO_PATCH_FAST_LANE.md`](docs/MICRO_PATCH_FAST_LANE.md), but uses the same pre-Ready freshness rule: latest `develop` → short-lived branch → small implementation → affected focused validation → current develop merge-forward / revalidation → push → final freshness verify → **Ready PR directly** → exact-head CI → serialized merge to `develop`. Do not create a Draft PR or start Draft CI just to carry a tiny safe edit. If the patch touches control-plane, shared contracts, dependencies, schema/save/protocol, auth/security, infrastructure, generated/binary assets, or otherwise falls outside that contract, use the normal Draft route.
 
 With a checkout, use `npm run pre-ready:sync` before the final validation/push and `npm run pre-ready:verify` immediately before Ready. If develop advanced again, repeat sync → focused validation → push → verify. True conflicts are resolved by the implementation worker using both the current develop contract and the task intent; never select ours/theirs blindly or weaken quality gates. Without a checkout, the connected GitHub/API route must produce the same reconciled work-branch ancestry before Ready.
 
@@ -43,8 +43,8 @@ Read only the rows that match the task.
 | --- | --- |
 | Routine implementation | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) |
 | Qualifying tiny/safe code edit | [`docs/MICRO_PATCH_FAST_LANE.md`](docs/MICRO_PATCH_FAST_LANE.md) |
-| Integration / merge / DEV publication | [`docs/INTEGRATION.md`](docs/INTEGRATION.md) |
-| Integration control-plane reconciliation | [`docs/INTEGRATION_RECONCILIATION.md`](docs/INTEGRATION_RECONCILIATION.md) |
+| develop merge / DEV publication | [`docs/DEVELOP_MERGE.md`](docs/DEVELOP_MERGE.md) |
+| legacy merge-control reconciliation | [`docs/INTEGRATION_RECONCILIATION.md`](docs/INTEGRATION_RECONCILIATION.md) |
 | Fast Repair / legacy Rescue compatibility | [`docs/INTEGRATION_RESCUE.md`](docs/INTEGRATION_RESCUE.md) |
 | Browser repair | [`docs/BROWSER_SELF_HEALING.md`](docs/BROWSER_SELF_HEALING.md) |
 | User explicitly asks to play/operate/verify in a browser | [`docs/BROWSER_PLAYTEST_ROUTING.md`](docs/BROWSER_PLAYTEST_ROUTING.md) |
@@ -60,7 +60,7 @@ Character production must follow [`docs/characters/CHARACTER_PRODUCTION_PIPELINE
 
 When a requested Blender character build needs repository-hosted headless execution, follow [`docs/characters/CHARACTER_DCC_CARRIER.md`](docs/characters/CHARACTER_DCC_CARRIER.md): use a short-lived `dcc/<slug>` branch and the carrier contract. Do not repurpose RINNE Dispatch merely to obtain Blender, and do not wait/poll for the carrier.
 
-When the user explicitly requests a dedicated worker (`派生して`, `別セッションで`, etc.), use RINNE Dispatch only for a self-contained implementation task. Bootstrap the Draft PR and request marker as described in [`docs/DISPATCHER.md`](docs/DISPATCHER.md); the dispatched worker implements and returns the same PR to normal Integration.
+When the user explicitly requests a dedicated worker (`派生して`, `別セッションで`, etc.), use RINNE Dispatch only for a self-contained implementation task. Bootstrap the Draft PR and request marker as described in [`docs/DISPATCHER.md`](docs/DISPATCHER.md); the dispatched worker implements and returns the same PR to the normal Ready → CI → merge path.
 
 When the user asks for a motion video, do not synthesize a stick figure or schematic as a substitute. Resolve the target PR's current exact head and use the corresponding `pr-browser-<pr>-<head>` artifact described by [`docs/characters/MOTION_VIDEO_HANDOFF.md`](docs/characters/MOTION_VIDEO_HANDOFF.md). Only call it an actual motion video when the receipt identifies the real model/runtime and exact head.
 
