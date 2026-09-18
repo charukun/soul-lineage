@@ -42,6 +42,8 @@ Micro Patch の適用条件・除外条件は [`MICRO_PATCH_FAST_LANE.md`](MICRO
 
 このRepositoryは個人開発 + AI並列workerを前提とする。develop PRではGitHub CIを起動しない。実装 WORK が focused validation、current develop reconciliation、focused revalidation、push、final freshness verify を完了したら、その同じ実装 WORK がPRをReadyにして exact current head を `develop` へmergeする。別のmerge queue、Ready handoff、Fast Repair自動ループは通常経路に置かない。
 
+**Ready for review は終了状態ではない。** develop向け実装タスクの正常終了は `Merged` / `MERGED_TO_DEVELOP` だけとし、`READY_FOR_INTEGRATION`、`Readyでhandoff`、`Integration待ち` を完了報告・PR status・運用上の終端として使わない。merge権限不足・未解決holdなどでmergeできない場合だけ `FAILED` として、branch / exact head / PR / reason を残す。
+
 ## Pre-Ready Reconciliation
 
 実装 WORK は、自分が作業を開始した時点の `develop` を Ready の前提にしない。実装と最初の focused validation が終わったら、**Ready にする前に current `develop` を再取得し、その時点の最新 `develop` を work branch へ merge-forward してから handoff する**。
