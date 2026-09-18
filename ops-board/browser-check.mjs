@@ -149,14 +149,14 @@ try {
   recovering.applications=[{id:'unknown',name:'未確認のアプリ',kind:'tool',targets:[{id:'unknown',label:'公開先',state:'unknown'}]}];
   recovering.controlTower = {
     ...(recovering.controlTower || {}),
-    status:'RECOVERING', headline:'自動対応中', summary:'GitHub同期を自動で再確認しています',
+    status:'RECOVERING', headline:'自動復旧中', summary:'最新状態を再取得しています。今は操作不要です。',
     userActionRequired:false, incidents:[], enteredAt:new Date(Date.now()-2*60000).toISOString(),
     completeness:{state:'last-known-good',label:'前回確定値'},
   };
   await page.unroute('**/api/state');
   await page.route('**/api/state', route => route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(recovering)}));
   await reload();
-  assert.match(await page.locator('#control-headline').innerText(), /自動対応中/);
+  assert.match(await page.locator('#control-headline').innerText(), /自動復旧中/);
   assert.match(await page.locator('#sync-freshness').innerText(), /再同期中/);
   assert.doesNotMatch(await page.locator('#app-summary').innerText(), /正常/);
   check('recoverable sync degradation stays visible without becoming a human action');
