@@ -23,18 +23,28 @@ jobs:
         run: npm ci
       - name: Validate source MIDIs and Production catalog
         run: node --test packages/audio/tests/source-midi.test.mjs packages/audio/tests/catalog.test.mjs
-      - name: Bundle new license assets
-        run: |
-          printf '%s\n' "export const x=[new URL('./packages/audio/assets/licenses/MuseScore_General_License.txt',import.meta.url).href,new URL('./packages/audio/assets/licenses/MuseScore_General_Sample_Sources.csv',import.meta.url).href];" > .bgm-license-probe.mjs
-          node --input-type=module -e "import {build} from 'vite'; await build({configFile:false,logLevel:'silent',build:{write:false,rolldownOptions:{input:'.bgm-license-probe.mjs'}}})"
-          rm .bgm-license-probe.mjs
-      - name: Bundle audio catalog module
-        run: node --input-type=module -e "import {build} from 'vite'; await build({configFile:false,logLevel:'silent',build:{write:false,rolldownOptions:{input:'packages/audio/src/index.js'}}})"
-      - name: Bundle audio URL module
-        run: node --input-type=module -e "import {build} from 'vite'; await build({configFile:false,logLevel:'silent',build:{write:false,rolldownOptions:{input:'packages/audio/src/urls.js'}}})"
       - name: Prepare Rinne assets
         run: npm run prebuild --workspace @soul/rinne
-      - name: Bundle Rinne
+      - name: Write single-entry Rinne config
+        run: |
+          cat > apps/rinne/.bgm-single.config.mjs <<'EOF'
+          import {appConfig} from '../../scripts/vite-app.mjs';
+          import {fileURLToPath} from 'node:url';
+          const config=appConfig('rinne',import.meta.url);
+          config.build.rolldownOptions={input:{entry:fileURLToPath(new URL(process.env.RINNE_ENTRY,import.meta.url))}};
+          export default config;
+          EOF
+      - name: Bundle Rinne main only
+        env:
+          RINNE_ENTRY: ./index.html
+        run: npm exec --workspace @soul/rinne -- vite build --config .bgm-single.config.mjs
+      - name: Bundle Rinne review only
+        env:
+          RINNE_ENTRY: ./review.html
+        run: npm exec --workspace @soul/rinne -- vite build --config .bgm-single.config.mjs
+      - name: Remove single-entry config
+        run: rm apps/rinne/.bgm-single.config.mjs
+      - name: Bundle full Rinne multi-entry
         run: npm exec --workspace @soul/rinne -- vite build
       - name: Strip retired Rinne assets
         run: node scripts/strip-retired-character-assets.mjs dist/rinne
