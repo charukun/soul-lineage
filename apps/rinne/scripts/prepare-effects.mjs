@@ -8,7 +8,7 @@ const appRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const REVIEWED_EFFECT_LAYOUTS=new Map([[1500,6],[1610,7]]);
 const REVIEWED_EFFECT_VERSIONS=new Set(EFFECT_ASSETS.filter(row=>row.path.endsWith('.efkefc')).map(row=>row.infoVersion));
 export const EFFECT_DOWNLOADS=Object.freeze([
-  ...EFFECT_ASSETS.map(row=>({...row,...{repository:EFFECT_SOURCE.repository,revision:EFFECT_SOURCE.revision,target:row.path}})),
+  ...EFFECT_ASSETS.map(row=>({...row,...{repository:row.repository||EFFECT_SOURCE.repository,revision:row.revision||EFFECT_SOURCE.revision,target:row.path}})),
   ...RUNTIME_ASSETS.map(row=>({...row,...{repository:EFFECT_RUNTIME.repository,revision:EFFECT_RUNTIME.revision,target:row.path==='LICENSE'?'LICENSE-MIT.txt':path.posix.basename(row.path)}})),
   {path:EFFECT_SOURCE.licensePath,repository:EFFECT_SOURCE.licenseRepository,revision:EFFECT_SOURCE.licenseRevision,
     gitBlobSha:EFFECT_SOURCE.licenseBlob,byteLength:731,target:'LICENSE-SAMPLES.txt'},
@@ -96,6 +96,6 @@ export async function prepareRinneEffects({outputRoot=path.join(appRoot,'public'
     }))));
   }
   await writeFile(path.join(outputRoot,'NOTICE.txt'),
-    'Effekseer for WebGL 1.70: MIT (LICENSE-MIT.txt).\nEffekseer Simple_Ribbon_Sword and tktk ToonHit/Light: CC0-1.0 (LICENSE-SAMPLES.txt).\nUnmodified originals; game-side placement and intensity are adaptations.\nSources and exact revisions: apps/rinne/src/rebuild/authored-effect-manifest.js\n');
+    'Effekseer for WebGL 1.70 and review Resources samples: MIT (LICENSE-MIT.txt).\\nEffekseer ResourceData Simple_Ribbon_Sword and tktk ToonHit/Light: CC0-1.0 (LICENSE-SAMPLES.txt).\\nUnmodified originals; game-side placement and intensity are adaptations.\\nSources and exact revisions: apps/rinne/src/rebuild/authored-effect-manifest.js\\n');
   return rows;
 }
