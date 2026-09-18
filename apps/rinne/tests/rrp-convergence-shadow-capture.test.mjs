@@ -29,8 +29,10 @@ test('unaligned or fictional zero-event semantic bytes fail closed',()=>{
   assert.throws(()=>analyzeShadowCapture(capture({semanticEventCount:[0,-1,0,2]})),/invalid/);
 });
 
-test('capture comparability requires the same world, peer target and armed window',()=>{
-  assert.equal(comparableCaptureSet([capture(),capture({_capture:{worldId:'w',expectedPeers:3,windowArmed:true,buildRevision:'b'}})]).comparable,true);
-  assert.equal(comparableCaptureSet([capture(),capture({_capture:{worldId:'other',expectedPeers:3,windowArmed:true}})]).comparable,false);
-  assert.equal(comparableCaptureSet([capture(),capture({_capture:{worldId:'w',expectedPeers:2,windowArmed:false}})]).comparable,false);
+test('capture comparability requires matched build/workload/world/peer target and armed window',()=>{
+  const meta={worldId:'w',expectedPeers:3,windowArmed:true,buildRevision:'a',environment:'dev',workloadId:'final-v1'};
+  assert.equal(comparableCaptureSet([capture({_capture:meta}),capture({_capture:{...meta}})]).comparable,true);
+  assert.equal(comparableCaptureSet([capture({_capture:meta}),capture({_capture:{...meta,buildRevision:'b'}})]).comparable,false);
+  assert.equal(comparableCaptureSet([capture({_capture:meta}),capture({_capture:{...meta,worldId:'other'}})]).comparable,false);
+  assert.equal(comparableCaptureSet([capture({_capture:meta}),capture({_capture:{...meta,expectedPeers:2,windowArmed:false}})]).comparable,false);
 });
