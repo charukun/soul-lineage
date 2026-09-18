@@ -26,11 +26,14 @@ Read only the standards relevant to the task:
 | Facial expressions, smile/blink/visemes, reference-guided shape keys | [FACIAL_EXPRESSION_WORKFLOW.md](FACIAL_EXPRESSION_WORKFLOW.md) + `CHARACTER_MODELING.md` section 7 |
 | Visual polish, model comparison, render/runtime acceptance, before/after evidence | `VISUAL_REVIEW.md` |
 | Rig/animation/material/export work that also changes character appearance | both files, plus the applicable `docs/characters/*` contract |
+| Environment/building/prop production asset addition or replacement | `VISUAL_ASSET_RULE.md` |
 | Pure UI/code work with no 3D appearance or asset impact | these files are not required |
 
 KayKit-first is the current Rinne game-construction axis. Read `KAYKIT_GAME_AXIS.md` for the playable runtime direction, `docs/characters/KAYKIT_FOUNDATION.md` for the game-facing CC0 foundation, and `docs/characters/CHARACTER_LICENSE_POLICY.md` for the asset-adoption gate. New gameplay character and motion work uses KayKit or a fully RINNE-owned asset by default. Models with model-specific commercial-use conditions are retired from active runtime, review candidates and Production distribution. Legacy IDs/schema may remain only where migration compatibility requires them.
 
 When a task adds or replaces character geometry, follow `docs/characters/CHARACTER_ASSET_SOURCING.md`: inspect reviewed repository assets, search the approved external discovery catalogs, apply the existing license/provenance gate, and import the real eligible source asset before DCC adaptation. Generative 3D services are not an authorized character asset source or fallback. If no eligible source can satisfy the role, create a fully RINNE-owned asset through the normal DCC pipeline. Rebuilding an available imported model with runtime primitives is not a reproduction; it remains `BLOCKOUT`.
+
+For production environment/building/prop geometry, use the single `visualAssetId` contract in `VISUAL_ASSET_RULE.md`. The former phase-specific Public GitHub/Web catalogs are retired; do not recreate parallel sourcing catalogs.
 
 ## Core rule
 
