@@ -12,11 +12,11 @@
     },
     {
       "effect": "life.seal",
-      "source": "CoopWorld.advance detects life.ended -> dirtyHistory -> appendHistory life-ended",
+      "source": "CoopWorld.advance -> tickSharedFront/tickLife may end life -> dirtyHistory -> appendHistory life-ended",
       "subject": "playerId + lifeId",
       "strongReason": "the predecessor must not resurrect or change lineage inputs after commitment",
       "candidateJournalMaterial": "terminal protected delta + one lineage record + operation/epoch identity",
-      "scopeNote": "current coop structural rule is lifespan-based; early-death gameplay semantics are not certified by this manifest"
+      "scopeNote": "task-start history accepted only lifespan completion, but shared combat can call endLifeEarly; this branch repairs history/shadow extraction so ended-phase combat deaths also seal"
     },
     {
       "effect": "life.rebirth",
@@ -64,6 +64,10 @@
     "global cloud canon",
     "zero rollback for all realtime state",
     "automatic host migration",
-    "a proof that endLifeEarly currently reaches coop history"
-  ]
+    "a measurement of how often combat fatalities occur in real sessions"
+  ],
+  "branchRefinement": {
+    "combatEndReachability": "combat-core.js and combat-evolution-runtime.js call endLifeEarly on shared-front paths reached by CoopWorld.advance",
+    "historyRepair": "ended lives require phase=ended; living lives must remain below LIFE_SECONDS; terminal records remain immutable"
+  }
 }
