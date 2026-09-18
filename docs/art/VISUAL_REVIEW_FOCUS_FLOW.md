@@ -32,6 +32,7 @@ Effects review is a browsing surface before it is a tuning surface. It must stay
 - Cards may expose lightweight review metadata such as category, component count, and authored source label, but must not pretend a static decorative thumbnail is the real effect.
 - The same authored effect player / Effekseer backend remains the preview truth; selecting catalog entries changes presentation input only.
 
+## Battle review
 
 Battle review must continue to consume the real current `RaidHost -> Tidebreak` battle state and must not invent a second combat clock or hit logic.
 
