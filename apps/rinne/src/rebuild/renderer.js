@@ -148,9 +148,8 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
     return !muraBlocked(layout,x,z,radius);
   }
   function renderState(state,dt=0){
-    elapsed+=dt;if(dt>0&&!doc.hidden)qualityGovernor.observeFrame(dt);
-    const village=state.zone==='village',inside=village&&!!state.interior;characterStage.render(inside?{...state,renderPlayer:false}:state,dt);
-    const space=inside?`interior:${state.interior.buildingId}`:state.zone,spaceChanged=space!==lastSpace;lastSpace=space;
+    elapsed+=dt;if(dt>0&&!doc.hidden)qualityGovernor.observeFrame(dt);characterStage.render(state,dt);
+    const village=state.zone==='village',inside=village&&!!state.interior,space=inside?`interior:${state.interior.buildingId}`:state.zone,spaceChanged=space!==lastSpace;lastSpace=space;
     root.visible=village&&!inside;interiorRoot.visible=inside;skirmishRoot.visible=village&&!inside;frontRoot.visible=state.zone==='frontier';scene.background=inside?indoorSky:outdoorSky;
     for(const [id,g] of interiorGroups)g.visible=inside&&id===state.interior?.buildingId;
     const combatFrame=state.zone==='frontier'?rinneCombatCameraFrame({player:state.position,enemies:currentFront?.enemies,targetId:state.combat?.targetId,active:!!state.combat}):null;cameraControl.setCombat(!!combatFrame);canvas.dataset.combatCamera=String(!!combatFrame);canvas.dataset.worldSpace=space;canvas.dataset.villageThreats=String(skirmishRenderer.current()?.hostiles?.filter(row=>!row.dead).length||0);
