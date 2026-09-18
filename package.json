@@ -42,7 +42,9 @@
     "characters:production:check": "node scripts/check-character-production.mjs",
     "push:route": "node scripts/check-push-route.mjs",
     "pre-ready:sync": "node scripts/pre-ready-reconcile.mjs sync",
-    "pre-ready:verify": "node scripts/pre-ready-reconcile.mjs verify"
+    "pre-ready:verify": "node scripts/pre-ready-reconcile.mjs verify",
+    "distribution:plan": "node scripts/distribution-plan.mjs",
+    "distribution:build": "node scripts/build-target.mjs"
   },
   "devDependencies": {"@playwright/test":"1.63.0","vite":"8.2.2"}
 }

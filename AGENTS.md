@@ -52,6 +52,7 @@ Read only the rows that match the task.
 | User explicitly asks to play/operate/verify in a browser | [`docs/BROWSER_PLAYTEST_ROUTING.md`](docs/BROWSER_PLAYTEST_ROUTING.md) |
 | Dispatch to a dedicated worker | [`docs/DISPATCHER.md`](docs/DISPATCHER.md) |
 | Mobile / Codespaces / push routing | [`docs/MOBILE_HYBRID_DEVELOPMENT.md`](docs/MOBILE_HYBRID_DEVELOPMENT.md) |
+| Distribution / consumer packaging targets | [`docs/DISTRIBUTION_ARCHITECTURE.md`](docs/DISTRIBUTION_ARCHITECTURE.md) |
 | Character/model/rig/material/DCC work | [`docs/art/README.md`](docs/art/README.md) and the routed `docs/characters/` contract |
 | Character motion / stance / locomotion | [`docs/characters/MOTION_AUTHORING.md`](docs/characters/MOTION_AUTHORING.md) and [`docs/characters/MOTION_QUALITY.md`](docs/characters/MOTION_QUALITY.md) |
 | User asks for the current motion video (`動画ください`) | [`docs/characters/MOTION_VIDEO_HANDOFF.md`](docs/characters/MOTION_VIDEO_HANDOFF.md) |

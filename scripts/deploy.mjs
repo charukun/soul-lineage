@@ -7,6 +7,8 @@ import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { graph, apps, inputHash, documentationPath } from './workspaces.mjs';
 import { inventory, restoreEntry } from './deployment-files.mjs';
+import { installStaticArtifact, materializeStaticArtifact } from './distribution-artifacts.mjs';
+import { webTargetForEnvironment } from './distribution-targets.mjs';
 import { INITIAL_ENVIRONMENT_APPS, GAME_ENVIRONMENTS } from './application-catalog.mjs';
 import { missingEnvironmentEntries, retainPinnedEntries } from './environment-plan.mjs';
 const run = (root, command, args, env = {}) => execFileSync(command, args, { cwd: root, stdio: 'inherit', env: { ...process.env, ...env } });
@@ -136,11 +138,23 @@ async function main() {
     assert.equal(version.commit, git(entry.root, ['rev-parse', 'HEAD']));
     assert.equal(version.environment, entry.environment);
     if (!entry.legacy) assert.equal(version.inputHash, entry.inputHash);
-    const target = resolve(output, entry.path); await mkdir(target, { recursive: true }); await cp(dist, target, { recursive: true });
+    const distributionTarget=entry.legacy?null:webTargetForEnvironment(entry.environment);
+    const target = resolve(output, entry.path);
+    let artifact=null;
+    if(distributionTarget){
+      artifact=await materializeStaticArtifact({
+        sourceDir:dist,artifactRoot:resolve('.deploy-state','artifacts'),app:entry.app,target:distributionTarget.id,
+        sourceSha:version.commit,sourceBranch:version.branch||entry.branch,inputHash:entry.inputHash,
+        packageName:`@soul/${entry.app}`,displayName:version.name||entry.app,builtAt:version.builtAt||new Date().toISOString(),
+        runId:process.env.GITHUB_RUN_ID||null,
+      });
+      await installStaticArtifact({artifactDir:artifact.artifactDir,destination:target});
+    }else{await mkdir(target,{recursive:true});await cp(dist,target,{recursive:true});}
     entries.push({ app: entry.app, environment: entry.environment, path: entry.path, inputHash: entry.inputHash,
       legacy: entry.legacy, ...(entry.pinned ? { pinned: true } : {}), deployedAt: new Date().toISOString(),
-      version, files: await inventory(dist) });
-    console.log(`BUILD ${entry.path} / ${version.commit}`);
+      version, ...(artifact?{artifact:{id:`${entry.app}/${distributionTarget.id}/${version.commit}`,target:distributionTarget.id,
+        sourceSha:version.commit,inputHash:entry.inputHash}}:{}), files: artifact?artifact.receipt.files:await inventory(dist) });
+    console.log(`BUILD ${entry.path} / ${version.commit}${distributionTarget?` -> ${distributionTarget.id}`:''}`);
   }
   if (initialize) {
     for (const app of INITIAL_ENVIRONMENT_APPS) for (const { id: environment } of GAME_ENVIRONMENTS) {

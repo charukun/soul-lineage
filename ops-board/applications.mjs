@@ -1,4 +1,5 @@
 import { GAME_NAMES, GAME_ENVIRONMENTS, BOARD_NAME } from '../scripts/application-catalog.mjs';
+import { distributionPublicUrl } from '../scripts/distribution-targets.mjs';
 
 export const OPS_PUBLIC_URL = 'https://rinne-ops.c-okamoto.workers.dev/';
 export const PORTAL_PUBLIC_URL = 'https://wayfinder-gallery.c-okamoto.workers.dev/';
@@ -34,6 +35,15 @@ function targetFor(app, definition, entries, environment, manifest) {
   };
 }
 
+function fastDevTarget(app,developSha,statuses=[]){
+  const status=(statuses||[]).find(row=>row.context===`dev/${app}`)||null;
+  const state=status?.state==='success'?'success':status?.state==='pending'?'deploying':['failure','error'].includes(status?.state)?'failed':'waiting';
+  return {id:`fast-dev:${app}`,label:'高速DEV',environment:'dev-fast',state,url:distributionPublicUrl('web-dev',app),
+    expectedUrl:distributionPublicUrl('web-dev',app),commit:status?.state==='success'?developSha:null,
+    deployedAt:status?.updated_at||status?.created_at||null,source:'per-app DEV / exact-source status',
+    note:status?'app単位で独立公開':'公開status同期待ち'};
+}
+
 function characterStudioTarget(entries, environmentById, manifest) {
   const definition = GAME_ENVIRONMENTS.find(item => item.id === 'dev');
   const rinneDev = targetFor('rinne', definition, entries, environmentById.get('dev'), manifest);
@@ -47,13 +57,13 @@ function characterStudioTarget(entries, environmentById, manifest) {
   };
 }
 
-export function buildApplications(manifest = {}, environments = [], runs = []) {
+export function buildApplications(manifest = {}, environments = [], runs = [], { developSha = null, statuses = [] } = {}) {
   const environmentById = new Map(environments.map(env => [env.id, env]));
   const entries = (manifest.entries || []).filter(entry => validApp(entry?.app) && environmentIds.has(entry.environment));
   const ids = new Set([...Object.keys(GAME_NAMES), ...entries.map(entry => entry.app)]);
   const groups = new Map([...ids].map(id => [id, {
     id, name: GAME_NAMES[id] || entries.find(entry => entry.app === id)?.version?.name || id, kind: 'game',
-    targets: GAME_ENVIRONMENTS.map(definition => targetFor(id, definition, entries, environmentById.get(definition.id), manifest)),
+    targets: [fastDevTarget(id,developSha,statuses),...GAME_ENVIRONMENTS.map(definition => targetFor(id, definition, entries, environmentById.get(definition.id), manifest))],
   }]));
 
   groups.set('character-studio', {

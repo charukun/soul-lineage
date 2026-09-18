@@ -109,6 +109,14 @@ jobs:
           INITIALIZE_GAME_ENVIRONMENTS: 'true'
           REFRESH_STAGING: ${{ inputs.refresh_staging == true && github.ref == 'refs/heads/develop' }}
         run: node sources/dev/scripts/deploy.mjs sources/dev sources/prod _site "$SITE_URL"
+      - name: Preserve immutable distribution artifacts
+        if: steps.assemble.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: distribution-artifacts-${{ github.sha }}
+          path: .deploy-state/artifacts/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Refuse a superseded develop snapshot before candidate validation
         if: github.ref == 'refs/heads/develop'
         uses: actions/github-script@v8
@@ -188,6 +196,7 @@ jobs:
             .deploy-state/changed.json
             .deploy-state/site-dedupe.json
             .deploy-state/dev-candidate.log
+            .deploy-state/artifacts/**/artifact.json
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 14

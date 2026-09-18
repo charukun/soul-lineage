@@ -12,14 +12,18 @@ test('published apps are grouped by app with exact manifest paths', () => {
     { id: 'dev', deployState: 'success', deployedAt: '2026-09-12T00:00:00Z' },
     { id: 'prod', deployState: 'success', deployedAt: '2026-09-11T00:00:00Z' },
   ];
-  const apps = buildApplications(manifest, environments, []);
+  const apps = buildApplications(manifest, environments, [], {developSha:'develop-head',statuses:[{context:'dev/rinne',state:'success',updated_at:'2026-09-12T00:00:30Z'}]});
   const rinne = apps.find(app => app.id === 'rinne');
-  assert.equal(rinne.targets.length, 3);
-  assert.equal(rinne.targets[1].state, 'missing');
-  assert.equal(rinne.targets[1].url, null);
-  assert.equal(rinne.targets[0].url, 'https://charukun.github.io/soul-lineage/dev/rinne/');
-  assert.equal(rinne.targets[0].commit, 'dev-rinne');
-  assert.equal(rinne.targets[2].url, 'https://charukun.github.io/soul-lineage/prod/');
+  assert.equal(rinne.targets.length, 4);
+  assert.equal(rinne.targets[0].label, '高速DEV');
+  assert.equal(rinne.targets[0].state, 'success');
+  assert.equal(rinne.targets[0].url, 'https://soul-lineage-rinne-dev.c-okamoto.workers.dev/');
+  assert.equal(rinne.targets[0].commit, 'develop-head');
+  assert.equal(rinne.targets[2].state, 'missing');
+  assert.equal(rinne.targets[2].url, null);
+  assert.equal(rinne.targets[1].url, 'https://charukun.github.io/soul-lineage/dev/rinne/');
+  assert.equal(rinne.targets[1].commit, 'dev-rinne');
+  assert.equal(rinne.targets[3].url, 'https://charukun.github.io/soul-lineage/prod/');
 });
 
 test('character studio is a tool backed by the verified Rinne DEV publication', () => {
@@ -83,4 +87,17 @@ test('tools use verified public status while failed Lanternfell never invents a 
   assert.equal(lantern.targets[0].state, 'failed');
   assert.equal(lantern.targets[0].url, null);
   assert.match(lantern.targets[0].note, /表示しません/);
+});
+
+test('fast DEV stays app-scoped and does not infer success without exact status',()=>{
+  const apps=buildApplications({entries:[]},[],[],{developSha:'head',statuses:[
+    {context:'dev/demon',state:'pending',updated_at:'2026-09-19T00:00:00Z'},
+    {context:'dev/village',state:'failure',updated_at:'2026-09-19T00:00:01Z'},
+  ]});
+  const demon=apps.find(app=>app.id==='demon').targets[0];
+  const village=apps.find(app=>app.id==='village').targets[0];
+  const rinne=apps.find(app=>app.id==='rinne').targets[0];
+  assert.equal(demon.state,'deploying');assert.equal(demon.commit,null);
+  assert.equal(village.state,'failed');assert.equal(village.commit,null);
+  assert.equal(rinne.state,'waiting');assert.equal(rinne.commit,null);
 });
