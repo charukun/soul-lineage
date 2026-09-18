@@ -25,6 +25,7 @@ jobs:
     timeout-minutes: 18
     env:
       HEAD_SHA: ${{ github.sha }}
+      APP_ENV: dev
     steps:
       - name: Checkout exact work head
         uses: actions/checkout@v6
