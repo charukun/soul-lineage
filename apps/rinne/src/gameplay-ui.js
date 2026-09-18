@@ -86,6 +86,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   }
   function inventory(){
     ensureProgression(state);ui.title.textContent='装 · 武具';ui.body.innerHTML='';
+    const intro=document.createElement('div');intro.className='loadout-intro';intro.innerHTML='<strong>身につける武具</strong><small>武器・防具・盾から編集先を選び、所持している装備へ差し替える。</small>';ui.body.append(intro);
     const kinds=[['weapon','武器'],['armor','防具'],['shield','盾']],slots=document.createElement('section');slots.className='loadout-slot-row';
     for(const [kind,label] of kinds){const config=inventoryConfig(kind),button=document.createElement('button');button.type='button';button.className='loadout-slot';button.dataset.selected=String(inventoryKind===kind);button.innerHTML='<span></span><strong></strong><small></small>';button.querySelector('span').textContent=label;button.querySelector('strong').textContent=config.label(config.active);button.querySelector('small').textContent=inventoryKind===kind?'選択先':config.meta;button.onclick=()=>{inventoryKind=kind;inventoryPages[kind]=inventoryPages[kind]||0;audio.ui();inventory();};slots.append(button);}
     ui.body.append(slots);
