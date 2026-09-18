@@ -57,6 +57,44 @@ function fixture(existing) {
   return { c, calls };
 }
 
+function creationFixture() {
+  const calls = [];
+  const c = {
+    root: `/repos/${repository}`,
+    async pages() { return []; },
+    async api(method, path, body) {
+      calls.push({ method, path, body });
+      if (method === 'GET' && path.startsWith('/search/issues?')) {
+        return { incomplete_results: false, total_count: 0, items: [] };
+      }
+      if (method === 'GET' && path.includes('/issues?state=open')) return [];
+      if (method === 'POST' && path === `/repos/${repository}/issues`) {
+        return {
+          number: 505,
+          state: 'open',
+          html_url: 'https://github.com/charukun/soul-lineage/issues/505',
+          ...body,
+        };
+      }
+      if (method === 'POST' && path.endsWith(`/statuses/${head}`)) return {};
+      throw new Error(`unexpected ${method} ${path}`);
+    },
+  };
+  return { c, calls };
+}
+
+test('first Chat Repair creation uses assignment as the single owner notification cause', async () => {
+  const f = creationFixture();
+  const result = await signalDeepRepair(f.c, { ...safe, develop, reason: 'DEVELOP_OVERLAP' });
+  assert.equal(result.signaled, true);
+  assert.equal(result.issue, 505);
+  const create = f.calls.find(call => call.method === 'POST' && call.path === `/repos/${repository}/issues`);
+  assert.ok(create);
+  assert.deepEqual(create.body.assignees, ['charukun']);
+  assert.doesNotMatch(create.body.body, /@charukun/);
+  assert.match(create.body.body, /CHAT_REPAIR_REQUIRED/);
+});
+
 test('a new exact head refreshes the same Chat Repair issue without another owner notification', async () => {
   const existing = {
     number: 501,

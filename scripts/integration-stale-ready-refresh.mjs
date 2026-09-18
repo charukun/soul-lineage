@@ -12,6 +12,13 @@ const REPAIRABLE_MERGE_STATES = new Set(['clean', 'unstable', 'has_hooks', 'behi
 const HOLD_LABELS = new Set(['integration:hold', 'integration:manual', 'do-not-merge']);
 const gitSha = value => typeof value === 'string' && /^[0-9a-f]{40}$/i.test(value);
 
+export function staleReadyValidationMatrix(results = []) {
+  return results
+    .filter(item => item?.state === 'merged-forward' && Number.isSafeInteger(Number(item.pr)) &&
+      gitSha(item.sha) && gitSha(item.develop))
+    .map(item => ({ pr: Number(item.pr), head: item.sha, base: item.develop }));
+}
+
 export function staleReadyCandidate(pr, repository) {
   if (!(pr?.state === 'open' && !pr.draft && pr.base?.ref === 'develop' &&
       pr.base?.repo?.full_name === repository && pr.head?.repo?.full_name === repository &&
@@ -162,6 +169,7 @@ export async function refreshStaleReady(c, repository, { limit = DEFAULT_REFRESH
     evaluated,
     refreshed,
     results,
+    matrix: staleReadyValidationMatrix(results),
   };
 }
 
@@ -183,6 +191,8 @@ export async function main() {
   if (process.env.GITHUB_OUTPUT) {
     appendFileSync(process.env.GITHUB_OUTPUT, `has_work=${report.refreshed > 0}\n`);
     appendFileSync(process.env.GITHUB_OUTPUT, `refreshed=${report.refreshed}\n`);
+    appendFileSync(process.env.GITHUB_OUTPUT, `validation_has_work=${report.matrix.length > 0}\n`);
+    appendFileSync(process.env.GITHUB_OUTPUT, `validation_matrix=${JSON.stringify({ include: report.matrix })}\n`);
   }
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 }
