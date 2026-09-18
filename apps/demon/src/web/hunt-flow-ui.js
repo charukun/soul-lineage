@@ -43,6 +43,10 @@ export class HuntFlowUi {
     text.textContent = returning ? `${exit.label}へ · ${Math.ceil(exit.distance)}m` : ready ? '目標達成。持ち帰ろう' : goalText(plan);
     // Action tips are short-lived. The old persistent tutorial remains hidden.
     const token = game.devour ? 'eat' : game.fight ? 'fight' : returning ? 'return' : target?.npc.dead ? 'fallen' : 'move';
+    if (!overlay && game.eaten > 0 && !game.fight && !game.devour && !this.guideSeen.has('return-ready')) {
+      this.guideSeen.add('return-ready');
+      this.guide?.show({side:'right', kicker:'帰りかた', title:'もう、帰れる', body:[{label:'帰還口', text:'輪の中で止まる'},{label:'帰れば', text:'戦利品を確保'}], variant:'compact', duration:4200});
+    }
     if (token !== this.actionToken) {
       this.actionToken = token; this.actionAt = game.time;
       if (!overlay && token !== 'move' && !this.guideSeen.has(token)) {
