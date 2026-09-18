@@ -9,6 +9,13 @@ const SOURCE=Object.freeze({
 });
 const GROUPS=new Set(['AndrewFM01','NextSoft01','Pierre01','Pierre02','Suzuki01','Tktk01','Tktk02','Tktk03']);
 
+function selectedEffect(row){
+  if(!GROUPS.has(row.path.split('/')[0])||!row.path.endsWith('.efkefc'))return false;
+  if(row.path.startsWith('Tktk01/')&&/(Cure|hozyo)/i.test(row.path))return false;
+  if(row.path==='Pierre01/Pierre01_Background.efkefc')return false;
+  return true;
+}
+
 async function fetchBytes(item){
   const encoded=item.path.split('/').map(encodeURIComponent).join('/');
   const response=await fetch(`https://raw.githubusercontent.com/${SOURCE.repository}/${SOURCE.revision}/${encoded}`,{signal:AbortSignal.timeout(30_000)});
@@ -28,19 +35,15 @@ test('discover genuine CC0 combat VFX closure',async()=>{
   const tree=await treeResponse.json();
   assert.equal(tree.truncated,false,'source tree truncated');
   const entries=new Map(tree.tree.filter(row=>row.type==='blob').map(row=>[row.path,row]));
-  const effects=[...entries.values()].filter(row=>{\n    if(!GROUPS.has(row.path.split('/')[0])||!row.path.endsWith('.efkefc'))return false;\n    if(row.path.startsWith('Tktk01/')&&/(Cure|hozyo)/i.test(row.path))return false;\n    if(row.path==='Pierre01/Pierre01_Background.efkefc')return false;\n    return true;\n  });
+  const effects=[...entries.values()].filter(selectedEffect);
   assert.ok(effects.length>=100,`expected >=100 effects, got ${effects.length}`);
   assert.equal(new Set(effects.map(row=>row.sha)).size,effects.length,'duplicate effect blobs are not allowed');
 
   const closure=new Set(effects.map(row=>row.path));
-  const versions=new Map();
   for(let start=0;start<effects.length;start+=8){
     await Promise.all(effects.slice(start,start+8).map(async effect=>{
       const bytes=await fetchBytes(effect);
-      const dependencies=effectDependencies(bytes);
-      const version=bytes.readUInt32LE(16); // diagnostic only; INFO parser remains authoritative
-      versions.set(version,(versions.get(version)||0)+1);
-      for(const dependency of dependencies){
+      for(const dependency of effectDependencies(bytes)){
         const target=path.posix.join(path.posix.dirname(effect.path),dependency);
         assert.ok(entries.has(target),`${effect.path}: missing dependency ${target}`);
         closure.add(target);
