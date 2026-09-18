@@ -28,7 +28,7 @@ test('discover genuine CC0 combat VFX closure',async()=>{
   const tree=await treeResponse.json();
   assert.equal(tree.truncated,false,'source tree truncated');
   const entries=new Map(tree.tree.filter(row=>row.type==='blob').map(row=>[row.path,row]));
-  const effects=[...entries.values()].filter(row=>GROUPS.has(row.path.split('/')[0])&&row.path.endsWith('.efkefc'));
+  const effects=[...entries.values()].filter(row=>{\n    if(!GROUPS.has(row.path.split('/')[0])||!row.path.endsWith('.efkefc'))return false;\n    if(row.path.startsWith('Tktk01/')&&/(Cure|hozyo)/i.test(row.path))return false;\n    if(row.path==='Pierre01/Pierre01_Background.efkefc')return false;\n    return true;\n  });
   assert.ok(effects.length>=100,`expected >=100 effects, got ${effects.length}`);
   assert.equal(new Set(effects.map(row=>row.sha)).size,effects.length,'duplicate effect blobs are not allowed');
 
