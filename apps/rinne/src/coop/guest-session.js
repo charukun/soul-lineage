@@ -6,7 +6,7 @@ import { validateMuraLayout } from '@soul/world/mura';
 import { createRoomWire } from './wire.js';
 
 export async function joinCoopHost({invite,name,contentVersion,RTCPeerConnection,resume=null,remember=()=>{},onChange=()=>{},now=()=>performance.now(),performanceProbe=null,afterFrame=callback=>typeof requestAnimationFrame==='function'?requestAnimationFrame(callback):queueMicrotask(callback)}){
-  let connection=null,latest=null,phase='connecting',selfId=null,layout=null,error='',lastSeen=now(),seq=0,lastEpoch=0,lastTick=-1,lastRevision=0,disposed=false,rebirthRequest=null,lastDisplayQueued=-1;
+  let connection=null,latest=null,phase='connecting',selfId=null,layout=null,error='',lastSeen=now(),seq=0,lastEpoch=0,lastTick=-1,lastRevision=0,disposed=false,rebirthRequest=null,lastDisplayQueued=-1,lossRecorded=false;
   const probe=performanceProbe;
   const send=m=>wire.send(connection,{...m,worldId:invite.worldId,protocol:COOP_PROTOCOL,epoch:lastEpoch});
   const failRequest=message=>{if(rebirthRequest){probe?.canonAborted(rebirthRequest.lifeId);rebirthRequest.reject(Error(message));rebirthRequest=null;}};
@@ -26,7 +26,7 @@ export async function joinCoopHost({invite,name,contentVersion,RTCPeerConnection
     if(!Number.isSafeInteger(view.historyRevision)||view.historyRevision<0||(view.epoch===lastEpoch&&view.historyRevision<lastRevision))return;
     validateLife(view.me);if(view.front)normalizeFront(view.front,view.me.front);
     for(const peer of view.peers)if(!peer||typeof peer.id!=='string'||!Number.isFinite(peer.position?.x)||!Number.isFinite(peer.position?.z)||!Number.isFinite(peer.ageSeconds)||!Number.isFinite(peer.yaw))return;
-    lastEpoch=view.epoch;lastTick=view.tick;lastRevision=view.historyRevision;latest=view;lastSeen=now();phase=message.phase==='open'?'open':'closed';if(phase==='open')error='';
+    lastEpoch=view.epoch;lastTick=view.tick;lastRevision=view.historyRevision;latest=view;lastSeen=now();lossRecorded=false;phase=message.phase==='open'?'open':'closed';if(phase==='open')error='';
     if(Number.isSafeInteger(view.ackInputSeq))probe?.inputAcknowledged(view.ackInputSeq);
     if(rebirthRequest&&view.me.id!==rebirthRequest.lifeId){probe?.canonCommitted(rebirthRequest.lifeId);rebirthRequest.resolve();rebirthRequest=null;}
     onChange();
@@ -34,9 +34,9 @@ export async function joinCoopHost({invite,name,contentVersion,RTCPeerConnection
   probe?.connectionAttempt();
   connection=await acceptHostOffer(invite.offer,{RTCPeerConnection,dualChannel:true,onMessage:m=>wire.receive(m),onState:state=>{
     if(state==='open'){if(probe)void probe.connectionOpen(connection);send({type:'hello',name:String(name||'旅人').slice(0,12),contentVersion,resume});}
-    if(['closed','failed','error'].includes(state)){phase='closed';failRequest('村とのつながりを待っています。');onChange();}
+    if(['closed','failed','error'].includes(state)){if(latest&&!lossRecorded){probe?.recordHostLossDetection(Math.max(0,now()-lastSeen));lossRecorded=true;}phase='closed';failRequest('村とのつながりを待っています。');onChange();}
   }});
-  const timer=setInterval(()=>{if(latest&&now()-lastSeen>2500&&phase!=='closed'){phase='closed';error='村とのつながりを待っています。';failRequest(error);onChange();}},250);
+  const timer=setInterval(()=>{if(!latest)return;const freshness=Math.max(0,now()-lastSeen);if(phase==='open')probe?.recordStateFreshness(freshness);if(freshness>2500&&phase!=='closed'){if(!lossRecorded){probe?.recordHostLossDetection(freshness);lossRecorded=true;}phase='closed';error='村とのつながりを待っています。';failRequest(error);onChange();}},250);
   function rebirth(villageId){
     if(phase!=='open'||!latest?.me.ended)return Promise.reject(Error('人生の確定を待ってください。'));
     if(rebirthRequest)return rebirthRequest.promise;

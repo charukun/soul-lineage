@@ -2,9 +2,10 @@ import { CoopWorld } from '../rebuild/coop-world.js';
 import { createCoopHost, joinCoopHost } from './session.js';
 import { readInvitation, invitationUrl } from './wire.js';
 import { createHistoryStore } from './history-store.js';
+import { validateSemanticShadowRestore } from './semantic-shadow.js';
 import './menu.css';
 
-export function installCoopMenu({container,buildInfo,getPrepared,getName,onPlay,onLeave,performanceProbeFactory=null}){
+export function installCoopMenu({container,buildInfo,getPrepared,getName,onPlay,onLeave,performanceProbeFactory=null,semanticMeasurement=null,captureWorkload=false}){
   let session=null,playing=false,locked=false,releaseLock=null;
   const contentVersion=String(buildInfo.commit||'local');
   const makeProbe=role=>typeof performanceProbeFactory==='function'?performanceProbeFactory(role):null;
@@ -23,12 +24,28 @@ export function installCoopMenu({container,buildInfo,getPrepared,getName,onPlay,
   async function host(resume){
     if(session)throw Error('いったんタイトルへ戻ってから村を開いてください。');await acquire();
     try{
-      let saved=null;if(resume){const id=await storage().read('coop-last');if(!id)throw Error('保存された試遊の村はありません。');saved=await history.restore(id);if(!saved){const raw=await storage().read(`coop-v1:${id}`);saved=JSON.parse(raw);}if(!saved)throw Error('村の記録が見つかりません。');}
+      let saved=null,semanticShadowState=null,semanticShadowCoverage='warm-start';
+      if(resume){
+        const id=await storage().read('coop-last');if(!id)throw Error('保存された試遊の村はありません。');
+        const envelope=await history.read(id);
+        if(envelope){
+          saved=structuredClone(envelope.checkpoint);
+          try{
+            const raw=JSON.parse(await storage().read(`coop-shadow-v1:${id}`)||'null');
+            if(raw)semanticShadowState=validateSemanticShadowRestore(raw,{worldId:id,ownerId:saved.world.ownerId,authorityRoot:envelope.root,historySequence:envelope.history.length});
+            else semanticShadowCoverage='gap';
+          }catch{semanticShadowCoverage='gap';semanticShadowState=null;}
+        }else{
+          const raw=await storage().read(`coop-v1:${id}`);saved=JSON.parse(raw);semanticShadowCoverage='gap';
+        }
+        if(!saved)throw Error('村の記録が見つかりません。');
+      }
       const prepared=getPrepared(),worldId=saved?.world.worldId||`room-${crypto.randomUUID()}`,ownerId=saved?.world.ownerId||`p-${crypto.randomUUID()}`;
       const world=new CoopWorld({worldId,ownerId,name:getName(),layout:saved?.layout||prepared.layout,saved:saved?.world});
       let writeSequence=0;const writerId=crypto.randomUUID();
       const persist=async value=>{const sequence=writeSequence++,receipt=await history.commit(value,{writeId:`${world.data.epoch}:${writerId}:${sequence}`,acquire:sequence===0});if(sequence===0)await storage().write('coop-last',worldId);return receipt;};
-      session=await createCoopHost({world,contentVersion,save:persist,RTCPeerConnection,onChange:changed,performanceProbe:makeProbe('host')});$('coop-invite').hidden=false;$('coop-cancel').hidden=false;changed();
+      const semanticShadowPersistence={save:value=>storage().write(`coop-shadow-v1:${worldId}`,value)};
+      session=await createCoopHost({world,contentVersion,save:persist,RTCPeerConnection,onChange:changed,performanceProbe:makeProbe('host'),semanticShadowState,semanticShadowCoverage,semanticShadowPersistence,semanticMeasurement,captureWorkload});$('coop-invite').hidden=false;$('coop-cancel').hidden=false;changed();
     }catch(error){releaseLock?.();releaseLock=null;throw error;}
   }
   $('coop-host').onclick=run(()=>host(false));$('coop-resume').onclick=run(()=>host(true));

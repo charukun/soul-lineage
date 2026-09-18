@@ -19,7 +19,8 @@ export function appendHistory(previous,checkpoint){
   }
   for(const [id,row]of Object.entries(after.players)){
     const life=validateLife(row.life),old=before?.players[id]?.life;
-    check(Array.isArray(life.lineage)&&typeof life.ended==='boolean'&&life.ended===(life.ageSeconds===LIFE_SECONDS),'人生の終了状態が不正です。');
+    check(Array.isArray(life.lineage)&&typeof life.ended==='boolean','人生の終了状態が不正です。');
+    check(life.ended?life.phase==='ended':life.ageSeconds<LIFE_SECONDS,'人生の終了状態が不正です。');
     check(Number.isSafeInteger(life.generation)&&life.generation>0&&life.id===`${id}:${life.generation}`,'人生の識別情報が不正です。');
     if(!old){
       check(!before||life.generation===1,'出生の世代が不正です。');
@@ -31,7 +32,7 @@ export function appendHistory(previous,checkpoint){
       check(life.generation===old.generation&&same(life.lineage,old.lineage),'確定した系譜を変更できません。');
       check(life.ageSeconds>=old.ageSeconds&&(!old.ended||life.ended),'確定した人生を巻き戻せません。');
       if(old.ended)check(same(lineageRecord(old),lineageRecord(life)),'終了した人生の記録を変更できません。');
-      if(!old.ended&&life.ended){check(life.ageSeconds===LIFE_SECONDS,'寿命に達していません。');append('life-ended',id,life,{record:lineageRecord(life)});}
+      if(!old.ended&&life.ended)append('life-ended',id,life,{record:lineageRecord(life)});
     }else{
       const op=after.rebirthOps?.[old.id];
       check(old.ended&&life.generation===old.generation+1,'確定前の人生から転生できません。');

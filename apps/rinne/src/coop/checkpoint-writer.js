@@ -2,8 +2,8 @@ const clone=value=>structuredClone(value);
 const changed=(a,b)=>!b||a.id!==b.id||a.ended!==b.ended;
 
 /** One in-flight write + one coalesced request. Ordinary simulation never awaits IO. */
-export function createCheckpointWriter({world,save,now,onCommit=()=>{},onError=()=>{}}){
-  let committed=null,revision=0,active=null,queued=null,failure=null,started=0;
+export function createCheckpointWriter({world,save,now,onCommit=()=>{},onError=()=>{},semanticObserver=null,onSemanticError=()=>{}}){
+  let committed=null,revision=0,active=null,queued=null,failure=null,semanticError=null,started=0;
   function request(){
     if(failure)return Promise.reject(failure);
     if(!queued){let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});queued={promise,resolve,reject};}
@@ -13,7 +13,8 @@ export function createCheckpointWriter({world,save,now,onCommit=()=>{},onError=(
     active=queued;queued=null;started=now();const job=active;
     try{
       const captured=world.save();world.dirtyHistory=false;
-      const receipt=await save(captured);
+      const receipt=await save(captured),commitLatencyMs=Math.max(0,now()-started);
+      if(semanticObserver){try{semanticObserver.observe(committed,captured,{...receipt,commitLatencyMs});}catch(error){semanticError=error;onSemanticError(error);}}
       committed=captured;revision++;job.resolve(receipt);onCommit(receipt);
     }catch(error){failure=error;job.reject(error);queued?.reject(error);queued=null;onError(error);}
     finally{active=null;if(queued&&!failure)void pump();}
@@ -36,5 +37,6 @@ export function createCheckpointWriter({world,save,now,onCommit=()=>{},onError=(
     return view;
   }
   return{request,pendingIds,project,get committed(){return committed;},get revision(){return revision;},
-    get pending(){return Boolean(active||queued);},get pendingSince(){return started;},get failure(){return failure;}};
+    get pending(){return Boolean(active||queued);},get pendingSince(){return started;},get failure(){return failure;},
+    get semanticError(){return semanticError;},get semanticShadow(){return semanticObserver?.snapshot?.()??null;}};
 }
