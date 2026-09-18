@@ -1,3 +1,4 @@
+import {createPhasePanel} from '@soul/shared-ui/phase-panel';
 // Keep service identity explicit without replacing the current in-game title or favicon.
 const serviceEnvironment = __BUILD_INFO__.environment;
 document.title = `尽喰廻遊 | 人間狩りの夜${serviceEnvironment === 'prod' ? '' : ` | ${serviceEnvironment.toUpperCase()}`}`;
@@ -13,6 +14,8 @@ const progress = document.querySelector('#boot-progress');
 let disposeCombatCamera=()=>{};
 try {
   progress.value = 1;
+  createPhasePanel(document.querySelector('#battle'), {skin:'jinku', visible:false});
+  await import('./web/combat-readout-flow.js');
   await import('./runtime-scale-stack.js');
   // Install shared human motion and monster surface adapters before the game creates NightView.
   await import('./master-humans.js');
