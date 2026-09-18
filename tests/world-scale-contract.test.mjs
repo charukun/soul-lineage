@@ -62,13 +62,14 @@ test('tent semantics are residential-only and render the imported traditional yu
   assert.ok(muraDefs[kind].capacity>0,`${kind} must remain residential`);
   assert.equal(muraDefs[kind].jobs,0,`${kind} must not become a work facility`);
   const group=models.building(kind),size=boundsOf(group);
-  assert.equal(group.userData.residentialTent,'external-yurt-v1');
+  assert.equal(group.userData.residentialTent,'authored-yurt-v2');
   assert.equal(group.userData.assetBacked,true);
-  assert.equal(group.userData.visualAssetId,'village.yurt.traditional.v1');
+  assert.equal(group.userData.visualAssetId,'village.yurt.authored-xion.v2');
+  assert.equal(group.userData.visualAssetOrigin,'artist-authored');
   assert.equal(group.userData.circularHousing,true);
   assert.ok(Math.abs(size.x-size.z)<.16,`${kind} must read as round, got ${size.x} x ${size.z}`);
   assert.ok(size.x<=muraDefs[kind].w+.05&&size.z<=muraDefs[kind].d+.05,`${kind} must fit its canonical footprint`);
-  assert.ok(size.y>3.45&&size.y<=3.66,`${kind} yurt height ${size.y}`);
+  assert.ok(size.y>3.3&&size.y<=3.62,`${kind} authored yurt height ${size.y}`);
  }
  for(const kind of ['logging','storage','quarry','clay','hunting','market']){
   const group=models.building(kind),nodes=[];group.traverse(node=>nodes.push(node));
