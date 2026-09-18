@@ -11,7 +11,7 @@ export function evaluateCanary({ sha, manifest, pulse, statuses = [] }) {
   const checks = {
     manifest: manifest?.validatedDevelop === sha,
     pulse: pulse?.repository === 'charukun/soul-lineage' && Number.isFinite(Date.parse(pulse?.generatedAt || '')),
-    develop: latest.get('integration/develop')?.state === 'success',
+    develop: latest.get('dev/delivery')?.state === 'success',
     pulsePublication: latest.get('ops-board/public')?.state === 'success',
     notification: latest.get(NOTIFICATION_CONTEXT)?.state === 'success',
   };
