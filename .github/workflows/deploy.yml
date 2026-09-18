@@ -408,6 +408,7 @@ jobs:
         uses: actions/github-script@v8
         env:
           CHANNEL: ${{ steps.notify.outputs.channel }}
+          DEV_EMAIL: ${{ steps.notify.outputs.dev_email }}
           NOTIFY_OUTCOME: ${{ steps.notify.outcome }}
         with:
           script: |
@@ -418,6 +419,16 @@ jobs:
               : 'ntfy delivery failed; GitHub remains authoritative';
             await github.rest.repos.createCommitStatus({ ...context.repo, sha: context.sha,
               context: 'notification/ntfy', state, description,
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
+            const devEmail = process.env.DEV_EMAIL || (process.env.NOTIFY_OUTCOME === 'failure' ? 'failure' : 'skipped');
+            const devEmailState = devEmail === 'failure' ? 'failure' : 'success';
+            const devEmailDescription = devEmail === 'success'
+              ? 'GitHub PR DEV receipt created or already present'
+              : devEmail === 'skipped'
+                ? 'No eligible merged PR required a DEV receipt'
+                : 'DEV email receipt creation failed; inspect publisher logs';
+            await github.rest.repos.createCommitStatus({ ...context.repo, sha: context.sha,
+              context: 'notification/dev-email', state: devEmailState, description: devEmailDescription,
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
       - name: Wake one bounded continuation or recovery scan after verified DEV
         if: needs.publish.result == 'success'
