@@ -15,6 +15,19 @@ Visual Review is a launcher, not a dashboard. The reviewer chooses one thing to 
 - Canonical-source explanations and cross-app contracts remain in repository docs and inside the specialist tools where relevant. The launcher must not front-load them.
 - On mobile, the launcher should fit as a simple single-screen choice surface and the destination page should own the viewport.
 
+## Selection UX
+
+For Visual Review surfaces, primary subject/variant selection should use one consistent pattern whenever the candidate set is enumerable:
+
+- show the current choice in a dedicated selected-value slot;
+- keep the candidate list visible rather than hiding it behind a modal, drawer or dropdown;
+- render candidates as a five-column grid on both desktop and narrow mobile review layouts;
+- selecting a candidate updates the selected-value slot and the inspected subject immediately;
+- keep the selected candidate visually obvious in the grid;
+- reserve compact selects/dropdowns for secondary settings such as playback speed, quality tier, or other scalar/technical controls rather than the primary reviewed subject.
+
+This pattern applies to review choices such as model, effect, equipment/part candidate and comparable visual variants unless a specialist contract requires a different interaction for a concrete reason.
+
 ## App context
 
 App context belongs inside the specialist surface that can actually apply it. Character/Motion may expose their existing context controls. The launcher does not maintain a second global app-context state.
