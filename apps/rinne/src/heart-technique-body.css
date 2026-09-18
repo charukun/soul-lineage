@@ -35,58 +35,156 @@
 @media(max-height:560px) and (orientation:landscape){.rinne-bottom-controls{right:max(8px,env(safe-area-inset-right));left:auto;transform:none;flex-direction:column}.one-motion-control{right:74px;bottom:10px}.upgrade-panel[data-type="heart"],.upgrade-panel[data-type="technique"],.upgrade-panel[data-type="body"]{right:max(72px,calc(env(safe-area-inset-right) + 65px));bottom:8px;max-height:92dvh}}
 @media(prefers-reduced-motion:reduce){.upgrade-panel[data-type="heart"],.upgrade-panel[data-type="technique"],.upgrade-panel[data-type="body"],.one-motion-control{transition:none}}
 
+/* 心・技・体・装の選択パネル内部だけを共通化する。下部ナビゲーションの見た目は触らない。 */
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]){
+  --loadout-sheet-drag:0px;
+  max-height:min(74dvh,700px);
+  transform:translateY(var(--loadout-sheet-drag));
+  transition:transform .15s ease;
+  overscroll-behavior:contain;
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"])[data-dragging="true"]{transition:none}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"])>header{touch-action:none}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .upgrade-sheet-grip{
+  display:block;position:absolute;left:50%;top:5px;transform:translateX(-50%);
+  width:48px;height:7px;border-top:2px solid rgba(236,203,137,.72);border-bottom:1px solid rgba(62,43,26,.8);
+  background:linear-gradient(90deg,transparent,rgba(211,168,91,.25),transparent);pointer-events:none;
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"])>[data-body]{
+  padding:9px 11px calc(13px + env(safe-area-inset-bottom));
+}
 
-/* 2026-09 gameplay clarity pass: one quiet visual grammar for 心・技・体. */
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-intro{
-  margin:0 0 8px;padding:6px 2px 7px;border:0;border-bottom:1px solid rgba(92,66,39,.24);
-  background:none;box-shadow:none;
+/* 共通の導入文。大きなカードをやめ、見出し+一行説明だけにする。 */
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-intro{
+  display:grid;gap:2px;margin:0 0 8px;padding:2px 2px 8px;
+  border:0;border-bottom:1px solid rgba(86,61,35,.24);background:none;box-shadow:none;color:#412f20;
 }
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-intro strong{font-size:12px}
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-intro small{font-size:8px}
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot-row{
-  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;margin:0 0 10px;
-  border-block:1px solid rgba(91,65,37,.28);background:rgba(83,58,31,.08);
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-intro strong{
+  font-family:var(--font-rinne-display)!important;font-size:12px;letter-spacing:.08em;
 }
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot{
-  min-width:0;min-height:58px;padding:7px 9px;border:0;border-right:1px solid rgba(91,65,37,.22);
-  clip-path:none;background:transparent;box-shadow:none;color:#3b2a1c;text-align:left;
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-intro small{
+  font-size:8px;line-height:1.45;color:#745b3b;
 }
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot:last-child{border-right:0}
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot>span,
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot>strong,
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot>small{display:block}
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot>span{font-size:8px;color:#806342}
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot>strong{margin-top:2px;font-family:var(--font-rinne-display)!important;font-size:13px;color:#342419}
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot>small{margin-top:2px;font-size:7px;color:#8a7459}
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot[data-selected="true"]{
-  background:linear-gradient(180deg,rgba(191,145,69,.18),rgba(191,145,69,.06));box-shadow:inset 0 -2px #a97836;
+
+/* 上段は4画面とも「現在値 / 編集先」の3分割。装飾より状態を優先する。 */
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-slot-row{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:0 0 9px;
+  border:1px solid rgba(91,65,37,.3);background:rgba(255,247,220,.12);
 }
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-library{margin-top:0}
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-library>header{
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-slot-cell{
+  min-width:0;display:grid;grid-template-rows:1fr auto;border-right:1px solid rgba(91,65,37,.22);
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-slot-cell:last-child{border-right:0}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-slot{
+  width:100%;min-width:0;min-height:56px;padding:7px 8px;border:0;border-right:1px solid rgba(91,65,37,.22);
+  border-radius:0;clip-path:none;background:transparent;box-shadow:none;color:#3b2a1c;text-align:left;
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-slot-cell .loadout-slot{border-right:0}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-slot-row>.loadout-slot:last-child{border-right:0}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-slot>span,
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-slot>strong,
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-slot>small{display:block;min-width:0}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-slot>span{font-size:8px;color:#806342}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-slot>strong{
+  margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-family:var(--font-rinne-display)!important;font-size:13px;color:#342419;
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-slot>small{
+  margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7px;color:#8a7459;
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-slot[data-selected="true"],
+.upgrade-panel[data-type="technique"] .loadout-slot-cell[data-selected="true"]{
+  background:linear-gradient(180deg,rgba(191,145,69,.18),rgba(191,145,69,.055));
+  box-shadow:inset 0 -2px #a97836;
+}
+.upgrade-panel[data-type="technique"] .slot-favorite{
+  min-height:26px;padding:3px 4px;border:0;border-top:1px solid rgba(91,65,37,.16);
+  background:rgba(61,50,38,.08);color:#78654b;font-size:7px;box-shadow:none;
+}
+.upgrade-panel[data-type="technique"] .slot-favorite[data-active="true"]{background:rgba(169,120,54,.14);color:#6a4420}
+
+/* 候補一覧は全画面で同じ2列・同じカード密度。 */
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-library{margin-top:0}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-library>header{
   display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 2px 6px;
 }
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-library>header strong{font-size:11px}
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-library>header small{font-size:7px;color:#806b50;text-align:right}
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-grid{
-  display:flex!important;grid-template-columns:none!important;gap:5px;overflow-x:auto;overflow-y:hidden;
-  padding:1px 2px 6px;scroll-snap-type:x proximity;scrollbar-width:none;
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-library>header strong{
+  font-family:var(--font-rinne-display)!important;font-size:11px;letter-spacing:.06em;color:#4b3523;
 }
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-grid::-webkit-scrollbar{display:none}
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-grid-item{
-  flex:0 0 clamp(118px,31vw,156px);min-width:0;min-height:54px;padding:7px 9px;border:1px solid rgba(83,67,48,.34);
-  clip-path:none;background:rgba(55,52,45,.92);box-shadow:none;color:#eadfc7;text-align:left;scroll-snap-align:start;
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-library>header small{
+  max-width:58%;font-size:7px;line-height:1.35;color:#806b50;text-align:right;
 }
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-grid-item strong,
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-grid-item small{display:block}
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-grid-item strong{font-family:var(--font-rinne-display)!important;font-size:11px}
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-grid-item small{margin-top:3px;font-size:7px;line-height:1.35;color:#b9ad96}
-.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-grid-item[data-active="true"]{
-  border-color:#aa7e3e;background:#60472d;color:#fff0c8;box-shadow:inset 0 -2px #c29149;
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-grid{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px;overflow:visible!important;padding:0;
 }
-.rinne-bottom-controls .upgrade-control:is(.is-heart,.is-technique,.is-body){
-  background:transparent!important;border:0!important;clip-path:none!important;box-shadow:none!important;filter:none!important;
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-grid-item{
+  min-width:0;min-height:52px;padding:7px 8px;border:1px solid rgba(83,67,48,.34);border-bottom:2px solid rgba(67,49,31,.55);
+  border-radius:0;clip-path:none;background:linear-gradient(180deg,#4c4940,#2f302b);box-shadow:none;color:#eadfc7;text-align:left;
 }
-.rinne-bottom-controls .upgrade-control:is(.is-heart,.is-technique,.is-body)[aria-pressed="true"],
-.rinne-bottom-controls .upgrade-control:is(.is-heart,.is-technique,.is-body)[data-active="true"]{
-  background:rgba(170,126,62,.14)!important;box-shadow:inset 0 -2px #b48749!important;
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-grid-item strong,
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-grid-item small{display:block;min-width:0}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-grid-item strong{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-rinne-display)!important;font-size:11px;
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-grid-item small{
+  margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7px;color:#b9ad96;
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-grid-item[data-active="true"]{
+  border-color:#ad813f;border-bottom-color:#765126;background:linear-gradient(180deg,#715434,#4a3522);color:#fff0c8;
+  box-shadow:inset 0 -2px rgba(211,161,78,.45);
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-empty{
+  grid-column:1/-1;margin:16px 4px;color:#765d3e;font-size:10px;text-align:center;
+}
+
+/* 技だけに必要な補助操作も同じ密度へ寄せる。 */
+.upgrade-panel[data-type="technique"] .loadout-context-bar{
+  display:grid;grid-template-columns:36px minmax(0,1fr) 36px 46px 46px;gap:4px;margin:0 0 6px;
+}
+.upgrade-panel[data-type="technique"] .loadout-context-bar button{
+  min-width:0;min-height:34px;padding:4px 5px;border:1px solid rgba(91,65,37,.34);border-bottom:2px solid rgba(67,49,31,.55);
+  background:linear-gradient(180deg,#5c4d3c,#343028);color:#ead9b5;box-shadow:none;font-size:9px;
+}
+.upgrade-panel[data-type="technique"] .loadout-context-current{
+  display:grid;place-items:center;gap:1px;text-align:center;
+}
+.upgrade-panel[data-type="technique"] .loadout-context-current strong{font-family:var(--font-rinne-display)!important;font-size:10px}
+.upgrade-panel[data-type="technique"] .loadout-context-current small{font-size:7px;color:#bca986}
+.upgrade-panel[data-type="technique"] .loadout-context-bar button[data-active="true"]{
+  border-color:#ad813f;background:linear-gradient(180deg,#715434,#4a3522);color:#fff0c8;
+}
+.upgrade-panel[data-type="technique"] .one-motion-card{
+  min-height:50px;margin:0 0 9px;padding:7px 9px;border:1px solid rgba(113,76,43,.38);border-left:3px solid #9b6338;
+  background:rgba(91,61,35,.09);box-shadow:none;color:#342218;
+}
+.upgrade-panel[data-type="technique"] .one-motion-card span{font-size:7px}
+.upgrade-panel[data-type="technique"] .one-motion-card strong{font-size:12px}
+.upgrade-panel[data-type="technique"] .one-motion-card small{font-size:7px}
+.upgrade-panel[data-type="technique"] .one-motion-card>b{font-size:8px;color:#795338}
+
+/* 4画面のページ送りも同じ見た目。 */
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .panel-pager{
+  display:grid;grid-template-columns:42px 1fr 42px;gap:6px;align-items:center;margin:8px 0 0;
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .panel-pager button{
+  min-height:36px;border:1px solid #765738;border-bottom:2px solid #4a3420;background:linear-gradient(180deg,#5b4c3c,#342b22);color:#f0dbb2;font-size:17px;
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .panel-pager button:disabled{opacity:.3}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .panel-pager span{
+  text-align:center;color:#654a2c;font-family:var(--font-rinne-display)!important;font-size:10px;letter-spacing:.1em;
+}
+
+@media(max-width:410px){
+  .upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-slot{padding-inline:6px}
+  .upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]) .loadout-slot>strong{font-size:12px}
+  .upgrade-panel[data-type="technique"] .loadout-context-bar{grid-template-columns:34px minmax(0,1fr) 34px 42px 42px}
+}
+@media(max-height:560px) and (orientation:landscape){
+  .upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]){
+    right:max(72px,calc(env(safe-area-inset-right) + 65px));bottom:8px;max-height:92dvh;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"],[data-type="items"]){transition:none}
 }
