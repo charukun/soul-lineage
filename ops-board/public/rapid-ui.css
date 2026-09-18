@@ -68,6 +68,19 @@ body::before{
   background:var(--ok);
   box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 10%,transparent);
 }
+html[data-pulse-tone="warning"] .pulse-wordmark::after,
+html[data-pulse-tone="progress"] .pulse-wordmark::after{
+  background:var(--warning);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--warning) 10%,transparent);
+}
+html[data-pulse-tone="danger"] .pulse-wordmark::after{
+  background:var(--danger);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--danger) 11%,transparent);
+}
+html[data-pulse-tone="info"] .pulse-wordmark::after{
+  background:var(--info);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--info) 9%,transparent);
+}
 .refresh-area{
   width:min(49vw,230px);
   gap:4px;
