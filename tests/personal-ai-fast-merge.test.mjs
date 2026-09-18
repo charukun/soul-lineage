@@ -8,7 +8,7 @@ test('Ready exact-head CI enters the serialized develop merge guard without a di
   const agents = readFileSync('AGENTS.md', 'utf8');
 
   assert.match(ci, /merge-ready:/);
-  assert.match(ci, /uses: \.\/\.github\/workflows\/integration-controller\.yml/);
+  assert.match(ci, /uses: \.\/\.github\/workflows\/develop-merge\.yml/);
   assert.match(ci, /needs\.build\.result == 'success' \|\| needs\.build\.result == 'failure'/);
   assert.doesNotMatch(ci, /integration-request:/);
   assert.doesNotMatch(ci, /integration-controller\.yml/);
