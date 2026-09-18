@@ -1,7 +1,8 @@
 const PHASES=Object.freeze(['jo','ha','kyu']);
 const PHASE_SET=new Set(PHASES);
+const clamp=(value,lo,hi)=>Math.min(hi,Math.max(lo,value));
 const FIXED_CAMERA=Object.freeze({
-  position:Object.freeze({x:0,y:4.7,z:7.5}),
+  position:Object.freeze({x:0,y:5.2,z:10}),
   look:Object.freeze({x:0,y:.95,z:0}),
   separation:0,
   follow:false
@@ -39,12 +40,13 @@ export function reviewBattleCameraFrame(core,{follow=true}={}){
   if(values.some(value=>!Number.isFinite(value)))return FIXED_CAMERA;
   const [heroX,heroZ,enemyX,enemyZ]=values;
   const hx=heroX*1.35,hz=heroZ*1.15,ex=enemyX*1.35,ez=enemyZ*1.15;
-  const centerX=(hx+ex)/2,centerZ=(hz+ez)/2;
   const separation=Math.hypot(hx-ex,hz-ez);
-  const extra=Math.min(3.4,Math.max(0,separation-2.1)*.52);
+  const enemyPull=clamp(.28+(separation-2.2)*.025,.28,.42);
+  const focusX=hx+(ex-hx)*enemyPull,focusZ=hz+(ez-hz)*enemyPull;
+  const extra=Math.min(4.2,Math.max(0,separation-2)*.62);
   return Object.freeze({
-    position:Object.freeze({x:centerX,y:4.7+extra*.22,z:centerZ+7.5+extra}),
-    look:Object.freeze({x:centerX,y:.95,z:centerZ}),
+    position:Object.freeze({x:focusX,y:5.2+extra*.18,z:focusZ+10+extra}),
+    look:Object.freeze({x:focusX,y:.95,z:focusZ}),
     separation,
     follow:true
   });

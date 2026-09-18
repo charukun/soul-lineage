@@ -1,5 +1,6 @@
 import {UPGRADES, readProgress, huntPlan, goalText, bodyStats, upgradeQuote} from '../hunt/balance.js';
 import './hunt-flow.css';
+import './hunt-minimal-hud.css';
 
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 const byId = id => document.getElementById(id);
@@ -9,10 +10,12 @@ export class HuntFlowUi {
     document.body.classList.add('hunt-loop');
     this.objective = byId('objective');
     this.bag = document.createElement('div'); this.bag.className = 'hunt-bag';
-    this.bag.innerHTML = '<span data-haul></span><span data-goal></span><progress max="1" value="0" aria-label="捕食目標"></progress>';
+    this.bag.innerHTML = '<span class="hunt-goal" data-goal></span><span class="hunt-haul" data-haul></span><progress max="1" value="0" aria-label="捕食目標"></progress>';
     this.objective.append(this.bag);
     this.bearing = document.createElement('b'); this.bearing.textContent = '↓'; this.bearing.setAttribute('aria-hidden', 'true');
-    this.exitText = document.createElement('span'); byId('return-hint').replaceChildren(this.bearing, this.exitText);
+    this.exitText = document.createElement('span'); this.exitText.className = 'hunt-return-copy';
+    this.exitDistance = document.createElement('span'); this.exitValue = document.createElement('strong');
+    this.exitText.append(this.exitDistance, this.exitValue); byId('return-hint').replaceChildren(this.bearing, this.exitText);
     this.actionLine = document.createElement('p'); this.actionLine.className = 'hunt-action';
     this.actionLine.setAttribute('role', 'status'); this.actionLine.hidden = true; this.objective.append(this.actionLine);
     this.actionToken = ''; this.actionAt = 0;
@@ -62,13 +65,20 @@ export class HuntFlowUi {
     }
     guide.hidden = true;
     this.actionLine.hidden = true;
-    this.bag.querySelector('[data-haul]').textContent = `持ち帰れば ${game.carried + (ready ? plan.bonus : 0)} 戦利品`;
-    this.bag.querySelector('[data-goal]').textContent = `${Math.min(game.eaten, plan.quota)} / ${plan.quota}${plan.marked ? ` · 標的 ${game.targetEaten ? '済' : '未'}` : ''}`;
+    const haul = game.carried + (ready ? plan.bonus : 0), eaten = Math.min(game.eaten, plan.quota);
+    this.bag.querySelector('[data-goal]').textContent = plan.marked ? `${plan.prey}${game.targetEaten ? '済' : '未'} ${eaten}/${plan.quota}` : `人影 ${eaten}/${plan.quota}`;
+    this.bag.querySelector('[data-haul]').textContent = `戦利 ${haul}`;
     this.bag.querySelector('progress').value = Math.min(1, game.eaten / plan.quota);
+    this.objective.setAttribute('aria-label', `${goalText(plan)}。現在 ${eaten} / ${plan.quota}。持ち帰れば戦利品 ${haul}`);
     byId('hud').dataset.huntState = game.fight ? 'combat' : returning ? 'return' : 'hunt';
     byId('return-hint').hidden = overlay || game.eaten < 1 || game.finished;
     this.bearing.style.transform = `rotate(${(.33 - Math.atan2(exit.x - game.player.x, exit.z - game.player.z)) * 180 / Math.PI}deg)`;
-    this.exitText.textContent = game.escapeHold > 0 ? '帰還中…' : `${exit.label} ${Math.ceil(exit.distance)}m · 帰れば +${game.carried + (ready ? plan.bonus : 0)}`;
+    if (game.escapeHold > 0) {
+      this.exitDistance.textContent = '帰還中…'; this.exitValue.textContent = '';
+    } else {
+      this.exitDistance.textContent = `${Math.ceil(exit.distance)}m`;
+      this.exitValue.textContent = `帰還 ${game.carried + (ready ? plan.bonus : 0)}`;
+    }
   }
   upgradeHtml(profile) {
     return `<div class="hunt-upgrades">${Object.keys(UPGRADES).map(key => {

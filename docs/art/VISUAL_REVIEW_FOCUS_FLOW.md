@@ -19,6 +19,7 @@ Visual Review Lab has exactly one public DEV route: `https://charukun.github.io/
 - The browser/device Back action is the primary return path. Dedicated pages may expose a small `← Review` link, but no persistent global launcher, app-context bar, source dashboard or workflow explanation may remain above the inspected content.
 - Canonical-source explanations and cross-app contracts remain in repository docs and inside the specialist tools where relevant. The launcher must not front-load them.
 - On mobile, the launcher should fit as a simple single-screen choice surface and the destination page should own the viewport.
+- Repeated label normalization must be idempotent. A MutationObserver-driven normalizer must not rewrite already-normalized text and trigger its own child-list loop.
 
 ## Selection UX
 
