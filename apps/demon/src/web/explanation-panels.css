@@ -40,11 +40,13 @@
 .angled-guide::before{
   z-index:-1;
   opacity:.48;
+  transition-delay:20ms;
   background:linear-gradient(116deg,#080605f0,#1d0c0acf 62%,#080605ec);
 }
 .angled-guide::after{
   z-index:-2;
   opacity:.26;
+  transition-delay:45ms;
   background:linear-gradient(116deg,#050404ef,#140908ba 62%,#060504e8);
 }
 .angled-guide[data-side="right"]::before{
