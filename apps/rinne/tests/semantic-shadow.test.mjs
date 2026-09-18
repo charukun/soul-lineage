@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createSemanticShadow, deriveSemanticShadowActions } from '../src/coop/semantic-shadow.js';
 import { createCheckpointWriter } from '../src/coop/checkpoint-writer.js';
+import { createCoopPerformanceProbe } from '../src/coop/performance.js';
 
 const record=life=>({generation:life.generation,name:life.name,age:Math.floor(life.ageYears),birthVillageId:life.birthVillageId,
   returnedHome:life.returns>0,memento:null,defeats:life.defeats,equipment:structuredClone(life.equipment),
@@ -84,4 +85,16 @@ test('checkpoint writer records shadow divergence without turning a successful s
   assert.equal(writer.failure,null);
   assert.match(writer.semanticError.message,/candidate mismatch/);
   assert.deepEqual(writer.semanticShadow,{status:'diverged'});
+});
+
+
+test('shadow byte samples feed the existing performance capture namespace without changing authority',()=>{
+  const probe=createCoopPerformanceProbe({now:()=>0}),shadow=createSemanticShadow({lifeSeconds:6000,onSample:sample=>probe.recordSemanticCommit(sample)});
+  const a=checkpoint();shadow.observe(null,a,receipt(1,1));
+  const b=structuredClone(a),l=b.world.players.owner.life;l.ageSeconds=6000;l.ageYears=100;l.ended=true;l.phase='ended';
+  shadow.observe(a,b,receipt(2,2));
+  const raw=probe.snapshot();
+  assert.equal(raw.semanticCheckpointBytes.length,2);assert.equal(raw.semanticJournalBytes[0],0);assert(raw.semanticJournalBytes[1]>0);
+  assert.deepEqual(raw.semanticEventCount,[0,1]);assert.deepEqual(raw.semanticHistoryEffects,[0,1]);
+  assert.equal(shadow.snapshot().checkpointBytesTotal,raw.semanticCheckpointBytes.reduce((a,b)=>a+b,0));
 });
