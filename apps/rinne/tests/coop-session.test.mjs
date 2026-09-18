@@ -104,3 +104,16 @@ test('guest display timing waits for the frame after authoritative state was sub
     clock=50;queued();assert.deepEqual(guest.performance().inputToDisplayMs,[40]);guest.frameRendered(16.7);assert.deepEqual(guest.performance().frameMs,[16.7]);
   }finally{guest?.dispose();await host.dispose();}
 });
+
+
+test('capture-only protected cycle seals an early life and rebirths without changing normal session behavior',async()=>{
+  const world=room(),writes=[];
+  const host=await createCoopHost({world,contentVersion:'test',RTCPeerConnection:MemoryRTC,captureWorkload:true,save:async value=>{writes.push(structuredClone(value));}});
+  try{
+    const before=world.data.players.owner.life.id;assert.equal(world.data.players.owner.life.ended,false);await host.captureProtectedCycle();
+    assert.notEqual(world.data.players.owner.life.id,before);assert.equal(world.data.players.owner.life.generation,2);assert.equal(world.data.players.owner.life.ended,false);
+    assert(writes.some(row=>row.world.players.owner.life.id===before&&row.world.players.owner.life.ended===true));
+  }finally{await host.dispose();}
+  const normal=await createCoopHost({world:room(),contentVersion:'test',RTCPeerConnection:MemoryRTC,save:async()=>{}});
+  try{await assert.rejects(normal.captureProtectedCycle(),/無効/);}finally{await normal.dispose();}
+});
