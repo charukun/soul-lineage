@@ -72,7 +72,7 @@ Primary Web DEV publication is app-scoped Cloudflare Workers static assets:
 
 GitHub Pages remains a compatibility mirror while existing links and Production are preserved. The fast DEV path does not wait for the shared Pages site. Each app job has its own concurrency key, so a newer `demon` change may supersede an older `demon` publish without cancelling an in-flight `rinne` or `village` publish.
 
-After all apps affected by one develop merge are exact-source verified on their independent DEV URLs, one GitHub PR receipt is created. This is the fast DEV email signal; the legacy Pages publisher must not be required for that notification.
+After all apps affected by one develop merge are successfully published to their independent DEV URLs, one GitHub PR receipt is created. Public exact-source checks remain diagnostic evidence and do not block DEV completion or the receipt. The legacy Pages publisher must not be required for that notification.
 
 ## Consumer packaging contract
 
@@ -111,7 +111,7 @@ The repository now exposes:
 - `.github/workflows/dev-app-publish.yml` for independent affected-app DEV publication;
 - `.github/workflows/distribution-artifact.yml` for explicit/reusable artifact production;
 - app-scoped `dev/<app>` commit statuses;
-- exact-source public verification through `version.json`;
+- non-blocking public source diagnostics through `version.json`;
 - one fast DEV completion receipt after every affected app for that merge is live.
 
 The legacy Pages workflow assembles changed apps from the same immutable artifact contract and remains the compatibility/Production path during migration.
