@@ -23,6 +23,15 @@ jobs:
         run: npm ci
       - name: Validate source MIDIs and Production catalog
         run: node --test packages/audio/tests/source-midi.test.mjs packages/audio/tests/catalog.test.mjs
+      - name: Bundle new license assets
+        run: |
+          printf '%s\n' "export const x=[new URL('./packages/audio/assets/licenses/MuseScore_General_License.txt',import.meta.url).href,new URL('./packages/audio/assets/licenses/MuseScore_General_Sample_Sources.csv',import.meta.url).href];" > .bgm-license-probe.mjs
+          node --input-type=module -e "import {build} from 'vite'; await build({configFile:false,logLevel:'silent',build:{write:false,rolldownOptions:{input:'.bgm-license-probe.mjs'}}})"
+          rm .bgm-license-probe.mjs
+      - name: Bundle audio catalog module
+        run: node --input-type=module -e "import {build} from 'vite'; await build({configFile:false,logLevel:'silent',build:{write:false,rolldownOptions:{input:'packages/audio/src/index.js'}}})"
+      - name: Bundle audio URL module
+        run: node --input-type=module -e "import {build} from 'vite'; await build({configFile:false,logLevel:'silent',build:{write:false,rolldownOptions:{input:'packages/audio/src/urls.js'}}})"
       - name: Prepare Rinne assets
         run: npm run prebuild --workspace @soul/rinne
       - name: Bundle Rinne
