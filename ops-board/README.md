@@ -79,3 +79,22 @@ PULSEは現在の短寿命・並列AI開発フローを、運用者が数秒で�
 - 正常時は静かに、要対応時だけ強くする。警告色はユーザー操作が必要な状態と取得異常へ限定する
 - タップ対象は44px以上を基準とし、片手スマホ操作で主要導線へ届く密度にする
 - 既存のDOM ID、データ取得、状態判定、Rescue/Integration/Publication契約は変更せず、UI刷新をcontrol-plane変更へ波及させない
+
+
+## Operator UX / resilience contract
+
+PULSEのトップは、スマホで3秒以内に次の3点を判断できることを受入条件とする。
+
+- **あなたの操作**: 人間の確認が必要な件数。0件なら「操作不要」を明示する。
+- **開発中**: Draft / Ready / 自動修復の進行件数を短く表示する。
+- **DEV**: 最新か、更新中か、未確認かを短く表示し、詳細工程は必要時だけ開く。
+
+表示と状態取得は次の耐障害契約を守る。
+
+- PULSE自身の同期障害と、人間の要対応を同じ警告として重複表示しない。
+- API一時障害では、ブラウザに保存した直近の正常snapshotをLast Known Goodとして表示し続ける。
+- Last Known Goodが無い初回障害でも、画面全体を「確認中」のままにせず、PULSE自身の復旧中であることを一箇所で説明する。
+- 開発フローはトップでは「作業 → Ready → 統合 → DEV」の4段階に圧縮し、PULSE自身の同期状態は別のヘルス表示へ分離する。
+- 正常時のカード入れ子と説明文を減らし、詳細・SHA・Actions・履歴は既存disclosureの内側へ残す。
+- Workerの状態取得が失敗しても、可能な限り構造化されたdegraded stateを返し、静的UIだけが生きて全データが消える状態を避ける。
+- 既存のGitHub API認証、request budget、Integration/Rescue/Publication判定、main/Production品質gateは弱めない。
