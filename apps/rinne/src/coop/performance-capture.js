@@ -12,7 +12,7 @@ const mergeSnapshots=(segments,current)=>{
   }
   return merged;
 };
-const captureMeta=(session,buildInfo,{expectedPeers,windowArmed,workloadId,measurementStartedAt,capabilities})=>({
+const captureMeta=(session,buildInfo,{expectedPeers,windowArmed,workloadId,variant,rpoSeconds,measurementStartedAt,capabilities})=>({
   schema:'rrp-raw-peer-capture',version:1,role:session?.role||null,worldId:session?.worldId||null,peerId:session?.selfId||null,
   buildRevision:String(buildInfo?.commit||'UNBUILT'),environment:String(buildInfo?.environment||'local'),expectedPeers,windowArmed:Boolean(windowArmed),
   workloadId,variant,rpoSeconds,encoding:'json-utf8',compression:'none',measurementStartedAt:measurementStartedAt||null,capturedAt:new Date().toISOString(),capabilities:safeClone(capabilities),
