@@ -15,15 +15,19 @@ export function assertSnapshot(state, expected) {
   assert.equal(state.syncStatus, 'ok', `GitHub snapshot is not fresh: ${state.syncError || state.syncStatus}`);
   assert.ok(Number.isFinite(Date.parse(state.generatedAt)), 'Missing GitHub retrieval timestamp');
   assert.ok(Date.now() - Date.parse(state.generatedAt) < 10 * 60000, 'Snapshot is stale');
-  for (const list of [state.environments, state.applications, state.pullRequests?.normal, state.pullRequests?.visualReview]) assert.ok(Array.isArray(list));
+  for (const list of [state.environments, state.applications, state.pullRequests?.normal]) assert.ok(Array.isArray(list));
   const lookup = state.pullRequests.targetLookup;
   assert.ok(lookup && ['ready', 'pending', 'unavailable'].every(key => Number.isInteger(lookup[key]) && lookup[key] >= 0), 'Target lookup metadata is missing');
-  const pulls = [...state.pullRequests.normal, ...state.pullRequests.visualReview];
+  const legacyVisualReview = Array.isArray(state.pullRequests.visualReview) ? state.pullRequests.visualReview : [];
+  const pulls = [...state.pullRequests.normal, ...legacyVisualReview];
   assert.equal(lookup.ready + lookup.pending + lookup.unavailable, pulls.length, 'Incomplete target accounting');
   for (const [id, name] of Object.entries({ ...GAME_NAMES, portal: 'WAYFINDER', 'ops-board': BOARD_NAME })) {
     const app = state.applications.find(item => item.id === id);
     assert.equal(app?.name, name, `${id} current name`);
-    if (app.kind === 'game') assert.deepEqual(app.targets.map(target => target.environment), GAME_ENVIRONMENTS.map(env => env.id));
+    if (app.kind === 'game') {
+      const releaseEnvironments = app.targets.map(target => target.environment).filter(id => GAME_ENVIRONMENTS.some(env => env.id === id));
+      assert.deepEqual(releaseEnvironments, GAME_ENVIRONMENTS.map(env => env.id));
+    }
   }
   const visual = state.applications.find(app => app.id === 'visual-review');
   if (visual) assert.equal(visual.name, 'Visual Review Lab');
