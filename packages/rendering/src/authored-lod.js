@@ -29,7 +29,7 @@ export function installAuthoredStylizedLOD(root, profileId, { minTriangles = 96 
     const original = base.geometry;
     if (triangles(original) < minTriangles) continue;
     markVariant(lod1); markVariant(lod2);
-    const fallback = (() => {
+    const fallback = root.userData?.preserveStylizedSilhouette ? null : (() => {
       original.computeBoundingBox(); const box = original.boundingBox;
       if (!box || box.isEmpty()) return null;
       const size = box.getSize(new Vector3()), center = box.getCenter(new Vector3());
