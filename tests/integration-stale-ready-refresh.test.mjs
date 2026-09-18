@@ -4,6 +4,7 @@ import {
   reconcileNonOverlappingReady,
   refreshStaleReady,
   staleReadyCandidate,
+  staleReadyValidationMatrix,
 } from '../scripts/integration-stale-ready-refresh.mjs';
 
 const repository = 'charukun/soul-lineage';
@@ -109,6 +110,14 @@ test('overlapping develop drift is never merge-forwarded by stale Ready refresh'
   assert.equal(mergeCalls, 0);
 });
 
+test('stale Ready validation matrix includes only exact merged-forward heads', () => {
+  assert.deepEqual(staleReadyValidationMatrix([
+    { pr: 1, state: 'semantic-overlap', sha: sha('a'), develop: sha('b') },
+    { pr: 2, state: 'merged-forward', sha: 'short', develop: sha('b') },
+    { pr: 3, state: 'merged-forward', sha: sha('c'), develop: sha('d') },
+  ]), [{ pr: 3, head: sha('c'), base: sha('d') }]);
+});
+
 test('stale Ready scan is bounded and ignores stacked or Draft PRs', async () => {
   const develop = sha('d');
   const a = pr(20, { head: sha('1') });
@@ -139,5 +148,6 @@ test('stale Ready scan is bounded and ignores stacked or Draft PRs', async () =>
   });
   assert.equal(report.refreshed, 1);
   assert.equal(report.evaluated, 1);
+  assert.deepEqual(report.matrix, [{ pr: 20, head: sha('c'), base: develop }]);
   assert.deepEqual(calls, [20]);
 });

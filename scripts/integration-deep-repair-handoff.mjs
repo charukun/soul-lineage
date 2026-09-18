@@ -115,7 +115,7 @@ function chatRepairSection({ repository, state, pr, develop, reason, repairKind,
     ? `\nFailed validation: ${ciFailure.jobUrl}\nRun: ${ciFailure.runId}, attempt: ${ciFailure.runAttempt}, job: ${ciFailure.jobId} (${ciFailure.jobName})\n通常Chatは編集前に必要なfailed job steps/log範囲だけ確認し、assertionを弱めないでください。\n`
     : '';
   const notice = notifyOwner
-    ? `@${chatRepairOwner}\n\nCHAT_REPAIR_REQUIRED`
+    ? 'CHAT_REPAIR_REQUIRED'
     : 'CHAT_REPAIR_REFRESHED\n\n同じsource PRの未解決Chat Repair Issueをcurrent exact-headへ更新しました。owner mention / assignment通知は再送しません。';
   const footer = notifyOwner
     ? 'このIssue/メールは起動通知です。修復時は必ずcurrent GitHub stateを再取得してください。GitHub通知メールの配送有無はownerのGitHub通知設定に従います。'
