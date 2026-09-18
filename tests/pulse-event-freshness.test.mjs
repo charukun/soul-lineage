@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { eventDrivenAlerts, syncPresentation } from '../ops-board/public/freshness.mjs';
+import { PULSE_COPY } from '../ops-board/public/pulse-contract.mjs';
 
 const now = Date.parse('2026-09-18T03:00:00Z');
 const healthyState = generatedAt => ({
@@ -20,7 +21,7 @@ test('elapsed time alone does not become a PULSE action item', () => {
 
   const presentation = syncPresentation(state, now);
   assert.equal(presentation.tone, 'ok');
-  assert.equal(presentation.title, '同期済み');
+  assert.equal(presentation.title, PULSE_COPY.synced.syncTitle);
   assert.match(presentation.meta, /3時間0分前/);
   assert.match(presentation.meta, /イベント駆動/);
 });
@@ -35,7 +36,7 @@ test('real sync degradation stays visible as automatic recovery while previous f
   assert.equal(alerts.length, 0, 'automatic sync recovery must not become a human-action alert');
   const presentation = syncPresentation(state, now);
   assert.equal(presentation.tone, 'warning');
-  assert.equal(presentation.title, '再同期中');
+  assert.equal(presentation.title, PULSE_COPY.recovery.syncTitle);
   assert.match(presentation.meta, /最終確定/);
 });
 
@@ -51,7 +52,7 @@ test('Control Tower NEEDS_USER keeps a true human-action sync problem red', () =
   };
   const presentation = syncPresentation(state, now);
   assert.equal(presentation.tone, 'danger');
-  assert.equal(presentation.title, '確認が必要');
+  assert.equal(presentation.title, PULSE_COPY.needsUser.syncTitle);
   assert.match(presentation.meta, /認証/);
   assert.equal(eventDrivenAlerts(state, now).length, 1);
 });
@@ -59,7 +60,7 @@ test('Control Tower NEEDS_USER keeps a true human-action sync problem red', () =
 test('missing snapshot identity remains a visible confirmation state', () => {
   const presentation = syncPresentation(healthyState(null), now);
   assert.equal(presentation.tone, 'warning');
-  assert.equal(presentation.title, '同期確認中');
+  assert.equal(presentation.title, PULSE_COPY.unknown.syncTitle);
 });
 
 test('PULSE UI explains event-driven sync and browser reload without implying a GitHub refresh', () => {
