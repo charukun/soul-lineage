@@ -12,48 +12,6 @@ concurrency:
   group: ci-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
-  request-rescue:
-    name: Record Ready handoff
-    if: >-
-      contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action) &&
-      github.event.pull_request.base.ref == 'develop' && github.event.pull_request.draft == false &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    permissions:
-      contents: read
-      statuses: write
-      issues: write
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: develop
-          persist-credentials: false
-          sparse-checkout: scripts
-      - name: Record Ready handoff without waiting for CI
-        continue-on-error: true
-        uses: actions/github-script@v8
-        env:
-          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
-          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
-        with:
-          script: |
-            const { existsSync } = require('node:fs');
-            if (!existsSync('scripts/implementation-handoff.mjs')) {
-              core.notice('Handoff recorder is not on develop yet; existing Ready/merge events own this bootstrap PR.');
-              return;
-            }
-            const { recordHandoff } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/implementation-handoff.mjs`);
-            const result = await recordHandoff({ github, repo: context.repo,
-              number: context.payload.pull_request.number,
-              expectedHead: context.payload.pull_request.head.sha,
-              runUrl: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              notification: { url: process.env.NTFY_TOPIC_URL, token: process.env.NTFY_TOKEN },
-              warn: message => core.warning(message) });
-            core.summary.addRaw(JSON.stringify(result)).write();
-
   build:
     name: Validate and build
     if: >-
@@ -234,40 +192,3 @@ jobs:
           overwrite: true
           retention-days: 14
 
-  merge-ready:
-    name: Merge verified Ready PRs
-    needs: build
-    if: >-
-      always() && !cancelled() &&
-      (needs.build.result == 'success' || needs.build.result == 'failure') &&
-      github.event.pull_request.base.ref == 'develop' && github.event.pull_request.draft == false &&
-      github.event.pull_request.head.repo.full_name == github.repository
-    uses: ./.github/workflows/develop-merge.yml
-    permissions:
-      contents: write
-      pull-requests: write
-      actions: write
-      checks: read
-      statuses: write
-      issues: write
-    secrets: inherit
-
-  pulse-result-refresh:
-    name: Refresh PULSE after PR checks
-    needs: [build, merge-ready]
-    if: >-
-      always() && !cancelled() &&
-      github.event.pull_request.base.ref == 'develop' &&
-      github.event.pull_request.head.repo.full_name == github.repository
-    uses: ./.github/workflows/pulse-refresh.yml
-    with:
-      source_sha: ${{ github.event.pull_request.base.sha }}
-      reason: pr-event
-      fail_on_error: false
-      record_public_status: false
-    permissions:
-      contents: read
-      pull-requests: read
-      actions: read
-      statuses: write
-    secrets: inherit
