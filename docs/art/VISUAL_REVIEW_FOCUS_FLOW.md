@@ -38,8 +38,8 @@ Effects review is a browsing surface before it is a tuning surface. It must stay
 
 - Keep one real runtime preview stage; do not create one WebGL/Effekseer context per catalog card.
 - Present the available review entries as an always-visible five-column grid list. The list must not be hidden behind a picker popup or drawer.
-- Show a dedicated selected-effect slot above the list. Selecting a grid item must immediately update that slot and replay the effect on the shared stage.
-- Keep the selected grid item visually obvious and keep the five-column list reachable while the stage is visible on desktop and narrow mobile layouts.
+- Show a dedicated selected-effect slot above the list. Selecting a grid item must immediately update that slot and replay the effect on the shared stage. Do not repeat the selected effect name/components inside the stage overlay; the stage may show only minimal context such as SINGLE ATTACK / MULTI TARGET.
+- Keep the selected grid item visually obvious and keep the five-column list reachable while the stage is visible on desktop and narrow mobile layouts. Avoid redundant catalog headings/counts and hide search/category tools while the candidate set is trivially small; reveal discovery tools automatically once the list is large enough to need them.
 - Preserve the existing playback controls (speed, load tier, loop, reduced motion, pause, clear, camera reset) as secondary controls rather than the primary discovery UI.
 - The gallery is source-agnostic UI. This task must not add network discovery, remote importing, or a second VFX source of truth.
 - Cards may expose lightweight review metadata such as category, component count, and authored source label, but must not pretend a static decorative thumbnail is the real effect.
