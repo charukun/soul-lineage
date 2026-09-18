@@ -33,6 +33,7 @@ export function installCoopMenu({container,buildInfo,getPrepared,getName,onPlay,
           try{
             const raw=JSON.parse(await storage().read(`coop-shadow-v1:${id}`)||'null');
             if(raw)semanticShadowState=validateSemanticShadowRestore(raw,{worldId:id,ownerId:saved.world.ownerId,authorityRoot:envelope.root,historySequence:envelope.history.length});
+            else semanticShadowCoverage='gap';
           }catch{semanticShadowCoverage='gap';semanticShadowState=null;}
         }else{
           const raw=await storage().read(`coop-v1:${id}`);saved=JSON.parse(raw);semanticShadowCoverage='gap';
