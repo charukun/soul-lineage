@@ -1,31 +1,37 @@
 # 権利・出典の記録
 
-## 新規作成した部分
+## オリジナル制作部分
 
-この依頼に対して作成した旋律／編曲の数値データ、MIDI、作曲コード、試聴UI、ゲーム向けのカタログ。第三者の既存曲・既存MIDIを素材としてコピーしていません。これらの新規データに本パッケージ独自の追加利用制限は設定していません。ただし、著作権成立、第三者との非類似、商標等を法的に保証するものではありません。
+「三界の調べ」150曲の旋律・編曲・MIDI・カタログは本プロジェクトで新規作成したデータです。第三者の既存曲・既存MIDIを素材としてコピーしていません。
 
-## 実際に使用した第三者の音源
+正本MIDIは `Rinne_BGM_150_Studio.html` (`rinne-three-worlds-150-v2`) から抽出し、`packages/audio/sources/midi-manifest.json` の SHA-256 と150曲すべて一致したものだけを使用しています。
 
-TimGM6mb SoundFont。パッケージの配布条件はGPL-2.0。2004 Tim Brechbill、2010 David Boltonの著作権表示。取得経路はこの実行環境にインストール済みの `/usr/share/sounds/sf2/TimGM6mb.sf2` です。`TimGM6mb_Copyright.txt` に実際の配布物の告知、`GPL-2.0.txt` にその参照ライセンス本文を保存しています。GPL本文の収録は、本パッケージ全体やすべてのレンダーを自動的にGPLと認定する意図ではありません。
+## Productionレンダーで使用した第三者音源
 
-このライセンス告知では、作成者自身によるサンプルとpublic domain/GPLのサンプルが使用される旨が記録されています。全サンプルの出自の独立監査、音声出力への条件適用範囲の法的確認は行っていません。ライブラリには権利確認未完了の状態を明示しています。
+Production向け150 Oggは **MuseScore_General_Lite.sf3** を使用して再レンダリングします。実行環境は Ubuntu 24.04 の `musescore-general-soundfont-small=0.2.1-1` を固定し、SoundFont本体はゲーム配布物へ同梱しません。
 
-SoundFontは同梱しません。別の商用利用可能な音源へ変更する際は、当該音源の配布・レンダリング・クレジット・改変等の条件を確認してください。
+MuseScore General は MIT License で公開されています。レンダー波形がSoundFontの一部を含む扱いを前提に、配布パッケージには以下の証跡を保持します。
 
-参考： https://sources.debian.org/copyright/license/timgm6mb-soundfont/1.3-5/
+- `MuseScore_General_License.txt`: 配布パッケージの copyright / license 記録
+- `MuseScore_General_Sample_Sources.csv`: サンプル出典表
+- `packages/audio/sources/render-provenance.json`: 使用SoundFont SHA-256、固定パッケージ版、レンダー条件、全MIDI/Ogg SHA-256
+
+生成元:
+- Ubuntu package: https://packages.ubuntu.com/noble/musescore-general-soundfont-small
+- Debian copyright record: https://sources.debian.org/copyright/license/musescore-general-soundfont-small/0.2.1-1/
+- Debian installed-file record: https://packages.debian.org/bookworm/all/musescore-general-soundfont-small/filelist
 
 ## 制作ツール
 
-FluidSynth（LGPL-2.1系）、Spotify Pedalboard（GPL-3.0）、FFmpegおよび実行環境のライブラリでレンダリング・音声処理・エンコードしました。これらのバイナリを配布物には含めません。環境のパッケージ情報は `source/environment.json` を参照してください。ツールのライセンスと、入力サンプルまたは音声出力の権利条件は区別してください。
-
-ACE-Step、VSCO 2 CE、Sunoの音声は含みません。
+FluidSynth と FFmpeg をレンダリング/エンコードに使用します。これらの実行バイナリはゲーム配布物へ同梱しません。ツール自身のライセンスと、入力SoundFont/生成波形の権利条件は区別します。
 
 ## 公開可否の状態
 
-`productionStatus=audition`、`commercialClearance=false`、`licenseStatus=review-required`。
+Productionレンダー生成・150 Oggの実体検証・ライセンス証跡保存・旧TimGM6mbレンダー除外が完了したカタログのみ、次の状態へ移行します。
 
-無料で試作した音楽であることと、無条件で商用公開の権利が保証されることは別です。選定、権利確認、本制作、実機レビューを経て、実際に承認した音源だけを公開用カタログへ登録してください。
+- `productionStatus=production`
+- `commercialClearance=true`
+- `licenseStatus=cleared-mit-render`
+- `renderLicense=MIT`
 
-## 150曲版の変更
-
-旧30曲の旋律データを保持し、新規120曲を追加しています。リズムの一部はPythonで生成した膜鳴り波形です。サードパーティのSoundFontそのものやフォントファイルは同梱していません。商用公開承認は引き続き未完了です。
+旧TimGM6mb試聴レンダーおよびそのGPL noticeはProduction配信対象から除外します。
