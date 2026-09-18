@@ -1,8 +1,8 @@
 /* Shared village visual language, kept soft for the daylight life-sim. */
 body:before,body:after{content:"";position:fixed;inset:0;pointer-events:none}
-body:before{z-index:3;background:radial-gradient(ellipse at 50% 44%,transparent 55%,rgba(53,73,62,.035) 74%,rgba(35,52,45,.12) 100%);mix-blend-mode:multiply}
-body:after{z-index:3;opacity:.07;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 4px),radial-gradient(circle at 23% 31%,rgba(255,236,188,.10) 0 1px,transparent 1.8px);background-size:100% 4px,43px 47px}
-#game{filter:saturate(1.025) contrast(1.018)}
+body:before{z-index:3;background:radial-gradient(ellipse at 50% 43%,transparent 45%,rgba(44,65,63,.08) 70%,rgba(20,31,34,.28) 100%),linear-gradient(180deg,rgba(111,145,151,.055),transparent 42%,rgba(26,39,42,.07));mix-blend-mode:multiply}
+body:after{z-index:3;opacity:.11;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 4px),radial-gradient(circle at 23% 31%,rgba(255,236,188,.10) 0 1px,transparent 1.8px);background-size:100% 4px,43px 47px}
+#game{filter:saturate(.91) contrast(1.055) brightness(.97)}
 
 /* The persistent village hints use the same paper/wood language as the world.
    Avoid the generic floating-pill look after the first-run guide hands off. */
