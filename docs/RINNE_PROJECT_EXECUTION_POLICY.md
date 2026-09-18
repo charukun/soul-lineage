@@ -100,7 +100,7 @@ browser verification / repair は [`BROWSER_SELF_HEALING.md`](BROWSER_SELF_HEALI
 
 依頼作業に必要なコード、モデル、VRM/GLB、Blender/DCC 元データ、文書、検証証拠、Git bundle を `charukun/soul-lineage` と同 Repository の既存 Codespaces 間で転送し、依頼された work branch を commit/push、PR 作成・更新する範囲は既存承認済み。Ready 前に current develop を **work branch へ merge-forward** することも同じ work-branch 更新の範囲として扱う。詳細な許可範囲と例外は [`DELIVERY_AUTHORIZATION.md`](DELIVERY_AUTHORIZATION.md) を正本とし、同じ許可を再質問しない。
 
-この承認は、無関係なデータ、別 Repository / account / provider、新規課金、credential/security 変更、破壊的操作、**品質gateを迂回した develop への direct write**、main / Production 公開を許可しない。個人AI開発の通常経路では、同じ task worker またはRepository automationが exact-head CI・hold/review/dependency・freshness・serialized expected-head gateを満たしたPRを `develop` へmergeしてよい。
+この承認は、無関係なデータ、別 Repository / account / provider、新規課金、credential/security 変更、破壊的操作、**品質gateを迂回した develop への direct write**、main / Production 公開を許可しない。個人AI開発の通常経路では、同じ task worker が focused validation・hold/review/dependency・current develop reconciliation・final freshnessを満たしたPRを`develop`へmergeしてよい。
 
 ## 完了報告の画像・動画エビデンス
 
