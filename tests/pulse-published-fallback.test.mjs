@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { publishedFallback } from '../ops-board/published-fallback.mjs';
 const options = { now: '2026-09-12T10:00:00Z', source: 'test', error: new Error('GitHub /branches: HTTP 403') };
 const published = (environment, commit) => ({ app: 'demon', environment, path: `${environment}/demon`, version: { commit, name: '暗い喰らいCry' } });
+const target = (app, environment) => app.targets.find(item => item.environment === environment);
 const rinnePublished = (commit, deployedAt = null) => ({
   app: 'rinne', environment: 'dev', path: 'dev/rinne', deployedAt,
   version: { commit, name: '輪廻転焦' },
@@ -14,9 +15,9 @@ test('GitHub 403 cannot retain retired names or the old two-environment matrix',
   const game = state.applications.find(app => app.id === 'demon');
   assert.equal(game.name, '尽喰廻遊');
   assert.deepEqual(game.targets.map(target => target.environment), ['dev', 'staging', 'prod']);
-  assert.equal(game.targets[0].commit, 'actual');
-  assert.equal(game.targets[1].state, 'missing');
-  assert.equal(game.targets[1].url, null);
+  assert.equal(target(game, 'dev').commit, 'actual');
+  assert.equal(target(game, 'staging').state, 'missing');
+  assert.equal(target(game, 'staging').url, null);
   assert.equal(state.generatedAt, old.generatedAt);
   assert.equal(state.applicationsUpdatedAt, options.now);
   assert.equal(state.syncStatus, 'degraded');
@@ -77,7 +78,7 @@ test('public-only cold start never invents a successful GitHub sync', () => {
   const state = publishedFallback(null, { schemaVersion: 1, entries: [published('prod', 'release')] }, options);
   assert.equal(state.generatedAt, null);
   assert.equal(state.syncStatus, 'degraded');
-  assert.equal(state.applications.find(app => app.id === 'demon').targets[2].commit, 'release');
+  assert.equal(target(state.applications.find(app => app.id === 'demon'), 'prod').commit, 'release');
   assert.deepEqual(state.pullRequests.normal, []);
 });
 
