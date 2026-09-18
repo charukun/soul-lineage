@@ -11,5 +11,7 @@ test('village stylized target keeps gameplay objects while applying static LOD a
   assert.match(source, /flowerMeshes/);
   assert.match(source, /stylizedDensityBase/);
   assert.match(source, /cloneMaterials: true/);
+  assert.match(source, /name === 'getBuilding'/);
+  assert.match(source, /preserveStylizedSilhouette = true/);
   assert.doesNotMatch(source, /world\.objects.*visible\s*=\s*false/);
 });
