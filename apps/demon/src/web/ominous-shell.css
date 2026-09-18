@@ -14,10 +14,10 @@ header::after{content:"";position:absolute;left:17px;right:17px;bottom:-14px;hei
 #alarm-fill{background:linear-gradient(90deg,#56201d,#a43b32,#6e1717);box-shadow:0 0 9px #7e1e1e88}
 #objective{border-left:0;padding:11px 14px 10px 16px;background:linear-gradient(105deg,#0b0707d6 0,#160a09a0 64%,transparent);clip-path:polygon(1% 8%,96% 0,100% 83%,91% 100%,4% 93%,0 52%)}
 #objective::before{content:"";position:absolute;left:5px;top:5px;bottom:6px;width:2px;background:linear-gradient(#b58c60,#63231f,#b58c60);opacity:.62}
-#battle{filter:drop-shadow(0 8px 16px #000)}
-#battle::before{content:"";position:absolute;z-index:-1;left:50%;top:50%;width:min(330px,82vw);height:74px;transform:translate(-50%,-46%) rotate(-1deg);background:radial-gradient(ellipse,#120908e6 0,#120908b5 52%,transparent 73%);filter:blur(2px)}
-.phases span{font-size:18px;color:#615a54}.phases .active{color:#e0c29a;text-shadow:0 0 8px #9b573b,0 0 22px #6f1a1688}.phases i{background:linear-gradient(90deg,transparent,#7f352e,#9d7f5b,transparent)}
-#enemy-health{height:3px;background:linear-gradient(90deg,#3f0c0c,#a53c34 72%,#d0ad78);box-shadow:0 0 10px #7d151588}
+
+
+
+
 #toast{background:linear-gradient(97deg,transparent,#0c0707ef 12%,#160908e8 55%,#090606ef 88%,transparent);border-block:1px solid #6e30285c;clip-path:polygon(2% 12%,98% 0,100% 84%,91% 100%,4% 92%,0 40%)}
 .controls{filter:drop-shadow(0 8px 15px #000)}
 .seal b{border:0;clip-path:polygon(48% 0,90% 9%,100% 44%,86% 88%,50% 100%,9% 91%,0 57%,8% 15%);background:radial-gradient(circle at 48% 42%,#3f1716 0,#1b0d0c 53%,#070505 72%);box-shadow:inset 0 0 0 1px #9c795b78,inset 0 0 13px #651d1a99,0 0 16px #000;text-shadow:0 0 12px #a36346}
