@@ -150,6 +150,7 @@ GitHub APIは安全確認のためのcurrent-state再取得へ使い、同じ状
 - PULSEは匿名GitHub APIの高頻度全量同期に依存せず、イベント同期と失敗状態を区別する
 - current head/review/dependency/hold/mergeabilityの再読を省略しない
 - Actions botがdependency reconciliationでReady PR headを更新しても、人間の空commitやApprove-and-runなしでcurrent exact-head fast validationが開始される
+- trusted control checkoutはvalidator自身がimportするRepository moduleを必ず含む。sparse checkoutが`check.mjs`等の静的validator依存を欠落させて、source PRを偽の`ERR_MODULE_NOT_FOUND`へ落としてはならない
 ### 公開run履歴の境界
 
 公開wakeは最新100件のbounded snapshotと全件paginationを区別する。履歴が100件に達しても例外で停止しないこと、同じSHAの既存publisher・完了run・有限recovery receiptを確認することを回帰検証する。履歴走査を無制限に増やさず、公開成功の証拠を捏造しない。
