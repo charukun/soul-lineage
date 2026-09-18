@@ -52,13 +52,32 @@
     "hostLossDetectionP95Ms": "<=4500ms at physical-multipeer evidence class",
     "hostReopenP95Ms": "<=6000ms at physical-multipeer evidence class"
   },
-  "provisionalRpoSweepSeconds": [0.5, 1, 2, 5, 10],
+  "provisionalRpoSweepSeconds": [
+    0.5,
+    1,
+    2,
+    5,
+    10
+  ],
   "startCohort": "2-3 physical peers on fixed Wi-Fi, then broader network profiles and 30-device certification separately",
   "acceptance": [
     "all safety keys are zero/within their existing hard semantics",
     "semantic-journal may beat all-state-strong on strong-path bytes/latency when replaceable/recovery material is actually removed from synchronous commit",
     "semantic-journal is not called a protocol win if fair-known-event-sourcing matches it",
     "a provisional RPO setting is accepted only after user-visible rollback/recovery quality and bandwidth/latency are measured together",
-    "no absolute threshold is invented for metrics currently marked calibration-required"
-  ]
+    "no absolute threshold is invented for metrics currently marked calibration-required",
+    "shadow counterfactual byte savings are not promoted to actual strong-path latency/network savings until semantic-journal becomes the authoritative commit payload in an experiment variant"
+  ],
+  "shadowInstrumentation": {
+    "status": "implemented-not-physically-captured",
+    "rawFields": [
+      "semanticCheckpointBytes",
+      "semanticJournalBytes",
+      "semanticEventCount",
+      "semanticHistoryEffects"
+    ],
+    "analyzer": "apps/rinne/scripts/rrp-convergence-shadow-capture.mjs",
+    "interpretation": "For each observed protected commit, compare full checkpoint JSON bytes with derived semantic-event JSON bytes. This is a counterfactual payload-size measurement only; it is not switched-authority network/latency evidence.",
+    "localValidation": "4 focused analyzer tests passed / 0 failed under Node v22.16.0"
+  }
 }
