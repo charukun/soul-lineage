@@ -24,6 +24,10 @@ test('VFX review is catalog-first while keeping one real preview stage',()=>{
   assert.match(html,/class="fx-selection-slot"/);
   assert.match(html,/id="fx-selected-label"/);
   assert.match(js,/q\('fx-selected-label'\)\.textContent=entry\.label/);
+  assert.match(html,/class="stage-context"/);
+  assert.doesNotMatch(html,/id="fx-active-title"/);
+  assert.doesNotMatch(html,/id="fx-active-meta"/);
+  assert.doesNotMatch(html,/class="catalog-head"/);
   assert.match(slotAuto,/if\(!byId\('fx-stage'\)\|\|byId\('fx-catalog'\)\)return/);
 });
 
@@ -44,7 +48,10 @@ test('VFX stage uses readable humanoid scale and effect-intent guides',()=>{
   assert.match(html,/PRIMARY TARGET/);
 });
 
-test('VFX catalog supports fast search and category filtering without acquisition UI',()=>{
+test('VFX discovery tools stay available but hide while the catalog is trivially small',()=>{
+  assert.match(html,/id="fx-discovery-tools"/);
+  assert.match(js,/const discoveryNeeded=REVIEW_CATALOG\.length>10/);
+  assert.match(js,/q\('fx-discovery-tools'\)\.hidden=!discoveryNeeded/);
   assert.match(js,/fx-search/);
   assert.match(js,/activeFilter/);
   assert.match(js,/haystack\.includes\(needle\)/);
