@@ -91,11 +91,13 @@ test('shadow extractor maps the current natural lifetime end to one life-seal ac
   assert.equal(actions[0].record.generation, 1);
 });
 
-test('shadow extractor refuses to pretend current coop structurally supports early-ended lives', () => {
+test('shadow extractor maps current combat-ended lives to one life-seal action', () => {
   const before = syntheticWorld(1), after = structuredClone(before);
   after.players.owner.life.ended = true; after.players.owner.life.phase = 'ended';
   after.players.owner.life.ageSeconds = 2000; after.players.owner.life.ageYears = 33.333;
-  assert.throws(() => deriveProtectedActions(before, after), /terminal rule mismatch/);
+  const actions = deriveProtectedActions(before, after);
+  assert.deepEqual(actions.map(x => x.type), ['life-seal']);
+  assert.equal(actions[0].record.age, 33);
 });
 
 test('shadow extractor derives rebirth from a sealed predecessor plus the committed rebirth op', () => {
