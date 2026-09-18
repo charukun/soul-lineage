@@ -39,11 +39,16 @@ test('navigation from behind a building goes around to its doorway without cross
   }
 });
 
-test('a resident tent remains a furniture-editable housing room',()=>{
+test('a resident tent accepts compact furniture but rejects bulky household/work furniture',()=>{
   const world=new World();
   world.state.objects.push({id:'housing-tent-test',kind:'tent',x:30,z:30,rot:0,phase:'built',level:1,material:'base',room:[]});
   assert.equal(canEditRoom(world,'housing-tent-test'),true);
-  const furniture=availableFurniture(world,'housing-tent-test',FURNITURE);
-  assert.ok(furniture.some(item=>item.id==='bed'));
-  assert.ok(furniture.some(item=>item.id==='table'));
+  const furniture=availableFurniture(world,'housing-tent-test',FURNITURE),ids=furniture.map(item=>item.id);
+  for(const id of ['bed','table','chair','shelf','rug','plant','lamp','bench'])assert.ok(ids.includes(id),id);
+  for(const id of ['sofa','hearth','counter','workbench'])assert.ok(!ids.includes(id),id);
+  assert.equal(world.canPlace('bed',0,-.55,0,'housing-tent-test'),null);
+  assert.match(world.canPlace('sofa',0,-.4,0,'housing-tent-test'),/入口や室内サイズ/);
+  assert.match(world.canPlace('chair',1.65,1.25,0,'housing-tent-test'),/テント幕/);
+  assert.match(world.canPlace('chair',0,1.35,0,'housing-tent-test'),/通り道/);
+  assert.equal(world.canPlace('chair',1,.15,0,'housing-tent-test'),null);
 });

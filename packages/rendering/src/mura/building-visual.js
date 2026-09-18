@@ -50,5 +50,7 @@ export function createMuraBuildingVisual(T,models,kind,material='base',level=1){
   group.userData.houseVisualSource='@soul/housing-assets';
   group.userData.houseType=house.type;
   group.userData.muraKind=kind;
+  group.userData.entryVisual='housing-door';
+  group.userData.localFront='+Z';
   return group;
 }

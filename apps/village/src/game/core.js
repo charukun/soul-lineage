@@ -1,4 +1,4 @@
-import {initialMuraObjects} from '@soul/world/mura';
+import {initialMuraObjects,muraFurnitureFits,muraHasInterior,muraUsableInterior} from '@soul/world/mura';
 import {WORLD_DAY_SECONDS} from '@soul/raid/night-window';
 import {BUILDINGS,GARDEN,FURNITURE,defs,RESOURCE_NAMES,MATERIALS,unlocked,recipe,materialOptions,capacityOf,jobsOf,TUTORIAL} from './catalog.js';
 import {LIMIT,SIZE,riverX,inWater,terrainError,terrainHint,TERRAIN_SITES} from './terrain.js';
@@ -14,6 +14,25 @@ export const ready=o=>!!o&&(!o.phase||o.phase==='built');
 export const isGuard=p=>p.role==='guard'||p.role==='ranger';
 export const isPlayer=p=>p.source==='rinne-player'||p.source==='local-player-demo';
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
+function furnitureCorners(kind,x,z,rot){
+ const d=defs[kind],hw=d.w/2,hd=d.d/2,cos=Math.cos(rot),sin=Math.sin(rot),out=[];
+ for(const sx of[-hw,hw])for(const sz of[-hd,hd])out.push({x:x+sx*cos+sz*sin,z:z-sx*sin+sz*cos});
+ return out;
+}
+function furnitureInsideRoom(host,kind,x,z,rot){
+ const room=muraUsableInterior(host);if(!room)return false;
+ const corners=furnitureCorners(kind,x,z,rot);
+ if(room.shape==='circle')return corners.every(p=>Math.hypot(p.x,p.z)<=room.radius);
+ return corners.every(p=>Math.abs(p.x)<=room.halfWidth&&Math.abs(p.z)<=room.halfDepth);
+}
+function furnitureBlocksEntry(host,kind,x,z,rot){
+ const d=defs[kind];if(d.soft)return false;
+ const room=muraUsableInterior(host);if(!room)return true;
+ const [w,h]=extent({kind,rot}),front=room.shape==='circle'?room.radius:room.halfDepth;
+ const corridorDepth=room.interiorClass==='compact'?1.25:Math.min(1.8,front*.7),corridorMin=Math.max(.55,front-corridorDepth);
+ const corridorMax=front+.12,halfWidth=Math.max(.65,room.doorWidth/2+.12);
+ return Math.abs(x)<halfWidth+w/2&&z+h/2>corridorMin&&z-h/2<corridorMax;
+}
 function actor(id,name,homeId,x,z,role){return{id,name,homeId,x,z,role,source:role==='mayor'?'avatar-npc':'local-npc',jobId:null,task:'idle',timer:0,path:[],hunger:85,purse:0,health:100,happiness:78,skill:0,seed:role==='mayor'?1:8,angle:0,insideId:null,status:role==='guard'?'村長を見守っています':'新しい村を見渡しています',favorite:role==='mayor'?'焚き火の語らい':'木陰でひと休み',memories:[]};}
 export function initial(){return{
  version:VERSION,name:'星継ぎの庭',villageId:'local-hoshitsugi',nextId:4,revision:0,rng:837491,
@@ -59,17 +78,21 @@ export class World{
  }
  canPlace(kind,x,z,rot=0,roomId=null,ignore=null){
   const d=defs[kind];if(!d||![x,z,rot].every(Number.isFinite))return'配置データが不正です';
-  const[w,h]=extent({kind,rot});let bx=LIMIT-.5,bz=LIMIT-.5;
-  if(roomId){const host=this.object(roomId);if(!host||!ready(host))return'完成した建物を選んでください';if(!d.furniture)return'室内用の家具を選んでください';bx=defs[host.kind].w/2-.8;bz=defs[host.kind].d/2-.8;}
-  else if(!d.building&&!d.garden)return'家具は建物の中に置きます';
-  if(Math.abs(x)+w/2>bx||Math.abs(z)+h/2>bz)return roomId?'部屋の外には置けません':'村の範囲を超えています';
+  const[w,h]=extent({kind,rot});let bx=LIMIT-.5,bz=LIMIT-.5,host=null;
+  if(roomId){
+   host=this.object(roomId);if(!host||!ready(host)||!muraHasInterior(host))return'出入りできる完成した建物を選んでください';
+   if(!d.furniture)return'室内用の家具を選んでください';
+   if(!muraFurnitureFits(host,kind))return'この家具は、この建物の入口や室内サイズには合いません';
+   if(!furnitureInsideRoom(host,kind,x,z,rot))return'壁やテント幕からはみ出さない位置に置いてください';
+  }else if(!d.building&&!d.garden)return'家具は建物の中に置きます';
+  if(!roomId&&(Math.abs(x)+w/2>bx||Math.abs(z)+h/2>bz))return'村の範囲を超えています';
   if(!roomId){if(kind==='harbor'){if(x<163||x>170||Math.abs(rot)>.01)return'船着き場は東海岸の岸沿いに置きます';}
    else if([-w/2,0,w/2].some(dx=>[-h/2,0,h/2].some(dz=>inWater(x+dx,z+dz))))return'水の上には置けません';
    const land=terrainError(d.terrain,x,z,this.objects);if(land)return land;
    if(d.capacity&&!d.reserved&&!ignore){const p=this.population();if(p.beds+d.capacity>p.housingBudget)return`いまは住まいに余裕があります。食事と守りを整えると増やせます（寝床 ${p.beds} / 目安 ${p.housingBudget}）`;}
   }
   for(const o of this.list(roomId)){if(o.id===ignore||d.soft||defs[o.kind].soft)continue;const[ow,od]=extent(o);if(Math.abs(o.x-x)<(ow+w)/2+.1&&Math.abs(o.z-z)<(od+h)/2+.1)return'ほかの物と重なっています';}
-  if(roomId&&!d.soft&&z+h/2>bz-2&&Math.abs(x)<w/2+1)return'入口を空けてください';
+  if(roomId&&furnitureBlocksEntry(host,kind,x,z,rot))return'入口から部屋の中央までの通り道を空けてください';
   if(!roomId&&!d.soft)for(const o of this.objects){if(o.id===ignore||!defs[o.kind].building)continue;const e=entry(o);if(Math.abs(e.x-x)<w/2+.7&&Math.abs(e.z-z)<h/2+.7)return'建物の入口を空けてください';}
   return null;
  }
@@ -114,8 +137,9 @@ export class World{
  upgrade(id){const o=this.object(id);if(!o||!defs[o.kind].building||!ready(o)||o.kind==='campfire')return{error:'完成した施設を選んでください'};if((o.level||1)>=3)return{error:'増築は3段階までです'};if(o.upgrade)return{error:'すでに増築中です'};
   const cost=this.upgradeCost(o);if(!this.spend(cost))return{error:'必要な資材：'+this.deficit(cost).join('・')};o.upgrade={target:(o.level||1)+1,progress:0,cost};this.changed();this.notify(`${defs[o.kind].label}の増築が始まりました`,'construction');return{ok:true,object:o};
  }
- furnish(person,kind){const h=this.object(person.homeId);if(!h||!ready(h)||!defs[kind]?.furniture)return false;
-  for(let z=-defs[h.kind].d/2+2;z<defs[h.kind].d/2-2;z+=1.25)for(let x=-defs[h.kind].w/2+1.8;x<defs[h.kind].w/2-1.2;x+=1.25){if(this.canPlace(kind,x,z,0,h.id))continue;h.room.push({id:'f'+this.state.nextId++,kind,x,z,rot:0,ownerId:person.id});this.state.stats.furnished++;this.changed();return true;}return false;
+ furnish(person,kind){const h=this.object(person.homeId);if(!h||!ready(h)||!defs[kind]?.furniture||!muraFurnitureFits(h,kind))return false;
+  const room=muraUsableInterior(h);if(!room)return false;const hx=room.shape==='circle'?room.radius:room.halfWidth,hz=room.shape==='circle'?room.radius:room.halfDepth;
+  for(const rot of[0,Math.PI/2])for(let z=-hz+.35;z<=hz-.35;z+=.7)for(let x=-hx+.35;x<=hx-.35;x+=.7){if(this.canPlace(kind,x,z,rot,h.id))continue;h.room.push({id:'f'+this.state.nextId++,kind,x,z,rot,ownerId:person.id});this.state.stats.furnished++;this.changed();return true;}return false;
  }
  tutorialStep(){if(this.state.tutorial.dismissed||this.state.tutorial.completed)return null;const index=TUTORIAL.findIndex(t=>!this.objects.some(o=>o.kind===t.kind&&ready(o)));if(index<0){this.state.tutorial.completed=true;return null;}return{...TUTORIAL[index],index};}
  export(){return JSON.stringify(this.state,null,2);}
@@ -147,7 +171,7 @@ export function validate(input){
   if(defs[s.objects.find(o=>o.id===p.homeId).kind].clanOnly&&!isPlayer(p))throw Error('一族専用の住まいにNPCは入居できません');
   for(const[k,v]of Object.entries({hunger:80,purse:0,health:100,happiness:70,skill:0}))p[k]=finite(p[k])?clamp(p[k],0,k==='purse'?200:100):v;
   if(p.downed&&(!finite(p.downed.left)||p.downed.left<=0||p.downed.left>90||!['wildlife','monster'].includes(p.downed.source)))throw Error('負傷者の情報が不正です');
-  if(p.carry&&!FURNITURE.some(f=>f.id===p.carry))p.carry=null;p.memories=(Array.isArray(p.memories)?p.memories:[]).filter(n=>typeof n.text==='string').slice(0,6);p.bubble=null;
+  const home=s.objects.find(o=>o.id===p.homeId);if(p.carry&&(!FURNITURE.some(f=>f.id===p.carry)||!muraFurnitureFits(home,p.carry)))p.carry=null;p.memories=(Array.isArray(p.memories)?p.memories:[]).filter(n=>typeof n.text==='string').slice(0,6);p.bubble=null;
  }
  if(!finite(s.clock)||s.clock<0||s.clock>1e8)throw Error('世界時計が不正です');
  if(!s.stock||Object.keys(RESOURCE_NAMES).some(k=>!finite(s.stock[k])||s.stock[k]<0||s.stock[k]>1e7))throw Error('資材の情報が不正です');
