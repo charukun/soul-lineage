@@ -6,6 +6,7 @@ const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 const html=read('../review-effects.html');
 const js=read('../src/review-effects.js');
 const css=read('../src/review-effects.css');
+const slotAuto=read('../src/review-slot-auto.js');
 
 test('VFX review is catalog-first while keeping one real preview stage',()=>{
   assert.match(html,/id="fx-catalog"/);
@@ -20,6 +21,7 @@ test('VFX review is catalog-first while keeping one real preview stage',()=>{
   assert.match(js,/const REVIEW_CATALOG=Object\.freeze/);
   assert.match(js,/replaceChildren\(\.\.\.visible\.map\(cardFor\)\)/);
   assert.match(js,/button\.addEventListener\('click',\(\)=>trigger\(entry\.id\)\)/);
+  assert.match(slotAuto,/if\(!byId\('fx-stage'\)\|\|byId\('fx-catalog'\)\)return/);
 });
 
 test('VFX catalog supports fast search and category filtering without acquisition UI',()=>{
