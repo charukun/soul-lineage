@@ -2,6 +2,8 @@
 
 ## 現在の実装範囲
 
+配信・artifactの正本は [`DISTRIBUTION_ARCHITECTURE.md`](DISTRIBUTION_ARCHITECTURE.md) を参照します。Web DEV / Visual Review / Web Production と将来の Steam・mobile・console target は同じ portable game source から分岐させますが、build / publish / package は target ごとに独立させます。
+
 Web Adapterだけを実装しています。iOS / Android / PS5 / Nintendo Switch 2 / Steam / Xboxは将来の接続対象です。この基盤の完成は、コンソールSDK対応・各社認定・ストア審査・実機動作確認が済んだことを意味しません。WebGL / Three.jsの出力をそのまま全Platformへ持ち込めるとは仮定しません。
 
 | 層 | 配置 | 依存可能なもの |
