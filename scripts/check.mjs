@@ -4,8 +4,16 @@ import { resolve, relative } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { graph, closure, appNode } from './workspaces.mjs';
 import { importSpecifiers } from './import-specifiers.mjs';
+import {BUILDINGS as muraBuildings} from '../packages/world/src/mura/catalog.js';
+import {visualAssetById} from '../packages/assets/src/index.js';
 
 const root = process.cwd();
+for(const building of muraBuildings){
+  assert.ok(building.visualAssetId, `Production building requires visualAssetId: ${building.id}`);
+  const asset=visualAssetById(building.visualAssetId);
+  assert.equal(asset.status,'MATERIALIZED',`Production building asset must be materialized: ${building.id}`);
+  assert.ok(asset.license&&asset.source?.revision&&asset.source?.path&&asset.source?.hash,`Production building asset requires license + immutable provenance: ${building.id}`);
+}
 const nodes = graph(root);
 const nativeBrowserDialog = /\b(?:(?:window|globalThis|self)\s*\.\s*)?(?:alert|confirm|prompt)\s*\(/;
 const nativeEntryChoice = /<select\b|<input\b[^>]*\btype\s*=\s*["']?checkbox\b/i;
