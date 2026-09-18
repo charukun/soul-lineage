@@ -13,7 +13,7 @@ Use metadata → changed filenames / failed job → necessary patch / range. CI 
 
 ## Delivery boundary
 
-Normal implementation work follows [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md): latest `develop` → work branch / Draft PR → implementation → focused validation → **merge-forward current `develop` into the work branch** → focused revalidation → push → final develop freshness verify → Ready for review → exact-head CI → serialized expected-head merge to `develop` → asynchronous DEV publication. There is no separate Integration stage.
+Normal implementation work follows [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md): latest `develop` → work branch / Draft PR → implementation → focused validation → **merge-forward current `develop` into the work branch** → focused revalidation → push → final develop freshness verify → Ready for review → exact-head CI → serialized expected-head merge to `develop` → asynchronous DEV publication.
 
 A qualifying micro patch follows [`docs/MICRO_PATCH_FAST_LANE.md`](docs/MICRO_PATCH_FAST_LANE.md), but uses the same pre-Ready freshness rule: latest `develop` → short-lived branch → small implementation → affected focused validation → current develop merge-forward / revalidation → push → final freshness verify → **Ready PR directly** → exact-head CI → serialized merge to `develop`. Do not create a Draft PR or start Draft CI just to carry a tiny safe edit. If the patch touches control-plane, shared contracts, dependencies, schema/save/protocol, auth/security, infrastructure, generated/binary assets, or otherwise falls outside that contract, use the normal Draft route.
 
