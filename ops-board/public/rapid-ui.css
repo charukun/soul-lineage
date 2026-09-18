@@ -1,0 +1,585 @@
+/* PULSE rapid-development UI
+   Presentation-only layer. Existing state contracts, DOM ids and control-plane logic remain authoritative. */
+
+:root {
+  --pulse-bg: #07090d;
+  --pulse-surface: rgba(17, 22, 30, .88);
+  --pulse-surface-strong: rgba(22, 29, 39, .96);
+  --pulse-line: rgba(155, 174, 201, .14);
+  --pulse-line-strong: rgba(155, 174, 201, .24);
+  --pulse-glow: rgba(75, 158, 255, .16);
+  --pulse-radius-lg: 22px;
+  --pulse-radius-md: 16px;
+  --pulse-radius-sm: 12px;
+}
+
+html {
+  background: var(--pulse-bg);
+}
+
+body {
+  min-height: 100dvh;
+  background:
+    radial-gradient(90% 52% at 50% -12%, rgba(60, 102, 176, .18), transparent 64%),
+    linear-gradient(180deg, #0a0d12 0%, #07090d 46%, #06080b 100%);
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: .26;
+  background-image:
+    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(to bottom, black, transparent 68%);
+}
+
+.shell {
+  position: relative;
+  width: min(100%, 860px);
+  padding: max(16px, env(safe-area-inset-top)) 14px max(40px, env(safe-area-inset-bottom));
+}
+
+.topbar {
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 2px 2px 0;
+}
+
+.topbar .eyebrow {
+  margin-bottom: 6px;
+  color: #748198;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .18em;
+}
+
+.pulse-wordmark {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #f7f9fc;
+  font-size: clamp(27px, 7vw, 38px);
+  font-weight: 900;
+  letter-spacing: -.055em;
+}
+
+.pulse-wordmark::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--ok);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--ok) 11%, transparent), 0 0 18px color-mix(in srgb, var(--ok) 30%, transparent);
+}
+
+.refresh-area {
+  width: min(50vw, 260px);
+  gap: 6px;
+}
+
+.sync-freshness {
+  min-height: 40px;
+  padding: 8px 10px;
+  border-color: var(--pulse-line);
+  border-radius: 13px;
+  background: rgba(13, 18, 25, .68);
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+}
+
+.sync-copy strong {
+  font-size: 10.5px;
+}
+
+.sync-copy span {
+  font-size: 9px;
+}
+
+.refresh-area .reload {
+  min-height: 36px;
+  border-color: transparent;
+  border-radius: 10px;
+  color: #8490a2;
+  background: transparent;
+}
+
+.refresh-area .reload:hover,
+.refresh-area .reload:focus-visible {
+  color: var(--text);
+  border-color: var(--pulse-line);
+  background: rgba(255,255,255,.025);
+}
+
+/* The hero answers one question: do I need to act? */
+.control-tower {
+  position: relative;
+  isolation: isolate;
+  margin: 0 0 10px;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid var(--pulse-line-strong);
+  border-radius: var(--pulse-radius-lg);
+  background:
+    linear-gradient(145deg, rgba(25, 32, 43, .96), rgba(12, 16, 23, .96));
+  box-shadow: 0 18px 54px rgba(0,0,0,.26);
+}
+
+.control-tower::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: -90px;
+  right: -70px;
+  width: 220px;
+  height: 220px;
+  border-radius: 999px;
+  opacity: .7;
+  filter: blur(18px);
+  background: var(--pulse-glow);
+}
+
+.control-tower.ok::before { background: color-mix(in srgb, var(--ok) 22%, transparent); }
+.control-tower.warning::before { background: color-mix(in srgb, var(--warning) 24%, transparent); }
+.control-tower.danger::before { background: color-mix(in srgb, var(--danger) 25%, transparent); }
+
+.control-kicker {
+  margin-bottom: 7px;
+  color: #7f8da3;
+  font-size: 8.5px;
+  letter-spacing: .17em;
+}
+
+.control-hero h2 {
+  max-width: 15ch;
+  font-size: clamp(30px, 8.8vw, 46px);
+  line-height: .98;
+  letter-spacing: -.055em;
+}
+
+.control-summary {
+  margin-top: 9px;
+  max-width: 54ch;
+  color: #a2aec0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.control-since {
+  min-height: 28px;
+  padding: 7px 9px;
+  border: 1px solid var(--pulse-line);
+  background: rgba(0,0,0,.18);
+  color: #7e8a9b;
+}
+
+.control-next {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr);
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--pulse-line);
+  border-radius: 13px;
+  background: rgba(3, 6, 10, .34);
+}
+
+.control-next-label {
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  min-height: 28px;
+  border-radius: 9px;
+  color: #8fa0b7;
+  background: rgba(255,255,255,.045);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.control-next strong {
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.control-details {
+  border-color: transparent;
+  background: transparent;
+}
+
+.control-details > summary {
+  min-height: 44px;
+  padding: 7px 2px 0;
+  color: #748195;
+}
+
+.control-details[open] > summary {
+  border-bottom-color: var(--pulse-line);
+}
+
+/* Development flow becomes the visual spine. */
+.control-flow {
+  position: relative;
+  gap: 6px;
+  margin-top: 11px;
+  padding: 4px 0 8px;
+}
+
+.control-flow::before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--pulse-line-strong) 12%, var(--pulse-line-strong) 88%, transparent);
+}
+
+.control-flow-step {
+  position: relative;
+  z-index: 1;
+  min-width: 84px;
+  min-height: 42px;
+  padding: 8px 9px;
+  border-color: var(--pulse-line);
+  background: #10151d;
+}
+
+.control-flow-step.current {
+  border-color: color-mix(in srgb, var(--progress) 52%, var(--pulse-line));
+  background: color-mix(in srgb, var(--progress) 8%, #10151d);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--progress) 7%, transparent);
+}
+
+.control-flow-step.done {
+  opacity: .72;
+}
+
+.control-flow-step.current .control-flow-dot {
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--progress) 12%, transparent);
+}
+
+/* Fast-glance cards: publication first, action + workload second. */
+.pulse-overview {
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.section-tabs .overview-card {
+  min-height: 92px;
+  padding: 13px;
+  border-color: var(--pulse-line);
+  border-radius: var(--pulse-radius-md);
+  background: var(--pulse-surface);
+  box-shadow: none;
+}
+
+.section-tabs .overview-publication-card {
+  min-height: 118px;
+  padding: 15px;
+  background:
+    linear-gradient(145deg, rgba(21, 29, 40, .96), rgba(13, 18, 25, .94));
+}
+
+.overview-card .overview-label {
+  color: #7f8da1;
+  font-size: 9px;
+  letter-spacing: .1em;
+}
+
+.overview-card strong {
+  margin-top: 1px;
+  font-size: 18px;
+  letter-spacing: -.02em;
+}
+
+.overview-publication-card > strong {
+  font-size: clamp(22px, 6.4vw, 29px);
+}
+
+.overview-detail {
+  color: #8d99ab;
+}
+
+.overview-publication-grid {
+  gap: 5px;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top-color: var(--pulse-line);
+}
+
+.overview-publication-row {
+  min-height: 44px;
+  padding: 7px 8px;
+  border: 1px solid rgba(255,255,255,.025);
+  border-radius: 10px;
+  background: rgba(0,0,0,.14);
+}
+
+.overview-step-label {
+  color: #718096;
+  letter-spacing: .06em;
+}
+
+.overview-card.ok {
+  border-color: color-mix(in srgb, var(--ok) 22%, var(--pulse-line));
+}
+
+.overview-card.progress {
+  border-color: color-mix(in srgb, var(--progress) 42%, var(--pulse-line));
+}
+
+.overview-card.warning {
+  border-color: color-mix(in srgb, var(--warning) 44%, var(--pulse-line));
+  background: color-mix(in srgb, var(--warning) 5%, var(--pulse-surface));
+}
+
+.overview-card.danger {
+  border-color: color-mix(in srgb, var(--danger) 52%, var(--pulse-line));
+  background: color-mix(in srgb, var(--danger) 8%, var(--pulse-surface));
+}
+
+/* User attention is the only content that breaks the calm surface. */
+.attention-section {
+  margin: 12px 0 14px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--warning) 25%, var(--pulse-line));
+  border-radius: var(--pulse-radius-md);
+  background: color-mix(in srgb, var(--warning) 5%, rgba(12,16,22,.86));
+}
+
+.attention-section .section-head {
+  margin: 0 2px 9px;
+}
+
+.alert {
+  min-height: 52px;
+  border-radius: 12px;
+  background: rgba(0,0,0,.16);
+  box-shadow: none;
+}
+
+/* Details are intentionally quiet. */
+.detail-zone {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top-color: var(--pulse-line);
+}
+
+.detail-zone-head {
+  margin-bottom: 7px;
+}
+
+.detail-zone-kicker,
+.disclosure-kicker {
+  color: #67758a;
+}
+
+.board-disclosure {
+  margin-top: 7px;
+  border-color: var(--pulse-line);
+  border-radius: var(--pulse-radius-md);
+  background: rgba(12, 16, 22, .64);
+}
+
+.board-disclosure > summary {
+  min-height: 58px;
+  padding: 12px 14px;
+}
+
+.board-disclosure > summary::after {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-left: 8px;
+  border: 1px solid var(--pulse-line);
+  border-radius: 9px;
+  font-size: 14px;
+}
+
+.board-disclosure[open] > summary {
+  background: rgba(255,255,255,.018);
+  border-bottom-color: var(--pulse-line);
+}
+
+.board-disclosure-body {
+  padding: 11px;
+}
+
+.nested-disclosure {
+  border-color: var(--pulse-line);
+  background: rgba(0,0,0,.12);
+}
+
+.card,
+.environment,
+.alert,
+.diagnostic-panel {
+  border-color: var(--pulse-line);
+}
+
+.card,
+.environment {
+  background: rgba(17,22,30,.74);
+  box-shadow: none;
+}
+
+.diagnostic-panel {
+  background: rgba(10,14,20,.52);
+}
+
+footer {
+  margin-top: 18px;
+  opacity: .62;
+}
+
+/* Minimum touch size for mobile operations. */
+a.overview-card,
+.board-disclosure > summary,
+.nested-disclosure > summary,
+.reload,
+.app-more,
+.app-dialog-close,
+.app-detail-link {
+  touch-action: manipulation;
+}
+
+@media (max-width: 519px) {
+  .shell {
+    padding-inline: 11px;
+  }
+
+  .topbar {
+    min-height: 52px;
+  }
+
+  .topbar .eyebrow {
+    display: block;
+  }
+
+  .refresh-area {
+    width: min(55vw, 182px);
+  }
+
+  .sync-freshness {
+    min-height: 36px;
+    padding: 7px 8px;
+  }
+
+  .sync-copy span {
+    display: none;
+  }
+
+  .refresh-area .reload {
+    min-height: 32px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+
+  .control-tower {
+    padding: 16px 14px 14px;
+  }
+
+  .control-hero {
+    display: block;
+  }
+
+  .control-hero h2 {
+    max-width: none;
+    font-size: clamp(29px, 10vw, 38px);
+  }
+
+  .control-since {
+    display: inline-flex;
+    margin-top: 10px;
+  }
+
+  .control-next {
+    margin-top: 12px;
+  }
+
+  .pulse-overview {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+
+  .section-tabs .overview-publication-card {
+    grid-column: 1 / -1;
+  }
+
+  .overview-publication-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-publication-row {
+    display: grid;
+    grid-template-columns: 72px minmax(0,1fr);
+    align-items: center;
+    min-height: 38px;
+  }
+
+  .section-tabs .overview-card:not(.overview-publication-card) {
+    min-height: 96px;
+  }
+
+  .disclosure-meta {
+    max-width: 40%;
+  }
+}
+
+@media (min-width: 620px) {
+  .shell {
+    padding-inline: 22px;
+  }
+
+  .control-tower {
+    padding: 22px;
+  }
+
+  .control-hero h2 {
+    max-width: 18ch;
+  }
+
+  .pulse-overview {
+    grid-template-columns: 1.35fr .65fr .65fr;
+  }
+
+  .section-tabs .overview-publication-card {
+    grid-column: auto;
+    grid-row: span 1;
+  }
+
+  .overview-publication-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .control-tower,
+  .overview-card,
+  .board-disclosure,
+  .sync-freshness {
+    transition: border-color .16s ease, background-color .16s ease, transform .12s ease;
+  }
+
+  .overview-card:hover {
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .001ms !important;
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
