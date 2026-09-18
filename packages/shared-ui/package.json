@@ -8,7 +8,8 @@
     "./style.css": "./src/style.css",
     "./music": "./src/music.js",
     "./world-darkness": "./src/world-darkness.js",
-    "./speech-bubbles": "./src/speech-bubbles.js"
+    "./speech-bubbles": "./src/speech-bubbles.js",
+    "./media-lifecycle": "./src/media-lifecycle.js"
   },
   "dependencies": {
     "@soul/audio": "*"
