@@ -171,7 +171,7 @@ export function validate(input){
   if(defs[s.objects.find(o=>o.id===p.homeId).kind].clanOnly&&!isPlayer(p))throw Error('一族専用の住まいにNPCは入居できません');
   for(const[k,v]of Object.entries({hunger:80,purse:0,health:100,happiness:70,skill:0}))p[k]=finite(p[k])?clamp(p[k],0,k==='purse'?200:100):v;
   if(p.downed&&(!finite(p.downed.left)||p.downed.left<=0||p.downed.left>90||!['wildlife','monster'].includes(p.downed.source)))throw Error('負傷者の情報が不正です');
-  if(p.carry&&!FURNITURE.some(f=>f.id===p.carry))p.carry=null;p.memories=(Array.isArray(p.memories)?p.memories:[]).filter(n=>typeof n.text==='string').slice(0,6);p.bubble=null;
+  const home=s.objects.find(o=>o.id===p.homeId);if(p.carry&&(!FURNITURE.some(f=>f.id===p.carry)||!muraFurnitureFits(home,p.carry)))p.carry=null;p.memories=(Array.isArray(p.memories)?p.memories:[]).filter(n=>typeof n.text==='string').slice(0,6);p.bubble=null;
  }
  if(!finite(s.clock)||s.clock<0||s.clock>1e8)throw Error('世界時計が不正です');
  if(!s.stock||Object.keys(RESOURCE_NAMES).some(k=>!finite(s.stock[k])||s.stock[k]<0||s.stock[k]>1e7))throw Error('資材の情報が不正です');
