@@ -1,5 +1,6 @@
 const PHASES=Object.freeze(['jo','ha','kyu']);
 const PHASE_SET=new Set(PHASES);
+const clamp=(value,lo,hi)=>Math.min(hi,Math.max(lo,value));
 const FIXED_CAMERA=Object.freeze({
   position:Object.freeze({x:0,y:5.2,z:10}),
   look:Object.freeze({x:0,y:.95,z:0}),
