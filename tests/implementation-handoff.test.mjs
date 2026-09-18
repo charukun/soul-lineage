@@ -43,7 +43,7 @@ test('Ready hands off immediately even if Actions/browser never complete; same h
   assert.equal(f.statuses[0].sha, sha);
   assert.equal(f.statuses[0].context, 'implementation/ready');
   assert.match(f.comments[0].body, /review_ready: true/);
-  assert.match(f.comments[0].body, /receipt_scope: HANDOFF_ONLY/);
+  assert.match(f.comments[0].body, /receipt_scope: READY_ONLY/);
   assert.match(f.comments[0].body, /dev_publication: NO/);
   await recordHandoff(f.options);
   assert.equal(f.comments.length, 1);
@@ -144,20 +144,11 @@ test('PULSE exposes owner without adding worker heartbeat alerts after Ready, in
   assert.equal(compactPull(p).staleDraft, true);
 });
 
-test('workflow boundary is independent of build/browser; Dispatch ends after Ready without monitoring', () => {
+test('develop PR workflow is absent; Dispatch does not poll CI', () => {
   const ci = readFileSync('.github/workflows/ci.yml', 'utf8');
-  const immediate = ci.split('  request-rescue:')[1].split('  draft-check:')[0];
-  assert.doesNotMatch(immediate, /needs:.*(?:build|browser)/);
-  assert.match(immediate, /needs: readiness/);
-  assert.match(immediate, /ref: develop/);
-  assert.match(immediate, /recordHandoff/);
-  assert.match(immediate, /name: Record Ready handoff/);
-  assert.match(immediate, /\["opened","synchronize","reopened","ready_for_review"\]/);
-  assert.doesNotMatch(immediate, /actions: write|createWorkflowDispatch|rescue_mode/);
+  assert.match(ci, /branches: \[main\]/);
+  assert.doesNotMatch(ci, /request-rescue:|merge-ready:|develop-merge\.yml/);
   const dispatch = readFileSync('.github/workflows/rinne-dispatch.yml', 'utf8');
-  assert.match(dispatch, /secrets.DISPATCH_GITHUB_TOKEN \|\| secrets.RESCUE_GITHUB_TOKEN/);
-  assert.ok(dispatch.indexOf('gh pr ready') < dispatch.indexOf("echo 'handed_off=true'"));
-  assert.match(dispatch, /if: failure\(\) && steps.ready.outputs.handed_off != 'true'/);
   assert.doesNotMatch(dispatch, /gh run watch|gh pr checks|sleep\s|gh api[^\n]*actions\/runs/);
   assert.equal(sensitive('docs/RINNE_PROJECT_EXECUTION_POLICY.md'), true);
 });

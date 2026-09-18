@@ -44,13 +44,13 @@ latest develop
   -> implementation
   -> fast validation
   -> push / Ready
-  -> exact-head CI
-  -> serialized develop merge
+  -> focused validation + freshness verify
+  -> same-task PR merge
   -> develop
   -> asynchronous DEV publication / browser repair
 ```
 
-実装 WORK は Ready で対話作業を終了し、CI・browser・DEV 公開を待って polling しない。main / Production は明示許可時のみ変更する。品質 gate を弱めない。
+実装 WORK はfocused validationとfreshness verify後に同じPRを`develop`へmergeして終了する。DEV公開を待ってpollingしない。main / Production は明示許可時のみ変更する。品質 gate を弱めない。
 
 ## 重複資料の扱い
 

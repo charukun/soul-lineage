@@ -19,7 +19,7 @@ When needed to complete a user-requested task in this repository, treat the foll
 - For an explicitly requested Visual Review Lab change, push `work/visual-review-lab-v2` and publish through its existing dedicated workflow to `https://rinne-visual-review.c-okamoto.workers.dev/`. Keep its long-lived PR Draft.
 - Use another already authorized route when authentication or binary transport fails. A route change alone does not require new user consent.
 
-The task still defines what to implement. This consent does not authorize unrelated uploads, another repository/account/provider, secret or private unrelated data, paid resources, credential/security changes, destructive actions, unguarded direct pushes to `develop`, or main/Production publication. In this personal AI-development repository, the same task worker or repository automation is authorized to merge its PR into `develop` after the canonical exact-head CI, hold/review/dependency, freshness and serialized expected-head gates pass. Existing quality and artistic-approval gates remain in force.
+The task still defines what to implement. This consent does not authorize unrelated uploads, another repository/account/provider, secret or private unrelated data, paid resources, credential/security changes, destructive actions, unguarded direct pushes to `develop`, or main/Production publication. In this personal AI-development repository, the same task worker is authorized to merge its PR into `develop` after focused validation, hold/review/dependency checks, current-develop reconciliation, and final freshness verification pass. Existing quality and artistic-approval gates remain in force.
 
 ## Worker procedure
 
