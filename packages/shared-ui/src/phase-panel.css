@@ -1,0 +1,35 @@
+.soul-phase-panel{position:absolute;z-index:5;pointer-events:none;box-sizing:border-box;color:#ece9df;text-align:left;transition:opacity .2s ease,transform .2s ease,background .2s ease,border-color .2s ease}
+.soul-phase-panel *{box-sizing:border-box}
+.soul-phase-head{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.soul-phase-brand{font-size:10px;font-weight:700;letter-spacing:.18em}
+.soul-phase-current{font-size:29px;line-height:1}
+.soul-phase-track{margin-top:7px}
+.soul-phase-step{transition:transform .14s ease,background .14s ease,border-color .14s ease,opacity .14s ease}
+.soul-phase-meta{display:block;margin-top:6px;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.72}
+.soul-phase-panel[data-details="false"] .soul-phase-opponent,.soul-phase-panel[data-details="false"] .soul-phase-skill,.soul-phase-panel[data-details="false"] .soul-phase-health,.soul-phase-panel[data-details="false"] .soul-phase-meta{display:none!important}
+.soul-phase-panel[data-skin="rinne"]{left:50%;bottom:14px;transform:translateX(-50%);width:min(370px,calc(100% - 28px));padding:10px 12px;border:1px solid #92aaa266;border-radius:14px;background:linear-gradient(180deg,#17211fcc,#0d1412e6);box-shadow:0 12px 35px #0007,inset 0 1px #dce8df1a;backdrop-filter:blur(10px)}
+.soul-phase-panel[data-skin="rinne"] .soul-phase-brand{color:#c4d9cf}
+.soul-phase-panel[data-skin="rinne"] .soul-phase-current{font-family:serif;color:#e3cf98;text-shadow:0 0 18px #d6ba6b44}
+.soul-phase-panel[data-skin="rinne"] .soul-phase-track{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.soul-phase-panel[data-skin="rinne"] .soul-phase-track>i{display:none}
+.soul-phase-panel[data-skin="rinne"] .soul-phase-step{display:grid;place-items:center;min-height:34px;border:1px solid #72847d3d;border-radius:9px;background:#eef5ef08;color:#8f9b95}
+.soul-phase-panel[data-skin="rinne"] .soul-phase-step b{font-size:16px}
+.soul-phase-panel[data-skin="rinne"] .soul-phase-step small{font-size:8px;letter-spacing:.12em;opacity:.64}
+.soul-phase-panel[data-skin="rinne"] .soul-phase-step[data-active="true"],.soul-phase-panel[data-skin="rinne"] .soul-phase-step.active{transform:translateY(-2px);border-color:#d9c27f9c;background:linear-gradient(180deg,#d8c98c22,#76a28c22);color:#f3ead2;box-shadow:inset 0 0 18px #d5bd6c16}
+.soul-phase-panel[data-skin="rinne"] .soul-phase-opponent,.soul-phase-panel[data-skin="rinne"] .soul-phase-skill,.soul-phase-panel[data-skin="rinne"] .soul-phase-health{display:none}
+.soul-phase-panel[data-skin="jinku"]{left:0;right:0;bottom:14px;width:100%;text-align:center;background:transparent;border:0;filter:drop-shadow(0 8px 16px #000)}
+.soul-phase-panel[data-skin="jinku"]::before{content:"";position:absolute;z-index:-1;left:50%;top:50%;width:min(330px,82vw);height:74px;transform:translate(-50%,-46%) rotate(-1deg);background:radial-gradient(ellipse,#120908e6 0,#120908b5 52%,transparent 73%);filter:blur(2px)}
+.soul-phase-panel[data-skin="jinku"] .soul-phase-head,.soul-phase-panel[data-skin="jinku"] .soul-phase-meta{display:none}
+.soul-phase-panel[data-skin="jinku"] .soul-phase-track{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:0}
+.soul-phase-panel[data-skin="jinku"] .soul-phase-track>i{display:block;width:18px;height:1px;background:linear-gradient(90deg,transparent,#7f352e,#9d7f5b,transparent)}
+.soul-phase-panel[data-skin="jinku"] .soul-phase-step{display:inline-grid;place-items:center;min-height:0;border:0;background:none;color:#615a54;text-shadow:0 2px 8px #000}
+.soul-phase-panel[data-skin="jinku"] .soul-phase-step b{font-size:18px;font-weight:400;line-height:1}
+.soul-phase-panel[data-skin="jinku"] .soul-phase-step small{display:none}
+.soul-phase-panel[data-skin="jinku"] .soul-phase-step[data-active="true"],.soul-phase-panel[data-skin="jinku"] .soul-phase-step.active{color:#e0c29a;text-shadow:0 0 8px #9b573b,0 0 22px #6f1a1688}
+.soul-phase-panel[data-skin="jinku"] .soul-phase-opponent{min-height:17px;margin-top:8px;font-size:9px;letter-spacing:.16em;color:#d4c8ae;text-shadow:0 2px 8px #000;opacity:.85}
+.soul-phase-panel[data-skin="jinku"] .soul-phase-skill{min-height:22px;margin-top:8px;font-size:13px;letter-spacing:.22em;color:#e6dcc2;text-shadow:0 2px 8px #000}
+.soul-phase-panel[data-skin="jinku"] .soul-phase-health{width:min(170px,44vw);height:3px;margin:6px auto 0;background:#553a384f;overflow:hidden;transform:skewX(-18deg)}
+.soul-phase-panel[data-skin="jinku"] .soul-phase-health>div{height:100%;width:0;max-width:none;margin:0;background:linear-gradient(90deg,#3f0c0c,#a53c34 72%,#d0ad78);box-shadow:0 0 10px #7d151588;transition:width .15s}
+#battle.soul-phase-panel[data-skin="jinku"]{bottom:calc(165px + env(safe-area-inset-bottom))}
+@media(max-width:680px){.soul-phase-panel[data-skin="rinne"]{bottom:8px;width:min(330px,calc(100% - 16px));padding:8px 9px}.soul-phase-panel[data-skin="rinne"] .soul-phase-current{font-size:25px}.soul-phase-panel[data-skin="rinne"] .soul-phase-step{min-height:29px}.soul-phase-panel[data-skin="rinne"] .soul-phase-step b{font-size:14px}.soul-phase-meta{font-size:8px}.soul-phase-panel[data-skin="jinku"]{bottom:8px}}
+@media(max-height:650px){#battle.soul-phase-panel[data-skin="jinku"]{bottom:calc(143px + env(safe-area-inset-bottom))}}
