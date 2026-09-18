@@ -7,7 +7,7 @@ const text = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'
 test('PULSE keeps 30-minute reconciliation but never uses tokenless GitHub access', () => {
   const wrangler = text('wrangler.ops.jsonc');
   const worker = text('ops-board/worker.mjs');
-  const integration = text('.github/workflows/integration-controller.yml');
+  const deploy = text('.github/workflows/deploy.yml');
   assert.match(wrangler, /"crons": \["\*\/30 \* \* \* \*"\]/);
   assert.doesNotMatch(wrangler, /"\*\/5 \* \* \* \*"/);
   assert.match(worker, /x-ops-refresh-reason/);
@@ -17,11 +17,11 @@ test('PULSE keeps 30-minute reconciliation but never uses tokenless GitHub acces
   assert.match(worker, /if \(!state\) return json\(\{ error: 'github_auth_required' \}, 503\)/);
   assert.match(worker, /if \(!token && !env\.OPS_GITHUB_TOKEN\) return json\(\{ error: 'github_auth_required' \}, 503\)/);
   assert.doesNotMatch(worker, /shouldReuseFreshState/);
-  assert.match(integration, /pulse-fallback:/);
-  assert.match(integration, /name: Fallback refresh PULSE if publication wake failed/);
-  assert.match(integration, /needs\.integrate\.outputs\.publication_outcome == 'failure'/);
-  assert.match(integration, /uses: \.\/\.github\/workflows\/pulse-refresh\.yml/);
-  assert.doesNotMatch(integration, /curl[\s\S]*api\/refresh/);
+  assert.match(deploy, /pulse-result-refresh:/);
+  assert.match(deploy, /name: Refresh PULSE after DEV result/);
+  assert.match(deploy, /uses: \.\/\.github\/workflows\/pulse-refresh\.yml/);
+  assert.match(deploy, /fail_on_error: false/);
+  assert.doesNotMatch(deploy, /curl[\s\S]*api\/refresh/);
 });
 
 test('PULSE GitHub client requires authentication and records request-budget observability', () => {
