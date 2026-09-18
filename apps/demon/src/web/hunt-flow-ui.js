@@ -4,8 +4,8 @@ import './hunt-flow.css';
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 const byId = id => document.getElementById(id);
 export class HuntFlowUi {
-  constructor({sheet, start, upgrade, profile, species, toggleReturn}) {
-    Object.assign(this, {sheet, start, upgrade, profile, species, toggleReturn});
+  constructor({sheet, guide, start, upgrade, profile, species, toggleReturn}) {
+    Object.assign(this, {sheet, guide, start, upgrade, profile, species, toggleReturn});
     document.body.classList.add('hunt-loop');
     this.objective = byId('objective');
     this.bag = document.createElement('div'); this.bag.className = 'hunt-bag';
@@ -16,6 +16,7 @@ export class HuntFlowUi {
     this.actionLine = document.createElement('p'); this.actionLine.className = 'hunt-action';
     this.actionLine.setAttribute('role', 'status'); this.actionLine.hidden = true; this.objective.append(this.actionLine);
     this.actionToken = ''; this.actionAt = 0;
+    this.guideSeen = new Set();
     this.campButton = document.createElement('button'); this.campButton.id = 'hunt-camp'; this.campButton.className = 'inline-action';
     this.campButton.type = 'button'; this.campButton.addEventListener('click', () => this.camp());
     byId('begin').after(this.campButton);
@@ -42,11 +43,21 @@ export class HuntFlowUi {
     text.textContent = returning ? `${exit.label}へ · ${Math.ceil(exit.distance)}m` : ready ? '目標達成。持ち帰ろう' : goalText(plan);
     // Action tips are short-lived. The old persistent tutorial remains hidden.
     const token = game.devour ? 'eat' : game.fight ? 'fight' : returning ? 'return' : target?.npc.dead ? 'fallen' : 'move';
-    if (token !== this.actionToken) { this.actionToken = token; this.actionAt = game.time; }
-    const action = {eat:'止まったまま、喰らう', fight:'危険なら敵から離れる', return:'帰還口の輪で止まる', fallen:'倒れた獲物のそばで止まる', move:'滑らせて、人影へ'}[token];
+    if (token !== this.actionToken) {
+      this.actionToken = token; this.actionAt = game.time;
+      if (!overlay && token !== 'move' && !this.guideSeen.has(token)) {
+        this.guideSeen.add(token);
+        const copy = {
+          fight:{kicker:'戦いかた', title:'近づけば、戦いが始まる', body:[{label:'危険なら', text:'敵と逆へ離れる'}]},
+          fallen:{kicker:'捕食', title:'倒れた獲物へ', body:[{label:'そばで止まる', text:'捕食を始める'},{label:'動く', text:'捕食を中断'}]},
+          eat:{kicker:'捕食', title:'止まったまま、喰らう', body:[{label:'動かない', text:'捕食を続ける'}]},
+          return:{kicker:'帰りかた', title:'戦利品を持ち帰れる', body:[{label:'帰還口', text:'輪の中で止まる'}]}
+        }[token];
+        if (copy) this.guide?.show({...copy, side:'right', variant:token === 'return' ? 'compact' : 'normal', duration:3600});
+      }
+    }
     guide.hidden = true;
-    this.actionLine.hidden = overlay || game.time - this.actionAt > 3.2 || token === 'move' && game.time > 4;
-    this.actionLine.textContent = action;
+    this.actionLine.hidden = true;
     this.bag.querySelector('[data-haul]').textContent = `持ち帰れば ${game.carried + (ready ? plan.bonus : 0)} 戦利品`;
     this.bag.querySelector('[data-goal]').textContent = `${Math.min(game.eaten, plan.quota)} / ${plan.quota}${plan.marked ? ` · 標的 ${game.targetEaten ? '済' : '未'}` : ''}`;
     this.bag.querySelector('progress').value = Math.min(1, game.eaten / plan.quota);
