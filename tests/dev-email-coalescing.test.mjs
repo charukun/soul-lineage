@@ -4,6 +4,7 @@ import {
   choosePreviousPublishedDevelopSha,
   findPublishedDevelopPrs,
   recordGithubDeliveryReceipts,
+  developmentEmailStatus,
 } from '../scripts/notify-delivery.mjs';
 
 const repo = 'charukun/soul-lineage';
@@ -112,4 +113,11 @@ test('an existing merge-SHA receipt keeps retry and recovery runs idempotent', a
   const [result] = await recordGithubDeliveryReceipts({ token: 'token', repository: repo, sha: current, prs: [target], request });
   assert.deepEqual(result, { pr: 874, receipt: 'existing' });
   assert.equal(posts, 0);
+});
+
+
+test('DEV email health is observable without claiming SMTP delivery', () => {
+  assert.deepEqual(developmentEmailStatus('success'), { state: 'success', description: 'GitHub PR DEV receipt created or already present' });
+  assert.equal(developmentEmailStatus('skipped').state, 'success');
+  assert.equal(developmentEmailStatus('failure').state, 'failure');
 });
