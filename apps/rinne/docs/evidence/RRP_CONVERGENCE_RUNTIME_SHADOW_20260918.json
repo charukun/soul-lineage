@@ -99,6 +99,57 @@
         "rebirthLineageRecords": 1,
         "protectedTick": 10
       }
+    },
+    "finalExactSourceProbe": {
+      "engine": "current exact Git blobs evaluated in tool V8 with explicit structuredClone/TextEncoder shims; supplemental focused revalidation, not Node 24/full workspace",
+      "semanticShadowBlob": "9b17393f4914cbfb524b5cb899273fc15ebdc457",
+      "semanticShadowChecks": 13,
+      "semanticShadowPassed": true,
+      "semanticShadowScope": [
+        "warm baseline and byte sample",
+        "replaceable-state exclusion",
+        "natural life seal",
+        "restore anchor accepted",
+        "stale restore root rejected",
+        "restart rebirth",
+        "restart epoch acquisition",
+        "combat-ended life seal",
+        "birth recovery + ghost removal + protected clock floor",
+        "lineage rewrite rejection",
+        "history-sequence mismatch rejection",
+        "coverage gap remains explicit",
+        "semantic byte samples emitted"
+      ],
+      "historyBlob": "43ad74796ea362888d9046c56e44b58cc8799974",
+      "historyChecks": 4,
+      "historyPassed": true,
+      "historyScope": [
+        "combat death seals",
+        "natural death seals",
+        "living state at lifespan boundary rejected",
+        "sealed terminal record immutable"
+      ],
+      "checkpointWriterBlob": "67dd4728f2f5f0807c581a7c88762b454ead72ea",
+      "checkpointWriterChecks": 3,
+      "checkpointWriterPassed": true,
+      "checkpointWriterScope": [
+        "previous committed checkpoint supplied to shadow",
+        "shadow divergence remains diagnostic",
+        "authoritative save still advances"
+      ],
+      "performanceBlob": "cea5fcb9ee8c9f2ff82a532d8fa18fe6b83fc7c2",
+      "performanceChecks": 3,
+      "performancePassed": true,
+      "performanceScope": [
+        "semantic payload metrics retained",
+        "zero-event samples retained for aligned windows",
+        "capture reset clears semantic window"
+      ],
+      "syntaxParse": {
+        "passed": true,
+        "scope": "semantic-shadow, checkpoint-writer, performance, history, session, menu, semantic-shadow test, coop-history test, shadow-capture analyzer and analyzer test; module syntax adapted only for parser context",
+        "note": "session export-from and analyzer import.meta were normalized only to let the V8 Function parser accept module source; this is a syntax probe, not module execution"
+      }
     }
   },
   "exactGitBlobs": {
@@ -141,5 +192,13 @@
     "current 14-case semantic-shadow.test.mjs under Node after source-shaped recovery extension",
     "authoritative switch to shadow recovery"
   ],
-  "evidenceClass": "B finite local runtime-shadow evidence; physical superiority remains E and restart-spanning shadow recovery remains F"
+  "evidenceClass": "B finite local runtime-shadow evidence plus exact-source supplemental probes; physical superiority remains E and authoritative adoption of shadow recovery remains F",
+  "finalReconciliation": {
+    "develop": "76f146841bb51793e1b387cb1ecc4baee0110836",
+    "reconciledHead": "4826f95a653e550f75e9df2e0a30a84e705e4121",
+    "mergeBase": "76f146841bb51793e1b387cb1ecc4baee0110836",
+    "behindBy": 0,
+    "overlapWithDevelopDrift": [],
+    "note": "The 21 develop commits since the prior merge base changed control-plane policy/tests and two Rinne CSS files, with no overlap with this PR's changed paths. Runtime/test blobs above are unchanged by the merge-forward."
+  }
 }
