@@ -15,13 +15,19 @@ export function verifyDevelopCompletionContract(root=process.cwd()){
 
   assert.match(agents,/Ready for review is transient, not a success terminal/);
   assert.match(agents,/MERGED_TO_DEVELOP/);
+  assert.match(agents,/same task worker merges that exact validated head to `develop`/);
   assert.match(development,/Ready is not a handoff or success state/);
-  assert.match(development,/MERGED_TO_DEVELOP/);
-  assert.match(executionPolicy,/Ready is not success/);
+  assert.match(development,/Normal success is `MERGED_TO_DEVELOP`/);
   assert.match(executionPolicy,/Routine implementation finishes only after the same task worker merges the exact validated PR head to `develop`/);
-  assert.match(executionPolicy,/- develop merge commit/);
+  assert.match(executionPolicy,/Ready is not success/);
+  assert.match(executionPolicy,/- develop merge commit SHA/);
   assert.match(developMerge,/same-task exact-head merge to develop/);
+  assert.match(developMerge,/normal success is `MERGED_TO_DEVELOP`/);
   assert.match(preReady,/terminal=MERGED_TO_DEVELOP/);
+
+  for(const source of [agents,development,executionPolicy,developMerge]){
+    assert.match(source,/exact[- ]head|exact validated head|exact validated PR head/i);
+  }
 
   const staleTerminalLine=/^\s*(?:Status:\s*)?READY_FOR_INTEGRATION\s*$/m;
   for(const [path,source] of [
