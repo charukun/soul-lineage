@@ -15,6 +15,8 @@ jobs:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    env:
+      APP_ENV: dev
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,29 +25,8 @@ jobs:
         run: npm ci
       - name: Validate source MIDIs and Production catalog
         run: node --test packages/audio/tests/source-midi.test.mjs packages/audio/tests/catalog.test.mjs
-      - name: Load Rinne app config
-        run: node --input-type=module -e "const m=await import('./apps/rinne/vite.config.js'); if(!m.default)process.exit(2)"
-      - name: Bundle Rinne main module graph
-        run: node --input-type=module -e "import {build} from 'vite'; await build({configFile:false,logLevel:'silent',build:{write:false,rolldownOptions:{input:'apps/rinne/src/main.js'}}})"
-      - name: Prepare Rinne assets
-        run: npm run prebuild --workspace @soul/rinne
-      - name: Write single-entry Rinne config
-        run: |
-          cat > apps/rinne/.bgm-single.config.mjs <<'EOF'
-          import {appConfig} from '../../scripts/vite-app.mjs';
-          import {fileURLToPath} from 'node:url';
-          const config=appConfig('rinne',import.meta.url);
-          config.build.rolldownOptions={input:{entry:fileURLToPath(new URL('./index.html',import.meta.url))}};
-          export default config;
-          EOF
-      - name: Bundle Rinne main HTML
-        run: npm exec --workspace @soul/rinne -- vite build --config .bgm-single.config.mjs
-      - name: Remove single-entry config
-        run: rm apps/rinne/.bgm-single.config.mjs
-      - name: Strip retired Rinne assets
-        run: node scripts/strip-retired-character-assets.mjs dist/rinne
-      - name: Verify Rinne build
-        run: node scripts/verify-build.mjs dist/rinne rinne
+      - name: Build Rinne
+        run: npm run build:rinne
       - name: Build Village
         run: npm run build:village
       - name: Build Demon
