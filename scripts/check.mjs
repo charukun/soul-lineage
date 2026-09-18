@@ -13,6 +13,7 @@ for(const building of muraBuildings){
   const asset=visualAssetById(building.visualAssetId);
   assert.equal(asset.status,'MATERIALIZED',`Production building asset must be materialized: ${building.id}`);
   assert.ok(asset.license&&asset.source?.revision&&asset.source?.path&&asset.source?.hash,`Production building asset requires license + immutable provenance: ${building.id}`);
+  assert.ok(['artist-authored','rinne-owned-dcc'].includes(asset.origin),`Production building asset must be artist-authored or RINNE-owned DCC: ${building.id}`);
 }
 const nodes = graph(root);
 const nativeBrowserDialog = /\b(?:(?:window|globalThis|self)\s*\.\s*)?(?:alert|confirm|prompt)\s*\(/;

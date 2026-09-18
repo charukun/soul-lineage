@@ -1,11 +1,21 @@
-import {MONGOLIAN_YURT_OBJ} from './visual/mongolian-yurt-v6.js';
+import {DELENDA_XION_YURT_B} from './visual/delenda-xion-yurt-b.js';
 
+const PRODUCTION_ORIGINS=new Set(['artist-authored','rinne-owned-dcc']);
 const materialized=(entry)=>Object.freeze({status:'MATERIALIZED',...entry,source:Object.freeze(entry.source),runtime:entry.runtime?Object.freeze(entry.runtime):undefined});
 export const visualAssetRegistry=Object.freeze({
- 'village.yurt.traditional.v1':materialized({id:'village.yurt.traditional.v1',type:'building',dimensions:Object.freeze([5,4,5]),license:'Apache-2.0',localPath:'assets/vendor/production/mongolian-yurt/model.obj',licensePath:'assets/vendor/production/mongolian-yurt/LICENSE',source:{repository:'changweilin/steel_vs_swarm',revision:'d917a45eb5dc38fed7f56e6c5cd81700e2e87d8c',path:'out/3d_data/building/bld_yurt/building_bld_yurt_ov_75396782-7f8a-4829-983b-111047edc6d8_v6/model.obj',hash:'git-blob:3bf18c0dcd8faec914f26418139ad6ae6b68de7a'},runtime:{format:'obj',maxVertex:166,yaw:-Math.PI/2,maxHeight:3.65},sourceText:MONGOLIAN_YURT_OBJ}),
- 'mura.kenney-fantasy-town.v1':materialized({id:'mura.kenney-fantasy-town.v1',type:'building-kit',license:'CC0-1.0',localPath:'packages/rendering/src/mura/asset-data.js',source:{repository:'charukun/soul-lineage',revision:'d23c28671a221a5fc39f81c56af99ea32e6e5beb',path:'packages/rendering/src/mura/asset-data.js',hash:'git-blob:b7ab235f8a6eeb7c7908c8084b6b77a651e1ad9f'}}),
- 'mura.housing-authored.v1':materialized({id:'mura.housing-authored.v1',type:'building-kit',license:'RINNE-OWNED',localPath:'packages/housing/models.js',source:{repository:'charukun/soul-lineage',revision:'d23c28671a221a5fc39f81c56af99ea32e6e5beb',path:'packages/housing/models.js',hash:'git-blob:31bce88aceb9bc26ef62d08e846bb7bdd5beb91a'}})
+ 'village.yurt.authored-xion.v2':materialized({
+   id:'village.yurt.authored-xion.v2',type:'building',origin:'artist-authored',dimensions:Object.freeze([7.663018,6.833062,7.696953]),license:'CC-BY-SA-3.0',
+   localPath:'assets/vendor/production/delenda-yurt/xion_house_b.dae',licensePath:'assets/vendor/production/delenda-yurt/Contributors and License.txt',
+   attribution:'Delenda Est contributors; Xiongnu/Scythian source lineage adapted from Terra Magna',
+   source:{repository:'JustusAvramenko/delenda_est',revision:'7f1ed21fe909f3584b96ddcb874645fe3fe3776e',path:'art/meshes/structural/xion_house_b.dae',hash:'git-blob:6542bdebe40b8d7d7ab29e737300557accaef034'},
+   runtime:{format:'compiled-collada',yaw:0,maxHeight:3.6},meshData:DELENDA_XION_YURT_B
+ }),
+ 'mura.kenney-fantasy-town.v1':materialized({id:'mura.kenney-fantasy-town.v1',type:'building-kit',origin:'artist-authored',license:'CC0-1.0',localPath:'packages/rendering/src/mura/asset-data.js',source:{repository:'charukun/soul-lineage',revision:'d23c28671a221a5fc39f81c56af99ea32e6e5beb',path:'packages/rendering/src/mura/asset-data.js',hash:'git-blob:b7ab235f8a6eeb7c7908c8084b6b77a651e1ad9f'}}),
+ 'mura.housing-authored.v1':materialized({id:'mura.housing-authored.v1',type:'building-kit',origin:'rinne-owned-dcc',license:'RINNE-OWNED',localPath:'packages/housing/models.js',source:{repository:'charukun/soul-lineage',revision:'d23c28671a221a5fc39f81c56af99ea32e6e5beb',path:'packages/housing/models.js',hash:'git-blob:31bce88aceb9bc26ef62d08e846bb7bdd5beb91a'}})
 });
-for(const asset of Object.values(visualAssetRegistry))if(asset.status!=='MATERIALIZED'||!asset.license||!asset.localPath||!asset.source?.revision||!asset.source?.path||!asset.source?.hash)throw new Error(`Incomplete production visual asset: ${asset.id}`);
+for(const asset of Object.values(visualAssetRegistry)){
+ if(asset.status!=='MATERIALIZED'||!asset.license||!asset.localPath||!asset.source?.revision||!asset.source?.path||!asset.source?.hash)throw new Error(`Incomplete production visual asset: ${asset.id}`);
+ if(!PRODUCTION_ORIGINS.has(asset.origin))throw new Error(`Production visual asset must be artist-authored or RINNE-owned DCC: ${asset.id}`);
+}
 export function visualAssetById(id){const asset=visualAssetRegistry[id];if(!asset)throw new Error(`Unknown production visual asset: ${id}`);return asset;}
 export function requireMaterializedVisualAsset(id){const asset=visualAssetById(id);if(asset.status!=='MATERIALIZED')throw new Error(`Production visual asset is not materialized: ${id}`);return asset;}

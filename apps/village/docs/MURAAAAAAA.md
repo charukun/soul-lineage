@@ -17,7 +17,7 @@
 ## Tent and facility rules
 
 - `shape: tent` は居住用途だけに使う。一般住人用の `tent`、村長用の `mayor`、専属護衛の住居 `guardhome` 以外の仕事・守り施設へテント外観を流用しない。
-- テント外観は、ライセンス・immutable provenanceを記録した外部取得の伝統的yurt実メッシュを使う。円形壁＋円錐屋根＋正面入口が読めること。runtime primitiveで完成シルエットを自作しない。
+- テント外観は、ライセンス・immutable provenanceを記録した artist-authored の伝統的yurt実メッシュを使う。円形壁＋円錐屋根＋正面入口が読めること。runtime primitiveで完成シルエットを自作しない。
 - `carpenter`、`guardpost` を含む作業・警備施設は、用途が読める恒久施設として描画する。居住テントの外観で代用しない。
 - 一般の `tent` は住人用住居として人口容量を持ち、室内へ家具を置けるハウジング対象を維持する。セーブ上の kind / footprint は互換維持し、既存村も新しい外観へ置き換わる。
 
