@@ -17,7 +17,6 @@ try {
   cpSync(prepared.root,reviewAssets,{recursive:true});
   copyFileSync(appIndex,gameBackup);
   copyFileSync(reviewIndex,appIndex);
-  rmSync(reviewIndex);
   console.log(`Develop-backed Visual Review bundle ready with ${prepared.manifest.models.length} review models and ${prepared.manifest.equipment.length} review equipment options.`);
 } finally {
   rmSync(prepared.root,{recursive:true,force:true});

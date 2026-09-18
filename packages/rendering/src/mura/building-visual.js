@@ -2,9 +2,6 @@ import {makeModel} from '@soul/housing-assets';
 import {defs} from '@soul/world/mura/catalog';
 
 const HOUSE_TYPES=Object.freeze({
-  mayor:Object.freeze({base:'cottage',timber:'roundhouse',stone:'tallhouse',earth:'cottage'}),
-  guardhome:Object.freeze({base:'tallhouse',timber:'roundhouse',stone:'tallhouse',earth:'cottage'}),
-  tent:Object.freeze({base:'cottage',timber:'roundhouse',stone:'tallhouse',earth:'cottage'}),
   home:Object.freeze({base:'cottage',timber:'roundhouse',stone:'tallhouse',earth:'cottage'}),
   lodge:Object.freeze({base:'tallhouse',timber:'roundhouse',stone:'manor',earth:'tallhouse'}),
   clanManor:Object.freeze({base:'manor',timber:'manor',stone:'manor',earth:'manor'})
@@ -40,9 +37,9 @@ function fitHouseToMuraFootprint(T,group,kind){
 }
 
 /**
- * Residential MURA buildings use the same authored house silhouettes as 尽喰廻遊.
- * World IDs, footprints, collision and progression remain owned by @soul/world/mura.
- * Non-residential buildings stay on the existing MURA renderer.
+ * Permanent residential MURA buildings reuse the authored house silhouettes from
+ * 尽喰廻遊, fitted to the canonical metre footprint. Residential tents remain
+ * shared MURA ger-style homes so every app renders the same compact round shelter.
  */
 export function createMuraBuildingVisual(T,models,kind,material='base',level=1){
   const house=resolveMuraHouseVisual(kind,material,level);

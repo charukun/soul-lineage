@@ -73,3 +73,11 @@ PULSEは個別カードが独自に正常/異常を判定するのではなく�
 - PULSE自身のhealthを runtime / event refresh / snapshot / UI の層で分離し、監視系の故障と監視対象の故障を混同しない。
 - 通知判定はPULSEと同じpure decision engineを利用し、`NEEDS_USER`への遷移だけをaction通知の対象にできる構造にする。既存のDEV反映完了通知など事実通知は別種として維持してよいが、要対応判定を独自実装しない。
 - Top UIはまず「放置でOK / 自動対応中 / 確認が必要」を1行で示し、その下に前回閲覧との差分、現在フロー、影響、次の自動アクションを表示する。SHA・Actions・API診断は詳細へ残す。
+
+## Publication preflight 契約
+
+PULSE runtimeの更新は、公開前のfocused verificationが現行実装契約と一致している場合だけ進める。実装を置き換えた後に古い内部表現を要求するテストや、別経路の既存control-plane変更を誤検知する文字列テストで公開を止めない。
+
+- preflightは「共通authenticated refreshを1回だけ使う」「workflowが独自のrefresh HTTP protocolを増やさない」「degraded状態をUIで明示する」といった観測可能な契約を検証する。
+- helper名、局所変数名、YAML断片の切り出し位置など、同じ契約を満たす別実装でも変わり得る内部表現を固定しない。
+- 新しいControl Towerの意味変更が既存テスト期待を変える場合は、品質gateを削除せず、現行のユーザー向け契約へテストを更新してからPULSEを公開する。

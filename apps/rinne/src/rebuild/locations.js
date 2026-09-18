@@ -12,14 +12,14 @@ const INTERIOR_ACTIVITY=Object.freeze({
   rug:['fall','敷物で受身を試す'],plant:['adapt','草木の様子を見る'],lamp:['sense','灯りの揺れから気配を読む'],bench:['balance','腰と体幹を整える'],
 });
 const PLAYABLE_BUILDINGS=Object.freeze([
-  ['home',-20,-4,[['bed',-2,0],['table',1,0],['shelf',2,-3],['hearth',-2,-3],['rug',0,2]]],
-  ['dojo',-18,14,[['bench',-3,1],['rug',0,0],['lamp',3,-2]]],
-  ['school',0,20,[['shelf',-4,-3],['table',0,0],['chair',2,1],['lamp',4,-3]]],
-  ['smith',20,12,[['workbench',-3,-2],['counter',2,-2],['bench',0,2],['lamp',4,2]]],
-  ['clinic',22,-4,[['bed',-3,-1],['table',1,0],['plant',3,-2],['shelf',3,2]]],
-  ['guardpost',0,-22,[['bench',-2,0],['table',1,0],['lamp',2,-2]]],
+  ['home',-20,-4,[['bed',-1.2,-1.4],['table',.7,0],['shelf',1.2,-2.2],['hearth',-1.3,-2],['rug',0,1.2]]],
+  ['dojo',-18,14,[['bench',-2.8,1.5],['rug',0,0],['lamp',3,-2.5]]],
+  ['school',0,20,[['shelf',-2.8,-2.4],['table',0,0],['chair',2,1.8],['lamp',3,-2.4]]],
+  ['smith',22,10,[['workbench',-1.4,-1.2],['counter',1.4,-1.2],['bench',0,1.8],['lamp',2.2,2]]],
+  ['clinic',22,-4,[['bed',-1.8,-1.5],['table',1,0],['plant',2.4,-1.8],['shelf',-2.3,2]]],
+  ['guardpost',0,-22,[['bench',-1.2,.8],['table',1,.8],['lamp',1.7,-1.5]]],
   ['watchtower',15,-24,[['bench',0,0],['lamp',1,-1]]],
-  ['inn',-20,-20,[['bed',-4,-2],['bed',4,-2],['sofa',0,1],['hearth',-4,3],['rug',1,3]]],
+  ['inn',-20,-20,[['bed',-2.5,-2.8],['bed',2.5,-2.8],['sofa',0,2.2],['hearth',-2.8,3],['rug',1.8,2.8]]],
 ]);
 
 function furnitureRows(buildingId,rows){return rows.map(([kind,x,z],index)=>({id:`rinne-room-${buildingId}-${index}`,kind,x,z,rot:0,phase:'built',level:1,material:'base'}));}
@@ -52,8 +52,8 @@ export function normalizeLayout(raw){
 }
 
 function entryStation(object){
-  const entry=muraEntry(object),dx=entry.x-object.x,dz=entry.z-object.z,len=Math.max(.001,Math.hypot(dx,dz)),def=defs[object.kind],insideZ=Math.max(0,(def?.d||10)/2-2.4);
-  return {id:`door.${object.id}`,label:def?.label||'建物',x:entry.x,z:entry.z,radius:1.15,enterInterior:true,buildingId:object.id,interiorSpawn:{x:0,z:insideZ},outsideSpawn:{x:entry.x+dx/len*2.0,z:entry.z+dz/len*2.0}};
+  const entry=muraEntry(object),dx=entry.x-object.x,dz=entry.z-object.z,len=Math.max(.001,Math.hypot(dx,dz)),def=defs[object.kind],insideZ=Math.max(0,(def?.d||10)/2-1.8);
+  return {id:`door.${object.id}`,label:def?.label||'建物',x:entry.x,z:entry.z,radius:1.15,enterInterior:true,buildingId:object.id,interiorSpawn:{x:0,z:insideZ},outsideSpawn:{x:entry.x+dx/len*1.6,z:entry.z+dz/len*1.6}};
 }
 
 export function buildInteriors(layout){
@@ -65,7 +65,7 @@ export function buildInteriors(layout){
       const mapping=INTERIOR_ACTIVITY[item.kind];if(!mapping)continue;const [activity,label]=mapping;
       stations.push({id:`room.${object.id}.${item.id}`,label,x:item.x,z:item.z,radius:.92,activity,actionLabel:label,interiorId:object.id,sourceId:item.id,sourceKind:item.kind,housingTrait:true});
     }
-    const halfDepth=Math.max(3,(def.d||10)/2-.8);
+    const halfDepth=Math.max(1.2,(def.d||10)/2-1.25);
     stations.push({id:`exit.${object.id}`,label:'外へ出る',x:0,z:halfDepth,radius:1.05,exitInterior:true,interiorId:object.id});
     rows.push({id:object.id,kind:object.kind,label:def.label||object.kind,w:def.w||10,d:def.d||10,object,room,stations});
   }
@@ -91,7 +91,7 @@ export function buildStations(layout){
   const dojoObject=built(layout,['dojo']);
   if(dojoObject){
     const entry=muraEntry(dojoObject),dx=entry.x-dojoObject.x,dz=entry.z-dojoObject.z,len=Math.max(.001,Math.hypot(dx,dz));
-    stations.push({id:'training-dummy',label:'かかし',x:entry.x+dx/len*3.0,z:entry.z+dz/len*3.0,radius:1.2,activity:'practice',actionLabel:'かかしで型を反復する',trainingDummy:true});
+    stations.push({id:'training-dummy',label:'かかし',x:entry.x+dx/len*2.2,z:entry.z+dz/len*2.2,radius:1.2,activity:'practice',actionLabel:'かかしで型を反復する',trainingDummy:true});
   }
 
   const a=smith, weaponRows=[
@@ -99,15 +99,15 @@ export function buildStations(layout){
   ];
   for(let i=0;i<weaponRows.length;i++){
     const [weapon,label]=weaponRows[i],col=i%4,row=Math.floor(i/4);
-    stations.push({id:`rack.weapon.${weapon}`,label,x:a.x-3.3+col*2.15,z:a.z+3.0+row*2.05,radius:1.05,equipment:{weapon}});
+    stations.push({id:`rack.weapon.${weapon}`,label,x:a.x-2.2+col*1.45,z:a.z+2.0+row*1.5,radius:.9,equipment:{weapon}});
   }
   const armorRows=[['cloth','服'],['light','軽鎧'],['heavy','重鎧']];
   for(let i=0;i<armorRows.length;i++){
     const [armor,label]=armorRows[i];
-    stations.push({id:`rack.armor.${armor}`,label,x:a.x-2.1+i*2.1,z:a.z+6.0,radius:1.05,equipment:{armor}});
+    stations.push({id:`rack.armor.${armor}`,label,x:a.x-1.4+i*1.4,z:a.z+4.0,radius:.9,equipment:{armor}});
   }
-  stations.push({id:'rack.shield.off',label:'盾を外す',x:a.x-2.0,z:a.z+8.0,radius:1.05,equipment:{shield:false}});
-  stations.push({id:'rack.shield.on',label:'盾を持つ',x:a.x+2.0,z:a.z+8.0,radius:1.05,equipment:{shield:true}});
+  stations.push({id:'rack.shield.off',label:'盾を外す',x:a.x-1.3,z:a.z+5.5,radius:.9,equipment:{shield:false}});
+  stations.push({id:'rack.shield.on',label:'盾を持つ',x:a.x+1.3,z:a.z+5.5,radius:.9,equipment:{shield:true}});
 
   for(const interior of buildInteriors(layout)){
     stations.push(entryStation(interior.object));

@@ -14,6 +14,13 @@ test('bottom rail exposes independent heart technique body pages',()=>{
   assert.match(loadout,/renderHeart/);assert.match(loadout,/renderTechnique/);assert.match(loadout,/renderBody/);
 });
 
+test('body command and loadout panel body resolve to different DOM targets',()=>{
+  assert.match(gameplay,/panel=q\('\[data-panel\]'\)/);
+  assert.match(gameplay,/bodyButton:q\('\.rinne-bottom-controls \[data-body\]'\)/);
+  assert.match(gameplay,/body:panel\.querySelector\('\[data-body\]'\)/);
+  assert.doesNotMatch(gameplay,/bodyButton:q\('\[data-body\]'\).*body:q\('\[data-body\]'\)/s);
+});
+
 test('technique page models combos, favored tags, and a costly manual one-motion',()=>{
   assert.match(loadout,/addCombo/);assert.match(loadout,/toggleFavored/);assert.match(loadout,/得意技/);assert.match(loadout,/手動奥義/);assert.match(loadout,/消耗と隙が大きい/);
   assert.match(gameplay,/data-one-motion/);assert.match(gameplay,/消耗大 \/ 隙大/);

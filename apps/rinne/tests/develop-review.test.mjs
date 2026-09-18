@@ -9,7 +9,7 @@ const read=path=>readFile(resolve(appRoot,path),'utf8');
 
 test('Visual Review launcher is only five direct destinations',async()=>{
   const html=await read('review.html');
-  for(const [target,href] of [['characters','./characters.html'],['motion','./characters.html?review=motion'],['assets','./review-assets.html'],['effects','./review-effects.html'],['battle','./review-battle.html']]){
+  for(const [target,href] of [['characters','./characters.html?review=character'],['motion','./characters.html?review=motion'],['assets','./review-assets.html'],['effects','./review-effects.html'],['battle','./review-battle.html']]){
     assert.match(html,new RegExp(`data-review-target="${target}"[^>]*href="${href.replace(/[.?]/g,'\\$&')}"`));
   }
   assert.equal((html.match(/data-review-target=/g)||[]).length,5);
@@ -18,9 +18,22 @@ test('Visual Review launcher is only five direct destinations',async()=>{
   assert.doesNotMatch(html,/focus-shell|app-context|対象・正本/);
 });
 
+test('equipment review uses the same quiet preview and compact camera hierarchy',async()=>{
+  const [html,css,js]=await Promise.all([read('review-assets.html'),read('src/review-asset-library.css'),read('src/review-asset-library.js')]);
+  assert.match(html,/class="asset-topbar"/);
+  assert.match(html,/id="asset-camera-strip"/);
+  for(const preset of ['front','side','back','full'])assert.match(html,new RegExp(`data-asset-camera="${preset}"`));
+  assert.doesNotMatch(html,/asset-badge|asset-help|asset-step/);
+  assert.match(js,/function setCameraPreset/);
+  assert.match(js,/controls\.addEventListener\('start'/);
+  assert.match(css,/grid-template-rows:42px minmax\(0,58fr\) minmax\(0,42fr\)/);
+  assert.match(css,/\.asset-camera-strip button\{min-height:26px/);
+});
+
 test('Battle is a dedicated page using real RaidHost and runtime models',async()=>{
   const [html,review,battle]=await Promise.all([read('review-battle.html'),read('src/review-battle.js'),read('src/review-battle-stage.js')]);
   assert.match(html,/id="battle-canvas"/);assert.match(html,/id="battle-hero-model"/);assert.match(html,/id="battle-enemy-model"/);
+  assert.match(html,/<a href="\/" aria-label="Visual Reviewへ戻る">← Review<\/a>/);
   assert.match(review,/from '@soul\/network\/raid-host'/);assert.match(review,/new RaidHost/);assert.match(review,/createReviewBattleStage/);
   assert.match(review,/stage\.setModel\('hero'/);assert.match(review,/stage\.setModel\('enemy'/);
   assert.match(battle,/createKaykitCharacterPools/);assert.match(battle,/tidebreakFrameFromSnapshot/);assert.match(battle,/applyTidebreakPose/);assert.match(battle,/battleGeometry='runtime-models'/);

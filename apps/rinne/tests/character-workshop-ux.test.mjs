@@ -50,8 +50,34 @@ test('mobile stage remains dominant and edit footer leaves review modes', () => 
   assert.match(css, /\.stage-actions\{grid-template-columns:repeat\(3/);
 });
 
+test('Visual Review gets dedicated simple character and motion modes', () => {
+  assert.match(entry, /const REVIEW_MODES = Object\.freeze/);
+  assert.match(entry, /character: \{/);
+  assert.match(entry, /motion: \{/);
+  assert.match(entry, /dataset\.reviewMode = mode/);
+  assert.match(entry, /simple-review-summary/);
+  assert.match(entry, /simple-review-subject/);
+  assert.match(entry, /prepareCharacterCameraStrip/);
+  assert.match(entry, /moveCameraControlsToStage/);
+  assert.doesNotMatch(entry, /simple-review-guide/);
+  assert.doesNotMatch(entry, /simple-review-badge/);
+  assert.match(css, /body\.simple-review \.mode-tabs/);
+  assert.match(css, /\.simple-review-summary/);
+  assert.match(css, /\.simple-review-subject/);
+  assert.match(css, /data-review-mode="motion"/);
+});
+
+test('simple review keeps preview chrome quiet and controls compact', () => {
+  assert.match(css, /body\.simple-review \.stage-status #status:not\(\[data-error="true"\]\)/);
+  assert.match(css, /body\.simple-review \.stage-actions #frame-model/);
+  assert.match(css, /body\[data-review-mode="character"\] #character-model-options/);
+  assert.match(css, /body\.simple-review \.workshop-secondary-tabs/);
+});
+
 test('restored UX is loaded by the existing workshop entry without adding authority', () => {
   assert.match(entry, /import '\.\/character-workshop-ux\.js'/);
-  assert.doesNotMatch(ux, /localStorage|sessionStorage|indexedDB|WebSocket|RTCPeerConnection/);
-  assert.doesNotMatch(ux, /fetch\(|gameState|saveGame/);
+  for (const code of [ux, entry]) {
+    assert.doesNotMatch(code, /localStorage|sessionStorage|indexedDB|WebSocket|RTCPeerConnection/);
+    assert.doesNotMatch(code, /fetch\(|gameState|saveGame/);
+  }
 });
