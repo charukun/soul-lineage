@@ -211,7 +211,7 @@
 }
 .rinne-gameplay-upgrade .upgrade-panel::before,.rinne-gameplay-upgrade .upgrade-panel::after{display:none!important}
 .rinne-gameplay-upgrade .upgrade-panel>header{
-  min-height:44px!important;padding:9px 44px 8px 13px!important;
+  min-height:44px!important;padding:9px 13px 8px!important;
   display:flex!important;align-items:center!important;
   border-bottom:1px solid var(--rinne-line-soft)!important;
   background:linear-gradient(180deg,rgba(17,43,68,.96),rgba(10,28,47,.96))!important;
@@ -220,6 +220,7 @@
 .rinne-gameplay-upgrade .upgrade-panel>header>strong{
   font-family:var(--font-rinne-display)!important;font-size:14px!important;letter-spacing:.06em!important;color:var(--rinne-gold-hi)!important;
 }
+.rinne-gameplay-upgrade .upgrade-panel>header>[data-close]{display:none!important}
 .rinne-gameplay-upgrade .upgrade-panel>header button{
   position:absolute!important;right:8px!important;top:7px!important;
   width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;padding:0!important;
@@ -422,6 +423,7 @@
 .upgrade-panel[data-type="record"] .record-inheritance-brief b{color:var(--rinne-gold-hi)!important}
 
 /* Combat-only information stays secondary. */
+.combat-phase-indicator[hidden]{display:none!important}
 .combat-phase-indicator{
   border:1px solid var(--rinne-line)!important;border-radius:999px!important;clip-path:none!important;
   background:rgba(6,19,33,.92)!important;color:var(--rinne-muted)!important;box-shadow:0 4px 10px rgba(0,0,0,.28)!important;
