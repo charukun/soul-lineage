@@ -44,22 +44,27 @@
         </div>
         <span id="control-since" class="control-since">この状態 未記録</span>
       </div>
-      <div class="control-meta" aria-label="状態の確からしさと時刻">
-        <span id="control-completeness">確認中</span>
-        <span id="control-github-change">GitHub変化 未記録</span>
-        <span id="control-refreshed">PULSE反映 未記録</span>
-      </div>
-      <p id="control-delta" class="control-delta">前回閲覧との差分を確認しています</p>
-      <div id="control-flow" class="control-flow" aria-label="現在の開発フロー"></div>
       <div class="control-next"><span class="control-next-label">次</span><strong id="control-next">次の状態更新を待ちます</strong></div>
-      <div id="control-impact" class="control-impact" aria-label="影響範囲"></div>
-      <details class="nested-disclosure" data-disclosure="control:timeline">
-        <summary>自動処理と状態遷移</summary>
-        <div id="control-timeline" class="control-timeline"></div>
-      </details>
-      <details class="nested-disclosure" data-disclosure="control:self-health">
-        <summary>PULSE自身の監視状態</summary>
-        <div id="control-self-health" class="control-health"></div>
+      <details class="control-details nested-disclosure" data-disclosure="control:details">
+        <summary>処理の内訳を見る</summary>
+        <div class="control-details-body">
+          <div class="control-meta" aria-label="状態の確からしさと時刻">
+            <span id="control-completeness">確認中</span>
+            <span id="control-github-change">GitHub変化 未記録</span>
+            <span id="control-refreshed">PULSE反映 未記録</span>
+          </div>
+          <p id="control-delta" class="control-delta">前回閲覧との差分を確認しています</p>
+          <div id="control-flow" class="control-flow" aria-label="現在の開発フロー"></div>
+          <div id="control-impact" class="control-impact" aria-label="影響範囲"></div>
+          <details class="nested-disclosure" data-disclosure="control:timeline">
+            <summary>自動処理と状態遷移</summary>
+            <div id="control-timeline" class="control-timeline"></div>
+          </details>
+          <details class="nested-disclosure" data-disclosure="control:self-health">
+            <summary>PULSE自身の監視状態</summary>
+            <div id="control-self-health" class="control-health"></div>
+          </details>
+        </div>
       </details>
     </section>
 
