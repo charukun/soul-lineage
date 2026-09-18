@@ -198,6 +198,7 @@ export async function boot() {
     $('boot-retry').hidden = false; $('game').dataset.renderer = 'lost';
   });
   $('pause').onclick = () => safe(settings); $('memory').onclick = () => safe(lineage); $('scent').onclick = () => { game.resetIdle(); audio.start(); game.sense(); };
+  $('objective-help').onclick = () => safe(help); $('swipe-hint').onclick = () => safe(help);
   $('return').onclick = toggleReturn; $('dash-stop').onclick = pauseInput; $('sheet-close').onclick = () => safe(dismissSheet);
   window.addEventListener('resize', () => view.resize()); installInput(); requestAnimationFrame(frame);
   window.__NIGHT_HUNT__ = {
