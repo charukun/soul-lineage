@@ -8,14 +8,14 @@
       "source": "CoopWorld.addPlayer -> session welcome persist -> appendHistory born",
       "subject": "playerId + lifeId",
       "strongReason": "participant/life identity becomes shared durable history",
-      "candidateJournalMaterial": "full initial actor recovery state + protected projection + operation/epoch identity"
+      "candidateJournalMaterial": "initial actor recovery base + protected identity + world/tick floor + operation/epoch identity; current host-local recovery also retains the participant resume token as confidential recovery material, not public canon"
     },
     {
       "effect": "life.seal",
       "source": "CoopWorld.advance -> tickSharedFront/tickLife may end life -> dirtyHistory -> appendHistory life-ended",
       "subject": "playerId + lifeId",
       "strongReason": "the predecessor must not resurrect or change lineage inputs after commitment",
-      "candidateJournalMaterial": "terminal protected delta + one lineage record + operation/epoch identity",
+      "candidateJournalMaterial": "terminal protected delta + one lineage record + semantic clock floor + operation/epoch identity",
       "scopeNote": "task-start history accepted only lifespan completion, but shared combat can call endLifeEarly; this branch repairs history/shadow extraction so ended-phase combat deaths also seal"
     },
     {
@@ -23,7 +23,7 @@
       "source": "applyRebirthIntent -> persist -> rebirth ACK",
       "subject": "playerId + previousLifeId + resultLifeId + optional villageId",
       "strongReason": "generation and lineage extension must be idempotent and predecessor-bound",
-      "candidateJournalMaterial": "intent/receipt + one lineage record + new actor creation state without repeated lineage prefix + operation/epoch identity"
+      "candidateJournalMaterial": "intent/receipt + one lineage record + new actor recovery base without repeated lineage prefix + semantic clock floor + operation/epoch identity"
     },
     {
       "effect": "authority.epoch.acquire",
@@ -68,6 +68,10 @@
   ],
   "branchRefinement": {
     "combatEndReachability": "combat-core.js and combat-evolution-runtime.js call endLifeEarly on shared-front paths reached by CoopWorld.advance",
-    "historyRepair": "ended lives require phase=ended; living lives must remain below LIFE_SECONDS; terminal records remain immutable"
-  }
+    "historyRepair": "ended lives require phase=ended; living lives must remain below LIFE_SECONDS; terminal records remain immutable",
+    "shadowRecovery": "runtime shadow now retains source-shaped recovery bases, protected clock floors and local resume credentials; a pure overlay can recover protected birth/rebirth state over an older provisional checkpoint while removing ghost actors. It is still non-authoritative."
+  },
+  "confidentialRecoveryMaterial": [
+    "participant resume token is needed to preserve current same-character reconnect when a provisional checkpoint predates birth; it belongs to trusted/encrypted recovery material, not a generally replicated public validator transcript"
+  ]
 }
