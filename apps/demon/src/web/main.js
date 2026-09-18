@@ -13,6 +13,7 @@ import {PREY, FORMS, offerVillages} from '@soul/raid/world';
 import {SwipeInput} from '@soul/input';
 import {renderLineage} from './lineage.js';
 import {huntPresentationSnapshot} from './presentation-snapshot.js';
+import {renderExplanationCards} from './explanation-ui.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
@@ -22,11 +23,18 @@ const swipe = new SwipeInput(), audio = new NightAudio();
 function safe(fn) { try { return fn(); } catch (e) { console.error(e); showError(e.message || String(e)); } }
 function pauseInput() { game?.resetIdle(); swipe.cancel(); $('move-pad').hidden = true; $('dash-stop').hidden = true; }
 function sheet(title, kicker, html, kind) {
-  pauseInput(); $('sheet-title').textContent = title; $('sheet-kicker').textContent = kicker;
-  $('sheet-body').innerHTML = html; $('sheet').hidden = false; sheetKind = kind;
+  pauseInput();
+  const panel = $('sheet');
+  panel.dataset.kind = kind || 'generic';
+  panel.lang = document.documentElement.lang || 'ja';
+  $('sheet-title').textContent = title; $('sheet-kicker').textContent = kicker;
+  $('sheet-body').innerHTML = html; panel.hidden = false; sheetKind = kind;
 }
 function showError(text) { sheet('確認が必要です', '保存と再開', `<p class="error">${esc(text)}</p><p class="muted">保存データは削除していません。</p>`, 'error'); }
-function closeSheet() { disposeCharacterSelection?.(); disposeCharacterSelection = null; pauseInput(); $('sheet').hidden = true; sheetKind = ''; }
+function closeSheet() {
+  disposeCharacterSelection?.(); disposeCharacterSelection = null; pauseInput();
+  $('sheet').hidden = true; $('sheet').dataset.kind = 'generic'; sheetKind = '';
+}
 function dismissSheet() {
   if (sheetKind === 'error' && error) return;
   if (mode === 'result') { mode = 'title'; $('title').hidden = false; $('hud').hidden = true; }
@@ -79,7 +87,13 @@ async function randomHunt(route = 'mission') {
 }
 function lineage() { refresh(); sheet('転生史', '身体に残ったもの', renderLineage(profile), 'lineage'); }
 function help() {
-  sheet('狩りかた', '遊びながら覚える', '<p>指を滑らせて移動。接敵すると自動で戦う。</p><p>倒した獲物のそばで止まると捕食。危険なら敵から離れる。</p><p>帰還口の輪で止まれば、戦利品を確保。持ち帰った戦利品で肉体を強化する。</p><p>死亡すると未確保の戦利品を失う。特能と恒久強化は残る。</p>', 'help');
+  const cards = [
+    {mark:'歩', title:'移動する', body:'指を滑らせて移動。敵に近づくと戦闘は自動で始まります。', note:'危険なら敵と逆へ距離を取り、間合いを切る。'},
+    {mark:'喰', title:'捕食する', body:'倒れた獲物のそばで止まると捕食が始まります。', note:'動くと中断。安全を確かめて止まる。'},
+    {mark:'帰', title:'帰還する', body:'帰還口の輪の中で止まると、戦利品を確保して戻れます。', note:'持ち帰った戦利品で肉体を強化できる。'},
+    {mark:'失', title:'倒れたとき', body:'死亡すると、その夜にまだ確保していない戦利品を失います。', note:'覚えた特能と恒久強化は次の生にも残る。'}
+  ];
+  sheet('狩りかた', '遊びながら覚える', renderExplanationCards(cards, {locale: document.documentElement.lang}), 'help');
 }
 function settings() {
   let html = '<button class="inline-action" id="movement-help">狩りかた</button><button class="inline-action" id="sound-toggle">環境音・効果音：' + (audio.enabled ? '入' : '切') + '</button><button class="inline-action" id="visit-log">喰痕</button><button class="inline-action" id="credits">素材と接続状況</button><button class="inline-action" id="music-library">音楽室・BGM音量</button><button class="inline-action" id="settings-memory">転生史</button>';
