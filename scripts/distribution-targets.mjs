@@ -6,8 +6,8 @@ const consumer = (id, label, adapter) => Object.freeze({
 });
 
 export const DISTRIBUTION_TARGETS = Object.freeze([
-  Object.freeze({id:'web-dev',label:'Web DEV',kind:'web',status:'buildable',branch:'develop',environment:'dev',artifactFormat:'static-site',publisher:'dev-host',adapter:'platform-web'}),
-  Object.freeze({id:'web-review',label:'Visual Review',kind:'web-review',status:'buildable',branch:'develop',environment:'dev',artifactFormat:'static-site',publisher:'review-host',adapter:'platform-web',apps:Object.freeze(['rinne'])}),
+  Object.freeze({id:'web-dev',label:'Web DEV',kind:'web',status:'buildable',branch:'develop',environment:'dev',artifactFormat:'static-site',publisher:'compat-pages',preferredPublisher:'per-app-dev-host',adapter:'platform-web'}),
+  Object.freeze({id:'web-review',label:'Visual Review',kind:'web-review',status:'buildable',branch:'develop',environment:'dev',artifactFormat:'static-site',publisher:'review-host',preferredPublisher:'per-app-review-host',adapter:'platform-web',apps:Object.freeze(['rinne'])}),
   Object.freeze({id:'web-staging',label:'Web Staging',kind:'web',status:'buildable',branch:'develop',environment:'staging',artifactFormat:'static-site',publisher:'compat-pages',adapter:'platform-web'}),
   Object.freeze({id:'web-prod',label:'Web Production',kind:'web',status:'buildable',branch:'main',environment:'prod',artifactFormat:'static-site',publisher:'compat-pages',adapter:'platform-web'}),
   consumer('steam','Steam','platform-steam'),
@@ -46,7 +46,7 @@ export function assertBuildableTarget(targetOrId,app){
 }
 
 export function distributionTargetSummary(){
-  return DISTRIBUTION_TARGETS.map(target=>({id:target.id,kind:target.kind,status:target.status,branch:target.branch,environment:target.environment,adapter:target.adapter,publisher:target.publisher}));
+  return DISTRIBUTION_TARGETS.map(target=>({id:target.id,kind:target.kind,status:target.status,branch:target.branch,environment:target.environment,adapter:target.adapter,publisher:target.publisher,preferredPublisher:target.preferredPublisher||target.publisher}));
 }
 
 export const DISTRIBUTION_ENVIRONMENTS=Object.freeze(GAME_ENVIRONMENTS.map(environment=>Object.freeze({
