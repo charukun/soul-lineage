@@ -116,3 +116,8 @@ PULSEのUI・browser fixture・テスト・公開前検証は、別々に文言�
 ### Environment target identity
 
 PULSEのapp target検証は配列indexを環境の意味として扱わない。`dev-fast` などのtarget追加・並び替えに耐えるため、DEV/STAGING/Productionは `target.environment` / target idで解決する。公開manifestの環境契約とUI表示順を混同しない。
+
+
+### Publication snapshot contract
+
+公開検証は現行snapshotの意味契約を検証する。game targetは `dev-fast` の追加を許容しつつ、`dev` / `staging` / `prod` の3公開環境をenvironment IDで必須確認する。PR lifecycleは通常 `pullRequests.normal` を正本とし、廃止済みの専用 `visualReview` 配列を必須にしない。target lookup accountingは実在するPR配列に対して厳密一致させる。
