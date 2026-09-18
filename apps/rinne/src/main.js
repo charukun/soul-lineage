@@ -1,5 +1,6 @@
 import { installRinneGameplayUpgrade } from './gameplay-upgrade.js';
 import { confirmRinneAudio, selectRinneAudio, unlockRinneAudio } from './gameplay-audio.js';
+import { createTitleCinematicController } from './title-cinematic.js';
 import './native-ui-polish.js';
 const info=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__:{name:'100年生',app:'rinne',environment:'local',commit:'UNBUILT'};
 document.title=`100年生 — 輪廻転焦${info.environment==='prod'?'':` | ${String(info.environment).toUpperCase()}`}`;
@@ -11,7 +12,7 @@ const motionKey=`soul:v1:${info.environment}:rinne:title-motion-v1`;
 const rrpCaptureRequested=new URLSearchParams(location.search).has('rrpCapture');
 if(rrpCaptureRequested)document.documentElement.dataset.rrpCapture='true';
 const afterVisiblePaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null,rrpCapture=null,gameplayUpgrade=null,titleAudioReady=false,titleSelected=null,titleParallaxRaf=0,titleIntroPlayed=false,titleIntroTimers=[];
+let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null,rrpCapture=null,gameplayUpgrade=null,titleAudioReady=false,titleSelected=null,titleParallaxRaf=0;
 
 const titleCommands=[...title.querySelectorAll('.title-command')];
 function unlockTitleAudio(){void Promise.resolve(unlockRinneAudio()).then(ok=>{titleAudioReady=Boolean(ok)||titleAudioReady;}).catch(()=>{});titleAudioReady=true;}
@@ -53,36 +54,19 @@ title.addEventListener('pointermove',event=>{
 },{passive:true});
 title.addEventListener('pointerleave',resetTitleParallax,{passive:true});
 
-function applyTitleMotion(enabled,persist=false){
-  title.dataset.motion=enabled?'on':'off';
-  motionToggle.setAttribute('aria-checked',String(enabled));
-  const state=motionToggle.querySelector('.setting-switch-state');if(state)state.textContent=enabled?'入':'切';
-  if(!enabled)resetTitleParallax();
-  if(persist){try{localStorage.setItem(motionKey,enabled?'on':'off');}catch{}}
-}
-let initialMotion=!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-try{const stored=localStorage.getItem(motionKey);if(stored==='on'||stored==='off')initialMotion=stored==='on';}catch{}
-applyTitleMotion(initialMotion);
-
-function clearTitleIntroTimers(){for(const timer of titleIntroTimers)clearTimeout(timer);titleIntroTimers=[];}
 function setTitleReady(ready,status=''){
   title.dataset.ready=ready?'true':'false';
   for(const command of titleCommands)command.disabled=!ready;
   if(status!==undefined)$('boot-status').textContent=status;
 }
-function beginTitleIntro(){
-  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  if(titleIntroPlayed){
-    if(title.dataset.intro!=='cinematic'&&title.dataset.intro!=='settling')title.dataset.intro='idle';
-    return;
-  }
-  clearTitleIntroTimers();
-  titleIntroPlayed=true;
-  if(title.dataset.motion!=='on'||reduced){title.dataset.intro='idle';return;}
-  title.dataset.intro='cinematic';
-  titleIntroTimers.push(setTimeout(()=>{if(!title.hidden)title.dataset.intro='settling';},6500));
-  titleIntroTimers.push(setTimeout(()=>{if(!title.hidden)title.dataset.intro='idle';},8200));
-}
+const titleCinematic=createTitleCinematicController({
+  title,
+  video:$('title-cinematic-video'),
+  motionToggle,
+  motionKey,
+  getPrepared:()=>prepared,
+  resetParallax:resetTitleParallax,
+});
 function refreshContinue(){
   let saved=null;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
   hasSave=Boolean(saved);const button=$('continue-life');
@@ -96,8 +80,9 @@ function setLoading(message,titleText='世界をつくっています'){
   $('loading-title').textContent=titleText;$('loading-message').textContent=message;retry.hidden=true;loading.hidden=false;
 }
 function showTitle(status=''){
-  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,cinematic=!titleIntroPlayed&&title.dataset.motion==='on'&&!reduced;
-  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;loading.hidden=true;title.hidden=false;launching=false;booting=false;refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(Boolean(prepared),status);prepared?.startTitlePreview?.({cinematic});beginTitleIntro();
+  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;loading.hidden=true;title.hidden=false;launching=false;booting=false;refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(Boolean(prepared),status);
+  if(title.dataset.media==='fallback')prepared?.startTitlePreview?.({cinematic:false});
+  titleCinematic.begin();
 }
 function showBootFailure(error){
   console.error(error);app.dataset.screen='error';booting=false;launching=false;title.hidden=true;game.hidden=false;game.classList.add('is-loading');game.removeAttribute('aria-busy');
@@ -125,7 +110,7 @@ async function openCoopDialog(){
 async function boot(){
   if(booting||prepared)return;
   booting=true;app.dataset.screen='loading';title.hidden=false;title.dataset.intro='pending';game.hidden=false;game.classList.add('is-loading');game.setAttribute('aria-busy','true');loading.hidden=true;
-  refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(false,'世界を準備しています');
+  refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(false,'世界を準備しています');titleCinematic.begin();
   try{
     await afterVisiblePaint();
     runtimeModule=await import('./rebuild/runtime.js');
@@ -152,7 +137,7 @@ async function exitGame(coop){
 async function launch(mode,coop=null){
   if(runtime)throw Error('いったんタイトルへ戻ってから参加してください。');
   if(!coop&&coopMenu?.session)await coopMenu.leave();
-  if(launching||booting||!prepared||!runtimeModule)return;launching=true;app.dataset.screen='game';title.hidden=true;game.hidden=false;game.classList.remove('is-loading');game.removeAttribute('aria-busy');loading.hidden=true;
+  if(launching||booting||!prepared||!runtimeModule)return;launching=true;app.dataset.screen='game';titleCinematic.pause();title.hidden=true;game.hidden=false;game.classList.remove('is-loading');game.removeAttribute('aria-busy');loading.hidden=true;
   try{
     runtime=await runtimeModule.startRuntime({mode,buildInfo:info,name:$('life-name').value,prepared,coop,onExit:()=>exitGame(coop)});
     $('open-coop-game').hidden=!coop;villageDialog.close();game.dataset.runtime='active';launching=false;
@@ -166,7 +151,8 @@ retry.addEventListener('click',()=>location.reload());
 $('new-life').addEventListener('click',()=>{void launch('new');});
 $('continue-life').addEventListener('click',()=>{if(!hasSave){$('boot-status').textContent='続きから遊べる保存データがありません';return;}void launch('continue');});
 $('open-settings').addEventListener('click',()=>settingsDialog.showModal());
-motionToggle.addEventListener('click',()=>applyTitleMotion(motionToggle.getAttribute('aria-checked')!=='true',true));
+motionToggle.addEventListener('click',()=>titleCinematic.setMotion(motionToggle.getAttribute('aria-checked')!=='true',true));
+titleCinematic.init();
 void boot();
 
 document.getElementById('close-village').addEventListener('click',()=>villageDialog.close());
@@ -194,4 +180,4 @@ if(new URLSearchParams(location.search).has('villageHostLab')){
   })().catch(error=>{console.error(error);$('boot-status').textContent=`村診断失敗：${error?.message||error}`;});
 }
 
-if(import.meta.hot)import.meta.hot.dispose(()=>{clearTitleIntroTimers();cancelAnimationFrame(titleParallaxRaf);runtime?.dispose?.();void coopMenu?.leave();rrpCapture?.dispose?.();gameplayUpgrade?.dispose?.();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});
+if(import.meta.hot)import.meta.hot.dispose(()=>{titleCinematic.dispose();cancelAnimationFrame(titleParallaxRaf);runtime?.dispose?.();void coopMenu?.leave();rrpCapture?.dispose?.();gameplayUpgrade?.dispose?.();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});

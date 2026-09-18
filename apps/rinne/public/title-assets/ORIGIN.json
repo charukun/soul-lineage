@@ -1,12 +1,24 @@
 {
-  "source": "User-approved generated title key visual, this conversation",
-  "source_file": "輪廻転焦_黄昏の旅立ち.png",
-  "source_sha256": "05397b50832996dbaad8765359e0c13fc2731fa0cf581e81de3b797da69b37fb",
-  "crop_world": [
-    280,
-    375,
-    1060,
-    836
+  "source": "ChatGPT-generated cinematic keyframes, current conversation",
+  "generation_request": "Bright blue-sky fantasy world, grassland overlook, distant castle/village, cute stylized adventurer and companion; cinematic intro landing on a living title composition.",
+  "generated_sources": [
+    {
+      "file": "a_wide_epic_cinematic_fantasy_game_title_screen.png",
+      "sha256": "43f54b539b3a24ec88b73e2f742284c0293b105378f9b1dbeb0cb6ec4ecaeddc"
+    },
+    {
+      "file": "a_widescreen_cinematic_fantasy_game_title_screen.png",
+      "sha256": "7cb0a8dd091dd0fcad0eca7da68d89b317ab3158fa854a57ffbc44a0c783f513"
+    },
+    {
+      "file": "wide_cinematic_fantasy_landscape_title_screen_ill.png",
+      "sha256": "542f77d3368eb547653f5b695508fac47d99a17679d4f3c25c5cd8075fad4e70"
+    }
   ],
-  "processing": "Cropping / WebP encoding only. Title and menu are live HTML, not baked image buttons."
+  "processing": "Generated key visuals are reframed into one H.264 timeline: 0-8.45s cinematic flight, followed by a 5.05s Living Still tail looped inside the same video element. Binary movie/poster assets live under public/title-assets; title and menu remain live HTML.",
+  "fallback": "Existing title-assets/world.webp and prepared title-live canvas are used only when movie playback is unavailable or motion is disabled.",
+  "media_assets": {
+    "movie": "title-cinematic.mp4",
+    "poster": "title-cinematic-poster.webp"
+  }
 }
