@@ -84,7 +84,7 @@ function installAssetSlots(){
 }
 
 function installEffectSlots(){
-  if(!byId('fx-stage'))return;
+  if(!byId('fx-stage')||byId('fx-catalog'))return;
   const controls=qs('.controls');
   if(!controls)return;
   const slotRow=row('fx-review-slots','fx-slot-row',controls,controls.firstElementChild);
