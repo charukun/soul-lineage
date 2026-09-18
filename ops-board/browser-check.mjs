@@ -48,12 +48,22 @@ try {
   await page.waitForFunction(() => document.querySelector('#overview-task-value')?.textContent !== '確認中');
   await page.waitForFunction(() => document.querySelector('#control-headline')?.textContent !== '状態を確認中');
   assert.match(await page.locator('#control-headline').innerText(), /放置でOK|自動対応中|確認が必要/);
-  check('Control Tower exposes the user-action decision first');
+  assert.equal(await page.locator('#overview-alert-value').innerText(), '操作不要');
+  const firstGlance = await page.evaluate(() => ({
+    viewport: innerHeight,
+    bottoms: ['overview-alert-card','overview-task-card','overview-app-card'].map(id => document.getElementById(id)?.getBoundingClientRect().bottom || 99999),
+  }));
+  assert.ok(firstGlance.bottoms.every(bottom => bottom <= firstGlance.viewport + 1), JSON.stringify(firstGlance));
+  assert.equal((await page.locator('body').innerText()).trimStart().startsWith('\\n'), false);
+  check('first viewport exposes action, development and DEV without stray source text');
   assert.equal(await page.locator('#tasks-section').getAttribute('open'), null);
   assert.equal(await page.locator('#apps-section').getAttribute('open'), null);
   assert.equal(await page.locator('#history-section').getAttribute('open'), null);
   assert.equal(await page.locator('#details-section').getAttribute('open'), null);
-  check('summary-first sections are collapsed by default');
+  await page.locator('.control-details > summary').click();
+  assert.equal(await page.locator('#control-flow .control-flow-step').count(), 4);
+  await page.locator('.control-details > summary').click();
+  check('summary-first sections are collapsed and operator flow is four stages');
   if (!fixtureMode) {
     const versionResponse = await context.request.get(new URL('version.json', base).href);
     assert.equal(versionResponse.status(), 200);
@@ -147,7 +157,7 @@ try {
   await page.route('**/api/state', route => route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(recovering)}));
   await reload();
   assert.match(await page.locator('#control-headline').innerText(), /自動対応中/);
-  assert.match(await page.locator('#sync-freshness').innerText(), /GitHub同期を自動再確認中/);
+  assert.match(await page.locator('#sync-freshness').innerText(), /再同期中/);
   assert.doesNotMatch(await page.locator('#app-summary').innerText(), /正常/);
   check('recoverable sync degradation stays visible without becoming a human action');
 
@@ -173,12 +183,21 @@ try {
   await page.route('**/api/state', route => route.fulfill({status:503,contentType:'application/json',body:'{"error":"test outage"}'}));
   await reload();
   assert.equal(await page.locator('.app-summary-card').count(), cards);
-  assert.match(await page.locator('#sync-freshness').innerText(), /表示更新を再試行中/);
+  assert.match(await page.locator('#sync-freshness').innerText(), /再同期中/);
   check('temporary outage keeps previous data with visible warning');
+
+  const restarted = await context.newPage();
+  await restarted.route('**/api/state', route => route.fulfill({status:503,contentType:'application/json',body:'{"error":"restart outage"}'}));
+  await restarted.goto(base, { waitUntil:'domcontentloaded', timeout:45000 });
+  await restarted.waitForFunction(() => document.querySelector('#overview-alert-value')?.textContent !== '確認中');
+  assert.equal(await restarted.locator('#overview-alert-value').innerText(), '操作不要');
+  assert.match(await restarted.locator('#sync-freshness').innerText(), /再同期中/);
+  await restarted.close();
+  check('browser restart restores last-known-good snapshot during API outage');
   await page.unroute('**/api/state');
   if (fixtureMode) await page.route('**/api/state', route => route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(fixture)}));
   await reload();
-  assert.doesNotMatch(await page.locator('#sync-freshness').innerText(), /自動再確認中|表示更新を再試行中|確認が必要/);
+  assert.doesNotMatch(await page.locator('#sync-freshness').innerText(), /再同期中|確認が必要/);
   check('recovery clears transient failure');
   assert.equal(report.errors.length,0,JSON.stringify(report.errors));
   assert.equal(report.githubRequests.length,0,JSON.stringify(report.githubRequests));
