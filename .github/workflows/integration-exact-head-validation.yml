@@ -78,6 +78,8 @@ jobs:
           sparse-checkout: |
             scripts
             ops-board
+            packages/world
+            packages/assets
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.head }}
