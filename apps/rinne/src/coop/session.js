@@ -2,14 +2,19 @@ import { createHostOffer } from '@soul/network/peer';
 import { COOP_PROTOCOL } from '../rebuild/coop-world.js';
 import { createRoomWire } from './wire.js';
 import { createCheckpointWriter } from './checkpoint-writer.js';
+import { createSemanticShadow } from './semantic-shadow.js';
+import { LIFE_SECONDS } from '../rebuild/domain.js';
 import { applyRebirthIntent } from './history.js';
 export { joinCoopHost } from './guest-session.js';
 
-export async function createCoopHost({world,contentVersion,save,RTCPeerConnection,onChange=()=>{},now=()=>performance.now(),uuid=()=>crypto.randomUUID(),performanceProbe=null}){
+export async function createCoopHost({world,contentVersion,save,RTCPeerConnection,onChange=()=>{},now=()=>performance.now(),uuid=()=>crypto.randomUUID(),performanceProbe=null,semanticShadowState=null,semanticShadowCoverage='warm-start',semanticShadowPersistence=null}){
   let closed=false,paused=false,stalled=false,ready=false,pending=null,lastSave=now(),lastBroadcast=0,inputSeq=0,latest=null,error='';
   const links=new Map(),acceptedInputs=new Map(),appliedInputs=new Map(),selfId=world.data.ownerId,probe=performanceProbe;
   world.data.rebirthOps??={};
-  const writer=createCheckpointWriter({world,save,now,onCommit:()=>{stalled=false;if(ready&&!closed)publish();},onError:e=>{error=e.message;paused=true;if(ready&&!closed)publish();}});
+  let semanticPersistenceError=null,semanticPersist=Promise.resolve();
+  const persistSemantic=state=>{if(!semanticShadowPersistence?.save)return;semanticPersist=semanticPersist.then(()=>semanticShadowPersistence.save(JSON.stringify(state))).then(()=>{semanticPersistenceError=null;}).catch(error=>{semanticPersistenceError=error;});};
+  const semanticShadow=createSemanticShadow({lifeSeconds:LIFE_SECONDS,restored:semanticShadowState,coverageHint:semanticShadowCoverage,onState:persistSemantic,onSample:sample=>probe?.recordSemanticCommit?.(sample)});
+  const writer=createCheckpointWriter({world,save,now,semanticObserver:semanticShadow,onCommit:()=>{stalled=false;if(ready&&!closed)publish();},onError:e=>{error=e.message;paused=true;if(ready&&!closed)publish();}});
   await writer.request();ready=true;latest=writer.project(world.view(selfId));
   const open=()=>!closed&&!paused&&!stalled&&!error;
   const packet=id=>({type:'view',phase:open()?'open':'closed',view:{...writer.project(world.view(id)),connected:links.size+1,ackInputSeq:appliedInputs.get(id)??null}});
@@ -61,11 +66,13 @@ export async function createCoopHost({world,contentVersion,save,RTCPeerConnectio
   }
   const timer=setInterval(step,50);
   function pause(value){paused=Boolean(value)||Boolean(error);for(const id of Object.keys(world.data.players))world.clearInput(id);acceptedInputs.clear();publish();}
-  async function dispose(){if(closed)return;closed=true;clearInterval(timer);pending?.connection?.close();for(const link of links.values())link.connection.close();links.clear();if(!writer.failure)await writer.request();}
+  async function dispose(){if(closed)return;closed=true;clearInterval(timer);pending?.connection?.close();for(const link of links.values())link.connection.close();links.clear();if(!writer.failure)await writer.request();await semanticPersist.catch(()=>{});}
   return{role:'host',selfId,layout:world.layout,worldId:world.data.worldId,invite,accept,
     input:direction=>{if(open()&&!writer.pendingIds().has(selfId))world.acceptInput(selfId,{seq:++inputSeq,...direction});},
     frameRendered:frameMs=>probe?.recordFrame(frameMs)??false,
     setRate:async rate=>{if(!open())throw Error('村の再開を待ってください。');world.setRate(selfId,rate);await persist();},
     rebirth:(villageId,lifeId=writer.committed.world.players[selfId].life.id)=>rebirth(selfId,lifeId,villageId),pause,dispose,
-    snapshot:()=>({phase:open()?'open':'closed',error,historyPending:writer.pending,view:latest&&{...latest,connected:links.size+1}}),performance:()=>probe?.snapshot()??null,save:()=>writer.failure?Promise.reject(writer.failure):persist()};
+    snapshot:()=>({phase:open()?'open':'closed',error,historyPending:writer.pending,view:latest&&{...latest,connected:links.size+1}}),
+    diagnostics:()=>({semanticShadow:writer.semanticShadow,semanticError:writer.semanticError?.message??null,semanticPersistenceError:semanticPersistenceError?.message??null}),
+    performance:()=>probe?.snapshot()??null,save:()=>writer.failure?Promise.reject(writer.failure):persist()};
 }

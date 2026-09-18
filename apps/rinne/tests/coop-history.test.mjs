@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultMuraLayout } from '@soul/world/mura';
 import { CoopWorld } from '../src/rebuild/coop-world.js';
-import { LIFE_SECONDS } from '../src/rebuild/domain.js';
+import { LIFE_SECONDS, endLifeEarly } from '../src/rebuild/domain.js';
 import { createHistoryStore } from '../src/coop/history-store.js';
 import { createCheckpointWriter } from '../src/coop/checkpoint-writer.js';
 import { applyRebirthIntent } from '../src/coop/history.js';
@@ -79,4 +79,16 @@ test('writer coalesces many save requests and captures the next snapshot only af
   const queued=Array.from({length:100},()=>writer.request());world.advance(.05);
   hold=false;release();await first;await Promise.all(queued);
   assert.equal(writes,3);assert.equal(writer.committed.world.tick,1);
+});
+
+
+test('combat-ended life seals before lifespan and can rebirth from that committed predecessor',async()=>{
+  const f=fixture(),world=room();await f.store.commit(world.save(),{writeId:'1:0',acquire:true});
+  const life=world.data.players.owner.life;life.ageSeconds=1300;life.ageYears=1300/60;assert.equal(endLifeEarly(life,'第1前線の戦い'),true);world.dirtyHistory=true;
+  const sealed=await f.store.commit(world.save(),{writeId:'1:combat'});assert.equal(sealed.historySequence,2);
+  const envelope=await f.store.read(world.data.worldId),ended=envelope.history.find(row=>row.type==='life-ended');
+  assert.equal(ended.lifeId,'owner:1');assert(ended.record.age<100);
+  const committed=await f.store.restore(world.data.worldId);const intent=applyRebirthIntent(world,committed,{playerId:'owner',lifeId:'owner:1'});
+  assert.equal(intent.resultId,'owner:2');await f.store.commit(world.save(),{writeId:'1:reborn'});
+  assert.equal((await f.store.read(world.data.worldId)).history.at(-1).type,'reborn');
 });
