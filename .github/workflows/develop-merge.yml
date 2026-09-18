@@ -15,19 +15,19 @@ on:
     outputs:
       sha:
         description: 'Final develop SHA after this serialized Fast Lane pass'
-        value: ${{ jobs.integrate.outputs.sha }}
+        value: ${{ jobs.merge.outputs.sha }}
       verify:
         description: 'Legacy compatibility output; DEV verification never blocks Fast Lane'
-        value: ${{ jobs.integrate.outputs.verify }}
+        value: ${{ jobs.merge.outputs.verify }}
       retry:
         description: 'Whether another external wake may be useful'
-        value: ${{ jobs.integrate.outputs.retry }}
+        value: ${{ jobs.merge.outputs.retry }}
       cursor:
         description: 'Legacy compatibility cursor'
-        value: ${{ jobs.integrate.outputs.cursor }}
+        value: ${{ jobs.merge.outputs.cursor }}
       merged_count:
         description: 'Number of exact heads merged by Fast Lane'
-        value: ${{ jobs.integrate.outputs.merged_count }}
+        value: ${{ jobs.merge.outputs.merged_count }}
 permissions:
   contents: read
 concurrency:
@@ -35,7 +35,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  integrate:
+  merge:
     name: Merge eligible Ready PRs
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -123,14 +123,14 @@ jobs:
 
   pulse-fallback:
     name: Fallback refresh PULSE if publication wake failed
-    needs: integrate
+    needs: merge
     if: >-
       always() &&
-      needs.integrate.outputs.publication_outcome == 'failure' &&
-      needs.integrate.outputs.sha != ''
+      needs.merge.outputs.publication_outcome == 'failure' &&
+      needs.merge.outputs.sha != ''
     uses: ./.github/workflows/pulse-refresh.yml
     with:
-      source_sha: ${{ needs.integrate.outputs.sha }}
+      source_sha: ${{ needs.merge.outputs.sha }}
       reason: develop-merge
       fail_on_error: false
       record_public_status: false
@@ -143,8 +143,8 @@ jobs:
 
   stale-ready-refresh:
     name: Refresh non-overlapping stale Ready PRs
-    needs: integrate
-    if: always() && needs.integrate.result == 'success' && needs.integrate.outputs.merged_count == '0'
+    needs: merge
+    if: always() && needs.merge.result == 'success' && needs.merge.outputs.merged_count == '0'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -230,8 +230,8 @@ jobs:
 
   continue-dependent-chain:
     name: Wake next dependent Repair scan
-    needs: [integrate, repair]
-    if: always() && needs.integrate.result == 'success' && needs.integrate.outputs.merged_count != '0'
+    needs: [merge, repair]
+    if: always() && needs.merge.result == 'success' && needs.merge.outputs.merged_count != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions:
@@ -241,7 +241,7 @@ jobs:
       - name: Wake Fast Repair on the latest develop after a successful merge batch
         uses: actions/github-script@v8
         env:
-          MERGED_COUNT: ${{ needs.integrate.outputs.merged_count }}
+          MERGED_COUNT: ${{ needs.merge.outputs.merged_count }}
         with:
           script: |
             const { data: branch } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
