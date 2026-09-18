@@ -50,13 +50,17 @@ export function installEventChronicle({world,eventButton}){
  panel.id='muraChronicle';
  panel.hidden=true;
  panel.setAttribute('aria-label','村の年代記');
- panel.innerHTML='<header class="muraChronicleHeader"><div><small>村の記録</small><h2>村の年代記</h2></div><span class="muraChronicleCount"></span><button type="button" class="muraChronicleClose" aria-label="年代記を閉じる">×</button></header><div class="muraChronicleList"></div>';
+ panel.innerHTML='<header class="muraChronicleHeader"><div><small>村の記録</small><h2>村の年代記</h2></div><span class="muraChronicleCount"></span><button type="button" class="muraChronicleClose" aria-label="年代記を閉じる">×</button></header><div class="muraChronicleList"></div><div class="muraChroniclePager" hidden><button type="button" class="muraChroniclePrev" aria-label="前の記録">‹</button><span class="muraChroniclePageDots" aria-hidden="true"></span><button type="button" class="muraChronicleNext" aria-label="次の記録">›</button></div>';
  document.body.append(ticker,panel);
 
  const tickerLabel=ticker.querySelector('.muraEventTickerLabel');
  const tickerText=ticker.querySelector('.muraEventTickerText');
  const count=panel.querySelector('.muraChronicleCount');
  const list=panel.querySelector('.muraChronicleList');
+ const pager=panel.querySelector('.muraChroniclePager');
+ const prevButton=panel.querySelector('.muraChroniclePrev');
+ const nextButton=panel.querySelector('.muraChronicleNext');
+ const pageDots=panel.querySelector('.muraChroniclePageDots');
  const closeButton=panel.querySelector('.muraChronicleClose');
  let lastHead=world.state.news?.[0]||null;
  let unread=0;
@@ -66,6 +70,8 @@ export function installEventChronicle({world,eventButton}){
  let nextCriticalPreviewAt=0;
  let renderedHead=null;
  let renderedLength=-1;
+ let page=0;
+ const PAGE_SIZE=4;
 
  function updateBadge(){
   const value=Math.min(999,unread);
@@ -85,31 +91,33 @@ export function installEventChronicle({world,eventButton}){
  }
 
  function renderChronicle(force=false){
-  const news=Array.isArray(world.state.news)?world.state.news:[];
+  const news=Array.isArray(world.state.news)?world.state.news:[],visible=news.slice(0,40);
   const head=news[0]||null;
   if(!force&&head===renderedHead&&news.length===renderedLength)return;
   renderedHead=head;renderedLength=news.length;
-  count.textContent=news.length?`${news.length}件の記録`:'まだ記録はありません';
+  const pageCount=Math.max(1,Math.ceil(visible.length/PAGE_SIZE));page=Math.min(Math.max(0,page),pageCount-1);
+  count.textContent=news.length?`${news.length}件 · ${page+1}/${pageCount}`:'まだ記録はありません';
   list.replaceChildren();
-  if(!news.length){
-   const empty=document.createElement('p');empty.className='muraChronicleEmpty';empty.textContent='村の暮らしが動くと、ここに記録が積み重なります。';list.append(empty);return;
+  if(!visible.length){
+   const empty=document.createElement('p');empty.className='muraChronicleEmpty';empty.textContent='村の暮らしが動くと、ここに記録が積み重なります。';list.append(empty);
+  }else{
+   const fragment=document.createDocumentFragment();
+   for(const entry of visible.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE)){
+    const article=document.createElement('article');
+    article.className='muraChronicleEntry';
+    article.dataset.priority=isCritical(entry)?'critical':'normal';
+    const meta=document.createElement('small');meta.textContent=`${dayLabel(entry.day)} · ${typeLabel(entry)}`;
+    const body=document.createElement('p');body.textContent=String(entry.text||'');
+    article.append(meta,body);fragment.append(article);
+   }
+   list.append(fragment);
   }
-  const fragment=document.createDocumentFragment();
-  for(const entry of news.slice(0,40)){
-   const article=document.createElement('article');
-   article.className='muraChronicleEntry';
-   article.dataset.priority=isCritical(entry)?'critical':'normal';
-   const meta=document.createElement('small');meta.textContent=`${dayLabel(entry.day)} · ${typeLabel(entry)}`;
-   const body=document.createElement('p');body.textContent=String(entry.text||'');
-   article.append(meta,body);fragment.append(article);
-  }
-  list.append(fragment);
+  const paged=pageCount>1;pager.hidden=!paged;prevButton.disabled=page===0;nextButton.disabled=page>=pageCount-1;pageDots.textContent=paged?Array.from({length:pageCount},(_,i)=>i===page?'●':'○').join(' '):'';
  }
-
  function open(){
   panel.hidden=false;
   ticker.hidden=true;
-  previewBatch=[];previewUntil=0;
+  previewBatch=[];previewUntil=0;page=0;
   unread=0;updateBadge();renderChronicle(true);
   eventButton.setAttribute('aria-expanded','true');
  }
@@ -125,7 +133,7 @@ export function installEventChronicle({world,eventButton}){
   if(!added.length)return;
   if(panel.hidden)unread=Math.min(999,unread+added.length);else unread=0;
   updateBadge();
-  if(!panel.hidden){renderChronicle();return;}
+  if(!panel.hidden){page=0;renderChronicle(true);return;}
 
   if(now<previewUntil){
    previewBatch=[...added,...previewBatch].slice(0,8);
@@ -162,6 +170,8 @@ export function installEventChronicle({world,eventButton}){
 
  eventButton.onclick=toggle;
  ticker.onclick=open;
+ prevButton.onclick=()=>{if(page>0){page--;renderChronicle(true);}};
+ nextButton.onclick=()=>{page++;renderChronicle(true);};
  closeButton.onclick=()=>close({restoreFocus:true});
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden)close({restoreFocus:true});});
  updateBadge();
