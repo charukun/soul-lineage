@@ -45,7 +45,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   renderer.setPixelRatio(Math.min(Number(globalThis.devicePixelRatio)||1,1.5));
 
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b1110);scene.fog=new THREE.Fog(0x0b1110,10,24);
-  const camera=new THREE.PerspectiveCamera(38,1,.08,50);camera.position.set(0,4.7,7.5);
+  const camera=new THREE.PerspectiveCamera(40,1,.08,50);camera.position.set(0,5.2,10);
   const cameraLook=new THREE.Vector3(0,.95,0),cameraTargetPosition=new THREE.Vector3(),cameraTargetLook=new THREE.Vector3();camera.lookAt(cameraLook);
   scene.add(new THREE.HemisphereLight(0xdde8e3,0x24302d,2.35));
   const key=new THREE.DirectionalLight(0xffedca,3.4);key.position.set(-4,7,5);scene.add(key);
