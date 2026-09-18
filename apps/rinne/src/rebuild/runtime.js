@@ -15,6 +15,7 @@ import { detectFlickDash } from './flick-dash.js';
 const $=id=>document.getElementById(id);
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
 const speedForAge=age=>age<4?1.2:age<7?2.15:age<65?4.15:Math.max(2.3,4.15-(age-65)*.035);
+const interiorSpeedForAge=age=>Math.max(.95,speedForAge(age)*.58);
 const chapterName=stage=>String(stage||'').replace(/^\d+\/6\s*/, '').trim();
 const nextPaint=()=>new Promise(resolve=>document.hidden?setTimeout(resolve,0):requestAnimationFrame(()=>resolve()));
 
@@ -169,7 +170,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     if(coop){renderCoopFrame(dt,frameMs,now);return;}
     const moveAxis=movementAxis(now);let moved=false,carrierMoving=false;const mag=Math.hypot(moveAxis.x,moveAxis.y),birthStep=birth.step(dt,moveAxis);
     if(birthStep.handled){moved=birthStep.moved;carrierMoving=birthStep.carrierMoving;}
-    else if(mag>.08&&!state.ended&&!state.down){const direction=view.cameraVector(moveAxis),speed=speedForAge(state.ageYears)*(state.combat?.72:1),nx=state.position.x+direction.x*speed*dt,nz=state.position.z+direction.z*speed*dt;
+    else if(mag>.08&&!state.ended&&!state.down){const direction=view.cameraVector(moveAxis),speed=(state.interior?interiorSpeedForAge(state.ageYears):speedForAge(state.ageYears))*(state.combat?.72:1),nx=state.position.x+direction.x*speed*dt,nz=state.position.z+direction.z*speed*dt;
       const movementZone=state.interior?'interior':state.zone;if(view.canMoveTo(nx,nz,.32,movementZone,state.interior?.buildingId)){state.position.x=nx;state.position.z=nz;state.yaw=Math.atan2(direction.x,direction.z);moved=true;}}
     if(moved&&movementHint){movementHint=false;$('move-hint').hidden=true;}
     setMoving(state,birthStep.handled?false:moved,state.yaw);const station=state.zone==='village'?nearestStation(stations,state.position,{interiorId:state.interior?.buildingId||null}):null,events=tickLife(state,{realDelta:dt,lifeDelta,station,paused:document.hidden});handleEvents(events);
