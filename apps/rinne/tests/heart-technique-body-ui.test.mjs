@@ -26,8 +26,12 @@ test('technique page models combos, favored tags, and a costly manual one-motion
   assert.match(gameplay,/data-one-motion/);assert.match(gameplay,/消耗大 \/ 隙大/);
 });
 
-test('body page has stance style and zanshin selectors',()=>{
-  assert.match(loadout,/構えモーション/);assert.match(loadout,/心構え \/ 戦闘スタイル/);assert.match(loadout,/残心モーション/);assert.match(loadout,/unlockedBodyOptions/);
+test('body page has stance style and zanshin as the same three-slot grammar',()=>{
+  assert.match(loadout,/構え/);assert.match(loadout,/戦法/);assert.match(loadout,/残心/);assert.match(loadout,/unlockedBodyOptions/);assert.match(loadout,/loadout-slot-row/);assert.match(loadout,/loadout-grid/);
+});
+
+test('heart technique body use ten-item pages that render as two rows of a five-column library',()=>{
+  assert.match(loadout,/GRID_PAGE_SIZE=10/);assert.match(loadout,/HEART_SLOT_COUNT/);assert.match(loadout,/setHeartSlot/);assert.match(loadout,/得意技/);assert.match(loadout,/手動奥義/);
 });
 
 test('mobile loadout remains tactile and avoids glass-card fallback',()=>{
