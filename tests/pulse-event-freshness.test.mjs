@@ -69,7 +69,7 @@ test('PULSE UI explains event-driven sync and browser reload without implying a 
 
   assert.match(html, /data-sync-title/);
   assert.match(html, /data-sync-meta/);
-  assert.match(html, />表示を再読込<\/button>/);
+  assert.match(html, />再読込<\/button>/);
   assert.doesNotMatch(html, />最新に更新<\/button>/);
   assert.match(app, /syncPresentation/);
   assert.match(app, /eventDrivenAlerts/);
