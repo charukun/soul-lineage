@@ -29,7 +29,7 @@ function furnitureBlocksEntry(host,kind,x,z,rot){
  const d=defs[kind];if(d.soft)return false;
  const room=muraUsableInterior(host);if(!room)return true;
  const [w,h]=extent({kind,rot}),front=room.shape==='circle'?room.radius:room.halfDepth;
- const corridorMin=Math.max(.15,front-Math.min(2.2,front*.92));
+ const corridorDepth=room.interiorClass==='compact'?1.25:Math.min(1.8,front*.7),corridorMin=Math.max(.55,front-corridorDepth);
  const corridorMax=front+.12,halfWidth=Math.max(.65,room.doorWidth/2+.12);
  return Math.abs(x)<halfWidth+w/2&&z+h/2>corridorMin&&z-h/2<corridorMax;
 }
