@@ -9,14 +9,19 @@ function restoreGlobal(name,value){
 }
 
 test('game audio pauses in background and recovers on the next gesture if automatic resume is blocked',async t=>{
-  const originalAudio=globalThis.Audio,originalAudioContext=globalThis.AudioContext,originalDocument=globalThis.document;
-  const doc=new EventTarget();
+  const originalAudio=globalThis.Audio,originalAudioContext=globalThis.AudioContext,originalDocument=globalThis.document,originalWindow=globalThis.window;
+  const doc=new EventTarget(),win=new EventTarget();
   doc.hidden=false;doc.visibilityState='visible';
   let blockPlayback=false,blockContext=false;
 
-  class FakeAudio{
+  class FakeAudio extends EventTarget{
     static last=null;
-    constructor(src){this.src=src;this.paused=true;this.playCalls=0;this.pauseCalls=0;FakeAudio.last=this;}
+    constructor(src){super();this._src=src;this.paused=true;this.playCalls=0;this.pauseCalls=0;this.loadCalls=0;this.currentTime=14;this.readyState=1;FakeAudio.last=this;}
+    get src(){return this._src;}
+    set src(value){this._src=value;}
+    getAttribute(name){return name==='src'&&this._src?this._src:null;}
+    removeAttribute(name){if(name==='src')this._src='';}
+    load(){this.loadCalls++;}
     play(){this.playCalls++;if(blockPlayback)return Promise.reject(new Error('play blocked'));this.paused=false;return Promise.resolve();}
     pause(){this.pauseCalls++;this.paused=true;}
   }
@@ -28,8 +33,8 @@ test('game audio pauses in background and recovers on the next gesture if automa
     close(){this.closeCalls++;this.state='closed';return Promise.resolve();}
   }
 
-  globalThis.Audio=FakeAudio;globalThis.AudioContext=FakeAudioContext;globalThis.document=doc;
-  t.after(()=>{restoreGlobal('Audio',originalAudio);restoreGlobal('AudioContext',originalAudioContext);restoreGlobal('document',originalDocument);});
+  globalThis.Audio=FakeAudio;globalThis.AudioContext=FakeAudioContext;globalThis.document=doc;globalThis.window=win;
+  t.after(()=>{restoreGlobal('Audio',originalAudio);restoreGlobal('AudioContext',originalAudioContext);restoreGlobal('document',originalDocument);restoreGlobal('window',originalWindow);});
 
   const moduleUrl=new URL('../src/gameplay-audio.js',import.meta.url);moduleUrl.searchParams.set('test',String(Date.now()));
   const {createRinneAudio}=await import(moduleUrl.href);
@@ -44,6 +49,8 @@ test('game audio pauses in background and recovers on the next gesture if automa
   doc.hidden=true;doc.visibilityState='hidden';doc.dispatchEvent(new Event('visibilitychange'));
   await flush();
   assert.equal(music.paused,true,'HTML audio pauses immediately in background');
+  assert.equal(music.src,'','HTML audio relinquishes its source while backgrounded');
+  assert.ok(music.loadCalls>=1,'detaching the source resets the browser media pipeline');
   assert.equal(context.state,'suspended','Web Audio context suspends in background');
 
   const resumesWhileHidden=context.resumeCalls;
@@ -55,6 +62,7 @@ test('game audio pauses in background and recovers on the next gesture if automa
   doc.hidden=false;doc.visibilityState='visible';doc.dispatchEvent(new Event('visibilitychange'));
   await flush();
   assert.equal(music.paused,true,'blocked foreground autoplay remains paused');
+  assert.notEqual(music.src,'','foreground restore reattaches the BGM source before retrying playback');
   assert.equal(context.state,'suspended','blocked foreground AudioContext remains suspended');
 
   blockPlayback=false;blockContext=false;context.state='interrupted';
@@ -62,6 +70,11 @@ test('game audio pauses in background and recovers on the next gesture if automa
   await flush();
   assert.equal(music.paused,false,'next user gesture restarts music');
   assert.equal(context.state,'running','next user gesture resumes an interrupted context');
+
+  win.dispatchEvent(new Event('pagehide'));await flush();
+  assert.equal(music.src,'','pagehide also relinquishes the media source');
+  win.dispatchEvent(new Event('pageshow'));await flush();
+  assert.notEqual(music.src,'','pageshow restores the source only after prior unlock');
 
   audio.dispose();
   assert.equal(context.state,'closed');
