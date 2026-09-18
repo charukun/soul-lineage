@@ -3,11 +3,11 @@ import { COOP_PROTOCOL } from '../rebuild/coop-world.js';
 import { createRoomWire } from './wire.js';
 import { createCheckpointWriter } from './checkpoint-writer.js';
 import { createSemanticShadow } from './semantic-shadow.js';
-import { LIFE_SECONDS } from '../rebuild/domain.js';
+import { LIFE_SECONDS, endLifeEarly } from '../rebuild/domain.js';
 import { applyRebirthIntent } from './history.js';
 export { joinCoopHost } from './guest-session.js';
 
-export async function createCoopHost({world,contentVersion,save,RTCPeerConnection,onChange=()=>{},now=()=>performance.now(),uuid=()=>crypto.randomUUID(),performanceProbe=null,semanticShadowState=null,semanticShadowCoverage='warm-start',semanticShadowPersistence=null,semanticMeasurement=null}){
+export async function createCoopHost({world,contentVersion,save,RTCPeerConnection,onChange=()=>{},now=()=>performance.now(),uuid=()=>crypto.randomUUID(),performanceProbe=null,semanticShadowState=null,semanticShadowCoverage='warm-start',semanticShadowPersistence=null,semanticMeasurement=null,captureWorkload=false}){
   let closed=false,paused=false,stalled=false,ready=false,pending=null,lastSave=now(),lastBroadcast=0,inputSeq=0,latest=null,error='';
   const links=new Map(),acceptedInputs=new Map(),appliedInputs=new Map(),selfId=world.data.ownerId,probe=performanceProbe;
   world.data.rebirthOps??={};
@@ -67,11 +67,15 @@ export async function createCoopHost({world,contentVersion,save,RTCPeerConnectio
   const timer=setInterval(step,50);
   function pause(value){paused=Boolean(value)||Boolean(error);for(const id of Object.keys(world.data.players))world.clearInput(id);acceptedInputs.clear();publish();}
   async function dispose(){if(closed)return;closed=true;clearInterval(timer);pending?.connection?.close();for(const link of links.values())link.connection.close();links.clear();if(!writer.failure)await writer.request();await semanticPersist.catch(()=>{});}
+  async function captureProtectedCycle(){
+    if(!captureWorkload)throw Error('計測用イベントは無効です。');if(!open())throw Error(error||'村の再開を待ってください。');const life=world.data.players[selfId]?.life;if(!life||life.ended)throw Error('計測対象の人生が進行中ではありません。');
+    if(!endLifeEarly(life,'第1前線の戦い'))throw Error('計測用の人生終了に失敗しました。');world.dirtyHistory=true;const lifeId=life.id;await persist();await rebirth(selfId,lifeId,null);return true;
+  }
   return{role:'host',selfId,layout:world.layout,worldId:world.data.worldId,invite,accept,
     input:direction=>{if(open()&&!writer.pendingIds().has(selfId))world.acceptInput(selfId,{seq:++inputSeq,...direction});},
     frameRendered:frameMs=>probe?.recordFrame(frameMs)??false,
     setRate:async rate=>{if(!open())throw Error('村の再開を待ってください。');world.setRate(selfId,rate);await persist();},
-    rebirth:(villageId,lifeId=writer.committed.world.players[selfId].life.id)=>rebirth(selfId,lifeId,villageId),pause,dispose,
+    rebirth:(villageId,lifeId=writer.committed.world.players[selfId].life.id)=>rebirth(selfId,lifeId,villageId),captureProtectedCycle,pause,dispose,
     snapshot:()=>({phase:open()?'open':'closed',error,historyPending:writer.pending,view:latest&&{...latest,connected:links.size+1}}),
     diagnostics:()=>({semanticShadow:writer.semanticShadow,semanticError:writer.semanticError?.message??null,semanticPersistenceError:semanticPersistenceError?.message??null}),
     performance:()=>probe?.snapshot()??null,save:()=>writer.failure?Promise.reject(writer.failure):persist()};
