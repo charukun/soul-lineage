@@ -1,0 +1,7 @@
+RPG Audio by Kenney
+Canonical source: https://kenney.nl/assets/rpg-audio
+License: Creative Commons Zero 1.0 Universal (CC0-1.0)
+https://creativecommons.org/publicdomain/zero/1.0/
+Official archive: https://kenney.nl/media/pages/assets/rpg-audio/8e99002d76-1677590336/kenney_rpg-audio.zip
+Official archive SHA-256 recorded by the project: 6dbeaf8544da958d8f2adcb4a4a4b76c1ade34a05f8ab9edccd327da7375f38b
+The selected files were transported from fixed commit 22eb79bb843bbcadcaa6ed119353a33265ffad11 of Boyquotes/kenney-rpg-audio-for-godot and verified by exact Git blob ID.

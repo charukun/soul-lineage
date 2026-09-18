@@ -6,7 +6,9 @@
   "exports": {
     ".": "./src/index.js",
     "./urls": "./src/urls.js",
-    "./audio-lod": "./src/audio-lod.js"
+    "./audio-lod": "./src/audio-lod.js",
+    "./sfx-urls": "./src/sfx-urls.js",
+    "./combat-sfx": "./src/combat-sfx.js"
   },
   "dependencies": {}
 }

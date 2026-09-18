@@ -14,6 +14,8 @@ import {SwipeInput} from '@soul/input';
 import {renderLineage} from './lineage.js';
 import {huntPresentationSnapshot} from './presentation-snapshot.js';
 import {AngledGuide} from './angled-guide.js';
+import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
+import '@soul/shared-ui/combat-sequence.css';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
@@ -131,7 +133,7 @@ function hud(now) {
   const enemy = ui.fight ? game.fight.npc : null, enemyRatio = enemy ? Math.max(0, Math.min(1, Number(enemy.hp || 0) / Math.max(1, Number(enemy.maxhp || enemy.hp || 1)))) : 0;
   $('enemy-health-fill').style.width = `${enemyRatio * 100}%`; $('enemy-health-track').setAttribute('aria-valuenow', String(Math.round(enemyRatio * 100)));
   $('skill-name').textContent = game.fight?.retreat > 0 ? '戦闘を離れる…' : p.skill || '間合いを測る';
-  document.querySelectorAll('[data-phase]').forEach(el => el.classList.toggle('active', el.dataset.phase === p.slot));
+  syncCombatSequence(document.querySelector('[data-combat-sequence]'),p.slot);
   $('scent').disabled = ui.scentDisabled; $('memory').disabled = ui.memoryDisabled; $('return').disabled = ui.returnDisabled;
   $('return').classList.toggle('locked', ui.returnLocked); $('return-label').textContent = ui.returnLocked ? '捕食後' : '帰路';
   $('scent').querySelector('span').textContent = game.scentCooldown > 0 ? Math.ceil(game.scentCooldown) + '秒' : '嗅覚';

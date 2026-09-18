@@ -2,11 +2,11 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { KAYKIT_MODELS, KAYKIT_MODEL_BY_KEY, KAYKIT_SOURCE_REPOSITORY, KAYKIT_SOURCE_REVISION } from '../packages/characters/src/kaykit-foundation.js';
+import { KAYKIT_MODELS, KAYKIT_MODEL_BY_KEY, KAYKIT_REVIEW_EQUIPMENT_FILES, KAYKIT_SOURCE_REPOSITORY, KAYKIT_SOURCE_REVISION } from '../packages/characters/src/kaykit-foundation.js';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TARGETS = Object.freeze({
-  rinne: Object.freeze({root:path.join(repoRoot, 'apps/rinne/public/simulator/assets/kaykit'),models:KAYKIT_MODELS}),
+  rinne: Object.freeze({root:path.join(repoRoot, 'apps/rinne/public/simulator/assets/kaykit'),models:Object.freeze([...KAYKIT_MODELS,...KAYKIT_REVIEW_EQUIPMENT_FILES])}),
   village: Object.freeze({root:path.join(repoRoot, 'apps/village/public/assets/kaykit'),models:Object.freeze([KAYKIT_MODEL_BY_KEY.rogue,KAYKIT_MODEL_BY_KEY.knight])}),
   demon: Object.freeze({root:path.join(repoRoot, 'apps/demon/public/assets/kaykit'),models:Object.freeze([KAYKIT_MODEL_BY_KEY.knight])})
 });

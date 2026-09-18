@@ -1,0 +1,42 @@
+.combat-sequence{
+  --combat-sequence-muted:#857b6f;
+  --combat-sequence-active:#f1e5ce;
+  --combat-sequence-accent:#b14d38;
+  --combat-sequence-link:#756b61;
+  --combat-sequence-panel:rgba(6,17,19,.84);
+  color:var(--combat-sequence-muted);
+}
+.combat-sequence__track,.combat-sequence.combat-sequence--flat{
+  display:flex;align-items:center;justify-content:center;gap:0;
+}
+.combat-sequence__step{
+  display:grid;place-items:center;min-width:38px;min-height:28px;
+  border:0;background:none;color:var(--combat-sequence-muted);
+  font:700 15px/1.1 ui-serif,"Yu Mincho","Hiragino Mincho ProN",serif;
+  letter-spacing:.08em;transition:color .14s ease,text-shadow .14s ease,transform .14s ease;
+}
+.combat-sequence__step[data-active="true"],.combat-sequence__step.active{
+  color:var(--combat-sequence-active);
+  text-shadow:0 0 8px color-mix(in srgb,var(--combat-sequence-accent) 68%,transparent),0 0 16px color-mix(in srgb,var(--combat-sequence-accent) 35%,transparent);
+}
+.combat-sequence__link{
+  display:block;width:34px;height:18px;flex:0 0 34px;background:currentColor;
+  color:var(--combat-sequence-link);opacity:.46;
+  clip-path:polygon(0 48%,18% 48%,27% 30%,36% 72%,46% 10%,57% 86%,67% 40%,76% 51%,100% 51%,100% 57%,77% 57%,68% 48%,57% 100%,46% 29%,37% 90%,26% 44%,21% 57%,0 57%);
+}
+.combat-sequence__pulse{
+  color:#e0b36f;animation:combat-sequence-pulse .58s cubic-bezier(.2,.75,.25,1) 1 both;
+  filter:drop-shadow(0 0 5px rgba(198,151,92,.6));
+}
+.combat-sequence__action{
+  display:block;margin-top:3px;text-align:center;color:#aeb5aa;font-size:10px;letter-spacing:.13em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.combat-sequence__history{pointer-events:none}
+.combat-sequence__history>span{
+  position:absolute;left:50%;top:0;white-space:nowrap;color:#aeb5aa;font-size:9px;letter-spacing:.12em;
+  animation:combat-sequence-history 2.6s ease-out both;
+}
+@keyframes combat-sequence-pulse{0%{transform:scaleY(.72);opacity:.42}18%{transform:scaleY(1.42);opacity:1}42%{transform:scaleY(.82);opacity:.72}100%{transform:scaleY(1);opacity:.46}}
+@keyframes combat-sequence-history{0%{opacity:.7;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,55px)}}
+@media(prefers-reduced-motion:reduce){.combat-sequence__pulse,.combat-sequence__history>span{animation:none!important}}

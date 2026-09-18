@@ -8,6 +8,7 @@ import {
   KAYKIT_FOUNDATION,
   KAYKIT_LICENSE,
   KAYKIT_MODELS,
+  KAYKIT_REVIEW_EQUIPMENT_FILES,
   KAYKIT_RIG_ID,
   KAYKIT_SOURCE_REVISION,
   kaykitRuntimeAsset,
@@ -52,4 +53,10 @@ test('runtime selection is deterministic and preserves an explicit Rogue hero de
   assert.equal(asset.modelId, KAYKIT_DEFAULT_MODEL_ID);
   assert.equal(asset.productionReady, false);
   assert.equal(asset.usage, 'dev-runtime-foundation');
+});
+
+test('review battle equipment is pinned beside the canonical KayKit character family',()=>{
+  const files=KAYKIT_REVIEW_EQUIPMENT_FILES.map(row=>row.runtime.url.split('/').at(-1));
+  assert.deepEqual(files,['dagger.gltf','dagger.bin','sword_1handed.gltf','sword_1handed.bin','shield_badge.gltf','shield_badge.bin','rogue_texture.png','knight_texture.png']);
+  for(const row of KAYKIT_REVIEW_EQUIPMENT_FILES){assert.equal(row.license,'CC0-1.0');assert.equal(row.source.revision,KAYKIT_SOURCE_REVISION);assert.match(row.source.gitBlobSha,/^[0-9a-f]{40}$/);assert.ok(row.source.byteLength>0);}
 });
