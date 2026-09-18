@@ -96,7 +96,7 @@ export async function recordDevelopDeliveryStatus({ token = '', repository, sha,
     method: 'POST',
     body: {
       state: 'success',
-      context: 'integration/develop',
+      context: 'dev/delivery',
       description: 'DEV published; HTTP/source verified; browser verification is opt-in',
       target_url: runUrl,
     },
