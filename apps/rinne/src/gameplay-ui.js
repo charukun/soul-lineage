@@ -5,9 +5,11 @@ import { rebirthPreview } from './rebuild/gameplay-contract.js';
 import { createSkillSetter } from './skill-setter.js';
 import { createHeartTechniqueBodyUI } from './heart-technique-body-ui.js';
 import { decorateSelectionDetail, installSelectionDetail } from './selection-detail.js';
+import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
 import './rebuild/conversation-input.css';
 import './skill-setter.css';
 import './heart-technique-body.css';
+import '@soul/shared-ui/combat-sequence.css';
 
 const haptic=pattern=>{try{globalThis.navigator?.vibrate?.(pattern);}catch{}};
 const PAGE_SIZE=6;
@@ -33,8 +35,8 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
       </span>
       <span class="radar-caption"><strong data-radar-distance>--</strong><small data-radar-label>地図</small></span>
     </button>
-    <div data-phase class="combat-phase-indicator" hidden aria-label="現在の序破急">
-      <span data-phase-id="jo">序</span><i class="phase-pulse" data-link="jo-ha" aria-hidden="true"></i><span data-phase-id="ha">破</span><i class="phase-pulse" data-link="ha-kyu" aria-hidden="true"></i><span data-phase-id="kyu">急</span><strong data-phase-action class="combat-phase-action"></strong><div data-phase-history class="combat-phase-history" aria-label="直近のアクション"></div>
+    <div data-phase class="combat-phase-indicator combat-sequence combat-sequence--flat" data-combat-sequence data-combat-sequence-phase="idle" hidden aria-label="現在の序破急">
+      <span class="combat-sequence__step" data-phase-id="jo" data-combat-phase="jo">序</span><i class="phase-pulse combat-sequence__link" data-link="jo-ha" data-combat-link="jo-ha" aria-hidden="true"></i><span class="combat-sequence__step" data-phase-id="ha" data-combat-phase="ha">破</span><i class="phase-pulse combat-sequence__link" data-link="ha-kyu" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="combat-sequence__step" data-phase-id="kyu" data-combat-phase="kyu">急</span><strong data-phase-action class="combat-phase-action combat-sequence__action"></strong><div data-phase-history class="combat-phase-history combat-sequence__history" aria-label="直近のアクション"></div>
     </div>
     <nav class="rinne-bottom-controls" aria-label="戦闘と装備">
       <button data-heart class="upgrade-control is-heart"><span>心</span><small>心得</small></button>
@@ -167,7 +169,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   function summary(s,{dashing=false,resting=false,training=null}={}){
     state=s;speech.sync();loadoutUI.syncCombat(s);ui.name.textContent=s.name||'旅人';ui.equip.textContent=`${WEAPON_LABELS[s.equipment?.weapon]||'素手'} · ${ARMOR_LABELS[s.equipment?.armor]||'旅装'}`;updateRadar();
     ui.state.textContent=s.down?'救助待ち':resting?'休憩':dashing?'疾走':s.combat||training?.d<2.8?'戦闘態勢':'探索';ui.rest.hidden=!resting;ui.dash.dataset.active=String(dashing);const engaged=training?.d<2.8;ui.training.hidden=!engaged;if(engaged)ui.trainingName.textContent=training.label;
-    const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';ui.phase.hidden=!phase;ui.phase.dataset.phase=phase;for(const node of ui.phase.querySelectorAll('[data-phase-id]'))node.dataset.active=String(node.dataset.phaseId===phase);const rawAction=phase?(gameScreen.dataset.sharedCombatAttack||s.combat?.tidebreakPose?.attack||''):'';const action=rawAction||({jo:'間合いを測る',ha:'攻めを組み立てる',kyu:'決めに入る'})[phase]||'';if(ui.phaseAction){ui.phaseAction.textContent=action;ui.phaseAction.hidden=!action;}if(phase&&phase!==lastPhase){lastPhase=phase;haptic(8);audio.ui();}if(action&&action!==lastAction){lastAction=action;phaseHistory=[{phase,action},...phaseHistory].slice(0,4);if(ui.phaseHistory)ui.phaseHistory.innerHTML=phaseHistory.map((row,index)=>`<span data-age="${index}"><b>${({jo:'序',ha:'破',kyu:'急'})[row.phase]||row.phase}</b>${esc(row.action)}</span>`).join('');}if(!phase){lastPhase='';lastAction='';phaseHistory=[];if(ui.phaseHistory)ui.phaseHistory.innerHTML='';}
+    const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';ui.phase.hidden=!phase;ui.phase.dataset.phase=phase;syncCombatSequence(ui.phase,phase);const rawAction=phase?(gameScreen.dataset.sharedCombatAttack||s.combat?.tidebreakPose?.attack||''):'';const action=rawAction||({jo:'間合いを測る',ha:'攻めを組み立てる',kyu:'決めに入る'})[phase]||'';if(ui.phaseAction){ui.phaseAction.textContent=action;ui.phaseAction.hidden=!action;}if(phase&&phase!==lastPhase){lastPhase=phase;haptic(8);audio.ui();}if(action&&action!==lastAction){lastAction=action;phaseHistory=[{phase,action},...phaseHistory].slice(0,4);if(ui.phaseHistory)ui.phaseHistory.innerHTML=phaseHistory.map((row,index)=>`<span data-age="${index}"><b>${({jo:'序',ha:'破',kyu:'急'})[row.phase]||row.phase}</b>${esc(row.action)}</span>`).join('');}if(!phase){lastPhase='';lastAction='';phaseHistory=[];if(ui.phaseHistory)ui.phaseHistory.innerHTML='';}
   }
   function bindSheetGesture(){
     const header=ui.panel.querySelector('header');header.addEventListener('pointerdown',event=>{if(!['heart','technique','body','items'].includes(ui.panel.dataset.type)||event.target.closest('button'))return;sheetDrag={id:event.pointerId,startY:event.clientY,dy:0};header.setPointerCapture?.(event.pointerId);ui.panel.dataset.dragging='true';});

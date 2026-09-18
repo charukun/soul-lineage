@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1110">
+<title>モーション確認 | 輪廻転焦 Visual Review</title>
+<link rel="stylesheet" href="./src/review-motion.css">
+</head>
+<body>
+<main class="motion-review">
+  <section class="motion-stage" aria-label="モーション表示">
+    <canvas id="motion-stage" aria-label="KayKitキャラクターのモーション。ドラッグで回転、ピンチで拡大"></canvas>
+    <div class="motion-stage-slot">
+      <strong id="motion-selected">モーション準備中</strong>
+      <small id="motion-source">KayKit · pinned CC0</small>
+    </div>
+    <div class="motion-camera-strip" aria-label="固定カメラ">
+      <button type="button" data-motion-camera="front">正面</button>
+      <button type="button" data-motion-camera="three-quarter">斜め</button>
+      <button type="button" data-motion-camera="side">横</button>
+      <button type="button" data-motion-camera="back">背面</button>
+      <button type="button" data-motion-camera="face">顔</button>
+    </div>
+    <div class="motion-stage-status">
+      <output id="motion-status" role="status" aria-live="polite">モデルを読み込んでいます。</output>
+      <progress id="motion-load" max="1" value="0" aria-label="モデル読込状況"></progress>
+    </div>
+  </section>
+  <section class="motion-controls" aria-label="モーション選択と再生">
+    <div class="motion-models">
+      <h1>モーション確認</h1>
+      <div id="motion-model-grid" class="motion-model-grid" role="group" aria-label="キャラクターモデル"></div>
+    </div>
+    <div class="motion-playback">
+      <button id="motion-play" class="primary" type="button">▶ 再生</button>
+      <button id="motion-restart" type="button">最初から</button>
+      <label>速度
+        <select id="motion-speed">
+          <option value="0.25">0.25×</option>
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.5">1.5×</option>
+        </select>
+      </label>
+      <label class="loop-toggle"><input id="motion-loop" type="checkbox" checked> ループ</label>
+    </div>
+    <div class="motion-timeline">
+      <button id="motion-prev-frame" type="button" aria-label="1フレーム戻す">−1</button>
+      <input id="motion-time" type="range" min="0" max="1" step="0.0001" value="0" aria-label="モーション時刻">
+      <button id="motion-next-frame" type="button" aria-label="1フレーム進む">＋1</button>
+      <output id="motion-time-label">0.00 / 0.00秒</output>
+    </div>
+    <div id="motion-filters" class="motion-filters" role="group" aria-label="モーション分類"></div>
+    <div id="motion-grid" class="motion-grid" role="group" aria-label="モーション候補"></div>
+    <details class="motion-meta">
+      <summary>出典</summary>
+      <p id="motion-meta"></p>
+    </details>
+  </section>
+</main>
+<script type="module" src="./src/review-motion.js"></script>
+</body>
+</html>

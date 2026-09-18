@@ -1,12 +1,34 @@
 import * as THREE from 'three';
 import {KAYKIT_MODELS,YEAR_MS,appearanceForCharacter,createCharacter} from '@soul/characters';
+import {GLTFLoader} from '@soul/rendering';
 import {createKaykitCharacterPools} from './rebuild/kaykit-character-pool.js';
 import {applyTidebreakPose,tidebreakFrameFromSnapshot} from './rebuild/tidebreak-pose.js';
 import {reviewBattleCameraFrame} from './review-battle-state.js';
+import {hideEmbeddedCombatProps,reviewBattleEquipmentFor} from './review-battle-equipment.js';
 
 export const REVIEW_BATTLE_MODELS=Object.freeze(KAYKIT_MODELS.map(model=>Object.freeze({id:model.id,label:model.label})));
 
 const clamp=(value,lo,hi)=>Math.min(hi,Math.max(lo,value));
+const REVIEW_EQUIPMENT_ASSETS=Object.freeze(['dagger','sword_1handed','shield_badge']);
+
+async function loadReviewEquipment(){
+  const loader=new GLTFLoader(),assets=new Map();
+  await Promise.all(REVIEW_EQUIPMENT_ASSETS.map(async name=>{
+    const gltf=await loader.loadAsync(`./simulator/assets/kaykit/${name}.gltf`);
+    assets.set(name,gltf.scene);
+  }));
+  return assets;
+}
+function installReviewEquipment(actor,modelId,assets){
+  const hidden=hideEmbeddedCombatProps(actor.visual);
+  for(const row of reviewBattleEquipmentFor(modelId)){
+    const source=assets.get(row.asset);if(!source)continue;
+    const object=source.clone(true);object.rotation.set(...row.rotation);
+    actor.attachWeapon(row.key,object,{bone:row.bone,position:[0,.02,0],quaternion:[0,0,0,1],scale:row.scale});
+  }
+  actor.root.userData.reviewHiddenCombatProps=hidden;
+  actor.root.userData.reviewEquipment=reviewBattleEquipmentFor(modelId).map(row=>row.asset).join(',');
+}
 const modelLabel=id=>REVIEW_BATTLE_MODELS.find(row=>row.id===id)?.label||id;
 
 function reviewerCharacter(id,seed){
@@ -57,9 +79,12 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   const contact=new THREE.Mesh(new THREE.RingGeometry(.7,.73,64),new THREE.MeshBasicMaterial({color:0x53615c,transparent:true,opacity:.38,side:THREE.DoubleSide}));
   contact.rotation.x=-Math.PI/2;contact.position.y=.012;stageRoot.add(contact);
 
-  const runtime=await createKaykitCharacterPools(renderer,{onProgress:snapshot=>{
-    if(snapshot?.state==='loading')onStatus(`モデル準備中 · ${modelLabel(snapshot.modelId)}`);
-  }});
+  const [runtime,equipmentAssets]=await Promise.all([
+    createKaykitCharacterPools(renderer,{onProgress:snapshot=>{
+      if(snapshot?.state==='loading')onStatus(`モデル準備中 · ${modelLabel(snapshot.modelId)}`);
+    }}),
+    loadReviewEquipment()
+  ]);
   const pool=runtime.pool;
   const sides={
     hero:{key:'hero',actorId:'review-battle-hero',requested:'kaykit.rogue.v1',actor:null,appearance:appearanceForCharacter(reviewerCharacter('review-battle-hero',0x51f15e)),previous:null,hp:null,hitUntil:0,marker:ring(0xd9b45b)},
@@ -74,6 +99,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     side.requested=modelId;runtime.manifestation.focusModel(modelId,320);
     side.actor=pool.spawn(side.actorId,modelId);
     side.actor.root.name=`ReviewBattle:${sideKey}`;side.actor.attachments.name=`ReviewBattleAttachments:${sideKey}`;
+    installReviewEquipment(side.actor,modelId,equipmentAssets);
     stageRoot.add(side.actor.root,side.actor.attachments);side.previous=null;side.hp=null;
     canvas.dataset[`${sideKey}RequestedModel`]=modelId;
   }
@@ -134,6 +160,6 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     resetRound(){for(const side of Object.values(sides)){side.previous=null;side.hp=null;side.hitUntil=0;}},
     sync,
     snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on'});},
-    dispose(){observer.disconnect();for(const side of Object.values(sides))if(side.actor)pool.despawn(side.actorId);runtime.dispose();ground.geometry.dispose();ground.material.dispose();contact.geometry.dispose();contact.material.dispose();for(const side of Object.values(sides)){side.marker.geometry.dispose();side.marker.material.dispose();}renderer.dispose();}
+    dispose(){observer.disconnect();for(const side of Object.values(sides))if(side.actor)pool.despawn(side.actorId);runtime.dispose();ground.geometry.dispose();ground.material.dispose();contact.geometry.dispose();contact.material.dispose();for(const side of Object.values(sides)){side.marker.geometry.dispose();side.marker.material.dispose();}for(const source of equipmentAssets.values()){source.traverse(node=>{node.geometry?.dispose?.();const mats=Array.isArray(node.material)?node.material:[node.material];for(const mat of mats.filter(Boolean)){mat.map?.dispose?.();mat.dispose?.();}});}renderer.dispose();}
   });
 }
