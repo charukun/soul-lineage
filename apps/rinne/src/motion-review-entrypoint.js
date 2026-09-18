@@ -86,7 +86,7 @@ function compactCharacterModelLabels() {
     if (!full) continue;
     button.setAttribute('aria-label', full);
     const alias = aliases.find(([pattern]) => pattern.test(full))?.[1];
-    if (alias) button.textContent = alias;
+    if (alias && button.textContent !== alias) button.textContent = alias;
   }
 }
 
