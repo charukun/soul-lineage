@@ -1,4 +1,4 @@
-import {DELENDA_XION_YURT_B} from './visual/delenda-xion-yurt-b.js';
+import {DELENDA_XION_YURT_B} from '../generated/delenda-xion-yurt-b.js';
 
 const PRODUCTION_ORIGINS=new Set(['artist-authored','rinne-owned-dcc']);
 const LEGACY_PROCEDURAL_IDS=new Set(['mura.housing-legacy-procedural.v1']);
