@@ -65,3 +65,11 @@ test('TURN rate stays unknown when selected candidate type cannot be established
   const probe=createCoopPerformanceProbe(),connection={pc:{getStats:async()=>{throw Error('unsupported');}}};probe.connectionAttempt();await probe.connectionOpen(connection);
   const raw=probe.snapshot();assert.equal(raw.connectionSuccesses,1);assert.equal(raw.turnCandidateClassifiedConnections,0);assert.equal(aggregateRrpPerformanceSamples(raw).turnRelayRate,null);
 });
+
+
+test('protected semantic commits record the durable save latency while replaceable saves do not',()=>{
+  let clock=0;const probe=createCoopPerformanceProbe({now:()=>clock});
+  probe.recordSemanticCommit({checkpointBytes:1000,journalBytes:0,eventCount:0,historyEffects:0,commitLatencyMs:40});
+  probe.recordSemanticCommit({checkpointBytes:1200,journalBytes:140,eventCount:1,historyEffects:1,commitLatencyMs:55});
+  const raw=probe.snapshot();assert.deepEqual(raw.semanticEventCount,[0,1]);assert.deepEqual(raw.canonCommitMs,[55]);
+});
