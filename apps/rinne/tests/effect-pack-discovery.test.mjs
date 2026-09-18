@@ -1,64 +1,52 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createHash,randomUUID} from 'node:crypto';
-import {createWriteStream} from 'node:fs';
-import {mkdir,readFile,readdir,rm,stat} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
 import path from 'node:path';
-import {Readable} from 'node:stream';
-import {pipeline} from 'node:stream/promises';
-import {execFileSync} from 'node:child_process';
+import {gitBlobSha,effectDependencies} from '../scripts/prepare-effects.mjs';
 
-const WEBSITE_REV='c7cf8c7849c9536dda46f8493eb5c7b457cc896c';
-const TOOL={url:'https://github.com/effekseer/Effekseer/releases/download/1806/Effekseer1.80.6Linux.zip',size:97973843,sha256:'ca90272844175efc985e068d31c488b97898248e451e4ec44b4988fdf5d53928'};
-const PACK={path:'contributes/MAGICALxSPIRAL.zip',blob:'ab50f176b50b1b15b62be2371478935be90b286b'};
-const EFFECTS=['AquaPoint.efkproj','Attack_Impact.efkproj','Attack1.efkproj'];
+const SOURCE=Object.freeze({
+  repository:'munokura/Effekseer-sample-for-RPG-Tkool-MZ',
+  revision:'7faccfd4c769d49f56877950eb4b815846b952e5',
+});
+const GROUPS=new Set(['AndrewFM01','NextSoft01','Pierre01','Pierre02','Suzuki01','Tktk01','Tktk02','Tktk03']);
 
-async function download(url,target){
-  const response=await fetch(url,{signal:AbortSignal.timeout(120_000),redirect:'follow'});
-  assert.equal(response.ok,true,`HTTP ${response.status}: ${url}`);
-  await pipeline(Readable.fromWeb(response.body),createWriteStream(target));
+async function fetchBytes(item){
+  const encoded=item.path.split('/').map(encodeURIComponent).join('/');
+  const response=await fetch(`https://raw.githubusercontent.com/${SOURCE.repository}/${SOURCE.revision}/${encoded}`,{signal:AbortSignal.timeout(30_000)});
+  assert.equal(response.ok,true,`${item.path}: HTTP ${response.status}`);
+  const bytes=Buffer.from(await response.arrayBuffer());
+  assert.equal(bytes.length,item.size,`${item.path}: byte length`);
+  assert.equal(gitBlobSha(bytes),item.sha,`${item.path}: git blob`);
+  return bytes;
 }
-function gitBlobSha(bytes){return createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');}
-async function find(root,name){
-  for(const item of await readdir(root,{withFileTypes:true})){
-    const full=path.join(root,item.name);
-    if(item.isDirectory()){const hit=await find(full,name);if(hit)return hit;}
-    else if(item.name===name)return full;
+
+test('discover genuine CC0 combat VFX closure',async()=>{
+  const commitResponse=await fetch(`https://api.github.com/repos/${SOURCE.repository}/git/commits/${SOURCE.revision}`);
+  assert.equal(commitResponse.ok,true,'source commit unavailable');
+  const commit=await commitResponse.json();
+  const treeResponse=await fetch(`https://api.github.com/repos/${SOURCE.repository}/git/trees/${commit.tree.sha}?recursive=1`);
+  assert.equal(treeResponse.ok,true,'source tree unavailable');
+  const tree=await treeResponse.json();
+  assert.equal(tree.truncated,false,'source tree truncated');
+  const entries=new Map(tree.tree.filter(row=>row.type==='blob').map(row=>[row.path,row]));
+  const effects=[...entries.values()].filter(row=>GROUPS.has(row.path.split('/')[0])&&row.path.endsWith('.efkefc'));
+  assert.ok(effects.length>=100,`expected >=100 effects, got ${effects.length}`);
+  assert.equal(new Set(effects.map(row=>row.sha)).size,effects.length,'duplicate effect blobs are not allowed');
+
+  const closure=new Set(effects.map(row=>row.path));
+  const versions=new Map();
+  for(let start=0;start<effects.length;start+=8){
+    await Promise.all(effects.slice(start,start+8).map(async effect=>{
+      const bytes=await fetchBytes(effect);
+      const dependencies=effectDependencies(bytes);
+      const version=bytes.readUInt32LE(16); // diagnostic only; INFO parser remains authoritative
+      versions.set(version,(versions.get(version)||0)+1);
+      for(const dependency of dependencies){
+        const target=path.posix.join(path.posix.dirname(effect.path),dependency);
+        assert.ok(entries.has(target),`${effect.path}: missing dependency ${target}`);
+        closure.add(target);
+      }
+    }));
   }
-  return null;
-}
-
-test('official CLI upgrades distinct CC0 contribution effects to efkefc',async()=>{
-  const root=path.join(tmpdir(),`rinne-vfx-probe-${randomUUID()}`);
-  await mkdir(root,{recursive:true});
-  try{
-    const toolZip=path.join(root,'tool.zip');
-    await download(TOOL.url,toolZip);
-    const toolBytes=await readFile(toolZip);
-    assert.equal(toolBytes.length,TOOL.size);
-    assert.equal(createHash('sha256').update(toolBytes).digest('hex'),TOOL.sha256);
-    const toolRoot=path.join(root,'tool');await mkdir(toolRoot);
-    execFileSync('unzip',['-q',toolZip,'-d',toolRoot]);
-    const executable=await find(toolRoot,'Effekseer');assert.ok(executable,'Effekseer executable missing');
-    execFileSync('chmod',['+x',executable]);
-
-    const packZip=path.join(root,'pack.zip');
-    await download(`https://raw.githubusercontent.com/effekseer/effekseer.github.io/${WEBSITE_REV}/${PACK.path}`,packZip);
-    const packBytes=await readFile(packZip);assert.equal(gitBlobSha(packBytes),PACK.blob);
-    const packRoot=path.join(root,'pack');await mkdir(packRoot);
-    execFileSync('unzip',['-q',packZip,'-d',packRoot]);
-
-    const results=[];
-    for(const name of EFFECTS){
-      const source=await find(packRoot,name);assert.ok(source,`missing ${name}`);
-      const output=path.join(path.dirname(source),name.replace(/\.efkproj$/i,'.efkefc'));
-      execFileSync(executable,['-cui','-in',source,'-o',output],{cwd:path.dirname(source),stdio:'pipe',timeout:60_000});
-      const bytes=await readFile(output);
-      assert.ok(bytes.length>128,`${name}: empty converted output`);
-      assert.equal(bytes.subarray(0,4).toString('ascii'),'EFKE',`${name}: invalid efkefc header`);
-      results.push({name,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
-    }
-    console.log(JSON.stringify({converted:results}));
-  }finally{await rm(root,{recursive:true,force:true});}
+  const files=[...closure].sort().map(p=>{const row=entries.get(p);return [row.path,row.size,row.sha];});
+  console.log('RINNE_VFX_LIBRARY='+JSON.stringify({source:SOURCE,effectCount:effects.length,uniqueEffectBlobs:new Set(effects.map(row=>row.sha)).size,files}));
 });
