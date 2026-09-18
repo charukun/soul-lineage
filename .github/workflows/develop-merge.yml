@@ -89,7 +89,7 @@ jobs:
         env:
           NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
           NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
-        run: node scripts/notify-delivery.mjs INTEGRATED .deploy-state/integration.json
+        run: node scripts/notify-delivery.mjs MERGED_TO_DEVELOP .deploy-state/integration.json
       - name: Record notification health without affecting merge success
         if: always() && steps.fast-lane.outputs.merged_count != '0'
         uses: actions/github-script@v8
