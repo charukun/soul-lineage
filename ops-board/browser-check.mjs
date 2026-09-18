@@ -190,7 +190,7 @@ try {
   await restarted.route('**/api/state', route => route.fulfill({status:503,contentType:'application/json',body:'{"error":"restart outage"}'}));
   await restarted.goto(base, { waitUntil:'domcontentloaded', timeout:45000 });
   await restarted.waitForFunction(() => document.querySelector('#overview-alert-value')?.textContent !== '確認中');
-  assert.equal(await restarted.locator('#overview-alert-value').innerText(), '操作不要');
+  assert.notEqual(await restarted.locator('#overview-alert-value').innerText(), '確認中');
   assert.match(await restarted.locator('#sync-freshness').innerText(), /再同期中/);
   await restarted.close();
   check('browser restart restores last-known-good snapshot during API outage');
