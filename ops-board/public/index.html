@@ -36,7 +36,7 @@
       </div>
     </header>
 
-    <section id="control-tower" class="control-tower warning" aria-live="polite">
+    <section id="control-tower" class="control-tower warning" data-pulse-state="UNKNOWN" aria-live="polite">
       <div class="control-hero">
         <div>
           <span class="control-kicker">いまの判断</span>
@@ -70,17 +70,17 @@
     </section>
 
     <nav class="section-tabs pulse-overview" aria-label="3秒で見る現在の状況">
-      <a id="overview-alert-card" class="overview-card overview-action-card info" href="#alert-section">
+      <a id="overview-alert-card" class="overview-card overview-action-card info" data-pulse-role="human-action" href="#alert-section">
         <span class="overview-label">あなたの操作</span>
         <strong id="overview-alert-value">確認中</strong>
         <span id="overview-alert-detail" class="overview-detail">人の確認が必要かを確認中</span>
       </a>
-      <a id="overview-task-card" class="overview-card info" href="#tasks-section" data-open-disclosure="tasks-section">
+      <a id="overview-task-card" class="overview-card info" data-pulse-role="development" href="#tasks-section" data-open-disclosure="tasks-section">
         <span class="overview-label">開発中</span>
         <strong id="overview-task-value">確認中</strong>
         <span id="overview-task-detail" class="overview-detail">作業中とReadyを確認中</span>
       </a>
-      <a id="overview-app-card" class="overview-card overview-publication-card info" href="#apps-section" data-open-disclosure="apps-section">
+      <a id="overview-app-card" class="overview-card overview-publication-card info" data-pulse-role="dev-publication" href="#apps-section" data-open-disclosure="apps-section">
         <span class="overview-label">DEV</span>
         <strong id="overview-app-value">確認中</strong>
         <span id="overview-app-detail" class="overview-detail overview-publication-availability">公開状態を確認中</span>
