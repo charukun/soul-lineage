@@ -4,7 +4,7 @@ import {execFileSync,spawn} from 'node:child_process';
 import {mkdir} from 'node:fs/promises';
 import {resolve} from 'node:path';
 
-const root=resolve(new URL('../../..',import.meta.url).pathname);
+const root=process.cwd();
 const cinematicChanged=()=>{
   if(process.env.GITHUB_ACTIONS!=='true')return false;
   try{
