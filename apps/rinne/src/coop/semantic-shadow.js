@@ -145,6 +145,7 @@ export function createSemanticShadow({lifeSeconds,onSample=null,onState=null,res
   const journal=[];
   if(!['warm-start','gap'].includes(coverageHint))fail('invalid coverage hint');
   const coverage=restored?'restored':coverageHint;
+  const commitLatency=receipt=>Number.isFinite(Number(receipt?.commitLatencyMs))?Number(receipt.commitLatencyMs):null;
   const sample=value=>{lastSample=clone(value);checkpointBytesTotal+=value.checkpointBytes;journalBytesTotal+=value.journalBytes;try{onSample?.(clone(value));}catch{/* measurement sinks never affect shadow semantics */}};
   const exportState=()=>({format:1,worldId:state?.worldId??null,ownerId:state?.ownerId??null,authorityRoot,lastHistorySequence,commits,
     checkpointBytesTotal,journalBytesTotal,journalCount:journalCount+journal.length,recentJournalTypes:[...recentJournalTypes,...journal.map(row=>row.type)].slice(-32),state:clone(state)});
@@ -156,7 +157,7 @@ export function createSemanticShadow({lifeSeconds,onSample=null,onState=null,res
       if(!Number.isSafeInteger(historySequence)||historySequence<0)fail('history sequence missing');
       if(!state){
         state=baseline(nextWorld);lastCheckpoint=clone(nextCheckpoint);lastHistorySequence=historySequence;commits=1;authorityRoot=receipt.root??null;
-        sample({checkpointBytes:byteLength(nextCheckpoint),journalBytes:0,eventCount:0,historyEffects:0,warmStart:true});publishState();
+        sample({checkpointBytes:byteLength(nextCheckpoint),journalBytes:0,eventCount:0,historyEffects:0,warmStart:true,commitLatencyMs:commitLatency(receipt)});publishState();
         return snapshot();
       }
       let comparisonCheckpoint=previousCheckpoint;
@@ -170,7 +171,7 @@ export function createSemanticShadow({lifeSeconds,onSample=null,onState=null,res
       compareState(state,nextWorld);
       lastCheckpoint=clone(nextCheckpoint);lastHistorySequence=historySequence;commits++;authorityRoot=receipt.root??null;
       sample({checkpointBytes:byteLength(nextCheckpoint),journalBytes:actions.reduce((n,action)=>n+byteLength(action),0),
-        eventCount:actions.length,historyEffects:expectedHistoryDelta,warmStart:false});publishState();
+        eventCount:actions.length,historyEffects:expectedHistoryDelta,warmStart:false,commitLatencyMs:commitLatency(receipt)});publishState();
       return snapshot();
     }catch(error){failure=error instanceof Error?error:Error(String(error));throw failure;}
   }
