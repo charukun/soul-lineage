@@ -1,10 +1,11 @@
 import {ASSETS} from './asset-data.js';
 import {NATURE} from './nature-data.js';
 import {defs} from '@soul/world/mura/catalog';
+import {visualAssetById} from '@soul/assets';
 
 /** Inject the host renderer's Three instance; no second engine or DOM globals. */
 export function createMuraModels(T,{createCanvas,textileFibers=14000,textileBlotches=160}){
-const mats=new Map(),templates=new Map();
+const mats=new Map(),templates=new Map(),externalTemplates=new Map();
 const unitBox=new T.BoxGeometry(1,1,1),sphereGeo=new T.SphereGeometry(1,10,8),cylGeo=new T.CylinderGeometry(1,1,1,10),coneGeo=new T.ConeGeometry(1,1,10);
 const rnd=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x);};
 let textile;
@@ -111,37 +112,37 @@ function rawAsset(name,colors,scale=[1,1,1]){
  for(const[k,geo]of Object.entries(geos)){const n=mesh(group,geo,mat(colors[k]||colors.default||0xb69e7d,true,{side:T.DoubleSide}));n.userData.source='Kenney CC0 acquired topology';}
  group.scale.set(...scale);group.userData.assetBacked=true;return group;
 }
-function gerTentModel(w,d,color){
- const g=new T.Group(),radius=Math.min(w,d)*.47,wallH=2.05,roofH=1.18,roofColor=new T.Color(color),bandColor=roofColor.clone().multiplyScalar(.72).getHex();
- const felt=mat(0xe8dfca,true),roof=mat(roofColor.getHex(),true),band=mat(bandColor,true),wood=mat(0x6e523b,true);
- mesh(g,new T.CylinderGeometry(radius,radius,wallH,24,1,false),felt,0,wallH/2,0);
- mesh(g,new T.CylinderGeometry(radius*1.012,radius*1.012,.11,24,1,false),band,0,.62,0);
- mesh(g,new T.CylinderGeometry(radius*1.012,radius*1.012,.11,24,1,false),band,0,1.42,0);
- mesh(g,new T.ConeGeometry(radius*1.035,roofH,24,1,false),roof,0,wallH+roofH/2,0);
- mesh(g,new T.CylinderGeometry(radius*.20,radius*.20,.16,16,1,false),band,0,wallH+roofH+.05,0);
- const doorZ=radius+.045,doorW=1.22,doorH=1.72;
- box(g,0,doorH/2,doorZ,doorW,doorH,.12,bandColor);
- for(const x of[-doorW*.56,doorW*.56])box(g,x,doorH*.52,doorZ+.035,.10,doorH*1.08,.14,0x6e523b);
- box(g,0,doorH+0.04,doorZ+.035,doorW*1.22,.11,.14,0x6e523b);
- g.userData.assetBacked=false;g.userData.residentialTent='ger-v1';g.userData.circularHousing=true;return g;
+function externalObjGroups(assetId){
+ if(externalTemplates.has(assetId))return externalTemplates.get(assetId);
+ const asset=visualAssetById(assetId),vertices=[],groups={felt:[],roof:[],wood:[],door:[],metal:[]},maxVertex=asset.runtime?.maxVertex||Infinity;
+ for(const raw of asset.sourceText.split(/\r?\n/)){
+  const line=raw.trim();
+  if(line.startsWith('v ')){const[,x,y,z]=line.split(/\s+/);vertices.push([Number(x),Number(y),Number(z)]);continue;}
+  if(!line.startsWith('f '))continue;
+  const ids=line.slice(2).trim().split(/\s+/).map(token=>Number(token.split('/')[0]));
+  if(ids.some(id=>!Number.isInteger(id)||id<1||id>maxVertex))continue;
+  const highest=Math.max(...ids),group=highest<=66?'felt':highest<=132?'roof':highest<=140?'wood':highest<=148?'door':'metal';
+  for(let i=1;i<ids.length-1;i++)for(const id of[ids[0],ids[i],ids[i+1]])groups[group].push(...vertices[id-1]);
+ }
+ const result={};for(const[group,positions]of Object.entries(groups)){if(!positions.length)continue;const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3));geo.computeVertexNormals();result[group]=geo;}
+ externalTemplates.set(assetId,result);return result;
 }
-function workShelter(w,d,color){
- const g=new T.Group(),roofW=Math.max(3.2,w),roofD=Math.max(2.8,d),post=0x76573e,roofColor=new T.Color(color).lerp(new T.Color(0xd1b782),.28).getHex();
- for(const x of[-roofW*.42,roofW*.42])for(const z of[-roofD*.34,roofD*.34])box(g,x,1.18,z,.15,2.36,.15,post);
- const left=box(g,0,2.48,-roofD*.17,roofW+.35,.16,roofD*.58,roofColor);left.rotation.x=-.22;
- const right=box(g,0,2.48,roofD*.17,roofW+.35,.16,roofD*.58,roofColor);right.rotation.x=.22;
- box(g,0,2.32,0,.16,.18,roofD*.90,post);
- g.userData.assetBacked=false;g.userData.workShelter='open-shed-v1';return g;
+function residentialYurt(d){
+ const asset=visualAssetById(d.visualAssetId),g=new T.Group(),roofColor=d.roof,doorColor=new T.Color(roofColor).multiplyScalar(.72).getHex();
+ const colors={felt:0xe8dfca,roof:roofColor,wood:0x6e523b,door:doorColor,metal:0x4d4c47};
+ for(const[group,geo]of Object.entries(externalObjGroups(asset.id))){const n=mesh(g,geo,mat(colors[group]||0xe8dfca,true,{side:T.DoubleSide}));n.userData.sourceAssetId=asset.id;}
+ const [sx,sy,sz]=asset.dimensions,scale=Math.min((d.w*.92)/sx,(d.d*.92)/sz,(asset.runtime?.maxHeight||3.65)/sy);
+ g.scale.setScalar(scale);g.rotation.y=asset.runtime?.yaw||0;
+ g.userData.assetBacked=true;g.userData.visualAssetId=asset.id;g.userData.residentialTent='external-yurt-v1';g.userData.circularHousing=true;return g;
 }
 function building(kind,material='base',level=1){const d=defs[kind];if(!d)return new T.Group();
  let g;
- if(d.shape==='tent'){g=gerTentModel(d.w,d.d,d.roof);}
+ if(d.shape==='tent'){g=residentialYurt(d);}
  else if(d.shape==='fire'){g=rawAsset('campfire',{wood:0x775b44},[9,9,9]);}
  else if(['yard','field','market','pond','orchard'].includes(d.shape)){
   g=new T.Group();
-  // Work lots use timber sheds/stalls; residential tent silhouettes are reserved for homes.
-  if(!['field','orchard','pond'].includes(d.shape)){const shelter=workShelter(d.w*.50,d.d*.48,d.roof);shelter.position.set(-d.w*.13,0,-d.d*.18);g.add(shelter);}
-  if(d.shape==='market'){const stall=workShelter(d.w*.30,d.d*.40,0xc6b696);stall.position.set(d.w*.31,0,-d.d*.20);g.add(stall);for(let i=0;i<3;i++){const p=prop('table');p.position.set(-5+i*4,0,d.d*.24);g.add(p);}}
+  // Production yards stay open; identity comes from acquired props/terrain, never a residential tent or primitive-built shed.
+  if(d.shape==='market'){for(let i=0;i<3;i++){const p=prop('table');p.position.set(-5+i*4,0,d.d*.24);g.add(p);}}
   if(d.shape==='yard'){for(let i=0;i<3;i++){const logs=rawAsset(kind==='quarry'||kind==='clay'?'stone':'campfire',{default:kind==='quarry'?0x9a9e97:kind==='clay'?0x9f8272:0x96734f},[8,9,8]);logs.position.set(-3+i*3,0,d.d*.29);g.add(logs);}}
   if(d.shape==='field'){for(let rr=0;rr<4;rr++){const soil=rawAsset('soil',{dirt:0xa09470},[d.w/1.6,1,d.d*2]);soil.position.x=-d.w*.36+rr*d.w*.24;g.add(soil);}for(let r=0;r<8;r++)for(let c=0;c<12;c++){const x=-d.w*.43+c*d.w*.077,z=-d.d*.40+r*d.d*.113;const stem=cyl(g,x,.4,z,.045,.8,0xbaa45b);ball(g,x,.87,z,.16,0xdbbd6d,1.6);}}
   if(d.shape==='orchard'){for(let r=0;r<2;r++)for(let c=0;c<3;c++){const t=prop('tree',c+r*3);t.position.set(-5+c*5,0,-5+r*9);t.scale.setScalar(.82);g.add(t);}}

@@ -1,0 +1,11 @@
+import {MONGOLIAN_YURT_OBJ} from './visual/mongolian-yurt-v6.js';
+
+const materialized=(entry)=>Object.freeze({status:'MATERIALIZED',...entry,source:Object.freeze(entry.source),runtime:entry.runtime?Object.freeze(entry.runtime):undefined});
+export const visualAssetRegistry=Object.freeze({
+ 'village.yurt.traditional.v1':materialized({id:'village.yurt.traditional.v1',type:'building',dimensions:Object.freeze([5,4,5]),license:'Apache-2.0',localPath:'assets/vendor/production/mongolian-yurt/model.obj',licensePath:'assets/vendor/production/mongolian-yurt/LICENSE',source:{repository:'changweilin/steel_vs_swarm',revision:'d917a45eb5dc38fed7f56e6c5cd81700e2e87d8c',path:'out/3d_data/building/bld_yurt/building_bld_yurt_ov_75396782-7f8a-4829-983b-111047edc6d8_v6/model.obj',hash:'git-blob:3bf18c0dcd8faec914f26418139ad6ae6b68de7a'},runtime:{format:'obj',maxVertex:166,yaw:-Math.PI/2,maxHeight:3.65},sourceText:MONGOLIAN_YURT_OBJ}),
+ 'mura.kenney-fantasy-town.v1':materialized({id:'mura.kenney-fantasy-town.v1',type:'building-kit',license:'CC0-1.0',localPath:'packages/rendering/src/mura/asset-data.js',source:{repository:'charukun/soul-lineage',revision:'d23c28671a221a5fc39f81c56af99ea32e6e5beb',path:'packages/rendering/src/mura/asset-data.js',hash:'git-blob:b7ab235f8a6eeb7c7908c8084b6b77a651e1ad9f'}}),
+ 'mura.housing-authored.v1':materialized({id:'mura.housing-authored.v1',type:'building-kit',license:'RINNE-OWNED',localPath:'packages/housing/models.js',source:{repository:'charukun/soul-lineage',revision:'d23c28671a221a5fc39f81c56af99ea32e6e5beb',path:'packages/housing/models.js',hash:'git-blob:31bce88aceb9bc26ef62d08e846bb7bdd5beb91a'}})
+});
+for(const asset of Object.values(visualAssetRegistry))if(asset.status!=='MATERIALIZED'||!asset.license||!asset.localPath||!asset.source?.revision||!asset.source?.path||!asset.source?.hash)throw new Error(`Incomplete production visual asset: ${asset.id}`);
+export function visualAssetById(id){const asset=visualAssetRegistry[id];if(!asset)throw new Error(`Unknown production visual asset: ${id}`);return asset;}
+export function requireMaterializedVisualAsset(id){const asset=visualAssetById(id);if(asset.status!=='MATERIALIZED')throw new Error(`Production visual asset is not materialized: ${id}`);return asset;}

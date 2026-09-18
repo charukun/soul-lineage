@@ -7,6 +7,7 @@ import {BUILDINGS,defs as muraDefs} from '../packages/world/src/mura/catalog.js'
 import {defs as villageDefs} from '../apps/village/src/game/catalog.js';
 import {createMuraModels} from '../packages/rendering/src/mura/models.js';
 import {resolveMuraHouseVisual} from '../packages/rendering/src/mura/building-visual.js';
+import {visualAssetById} from '../packages/assets/src/index.js';
 import {HOUSING_WORLD_UNITS,ITEMS} from '../packages/housing/catalog.js';
 import {makeModel} from '../packages/housing/models.js';
 import {makeVillage,RAID_WORLD_UNITS} from '../packages/raid/world.js';
@@ -46,7 +47,11 @@ test('Village and Rinne share one canonical human-scale MURA metre catalogue',()
  assert.equal(muraDoorWidth('clanManor'),2.4);
 });
 
-test('tent semantics are residential-only and render as round ger-style homes',()=>{
+test('production MURA buildings resolve materialized visualAssetId entries',()=>{
+ for(const row of BUILDINGS){const asset=visualAssetById(row.visualAssetId);assert.equal(asset.status,'MATERIALIZED',row.id);assert.ok(asset.license&&asset.source.revision&&asset.source.path&&asset.source.hash,row.id);}
+});
+
+test('tent semantics are residential-only and render the imported traditional yurt asset',()=>{
  const models=createMuraModels(THREE,{createCanvas:fakeCanvas,textileFibers:0,textileBlotches:0});
  const tentKinds=BUILDINGS.filter(row=>row.shape==='tent').map(row=>row.id);
  assert.deepEqual(tentKinds,['mayor','guardhome','tent']);
@@ -57,16 +62,18 @@ test('tent semantics are residential-only and render as round ger-style homes',(
   assert.ok(muraDefs[kind].capacity>0,`${kind} must remain residential`);
   assert.equal(muraDefs[kind].jobs,0,`${kind} must not become a work facility`);
   const group=models.building(kind),size=boundsOf(group);
-  assert.equal(group.userData.residentialTent,'ger-v1');
+  assert.equal(group.userData.residentialTent,'external-yurt-v1');
+  assert.equal(group.userData.assetBacked,true);
+  assert.equal(group.userData.visualAssetId,'village.yurt.traditional.v1');
   assert.equal(group.userData.circularHousing,true);
   assert.ok(Math.abs(size.x-size.z)<.16,`${kind} must read as round, got ${size.x} x ${size.z}`);
   assert.ok(size.x<=muraDefs[kind].w+.05&&size.z<=muraDefs[kind].d+.05,`${kind} must fit its canonical footprint`);
-  assert.ok(size.y>3&&size.y<3.7,`${kind} ger height ${size.y}`);
+  assert.ok(size.y>3.45&&size.y<=3.66,`${kind} yurt height ${size.y}`);
  }
  for(const kind of ['logging','storage','quarry','clay','hunting','market']){
   const group=models.building(kind),nodes=[];group.traverse(node=>nodes.push(node));
   assert.equal(nodes.some(node=>node.userData?.residentialTent),false,`${kind} must not reuse a residential tent`);
-  assert.equal(nodes.some(node=>node.userData?.workShelter==='open-shed-v1'),true,`${kind} should use a work shelter instead`);
+  assert.equal(nodes.some(node=>node.userData?.workShelter),false,`${kind} must not use a primitive-built work shelter`);
  }
  assert.ok(resolveMuraHouseVisual('home'),'permanent homes still use the shared authored house visual');
 });

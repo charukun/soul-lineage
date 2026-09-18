@@ -1,6 +1,4 @@
-export { PUBLIC_GITHUB_ASSET_SOURCE, publicGithubAssetCatalog, publicGithubAssetsForApp } from './public-github-catalog.js';
-export { PUBLIC_WEB_ASSET_SOURCES, publicWebAssetCatalog, publicWebAssetsForApp } from './public-web-catalog.js';
-export { PUBLIC_WEB_PHASE4_SOURCES, publicWebPhase4AssetCatalog, publicWebPhase4AssetsForApp } from './public-web-phase4-catalog.js';
+export {visualAssetRegistry,visualAssetById,requireMaterializedVisualAsset} from './visual-asset-registry.js';
 export {
   REVIEW_SKELETON_SOURCE,
   REVIEW_SKELETON_MODELS,
