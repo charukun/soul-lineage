@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { GAME_NAMES } from './application-catalog.mjs';
 import { distributionPublicUrl } from './distribution-targets.mjs';
-import { PERSONAL_DEV_EMAIL_LOGIN, PERSONAL_DEV_EMAIL_REPOSITORY, findAssociatedDevelopPr, personalDevChangeLabel, recordGithubDeliveryReceipt } from './notify-delivery.mjs';
+import { PERSONAL_DEV_EMAIL_REPOSITORY, findAssociatedDevelopPr, personalDevChangeLabel, recordGithubDeliveryReceipt } from './notify-delivery.mjs';
 
 const SHA=/^[a-f0-9]{40}$/;
 
