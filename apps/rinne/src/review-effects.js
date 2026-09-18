@@ -3,7 +3,7 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {createAuthoredEffectPlayer} from './rebuild/authored-effect-player.js';
 import {combatEffectBudget} from './rebuild/combat-effect-cues.js';
 import {REVIEW_AUTHORED_EFFECTS,EFFECT_RUNTIME,EFFECT_SOURCE,REVIEW_EFFECT_SOURCE} from './rebuild/authored-effect-manifest.js';
-import {REVIEW_EFFECT_CATALOG,REVIEW_EFFECT_CATEGORIES,REVIEW_EFFECT_COUNT} from './review-effect-catalog.js';
+import {REVIEW_EFFECT_CATALOG,REVIEW_EFFECT_CATEGORIES} from './review-effect-catalog.js';
 import {authoredEffectBase,createEffekseerBackend} from './rebuild/effekseer-loader.js';
 import './review-effects.css';
 
@@ -188,7 +188,7 @@ for(const button of document.querySelectorAll('[data-filter]'))button.addEventLi
 for(const id of ['fx-speed','fx-tier','fx-reduced'])q(id).addEventListener('change',syncControls);
 q('fx-pause').addEventListener('click',()=>{paused=!paused;q('fx-pause').textContent=paused?'再開':'一時停止';});
 q('fx-clear').addEventListener('click',()=>player.clear());q('fx-camera').addEventListener('click',resetCamera);
-q('fx-provenance').textContent=`${REVIEW_EFFECT_COUNT} motions · ${EFFECT_SOURCE.repository}@${EFFECT_SOURCE.revision} / ${EFFECT_SOURCE.license} · ${REVIEW_EFFECT_SOURCE.repository}@${REVIEW_EFFECT_SOURCE.revision} / ${REVIEW_EFFECT_SOURCE.license} · Effekseer WebGL ${EFFECT_RUNTIME.version} · ${Object.keys(REVIEW_AUTHORED_EFFECTS).join(' / ')}`;
+q('fx-provenance').textContent=`${EFFECT_SOURCE.repository}@${EFFECT_SOURCE.revision} / ${EFFECT_SOURCE.license} · ${REVIEW_EFFECT_SOURCE.repository}@${REVIEW_EFFECT_SOURCE.revision} / ${REVIEW_EFFECT_SOURCE.license} · Effekseer WebGL ${EFFECT_RUNTIME.version} · ${Object.keys(REVIEW_AUTHORED_EFFECTS).join(' / ')}`;
 renderCatalog();
 
 const observer=new ResizeObserver(()=>{const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();});observer.observe(canvas);
@@ -198,7 +198,7 @@ function frame(now){
   if(!paused){player.frame(state,front,dt*speed,{level:tier,reduced,hidden:document.hidden});if(loopToggle.checked&&now-lastTrigger>1700/Math.max(.25,speed))trigger(selected);}
   renderer.render(scene,camera);player.draw(camera);renderer.resetState();
   const snapshot=player.snapshot();q('fx-metrics').textContent=`backend ${snapshot.phase} · active ${snapshot.active}/${snapshot.budget.maxActive} · played ${snapshot.played} · dropped ${snapshot.dropped} · trails ${snapshot.budget.trails?'ON':'OFF'} · tier ${tier}`;
-  if(snapshot.phase==='ready')q('fx-status').textContent=`${REVIEW_EFFECT_COUNT}種 · ${effectLabel(selected)}`;
+  if(snapshot.phase==='ready')q('fx-status').textContent=`原本再生可能 · ${effectLabel(selected)}`;
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
