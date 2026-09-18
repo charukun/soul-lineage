@@ -50,8 +50,7 @@ export function installCoopMenu({container,buildInfo,getPrepared,getName,onPlay,
       const world=new CoopWorld({worldId,ownerId,name:getName(),layout:saved?.layout||prepared.layout,saved:saved?.world});
       let writeSequence=0;const writerId=crypto.randomUUID();
       const persist=async value=>{const sequence=writeSequence++,receipt=await history.commit(value,{writeId:`${world.data.epoch}:${writerId}:${sequence}`,acquire:sequence===0});if(sequence===0)await storage().write('coop-last',worldId);return receipt;};
-      const semanticShadowPersistence={save:value=>storage().write(`coop-shadow-v1:${worldId}`,value)};
-      session=await createCoopHost({world,contentVersion,save:persist,RTCPeerConnection,onChange:changed,performanceProbe:makeProbe('host'),semanticShadowState,semanticShadowCoverage,semanticShadowPersistence,semanticMeasurement,captureWorkload});$('coop-invite').hidden=false;$('coop-cancel').hidden=false;changed();
+      session=await createCoopHost({world,contentVersion,save:persist,RTCPeerConnection,onChange:changed,performanceProbe:makeProbe('host'),semanticShadowState,semanticShadowCoverage,semanticJournalPersistence:semanticJournal,semanticMeasurement,captureWorkload});$('coop-invite').hidden=false;$('coop-cancel').hidden=false;changed();
     }catch(error){releaseLock?.();releaseLock=null;throw error;}
   }
   $('coop-host').onclick=run(()=>host(false));$('coop-resume').onclick=run(()=>host(true));
