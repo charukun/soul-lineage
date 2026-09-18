@@ -19,6 +19,7 @@ export function verifyDevelopCompletionContract(root=process.cwd()){
   assert.match(development,/正常終了は `Merged` \/ `MERGED_TO_DEVELOP` だけ/);
   assert.match(executionPolicy,/Ready は対話的な実装作業の終了境界ではない/);
   assert.match(executionPolicy,/PRがReadyなだけの状態では成功の最終応答を返さず/);
+  assert.match(executionPolicy,/- develop merge commit SHA/);
   assert.match(developMerge,/same-task worker merges exact PR head to develop/);
   assert.match(preReady,/terminal=MERGED_TO_DEVELOP/);
 
@@ -36,8 +37,11 @@ export function verifyDevelopCompletionContract(root=process.cwd()){
     '同じ Ready PR のGitHub automation',
     'Ready は引き続き対話的な実装作業の終了境界',
     'Ready for review 化済み',
+    '`implementation/handoff`',
   ]){
     assert.ok(!executionPolicy.includes(stale),`execution policy contains stale Ready-terminal wording: ${stale}`);
   }
+  assert.ok(!development.includes('merge-forward してから handoff する'),'development must not route Ready into a handoff terminal');
+  assert.ok(!development.includes('Ready handoff は変えない'),'transport docs must preserve same-task merge, not Ready handoff');
   return true;
 }
