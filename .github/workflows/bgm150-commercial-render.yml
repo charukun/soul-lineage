@@ -56,5 +56,8 @@ jobs:
           git fetch origin develop
           git merge --no-edit origin/develop
           node --test packages/audio/tests/source-midi.test.mjs packages/audio/tests/catalog.test.mjs
-          node scripts/validate.mjs fast origin/develop HEAD
+          npm run build:rinne
+          npm run build:village
+          npm run build:demon
+          git diff --check
           git push origin "HEAD:${GITHUB_REF_NAME}"
