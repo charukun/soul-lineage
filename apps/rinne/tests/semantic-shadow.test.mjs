@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createSemanticShadow, deriveSemanticShadowActions } from '../src/coop/semantic-shadow.js';
+import { createSemanticShadow, deriveSemanticShadowActions, validateSemanticShadowRestore } from '../src/coop/semantic-shadow.js';
 import { createCheckpointWriter } from '../src/coop/checkpoint-writer.js';
 import { createCoopPerformanceProbe } from '../src/coop/performance.js';
 
@@ -97,4 +97,22 @@ test('shadow byte samples feed the existing performance capture namespace withou
   assert.equal(raw.semanticCheckpointBytes.length,2);assert.equal(raw.semanticJournalBytes[0],0);assert(raw.semanticJournalBytes[1]>0);
   assert.deepEqual(raw.semanticEventCount,[0,1]);assert.deepEqual(raw.semanticHistoryEffects,[0,1]);
   assert.equal(shadow.snapshot().checkpointBytesTotal,raw.semanticCheckpointBytes.reduce((a,b)=>a+b,0));
+});
+
+
+test('persisted shadow anchor resumes across a Host restart and observes epoch acquisition',()=>{
+  let persisted=null;const first=createSemanticShadow({lifeSeconds:6000,onState:value=>{persisted=value;}}),a=checkpoint();
+  first.observe(null,a,receipt(1,1));
+  const restored=validateSemanticShadowRestore(persisted,{worldId:'room',ownerId:'owner',authorityRoot:'r1',historySequence:1});
+  const second=createSemanticShadow({lifeSeconds:6000,restored});
+  const b=structuredClone(a);b.world.epoch=2;b.world.tick++;
+  second.observe(null,b,receipt(2,1));
+  const snap=second.snapshot();assert.equal(snap.coverage,'restored');assert.equal(snap.authorityRoot,'r2');
+  assert.deepEqual(snap.journalTypes,['epoch-acquire']);assert.equal(snap.journalLength,1);assert.equal(snap.epoch,2);
+});
+
+test('stale persisted shadow becomes a coverage gap instead of being silently trusted',()=>{
+  let persisted=null;const first=createSemanticShadow({lifeSeconds:6000,onState:value=>{persisted=value;}});first.observe(null,checkpoint(),receipt(1,1));
+  assert.throws(()=>validateSemanticShadowRestore(persisted,{worldId:'room',ownerId:'owner',authorityRoot:'different',historySequence:1}),/coverage anchor/);
+  assert.throws(()=>validateSemanticShadowRestore(persisted,{worldId:'room',ownerId:'owner',authorityRoot:'r1',historySequence:2}),/coverage anchor/);
 });
