@@ -25,6 +25,7 @@ test('hunt HUD keeps only decision-critical persistent information and transient
   const index=read('../index.html');
   const flow=read('../src/web/hunt-flow-ui.js');
   const css=read('../src/web/hunt-minimal-hud.css');
+  assert.match(flow,/hunt-minimal-hud\.css/);
   const main=read('../src/web/main.js');
   assert.match(flow,/人影 \$\{eaten\}\/\$\{plan\.quota\}/);
   assert.match(flow,/戦利 \$\{haul\}/);

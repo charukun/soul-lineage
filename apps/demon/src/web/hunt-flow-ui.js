@@ -1,5 +1,6 @@
 import {UPGRADES, readProgress, huntPlan, goalText, bodyStats, upgradeQuote} from '../hunt/balance.js';
 import './hunt-flow.css';
+import './hunt-minimal-hud.css';
 
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 const byId = id => document.getElementById(id);
