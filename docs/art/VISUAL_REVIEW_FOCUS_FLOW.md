@@ -14,6 +14,7 @@ Visual Review is a launcher, not a dashboard. The reviewer chooses one thing to 
 - The browser/device Back action is the primary return path. Dedicated pages may expose a small `← Review` link, but no persistent global launcher, app-context bar, source dashboard or workflow explanation may remain above the inspected content.
 - Canonical-source explanations and cross-app contracts remain in repository docs and inside the specialist tools where relevant. The launcher must not front-load them.
 - On mobile, the launcher should fit as a simple single-screen choice surface and the destination page should own the viewport.
+- Review-only DOM normalization must be idempotent. Mutation observers must not rewrite already-normalized labels or create self-triggering mutation loops that can starve or crash a browser renderer.
 
 ## App context
 
@@ -42,4 +43,6 @@ The PR implementing this contract must carry `Browser-Playtest: rinne` and the e
 3. browser Back returns to the launcher;
 4. no iframe-based specialist surface remains in the launcher;
 5. Battle shows actual model geometry, battle time advances, pause/restart work, and both model selectors change the rendered model;
-6. Character/Motion/Equipment/Effects still load their current real review surfaces.
+6. Character/Motion/Equipment/Effects still load their current real review surfaces;
+7. route navigation waits for document readiness and then each surface's semantic/runtime readiness; it must not treat an unrelated full-page `load` delay as the route contract;
+8. Character and Motion can remain open long enough for their semantic readiness checks without an unbounded mutation loop, renderer crash, or fatal page error.
