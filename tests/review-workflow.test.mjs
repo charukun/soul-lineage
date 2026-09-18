@@ -11,7 +11,7 @@ test('Visual Review uses only the Rinne Pages DEV route',async()=>{
   ]);
   assert.doesNotMatch(opsBoard,/review-preview\.yml|Publish Visual Review on explicit Ops Board dispatch/);
   assert.doesNotMatch(collector,/visual-review\/public|VISUAL_REVIEW_PUBLIC_URL|visualReviewEnvironment/);
-  assert.doesNotMatch(applications,/rinne-visual-review\.c-okamoto\.workers\.dev|VISUAL_REVIEW_PUBLIC_URL/);
+  assert.match(applications,/rinneDevToolTarget\('visual-review','DEV公開','review\.html'/);
   assert.doesNotMatch(pulls,/isVisualReviewPull|work\/visual-review-lab-v2|visualReview/);
   assert.doesNotMatch(pullBoard,/visual-review-pulls|visual-review-section|pr\.visualReview/);
   assert.doesNotMatch(pulseHtml,/visual-review-section|長期運用の確認用PR/);
