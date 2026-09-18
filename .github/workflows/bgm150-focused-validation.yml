@@ -1,0 +1,40 @@
+name: One-shot BGM150 focused validation
+
+on:
+  push:
+    branches:
+      - fix/bgm150-commercial-clearance-20260918
+    paths:
+      - '.github/workflows/bgm150-focused-validation.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install dependencies
+        run: npm ci
+      - name: Validate source MIDIs and Production catalog
+        run: node --test packages/audio/tests/source-midi.test.mjs packages/audio/tests/catalog.test.mjs
+      - name: Build Rinne
+        run: npm run build:rinne
+      - name: Build Village
+        run: npm run build:village
+      - name: Build Demon
+        run: npm run build:demon
+      - name: Diff hygiene
+        run: git diff --check
+      - name: Remove one-shot validator
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/bgm150-focused-validation.yml
+          git commit -m 'chore(audio): remove one-shot BGM validator'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
