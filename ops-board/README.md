@@ -69,3 +69,13 @@ Integration Rescueは運用者がスマホで開いた直後に「何が問題�
 - 明示hold、未解決review、権限不足、不可逆な契約判断など本当に進められない対象は理由と復旧条件を既存PRへ残し、品質gateを弱めたりmain/Productionへ進めたりしない
 - CI/browserのRunning・Queued・Pendingを待機・pollingしてセッションを延命しない。Ready以後の非同期監視はIntegrationへ引き渡す
 - PULSE自身はこのボタン操作でGitHubを書き換えない。表示中snapshotを使ってコピー可能な実行プロンプトを生成するだけにする
+
+## 爆速開発UI契約
+
+PULSEは現在の短寿命・並列AI開発フローを、運用者が数秒で判断できる表示へ変換する。
+
+- 最初の1画面では「今やること」「進行中の工程」「DEVで確認できるか」の3点だけを主役にする
+- `Draft → Ready → develop統合 → DEV公開` を一本の進行線として見せ、内部のWorker/Actions/SHAは必要時だけ展開する
+- 正常時は静かに、要対応時だけ強くする。警告色はユーザー操作が必要な状態と取得異常へ限定する
+- タップ対象は44px以上を基準とし、片手スマホ操作で主要導線へ届く密度にする
+- 既存のDOM ID、データ取得、状態判定、Rescue/Integration/Publication契約は変更せず、UI刷新をcontrol-plane変更へ波及させない
