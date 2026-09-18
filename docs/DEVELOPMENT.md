@@ -42,6 +42,8 @@ Micro Patch の適用条件・除外条件は [`MICRO_PATCH_FAST_LANE.md`](MICRO
 
 このRepositoryは個人開発 + AI並列workerを前提とする。develop PRではGitHub CIを起動しない。実装 WORK が focused validation、current develop reconciliation、focused revalidation、push、final freshness verify を完了したら、その同じ実装 WORK がPRをReadyにして exact current head を `develop` へmergeする。別のmerge queue、Ready handoff、Fast Repair自動ループは通常経路に置かない。
 
+PULSE (`ops-board/**`, `tests/pulse-*`, `tests/ops-*`, PULSE workflow/config) は例外的に `npm run pulse:preflight` を focused validation の必須入口とする。`scripts/validate.mjs dev` もPULSE関連差分を検出したら同じpreflightを実行し、公開workflowも同一コマンドを使う。UI文言とbrowser assertionを別々の正本にせず、`ops-board/public/pulse-contract.mjs` のsemantic contractを共有する。
+
 **Ready for review は終了状態ではない。** develop向け実装タスクの正常終了は `Merged` / `MERGED_TO_DEVELOP` だけとし、`READY_FOR_INTEGRATION`、`Readyでhandoff`、`Integration待ち` を完了報告・PR status・運用上の終端として使わない。merge権限不足・未解決holdなどでmergeできない場合だけ `FAILED` として、branch / exact head / PR / reason を残す。
 
 ## Pre-Ready Reconciliation
