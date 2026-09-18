@@ -28,8 +28,8 @@ test('Chat development canon is Connector authoring plus exact-head Actions vali
   assert.match(workflow, /'dispatch\/\*\*'/);
   assert.match(workflow, /ref: \$\{\{ github\.sha \}\}/);
   assert.match(workflow, /git fetch --no-tags origin develop:refs\/remotes\/origin\/develop/);
-  assert.match(workflow, /npm ci/);
-  assert.match(workflow, /node scripts\/validate\.mjs fast origin\/develop HEAD/);
+  assert.match(workflow, /Run focused changed-workspace tests/);
+  assert.match(workflow, /node scripts\/validate\.mjs dev origin\/develop HEAD/);
   assert.match(workflow, /context: 'astra\/focused-validation'/);
 
   for (const source of [agents, development, policy]) {
