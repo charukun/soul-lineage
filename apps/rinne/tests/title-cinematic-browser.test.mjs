@@ -6,7 +6,7 @@ import {resolve} from 'node:path';
 
 const root=resolve(new URL('../../..',import.meta.url).pathname);
 const cinematicChanged=()=>{
-  if(process.env.GITHUB_ACTIONS!=='true'||!process.env.HEAD_SHA)return false;
+  if(process.env.GITHUB_ACTIONS!=='true')return false;
   try{
     const changed=execFileSync('git',['diff','--name-only','origin/develop','HEAD'],{cwd:root,encoding:'utf8'});
     return /apps\/rinne\/(index\.html|src\/main\.js|src\/title-rich\.css|src\/title-cinematic-media\.js)/.test(changed);
