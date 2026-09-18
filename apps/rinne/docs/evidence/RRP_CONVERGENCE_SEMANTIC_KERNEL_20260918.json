@@ -2,98 +2,265 @@
   "format": "rrp-convergence-semantic-kernel-v1",
   "startDevelop": "d23c28671a221a5fc39f81c56af99ea32e6e5beb",
   "classification": "B finite executable evidence. A/C/D/E/F boundaries and source-derived classification are in THEORY_CONVERGENCE_SEMANTIC_KERNEL.md.",
-  "environment": {"node":"v22.16.0","platform":"linux","arch":"x64","workspace":"isolated repository-like authoring workspace; no full checkout"},
-  "focused": {"exit":0,"passed":37,"failed":0},
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "arch": "x64",
+    "workspace": "isolated repository-like authoring workspace; no full checkout"
+  },
+  "focused": {
+    "exit": 0,
+    "passed": 37,
+    "failed": 0
+  },
   "negativeControls": [
-    {"mutation":"drop-rebirth-deps","killed":true,"failed":9},
-    {"mutation":"forget-rebirth-op","killed":true,"failed":5},
-    {"mutation":"ignore-snapshot-root","killed":true,"failed":1},
-    {"mutation":"trust-snapshot-protected","killed":true,"failed":6},
-    {"mutation":"ignore-epoch","killed":true,"failed":1},
-    {"mutation":"compact-from-provisional","killed":true,"failed":1},
-    {"mutation":"drop-compaction-dedupe","killed":true,"failed":1}
+    {
+      "mutation": "drop-rebirth-deps",
+      "killed": true,
+      "failed": 9
+    },
+    {
+      "mutation": "forget-rebirth-op",
+      "killed": true,
+      "failed": 5
+    },
+    {
+      "mutation": "ignore-snapshot-root",
+      "killed": true,
+      "failed": 1
+    },
+    {
+      "mutation": "trust-snapshot-protected",
+      "killed": true,
+      "failed": 6
+    },
+    {
+      "mutation": "ignore-epoch",
+      "killed": true,
+      "failed": 1
+    },
+    {
+      "mutation": "compact-from-provisional",
+      "killed": true,
+      "failed": 1
+    },
+    {
+      "mutation": "drop-compaction-dedupe",
+      "killed": true,
+      "failed": 1
+    }
   ],
-  "syntax": {"filesChecked":11,"pass":true},
+  "syntax": {
+    "filesChecked": 11,
+    "pass": true
+  },
   "artifactContract": {
     "pass": true,
-    "protectedEffects": ["player.birth","life.seal","life.rebirth","authority.epoch.acquire"],
-    "experimentVariants": ["all-state-strong","semantic-journal","fair-known-event-sourcing"],
-    "safetyKeys": ["committedCanonRollbackEvents","duplicateIrreversibleCommits","staleAuthorityAccepts","splitBrainOpenMs","uncommittedCanonVisibleEvents","recoveryOpenWithoutMaterialEvents"]
+    "protectedEffects": [
+      "player.birth",
+      "life.seal",
+      "life.rebirth",
+      "authority.epoch.acquire"
+    ],
+    "experimentVariants": [
+      "all-state-strong",
+      "semantic-journal",
+      "fair-known-event-sourcing"
+    ],
+    "safetyKeys": [
+      "committedCanonRollbackEvents",
+      "duplicateIrreversibleCommits",
+      "staleAuthorityAccepts",
+      "splitBrainOpenMs",
+      "uncommittedCanonVisibleEvents",
+      "recoveryOpenWithoutMaterialEvents"
+    ]
   },
   "sourceShaped30Player": {
-    "checkpointBytes":25633,
-    "protectedActorBytes":432,
-    "fullActorBytes":771,
-    "eventBytes":{"birth":1285,"lifeSeal":879,"rebirth":1356,"epochAcquire":86},
-    "fourSealCommits":{"allStateStrong":102532,"actorJournalStrong":3516,"fairKnownBaselineStrong":3516}
+    "checkpointBytes": 25633,
+    "protectedActorBytes": 432,
+    "fullActorBytes": 771,
+    "eventBytes": {
+      "birth": 1285,
+      "lifeSeal": 879,
+      "rebirth": 1356,
+      "epochAcquire": 86
+    },
+    "fourSealCommits": {
+      "allStateStrong": 102532,
+      "actorJournalStrong": 3516,
+      "fairKnownBaselineStrong": 3516
+    }
   },
-  "adaptiveEncoding": {"cases":90,"pass":true,"firstCheckpointCrossoverActors":{"birth":20,"lifeSeal":30,"rebirth":19}},
+  "adaptiveEncoding": {
+    "cases": 90,
+    "pass": true,
+    "firstCheckpointCrossoverActors": {
+      "birth": 20,
+      "lifeSeal": 30,
+      "rebirth": 19
+    }
+  },
   "lineageGrowth": {
-    "deltaBoundedByHistoryLength":true,
-    "naiveGrowthVisible":true,
-    "rows":[
-      {"generation":1,"deltaBytes":1355,"naiveRepeatedLineageBytes":1711},
-      {"generation":2,"deltaBytes":1356,"naiveRepeatedLineageBytes":2054},
-      {"generation":5,"deltaBytes":1354,"naiveRepeatedLineageBytes":3081},
-      {"generation":10,"deltaBytes":1366,"naiveRepeatedLineageBytes":4809},
-      {"generation":25,"deltaBytes":1365,"naiveRepeatedLineageBytes":9968},
-      {"generation":50,"deltaBytes":1367,"naiveRepeatedLineageBytes":18570}
+    "deltaBoundedByHistoryLength": true,
+    "naiveGrowthVisible": true,
+    "rows": [
+      {
+        "generation": 1,
+        "deltaBytes": 1355,
+        "naiveRepeatedLineageBytes": 1711
+      },
+      {
+        "generation": 2,
+        "deltaBytes": 1356,
+        "naiveRepeatedLineageBytes": 2054
+      },
+      {
+        "generation": 5,
+        "deltaBytes": 1354,
+        "naiveRepeatedLineageBytes": 3081
+      },
+      {
+        "generation": 10,
+        "deltaBytes": 1366,
+        "naiveRepeatedLineageBytes": 4809
+      },
+      {
+        "generation": 25,
+        "deltaBytes": 1365,
+        "naiveRepeatedLineageBytes": 9968
+      },
+      {
+        "generation": 50,
+        "deltaBytes": 1367,
+        "naiveRepeatedLineageBytes": 18570
+      }
     ]
   },
   "provisionalRecoveryPareto": {
-    "checkpointBytes":25633,
-    "durationSeconds":60,
-    "tradeoffVisible":true,
-    "rows":[
-      {"intervalSeconds":0.5,"bytesPerMinute":3075960},
-      {"intervalSeconds":1,"bytesPerMinute":1537980},
-      {"intervalSeconds":2,"bytesPerMinute":768990},
-      {"intervalSeconds":5,"bytesPerMinute":307596},
-      {"intervalSeconds":10,"bytesPerMinute":153798},
-      {"intervalSeconds":30,"bytesPerMinute":51266},
-      {"intervalSeconds":60,"bytesPerMinute":25633}
+    "checkpointBytes": 25633,
+    "durationSeconds": 60,
+    "tradeoffVisible": true,
+    "rows": [
+      {
+        "intervalSeconds": 0.5,
+        "bytesPerMinute": 3075960
+      },
+      {
+        "intervalSeconds": 1,
+        "bytesPerMinute": 1537980
+      },
+      {
+        "intervalSeconds": 2,
+        "bytesPerMinute": 768990
+      },
+      {
+        "intervalSeconds": 5,
+        "bytesPerMinute": 307596
+      },
+      {
+        "intervalSeconds": 10,
+        "bytesPerMinute": 153798
+      },
+      {
+        "intervalSeconds": 30,
+        "bytesPerMinute": 51266
+      },
+      {
+        "intervalSeconds": 60,
+        "bytesPerMinute": 25633
+      }
     ]
   },
   "protectedCompactionPareto": {
-    "canonEvents":1000,
-    "representativeEventBytes":879,
-    "protectedSnapshotBytes":16447,
-    "semanticStateBytes":13835,
-    "dedupeLedgerBytes":2424,
-    "tradeoffVisible":true,
-    "rows":[
-      {"intervalEvents":10,"maxReplayEvents":9,"totalStrongBytes":2523700},
-      {"intervalEvents":25,"maxReplayEvents":24,"totalStrongBytes":1536880},
-      {"intervalEvents":50,"maxReplayEvents":49,"totalStrongBytes":1207940},
-      {"intervalEvents":100,"maxReplayEvents":99,"totalStrongBytes":1043470},
-      {"intervalEvents":250,"maxReplayEvents":249,"totalStrongBytes":944788},
-      {"intervalEvents":500,"maxReplayEvents":499,"totalStrongBytes":911894},
-      {"intervalEvents":1000,"maxReplayEvents":999,"totalStrongBytes":895447}
+    "canonEvents": 1000,
+    "representativeEventBytes": 879,
+    "protectedSnapshotBytes": 16447,
+    "semanticStateBytes": 13835,
+    "dedupeLedgerBytes": 2424,
+    "tradeoffVisible": true,
+    "rows": [
+      {
+        "intervalEvents": 10,
+        "maxReplayEvents": 9,
+        "totalStrongBytes": 2523700
+      },
+      {
+        "intervalEvents": 25,
+        "maxReplayEvents": 24,
+        "totalStrongBytes": 1536880
+      },
+      {
+        "intervalEvents": 50,
+        "maxReplayEvents": 49,
+        "totalStrongBytes": 1207940
+      },
+      {
+        "intervalEvents": 100,
+        "maxReplayEvents": 99,
+        "totalStrongBytes": 1043470
+      },
+      {
+        "intervalEvents": 250,
+        "maxReplayEvents": 249,
+        "totalStrongBytes": 944788
+      },
+      {
+        "intervalEvents": 500,
+        "maxReplayEvents": 499,
+        "totalStrongBytes": 911894
+      },
+      {
+        "intervalEvents": 1000,
+        "maxReplayEvents": 999,
+        "totalStrongBytes": 895447
+      }
     ]
   },
   "fairBaselineEnvelope": [
-    {"label":"no-replaceable","allStrong":7000,"semanticStrong":7000,"fairBaseline":7000,"savedBySemanticSplit":0,"candidateBeatsFairBaseline":false},
-    {"label":"mixed-small","allStrong":19000,"semanticStrong":7000,"fairBaseline":7000,"savedBySemanticSplit":12000,"candidateBeatsFairBaseline":false},
-    {"label":"mixed-large","allStrong":1207000,"semanticStrong":7000,"fairBaseline":7000,"savedBySemanticSplit":1200000,"candidateBeatsFairBaseline":false}
+    {
+      "label": "no-replaceable",
+      "allStrong": 7000,
+      "semanticStrong": 7000,
+      "fairBaseline": 7000,
+      "savedBySemanticSplit": 0,
+      "candidateBeatsFairBaseline": false
+    },
+    {
+      "label": "mixed-small",
+      "allStrong": 19000,
+      "semanticStrong": 7000,
+      "fairBaseline": 7000,
+      "savedBySemanticSplit": 12000,
+      "candidateBeatsFairBaseline": false
+    },
+    {
+      "label": "mixed-large",
+      "allStrong": 1207000,
+      "semanticStrong": 7000,
+      "fairBaseline": 7000,
+      "savedBySemanticSplit": 1200000,
+      "candidateBeatsFairBaseline": false
+    }
   ],
   "sourceGitBlobs": {
-    "scripts/rrp-convergence/model.mjs":"40f4f22c40a2730951c4cb2787ee82fb2fc04a49",
-    "scripts/rrp-convergence/core.mjs":"dcfe3c305066bfd1493fabf3775e1ecf56dbd154",
-    "scripts/rrp-convergence/kernel.mjs":"4e184e482775e6b1c8eafe7872cc584b6b81e6e6",
-    "scripts/rrp-convergence/cost.mjs":"2645bd0a69b4395989e85b002fd4e278751bc61d",
-    "scripts/rrp-convergence/oracle.mjs":"0c7de97b0c909453eec74b77f8c18895661f7070",
-    "scripts/rrp-convergence/shadow-extractor.mjs":"fe7ccf9b5c68245e4aae7498710d4c6b2a8010bd",
-    "scripts/rrp-convergence/workload.mjs":"f75a257578e6171ecd96a14defec922c28876fde",
-    "scripts/reality-convergence-proof.mjs":"7599e66aa939e980479e4bf1889ce60fdaf0834e",
-    "tests/reality-convergence-kernel-core.test.mjs":"760131fd9f1d097f6de623f03c9dd9f43bf59e49",
-    "tests/reality-convergence-cost.test.mjs":"69c0085021dfc69fff2305c99ce002f00cae96d0",
-    "tests/reality-convergence-compaction-extractor.test.mjs":"5b2480b6d89f00c78fdcf56764a6fc99faeae929"
+    "scripts/rrp-convergence/model.mjs": "40f4f22c40a2730951c4cb2787ee82fb2fc04a49",
+    "scripts/rrp-convergence/core.mjs": "dcfe3c305066bfd1493fabf3775e1ecf56dbd154",
+    "scripts/rrp-convergence/kernel.mjs": "4e184e482775e6b1c8eafe7872cc584b6b81e6e6",
+    "scripts/rrp-convergence/cost.mjs": "2645bd0a69b4395989e85b002fd4e278751bc61d",
+    "scripts/rrp-convergence/oracle.mjs": "0c7de97b0c909453eec74b77f8c18895661f7070",
+    "scripts/rrp-convergence/shadow-extractor.mjs": "fe7ccf9b5c68245e4aae7498710d4c6b2a8010bd",
+    "scripts/rrp-convergence/workload.mjs": "f75a257578e6171ecd96a14defec922c28876fde",
+    "scripts/reality-convergence-proof.mjs": "7599e66aa939e980479e4bf1889ce60fdaf0834e",
+    "tests/reality-convergence-kernel-core.test.mjs": "760131fd9f1d097f6de623f03c9dd9f43bf59e49",
+    "tests/reality-convergence-cost.test.mjs": "69c0085021dfc69fff2305c99ce002f00cae96d0",
+    "tests/reality-convergence-compaction-extractor.test.mjs": "5b2480b6d89f00c78fdcf56764a6fc99faeae929"
   },
   "artifactGitBlobs": {
-    "docs/THEORY_CONVERGENCE_SEMANTIC_KERNEL.md":"6a84ce45af6d51231cc47ba5305ec2fd2c9266f8",
-    "docs/THEORY_CONVERGENCE_SOURCES.md":"528d4b6e09d5745d43108ea9ac89dec816733c02",
-    "docs/evidence/RRP_CONVERGENCE_EFFECT_MANIFEST_20260918.json":"8e69d88a8146bba01d122495ec6b0f457d1c37ac",
-    "docs/evidence/RRP_CONVERGENCE_EXPERIMENT_PLAN_20260918.json":"ab4338cd1ba422088b124db347f81c9b6df857d7"
+    "docs/THEORY_CONVERGENCE_SEMANTIC_KERNEL.md": "6a84ce45af6d51231cc47ba5305ec2fd2c9266f8",
+    "docs/THEORY_CONVERGENCE_SOURCES.md": "528d4b6e09d5745d43108ea9ac89dec816733c02",
+    "docs/evidence/RRP_CONVERGENCE_EFFECT_MANIFEST_20260918.json": "8e69d88a8146bba01d122495ec6b0f457d1c37ac",
+    "docs/evidence/RRP_CONVERGENCE_EXPERIMENT_PLAN_20260918.json": "ab4338cd1ba422088b124db347f81c9b6df857d7"
   },
   "limitations": [
     "Synthetic world is source-shaped but is not a serialization of a running CoopWorld instance.",
@@ -103,5 +270,8 @@
     "No multi-owner membership, Byzantine host, storage loss, full runtime refinement or unbounded proof.",
     "No context:plan/npm/full repository/Node24/browser/WebRTC/device validation because no full checkout was available."
   ],
-  "pass": true
+  "pass": true,
+  "boundHead": "8ea7b6f127f0097e5184c16774d1cd2ad0cace17",
+  "snapshotStatus": "initial-convergence-model-evidence",
+  "currentTreeNote": "This file binds the initial 37-test convergence research snapshot at boundHead. Later live semantic-shadow/runtime, combat-death history repair, extractor updates and capture analysis are evidenced separately in RRP_CONVERGENCE_RUNTIME_SHADOW_20260918.json. Do not use these recorded sourceHashes as hashes of the final PR head."
 }
