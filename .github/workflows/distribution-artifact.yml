@@ -1,0 +1,74 @@
+name: Build Distribution Artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'Game app'
+        type: choice
+        required: true
+        options: [rinne, village, demon]
+      target:
+        description: 'Distribution target'
+        type: choice
+        required: true
+        options: [web-dev, web-review, web-staging, web-prod, steam, android, ios, playstation, switch, xbox]
+      source_sha:
+        description: 'Optional exact source SHA/ref; defaults to selected workflow ref'
+        type: string
+        required: false
+  workflow_call:
+    inputs:
+      app:
+        type: string
+        required: true
+      target:
+        type: string
+        required: true
+      source_sha:
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  artifact:
+    name: ${{ inputs.app }} / ${{ inputs.target }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: distribution-artifact-${{ inputs.app }}-${{ inputs.target }}-${{ inputs.source_sha || github.sha }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Validate requested target contract
+        env:
+          APP: ${{ inputs.app }}
+          TARGET: ${{ inputs.target }}
+        run: node --input-type=module -e "import {assertBuildableTarget} from './scripts/distribution-targets.mjs'; assertBuildableTarget(process.env.TARGET,process.env.APP);"
+      - name: Focused app validation
+        env:
+          APP: ${{ inputs.app }}
+        run: node scripts/validate.mjs deploy "$APP"
+      - name: Build immutable target artifact
+        env:
+          APP: ${{ inputs.app }}
+          TARGET: ${{ inputs.target }}
+        run: npm run distribution:build -- --app "$APP" --target "$TARGET"
+      - name: Upload immutable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: distribution-${{ inputs.app }}-${{ inputs.target }}-${{ github.run_id }}
+          path: .artifacts/${{ inputs.app }}/${{ inputs.target }}/
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 30
