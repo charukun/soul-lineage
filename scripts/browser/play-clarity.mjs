@@ -60,6 +60,19 @@ export async function verifyHuntClarity(page, expect, testInfo) {
   await expect(page.locator('#angled-guide')).toBeVisible();
   await nativeTap(page, expect, page.locator('[data-guide-close]'));
 
+  await page.setViewportSize({width:844,height:390});
+  await nativeTap(page, expect, swipeHelp);
+  await expect(page.locator('#angled-guide')).toBeVisible();
+  const landscapeViewport=await page.evaluate(()=>({width:innerWidth,height:innerHeight}));
+  const landscapeGuide=await page.locator('#angled-guide').boundingBox();
+  expect(landscapeGuide.x).toBeGreaterThanOrEqual(0);
+  expect(landscapeGuide.y).toBeGreaterThanOrEqual(0);
+  expect(landscapeGuide.x+landscapeGuide.width).toBeLessThanOrEqual(landscapeViewport.width+1);
+  expect(landscapeGuide.y+landscapeGuide.height).toBeLessThanOrEqual(landscapeViewport.height+1);
+  await page.screenshot({path:testInfo.outputPath('movement-only-help-landscape.png')});
+  await nativeTap(page, expect, page.locator('[data-guide-close]'));
+  await page.setViewportSize({width:390,height:844});
+
   await assertMovementOnlyHud(page, expect);
   await nativeTap(page, expect, page.locator('#pause'));
   await assertMovementOnlyHuntState(page, expect);
