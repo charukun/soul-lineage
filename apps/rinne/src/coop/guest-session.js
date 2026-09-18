@@ -34,7 +34,7 @@ export async function joinCoopHost({invite,name,contentVersion,RTCPeerConnection
   probe?.connectionAttempt();
   connection=await acceptHostOffer(invite.offer,{RTCPeerConnection,dualChannel:true,onMessage:m=>wire.receive(m),onState:state=>{
     if(state==='open'){if(probe)void probe.connectionOpen(connection);send({type:'hello',name:String(name||'旅人').slice(0,12),contentVersion,resume});}
-    if(['closed','failed','error'].includes(state)){phase='closed';failRequest('村とのつながりを待っています。');onChange();}
+    if(['closed','failed','error'].includes(state)){if(latest&&!lossRecorded){probe?.recordHostLossDetection(Math.max(0,now()-lastSeen));lossRecorded=true;}phase='closed';failRequest('村とのつながりを待っています。');onChange();}
   }});
   const timer=setInterval(()=>{if(!latest)return;const freshness=Math.max(0,now()-lastSeen);if(phase==='open')probe?.recordStateFreshness(freshness);if(freshness>2500&&phase!=='closed'){if(!lossRecorded){probe?.recordHostLossDetection(freshness);lossRecorded=true;}phase='closed';error='村とのつながりを待っています。';failRequest(error);onChange();}},250);
   function rebirth(villageId){
