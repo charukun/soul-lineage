@@ -120,8 +120,6 @@ function syncActiveCard(){
     button.setAttribute('aria-pressed',String(active));
   }
   const entry=catalogById.get(selected);if(!entry)return;
-  q('fx-active-title').textContent=entry.label;
-  q('fx-active-meta').textContent=effectLabel(entry.id);
   q('fx-selected-label').textContent=entry.label;
   q('fx-selected-meta').textContent=effectLabel(entry.id);
   applyReviewContext(selected);
@@ -149,13 +147,14 @@ function renderCatalog(){
     return haystack.includes(needle);
   });
   q('fx-catalog').replaceChildren(...visible.map(cardFor));
-  q('fx-count').textContent=`${visible.length} / ${REVIEW_CATALOG.length}`;
   q('fx-empty').hidden=visible.length!==0;
   syncActiveCard();
 }
 function resetCamera(){camera.position.set(4.8,3.2,6.2);controls.target.set(0,1,0);controls.update();}
 function syncControls(){speed=Number(q('fx-speed').value)||1;tier=Number(q('fx-tier').value)||0;reduced=q('fx-reduced').checked;}
 
+const discoveryNeeded=REVIEW_CATALOG.length>10;
+q('fx-discovery-tools').hidden=!discoveryNeeded;
 q('fx-search').addEventListener('input',renderCatalog);
 for(const button of document.querySelectorAll('[data-filter]'))button.addEventListener('click',()=>{
   activeFilter=button.dataset.filter;
