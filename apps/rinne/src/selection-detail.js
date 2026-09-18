@@ -24,7 +24,7 @@ export function installSelectionDetail({root,panel,audio}){
     view.querySelector('[data-detail-summary]').textContent=target.dataset.detailSummary||'';
     view.querySelector('[data-detail-status]').textContent=target.dataset.detailStatus||'';
     view.querySelector('[data-detail-note]').textContent=target.dataset.detailNote||'';
-    view.hidden=false;panel.dataset.detailOpen='true';audio?.ui?.();
+    view.hidden=false;panel.dataset.detailOpen='true';target.dispatchEvent(new CustomEvent('rinne:selection-detail-open',{bubbles:true,detail:{title:target.dataset.detailTitle||'詳細'}}));audio?.ui?.();
   };
   const onDown=event=>{
     const target=event.target.closest?.('[data-detail-title]');if(!target||!root.contains(target)||event.button>0)return;
