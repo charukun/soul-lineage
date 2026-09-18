@@ -66,7 +66,7 @@ export function createSemanticJournalStore({storage,exclusive,digest=fingerprint
       const key=keys(worldId),current=await readSemantic(worldId);
       let semantic=current,wroteSemantic=false;
       const batchSignature=await digest({authorityRevision:receipt.revision,historySequence:receipt.historySequence,authorityRoot:receipt.root??null,events});
-      if(!current||events.length){
+      {
         if(current){
           if(current.ownerId!==ownerId)throw Error('semantic persistence: owner changed');
           if(receipt.revision<current.lastSemanticRevision)throw Error('semantic persistence: stale semantic revision');
