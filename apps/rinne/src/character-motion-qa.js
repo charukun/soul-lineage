@@ -41,7 +41,7 @@ export function createWorkshopMotionQA({review,scene,camera,orbit,canvas,refresh
     orbit.enableDamping=false;orbit.enabled=false;orbit.update();camera.fov=preset.fov;camera.position.fromArray(preset.position);orbit.target.fromArray(preset.target);camera.lookAt(orbit.target);camera.updateProjectionMatrix();
     for(const b of document.querySelectorAll('[data-qa-camera]'))b.setAttribute('aria-pressed',String(b.dataset.qaCamera===id));draw();
   }
-  function sync(){const row=qaSequenceAt(time);el('qa-time').value=String(time);el('qa-motion').value=row.id;el('qa-frame').textContent=`${row.label} · ${time.toFixed(2)}秒 · frame ${row.frame}`;
+  function sync(){const row=qaSequenceAt(time),motion=el('qa-motion'),motionChanged=motion.value!==row.id;el('qa-time').value=String(time);motion.value=row.id;if(motionChanged)motion.dispatchEvent(new Event('input',{bubbles:true}));el('qa-frame').textContent=`${row.label} · ${time.toFixed(2)}秒 · frame ${row.frame}`;
     el('qa-play').textContent=playing?'Ⅱ 一時停止':'▶ 再生';el('qa-before').textContent=corrected?'単画面: 基盤 ON':'単画面: 基盤 OFF';el('qa-before').setAttribute('aria-pressed',String(corrected));el('qa-before').dataset.mode=corrected?'on':'off';
     const live=el('qa-live-toggle');if(live){live.textContent=liveCompare?'左右比較 ON':'左右比較 OFF';live.setAttribute('aria-pressed',String(liveCompare));}
     el('qa-diagnostics').textContent=diagnostics.length?diagnostics.slice(0,7).map(i=>`${i.severity}: ${i.code??i.category} ${i.affectedBones?.join(' / ')}`).join('\n'):'数値警告なし。見た目の承認は別途必要です。';
