@@ -34,6 +34,7 @@ export async function materializeStaticArtifact({
     assert.equal(receipt.sourceSha,sourceSha,'Immutable artifact SHA mismatch');
     assert.equal(receipt.inputHash,inputHash,'Immutable artifact input hash mismatch');
     assert.equal(receipt.target,target.id,'Immutable artifact target mismatch');
+    assert.deepEqual(await inventory(payloadDir),receipt.files,'Immutable artifact payload mismatch');
     return Object.freeze({artifactDir,payloadDir,receipt,reused:true});
   }
   if(await exists(artifactDir))await rm(artifactDir,{recursive:true,force:true});
