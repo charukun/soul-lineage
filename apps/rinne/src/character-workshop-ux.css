@@ -88,10 +88,10 @@ body[data-review-mode="motion"] #motion-qa>h2{display:none!important}
 body[data-review-mode="motion"] #qa-start{font-size:0!important}
 body[data-review-mode="motion"] #qa-start::before{content:"▶ 30秒再生";font-size:12px}
 body[data-review-mode="motion"] #motion-qa>.hint{display:none}
-.simple-motion-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;margin:0 0 8px;padding:0 0 8px;border-bottom:1px solid color-mix(in srgb,var(--line) 68%,transparent)}
+.simple-motion-controls{display:grid;grid-template-columns:minmax(0,1fr);gap:7px;margin:0 0 8px;padding:0 0 8px;border-bottom:1px solid color-mix(in srgb,var(--line) 68%,transparent)}
 .simple-motion-controls>label{display:grid;gap:3px;margin:0!important;color:#aeb8b2;font-size:9px}
 .simple-motion-controls>label select{width:100%;min-height:34px;padding:5px 7px}
-.simple-motion-controls .qa-playback{display:grid;grid-template-columns:1fr 1fr;gap:5px;align-items:end}
+.simple-motion-controls .qa-playback{display:grid;grid-template-columns:1fr 1fr;gap:5px;align-items:end}.simple-motion-controls>.simple-motion-source-playback{display:none!important}
 body[data-review-mode="motion"] #motion-qa .qa-quickbar{gap:4px!important}
 body[data-review-mode="motion"] #motion-qa .qa-quickbar #qa-start{min-height:38px}
 body[data-review-mode="motion"] #motion-qa .qa-quickbar #qa-play,
