@@ -239,10 +239,15 @@ function render(state, error) {
     return;
   }
 
-  const tone = error ? 'warning' : toneFor(tower.status);
+  const recovering = state?.syncStatus === 'degraded' && tower.status !== 'NEEDS_USER';
+  const tone = error || recovering ? 'warning' : toneFor(tower.status);
   root.className = `control-tower ${tone}`;
-  $('#control-headline').textContent = tower.headline || '状態を確認中';
-  $('#control-summary').textContent = error ? '最新取得に失敗しています。前回確定値を表示中です。' : (tower.summary || '');
+  $('#control-headline').textContent = recovering ? '自動復旧中' : (tower.headline || '状態を確認中');
+  $('#control-summary').textContent = error
+    ? '最新取得に失敗しています。前回確定値を表示中です。'
+    : recovering
+      ? '最新状態を再取得しています。今は操作不要です。'
+      : (tower.summary || '');
   if (since) {
     const known = elapsed(tower.enteredAt);
     since.hidden = known === '未記録';
