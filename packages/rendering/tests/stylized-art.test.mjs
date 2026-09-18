@@ -63,6 +63,24 @@ test('static world geometry swaps to a real low triangle proxy only at distance'
   mesh.__stylizedLODState.proxy.dispose(); original.dispose(); mesh.material.dispose();
 });
 
+test('orthographic top-down LOD uses ground focus distance instead of camera altitude', () => {
+  const original = new THREE.SphereGeometry(1, 16, 12);
+  const mesh = new THREE.Mesh(original, new THREE.MeshStandardMaterial());
+  const root = new THREE.Group(); root.add(mesh); applyStylizedArtProfile(root, 'environment', { cloneMaterials: false });
+  const result = installStylizedGeometryLOD(root, 'environment');
+  assert.equal(result.installed, 1);
+  const camera = new THREE.OrthographicCamera(-20, 20, 20, -20, .1, 500);
+  camera.position.set(72, 110, 98); camera.lookAt(0, 0, 0); camera.updateMatrixWorld(true); root.updateMatrixWorld(true);
+  mesh.onBeforeRender(null, null, camera, mesh.geometry, mesh.material, null);
+  assert.equal(mesh.geometry, original, 'camera altitude must not box-proxy a building at the current map focus');
+  assert.equal(mesh.userData.stylizedLOD.current, 'full');
+  root.position.set(90, 0, 0); root.updateMatrixWorld(true);
+  mesh.onBeforeRender(null, null, camera, mesh.geometry, mesh.material, null);
+  assert.notEqual(mesh.geometry, original, 'far horizontal map distance may still use the proxy');
+  assert.equal(mesh.userData.stylizedLOD.current, 'proxy');
+  mesh.__stylizedLODState.proxy.dispose(); original.dispose(); mesh.material.dispose();
+});
+
 test('silhouette metrics distinguish body envelopes and cohort comparison finds close shapes', () => {
   const a = new THREE.Group(), b = new THREE.Group(), c = new THREE.Group();
   a.add(new THREE.Mesh(new THREE.BoxGeometry(2, 4, 1), new THREE.MeshBasicMaterial()));
