@@ -1,11 +1,12 @@
 import {catalog,selectTracks} from '@soul/audio';
 import {audioURLs,licenseURLs} from '@soul/audio/urls';
+import {relinquishMediaElement,restoreMediaElement} from './media-lifecycle.js';
 /** On-demand audio adapter: one player, no ZIP or decoded-track cache. */
 export function installMusicLibrary({game,environment,mount=document.body,defaultTrack=null,autoStart=false,preferDefault=false,trigger='visible',onOpen=()=>{},onClose=()=>{},contextNote=''}){
  if(environment==='prod')return()=>{};
  const abort=new AbortController(),key=`soul.${environment}.${game}.device.music.v1`;
  const fallback=Object.hasOwn(catalog,defaultTrack)&&catalog[defaultTrack].game===game?defaultTrack:null;
- let prefs={volume:.4,favorites:[],track:null},serial=0,autoStarted=false,disposed=false,objectURL=null,shouldResume=false,resumePending=false;
+ let prefs={volume:.4,favorites:[],track:null},serial=0,autoStarted=false,disposed=false,objectURL=null,shouldResume=false,resumePending=false,mediaDetached=false,backgroundPosition=0;
  try{const p=JSON.parse(localStorage.getItem(key));if(p){prefs.volume=Number.isFinite(p.volume)?Math.max(0,Math.min(1,p.volume)):.4;prefs.favorites=Array.isArray(p.favorites)?p.favorites.filter(id=>Object.hasOwn(catalog,id)):[];prefs.track=Object.hasOwn(catalog,p.track)?p.track:null;}}catch{}
  if(!prefs.track&&fallback)prefs.track=fallback;
  const bootTrack=preferDefault&&fallback?fallback:(prefs.track||fallback);
@@ -19,27 +20,45 @@ export function installMusicLibrary({game,environment,mount=document.body,defaul
  const notifyClose=()=>{if(!notifiedOpen)return;notifiedOpen=false;onClose();};
  const on=(el,type,fn,opts={})=>el.addEventListener(type,fn,{...opts,signal:abort.signal});
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(prefs));}catch{status.textContent='設定を保存できません。この画面では引き続き再生できます。';}};
- function releaseURL(){if(objectURL){URL.revokeObjectURL(objectURL);objectURL=null;}}
+ function releaseURL(){if(objectURL){URL.revokeObjectURL(objectURL);objectURL=null;}mediaDetached=false;backgroundPosition=0;}
+ function detachPlayer({remember=true,resetPosition=false}={}){
+  if(mediaDetached){if(resetPosition)backgroundPosition=0;return;}
+  if(remember&&!player.paused)shouldResume=true;
+  const state=relinquishMediaElement(player);
+  backgroundPosition=resetPosition?0:state.position;
+  mediaDetached=state.hadSource&&Boolean(objectURL);
+ }
+ function restorePlayerSource(){
+  if(!objectURL)return false;
+  if(!mediaDetached&&player.getAttribute?.('src'))return true;
+  const restored=restoreMediaElement(player,{src:objectURL,position:backgroundPosition,loop:catalog[prefs.track||bootTrack]?.loop??player.loop});
+  if(restored)mediaDetached=false;
+  return restored;
+ }
  async function play(id,{persist=true}={}){
   if(!Object.hasOwn(catalog,id))return false;
   const token=++serial;player.pause();if(persist){prefs.track=id;save();}status.textContent=`読込中：${catalog[id].title}`;
   try{
    const response=await fetch(audioURLs[id]);if(!response.ok)throw Error(`HTTP ${response.status}`);const blob=await response.blob();
    if(disposed||token!==serial)return false;
-   releaseURL();objectURL=URL.createObjectURL(blob);player.src=objectURL;player.loop=catalog[id].loop;
+   releaseURL();objectURL=URL.createObjectURL(blob);mediaDetached=false;backgroundPosition=0;player.src=objectURL;player.loop=catalog[id].loop;
    await player.play();shouldResume=true;resumePending=false;if(token===serial)status.textContent=`再生中：${catalog[id].title}`;return true;
   }catch(e){if(token===serial){resumePending=true;status.textContent=`再生待機：画面をタップすると再開します。${e.message||''}`;}return false;}
  }
- async function resume(){if(disposed||!player.src)return false;try{await player.play();shouldResume=true;resumePending=false;status.textContent=`再生中：${catalog[prefs.track||bootTrack]?.title||'BGM'}`;return true;}catch{resumePending=true;status.textContent='再生待機：画面をタップすると再開します';return false;}}
+ async function resume(){if(disposed||!restorePlayerSource())return false;try{await player.play();shouldResume=true;resumePending=false;status.textContent=`再生中：${catalog[prefs.track||bootTrack]?.title||'BGM'}`;return true;}catch{resumePending=true;status.textContent='再生待機：画面をタップすると再開します';return false;}}
  function pause({remember=true}={}){if(remember)shouldResume=!player.paused;player.pause();}
  function render(){const tracks=selectTracks({game:$('[data-world]').value,query:$('[data-search]').value}).filter(t=>!$('[data-favorites]').checked||prefs.favorites.includes(t.id));$('[data-count]').textContent=`${tracks.length} / 150曲`;$('[data-tracks]').replaceChildren(...tracks.map(t=>{const row=document.createElement('div'),button=document.createElement('button'),fav=document.createElement('button');button.type=fav.type='button';button.textContent=`${t.title} · ${t.scene}`;button.dataset.track=t.id;fav.textContent=prefs.favorites.includes(t.id)?'★':'☆';fav.setAttribute('aria-label',`${t.title}のお気に入り`);fav.setAttribute('aria-pressed',String(prefs.favorites.includes(t.id)));button.onclick=()=>play(t.id);fav.onclick=()=>{prefs.favorites=prefs.favorites.includes(t.id)?prefs.favorites.filter(id=>id!==t.id):[...prefs.favorites,t.id];save();render();};row.append(button,fav);return row;}));}
  const startOrResume=()=>{if(resumePending){void resume();return;}if(autoStarted||!autoStart||!bootTrack)return;autoStarted=true;void play(bootTrack,{persist:false});};
  on(document,'pointerdown',startOrResume,{capture:true});on(document,'keydown',startOrResume,{capture:true});
  on($('[data-open]'),'click',open);on(dialog,'close',()=>{if(!dialog.open)notifyClose();});on($('[data-search]'),'input',render);on($('[data-world]'),'change',render);on($('[data-favorites]'),'change',render);
- on($('[data-volume]'),'input',e=>{player.volume=prefs.volume=Number(e.target.value);save();});on($('[data-stop]'),'click',()=>{serial++;shouldResume=false;resumePending=false;player.pause();try{player.currentTime=0;}catch{}status.textContent='停止しました';});
+ on($('[data-volume]'),'input',e=>{player.volume=prefs.volume=Number(e.target.value);save();});on($('[data-stop]'),'click',()=>{serial++;shouldResume=false;resumePending=false;detachPlayer({remember:false,resetPosition:true});status.textContent='停止しました';});
  on(player,'play',()=>{shouldResume=true;resumePending=false;});on(player,'error',()=>{status.textContent='音源を読み込めませんでした。曲を押して再試行してください。';});
- on(document,'visibilitychange',()=>{if(document.hidden){if(!player.paused)shouldResume=true;player.pause();}else if(shouldResume){void resume();}});
+ const onBackground=()=>detachPlayer({remember:true});
+ const onForeground=()=>{if(disposed)return;restorePlayerSource();if(shouldResume)void resume();};
+ on(document,'visibilitychange',()=>{if(document.hidden)onBackground();else onForeground();});
+ on(window,'pagehide',onBackground);
+ on(window,'pageshow',()=>{if(!document.hidden)onForeground();});
  const api={root,dialog,player,open,close(){if(dialog.open){dialog.close();notifyClose();}},play,resume,pause,get track(){return prefs.track||bootTrack;},get playing(){return!player.paused;}};
  window.__SOUL_MUSIC__=api;window.dispatchEvent(new CustomEvent('soul-music:ready',{detail:api}));
- return()=>{disposed=true;if(dialog.open)dialog.close();notifyClose();abort.abort();serial++;player.pause();releaseURL();if(window.__SOUL_MUSIC__===api)delete window.__SOUL_MUSIC__;root.remove();};
+ return()=>{disposed=true;if(dialog.open)dialog.close();notifyClose();abort.abort();serial++;shouldResume=false;resumePending=false;detachPlayer({remember:false,resetPosition:true});releaseURL();if(window.__SOUL_MUSIC__===api)delete window.__SOUL_MUSIC__;root.remove();};
 }

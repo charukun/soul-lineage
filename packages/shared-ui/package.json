@@ -10,7 +10,8 @@
     "./world-darkness": "./src/world-darkness.js",
     "./speech-bubbles": "./src/speech-bubbles.js",
     "./combat-sequence": "./src/combat-sequence.js",
-    "./combat-sequence.css": "./src/combat-sequence.css"
+    "./combat-sequence.css": "./src/combat-sequence.css",
+    "./media-lifecycle": "./src/media-lifecycle.js"
   },
   "dependencies": {
     "@soul/audio": "*"
