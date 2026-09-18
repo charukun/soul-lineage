@@ -7,10 +7,10 @@
 .controls .seal:disabled{opacity:.28;filter:saturate(.45);cursor:default}
 #return.locked:not(:disabled){opacity:.5}
 #return.locked #return-arrow{font-size:21px;color:#8f9589}
-#enemy-name{min-height:17px;margin-top:8px;font-size:10px;letter-spacing:.16em;color:#d4c8ae;text-shadow:0 2px 8px #000}
-#enemy-health-track{width:min(180px,48vw);height:3px;margin:6px auto 0;background:#553a384f;overflow:hidden;transform:skewX(-18deg)}
-#enemy-health{height:100%;width:0;max-width:none;margin:0;background:linear-gradient(90deg,#723b35,var(--blood));transition:width .15s}
-#battle{bottom:calc(165px + env(safe-area-inset-bottom))}
+
+
+
+
 #online-box{box-sizing:border-box;width:min(430px,calc(100vw - 28px));max-height:88dvh;overflow:auto;background:linear-gradient(140deg,#172625,#0b181b);color:#d1d0b7;border:1px solid #b9b28a77;padding:18px}
 #online-box:not([open]){display:none}
 #online-box::backdrop{background:#02090cc9}
@@ -38,5 +38,5 @@
 .nameplate.first-hunt-choice-prey{text-shadow:0 0 8px #b6d0b5,0 0 15px #7c9b87}
 @keyframes first-hunt-gain-in{from{opacity:0;transform:translate(-50%,-44%) scale(.94)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 @media(max-width:430px){#first-hunt-choices{max-width:300px}.first-hunt-choice{padding:6px}.first-hunt-choice b{font-size:9px}#first-hunt-gain b{font-size:21px}}
-@media(max-height:650px){#battle{bottom:calc(143px + env(safe-area-inset-bottom))}#first-hunt-guide{max-width:230px;font-size:10px}#first-hunt-choices{margin-top:5px}.first-hunt-choice{padding:5px 6px}#first-hunt-gain{top:39%;padding:10px 13px}}
+@media(max-height:650px){#first-hunt-guide{max-width:230px;font-size:10px}#first-hunt-choices{margin-top:5px}.first-hunt-choice{padding:5px 6px}#first-hunt-gain{top:39%;padding:10px 13px}}
 @media(prefers-reduced-motion:reduce){#first-hunt-gain{animation:none}}
