@@ -132,7 +132,7 @@ function renderTechnique(model,focusId=null){
   model.ui.title.textContent='技 · 序破急';model.ui.body.innerHTML='';
   model.ui.body.append(intro('三手で連技を組む','上段の序・破・急から編集先を選び、下段の技一覧から差し替える。'),renderComboContext(model,state,combo));
   const slots=topSlotRow();for(const [phase,label] of PHASES)slots.append(phaseSlot(model,state,combo,phase,label));model.ui.body.append(slots);
-  const one=document.createElement('button');one.type='button';one.className='one-motion-card';one.dataset.active=String(model.techniqueTarget==='oneMotion');one.innerHTML='<div><span>手動奥義</span><strong></strong><small>戦闘態勢中のみ · 消耗と隙が大きい</small></div><b>選択</b>';one.querySelector('strong').textContent=state.combatLoadout.technique.oneMotion?techniqueName(state.combatLoadout.technique.oneMotion):'未設定';one.onclick=()=>{model.techniqueTarget='oneMotion';model.audio.ui();renderTechnique(model);};model.ui.body.append(one);
+  const one=document.createElement('button');one.type='button';one.className='one-motion-card';one.dataset.active=String(model.techniqueTarget==='oneMotion');one.innerHTML='<div><span>手動奥義</span><strong></strong><small>戦闘態勢中のみ · 消耗と隙が大きい</small></div><b>選択</b>';one.querySelector('strong').textContent=state.combatLoadout.technique.oneMotion?techniqueName(state.combatLoadout.technique.oneMotion):'未設定';one.onclick=()=>{model.techniqueTarget='oneMotion';model.audio.ui();renderTechnique(model);};
   const ids=learnedTechniqueSkills(state,{oneMotion:model.techniqueTarget==='oneMotion'});
   if(focusId){const index=ids.indexOf(focusId);if(index>=0)model.pages.technique=Math.floor(index/GRID_PAGE_SIZE);}
   const library=gridSection('習得した技',model.techniqueTarget==='oneMotion'?'手動奥義として使う技を選ぶ':`${PHASES.find(([id])=>id===model.techniqueTarget)?.[1]||'序'}へ入れる技を選ぶ`);
@@ -141,7 +141,7 @@ function renderTechnique(model,focusId=null){
     const current=model.techniqueTarget==='oneMotion'?state.combatLoadout.technique.oneMotion:combo.slots[model.techniqueTarget]||null;
     list.append(gridItem(techniqueName(id),effectSummary(id),{active:id===current,selected:id===focusId,icon:sigilKind(id,SKILL_BY_ID[id]?.effects),onClick:()=>{if(model.techniqueTarget==='oneMotion')setOneMotion(state,id);else setComboSkill(state,combo.id,model.techniqueTarget,id);model.audio.item();haptic(12);renderTechnique(model,id);}}));
   }
-  model.ui.body.append(library);if(page.pager)model.ui.body.append(page.pager);
+  model.ui.body.append(library);if(page.pager)model.ui.body.append(page.pager);model.ui.body.append(one);
 }
 function renderBody(model){
   const state=model.getState();if(!state)return;ensureCombatLoadout(state);model.section='body';model.bodyKind=model.bodyKind||'stance';model.ui.title.textContent='体 · 身法';model.ui.body.innerHTML='';
