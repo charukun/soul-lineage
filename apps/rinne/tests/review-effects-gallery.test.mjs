@@ -21,12 +21,12 @@ test('VFX review is catalog-first while keeping one real preview stage',()=>{
   assert.match(js,/const REVIEW_CATALOG=Object\.freeze/);
   assert.match(js,/replaceChildren\(\.\.\.visible\.map\(cardFor\)\)/);
   assert.match(js,/button\.addEventListener\('click',\(\)=>trigger\(entry\.id\)\)/);
-  assert.match(html,/class="fx-selection-slot"/);
+  assert.match(html,/class="stage-selection-slot"/);
   assert.match(html,/id="fx-selected-label"/);
+  assert.match(html,/id="fx-selected-meta"/);
   assert.match(js,/q\('fx-selected-label'\)\.textContent=entry\.label/);
-  assert.match(html,/class="stage-context"/);
-  assert.doesNotMatch(html,/id="fx-active-title"/);
-  assert.doesNotMatch(html,/id="fx-active-meta"/);
+  assert.match(js,/q\('fx-selected-meta'\)\.textContent=effectLabel\(entry\.id\)/);
+  assert.doesNotMatch(html,/class="fx-selection-slot"/);
   assert.doesNotMatch(html,/class="catalog-head"/);
   assert.match(slotAuto,/if\(!byId\('fx-stage'\)\|\|byId\('fx-catalog'\)\)return/);
 });
@@ -74,7 +74,7 @@ test('effect list stays visible as a five-column grid on all review widths',()=>
   assert.match(css,/\.fx-catalog\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
   assert.doesNotMatch(css,/@media\(max-width:900px\)[^}]*\.fx-catalog\{[^}]*grid-template-columns/);
   assert.doesNotMatch(css,/@media\(max-width:640px\)[^}]*\.fx-catalog\{[^}]*grid-template-columns/);
-  assert.match(css,/\.fx-selection-slot\{/);
+  assert.match(css,/\.stage-selection-slot\{/);
   assert.match(css,/@media\(max-width:640px\)/);
   assert.match(css,/@media\(max-width:420px\)/);
   assert.match(css,/\.catalog-shell\{[^}]*overflow:hidden/);
