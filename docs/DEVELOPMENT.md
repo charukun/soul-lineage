@@ -42,9 +42,11 @@ Micro Patch の適用条件・除外条件は [`MICRO_PATCH_FAST_LANE.md`](MICRO
 
 このRepositoryは個人開発 + AI並列workerを前提とする。develop PRではGitHub CIを起動しない。実装 WORK が focused validation、current develop reconciliation、focused revalidation、push、final freshness verify を完了したら、その同じ実装 WORK がPRをReadyにして exact current head を `develop` へmergeする。別のmerge queue、Ready handoff、Fast Repair自動ループは通常経路に置かない。
 
+**Ready for review は終了状態ではない。** develop向け実装タスクの正常終了は `Merged` / `MERGED_TO_DEVELOP` だけとし、`READY_FOR_INTEGRATION`、`Readyでhandoff`、`Integration待ち` を完了報告・PR status・運用上の終端として使わない。merge権限不足・未解決holdなどでmergeできない場合だけ `FAILED` として、branch / exact head / PR / reason を残す。
+
 ## Pre-Ready Reconciliation
 
-実装 WORK は、自分が作業を開始した時点の `develop` を Ready の前提にしない。実装と最初の focused validation が終わったら、**Ready にする前に current `develop` を再取得し、その時点の最新 `develop` を work branch へ merge-forward してから handoff する**。
+実装 WORK は、自分が作業を開始した時点の `develop` を Ready の前提にしない。実装と最初の focused validation が終わったら、**Ready にする前に current `develop` を再取得し、その時点の最新 `develop` を work branch へ merge-forward してから Ready 化する**。
 
 標準 checkout では `npm run pre-ready:sync` を使用する。このコマンドは current `origin/develop` を fetch し、work branch がそれを含んでいなければ `--no-edit` merge-forward を行う。true merge conflict が出た場合は、実装意図と current develop 契約の両方を知る実装 WORK がその場で意味的に解決する。無条件の ours/theirs、品質 gate 削除、変更の捨て直しで解消しない。
 
@@ -130,7 +132,7 @@ main / Production のblocking gateは不変。
 
 ## GitHub / Codespaces 経路
 
-Codespaces は別開発フローではなく搬送経路の代替。branch、PR、局所検証、Ready handoff は変えない。容量・Base64・payload 上限のときは同じ branch を Codespaces で開き通常 `git push` へ切り替える。大きなバイナリを API 経由で分割再送しない。詳細は [`MOBILE_HYBRID_DEVELOPMENT.md`](MOBILE_HYBRID_DEVELOPMENT.md)。
+Codespaces は別開発フローではなく搬送経路の代替。branch、PR、局所検証、Ready → same-task merge の終了境界は変えない。容量・Base64・payload 上限のときは同じ branch を Codespaces で開き通常 `git push` へ切り替える。大きなバイナリを API 経由で分割再送しない。詳細は [`MOBILE_HYBRID_DEVELOPMENT.md`](MOBILE_HYBRID_DEVELOPMENT.md)。
 
 依頼成果を同 Repository / 既存 Codespaces へ転送・push する許可は [`DELIVERY_AUTHORIZATION.md`](DELIVERY_AUTHORIZATION.md) に記録済み。同じ範囲の許可を再質問しない。
 

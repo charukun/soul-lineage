@@ -44,7 +44,7 @@ function isAncestor(ancestor, descendant) {
 function assertReadyWorkspace() {
   const branch = output(['branch', '--show-current']);
   if (!branch) {
-    throw new Error('PRE_READY_BRANCH_REQUIRED: detached HEAD cannot be handed off');
+    throw new Error('PRE_READY_BRANCH_REQUIRED: detached HEAD cannot be prepared for develop merge');
   }
   if (branch === baseBranch || branch === 'main') {
     throw new Error(`PRE_READY_WORK_BRANCH_REQUIRED: refusing to run on ${branch}`);
@@ -79,12 +79,12 @@ try {
       console.error(`[pre-ready] PRE_READY_STALE branch=${branch} develop=${developSha} head=${headBefore}`);
       process.exit(2);
     }
-    console.log(`[pre-ready] PRE_READY_FRESH branch=${branch} develop=${developSha} head=${headBefore}`);
+    console.log(`[pre-ready] PRE_READY_FRESH branch=${branch} develop=${developSha} head=${headBefore} next=MARK_READY_THEN_MERGE_SAME_TASK terminal=MERGED_TO_DEVELOP`);
     process.exit(0);
   }
 
   if (fresh) {
-    console.log(`[pre-ready] PRE_READY_ALREADY_FRESH branch=${branch} develop=${developSha} head=${headBefore}`);
+    console.log(`[pre-ready] PRE_READY_ALREADY_FRESH branch=${branch} develop=${developSha} head=${headBefore} next=REVALIDATE_THEN_VERIFY terminal=MERGED_TO_DEVELOP`);
     process.exit(0);
   }
 
@@ -99,7 +99,7 @@ try {
   }
 
   const headAfter = output(['rev-parse', 'HEAD']);
-  console.log(`[pre-ready] PRE_READY_SYNCED branch=${branch} develop=${developSha} head=${headAfter}`);
+  console.log(`[pre-ready] PRE_READY_SYNCED branch=${branch} develop=${developSha} head=${headAfter} next=REVALIDATE_THEN_VERIFY terminal=MERGED_TO_DEVELOP`);
 } catch (error) {
   console.error(`[pre-ready] ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
