@@ -8,7 +8,6 @@ const ZERO=/^0+$/;
 export function distributionPlanForDev(nodes,paths){
   const apps=affectedForDev(nodes,paths);
   const include=apps.map(app=>({app,target:'web-dev'}));
-  if(apps.includes('rinne'))include.push({app:'rinne',target:'web-review'});
   return Object.freeze({apps:Object.freeze(apps),include:Object.freeze(include)});
 }
 
