@@ -14,7 +14,9 @@ test('PULSE keeps 30-minute reconciliation but never uses tokenless GitHub acces
   assert.match(worker, /if \(!token\) throw githubAuthError\(source\)/);
   assert.match(worker, /if \(!env\.OPS_GITHUB_TOKEN\) return;/);
   assert.match(worker, /if \(!state && env\.OPS_GITHUB_TOKEN\) state = await stub\.refresh\('cold-start'\)/);
-  assert.match(worker, /if \(!state\) return json\(\{ error: 'github_auth_required' \}, 503\)/);
+  assert.match(worker, /resilientPublicState/);
+  assert.match(worker, /namespace\.idFromName\('global'\)/);
+  assert.match(worker, /namespace\.get\(namespace\.idFromName\('global'\)\)/);
   assert.match(worker, /if \(!token && !env\.OPS_GITHUB_TOKEN\) return json\(\{ error: 'github_auth_required' \}, 503\)/);
   assert.doesNotMatch(worker, /shouldReuseFreshState/);
   assert.match(deploy, /pulse-result-refresh:/);
