@@ -11,7 +11,7 @@ export async function createCoopHost({world,contentVersion,save,RTCPeerConnectio
   let closed=false,paused=false,stalled=false,ready=false,pending=null,lastSave=now(),lastBroadcast=0,inputSeq=0,latest=null,error='';
   const links=new Map(),acceptedInputs=new Map(),appliedInputs=new Map(),selfId=world.data.ownerId,probe=performanceProbe;
   world.data.rebirthOps??={};
-  const semanticShadow=createSemanticShadow({lifeSeconds:LIFE_SECONDS});
+  const semanticShadow=createSemanticShadow({lifeSeconds:LIFE_SECONDS,onSample:sample=>probe?.recordSemanticCommit?.(sample)});
   const writer=createCheckpointWriter({world,save,now,semanticObserver:semanticShadow,onCommit:()=>{stalled=false;if(ready&&!closed)publish();},onError:e=>{error=e.message;paused=true;if(ready&&!closed)publish();}});
   await writer.request();ready=true;latest=writer.project(world.view(selfId));
   const open=()=>!closed&&!paused&&!stalled&&!error;
