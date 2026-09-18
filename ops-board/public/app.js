@@ -179,6 +179,7 @@ function renderFreshness() {
   const state = currentState;
   const now = Date.now();
   const presentation = syncPresentation(state, now, currentError);
+  document.documentElement.dataset.pulseTone = presentation.tone;
   const stamp = $('#sync-freshness');
   if (stamp) {
     const titleNode = stamp.querySelector('[data-sync-title]');
