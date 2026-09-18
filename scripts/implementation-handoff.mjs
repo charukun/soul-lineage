@@ -2,15 +2,15 @@ import { lifecycleMessage, notificationTitle } from './notification-copy.mjs';
 
 // Ready is the worker's terminal boundary, independent of CI/browser completion.
 // Run only from trusted develop in the existing immediate CI observation job.
-export const HANDOFF_CONTEXT = 'implementation/handoff';
-export const READY = 'READY_FOR_INTEGRATION';
+export const HANDOFF_CONTEXT = 'implementation/ready';
+export const READY = 'READY';
 export const WORKER_CI_RULES = `Read docs/RINNE_PROJECT_EXECUTION_POLICY.md.
 Do not wait for GitHub Actions, CI or Playwright/browser completion. No gh run watch,
 gh pr checks --watch, repeated Actions/check API reads, or sleep/polling until completion.
-Running / Queued / Pending means hand off without waiting. One short post-push snapshot
+Running / Queued / Pending means return without waiting. One short post-push snapshot
 may identify an already-failed check; never wait for an unfinished check to fail or pass.
-The wrapper owns push/Ready and then ends the worker responsibility as READY_FOR_INTEGRATION.
-Integration owns continued CI/browser monitoring, retries, merge and DEV deployment.
+The wrapper owns push/Ready and then ends the interactive worker responsibility as READY.
+Repository automation owns continued CI, merge, repair routing and DEV deployment.
 Show an actual screenshot inline or attach a playable video in your completion response.
 Bind it to the tested SHA, environment and action. For non-visual changes capture actual validation results.
 If unavailable, report evidence as missing with its reason and asynchronous PR follow-up; never claim visual verification.
@@ -21,9 +21,9 @@ export function handoffSnapshot(pr, repository, expectedHead = pr?.head?.sha) {
       pr.head?.repo?.full_name !== repository || pr.head.sha !== expectedHead ||
       !['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.author_association) ||
       pr.head.ref === 'work/visual-review-lab-v2') return null;
-  return { stage: READY, workerEnded: true, monitoringOwner: 'Integration',
+  return { stage: READY, workerEnded: true, monitoringOwner: 'Repository Automation',
     branch: pr.head.ref, commit: pr.head.sha, pr: pr.number, url: pr.html_url,
-    ready: true, ci: 'Integration owns current checks; completion is not awaited' };
+    ready: true, ci: 'Repository automation owns current checks; completion is not awaited' };
 }
 
 export async function notifyStage(message, { url = '', token = '', title = '', request = fetch } = {}) {
@@ -65,7 +65,7 @@ export async function recordHandoff({ github, repo, number, expectedHead, runUrl
     commit: snapshot.commit,
     pr_url: snapshot.url,
     review_ready: true,
-    monitoring_owner: 'INTEGRATION',
+    monitoring_owner: 'REPOSITORY_AUTOMATION',
     worker: 'ENDED',
     ci_wait: 'NO',
     visual_evidence: 'SEE_PR_REPORT; CI_CAPTURE_ASYNC',
@@ -73,14 +73,14 @@ export async function recordHandoff({ github, repo, number, expectedHead, runUrl
     run_url: runUrl,
   } });
   await github.rest.repos.createCommitStatus({ ...repo, sha: snapshot.commit, context: HANDOFF_CONTEXT,
-    state: 'success', description: `${READY}; worker ended; CI owned by Integration`, target_url: snapshot.url });
+    state: 'success', description: `${READY}; worker ended; CI owned by repository automation`, target_url: snapshot.url });
   let channel = previous?.body?.includes('notification: ntfy') ? 'ntfy' : 'not-configured';
   if (channel !== 'ntfy') {
     try { channel = await notifyStage(message, { ...(notification || {}), title: notificationTitle(READY) }); }
     catch (error) { channel = 'failed'; warn(error.message); }
   }
   if (channel === 'not-configured') warn('NTFY_TOPIC_URL is not configured; GitHub handoff recorded, smartphone delivery unconfirmed.');
-  const body = `${marker}\n${message}\nnotification: ${channel}\nreceipt_scope: HANDOFF_ONLY\nmerge_authority: NO\ndev_publication: NO`;
+  const body = `${marker}\n${message}\nnotification: ${channel}\nreceipt_scope: READY_ONLY\nmerge_authority: NO\ndev_publication: NO`;
   if (!previous) await github.rest.issues.createComment({ ...repo, issue_number: number, body });
   else if (previous.body !== body) await github.rest.issues.updateComment({ ...repo, comment_id: previous.id, body });
   return { ...snapshot, notification: channel };
