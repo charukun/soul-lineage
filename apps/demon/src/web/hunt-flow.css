@@ -9,7 +9,6 @@ body.hunt-loop #hud #first-hunt-guide[hidden]{display:none!important}
 .hunt-bag progress::-webkit-progress-value{background:#bbad72}
 .hunt-bag progress::-moz-progress-bar{background:#bbad72}
 body.hunt-loop #hud #return{display:none!important}
-body.hunt-loop #return-hint{right:18px;bottom:calc(22px + env(safe-area-inset-bottom));width:auto;max-width:90vw;font-size:12px;line-height:1.5}
 body.hunt-loop #hud[data-hunt-state="combat"] #objective{opacity:.68}
 body.hunt-loop #hud #life-text{display:block!important;font-size:10px;margin-top:4px}
 body.hunt-loop #hud .life-track{height:5px}
@@ -37,7 +36,3 @@ body.hunt-loop .hunt-upgrades .inline-action{display:grid;grid-template-columns:
 body.hunt-loop button:focus-visible{outline:2px solid #e5ce85;outline-offset:3px}
 @media(max-height:740px){body.hunt-loop #title .brand{transform:scale(.8);transform-origin:center bottom}body.hunt-loop #title .brand>p{display:none}body.hunt-loop #title .title-actions{margin-top:4px}body.hunt-loop #sheet-title{font-size:23px}body.hunt-loop .hunt-upgrades .inline-action{min-height:48px;padding:8px 10px}}
 @media(max-width:360px){body.hunt-loop #objective>span{font-size:14px}.hunt-bag{font-size:10px}.hunt-result strong{font-size:27px}}
-body.hunt-loop #return-hint>b{display:inline-block;margin-right:9px;font-size:23px;line-height:1;vertical-align:middle;color:#d9d09e}
-
-.hunt-action:not([hidden]){display:block;margin:5px 0 0;font-size:12px;line-height:1.5;color:#d4d4bd}
-.hunt-action[hidden]{display:none!important}
