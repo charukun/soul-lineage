@@ -152,7 +152,7 @@ async function main() {
     const envEntries = entries.filter(e => e.environment === environment);
     if (!envEntries.length) continue;
     const rinne = envEntries.find(e => e.app === 'rinne');
-    const redirect = rinne ? '<meta http-equiv="refresh" content="0;url=rinne/">' : '';
+    const redirect = environment !== 'dev' && rinne ? '<meta http-equiv="refresh" content="0;url=rinne/">' : '';
     await mkdir(resolve(output, environment), { recursive: true });
     await writeFile(resolve(output, environment, 'index.html'), `<!doctype html><html lang="ja"><head><meta charset="utf-8">${redirect}<title>ゲーム開発</title></head><body>${envEntries.map(e => `<p><a href="${e.app}/">${e.version.name}</a></p>`).join('')}</body></html>`);
     if (rinne) await writeFile(resolve(output, environment, 'version.json'), JSON.stringify(rinne.version, null, 2));
