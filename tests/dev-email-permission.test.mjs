@@ -9,4 +9,6 @@ test('DEV result job may write the PR comment that drives developer email', () =
   assert.match(resultBlock, /\n    permissions:\n[\s\S]*?\n      issues: write\n      pull-requests: write\n/);
   assert.doesNotMatch(resultBlock, /\n      pull-requests: read\n/);
   assert.match(resultBlock, /Notify verified DEV delivery/);
+  assert.match(resultBlock, /steps\.notify\.outputs\.dev_email/);
+  assert.match(resultBlock, /notification\/dev-email/);
 });
