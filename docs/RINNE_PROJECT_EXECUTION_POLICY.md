@@ -1,168 +1,57 @@
-# 実装セッション実行ポリシー
+# Implementation execution policy
 
-この文書は、通常の Chat / WORK / Codex 実装セッションの終了境界、DEV確認、通知、復旧を定義する。実装手順は [`DEVELOPMENT.md`](DEVELOPMENT.md)、Ready直後の same-task merge / DEV 公開は [`DEVELOP_MERGE.md`](DEVELOP_MERGE.md) を正本とする。
+## Source of truth and completion
 
-## 正本と終了境界
+The source of truth is latest `develop` plus current GitHub branch / commit / PR / status.
 
-実装の正本は `charukun/soul-lineage` の最新 `develop` と、GitHub 上の branch / commit / PR / Checks / status。Chat / WORK / Codex は一時的な実行環境であり、永続 CI 監視 worker ではない。
-
-通常実装は次で終了する。
+Routine implementation finishes only after the same task worker merges the exact validated PR head to `develop`.
 
 ```text
-implementation
-  -> affected fast validation
-  -> current develop merge-forward into work branch
-  -> affected fast revalidation
-  -> commit / push
-  -> final develop freshness verify
-  -> Ready for review
-  -> same-task merge to develop
+implement + focused validation
+  -> current develop sync + focused revalidation
+  -> Ready + same-task merge
   -> asynchronous DEV publication
-  -> final response / session ends
 ```
 
-Ready の前には latest `develop` を work branch へ取り込み、reconciled head で必要な局所検証をやり直す。Ready 化の直前に current develop が current head の ancestor であることを再確認する。checkout がある場合の標準コマンドと conflict handling は [`DEVELOPMENT.md`](DEVELOPMENT.md) の Pre-Ready Reconciliation を正本とする。
+Ready is not success. DEV publication is not a merge prerequisite.
 
-CI / GitHub Actions / Playwright / browser check が Running / Queued / Pending でも待たない。`gh run watch`、`gh pr checks --watch`、一定間隔の Actions API 取得、sleep を使う polling loopは禁止。push 直後に1回だけ短時間確認し、起動・即時失敗・明白な設定誤りを確認するのはよい。未完了でも別担当への handoff は作らず、develop向けPRでは同じ実装workerがfreshness確認後にそのままmergeへ進む。merge後のDEV publicationだけが非同期で継続する。
+## No waiting or polling
 
-develop PRではReady後のCI監視や自動repairを行わない。実装worker自身がmerge直前のfreshnessを確認してPRをdevelopへmergeする。DEV公開だけがmerge後に非同期で続く。
+Do not use CI/Actions/browser/DEV polling loops such as `gh run watch`, `gh pr checks --watch`, repeated API reads, or sleep loops.
 
-状態名は工程を混同しない。
+A one-time immediate check for an obvious launch/configuration failure is fine. Do not wait for queued/running jobs.
 
-| 状態 | 意味 |
-| --- | --- |
-| `MERGED_TO_DEVELOP` | develop へ統合済み |
-| `DEV_DEPLOYED` | 対象 develop SHA の DEV 公開・HTTP/source検証成功 |
-| `FAILED` | 実装を完遂できず、理由と復旧情報を残した |
+## Autonomous decisions
 
-Ready は CI 成功、merge、DEV 公開成功を意味しない。
+Within confirmed requirements, Astra chooses reversible implementation details, UI details, wording, and technical approach. Do not add a human approval step merely because visual review may happen later on DEV.
 
-## DEVで実物を確認する標準開発
+Ask for human input only when the task truly requires an irreversible/compatibility-breaking decision, user authentication, new paid resources, or another decision not derivable from current requirements.
 
-標準ループは **AI実装 → 高速検証 → latest develop reconciliation → 再検証 → Ready → 同じAIがdevelopへmerge → DEV公開 → ユーザーが実物を確認 → 指摘をAIが修正**。
+## Failure and recovery
 
-明示要件・禁止事項・最新 `develop` の確定仕様を守る範囲で、見た目、操作感、文言、実装方法などの可逆的な細部は AI が選んで実装し、重要な仮定を PR に短く記録する。任意の目視確認を公開前の追加承認工程にしない。
+One failed tool, transport, command, or local capability is not task failure.
 
-古い PR が現在仕様と違う場合は、古い挙動をそのまま復活させたりユーザーへ二択で返す前に、最新 `develop` と現在の指示へ改善意図を適応できるか調べる。両側の差分を確認し、無条件の ours / theirs 採用やテスト削除で解決しない。
+Preserve the same branch / PR / exact head and recover through another git workspace route. Do not use GitHub file APIs as an implementation fallback.
 
-| 状況 | 対応 |
-| --- | --- |
-| 可逆的な見た目・操作感・文言 | AI が選択・記録して DEV で確認 |
-| 現仕様へ適応できる古い PR / 技術競合 | AI Repair で修復・検証し、same-task Ready → freshness再確認 → develop merge へ戻す |
-| DEV 上のユーザー指摘 | 公開 SHA・対象画面・再現条件を現在状態と照合し次の修正へ反映 |
-| hold / Changes requested / unresolved thread / dependency | 既存制御を維持 |
-| 未承認の不可逆データ変更、互換性を壊す save/schema/protocol、既存要件から決められない重大契約 | その対象だけ human-required |
-| Repair attempt 上限到達 | 有限 retry を維持して停止し、原因・試行・次の復旧手段を残す |
+Report `FAILED` only when a concrete blocker remains, with repository / branch / exact head / PR / reason.
 
-技術的に難しい、同じ file を変更している、任意の目視確認がまだ、という理由だけで human-required にしない。一方、明示的な権限不足、実際の互換性破壊、既存 review / hold、キャラクター等の明示 visual approval / `RUNTIME_READY` 条件は推測で解除しない。
+## Evidence and final report
 
-DEV の人間目視と、browser検証・Production 品質認定は別。通常developではbrowser検証を自動実行せず、明示playtest / `full_verification=true` / 専門evidence workflow / main・Productionだけで実行する。既存browser assertionとmain / Production gateは弱めない。
+Do not claim browser, image, or motion verification unless that evidence was actually obtained for the exact head.
 
-DEV確認用の公開URLは GitHub Pages ルートではなく `https://charukun.github.io/soul-lineage/dev/<app>/` を使う。PagesルートはProduction入口として `prod/` へ遷移するため、develop実装の確認先として案内しない。deploy workflow の environment URL は develop では `/dev/`、main では `/prod/` を指し、`/dev/` はアプリ選択画面として各DEVアプリへ到達できること。
+When visual evidence is obtained, show the relevant capture/video. When it is not obtained, state that briefly instead of blocking develop merge solely to wait for evidence.
 
-## Ready transition
+The final implementation report should stay compact and include:
 
-GitHub の `open + base=develop + draft=false` は merge 直前の一時状態であり、実装タスクの正常終了境界ではない。Ready 化前に current develop の merge-forward、reconciled head の必要局所検証、push、final freshness verify を完了し、Ready 化後は同じ実装workerがmerge直前のfreshnessを再確認して exact head を `develop` へmergeする。`READY_FOR_INTEGRATION` や別の Ready handoff 状態は作らない。
+- what changed
+- PR
+- validated exact head
+- develop merge commit
+- focused validation performed
+- visual evidence, or a brief reason it was not obtained
 
-通知・status は工程別に扱う。
+Do not delay the final response waiting for DEV publication.
 
-| 工程 | GitHub 正本 | 通知 |
-| --- | --- | --- |
-| 作業中 | work branch / Draft PR / current commit | 開始・push 到達。最終成功ではない |
-| merge直前 | Ready PR / exact head / reconciled develop SHA | 中間状態。ここで最終成功報告せず、同じ実装workerがmergeへ進む |
-| develop 統合 | merged PR / merge commit / merge status | `MERGED_TO_DEVELOP` |
-| DEV 完了 | target develop SHA の `dev/delivery=success` | `DEV_DEPLOYED` |
-| 実装失敗 | branch / commit / Draft or hold / reason | `FAILED` |
+## Production
 
-開発者向け lifecycle 通知は GitHub 上の status / PR Conversation を正本とし、個人向け `DEV反映完了` は [`DEV_NOTIFICATION.md`](DEV_NOTIFICATION.md) の GitHub PR購読メール経路だけを使う。ゲームプレイヤー向け push / ntfy は開発者通知の代替にせず、develop publication、Ready / handoff、PULSE control-plane、Repair / Rescue から送信しない。Gmail が端末へ通知を表示したかどうかは Repository の成功条件に含めず、Repository 側は GitHub receipt の生成までを観測する。通知成功は code / CI / DEV 成功の証拠ではなく、通知失敗も実装失敗には置き換えない。ChatGPT アプリ自身の push / 応答表示も完了判定に使わない。
-
-通常 Chat / WORK 全体を監視する汎用 heartbeat daemon があるとは扱わない。Repair/Rescue 固有の lease / watchdog はその実装範囲だけに適用する。
-
-## 実行不能宣言の禁止と代替経路の強制
-
-実装・反映・実ブラウザ確認・証拠取得など、ユーザーが完遂を依頼したタスクでは、**1つのツールが見えない、1つの通信経路が失敗した、現在のローカル実行環境に対象機能がない、という理由だけで「このセッションではできません」「この環境では無理です」「別セッションでお願いします」と結論して終了してはならない。** その種の文言を最終応答の終了理由として使えるのは、下記の適用可能な既存経路を確認・試行し、なお実在する blocker が残った場合だけとする。その場合も単なる能力宣言ではなく `FAILED` として、試した経路・失敗点・Repository 上の到達状態・残る復旧手段を具体化する。
-
-実装workerは、依頼の「成果」を先に特定し、直接ツール名に依存せず次の順で適用可能な経路を確認する。
-
-1. 現在セッションのローカル実行環境、既存CLI、内部ブラウザ、生成・変換ツールなどの直接経路。
-2. 接続済みGitHub APIによる branch / file / tree / commit / ref / PR / merge 操作。
-3. Repository に既存する GitHub Actions / browser playtest / evidence / DCC carrier / deploy / artifact 経路。
-4. 同 Repository の既存 Codespaces + 通常git、または既存artifact / deployed snapshotを使う復旧経路。
-5. 目的を変えずに実装方式だけを切り替えられる場合は、その代替実装。例: 直接ブラウザが使えない場合はRepository browser playtest、API転送制限ならCodespaces、実行中の公開物が必要ならexact-SHA artifactを使う。
-
-「該当ツールが現在のtool listにない」は、**その成果を達成する既存経路がないことの証明ではない**。AGENTS の task routing と対象専門文書を確認し、Repository が提供する間接経路を先に使う。逆に、存在しない機能を実行したと偽ったり、未取得の画像・動画を確認済みと報告してはならない。
-
-ユーザーに別セッション・手作業・再入力を要求するのは、現在セッションから利用できる承認済み経路とRepository経路を尽くした後に、ユーザー固有の認証・課金承認・外部サービス操作など本当に人間入力が必要な場合だけとする。経路切替そのものの許可は、既存承認範囲なら再質問しない。
-
-## 失敗と復旧
-
-単発確認時に即時失敗が判明し、その場で安全に直せる場合は同じ branch / PR で修正 → current develop reconciliation → 高速検証 → push → freshness verify → Ready → merge まで同じ実装workerが進める。後から判明したDEV publicationや明示browser検証の失敗は、exact develop SHA / run / 対象 test/log を根拠に別の修正タスクとして扱う。修正タスクも同じ pre-Ready reconciliation と same-task merge を行う。
-
-セッション停止時は、過去チャットから再構築せず、次の現在状態から同じ PR を復旧する。
-
-- repository / branch / exact head SHA
-- PR URL / Draft / Ready / merged / base
-- Ready 前に取り込んだ reconciled develop SHA
-- merge済みなら merge commit SHA
-- 必要な DEV status
-- exact-head Checks / run / artifact
-- 最新 `develop` との差分
-
-Ready 済みで未mergeなら、CI待機はせず同じタスクのmerge直前freshness確認から復旧してmergeまで完了する。merge済みなら、修正依頼なしにCI待機セッションを再開しない。
-
-GitHub 反映経路は **通常 git → 接続済み GitHub API → 同 Repository の既存 Codespaces + 通常 git**。1経路の認証・通信・転送制約だけで不能と結論付けない。詳細は [`MOBILE_HYBRID_DEVELOPMENT.md`](MOBILE_HYBRID_DEVELOPMENT.md)。
-
-browser verification / repair は [`BROWSER_SELF_HEALING.md`](BROWSER_SELF_HEALING.md)、merge race の Fast Repair は [`INTEGRATION_RESCUE.md`](INTEGRATION_RESCUE.md) に従う。
-
-## 転送・push の既存承認
-
-依頼作業に必要なコード、モデル、VRM/GLB、Blender/DCC 元データ、文書、検証証拠、Git bundle を `charukun/soul-lineage` と同 Repository の既存 Codespaces 間で転送し、依頼された work branch を commit/push、PR 作成・更新する範囲は既存承認済み。Ready 前に current develop を **work branch へ merge-forward** することも同じ work-branch 更新の範囲として扱う。詳細な許可範囲と例外は [`DELIVERY_AUTHORIZATION.md`](DELIVERY_AUTHORIZATION.md) を正本とし、同じ許可を再質問しない。
-
-この承認は、無関係なデータ、別 Repository / account / provider、新規課金、credential/security 変更、破壊的操作、**品質gateを迂回した develop への direct write**、main / Production 公開を許可しない。個人AI開発の通常経路では、同じ task worker が focused validation・hold/review/dependency・current develop reconciliation・final freshnessを満たしたPRを`develop`へmergeしてよい。
-
-## 完了報告の画像・動画エビデンス
-
-作業依頼への完了報告では、実際に確認した結果のキャプチャーまたは動画が取得できた場合はユーザーへ見せる。画像・動画を取得していないのに確認済みとは報告しない。
-
-- 見た目の変更は変更箇所が分かるキャプチャー、移動・戦闘・アニメーション・操作の変更は該当操作の動画を優先する。比較が必要なら同じ条件の変更前後を添える。
-- 文書・基盤など画面を変更しない作業は、テスト・diff・workflow状態を実証拠としてよく、ゲーム画面の確認とは区別する。無関係なタイトル画面や生成した見本画像を実証拠にしない。
-- 対象SHA、確認環境（local PR preview / deployed DEVなど）、画面・操作、結果、未確認範囲を証拠と対応づける。PR headの録画をDEV公開確認として扱わない。別SHAの証拠の使い回しは禁止。
-- 実画像・動画を取得した場合は最終応答で代表画像をインライン表示するか、動画を再生可能な添付で提示する。保存済みの証拠・PR報告へのリンクも添えられるが、リンクだけで取得済み映像の提示を代替しない。
-- 局所検証や明示browser playtestで撮影できるものはReady前に取得する。取得待ち・環境制約・未実施の場合は `未取得` と理由を明記し、画像を見せた／動作を確認したとは報告しない。
-- Ready は対話的な実装作業の終了境界ではない。証拠待ちでCIをpollingせず、必要な局所証拠を取得できない場合は未取得理由を残したうえで、same-task freshness再確認 → develop merge まで完了する。browser assertion、review、main / Productionの品質gateを弱めない。
-
-### 取得・報告の実装
-
-通常develop PRは自動 `Affected browser smoke` や `Report completion evidence` を実行しない。ユーザーが明示したbrowser playtest、`full_verification=true`、または専門workflowがbrowser evidenceを要求する場合に、その経路がスクリーンショット・動画・trace等を保存する。
-
-ローカルで撮影した画像・動画は、専用の空ディレクトリに保存して次で整理できる。
-
-```sh
-npm run completion:evidence -- test-results/completion <撮影した40桁SHA> success "local validation" "確認した画面・操作"
-```
-
-SHAは現在checkoutと一致させる。playtest receiptを使う経路ではSHAも照合し、前回の撮影ファイルは撮影開始時に除去する。画像の形式・空ファイル・サイズ上限を検査するが、画像内容が依頼を満たすかは実際に画像を開いて確認する。汎用smokeだけで依頼固有の動作まで確認済みとしない。
-
-GitHub Actions artifactを使う明示browser/evidence workflowでは保存期限とexact headを対応づける。artifact自体はチャットへのインライン表示でも永続保管でもない。最終応答を作るworkerは必要ファイルだけ取得して直接表示する。期限切れの証拠は取得済みと扱わず、必要時に同SHAで再取得する。
-
-## 最終応答
-
-通常実装の最終応答には最低限、次を含める。
-
-- 実装完了内容
-- branch
-- exact head commit SHA
-- PR 番号 / URL
-- merged PR 番号 / URL
-- 検証した exact PR head SHA
-- develop merge commit SHA
-- Ready 前に取り込んだ reconciled develop SHA
-- 実行した高速検証
-- 取得したキャプチャー／動画と短い確認内容、または未取得理由
-- DEV publication / 通知が未確認または実行中なら、その事実
-
-DEV publication・browser・通知完了を待って最終応答を遅らせない。ただしdevelop向け実装タスクでPRがReadyなだけの状態では成功の最終応答を返さず、merge済みか、実在するblockerにより `FAILED` であることを確定してから終了する。
-
-## 優先順位
-
-この Repository 内の最新版が現行正本。添付、Project Sources、過去チャット、古い SHA の `RINNE_PROJECT_EXECUTION_POLICY` と差がある場合は、最新 `develop` のこの文書と現在の GitHub 状態を優先する。資料全体の優先順位は [`README.md`](README.md) を参照する。
+`main` / Production changes require explicit user permission. Never weaken Production quality gates.
