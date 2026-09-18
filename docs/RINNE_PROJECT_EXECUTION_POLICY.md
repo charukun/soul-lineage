@@ -83,10 +83,10 @@ GitHub の `open + base=develop + draft=false` は merge 直前の一時状態�
 セッション停止時は、過去チャットから再構築せず、次の現在状態から同じ PR を復旧する。
 
 - repository / branch / exact head SHA
-- PR URL / Draft or Ready / base
+- PR URL / Draft / Ready / merged / base
 - Ready 前に取り込んだ reconciled develop SHA
-- `implementation/handoff`
-- 必要な merge / DEV status
+- merge済みなら merge commit SHA
+- 必要な DEV status
 - exact-head Checks / run / artifact
 - 最新 `develop` との差分
 
@@ -141,7 +141,7 @@ GitHub Actions artifactを使う明示browser/evidence workflowでは保存期�
 - Ready 前に取り込んだ reconciled develop SHA
 - 実行した高速検証
 - 取得したキャプチャー／動画と短い確認内容、または未取得理由
-- CI / handoff recorder / 通知が未確認または実行中なら、その事実
+- DEV publication / 通知が未確認または実行中なら、その事実
 
 DEV publication・browser・通知完了を待って最終応答を遅らせない。ただしdevelop向け実装タスクでPRがReadyなだけの状態では成功の最終応答を返さず、merge済みか、実在するblockerにより `FAILED` であることを確定してから終了する。
 
