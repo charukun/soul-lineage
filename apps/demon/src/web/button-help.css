@@ -1,17 +1,28 @@
 #swipe-hint{
   appearance:none;
+  left:auto;
+  right:max(12px,env(safe-area-inset-right));
+  bottom:calc(118px + env(safe-area-inset-bottom));
   width:max-content;
   min-width:44px;
   min-height:44px;
-  margin:auto;
+  margin:0;
   padding:9px 12px;
-  border-bottom:1px solid #93ad8477;
-  background:#0b1619b8;
+  border:0;
+  border-left:1px solid #8f302f70;
+  border-bottom:1px solid #a88b625c;
+  clip-path:polygon(6% 0,100% 8%,94% 100%,0 89%);
+  background:linear-gradient(103deg,#090706df,#1d0c0acb 72%,#080605df);
+  color:var(--bone);
+  box-shadow:inset 0 0 0 1px #a88b622f;
   pointer-events:auto;
   touch-action:manipulation;
+  opacity:.78;
 }
-#swipe-hint[style*="opacity: 0"]{
-  pointer-events:none;
+#swipe-hint:active{opacity:1}
+#swipe-hint[style*="opacity: 0"]{pointer-events:none}
+@media(max-height:560px) and (orientation:landscape){
+  #swipe-hint{right:max(8px,env(safe-area-inset-right));bottom:calc(58px + env(safe-area-inset-bottom))}
 }
 @media(pointer:coarse){
   #connection,

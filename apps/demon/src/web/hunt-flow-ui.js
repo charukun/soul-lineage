@@ -1,5 +1,7 @@
 import {UPGRADES, readProgress, huntPlan, goalText, bodyStats, upgradeQuote} from '../hunt/balance.js';
 import './hunt-flow.css';
+import {createAngledGuide} from './angled-guide.js';
+import {hasCompletedFirstHunt} from './first-hunt-guide.js';
 
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 const byId = id => document.getElementById(id);
@@ -11,10 +13,12 @@ export class HuntFlowUi {
     this.bag = document.createElement('div'); this.bag.className = 'hunt-bag';
     this.bag.innerHTML = '<span data-haul></span><span data-goal></span><progress max="1" value="0" aria-label="捕食目標"></progress>';
     this.objective.append(this.bag);
+    this.firstGuide = createAngledGuide(byId('first-hunt-guide'), {side:'right', variant:'normal'});
+    this.returnGuide = createAngledGuide(byId('return-hint'), {side:'left', variant:'compact'});
     this.bearing = document.createElement('b'); this.bearing.textContent = '↓'; this.bearing.setAttribute('aria-hidden', 'true');
-    this.exitText = document.createElement('span'); byId('return-hint').replaceChildren(this.bearing, this.exitText);
-    this.actionLine = document.createElement('p'); this.actionLine.className = 'hunt-action';
-    this.actionLine.setAttribute('role', 'status'); this.actionLine.hidden = true; this.objective.append(this.actionLine);
+    this.exitText = document.createElement('span'); this.exitInstruction = document.createElement('small');
+    const returnLine = document.createElement('span'); returnLine.className = 'angled-guide__route'; returnLine.append(this.bearing, this.exitText);
+    this.returnGuide?.setBodyNodes(returnLine, this.exitInstruction);
     this.actionToken = ''; this.actionAt = 0;
     this.campButton = document.createElement('button'); this.campButton.id = 'hunt-camp'; this.campButton.className = 'inline-action';
     this.campButton.type = 'button'; this.campButton.addEventListener('click', () => this.camp());
@@ -37,23 +41,28 @@ export class HuntFlowUi {
     returning = returning || this.shouldReturn(game);
     const plan = game.huntPlan, ready = game.goalReady(), target = this.target(game, returning), exit = game.nearestEscape();
     const heading = this.objective.querySelector(':scope > small'), text = this.objective.querySelector(':scope > span');
-    const guide = byId('first-hunt-guide');
     heading.textContent = plan.name;
     text.textContent = returning ? `${exit.label}へ · ${Math.ceil(exit.distance)}m` : ready ? '目標達成。持ち帰ろう' : goalText(plan);
-    // Action tips are short-lived. The old persistent tutorial remains hidden.
+    // First-hunt advice is brief, non-modal, and shares the same side-guide system as return guidance.
     const token = game.devour ? 'eat' : game.fight ? 'fight' : returning ? 'return' : target?.npc.dead ? 'fallen' : 'move';
     if (token !== this.actionToken) { this.actionToken = token; this.actionAt = game.time; }
-    const action = {eat:'止まったまま、喰らう', fight:'危険なら敵から離れる', return:'帰還口の輪で止まる', fallen:'倒れた獲物のそばで止まる', move:'滑らせて、人影へ'}[token];
-    guide.hidden = true;
-    this.actionLine.hidden = overlay || game.time - this.actionAt > 3.2 || token === 'move' && game.time > 4;
-    this.actionLine.textContent = action;
+    const tip = {
+      eat:{kicker:'捕食',title:'動くな',body:'指を離したまま待て'},
+      fight:{kicker:'戦闘',title:'戦いは自動',body:'危険なら、敵から離れろ'},
+      fallen:{kicker:'捕食',title:'獲物のそばで止まれ',body:'止まる → 捕食'},
+      move:{kicker:'動きかた',title:'指を滑らせろ',body:'人影へ近づく → 自動戦闘'}
+    }[token];
+    const showFirst = !hasCompletedFirstHunt(this.profile()) && game.eaten < 1 && !!tip && !overlay && game.time - this.actionAt <= 3.2 && !(token === 'move' && game.time > 4);
+    if (showFirst) this.firstGuide?.show(tip); else this.firstGuide?.hide({immediate:overlay});
     this.bag.querySelector('[data-haul]').textContent = `持ち帰れば ${game.carried + (ready ? plan.bonus : 0)} 戦利品`;
     this.bag.querySelector('[data-goal]').textContent = `${Math.min(game.eaten, plan.quota)} / ${plan.quota}${plan.marked ? ` · 標的 ${game.targetEaten ? '済' : '未'}` : ''}`;
     this.bag.querySelector('progress').value = Math.min(1, game.eaten / plan.quota);
     byId('hud').dataset.huntState = game.fight ? 'combat' : returning ? 'return' : 'hunt';
-    byId('return-hint').hidden = overlay || game.eaten < 1 || game.finished;
-    this.bearing.style.transform = `rotate(${(.33 - Math.atan2(exit.x - game.player.x, exit.z - game.player.z)) * 180 / Math.PI}deg)`;
-    this.exitText.textContent = game.escapeHold > 0 ? '帰還中…' : `${exit.label} ${Math.ceil(exit.distance)}m · 帰れば +${game.carried + (ready ? plan.bonus : 0)}`;
+    this.bearing.style.transform = `rotate(\${(.33 - Math.atan2(exit.x - game.player.x, exit.z - game.player.z)) * 180 / Math.PI}deg)`;
+    this.exitText.textContent = `\${exit.label} \${Math.ceil(exit.distance)}m`;
+    this.exitInstruction.textContent = game.escapeHold > 0 ? 'そのまま止まれ' : '輪の中で止まる';
+    const showReturn = !overlay && game.eaten > 0 && !game.finished && !game.fight && !game.devour;
+    if (showReturn) this.returnGuide?.show({side:'left',variant:'compact',kicker:'帰還',title:game.escapeHold > 0 ? '帰還中' : '帰路が開いた'}); else this.returnGuide?.hide({immediate:overlay});
   }
   upgradeHtml(profile) {
     return `<div class="hunt-upgrades">${Object.keys(UPGRADES).map(key => {

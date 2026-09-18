@@ -13,16 +13,17 @@ import {PREY, FORMS, offerVillages} from '@soul/raid/world';
 import {SwipeInput} from '@soul/input';
 import {renderLineage} from './lineage.js';
 import {huntPresentationSnapshot} from './presentation-snapshot.js';
+import {createAngledGuide} from './angled-guide.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 let view, game, store, profile, flow, error = null, mode = 'title', paused = false, sheetKind = '', entering = false;
-let toastUntil = 0, last = 0, acc = 0, returnMode = false, lastHud = 0, disposeCharacterSelection = null;
+let toastUntil = 0, last = 0, acc = 0, returnMode = false, lastHud = 0, disposeCharacterSelection = null, movementGuide = null;
 const swipe = new SwipeInput(), audio = new NightAudio();
 function safe(fn) { try { return fn(); } catch (e) { console.error(e); showError(e.message || String(e)); } }
 function pauseInput() { game?.resetIdle(); swipe.cancel(); $('move-pad').hidden = true; $('dash-stop').hidden = true; }
 function sheet(title, kicker, html, kind) {
-  pauseInput(); $('sheet-title').textContent = title; $('sheet-kicker').textContent = kicker;
+  pauseInput(); movementGuide?.hide({immediate:true}); document.body.classList.remove('movement-guide-open'); $('sheet-title').textContent = title; $('sheet-kicker').textContent = kicker;
   $('sheet-body').innerHTML = html; $('sheet').hidden = false; sheetKind = kind;
 }
 function showError(text) { sheet('確認が必要です', '保存と再開', `<p class="error">${esc(text)}</p><p class="muted">保存データは削除していません。</p>`, 'error'); }
@@ -79,7 +80,8 @@ async function randomHunt(route = 'mission') {
 }
 function lineage() { refresh(); sheet('転生史', '身体に残ったもの', renderLineage(profile), 'lineage'); }
 function help() {
-  sheet('狩りかた', '遊びながら覚える', '<p>指を滑らせて移動。接敵すると自動で戦う。</p><p>倒した獲物のそばで止まると捕食。危険なら敵から離れる。</p><p>帰還口の輪で止まれば、戦利品を確保。持ち帰った戦利品で肉体を強化する。</p><p>死亡すると未確保の戦利品を失う。特能と恒久強化は残る。</p>', 'help');
+  closeSheet(); document.body.classList.add('movement-guide-open');
+  movementGuide?.show({side:'right',variant:'normal',kicker:'動きかた',title:'指で進め',body:'滑らせる → 移動\n何もしない → 徘徊\n敵から離れる → 戦闘を離脱'});
 }
 function settings() {
   let html = '<button class="inline-action" id="movement-help">狩りかた</button><button class="inline-action" id="sound-toggle">環境音・効果音：' + (audio.enabled ? '入' : '切') + '</button><button class="inline-action" id="visit-log">喰痕</button><button class="inline-action" id="credits">素材と接続状況</button><button class="inline-action" id="music-library">音楽室・BGM音量</button><button class="inline-action" id="settings-memory">転生史</button>';
@@ -115,7 +117,7 @@ function hud(now) {
   $('scent').disabled = ui.scentDisabled; $('memory').disabled = ui.memoryDisabled; $('return').disabled = ui.returnDisabled;
   $('return').classList.toggle('locked', ui.returnLocked); $('return-label').textContent = ui.returnLocked ? '捕食後' : '帰路';
   $('scent').querySelector('span').textContent = game.scentCooldown > 0 ? Math.ceil(game.scentCooldown) + '秒' : '嗅覚';
-  $('dash-stop').hidden = !swipe.dash; $('swipe-hint').style.opacity = '0';
+  $('dash-stop').hidden = !swipe.dash;
   $('eaten-label').textContent = `捕食 ${game.eaten} · 技速 ${game.huntStats().techniqueSpeed}%`;
   $('toast').style.opacity = now < toastUntil && mode === 'hunt' && $('sheet').hidden ? '1' : '0';
   flow.update(game, {returning: returnMode, overlay: !$('sheet').hidden || paused || mode !== 'hunt'});
@@ -172,6 +174,7 @@ export async function boot() {
   const preview = {id:'title-only-not-entered', name:'森の向こうの灯', seed:67002, target:'arcanist', level:1, weather:'fog', source:'generated'};
   game = new RaidSession(preview, profile, {}); view.build(game.village); await view.prepareCharacter(activeCharacter(profile).id);
   game.player.x = 1; game.player.z = 20; game.player.yaw = .5; view.camera.position.set(5, 3.6, 27); view.cameraLook.set(1, .95, 18); view.update(game, 0, true);
+  movementGuide = createAngledGuide($('movement-guide'), {side:'right', variant:'normal', closable:true, onClose:() => document.body.classList.remove('movement-guide-open')});
   flow = new HuntFlowUi({sheet, start: randomHunt, profile: () => profile, species: () => game.monsterSpecies, toggleReturn,
     upgrade: key => safe(() => { const changed = store.upgrade(key); refresh(); return changed; })});
   $('game').dataset.renderer = 'ready'; Object.assign($('game').dataset, {app:'demon', commit:__BUILD_INFO__.commit, environment:__BUILD_INFO__.environment, platform:'web', world:'night-hunt.v5', asset:'kaykit.floor_tile_small'});
@@ -183,7 +186,7 @@ export async function boot() {
     pauseInput(); $('boot').hidden = false; $('boot-message').textContent = '描画が中断されました'; $('boot-detail').textContent = error.message;
     $('boot-retry').hidden = false; $('game').dataset.renderer = 'lost';
   });
-  $('pause').onclick = () => safe(settings); $('memory').onclick = () => safe(lineage); $('scent').onclick = () => { game.resetIdle(); audio.start(); game.sense(); };
+  $('pause').onclick = () => safe(settings); $('memory').onclick = () => safe(lineage); $('swipe-hint').onclick = () => safe(help); $('scent').onclick = () => { game.resetIdle(); audio.start(); game.sense(); };
   $('return').onclick = toggleReturn; $('dash-stop').onclick = pauseInput; $('sheet-close').onclick = () => safe(dismissSheet);
   window.addEventListener('resize', () => view.resize()); installInput(); requestAnimationFrame(frame);
   window.__NIGHT_HUNT__ = {
