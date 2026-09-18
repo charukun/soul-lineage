@@ -78,6 +78,22 @@ GitHub の `open + base=develop + draft=false` は merge 直前の一時状態�
 
 通常 Chat / WORK 全体を監視する汎用 heartbeat daemon があるとは扱わない。Repair/Rescue 固有の lease / watchdog はその実装範囲だけに適用する。
 
+## 実行不能宣言の禁止と代替経路の強制
+
+実装・反映・実ブラウザ確認・証拠取得など、ユーザーが完遂を依頼したタスクでは、**1つのツールが見えない、1つの通信経路が失敗した、現在のローカル実行環境に対象機能がない、という理由だけで「このセッションではできません」「この環境では無理です」「別セッションでお願いします」と結論して終了してはならない。** その種の文言を最終応答の終了理由として使えるのは、下記の適用可能な既存経路を確認・試行し、なお実在する blocker が残った場合だけとする。その場合も単なる能力宣言ではなく `FAILED` として、試した経路・失敗点・Repository 上の到達状態・残る復旧手段を具体化する。
+
+実装workerは、依頼の「成果」を先に特定し、直接ツール名に依存せず次の順で適用可能な経路を確認する。
+
+1. 現在セッションのローカル実行環境、既存CLI、内部ブラウザ、生成・変換ツールなどの直接経路。
+2. 接続済みGitHub APIによる branch / file / tree / commit / ref / PR / merge 操作。
+3. Repository に既存する GitHub Actions / browser playtest / evidence / DCC carrier / deploy / artifact 経路。
+4. 同 Repository の既存 Codespaces + 通常git、または既存artifact / deployed snapshotを使う復旧経路。
+5. 目的を変えずに実装方式だけを切り替えられる場合は、その代替実装。例: 直接ブラウザが使えない場合はRepository browser playtest、API転送制限ならCodespaces、実行中の公開物が必要ならexact-SHA artifactを使う。
+
+「該当ツールが現在のtool listにない」は、**その成果を達成する既存経路がないことの証明ではない**。AGENTS の task routing と対象専門文書を確認し、Repository が提供する間接経路を先に使う。逆に、存在しない機能を実行したと偽ったり、未取得の画像・動画を確認済みと報告してはならない。
+
+ユーザーに別セッション・手作業・再入力を要求するのは、現在セッションから利用できる承認済み経路とRepository経路を尽くした後に、ユーザー固有の認証・課金承認・外部サービス操作など本当に人間入力が必要な場合だけとする。経路切替そのものの許可は、既存承認範囲なら再質問しない。
+
 ## 失敗と復旧
 
 単発確認時に即時失敗が判明し、その場で安全に直せる場合は同じ branch / PR で修正 → current develop reconciliation → 高速検証 → push → freshness verify → Ready → merge まで同じ実装workerが進める。後から判明したDEV publicationや明示browser検証の失敗は、exact develop SHA / run / 対象 test/log を根拠に別の修正タスクとして扱う。修正タスクも同じ pre-Ready reconciliation と same-task merge を行う。
