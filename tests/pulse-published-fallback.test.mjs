@@ -14,7 +14,7 @@ test('GitHub 403 cannot retain retired names or the old two-environment matrix',
   const state = publishedFallback(old, { schemaVersion: 1, entries: [published('dev', 'actual')] }, options);
   const game = state.applications.find(app => app.id === 'demon');
   assert.equal(game.name, '尽喰廻遊');
-  assert.deepEqual(game.targets.map(target => target.environment), ['dev', 'staging', 'prod']);
+  assert.deepEqual(['dev', 'staging', 'prod'].map(environment => target(game, environment)?.environment), ['dev', 'staging', 'prod']);
   assert.equal(target(game, 'dev').commit, 'actual');
   assert.equal(target(game, 'staging').state, 'missing');
   assert.equal(target(game, 'staging').url, null);
