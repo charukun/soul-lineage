@@ -17,3 +17,11 @@ test('DEV email lookup may read LKG artifacts without adding a separate notifica
   assert.match(resultBlock, /actions: write/);
   assert.doesNotMatch(workflow, /smtp|sendgrid|mailgun/i);
 });
+
+
+test('DEV result records developer-email receipt health independently from ntfy', () => {
+  const resultBlock = workflow.match(/\n  result:\n[\s\S]*?\n  pulse-result-refresh:/)?.[0] || '';
+  assert.match(resultBlock, /steps\.notify\.outputs\.dev_email/);
+  assert.match(resultBlock, /notification\/dev-email/);
+  assert.match(resultBlock, /notification\/ntfy/);
+});
