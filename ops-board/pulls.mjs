@@ -40,21 +40,17 @@ export function githubPullState(pr) {
   if (pr?.state === 'closed') return 'Closed';
   return pr?.draft ? 'Draft' : 'Ready';
 }
-export function isVisualReviewPull(pr) {
-  return pr?.head?.ref === 'work/visual-review-lab-v2' && (!pr.head.repo?.full_name || pr.head.repo.full_name === 'charukun/soul-lineage');
-}
 export function compactPull(pr, now = Date.now()) {
   const copy = pullCopy(pr);
   const state = githubPullState(pr);
   const updatedAt = pr?.updated_at || pr?.created_at || null;
-  const visualReview = isVisualReviewPull(pr);
   return {
     number: pr.number, title: copy.title, detail: copy.detail, state, updatedAt, url: pr.html_url,
-    deliveryStage: !visualReview && state === 'Ready' ? 'READY' : state === 'Merged' ? 'MERGED_TO_DEVELOP' : null,
-    monitoringOwner: !visualReview && state === 'Ready' ? 'Repository Automation' : null,
-    workerEnded: !visualReview && state === 'Ready',
+    deliveryStage: state === 'Ready' ? 'READY' : state === 'Merged' ? 'MERGED_TO_DEVELOP' : null,
+    monitoringOwner: state === 'Ready' ? 'Repository Automation' : null,
+    workerEnded: state === 'Ready',
     head: pr?.head?.ref || null, headSha: pr?.head?.sha || null, baseSha: pr?.base?.sha || null,
-    visualReview, staleDraft: !visualReview && state === 'Draft' && Boolean(updatedAt) && now - Date.parse(updatedAt) >= STALE_DRAFT_MS,
+    staleDraft: state === 'Draft' && Boolean(updatedAt) && now - Date.parse(updatedAt) >= STALE_DRAFT_MS,
     targets: Array.isArray(pr?.targetApps) ? pr.targetApps : [], targetsComplete: pr?.targetAppsComplete === true,
     targetsStatus: pr?.targetAppsStatus || 'pending', targetsUpdatedAt: pr?.targetAppsUpdatedAt || null,
   };
@@ -64,6 +60,5 @@ export function sortPulls(items = []) {
   return [...items].sort((a, b) => (priority[a.state] ?? 9) - (priority[b.state] ?? 9) || (Date.parse(b.updatedAt || 0) || 0) - (Date.parse(a.updatedAt || 0) || 0) || b.number - a.number);
 }
 export function splitPulls(pulls = [], now = Date.now()) {
-  const items = sortPulls(pulls.map(pr => compactPull(pr, now)));
-  return { normal: items.filter(item => !item.visualReview), visualReview: items.filter(item => item.visualReview) };
+  return { normal: sortPulls(pulls.map(pr => compactPull(pr, now))) };
 }
