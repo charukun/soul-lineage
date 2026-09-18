@@ -62,7 +62,7 @@
   background:#79c9f4;
 }
 .title-world{background:#79c9f4}
-.title-world-base{
+.title-world-base,.title-live-canvas{
   object-position:50% 48%;
   filter:saturate(1.08) contrast(.98) brightness(1.08);
 }
@@ -118,15 +118,21 @@
 .title-screen[data-intro="idle"] footer{opacity:1;filter:none}
 .title-screen[data-intro="idle"] .title-lockup{transform:translateX(-50%) translateY(0)}
 .title-screen[data-intro="idle"] .title-actions{transform:translateX(-50%) translateY(0)}
+.title-screen[data-ready="false"][data-intro="idle"] .title-actions,
+.title-screen[data-ready="false"][data-intro="idle"] .title-controller-hints{opacity:0;pointer-events:none}
+.title-screen[data-ready="false"][data-intro="idle"] .boot-status{opacity:1}
 
-.title-screen[data-intro="cinematic"] .title-world-base{
+.title-screen[data-intro="cinematic"] .title-world-base,
+.title-screen[data-intro="cinematic"] .title-live-canvas{
   animation:title-cinematic-flight 8.2s cubic-bezier(.16,.74,.24,1) both!important;
   will-change:transform,filter;
 }
-.title-screen[data-intro="settling"] .title-world-base{
+.title-screen[data-intro="settling"] .title-world-base,
+.title-screen[data-intro="settling"] .title-live-canvas{
   animation:title-cinematic-settle 1.7s cubic-bezier(.16,.74,.24,1) both!important;
 }
-.title-screen[data-intro="idle"] .title-world-base{
+.title-screen[data-intro="idle"] .title-world-base,
+.title-screen[data-intro="idle"] .title-live-canvas{
   animation:title-living-still-camera 18s ease-in-out infinite alternate!important;
 }
 
@@ -191,12 +197,12 @@
 }
 
 @media(max-width:700px){
-  .title-world-base{object-position:50% 50%}
+  .title-world-base,.title-live-canvas{object-position:50% 50%}
   .title-lockup{top:calc(env(safe-area-inset-top) + 38px);width:88vw}
   .title-actions{bottom:calc(env(safe-area-inset-bottom) + 78px);width:min(280px,76vw)}
   .title-command{min-height:40px;font-size:17px}
 }
 @media(prefers-reduced-motion:reduce){
   .title-copy,.title-lockup,.title-actions,.title-controller-hints,.title-screen .boot-status,.title-screen footer{transition:none!important}
-  .title-screen .title-world-base{animation:none!important;transform:scale(1.055)!important}
+  .title-screen .title-world-base,.title-screen .title-live-canvas{animation:none!important;transform:scale(1.055)!important}
 }
