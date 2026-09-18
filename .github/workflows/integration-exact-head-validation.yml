@@ -1,0 +1,162 @@
+name: Trusted refreshed-head DEV validation
+on:
+  workflow_call:
+    inputs:
+      pr:
+        description: 'Ready PR number'
+        type: number
+        required: true
+      head:
+        description: 'Exact refreshed PR head SHA'
+        type: string
+        required: true
+      base:
+        description: 'Develop SHA merged into the refreshed head'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Stack Validate and build #${{ inputs.pr }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: write
+    env:
+      APP_ENV: dev
+      PR_NUMBER: ${{ inputs.pr }}
+      HEAD_SHA: ${{ inputs.head }}
+      BASE_SHA: ${{ inputs.base }}
+    steps:
+      - name: Reconfirm current PR, exact head and develop before trusted validation
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const number = Number(process.env.PR_NUMBER);
+            const expectedHead = process.env.HEAD_SHA;
+            const expectedBase = process.env.BASE_SHA;
+            if (!Number.isSafeInteger(number) || !/^[0-9a-f]{40}$/.test(expectedHead || '') ||
+                !/^[0-9a-f]{40}$/.test(expectedBase || '')) {
+              core.setFailed('REFRESHED_HEAD_COORDINATES_INVALID');
+              return;
+            }
+            const [{ data: pr }, { data: branch }] = await Promise.all([
+              github.rest.pulls.get({ ...context.repo, pull_number: number }),
+              github.rest.repos.getBranch({ ...context.repo, branch: 'develop' }),
+            ]);
+            if (pr.state !== 'open' || pr.draft || pr.base.ref !== 'develop' ||
+                pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+                pr.head.sha !== expectedHead) {
+              core.setFailed('REFRESHED_HEAD_PR_CHANGED');
+              return;
+            }
+            if (branch.commit.sha !== expectedBase) {
+              core.setFailed('REFRESHED_HEAD_DEVELOP_CHANGED');
+            }
+      - name: Mark trusted refreshed-head validation pending
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: process.env.HEAD_SHA,
+              context: 'integration/stack-fast',
+              state: 'pending',
+              description: 'Trusted exact-head DEV validation is running',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          path: control
+          persist-credentials: false
+          sparse-checkout: |
+            scripts
+            ops-board
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.head }}
+          path: work
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: work/package-lock.json
+      - name: Bind trusted DEV validator to exact PR dependencies
+        run: ln -s ../work/node_modules control/node_modules
+      - name: Fetch exact refreshed base only
+        working-directory: work
+        run: |
+          if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          fi
+          git cat-file -e "$BASE_SHA^{commit}"
+          depth=16
+          while ! git merge-base "$BASE_SHA" "$HEAD_SHA" >/dev/null 2>&1; do
+            if [ "$depth" -gt 256 ]; then
+              echo 'Unable to recover refreshed-head merge base' >&2
+              exit 1
+            fi
+            git fetch --no-tags --deepen="$depth" origin "$HEAD_SHA"
+            depth=$((depth * 2))
+          done
+      - name: Check exact refreshed patch whitespace
+        working-directory: work
+        run: git diff --check "$BASE_SHA" "$HEAD_SHA"
+      - name: Cheap gate-cost preflight before dependency install
+        run: node control/scripts/integration-gate-cost.mjs work "$BASE_SHA" "$HEAD_SHA"
+      - name: Resolve exact refreshed head and affected workspaces
+        id: plan
+        working-directory: work
+        run: node ../control/scripts/affected.mjs "$BASE_SHA" "$HEAD_SHA" dev
+      - name: Run npm ci when affected work requires dependencies
+        working-directory: work
+        if: steps.plan.outputs.has_apps == 'true' || steps.plan.outputs.infrastructure == 'true'
+        run: npm ci
+      - name: Run trusted test-free DEV validation
+        working-directory: work
+        run: node ../control/scripts/validate.mjs dev "$BASE_SHA" "$HEAD_SHA"
+      - name: Record refreshed PR/head identity for Fast Lane
+        working-directory: work
+        run: |
+          mkdir -p .deploy-state
+          node --input-type=module -e "import fs from 'node:fs'; fs.writeFileSync('.deploy-state/pr-fast.json', JSON.stringify({pr:Number(process.env.PR_NUMBER),head:process.env.HEAD_SHA,base:process.env.BASE_SHA,source:'integration-repair-stack'}));"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr-fast-${{ inputs.pr }}-${{ inputs.head }}
+          path: work/.deploy-state/pr-fast.json
+          overwrite: true
+          retention-days: 14
+      - name: Record trusted refreshed-head validation success
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: process.env.HEAD_SHA,
+              context: 'integration/stack-fast',
+              state: 'success',
+              description: 'Trusted exact-head DEV validation passed',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+      - name: Record trusted refreshed-head validation failure
+        if: failure()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            if (!/^[0-9a-f]{40}$/.test(process.env.HEAD_SHA || '')) return;
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: process.env.HEAD_SHA,
+              context: 'integration/stack-fast',
+              state: 'failure',
+              description: 'Trusted exact-head DEV validation failed',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
