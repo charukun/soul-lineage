@@ -33,16 +33,16 @@ async function verifyProfile(profile){
     assert.equal(await page.locator('[data-review-target]').count(),5);assert.equal(await page.locator('iframe').count(),0);
     const widthOk=await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1);assert.equal(widthOk,true);
 
-    await activate(page.locator('[data-review-target="motion"]'));await page.waitForURL(/characters\.html\?review=motion/,{timeout:15000});await page.locator('main.review-app').waitFor({state:'visible',timeout:45000});await home();
-    await activate(page.locator('[data-review-target="characters"]'));await page.waitForURL(/characters\.html/,{timeout:15000});await page.locator('main.review-app').waitFor({state:'visible',timeout:45000});await home();
-    await activate(page.locator('[data-review-target="assets"]'));await page.waitForURL(/review-assets\.html/,{timeout:15000});await page.locator('body').waitFor({state:'visible'});await home();
+    await activate(page.locator('[data-review-target="motion"]'));await page.waitForURL(/characters\.html\?review=motion/,{waitUntil:'domcontentloaded',timeout:15000});await page.locator('main.review-app').waitFor({state:'visible',timeout:45000});await home();
+    await activate(page.locator('[data-review-target="characters"]'));await page.waitForURL(/characters\.html/,{waitUntil:'domcontentloaded',timeout:15000});await page.locator('main.review-app').waitFor({state:'visible',timeout:45000});await home();
+    await activate(page.locator('[data-review-target="assets"]'));await page.waitForURL(/review-assets\.html/,{waitUntil:'domcontentloaded',timeout:15000});await page.locator('body').waitFor({state:'visible'});await home();
 
-    await activate(page.locator('[data-review-target="effects"]'));await page.waitForURL(/review-effects\.html/,{timeout:15000});
+    await activate(page.locator('[data-review-target="effects"]'));await page.waitForURL(/review-effects\.html/,{waitUntil:'domcontentloaded',timeout:15000});
     await page.locator('#fx-stage').waitFor({state:'visible',timeout:30000});
     await page.locator('#fx-status').evaluate(node=>new Promise((ok,fail)=>{const done=()=>{if(node.textContent?.includes('原本再生可能')){observer.disconnect();ok();}};const observer=new MutationObserver(done);observer.observe(node,{childList:true,subtree:true,characterData:true});done();setTimeout(()=>{observer.disconnect();fail(new Error(`VFX not ready: ${node.textContent}`));},60000);}));
     await activate(page.locator('[data-preset="finisher"]'));const effectStatus=await page.locator('#fx-status').textContent();const effectScreenshot=`effects-${profile.name}.png`;await page.screenshot({path:resolve(reportDir,effectScreenshot),fullPage:true});await home();
 
-    await activate(page.locator('[data-review-target="battle"]'));await page.waitForURL(/review-battle\.html/,{timeout:15000});
+    await activate(page.locator('[data-review-target="battle"]'));await page.waitForURL(/review-battle\.html/,{waitUntil:'domcontentloaded',timeout:15000});
     await page.waitForFunction(()=>document.querySelector('#battle-canvas')?.dataset.battleGeometry==='runtime-models',null,{timeout:45000});
     await page.waitForFunction(()=>document.querySelector('#battle-canvas')?.dataset.battleModels==='ready',null,{timeout:90000});
     await page.waitForFunction(()=>Number.parseFloat(document.querySelector('#battle-time')?.textContent||'0')>=.2,null,{timeout:15000});
