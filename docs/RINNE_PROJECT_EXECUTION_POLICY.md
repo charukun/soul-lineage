@@ -72,7 +72,7 @@ GitHub の `open + base=develop + draft=false` は merge 直前の一時状態�
 | DEV 完了 | target develop SHA の `dev/delivery=success` | `DEV_DEPLOYED` |
 | 実装失敗 | branch / commit / Draft or hold / reason | `FAILED` |
 
-通知は既存の設定済み経路を再利用する。`NTFY_TOPIC_URL` / `NTFY_TOKEN` が未設定・送信失敗なら GitHub 側へ記録し、スマホ到達を確認済みと報告しない。通知成功は code / CI / DEV 成功の証拠ではなく、通知失敗も実装失敗には置き換えない。ChatGPT アプリ自身の push / 応答表示は完了判定に使わない。
+開発者向け lifecycle 通知は GitHub 上の status / PR Conversation を正本とし、個人向け `DEV反映完了` は [`DEV_NOTIFICATION.md`](DEV_NOTIFICATION.md) の GitHub PR購読メール経路だけを使う。ゲームプレイヤー向け push / ntfy は開発者通知の代替にせず、develop publication、Ready / handoff、PULSE control-plane、Repair / Rescue から送信しない。Gmail が端末へ通知を表示したかどうかは Repository の成功条件に含めず、Repository 側は GitHub receipt の生成までを観測する。通知成功は code / CI / DEV 成功の証拠ではなく、通知失敗も実装失敗には置き換えない。ChatGPT アプリ自身の push / 応答表示も完了判定に使わない。
 
 通常 Chat / WORK 全体を監視する汎用 heartbeat daemon があるとは扱わない。Repair/Rescue 固有の lease / watchdog はその実装範囲だけに適用する。
 
