@@ -13,13 +13,13 @@ import {PREY, FORMS, offerVillages} from '@soul/raid/world';
 import {SwipeInput} from '@soul/input';
 import {renderLineage} from './lineage.js';
 import {huntPresentationSnapshot} from './presentation-snapshot.js';
-import {renderExplanationCards} from './explanation-ui.js';
+import {AngledGuide} from './angled-guide.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 let view, game, store, profile, flow, error = null, mode = 'title', paused = false, sheetKind = '', entering = false;
 let toastUntil = 0, last = 0, acc = 0, returnMode = false, lastHud = 0, disposeCharacterSelection = null;
-const swipe = new SwipeInput(), audio = new NightAudio();
+const swipe = new SwipeInput(), audio = new NightAudio(), guide = new AngledGuide();
 function safe(fn) { try { return fn(); } catch (e) { console.error(e); showError(e.message || String(e)); } }
 function pauseInput() { game?.resetIdle(); swipe.cancel(); $('move-pad').hidden = true; $('dash-stop').hidden = true; }
 function sheet(title, kicker, html, kind) {
@@ -77,6 +77,7 @@ async function claimAndEnter(v) {
     pauseInput(); await view.prepareCharacter(activeCharacter(store.read()).id);
     store.claim(v); closeSheet(); newSession(v); mode = 'hunt'; paused = false; returnMode = false;
     $('title').hidden = true; $('hud').hidden = false; audio.start(); last = 0; acc = 0; toastUntil = 0;
+    guide.show({side:'right', kicker:'動きかた', title:'指を滑らせる', body:[{label:'滑らせる', text:'移動'},{label:'何もしない', text:'徘徊'}], duration:5200});
   } catch (e) { showError(e.message || String(e)); }
   finally { entering = false; $('begin').disabled = false; }
 }
@@ -87,13 +88,17 @@ async function randomHunt(route = 'mission') {
 }
 function lineage() { refresh(); sheet('転生史', '身体に残ったもの', renderLineage(profile), 'lineage'); }
 function help() {
-  const cards = [
-    {mark:'歩', title:'移動する', body:'指を滑らせて移動。敵に近づくと戦闘は自動で始まります。', note:'危険なら敵と逆へ距離を取り、間合いを切る。'},
-    {mark:'喰', title:'捕食する', body:'倒れた獲物のそばで止まると捕食が始まります。', note:'動くと中断。安全を確かめて止まる。'},
-    {mark:'帰', title:'帰還する', body:'帰還口の輪の中で止まると、戦利品を確保して戻れます。', note:'持ち帰った戦利品で肉体を強化できる。'},
-    {mark:'失', title:'倒れたとき', body:'死亡すると、その夜にまだ確保していない戦利品を失います。', note:'覚えた特能と恒久強化は次の生にも残る。'}
-  ];
-  sheet('狩りかた', '遊びながら覚える', renderExplanationCards(cards, {locale: document.documentElement.lang}), 'help');
+  if (!$('sheet').hidden) { closeSheet(); paused = false; }
+  guide.show({
+    side:'right',
+    kicker:'動きかた',
+    title:'狩りは、止めずに覚える',
+    body:[
+      {label:'滑らせる', text:'移動 · 敵に近づくと自動戦闘'},
+      {label:'倒れた獲物', text:'そばで止まって捕食'},
+      {label:'帰還口', text:'輪の中で止まって帰還'}
+    ]
+  });
 }
 function settings() {
   let html = '<button class="inline-action" id="movement-help">狩りかた</button><button class="inline-action" id="sound-toggle">環境音・効果音：' + (audio.enabled ? '入' : '切') + '</button><button class="inline-action" id="visit-log">喰痕</button><button class="inline-action" id="credits">素材と接続状況</button><button class="inline-action" id="music-library">音楽室・BGM音量</button><button class="inline-action" id="settings-memory">転生史</button>';
@@ -129,7 +134,7 @@ function hud(now) {
   $('scent').disabled = ui.scentDisabled; $('memory').disabled = ui.memoryDisabled; $('return').disabled = ui.returnDisabled;
   $('return').classList.toggle('locked', ui.returnLocked); $('return-label').textContent = ui.returnLocked ? '捕食後' : '帰路';
   $('scent').querySelector('span').textContent = game.scentCooldown > 0 ? Math.ceil(game.scentCooldown) + '秒' : '嗅覚';
-  $('dash-stop').hidden = !swipe.dash; $('swipe-hint').style.opacity = '0';
+  $('dash-stop').hidden = !swipe.dash;
   $('eaten-label').textContent = `捕食 ${game.eaten} · 技速 ${game.huntStats().techniqueSpeed}%`;
   $('toast').style.opacity = now < toastUntil && mode === 'hunt' && $('sheet').hidden ? '1' : '0';
   flow.update(game, {returning: returnMode, overlay: !$('sheet').hidden || paused || mode !== 'hunt'});
@@ -186,7 +191,7 @@ export async function boot() {
   const preview = {id:'title-only-not-entered', name:'森の向こうの灯', seed:67002, target:'arcanist', level:1, weather:'fog', source:'generated'};
   game = new RaidSession(preview, profile, {}); view.build(game.village); await view.prepareCharacter(activeCharacter(profile).id);
   game.player.x = 1; game.player.z = 20; game.player.yaw = .5; view.camera.position.set(5, 3.6, 27); view.cameraLook.set(1, .95, 18); view.update(game, 0, true);
-  flow = new HuntFlowUi({sheet, start: randomHunt, profile: () => profile, species: () => game.monsterSpecies, toggleReturn,
+  flow = new HuntFlowUi({sheet, guide, start: randomHunt, profile: () => profile, species: () => game.monsterSpecies, toggleReturn,
     upgrade: key => safe(() => { const changed = store.upgrade(key); refresh(); return changed; })});
   $('game').dataset.renderer = 'ready'; Object.assign($('game').dataset, {app:'demon', commit:__BUILD_INFO__.commit, environment:__BUILD_INFO__.environment, platform:'web', world:'night-hunt.v5', asset:'kaykit.floor_tile_small'});
   $('emblem').src = sharedEmblemUrl; $('boot').hidden = true; $('title').hidden = false;
@@ -197,7 +202,7 @@ export async function boot() {
     pauseInput(); $('boot').hidden = false; $('boot-message').textContent = '描画が中断されました'; $('boot-detail').textContent = error.message;
     $('boot-retry').hidden = false; $('game').dataset.renderer = 'lost';
   });
-  $('pause').onclick = () => safe(settings); $('memory').onclick = () => safe(lineage); $('scent').onclick = () => { game.resetIdle(); audio.start(); game.sense(); };
+  $('pause').onclick = () => safe(settings); $('swipe-hint').onclick = () => safe(help); $('memory').onclick = () => safe(lineage); $('scent').onclick = () => { game.resetIdle(); audio.start(); game.sense(); };
   $('return').onclick = toggleReturn; $('dash-stop').onclick = pauseInput; $('sheet-close').onclick = () => safe(dismissSheet);
   window.addEventListener('resize', () => view.resize()); installInput(); requestAnimationFrame(frame);
   window.__NIGHT_HUNT__ = {
