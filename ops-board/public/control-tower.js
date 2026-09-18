@@ -73,10 +73,10 @@ function deltaText(current) {
 
 function compactFlow(flow = []) {
   const groups = [
-    { id:'work', label:'作業', ids:['implementation'] },
+    { id:'work', label:'作業', ids:['work','implementation'] },
     { id:'ready', label:'Ready', ids:['ready'] },
     { id:'integration', label:'統合', ids:['integration','develop'] },
-    { id:'dev', label:'DEV', ids:['dev'] },
+    { id:'dev', label:'DEV', ids:['publication','dev'] },
   ];
   const rank = state => ({ active:4, current:4, progress:4, waiting:2, done:1 })[state] || 2;
   return groups.map(group => {
