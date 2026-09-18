@@ -2,6 +2,7 @@ import { ACTION_SKILLS, SUPPORT_SKILLS, SKILL_BY_ID } from './rebuild/skill-syst
 
 export const PHASES=Object.freeze([['jo','序'],['ha','破'],['kyu','急']]);
 export const MAX_COMBOS=6;
+export const HEART_SLOT_COUNT=3;
 const BASIC_BY_WEAPON=Object.freeze({fist:'basic.fist',sword:'basic.sword',dagger:'basic.dagger',great:'basic.great',spear:'basic.spear',axe:'basic.axe',staff:'basic.staff'});
 const BASIC_LABELS=Object.freeze({'basic.fist':'徒手の型','basic.sword':'剣の型','basic.dagger':'短剣の型','basic.great':'大剣の型','basic.spear':'槍の型','basic.axe':'戦斧の型','basic.staff':'杖の型'});
 const COMBO_NAMES=Object.freeze(['壱ノ連','弐ノ連','参ノ連','肆ノ連','伍ノ連','陸ノ連']);
@@ -65,7 +66,31 @@ export function learnedTechniqueSkills(state,{oneMotion=false}={}){ensureCombatL
 export function techniqueName(id){return SKILL_BY_ID[id]?.name||BASIC_LABELS[id]||id||'未設定';}
 export function activeCombo(state){const loadout=state?.combatLoadout||ensureCombatLoadout(state);return loadout?.technique?.combos?.find(row=>row.id===loadout.technique.activeComboId)||loadout?.technique?.combos?.[0]||null;}
 export function comboById(state,id){ensureCombatLoadout(state);return state.combatLoadout.technique.combos.find(row=>row.id===id)||activeCombo(state);}
-export function setHeartActive(state,id,active){const loadout=ensureCombatLoadout(state);if(!learnedHeartSkills(state).includes(id))return false;const set=new Set(loadout.heart.active);active?set.add(id):set.delete(id);loadout.heart.active=[...set];return true;}
+export function setHeartActive(state,id,active){
+  const loadout=ensureCombatLoadout(state);if(!learnedHeartSkills(state).includes(id))return false;
+  const rows=[...loadout.heart.active],index=rows.indexOf(id);
+  if(active){
+    if(index>=0)return true;
+    if(rows.length>=HEART_SLOT_COUNT)return false;
+    rows.push(id);
+  }else if(index>=0)rows.splice(index,1);
+  loadout.heart.active=rows;return true;
+}
+export function setHeartSlot(state,slot,id){
+  const loadout=ensureCombatLoadout(state),rows=[...loadout.heart.active].slice(0,HEART_SLOT_COUNT),index=Math.max(0,Math.min(HEART_SLOT_COUNT-1,Number(slot)||0));
+  if(id==null){if(index<rows.length)rows.splice(index,1);loadout.heart.active=rows;return true;}
+  if(!learnedHeartSkills(state).includes(id))return false;
+  const existing=rows.indexOf(id);
+  if(existing===index)return true;
+  if(existing>=0){
+    const displaced=rows[index];
+    rows[index]=id;
+    if(displaced==null)rows.splice(existing,1);
+    else rows[existing]=displaced;
+  }else if(index<rows.length)rows[index]=id;
+  else rows.push(id);
+  loadout.heart.active=rows.slice(0,HEART_SLOT_COUNT);return true;
+}
 export function addCombo(state){const loadout=ensureCombatLoadout(state),rows=loadout.technique.combos;if(rows.length>=MAX_COMBOS)return null;const source=activeCombo(state),ids=new Set(rows.map(row=>row.id));let serial=1;while(ids.has(`combo-${serial}`))serial++;const combo=makeCombo(state,rows.length,{id:`combo-${serial}`,slots:{...source.slots}});rows.push(combo);return combo;}
 export function removeCombo(state,id){const loadout=ensureCombatLoadout(state),rows=loadout.technique.combos;if(rows.length<=1)return false;const index=rows.findIndex(row=>row.id===id);if(index<0)return false;rows.splice(index,1);if(loadout.technique.activeComboId===id)loadout.technique.activeComboId=rows[0].id;mirrorLegacy(state);return true;}
 export function setActiveCombo(state,id){const loadout=ensureCombatLoadout(state);if(!loadout.technique.combos.some(row=>row.id===id))return false;loadout.technique.activeComboId=id;mirrorLegacy(state);return true;}

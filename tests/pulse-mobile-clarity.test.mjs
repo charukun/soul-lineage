@@ -42,3 +42,20 @@ test('focused browser verification uses the same 520px app-grid contract', () =>
   assert.match(browserCheck, /metrics\.grids\.every\(n => n === expectedColumns\)/);
   assert.doesNotMatch(browserCheck, /metrics\.grids\.every\(n => n === 3\)/);
 });
+
+
+test('operational control detail is collapsed behind the primary action decision', () => {
+  const action = html.indexOf('id="control-headline"');
+  const next = html.indexOf('id="control-next"');
+  const disclosure = html.indexOf('class="control-details nested-disclosure"');
+  const flow = html.indexOf('id="control-flow"');
+  assert.ok(action >= 0 && action < next && next < disclosure && disclosure < flow);
+  assert.match(html, /<summary>処理の内訳を見る<\/summary>/);
+  assert.doesNotMatch(html, /<details class="control-details nested-disclosure"[^>]*open/);
+});
+
+test('clarity pass keeps publication progress compact on phone widths', () => {
+  assert.match(css, /@media \(max-width: 519px\)[\s\S]*\.overview-publication-grid\s*\{[^}]*grid-template-columns:\s*1fr;/);
+  assert.match(css, /@media \(max-width: 519px\)[\s\S]*\.overview-publication-row\s*\{[^}]*grid-template-columns:\s*72px minmax\(0, 1fr\)/);
+  assert.match(css, /\.control-details\s*\{[^}]*margin-top:\s*8px;/s);
+});

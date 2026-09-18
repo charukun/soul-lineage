@@ -14,3 +14,11 @@ export function createHostClock(tick, startMs) {
     return snapshot;
   };
 }
+
+/** Preserve accelerated world time while bounding simulation work per rendered frame. */
+export function advanceAcceleratedFrame(deltaSeconds,tick,{maxSlices=8,maxSliceSeconds=1/12}={}){
+  if(!Number.isFinite(deltaSeconds)||deltaSeconds<=0)return 0;
+  const slices=Math.max(1,Math.min(maxSlices,Math.ceil(deltaSeconds/maxSliceSeconds))),step=deltaSeconds/slices;
+  for(let i=0;i<slices;i++)tick(step);
+  return slices;
+}

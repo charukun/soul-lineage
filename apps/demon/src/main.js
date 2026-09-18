@@ -24,7 +24,6 @@ try {
   const game = await import('./web/main.js');
   progress.value = 2;
   await game.boot();
-  document.querySelector('#swipe-hint').onclick = () => document.querySelector('#pause')?.click();
   // HuntFlowUi is the single owner of progression and next-action guidance.
   progress.value = 3;
 } catch (error) {

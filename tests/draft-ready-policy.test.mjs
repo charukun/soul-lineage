@@ -18,7 +18,8 @@ test('Draft stays lightweight and Ready develop uses no-test CI while browser re
   assert.match(ci, /TARGET_BASE: \$\{\{ github\.event\.pull_request\.base\.ref \}\}/);
   assert.match(ci, /if \[ "\$TARGET_BASE" = "develop" \]; then[\s\S]*node scripts\/validate\.mjs dev/);
   assert.match(ci, /else[\s\S]*node scripts\/validate\.mjs fast/);
-  assert.match(ci.split('  integration-request:')[1], /needs.readiness.outputs.ready == 'true'/);
+  assert.match(ci.split('  merge-ready:')[1], /uses: \.\/\.github\/workflows\/integration-controller\.yml/);
+  assert.doesNotMatch(ci, /integration-request:/);
   assert.doesNotMatch(ci, /name: Affected browser smoke/);
   assert.doesNotMatch(ci, /browser-repair-dispatch:/);
   assert.doesNotMatch(ci, /npx playwright install/);

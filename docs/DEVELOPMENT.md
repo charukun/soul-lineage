@@ -16,7 +16,9 @@ latest develop
   -> push
   -> final develop freshness check
   -> Ready for review
-  -> READY_FOR_INTEGRATION
+  -> exact-head CI
+  -> serialized expected-head merge to develop
+  -> asynchronous DEV publication
   -> session ends
 ```
 
@@ -32,13 +34,15 @@ latest develop
   -> push
   -> final develop freshness check
   -> Ready PR directly
-  -> READY_FOR_INTEGRATION
+  -> exact-head CI
+  -> serialized expected-head merge to develop
+  -> asynchronous DEV publication
   -> session ends
 ```
 
-Micro Patch の適用条件・除外条件は [`MICRO_PATCH_FAST_LANE.md`](MICRO_PATCH_FAST_LANE.md) を正本とする。Ready 後の CI / Integration / DEV publication の品質境界は通常実装と同じであり、fast path を理由に exact-head gate を省略しない。
+Micro Patch の適用条件・除外条件は [`MICRO_PATCH_FAST_LANE.md`](MICRO_PATCH_FAST_LANE.md) を正本とする。Ready 後の exact-head CI / serialized merge / DEV publication の品質境界は通常実装と同じであり、fast path を理由に gate を省略しない。
 
-Ready 後の CI 監視、develop merge、DEV 公開、明示browser verification、repair は Integration または専用経路の責任。実装 WORK は Running / Queued / Pending の check を完了まで watch・sleep・polling しない。
+このRepositoryは個人開発 + AI並列workerを前提とする。Ready PR を別の Integration 担当へ handoff する工程は通常経路に置かない。Ready exact-head の検証成功後は同じ PR Checks workflow から single-writer merge lane を直接起動し、条件を満たせば `develop` へ merge する。実装 WORK は Running / Queued / Pending の check を完了まで watch・sleep・polling しない。
 
 ## Pre-Ready Reconciliation
 
@@ -48,7 +52,7 @@ Ready 後の CI 監視、develop merge、DEV 公開、明示browser verification
 
 merge-forward 後は affected focused validation をもう一度行い、reconciled head を push する。Ready 化の直前には `npm run pre-ready:verify` で current `origin/develop` をもう一度 fetch し、取得した develop が current head の ancestor であることを確認する。verify が stale を返した場合は `pre-ready:sync` → focused validation → push → `pre-ready:verify` を繰り返してから Ready にする。
 
-これは Integration を廃止するものではない。Ready 化と Integration の間にも race は残るため、Integration の serialized expected-head merge / exact-head gate は最後の原子的な改札として維持する。Ready 後に develop が進んだ場合だけ Integration/Fast Repair が短い race を吸収し、意味衝突だけを修復経路へ送る。実装 WORK は Ready 後の race を監視・polling しない。
+別担当としての Integration handoff は廃止するが、serialized expected-head merge / exact-head gate 自体は最後の原子的な改札として維持する。Ready 後に develop が進んだ場合だけ Fast Repair が短い race を吸収し、意味衝突だけを修復経路へ送る。実装 WORK は Ready 後の race を監視・polling しない。
 
 checkout がなく connected GitHub API 経路だけで作業する場合も同じ意味契約を守る。Ready の前に current develop を再取得し、work branch head がその develop を親履歴として含む reconciled head を作り、必要な focused validation を済ませてから Ready にする。
 
@@ -62,7 +66,7 @@ checkout がなく connected GitHub API 経路だけで作業する場合も同�
 6. Ready 準備に入ったら `npm run pre-ready:sync` で current `develop` を work branch へ merge-forward する。競合があれば current develop と実装意図の両方を満たすよう実装 WORK が解消する。reconciled head で変更責任に必要な focused validation を再実行する。
 7. push 前に `npm run push:route -- origin/develop HEAD` を使える環境では実行する。通常 git → 接続済み GitHub API → 同じ branch の既存 Codespaces + 通常 git の順に復旧する。1経路の失敗だけで終了しない。reconciled head を push する。
 8. Ready 化の直前に `npm run pre-ready:verify` を実行する。current develop が head に含まれていなければ手順6へ戻り、最新 develop の取り込み・focused validation・push を行う。fresh を確認したら PR 本文を実施結果へ更新し、通常タスクは Ready for review にする。Micro Patch はこの時点で初めて Ready PR を作る。
-9. branch / exact head SHA / PR / Ready / reconciled develop SHA / 実行済み検証を報告し、`READY_FOR_INTEGRATION` で終了する。handoff recorder、通知、CI、DEV 公開の完了待ちはしない。
+9. branch / exact head SHA / PR / Ready / reconciled develop SHA / 実行済み検証を報告して終了する。Ready exact-head CI 成功後の merge は同じGitHub workflowが引き継ぐため、`READY_FOR_INTEGRATION` という別担当向け handoff 状態は通常経路では使わない。通知、CI、DEV 公開の完了待ちはしない。
 
 ## Micro Patch Fast Lane
 
@@ -93,7 +97,7 @@ GitHub 標準状態をそのまま使う。
 | 状態 | 意味 |
 | --- | --- |
 | Draft | 作業中 / 未完了 |
-| Ready for review | Integration 待ち |
+| Ready for review | exact-head CI / 自動merge待ち |
 | Merged | develop 統合完了 |
 | Closed (unmerged) | 中止 / 終了 |
 

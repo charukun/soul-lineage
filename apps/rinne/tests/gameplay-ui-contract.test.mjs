@@ -52,9 +52,9 @@ test('rebirth preview matches the reset/persist behavior of the domain',()=>{
   const next=rebirth(state,{villageId:'village-a',villageIds:['village-a']});assert.equal(next.ageYears,0);assert.equal(next.equipment.weapon,'fist');assert.deepEqual(next.experiences,{});assert.deepEqual(next.homelands,['village-a']);assert.equal(next.lineage.length,2);
 });
 
-test('main UI keeps four plan entrances, no debug entrance, and no direct equipment mutation',async()=>{
+test('main UI exposes heart technique body equipment plus a top-right radar without direct equipment mutation',async()=>{
   const ui=await readFile(new URL('../src/gameplay-ui.js',import.meta.url),'utf8'),upgrade=await readFile(new URL('../src/gameplay-upgrade.js',import.meta.url),'utf8'),css=await readFile(new URL('../src/gameplay-ui-contract.css',import.meta.url),'utf8'),index=await readFile(new URL('../index.html',import.meta.url),'utf8');
-  assert.match(ui,/data-combat/);assert.match(ui,/data-items/);assert.match(ui,/data-map/);assert.match(ui,/data-record/);assert.doesNotMatch(ui,/data-debug/);assert.doesNotMatch(ui,/state\.equipment\.(weapon|armor|shield)\s*=/);assert.doesNotMatch(upgrade,/data-debug/);assert.match(css,/\.upgrade-panel\{overflow:hidden!important/);assert.match(index,/gameplay-ui-contract\.css/);
+  assert.match(ui,/data-heart/);assert.match(ui,/data-techniques/);assert.match(ui,/data-body/);assert.match(ui,/data-items/);assert.match(ui,/class=\"rinne-map-radar\"/);assert.match(ui,/data-record/);assert.doesNotMatch(ui,/data-debug/);assert.doesNotMatch(ui,/state\.equipment\.(weapon|armor|shield)\s*=/);assert.doesNotMatch(upgrade,/data-debug/);assert.match(css,/\.upgrade-panel\{overflow:hidden!important/);assert.match(index,/reincarnation-interface-v2\.css/);
 });
 
 test('record UI uses readable life experience labels and an explicit four-rate world clock selector',async()=>{

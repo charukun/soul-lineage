@@ -222,3 +222,166 @@
 @media (prefers-reduced-motion: no-preference) {
   .section-tabs .overview-card:active { transform: scale(.98); }
 }
+
+
+/* 2026-09 PULSE clarity pass: one decision per layer, details on demand. */
+.control-tower {
+  margin-bottom: 10px;
+  padding: 14px;
+  border-radius: 16px;
+}
+.control-hero {
+  align-items: center;
+  gap: 10px;
+}
+.control-hero h2 {
+  margin: 2px 0 3px;
+  font-size: clamp(22px, 6.6vw, 30px);
+  line-height: 1.05;
+}
+.control-summary {
+  margin: 0;
+  max-width: 42rem;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.control-since {
+  align-self: flex-start;
+  font-size: 9px;
+  opacity: .72;
+}
+.control-next {
+  margin-top: 10px;
+  padding: 9px 10px;
+  border-radius: 11px;
+}
+.control-next strong {
+  font-size: 11px;
+  line-height: 1.35;
+}
+.control-details {
+  margin-top: 8px;
+  background: transparent;
+  border-color: color-mix(in srgb, var(--line) 58%, transparent);
+}
+.control-details > summary {
+  min-height: 42px;
+  padding: 7px 9px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.control-details-body {
+  padding: 9px;
+}
+.control-details .control-meta,
+.control-details .control-delta,
+.control-details .control-flow,
+.control-details .control-impact {
+  margin-top: 8px;
+}
+.pulse-overview {
+  margin-top: 0;
+}
+.section-tabs .overview-publication-card {
+  min-height: 112px;
+}
+.overview-publication-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.overview-publication-row {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 7px;
+  border-radius: 9px;
+  background: rgba(255,255,255,.025);
+}
+.overview-publication-row > span:last-child {
+  overflow-wrap: anywhere;
+}
+.detail-zone {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 62%, transparent);
+}
+.detail-zone-head {
+  margin-bottom: 5px;
+}
+.detail-zone-head h2 {
+  font-size: 13px;
+}
+.board-disclosure {
+  margin-top: 6px;
+  box-shadow: none;
+}
+.board-disclosure > summary {
+  min-height: 54px;
+}
+footer {
+  margin-top: 16px;
+  opacity: .72;
+}
+
+@media (max-width: 519px) {
+  .topbar {
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .topbar .eyebrow {
+    display: none;
+  }
+  .pulse-wordmark {
+    margin-top: 3px;
+  }
+  .refresh-area {
+    width: min(55vw, 190px);
+    gap: 5px;
+  }
+  .refresh-area .reload {
+    min-height: 32px;
+  }
+  .control-tower {
+    padding: 12px;
+  }
+  .control-hero {
+    display: block;
+  }
+  .control-since {
+    display: block;
+    margin-top: 7px;
+  }
+  .section-tabs .overview-publication-card {
+    min-height: 108px;
+  }
+  .overview-publication-grid {
+    grid-template-columns: 1fr;
+    gap: 3px;
+    margin-top: 5px;
+    padding-top: 5px;
+  }
+  .overview-publication-row {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    padding: 4px 6px;
+  }
+  .overview-step-label {
+    padding-top: 1px;
+  }
+  .detail-zone-head .muted {
+    display: none;
+  }
+}
+
+@media (max-width: 350px) {
+  .control-hero h2 {
+    font-size: 22px;
+  }
+  .control-summary {
+    font-size: 11px;
+  }
+  .overview-publication-row {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+}
