@@ -4,7 +4,7 @@ export const REVIEW_PRELOAD_GROUPS = Object.freeze({
     assets: Object.freeze(['./simulator/assets/kaykit/Knight.glb'])
   }),
   motion: Object.freeze({
-    route: './characters.html?review=motion',
+    route: './review-motion.html',
     assets: Object.freeze(['./simulator/assets/kaykit/Knight.glb'])
   }),
   assets: Object.freeze({
