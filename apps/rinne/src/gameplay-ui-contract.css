@@ -40,3 +40,14 @@
 @media(prefers-reduced-motion:reduce){.combat-phase-indicator .phase-pulse,.combat-phase-history span{animation:none!important}.combat-phase-history span{opacity:.45!important}}
 /* Enemy durability stays in combat simulation, but no enemy HP meter is exposed in the play HUD. */
 .game-screen :is(.enemy-hp,.enemy-health,.enemy-health-bar,[data-enemy-hp],[data-enemy-health]){display:none!important}
+
+/* Live combat HUD correction: the visible sequence reads the actual runtime action. */
+.combat-phase-indicator{padding-bottom:7px!important}
+.combat-phase-action{position:absolute;left:50%;top:calc(100% + 7px);transform:translateX(-50%);min-width:max-content;padding:2px 8px;border:0;background:rgba(18,15,12,.72);color:#f0dfb8;font-family:var(--font-rinne-display)!important;font-size:10px;font-weight:700;letter-spacing:.08em;text-shadow:0 2px 4px #000}
+.combat-phase-action[hidden]{display:none!important}
+.combat-phase-history{top:calc(100% + 30px)!important;width:210px!important;height:96px!important;overflow:hidden}
+.combat-phase-history span{display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;width:max-content!important;max-width:200px;height:auto!important;padding:2px 7px!important;border:0!important;background:linear-gradient(90deg,transparent,rgba(18,15,12,.56),transparent)!important;font-size:9px!important}
+.combat-phase-history span b{font-family:var(--font-rinne-display)!important;color:#d9a75b;font-size:10px}
+.combat-phase-indicator[data-phase="jo"] [data-link="jo-ha"],
+.combat-phase-indicator[data-phase="ha"] [data-link="ha-kyu"]{color:#f0b85a;opacity:1}
+.game-screen :is(.enemy-hp,.enemy-health,.enemy-health-bar,.enemy-hp-bar,.target-hp,.target-health,.target-health-bar,[data-enemy-hp],[data-enemy-health],[data-target-hp],[data-target-health]){display:none!important}
