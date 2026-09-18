@@ -30,7 +30,7 @@ for(const command of titleCommands){
 }
 title.addEventListener('pointerdown',unlockTitleAudio,{capture:true,passive:true});
 title.addEventListener('keydown',event=>{
-  if(villageDialog.open||settingsDialog.open)return;
+  if(villageDialog.open||settingsDialog.open||title.dataset.intro!=='idle'||title.dataset.ready!=='true')return;
   if(event.key!=='ArrowDown'&&event.key!=='ArrowUp'&&event.key!=='Enter')return;
   unlockTitleAudio();
   const selected=titleCommands.findIndex(item=>item.dataset.selected==='true');
@@ -65,15 +65,20 @@ try{const stored=localStorage.getItem(motionKey);if(stored==='on'||stored==='off
 applyTitleMotion(initialMotion);
 
 function clearTitleIntroTimers(){for(const timer of titleIntroTimers)clearTimeout(timer);titleIntroTimers=[];}
+function setTitleReady(ready,status=''){
+  title.dataset.ready=ready?'true':'false';
+  for(const command of titleCommands)command.disabled=!ready;
+  if(status!==undefined)$('boot-status').textContent=status;
+}
 function beginTitleIntro(){
-  clearTitleIntroTimers();
   const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  if(titleIntroPlayed||title.dataset.motion!=='on'||reduced){
-    title.dataset.intro='idle';
-    titleIntroPlayed=true;
+  if(titleIntroPlayed){
+    if(title.dataset.intro!=='cinematic'&&title.dataset.intro!=='settling')title.dataset.intro='idle';
     return;
   }
+  clearTitleIntroTimers();
   titleIntroPlayed=true;
+  if(title.dataset.motion!=='on'||reduced){title.dataset.intro='idle';return;}
   title.dataset.intro='cinematic';
   titleIntroTimers.push(setTimeout(()=>{if(!title.hidden)title.dataset.intro='settling';},6500));
   titleIntroTimers.push(setTimeout(()=>{if(!title.hidden)title.dataset.intro='idle';},8200));
@@ -91,7 +96,7 @@ function setLoading(message,titleText='世界をつくっています'){
   $('loading-title').textContent=titleText;$('loading-message').textContent=message;retry.hidden=true;loading.hidden=false;
 }
 function showTitle(status=''){
-  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;loading.hidden=true;title.hidden=false;launching=false;booting=false;$('boot-status').textContent=status;refreshContinue();selectTitleCommand($('new-life'),{sound:false});beginTitleIntro();
+  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;loading.hidden=true;title.hidden=false;launching=false;booting=false;refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(Boolean(prepared),status);beginTitleIntro();
 }
 function showBootFailure(error){
   console.error(error);app.dataset.screen='error';booting=false;launching=false;title.hidden=true;game.hidden=false;game.classList.add('is-loading');game.removeAttribute('aria-busy');
@@ -117,12 +122,13 @@ async function openCoopDialog(){
 }
 
 async function boot(){
-  if(booting||prepared)return;booting=true;app.dataset.screen='loading';title.hidden=true;game.hidden=false;game.classList.add('is-loading');game.setAttribute('aria-busy','true');
-  setLoading('世界のしくみを呼び出しています');
+  if(booting||prepared)return;
+  booting=true;app.dataset.screen='loading';title.hidden=false;game.hidden=false;game.classList.add('is-loading');game.setAttribute('aria-busy','true');loading.hidden=true;
+  refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(false,'世界を準備しています');beginTitleIntro();
   try{
     await afterVisiblePaint();
     runtimeModule=await import('./rebuild/runtime.js');
-    prepared=await runtimeModule.prepareRuntime({buildInfo:info,onProgress:message=>setLoading(message)});
+    prepared=await runtimeModule.prepareRuntime({buildInfo:info,onProgress:message=>{$('boot-status').textContent=message;}});
     installGameplay();
     game.dataset.runtime='prepared';showTitle();if(rrpCaptureRequested||new URLSearchParams(location.hash.slice(1)).has('rinne-coop'))void openCoopDialog();
   }catch(error){showBootFailure(error);}
