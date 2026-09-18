@@ -39,6 +39,7 @@ export function deriveSemanticShadowActions(previousCheckpoint,nextCheckpoint,{l
   for(const id of Object.keys(before.players))if(!Object.hasOwn(after.players,id))fail('committed player disappeared');
   for(const id of Object.keys(after.players).sort()){
     const next=after.players[id]?.life;validateIdentity(next);
+    if(next.ended?next.phase!=='ended':next.ageSeconds>=lifeSeconds)fail('terminal rule mismatch');
     const prior=before.players[id]?.life;
     if(!prior){
       if(next.generation!==1||next.lineage.length!==0||next.ended)fail('unsupported birth checkpoint');
@@ -49,10 +50,7 @@ export function deriveSemanticShadowActions(previousCheckpoint,nextCheckpoint,{l
       if(prior.generation!==next.generation||!same(lifeIdentity(prior),lifeIdentity(next)))fail('protected life identity changed in place');
       if(prior.ended&&!next.ended)fail('sealed life resurrected');
       if(prior.ended&&next.ended&&!same(terminalLife(prior),terminalLife(next)))fail('sealed life changed');
-      if(!prior.ended&&next.ended){
-        if(next.ageSeconds!==lifeSeconds)fail('terminal rule mismatch');
-        actions.push({type:'life-seal',playerId:id,lifeId:next.id,terminal:terminalLife(next),record:lineageRecord(next)});
-      }
+      if(!prior.ended&&next.ended)actions.push({type:'life-seal',playerId:id,lifeId:next.id,terminal:terminalLife(next),record:lineageRecord(next)});
       continue;
     }
     if(!prior.ended)fail('rebirth predecessor not sealed');
