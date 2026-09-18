@@ -52,8 +52,7 @@
 }
 #angled-guide[data-side="left"] .angled-guide__stack::before,
 #angled-guide[data-side="left"] .angled-guide__stack::after{
-  inset-left:-2px;
-  inset-right:13%;
+  inset:7px 13% -6px -2px;
   clip-path:polygon(0 7%,84% 0,100% 49%,93% 100%,0 91%);
   transform-origin:left center;
 }
