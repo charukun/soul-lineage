@@ -2,7 +2,8 @@ import { CoopWorld } from '../rebuild/coop-world.js';
 import { createCoopHost, joinCoopHost } from './session.js';
 import { readInvitation, invitationUrl } from './wire.js';
 import { createHistoryStore } from './history-store.js';
-import { validateSemanticShadowRestore } from './semantic-shadow.js';\nimport { createSemanticJournalStore } from './semantic-journal-store.js';
+import { validateSemanticShadowRestore } from './semantic-shadow.js';
+import { createSemanticJournalStore } from './semantic-journal-store.js';
 import './menu.css';
 
 export function installCoopMenu({container,buildInfo,getPrepared,getName,onPlay,onLeave,performanceProbeFactory=null,semanticMeasurement=null,captureWorkload=false}){
@@ -14,7 +15,8 @@ export function installCoopMenu({container,buildInfo,getPrepared,getName,onPlay,
   const run=fn=>async()=>{if(locked)return;locked=true;try{await fn();}catch(error){status(error.message);}finally{locked=false;}};
   const copy=async id=>{await navigator.clipboard.writeText($(id).value);status('コピーしました。');};
   const storage=()=>getPrepared().platform.storage;
-  const history=createHistoryStore({storage:{read:key=>storage().read(key),write:(key,value)=>storage().write(key,value)},exclusive:(id,fn)=>navigator.locks.request(`rinne-coop-history:${id}`,fn)});\n  const semanticJournal=createSemanticJournalStore({storage:{read:key=>storage().read(key),write:(key,value)=>storage().write(key,value)},exclusive:(id,fn)=>navigator.locks.request(`rinne-coop-semantic:${id}`,fn),provisionalRpoMs:2000});
+  const history=createHistoryStore({storage:{read:key=>storage().read(key),write:(key,value)=>storage().write(key,value)},exclusive:(id,fn)=>navigator.locks.request(`rinne-coop-history:${id}`,fn)});
+  const semanticJournal=createSemanticJournalStore({storage:{read:key=>storage().read(key),write:(key,value)=>storage().write(key,value)},exclusive:(id,fn)=>navigator.locks.request(`rinne-coop-semantic:${id}`,fn),provisionalRpoMs:2000});
   function changed(){const snapshot=session?.snapshot();if(!snapshot)return;status(snapshot.error||(snapshot.phase==='open'?`${snapshot.view?.connected||1}人 · 村は開いています`:'村とのつながりを待っています。'));
     if(!playing&&session?.selfId&&session?.layout&&snapshot.view){playing=true;Promise.resolve(onPlay(session)).catch(error=>{void leave().finally(()=>status(error.message));});}}
   async function acquire(){
