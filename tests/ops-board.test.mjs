@@ -116,13 +116,13 @@ test('stale Draft is a weak display hint after 12 hours', () => {
   assert.equal(item.staleDraft, true);
 });
 
-test('Visual Review Lab is separated from ordinary implementation PRs', () => {
+test('Visual Review work stays in the standard PR lifecycle and is identified by changed targets', () => {
   const split = splitPulls([
     { number: 1, title: 'Normal', body: 'Normal title\nNormal detail', state: 'open', draft: true, updated_at: '2026-09-12T01:00:00Z', html_url: 'https://github.com/x/y/pull/1', head: { ref: 'feat/normal' } },
     { number: 2, title: 'Visual Review Lab', body: 'Review lab\nLong-lived preview', state: 'open', draft: true, updated_at: '2026-09-12T01:00:00Z', html_url: 'https://github.com/x/y/pull/2', head: { ref: 'work/visual-review-lab-v2' } },
   ], Date.parse('2026-09-12T02:00:00Z'));
-  assert.deepEqual(split.normal.map(x => x.number), [1]);
-  assert.deepEqual(split.visualReview.map(x => x.number), [2]);
+  assert.deepEqual(split.normal.map(x => x.number), [1, 2]);
+  assert.deepEqual(targetAppsFromFiles(['apps/rinne/src/visual-review-panel.js']).map(x => x.id), ['rinne']);
 });
 
 test('changed file paths map to target applications deterministically', () => {
