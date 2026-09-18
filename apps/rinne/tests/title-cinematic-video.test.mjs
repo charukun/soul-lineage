@@ -24,19 +24,19 @@ test('cinematic title uses real generated movie media as the primary path',()=>{
 
 test('cinematic boot is event-driven and overlaps world preparation',()=>{
   const boot=main.slice(main.indexOf('async function boot'),main.indexOf('async function enterCoop'));
-  assert.ok(boot.indexOf('beginTitleIntro()')<boot.indexOf('prepareRuntime('));
-  assert.match(cinematic,/addEventListener\('loadeddata',onTitleVideoLoaded\)/);
-  assert.match(cinematic,/addEventListener\('canplay',onTitleVideoCanPlay\)/);
-  assert.match(cinematic,/addEventListener\('timeupdate',onTitleVideoTimeUpdate\)/);
+  assert.ok(boot.indexOf('titleCinematic.begin()')<boot.indexOf('prepareRuntime('));
+  assert.match(cinematic,/addEventListener\('loadeddata',this\.onLoaded\)/);
+  assert.match(cinematic,/addEventListener\('canplay',this\.onCanPlay\)/);
+  assert.match(cinematic,/addEventListener\('timeupdate',this\.onTimeUpdate\)/);
   assert.match(cinematic,/requestVideoFrameCallback/);
   assert.match(cinematic,/intro load timeout/);
 });
 
 test('cinematic handoff reveals title before menu and return skips the long intro',()=>{
-  assert.match(cinematic,/function settleTitleUi\(\)[\s\S]*dataset\.intro='settling'[\s\S]*dataset\.intro='idle'/);
+  assert.match(cinematic,/settleUi\(\)[\s\S]*dataset\.intro='settling'[\s\S]*dataset\.intro='idle'/);
   assert.match(css,/data-intro="settling"\] \.title-lockup\{opacity:1/);
   assert.match(css,/data-intro="settling"\] \.title-actions\{opacity:0/);
-  assert.match(cinematic,/if\(introPlayed\)\{[\s\S]*seekToLivingStill\(\{play:true\}\);return;/);
+  assert.match(cinematic,/if\(this\.introPlayed\)\{[\s\S]*this\.seekToLivingStill\(\{play:true\}\);return;/);
   assert.match(main,/titleCinematic\.pause\(\);title\.hidden=true/);
 });
 

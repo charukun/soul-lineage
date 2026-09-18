@@ -32,7 +32,7 @@ test('title menu is a game surface rather than transparent web links',()=>{
 
 test('generated movie owns the cinematic while the prepared 3D world remains fallback',()=>{
   assert.match(main,/createTitleCinematicController/);assert.match(cinematic,/title-cinematic-media\.js/);
-  assert.match(cinematic,/video\.addEventListener\('timeupdate',onTitleVideoTimeUpdate\)/);
+  assert.match(cinematic,/this\.video\.addEventListener\('timeupdate',this\.onTimeUpdate\)/);
   assert.match(cinematic,/requestVideoFrameCallback/);
   assert.match(cinematic,/getPrepared\(\)\?\.startTitlePreview\?\.\(\{cinematic:false\}\)/);
   assert.match(runtime,/startTitlePreview/);
