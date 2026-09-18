@@ -46,18 +46,24 @@ jobs:
             --source-package musescore-general-soundfont-small=0.2.1-1
           node --test packages/audio/tests/source-midi.test.mjs packages/audio/tests/catalog.test.mjs
           git diff --check
-      - name: Commit generated Production audio
+      - name: Persist generated Production audio
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git rm .github/workflows/bgm150-commercial-render.yml
           git add packages/audio
           git commit -m 'fix(audio): replace audition renders with MIT-cleared BGM'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+      - name: Reconcile current develop
+        run: |
           git fetch origin develop
           git merge --no-edit origin/develop
+      - name: Validate reconciled BGM consumers
+        run: |
           node --test packages/audio/tests/source-midi.test.mjs packages/audio/tests/catalog.test.mjs
           npm run build:rinne
           npm run build:village
           npm run build:demon
           git diff --check
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+      - name: Push reconciled head
+        run: git push origin "HEAD:${GITHUB_REF_NAME}"
