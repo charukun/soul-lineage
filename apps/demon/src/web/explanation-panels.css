@@ -213,6 +213,7 @@
 #sheet.slanted-sheet .explanation-card {
   --card-yaw: 4.2deg;
   --card-shift: 8px;
+  --card-shadow-shift: 14px;
   position: relative;
   min-width: 0;
   min-height: 148px;
@@ -224,6 +225,7 @@
 #sheet.slanted-sheet .explanation-card[data-depth="right"] {
   --card-yaw: -4.2deg;
   --card-shift: -8px;
+  --card-shadow-shift: -14px;
 }
 
 #sheet.slanted-sheet .explanation-card::before,
@@ -252,7 +254,7 @@
   background: #000a;
   filter: blur(7px);
   opacity: .74;
-  transform: translate3d(calc(var(--card-shift) * 1.8), 16px, -34px) scale(.96);
+  transform: translate3d(var(--card-shadow-shift), 16px, -34px) scale(.96);
 }
 
 #sheet.slanted-sheet .explanation-card__face {
@@ -440,12 +442,14 @@ body.hunt-loop #hud .hunt-action:not([hidden]) {
   #sheet.slanted-sheet .explanation-card {
     --card-yaw: 2.2deg;
     --card-shift: 5px;
+    --card-shadow-shift: 9px;
     min-height: 0;
   }
 
   #sheet.slanted-sheet .explanation-card[data-depth="right"] {
     --card-yaw: -2.2deg;
     --card-shift: -5px;
+    --card-shadow-shift: -9px;
   }
 
   #sheet.slanted-sheet .explanation-card__face {
