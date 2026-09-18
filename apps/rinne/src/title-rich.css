@@ -211,3 +211,26 @@
   .title-copy,.title-lockup,.title-actions,.title-controller-hints,.title-screen .boot-status,.title-screen footer{transition:none!important}
   .title-screen .title-world-base,.title-screen .title-live-canvas{animation:none!important;transform:scale(1.055)!important}
 }
+
+
+/* Generated-movie cinematic primary path. Existing authored world/canvas remain fallback only. */
+.title-cinematic-media{position:absolute;inset:0;z-index:0;overflow:hidden;background:#79c9f4}
+.title-cinematic-video{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover;object-position:50% 48%;opacity:0;background:#79c9f4;transition:opacity .14s linear;will-change:opacity}
+.title-screen[data-media="intro"] .title-cinematic-intro,.title-screen[data-media="living"] .title-cinematic-living{opacity:1}
+.title-screen[data-media="intro"] .title-world-base,.title-screen[data-media="living"] .title-world-base{opacity:0!important}
+.title-screen[data-media="intro"] .title-live-canvas,.title-screen[data-media="living"] .title-live-canvas{opacity:0!important;visibility:hidden!important}
+.title-screen[data-media="fallback"] .title-cinematic-media{display:none}
+.title-screen:not([data-media="fallback"]) .title-world-base{animation:none!important;transform:scale(1.055)!important}
+.title-screen:not([data-media="fallback"]) .title-live-canvas{animation:none!important}
+.title-screen[data-media="intro"] .title-world-clouds,.title-screen[data-media="living"] .title-world-clouds{opacity:.045}
+.title-screen[data-media="intro"] .title-world-rays,.title-screen[data-media="living"] .title-world-rays{opacity:.12}
+.title-screen[data-media="intro"] .title-world-motes,.title-screen[data-media="living"] .title-world-motes{opacity:.16}
+.title-screen[data-media="intro"] .title-world-lens,.title-screen[data-media="living"] .title-world-lens{opacity:.09}
+/* CSS camera flight is a failure-path only; the H.264 movie owns the normal cinematic. */
+.title-screen[data-media="fallback"][data-intro="cinematic"] .title-world-base{animation:title-cinematic-flight 8.2s cubic-bezier(.16,.74,.24,1) both!important}
+.title-screen[data-media="fallback"][data-intro="settling"] .title-world-base{animation:title-cinematic-settle 1.7s cubic-bezier(.16,.74,.24,1) both!important}
+.title-screen[data-media="fallback"][data-intro="idle"] .title-world-base{animation:title-living-still-camera 18s ease-in-out infinite alternate!important}
+@media(max-aspect-ratio:1/1){.title-cinematic-video{object-position:42% 50%}}
+@media(max-aspect-ratio:3/4){.title-cinematic-video{object-position:36% 50%}.title-copy{display:none}}
+.title-screen[data-motion="off"] .title-cinematic-video{transition:none!important}
+@media(prefers-reduced-motion:reduce){.title-cinematic-video{transition:none!important}}

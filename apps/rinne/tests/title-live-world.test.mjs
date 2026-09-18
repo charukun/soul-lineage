@@ -20,7 +20,7 @@ test('title scene mirrors the prepared game canvas without exposing the gameplay
 });
 
 test('title remains animated and has an authored fallback',()=>{
-  assert.match(live,/world\.style\.backgroundImage/);assert.match(css,/@keyframes title-live-camera/);assert.match(css,/title-world-motes/);assert.match(css,/title-world-clouds/);assert.match(css,/title-world-rays/);
+  assert.match(live,/world\.style\.backgroundImage/);assert.match(css,/title-cinematic-video/);assert.match(css,/data-media="fallback"/);assert.match(css,/@keyframes title-live-camera/);assert.match(css,/title-world-motes/);assert.match(css,/title-world-clouds/);assert.match(css,/title-world-rays/);
   assert.match(css,/prefers-reduced-motion:reduce/);
 });
 
@@ -29,14 +29,14 @@ test('title menu is a game surface rather than transparent web links',()=>{
 });
 
 
-test('cinematic intro uses the prepared 3D world camera and settles into living still',()=>{
-  assert.match(main,/prepared\?\.startTitlePreview\?\.\(\{cinematic\}\)/);
-  assert.match(main,/title\.dataset\.intro='pending'/);
+test('generated movie owns the cinematic while the prepared 3D world remains fallback',()=>{
+  assert.match(main,/title-cinematic-media\.js/);
+  assert.match(main,/introVideo\.addEventListener\('ended',onTitleIntroEnded\)/);
+  assert.match(main,/livingVideo\.play\(\)/);
+  assert.match(main,/prepared\?\.startTitlePreview\?\.\(\{cinematic:false\}\)/);
   assert.match(runtime,/startTitlePreview/);
-  assert.match(runtime,/titlePreviewCinematic/);
-  assert.match(runtime,/titleTime=titlePreviewCinematic\?Math\.min\(8\.2,elapsed\):8\.2/);
-  assert.match(renderer,/TITLE_PREVIEW_DURATION=8\.2/);
-  assert.match(renderer,/titleCameraKeys/);
   assert.match(renderer,/title-living-still/);
-  assert.match(css,/data-live-world="ready"\] \.title-live-canvas\{[\s\S]*animation:none!important/);
+  assert.match(css,/data-media="intro"/);
+  assert.match(css,/data-media="living"/);
+  assert.match(css,/data-media="fallback"\]\[data-intro="cinematic"\]/);
 });

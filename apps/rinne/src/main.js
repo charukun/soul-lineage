@@ -1,5 +1,6 @@
 import { installRinneGameplayUpgrade } from './gameplay-upgrade.js';
 import { confirmRinneAudio, selectRinneAudio, unlockRinneAudio } from './gameplay-audio.js';
+import { INTRO_VIDEO_URL, LIVING_VIDEO_URL, TITLE_POSTER_URL } from './title-cinematic-media.js';
 import './native-ui-polish.js';
 const info=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__:{name:'100年生',app:'rinne',environment:'local',commit:'UNBUILT'};
 document.title=`100年生 — 輪廻転焦${info.environment==='prod'?'':` | ${String(info.environment).toUpperCase()}`}`;
@@ -11,9 +12,9 @@ const motionKey=`soul:v1:${info.environment}:rinne:title-motion-v1`;
 const rrpCaptureRequested=new URLSearchParams(location.search).has('rrpCapture');
 if(rrpCaptureRequested)document.documentElement.dataset.rrpCapture='true';
 const afterVisiblePaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null,rrpCapture=null,gameplayUpgrade=null,titleAudioReady=false,titleSelected=null,titleParallaxRaf=0,titleIntroPlayed=false,titleIntroTimers=[];
+let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null,rrpCapture=null,gameplayUpgrade=null,titleAudioReady=false,titleSelected=null,titleParallaxRaf=0,titleIntroPlayed=false,titleIntroTimers=[],titleIntroFrameRequest=0,titleLivingFailed=false,titleMediaDisposed=false,titleIntroTransitionHandler=null;
 
-const titleCommands=[...title.querySelectorAll('.title-command')];
+const titleCommands=[...title.querySelectorAll('.title-command')],introVideo=$('title-cinematic-intro'),livingVideo=$('title-living-still'),titleReducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)');
 function unlockTitleAudio(){void Promise.resolve(unlockRinneAudio()).then(ok=>{titleAudioReady=Boolean(ok)||titleAudioReady;}).catch(()=>{});titleAudioReady=true;}
 function selectTitleCommand(command,{sound=true}={}){
   if(!command)return;
@@ -53,36 +54,102 @@ title.addEventListener('pointermove',event=>{
 },{passive:true});
 title.addEventListener('pointerleave',resetTitleParallax,{passive:true});
 
+function prefersReducedTitleMotion(){return Boolean(titleReducedMotion?.matches);}
+function clearTitleIntroTimers(){
+  for(const timer of titleIntroTimers)clearTimeout(timer);titleIntroTimers=[];
+  if(titleIntroTransitionHandler){title.querySelector('.title-lockup')?.removeEventListener('transitionend',titleIntroTransitionHandler);titleIntroTransitionHandler=null;}
+}
+function setTitleReady(ready,status=''){
+  title.dataset.ready=ready?'true':'false';
+  for(const command of titleCommands)command.disabled=!ready;
+  if(status!==undefined)$('boot-status').textContent=status;
+}
+function pauseTitleMedia(){introVideo.pause();livingVideo.pause();}
+function playLivingStill(){
+  if(titleLivingFailed){title.dataset.media='fallback';prepared?.startTitlePreview?.({cinematic:false});return;}
+  title.dataset.media='living';introVideo.pause();
+  try{livingVideo.currentTime=0;}catch{}
+  if(title.dataset.motion==='on'&&!prefersReducedTitleMotion()&&!title.hidden){
+    const promise=livingVideo.play();promise?.catch?.(error=>{if(error?.name!=='AbortError'&&!title.hidden){console.warn('Living title video failed',error);titleLivingFailed=true;title.dataset.media='fallback';prepared?.startTitlePreview?.({cinematic:false});}});
+  }else livingVideo.pause();
+}
+function settleTitleUi(){
+  if(title.hidden)return;
+  clearTitleIntroTimers();title.dataset.intro='settling';
+  let complete=false;
+  const finish=()=>{if(complete||title.hidden)return;complete=true;titleIntroTransitionHandler=null;title.dataset.intro='idle';};
+  const lockup=title.querySelector('.title-lockup');
+  titleIntroTransitionHandler=event=>{if(event.propertyName==='opacity'||event.propertyName==='transform')finish();};
+  lockup?.addEventListener('transitionend',titleIntroTransitionHandler,{once:true});
+  titleIntroTimers.push(setTimeout(finish,1500));
+}
+function activateTitleFallback(reason){
+  if(reason)console.warn('Cinematic title fallback',reason);
+  pauseTitleMedia();title.dataset.media='fallback';prepared?.startTitlePreview?.({cinematic:false});
+  if(title.dataset.intro!=='idle')settleTitleUi();
+}
+function onTitleIntroEnded(){
+  if(title.hidden)return;
+  playLivingStill();settleTitleUi();
+}
+function onTitleIntroError(){if(!title.hidden)activateTitleFallback(introVideo.error||new Error('intro media error'));}
+function onLivingError(){titleLivingFailed=true;if(title.dataset.media==='living'&&!title.hidden)activateTitleFallback(livingVideo.error||new Error('living media error'));}
+function onTitleIntroLoaded(){title.dataset.videoReady='true';}
+function onTitleIntroCanPlay(){
+  title.dataset.videoReady='true';
+  if(title.dataset.intro==='cinematic'&&!title.hidden&&introVideo.paused&&title.dataset.motion==='on'&&!prefersReducedTitleMotion()){
+    const promise=introVideo.play();promise?.catch?.(error=>{if(error?.name!=='AbortError'&&!title.hidden)activateTitleFallback(error);});
+  }
+}
+function beginTitleIntro(){
+  if(titleIntroPlayed){
+    title.dataset.intro='idle';playLivingStill();return;
+  }
+  titleIntroPlayed=true;clearTitleIntroTimers();
+  if(title.dataset.motion!=='on'||prefersReducedTitleMotion()){title.dataset.intro='idle';playLivingStill();livingVideo.pause();return;}
+  title.dataset.intro='cinematic';title.dataset.media='intro';
+  try{introVideo.currentTime=0;}catch{}
+  titleIntroTimers.push(setTimeout(()=>{if(!title.hidden&&title.dataset.intro==='cinematic'&&introVideo.readyState<2)activateTitleFallback(new Error('intro load timeout'));},3200));
+  const promise=introVideo.play();
+  promise?.then?.(()=>{
+    if(typeof introVideo.requestVideoFrameCallback==='function'){
+      titleIntroFrameRequest=introVideo.requestVideoFrameCallback(()=>{title.dataset.videoFrame='ready';titleIntroFrameRequest=0;});
+    }
+  }).catch?.(error=>{if(error?.name!=='AbortError'&&!title.hidden)activateTitleFallback(error);});
+}
+function syncTitleMediaMotion(){
+  if(title.hidden)return;
+  const allowed=title.dataset.motion==='on'&&!prefersReducedTitleMotion();
+  if(!allowed){
+    clearTitleIntroTimers();titleIntroPlayed=true;playLivingStill();livingVideo.pause();title.dataset.intro='idle';resetTitleParallax();return;
+  }
+  if(title.dataset.intro==='idle')playLivingStill();
+}
 function applyTitleMotion(enabled,persist=false){
   title.dataset.motion=enabled?'on':'off';
   motionToggle.setAttribute('aria-checked',String(enabled));
   const state=motionToggle.querySelector('.setting-switch-state');if(state)state.textContent=enabled?'入':'切';
   if(!enabled)resetTitleParallax();
   if(persist){try{localStorage.setItem(motionKey,enabled?'on':'off');}catch{}}
+  syncTitleMediaMotion();
 }
-let initialMotion=!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-try{const stored=localStorage.getItem(motionKey);if(stored==='on'||stored==='off')initialMotion=stored==='on';}catch{}
+function initTitleMedia(){
+  titleMediaDisposed=false;
+  for(const video of [introVideo,livingVideo]){video.muted=true;video.playsInline=true;video.poster=TITLE_POSTER_URL;}
+  introVideo.src=INTRO_VIDEO_URL;livingVideo.src=LIVING_VIDEO_URL;livingVideo.loop=true;
+  introVideo.addEventListener('loadeddata',onTitleIntroLoaded);introVideo.addEventListener('canplay',onTitleIntroCanPlay);introVideo.addEventListener('ended',onTitleIntroEnded);introVideo.addEventListener('error',onTitleIntroError);livingVideo.addEventListener('error',onLivingError);
+  titleReducedMotion?.addEventListener?.('change',syncTitleMediaMotion);
+  introVideo.load();livingVideo.load();
+}
+function disposeTitleMedia(){
+  if(titleMediaDisposed)return;titleMediaDisposed=true;clearTitleIntroTimers();pauseTitleMedia();
+  if(titleIntroFrameRequest&&typeof introVideo.cancelVideoFrameCallback==='function')introVideo.cancelVideoFrameCallback(titleIntroFrameRequest);titleIntroFrameRequest=0;
+  introVideo.removeEventListener('loadeddata',onTitleIntroLoaded);introVideo.removeEventListener('canplay',onTitleIntroCanPlay);introVideo.removeEventListener('ended',onTitleIntroEnded);introVideo.removeEventListener('error',onTitleIntroError);livingVideo.removeEventListener('error',onLivingError);
+  titleReducedMotion?.removeEventListener?.('change',syncTitleMediaMotion);
+}
+let initialMotion=!prefersReducedTitleMotion();
+try{const stored=localStorage.getItem(motionKey);if(!prefersReducedTitleMotion()&&(stored==='on'||stored==='off'))initialMotion=stored==='on';}catch{}
 applyTitleMotion(initialMotion);
-
-function clearTitleIntroTimers(){for(const timer of titleIntroTimers)clearTimeout(timer);titleIntroTimers=[];}
-function setTitleReady(ready,status=''){
-  title.dataset.ready=ready?'true':'false';
-  for(const command of titleCommands)command.disabled=!ready;
-  if(status!==undefined)$('boot-status').textContent=status;
-}
-function beginTitleIntro(){
-  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  if(titleIntroPlayed){
-    if(title.dataset.intro!=='cinematic'&&title.dataset.intro!=='settling')title.dataset.intro='idle';
-    return;
-  }
-  clearTitleIntroTimers();
-  titleIntroPlayed=true;
-  if(title.dataset.motion!=='on'||reduced){title.dataset.intro='idle';return;}
-  title.dataset.intro='cinematic';
-  titleIntroTimers.push(setTimeout(()=>{if(!title.hidden)title.dataset.intro='settling';},6500));
-  titleIntroTimers.push(setTimeout(()=>{if(!title.hidden)title.dataset.intro='idle';},8200));
-}
 function refreshContinue(){
   let saved=null;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
   hasSave=Boolean(saved);const button=$('continue-life');
@@ -96,8 +163,9 @@ function setLoading(message,titleText='世界をつくっています'){
   $('loading-title').textContent=titleText;$('loading-message').textContent=message;retry.hidden=true;loading.hidden=false;
 }
 function showTitle(status=''){
-  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,cinematic=!titleIntroPlayed&&title.dataset.motion==='on'&&!reduced;
-  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;loading.hidden=true;title.hidden=false;launching=false;booting=false;refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(Boolean(prepared),status);prepared?.startTitlePreview?.({cinematic});beginTitleIntro();
+  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;loading.hidden=true;title.hidden=false;launching=false;booting=false;refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(Boolean(prepared),status);
+  if(title.dataset.media==='fallback')prepared?.startTitlePreview?.({cinematic:false});
+  beginTitleIntro();
 }
 function showBootFailure(error){
   console.error(error);app.dataset.screen='error';booting=false;launching=false;title.hidden=true;game.hidden=false;game.classList.add('is-loading');game.removeAttribute('aria-busy');
@@ -125,7 +193,7 @@ async function openCoopDialog(){
 async function boot(){
   if(booting||prepared)return;
   booting=true;app.dataset.screen='loading';title.hidden=false;title.dataset.intro='pending';game.hidden=false;game.classList.add('is-loading');game.setAttribute('aria-busy','true');loading.hidden=true;
-  refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(false,'世界を準備しています');
+  refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(false,'世界を準備しています');beginTitleIntro();
   try{
     await afterVisiblePaint();
     runtimeModule=await import('./rebuild/runtime.js');
@@ -152,7 +220,7 @@ async function exitGame(coop){
 async function launch(mode,coop=null){
   if(runtime)throw Error('いったんタイトルへ戻ってから参加してください。');
   if(!coop&&coopMenu?.session)await coopMenu.leave();
-  if(launching||booting||!prepared||!runtimeModule)return;launching=true;app.dataset.screen='game';title.hidden=true;game.hidden=false;game.classList.remove('is-loading');game.removeAttribute('aria-busy');loading.hidden=true;
+  if(launching||booting||!prepared||!runtimeModule)return;launching=true;app.dataset.screen='game';pauseTitleMedia();title.hidden=true;game.hidden=false;game.classList.remove('is-loading');game.removeAttribute('aria-busy');loading.hidden=true;
   try{
     runtime=await runtimeModule.startRuntime({mode,buildInfo:info,name:$('life-name').value,prepared,coop,onExit:()=>exitGame(coop)});
     $('open-coop-game').hidden=!coop;villageDialog.close();game.dataset.runtime='active';launching=false;
@@ -167,6 +235,7 @@ $('new-life').addEventListener('click',()=>{void launch('new');});
 $('continue-life').addEventListener('click',()=>{if(!hasSave){$('boot-status').textContent='続きから遊べる保存データがありません';return;}void launch('continue');});
 $('open-settings').addEventListener('click',()=>settingsDialog.showModal());
 motionToggle.addEventListener('click',()=>applyTitleMotion(motionToggle.getAttribute('aria-checked')!=='true',true));
+initTitleMedia();
 void boot();
 
 document.getElementById('close-village').addEventListener('click',()=>villageDialog.close());
@@ -194,4 +263,4 @@ if(new URLSearchParams(location.search).has('villageHostLab')){
   })().catch(error=>{console.error(error);$('boot-status').textContent=`村診断失敗：${error?.message||error}`;});
 }
 
-if(import.meta.hot)import.meta.hot.dispose(()=>{clearTitleIntroTimers();cancelAnimationFrame(titleParallaxRaf);runtime?.dispose?.();void coopMenu?.leave();rrpCapture?.dispose?.();gameplayUpgrade?.dispose?.();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});
+if(import.meta.hot)import.meta.hot.dispose(()=>{disposeTitleMedia();cancelAnimationFrame(titleParallaxRaf);runtime?.dispose?.();void coopMenu?.leave();rrpCapture?.dispose?.();gameplayUpgrade?.dispose?.();prepared?.dispose?.();cancelAnimationFrame(labClock);Promise.resolve(lab).then(link=>link?.dispose?.()).catch(()=>{});});

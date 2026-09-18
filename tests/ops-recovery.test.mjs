@@ -20,19 +20,19 @@ const collectorFetch = async url => {
   if (u.pathname.endsWith('/branches')) return response([{name:'develop',commit:{sha}},{name:'main',commit:{sha:prodSha}}]);
   if (u.pathname.endsWith('/pulls') || u.pathname.endsWith('/commits')) return response([]);
   if (u.pathname.endsWith('/actions/runs')) return response({workflow_runs:[]});
+  if (u.pathname.endsWith(`/commits/${sha}/status`)) return response({ statuses: [] });
   throw new Error('Unexpected route '+url);
 };
-test('collector preserves the three game environments, Visual Review, and exact pinned staging history', async () => {
+test('collector preserves the three game environments, Rinne-backed Visual Review, and exact pinned staging history', async () => {
   const state = await buildState(null, {fetchImpl:collectorFetch,token:'test-token'});
-  assert.deepEqual(state.environments.map(e=>e.id), ['dev','staging','prod','visual-review']);
+  assert.deepEqual(state.environments.map(e=>e.id), ['dev','staging','prod']);
   assert.equal(state.environments[1].deployedCommit, stagedSha);
   assert.equal(state.environments[1].branch, 'develop');
   assert.equal(state.environments[1].deployState, 'success');
-  const visualReview = state.environments[3];
-  assert.equal(visualReview.branch, 'develop');
-  assert.equal(visualReview.branchCommit, sha);
-  assert.equal(visualReview.deployState, 'unknown');
-  assert.equal(visualReview.url, 'https://rinne-visual-review.c-okamoto.workers.dev/');
+  const visualReview = state.applications.find(a=>a.id==='visual-review');
+  assert.equal(visualReview.kind, 'tool');
+  assert.equal(visualReview.targets[0].commit, sha);
+  assert.equal(visualReview.targets[0].url, 'https://charukun.github.io/soul-lineage/dev/rinne/review.html');
   assert.equal(state.applications.find(a=>a.id==='ops-board').name,'PULSE');
   assert.equal(state.applications.find(a=>a.id==='demon').name,'尽喰廻遊');
   assert.equal(state.applicationsSource,'public-manifest');
@@ -61,7 +61,7 @@ test('partial public fallback preserves names, environment matrix and real GitHu
   assert.equal(state.schemaVersion,2); assert.equal(state.syncStatus,'degraded');
   assert.equal(state.generatedAt,previous.generatedAt); assert.equal(state.applicationsUpdatedAt,now);
   assert.deepEqual(state.environments.map(e=>e.id),['dev','staging','prod']);
-  assert.equal(state.applications.find(a=>a.id==='visual-review').targets[0].url,'https://rinne-visual-review.c-okamoto.workers.dev/');
+  assert.equal(state.applications.find(a=>a.id==='visual-review').targets[0].url,'https://charukun.github.io/soul-lineage/dev/rinne/review.html');
   assert.equal(state.applications.find(a=>a.id==='demon').name,'尽喰廻遊');
   assert.equal(boardAlerts(state).filter(a=>['sync-failed','github-sync-degraded'].includes(a.type)).length,1);
   assert.ok(state.nextRetryAt);
@@ -84,10 +84,14 @@ test('a resolved CI warning disappears and a stale delivery is surfaced once',()
   assert.equal(alerts.some(a=>a.type==='ci-failed'),false);
   assert.equal(boardAlerts({...state,alerts}).filter(a=>a.type==='delivery-stalled').length,1);
 });
-test('publication workflow checks exact source before authenticated prime and retains browser gates',()=>{
+test('publication workflow checks exact source before authenticated prime and uses the canonical preflight plus public browser gate',()=>{
   const source=readFileSync(new URL('../.github/workflows/ops-board.yml',import.meta.url),'utf8');
+  const preflight=readFileSync(new URL('../ops-board/preflight.mjs',import.meta.url),'utf8');
   assert.ok(source.indexOf('publication-check.mjs version') < source.indexOf('node ops-board/prime.mjs'));
   assert.match(source,/OPS_BUILD_SHA:\$OPS_SOURCE_SHA/);
+  assert.match(source,/npm run pulse:preflight/);
   assert.match(source,/ops-review-results\/public/);
-  assert.equal((source.match(/node ops-board\/browser-check.mjs/g)||[]).length,2);
+  assert.equal((source.match(/node ops-board\/browser-check.mjs/g)||[]).length,1);
+  assert.match(preflight,/ops-board\/browser-check\.mjs/);
+  assert.match(preflight,/ops-board\/rescue-browser-check\.mjs/);
 });

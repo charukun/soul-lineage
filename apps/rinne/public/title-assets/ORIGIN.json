@@ -1,12 +1,39 @@
 {
-  "source": "User-approved generated title key visual, this conversation",
-  "source_file": "輪廻転焦_黄昏の旅立ち.png",
-  "source_sha256": "05397b50832996dbaad8765359e0c13fc2731fa0cf581e81de3b797da69b37fb",
-  "crop_world": [
-    280,
-    375,
-    1060,
-    836
+  "source": "ChatGPT-generated cinematic keyframes, current conversation",
+  "generation_request": "Bright blue-sky fantasy world, grassland overlook, distant castle/village, cute stylized adventurer and companion; cinematic intro landing on a living title composition.",
+  "generated_sources": [
+    {
+      "file": "a_wide_epic_cinematic_fantasy_game_title_screen.png",
+      "sha256": "43f54b539b3a24ec88b73e2f742284c0293b105378f9b1dbeb0cb6ec4ecaeddc"
+    },
+    {
+      "file": "a_widescreen_cinematic_fantasy_game_title_screen.png",
+      "sha256": "7cb0a8dd091dd0fcad0eca7da68d89b317ab3158fa854a57ffbc44a0c783f513"
+    },
+    {
+      "file": "wide_cinematic_fantasy_landscape_title_screen_ill.png",
+      "sha256": "542f77d3368eb547653f5b695508fac47d99a17679d4f3c25c5cd8075fad4e70"
+    }
   ],
-  "processing": "Cropping / WebP encoding only. Title and menu are live HTML, not baked image buttons."
+  "embedded_media": {
+    "intro": {
+      "format": "H.264 MP4",
+      "duration_seconds": 8.53,
+      "resolution": "640x360",
+      "sha256": "a6e24e1b67dfb09f5b012796311019c63fa166cf96c1127c96cb08bf09a1a690"
+    },
+    "living": {
+      "format": "H.264 MP4 loop",
+      "duration_seconds": 5.13,
+      "resolution": "640x360",
+      "sha256": "9db0aa5663c5e7db9d3302e8444dba8dbddc594e32cefb386f45d3f0fcd4e2c1"
+    },
+    "poster": {
+      "format": "WebP",
+      "resolution": "640x360",
+      "sha256": "9b692ccda5f028fc3923046a289d25f2cd60c2eeb3df09ae5bdb0e90d33666ee"
+    }
+  },
+  "processing": "Three generated key visuals are reframed from clean image regions, interpolated into an actual H.264 intro movie, then landed on the exact first composition of a separately encoded subtle-motion Living Still loop. The title and menu remain live HTML and are not baked into the media. Media is embedded as data URLs so DEV/build deployments are self-contained.",
+  "fallback": "Existing title-assets/world.webp and prepared title-live canvas are used only when movie playback is unavailable or motion is disabled."
 }

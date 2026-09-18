@@ -33,7 +33,11 @@ test('equipment review uses the same quiet preview and compact camera hierarchy'
 test('Battle is a dedicated page using real RaidHost and runtime models',async()=>{
   const [html,review,battle]=await Promise.all([read('review-battle.html'),read('src/review-battle.js'),read('src/review-battle-stage.js')]);
   assert.match(html,/id="battle-canvas"/);assert.match(html,/id="battle-hero-model"/);assert.match(html,/id="battle-enemy-model"/);
-  assert.match(html,/<a href="\/" aria-label="Visual Reviewへ戻る">← Review<\/a>/);
+  assert.match(html,/<a href="\/" aria-label="Visual Reviewへ戻る">‹ 戻る<\/a>/);
+  assert.match(html,/\.model-status,\.note,\.pickers,\.review-modes,\.actions button:last-child\{display:none!important\}/);
+  assert.match(html,/<span>Rogue<\/span>/);assert.match(html,/<span>Knight<\/span>/);
+  assert.match(review,/const loopEnabled=true,followCamera=true;/);
+  assert.doesNotMatch(review,/battle-loop'\)\.addEventListener|battle-camera'\)\.addEventListener/);
   assert.match(review,/from '@soul\/network\/raid-host'/);assert.match(review,/new RaidHost/);assert.match(review,/createReviewBattleStage/);
   assert.match(review,/stage\.setModel\('hero'/);assert.match(review,/stage\.setModel\('enemy'/);
   assert.match(battle,/createKaykitCharacterPools/);assert.match(battle,/tidebreakFrameFromSnapshot/);assert.match(battle,/applyTidebreakPose/);assert.match(battle,/battleGeometry='runtime-models'/);
@@ -49,4 +53,11 @@ test('RINNE build includes launcher, VFX and battle review entries',async()=>{
   assert.match(vite,/review:fileURLToPath\(new URL\('\.\/review\.html'/);
   assert.match(vite,/reviewEffects:fileURLToPath\(new URL\('\.\/review-effects\.html'/);
   assert.match(vite,/reviewBattle:fileURLToPath\(new URL\('\.\/review-battle\.html'/);
+});
+
+
+test('Review preloader never serves cached navigation documents',async()=>{
+  const sw=await read('public/review-preload-sw.js');
+  assert.match(sw,/fetch\(routeUrl, \{cache: 'no-store', credentials: 'same-origin'\}\)/);
+  assert.doesNotMatch(sw,/const documentPayload = await fetchPayload\(routeUrl\)/);
 });

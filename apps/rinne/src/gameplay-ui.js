@@ -4,6 +4,7 @@ import { createConversationInput } from './rebuild/conversation-input.js';
 import { rebirthPreview } from './rebuild/gameplay-contract.js';
 import { createSkillSetter } from './skill-setter.js';
 import { createHeartTechniqueBodyUI } from './heart-technique-body-ui.js';
+import { decorateSelectionDetail, installSelectionDetail } from './selection-detail.js';
 import './rebuild/conversation-input.css';
 import './skill-setter.css';
 import './heart-technique-body.css';
@@ -68,6 +69,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   const speech=createConversationInput({document,window,root:gameScreen,getState:()=>state});
   const tracker=createSkillSetter({ui,audio,getState:()=>state});
   const loadoutUI=createHeartTechniqueBodyUI({ui,audio,getState:()=>state,tracker});
+  const selectionDetail=installSelectionDetail({root,panel,audio});
   const moveHint=gameScreen.querySelector('#move-hint');
   const notify=text=>{const node=document.getElementById('toast');if(!node||!text)return;node.textContent=text;node.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{node.hidden=true;},2200);};
   const showMovementHelp=event=>{
@@ -88,11 +90,11 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     ensureProgression(state);ui.title.textContent='装 · 武具';ui.body.innerHTML='';
     const intro=document.createElement('div');intro.className='loadout-intro';intro.innerHTML='<strong>身につける武具</strong><small>武器・防具・盾から編集先を選び、所持している装備へ差し替える。</small>';ui.body.append(intro);
     const kinds=[['weapon','武器'],['armor','防具'],['shield','盾']],slots=document.createElement('section');slots.className='loadout-slot-row';
-    for(const [kind,label] of kinds){const config=inventoryConfig(kind),button=document.createElement('button');button.type='button';button.className='loadout-slot';button.dataset.selected=String(inventoryKind===kind);button.innerHTML='<span></span><strong></strong><small></small>';button.querySelector('span').textContent=label;button.querySelector('strong').textContent=config.label(config.active);button.querySelector('small').textContent=inventoryKind===kind?'選択先':config.meta;button.onclick=()=>{inventoryKind=kind;inventoryPages[kind]=inventoryPages[kind]||0;audio.ui();inventory();};slots.append(button);}
+    for(const [kind,label] of kinds){const config=inventoryConfig(kind),button=document.createElement('button');button.type='button';button.className='loadout-slot';button.dataset.selected=String(inventoryKind===kind);button.dataset.choiceGlyph=kind==='weapon'?'武':kind==='armor'?'鎧':'盾';button.innerHTML='<span></span><strong></strong><small></small>';button.querySelector('span').textContent=label;button.querySelector('strong').textContent=config.label(config.active);button.querySelector('small').textContent=inventoryKind===kind?'選択先':config.meta;decorateSelectionDetail(button,{kicker:`${label}の装着枠`,title:config.label(config.active),summary:config.meta,status:inventoryKind===kind?'選択先':'装備中'});button.onclick=()=>{inventoryKind=kind;inventoryPages[kind]=inventoryPages[kind]||0;audio.ui();inventory();};slots.append(button);}
     ui.body.append(slots);
     const config=inventoryConfig(inventoryKind),library=document.createElement('section');library.className='loadout-library';library.innerHTML='<header><strong></strong><small></small></header><div class="loadout-grid"></div>';library.querySelector('header strong').textContent='所持している装備';library.querySelector('header small').textContent='7歳以降、村の武具置き場付近で変更';
     const list=library.querySelector('.loadout-grid'),pages=Math.max(1,Math.ceil(config.items.length/GRID_PAGE_SIZE)),page=Math.min(inventoryPages[inventoryKind]||0,pages-1);inventoryPages[inventoryKind]=page;
-    for(const item of config.items.slice(page*GRID_PAGE_SIZE,page*GRID_PAGE_SIZE+GRID_PAGE_SIZE)){const button=document.createElement('button');button.type='button';button.className='loadout-grid-item';button.dataset.active=String(item===config.active);button.innerHTML='<strong></strong><small></small>';button.querySelector('strong').textContent=config.label(item);button.querySelector('small').textContent=item===config.active?'装備中':'装備する';button.onclick=()=>{const result=requestEquip?.(inventoryKind,item)||{ok:false,reason:'身支度を変更できません。'};if(!result.ok){notify(result.reason);haptic(18);return;}if(result.changed){audio.item();haptic(10);notify(`${config.label(item)}に変更`);}inventory();};list.append(button);}
+    for(const item of config.items.slice(page*GRID_PAGE_SIZE,page*GRID_PAGE_SIZE+GRID_PAGE_SIZE)){const button=document.createElement('button');button.type='button';button.className='loadout-grid-item';button.dataset.active=String(item===config.active);button.dataset.choiceGlyph=inventoryKind==='weapon'?'武':inventoryKind==='armor'?'鎧':'盾';button.innerHTML='<strong></strong><small></small>';button.querySelector('strong').textContent=config.label(item);button.querySelector('small').textContent=item===config.active?'装備中':'装備する';decorateSelectionDetail(button,{kicker:config.title,title:config.label(item),summary:config.meta,status:item===config.active?'装備中':'所持'});button.onclick=()=>{const result=requestEquip?.(inventoryKind,item)||{ok:false,reason:'身支度を変更できません。'};if(!result.ok){notify(result.reason);haptic(18);return;}if(result.changed){audio.item();haptic(10);notify(`${config.label(item)}に変更`);}inventory();};list.append(button);}
     if(!config.items.length){const empty=document.createElement('p');empty.className='loadout-empty';empty.textContent='所持品がありません。';list.append(empty);}
     ui.body.append(library);const nav=pager(config.items.length,page,next=>{inventoryPages[inventoryKind]=next;audio.ui();inventory();});if(nav)ui.body.append(nav);
   }
@@ -153,11 +155,11 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   }
   function markOpenControl(type){ui.heart.dataset.active=String(type==='heart');ui.techniques.dataset.active=String(type==='technique');ui.bodyButton.dataset.active=String(type==='body');ui.items.dataset.active=String(type==='items');ui.map.dataset.active=String(type==='map');ui.record.dataset.active=String(type==='record');}
   function open(type,{skillId=null,silent=false}={}){
-    if(!state)return;ui.panel.hidden=false;ui.panel.dataset.type=type;markOpenControl(type);
+    if(!state)return;selectionDetail.close();ui.panel.hidden=false;ui.panel.dataset.type=type;markOpenControl(type);
     if(type==='heart')loadoutUI.renderHeart(skillId);else if(type==='technique')loadoutUI.renderTechnique(skillId);else if(type==='body')loadoutUI.renderBody();else if(type==='items')inventory();else if(type==='record')record();else map();
     if(!silent)audio.ui();
   }
-  function close(){ui.panel.hidden=true;delete ui.panel.dataset.type;ui.panel.style.removeProperty('--loadout-sheet-drag');delete ui.panel.dataset.dragging;markOpenControl('');audio.ui();}
+  function close(){selectionDetail.close();ui.panel.hidden=true;delete ui.panel.dataset.type;ui.panel.style.removeProperty('--loadout-sheet-drag');delete ui.panel.dataset.dragging;markOpenControl('');audio.ui();}
   function toggle(type,options={}){if(!ui.panel.hidden&&ui.panel.dataset.type===type){close();return;}open(type,options);}
   function bindState(next){state=next;const lifeChanged=tracker.bindState(next);if(lifeChanged){loadoutUI.reset();recordPage=0;recordSection='life';inventoryPages={weapon:0,armor:0,shield:0};if(!ui.panel.hidden){ui.panel.hidden=true;delete ui.panel.dataset.type;markOpenControl('');}}}
   function refresh(){if(ui.panel.hidden||!state)return;open(ui.panel.dataset.type||'items',{silent:true});}
@@ -181,5 +183,5 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
 
   tracker.bindInteractions({openHeart:skillId=>open('heart',{skillId}),openTechnique:skillId=>open('technique',{skillId})});bindSheetGesture();
   ui.heart.onclick=()=>toggle('heart',{skillId:tracker.firstUnseen('heart')});ui.techniques.onclick=()=>toggle('technique',{skillId:tracker.firstUnseen('technique')});ui.bodyButton.onclick=()=>toggle('body');ui.items.onclick=()=>toggle('items');ui.map.onclick=()=>toggle('map');ui.record.onclick=()=>toggle('record');ui.close.onclick=close;
-  return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,setGuidance,dispose(){clearTimeout(movementHelpTimer);clearTimeout(toastTimer);observer.disconnect();moveHint?.removeEventListener('click',showMovementHelp,{capture:true});loadoutUI.dispose();tracker.dispose();speech.dispose();root.remove();}};
+  return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,setGuidance,dispose(){clearTimeout(movementHelpTimer);clearTimeout(toastTimer);observer.disconnect();moveHint?.removeEventListener('click',showMovementHelp,{capture:true});selectionDetail.dispose();loadoutUI.dispose();tracker.dispose();speech.dispose();root.remove();}};
 }
