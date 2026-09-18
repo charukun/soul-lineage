@@ -113,12 +113,13 @@ function compareState(state,world){
   if(!same(state.rebirthOps,world.rebirthOps??{}))fail('rebirth receipt mismatch');
 }
 
-export function createSemanticShadow({lifeSeconds,onSample=null,onState=null,restored=null}={}){
+export function createSemanticShadow({lifeSeconds,onSample=null,onState=null,restored=null,coverageHint='warm-start'}={}){
   let state=restored?clone(restored.state):null,lastCheckpoint=null,lastHistorySequence=restored?.lastHistorySequence??null,commits=restored?.commits??0,failure=null;
   let checkpointBytesTotal=restored?.checkpointBytesTotal??0,journalBytesTotal=restored?.journalBytesTotal??0,lastSample=null;
   let authorityRoot=restored?.authorityRoot??null,journalCount=restored?.journalCount??0,recentJournalTypes=[...(restored?.recentJournalTypes??[])].slice(-32);
   const journal=[];
-  const coverage=restored?'restored':'warm-start';
+  if(!['warm-start','gap'].includes(coverageHint))fail('invalid coverage hint');
+  const coverage=restored?'restored':coverageHint;
   const sample=value=>{lastSample=clone(value);checkpointBytesTotal+=value.checkpointBytes;journalBytesTotal+=value.journalBytes;try{onSample?.(clone(value));}catch{/* measurement sinks never affect shadow semantics */}};
   const exportState=()=>({format:1,worldId:state?.worldId??null,ownerId:state?.ownerId??null,authorityRoot,lastHistorySequence,commits,
     checkpointBytesTotal,journalBytesTotal,journalCount:journalCount+journal.length,recentJournalTypes:[...recentJournalTypes,...journal.map(row=>row.type)].slice(-32),state:clone(state)});
