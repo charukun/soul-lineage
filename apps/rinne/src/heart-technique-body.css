@@ -34,3 +34,59 @@
 @media(max-width:410px){.rinne-bottom-controls{gap:2px;padding-inline:5px}.rinne-bottom-controls .upgrade-control{min-width:41px;width:41px}.rinne-bottom-controls .upgrade-control.is-action{min-width:48px;width:48px}.rinne-bottom-controls .upgrade-control.is-debug{min-width:30px;width:30px}.upgrade-control small{font-size:7px}.heart-list,.technique-picker-list,.body-option-list{grid-template-columns:1fr}.one-motion-control{right:7px;max-width:168px}.combo-slot-row{grid-template-columns:minmax(0,1fr) 70px}}
 @media(max-height:560px) and (orientation:landscape){.rinne-bottom-controls{right:max(8px,env(safe-area-inset-right));left:auto;transform:none;flex-direction:column}.one-motion-control{right:74px;bottom:10px}.upgrade-panel[data-type="heart"],.upgrade-panel[data-type="technique"],.upgrade-panel[data-type="body"]{right:max(72px,calc(env(safe-area-inset-right) + 65px));bottom:8px;max-height:92dvh}}
 @media(prefers-reduced-motion:reduce){.upgrade-panel[data-type="heart"],.upgrade-panel[data-type="technique"],.upgrade-panel[data-type="body"],.one-motion-control{transition:none}}
+
+
+/* 2026-09 gameplay clarity pass: one quiet visual grammar for 心・技・体. */
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-intro{
+  margin:0 0 8px;padding:6px 2px 7px;border:0;border-bottom:1px solid rgba(92,66,39,.24);
+  background:none;box-shadow:none;
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-intro strong{font-size:12px}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-intro small{font-size:8px}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot-row{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;margin:0 0 10px;
+  border-block:1px solid rgba(91,65,37,.28);background:rgba(83,58,31,.08);
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot{
+  min-width:0;min-height:58px;padding:7px 9px;border:0;border-right:1px solid rgba(91,65,37,.22);
+  clip-path:none;background:transparent;box-shadow:none;color:#3b2a1c;text-align:left;
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot:last-child{border-right:0}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot>span,
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot>strong,
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot>small{display:block}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot>span{font-size:8px;color:#806342}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot>strong{margin-top:2px;font-family:var(--font-rinne-display)!important;font-size:13px;color:#342419}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot>small{margin-top:2px;font-size:7px;color:#8a7459}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-slot[data-selected="true"]{
+  background:linear-gradient(180deg,rgba(191,145,69,.18),rgba(191,145,69,.06));box-shadow:inset 0 -2px #a97836;
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-library{margin-top:0}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-library>header{
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 2px 6px;
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-library>header strong{font-size:11px}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-library>header small{font-size:7px;color:#806b50;text-align:right}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-grid{
+  display:flex!important;grid-template-columns:none!important;gap:5px;overflow-x:auto;overflow-y:hidden;
+  padding:1px 2px 6px;scroll-snap-type:x proximity;scrollbar-width:none;
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-grid::-webkit-scrollbar{display:none}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-grid-item{
+  flex:0 0 clamp(118px,31vw,156px);min-width:0;min-height:54px;padding:7px 9px;border:1px solid rgba(83,67,48,.34);
+  clip-path:none;background:rgba(55,52,45,.92);box-shadow:none;color:#eadfc7;text-align:left;scroll-snap-align:start;
+}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-grid-item strong,
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-grid-item small{display:block}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-grid-item strong{font-family:var(--font-rinne-display)!important;font-size:11px}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-grid-item small{margin-top:3px;font-size:7px;line-height:1.35;color:#b9ad96}
+.upgrade-panel:is([data-type="heart"],[data-type="technique"],[data-type="body"]) .loadout-grid-item[data-active="true"]{
+  border-color:#aa7e3e;background:#60472d;color:#fff0c8;box-shadow:inset 0 -2px #c29149;
+}
+.rinne-bottom-controls .upgrade-control:is(.is-heart,.is-technique,.is-body){
+  background:transparent!important;border:0!important;clip-path:none!important;box-shadow:none!important;filter:none!important;
+}
+.rinne-bottom-controls .upgrade-control:is(.is-heart,.is-technique,.is-body)[aria-pressed="true"],
+.rinne-bottom-controls .upgrade-control:is(.is-heart,.is-technique,.is-body)[data-active="true"]{
+  background:rgba(170,126,62,.14)!important;box-shadow:inset 0 -2px #b48749!important;
+}

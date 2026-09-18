@@ -16,8 +16,7 @@ implementation
   -> commit / push
   -> final develop freshness verify
   -> Ready for review
-  -> exact-head CI
-  -> serialized expected-head merge to develop
+  -> same-task merge to develop
   -> asynchronous DEV publication
   -> final response / session ends
 ```
@@ -26,7 +25,7 @@ Ready の前には latest `develop` を work branch へ取り込み、reconciled
 
 CI / GitHub Actions / Playwright / browser check が Running / Queued / Pending でも待たない。`gh run watch`、`gh pr checks --watch`、一定間隔の Actions API 取得、sleep を使う polling loopは禁止。push 直後に1回だけ短時間確認し、起動・即時失敗・明白な設定誤りを確認するのはよい。未完了でも別担当への handoff は作らず、同じ Ready PR のGitHub automationが継続する。
 
-Ready 後の CI 監視、develop 統合、DEV 公開、明示browser verification、Fast Repair / Deep Repair、有限 retry は同じPRから起動するRepository automationまたは専用経路の責任。Ready 化から merge までの短い race は serialized expected-head gate / Fast Repair が吸収する。実装 worker が「裏で追跡中」を理由に返答を保留しない。
+develop PRではReady後のCI監視や自動repairを行わない。実装worker自身がmerge直前のfreshnessを確認してPRをdevelopへmergeする。DEV公開だけがmerge後に非同期で続く。
 
 状態名は工程を混同しない。
 
@@ -40,7 +39,7 @@ Ready は CI 成功、merge、DEV 公開成功を意味しない。
 
 ## DEVで実物を確認する標準開発
 
-標準ループは **AI実装 → 高速検証 → latest develop reconciliation → 再検証 → Ready → exact-head CI → serialized merge guard がdevelopへ統合 → DEV公開 → ユーザーが実物を確認 → 指摘をAIが修正**。
+標準ループは **AI実装 → 高速検証 → latest develop reconciliation → 再検証 → Ready → 同じAIがdevelopへmerge → DEV公開 → ユーザーが実物を確認 → 指摘をAIが修正**。
 
 明示要件・禁止事項・最新 `develop` の確定仕様を守る範囲で、見た目、操作感、文言、実装方法などの可逆的な細部は AI が選んで実装し、重要な仮定を PR に短く記録する。任意の目視確認を公開前の追加承認工程にしない。
 
@@ -101,7 +100,7 @@ browser verification / repair は [`BROWSER_SELF_HEALING.md`](BROWSER_SELF_HEALI
 
 依頼作業に必要なコード、モデル、VRM/GLB、Blender/DCC 元データ、文書、検証証拠、Git bundle を `charukun/soul-lineage` と同 Repository の既存 Codespaces 間で転送し、依頼された work branch を commit/push、PR 作成・更新する範囲は既存承認済み。Ready 前に current develop を **work branch へ merge-forward** することも同じ work-branch 更新の範囲として扱う。詳細な許可範囲と例外は [`DELIVERY_AUTHORIZATION.md`](DELIVERY_AUTHORIZATION.md) を正本とし、同じ許可を再質問しない。
 
-この承認は、無関係なデータ、別 Repository / account / provider、新規課金、credential/security 変更、破壊的操作、**品質gateを迂回した develop への direct write**、main / Production 公開を許可しない。個人AI開発の通常経路では、同じ task worker またはRepository automationが exact-head CI・hold/review/dependency・freshness・serialized expected-head gateを満たしたPRを `develop` へmergeしてよい。
+この承認は、無関係なデータ、別 Repository / account / provider、新規課金、credential/security 変更、破壊的操作、**品質gateを迂回した develop への direct write**、main / Production 公開を許可しない。個人AI開発の通常経路では、同じ task worker が focused validation・hold/review/dependency・current develop reconciliation・final freshnessを満たしたPRを`develop`へmergeしてよい。
 
 ## 完了報告の画像・動画エビデンス
 
