@@ -18,8 +18,8 @@
 #hud #pause{justify-self:end}
 
 /* Auto combat is transient state, not an extra input surface. Preserve its existing phase/action readout. */
-#hud #enemy-name{font-size:9px;opacity:.85}
-#hud #enemy-health-track{width:min(170px,44vw);height:3px}
+
+
 
 /* The former return command is presentation-only: a bare bearing mark, not a button. */
 #hud .controls{
