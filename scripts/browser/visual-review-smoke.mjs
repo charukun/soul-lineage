@@ -21,6 +21,7 @@ async function verifyProfile(profile){
   page.on('pageerror',error=>pageErrors.push(String(error?.stack||error)));
   page.on('requestfailed',request=>{try{const url=new URL(request.url());if(url.origin===reviewUrl.origin&&['document','script','stylesheet'].includes(request.resourceType()))requestFailures.push(`${request.resourceType()} ${url.pathname}: ${request.failure()?.errorText||'failed'}`);}catch{}});
   const activate=locator=>profile.hasTouch?locator.tap():locator.click();
+  const waitForReviewUrl=pattern=>page.waitForURL(pattern,{waitUntil:'domcontentloaded',timeout:15000});
   const home=async()=>{await page.goBack({waitUntil:'domcontentloaded'});await page.locator('.review-launcher').waitFor({state:'visible',timeout:15000});};
   try{
     const directEntry=new URL('review.html',reviewUrl);directEntry.searchParams.set('source',expectedSha);directEntry.searchParams.set('profile',profile.name);
@@ -33,16 +34,16 @@ async function verifyProfile(profile){
     assert.equal(await page.locator('[data-review-target]').count(),5);assert.equal(await page.locator('iframe').count(),0);
     const widthOk=await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1);assert.equal(widthOk,true);
 
-    await activate(page.locator('[data-review-target="motion"]'));await page.waitForURL(/characters\.html\?review=motion/,{timeout:15000});await page.locator('main.review-app').waitFor({state:'visible',timeout:45000});await home();
-    await activate(page.locator('[data-review-target="characters"]'));await page.waitForURL(/characters\.html/,{timeout:15000});await page.locator('main.review-app').waitFor({state:'visible',timeout:45000});await home();
-    await activate(page.locator('[data-review-target="assets"]'));await page.waitForURL(/review-assets\.html/,{timeout:15000});await page.locator('body').waitFor({state:'visible'});await home();
+    await activate(page.locator('[data-review-target="motion"]'));await waitForReviewUrl(/characters\.html\?review=motion/);await page.locator('main.review-app').waitFor({state:'visible',timeout:45000});await home();
+    await activate(page.locator('[data-review-target="characters"]'));await waitForReviewUrl(/characters\.html/);await page.locator('main.review-app').waitFor({state:'visible',timeout:45000});await home();
+    await activate(page.locator('[data-review-target="assets"]'));await waitForReviewUrl(/review-assets\.html/);await page.locator('body').waitFor({state:'visible'});await home();
 
-    await activate(page.locator('[data-review-target="effects"]'));await page.waitForURL(/review-effects\.html/,{timeout:15000});
+    await activate(page.locator('[data-review-target="effects"]'));await waitForReviewUrl(/review-effects\.html/);
     await page.locator('#fx-stage').waitFor({state:'visible',timeout:30000});
     await page.locator('#fx-status').evaluate(node=>new Promise((ok,fail)=>{const done=()=>{if(node.textContent?.includes('原本再生可能')){observer.disconnect();ok();}};const observer=new MutationObserver(done);observer.observe(node,{childList:true,subtree:true,characterData:true});done();setTimeout(()=>{observer.disconnect();fail(new Error(`VFX not ready: ${node.textContent}`));},60000);}));
     await activate(page.locator('[data-preset="finisher"]'));const effectStatus=await page.locator('#fx-status').textContent();const effectScreenshot=`effects-${profile.name}.png`;await page.screenshot({path:resolve(reportDir,effectScreenshot),fullPage:true});await home();
 
-    await activate(page.locator('[data-review-target="battle"]'));await page.waitForURL(/review-battle\.html/,{timeout:15000});
+    await activate(page.locator('[data-review-target="battle"]'));await waitForReviewUrl(/review-battle\.html/);
     await page.waitForFunction(()=>document.querySelector('#battle-canvas')?.dataset.battleGeometry==='runtime-models',null,{timeout:45000});
     await page.waitForFunction(()=>document.querySelector('#battle-canvas')?.dataset.battleModels==='ready',null,{timeout:90000});
     await page.waitForFunction(()=>Number.parseFloat(document.querySelector('#battle-time')?.textContent||'0')>=.2,null,{timeout:15000});
