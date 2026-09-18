@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@soul/platform": "*",
-    "@soul/tidebreak-combat": "*"
+    "@soul/tidebreak-combat": "*",
+    "@soul/raid": "*"
   }
 }
