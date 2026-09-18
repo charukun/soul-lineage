@@ -98,8 +98,8 @@ html[data-pulse-tone="info"] .pulse-wordmark::after{
 .sync-copy strong{font-size:10.5px;line-height:1.2}
 .sync-copy span{font-size:8.5px;line-height:1.25}
 .refresh-area .reload{
-  min-height:31px;
-  padding:0 7px;
+  min-height:42px;
+  padding:0 10px;
   border-color:transparent;
   border-radius:9px;
   background:transparent;
@@ -111,6 +111,12 @@ html[data-pulse-tone="info"] .pulse-wordmark::after{
   border-color:var(--pulse-line);
   color:var(--text);
   background:var(--pulse-soft);
+}
+html[data-pulse-tone="warning"] .refresh-area .reload,
+html[data-pulse-tone="danger"] .refresh-area .reload{
+  border-color:color-mix(in srgb,var(--warning) 35%,var(--pulse-line));
+  color:var(--text);
+  background:color-mix(in srgb,var(--warning) 6%,transparent);
 }
 
 /* One compact decision surface, not a dashboard inside a dashboard. */
@@ -199,8 +205,8 @@ html[data-pulse-tone="info"] .pulse-wordmark::after{
   background:transparent;
 }
 .control-details>summary{
-  min-height:38px;
-  padding:5px 2px 0;
+  min-height:44px;
+  padding:6px 2px 0;
   color:#8794a7;
   font-size:10px;
 }
@@ -383,7 +389,7 @@ footer{margin-top:16px;opacity:.58}
   .refresh-area{width:min(51vw,174px)}
   .sync-freshness{min-height:34px;padding:6px 8px}
   .sync-copy span{display:none}
-  .refresh-area .reload{min-height:29px}
+  .refresh-area .reload{min-height:40px}
   .control-tower{padding:13px}
   .control-hero{display:block}
   .control-hero h2{max-width:none;font-size:clamp(24px,7.7vw,31px)}
