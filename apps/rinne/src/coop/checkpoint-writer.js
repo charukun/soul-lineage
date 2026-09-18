@@ -13,8 +13,8 @@ export function createCheckpointWriter({world,save,now,onCommit=()=>{},onError=(
     active=queued;queued=null;started=now();const job=active;
     try{
       const captured=world.save();world.dirtyHistory=false;
-      const receipt=await save(captured);
-      if(semanticObserver){try{semanticObserver.observe(committed,captured,receipt);}catch(error){semanticError=error;onSemanticError(error);}}
+      const receipt=await save(captured),commitLatencyMs=Math.max(0,now()-started);
+      if(semanticObserver){try{semanticObserver.observe(committed,captured,{...receipt,commitLatencyMs});}catch(error){semanticError=error;onSemanticError(error);}}
       committed=captured;revision++;job.resolve(receipt);onCommit(receipt);
     }catch(error){failure=error;job.reject(error);queued?.reject(error);queued=null;onError(error);}
     finally{active=null;if(queued&&!failure)void pump();}
