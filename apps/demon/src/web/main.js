@@ -23,7 +23,7 @@ const swipe = new SwipeInput(), audio = new NightAudio(), guide = new AngledGuid
 function safe(fn) { try { return fn(); } catch (e) { console.error(e); showError(e.message || String(e)); } }
 function pauseInput() { game?.resetIdle(); swipe.cancel(); $('move-pad').hidden = true; $('dash-stop').hidden = true; }
 function sheet(title, kicker, html, kind) {
-  pauseInput();
+  pauseInput(); guide.hide();
   const panel = $('sheet');
   panel.dataset.kind = kind || 'generic';
   panel.lang = document.documentElement.lang || 'ja';
