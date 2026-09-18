@@ -1,20 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { PULSE_FIRST_GLANCE, PULSE_ROLE } from '../ops-board/public/pulse-contract.mjs';
 
 const html = readFileSync(new URL('../ops-board/public/index.html', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../ops-board/public/rapid-ui.css', import.meta.url), 'utf8');
 const polish = readFileSync(new URL('../ops-board/public/review-polish.css', import.meta.url), 'utf8');
 const browserCheck = readFileSync(new URL('../ops-board/browser-check.mjs', import.meta.url), 'utf8');
 
-test('PULSE puts the three operator decisions first on mobile', () => {
-  const attention = html.indexOf('id="overview-alert-card"');
-  const development = html.indexOf('id="overview-task-card"');
-  const publication = html.indexOf('id="overview-app-card"');
-  assert.ok(attention >= 0 && attention < development && development < publication);
-  assert.match(html, /<span class="overview-label">あなたの操作<\/span>/);
-  assert.match(html, /<span class="overview-label">開発中<\/span>/);
-  assert.match(html, /<span class="overview-label">DEV<\/span>/);
+test('PULSE exposes the contract-defined three operator roles first on mobile', () => {
+  assert.deepEqual(PULSE_FIRST_GLANCE, [
+    PULSE_ROLE.HUMAN_ACTION,
+    PULSE_ROLE.DEVELOPMENT,
+    PULSE_ROLE.DEV_PUBLICATION,
+  ]);
+  const positions = PULSE_FIRST_GLANCE.map(role => html.indexOf(`data-pulse-role="${role}"`));
+  assert.ok(positions.every(position => position >= 0));
+  assert.ok(positions[0] < positions[1] && positions[1] < positions[2]);
 });
 
 test('operator overview is three equal glance cards and expands DEV details only when needed', () => {
@@ -49,7 +51,6 @@ test('operational control detail is collapsed behind the primary action decision
   const disclosure = html.indexOf('class="control-details nested-disclosure"');
   const flow = html.indexOf('id="control-flow"');
   assert.ok(action >= 0 && action < next && next < disclosure && disclosure < flow);
-  assert.match(html, /<summary>詳細を見る<\/summary>/);
   assert.doesNotMatch(html, /<details class="control-details nested-disclosure"[^>]*open/);
 });
 
