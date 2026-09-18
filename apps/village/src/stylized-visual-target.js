@@ -16,7 +16,12 @@ function wrapFactory(name, profileId) {
   const wrapped = function stylizedVillageFactory(...args) {
     // A cached visual template gets one profile-local material set. All clones
     // of that template still share it, while different roles cannot cross-talk.
-    return once(original.apply(this, args), profileId, { cloneMaterials: true });
+    const result = once(original.apply(this, args), profileId, { cloneMaterials: true });
+    if (name === 'getBuilding') {
+      result.userData = result.userData || {};
+      result.userData.preserveStylizedSilhouette = true;
+    }
+    return result;
   };
   wrapped.__stylizedVisualTarget = true;
   View.prototype[name] = wrapped;
