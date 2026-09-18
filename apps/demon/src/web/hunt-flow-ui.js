@@ -8,13 +8,20 @@ export class HuntFlowUi {
     Object.assign(this, {sheet, start, upgrade, profile, species, toggleReturn});
     document.body.classList.add('hunt-loop');
     this.objective = byId('objective');
-    this.bag = document.createElement('div'); this.bag.className = 'hunt-bag';
+    this.objectiveStage = this.objective.querySelector('.objective-depth__stage');
+    this.objectiveFace = this.objective.querySelector('.objective-depth__face');
+    this.objectiveKicker = this.objective.querySelector('[data-objective-kicker]');
+    this.objectiveText = this.objective.querySelector('[data-objective-text]');
+    if (!this.objectiveStage || !this.objectiveFace || !this.objectiveKicker || !this.objectiveText) {
+      throw Error('目的HUDの表示面を初期化できません。');
+    }
+    this.bag = document.createElement('div'); this.bag.className = 'hunt-bag objective-depth__wing';
     this.bag.innerHTML = '<span data-haul></span><span data-goal></span><progress max="1" value="0" aria-label="捕食目標"></progress>';
-    this.objective.append(this.bag);
+    this.objectiveStage.append(this.bag);
     this.bearing = document.createElement('b'); this.bearing.textContent = '↓'; this.bearing.setAttribute('aria-hidden', 'true');
     this.exitText = document.createElement('span'); byId('return-hint').replaceChildren(this.bearing, this.exitText);
-    this.actionLine = document.createElement('p'); this.actionLine.className = 'hunt-action';
-    this.actionLine.setAttribute('role', 'status'); this.actionLine.hidden = true; this.objective.append(this.actionLine);
+    this.actionLine = document.createElement('p'); this.actionLine.className = 'hunt-action objective-depth__tip';
+    this.actionLine.setAttribute('role', 'status'); this.actionLine.hidden = true; this.objectiveStage.append(this.actionLine);
     this.actionToken = ''; this.actionAt = 0;
     this.campButton = document.createElement('button'); this.campButton.id = 'hunt-camp'; this.campButton.className = 'inline-action';
     this.campButton.type = 'button'; this.campButton.addEventListener('click', () => this.camp());
