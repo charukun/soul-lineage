@@ -117,3 +117,17 @@ test('capture-only protected cycle seals an early life and rebirths without chan
   const normal=await createCoopHost({world:room(),contentVersion:'test',RTCPeerConnection:MemoryRTC,save:async()=>{}});
   try{await assert.rejects(normal.captureProtectedCycle(),/無効/);}finally{await normal.dispose();}
 });
+
+
+test('semantic journal persistence failure stays diagnostic while coop-v2 authority continues saving',async()=>{
+  const world=room();let revision=0,host;
+  const save=async()=>({revision:++revision,historySequence:1,root:`root-${revision}`,writeId:`write-${revision}`});
+  const semanticJournalPersistence={capabilities:{authority:false,semanticEventSourcing:true},observe:async()=>{throw Error('semantic journal offline');}};
+  try{
+    host=await createCoopHost({world,contentVersion:'test',RTCPeerConnection:MemoryRTC,save,semanticJournalPersistence});
+    await until(()=>host.diagnostics().semanticPersistenceError==='semantic journal offline');
+    assert.equal(host.snapshot().phase,'open');
+    const before=revision;await host.save();assert(revision>before);assert.equal(host.snapshot().phase,'open');
+    assert.equal(host.diagnostics().semanticPersistence.authority,false);
+  }finally{await host?.dispose();}
+});

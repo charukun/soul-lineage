@@ -3,6 +3,7 @@ import { createCoopHost, joinCoopHost } from './session.js';
 import { readInvitation, invitationUrl } from './wire.js';
 import { createHistoryStore } from './history-store.js';
 import { validateSemanticShadowRestore } from './semantic-shadow.js';
+import { createSemanticJournalStore } from './semantic-journal-store.js';
 import './menu.css';
 
 export function installCoopMenu({container,buildInfo,getPrepared,getName,onPlay,onLeave,performanceProbeFactory=null,semanticMeasurement=null,captureWorkload=false}){
@@ -15,6 +16,7 @@ export function installCoopMenu({container,buildInfo,getPrepared,getName,onPlay,
   const copy=async id=>{await navigator.clipboard.writeText($(id).value);status('コピーしました。');};
   const storage=()=>getPrepared().platform.storage;
   const history=createHistoryStore({storage:{read:key=>storage().read(key),write:(key,value)=>storage().write(key,value)},exclusive:(id,fn)=>navigator.locks.request(`rinne-coop-history:${id}`,fn)});
+  const semanticJournal=createSemanticJournalStore({storage:{read:key=>storage().read(key),write:(key,value)=>storage().write(key,value)},exclusive:(id,fn)=>navigator.locks.request(`rinne-coop-semantic:${id}`,fn),provisionalRpoMs:2000});
   function changed(){const snapshot=session?.snapshot();if(!snapshot)return;status(snapshot.error||(snapshot.phase==='open'?`${snapshot.view?.connected||1}人 · 村は開いています`:'村とのつながりを待っています。'));
     if(!playing&&session?.selfId&&session?.layout&&snapshot.view){playing=true;Promise.resolve(onPlay(session)).catch(error=>{void leave().finally(()=>status(error.message));});}}
   async function acquire(){
@@ -31,9 +33,13 @@ export function installCoopMenu({container,buildInfo,getPrepared,getName,onPlay,
         if(envelope){
           saved=structuredClone(envelope.checkpoint);
           try{
-            const raw=JSON.parse(await storage().read(`coop-shadow-v1:${id}`)||'null');
+            const current=await semanticJournal.read(id),raw=current.semantic?.semanticState??null;
             if(raw)semanticShadowState=validateSemanticShadowRestore(raw,{worldId:id,ownerId:saved.world.ownerId,authorityRoot:envelope.root,historySequence:envelope.history.length});
-            else semanticShadowCoverage='gap';
+            else{
+              const legacy=JSON.parse(await storage().read(`coop-shadow-v1:${id}`)||'null');
+              if(legacy)semanticShadowState=validateSemanticShadowRestore(legacy,{worldId:id,ownerId:saved.world.ownerId,authorityRoot:envelope.root,historySequence:envelope.history.length});
+              else semanticShadowCoverage='gap';
+            }
           }catch{semanticShadowCoverage='gap';semanticShadowState=null;}
         }else{
           const raw=await storage().read(`coop-v1:${id}`);saved=JSON.parse(raw);semanticShadowCoverage='gap';
@@ -44,8 +50,7 @@ export function installCoopMenu({container,buildInfo,getPrepared,getName,onPlay,
       const world=new CoopWorld({worldId,ownerId,name:getName(),layout:saved?.layout||prepared.layout,saved:saved?.world});
       let writeSequence=0;const writerId=crypto.randomUUID();
       const persist=async value=>{const sequence=writeSequence++,receipt=await history.commit(value,{writeId:`${world.data.epoch}:${writerId}:${sequence}`,acquire:sequence===0});if(sequence===0)await storage().write('coop-last',worldId);return receipt;};
-      const semanticShadowPersistence={save:value=>storage().write(`coop-shadow-v1:${worldId}`,value)};
-      session=await createCoopHost({world,contentVersion,save:persist,RTCPeerConnection,onChange:changed,performanceProbe:makeProbe('host'),semanticShadowState,semanticShadowCoverage,semanticShadowPersistence,semanticMeasurement,captureWorkload});$('coop-invite').hidden=false;$('coop-cancel').hidden=false;changed();
+      session=await createCoopHost({world,contentVersion,save:persist,RTCPeerConnection,onChange:changed,performanceProbe:makeProbe('host'),semanticShadowState,semanticShadowCoverage,semanticJournalPersistence:semanticJournal,semanticMeasurement,captureWorkload});$('coop-invite').hidden=false;$('coop-cancel').hidden=false;changed();
     }catch(error){releaseLock?.();releaseLock=null;throw error;}
   }
   $('coop-host').onclick=run(()=>host(false));$('coop-resume').onclick=run(()=>host(true));
