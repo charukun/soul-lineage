@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createSemanticShadow, deriveSemanticShadowActions, validateSemanticShadowRestore } from '../src/coop/semantic-shadow.js';
+import { createSemanticShadow, deriveSemanticShadowActions, recoverCheckpointWithSemanticShadow, validateSemanticShadowRestore } from '../src/coop/semantic-shadow.js';
 import { createCheckpointWriter } from '../src/coop/checkpoint-writer.js';
 import { createCoopPerformanceProbe } from '../src/coop/performance.js';
 
@@ -115,4 +115,26 @@ test('stale persisted shadow becomes a coverage gap instead of being silently tr
   let persisted=null;const first=createSemanticShadow({lifeSeconds:6000,onState:value=>{persisted=value;}});first.observe(null,checkpoint(),receipt(1,1));
   assert.throws(()=>validateSemanticShadowRestore(persisted,{worldId:'room',ownerId:'owner',authorityRoot:'different',historySequence:1}),/coverage anchor/);
   assert.throws(()=>validateSemanticShadowRestore(persisted,{worldId:'room',ownerId:'owner',authorityRoot:'r1',historySequence:2}),/coverage anchor/);
+});
+
+
+test('shadow recovery overlays a protected birth onto an older provisional checkpoint',()=>{
+  let persisted=null;const shadow=createSemanticShadow({lifeSeconds:6000,onState:value=>{persisted=value;}}),a=checkpoint();shadow.observe(null,a,receipt(1,1));
+  const b=structuredClone(a);b.world.tick=8;b.world.worldSeconds=4;b.world.players.guest={token:'secret-g',portDwell:0,life:life('guest')};
+  shadow.observe(a,b,receipt(2,2));
+  const stale=structuredClone(a);stale.world.players.ghost={token:'old',portDwell:0,life:life('ghost')};
+  const recovered=recoverCheckpointWithSemanticShadow(stale,persisted);
+  assert.deepEqual(Object.keys(recovered.world.players).sort(),['guest','owner']);assert.equal(recovered.world.players.guest.token,'secret-g');
+  assert.equal(recovered.world.players.guest.life.id,'guest:1');assert.equal(recovered.world.tick,8);assert.equal(recovered.world.worldSeconds,4);
+});
+
+test('shadow recovery can cross a rebirth when the provisional checkpoint still has the predecessor',()=>{
+  let persisted=null;const shadow=createSemanticShadow({lifeSeconds:6000,onState:value=>{persisted=value;}}),a=checkpoint(),sealed=structuredClone(a),old=sealed.world.players.owner.life;
+  shadow.observe(null,a,receipt(1,1));old.ageSeconds=1300;old.ageYears=1300/60;old.ended=true;old.phase='ended';sealed.world.tick=9;sealed.world.worldSeconds=4.5;
+  shadow.observe(a,sealed,receipt(2,2));
+  const born=life('owner',2);born.lineage=[record(old)];born.homelands=[...old.homelands];const b=structuredClone(sealed);b.world.tick=10;b.world.worldSeconds=5;b.world.players.owner.life=born;b.world.rebirthOps[old.id]={playerId:'owner',lifeId:old.id,villageId:null,resultId:born.id};
+  shadow.observe(sealed,b,receipt(3,3));
+  const recovered=recoverCheckpointWithSemanticShadow(a,persisted);
+  assert.equal(recovered.world.players.owner.life.id,'owner:2');assert.deepEqual(recovered.world.players.owner.life.lineage,[record(old)]);
+  assert.equal(recovered.world.rebirthOps['owner:1'].resultId,'owner:2');assert.equal(recovered.world.tick,10);
 });
