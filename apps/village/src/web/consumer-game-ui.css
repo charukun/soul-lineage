@@ -61,20 +61,51 @@ button:focus-visible{
 .muraHudSectionHead small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7.5px;line-height:1.25;color:#777361}
 .muraHudStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin:0}
 .muraHudStat{
-  display:grid;grid-template-columns:15px minmax(0,1fr);grid-template-rows:auto auto;align-items:center;column-gap:5px;
-  min-width:0;padding:4px 5px;border:0;border-radius:2px;background:rgba(255,248,224,.35);box-shadow:inset 2px 0 rgba(138,111,68,.35);
+  display:grid;grid-template-columns:20px minmax(0,1fr);grid-template-rows:auto auto;align-items:center;column-gap:5px;
+  min-width:0;padding:4px 5px;border:0;border-radius:2px;background:rgba(255,248,224,.35);box-shadow:inset 2px 0 var(--mura-icon-ink,#8a7657);
 }
-.muraHudStat svg{grid-row:1/3;width:15px;height:15px;opacity:.68}
+.muraHudIcon{
+  display:grid;place-items:center;width:20px;height:20px;border:1px solid rgba(91,76,55,.16);border-radius:6px 8px 6px 8px;
+  background:var(--mura-icon-wash,#e5dfd2);color:var(--mura-icon-ink,#6f7469);
+  box-shadow:inset 0 1px rgba(255,255,255,.55),0 1px 2px rgba(74,66,49,.09);
+}
+.muraHudIcon svg{width:14px;height:14px;opacity:.96;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.muraHudStat>.muraHudIcon{grid-row:1/3}
 .muraHudStat dt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7.5px;line-height:1.1;color:#787461}
 .muraHudStat dd{display:flex;align-items:baseline;gap:2px;min-width:0;margin:0;line-height:1.05;color:#3e493c}
 .muraHudStat dd b{font-size:11px;font-weight:800;font-variant-numeric:tabular-nums}.muraHudStat dd small{font-size:7px;color:#777361}
 .muraHudResources{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
-.muraHudResources span{
-  display:grid;grid-template-columns:14px minmax(0,1fr) auto;align-items:center;gap:4px;min-width:0;
-  padding:4px 5px;border:0;border-radius:2px;background:rgba(255,248,224,.35);box-shadow:inset 2px 0 rgba(138,111,68,.35);
+.muraHudResources>.muraHudResource{
+  display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:4px;min-width:0;
+  padding:4px 5px;border:0;border-radius:2px;background:rgba(255,248,224,.35);box-shadow:inset 2px 0 var(--mura-icon-ink,#8a7657);
 }
-.muraHudResources svg{width:14px;height:14px;opacity:.68}.muraHudResources small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7.5px;color:#706e5d}.muraHudResources b{font-size:10px;font-weight:800;font-variant-numeric:tabular-nums;color:#3e493c}
+.muraHudResource>.muraHudIcon{width:18px;height:18px}.muraHudResource>.muraHudIcon svg{width:13px;height:13px}
+.muraHudResources small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7.5px;color:#706e5d}.muraHudResources b{font-size:10px;font-weight:800;font-variant-numeric:tabular-nums;color:#3e493c}
 .muraHudEmpty{grid-column:1/-1;margin:0;padding:5px 6px;background:rgba(255,248,224,.27);font-size:8px;line-height:1.35;color:#777361}
+
+/* Low-saturation inks keep the paper ledger lively without turning it into a dashboard rainbow. */
+.muraTone-people{--mura-icon-ink:#4f7972;--mura-icon-wash:#dce8df}
+.muraTone-bed{--mura-icon-ink:#9a6550;--mura-icon-wash:#eddcd2}
+.muraTone-arrival{--mura-icon-ink:#796b9d;--mura-icon-wash:#e5dfed}
+.muraTone-shield{--mura-icon-ink:#58708b;--mura-icon-wash:#dce2e8}
+.muraTone-facility{--mura-icon-ink:#9a7850;--mura-icon-wash:#eadfce}
+.muraTone-wood{--mura-icon-ink:#8b643f;--mura-icon-wash:#eadac7}
+.muraTone-stone{--mura-icon-ink:#65727a;--mura-icon-wash:#dfe3e2}
+.muraTone-plank{--mura-icon-ink:#9b7749;--mura-icon-wash:#eee0c8}
+.muraTone-clay{--mura-icon-ink:#a26854;--mura-icon-wash:#ecd8ce}
+.muraTone-food{--mura-icon-ink:#718a4f;--mura-icon-wash:#e2e7d2}
+.muraTone-seed{--mura-icon-ink:#8b7a43;--mura-icon-wash:#e8e2c8}
+.muraTone-herb{--mura-icon-ink:#5f835f;--mura-icon-wash:#dce8d7}
+.muraTone-ore{--mura-icon-ink:#646b73;--mura-icon-wash:#dfe1e2}
+.muraTone-metal{--mura-icon-ink:#556f7c;--mura-icon-wash:#d9e2e5}
+.muraTone-cloth{--mura-icon-ink:#7b6688;--mura-icon-wash:#e5ddea}
+.muraTone-leather{--mura-icon-ink:#8d624c;--mura-icon-wash:#ead9cf}
+.muraTone-medicine{--mura-icon-ink:#8d6576;--mura-icon-wash:#eadde3}
+.muraTone-knowledge{--mura-icon-ink:#58769a;--mura-icon-wash:#dbe4ee}
+.muraTone-crystal{--mura-icon-ink:#5f8491;--mura-icon-wash:#d8e8e9}
+.muraTone-charm{--mura-icon-ink:#9a735d;--mura-icon-wash:#ebddd3}
+.muraTone-gear{--mura-icon-ink:#566977;--mura-icon-wash:#dde3e6}
+.muraTone-furnishing{--mura-icon-ink:#8b7553;--mura-icon-wash:#e7dfd0}
 #muraModeLabel{
   border:1px solid rgba(91,72,48,.45);border-radius:3px;background:#e8ddc5e8;backdrop-filter:none;
   box-shadow:0 2px 0 rgba(82,64,44,.4);letter-spacing:.04em;
@@ -182,7 +213,7 @@ dialog .dialogClose{border:1px solid #776346;background-image:var(--village-fibr
 @media(max-width:420px){
   #muraHudDetails{max-height:min(31dvh,188px)}
   .muraHudSectionHead small{max-width:72%}
-  .muraHudStat{padding:4px}.muraHudResources span{padding:4px}
+  .muraHudStat{padding:4px}.muraHudResources>.muraHudResource{padding:4px}
 }
 
 @media(prefers-reduced-motion:reduce){button{transition:none}}
