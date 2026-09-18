@@ -34,7 +34,7 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
   const {chromium}=await import('playwright');
   const evidenceDir=resolve(root,'artifacts/browser/rinne-title-cinematic');
   await mkdir(evidenceDir,{recursive:true});
-  const server=spawn('npm',['run','dev','--workspace','@soul/rinne'],{cwd:root,env:{...process.env,NO_COLOR:'1'},stdio:['ignore','pipe','pipe']});
+  const server=spawn('npm',['run','dev','--workspace','@soul/rinne'],{cwd:root,env:{...process.env,NO_COLOR:'1'},stdio:['ignore','pipe','pipe'],detached:process.platform!=='win32'});
   let serverLog='';
   server.stdout.on('data',chunk=>{serverLog=(serverLog+chunk.toString()).slice(-12000);});
   server.stderr.on('data',chunk=>{serverLog=(serverLog+chunk.toString()).slice(-12000);});
@@ -112,6 +112,6 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
     throw error;
   }finally{
     await browser?.close().catch(()=>{});
-    server.kill('SIGTERM');
+    if(process.platform==='win32')server.kill('SIGTERM');else{try{process.kill(-server.pid,'SIGTERM');}catch{}}
   }
 });
