@@ -54,3 +54,155 @@
 @media(max-width:700px){.title-world{inset:-7%}.title-live-canvas{transform-origin:52% 54%}.title-world-rays{opacity:.34;filter:blur(9px)}.title-world-clouds-back{opacity:.14}.title-world-clouds-front{opacity:.09}.title-world-motes{opacity:.44}.title-lockup{top:calc(env(safe-area-inset-top) + 24px);width:78vw}.title-lockup .crest{width:clamp(92px,25vw,132px)}.title-lockup h1{font-size:clamp(48px,15vw,72px)}.title-copy{top:calc(env(safe-area-inset-top) + 22px);right:calc(env(safe-area-inset-right) + 13px);width:9em;font-size:9px;line-height:1.7}.title-actions{bottom:calc(env(safe-area-inset-bottom) + 70px);width:min(312px,80vw);padding:8px 10px 9px}.title-command{min-height:43px;font-size:17px}}
 .title-screen[data-motion="off"] .title-world,.title-screen[data-motion="off"] .title-live-canvas,.title-screen[data-motion="off"] .title-world-rays,.title-screen[data-motion="off"] .title-world-clouds,.title-screen[data-motion="off"] .title-world-motes,.title-screen[data-motion="off"] .title-world-lens{animation:none!important;transition:none!important}
 @media(prefers-reduced-motion:reduce){.title-world,.title-live-canvas,.title-world-rays,.title-world-clouds,.title-world-motes,.title-world-lens{animation:none!important;transition:none!important}}
+
+
+/* Cinematic opening: the intro's final frame becomes the title scene without a cut. */
+.title-screen{
+  --cinematic-ui-ease:cubic-bezier(.22,.61,.36,1);
+  background:#79c9f4;
+}
+.title-world{background:#79c9f4}
+.title-world-base,.title-live-canvas{
+  object-position:50% 48%;
+  filter:saturate(1.08) contrast(.98) brightness(1.08);
+}
+.title-screen::before{
+  background:
+    linear-gradient(180deg,rgba(38,126,190,.02),transparent 50%,rgba(22,67,55,.12)),
+    radial-gradient(ellipse at 50% 70%,transparent 28%,rgba(12,46,58,.08) 100%);
+}
+.title-screen::after{opacity:.18}
+.title-world::before{
+  background:
+    radial-gradient(ellipse at 74% 13%,rgba(255,249,211,.34),transparent 31%),
+    linear-gradient(180deg,rgba(139,215,255,.03),transparent 50%,rgba(54,112,72,.08));
+}
+.title-world::after{opacity:.24;filter:blur(18px)}
+.title-world-rays{opacity:.24}
+.title-world-clouds-back{opacity:.10}
+.title-world-clouds-front{opacity:.07}
+.title-world-motes{opacity:.32}
+.title-world-lens{opacity:.18}
+
+.title-copy,.title-lockup,.title-actions,.title-controller-hints,.title-screen .boot-status,.title-screen footer{
+  transition:opacity 1.35s var(--cinematic-ui-ease),transform 1.5s var(--cinematic-ui-ease),filter 1.5s var(--cinematic-ui-ease);
+}
+.title-screen[data-intro="pending"] .title-copy,
+.title-screen[data-intro="pending"] .title-lockup,
+.title-screen[data-intro="pending"] .title-actions,
+.title-screen[data-intro="pending"] .title-controller-hints,
+.title-screen[data-intro="pending"] .boot-status,
+.title-screen[data-intro="pending"] footer,
+.title-screen[data-intro="cinematic"] .title-copy,
+.title-screen[data-intro="cinematic"] .title-lockup,
+.title-screen[data-intro="cinematic"] .title-actions,
+.title-screen[data-intro="cinematic"] .title-controller-hints,
+.title-screen[data-intro="cinematic"] .boot-status,
+.title-screen[data-intro="cinematic"] footer{
+  opacity:0;
+  pointer-events:none;
+}
+.title-screen[data-intro="cinematic"] .title-lockup{transform:translateX(-50%) translateY(14px);filter:blur(5px)}
+.title-screen[data-intro="cinematic"] .title-actions{transform:translateX(-50%) translateY(12px);filter:blur(4px)}
+.title-screen[data-intro="settling"] .title-copy,
+.title-screen[data-intro="settling"] .title-controller-hints,
+.title-screen[data-intro="settling"] .boot-status,
+.title-screen[data-intro="settling"] footer{opacity:0;pointer-events:none}
+.title-screen[data-intro="settling"] .title-lockup{opacity:1;transform:translateX(-50%) translateY(0);filter:none}
+.title-screen[data-intro="settling"] .title-actions{opacity:0;transform:translateX(-50%) translateY(10px);filter:blur(3px);pointer-events:none}
+.title-screen[data-intro="idle"] .title-copy,
+.title-screen[data-intro="idle"] .title-lockup,
+.title-screen[data-intro="idle"] .title-actions,
+.title-screen[data-intro="idle"] .title-controller-hints,
+.title-screen[data-intro="idle"] .boot-status,
+.title-screen[data-intro="idle"] footer{opacity:1;filter:none}
+.title-screen[data-intro="idle"] .title-lockup{transform:translateX(-50%) translateY(0)}
+.title-screen[data-intro="idle"] .title-actions{transform:translateX(-50%) translateY(0)}
+.title-screen[data-ready="false"][data-intro="idle"] .title-actions,
+.title-screen[data-ready="false"][data-intro="idle"] .title-controller-hints{opacity:0;pointer-events:none}
+.title-screen[data-ready="false"][data-intro="idle"] .boot-status{opacity:1}
+
+.title-screen[data-intro="cinematic"] .title-world-base,
+.title-screen[data-intro="cinematic"] .title-live-canvas{
+  animation:title-cinematic-flight 8.2s cubic-bezier(.16,.74,.24,1) both!important;
+  will-change:transform,filter;
+}
+.title-screen[data-intro="settling"] .title-world-base,
+.title-screen[data-intro="settling"] .title-live-canvas{
+  animation:title-cinematic-settle 1.7s cubic-bezier(.16,.74,.24,1) both!important;
+}
+.title-screen[data-intro="idle"] .title-world-base,
+.title-screen[data-intro="idle"] .title-live-canvas{
+  animation:title-living-still-camera 18s ease-in-out infinite alternate!important;
+}
+
+/* Keep the title quiet and airy. The landscape, not a UI panel, is the hero. */
+.title-lockup{top:max(calc(env(safe-area-inset-top) + 28px),4.5vh);filter:drop-shadow(0 3px 13px rgba(23,65,70,.34))}
+.title-lockup::before{opacity:.28;background:radial-gradient(ellipse at center,rgba(23,74,78,.28),transparent 70%)}
+.title-lockup .crest{display:none}
+.title-lockup .eyebrow{color:rgba(255,255,244,.82);text-shadow:0 1px 7px rgba(30,78,85,.42)}
+.title-lockup h1{
+  font-size:clamp(52px,5.8vw,86px);
+  color:#fffdf2;
+  background:none;
+  -webkit-text-fill-color:currentColor;
+  text-shadow:0 2px 14px rgba(25,72,79,.42);
+  filter:none;
+}
+.title-lockup .subtitle{color:rgba(255,255,245,.92);text-shadow:0 2px 10px rgba(26,75,80,.46)}
+.title-lockup .subtitle::before,.title-lockup .subtitle::after{background:linear-gradient(90deg,transparent,rgba(255,255,238,.72))}
+.title-copy{color:rgba(255,255,244,.88);text-shadow:0 2px 10px rgba(31,76,79,.40)}
+.title-actions{
+  bottom:max(calc(env(safe-area-inset-bottom) + 74px),9vh);
+  width:min(292px,72vw);
+  gap:0;
+  padding:0;
+  border:0;
+  clip-path:none;
+  background:transparent;
+  box-shadow:none;
+}
+.title-command{
+  min-height:42px;
+  padding:6px 24px;
+  border:0!important;
+  color:rgba(255,255,246,.90);
+  font-size:clamp(16px,1.45vw,20px);
+  text-shadow:0 2px 10px rgba(26,70,72,.58);
+}
+.title-command::before{left:2px;color:#fff8cf;text-shadow:0 0 10px rgba(255,244,188,.72)}
+.title-command[data-selected="true"],.title-command:hover,.title-command:focus-visible{
+  border:0!important;
+  background:rgba(255,255,246,.13);
+  color:#fffef3;
+  box-shadow:none!important;
+  border-radius:999px;
+}
+.title-controller-hints,.title-screen .boot-status,.title-screen footer{color:rgba(255,255,245,.58);text-shadow:0 1px 6px rgba(24,63,69,.52)}
+
+@keyframes title-cinematic-flight{
+  0%{transform:scale(1.42) translate3d(-8%,5.5%,0);filter:saturate(.92) contrast(1.03) brightness(.82) blur(.5px)}
+  22%{transform:scale(1.29) translate3d(5%,-1.8%,0);filter:saturate(1.02) contrast(1.01) brightness(.96) blur(0)}
+  48%{transform:scale(1.19) translate3d(-2.5%,-3.8%,0);filter:saturate(1.08) contrast(.99) brightness(1.05)}
+  72%{transform:scale(1.11) translate3d(1.8%,-1.4%,0);filter:saturate(1.1) contrast(.98) brightness(1.08)}
+  100%{transform:scale(1.055) translate3d(0,0,0);filter:saturate(1.08) contrast(.98) brightness(1.08)}
+}
+@keyframes title-cinematic-settle{
+  from{transform:scale(1.065) translate3d(.3%,-.2%,0)}
+  to{transform:scale(1.055) translate3d(0,0,0)}
+}
+@keyframes title-living-still-camera{
+  from{transform:scale(1.055) translate3d(0,0,0)}
+  to{transform:scale(1.07) translate3d(.28%,-.18%,0)}
+}
+
+@media(max-width:700px){
+  .title-world-base,.title-live-canvas{object-position:50% 50%}
+  .title-lockup{top:calc(env(safe-area-inset-top) + 38px);width:88vw}
+  .title-actions{bottom:calc(env(safe-area-inset-bottom) + 78px);width:min(280px,76vw)}
+  .title-command{min-height:40px;font-size:17px}
+}
+@media(prefers-reduced-motion:reduce){
+  .title-copy,.title-lockup,.title-actions,.title-controller-hints,.title-screen .boot-status,.title-screen footer{transition:none!important}
+  .title-screen .title-world-base,.title-screen .title-live-canvas{animation:none!important;transform:scale(1.055)!important}
+}
