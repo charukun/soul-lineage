@@ -130,7 +130,6 @@ function hud(now) {
   $('battle').style.opacity = ui.fight ? '1' : '0'; $('enemy-name').textContent = ui.fight ? game.fight.npc.name + (count > 1 ? ' ×' + count : '') : '';
   $('skill-name').textContent = game.fight?.retreat > 0 ? '戦闘を離れる…' : p.skill || '間合いを測る';
   document.querySelectorAll('[data-phase]').forEach(el => el.classList.toggle('active', el.dataset.phase === p.slot));
-  $('enemy-health').style.width = ui.fight ? Math.max(0, Math.min(100, game.fight.npc.hp / game.fight.npc.maxhp * 100)) + '%' : '0';
   $('scent').disabled = ui.scentDisabled; $('memory').disabled = ui.memoryDisabled; $('return').disabled = ui.returnDisabled;
   $('return').classList.toggle('locked', ui.returnLocked); $('return-label').textContent = ui.returnLocked ? '捕食後' : '帰路';
   $('scent').querySelector('span').textContent = game.scentCooldown > 0 ? Math.ceil(game.scentCooldown) + '秒' : '嗅覚';
