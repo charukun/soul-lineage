@@ -6,12 +6,15 @@ const root=new URL('../',import.meta.url);
 const read=path=>readFile(new URL(path,root),'utf8');
 
 test('Visual Review uses only the Rinne Pages DEV route',async()=>{
-  const [opsBoard,collector,applications,review,vite]=await Promise.all([
-    read('.github/workflows/ops-board.yml'),read('ops-board/collector.mjs'),read('ops-board/applications.mjs'),read('apps/rinne/review.html'),read('apps/rinne/vite.config.js')
+  const [opsBoard,collector,applications,pulls,pullBoard,pulseHtml,review,vite]=await Promise.all([
+    read('.github/workflows/ops-board.yml'),read('ops-board/collector.mjs'),read('ops-board/applications.mjs'),read('ops-board/pulls.mjs'),read('ops-board/public/pull-board.js'),read('ops-board/public/index.html'),read('apps/rinne/review.html'),read('apps/rinne/vite.config.js')
   ]);
   assert.doesNotMatch(opsBoard,/review-preview\.yml|Publish Visual Review on explicit Ops Board dispatch/);
   assert.doesNotMatch(collector,/visual-review\/public|VISUAL_REVIEW_PUBLIC_URL|visualReviewEnvironment/);
   assert.doesNotMatch(applications,/rinne-visual-review\.c-okamoto\.workers\.dev|VISUAL_REVIEW_PUBLIC_URL/);
+  assert.doesNotMatch(pulls,/isVisualReviewPull|work\/visual-review-lab-v2|visualReview/);
+  assert.doesNotMatch(pullBoard,/visual-review-pulls|visual-review-section|pr\.visualReview/);
+  assert.doesNotMatch(pulseHtml,/visual-review-section|長期運用の確認用PR/);
   assert.match(applications,/dev\/rinne\/\$\{path\}/);
   assert.match(applications,/rinneDevToolTarget\('visual-review','DEV公開','review\.html'/);
   assert.equal((review.match(/data-review-target=/g)||[]).length,5);
