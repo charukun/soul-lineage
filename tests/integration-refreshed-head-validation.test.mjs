@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
+const ci = readFileSync('.github/workflows/ci.yml', 'utf8');
 const controller = readFileSync('.github/workflows/integration-controller.yml', 'utf8');
 const rescue = readFileSync('.github/workflows/integration-rescue.yml', 'utf8');
 const validator = readFileSync('.github/workflows/integration-exact-head-validation.yml', 'utf8');
@@ -28,4 +29,11 @@ test('trusted refreshed-head validation preserves current-state and exact-head e
   assert.match(validator, /pr-fast-\$\{\{ inputs\.pr \}\}-\$\{\{ inputs\.head \}\}/);
   assert.match(validator, /context: 'integration\/stack-fast'/);
   assert.match(validator, /Stack Validate and build #\$\{\{ inputs\.pr \}\}/);
+});
+
+
+test('trusted validator sparse checkouts include modules imported by check.mjs', () => {
+  const completeControlCheckout = /path: control[\s\S]*?sparse-checkout: \|[\s\S]*?scripts[\s\S]*?ops-board[\s\S]*?packages\/world[\s\S]*?packages\/assets/;
+  assert.match(ci, completeControlCheckout);
+  assert.match(validator, completeControlCheckout);
 });
