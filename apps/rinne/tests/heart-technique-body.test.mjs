@@ -5,7 +5,7 @@ import {createFront,tickFront} from '../src/rebuild/combat.js';
 import {beginCombatState} from '../src/rebuild/combat-loadout-runtime.js';
 import {
   ensureCombatLoadout,learnedHeartSkills,learnedTechniqueSkills,addCombo,setComboSkill,toggleFavored,setActiveCombo,
-  setHeartActive,setOneMotion,setBodyChoice,unlockedBodyOptions,requestOneMotion,selectCombatCombo
+  setHeartActive,setHeartSlot,setOneMotion,setBodyChoice,unlockedBodyOptions,requestOneMotion,selectCombatCombo
 } from '../src/combat-loadout.js';
 
 function living(){const state=createLife({name:'検証',seed:77});state.phase='living';state.ageSeconds=20*60;state.ageYears=20;state.resting=false;return state;}
@@ -22,6 +22,13 @@ test('heart page selection controls an immediate tactical effect without changin
   const state=living();ensureCombatLoadout(state);const before=[...state.knownSkills];assert.equal(skillEffects(state).damage,0);
   assert.equal(setHeartActive(state,'skill.focus',true),true);assert.ok(skillEffects(state).damage>.05);assert.deepEqual(state.knownSkills,before);
   setHeartActive(state,'skill.focus',false);assert.equal(skillEffects(state).damage,0);
+});
+
+test('heart loadout has three ordered slots and refuses a fourth active heart',()=>{
+  const state=living();ensureCombatLoadout(state);const ids=learnedHeartSkills(state).slice(0,4);assert.equal(ids.length,4);
+  assert.equal(setHeartSlot(state,0,ids[0]),true);assert.equal(setHeartSlot(state,1,ids[1]),true);assert.equal(setHeartSlot(state,2,ids[2]),true);assert.deepEqual(state.combatLoadout.heart.active,ids.slice(0,3));
+  assert.equal(setHeartActive(state,ids[3],true),false);assert.deepEqual(state.combatLoadout.heart.active,ids.slice(0,3));
+  assert.equal(setHeartSlot(state,1,ids[3]),true);assert.deepEqual(state.combatLoadout.heart.active,[ids[0],ids[3],ids[2]]);
 });
 
 test('weapon change normalizes stale legacy basic skills to the equipped weapon',()=>{
