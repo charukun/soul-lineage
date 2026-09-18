@@ -70,7 +70,7 @@ GitHub の `open + base=develop + draft=false` が通常 handoff の境界。た
 | 作業中 | work branch / Draft PR / current commit | 開始・push 到達。最終成功ではない |
 | 実装完了 | Ready PR / exact head / reconciled develop SHA / `implementation/handoff` | Ready。以後は同PRの自動merge経路 |
 | develop 統合 | merged PR / merge commit / merge status | `MERGED_TO_DEVELOP` |
-| DEV 完了 | target develop SHA の `integration/develop=success` | `DEV_DEPLOYED` |
+| DEV 完了 | target develop SHA の `dev/delivery=success` | `DEV_DEPLOYED` |
 | 実装失敗 | branch / commit / Draft or hold / reason | `FAILED` |
 
 通知は既存の設定済み経路を再利用する。`NTFY_TOPIC_URL` / `NTFY_TOKEN` が未設定・送信失敗なら GitHub 側へ記録し、スマホ到達を確認済みと報告しない。通知成功は code / CI / DEV 成功の証拠ではなく、通知失敗も実装失敗には置き換えない。ChatGPT アプリ自身の push / 応答表示は完了判定に使わない。
