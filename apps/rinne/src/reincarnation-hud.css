@@ -735,3 +735,42 @@
   .rinne-map-radar{width:68px!important;height:68px!important}
   .game-screen[data-gameplay-upgrade] .objective-card{top:max(80px,calc(env(safe-area-inset-top) + 72px))!important}
 }
+
+/* Sequence HUD v3: override the late reincarnation skin that previously flattened the live HUD. */
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator{
+  top:17%!important;display:grid!important;grid-template-columns:36px 34px 36px 34px 36px!important;
+  align-items:center!important;overflow:visible!important;filter:drop-shadow(0 5px 6px #0009)!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator::before{display:none!important}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator>span{grid-row:1;z-index:2;margin:0!important}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator>span[data-phase-id="jo"]{grid-column:1}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator>span[data-phase-id="ha"]{grid-column:3}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator>span[data-phase-id="kyu"]{grid-column:5}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator>.phase-pulse{
+  display:block!important;grid-row:1;width:34px!important;height:22px!important;margin:0!important;
+  background:currentColor!important;color:#75634c!important;opacity:.48!important;
+  clip-path:polygon(0 47%,18% 47%,26% 30%,35% 72%,45% 12%,56% 84%,66% 40%,75% 51%,100% 51%,100% 58%,76% 58%,67% 48%,56% 100%,45% 30%,36% 90%,25% 45%,20% 58%,0 58%)!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator>[data-link="jo-ha"]{grid-column:2}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator>[data-link="ha-kyu"]{grid-column:4}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-phase="jo"]>[data-link="jo-ha"],
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-phase="ha"]>[data-link="ha-kyu"],
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[data-phase="kyu"]>.phase-pulse{
+  color:#efb25a!important;opacity:1!important;animation:rinne-phase-trace .64s ease-in-out infinite!important;
+  filter:drop-shadow(0 0 6px #e9a64fbb)!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-action{
+  display:block;grid-column:1/6;grid-row:2;position:static!important;transform:none!important;
+  justify-self:center;margin-top:8px!important;padding:2px 10px!important;min-width:max-content;
+  background:linear-gradient(90deg,transparent,#111c 18%,#111c 82%,transparent)!important;color:#f2dfb6!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-history{
+  display:block!important;grid-column:1/6;grid-row:3;position:relative!important;left:auto!important;top:auto!important;
+  transform:none!important;justify-self:center;margin-top:3px;width:220px!important;height:92px!important;overflow:hidden!important;
+}
+.game-screen[data-gameplay-upgrade] .combat-phase-history span{
+  top:0!important;animation:rinne-phase-fall 2.7s ease-out both!important;
+}
+
+/* Enemy durability is intentionally unreadable in combat: outcome is learned from posture/contact, not a target HP meter. */
+.game-screen[data-frontier-combat="true"] :is(.enemy-hp,.enemy-health,.enemy-health-bar,.enemy-hp-bar,.target-hp,.target-health,.target-health-bar,[data-enemy-hp],[data-enemy-health],[data-target-hp],[data-target-health]){display:none!important}
