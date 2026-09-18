@@ -95,7 +95,7 @@ async function openCoopDialog(){
         const {installRrpPerformanceCapture}=await import('./coop/performance-capture.js');
         rrpCapture=installRrpPerformanceCapture({getSession:()=>coopMenu?.session,buildInfo:info});performanceProbeFactory=rrpCapture.performanceProbeFactory;semanticMeasurement=rrpCapture.semanticMeasurement;
       }
-      coopMenu=installCoopMenu({container:document.getElementById('village-panel'),buildInfo:info,getPrepared:()=>prepared,getName:()=>$('life-name').value,onPlay:enterCoop,performanceProbeFactory,semanticMeasurement,onLeave:async()=>{villageDialog.close();if(runtime)await $('back-title').onclick();else await coopMenu.leave();}});
+      coopMenu=installCoopMenu({container:document.getElementById('village-panel'),buildInfo:info,getPrepared:()=>prepared,getName:()=>$('life-name').value,onPlay:enterCoop,performanceProbeFactory,semanticMeasurement,captureWorkload:Boolean(rrpCapture),onLeave:async()=>{villageDialog.close();if(runtime)await $('back-title').onclick();else await coopMenu.leave();}});
       villageInstalled=true;
     }
     if(!villageDialog.open)villageDialog.showModal();
