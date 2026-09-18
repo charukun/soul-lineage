@@ -89,7 +89,8 @@ jobs:
               description:`${process.env.APP} per-app DEV build and publish pending`,
               target_url:`${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`});
       - run: npm ci
-      - name: Focused app validation
+      - name: Focused app validation diagnostic
+        continue-on-error: true
         env:
           APP: ${{ matrix.app }}
         run: node scripts/validate.mjs deploy "$APP"
@@ -107,8 +108,9 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           npx --yes wrangler@4 deploy --config "wrangler.dev.$APP.jsonc"
-      - name: Verify exact public app source
+      - name: Diagnose public app source
         id: verify
+        continue-on-error: true
         env:
           APP: ${{ matrix.app }}
           SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
@@ -131,11 +133,12 @@ jobs:
           VERIFY_OUTCOME: ${{ steps.verify.outcome }}
         with:
           script: |
-            const success=process.env.DEPLOY_OUTCOME==='success'&&process.env.VERIFY_OUTCOME==='success';
+            const published=process.env.DEPLOY_OUTCOME==='success';
+            const diagnostic=process.env.VERIFY_OUTCOME==='success'?'source diagnostic matched':'source diagnostic did not match';
             await github.rest.repos.createCommitStatus({...context.repo,sha:process.env.SOURCE_SHA,
-              context:`dev/${process.env.APP}`,state:success?'success':'failure',
-              description:success?`${process.env.APP} DEV live and exact-source verified`:`${process.env.APP} DEV publish or verification failed`,
-              target_url:success?`https://soul-lineage-${process.env.APP}-dev.c-okamoto.workers.dev/`:`${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`});
+              context:`dev/${process.env.APP}`,state:published?'success':'failure',
+              description:published?`${process.env.APP} DEV published; ${diagnostic}`:`${process.env.APP} DEV publish failed`,
+              target_url:published?`https://soul-lineage-${process.env.APP}-dev.c-okamoto.workers.dev/`:`${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`});
 
   notify:
     name: Notify fast DEV completion

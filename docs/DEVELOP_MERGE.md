@@ -47,7 +47,9 @@ develop向けPRイベントではCIを起動しない。PR更新・Ready化・re
 
 developへmergeされた後のpushを起点としてDEV publicationを実行する。DEV公開はPR mergeの前提条件ではない。
 
-DEV publication failureはdevelop履歴を巻き戻さず、公開側の問題として扱う。必要ならLast Known Good復旧を使う。
+DEVでは「developへmergeされた変更を公開する」ことを優先する。DEV publisher自体のbuild/publish失敗は公開失敗として扱うが、公開後のHTTP・version・exact-source確認は診断であり、DEV公開成功を取り消すblocking gateにしない。診断不一致だけを理由にLast Known Goodへ巻き戻さない。
+
+公開後診断は、反映遅延・キャッシュ・配信先不一致などの観測材料として残してよい。Productionのblocking verification契約は別であり、このDEV緩和を適用しない。
 
 ## main / Production
 
