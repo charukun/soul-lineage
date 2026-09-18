@@ -8,7 +8,8 @@
     "./single-session": "./session.js",
     "./profile": "./profile.js",
     "./world": "./world.js",
-    "./species": "./species.js"
+    "./species": "./species.js",
+    "./night-window": "./night-window.js"
   },
   "dependencies": {
     "@soul/tidebreak-combat": "*",
