@@ -149,7 +149,8 @@ export function createSemanticShadow({lifeSeconds,onSample=null,onState=null,onC
   const sample=value=>{const{checkpointPayload,journalPayload,...publicSample}=value;lastSample=clone(publicSample);checkpointBytesTotal+=publicSample.checkpointBytes;journalBytesTotal+=publicSample.journalBytes;try{onSample?.({...clone(publicSample),checkpointPayload:clone(checkpointPayload),journalPayload:clone(journalPayload)});}catch{/* measurement sinks never affect shadow semantics */}};
   const exportState=()=>({format:1,worldId:state?.worldId??null,ownerId:state?.ownerId??null,authorityRoot,lastHistorySequence,commits,
     checkpointBytesTotal,journalBytesTotal,journalCount:journalCount+journal.length,recentJournalTypes:[...recentJournalTypes,...journal.map(row=>row.type)].slice(-32),state:clone(state)});
-  const publishState=context=>{const exported=exportState();try{onState?.(exported);}catch{/* diagnostic persistence never affects authoritative saves */}\n    try{onCommit?.({semanticState:clone(exported),checkpoint:clone(context.checkpoint),events:clone(context.events),receipt:clone(context.receipt)});}catch{/* semantic persistence sinks never affect authoritative saves */}};
+  const publishState=context=>{const exported=exportState();try{onState?.(exported);}catch{/* diagnostic persistence never affects authoritative saves */}
+    try{onCommit?.({semanticState:clone(exported),checkpoint:clone(context.checkpoint),events:clone(context.events),receipt:clone(context.receipt)});}catch{/* semantic persistence sinks never affect authoritative saves */}};
   function observe(previousCheckpoint,nextCheckpoint,receipt={}){
     if(failure)throw failure;
     try{
