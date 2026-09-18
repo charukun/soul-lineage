@@ -6,7 +6,7 @@
 
 実装セッションの終了条件は [実行ポリシー](RINNE_PROJECT_EXECUTION_POLICY.md)。通常実装は Draft PR → 実装 → 局所検証 → **current develop を work branch へ merge-forward → 局所再検証 → push → final freshness verify** → Ready まで進め、CI/DEV完了を待機・pollingしない。
 
-このRepositoryに Integration という工程は置かない。正常な Ready PR は Ready 直前に観測した develop を既に含み、exact-head `Validate and build` が成功すると **同じ PR Checks workflow から** single serialized expected-head writer を直接呼び出す。Fast Lane は人間的な第二工程ではなく、merge API の原子性と Ready 後の短い race だけを守る機械的な改札である。
+正常な Ready PR は Ready 直前に観測した develop を既に含み、exact-head `Validate and build` が成功すると **同じ PR Checks workflow から** single serialized expected-head writer を直接呼び出す。Fast Lane は人間的な第二工程ではなく、merge API の原子性と Ready 後の短い race だけを守る機械的な改札である。
 
 ## 通常経路
 
@@ -38,7 +38,7 @@ Fast Laneはmerge直前にcurrent GitHub stateを再取得し、次をすべて�
 
 - open / non-Draft / base=`develop`
 - same repository、trusted author
-- `integration:hold` / `integration:manual` / `do-not-merge` / `Integration-Hold:` なし
+- `merge:hold` / `merge:manual` / `do-not-merge` / `Merge-Hold:` なし
 - `Depends-On` 完了
 - GitHub mergeable
 - Changes requestedなし、未解決review threadなし
@@ -88,7 +88,7 @@ current repository contractsから解けないschema/save/protocol/API等の真�
 
 ## DEV deliveryはmerge healthと分離する
 
-`integration/develop` は **DEV delivery health** であり、通常PRのglobal merge lockではない。
+`dev/delivery` は **DEV delivery health** であり、通常PRのglobal merge lockではない。
 
 - `pending`: DEV公開・source検証中
 - `success`: そのdevelop SHAのDEV公開とHTTP/source確認成功
@@ -116,7 +116,7 @@ explicit hold、dependency、review objection、merge conflict、exact-head DEV 
 
 ## Draft / Ready
 
-Draftは実装workerが作業し、Ready化前にpre-Ready reconciliationを完了する領域。Draftではlightweight checkのみ。Readyになると `Validate and build` を開始する。**developのこのjobはtests=0で、成功した exact head は同じ PR Checks workflow から Fast Lane を直接呼び出す。別の Request Integration dispatch は通常経路に存在しない。browser jobも通常develop経路に存在しない。** current exact-head source repairが必要な失敗はChat Repair Issueへ送る。
+Draftは実装workerが作業し、Ready化前にpre-Ready reconciliationを完了する領域。Draftではlightweight checkのみ。Readyになると `Validate and build` を開始する。**developのこのjobはtests=0で、成功した exact head は同じ PR Checks workflow から Fast Lane を直接呼び出す。別のmerge-dispatch工程は通常経路に存在しない。browser jobも通常develop経路に存在しない。** current exact-head source repairが必要な失敗はChat Repair Issueへ送る。
 
 merge laneは「Readyにされた古いbaseを毎回更新する工程」ではない。Ready時点でheadが直前に取得したdevelopを含むことを標準契約とし、その後のraceだけをFast Repair fallbackで扱う。
 
