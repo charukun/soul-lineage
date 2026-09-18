@@ -151,6 +151,9 @@ jobs:
       contents: write
       pull-requests: read
       actions: write
+    outputs:
+      validation_has_work: ${{ steps.refresh.outputs.validation_has_work }}
+      validation_matrix: ${{ steps.refresh.outputs.validation_matrix }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -166,16 +169,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-stale-refresh-api.json
         run: node scripts/integration-stale-ready-refresh.mjs
-      - name: Wake Fast Lane for refreshed exact heads
-        if: steps.refresh.outputs.has_work == 'true'
-        uses: actions/github-script@v8
-        with:
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              ...context.repo,
-              workflow_id: 'deploy.yml',
-              ref: 'develop',
-            });
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -186,6 +179,43 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 7
+
+  stale-ready-validate:
+    name: Validate refreshed dependency-free heads
+    needs: stale-ready-refresh
+    if: needs.stale-ready-refresh.result == 'success' && needs.stale-ready-refresh.outputs.validation_has_work == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.stale-ready-refresh.outputs.validation_matrix) }}
+    uses: ./.github/workflows/integration-exact-head-validation.yml
+    with:
+      pr: ${{ matrix.pr }}
+      head: ${{ matrix.head }}
+      base: ${{ matrix.base }}
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: write
+    secrets: inherit
+
+  stale-ready-wake:
+    name: Wake Fast Lane after refreshed-head validation
+    needs: [stale-ready-refresh, stale-ready-validate]
+    if: always() && needs.stale-ready-refresh.outputs.validation_has_work == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo,
+              workflow_id: 'deploy.yml',
+              ref: 'develop',
+            });
 
   repair:
     name: Fast Repair executor

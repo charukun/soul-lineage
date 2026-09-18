@@ -65,6 +65,8 @@ merge-forwardされたheadは最大4件を並列にfast validationする。各wo
 
 この経路はGitHubの`GITHUB_TOKEN`で作られた`pull_request/synchronize`がapproval-requiredになる仕様を迂回して承認するものではない。approval-required runはそのまま残してよく、trusted Repair runのexact-head evidenceを別経路で作る。PAT・別GitHub App・人間の空commitは不要。
 
+`integration-stale-ready-refresh` や Fast Repair が Actions bot で Ready PR head を更新した場合も、`pull_request` workflow の再起動だけに依存してはならない。bot 更新後に `PR Checks` が `action_required` / job 0件になっても、それを失敗済み・人待ちとは扱わず、trusted Integration run が current PR/head/develop を再確認して同等の exact-head DEV validation と `pr-fast-<PR>-<SHA>` evidence を作り、Fast Lane を明示的に wake する。exact-head evidenceを作らず `deploy.yml` だけを再dispatchするループは禁止する。
+
 ## merge後のdependent chain wake
 
 Fast Laneが1件以上mergeしたpassは、そのmergeで新たにdependency条件を満たしたReady PRを取りこぼさないため、current `develop` に対して `rescue_mode=scan` を1回だけ即時dispatchする。次のscanは通常のFast LaneとFast Repairを再評価し、stacked PRならmerge-forward・exact-head fast validation・Fast Lane wakeまで進める。
