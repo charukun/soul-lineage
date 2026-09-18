@@ -107,35 +107,19 @@ test('control canary treats notification as advisory while preserving delivery g
   assert.equal(broken.ok, false);
 });
 
-test('workflow contracts keep exact-head fast merge, browser opt-in DEV verification, LKG fallback and no paid model API', async () => {
-  const { readFileSync } = await import('node:fs');
+test('workflow contracts keep develop PR CI disabled and DEV publication push-driven', async () => {
+  const { existsSync, readFileSync } = await import('node:fs');
   const ci = readFileSync('.github/workflows/ci.yml','utf8');
   const deploy = readFileSync('.github/workflows/deploy.yml','utf8');
-  const controller = readFileSync('.github/workflows/develop-merge.yml','utf8');
   const coalescer = readFileSync('.github/workflows/dev-publisher-coalescer.yml','utf8');
-  const repair = readFileSync('.github/workflows/integration-rescue.yml','utf8');
-  assert.match(ci,/Validate and build/);
-  assert.doesNotMatch(ci,/Affected browser smoke/);
-  assert.doesNotMatch(ci,/browser-repair-dispatch:/);
-  assert.match(ci,/integration-stack-ci\.mjs/);
-  assert.match(ci,/integration-gate-cost\.mjs/);
-  assert.match(ci,/merge-ready:[\s\S]*uses: \.\/\.github\/workflows\/develop-merge\.yml/);
-  assert.doesNotMatch(ci,/integration-request:/);
+  assert.match(ci,/branches: \[main\]/);
+  assert.doesNotMatch(ci,/develop-merge\.yml|merge-ready:|request-rescue:/);
+  assert.equal(existsSync('.github/workflows/develop-merge.yml'), false);
+  assert.match(deploy,/push:[\s\S]*branches: \[develop, main\]/);
+  assert.doesNotMatch(deploy,/develop-merge\.yml|queue-recovery:|merge-continuation:|rescue_mode:|merge_cursor:/);
   assert.match(deploy,/Validate exact DEV candidate manifest before public promotion/);
   assert.match(deploy,/Promote candidate to DEV Pages/);
-  assert.match(deploy,/Verify public app URLs, assets and source commits/);
   assert.match(deploy,/Restore Last Known Good DEV/);
-  assert.match(deploy,/integration\/dev-fallback/);
   assert.match(deploy,/Preserve blocking Production browser verification/);
-  assert.match(deploy,/full-verification:[\s\S]*Public Chromium \/ WebGL2/);
-  assert.match(controller,/develop-merge-writer/);
-  assert.match(controller,/Merge eligible Ready PRs/);
-  assert.match(controller,/integration-fast-lane\.mjs/);
-  assert.doesNotMatch(controller,/Validate planned Virtual Integration Train/);
-  assert.doesNotMatch(controller,/publisher-handoff:/);
   assert.match(coalescer,/run\.event === 'push' && run\.head_sha !== latestSha/);
-  assert.match(repair,/Fast Repair/);
-  assert.match(repair,/integration-repair-fast\.mjs/);
-  assert.doesNotMatch(repair,/Observe repair pressure and knowledge|Plan repair executor wave|AWAITING_PUSH/);
-  assert.doesNotMatch(`${ci}\n${deploy}\n${controller}\n${coalescer}\n${repair}`,/OPENAI_API_KEY|openai\/codex-action|RINNE_CODEX_MODEL/);
 });
