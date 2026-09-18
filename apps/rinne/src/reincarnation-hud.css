@@ -771,3 +771,6 @@
 .game-screen[data-gameplay-upgrade] .combat-phase-history span{
   top:0!important;animation:rinne-phase-fall 2.7s ease-out both!important;
 }
+
+/* Enemy durability is intentionally unreadable in combat: outcome is learned from posture/contact, not a target HP meter. */
+.game-screen[data-frontier-combat="true"] :is(.enemy-hp,.enemy-health,.enemy-health-bar,.enemy-hp-bar,.target-hp,.target-health,.target-health-bar,[data-enemy-hp],[data-enemy-health],[data-target-hp],[data-target-health]){display:none!important}
