@@ -7,25 +7,53 @@
 </head>
 <body>
 <main class="fx-review">
-<header><div><p class="eyebrow">AUTHORED RUNTIME VFX</p><h1>戦闘エフェクト</h1></div><output id="fx-status" role="status">原本を準備中</output></header>
-<section class="stage-shell"><canvas id="fx-stage" aria-label="派手な戦闘エフェクト確認。ドラッグで回転、ピンチで拡大"></canvas><div class="stage-label"><span>HUMAN</span><span>CONTACT</span><span>ENEMY</span></div></section>
-<section class="controls" aria-label="エフェクト確認操作">
-<div class="preset-grid">
-<button type="button" data-preset="slash" class="primary">斬撃＋命中</button>
-<button type="button" data-preset="impact">被弾</button>
-<button type="button" data-preset="finisher">急・大技</button>
-<button type="button" data-preset="storm">派手さ確認</button>
-</div>
-<div class="control-row">
-<label>再生速度<select id="fx-speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select></label>
-<label>負荷tier<select id="fx-tier"><option value="0">FULL</option><option value="1">MID</option><option value="2">LOW</option><option value="3">MIN</option></select></label>
-<label class="check"><input id="fx-loop" type="checkbox">反復</label>
-<label class="check"><input id="fx-reduced" type="checkbox">Reduced motion</label>
-</div>
-<div class="control-row actions"><button id="fx-pause" type="button">一時停止</button><button id="fx-clear" type="button">消去</button><button id="fx-camera" type="button">カメラを戻す</button></div>
-<output id="fx-metrics">backend: loading</output>
-<details><summary>原本・確認境界</summary><p id="fx-provenance"></p><p>この画面はゲーム本体と同じ authored effect player / Effekseer backend を使います。レビュー用イベントは見た目を発火するためだけの入力で、ダメージ判定や戦闘ルールを複製しません。</p></details>
+<header class="review-header">
+  <div><p class="eyebrow">AUTHORED RUNTIME VFX</p><h1>戦闘エフェクト</h1></div>
+  <output id="fx-status" role="status">原本を準備中</output>
+</header>
+<section class="fx-workspace">
+  <div class="preview-pane">
+    <section class="stage-shell" aria-label="選択中エフェクトの実機プレビュー">
+      <canvas id="fx-stage" aria-label="派手な戦闘エフェクト確認。ドラッグで回転、ピンチで拡大"></canvas>
+      <div class="stage-current" aria-live="polite">
+        <span id="fx-active-type">ATTACK</span>
+        <strong id="fx-active-title">斬撃＋命中</strong>
+        <small id="fx-active-meta">ToonHit + Simple_Ribbon_Sword</small>
+      </div>
+      <div class="stage-label"><span>HUMAN</span><span>CONTACT</span><span>ENEMY</span></div>
+    </section>
+    <details class="controls">
+      <summary>再生設定</summary>
+      <div class="control-panel" aria-label="エフェクト確認操作">
+        <div class="control-row">
+          <label>再生速度<select id="fx-speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select></label>
+          <label>負荷tier<select id="fx-tier"><option value="0">FULL</option><option value="1">MID</option><option value="2">LOW</option><option value="3">MIN</option></select></label>
+          <label class="check"><input id="fx-loop" type="checkbox">反復</label>
+          <label class="check"><input id="fx-reduced" type="checkbox">Reduced motion</label>
+        </div>
+        <div class="control-row actions"><button id="fx-pause" type="button">一時停止</button><button id="fx-clear" type="button">消去</button><button id="fx-camera" type="button">カメラを戻す</button></div>
+        <output id="fx-metrics">backend: loading</output>
+      </div>
+    </details>
+  </div>
+  <aside class="catalog-shell" aria-label="エフェクト一覧">
+    <div class="catalog-head">
+      <div><p class="eyebrow">CATALOG</p><h2>エフェクト一覧</h2></div>
+      <output id="fx-count">0 / 0</output>
+    </div>
+    <label class="search-box"><span>検索</span><input id="fx-search" type="search" placeholder="名前・タグで検索" autocomplete="off"></label>
+    <div class="filter-row" role="group" aria-label="カテゴリ">
+      <button type="button" data-filter="all" aria-pressed="true">すべて</button>
+      <button type="button" data-filter="attack" aria-pressed="false">攻撃</button>
+      <button type="button" data-filter="impact" aria-pressed="false">被弾</button>
+      <button type="button" data-filter="finisher" aria-pressed="false">大技</button>
+      <button type="button" data-filter="combo" aria-pressed="false">複合</button>
+    </div>
+    <div id="fx-catalog" class="fx-catalog" role="list"></div>
+    <p id="fx-empty" class="catalog-empty" hidden>一致するエフェクトはありません</p>
+  </aside>
 </section>
+<details class="provenance"><summary>原本・確認境界</summary><p id="fx-provenance"></p><p>この画面はゲーム本体と同じ authored effect player / Effekseer backend を使います。レビュー用イベントは見た目を発火するためだけの入力で、ダメージ判定や戦闘ルールを複製しません。</p></details>
 </main>
 <script type="module" src="./src/review-effects.js"></script>
 <script type="module" src="./src/review-slot-auto.js"></script>
