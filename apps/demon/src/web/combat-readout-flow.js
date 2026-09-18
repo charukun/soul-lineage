@@ -20,17 +20,18 @@ export function installCombatReadoutFlow(doc=document){
   const flow=doc.createElement('div');
   flow.id='combat-action-flow';
   flow.setAttribute('aria-hidden','true');
-  flow.innerHTML='<span class="combat-action-outgoing"></span><span class="combat-action-current"></span>';
+  flow.innerHTML='<span class="combat-action-current"></span><div class="combat-action-history"></div>';
   source.insertAdjacentElement('afterend',flow);
 
-  const outgoing=flow.querySelector('.combat-action-outgoing');
   const current=flow.querySelector('.combat-action-current');
-  let state={action:'',phase:''};
+  const history=flow.querySelector('.combat-action-history');
+  let state={action:'',phase:''},entries=[];
 
   const reset=()=>{
     state={action:'',phase:''};
     current.textContent='';
-    outgoing.textContent='';
+    history.replaceChildren();
+    entries=[];
     flow.hidden=true;
   };
 
@@ -43,8 +44,8 @@ export function installCombatReadoutFlow(doc=document){
 
     if(next.actionChanged){
       if(state.action){
-        outgoing.textContent=state.action;
-        replay(outgoing,'combat-action-exit');
+        const item=doc.createElement('span');item.textContent=state.action;history.prepend(item);entries.unshift(item);replay(item,'combat-action-history-exit');
+        while(entries.length>4)entries.pop()?.remove();
       }
       current.textContent=next.action;
       if(next.action)replay(current,'combat-action-enter');
@@ -52,6 +53,7 @@ export function installCombatReadoutFlow(doc=document){
     }
 
     if(next.phaseChanged&&next.phase){
+      battle.dataset.phase=next.phase;
       const node=phaseNodes.find(el=>el.dataset.phase===next.phase);
       if(node)replay(node,'combat-phase-shift');
     }
