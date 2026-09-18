@@ -122,6 +122,8 @@ function syncActiveCard(){
   const entry=catalogById.get(selected);if(!entry)return;
   q('fx-active-title').textContent=entry.label;
   q('fx-active-meta').textContent=effectLabel(entry.id);
+  q('fx-selected-label').textContent=entry.label;
+  q('fx-selected-meta').textContent=effectLabel(entry.id);
   applyReviewContext(selected);
 }
 function trigger(preset=selected){
@@ -133,15 +135,10 @@ function trigger(preset=selected){
 }
 function cardFor(entry){
   const wrap=document.createElement('div');wrap.setAttribute('role','listitem');
-  const button=document.createElement('button');button.type='button';button.className='fx-card';button.dataset.preset=entry.id;button.setAttribute('aria-pressed',String(entry.id===selected));
-  const top=document.createElement('span');top.className='fx-card-top';
-  const category=document.createElement('span');category.className='fx-card-category';category.textContent=CATEGORY_LABELS[entry.category]||entry.category;
-  const replay=document.createElement('span');replay.className='fx-card-replay';replay.textContent='再生';
-  top.append(category,replay);
+  const button=document.createElement('button');button.type='button';button.className='fx-option';button.dataset.preset=entry.id;button.setAttribute('aria-pressed',String(entry.id===selected));
+  const category=document.createElement('span');category.className='fx-option-category';category.textContent=CATEGORY_LABELS[entry.category]||entry.category;
   const title=document.createElement('strong');title.textContent=entry.label;
-  const meta=document.createElement('small');meta.textContent=entry.effects.map(effectName).join(' + ');
-  const tags=document.createElement('span');tags.className='fx-card-tags';tags.textContent=entry.tags.slice(0,3).join(' · ');
-  button.append(top,title,meta,tags);button.addEventListener('click',()=>trigger(entry.id));wrap.append(button);return wrap;
+  button.append(category,title);button.addEventListener('click',()=>trigger(entry.id));wrap.append(button);return wrap;
 }
 function renderCatalog(){
   const needle=q('fx-search').value.trim().toLocaleLowerCase('ja');
