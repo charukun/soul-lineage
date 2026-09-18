@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildApplications, OPS_PUBLIC_URL, PORTAL_PUBLIC_URL, VISUAL_REVIEW_PUBLIC_URL } from '../ops-board/applications.mjs';
+import { buildApplications, OPS_PUBLIC_URL, PORTAL_PUBLIC_URL } from '../ops-board/applications.mjs';
 
 test('published apps are grouped by app with exact manifest paths', () => {
   const manifest = { entries: [
@@ -52,32 +52,31 @@ test('character studio is a tool backed by the verified Rinne DEV publication', 
   assert.equal(unpublished.targets[0].expectedUrl, 'https://charukun.github.io/soul-lineage/dev/rinne/characters.html');
 });
 
-test('Visual Review keeps its fixed launch URL even before status discovery', () => {
-  const visual = buildApplications({ entries: [] }, [], []).find(app => app.id === 'visual-review');
-  assert.equal(visual.name, 'Visual Review Lab');
+test('Visual Review is backed only by the Rinne Pages DEV publication', () => {
+  const manifest = { entries: [{
+    app: 'rinne', environment: 'dev', path: 'dev/rinne', deployedAt: '2026-09-12T00:03:00Z',
+    version: { name: '輪廻転焦', commit: 'review-release' },
+  }] };
+  const visual = buildApplications(manifest, [{ id: 'dev', deployState: 'success' }], []).find(app => app.id === 'visual-review');
   assert.equal(visual.kind, 'tool');
-  assert.equal(visual.targets[0].state, 'unknown');
-  assert.equal(visual.targets[0].url, VISUAL_REVIEW_PUBLIC_URL);
-  assert.match(visual.targets[0].note, /固定URL/);
+  assert.equal(visual.targets.length, 1);
+  assert.equal(visual.targets[0].url, 'https://charukun.github.io/soul-lineage/dev/rinne/review.html');
+  assert.equal(visual.targets[0].expectedUrl, visual.targets[0].url);
+  assert.equal(visual.targets[0].commit, 'review-release');
+  assert.match(visual.targets[0].source, /DEV 公開manifest/);
 });
 
 test('tools use verified public status while failed Lanternfell never invents a URL', () => {
-  const environments = [{
-    id: 'visual-review', kind: 'preview', name: 'Visual Review', deployState: 'success',
-    url: 'https://stale-or-derived.example.invalid/', deployedCommit: 'vrm', deployedAt: '2026-09-12T00:00:00Z',
-  }];
+  const environments = [];
   const runs = [
     { name: 'Wayfinder Public Gallery', status: 'completed', conclusion: 'success', head_sha: 'portal', updated_at: '2026-09-12T00:00:30Z' },
     { name: 'Rinne Ops Board', head_branch: 'develop', status: 'completed', conclusion: 'success', head_sha: 'ops', updated_at: '2026-09-12T00:01:00Z' },
     { name: 'Lanternfell night portrait DEV', status: 'completed', conclusion: 'failure', head_sha: 'lantern', updated_at: '2026-09-12T00:02:00Z' },
   ];
   const apps = buildApplications({ entries: [] }, environments, runs);
-  const visual = apps.find(app => app.id === 'visual-review');
   const portal = apps.find(app => app.id === 'portal');
   const ops = apps.find(app => app.id === 'ops-board');
   const lantern = apps.find(app => app.id === 'lanternfell');
-  assert.equal(visual.targets[0].url, VISUAL_REVIEW_PUBLIC_URL);
-  assert.equal(visual.targets[0].commit, 'vrm');
   assert.equal(portal.targets[0].url, PORTAL_PUBLIC_URL);
   assert.equal(portal.targets[0].state, 'success');
   assert.equal(portal.name, 'WAYFINDER');
