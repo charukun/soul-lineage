@@ -67,7 +67,7 @@ async function stepUntil(page,predicate,maxSteps=1800,stride=6){
 }
 
 let browser,context,page;
-const evidence={head:process.env.GITHUB_SHA||null,viewport:{portrait:[390,844],landscape:[844,390]},checks:[]};
+const evidence={head:process.env.DEMON_GUIDE_HEAD||process.env.GITHUB_SHA||null,viewport:{portrait:[390,844],landscape:[844,390]},checks:[]};
 try{
   await waitForServer();
   browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader']});
@@ -82,7 +82,7 @@ try{
   page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   page.on('requestfailed',r=>failedRequests.push({url:r.url(),error:r.failure()?.errorText||'failed'}));
 
-  const response=await page.goto('http://127.0.0.1:5175/',{waitUntil:'domcontentloaded',timeout:30000});
+  const response=await page.goto('http://127.0.0.1:5175/?review=1',{waitUntil:'domcontentloaded',timeout:30000});
   expect(response?.ok()).toBe(true);
   await page.locator('#game').waitFor({state:'visible',timeout:45000});
   await page.waitForFunction(()=>document.querySelector('#game')?.dataset.renderer==='ready',null,{timeout:45000});
