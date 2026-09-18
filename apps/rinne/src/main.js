@@ -1,6 +1,6 @@
 import { installRinneGameplayUpgrade } from './gameplay-upgrade.js';
 import { confirmRinneAudio, selectRinneAudio, unlockRinneAudio } from './gameplay-audio.js';
-import { INTRO_VIDEO_URL, LIVING_VIDEO_URL, TITLE_POSTER_URL } from './title-cinematic-media.js';
+import { TITLE_CINEMATIC_META, TITLE_VIDEO_URL, TITLE_POSTER_URL } from './title-cinematic-media.js';
 import './native-ui-polish.js';
 const info=typeof __BUILD_INFO__!=='undefined'?__BUILD_INFO__:{name:'100年生',app:'rinne',environment:'local',commit:'UNBUILT'};
 document.title=`100年生 — 輪廻転焦${info.environment==='prod'?'':` | ${String(info.environment).toUpperCase()}`}`;
@@ -12,9 +12,9 @@ const motionKey=`soul:v1:${info.environment}:rinne:title-motion-v1`;
 const rrpCaptureRequested=new URLSearchParams(location.search).has('rrpCapture');
 if(rrpCaptureRequested)document.documentElement.dataset.rrpCapture='true';
 const afterVisiblePaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null,rrpCapture=null,gameplayUpgrade=null,titleAudioReady=false,titleSelected=null,titleParallaxRaf=0,titleIntroPlayed=false,titleIntroTimers=[],titleIntroFrameRequest=0,titleLivingFailed=false,titleMediaDisposed=false,titleIntroTransitionHandler=null;
+let runtimeModule=null,prepared=null,runtime=null,booting=false,launching=false,hasSave=false,lab=null,labClock=0,villageInstalled=false,coopMenu=null,rrpCapture=null,gameplayUpgrade=null,titleAudioReady=false,titleSelected=null,titleParallaxRaf=0,titleIntroPlayed=false,titleIntroTimers=[],titleFrameRequest=0,titleMediaFailed=false,titleMediaDisposed=false,titleIntroTransitionHandler=null,titlePendingSeek=null,titleIntroSettled=false;
 
-const titleCommands=[...title.querySelectorAll('.title-command')],introVideo=$('title-cinematic-intro'),livingVideo=$('title-living-still'),titleReducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)');
+const titleCommands=[...title.querySelectorAll('.title-command')],titleVideo=$('title-cinematic-video'),titleReducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)');
 function unlockTitleAudio(){void Promise.resolve(unlockRinneAudio()).then(ok=>{titleAudioReady=Boolean(ok)||titleAudioReady;}).catch(()=>{});titleAudioReady=true;}
 function selectTitleCommand(command,{sound=true}={}){
   if(!command)return;
@@ -64,18 +64,23 @@ function setTitleReady(ready,status=''){
   for(const command of titleCommands)command.disabled=!ready;
   if(status!==undefined)$('boot-status').textContent=status;
 }
-function pauseTitleMedia(){introVideo.pause();livingVideo.pause();}
-function playLivingStill(){
-  if(titleLivingFailed){title.dataset.media='fallback';prepared?.startTitlePreview?.({cinematic:false});return;}
-  title.dataset.media='living';introVideo.pause();
-  try{livingVideo.currentTime=0;}catch{}
-  if(title.dataset.motion==='on'&&!prefersReducedTitleMotion()&&!title.hidden){
-    const promise=livingVideo.play();promise?.catch?.(error=>{if(error?.name!=='AbortError'&&!title.hidden){console.warn('Living title video failed',error);titleLivingFailed=true;title.dataset.media='fallback';prepared?.startTitlePreview?.({cinematic:false});}});
-  }else livingVideo.pause();
+function pauseTitleMedia(){titleVideo.pause();}
+function safeSeekTitle(time){
+  if(titleVideo.readyState>0){try{titleVideo.currentTime=time;titlePendingSeek=null;return true;}catch{}}
+  titlePendingSeek=time;return false;
+}
+function playTitleVideo(){
+  if(titleMediaFailed)return;
+  const promise=titleVideo.play();promise?.catch?.(error=>{if(error?.name!=='AbortError'&&!title.hidden)activateTitleFallback(error);});
+}
+function seekToLivingStill({play=true}={}){
+  if(titleMediaFailed){title.dataset.media='fallback';prepared?.startTitlePreview?.({cinematic:false});return;}
+  safeSeekTitle(TITLE_CINEMATIC_META.introEnd);title.dataset.media='video';
+  if(play&&title.dataset.motion==='on'&&!prefersReducedTitleMotion()&&!title.hidden)playTitleVideo();else titleVideo.pause();
 }
 function settleTitleUi(){
-  if(title.hidden)return;
-  clearTitleIntroTimers();title.dataset.intro='settling';
+  if(title.hidden||title.dataset.intro==='settling'||title.dataset.intro==='idle')return;
+  clearTitleIntroTimers();titleIntroSettled=true;title.dataset.intro='settling';
   let complete=false;
   const finish=()=>{if(complete||title.hidden)return;complete=true;titleIntroTransitionHandler=null;title.dataset.intro='idle';};
   const lockup=title.querySelector('.title-lockup');
@@ -84,46 +89,53 @@ function settleTitleUi(){
   titleIntroTimers.push(setTimeout(finish,1500));
 }
 function activateTitleFallback(reason){
-  if(reason)console.warn('Cinematic title fallback',reason);
+  if(titleMediaFailed&&title.dataset.media==='fallback')return;
+  titleMediaFailed=true;if(reason)console.warn('Cinematic title fallback',reason);
   pauseTitleMedia();title.dataset.media='fallback';prepared?.startTitlePreview?.({cinematic:false});
   if(title.dataset.intro!=='idle')settleTitleUi();
 }
-function onTitleIntroEnded(){
-  if(title.hidden)return;
-  playLivingStill();settleTitleUi();
+function handleTitleMediaTime(mediaTime){
+  if(!titleIntroSettled&&title.dataset.intro==='cinematic'&&mediaTime>=TITLE_CINEMATIC_META.introEnd-.04)settleTitleUi();
+  if(title.dataset.media==='video'&&mediaTime>=TITLE_CINEMATIC_META.duration-.10){
+    safeSeekTitle(TITLE_CINEMATIC_META.introEnd);
+    if(title.dataset.motion==='on'&&!prefersReducedTitleMotion()&&!title.hidden)playTitleVideo();
+  }
 }
-function onTitleIntroError(){if(!title.hidden)activateTitleFallback(introVideo.error||new Error('intro media error'));}
-function onLivingError(){titleLivingFailed=true;if(title.dataset.media==='living'&&!title.hidden)activateTitleFallback(livingVideo.error||new Error('living media error'));}
-function onTitleIntroLoaded(){title.dataset.videoReady='true';}
-function onTitleIntroCanPlay(){
+function onTitleVideoFrame(_now,metadata){
+  titleFrameRequest=0;title.dataset.videoFrame='ready';handleTitleMediaTime(metadata?.mediaTime??titleVideo.currentTime);
+  scheduleTitleVideoFrame();
+}
+function scheduleTitleVideoFrame(){
+  if(titleMediaDisposed||titleVideo.paused||titleFrameRequest||typeof titleVideo.requestVideoFrameCallback!=='function')return;
+  titleFrameRequest=titleVideo.requestVideoFrameCallback(onTitleVideoFrame);
+}
+function onTitleVideoLoadedMetadata(){
+  if(titlePendingSeek!=null){const seek=titlePendingSeek;titlePendingSeek=null;safeSeekTitle(seek);}
+}
+function onTitleVideoLoaded(){title.dataset.videoReady='true';}
+function onTitleVideoCanPlay(){
   title.dataset.videoReady='true';
-  if(title.dataset.intro==='cinematic'&&!title.hidden&&introVideo.paused&&title.dataset.motion==='on'&&!prefersReducedTitleMotion()){
-    const promise=introVideo.play();promise?.catch?.(error=>{if(error?.name!=='AbortError'&&!title.hidden)activateTitleFallback(error);});
-  }
+  if(title.dataset.intro==='cinematic'&&!title.hidden&&titleVideo.paused&&title.dataset.motion==='on'&&!prefersReducedTitleMotion())playTitleVideo();
 }
+function onTitleVideoPlaying(){title.dataset.media='video';scheduleTitleVideoFrame();}
+function onTitleVideoTimeUpdate(){handleTitleMediaTime(titleVideo.currentTime);}
+function onTitleVideoEnded(){if(!title.hidden){safeSeekTitle(TITLE_CINEMATIC_META.introEnd);playTitleVideo();}}
+function onTitleVideoError(){if(!title.hidden)activateTitleFallback(titleVideo.error||new Error('title media error'));}
 function beginTitleIntro(){
-  if(titleIntroPlayed){
-    title.dataset.intro='idle';playLivingStill();return;
-  }
-  titleIntroPlayed=true;clearTitleIntroTimers();
-  if(title.dataset.motion!=='on'||prefersReducedTitleMotion()){title.dataset.intro='idle';playLivingStill();livingVideo.pause();return;}
-  title.dataset.intro='cinematic';title.dataset.media='intro';
-  try{introVideo.currentTime=0;}catch{}
-  titleIntroTimers.push(setTimeout(()=>{if(!title.hidden&&title.dataset.intro==='cinematic'&&introVideo.readyState<2)activateTitleFallback(new Error('intro load timeout'));},3200));
-  const promise=introVideo.play();
-  promise?.then?.(()=>{
-    if(typeof introVideo.requestVideoFrameCallback==='function'){
-      titleIntroFrameRequest=introVideo.requestVideoFrameCallback(()=>{title.dataset.videoFrame='ready';titleIntroFrameRequest=0;});
-    }
-  }).catch?.(error=>{if(error?.name!=='AbortError'&&!title.hidden)activateTitleFallback(error);});
+  if(titleIntroPlayed){titleIntroSettled=true;title.dataset.intro='idle';seekToLivingStill({play:true});return;}
+  titleIntroPlayed=true;titleIntroSettled=false;clearTitleIntroTimers();
+  if(title.dataset.motion!=='on'||prefersReducedTitleMotion()){titleIntroSettled=true;title.dataset.intro='idle';seekToLivingStill({play:false});return;}
+  title.dataset.intro='cinematic';title.dataset.media='pending';safeSeekTitle(0);
+  titleIntroTimers.push(setTimeout(()=>{if(!title.hidden&&title.dataset.intro==='cinematic'&&titleVideo.readyState<2)activateTitleFallback(new Error('intro load timeout'));},3200));
+  playTitleVideo();
 }
 function syncTitleMediaMotion(){
   if(title.hidden)return;
   const allowed=title.dataset.motion==='on'&&!prefersReducedTitleMotion();
   if(!allowed){
-    clearTitleIntroTimers();titleIntroPlayed=true;playLivingStill();livingVideo.pause();title.dataset.intro='idle';resetTitleParallax();return;
+    clearTitleIntroTimers();titleIntroPlayed=true;titleIntroSettled=true;title.dataset.intro='idle';seekToLivingStill({play:false});resetTitleParallax();return;
   }
-  if(title.dataset.intro==='idle')playLivingStill();
+  if(title.dataset.intro==='idle')seekToLivingStill({play:true});
 }
 function applyTitleMotion(enabled,persist=false){
   title.dataset.motion=enabled?'on':'off';
@@ -134,17 +146,14 @@ function applyTitleMotion(enabled,persist=false){
   syncTitleMediaMotion();
 }
 function initTitleMedia(){
-  titleMediaDisposed=false;
-  for(const video of [introVideo,livingVideo]){video.muted=true;video.playsInline=true;video.poster=TITLE_POSTER_URL;}
-  introVideo.src=INTRO_VIDEO_URL;livingVideo.src=LIVING_VIDEO_URL;livingVideo.loop=true;
-  introVideo.addEventListener('loadeddata',onTitleIntroLoaded);introVideo.addEventListener('canplay',onTitleIntroCanPlay);introVideo.addEventListener('ended',onTitleIntroEnded);introVideo.addEventListener('error',onTitleIntroError);livingVideo.addEventListener('error',onLivingError);
-  titleReducedMotion?.addEventListener?.('change',syncTitleMediaMotion);
-  introVideo.load();livingVideo.load();
+  titleMediaDisposed=false;titleVideo.muted=true;titleVideo.playsInline=true;titleVideo.poster=TITLE_POSTER_URL;titleVideo.src=TITLE_VIDEO_URL;
+  titleVideo.addEventListener('loadedmetadata',onTitleVideoLoadedMetadata);titleVideo.addEventListener('loadeddata',onTitleVideoLoaded);titleVideo.addEventListener('canplay',onTitleVideoCanPlay);titleVideo.addEventListener('playing',onTitleVideoPlaying);titleVideo.addEventListener('timeupdate',onTitleVideoTimeUpdate);titleVideo.addEventListener('ended',onTitleVideoEnded);titleVideo.addEventListener('error',onTitleVideoError);
+  titleReducedMotion?.addEventListener?.('change',syncTitleMediaMotion);titleVideo.load();
 }
 function disposeTitleMedia(){
   if(titleMediaDisposed)return;titleMediaDisposed=true;clearTitleIntroTimers();pauseTitleMedia();
-  if(titleIntroFrameRequest&&typeof introVideo.cancelVideoFrameCallback==='function')introVideo.cancelVideoFrameCallback(titleIntroFrameRequest);titleIntroFrameRequest=0;
-  introVideo.removeEventListener('loadeddata',onTitleIntroLoaded);introVideo.removeEventListener('canplay',onTitleIntroCanPlay);introVideo.removeEventListener('ended',onTitleIntroEnded);introVideo.removeEventListener('error',onTitleIntroError);livingVideo.removeEventListener('error',onLivingError);
+  if(titleFrameRequest&&typeof titleVideo.cancelVideoFrameCallback==='function')titleVideo.cancelVideoFrameCallback(titleFrameRequest);titleFrameRequest=0;
+  titleVideo.removeEventListener('loadedmetadata',onTitleVideoLoadedMetadata);titleVideo.removeEventListener('loadeddata',onTitleVideoLoaded);titleVideo.removeEventListener('canplay',onTitleVideoCanPlay);titleVideo.removeEventListener('playing',onTitleVideoPlaying);titleVideo.removeEventListener('timeupdate',onTitleVideoTimeUpdate);titleVideo.removeEventListener('ended',onTitleVideoEnded);titleVideo.removeEventListener('error',onTitleVideoError);
   titleReducedMotion?.removeEventListener?.('change',syncTitleMediaMotion);
 }
 let initialMotion=!prefersReducedTitleMotion();

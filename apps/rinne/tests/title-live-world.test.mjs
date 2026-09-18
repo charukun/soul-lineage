@@ -31,12 +31,11 @@ test('title menu is a game surface rather than transparent web links',()=>{
 
 test('generated movie owns the cinematic while the prepared 3D world remains fallback',()=>{
   assert.match(main,/title-cinematic-media\.js/);
-  assert.match(main,/introVideo\.addEventListener\('ended',onTitleIntroEnded\)/);
-  assert.match(main,/livingVideo\.play\(\)/);
+  assert.match(main,/titleVideo\.addEventListener\('timeupdate',onTitleVideoTimeUpdate\)/);
+  assert.match(main,/requestVideoFrameCallback/);
   assert.match(main,/prepared\?\.startTitlePreview\?\.\(\{cinematic:false\}\)/);
   assert.match(runtime,/startTitlePreview/);
   assert.match(renderer,/title-living-still/);
-  assert.match(css,/data-media="intro"/);
-  assert.match(css,/data-media="living"/);
+  assert.match(css,/data-media="video"/);
   assert.match(css,/data-media="fallback"\]\[data-intro="cinematic"\]/);
 });

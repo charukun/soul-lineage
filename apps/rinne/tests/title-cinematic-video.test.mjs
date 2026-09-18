@@ -10,20 +10,19 @@ const [html,main,css,media]=await Promise.all([
 ]);
 
 test('cinematic title uses real generated movie media as the primary path',()=>{
-  assert.match(html,/id="title-cinematic-intro"[^>]*preload="auto"[^>]*muted[^>]*playsinline/);
-  assert.match(html,/id="title-living-still"[^>]*loop/);
+  assert.match(html,/id="title-cinematic-video"[^>]*preload="auto"[^>]*muted[^>]*playsinline/);
   assert.match(media,/data:video\/mp4;base64,/);assert.match(media,/data:image\/webp;base64,/);
   assert.ok(media.length>400000,'embedded movie payload should be present');
-  assert.match(css,/data-media="intro"/);assert.match(css,/data-media="living"/);
+  assert.match(css,/data-media="video"/);
   assert.match(css,/data-media="fallback"\]\[data-intro="cinematic"\]/);
 });
 
 test('cinematic boot is event-driven and overlaps world preparation',()=>{
   const boot=main.slice(main.indexOf('async function boot'),main.indexOf('async function enterCoop'));
   assert.ok(boot.indexOf('beginTitleIntro()')<boot.indexOf('prepareRuntime('));
-  assert.match(main,/addEventListener\('loadeddata',onTitleIntroLoaded\)/);
-  assert.match(main,/addEventListener\('canplay',onTitleIntroCanPlay\)/);
-  assert.match(main,/addEventListener\('ended',onTitleIntroEnded\)/);
+  assert.match(main,/addEventListener\('loadeddata',onTitleVideoLoaded\)/);
+  assert.match(main,/addEventListener\('canplay',onTitleVideoCanPlay\)/);
+  assert.match(main,/addEventListener\('timeupdate',onTitleVideoTimeUpdate\)/);
   assert.match(main,/requestVideoFrameCallback/);
   assert.match(main,/intro load timeout/);
 });
@@ -32,7 +31,7 @@ test('cinematic handoff reveals title before menu and return skips the long intr
   assert.match(main,/function settleTitleUi\(\)[\s\S]*dataset\.intro='settling'[\s\S]*dataset\.intro='idle'/);
   assert.match(css,/data-intro="settling"\] \.title-lockup\{opacity:1/);
   assert.match(css,/data-intro="settling"\] \.title-actions\{opacity:0/);
-  assert.match(main,/if\(titleIntroPlayed\)\{[\s\S]*playLivingStill\(\);return;/);
+  assert.match(main,/if\(titleIntroPlayed\)\{[\s\S]*seekToLivingStill\(\{play:true\}\);return;/);
   assert.match(main,/pauseTitleMedia\(\);title\.hidden=true/);
 });
 

@@ -54,11 +54,11 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
       media:document.getElementById('title-screen')?.dataset.media,
       lockup:Number(getComputedStyle(document.querySelector('.title-lockup')).opacity),
       actions:Number(getComputedStyle(document.querySelector('.title-actions')).opacity),
-      introTime:document.getElementById('title-cinematic-intro')?.currentTime||0,
-      introReady:document.getElementById('title-cinematic-intro')?.readyState||0,
+      introTime:document.getElementById('title-cinematic-video')?.currentTime||0,
+      introReady:document.getElementById('title-cinematic-video')?.readyState||0,
     }));
     assert.equal(opening.phase,'cinematic');
-    assert.equal(opening.media,'intro');
+    assert.equal(opening.media,'video');
     assert.ok(opening.lockup<0.08,'title text must stay hidden during the opening movie');
     assert.ok(opening.actions<0.08,'title menu must stay hidden during the opening movie');
     assert.ok(opening.introTime>0||opening.introReady>=2,'real intro video must be decoding or playing');
@@ -69,9 +69,9 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
       lockup:Number(getComputedStyle(document.querySelector('.title-lockup')).opacity),
       actions:Number(getComputedStyle(document.querySelector('.title-actions')).opacity),
       media:document.getElementById('title-screen')?.dataset.media,
-      livingTime:document.getElementById('title-living-still')?.currentTime||0,
+      videoTime:document.getElementById('title-cinematic-video')?.currentTime||0,
     }));
-    assert.equal(settling.media,'living');
+    assert.equal(settling.media,'video');
     assert.ok(settling.actions<0.12,'menu must wait while title mark appears');
     await page.screenshot({path:resolve(evidenceDir,'02-settling-mobile.png'),fullPage:true});
 
@@ -80,14 +80,14 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
     const idle=await page.evaluate(()=>({
       lockup:Number(getComputedStyle(document.querySelector('.title-lockup')).opacity),
       actions:Number(getComputedStyle(document.querySelector('.title-actions')).opacity),
-      livingPaused:document.getElementById('title-living-still')?.paused,
-      livingTime:document.getElementById('title-living-still')?.currentTime||0,
+      videoPaused:document.getElementById('title-cinematic-video')?.paused,
+      videoTime:document.getElementById('title-cinematic-video')?.currentTime||0,
     }));
     assert.ok(idle.lockup>0.9&&idle.actions>0.9,'title and menu must finish visible');
-    assert.equal(idle.livingPaused,false);
+    assert.equal(idle.videoPaused,false);assert.ok(idle.videoTime>=8.3);
     await page.screenshot({path:resolve(evidenceDir,'03-idle-mobile.png'),fullPage:true});
 
-    const introEnd=await page.locator('#title-cinematic-intro').evaluate(video=>video.currentTime);
+    const introEnd=await page.locator('#title-cinematic-video').evaluate(video=>video.currentTime);
     await page.locator('#new-life').click();
     await page.waitForFunction(()=>document.getElementById('title-screen')?.hidden===true,{timeout:12000});
     await page.waitForFunction(()=>!document.getElementById('back-title')?.hidden,{timeout:12000});
@@ -95,13 +95,13 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
     await title.waitFor({state:'visible',timeout:12000});
     await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.intro==='idle',{timeout:4000});
     const returned=await page.evaluate(()=>({
-      introTime:document.getElementById('title-cinematic-intro')?.currentTime||0,
+      introTime:document.getElementById('title-cinematic-video')?.currentTime||0,
       media:document.getElementById('title-screen')?.dataset.media,
-      livingPaused:document.getElementById('title-living-still')?.paused,
+      videoPaused:document.getElementById('title-cinematic-video')?.paused,
     }));
-    assert.equal(returned.media,'living');
-    assert.ok(returned.introTime>=introEnd-0.2,'returning to title must not replay the long intro');
-    assert.equal(returned.livingPaused,false);
+    assert.equal(returned.media,'video');
+    assert.ok(returned.introTime>=8.3,'returning to title must seek directly into the Living Still tail');
+    assert.equal(returned.videoPaused,false);
     await page.screenshot({path:resolve(evidenceDir,'04-return-mobile.png'),fullPage:true});
     console.log('RINNE_BROWSER_EVIDENCE',JSON.stringify({opening,settling,idle,returned,evidenceDir}));
     await context.close();
