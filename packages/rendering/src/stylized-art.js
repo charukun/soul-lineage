@@ -88,6 +88,24 @@ export function stylizedGeometrySegments(profileId, requested, minimum = 3) {
 }
 
 /**
+ * Runtime LOD distance for scene presentation.
+ * Perspective cameras use true camera distance. Orthographic cameras instead use
+ * horizontal distance from the camera's center ray at the mesh elevation, so a
+ * high top-down camera does not turn nearby authored geometry into box proxies.
+ */
+export function stylizedLodDistance(node, camera, world = new Vector3(), cameraWorld = new Vector3(), direction = new Vector3(), focus = new Vector3()) {
+  if (!node?.getWorldPosition || !camera?.getWorldPosition) throw new Error('LOD distance requires Object3D and camera');
+  node.getWorldPosition(world); camera.getWorldPosition(cameraWorld);
+  if (!camera.isOrthographicCamera) return world.distanceTo(cameraWorld);
+  camera.getWorldDirection(direction);
+  if (Math.abs(direction.y) < 1e-6) return Math.hypot(world.x - cameraWorld.x, world.z - cameraWorld.z);
+  const t = (world.y - cameraWorld.y) / direction.y;
+  if (!Number.isFinite(t) || t < 0) return Math.hypot(world.x - cameraWorld.x, world.z - cameraWorld.z);
+  focus.copy(cameraWorld).addScaledVector(direction, t);
+  return Math.hypot(world.x - focus.x, world.z - focus.z);
+}
+
+/**
  * Install a real runtime geometry LOD for static environment/prop meshes.
  * Near uses the authored geometry. Far swaps only the render geometry to a
  * local bounding-box proxy, retaining the original Object3D, transform,
@@ -115,12 +133,12 @@ export function installStylizedGeometryLOD(root, profileId, { minTriangles = 96 
     const proxy = new BoxGeometry(size.x, size.y, size.z, 1, 1, 1);
     proxy.translate(center.x, center.y, center.z);
     const original = geometry, before = node.onBeforeRender;
-    const world = new Vector3(), cameraWorld = new Vector3();
+    const world = new Vector3(), cameraWorld = new Vector3(), direction = new Vector3(), focus = new Vector3();
     node.__stylizedLODState = { original, proxy, threshold };
     node.userData = node.userData || {};
     node.userData.stylizedLOD = { installed: true, threshold, sourceTriangles: triangles, proxyTriangles: triangleCount(proxy), current: 'full' };
     node.onBeforeRender = function stylizedLODRender(renderer, scene, camera, renderGeometry, material, group) {
-      const distance = node.getWorldPosition(world).distanceTo(camera.getWorldPosition(cameraWorld));
+      const distance = stylizedLodDistance(node, camera, world, cameraWorld, direction, focus);
       const useProxy = distance >= threshold;
       node.geometry = useProxy ? proxy : original;
       node.userData.stylizedLOD.current = useProxy ? 'proxy' : 'full';
