@@ -22,7 +22,7 @@ test('motion review uses the pinned KayKit GLB clips with real mixer controls',a
   const [html,js]=await Promise.all([read('review-motion.html'),read('src/review-motion.js')]);
   assert.match(html,/id="motion-stage"/);assert.match(html,/id="motion-grid"/);assert.match(html,/id="motion-time"/);
   assert.match(js,/new THREE\.AnimationMixer/);assert.match(js,/KAYKIT_MODELS/);assert.match(js,/buildMotionReviewCatalog/);
-  assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/data\.motionSource='kaykit-embedded'/);
+  assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/dataset\.motionSource='kaykit-embedded'/);
 });
 
 test('equipment review uses the same quiet preview and compact camera hierarchy',async()=>{
