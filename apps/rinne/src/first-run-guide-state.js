@@ -1,0 +1,7 @@
+export const RINNE_FIRST_RUN_GUIDE_VERSION=1;
+const keyFor=environment=>'soul:v1:'+String(environment||'local')+':rinne:first-run-guide-v1';
+export function readFirstRunGuideStatus(environment,storage=globalThis.localStorage){try{const raw=storage?.getItem?.(keyFor(environment));if(!raw)return{version:RINNE_FIRST_RUN_GUIDE_VERSION,started:false,seen:false};const parsed=JSON.parse(raw);if(parsed?.version!==RINNE_FIRST_RUN_GUIDE_VERSION)return{version:RINNE_FIRST_RUN_GUIDE_VERSION,started:false,seen:false};return{version:RINNE_FIRST_RUN_GUIDE_VERSION,started:Boolean(parsed.started),seen:Boolean(parsed.seen)};}catch{return{version:RINNE_FIRST_RUN_GUIDE_VERSION,started:false,seen:false};}}
+function write(environment,next,storage=globalThis.localStorage){const value={version:RINNE_FIRST_RUN_GUIDE_VERSION,started:Boolean(next.started),seen:Boolean(next.seen)};try{storage?.setItem?.(keyFor(environment),JSON.stringify(value));}catch{}return value;}
+export function shouldRunFirstRunGuide(environment,{mode='new',storage=globalThis.localStorage}={}){if(mode!=='new'&&mode!=='continue')return false;return !readFirstRunGuideStatus(environment,storage).seen;}
+export function markFirstRunGuideStarted(environment,storage=globalThis.localStorage){return write(environment,{started:true,seen:false},storage);}
+export function markFirstRunGuideSeen(environment,storage=globalThis.localStorage){return write(environment,{started:false,seen:true},storage);}

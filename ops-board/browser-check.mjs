@@ -51,10 +51,11 @@ try {
   assert.ok([PULSE_CONTROL_STATE.SYNCED, PULSE_CONTROL_STATE.PROCESSING, PULSE_CONTROL_STATE.RECOVERING, PULSE_CONTROL_STATE.NEEDS_USER]
     .includes(await page.locator('#control-tower').getAttribute('data-pulse-state')));
   assert.equal(await page.locator('#overview-alert-value').innerText(), '操作不要');
-  const firstGlance = await page.evaluate(() => ({
+  const firstGlanceSelectors = PULSE_FIRST_GLANCE.map(pulseRoleSelector);
+  const firstGlance = await page.evaluate(selectors => ({
     viewport: innerHeight,
-    bottoms: PULSE_FIRST_GLANCE.map(role => document.querySelector(pulseRoleSelector(role))?.getBoundingClientRect().bottom || 99999),
-  }));
+    bottoms: selectors.map(selector => document.querySelector(selector)?.getBoundingClientRect().bottom || 99999),
+  }), firstGlanceSelectors);
   assert.ok(firstGlance.bottoms.every(bottom => bottom <= firstGlance.viewport + 1), JSON.stringify(firstGlance));
   assert.equal((await page.locator('body').innerText()).trimStart().startsWith('\\n'), false);
   check('first viewport exposes action, development and DEV without stray source text');

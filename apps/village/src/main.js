@@ -72,8 +72,7 @@ try {
   if(serviceEnvironment!=='prod'){
     const speedButton=document.createElement('button'),speeds=[1,5,20];
     speedButton.id='muraDebugTimeAccel';speedButton.type='button';speedButton.dataset.debugControl='time-accel';speedButton.title='クリックで 1× / 5× / 20×';
-    speedButton.style.cssText='position:fixed;left:calc(10px + env(safe-area-inset-left));bottom:calc(10px + env(safe-area-inset-bottom));z-index:80;min-width:94px;padding:8px 10px;border:1px solid #725b3d;border-radius:4px;background:linear-gradient(180deg,#8b7553,#5a4937);color:#f7efda;box-shadow:0 3px 0 #43382d,0 7px 14px #24302233;font:inherit;font-size:11px;font-weight:700;letter-spacing:.04em;';
-    const syncSpeedButton=()=>{const speed=Number(village.world.state.settings.speed);speedButton.textContent=`時間加速 ${speed===0?'停止':`${speed}×`}`;speedButton.setAttribute('aria-label',`デバッグ用の時間加速。現在 ${speed===0?'停止':`${speed}倍`}`);};
+    const syncSpeedButton=()=>{const speed=Number(village.world.state.settings.speed);speedButton.textContent=`時 ${speed===0?'停止':`${speed}×`}`;speedButton.setAttribute('aria-label',`デバッグ用の時間加速。現在 ${speed===0?'停止':`${speed}倍`}`);};
     speedButton.onclick=()=>{const current=speeds.indexOf(Number(village.world.state.settings.speed));village.world.state.settings.speed=speeds[(current+1)%speeds.length];syncSpeedButton();village.activity();void village.save();};
     syncSpeedButton();document.body.append(speedButton);
   }

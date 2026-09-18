@@ -56,37 +56,21 @@ jobs:
         run: npm ci
       - name: Check exact patch whitespace
         run: git diff --check origin/develop HEAD
-      - name: Run focused changed-workspace tests
+      - name: Run changed focused tests
         run: |
           node --input-type=module <<'NODE'
           import { execFileSync, spawnSync } from 'node:child_process';
-          import { existsSync, readdirSync } from 'node:fs';
 
           const changed = execFileSync('git', ['diff', '--name-only', 'origin/develop', 'HEAD'], { encoding: 'utf8' })
             .split('\n').filter(Boolean);
-          const tests = new Set(changed.filter(path => path.endsWith('.test.mjs')));
-          const dirs = new Set();
+          const tests = [...new Set(changed.filter(path => path.endsWith('.test.mjs')))];
 
-          for (const path of changed) {
-            const app = path.match(/^apps\/([^/]+)\//)?.[1];
-            const pkg = path.match(/^packages\/([^/]+)\//)?.[1];
-            if (app) dirs.add(`apps/${app}/tests`);
-            if (pkg) dirs.add(`packages/${pkg}/tests`);
-          }
-
-          for (const dir of dirs) {
-            if (!existsSync(dir)) continue;
-            for (const file of readdirSync(dir)) {
-              if (file.endsWith('.test.mjs')) tests.add(`${dir}/${file}`);
-            }
-          }
-
-          if (!tests.size) {
-            console.log('No changed-workspace Node tests selected.');
+          if (!tests.length) {
+            console.log('No changed Node tests selected; affected DEV checks/builds still run next.');
             process.exit(0);
           }
 
-          console.log('Focused tests:', [...tests].join(', '));
+          console.log('Focused tests:', tests.join(', '));
           const result = spawnSync(process.execPath, ['--test', ...tests], { stdio: 'inherit' });
           process.exit(result.status ?? 1);
           NODE
