@@ -43,10 +43,9 @@ export class HuntFlowUi {
   update(game, {returning = false, overlay = false} = {}) {
     returning = returning || this.shouldReturn(game);
     const plan = game.huntPlan, ready = game.goalReady(), target = this.target(game, returning), exit = game.nearestEscape();
-    const heading = this.objective.querySelector(':scope > small'), text = this.objective.querySelector(':scope > span');
     const guide = byId('first-hunt-guide');
-    heading.textContent = plan.name;
-    text.textContent = returning ? `${exit.label}へ · ${Math.ceil(exit.distance)}m` : ready ? '目標達成。持ち帰ろう' : goalText(plan);
+    this.objectiveKicker.textContent = plan.name;
+    this.objectiveText.textContent = returning ? `${exit.label}へ · ${Math.ceil(exit.distance)}m` : ready ? '目標達成。持ち帰ろう' : goalText(plan);
     // Action tips are short-lived. The old persistent tutorial remains hidden.
     const token = game.devour ? 'eat' : game.fight ? 'fight' : returning ? 'return' : target?.npc.dead ? 'fallen' : 'move';
     if (token !== this.actionToken) { this.actionToken = token; this.actionAt = game.time; }
