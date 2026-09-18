@@ -21,14 +21,26 @@ test('rrpPeers query prevents early certification before the requested cohort is
   connected=3;capture.sample();assert.equal(capture.armed(),true);assert.equal(capture.raw()._capture.expectedPeers,3);capture.dispose();
 });
 
-test('steady capture discards its measured window when the requested cohort drops',()=>{
+test('steady capture preserves pre-loss samples and measures reopen after the cohort returns',()=>{
   let clock=0,session=null,connected=2;const capture=installRrpPerformanceCapture({getSession:()=>session,now:()=>clock,documentRef:null,windowRef:{location:{search:''}},setIntervalFn:()=>1,clearIntervalFn:()=>{}});
-  const probe=capture.performanceProbeFactory('peer');session={role:'guest',worldId:'room-drop',selfId:'guest-drop',snapshot:()=>({phase:'open',view:{connected}}),performance:()=>probe.snapshot()};capture.sample();assert.equal(capture.armed(),true);probe.recordFrame(16);clock=1000;capture.sample();assert.equal(capture.raw().frameMs.length,1);
-  connected=1;clock=1100;capture.sample();assert.equal(capture.armed(),false);assert.deepEqual(probe.snapshot().frameMs,[]);assert.equal(capture.reset(),false);connected=2;capture.sample();assert.equal(capture.armed(),true);capture.dispose();
+  const probe=capture.performanceProbeFactory('peer');session={role:'guest',worldId:'room-drop',selfId:'guest-drop',snapshot:()=>({phase:connected>=2?'open':'closed',view:{connected}}),performance:()=>probe.snapshot()};capture.sample();assert.equal(capture.armed(),true);probe.recordFrame(16);clock=1000;capture.sample();assert.equal(capture.raw().frameMs.length,1);
+  connected=1;clock=1100;capture.sample();assert.equal(capture.armed(),false);assert.deepEqual(probe.snapshot().frameMs,[16]);assert.equal(capture.reset(),false);connected=2;clock=1500;capture.sample();assert.equal(capture.armed(),true);assert.deepEqual(capture.raw().frameMs,[16]);assert.deepEqual(capture.raw().hostReopenMs,[400]);capture.dispose();
 });
 
 test('capture cadence marks a throttled armed interval as missing instead of inventing idle bandwidth',()=>{
   let clock=0,session=null;const capture=installRrpPerformanceCapture({getSession:()=>session,now:()=>clock,documentRef:null,windowRef:{location:{search:''}},setIntervalFn:()=>1,clearIntervalFn:()=>{}});
   const probe=capture.performanceProbeFactory('host');session={role:'host',worldId:'room-2',selfId:'host-2',snapshot:()=>({phase:'open',view:{connected:2}}),performance:()=>probe.snapshot()};capture.sample();assert.equal(capture.armed(),true);
   probe.recordSend({payloadBytes:100,reliableBufferedAmount:0,presenceBufferedAmount:0});clock=3500;capture.sample();const raw=capture.raw();assert.deepEqual(raw.hostUplinkKbps,[.8]);assert.equal(raw.bandwidthSkippedBuckets,2);capture.dispose();
+});
+
+
+test('capture variant sink writes exact semantic payloads with matched JSON/no-compression provenance',()=>{
+  let clock=0,session=null;const stored=new Map(),windowRef={location:{search:'?rrpCapture=1&rrpPeers=2&rrpWorkload=final-v1&rrpVariant=semantic-journal&rrpRpo=1'},localStorage:{setItem:(key,value)=>stored.set(key,value),removeItem:key=>stored.delete(key)}};
+  const capture=installRrpPerformanceCapture({getSession:()=>session,now:()=>clock,documentRef:null,windowRef,setIntervalFn:()=>1,clearIntervalFn:()=>{}});
+  const probe=capture.performanceProbeFactory('host');session={role:'host',worldId:'room-variant',selfId:'host-variant',snapshot:()=>({phase:'open',view:{connected:2}}),performance:()=>probe.snapshot(),diagnostics:()=>({semanticShadow:{status:'tracking',journalTypes:['life-seal']}})};
+  capture.semanticMeasurement({warmStart:true,eventCount:0,checkpointPayload:{world:{id:'bootstrap'}},journalPayload:[]});capture.sample();assert.equal(capture.armed(),true);
+  clock=500;capture.semanticMeasurement({warmStart:false,eventCount:1,checkpointPayload:{world:{id:'sealed'}},journalPayload:[{type:'life-seal'}]});
+  clock=1600;capture.semanticMeasurement({warmStart:false,eventCount:0,checkpointPayload:{world:{id:'provisional'}},journalPayload:[]});const raw=capture.raw();
+  assert.equal(raw._capture.variant,'semantic-journal');assert.equal(raw._capture.rpoSeconds,1);assert.equal(raw._capture.encoding,'json-utf8');assert.equal(raw._capture.compression,'none');assert.equal(raw._capture.workloadId,'final-v1');
+  assert.equal(raw.variantBootstrapBytes.length,1);assert.equal(raw.variantProtectedBytes.length,1);assert.equal(raw.variantProvisionalBytes.length,1);assert.equal(raw.variantErrors.length,0);assert(stored.size>=3);capture.dispose();
 });
