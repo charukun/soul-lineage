@@ -12,7 +12,7 @@ export async function createCoopHost({world,contentVersion,save,RTCPeerConnectio
   const links=new Map(),acceptedInputs=new Map(),appliedInputs=new Map(),selfId=world.data.ownerId,probe=performanceProbe;
   world.data.rebirthOps??={};
   let semanticPersistenceError=null,semanticPersist=Promise.resolve();
-  const persistSemantic=state=>{if(!semanticShadowPersistence?.save)return;semanticPersist=semanticPersist.then(()=>semanticShadowPersistence.save(JSON.stringify(state))).catch(error=>{semanticPersistenceError=error;});};
+  const persistSemantic=state=>{if(!semanticShadowPersistence?.save)return;semanticPersist=semanticPersist.then(()=>semanticShadowPersistence.save(JSON.stringify(state))).then(()=>{semanticPersistenceError=null;}).catch(error=>{semanticPersistenceError=error;});};
   const semanticShadow=createSemanticShadow({lifeSeconds:LIFE_SECONDS,restored:semanticShadowState,coverageHint:semanticShadowCoverage,onState:persistSemantic,onSample:sample=>probe?.recordSemanticCommit?.(sample)});
   const writer=createCheckpointWriter({world,save,now,semanticObserver:semanticShadow,onCommit:()=>{stalled=false;if(ready&&!closed)publish();},onError:e=>{error=e.message;paused=true;if(ready&&!closed)publish();}});
   await writer.request();ready=true;latest=writer.project(world.view(selfId));
