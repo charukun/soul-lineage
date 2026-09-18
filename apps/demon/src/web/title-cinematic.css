@@ -64,3 +64,10 @@ body[data-title-surface="true"]>.vignette,body[data-title-surface="true"]>.grain
 }
 
 #title .build{display:none!important}
+/* Canonical menu lettering is sampled from the supplied title art, not a generic web font. */
+.title-menu-glyph{display:block;width:260px;height:44px;background-repeat:no-repeat;background-size:260px 135px;background-position-x:0;filter:contrast(1.12) saturate(.82)}
+.glyph-hunt{background-position-y:-1px}.glyph-lineage{background-position-y:-45px}.glyph-settings{background-position-y:-89px}
+.title-menu-item{display:grid;place-items:center;min-width:286px;padding:2px 10px;font-size:0;line-height:1}
+.title-menu-item.is-primary::before{display:none}
+.title-menu-item:not(.is-primary):hover::before,.title-menu-item:not(.is-primary):focus-visible::before{left:5px}
+@media(max-height:700px){.title-menu-glyph{width:220px;height:37px;background-size:220px 114px}.glyph-hunt{background-position-y:-1px}.glyph-lineage{background-position-y:-38px}.glyph-settings{background-position-y:-75px}.title-menu-item{min-width:242px}}
