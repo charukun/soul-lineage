@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { pullCopy, bodyLines, compactPull, isVisualReviewPull } from '../ops-board/pulls.mjs';
+import { pullCopy, bodyLines, compactPull, targetAppsFromFiles } from '../ops-board/pulls.mjs';
 import { appSummary, appHealth, boardAlerts, ageLabel } from '../ops-board/public/health.mjs';
 import { enrichTargets, targetRevision, actionProblems } from '../ops-board/review-model.mjs';
 import { createGithubClient, readStored, writeStored } from '../ops-board/github-client.mjs';
@@ -30,11 +30,10 @@ test('leading comments and blank lines never become PR titles', () => {
   assert.equal(pullCopy(pr({ body: '<!-- template -->\n\n## Changes\n- 内容です' })).detail, '内容です');
   assert.equal(pullCopy(pr({ body: '' })).title, '本来の修正タイトル');
 });
-test('only the dedicated Lab branch is separated, and its stale hint is disabled', () => {
-  assert.equal(isVisualReviewPull(pr({ title: 'Visual Review の修正' })), false);
+test('Visual Review uses normal PR lifecycle and target attribution instead of a dedicated branch mode', () => {
   const lab = pr({ draft: true, head: { ref: 'work/visual-review-lab-v2', sha: 'head' } });
-  assert.equal(compactPull(lab, Date.parse('2026-09-13T00:00:00Z')).staleDraft, false);
-  assert.equal(compactPull(lab).visualReview, true);
+  assert.equal(compactPull(lab, Date.parse('2026-09-13T00:00:00Z')).state, 'Draft');
+  assert.deepEqual(targetAppsFromFiles(['ops-board/public/visual-review-panel.js']).map(item => item.id), ['visual-review']);
 });
 test('unknown target results do not claim complete coverage', () => { assert.equal(compactPull(pr()).targetsComplete, false); });
 test('degraded snapshot and CI failure are both raised in action items', () => {

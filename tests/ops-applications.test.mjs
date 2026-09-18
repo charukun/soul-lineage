@@ -76,6 +76,7 @@ test('tools use verified public status while failed Lanternfell never invents a 
   const apps = buildApplications({ entries: [] }, environments, runs);
   const portal = apps.find(app => app.id === 'portal');
   const ops = apps.find(app => app.id === 'ops-board');
+  const visual = apps.find(app => app.id === 'visual-review');
   const lantern = apps.find(app => app.id === 'lanternfell');
   assert.equal(portal.targets[0].url, PORTAL_PUBLIC_URL);
   assert.equal(portal.targets[0].state, 'success');
