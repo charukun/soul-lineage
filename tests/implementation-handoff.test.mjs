@@ -37,11 +37,11 @@ function fixture({ changeOnSecondRead, notificationFailure = false } = {}) {
 test('Ready hands off immediately even if Actions/browser never complete; same head receipt deduplicates notification', { timeout: 1000 }, async () => {
   const f = fixture();
   const result = await recordHandoff(f.options);
-  assert.equal(result.stage, 'READY_FOR_INTEGRATION');
+  assert.equal(result.stage, 'READY');
   assert.equal(result.workerEnded, true);
-  assert.equal(result.monitoringOwner, 'Integration');
+  assert.equal(result.monitoringOwner, 'Repository Automation');
   assert.equal(f.statuses[0].sha, sha);
-  assert.equal(f.statuses[0].context, 'implementation/handoff');
+  assert.equal(f.statuses[0].context, 'implementation/ready');
   assert.match(f.comments[0].body, /review_ready: true/);
   assert.match(f.comments[0].body, /receipt_scope: HANDOFF_ONLY/);
   assert.match(f.comments[0].body, /dev_publication: NO/);
@@ -64,17 +64,17 @@ test('Draft, stale head, wrong base, closed, foreign, untrusted and independent 
 });
 
 test('explicit hold is retained while responsibility transfers; receipt never grants merge authorization', async () => {
-  const p = pull(); p.labels = [{ name: 'integration:hold' }];
-  assert.equal(handoffSnapshot(p, repository, sha).stage, 'READY_FOR_INTEGRATION');
+  const p = pull(); p.labels = [{ name: 'merge:hold' }];
+  assert.equal(handoffSnapshot(p, repository, sha).stage, 'READY');
   assert.equal(classifyPull(p).stage, 'HOLD');
-  assert.equal(classifyPull(p).monitoringOwner, 'Integration');
+  assert.equal(classifyPull(p).monitoringOwner, 'Repository Automation');
 });
 
 test('failed or absent external notification does not masquerade as delivery or prevent handoff', async () => {
   const f = fixture({ notificationFailure: true });
   const result = await recordHandoff(f.options);
   assert.equal(result.notification, 'failed');
-  assert.equal(result.stage, 'READY_FOR_INTEGRATION');
+  assert.equal(result.stage, 'READY');
   assert.match(f.comments[0].body, /notification: failed/);
   f.options.notification = {};
   const next = await recordHandoff(f.options);
@@ -86,9 +86,9 @@ test('failed or absent external notification does not masquerade as delivery or 
 
 test('delivery stages are distinct and no-merge scans do not emit integrated success', () => {
   const input = { sha, repository, runUrl: 'https://github.com/run', report: { merged: [] } };
-  assert.equal(deliveryMessage('INTEGRATED', input), null);
+  assert.equal(deliveryMessage('MERGED_TO_DEVELOP', input), null);
   input.report.merged.push({ pr: 129, merge: sha });
-  assert.match(deliveryMessage('INTEGRATED', input), /\nINTEGRATED\n/);
+  assert.match(deliveryMessage('MERGED_TO_DEVELOP', input), /\nMERGED_TO_DEVELOP\n/);
   assert.match(deliveryMessage('DEV_DEPLOYED', input), /\nDEV_DEPLOYED\n/);
   assert.throws(() => deliveryMessage('DEV_DEPLOYED', { ...input, sha: undefined }), /INVALID/);
 });
@@ -133,11 +133,11 @@ test('worker prompts delegate reversible DEV choices while retaining approval an
 test('PULSE exposes owner without adding worker heartbeat alerts after Ready, including indefinitely running CI', () => {
   const p = pull(); p.updated_at = '2020-01-01T00:00:00Z';
   const ready = compactPull(p);
-  assert.equal(ready.deliveryStage, 'READY_FOR_INTEGRATION');
+  assert.equal(ready.deliveryStage, 'READY');
   assert.equal(ready.workerEnded, true);
   assert.equal(ready.staleDraft, false);
   const ci = classifyPull(p, [{ name: 'CI', head_sha: sha, status: 'in_progress' }]);
-  assert.equal(ci.monitoringOwner, 'Integration');
+  assert.equal(ci.monitoringOwner, 'Repository Automation');
   assert.equal(ci.workerEnded, true);
   p.draft = true;
   assert.equal(compactPull(p).workerEnded, false);
