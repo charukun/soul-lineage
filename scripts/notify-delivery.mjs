@@ -7,6 +7,8 @@ import { lifecycleMessage, notificationTitle } from './notification-copy.mjs';
 export const PERSONAL_DEV_EMAIL_REPOSITORY = 'charukun/soul-lineage';
 export const PERSONAL_DEV_EMAIL_LOGIN = 'charukun';
 export const PERSONAL_DEV_URL = 'https://charukun.github.io/soul-lineage/dev/';
+const DEV_LKG_PREFIX = 'dev-lkg-site-';
+const SHA = /^[a-f0-9]{40}$/;
 
 export function deliveryMessage(stage, { report, sha, repository, runUrl }) {
   if (stage === 'INTEGRATED') {
@@ -79,9 +81,72 @@ async function githubJson(request, url, { token, method = 'GET', body } = {}) {
   return response.status === 204 ? null : response.json();
 }
 
+export function choosePreviousPublishedDevelopSha(artifacts = [], currentSha = '') {
+  return artifacts
+    .filter(artifact => !artifact?.expired && String(artifact?.name || '').startsWith(DEV_LKG_PREFIX))
+    .map(artifact => ({ artifact, sha: String(artifact.name).slice(DEV_LKG_PREFIX.length) }))
+    .filter(item => SHA.test(item.sha) && item.sha !== currentSha)
+    .sort((a, b) => Date.parse(b.artifact.created_at || 0) - Date.parse(a.artifact.created_at || 0))[0]?.sha || null;
+}
+
+export async function findPreviousPublishedDevelopSha({ token = '', repository, sha, request = fetch }) {
+  if (!token) return null;
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repository || '') || !SHA.test(sha || '')) throw new Error('INVALID_GITHUB_DELIVERY_BASE');
+  const root = `https://api.github.com/repos/${repository}`,artifacts=[];
+  for (let page = 1; page <= 3; page++) {
+    const payload = await githubJson(request, `${root}/actions/artifacts?per_page=100&page=${page}`, { token });
+    const rows = Array.isArray(payload?.artifacts) ? payload.artifacts : [];
+    artifacts.push(...rows);
+    if (rows.length < 100) break;
+  }
+  return choosePreviousPublishedDevelopSha(artifacts, sha);
+}
+
+function mergePrNumber(commit) {
+  const match = String(commit?.commit?.message || '').match(/^Merge pull request #(\d+)\b/m);
+  return match ? Number(match[1]) : null;
+}
+
+export async function findPublishedDevelopPrs({ token = '', repository, sha, request = fetch }) {
+  if (!token) return [];
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repository || '') || !SHA.test(sha || '')) throw new Error('INVALID_GITHUB_DELIVERY_RANGE');
+  const root = `https://api.github.com/repos/${repository}`;
+  const previous = await findPreviousPublishedDevelopSha({ token, repository, sha, request });
+  if (!previous) {
+    const direct = await findAssociatedDevelopPr({ token, repository, sha, request });
+    return direct ? [direct] : [];
+  }
+
+  const numbers = new Set();
+  for (let page = 1; page <= 3; page++) {
+    const compared = await githubJson(request, `${root}/compare/${previous}...${sha}?per_page=100&page=${page}`, { token });
+    if (page === 1 && !['ahead', 'identical'].includes(compared?.status)) {
+      const direct = await findAssociatedDevelopPr({ token, repository, sha, request });
+      return direct ? [direct] : [];
+    }
+    const commits = Array.isArray(compared?.commits) ? compared.commits : [];
+    for (const commit of commits) {
+      const number = mergePrNumber(commit);
+      if (number) numbers.add(number);
+    }
+    if (commits.length < 100) break;
+    if (page === 3) throw new Error('GITHUB_DELIVERY_RANGE_PAGE_LIMIT');
+  }
+
+  const prs = [];
+  for (const number of numbers) {
+    const pr = await githubJson(request, `${root}/pulls/${number}`, { token });
+    if (pr?.merged_at && pr?.base?.ref === 'develop' && pr?.base?.repo?.full_name === repository && SHA.test(pr?.merge_commit_sha || '')) prs.push(pr);
+  }
+  prs.sort((a, b) => Date.parse(a.merged_at) - Date.parse(b.merged_at) || a.number - b.number);
+  if (prs.length) return prs;
+  const direct = await findAssociatedDevelopPr({ token, repository, sha, request });
+  return direct ? [direct] : [];
+}
+
 export async function findAssociatedDevelopPr({ token = '', repository, sha, request = fetch }) {
   if (!token) return null;
-  if (!/^[\w.-]+\/[\w.-]+$/.test(repository || '') || !/^[a-f0-9]{40}$/.test(sha || '')) throw new Error('INVALID_GITHUB_DELIVERY_PR');
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repository || '') || !SHA.test(sha || '')) throw new Error('INVALID_GITHUB_DELIVERY_PR');
   const root = `https://api.github.com/repos/${repository}`;
   const prs = await githubJson(request, `${root}/commits/${sha}/pulls?per_page=100`, { token });
   return prs.filter(item => item.merged_at && item.base?.ref === 'develop')
@@ -90,7 +155,7 @@ export async function findAssociatedDevelopPr({ token = '', repository, sha, req
 
 export async function recordDevelopDeliveryStatus({ token = '', repository, sha, runUrl, request = fetch }) {
   if (!token) return 'not-configured';
-  if (!/^[\w.-]+\/[\w.-]+$/.test(repository || '') || !/^[a-f0-9]{40}$/.test(sha || '')) throw new Error('INVALID_GITHUB_DELIVERY_STATUS');
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repository || '') || !SHA.test(sha || '')) throw new Error('INVALID_GITHUB_DELIVERY_STATUS');
   await githubJson(request, `https://api.github.com/repos/${repository}/statuses/${sha}`, {
     token,
     method: 'POST',
@@ -106,7 +171,7 @@ export async function recordDevelopDeliveryStatus({ token = '', repository, sha,
 
 export async function recordGithubDeliveryReceipt({ token = '', repository, sha, message, pr: associatedPr, request = fetch }) {
   if (!token) return 'not-configured';
-  if (!/^[\w.-]+\/[\w.-]+$/.test(repository || '') || !/^[a-f0-9]{40}$/.test(sha || '')) throw new Error('INVALID_GITHUB_DELIVERY_RECEIPT');
+  if (!/^[\w.-]+\/[\w.-]+$/.test(repository || '') || !SHA.test(sha || '')) throw new Error('INVALID_GITHUB_DELIVERY_RECEIPT');
   const root = `https://api.github.com/repos/${repository}`;
   const pr = associatedPr === undefined
     ? await findAssociatedDevelopPr({ token, repository, sha, request })
@@ -114,7 +179,8 @@ export async function recordGithubDeliveryReceipt({ token = '', repository, sha,
   if (!pr) return 'no-associated-pr';
   if (!personalDevEmailEligible({ repository, pr }) || !message) return 'personal-email-not-applicable';
 
-  const marker = `<!-- dev-delivery-receipt:${sha} -->`;
+  const receiptSha = SHA.test(pr?.merge_commit_sha || '') ? pr.merge_commit_sha : sha;
+  const marker = `<!-- dev-delivery-receipt:${receiptSha} -->`;
   for (let page = 1; page <= 3; page++) {
     const comments = await githubJson(request, `${root}/issues/${pr.number}/comments?per_page=100&page=${page}`, { token });
     if (comments.some(comment => (comment.body || '').includes(marker))) return 'existing';
@@ -127,6 +193,16 @@ export async function recordGithubDeliveryReceipt({ token = '', repository, sha,
     body: { body: `${marker}\n@${PERSONAL_DEV_EMAIL_LOGIN}\n${message}` },
   });
   return 'github-pr-comment';
+}
+
+export async function recordGithubDeliveryReceipts({ token = '', repository, sha, prs = [], request = fetch }) {
+  const results = [];
+  for (const pr of prs) {
+    const message = devChangeEmailMessage({ pr, repository });
+    const receipt = await recordGithubDeliveryReceipt({ token, repository, sha, message, pr, request });
+    results.push({ pr: pr?.number || null, receipt });
+  }
+  return results;
 }
 
 export function notificationStatus(channel) {
@@ -146,16 +222,26 @@ async function main() {
   const report = reportPath && existsSync(reportPath) ? JSON.parse(readFileSync(reportPath, 'utf8')) : null;
   const runUrl = `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
 
-  let associatedPr = null;
+  let associatedPrs = [];
   if (stage === 'DEV_DEPLOYED') {
     try {
-      associatedPr = await findAssociatedDevelopPr({
+      associatedPrs = await findPublishedDevelopPrs({
         token: process.env.GITHUB_TOKEN,
         repository: process.env.GITHUB_REPOSITORY,
         sha: process.env.FINAL_SHA,
       });
     } catch (error) {
-      console.warn(`::warning::DEV change lookup failed; no personal development email will be created: ${error.message}`);
+      console.warn(`::warning::DEV change range lookup failed; falling back to the exact published SHA: ${error.message}`);
+      try {
+        const direct = await findAssociatedDevelopPr({
+          token: process.env.GITHUB_TOKEN,
+          repository: process.env.GITHUB_REPOSITORY,
+          sha: process.env.FINAL_SHA,
+        });
+        associatedPrs = direct ? [direct] : [];
+      } catch (fallbackError) {
+        console.warn(`::warning::DEV change fallback lookup failed; no personal development email will be created: ${fallbackError.message}`);
+      }
     }
   }
 
@@ -176,20 +262,15 @@ async function main() {
       console.warn(`::warning::GitHub DEV delivery status failed: ${error.message}`);
     }
     try {
-      const emailMessage = devChangeEmailMessage({
-        pr: associatedPr,
-        repository: process.env.GITHUB_REPOSITORY,
-      });
-      const receipt = await recordGithubDeliveryReceipt({
+      const receipts = await recordGithubDeliveryReceipts({
         token: process.env.GITHUB_TOKEN,
         repository: process.env.GITHUB_REPOSITORY,
         sha: process.env.FINAL_SHA,
-        message: emailMessage,
-        pr: associatedPr,
+        prs: associatedPrs,
       });
-      console.log(`Personal development email receipt: ${receipt}`);
+      console.log(`Personal development email receipts: ${JSON.stringify(receipts)}`);
     } catch (error) {
-      console.warn(`::warning::Personal development email receipt failed: ${error.message}`);
+      console.warn(`::warning::Personal development email receipts failed: ${error.message}`);
     }
   }
 
