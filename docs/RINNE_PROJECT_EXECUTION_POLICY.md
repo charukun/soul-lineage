@@ -58,6 +58,8 @@ Ready は CI 成功、merge、DEV 公開成功を意味しない。
 
 DEV の人間目視と、browser検証・Production 品質認定は別。通常developではbrowser検証を自動実行せず、明示playtest / `full_verification=true` / 専門evidence workflow / main・Productionだけで実行する。既存browser assertionとmain / Production gateは弱めない。
 
+DEV確認用の公開URLは GitHub Pages ルートではなく `https://charukun.github.io/soul-lineage/dev/<app>/` を使う。PagesルートはProduction入口として `prod/` へ遷移するため、develop実装の確認先として案内しない。deploy workflow の environment URL は develop では `/dev/`、main では `/prod/` を指し、`/dev/` はアプリ選択画面として各DEVアプリへ到達できること。
+
 ## Ready transition
 
 GitHub の `open + base=develop + draft=false` は merge 直前の一時状態であり、実装タスクの正常終了境界ではない。Ready 化前に current develop の merge-forward、reconciled head の必要局所検証、push、final freshness verify を完了し、Ready 化後は同じ実装workerがmerge直前のfreshnessを再確認して exact head を `develop` へmergeする。`READY_FOR_INTEGRATION` や別の Ready handoff 状態は作らない。
