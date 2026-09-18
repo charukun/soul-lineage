@@ -28,6 +28,7 @@
 | 転送・push の既存承認 | [`DELIVERY_AUTHORIZATION.md`](DELIVERY_AUTHORIZATION.md) |
 | monorepo / CI/CD 構造 | [`MONOREPO.md`](MONOREPO.md) |
 | gameplay / platform 境界 | [`PLATFORMS.md`](PLATFORMS.md) |
+| per-app / per-target build・artifact・配信 | [`DISTRIBUTION_ARCHITECTURE.md`](DISTRIBUTION_ARCHITECTURE.md) |
 | 構造的負債 | [`CODE_HEALTH.md`](CODE_HEALTH.md) |
 | RINNE Dispatch | [`DISPATCHER.md`](DISPATCHER.md) |
 
