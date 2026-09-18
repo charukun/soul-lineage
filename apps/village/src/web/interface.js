@@ -3,19 +3,35 @@ import {installEventChronicle} from './event-chronicle.js';
 import {installPopulationHistory} from './population-history.js';
 
 const ICONS={
- people:'<circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 21v-3c0-6 12-6 12 0v3m1-8c4-1 7 1 7 5v3"/>',
- homes:'<path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/>',
- facility:'<path d="M3 21V9l7 3V7l7 5V3h4v18ZM7 17h1m4 0h1m4 0h1"/>',
+ people:'<circle cx="7.5" cy="8" r="2.6"/><circle cx="16.5" cy="9" r="2.1"/><path d="M3 20v-1.7c0-3.3 2-5.2 4.5-5.2s4.5 1.9 4.5 5.2V20m2-6.1c3.8-.7 6.5 1.4 6.5 5.1v1"/>',
+ bed:'<path d="M4 20V7m0 8h16v5M4 12h6a3 3 0 0 1 3 3M4 9h4a2 2 0 0 1 2 2v1m10 8v-8"/>',
+ arrival:'<path d="M4 21V4h9v17M4 7h9"/><circle cx="8.5" cy="11" r="1.5"/><path d="M16 9v8m-3-3 3 3 3-3"/>',
+ shield:'<path d="M12 3 20 6v6c0 4.6-3.1 7.7-8 9-4.9-1.3-8-4.4-8-9V6Z"/><path d="m8.5 12 2.2 2.2 4.8-5"/>',
+ facility:'<path d="M3 21V11l6 3v-4l6 4V7h6v14ZM17 7V3h3v4M7 18h2m4 0h2m4 0h1"/>',
  settings:'<path d="m9 3-.8 3-2.8 1-.4 3-2 2 2 2 .4 3 2.8 1 .8 3h6l.8-3 2.8-1 .4-3 2-2-2-2-.4-3-2.8-1L15 3Z"/><circle cx="12" cy="12" r="3"/>',
  events:'<path d="M5 3h14v18H5ZM9 7h6m-6 5h6m-6 5h4"/>',
  mayor:'<circle cx="12" cy="9" r="3"/><path d="M5 21c0-9 14-9 14 0M7 5l2-3 3 2 3-2 2 3"/>',
- wood:'<path d="m4 8 12-4 4 12-12 4Z"/><ellipse cx="7" cy="14" rx="3" ry="6" transform="rotate(-18 7 14)"/>',
- stone:'<path d="m4 8 5-5 10 4 3 9-8 5-11-4Z"/>',
- plank:'<path d="m3 7 14-4 4 14-14 4ZM7 8l3 10m2-12 3 10"/>',
- food:'<path d="M12 22V4m0 5C4 8 4 3 5 2c5 1 7 3 7 7m0 5c8-1 8-6 7-7-5 1-7 3-7 7m0 5c-8-1-8-6-7-7 5 1 7 3 7 7"/>',
+ wood:'<path d="M5 7h11a4 4 0 0 1 0 8H5Z"/><ellipse cx="5" cy="11" rx="2.5" ry="4"/><path d="m13 8 5 9M9 15l5 4"/>',
+ stone:'<path d="m4 15 3-7 5-4 6 3 3 8-5 5H8Z"/><path d="m7 8 5 4 6-5m-6 5-4 8"/>',
+ plank:'<path d="M4 5h16v5H4Zm2 9h14v5H6Z"/><path d="M8 7h7m-5 9h6"/>',
+ clay:'<path d="M8 6c1.8-2 6.2-2 8 0l2 13H6Z"/><path d="M7 12h10M9 6c0 1 1.3 2 3 2s3-1 3-2"/>',
+ food:'<path d="M4 13h16c-.7 4.5-3.3 7-8 7s-7.3-2.5-8-7Z"/><path d="M8 10c-1.3-2 .2-4 2.2-5M13 10c-1.1-2.1.5-4.6 2.6-6M17 11c.8-1.2.6-2.4-.1-3.4"/>',
+ seed:'<path d="M7 15c-3.5-1-4.2-5.2-.8-7.2 3.2.8 4.2 4.8.8 7.2Zm7-2c-2-3 .1-6.4 3.6-6.2 1.8 3-.2 6.2-3.6 6.2Z"/><path d="M12 21c0-4-1.7-6.8-5-8m5 8c0-3.7.9-6.3 3-8"/>',
+ herb:'<path d="M12 21V7"/><path d="M12 11C7 11 5 8 5 5c4.4-.6 7 1.8 7 6Zm0 5c5 0 7-3 7-6-4.4-.6-7 1.8-7 6Z"/><path d="M9 19H5m10-1h4"/>',
+ ore:'<path d="m4 15 3-7 6-4 6 4 2 7-5 5H8Z"/><path d="m9 9 3 2 3-3m-1 7 2 1m-8 0 2-2"/><path d="m19 3 .5 1.5L21 5l-1.5.5L19 7l-.5-1.5L17 5l1.5-.5Z"/>',
+ metal:'<path d="M6 9h12l3 8H3Z"/><path d="m6 9 3-4h8l1 4m-9 4h6"/>',
+ cloth:'<path d="M6 4h12v16H6Z"/><path d="M9 4v16m6-16v16M6 9c3 1.5 9 1.5 12 0m-12 6c3 1.5 9 1.5 12 0"/>',
+ leather:'<path d="M9 3c1.3 1 4.7 1 6 0l2 4 4 2-2 4 1 5-5 3-3-2-3 2-5-3 1-5-2-4 4-2Z"/><path d="M9 8c1.8 1.2 4.2 1.2 6 0"/>',
+ medicine:'<path d="M9 3h6v4l2 3v10H7V10l2-3Z"/><path d="M9 7h6m-3 5v5m-2.5-2.5h5"/>',
+ knowledge:'<path d="M3 6c3-1 6-.6 9 1.5V20c-3-2-6-2.5-9-1.5Zm18 0c-3-1-6-.6-9 1.5V20c3-2 6-2.5 9-1.5Z"/><path d="M7 10h2m-2 3h2m6-3h2m-2 3h2"/>',
+ crystal:'<path d="m12 3 7 6-4 11H9L5 9Z"/><path d="m5 9 7 3 7-3m-7 3-3 8m3-8 3 8m-3-8V3"/>',
+ charm:'<path d="M12 3c-3 0-5 2-5 5s2 5 5 5 5-2 5-5-2-5-5-5Z"/><path d="M9 13 7 21l5-3 5 3-2-8"/><path d="M10 8h4m-2-2v4"/>',
+ gear:'<path d="m5 19 12-12m-8-2 10 10M4 20l3-1-2-2Zm13-14 2-2 1 4Z"/><path d="M13 17c2.5-2.5 5.5-1 6 2-3 .5-4.5-1-6-2Z"/>',
+ furnishing:'<path d="M7 4h10v8H7Zm1 8v8m8-8v8M5 15h14"/><path d="M10 7h4"/>',
  generic:'<path d="m12 2 9 5v10l-9 5-9-5V7Zm0 10L3 7m9 5 9-5m-9 5v10"/>'
 };
 const svg=name=>`<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]||ICONS.generic}</svg>`;
+const hudIcon=name=>`<span class="muraHudIcon" data-icon="${name}">${svg(name)}</span>`;
 const text=(node,value)=>{if(node.textContent!==value)node.textContent=value;};
 
 /** Explicit views of game state. No polling that changes catalog or input state. */
@@ -47,10 +63,10 @@ export function installInterface(village){
   text(brief,`${year}年目 · ${population.people}人暮らし`);
   const built=world.objects.filter(o=>ready(o)&&defs[o.kind]?.building),reception=Math.min(population.limit,population.openBeds),headroom=Math.max(0,reception-population.people);
   text(capacityHint,headroom>0?`あと${headroom}人迎えられます`:population.openBeds<=population.people?'寝床を増やすと次の住人を迎えられます':population.reason);
-  const stats=[['people','住人',population.people,'人'],['homes','寝床',population.openBeds,'人分'],['people','受入目安',population.limit,'人'],['generic','守り',population.safety,''],['food','食事',population.food,''],['facility','施設',built.length,'棟']],statsSig=stats.map(([,label,value])=>`${label}:${value}`).join('|');
-  if(statsSig!==statsSignature){statsSignature=statsSig;hud.querySelector('.muraHudStats').innerHTML=stats.map(([icon,label,value,unit])=>`<div class="muraHudStat">${svg(icon)}<dt>${label}</dt><dd><b>${value}</b>${unit?`<small>${unit}</small>`:''}</dd></div>`).join('');}
+  const stats=[['people','住人',population.people,'人'],['bed','寝床',population.openBeds,'人分'],['arrival','受入目安',population.limit,'人'],['shield','守り',population.safety,''],['food','食事',population.food,''],['facility','施設',built.length,'棟']],statsSig=stats.map(([,label,value])=>`${label}:${value}`).join('|');
+  if(statsSig!==statsSignature){statsSignature=statsSig;hud.querySelector('.muraHudStats').innerHTML=stats.map(([icon,label,value,unit])=>`<div class="muraHudStat muraTone-${icon}">${hudIcon(icon)}<dt>${label}</dt><dd><b>${value}</b>${unit?`<small>${unit}</small>`:''}</dd></div>`).join('');}
   const resources=world.state.known.filter(k=>world.state.stock[k]>=1),resourceSig=resources.map(k=>k+Math.floor(world.state.stock[k])).join();
-  if(resourceSig!==resourceSignature){resourceSignature=resourceSig;const list=hud.querySelector('.muraHudResources');if(!resources.length){const empty=document.createElement('p');empty.className='muraHudEmpty';empty.textContent='まだ資材はありません';list.replaceChildren(empty);}else list.replaceChildren(...resources.map(k=>{const chip=document.createElement('span'),value=Math.floor(world.state.stock[k]);chip.title=`${RESOURCE_NAMES[k]} ${value}`;chip.setAttribute('aria-label',`${RESOURCE_NAMES[k]} ${value}`);chip.innerHTML=svg(k)+`<small>${RESOURCE_NAMES[k]}</small><b>${value}</b>`;return chip;}));}
+  if(resourceSig!==resourceSignature){resourceSignature=resourceSig;const list=hud.querySelector('.muraHudResources');if(!resources.length){const empty=document.createElement('p');empty.className='muraHudEmpty';empty.textContent='まだ資材はありません';list.replaceChildren(empty);}else list.replaceChildren(...resources.map(k=>{const chip=document.createElement('span'),value=Math.floor(world.state.stock[k]);chip.className='muraHudResource muraTone-'+k;chip.title=`${RESOURCE_NAMES[k]} ${value}`;chip.setAttribute('aria-label',`${RESOURCE_NAMES[k]} ${value}`);chip.innerHTML=hudIcon(k)+`<small>${RESOURCE_NAMES[k]}</small><b>${value}</b>`;return chip;}));}
   const observing=view.observation?.id||null;
   if(lastRoom!==view.roomId||lastObserved!==observing){
    lastRoom=view.roomId;lastObserved=observing;
