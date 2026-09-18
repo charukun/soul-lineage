@@ -64,7 +64,15 @@ DEV is app-scoped and latest-wins per app.
 
 A `demon` change may publish `demon` while `rinne` or `village` work is in flight. A later `demon` source supersedes an older pending `demon` publication, but unrelated app publication must not be cancelled because another app advanced.
 
-Until the public host is split from the legacy GitHub Pages site, the current Pages coordinator remains the compatibility publisher. The build/artifact layer introduced here is provider-neutral so a per-app Cloudflare/CDN publisher can be attached without changing game build semantics.
+Primary Web DEV publication is app-scoped Cloudflare Workers static assets:
+
+- `rinne`: `https://soul-lineage-rinne-dev.c-okamoto.workers.dev/`
+- `village`: `https://soul-lineage-village-dev.c-okamoto.workers.dev/`
+- `demon`: `https://soul-lineage-demon-dev.c-okamoto.workers.dev/`
+
+GitHub Pages remains a compatibility mirror while existing links and Production are preserved. The fast DEV path does not wait for the shared Pages site. Each app job has its own concurrency key, so a newer `demon` change may supersede an older `demon` publish without cancelling an in-flight `rinne` or `village` publish.
+
+After all apps affected by one develop merge are exact-source verified on their independent DEV URLs, one GitHub PR receipt is created. This is the fast DEV email signal; the legacy Pages publisher must not be required for that notification.
 
 ## Consumer packaging contract
 
@@ -92,3 +100,18 @@ These concerns must not leak into game/domain logic.
 - Contract-only targets remain unavailable until their adapter/toolchain is materialized.
 - Target artifacts are immutable; promotion changes a pointer/release reference rather than mutating an old artifact.
 - Cross-play and cloud-save capability claims remain false until backed by real adapters/services.
+
+
+## Implemented pipeline
+
+The repository now exposes:
+
+- `npm run distribution:plan` for dependency-aware affected app planning;
+- `npm run distribution:build -- --app <app> --target <target>` for immutable target artifacts;
+- `.github/workflows/dev-app-publish.yml` for independent affected-app DEV publication;
+- `.github/workflows/distribution-artifact.yml` for explicit/reusable artifact production;
+- app-scoped `dev/<app>` commit statuses;
+- exact-source public verification through `version.json`;
+- one fast DEV completion receipt after every affected app for that merge is live.
+
+The legacy Pages workflow assembles changed apps from the same immutable artifact contract and remains the compatibility/Production path during migration.
