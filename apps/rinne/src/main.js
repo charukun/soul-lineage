@@ -119,10 +119,17 @@ function onTitleVideoCanPlay(){
 }
 function onTitleVideoPlaying(){title.dataset.media='video';scheduleTitleVideoFrame();}
 function onTitleVideoTimeUpdate(){handleTitleMediaTime(titleVideo.currentTime);}
-function onTitleVideoEnded(){if(!title.hidden){safeSeekTitle(TITLE_CINEMATIC_META.introEnd);playTitleVideo();}}
+function onTitleVideoEnded(){
+  if(title.hidden)return;
+  safeSeekTitle(TITLE_CINEMATIC_META.introEnd);
+  if(title.dataset.motion==='on'&&!prefersReducedTitleMotion())playTitleVideo();else titleVideo.pause();
+}
 function onTitleVideoError(){if(!title.hidden)activateTitleFallback(titleVideo.error||new Error('title media error'));}
 function beginTitleIntro(){
-  if(titleIntroPlayed){titleIntroSettled=true;title.dataset.intro='idle';seekToLivingStill({play:true});return;}
+  if(titleIntroPlayed){
+    if(title.dataset.intro==='cinematic'||title.dataset.intro==='settling')return;
+    titleIntroSettled=true;title.dataset.intro='idle';seekToLivingStill({play:true});return;
+  }
   titleIntroPlayed=true;titleIntroSettled=false;clearTitleIntroTimers();
   if(title.dataset.motion!=='on'||prefersReducedTitleMotion()){titleIntroSettled=true;title.dataset.intro='idle';seekToLivingStill({play:false});return;}
   title.dataset.intro='cinematic';title.dataset.media='pending';safeSeekTitle(0);

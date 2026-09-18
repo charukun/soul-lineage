@@ -44,6 +44,7 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
     browser=await chromium.launch({headless:true,executablePath,args:['--no-sandbox','--disable-dev-shm-usage']});
     const context=await browser.newContext({viewport:{width:412,height:915},deviceScaleFactor:1,reducedMotion:'no-preference'});
     const page=await context.newPage();
+    const navigationStarted=Date.now();
     await page.goto('http://127.0.0.1:5173/',{waitUntil:'domcontentloaded'});
     const title=page.locator('#title-screen');
     await title.waitFor({state:'visible',timeout:12000});
@@ -65,6 +66,7 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
     await page.screenshot({path:resolve(evidenceDir,'01-opening-mobile.png'),fullPage:true});
 
     await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.intro==='settling',{timeout:14000});
+    assert.ok(Date.now()-navigationStarted>7000,'prepared runtime must not truncate the cinematic before its authored landing');
     const settling=await page.evaluate(()=>({
       lockup:Number(getComputedStyle(document.querySelector('.title-lockup')).opacity),
       actions:Number(getComputedStyle(document.querySelector('.title-actions')).opacity),
