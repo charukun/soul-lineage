@@ -23,7 +23,6 @@ The current apps are `rinne`, `village`, and `demon`. A change in one app must n
 | Target | Current status | Source branch | Purpose |
 | --- | --- | --- | --- |
 | `web-dev` | implemented | `develop` | fastest human review / device check |
-| `web-review` | implemented foundation | `develop` | Visual Review bundle |
 | `web-prod` | existing release path | `main` | current browser Production |
 | `steam` | contract only | release candidate | future Steam package |
 | `android` | contract only | release candidate | future Android package |
