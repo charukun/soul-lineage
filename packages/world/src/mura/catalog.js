@@ -46,7 +46,7 @@ const VISUAL_ASSET_GROUPS=Object.freeze({
  acquired:new Set(['campfire','storage','logging','quarry','carpenter','wheat','clay','market','guardpost','watchtower','barracks','chapel','harbor','smith','dojo','school','clinic','farm','fishpond','hunting','orchard','inn','diner','restaurant','weapons','armor','jeweler','tools','tavern','furniture'])
 });
 for(const d of BUILDINGS){
- const visualAssetId=VISUAL_ASSET_GROUPS.yurt.has(d.id)?'village.yurt.authored-xion.v2':VISUAL_ASSET_GROUPS.housing.has(d.id)?'mura.housing-legacy-procedural.v1':VISUAL_ASSET_GROUPS.acquired.has(d.id)?'mura.kenney-fantasy-town.v1':null;
+ const visualAssetId=VISUAL_ASSET_GROUPS.yurt.has(d.id)?'village.yurt.authored-royal-xion.v3':VISUAL_ASSET_GROUPS.housing.has(d.id)?'mura.housing-legacy-procedural.v1':VISUAL_ASSET_GROUPS.acquired.has(d.id)?'mura.kenney-fantasy-town.v1':null;
  if(!visualAssetId)throw new Error(`Production building requires explicit visualAssetId classification: ${d.id}`);
  d.visualAssetId=visualAssetId;
 }
