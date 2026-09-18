@@ -174,7 +174,13 @@ The strongest supported conclusion is intentionally narrow:
 
 ### Stage 1: live shadow journal
 
-Keep `coop-v2` authoritative. Wire the source-shaped extractor into the successful commit path in shadow mode; derive the four events; maintain a shadow protected projection; compare it after every current commit against the authoritative checkpoint/history projection. Divergence is a hard candidate failure.
+**Implemented in this branch as non-authoritative runtime instrumentation.** `src/coop/semantic-shadow.js` is attached to the existing successful checkpoint path through `checkpoint-writer.js` and `session.js`. The current `coop-v2` save remains the only authority. After each successful durable save, the shadow independently derives birth / natural life-seal / rebirth / later epoch-acquire transitions from the previous and next committed checkpoints, maintains an in-memory protected journal, and checks that the current history sequence advanced by the same number of lifecycle effects. Movement, HP and provisional reward inputs do not enter the journal.
+
+A shadow mismatch is a **hard candidate failure but not a gameplay failure**: it is retained in diagnostics and does not turn an already successful `coop-v2` save into a failed authoritative write. This is deliberate shadow-mode isolation. The host exposes the result only through a diagnostics method; no player UI, save schema, network protocol or current authority decision reads it.
+
+The first durable checkpoint of a host process is a warm baseline. Therefore a restart's already-completed epoch acquisition is not retrospectively proven by this in-memory shadow. Persistent shadow recovery and restart-to-restart epoch coverage remain Stage 2/F, rather than being hidden behind a green first sample.
+
+Focused runtime evidence added after the research model: 9/9 tests pass for warm start, replaceable-state exclusion, life seal, rebirth, later epoch transition, guest birth, lineage-rewrite divergence, history-sequence disagreement, current early-death rejection and shadow/live-failure isolation (the last test shares the same file, so there are nine test cases total). `node --check` passes for the new shadow module, checkpoint-writer integration and its focused test in the isolated workspace. These tests are separate from the earlier 37-test research evidence bundle, whose files are unchanged.
 
 ### Stage 2: shadow recovery
 
