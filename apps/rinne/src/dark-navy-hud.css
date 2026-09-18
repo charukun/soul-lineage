@@ -4,7 +4,7 @@
  * reduce duplicated chrome, and unify HUD / 心・技・体・装 / map / record.
  */
 
-.game-screen[data-gameplay-upgrade]{
+:root{
   --rinne-navy-980:#06101d;
   --rinne-navy-950:#081523;
   --rinne-navy-900:#0b1b2e;
