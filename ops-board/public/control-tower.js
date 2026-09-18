@@ -1,4 +1,5 @@
 import { subscribe } from './view-state.js';
+import { PULSE_CONTROL_STATE, PULSE_COPY } from './pulse-contract.mjs';
 
 const $ = selector => document.querySelector(selector);
 const VIEW_KEY = 'rinne-ops:last-seen:v2';
@@ -222,8 +223,9 @@ function render(state, error) {
 
   if (!tower) {
     root.className = 'control-tower warning';
-    $('#control-headline').textContent = '自動復旧中';
-    $('#control-summary').textContent = '現在状態を取得できません。PULSEが自動で再試行しています。';
+    root.dataset.pulseState = PULSE_CONTROL_STATE.RECOVERING;
+    $('#control-headline').textContent = PULSE_COPY.recovery.headline;
+    $('#control-summary').textContent = PULSE_COPY.recovery.summary;
     if (since) since.hidden = true;
     $('#control-next').textContent = 'あなたの操作は不要です';
     $('#control-completeness').textContent = '状態未取得';
@@ -239,14 +241,15 @@ function render(state, error) {
     return;
   }
 
-  const recovering = state?.syncStatus === 'degraded' && tower.status !== 'NEEDS_USER';
+  const recovering = state?.syncStatus === 'degraded' && tower.status !== PULSE_CONTROL_STATE.NEEDS_USER;
   const tone = error || recovering ? 'warning' : toneFor(tower.status);
   root.className = `control-tower ${tone}`;
-  $('#control-headline').textContent = recovering ? '自動復旧中' : (tower.headline || '状態を確認中');
+  root.dataset.pulseState = recovering ? PULSE_CONTROL_STATE.RECOVERING : (tower.status || PULSE_CONTROL_STATE.UNKNOWN);
+  $('#control-headline').textContent = recovering ? PULSE_COPY.recovery.headline : (tower.headline || '状態を確認中');
   $('#control-summary').textContent = error
     ? '最新取得に失敗しています。前回確定値を表示中です。'
     : recovering
-      ? '最新状態を再取得しています。今は操作不要です。'
+      ? PULSE_COPY.recovery.summary
       : (tower.summary || '');
   if (since) {
     const known = elapsed(tower.enteredAt);

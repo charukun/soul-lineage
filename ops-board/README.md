@@ -98,3 +98,16 @@ PULSEのトップは、スマホで3秒以内に次の3点を判断できるこ�
 - 正常時のカード入れ子と説明文を減らし、詳細・SHA・Actions・履歴は既存disclosureの内側へ残す。
 - Workerの状態取得が失敗しても、可能な限り構造化されたdegraded stateを返し、静的UIだけが生きて全データが消える状態を避ける。
 - 既存のGitHub API認証、request budget、Integration/Rescue/Publication判定、main/Production品質gateは弱めない。
+
+
+## Single semantic contract / preflight
+
+PULSEのUI・browser fixture・テスト・公開前検証は、別々に文言や構造を正本化しない。
+
+- `ops-board/public/pulse-contract.mjs` を operator state / semantic role / recovery copy の単一正本とする。
+- UIテストは日本語文言そのものではなく、`data-pulse-role` / semantic stateを主契約として検証する。
+- browser-checkのfixtureとassertionは同じcontractをimportし、UI側と別々に recovery文言を手書きしない。
+- `ops-board/preflight.mjs` をPULSE検証の単一入口とし、`tests/ops-*`, `tests/pulse-*`, JS syntax, fixture Chromiumをまとめて実行する。
+- `scripts/validate.mjs dev` はPULSE関連pathを検出した場合にこのpreflightを必須実行する。
+- `.github/workflows/ops-board.yml` の公開前verificationも同じpreflightを実行し、merge前と公開前で異なる検証手順を持たない。
+- PULSE関連変更はpreflightが通らないheadをReady/mergeしない。main/Production品質gateは変更しない。

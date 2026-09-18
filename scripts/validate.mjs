@@ -24,6 +24,16 @@ const closureSelected = full ? [...nodes.keys()] : [...new Set([
   ...plan.packages.flatMap(name => [...closure(nodes, name)]),
 ])];
 const profile = full || deploy ? '' : gateCostPlan(plan.paths || []).profile;
+const pulseRelevant = dev && (plan.paths || []).some(path =>
+  path.startsWith('ops-board/') ||
+  /^tests\/(?:ops|pulse)-.*\.test\.mjs$/.test(path) ||
+  path === 'wrangler.ops.jsonc' ||
+  [
+    '.github/workflows/ops-board.yml',
+    '.github/workflows/pulse-refresh.yml',
+    '.github/workflows/pulse-events.yml',
+  ].includes(path)
+);
 const scope = full ? 'full' : deploy ? 'deploy' : fastGateScope(plan, profile);
 const narrowFast = !full && !deploy && scope !== 'broad';
 const directSelected = full ? [] : [...new Set([
@@ -35,10 +45,14 @@ console.log(JSON.stringify({ mode, scope, profile, workspaces: selected, transit
 if (!full && !deploy) run(process.execPath, [scriptPath('visual-budget.mjs'), 'guard', process.argv[3], process.argv[4]]);
 if (full) run(process.execPath, ['scripts/visual-budget.mjs', 'audit']);
 
+// PULSE changes are the one control-plane exception to test-free DEV validation:
+// use the same canonical preflight that publication runs after merge.
+if (pulseRelevant) run('npm', ['run', 'pulse:preflight']);
+
 // DEV control-plane/docs-only changes intentionally avoid workspace traversal and app builds.
 if (dev && !selected.length && !plan.infrastructure) {
   run(process.execPath, [scriptPath('code-health.mjs'), 'guard', process.argv[3], process.argv[4]]);
-  console.log(JSON.stringify({ devGate: { scope, profile, checkedWorkspaces: [], tests: 0, builds: 0, controlPlane: !!plan.controlPlane, trustedControl: true } }, null, 2));
+  console.log(JSON.stringify({ devGate: { scope, profile, checkedWorkspaces: [], tests: pulseRelevant ? 'pulse-preflight' : 0, builds: 0, controlPlane: !!plan.controlPlane, pulsePreflight: pulseRelevant, trustedControl: true } }, null, 2));
   process.exit(0);
 }
 if (!selected.length && !plan?.infrastructure) process.exit(0);
@@ -48,7 +62,7 @@ if (!full && !deploy) run(process.execPath, [scriptPath('code-health.mjs'), 'gua
 
 // Both develop PR validation and normal DEV publication are test-free.
 if (dev || deploy) {
-  console.log(JSON.stringify({ devGate: { mode, scope, profile, checkedWorkspaces: selected, tests: 0, builds: dev ? plan.apps.length : 0, controlPlane: !!plan.controlPlane, trustedControl: dev } }, null, 2));
+  console.log(JSON.stringify({ devGate: { mode, scope, profile, checkedWorkspaces: selected, tests: pulseRelevant ? 'pulse-preflight' : 0, builds: dev ? plan.apps.length : 0, controlPlane: !!plan.controlPlane, pulsePreflight: pulseRelevant, trustedControl: dev } }, null, 2));
 } else {
   const tests = selected.flatMap(name => {
     const dir = `${nodes.get(name).dir}/tests`;

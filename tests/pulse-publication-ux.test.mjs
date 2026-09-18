@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { PULSE_FIRST_GLANCE, PULSE_ROLE } from '../ops-board/public/pulse-contract.mjs';
 import {
   PUBLICATION_GUIDE_MS,
   boardAlerts,
@@ -145,24 +146,23 @@ test('application UI uses concrete progress language instead of the ambiguous ne
   assert.match(source, /このアプリに変更がなければ内容は変わりません/);
 });
 
-test('top overview keeps DEV understandable inside the three-decision operator surface', () => {
+test('top overview keeps DEV understandable inside the contract-defined operator surface', () => {
   const html = readFileSync(new URL('../ops-board/public/index.html', import.meta.url), 'utf8');
   const overview = readFileSync(new URL('../ops-board/public/overview.js', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../ops-board/public/rapid-ui.css', import.meta.url), 'utf8');
 
-  assert.ok(html.indexOf('id="overview-alert-card"') < html.indexOf('id="overview-task-card"'));
-  assert.ok(html.indexOf('id="overview-task-card"') < html.indexOf('id="overview-app-card"'));
-  assert.match(html, /class="overview-card overview-publication-card info"/);
+  assert.deepEqual(PULSE_FIRST_GLANCE, [
+    PULSE_ROLE.HUMAN_ACTION,
+    PULSE_ROLE.DEVELOPMENT,
+    PULSE_ROLE.DEV_PUBLICATION,
+  ]);
+  const positions = PULSE_FIRST_GLANCE.map(role => html.indexOf(`data-pulse-role="${role}"`));
+  assert.ok(positions[0] < positions[1] && positions[1] < positions[2]);
   assert.match(html, /id="overview-app-now"/);
   assert.match(html, /id="overview-app-next"/);
   assert.match(html, /id="overview-app-eta"/);
-  assert.match(html, />いま</);
-  assert.match(html, />次</);
-  assert.match(html, />目安</);
 
   assert.match(overview, /devPublicationProgress/);
-  assert.match(overview, /setCard\('overview-app', '最新', '今すぐ確認できます', 'ok'\)/);
-  assert.match(overview, /現在版は開けます/);
   assert.match(overview, /publication\.current/);
   assert.match(overview, /publication\.next/);
   assert.match(overview, /publication\.eta/);

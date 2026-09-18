@@ -1,18 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { PULSE_FIRST_GLANCE, PULSE_ROLE, PULSE_COPY } from '../ops-board/public/pulse-contract.mjs';
 
 const text = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('PULSE first-glance UI has no leaked source escape and exposes the three operator decisions', () => {
+test('PULSE first-glance UI has no leaked source escape and follows the semantic role contract', () => {
   const html = text('ops-board/public/index.html');
   assert.doesNotMatch(html, />\\n\s*<link rel="stylesheet" href="\.\/rapid-ui\.css">/);
-  const action = html.indexOf('id="overview-alert-card"');
-  const task = html.indexOf('id="overview-task-card"');
-  const dev = html.indexOf('id="overview-app-card"');
-  assert.ok(action > 0 && action < task && task < dev);
-  assert.match(html, /あなたの操作/);
-  assert.match(html, /<span class="overview-label">DEV<\/span>/);
+  assert.deepEqual(PULSE_FIRST_GLANCE, [
+    PULSE_ROLE.HUMAN_ACTION,
+    PULSE_ROLE.DEVELOPMENT,
+    PULSE_ROLE.DEV_PUBLICATION,
+  ]);
+  const positions = PULSE_FIRST_GLANCE.map(role => html.indexOf(`data-pulse-role="${role}"`));
+  assert.ok(positions.every(position => position > 0));
+  assert.ok(positions[0] < positions[1] && positions[1] < positions[2]);
 });
 
 test('PULSE browser keeps a bounded last-known-good snapshot for transient API outages', () => {
@@ -27,7 +30,8 @@ test('PULSE operator flow is presentation-compressed to four stages', () => {
   const tower = text('ops-board/public/control-tower.js');
   for (const id of ["work","ready","integration","dev"]) assert.match(tower, new RegExp(`id:'${id}'`));
   assert.doesNotMatch(tower, /id:'pulse'/);
-  assert.match(tower, /あなたの操作は不要です/);
+  assert.match(tower, /PULSE_COPY\.recovery\.headline/);
+  assert.equal(PULSE_COPY.recovery.headline, '自動復旧中');
 });
 
 test('PULSE Worker uses stable Durable Object namespace access and returns structured degraded state', () => {
