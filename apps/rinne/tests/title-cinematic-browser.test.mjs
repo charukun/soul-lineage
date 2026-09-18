@@ -79,6 +79,11 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
 
     await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.intro==='idle',{timeout:5000});
     await page.waitForFunction(()=>!document.getElementById('new-life')?.disabled,{timeout:12000});
+    await page.waitForFunction(()=>{
+      const lockup=Number(getComputedStyle(document.querySelector('.title-lockup')).opacity);
+      const actions=Number(getComputedStyle(document.querySelector('.title-actions')).opacity);
+      return lockup>0.9&&actions>0.9;
+    },{timeout:5000});
     const idle=await page.evaluate(()=>({
       lockup:Number(getComputedStyle(document.querySelector('.title-lockup')).opacity),
       actions:Number(getComputedStyle(document.querySelector('.title-actions')).opacity),

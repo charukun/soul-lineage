@@ -22,7 +22,7 @@ test('legacy title state has no browser/SDK access',()=>assert.doesNotMatch(stat
 test('100年生 boots the world before revealing the title',async()=>{
  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
  assert.doesNotMatch(html,/<iframe\b/);assert.match(html,/>100年生</);assert.match(html,/>輪廻転焦</);
- assert.match(html,/id="title-screen"[^>]*hidden/);assert.match(html,/class="title-world"/);assert.match(html,/id="title-cinematic-intro"/);assert.match(html,/id="title-living-still"/);assert.match(html,/title-assets\/world\.webp/);assert.match(html,/title-assets\/crest\.svg/);
+ assert.match(html,/id="title-screen"[^>]*hidden/);assert.match(html,/class="title-world"/);assert.match(html,/id="title-cinematic-video"/);assert.match(html,/title-assets\/world\.webp/);assert.match(html,/title-assets\/crest\.svg/);
  assert.match(html,/id="game-screen"[^>]*class="game-screen is-loading"/);assert.match(html,/aria-busy="true"/);
  assert.match(html,/id="loading-card"/);assert.match(html,/id="boot-retry"/);assert.match(html,/id="new-life"/);assert.match(html,/id="continue-life"/);assert.match(html,/id="open-village-code"/);assert.match(html,/id="open-settings"/);assert.match(html,/viewport-fit=cover/);
  assert.match(html,/>はじめる</);assert.match(html,/>続きから</);assert.match(html,/>村コード</);assert.match(html,/>設定</);
