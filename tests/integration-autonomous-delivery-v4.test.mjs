@@ -94,7 +94,7 @@ test('control canary treats notification as advisory while preserving delivery g
     manifest: { validatedDevelop: head },
     pulse: { repository: 'charukun/soul-lineage', generatedAt: '2026-09-15T00:00:00Z' },
     statuses: [
-      { context: 'integration/develop', state: 'success' },
+      { context: 'dev/delivery', state: 'success' },
       { context: 'ops-board/public', state: 'success' },
       { context: 'notification/ntfy', state: 'error' },
     ],
@@ -103,7 +103,7 @@ test('control canary treats notification as advisory while preserving delivery g
   assert.equal(advisory.ok, true);
   assert.equal(advisory.checks.notification, false);
   assert.equal(advisory.advisory.notification, false);
-  const broken = evaluateCanary({ ...base, statuses: [{ context: 'integration/develop', state: 'failure' }, { context: 'ops-board/public', state: 'success' }] });
+  const broken = evaluateCanary({ ...base, statuses: [{ context: 'dev/delivery', state: 'failure' }, { context: 'ops-board/public', state: 'success' }] });
   assert.equal(broken.ok, false);
 });
 
@@ -111,7 +111,7 @@ test('workflow contracts keep exact-head fast merge, browser opt-in DEV verifica
   const { readFileSync } = await import('node:fs');
   const ci = readFileSync('.github/workflows/ci.yml','utf8');
   const deploy = readFileSync('.github/workflows/deploy.yml','utf8');
-  const controller = readFileSync('.github/workflows/integration-controller.yml','utf8');
+  const controller = readFileSync('.github/workflows/develop-merge.yml','utf8');
   const coalescer = readFileSync('.github/workflows/dev-publisher-coalescer.yml','utf8');
   const repair = readFileSync('.github/workflows/integration-rescue.yml','utf8');
   assert.match(ci,/Validate and build/);
@@ -119,7 +119,7 @@ test('workflow contracts keep exact-head fast merge, browser opt-in DEV verifica
   assert.doesNotMatch(ci,/browser-repair-dispatch:/);
   assert.match(ci,/integration-stack-ci\.mjs/);
   assert.match(ci,/integration-gate-cost\.mjs/);
-  assert.match(ci,/merge-ready:[\s\S]*uses: \.\/\.github\/workflows\/integration-controller\.yml/);
+  assert.match(ci,/merge-ready:[\s\S]*uses: \.\/\.github\/workflows\/develop-merge\.yml/);
   assert.doesNotMatch(ci,/integration-request:/);
   assert.match(deploy,/Validate exact DEV candidate manifest before public promotion/);
   assert.match(deploy,/Promote candidate to DEV Pages/);
@@ -128,8 +128,8 @@ test('workflow contracts keep exact-head fast merge, browser opt-in DEV verifica
   assert.match(deploy,/integration\/dev-fallback/);
   assert.match(deploy,/Preserve blocking Production browser verification/);
   assert.match(deploy,/full-verification:[\s\S]*Public Chromium \/ WebGL2/);
-  assert.match(controller,/integration-controller-develop/);
-  assert.match(controller,/Integration Fast Lane/);
+  assert.match(controller,/develop-merge-writer/);
+  assert.match(controller,/Merge eligible Ready PRs/);
   assert.match(controller,/integration-fast-lane\.mjs/);
   assert.doesNotMatch(controller,/Validate planned Virtual Integration Train/);
   assert.doesNotMatch(controller,/publisher-handoff:/);

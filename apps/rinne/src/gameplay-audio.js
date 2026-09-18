@@ -12,6 +12,7 @@ export function createRinneAudio(){
   const doc=globalThis.document,pageHidden=()=>Boolean(doc&&(doc.hidden||doc.visibilityState==='hidden'));
   let context=null,lastStep=0,disposed=false,unlocked=false,backgrounded=pageHidden(),duckTimer=0;
 
+  const contextCanResume=()=>Boolean(context&&context.state!=='running'&&context.state!=='closed');
   function clearImpact(){clearTimeout(duckTimer);duckTimer=0;if(!disposed)music.volume=BASE_MUSIC_VOLUME;}
   function suspendForBackground(){
     backgrounded=true;clearImpact();music.pause();
@@ -19,7 +20,7 @@ export function createRinneAudio(){
   }
   async function resumePlayback(){
     if(disposed||backgrounded||pageHidden()||!unlocked)return false;
-    const resume=context?.state==='suspended'?context.resume().catch(error=>{console.warn('Rinne AudioContext resume failed',error);}):Promise.resolve();
+    const resume=contextCanResume()?context.resume().catch(error=>{console.warn('Rinne AudioContext resume failed',error);}):Promise.resolve();
     const playback=music.paused?music.play().catch(error=>{console.warn('Rinne music start failed',error);}):Promise.resolve();
     await Promise.allSettled([resume,playback]);
     if(disposed||backgrounded||pageHidden()){suspendForBackground();return false;}
@@ -37,12 +38,17 @@ export function createRinneAudio(){
     if(pageHidden()){suspendForBackground();return;}
     backgrounded=false;if(unlocked)void resumePlayback();
   }
+  function recoverFromGesture(){
+    if(!unlocked||disposed||backgrounded||pageHidden())return;
+    if(music.paused||contextCanResume())void resumePlayback();
+  }
   doc?.addEventListener?.('visibilitychange',onVisibilityChange);
+  doc?.addEventListener?.('pointerdown',recoverFromGesture,{capture:true});
+  doc?.addEventListener?.('keydown',recoverFromGesture,{capture:true});
 
   function tone(freq,duration=.06,gain=.02,type='sine',delay=0){
     if(disposed||backgrounded||pageHidden()||!context)return;
-    if(context.state==='suspended'){void context.resume().then(()=>{if(!backgrounded&&!pageHidden())tone(freq,duration,gain,type,delay);}).catch(()=>{});return;}
-    if(context.state!=='running')return;
+    if(context.state!=='running'){if(context.state!=='closed')void context.resume().then(()=>{if(!backgrounded&&!pageHidden())tone(freq,duration,gain,type,delay);}).catch(()=>{});return;}
     const now=context.currentTime+Math.max(0,delay),osc=context.createOscillator(),amp=context.createGain();osc.type=type;osc.frequency.value=freq;amp.gain.setValueAtTime(.0001,now);amp.gain.exponentialRampToValueAtTime(Math.max(.0002,gain),now+.006);amp.gain.exponentialRampToValueAtTime(.0001,now+duration);osc.connect(amp).connect(context.destination);osc.start(now);osc.stop(now+duration+.02);
   }
   function restoreMusic(delay=0){clearTimeout(duckTimer);duckTimer=setTimeout(()=>{if(!disposed&&!backgrounded&&!pageHidden())music.volume=BASE_MUSIC_VOLUME;},Math.max(0,delay));}
@@ -61,7 +67,7 @@ export function createRinneAudio(){
     item(){tone(620,.08,.024,'triangle');setTimeout(()=>tone(840,.08,.018,'triangle'),55);},
     combat:()=>tone(128,.11,.032,'sawtooth'),rest:()=>tone(260,.14,.014),dash:()=>tone(170,.07,.022,'square'),
     step(now){if(now-lastStep<.25)return;lastStep=now;tone(92,.035,.012);},
-    dispose(){if(disposed)return;disposed=true;clearTimeout(duckTimer);if(activeAudio===controller)activeAudio=null;doc?.removeEventListener?.('visibilitychange',onVisibilityChange);music.volume=BASE_MUSIC_VOLUME;music.pause();music.src='';void context?.close?.();context=null;}
+    dispose(){if(disposed)return;disposed=true;clearTimeout(duckTimer);if(activeAudio===controller)activeAudio=null;doc?.removeEventListener?.('visibilitychange',onVisibilityChange);doc?.removeEventListener?.('pointerdown',recoverFromGesture,{capture:true});doc?.removeEventListener?.('keydown',recoverFromGesture,{capture:true});music.volume=BASE_MUSIC_VOLUME;music.pause();music.src='';void context?.close?.();context=null;}
   };
   activeAudio=controller;
   return controller;

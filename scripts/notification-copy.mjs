@@ -1,5 +1,7 @@
 const STAGES = Object.freeze({
+  READY: Object.freeze({ badge: 'WAIT' }),
   READY_FOR_INTEGRATION: Object.freeze({ badge: 'WAIT' }),
+  MERGED_TO_DEVELOP: Object.freeze({ badge: 'INFO' }),
   INTEGRATED: Object.freeze({ badge: 'INFO' }),
   DEV_DEPLOYED: Object.freeze({ badge: 'OK' }),
   FAILED: Object.freeze({ badge: 'WARN' }),

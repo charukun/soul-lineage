@@ -43,7 +43,7 @@ jobs:
           script: |
             const { existsSync } = require('node:fs');
             if (!existsSync('scripts/implementation-handoff.mjs')) {
-              core.notice('Handoff recorder is not on develop yet; existing Ready/Integration events own this bootstrap PR.');
+              core.notice('Handoff recorder is not on develop yet; existing Ready/merge events own this bootstrap PR.');
               return;
             }
             const { recordHandoff } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/implementation-handoff.mjs`);
@@ -212,7 +212,7 @@ jobs:
           else
             node scripts/validate.mjs fast "$BASE_SHA" "$HEAD_SHA"
           fi
-      - name: Record PR/head identity for Integration
+      - name: Record PR/head identity for develop merge
         working-directory: work
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -243,7 +243,7 @@ jobs:
       (needs.build.result == 'success' || needs.build.result == 'failure') &&
       github.event.pull_request.base.ref == 'develop' && github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository
-    uses: ./.github/workflows/integration-controller.yml
+    uses: ./.github/workflows/develop-merge.yml
     permissions:
       contents: write
       pull-requests: write

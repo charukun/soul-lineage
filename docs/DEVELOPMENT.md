@@ -42,7 +42,7 @@ latest develop
 
 Micro Patch の適用条件・除外条件は [`MICRO_PATCH_FAST_LANE.md`](MICRO_PATCH_FAST_LANE.md) を正本とする。Ready 後の exact-head CI / serialized merge / DEV publication の品質境界は通常実装と同じであり、fast path を理由に gate を省略しない。
 
-このRepositoryは個人開発 + AI並列workerを前提とする。Ready PR を別の Integration 担当へ handoff する工程は通常経路に置かない。Ready exact-head の検証成功後は同じ PR Checks workflow から single-writer merge lane を直接起動し、条件を満たせば `develop` へ merge する。実装 WORK は Running / Queued / Pending の check を完了まで watch・sleep・polling しない。
+このRepositoryは個人開発 + AI並列workerを前提とする。Ready exact-head の検証成功後は同じ PR Checks workflow から single-writer merge lane を直接起動し、条件を満たせば `develop` へ merge する。実装 WORK は Running / Queued / Pending の check を完了まで watch・sleep・polling しない。
 
 ## Pre-Ready Reconciliation
 
@@ -52,7 +52,7 @@ Micro Patch の適用条件・除外条件は [`MICRO_PATCH_FAST_LANE.md`](MICRO
 
 merge-forward 後は affected focused validation をもう一度行い、reconciled head を push する。Ready 化の直前には `npm run pre-ready:verify` で current `origin/develop` をもう一度 fetch し、取得した develop が current head の ancestor であることを確認する。verify が stale を返した場合は `pre-ready:sync` → focused validation → push → `pre-ready:verify` を繰り返してから Ready にする。
 
-別担当としての Integration handoff は廃止するが、serialized expected-head merge / exact-head gate 自体は最後の原子的な改札として維持する。Ready 後に develop が進んだ場合だけ Fast Repair が短い race を吸収し、意味衝突だけを修復経路へ送る。実装 WORK は Ready 後の race を監視・polling しない。
+serialized expected-head merge / exact-head gate 自体は最後の原子的な改札として維持する。Ready 後に develop が進んだ場合だけ Fast Repair が短い race を吸収し、意味衝突だけを修復経路へ送る。実装 WORK は Ready 後の race を監視・polling しない。
 
 checkout がなく connected GitHub API 経路だけで作業する場合も同じ意味契約を守る。Ready の前に current develop を再取得し、work branch head がその develop を親履歴として含む reconciled head を作り、必要な focused validation を済ませてから Ready にする。
 
@@ -66,7 +66,7 @@ checkout がなく connected GitHub API 経路だけで作業する場合も同�
 6. Ready 準備に入ったら `npm run pre-ready:sync` で current `develop` を work branch へ merge-forward する。競合があれば current develop と実装意図の両方を満たすよう実装 WORK が解消する。reconciled head で変更責任に必要な focused validation を再実行する。
 7. push 前に `npm run push:route -- origin/develop HEAD` を使える環境では実行する。通常 git → 接続済み GitHub API → 同じ branch の既存 Codespaces + 通常 git の順に復旧する。1経路の失敗だけで終了しない。reconciled head を push する。
 8. Ready 化の直前に `npm run pre-ready:verify` を実行する。current develop が head に含まれていなければ手順6へ戻り、最新 develop の取り込み・focused validation・push を行う。fresh を確認したら PR 本文を実施結果へ更新し、通常タスクは Ready for review にする。Micro Patch はこの時点で初めて Ready PR を作る。
-9. branch / exact head SHA / PR / Ready / reconciled develop SHA / 実行済み検証を報告して終了する。Ready exact-head CI 成功後の merge は同じGitHub workflowが引き継ぐため、`READY_FOR_INTEGRATION` という別担当向け handoff 状態は通常経路では使わない。通知、CI、DEV 公開の完了待ちはしない。
+9. branch / exact head SHA / PR / Ready / reconciled develop SHA / 実行済み検証を報告して終了する。Ready exact-head CI 成功後の merge は同じGitHub workflowが引き継ぐため。通知、CI、DEV 公開の完了待ちはしない。
 
 ## Micro Patch Fast Lane
 
@@ -118,13 +118,13 @@ GitHub 標準状態をそのまま使う。
 
 ## develop CI と品質境界
 
-**develop向けGitHub CIは自動テストを実行しない。** Ready後の `Validate and build` は、exact-headの差分衛生検査・構文・静的check・code-health・必要なbuild可否とIntegration用artifactを確認するだけで、`node --test`、browser smoke、gameplay/WebGLテストは実行しない。Fast Repairのexact-head再検証も同じtest-free DEV contractを使う。
+**develop向けGitHub CIは自動テストを実行しない。** Ready後の `Validate and build` は、exact-headの差分衛生検査・構文・静的check・code-health・必要なbuild可否とmerge用artifactを確認するだけで、`node --test`、browser smoke、gameplay/WebGLテストは実行しない。Fast Repairのexact-head再検証も同じtest-free DEV contractを使う。
 
-Draft PR の opened / synchronize / converted-to-draft event は Ready gate のための runner を起動しない。Draft中の `git diff --check` 専用runnerは廃止し、その差分衛生検査を Ready exact-head の `Validate and build` に統合する。これにより検査回数を減らしても、Integrationへ渡るheadの差分検査自体は省略しない。
+Draft PR の opened / synchronize / converted-to-draft event は Ready gate のための runner を起動しない。Draft中の `git diff --check` 専用runnerは廃止し、その差分衛生検査を Ready exact-head の `Validate and build` に統合する。これにより検査回数を減らしても、mergeへ進むheadの差分検査自体は省略しない。
 
 DEV CIの検証制御は **current develop側のtrusted control checkout** を正本として実行する。古いReady PRがbranch内に旧 `scripts/validate.mjs` / `affected.mjs` / check helperを保持していても、それをDEV gateの制御実装として実行しない。検証対象のapp/package/source bytesはPR exact headを使い、検証ルールだけをcurrent developから適用する。これによりCI契約の更新だけを理由に既存Ready PRを一斉にsource repairへ落とさない。main / Productionの検証経路はこの互換処理の対象外とする。
 
-さらにDEV CIの作業量は変更責任に限定する。`docs/**` だけの変更ではinstall/buildを行わず、`.github/**`・Integration/運用script・root `tests/**` などcontrol-planeだけの変更でもgame app/packageをaffected扱いせず、`npm ci`・app buildを起動しない。app変更はそのapp、shared package変更は実際のconsumer app、workspace manifest / lockfile / build基盤の変更だけが必要範囲を広げる。control-plane変更を理由に全app buildへ拡大しない。
+さらにDEV CIの作業量は変更責任に限定する。`docs/**` だけの変更ではinstall/buildを行わず、`.github/**`・merge/運用script・root `tests/**` などcontrol-planeだけの変更でもgame app/packageをaffected扱いせず、`npm ci`・app buildを起動しない。app変更はそのapp、shared package変更は実際のconsumer app、workspace manifest / lockfile / build基盤の変更だけが必要範囲を広げる。control-plane変更を理由に全app buildへ拡大しない。
 
 これはテストの削除ではない。実装セッションはReady前に変更機能の局所テストを行い、既存テスト資産は保持する。全体回帰、browser/WebGL、P2P等の重い検証は、ユーザー明示playtest、`full_verification=true`、専門evidence workflow、main / Productionの品質gateで実行する。main / Production の blocking gate は不変。
 
@@ -150,12 +150,12 @@ Codespaces は別開発フローではなく搬送経路の代替。branch、PR�
 
 必要な引き継ぎ情報は repository、branch、head SHA、PR、Draft/Ready、base、reconciled develop SHA、必要な exact-head Checks/status。過去チャット全文や古い handoff を正本にしない。
 
-Ready なら修正依頼なしに CI 待機セッションを再開しない。失敗が返された場合は同じ PR / branch で必要な修正 → current develop reconciliation → 局所検証 → push → freshness verify → Ready まで進め、再び Integration へ返す。
+Ready なら修正依頼なしに CI 待機セッションを再開しない。失敗が返された場合は同じ PR / branch で必要な修正 → current develop reconciliation → 局所検証 → push → freshness verify → Ready まで進め、再び Ready → CI → merge 経路へ返す。
 
 ## 関連資料
 
 - Micro Patch Fast Lane: [`MICRO_PATCH_FAST_LANE.md`](MICRO_PATCH_FAST_LANE.md)
-- Integration: [`INTEGRATION.md`](INTEGRATION.md)
+- Develop merge: [`DEVELOP_MERGE.md`](DEVELOP_MERGE.md)
 - Repair / legacy Rescue compatibility: [`INTEGRATION_RESCUE.md`](INTEGRATION_RESCUE.md)
 - Context budget: [`CONTEXT_EFFICIENCY.md`](CONTEXT_EFFICIENCY.md)
 - Browser verification / repair: [`BROWSER_SELF_HEALING.md`](BROWSER_SELF_HEALING.md)

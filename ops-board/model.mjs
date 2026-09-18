@@ -8,7 +8,7 @@ const FAILURE_CONCLUSIONS = new Set([
   'failure', 'timed_out', 'action_required', 'startup_failure', 'stale',
 ]);
 const ACTIVE_RUN_STATES = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
-const HOLD_LABELS = new Set(['integration:hold', 'integration:manual', 'do-not-merge']);
+const HOLD_LABELS = new Set(['merge:hold', 'merge:manual', 'integration:hold', 'integration:manual', 'do-not-merge']);
 
 export function shortSha(value) {
   return typeof value === 'string' && value.length >= 7 ? value.slice(0, 12) : null;
@@ -55,9 +55,9 @@ export function latestRunForSha(runs, sha, workflowName = 'CI') {
     (run?.name === workflowName || (workflowName === 'CI' && /^CI validation #/.test(run?.name || '')))) || null;
 }
 
-function explicitIntegrationHold(pr) {
+function explicitMergeHold(pr) {
   const labels = new Set((pr?.labels || []).map(item => item?.name).filter(Boolean));
-  return [...HOLD_LABELS].some(label => labels.has(label)) || /^Integration-Hold:\s*\S+/im.test(pr?.body || '');
+  return [...HOLD_LABELS].some(label => labels.has(label)) || /^(?:Merge-Hold|Integration-Hold):\s*\S+/im.test(pr?.body || '');
 }
 
 export function classifyPull(pr, runs = [], developRuns = [], now = Date.now()) {
@@ -67,7 +67,7 @@ export function classifyPull(pr, runs = [], developRuns = [], now = Date.now()) 
     title: pr.title,
     url: pr.html_url || `https://github.com/${REPOSITORY}/pull/${pr.number}`,
     headSha: pr?.head?.sha || null,
-    monitoringOwner: pr.draft ? 'Implementation' : 'Integration',
+    monitoringOwner: pr.draft ? 'Implementation' : 'Repository Automation',
     workerEnded: !pr.draft,
     updatedAt: pr.updated_at || pr.created_at || null,
     ci: ci ? {
@@ -81,11 +81,11 @@ export function classifyPull(pr, runs = [], developRuns = [], now = Date.now()) 
   if (pr.draft) {
     return { ...base, stage: 'READY_WAIT', label: '作業中', tone: 'info', reason: 'Draft PR' };
   }
-  if (explicitIntegrationHold(pr)) {
-    return { ...base, stage: 'HOLD', label: 'Integration保留', tone: 'info', reason: '明示的なIntegration hold' };
+  if (explicitMergeHold(pr)) {
+    return { ...base, stage: 'HOLD', label: 'Merge保留', tone: 'info', reason: '明示的なmerge hold' };
   }
   if (!ci || ci.status !== 'completed') {
-    return { ...base, stage: 'READY_WAIT', label: ci ? '自動テスト中' : '自動テスト待ち', tone: 'info', reason: `${ci ? 'CI実行中' : 'CI待ち'} / Integrationが監視・実装Worker終了` };
+    return { ...base, stage: 'READY_WAIT', label: ci ? '自動テスト中' : '自動テスト待ち', tone: 'info', reason: `${ci ? 'CI実行中' : 'CI待ち'} / Repository automationが継続・実装Worker終了` };
   }
   if (FAILURE_CONCLUSIONS.has(ci.conclusion)) {
     return { ...base, stage: 'CI_FAILED', label: 'CI失敗', tone: 'danger', reason: ci.conclusion || 'failure' };

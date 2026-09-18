@@ -11,7 +11,7 @@ export function evaluateCanary({ sha, manifest, pulse, statuses = [] }) {
   const checks = {
     manifest: manifest?.validatedDevelop === sha,
     pulse: pulse?.repository === 'charukun/soul-lineage' && Number.isFinite(Date.parse(pulse?.generatedAt || '')),
-    develop: latest.get('integration/develop')?.state === 'success',
+    develop: latest.get('dev/delivery')?.state === 'success',
     pulsePublication: latest.get('ops-board/public')?.state === 'success',
     notification: latest.get(NOTIFICATION_CONTEXT)?.state === 'success',
   };
@@ -50,7 +50,7 @@ async function main() {
       state: result.ok ? 'success' : 'failure',
       context: CANARY_CONTEXT,
       description: result.ok
-        ? result.advisory.notification ? 'Ready/Integration/DEV/PULSE evidence is coherent' : 'Ready/Integration/DEV/PULSE coherent; notification unconfirmed'
+        ? result.advisory.notification ? 'Ready/Merge/DEV/PULSE evidence is coherent' : 'Ready/Merge/DEV/PULSE coherent; notification unconfirmed'
         : `Control-plane canary failed: ${requiredFailures.join(', ')}`.slice(0, 140),
       target_url: `https://github.com/${repository}/actions/runs/${process.env.GITHUB_RUN_ID}`,
     }),
