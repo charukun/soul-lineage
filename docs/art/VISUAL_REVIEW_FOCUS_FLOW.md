@@ -31,6 +31,8 @@ Effects review is a browsing surface before it is a tuning surface. It must stay
 - The gallery is source-agnostic UI. This task must not add network discovery, remote importing, or a second VFX source of truth.
 - Cards may expose lightweight review metadata such as category, component count, and authored source label, but must not pretend a static decorative thumbnail is the real effect.
 - The same authored effect player / Effekseer backend remains the preview truth; selecting catalog entries changes presentation input only.
+- The neutral VFX stage must communicate gameplay scale and effect intent. Do not use anonymous capsule/cylinder position markers as the primary review subjects; use readable humanoid review mannequins plus explicit source, impact and area/trajectory guides.
+- VFX presets may change review-only staging (single target, multi-target, area/finisher context) while preserving the same authored effect event/runtime path. The staging must clarify where an effect originates and lands without inventing damage rules.
 
 ## Battle review
 
