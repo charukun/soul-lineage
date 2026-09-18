@@ -58,6 +58,11 @@ test('delivery wiring keeps PULSE verification after develop while branch pushes
   assert.match(workflow, /REFRESH_STAGING:/);
   assert.match(workflow, /scripts\/verify-live\.mjs/);
   assert.match(workflow, /scripts\/verify-browser\.mjs/);
+  assert.match(workflow, /format\('\{0\}dev\/', steps\.deployment\.outputs\.page_url\)/);
+  assert.match(workflow, /format\('\{0\}prod\/', steps\.deployment\.outputs\.page_url\)/);
+  const deployScript = text('scripts/deploy.mjs');
+  assert.match(deployScript, /environment !== 'dev' && rinne/);
+  assert.match(deployScript, /content="0;url=prod\/"/);
   const boardWorkflow = text('.github/workflows/ops-board.yml');
   const triggers = boardWorkflow.split('permissions:')[0];
   assert.doesNotMatch(triggers, /\bpush:/);

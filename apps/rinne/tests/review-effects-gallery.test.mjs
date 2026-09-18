@@ -24,6 +24,23 @@ test('VFX review is catalog-first while keeping one real preview stage',()=>{
   assert.match(slotAuto,/if\(!byId\('fx-stage'\)\|\|byId\('fx-catalog'\)\)return/);
 });
 
+test('VFX stage uses readable humanoid scale and effect-intent guides',()=>{
+  assert.match(js,/function createReviewMannequin/);
+  assert.match(js,/new THREE\.BoxGeometry\(\.5,\.72,\.3\)/);
+  assert.match(js,/new THREE\.IcosahedronGeometry\(\.23,2\)/);
+  assert.match(js,/function createPointGuide/);
+  assert.match(js,/function createImpactGuide/);
+  assert.match(js,/function createAreaGuide/);
+  assert.match(js,/const REVIEW_CONTEXTS=Object\.freeze/);
+  assert.match(js,/secondaryB\.visible=context\.secondary/);
+  assert.match(js,/areaGuide\.visible=context\.area>0/);
+  assert.doesNotMatch(js,/function marker\(/);
+  assert.doesNotMatch(js,/CapsuleGeometry/);
+  assert.match(html,/ATTACKER/);
+  assert.match(html,/IMPACT \/ AREA/);
+  assert.match(html,/PRIMARY TARGET/);
+});
+
 test('VFX catalog supports fast search and category filtering without acquisition UI',()=>{
   assert.match(js,/fx-search/);
   assert.match(js,/activeFilter/);

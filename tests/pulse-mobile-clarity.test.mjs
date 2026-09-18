@@ -3,30 +3,29 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const html = readFileSync(new URL('../ops-board/public/index.html', import.meta.url), 'utf8');
-const css = readFileSync(new URL('../ops-board/public/progressive-disclosure.css', import.meta.url), 'utf8');
+const css = readFileSync(new URL('../ops-board/public/rapid-ui.css', import.meta.url), 'utf8');
 const polish = readFileSync(new URL('../ops-board/public/review-polish.css', import.meta.url), 'utf8');
 const browserCheck = readFileSync(new URL('../ops-board/browser-check.mjs', import.meta.url), 'utf8');
 
-test('PULSE puts DEV publication first in the mobile overview', () => {
-  const publication = html.indexOf('id="overview-app-card"');
+test('PULSE puts the three operator decisions first on mobile', () => {
   const attention = html.indexOf('id="overview-alert-card"');
   const development = html.indexOf('id="overview-task-card"');
-  assert.ok(publication >= 0 && publication < attention && attention < development);
-  assert.match(html, /<span class="overview-label">DEV公開<\/span>/);
-  assert.match(html, /<span class="overview-label">今やること<\/span>/);
+  const publication = html.indexOf('id="overview-app-card"');
+  assert.ok(attention >= 0 && attention < development && development < publication);
+  assert.match(html, /<span class="overview-label">あなたの操作<\/span>/);
   assert.match(html, /<span class="overview-label">開発中<\/span>/);
+  assert.match(html, /<span class="overview-label">DEV<\/span>/);
 });
 
-test('DEV publication card spans the overview width and uses larger text', () => {
-  assert.match(css, /\.overview-publication-card\s*\{[^}]*grid-column:\s*1\s*\/\s*-1;/s);
-  assert.match(css, /\.overview-publication-card > strong\s*\{[^}]*font-size:\s*clamp\(/s);
+test('operator overview is three equal glance cards and expands DEV details only when needed', () => {
+  assert.match(css, /\.pulse-overview\s*\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/s);
+  assert.match(css, /\.overview-publication-card\.is-expanded\s*\{[^}]*grid-column:1\/-1/s);
+  assert.match(css, /\.overview-publication-card\.is-expanded \.overview-publication-grid\s*\{[^}]*display:grid/s);
 });
 
-test('overview status and ETA text are allowed to wrap instead of being ellipsized', () => {
-  const strongRule = css.match(/\.overview-card strong\s*\{([^}]*)\}/s)?.[1] || '';
-  const detailRule = css.match(/\.overview-detail\s*\{([^}]*)\}/s)?.[1] || '';
-  assert.match(strongRule, /white-space:\s*normal/);
-  assert.match(detailRule, /white-space:\s*normal/);
+test('overview values stay readable without ellipsis in the compact cards', () => {
+  const strongRule = css.match(/\.overview-card strong,[\s\S]*?\{([^}]*)\}/s)?.[1] || '';
+  const detailRule = css.match(/\.overview-detail,[\s\S]*?\{([^}]*)\}/s)?.[1] || '';
   assert.doesNotMatch(strongRule, /text-overflow:\s*ellipsis/);
   assert.doesNotMatch(detailRule, /text-overflow:\s*ellipsis/);
 });
@@ -50,12 +49,12 @@ test('operational control detail is collapsed behind the primary action decision
   const disclosure = html.indexOf('class="control-details nested-disclosure"');
   const flow = html.indexOf('id="control-flow"');
   assert.ok(action >= 0 && action < next && next < disclosure && disclosure < flow);
-  assert.match(html, /<summary>処理の内訳を見る<\/summary>/);
+  assert.match(html, /<summary>詳細を見る<\/summary>/);
   assert.doesNotMatch(html, /<details class="control-details nested-disclosure"[^>]*open/);
 });
 
-test('clarity pass keeps publication progress compact on phone widths', () => {
-  assert.match(css, /@media \(max-width: 519px\)[\s\S]*\.overview-publication-grid\s*\{[^}]*grid-template-columns:\s*1fr;/);
-  assert.match(css, /@media \(max-width: 519px\)[\s\S]*\.overview-publication-row\s*\{[^}]*grid-template-columns:\s*72px minmax\(0, 1fr\)/);
-  assert.match(css, /\.control-details\s*\{[^}]*margin-top:\s*8px;/s);
+test('clarity pass keeps the operator surface compact on phone widths', () => {
+  assert.match(css, /@media\(max-width:519px\)[\s\S]*\.pulse-overview\s*\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.overview-publication-row\s*\{[^}]*grid-template-columns:48px minmax\(0,1fr\)/s);
+  assert.match(css, /\.control-details\s*\{[^}]*margin-top:5px/s);
 });

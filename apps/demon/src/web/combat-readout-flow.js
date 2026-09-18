@@ -57,6 +57,11 @@ export function installCombatReadoutFlow(doc=document){
       const node=phaseNodes.find(el=>el.dataset.phase===next.phase);
       if(node)replay(node,'combat-phase-shift');
     }
+    if(next.actionChanged&&next.action){
+      const link=next.phase==='jo'?battle.querySelector('[data-phase-link="jo-ha"]'):next.phase==='ha'?battle.querySelector('[data-phase-link="ha-kyu"]'):null;
+      if(link)replay(link,'combat-phase-pulse-once');
+      if(next.phase==='kyu')replay(phaseNodes.find(el=>el.dataset.phase==='kyu'),'combat-phase-impact-once');
+    }
 
     state={action:next.action,phase:next.phase};
   };

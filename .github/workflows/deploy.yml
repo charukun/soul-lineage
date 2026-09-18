@@ -80,7 +80,7 @@ jobs:
       promoted: ${{ steps.promoted.outputs.value }}
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ github.ref == 'refs/heads/develop' && format('{0}dev/', steps.deployment.outputs.page_url) || format('{0}prod/', steps.deployment.outputs.page_url) }}
     steps:
       - name: Checkout latest DEV and deployment coordinator
         uses: actions/checkout@v6
