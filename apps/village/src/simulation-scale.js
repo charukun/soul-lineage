@@ -1,5 +1,6 @@
 import {Simulation,Navigation} from './game/simulation.js';
 import {DAY_SECONDS,isGuard,isPlayer,ready,defs} from './game/core.js';
+import {advanceAcceleratedFrame} from './game/host-clock.js';
 import {createSpatialIndex} from '@soul/world/spatial-index';
 import {createFlowFieldRouter} from '@soul/world/flow-field';
 import {createFixedStepScheduler,createEntityCadenceScheduler} from '@soul/world/simulation-scheduler';
@@ -16,7 +17,7 @@ const originalRoute=Navigation.prototype.route;
 Navigation.prototype.route=function sharedFlowRoute(from,to){let router=navStates.get(this);if(!router){router=createFlowFieldRouter({worldStep:2,maxFields:32,maxCells:18000,radiusCells:128});navStates.set(this,router);}const revision=`${this.world.state.revision}:${this.__trafficRevision||0}`,path=router.route({from,to,revision,isBlocked:(x,z)=>this.blocked(x,z),isSegmentBlocked:(ax,az,bx,bz)=>this.segmentBlocked(ax,az,bx,bz),costAt:(x,z)=>this.world.state.traffic[`${x},${z}`]||0});return path===null?originalRoute.call(this,from,to):path;};
 
 const originalUpdate=Simulation.prototype.update;
-Simulation.prototype.update=function fixedVillageUpdate(dt){const state=stateFor(this);return state.profiler.measure('simulation',()=>state.fixed.advance(dt,step=>originalUpdate.call(this,step)));};
+Simulation.prototype.update=function fixedVillageUpdate(dt){const state=stateFor(this);return state.profiler.measure('simulation',()=>{const tick=step=>originalUpdate.call(this,step);if(dt<=.25)return state.fixed.advance(dt,tick);state.fixed.reset();return advanceAcceleratedFrame(dt,tick);});};
 
 Simulation.prototype.step=function scaledVillageStep(dt){const state=stateFor(this),w=this.world,s=w.state;state.ticks++;this.elapsed+=dt;s.clock+=dt/DAY_SECONDS;s.time=(s.clock%1)*24;this.nav.__trafficRevision=this.trafficRevision;rebuildIndexes(this,state);
  this.arrivalTimer-=dt;if(this.arrivalTimer<=0){this.arrivalTimer=27;this.arrive();}
