@@ -41,14 +41,24 @@ export async function verifyHuntClarity(page, expect, testInfo) {
   await expect(page.locator('#online-box')).toHaveCount(0);
   await expect(page.locator('#sheet')).toBeVisible();
   await expect(page.locator('#movement-help')).toBeVisible();
-  await expect(page.locator('#movement-lineage')).toBeVisible();
+  await expect(page.locator('#settings-memory')).toBeVisible();
   const helpBounds=await page.locator('#movement-help').boundingBox();expect(helpBounds.width).toBeGreaterThanOrEqual(44);expect(helpBounds.height).toBeGreaterThanOrEqual(44);
   await nativeTap(page, expect, page.locator('#movement-help'));
-  await expect(page.locator('#sheet')).toBeVisible();
-  const help=await page.locator('#sheet').evaluate(node=>({title:node.querySelector('#sheet-title')?.textContent?.trim()||'',body:node.querySelector('#sheet-body')?.textContent?.trim()||''}));
+  await expect(page.locator('#sheet')).toBeHidden();
+  await expect(page.locator('#angled-guide')).toBeVisible();
+  await expect(page.locator('#angled-guide')).toHaveAttribute('data-side','right');
+  const help=await page.locator('#angled-guide').evaluate(node=>({title:node.querySelector('[data-guide-title]')?.textContent?.trim()||'',body:node.querySelector('[data-guide-body]')?.textContent?.trim()||''}));
   expect(help.title.length).toBeGreaterThan(0);expect(help.body.length).toBeGreaterThan(0);
   await page.screenshot({path:testInfo.outputPath('movement-only-help.png')});
-  await nativeTap(page, expect, page.locator('#sheet-close'));
+  await nativeTap(page, expect, page.locator('[data-guide-close]'));
+  await expect(page.locator('#angled-guide')).toBeHidden();
+
+  const swipeHelp=page.locator('#swipe-hint');
+  await expect(swipeHelp).toBeVisible();
+  const swipeBounds=await swipeHelp.boundingBox();expect(swipeBounds.width).toBeGreaterThanOrEqual(44);expect(swipeBounds.height).toBeGreaterThanOrEqual(44);
+  await nativeTap(page, expect, swipeHelp);
+  await expect(page.locator('#angled-guide')).toBeVisible();
+  await nativeTap(page, expect, page.locator('[data-guide-close]'));
 
   await assertMovementOnlyHud(page, expect);
   await nativeTap(page, expect, page.locator('#pause'));
@@ -68,7 +78,7 @@ async function assertMovementOnlyHud(page, expect) {
   await expect(page.locator('#first-hunt-guide')).toBeHidden();
   await expect(page.locator('#scent')).toBeHidden();
   await expect(page.locator('#dash-stop')).toBeHidden();
-  await expect(page.locator('#swipe-hint')).toBeHidden();
+  await expect(page.locator('#swipe-hint')).toBeVisible();
 }
 
 // The village is generated, so a real encounter may start before the first click.
