@@ -15,7 +15,11 @@
   <div class="preview-pane">
     <section class="stage-shell" aria-label="選択中エフェクトの実機プレビュー">
       <canvas id="fx-stage" aria-label="人型スケールで戦闘エフェクトを確認。ドラッグで回転、ピンチで拡大"></canvas>
-      <div class="stage-context" aria-live="polite"><span id="fx-active-type">SINGLE ATTACK</span></div>
+      <div class="stage-selection-slot" aria-live="polite">
+        <span id="fx-active-type">SINGLE ATTACK</span>
+        <strong id="fx-selected-label">斬撃＋命中</strong>
+        <small id="fx-selected-meta">ToonHit + Simple_Ribbon_Sword</small>
+      </div>
       <div class="stage-label"><span>ATTACKER</span><span>IMPACT / AREA</span><span>PRIMARY TARGET</span></div>
     </section>
     <details class="controls">
@@ -33,11 +37,6 @@
     </details>
   </div>
   <aside class="catalog-shell" aria-label="エフェクト一覧">
-    <div class="fx-selection-slot" aria-live="polite">
-      <span>エフェクト</span>
-      <strong id="fx-selected-label">斬撃＋命中</strong>
-      <small id="fx-selected-meta">ToonHit + Simple_Ribbon_Sword</small>
-    </div>
     <div id="fx-discovery-tools" class="catalog-tools" hidden>
       <label class="search-box"><span>検索</span><input id="fx-search" type="search" placeholder="名前・タグで検索" autocomplete="off"></label>
       <div class="filter-row" role="group" aria-label="カテゴリ">
