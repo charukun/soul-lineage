@@ -1,13 +1,153 @@
-/* One objective, one extraction decision. Keep the game's existing typography and night palette. */
-body.hunt-loop #hud #objective{display:block!important;top:calc(70px + env(safe-area-inset-top));left:18px;right:18px;width:auto;max-width:420px;padding:10px 12px;background:linear-gradient(90deg,#090b0be8,#090b0b72);border-left:2px solid #aaa071;pointer-events:none}
-body.hunt-loop #objective>small{font-size:10px;letter-spacing:.12em;color:#b8b59d}
-body.hunt-loop #objective>span{display:block;font-size:16px;line-height:1.5;letter-spacing:.04em}
+/* One objective, one extraction decision. The objective itself is a visible world-space-like placard. */
+body.hunt-loop #hud #objective{
+  display:block!important;
+  top:calc(72px + env(safe-area-inset-top));
+  left:max(12px,env(safe-area-inset-left));
+  right:auto;
+  width:min(430px,calc(100vw - max(30px,env(safe-area-inset-left)) - max(22px,env(safe-area-inset-right))));
+  max-width:none;
+  padding:0;
+  border:0;
+  background:none;
+  pointer-events:none;
+  overflow:visible;
+  isolation:isolate;
+  perspective:940px;
+}
+body.hunt-loop #hud #objective .objective-depth__stage{
+  position:relative;
+  min-height:142px;
+  perspective:940px;
+  perspective-origin:18% 42%;
+  transform-style:preserve-3d;
+}
+body.hunt-loop #hud #objective .objective-depth__stage::before,
+body.hunt-loop #hud #objective .objective-depth__stage::after{
+  content:'';
+  position:absolute;
+  pointer-events:none;
+  transform-origin:left center;
+}
+body.hunt-loop #hud #objective .objective-depth__stage::before{
+  z-index:0;
+  inset:6px 10px 52px 8px;
+  clip-path:polygon(1% 2%,100% 9%,92% 100%,0 91%);
+  background:
+    repeating-linear-gradient(174deg,#c8b7820b 0 1px,transparent 1px 5px),
+    linear-gradient(108deg,#15140ff2,#342e20e8 76%,#12120ee8);
+  box-shadow:inset 0 0 0 1px #8d79539a,inset -16px -12px 24px #0505048f;
+  transform:translate3d(15px,13px,-32px) rotateY(-8deg) rotateX(1.2deg) rotateZ(-.65deg);
+}
+body.hunt-loop #hud #objective .objective-depth__stage::after{
+  z-index:-1;
+  left:18px;
+  right:2px;
+  top:20px;
+  height:84px;
+  clip-path:polygon(0 0,100% 7%,92% 100%,3% 94%);
+  background:#000b;
+  filter:blur(10px);
+  opacity:.78;
+  transform:translate3d(18px,16px,-48px) rotateY(-9deg) rotateZ(-.8deg);
+}
+body.hunt-loop #hud #objective .objective-depth__face{
+  position:relative;
+  z-index:3;
+  min-height:88px;
+  padding:13px 58px 15px 18px;
+  clip-path:polygon(0 0,100% 7%,92% 100%,3% 93%);
+  background:
+    radial-gradient(circle at 12% 12%,#d1be8916,transparent 34%),
+    repeating-linear-gradient(174deg,#cbbb8a09 0 1px,transparent 1px 5px),
+    linear-gradient(106deg,#0a0c0beF,#20221bdc 74%,#12130fe6);
+  box-shadow:
+    inset 0 0 0 1px #c7b47b80,
+    inset -14px -12px 26px #03040399,
+    0 10px 22px #0007;
+  transform:rotateY(-7.5deg) rotateX(.9deg) rotateZ(-.55deg) translateZ(19px);
+  transform-origin:left center;
+}
+body.hunt-loop #hud #objective .objective-depth__face::before{
+  content:'';
+  position:absolute;
+  inset:7px 10px 9px 9px;
+  pointer-events:none;
+  clip-path:polygon(0 0,100% 7%,92% 100%,3% 93%);
+  box-shadow:inset 0 0 0 1px #d6c28f30;
+}
+body.hunt-loop #hud #objective .objective-depth__copy{position:relative;z-index:2;min-width:0}
+body.hunt-loop #hud #objective [data-objective-kicker]{
+  display:block;
+  margin-bottom:5px;
+  color:#c6b98d;
+  font-size:clamp(9px,2.6vw,11px);
+  line-height:1.45;
+  letter-spacing:.14em;
+  text-shadow:0 2px 7px #000;
+}
+body.hunt-loop #hud #objective [data-objective-text]{
+  display:block;
+  max-width:26ch;
+  color:#eee5c9;
+  font-size:clamp(15px,4.25vw,20px);
+  line-height:1.48;
+  letter-spacing:.035em;
+  text-shadow:0 3px 10px #000d;
+  overflow-wrap:anywhere;
+  text-wrap:pretty;
+}
+body.hunt-loop #hud #objective .objective-depth__help{
+  position:absolute;
+  z-index:5;
+  top:9px;
+  right:10px;
+  display:grid;
+  place-items:center;
+  min-width:48px;
+  min-height:44px;
+  padding:4px 7px;
+  pointer-events:auto;
+  clip-path:polygon(8% 0,100% 10%,91% 100%,0 90%);
+  background:linear-gradient(135deg,#4a422bde,#181913ed);
+  box-shadow:inset 0 0 0 1px #d0bb7d73,5px 6px 0 #05050478;
+  color:#d8c58d;
+  font-size:10px;
+  line-height:1;
+  letter-spacing:.12em;
+  text-shadow:0 2px 6px #000;
+  transform:translateZ(12px) rotateZ(.7deg);
+}
+body.hunt-loop #hud #objective .objective-depth__help:active{transform:translate3d(1px,1px,12px) rotateZ(.7deg);filter:brightness(1.22)}
 body.hunt-loop #hud #first-hunt-guide[hidden]{display:none!important}
-.hunt-bag{display:grid;grid-template-columns:1fr auto;gap:4px 12px;margin-top:7px;font-size:11px;color:#bfcab7;font-variant-numeric:tabular-nums}
-.hunt-bag progress{grid-column:1/-1;width:100%;height:3px;border:0;appearance:none;background:#ffffff20}
-.hunt-bag progress::-webkit-progress-bar{background:#ffffff20}
-.hunt-bag progress::-webkit-progress-value{background:#bbad72}
-.hunt-bag progress::-moz-progress-bar{background:#bbad72}
+body.hunt-loop #hud #objective .hunt-bag.objective-depth__wing{
+  position:absolute;
+  z-index:4;
+  top:78px;
+  left:28px;
+  right:-3px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:5px 12px;
+  margin:0;
+  padding:11px 17px 12px 15px;
+  clip-path:polygon(4% 0,98% 6%,100% 89%,0 100%);
+  background:
+    repeating-linear-gradient(174deg,#c3b38308 0 1px,transparent 1px 5px),
+    linear-gradient(96deg,#0c0e0be9,#28261be0 76%,#11120ee6);
+  box-shadow:inset 0 0 0 1px #b8a77568,8px 10px 0 #0304036e;
+  color:#cfd2b7;
+  font-size:clamp(10px,2.9vw,12px);
+  line-height:1.45;
+  font-variant-numeric:tabular-nums;
+  transform:rotateY(-4.5deg) rotateX(.55deg) rotateZ(.85deg) translateZ(27px);
+  transform-origin:left center;
+}
+body.hunt-loop #hud #objective .hunt-bag [data-haul]{min-width:0;overflow-wrap:anywhere}
+body.hunt-loop #hud #objective .hunt-bag [data-goal]{white-space:nowrap;color:#e2d7b1}
+body.hunt-loop #hud #objective .hunt-bag progress{grid-column:1/-1;width:100%;height:3px;border:0;appearance:none;background:#ffffff1e}
+body.hunt-loop #hud #objective .hunt-bag progress::-webkit-progress-bar{background:#ffffff1e}
+body.hunt-loop #hud #objective .hunt-bag progress::-webkit-progress-value{background:linear-gradient(90deg,#857650,#d3bd7b)}
+body.hunt-loop #hud #objective .hunt-bag progress::-moz-progress-bar{background:#c4ae70}
 body.hunt-loop #hud #return{display:none!important}
 body.hunt-loop #return-hint{right:18px;bottom:calc(22px + env(safe-area-inset-bottom));width:auto;max-width:90vw;font-size:12px;line-height:1.5}
 body.hunt-loop #hud[data-hunt-state="combat"] #objective{opacity:.68}
@@ -36,8 +176,35 @@ body.hunt-loop .hunt-upgrades .inline-action{display:grid;grid-template-columns:
 .hunt-upgrades .inline-action:disabled{opacity:.5;cursor:default}
 body.hunt-loop button:focus-visible{outline:2px solid #e5ce85;outline-offset:3px}
 @media(max-height:740px){body.hunt-loop #title .brand{transform:scale(.8);transform-origin:center bottom}body.hunt-loop #title .brand>p{display:none}body.hunt-loop #title .title-actions{margin-top:4px}body.hunt-loop #sheet-title{font-size:23px}body.hunt-loop .hunt-upgrades .inline-action{min-height:48px;padding:8px 10px}}
-@media(max-width:360px){body.hunt-loop #objective>span{font-size:14px}.hunt-bag{font-size:10px}.hunt-result strong{font-size:27px}}
+@media(max-width:360px){
+  body.hunt-loop #hud #objective{left:max(8px,env(safe-area-inset-left));width:calc(100vw - max(17px,env(safe-area-inset-left)) - max(12px,env(safe-area-inset-right)))}
+  body.hunt-loop #hud #objective .objective-depth__stage{min-height:137px;perspective:820px}
+  body.hunt-loop #hud #objective .objective-depth__face{padding-left:15px;padding-right:54px;transform:rotateY(-5.4deg) rotateX(.55deg) rotateZ(-.35deg) translateZ(15px)}
+  body.hunt-loop #hud #objective .objective-depth__stage::before{transform:translate3d(11px,10px,-24px) rotateY(-6deg) rotateZ(-.45deg)}
+  body.hunt-loop #hud #objective .hunt-bag.objective-depth__wing{left:20px;right:0;transform:rotateY(-3.4deg) rotateZ(.55deg) translateZ(20px);font-size:10px}
+  .hunt-result strong{font-size:27px}
+}
 body.hunt-loop #return-hint>b{display:inline-block;margin-right:9px;font-size:23px;line-height:1;vertical-align:middle;color:#d9d09e}
 
-.hunt-action:not([hidden]){display:block;margin:5px 0 0;font-size:12px;line-height:1.5;color:#d4d4bd}
-.hunt-action[hidden]{display:none!important}
+body.hunt-loop #hud #objective .hunt-action.objective-depth__tip:not([hidden]){
+  display:block;
+  position:absolute;
+  z-index:6;
+  left:14px;
+  top:132px;
+  width:max-content;
+  max-width:min(31ch,calc(100vw - 48px));
+  margin:0;
+  padding:7px 13px 8px 11px;
+  clip-path:polygon(3% 0,100% 8%,95% 100%,0 91%);
+  background:linear-gradient(96deg,#080a08ef,#30291cdb);
+  box-shadow:inset 0 0 0 1px #af9c6a55,6px 7px 0 #03040370;
+  color:#e4ddc3;
+  font-size:clamp(10px,2.8vw,12px);
+  line-height:1.5;
+  letter-spacing:.035em;
+  text-shadow:0 2px 6px #000;
+  transform:perspective(720px) rotateY(4deg) rotateZ(-.65deg);
+  transform-origin:left center;
+}
+body.hunt-loop #hud #objective .hunt-action[hidden]{display:none!important}
