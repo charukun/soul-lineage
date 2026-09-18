@@ -8,21 +8,22 @@ function restoreGlobal(name,value){
   else globalThis[name]=value;
 }
 
-test('game audio pauses while the app is backgrounded and resumes only after prior unlock',async t=>{
+test('game audio pauses in background and recovers on the next gesture if automatic resume is blocked',async t=>{
   const originalAudio=globalThis.Audio,originalAudioContext=globalThis.AudioContext,originalDocument=globalThis.document;
   const doc=new EventTarget();
   doc.hidden=false;doc.visibilityState='visible';
+  let blockPlayback=false,blockContext=false;
 
   class FakeAudio{
     static last=null;
     constructor(src){this.src=src;this.paused=true;this.playCalls=0;this.pauseCalls=0;FakeAudio.last=this;}
-    play(){this.playCalls++;this.paused=false;return Promise.resolve();}
+    play(){this.playCalls++;if(blockPlayback)return Promise.reject(new Error('play blocked'));this.paused=false;return Promise.resolve();}
     pause(){this.pauseCalls++;this.paused=true;}
   }
   class FakeAudioContext{
     static last=null;
     constructor(){this.state='suspended';this.resumeCalls=0;this.suspendCalls=0;this.closeCalls=0;FakeAudioContext.last=this;}
-    resume(){this.resumeCalls++;this.state='running';return Promise.resolve();}
+    resume(){this.resumeCalls++;if(blockContext)return Promise.reject(new Error('resume blocked'));this.state='running';return Promise.resolve();}
     suspend(){this.suspendCalls++;this.state='suspended';return Promise.resolve();}
     close(){this.closeCalls++;this.state='closed';return Promise.resolve();}
   }
@@ -50,10 +51,17 @@ test('game audio pauses while the app is backgrounded and resumes only after pri
   await flush();
   assert.equal(context.resumeCalls,resumesWhileHidden,'effects cannot wake Web Audio while hidden');
 
+  blockPlayback=true;blockContext=true;
   doc.hidden=false;doc.visibilityState='visible';doc.dispatchEvent(new Event('visibilitychange'));
   await flush();
-  assert.equal(music.paused,false,'previously unlocked music resumes on foreground');
-  assert.equal(context.state,'running');
+  assert.equal(music.paused,true,'blocked foreground autoplay remains paused');
+  assert.equal(context.state,'suspended','blocked foreground AudioContext remains suspended');
+
+  blockPlayback=false;blockContext=false;context.state='interrupted';
+  doc.dispatchEvent(new Event('pointerdown'));
+  await flush();
+  assert.equal(music.paused,false,'next user gesture restarts music');
+  assert.equal(context.state,'running','next user gesture resumes an interrupted context');
 
   audio.dispose();
   assert.equal(context.state,'closed');
