@@ -172,6 +172,11 @@ function renderCatalog(){
 function resetCamera(){camera.position.set(4.8,3.2,6.2);controls.target.set(0,1,0);controls.update();}
 function syncControls(){speed=Number(q('fx-speed').value)||1;tier=Number(q('fx-tier').value)||0;reduced=q('fx-reduced').checked;}
 
+const loopToggle=q('fx-loop');
+const ensureLoopDefaultOn=()=>{loopToggle.checked=true;};
+ensureLoopDefaultOn();
+window.addEventListener('pageshow',ensureLoopDefaultOn);
+
 const discoveryNeeded=REVIEW_EFFECT_CATALOG.length>10;
 q('fx-discovery-tools').hidden=!discoveryNeeded;
 q('fx-search').addEventListener('input',renderCatalog);
@@ -190,7 +195,7 @@ const observer=new ResizeObserver(()=>{const width=Math.max(1,canvas.clientWidth
 let last=performance.now();
 function frame(now){
   if(disposed)return;const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;syncControls();controls.update();
-  if(!paused){player.frame(state,front,dt*speed,{level:tier,reduced,hidden:document.hidden});if(q('fx-loop').checked&&now-lastTrigger>1700/Math.max(.25,speed))trigger(selected);}
+  if(!paused){player.frame(state,front,dt*speed,{level:tier,reduced,hidden:document.hidden});if(loopToggle.checked&&now-lastTrigger>1700/Math.max(.25,speed))trigger(selected);}
   renderer.render(scene,camera);player.draw(camera);renderer.resetState();
   const snapshot=player.snapshot();q('fx-metrics').textContent=`backend ${snapshot.phase} · active ${snapshot.active}/${snapshot.budget.maxActive} · played ${snapshot.played} · dropped ${snapshot.dropped} · trails ${snapshot.budget.trails?'ON':'OFF'} · tier ${tier}`;
   if(snapshot.phase==='ready')q('fx-status').textContent=`原本再生可能 · ${effectLabel(selected)}`;
