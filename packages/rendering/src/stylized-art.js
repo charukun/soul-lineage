@@ -117,6 +117,7 @@ export function installStylizedGeometryLOD(root, profileId, { minTriangles = 96 
   const profile = stylizedArtProfile(profileId);
   const enabled = ['environment', 'prop', 'distant'].includes(profile.id);
   if (!enabled) return { profileId, installed: 0, eligible: 0, sourceTriangles: 0, proxyTriangles: 0 };
+  if (root.userData?.preserveStylizedSilhouette) return { profileId, installed: 0, eligible: 0, sourceTriangles: 0, proxyTriangles: 0, preserved: true };
   const threshold = profile.performance.lodDistances[1];
   let installed = 0, eligible = 0, sourceTriangles = 0, proxyTriangles = 0;
   root.traverse(node => {
