@@ -1,6 +1,7 @@
 import { chromium } from '@playwright/test';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { PULSE_CONTROL_STATE, PULSE_COPY, PULSE_FIRST_GLANCE, pulseRoleSelector } from './public/pulse-contract.mjs';
 const base = process.env.OPS_URL || 'https://rinne-ops.c-okamoto.workers.dev/';
 const fixtureMode = process.env.OPS_FIXTURE === '1';
 const out = process.env.OPS_REPORT_DIR || '.ops-review';
@@ -47,11 +48,12 @@ try {
   await page.waitForSelector('#overview-task-card');
   await page.waitForFunction(() => document.querySelector('#overview-task-value')?.textContent !== '確認中');
   await page.waitForFunction(() => document.querySelector('#control-headline')?.textContent !== '状態を確認中');
-  assert.match(await page.locator('#control-headline').innerText(), /放置でOK|自動対応中|確認が必要/);
+  assert.ok([PULSE_CONTROL_STATE.SYNCED, PULSE_CONTROL_STATE.PROCESSING, PULSE_CONTROL_STATE.RECOVERING, PULSE_CONTROL_STATE.NEEDS_USER]
+    .includes(await page.locator('#control-tower').getAttribute('data-pulse-state')));
   assert.equal(await page.locator('#overview-alert-value').innerText(), '操作不要');
   const firstGlance = await page.evaluate(() => ({
     viewport: innerHeight,
-    bottoms: ['overview-alert-card','overview-task-card','overview-app-card'].map(id => document.getElementById(id)?.getBoundingClientRect().bottom || 99999),
+    bottoms: PULSE_FIRST_GLANCE.map(role => document.querySelector(pulseRoleSelector(role))?.getBoundingClientRect().bottom || 99999),
   }));
   assert.ok(firstGlance.bottoms.every(bottom => bottom <= firstGlance.viewport + 1), JSON.stringify(firstGlance));
   assert.equal((await page.locator('body').innerText()).trimStart().startsWith('\\n'), false);
@@ -149,15 +151,16 @@ try {
   recovering.applications=[{id:'unknown',name:'未確認のアプリ',kind:'tool',targets:[{id:'unknown',label:'公開先',state:'unknown'}]}];
   recovering.controlTower = {
     ...(recovering.controlTower || {}),
-    status:'RECOVERING', headline:'自動復旧中', summary:'最新状態を再取得しています。今は操作不要です。',
+    status:PULSE_CONTROL_STATE.RECOVERING, headline:PULSE_COPY.recovery.headline, summary:PULSE_COPY.recovery.summary,
     userActionRequired:false, incidents:[], enteredAt:new Date(Date.now()-2*60000).toISOString(),
     completeness:{state:'last-known-good',label:'前回確定値'},
   };
   await page.unroute('**/api/state');
   await page.route('**/api/state', route => route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(recovering)}));
   await reload();
-  assert.match(await page.locator('#control-headline').innerText(), /自動復旧中/);
-  assert.match(await page.locator('#sync-freshness').innerText(), /再同期中/);
+  assert.equal(await page.locator('#control-tower').getAttribute('data-pulse-state'), PULSE_CONTROL_STATE.RECOVERING);
+  assert.equal(await page.locator('#control-headline').innerText(), PULSE_COPY.recovery.headline);
+  assert.match(await page.locator('#sync-freshness').innerText(), new RegExp(PULSE_COPY.recovery.syncTitle));
   assert.doesNotMatch(await page.locator('#app-summary').innerText(), /正常/);
   check('recoverable sync degradation stays visible without becoming a human action');
 
