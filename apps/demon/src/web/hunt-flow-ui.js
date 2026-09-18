@@ -58,8 +58,8 @@ export class HuntFlowUi {
     this.bag.querySelector('[data-goal]').textContent = `${Math.min(game.eaten, plan.quota)} / ${plan.quota}${plan.marked ? ` · 標的 ${game.targetEaten ? '済' : '未'}` : ''}`;
     this.bag.querySelector('progress').value = Math.min(1, game.eaten / plan.quota);
     byId('hud').dataset.huntState = game.fight ? 'combat' : returning ? 'return' : 'hunt';
-    this.bearing.style.transform = `rotate(\${(.33 - Math.atan2(exit.x - game.player.x, exit.z - game.player.z)) * 180 / Math.PI}deg)`;
-    this.exitText.textContent = `\${exit.label} \${Math.ceil(exit.distance)}m`;
+    this.bearing.style.transform = `rotate(${(.33 - Math.atan2(exit.x - game.player.x, exit.z - game.player.z)) * 180 / Math.PI}deg)`;
+    this.exitText.textContent = `${exit.label} ${Math.ceil(exit.distance)}m`;
     this.exitInstruction.textContent = game.escapeHold > 0 ? 'そのまま止まれ' : '輪の中で止まる';
     const showReturn = !overlay && game.eaten > 0 && !game.finished && !game.fight && !game.devour;
     if (showReturn) this.returnGuide?.show({side:'left',variant:'compact',kicker:'帰還',title:game.escapeHold > 0 ? '帰還中' : '帰路が開いた'}); else this.returnGuide?.hide({immediate:overlay});
