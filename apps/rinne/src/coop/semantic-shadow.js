@@ -3,6 +3,7 @@ const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==
 const canonical=value=>JSON.stringify(stable(value));
 const same=(a,b)=>canonical(a)===canonical(b);
 const fail=message=>{throw Error(`semantic shadow: ${message}`);};
+const byteLength=value=>new TextEncoder().encode(JSON.stringify(value)).byteLength;
 
 function worldOf(checkpoint){
   const world=checkpoint?.world??checkpoint;
@@ -102,9 +103,11 @@ function compareState(state,world){
   if(!same(state.rebirthOps,world.rebirthOps??{}))fail('rebirth receipt mismatch');
 }
 
-export function createSemanticShadow({lifeSeconds}={}){
+export function createSemanticShadow({lifeSeconds,onSample=null}={}){
   let state=null,lastCheckpoint=null,lastHistorySequence=null,commits=0,failure=null;
+  let checkpointBytesTotal=0,journalBytesTotal=0,lastSample=null;
   const journal=[];
+  const sample=value=>{lastSample=clone(value);checkpointBytesTotal+=value.checkpointBytes;journalBytesTotal+=value.journalBytes;try{onSample?.(clone(value));}catch{/* measurement sinks never affect shadow semantics */}};
   function observe(previousCheckpoint,nextCheckpoint,receipt={}){
     if(failure)throw failure;
     try{
@@ -112,6 +115,7 @@ export function createSemanticShadow({lifeSeconds}={}){
       if(!Number.isSafeInteger(historySequence)||historySequence<0)fail('history sequence missing');
       if(!state){
         state=baseline(nextWorld);lastCheckpoint=clone(nextCheckpoint);lastHistorySequence=historySequence;commits=1;
+        sample({checkpointBytes:byteLength(nextCheckpoint),journalBytes:0,eventCount:0,historyEffects:0,warmStart:true});
         return snapshot();
       }
       if(!previousCheckpoint||!lastCheckpoint||!same(worldOf(previousCheckpoint),worldOf(lastCheckpoint)))fail('writer/shadow commit order diverged');
@@ -121,11 +125,14 @@ export function createSemanticShadow({lifeSeconds}={}){
       for(const action of actions){apply(state,action);journal.push({...clone(action),commitRevision:receipt.revision??null});}
       compareState(state,nextWorld);
       lastCheckpoint=clone(nextCheckpoint);lastHistorySequence=historySequence;commits++;
+      sample({checkpointBytes:byteLength(nextCheckpoint),journalBytes:actions.reduce((n,action)=>n+byteLength(action),0),
+        eventCount:actions.length,historyEffects:expectedHistoryDelta,warmStart:false});
       return snapshot();
     }catch(error){failure=error instanceof Error?error:Error(String(error));throw failure;}
   }
   function snapshot(){return {status:failure?'diverged':state?'tracking':'cold',commits,lastHistorySequence,
     journalLength:journal.length,journalTypes:journal.map(row=>row.type),epoch:state?.epoch??null,
-    playerCount:state?Object.keys(state.players).length:0,error:failure?.message??null};}
+    playerCount:state?Object.keys(state.players).length:0,checkpointBytesTotal,journalBytesTotal,lastSample:clone(lastSample),
+    error:failure?.message??null};}
   return {observe,snapshot,get failure(){return failure;},get journal(){return clone(journal);}};
 }
