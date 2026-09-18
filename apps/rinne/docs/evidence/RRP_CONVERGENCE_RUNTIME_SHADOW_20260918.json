@@ -42,6 +42,13 @@
     "normalGit": {
       "passed": false,
       "reason": "github.com DNS resolution failed in the container"
+    },
+    "shadowCaptureAnalyzer": {
+      "command": "node --test apps/rinne/tests/rrp-convergence-shadow-capture.test.mjs",
+      "passed": 4,
+      "failed": 0,
+      "syntax": true,
+      "scope": "aligned semantic capture arrays; protected-commit-only counterfactual JSON byte comparison; fail-closed malformed samples; same-world/peer/armed-window comparability"
     }
   },
   "exactGitBlobs": {
@@ -53,13 +60,16 @@
     "apps/rinne/tests/semantic-shadow.test.mjs": "275bf59e2be59b4eef8053ed9aec654a5013bd7f",
     "apps/rinne/tests/coop-history.test.mjs": "23dfcabe40ff2668f9476a302584b1704cb64506",
     "apps/rinne/scripts/rrp-convergence/shadow-extractor.mjs": "20ab533e64c419fdaa6d076c8014dccd722e8857",
-    "apps/rinne/tests/reality-convergence-compaction-extractor.test.mjs": "f9e2d7b48aa62bb4b6a8bee73ffd2c3ecec83760"
+    "apps/rinne/tests/reality-convergence-compaction-extractor.test.mjs": "f9e2d7b48aa62bb4b6a8bee73ffd2c3ecec83760",
+    "apps/rinne/scripts/rrp-convergence-shadow-capture.mjs": "f6072f71fa2f9e425ae297aaca9ef80c83244114",
+    "apps/rinne/tests/rrp-convergence-shadow-capture.test.mjs": "1c3dea28d281133b88a4b8a2ecae546f1d0b14e0"
   },
   "separation": {
     "authoritative": "existing coop-v2 checkpoint/history store",
     "shadow": "in-memory semantic journal and diagnostics only",
     "onDivergence": "record semanticError; do not fail an already successful authoritative save",
-    "performance": "raw capture receives checkpointBytes, journalBytes, eventCount and historyEffects"
+    "performance": "raw capture receives checkpointBytes, journalBytes, eventCount and historyEffects",
+    "counterfactualAnalyzer": "all-state strong bytes = checkpoint JSON bytes only at samples with semanticEventCount>0; semantic/fair-known event-sourcing bytes = derived semantic journal JSON bytes. This is not actual switched-authority traffic or latency."
   },
   "runtimeBugRepair": {
     "preChange": "co-op structural history accepted ended iff ageSeconds === LIFE_SECONDS",
