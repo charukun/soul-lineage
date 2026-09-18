@@ -9,13 +9,20 @@ const read=path=>readFile(resolve(appRoot,path),'utf8');
 
 test('Visual Review launcher is only five direct destinations',async()=>{
   const html=await read('review.html');
-  for(const [target,href] of [['characters','./characters.html?review=character'],['motion','./characters.html?review=motion'],['assets','./review-assets.html'],['effects','./review-effects.html'],['battle','./review-battle.html']]){
+  for(const [target,href] of [['characters','./characters.html?review=character'],['motion','./review-motion.html'],['assets','./review-assets.html'],['effects','./review-effects.html'],['battle','./review-battle.html']]){
     assert.match(html,new RegExp(`data-review-target="${target}"[^>]*href="${href.replace(/[.?]/g,'\\$&')}"`));
   }
   assert.equal((html.match(/data-review-target=/g)||[]).length,5);
   assert.doesNotMatch(html,/<iframe\b/);
   assert.doesNotMatch(html,/develop-review\.js/);
   assert.doesNotMatch(html,/focus-shell|app-context|対象・正本/);
+});
+
+test('motion review uses the pinned KayKit GLB clips with real mixer controls',async()=>{
+  const [html,js]=await Promise.all([read('review-motion.html'),read('src/review-motion.js')]);
+  assert.match(html,/id="motion-stage"/);assert.match(html,/id="motion-grid"/);assert.match(html,/id="motion-time"/);
+  assert.match(js,/new THREE\.AnimationMixer/);assert.match(js,/KAYKIT_MODELS/);assert.match(js,/buildMotionReviewCatalog/);
+  assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/data\.motionSource='kaykit-embedded'/);
 });
 
 test('equipment review uses the same quiet preview and compact camera hierarchy',async()=>{
@@ -51,6 +58,7 @@ test('authored effect review reuses the runtime effect player and backend',async
 test('RINNE build includes launcher, VFX and battle review entries',async()=>{
   const vite=await read('vite.config.js');
   assert.match(vite,/review:fileURLToPath\(new URL\('\.\/review\.html'/);
+  assert.match(vite,/reviewMotion:fileURLToPath\\(new URL\\('\\.\\/review-motion\\.html'/);
   assert.match(vite,/reviewEffects:fileURLToPath\(new URL\('\.\/review-effects\.html'/);
   assert.match(vite,/reviewBattle:fileURLToPath\(new URL\('\.\/review-battle\.html'/);
 });

@@ -19,6 +19,7 @@ test('Visual Review launcher gives every menu a background preload indicator', (
 test('preload groups warm each route and its initial heavyweight dependency', () => {
   assert.equal(REVIEW_PRELOAD_GROUPS.characters.route, './characters.html?review=character');
   assert.ok(REVIEW_PRELOAD_GROUPS.characters.assets.includes('./simulator/assets/kaykit/Knight.glb'));
+  assert.equal(REVIEW_PRELOAD_GROUPS.motion.route, './review-motion.html');
   assert.ok(REVIEW_PRELOAD_GROUPS.motion.assets.includes('./simulator/assets/kaykit/Knight.glb'));
   assert.ok(REVIEW_PRELOAD_GROUPS.assets.assets.includes('./asset-review/models/kaykit-skeletons/Skeleton_Warrior.glb'));
   assert.ok(REVIEW_PRELOAD_GROUPS.effects.assets.some(path => path.endsWith('/effekseer.wasm')));
