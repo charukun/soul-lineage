@@ -23,11 +23,18 @@ const swipe = new SwipeInput(), audio = new NightAudio();
 function safe(fn) { try { return fn(); } catch (e) { console.error(e); showError(e.message || String(e)); } }
 function pauseInput() { game?.resetIdle(); swipe.cancel(); $('move-pad').hidden = true; $('dash-stop').hidden = true; }
 function sheet(title, kicker, html, kind) {
-  pauseInput(); movementGuide?.hide({immediate:true}); document.body.classList.remove('movement-guide-open'); $('sheet-title').textContent = title; $('sheet-kicker').textContent = kicker;
-  $('sheet-body').innerHTML = html; $('sheet').hidden = false; sheetKind = kind;
+  pauseInput(); movementGuide?.hide({immediate:true}); document.body.classList.remove('movement-guide-open');
+  const panel = $('sheet');
+  panel.dataset.kind = kind || 'generic';
+  panel.lang = document.documentElement.lang || 'ja';
+  $('sheet-title').textContent = title; $('sheet-kicker').textContent = kicker;
+  $('sheet-body').innerHTML = html; panel.hidden = false; sheetKind = kind;
 }
 function showError(text) { sheet('確認が必要です', '保存と再開', `<p class="error">${esc(text)}</p><p class="muted">保存データは削除していません。</p>`, 'error'); }
-function closeSheet() { disposeCharacterSelection?.(); disposeCharacterSelection = null; pauseInput(); $('sheet').hidden = true; sheetKind = ''; }
+function closeSheet() {
+  disposeCharacterSelection?.(); disposeCharacterSelection = null; pauseInput();
+  $('sheet').hidden = true; $('sheet').dataset.kind = 'generic'; sheetKind = '';
+}
 function dismissSheet() {
   if (sheetKind === 'error' && error) return;
   if (mode === 'result') { mode = 'title'; $('title').hidden = false; $('hud').hidden = true; }

@@ -223,6 +223,20 @@ body.hunt-loop #hud #swipe-hint{display:block!important}
 body.movement-guide-open #first-hunt-guide,
 body.movement-guide-open #return-hint{opacity:0}
 
+
+.angled-guide:lang(ja) :where(.angled-guide__kicker,.angled-guide__title,.angled-guide__body){
+  line-break:strict;
+  word-break:normal;
+  overflow-wrap:break-word;
+  hyphens:none;
+}
+.angled-guide:not(:lang(ja)) :where(.angled-guide__kicker,.angled-guide__title,.angled-guide__body){
+  line-break:auto;
+  word-break:normal;
+  overflow-wrap:anywhere;
+  hyphens:auto;
+}
+
 @media(max-width:430px){
   .angled-guide{width:min(78vw,340px)}
   .angled-guide__panel{padding-left:38px;padding-right:18px}
