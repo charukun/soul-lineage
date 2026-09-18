@@ -130,7 +130,7 @@ function residentialYurt(d){
  const entry=new T.Group(),front=Math.min(d.w,d.d)*.46,width=Math.min(1.35,muraDoorWidth(d.id));entry.position.set(0,0,front/scale);entry.scale.setScalar(1/scale);g.add(entry);
  box(entry,0,.78,.02,width,1.5,.07,0x413a34);for(const x of[-width*.56,width*.56])box(entry,x,.82,.05,.11,1.68,.12,0x765841);box(entry,0,1.62,.05,width*1.18,.11,.13,0x765841);
  const flap=box(entry,-width*.34,.82,.09,width*.28,1.42,.035,d.roof);flap.rotation.y=-.12;box(entry,0,.035,.18,width*1.14,.07,.42,0x9b8a70);
- entry.userData.entryVisual='yurt-front-door';entry.userData.localFront='+Z';
+ entry.traverse(node=>{if(node.isMesh)node.material.shadowSide=T.FrontSide;});entry.userData.entryVisual='yurt-front-door';entry.userData.localFront='+Z';
  g.userData.assetBacked=true;g.userData.visualAssetId=asset.id;g.userData.visualAssetOrigin=asset.origin;g.userData.residentialTent='authored-royal-yurt-v3';g.userData.circularHousing=true;g.userData.stableShadowCaster=true;g.userData.entryVisual='yurt-front-door';g.userData.doorWidth=width;return g;
 }
 function building(kind,material='base',level=1){const d=defs[kind];if(!d)return new T.Group();
