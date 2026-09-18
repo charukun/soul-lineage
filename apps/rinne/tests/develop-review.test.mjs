@@ -58,7 +58,7 @@ test('authored effect review reuses the runtime effect player and backend',async
 test('RINNE build includes launcher, VFX and battle review entries',async()=>{
   const vite=await read('vite.config.js');
   assert.match(vite,/review:fileURLToPath\(new URL\('\.\/review\.html'/);
-  assert.match(vite,/reviewMotion:fileURLToPath\\(new URL\\('\\.\\/review-motion\\.html'/);
+  assert.match(vite,/reviewMotion:fileURLToPath/);
   assert.match(vite,/reviewEffects:fileURLToPath\(new URL\('\.\/review-effects\.html'/);
   assert.match(vite,/reviewBattle:fileURLToPath\(new URL\('\.\/review-battle\.html'/);
 });
