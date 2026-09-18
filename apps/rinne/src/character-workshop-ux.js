@@ -1,4 +1,5 @@
 import './character-workshop-ux.css';
+import { installWorkshopLoadingIndicator } from './character-workshop-loading-indicator.js';
 
 const byId = id => document.getElementById(id);
 const qs = selector => document.querySelector(selector);
@@ -16,7 +17,9 @@ const SUBTAB_LABELS = Object.freeze({
   motion: '通常動作'
 });
 
-let installed = false;
+let coreInstalled = false;
+let motionSimplified = false;
+let comparisonSimplified = false;
 let liveCompareNormalized = false;
 
 function intentForTab(tab) {
@@ -207,7 +210,7 @@ function simplifyMotionReview() {
 
 function simplifyComparison() {
   const panel = byId('panel-compare');
-  if (!panel || byId('workshop-compare-details')) return;
+  if (!panel || byId('workshop-compare-details')) return false;
   const controls = panel.querySelector('.quality-controls');
   const baseline = byId('quality-baseline');
   const camera = byId('quality-camera');
@@ -233,6 +236,7 @@ function simplifyComparison() {
   }
   panel.append(details);
   if (controls && controls.children.length === 0) controls.remove();
+  return true;
 }
 
 function normalizeMotionLabels() {
@@ -246,18 +250,28 @@ function normalizeMotionLabels() {
   if (live && live.getAttribute('aria-pressed') === 'false' && live.textContent !== '左右比較 OFF') live.textContent = '左右比較 OFF';
 }
 
-function install() {
-  if (installed) return true;
-  if (!window.characterStudio || !qs('.mode-tabs') || !byId('motion-qa') || !byId('qa-live-toggle')) return false;
+function installCore() {
+  if (coreInstalled) return true;
+  if (!window.characterStudio || !qs('.mode-tabs') || !qs('.review-controls')) return false;
   buildIntentNavigation();
   compactStageActions();
-  if (!simplifyMotionReview()) return false;
-  simplifyComparison();
-  normalizeMotionLabels();
   setIntent('build', { activate: false });
   document.body.classList.add('workshop-ux-ready');
-  installed = true;
+  coreInstalled = true;
   return true;
+}
+
+function installOptionalTools() {
+  if (!motionSimplified && simplifyMotionReview()) motionSimplified = true;
+  if (!comparisonSimplified && simplifyComparison()) comparisonSimplified = true;
+  normalizeMotionLabels();
+}
+
+function install() {
+  installWorkshopLoadingIndicator();
+  const core = installCore();
+  if (core) installOptionalTools();
+  return core;
 }
 
 let frames = 0;
@@ -267,8 +281,9 @@ function boot() {
 }
 
 const observer = new MutationObserver(() => {
-  if (!installed) return;
-  normalizeMotionLabels();
+  installWorkshopLoadingIndicator();
+  if (!coreInstalled) installCore();
+  if (coreInstalled) installOptionalTools();
   const live = byId('qa-live-toggle');
   if (live && !liveCompareNormalized && live.getAttribute('aria-pressed') === 'true') {
     live.click();
