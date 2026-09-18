@@ -71,9 +71,9 @@ test('history count mismatch exposes extractor/current-history disagreement',()=
   assert.throws(()=>shadow.observe(a,b,receipt(2,1)),/history sequence/);
 });
 
-test('source-shaped derivation rejects early-ended lives under the current co-op rule',()=>{
-  const a=checkpoint(),b=structuredClone(a);b.world.players.owner.life.ended=true;b.world.players.owner.life.phase='ended';b.world.players.owner.life.ageSeconds=1300;
-  assert.throws(()=>deriveSemanticShadowActions(a,b,{lifeSeconds:6000}),/terminal rule mismatch/);
+test('source-shaped derivation accepts combat-ended lives as protected seals',()=>{
+  const a=checkpoint(),b=structuredClone(a);b.world.players.owner.life.ended=true;b.world.players.owner.life.phase='ended';b.world.players.owner.life.ageSeconds=1300;b.world.players.owner.life.ageYears=1300/60;
+  const actions=deriveSemanticShadowActions(a,b,{lifeSeconds:6000});assert.equal(actions.length,1);assert.equal(actions[0].type,'life-seal');
 });
 
 test('checkpoint writer records shadow divergence without turning a successful save into gameplay failure',async()=>{
