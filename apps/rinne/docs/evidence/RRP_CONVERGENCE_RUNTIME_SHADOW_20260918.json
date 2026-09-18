@@ -54,7 +54,7 @@
     },
     "currentRestoreProbe": {
       "engine": "exact current semantic-shadow source evaluated in the tool V8 with explicit structuredClone/TextEncoder equivalents",
-      "blob": "f29fa11a10f6a3051adb5d2c33e53bcd992779c9",
+      "blob": "9b17393f4914cbfb524b5cb899273fc15ebdc457",
       "passed": true,
       "checks": [
         "restored anchor continues from history root/sequence",
@@ -78,15 +78,36 @@
         "semanticShadowTest": "a667001933efc28d3ab024a2bb37e46eb8677fd3",
         "coopHistoryTest": "23dfcabe40ff2668f9476a302584b1704cb64506"
       }
+    },
+    "currentRecoveryProbe": {
+      "engine": "exact current semantic-shadow source evaluated in tool V8 with explicit structuredClone/TextEncoder equivalents",
+      "blob": "9b17393f4914cbfb524b5cb899273fc15ebdc457",
+      "passed": true,
+      "checks": [
+        "participant born after an older provisional checkpoint is materialized with its resume token",
+        "ghost provisional actor is removed",
+        "protected tick/world-time floor advances recovery past the protected event",
+        "rebirth recovery replaces an old predecessor with the new life and exact lineage",
+        "rebirth receipt is restored"
+      ],
+      "observed": {
+        "birthRecoveryPlayers": [
+          "guest",
+          "owner"
+        ],
+        "rebirthLifeId": "owner:2",
+        "rebirthLineageRecords": 1,
+        "protectedTick": 10
+      }
     }
   },
   "exactGitBlobs": {
-    "apps/rinne/src/coop/semantic-shadow.js": "f29fa11a10f6a3051adb5d2c33e53bcd992779c9",
+    "apps/rinne/src/coop/semantic-shadow.js": "9b17393f4914cbfb524b5cb899273fc15ebdc457",
     "apps/rinne/src/coop/checkpoint-writer.js": "67dd4728f2f5f0807c581a7c88762b454ead72ea",
     "apps/rinne/src/coop/session.js": "98ab5dc9e71a2d96613efd3e55ee7bb2241e2b00",
     "apps/rinne/src/coop/performance.js": "cea5fcb9ee8c9f2ff82a532d8fa18fe6b83fc7c2",
     "apps/rinne/src/coop/history.js": "43ad74796ea362888d9046c56e44b58cc8799974",
-    "apps/rinne/tests/semantic-shadow.test.mjs": "a667001933efc28d3ab024a2bb37e46eb8677fd3",
+    "apps/rinne/tests/semantic-shadow.test.mjs": "6b8de08a0f41c924921ed10364b38abe8bbd8250",
     "apps/rinne/tests/coop-history.test.mjs": "23dfcabe40ff2668f9476a302584b1704cb64506",
     "apps/rinne/scripts/rrp-convergence/shadow-extractor.mjs": "20ab533e64c419fdaa6d076c8014dccd722e8857",
     "apps/rinne/tests/reality-convergence-compaction-extractor.test.mjs": "f9e2d7b48aa62bb4b6a8bee73ffd2c3ecec83760",
@@ -101,7 +122,9 @@
     "performance": "raw capture receives checkpointBytes, journalBytes, eventCount and historyEffects",
     "counterfactualAnalyzer": "all-state strong bytes = checkpoint JSON bytes only at samples with semanticEventCount>0; semantic/fair-known event-sourcing bytes = derived semantic journal JSON bytes. This is not actual switched-authority traffic or latency.",
     "restartCoverage": "Diagnostic shadow state is stored under coop-shadow-v1:<worldId> only after an authoritative save. Restore requires exact authoritative envelope root + history length + world/owner identity. Missing, stale or corrupted diagnostics become coverage=gap; they never block game restore.",
-    "persistenceOrdering": "Semantic diagnostic writes are serialized in-process and awaited only during dispose; failures are reported in diagnostics and never change authoritative save success."
+    "persistenceOrdering": "Semantic diagnostic writes are serialized in-process and awaited only during dispose; failures are reported in diagnostics and never change authoritative save success.",
+    "recoveryOverlay": "recoverCheckpointWithSemanticShadow is pure/non-authoritative. It keeps permitted same-life provisional fields, overlays protected identity/terminal facts, materializes missing post-checkpoint births/rebirths from recovery bases, removes noncanonical ghost actors, restores rebirthOps and raises tick/worldSeconds to protected floors.",
+    "confidentialRecovery": "The current reconnect token is retained only as local host recovery material; it is not public canon and must not be sent to generic validators in a stronger authority mode."
   },
   "runtimeBugRepair": {
     "preChange": "co-op structural history accepted ended iff ageSeconds === LIFE_SECONDS",
@@ -114,7 +137,9 @@
     "context:plan/npm ci/repository-wide Node 24 gates",
     "browser/WebRTC/physical-device matched baseline experiment",
     "current 12-case semantic-shadow.test.mjs under Node after restart-persistence extension",
-    "full menu/session restore flow in browser"
+    "full menu/session restore flow in browser",
+    "current 14-case semantic-shadow.test.mjs under Node after source-shaped recovery extension",
+    "authoritative switch to shadow recovery"
   ],
   "evidenceClass": "B finite local runtime-shadow evidence; physical superiority remains E and restart-spanning shadow recovery remains F"
 }
