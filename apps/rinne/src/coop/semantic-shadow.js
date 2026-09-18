@@ -70,6 +70,18 @@ function baseline(world){
       sealed:Boolean(row.life.ended),terminal:row.life.ended?terminalLife(row.life):null}])),
     rebirthOps:clone(world.rebirthOps??{})};
 }
+function checkpointFromState(state){
+  return {world:{worldId:state.worldId,ownerId:state.ownerId,epoch:state.epoch,
+    players:Object.fromEntries(Object.entries(state.players).map(([id,row])=>[id,{life:row.sealed?clone(row.terminal):{...clone(row.identity),ended:false}}])),
+    rebirthOps:clone(state.rebirthOps??{})}};
+}
+export function validateSemanticShadowRestore(raw,{worldId,ownerId,authorityRoot,historySequence}={}){
+  if(!raw||raw.format!==1||raw.worldId!==worldId||raw.ownerId!==ownerId||raw.authorityRoot!==authorityRoot||
+      raw.lastHistorySequence!==historySequence||!raw.state||raw.state.worldId!==worldId||raw.state.ownerId!==ownerId)fail('coverage anchor mismatch');
+  if(!Number.isSafeInteger(raw.state.epoch)||raw.state.epoch<1||!raw.state.players||typeof raw.state.players!=='object')fail('invalid restored state');
+  for(const row of Object.values(raw.state.players))if(!row||!row.identity)fail('invalid restored player');
+  return clone(raw);
+}
 function apply(state,action){
   if(action.type==='epoch-acquire'){if(action.fromEpoch!==state.epoch)fail('epoch base mismatch');state.epoch=action.toEpoch;return;}
   if(action.type==='birth'){
@@ -101,36 +113,45 @@ function compareState(state,world){
   if(!same(state.rebirthOps,world.rebirthOps??{}))fail('rebirth receipt mismatch');
 }
 
-export function createSemanticShadow({lifeSeconds,onSample=null}={}){
-  let state=null,lastCheckpoint=null,lastHistorySequence=null,commits=0,failure=null;
-  let checkpointBytesTotal=0,journalBytesTotal=0,lastSample=null;
+export function createSemanticShadow({lifeSeconds,onSample=null,onState=null,restored=null}={}){
+  let state=restored?clone(restored.state):null,lastCheckpoint=null,lastHistorySequence=restored?.lastHistorySequence??null,commits=restored?.commits??0,failure=null;
+  let checkpointBytesTotal=restored?.checkpointBytesTotal??0,journalBytesTotal=restored?.journalBytesTotal??0,lastSample=null;
+  let authorityRoot=restored?.authorityRoot??null,journalCount=restored?.journalCount??0,recentJournalTypes=[...(restored?.recentJournalTypes??[])].slice(-32);
   const journal=[];
+  const coverage=restored?'restored':'warm-start';
   const sample=value=>{lastSample=clone(value);checkpointBytesTotal+=value.checkpointBytes;journalBytesTotal+=value.journalBytes;try{onSample?.(clone(value));}catch{/* measurement sinks never affect shadow semantics */}};
+  const exportState=()=>({format:1,worldId:state?.worldId??null,ownerId:state?.ownerId??null,authorityRoot,lastHistorySequence,commits,
+    checkpointBytesTotal,journalBytesTotal,journalCount,recentJournalTypes:[...recentJournalTypes],state:clone(state)});
+  const publishState=()=>{try{onState?.(exportState());}catch{/* diagnostic persistence never affects authoritative saves */}};
   function observe(previousCheckpoint,nextCheckpoint,receipt={}){
     if(failure)throw failure;
     try{
       const nextWorld=worldOf(nextCheckpoint),historySequence=receipt.historySequence;
       if(!Number.isSafeInteger(historySequence)||historySequence<0)fail('history sequence missing');
       if(!state){
-        state=baseline(nextWorld);lastCheckpoint=clone(nextCheckpoint);lastHistorySequence=historySequence;commits=1;
-        sample({checkpointBytes:byteLength(nextCheckpoint),journalBytes:0,eventCount:0,historyEffects:0,warmStart:true});
+        state=baseline(nextWorld);lastCheckpoint=clone(nextCheckpoint);lastHistorySequence=historySequence;commits=1;authorityRoot=receipt.root??null;
+        sample({checkpointBytes:byteLength(nextCheckpoint),journalBytes:0,eventCount:0,historyEffects:0,warmStart:true});publishState();
         return snapshot();
       }
-      if(!previousCheckpoint||!lastCheckpoint||!same(worldOf(previousCheckpoint),worldOf(lastCheckpoint)))fail('writer/shadow commit order diverged');
-      const actions=deriveSemanticShadowActions(previousCheckpoint,nextCheckpoint,{lifeSeconds});
+      let comparisonCheckpoint=previousCheckpoint;
+      if(lastCheckpoint){
+        if(!previousCheckpoint||!same(worldOf(previousCheckpoint),worldOf(lastCheckpoint)))fail('writer/shadow commit order diverged');
+      }else comparisonCheckpoint=checkpointFromState(state);
+      const actions=deriveSemanticShadowActions(comparisonCheckpoint,nextCheckpoint,{lifeSeconds});
       const expectedHistoryDelta=actions.filter(action=>historyEffect(action.type)).length;
       if(historySequence-lastHistorySequence!==expectedHistoryDelta)fail('history sequence does not match semantic effects');
       for(const action of actions){apply(state,action);journal.push({...clone(action),commitRevision:receipt.revision??null});}
       compareState(state,nextWorld);
-      lastCheckpoint=clone(nextCheckpoint);lastHistorySequence=historySequence;commits++;
+      lastCheckpoint=clone(nextCheckpoint);lastHistorySequence=historySequence;commits++;authorityRoot=receipt.root??null;
+      journalCount+=actions.length;recentJournalTypes=[...recentJournalTypes,...actions.map(action=>action.type)].slice(-32);
       sample({checkpointBytes:byteLength(nextCheckpoint),journalBytes:actions.reduce((n,action)=>n+byteLength(action),0),
-        eventCount:actions.length,historyEffects:expectedHistoryDelta,warmStart:false});
+        eventCount:actions.length,historyEffects:expectedHistoryDelta,warmStart:false});publishState();
       return snapshot();
     }catch(error){failure=error instanceof Error?error:Error(String(error));throw failure;}
   }
-  function snapshot(){return {status:failure?'diverged':state?'tracking':'cold',commits,lastHistorySequence,
-    journalLength:journal.length,journalTypes:journal.map(row=>row.type),epoch:state?.epoch??null,
+  function snapshot(){return {status:failure?'diverged':state?'tracking':'cold',coverage,commits,lastHistorySequence,
+    journalLength:journalCount+journal.length,journalTypes:[...recentJournalTypes,...journal.map(row=>row.type)].slice(-32),epoch:state?.epoch??null,
     playerCount:state?Object.keys(state.players).length:0,checkpointBytesTotal,journalBytesTotal,lastSample:clone(lastSample),
-    error:failure?.message??null};}
-  return {observe,snapshot,get failure(){return failure;},get journal(){return clone(journal);}};
+    authorityRoot,error:failure?.message??null};}
+  return {observe,snapshot,exportState,get failure(){return failure;},get journal(){return clone(journal);}};
 }
