@@ -1,0 +1,86 @@
+{
+  "schema": "character-production",
+  "version": 2,
+  "id": "character.example.v1",
+  "stage": "REFERENCE",
+  "modelingMode": "dcc-blender",
+  "source": {
+    "referencePaths": [
+      "docs/characters/references/example/front.png",
+      "docs/characters/references/example/side.png",
+      "docs/characters/references/example/back.png"
+    ],
+    "meshPath": "assets/characters/example.glb",
+    "dcc": {
+      "tool": "Blender",
+      "version": "4.x",
+      "sourcePath": "art/characters/example.blend"
+    }
+  },
+  "evidence": {
+    "reference": {
+      "intentLocked": false,
+      "views": ["front", "side", "back"]
+    },
+    "blockout": {
+      "views": ["front", "side", "back", "three-quarter"],
+      "proportionsReviewed": false,
+      "silhouetteReviewed": false
+    },
+    "primary": {
+      "topologyReviewed": false,
+      "uvReviewed": false,
+      "separateSurfaces": []
+    },
+    "secondary": {
+      "hairFormsReviewed": false,
+      "clothingFormsReviewed": false,
+      "accessoriesReviewed": false
+    },
+    "deformation": {
+      "poses": [],
+      "weightsReviewed": false,
+      "selfIntersectionReviewed": false,
+      "clothingHairCollisionReviewed": false
+    },
+    "motion": {
+      "clips": [],
+      "viewCount": 0,
+      "returnsToStablePose": false,
+      "principles": {
+        "centerOfGravity": false,
+        "silhouette": false,
+        "lineOfAction": false,
+        "anticipation": false,
+        "timingSpacing": false,
+        "gameplayExaggeration": false,
+        "cameraVersatility": false
+      }
+    },
+    "polish": {
+      "expressions": [],
+      "materials": {
+        "baseColor": false,
+        "roughness": false,
+        "metallic": false,
+        "normal": false
+      },
+      "secondaryMotionReviewed": false,
+      "visualApproval": "pending"
+    },
+    "runtime": {
+      "format": null,
+      "webgl2": false,
+      "assetHash": null,
+      "provenanceReviewed": false,
+      "licenseReviewed": false,
+      "desktopP95Ms": null,
+      "mobileP95Ms": null,
+      "triangles": null,
+      "drawCalls": null,
+      "textureMemoryBytes": null,
+      "mobileDeviceClass": "pixel-fold-class",
+      "reviewViewCount": 0
+    }
+  }
+}

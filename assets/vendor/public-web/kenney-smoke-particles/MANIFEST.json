@@ -1,0 +1,20 @@
+{
+  "sourceId": "kenney-smoke-particles",
+  "provider": "Kenney",
+  "license": "CC0-1.0",
+  "repository": "shorepine/kenney",
+  "commit": "3694c6879e487c108f55677be7dd2ca75b07cc3b",
+  "sourcePath": "2d/Smoke Particles/White puff/",
+  "files": [
+    {
+      "path": "assets/vendor/public-web/kenney-smoke-particles/white-puff/whitePuff00.png",
+      "sha256": "33f894c2279bee9f77874dbfa3c0e9f071a0ee5e1a7065dcc40196029d699f58",
+      "gitBlob": "52d2a79863b06669c0a77556602fdb139039267e"
+    },
+    {
+      "path": "assets/vendor/public-web/kenney-smoke-particles/white-puff/whitePuff04.png",
+      "sha256": "8233a8b20beabd2e3dfb5224d3faf816fe229faeeaadad6d04350c1c818b60ee",
+      "gitBlob": "2238946268c78b4d4f7d35824678629f701acf11"
+    }
+  ]
+}

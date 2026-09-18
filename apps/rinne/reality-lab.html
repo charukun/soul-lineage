@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101819">
+  <title>通信実験室 — 輪廻転焦</title>
+  <link rel="stylesheet" href="./src/reality-lab/lab.css">
+</head>
+<body>
+<main class="lab">
+  <header class="masthead"><div><p class="eyebrow">RINNE REALITY PROTOCOL · LAB 01</p><h1>通信実験室</h1><p>仮説を立てる。壊してみる。同じ条件で確かめる。</p></div><a href="./index.html">本編へ</a></header>
+  <p class="scope">単一端末内の模擬通信です。30人の実接続ではありません。3D・追加サーバー・外部通信を使わず、配信量と復旧の条件を比較します。</p>
+  <form id="experiment-form">
+    <label class="wide">今回の仮説<textarea id="hypothesis" maxlength="2000" rows="2">Cell分散は、全体通信量よりも最も忙しい端末の送信量を減らすか。</textarea></label>
+    <fieldset id="conditions"><legend>再現条件</legend><div class="inputs">
+      <label>人数<input id="peers" type="number" min="3" max="30" value="30" required></label>
+      <label>配置<select id="layout"><option value="spread">3区画に分散</option><option value="dense">全員が集合</option></select></label>
+      <label>障害・観測<select id="scenario"><option value="steady">通常</option><option value="host" selected>Host切断・再接続</option><option value="cell">Cell担当の切断</option><option value="divergence">破損パケット</option><option value="collapse">未観測区画への再訪</option></select></label>
+      <label>seed<input id="seed" type="number" min="1" max="4294967295" value="20260916" required></label>
+      <label>片道遅延 ms<input id="latencyMs" type="number" min="0" max="1000" value="80" required></label>
+      <label>揺らぎ ±ms<input id="jitterMs" type="number" min="0" max="500" value="20" required></label>
+      <label>欠落率 %<input id="loss" type="number" min="0" max="50" step="0.1" value="1" required></label>
+      <label>仮想時間<select id="durationMs"><option value="16000">16秒</option><option value="24000" selected>24秒</option><option value="40000">40秒</option><option value="60000">60秒</option></select></label>
+    </div></fieldset>
+    <p class="caption">障害は経過8秒、Host再接続は20秒。16秒の実験では再接続前までを測ります。再訪は世界6・10・14秒（「全員が集合」で未観測区画が生まれます）。</p>
+    <div class="actions"><button id="compare" class="primary" type="submit">同じ条件で3方式を比較</button><button id="play" type="button">ゆっくり再生</button><button id="stop" type="button" disabled>中止</button></div>
+  </form>
+  <p id="status" role="status" aria-live="polite">条件を決めて比較を開始してください。</p>
+  <progress id="progress" max="1" value="0" aria-label="実験の進捗"></progress>
+  <section aria-label="世界と通信"><div class="section-title"><h2>3区画・同じ世界</h2><label>表示する方式 <select id="view-mode"><option value="global">全体配信</option><option value="interest">Interest配信</option><option value="cells" selected>Cell分散</option></select></label></div>
+    <canvas id="world" width="960" height="290" aria-label="点は参加者、四角はNPC。線は配信経路。実パケットの軌跡ではありません。"></canvas>
+    <p id="world-state" class="caption">丸＝参加者 · 四角＝NPC · 大きな輪＝Cell担当 · 線＝配信経路</p>
+  </section>
+  <section aria-labelledby="results-title"><h2 id="results-title">比較結果</h2><div id="results" class="cards"><p>まだ実験結果はありません。</p></div>
+    <p class="caption">kB/sは仮想経過時間あたりの平均JSON payload。最大端末は「端末ごとの平均送信量の最大値」で、瞬間ピークではありません。停止が多い方式は送信量も減るため、停止時間と位置誤差も比較してください。</p>
+  </section>
+  <section class="record" aria-labelledby="record-title"><h2 id="record-title">観察を残して、次の議論へ</h2>
+    <label class="wide">分かったこと・次に壊したい条件<textarea id="observation" rows="2" maxlength="2000" placeholder="例：全員集合では、Cellを分けても送信担当を分散できなかった。"></textarea></label>
+    <div class="actions"><button id="save" type="button" disabled>この端末に記録</button><button id="export" type="button" disabled>結果JSON</button><button id="discussion" type="button" disabled>議論用テキスト</button><label class="file-button">結果を読み込む<input id="import" type="file" accept="application/json,.json"></label></div>
+    <textarea id="handoff" aria-label="議論に渡すテキスト" rows="8" readonly hidden></textarea>
+    <div id="history" class="history"></div>
+  </section>
+  <details><summary>出来事と復旧の記録</summary><ol id="events"></ol></details>
+  <details><summary>この実験で分かること・まだ分からないこと</summary>
+    <p>既存の村長Host状態機械、Checkpoint検証、presenceの距離・頻度方針を再利用しています。Cell分散にも時計・区画報告・バックアップのpayloadを計上します。</p>
+    <p>参加者とNPCは決まった移動をします。入力通信・衝突・戦闘はありません。区画をまたぐ因果の最小例として、遠い区画の「竜の兆し」を全員へ送ります。未観測NPCの直線往復は閉形式で復元し、逐次実行と照合します。</p>
+    <p>一つのローカルcoordinatorが権限を管理します。Cell切替は次の計算刻みで行う簡略モデルです。分散合意、悪意ある端末、クラウド正史は実装していません。checksumは破損検出用で、署名や不正防止の証明ではありません。</p>
+    <p>実WebRTC、NAT/TURN、帯域輻輳、CPU/RAM、電池、背景停止への耐性は未計測です。パケット欠落は独立な抽選で、SCTP再送やburst lossを再現していません。実機検証の前に、仮説を小さく絞るための環境です。</p>
+    <p>結果はこの端末だけに最大10件保存できます。再現条件だけはJSONの読込みで戻せますが、コード版が違う結果は同一実装の再現とは扱いません。公開API・AIへの自動送信は行いません。</p>
+  </details>
+  <footer><span id="version"></span><span>仮説 → 比較 → 観察 → 次の仮説</span></footer>
+</main>
+<script type="module" src="./src/reality-lab/main.js"></script>
+</body>
+</html>

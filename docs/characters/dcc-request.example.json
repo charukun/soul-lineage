@@ -1,0 +1,49 @@
+{
+  "schema": "character-dcc-request",
+  "version": 1,
+  "id": "example.character-dcc.v1",
+  "assetId": "character.example-dcc.v1",
+  "reference": {
+    "path": "docs/characters/references/example.png",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "views": ["front", "side", "back"]
+  },
+  "rig": {
+    "path": "apps/rinne/public/simulator/assets/SHINO_review.vrm",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "id": "humanoid.shino-vrm1.v2"
+  },
+  "builder": "scripts/blender/build-example-character.py",
+  "generatedDir": "generated/example-character-dcc",
+  "blendName": "ExampleCharacter.blend",
+  "modelName": "ExampleCharacter.glb",
+  "format": "glb",
+  "publicPath": "./simulator/assets/EXAMPLE_CHARACTER_DCC.glb",
+  "canonical": {
+    "blend": "assets/characters/example/dcc/source/ExampleCharacter.blend",
+    "model": "apps/rinne/public/simulator/assets/EXAMPLE_CHARACTER_DCC.glb",
+    "integrity": "apps/rinne/public/simulator/assets/EXAMPLE_CHARACTER_DCC.asset.json",
+    "production": "packages/characters/production/example-character.production.json",
+    "qaDir": "docs/characters/qa/example-character-dcc"
+  },
+  "license": {
+    "rigProvenance": "Describe audited rig provenance",
+    "surfaceAuthorship": "Describe authored/imported surface provenance"
+  },
+  "primary": {
+    "separateSurfaces": ["skin", "hair", "clothing"],
+    "minMeshObjects": 1,
+    "minMaterials": 1
+  },
+  "production": {
+    "stage": "REFERENCE",
+    "productionReady": false,
+    "visualApproval": "pending"
+  },
+  "review": {
+    "intentLocked": true,
+    "proportionsReviewed": false,
+    "silhouetteReviewed": false,
+    "topologyReviewed": false
+  }
+}

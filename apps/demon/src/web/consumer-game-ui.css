@@ -1,0 +1,138 @@
+/* Consumer-game finish for 尽喰廻遊.
+ * The hunt already owns a strong visual language. This layer closes the remaining
+ * browser-control gaps in title links, selection grids, sheets and system actions.
+ */
+:root{
+  --hunt-bone:#dfd0b5;
+  --hunt-bone-dim:#a79483;
+  --hunt-scar:#7c2723;
+  --hunt-scar-hi:#b85b46;
+  --hunt-ash:#17100f;
+  --hunt-gold:#aa825d;
+  --hunt-focus:#e3bc87;
+}
+
+button:focus-visible{
+  outline:0;
+  filter:brightness(1.12);
+  text-shadow:0 0 10px rgba(190,119,75,.6);
+  box-shadow:0 0 0 1px #120706,0 0 0 3px var(--hunt-focus),0 0 20px rgba(124,39,35,.52);
+}
+
+/* Boot is a ritual threshold rather than a browser loading state. */
+#boot{
+  background:
+    radial-gradient(circle at 50% 43%,rgba(94,28,23,.22),transparent 24%),
+    repeating-linear-gradient(9deg,rgba(190,151,110,.018) 0 1px,transparent 1px 5px),
+    #090605;
+}
+#boot::before,#boot::after{content:"";position:absolute;pointer-events:none}
+#boot::before{
+  width:min(74vw,330px);aspect-ratio:1;opacity:.45;
+  border:1px solid rgba(166,126,88,.35);transform:rotate(45deg);
+  box-shadow:inset 0 0 35px rgba(93,25,21,.22),0 0 42px rgba(0,0,0,.65);
+}
+#boot::after{width:min(62vw,276px);height:1px;background:linear-gradient(90deg,transparent,#8e5b45,transparent);top:calc(50% + 83px)}
+#boot>*{position:relative;z-index:1}
+#boot .sigil{filter:drop-shadow(0 0 15px rgba(142,59,43,.55))}
+#boot progress{height:3px;accent-color:var(--hunt-scar-hi);filter:drop-shadow(0 0 6px rgba(126,37,32,.55))}
+#boot-retry{
+  margin-top:16px;padding:11px 24px;border:1px solid rgba(157,115,82,.48);
+  clip-path:polygon(6% 0,96% 7%,100% 83%,92% 100%,3% 91%,0 27%);
+  background:linear-gradient(102deg,#21100f,#0c0808);box-shadow:inset 3px 0 rgba(115,38,33,.5);
+}
+#boot>a{margin-top:18px;color:#776a60;font-size:9px;letter-spacing:.15em;text-decoration:none;border-bottom:1px solid rgba(119,91,68,.3);padding:4px 8px}
+
+/* Title secondary actions should feel engraved, not like text links on a webpage. */
+.text-button,.title-links button{
+  position:relative;color:#a99888;letter-spacing:.12em;
+  transition:color .14s ease,filter .14s ease,transform .08s ease;
+}
+.text-button::before,.title-links button::before{content:"";position:absolute;left:0;right:0;bottom:4px;height:1px;background:linear-gradient(90deg,transparent,rgba(154,107,78,.5),transparent);transform:scaleX(.72);transition:transform .14s ease}
+.text-button:hover,.title-links button:hover{color:#d8c4a7;background:none}
+.text-button:hover::before,.title-links button:hover::before,.text-button:focus-visible::before,.title-links button:focus-visible::before{transform:scaleX(1)}
+#connection{padding-inline:12px}
+.title-links{gap:8px}
+.title-links button{min-width:112px;padding:10px 13px;clip-path:polygon(5% 0,96% 8%,100% 82%,92% 100%,3% 91%,0 24%);background:linear-gradient(105deg,rgba(30,15,13,.72),rgba(9,7,7,.38));box-shadow:inset 2px 0 rgba(102,37,32,.34)}
+.primary{transition:filter .15s ease,transform .08s ease}
+.primary::after{content:"";position:absolute;left:17%;right:17%;bottom:6px;height:1px;background:linear-gradient(90deg,transparent,rgba(177,130,88,.58),transparent)}
+.primary:active:not(:disabled){transform:translateY(2px) scale(.992);filter:brightness(1.16)}
+
+/* HUD interaction states are controller/touch legible without becoming chrome. */
+.small-button{width:34px;height:34px;padding:5px;display:grid;place-items:center;border:1px solid rgba(139,99,75,.35);clip-path:polygon(50% 0,90% 14%,100% 53%,82% 92%,43% 100%,7% 80%,0 37%,18% 6%);background:rgba(17,8,7,.52)}
+.seal{transition:filter .12s ease,transform .09s ease}
+.seal:focus-visible{box-shadow:none;filter:brightness(1.28) drop-shadow(0 0 9px rgba(174,91,57,.65))}
+.seal:active:not(:disabled){transform:translateY(2px) scale(.97)}
+.seal.secondary:active:not(:disabled){transform:translateY(2px) scale(.87) rotate(-2deg)}
+#dash-stop{
+  border:1px solid rgba(131,87,68,.38);border-top:0;
+  clip-path:polygon(5% 0,97% 7%,100% 78%,92% 100%,2% 91%,0 29%);
+  background:linear-gradient(100deg,rgba(27,13,12,.88),rgba(8,7,7,.78));
+}
+
+/* System sheet: an occult ledger with hard hierarchy and deliberate focus. */
+.sheet-content{scrollbar-color:#6b332a #100807}
+.sheet-content::after{
+  content:"";position:absolute;inset:13px;pointer-events:none;opacity:.62;
+  background:
+    linear-gradient(#a27c5a 0 0) left top/22px 1px no-repeat,
+    linear-gradient(#a27c5a 0 0) left top/1px 22px no-repeat,
+    linear-gradient(#a27c5a 0 0) right bottom/22px 1px no-repeat,
+    linear-gradient(#a27c5a 0 0) right bottom/1px 22px no-repeat;
+}
+#sheet-close{
+  width:38px;height:38px;padding:0;display:grid;place-items:center;
+  color:#b19b87;border:1px solid rgba(133,91,68,.36);
+  clip-path:polygon(50% 0,89% 15%,100% 50%,84% 90%,49% 100%,10% 84%,0 47%,16% 10%);
+  background:radial-gradient(circle,#21100e,#0b0707 72%);
+}
+.inline-action,.route-card,.memory-chip,.slot,.form-choice{transition:filter .12s ease,transform .08s ease,box-shadow .12s ease}
+.inline-action:focus-visible,.route-card:focus-visible,.memory-chip:focus-visible,.slot:focus-visible,.form-choice:focus-visible{
+  outline:0;filter:brightness(1.18);box-shadow:inset 3px 0 var(--hunt-scar-hi),0 0 0 1px rgba(200,155,111,.55),0 0 17px rgba(111,30,27,.35);
+}
+.inline-action:active:not(:disabled),.route-card:active:not(:disabled),.memory-chip:active:not(:disabled),.slot:active:not(:disabled),.form-choice:active:not(:disabled){transform:translateY(1px) scale(.993)}
+
+.memory-grid{gap:10px}
+.memory-chip{
+  position:relative;border:0;min-height:112px;padding:14px 12px 13px;
+  background:radial-gradient(circle at 83% 16%,rgba(100,31,26,.2),transparent 28%),linear-gradient(137deg,rgba(27,16,15,.94),rgba(11,8,8,.95));
+  clip-path:polygon(0 7%,96% 0,100% 86%,91% 100%,4% 95%);
+  box-shadow:inset 2px 0 rgba(117,55,43,.46),inset 0 0 0 1px rgba(131,96,69,.26);
+}
+.memory-chip::after{content:"";position:absolute;left:11px;right:13px;bottom:5px;height:1px;background:linear-gradient(90deg,rgba(148,100,72,.45),transparent)}
+.memory-chip.selected{border:0;background:radial-gradient(circle at 78% 18%,rgba(138,51,40,.36),transparent 31%),linear-gradient(137deg,#24110f,#0d0908);box-shadow:inset 3px 0 #9b493c,0 0 18px rgba(113,31,26,.24)}
+
+.slots{gap:10px}
+.slot{
+  border:0;min-height:80px;
+  background:linear-gradient(145deg,rgba(27,15,14,.7),rgba(8,7,7,.76));
+  clip-path:polygon(4% 0,96% 5%,100% 91%,8% 100%,0 82%);
+  box-shadow:inset 0 0 0 1px rgba(139,99,72,.32),inset 0 -12px 24px rgba(0,0,0,.22);
+}
+.slot.drag-over{background:radial-gradient(circle,rgba(128,49,39,.45),rgba(18,9,8,.9));box-shadow:inset 0 0 0 1px #c09468,0 0 18px rgba(116,39,31,.42)}
+
+.form-row{gap:9px}
+.form-choice{
+  border:0;padding:13px 8px 12px;
+  background:linear-gradient(104deg,rgba(29,15,13,.64),rgba(10,8,8,.52));
+  clip-path:polygon(2% 7%,97% 0,100% 88%,91% 100%,0 92%);
+  box-shadow:inset 0 1px rgba(152,111,78,.22);
+}
+.form-choice.current{color:#ecd1a6;box-shadow:inset 3px 0 #914338,inset 0 1px rgba(184,137,94,.3);background:linear-gradient(104deg,rgba(56,23,19,.72),rgba(13,9,8,.6))}
+
+.result-stats{
+  border:0;padding:17px 8px;
+  background:linear-gradient(90deg,transparent,rgba(29,15,13,.7) 9%,rgba(29,15,13,.7) 91%,transparent);
+  box-shadow:inset 0 1px rgba(155,111,78,.23),inset 0 -1px rgba(105,47,39,.28);
+}
+.visit-row{border-color:rgba(117,66,49,.28)}
+#drag-ghost{border:0;clip-path:polygon(4% 0,100% 8%,94% 100%,0 91%);background:linear-gradient(135deg,#26110f,#0c0808);box-shadow:inset 2px 0 #8f4035,0 10px 28px rgba(0,0,0,.75)}
+
+@media(max-width:520px){
+  .sheet-content{padding-inline:19px}
+  .title-links button{min-width:0;flex:1}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .text-button,.title-links button,.primary,.seal,.inline-action,.route-card,.memory-chip,.slot,.form-choice{transition:none}
+}

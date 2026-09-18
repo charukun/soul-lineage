@@ -1,0 +1,27 @@
+#swipe-hint{
+  appearance:none;
+  width:max-content;
+  min-width:44px;
+  min-height:44px;
+  margin:auto;
+  padding:9px 12px;
+  border-bottom:1px solid #93ad8477;
+  background:#0b1619b8;
+  pointer-events:auto;
+  touch-action:manipulation;
+}
+#swipe-hint[style*="opacity: 0"]{
+  pointer-events:none;
+}
+@media(pointer:coarse){
+  #connection,
+  #title-character,
+  .title-links button,
+  #dash-stop,
+  .first-hunt-choice,
+  .inline-action,
+  .route-card,
+  .form-choice{
+    min-height:44px;
+  }
+}

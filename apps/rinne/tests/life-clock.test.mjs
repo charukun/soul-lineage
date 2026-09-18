@@ -1,0 +1,16 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {LifeClock,appearanceForAge} from '../public/simulator/src/life-clock.js';
+test('1x: exactly 60 real seconds per year',()=>{const c=new LifeClock();c.advance(59);assert.equal(c.age,0);c.advance(1);assert.equal(c.age,1);});
+test('20x: exactly 3 real seconds per year',()=>{const c=new LifeClock();c.setRate(20);c.advance(2.99);assert.equal(c.age,0);c.advance(.01);assert.equal(c.age,1);});
+test('rate change preserves fractional age',()=>{const c=new LifeClock();c.advance(30);c.setRate(20);c.advance(1.5);assert.equal(c.age,1);});
+test('90 years: exactly one end-of-life event',()=>{const c=new LifeClock();c.setRate(20);assert.equal(c.advance(270).died,true);assert.equal(c.age,90);assert.equal(c.advance(100).died,false);assert.equal(c.age,90);});
+test('large elapsed delta stops at lifespan without overflow',()=>{const c=new LifeClock();c.advance(10000000);assert.equal(c.ageYears,90);assert.equal(c.worldSeconds,5400);});
+test('1/60 steps do not lose birthdays',()=>{const c=new LifeClock();for(let i=0;i<3600;i++)c.advance(1/60);assert.equal(c.age,1);});
+test('saved age, rate, enemies and death round-trip',()=>{const c=new LifeClock();c.setRate(13);c.setEnemies(false);c.advance(4000);const d=new LifeClock(JSON.parse(JSON.stringify(c)));assert.deepEqual(d.snapshot(),c.snapshot());});
+test('old or corrupt save is sanitized',()=>{assert.equal(new LifeClock({version:7,ageSeconds:5000}).age,0);const c=new LifeClock({version:1,ageSeconds:-1,worldSeconds:NaN,rate:800,enemiesEnabled:'no',lives:-2});assert.equal(c.age,0);assert.equal(c.rate,20);assert.equal(c.lives,1);assert.equal(c.enemiesEnabled,true);});
+test('rate bounds clamp to 1..20',()=>{const c=new LifeClock();assert.equal(c.setRate(0),1);assert.equal(c.setRate(100),20);assert.throws(()=>c.setRate(NaN));});
+test('invalid deltas and toggle values rejected',()=>{const c=new LifeClock();assert.throws(()=>c.advance(-1));assert.throws(()=>c.advance(Infinity));assert.throws(()=>c.setEnemies('false'));});
+test('birth resets age but retains world history and settings',()=>{const c=new LifeClock();c.setRate(20);c.setEnemies(false);c.advance(270);c.rebirth();assert.equal(c.age,0);assert.equal(c.worldSeconds,5400);assert.equal(c.lives,2);assert.equal(c.rate,20);assert.equal(c.enemiesEnabled,false);assert.equal(c.expired,false);});
+test('all ages use finite, continuous appearance parameters',()=>{for(let age=0;age<=90;age+=.05){const p=appearanceForAge(age);for(const k of ['scale','headScale','gray','stoop'])assert.ok(Number.isFinite(p[k]));assert.ok(p.scale>=.4&&p.scale<=1);if(age){const q=appearanceForAge(age-.05);assert.ok(Math.abs(p.scale-q.scale)<.01);}}});
+test('growth, adulthood and old age have distinct silhouettes',()=>{assert.ok(appearanceForAge(7).scale<appearanceForAge(22).scale);assert.ok(appearanceForAge(85).scale<appearanceForAge(22).scale);assert.equal(appearanceForAge(22).gray,0);assert.ok(appearanceForAge(85).gray>.99);assert.ok(appearanceForAge(85).stoop>.2);});

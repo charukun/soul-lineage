@@ -1,0 +1,129 @@
+name: PULSE authenticated refresh
+
+on:
+  workflow_call:
+    inputs:
+      source_sha:
+        type: string
+        required: true
+      reason:
+        type: string
+        required: false
+        default: deployment
+      fail_on_error:
+        type: boolean
+        required: false
+        default: true
+      record_public_status:
+        type: boolean
+        required: false
+        default: false
+    outputs:
+      refreshed:
+        description: 'true only when authenticated PULSE refresh returned a fresh healthy snapshot'
+        value: ${{ jobs.refresh.outputs.refreshed }}
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+  statuses: write
+
+jobs:
+  refresh:
+    name: Authenticated PULSE state refresh
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    outputs:
+      refreshed: ${{ steps.result.outputs.refreshed }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@v6
+        continue-on-error: ${{ inputs.fail_on_error == false }}
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+          sparse-checkout: ops-board
+      - id: node
+        if: always() && steps.checkout.outcome == 'success'
+        uses: actions/setup-node@v6
+        continue-on-error: ${{ inputs.fail_on_error == false }}
+        with:
+          node-version: '24'
+      - name: Derive server-only refresh credential
+        id: credential
+        if: always() && steps.checkout.outcome == 'success' && steps.node.outcome == 'success'
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          token=$(printf '%s' "$CLOUDFLARE_API_TOKEN|$GITHUB_REPOSITORY|rinne-ops-refresh-v1" | sha256sum | awk '{print $1}')
+          echo "::add-mask::$token"
+          echo "OPS_REFRESH_TOKEN=$token" >> "$GITHUB_ENV"
+      - name: Refresh PULSE through the shared authenticated client
+        id: refresh
+        if: steps.credential.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OPS_URL: https://rinne-ops.c-okamoto.workers.dev/
+          OPS_REFRESH_REASON: ${{ inputs.reason }}
+          PULSE_STATE_OUTPUT: .pulse-refresh-state.json
+        run: node ops-board/refresh-client.mjs
+      - name: Notify only a new human-action transition
+        if: always() && steps.credential.outcome == 'success'
+        continue-on-error: true
+        env:
+          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+        run: node ops-board/control-notify.mjs .pulse-refresh-state.json
+      - name: Resolve refresh outcome
+        id: result
+        if: always()
+        env:
+          OUTCOME: ${{ steps.refresh.outcome }}
+        run: |
+          if [ "$OUTCOME" = 'success' ]; then
+            echo 'refreshed=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'refreshed=false' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Record authenticated refresh health
+        if: always()
+        continue-on-error: ${{ inputs.fail_on_error == false }}
+        uses: actions/github-script@v8
+        env:
+          REFRESHED: ${{ steps.result.outputs.refreshed }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        with:
+          script: |
+            const success = process.env.REFRESHED === 'true';
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: process.env.SOURCE_SHA,
+              context: 'ops-board/refresh',
+              state: success ? 'success' : 'failure',
+              description: success ? 'Authenticated PULSE state refresh passed' : 'PULSE refresh failed; snapshot may be stale',
+              target_url: success ? 'https://rinne-ops.c-okamoto.workers.dev/' : `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+      - name: Record reused PULSE runtime status
+        if: always() && inputs.record_public_status == true
+        uses: actions/github-script@v8
+        env:
+          REFRESHED: ${{ steps.result.outputs.refreshed }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        with:
+          script: |
+            const success = process.env.REFRESHED === 'true';
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: process.env.SOURCE_SHA,
+              context: 'ops-board/public',
+              state: success ? 'success' : 'failure',
+              description: success ? 'PULSE runtime unchanged; authenticated state refresh passed' : 'PULSE runtime reused but state refresh failed',
+              target_url: success ? 'https://rinne-ops.c-okamoto.workers.dev/' : `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+      - name: Fail required refresh after recording evidence
+        if: always() && inputs.fail_on_error == true && steps.result.outputs.refreshed != 'true'
+        run: exit 1

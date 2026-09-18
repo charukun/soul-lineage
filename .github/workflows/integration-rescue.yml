@@ -1,0 +1,82 @@
+name: Integration Repair Executors
+on:
+  workflow_call:
+permissions:
+  contents: read
+
+jobs:
+  repair:
+    name: Fast Conflict Repair
+    if: github.repository == 'charukun/soul-lineage' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: integration-repair-fast
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: write
+    outputs:
+      stack_has_work: ${{ steps.plan.outputs.stack_has_work }}
+      stack_matrix: ${{ steps.plan.outputs.stack_matrix }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Reconcile only mechanically safe stacked Ready PRs
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTEGRATION_DIAGNOSTICS_PATH: .deploy-state/integration-repair-api.json
+        run: node scripts/integration-repair-fast.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-repair-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .deploy-state/integration-repair*.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Record that reconciled heads require trusted exact-head validation
+        if: steps.plan.outputs.stack_has_work == 'true'
+        run: echo 'Reconciled heads will be validated by the trusted matrix before Fast Lane is woken.'
+
+  stack-validate:
+    name: Validate reconciled dependent heads
+    needs: repair
+    if: needs.repair.result == 'success' && needs.repair.outputs.stack_has_work == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.repair.outputs.stack_matrix) }}
+    uses: ./.github/workflows/integration-exact-head-validation.yml
+    with:
+      pr: ${{ matrix.pr }}
+      head: ${{ matrix.head }}
+      base: ${{ matrix.base }}
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: write
+    secrets: inherit
+
+  return:
+    name: Return validated heads to Fast Lane
+    needs: [repair, stack-validate]
+    if: always() && needs.repair.outputs.stack_has_work == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            core.notice('Conflict/base reconciliation completed; Fast Lane is re-evaluating exact-head validation evidence.');
+            await github.rest.actions.createWorkflowDispatch({ ...context.repo, workflow_id: 'deploy.yml', ref: 'develop' });

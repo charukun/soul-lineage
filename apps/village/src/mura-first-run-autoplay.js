@@ -1,0 +1,38 @@
+import './mura-first-run-guide.css';
+import {consumeFreshVillageLoad} from './game/save-store.js';
+import {consumeFirstRunAutoplayAfterReset,markFirstRunAutoplaySeen,markFirstRunAutoplayStarted,shouldRecoverFirstRunAutoplay,shouldRunFirstRunAutoplay} from './game/first-run-onboarding.js';
+import {GUIDE_KIND,startFirstRunGuide} from './mura-first-run-guide-controller.js';
+
+function persist(village,label){
+ void village.save().catch(error=>console.warn(`${label} could not be persisted`,error));
+}
+
+function install(){
+ const village=window.village;
+ if(!village)return;
+ const resetReplay=consumeFirstRunAutoplayAfterReset(village.info.environment);
+ const freshLoad=consumeFreshVillageLoad()||resetReplay;
+ if(!shouldRunFirstRunAutoplay(village.world.state,{freshLoad}))return;
+
+ const canvas=village.view.canvas||document.getElementById('game');
+ if(!canvas)return;
+
+ const recoverCompletedPlacement=shouldRecoverFirstRunAutoplay(village.world.state,{
+  resetReplay,
+  guidePlaced:village.world.objects.some(object=>object.kind===GUIDE_KIND),
+ });
+ markFirstRunAutoplayStarted(village.world.state);
+ persist(village,'First-run tutorial start');
+
+ // A reload can happen after the normal placement path succeeded but before
+ // completion was saved. A title reset explicitly starts a new guide instead.
+ if(recoverCompletedPlacement){
+  markFirstRunAutoplaySeen(village.world.state);
+  persist(village,'First-run tutorial recovery');
+  return;
+ }
+
+ startFirstRunGuide({village,canvas});
+}
+
+install();

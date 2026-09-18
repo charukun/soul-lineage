@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-09-17T17:19:29.900Z",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "arch": "x64"
+  },
+  "classification": "bounded research evidence, not a production confidentiality proof",
+  "focusedTests": {
+    "passed": 15,
+    "failed": 0
+  },
+  "witnesses": {
+    "currentProjectionSeedLeakBits": 3,
+    "minimizedProjectionSeedLeakBits": 0,
+    "adaptiveOracleLeakBits": 3,
+    "lengthLeakBits": 1,
+    "paddedLengthLeakBits": 0,
+    "timingLeakBits": 1,
+    "constantTimingLeakBits": 0,
+    "rawValidatorLeakBits": 3,
+    "idealPredicateProofLeakBits": 1,
+    "lowEntropyDigestDictionaryRecovery": true
+  },
+  "sourceSha256": {
+    "model": "25ac0ac3d8748078af69a13317b16d0906e45120f1d4cbaefbb9b473f16b18c1",
+    "test": "8300393c381847d13a89282d8ac6691f989b39969e1ed99ef92766ab2656f102",
+    "runner": "aa4c2ab5e9f5c7add6c737c1335a9eef243b65e2afc5fb1883dbb60d931c0862"
+  },
+  "limits": [
+    "finite uniform secret domains only",
+    "ideal predicate proof is an abstraction, not a ZK implementation",
+    "padding and constant-time witnesses cover only the modeled channel",
+    "no WebRTC packet capture, browser timing, physical device or traffic-analysis measurement",
+    "no arbitrary-program information-flow proof"
+  ]
+}

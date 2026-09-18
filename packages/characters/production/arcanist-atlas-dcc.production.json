@@ -1,0 +1,62 @@
+{
+  "schema": "character-production",
+  "version": 2,
+  "id": "arcanist.atlas-dcc.v1",
+  "stage": "PRIMARY",
+  "modelingMode": "dcc-blender",
+  "source": {
+    "referencePaths": [
+      "docs/characters/references/npc-role-set/arcanist.avif"
+    ],
+    "meshPath": "apps/rinne/public/simulator/assets/ARCANIST_ATLAS_DCC.glb",
+    "integrityPath": "apps/rinne/public/simulator/assets/ARCANIST_ATLAS_DCC.asset.json",
+    "dcc": {
+      "tool": "Blender",
+      "version": "4.0.2",
+      "sourcePath": "assets/characters/arcanist/atlas-dcc/source/ArcanistAtlasDCC.blend",
+      "sourceSha256": "65cec89524194ccf6bc199a3414f6b75d0204e661c764ed209e04deebd85e6b5"
+    }
+  },
+  "evidence": {
+    "reference": {
+      "intentLocked": true,
+      "views": [
+        "front",
+        "side",
+        "back"
+      ]
+    },
+    "blockout": {
+      "views": [
+        "front",
+        "side",
+        "back",
+        "three-quarter"
+      ],
+      "proportionsReviewed": true,
+      "silhouetteReviewed": true,
+      "reviewEvidence": "docs/characters/qa/arcanist-atlas-dcc/"
+    },
+    "primary": {
+      "topologyReviewed": true,
+      "uvReviewed": true,
+      "separateSurfaces": [
+        "skin",
+        "hair",
+        "clothing",
+        "accessories"
+      ],
+      "auditPath": "docs/characters/qa/arcanist-atlas-dcc/blender-audit.json",
+      "meshObjects": 50,
+      "triangles": 15296,
+      "materials": 10
+    }
+  },
+  "status": {
+    "visualApproval": "pending",
+    "productionReady": false,
+    "licensePolicy": "blocked-rerig",
+    "distributionEligible": false,
+    "note": "RINNE-authored surfaces are retained for re-rig migration only. The current output uses the retired conditional Shino carrier rig and cannot advance to RUNTIME_READY until rebuilt on CC0 or RINNE-owned rig provenance."
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "source": "User-approved generated title key visual, this conversation",
+  "source_file": "輪廻転焦_黄昏の旅立ち.png",
+  "source_sha256": "05397b50832996dbaad8765359e0c13fc2731fa0cf581e81de3b797da69b37fb",
+  "crop_world": [
+    280,
+    375,
+    1060,
+    836
+  ],
+  "processing": "Cropping / WebP encoding only. Title and menu are live HTML, not baked image buttons."
+}

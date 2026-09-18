@@ -1,0 +1,1962 @@
+{
+  "schema": "character-motion-qa",
+  "version": 1,
+  "build": "continuous-clearance.v2",
+  "reviewer": "implementation review: real Chromium WebGL + actual VRM rig",
+  "visualApproval": "pending",
+  "review": {
+    "sequence": "workshop-motion-sequence.v1",
+    "fps": 60,
+    "viewport": [
+      509,
+      768
+    ],
+    "dpr": 1,
+    "lighting": "workshop-pbr.v1",
+    "motionRevision": "shino-slash-1",
+    "characters": [
+      {
+        "record": {
+          "schemaVersion": 1,
+          "contentVersion": "shino-production-contract.1",
+          "masterId": "character.sendagaya-shino.v1",
+          "id": "review.1000.0",
+          "seed": 1000,
+          "revision": 0,
+          "parents": [],
+          "genome": {
+            "height": [
+              52113,
+              54243
+            ],
+            "build": [
+              45319,
+              57709
+            ],
+            "hair": [
+              1167,
+              27859
+            ],
+            "eyes": [
+              19700,
+              7253
+            ],
+            "skin": [
+              49641,
+              45906
+            ]
+          },
+          "ageMs": 1320000,
+          "lifeState": "alive",
+          "outfitId": "shino.uniform.original.v1"
+        },
+        "parts": {
+          "version": 1,
+          "face": "classic",
+          "hair": "original",
+          "body": "balanced",
+          "outfit": "uniform",
+          "accessory": "none"
+        },
+        "identity": null
+      },
+      {
+        "record": {
+          "schemaVersion": 1,
+          "contentVersion": "shino-production-contract.1",
+          "masterId": "character.sendagaya-shino.v1",
+          "id": "review.1000.1",
+          "seed": 1001,
+          "revision": 0,
+          "parents": [],
+          "genome": {
+            "height": [
+              9252,
+              17524
+            ],
+            "build": [
+              7280,
+              21816
+            ],
+            "hair": [
+              43053,
+              63960
+            ],
+            "eyes": [
+              39215,
+              55903
+            ],
+            "skin": [
+              44387,
+              22939
+            ]
+          },
+          "ageMs": 1320000,
+          "lifeState": "alive",
+          "outfitId": "shino.uniform.original.v1"
+        },
+        "parts": {
+          "version": 1,
+          "face": "round",
+          "hair": "crop",
+          "body": "compact",
+          "outfit": "mantle",
+          "accessory": "none"
+        },
+        "identity": {
+          "version": 1,
+          "seed": 1001,
+          "role": "mayor",
+          "ageBand": "adult",
+          "parts": {
+            "version": 1,
+            "face": "round",
+            "hair": "crop",
+            "body": "compact",
+            "outfit": "mantle",
+            "accessory": "none"
+          },
+          "front": "parted",
+          "back": "close",
+          "face": {
+            "jaw": 0.9066,
+            "cheek": 1.03549,
+            "nose": 0.95269,
+            "eyeWidth": 1.04868,
+            "eyeHeight": 1.02819,
+            "eyeSpacing": 1.03611,
+            "browWeight": 0.85543,
+            "browSlant": 0.04514,
+            "chin": 0.97839
+          },
+          "proportions": {
+            "shoulders": 0.96108,
+            "arms": 0.97634,
+            "legs": 0.97634,
+            "head": 1
+          },
+          "gear": "stole",
+          "cloth": [
+            0.55,
+            0.48,
+            0.34
+          ],
+          "trim": [
+            0.53,
+            0.57,
+            0.59
+          ],
+          "hairValue": 1.01099
+        }
+      },
+      {
+        "record": {
+          "schemaVersion": 1,
+          "contentVersion": "shino-production-contract.1",
+          "masterId": "character.sendagaya-shino.v1",
+          "id": "review.1000.2",
+          "seed": 1002,
+          "revision": 0,
+          "parents": [],
+          "genome": {
+            "height": [
+              28420,
+              34997
+            ],
+            "build": [
+              27260,
+              25871
+            ],
+            "hair": [
+              32677,
+              39675
+            ],
+            "eyes": [
+              22667,
+              12258
+            ],
+            "skin": [
+              57682,
+              5666
+            ]
+          },
+          "ageMs": 1320000,
+          "lifeState": "alive",
+          "outfitId": "shino.uniform.original.v1"
+        },
+        "parts": {
+          "version": 1,
+          "face": "classic",
+          "hair": "bob",
+          "body": "balanced",
+          "outfit": "tunic",
+          "accessory": "none"
+        },
+        "identity": {
+          "version": 1,
+          "seed": 1002,
+          "role": "guard",
+          "ageBand": "adult",
+          "parts": {
+            "version": 1,
+            "face": "classic",
+            "hair": "bob",
+            "body": "balanced",
+            "outfit": "tunic",
+            "accessory": "none"
+          },
+          "front": "fringe",
+          "back": "tied",
+          "face": {
+            "jaw": 0.96161,
+            "cheek": 1.00194,
+            "nose": 0.99741,
+            "eyeWidth": 0.92928,
+            "eyeHeight": 0.87902,
+            "eyeSpacing": 0.96263,
+            "browWeight": 0.95079,
+            "browSlant": -0.04671,
+            "chin": 1.00355
+          },
+          "proportions": {
+            "shoulders": 0.98675,
+            "arms": 0.99871,
+            "legs": 0.99871,
+            "head": 1
+          },
+          "gear": "armor",
+          "cloth": [
+            0.35,
+            0.4,
+            0.51
+          ],
+          "trim": [
+            0.53,
+            0.57,
+            0.59
+          ],
+          "hairValue": 1.10027
+        }
+      },
+      {
+        "record": {
+          "schemaVersion": 1,
+          "contentVersion": "shino-production-contract.1",
+          "masterId": "character.sendagaya-shino.v1",
+          "id": "review.1000.3",
+          "seed": 1003,
+          "revision": 0,
+          "parents": [],
+          "genome": {
+            "height": [
+              21883,
+              14719
+            ],
+            "build": [
+              60218,
+              61844
+            ],
+            "hair": [
+              35419,
+              56773
+            ],
+            "eyes": [
+              27846,
+              64648
+            ],
+            "skin": [
+              64468,
+              8790
+            ]
+          },
+          "ageMs": 1320000,
+          "lifeState": "alive",
+          "outfitId": "shino.uniform.original.v1"
+        },
+        "parts": {
+          "version": 1,
+          "face": "sharp",
+          "hair": "tail",
+          "body": "compact",
+          "outfit": "apron",
+          "accessory": "headband"
+        },
+        "identity": {
+          "version": 1,
+          "seed": 1003,
+          "role": "artisan",
+          "ageBand": "adult",
+          "parts": {
+            "version": 1,
+            "face": "sharp",
+            "hair": "tail",
+            "body": "compact",
+            "outfit": "apron",
+            "accessory": "headband"
+          },
+          "front": "parted",
+          "back": "close",
+          "face": {
+            "jaw": 1.11938,
+            "cheek": 1.02649,
+            "nose": 0.96468,
+            "eyeWidth": 1.04348,
+            "eyeHeight": 0.99902,
+            "eyeSpacing": 1.03291,
+            "browWeight": 1.22426,
+            "browSlant": 0.04114,
+            "chin": 0.98513
+          },
+          "proportions": {
+            "shoulders": 1.06038,
+            "arms": 0.98234,
+            "legs": 0.98234,
+            "head": 1
+          },
+          "gear": "tools",
+          "cloth": [
+            0.56,
+            0.57,
+            0.51
+          ],
+          "trim": [
+            0.53,
+            0.57,
+            0.59
+          ],
+          "hairValue": 0.99815
+        }
+      },
+      {
+        "record": {
+          "schemaVersion": 1,
+          "contentVersion": "shino-production-contract.1",
+          "masterId": "character.sendagaya-shino.v1",
+          "id": "review.1000.4",
+          "seed": 1004,
+          "revision": 0,
+          "parents": [],
+          "genome": {
+            "height": [
+              11495,
+              18043
+            ],
+            "build": [
+              30602,
+              41676
+            ],
+            "hair": [
+              36368,
+              827
+            ],
+            "eyes": [
+              36536,
+              41728
+            ],
+            "skin": [
+              24450,
+              53169
+            ]
+          },
+          "ageMs": 1320000,
+          "lifeState": "alive",
+          "outfitId": "shino.uniform.original.v1"
+        },
+        "parts": {
+          "version": 1,
+          "face": "classic",
+          "hair": "crop",
+          "body": "compact",
+          "outfit": "tunic",
+          "accessory": "none"
+        },
+        "identity": {
+          "version": 1,
+          "seed": 1004,
+          "role": "laborer",
+          "ageBand": "adult",
+          "parts": {
+            "version": 1,
+            "face": "classic",
+            "hair": "crop",
+            "body": "compact",
+            "outfit": "tunic",
+            "accessory": "none"
+          },
+          "front": "fringe",
+          "back": "close",
+          "face": {
+            "jaw": 1.00543,
+            "cheek": 1.03296,
+            "nose": 0.95606,
+            "eyeWidth": 1.01525,
+            "eyeHeight": 0.99725,
+            "eyeSpacing": 1.01554,
+            "browWeight": 1.02675,
+            "browSlant": 0.01942,
+            "chin": 0.98028
+          },
+          "proportions": {
+            "shoulders": 1.0072,
+            "arms": 0.97803,
+            "legs": 0.97803,
+            "head": 1
+          },
+          "gear": "pack",
+          "cloth": [
+            0.56,
+            0.57,
+            0.51
+          ],
+          "trim": [
+            0.72,
+            0.64,
+            0.48
+          ],
+          "hairValue": 0.84751
+        }
+      },
+      {
+        "record": {
+          "schemaVersion": 1,
+          "contentVersion": "shino-production-contract.1",
+          "masterId": "character.sendagaya-shino.v1",
+          "id": "review.1000.5",
+          "seed": 1005,
+          "revision": 0,
+          "parents": [],
+          "genome": {
+            "height": [
+              27419,
+              45367
+            ],
+            "build": [
+              35836,
+              37155
+            ],
+            "hair": [
+              45497,
+              21746
+            ],
+            "eyes": [
+              16296,
+              7719
+            ],
+            "skin": [
+              59476,
+              17168
+            ]
+          },
+          "ageMs": 1320000,
+          "lifeState": "alive",
+          "outfitId": "shino.uniform.original.v1"
+        },
+        "parts": {
+          "version": 1,
+          "face": "sharp",
+          "hair": "crop",
+          "body": "balanced",
+          "outfit": "tunic",
+          "accessory": "none"
+        },
+        "identity": {
+          "version": 1,
+          "seed": 1005,
+          "role": "hunter",
+          "ageBand": "adult",
+          "parts": {
+            "version": 1,
+            "face": "sharp",
+            "hair": "crop",
+            "body": "balanced",
+            "outfit": "tunic",
+            "accessory": "none"
+          },
+          "front": "swept",
+          "back": "close",
+          "face": {
+            "jaw": 1.00707,
+            "cheek": 0.99336,
+            "nose": 1.00885,
+            "eyeWidth": 0.90764,
+            "eyeHeight": 0.85276,
+            "eyeSpacing": 0.94932,
+            "browWeight": 1.02958,
+            "browSlant": -0.06336,
+            "chin": 1.00998
+          },
+          "proportions": {
+            "shoulders": 1.00796,
+            "arms": 1.00443,
+            "legs": 1.00443,
+            "head": 1
+          },
+          "gear": "quiver",
+          "cloth": [
+            0.3,
+            0.43,
+            0.37
+          ],
+          "trim": [
+            0.53,
+            0.57,
+            0.59
+          ],
+          "hairValue": 1.11967
+        }
+      }
+    ],
+    "secondaryMotion": "off-for-deterministic-QA",
+    "correctionRevision": "continuous-clearance.v2",
+    "expressionClock": "qa-time",
+    "playback": {
+      "speed": 0.25,
+      "loopRange": null
+    },
+    "presentation": {
+      "view": "single",
+      "count": 6,
+      "selected": 0,
+      "blink": false,
+      "expression": "",
+      "expressionMode": "selected",
+      "expressionWeight": 1
+    }
+  },
+  "issues": [
+    {
+      "id": "continuity-v2-switch",
+      "character": "review.1000.0",
+      "motion": "authored-slash",
+      "timestamp": 17.55,
+      "frame": 1053,
+      "camera": "front-left",
+      "affectedBones": [
+        "rightUpperArm",
+        "rightLowerArm",
+        "rightHand"
+      ],
+      "severity": "warning",
+      "category": "transition",
+      "note": "Merged v1 switches between elbow swivel and forward hand clearance on adjacent frames. Correction offsets and twist now use a deterministic source-time window. The return flows through intermediate elbow positions; source timing and world palm orientation remain unchanged. Residual motion and clothing still require visual approval.",
+      "before": {
+        "revision": "f47a61cd13298be03f45e90c485771825dc4d053",
+        "evidence": "shino-continuity-v2.mp4",
+        "timestamp": 17.55,
+        "frame": 1053,
+        "camera": "front-left",
+        "panel": "left"
+      },
+      "after": {
+        "revision": "continuous-clearance.v2",
+        "evidence": "shino-continuity-v2.mp4",
+        "timestamp": 17.55,
+        "frame": 1053,
+        "camera": "front-left",
+        "panel": "right"
+      },
+      "status": "needs-review",
+      "conditions": {
+        "video": {
+          "firstFrame": 1029,
+          "lastFrame": 1065,
+          "sourceFPS": 60,
+          "playbackFPS": 15,
+          "camera": "front-left",
+          "blink": false
+        }
+      },
+      "diagnostics": {
+        "index": 0,
+        "age": 22,
+        "legacyRisk": 0.01725248017412416,
+        "continuousRisk": 0.01437520388240858,
+        "legacyStep": 0.8956292389723713,
+        "continuousStep": 0.6795905766869572,
+        "maxPalmTurn": 4.2146848510894035e-08,
+        "transferBefore": 4.8638826698246224e-08,
+        "transferAfter": 1.4416645171572113e-11
+      }
+    },
+    {
+      "id": "continuity-v2-transfer",
+      "character": "review.1000.11",
+      "motion": "runtime.weaponDraw",
+      "timestamp": 26,
+      "frame": 1560,
+      "camera": "front",
+      "affectedBones": [
+        "rightUpperArm",
+        "rightLowerArm",
+        "rightHand",
+        "hips"
+      ],
+      "severity": "warning",
+      "category": "weapon grip",
+      "note": "Body/age variation moves the palm away from the unmodified carry socket. A shared carry profile now pins the palm at ownership transfer and fades the solve outside reach/transfer/release. Geometry-space contact is verified on 12 actual rigs; visual approval of the full asset remains separate.",
+      "before": null,
+      "after": null,
+      "status": "resolved",
+      "conditions": {
+        "record": {
+          "schemaVersion": 1,
+          "contentVersion": "shino-production-contract.1",
+          "masterId": "character.sendagaya-shino.v1",
+          "id": "review.1000.11",
+          "seed": 1011,
+          "revision": 1,
+          "parents": [],
+          "genome": {
+            "height": [
+              65535,
+              65535
+            ],
+            "build": [
+              65535,
+              65535
+            ],
+            "hair": [
+              18557,
+              27794
+            ],
+            "eyes": [
+              15980,
+              873
+            ],
+            "skin": [
+              379,
+              56126
+            ]
+          },
+          "ageMs": 4500000,
+          "lifeState": "alive",
+          "outfitId": "shino.uniform.ember.v1"
+        },
+        "identity": {
+          "version": 1,
+          "seed": 1011,
+          "role": "elder",
+          "ageBand": "elder",
+          "parts": {
+            "version": 1,
+            "face": "long",
+            "hair": "tail",
+            "body": "sturdy",
+            "outfit": "mantle",
+            "accessory": "glasses"
+          },
+          "front": "open",
+          "back": "tied",
+          "face": {
+            "jaw": 1.14,
+            "cheek": 0.94,
+            "nose": 1.08,
+            "eyeWidth": 0.89343,
+            "eyeHeight": 0.78692,
+            "eyeSpacing": 0.94057,
+            "browWeight": 1.26,
+            "browSlant": -0.07428,
+            "chin": 1.05
+          },
+          "proportions": {
+            "shoulders": 1.07,
+            "arms": 1.04,
+            "legs": 1.04,
+            "head": 0.98971
+          },
+          "gear": "shawl",
+          "cloth": [
+            0.39,
+            0.29,
+            0.4
+          ],
+          "trim": [
+            0.53,
+            0.57,
+            0.59
+          ],
+          "hairValue": 0.86976
+        },
+        "check": "apps/rinne/tests/motion-continuity-rig.test.mjs",
+        "times": [
+          11.75,
+          26
+        ]
+      },
+      "diagnostics": {
+        "index": 11,
+        "age": 75,
+        "legacyRisk": 0.030638657149760176,
+        "continuousRisk": 0.02752556670380707,
+        "legacyStep": 0.7538407063589674,
+        "continuousStep": 0.6512634401797718,
+        "maxPalmTurn": 2.9802322387695312e-08,
+        "transferBefore": 0.026455628370354495,
+        "transferAfter": 2.524253332728277e-09
+      }
+    },
+    {
+      "id": "continuity-v2-clothing",
+      "character": "review.1000.2",
+      "motion": "runtime.weaponDraw",
+      "timestamp": 26,
+      "frame": 1560,
+      "camera": "front",
+      "affectedBones": [
+        "hips",
+        "spine"
+      ],
+      "severity": "warning",
+      "category": "clothing",
+      "note": "The original dark skirt is visible through the modular tunic on the elderly compact variant. The original outfit is retained below a rigid spine-attached garment. Garment coverage/deformation requires a separate asset-layer correction; this motion pass does not claim to repair it.",
+      "before": null,
+      "after": {
+        "revision": "continuous-clearance.v2",
+        "evidence": "cohort-elder-v2.webp",
+        "timestamp": 26,
+        "frame": 1560,
+        "camera": "front"
+      },
+      "status": "open",
+      "conditions": {
+        "sequence": "workshop-motion-sequence.v1",
+        "fps": 60,
+        "viewport": [
+          509,
+          768
+        ],
+        "dpr": 1,
+        "lighting": "workshop-pbr.v1",
+        "motionRevision": "shino-slash-1",
+        "characters": [
+          {
+            "record": {
+              "schemaVersion": 1,
+              "contentVersion": "shino-production-contract.1",
+              "masterId": "character.sendagaya-shino.v1",
+              "id": "review.1000.0",
+              "seed": 1000,
+              "revision": 1,
+              "parents": [],
+              "genome": {
+                "height": [
+                  65535,
+                  65535
+                ],
+                "build": [
+                  0,
+                  0
+                ],
+                "hair": [
+                  1167,
+                  27859
+                ],
+                "eyes": [
+                  19700,
+                  7253
+                ],
+                "skin": [
+                  49641,
+                  45906
+                ]
+              },
+              "ageMs": 1320000,
+              "lifeState": "alive",
+              "outfitId": "shino.uniform.original.v1"
+            },
+            "parts": {
+              "version": 1,
+              "face": "classic",
+              "hair": "original",
+              "body": "balanced",
+              "outfit": "uniform",
+              "accessory": "none"
+            },
+            "identity": null
+          },
+          {
+            "record": {
+              "schemaVersion": 1,
+              "contentVersion": "shino-production-contract.1",
+              "masterId": "character.sendagaya-shino.v1",
+              "id": "review.1000.1",
+              "seed": 1001,
+              "revision": 1,
+              "parents": [],
+              "genome": {
+                "height": [
+                  0,
+                  0
+                ],
+                "build": [
+                  65535,
+                  65535
+                ],
+                "hair": [
+                  43053,
+                  63960
+                ],
+                "eyes": [
+                  39215,
+                  55903
+                ],
+                "skin": [
+                  44387,
+                  22939
+                ]
+              },
+              "ageMs": 420000,
+              "lifeState": "alive",
+              "outfitId": "shino.uniform.original.v1"
+            },
+            "parts": {
+              "version": 1,
+              "face": "sharp",
+              "hair": "crop",
+              "body": "sturdy",
+              "outfit": "tunic",
+              "accessory": "none"
+            },
+            "identity": {
+              "version": 1,
+              "seed": 1001,
+              "role": "child",
+              "ageBand": "child",
+              "parts": {
+                "version": 1,
+                "face": "sharp",
+                "hair": "crop",
+                "body": "sturdy",
+                "outfit": "tunic",
+                "accessory": "none"
+              },
+              "front": "parted",
+              "back": "close",
+              "face": {
+                "jaw": 1.17056,
+                "cheek": 1.07528,
+                "nose": 0.92,
+                "eyeWidth": 1.04868,
+                "eyeHeight": 1.05569,
+                "eyeSpacing": 1.03611,
+                "browWeight": 1.26,
+                "browSlant": 0.04514,
+                "chin": 0.93556
+              },
+              "proportions": {
+                "shoulders": 1.07,
+                "arms": 0.94472,
+                "legs": 0.93556,
+                "head": 1.02139
+              },
+              "gear": "none",
+              "cloth": [
+                0.55,
+                0.48,
+                0.34
+              ],
+              "trim": [
+                0.53,
+                0.57,
+                0.59
+              ],
+              "hairValue": 1.01099
+            }
+          },
+          {
+            "record": {
+              "schemaVersion": 1,
+              "contentVersion": "shino-production-contract.1",
+              "masterId": "character.sendagaya-shino.v1",
+              "id": "review.1000.2",
+              "seed": 1002,
+              "revision": 1,
+              "parents": [],
+              "genome": {
+                "height": [
+                  0,
+                  0
+                ],
+                "build": [
+                  65535,
+                  65535
+                ],
+                "hair": [
+                  32677,
+                  39675
+                ],
+                "eyes": [
+                  22667,
+                  12258
+                ],
+                "skin": [
+                  57682,
+                  5666
+                ]
+              },
+              "ageMs": 4500000,
+              "lifeState": "alive",
+              "outfitId": "shino.uniform.original.v1"
+            },
+            "parts": {
+              "version": 1,
+              "face": "sharp",
+              "hair": "bob",
+              "body": "compact",
+              "outfit": "tunic",
+              "accessory": "none"
+            },
+            "identity": {
+              "version": 1,
+              "seed": 1002,
+              "role": "guard",
+              "ageBand": "elder",
+              "parts": {
+                "version": 1,
+                "face": "sharp",
+                "hair": "bob",
+                "body": "compact",
+                "outfit": "tunic",
+                "accessory": "none"
+              },
+              "front": "fringe",
+              "back": "tied",
+              "face": {
+                "jaw": 1.14,
+                "cheek": 1.06,
+                "nose": 0.92,
+                "eyeWidth": 0.92928,
+                "eyeHeight": 0.83902,
+                "eyeSpacing": 0.96263,
+                "browWeight": 1.26,
+                "browSlant": -0.04671,
+                "chin": 0.96
+              },
+              "proportions": {
+                "shoulders": 1.07,
+                "arms": 0.96,
+                "legs": 0.96,
+                "head": 0.98971
+              },
+              "gear": "armor",
+              "cloth": [
+                0.35,
+                0.4,
+                0.51
+              ],
+              "trim": [
+                0.53,
+                0.57,
+                0.59
+              ],
+              "hairValue": 1.10027
+            }
+          },
+          {
+            "record": {
+              "schemaVersion": 1,
+              "contentVersion": "shino-production-contract.1",
+              "masterId": "character.sendagaya-shino.v1",
+              "id": "review.1000.3",
+              "seed": 1003,
+              "revision": 0,
+              "parents": [],
+              "genome": {
+                "height": [
+                  21883,
+                  14719
+                ],
+                "build": [
+                  60218,
+                  61844
+                ],
+                "hair": [
+                  35419,
+                  56773
+                ],
+                "eyes": [
+                  27846,
+                  64648
+                ],
+                "skin": [
+                  64468,
+                  8790
+                ]
+              },
+              "ageMs": 1320000,
+              "lifeState": "alive",
+              "outfitId": "shino.uniform.original.v1"
+            },
+            "parts": {
+              "version": 1,
+              "face": "sharp",
+              "hair": "tail",
+              "body": "compact",
+              "outfit": "apron",
+              "accessory": "headband"
+            },
+            "identity": {
+              "version": 1,
+              "seed": 1003,
+              "role": "artisan",
+              "ageBand": "adult",
+              "parts": {
+                "version": 1,
+                "face": "sharp",
+                "hair": "tail",
+                "body": "compact",
+                "outfit": "apron",
+                "accessory": "headband"
+              },
+              "front": "parted",
+              "back": "close",
+              "face": {
+                "jaw": 1.11938,
+                "cheek": 1.02649,
+                "nose": 0.96468,
+                "eyeWidth": 1.04348,
+                "eyeHeight": 0.99902,
+                "eyeSpacing": 1.03291,
+                "browWeight": 1.22426,
+                "browSlant": 0.04114,
+                "chin": 0.98513
+              },
+              "proportions": {
+                "shoulders": 1.06038,
+                "arms": 0.98234,
+                "legs": 0.98234,
+                "head": 1
+              },
+              "gear": "tools",
+              "cloth": [
+                0.56,
+                0.57,
+                0.51
+              ],
+              "trim": [
+                0.53,
+                0.57,
+                0.59
+              ],
+              "hairValue": 0.99815
+            }
+          },
+          {
+            "record": {
+              "schemaVersion": 1,
+              "contentVersion": "shino-production-contract.1",
+              "masterId": "character.sendagaya-shino.v1",
+              "id": "review.1000.4",
+              "seed": 1004,
+              "revision": 0,
+              "parents": [],
+              "genome": {
+                "height": [
+                  11495,
+                  18043
+                ],
+                "build": [
+                  30602,
+                  41676
+                ],
+                "hair": [
+                  36368,
+                  827
+                ],
+                "eyes": [
+                  36536,
+                  41728
+                ],
+                "skin": [
+                  24450,
+                  53169
+                ]
+              },
+              "ageMs": 1320000,
+              "lifeState": "alive",
+              "outfitId": "shino.uniform.original.v1"
+            },
+            "parts": {
+              "version": 1,
+              "face": "classic",
+              "hair": "crop",
+              "body": "compact",
+              "outfit": "tunic",
+              "accessory": "none"
+            },
+            "identity": {
+              "version": 1,
+              "seed": 1004,
+              "role": "laborer",
+              "ageBand": "adult",
+              "parts": {
+                "version": 1,
+                "face": "classic",
+                "hair": "crop",
+                "body": "compact",
+                "outfit": "tunic",
+                "accessory": "none"
+              },
+              "front": "fringe",
+              "back": "close",
+              "face": {
+                "jaw": 1.00543,
+                "cheek": 1.03296,
+                "nose": 0.95606,
+                "eyeWidth": 1.01525,
+                "eyeHeight": 0.99725,
+                "eyeSpacing": 1.01554,
+                "browWeight": 1.02675,
+                "browSlant": 0.01942,
+                "chin": 0.98028
+              },
+              "proportions": {
+                "shoulders": 1.0072,
+                "arms": 0.97803,
+                "legs": 0.97803,
+                "head": 1
+              },
+              "gear": "pack",
+              "cloth": [
+                0.56,
+                0.57,
+                0.51
+              ],
+              "trim": [
+                0.72,
+                0.64,
+                0.48
+              ],
+              "hairValue": 0.84751
+            }
+          },
+          {
+            "record": {
+              "schemaVersion": 1,
+              "contentVersion": "shino-production-contract.1",
+              "masterId": "character.sendagaya-shino.v1",
+              "id": "review.1000.5",
+              "seed": 1005,
+              "revision": 0,
+              "parents": [],
+              "genome": {
+                "height": [
+                  27419,
+                  45367
+                ],
+                "build": [
+                  35836,
+                  37155
+                ],
+                "hair": [
+                  45497,
+                  21746
+                ],
+                "eyes": [
+                  16296,
+                  7719
+                ],
+                "skin": [
+                  59476,
+                  17168
+                ]
+              },
+              "ageMs": 1320000,
+              "lifeState": "alive",
+              "outfitId": "shino.uniform.original.v1"
+            },
+            "parts": {
+              "version": 1,
+              "face": "sharp",
+              "hair": "crop",
+              "body": "balanced",
+              "outfit": "tunic",
+              "accessory": "none"
+            },
+            "identity": {
+              "version": 1,
+              "seed": 1005,
+              "role": "hunter",
+              "ageBand": "adult",
+              "parts": {
+                "version": 1,
+                "face": "sharp",
+                "hair": "crop",
+                "body": "balanced",
+                "outfit": "tunic",
+                "accessory": "none"
+              },
+              "front": "swept",
+              "back": "close",
+              "face": {
+                "jaw": 1.00707,
+                "cheek": 0.99336,
+                "nose": 1.00885,
+                "eyeWidth": 0.90764,
+                "eyeHeight": 0.85276,
+                "eyeSpacing": 0.94932,
+                "browWeight": 1.02958,
+                "browSlant": -0.06336,
+                "chin": 1.00998
+              },
+              "proportions": {
+                "shoulders": 1.00796,
+                "arms": 1.00443,
+                "legs": 1.00443,
+                "head": 1
+              },
+              "gear": "quiver",
+              "cloth": [
+                0.3,
+                0.43,
+                0.37
+              ],
+              "trim": [
+                0.53,
+                0.57,
+                0.59
+              ],
+              "hairValue": 1.11967
+            }
+          },
+          {
+            "record": {
+              "schemaVersion": 1,
+              "contentVersion": "shino-production-contract.1",
+              "masterId": "character.sendagaya-shino.v1",
+              "id": "review.1000.6",
+              "seed": 1006,
+              "revision": 0,
+              "parents": [],
+              "genome": {
+                "height": [
+                  23105,
+                  14452
+                ],
+                "build": [
+                  61132,
+                  63312
+                ],
+                "hair": [
+                  57782,
+                  63259
+                ],
+                "eyes": [
+                  12813,
+                  25860
+                ],
+                "skin": [
+                  28604,
+                  17198
+                ]
+              },
+              "ageMs": 1320000,
+              "lifeState": "alive",
+              "outfitId": "shino.uniform.original.v1"
+            },
+            "parts": {
+              "version": 1,
+              "face": "sharp",
+              "hair": "tail",
+              "body": "compact",
+              "outfit": "apron",
+              "accessory": "headband"
+            },
+            "identity": {
+              "version": 1,
+              "seed": 1006,
+              "role": "smith",
+              "ageBand": "adult",
+              "parts": {
+                "version": 1,
+                "face": "sharp",
+                "hair": "tail",
+                "body": "compact",
+                "outfit": "apron",
+                "accessory": "headband"
+              },
+              "front": "parted",
+              "back": "tied",
+              "face": {
+                "jaw": 1.12483,
+                "cheek": 1.02562,
+                "nose": 0.96585,
+                "eyeWidth": 0.93671,
+                "eyeHeight": 0.88581,
+                "eyeSpacing": 0.96721,
+                "browWeight": 1.23371,
+                "browSlant": -0.04099,
+                "chin": 0.98579
+              },
+              "proportions": {
+                "shoulders": 1.06292,
+                "arms": 0.98292,
+                "legs": 0.98292,
+                "head": 1
+              },
+              "gear": "tools",
+              "cloth": [
+                0.58,
+                0.38,
+                0.27
+              ],
+              "trim": [
+                0.53,
+                0.57,
+                0.59
+              ],
+              "hairValue": 0.97374
+            }
+          },
+          {
+            "record": {
+              "schemaVersion": 1,
+              "contentVersion": "shino-production-contract.1",
+              "masterId": "character.sendagaya-shino.v1",
+              "id": "review.1000.7",
+              "seed": 1007,
+              "revision": 0,
+              "parents": [],
+              "genome": {
+                "height": [
+                  57084,
+                  15925
+                ],
+                "build": [
+                  6500,
+                  27944
+                ],
+                "hair": [
+                  10311,
+                  3022
+                ],
+                "eyes": [
+                  1736,
+                  38315
+                ],
+                "skin": [
+                  880,
+                  51573
+                ]
+              },
+              "ageMs": 1320000,
+              "lifeState": "alive",
+              "outfitId": "shino.uniform.original.v1"
+            },
+            "parts": {
+              "version": 1,
+              "face": "classic",
+              "hair": "crop",
+              "body": "slender",
+              "outfit": "mantle",
+              "accessory": "none"
+            },
+            "identity": {
+              "version": 1,
+              "seed": 1007,
+              "role": "acolyte",
+              "ageBand": "adult",
+              "parts": {
+                "version": 1,
+                "face": "classic",
+                "hair": "crop",
+                "body": "slender",
+                "outfit": "mantle",
+                "accessory": "none"
+              },
+              "front": "open",
+              "back": "close",
+              "face": {
+                "jaw": 0.91884,
+                "cheek": 0.99316,
+                "nose": 1.00912,
+                "eyeWidth": 0.93945,
+                "eyeHeight": 0.86323,
+                "eyeSpacing": 0.96889,
+                "browWeight": 0.87665,
+                "browSlant": -0.03889,
+                "chin": 1.01013
+              },
+              "proportions": {
+                "shoulders": 0.96679,
+                "arms": 1.00456,
+                "legs": 1.00456,
+                "head": 1
+              },
+              "gear": "stole",
+              "cloth": [
+                0.39,
+                0.29,
+                0.4
+              ],
+              "trim": [
+                0.33,
+                0.24,
+                0.16
+              ],
+              "hairValue": 1.06089
+            }
+          },
+          {
+            "record": {
+              "schemaVersion": 1,
+              "contentVersion": "shino-production-contract.1",
+              "masterId": "character.sendagaya-shino.v1",
+              "id": "review.1000.8",
+              "seed": 1008,
+              "revision": 0,
+              "parents": [],
+              "genome": {
+                "height": [
+                  50463,
+                  47599
+                ],
+                "build": [
+                  32813,
+                  55901
+                ],
+                "hair": [
+                  30128,
+                  38963
+                ],
+                "eyes": [
+                  9691,
+                  24895
+                ],
+                "skin": [
+                  57904,
+                  23941
+                ]
+              },
+              "ageMs": 1320000,
+              "lifeState": "alive",
+              "outfitId": "shino.uniform.original.v1"
+            },
+            "parts": {
+              "version": 1,
+              "face": "sharp",
+              "hair": "bob",
+              "body": "sturdy",
+              "outfit": "tunic",
+              "accessory": "none"
+            },
+            "identity": {
+              "version": 1,
+              "seed": 1008,
+              "role": "traveller",
+              "ageBand": "adult",
+              "parts": {
+                "version": 1,
+                "face": "sharp",
+                "hair": "bob",
+                "body": "sturdy",
+                "outfit": "tunic",
+                "accessory": "none"
+              },
+              "front": "fringe",
+              "back": "tied",
+              "face": {
+                "jaw": 1.04305,
+                "cheek": 0.97022,
+                "nose": 1.03971,
+                "eyeWidth": 0.92861,
+                "eyeHeight": 0.87281,
+                "eyeSpacing": 0.96222,
+                "browWeight": 1.09196,
+                "browSlant": -0.04723,
+                "chin": 1.02733
+              },
+              "proportions": {
+                "shoulders": 1.02476,
+                "arms": 1.01985,
+                "legs": 1.01985,
+                "head": 1
+              },
+              "gear": "satchel",
+              "cloth": [
+                0.35,
+                0.4,
+                0.51
+              ],
+              "trim": [
+                0.64,
+                0.53,
+                0.31
+              ],
+              "hairValue": 0.98507
+            }
+          },
+          {
+            "record": {
+              "schemaVersion": 1,
+              "contentVersion": "shino-production-contract.1",
+              "masterId": "character.sendagaya-shino.v1",
+              "id": "review.1000.9",
+              "seed": 1009,
+              "revision": 0,
+              "parents": [],
+              "genome": {
+                "height": [
+                  45415,
+                  41265
+                ],
+                "build": [
+                  27037,
+                  27871
+                ],
+                "hair": [
+                  46531,
+                  19557
+                ],
+                "eyes": [
+                  40966,
+                  23868
+                ],
+                "skin": [
+                  1368,
+                  19826
+                ]
+              },
+              "ageMs": 1320000,
+              "lifeState": "alive",
+              "outfitId": "shino.uniform.original.v1"
+            },
+            "parts": {
+              "version": 1,
+              "face": "sharp",
+              "hair": "crop",
+              "body": "balanced",
+              "outfit": "tunic",
+              "accessory": "none"
+            },
+            "identity": {
+              "version": 1,
+              "seed": 1009,
+              "role": "resident",
+              "ageBand": "adult",
+              "parts": {
+                "version": 1,
+                "face": "sharp",
+                "hair": "crop",
+                "body": "balanced",
+                "outfit": "tunic",
+                "accessory": "none"
+              },
+              "front": "parted",
+              "back": "close",
+              "face": {
+                "jaw": 0.96568,
+                "cheek": 0.98064,
+                "nose": 1.02581,
+                "eyeWidth": 0.98861,
+                "eyeHeight": 0.94917,
+                "eyeSpacing": 0.99914,
+                "browWeight": 0.95784,
+                "browSlant": -0.00107,
+                "chin": 1.01952
+              },
+              "proportions": {
+                "shoulders": 0.98865,
+                "arms": 1.01291,
+                "legs": 1.01291,
+                "head": 1
+              },
+              "gear": "belt",
+              "cloth": [
+                0.56,
+                0.57,
+                0.51
+              ],
+              "trim": [
+                0.72,
+                0.64,
+                0.48
+              ],
+              "hairValue": 0.87286
+            }
+          },
+          {
+            "record": {
+              "schemaVersion": 1,
+              "contentVersion": "shino-production-contract.1",
+              "masterId": "character.sendagaya-shino.v1",
+              "id": "review.1000.10",
+              "seed": 1010,
+              "revision": 0,
+              "parents": [],
+              "genome": {
+                "height": [
+                  28347,
+                  52541
+                ],
+                "build": [
+                  58196,
+                  22737
+                ],
+                "hair": [
+                  14135,
+                  21215
+                ],
+                "eyes": [
+                  4556,
+                  61632
+                ],
+                "skin": [
+                  34399,
+                  40499
+                ]
+              },
+              "ageMs": 1320000,
+              "lifeState": "alive",
+              "outfitId": "shino.uniform.original.v1"
+            },
+            "parts": {
+              "version": 1,
+              "face": "sharp",
+              "hair": "crop",
+              "body": "balanced",
+              "outfit": "mantle",
+              "accessory": "none"
+            },
+            "identity": {
+              "version": 1,
+              "seed": 1010,
+              "role": "mayor",
+              "ageBand": "adult",
+              "parts": {
+                "version": 1,
+                "face": "sharp",
+                "hair": "crop",
+                "body": "balanced",
+                "outfit": "mantle",
+                "accessory": "none"
+              },
+              "front": "swept",
+              "back": "layered",
+              "face": {
+                "jaw": 1.02524,
+                "cheek": 0.98594,
+                "nose": 1.01874,
+                "eyeWidth": 0.9913,
+                "eyeHeight": 0.90824,
+                "eyeSpacing": 1.0008,
+                "browWeight": 1.06109,
+                "browSlant": 0.001,
+                "chin": 1.01554
+              },
+              "proportions": {
+                "shoulders": 1.01645,
+                "arms": 1.00937,
+                "legs": 1.00937,
+                "head": 1
+              },
+              "gear": "stole",
+              "cloth": [
+                0.58,
+                0.38,
+                0.27
+              ],
+              "trim": [
+                0.72,
+                0.64,
+                0.48
+              ],
+              "hairValue": 0.97921
+            }
+          },
+          {
+            "record": {
+              "schemaVersion": 1,
+              "contentVersion": "shino-production-contract.1",
+              "masterId": "character.sendagaya-shino.v1",
+              "id": "review.1000.11",
+              "seed": 1011,
+              "revision": 0,
+              "parents": [],
+              "genome": {
+                "height": [
+                  64987,
+                  44122
+                ],
+                "build": [
+                  59494,
+                  53106
+                ],
+                "hair": [
+                  18557,
+                  27794
+                ],
+                "eyes": [
+                  15980,
+                  873
+                ],
+                "skin": [
+                  379,
+                  56126
+                ]
+              },
+              "ageMs": 1320000,
+              "lifeState": "alive",
+              "outfitId": "shino.uniform.original.v1"
+            },
+            "parts": {
+              "version": 1,
+              "face": "long",
+              "hair": "tail",
+              "body": "sturdy",
+              "outfit": "tunic",
+              "accessory": "scarf"
+            },
+            "identity": {
+              "version": 1,
+              "seed": 1011,
+              "role": "guard",
+              "ageBand": "adult",
+              "parts": {
+                "version": 1,
+                "face": "long",
+                "hair": "tail",
+                "body": "sturdy",
+                "outfit": "tunic",
+                "accessory": "scarf"
+              },
+              "front": "open",
+              "back": "tied",
+              "face": {
+                "jaw": 1.09772,
+                "cheek": 0.96011,
+                "nose": 1.05319,
+                "eyeWidth": 0.89343,
+                "eyeHeight": 0.82692,
+                "eyeSpacing": 0.94057,
+                "browWeight": 1.18672,
+                "browSlant": -0.07428,
+                "chin": 1.03492
+              },
+              "proportions": {
+                "shoulders": 1.05027,
+                "arms": 1.0266,
+                "legs": 1.0266,
+                "head": 1
+              },
+              "gear": "armor",
+              "cloth": [
+                0.35,
+                0.4,
+                0.51
+              ],
+              "trim": [
+                0.53,
+                0.57,
+                0.59
+              ],
+              "hairValue": 0.86976
+            }
+          }
+        ],
+        "secondaryMotion": "off-for-deterministic-QA",
+        "correctionRevision": "continuous-clearance.v2",
+        "expressionClock": "qa-time",
+        "playback": {
+          "speed": 1,
+          "loopRange": null
+        },
+        "presentation": {
+          "view": "single",
+          "count": 12,
+          "selected": 2,
+          "blink": true,
+          "expression": "",
+          "expressionMode": "selected",
+          "expressionWeight": 1
+        }
+      }
+    }
+  ],
+  "verification": {
+    "develop": "f47a61cd13298be03f45e90c485771825dc4d053",
+    "fast": {
+      "command": "node scripts/validate.mjs fast origin/develop HEAD",
+      "passed": 407,
+      "failed": 0,
+      "builds": [
+        "demon",
+        "rinne",
+        "village"
+      ]
+    },
+    "browser": {
+      "studioChecks": 16,
+      "motionQAChecks": [
+        "one-tap review starts actual source animation",
+        "automatic playback crosses all source-motion boundaries",
+        "eight repeatable camera presets and clock-driven tour",
+        "same frame before/after visible arm clearance improvement",
+        "arbitrary seek reproduces correction and expression state",
+        "quarter-speed source-motion loop wraps without exiting review",
+        "6/12 cohort preserves records; body, height and child/elder presentation shown",
+        "QA JSON export/import roundtrip and malformed import retention",
+        "portrait/landscape UI bounds and clean console/network"
+      ],
+      "errors": [],
+      "network": [],
+      "engine": "Chromium 153 / software WebGL",
+      "physicalDevice": false
+    },
+    "rig": {
+      "reference": "1801 frames at 60 Hz",
+      "variants": "12 individuals, dense slash and draw/sheath windows",
+      "results": [
+        {
+          "index": 0,
+          "age": 22,
+          "legacyRisk": 0.01725248017412416,
+          "continuousRisk": 0.01437520388240858,
+          "legacyStep": 0.8956292389723713,
+          "continuousStep": 0.6795905766869572,
+          "maxPalmTurn": 4.2146848510894035e-08,
+          "transferBefore": 4.8638826698246224e-08,
+          "transferAfter": 1.4416645171572113e-11
+        },
+        {
+          "index": 1,
+          "age": 7,
+          "legacyRisk": 0.029793701447261803,
+          "continuousRisk": 0.026928936482797816,
+          "legacyStep": 0.8136359974297604,
+          "continuousStep": 0.6527806741196185,
+          "maxPalmTurn": 2.9802322387695312e-08,
+          "transferBefore": 0.007493560418179288,
+          "transferAfter": 1.6527405821309795e-09
+        },
+        {
+          "index": 2,
+          "age": 22,
+          "legacyRisk": 0.02919942167755342,
+          "continuousRisk": 0.026039837018539333,
+          "legacyStep": 0.7538407061424264,
+          "continuousStep": 0.6512634410746679,
+          "maxPalmTurn": 2.9802322387695312e-08,
+          "transferBefore": 0.012742657744122726,
+          "transferAfter": 3.573852423566576e-09
+        },
+        {
+          "index": 3,
+          "age": 75,
+          "legacyRisk": 0.02836676350552679,
+          "continuousRisk": 0.025826611779929287,
+          "legacyStep": 0.9504546430707721,
+          "continuousStep": 0.6547580203202723,
+          "maxPalmTurn": 2.9802322387695312e-08,
+          "transferBefore": 0.011285308628765107,
+          "transferAfter": 8.98319370946154e-10
+        },
+        {
+          "index": 4,
+          "age": 22,
+          "legacyRisk": 0.02833143259812007,
+          "continuousRisk": 0.025428466996204768,
+          "legacyStep": 0.8127011358073636,
+          "continuousStep": 0.6527806741196226,
+          "maxPalmTurn": 2.9802322387695312e-08,
+          "transferBefore": 0.01570592896750789,
+          "transferAfter": 4.776371370184127e-09
+        },
+        {
+          "index": 5,
+          "age": 7,
+          "legacyRisk": 0.03071732891961043,
+          "continuousRisk": 0.027588387117377544,
+          "legacyStep": 0.7538407061424252,
+          "continuousStep": 0.6512634410746679,
+          "maxPalmTurn": 2.9802322387695312e-08,
+          "transferBefore": 0.013444996944004736,
+          "transferAfter": 2.363769666089247e-09
+        },
+        {
+          "index": 6,
+          "age": 22,
+          "legacyRisk": 0.027139079598335114,
+          "continuousRisk": 0.02452461433848402,
+          "legacyStep": 0.9383889081674507,
+          "continuousStep": 0.6547580209724438,
+          "maxPalmTurn": 2.9802322387695312e-08,
+          "transferBefore": 0.021206988866799406,
+          "transferAfter": 6.040656356794162e-09
+        },
+        {
+          "index": 7,
+          "age": 75,
+          "legacyRisk": 0.029670099907484024,
+          "continuousRisk": 0.02682785863883272,
+          "legacyStep": 0.8223719262157874,
+          "continuousStep": 0.652780673343085,
+          "maxPalmTurn": 0,
+          "transferBefore": 0.01574399205357799,
+          "transferAfter": 1.475259606065549e-09
+        },
+        {
+          "index": 8,
+          "age": 22,
+          "legacyRisk": 0.02919942167755342,
+          "continuousRisk": 0.026039837018539333,
+          "legacyStep": 0.7538407061424264,
+          "continuousStep": 0.6512634410746679,
+          "maxPalmTurn": 2.9802322387695312e-08,
+          "transferBefore": 0.012742657744122726,
+          "transferAfter": 3.573852423566576e-09
+        },
+        {
+          "index": 9,
+          "age": 7,
+          "legacyRisk": 0.028537017052105512,
+          "continuousRisk": 0.02596777578392588,
+          "legacyStep": 0.9423029207627098,
+          "continuousStep": 0.6547580209724432,
+          "maxPalmTurn": 0,
+          "transferBefore": 0.006569862857029839,
+          "transferAfter": 9.558813637239138e-10
+        },
+        {
+          "index": 10,
+          "age": 22,
+          "legacyRisk": 0.02833143259812007,
+          "continuousRisk": 0.025428466996204768,
+          "legacyStep": 0.8127011358073636,
+          "continuousStep": 0.6527806741196226,
+          "maxPalmTurn": 2.9802322387695312e-08,
+          "transferBefore": 0.01570592896750789,
+          "transferAfter": 4.776371370184127e-09
+        },
+        {
+          "index": 11,
+          "age": 75,
+          "legacyRisk": 0.030638657149760176,
+          "continuousRisk": 0.02752556670380707,
+          "legacyStep": 0.7538407063589674,
+          "continuousStep": 0.6512634401797718,
+          "maxPalmTurn": 2.9802322387695312e-08,
+          "transferBefore": 0.026455628370354495,
+          "transferAfter": 2.524253332728277e-09
+        }
+      ],
+      "units": "capsule risk in source metres; grip distance in world metres; rotation step in radians"
+    },
+    "artifacts": {
+      "shino-continuity-v2.mp4": {
+        "sha256": "cf53ec1d9786673a800ba919c0ebbb3fa6c3bc282fd1646a55f664aebdc30788"
+      },
+      "cohort-elder-v2.webp": {
+        "sha256": "c610016250e96318e5953174732d8705b4ccb37d86b2eed6903c534407001763"
+      }
+    },
+    "visualApproval": "pending",
+    "sourceDigests": {
+      "packages/animations/src/correction-sampler.js": "c24cc40e7a8ad254f9e68abba065155bb375481e96e2ded5a49c0fe7e577ffc6",
+      "packages/animations/src/weapon-calibration.js": "52131acf9715188703a8ab1c0780431cc47319729b414ce1e1b8aadc2a8c94d0",
+      "packages/rendering/src/motion-quality.js": "f74db2a3bf00dc1c9fd14e3821615f4f99a953e78b3630fc67843376028b25bd",
+      "apps/rinne/src/character-motion-qa.js": "0d4f89fe651a525b9550e84c91ccb956f8c84c02e1dee44cd18f30a6f9efd889",
+      "apps/rinne/src/character-review.js": "61ecf7f6f333c8e4f4a741e02c94bac570b436779e3a6f77f774d76539150520"
+    }
+  }
+}

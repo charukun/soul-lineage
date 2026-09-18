@@ -1,0 +1,82 @@
+import * as T from '../vendor/three.js';
+import {HumanoidRuntime as BaseHumanoidRuntime} from './humanoid-life.js';
+import {weaponInertiaEnvelope} from './humanoid-dynamics.js';
+import {localPersonality,localLocomotion,localInteraction,localCondition,localMicro,localPairedImpact,localAdaptation,localSyncFrame,localReconcile} from './motion-interaction-math.js';
+
+export const HUMANOID_INTERACTION_REVISION='motion-interaction-1';
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const finite=(...v)=>v.every(Number.isFinite);
+const q=()=>new T.Quaternion();
+const v=(x=0,y=0,z=0)=>new T.Vector3(x,y,z);
+const point3=value=>value?.isVector3?value.clone():(Array.isArray(value)||ArrayBuffer.isView(value))?v().fromArray(value):v(value?.x??0,value?.y??0,value?.z??0);
+const writePoint=(target,value)=>{if(Array.isArray(target)||ArrayBuffer.isView(target)){target[0]=value.x;target[1]=value.y;target[2]=value.z;}else if(target?.copy)target.copy(value);else if(target&&typeof target==='object')Object.assign(target,value);};
+const writeMatrix=(target,matrix)=>{if(target?.set)target.set(matrix.elements);else if(target)for(let i=0;i<16;i++)target[i]=matrix.elements[i];};
+function rigidTransformResult(result,origin,yaw,offset){if(!result||!origin||!offset||![origin.x,origin.z,yaw,offset.x,offset.y??0,offset.z].every(Number.isFinite))return;const full=new T.Matrix4().makeTranslation(offset.x,offset.y??0,offset.z).multiply(new T.Matrix4().makeTranslation(origin.x,0,origin.z)).multiply(new T.Matrix4().makeRotationY(yaw)).multiply(new T.Matrix4().makeTranslation(-origin.x,0,-origin.z));for(const key of ['a','b','weaponBase','weaponTip'])if(result[key])writePoint(result[key],point3(result[key]).applyMatrix4(full));for(const key of ['sm','leftSocket','rightSocket','carry'])if(result[key])writeMatrix(result[key],full.clone().multiply(new T.Matrix4().fromArray(result[key])));}
+
+function personalityFor(a){
+ const explicit=a?._motionPersonality??a?.motionPersonality;if(typeof explicit==='string')return explicit;
+ const age=Number(a?.ageYears??a?.age);if(Number.isFinite(age)&&age<12)return'child';if(Number.isFinite(age)&&age>=65)return'elderly';
+ if(['great','axe'].includes(a?.weapon))return'heavy';if(a?.weapon==='katana')return'nimble';return'neutral';
+}
+function fatigueFor(a){
+ if(Number.isFinite(a?._motionFatigue))return clamp(a._motionFatigue);
+ if(Number.isFinite(a?.fatigue))return clamp(a.fatigue);
+ const stamina=Number(a?.stamina),maximum=Number(a?.maxStamina??a?.staminaMax);return Number.isFinite(stamina)&&Number.isFinite(maximum)&&maximum>0?clamp(1-stamina/maximum):0;
+}
+function injuriesFor(a){const value=a?._motionInjuries??a?.injuries;return value&&typeof value==='object'?value:{};}
+function bodyFor(a,c){const explicit=a?._motionBody;if(explicit&&typeof explicit==='object')return explicit;const scale=Number(c?.ageAppearance?.scale)||1;return{height:scale,width:1,armLength:scale,legLength:scale};}
+function interactionFor(a){const spec=a?._motionInteraction;return spec&&typeof spec==='object'?spec:null;}
+function syncSnapshot(c,names){if(!c.lastActual)return;for(const name of names){const b=c.bones[name],saved=c.lastActual[name];if(b&&saved){saved.p.copy(b.position);saved.q.copy(b.quaternion);}}}
+function beatSerial(beat){const explicit=Number(beat?.serial);if(Number.isFinite(explicit)&&explicit>=0)return explicit;const parsed=Number(String(beat?.id??'').split(':').at(-1));return Number.isFinite(parsed)&&parsed>=0?parsed:0;}
+
+export class HumanoidRuntime extends BaseHumanoidRuntime{
+ constructor(api){super(api);this._interaction={active:null,history:new Map(),paired:null,plan:null,sync:null,reconciliation:null};this.installPairedImpactChannel();}
+
+ installPairedImpactChannel(){
+  const channels=globalThis.__RINNE_IMPACT_CHANNELS__??{};if(channels.__motionInteractionPaired)return;const previous=channels['hit-reaction'];channels['hit-reaction']=beat=>{try{previous?.(beat);}catch{}if(beat?.actorId==null)return;let actors=[];try{actors=globalThis.__HUMANOID_LAB__?.actors?.()??[];}catch{}const attacker=actors.find(actor=>String(actor?.id)===String(beat.actorId));if(attacker)attacker._pairedImpactBeat=beat;};Object.defineProperty(channels,'__motionInteractionPaired',{value:true});globalThis.__RINNE_IMPACT_CHANNELS__=channels;
+ }
+
+ prepareInteractionState(a){
+  const c=this.current,key=String(a?.id??'hero'),clock=Number(a?._humanoidClock)||0,speed=Math.hypot(Number(a?.vx)||0,Number(a?.vz)||0),yaw=Number(a?.yaw)||0,prev=this._interaction.history.get(key)??{clock,speed:0,yaw},dt=clamp(clock-prev.clock||1/60,1/240,.1),personality=localPersonality(personalityFor(a),a?._motionPersonalityOverrides||{}),condition=localCondition({fatigue:fatigueFor(a),injuries:injuriesFor(a)}),adaptation=localAdaptation(bodyFor(a,c)),locks=c?.footLocks||{},plantedSide=locks.left?.locked&&!locks.right?.locked?'left':locks.right?.locked&&!locks.left?.locked?'right':((Number(a?._humanoidPhase)||0)%1<.5?'left':'right'),locomotion=localLocomotion({speed,previousSpeed:prev.speed,yaw,previousYaw:prev.yaw,dt,plantedSide}),micro=localMicro({time:clock,seed:key,fatigue:condition.fatigue,personality});
+  return{key,clock,speed,yaw,dt,personality,condition,adaptation,locomotion,micro};
+ }
+
+ ground(c,a,d,commit){
+  const state=this._interaction.active;if(state&&d.type!=='death'){
+   const {personality,condition,adaptation,locomotion,micro}=state,add=(name,e)=>{const b=c.bones[name];if(b)b.quaternion.multiply(q().setFromEuler(e)).normalize();},limpSign=condition.limpSide==='left'?-1:condition.limpSide==='right'?1:0,moveScale=adaptation.strideScale*personality.stride*condition.speedScale;
+   // Clock-driven micro motion must meet the authored attack's exact endpoint poses.
+   // Use descriptor time so speculative weapon samples obey the same boundary.
+   const microWeight=d.type==='attack'?weaponInertiaEnvelope(d.time):1;
+   add('hips',new T.Euler(locomotion.pelvisLean*.16+micro.breath*.16*microWeight,locomotion.turnLean*.22*personality.turnSharpness,limpSign*condition.limp+micro.swayX*.35*microWeight,'YXZ'));
+   add('spine',new T.Euler(personality.posture*.24+condition.torsoGuard*.30+micro.breath*.32*microWeight,locomotion.turnLean*.12,micro.swayX*.42*microWeight,'YXZ'));
+   add('head',new T.Euler(micro.headPitch*microWeight,0,micro.headYaw*.35*microWeight,'YXZ'));
+   if(['walk','run'].includes(d.type)){const left=c.bones.leftUpperLeg,right=c.bones.rightUpperLeg;if(left)left.quaternion.multiply(q().setFromEuler(new T.Euler((moveScale-1)*.05*condition.strideLeft,0,0,'YXZ'))).normalize();if(right)right.quaternion.multiply(q().setFromEuler(new T.Euler((moveScale-1)*.05*condition.strideRight,0,0,'YXZ'))).normalize();}
+   if(d.type==='attack'||d.type==='combat'){if(c.bones.leftShoulder)c.bones.leftShoulder.quaternion.multiply(q().setFromEuler(new T.Euler(0,0,condition.shoulderDropLeft,'YXZ'))).normalize();if(c.bones.rightShoulder)c.bones.rightShoulder.quaternion.multiply(q().setFromEuler(new T.Euler(0,0,-condition.shoulderDropRight,'YXZ'))).normalize();const sag=condition.weaponSag*(a.weapon==='great'||a.weapon==='axe'?1.15:1)*adaptation.weaponArcScale;if(c.bones.rightUpperArm)c.bones.rightUpperArm.quaternion.multiply(q().setFromEuler(new T.Euler(sag*.18,0,0,'YXZ'))).normalize();}
+   c.root.updateMatrixWorld(true);
+  }
+  super.ground(c,a,d,commit);
+  if(state&&commit)syncSnapshot(c,['hips','spine','head','leftUpperLeg','rightUpperLeg','leftShoulder','rightShoulder','rightUpperArm']);
+ }
+
+ applyInteractionPlan(c,a,result,commit){
+  if(!commit)return null;const spec=interactionFor(a);if(!spec)return null;const partner=spec.partner;if(!partner||!finite(partner.x,partner.z))return null;const anchorSelf=spec.anchorSelf??{x:c.root.position.x,y:c.root.position.y,z:c.root.position.z},anchorPartner=spec.anchorPartner??{x:partner.x,y:Number(partner.y)||0,z:partner.z},plan=localInteraction({actorA:{x:a.x,y:Number(a.y)||0,z:a.z,yaw:a.yaw},actorB:{x:partner.x,y:Number(partner.y)||0,z:partner.z,yaw:partner.yaw},anchorA:anchorSelf,anchorB:anchorPartner,massA:Number(spec.massSelf)||1,massB:Number(spec.massPartner)||1,maxTranslation:Number.isFinite(spec.maxTranslation)?spec.maxTranslation:.22,maxYaw:Number.isFinite(spec.maxYaw)?spec.maxYaw:.35}),offset=plan.a.offset,yaw=plan.a.yaw,origin={x:c.root.position.x,z:c.root.position.z};
+  c.root.position.x+=offset.x;c.root.position.y+=offset.y;c.root.position.z+=offset.z;c.root.rotation.y+=yaw;c.root.updateMatrixWorld(true);rigidTransformResult(result,origin,yaw,offset);this._interaction.plan=plan;return plan;
+ }
+
+ applyPairedResponse(c,a,result,commit){
+  if(!commit)return null;const defender=!!(a?.reaction&&a?._impactBeat?.direction),beat=defender?a._impactBeat:a?._pairedImpactBeat;if(!beat?.direction)return null;const response=localPairedImpact({serial:beatSerial(beat),direction:beat.direction,strength:beat.strength??1,massAttacker:Number(a?._motionAttackerMass)||1,massDefender:Number(a?._motionMass)||1}),clock=Number(a?._humanoidClock)||0;let envelope,part,role;
+  if(defender){const phase=clamp((a.reaction.t||0)/Math.max(.05,a.reaction.duration||.25));envelope=Math.sin(Math.PI*phase);part=response.defender;role='defender';}
+  else{const age=clock-Number(beat.clock||0),duration=.14;if(age<0||age>duration){if(age>duration&&a._pairedImpactBeat===beat)a._pairedImpactBeat=null;return null;}envelope=Math.sin(Math.PI*clamp(age/duration));part=response.attacker;role='attacker';}
+  const offset={x:part.offset.x*envelope,y:0,z:part.offset.z*envelope},origin={x:c.root.position.x,z:c.root.position.z};c.root.position.x+=offset.x;c.root.position.z+=offset.z;c.root.updateMatrixWorld(true);rigidTransformResult(result,origin,0,offset);this._interaction.paired={...response,envelope,role};return this._interaction.paired;
+ }
+
+ sample(a,at=null,px=a.x,pz=a.z,commit=false){
+  const previous=this._interaction.active,state=this.prepareInteractionState(a);this._interaction.active=state;let result;try{result=super.sample(a,at,px,pz,commit);}finally{this._interaction.active=previous;}const c=this.current;if(!result||!c)return result;if(commit){this._interaction.plan=null;this._interaction.paired=null;this.applyInteractionPlan(c,a,result,true);this.applyPairedResponse(c,a,result,true);c.root.updateMatrixWorld(true);for(const proxy of c.shadowMeshes){proxy.matrix.copy(proxy.userData.source.matrixWorld);proxy.matrixWorldNeedsUpdate=true;}this._interaction.history.set(state.key,{clock:state.clock,speed:state.speed,yaw:state.yaw});c.interactionMotion={personality:state.personality,condition:state.condition,adaptation:state.adaptation,locomotion:state.locomotion,micro:state.micro,paired:this._interaction.paired,plan:this._interaction.plan};}return result;
+ }
+
+ interactionPlan(input){return localInteraction(input);}
+ pairedImpact(input){return localPairedImpact(input);}
+ motionSyncFrame(a,{sequence=0}={}){const state=this._interaction.history.get(String(a?.id??'hero'))??{clock:Number(a?._humanoidClock)||0};let target=a?._motionGazeTarget??a?.attack?.targetActor??a?.attack?.target??null;try{target??=this.api.gazeTarget?.(a)??null;}catch{}const lockedTargetId=target&&typeof target==='object'?target.id??null:a?.attack?.targetId??target??null,frame=localSyncFrame({actorId:a?.id??'hero',sequence,clock:state.clock??0,state:a?.attack?.kind?'attack':a?.reaction?'hit':a?.recovery?'recovery':Math.hypot(a?.vx||0,a?.vz||0)>.05?'move':'idle',phase:this.api.progress(a),lockedTargetId,impactSerial:a?._impactBeat?.serial??a?._hitSerial??0,position:{x:a?.x||0,z:a?.z||0},yaw:a?.yaw||0,condition:{fatigue:fatigueFor(a),injuries:injuriesFor(a)}});this._interaction.sync=frame;return frame;}
+ reconcileMotion(local,remote,options){const result=localReconcile(local,remote,options);this._interaction.reconciliation=result;return result;}
+ report(){return{...super.report(),interaction:{revision:HUMANOID_INTERACTION_REVISION,current:this.current?.interactionMotion??null,paired:this._interaction.paired,plan:this._interaction.plan,sync:this._interaction.sync,reconciliation:this._interaction.reconciliation}};}
+}

@@ -1,0 +1,61 @@
+# RINNE 3D Production Standard
+
+This directory is the repository-level production standard for 3D art work in 輪廻転焦. It defines how an implementation worker should choose references, edit real assets, preserve compatibility, and prove visual quality. It is not an Astra-only prompt library and it does not replace model-specific contracts.
+
+## Authority order
+
+When guidance conflicts, use this order:
+
+1. Current repository rules and latest `develop`.
+2. The applicable model/runtime contract under `docs/characters/` or an app/package contract.
+3. Approved character/environment reference sheets and accepted in-game visual direction.
+4. Existing reviewed source assets, provenance and license ledger.
+5. This directory's production methods and review procedure.
+6. External tutorials and tool-specific workflows as non-normative technique references.
+
+Never let a tutorial silently override an audited asset, license restriction, gameplay contract, rig/socket requirement, collision rule, renderer boundary or performance gate.
+
+## Routing
+
+Read only the standards relevant to the task:
+
+| Task | Required standard |
+| --- | --- |
+| Rinne game construction, default playable character/art direction, KayKit reuse | `KAYKIT_GAME_AXIS.md` + `docs/characters/CHARACTER_LICENSE_POLICY.md` |
+| Character mesh, face, hair, body, clothing, accessories, Blender character assembly, variant art | `CHARACTER_MODELING.md` + `docs/characters/CHARACTER_ASSET_SOURCING.md` + `docs/characters/CHARACTER_LICENSE_POLICY.md` |
+| Facial expressions, smile/blink/visemes, reference-guided shape keys | [FACIAL_EXPRESSION_WORKFLOW.md](FACIAL_EXPRESSION_WORKFLOW.md) + `CHARACTER_MODELING.md` section 7 |
+| Visual polish, model comparison, render/runtime acceptance, before/after evidence | `VISUAL_REVIEW.md` |
+| Rig/animation/material/export work that also changes character appearance | both files, plus the applicable `docs/characters/*` contract |
+| Environment/building/prop production asset addition or replacement | `VISUAL_ASSET_RULE.md` |
+| Pure UI/code work with no 3D appearance or asset impact | these files are not required |
+
+KayKit-first is the current Rinne game-construction axis. Read `KAYKIT_GAME_AXIS.md` for the playable runtime direction, `docs/characters/KAYKIT_FOUNDATION.md` for the game-facing CC0 foundation, and `docs/characters/CHARACTER_LICENSE_POLICY.md` for the asset-adoption gate. New gameplay character and motion work uses KayKit or a fully RINNE-owned asset by default. Models with model-specific commercial-use conditions are retired from active runtime, review candidates and Production distribution. Legacy IDs/schema may remain only where migration compatibility requires them.
+
+When a task adds or replaces character geometry, follow `docs/characters/CHARACTER_ASSET_SOURCING.md`: inspect reviewed repository assets, search the approved external discovery catalogs, apply the existing license/provenance gate, and import the real eligible source asset before DCC adaptation. Generative 3D services are not an authorized character asset source or fallback. If no eligible source can satisfy the role, create a fully RINNE-owned asset through the normal DCC pipeline. Rebuilding an available imported model with runtime primitives is not a reproduction; it remains `BLOCKOUT`.
+
+For production environment/building/prop geometry, use the single `visualAssetId` contract in `VISUAL_ASSET_RULE.md`. The former phase-specific Public GitHub/Web catalogs are retired; do not recreate parallel sourcing catalogs.
+
+## Core rule
+
+The worker owns the implementation method. The repository owns the target, invariants and acceptance evidence.
+
+A request such as "improve the model" must not be completed by changing only lighting, colors, screenshots or descriptive text when the defect is geometric. A generated image is not evidence that the runtime model improved. A GLB/VRM that exports successfully is not proof that the character looks correct or deforms correctly.
+
+Use real editable assets, preserve already-approved work, and make local changes before broad rewrites. If a requested tool path is unavailable, check another allowed path before declaring the task impossible. Blender MCP is one possible Blender control path, not the definition of Blender availability and not a reason to substitute a primitive mock-up for the requested asset.
+
+## Minimal character refinement loop
+
+For short-term quality improvement, prefer a small repeatable loop over broad model replacement:
+
+1. Reuse the current reviewed DCC/source asset as the base when it is compatible with the character license policy; do not restart the whole character by default.
+2. Compare the same candidate in fixed `front`, `three-quarter`, `side`, and `back` views.
+3. Check the repository's small structural checklist for silhouette/proportion, side profile, joint readability, hands, hair consistency, and back-view identity.
+4. Repair only failed regions and preserve regions that already pass.
+5. Repeat for at most three refinement rounds. Remaining failures stay explicit instead of being hidden by another camera/light setup.
+6. Search external/open-source references only for the unresolved failing part, with provenance/license review before reuse. Replacing the whole model is a fallback, not the first response.
+
+The provider-neutral model build request and Character Workshop QA should expose the same checklist and three-round limit so humans and implementation workers review the same contract. This loop does not grant visual approval or advance Character Production stages by itself.
+
+## Growth rule
+
+Update these standards when a repeated production failure is understood well enough to prevent recurrence. Prefer a small durable rule plus a verification step over a large model-specific prompt. Do not turn temporary session problems into permanent global restrictions.

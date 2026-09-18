@@ -1,0 +1,7 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "rinne-portal",
+  "main": "portal/legacy-redirect.mjs",
+  "compatibility_date": "2026-09-12",
+  "workers_dev": true
+}
