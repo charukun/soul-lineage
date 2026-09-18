@@ -209,7 +209,7 @@ async function suppressNotification(store, id, reason, liveHead = null) {
   });
 }
 
-export async function notifyOutbox(c, store, { url = '', token = '', request = fetch } = {}) {
+export async function notifyOutbox(c, store) {
   const initial = await store.read();
   const due = initial.state.outbox.filter(n => [
     !n.sentAt,
@@ -253,17 +253,13 @@ export async function notifyOutbox(c, store, { url = '', token = '', request = f
         : `Integration Rescue\nFAILED\nPR: #${item.pr}\nstate: FAILED_MANUAL\nattempt: ${item.attempt}/${item.maxAttempts}\nreason: ${item.reason}\nnext action: human or approved Work review required`
         : `Integration Rescue\nREADY_FOR_INTEGRATION\nWave: ${item.wave}\nReturned to Integration: ${wave.prs.map(n => '#' + n).join(' ')}\nManual: ${wave.manual.map(n => '#' + n).join(' ') || 'none'}\nCI/browser monitoring: Integration; repair workers ended`;
       if (aiRepair) await signalWorkRepair(c, item, record, message, state);
-      if (url) {
-        const latest = item.type === 'manual' ? await store.read() : null;
+      if (item.type === 'manual' && !aiRepair) {
+        const latest = await store.read();
         const recheck = latest?.state?.records ? await prepareManualNotification(c, latest.state, item) : { send: true };
         if (!recheck.send) {
           await suppressNotification(store, item.id, recheck.reason, recheck.liveHead);
           continue;
         }
-        if (!url.startsWith('https://')) throw new Error('NTFY_HTTPS_REQUIRED');
-        const response = await request(url, { method: 'POST', headers: { 'Content-Type': 'text/plain; charset=utf-8', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: message, signal: AbortSignal.timeout(10000) });
-        if (!response.ok) throw new Error(`NTFY_FAILED:${response.status}`);
-      } else if (item.type === 'manual' && !aiRepair) {
         const marker = `<!-- integration-rescue-notice:${item.id} -->`;
         const comments = await c.pages(`/issues/${item.pr}/comments`, undefined, { maxPages: 3 });
         if (!comments.some(comment => comment.body?.includes(marker))) await c.api('POST', `${c.root}/issues/${item.pr}/comments`, { body: `${marker}\n${message}` });
@@ -272,7 +268,7 @@ export async function notifyOutbox(c, store, { url = '', token = '', request = f
         const entry = state.outbox.find(n => n.id === item.id);
         if ([Boolean(entry), !entry?.suppressedAt].every(Boolean)) {
           entry.sentAt = new Date().toISOString();
-          entry.channel = aiRepair ? 'github-pr+work-signal' : url ? 'ntfy' : item.type === 'manual' ? 'github-pr' : 'pulse-summary';
+          entry.channel = aiRepair ? 'github-pr+work-signal' : item.type === 'manual' ? 'github-pr' : 'pulse-summary';
         }
       });
     } catch (error) {
@@ -313,11 +309,7 @@ async function main() {
   if (process.env.GITHUB_REPOSITORY !== REPOSITORY || process.env.GITHUB_REF !== 'refs/heads/develop') throw new Error('RESCUE_TRUSTED_DEVELOP_ONLY');
   if (process.argv[2] === '--coordinator-failure') {
     const message = `Integration Rescue\nFAILED\nCoordinator stopped. Existing claims remain fenced.\nRun: https://github.com/${REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}\nNext action: inspect diagnostics; independent watchdog will retry a bounded scan.`;
-    if (process.env.NTFY_TOPIC_URL) {
-      if (!process.env.NTFY_TOPIC_URL.startsWith('https://')) throw new Error('NTFY_HTTPS_REQUIRED');
-      const response = await fetch(process.env.NTFY_TOPIC_URL, { method: 'POST', headers: { 'content-type': 'text/plain; charset=utf-8', ...(process.env.NTFY_TOKEN ? { Authorization: `Bearer ${process.env.NTFY_TOKEN}` } : {}) }, body: message, signal: AbortSignal.timeout(10000) });
-      if (!response.ok) throw new Error(`NTFY_FAILED:${response.status}`);
-    } else console.error(message);
+    console.error(message);
     return;
   }
   const config = rescueConfig(process.env), c = rescueClient(process.env.GH_TOKEN, config), store = new RescueStore(c, config);
@@ -328,7 +320,7 @@ async function main() {
     appendFileSync(process.env.GITHUB_OUTPUT, `stack_has_work=${matrix.length > 0}\n`);
     appendFileSync(process.env.GITHUB_OUTPUT, `stack_matrix=${JSON.stringify({ include: matrix })}\n`);
   }
-  await notifyOutbox(c, store, { url: process.env.NTFY_TOPIC_URL, token: process.env.NTFY_TOKEN });
+  await notifyOutbox(c, store);
   console.log(JSON.stringify({ returned, stackReconciliation: stacks, stackValidation: matrix }));
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) await main();
