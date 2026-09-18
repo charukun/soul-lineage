@@ -184,6 +184,8 @@ Focused runtime evidence added after the research model: 10/10 shadow tests pass
 
 ### Stage 2: shadow recovery
 
+The in-process research model already proves the intended reconstruction rule over finite fixtures, but **restart-spanning live shadow recovery is not implemented in this PR**. The first durable commit of each Host process is a warm baseline. Persisting diagnostic shadow state safely needs an explicit coverage anchor to the authoritative history root/sequence; a stale diagnostic file must become UNKNOWN/coverage-gap, not a false divergence or false success. This remains the next implementation boundary rather than being faked with another whole authoritative checkpoint.
+
 Retain provisional checkpoints at multiple RPO settings; recover an isolated shadow state from checkpoint + protected journal/snapshot; compare protected state exactly and provisional rollback quantitatively; exercise prefix compaction, retries and epochs without changing the live player's authority.
 
 ### Stage 3: matched physical experiment
@@ -216,7 +218,7 @@ Current isolated result:
 - provisional-RPO and protected-compaction Pareto curves retained;
 - fair event-sourcing baseline matches candidate strong bytes in each tested envelope.
 
-Machine-readable evidence: [`evidence/RRP_CONVERGENCE_SEMANTIC_KERNEL_20260918.json`](evidence/RRP_CONVERGENCE_SEMANTIC_KERNEL_20260918.json). Environment: Node v22.16.0, Linux x64, isolated repository-like workspace. No full checkout: `context:plan`, `npm ci`, repository-wide Node 24 gates, original `reality-architecture-proof.mjs`, browser/WebRTC and physical-device tests are not claimed.
+Initial research-snapshot evidence at head `8ea7b6f127f0097e5184c16774d1cd2ad0cace17`: [`evidence/RRP_CONVERGENCE_SEMANTIC_KERNEL_20260918.json`](evidence/RRP_CONVERGENCE_SEMANTIC_KERNEL_20260918.json). Later live-runtime changes are intentionally not represented by those recorded source hashes; their exact Git blobs and executed checks are in [`evidence/RRP_CONVERGENCE_RUNTIME_SHADOW_20260918.json`](evidence/RRP_CONVERGENCE_RUNTIME_SHADOW_20260918.json). Environment: Node v22.16.0, Linux x64, isolated repository-like workspace. No full checkout: `context:plan`, `npm ci`, repository-wide Node 24 gates, original `reality-architecture-proof.mjs`, browser/WebRTC and physical-device tests are not claimed.
 
 ## Remaining boundary
 
