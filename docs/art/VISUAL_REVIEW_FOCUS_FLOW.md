@@ -19,7 +19,19 @@ Visual Review is a launcher, not a dashboard. The reviewer chooses one thing to 
 
 App context belongs inside the specialist surface that can actually apply it. Character/Motion may expose their existing context controls. The launcher does not maintain a second global app-context state.
 
-## Battle review
+## Effects review
+
+Effects review is a browsing surface before it is a tuning surface. It must stay useful when the effect catalog grows from a handful of authored effects to dozens or hundreds.
+
+- Keep one real runtime preview stage; do not create one WebGL/Effekseer context per catalog card.
+- Present the available review entries as a responsive gallery with fast text search and category filters.
+- Selecting a card must immediately make it active and replay it on the shared stage, so scanning the catalog is a tap/click loop rather than a form workflow.
+- Keep the active card visually obvious and keep the catalog reachable while the stage is visible on desktop and narrow mobile layouts.
+- Preserve the existing playback controls (speed, load tier, loop, reduced motion, pause, clear, camera reset) as secondary controls rather than the primary discovery UI.
+- The gallery is source-agnostic UI. This task must not add network discovery, remote importing, or a second VFX source of truth.
+- Cards may expose lightweight review metadata such as category, component count, and authored source label, but must not pretend a static decorative thumbnail is the real effect.
+- The same authored effect player / Effekseer backend remains the preview truth; selecting catalog entries changes presentation input only.
+
 
 Battle review must continue to consume the real current `RaidHost -> Tidebreak` battle state and must not invent a second combat clock or hit logic.
 
