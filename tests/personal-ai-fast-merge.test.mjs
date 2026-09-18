@@ -13,7 +13,7 @@ test('Ready exact-head CI enters the serialized develop merge guard without a di
   assert.doesNotMatch(ci, /integration-request:/);
   assert.doesNotMatch(ci, /workflow_id: 'deploy\.yml'[\s\S]{0,400}Request Integration/);
 
-  assert.match(development, /別の Integration 担当へ handoff する工程は通常経路に置かない/);
+  assert.match(development, /Integration という工程自体を通常経路に置かない/);
   assert.match(development, /single-writer merge lane/);
   assert.doesNotMatch(development, /READY_FOR_INTEGRATION.*で終了/);
 
