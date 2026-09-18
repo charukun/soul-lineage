@@ -63,6 +63,19 @@ test('static world geometry swaps to a real low triangle proxy only at distance'
   mesh.__stylizedLODState.proxy.dispose(); original.dispose(); mesh.material.dispose();
 });
 
+test('silhouette-preserving environment roots never install a bounding-box proxy', () => {
+  const original = new THREE.SphereGeometry(1, 16, 12);
+  const mesh = new THREE.Mesh(original, new THREE.MeshStandardMaterial());
+  const root = new THREE.Group(); root.userData.preserveStylizedSilhouette = true; root.add(mesh);
+  applyStylizedArtProfile(root, 'environment', { cloneMaterials: false });
+  const result = installStylizedGeometryLOD(root, 'environment');
+  assert.equal(result.installed, 0);
+  assert.equal(result.preserved, true);
+  assert.equal(mesh.__stylizedLODState, undefined);
+  assert.equal(mesh.geometry, original);
+  original.dispose(); mesh.material.dispose();
+});
+
 test('orthographic top-down LOD uses ground focus distance instead of camera altitude', () => {
   const original = new THREE.SphereGeometry(1, 16, 12);
   const mesh = new THREE.Mesh(original, new THREE.MeshStandardMaterial());
