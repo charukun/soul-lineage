@@ -15,7 +15,7 @@
 2. **Sync & merge** — merge-forward current `develop`, revalidate, push, verify freshness, mark Ready, then the same task worker merges the exact validated head to `develop`.
 3. **Deploy** — the `develop` push starts asynchronous DEV publication. Do not wait or poll for it.
 
-Ready is transient, not success. Normal success is `MERGED_TO_DEVELOP`. Report `FAILED` only when a real blocker remains.
+Ready for review is transient, not a success terminal. Normal success is `MERGED_TO_DEVELOP`. Report `FAILED` only when a real blocker remains.
 
 A qualifying Micro Patch may skip Draft PR creation, but never skips focused validation, latest-develop reconciliation, freshness verification, or same-task merge. See `docs/MICRO_PATCH_FAST_LANE.md`.
 

@@ -104,7 +104,14 @@ async function preloadGroup(target, spec, sessionId) {
   await broadcast(target, {state: 'loading', completed, total, detail: '画面を準備中'}, sessionId);
 
   try {
-    const documentPayload = await fetchPayload(routeUrl);
+    const documentResponse = await fetch(routeUrl, {cache: 'no-store', credentials: 'same-origin'});
+    if (!documentResponse.ok) throw new Error(`${routeUrl}: HTTP ${documentResponse.status}`);
+    const documentPayload = {
+      body: await documentResponse.arrayBuffer(),
+      status: documentResponse.status,
+      statusText: documentResponse.statusText,
+      headers: [...documentResponse.headers.entries()]
+    };
     const discovered = discoverDocumentAssets(documentPayload, routeUrl);
     const extras = Array.isArray(spec.assets) ? spec.assets.map(absoluteUrl) : [];
     const resources = [...new Set([...discovered, ...extras])].filter(url => url !== routeUrl);
