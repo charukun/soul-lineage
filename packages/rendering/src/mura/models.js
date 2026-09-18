@@ -1,6 +1,6 @@
 import {ASSETS} from './asset-data.js';
 import {NATURE} from './nature-data.js';
-import {defs} from '@soul/world/mura/catalog';
+import {defs,muraDoorWidth} from '@soul/world/mura';
 import {visualAssetById} from '@soul/assets';
 
 /** Inject the host renderer's Three instance; no second engine or DOM globals. */
@@ -39,7 +39,7 @@ function assemble(kind,level=1){
  }
  return geometries;
 }
-function masonryBuilding(kind,material="base",level=1){const key=kind+":"+level;if(!templates.has(key))templates.set(key,assemble(kind,level));const g=new T.Group(),d=defs[kind];for(const [group,geo]of Object.entries(templates.get(key))){let c=palette[group]||palette.stone;if(group==='stone')c=material==='timber'?0xbb9976:material==='stone'?0xb5beb8:material==='earth'?0xd2b084:c;if(group==='stoneDark'&&material==='stone')c=0x8e9d99;if(group==='roof')c=d.roof;if(group==='roofLight')c=new T.Color(d.roof).lerp(new T.Color(0xffe6ad),.25).getHex();const m=mesh(g,geo,mat(c));m.userData.source='Kenney Fantasy Town Kit';}g.userData.assetBacked=true;return g;}
+function masonryBuilding(kind,material="base",level=1){const key=kind+":"+level;if(!templates.has(key))templates.set(key,assemble(kind,level));const g=new T.Group(),d=defs[kind];for(const [group,geo]of Object.entries(templates.get(key))){let c=palette[group]||palette.stone;if(group==='stone')c=material==='timber'?0xbb9976:material==='stone'?0xb5beb8:material==='earth'?0xd2b084:c;if(group==='stoneDark'&&material==='stone')c=0x8e9d99;if(group==='roof')c=d.roof;if(group==='roofLight')c=new T.Color(d.roof).lerp(new T.Color(0xffe6ad),.25).getHex();const m=mesh(g,geo,mat(c));m.userData.source='Kenney Fantasy Town Kit';}g.userData.assetBacked=true;g.userData.entryVisual='acquired-doorway';g.userData.localFront='+Z';return g;}
 function prop(kind,seed=1){const g=new T.Group(),wood=0x8a6345,dark=0x614d3b;
  if(kind==='terrainRock'){g.add(rawAsset('stone',{stone:0x9aa393},[13,14,13]));}
  else if(kind==='fence'){
@@ -61,25 +61,25 @@ function prop(kind,seed=1){const g=new T.Group(),wood=0x8a6345,dark=0x614d3b;
  box(g,.35,1.91,0,.34,.47,.34,0x694c34);mesh(g,unitBox,mat(0xffdf96,false,{emissive:0xffc269,emissiveIntensity:.55}),.35,1.94,0,.26,.33,.37);
  mesh(g,coneGeo,mat(0x685745),.35,2.25,0,.34,.25,.34);
  }else if(kind==='bench'){
- for(const x of[-1.05,1.05]){box(g,x,.38,0,.18,.75,.9,dark);box(g,x,1.12,-.45,.12,1.1,.15,dark);}for(let i=0;i<3;i++){box(g,0,.78,-.32+i*.32,2.7,.12,.26,wood);box(g,0,1.1+i*.18,-.47,2.7,.13,.09,wood);}
+ const d=defs[kind],w=d.w,depth=d.d;for(const x of[-w*.38,w*.38]){box(g,x,.32,0,.11,.64,depth*.72,dark);box(g,x,.83,-depth*.34,.09,.78,.11,dark);}for(let i=0;i<3;i++){box(g,0,.55,-depth*.22+i*depth*.22,w,.09,depth*.20,wood);box(g,0,.76+i*.13,-depth*.36,w,.09,.07,wood);}
  }else if(kind==='path'){
  const geo=new T.CylinderGeometry(1.7,1.7,.035,8);mesh(g,geo,mat(0xd5c5a6),0,.018,0,1,1,1);
  }else if(kind==='bed'){
- box(g,0,.35,0,2.05,.5,3.3,wood);box(g,0,1.05,-1.56,2.15,1.45,.18,wood);
- box(g,0,.7,0,1.95,.25,3.1,0xf0e2c8);box(g,0,.91,.45,1.96,.17,2,0x80a99d);box(g,0,.98,-1.03,1.55,.25,.65,0xffefda);
+ const d=defs[kind];box(g,0,.28,0,d.w-.05,.38,d.d-.08,wood);box(g,0,.74,-d.d*.45,d.w,.9,.11,wood);
+ box(g,0,.51,0,d.w-.14,.18,d.d-.18,0xf0e2c8);box(g,0,.67,d.d*.14,d.w-.13,.12,d.d*.55,0x80a99d);box(g,0,.73,-d.d*.32,d.w*.72,.18,d.d*.18,0xffefda);
  }else if(kind==='sofa'){
- box(g,0,.4,0,3.3,.6,1.6,wood);box(g,0,.94,0,3,.65,1.48,0xc69092);box(g,0,1.24,-.62,3.15,1.2,.4,0xb98788);for(const x of[-1.45,1.45])box(g,x,1,0,.3,.9,1.7,0xc99b9b);
+ const d=defs[kind];box(g,0,.32,0,d.w-.04,.42,d.d-.08,wood);box(g,0,.67,.03,d.w-.16,.42,d.d-.16,0xc69092);box(g,0,.91,-d.d*.36,d.w-.10,.62,.18,0xb98788);for(const x of[-d.w*.43,d.w*.43])box(g,x,.72,0,.18,.62,d.d,0xc99b9b);
  }else if(['table','counter','workbench'].includes(kind)){
- const d=defs[kind];box(g,0,1.15,0,d.w,.18,d.d,wood);for(const x of[-d.w*.4,d.w*.4])for(const z of[-d.d*.38,d.d*.38])box(g,x,.56,z,.18,1.1,.18,dark);
- if(kind==='counter')box(g,0,.65,0,d.w,.9,d.d*.8,0xad8b61);if(kind==='workbench'){for(let i=0;i<4;i++)box(g,-.9+i*.5,1.36,0,.32,.15,.4,[0xb18c64,0x738e9b][i%2]);}
+ const d=defs[kind];box(g,0,.82,0,d.w,.12,d.d,wood);for(const x of[-d.w*.4,d.w*.4])for(const z of[-d.d*.36,d.d*.36])box(g,x,.39,z,.11,.78,.11,dark);
+ if(kind==='counter')box(g,0,.48,0,d.w,.62,d.d*.8,0xad8b61);if(kind==='workbench'){for(let i=0;i<4;i++)box(g,-d.w*.3+i*d.w*.2,.98,0,d.w*.12,.1,d.d*.42,[0xb18c64,0x738e9b][i%2]);}
  }else if(kind==='chair'){
- box(g,0,.7,0,.95,.16,.92,wood);for(const x of[-.34,.34])for(const z of[-.33,.33])box(g,x,.35,z,.12,.7,.12,dark);box(g,0,1.16,-.4,.92,.87,.13,wood);
+ const d=defs[kind];box(g,0,.46,0,d.w-.06,.11,d.d-.08,wood);for(const x of[-d.w*.34,d.w*.34])for(const z of[-d.d*.33,d.d*.33])box(g,x,.23,z,.08,.46,.08,dark);box(g,0,.76,-d.d*.40,d.w-.07,.58,.09,wood);
  }else if(kind==='shelf'){
- box(g,0,1.15,-.39,2.6,2.3,.13,wood);for(const x of[-1.24,1.24])box(g,x,1.15,0,.12,2.3,.9,wood);
- for(let j=0;j<4;j++){box(g,0,.13+j*.69,0,2.6,.12,.9,wood);if(j<3)for(let i=0;i<9;i++)box(g,-1.06+i*.26,.42+j*.69,.02,.17,.42+rnd(i)*.12,.45,[0x9f747a,0x789b90,0xb39a61,0x6a8293][i%4]);}
+ const d=defs[kind],w=d.w,depth=d.d;box(g,0,.82,-depth*.42,w,1.64,.08,wood);for(const x of[-w*.46,w*.46])box(g,x,.82,0,.08,1.64,depth,wood);
+ for(let j=0;j<4;j++){const y=.10+j*.5;box(g,0,y,0,w,.08,depth,wood);if(j<3)for(let i=0;i<6;i++)box(g,-w*.39+i*w*.155,y+.22,.01,w*.09,.28+rnd(i)*.08,depth*.5,[0x9f747a,0x789b90,0xb39a61,0x6a8293][i%4]);}
  }else if(kind==='hearth'){
- box(g,0,.13,0,2.5,.26,1.2,0xa99a80);for(const x of[-.92,.92])box(g,x,1,0,.45,1.9,1.1,0xccbca0);box(g,0,1.89,0,2.45,.3,1.15,0xb4a489);box(g,0,2.36,-.2,1.4,.65,.73,0xdccdaf);mesh(g,coneGeo,mat(0xe99a4e,false,{emissive:0xff7030,emissiveIntensity:.65}),0,.6,.04,.4,.85,.4);
- }else if(kind==='rug'){const m=box(g,0,.025,0,4.4,.04,3.2,0xb27982);for(const x of[-2.05,2.05])box(g,x,.05,0,.12,.01,3.15,0xe8ce9f);for(const z of[-1.45,1.45])box(g,0,.05,z,4.3,.01,.1,0xe8ce9f);}
+ const d=defs[kind],w=d.w,depth=d.d;box(g,0,.1,0,w,.2,depth,0xa99a80);for(const x of[-w*.36,w*.36])box(g,x,.68,0,w*.20,1.25,depth*.9,0xccbca0);box(g,0,1.3,0,w*.95,.2,depth*.92,0xb4a489);box(g,0,1.62,-depth*.16,w*.52,.42,depth*.55,0xdccdaf);mesh(g,coneGeo,mat(0xe99a4e,false,{emissive:0xff7030,emissiveIntensity:.65}),0,.42,.03,.25,.58,.25);
+ }else if(kind==='rug'){const d=defs[kind];box(g,0,.025,0,d.w,.04,d.d,0xb27982);for(const x of[-d.w*.46,d.w*.46])box(g,x,.05,0,.06,.01,d.d*.94,0xe8ce9f);for(const z of[-d.d*.45,d.d*.45])box(g,0,.05,z,d.w*.94,.01,.06,0xe8ce9f);}
  return g;
 }
 function person(seed=0,monster=false,role='resident'){
@@ -127,7 +127,11 @@ function residentialYurt(d){
  const roof=mesh(g,geos.roof,roofMaterial);roof.userData.sourceAssetId=asset.id;roof.userData.yurtPart='roof';
  const [sx,sy,sz]=asset.dimensions,scale=Math.min((d.w*.92)/sx,(d.d*.92)/sz,(asset.runtime?.maxHeight||3.6)/sy);
  g.scale.setScalar(scale);g.rotation.y=asset.runtime?.yaw||0;
- g.userData.assetBacked=true;g.userData.visualAssetId=asset.id;g.userData.visualAssetOrigin=asset.origin;g.userData.residentialTent='authored-royal-yurt-v3';g.userData.circularHousing=true;g.userData.stableShadowCaster=true;return g;
+ const entry=new T.Group(),front=Math.min(d.w,d.d)*.46,width=Math.min(1.35,muraDoorWidth(d.id));entry.position.set(0,0,front/scale);entry.scale.setScalar(1/scale);g.add(entry);
+ box(entry,0,.78,.02,width,1.5,.07,0x413a34);for(const x of[-width*.56,width*.56])box(entry,x,.82,.05,.11,1.68,.12,0x765841);box(entry,0,1.62,.05,width*1.18,.11,.13,0x765841);
+ const flap=box(entry,-width*.34,.82,.09,width*.28,1.42,.035,d.roof);flap.rotation.y=-.12;box(entry,0,.035,.18,width*1.14,.07,.42,0x9b8a70);
+ entry.userData.entryVisual='yurt-front-door';entry.userData.localFront='+Z';
+ g.userData.assetBacked=true;g.userData.visualAssetId=asset.id;g.userData.visualAssetOrigin=asset.origin;g.userData.residentialTent='authored-royal-yurt-v3';g.userData.circularHousing=true;g.userData.stableShadowCaster=true;g.userData.entryVisual='yurt-front-door';g.userData.doorWidth=width;return g;
 }
 function building(kind,material='base',level=1){const d=defs[kind];if(!d)return new T.Group();
  let g;
