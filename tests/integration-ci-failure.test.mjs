@@ -227,3 +227,52 @@ test('overlap scans preserve active claims and terminal repair decisions', async
     assert.ok(!f.writes.some(item => item.path.endsWith('/merge') || item.path.endsWith('/reviews')));
   }
 });
+
+
+test('approval-required zero-job PR run falls back to trusted refreshed-head failure evidence', async () => {
+  const stackRunId = 44;
+  const stackJobId = 440;
+  const c = {
+    root: `/repos/${repository}`,
+    async pages(path) {
+      if (path.startsWith('/actions/workflows/ci.yml/runs')) {
+        return [run(31, { status: 'completed', conclusion: 'action_required' })];
+      }
+      if (path === `/actions/runs/${31}/jobs?filter=latest`) return [];
+      if (path === `/commits/${head}/statuses`) return [{
+        context: 'integration/stack-fast',
+        state: 'failure',
+        target_url: `https://github.com/${repository}/actions/runs/${stackRunId}`,
+      }];
+      if (path === `/actions/runs/${stackRunId}/jobs?filter=latest`) return [{
+        id: stackJobId,
+        name: `Recover missed Ready CI and Integration requests / Stack Validate and build #${pr.number}`,
+        status: 'completed',
+        conclusion: 'failure',
+      }];
+      throw new Error(`Unexpected pages ${path}`);
+    },
+    async api(method, path) {
+      assert.equal(method, 'GET');
+      if (path === `/repos/${repository}/actions/runs/${stackRunId}`) return {
+        id: stackRunId,
+        run_attempt: 1,
+        repository: { full_name: repository },
+        event: 'workflow_dispatch',
+        head_branch: 'develop',
+        path: '.github/workflows/deploy.yml',
+      };
+      throw new Error(`Unexpected ${method} ${path}`);
+    },
+  };
+  assert.deepEqual(await exactHeadFastFailure(c, pr), {
+    head,
+    runId: stackRunId,
+    runAttempt: 1,
+    jobId: stackJobId,
+    jobName: `Recover missed Ready CI and Integration requests / Stack Validate and build #${pr.number}`,
+    conclusion: 'failure',
+    runUrl: `https://github.com/${repository}/actions/runs/${stackRunId}`,
+    jobUrl: `https://github.com/${repository}/actions/runs/${stackRunId}/job/${stackJobId}`,
+  });
+});
