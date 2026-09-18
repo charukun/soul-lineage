@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {worldScaleTier} from '../packages/world/src/scale-policy.js';
-import {defaultMuraLayout,muraDoorWidth,muraHasInterior} from '../packages/world/src/mura/index.js';
+import {defaultMuraLayout,muraDoorWidth,muraFurnitureFits,muraHasInterior,muraUsableInterior} from '../packages/world/src/mura/index.js';
 import {BUILDINGS,defs as muraDefs} from '../packages/world/src/mura/catalog.js';
 import {defs as villageDefs} from '../apps/village/src/game/catalog.js';
 import {createMuraModels} from '../packages/rendering/src/mura/models.js';
-import {resolveMuraHouseVisual} from '../packages/rendering/src/mura/building-visual.js';
+import {createMuraBuildingVisual,resolveMuraHouseVisual} from '../packages/rendering/src/mura/building-visual.js';
 import {visualAssetById} from '../packages/assets/src/index.js';
 import {HOUSING_WORLD_UNITS,ITEMS} from '../packages/housing/catalog.js';
 import {makeModel} from '../packages/housing/models.js';
@@ -45,6 +45,9 @@ test('Village and Rinne share one canonical human-scale MURA metre catalogue',()
  assert.equal(muraDoorWidth('home'),1.8);
  assert.equal(muraDoorWidth('smith'),2.1);
  assert.equal(muraDoorWidth('clanManor'),2.4);
+ const tentRoom=muraUsableInterior('tent');assert.equal(tentRoom.shape,'circle');assert.equal(tentRoom.interiorClass,'compact');
+ assert.equal(muraFurnitureFits('tent','bed'),true);assert.equal(muraFurnitureFits('tent','sofa'),false);assert.equal(muraFurnitureFits('tent','counter'),false);
+ assert.deepEqual([muraDefs.bed.w,muraDefs.bed.d],[1.6,2.3]);assert.deepEqual([muraDefs.table.w,muraDefs.table.d],[1.45,.95]);assert.deepEqual([muraDefs.sofa.w,muraDefs.sofa.d],[2.05,.95]);
 });
 
 test('production MURA buildings resolve materialized visualAssetId entries',()=>{
@@ -67,7 +70,10 @@ test('tent semantics are residential-only and render the imported traditional yu
   assert.equal(group.userData.visualAssetId,'village.yurt.authored-royal-xion.v3');
   assert.equal(group.userData.visualAssetOrigin,'artist-authored');
   assert.equal(group.userData.circularHousing,true);
-  assert.ok(Math.abs(size.x-size.z)<.16,`${kind} must read as round, got ${size.x} x ${size.z}`);
+  assert.equal(group.userData.entryVisual,'yurt-front-door');
+  assert.equal(group.userData.localFront,undefined);
+  assert.ok(group.children.some(node=>node.userData?.entryVisual==='yurt-front-door'),`${kind} must expose a readable +Z doorway`);
+  assert.ok(Math.abs(size.x-size.z)<.55,`${kind} must read as round with doorway detail, got ${size.x} x ${size.z}`);
   assert.ok(size.x<=muraDefs[kind].w+.05&&size.z<=muraDefs[kind].d+.05,`${kind} must fit its canonical footprint`);
   assert.ok(size.y>2.8&&size.y<3.2,`${kind} royal yurt height ${size.y}`);
   const meshes=[];group.traverse(node=>{if(node.isMesh)meshes.push(node);});assert.ok(meshes.length>=2);assert.ok(meshes.every(node=>node.material.shadowSide===THREE.FrontSide),`${kind} must use stable single-sided shadow casting`);
@@ -77,6 +83,8 @@ test('tent semantics are residential-only and render the imported traditional yu
   assert.equal(nodes.some(node=>node.userData?.residentialTent),false,`${kind} must not reuse a residential tent`);
   assert.equal(nodes.some(node=>node.userData?.workShelter),false,`${kind} must not use a primitive-built work shelter`);
  }
+ const homeVisual=createMuraBuildingVisual(THREE,{building(){throw new Error('home must resolve shared authored housing');}},'home');
+ assert.equal(homeVisual.userData.entryVisual,'housing-door');assert.equal(homeVisual.userData.localFront,'+Z');
  assert.ok(resolveMuraHouseVisual('home'),'permanent homes still use the shared authored house visual');
 });
 

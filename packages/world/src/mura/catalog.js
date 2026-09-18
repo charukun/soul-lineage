@@ -3,10 +3,10 @@ export const RESOURCE_NAMES={wood:'丸太',stone:'石',plank:'板材',clay:'粘�
 export const MATERIALS={base:{label:'標準',color:0xe2cfa7},timber:{label:'木造',color:0xba926e},stone:{label:'石造',color:0xaeb8b3},earth:{label:'土壁',color:0xccaf89}};
 const f=(id,label,w,d,extra={})=>({id,label,w,d,floors:1,roof:0x8f9b82,capacity:0,jobs:2,building:true,category:'仕事',cost:{},unlock:[],trait:'住人の暮らしを支える場所',...extra});
 export const BUILDINGS=[
- f('mayor','村長のテント',5,6,{shape:'tent',roof:0xc29268,capacity:1,jobs:0,reserved:true,category:'非表示',trait:'あなたの分身が暮らす家。仕事、食事、団らんにも参加します。'}),
+ f('mayor','村長のテント',5,6,{shape:'tent',roof:0xc29268,capacity:1,jobs:0,reserved:true,category:'非表示',interiorClass:'compact',doorWidth:1.5,trait:'あなたの分身が暮らす家。仕事、食事、団らんにも参加します。'}),
  f('campfire','焚き火',3.5,3.5,{shape:'fire',open:true,jobs:0,category:'非表示',trait:'村の集いの中心。食事、団らん、夜の語らいの場所です。'}),
- f('guardhome','専属護衛のテント',5,6,{shape:'tent',roof:0x698eaa,capacity:1,jobs:0,reserved:true,category:'非表示',trait:'専属護衛アルドの住まい。護衛は村長に同行し、近くの住人も守ります。'}),
- f('tent','空きテント',5,6,{shape:'tent',capacity:2,jobs:0,category:'住まい',roof:0x93a6a1,trait:'旅人2人の住まい。食事と守りに余裕があれば住み着きます。'}),
+ f('guardhome','専属護衛のテント',5,6,{shape:'tent',roof:0x698eaa,capacity:1,jobs:0,reserved:true,category:'非表示',interiorClass:'compact',doorWidth:1.5,trait:'専属護衛アルドの住まい。護衛は村長に同行し、近くの住人も守ります。'}),
+ f('tent','空きテント',5,6,{shape:'tent',capacity:2,jobs:0,category:'住まい',roof:0x93a6a1,interiorClass:'compact',doorWidth:1.5,trait:'旅人2人の住まい。食事と守りに余裕があれば住み着きます。'}),
  f('storage','資材置き場',8,8,{shape:'yard',jobs:1,effect:'storage',trait:'共有倉庫。保管上限+300。増築ごとにさらに+300。'}),
  f('logging','伐採場',9,9,{shape:'yard',produce:{wood:5,seed:1},terrain:'forest',roof:0xa5a57e,trait:'近くの林から丸太と種を集めます。作業の動線が小径になります。'}),
  f('quarry','石切場',10,9,{shape:'yard',produce:{stone:4,ore:1},terrain:'rock',roof:0x9c9da1,trait:'露岩から石と鉄鉱石。2段階目から輝石も採れます。'}),
@@ -14,9 +14,9 @@ export const BUILDINGS=[
  f('wheat','小麦畑',10,10,{shape:'field',open:true,terrain:'fertile',produce:{food:6,seed:1},roof:0xccb16f,trait:'肥沃な土で小麦を育てます。食料と種、移住者を迎える余裕+4。'}),
  f('clay','泥採集場',8,7,{shape:'yard',terrain:'wetland',produce:{clay:4},roof:0xa78676,trait:'湿地や水辺の粘土を採集。土壁の家にも使えます。'}),
  f('market','市場',10,8,{shape:'market',effect:'market',produce:{cloth:1,herb:1},input:{food:1},roof:0xc49289,trait:'4日ごとに旅商人が2日間滞在。食料と交換で布・薬草を入手。住人は小物や家具を買います。'}),
- f('home','空き家',6,7,{capacity:3,jobs:0,category:'住まい',roof:0xbc7e62,unlock:['wood'],cost:{wood:12,plank:8,stone:6},variants:true,trait:'3人の家。建材を選べ、増築で定員と快適さが増します。'}),
- f('lodge','大きな空き家',9,10,{capacity:6,jobs:0,category:'住まい',floors:2,roof:0x77988a,unlock:['plank','stone'],cost:{wood:24,plank:16,stone:12},variants:true,trait:'6人の共同住宅。村の食料と警備に余裕をつくってから。'}),
- f('clanManor','一族の邸宅',12,14,{capacity:4,jobs:0,category:'住まい',floors:2,roof:0x858ab0,clanOnly:true,unlock:['plank','stone','cloth'],cost:{wood:28,plank:32,stone:24,cloth:8},variants:true,trait:'輪廻転焦の一族プレイヤー専用。一般NPCは自動入居しません。各人の家具と一族情報を保持します。'}),
+ f('home','空き家',6,7,{capacity:3,jobs:0,category:'住まい',roof:0xbc7e62,unlock:['wood'],cost:{wood:12,plank:8,stone:6},variants:true,interiorClass:'standard',doorWidth:1.8,trait:'3人の家。建材を選べ、増築で定員と快適さが増します。'}),
+ f('lodge','大きな空き家',9,10,{capacity:6,jobs:0,category:'住まい',floors:2,roof:0x77988a,unlock:['plank','stone'],cost:{wood:24,plank:16,stone:12},variants:true,interiorClass:'large',doorWidth:2.1,trait:'6人の共同住宅。村の食料と警備に余裕をつくってから。'}),
+ f('clanManor','一族の邸宅',12,14,{capacity:4,jobs:0,category:'住まい',floors:2,roof:0x858ab0,clanOnly:true,unlock:['plank','stone','cloth'],cost:{wood:28,plank:32,stone:24,cloth:8},variants:true,interiorClass:'large',doorWidth:2.4,trait:'輪廻転焦の一族プレイヤー専用。一般NPCは自動入居しません。各人の家具と一族情報を保持します。'}),
  f('guardpost','詰所',6,6,{category:'守り',roof:0x829ca5,jobs:1,unlock:['wood'],cost:{wood:8},effect:'guard',defense:5,trait:'住人1人が警備職に就きます。就労後は周辺を巡回し、移住者の安心枠+5。'}),
  f('watchtower','見張り台',5,5,{category:'守り',floors:2,jobs:1,roof:0x7d9196,unlock:['plank'],cost:{wood:12,plank:8},effect:'watch',defense:4,trait:'近隣30mの見張り。警備員の迎撃に加え、脅威の早期発見と安心枠+4。'}),
  f('barracks','駐屯所',10,10,{category:'守り',floors:2,jobs:3,cost:{wood:22,stone:25,plank:20},unlock:['plank','stone'],effect:'guard',defense:10,roof:0x8b8f9e,trait:'警備職3人の拠点。巡回と救助を行い、移住者の安心枠+10。'}),
@@ -64,12 +64,12 @@ export const GARDEN=[
  {id:'wardlamp',label:'魔除けの灯り',w:1.2,d:1.2,unlock:['charm'],cost:{stone:3,charm:2},defense:2}
 ].map(o=>({...o,category:'庭',garden:true}));
 export const FURNITURE=[
- {id:'bed',label:'ベッド',w:2.1,d:3.4},{id:'sofa',label:'ソファ',w:3.4,d:1.7},
- {id:'table',label:'食卓',w:2.8,d:2},{id:'chair',label:'椅子',w:1,d:1},
- {id:'shelf',label:'本棚',w:2.6,d:.9},{id:'counter',label:'カウンター',w:3.5,d:1.3},
- {id:'workbench',label:'作業台',w:3,d:1.7},{id:'hearth',label:'暖炉',w:2.5,d:1.2},
- {id:'rug',label:'絨毯',w:4.4,d:3.2,soft:true},{id:'plant',label:'鉢植え',w:1,d:1},
- {id:'lamp',label:'灯り',w:.9,d:.9},{id:'bench',label:'ベンチ',w:2.8,d:1.3}
+ {id:'bed',label:'ベッド',w:1.6,d:2.3,minInteriorClass:'compact'},{id:'sofa',label:'ソファ',w:2.05,d:.95,minInteriorClass:'standard'},
+ {id:'table',label:'食卓',w:1.45,d:.95,minInteriorClass:'compact'},{id:'chair',label:'椅子',w:.65,d:.65,minInteriorClass:'compact'},
+ {id:'shelf',label:'本棚',w:1.35,d:.45,minInteriorClass:'compact'},{id:'counter',label:'カウンター',w:1.9,d:.75,minInteriorClass:'large'},
+ {id:'workbench',label:'作業台',w:1.75,d:.85,minInteriorClass:'large'},{id:'hearth',label:'暖炉',w:1.35,d:.75,minInteriorClass:'standard'},
+ {id:'rug',label:'絨毯',w:2.1,d:1.5,soft:true,minInteriorClass:'compact'},{id:'plant',label:'鉢植え',w:.7,d:.7,minInteriorClass:'compact'},
+ {id:'lamp',label:'灯り',w:.6,d:.6,minInteriorClass:'compact'},{id:'bench',label:'ベンチ',w:1.6,d:.75,minInteriorClass:'compact'}
 ].map(o=>({...o,category:'家具',furniture:true}));
 export const defs={};for(const o of [...GARDEN,...FURNITURE,...BUILDINGS])defs[o.id]={...defs[o.id],...o};
 // Keep garden costs/unlocks even where the room catalog shares an asset id.
