@@ -11,26 +11,24 @@ import { buildCommandForTarget } from '../scripts/build-target.mjs';
 import { fastDevEmailMessage } from '../scripts/notify-fast-dev.mjs';
 
 test('distribution catalog separates buildable web targets from contract-only consumer targets',()=>{
-  for(const id of ['web-dev','web-review','web-staging','web-prod'])assert.equal(distributionTarget(id).status,'buildable');
+  for(const id of ['web-dev','web-staging','web-prod'])assert.equal(distributionTarget(id).status,'buildable');
   for(const id of ['steam','android','ios','playstation','switch','xbox']){
     assert.equal(distributionTarget(id).status,'contract-only');
     assert.throws(()=>assertBuildableTarget(id,'demon'),/contract-only/);
   }
   assert.equal(webTargetForEnvironment('dev').id,'web-dev');
   assert.equal(webTargetForEnvironment('prod').id,'web-prod');
-  assert.equal(targetSupportsApp('web-review','rinne'),true);
-  assert.equal(targetSupportsApp('web-review','demon'),false);
-  assert.ok(DISTRIBUTION_TARGETS.length>=10);
+  assert.ok(DISTRIBUTION_TARGETS.length>=9);
 });
 
 test('DEV distribution plan is app-scoped and fans shared dependencies out through workspace closure',()=>{
   const nodes=graph();
   assert.deepEqual(distributionPlanForDev(nodes,['apps/demon/src/main.js']),{apps:['demon'],include:[{app:'demon',target:'web-dev'}]});
-  assert.deepEqual(distributionPlanForDev(nodes,['apps/rinne/src/main.js']),{apps:['rinne'],include:[{app:'rinne',target:'web-dev'},{app:'rinne',target:'web-review'}]});
+  assert.deepEqual(distributionPlanForDev(nodes,['apps/rinne/src/main.js']),{apps:['rinne'],include:[{app:'rinne',target:'web-dev'}]});
   const shared=distributionPlanForDev(nodes,['packages/assets/src/index.js']);
   assert.deepEqual(shared.apps,['demon','rinne','village']);
   assert.deepEqual(shared.include,[
-    {app:'demon',target:'web-dev'},{app:'rinne',target:'web-dev'},{app:'village',target:'web-dev'},{app:'rinne',target:'web-review'}
+    {app:'demon',target:'web-dev'},{app:'rinne',target:'web-dev'},{app:'village',target:'web-dev'}
   ]);
   assert.deepEqual(distributionPlanForDev(nodes,['docs/PLATFORMS.md']),{apps:[],include:[]});
 });
@@ -39,7 +37,6 @@ test('target build command never pretends consumer packaging exists',()=>{
   const dev=buildCommandForTarget('demon','web-dev');
   assert.deepEqual(dev.args.slice(0,3),['run','build','--workspace']);
   assert.equal(dev.environment,'dev');
-  assert.equal(buildCommandForTarget('rinne','web-review').args[1],'build:review');
   assert.throws(()=>buildCommandForTarget('demon','steam'),/contract-only/);
 });
 
