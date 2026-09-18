@@ -53,17 +53,17 @@ async function assertGuideInsideViewport(page){
   expect(box.x+box.width).toBeLessThanOrEqual(viewport.width+1);
   expect(box.y+box.height).toBeLessThanOrEqual(viewport.height+1);
 }
-async function stepUntil(page,predicate,maxSteps=7200){
-  return page.evaluate(({predicate,maxSteps})=>{
+async function stepUntil(page,predicate,maxSteps=1800,stride=6){
+  return page.evaluate(({predicate,maxSteps,stride})=>{
     const match=new Function('s',`return (${predicate})(s)`);
-    for(let i=0;i<maxSteps;i++){
-      window.__NIGHT_REVIEW__.step(1);
+    for(let i=0;i<maxSteps;i+=stride){
+      window.__NIGHT_REVIEW__.step(Math.min(stride,maxSteps-i));
       const state=window.__NIGHT_HUNT__.snapshot();
       if(match(state))return state;
       if(state.finished)return {finished:true,state};
     }
     return null;
-  },{predicate:predicate.toString(),maxSteps});
+  },{predicate:predicate.toString(),maxSteps,stride});
 }
 
 let browser,context,page;
@@ -139,7 +139,7 @@ try{
   expect(targetIndex).toBeGreaterThanOrEqual(0);
   await page.evaluate(i=>window.__NIGHT_REVIEW__.nearHuman(i),targetIndex);
 
-  const combat=await stepUntil(page,s=>!!s.combat,1200);
+  const combat=await stepUntil(page,s=>!!s.combat,900,3);
   expect(combat).not.toBeNull();
   expect(combat.finished).not.toBe(true);
   await page.evaluate(()=>window.__NIGHT_REVIEW__.screenshot());
@@ -151,13 +151,13 @@ try{
   await page.screenshot({path:resolve(out,'angled-guide-combat.png')});
   await nativeTap(page,expect,page.locator('[data-guide-close]'));
 
-  let feeding=await stepUntil(page,s=>!!s.devouring,6000);
+  let feeding=await stepUntil(page,s=>!!s.devouring,1800,6);
   if(!feeding||feeding.finished===true){
     const fallen=await page.evaluate(()=>window.__NIGHT_HUNT__.snapshot());
     const target=fallen.npcs.find(n=>n.dead&&!n.eaten);
     if(target){
       await page.evaluate(({x,z})=>window.__NIGHT_REVIEW__.setPosition(x,z+0.4),target);
-      feeding=await stepUntil(page,s=>!!s.devouring,600);
+      feeding=await stepUntil(page,s=>!!s.devouring,600,4);
     }
   }
   expect(feeding).not.toBeNull();
@@ -170,7 +170,7 @@ try{
   await page.screenshot({path:resolve(out,'angled-guide-devour.png')});
   await nativeTap(page,expect,page.locator('[data-guide-close]'));
 
-  const consumed=await stepUntil(page,s=>s.eaten>0,3600);
+  const consumed=await stepUntil(page,s=>s.eaten>0,1200,6);
   expect(consumed).not.toBeNull();
   expect(consumed.finished).not.toBe(true);
   await page.evaluate(()=>window.__NIGHT_REVIEW__.screenshot());
