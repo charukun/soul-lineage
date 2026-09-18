@@ -11,6 +11,7 @@ import { guidanceFor } from './guidance.js';
 import { RINNE_RUNTIME_PERFORMANCE } from './performance.js';
 import { splitRuntimeFrameDelta } from './runtime-clock.js';
 import { detectFlickDash } from './flick-dash.js';
+import { startRinneFirstRunGuide } from '../first-run-guide.js';
 
 const $=id=>document.getElementById(id);
 const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
@@ -69,7 +70,7 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
     placeState(state,layout);
   }catch(error){host.active=false;if(ownsPrepared)host.dispose();throw error;}
 
-  let active=true,raf=0,last=performance.now(),saveElapsed=0,uiElapsed=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval,toastTimer=0,endDialog=null,pointer=null,keyboard={x:0,y:0},axis={x:0,y:0},flickDash=null,portDwell=0,doorDwell=0,doorStationId='',movementHint=true,movementHintTimer=0,chapterTimer=0,hurtTimer=0,lastChapter='';
+  let active=true,raf=0,last=performance.now(),saveElapsed=0,uiElapsed=RINNE_RUNTIME_PERFORMANCE.uiSyncInterval,toastTimer=0,endDialog=null,pointer=null,keyboard={x:0,y:0},axis={x:0,y:0},flickDash=null,portDwell=0,doorDwell=0,doorStationId='',movementHint=true,movementHintTimer=0,chapterTimer=0,hurtTimer=0,lastChapter='',firstRunGuide=null;
   let front=coop?coop.snapshot().view.front:state.zone==='frontier'?normalizeFront(state.frontState,state.front,state.seed):null;if(front)state.frontState=front;
   let skirmish=coop?null:createVillageSkirmish(skirmishAnchor,state.seed);view.syncSkirmish(skirmish);
   let coopTick=-1,coopEpoch=0,coopHistoryRevision=-1,rebirthPending=false,inputElapsed=0;
@@ -209,10 +210,10 @@ export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepar
   document.addEventListener('visibilitychange',visibility);
   window.addEventListener('pagehide',pagehide);
   if(front)view.syncFront(front);else view.syncFront(null);view.renderState(state,.016);birth.afterRender(.016,{carrierMoving:false});syncUI();uiElapsed=0;loading.hidden=true;canvas.dataset.runtime='active';
-  armMovementHint();showBirthIntro();raf=requestAnimationFrame(frame);void save();
+  armMovementHint();showBirthIntro();firstRunGuide=coop?null:startRinneFirstRunGuide({root:gameScreen.querySelector('.rinne-gameplay-upgrade'),gameScreen,canvas,getState:()=>state,environment:host.environment,mode});raf=requestAnimationFrame(frame);void save();
 
   function dispose(){
-    if(!active)return;active=false;host.active=false;view.clearCombatEffects?.();cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);birth.dispose();unsubscribeWorld();
+    if(!active)return;active=false;host.active=false;firstRunGuide?.dispose?.();firstRunGuide=null;view.clearCombatEffects?.();cancelAnimationFrame(raf);clearTimeout(toastTimer);clearTimeout(movementHintTimer);clearTimeout(chapterTimer);clearTimeout(hurtTimer);clearTimeout(dialogue.timer);birth.dispose();unsubscribeWorld();
     window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('pagehide',pagehide);canvas.removeEventListener('pointerdown',onPointerDown);canvas.removeEventListener('pointermove',onPointerMove);canvas.removeEventListener('pointerup',onPointerUp);canvas.removeEventListener('pointercancel',onPointerUp);
     document.removeEventListener('visibilitychange',visibility);for(const key of Object.keys(canvas.dataset))if(key.startsWith('coop'))delete canvas.dataset[key];view.syncPeers([]);$('coop-darkness').hidden=true;$('coop-people').textContent='';$('clock-rate').disabled=false;
     keys.clear();pointer=null;flickDash=null;setAxis({x:0,y:0});endDialog?.remove();endDialog=null;$('dialogue').hidden=true;$('toast').hidden=true;canvas.dataset.runtime='prepared';
