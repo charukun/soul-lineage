@@ -312,30 +312,21 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
           sparse-checkout: scripts
-      - name: Notify verified DEV delivery
+      - name: Create verified DEV email receipts
         id: notify
         if: needs.publish.result == 'success'
         continue-on-error: true
         env:
           FINAL_SHA: ${{ github.sha }}
           GITHUB_TOKEN: ${{ github.token }}
-          NTFY_TOPIC_URL: ${{ secrets.NTFY_TOPIC_URL }}
-          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
         run: node scripts/notify-delivery.mjs DEV_DEPLOYED
-      - name: Record notification health
+      - name: Record developer email receipt health
         if: needs.publish.result == 'success'
         uses: actions/github-script@v8
         env:
-          CHANNEL: ${{ steps.notify.outputs.channel }}
           DEV_EMAIL: ${{ steps.notify.outputs.dev_email }}
-          NOTIFY_OUTCOME: ${{ steps.notify.outcome }}
         with:
           script: |
-            const channel = process.env.CHANNEL || (process.env.NOTIFY_OUTCOME === 'failure' ? 'failed' : 'not-configured');
-            const state = channel === 'ntfy' ? 'success' : channel === 'not-configured' ? 'error' : 'failure';
-            const description = channel === 'ntfy' ? 'ntfy smartphone delivery confirmed' : channel === 'not-configured'
-              ? 'NTFY_TOPIC_URL is not configured; smartphone delivery unconfirmed'
-              : 'ntfy delivery failed; GitHub remains authoritative';
             const devEmail = process.env.DEV_EMAIL || 'failure';
             const emailState = devEmail === 'failure' ? 'failure' : 'success';
             const emailDescription = devEmail === 'success'
@@ -343,14 +334,9 @@ jobs:
               : devEmail === 'skipped'
                 ? 'No eligible merged PR required a DEV receipt'
                 : 'DEV email receipt creation failed; inspect publisher logs';
-            await Promise.all([
-              github.rest.repos.createCommitStatus({ ...context.repo, sha: context.sha,
-                context: 'notification/ntfy', state, description,
-                target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` }),
-              github.rest.repos.createCommitStatus({ ...context.repo, sha: context.sha,
-                context: 'notification/dev-email', state: emailState, description: emailDescription,
-                target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` }),
-            ]);
+            await github.rest.repos.createCommitStatus({ ...context.repo, sha: context.sha,
+              context: 'notification/dev-email', state: emailState, description: emailDescription,
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
 
   pulse-result-refresh:
     name: Refresh PULSE after DEV result
