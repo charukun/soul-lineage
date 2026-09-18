@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { notifyStage } from '../scripts/implementation-handoff.mjs';
 import {
   lifecycleMessage,
   notificationHeadline,
@@ -95,22 +94,6 @@ test('associated develop PR lookup selects the newest merged develop PR', async 
   assert.equal(pr.title, 'new');
 });
 
-test('ntfy receives the same locale-neutral status contract in title and body', async () => {
-  let request;
-  const body = deliveryMessage('DEV_DEPLOYED', {
-    repository: 'charukun/soul-lineage', runUrl: 'https://github.com/run', sha,
-  });
-  const result = await notifyStage(body, {
-    url: 'https://ntfy.example/topic',
-    title: notificationTitle('DEV_DEPLOYED'),
-    request: async (_url, options) => { request = options; return { ok: true }; },
-  });
-  assert.equal(result, 'ntfy');
-  assert.equal(request.headers.Title, 'RINNE [OK] DEV_DEPLOYED');
-  assert.match(request.body, /^\[OK\]\[DEV_DEPLOYED\]/);
-  assert.doesNotMatch(request.body, /DEV反映完了/);
-});
-
 test('verified personal DEV publication creates one deduplicatable Japanese PR comment', async () => {
   let posted = '';
   const pr = {
@@ -158,6 +141,19 @@ test('browser repair comments and issue titles use the same locale-neutral statu
   assert.match(source, /notificationHeadline\(issueStage\)/);
   assert.match(source, /lifecycleMessage\(visibleStage/);
   assert.doesNotMatch(source, /NOTIFY_LOCALE|normalizeNotificationLocale/);
+});
+
+test('developer lifecycle never routes through player push transport', () => {
+  const deploy = readFileSync('.github/workflows/deploy.yml', 'utf8');
+  const pulse = readFileSync('.github/workflows/pulse-refresh.yml', 'utf8');
+  const handoff = readFileSync('scripts/implementation-handoff.mjs', 'utf8');
+  const delivery = readFileSync('scripts/notify-delivery.mjs', 'utf8');
+  const rescue = readFileSync('scripts/integration-rescue-return.mjs', 'utf8');
+  for (const source of [deploy, pulse, handoff, delivery, rescue]) {
+    assert.doesNotMatch(source, /NTFY_TOPIC_URL|NTFY_TOKEN|notification\/ntfy|notifyStage|control-notify\.mjs/);
+  }
+  assert.match(deploy, /notification\/dev-email/);
+  assert.match(delivery, /DEV反映完了/);
 });
 
 test('workflow exposes no broadcast locale setting', () => {

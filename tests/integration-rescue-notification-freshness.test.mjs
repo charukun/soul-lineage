@@ -23,9 +23,13 @@ function client(prs){
       calls.push({method,path,body});
       const match=path.match(/\/pulls\/(\d+)$/);
       if(method==='GET'&&match)return structuredClone(prs[Number(match[1])]);
+      if(method==='POST'&&/\/issues\/\d+\/comments$/.test(path))return{id:calls.length};
       throw new Error(`Unexpected ${method} ${path}`);
     },
-    async pages(path){throw new Error(`Unexpected pages ${path}`);},
+    async pages(path){
+      if(/\/issues\/\d+\/comments$/.test(path))return[];
+      throw new Error(`Unexpected pages ${path}`);
+    },
   };
 }
 
@@ -39,9 +43,7 @@ function failedState({head=oldHead,stateName='FAILED_MANUAL',reason='INTEGRATION
 
 test('old manual failure is suppressed after the Rescue record has returned to Integration',async()=>{
   const state=failedState({head:newHead,stateName:'CHECKING'}),store=memoryStore(state),c=client({220:pr(220,newHead)});
-  let deliveries=0;
-  await notifyOutbox(c,store,{url:'https://notify.example.test',request:async()=>{deliveries++;return{ok:true};}});
-  assert.equal(deliveries,0);
+  await notifyOutbox(c,store);
   assert.equal(state.outbox[0].channel,'suppressed-stale');
   assert.equal(state.outbox[0].suppressionReason,'manual-state-superseded');
   assert.ok(state.outbox[0].suppressedAt);
@@ -50,50 +52,45 @@ test('old manual failure is suppressed after the Rescue record has returned to I
 
 test('manual failure is suppressed when GitHub has already advanced the PR head',async()=>{
   const state=failedState(),store=memoryStore(state),c=client({220:pr(220,newHead)});
-  let deliveries=0;
-  await notifyOutbox(c,store,{url:'https://notify.example.test',request:async()=>{deliveries++;return{ok:true};}});
-  assert.equal(deliveries,0);
+  await notifyOutbox(c,store);
   assert.equal(state.outbox[0].suppressionReason,'manual-head-superseded');
   assert.equal(state.outbox[0].liveHead,newHead);
 });
 
-test('current exact-head manual failure still uses the existing external notification path',async()=>{
-  const state=failedState(),store=memoryStore(state),c=client({220:pr(220,oldHead)}),bodies=[];
-  await notifyOutbox(c,store,{url:'https://notify.example.test',request:async(_url,options)=>{bodies.push(options.body);return{ok:true};}});
-  assert.equal(bodies.length,1);
-  assert.match(bodies[0],/FAILED/);
-  assert.match(bodies[0],/PR: #220/);
-  assert.equal(state.outbox[0].channel,'ntfy');
+test('current exact-head manual failure records a GitHub PR notice without external push',async()=>{
+  const state=failedState(),store=memoryStore(state),c=client({220:pr(220,oldHead)});
+  await notifyOutbox(c,store);
+  const posted=c.calls.find(call=>call.method==='POST'&&call.path.endsWith('/issues/220/comments'));
+  assert.ok(posted);
+  assert.match(posted.body.body,/FAILED/);
+  assert.match(posted.body.body,/PR: #220/);
+  assert.equal(state.outbox[0].channel,'github-pr');
   assert.ok(state.outbox[0].sentAt);
   assert.equal(state.outbox[0].suppressedAt,undefined);
 });
 
-test('transient GitHub freshness read keeps the existing finite retry path instead of suppressing the notice',async()=>{
+test('transient GitHub freshness read keeps the existing finite retry path',async()=>{
   const state=failedState(),store=memoryStore(state),c={root:`/repos/${REPOSITORY}`,
     async api(){throw new Error('GitHub GET /pulls/220: HTTP 502');},
     async pages(path){throw new Error(`Unexpected pages ${path}`);},
   };
-  let deliveries=0;
-  await notifyOutbox(c,store,{url:'https://notify.example.test',request:async()=>{deliveries++;return{ok:true};}});
-  assert.equal(deliveries,0);
+  await notifyOutbox(c,store);
   assert.equal(state.outbox[0].suppressedAt,undefined);
   assert.equal(state.outbox[0].notificationAttempts,1);
   assert.match(state.outbox[0].notificationError,/HTTP 502/);
   assert.ok(state.outbox[0].nextNotificationAt);
 });
 
-test('wave summary omits returned members whose live head has already been superseded',async()=>{
+test('wave summary stays in PULSE and omits returned members whose live head is stale',async()=>{
   const state=newState();
   state.waves=[{id:'wave-1',rescueIds:['r1','r2'],completedAt:now}];
   state.records[1]={pr:1,rescueId:'r1',state:'CHECKING',headSha:oldHead,pushedSha:oldHead,returnedAt:now};
   state.records[2]={pr:2,rescueId:'r2',state:'CHECKING',headSha:oldHead,pushedSha:oldHead,returnedAt:now};
   state.outbox=[{id:'wave-1:summary',type:'wave',wave:'wave-1',prs:[1,2],manual:[]}];
-  const store=memoryStore(state),c=client({1:pr(1,oldHead),2:pr(2,newHead)}),bodies=[];
-  await notifyOutbox(c,store,{url:'https://notify.example.test',request:async(_url,options)=>{bodies.push(options.body);return{ok:true};}});
-  assert.equal(bodies.length,1);
-  assert.match(bodies[0],/Returned to Integration: #1/);
-  assert.doesNotMatch(bodies[0],/#2/);
-  assert.equal(state.outbox[0].channel,'ntfy');
+  const store=memoryStore(state),c=client({1:pr(1,oldHead),2:pr(2,newHead)});
+  await notifyOutbox(c,store);
+  assert.equal(state.outbox[0].channel,'pulse-summary');
+  assert.equal(c.calls.some(call=>call.method==='POST'&&/\/issues\//.test(call.path)),false);
 });
 
 test('wave summary is suppressed when every returned head is stale',async()=>{
@@ -102,9 +99,7 @@ test('wave summary is suppressed when every returned head is stale',async()=>{
   state.records[1]={pr:1,rescueId:'r1',state:'CHECKING',headSha:oldHead,pushedSha:oldHead,returnedAt:now};
   state.outbox=[{id:'wave-1:summary',type:'wave',wave:'wave-1',prs:[1],manual:[]}];
   const store=memoryStore(state),c=client({1:pr(1,newHead)});
-  let deliveries=0;
-  await notifyOutbox(c,store,{url:'https://notify.example.test',request:async()=>{deliveries++;return{ok:true};}});
-  assert.equal(deliveries,0);
+  await notifyOutbox(c,store);
   assert.equal(state.outbox[0].channel,'suppressed-stale');
   assert.equal(state.outbox[0].suppressionReason,'wave-returned-heads-superseded');
 });

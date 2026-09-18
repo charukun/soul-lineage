@@ -96,7 +96,7 @@ test('control canary treats notification as advisory while preserving delivery g
     statuses: [
       { context: 'dev/delivery', state: 'success' },
       { context: 'ops-board/public', state: 'success' },
-      { context: 'notification/ntfy', state: 'error' },
+      { context: 'notification/dev-email', state: 'failure' },
     ],
   };
   const advisory = evaluateCanary(base);

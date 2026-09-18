@@ -1,8 +1,7 @@
 import { readFileSync, existsSync, appendFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { notifyStage } from './implementation-handoff.mjs';
-import { lifecycleMessage, notificationTitle } from './notification-copy.mjs';
+import { lifecycleMessage } from './notification-copy.mjs';
 
 export const PERSONAL_DEV_EMAIL_REPOSITORY = 'charukun/soul-lineage';
 export const PERSONAL_DEV_EMAIL_LOGIN = 'charukun';
@@ -215,21 +214,14 @@ export async function recordGithubDeliveryReceipts({ token = '', repository, sha
   return results;
 }
 
-export function notificationStatus(channel) {
-  return channel === 'ntfy' ? { state: 'success', description: 'ntfy smartphone delivery confirmed' } :
-    channel === 'not-configured' ? { state: 'error', description: 'NTFY_TOPIC_URL is not configured; smartphone delivery unconfirmed' } :
-    channel === 'skipped' ? { state: 'success', description: 'No delivery notification required for this run' } :
-    { state: 'failure', description: 'ntfy delivery failed; GitHub remains authoritative' };
-}
-
 export function developmentEmailStatus(state) {
   return state === 'success' ? { state: 'success', description: 'GitHub PR DEV receipt created or already present' } :
     state === 'skipped' ? { state: 'success', description: 'No eligible merged PR required a DEV receipt' } :
     { state: 'failure', description: 'DEV email receipt creation failed; inspect publisher logs' };
 }
 
-function writeOutput(channel, devEmail = 'skipped') {
-  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `channel=${channel}\ndev_email=${devEmail}\n`);
+function writeOutput(devEmail = 'skipped') {
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `dev_email=${devEmail}\n`);
 }
 
 async function main() {
@@ -264,7 +256,7 @@ async function main() {
 
   const message = deliveryMessage(stage, { report, sha: process.env.FINAL_SHA,
     repository: process.env.GITHUB_REPOSITORY, runUrl });
-  if (!message) { writeOutput('skipped', devEmail); return; }
+  if (!message) { writeOutput(devEmail); return; }
 
   if (stage === 'DEV_DEPLOYED') {
     try {
@@ -294,19 +286,7 @@ async function main() {
     }
   }
 
-  let channel = 'failed';
-  try {
-    channel = await notifyStage(message, {
-      url: process.env.NTFY_TOPIC_URL,
-      token: process.env.NTFY_TOKEN,
-      title: notificationTitle(stage),
-    });
-  } catch (error) {
-    writeOutput(channel, devEmail);
-    throw error;
-  }
-  writeOutput(channel, devEmail);
+  writeOutput(devEmail);
   console.log(message);
-  if (channel === 'not-configured') console.warn('::warning::NTFY_TOPIC_URL not configured; GitHub is authoritative, smartphone delivery unconfirmed.');
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) await main();
