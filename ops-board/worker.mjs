@@ -38,6 +38,48 @@ function githubAuthError(source) {
     githubDiagnostic: { kind: 'auth-required', status: null, scope: 'none', source },
   });
 }
+function opsStateStub(env) {
+  const namespace = env?.OPS_STATE;
+  if (!namespace) throw new Error('ops_state_binding_missing');
+  if (typeof namespace.idFromName === 'function' && typeof namespace.get === 'function') {
+    return namespace.get(namespace.idFromName('global'));
+  }
+  if (typeof namespace.getByName === 'function') return namespace.getByName('global');
+  throw new Error('ops_state_binding_unavailable');
+}
+function emergencyState(error, source = 'state-read') {
+  const attemptedAt = new Date().toISOString();
+  const state = {
+    repository: 'charukun/soul-lineage',
+    schemaVersion: 2,
+    generatedAt: null,
+    lastAttemptAt: attemptedAt,
+    syncStatus: 'degraded',
+    syncSource: 'PULSE fallback',
+    syncError: 'PULSEの状態取得を自動再試行しています',
+    refreshReason: source,
+    nextRetryAt: null,
+    githubFailure: { kind: 'runtime', status: null, scope: 'none' },
+    pullRequests: { normal: [], visualReview: [] },
+    applications: [],
+    environments: [],
+    environmentDiff: { count: null, label: '状態を再取得中', pulls: [] },
+    integration: { phase: 'reconcile-wait', tone: 'info', queue: [] },
+    recentActionFailures: [],
+    actionHistory: [],
+  };
+  state.controlTower = deriveControlTower(state, null);
+  return state;
+}
+async function resilientPublicState(error, env, source = 'state-read') {
+  try {
+    const state = await degradedState(null, error, { source });
+    state.controlTower = deriveControlTower(state, null);
+    return publicState(state, env);
+  } catch {
+    return publicState(emergencyState(error, source), env);
+  }
+}
 
 export class OpsState extends DurableObject {
   constructor(ctx, env) { super(ctx, env); this.ctx = ctx; this.env = env; this.inflight = null; }
@@ -164,35 +206,44 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
-      if(url.pathname.startsWith('/api/peer-world/'))return handlePeerWorld(request,url,env.OPS_STATE.getByName('global'));
+      if(url.pathname.startsWith('/api/peer-world/'))return handlePeerWorld(request,url,opsStateStub(env));
       if (url.pathname === '/api/version' && request.method === 'GET') return json({ app: 'ops-board', commit: env.OPS_BUILD_SHA || null });
       if (url.pathname === '/api/state' && request.method === 'GET') {
-        const stub = env.OPS_STATE.getByName('global');
-        let state = await stub.getState();
-        if (!state && env.OPS_GITHUB_TOKEN) state = await stub.refresh('cold-start');
-        if (!state) return json({ error: 'github_auth_required' }, 503);
-        return json({ ...publicState(state, env), history: await stub.getHistory(), sharedWorld: await stub.peerSnapshot() });
+        try {
+          const stub = opsStateStub(env);
+          let state = await stub.getState();
+          if (!state && env.OPS_GITHUB_TOKEN) state = await stub.refresh('cold-start');
+          if (!state) return json(await resilientPublicState(githubAuthError('state-read'), env, 'state-read'));
+          return json({ ...publicState(state, env), history: await stub.getHistory(), sharedWorld: await stub.peerSnapshot() });
+        } catch (error) {
+          return json({ ...(await resilientPublicState(error, env, 'state-read')), history: { schema:1, snapshots:[], publications:[] }, sharedWorld: null, runtimeFallback: true });
+        }
       }
       if (url.pathname === '/api/history' && request.method === 'GET') {
-        return json(await env.OPS_STATE.getByName('global').getHistory());
+        try { return json(await opsStateStub(env).getHistory()); }
+        catch { return json({ schema:1, snapshots:[], publications:[] }); }
       }
       if (url.pathname === '/api/action-notification/claim' && request.method === 'POST') {
         if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
         const body = await request.json();
-        return json(await env.OPS_STATE.getByName('global').claimActionNotification(body?.key));
+        return json(await opsStateStub(env).claimActionNotification(body?.key));
       }
       if (url.pathname === '/api/action-notification/complete' && request.method === 'POST') {
         if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
         const body = await request.json();
-        return json(await env.OPS_STATE.getByName('global').completeActionNotification(body?.key, body?.success === true));
+        return json(await opsStateStub(env).completeActionNotification(body?.key, body?.success === true));
       }
       if (url.pathname === '/api/refresh' && request.method === 'POST') {
         if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
         const token = (request.headers.get('x-ops-github-token') || '').trim();
         if (token.length > 1024) return json({ error: 'invalid_credential' }, 400);
         if (!token && !env.OPS_GITHUB_TOKEN) return json({ error: 'github_auth_required' }, 503);
-        const stub = env.OPS_STATE.getByName('global');
-        return json(publicState(await stub.refresh(eventReason(request), token), env));
+        try {
+          const stub = opsStateStub(env);
+          return json(publicState(await stub.refresh(eventReason(request), token), env));
+        } catch (error) {
+          return json({ ...(await resilientPublicState(error, env, eventReason(request))), refreshFailed: true, refreshError: 'state_unavailable' });
+        }
       }
       if (url.pathname === '/api/rescue-observation' && request.method === 'POST') {
         if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
@@ -200,14 +251,14 @@ export default {
         if (body.length > 900000) return json({ error: 'snapshot_too_large' }, 413);
         const snapshot = JSON.parse(body);
         if (!snapshot.available || !Number.isFinite(Date.parse(snapshot.generatedAt)) || !Array.isArray(snapshot.workers) || !Array.isArray(snapshot.queue)) return json({ error: 'invalid_snapshot' }, 400);
-        return json(await env.OPS_STATE.getByName('global').observeRescue(snapshot));
+        return json(await opsStateStub(env).observeRescue(snapshot));
       }
       if (url.pathname.startsWith('/api/')) return json({ error: 'not_found' }, 404);
       return env.ASSETS.fetch(request);
-    } catch (error) { return json({ error: String(error?.message || 'state_unavailable') }, 503); }
+    } catch { return json({ error: 'state_unavailable' }, 503); }
   },
   async scheduled(controller, env, ctx) {
     if (!env.OPS_GITHUB_TOKEN) return;
-    ctx.waitUntil(env.OPS_STATE.getByName('global').refresh(`cron:${controller.cron}`));
+    ctx.waitUntil(opsStateStub(env).refresh(`cron:${controller.cron}`));
   },
 };
