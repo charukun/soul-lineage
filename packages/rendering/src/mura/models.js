@@ -121,11 +121,13 @@ function authoredYurtGeometries(assetId){
 }
 function residentialYurt(d){
  const asset=visualAssetById(d.visualAssetId),g=new T.Group(),geos=authoredYurtGeometries(asset.id);
- const body=mesh(g,geos.body,mat(0xe8dfca,true,{side:T.DoubleSide}));body.userData.sourceAssetId=asset.id;
- const roof=mesh(g,geos.roof,mat(d.roof,true,{side:T.DoubleSide}));roof.userData.sourceAssetId=asset.id;
+ const bodyMaterial=mat(0xe8dfca,true,{side:T.DoubleSide}),roofMaterial=mat(d.roof,true,{side:T.DoubleSide});
+ bodyMaterial.shadowSide=T.FrontSide;roofMaterial.shadowSide=T.FrontSide;
+ const body=mesh(g,geos.body,bodyMaterial);body.userData.sourceAssetId=asset.id;body.userData.yurtPart='body';
+ const roof=mesh(g,geos.roof,roofMaterial);roof.userData.sourceAssetId=asset.id;roof.userData.yurtPart='roof';
  const [sx,sy,sz]=asset.dimensions,scale=Math.min((d.w*.92)/sx,(d.d*.92)/sz,(asset.runtime?.maxHeight||3.6)/sy);
  g.scale.setScalar(scale);g.rotation.y=asset.runtime?.yaw||0;
- g.userData.assetBacked=true;g.userData.visualAssetId=asset.id;g.userData.visualAssetOrigin=asset.origin;g.userData.residentialTent='authored-yurt-v2';g.userData.circularHousing=true;return g;
+ g.userData.assetBacked=true;g.userData.visualAssetId=asset.id;g.userData.visualAssetOrigin=asset.origin;g.userData.residentialTent='authored-royal-yurt-v3';g.userData.circularHousing=true;g.userData.stableShadowCaster=true;return g;
 }
 function building(kind,material='base',level=1){const d=defs[kind];if(!d)return new T.Group();
  let g;
