@@ -1,6 +1,6 @@
 # 実装セッション実行ポリシー
 
-この文書は、通常の Chat / WORK / Codex 実装セッションの終了境界、DEV確認、通知、復旧を定義する。実装手順は [`DEVELOPMENT.md`](DEVELOPMENT.md)、Ready後の serialized merge guard / DEV 公開は [`DEVELOP_MERGE.md`](DEVELOP_MERGE.md) を正本とする。
+この文書は、通常の Chat / WORK / Codex 実装セッションの終了境界、DEV確認、通知、復旧を定義する。実装手順は [`DEVELOPMENT.md`](DEVELOPMENT.md)、Ready直後の same-task merge / DEV 公開は [`DEVELOP_MERGE.md`](DEVELOP_MERGE.md) を正本とする。
 
 ## 正本と終了境界
 
@@ -23,7 +23,7 @@ implementation
 
 Ready の前には latest `develop` を work branch へ取り込み、reconciled head で必要な局所検証をやり直す。Ready 化の直前に current develop が current head の ancestor であることを再確認する。checkout がある場合の標準コマンドと conflict handling は [`DEVELOPMENT.md`](DEVELOPMENT.md) の Pre-Ready Reconciliation を正本とする。
 
-CI / GitHub Actions / Playwright / browser check が Running / Queued / Pending でも待たない。`gh run watch`、`gh pr checks --watch`、一定間隔の Actions API 取得、sleep を使う polling loopは禁止。push 直後に1回だけ短時間確認し、起動・即時失敗・明白な設定誤りを確認するのはよい。未完了でも別担当への handoff は作らず、同じ Ready PR のGitHub automationが継続する。
+CI / GitHub Actions / Playwright / browser check が Running / Queued / Pending でも待たない。`gh run watch`、`gh pr checks --watch`、一定間隔の Actions API 取得、sleep を使う polling loopは禁止。push 直後に1回だけ短時間確認し、起動・即時失敗・明白な設定誤りを確認するのはよい。未完了でも別担当への handoff は作らず、develop向けPRでは同じ実装workerがfreshness確認後にそのままmergeへ進む。merge後のDEV publicationだけが非同期で継続する。
 
 develop PRではReady後のCI監視や自動repairを行わない。実装worker自身がmerge直前のfreshnessを確認してPRをdevelopへmergeする。DEV公開だけがmerge後に非同期で続く。
 
@@ -48,7 +48,7 @@ Ready は CI 成功、merge、DEV 公開成功を意味しない。
 | 状況 | 対応 |
 | --- | --- |
 | 可逆的な見た目・操作感・文言 | AI が選択・記録して DEV で確認 |
-| 現仕様へ適応できる古い PR / 技術競合 | AI Repair で修復・検証して同じ Ready PR の自動merge経路へ戻す |
+| 現仕様へ適応できる古い PR / 技術競合 | AI Repair で修復・検証し、same-task Ready → freshness再確認 → develop merge へ戻す |
 | DEV 上のユーザー指摘 | 公開 SHA・対象画面・再現条件を現在状態と照合し次の修正へ反映 |
 | hold / Changes requested / unresolved thread / dependency | 既存制御を維持 |
 | 未承認の不可逆データ変更、互換性を壊す save/schema/protocol、既存要件から決められない重大契約 | その対象だけ human-required |
@@ -58,16 +58,16 @@ Ready は CI 成功、merge、DEV 公開成功を意味しない。
 
 DEV の人間目視と、browser検証・Production 品質認定は別。通常developではbrowser検証を自動実行せず、明示playtest / `full_verification=true` / 専門evidence workflow / main・Productionだけで実行する。既存browser assertionとmain / Production gateは弱めない。
 
-## Ready handoff
+## Ready transition
 
-GitHub の `open + base=develop + draft=false` が通常 handoff の境界。ただし Ready 化前に、current develop の merge-forward、reconciled head の必要局所検証、push、final freshness verify が完了していることを前提とする。exact head の `implementation/handoff` status / PR comment は受領記録であり、独自 Task-ID や別の永続 queue を追加しない。
+GitHub の `open + base=develop + draft=false` は merge 直前の一時状態であり、実装タスクの正常終了境界ではない。Ready 化前に current develop の merge-forward、reconciled head の必要局所検証、push、final freshness verify を完了し、Ready 化後は同じ実装workerがmerge直前のfreshnessを再確認して exact head を `develop` へmergeする。`READY_FOR_INTEGRATION` や別の Ready handoff 状態は作らない。
 
 通知・status は工程別に扱う。
 
 | 工程 | GitHub 正本 | 通知 |
 | --- | --- | --- |
 | 作業中 | work branch / Draft PR / current commit | 開始・push 到達。最終成功ではない |
-| 実装完了 | Ready PR / exact head / reconciled develop SHA / `implementation/handoff` | Ready。以後は同PRの自動merge経路 |
+| merge直前 | Ready PR / exact head / reconciled develop SHA | 中間状態。ここで最終成功報告せず、同じ実装workerがmergeへ進む |
 | develop 統合 | merged PR / merge commit / merge status | `MERGED_TO_DEVELOP` |
 | DEV 完了 | target develop SHA の `dev/delivery=success` | `DEV_DEPLOYED` |
 | 実装失敗 | branch / commit / Draft or hold / reason | `FAILED` |
@@ -78,7 +78,7 @@ GitHub の `open + base=develop + draft=false` が通常 handoff の境界。た
 
 ## 失敗と復旧
 
-単発確認時に即時失敗が判明し、その場で安全に直せる場合は同じ branch / PR で修正 → current develop reconciliation → 高速検証 → push → freshness verify → Ready まで進めてよい。後から判明した失敗は merge guard が exact head、失敗 run、対象 test/log を根拠に Repair へ返す。修正 worker も同じ pre-Ready reconciliation を行って Ready で終了する。
+単発確認時に即時失敗が判明し、その場で安全に直せる場合は同じ branch / PR で修正 → current develop reconciliation → 高速検証 → push → freshness verify → Ready → merge まで同じ実装workerが進める。後から判明したDEV publicationや明示browser検証の失敗は、exact develop SHA / run / 対象 test/log を根拠に別の修正タスクとして扱う。修正タスクも同じ pre-Ready reconciliation と same-task merge を行う。
 
 セッション停止時は、過去チャットから再構築せず、次の現在状態から同じ PR を復旧する。
 
@@ -90,7 +90,7 @@ GitHub の `open + base=develop + draft=false` が通常 handoff の境界。た
 - exact-head Checks / run / artifact
 - 最新 `develop` との差分
 
-Ready 済みなら、修正依頼なしに CI 待機セッションを再開しない。
+Ready 済みで未mergeなら、CI待機はせず同じタスクのmerge直前freshness確認から復旧してmergeまで完了する。merge済みなら、修正依頼なしにCI待機セッションを再開しない。
 
 GitHub 反映経路は **通常 git → 接続済み GitHub API → 同 Repository の既存 Codespaces + 通常 git**。1経路の認証・通信・転送制約だけで不能と結論付けない。詳細は [`MOBILE_HYBRID_DEVELOPMENT.md`](MOBILE_HYBRID_DEVELOPMENT.md)。
 
@@ -111,7 +111,7 @@ browser verification / repair は [`BROWSER_SELF_HEALING.md`](BROWSER_SELF_HEALI
 - 対象SHA、確認環境（local PR preview / deployed DEVなど）、画面・操作、結果、未確認範囲を証拠と対応づける。PR headの録画をDEV公開確認として扱わない。別SHAの証拠の使い回しは禁止。
 - 実画像・動画を取得した場合は最終応答で代表画像をインライン表示するか、動画を再生可能な添付で提示する。保存済みの証拠・PR報告へのリンクも添えられるが、リンクだけで取得済み映像の提示を代替しない。
 - 局所検証や明示browser playtestで撮影できるものはReady前に取得する。取得待ち・環境制約・未実施の場合は `未取得` と理由を明記し、画像を見せた／動作を確認したとは報告しない。
-- Ready は引き続き対話的な実装作業の終了境界。証拠待ちでCIをpollingしない。Ready後は同じPRの自動merge経路が継続する。browser assertion、review、main / Productionの品質gateを弱めない。
+- Ready は対話的な実装作業の終了境界ではない。証拠待ちでCIをpollingせず、必要な局所証拠を取得できない場合は未取得理由を残したうえで、same-task freshness再確認 → develop merge まで完了する。browser assertion、review、main / Productionの品質gateを弱めない。
 
 ### 取得・報告の実装
 
@@ -135,13 +135,15 @@ GitHub Actions artifactを使う明示browser/evidence workflowでは保存期�
 - branch
 - exact head commit SHA
 - PR 番号 / URL
-- Ready for review 化済み
+- merged PR 番号 / URL
+- 検証した exact PR head SHA
+- develop merge commit SHA
 - Ready 前に取り込んだ reconciled develop SHA
 - 実行した高速検証
 - 取得したキャプチャー／動画と短い確認内容、または未取得理由
 - CI / handoff recorder / 通知が未確認または実行中なら、その事実
 
-CI・browser・通知完了を待って最終応答を遅らせない。
+DEV publication・browser・通知完了を待って最終応答を遅らせない。ただしdevelop向け実装タスクでPRがReadyなだけの状態では成功の最終応答を返さず、merge済みか、実在するblockerにより `FAILED` であることを確定してから終了する。
 
 ## 優先順位
 
