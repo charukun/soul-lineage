@@ -50,7 +50,7 @@ export function createCoopPerformanceProbe({role='peer',now=()=>performance.now(
     return true;
   }
   const recordStateFreshness=value=>push('stateFreshnessMs',Number(value)),recordPositionError=value=>push('positionErrorM',Number(value)),recordRollback=value=>push('rollbackMs',Number(value)),recordFrame=value=>push('frameMs',Number(value)),recordGpu=value=>push('gpuMs',Number(value)),recordMemory=value=>push('memoryMb',Number(value)),recordBatteryRate=value=>push('batteryPctPerHour',Number(value)),recordHostLossDetection=value=>push('hostLossDetectionMs',Number(value)),recordHostReopen=value=>push('hostReopenMs',Number(value));
-  function recordSemanticCommit({checkpointBytes,journalBytes,eventCount,historyEffects}={}){push('semanticCheckpointBytes',Number(checkpointBytes));push('semanticJournalBytes',Number(journalBytes));push('semanticEventCount',Number(eventCount));push('semanticHistoryEffects',Number(historyEffects));}
+  function recordSemanticCommit({checkpointBytes,journalBytes,eventCount,historyEffects,commitLatencyMs}={}){const events=Number(eventCount);push('semanticCheckpointBytes',Number(checkpointBytes));push('semanticJournalBytes',Number(journalBytes));push('semanticEventCount',events);push('semanticHistoryEffects',Number(historyEffects));if(Number.isSafeInteger(events)&&events>0)push('canonCommitMs',Number(commitLatencyMs));}
   function resetWindow({keepConnections=true}={}){
     for(const list of Object.values(raw))list.length=0;inputStarted.clear();acknowledgedInputs.clear();canonStarted.clear();startedAt=now();txBucket=0;txBucketBytes=0;bandwidthSkippedBuckets=0;
     if(!keepConnections){connectionAttempts=0;connectionSuccesses=0;turnCandidateClassifiedConnections=0;turnRelayConnections=0;opened=new WeakSet();}
