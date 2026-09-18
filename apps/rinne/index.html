@@ -29,7 +29,7 @@
 </head>
 <body>
 <main id="app" data-screen="loading">
-  <section id="title-screen" class="title-screen" data-motion="on" aria-labelledby="title-mark" hidden>
+  <section id="title-screen" class="title-screen" data-motion="on" data-intro="pending" aria-labelledby="title-mark" hidden>
     <div class="title-world" aria-hidden="true">
       <img class="title-world-base" src="./title-assets/world.webp" alt="" fetchpriority="high">
       <div class="title-world-rays"></div>
@@ -47,7 +47,7 @@
     </div>
     <nav class="title-actions" aria-label="タイトルメニュー">
       <input id="life-name" type="hidden" value="旅人">
-      <button id="new-life" class="title-command" data-selected="true" type="button" aria-label="100年生を最初から始める">最初から</button>
+      <button id="new-life" class="title-command" data-selected="true" type="button" aria-label="100年生を最初から始める">はじめる</button>
       <button id="continue-life" class="title-command" type="button" aria-disabled="true">続きから</button>
       <button id="open-village-code" class="title-command" type="button">村コード</button>
       <button id="open-settings" class="title-command" type="button">設定</button>
