@@ -11,9 +11,9 @@ function playerMap(checkpoint) {
 function same(a, b) { return canonical(a) === canonical(b); }
 
 // Source-shaped SHADOW extractor for the current trusted-host co-op history surface.
-// It is stricter than accepting arbitrary snapshots and deliberately fails on
-// an early-ended life because current coop/history.js defines a terminal life by
-// ageSeconds === LIFE_SECONDS. It does not claim this is the desired final rule.
+// It is stricter than accepting arbitrary snapshots. Current co-op history now
+// accepts both natural lifespan completion and combat-ended lives, provided an
+// ended life is in the ended phase and a living life has not reached LIFE_SECONDS.
 export function deriveProtectedActions(previousCheckpoint, nextCheckpoint) {
   const oldWorld = playerMap(previousCheckpoint), nextWorld = playerMap(nextCheckpoint);
   if (oldWorld.worldId !== nextWorld.worldId || oldWorld.ownerId !== nextWorld.ownerId) throw Error('world identity changed');
@@ -27,8 +27,7 @@ export function deriveProtectedActions(previousCheckpoint, nextCheckpoint) {
     const oldRow = oldWorld.players[playerId], nextRow = nextWorld.players[playerId];
     const life = nextRow?.life;
     if (!life || typeof life.id !== 'string' || !Number.isSafeInteger(life.generation)) throw Error('invalid life');
-    const naturalEnded = life.ageSeconds === LIFE_SECONDS;
-    if (Boolean(life.ended) !== naturalEnded) throw Error('current-coop terminal rule mismatch');
+    if (life.ended ? life.phase !== 'ended' : life.ageSeconds >= LIFE_SECONDS) throw Error('current-coop terminal rule mismatch');
 
     if (!oldRow) {
       if (life.generation !== 1 || (life.lineage?.length ?? -1) !== 0 || life.ended) throw Error('unsupported birth checkpoint');
