@@ -13,8 +13,11 @@ test('single production visual registry requires authored materialized licensed 
  }
 });
 test('Village yurt is exact pinned authored Collada, not a generated reconstruction',()=>{
- const asset=visualAssetById('village.yurt.authored-xion.v2'),bytes=readFileSync(asset.localPath),license=readFileSync(asset.licensePath,'utf8');
+ const asset=visualAssetById('village.yurt.authored-royal-xion.v3'),bytes=readFileSync(asset.localPath),license=readFileSync(asset.licensePath,'utf8');
  assert.equal(asset.origin,'artist-authored');assert.equal(asset.source.hash,`git-blob:${gitBlobSha(bytes)}`);
- assert.equal(asset.runtime.format,'compiled-collada');assert.equal(asset.meshData.sourceTriangles,1656);assert.ok(asset.meshData.sourcePositionVertices>800);
- assert.match(bytes.toString('utf8'),/<authoring_tool>Blender 2\.78\.0/);assert.match(license,/creativecommons\.org\/licenses\/by-sa\/3\.0/);
+ assert.equal(asset.runtime.format,'compiled-collada');assert.equal(asset.meshData.sourceTriangles,2824);assert.ok(asset.meshData.sourcePositionVertices>1800);
+ assert.match(asset.source.path,/xion_royal_yurt\.dae$/);assert.match(bytes.toString('utf8'),/<authoring_tool>Blender 2\.78\.0/);assert.match(license,/creativecommons\.org\/licenses\/by-sa\/3\.0/);
+ const p=asset.meshData.positions,ys=[];for(let i=1;i<p.length;i+=3)ys.push(p[i]);const minY=Math.min(...ys),maxY=Math.max(...ys),h=maxY-minY,low=[],high=[];
+ for(let i=0;i<p.length;i+=3){const t=(p[i+1]-minY)/h,r=Math.hypot(p[i],p[i+2]);if(t>.12&&t<.50)low.push(r);if(t>.68&&t<.96)high.push(r);}
+ const mean=a=>a.reduce((n,v)=>n+v,0)/a.length;assert.ok(mean(high)<mean(low)*.62,`royal yurt roof must taper: low=${mean(low)} high=${mean(high)}`);
 });
