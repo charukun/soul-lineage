@@ -71,19 +71,35 @@ function deltaText(current) {
   return changes.length ? `前回閲覧から ${changes.join(' / ')}` : '前回閲覧から変化なし';
 }
 
+function compactFlow(flow = []) {
+  const groups = [
+    { id:'work', label:'作業', ids:['implementation'] },
+    { id:'ready', label:'Ready', ids:['ready'] },
+    { id:'integration', label:'統合', ids:['integration','develop'] },
+    { id:'dev', label:'DEV', ids:['dev'] },
+  ];
+  const rank = state => ({ active:4, current:4, progress:4, waiting:2, done:1 })[state] || 2;
+  return groups.map(group => {
+    const matched = flow.filter(step => group.ids.includes(step.id));
+    if (!matched.length) return { ...group, state:'waiting', count:0 };
+    const state = [...matched].sort((a,b) => rank(b.state) - rank(a.state))[0]?.state || 'waiting';
+    const count = matched.reduce((sum, step) => sum + Number(step.count || 0), 0);
+    const done = matched.every(step => step.state === 'done');
+    return { ...group, state: done ? 'done' : state, count };
+  });
+}
 function renderFlow(flow = []) {
   const root = $('#control-flow');
   if (!root) return;
   root.replaceChildren();
-  flow.forEach((step, index) => {
+  for (const step of compactFlow(flow)) {
     const item = el('div', `control-flow-step ${step.state || 'waiting'}`);
     item.append(el('span', 'control-flow-dot'));
     const copy = el('span', 'control-flow-copy');
     copy.append(el('strong', '', step.label), el('small', '', step.count ? `${step.count}件` : step.state === 'done' ? '完了' : '待機'));
     item.append(copy);
     root.append(item);
-    if (index < flow.length - 1) root.append(el('span', 'control-flow-arrow', '›'));
-  });
+  }
 }
 
 function renderImpacts(tower) {
@@ -189,22 +205,56 @@ function renderSnapshots(history = {}) {
   });
 }
 
+function retryLabel(state, tower) {
+  const at = Date.parse(state?.nextRetryAt || '');
+  if (Number.isFinite(at) && at > Date.now()) {
+    const minutes = Math.max(1, Math.ceil((at - Date.now()) / 60000));
+    return `自動再試行まで約${minutes}分`;
+  }
+  if (state?.syncStatus === 'degraded' || tower?.status === 'RECOVERING') return '自動で再試行します';
+  return tower?.nextAction || '次の状態更新を待ちます';
+}
 function render(state, error) {
   const root = $('#control-tower');
+  if (!root) return;
   const tower = state?.controlTower;
-  if (!root || !tower) return;
+  const since = $('#control-since');
+
+  if (!tower) {
+    root.className = 'control-tower warning';
+    $('#control-headline').textContent = '自動復旧中';
+    $('#control-summary').textContent = '現在状態を取得できません。PULSEが自動で再試行しています。';
+    if (since) since.hidden = true;
+    $('#control-next').textContent = 'あなたの操作は不要です';
+    $('#control-completeness').textContent = '状態未取得';
+    $('#control-github-change').textContent = 'GitHub変化 未確認';
+    $('#control-refreshed').textContent = 'PULSE反映 未確認';
+    $('#control-delta').textContent = 'Last Known Goodがまだありません';
+    renderFlow([]);
+    renderImpacts(null);
+    renderTimeline(null);
+    renderSelfHealth(null);
+    renderPublications({});
+    renderSnapshots({});
+    return;
+  }
+
   const tone = error ? 'warning' : toneFor(tower.status);
   root.className = `control-tower ${tone}`;
   $('#control-headline').textContent = tower.headline || '状態を確認中';
-  $('#control-summary').textContent = error ? '表示更新を再試行しています。前回確定値を保持しています。' : `${tower.summary || ''}${tower.cause ? ` · 理由: ${tower.cause}` : ''}`;
-  $('#control-since').textContent = `この状態 ${elapsed(tower.enteredAt)}`;
-  $('#control-next').textContent = tower.nextAction || '次の状態更新を待ちます';
+  $('#control-summary').textContent = error ? '最新取得に失敗しています。前回確定値を表示中です。' : (tower.summary || '');
+  if (since) {
+    const known = elapsed(tower.enteredAt);
+    since.hidden = known === '未記録';
+    since.textContent = known === '未記録' ? '' : `この状態 ${known}`;
+  }
+  $('#control-next').textContent = retryLabel(state, tower);
   $('#control-completeness').textContent = tower.completeness?.label || '確認中';
   $('#control-github-change').textContent = tower.lastGitHubChangeAt ? `GitHub変化 ${elapsed(tower.lastGitHubChangeAt)}前` : 'GitHub変化 未記録';
   $('#control-refreshed').textContent = tower.lastRefreshedAt ? `PULSE反映 ${elapsed(tower.lastRefreshedAt)}前` : 'PULSE反映 未記録';
 
   const current = seenSnapshot(state);
-  $('#control-delta').textContent = deltaText(current);
+  $('#control-delta').textContent = error ? `${deltaText(current)} / 最新取得は再試行中` : deltaText(current);
   latestSeen = current;
   try { localStorage.setItem(VIEW_KEY, JSON.stringify(current)); } catch { /* optional storage */ }
 
