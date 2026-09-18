@@ -27,7 +27,7 @@ export function analyzeShadowCapture(raw){
 export function comparableCaptureSet(captures){
   if(!Array.isArray(captures)||captures.length<2)throw Error('at least two captures are required');
   const meta=captures.map(row=>row?._capture??{}),first=meta[0];
-  const fields=['worldId','expectedPeers'];
+  const fields=['worldId','expectedPeers','buildRevision','environment','workloadId'];
   const mismatches=[];
   for(let i=1;i<meta.length;i++)for(const field of fields)if(first[field]!==meta[i][field])mismatches.push({index:i,field,left:first[field]??null,right:meta[i][field]??null});
   if(meta.some(row=>row.windowArmed!==true))mismatches.push({field:'windowArmed',reason:'every capture must come from an armed steady window'});
