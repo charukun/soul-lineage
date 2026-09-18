@@ -35,7 +35,8 @@
 }
 #angled-guide .angled-guide__stack::before{
   z-index:-1;
-  opacity:.48;
+  --guide-layer-opacity:.48;
+  opacity:var(--guide-layer-opacity);
   background:linear-gradient(108deg,#080505e8,#24100ee0 58%,#090505f2);
   box-shadow:inset 0 0 0 1px #74513c52;
   transform:translate3d(12px,8px,-28px) rotateY(-4deg);
@@ -44,7 +45,8 @@
 #angled-guide .angled-guide__stack::after{
   z-index:-2;
   inset:12px -4px -11px 20%;
-  opacity:.25;
+  --guide-layer-opacity:.25;
+  opacity:var(--guide-layer-opacity);
   background:linear-gradient(103deg,#050303,#30110e 64%,#060303);
   box-shadow:inset 0 0 0 1px #5f392c42;
   transform:translate3d(20px,13px,-48px) rotateY(-6deg);
@@ -150,7 +152,7 @@
 #angled-guide[data-variant="compact"] [data-guide-body] p{font-size:10px}
 @keyframes guide-enter-right{from{opacity:0;transform:translate3d(var(--guide-enter),0,-18px) rotateY(-7deg)}to{opacity:1;transform:none}}
 @keyframes guide-enter-left{from{opacity:0;transform:translate3d(calc(var(--guide-enter) * -1),0,-18px) rotateY(7deg)}to{opacity:1;transform:none}}
-@keyframes guide-shadow-in{from{opacity:0}to{opacity:inherit}}
+@keyframes guide-shadow-in{from{opacity:0}to{opacity:var(--guide-layer-opacity)}}
 @media(max-height:650px){
   #angled-guide{top:calc(86px + env(safe-area-inset-top));width:min(72vw,340px)}
   #angled-guide .angled-guide__face{min-height:112px;padding-top:12px;padding-bottom:13px}
