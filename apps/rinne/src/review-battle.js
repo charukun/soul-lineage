@@ -28,7 +28,8 @@ enemySelect.addEventListener('change',()=>{void ensureBattleStage().then(stage=>
 
 const memory=new Map();
 const storage={getItem:key=>memory.has(key)?memory.get(key):null,setItem:(key,value)=>memory.set(key,String(value))};
-let host=null,playing=true,last=performance.now(),lastCore=null,loopEnabled=true,followCamera=true,uiSkin='rinne',finishedAt=0,lastJinkuAction='',lastJinkuPhase='';
+const loopEnabled=true,followCamera=true;
+let host=null,playing=true,last=performance.now(),lastCore=null,uiSkin='jinku',finishedAt=0,lastJinkuAction='',lastJinkuPhase='';
 
 function setPressed(button,pressed,label){
   button.setAttribute('aria-pressed',String(pressed));
@@ -72,8 +73,8 @@ function syncBattle(dt){
   const heroMax=Math.max(1,Number(core.hero.maxhp)||1),enemyMax=Math.max(1,Number(core.enemy.maxhp)||1);
   q('hero-action').textContent=core.hero.attack||'構え';q('enemy-action').textContent=core.enemy.attack||'構え';
   q('hero-hp').value=Math.max(0,(Number(core.hero.hp)||0)/heroMax);q('enemy-hp').value=Math.max(0,(Number(core.enemy.hp)||0)/enemyMax);
-  q('hero-meta').textContent=`${Math.ceil(Number(core.hero.hp)||0)} / ${heroMax} HP · ${core.hero.weapon}`;
-  q('enemy-meta').textContent=`${Math.ceil(Number(core.enemy.hp)||0)} / ${enemyMax} HP · ${core.enemy.weapon}`;
+  q('hero-meta').textContent=`${Math.ceil(Number(core.hero.hp)||0)} / ${heroMax} HP`;
+  q('enemy-meta').textContent=`${Math.ceil(Number(core.enemy.hp)||0)} / ${enemyMax} HP`;
   q('battle-time').textContent=`${(battle?.time||0).toFixed(1)}秒`;
   q('battle-result').textContent=battle?.finished?`${battle.winner==='demon'?'LEFT':'RIGHT'} 勝利`:'戦闘中';
   renderPhase(core);battleStage?.sync(core,dt,{followCamera});
@@ -97,9 +98,6 @@ function frame(now){
 
 q('battle-restart').addEventListener('click',()=>resetBattle());
 q('battle-toggle').addEventListener('click',()=>{playing=!playing;q('battle-toggle').textContent=playing?'一時停止':'再開';last=performance.now();});
-q('battle-loop').addEventListener('click',()=>{loopEnabled=!loopEnabled;setPressed(q('battle-loop'),loopEnabled,'ループ');});
-q('battle-camera').addEventListener('click',()=>{followCamera=!followCamera;setPressed(q('battle-camera'),followCamera,'追従');});
-for(const button of skinButtons)button.addEventListener('click',()=>setUiSkin(button.dataset.battleSkin));
 window.addEventListener('pagehide',()=>battleStage?.dispose(),{once:true});
 
 setPressed(q('battle-loop'),loopEnabled,'ループ');setPressed(q('battle-camera'),followCamera,'追従');setUiSkin(uiSkin);
