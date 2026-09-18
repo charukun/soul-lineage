@@ -1,4 +1,5 @@
 import { audioURLs } from '@soul/audio/urls';
+import { relinquishMediaElement, restoreMediaElement } from '@soul/shared-ui/media-lifecycle';
 
 let activeAudio=null;
 export const unlockRinneAudio=()=>activeAudio?.unlock?.()??false;
@@ -8,18 +9,29 @@ export const presentRinneImpactAudio=options=>activeAudio?.impact?.(options);
 export const clearRinneImpactAudio=()=>activeAudio?.clearImpact?.();
 
 export function createRinneAudio(){
-  const BASE_MUSIC_VOLUME=.2,music=new Audio(audioURLs.r01);music.loop=true;music.volume=BASE_MUSIC_VOLUME;music.preload='auto';
-  const doc=globalThis.document,pageHidden=()=>Boolean(doc&&(doc.hidden||doc.visibilityState==='hidden'));
-  let context=null,lastStep=0,disposed=false,unlocked=false,backgrounded=pageHidden(),duckTimer=0;
+  const BASE_MUSIC_VOLUME=.2,musicURL=audioURLs.r01,music=new Audio(musicURL);music.loop=true;music.volume=BASE_MUSIC_VOLUME;music.preload='auto';
+  const doc=globalThis.document,win=globalThis.window,pageHidden=()=>Boolean(doc&&(doc.hidden||doc.visibilityState==='hidden'));
+  let context=null,lastStep=0,disposed=false,unlocked=false,backgrounded=pageHidden(),duckTimer=0,musicDetached=false,musicPosition=0;
 
   const contextCanResume=()=>Boolean(context&&context.state!=='running'&&context.state!=='closed');
+  function detachMusic(){
+    if(musicDetached){relinquishMediaElement(music);return;}
+    const state=relinquishMediaElement(music);musicPosition=state.position;musicDetached=state.hadSource;
+  }
+  function restoreMusicSource(){
+    if(!musicDetached)return true;
+    const restored=restoreMediaElement(music,{src:musicURL,position:musicPosition,loop:true});
+    if(restored)musicDetached=false;
+    return restored;
+  }
   function clearImpact(){clearTimeout(duckTimer);duckTimer=0;if(!disposed)music.volume=BASE_MUSIC_VOLUME;}
   function suspendForBackground(){
-    backgrounded=true;clearImpact();music.pause();
+    backgrounded=true;clearImpact();detachMusic();
     if(context?.state==='running')void context.suspend().catch(error=>{console.warn('Rinne AudioContext suspend failed',error);});
   }
   async function resumePlayback(){
     if(disposed||backgrounded||pageHidden()||!unlocked)return false;
+    if(!restoreMusicSource())return false;
     const resume=contextCanResume()?context.resume().catch(error=>{console.warn('Rinne AudioContext resume failed',error);}):Promise.resolve();
     const playback=music.paused?music.play().catch(error=>{console.warn('Rinne music start failed',error);}):Promise.resolve();
     await Promise.allSettled([resume,playback]);
@@ -43,6 +55,8 @@ export function createRinneAudio(){
     if(music.paused||contextCanResume())void resumePlayback();
   }
   doc?.addEventListener?.('visibilitychange',onVisibilityChange);
+  win?.addEventListener?.('pagehide',suspendForBackground);
+  win?.addEventListener?.('pageshow',onVisibilityChange);
   doc?.addEventListener?.('pointerdown',recoverFromGesture,{capture:true});
   doc?.addEventListener?.('keydown',recoverFromGesture,{capture:true});
 
@@ -67,7 +81,7 @@ export function createRinneAudio(){
     item(){tone(620,.08,.024,'triangle');setTimeout(()=>tone(840,.08,.018,'triangle'),55);},
     combat:()=>tone(128,.11,.032,'sawtooth'),rest:()=>tone(260,.14,.014),dash:()=>tone(170,.07,.022,'square'),
     step(now){if(now-lastStep<.25)return;lastStep=now;tone(92,.035,.012);},
-    dispose(){if(disposed)return;disposed=true;clearTimeout(duckTimer);if(activeAudio===controller)activeAudio=null;doc?.removeEventListener?.('visibilitychange',onVisibilityChange);doc?.removeEventListener?.('pointerdown',recoverFromGesture,{capture:true});doc?.removeEventListener?.('keydown',recoverFromGesture,{capture:true});music.volume=BASE_MUSIC_VOLUME;music.pause();music.src='';void context?.close?.();context=null;}
+    dispose(){if(disposed)return;disposed=true;clearTimeout(duckTimer);if(activeAudio===controller)activeAudio=null;doc?.removeEventListener?.('visibilitychange',onVisibilityChange);win?.removeEventListener?.('pagehide',suspendForBackground);win?.removeEventListener?.('pageshow',onVisibilityChange);doc?.removeEventListener?.('pointerdown',recoverFromGesture,{capture:true});doc?.removeEventListener?.('keydown',recoverFromGesture,{capture:true});music.volume=BASE_MUSIC_VOLUME;detachMusic();void context?.close?.();context=null;}
   };
   activeAudio=controller;
   return controller;
