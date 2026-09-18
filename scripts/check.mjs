@@ -4,10 +4,12 @@ import { resolve, relative } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { graph, closure, appNode } from './workspaces.mjs';
 import { importSpecifiers } from './import-specifiers.mjs';
+import {verifyDevelopCompletionContract} from './develop-completion-contract.mjs';
 import {BUILDINGS as muraBuildings} from '../packages/world/src/mura/catalog.js';
 import {visualAssetById} from '../packages/assets/src/index.js';
 
 const root = process.cwd();
+verifyDevelopCompletionContract(root);
 for(const building of muraBuildings){
   assert.ok(building.visualAssetId, `Production building requires visualAssetId: ${building.id}`);
   const asset=visualAssetById(building.visualAssetId);
