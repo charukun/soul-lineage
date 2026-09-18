@@ -75,7 +75,7 @@ async function previewEnvironment(candidate, branches, previous, client) {
     publicStatus, latestRun: runView(latest), source: 'GitHub Actions + commit status' };
   return withHistory(env, prior, client);
 }
-async function visualReviewEnvironment(developSha, previous, client) {
+async function visualReviewEnvironment(developSha, previous, client, statusPayload = null) {
   const prior = (previous?.environments || []).find(env => env.id === 'visual-review');
   const base = {
     id: 'visual-review', kind: 'preview', name: 'Visual Review Lab', workflow: 'Visual Review Preview',
@@ -94,7 +94,7 @@ async function visualReviewEnvironment(developSha, previous, client) {
       source: 'cached exact develop visual-review/public status',
     };
   }
-  const { data } = await client.get(`/commits/${developSha}/status`, { maxAgeMs: 30_000 });
+  const data = statusPayload || (await client.get(`/commits/${developSha}/status`, { maxAgeMs: 30_000 })).data;
   const selected = (data.statuses || []).find(status => status.context === 'visual-review/public') || null;
   if (!selected) return { ...base, deployState: 'waiting' };
   const deployState = selected.state === 'success' ? 'success'
@@ -144,11 +144,15 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
     staging.source = 'Pinned validation release / published manifest';
     dev.deployQueue = await compareQueue(dev.deployedCommit, dev.branchCommit, client);
     prod.deployQueue = await compareQueue(prod.deployedCommit, prod.branchCommit, client);
+    let developStatusPayload = null;
+    if (developSha && client.scope !== 'public' && client.deepAllowed) {
+      developStatusPayload = (await client.get(`/commits/${developSha}/status`, { maxAgeMs: 30_000 })).data;
+    }
     const previews = [];
-    const visualReview = await visualReviewEnvironment(developSha, previous, client);
+    const visualReview = await visualReviewEnvironment(developSha, previous, client, developStatusPayload);
     if (visualReview) previews.push(visualReview);
     for (const candidate of previewCandidates(runs)) { const env = await previewEnvironment(candidate, branches, previous, client); if (env) previews.push(env); }
-    const applications = buildApplications(manifest, [dev, staging, prod, ...previews], runs);
+    const applications = buildApplications(manifest, [dev, staging, prod, ...previews], runs, { developSha, statuses: developStatusPayload?.statuses || [] });
 
     const integrationRescue = await collectRescue(client, previous?.integrationRescue);
     const plan = integrationRescue?.flowControl?.reconciliation || null;
