@@ -38,16 +38,26 @@ export async function prepareRuntime({buildInfo,onProgress,layoutOverride}={}){
   const view=await createWorldRenderer({canvas,document,layout,stations});
   await progress('旅人を迎えています');
   const preview=placeState(createLife({name:'旅人',seed:0x51f15e,villageIds:[layout.id]}),layout);
-  view.syncFront(null);view.syncSkirmish(null);view.renderState(preview,.016);canvas.dataset.runtime='prepared';
+  view.syncFront(null);view.syncSkirmish(null);view.renderState(preview,.016,{titlePreview:true,titleTime:0,titleIdleTime:0});canvas.dataset.runtime='prepared';
   const host={environment,platform,saveKey,channel,layout,stations,skirmishAnchor,canvas,loading,gameScreen,view,active:false,disposed:false};
-  host.dispose=()=>{if(host.disposed)return;host.disposed=true;host.active=false;canvas.dataset.runtime='disposed';view.dispose();};
+  let titlePreviewRaf=0,titlePreviewStart=0,titlePreviewLast=0,titlePreviewCinematic=true;
+  const stopTitlePreview=()=>{if(titlePreviewRaf)cancelAnimationFrame(titlePreviewRaf);titlePreviewRaf=0;titlePreviewStart=0;titlePreviewLast=0;};
+  const titlePreviewFrame=now=>{
+    if(host.disposed||host.active){titlePreviewRaf=0;return;}
+    if(!titlePreviewStart){titlePreviewStart=now;titlePreviewLast=now;}
+    const dt=Math.min(.05,Math.max(0,(now-titlePreviewLast)/1000));titlePreviewLast=now;const elapsed=Math.max(0,(now-titlePreviewStart)/1000),titleTime=titlePreviewCinematic?Math.min(8.2,elapsed):8.2,titleIdleTime=titlePreviewCinematic?Math.max(0,elapsed-8.2):elapsed;
+    view.renderState(preview,dt,{titlePreview:true,titleTime,titleIdleTime});titlePreviewRaf=requestAnimationFrame(titlePreviewFrame);
+  };
+  host.startTitlePreview=({cinematic=true}={})=>{if(host.disposed||host.active)return;stopTitlePreview();titlePreviewCinematic=Boolean(cinematic);titlePreviewRaf=requestAnimationFrame(titlePreviewFrame);};
+  host.stopTitlePreview=stopTitlePreview;
+  host.dispose=()=>{if(host.disposed)return;host.disposed=true;host.active=false;stopTitlePreview();canvas.dataset.runtime='disposed';view.dispose();};
   return host;
 }
 export async function startRuntime({mode,buildInfo,name,onExit,onProgress,prepared,coop=null}={}){
   const ownsPrepared=!prepared,host=prepared||await prepareRuntime({buildInfo,onProgress});
   if(host.disposed)throw Error('描画世界は終了済みです');
   if(host.active)throw Error('人生はすでに始まっています');
-  host.active=true;
+  host.active=true;host.stopTitlePreview?.();
   const {platform,saveKey,channel,layout,stations,skirmishAnchor,canvas,loading,gameScreen,view}=host;
   let state=null;
   try{
