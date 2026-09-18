@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { handoffSnapshot, recordHandoff, notifyStage, WORKER_CI_RULES } from '../scripts/implementation-handoff.mjs';
+import { handoffSnapshot, recordHandoff, WORKER_CI_RULES } from '../scripts/implementation-handoff.mjs';
 import { deliveryMessage } from '../scripts/notify-delivery.mjs';
 import { sensitive } from '../scripts/integration-policy.mjs';
 import { buildDispatchPrompt } from '../scripts/rinne-dispatch-prompt.mjs';
@@ -13,8 +13,8 @@ const repository = 'charukun/soul-lineage', sha = 'a'.repeat(40);
 const pull = () => ({ number: 129, title: 'No CI waiting', state: 'open', draft: false, author_association: 'OWNER',
   html_url: `https://github.com/${repository}/pull/129`, labels: [], body: 'Title\nDetail',
   base: { ref: 'develop' }, head: { ref: 'work/handoff', sha, repo: { full_name: repository } } });
-function fixture({ changeOnSecondRead, notificationFailure = false } = {}) {
-  let pr = pull(), reads = 0, sent = 0;
+function fixture({ changeOnSecondRead } = {}) {
+  let pr = pull(), reads = 0;
   const comments = [], statuses = [];
   const github = { rest: {
     pulls: { get: async () => { if (++reads === 2) changeOnSecondRead?.(pr); return { data: structuredClone(pr) }; } },
@@ -28,13 +28,11 @@ function fixture({ changeOnSecondRead, notificationFailure = false } = {}) {
     actions: new Proxy({}, { get: () => { throw new Error('CI completion must not be read'); } }),
   } };
   const options = { github, repo: { owner: 'charukun', repo: 'soul-lineage' }, number: 129, expectedHead: sha,
-    runUrl: 'https://github.com/charukun/soul-lineage/actions/runs/123', notification: {
-      url: 'https://ntfy.example/configured-topic', request: async () => { sent++; return { ok: !notificationFailure, status: 503 }; },
-    } };
-  return { options, comments, statuses, sent: () => sent };
+    runUrl: 'https://github.com/charukun/soul-lineage/actions/runs/123' };
+  return { options, comments, statuses };
 }
 
-test('Ready hands off immediately even if Actions/browser never complete; same head receipt deduplicates notification', { timeout: 1000 }, async () => {
+test('Ready handoff stays GitHub-only and deduplicates the same-head receipt', { timeout: 1000 }, async () => {
   const f = fixture();
   const result = await recordHandoff(f.options);
   assert.equal(result.stage, 'READY');
@@ -45,9 +43,11 @@ test('Ready hands off immediately even if Actions/browser never complete; same h
   assert.match(f.comments[0].body, /review_ready: true/);
   assert.match(f.comments[0].body, /receipt_scope: READY_ONLY/);
   assert.match(f.comments[0].body, /dev_publication: NO/);
+  assert.match(f.comments[0].body, /developer_notification: github-only/);
+  assert.doesNotMatch(f.comments[0].body, /ntfy|external push/i);
+  assert.equal(result.developerNotification, 'github-only');
   await recordHandoff(f.options);
   assert.equal(f.comments.length, 1);
-  assert.equal(f.sent(), 1);
 });
 
 test('Draft, stale head, wrong base, closed, foreign, untrusted and independent Lab are never received', async () => {
@@ -59,7 +59,6 @@ test('Draft, stale head, wrong base, closed, foreign, untrusted and independent 
     const f = fixture({ changeOnSecondRead: mutate });
     assert.deepEqual(await recordHandoff(f.options), { skipped: true });
     assert.equal(f.statuses.length, 0);
-    assert.equal(f.sent(), 0);
   }
 });
 
@@ -70,18 +69,13 @@ test('explicit hold is retained while responsibility transfers; receipt never gr
   assert.equal(classifyPull(p).monitoringOwner, 'Repository Automation');
 });
 
-test('failed or absent external notification does not masquerade as delivery or prevent handoff', async () => {
-  const f = fixture({ notificationFailure: true });
+test('developer handoff source cannot invoke player push transport', async () => {
+  const f = fixture();
   const result = await recordHandoff(f.options);
-  assert.equal(result.notification, 'failed');
-  assert.equal(result.stage, 'READY');
-  assert.match(f.comments[0].body, /notification: failed/);
-  f.options.notification = {};
-  const next = await recordHandoff(f.options);
-  assert.equal(next.notification, 'not-configured');
-  assert.equal(f.comments.length, 1);
-  assert.equal(await notifyStage('message'), 'not-configured');
-  await assert.rejects(notifyStage('message', { url: 'http://invalid/topic' }), /HTTPS_REQUIRED/);
+  assert.equal(result.developerNotification, 'github-only');
+  assert.doesNotMatch(f.comments[0].body, /ntfy|notification: failed|not-configured/);
+  const source = readFileSync('scripts/implementation-handoff.mjs', 'utf8');
+  assert.doesNotMatch(source, /NTFY_|notifyStage|notificationTitle/);
 });
 
 test('delivery stages are distinct and no-merge scans do not emit integrated success', () => {
