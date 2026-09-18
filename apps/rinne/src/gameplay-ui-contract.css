@@ -23,3 +23,20 @@
 @media(max-width:620px){.game-screen[data-gameplay-upgrade] .hud-top{grid-template-columns:40px 75px minmax(110px,1fr) 44px!important}.game-screen[data-gameplay-upgrade] .clock-rate{min-width:44px;padding-inline:3px}.rinne-bottom-controls .upgrade-control{min-width:58px!important;width:58px!important}.rinne-bottom-controls .upgrade-control.is-combat{min-width:70px!important;width:70px!important}.combat-phase-indicator{top:23%}.upgrade-panel{max-height:min(70dvh,580px)!important}.rebirth-contract{grid-template-columns:1fr}.life-end-step{min-height:250px}.upgrade-panel[data-type="technique"] .combo-toolbar button{min-height:34px;padding-block:4px}.upgrade-panel[data-type="technique"] .one-motion-card small{font-size:7px}}
 @media(max-width:380px){.rinne-bottom-controls{width:calc(100vw - 10px)!important;gap:3px!important}.rinne-bottom-controls .upgrade-control{min-width:52px!important;width:52px!important}.rinne-bottom-controls .upgrade-control.is-combat{min-width:66px!important;width:66px!important}.upgrade-control small{font-size:7px!important}.heart-list,.technique-picker-list,.body-option-list{grid-template-columns:1fr 1fr}.objective-target{font-size:8px!important}.combo-selector{grid-template-columns:40px minmax(0,1fr) 40px 52px}}
 @media(max-height:560px) and (orientation:landscape){.rinne-bottom-controls .upgrade-control,.rinne-bottom-controls .upgrade-control.is-combat{width:58px!important;min-width:58px!important;height:44px!important}.combat-phase-indicator{top:12px;left:auto;right:82px;transform:none}.upgrade-panel{max-height:88dvh!important}.life-end-step{min-height:170px}.rebirth-contract{grid-template-columns:1fr 1fr}.upgrade-panel[data-type="technique"] .combo-slot,.upgrade-panel[data-type="technique"] .favored-tag{min-height:46px!important}}
+
+
+/* Combat sequence is a rhythm trace, not an enemy-health readout. */
+.combat-phase-indicator{gap:0!important;align-items:center;overflow:visible}
+.combat-phase-indicator>span{position:relative;z-index:2}
+.combat-phase-indicator .phase-pulse{display:block;width:28px;height:18px;margin:0 -1px;background:currentColor;color:#75634c;clip-path:polygon(0 48%,20% 48%,29% 26%,39% 76%,50% 42%,61% 48%,100% 48%,100% 56%,64% 56%,54% 50%,39% 94%,27% 43%,23% 56%,0 56%);opacity:.55}
+.combat-phase-indicator:has([data-phase-id="jo"][data-active="true"]) .phase-pulse:first-of-type,
+.combat-phase-indicator:has([data-phase-id="ha"][data-active="true"]) .phase-pulse:last-of-type{color:#e0ad59;opacity:1;animation:rinne-phase-trace .72s ease-in-out infinite;filter:drop-shadow(0 0 5px rgba(224,173,89,.6))}
+.combat-phase-indicator:has([data-phase-id="kyu"][data-active="true"]) .phase-pulse{color:#b96845;opacity:.75}
+.combat-phase-history{position:absolute;left:50%;top:calc(100% + 8px);width:96px;height:76px;transform:translateX(-50%);pointer-events:none}
+.combat-phase-history span{position:absolute;left:50%;top:0;width:auto!important;height:auto!important;border:0!important;background:none!important;box-shadow:none!important;transform:translateX(-50%)!important;color:#d7c6a5!important;font-size:11px!important;white-space:nowrap;text-shadow:0 2px 5px #000;animation:rinne-phase-fall 2.7s ease-out both}
+.combat-phase-history span[data-age="1"]{animation-delay:-.7s}.combat-phase-history span[data-age="2"]{animation-delay:-1.35s}.combat-phase-history span[data-age="3"]{animation-delay:-2s}
+@keyframes rinne-phase-trace{0%,100%{transform:scaleY(.72);opacity:.6}45%{transform:scaleY(1.35);opacity:1}}
+@keyframes rinne-phase-fall{0%{opacity:.88;transform:translate(-50%,0) scale(1)}70%{opacity:.42}100%{opacity:0;transform:translate(-50%,64px) scale(.9)}}
+@media(prefers-reduced-motion:reduce){.combat-phase-indicator .phase-pulse,.combat-phase-history span{animation:none!important}.combat-phase-history span{opacity:.45!important}}
+/* Enemy durability stays in combat simulation, but no enemy HP meter is exposed in the play HUD. */
+.game-screen :is(.enemy-hp,.enemy-health,.enemy-health-bar,[data-enemy-hp],[data-enemy-health]){display:none!important}
