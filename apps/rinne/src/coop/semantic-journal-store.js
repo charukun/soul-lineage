@@ -71,7 +71,8 @@ export function createSemanticJournalStore({storage,exclusive,digest=fingerprint
           if(current.ownerId!==ownerId)throw Error('semantic persistence: owner changed');
           if(receipt.revision<current.lastSemanticRevision)throw Error('semantic persistence: stale semantic revision');
           if(receipt.revision===current.lastSemanticRevision){
-            if(current.lastBatchSignature!==batchSignature)return receiptOf(current,await readProvisional(worldId),false,false);
+            if(current.lastBatchSignature!==batchSignature)throw Error('semantic persistence: same authority revision changed');
+            return receiptOf(current,await readProvisional(worldId),false,false);
           }
         }
         const start=current?.semanticSequence??0,records=events.map((event,index)=>semanticRecord(event,{worldId,sequence:start+index+1,receipt,index}));
