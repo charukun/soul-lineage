@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const ux = read('../src/character-workshop-ux.js');
+const loading = read('../src/character-workshop-loading-indicator.js');
 const css = read('../src/character-workshop-ux.css');
 const entry = read('../src/motion-review-entrypoint.js');
 
@@ -24,11 +25,12 @@ test('simple primary navigation no longer waits for optional motion QA controls'
 });
 
 test('loading state is visible on the stage and reflects the real renderer progress', () => {
-  for (const id of ['load-indicator','load-label','load-percent','load-fill','load-detail']) assert.match(ux, new RegExp(`\\.id = '${id}'`));
-  for (const phase of ['モデル本体','骨格・動き','表示データ','GPU準備']) assert.match(ux, new RegExp(phase));
-  assert.match(ux, /Number\(progress\.value\)/);
-  assert.match(ux, /status\.textContent/);
-  assert.match(ux, /performance\.now\(\)/);
+  assert.match(ux, /installWorkshopLoadingIndicator/);
+  for (const id of ['load-indicator','load-label','load-percent','load-fill','load-detail']) assert.match(loading, new RegExp(`\\.id = '${id}'`));
+  for (const phase of ['モデル本体','骨格・動き','表示データ','GPU準備']) assert.match(loading, new RegExp(phase));
+  assert.match(loading, /Number\(progress\.value\)/);
+  assert.match(loading, /status\.textContent/);
+  assert.match(loading, /performance\.now\(\)/);
   assert.match(css, /\.load-indicator\{/);
   assert.match(css, /\.load-indicator-track/);
 });
