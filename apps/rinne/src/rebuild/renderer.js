@@ -45,11 +45,11 @@ function createSkirmishRenderer({characterStage,skirmishRoot,mat}){
 export async function createWorldRenderer({canvas,document:doc,layout,stations}){
   const renderWindow=doc.defaultView||globalThis,basePixelRatio=Number(renderWindow?.devicePixelRatio)||1,targetFps=targetFpsForView(renderWindow);
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance',alpha:false});
-  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;
+  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.94;
   let focusEffect,qualityLevel=0;
   const applyQuality=profile=>{const ratio=renderPixelRatio(basePixelRatio,profile.renderScale);renderer.setPixelRatio(ratio);qualityLevel=profile.level;focusEffect?.setLevel(qualityLevel);canvas.dataset.renderQuality=profile.id;canvas.dataset.renderPixelRatio=String(ratio);};
   const qualityGovernor=createAdaptiveQualityGovernor({targetFps,onChange:snapshot=>applyQuality(snapshot.profile)});applyQuality(qualityGovernor.snapshot().profile);
-  const scene=new THREE.Scene();scene.background=new THREE.Color(0x91d7f5);const outdoorSky=scene.background,indoorSky=new THREE.Color(0x544c62);scene.fog=new THREE.FogExp2(0xcfe6ef,.0065);
+  const scene=new THREE.Scene();scene.background=new THREE.Color(0x7893a0);const outdoorSky=scene.background,indoorSky=new THREE.Color(0x393844);scene.fog=new THREE.FogExp2(0x91a8ad,.0105);
   const camera=new THREE.PerspectiveCamera(43,1,.08,650);camera.position.set(12,13,17);
 
   const root=new THREE.Group(),land=new THREE.Group(),objects=new THREE.Group(),stationsRoot=new THREE.Group(),interiorRoot=new THREE.Group(),skirmishRoot=new THREE.Group(),frontRoot=new THREE.Group();root.add(land,objects,stationsRoot);scene.add(root,interiorRoot,skirmishRoot,frontRoot);interiorRoot.visible=false;skirmishRoot.visible=false;frontRoot.visible=false;
@@ -112,6 +112,8 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   applyStylizedShading(root,'environment');applyStylizedShading(interiorRoot,'environment');applyStylizedShading(frontRoot,'environment');
   const foregroundOcclusion=createForegroundOcclusionFader();
 
+  const atmosphereFill=new THREE.HemisphereLight(0x9db7c0,0x33483f,.46);scene.add(atmosphereFill);
+  const atmosphereLantern=new THREE.PointLight(0xffb86c,1.15,20,2);atmosphereLantern.position.set(4.5,3.2,2.5);scene.add(atmosphereLantern);
   const lighting=createMiniatureLighting({renderer,scene,staticRoots:[objects,stationsRoot,...terrain.forestMeshes]});
   const contacts=createActorContactShadows(scene,[scene,frontRoot,skirmishRoot]);
   focusEffect=createMiniatureFocus(renderer);
