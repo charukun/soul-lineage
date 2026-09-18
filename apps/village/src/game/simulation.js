@@ -1,4 +1,4 @@
-import {muraBlocked,muraHasInterior,muraInteriorAt,muraInteriorEntry} from '@soul/world/mura';
+import {muraBlocked,muraFurnitureFits,muraHasInterior,muraInteriorAt,muraInteriorEntry} from '@soul/world/mura';
 import {defs,ready,entry,inWater,LIMIT,extent,DAY_SECONDS,DAYS_YEAR,clamp,isGuard,isPlayer,dist,capacityOf,jobsOf,RESOURCE_NAMES} from './core.js';
 import {TERRAIN_SITES} from './terrain.js';
 const STEP=2, key=(x,z)=>`${x},${z}`,cell=v=>Math.round(v/STEP);
@@ -109,8 +109,8 @@ export class Simulation{
   }else if(p.task==='eat'){
    const food=w.spend({food:1});p.hunger=Math.min(100,p.hunger+(food?78:40));p.happiness=Math.min(100,p.happiness+(food?4:0));s.stats.meals++;this.remember(p,food?'みんなの収穫で食事をした':'木の実を集めて腹ごしらえ','いただきます');
   }else if(p.task==='shop'&&s.merchant.present&&p.purse>=10&&!p.carry){
-   const options=['plant','chair','lamp','bed','rug','shelf','table','sofa'],owned=w.object(p.homeId)?.room.filter(f=>f.ownerId===p.id).length||0;
-   if(owned<8){p.carry=options[owned%options.length];p.purse-=10;s.stats.purchases++;this.remember(p,defs[p.carry].label+'を買った','家に飾ろう');this.emit(`${p.name}が${defs[p.carry].label}を買いました`);}
+   const home=w.object(p.homeId),options=['plant','chair','lamp','bed','rug','shelf','table','sofa'].filter(kind=>muraFurnitureFits(home,kind)),owned=home?.room.filter(f=>f.ownerId===p.id).length||0;
+   if(owned<8&&options.length){p.carry=options[owned%options.length];p.purse-=10;s.stats.purchases++;this.remember(p,defs[p.carry].label+'を買った','家に飾ろう');this.emit(`${p.name}が${defs[p.carry].label}を買いました`);}
   }else if(p.task==='decorate'&&p.carry){if(w.furnish(p,p.carry)){const label=defs[p.carry].label;p.carry=null;this.remember(p,label+'を部屋に置いた','いい感じ');this.moment(`${p.name}の部屋に、新しい${label}が増えました。`,[p]);}else{p.status='家具を置く場所を待っています';p.decorateRetry=30;}}
   else if(['rest','home'].includes(p.task)){p.health=Math.min(100,p.health+14);p.happiness=Math.min(100,p.happiness+3);}
   else if(p.task==='social'){p.happiness=Math.min(100,p.happiness+9);p.friendships=(p.friendships||0)+1;}
