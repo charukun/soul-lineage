@@ -91,8 +91,10 @@ test('GitHub state events wake the one shared authenticated refresh path', () =>
   assert.match(wake, /reason:\s*pr-event/);
   assert.doesNotMatch(wake, /api\/refresh|\bcurl\b/);
 
-  assert.match(ci, /pulse-result-refresh:/);
-  assert.match(ci, /Refresh PULSE after PR checks/);
-  assert.match(ci, /uses:\s*\.\/\.github\/workflows\/pulse-refresh\.yml/);
-  assert.match(ci, /reason:\s*pr-event/);
+  assert.match(ci, /branches:\s*\[main\]/);
+  assert.match(ci, /develop PRs intentionally do not trigger GitHub CI/);
+  assert.doesNotMatch(ci, /pulse-result-refresh:/);
+  assert.doesNotMatch(ci, /Refresh PULSE after PR checks/);
+  assert.doesNotMatch(ci, /uses:\s*\.\/\.github\/workflows\/pulse-refresh\.yml/);
+  assert.doesNotMatch(ci, /reason:\s*pr-event/);
 });
