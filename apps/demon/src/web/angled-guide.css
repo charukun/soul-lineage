@@ -165,6 +165,10 @@
 @media(min-width:800px){
   #angled-guide{width:min(32vw,360px);top:clamp(126px,18vh,190px)}
 }
+@media(min-width:800px) and (orientation:landscape) and (max-height:520px){
+  #angled-guide{top:calc(64px + env(safe-area-inset-top));width:min(42vw,350px)}
+  #angled-guide[data-variant="compact"]{top:calc(70px + env(safe-area-inset-top));bottom:auto}
+}
 @media(prefers-reduced-motion:reduce){
   #angled-guide .angled-guide__stack,
   #angled-guide .angled-guide__stack::before,
