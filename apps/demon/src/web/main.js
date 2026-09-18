@@ -77,7 +77,7 @@ async function claimAndEnter(v) {
     pauseInput(); await view.prepareCharacter(activeCharacter(store.read()).id);
     store.claim(v); closeSheet(); newSession(v); mode = 'hunt'; paused = false; returnMode = false;
     $('title').hidden = true; $('hud').hidden = false; audio.start(); last = 0; acc = 0; toastUntil = 0;
-    guide.show({side:'right', kicker:'動きかた', title:'指を滑らせる', body:[{label:'滑らせる', text:'移動'},{label:'何もしない', text:'徘徊'}], duration:5200});
+    if ((profile.hunts || 0) === 0) guide.show({side:'right', kicker:'最初の狩り', title:'指を滑らせる', body:[{label:'滑らせる', text:'移動'},{label:'何もしない', text:'徘徊'}], duration:5200});
   } catch (e) { showError(e.message || String(e)); }
   finally { entering = false; $('begin').disabled = false; }
 }
