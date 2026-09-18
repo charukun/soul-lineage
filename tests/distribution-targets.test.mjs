@@ -8,6 +8,7 @@ import { DISTRIBUTION_TARGETS, assertBuildableTarget, distributionTarget, target
 import { distributionPlanForDev } from '../scripts/distribution-plan.mjs';
 import { artifactRelativePath, installStaticArtifact, materializeStaticArtifact, readArtifactReceipt } from '../scripts/distribution-artifacts.mjs';
 import { buildCommandForTarget } from '../scripts/build-target.mjs';
+import { fastDevEmailMessage } from '../scripts/notify-fast-dev.mjs';
 
 test('distribution catalog separates buildable web targets from contract-only consumer targets',()=>{
   for(const id of ['web-dev','web-review','web-staging','web-prod'])assert.equal(distributionTarget(id).status,'buildable');
@@ -60,4 +61,12 @@ test('static artifacts are immutable, idempotent and verified before installatio
     await writeFile(join(first.payloadDir,'index.html'),'tampered');
     await assert.rejects(installStaticArtifact({artifactDir:first.artifactDir,destination}),/integrity mismatch/);
   }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('fast DEV notification lists only affected per-app live targets',()=>{
+  const message=fastDevEmailMessage({repository:'charukun/soul-lineage',apps:['demon'],pr:{number:925,title:'distribution',body:'配信基盤改善\n詳細'}});
+  assert.match(message,/DEV反映完了/);
+  assert.match(message,/尽喰廻遊/);
+  assert.match(message,/soul-lineage-demon-dev\.c-okamoto\.workers\.dev/);
+  assert.doesNotMatch(message,/MURAAAAAAA/);
 });
