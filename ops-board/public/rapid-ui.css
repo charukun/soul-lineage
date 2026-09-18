@@ -401,7 +401,6 @@ footer{margin-top:16px;opacity:.58}
   .shell{padding-inline:22px}
   .control-tower{padding:18px}
   .overview-publication-card.is-expanded{grid-column:auto}
-  .overview-publication-card.is-expanded .overview-publication-grid{position:absolute;visibility:hidden;pointer-events:none}
 }
 @media(prefers-reduced-motion:no-preference){
   .control-tower,.overview-card,.board-disclosure,.sync-freshness{transition:border-color .16s ease,background-color .16s ease,transform .12s ease}
