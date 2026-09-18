@@ -40,6 +40,16 @@ export const BUILDINGS=[
  f('tavern','酒場',9,8,{cost:{wood:20,plank:16,clay:10},unlock:['food','plank','clay'],effect:'comfort',roof:0xa88183,trait:'夕方には語らいと音楽。住人同士の親しさが育ちます。'}),
  f('furniture','家具屋',9,8,{cost:{wood:18,plank:22,stone:6},unlock:['plank','cloth'],input:{plank:2},produce:{furnishing:2},effect:'furniture',roof:0x8e9daa,trait:'板から家具材を作ります。住人が部屋を飾る楽しみを支えます。'})
 ];
+const VISUAL_ASSET_GROUPS=Object.freeze({
+ yurt:new Set(['mayor','guardhome','tent']),
+ housing:new Set(['home','lodge','clanManor']),
+ acquired:new Set(['campfire','storage','logging','quarry','carpenter','wheat','clay','market','guardpost','watchtower','barracks','chapel','harbor','smith','dojo','school','clinic','farm','fishpond','hunting','orchard','inn','diner','restaurant','weapons','armor','jeweler','tools','tavern','furniture'])
+});
+for(const d of BUILDINGS){
+ const visualAssetId=VISUAL_ASSET_GROUPS.yurt.has(d.id)?'village.yurt.traditional.v1':VISUAL_ASSET_GROUPS.housing.has(d.id)?'mura.housing-authored.v1':VISUAL_ASSET_GROUPS.acquired.has(d.id)?'mura.kenney-fantasy-town.v1':null;
+ if(!visualAssetId)throw new Error(`Production building requires explicit visualAssetId classification: ${d.id}`);
+ d.visualAssetId=visualAssetId;
+}
 // The same acquired masonry modules support material choices for enclosed facilities.
 for(const d of BUILDINGS)if(d.category!=='非表示'&&d.id!=='harbor'&&(!d.shape||d.shape==='estate'))d.variants=true;
 export const GARDEN=[
