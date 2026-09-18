@@ -13,13 +13,17 @@ function topLevelJob(yaml, id) {
   return next >= 0 ? rest.slice(0, next) : rest;
 }
 
-test('Ready handoff no longer duplicates the normal Fast Lane wake', () => {
+test('develop handoff no longer depends on the removed request-rescue CI job', () => {
   const ci = text('.github/workflows/ci.yml');
-  const handoff = topLevelJob(ci, 'request-rescue');
-  assert.match(handoff, /name: Record Ready handoff/);
-  assert.match(handoff, /\["opened","synchronize","reopened","ready_for_review"\]/);
-  assert.doesNotMatch(handoff, /rescue_mode|createWorkflowDispatch/);
-  assert.doesNotMatch(handoff, /actions: write/);
+  const wake = text('.github/workflows/pulse-events.yml');
+
+  assert.match(ci, /branches:\s*\[main\]/);
+  assert.doesNotMatch(ci, /request-rescue:/);
+  assert.doesNotMatch(ci, /name:\s*Record Ready handoff/);
+  assert.doesNotMatch(ci, /rescue_mode|createWorkflowDispatch/);
+  assert.match(wake, /branches:\s*\[develop\]/);
+  assert.match(wake, /ready_for_review/);
+  assert.match(wake, /uses:\s*\.\/\.github\/workflows\/pulse-refresh\.yml/);
 });
 
 test('normal develop has no browser repair dispatch or legacy recorder workflow input', () => {
