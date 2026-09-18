@@ -69,12 +69,14 @@ Authority is separate. Trusted-host DEV can remain local. Crash-quorum, external
 
 ## Event representation
 
-The source-shaped finite model uses:
+The source-shaped model and live shadow now use:
 
-- birth: complete initial actor recovery state plus protected projection;
+- birth: protected identity plus an initial actor recovery base, semantic clock floor and the current reconnect token as **confidential recovery material**;
 - life seal: terminal protected delta plus one `lineageRecord`, without repeating the previous lineage;
-- rebirth: stable intent/receipt, one terminal record and new actor initialization without repeating the lineage prefix;
-- epoch acquire: authority generation transition.
+- rebirth: stable intent/receipt, one terminal record and a new actor recovery base without repeating the lineage prefix;
+- epoch acquire: authority generation transition and semantic clock floor.
+
+The reconnect token is not public canon. It is required only to preserve the current same-character resume contract when an older provisional checkpoint predates a participant's birth; any future distributed validator design must keep it in a trusted/encrypted recovery channel or change the reconnect contract rather than broadcasting it.
 
 A rebirth delta remains about 1.35 KiB in the synthetic JSON shape through generation 50, while naively repeating lineage grows from about 1.7 KiB to 18.6 KiB. A conventional event-sourcing/Raft implementation may use the same representation, so this is not an RRP-only advantage.
 
@@ -180,15 +182,17 @@ A shadow mismatch is a **hard candidate failure but not a gameplay failure**: it
 
 The first durable checkpoint of a host process is a warm baseline. Therefore a restart's already-completed epoch acquisition is not retrospectively proven by this in-memory shadow. Persistent shadow recovery and restart-to-restart epoch coverage remain Stage 2/F, rather than being hidden behind a green first sample.
 
-Focused runtime evidence added after the research model: the pre-persistence live-shadow core ran 10/10 Node tests; the current branch additionally contains two restart-anchor cases for warm start, replaceable-state exclusion, natural life seal, rebirth, later epoch transition, guest birth, lineage-rewrite divergence, history-sequence disagreement, combat-ended sealing, shadow/live-failure isolation and capture of checkpoint-vs-journal bytes (the last two concerns share the ten-test file). `node --check` passes for the shadow, checkpoint-writer and performance modules plus the focused test in the isolated workspace. A separate exact-history-body fixture, with only domain helpers stubbed, passes 2/2 checks for early combat sealing/immutability and rejection of a living life at the lifespan boundary. The full repository co-op-history test for combat death is added but cannot be executed in this no-checkout workspace because its normal package graph is unavailable. These runtime checks are separate from the earlier 37-test research evidence bundle.
+Focused runtime evidence added after the research model: the pre-persistence live-shadow core ran 10/10 Node tests; the current branch now contains 14 focused shadow cases including restart anchors and stale-checkpoint birth/rebirth recovery for warm start, replaceable-state exclusion, natural life seal, rebirth, later epoch transition, guest birth, lineage-rewrite divergence, history-sequence disagreement, combat-ended sealing, shadow/live-failure isolation and capture of checkpoint-vs-journal bytes (the last two concerns share the ten-test file). `node --check` passes for the shadow, checkpoint-writer and performance modules plus the focused test in the isolated workspace. A separate exact-history-body fixture, with only domain helpers stubbed, passes 2/2 checks for early combat sealing/immutability and rejection of a living life at the lifespan boundary. The full repository co-op-history test for combat death is added but cannot be executed in this no-checkout workspace because its normal package graph is unavailable. These runtime checks are separate from the earlier 37-test research evidence bundle.
 
-### Stage 2: restart-spanning shadow coverage
+### Stage 2: restart-spanning coverage and source-shaped recovery
 
-**Implemented as diagnostic continuity, not recovery authority.** The Host now stores a compact shadow state under `coop-shadow-v1:<worldId>` after successful authoritative commits. It contains only the protected shadow projection, journal counters/recent types and the authoritative envelope root/history sequence needed to prove coverage continuity. On resume, the diagnostic state is accepted only when world/owner identity, exact current `coop-v2` root and history length all match. A missing, stale or malformed diagnostic file becomes explicit `coverage=gap` and the new process warm-baselines; it never blocks the authoritative game restore or pretends the missing interval was checked.
+**Restart coverage is implemented diagnostically, not as recovery authority.** The Host stores shadow state under `coop-shadow-v1:<worldId>` only after successful authoritative commits. Restore accepts it only when world/owner identity, the exact current `coop-v2` root and history length all match. A missing, stale or malformed file becomes explicit `coverage=gap`; it never blocks game restore or claims the missing interval was checked.
 
-Because `CoopWorld` increments epoch on a real restore, a valid anchored shadow can now observe the first post-restart `authority.epoch.acquire` instead of losing that boundary at process startup. Diagnostic writes are serialized but remain outside the authoritative commit result; a crash between authoritative save and shadow persistence can only create a later coverage gap. That is a deliberate end-to-end failure mode rather than a second authority.
+The persisted projection now carries, per current incarnation, a recovery base captured at the bootstrap/birth/rebirth boundary, protected identity/terminal data, the reconnect token, and a protected tick/world-time floor. A pure non-authoritative `recoverCheckpointWithSemanticShadow` overlay can therefore take an older provisional checkpoint, remove ghost actors, materialize a participant born after that checkpoint, cross a rebirth whose predecessor is still in the provisional checkpoint, restore rebirth receipts, and prevent the world clock from moving behind an already protected event. Existing same-incarnation provisional fields are kept where the contract still permits rollback.
 
-This does **not** yet make semantic shadow data the recovery source. The protected-journal + provisional-checkpoint recovery model remains finite research evidence. Promoting it to live recovery still needs an experiment-only adapter, prefix compaction/GC, exact retry-window policy and failover tests before any authority switch.
+Because `CoopWorld` increments epoch on a real restore, an anchored shadow observes the first post-restart `authority.epoch.acquire`. Diagnostic writes are serialized outside the authoritative result; a crash between authoritative save and shadow persistence creates a later coverage gap, never a second source of truth.
+
+The exact-current shadow source was independently probed against birth-over-old-checkpoint and rebirth-over-predecessor recovery, stale-anchor rejection, gap handling and combat-ended sealing. These are source-level finite probes, not the full repository Node 24 gate. **No runtime path uses the recovered shadow checkpoint as authority in this PR.** Promotion still requires an experiment adapter, compaction/GC, receipt-window policy and failover tests before switching the current `coop-v2` recovery source.
 
 ### Stage 3: matched physical experiment
 
@@ -234,7 +238,7 @@ D: provisional RPO, compaction interval, event-vs-checkpoint encoding and promot
 
 E before practical-superiority claims: matched physical bytes/latency/queues/frame/battery, rollback distributions, Wi-Fi/WAN/TURN/device cohorts and the fair baseline in the same environment.
 
-F: promotion of shadow journal/snapshot to live recovery authority (restart coverage itself is now anchored diagnostically); homecoming/immediate-reward product decisions; bounded receipt/dedupe GC; shadow recovery; stronger membership/hostile-host authority only where required; future schema/policy migration. The early-combat-death/history mismatch is no longer F in this branch: its direct source path is identified and the co-op structural history rule is repaired.
+F: promotion of the source-shaped shadow projection/journal to live recovery authority (restart coverage and a pure recovery overlay now exist diagnostically); homecoming/immediate-reward product decisions; bounded receipt/dedupe GC; shadow recovery; stronger membership/hostile-host authority only where required; future schema/policy migration. The early-combat-death/history mismatch is no longer F in this branch: its direct source path is identified and the co-op structural history rule is repaired.
 
 **Theory stop condition:** do not create more conceptual RRP loops just to invent terminology. Reopen theory only when live refinement or physical evidence falsifies this boundary/cost model.
 
