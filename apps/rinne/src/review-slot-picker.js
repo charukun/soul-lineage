@@ -77,6 +77,70 @@ export function mountReviewGroup(group,label){
   group.insertAdjacentElement('afterend',shell);group.classList.add('review-slot-source-group');group.setAttribute('aria-hidden','true');const chosen=selectedButton(group);shell.querySelector('.review-slot-value').textContent=chosen?labelOf(chosen):'選択';return shell;
 }
 
+export function mountReviewSelectGrid(select,label='選択中'){
+  if(!select||select.dataset.reviewGridMounted==='true')return null;
+  select.dataset.reviewGridMounted='true';
+  const host=select.closest('label');
+  const shell=document.createElement('section');
+  shell.className='review-select-grid-picker';
+  shell.setAttribute('aria-label',`${label}と候補一覧`);
+
+  const current=document.createElement('div');
+  current.className='review-select-grid-current';
+  current.setAttribute('role','status');
+  current.setAttribute('aria-live','polite');
+  const caption=document.createElement('small');
+  caption.textContent=label;
+  const value=document.createElement('strong');
+  value.className='review-select-grid-value';
+  value.textContent='選択';
+  current.append(caption,value);
+
+  const grid=document.createElement('div');
+  grid.className='review-select-grid-list';
+  grid.setAttribute('role','listbox');
+  grid.setAttribute('aria-label',`${label}の候補`);
+  shell.append(current,grid);
+
+  const selectedOption=()=>select.selectedOptions?.[0]||select.options[0]||null;
+  const syncSelection=()=>{
+    const selected=selectedOption();
+    value.textContent=selected?.textContent?.trim()||'選択';
+    for(const button of grid.querySelectorAll('.review-select-grid-option')){
+      button.setAttribute('aria-selected',String(button.dataset.value===select.value));
+    }
+  };
+  const render=()=>{
+    const options=[...select.options];
+    grid.replaceChildren(...options.map(option=>{
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='review-select-grid-option';
+      button.dataset.value=option.value;
+      button.textContent=option.textContent.trim();
+      button.disabled=option.disabled;
+      button.setAttribute('role','option');
+      button.setAttribute('aria-selected',String(option.value===select.value));
+      button.addEventListener('click',()=>{
+        if(select.value!==option.value)select.value=option.value;
+        select.dispatchEvent(new Event('input',{bubbles:true}));
+        select.dispatchEvent(new Event('change',{bubbles:true}));
+        syncSelection();
+      });
+      return button;
+    }));
+    syncSelection();
+  };
+
+  select.addEventListener('input',syncSelection);
+  select.addEventListener('change',syncSelection);
+  new MutationObserver(render).observe(select,{childList:true,subtree:true,characterData:true});
+  (host||select).insertAdjacentElement('afterend',shell);
+  if(host)host.classList.add('review-slot-source-host');else select.classList.add('review-slot-source');
+  render();
+  return shell;
+}
+
 document.addEventListener('pointerdown',event=>{if(opened&&!opened.contains(event.target))close(opened);},true);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&opened)close(opened,true);});
 window.addEventListener('resize',()=>{if(opened)position(opened);});

@@ -7,6 +7,10 @@ const ux = read('../src/character-workshop-ux.js');
 const loading = read('../src/character-workshop-loading-indicator.js');
 const css = read('../src/character-workshop-ux.css');
 const entry = read('../src/motion-review-entrypoint.js');
+const slotAuto = read('../src/review-slot-auto.js');
+const slotPicker = read('../src/review-slot-picker.js');
+const slotCss = read('../src/review-slot-picker.css');
+const motionQA = read('../src/character-motion-qa.js');
 
 test('workshop exposes only three primary mobile intentions', () => {
   for (const [key,label] of [['build','作る'],['move','動かす'],['compare','比べる']]) {
@@ -76,6 +80,20 @@ test('simple review keeps preview chrome quiet and controls compact', () => {
   assert.match(css, /body\.simple-review \.stage-actions #frame-model/);
   assert.match(css, /body\[data-review-mode="character"\] #character-model-options/);
   assert.match(css, /body\.simple-review \.workshop-secondary-tabs/);
+});
+
+
+test('motion review exposes one selected slot and a persistent five-column motion list', () => {
+  assert.match(slotAuto, /mountReviewSelectGrid\(byId\('qa-motion'\),'選択中の動き'\)/);
+  assert.doesNotMatch(slotAuto, /mountReviewSelect\(byId\('qa-motion'\)/);
+  assert.match(slotAuto, /dataset\.reviewMode==='motion'/);
+  assert.doesNotMatch(slotAuto, /mountReviewGroup\(byId\('qa-cameras'\),'角度'\)/);
+  assert.match(slotPicker, /export function mountReviewSelectGrid/);
+  assert.match(slotPicker, /review-select-grid-current/);
+  assert.match(slotPicker, /review-select-grid-list/);
+  assert.match(slotCss, /\.review-select-grid-list\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(motionQA, /motionChanged=motion\.value!==row\.id/);
+  assert.match(motionQA, /motion\.dispatchEvent\(new Event\('input'/);
 });
 
 test('restored UX is loaded by the existing workshop entry without adding authority', () => {
