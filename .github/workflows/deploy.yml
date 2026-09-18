@@ -327,6 +327,7 @@ jobs:
         uses: actions/github-script@v8
         env:
           CHANNEL: ${{ steps.notify.outputs.channel }}
+          DEV_EMAIL: ${{ steps.notify.outputs.dev_email }}
           NOTIFY_OUTCOME: ${{ steps.notify.outcome }}
         with:
           script: |
@@ -335,9 +336,21 @@ jobs:
             const description = channel === 'ntfy' ? 'ntfy smartphone delivery confirmed' : channel === 'not-configured'
               ? 'NTFY_TOPIC_URL is not configured; smartphone delivery unconfirmed'
               : 'ntfy delivery failed; GitHub remains authoritative';
-            await github.rest.repos.createCommitStatus({ ...context.repo, sha: context.sha,
-              context: 'notification/ntfy', state, description,
-              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` });
+            const devEmail = process.env.DEV_EMAIL || 'failure';
+            const emailState = devEmail === 'failure' ? 'failure' : 'success';
+            const emailDescription = devEmail === 'success'
+              ? 'GitHub PR DEV receipt created or already present'
+              : devEmail === 'skipped'
+                ? 'No eligible merged PR required a DEV receipt'
+                : 'DEV email receipt creation failed; inspect publisher logs';
+            await Promise.all([
+              github.rest.repos.createCommitStatus({ ...context.repo, sha: context.sha,
+                context: 'notification/ntfy', state, description,
+                target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` }),
+              github.rest.repos.createCommitStatus({ ...context.repo, sha: context.sha,
+                context: 'notification/dev-email', state: emailState, description: emailDescription,
+                target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` }),
+            ]);
 
   pulse-result-refresh:
     name: Refresh PULSE after DEV result
