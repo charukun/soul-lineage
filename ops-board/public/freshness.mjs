@@ -19,7 +19,7 @@ export function syncPresentation(state, now = Date.now(), loadError = null) {
     return {
       tone: 'warning',
       title: PULSE_COPY.recovery.syncTitle,
-      meta: age === null ? '自動復旧中' : `最終確定 ${ageLabel(age)}`,
+      meta: age === null ? PULSE_COPY.recovery.headline : `最終確定 ${ageLabel(age)}`,
     };
   }
 
@@ -34,7 +34,7 @@ export function syncPresentation(state, now = Date.now(), loadError = null) {
   if (state?.syncStatus === 'degraded') {
     return {
       tone: 'warning',
-      title: '再同期中',
+      title: PULSE_COPY.recovery.syncTitle,
       meta: age === null ? '前回値を確認中' : `最終確定 ${ageLabel(age)}`,
     };
   }
