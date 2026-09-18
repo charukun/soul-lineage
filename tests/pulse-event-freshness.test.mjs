@@ -20,8 +20,8 @@ test('elapsed time alone does not become a PULSE action item', () => {
 
   const presentation = syncPresentation(state, now);
   assert.equal(presentation.tone, 'ok');
-  assert.equal(presentation.title, 'GitHub状態を反映済み');
-  assert.match(presentation.meta, /最終反映 3時間0分前/);
+  assert.equal(presentation.title, '同期済み');
+  assert.match(presentation.meta, /3時間0分前/);
   assert.match(presentation.meta, /イベント駆動/);
 });
 
@@ -32,11 +32,11 @@ test('real sync degradation stays visible as automatic recovery while previous f
     syncError: 'GitHub refresh failed',
   };
   const alerts = eventDrivenAlerts(state, now);
-  assert.ok(alerts.some(item => item.type === 'sync-failed' && item.tone === 'danger'));
+  assert.equal(alerts.length, 0, 'automatic sync recovery must not become a human-action alert');
   const presentation = syncPresentation(state, now);
   assert.equal(presentation.tone, 'warning');
-  assert.equal(presentation.title, 'GitHub同期を自動再確認中');
-  assert.match(presentation.meta, /確定情報/);
+  assert.equal(presentation.title, '再同期中');
+  assert.match(presentation.meta, /最終確定/);
 });
 
 test('Control Tower NEEDS_USER keeps a true human-action sync problem red', () => {
@@ -59,7 +59,7 @@ test('Control Tower NEEDS_USER keeps a true human-action sync problem red', () =
 test('missing snapshot identity remains a visible confirmation state', () => {
   const presentation = syncPresentation(healthyState(null), now);
   assert.equal(presentation.tone, 'warning');
-  assert.equal(presentation.title, 'GitHub状態を確認中');
+  assert.equal(presentation.title, '同期確認中');
 });
 
 test('PULSE UI explains event-driven sync and browser reload without implying a GitHub refresh', () => {
@@ -69,7 +69,7 @@ test('PULSE UI explains event-driven sync and browser reload without implying a 
 
   assert.match(html, /data-sync-title/);
   assert.match(html, /data-sync-meta/);
-  assert.match(html, />表示を再読込<\/button>/);
+  assert.match(html, />再読込<\/button>/);
   assert.doesNotMatch(html, />最新に更新<\/button>/);
   assert.match(app, /syncPresentation/);
   assert.match(app, /eventDrivenAlerts/);

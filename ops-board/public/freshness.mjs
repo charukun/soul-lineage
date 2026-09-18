@@ -1,12 +1,13 @@
 import { ageLabel, boardAlerts, snapshotAge } from './health.mjs';
 
-const HIDDEN_TIME_ONLY_ALERTS = new Set(['sync-stale']);
+const HIDDEN_SYSTEM_ALERTS = new Set(['sync-stale','sync-failed','sync-unavailable','client-fetch','github-sync-degraded']);
 
 export function eventDrivenAlerts(state, now = Date.now(), loadError = null) {
+  if (!state && loadError) return [];
   if (Array.isArray(state?.controlTower?.incidents)) {
     return state.controlTower.incidents.filter(item => item.userActionRequired === true);
   }
-  return boardAlerts(state, now, loadError).filter(item => !HIDDEN_TIME_ONLY_ALERTS.has(item.type));
+  return boardAlerts(state, now, loadError).filter(item => !HIDDEN_SYSTEM_ALERTS.has(item.type));
 }
 
 export function syncPresentation(state, now = Date.now(), loadError = null) {
@@ -16,8 +17,8 @@ export function syncPresentation(state, now = Date.now(), loadError = null) {
   if (loadError) {
     return {
       tone: 'warning',
-      title: '表示更新を再試行中',
-      meta: age === null ? '現在状態を確認できません' : `${ageLabel(age)}の確定情報を表示`,
+      title: '再同期中',
+      meta: age === null ? '自動復旧中' : `最終確定 ${ageLabel(age)}`,
     };
   }
 
@@ -32,22 +33,22 @@ export function syncPresentation(state, now = Date.now(), loadError = null) {
   if (state?.syncStatus === 'degraded') {
     return {
       tone: 'warning',
-      title: 'GitHub同期を自動再確認中',
-      meta: age === null ? '前回値を確認しています' : `${ageLabel(age)}の確定情報を表示`,
+      title: '再同期中',
+      meta: age === null ? '前回値を確認中' : `最終確定 ${ageLabel(age)}`,
     };
   }
 
   if (age === null) {
     return {
       tone: 'warning',
-      title: 'GitHub状態を確認中',
-      meta: '最終反映を確認しています',
+      title: '同期確認中',
+      meta: '最終反映を確認中',
     };
   }
 
   return {
     tone: 'ok',
-    title: 'GitHub状態を反映済み',
-    meta: `最終反映 ${ageLabel(age)} · イベント駆動`,
+    title: '同期済み',
+    meta: `${ageLabel(age)} · イベント駆動`,
   };
 }

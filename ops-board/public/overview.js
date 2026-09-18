@@ -6,16 +6,22 @@ const $ = selector => document.querySelector(selector);
 const toneNames = ['ok', 'progress', 'warning', 'danger', 'info'];
 
 function setCard(id, value, detail, tone = 'info') {
-  const card = $(`#${id}-card`);
-  const valueNode = $(`#${id}-value`);
-  const detailNode = $(`#${id}-detail`);
-  if (!card || !valueNode || !detailNode) return;
-  toneNames.forEach(name => card.classList.remove(name));
-  card.classList.add(toneNames.includes(tone) ? tone : 'info');
-  valueNode.textContent = value;
-  detailNode.textContent = detail;
+  const card = `#${id}-card`;
+  const root = $(card);
+  const valueNode = `#${id}-value`;
+  const detailNode = `#${id}-detail`;
+  const valueEl = $(valueNode);
+  const detailEl = $(detailNode);
+  if (!root || !valueEl || !detailEl) return;
+  toneNames.forEach(name => root.classList.remove(name));
+  root.classList.add(toneNames.includes(tone) ? tone : 'info');
+  valueEl.textContent = value;
+  detailEl.textContent = detail;
 }
 
+function setPublicationExpanded(expanded) {
+  $('#overview-app-card')?.classList.toggle('is-expanded', Boolean(expanded));
+}
 function setPublicationRows(current, next, eta) {
   const currentNode = $('#overview-app-now');
   const nextNode = $('#overview-app-next');
@@ -25,45 +31,51 @@ function setPublicationRows(current, next, eta) {
   if (etaNode) etaNode.textContent = eta;
 }
 
-function publicationHeadline(progress) {
-  return ({
-    queued: 'DEV更新を準備中',
-    coalescing: 'DEV更新を準備中',
-    waiting: 'DEV更新を準備中',
-    publishing: 'DEVを更新中',
-    reflecting: 'もうすぐ確認できます',
-    recovering: 'DEV更新を復旧中',
-    failed: 'DEV更新で問題発生',
-    stalled: 'DEV更新が遅れています',
-  })[progress?.state] || progress?.value || 'DEV状態を確認中';
-}
-
 function needsHumanAction(state, impact) {
   return (state?.controlTower?.incidents || []).some(item => item.userActionRequired === true && (!impact || item.impact === impact));
 }
 
 function renderAttention(state, error) {
-  const alerts = eventDrivenAlerts(state, Date.now(), error);
-  const danger = alerts.filter(item => item.tone === 'danger' || item.userActionRequired).length;
-  const tone = alerts.length ? 'danger' : 'ok';
-  setCard('overview-alert', alerts.length ? `${alerts.length}件` : '0件', alerts.length ? (danger ? `確認が必要 ${danger}` : '確認あり') : '問題なし', tone);
+  if (!state && error) {
+    setCard('overview-alert', '未確認', '状態取得は自動再試行中', 'info');
+    return;
+  }
+  const alerts = eventDrivenAlerts(state, Date.now(), error).filter(item => item.userActionRequired === true);
+  if (!alerts.length) {
+    setCard('overview-alert', '操作不要', '人の確認 0件', 'ok');
+    return;
+  }
+  setCard('overview-alert', `${alerts.length}件確認`, alerts[0]?.title || '確認が必要です', 'danger');
 }
 
 function renderDevelopment(state) {
   const pulls = state?.pullRequests?.normal || [];
   const draft = pulls.filter(item => item.state === 'Draft').length;
   const ready = pulls.filter(item => item.state === 'Ready').length;
-  const active = draft + ready;
   const rescue = state?.integrationRescue;
   const rescueActive = rescue?.available ? Number(rescue.counts?.active || 0) : 0;
+  const active = draft + ready + rescueActive;
   const stalled = Boolean(state?.integration?.stalled);
   const human = needsHumanAction(state, 'integration');
-  const tone = human ? 'danger' : stalled ? 'progress' : ready ? 'warning' : draft || rescueActive ? 'progress' : 'ok';
-  const value = human ? '要確認' : active ? `${active}件進行` : rescueActive ? `Rescue ${rescueActive}` : stalled ? '自動対応中' : '待ちなし';
-  const detail = `作業 ${draft} / 統合待ち ${ready}${rescueActive ? ` / Rescue ${rescueActive}` : ''}`;
+  const tone = human ? 'danger' : stalled || active ? 'progress' : 'ok';
+  const value = human ? '要確認' : active ? `${active}件` : '待ちなし';
+  const detail = `作業 ${draft} / Ready ${ready}${rescueActive ? ` / 修復 ${rescueActive}` : ''}`;
   setCard('overview-task', value, detail, tone);
   const summary = $('#task-summary');
   if (summary) summary.textContent = detail;
+}
+
+function publicationValue(progress) {
+  return ({
+    queued:'準備中',
+    coalescing:'準備中',
+    waiting:'開始待ち',
+    publishing:'更新中',
+    reflecting:'反映確認',
+    recovering:'復旧中',
+    failed:'問題あり',
+    stalled:'遅延',
+  })[progress?.state] || '更新中';
 }
 
 function renderApplications(state) {
@@ -71,48 +83,48 @@ function renderApplications(state) {
   const publication = devPublicationProgress(state, Date.now());
   if (publication) {
     const human = needsHumanAction(state, 'dev-publication');
-    const tone = publication.tone === 'danger' && !human ? 'progress' : publication.tone;
-    setCard(
-      'overview-app',
-      publicationHeadline(publication),
-      publication.currentVersionAvailable ? '現在のDEVは今すぐ開けます' : '現在のDEV公開は未確認です',
-      tone,
-    );
+    const tone = human ? 'danger' : publication.tone === 'danger' ? 'progress' : publication.tone;
+    setCard('overview-app', publicationValue(publication), publication.currentVersionAvailable ? '現在版は開けます' : '公開版を確認中', tone);
     setPublicationRows(publication.current, publication.next, publication.eta);
+    setPublicationExpanded(true);
     return;
   }
 
   const exactPublished = Boolean(dev?.branchCommit && dev?.deployedCommit === dev.branchCommit && dev?.exactCommit !== false);
   if (exactPublished) {
-    setCard('overview-app', 'DEVは最新です', '今すぐ確認できます', 'ok');
-    setPublicationRows('最新のdevelopが公開済みです', '待つ必要はありません', '今すぐ確認できます');
+    setCard('overview-app', '最新', '今すぐ確認できます', 'ok');
+    setPublicationRows('最新developを公開済み', '待つ必要なし', '今すぐ');
+    setPublicationExpanded(false);
     return;
   }
 
   if (!dev) {
-    setCard('overview-app', 'DEV状態を確認中', '公開情報を取得しています', 'info');
-    setPublicationRows('公開状態を取得しています', 'developとの一致を確認します', '確認中');
+    setCard('overview-app', '未確認', '公開情報を自動取得中', 'info');
+    setPublicationRows('公開状態を取得中', 'developとの一致を確認', '確認中');
+    setPublicationExpanded(false);
     return;
   }
 
   const apps = state?.applications || [];
-  const counts = { ok: 0, progress: 0, warning: 0, danger: 0, info: 0 };
+  const counts = { ok:0, progress:0, warning:0, danger:0, info:0 };
   for (const app of apps) {
     const [, tone] = appHealth(app);
     counts[tone] = (counts[tone] || 0) + 1;
   }
   const human = needsHumanAction(state, 'dev-publication');
   const tone = human ? 'danger' : counts.warning ? 'warning' : counts.progress || counts.danger ? 'progress' : 'info';
-  setCard('overview-app', 'DEV状態を確認中', dev.deployedCommit ? '現在のDEVは開けます' : '公開版を確認できていません', tone);
-  setPublicationRows('公開版と最新developを照合しています', '一致状態を確認します', '確認中');
+  setCard('overview-app', dev.deployedCommit ? '照合中' : '未確認', dev.deployedCommit ? '現在版は開けます' : '公開版を確認中', tone);
+  setPublicationRows('公開版とdevelopを照合中', '一致状態を確認', '確認中');
+  setPublicationExpanded(false);
 }
 
 function render(state, error) {
   renderAttention(state, error);
   if (!state) {
-    setCard('overview-task', '未確認', '開発状態なし', 'info');
-    setCard('overview-app', 'DEV状態を確認中', '公開情報を取得しています', 'info');
-    setPublicationRows('公開状態を取得しています', 'developとの一致を確認します', '確認中');
+    setCard('overview-task', '未確認', '開発状態を自動取得中', 'info');
+    setCard('overview-app', '未確認', '公開状態を自動取得中', 'info');
+    setPublicationRows('公開状態を取得中', 'developとの一致を確認', '確認中');
+    setPublicationExpanded(false);
     return;
   }
   renderDevelopment(state);

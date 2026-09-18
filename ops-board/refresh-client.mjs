@@ -90,12 +90,17 @@ export async function refreshPulseState({
     }
 
     if (!response.ok) {
-      const error = new Error(`PULSE refresh HTTP ${response.status}`);
+      let detail = '';
+      try {
+        const body = await response.clone().json();
+        detail = String(body?.error || body?.message || '').slice(0, 120);
+      } catch { /* status is still actionable */ }
+      const error = new Error(`PULSE refresh HTTP ${response.status}${detail ? `: ${detail}` : ''}`);
       error.status = response.status;
       lastError = error;
       if (!transientStatus(response.status) || attempt === maxAttempts) throw error;
       const waitMs = retryDelayMs(response, attempt, nowFn());
-      console.log(`::warning::PULSE refresh HTTP ${response.status}; retry ${attempt}/${maxAttempts} in ${waitMs}ms`);
+      console.log(`::warning::PULSE refresh HTTP ${response.status}${detail ? ` (${detail})` : ''}; retry ${attempt}/${maxAttempts} in ${waitMs}ms`);
       await sleep(waitMs);
       continue;
     }
