@@ -65,6 +65,7 @@ test('existing playback review controls stay available as secondary tools',()=>{
     assert.match(html,new RegExp(`id="${id}"`));
   }
   assert.match(html,/<details class="controls">/);
+  assert.match(html,/<input id="fx-loop" type="checkbox" checked>/);
   assert.match(js,/createAuthoredEffectPlayer/);
   assert.match(js,/createEffekseerBackend/);
   assert.match(js,/player\.present\(eventsFor\(preset\)/);
