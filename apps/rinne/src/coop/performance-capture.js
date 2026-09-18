@@ -1,31 +1,73 @@
 import { createCoopPerformanceProbe } from './performance.js';
 
 const safeClone=value=>value==null?null:structuredClone(value);
-const captureMeta=(session,buildInfo,{expectedPeers,windowArmed})=>({
+const ADDITIVE_COUNTERS=new Set(['bandwidthSkippedBuckets','connectionAttempts','connectionSuccesses','turnCandidateClassifiedConnections','turnRelayConnections','durationMinutes']);
+const cleanWorkload=value=>String(value||'manual-v1').trim().slice(0,80).replace(/[^a-zA-Z0-9._-]+/g,'-')||'manual-v1';
+const mergeSnapshots=(segments,current)=>{
+  const rows=[...segments,current].filter(Boolean),merged={};
+  for(const row of rows)for(const [key,value]of Object.entries(row)){
+    if(Array.isArray(value)){merged[key]??=[];merged[key].push(...value);}
+    else if(ADDITIVE_COUNTERS.has(key))merged[key]=Number(merged[key]||0)+Number(value||0);
+    else merged[key]=value;
+  }
+  return merged;
+};
+const captureMeta=(session,buildInfo,{expectedPeers,windowArmed,workloadId,measurementStartedAt,capabilities})=>({
   schema:'rrp-raw-peer-capture',version:1,role:session?.role||null,worldId:session?.worldId||null,peerId:session?.selfId||null,
-  buildRevision:String(buildInfo?.commit||'UNBUILT'),environment:String(buildInfo?.environment||'local'),expectedPeers,windowArmed:Boolean(windowArmed),capturedAt:new Date().toISOString(),
+  buildRevision:String(buildInfo?.commit||'UNBUILT'),environment:String(buildInfo?.environment||'local'),expectedPeers,windowArmed:Boolean(windowArmed),
+  workloadId,measurementStartedAt:measurementStartedAt||null,capturedAt:new Date().toISOString(),capabilities:safeClone(capabilities),
 });
 
 export function installRrpPerformanceCapture({getSession,buildInfo=null,now=()=>performance.now(),intervalMs=250,expectedPeers=null,setIntervalFn=setInterval,clearIntervalFn=clearInterval,windowRef=globalThis.window,documentRef=globalThis.document}={}){
   if(typeof getSession!=='function')throw Error('RRP capture requires getSession');if(!Number.isFinite(intervalMs)||intervalMs<100||intervalMs>1000)throw Error('Invalid RRP capture interval');
-  const urlPeers=Number(new URLSearchParams(windowRef?.location?.search||'').get('rrpPeers')),peerTarget=Number.isInteger(expectedPeers)?expectedPeers:Number.isInteger(urlPeers)&&urlPeers>0?urlPeers:2;if(!Number.isInteger(peerTarget)||peerTarget<2||peerTarget>30)throw Error('RRP capture expected peers must be 2-30');
-  let disposed=false,lastRaw=null,lastMeta=null,activeProbe=null,activeSession=null,windowArmed=false;
-  const panel=documentRef?.createElement?.('section')||null,status=documentRef?.createElement?.('p')||null,copyButton=documentRef?.createElement?.('button')||null,resetButton=documentRef?.createElement?.('button')||null;
-  if(panel&&status&&copyButton&&resetButton){panel.id='rrp-performance-capture';panel.dataset.rrpCapture='true';panel.setAttribute('aria-label','RRP performance capture');Object.assign(panel.style,{position:'fixed',right:'12px',top:'12px',zIndex:'2147483647',padding:'10px 12px',maxWidth:'min(360px,calc(100vw - 24px))',background:'rgba(8,10,13,.9)',color:'#f4f1e8',font:'12px/1.45 system-ui,sans-serif',border:'1px solid rgba(255,255,255,.18)',borderRadius:'8px'});const title=documentRef.createElement('strong');title.textContent=`RRP physical capture · ${peerTarget} peers`;status.textContent='co-op session待機中';status.style.margin='6px 0';resetButton.type='button';resetButton.textContent='計測区間を再開始';resetButton.disabled=true;copyButton.type='button';copyButton.textContent='raw JSONをコピー';copyButton.disabled=true;panel.append(title,status,resetButton,copyButton);documentRef.body?.append(panel);}
+  const params=new URLSearchParams(windowRef?.location?.search||''),urlPeers=Number(params.get('rrpPeers')),peerTarget=Number.isInteger(expectedPeers)?expectedPeers:Number.isInteger(urlPeers)&&urlPeers>0?urlPeers:2;if(!Number.isInteger(peerTarget)||peerTarget<2||peerTarget>30)throw Error('RRP capture expected peers must be 2-30');
+  const workloadId=cleanWorkload(params.get('rrpWorkload'));
+  let disposed=false,lastRaw=null,lastMeta=null,lastDiagnostics=null,activeProbe=null,activeSession=null,activeRole=null,windowArmed=false,measurementStarted=false,measurementStartedAt=null,outageStartedAt=null;
+  let segments=[];
+  const panel=documentRef?.createElement?.('section')||null,status=documentRef?.createElement?.('p')||null,copyButton=documentRef?.createElement?.('button')||null,downloadButton=documentRef?.createElement?.('button')||null,resetButton=documentRef?.createElement?.('button')||null;
+  if(panel&&status&&copyButton&&downloadButton&&resetButton){panel.id='rrp-performance-capture';panel.dataset.rrpCapture='true';panel.setAttribute('aria-label','RRP performance capture');Object.assign(panel.style,{position:'fixed',right:'12px',top:'12px',zIndex:'2147483647',padding:'10px 12px',maxWidth:'min(360px,calc(100vw - 24px))',background:'rgba(8,10,13,.9)',color:'#f4f1e8',font:'12px/1.45 system-ui,sans-serif',border:'1px solid rgba(255,255,255,.18)',borderRadius:'8px'});const title=documentRef.createElement('strong');title.textContent=`RRP capture · ${workloadId} · ${peerTarget} peers`;status.textContent='co-op session待機中';status.style.margin='6px 0';resetButton.type='button';resetButton.textContent='計測区間を再開始';resetButton.disabled=true;copyButton.type='button';copyButton.textContent='raw JSONをコピー';copyButton.disabled=true;downloadButton.type='button';downloadButton.textContent='raw JSONを保存';downloadButton.disabled=true;panel.append(title,status,resetButton,copyButton,downloadButton);documentRef.body?.append(panel);}
   function mountPanel(){if(!panel||!documentRef?.body)return;const dialog=documentRef.getElementById?.('village-dialog'),target=dialog?.open?dialog:documentRef.body;if(panel.parentNode!==target)target.append(panel);}
-  function performanceProbeFactory(role){activeProbe=createCoopPerformanceProbe({role,now});activeSession=null;windowArmed=false;return activeProbe;}
-  function readyToArm(session){const snapshot=session?.snapshot?.();return snapshot?.phase==='open'&&Number(snapshot?.view?.connected||0)>=peerTarget;}
-  function clearWindow(){activeProbe?.resetWindow({keepConnections:true});windowArmed=false;lastRaw=null;lastMeta=null;}
-  function armWindow(session){if(!activeProbe||windowArmed||!readyToArm(session))return false;activeProbe.resetWindow({keepConnections:true});windowArmed=true;lastRaw=null;lastMeta=null;return true;}
-  function sample(){
-    if(disposed)return null;mountPanel();const session=getSession();if(session!==activeSession){activeSession=session;if(session){windowArmed=false;lastRaw=null;lastMeta=null;}else windowArmed=false;}
-    if(windowArmed&&!readyToArm(session))clearWindow();armWindow(session);const raw=session?.performance?.(),connected=Number(session?.snapshot?.()?.view?.connected||0);
-    if(raw){lastRaw=safeClone(raw);lastMeta=captureMeta(session,buildInfo,{expectedPeers:peerTarget,windowArmed});const gaps=Number(raw.bandwidthSkippedBuckets||0);if(status)status.textContent=windowArmed?`${session.role} · ${Math.round((raw.durationMinutes||0)*60)}秒 · ACK ${raw.inputToAuthoritativeAckMs?.length||0} · display ${raw.inputToDisplayMs?.length||0}${gaps?` · gap ${gaps}`:''}`:`${session.role} · 接続 ${connected}/${peerTarget} · 計測開始待ち`;if(copyButton)copyButton.disabled=!windowArmed;if(resetButton)resetButton.disabled=!windowArmed;}
-    else if(status){status.textContent=session?'performance probeなし':lastRaw?'session終了 · 最終capture保持':'co-op session待機中';if(copyButton)copyButton.disabled=!lastRaw;if(resetButton)resetButton.disabled=true;}return raw?safeClone(raw):null;
+  function stashProbe(){if(activeProbe&&measurementStarted)segments.push(activeProbe.snapshot());}
+  function performanceProbeFactory(role){
+    if(activeProbe&&role!==activeRole){segments=[];measurementStarted=false;measurementStartedAt=null;outageStartedAt=null;}
+    else stashProbe();
+    activeProbe=createCoopPerformanceProbe({role,now});activeRole=role;activeSession=null;windowArmed=false;lastRaw=null;lastMeta=null;lastDiagnostics=null;return activeProbe;
   }
-  function reset(){if(!activeProbe||!readyToArm(activeSession))return false;activeProbe.resetWindow({keepConnections:true});windowArmed=true;lastRaw=null;lastMeta=null;sample();return true;}
-  function raw(){sample();return lastRaw?Object.freeze({...safeClone(lastRaw),_capture:safeClone(lastMeta)}):null;}function json(){const value=raw();return value?JSON.stringify(value,null,2):'';}
+  function readyToArm(session){const snapshot=session?.snapshot?.();return snapshot?.phase==='open'&&Number(snapshot?.view?.connected||0)>=peerTarget;}
+  function resetMeasurement(){activeProbe?.resetWindow({keepConnections:true});segments=[];measurementStarted=false;measurementStartedAt=null;outageStartedAt=null;windowArmed=false;lastRaw=null;lastMeta=null;lastDiagnostics=null;}
+  function armWindow(session){
+    if(!activeProbe||windowArmed||!readyToArm(session))return false;
+    if(!measurementStarted){activeProbe.resetWindow({keepConnections:true});segments=[];measurementStarted=true;measurementStartedAt=new Date().toISOString();}
+    windowArmed=true;
+    if(activeRole==='peer'&&outageStartedAt!=null){activeProbe.recordHostReopen(Math.max(0,now()-outageStartedAt));outageStartedAt=null;}
+    return true;
+  }
+  function combinedRaw(){return activeProbe?mergeSnapshots(segments,activeProbe.snapshot()):segments.length?mergeSnapshots(segments,null):null;}
+  function sample(){
+    if(disposed)return null;mountPanel();const session=getSession();
+    if(session!==activeSession)activeSession=session;
+    const ready=readyToArm(session);
+    if(windowArmed&&!ready){windowArmed=false;if(measurementStarted&&activeRole==='peer'&&outageStartedAt==null)outageStartedAt=now();}
+    armWindow(session);
+    const memory=Number(windowRef?.performance?.memory?.usedJSHeapSize);if(measurementStarted&&activeProbe&&Number.isFinite(memory)&&memory>=0)activeProbe.recordMemory(memory/1024/1024);
+    const raw=combinedRaw(),connected=Number(session?.snapshot?.()?.view?.connected||0);lastDiagnostics=safeClone(session?.diagnostics?.()??lastDiagnostics);
+    if(raw){
+      const capabilities={memoryMb:Array.isArray(raw.memoryMb)&&raw.memoryMb.length>0,gpuMs:Array.isArray(raw.gpuMs)&&raw.gpuMs.length>0,batteryPctPerHour:Array.isArray(raw.batteryPctPerHour)&&raw.batteryPctPerHour.length>0,turnCandidateStats:Number(raw.turnCandidateClassifiedConnections||0)>0};
+      lastRaw=safeClone(raw);lastMeta=captureMeta(session,buildInfo,{expectedPeers:peerTarget,windowArmed,workloadId,measurementStartedAt,capabilities});
+      const gaps=Number(raw.bandwidthSkippedBuckets||0);if(status)status.textContent=measurementStarted?`${session?.role||activeRole||'?'} · ${Math.round((raw.durationMinutes||0)*60)}秒 · 接続 ${connected}/${peerTarget} · ACK ${raw.inputToAuthoritativeAckMs?.length||0} · protected ${raw.semanticEventCount?.reduce((a,b)=>a+Number(b||0),0)||0}${windowArmed?'':' · 再接続待ち'}${gaps?` · gap ${gaps}`:''}`:`${session?.role||activeRole||'?'} · 接続 ${connected}/${peerTarget} · 計測開始待ち`;
+      if(copyButton)copyButton.disabled=!measurementStarted;if(downloadButton)downloadButton.disabled=!measurementStarted;if(resetButton)resetButton.disabled=!measurementStarted;
+    }else if(status){status.textContent=session?'performance probeなし':'co-op session待機中';if(copyButton)copyButton.disabled=true;if(downloadButton)downloadButton.disabled=true;if(resetButton)resetButton.disabled=true;}
+    return raw?safeClone(raw):null;
+  }
+  function reset(){if(!activeProbe||!readyToArm(activeSession))return false;resetMeasurement();return armWindow(activeSession);}
+  function raw(){sample();return lastRaw?Object.freeze({...safeClone(lastRaw),_capture:safeClone(lastMeta),_diagnostics:safeClone(lastDiagnostics)}):null;}
+  function json(){const value=raw();return value?JSON.stringify(value,null,2):'';}
   async function copy(){const text=json();if(!text)return false;const clipboard=windowRef?.navigator?.clipboard||globalThis.navigator?.clipboard;if(!clipboard?.writeText)return false;await clipboard.writeText(text);if(status)status.textContent='raw JSONをコピーしました';return true;}
-  if(resetButton)resetButton.addEventListener('click',()=>{reset();});if(copyButton)copyButton.addEventListener('click',()=>{void copy().catch(error=>{if(status)status.textContent=`copy失敗: ${error.message}`;});});
-  const timer=setIntervalFn(sample,intervalMs);sample();const api=Object.freeze({performanceProbeFactory,sample,reset,raw,json,copy,armed:()=>windowArmed,expectedPeers:peerTarget,dispose(){if(disposed)return;disposed=true;clearIntervalFn(timer);panel?.remove();if(windowRef?.__RRP_CAPTURE__===api)delete windowRef.__RRP_CAPTURE__;}});if(windowRef)windowRef.__RRP_CAPTURE__=api;return api;
+  function download(){
+    const text=json();if(!text||!documentRef?.createElement||typeof Blob==='undefined'||!windowRef?.URL?.createObjectURL)return false;
+    const blob=new Blob([text],{type:'application/json'}),url=windowRef.URL.createObjectURL(blob),anchor=documentRef.createElement('a'),meta=lastMeta||{};
+    anchor.href=url;anchor.download=`rinne-${workloadId}-${meta.role||activeRole||'peer'}-${String(meta.peerId||'unknown').replace(/[^a-zA-Z0-9._-]+/g,'-')}.json`;anchor.hidden=true;documentRef.body?.append(anchor);anchor.click();anchor.remove();windowRef.URL.revokeObjectURL(url);if(status)status.textContent='raw JSONを保存しました';return true;
+  }
+  if(resetButton)resetButton.addEventListener('click',()=>{reset();});if(copyButton)copyButton.addEventListener('click',()=>{void copy().catch(error=>{if(status)status.textContent=`copy失敗: ${error.message}`;});});if(downloadButton)downloadButton.addEventListener('click',()=>{try{if(!download()&&status)status.textContent='保存に対応していないブラウザです';}catch(error){if(status)status.textContent=`保存失敗: ${error.message}`;}});
+  const timer=setIntervalFn(sample,intervalMs);sample();const api=Object.freeze({performanceProbeFactory,sample,reset,raw,json,copy,download,armed:()=>windowArmed,expectedPeers:peerTarget,workloadId,dispose(){if(disposed)return;disposed=true;clearIntervalFn(timer);panel?.remove();if(windowRef?.__RRP_CAPTURE__===api)delete windowRef.__RRP_CAPTURE__;}});if(windowRef)windowRef.__RRP_CAPTURE__=api;return api;
 }
