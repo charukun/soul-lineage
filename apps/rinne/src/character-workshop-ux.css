@@ -35,6 +35,11 @@ html:not([data-motion-debug="on"]) #motion-debug-controls{display:none!important
 .workshop-compare-quick button{min-height:44px}
 .workshop-compare-details .compare-counts{margin-top:6px}
 
+.load-indicator{position:absolute;left:50%;top:62px;z-index:4;width:min(360px,calc(100% - 28px));transform:translateX(-50%);padding:10px 12px 9px;border:1px solid color-mix(in srgb,var(--accent) 38%,var(--line));border-radius:10px;background:color-mix(in srgb,#101b1e 92%,transparent);box-shadow:0 8px 24px #0005;backdrop-filter:blur(8px);pointer-events:none}
+.load-indicator[hidden]{display:none!important}.load-indicator-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.load-indicator-head strong{font-size:12px;font-weight:700}.load-indicator-head output{font-size:11px;font-variant-numeric:tabular-nums;color:var(--accent)}
+.load-indicator-track{height:3px;margin:7px 0 6px;overflow:hidden;border-radius:99px;background:#ffffff18}.load-indicator-track i{display:block;height:100%;width:4%;border-radius:inherit;background:var(--accent);transition:width .24s ease}
+#load-detail{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;color:var(--muted)}.load-indicator[data-state="error"]{border-color:#c77b67}.load-indicator[data-state="error"] .load-indicator-head output,.load-indicator[data-state="error"] #load-detail{color:#ffb8a8}.load-indicator[data-state="ready"]{opacity:.92}
+
 /* Visual Review: preview is quiet, controls live below it. */
 body.simple-review .mode-tabs,
 body.simple-review .about,
@@ -112,6 +117,7 @@ body[data-review-mode="motion"] .workshop-qa-details>summary{min-height:34px;pad
   .editor-footer{padding:2px 9px calc(4px + env(safe-area-inset-bottom))}
   .save-line{min-height:16px}
   .footer-actions button{min-height:40px}
+  .load-indicator{top:54px;width:calc(100% - 24px);padding:9px 10px 8px}
   body.simple-review .review-app{grid-template-rows:minmax(0,58fr) minmax(0,42fr)!important}
   body.simple-review .stage-shell{grid-template-rows:42px minmax(0,1fr) 32px auto!important}
   body.simple-review .editor-dock{grid-template-rows:minmax(0,1fr)!important}
@@ -136,6 +142,7 @@ body[data-review-mode="motion"] .workshop-qa-details>summary{min-height:34px;pad
 @media(max-height:620px) and (orientation:portrait){
   .review-app{grid-template-rows:minmax(0,61fr) minmax(0,39fr)!important}
   .stage-shell{grid-template-rows:38px minmax(0,1fr) 42px auto!important}
+  .load-indicator{top:46px}
   body.simple-review .review-app{grid-template-rows:minmax(0,56fr) minmax(0,44fr)!important}
   body.simple-review .stage-shell{grid-template-rows:38px minmax(0,1fr) 32px auto!important}
 }

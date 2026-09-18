@@ -10,23 +10,39 @@ import './heart-technique-body.css';
 
 const haptic=pattern=>{try{globalThis.navigator?.vibrate?.(pattern);}catch{}};
 const PAGE_SIZE=6;
+const GRID_PAGE_SIZE=10,RADAR_RANGE=28;
+const esc=value=>String(value??'').replace(/[&<>\"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;","'":"&#39;"}[ch]));
+const clamp=(value,min,max)=>Math.min(max,Math.max(min,value));
 
 export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}){
   const root=document.createElement('div');
   root.className='rinne-gameplay-upgrade';
   root.innerHTML=`
-    <div class="rinne-player-strip"><span data-name>旅人</span><i></i><span data-equip>素手 · 旅装</span><span data-state>探索</span></div>
+    <section class="rinne-player-strip" data-player-info aria-label="プレイヤー情報">
+      <div class="player-identity"><strong data-name>旅人</strong><small data-state>探索</small></div>
+      <div class="player-equipment"><span>装</span><strong data-equip>素手 · 旅装</strong></div>
+      <button data-record class="player-record-button" type="button" aria-label="人生と系譜を開く"><b>記</b><small>人生</small></button>
+    </section>
+    <button data-map class="rinne-map-radar" type="button" aria-label="地図を開く">
+      <span class="radar-face" aria-hidden="true">
+        <i class="radar-ring radar-ring-outer"></i><i class="radar-ring radar-ring-inner"></i><i class="radar-cross"></i>
+        <span data-radar-places class="radar-places"></span>
+        <em data-radar-target class="radar-target" hidden></em>
+        <b data-radar-player class="radar-player"></b><u>N</u>
+      </span>
+      <span class="radar-caption"><strong data-radar-distance>--</strong><small data-radar-label>地図</small></span>
+    </button>
     <div data-phase class="combat-phase-indicator" hidden aria-label="現在の序破急">
-      <span data-phase-id="jo">序</span><span data-phase-id="ha">破</span><span data-phase-id="kyu">急</span>
+      <span data-phase-id="jo">序</span><i class="phase-pulse" aria-hidden="true"></i><span data-phase-id="ha">破</span><i class="phase-pulse" aria-hidden="true"></i><span data-phase-id="kyu">急</span><div data-phase-history class="combat-phase-history" aria-hidden="true"></div>
     </div>
-    <nav class="rinne-bottom-controls" aria-label="プレイ計画">
-      <button data-combat class="upgrade-control is-combat"><span>戦技</span><small>心・技・体</small></button>
-      <button data-items class="upgrade-control"><span>具</span><small>身支度</small></button>
-      <button data-map class="upgrade-control"><span>図</span><small>地図</small></button>
-      <button data-record class="upgrade-control"><span>記</span><small>人生・系譜</small></button>
+    <nav class="rinne-bottom-controls" aria-label="戦闘と装備">
+      <button data-heart class="upgrade-control is-heart"><span>心</span><small>心得</small></button>
+      <button data-techniques class="upgrade-control is-technique"><span>技</span><small>序破急</small></button>
+      <button data-body class="upgrade-control is-body"><span>体</span><small>身法</small></button>
+      <button data-items class="upgrade-control is-equipment"><span>装</span><small>武具</small></button>
     </nav>
     <button data-one-motion class="one-motion-control" type="button" hidden>
-      <b>奥</b><span><strong data-one-motion-name>奥義</strong><small>大消耗 / 大きな隙</small></span>
+      <b>奥</b><span><strong data-one-motion-name>奥義</strong><small>消耗大 / 隙大</small></span>
     </button>
     <section data-panel class="upgrade-panel" hidden>
       <header><i class="upgrade-sheet-grip" aria-hidden="true"></i><strong data-title></strong><button data-close aria-label="閉じる">×</button></header>
@@ -42,11 +58,13 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
 
   const dash=document.createElement('button');dash.type='button';dash.hidden=true;
   const q=s=>root.querySelector(s),panel=q('[data-panel]'),ui={
-    root,dash,combat:q('[data-combat]'),items:q('[data-items]'),map:q('[data-map]'),record:q('[data-record]'),phase:q('[data-phase]'),
+    root,dash,
+    heart:q('[data-heart]'),techniques:q('[data-techniques]'),bodyButton:q('.rinne-bottom-controls [data-body]'),items:q('[data-items]'),map:q('[data-map]'),record:q('[data-record]'),phase:q('[data-phase]'),phaseHistory:q('[data-phase-history]'),
+    radarPlaces:q('[data-radar-places]'),radarTarget:q('[data-radar-target]'),radarPlayer:q('[data-radar-player]'),radarDistance:q('[data-radar-distance]'),radarLabel:q('[data-radar-label]'),
     oneMotion:q('[data-one-motion]'),oneMotionName:q('[data-one-motion-name]'),panel,title:q('[data-title]'),body:panel.querySelector('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
     rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),name:q('[data-name]'),equip:q('[data-equip]'),state:q('[data-state]')
   };
-  let state=null,sheetDrag=null,movementHelpTimer=0,toastTimer=0,guidance=null,inventoryKind='weapon',inventoryPages={weapon:0,armor:0,shield:0},recordPage=0,recordSection='life',lastPhase='';
+  let state=null,sheetDrag=null,movementHelpTimer=0,toastTimer=0,guidance=null,inventoryKind='weapon',inventoryPages={weapon:0,armor:0,shield:0},recordPage=0,recordSection='life',lastPhase='',phaseHistory=[];
   const speech=createConversationInput({document,window,root:gameScreen,getState:()=>state});
   const tracker=createSkillSetter({ui,audio,getState:()=>state});
   const loadoutUI=createHeartTechniqueBodyUI({ui,audio,getState:()=>state,tracker});
@@ -61,19 +79,62 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   function pager(total,current,onChange){
     const pages=Math.max(1,Math.ceil(total/PAGE_SIZE));if(pages<=1)return null;current=Math.min(Math.max(0,current),pages-1);const nav=document.createElement('nav');nav.className='panel-pager';const prev=document.createElement('button'),meta=document.createElement('span'),next=document.createElement('button');prev.type=next.type='button';prev.textContent='‹';next.textContent='›';prev.disabled=current<=0;next.disabled=current>=pages-1;meta.textContent=`${current+1} / ${pages}`;prev.onclick=()=>onChange(current-1);next.onclick=()=>onChange(current+1);nav.append(prev,meta,next);return nav;
   }
-  function inventoryTabs(){const nav=document.createElement('nav');nav.className='inventory-tabs';for(const [kind,label] of [['weapon','武器'],['armor','防具'],['shield','盾']]){const button=document.createElement('button');button.type='button';button.dataset.active=String(inventoryKind===kind);button.textContent=label;button.onclick=()=>{inventoryKind=kind;audio.ui();inventory();};nav.append(button);}return nav;}
+  function inventoryConfig(kind){
+    if(kind==='weapon')return{title:'武器',items:state.inventory.weapons,active:state.equipment.weapon,label:value=>WEAPON_LABELS[value]||value,meta:'得物'};
+    if(kind==='armor')return{title:'防具',items:state.inventory.armors,active:state.equipment.armor,label:value=>ARMOR_LABELS[value]||value,meta:'身を守る'};
+    return{title:'盾',items:state.inventory.shields,active:Boolean(state.equipment.shield),label:value=>value?'盾あり':'盾なし',meta:'受け'};
+  }
   function inventory(){
-    ensureProgression(state);ui.title.textContent='具 · 身支度';ui.body.innerHTML='';ui.body.append(inventoryTabs());
-    const config=inventoryKind==='weapon'?{title:'武器',items:state.inventory.weapons,active:state.equipment.weapon,label:value=>WEAPON_LABELS[value]||value}:inventoryKind==='armor'?{title:'防具',items:state.inventory.armors,active:state.equipment.armor,label:value=>ARMOR_LABELS[value]||value}:{title:'盾',items:state.inventory.shields,active:Boolean(state.equipment.shield),label:value=>value?'盾あり':'盾なし'};
-    const status=document.createElement('p');status.className='upgrade-panel-copy';status.textContent='装備変更は7歳以降、村の武具置き場のそばで、非戦闘時だけ行えます。';ui.body.append(status);
-    const section=document.createElement('section');section.className='inventory-group';section.innerHTML=`<h3>${config.title}</h3>`;const list=document.createElement('div');list.className='inventory-list';const pages=Math.max(1,Math.ceil(config.items.length/PAGE_SIZE)),page=Math.min(inventoryPages[inventoryKind]||0,pages-1);inventoryPages[inventoryKind]=page;
-    for(const item of config.items.slice(page*PAGE_SIZE,page*PAGE_SIZE+PAGE_SIZE)){const button=document.createElement('button');button.type='button';button.dataset.active=String(item===config.active);button.textContent=config.label(item);button.onclick=()=>{const result=requestEquip?.(inventoryKind,item)||{ok:false,reason:'身支度を変更できません。'};if(!result.ok){notify(result.reason);haptic(18);return;}if(result.changed){audio.item();haptic(10);notify(`${config.label(item)}に変更`);}inventory();};list.append(button);}section.append(list);ui.body.append(section);const nav=pager(config.items.length,page,next=>{inventoryPages[inventoryKind]=next;audio.ui();inventory();});if(nav)ui.body.append(nav);
+    ensureProgression(state);ui.title.textContent='装 · 武具';ui.body.innerHTML='';
+    const kinds=[['weapon','武器'],['armor','防具'],['shield','盾']],slots=document.createElement('section');slots.className='loadout-slot-row';
+    for(const [kind,label] of kinds){const config=inventoryConfig(kind),button=document.createElement('button');button.type='button';button.className='loadout-slot';button.dataset.selected=String(inventoryKind===kind);button.innerHTML='<span></span><strong></strong><small></small>';button.querySelector('span').textContent=label;button.querySelector('strong').textContent=config.label(config.active);button.querySelector('small').textContent=inventoryKind===kind?'選択先':config.meta;button.onclick=()=>{inventoryKind=kind;inventoryPages[kind]=inventoryPages[kind]||0;audio.ui();inventory();};slots.append(button);}
+    ui.body.append(slots);
+    const config=inventoryConfig(inventoryKind),library=document.createElement('section');library.className='loadout-library';library.innerHTML='<header><strong></strong><small></small></header><div class="loadout-grid"></div>';library.querySelector('header strong').textContent='所持している装備';library.querySelector('header small').textContent='7歳以降、村の武具置き場付近で変更';
+    const list=library.querySelector('.loadout-grid'),pages=Math.max(1,Math.ceil(config.items.length/GRID_PAGE_SIZE)),page=Math.min(inventoryPages[inventoryKind]||0,pages-1);inventoryPages[inventoryKind]=page;
+    for(const item of config.items.slice(page*GRID_PAGE_SIZE,page*GRID_PAGE_SIZE+GRID_PAGE_SIZE)){const button=document.createElement('button');button.type='button';button.className='loadout-grid-item';button.dataset.active=String(item===config.active);button.innerHTML='<strong></strong><small></small>';button.querySelector('strong').textContent=config.label(item);button.querySelector('small').textContent=item===config.active?'装備中':'装備する';button.onclick=()=>{const result=requestEquip?.(inventoryKind,item)||{ok:false,reason:'身支度を変更できません。'};if(!result.ok){notify(result.reason);haptic(18);return;}if(result.changed){audio.item();haptic(10);notify(`${config.label(item)}に変更`);}inventory();};list.append(button);}
+    if(!config.items.length){const empty=document.createElement('p');empty.className='loadout-empty';empty.textContent='所持品がありません。';list.append(empty);}
+    ui.body.append(library);const nav=pager(config.items.length,page,next=>{inventoryPages[inventoryKind]=next;audio.ui();inventory();});if(nav)ui.body.append(nav);
+  }
+  function majorPlaces(){
+    const seen=new Set(),rows=[];
+    for(const row of stations){if(!row||row.interiorId||row.id?.startsWith('rack.')||row.id?.startsWith('room.')||row.id?.startsWith('exit.')||row.id?.startsWith('door.')||row.trainingDummy||!Number.isFinite(row.x)||!Number.isFinite(row.z))continue;const key=row.entityId||row.id;if(seen.has(key))continue;seen.add(key);rows.push(row);}
+    return rows;
+  }
+  function placeCategory(row){
+    const key=`${row?.id||''} ${row?.facilityKind||''}`;
+    if(row?.port||/port|harbor/.test(key))return'port';
+    if(/smith|weapon/.test(key))return'forge';
+    if(/clinic/.test(key))return'heal';
+    if(/dojo|training/.test(key))return'train';
+    if(/school|library/.test(key))return'learn';
+    if(/home|garden|campfire/.test(key))return'home';
+    if(/chapel/.test(key))return'faith';
+    return'place';
+  }
+  function placeGlyph(row){return({port:'港',forge:'鍛',heal:'治',train:'稽',learn:'学',home:'暮',faith:'祈',place:'地'})[placeCategory(row)]||'地';}
+  function updateRadar(){
+    if(!state||!ui.map)return;
+    const places=majorPlaces(),near=places.map(row=>({...row,d:Math.hypot(row.x-state.position.x,row.z-state.position.z)})).filter(row=>row.d<=RADAR_RANGE).sort((a,b)=>a.d-b.d).slice(0,8);
+    ui.radarPlaces.innerHTML=near.map(row=>{const dx=(row.x-state.position.x)/RADAR_RANGE*42,dz=(row.z-state.position.z)/RADAR_RANGE*42;return `<i data-category="${placeCategory(row)}" style="left:${50+clamp(dx,-42,42)}%;top:${50-clamp(dz,-42,42)}%" title="${esc(row.label||row.id)}"></i>`;}).join('');
+    ui.radarPlayer.style.transform=`translate(-50%,-50%) rotate(${Number(state.yaw)||0}rad)`;
+    const target=guidance?.navigation&&Number.isFinite(guidance.navigation.x)&&Number.isFinite(guidance.navigation.z)?guidance.navigation:null;
+    if(target){const dx=target.x-state.position.x,dz=target.z-state.position.z,len=Math.max(.001,Math.hypot(dx,dz)),scale=Math.min(42,(len/RADAR_RANGE)*42);ui.radarTarget.hidden=false;ui.radarTarget.style.left=`${50+dx/len*scale}%`;ui.radarTarget.style.top=`${50-dz/len*scale}%`;ui.radarDistance.textContent=`${target.distance}m`;ui.radarLabel.textContent=target.label;ui.map.setAttribute('aria-label',`地図を開く。${target.label}まで${target.distance}m`);}
+    else{ui.radarTarget.hidden=true;ui.radarDistance.textContent='MAP';ui.radarLabel.textContent=state.zone==='frontier'?'前線':'村';ui.map.setAttribute('aria-label','地図を開く');}
   }
   function map(){
-    ui.title.textContent='図 · 地図';const target=guidance?.navigation&&Number.isFinite(guidance.navigation.x)&&Number.isFinite(guidance.navigation.z)?guidance.navigation:null,rows=state.zone==='village'?stations.filter(row=>!row.interiorId&&!row.id.startsWith('rack.')&&!row.id.includes('dummy')).slice(0,20):[];
-    const points=rows.map(row=>({x:row.x,z:row.z})).concat(state.position);if(target)points.push(target);const xs=points.map(row=>row.x),zs=points.map(row=>row.z),minX=Math.min(...xs)-6,maxX=Math.max(...xs)+6,minZ=Math.min(...zs)-6,maxZ=Math.max(...zs)+6,w=Math.max(1,maxX-minX),h=Math.max(1,maxZ-minZ),point=(x,z)=>({x:(x-minX)/w*100,y:(z-minZ)/h*100}),me=point(state.position.x,state.position.z);
-    const marks=rows.map(row=>{const mark=point(row.x,row.z);return `<i class="map-mark" style="left:${mark.x}%;top:${mark.y}%" title="${String(row.label||row.id)}"><span>${String(row.label||row.id).slice(0,3)}</span></i>`;}).join('');let route='',targetMark='';if(target){const end=point(target.x,target.z),dx=end.x-me.x,dy=end.y-me.y,len=Math.hypot(dx,dy),angle=Math.atan2(dy,dx)*180/Math.PI;route=`<i class="map-guide-line" style="left:${me.x}%;top:${me.y}%;width:${len}%;transform:rotate(${angle}deg)"></i>`;targetMark=`<b class="map-target" style="left:${end.x}%;top:${end.y}%"><span>${target.label}</span></b>`;}
-    ui.body.innerHTML=`<div class="upgrade-map"><div class="map-grid"></div>${route}${marks}${targetMark}<b class="map-player" style="left:${me.x}%;top:${me.y}%"></b></div><p class="map-caption">${layout.name||'村'}${target?` · ${target.text}`:' · 現在地と主要施設'}</p>`;
+    ui.title.textContent='地図 · 方位盤';
+    const target=guidance?.navigation&&Number.isFinite(guidance.navigation.x)&&Number.isFinite(guidance.navigation.z)?guidance.navigation:null,rows=state.zone==='village'?majorPlaces():[];
+    const points=rows.map(row=>({x:row.x,z:row.z})).concat(state.position);if(target)points.push(target);
+    const xs=points.map(row=>row.x),zs=points.map(row=>row.z),minX=Math.min(...xs)-8,maxX=Math.max(...xs)+8,minZ=Math.min(...zs)-8,maxZ=Math.max(...zs)+8,w=Math.max(1,maxX-minX),h=Math.max(1,maxZ-minZ),point=(x,z)=>({x:(x-minX)/w*100,y:(maxZ-z)/h*100}),me=point(state.position.x,state.position.z);
+    const marks=rows.map(row=>{const mark=point(row.x,row.z);return `<i class="map-feature" data-category="${placeCategory(row)}" style="left:${mark.x}%;top:${mark.y}%" title="${esc(row.label||row.id)}"><b>${placeGlyph(row)}</b><span>${esc(String(row.label||row.id).slice(0,7))}</span></i>`;}).join('');
+    let route='',targetMark='';if(target){const end=point(target.x,target.z),dx=end.x-me.x,dy=end.y-me.y,len=Math.hypot(dx,dy),angle=Math.atan2(dy,dx)*180/Math.PI;route=`<i class="map-guide-line" style="left:${me.x}%;top:${me.y}%;width:${len}%;transform:rotate(${angle}deg)"></i>`;targetMark=`<b class="map-target" style="left:${end.x}%;top:${end.y}%"><span>${esc(target.label)}</span></b>`;}
+    const nearest=rows.map(row=>({...row,d:Math.hypot(row.x-state.position.x,row.z-state.position.z)})).sort((a,b)=>a.d-b.d).slice(0,5);
+    ui.body.innerHTML=`<section class="map-rich-shell">
+      <header class="map-status-ribbon"><span>${state.zone==='frontier'?'前線':'村'}</span><strong>${target?esc(target.text):'現在地を中心に表示'}</strong><small>北固定 · 矢印は向いている方向</small></header>
+      <div class="upgrade-map map-rich"><div class="map-grid"></div><div class="map-compass"><b>N</b><i>E</i><em>S</em><u>W</u></div>${route}${marks}${targetMark}<b class="map-player" style="left:${me.x}%;top:${me.y}%;transform:translate(-50%,-50%) rotate(${Number(state.yaw)||0}rad)"></b><span class="map-scale">約 ${Math.max(10,Math.round(w/4))}m</span></div>
+      <div class="map-legend"><span data-category="home">暮 暮らし</span><span data-category="learn">学 学び</span><span data-category="train">稽 稽古</span><span data-category="forge">鍛 武具</span><span data-category="port">港 遠征</span></div>
+      <div class="map-nearby-grid">${nearest.map(row=>`<span><b>${placeGlyph(row)}</b><strong>${esc(String(row.label||row.id).slice(0,6))}</strong><small>${Math.round(row.d)}m</small></span>`).join('')||'<span><strong>周辺施設なし</strong></span>'}</div>
+    </section>`;
   }
   function recordTabs(){const nav=document.createElement('nav');nav.className='record-tabs';nav.setAttribute('aria-label','人生記録の分類');for(const [section,label] of [['life','今生'],['lineage','系譜']]){const button=document.createElement('button');button.type='button';button.dataset.active=String(recordSection===section);button.textContent=label;button.onclick=()=>{recordSection=section;audio.ui();record();};nav.append(button);}return nav;}
   function timeRatePanel(){
@@ -89,7 +150,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     }
     const lineage=[...(state.lineage||[])].reverse(),pages=Math.max(1,Math.ceil(lineage.length/3));recordPage=Math.min(recordPage,pages-1);const list=document.createElement('section');list.className='lineage-list';list.innerHTML='<h3>一族の記録</h3>';const pageRows=lineage.slice(recordPage*3,recordPage*3+3);if(!pageRows.length){const empty=document.createElement('p');empty.className='loadout-empty';empty.textContent='まだ前世の記録はありません。';list.append(empty);}for(const row of pageRows){const card=document.createElement('article');card.className='lineage-card';card.innerHTML='<span></span><strong></strong><small></small>';card.querySelector('span').textContent=`${row.generation}代目`;card.querySelector('strong').textContent=`${row.name||'旅人'} · ${row.age||0}歳`;card.querySelector('small').textContent=`撃破 ${row.defeats||0}${row.returnedHome?' · 帰還済み':''}`;list.append(card);}ui.body.append(list);const nav=pager(lineage.length,recordPage,next=>{recordPage=next;audio.ui();record();});if(nav)ui.body.append(nav);
   }
-  function markOpenControl(type){ui.combat.dataset.active=String(['heart','technique','body'].includes(type));ui.items.dataset.active=String(type==='items');ui.map.dataset.active=String(type==='map');ui.record.dataset.active=String(type==='record');}
+  function markOpenControl(type){ui.heart.dataset.active=String(type==='heart');ui.techniques.dataset.active=String(type==='technique');ui.bodyButton.dataset.active=String(type==='body');ui.items.dataset.active=String(type==='items');ui.map.dataset.active=String(type==='map');ui.record.dataset.active=String(type==='record');}
   function open(type,{skillId=null,silent=false}={}){
     if(!state)return;ui.panel.hidden=false;ui.panel.dataset.type=type;markOpenControl(type);
     if(type==='heart')loadoutUI.renderHeart(skillId);else if(type==='technique')loadoutUI.renderTechnique(skillId);else if(type==='body')loadoutUI.renderBody();else if(type==='items')inventory();else if(type==='record')record();else map();
@@ -98,14 +159,14 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   function close(){ui.panel.hidden=true;delete ui.panel.dataset.type;ui.panel.style.removeProperty('--loadout-sheet-drag');delete ui.panel.dataset.dragging;markOpenControl('');audio.ui();}
   function bindState(next){state=next;const lifeChanged=tracker.bindState(next);if(lifeChanged){loadoutUI.reset();recordPage=0;recordSection='life';inventoryPages={weapon:0,armor:0,shield:0};if(!ui.panel.hidden){ui.panel.hidden=true;delete ui.panel.dataset.type;markOpenControl('');}}}
   function refresh(){if(ui.panel.hidden||!state)return;open(ui.panel.dataset.type||'items',{silent:true});}
-  function setGuidance(next){guidance=next;if(!ui.panel.hidden&&ui.panel.dataset.type==='map')map();}
+  function setGuidance(next){guidance=next;updateRadar();if(!ui.panel.hidden&&ui.panel.dataset.type==='map')map();}
   function summary(s,{dashing=false,resting=false,training=null}={}){
-    state=s;speech.sync();loadoutUI.syncCombat(s);ui.name.textContent=`${s.name||'旅人'} · ${Math.floor(s.ageYears||0)}歳`;ui.equip.textContent=`${WEAPON_LABELS[s.equipment?.weapon]||'素手'} · ${ARMOR_LABELS[s.equipment?.armor]||'旅装'}`;
+    state=s;speech.sync();loadoutUI.syncCombat(s);ui.name.textContent=s.name||'旅人';ui.equip.textContent=`${WEAPON_LABELS[s.equipment?.weapon]||'素手'} · ${ARMOR_LABELS[s.equipment?.armor]||'旅装'}`;updateRadar();
     ui.state.textContent=s.down?'救助待ち':resting?'休憩':dashing?'疾走':s.combat||training?.d<2.8?'戦闘態勢':'探索';ui.rest.hidden=!resting;ui.dash.dataset.active=String(dashing);const engaged=training?.d<2.8;ui.training.hidden=!engaged;if(engaged)ui.trainingName.textContent=training.label;
-    const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';ui.phase.hidden=!phase;for(const node of ui.phase.querySelectorAll('[data-phase-id]'))node.dataset.active=String(node.dataset.phaseId===phase);if(phase&&phase!==lastPhase){lastPhase=phase;haptic(8);audio.ui();}if(!phase)lastPhase='';
+    const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';ui.phase.hidden=!phase;for(const node of ui.phase.querySelectorAll('[data-phase-id]'))node.dataset.active=String(node.dataset.phaseId===phase);if(phase&&phase!==lastPhase){lastPhase=phase;phaseHistory=[phase,...phaseHistory].slice(0,4);if(ui.phaseHistory)ui.phaseHistory.innerHTML=phaseHistory.map((id,index)=>`<span data-age="${index}">${({jo:'序',ha:'破',kyu:'急'})[id]||id}</span>`).join('');haptic(8);audio.ui();}if(!phase){lastPhase='';phaseHistory=[];if(ui.phaseHistory)ui.phaseHistory.innerHTML='';}
   }
   function bindSheetGesture(){
-    const header=ui.panel.querySelector('header');header.addEventListener('pointerdown',event=>{if(!['heart','technique','body'].includes(ui.panel.dataset.type)||event.target.closest('button'))return;sheetDrag={id:event.pointerId,startY:event.clientY,dy:0};header.setPointerCapture?.(event.pointerId);ui.panel.dataset.dragging='true';});
+    const header=ui.panel.querySelector('header');header.addEventListener('pointerdown',event=>{if(!['heart','technique','body','items'].includes(ui.panel.dataset.type)||event.target.closest('button'))return;sheetDrag={id:event.pointerId,startY:event.clientY,dy:0};header.setPointerCapture?.(event.pointerId);ui.panel.dataset.dragging='true';});
     header.addEventListener('pointermove',event=>{if(!sheetDrag||sheetDrag.id!==event.pointerId)return;sheetDrag.dy=Math.max(0,event.clientY-sheetDrag.startY);ui.panel.style.setProperty('--loadout-sheet-drag',`${Math.min(120,sheetDrag.dy)}px`);event.preventDefault();});
     const finish=event=>{if(!sheetDrag||sheetDrag.id!==event.pointerId)return;const shouldClose=sheetDrag.dy>=64;sheetDrag=null;ui.panel.style.setProperty('--loadout-sheet-drag','0px');delete ui.panel.dataset.dragging;if(shouldClose)close();};header.addEventListener('pointerup',finish);header.addEventListener('pointercancel',finish);
   }
@@ -117,6 +178,6 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   const observer=new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes){if(!(node instanceof Element))continue;const dialog=node.matches?.('.life-end-dialog')?node:node.querySelector?.('.life-end-dialog');if(dialog)enhanceLifeEndDialog(dialog);}});observer.observe(document.body,{childList:true,subtree:true});
 
   tracker.bindInteractions({openHeart:skillId=>open('heart',{skillId}),openTechnique:skillId=>open('technique',{skillId})});bindSheetGesture();
-  ui.combat.onclick=()=>open('technique',{skillId:tracker.firstUnseen('technique')});ui.items.onclick=()=>open('items');ui.map.onclick=()=>open('map');ui.record.onclick=()=>open('record');ui.close.onclick=close;
+  ui.heart.onclick=()=>open('heart',{skillId:tracker.firstUnseen('heart')});ui.techniques.onclick=()=>open('technique',{skillId:tracker.firstUnseen('technique')});ui.bodyButton.onclick=()=>open('body');ui.items.onclick=()=>open('items');ui.map.onclick=()=>open('map');ui.record.onclick=()=>open('record');ui.close.onclick=close;
   return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,setGuidance,dispose(){clearTimeout(movementHelpTimer);clearTimeout(toastTimer);observer.disconnect();moveHint?.removeEventListener('click',showMovementHelp,{capture:true});loadoutUI.dispose();tracker.dispose();speech.dispose();root.remove();}};
 }

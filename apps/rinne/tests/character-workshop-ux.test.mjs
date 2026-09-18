@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const ux = read('../src/character-workshop-ux.js');
+const loading = read('../src/character-workshop-loading-indicator.js');
 const css = read('../src/character-workshop-ux.css');
 const entry = read('../src/motion-review-entrypoint.js');
 
@@ -14,6 +15,24 @@ test('workshop exposes only three primary mobile intentions', () => {
   assert.match(ux, /nav\.replaceChildren\(\)/);
   assert.match(ux, /workshop-secondary-tabs/);
   assert.match(ux, /dataset\.workshopIntent/);
+});
+
+test('simple primary navigation no longer waits for optional motion QA controls', () => {
+  assert.match(ux, /function installCore\(\)/);
+  assert.match(ux, /!window\.characterStudio \|\| !qs\('\.mode-tabs'\) \|\| !qs\('\.review-controls'\)/);
+  assert.match(ux, /function installOptionalTools\(\)/);
+  assert.ok(ux.indexOf('buildIntentNavigation();') < ux.indexOf('installOptionalTools();'));
+});
+
+test('loading state is visible on the stage and reflects the real renderer progress', () => {
+  assert.match(ux, /installWorkshopLoadingIndicator/);
+  for (const id of ['load-indicator','load-label','load-percent','load-fill','load-detail']) assert.match(loading, new RegExp(`\\.id = '${id}'`));
+  for (const phase of ['モデル本体','骨格・動き','表示データ','GPU準備']) assert.match(loading, new RegExp(phase));
+  assert.match(loading, /Number\(progress\.value\)/);
+  assert.match(loading, /status\.textContent/);
+  assert.match(loading, /performance\.now\(\)/);
+  assert.match(css, /\.load-indicator\{/);
+  assert.match(css, /\.load-indicator-track/);
 });
 
 test('motion comparison and diagnostics are opt-in instead of covering the stage', () => {

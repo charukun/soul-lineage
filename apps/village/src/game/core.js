@@ -1,8 +1,9 @@
 import {initialMuraObjects} from '@soul/world/mura';
+import {WORLD_DAY_SECONDS} from '@soul/raid/night-window';
 import {BUILDINGS,GARDEN,FURNITURE,defs,RESOURCE_NAMES,MATERIALS,unlocked,recipe,materialOptions,capacityOf,jobsOf,TUTORIAL} from './catalog.js';
 import {LIMIT,SIZE,riverX,inWater,terrainError,terrainHint,TERRAIN_SITES} from './terrain.js';
 export {BUILDINGS,GARDEN,FURNITURE,defs,RESOURCE_NAMES,MATERIALS,unlocked,recipe,materialOptions,capacityOf,jobsOf,TUTORIAL,LIMIT,SIZE,riverX,inWater,terrainHint,TERRAIN_SITES};
-export const VERSION=5,DAY_SECONDS=60,DAYS_YEAR=12,MAX_POPULATION=64;
+export const VERSION=5,DAY_SECONDS=WORLD_DAY_SECONDS,DAYS_YEAR=12,MAX_POPULATION=64;
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const copy=x=>JSON.parse(JSON.stringify(x));
 export const extent=o=>{const d=defs[o.kind],c=Math.abs(Math.cos(o.rot)),s=Math.abs(Math.sin(o.rot));return[d.w*c+d.d*s,d.d*c+d.w*s];};

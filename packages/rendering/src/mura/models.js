@@ -112,28 +112,20 @@ function rawAsset(name,colors,scale=[1,1,1]){
  for(const[k,geo]of Object.entries(geos)){const n=mesh(group,geo,mat(colors[k]||colors.default||0xb69e7d,true,{side:T.DoubleSide}));n.userData.source='Kenney CC0 acquired topology';}
  group.scale.set(...scale);group.userData.assetBacked=true;return group;
 }
-function externalObjGroups(assetId){
+function authoredYurtGeometries(assetId){
  if(externalTemplates.has(assetId))return externalTemplates.get(assetId);
- const asset=visualAssetById(assetId),vertices=[],groups={felt:[],roof:[],wood:[],door:[],metal:[]},maxVertex=asset.runtime?.maxVertex||Infinity;
- for(const raw of asset.sourceText.split(/\r?\n/)){
-  const line=raw.trim();
-  if(line.startsWith('v ')){const[,x,y,z]=line.split(/\s+/);vertices.push([Number(x),Number(y),Number(z)]);continue;}
-  if(!line.startsWith('f '))continue;
-  const ids=line.slice(2).trim().split(/\s+/).map(token=>Number(token.split('/')[0]));
-  if(ids.some(id=>!Number.isInteger(id)||id<1||id>maxVertex))continue;
-  const highest=Math.max(...ids),group=highest<=66?'felt':highest<=132?'roof':highest<=140?'wood':highest<=148?'door':'metal';
-  for(let i=1;i<ids.length-1;i++)for(const id of[ids[0],ids[i],ids[i+1]])groups[group].push(...vertices[id-1]);
- }
- const result={};for(const[group,positions]of Object.entries(groups)){if(!positions.length)continue;const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3));geo.computeVertexNormals();result[group]=geo;}
- externalTemplates.set(assetId,result);return result;
+ const asset=visualAssetById(assetId),data=asset.meshData;
+ if(!data?.positions?.length||!data?.bodyIndices?.length||!data?.roofIndices?.length)throw new Error('Materialized authored yurt mesh is incomplete: '+assetId);
+ const make=indices=>{const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(data.positions,3));geo.setAttribute('normal',new T.Float32BufferAttribute(data.normals,3));geo.setAttribute('uv',new T.Float32BufferAttribute(data.uvs,2));geo.setIndex(indices);geo.computeBoundingBox();geo.computeBoundingSphere();return geo;};
+ const result={body:make(data.bodyIndices),roof:make(data.roofIndices)};externalTemplates.set(assetId,result);return result;
 }
 function residentialYurt(d){
- const asset=visualAssetById(d.visualAssetId),g=new T.Group(),roofColor=d.roof,doorColor=new T.Color(roofColor).multiplyScalar(.72).getHex();
- const colors={felt:0xe8dfca,roof:roofColor,wood:0x6e523b,door:doorColor,metal:0x4d4c47};
- for(const[group,geo]of Object.entries(externalObjGroups(asset.id))){const n=mesh(g,geo,mat(colors[group]||0xe8dfca,true,{side:T.DoubleSide}));n.userData.sourceAssetId=asset.id;}
- const [sx,sy,sz]=asset.dimensions,scale=Math.min((d.w*.92)/sx,(d.d*.92)/sz,(asset.runtime?.maxHeight||3.65)/sy);
+ const asset=visualAssetById(d.visualAssetId),g=new T.Group(),geos=authoredYurtGeometries(asset.id);
+ const body=mesh(g,geos.body,mat(0xe8dfca,true,{side:T.DoubleSide}));body.userData.sourceAssetId=asset.id;
+ const roof=mesh(g,geos.roof,mat(d.roof,true,{side:T.DoubleSide}));roof.userData.sourceAssetId=asset.id;
+ const [sx,sy,sz]=asset.dimensions,scale=Math.min((d.w*.92)/sx,(d.d*.92)/sz,(asset.runtime?.maxHeight||3.6)/sy);
  g.scale.setScalar(scale);g.rotation.y=asset.runtime?.yaw||0;
- g.userData.assetBacked=true;g.userData.visualAssetId=asset.id;g.userData.residentialTent='external-yurt-v1';g.userData.circularHousing=true;return g;
+ g.userData.assetBacked=true;g.userData.visualAssetId=asset.id;g.userData.visualAssetOrigin=asset.origin;g.userData.residentialTent='authored-yurt-v2';g.userData.circularHousing=true;return g;
 }
 function building(kind,material='base',level=1){const d=defs[kind];if(!d)return new T.Group();
  let g;

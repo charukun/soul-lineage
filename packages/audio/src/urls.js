@@ -150,4 +150,4 @@ export const audioURLs={
   s05:new URL('../assets/audio/s05.ogg',import.meta.url).href,
   s06:new URL('../assets/audio/s06.ogg',import.meta.url).href,
 };
-export const licenseURLs={rights:new URL('../assets/licenses/RIGHTS.md',import.meta.url).href,license:new URL('../assets/licenses/MuseScore_General_License.txt',import.meta.url).href,samples:new URL('../assets/licenses/MuseScore_General_Sample_Sources.csv',import.meta.url).href};
+export const licenseURLs={rights:new URL('../assets/licenses/RIGHTS.md',import.meta.url).href,notice:new URL('../assets/licenses/TimGM6mb_Copyright.txt',import.meta.url).href,gpl:new URL('../assets/licenses/GPL-2.0.txt',import.meta.url).href};

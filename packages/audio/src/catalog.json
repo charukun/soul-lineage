@@ -8,14 +8,10 @@
     "duration": 85.71428571428571,
     "loop": true,
     "description": "息の長い笛の主題から弦とホルンへ。輪廻を繰り返しても残る、冒険の記憶。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "1fdc2a7f8828464ae28d6e314cadfbaa3b921a2beb827e417a7f3a66a1be4e6f",
-    "sourceMidiSha256": "1de1d984a77f17b66c7f2f5a75259dd88a22715e789dfca0b020f8581b04b802",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "69dd0483b843c724095fa4f45742c6933aa94586749a65f596f383f22598d911"
   },
   {
     "id": "r02",
@@ -26,14 +22,10 @@
     "duration": 91.91489795918368,
     "loop": true,
     "description": "軽やかな笛とハープが先へ進む。見晴らしのよい草原や街道の探索に。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "753a29fd9390b9b7e342c616a9ca75ff0bdf3d8e09650aada385ef87e53eded0",
-    "sourceMidiSha256": "95f26cefdfe9ac694eede0f30279ba7475d19beb21bd9ed71a7f1815cae2aaff",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "32a468d062e5f59b9e4f50c973d15c177c5f50d70e579b2ce5108f3b5903bebb"
   },
   {
     "id": "r03",
@@ -44,14 +36,10 @@
     "duration": 82.28571428571429,
     "loop": true,
     "description": "木管の問いかけと、古い森に残る余韻。静かな遺跡にも。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "f0d3f0861d45f93a36ccf837e07b6d2b467855f6c287a2659a10722185928488",
-    "sourceMidiSha256": "0f6bf09e79ccfeb64812597228c3d996dd0fda723c7ffb0815e1f17271501816",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "32f7fb26fa296d9933aaf9ec15ec207f2c354031c0536dedf1a377cabe08ca45"
   },
   {
     "id": "r04",
@@ -62,14 +50,10 @@
     "duration": 83.47825396825397,
     "loop": true,
     "description": "弦のうねりに、遠くを望む笛。海岸や広い世界の移動に。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "9a274dc6950bcaa74efd701b7e856a5b2770b671a8b03fd31f12b32d27e691df",
-    "sourceMidiSha256": "e34a52b1c441de18499324774bfa7db638b8e298219f18bdc7e7a18c4bc82799",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "a4300368c70182cbc5066b22970e7af41150ff1327e05e08881d92dd692b0a3f"
   },
   {
     "id": "r05",
@@ -80,14 +64,10 @@
     "duration": 68.57142857142857,
     "loop": true,
     "description": "三連の足取りと弦の応酬。短い自動戦闘でも入りやすい小さな山場。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "f6a83f2ac61615504994c79c45eaa527235f5bd7584bbc8acfafa7d1f3690938",
-    "sourceMidiSha256": "5097d5b64c4de51179a91bc1fc0ad8a64434c41a20be5f983bc3cb4015fadc42",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "e86cac6a3955260c0bca714e16d1e62fdfb04240e4729f1d75be93c70a505263"
   },
   {
     "id": "r06",
@@ -98,14 +78,10 @@
     "duration": 82.75861678004536,
     "loop": true,
     "description": "低弦、ホルン、ティンパニ。力強さの中に主題の輪郭を残すボス曲。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "1187e9450fb75bdbe8e3e9ffade467a32d2bd41f6c1c52afa0370b54ac721f60",
-    "sourceMidiSha256": "8d4b8f85c7f322730fe035ee8e2ccf9bf04fd18a969b363389e9afc7205bfc32",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "59235ea0afc2755ea0acdfc14b6e0911c54a857ae8eaedd34898009825570398"
   },
   {
     "id": "r07",
@@ -113,17 +89,13 @@
     "game": "rinne",
     "scene": "血統・輪廻",
     "bpm": 64,
-    "duration": 90,
+    "duration": 90.0,
     "loop": true,
     "description": "星図をなぞるようなハープと笛。血統、記憶、世代をつなぐ場面に。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "68c22b998910defa666e73d0e24991777b8ad61e0ef1bb6a13ac45df82b85701",
-    "sourceMidiSha256": "0d2de5c7d1e5189b9208892d1f103b1802fa08e1a63bb42d2e566002d699c563",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "298af5725fdd943751282ad7c62de76e6086a4229277fb2aee0bb7a6f249c94f"
   },
   {
     "id": "r08",
@@ -134,14 +106,10 @@
     "duration": 84.70587301587301,
     "loop": true,
     "description": "終わりを受け止める木管と、次の命へ開く和声。悲しみだけで終えない曲。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "f30ade8d9657c35afce6bb76ef5d9330ae4a8eba8e271127301dcdd00e853aa7",
-    "sourceMidiSha256": "4cb4a7b0bcb41a681015c767db893d9835c0251be9fe1061eec0b38ac221996c",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "aaa937ccec186d566eae9d1071f5ee3d44ea5924964cf47b8bda761abf9908a0"
   },
   {
     "id": "r09",
@@ -152,14 +120,10 @@
     "duration": 92.30768707482993,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「幼少期・旅の始まり」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "61ca8b40f7e22fbfe91a5bfc80cb45145ca62ff1bc589d23aa9c857a2d7b273d",
-    "sourceMidiSha256": "c8ff21e5ea7240afbd2871c2d43c1734015269c9b4691c4c65bafe4170b91eeb",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "4fe43c472fc045ac49dd088e990b80ce5b7d2954762aecc2f75fe7fa6f4b68e0"
   },
   {
     "id": "r10",
@@ -170,14 +134,10 @@
     "duration": 91.91489795918368,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「街道・探索」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "58b665b26a5112873d66d116bc9ccbeb211f1135e3e46c9a784f3d47a9369b53",
-    "sourceMidiSha256": "4a11717752875e4ae14d15597546e0e56687999ee59de67daa114e42faa3dd9c",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "262d4cbd4a23751d63a77e33f319c851dd5dd9dea79cd42d7179b6ed9eb3c3e2"
   },
   {
     "id": "r11",
@@ -188,14 +148,10 @@
     "duration": 87.27272108843538,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「霧の谷」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "c0a2770f9f527f532f6397e2d698b3bf994acdb1b70fadc1d76c9d85e7b622d4",
-    "sourceMidiSha256": "2b44989d2198ccd38a45a7aa05ee80f4d70272c5cc774c0ae586a8c7fbf0f90a",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "6eef158e5eeb47086556f5c97ba2a677744c84ca0db3b35e7af4d20d55e3dfd9"
   },
   {
     "id": "r12",
@@ -206,14 +162,10 @@
     "duration": 102.85714285714286,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「古代遺跡」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "a94563e1b010b86f2a3bb60831b3f2b0c973dee08d63483f5aadf1f33aed33e3",
-    "sourceMidiSha256": "db62da7b03cab301eba825cd6de3651c484d1d6bb057bdd8ada3a4957699c98a",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "7e58e8c7cb1c61f78a337cd237897b6b84640943711961585af7c098b1000698"
   },
   {
     "id": "r13",
@@ -224,14 +176,10 @@
     "duration": 66.97673469387755,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「雪山・高地」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "1722a124dc40405eeb9774d7f05f7332c7cea8299d420893c7c639bf7f6e1eed",
-    "sourceMidiSha256": "d9420eab9e71ac8b233ae164dfea1ce097f11d6d319509cf8a486d7e3f9ce50b",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "220a298a93efd568b4e34b0c092607b115c02034a73467c00f70cd802ac36b2a"
   },
   {
     "id": "r14",
@@ -239,17 +187,13 @@
     "game": "rinne",
     "scene": "砂漠・廃都",
     "bpm": 80,
-    "duration": 90,
+    "duration": 90.0,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「砂漠・廃都」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "a62e609837aa9704575eb25405fe152aba5a51c10134d9750cb8d81a11d34e07",
-    "sourceMidiSha256": "f0ccf1623bcfe4499c3639e03bcb2b468a074d465b37a19323a946d806989134",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "b45f940d8a01a3b9157b2c52fe982eb96a2ea8552678b7957a189ec6ade904d8"
   },
   {
     "id": "r15",
@@ -260,14 +204,10 @@
     "duration": 92.90321995464852,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「地下洞窟」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "0c9368870a8550a0a957100851cacd10a57cd328c331aef74356282f4aca66a5",
-    "sourceMidiSha256": "d2e8870d5d744cbccca9ccd6d72eb4234eb6ee8ac57b96a51ea73abc6b66189a",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "55add836ff37e8e25028e5b9192869623d1b0340ee3aeba68151abe15c08fcc1"
   },
   {
     "id": "r16",
@@ -278,14 +218,10 @@
     "duration": 102.85714285714286,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「高空・浮島」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "5b2100c40bfbeaae20331874c7b3986bd102af4668948724201385366ff69e18",
-    "sourceMidiSha256": "b1119c517744fa9d07c17526ea1c06d8e7055318136df59e036c33dc17c0d18f",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "e321c7e14cb6c2e75a7cde036ecc2591b1d05687525bc5630902b543ff43eda6"
   },
   {
     "id": "r17",
@@ -296,14 +232,10 @@
     "duration": 90.56603174603174,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「長旅・街道」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "06089a6acefdd7d00d43baec3d467655a34def0d0952e40c3b6b1d29dea38ed9",
-    "sourceMidiSha256": "492d4b88468519fb7d65711bab06654384e8d2ae03a1843b17556116d556eed5",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "95e6c810a0ef383c0728d555a2706af95c8ac4557dc2f1ef1e051abd7af4bb64"
   },
   {
     "id": "r18",
@@ -314,14 +246,10 @@
     "duration": 81.81818594104308,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「海辺・灯台」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "fcc55d892979644e475d2acee5f1983e1d859d0d30f5ea0ff0b18a97f8fc8bcf",
-    "sourceMidiSha256": "287ace3e490db3a62235a02e816a8b1cb18ac0872ae9e02e8917928ec1bece96",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "64d56c1e1358f99a716362062df61a5b52d8b80e4986aff20cd40a6bdd4ca539"
   },
   {
     "id": "r19",
@@ -329,17 +257,13 @@
     "game": "rinne",
     "scene": "森林探索",
     "bpm": 90,
-    "duration": 96,
+    "duration": 96.0,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「森林探索」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "0c94d32905ab5184cd96de4e9164ac4c16df357dfe37a92af8440370b3488185",
-    "sourceMidiSha256": "772674ce2a9fe0e6d1af5278c6bc9d1be1eab56d9131569657b0daa7393c46d7",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "0144a23a24f2e0b7ace054dfcdb1ddeb082b4d5eeed7284aa2fc63fdd9d4fbfa"
   },
   {
     "id": "r20",
@@ -347,17 +271,13 @@
     "game": "rinne",
     "scene": "雨上がり",
     "bpm": 72,
-    "duration": 80,
+    "duration": 80.0,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「雨上がり」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "f4b4357b989954e373b5199929299f37367bf4ed9bd62aec557ceb2d6fdd254b",
-    "sourceMidiSha256": "a0866aa52d136dfcd879098ea1c5d0ed28737fcc7f7f2d44c2edcd5f6bc7462c",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "1dc9e7349cca0b681a4aa25f6b94872da965f60145ead7710080bd34262d2469"
   },
   {
     "id": "r21",
@@ -368,14 +288,10 @@
     "duration": 102.85714285714286,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「訓練・技の試行」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "59a034dfbbbae451bfc40239652646f977712664ccdbb323571675cee944c3c7",
-    "sourceMidiSha256": "c51d85eed1821e14d316595ab4dcaf8e24d255421fcc3732ba9139934e198947",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "db9a5be77c4d190261811c8e9b1f843ed73fdafb00987d23b65fbaa3abcd00ac"
   },
   {
     "id": "r22",
@@ -386,14 +302,10 @@
     "duration": 88.61537414965986,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「通常戦闘」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "0644a0471d8a353f9b91d13e84bfc9f64f8a3d17f003dd1316fbace9894140b1",
-    "sourceMidiSha256": "aeba1d0748f84f177f7d8ea658b9386079d7f7c4257f7230057ef0982427b69a",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "4b6ab5a9c7e85580e3a35b37c0e3b3e799496868b96b9b42822c935172e62423"
   },
   {
     "id": "r23",
@@ -404,14 +316,10 @@
     "duration": 106.66666666666667,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「防衛戦」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "b9fb4286b80b71fb13cff7796657c1b5bb2da65199ab4415adfb64620b05f8a4",
-    "sourceMidiSha256": "5aa2c03ebf8d7f104f90fa53a4a48fe1e317a1156750a3223e3b2e6bdd1d613f",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "1bd10a4998cfbc36dad69aa4ccd055e682f67f260c8b393b134dfcb89e3d3ca8"
   },
   {
     "id": "r24",
@@ -422,14 +330,10 @@
     "duration": 110.16394557823129,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「連戦・危機」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "959485d116aed1b7a33edeb5c1d18333603d5e4d3aadf3783dbb0772639fea9a",
-    "sourceMidiSha256": "b599fc2a4b04b26185959afc1a2943e89dc89f56aff47f17a3dc3ebc2f54acff",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "22a0971dc0844184fb3d9671239b04a36ae3794a79f8dce086e285b046db8774"
   },
   {
     "id": "r25",
@@ -440,14 +344,10 @@
     "duration": 96.77419501133787,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「強敵・斥候戦」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "19596fc84fba7be497b616781b9eb6738c9425295a5218838fc6834a5cd9f820",
-    "sourceMidiSha256": "580ffc044ac5130c034e65f4c2861f902db3fbbd088b2e2e040743f93e243aee",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "ced03f50cbd030383db9ec6b0a4ac0b84f7d22c56202b5ddc07814f44e20bcea"
   },
   {
     "id": "r26",
@@ -458,14 +358,10 @@
     "duration": 97.95918367346938,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「巨竜ボス」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "0ddec5aa76abe7f8870f519b64b605ea457999d7f1cd4d4b4498fb342ffa24c1",
-    "sourceMidiSha256": "4406128bc47a80c562cc80833e6776cb4cdeb76a5ade7ac507f82bd8af6fc91a",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "587aba7022c5cf3d9c68c05fe513f518448ee037c8f0eed3debe6099ff21e971"
   },
   {
     "id": "r27",
@@ -476,14 +372,10 @@
     "duration": 101.05263038548753,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「宿敵ボス」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "8dcd7dc0897e5e414ab1db3b7cdeeec82499026e619e99eaee135a558505a4b8",
-    "sourceMidiSha256": "9dd172820f2d70e7927356826fcd3930abbe7915edd171608871edafb232902d",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "476807374a151ab865744ecd8fbc02710bde236831f087df9640c79862e507b0"
   },
   {
     "id": "r28",
@@ -491,17 +383,13 @@
     "game": "rinne",
     "scene": "攻城・決戦",
     "bpm": 120,
-    "duration": 112,
+    "duration": 112.0,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「攻城・決戦」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "68466b786d910f8375d0ed17f081485485b924fa1f6bd814bd84d86d19aacefc",
-    "sourceMidiSha256": "532f64b5e0e9df1407f0683df15717f17c0fc7e11c3be74ce89c295af7a9c060",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "51ee02b89281dc7cd68be6ad668e8973fa3a9a32034acc350863a08ad25d2c8d"
   },
   {
     "id": "r29",
@@ -512,14 +400,10 @@
     "duration": 115.2,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「共闘・救援」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "2a7ca31621c9887c311253c4c9ea759c28f0712fa6e5ed2e8aa2b281709ce36d",
-    "sourceMidiSha256": "fbb86acc333e09db27488ab185c53dc3ec00073418406faadf9390c40cadd789",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "e27f469e8c384695f338834ad837f921f07dc3f4e9ea319b1fe75a02bbdcf8e7"
   },
   {
     "id": "r30",
@@ -530,14 +414,10 @@
     "duration": 106.66666666666667,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「最終決戦」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "3a8e8dbe5351a8b12990cb06b94c73b918cd076c5d42aac1f4cad63036579901",
-    "sourceMidiSha256": "08267d49068a50ff8f58414c39bc2bb53ce90df24a6504b04c14f1962440a0ca",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "740f257f154c4da5f529d338442a55a68868b522a586fdf284e7cc379214a8f8"
   },
   {
     "id": "r31",
@@ -548,14 +428,10 @@
     "duration": 93.91303854875284,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「武具解禁・成長」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "a27e94c32032aa04e8f28419dd88b68a2b3873f1ec167f99a4bbff8b5c6b9fd5",
-    "sourceMidiSha256": "83c5b797cb4deaf7aa79fae161b455a898a36b003c2860c078ced5298217aa24",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "bdf9a3b55f40289575c856d5406c514030bed3905eaf53ad3e1965f5c2a52e8c"
   },
   {
     "id": "r32",
@@ -563,17 +439,13 @@
     "game": "rinne",
     "scene": "親子・抱っこ",
     "bpm": 64,
-    "duration": 90,
+    "duration": 90.0,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「親子・抱っこ」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "7aa52d6168908b3bf54ca6f33014b5eaea49fd0ee73a631e879e5c4f1580f7ee",
-    "sourceMidiSha256": "49c230c473369e30305b432e741668bd514350a3aba1b21ed178c6286cdbbadb",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "c6c4fef4a3510b366d789772a2de73888e172a4814596436b5efd004afd736c2"
   },
   {
     "id": "r33",
@@ -584,14 +456,10 @@
     "duration": 100.46512471655329,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「子供時代」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "fbaaf132dfd4c822f0654f9d383827fe4e34752ffb76a786c90cb36a21805cdb",
-    "sourceMidiSha256": "c6d6c3cdff48a58ea944f9f2139cfc3d484951d4280ee6daf8f72436a611cb32",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "e21c59a952fb08ffadbdafbeeeb8768d89a5352849146329e7ddd618a6e82091"
   },
   {
     "id": "r34",
@@ -602,14 +470,10 @@
     "duration": 112.941179138322,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「血統・継承」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "5979389e109b8c0081dc7765df4261df765985ca6aa4923db2c992d87e6751cc",
-    "sourceMidiSha256": "52f9674111696c39fcfb27436da1ceba70cf8f3301c532c76dc1a322c578a150",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "2d5490ed0f3c8014ac215bb271e209379e09f24e1a9c7f1b79dc9b8c70d055a7"
   },
   {
     "id": "r35",
@@ -620,14 +484,10 @@
     "duration": 94.73684807256235,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「出会い」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "1000ce84bf8a6fb7b76849c406be04c66aef01161a8a4dc6c18655b16146fa09",
-    "sourceMidiSha256": "12260c3ffb99c7fd02c5a95de087b0409a2f654747f0ea2637a693574f2f8f99",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "9e3433c1641ffeb342d603be65eff0f04141eef3060de32e2c0b0dc83c9a82f0"
   },
   {
     "id": "r36",
@@ -635,17 +495,13 @@
     "game": "rinne",
     "scene": "加齢・回想",
     "bpm": 60,
-    "duration": 96,
+    "duration": 96.0,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「加齢・回想」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "a9260dd7ea3c18b7a71f8e7e3ceb5720cce8f1c5658a7a8825469f420205c9fa",
-    "sourceMidiSha256": "807c01489e3b48e30bb828d78ddeeed3874c3edb96aad888013f416614a4cd76",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "3861f41d451521d116a8939086f7023bb4e3aa5b0f1b8ccfcfa3347ce5f8af24"
   },
   {
     "id": "r37",
@@ -656,14 +512,10 @@
     "duration": 99.31034013605442,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「寿命・人生の終わり」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "4bc847a1246c11cb392ab3403e0d536b44c3bd921e7d13358ca8d6420e85389e",
-    "sourceMidiSha256": "adc222f32c6fb100a7a77fcd3686e564edacacb9437ea8408b1f8444b02a019e",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "681056b5cc36caf5e9cd5e41535cc0234c538072f14b8d6f9756d7b0db436b5d"
   },
   {
     "id": "r38",
@@ -671,17 +523,13 @@
     "game": "rinne",
     "scene": "輪廻・転生",
     "bpm": 72,
-    "duration": 100,
+    "duration": 100.0,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「輪廻・転生」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "75f76318cc293ecc4d3ea0995f2b3bd3b316a26901720356ec08c49df7a5965f",
-    "sourceMidiSha256": "f8124687b9107fe1d9bef4572b3d114c742f874a09d508bb10e29b400426f971",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "40a6cfd5acef5a3ba829f03fa28c08a259f72342cbc07c093655e41761d828b8"
   },
   {
     "id": "r39",
@@ -689,17 +537,13 @@
     "game": "rinne",
     "scene": "休息・治療",
     "bpm": 64,
-    "duration": 90,
+    "duration": 90.0,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「休息・治療」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "b093794f538e3bf7b55c0a7d2f97b27f53e4f9ffd3aa97f87a7532371fd339dd",
-    "sourceMidiSha256": "32e3c18378ad1879679b811f2f4e6d46c50dbecff0daaa9cb079a41ce8917cc5",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "ad68900b7d091324a70b481f7462f78b57cf9d01c3a92f895587b8063929ec1f"
   },
   {
     "id": "r40",
@@ -707,17 +551,13 @@
     "game": "rinne",
     "scene": "町・酒場",
     "bpm": 112,
-    "duration": 90,
+    "duration": 90.0,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「町・酒場」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "235e55daef2ad962be8bdc4edd5a1aa516f94c66d91d436ef8580b145ab228a9",
-    "sourceMidiSha256": "af9e9c34ed4b3437ec8bab96f2193b56dccfc7797940e614ebf97db0403a3ea7",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "ce1d4103a388c9d8e5cf8c02e6f9da03ca8af13ed84d6b8620981efb6c4c565a"
   },
   {
     "id": "r41",
@@ -728,14 +568,10 @@
     "duration": 77.83784580498866,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「知識・系譜閲覧」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "1f3cc922a882de5ca92af74c272d1686b8ccbc4204dd5fe93c4e21f325aaec4a",
-    "sourceMidiSha256": "7266b96fd3cee92120e78b625371d89fb929316adecf401bab40b8868e2bef27",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "7b9de629a3804e94c522ff9a3cd5a0d11fbb85156065bb710074bcf2b60b059c"
   },
   {
     "id": "r42",
@@ -746,14 +582,10 @@
     "duration": 73.84614512471656,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「キャラクター設定」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "32a1e9c1d80c534f51c5a0afb475d47fb9008e951a0f71cd6da14ef339417689",
-    "sourceMidiSha256": "26dcfd583d823dc3c7e7e91a99659da4fe62b733875af363ed8208da05e6f66a",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "20e605c14d012736a76d0eb6356101f4f97144e9235a4dcf26e29306dbaf0334"
   },
   {
     "id": "r43",
@@ -764,14 +596,10 @@
     "duration": 102.85714285714286,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「宿屋・滞在」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "7b9df7ad5e6f0b16f964133cfaca845fc420532511fa388ae55547f46c3e7657",
-    "sourceMidiSha256": "966d6179a02ddfcfa6239ec35ff7eddb09bb6e9c8d14751bda47ef8d36674f4e",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "5ac2d64f1962b5b44b4eef52fe4dbaed07e9683e298bd1af39089bc80c63b55b"
   },
   {
     "id": "r44",
@@ -779,17 +607,13 @@
     "game": "rinne",
     "scene": "野営・夜",
     "bpm": 60,
-    "duration": 96,
+    "duration": 96.0,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「野営・夜」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "6b519ec1113faddc6ceccc4614a818bd6f1ebf5c52cb99849d8d2ba25bbb1f2f",
-    "sourceMidiSha256": "f1c3dbf11b121adcc5f57fe909d772ae9010da5f74f260cb687e6fd628959068",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "556e0938bd3ed8d2ca07c7533ec589e3746d9467c63c909df4a64884b7f68d5c"
   },
   {
     "id": "r45",
@@ -797,17 +621,13 @@
     "game": "rinne",
     "scene": "航海",
     "bpm": 96,
-    "duration": 75,
+    "duration": 75.0,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「航海」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "6daf8d87d658566c48c086c4f7b3d573bd05dfe63e62b38dc2266709c85f9f50",
-    "sourceMidiSha256": "af222b2864ae8c40dbdaaf3717e5f81c684f543a4ce53d98b3556bcab44cd8b2",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "ab298619e47c02d7316100adedd14d940742ea86d1ca12165cfe0f427abe5d75"
   },
   {
     "id": "r46",
@@ -818,14 +638,10 @@
     "duration": 70.24390022675738,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「帰還・安堵」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "12c1361be5e7a9f222b7844643565ee7628c34d2e32a18751da348dd2f3901f6",
-    "sourceMidiSha256": "aa5131eb4c8a16d9a06838d0d96f74bec2ce8feaaec4359fc1793e3cd779ce49",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "4bb26f1093941f69a0a260f32627d78e3d7a02951c454cfceba9b6f670b13bf4"
   },
   {
     "id": "r47",
@@ -836,14 +652,10 @@
     "duration": 102.85714285714286,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「エンディング」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "0fa38b1038650170f08eb76a70f5f5aa74ac693f85967fa12b02a794c68fb8ce",
-    "sourceMidiSha256": "e5302c6c68639b99dcb61b974bf26e556eb7728c704542a2ca76159b4133cea5",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "dc0865292065366773746c32d85c8341a6f98362d091696d8126316dcbc69e14"
   },
   {
     "id": "r48",
@@ -854,14 +666,10 @@
     "duration": 94.11764172335602,
     "loop": true,
     "description": "冒険・成長・輪廻の物語。「次の冒険」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "0cb73e662cecb4d7801155d9ab8de1b27c8205de0c19d48f2e182668b8337684",
-    "sourceMidiSha256": "5e66626424f85f3cd1b1b2dd81faff8480e1f82334d7f1c4aa958eb7a5bb612a",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "6b8eca6ffae095848d632a18e6615a37b5c9d9e1d4060c3a7ea72b1138da43a0"
   },
   {
     "id": "v01",
@@ -869,17 +677,13 @@
     "game": "village",
     "scene": "村・朝",
     "bpm": 80,
-    "duration": 90,
+    "duration": 90.0,
     "loop": true,
     "description": "小さな集落に朝が来る。素朴な笛と弦のピチカートによる村の主題。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "01d39970a901fc8f54309b4a607375f7649d854a29207f9a318f4559e88418a6",
-    "sourceMidiSha256": "ff31f6811a478804d50416b643f451ca77d31204716af77c21dd87639c1e4dea",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "73a95f99816c71b1e1c0e484c34e2e74c2cfb816f9f7bf5716051a0895dfb8df"
   },
   {
     "id": "v02",
@@ -890,14 +694,10 @@
     "duration": 86.4,
     "loop": true,
     "description": "弦をはじく音が暮らしを刻む。建築・生産を長く眺めるための軽いワルツ。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "0502751d282f96058cb485494e6208c2a69db4b16c4b64c10f3807a0f79f0a1d",
-    "sourceMidiSha256": "6273b0ffaa280fa374af1024e3ec8ee5bb3d14ee87da754a97e405aab7083ae5",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "3fe262381a069c60efc8f0241b456dc0ef44102207133213cd3e25685ef1b916"
   },
   {
     "id": "v03",
@@ -905,17 +705,13 @@
     "game": "village",
     "scene": "市場・祭り",
     "bpm": 126,
-    "duration": 80,
+    "duration": 80.0,
     "loop": true,
     "description": "フィドル、爪弾く弦、手鼓風リズム。住民の往来や市場のにぎわい。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "fb582a84f702a7d7ef81875a408e319423b2596b58d51a1513a0699cf7bb8fd1",
-    "sourceMidiSha256": "47cc21644f3f9da218fef015d498c25bd843294867a5d75f8e0712931cf6a8ec",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "efbc3d3d629458ada1bff3b2d7076eed121a5e753bd3686e39a965aec4534904"
   },
   {
     "id": "v04",
@@ -923,17 +719,13 @@
     "game": "village",
     "scene": "室内・暮らし",
     "bpm": 72,
-    "duration": 80,
+    "duration": 80.0,
     "loop": true,
     "description": "近くで鳴る木管と柔らかなハープ。家具を並べる、帰宅する、くつろぐ。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "ab481ec351998fac16692514cba618a40afbfda6e2ccd6795228cf3366c83b41",
-    "sourceMidiSha256": "a92aaff0afb2a7e1fe3ee434be3ec261c18c528b0b3dfff1f0b0174c0fb915f6",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "f1450844b4579099ab69a466616569d4055b944e1293042ce1f720a814e559c3"
   },
   {
     "id": "v05",
@@ -944,14 +736,10 @@
     "duration": 87.27272108843538,
     "loop": true,
     "description": "旋律の間に空白を残す雨の日の曲。雨音・足音・会話を邪魔しない編曲。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "f7b4dfd39e475a42f26d88415bd59deef76dde37f55bdfb18f768e1ceb3c1d3a",
-    "sourceMidiSha256": "21e58f53ab7bbfdc3c524f79a3a089732c012ec7d8d40a4ac702f0e05473eee1",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "c4acd16ad72a5c2759c2367c403a0077b2c1363ba398591bff4d651e7c17e404"
   },
   {
     "id": "v06",
@@ -962,14 +750,10 @@
     "duration": 92.30768707482993,
     "loop": true,
     "description": "焚き火の周りに集まる人々。温かな低音に、ゆっくり揺れる小さな旋律。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "10e5a114e033ff4b728a7cab7655d5fc7d34a7357e4808ac0c78022b80e17a15",
-    "sourceMidiSha256": "29f55666aca6803263b311f37843cf42077aef3775df359b135c3536434b4602",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "7adf0fc6b26351546798a69f5c9af3369071e6514b152078370b8e8f37cbd25d"
   },
   {
     "id": "v07",
@@ -980,14 +764,10 @@
     "duration": 81.70213151927437,
     "loop": true,
     "description": "五年おきに訪れる巨大帆船。残る人と旅立つ人の、希望と少しの寂しさ。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "700e167e2036a22e3d03926ed5c5ba50170acc5b01e132780168231165320ea2",
-    "sourceMidiSha256": "7c5792a21def4ef5a798a82c8a70e438a59836c4cb93cfb81394433d049784aa",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "1a8edfb10d22ff17d7afcc388484f8141d25d1d611eb66080a91b9675809ddfd"
   },
   {
     "id": "v08",
@@ -995,17 +775,13 @@
     "game": "village",
     "scene": "夜・安眠",
     "bpm": 60,
-    "duration": 96,
+    "duration": 96.0,
     "loop": true,
     "description": "チェレスタとハープの点描。眠る住民や小さな灯りを眺める夜の音楽。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "4b079650541273a17d5c9e321e9c066b090035d79daf949b1ef8e1e3899bf90a",
-    "sourceMidiSha256": "ced1826af5a97c9badb00c8f4c6bf4a1124d9966776b5175f2398635f33fb2b7",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "8924f8bd6b44ef94e8cffd3eeb325a456d4c2fdc4ef488f5ec169637926f15bd"
   },
   {
     "id": "v09",
@@ -1016,14 +792,10 @@
     "duration": 82.28571428571429,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「村の始まり」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "f40027b0e30a8edc3c1ce52346e851bd149e0415ec4343a765a4b4dfdbb8a17c",
-    "sourceMidiSha256": "40429d958a14870c02c8c78ceea4bee354cb8fc21fbb3d57102c17c9892a7f71",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "7ea524191006a7024a5eebd5641b76f96b56c5aae8c6e6d4aa52e635c02e800b"
   },
   {
     "id": "v10",
@@ -1034,14 +806,10 @@
     "duration": 102.85714285714286,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「村長宅」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "cfb65907fdf8ffe59774b9229a3b08003ee1e01c816cc125949b1fe1dca43b85",
-    "sourceMidiSha256": "4690a402d02927347735c7c402adfe896a6a9f99c8539dfe4c08eae893127666",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "55a013a85679e4fa68c22626129c48de5900578b79c5aee01955d4d847e50671"
   },
   {
     "id": "v11",
@@ -1052,14 +820,10 @@
     "duration": 81.70213151927437,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「自然な道づくり」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "a8e3620ecb32ccd8d07ae9620c897c7ad4e44116d863ff15a5918954ad2db00d",
-    "sourceMidiSha256": "e04cd8ecd1accb5aa228f0b9005de362878b1b713df14780c3a00191332fd84b",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "9ffb14376d9a4cd1484ad641b9207dbfdf67fe1f8f851ac7e4afcc56acb2b742"
   },
   {
     "id": "v12",
@@ -1070,14 +834,10 @@
     "duration": 110.76922902494331,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「移住・定住」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "c766dd25da423b94e7bc5facea7e016db81e3dcb1b01f2a1dc3d8e2816dda2fe",
-    "sourceMidiSha256": "e9c26ea37f1bb67e1f697d68c855b6792b422a4f69f5459f79c0eabc227dae4f",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "c4614e4af9f3c80b6895dab7f3a040a0d264cebfd2b9d64dfa68d2a9122f3fc6"
   },
   {
     "id": "v13",
@@ -1088,14 +848,10 @@
     "duration": 100.8,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「伐採・薪集め」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "e23e32dd4b31b2f1358d64f1f98d9ac12c9fea9d5b64620ce905eaabbbdb7976",
-    "sourceMidiSha256": "c982b3c59795095397a0d8ab4cdacd6aa1e09bcc72de49bac07f4236fbb7824a",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "c35805b1bb95b35d90b874359b06ed8d07ba2cc10d85d8ecc20ccce54982cdc7"
   },
   {
     "id": "v14",
@@ -1106,14 +862,10 @@
     "duration": 102.12766439909296,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「石切場」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "ea8b8972ea17bd523860b71b6afd46bfcc7c67dc417fa842f8d049344e7e2f7d",
-    "sourceMidiSha256": "398ea8e1aa7ba2715f1aebe85423761e86e3ed8c8de6a5b467d95d2a50b1d841",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "e0c96df58652044da68196126228192b706111b707b1eb62856e3e561d198bc2"
   },
   {
     "id": "v15",
@@ -1124,14 +876,10 @@
     "duration": 110.76922902494331,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「木工所」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "9c191a62c9b30e14d693ae4ab9810803ac7b5dd697b3c43ef70b8a209e519066",
-    "sourceMidiSha256": "f9065dd2b6f3c51d5732be12083e6a8a6639b0471963c07669adec8eb1fbd3ed",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "f69b13646c2fe1ae868dcdf26db6e95a5cc73100df3714a9c65b7b1989f6fe1a"
   },
   {
     "id": "v16",
@@ -1139,17 +887,13 @@
     "game": "village",
     "scene": "小麦畑",
     "bpm": 80,
-    "duration": 90,
+    "duration": 90.0,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「小麦畑」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "6394d78c9e9a7c33be1e0f827ba60e25fb0c1e2b185ddd5458f0af1eccd178a0",
-    "sourceMidiSha256": "ce65e94fef5583f205e8476d36eab77d31c635f33d795bc1c9cbb6935434d374",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "b6e14e1ac2a6d49d46cf3335f325f7dd0b7fd2d2fa3dd76350c1b669922df3b4"
   },
   {
     "id": "v17",
@@ -1160,14 +904,10 @@
     "duration": 85.33333333333333,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「泥採集」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "f07ce506ef43194e6b0a78b573e9e890042f4ed265c4e8fe5653353f72dcc02b",
-    "sourceMidiSha256": "69225cdbbef63a1dc84453915da7b32cd1462daa1a4ee5f8c861dd6de7009e02",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "673e378c0a9bcb5f7ac7a2086e5380479d29ed7e09840eac167638619db535cc"
   },
   {
     "id": "v18",
@@ -1178,14 +918,10 @@
     "duration": 99.31034013605442,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「市場・取引」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "af054f4cc6e8e64a5f14f041e236d085fb12ec69fbb0cd91d6d8b1c7d2fa1885",
-    "sourceMidiSha256": "90782b0e0109bddbeb4341bb683f1807423b161776fa7a91d2615baf8339e5ae",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "9848aaa33841f29cc3693784084c925f8c840ab3640ed0f9f9a141ccf8d9c70a"
   },
   {
     "id": "v19",
@@ -1193,17 +929,13 @@
     "game": "village",
     "scene": "シームレス室内・家具",
     "bpm": 72,
-    "duration": 100,
+    "duration": 100.0,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「シームレス室内・家具」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "e94c5caa4b2214950b5df1e4e6d1770a2e4e67004fd39996cd08cef29bbf06ec",
-    "sourceMidiSha256": "28d61ed401fb78d1cbab6690e6d3213f9a5cba75f02367bdf9937eabcf9f71a3",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "d9ed0812b60a8fd155856f4d2d16942b196534ae88b9be669fa5a94af5fc33d6"
   },
   {
     "id": "v20",
@@ -1214,14 +946,10 @@
     "duration": 84.70587301587301,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「室内装飾」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "6d9cf6028ea0021766fb987fee6074fbddc9b9e8cf981ed18cae8ec26b45cb62",
-    "sourceMidiSha256": "2280a43adbc52654af330edfc52b2810560121ba434bce20cca7a686f7165031",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "c6f120fe47578e265e49e99f8b9ba0d06fc2aa7d97dd59d265c4183f1d9d1b23"
   },
   {
     "id": "v21",
@@ -1229,17 +957,13 @@
     "game": "village",
     "scene": "住宅・団らん",
     "bpm": 80,
-    "duration": 72,
+    "duration": 72.0,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「住宅・団らん」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "53164290d71485370195f696d1d5cf073d4ec1574bd2b53f76fee15be75cd225",
-    "sourceMidiSha256": "85fb375c9e75fd835be91655818e23477132eee905b356d61587f89526c7f002",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "1380e1890f4984bfdcee16c284828807b625faf92b381c221ed1c6dba32d7c35"
   },
   {
     "id": "v22",
@@ -1250,14 +974,10 @@
     "duration": 84.70587301587301,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「教会」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "7bfa4644e2d944ccfeb7e090818544688e0c30f9c51dc1e3a24d9c8ea0df7d40",
-    "sourceMidiSha256": "e9778bcdc4fceefe1f0c212cac98c9b359446fc51654780fef769a48ca56614b",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "55d27912fda3beacb75efe7e74fa8463c85f4bea594ef4a61558d03de067e5b7"
   },
   {
     "id": "v23",
@@ -1268,14 +988,10 @@
     "duration": 71.11111111111111,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「鍛冶屋」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "a4b4692be65830d2350c2e71ad37d7551bfc7bca2e8bf7b2efeacde4e6df83db",
-    "sourceMidiSha256": "e41aff1545194a425c53eaa2cc8b40f48bcde0942817c7d9cb1fbaaeea20c929",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "e451e53fc8eff2158723b96fa13f22ff1f2b3ebcef31f7868fee1c79ec7c7931"
   },
   {
     "id": "v24",
@@ -1283,17 +999,13 @@
     "game": "village",
     "scene": "道場",
     "bpm": 100,
-    "duration": 72,
+    "duration": 72.0,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「道場」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "e9a0c70d8f461b9b925396d780fcd6730c79e6a99950a40536373272fe56480e",
-    "sourceMidiSha256": "e76b9a505b6b0ae4ba4c8dda1ab2cf4f45245cada8c11a145fe63764ddd9c1ed",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "64ec30f6b087e153c1d50f3d9bb8cf9fb0e73ba841720d43a7a5ded579069d98"
   },
   {
     "id": "v25",
@@ -1304,14 +1016,10 @@
     "duration": 81.81818594104308,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「学校」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "9c31c54910863c6f95ef7e3ee657e32e05189b50a3c78c5b1d4ff392231cc2cd",
-    "sourceMidiSha256": "dc54455fa630b40a30d51bbdbbc45b3dd85957bfce97aa912df34ed15e81dce1",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "27bbb151f6ed21bd9876a65054d24221d9e2395b998354abbd099e5d6f2127c4"
   },
   {
     "id": "v26",
@@ -1322,14 +1030,10 @@
     "duration": 116.36362811791383,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「治療所」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "1422d0d3f88dac319cdb6600487f0b5e97e06e2e6cbb572e89baf918ddaefbb1",
-    "sourceMidiSha256": "7e7e05b2fb78d5a718e4ee4d4abd90cfa9a21d473b0acda002debbdb1f3be892",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "6d881e20d43c1e8fa082088b50fa5737c4642aebe242c8c517ae3be0a5eb7972"
   },
   {
     "id": "v27",
@@ -1340,14 +1044,10 @@
     "duration": 102.85714285714286,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「農園」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "63c175b776ab242f2551bf3489a64433201163bb1d33a3b565f9df14ca953c67",
-    "sourceMidiSha256": "1a2a5400fa52f8c10de8d71c123c16200429ace3f4d2cc2329b65399961a8a79",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "e4e44e5b8f39c28729601145147d0948c01f3826739225971697ae66daf63f8c"
   },
   {
     "id": "v28",
@@ -1358,14 +1058,10 @@
     "duration": 69.6774149659864,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「釣り堀」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "3625ac775d0460d7d4a73e8290ff96bc50fa800ff1ca5f9da8a68faa9de6e867",
-    "sourceMidiSha256": "ae1b972e939b9394349639c2e59b07644fe2f2e76cc8aef310253d9d9950da59",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "3319aab280fdb4650687630677c90122f5e4ffe6636a44e450c9fe0238bd2dda"
   },
   {
     "id": "v29",
@@ -1376,14 +1072,10 @@
     "duration": 85.33333333333333,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「駐屯所」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "951272de2d56230246b9c4e931df30534876b4b7cb1aaa46d5daebfa35350f89",
-    "sourceMidiSha256": "338aa0dd78efdfc942136ba560f4c01f3ea942890e0735b4cef21b96648ca2c7",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "32a55e0854b0e0d863cfba25b20d138b03d1e0f8c39801febfdadfe8347242b3"
   },
   {
     "id": "v30",
@@ -1391,17 +1083,13 @@
     "game": "village",
     "scene": "猟場",
     "bpm": 100,
-    "duration": 72,
+    "duration": 72.0,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「猟場」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "58e91729fc34d213cfb4737db4c0652eb79f59d22770bf1ab7495a1abc57b2c4",
-    "sourceMidiSha256": "c964303a8dacf42287b7c157beda6ae30e8ab761d4ed94c0b095d67406d3002b",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "ba0bf9396b340846bf045b459a077bb460c636a836a9e1c3cc2f1a4ef127a1a1"
   },
   {
     "id": "v31",
@@ -1412,14 +1100,10 @@
     "duration": 70.24390022675738,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「果樹園」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "b57e72807fb5ab8402393c176d018748633d29ecc1060fa3c85753e51e3cb8b4",
-    "sourceMidiSha256": "8074809eee43a81f6130a843672950a0e53b62a762d44b645f3e8c4b55cba9b2",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "158fb83b9e726fb3e551f079ba0e9229c4eb8a9e5fac8cc348996e2db834b28a"
   },
   {
     "id": "v32",
@@ -1430,14 +1114,10 @@
     "duration": 101.05263038548753,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「宿屋」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "1fd060fc1e5f7eab4064f9cc2a4933e388179695b8ea5915887ce2f0444587ba",
-    "sourceMidiSha256": "11ca96af79b692bdb3f76cc6b7524371fbc95b0b9e006aa03d234ee23c5851b4",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "bc463f077ed9e6b6c93a86404da16e0d90b30ffef630a98d97d3bada6120e776"
   },
   {
     "id": "v33",
@@ -1448,14 +1128,10 @@
     "duration": 78.26086167800453,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「食堂」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "721995cbd7f6684ba068d800ba5f7f5b52fb5833a86fbcef10a939ec7687665d",
-    "sourceMidiSha256": "fb16ee565776bf9d804c304d6c02775d8075732589dd72ceda98d44d1539c03b",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "5c315520667963a29471fe96cbe7ba007baa4377fb276269ca4128d68e3a33e4"
   },
   {
     "id": "v34",
@@ -1466,14 +1142,10 @@
     "duration": 97.29730158730159,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「料亭」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "c47c1918be74c77c54d58cd20574177f820c71a537bc28eb977d0ce4123dfee8",
-    "sourceMidiSha256": "d867a285c0dd54045767bcb554e8c67f7d21691c164515053910411479b8be59",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "f0242da122ded57613ead9dd1a4b783bd0e84f01f461d2ef2431c05c9954ed85"
   },
   {
     "id": "v35",
@@ -1484,14 +1156,10 @@
     "duration": 97.95918367346938,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「武器屋」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "d9737f288e5e40ce31158019de435d1d63fa3a8d0ae1ffe822ba927ef9876b17",
-    "sourceMidiSha256": "6d5ced70ee05d38e1676c1a2c8cb62cb51c60863a753eb2fbdb1c970acf35424",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "4786f058e1fa3a183373e50841d628a58ba3fe1e5192aae0a50cc9b370144c32"
   },
   {
     "id": "v36",
@@ -1502,14 +1170,10 @@
     "duration": 100.46512471655329,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「防具屋」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "485c41381642b82dcd1ac794f9d589fb5b9541aff499046429deefeee056ae6a",
-    "sourceMidiSha256": "dbcb01923d4a2002b64bb93eb8f3ee6581d0c63eadd9fedbd1a8406796c6a057",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "59b316eab779c9b8508bb04618a8a60eff32cc211588d02d42ba72385a1d2b34"
   },
   {
     "id": "v37",
@@ -1520,14 +1184,10 @@
     "duration": 110.76922902494331,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「装飾工房」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "0ffd6adbdb214c2740ba436fe63b9a9ec9eff7c7e559c79663d570007683f8f0",
-    "sourceMidiSha256": "14aed8f0fbbac1b35c876592d290568c21d622bc0b560596a62c2ad49f1093b7",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "a554bfae0c0779a9a902764ac78f7ef6964474b9698acda98f60abb0bedddf50"
   },
   {
     "id": "v38",
@@ -1535,17 +1195,13 @@
     "game": "village",
     "scene": "道具屋",
     "bpm": 96,
-    "duration": 90,
+    "duration": 90.0,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「道具屋」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "1735f67f1c39b9fa97fa3e3292e52aa5084e693364430875f08c441302884cde",
-    "sourceMidiSha256": "605e07b5a3796bf1bf79d1138a259319a20d8e9f61b0536877763325731dce6f",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "ec7dd3b4f69f3317a200860bac01b788f182e020a18c07c445ec0793111ba754"
   },
   {
     "id": "v39",
@@ -1556,14 +1212,10 @@
     "duration": 81.29031746031745,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「春・祭り」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "0b30617846e3696def9c4acfc476f1afa137c1cd3c1bf6541c121e1b0b1666af",
-    "sourceMidiSha256": "ef858000dc4e899083f00247e325207aec5c643300f30f197b7c7616f24986a7",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "2f17812163ced5eeb88e23b69bd99231be7a4d14066480230e92a3a07ab62718"
   },
   {
     "id": "v40",
@@ -1574,14 +1226,10 @@
     "duration": 75.78947845804989,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「夏・日常」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "4666b53a48fea4ac2dcef9fae52c682a0c9023bacb3224bc3bb1c9db4c0fd0de",
-    "sourceMidiSha256": "9647c657283d1103ee77a4a4557d14865a1f4a279e4de5d80a1a7fe80e7be742",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "f1aea006c9ef4e9b1ad92ffb8c818f15313640eb7d31950452dd7e60f1235f71"
   },
   {
     "id": "v41",
@@ -1592,14 +1240,10 @@
     "duration": 83.72092970521543,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「秋・収穫」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "db40da3ec40d3eb417db24990d68174700baaeaa5e33f01c4cf004e2243d63c2",
-    "sourceMidiSha256": "9c5599dec71164a63c7760cc2927a4af77f3138421ee0d84313b6cea4b2f4ac2",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "f446f0a25579717fa2aab2be34a3c78af55a8bf4b87dd132c9e8a8dd826f1593"
   },
   {
     "id": "v42",
@@ -1607,17 +1251,13 @@
     "game": "village",
     "scene": "冬・静けさ",
     "bpm": 60,
-    "duration": 96,
+    "duration": 96.0,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「冬・静けさ」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "a623194fab5089056d21a0d9c953bd3d3c34c8f4e4e46b1caf5e08a949f78628",
-    "sourceMidiSha256": "01f44215422797a0d729dba287be7117019ac019905aca9d581683a634d3b8f2",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "6efcf96c54b4e05c67fd13b8a06006a18c6187014512e23de86afe694cbf2d9f"
   },
   {
     "id": "v43",
@@ -1625,17 +1265,13 @@
     "game": "village",
     "scene": "雨の日・室内",
     "bpm": 64,
-    "duration": 90,
+    "duration": 90.0,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「雨の日・室内」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "80d99f2cd1ab4661ae5b421cc120192c2ee3079452ea3545204a727a2910f5be",
-    "sourceMidiSha256": "565412e87e608193a99757d5dd9f9d7fe5fb11a839faa8b84057bd4e9130cf9e",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "fd34e4f8e32b29b84d09dcdda0742fb29ac15efba393c244f7542534688a2a6a"
   },
   {
     "id": "v44",
@@ -1643,17 +1279,13 @@
     "game": "village",
     "scene": "婚礼・家族",
     "bpm": 90,
-    "duration": 96,
+    "duration": 96.0,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「婚礼・家族」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "1958b119c66c4f0cdf5289085caab3223586834ca0d4c6e406adff8c17cc9057",
-    "sourceMidiSha256": "ac55d1cad7896c8437941950310d78d7f21ca4f04b2ca1632f738d973a87cd0e",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "a2c2c00723d0575f9064de5e086fa144556390112cbe7ad40e978f0c78bd14ab"
   },
   {
     "id": "v45",
@@ -1664,14 +1296,10 @@
     "duration": 109.71428571428571,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「出生・祝福」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "b41b2f4c2076d3c44ad84c7bcf4a5865206a67cbbcf9b3bfc7feb02a26a4a361",
-    "sourceMidiSha256": "3a4c102b8d7a24812dbf4bf235966da95bbd9b076b2cd1b6dbc262bcc54361c9",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "600d84c21f95cc7b70b84424521bb92bfeea253ba6902218edf754aca3a33370"
   },
   {
     "id": "v46",
@@ -1682,14 +1310,10 @@
     "duration": 83.47825396825397,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「襲撃への備え」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "be1ea3bcddddaed5b3fb4b6bb97f18efd7aa40e33ef9f23481aa5d34db394e39",
-    "sourceMidiSha256": "63ef97a7d0f1e3d568a8e73380095f8faf99dea5a227484dcabac9bf4a9138c1",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "95d0f904426ebf7597369f9272143ccdb81d402ac518287d395b9acb9b46570c"
   },
   {
     "id": "v47",
@@ -1700,14 +1324,10 @@
     "duration": 91.91489795918368,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「巨大帆船・帰港」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "9bcd9f8a1644abd8f7c944a875b2aa9a13d81556dd611c54e26feba6c53ab98e",
-    "sourceMidiSha256": "f887731df002c3c51197f1596b7c8e788ef94615418b6853c31926cc6104af55",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "cb3623d39453c01ea92f12b81017177dc9f1e0cc2d9f42edf7bb05178efd9739"
   },
   {
     "id": "v48",
@@ -1715,17 +1335,13 @@
     "game": "village",
     "scene": "世代を越える村",
     "bpm": 80,
-    "duration": 120,
+    "duration": 120.0,
     "loop": true,
     "description": "住民の暮らしと、世代を越えて育つ村。「世代を越える村」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "33cf0b96e7ddb11632dbe84d531c5727409a05a3eabe0edc5275515f6e795404",
-    "sourceMidiSha256": "48a7e517ddb04b401bed73710f57f59d8c3ea926c06f13f86b6f934c0943154f",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "e4bd7144ef77aee97c8d580c87d725d285628f2ca18d50b12c18fb3b8da64f23"
   },
   {
     "id": "d01",
@@ -1733,17 +1349,13 @@
     "game": "demon",
     "scene": "潜伏",
     "bpm": 64,
-    "duration": 90,
+    "duration": 90.0,
     "loop": true,
     "description": "低い弦に半音の陰。怖がらせる大音量ではなく、獲物を探す不穏さ。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "6951d694e2ab5b90dbf78cca7a414707594b82f0c7140ac6a72a079b9fdc12f0",
-    "sourceMidiSha256": "65196b69f24f1cb5e1b3891f01acb58dcae766f9de859799619f2f5d013d26a5",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "af0cb5e63ef71418e3c5a928e5122333ea5d88a118569260752be7fba21c9288"
   },
   {
     "id": "d02",
@@ -1754,14 +1366,10 @@
     "duration": 85.71428571428571,
     "loop": true,
     "description": "五拍子の落ち着かない歩幅。影に隠れ、人間を追跡する場面に。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "046df602415e0072ecd27822ff39541784f67d0b2d7a119ca98d579d41960bf5",
-    "sourceMidiSha256": "47e59d9053813c6d4086f131d4a27c7f1bb3aa5f672b40a13f1622c5d3241432",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "d538ef186e58ccff482ad7792ad8f2f96065d2967519566aea1c49301d373e47"
   },
   {
     "id": "d03",
@@ -1772,14 +1380,10 @@
     "duration": 77.77777777777777,
     "loop": true,
     "description": "七拍子の切迫感。弦の短いフレーズと鼓動風の打楽器で追走を描く。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "c62240e4b38ae654572068d6f19d01b87a07e3c2242fc1f576ec98226a9c108e",
-    "sourceMidiSha256": "601c82dd62ef989504ea0034a3f1db96f6b1ca025c6b6533a46797383246bb68",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "326ee156773b33ae63a32ee983d2b35b11b67b853b86dc55f93b705373b8aaed"
   },
   {
     "id": "d04",
@@ -1790,14 +1394,10 @@
     "duration": 82.75861678004536,
     "loop": true,
     "description": "低いホルンと刻む弦。守る側ではなく、門へ迫る側から見る襲撃曲。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "af703f03d557e5c45b34480770831e2bb8c9c79ebf6112a3737eb44944e8c6d2",
-    "sourceMidiSha256": "1ab3faad894d9e2a829a46c605530e715bb1f34f17ab0099b67adf314fe7b6cb",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "343298f422cb8ec6319e4aafa2a518167b186ea00bd442c3d4a320022ed30e29"
   },
   {
     "id": "d05",
@@ -1808,14 +1408,10 @@
     "duration": 65.45453514739229,
     "loop": true,
     "description": "荒い三連の推進力。フィドルと低弦で、魔物の短い接触戦闘を支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "5983f1fb810de3f484dfa7c5300a6a1e66051d130fb4bcfd3ef7d71f13cb4b15",
-    "sourceMidiSha256": "b99648282ea6e96ec46f1fbccae6d215abe3184deb95a2e21d1e38041077ef68",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "ab274a6f7db8b9a8a662924eefb7404c5df6ee49c90687324047c3781c5bcf99"
   },
   {
     "id": "d06",
@@ -1826,14 +1422,10 @@
     "duration": 82.28571428571429,
     "loop": true,
     "description": "食べ、変わり、遠ざかる。儀式のように繰り返す木管とハープ。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "648545755eaac71fd0ea876d6e0fde19b4b23cb1b47945b5cff910a06f06a261",
-    "sourceMidiSha256": "7fdbfe43a8694a339a7fe5bd3ab355b054ecf8acc3e3170eba515f569481efcf",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "b21eeb6b86d62b5defd9838a21377ba577dbbd89098cf49d6f892f98e95dc5a4"
   },
   {
     "id": "d07",
@@ -1844,14 +1436,10 @@
     "duration": 76.8,
     "loop": true,
     "description": "重い金管と低弦の積み重ね。魔王軍の威容と、逃げ場のない対峙。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "a68dcf67a478ab59cbaf04844f808b814f53a081f4d4199aaa09849229fb0112",
-    "sourceMidiSha256": "db0bd439eb43a5534f78498b6d7c332fba3f27de3981f7bb5657c757d423c54f",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "1d3ac5321a133a4f8ed745c691e6bbdd09314eea1c2be05d8b5f9129d9364f36"
   },
   {
     "id": "d08",
@@ -1859,17 +1447,13 @@
     "game": "demon",
     "scene": "孤独・終幕",
     "bpm": 60,
-    "duration": 96,
+    "duration": 96.0,
     "loop": true,
     "description": "人の暮らしから取り残された視点。独奏チェロ風の旋律で終幕を静かに。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "6b08c53bc784dd4a00e9976f093d3fa84a07f2b4c404b54764db170a25dce269",
-    "sourceMidiSha256": "666c5998ad071af6ae33fed267a8223d6f622aa16fc11ae657e44e49e91b291b",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "9dc0283afebcc4948f0b8d352ef1668d75fa971c68a00592e151815d8c481d0f"
   },
   {
     "id": "d09",
@@ -1880,14 +1464,10 @@
     "duration": 99.31034013605442,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「誕生・巣穴」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "61511c4875565d3747401640d9f315b208ec4c7ba42167ab0aba36951cb7af9e",
-    "sourceMidiSha256": "e300293af2af3f147177a75fc58204c0fb55a122a0720e3c47b1a15a03954528",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "f3297f6cf3b81affe268352dd785a4051a4d179a6b405b0e743cc2b9967e5716"
   },
   {
     "id": "d10",
@@ -1898,14 +1478,10 @@
     "duration": 109.09090702947846,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「飢え・探索」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "b345b0551dcb148a1a2e5aedce6b977f9694e9e219a736907664966b128437d0",
-    "sourceMidiSha256": "fcac257f63b50f70867b89691fbf091f82b6f27dafcba84a134ff05522b8de56",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "c859934df955ebb9151659d2ed1e26a1681b7536ae7b4f6caaa25849dbe62603"
   },
   {
     "id": "d11",
@@ -1916,14 +1492,10 @@
     "duration": 94.73684807256235,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「沼地潜伏」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "70a326d5d450984189f92bfdca3f1bf21e1ddaea9af79366bdb227e9dd747bc7",
-    "sourceMidiSha256": "9ce6ae4220925fc127bacf145dc26b14f81cf08d06f08a746d8ca412d05a33a9",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "cf8a93fb6137b1f1559e109418ca871c0c0ff7213c4f0b2aeb906aadc28cf3b7"
   },
   {
     "id": "d12",
@@ -1934,14 +1506,10 @@
     "duration": 92.90321995464852,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「暗い森」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "3bb2f42cbf0a13991424b07bca1dee4408a871922d2423a4d2994019ca37d65c",
-    "sourceMidiSha256": "c05a75b3046b881d00a8c068bf3dfe029bc83952fe361247e04910b5fafef9f7",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "bb2b5e5f790ce73153a8e84c335c690943c46c7a658939f4a319b616c304bd7d"
   },
   {
     "id": "d13",
@@ -1949,17 +1517,13 @@
     "game": "demon",
     "scene": "夜の水辺",
     "bpm": 60,
-    "duration": 72,
+    "duration": 72.0,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「夜の水辺」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "e35424b10b59ebf3c462365dcc3a361ce9de394a435d665778e619125d2ad827",
-    "sourceMidiSha256": "24a30e08066d8dd9350db5ec2b60034fb204f2354fc6e456acae306e19ab3256",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "507c81274e857829afebb99c7de3a5972baeee4bc071cd37afbaff5d7aa8f871"
   },
   {
     "id": "d14",
@@ -1967,17 +1531,13 @@
     "game": "demon",
     "scene": "嗅覚・索敵",
     "bpm": 84,
-    "duration": 100,
+    "duration": 100.0,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「嗅覚・索敵」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "cb73030c8d6fee4d395ecbf747f1d0a574c3e0574164c14b73f2490cb97a085a",
-    "sourceMidiSha256": "ab4afab4cfb3fc0642157111966f5dbe6673b539dcb7601cbf2016dfa1befba3",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "f9e7b4289a78e58563a9da21480c367136ed3421d4ce3c9402c7180c810d3d53"
   },
   {
     "id": "d15",
@@ -1988,14 +1548,10 @@
     "duration": 87.8048752834467,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「人間の追跡」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "85c56b8fee8db9ad9f6c0553504f681b18cf85cd7b063061174523e1271e2773",
-    "sourceMidiSha256": "6bc3a8bc8d987e2c743992d5f28e11b925b5b79c0ee09d48a38109ce6573237d",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "c581c148529827767c342b2b8d2d39e465729d112183ead7798abb1ead86e2eb"
   },
   {
     "id": "d16",
@@ -2006,14 +1562,10 @@
     "duration": 106.66666666666667,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「忍び寄り」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "f05bbea16a482231e474ae5cedd0d60e1b471eb97c285e772f4529c524966607",
-    "sourceMidiSha256": "624526d3d4e9a08f2bad2df4ae9c2b798169e05f959a5cd88878ee9a7b2d7b88",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "e21776ab73eab47cc668829770d1c8d1c1288e7708f04b63ac5727cc195f0e70"
   },
   {
     "id": "d17",
@@ -2024,14 +1576,10 @@
     "duration": 105.88235827664398,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「村の外縁」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "b553b19e1ddf65ca68ede1ad73fa65207fc8bebe9f778b51783c412933b48a89",
-    "sourceMidiSha256": "a6b1ec705189385aefa64570ec199dd7a397e7580ddc8e5976d1ea447d659b89",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "ec322e65eae734da1e465a7230c21ce6e50125494c52dcaa2f850fdfc5f0eff4"
   },
   {
     "id": "d18",
@@ -2042,14 +1590,10 @@
     "duration": 109.09090702947846,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「警戒・罠」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "dcd50e7789d82de604af654c612ee1e9fbca71aea6a8b96be60b6859b691355f",
-    "sourceMidiSha256": "b2e31ac08d054f1c3c589521c11fac68c60716e0dac5e6ede9aa51fbd8d4bd78",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "e393fbfb81e851b08d5b17890e044b0dd1c7de10ee3c650b1bc5a9dbe628d0be"
   },
   {
     "id": "d19",
@@ -2060,14 +1604,10 @@
     "duration": 73.0434693877551,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「奇襲の直前」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "d229468f2a13a3580a74a095ec7ac376bff28b334e5332802a7f420b930309e7",
-    "sourceMidiSha256": "02e9f7830a1a56596be556b7ee8dd735ddfbc9ee46b70b6f96d0be0c61814f26",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "bf7bbab503b7973182d9df0edabf0512946603e2b7955be4e3219b8d40f666c3"
   },
   {
     "id": "d20",
@@ -2078,14 +1618,10 @@
     "duration": 99.66102040816327,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「追走」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "f581d0e20802613a6bb0e765449861f93b42f78e93ae17d5a3424bfc9190ff7b",
-    "sourceMidiSha256": "0332cabf91ac30b22650f90c3e113efa2af53a029a26bd6c359a659f292436a4",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "0cce5e42d6980987ab02c4202672b34c847d3b39323680f2a74145a422cd0b77"
   },
   {
     "id": "d21",
@@ -2096,14 +1632,10 @@
     "duration": 87.27272108843538,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「包囲・接敵」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "bfc654372acddc08c226d2f3493769e4801eef5b9d7d0ec17742d940039443ee",
-    "sourceMidiSha256": "8e6954fb944b671212023ba5cc2719dc5616dbb9062b9eae50fe54cf2941f5b6",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "6c02b2db1292ccd333c1f1f1ad220db17f3f56f6dee8226fcdab9fe28b238cde"
   },
   {
     "id": "d22",
@@ -2114,14 +1646,10 @@
     "duration": 91.42857142857143,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「高速追跡」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "9e7f2ad03be9990aa2029422081cd7cee013fbba1f73324478efee8aadc05480",
-    "sourceMidiSha256": "9fb94e70a155bd94971885094251bd8e2bfb7343f679e9c263e8f1b4bfb1b996",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "27f4c9038ace6bddb03a7830df289cf5840b1fb4f81ef87a725eb8605848147f"
   },
   {
     "id": "d23",
@@ -2129,17 +1657,13 @@
     "game": "demon",
     "scene": "通常戦闘",
     "bpm": 128,
-    "duration": 90,
+    "duration": 90.0,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「通常戦闘」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "3fa01577b5b58bf3fd625355958ac6c487afafec3d9131e31ab0f18d4fb06e1e",
-    "sourceMidiSha256": "71832d59d2f3da4843c72119964b6a553a24ee5ded52a4216ef12ef6c37a33f9",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "0fdfc72f1161b9547dded9c9c36027e6f453f2eec746064368c00291896fa5c6"
   },
   {
     "id": "d24",
@@ -2147,17 +1671,13 @@
     "game": "demon",
     "scene": "連戦",
     "bpm": 120,
-    "duration": 84,
+    "duration": 84.0,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「連戦」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "e3b5e1505989e7fffab5b78dd8a08f9147856755dd685acd9e3bdf95d5b31964",
-    "sourceMidiSha256": "3244e6a6429995035eaaff390f3f159f7015e4e0612d440d7d3a334b180a73fb",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "dc2eda840f4e1c8be616e353f875f91b585f0e7bb58540470709dad8aedd07eb"
   },
   {
     "id": "d25",
@@ -2168,14 +1688,10 @@
     "duration": 86.89655328798186,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「強敵戦」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "1772a661f64bdb629f593c45eeccb84d013e816023e2ef939aed42b653b0556b",
-    "sourceMidiSha256": "fb259c002553361520cc127bba039eb22b3dabe524699b4e5fd288ab38fa9bb6",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "7209a5e31ee20b986149d049285f0c7da4a0eb9b75b1fba5ac6fca0eecce75f1"
   },
   {
     "id": "d26",
@@ -2186,14 +1702,10 @@
     "duration": 102.85714285714286,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「狩人との戦い」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "bec88abbe567aa4ba95f0381ce816e233fa4ecb8c017fc581f98aa7582afbb42",
-    "sourceMidiSha256": "09da4cc5370d99d88a3bfd9fb0373eb0266645716e8c4c2b6542696280a2cf2e",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "9c9c6397d093b40fbd60ba0349166fca207a58950cdab60db6c7397ceab09bde"
   },
   {
     "id": "d27",
@@ -2204,14 +1716,10 @@
     "duration": 109.09090702947846,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「村への接近」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "716cdecae33e2e0dcbba50a1dd76f75b19d2a45886fe3fa8aa7a3f2c1843cb76",
-    "sourceMidiSha256": "7d8a4be7f9bbfc9ec7f725963450fca7a6a1fed397be5d8c4a97e301692f0607",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "05968c46f6bfd16ddcecd4a16986d79350a0ff062a66c391ed29b86af6fa83d7"
   },
   {
     "id": "d28",
@@ -2222,14 +1730,10 @@
     "duration": 96.92308390022676,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「結界突破」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "a49d2a6f447cd264fb238f9fc37309f415d887c021ff00f23c3f914b874e1f68",
-    "sourceMidiSha256": "71512ba2e29ffbd8ea7c64f55c86b16d6114a6f43f8507d4bedcf089985ff974",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "9d252eb5f00705df92ffb87ac7240082418ef9ea70310967ec14a21a37731eb3"
   },
   {
     "id": "d29",
@@ -2240,14 +1744,10 @@
     "duration": 82.75861678004536,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「村襲撃」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "a7e688a7b2114ede0300981d6a84a929f4ed0b5dab3cf4a1ed8a1af9aafa2b1a",
-    "sourceMidiSha256": "2b4d16dc240cf99834bd64146447681154ddb6072cc682a18c082dea4dbcb61b",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "ab4bc792422d93745ffe6487131b3f51f52493d67f9abac65804b660f5153fcb"
   },
   {
     "id": "d30",
@@ -2258,14 +1758,10 @@
     "duration": 92.90321995464852,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「襲撃・時間制限」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "3d6915c13749b1e5babb3a025cb98ea008b3929a4bc1fcc6651d968d35878a16",
-    "sourceMidiSha256": "646d39a982a790dcf14eee83191720b2beefb6e4f61678c7f2e85f58d5dc2f76",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "75ae9d73d7c854938615439c52034b1b6d86b6e68bb16e73fb6eda083901dca4"
   },
   {
     "id": "d31",
@@ -2276,14 +1772,10 @@
     "duration": 90.56603174603174,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「守護者との対峙」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "867014fdb58c2ddda085803a666fcfd4bfb8b6b865217bcc52a47e525a193f9c",
-    "sourceMidiSha256": "da0f5de65400b40bc34331a6e5e3016183ae325abcd5dd1225e54bcba27cb0b2",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "473d08e9ad1989394d771e839c9b2d637f969eefc1a308707d0f699aaf177c8f"
   },
   {
     "id": "d32",
@@ -2294,14 +1786,10 @@
     "duration": 87.27272108843538,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「村離脱・再入場不可」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "4eb43844b9e2d9c5ba4c13e0ce0bbe1c9ddadf1eb5b903b99982111d9b07ee65",
-    "sourceMidiSha256": "e7d010050eb3c35e3a22a7dfd040d20c250632890d8476ed980d856ef989add0",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "1d1033ba42f8b0a39e96830f2c91571b52c072f661629b620b2ae30e9401ac5a"
   },
   {
     "id": "d33",
@@ -2309,17 +1797,13 @@
     "game": "demon",
     "scene": "捕食後・余韻",
     "bpm": 64,
-    "duration": 90,
+    "duration": 90.0,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「捕食後・余韻」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "a75cbec876e166c3d3449f292e8a0d692f011e44d4062620062d887534bc7649",
-    "sourceMidiSha256": "88b96ae919c0f60dcd5e8a7fcfea67d3733a12b8356ee5bdc210363f14cc5b47",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "9fae7a175b21f55ba530c55e97f07bc50e2fecb94d01a90d62a0dc039490af57"
   },
   {
     "id": "d34",
@@ -2330,14 +1814,10 @@
     "duration": 102.85714285714286,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「捕食・変容」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "3543a9e0d51cb810f5f3499d907a681ed63aba8ea18b27d2598f62d0c852f840",
-    "sourceMidiSha256": "46a245dca66758faa9869cdfc355a042c1e2e58c8d2a0a0d14066a631964d446",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "6f383078dc7cd89ade94b2fb5cd4ad8b1f02787831dcaaa01cc7e69320f44600"
   },
   {
     "id": "d35",
@@ -2348,14 +1828,10 @@
     "duration": 75.78947845804989,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「器官獲得」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "ebe0bfc7b762c7182cf22638bb36cd4178f0b95513ddff34dce09a0503ad5429",
-    "sourceMidiSha256": "8657d6304d88b220297ba655734d58228af1f022d08a3735601cca5bf60151cc",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "43b5d4506a62707f0b964c0a1518ed8f5df66615d60f42cc98ea12077f459f40"
   },
   {
     "id": "d36",
@@ -2366,14 +1842,10 @@
     "duration": 87.8048752834467,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「飛行への進化」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "a422a903b19cc03cce071220e325783249b088794ac55a1fac812cc1716703c1",
-    "sourceMidiSha256": "15d253e3c6a74ab7df9d654d1845df7c686409e87c26e942a50e468aca6f7a24",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "0e76934e697baf752cd1713e995a592476a4c4d4670a36c33aa6c6b4b48261c3"
   },
   {
     "id": "d37",
@@ -2381,17 +1853,13 @@
     "game": "demon",
     "scene": "巣・組み替え",
     "bpm": 60,
-    "duration": 96,
+    "duration": 96.0,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「巣・組み替え」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "6305f9109c0a443f1e4efbd19891e600829f31000d8b1416ef032823791d1972",
-    "sourceMidiSha256": "465be83d26da4279392687f4d989870ed832c47c8f1e2a70700ca440d9985fc7",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "aca3bbea10217fedab8a6ca6f5d2bfa1a52b32b6ec87cc889769abce2939938c"
   },
   {
     "id": "d38",
@@ -2402,14 +1870,10 @@
     "duration": 93.91303854875284,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「大型進化」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "7ed20d0fa6a13cc598cd6b079ca66b158970db1ca40b4d53a666f5aaecb66045",
-    "sourceMidiSha256": "f23e27765f0f7b6cb364940ee4dd7f7b33a6b1e286b0c24b11a0d1617f4d59d5",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "db8191ebec3c2acdeb67203323d91d386550f1474ab0dc05c081181e57ff99f2"
   },
   {
     "id": "d39",
@@ -2420,14 +1884,10 @@
     "duration": 99.31034013605442,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「記憶・内省」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "79fd39f9c3f732140a8d87e6b6cc59ad9d11ab1ab7e288be177e09a7689cbb76",
-    "sourceMidiSha256": "6be0ee26cb720e998f48618e760690da8ceb01ce1696eed1a8a612da14d256ab",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "03089063f50155a5124faaee39b56390d37ac0dec64324bc3e84fafd28070c3c"
   },
   {
     "id": "d40",
@@ -2435,17 +1895,13 @@
     "game": "demon",
     "scene": "帰巣・休息",
     "bpm": 60,
-    "duration": 96,
+    "duration": 96.0,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「帰巣・休息」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "623dff06f9a391f3218808138e0600a634193463d32dd534c9b5b45844e97b58",
-    "sourceMidiSha256": "accedfb313e644605561fde0cf0471783b6867e99cd83da2a2ab836a3677ab2e",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "573bef0972d8d31b13abcb275298cac6e97a4049a0540698a8f7beacc7267db6"
   },
   {
     "id": "d41",
@@ -2456,14 +1912,10 @@
     "duration": 102.85714285714286,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「巣穴・待機」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "0476f17c7f31c88ab4e8f99c61ebc548ad8d1b6f24c7bc293856daf59a265a30",
-    "sourceMidiSha256": "56b865b6ce94705e74b214f6727be25110b3809887f43c23c79acb155a79efa3",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "2ef0b8506593c51595fcfd9c469384aa87a85b2f831ca55a34651fdc853416e4"
   },
   {
     "id": "d42",
@@ -2474,14 +1926,10 @@
     "duration": 83.72092970521543,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「群れ・共同行動」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "d56c55e6874a7a0b08a4d791e7ea2bad03816570c1d7aa819d2dcb6e5750ce97",
-    "sourceMidiSha256": "ae429467937875a2de3ea3759ae722fed84b74166a6565f95395dbdfe800aec4",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "61bb96f0cf7f2917a50c5a43c6d0fda8dfa138213db631e770bc0b2d1c2f45d8"
   },
   {
     "id": "d43",
@@ -2492,14 +1940,10 @@
     "duration": 73.84614512471656,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「魔王軍・遠征」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "bb53983dd7f6e7b85dfe22e2dae8568cc89422cc37dc20c8a18a22be61ff0675",
-    "sourceMidiSha256": "39dbf7fca9af030308b0f3c5154ec5ae366d63590f1afe8ba052641dfd628010",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "d8bdf59fb44987268d5f7d7c9dd2898b11e228e66f9562588391272d77830c67"
   },
   {
     "id": "d44",
@@ -2507,17 +1951,13 @@
     "game": "demon",
     "scene": "名付き魔物・到達点",
     "bpm": 96,
-    "duration": 105,
+    "duration": 105.0,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「名付き魔物・到達点」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "d96b6f32f5b495cdc24b40161fbbe133bc53ce399e8903fb06e94e5d1a94b54d",
-    "sourceMidiSha256": "a4b849366a8c2d08bb7d000bd67f704c083c453e831c96f46f7b567afa35c996",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "95f05460f56065f5bc45bb25152959643be75ae042527e2a89fee136cacb49d4"
   },
   {
     "id": "d45",
@@ -2528,14 +1968,10 @@
     "duration": 84.70587301587301,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「宿敵・観察」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "1e50d3d86834b3a5536f8c42d644dce3409bfb84b841b6e565d4a0352cc702ae",
-    "sourceMidiSha256": "1f1150d6603aa1c28cc260649a95f5ec44162413031c23103a02e9cead0617d2",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "5371501695fdf117f70437192c46990bac95b04a2a7bb545dacb48287776b7bf"
   },
   {
     "id": "d46",
@@ -2546,14 +1982,10 @@
     "duration": 131.76471655328797,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「魔王級ボス」を想定。旋律を受け渡しながら展開し、場面の高まりを支える。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "69f3e50d1867b44ac97afc5a0389e3f8b59b045f8d6f267c6b054317e3561c66",
-    "sourceMidiSha256": "4c6b712e931cb46ef0c4275f298a175dd01df70a51ea5d0fc354d90fa905486b",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "88fa41e31ae7d84a414b94ef61b7b7f05222d8ca70be7a03b1593e9bb40d1d7f"
   },
   {
     "id": "d47",
@@ -2564,14 +1996,10 @@
     "duration": 102.85714285714286,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「終幕・孤独」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "901c13958e3059f7b6d1d2bd78a9789c6c658ffeafa4e5c3d957342b214ceb41",
-    "sourceMidiSha256": "93ba5d1ea3b5e968cd29fa083a18c8220e50d6e1bdf0aff86c854a242512d568",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "77f0b041be3070a2351c48ab337aece61af7882fabda379c9850e9aa1798482f"
   },
   {
     "id": "d48",
@@ -2579,17 +2007,13 @@
     "game": "demon",
     "scene": "エンディング",
     "bpm": 64,
-    "duration": 90,
+    "duration": 90.0,
     "loop": true,
     "description": "人間の灯りを外から見つめる、捕食者の物語。「エンディング」を想定。音数を抑え、環境音と会話の余白を残す。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "2d55ed8bce82798fb6c712530be7e1bcc6f95ca55959b420d57b050fa2f0bdef",
-    "sourceMidiSha256": "00c297204edbd9c0fbe4b575630cddcacbcff8cc38a180fb95ee16fadf903cab",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "6bbd3359b77f2fac52beee430bd1c7fd47d231fceeeebd105bb3a66dd0dc1285"
   },
   {
     "id": "s01",
@@ -2600,14 +2024,10 @@
     "duration": 19.04546485260771,
     "loop": false,
     "description": "時間停止は世界のシミュレーションだけ。音楽と闇の演出は継続する想定。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "ad989aa5c845c0443671b9f788a8ddffa445e7476d921a03357b66350d0abc2e",
-    "sourceMidiSha256": "52bd24c27e14ab75964dc7761c9ce874aa4966f24e398b60bf17f6fee1fef070",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "3c128e9c86378f3f4569cc41b93092e5beab800eaadc4d75bd2489ecb1afc5d8"
   },
   {
     "id": "s02",
@@ -2615,17 +2035,13 @@
     "game": "shared",
     "scene": "Host移行待ち・時間停止",
     "bpm": 60,
-    "duration": 32,
+    "duration": 32.0,
     "loop": true,
     "description": "代理Hostへの移行中に小音量で持続。成功・閉鎖のどちらへもつなぐ待機曲。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "921e7f4104415b038f7234bc60f810e54f19594662495578e7f9b9171a8a0a8e",
-    "sourceMidiSha256": "0855d3508b0b7ff44c2dadc5cb1f5a5f4517ce4a120f3e32f3013ecfe465016b",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "deb3d4587a784e6e19163124406e1851965348f543fa95b41af287c28ea731a3"
   },
   {
     "id": "s03",
@@ -2636,14 +2052,10 @@
     "duration": 12.326077097505669,
     "loop": false,
     "description": "暗闇の中で補正を済ませ、光と一緒にゲームの時間を再開する短い合図。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "ff057cdd3236a6e332965e1773fb16efb1c5a7ad3c22b9415d2b0044fdfc5831",
-    "sourceMidiSha256": "097537b98c070a8db727bd4fb6a0c6b048885e72899360b1c9c9dbb4f6fdae68",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "8d234f3c27371101c0918de0b2661c02d4c8761e27535ee671f5b0c0db6fabcf"
   },
   {
     "id": "s04",
@@ -2654,14 +2066,10 @@
     "duration": 16.5,
     "loop": false,
     "description": "新しい命を、祝いすぎず優しく迎える短い旋律。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "0af72458c359d5fc2ec67b2be079f99ea34dd0328f854b769dc0724aaa4c446f",
-    "sourceMidiSha256": "ab483b6cb1e2e5228cee048c47f73a8c83b0275fae45898923e8dbb6efee1adb",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "d602343047374c2522782d157f834d0322ca30fa6a6c3ba89a145a7e5de275e8"
   },
   {
     "id": "s05",
@@ -2672,14 +2080,10 @@
     "duration": 10.928571428571429,
     "loop": false,
     "description": "通常戦闘を長く止めない、小さな達成の合図。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "9c4f1755a34c1641f9db9fc4fedd721d1e651fa79bc807facda1ff8bc2517ad5",
-    "sourceMidiSha256": "6e3123ec9fcc7febadbb473ff5c54d1d69d13992f6c42d57e7d28a63829307b8",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "caf198323527294a65e8ad26af07b3f526ba26340c7595330e8d7331138ca306"
   },
   {
     "id": "s06",
@@ -2690,13 +2094,9 @@
     "duration": 14.785714285714286,
     "loop": false,
     "description": "大きな爆発音ではなく、灯が静かに消えるような終止。",
-    "productionStatus": "production",
-    "commercialClearance": true,
-    "licenseStatus": "cleared-mit-render",
-    "sha256": "e0aa49b2a412c06dec763ea887d2d12bad9fe5611154e828a5fa15b57156cb35",
-    "sourceMidiSha256": "f28f29cc4bb89b7715f4624d50147dd14a7d6fe848e5d6f660c89ac87b493da6",
-    "renderSource": "MuseScore_General_Lite",
-    "renderLicense": "MIT",
-    "renderSourceSha256": "916aaca6b0eb9f9083eb42399614acb2ff4ec72ce28dffff1814592a9696b479"
+    "productionStatus": "audition",
+    "commercialClearance": false,
+    "licenseStatus": "review-required",
+    "sha256": "54c6a29bed90ae40c110192aada7ff3f47304fa57ec2f5fd91b4ac74cfccf573"
   }
 ]
