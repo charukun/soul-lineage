@@ -32,7 +32,7 @@ test('real sync degradation stays visible as automatic recovery while previous f
     syncError: 'GitHub refresh failed',
   };
   const alerts = eventDrivenAlerts(state, now);
-  assert.ok(alerts.some(item => item.type === 'sync-failed' && item.tone === 'danger'));
+  assert.equal(alerts.length, 0, 'automatic sync recovery must not become a human-action alert');
   const presentation = syncPresentation(state, now);
   assert.equal(presentation.tone, 'warning');
   assert.equal(presentation.title, '再同期中');
