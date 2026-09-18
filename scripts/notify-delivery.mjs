@@ -212,8 +212,14 @@ export function notificationStatus(channel) {
     { state: 'failure', description: 'ntfy delivery failed; GitHub remains authoritative' };
 }
 
-function writeOutput(channel) {
-  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `channel=${channel}\n`);
+export function developmentEmailStatus(state) {
+  return state === 'success' ? { state: 'success', description: 'GitHub PR DEV receipt created or already present' } :
+    state === 'skipped' ? { state: 'success', description: 'No eligible merged PR required a DEV receipt' } :
+    { state: 'failure', description: 'DEV email receipt creation failed; inspect publisher logs' };
+}
+
+function writeOutput(channel, devEmail = 'skipped') {
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `channel=${channel}\ndev_email=${devEmail}\n`);
 }
 
 async function main() {
@@ -222,7 +228,7 @@ async function main() {
   const report = reportPath && existsSync(reportPath) ? JSON.parse(readFileSync(reportPath, 'utf8')) : null;
   const runUrl = `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
 
-  let associatedPrs = [];
+  let associatedPrs = [], devEmail = 'skipped';
   if (stage === 'DEV_DEPLOYED') {
     try {
       associatedPrs = await findPublishedDevelopPrs({
@@ -241,13 +247,14 @@ async function main() {
         associatedPrs = direct ? [direct] : [];
       } catch (fallbackError) {
         console.warn(`::warning::DEV change fallback lookup failed; no personal development email will be created: ${fallbackError.message}`);
+        devEmail = 'failure';
       }
     }
   }
 
   const message = deliveryMessage(stage, { report, sha: process.env.FINAL_SHA,
     repository: process.env.GITHUB_REPOSITORY, runUrl });
-  if (!message) { writeOutput('skipped'); return; }
+  if (!message) { writeOutput('skipped', devEmail); return; }
 
   if (stage === 'DEV_DEPLOYED') {
     try {
@@ -268,8 +275,11 @@ async function main() {
         sha: process.env.FINAL_SHA,
         prs: associatedPrs,
       });
+      const applicable = receipts.filter(item => !['personal-email-not-applicable', 'no-associated-pr', 'not-configured'].includes(item.receipt));
+      devEmail = applicable.length ? 'success' : associatedPrs.length ? 'skipped' : devEmail;
       console.log(`Personal development email receipts: ${JSON.stringify(receipts)}`);
     } catch (error) {
+      devEmail = 'failure';
       console.warn(`::warning::Personal development email receipts failed: ${error.message}`);
     }
   }
@@ -282,10 +292,10 @@ async function main() {
       title: notificationTitle(stage),
     });
   } catch (error) {
-    writeOutput(channel);
+    writeOutput(channel, devEmail);
     throw error;
   }
-  writeOutput(channel);
+  writeOutput(channel, devEmail);
   console.log(message);
   if (channel === 'not-configured') console.warn('::warning::NTFY_TOPIC_URL not configured; GitHub is authoritative, smartphone delivery unconfirmed.');
 }
