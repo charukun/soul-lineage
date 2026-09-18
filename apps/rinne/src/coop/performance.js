@@ -5,7 +5,7 @@ export function createCoopPerformanceProbe({role='peer',now=()=>performance.now(
   if(!['host','peer'].includes(role))throw Error('Unknown co-op performance role');
   if(!Number.isInteger(maxSamples)||maxSamples<32)throw Error('Invalid co-op performance sample bound');
   let startedAt=now(),opened=new WeakSet();const inputStarted=new Map(),acknowledgedInputs=new Map(),canonStarted=new Map();
-  const raw={inputToAuthoritativeAckMs:[],inputToDisplayMs:[],canonCommitMs:[],hostLossDetectionMs:[],hostReopenMs:[],peerUplinkKbps:[],hostUplinkKbps:[],reliableBufferedAmountBytes:[],presenceBufferedAmountBytes:[],stateFreshnessMs:[],positionErrorM:[],rollbackMs:[],frameMs:[],gpuMs:[],memoryMb:[],batteryPctPerHour:[]};
+  const raw={inputToAuthoritativeAckMs:[],inputToDisplayMs:[],canonCommitMs:[],hostLossDetectionMs:[],hostReopenMs:[],peerUplinkKbps:[],hostUplinkKbps:[],reliableBufferedAmountBytes:[],presenceBufferedAmountBytes:[],stateFreshnessMs:[],positionErrorM:[],rollbackMs:[],frameMs:[],gpuMs:[],memoryMb:[],batteryPctPerHour:[],semanticCheckpointBytes:[],semanticJournalBytes:[],semanticEventCount:[],semanticHistoryEffects:[]};
   let txBucket=0,txBucketBytes=0,bandwidthSkippedBuckets=0,connectionAttempts=0,connectionSuccesses=0,turnCandidateClassifiedConnections=0,turnRelayConnections=0;
   const push=(key,value)=>{if(!finite(value))return false;const list=raw[key];if(!list)return false;list.push(value);if(list.length>maxSamples)list.splice(0,list.length-maxSamples);return true;};
   const trimMap=map=>{while(map.size>maxSamples)map.delete(map.keys().next().value);};
@@ -50,11 +50,12 @@ export function createCoopPerformanceProbe({role='peer',now=()=>performance.now(
     return true;
   }
   const recordStateFreshness=value=>push('stateFreshnessMs',Number(value)),recordPositionError=value=>push('positionErrorM',Number(value)),recordRollback=value=>push('rollbackMs',Number(value)),recordFrame=value=>push('frameMs',Number(value)),recordGpu=value=>push('gpuMs',Number(value)),recordMemory=value=>push('memoryMb',Number(value)),recordBatteryRate=value=>push('batteryPctPerHour',Number(value)),recordHostLossDetection=value=>push('hostLossDetectionMs',Number(value)),recordHostReopen=value=>push('hostReopenMs',Number(value));
+  function recordSemanticCommit({checkpointBytes,journalBytes,eventCount,historyEffects}={}){push('semanticCheckpointBytes',Number(checkpointBytes));push('semanticJournalBytes',Number(journalBytes));push('semanticEventCount',Number(eventCount));push('semanticHistoryEffects',Number(historyEffects));}
   function resetWindow({keepConnections=true}={}){
     for(const list of Object.values(raw))list.length=0;inputStarted.clear();acknowledgedInputs.clear();canonStarted.clear();startedAt=now();txBucket=0;txBucketBytes=0;bandwidthSkippedBuckets=0;
     if(!keepConnections){connectionAttempts=0;connectionSuccesses=0;turnCandidateClassifiedConnections=0;turnRelayConnections=0;opened=new WeakSet();}
     return true;
   }
   function snapshot(){advanceTxBuckets();return structuredClone({...raw,durationMinutes:Math.max(0,(now()-startedAt)/60000),bandwidthSkippedBuckets,connectionAttempts,connectionSuccesses,connectedPeers:connectionSuccesses,turnCandidateClassifiedConnections,turnRelayConnections,pendingInputs:inputStarted.size,pendingDisplayInputs:acknowledgedInputs.size,pendingCanon:canonStarted.size});}
-  return{recordSend,inputSent,inputAborted,inputAcknowledged,inputDisplayed,recordInputToDisplay,canonIntent,canonCommitted,canonAborted,connectionAttempt,connectionOpen,recordStateFreshness,recordPositionError,recordRollback,recordFrame,recordGpu,recordMemory,recordBatteryRate,recordHostLossDetection,recordHostReopen,resetWindow,snapshot};
+  return{recordSend,inputSent,inputAborted,inputAcknowledged,inputDisplayed,recordInputToDisplay,canonIntent,canonCommitted,canonAborted,connectionAttempt,connectionOpen,recordStateFreshness,recordPositionError,recordRollback,recordFrame,recordGpu,recordMemory,recordBatteryRate,recordHostLossDetection,recordHostReopen,recordSemanticCommit,resetWindow,snapshot};
 }
