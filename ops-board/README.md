@@ -111,3 +111,8 @@ PULSEのUI・browser fixture・テスト・公開前検証は、別々に文言�
 - `scripts/validate.mjs dev` はPULSE関連pathを検出した場合にこのpreflightを必須実行する。
 - `.github/workflows/ops-board.yml` の公開前verificationも同じpreflightを実行し、merge前と公開前で異なる検証手順を持たない。
 - PULSE関連変更はpreflightが通らないheadをReady/mergeしない。main/Production品質gateは変更しない。
+
+
+### Environment target identity
+
+PULSEのapp target検証は配列indexを環境の意味として扱わない。`dev-fast` などのtarget追加・並び替えに耐えるため、DEV/STAGING/Productionは `target.environment` / target idで解決する。公開manifestの環境契約とUI表示順を混同しない。
