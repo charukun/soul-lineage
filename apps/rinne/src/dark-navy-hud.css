@@ -200,7 +200,7 @@
 .rinne-gameplay-upgrade .upgrade-panel{
   left:max(8px,env(safe-area-inset-left))!important;
   right:max(8px,env(safe-area-inset-right))!important;
-  bottom:max(8px,env(safe-area-inset-bottom))!important;
+  bottom:max(82px,calc(env(safe-area-inset-bottom) + 78px))!important;
   width:auto!important;max-width:540px!important;margin-inline:auto!important;
   max-height:min(70dvh,620px)!important;
   border:1px solid var(--rinne-gold)!important;border-radius:12px!important;clip-path:none!important;
@@ -423,7 +423,7 @@
 .upgrade-panel[data-type="record"] .record-inheritance-brief b{color:var(--rinne-gold-hi)!important}
 
 /* Combat-only information stays secondary. */
-.combat-phase-indicator[hidden]{display:none!important}
+.game-screen[data-gameplay-upgrade] .combat-phase-indicator[hidden]{display:none!important}
 .combat-phase-indicator{
   border:1px solid var(--rinne-line)!important;border-radius:999px!important;clip-path:none!important;
   background:rgba(6,19,33,.92)!important;color:var(--rinne-muted)!important;box-shadow:0 4px 10px rgba(0,0,0,.28)!important;
