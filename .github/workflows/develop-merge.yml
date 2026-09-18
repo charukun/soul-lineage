@@ -7,7 +7,7 @@ on:
         type: string
         required: false
         default: ''
-      integration_cursor:
+      merge_cursor:
         description: 'legacy compatibility input; Fast Lane does not maintain a queue cursor'
         type: string
         required: false
@@ -250,5 +250,5 @@ jobs:
               ...context.repo,
               workflow_id: 'deploy.yml',
               ref: 'develop',
-              inputs: { rescue_mode: 'scan', integration_cursor: '0' },
+              inputs: { rescue_mode: 'scan', merge_cursor: '0' },
             });
