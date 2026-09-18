@@ -1,0 +1,76 @@
+{
+  "format": "rrp-convergence-runtime-shadow-evidence-v1",
+  "branch": "work/rrp-convergence-semantic-kernel-20260918",
+  "authoringEnvironment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "arch": "x64",
+    "workspace": "isolated repository-like workspace; no full checkout"
+  },
+  "executed": {
+    "semanticShadowFocused": {
+      "command": "node --test apps/rinne/tests/semantic-shadow.test.mjs",
+      "passed": 10,
+      "failed": 0,
+      "scope": [
+        "warm durable baseline",
+        "replaceable-state exclusion",
+        "life seal",
+        "rebirth",
+        "post-start epoch transition",
+        "guest birth",
+        "lineage divergence",
+        "history-sequence divergence",
+        "combat-ended seal",
+        "shadow failure isolation and raw byte capture"
+      ]
+    },
+    "syntax": {
+      "passed": true,
+      "files": [
+        "apps/rinne/src/coop/semantic-shadow.js",
+        "apps/rinne/src/coop/checkpoint-writer.js",
+        "apps/rinne/src/coop/performance.js",
+        "apps/rinne/tests/semantic-shadow.test.mjs"
+      ]
+    },
+    "isolatedHistoryContract": {
+      "passed": 2,
+      "failed": 0,
+      "description": "Exact current history.js body with only LIFE_SECONDS, validateLife and lineageRecord stubbed: early combat end seals and stays immutable; a living life at lifespan boundary is rejected."
+    },
+    "normalGit": {
+      "passed": false,
+      "reason": "github.com DNS resolution failed in the container"
+    }
+  },
+  "exactGitBlobs": {
+    "apps/rinne/src/coop/semantic-shadow.js": "92189c58b83cd0c9e455eec686f09b6fdbc64504",
+    "apps/rinne/src/coop/checkpoint-writer.js": "67dd4728f2f5f0807c581a7c88762b454ead72ea",
+    "apps/rinne/src/coop/session.js": "be0205774e84302fcd4f6bfdf259e1833ca51562",
+    "apps/rinne/src/coop/performance.js": "cea5fcb9ee8c9f2ff82a532d8fa18fe6b83fc7c2",
+    "apps/rinne/src/coop/history.js": "43ad74796ea362888d9046c56e44b58cc8799974",
+    "apps/rinne/tests/semantic-shadow.test.mjs": "275bf59e2be59b4eef8053ed9aec654a5013bd7f",
+    "apps/rinne/tests/coop-history.test.mjs": "23dfcabe40ff2668f9476a302584b1704cb64506",
+    "apps/rinne/scripts/rrp-convergence/shadow-extractor.mjs": "20ab533e64c419fdaa6d076c8014dccd722e8857",
+    "apps/rinne/tests/reality-convergence-compaction-extractor.test.mjs": "f9e2d7b48aa62bb4b6a8bee73ffd2c3ecec83760"
+  },
+  "separation": {
+    "authoritative": "existing coop-v2 checkpoint/history store",
+    "shadow": "in-memory semantic journal and diagnostics only",
+    "onDivergence": "record semanticError; do not fail an already successful authoritative save",
+    "performance": "raw capture receives checkpointBytes, journalBytes, eventCount and historyEffects"
+  },
+  "runtimeBugRepair": {
+    "preChange": "co-op structural history accepted ended iff ageSeconds === LIFE_SECONDS",
+    "reachableSource": "shared combat calls endLifeEarly through combat-core/combat-evolution-runtime from CoopWorld.advance",
+    "branchRepair": "ended requires phase=ended; living requires ageSeconds<LIFE_SECONDS; early combat death can emit life-ended and rebirth from its committed predecessor"
+  },
+  "notExecuted": [
+    "full apps/rinne/tests/coop-history.test.mjs against the workspace package graph",
+    "updated full 37-test convergence proof bundle after extractor changes",
+    "context:plan/npm ci/repository-wide Node 24 gates",
+    "browser/WebRTC/physical-device matched baseline experiment"
+  ],
+  "evidenceClass": "B finite local runtime-shadow evidence; physical superiority remains E and restart-spanning shadow recovery remains F"
+}
