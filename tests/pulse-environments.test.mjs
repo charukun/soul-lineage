@@ -6,49 +6,52 @@ import { missingEnvironmentEntries, retainPinnedEntries } from '../scripts/envir
 
 const entry = (app, environment, commit = 'published') => ({ app, environment, path: `${environment}/${app}`, legacy: false, version: { commit, name: 'old title' } });
 const games = manifest => buildApplications(manifest).filter(app => app.kind === 'game');
+const target = (app, environment) => app.targets.find(item => item.environment === environment);
+const releaseTargets = app => ['dev', 'staging', 'prod'].map(environment => target(app, environment));
 
 test('every current game remains visible with development, staging and production, including absent entries', () => {
   const apps = games({ entries: [] });
   assert.equal(apps.length, 3);
   for (const app of apps) {
-    assert.deepEqual(app.targets.map(t => t.environment), ['dev', 'staging', 'prod']);
-    assert.deepEqual(app.targets.map(t => t.label), ['開発', '検証', '本番']);
-    assert.ok(app.targets.every(t => t.state === 'missing' && t.url === null && t.commit === null));
+    const targets = releaseTargets(app);
+    assert.deepEqual(targets.map(t => t.environment), ['dev', 'staging', 'prod']);
+    assert.deepEqual(targets.map(t => t.label), ['開発', '検証', '本番']);
+    assert.ok(targets.every(t => t.state === 'missing' && t.url === null && t.commit === null));
   }
 });
 test('the current metadata wins over an old deployed title, without changing its deployed SHA', () => {
   const app = games({ entries: [entry('demon', 'dev', 'old-sha')] }).find(app => app.id === 'demon');
   assert.equal(app.name, '尽喰廻遊');
-  assert.equal(app.targets[0].commit, 'old-sha');
-  assert.equal(app.targets[0].publishedName, 'old title');
+  assert.equal(target(app, 'dev').commit, 'old-sha');
+  assert.equal(target(app, 'dev').publishedName, 'old title');
 });
 test('staging URL and deployment date are independent from dev/prod', () => {
   const staging = { ...entry('demon', 'staging', 'staged'), deployedAt: '2026-09-12T09:00:00Z' };
   const app = games({ entries: [entry('demon', 'dev'), staging] }).find(a => a.id === 'demon');
-  assert.equal(app.targets[1].url, 'https://charukun.github.io/soul-lineage/staging/demon/');
-  assert.equal(app.targets[1].commit, 'staged');
-  assert.equal(app.targets[1].deployedAt, staging.deployedAt);
-  assert.equal(app.targets[2].state, 'missing');
+  assert.equal(target(app, 'staging').url, 'https://charukun.github.io/soul-lineage/staging/demon/');
+  assert.equal(target(app, 'staging').commit, 'staged');
+  assert.equal(target(app, 'staging').deployedAt, staging.deployedAt);
+  assert.equal(target(app, 'prod').state, 'missing');
 });
 test('legacy production path remains the exact published route', () => {
   const app = games({ entries: [{ ...entry('rinne', 'prod'), path: 'prod', legacy: true }] }).find(a => a.id === 'rinne');
-  assert.equal(app.targets[2].url, 'https://charukun.github.io/soul-lineage/prod/');
+  assert.equal(target(app, 'prod').url, 'https://charukun.github.io/soul-lineage/prod/');
 });
 test('ambiguous, cross-environment and external paths never become active links', () => {
   for (const entries of [[entry('demon', 'dev'), entry('demon', 'dev')],
     [{ ...entry('demon', 'dev'), path: 'prod/demon' }],
     [{ ...entry('demon', 'dev'), path: '//outside.invalid' }],
     [{ ...entry('demon', 'dev'), version: {} }]]) {
-    const target = games({ entries }).find(a => a.id === 'demon').targets[0];
-    assert.equal(target.state, 'unknown');
-    assert.equal(target.url, null);
+    const dev = target(games({ entries }).find(a => a.id === 'demon'), 'dev');
+    assert.equal(dev.state, 'unknown');
+    assert.equal(dev.url, null);
   }
 });
 test('new manifest games also receive the same three-environment matrix', () => {
   const app = games({ entries: [entry('future-game', 'dev')] }).find(a => a.id === 'future-game');
-  assert.equal(app.targets.length, 3);
-  assert.equal(app.targets[1].state, 'missing');
-  assert.equal(app.targets[2].state, 'missing');
+  assert.equal(releaseTargets(app).length, 3);
+  assert.equal(target(app, 'staging').state, 'missing');
+  assert.equal(target(app, 'prod').state, 'missing');
 });
 test('only the requested game set is authorized for missing-environment initialization', () => {
   const previous = [{ ...entry('rinne', 'prod', 'legacy'), path: 'prod', files: [{ path: 'index.html' }] }];

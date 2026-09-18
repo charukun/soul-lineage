@@ -9,6 +9,36 @@ const EFFECT_LABELS=Object.freeze({damage:'威力',mitigation:'守り',evasion:'
 const GRID_PAGE_SIZE=10;
 const haptic=pattern=>{try{globalThis.navigator?.vibrate?.(pattern);}catch{}};
 
+const SIGIL_PATHS=Object.freeze({
+  breath:'<path d="M5 10c3-4 7-4 10-1M4 14c4-3 9-2 12 0M7 18c3-2 6-1 8 0"/>',
+  eye:'<path d="M3 12c4-6 14-6 18 0-4 6-14 6-18 0Z"/><circle cx="12" cy="12" r="2.2"/>',
+  guard:'<path d="M12 3 19 6v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3Z"/><path d="M8.5 12h7"/>',
+  step:'<path d="M7 18c2-1 3-3 4-6l2-6c.7-2 3-1.5 3 .5 0 3-1 6-2 8 2 0 4 .5 5 1.5-3 3-7 4-12 2Z"/>',
+  focus:'<circle cx="12" cy="12" r="3"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>',
+  blade:'<path d="M5 19 18 5l1-2 2 2-2 1L6 20 5 19Z"/><path d="m8 16 2 2M6 20l-2 1 1-2"/>',
+  flow:'<path d="M6 8c2-3 7-4 10-2 2 1 3 3 3 5M18 16c-2 3-7 4-10 2-2-1-3-3-3-5"/><path d="m16 5 3 1-1 3M8 19l-3-1 1-3"/>',
+  heal:'<path d="M12 20v-7M12 13c-4 0-6-2-6-6 4 0 6 2 6 6ZM12 16c4 0 6-2 6-6-4 0-6 2-6 6Z"/>',
+  stance:'<circle cx="12" cy="6" r="2"/><path d="M12 8v5M7 11l5 2 5-2M9 20l3-7 3 7"/>',
+  empty:'<path d="M7 12h10M12 7v10"/>'
+});
+function sigilKind(id,effects={}){
+  const key=String(id||'');
+  if(/breath|calm|recovery/.test(key))return'breath';
+  if(/observe|read|danger|peripheral|weapon-eye/.test(key))return'eye';
+  if(/guard|balance|fall|endure|resolve/.test(key))return'guard';
+  if(/step|trail|distance|lunge|slip|circle/.test(key))return'step';
+  if(/focus|center|precision|tempo|poise/.test(key))return'focus';
+  if(/edge|grip|counter|finish|crash|draw|basic\.(sword|dagger|great|spear|axe)/.test(key))return'blade';
+  if(/flow|rhythm|repeat|adapt|copy-form/.test(key))return'flow';
+  if(/care|heal/.test(key)||Number(effects.recovery)>0)return'heal';
+  if(key)return Number(effects.damage)>Number(effects.mitigation)?'blade':Number(effects.evasion)>0?'step':'flow';
+  return'empty';
+}
+function sigilMarkup(kind='empty'){
+  const safe=SIGIL_PATHS[kind]?kind:'empty';
+  return `<i class="skill-sigil" data-sigil="${safe}" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false">${SIGIL_PATHS[safe]}</svg></i>`;
+}
+
 function effectSummary(id){
   const effects=SKILL_BY_ID[id]?.effects||{},labels=[];
   for(const [key,label] of Object.entries(EFFECT_LABELS))if(Number(effects[key])>0)labels.push(`${label}↑`);
@@ -41,14 +71,14 @@ function pageRows(model,key,rows,rerender){
   model.pages[key]=current;
   return{rows:rows.slice(current*GRID_PAGE_SIZE,current*GRID_PAGE_SIZE+GRID_PAGE_SIZE),pager:pager(model,key,rows.length,rerender)};
 }
-function slot(label,value,{selected=false,empty=false,onClick}={}){
+function slot(label,value,{selected=false,empty=false,icon='empty',onClick}={}){
   const button=document.createElement('button');button.type='button';button.className='loadout-slot';button.dataset.selected=String(selected);button.dataset.empty=String(empty);
-  button.innerHTML='<span></span><strong></strong><small></small>';button.querySelector('span').textContent=label;button.querySelector('strong').textContent=value||'空き';button.querySelector('small').textContent=selected?'選択先':'タップして選択';
+  button.innerHTML=sigilMarkup(icon)+'<span></span><strong></strong><small></small>';button.querySelector('span').textContent=label;button.querySelector('strong').textContent=value||'空き';button.querySelector('small').textContent=selected?'選択先':'タップして選択';
   button.onclick=onClick;return button;
 }
-function gridItem(label,meta,{active=false,selected=false,onClick}={}){
+function gridItem(label,meta,{active=false,selected=false,icon='empty',onClick}={}){
   const button=document.createElement('button');button.type='button';button.className='loadout-grid-item';button.dataset.active=String(active);button.dataset.selected=String(selected);
-  button.innerHTML='<strong></strong><small></small>';button.querySelector('strong').textContent=label;button.querySelector('small').textContent=meta||'選択可';button.onclick=onClick;return button;
+  button.innerHTML=sigilMarkup(icon)+'<strong></strong><small></small>';button.querySelector('strong').textContent=label;button.querySelector('small').textContent=meta||'選択可';button.onclick=onClick;return button;
 }
 function gridSection(title,copy){
   const section=document.createElement('section');section.className='loadout-library';section.innerHTML='<header><strong></strong><small></small></header><div class="loadout-grid"></div>';
@@ -64,7 +94,7 @@ function renderHeart(model,focusId=null){
   const slots=topSlotRow();
   for(let i=0;i<HEART_SLOT_COUNT;i++){
     const id=active[i]||null;
-    slots.append(slot(`心${i+1}`,id?techniqueName(id):'空き',{selected:model.heartSlot===i,empty:!id,onClick:()=>{model.heartSlot=i;model.audio.ui();renderHeart(model);}}));
+    slots.append(slot(`心${i+1}`,id?techniqueName(id):'空き',{selected:model.heartSlot===i,empty:!id,icon:sigilKind(id,SKILL_BY_ID[id]?.effects),onClick:()=>{model.heartSlot=i;model.audio.ui();renderHeart(model);}}));
   }
   model.ui.body.append(slots);
   const library=gridSection('習得した心得','選んだ上段スロットへ入れ替える');
@@ -92,7 +122,7 @@ function renderComboContext(model,state,combo){
 }
 function phaseSlot(model,state,combo,phase,label){
   const cell=document.createElement('div');cell.className='loadout-slot-cell';cell.dataset.selected=String(model.techniqueTarget===phase);
-  const button=slot(label,techniqueName(combo.slots[phase]),{selected:model.techniqueTarget===phase,onClick:()=>{model.techniqueTarget=phase;model.audio.ui();renderTechnique(model);}});
+  const activeId=combo.slots[phase];const button=slot(label,techniqueName(activeId),{selected:model.techniqueTarget===phase,icon:sigilKind(activeId,SKILL_BY_ID[activeId]?.effects),onClick:()=>{model.techniqueTarget=phase;model.audio.ui();renderTechnique(model);}});
   const favored=document.createElement('button');favored.type='button';favored.className='slot-favorite';favored.dataset.active=String(Boolean(combo.favored?.[phase]));favored.textContent=combo.favored?.[phase]?'得意技':'得意技にする';favored.onclick=()=>{toggleFavored(state,combo.id,phase);model.audio.ui();haptic(8);renderTechnique(model);};
   cell.append(button,favored);return cell;
 }
@@ -102,16 +132,16 @@ function renderTechnique(model,focusId=null){
   model.ui.title.textContent='技 · 序破急';model.ui.body.innerHTML='';
   model.ui.body.append(intro('三手で連技を組む','上段の序・破・急から編集先を選び、下段の技一覧から差し替える。'),renderComboContext(model,state,combo));
   const slots=topSlotRow();for(const [phase,label] of PHASES)slots.append(phaseSlot(model,state,combo,phase,label));model.ui.body.append(slots);
-  const one=document.createElement('button');one.type='button';one.className='one-motion-card';one.dataset.active=String(model.techniqueTarget==='oneMotion');one.innerHTML='<div><span>手動奥義</span><strong></strong><small>戦闘態勢中のみ · 消耗と隙が大きい</small></div><b>選択</b>';one.querySelector('strong').textContent=state.combatLoadout.technique.oneMotion?techniqueName(state.combatLoadout.technique.oneMotion):'未設定';one.onclick=()=>{model.techniqueTarget='oneMotion';model.audio.ui();renderTechnique(model);};model.ui.body.append(one);
+  const one=document.createElement('button');one.type='button';one.className='one-motion-card';one.dataset.active=String(model.techniqueTarget==='oneMotion');one.innerHTML='<div><span>手動奥義</span><strong></strong><small>戦闘態勢中のみ · 消耗と隙が大きい</small></div><b>選択</b>';one.querySelector('strong').textContent=state.combatLoadout.technique.oneMotion?techniqueName(state.combatLoadout.technique.oneMotion):'未設定';one.onclick=()=>{model.techniqueTarget='oneMotion';model.audio.ui();renderTechnique(model);};
   const ids=learnedTechniqueSkills(state,{oneMotion:model.techniqueTarget==='oneMotion'});
   if(focusId){const index=ids.indexOf(focusId);if(index>=0)model.pages.technique=Math.floor(index/GRID_PAGE_SIZE);}
   const library=gridSection('習得した技',model.techniqueTarget==='oneMotion'?'手動奥義として使う技を選ぶ':`${PHASES.find(([id])=>id===model.techniqueTarget)?.[1]||'序'}へ入れる技を選ぶ`);
   const list=library.querySelector('.loadout-grid'),page=pageRows(model,'technique',ids,()=>renderTechnique(model,focusId));
   for(const id of page.rows){
     const current=model.techniqueTarget==='oneMotion'?state.combatLoadout.technique.oneMotion:combo.slots[model.techniqueTarget]||null;
-    list.append(gridItem(techniqueName(id),effectSummary(id),{active:id===current,selected:id===focusId,onClick:()=>{if(model.techniqueTarget==='oneMotion')setOneMotion(state,id);else setComboSkill(state,combo.id,model.techniqueTarget,id);model.audio.item();haptic(12);renderTechnique(model,id);}}));
+    list.append(gridItem(techniqueName(id),effectSummary(id),{active:id===current,selected:id===focusId,icon:sigilKind(id,SKILL_BY_ID[id]?.effects),onClick:()=>{if(model.techniqueTarget==='oneMotion')setOneMotion(state,id);else setComboSkill(state,combo.id,model.techniqueTarget,id);model.audio.item();haptic(12);renderTechnique(model,id);}}));
   }
-  model.ui.body.append(library);if(page.pager)model.ui.body.append(page.pager);
+  model.ui.body.append(library);if(page.pager)model.ui.body.append(page.pager);model.ui.body.append(one);
 }
 function renderBody(model){
   const state=model.getState();if(!state)return;ensureCombatLoadout(state);model.section='body';model.bodyKind=model.bodyKind||'stance';model.ui.title.textContent='体 · 身法';model.ui.body.innerHTML='';
@@ -119,13 +149,13 @@ function renderBody(model){
   const kinds=[['stance','構え','戦闘態勢の形'],['style','戦法','間合いと動き'],['zanshin','残心','攻撃後の戻り']],slots=topSlotRow();
   for(const [kind,label,meta] of kinds){
     const option=unlockedBodyOptions(state,kind).find(row=>row.id===state.combatLoadout.body[kind]);
-    const button=slot(label,option?.label||'未設定',{selected:model.bodyKind===kind,onClick:()=>{model.bodyKind=kind;model.pages.body=0;model.audio.ui();renderBody(model);}});
+    const button=slot(label,option?.label||'未設定',{selected:model.bodyKind===kind,icon:'stance',onClick:()=>{model.bodyKind=kind;model.pages.body=0;model.audio.ui();renderBody(model);}});
     button.querySelector('small').textContent=model.bodyKind===kind?'選択先':meta;slots.append(button);
   }
   model.ui.body.append(slots);
   const rows=unlockedBodyOptions(state,model.bodyKind),current=state.combatLoadout.body[model.bodyKind],library=gridSection('習得した身体技',kinds.find(([kind])=>kind===model.bodyKind)?.[2]||'選択する');
   const list=library.querySelector('.loadout-grid'),page=pageRows(model,'body',rows,()=>renderBody(model));
-  for(const option of page.rows)list.append(gridItem(option.label,option.description,{active:option.id===current,onClick:()=>{setBodyChoice(state,model.bodyKind,option.id);model.audio.item();haptic(10);renderBody(model);}}));
+  for(const option of page.rows)list.append(gridItem(option.label,option.description,{active:option.id===current,icon:'stance',onClick:()=>{setBodyChoice(state,model.bodyKind,option.id);model.audio.item();haptic(10);renderBody(model);}}));
   model.ui.body.append(library);if(page.pager)model.ui.body.append(page.pager);
 }
 function syncCombat(model,state){

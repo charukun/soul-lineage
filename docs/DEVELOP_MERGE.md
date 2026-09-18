@@ -1,56 +1,30 @@
 # develop merge
 
-## 目的
-
-このRepositoryは個人開発 + AI並列workerを前提とし、develop向けのPR CI・merge queue・Ready handoff・自動repair loopを持たない。
-
-通常経路は次だけとする。
+The normal develop lane is:
 
 ```text
-latest develop
-  -> work branch / PR
-  -> implementation
-  -> affected focused validation
-  -> merge-forward current develop
-  -> affected focused revalidation
-  -> push
-  -> final freshness verify
+implemented + focused validation
+  -> current develop merge-forward
+  -> focused revalidation
+  -> push + freshness verify
   -> Ready
-  -> same-task worker merges exact PR head to develop
-  -> develop push starts DEV publication
+  -> same-task exact-head merge to develop
+  -> asynchronous DEV publication
 ```
 
-## merge前の条件
+## Merge conditions
 
-同じ実装workerはmerge直前にcurrent GitHub stateを再取得し、次を確認する。
+Immediately before merge, confirm:
 
-- PRがopen / non-Draft / base=`develop`
-- same repository
-- `merge:hold` / `merge:manual` / `do-not-merge` / `Merge-Hold:` がない
-- `Depends-On` が完了している
-- current developをwork branchへ取り込み済み
-- reconciled headで必要なfocused validationが成功している
-- PR headが検証したexact headから動いていない
-- merge直前にdevelopが進んでいない
+- PR is open, non-Draft, same repository, base=`develop`
+- no explicit hold / manual-merge marker / unresolved blocking dependency
+- current `develop` is included in the validated work head
+- affected focused validation passed on that reconciled head
+- PR head still equals the validated exact head
+- `develop` did not advance after freshness verification
 
-developまたはPR headが動いていた場合はmergeせず、最新developを再reconcileして必要なfocused validationをやり直す。
+If head or `develop` moved, reconcile and revalidate instead of merging stale work.
 
-## GitHub Actions
+Develop PR CI is not a waiting stage. DEV publication starts from the merged `develop` push and is asynchronous.
 
-develop向けPRイベントではCIを起動しない。PR更新・Ready化・review状態変更を起点にbranchを自動更新するworkflowも置かない。
-
-これにより、
-`PR更新 -> CI -> repair/reconcile -> branch更新 -> CI再発火`
-という循環経路を構造的に持たない。
-
-## DEV publication
-
-developへmergeされた後のpushを起点としてDEV publicationを実行する。DEV公開はPR mergeの前提条件ではない。
-
-DEVでは「developへmergeされた変更を公開する」ことを優先する。DEV publisher自体のbuild/publish失敗は公開失敗として扱うが、公開後のHTTP・version・exact-source確認は診断であり、DEV公開成功を取り消すblocking gateにしない。診断不一致だけを理由にLast Known Goodへ巻き戻さない。
-
-公開後診断は、反映遅延・キャッシュ・配信先不一致などの観測材料として残してよい。Productionのblocking verification契約は別であり、このDEV緩和を適用しない。
-
-## main / Production
-
-main / ProductionのCI・blocking test・browser verification・公開gateは変更しない。Productionへの変更は明示許可時のみ。
+`main` / Production keeps its existing blocking quality gates and requires explicit permission.

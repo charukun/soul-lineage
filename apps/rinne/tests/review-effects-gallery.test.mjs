@@ -65,7 +65,11 @@ test('existing playback review controls stay available as secondary tools',()=>{
     assert.match(html,new RegExp(`id="${id}"`));
   }
   assert.match(html,/<details class="controls">/);
-  assert.match(html,/<input id="fx-loop" type="checkbox" checked>/);
+  assert.match(html,/<input id="fx-loop" type="checkbox" checked autocomplete="off">/);
+  assert.match(js,/const loopToggle=q\('fx-loop'\)/);
+  assert.match(js,/const ensureLoopDefaultOn=\(\)=>\{loopToggle\.checked=true;\}/);
+  assert.match(js,/window\.addEventListener\('pageshow',ensureLoopDefaultOn\)/);
+  assert.match(js,/if\(loopToggle\.checked&&now-lastTrigger>/);
   assert.match(js,/createAuthoredEffectPlayer/);
   assert.match(js,/createEffekseerBackend/);
   assert.match(js,/player\.present\(eventsFor\(preset\)/);
