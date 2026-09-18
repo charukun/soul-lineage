@@ -1,6 +1,5 @@
 name: Visual Review Preview
-# Dedicated review-only deployment; does not target develop, main, DEV, or Production.
-# Fast-path policy: build and publish only. Human visual review happens on the target device.
+# Dedicated review-only deployment. The published Lab always builds the current develop source of truth.
 
 on:
   push:
@@ -18,7 +17,7 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Mark Review Lab deployment pending
         env:
@@ -29,14 +28,46 @@ jobs:
             -f context=visual-review/public \
             -f description="Visual Review Lab deployment is running" \
             -f target_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-      - uses: actions/checkout@v6
+
+      - name: Checkout current develop
+        uses: actions/checkout@v6
+        with:
+          ref: develop
+          fetch-depth: 1
+          persist-credentials: false
+
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: npm
+
       - run: npm ci
-      - run: npm run build:review
-      - name: Deploy static Review Lab to Cloudflare Workers
+
+      - name: Build current RINNE review surfaces
+        run: |
+          npm run build:rinne
+          test -f dist/rinne/review.html
+          test -f dist/rinne/review-battle.html
+          grep -q 'Rogue' dist/rinne/review-battle.html
+          grep -q 'Knight' dist/rinne/review-battle.html
+          cp dist/rinne/index.html dist/rinne/game.html
+          cp dist/rinne/review.html dist/rinne/index.html
+          git rev-parse HEAD > dist/rinne/review-source.txt
+
+      - name: Prepare Review Lab worker config
+        run: |
+          cat > wrangler.review.jsonc <<'JSON'
+          {
+            "name": "rinne-visual-review",
+            "compatibility_date": "2026-09-12",
+            "workers_dev": true,
+            "assets": {
+              "directory": "./dist/rinne"
+            }
+          }
+          JSON
+
+      - name: Deploy current develop to Visual Review Lab
         id: deploy
         if: vars.REVIEW_PREVIEW_ENABLED == 'true'
         env:
@@ -45,22 +76,32 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
-          npx --yes wrangler@4 deploy --config wrangler.review.jsonc | tee "$RUNNER_TEMP/review-deploy.log"
-          node scripts/review-deployment-url.mjs "$RUNNER_TEMP/review-deploy.log"
+          npx --yes wrangler@4 deploy --config wrangler.review.jsonc
+
+      - name: Verify exact Review Lab source
+        id: verify
+        if: steps.deploy.outcome == 'success'
+        run: |
+          expected="$(git rev-parse HEAD)"
+          actual="$(curl -fsSL --retry 3 --retry-delay 2 https://rinne-visual-review.c-okamoto.workers.dev/review-source.txt | tr -d '\r\n')"
+          test "$actual" = "$expected"
+          curl -fsSL --retry 3 --retry-delay 2 https://rinne-visual-review.c-okamoto.workers.dev/review-battle.html | grep -q 'Rogue'
+          echo "source_sha=$actual" >> "$GITHUB_OUTPUT"
+
       - name: Record Review Lab result
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
-          REVIEW_PUBLIC_URL: ${{ steps.deploy.outputs.url }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
         run: |
           state=failure
           description="Visual Review Lab deployment failed"
           target_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          if [ "$DEPLOY_OUTCOME" = "success" ] && [ -n "$REVIEW_PUBLIC_URL" ]; then
+          if [ "$DEPLOY_OUTCOME" = "success" ] && [ "$VERIFY_OUTCOME" = "success" ]; then
             state=success
-            description="Visual Review Lab is live"
-            target_url="$REVIEW_PUBLIC_URL"
+            description="Visual Review Lab is live from current develop"
+            target_url="https://rinne-visual-review.c-okamoto.workers.dev/"
           fi
           gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
             -f state="$state" \
