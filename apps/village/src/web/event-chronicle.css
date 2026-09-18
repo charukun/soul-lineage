@@ -26,7 +26,7 @@
 
 #muraChronicle{
  position:fixed;right:8px;top:calc(max(7px,env(safe-area-inset-top)) + 50px);z-index:34;
- width:min(380px,calc(100vw - 16px));max-height:min(64dvh,620px);display:flex;flex-direction:column;
+ width:min(380px,calc(100vw - 16px));height:min(390px,46dvh);min-height:300px;display:flex;flex-direction:column;overflow:hidden;
  border:1px solid #806947;background-color:var(--village-canvas);
  background-image:var(--village-fibre),linear-gradient(145deg,#f2e7cf,#d1bd99);
  box-shadow:inset 0 0 0 3px rgba(255,248,226,.28),0 3px 0 #65513b,0 18px 42px rgba(31,45,32,.25);
@@ -41,24 +41,29 @@
 .muraChronicleHeader small{display:block;font-size:8px;letter-spacing:.14em;opacity:.58}
 .muraChronicleHeader h2{margin:2px 0 0;font:600 16px/1.2 "Yu Mincho","Hiragino Mincho ProN",serif;letter-spacing:.06em}
 .muraChronicleCount{font-size:9px;opacity:.62;white-space:nowrap}
-.muraChronicleClose{width:36px;height:36px;min-height:36px;padding:0;border-radius:3px;font-size:18px}
-.muraChronicleList{overflow:auto;overscroll-behavior:contain;padding:2px 11px 9px;scrollbar-width:thin;touch-action:pan-y}
-.muraChronicleEntry{padding:9px 8px 8px;border-bottom:1px solid rgba(104,81,52,.24);box-shadow:none;background:none}
+.muraChronicleClose{width:36px;height:36px;min-height:36px;padding:0;border-radius:0;clip-path:polygon(50% 0,86% 12%,100% 50%,86% 88%,50% 100%,14% 88%,0 50%,14% 12%);font-size:18px}
+.muraChronicleList{display:grid;grid-template-rows:repeat(4,minmax(0,1fr));min-height:0;overflow:hidden;padding:2px 11px 3px;touch-action:manipulation}
+.muraChronicleEntry{min-height:0;padding:7px 8px 6px;border-bottom:1px dashed rgba(104,81,52,.24);box-shadow:none;background:none;overflow:hidden}
 .muraChronicleEntry[data-priority="critical"]{box-shadow:inset 3px 0 #8b5549;padding-left:11px}
-.muraChronicleEntry small{display:block;font-size:9px;line-height:1.35;opacity:.56}
-.muraChronicleEntry p{margin:4px 0 0;font-size:11px;line-height:1.55}
-.muraChronicleEmpty{margin:0;padding:18px 9px 20px;font-size:11px;line-height:1.7;opacity:.64}
+.muraChronicleEntry small{display:block;font-size:8.5px;line-height:1.25;opacity:.56}
+.muraChronicleEntry p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin:3px 0 0;font-size:10.5px;line-height:1.35}
+.muraChronicleEmpty{grid-row:1/-1;align-self:center;margin:0;padding:18px 9px 20px;font-size:11px;line-height:1.7;text-align:center;opacity:.64}
+.muraChroniclePager{display:flex;align-items:center;justify-content:center;gap:10px;min-height:38px;border-top:1px dashed rgba(104,81,52,.26)}
+.muraChroniclePager[hidden]{display:none}
+.muraChroniclePager button{width:42px;height:36px;min-height:36px;padding:0;border:0;border-radius:0;background:none;box-shadow:none;font-size:20px;line-height:1;color:#515b49;transform:none}
+.muraChroniclePager button:disabled{opacity:.24}.muraChroniclePager button:active:not(:disabled){transform:translateY(1px)}
+.muraChroniclePageDots{min-width:62px;text-align:center;color:#806d4f;font-size:7px;letter-spacing:.18em}
 
 body.mura-entry-open :is(#muraEventTicker,#muraChronicle){visibility:hidden;pointer-events:none}
 
 @media(max-width:600px){
  #muraEventTicker{width:calc(100vw - 16px);bottom:max(66px,calc(env(safe-area-inset-bottom) + 56px));padding:6px 10px;gap:8px}
- #muraChronicle{right:6px;top:calc(max(6px,env(safe-area-inset-top)) + 49px);width:calc(100vw - 12px);max-height:48dvh}
+ #muraChronicle{right:6px;top:calc(max(6px,env(safe-area-inset-top)) + 49px);width:calc(100vw - 12px);height:min(330px,40dvh);min-height:286px}
  .muraChronicleHeader{min-height:52px;padding-left:11px}
  .muraChronicleList{padding-left:8px;padding-right:8px}
 }
 @media(max-height:500px){
- #muraChronicle{top:56px;max-height:calc(100dvh - 126px);width:min(360px,calc(100vw - 16px))}
+ #muraChronicle{top:56px;height:calc(100dvh - 126px);min-height:220px;width:min(360px,calc(100vw - 16px))}
  #muraEventTicker{bottom:12px;width:min(440px,calc(100vw - 150px));left:calc(50% + 55px)}
 }
 @media(prefers-reduced-motion:reduce){#muraEventTicker,#muraChronicle{transition:none;animation:none}}
