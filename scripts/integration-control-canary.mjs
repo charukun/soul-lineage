@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 
 export const CANARY_CONTEXT = 'integration/canary';
-export const NOTIFICATION_CONTEXT = 'notification/ntfy';
+export const NOTIFICATION_CONTEXT = 'notification/dev-email';
 
 export function evaluateCanary({ sha, manifest, pulse, statuses = [] }) {
   const latest = new Map();
@@ -50,7 +50,7 @@ async function main() {
       state: result.ok ? 'success' : 'failure',
       context: CANARY_CONTEXT,
       description: result.ok
-        ? result.advisory.notification ? 'Ready/Merge/DEV/PULSE evidence is coherent' : 'Ready/Merge/DEV/PULSE coherent; notification unconfirmed'
+        ? result.advisory.notification ? 'DEV/PULSE/developer email evidence is coherent' : 'DEV/PULSE coherent; developer email receipt unconfirmed'
         : `Control-plane canary failed: ${requiredFailures.join(', ')}`.slice(0, 140),
       target_url: `https://github.com/${repository}/actions/runs/${process.env.GITHUB_RUN_ID}`,
     }),
