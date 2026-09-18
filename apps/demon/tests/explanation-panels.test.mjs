@@ -62,3 +62,32 @@ test('locale-safe renderer accepts long Latin copy without depending on Japanese
   assert.match(css, /overflow-wrap:\s*anywhere/);
   assert.match(css, /@media \(max-width: 620px\)/);
 });
+
+
+test('the always-visible hunt objective uses a separate face, progress wing and direct guide entry', () => {
+  const html = read('../index.html');
+  const css = read('../src/web/hunt-flow.css');
+  const flow = read('../src/web/hunt-flow-ui.js');
+  const main = read('../src/web/main.js');
+
+  assert.match(html, /class="objective-depth__stage"/);
+  assert.match(html, /class="objective-depth__face"/);
+  assert.match(html, /id="objective-help"/);
+  assert.match(html, /data-objective-kicker/);
+  assert.match(html, /data-objective-text/);
+
+  assert.match(css, /objective-depth__stage::before/);
+  assert.match(css, /objective-depth__stage::after/);
+  assert.match(css, /objective-depth__face/);
+  assert.match(css, /objective-depth__wing/);
+  assert.match(css, /rotateY\(-7\.5deg\)/);
+  assert.match(css, /translate3d\(15px,13px,-32px\)/);
+  assert.match(css, /min-height:44px/);
+
+  assert.match(flow, /objectiveStage/);
+  assert.match(flow, /objectiveKicker/);
+  assert.match(flow, /objectiveText/);
+  assert.match(flow, /objective-depth__wing/);
+  assert.doesNotMatch(flow, /querySelector\(':scope > small'\)/);
+  assert.match(main, /\$\('objective-help'\)\.onclick = \(\) => safe\(help\)/);
+});
