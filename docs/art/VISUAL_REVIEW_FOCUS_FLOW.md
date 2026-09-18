@@ -15,6 +15,19 @@ Visual Review is a launcher, not a dashboard. The reviewer chooses one thing to 
 - Canonical-source explanations and cross-app contracts remain in repository docs and inside the specialist tools where relevant. The launcher must not front-load them.
 - On mobile, the launcher should fit as a simple single-screen choice surface and the destination page should own the viewport.
 
+## Selection UX
+
+For Visual Review surfaces, primary subject/variant selection should use one consistent pattern whenever the candidate set is enumerable:
+
+- show the current choice in a dedicated selected-value slot;
+- keep the candidate list visible rather than hiding it behind a modal, drawer or dropdown;
+- render candidates as a five-column grid on both desktop and narrow mobile review layouts;
+- selecting a candidate updates the selected-value slot and the inspected subject immediately;
+- keep the selected candidate visually obvious in the grid;
+- reserve compact selects/dropdowns for secondary settings such as playback speed, quality tier, or other scalar/technical controls rather than the primary reviewed subject.
+
+This pattern applies to review choices such as model, effect, equipment/part candidate and comparable visual variants unless a specialist contract requires a different interaction for a concrete reason.
+
 ## App context
 
 App context belongs inside the specialist surface that can actually apply it. Character/Motion may expose their existing context controls. The launcher does not maintain a second global app-context state.
@@ -24,9 +37,9 @@ App context belongs inside the specialist surface that can actually apply it. Ch
 Effects review is a browsing surface before it is a tuning surface. It must stay useful when the effect catalog grows from a handful of authored effects to dozens or hundreds.
 
 - Keep one real runtime preview stage; do not create one WebGL/Effekseer context per catalog card.
-- Present the available review entries as a responsive gallery with fast text search and category filters.
-- Selecting a card must immediately make it active and replay it on the shared stage, so scanning the catalog is a tap/click loop rather than a form workflow.
-- Keep the active card visually obvious and keep the catalog reachable while the stage is visible on desktop and narrow mobile layouts.
+- Present the available review entries as an always-visible five-column grid list. The list must not be hidden behind a picker popup or drawer.
+- Show a dedicated selected-effect slot above the list. Selecting a grid item must immediately update that slot and replay the effect on the shared stage.
+- Keep the selected grid item visually obvious and keep the five-column list reachable while the stage is visible on desktop and narrow mobile layouts.
 - Preserve the existing playback controls (speed, load tier, loop, reduced motion, pause, clear, camera reset) as secondary controls rather than the primary discovery UI.
 - The gallery is source-agnostic UI. This task must not add network discovery, remote importing, or a second VFX source of truth.
 - Cards may expose lightweight review metadata such as category, component count, and authored source label, but must not pretend a static decorative thumbnail is the real effect.
