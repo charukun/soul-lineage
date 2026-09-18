@@ -6,7 +6,6 @@ import {
   deriveControlTower,
   publicationHistoryEntry,
 } from '../ops-board/control-tower.mjs';
-import { deliverControlNotification, notifyControlState } from '../ops-board/control-notify.mjs';
 
 const base = () => ({
   schemaVersion: 2,
@@ -90,39 +89,14 @@ test('bounded history deduplicates states and records DEV publication time/durat
   assert.equal(publicationHistoryEntry(state).publishedAt, '2026-09-17T23:59:00Z');
 });
 
-test('notification transport only sends when the shared decision requests it', async () => {
-  let calls = 0;
-  const request = async (_url, options) => {
-    calls++;
-    assert.match(options.body, /PULSE/);
-    return { ok: true, status: 200 };
-  };
-  assert.equal(await notifyControlState({ controlTower: { notification: { shouldNotify: false } } }, { url: 'https://notify.test/', request }), 'skipped');
-  assert.equal(calls, 0);
-  const state = { controlTower: { notification: { shouldNotify: true, title: 'PULSE 確認が必要', body: 'PULSEで確認が必要です' } } };
-  assert.equal(await notifyControlState(state, { url: 'https://notify.test/', request }), 'ntfy');
-  assert.equal(calls, 1);
-});
-
-test('action notification lease prevents duplicate concurrent delivery paths', async () => {
-  const calls = [];
-  const request = async (url) => {
-    const value = String(url);
-    calls.push(value);
-    if (value.includes('/claim')) return { ok: true, status: 200, json: async () => ({ claimed: true }) };
-    if (value.includes('/complete')) return { ok: true, status: 200, json: async () => ({ accepted: true }) };
-    return { ok: true, status: 200 };
-  };
-  const state = { controlTower: { notification: { shouldNotify: true, key: 'incident:1', title: 'PULSE', body: 'PULSE action' } } };
-  const result = await deliverControlNotification(state, {
-    notificationUrl: 'https://notify.test/',
-    refreshToken: 'refresh-token',
-    request,
-  });
-  assert.equal(result, 'ntfy');
-  assert.equal(calls.filter(value => value === 'https://notify.test/').length, 1);
-  assert.ok(calls.some(value => value.endsWith('/api/action-notification/claim')));
-  assert.ok(calls.some(value => value.endsWith('/api/action-notification/complete')));
+test('PULSE developer attention remains UI-only with no external push transport', () => {
+  const refresh = readFileSync(new URL('../.github/workflows/pulse-refresh.yml', import.meta.url), 'utf8');
+  assert.doesNotMatch(refresh, /NTFY_TOPIC_URL|NTFY_TOKEN|control-notify\.mjs/);
+  const state = base();
+  state.alerts = [{ type: 'branch-diverged', environment: 'prod', tone: 'danger', title: 'Production 系譜確認', detail: 'diverged' }];
+  const control = deriveControlTower(state);
+  assert.equal(control.notification.shouldNotify, true);
+  assert.equal(control.userActionRequired, true);
 });
 
 test('public UI exposes action-first control tower, previous-view delta, flow and publication history', () => {
