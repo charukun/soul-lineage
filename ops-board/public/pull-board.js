@@ -85,7 +85,7 @@ function renderTargetChips(root, pr) {
 }
 
 function row(pr) {
-  const link = el('a', `pull-row${pr.staleDraft && !pr.visualReview ? ' stale-draft' : ''}`);
+  const link = el('a', `pull-row${pr.staleDraft ? ' stale-draft' : ''}`);
   try { if (new URL(pr.url).protocol === 'https:') link.href = pr.url; } catch { /* no unsafe link */ }
   link.target = '_blank'; link.rel = 'noreferrer'; link.dataset.viewKey = `pr:${pr.number}`;
   const top = el('div', 'pull-row-top');
@@ -107,7 +107,7 @@ function row(pr) {
   if (Number.isFinite(date)) { time.dateTime = new Date(date).toISOString(); time.title = ageLabel(Math.max(0, Date.now() - date)); }
   meta.append(targets, el('span', 'pull-number', `#${pr.number}`), time);
   if (pr.monitoringOwner === 'Integration') meta.append(el('span', 'pull-target', 'CI監視: Integration'));
-  if (pr.staleDraft && !pr.visualReview) meta.append(el('span', 'stale-note', 'しばらく更新なし'));
+  if (pr.staleDraft) meta.append(el('span', 'stale-note', 'しばらく更新なし'));
   bottom.append(meta); link.append(top, bottom);
   return link;
 }
@@ -173,9 +173,6 @@ function render(data = {}) {
   } else root.append(rows(items.filter(item => item.state === selectedFilter), `${stateLabel(selectedFilter)}のPRはありません`));
   if (data.truncated) root.append(el('p', 'empty', `取得できた${data.total || items.length}件を表示しています。未取得の履歴があります。`));
   if (data.targetLookup?.pending || data.targetLookup?.unavailable) root.append(el('p', 'empty targets-notice', '対象アプリはサーバーで順次確認しています。未取得のPRは取得でき次第更新されます。'));
-  const visual = data.visualReview || [];
-  $('#visual-review-pulls').replaceChildren(rows(visual, 'Visual Review Lab PRなし'));
-  $('#visual-review-section').hidden = visual.length === 0;
 }
 subscribe((state, error) => {
   if (state && !error) render(state.pullRequests || {});

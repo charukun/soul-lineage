@@ -212,13 +212,3 @@ jobs:
       statuses: write
     secrets: inherit
 
-  visual-review:
-    name: Publish Visual Review on explicit Ops Board dispatch
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/develop'
-    uses: ./.github/workflows/review-preview.yml
-    with:
-      source_sha: ${{ inputs.source_sha || github.sha }}
-    permissions:
-      contents: read
-      statuses: write
-    secrets: inherit

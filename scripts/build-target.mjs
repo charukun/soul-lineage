@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { appNode, graph, inputHash } from './workspaces.mjs';
@@ -20,20 +19,11 @@ export function targetInputHash(root,nodes,app,targetId){
   const target=assertBuildableTarget(targetId,app);
   const environment=target.environment||'dev';
   const hash=createHash('sha256').update('distribution-target-v1\0').update(target.id).update('\0').update(inputHash(root,nodes,app,environment));
-  if(target.id==='web-review'){
-    for(const path of ['scripts/build-review.mjs','scripts/prepare-review-assets.mjs']){
-      hash.update('\0').update(path).update('\0').update(readFileSync(resolve(root,path)));
-    }
-  }
   return hash.digest('hex');
 }
 
 export function buildCommandForTarget(app,targetOrId){
   const target=assertBuildableTarget(targetOrId,app);
-  if(target.id==='web-review'){
-    assert.equal(app,'rinne','Visual Review is currently owned by rinne');
-    return Object.freeze({command:npm,args:['run','build:review'],environment:'dev',branch:'develop'});
-  }
   return Object.freeze({command:npm,args:['run','build','--workspace',`@soul/${app}`],environment:target.environment,branch:target.branch});
 }
 

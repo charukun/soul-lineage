@@ -7,7 +7,6 @@ const consumer = (id, label, adapter) => Object.freeze({
 
 export const DISTRIBUTION_TARGETS = Object.freeze([
   Object.freeze({id:'web-dev',label:'Web DEV',kind:'web',status:'buildable',branch:'develop',environment:'dev',artifactFormat:'static-site',publisher:'cloudflare-worker',compatibilityPublisher:'github-pages',adapter:'platform-web',urlTemplate:'https://soul-lineage-{app}-dev.c-okamoto.workers.dev/'}),
-  Object.freeze({id:'web-review',label:'Visual Review',kind:'web-review',status:'buildable',branch:'develop',environment:'dev',artifactFormat:'static-site',publisher:'cloudflare-worker',adapter:'platform-web',apps:Object.freeze(['rinne']),urlTemplate:'https://rinne-visual-review.c-okamoto.workers.dev/'}),
   Object.freeze({id:'web-staging',label:'Web Staging',kind:'web',status:'buildable',branch:'develop',environment:'staging',artifactFormat:'static-site',publisher:'compat-pages',adapter:'platform-web'}),
   Object.freeze({id:'web-prod',label:'Web Production',kind:'web',status:'buildable',branch:'main',environment:'prod',artifactFormat:'static-site',publisher:'compat-pages',adapter:'platform-web'}),
   consumer('steam','Steam','platform-steam'),

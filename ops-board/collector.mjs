@@ -1,6 +1,6 @@
 import { API_HISTORY_PAGE_LIMIT, PAGES_ROOT, REPOSITORY, classifyPull, deploymentQueue, environmentDiff, overallIntegration, parseMergePulls, publishedCommit, reconcileIntegrationQueue, workflowFailure } from './model.mjs';
-import { splitPulls, isVisualReviewPull } from './pulls.mjs';
-import { buildApplications, VISUAL_REVIEW_PUBLIC_URL } from './applications.mjs';
+import { splitPulls } from './pulls.mjs';
+import { buildApplications } from './applications.mjs';
 import { createGithubClient } from './github-client.mjs';
 import { syncPullSnapshot } from './pull-snapshot.mjs';
 import { enrichTargets, actionProblems } from './review-model.mjs';
@@ -75,46 +75,6 @@ async function previewEnvironment(candidate, branches, previous, client) {
     publicStatus, latestRun: runView(latest), source: 'GitHub Actions + commit status' };
   return withHistory(env, prior, client);
 }
-async function visualReviewEnvironment(developSha, previous, client, statusPayload = null) {
-  const prior = (previous?.environments || []).find(env => env.id === 'visual-review');
-  const base = {
-    id: 'visual-review', kind: 'preview', name: 'Visual Review Lab', workflow: 'Visual Review Preview',
-    branch: 'develop', branchCommit: developSha, deployedCommit: null, deployedAt: null,
-    url: VISUAL_REVIEW_PUBLIC_URL, deployState: 'unknown', publicStatus: null, latestRun: null,
-    source: 'exact develop visual-review/public status',
-  };
-  if (!developSha) return prior ? { ...prior, url: VISUAL_REVIEW_PUBLIC_URL, branchCommit: null } : base;
-  if (client.scope === 'public' || !client.deepAllowed) {
-    if (!prior) return base;
-    return {
-      ...prior,
-      branchCommit: developSha,
-      url: VISUAL_REVIEW_PUBLIC_URL,
-      deployState: prior.deployedCommit === developSha ? prior.deployState : 'waiting',
-      source: 'cached exact develop visual-review/public status',
-    };
-  }
-  const data = statusPayload || (await client.get(`/commits/${developSha}/status`, { maxAgeMs: 30_000 })).data;
-  const selected = (data.statuses || []).find(status => status.context === 'visual-review/public') || null;
-  if (!selected) return { ...base, deployState: 'waiting' };
-  const deployState = selected.state === 'success' ? 'success'
-    : selected.state === 'pending' ? 'deploying'
-      : ['failure', 'error'].includes(selected.state) ? 'failed' : 'unknown';
-  const publicStatus = {
-    state: selected.state,
-    context: selected.context,
-    targetUrl: selected.target_url || VISUAL_REVIEW_PUBLIC_URL,
-    updatedAt: selected.updated_at || selected.created_at || null,
-  };
-  return {
-    ...base,
-    deployedCommit: selected.state === 'success' ? developSha : prior?.deployedCommit || null,
-    deployedAt: selected.state === 'success' ? publicStatus.updatedAt : prior?.deployedAt || null,
-    deployState,
-    publicStatus,
-  };
-}
-
 export async function buildState(previous = null, { storage, token = '', fetchImpl = fetch, reason = 'manual' } = {}) {
   const startedAt = stamp();
   const client = createGithubClient({ storage, token, fetchImpl });
@@ -149,14 +109,12 @@ export async function buildState(previous = null, { storage, token = '', fetchIm
       developStatusPayload = (await client.get(`/commits/${developSha}/status`, { maxAgeMs: 30_000 })).data;
     }
     const previews = [];
-    const visualReview = await visualReviewEnvironment(developSha, previous, client, developStatusPayload);
-    if (visualReview) previews.push(visualReview);
     for (const candidate of previewCandidates(runs)) { const env = await previewEnvironment(candidate, branches, previous, client); if (env) previews.push(env); }
     const applications = buildApplications(manifest, [dev, staging, prod, ...previews], runs, { developSha, statuses: developStatusPayload?.statuses || [] });
 
     const integrationRescue = await collectRescue(client, previous?.integrationRescue);
     const plan = integrationRescue?.flowControl?.reconciliation || null;
-    const openPulls = allPulls.filter(pr => pr.state === 'open' && !isVisualReviewPull(pr)).sort((a, b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0));
+    const openPulls = allPulls.filter(pr => pr.state === 'open').sort((a, b) => Date.parse(a.created_at || 0) - Date.parse(b.created_at || 0));
     const baseIntegrationQueue = openPulls.map(pr => classifyPull(pr, runs, developRuns));
     const reconciled = reconcileIntegrationQueue(baseIntegrationQueue, plan, developSha);
     const integrationQueue = reconciled.queue;

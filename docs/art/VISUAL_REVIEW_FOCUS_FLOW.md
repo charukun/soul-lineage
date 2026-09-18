@@ -6,6 +6,11 @@ This interaction contract refines `docs/art/VISUAL_REVIEW.md` without changing m
 
 Visual Review is a launcher, not a dashboard. The reviewer chooses one thing to inspect and immediately enters the dedicated inspection surface.
 
+## Canonical public route
+
+Visual Review Lab has exactly one public DEV route: `https://charukun.github.io/soul-lineage/dev/rinne/review.html` and its sibling review pages under `/dev/rinne/`. Do not publish or advertise a separate Visual Review Worker, preview URL, dedicated public status, or second review deployment lane.
+
+
 ## Direct-launch flow
 
 - `review.html` contains only five primary destinations: Character, Motion, Equipment/Objects, Effects, Battle.

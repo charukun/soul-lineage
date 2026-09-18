@@ -3,7 +3,6 @@ import { distributionPublicUrl } from '../scripts/distribution-targets.mjs';
 
 export const OPS_PUBLIC_URL = 'https://rinne-ops.c-okamoto.workers.dev/';
 export const PORTAL_PUBLIC_URL = 'https://wayfinder-gallery.c-okamoto.workers.dev/';
-export const VISUAL_REVIEW_PUBLIC_URL = 'https://rinne-visual-review.c-okamoto.workers.dev/';
 const PAGES_ROOT = 'https://charukun.github.io/soul-lineage/';
 const environmentIds = new Set(GAME_ENVIRONMENTS.map(env => env.id));
 const validApp = id => typeof id === 'string' && /^[a-z][a-z0-9-]*$/.test(id);
@@ -44,15 +43,15 @@ function fastDevTarget(app,developSha,statuses=[]){
     note:status?'app単位で独立公開':'公開status同期待ち'};
 }
 
-function characterStudioTarget(entries, environmentById, manifest) {
+function rinneDevToolTarget(id,label,path,entries,environmentById,manifest) {
   const definition = GAME_ENVIRONMENTS.find(item => item.id === 'dev');
   const rinneDev = targetFor('rinne', definition, entries, environmentById.get('dev'), manifest);
   return {
     ...rinneDev,
-    id: 'character-studio',
-    label: 'DEV公開',
-    expectedUrl: `${PAGES_ROOT}dev/rinne/characters.html`,
-    url: rinneDev.url ? new URL('characters.html', rinneDev.url).toString() : null,
+    id,
+    label,
+    expectedUrl: `${PAGES_ROOT}dev/rinne/${path}`,
+    url: rinneDev.url ? new URL(path, rinneDev.url).toString() : null,
     source: '輪廻転焦 DEV 公開manifest',
   };
 }
@@ -68,28 +67,20 @@ export function buildApplications(manifest = {}, environments = [], runs = [], {
 
   groups.set('character-studio', {
     id: 'character-studio', name: 'キャラクター工房', kind: 'tool',
-    targets: [characterStudioTarget(entries, environmentById, manifest)],
+    targets: [rinneDevToolTarget('character-studio','DEV公開','characters.html',entries,environmentById,manifest)],
+  });
+  groups.set('visual-review', {
+    id: 'visual-review', name: 'Visual Review Lab', kind: 'tool',
+    targets: [rinneDevToolTarget('visual-review','DEV公開','review.html',entries,environmentById,manifest)],
   });
 
   for (const env of environments.filter(item => item.kind === 'preview')) {
-    const id = env.id === 'visual-review' ? 'visual-review' : `preview:${env.id}`;
+    const id = `preview:${env.id}`;
     groups.set(id, {
-      id, name: env.id === 'visual-review' ? 'Visual Review Lab' : env.name, kind: 'tool',
+      id, name: env.name, kind: 'tool',
       targets: [{ id: env.id, label: '専用公開', environment: 'preview', state: env.deployState || 'unknown',
         url: env.url || null, commit: env.deployedCommit || null, deployedAt: env.deployedAt || null,
         source: 'GitHub Actions / 公開status' }],
-    });
-  }
-
-  const visual = groups.get('visual-review');
-  if (visual) {
-    visual.targets = visual.targets.map(target => ({ ...target, url: VISUAL_REVIEW_PUBLIC_URL }));
-  } else {
-    groups.set('visual-review', {
-      id: 'visual-review', name: 'Visual Review Lab', kind: 'tool',
-      targets: [{ id: 'visual-review', label: '専用公開', environment: 'preview', state: 'unknown',
-        url: VISUAL_REVIEW_PUBLIC_URL, commit: null, deployedAt: null,
-        source: '固定公開URL / status同期待ち', note: '公開状態の同期前でも固定URLから現在公開中のVisual Reviewを開けます。' }],
     });
   }
 
