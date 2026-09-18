@@ -1,3 +1,4 @@
+// Focused regression coverage for the title/start/progression contract.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
