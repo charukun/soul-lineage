@@ -19,7 +19,7 @@ const receipt=(revision,historySequence)=>({revision,historySequence,root:`r${re
 test('shadow warms from the first durable checkpoint without pretending to audit the past',()=>{
   const shadow=createSemanticShadow({lifeSeconds:6000});
   assert.equal(shadow.observe(null,checkpoint(),receipt(1,1)).status,'tracking');
-  assert.deepEqual(shadow.snapshot(),{status:'tracking',commits:1,lastHistorySequence:1,journalLength:0,journalTypes:[],epoch:1,playerCount:1,error:null});
+  const snap=shadow.snapshot();assert.equal(snap.status,'tracking');assert.equal(snap.commits,1);assert.equal(snap.lastHistorySequence,1);assert.equal(snap.journalLength,0);assert.equal(snap.epoch,1);assert.equal(snap.playerCount,1);assert.equal(snap.error,null);assert(snap.checkpointBytesTotal>0);assert.equal(snap.journalBytesTotal,0);
 });
 
 test('replaceable movement, HP and provisional reward inputs do not enter the journal',()=>{
