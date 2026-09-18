@@ -14,9 +14,11 @@ test('DEV publisher supports explicit bot wakes while ordinary push runs still c
   assert.match(deploy, /push:\n\s+branches: \[develop, main\]/,
     'develop push itself owns DEV publication');
   assert.match(coalescer, /getBranch\(\{ \.\.\.context\.repo, branch: 'develop' \}\)/);
-  assert.match(coalescer, /run\.event === 'push' && run\.head_sha !== latestSha/,
-    'only stale push publishers are cancelled');
+  assert.match(coalescer, /run\.status === 'in_progress'/,
+    'an already-running publisher is explicitly preserved instead of restarted');
+  assert.match(coalescer, /const cancel = queued\.filter\(run => run !== keepQueued\)/,
+    'only redundant queued publishers are cancelled');
   assert.match(coalescer, /cancelWorkflowRun/);
-  assert.doesNotMatch(coalescer, /run\.event === 'workflow_dispatch'/,
-    'Integration and repair workflow_dispatch runs must not be cancelled');
+  assert.match(coalescer, /inputs\.automatic_publish|DEV Publisher \(automatic\)|workflow_dispatch/,
+    'only explicitly automatic workflow_dispatch publishers participate in coalescing');
 });

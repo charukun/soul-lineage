@@ -31,18 +31,20 @@ jobs:
               per_page: 100,
             });
             const active = data.workflow_runs.filter(run => activeStates.has(run.status) && automatic(run));
-            const stale = active.filter(run => run.head_sha !== latestSha);
-            const current = active.filter(run => run.head_sha === latestSha)
-              .sort((a, b) => {
-                const rank = status => status === 'in_progress' ? 0 : status === 'waiting' ? 1 : 2;
-                return rank(a.status) - rank(b.status) || new Date(a.created_at) - new Date(b.created_at);
-              });
-            const duplicate = current.slice(1);
-            const cancel = [...stale, ...duplicate];
+            // Do not kill a publisher that is already building/promoting. Restarting it makes
+            // unrelated later merges delay the DEV version that was already minutes from usable.
+            // Keep at most one running snapshot plus one latest queued snapshot.
+            const running = active.filter(run => run.status === 'in_progress')
+              .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            const queued = active.filter(run => run.status !== 'in_progress');
+            const latestQueued = queued.filter(run => run.head_sha === latestSha)
+              .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            const keepQueued = latestQueued[0] || null;
+            const cancel = queued.filter(run => run !== keepQueued);
             for (const run of cancel) {
-              core.info(`Cancel redundant DEV publisher ${run.id} ${run.head_sha}; latest is ${latestSha}`);
+              core.info(`Cancel queued redundant DEV publisher ${run.id} ${run.head_sha}; running publishers finish, queued latest is ${latestSha}`);
               await github.rest.actions.cancelWorkflowRun({ ...context.repo, run_id: run.id }).catch(error => {
                 if (![409, 422].includes(error.status)) throw error;
               });
             }
-            core.summary.addRaw(`Latest develop: ${latestSha}\nAutomatic publishers scanned: ${active.length}\nCancelled superseded: ${stale.length}\nCancelled same-source duplicates: ${duplicate.length}`).write();
+            core.summary.addRaw(`Latest develop: ${latestSha}\nAutomatic publishers scanned: ${active.length}\nRunning preserved: ${running.length}\nQueued latest preserved: ${keepQueued ? 1 : 0}\nQueued redundant cancelled: ${cancel.length}`).write();
