@@ -57,6 +57,11 @@ test('simple review keeps preview chrome quiet and controls compact', () => {
   assert.match(css, /body\.simple-review \.workshop-secondary-tabs/);
 });
 
+test('character label normalization is idempotent under the review mutation observer', () => {
+  assert.match(entry, /if \(alias && button\.textContent !== alias\) button\.textContent = alias/);
+  assert.doesNotMatch(entry, /if \(alias\) button\.textContent = alias/);
+});
+
 test('restored UX is loaded by the existing workshop entry without adding authority', () => {
   assert.match(entry, /import '\.\/character-workshop-ux\.js'/);
   for (const code of [ux, entry]) {
