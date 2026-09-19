@@ -9,7 +9,7 @@ const cinematicChanged=()=>{
   if(process.env.GITHUB_ACTIONS!=='true')return false;
   try{
     const changed=execFileSync('git',['diff','--name-only','origin/develop','HEAD'],{cwd:root,encoding:'utf8'});
-    return /apps\/rinne\/(index\.html|src\/main\.js|src\/title-rich\.css|src\/title-cinematic-media\.js)/.test(changed);
+    return /apps\/rinne\/(index\.html|src\/main\.js|src\/title-rich\.css|src\/title-cinematic-(media|manifest)\.js)/.test(changed);
   }catch{return false;}
 };
 const browserPath=()=>{
@@ -70,37 +70,45 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
     assert.ok(opening.introTime>0||opening.introReady>=2,'real intro video must be decoding or playing');
     await page.screenshot({path:resolve(evidenceDir,'01-opening-mobile.png'),fullPage:true});
 
-    await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.primaryAction==='ready'&&!document.getElementById('new-life')?.disabled,{timeout:6000});
-    await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('.title-actions')).opacity)>.9,{timeout:5000});
-    const early=await page.evaluate(()=>({
+    await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.skip==='ready',{timeout:6000});
+    const skippable=await page.evaluate(()=>({
       phase:document.getElementById('title-screen')?.dataset.intro,
+      skip:document.getElementById('title-screen')?.dataset.skip,
       actions:Number(getComputedStyle(document.querySelector('.title-actions')).opacity),
       lockup:Number(getComputedStyle(document.querySelector('.title-lockup')).opacity),
       videoTime:document.getElementById('title-cinematic-video')?.currentTime||0,
-      continueDisplay:getComputedStyle(document.getElementById('continue-life')).display,
-      settingsDisplay:getComputedStyle(document.getElementById('open-settings')).display,
+      quality:document.getElementById('title-screen')?.dataset.cinematicQuality,
     }));
-    assert.equal(early.phase,'cinematic');
-    assert.ok(early.actions>.9,'start must become visible while the cinematic is still playing');
-    assert.ok(early.lockup<.12,'the title mark may keep its authored entrance while start is already available');
-    assert.ok(early.videoTime<8.3,'early start must precede the authored cinematic landing');
-    assert.equal(early.continueDisplay,'none');assert.equal(early.settingsDisplay,'none');
-    await page.screenshot({path:resolve(evidenceDir,'02-early-start-mobile.png'),fullPage:true});
+    assert.equal(skippable.phase,'cinematic');
+    assert.equal(skippable.skip,'ready');
+    assert.ok(skippable.actions<.08&&skippable.lockup<.08,'no title controls may steal focus from the movie');
+    assert.ok(skippable.videoTime>=1.35&&skippable.videoTime<8.3,'first viewing must keep playing until the player taps');
+    assert.equal(skippable.quality,'legacy');
+    await page.screenshot({path:resolve(evidenceDir,'02-skippable-mobile.png'),fullPage:true});
 
-    await page.locator('#new-life').click();
-    await page.waitForFunction(()=>document.getElementById('title-screen')?.hidden===true,{timeout:2500});
-    const accepted=await page.evaluate(()=>({
-      screen:document.getElementById('app')?.dataset.screen,
+    await page.mouse.click(206,457);
+    await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.intro!=='cinematic',{timeout:2500});
+    const skipped=await page.evaluate(()=>({
+      phase:document.getElementById('title-screen')?.dataset.intro,
+      skip:document.getElementById('title-screen')?.dataset.skip,
+      videoTime:document.getElementById('title-cinematic-video')?.currentTime||0,
       titleHidden:document.getElementById('title-screen')?.hidden,
-      loadingHidden:document.getElementById('loading-card')?.hidden,
-      loadingTitle:document.getElementById('loading-title')?.textContent,
-      runtime:document.getElementById('game-screen')?.dataset.runtime||'',
     }));
-    assert.equal(accepted.titleHidden,true);
-    assert.ok(accepted.runtime==='active'||accepted.loadingHidden===false,'early start must either enter gameplay or visibly queue the launch');
-    if(accepted.runtime!=='active')assert.equal(accepted.loadingTitle,'旅立ちを準備しています');
-    await page.screenshot({path:resolve(evidenceDir,'03-accepted-mobile.png'),fullPage:true});
-    console.log('RINNE_BROWSER_EVIDENCE',JSON.stringify({opening,early,accepted,evidenceDir}));
+    assert.equal(skipped.titleHidden,false);
+    assert.ok(skipped.phase==='settling'||skipped.phase==='idle');
+    assert.ok(skipped.videoTime>=8.3,'native screen tap must jump to the authored Living Still landing');
+    await page.screenshot({path:resolve(evidenceDir,'03-skipped-mobile.png'),fullPage:true});
+
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.locator('#title-screen').waitFor({state:'visible',timeout:12000});
+    await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.intro==='cinematic'&&document.getElementById('title-screen')?.dataset.skip==='ready',{timeout:3000});
+    const repeat=await page.evaluate(()=>({
+      videoTime:document.getElementById('title-cinematic-video')?.currentTime||0,
+      actions:Number(getComputedStyle(document.querySelector('.title-actions')).opacity),
+    }));
+    assert.ok(repeat.videoTime<1.0,'repeat visits may be skipped immediately but still default to playing');
+    assert.ok(repeat.actions<.08,'repeat viewing must still begin without menu UI');
+    console.log('RINNE_BROWSER_EVIDENCE',JSON.stringify({opening,skippable,skipped,repeat,evidenceDir}));
     await context.close();
   }catch(error){
     console.error('RINNE browser server log tail:\n'+serverLog);
