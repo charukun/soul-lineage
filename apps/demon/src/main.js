@@ -1,6 +1,6 @@
 // Keep service identity explicit without replacing the current in-game title or favicon.
 const serviceEnvironment = __BUILD_INFO__.environment;
-document.title = `尽喰廻遊 | 人間狩りの夜${serviceEnvironment === 'prod' ? '' : ` | ${serviceEnvironment.toUpperCase()}`}`;
+document.title = `喰滅廻遊 | 人間狩りの夜${serviceEnvironment === 'prod' ? '' : ` | ${serviceEnvironment.toUpperCase()}`}`;
 if (!document.querySelector('link[rel="manifest"]')) {
   const manifest = document.createElement('link');
   manifest.rel = 'manifest';

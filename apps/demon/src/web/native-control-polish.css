@@ -1,4 +1,4 @@
-/* Semantic browser controls keep their behavior; 尽喰廻遊 owns every visible pixel. */
+/* Semantic browser controls keep their behavior; 喰滅廻遊 owns every visible pixel. */
 progress,meter,input[type="range"]{-webkit-appearance:none;appearance:none}
 
 #boot progress{

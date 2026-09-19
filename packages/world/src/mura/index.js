@@ -12,12 +12,12 @@ export const initialMuraObjects=()=>[
   {id:'b2',kind:'campfire',x:5,z:8,rot:0,phase:'built',level:1,room:[]},
   {id:'b3',kind:'guardhome',x:12,z:-7,rot:0,phase:'built',level:1,material:'base',room:[]},
 ];
-export function defaultMuraLayout(){return projectMuraLayout({villageId:'local-hoshitsugi',name:'MURAAAAAAA',revision:0,objects:initialMuraObjects()});}
+export function defaultMuraLayout(){return projectMuraLayout({villageId:'local-hoshitsugi',name:'叡智豊満',revision:0,objects:initialMuraObjects()});}
 /** World geometry only: village economy, Rinne lives and demon admission stay owned by their games. */
 export function projectMuraLayout(state){return validateMuraLayout({schemaVersion:MURA_WORLD_SCHEMA,id:state.villageId,name:state.name,terrainId:MURA_TERRAIN_ID,revision:state.revision,units:'metres',coordinateSystem:'right-handed-y-up',objects:state.objects});}
 export function validateMuraLayout(raw){
   const s=structuredClone(raw),finite=(n,lo=-LIMIT,hi=LIMIT)=>typeof n==='number'&&Number.isFinite(n)&&n>=lo&&n<=hi;
-  if(s?.schemaVersion!==1||typeof s.id!=='string'||!s.id||s.id.length>100||s.terrainId!==MURA_TERRAIN_ID||!Number.isSafeInteger(s.revision)||s.revision<0||s.units!=='metres'||s.coordinateSystem!=='right-handed-y-up'||typeof s.name!=='string'||s.name.length>100||!Array.isArray(s.objects)||s.objects.length>2000)throw Error('MURAAAAAAAの共通マップ形式が不正です。');
+  if(s?.schemaVersion!==1||typeof s.id!=='string'||!s.id||s.id.length>100||s.terrainId!==MURA_TERRAIN_ID||!Number.isSafeInteger(s.revision)||s.revision<0||s.units!=='metres'||s.coordinateSystem!=='right-handed-y-up'||typeof s.name!=='string'||s.name.length>100||!Array.isArray(s.objects)||s.objects.length>2000)throw Error('叡智豊満の共通マップ形式が不正です。');
   const ids=new Set();let count=0;
   const objects=(items,inside=false)=>items.map(o=>{
     if(++count>10000||!o||typeof o.id!=='string'||!o.id||o.id.length>100||ids.has(o.id)||!Object.hasOwn(defs,o.kind)||!finite(o.x)||!finite(o.z)||!finite(o.rot,-100,100)||o.level!=null&&(!Number.isInteger(o.level)||o.level<1||o.level>3)||o.phase!=null&&!['built','planned','building'].includes(o.phase)||o.material!=null&&!['base','timber','stone','earth'].includes(o.material))throw Error('建物・家具の配置が不正、または新しいカタログが必要です。');

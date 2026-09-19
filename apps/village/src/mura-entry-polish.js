@@ -9,7 +9,7 @@ function open(){
  ui.entryOpen=true;document.body.classList.add('mura-entry-open');
  const panel=document.createElement('section');panel.id='muraEntry';panel.setAttribute('aria-label','タイトル');
  const pop=world.population();
- panel.innerHTML=`<div id="muraEntryCard"><h2>MURAAAAAAA</h2><p class="muraEntryLead">小さな暮らしを、見守る。</p><div id="muraEntryFacts"><span>${Math.floor(world.state.clock/DAYS_YEAR)+1}年</span><span>${pop.people}人</span></div><button id="muraEnterVillage">村へ入る</button>${village.info.environment!=='prod'?'<button id="muraResetVillage">村を初期化</button>':''}<small class="muraEntryHint">自動保存で、続きから。</small></div>`;
+ panel.innerHTML=`<div id="muraEntryCard"><h2>叡智豊満</h2><p class="muraEntryLead">小さな暮らしを、見守る。</p><div id="muraEntryFacts"><span>${Math.floor(world.state.clock/DAYS_YEAR)+1}年</span><span>${pop.people}人</span></div><button id="muraEnterVillage">村へ入る</button>${village.info.environment!=='prod'?'<button id="muraResetVillage">村を初期化</button>':''}<small class="muraEntryHint">自動保存で、続きから。</small></div>`;
  document.body.append(panel);
  $('muraEnterVillage').onclick=()=>{ui.entryOpen=false;document.body.classList.remove('mura-entry-open');panel.remove();activity();village.view.lastInteraction=performance.now();};
  if($('muraResetVillage'))$('muraResetVillage').onclick=resetConfirm;

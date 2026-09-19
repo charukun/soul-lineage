@@ -3,7 +3,7 @@ import {Story} from './story.js';
 const bounded=(n,min,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=min&&n<=max;
 /** Reject incompatible envelopes without writing over the last playable life. */
 export function readStorySave(raw){
-  if(!raw||raw.version!==1||raw.game!=='rinne-story')throw Error('このファイルは輪廻転焦本編の保存データではありません。');
+  if(!raw||raw.version!==1||raw.game!=='rinne-story')throw Error('このファイルは百年転生本編の保存データではありません。');
   const story=Story.validate(raw.story),r=raw.runtime,l=r?.life;
   if(r?.version!==1||l?.version!==1||!bounded(l.ageSeconds,0,5400)||!bounded(l.worldSeconds,l.ageSeconds,1e12)||!Number.isInteger(l.rate)||!bounded(l.rate,1,20)||l.lives!==story.generation||typeof l.enemiesEnabled!=='boolean')throw Error('年齢と世代の保存状態が一致しません。');
   if(Math.abs(l.worldSeconds-story.bornAt-l.ageSeconds)>.01||Math.abs(l.worldSeconds-story.lastWorld)>.01||(story.phase==='ended')!==(l.ageSeconds>=5400-1e-8))throw Error('本編と世界時計の保存状態が一致しません。');

@@ -123,7 +123,7 @@ function visits() {
   sheet('喰痕', '訪れた夜', rows.length ? rows.map(v => `<div class="visit-row">${esc(v.name)}<span>${({entered:'夜の中', escaped:'帰還', defeated:'死亡', abandoned:'中断', completed:'帰還'})[v.status]}</span></div>`).join('') : '<p>まだ喰痕はない。</p>', 'visits');
 }
 function credits() {
-  sheet('素材と接続状況', '尽喰廻遊', `<p>戦闘は共通Tidebreakの序破急・間合い・接触判定を使用しています。</p><div class="credits">KayKit Dungeon Remastered / Kay Lousberg / CC0<br>floor_tile_small.obj：石畳<br>banner_blue.obj：村門・礼拝所の布<br>家屋：共通ハウジングモデル<br>人間：輪廻転焦共通 production villager model<br>怪物：尽喰廻遊の夜魔モデル<br>描画：Three.js / MIT<br>音：合成音</div><p>この狩りはオフラインの単独プレイです。戦利品と転生史は、このブラウザに保存します。</p><div class="provenance">${esc(__BUILD_INFO__.environment.toUpperCase())} / ${esc(__BUILD_INFO__.commit.slice(0, 12))}<br><a href="${esc(noticesUrl)}" target="_blank" rel="noopener">利用素材とライセンス</a></div>`, 'credits');
+  sheet('素材と接続状況', '喰滅廻遊', `<p>戦闘は共通Tidebreakの序破急・間合い・接触判定を使用しています。</p><div class="credits">KayKit Dungeon Remastered / Kay Lousberg / CC0<br>floor_tile_small.obj：石畳<br>banner_blue.obj：村門・礼拝所の布<br>家屋：共通ハウジングモデル<br>人間：百年転生共通 production villager model<br>怪物：喰滅廻遊の夜魔モデル<br>描画：Three.js / MIT<br>音：合成音</div><p>この狩りはオフラインの単独プレイです。戦利品と転生史は、このブラウザに保存します。</p><div class="provenance">${esc(__BUILD_INFO__.environment.toUpperCase())} / ${esc(__BUILD_INFO__.commit.slice(0, 12))}<br><a href="${esc(noticesUrl)}" target="_blank" rel="noopener">利用素材とライセンス</a></div>`, 'credits');
 }
 function showResult(e) { flow.result(e, game); }
 function toggleReturn() { if (mode !== 'hunt' || game.eaten < 1 || game.devour) return; pauseInput(); returnMode = !returnMode; }

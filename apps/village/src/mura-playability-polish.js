@@ -3,7 +3,7 @@ import {defs,RESOURCE_NAMES,localToWorld,unlocked} from './game/core.js';
 import {ENTRY_SEEN_KEY,feedbackTone,nearestProjectedObject,shouldCelebrate,shouldSkipEntry,tutorialReason} from './web/playability.js';
 
 const village=window.village;
-if(!village)throw new Error('MURAAAAAAA playability polish requires a booted village');
+if(!village)throw new Error('叡智豊満 playability polish requires a booted village');
 const {world,view,ui,sim,activity}=village,$=id=>document.getElementById(id);
 document.body.classList.add('mura-playability-v1');
 

@@ -4,9 +4,9 @@ import { buildApplications, OPS_PUBLIC_URL, PORTAL_PUBLIC_URL } from '../ops-boa
 
 test('published apps are grouped by app with exact manifest paths', () => {
   const manifest = { entries: [
-    { app: 'rinne', environment: 'dev', path: 'dev/rinne', version: { name: '輪廻転焦', commit: 'dev-rinne' } },
-    { app: 'rinne', environment: 'prod', path: 'prod', version: { name: '輪廻転焦', commit: 'prod-rinne' } },
-    { app: 'village', environment: 'dev', path: 'dev/village', version: { name: 'MURAAAAAAA', commit: 'dev-village' } },
+    { app: 'rinne', environment: 'dev', path: 'dev/rinne', version: { name: '百年転生', commit: 'dev-rinne' } },
+    { app: 'rinne', environment: 'prod', path: 'prod', version: { name: '百年転生', commit: 'prod-rinne' } },
+    { app: 'village', environment: 'dev', path: 'dev/village', version: { name: '叡智豊満', commit: 'dev-village' } },
   ] };
   const environments = [
     { id: 'dev', deployState: 'success', deployedAt: '2026-09-12T00:00:00Z' },
@@ -30,7 +30,7 @@ test('character studio is a tool backed by the verified Rinne DEV publication', 
   const manifest = {
     entries: [{
       app: 'rinne', environment: 'dev', path: 'dev/rinne', deployedAt: '2026-09-12T00:03:00Z',
-      version: { name: '輪廻転焦', commit: 'studio-release' },
+      version: { name: '百年転生', commit: 'studio-release' },
     }],
   };
   const apps = buildApplications(manifest, [{ id: 'dev', deployState: 'success' }], []);
@@ -55,7 +55,7 @@ test('character studio is a tool backed by the verified Rinne DEV publication', 
 test('Visual Review is backed only by the Rinne Pages DEV publication', () => {
   const manifest = { entries: [{
     app: 'rinne', environment: 'dev', path: 'dev/rinne', deployedAt: '2026-09-12T00:03:00Z',
-    version: { name: '輪廻転焦', commit: 'review-release' },
+    version: { name: '百年転生', commit: 'review-release' },
   }] };
   const visual = buildApplications(manifest, [{ id: 'dev', deployState: 'success' }], []).find(app => app.id === 'visual-review');
   assert.equal(visual.kind, 'tool');

@@ -17,7 +17,7 @@ Three.js primitives / runtime procedural geometryは確認用の `BLOCKOUT` ま�
 - Character Workshopで固定seedの1 / 6 / 12 / 30体、通常ゲーム距離、変更前後を比較する。検出した重複・干渉・年齢不整合を修正して再確認する。
 - `Character` schema / contentVersion / genome / age / lifecycle / canonical JSONは変更しない。外見は既存データから決定論的に導出し、保存や遺伝の正本に別の乱数や世界時刻を持ち込まない。
 - 既存appearance-parts v1と明示的な外見編集を受け入れる。職業は描画上の衣装・装備へ反映し、AI・戦闘・衝突・装備解禁・生活仕様を変更しない。
-- 合格した共通描画をMURAAAAAAA住民と尽喰廻遊の人間NPCに接続する。近距離モデルの上限、既存軽量LOD / fallbackを維持し、全NPCを重いVRMへ置換しない。
+- 合格した共通描画を叡智豊満住民と喰滅廻遊の人間NPCに接続する。近距離モデルの上限、既存軽量LOD / fallbackを維持し、全NPCを重いVRMへ置換しない。
 - 個体数別のdraw calls / triangles / frame timeと共有資源を計測する。Pixel Fold実機の性能承認とソフトウェアブラウザ測定を混同しない。
 - 必要な局所テスト、実ブラウザ、CI、develop Integration、DEVのsource照合を別々の証跡で記録する。main / Productionは変更しない。
 
@@ -29,7 +29,7 @@ Three.js primitives / runtime procedural geometryは確認用の `BLOCKOUT` ま�
 - Role Appearanceは職業・役割の見た目だけを選び、AI・戦闘・衝突・装備解禁を変更しない。
 - Render Tierは既存`crowdPlan()`の`full / mid / far / hidden`を正本とし、距離や重要度で重い表現を制限する。
 - Production Assetはapp / role / age band / body archetype / render tierで候補を絞り、production manifestとcatalogの状態を尊重する。`BLOCKOUT`参照モデルを完成品として自動採用しない。
-- 輪廻転焦・MURAAAAAAA・尽喰廻遊は同じ人間表現基盤を利用できるが、人物IDそのものをアプリ間で同一人物と仮定しない。
+- 百年転生・叡智豊満・喰滅廻遊は同じ人間表現基盤を利用できるが、人物IDそのものをアプリ間で同一人物と仮定しない。
 
 ## Reference intelligence
 
