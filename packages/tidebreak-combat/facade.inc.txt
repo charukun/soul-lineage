@@ -2,47 +2,139 @@
 for (const k of Object.keys(audio)) if(typeof audio[k]==='function') audio[k]=()=>null;
 prefs.sound=false;prefs.quality=0;showFX=false;world={colliders:[]};
 renderLog=()=>{};updateLiveUI=()=>{};syncPause=()=>{};floating=()=>{};
-// Preserve real impact/contact processing, forward visual events without DOM.
-const impactOriginal=impactAt;
-impactAt=function(x,y,z,yaw,power,guard){ports.onImpact?.({x,y,z,yaw,power,guard});};
+
+let facadeImpactSerial=0,facadeLastImpact=null,facadeSlowRemaining=0,facadeSlowScale=1,facadeImpactContext=null,facadeHeroPassive=false;
+const facadeOpponentModes=new Set(['duel','guard','evade','group','dummy']);
+function resetFacadeFeel(){facadeImpactSerial=0;facadeLastImpact=null;facadeSlowRemaining=0;facadeSlowScale=1;facadeImpactContext=null;}
+function weaponSpecSnapshot(id){
+ const w=WEAPONS[id];if(!w)return null;
+ return Object.freeze({id,label:w.label,tip:w.tip,base:w.base,width:w.width,ideal:w.ideal,power:w.power,speed:w.speed,two:Boolean(w.two),fist:Boolean(w.fist)});
+}
+function weaponSegmentSnapshot(a){
+ const w=WEAPONS[a?.weapon]||WEAPONS.sword;
+ try{
+  const sample=sampleWeapon(a,a?.attack?.t??null,a.x,a.z);
+  return Object.freeze({weapon:a.weapon,base:Object.freeze([...sample.a]),tip:Object.freeze([...sample.b]),radius:Number(sample.radius??w.width)||w.width,ideal:w.ideal,active:Boolean(sample.active)});
+ }catch{
+  return Object.freeze({weapon:a?.weapon||'sword',base:Object.freeze([Number(a?.x)||0,.8,Number(a?.z)||0]),tip:Object.freeze([Number(a?.x)||0,1.6,Number(a?.z)||0]),radius:w.width,ideal:w.ideal,active:false});
+ }
+}
+const registerHitFacade=registerHit;
+registerHit=function(source,target,attack,contact){
+ facadeImpactContext={source,target,attack,contact};
+ try{return registerHitFacade(source,target,attack,contact);}finally{facadeImpactContext=null;}
+};
+// Preserve real contact authority while exporting one shared impact/weight signal to every consumer.
+impactAt=function(x,y,z,yaw,power,guard){
+ const context=facadeImpactContext,source=context?.source,target=context?.target,attack=context?.attack,heavy=Number(power)>=1.1||(STRIKES[attack?.kind]?.damage||0)>=36;
+ const freeze=guard?.025:heavy?.045:.018,slowSeconds=guard?.035:heavy?.095:.060,slowScale=guard?.72:heavy?.38:.56;
+ hitstop=Math.max(hitstop,freeze);facadeSlowRemaining=Math.max(facadeSlowRemaining,slowSeconds);facadeSlowScale=Math.min(facadeSlowScale,slowScale);
+ facadeLastImpact=Object.freeze({
+  serial:++facadeImpactSerial,point:Object.freeze([x,y,z]),yaw,power:Number(power)||0,guard:Boolean(guard),heavy,
+  sourceId:source?.id??null,targetId:target?.id??null,sourceHero:Boolean(source?.hero),targetHero:Boolean(target?.hero),
+  attack:attack?.kind??null,knockback:Object.freeze({x:Number(target?.kx)||0,z:Number(target?.kz)||0}),
+  freezeSeconds:freeze,slowSeconds,slowScale
+ });
+ ports.onImpact?.(copy(facadeLastImpact));
+};
+const updateFacade=update;
+update=function(dt){
+ const step=Math.min(1/30,Math.max(0,Number(dt)||0));
+ if(hitstop<=0&&facadeSlowRemaining>0){
+  facadeSlowRemaining=Math.max(0,facadeSlowRemaining-step);
+  updateFacade(step*facadeSlowScale);
+  if(facadeSlowRemaining<=0)facadeSlowScale=1;
+  return;
+ }
+ updateFacade(step);
+};
+const approachFacade=approach;
+approach=function(a,dt){
+ if(facadeHeroPassive&&a?.hero){
+  a.guarding=false;a.plan=null;a.spacing=null;a.cool=Math.max(a.cool,.08);
+  const t=nearest(a);if(t)a.yaw+=clamp(angleMotion(Math.atan2(t.x-a.x,t.z-a.z),a.yaw),-dt*5,dt*5);
+  return;
+ }
+ return approachFacade(a,dt);
+};
 addLog=(text,type='')=>ports.onLog?.({text,type});
 loadStorage();
 // Disable endless simulator respawning: raids own terminal outcomes.
 replaceActor=()=>{};
 equippedWeapon=ports.weapon||'fist';
 for(const k of ATTACK_KEYS){loadout[k].weapon=equippedWeapon;}
-resetScene(true);
-function snapshotActor(a){return {id:a.id,x:a.x,z:a.z,yaw:a.yaw,hp:a.hp,maxhp:a.maxhp,dead:a.dead,weapon:a.weapon,attack:a.attack?.kind??null,progress:attackProgress(a),charge:a.attack?.chargeTime??0,combatReady:a.combatReady,flash:a.flash,walk:a.walk,moveSpeed:a.moveSpeed,stun:a.stun,guarding:a.guarding,slot:a.run?.slot??null,skill:a.run?.recipe?.name??null,pose:poseChannels(a),flow:a.flow?copy(a.flow):null};}
+resetFacadeFeel();resetScene(true);
+
+function snapshotActor(a){
+ return {
+  id:a.id,x:a.x,z:a.z,yaw:a.yaw,hp:a.hp,maxhp:a.maxhp,dead:a.dead,weapon:a.weapon,attack:a.attack?.kind??null,
+  progress:attackProgress(a),charge:a.attack?.chargeTime??0,combatReady:a.combatReady,flash:a.flash,walk:a.walk,moveSpeed:a.moveSpeed,
+  stun:a.stun,guarding:a.guarding,slot:a.run?.slot??null,skill:a.run?.recipe?.name??null,pose:poseChannels(a),flow:a.flow?copy(a.flow):null,
+  knockback:Object.freeze({x:Number(a.kx)||0,z:Number(a.kz)||0}),reaction:Boolean(a.reaction||a.recovery),weaponSegment:weaponSegmentSnapshot(a)
+ };
+}
+function syncActorSnapshot(a,row){
+ if(!a||!row)return;
+ if(Number.isFinite(row.x))a.x=clamp(row.x,-7.6,7.6);
+ if(Number.isFinite(row.z))a.z=clamp(row.z,-5.4,5.4);
+ if(Number.isFinite(row.yaw))a.yaw=row.yaw;
+ if(Number.isFinite(row.maxhp)&&row.maxhp>0)a.maxhp=row.maxhp;
+ if(Number.isFinite(row.hp))a.hp=clamp(row.hp,0,a.maxhp);
+}
+function syncActors(v={}){
+ syncActorSnapshot(hero,v.hero);
+ const rows=Array.isArray(v.enemies)?v.enemies:v.enemy?[v.enemy]:[];
+ for(let i=0;i<Math.min(rows.length,enemies.length);i++)syncActorSnapshot(enemies[i],rows[i]);
+ return state();
+}
 function configure(v={}){
  world.colliders=(v.colliders||[]).map(c=>({...c}));
- equippedWeapon=v.weapon||'fist';enemyStyle=v.enemyStyle||'balanced';
+ equippedWeapon=Object.hasOwn(WEAPONS,v.weapon)?v.weapon:'fist';enemyStyle=v.enemyStyle||'balanced';
+ opponent=facadeOpponentModes.has(v.opponent)?v.opponent:'duel';facadeHeroPassive=Boolean(v.heroPassive);
  const set=v.loadout;
  if(set)for(const k of ATTACK_KEYS)if(set[k])loadout[k]=normalizeRecipe({...set[k],weapon:equippedWeapon});
  for(const k of ATTACK_KEYS){loadout[k].weapon=equippedWeapon;}
  drafts=copy(loadout);poolReady=false;initPools();
  if(v.mindset&&Object.hasOwn(MINDS,v.mindset)){mindset=v.mindset;fixedMindset=v.mindset;}
- resetScene(true);
+ resetFacadeFeel();resetScene(true);
  hero.weapon=equippedWeapon;hero.hp=v.hp??240;hero.maxhp=v.maxhp??hero.hp;
- const e=enemies[0];e.weapon=v.enemyWeapon||'sword';e.hp=v.enemyHp??100;e.maxhp=e.hp;
- if(v.positions){Object.assign(hero,v.positions.hero);Object.assign(e,v.positions.enemy);hero.home=[hero.x,hero.z];e.home=[e.x,e.z];initFeet(hero);initFeet(e);}
- if(v.enemyLoadout){e.sharedLoadout=copy(v.enemyLoadout);}
+ const enemyRows=Array.isArray(v.enemies)?v.enemies:[];
+ for(let i=0;i<enemies.length;i++){
+  const e=enemies[i],row=enemyRows[i]||{},fallbackWeapon=i===0?v.enemyWeapon:null;
+  if(Object.hasOwn(WEAPONS,row.weapon))e.weapon=row.weapon;else if(Object.hasOwn(WEAPONS,fallbackWeapon))e.weapon=fallbackWeapon;
+  const hp=row.hp??(Array.isArray(v.enemyHp)?v.enemyHp[i]:v.enemyHp)??100;e.hp=hp;e.maxhp=row.maxhp??hp;
+  const pos=v.positions?.enemies?.[i]||(i===0?v.positions?.enemy:null);if(pos){Object.assign(e,pos);e.home=[e.x,e.z];initFeet(e);}
+  const enemyLoadout=row.loadout||(i===0?v.enemyLoadout:null);if(enemyLoadout)e.sharedLoadout=copy(enemyLoadout);
+ }
+ if(v.positions?.hero){Object.assign(hero,v.positions.hero);hero.home=[hero.x,hero.z];initFeet(hero);}
  return state();
 }
 const enemyChoiceOriginal=chooseEnemyRecipe;
 chooseEnemyRecipe=function(a){if(a.sharedLoadout){const k=ATTACK_KEYS[(a.attackCount||0)%3];if(a.sharedLoadout[k])return normalizeRecipe({...a.sharedLoadout[k],weapon:a.weapon});}return enemyChoiceOriginal(a);};
-function state(){return {hero:snapshotActor(hero),enemy:snapshotActor(enemies[0]),time,stats:copy(stats),contacts:copy(lastContacts),done:hero.dead||enemies[0].dead};}
+function state(){
+ const rows=enemies.map(snapshotActor);
+ return {
+  hero:snapshotActor(hero),enemy:rows[0]||null,enemies:rows,time,stats:copy(stats),contacts:copy(lastContacts),
+  impact:facadeLastImpact?copy(facadeLastImpact):null,
+  feel:Object.freeze({hitstopRemaining:Number(hitstop)||0,slowRemaining:facadeSlowRemaining,slowScale:facadeSlowRemaining>0?facadeSlowScale:1}),
+  done:hero.dead||rows.every(row=>row.dead)
+ };
+}
 return {
  configure,
- step(dt=1/60){if(!hero.dead&&!enemies[0].dead)update(Math.min(1/30,Math.max(0,dt)));return state();},
+ step(dt=1/60){if(!hero.dead&&!enemies.every(e=>e.dead))update(dt);return state();},
  input(x,y,amount,cameraAngle=0){manual.dx=x;manual.dy=y;manual.amount=clamp(amount,0,1);camAngle=cameraAngle;},
+ syncActors,
  state,
+ weaponSpec:weapon=>weaponSpecSnapshot(weapon),
+ weaponSpecs:()=>Object.freeze(Object.fromEntries(Object.keys(WEAPONS).map(id=>[id,weaponSpecSnapshot(id)]))),
  templates:()=>copy(TEMPLATES),
  loadout:()=>copy(loadout),
  weapons:()=>Object.keys(WEAPONS),
  inspirationCatalog:()=>copy(WEAPON_ARTS),
  decodeNotebook:(data)=>copy(decodeNotebook(data,false)),
  exportNotebook:()=>copy(exportData()),
- sourceVersion:'Tidebreak 10.0 / shared-inspiration catalog',
+ sourceVersion:'Tidebreak 10.1 / shared-contact-impact',
  _test:{
   generateSkill(weapon='sword',slot='jo',automatic=true){const before=equippedWeapon;equippedWeapon=weapon;try{return copy(generateSkill(slot,automatic));}finally{equippedWeapon=before;}},
   hit(who,damage){const t=who==='hero'?hero:enemies[0],src=who==='hero'?enemies[0]:hero;t.invuln=0;registerHit(src,t,{id:++attackSerial,kind:'slash',damage,element:'steel',damaged:new Set(),power:1,hitCount:0},{point:[t.x,1.2,t.z]});return state();}
