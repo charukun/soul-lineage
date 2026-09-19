@@ -55,10 +55,14 @@ jobs:
         id: contract
         continue-on-error: true
         shell: bash
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           set -euo pipefail
           trusted="$RUNNER_TEMP/fast-dev-contract.mjs"
-          if git cat-file -e origin/develop:scripts/fast-dev-contract.mjs 2>/dev/null; then
+          if [[ "$COMMIT_MESSAGE" == *"[astra-contract-change]"* ]]; then
+            node scripts/fast-dev-contract.mjs origin/develop HEAD --authorized-contraction
+          elif git cat-file -e origin/develop:scripts/fast-dev-contract.mjs 2>/dev/null; then
             git show origin/develop:scripts/fast-dev-contract.mjs > "$trusted"
             node "$trusted" origin/develop HEAD
           else

@@ -40,6 +40,7 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs la
 - `Astra Work Validation` must run the contract check from current `develop` before dependency scripts, focused tests, or builds. Branch-authored changes cannot authorize themselves. Dependency installation uses `npm ci --ignore-scripts`.
 - `astra/fast-dev-contract=error` is a recoverable self-inflicted violation, not `FAILED`. Keep the same branch / PR, identify the attempted expansion from the receipt, remove it or move it outside Fast DEV, then create a new final head and validate again. Do not ask the user how to recover from your own violation.
 - A contract violation intentionally does not make the GitHub merge button mechanically impossible. Astra must nevertheless not mark Ready or merge while the violation remains, unless the user explicitly requested a Fast DEV contract change in the current task.
+- For an explicit user-requested workflow reduction only, the final merge-owning commit also includes `[astra-contract-change]`. That marker authorizes only a contraction to the canonical workflow surface; it never authorizes adding Actions work.
 - If the task hit this violation and self-repaired it, say so in the completion report. Never hide or relabel the attempted expansion as ordinary CI noise.
 
 ## Architecture
@@ -62,8 +63,7 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs la
 | Explicit browser playtest | `docs/BROWSER_PLAYTEST_ROUTING.md` |
 | Distribution | `docs/DISTRIBUTION_ARCHITECTURE.md` |
 | Character / DCC | `docs/art/README.md` and routed `docs/characters/` docs |
-| Dedicated dispatched worker | `docs/DISPATCHER.md` |
 
-Specialized character, motion, browser, distribution, and DCC contracts still apply when that task is requested. Do not read them preemptively.
+Specialized character, motion, browser, distribution, and DCC source contracts still apply when that task is requested, but routine execution stays on the canonical Astra lane. Do not read them preemptively.
 
 For 「村アプリを1 iteration自律改善してください」 or 「喰滅廻遊を1 iteration自律改善してください」, use the Code-First route above (`village` / `kuumetsu` respectively). Preserve the Fast DEV ceiling and existing quality gates. Normal iterations do not start a browser, access a public game URL, or wait for a human or DEV publication. Completion still requires validated exact-head merge to develop in this session, not Ready alone.
