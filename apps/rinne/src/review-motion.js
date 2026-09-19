@@ -62,11 +62,15 @@ function setCameraPreset(id){
   camera.position.set(...(positions[id]||positions.front));controls.target.copy(target);controls.update();
   for(const button of document.querySelectorAll('[data-motion-camera]'))button.setAttribute('aria-pressed',String(button.dataset.motionCamera===id));
 }
+function syncStageSubtitle(category=selected?.category||'other'){
+  const duration=Math.max(0,selectedDuration),suffix=duration?' · '+duration.toFixed(2)+'s':'';
+  el('motion-source').textContent=categoryLabel(category)+' · '+selectedModel.label+suffix;
+}
 function syncPlaybackUI(){
   const duration=Math.max(0,selectedDuration),time=Math.min(duration,playbackTime());
   el('motion-play').textContent=playing?'一時停止':'▶ 再生';el('motion-play').setAttribute('aria-pressed',String(playing));el('motion-loop').checked=loop;
   el('motion-time').max=String(Math.max(duration,.0001));if(document.activeElement!==el('motion-time'))el('motion-time').value=String(time);
-  el('motion-time-label').value=time.toFixed(2)+' / '+duration.toFixed(2)+'秒';
+  el('motion-time-label').value=time.toFixed(2)+' / '+duration.toFixed(2)+'秒';syncStageSubtitle();
 }
 function syncSelectedMeta(){
   if(!selected)return;
@@ -147,8 +151,7 @@ async function loadModel(model){
     registry=buildReviewMotionRegistry(targetClips);catalog=buildMotionReviewCatalog(registry.motions,{perCategory:8});
     const same=catalog.find(row=>row.sourceIdentity===previousIdentity),firstRecommended=catalog.find(row=>row.recommended),first=same||firstRecommended||catalog[0];
     const count=motionRegistryCount(registry);canvas.dataset.motionSource='source-registry';canvas.dataset.motionCount=String(count);canvas.dataset.motionModel=model.id;
-    el('motion-count').textContent='MOTION CLIPS '+count;
-    el('motion-source').textContent=`CC0 source registry · existing ${registry.existingSourceMotionCount} + added ${registry.addedSourceMotionCount} · excluded ${registry.excludedSourceClipCount} · duplicates ${registry.duplicateSourceClipCount} · ${KAYKIT_RIG_ID}`;
+    el('motion-count-value').textContent=String(count);
     el('motion-load').value=1;status(model.label+' · '+count+' source motions');setCameraPreset('three-quarter');await selectMotion(first);
   }catch(error){el('motion-load').value=0;status('読込失敗: '+String(error?.message||error));canvas.dataset.motionSource='error';}
 }
@@ -165,7 +168,7 @@ el('motion-legacy')?.addEventListener('change',event=>{
   const index=Number(event.target.value);if(event.target.value===''||!targetClips[index]||!mixer)return;
   ++selectSerial;selected=null;mixer.stopAllAction();externalTime=0;const clip=targetClips[index];selectedDuration=Math.max(1/60,Number(clip.duration)||1/60);
   action=mixer.clipAction(clip);action.reset();action.setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);action.clampWhenFinished=!loop;action.play();playing=true;
-  el('motion-selected').textContent=formatName(clip.name);el('motion-source').textContent='既存KayKit原版 · 件数への追加なし';
+  el('motion-selected').textContent=formatName(clip.name);
   const source=selectedModel.source;el('motion-meta').textContent=`source ${source.repository} @ ${source.revision} / ${source.path} / clip ${index} “${clip.name}” / git-sha1:${source.gitBlobSha} / Kay Lousberg / ${selectedModel.license}`;
   if(el('motion-license'))el('motion-license').href='https://creativecommons.org/publicdomain/zero/1.0/';if(el('motion-origin'))el('motion-origin').href='https://kaylousberg.com/game-assets/characters-adventurers';
   canvas.dataset.motionName=clip.name;canvas.dataset.motionCategory='other';canvas.dataset.motionIdentity='legacy:'+index+':'+clip.name;status('原版: '+formatName(clip.name));syncPlaybackUI();
