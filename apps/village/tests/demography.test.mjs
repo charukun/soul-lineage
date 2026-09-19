@@ -14,6 +14,15 @@ test('healthy village can accumulate births but never exceeds infrastructure hea
  assert.ok(plan.births>=1,'healthy adult households should produce a birth');
  assert.ok(plan.births<=6,'births must fit free beds');
  assert.ok(plan.births<=8,'births must fit infrastructure limit');
+ // App-local causal regression; cross-revision orchestration belongs to root tooling.
+ for(const foodStock of [64,62,60]){
+  const supported={population:12,limit:20,openBeds:18,eligibleAdults:8,comfort:6,foodStock,birthCarry:.8};
+  assert.ok(planDemographicYear(supported).births>0);
+  for(const patch of [{foodStock:0},{openBeds:12},{eligibleAdults:0}]){
+   assert.equal(planDemographicYear({...supported,...patch}).births,0);
+  }
+  assert.ok(planDemographicYear({...supported,foodStock:0}).departures>0);
+ }
 });
 
 test('births stop and departures begin when the village cannot support its population',()=>{

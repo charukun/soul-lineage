@@ -1,0 +1,201 @@
+import { readFileSync, existsSync, mkdirSync, writeFileSync, renameSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { execFileSync } from 'node:child_process';
+
+export const REPOSITORY = 'charukun/soul-lineage';
+export const GAMES = Object.freeze({ village: 'apps/village', kuumetsu: 'apps/demon' });
+export const RECENT_LIMIT = 12;
+export const CONTEXTS = Object.freeze(['astra/fast-dev-contract', 'astra/focused-validation']);
+const SHA = /^[0-9a-f]{40}$/;
+const ID = /^[a-z0-9][a-z0-9-]{2,95}$/;
+const fail = message => { throw new Error(`AUTONOMOUS: ${message}`); };
+const need = (condition, message) => { if (!condition) fail(message); };
+const text = value => typeof value === 'string' && value.trim().length > 0;
+export const json = path => JSON.parse(readFileSync(path, 'utf8'));
+export const git = (root, args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }).trim();
+export function gameId(game) { need(Object.hasOwn(GAMES, game), `unknown game: ${game}`); return game; }
+export function safePath(path) {
+  need(text(path) && !path.startsWith('/') && !path.includes('\\') && !path.split('/').some(p => p === '..' || p === '.' || p === ''), 'unsafe repository path');
+  return path;
+}
+function noSelfScore(value) {
+  if (!value || typeof value !== 'object') return;
+  for (const [key, child] of Object.entries(value)) {
+    need(!/^(selfScore|funScore|immersionScore|qualityScore|subjectiveScore)$/i.test(key), 'self-rating is not evidence');
+    noSelfScore(child);
+  }
+}
+export function validateRecord(record) {
+  need(record?.schemaVersion === 1 && ID.test(record.id || ''), 'record version/id');
+  gameId(record.game);
+  need(['infrastructure', 'gameplay', 'user-feedback'].includes(record.kind), 'record kind');
+  need(text(record.problemKey) && text(record.observation?.summary), 'one named root cause is required');
+  need(Array.isArray(record.observation.evidence) && record.observation.evidence.length > 0, 'observation needs evidence');
+  for (const item of record.observation.evidence) {
+    need(['source', 'test', 'simulation', 'user-feedback', 'git-tree'].includes(item.kind), 'unknown evidence kind');
+    need(text(item.statement), 'evidence statement is required');
+    if (item.kind === 'user-feedback') {
+      need(text(item.verbatim) && text(item.reference) && Number.isFinite(Date.parse(item.receivedAt)), 'feedback must retain original words, source and date');
+    } else {
+      need(SHA.test(item.revision || ''), 'code evidence requires an exact revision');
+      safePath(item.path);
+      need(text(item.symbol), 'code evidence requires a symbol or scoped tree observation');
+    }
+  }
+  need(text(record.hypothesis?.cause) && text(record.hypothesis.prediction) && text(record.hypothesis.falsifier), 'hypothesis must be falsifiable');
+  need(Array.isArray(record.candidates) && record.candidates.length >= 2, 'compare at least two approaches');
+  need(record.candidates.filter(c => c.selected === true).length === 1, 'select exactly one approach/root cause');
+  for (const candidate of record.candidates) need(text(candidate.id) && text(candidate.reason), 'candidate needs id/reason');
+  need(Array.isArray(record.implementation?.paths) && record.implementation.paths.length > 0 && text(record.implementation.summary), 'implementation scope required');
+  record.implementation.paths.forEach(safePath);
+  need(['pending', 'supported', 'refuted', 'inconclusive'].includes(record.comparison?.verdict), 'invalid verdict');
+  need(record.comparison.objective === 'reproducible-causality', 'subjective quality is not an objective');
+  need(Array.isArray(record.comparison.limitations) && record.comparison.limitations.length > 0, 'record evidence limits');
+  if (record.comparison.verdict !== 'pending') {
+    for (const side of ['before', 'after']) {
+      const evidence = record.comparison[side];
+      need(evidence && SHA.test(evidence.revision || '') && text(evidence.reference) && text(evidence.summary), 'a verdict requires revision-bound before/after evidence');
+    }
+    need(text(record.comparison.explanation), 'a verdict needs an explanation, not just passing tests');
+  }
+  need(Array.isArray(record.validation?.focusedTests) && record.validation.focusedTests.length > 0, 'focused validation plan required');
+  record.validation.focusedTests.forEach(safePath);
+  need(record.validation.receipt?.repository === REPOSITORY, 'receipt repository mismatch');
+  need(record.validation.receipt.pullRequest === null || (Number.isSafeInteger(record.validation.receipt.pullRequest) && record.validation.receipt.pullRequest > 0), 'invalid receipt PR');
+  need(record.validation.receipt.marker === `autonomous-receipt:${record.game}:${record.id}`, 'receipt marker mismatch');
+  need(record.validation.state === 'awaiting-exact-head-receipt', 'final validation lives outside the commit it validates');
+  need(text(record.learning?.summary), 'retain learning including negative results');
+  for (const key of ['failedApproaches', 'doNotRetry', 'unresolved', 'next']) need(Array.isArray(record.learning[key]), `learning.${key} is required`);
+  for (const rule of record.learning.doNotRetry) need(text(rule.approach) && text(rule.reason) && text(rule.reconsiderWhen), 'doNotRetry needs approach/reason/reconsiderWhen');
+  noSelfScore(record);
+  return true;
+}
+export function loadContext(root, game) {
+  gameId(game);
+  const base = resolve(root, '.autonomous', game), index = json(resolve(base, 'experiment-history.json'));
+  need(index.schemaVersion === 1 && index.game === game && Array.isArray(index.recent) && index.recent.length <= RECENT_LIMIT, 'invalid bounded history index');
+  need(index.archive?.path === 'archive/index.json' && Number.isSafeInteger(index.archive.count) && index.archive.count >= 0, 'invalid archive pointer');
+  const ids = new Set();
+  for (const entry of index.recent) {
+    need(ID.test(entry.id || '') && entry.path === `experiments/${entry.id}.json` && !ids.has(entry.id), 'invalid or duplicate history entry');
+    ids.add(entry.id);
+    const record = json(resolve(base, entry.path)); validateRecord(record);
+    need(record.game === game && record.id === entry.id && record.problemKey === entry.problemKey, 'index/record mismatch');
+  }
+  for (const file of ['charter.md', 'protected-rules.md', 'observations.md', 'hypotheses.md']) need(existsSync(resolve(base, file)), `missing ${game}/${file}`);
+  return { game, app: GAMES[game], readFirst: ['AGENTS.md', '.autonomous/README.md', '.autonomous/protected-rules.md', ...['charter.md', 'protected-rules.md', 'observations.md', 'hypotheses.md', 'experiment-history.json'].map(p => `.autonomous/${game}/${p}`)], ...index,
+    receiptRule: 'Resolve pending records through their PR receipt marker and live GitHub status; never infer merged from this index.' };
+}
+function atomicJson(path, value) {
+  mkdirSync(dirname(path), { recursive: true });
+  const temp = `${path}.${process.pid}.tmp`;
+  writeFileSync(temp, JSON.stringify(value, null, 2) + '\n'); renameSync(temp, path);
+}
+export function appendRecord(root, record) {
+  validateRecord(record);
+  checkPriorLearning(root, record);
+  const game = record.game, context = loadContext(root, game), base = resolve(root, '.autonomous', game);
+  const archive = json(resolve(base, context.archive.path));
+  need(Array.isArray(archive.entries), 'invalid archive index');
+  need(![...context.recent, ...archive.entries].some(row => row.id === record.id), 'experiment IDs are immutable; use a new ID');
+  const path = `experiments/${record.id}.json`, full = resolve(base, path);
+  mkdirSync(dirname(full), { recursive: true });
+  writeFileSync(full, JSON.stringify(record, null, 2) + '\n', { flag: 'wx' });
+  const index = json(resolve(base, 'experiment-history.json'));
+  index.recent.push({ id: record.id, problemKey: record.problemKey, path, verdict: record.comparison.verdict });
+  while (index.recent.length > RECENT_LIMIT) archive.entries.push(index.recent.shift());
+  index.archive.count = archive.entries.length;
+  atomicJson(resolve(base, index.archive.path), archive);
+  atomicJson(resolve(base, 'experiment-history.json'), index);
+  return { id: record.id, path, recent: index.recent.length, archived: archive.entries.length };
+}
+// Scan compact metadata first; load only experiments matching the selected root cause.
+export function historyForProblem(root, game, problemKey) {
+  const context = loadContext(root, game), base = resolve(root, '.autonomous', game);
+  const archived = json(resolve(base, context.archive.path)).entries;
+  need(Array.isArray(archived) && archived.length === context.archive.count, 'archive metadata mismatch');
+  return [...context.recent, ...archived].filter(row => row.problemKey === problemKey).map(row => {
+    need(row.path === `experiments/${row.id}.json` && ID.test(row.id), 'unsafe history reference');
+    return { ...row, record: json(resolve(base, row.path)) };
+  });
+}
+export function checkPriorLearning(root, record) {
+  const selected = record.candidates.find(c => c.selected)?.id;
+  for (const previous of historyForProblem(root, record.game, record.problemKey)) {
+    if (previous.id === record.id) continue;
+    for (const rule of previous.record.learning.doNotRetry) {
+      if (rule.approach !== selected) continue;
+      const retry = record.retryJustification;
+      need(retry?.previousId === previous.id && text(retry.changedEvidence) &&
+        record.observation.evidence.some(e => e.statement === retry.changedEvidence),
+        `rejected approach ${selected}: ${previous.id}; new explicit evidence is required`);
+    }
+  }
+  return true;
+}
+// Read-only guard. Never edits a ref, suppresses a test or authorizes a gate change.
+export function checkHistoryChanges(root, baseRef, headRef = 'HEAD') {
+  const base = git(root, ['rev-parse', '--verify', `${baseRef}^{commit}`]);
+  const head = git(root, ['rev-parse', '--verify', `${headRef}^{commit}`]);
+  const rows = git(root, ['diff', '--name-status', '--no-renames', base, head]).split('\n').filter(Boolean);
+  for (const row of rows) {
+    const [status, path] = row.split('\t');
+    if (/^\.autonomous\/(village|kuumetsu)\/experiments\/.+\.json$/.test(path)) need(status === 'A', 'past experiments cannot be edited/deleted; append a correction');
+    if (status === 'D' && /(?:\.test\.mjs|\/tests\/)/.test(path)) fail(`test deletion is protected: ${path}`);
+  }
+  for (const game of Object.keys(GAMES)) {
+    const prefix = `.autonomous/${game}/`;
+    const readAt = (sha, path, fallback) => {
+      if (!git(root, ['ls-tree', '--name-only', sha, '--', path])) return fallback;
+      return JSON.parse(git(root, ['show', `${sha}:${path}`]));
+    };
+    const entriesAt = sha => {
+      const index = readAt(sha, prefix + 'experiment-history.json', { recent: [], archive: { count: 0 } });
+      const archived = readAt(sha, prefix + 'archive/index.json', { entries: [] }).entries;
+      need(archived.length === index.archive.count, 'archive count mismatch');
+      const all = [...index.recent, ...archived];
+      need(new Set(all.map(r => r.id)).size === all.length, 'duplicate history identity');
+      return all;
+    };
+    const before = entriesAt(base), after = entriesAt(head);
+    for (const entry of before) need(after.some(row => JSON.stringify(row) === JSON.stringify(entry)), 'history index entry changed/disappeared');
+    for (const entry of after) {
+      need(ID.test(entry.id || '') && entry.path === `experiments/${entry.id}.json`, 'unsafe historical pointer');
+      const record = readAt(head, prefix + entry.path, null);
+      validateRecord(record);
+      need(record.id === entry.id && record.game === game && record.problemKey === entry.problemKey && record.comparison.verdict === entry.verdict, 'historical pointer mismatch');
+    }
+  }
+  return true;
+}
+export function evaluateMergeGate(snapshot, { now = Date.now() } = {}) {
+  const errors = [], reject = (ok, code) => { if (!ok) errors.push(code); };
+  const { expected = {}, pr = {}, develop = {}, comparison = {}, run = {}, statusResponse = {}, reviews, blockingDependencies } = snapshot || {};
+  const statuses = statusResponse.statuses || [];
+  const head = expected.headSha, base = expected.developSha;
+  reject(SHA.test(head || '') && SHA.test(base || ''), 'EXACT_SHA_REQUIRED');
+  const age = now - Date.parse(snapshot?.fetchedAt);
+  reject(Number.isFinite(age) && age >= 0 && age <= 120000, 'LIVE_FRESHNESS_SNAPSHOT_REQUIRED');
+  reject(statusResponse.sha === head, 'STATUS_HEAD_MISMATCH');
+  reject(Array.isArray(blockingDependencies) && blockingDependencies.length === 0, 'BLOCKING_DEPENDENCY');
+  reject(Array.isArray(reviews), 'REVIEW_READ_REQUIRED');
+  const latestReviews = new Map();
+  for (const review of (reviews || [])) if (review.state !== 'COMMENTED') latestReviews.set(review.user?.login, review.state);
+  reject(![...latestReviews.values()].includes('CHANGES_REQUESTED'), 'BLOCKING_REVIEW');
+  reject(pr.state === 'open' && pr.base?.ref === 'develop' && pr.head?.repo?.full_name === REPOSITORY, 'PR_SCOPE_CHANGED');
+  reject(pr.head?.sha === head, 'HEAD_MOVED');
+  reject(develop.commit?.sha === base, 'DEVELOP_MOVED');
+  reject(comparison.merge_base_commit?.sha === base && comparison.behind_by === 0, 'RECONCILE_REQUIRED');
+  reject(pr.mergeable === true, 'MERGEABILITY_NOT_CONFIRMED');
+  reject(!(pr.labels || []).some(l => /(^|[\s:/_-])(hold|blocked|manual-merge|do-not-merge)($|[\s:/_-])/i.test(l.name || '')), 'EXPLICIT_HOLD');
+  reject(!/^\s*(?:hold|do not merge|manual merge only|blocked by)\b/im.test(pr.body || ''), 'BODY_HOLD');
+  reject(run.head_sha === head && run.status === 'completed' && run.conclusion === 'success' && run.event === 'push' &&
+    run.path === '.github/workflows/astra-work-validation.yml' && Number.isSafeInteger(run.id) && run.id > 0 &&
+    run.head_commit?.message?.includes('[astra-validate]'), 'HOSTED_EXACT_HEAD_RUN_REQUIRED');
+  for (const context of CONTEXTS) {
+    const candidates = statuses.filter(s => s.context === context).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+    const current = candidates[0];
+    reject(Number.isFinite(Date.parse(current?.created_at)) && current?.state === 'success' && current.target_url === `https://github.com/${REPOSITORY}/actions/runs/${run.id}`, `STATUS_REQUIRED:${context}`);
+  }
+  return { eligible: errors.length === 0, errors, headSha: head, developSha: base, next: errors.length ? 'REPAIR_SAME_BRANCH' : 'READY_THEN_EXPECTED_HEAD_MERGE', terminal: 'MERGED_TO_DEVELOP' };
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "replace-experiment-id",
+  "game": "village",
+  "kind": "gameplay",
+  "problemKey": "replace-one-root-cause",
+  "observation": {"summary":"REPLACE_OBSERVED_STRUCTURAL_ISSUE","evidence":[{"kind":"source","revision":"REPLACE_WITH_40_HEX_SOURCE_SHA","path":"apps/village/src/game/core.js","symbol":"REPLACE_INSPECTED_SYMBOL","statement":"REPLACE_VERIFIABLE_CAUSAL_OBSERVATION"}]},
+  "hypothesis": {"cause":"REPLACE_CAUSE","prediction":"REPLACE_MEASURABLE_CHANGE","falsifier":"REPLACE_DISPROVING_RESULT"},
+  "candidates": [{"id":"candidate-a","selected":true,"reason":"REPLACE_REASON"},{"id":"candidate-b","selected":false,"reason":"REPLACE_REJECTION"}],
+  "implementation": {"paths":["REPLACE_PATH"],"summary":"REPLACE_SMALL_CHANGE"},
+  "comparison": {"objective":"reproducible-causality","verdict":"pending","before":null,"after":null,"limitations":["REPLACE_SCOPE_LIMITS"]},
+  "validation": {"state":"awaiting-exact-head-receipt","focusedTests":["tests/develop-completion-contract.test.mjs","apps/village/tests/demography.test.mjs"],"receipt":{"repository":"charukun/soul-lineage","pullRequest":null,"marker":"autonomous-receipt:village:replace-experiment-id"}},
+  "learning": {"summary":"REPLACE_LEARNING","failedApproaches":[],"doNotRetry":[],"unresolved":[],"next":[]}
+}
