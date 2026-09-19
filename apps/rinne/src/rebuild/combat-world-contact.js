@@ -30,7 +30,7 @@ function localWeaponDirection(state){
 export function worldContactCandidates(state,front,event){
   const attack=String(state.combat?.tidebreakPose?.attack||''),profile=localWeaponDirection(state),base=WEAPONS[state.equipment?.weapon]||WEAPONS.fist;if(STOP_ON_FIRST.has(attack))return[];
   const broad=SWEEP_ATTACKS.has(attack),radius=Math.max(base.reach,profile.reach)+(broad ? .52 : .18),halfArc=broad ? ((attack==='spin'||attack==='round'||attack==='barrage') ? Math.PI : .95) : .38,origin=state.position;
-  return front.enemies.filter(enemy=>!enemy.dead&&enemy.id!==event.targetId&&dist(origin,enemy)<=radius).filter(enemy=>{const angle=Math.atan2(enemy.x-origin.x,enemy.z-origin.z);return Math.abs(wrap(angle-profile.yaw))<=halfArc&&!lineBlocked(front,origin,enemy);}).sort((a,b)=>dist(origin,a)-dist(origin,b));
+  return front.enemies.filter(enemy=>!enemy.dead&&!enemy.downed&&enemy.id!==event.targetId&&dist(origin,enemy)<=radius).filter(enemy=>{const angle=Math.atan2(enemy.x-origin.x,enemy.z-origin.z);return Math.abs(wrap(angle-profile.yaw))<=halfArc&&!lineBlocked(front,origin,enemy);}).sort((a,b)=>dist(origin,a)-dist(origin,b));
 }
 
 export function enemySweepTargets(attacker,states,primaryId,front){
@@ -39,7 +39,7 @@ export function enemySweepTargets(attacker,states,primaryId,front){
 }
 
 function markDown(state,enemy,events,source='world-contact'){
-  if(enemy.dead)return;enemy.hp=0;enemy.dead=true;enemy.moving=false;enemy.attacking=false;state.defeats=(Number(state.defeats)||0)+1;events.push({type:'enemy-down',targetId:enemy.id,engine:source});
+  if(enemy.dead||enemy.downed)return;enemy.hp=0;enemy.downed=true;enemy.downedElapsed=0;enemy.moving=false;enemy.attacking=false;state.defeats=(Number(state.defeats)||0)+1;events.push({type:'enemy-downed',targetId:enemy.id,engine:source});
 }
 
 export function applyMultiTargetContact(state,front,event,events){
@@ -48,8 +48,8 @@ export function applyMultiTargetContact(state,front,event,events){
 }
 
 function projectileState(state){ensureCombatInjuryState(state);state.rangedCombat??={cooldown:0,serial:0,projectiles:[]};if(!Array.isArray(state.rangedCombat.projectiles))state.rangedCombat.projectiles=[];return state.rangedCombat;}
-function nearestRangedTarget(state,front){return front.enemies.filter(e=>!e.dead).map(enemy=>({enemy,distance:dist(state.position,enemy)})).filter(row=>row.distance>1.75&&row.distance<=7.5&&!lineBlocked(front,state.position,row.enemy)).sort((a,b)=>a.distance-b.distance)[0]?.enemy||null;}
-function firstProjectileHit(front,a,b){let best=null,bestD=Infinity;for(const enemy of front.enemies){if(enemy.dead)continue;const d=segmentDistance(a.x,a.z,b.x,b.z,enemy.x,enemy.z);if(d>.42)continue;const along=dist(a,enemy);if(along<bestD){best=enemy;bestD=along;}}return best;}
+function nearestRangedTarget(state,front){return front.enemies.filter(e=>!e.dead&&!e.downed).map(enemy=>({enemy,distance:dist(state.position,enemy)})).filter(row=>row.distance>1.75&&row.distance<=7.5&&!lineBlocked(front,state.position,row.enemy)).sort((a,b)=>a.distance-b.distance)[0]?.enemy||null;}
+function firstProjectileHit(front,a,b){let best=null,bestD=Infinity;for(const enemy of front.enemies){if(enemy.dead||enemy.downed)continue;const d=segmentDistance(a.x,a.z,b.x,b.z,enemy.x,enemy.z);if(d>.42)continue;const along=dist(a,enemy);if(along<bestD){best=enemy;bestD=along;}}return best;}
 
 export function tickRangedProjectiles(state,front,dt,events){
   ensureCombatTerrain(front);const ranged=projectileState(state);ranged.cooldown=Math.max(0,ranged.cooldown-dt);

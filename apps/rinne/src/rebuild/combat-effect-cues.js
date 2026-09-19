@@ -24,7 +24,7 @@ export function combatEffectCues(events, {state, front, hostiles=[], anchors={}}
   const cues=[];
   for(const event of events){
     if(!event||!finite(event.damage)||event.damage<=0)continue;
-    const manual=event.type==='one-motion';
+    const manual=event.type==='one-motion'||event.type==='finisher';
     if(manual&&hitTargets.has(event.targetId))continue;
     const outgoing=event.type==='player-hit'||manual;
     if(!outgoing&&event.type!=='enemy-hit')continue;
