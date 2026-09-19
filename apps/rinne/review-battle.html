@@ -33,13 +33,17 @@
 </style>
 </head>
 <body>
-<main class="battle-review" aria-label="技演出レビュー。モーション・VFX・SFXと接触を確認します。本編の閃き判定や保存データは変更しません。">
-  <header class="battle-bar">
-    <a href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">‹ 戻る</a>
-    <strong>技演出レビュー</strong>
+<main class="battle-review review-surface" aria-label="技演出レビュー。モーション・VFX・SFXと接触を確認します。本編の閃き判定や保存データは変更しません。">
+  <header class="battle-bar review-surface__header">
+    <div class="review-surface__title">
+      <a class="review-surface__back" href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">‹ 戻る</a>
+      <div><span class="review-surface__eyebrow">RINNE RUNTIME PROBE</span><h1>技演出</h1></div>
+    </div>
     <div class="battle-state"><strong id="battle-result">準備中</strong><span id="battle-time">0.0秒</span><button id="battle-sound" type="button" data-enabled="true" aria-pressed="true" aria-label="戦闘音の切替">音</button></div>
   </header>
-  <section class="stage">
+  <section class="review-surface__workspace">
+  <div class="review-surface__stage-column">
+  <section class="stage review-surface__stage">
     <canvas id="battle-canvas" aria-label="実モデルで動くTidebreak自動戦闘"></canvas>
     <output id="battle-model-status" class="model-status" role="status">モデル準備中</output>
     <span class="note">モデル切替は表示のみ</span>
@@ -49,7 +53,8 @@
       <strong id="phase-meta" class="phase-meta combat-phase-action combat-sequence__action">間合いを測る</strong><div id="phase-history" class="phase-history combat-phase-history combat-sequence__history" aria-hidden="true"></div>
     </aside>
   </section>
-  <section class="controls">
+  </div>
+  <section class="controls review-surface__panel">
     <div class="pickers">
       <label>左モデル<select id="battle-hero-model"></select></label>
       <label>右モデル<select id="battle-enemy-model"></select></label>
@@ -66,6 +71,7 @@
       </div>
     </div>
     <div class="actions"><button id="battle-inspire" type="button">閃く · ランダム技</button><button id="battle-restart" type="button">組み直す</button></div>
+  </section>
   </section>
 </main>
 <script type="module" src="./src/review-battle.js"></script>

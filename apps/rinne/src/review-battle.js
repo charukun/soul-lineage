@@ -3,6 +3,7 @@ import {REVIEW_BATTLE_MODELS,createReviewBattleStage} from './review-battle-stag
 import {reviewBattleLoopDue,reviewBattlePhaseState} from './review-battle-state.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
 import '@soul/shared-ui/combat-sequence.css';
+import '@soul/shared-ui/review-surface.css';
 import {createCombatSfx} from '@soul/audio/combat-sfx';
 import {ACTION_SKILLS} from './rebuild/skill-system.js';
 import {sequenceHudState} from './combat-sequence-hud.js';

@@ -5,24 +5,24 @@
 <meta name="theme-color" content="#0b1110"><title>装備 | Visual Review Lab</title>
 </head>
 <body>
-<main class="asset-review">
-  <header class="review-header">
-    <div class="review-title">
-      <a class="review-lab-back" data-review-back href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">‹ 戻る</a>
+<main class="asset-review review-surface">
+  <header class="review-header review-surface__header">
+    <div class="review-title review-surface__title">
+      <a class="review-lab-back review-surface__back" data-review-back href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">‹ 戻る</a>
       <div>
-        <p class="eyebrow">RINNE RUNTIME PROBE</p>
+        <p class="eyebrow review-surface__eyebrow">RINNE RUNTIME PROBE</p>
         <h1>装備</h1>
       </div>
     </div>
-    <div class="review-header-stats">
+    <div class="review-header-stats review-surface__stats">
       <output id="asset-model-count" aria-label="検証モデル数">MODELS —</output>
       <output id="asset-load-state" class="asset-load-state" data-state="loading" aria-live="polite"><span aria-hidden="true"></span><strong>準備中</strong></output>
     </div>
   </header>
 
-  <section class="asset-workspace" aria-label="装備レビュー">
-    <div class="asset-preview-pane">
-      <section class="asset-stage-shell" aria-label="キャラクター装備のプレビュー">
+  <section class="asset-workspace review-surface__workspace" aria-label="装備レビュー">
+    <div class="asset-preview-pane review-surface__stage-column">
+      <section class="asset-stage-shell review-surface__stage" aria-label="キャラクター装備のプレビュー">
         <canvas id="asset-stage" aria-label="装備プレビュー。ドラッグで自由回転、ピンチで拡大"></canvas>
 
         <div class="asset-stage-slot" aria-live="polite">
@@ -32,7 +32,7 @@
       </section>
     </div>
 
-    <aside class="asset-catalog" aria-label="装備レビュー操作">
+    <aside class="asset-catalog review-surface__panel" aria-label="装備レビュー操作">
       <section class="asset-section asset-equipment-section asset-primary-selection" aria-labelledby="asset-equipment-title">
         <div class="asset-primary-head">
           <div class="asset-primary-copy">
@@ -86,14 +86,13 @@
       </details>
 
       <output id="asset-status" class="asset-status" role="status" aria-live="polite">モデルを読み込んでいます。</output>
+      <details class="asset-provenance-shell review-surface__meta">
+        <summary>原本・確認境界</summary>
+        <p id="asset-provenance" class="asset-provenance"></p>
+        <p>この画面は固定したreview-only素材を実際のThree.jsランタイムで読み込みます。表示確認用であり、ゲーム本体の所持品・保存状態・採用判定は変更しません。</p>
+      </details>
     </aside>
   </section>
-
-  <details class="asset-provenance-shell">
-    <summary>原本・確認境界</summary>
-    <p id="asset-provenance" class="asset-provenance"></p>
-    <p>この画面は固定したreview-only素材を実際のThree.jsランタイムで読み込みます。表示確認用であり、ゲーム本体の所持品・保存状態・採用判定は変更しません。</p>
-  </details>
 </main>
 <script type="module" src="./src/review-asset-library.js"></script>
 </body>

@@ -3,6 +3,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {createReviewCameraMenu} from '@soul/shared-ui/review-camera-menu';
 import './review-object-library.css';
+import '@soul/shared-ui/review-surface.css';
 
 const OBJECT_SOURCE=Object.freeze({
   label:'KayKit Dungeon Remastered',

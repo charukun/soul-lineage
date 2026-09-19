@@ -9,6 +9,7 @@ import {
   reviewSkeletonEquipmentForSlot,
 } from '@soul/assets';
 import './review-asset-library.css';
+import '@soul/shared-ui/review-surface.css';
 
 const q = selector => document.querySelector(selector);
 const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');

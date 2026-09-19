@@ -9,6 +9,7 @@ import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGOR
 import {buildReviewMotionRegistry,motionRegistryCount} from './review-motion-registry.js';
 import {loadPinnedMotionSource,disposePinnedMotionSources} from './review-motion-source-runtime.js';
 import './review-motion-library.css';
+import '@soul/shared-ui/review-surface.css';
 
 const el=id=>document.getElementById(id);
 const canvas=el('motion-stage');
