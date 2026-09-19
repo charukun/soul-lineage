@@ -5,6 +5,7 @@ class TitleCinematicController{
  prefersReducedMotion(){return Boolean(this.reducedMotion?.matches);}
  clear(){for(const t of this.timers)clearTimeout(t);this.timers=[];}
  pause(){this.video.pause();}
+ activateFallback(reason){if(reason)console.warn('Realtime title fallback',reason);this.clear();this.pause();this.realtime=false;this.skipReady=false;this.title.dataset.media='fallback';this.title.dataset.intro='idle';this.title.dataset.skip='done';this.getPrepared()?.startTitlePreview?.({cinematic:false});}
  setSkipReady(){if(!this.title.hidden&&this.title.dataset.intro==='cinematic'){this.skipReady=true;this.title.dataset.skip='ready';}}
  settleUi({skipped=false}={}){if(this.title.hidden||this.title.dataset.intro!=='cinematic')return;this.clear();this.skipReady=false;this.title.dataset.skip=skipped?'requested':'done';this.title.dataset.intro='settling';this.getPrepared()?.startTitlePreview?.({cinematic:false});this.timers.push(setTimeout(()=>{if(!this.title.hidden){this.title.dataset.intro='idle';this.title.dataset.skip='done';}},900));}
  startRealtime(){const prepared=this.getPrepared();if(!prepared||this.title.hidden)return false;this.clear();this.pause();this.realtime=true;this.introPlayed=true;this.skipReady=false;this.title.dataset.media='realtime';this.title.dataset.intro='cinematic';this.title.dataset.skip='locked';prepared.startTitlePreview?.({cinematic:true,lowResolution:true});this.timers.push(setTimeout(()=>this.setSkipReady(),1500));this.timers.push(setTimeout(()=>this.settleUi(),8200));return true;}
