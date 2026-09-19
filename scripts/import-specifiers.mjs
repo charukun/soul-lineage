@@ -17,6 +17,7 @@ export function importSpecifiers(source) {
         && typeof node.source?.value === 'string') specs.push(node.source.value);
     if (node.type === 'NewExpression' && node.callee?.name === 'URL'
         && typeof node.arguments[0]?.value === 'string'
+        && !node.arguments[0].value.endsWith('/')
         && isImportMetaUrl(node.arguments[1])) specs.push(node.arguments[0].value);
     for (const value of Object.values(node)) {
       if (Array.isArray(value)) value.forEach(walk);
