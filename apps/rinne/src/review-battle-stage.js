@@ -4,6 +4,8 @@ import {GLTFLoader} from '@soul/rendering';
 import {createKaykitCharacterPools} from './rebuild/kaykit-character-pool.js';
 import {applyTidebreakPose,tidebreakFrameFromSnapshot} from './rebuild/tidebreak-pose.js';
 import {reviewBattleCameraFrame} from './review-battle-state.js';
+import {rinneCombatCameraFrame} from './rebuild/combat-camera.js';
+import {demonCombatCameraFrame} from '../../demon/src/web/combat-camera-frame.js';
 import {hideEmbeddedCombatProps,reviewBattleEquipmentFor} from './review-battle-equipment.js';
 
 export const REVIEW_BATTLE_MODELS=Object.freeze(KAYKIT_MODELS.map(model=>Object.freeze({id:model.id,label:model.label})));
@@ -132,18 +134,18 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   }
   const observer=new ResizeObserver(resize);observer.observe(canvas);resize();
 
-  function updateCamera(core,dt,followCamera){
-    const frame=reviewBattleCameraFrame(core,{follow:followCamera});
+  function updateCamera(core,dt,followCamera,encounterMode='duel'){
+    const frame=reviewBattleCameraFrame(core,{follow:followCamera,encounterMode,rinneFrame:rinneCombatCameraFrame,demonFrame:demonCombatCameraFrame});
     cameraTargetPosition.set(frame.position.x,frame.position.y,frame.position.z);cameraTargetLook.set(frame.look.x,frame.look.y,frame.look.z);
     const step=Math.max(1/120,Math.min(.05,Number(dt)||1/60)),blend=1-Math.exp(-step*8);
     camera.position.lerp(cameraTargetPosition,blend);cameraLook.lerp(cameraTargetLook,blend);camera.lookAt(cameraLook);
     canvas.dataset.cameraFollow=followCamera?'on':'off';
   }
 
-  function sync(core,dt=0,{followCamera=true}={}){
+  function sync(core,dt=0,{followCamera=true,encounterMode='duel'}={}){
     resize();const now=performance.now()/1000;
     if(core){animateSide('hero',core.hero,core.enemy,now,dt);animateSide('enemy',core.enemy,core.hero,now,dt);}
-    updateCamera(core,dt,followCamera);
+    updateCamera(core,dt,followCamera,encounterMode);
     const heroActual=sides.hero.actor?.root?.userData?.characterModel||'';
     const enemyActual=sides.enemy.actor?.root?.userData?.characterModel||'';
     canvas.dataset.heroModel=heroActual;canvas.dataset.enemyModel=enemyActual;
@@ -157,6 +159,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   return Object.freeze({
     models:REVIEW_BATTLE_MODELS,
     setModel(side,modelId){install(side,modelId);},
+    setEncounterMode(mode){canvas.dataset.encounterMode=mode==='melee'?'melee':'duel';},
     resetRound(){for(const side of Object.values(sides)){side.previous=null;side.hp=null;side.hitUntil=0;}},
     sync,
     snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on'});},
