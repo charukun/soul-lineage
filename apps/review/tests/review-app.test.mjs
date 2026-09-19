@@ -18,6 +18,8 @@ test('Lab separates equipment and world-object probes and routes them to deliver
   for(const host of ['soul-lineage-rinne-dev','soul-lineage-village-dev','soul-lineage-demon-dev','rinne-ops'])assert.match(source,new RegExp(host));
   for(const page of ['characters.html','review-motion.html','review-assets.html','review-objects.html','review-effects.html','review-sound.html','review-battle.html'])assert.match(source,new RegExp(page.replace('.','\\.')));
   for(const route of ['equipment','objects','sounds'])assert.match(html,new RegExp(`data-route="${route}"`));
+  assert.match(source,/equipment:route\(DEV\.rinne,'review-assets\.html'\)/);
+  assert.match(source,/objects:route\(DEV\.rinne,'review-objects\.html'\)/);
   assert.match(html,/<b>装備<\/b>/);
   assert.match(html,/<b>物体<\/b>/);
   assert.doesNotMatch(html,/<b>装備・物体<\/b>/);
