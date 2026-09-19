@@ -51,28 +51,23 @@ test('PULSE title, canonical names and deployment metadata are wired together', 
   assert.equal(existsSync(new URL('../.github/workflows/pulse-task-worker.yml', import.meta.url)), false);
 });
 
-test('delivery wiring keeps Workers DEV and PULSE independent while Pages remains Production-only', () => {
+test('delivery wiring keeps Fast DEV independent from PULSE while Production stays blocking', () => {
   const devWorkflow = text('.github/workflows/dev-app-publish.yml');
   const pagesWorkflow = text('.github/workflows/deploy.yml');
   assert.match(devWorkflow, /branches: \[develop\]/);
   assert.match(devWorkflow, /wrangler@4 deploy --config "wrangler\.dev\.\$APP\.jsonc"/);
-  assert.match(devWorkflow, /name: Refresh PULSE/);
-  assert.match(devWorkflow, /uses: \.\/\.github\/workflows\/ops-board\.yml/);
+  assert.doesNotMatch(devWorkflow, /PULSE|ops-board\.yml/);
   assert.match(pagesWorkflow, /branches: \[main\]/);
   assert.doesNotMatch(pagesWorkflow, /push:[\s\S]*branches: \[develop\]/);
+  assert.doesNotMatch(pagesWorkflow, /integration-rescue|rescue_mode/);
   assert.match(pagesWorkflow, /PAGES_DEV_RETIRED: 'true'/);
   assert.match(pagesWorkflow, /scripts\/verify-live\.mjs/);
   assert.match(pagesWorkflow, /scripts\/verify-browser\.mjs/);
   assert.match(pagesWorkflow, /format\('\{0\}prod\/', steps\.deployment\.outputs\.page_url\)/);
   const deployScript = text('scripts/deploy.mjs');
   assert.match(deployScript, /RETIRE_PAGES_DEV_ONLY/);
-  assert.match(deployScript, /content="0;url=prod\/"/);
-  const boardWorkflow = text('.github/workflows/ops-board.yml');
-  const triggers = boardWorkflow.split('permissions:')[0];
-  assert.doesNotMatch(triggers, /\bpush:/);
-  assert.match(triggers, /workflow_call:/);
-  assert.match(triggers, /workflow_dispatch:/);
-  assert.match(boardWorkflow, /node ops-board\/publication-check\.mjs/);
+  assert.match(deployScript, /content="0;url=prod\//);
   assert.match(text('ops-board/publication-check.mjs'), /PULSE_PUBLIC_VERIFIED/);
-  assert.doesNotMatch(boardWorkflow, /grep -q '開発状況ボード'/);
+  assert.equal(existsSync(new URL('../.github/workflows/ops-board.yml', import.meta.url)), false);
+  assert.equal(existsSync(new URL('../.github/workflows/pulse-refresh.yml', import.meta.url)), false);
 });

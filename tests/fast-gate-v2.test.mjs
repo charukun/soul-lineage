@@ -64,14 +64,19 @@ test('validator uses trusted current-develop helpers for DEV while preserving re
   assert.match(astra,/git show origin\/develop:scripts\/fast-dev-contract\.mjs/);
   assert.match(astra,/npm ci --ignore-scripts/);
   assert.match(astra,/astra\/fast-dev-contract/);
+  assert.match(astra,/\[astra-contract-change\]/);
+  assert.match(contract,/FAST_DEV_WORKFLOW_ALLOWLIST/);
+  assert.match(contract,/inspectAuthorizedFastDevContraction/);
+  assert.match(contract,/ACTIONS_WORKFLOW_COUNT_NOT_REDUCED/);
 
 });
 
-test('DEV PR and normal DEV publication stay test-free outside the PULSE preflight exception', () => {
+test('DEV PR and normal DEV publication stay test-free', () => {
   const validate = source('scripts/validate.mjs');
   assert.match(validate, /const dev = mode === 'dev'/);
   assert.match(validate, /const deploy = mode === 'deploy'/);
-  assert.match(validate, /if \(dev \|\| deploy\) \{[\s\S]*tests: pulseRelevant \? 'pulse-preflight' : 0[\s\S]*\} else \{/);
+  assert.match(validate, /if \(dev \|\| deploy\) \{[\s\S]*tests: 0[\s\S]*\} else \{/);
+  assert.doesNotMatch(validate, /pulseRelevant|pulse:preflight/);
   assert.match(validate, /else \{[\s\S]*splitFastTests\(uniqueTests[\s\S]*\['--test', \.\.\.split\.light\]/);
 });
 

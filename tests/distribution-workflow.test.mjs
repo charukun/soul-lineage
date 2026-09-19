@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 const text=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
@@ -12,10 +12,11 @@ test('Workers DEV is the only automatic develop publication path and includes bo
   assert.match(workflow,/cancel-in-progress: true/);
   assert.match(workflow,/distribution:build -- --app "\$APP" --target web-dev/);
   assert.match(workflow,/wrangler@4 deploy --config "wrangler\.dev\.\$APP\.jsonc"/);
-  assert.match(workflow,/Focused app validation diagnostic[\s\S]*continue-on-error: true/);
+  assert.doesNotMatch(workflow,/Focused app validation diagnostic/);
+  assert.match(workflow,/npm ci --ignore-scripts --no-audit --no-fund/);
   assert.match(workflow,/Diagnose public app source[\s\S]*continue-on-error: true[\s\S]*verify-published-app\.mjs "\$APP" "\$SOURCE_SHA" web-dev/);
   assert.match(workflow,/notify-fast-dev\.mjs/);
-  assert.match(workflow,/uses: \.\/\.github\/workflows\/ops-board\.yml/);
+  assert.doesNotMatch(workflow,/ops-board\.yml|PULSE/);
   assert.doesNotMatch(workflow,/branches: \[main\]/);
 });
 
@@ -34,18 +35,21 @@ test('GitHub Pages no longer publishes develop while Production verification rem
   assert.doesNotMatch(workflow,/branches: \[develop/);
   assert.doesNotMatch(workflow,/dev\/delivery/);
   assert.match(workflow,/PAGES_DEV_RETIRED: 'true'/);
-  assert.match(workflow,/uses: \.\/\.github\/workflows\/integration-rescue\.yml/);
+  assert.doesNotMatch(workflow,/integration-rescue|rescue_mode/);
   assert.match(workflow,/Preserve blocking Production browser verification/);
   assert.match(workflow,/verify-browser\.mjs/);
 
-  const retire=text('.github/workflows/retire-pages-dev.yml');
-  assert.match(retire,/branches: \[develop\]/);
-  assert.match(retire,/RETIRE_PAGES_DEV_ONLY: 'true'/);
-  assert.match(retire,/test ! -e _site\/dev/);
-  assert.match(retire,/existing non-DEV bytes/);
 });
 
-test('the obsolete shared DEV publisher coalescer is removed from the repository contract',()=>{
+test('GitHub Actions surface is limited to Fast DEV, Production and explicit distribution',()=>{
+  const workflows=readdirSync('.github/workflows').filter(name=>/\.ya?ml$/.test(name)).sort();
+  assert.deepEqual(workflows,[
+    'astra-work-validation.yml',
+    'ci.yml',
+    'deploy.yml',
+    'dev-app-publish.yml',
+    'distribution-artifact.yml',
+  ]);
   const deploy=text('.github/workflows/deploy.yml');
-  assert.doesNotMatch(deploy,/DEV Publisher Coalescer/);
+  assert.doesNotMatch(deploy,/DEV Publisher Coalescer|integration-rescue/);
 });

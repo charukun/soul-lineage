@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import {
   PULSE_COPY,
   PULSE_FIRST_GLANCE,
@@ -31,23 +31,12 @@ test('PULSE semantic contract is the single source for first-glance roles and re
   assert.doesNotMatch(freshness, /title:\s*'再同期中'/);
 });
 
-test('pre-merge DEV validation and post-merge publication use the same canonical PULSE preflight', () => {
+test('PULSE source tooling is detached from the Fast DEV Actions lane', () => {
   const validate = text('scripts/validate.mjs');
-  const workflow = text('.github/workflows/ops-board.yml');
   const pkg = JSON.parse(text('package.json'));
-
   assert.equal(pkg.scripts['pulse:preflight'], 'node ops-board/preflight.mjs');
-  assert.match(validate, /pulseRelevant/);
-  assert.match(validate, /run\('npm', \['run', 'pulse:preflight'\]\)/);
-  assert.match(workflow, /name: Canonical PULSE preflight/);
-  assert.match(workflow, /run: npm run pulse:preflight/);
-  assert.equal((workflow.match(/npm run pulse:preflight/g) || []).length, 1);
-});
-
-test('post-deploy smoke relies on semantic roles rather than presentation copy', () => {
-  const workflow = text('.github/workflows/ops-board.yml');
-  for (const role of PULSE_FIRST_GLANCE) {
-    assert.match(workflow, new RegExp(`data-pulse-role="${role}"`));
-  }
-  assert.doesNotMatch(workflow, /grep -q 'あなたの確認が必要'/);
+  assert.doesNotMatch(validate, /pulseRelevant|pulse:preflight/);
+  assert.equal(existsSync(new URL('../.github/workflows/ops-board.yml', import.meta.url)), false);
+  assert.equal(existsSync(new URL('../.github/workflows/pulse-refresh.yml', import.meta.url)), false);
+  assert.equal(existsSync(new URL('../.github/workflows/pulse-events.yml', import.meta.url)), false);
 });
