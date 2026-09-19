@@ -43,7 +43,7 @@ export async function verifyCharacterStudio(browser, baseURL, output) {
     return current;
   }
   try {
-    const response = await page.goto(new URL('./characters.html', baseURL).href, {waitUntil:'domcontentloaded',timeout:60000});
+    const response = await page.goto(new URL('./index.html', baseURL).href, {waitUntil:'domcontentloaded',timeout:60000});
     assert.equal(response.status(),200); await ready();
     await page.waitForFunction(()=>document.body.classList.contains('workshop-ux-ready'));
     assert.equal(await page.locator('.mode-tabs [data-workshop-intent]').count(),3);

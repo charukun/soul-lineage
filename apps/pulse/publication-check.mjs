@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { GAME_NAMES, GAME_ENVIRONMENTS, BOARD_NAME } from '../scripts/application-catalog.mjs';
+import { GAME_NAMES, GAME_ENVIRONMENTS, BOARD_NAME } from '../../scripts/application-catalog.mjs';
 
 export function assertVersion(version, expected, label = 'publication') {
   assert.match(expected || '', /^[a-f0-9]{40}$/, 'Expected exact Git commit SHA');

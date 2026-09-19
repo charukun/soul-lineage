@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { buildState, environmentFromManifest } from '../ops-board/collector.mjs';
-import { degradedState } from '../ops-board/fallback-state.mjs';
-import { assertVersion, assertSnapshot } from '../ops-board/publication-check.mjs';
-import { appHealth, boardAlerts } from '../ops-board/public/health.mjs';
-import { buildApplications } from '../ops-board/applications.mjs';
+import { buildState, environmentFromManifest } from '../apps/pulse/collector.mjs';
+import { degradedState } from '../apps/pulse/fallback-state.mjs';
+import { assertVersion, assertSnapshot } from '../apps/pulse/publication-check.mjs';
+import { appHealth, boardAlerts } from '../apps/pulse/public/health.mjs';
+import { buildApplications } from '../apps/pulse/applications.mjs';
 const sha = 'a'.repeat(40), prodSha = 'b'.repeat(40), stagedSha = 'c'.repeat(40);
 const now = new Date().toISOString();
 const manifest = { schemaVersion: 1, entries: ['rinne','village','demon'].flatMap(app => [
@@ -86,7 +86,7 @@ test('a resolved CI warning disappears and a stale delivery is surfaced once',()
 });
 test('publication workflow checks exact source before authenticated prime and uses the canonical preflight plus public browser gate',()=>{
   const source=readFileSync(new URL('../.github/workflows/ops-board.yml',import.meta.url),'utf8');
-  const preflight=readFileSync(new URL('../ops-board/preflight.mjs',import.meta.url),'utf8');
+  const preflight=readFileSync(new URL('../apps/pulse/preflight.mjs',import.meta.url),'utf8');
   assert.ok(source.indexOf('publication-check.mjs version') < source.indexOf('node ops-board/prime.mjs'));
   assert.match(source,/OPS_BUILD_SHA:\$OPS_SOURCE_SHA/);
   assert.match(source,/npm run pulse:preflight/);

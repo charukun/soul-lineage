@@ -9,7 +9,7 @@ on:
         description: 'Publish one app from the selected/ref source'
         type: choice
         required: true
-        options: [rinne, village, demon, review]
+        options: [rinne, village, demon, review, character-studio]
       source_sha:
         description: 'Optional exact source SHA/ref'
         type: string

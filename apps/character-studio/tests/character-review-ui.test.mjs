@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const read = p => readFileSync(new URL(p, import.meta.url), 'utf8');
-const main = read('../characters.html'), advanced = read('../characters-advanced.html');
+const main = read('../index.html'), advanced = read('../advanced.html');
 const engine = read('../src/character-review.js'), shell = read('../src/character-review-main.js');
 const css = read('../src/character-review-main.css'), detailCss = read('../src/character-review-advanced.css');
 const vite = read('../vite.config.js');
@@ -18,7 +18,7 @@ test('editing is primary, five keyboard tabs including Motion QA replace stacked
   assert.equal([...main.matchAll(/role="tab"/g)].length, 5);
   for (const tab of ['parts','colors','motion','qa','compare']) assert.ok(main.includes(`data-tab="${tab}"`));
   assert.match(main, /id="compat-controls" hidden/);
-  assert.match(main, /href="\.\/characters-advanced\.html"/);
+  assert.match(main, /href="\.\/advanced\.html"/);
   assert.match(shell, /ArrowRight/); assert.match(shell, /ArrowLeft/);
   for (const id of ['undo','redo','save-workspace','original-preview']) assert.ok(main.includes(`id="${id}"`));
   for (const id of ['seed','gene-height','session-file']) assert.ok(advanced.includes(`id="${id}"`));
@@ -51,5 +51,5 @@ test('model audit uses pinned CC0 KayKit identity, bounded loads and GPU recover
 });
 test('both review pages stay in the existing Rinne build', () => {
   assert.match(vite, /characters:fileURLToPath\(new URL\('\.\/characters\.html'/);
-  assert.match(vite, /charactersAdvanced:fileURLToPath\(new URL\('\.\/characters-advanced\.html'/);
+  assert.match(vite, /advanced:fileURLToPath\(new URL\('\.\/advanced\.html'/);
 });
