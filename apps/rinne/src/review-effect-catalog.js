@@ -31,16 +31,16 @@ const CORE_EFFECTS=[
 
 function libraryCategory(effect){
   const name=effect.sourcePath.split('/').pop()||effect.sourcePath;
-  if(/Sword|Spear|Claw|Arrow|Gun|Ribbon|drill|BloodLance/i.test(name))return'attack';
-  if(/Blow|hit_eff|Impact|SonicBoom|MonsterRoar/i.test(name))return'impact';
-  if(/HealPotion|MagicHeal|PowerUp|Benediction|Shield|magic_circle/i.test(name))return'support';
-  if(/boss_death|FeatherBomb|GateOfCalve|Meteor|Meteo|LightningStrike|HolySandstorm/i.test(name))return'finisher';
-  if(/Fire|Flame|Dark|Light|Magic|Thunder|Wind|Soil|Cold|Water|Cosmic|Snowstorm|electric/i.test(name))return'elemental';
+  if(/Sword|Spear|Claw|Arrow|Gun|Ribbon|drill|BloodLance|Attack|Lance|Laser/i.test(name))return'attack';
+  if(/Blow|hit_eff|Impact|SonicBoom|MonsterRoar|Breakdown|Rock/i.test(name))return'impact';
+  if(/HealPotion|MagicHeal|PowerUp|Benediction|Shield|magic_circle|Cure|hozyo/i.test(name))return'support';
+  if(/boss_death|FeatherBomb|GateOfCalve|Meteor|Meteo|meteo|LightningStrike|HolySandstorm|WHead/i.test(name))return'finisher';
+  if(/Fire|Flame|Dark|Light|Magic|Thunder|Wind|Soil|Cold|Water|Cosmic|Snowstorm|electric|Salamander|Sylph|Undine|Aqua|Icicle|Gohlem|Holy|Topwater/i.test(name))return'elemental';
   return'combo';
 }
 function libraryLabel(effect){
   const name=(effect.sourcePath.split('/').pop()||effect.id).replace(/\.efkefc$/i,'');
-  return name.replace(/^(?:AndrewFM01|NextSoft01|Pierre01|Pierre02|Suzuki01|Tktk01|Tktk02|Tktk03)_/,'').replaceAll('_',' ');
+  return name.replace(/^(?:AndrewFM01|NextSoft01|Pierre01|Pierre02|Suzuki01|Tktk01|Tktk02|Tktk03|Basic)_/,'').replace(/^MxS_/,'').replaceAll('_',' ');
 }
 function libraryEntry(effect){
   const category=libraryCategory(effect);
@@ -49,7 +49,7 @@ function libraryEntry(effect){
   const group=effect.sourcePath.split('/')[0];
   return entry({
     id:`source-${effect.id}`,label:libraryLabel(effect),category,kind:'original',mode:'raw',context,
-    realSource:true,sourcePath:effect.sourcePath,effects:[effect.id],
+    realSource:true,sourcePath:effect.sourcePath,author:effect.author,effects:[effect.id],
     tags:['実素材','原本','CC0',effect.author,group,category],
     cues:[cue(effect.id,anchor,{lifetime:effect.lifetime,priority:3})],
   });

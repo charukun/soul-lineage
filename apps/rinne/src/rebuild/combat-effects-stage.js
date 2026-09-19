@@ -1,5 +1,7 @@
 import {createAuthoredEffectPlayer} from './authored-effect-player.js';
 import {authoredEffectBase,createEffekseerBackend} from './effekseer-loader.js';
+import {AUTHORED_EFFECTS} from './authored-effect-manifest.js';
+import {createVfxStreamingDemand} from './vfx-streaming.js';
 import {createImpactDirector} from './impact-director.js';
 import {createImpactPresentationRuntime} from './impact-presentation-runtime.js';
 import {clearRinneImpactAudio,presentRinneImpactAudio} from '../gameplay-audio.js';
@@ -19,7 +21,7 @@ export function installCombatEffects(view,{document,canvas,backendFactory=create
   const baseUrl=authoredEffectBase(document),abort=new AbortController();
   const player=createAuthoredEffectPlayer({mobile,reducedMotion:Boolean(motion?.matches)}),director=createImpactDirector({mobile,reducedMotion:Boolean(motion?.matches)});
   const presentation=typeof T?.Vector3==='function'?createImpactPresentationRuntime({view,director}):{beforeRender(){},afterRender(){},clear(){}};
-  let disposed=false,booted=false,front=null;
+  let disposed=false,booted=false,front=null,peers=[],demandElapsed=1;
   const geometry=new T.PlaneGeometry(1,1);
   const material=new T.MeshBasicMaterial({transparent:true,opacity:0,colorWrite:false,depthWrite:false,depthTest:false,toneMapped:false});
   const stage=new T.Mesh(geometry,material);
@@ -31,7 +33,7 @@ export function installCombatEffects(view,{document,canvas,backendFactory=create
       booted=true;stage.visible=false;
       Promise.resolve().then(()=>{
         if(disposed)return null;
-        return backendFactory({renderer,document,baseUrl,signal:abort.signal,budget:player.snapshot().budget});
+        return backendFactory({renderer,document,baseUrl,signal:abort.signal,budget:player.snapshot().budget,streaming:true,fallbackEffects:['slash','impact'],maxResident:24,retentionMs:60_000});
       }).then(backend=>{if(backend)player.attach(backend);}).catch(error=>player.fail(error));
       return;
     }
@@ -41,10 +43,12 @@ export function installCombatEffects(view,{document,canvas,backendFactory=create
   const previousBefore=view.scene.onBeforeRender,previousAfter=view.scene.onAfterRender;
   view.scene.onBeforeRender=(...args)=>{previousBefore?.apply(view.scene,args);presentation.beforeRender();};
   view.scene.onAfterRender=(...args)=>{presentation.afterRender();previousAfter?.apply(view.scene,args);};
-  const original={renderState:view.renderState,syncFront:view.syncFront,updateFront:view.updateFront,
+  const original={renderState:view.renderState,syncFront:view.syncFront,updateFront:view.updateFront,syncPeers:view.syncPeers,
     dispose:view.dispose,visualSnapshot:view.visualSnapshot};
   view.syncFront=(next)=>{front=next;return original.syncFront(next);};
   view.updateFront=(next)=>{front=next;return original.updateFront(next);};
+  view.syncPeers=(rows)=>{peers=Array.isArray(rows)?rows:[];demandElapsed=1;return original.syncPeers(rows);};
+  const syncDemand=state=>player.prefetch(createVfxStreamingDemand({self:state,peers,effectDefinitions:AUTHORED_EFFECTS}));
   view.presentCombatEvents=(events,context)=>{
     if(disposed||document.hidden||context.state?.zone!=='frontier')return;
     const currentFront=context.front||front,result=director.present(events,{...context,front:currentFront});
@@ -52,8 +56,9 @@ export function installCombatEffects(view,{document,canvas,backendFactory=create
     if(result.strongest)presentRinneImpactAudio({energy:result.strongest.profile.energy,prehit:false});
   };
   view.clearCombatEffects=()=>{player.clear();director.clear();presentation.clear();clearRinneImpactAudio();};
-  view.renderState=(state,dt=0)=>{
+  view.renderState=(state,dt=0,options={})=>{
     if(state?.zone!=='frontier'){director.clear();presentation.clear();clearRinneImpactAudio();}
+    if(!options?.titlePreview){demandElapsed+=Number.isFinite(dt)?Math.max(0,dt):0;if(demandElapsed>=.25){demandElapsed=0;syncDemand(state);}}
     const level=original.visualSnapshot?.().focus?.level||0,reduced=Boolean(motion?.matches),hidden=Boolean(document.hidden),snap=director.frame(dt,{level,reduced,hidden});
     const restorePose=director.applyPoseLag(state,front,dt);
     try{
@@ -65,9 +70,9 @@ export function installCombatEffects(view,{document,canvas,backendFactory=create
       }
       // Only pose/VFX presentation consumes the local scale. The base renderer receives real dt so performance and simulation clocks stay truthful.
       player.frame(state,front,dt*snap.timeScale,{level,reduced,hidden,anchors});
-      const mayBoot=!hidden&&state?.zone==='frontier'&&state?.phase!=='birth'&&!state?.ended;
+      const mayBoot=!hidden&&!options?.titlePreview&&!state?.ended;
       stage.visible=(!booted&&mayBoot)||player.snapshot().active>0;
-      return original.renderState(state,dt);
+      return original.renderState(state,dt,options);
     }finally{restorePose();}
   };
   view.visualSnapshot=()=>({...original.visualSnapshot?.(),combatEffects:player.snapshot(),impactDirector:director.snapshot()});

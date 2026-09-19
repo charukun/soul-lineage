@@ -5,6 +5,7 @@ import {combatEffectBudget} from './rebuild/combat-effect-cues.js';
 import {REVIEW_AUTHORED_EFFECTS,EFFECT_RUNTIME,EFFECT_SOURCE,REVIEW_EFFECT_SOURCE,REVIEW_VFX_LIBRARY_SOURCE} from './rebuild/authored-effect-manifest.js';
 import {REVIEW_EFFECT_CATALOG,REVIEW_EFFECT_CATEGORIES,REVIEW_REAL_EFFECT_COUNT} from './review-effect-catalog.js';
 import {authoredEffectBase,createEffekseerBackend} from './rebuild/effekseer-loader.js';
+import {REVIEW_REFERENCE_MODEL_HEIGHT,reviewModelScale} from './review-vfx-model-scale.js';
 import './review-effects.css';
 
 const q=id=>document.getElementById(id);
@@ -78,6 +79,8 @@ const secondaryC=createReviewMannequin({body:'#9fb3b5',accent:'#6f8d91',ring:'#8
 const sourceGuide=createPointGuide('#f3d477');scene.add(sourceGuide);
 const impactGuide=createImpactGuide('#ffffff');scene.add(impactGuide);
 const areaGuide=createAreaGuide('#d8b75e');areaGuide.position.set(1.55,.014,0);scene.add(areaGuide);
+const mannequinBox=new THREE.Box3().setFromObject(attacker),mannequinSize=new THREE.Vector3();mannequinBox.getSize(mannequinSize);
+const reviewModelHeight=mannequinSize.y||REVIEW_REFERENCE_MODEL_HEIGHT;
 
 const state={id:'visual-review-vfx',zone:'frontier',phase:'alive',interior:null,position:{x:-1.55,y:1,z:0}};
 const front={stage:1,enemies:[{id:'target',x:1.55,y:1,z:0},{id:'target-b',x:1.1,y:1,z:1.7},{id:'target-c',x:1.1,y:1,z:-1.7}]};
@@ -116,7 +119,8 @@ function syncActiveCard(){
   }
   const entry=catalogById.get(selected);if(!entry)return;
   q('fx-selected-label').textContent=entry.label;
-  q('fx-selected-meta').textContent=effectLabel(entry.id);
+  const fit=entry.realSource?' · MODEL FIT ×'+reviewModelScale(entry,reviewModelHeight).toFixed(2):'';
+  q('fx-selected-meta').textContent=effectLabel(entry.id)+fit;
   applyReviewContext(selected);
 }
 function rawCuesFor(entry){
@@ -131,7 +135,7 @@ function rawCuesFor(entry){
       effect:spec.effect,
       position:{x:anchor[0]+ox,y:anchor[1]+oy,z:anchor[2]+oz},
       rotation,
-      scale:spec.scale,
+      scale:spec.scale*(entry.realSource?reviewModelScale(entry,reviewModelHeight):1),
       lifetime:spec.lifetime??definition?.lifetime??1.5,
       color:[255,255,255,255],
       priority:spec.priority,
@@ -188,6 +192,7 @@ for(const button of document.querySelectorAll('[data-filter]'))button.addEventLi
 for(const id of ['fx-speed','fx-tier','fx-reduced'])q(id).addEventListener('change',syncControls);
 q('fx-pause').addEventListener('click',()=>{paused=!paused;q('fx-pause').textContent=paused?'再開':'一時停止';});
 q('fx-clear').addEventListener('click',()=>player.clear());q('fx-camera').addEventListener('click',resetCamera);
+q('fx-model-count').textContent=`EFFECT MODELS ${REVIEW_REAL_EFFECT_COUNT}`;
 q('fx-provenance').textContent=`実素材 ${REVIEW_REAL_EFFECT_COUNT}種 · ${REVIEW_VFX_LIBRARY_SOURCE.repository}@${REVIEW_VFX_LIBRARY_SOURCE.revision} / ${REVIEW_VFX_LIBRARY_SOURCE.license} · core ${EFFECT_SOURCE.repository}@${EFFECT_SOURCE.revision} / ${EFFECT_SOURCE.license} · review ${REVIEW_EFFECT_SOURCE.repository}@${REVIEW_EFFECT_SOURCE.revision} / ${REVIEW_EFFECT_SOURCE.license} · Effekseer WebGL ${EFFECT_RUNTIME.version}`;
 renderCatalog();
 

@@ -1,4 +1,5 @@
 import {AUTHORED_EFFECTS,EFFECT_ASSETS,EFFECT_PUBLIC_PATH} from './authored-effect-manifest.js';
+import {createEffekseerEffectPool} from './effekseer-effect-pool.js';
 
 const runtimes=new WeakMap(),dispatchers=new WeakMap();let nextOwner=0;
 const OWNER='rinne-vfx-owner';
@@ -90,63 +91,52 @@ function dispatcherFor(sdk){
  * before releasing native memory; an SDK callback cannot revive a torn-down view.
  */
 export async function createEffekseerBackend({renderer,document,baseUrl,signal,
-  fetchImpl=globalThis.fetch,sdkLoader=loadEffekseer,budget,effectDefinitions=AUTHORED_EFFECTS}){
+  fetchImpl=globalThis.fetch,sdkLoader=loadEffekseer,budget,effectDefinitions=AUTHORED_EFFECTS,
+  streaming=false,fallbackEffects=['slash','impact'],maxResident=24,retentionMs=60_000}){
   const sdk=await sdkLoader(document,baseUrl,{fetchImpl});
   if(signal?.aborted)throw Error('VFX view disposed');
   const abort=new AbortController(),cancel=()=>abort.abort();signal?.addEventListener('abort',cancel,{once:true});
-  let context,initialized=false,disposed=false,released=false,pending=0,failed;
-  const effects=new Map(),cache=new Map(),id=String(++nextOwner),dispatcher=dispatcherFor(sdk);
+  let context,initialized=false,disposed=false,released=false,pending=0,failed,pool,lastSweep=0;
+  const cache=new Map(),id=String(++nextOwner),dispatcher=dispatcherFor(sdk);
   const allowed=new Map(EFFECT_ASSETS.map(row=>[new URL(row.path,baseUrl).href,row]));
   let rejectReady;
   const owner={document,fetchImpl,abort,allowed,cache,get disposed(){return disposed;},
     get pending(){return pending;},set pending(value){pending=value;},
     fail(error){if(disposed)return;failed=error;close();rejectReady?.(error);},reap};
-  const loaded=[];
   function reap(){
     if(!disposed||pending!==0||released||!context)return;
-    released=true;dispatcher.owners.delete(id);
-    // SDK initialization can fail after allocating partial context resources.
-    if(initialized)for(const effect of effects.values())if(effect?.isLoaded){try{context.releaseEffect(effect);}catch{}}
-    try{sdk.releaseContext(context);}catch{/* Partial initialization may have no native context. */}
+    released=true;dispatcher.owners.delete(id);if(initialized)pool?.releaseAll();
+    try{sdk.releaseContext(context);}catch{}
     cache.clear();signal?.removeEventListener('abort',cancel);renderer.resetState();
   }
-  function close(){if(disposed)return;disposed=true;abort.abort();if(initialized){try{context.stopAll();}catch{}}queueMicrotask(reap);}
+  function close(){if(disposed)return;disposed=true;abort.abort();pool?.stopQueue();if(initialized){try{context.stopAll();}catch{}}queueMicrotask(reap);}
   const timeout=setTimeout(()=>owner.fail(Error('VFX resource loading timed out')),15_000);
-  const onAbort=()=>{owner.fail(Error('VFX view disposed'));};signal?.addEventListener('abort',onAbort,{once:true});
+  const onAbort=()=>owner.fail(Error('VFX view disposed'));signal?.addEventListener('abort',onAbort,{once:true});
   try{
-    const originals=await Promise.all(Object.entries(effectDefinitions).map(async([key,asset])=>{
-      const url=new URL(asset.path,baseUrl),row=allowed.get(url.href);
-      if(!row)throw Error(`Unpinned authored VFX: ${asset.path}`);
-      return [key,asset,await fetchBytes(url,abort.signal,fetchImpl,row.byteLength)];
-    }));
-    if(disposed||abort.signal.aborted)throw failed||Error('VFX view disposed');
     context=sdk.createContext();context.init(renderer.getContext(),{instanceMaxCount:budget.instanceMaxCount,squareMaxCount:budget.squareMaxCount});
     initialized=true;context.setRestorationOfStatesFlag(true);context.setResourceLoader(dispatcher.load);dispatcher.owners.set(id,owner);
-    let failLoading;
-    const loadingFailure=new Promise((_,reject)=>{failLoading=reject;});rejectReady=failLoading;
-    for(const [key,asset,bytes] of originals){
-      loaded.push(new Promise((resolve,reject)=>{
-        const effect=context.loadEffect(bytes,asset.scale,resolve,reason=>reject(Error(String(reason))),relative=>{
-          const url=new URL(relative,new URL(asset.path,baseUrl));url.searchParams.set(OWNER,id);return url.href;
-        });
-        effects.set(key,effect);
-      }));
-    }
-    await Promise.race([Promise.all(loaded),loadingFailure]);
-    if(disposed)throw failed||Error('VFX view disposed');
+    let failLoading;const loadingFailure=new Promise((_,reject)=>{failLoading=reject;});loadingFailure.catch(()=>{});rejectReady=failLoading;
+    const loadSource=async(_key,asset)=>{
+      const url=new URL(asset.path,baseUrl),row=allowed.get(url.href);if(!row)throw Error('Unpinned authored VFX: '+asset.path);
+      return fetchBytes(url,abort.signal,fetchImpl,row.byteLength);
+    };
+    const resourceUrl=(relative,path)=>{const url=new URL(relative,new URL(path,baseUrl));url.searchParams.set(OWNER,id);return url.href;};
+    pool=createEffekseerEffectPool({context,effectDefinitions,streaming,fallbackEffects,maxResident,retentionMs,loadSource,resourceUrl,
+      failurePromise:loadingFailure,disposed:()=>disposed,onError:error=>owner.fail(error),onEvict:()=>cache.clear()});
+    await pool.initialize();if(disposed)throw failed||Error('VFX view disposed');
     clearTimeout(timeout);renderer.resetState();
     return {
+      setDemand(rows=[]){pool.setDemand(rows);},
       play(cue){
-        if(disposed)return null;const handle=context.play(effects.get(cue.effect),cue.position.x,cue.position.y,cue.position.z);
-        if(!handle)return null;
-        handle.setRotation(cue.rotation.x,cue.rotation.y,cue.rotation.z);handle.setScale(cue.scale,cue.scale,cue.scale);
-        handle.setAllColor(...cue.color);return handle;
+        if(disposed)return null;const effect=pool.resolve(cue);if(!effect)return null;
+        const handle=context.play(effect,cue.position.x,cue.position.y,cue.position.z);if(!handle)return null;
+        handle.setRotation(cue.rotation.x,cue.rotation.y,cue.rotation.z);handle.setScale(cue.scale,cue.scale,cue.scale);handle.setAllColor(...cue.color);return handle;
       },
-      update(dt){if(!disposed&&Number.isFinite(dt)&&dt>0)context.update(Math.min(dt,.05)*60);},
+      update(dt){if(!disposed&&Number.isFinite(dt)&&dt>0)context.update(Math.min(dt,.05)*60);if(streaming){const now=globalThis.performance?.now?.()??Date.now();if(now-lastSweep>=5000){lastSweep=now;pool.sweep();}}},
       draw(camera){if(disposed)return;context.setProjectionMatrix(camera.projectionMatrix.elements);context.setCameraMatrix(camera.matrixWorldInverse.elements);context.draw();},
       clear(){if(!disposed)context.stopAll();},
       dispose(){signal?.removeEventListener('abort',onAbort);close();},
-      snapshot:()=>({disposed,pendingResources:pending}),
+      snapshot:()=>({disposed,pendingResources:pending,streaming,...pool.snapshot()}),
     };
   }catch(error){close();throw error;}
   finally{clearTimeout(timeout);if(disposed){signal?.removeEventListener('abort',onAbort);signal?.removeEventListener('abort',cancel);}}

@@ -2,7 +2,7 @@ import {combatEffectBudget,combatEffectCues,combatEffectScope,createCombatEffect
 
 /** Renderer-independent bounded owner of authored native playback handles. */
 export function createAuthoredEffectPlayer({mobile=false,reducedMotion=false,onError=()=>{}}={}){
-  const gate=createCombatEffectGate();let backend=null,disposed=false,phase='loading',error='';
+  const gate=createCombatEffectGate();let backend=null,disposed=false,phase='loading',error='',pendingDemand=[];
   let budget=combatEffectBudget(0,mobile,reducedMotion),active=[];
   const stats={played:0,dropped:0,replayed:0,followed:0};
   const stop=handle=>{try{handle.stop();}catch{/* A failed optional native handle cannot stop gameplay. */}};
@@ -41,7 +41,8 @@ export function createAuthoredEffectPlayer({mobile=false,reducedMotion=false,onE
     }catch(reason){fail(reason);}
   }
   return {
-    attach(next){if(disposed||phase==='failed'){try{next.dispose();}catch{}return false;}backend=next;phase='ready';return true;},
+    attach(next){if(disposed||phase==='failed'){try{next.dispose();}catch{}return false;}backend=next;phase='ready';try{backend.setDemand?.(pendingDemand);}catch(reason){fail(reason);return false;}return true;},
+    prefetch(demand){if(disposed)return false;pendingDemand=Array.isArray(demand)?demand:[];if(phase==='ready'){try{backend?.setDemand?.(pendingDemand);}catch(reason){fail(reason);return false;}}return true;},
     fail,
     present(events,context){
       if(disposed)return;
