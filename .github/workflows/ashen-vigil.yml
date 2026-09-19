@@ -1,0 +1,77 @@
+name: Ashen Vigil build and public playtest
+on:
+  push:
+    branches: ['work/ashen-vigil-external-only', develop]
+    paths: ['apps/ashen-vigil/**', '.github/workflows/ashen-vigil.yml', 'package-lock.json']
+permissions:
+  contents: read
+  statuses: write
+concurrency:
+  group: ashen-vigil-public
+  cancel-in-progress: true
+jobs:
+  build-playtest-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Record exact-source validation pending
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({...context.repo,sha:context.sha,context:'ashen-vigil/playtest',state:'pending',description:'Audited assets, real browser combat and public deployment verification',target_url:`${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`});
+      - name: Install committed workspace dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Acquire and audit new authored assets
+        run: python3 apps/ashen-vigil/prepare.py
+      - name: Build and browser-test game
+        run: |
+          cd apps/ashen-vigil
+          npx playwright install --with-deps chromium
+          npm run build
+          npm test
+      - name: Publish isolated public game
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          cd apps/ashen-vigil
+          test -n "$CLOUDFLARE_API_TOKEN"
+          npx --yes wrangler@4 deploy --config wrangler.jsonc
+      - name: Verify anonymous public browser
+        run: |
+          cd apps/ashen-vigil
+          node smoke.mjs https://ashen-vigil.c-okamoto.workers.dev/
+      - name: Preserve assets, screenshots, source and exact-head report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashen-vigil-${{ github.sha }}
+          path: |
+            apps/ashen-vigil/public/
+            apps/ashen-vigil/evidence/
+            apps/ashen-vigil/dist/
+            apps/ashen-vigil/src/
+            apps/ashen-vigil/*.mjs
+            apps/ashen-vigil/*.py
+            apps/ashen-vigil/*.json
+            apps/ashen-vigil/*.jsonc
+            apps/ashen-vigil/*.html
+            apps/ashen-vigil/*.css
+            apps/ashen-vigil/*.md
+          retention-days: 14
+      - name: Record task result
+        if: always()
+        uses: actions/github-script@v8
+        env:
+          RESULT: ${{ job.status }}
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({...context.repo,sha:context.sha,context:'ashen-vigil/playtest',state:process.env.RESULT==='success'?'success':'failure',description:'Asset audit, real browser test and isolated public deployment',target_url:`${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`});
