@@ -132,7 +132,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     side.presentation=presentation;side.previous={x,z};
     const worldX=presentation.x,worldZ=presentation.z,stride=presentation.stride;
     actor.root.position.set(worldX,0,worldZ);actor.root.rotation.y=presentation.yaw;
-    if(sequence&&sequence.stage!=='done'&&target){const tx=(Number(target.x)||0)*1.35,tz=(Number(target.z)||0)*1.15,dx=worldX-tx,dz=worldZ-tz,len=Math.max(.001,Math.hypot(dx,dz));if(sequence.spacing>0){const retreat=sideKey==='hero'?1.42:.62;actor.root.position.x+=dx/len*retreat*sequence.spacing;actor.root.position.z+=dz/len*retreat*sequence.spacing;}if(sideKey==='enemy'&&(sequence.stage==='stagger'||sequence.stage==='reveal'))actor.root.rotation.z=.12*Math.sin(sequence.progress*Math.PI);}
+    if(sequence&&sequence.stage!=='done'&&target){const tx=(Number(target.x)||0)*1.35,tz=(Number(target.z)||0)*1.15,dx=worldX-tx,dz=worldZ-tz,len=Math.max(.001,Math.hypot(dx,dz));if(sequence.spacing>0){const retreat=sideKey==='hero'?1.72:.55;actor.root.position.x+=dx/len*retreat*sequence.spacing;actor.root.position.z+=dz/len*retreat*sequence.spacing;if(sideKey==='hero')actor.root.position.y+=Math.sin(Math.min(1,sequence.backstepProgress||0)*Math.PI)*.07;}if(sideKey==='enemy'&&(sequence.stage==='stagger'||sequence.stage==='reveal'))actor.root.rotation.z=.12*Math.sin(sequence.progress*Math.PI);}
     if(sideKey==='enemy'){
       updateReviewMonsterAnimation(actor,state,time,{hit:time<side.hitUntil});
     }else{
