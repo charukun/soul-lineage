@@ -139,3 +139,18 @@ body.simple-review.character-grid-ready .stage-actions #frame-model{display:inli
 .character-review-criteria{padding-top:1px}
 @media(max-width:520px){.character-review-slots{grid-template-columns:repeat(4,minmax(0,1fr))}.character-review-slots .character-review-slot{min-height:34px!important;padding-inline:4px!important}.character-review-slots .character-review-slot strong{font-size:8px}.character-review-camera-dock{left:8px;right:8px;grid-template-columns:repeat(5,minmax(0,1fr))}.character-review-camera-dock button{padding-inline:3px!important;font-size:9px!important}}
 body.simple-review.character-grid-ready .load-indicator[data-state="error"]{display:none!important}
+
+@media (max-width:760px) and (orientation:portrait){
+  body.simple-review.character-grid-ready .review-app{height:100dvh!important;min-height:100dvh!important;grid-template-rows:minmax(420px,58dvh) minmax(0,42dvh)!important;overflow:hidden!important}
+  body.simple-review.character-grid-ready .stage-shell{min-height:0!important;height:auto!important;grid-template-rows:44px minmax(0,1fr) auto!important}
+  body.simple-review.character-grid-ready .canvas-wrap{min-height:300px!important;height:100%!important;overflow:hidden!important}
+  body.simple-review.character-grid-ready #stage{display:block!important;width:100%!important;height:100%!important;min-height:300px!important}
+  body.simple-review.character-grid-ready .stage-status{position:absolute!important;left:8px!important;bottom:8px!important;z-index:6!important;width:auto!important;max-width:calc(100% - 16px)!important;min-height:0!important;padding:0!important;border:0!important;background:transparent!important}
+  body.simple-review.character-grid-ready .stage-status progress{display:none!important}
+  body.simple-review.character-grid-ready .stage-status #status[data-error="true"]{display:none!important}
+  body.simple-review.character-grid-ready .stage-status #retry{min-height:36px!important}
+  body.simple-review.character-grid-ready .editor-dock{min-height:0!important;overflow:hidden!important}
+  body.simple-review.character-grid-ready .review-controls{min-height:0!important;overflow:auto!important;-webkit-overflow-scrolling:touch;padding-bottom:max(12px,env(safe-area-inset-bottom))!important}
+  body.simple-review.character-grid-ready .character-review-picker{height:auto!important;min-height:100%!important;overflow:visible!important}
+  body.simple-review.character-grid-ready .character-review-camera-dock{left:auto!important;right:8px!important;top:50%!important;bottom:auto!important;width:54px!important;transform:translateY(-50%);grid-template-columns:1fr!important}
+}
