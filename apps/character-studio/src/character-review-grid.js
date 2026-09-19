@@ -12,6 +12,8 @@ const GROUPS = Object.freeze([
   ['dye', '服色', '#color-options [data-dye]', '衣']
 ]);
 
+const DETAIL_GROUPS = GROUPS.filter(([id]) => id !== 'model');
+
 const REVIEW_CRITERIA = Object.freeze([
   ['silhouette', 'シルエット'],
   ['collision', '干渉'],
@@ -92,8 +94,13 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   const attr = (node, name, value) => { if (node.getAttribute(name) !== String(value)) node.setAttribute(name, String(value)); };
   const text = (node, value) => { if (node.textContent !== value) node.textContent = value; };
   const root = make('section', 'character-review-picker'); root.id = 'character-review-picker';
-  root.setAttribute('aria-label', '確認項目と候補一覧');
-  const slots = make('nav', 'character-review-slots'); slots.setAttribute('role', 'tablist'); slots.setAttribute('aria-label', '確認項目');
+  root.setAttribute('aria-label', 'キャラクターモデルと確認項目');
+  const modelPicker = make('section', 'character-model-picker'); modelPicker.setAttribute('aria-label', 'モデルを選ぶ');
+  const modelHeading = make('div', 'character-model-picker-heading');
+  modelHeading.append(make('strong', '', 'モデルを選ぶ'), make('span', 'character-model-picker-current', '読込中'));
+  const modelList = make('div', 'character-model-list'); modelList.setAttribute('role', 'group'); modelList.setAttribute('aria-label', 'キャラクターモデル候補');
+  modelPicker.append(modelHeading, modelList);
+  const slots = make('nav', 'character-review-slots'); slots.setAttribute('role', 'tablist'); slots.setAttribute('aria-label', '詳細レビュー項目');
   const criteria = make('div', 'character-review-criteria');
   criteria.setAttribute('aria-label', '確認観点');
   criteria.append(make('span', 'character-review-criteria-label', '確認観点'));
@@ -103,8 +110,8 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   const grid = make('div', 'character-review-grid'); grid.setAttribute('role', 'group'); grid.setAttribute('aria-labelledby', heading.id);
   const empty = make('p', 'character-review-empty', 'モデルを読み込んでいます。'); panel.append(grid, empty);
   const tools = make('div', 'character-review-tools'); tools.setAttribute('aria-label', '比較と編集履歴');
-  root.append(criteria, slots, heading, panel, tools); controls.prepend(root);
-  const state = { active: 'model', camera: 'front', framed: false, autoFit: true, queued: false, signature: '', groups: [] };
+  root.append(modelPicker, criteria, slots, heading, panel, tools); controls.prepend(root);
+  const state = { active: 'individual', camera: 'front', framed: false, autoFit: true, queued: false, signature: '', modelSignature: '', groups: [] };
   const slotNodes = new Map();
   const review = () => win.characterStudio?.review;
   const cameraButtons = [...doc.querySelectorAll('.stage-actions [data-camera="front"],.stage-actions [data-camera="side"],.stage-actions [data-camera="back"],.stage-actions [data-camera="face"]')];
@@ -117,7 +124,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     if (state.active !== id) { state.active = id; state.signature = ''; panel.scrollTop = 0; }
     sync(); if (focus) slotNodes.get(id).button.focus();
   }
-  for (const [id, label] of GROUPS) {
+  for (const [id, label] of DETAIL_GROUPS) {
     const button = make('button', 'character-review-slot'); button.type = 'button'; button.id = `character-slot-${id}`;
     button.setAttribute('role', 'tab'); button.setAttribute('aria-controls', panel.id);
     const caption = make('small', '', label), value = make('strong', '', '読込中');
@@ -127,7 +134,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   slots.addEventListener('keydown', event => {
     const entries = [...slotNodes.values()].map(row => row.button), current = entries.indexOf(event.target);
     if (current < 0 || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key)) return;
-    event.preventDefault(); const next = gridFocusIndex(entries, current, event.key); activate(GROUPS[next][0], true);
+    event.preventDefault(); const next = gridFocusIndex(entries, current, event.key); activate(DETAIL_GROUPS[next][0], true);
   });
   const actionNodes = ['original-preview', 'random-one', 'quality-mark', 'undo', 'redo'].map(id => {
     const source = doc.getElementById(id); if (!source) return null;
@@ -145,6 +152,19 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     if (['model','individual','age','part'].includes(group.id)) win.requestAnimationFrame(fit);
     schedule();
   }
+  function renderModelOptions(group) {
+    const focused = modelList.contains(doc.activeElement) ? doc.activeElement?.dataset.modelKey : null;
+    modelList.replaceChildren(...group.options.map(option => {
+      const button = make('button', 'character-model-option'); button.type = 'button'; button.dataset.modelKey = option.key;
+      button.disabled = option.disabled; button.title = option.fullLabel; button.setAttribute('aria-label', option.fullLabel);
+      button.setAttribute('aria-pressed', String(option.selected));
+      const mark = make('span', 'character-model-mark', ''); mark.setAttribute('aria-hidden', 'true');
+      const name = make('span', 'character-model-option-label', option.label);
+      button.append(mark, name); button.addEventListener('click', () => choose(group, option)); return button;
+    }));
+    if (focused !== null) modelList.querySelector(`[data-model-key="${focused}"]:not(:disabled)`)?.focus({ preventScroll: true });
+  }
+
   function renderOptions(group) {
     const focused = grid.contains(doc.activeElement) ? doc.activeElement?.dataset.optionKey : null;
     grid.replaceChildren(...group.options.map(option => {
@@ -169,7 +189,11 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   });
   function sync() {
     const ready = Boolean(review()?.ready); state.groups = readCharacterReviewGroups(doc, ready);
-    for (const group of state.groups) {
+    const modelGroup = state.groups.find(item => item.id === 'model');
+    const modelSignature = JSON.stringify(modelGroup.options.map(({ key, label, fullLabel, selected, disabled }) => [key,label,fullLabel,selected,disabled]));
+    if (modelSignature !== state.modelSignature) { state.modelSignature = modelSignature; renderModelOptions(modelGroup); }
+    text(modelHeading.querySelector('.character-model-picker-current'), `${modelGroup.value} · ${modelGroup.options.length}候補`);
+    for (const group of state.groups.filter(item => item.id !== 'model')) {
       const { button, value } = slotNodes.get(group.id); text(value, group.value);
       attr(button, 'aria-selected', group.id === state.active); button.tabIndex = group.id === state.active ? 0 : -1;
       attr(button, 'aria-label', `${group.label}：${group.value}。候補を表示`); button.title = `${group.label}：${group.value}`;
@@ -210,6 +234,6 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   if (canvas && win.ResizeObserver) { resizeObserver = new win.ResizeObserver(() => win.requestAnimationFrame(fit)); resizeObserver.observe(canvas); }
   win.addEventListener('pagehide', event => { if (!event.persisted) { observer.disconnect(); resizeObserver?.disconnect(); } });
   doc.body.classList.add('character-grid-ready');
-  controls.removeAttribute('tabindex'); controls.setAttribute('aria-label', '選択スロットと5列の候補一覧');
+  controls.removeAttribute('tabindex'); controls.setAttribute('aria-label', 'モデル選択と詳細レビュー');
   sync(); return true;
 }
