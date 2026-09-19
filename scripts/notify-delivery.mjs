@@ -5,6 +5,7 @@ import { lifecycleMessage } from './notification-copy.mjs';
 
 export const PERSONAL_DEV_EMAIL_REPOSITORY = 'charukun/soul-lineage';
 export const PERSONAL_DEV_EMAIL_LOGIN = 'charukun';
+export const PERSONAL_DEV_EMAIL_ISSUE = 1009;
 export const PERSONAL_DEV_URL = 'https://charukun.github.io/soul-lineage/dev/';
 const DEV_LKG_PREFIX = 'dev-lkg-site-';
 const SHA = /^[a-f0-9]{40}$/;
@@ -196,12 +197,31 @@ export async function recordGithubDeliveryReceipt({ token = '', repository, sha,
     if (comments.length < 100) break;
     if (page === 3) throw new Error('GITHUB_DELIVERY_RECEIPT_COMMENT_PAGE_LIMIT');
   }
-  await githubJson(request, `${root}/issues/${pr.number}/comments`, {
+  const body = `${marker}\n@${PERSONAL_DEV_EMAIL_LOGIN}\n${message}`;
+  try {
+    await githubJson(request, `${root}/issues/${pr.number}/comments`, {
+      token,
+      method: 'POST',
+      body: { body },
+    });
+    return 'github-pr-comment';
+  } catch (error) {
+    if (!String(error?.message || '').includes(`GITHUB_DELIVERY_RECEIPT_FAILED:403:POST:${root}/issues/${pr.number}/comments`)) throw error;
+  }
+
+  const fallbackRoot = `${root}/issues/${PERSONAL_DEV_EMAIL_ISSUE}/comments`;
+  for (let page = 1; page <= 3; page++) {
+    const comments = await githubJson(request, `${fallbackRoot}?per_page=100&page=${page}`, { token });
+    if (comments.some(comment => (comment.body || '').includes(marker))) return 'existing';
+    if (comments.length < 100) break;
+    if (page === 3) throw new Error('GITHUB_DELIVERY_FALLBACK_COMMENT_PAGE_LIMIT');
+  }
+  await githubJson(request, fallbackRoot, {
     token,
     method: 'POST',
-    body: { body: `${marker}\n@${PERSONAL_DEV_EMAIL_LOGIN}\n${message}` },
+    body: { body: `${body}\nPR: https://github.com/${repository}/pull/${pr.number}` },
   });
-  return 'github-pr-comment';
+  return 'github-dev-email-thread-comment';
 }
 
 export async function recordGithubDeliveryReceipts({ token = '', repository, sha, prs = [], request = fetch }) {
