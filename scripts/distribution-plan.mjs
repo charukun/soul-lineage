@@ -4,9 +4,17 @@ import { pathToFileURL } from 'node:url';
 import { affectedForDev, graph } from './workspaces.mjs';
 
 const ZERO=/^0+$/;
+const PULSE_APP='pulse';
+const pulsePath=path=>path.startsWith('ops-board/')
+  || path==='wrangler.ops.jsonc'
+  || path==='wrangler.dev.pulse.jsonc'
+  || /^scripts\/(?:application-catalog|distribution-targets|prepare-pulse-worker|notify-fast-dev)\.mjs$/.test(path);
 
 export function distributionPlanForDev(nodes,paths){
-  const apps=affectedForDev(nodes,paths);
+  const publishPulse=paths.some(pulsePath);
+  const regularPaths=paths.filter(path=>!pulsePath(path));
+  const regular=regularPaths.length?affectedForDev(nodes,regularPaths):[];
+  const apps=[...new Set([...regular,...(publishPulse?[PULSE_APP]:[])])];
   const include=apps.map(app=>({app,target:'web-dev'}));
   return Object.freeze({apps:Object.freeze(apps),include:Object.freeze(include)});
 }
