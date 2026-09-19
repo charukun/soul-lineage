@@ -9,6 +9,7 @@ import {REVIEW_REFERENCE_MODEL_HEIGHT,reviewModelScale} from './review-vfx-model
 import './review-effects.css';
 import {createRuntimeThumbnail,captureRuntimeThumbnail} from './review-runtime-thumbnail.js';
 import {mountRinneReviewShell} from './review-lab-shell.js';
+import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 mountRinneReviewShell('effects');
 
 const q=id=>document.getElementById(id);
@@ -251,7 +252,7 @@ q('fx-model-count').textContent=`${REVIEW_REAL_EFFECT_COUNT} EFFECTS`;
 q('fx-provenance').textContent=`実素材 ${REVIEW_REAL_EFFECT_COUNT}種 · ${REVIEW_VFX_LIBRARY_SOURCE.repository}@${REVIEW_VFX_LIBRARY_SOURCE.revision} / ${REVIEW_VFX_LIBRARY_SOURCE.license} · core ${EFFECT_SOURCE.repository}@${EFFECT_SOURCE.revision} / ${EFFECT_SOURCE.license} · review ${REVIEW_EFFECT_SOURCE.repository}@${REVIEW_EFFECT_SOURCE.revision} / ${REVIEW_EFFECT_SOURCE.license} · Effekseer WebGL ${EFFECT_RUNTIME.version}`;
 renderCatalog();
 
-const observer=new ResizeObserver(()=>{const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();});observer.observe(canvas);
+const stageLifecycle=createReviewStageLifecycle({canvas,stage:canvas.closest('.review-surface__stage'),onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();},render:()=>renderer.render(scene,camera)});
 let last=performance.now();
 function frame(now){
   if(disposed)return;const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;syncControls();controls.update();
@@ -267,7 +268,7 @@ createEffekseerBackend({renderer,document,baseUrl:authoredEffectBase(document),s
   .then(backend=>{if(player.attach(backend)){q('fx-status').textContent=`実素材 ${REVIEW_REAL_EFFECT_COUNT}種 · 再生可能`;trigger('slash');}})
   .catch(error=>player.fail(error));
 window.addEventListener('pagehide',()=>{
-  disposed=true;abort.abort();thumbnailAbort.abort();thumbnailObserver.disconnect();thumbnailJobs.length=0;thumbnailQueued.clear();observer.disconnect();controls.dispose();player.dispose();thumbnailPlayer?.dispose();thumbnailRenderer?.dispose();
+  disposed=true;abort.abort();thumbnailAbort.abort();thumbnailObserver.disconnect();thumbnailJobs.length=0;thumbnailQueued.clear();stageLifecycle.destroy();controls.dispose();player.dispose();thumbnailPlayer?.dispose();thumbnailRenderer?.dispose();
   ground.geometry.dispose();ground.material.dispose();
   for(const object of reviewDisposables)object.dispose?.();
   renderer.dispose();

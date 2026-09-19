@@ -11,6 +11,7 @@ import {loadPinnedMotionSource,loadMotionReviewModel,discoverPinnedMotionLibrary
 import './review-motion-library.css';
 import {createRuntimeThumbnail,scheduleRuntimeThumbnail,clearRuntimeThumbnailQueue} from './review-runtime-thumbnail.js';
 import {mountRinneReviewShell} from './review-lab-shell.js';
+import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 mountRinneReviewShell('motion');
 
 const el=id=>document.getElementById(id);
@@ -215,9 +216,7 @@ el('motion-legacy')?.addEventListener('change',event=>{
   canvas.dataset.motionName=clip.name;canvas.dataset.motionCategory='other';canvas.dataset.motionIdentity='legacy:'+index+':'+clip.name;status('原版: '+formatName(clip.name));syncPlaybackUI();
 });
 
-let width=0,height=0;
-function resize(){const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);if(w===width&&h===height)return;width=w;height=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
-const observer=new ResizeObserver(resize);observer.observe(canvas);
+const stageLifecycle=createReviewStageLifecycle({canvas,stage:canvas.closest('.review-surface__stage'),onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();setCameraPreset(cameraPreset);},render:()=>renderer.render(scene,camera)});
 function frame(now){
   resize();const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
   if(selected&&playing){
@@ -230,4 +229,4 @@ function frame(now){
   controls.update();renderer.render(scene,camera);syncPlaybackUI();requestAnimationFrame(frame);
 }
 renderFilters();renderModelGrid();setCameraPreset('three-quarter');requestAnimationFrame(frame);void loadModel(selectedModel);
-window.addEventListener('pagehide',event=>{if(event.persisted)return;clearRuntimeThumbnailQueue();observer.disconnect();disposeSubject();disposePinnedMotionSources();thumbnailModelPromises.clear();ground.geometry.dispose();ground.material.dispose();controls.dispose();renderer.dispose();},{once:true});
+window.addEventListener('pagehide',event=>{if(event.persisted)return;clearRuntimeThumbnailQueue();stageLifecycle.destroy();disposeSubject();disposePinnedMotionSources();thumbnailModelPromises.clear();ground.geometry.dispose();ground.material.dispose();controls.dispose();renderer.dispose();},{once:true});
