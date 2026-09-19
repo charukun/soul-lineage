@@ -68,7 +68,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     oneMotion:q('[data-one-motion]'),oneMotionName:q('[data-one-motion-name]'),panel,title:q('[data-title]'),body:panel.querySelector('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
     rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),name:q('[data-name]'),equip:q('[data-equip]'),state:q('[data-state]')
   };
-  let state=null,sheetDrag=null,movementHelpTimer=0,toastTimer=0,interruptTimer=0,guidance=null,inventoryKind='weapon',inventoryPages={weapon:0,armor:0,shield:0},recordPage=0,recordSection='life',lastPhase='',lastAction='',phaseHistory=[],blockedComboKey='',currentComboKey='';
+  let state=null,sheetDrag=null,movementHelpTimer=0,toastTimer=0,interruptTimer=0,guidance=null,inventoryKind='weapon',inventoryPages={weapon:0,armor:0,shield:0},recordPage=0,recordSection='life',lastPhase='',lastAction='',phaseHistory=[],comboInterrupted=false,currentComboKey='';
   const speech=createConversationInput({document,window,root:gameScreen,getState:()=>state});
   const tracker=createSkillSetter({ui,audio,getState:()=>state});
   const loadoutUI=createHeartTechniqueBodyUI({ui,audio,getState:()=>state,tracker});
@@ -111,7 +111,7 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   const onCombatFeedback=event=>{
     if(event.detail?.type!=='enemy-hit')return;
     pushPhaseHistory({action:'攻撃を受けた',kind:'damage'});
-    if(currentComboKey){blockedComboKey=currentComboKey;interruptSequence();lastPhase='';haptic([18,28,12]);}
+    if(currentComboKey){comboInterrupted=true;interruptSequence();lastPhase='';haptic([18,28,12]);}
   };
   gameScreen.addEventListener('rinne:combat-feedback',onCombatFeedback);
   const showMovementHelp=event=>{
@@ -212,14 +212,15 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';
     ui.phase.hidden=!phase;
     const rawAction=phase?(gameScreen.dataset.sharedCombatAttack||s.combat?.tidebreakPose?.attack||''):'';
-    let sequence=sequenceHudState({phase,attack:rawAction,blockedKey:blockedComboKey});
-    if(blockedComboKey&&(!sequence.key||sequence.key!==blockedComboKey)){blockedComboKey='';if(sequence.comboActive)endInterruptionVisual();sequence=sequenceHudState({phase,attack:rawAction});}
+    let sequence=sequenceHudState({phase,attack:rawAction,interrupted:comboInterrupted});
+    if(comboInterrupted&&!rawAction){comboInterrupted=false;sequence=sequenceHudState({phase,attack:rawAction});}
+    if(sequence.comboActive&&ui.phase.dataset.comboInterrupted==='true'){clearTimeout(interruptTimer);interruptTimer=0;endInterruptionVisual();}
     currentComboKey=sequence.key;ui.phase.dataset.comboActive=String(sequence.comboActive);ui.phase.dataset.phase=sequence.comboActive?sequence.activePhase:'idle';
     syncCombatSequence(ui.phase,sequence.comboActive?sequence.activePhase:'',{pulse:sequence.comboActive});setCompletedPhases(sequence.completed);
     const action=sequence.action;if(ui.phaseAction){ui.phaseAction.textContent=action;ui.phaseAction.hidden=!action;}
     if(sequence.comboActive&&sequence.activePhase!==lastPhase){lastPhase=sequence.activePhase;haptic(8);audio.ui();}else if(!sequence.comboActive)lastPhase='';
     if(action&&action!==lastAction){lastAction=action;pushPhaseHistory({phase,action});}
-    if(!phase){lastPhase='';lastAction='';blockedComboKey='';currentComboKey='';phaseHistory=[];renderPhaseHistory();endInterruptionVisual();}
+    if(!phase){lastPhase='';lastAction='';comboInterrupted=false;currentComboKey='';phaseHistory=[];renderPhaseHistory();endInterruptionVisual();}
   }
   function bindSheetGesture(){
     const header=ui.panel.querySelector('header');header.addEventListener('pointerdown',event=>{if(!['heart','technique','body','items'].includes(ui.panel.dataset.type)||event.target.closest('button'))return;sheetDrag={id:event.pointerId,startY:event.clientY,dy:0};header.setPointerCapture?.(event.pointerId);ui.panel.dataset.dragging='true';});

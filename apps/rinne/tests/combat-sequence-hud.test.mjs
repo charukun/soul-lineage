@@ -20,11 +20,12 @@ test('committed combo actions activate and accumulate completed phases',()=>{
   assert.equal(kyu.activePhase,'kyu');assert.deepEqual(kyu.completed,{jo:true,ha:true,kyu:false});
 });
 
-test('the interrupted attack key stays inactive until spacing or a different action releases it',()=>{
-  const live=sequenceHudState({phase:'ha',attack:'裂き'}),blocked=sequenceHudState({phase:'ha',attack:'裂き',blockedKey:live.key});
-  assert.equal(blocked.comboActive,false);
-  assert.equal(sequenceHudState({phase:'ha',blockedKey:live.key}).comboActive,false);
-  assert.equal(sequenceHudState({phase:'kyu',attack:'決め',blockedKey:live.key}).comboActive,true);
+test('an interrupted combo stays inactive until a spacing window starts the next combo',()=>{
+  assert.equal(sequenceHudState({phase:'ha',attack:'裂き',interrupted:true}).comboActive,false);
+  assert.equal(sequenceHudState({phase:'kyu',attack:'決め',interrupted:true}).comboActive,false);
+  const spacing=sequenceHudState({phase:'jo',interrupted:true});
+  assert.equal(spacing.comboActive,false);assert.equal(spacing.action,'間合いを測る');
+  assert.equal(sequenceHudState({phase:'jo',attack:'踏み込み'}).comboActive,true);
 });
 
 test('Rinne HUD wires soft history replacement, simple damage copy, and interruption animation',async()=>{
@@ -33,7 +34,8 @@ test('Rinne HUD wires soft history replacement, simple damage copy, and interrup
   const css=await readFile(new URL('../src/reincarnation-hud.css',import.meta.url),'utf8');
   assert.match(ui,/dataset\.motion=index===0\?'incoming':'outgoing'/);
   assert.match(ui,/action:'攻撃を受けた',kind:'damage'/);
-  assert.match(ui,/blockedComboKey=currentComboKey/);
+  assert.match(ui,/comboInterrupted=true/);
+  assert.match(ui,/comboInterrupted&&!rawAction/);
   assert.match(runtime,/rinne:combat-feedback/);
   assert.match(css,/rinne-phase-history-enter/);
   assert.match(css,/rinne-phase-history-exit/);
