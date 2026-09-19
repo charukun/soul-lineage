@@ -56,7 +56,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   // Mura models are environment-only in Rinne. Runtime humanoids are exclusively created by the Character Presentation pool below.
   const models=createMuraModels(THREE,{createCanvas:()=>doc.createElement('canvas'),textileFibers:2800,textileBlotches:72}),cache=new Map();
   const getProp=kind=>{if(!cache.has('prop:'+kind))cache.set('prop:'+kind,flattenMuraModel(THREE,models.prop(kind,14)));return cache.get('prop:'+kind);};
-  const terrain=createMuraTerrain({THREE,scene,outside:land,getProp,mat:models.mat,createCanvas:()=>doc.createElement('canvas')});
+  const terrain=createMuraTerrain({THREE,scene,outside:land,getProp,mat:models.mat,createCanvas:()=>doc.createElement('canvas'),layoutObjects:layout.objects});
   for(const o of layout.objects){
     if(o.phase!=='built')continue;const key=`${o.kind}:${o.material}:${o.level}`;
     if(!cache.has(key))cache.set(key,flattenMuraModel(THREE,defs[o.kind].building?createMuraBuildingVisual(THREE,models,o.kind,o.material,o.level):models.prop(o.kind)));
