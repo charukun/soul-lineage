@@ -72,6 +72,18 @@ async function kaykitReviewRig(gltf) {
   });
 }
 
+function createReviewScene() {
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight('#fff6df', '#557481', 2.4));
+  const sun = new THREE.DirectionalLight('#ffdeb0', 3); sun.position.set(-5, 9, 8); scene.add(sun);
+  const fill = new THREE.DirectionalLight('#8cd6ec', 2); fill.position.set(8, 5, -8); scene.add(fill);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(140, 140), new THREE.MeshStandardMaterial({ color: '#2f4549', roughness: 1 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = -.008; scene.add(ground);
+  const marker = new THREE.Mesh(new THREE.RingGeometry(.48, .51, 48), new THREE.MeshBasicMaterial({ color: '#dcc493', side: THREE.DoubleSide }));
+  marker.rotation.x = -Math.PI / 2; marker.position.y = .004; scene.add(marker);
+  return { scene, ground, marker };
+}
+
 function createReviewDiagnostics({ canvas, renderer, camera, orbit, selectedActor }) {
   const trace = [];
   const box = value => value && !value.isEmpty() ? {
@@ -121,16 +133,9 @@ function start() {
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5)); renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.2;
   renderer.debug.onShaderError = () => { throw new Error('モデルのシェーダーをコンパイルできませんでした'); };
-  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(38, 1, .01, 120);
+  const camera = new THREE.PerspectiveCamera(38, 1, .01, 120), { scene, ground, marker } = createReviewScene();
   const orbit = new OrbitControls(camera, canvas); orbit.enableDamping = true; orbit.minDistance = .18; orbit.maxDistance = 45;
   orbit.maxPolarAngle = Math.PI * .49; orbit.target.set(0, 1, 0);
-  scene.add(new THREE.HemisphereLight('#fff6df', '#557481', 2.4));
-  const sun = new THREE.DirectionalLight('#ffdeb0', 3); sun.position.set(-5, 9, 8); scene.add(sun);
-  const fill = new THREE.DirectionalLight('#8cd6ec', 2); fill.position.set(8, 5, -8); scene.add(fill);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(140, 140), new THREE.MeshStandardMaterial({ color: '#2f4549', roughness: 1 }));
-  ground.rotation.x = -Math.PI / 2; ground.position.y = -.008; scene.add(ground);
-  const marker = new THREE.Mesh(new THREE.RingGeometry(.48, .51, 48), new THREE.MeshBasicMaterial({ color: '#dcc493', side: THREE.DoubleSide }));
-  marker.rotation.x = -Math.PI / 2; marker.position.y = .004; scene.add(marker);
   let settings = reviewSettings(), records = createReviewCohort(settings), actors = [], schedules = [], appearances = [];
   let pool = null, template = null, loading = false, retry = defaultBytes, retryAudit = auditKaykitDocument, retryRig = kaykitReviewRig, loadSequence = 0, modelRequestSequence = 0, alive = true, frameId = 0;
   let elapsed = 0, last = performance.now(), warmup = 60, frames = [], lastMetrics = 0, physicsActors = 0, drawnActors = 0;
