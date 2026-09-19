@@ -7,10 +7,13 @@ import { createHeartTechniqueBodyUI } from './heart-technique-body-ui.js';
 import { decorateSelectionDetail, installSelectionDetail } from './selection-detail.js';
 import {syncCombatSequence} from '@soul/shared-ui/combat-sequence';
 import {sequenceHudState} from './combat-sequence-hud.js';
+import {tidebreakMindVectorFor} from './rebuild/combat-tactics.js';
 import './rebuild/conversation-input.css';
 import './skill-setter.css';
 import './heart-technique-body.css';
 import '@soul/shared-ui/combat-sequence.css';
+// Final gameplay skin: keep this last so runtime-imported UI styles cannot flatten the HUD.
+import './dark-navy-hud.css';
 
 const haptic=pattern=>{try{globalThis.navigator?.vibrate?.(pattern);}catch{}};
 const PAGE_SIZE=6;
@@ -27,6 +30,18 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
       <div class="player-equipment"><span>装</span><strong data-equip>素手 · 旅装</strong></div>
       <button data-record class="player-record-button" type="button" aria-label="人生と系譜を開く"><b>記</b><small>人生</small></button>
     </section>
+    <section data-vitals class="rinne-context-vitals" hidden aria-label="命と息">
+      <div data-vital-life class="context-vital is-life"><span>命</span><i><b data-context-hp></b></i></div>
+      <div data-vital-breath class="context-vital is-breath"><span>息</span><i><b data-context-stamina></b></i></div>
+    </section>
+    <aside data-mind class="rinne-mind-balance" hidden aria-label="現在の意識バランス">
+      <span class="mind-title">意識</span>
+      <div class="mind-orbit" aria-hidden="true">
+        <i data-axis="attack"><b>攻</b></i><i data-axis="guard"><b>守</b></i><i data-axis="spacing"><b>間</b></i>
+        <i data-axis="counter"><b>返</b></i><i data-axis="mobility"><b>機</b></i><i data-axis="survival"><b>生</b></i><em></em>
+      </div>
+      <strong data-mind-state>中庸</strong>
+    </aside>
     <button data-map class="rinne-map-radar" type="button" aria-label="地図を開く">
       <span class="radar-face" aria-hidden="true">
         <i class="radar-ring radar-ring-outer"></i><i class="radar-ring radar-ring-inner"></i><i class="radar-cross"></i>
@@ -66,9 +81,12 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
     heart:q('[data-heart]'),techniques:q('[data-techniques]'),bodyButton:q('.rinne-bottom-controls [data-body]'),items:q('[data-items]'),map:q('[data-map]'),record:q('[data-record]'),phase:q('[data-phase]'),phaseHistory:q('[data-phase-history]'),phaseAction:q('[data-phase-action]'),
     radarPlaces:q('[data-radar-places]'),radarTarget:q('[data-radar-target]'),radarPlayer:q('[data-radar-player]'),radarDistance:q('[data-radar-distance]'),radarLabel:q('[data-radar-label]'),
     oneMotion:q('[data-one-motion]'),oneMotionName:q('[data-one-motion-name]'),panel,title:q('[data-title]'),body:panel.querySelector('[data-body]'),close:q('[data-close]'),spark:q('[data-spark]'),sparkName:q('[data-spark-name]'),sparkSet:q('[data-spark-set]'),
-    rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),name:q('[data-name]'),equip:q('[data-equip]'),state:q('[data-state]')
+    rest:q('[data-rest]'),training:q('[data-training]'),trainingName:q('[data-training-name]'),name:q('[data-name]'),equip:q('[data-equip]'),state:q('[data-state]'),
+    vitals:q('[data-vitals]'),vitalLife:q('[data-vital-life]'),vitalBreath:q('[data-vital-breath]'),contextHp:q('[data-context-hp]'),contextStamina:q('[data-context-stamina]'),
+    mind:q('[data-mind]'),mindState:q('[data-mind-state]')
   };
   let state=null,sheetDrag=null,movementHelpTimer=0,toastTimer=0,interruptTimer=0,guidance=null,inventoryKind='weapon',inventoryPages={weapon:0,armor:0,shield:0},recordPage=0,recordSection='life',lastPhase='',lastAction='',phaseHistory=[],comboInterrupted=false,currentComboKey='';
+  let lastHp=null,lastStamina=null,lifeVisibleUntil=0,breathVisibleUntil=0,contextAnchorVisible=false,contextVitalsWanted=false;
   const speech=createConversationInput({document,window,root:gameScreen,getState:()=>state});
   const tracker=createSkillSetter({ui,audio,getState:()=>state});
   const loadoutUI=createHeartTechniqueBodyUI({ui,audio,getState:()=>state,tracker});
@@ -206,9 +224,32 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
   function bindState(next){state=next;const lifeChanged=tracker.bindState(next);if(lifeChanged){loadoutUI.reset();recordPage=0;recordSection='life';inventoryPages={weapon:0,armor:0,shield:0};if(!ui.panel.hidden){ui.panel.hidden=true;delete ui.panel.dataset.type;markOpenControl('');}}}
   function refresh(){if(ui.panel.hidden||!state)return;open(ui.panel.dataset.type||'items',{silent:true});}
   function setGuidance(next){guidance=next;updateRadar();if(!ui.panel.hidden&&ui.panel.dataset.type==='map')map();}
+  function syncContextVitalsVisibility(){ui.vitals.hidden=!(contextVitalsWanted&&contextAnchorVisible);}
+  function setContextAnchor({x=0,y=0,visible=true}={}){
+    contextAnchorVisible=Boolean(visible&&Number.isFinite(x)&&Number.isFinite(y));
+    if(contextAnchorVisible){ui.vitals.style.left=`${x}px`;ui.vitals.style.top=`${y}px`;}
+    syncContextVitalsVisibility();
+  }
+  function updateContextVitals(s,{dashing=false,resting=false,training=null}={}){
+    const now=performance.now(),hp=Math.max(0,Number(s.hp)||0),maxHp=Math.max(1,Number(s.maxHp)||1),stamina=Math.max(0,Number(s.stamina)||0),cap=Math.max(1,Number(s.staminaCap)||100);
+    const hpRatio=clamp(hp/maxHp,0,1),staminaRatio=clamp(stamina/cap,0,1),hpChanged=lastHp!==null&&Math.abs(hp-lastHp)>.01,staminaChanged=lastStamina!==null&&Math.abs(stamina-lastStamina)>.01,combat=Boolean((s.combat&&!s.combat.training)||training?.d<2.8);
+    if(hpChanged)lifeVisibleUntil=now+1700;if(staminaChanged)breathVisibleUntil=now+1250;
+    const showLife=Boolean(s.down||combat||hpRatio<.72||now<lifeVisibleUntil),showBreath=Boolean(resting||dashing||combat||staminaRatio<.55||now<breathVisibleUntil);
+    contextVitalsWanted=showLife||showBreath;ui.vitalLife.hidden=!showLife;ui.vitalBreath.hidden=!showBreath;
+    ui.contextHp.style.width=`${Math.round(hpRatio*100)}%`;ui.contextStamina.style.width=`${Math.round(staminaRatio*100)}%`;
+    ui.vitalLife.dataset.low=String(hpRatio<.3);ui.vitalBreath.dataset.low=String(staminaRatio<.22);
+    ui.vitals.setAttribute('aria-label',`命 ${Math.round(hp)}/${Math.round(maxHp)}、息 ${Math.round(stamina)}/${Math.round(cap)}`);
+    lastHp=hp;lastStamina=stamina;syncContextVitalsVisibility();
+  }
+  function updateMindBalance(s,training=null){
+    const active=Boolean(((s.combat&&!s.combat.training)||training?.d<2.8)&&!s.down&&!s.ended);ui.mind.hidden=!active;if(!active)return;
+    const vector=tidebreakMindVectorFor(s),labels={attack:'攻め',guard:'守り',spacing:'間合い',counter:'返し',mobility:'機動',survival:'生存'};let dominant='attack',best=-1;
+    for(const node of ui.mind.querySelectorAll('[data-axis]')){const key=node.dataset.axis,value=clamp(Number(vector?.[key]??.5),0,1);node.style.opacity=String(.3+value*.7);node.style.transform=`scale(${(.78+value*.26).toFixed(3)})`;node.dataset.strong=String(value>=.68);if(value>best){best=value;dominant=key;}}
+    ui.mindState.textContent=labels[dominant]||'中庸';ui.mind.dataset.dominant=dominant;
+  }
   function summary(s,{dashing=false,resting=false,training=null}={}){
     state=s;speech.sync();loadoutUI.syncCombat(s);ui.name.textContent=s.name||'旅人';ui.equip.textContent=`${WEAPON_LABELS[s.equipment?.weapon]||'素手'} · ${ARMOR_LABELS[s.equipment?.armor]||'旅装'}`;updateRadar();
-    ui.state.textContent=s.down?'救助待ち':resting?'休憩':dashing?'疾走':s.combat||training?.d<2.8?'戦闘態勢':'探索';ui.rest.hidden=!resting;ui.dash.dataset.active=String(dashing);const engaged=training?.d<2.8;ui.training.hidden=!engaged;if(engaged)ui.trainingName.textContent=training.label;
+    ui.state.textContent=s.down?'救助待ち':resting?'休憩':dashing?'疾走':s.combat||training?.d<2.8?'戦闘態勢':'探索';ui.rest.hidden=!resting;ui.dash.dataset.active=String(dashing);const engaged=training?.d<2.8;ui.training.hidden=!engaged;if(engaged)ui.trainingName.textContent=training.label;updateContextVitals(s,{dashing,resting,training});updateMindBalance(s,training);
     const phase=s.combat&&!s.combat.training&&!s.down&&!s.ended?(s.combat.sharedPhase||s.combat.phase||''):'';
     ui.phase.hidden=!phase;
     const rawAction=phase?(gameScreen.dataset.sharedCombatAttack||s.combat?.tidebreakPose?.attack||''):'';
@@ -236,5 +277,5 @@ export function createGameplayUI(gameScreen,{stations,layout,audio,requestEquip}
 
   tracker.bindInteractions({openHeart:skillId=>open('heart',{skillId}),openTechnique:skillId=>open('technique',{skillId})});bindSheetGesture();
   ui.heart.onclick=()=>toggle('heart',{skillId:tracker.firstUnseen('heart')});ui.techniques.onclick=()=>toggle('technique',{skillId:tracker.firstUnseen('technique')});ui.bodyButton.onclick=()=>toggle('body');ui.items.onclick=()=>toggle('items');ui.map.onclick=()=>toggle('map');ui.record.onclick=()=>toggle('record');ui.close.onclick=close;
-  return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,setGuidance,dispose(){clearTimeout(movementHelpTimer);clearTimeout(toastTimer);clearTimeout(interruptTimer);observer.disconnect();gameScreen.removeEventListener('rinne:combat-feedback',onCombatFeedback);moveHint?.removeEventListener('click',showMovementHelp,{capture:true});selectionDetail.dispose();loadoutUI.dispose();tracker.dispose();speech.dispose();root.remove();}};
+  return{...ui,bindState,refresh,open,close,discover:ids=>tracker.discover(ids),summary,setGuidance,setContextAnchor,dispose(){clearTimeout(movementHelpTimer);clearTimeout(toastTimer);clearTimeout(interruptTimer);observer.disconnect();gameScreen.removeEventListener('rinne:combat-feedback',onCombatFeedback);moveHint?.removeEventListener('click',showMovementHelp,{capture:true});selectionDetail.dispose();loadoutUI.dispose();tracker.dispose();speech.dispose();root.remove();}};
 }

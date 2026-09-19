@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const read = p => readFileSync(new URL(p, import.meta.url), 'utf8');
 const main = read('../index.html'), advanced = read('../advanced.html');
-const engine = read('../src/character-review.js'), shell = read('../src/character-review-main.js');
+const engine = read('../src/character-review.js'), shell = read('../src/character-review-main.js'), grid = read('../src/character-review-grid.js');
 const css = read('../src/character-review-main.css'), detailCss = read('../src/character-review-advanced.css');
 const vite = read('../vite.config.js');
 test('main and advanced retain every audited renderer control with unique IDs', () => {
@@ -23,6 +23,7 @@ test('model review is the visible purpose while detailed editing controls remain
   assert.match(main, /href="\.\/advanced\.html"/);
   assert.match(shell, /ArrowRight/); assert.match(shell, /ArrowLeft/);
   for (const id of ['undo','redo','save-workspace','original-preview']) assert.ok(main.includes(`id="${id}"`));
+  for (const cls of ['review-slot-tabs','review-selection-current','review-choice-grid','review-choice-card','review-action-row']) assert.match(grid,new RegExp(cls));
   for (const id of ['seed','gene-height','session-file']) assert.ok(advanced.includes(`id="${id}"`));
 });
 test('both pages have bounded viewports and independent control scrolling', () => {
@@ -39,6 +40,7 @@ test('renderer and visible shell remain isolated from game saves and authority',
   assert.match(shell, /createCharacterWorkspace/);
   for (const code of [engine,shell]) assert.doesNotMatch(code, /localStorage|sessionStorage|indexedDB|WebSocket|RTCPeerConnection|\.innerHTML\s*=/);
   assert.match(main, /本編・セーブ・通信には接続しません/);
+  assert.match(advanced, /class="back review-surface__back" data-review-back/);
 });
 test('model audit uses pinned CC0 KayKit identity, bounded loads and GPU recovery', () => {
   assert.match(engine, /KAYKIT_MODEL_BY_KEY/);
@@ -49,7 +51,8 @@ test('model audit uses pinned CC0 KayKit identity, bounded loads and GPU recover
   assert.match(engine, /defaultModel\.license/);
   assert.doesNotMatch(engine, /SHINO_review\.vrm/);
   assert.ok(engine.indexOf('auditDocument(json, hash, bytes.byteLength, blobSha)') < engine.indexOf("new GLTFLoader().parseAsync(bytes, '')"));
-  for (const expression of [/if \(!audit\.approved\) throw/, /length > MAX_MODEL_BYTES/, /file\.size > MAX_SESSION_BYTES/, /webglcontextlost/, /webglcontextrestored/]) assert.match(engine, expression);
+  for (const expression of [/if \(!audit\.approved\) throw/, /length > MAX_MODEL_BYTES/, /file\.size > MAX_SESSION_BYTES/, /webglcontextlost/, /webglcontextrestored/, /createReviewStageLifecycle/]) assert.match(engine, expression);
+  assert.doesNotMatch(engine, /new ResizeObserver/);
 });
 test('Character Studio is an independent two-entry dev-tool build', () => {
   assert.match(main, /data-dev-tool="character-studio"/);

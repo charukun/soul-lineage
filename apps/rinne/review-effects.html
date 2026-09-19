@@ -37,7 +37,7 @@
     </details>
     <div id="fx-discovery-tools" class="catalog-tools" hidden>
       <label class="search-box"><span>検索</span><input id="fx-search" type="search" placeholder="名前・タグで検索" autocomplete="off"></label>
-      <div class="filter-row" role="group" aria-label="カテゴリ">
+      <div class="filter-row review-filter-tabs" role="group" aria-label="カテゴリ">
       <button type="button" data-filter="all" aria-pressed="true">すべて</button>
       <button type="button" data-filter="original" aria-pressed="false">原本</button>
       <button type="button" data-filter="attack" aria-pressed="false">攻撃</button>
@@ -49,7 +49,7 @@
       </div>
     </div>
     <div class="catalog-heading"><span class="catalog-kicker">候補一覧</span><output id="fx-model-count" class="catalog-count" aria-label="実エフェクトモデル数">— EFFECTS</output></div>
-    <div id="fx-catalog" class="fx-catalog" role="list"></div>
+    <div id="fx-catalog" class="fx-catalog review-choice-grid" role="list"></div>
     <p id="fx-empty" class="catalog-empty" hidden>一致するエフェクトはありません</p>
     <details class="provenance review-surface__meta"><summary>原本・確認境界</summary><p id="fx-provenance"></p><p>この画面はゲーム本体と同じ authored effect player / Effekseer backend を使います。人型マネキンと発生点・着弾点・範囲ガイドはレビュー用の見え方だけを補助し、ダメージ判定や戦闘ルールを複製しません。</p></details>
   </aside>

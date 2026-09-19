@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
-const [html, typography, hud, surfaces, v2, ui, loadout] = await Promise.all([
+const [html, typography, hud, surfaces, v2, navy, ui, loadout] = await Promise.all([
   read('../index.html'),
   read('../src/typography.css'),
   read('../src/reincarnation-hud.css'),
   read('../src/reincarnation-surfaces.css'),
   read('../src/reincarnation-interface-v2.css'),
+  read('../src/dark-navy-hud.css'),
   read('../src/gameplay-ui.js'),
   read('../src/heart-technique-body-ui.js'),
 ]);
@@ -20,6 +21,8 @@ test('latest Rinne interface layer loads after the first reforge layers', () => 
   const surfaceLayer = html.indexOf('./src/reincarnation-surfaces.css');
   const v2Layer = html.indexOf('./src/reincarnation-interface-v2.css');
   assert.ok(contract >= 0 && records > contract && hudLayer > records && surfaceLayer > hudLayer && v2Layer > surfaceLayer);
+  assert.doesNotMatch(html, /dark-navy-hud\.css/,'final HUD skin must not be preloaded before runtime UI styles');
+  assert.match(ui, /import '\.\/dark-navy-hud\.css';/,'final HUD skin must load last from gameplay-ui');
 });
 
 test('persistent HUD has a readable player cluster and a dedicated top-right radar', () => {
@@ -41,7 +44,14 @@ test('persistent HUD has a readable player cluster and a dedicated top-right rad
   assert.match(ui, /data-items/);
   assert.match(ui, /class="rinne-map-radar"/);
   assert.match(ui, /data-record/);
-  assert.doesNotMatch(ui, /data-combat/);
+  assert.match(ui, /data-vitals/);
+  assert.match(ui, /data-mind/);
+  assert.match(ui, /setContextAnchor/);
+  assert.match(navy, /\.rinne-context-vitals\{/);
+  assert.match(navy, /\.rinne-mind-balance\{/);
+  assert.match(navy, /\.game-screen\[data-gameplay-upgrade\] \.bars,[\s\S]*display:none!important/);
+  assert.match(navy, /\.rinne-gameplay-upgrade \.upgrade-panel>header>\[data-close\][\s\S]*display:grid!important/);
+  assert.doesNotMatch(ui, /data-(?:attack|combat-button|combat-control)/);
   assert.doesNotMatch(ui, /data-debug/);
   assert.match(v2, /env\(safe-area-inset-top\)/);
   assert.match(v2, /env\(safe-area-inset-bottom\)/);
@@ -49,10 +59,11 @@ test('persistent HUD has a readable player cluster and a dedicated top-right rad
   assert.match(v2, /@media\(prefers-reduced-motion:reduce\)/);
 });
 
-test('heart technique body and equipment share three slots over a five-column library', () => {
+test('technique body and equipment keep three-slot editing while heart stays a learned list', () => {
   assert.match(v2, /\.loadout-slot-row\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(v2, /\.loadout-grid\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
-  assert.match(loadout, /HEART_SLOT_COUNT/);
+  assert.doesNotMatch(loadout, /HEART_SLOT_COUNT|setHeartSlot|heartSlot/);
+  assert.match(loadout, /heart-learned-list/);
   assert.match(loadout, /技 · 序破急/);
   assert.match(loadout, /体 · 身法/);
   assert.match(loadout, /得意技/);
@@ -74,11 +85,17 @@ test('rich map is more than anonymous points and preserves the shared guidance t
   assert.match(v2, /\.radar-target/);
 });
 
-test('new surfaces stay tactile and avoid glass or generic rounded cards', () => {
-  assert.doesNotMatch(v2, /backdrop-filter/);
-  assert.doesNotMatch(v2, /border-radius:\s*(?:14|15|16|18|20|24|999)px/);
-  assert.match(v2, /clip-path:polygon/);
-  assert.match(v2, /box-shadow:inset/);
+test('final gameplay skin is tactile, non-flat, and keeps phone sheets reachable', () => {
+  assert.doesNotMatch(navy, /backdrop-filter:(?!none)/);
+  assert.match(navy, /repeating-linear-gradient/);
+  assert.match(navy, /clip-path:polygon/);
+  assert.match(navy, /box-shadow:inset/);
+  assert.match(navy, /\.life-chip::before,[\s\S]*content:none!important/);
+  assert.match(navy, /\.upgrade-panel>\[data-body\][\s\S]*overflow-y:auto!important/);
+  assert.match(navy, /max-height:calc\(100dvh/);
+  assert.match(navy, /bottom:max\(82px,calc\(env\(safe-area-inset-bottom\) \+ 78px\)\)/);
+  assert.match(navy, /grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(navy, /border-radius:0!important/);
   assert.match(surfaces, /max-height:min\(70dvh,640px\)/);
 });
 

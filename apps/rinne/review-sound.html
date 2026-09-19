@@ -37,7 +37,7 @@
   <aside class="catalog-shell review-surface__panel" aria-label="サウンド一覧">
     <div class="catalog-tools">
       <label class="search-box"><span>検索</span><input id="sound-search" type="search" placeholder="名前・用途で検索" autocomplete="off"></label>
-      <div class="filter-row" role="group" aria-label="サウンド種別"><button type="button" data-sound-filter="all" aria-pressed="true">すべて</button><button type="button" data-sound-filter="sfx" aria-pressed="false">効果音</button><button type="button" data-sound-filter="bgm" aria-pressed="false">BGM</button></div>
+      <div class="filter-row review-filter-tabs" role="group" aria-label="サウンド種別"><button type="button" data-sound-filter="all" aria-pressed="true">すべて</button><button type="button" data-sound-filter="sfx" aria-pressed="false">効果音</button><button type="button" data-sound-filter="bgm" aria-pressed="false">BGM</button></div>
     </div>
     <div class="catalog-kicker">候補一覧</div><div id="sound-catalog" class="sound-catalog" role="list"></div><p id="sound-empty" class="catalog-empty" hidden>一致するサウンドはありません</p>
     <details class="provenance review-surface__meta"><summary>確認境界</summary><p>この画面は @soul/audio のRINNE BGMカタログと、実ファイルの戦闘SEを直接再生します。モーション・VFX・ゲームロジックとの同期はここでは行いません。</p></details>

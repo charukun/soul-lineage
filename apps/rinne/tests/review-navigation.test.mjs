@@ -23,8 +23,8 @@ test('all Visual Review specialist pages receive the shared navigation module',a
   assert.doesNotMatch(entries,/'\/review\.html'/);
   assert.match(vite,/order:'pre'/);
   assert.match(vite,/src:'\.\/src\/review-navigation\.js'/);
-  const [visual,motion,assets,objects,effects,motionCss]=await Promise.all([
-    read('src/review-runtime-thumbnail.js'),read('src/review-motion.js'),read('src/review-asset-library.js'),read('src/review-object-library.js'),read('src/review-effects.js'),read('src/review-motion.css')
+  const [visual,motion,assets,objects,effects,battleStage,motionCss,sharedShell]=await Promise.all([
+    read('src/review-runtime-thumbnail.js'),read('src/review-motion.js'),read('src/review-asset-library.js'),read('src/review-object-library.js'),read('src/review-effects.js'),read('src/review-battle-stage.js'),read('src/review-motion.css'),read('../../packages/shared-ui/src/review-shell.js')
   ]);
   assert.match(visual,/scheduleRuntimeThumbnail/);
   assert.match(visual,/requestIdleCallback/);
@@ -35,8 +35,27 @@ test('all Visual Review specialist pages receive the shared navigation module',a
   assert.match(effects,/thumbnailIdle/);
   assert.match(effects,/thumbnailJobs/);
   assert.doesNotMatch([motion,assets,objects,effects].join('\n'),/createReviewChoiceVisual/);
-  assert.match(motionCss,/\.motion-model-grid\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
-  const [objectsHtml,objectsJs,objectsCatalog]=await Promise.all([read('review-objects.html'),read('src/review-object-library.js'),read('src/review-object-catalog.js')]);
+  for(const source of [motion,assets,objects,effects,battleStage]){assert.match(source,/createReviewStageLifecycle/);assert.doesNotMatch(source,/new ResizeObserver/);}
+  assert.match(sharedShell,/visualViewport\?\.addEventListener\('resize'/);
+  assert.match(sharedShell,/width<2\|\|height<2/);
+  const [sharedCss,motionHtml,assetsHtml,objectsHtml,effectsHtml,soundHtml]=await Promise.all([
+    read('../../packages/shared-ui/src/review-shell.css'),read('review-motion.html'),read('review-assets.html'),read('review-objects.html'),read('review-effects.html'),read('review-sound.html')
+  ]);
+  assert.match(sharedCss,/\.review-choice-grid\{display:grid!important;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
+  assert.match(sharedCss,/\.review-slot-tabs/);
+  assert.match(sharedCss,/\.review-selection-current/);
+  assert.match(sharedCss,/\.review-filter-tabs/);
+  for(const html of [motionHtml,assetsHtml,objectsHtml,effectsHtml])assert.match(html,/review-choice-grid/);
+  assert.match(assetsHtml,/asset-slot-tabs review-slot-tabs/);
+  assert.match(soundHtml,/review-filter-tabs/);
+  const [characterGridCss,assetCss,objectCss,effectCss]=await Promise.all([
+    read('../../apps/character-studio/src/character-review-grid.css'),read('src/review-asset-library.css'),read('src/review-object-library.css'),read('src/review-effects.css')
+  ]);
+  assert.doesNotMatch(characterGridCss,/\.character-review-grid\{[^}]*grid-template-columns/);
+  assert.doesNotMatch(assetCss,/\.(?:model-options|asset-equipment-options)\{[^}]*grid-template-columns/);
+  assert.doesNotMatch(objectCss,/\.object-options\{[^}]*grid-template-columns/);
+  assert.doesNotMatch(effectCss,/\.fx-catalog\{[^}]*grid-template-columns/);
+  const [objectsJs,objectsCatalog]=await Promise.all([read('src/review-object-library.js'),read('src/review-object-catalog.js')]);
   assert.match(objectsHtml,/id="object-categories"/);
   assert.match(objectsJs,/CATEGORY_OPTIONS/);
   assert.match(objectsJs,/selectedCategory==='all'/);
@@ -45,14 +64,11 @@ test('all Visual Review specialist pages receive the shared navigation module',a
 
 test('shared navigation replaces legacy controls and is mobile-safe',async()=>{
   const [runtime,css]=await Promise.all([read('src/review-navigation.js'),read('src/review-navigation.css')]);
-  assert.match(runtime,/\.stage-head > \.back-link/);
-  assert.match(runtime,/\.page-head > \.back/);
-  assert.match(runtime,/Visual Reviewへ戻る/);
-  assert.match(runtime,/doc\.body\.prepend\(back\)/);
+  assert.match(runtime,/normalizeReviewBackButton/);
+  assert.match(runtime,/review-surface__header/);
+  assert.doesNotMatch(runtime,/body\.prepend/);
   assert.match(runtime,/win\.history\.back\(\)/);
-  assert.match(css,/min-height:44px/);
-  assert.match(css,/safe-area-inset-top/);
-  assert.match(css,/safe-area-inset-left/);
+  assert.match(css,/shared Review Shell header button/);
 });
 
 test('Rinne review launcher is only a compatibility bridge to the independent Lab',async()=>{
