@@ -34,6 +34,7 @@ page.on('request', request => { if (/\.glb(?:\?|$)/.test(request.url())) request
 page.on('response', response => { if (response.status() >= 400 && new URL(response.url()).origin === base) errors.push(`HTTP ${response.status()}: ${response.url()}`); });
 const state = () => page.evaluate(() => window.__MOTION_REVIEW__.inspect());
 const motionButtons = '#motion-grid button[data-motion-id]';
+const modelButtons = '#motion-model-grid button[data-motion-model]';
 async function selected(id) {
   await page.waitForFunction(id => document.getElementById('motion-stage').dataset.motionId === id && document.getElementById('motion-stage').dataset.motionState === 'ready', id, { timeout: 60000 });
 }
@@ -65,11 +66,11 @@ try {
   receipt.initialRequests = [...requests];
   await page.locator('[data-motion-filter="all"]').click();
   assert.equal(await page.locator(motionButtons).count(), manifest.records.length);
-  const modelIds = await page.locator('[data-motion-model]').evaluateAll(elements => elements.map(element => element.dataset.motionModel));
+  const modelIds = await page.locator(modelButtons).evaluateAll(elements => elements.map(element => element.dataset.motionModel));
   assert.equal(modelIds.length, manifest.qa.targetModels);
   for (const [modelIndex, model] of modelIds.entries()) {
     if (modelIndex) {
-      await page.locator(`[data-motion-model="${model}"]`).click();
+      await page.locator(`${modelButtons}[data-motion-model="${model}"]`).click();
       await page.waitForFunction(model => document.getElementById('motion-stage').dataset.motionModel === model && document.getElementById('motion-stage').dataset.motionState === 'ready', model);
     }
     for (const row of manifest.records) {
