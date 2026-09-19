@@ -8,20 +8,20 @@ import {mountRinneReviewShell} from './review-lab-shell.js';
 mountRinneReviewShell('battle');
 
 const q=id=>document.getElementById(id);
-const heroSelect=q('battle-hero-model'),enemySelect=q('battle-enemy-model');
+const enemySelect=q('battle-enemy-model');
 const modelLabel=id=>REVIEW_BATTLE_MODELS.find(row=>row.id===id)?.label||id;
-for(const select of [heroSelect,enemySelect])select.replaceChildren(...REVIEW_BATTLE_MODELS.map(row=>{const option=document.createElement('option');option.value=row.id;option.textContent=row.label;return option;}));
-heroSelect.value='kaykit.rogue.v1';enemySelect.value='kaykit.knight.v1';
+enemySelect.replaceChildren(...REVIEW_BATTLE_MODELS.map(row=>{const option=document.createElement('option');option.value=row.id;option.textContent=row.label;return option;}));
+enemySelect.value='kaykit.knight.v1';
 
 const phasePanel=q('battle-phase'),phaseMeta=q('phase-meta'),phaseHistory=q('phase-history'),soundButton=q('battle-sound');
 const battleSfx=createCombatSfx();
 const loopEnabled=true,followCamera=true;
-let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null;
+let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationMode='normal',lastInspirationPhase='';
 let host=null,last=performance.now(),lastCore=null,finishedAt=0,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks={hero:'',enemy:''};
 
 function syncModelLabels(){
   const hero=q('hero-name'),enemy=q('enemy-name');
-  if(hero)hero.textContent=modelLabel(heroSelect.value);
+  if(hero)hero.textContent='主人公';
   if(enemy)enemy.textContent=modelLabel(enemySelect.value);
 }
 async function ensureBattleStage(){
@@ -29,12 +29,11 @@ async function ensureBattleStage(){
   if(battleStagePromise)return battleStagePromise;
   q('battle-model-status').textContent='モデル準備中';
   battleStagePromise=createReviewBattleStage({canvas:q('battle-canvas'),onStatus:text=>{q('battle-model-status').textContent=text;}})
-    .then(stage=>{battleStage=stage;stage.setModel('hero',heroSelect.value);stage.setModel('enemy',enemySelect.value);stage.setEncounterMode(encounterMode);return stage;})
+    .then(stage=>{battleStage=stage;stage.setModel('enemy',enemySelect.value);stage.setEncounterMode(encounterMode);return stage;})
     .catch(error=>{q('battle-model-status').textContent=`モデル読込失敗 · ${error.message}`;q('battle-canvas').dataset.battleModels='failed';throw error;});
   return battleStagePromise;
 }
 
-heroSelect.addEventListener('change',()=>{syncModelLabels();void ensureBattleStage().then(stage=>stage.setModel('hero',heroSelect.value));});
 enemySelect.addEventListener('change',()=>{syncModelLabels();void ensureBattleStage().then(stage=>stage.setModel('enemy',enemySelect.value));});
 
 const memory=new Map();
@@ -84,7 +83,14 @@ function syncBattle(dt){
   q('enemy-meta').textContent=`${Math.ceil(Number(core.enemy.hp)||0)} / ${enemyMax} HP`;
   q('battle-time').textContent=`${(battle?.time||0).toFixed(1)}秒`;
   q('battle-result').textContent=battle?.finished?`${battle.winner==='demon'?'LEFT':'RIGHT'} 勝利`:(encounterMode==='melee'?'乱戦中':'戦闘中');
-  syncBattleAudio(core);renderPhase(core);battleStage?.sync(core,dt,{followCamera,encounterMode,cameraSystem});
+  syncBattleAudio(core);renderPhase(core);
+  const phase=reviewBattlePhaseState(core).phase;
+  if(inspirationMode==='boost'&&phase&&phase!==lastInspirationPhase){
+    lastInspirationPhase=phase;
+    const banner=q('battle-inspiration'),name=q('battle-inspiration-name'),phaseNode=q('battle-inspiration-phase');
+    if(banner&&name&&phaseNode){name.textContent='閃き率 上昇';phaseNode.textContent=`${({jo:'序',ha:'破',kyu:'急'})[phase]||''} · 戦闘中の閃き判定を強調表示`;banner.hidden=false;clearTimeout(banner._hideTimer);banner._hideTimer=setTimeout(()=>{banner.hidden=true;},900);}
+  }else if(!phase)lastInspirationPhase='';
+  battleStage?.sync(core,dt,{followCamera,encounterMode,cameraSystem});
 }
 
 function advanceBattle(dt){
@@ -114,7 +120,12 @@ for(const button of document.querySelectorAll('[data-battle-skin]'))button.addEv
   for(const item of document.querySelectorAll('[data-battle-skin]'))item.setAttribute('aria-pressed',String(item===button));
 });
 
-q('battle-restart').addEventListener('click',resetBattle);
+for(const button of document.querySelectorAll('[data-inspiration-mode]'))button.addEventListener('click',()=>{
+  inspirationMode=button.dataset.inspirationMode==='boost'?'boost':'normal';
+  lastInspirationPhase='';
+  for(const item of document.querySelectorAll('[data-inspiration-mode]'))item.setAttribute('aria-pressed',String(item===button));
+  document.body.dataset.inspirationMode=inspirationMode;
+});
 soundButton?.addEventListener('click',event=>{event.stopPropagation();battleSfx.toggle();syncSoundButton();});
 window.addEventListener('pagehide',()=>{battleStage?.dispose();battleSfx.dispose();},{once:true});
 
