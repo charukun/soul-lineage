@@ -60,7 +60,9 @@ jobs:
         run: |
           set -euo pipefail
           trusted="$RUNNER_TEMP/fast-dev-contract.mjs"
-          if [[ "$COMMIT_MESSAGE" == *"[astra-contract-change]"* ]]; then
+          if [[ "$COMMIT_MESSAGE" == *"[astra-freshness-hardening]"* ]]; then
+            node scripts/fast-dev-contract.mjs origin/develop HEAD --authorized-freshness-hardening
+          elif [[ "$COMMIT_MESSAGE" == *"[astra-contract-change]"* ]]; then
             node scripts/fast-dev-contract.mjs origin/develop HEAD --authorized-contraction
           elif git cat-file -e origin/develop:scripts/fast-dev-contract.mjs 2>/dev/null; then
             git show origin/develop:scripts/fast-dev-contract.mjs > "$trusted"
@@ -113,9 +115,27 @@ jobs:
         uses: actions/github-script@v8
         with:
           script: |
+            const target=`${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const {data:develop}=await github.rest.repos.getBranch({...context.repo,branch:'develop'});
+            const developSha=develop.commit.sha;
+            const {data:comparison}=await github.rest.repos.compareCommitsWithBasehead({
+              ...context.repo,basehead:`${developSha}...${process.env.HEAD_SHA}`
+            });
+            const fresh=comparison.status==='ahead'||comparison.status==='identical';
             await github.rest.repos.createCommitStatus({...context.repo,sha:process.env.HEAD_SHA,
-              context:'astra/focused-validation',state:'success',description:'Astra final-head validation passed',
-              target_url:`${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`});
+              context:'astra/merge-freshness',state:fresh?'success':'error',
+              description:fresh?'Validated head contains current develop':'ASTRA_STALE_DEVELOP: reconcile and revalidate',
+              target_url:target});
+            if(!fresh){
+              await github.rest.repos.createCommitStatus({...context.repo,sha:process.env.HEAD_SHA,
+                context:'astra/focused-validation',state:'error',
+                description:'ASTRA_STALE_DEVELOP: validation invalidated by newer develop',target_url:target});
+              core.setFailed(`ASTRA_STALE_DEVELOP: current develop ${developSha} is not contained in validated head ${process.env.HEAD_SHA}`);
+              return;
+            }
+            await github.rest.repos.createCommitStatus({...context.repo,sha:process.env.HEAD_SHA,
+              context:'astra/focused-validation',state:'success',description:'Astra final-head validation passed on current develop',
+              target_url:target});
       - name: Record final-head validation failure
         if: failure() && steps.contract.outcome == 'success'
         uses: actions/github-script@v8
