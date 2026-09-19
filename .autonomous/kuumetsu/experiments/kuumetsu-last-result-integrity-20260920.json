@@ -60,7 +60,7 @@
     ],
     "receipt": {
       "repository": "charukun/soul-lineage",
-      "pullRequest": null,
+      "pullRequest": 1121,
       "marker": "autonomous-receipt:kuumetsu:kuumetsu-last-result-integrity-20260920"
     }
   },
