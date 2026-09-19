@@ -1,0 +1,40 @@
+name: NOCTURNE 30-second Gameplay Capture
+on:
+  push:
+    branches: [capture/nocturne-video-20260919]
+    paths: ['.github/workflows/nocturne-video.yml', 'tools/nocturne-capture/capture-nocturne.mjs']
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare isolated capture dependencies
+        run: |
+          mkdir -p "$RUNNER_TEMP/nocturne-video"
+          cp tools/nocturne-capture/capture-nocturne.mjs "$RUNNER_TEMP/nocturne-video/"
+          cd "$RUNNER_TEMP/nocturne-video"
+          npm init -y
+          npm install --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-noto-cjk
+      - name: Capture native Full HD gameplay and encode exactly 30 seconds
+        run: |
+          cd "$RUNNER_TEMP/nocturne-video"
+          node capture-nocturne.mjs
+      - name: Save video and capture evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NOCTURNE-1080p-30s-${{ github.run_id }}
+          path: ${{ runner.temp }}/nocturne-video/output/
+          if-no-files-found: error
+          retention-days: 7
