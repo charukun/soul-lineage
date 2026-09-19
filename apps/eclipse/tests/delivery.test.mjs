@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {additionalAssets} from '../additional-assets.mjs';
+import {ensureDeliveryFixtures} from './ensure-fixtures.mjs';
 const root=new URL('../public/',import.meta.url);
+ensureDeliveryFixtures();
 const sha256=b=>createHash('sha256').update(b).digest('hex');
 test('compatible UAL1 is an independently hashed motion dependency, not a displayed mannequin',()=>{
- const manifest=JSON.parse(readFileSync(new URL('models/manifest.json',root),'utf8'));
+ const manifest=JSON.parse(readFileSync(new URL('./models/manifest.json',root),'utf8'));
  const source=additionalAssets[0],record=manifest.find(m=>m.id==='RangerAnimations').additionalMotion;
  assert.equal(record.role,'animation-only');assert.equal(record.id,source.id);
  assert.equal(record.source,source.sourceUrl);assert.equal(record.sha256,source.expectedSHA256);
@@ -16,7 +18,7 @@ test('compatible UAL1 is an independently hashed motion dependency, not a displa
  for(const bone of ['Head','hand_r','pelvis'])assert.ok(json.nodes.some(n=>n.name===bone));
 });
 test('texture delivery is compact, independently hashed, and leaves original source images intact',()=>{
- const delivery=JSON.parse(readFileSync(new URL('models/delivery.json',root),'utf8'));
+ const delivery=JSON.parse(readFileSync(new URL('./models/delivery.json',root),'utf8'));
  assert.equal(delivery.geometryChanges,0);assert.ok(delivery.textures.length>0);
  assert.ok(delivery.deliveryTextureBytes<delivery.originalTextureBytes*.2);
  for(const record of delivery.textures){

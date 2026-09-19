@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {resolve,dirname,posix} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {manifest,repository,revision,excludedSnapshots} from '../model-manifest.mjs';
-const root=fileURLToPath(new URL('..',import.meta.url)),output=resolve(root,'public/models'),cache=process.env.ECLIPSE_SOURCE_CACHE?resolve(process.env.ECLIPSE_SOURCE_CACHE):null;
+const root=dirname(dirname(fileURLToPath(import.meta.url))),output=resolve(root,'public/models'),cache=process.env.ECLIPSE_SOURCE_CACHE?resolve(process.env.ECLIPSE_SOURCE_CACHE):null;
 const digest=data=>createHash('sha256').update(data).digest('hex');
 const gitHash=data=>createHash('sha1').update(`blob ${data.length}\0`).update(data).digest('hex');
 async function request(url){let last;for(let i=0;i<4;i++){try{const r=await fetch(url,{signal:AbortSignal.timeout(90000)});if(!r.ok)throw Error(`HTTP ${r.status}: ${url}`);return Buffer.from(await r.arrayBuffer());}catch(e){last=e;await new Promise(r=>setTimeout(r,1000*(i+1)));}}throw last;}

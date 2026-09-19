@@ -4,8 +4,11 @@ import {readFileSync,readdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {dirname} from 'node:path';
 import {manifest,excludedSnapshots} from '../model-manifest.mjs';
+import {ensureDeliveryFixtures} from './ensure-fixtures.mjs';
 import {WAVES,SKILLS,BLESSINGS,freshStats,waveEnemies,seededRandom,distance,clamp,clock,chooseAutoBlessing} from '../src/domain/rules.js';
+ensureDeliveryFixtures();
 test('five finite waves, exactly one boss, and a reachable end',()=>{assert.equal(WAVES.length,5);assert.equal(WAVES.flatMap((_,i)=>waveEnemies(i+1)).filter(t=>t==='boss').length,1);assert.equal(WAVES.reduce((n,w)=>n+w.count,0),73);assert.throws(()=>waveEnemies(0));});
 test('three distinct skills have positive bounded cooldowns',()=>{assert.equal(SKILLS.length,3);for(const s of SKILLS){assert.ok(s.cooldown>0);assert.ok(s.damage>0);assert.ok(s.radius>0);}});
 test('upgrades compose and healing never lowers maximum health',()=>{const s=freshStats();BLESSINGS.find(b=>b.id==='edge').apply(s);assert.equal(s.damage,1.25);BLESSINGS.find(b=>b.id==='flow').apply(s);assert.equal(s.cooldown,.8);s.hp=1;assert.equal(chooseAutoBlessing(s),'blood');BLESSINGS.find(b=>b.id==='blood').apply(s);assert.equal(s.hp,390);assert.equal(s.maxHp,390);});
@@ -33,7 +36,7 @@ test('every acquired original and dependency is pinned, licensed and independent
   assert.equal(bytes.length,file.bytes,file.sourcePath);assert.equal(sha256(bytes),file.sha256,file.sourcePath);assert.equal(gitBlob(bytes),file.gitBlob,file.sourcePath);
  }
  // Independently enumerate each exact Git tree. A guessed minimum count cannot prove completeness.
- const cwd=fileURLToPath(new URL('../../../',import.meta.url));
+ const cwd=dirname(dirname(dirname(fileURLToPath(import.meta.url))));
  assert.deepEqual(Object.keys(audit.excludedSnapshots).sort(),excludedSnapshots.map(s=>s.ref).sort());
  const forbidden=new Set();
  for(const {ref,commit} of excludedSnapshots){
