@@ -11,7 +11,8 @@
     "./speech-bubbles": "./src/speech-bubbles.js",
     "./combat-sequence": "./src/combat-sequence.js",
     "./combat-sequence.css": "./src/combat-sequence.css",
-    "./media-lifecycle": "./src/media-lifecycle.js"
+    "./media-lifecycle": "./src/media-lifecycle.js",
+    "./review-camera-menu": "./src/review-camera-menu.js"
   },
   "dependencies": {
     "@soul/audio": "*"

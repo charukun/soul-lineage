@@ -139,6 +139,7 @@ function start() {
     if (actor) { marker.position.x = actor.root.position.x; marker.position.z = actor.root.position.z; }
   }
   function aim(preset = 'overview') {
+    window.dispatchEvent(new CustomEvent('character-review-camera-preset',{detail:{preset}}));
     if (motionQA?.active) { motionQA.aim(preset === 'side' ? 'left' : ['front','back'].includes(preset) ? preset : 'front'); return; }
     const actor = actors[settings.selected]; if (!actor) return;
     let target, distance;
@@ -180,6 +181,7 @@ function start() {
     renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix(); if (motionQA?.active) motionQA.aim(motionQA.camera); resetMeasure();
   }
   const observer = new ResizeObserver(resize); observer.observe(canvas); resize();
+  orbit.addEventListener('start',()=>window.dispatchEvent(new Event('character-review-camera-free')));
   const axis = new THREE.Vector3(0, 0, 1), pitch = new THREE.Vector3(1, 0, 0), quaternion = new THREE.Quaternion();
   function pose(bones, t) {
     bones.leftUpperArm.quaternion.multiply(quaternion.setFromAxisAngle(axis, -1.25));

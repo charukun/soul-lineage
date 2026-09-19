@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {createReviewCameraMenu} from '@soul/shared-ui/review-camera-menu';
 import {createAuthoredEffectPlayer} from './rebuild/authored-effect-player.js';
 import {combatEffectBudget} from './rebuild/combat-effect-cues.js';
 import {REVIEW_AUTHORED_EFFECTS,EFFECT_RUNTIME,EFFECT_SOURCE,REVIEW_EFFECT_SOURCE,REVIEW_VFX_LIBRARY_SOURCE} from './rebuild/authored-effect-manifest.js';
@@ -168,8 +169,22 @@ function renderCatalog(){
   q('fx-empty').hidden=visible.length!==0;
   syncActiveCard();
 }
-function resetCamera(){camera.position.set(4.8,3.2,6.2);controls.target.set(0,1,0);controls.update();}
+let cameraMenu=null;
+function setCameraPreset(preset='three-quarter'){
+  const target=new THREE.Vector3(0,1,0);
+  const positions={front:[0,2.7,7.4],'three-quarter':[4.8,3.2,6.2],side:[7.4,2.7,0],top:[0,8.2,.01]};
+  camera.position.set(...(positions[preset]||positions['three-quarter']));controls.target.copy(target);controls.update();
+  cameraMenu?.setSelected('view',preset);
+}
 function syncControls(){speed=Number(q('fx-speed').value)||1;tier=Number(q('fx-tier').value)||0;reduced=q('fx-reduced').checked;}
+
+cameraMenu=createReviewCameraMenu({
+  host:q('.stage-shell'),
+  groups:[{id:'view',label:'向き',options:[{id:'front',label:'正面'},{id:'three-quarter',label:'斜め'},{id:'side',label:'横'},{id:'top',label:'俯瞰'}]}],
+  onSelect:(_group,id)=>setCameraPreset(id),
+});
+cameraMenu.setSelected('view','three-quarter');
+controls.addEventListener('start',()=>cameraMenu?.clearSelected('view'));
 
 const loopToggle=q('fx-loop');
 const ensureLoopDefaultOn=()=>{loopToggle.checked=true;};
@@ -186,7 +201,7 @@ for(const button of document.querySelectorAll('[data-filter]'))button.addEventLi
 });
 for(const id of ['fx-speed','fx-tier','fx-reduced'])q(id).addEventListener('change',syncControls);
 q('fx-pause').addEventListener('click',()=>{paused=!paused;q('fx-pause').textContent=paused?'再開':'一時停止';});
-q('fx-clear').addEventListener('click',()=>player.clear());q('fx-camera').addEventListener('click',resetCamera);
+q('fx-clear').addEventListener('click',()=>player.clear());
 q('fx-model-count').textContent=`${REVIEW_REAL_EFFECT_COUNT} EFFECTS`;
 q('fx-provenance').textContent=`実素材 ${REVIEW_REAL_EFFECT_COUNT}種 · ${REVIEW_VFX_LIBRARY_SOURCE.repository}@${REVIEW_VFX_LIBRARY_SOURCE.revision} / ${REVIEW_VFX_LIBRARY_SOURCE.license} · core ${EFFECT_SOURCE.repository}@${EFFECT_SOURCE.revision} / ${EFFECT_SOURCE.license} · review ${REVIEW_EFFECT_SOURCE.repository}@${REVIEW_EFFECT_SOURCE.revision} / ${REVIEW_EFFECT_SOURCE.license} · Effekseer WebGL ${EFFECT_RUNTIME.version}`;
 renderCatalog();
@@ -207,7 +222,7 @@ createEffekseerBackend({renderer,document,baseUrl:authoredEffectBase(document),s
   .then(backend=>{if(player.attach(backend)){q('fx-status').textContent=`実素材 ${REVIEW_REAL_EFFECT_COUNT}種 · 再生可能`;trigger('slash');}})
   .catch(error=>player.fail(error));
 window.addEventListener('pagehide',()=>{
-  disposed=true;abort.abort();observer.disconnect();controls.dispose();player.dispose();
+  disposed=true;abort.abort();observer.disconnect();cameraMenu?.destroy();controls.dispose();player.dispose();
   ground.geometry.dispose();ground.material.dispose();
   for(const object of reviewDisposables)object.dispose?.();
   renderer.dispose();
