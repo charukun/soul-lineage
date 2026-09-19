@@ -41,7 +41,7 @@ const MOTION_REVIEW_MODEL=Object.freeze({id:'mesh2motion-review-mannequin',label
 const REVIEW_MODELS=Object.freeze([MOTION_REVIEW_MODEL,...KAYKIT_MODELS]);
 let selectedModel=MOTION_REVIEW_MODEL,filter='all',playing=true,speed=1,loop=true,last=performance.now(),loadSerial=0,modelHeight=1.8,cameraPreset='three-quarter';
 let externalSource=null,externalSourceId='',externalTime=0,selectedDuration=0,selectSerial=0;
-const categoryOrder=['all','recommended','life','move','combat','reaction','other'];
+const categoryOrder=['all','recommended','life','move','parkour','combat','reaction','other'];
 
 function disposeSubject(){
   if(mixer&&targetScene){mixer.stopAllAction();mixer.uncacheRoot(targetScene);mixer=null;}
@@ -100,7 +100,7 @@ async function selectMotion(record){
       selectedDuration=Math.max(1/60,Number(clip.duration)||1/60);action=mixer.clipAction(clip);action.reset();
       action.setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);action.clampWhenFinished=!loop;action.enabled=true;action.play();
     }else if(record.runtime.kind==='pinned-motion-source'){
-      status('固定revision・hashのCC0モーションを検証しています。');
+      status('自己ホスト済み固定hashモーションを検証しています。');
       externalSource=await loadPinnedMotionSource(record.sourceId);externalSourceId=record.sourceId;
       if(serial!==selectSerial)return;
       selectedDuration=externalSource.duration(record.upstreamClipIndex);
@@ -189,7 +189,7 @@ async function loadModel(model){
     const count=motionRegistryCount(registry);canvas.dataset.motionSource='source-registry';canvas.dataset.motionCount=String(count);canvas.dataset.motionModel=model.id;
     el('motion-count-value').textContent=String(count);
     el('motion-load').value=1;status('');setCameraPreset('three-quarter');await selectMotion(first);
-    status('Mesh2Motion CC0ライブラリを取得しています。');
+    status('自己ホスト済みモーションライブラリを確認しています。');
     const discovered=await discoverPinnedMotionLibraryClips();
     if(serial!==loadSerial)return;
     registry=buildReviewMotionRegistry(baselineClips,discovered);catalog=buildMotionReviewCatalog(registry.motions.filter(row=>!model.reviewMannequin||!row.baseline),{perCategory:8});
