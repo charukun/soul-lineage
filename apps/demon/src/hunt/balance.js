@@ -29,6 +29,8 @@ export function readProgress(profile) {
   if (p.lastResult != null) {
     const r = p.lastResult;
     if (!r || !['escaped', 'completed', 'defeated', 'abandoned'].includes(r.status) || typeof r.extracted !== 'boolean' || typeof r.cleared !== 'boolean' || !integer(r.gained) || !integer(r.lost) || !integer(r.carried) || !integer(r.bonus) || !integer(r.eaten) || !integer(r.chapter, MISSIONS.length)) fail();
+    const coherent = r.extracted ? r.lost === 0 && r.gained === r.carried + r.bonus : !r.cleared && r.gained === 0 && r.bonus === 0 && r.lost === r.carried;
+    if (!coherent) fail();
   }
   return p;
 }
