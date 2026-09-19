@@ -11,22 +11,26 @@ export function verifyDevelopCompletionContract(root=process.cwd()){
   const development=read('docs/DEVELOPMENT.md');
   const executionPolicy=read('docs/RINNE_PROJECT_EXECUTION_POLICY.md');
   const developMerge=read('docs/DEVELOP_MERGE.md');
+  const workflow=read('.github/workflows/astra-work-validation.yml');
   const preReady=read('scripts/pre-ready-reconcile.mjs');
 
   assert.match(agents,/Ready for review is transient, not a success terminal/);
   assert.match(agents,/MERGED_TO_DEVELOP/);
-  assert.match(agents,/same task worker merges that exact validated head to `develop`/);
+  assert.match(agents,/final reconciled head/);
+  assert.match(agents,/\[astra-validate\]/);
   assert.match(development,/Ready is not a handoff or success state/);
   assert.match(development,/Normal success is `MERGED_TO_DEVELOP`/);
-  assert.match(executionPolicy,/Routine implementation finishes only after the same task worker merges the exact validated PR head to `develop`/);
+  assert.match(development,/Intermediate branch pushes are implementation details, not waiting points/);
+  assert.match(executionPolicy,/same task worker merges the final reconciled PR head to `develop`/);
   assert.match(executionPolicy,/Ready is not success/);
-  assert.match(executionPolicy,/- develop merge commit SHA/);
-  assert.match(developMerge,/same-task exact-head merge to develop/);
-  assert.match(developMerge,/normal success is `MERGED_TO_DEVELOP`/);
+  assert.match(executionPolicy,/single required merge validation/);
+  assert.match(developMerge,/same-task merge to develop/);
+  assert.match(developMerge,/\[astra-validate\]/);
+  assert.match(workflow,/contains\(github\.event\.head_commit\.message, '\[astra-validate\]'\)/);
   assert.match(preReady,/terminal=MERGED_TO_DEVELOP/);
 
   for(const source of [agents,development,executionPolicy,developMerge]){
-    assert.match(source,/exact[- ]head|exact validated head|exact validated PR head/i);
+    assert.match(source,/final[- ]head|exact[- ]head|final reconciled head/i);
   }
 
   const staleTerminalLine=/^\s*(?:Status:\s*)?READY_FOR_INTEGRATION\s*$/m;
