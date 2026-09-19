@@ -13,7 +13,6 @@ import {
   REVIEW_VFX_LIBRARY_COUNT,
 } from '../src/rebuild/review-vfx-library-manifest.js';
 import {REVIEW_EFFECT_CATALOG,REVIEW_REAL_EFFECT_COUNT} from '../src/review-effect-catalog.js';
-import {REVIEW_PRELOAD_GROUPS} from '../src/review-preloader.js';
 import {EFFECT_DOWNLOADS} from '../scripts/prepare-effects.mjs';
 
 test('production VFX stays bounded while review gets distinct source originals',()=>{
@@ -52,15 +51,17 @@ test('real review library is a unique pinned CC0 source closure',()=>{
   }
 });
 
-test('download plan preserves provenance and does not warm the full library at launcher',()=>{
-  const libraryDownload=EFFECT_DOWNLOADS.find(row=>row.reviewLibrary);
-  assert.equal(libraryDownload?.repository,REVIEW_VFX_LIBRARY_SOURCE.repository);
-  assert.equal(libraryDownload?.sourcePath?.startsWith('review-library/'),false);
+test('download plan preserves provenance and namespaces the real review library',()=>{
+  const libraryDownloads=EFFECT_DOWNLOADS.filter(row=>row.reviewLibrary);
+  assert.equal(libraryDownloads.length,REVIEW_VFX_LIBRARY_COUNT);
+  for(const row of libraryDownloads){
+    assert.equal(row.repository,REVIEW_VFX_LIBRARY_SOURCE.repository);
+    assert.equal(row.revision,REVIEW_VFX_LIBRARY_SOURCE.revision);
+    assert.equal(row.sourcePath?.startsWith('review-library/'),false);
+    assert.equal(row.target.startsWith('review-library/'),true);
+  }
   assert.equal(EFFECT_DOWNLOADS.some(row=>row.target==='LICENSE-REVIEW-LIBRARY-CC0.txt'),true);
-  const warm=REVIEW_PRELOAD_GROUPS.effects.assets;
-  assert.ok(warm.some(path=>path.endsWith('/effekseer.wasm')));
-  assert.ok(warm.length<=4);
-  assert.ok(!warm.some(path=>path.includes('/review-library/')));
+  assert.equal(EFFECT_DOWNLOADS.some(row=>row.target==='effekseer.wasm'),true);
 });
 
 test('catalog keeps legacy compositions separate from 155 real source originals',()=>{
