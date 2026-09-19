@@ -41,7 +41,7 @@ export function advanceVirtualCohorts(raw){
  * A village above its food/safety limit, or with an empty food store, loses residents.
  */
 export function planDemographicYear(input={}){
- const population=whole(input.population),limit=whole(input.limit),openBeds=whole(input.openBeds),eligibleAdults=whole(input.eligibleAdults),comfort=Math.max(0,Number(input.comfort)||0),foodStock=Math.max(0,Number(input.foodStock)||0),protectedResidents=Math.min(population,whole(input.protectedResidents??2));
+ const population=whole(input.population),limit=whole(input.limit),openBeds=whole(input.openBeds),eligibleAdults=Math.min(population,whole(input.eligibleAdults)),comfort=Math.max(0,Number(input.comfort)||0),foodStock=Math.max(0,Number(input.foodStock)||0),protectedResidents=Math.min(population,whole(input.protectedResidents??2));
  const infrastructureVacancy=Math.max(0,limit-population),housingVacancy=Math.max(0,openBeds-population),headroom=Math.min(infrastructureVacancy,housingVacancy),pairs=Math.floor(eligibleAdults/2);
  const foodPerPerson=foodStock/Math.max(1,population),foodFactor=foodStock<=0?0:Math.min(1.08,.72+Math.min(1,foodPerPerson/2)*.36),comfortFactor=Math.min(1.22,.9+comfort*.025);
  const expectedBirths=pairs*.34*foodFactor*comfortFactor,birthPool=fraction(input.birthCarry)+expectedBirths,birthCap=Math.max(1,Math.ceil(Math.max(1,population)*.06)),births=Math.min(headroom,birthCap,Math.floor(birthPool));
