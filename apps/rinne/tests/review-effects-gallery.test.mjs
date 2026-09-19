@@ -99,7 +99,8 @@ test('effect candidate list keeps the five-column Visual Review invariant',()=>{
   assert.match(css,/\.catalog-shell\{[^}]*overflow:hidden/);
   assert.match(css,/\.review-header-stats #fx-model-count\{/);
   for(const selector of ['review-slot-grid','review-select-grid-list','review-slot-deck-list']){
-    assert.match(slotCss,new RegExp('\\.'+selector+'\\{[^}]*grid-template-columns:repeat\\(5,minmax\\(0,1fr\\)\\)'));
-    assert.doesNotMatch(slotCss,new RegExp('@media[\\s\\S]*?\\.'+selector+'\\{[^}]*grid-template-columns'));
+    const rules=[...slotCss.matchAll(new RegExp('\\.'+selector+'\\{([^}]*)\\}','g'))]
+      .map(match=>match[1]).filter(body=>body.includes('grid-template-columns'));
+    assert.deepEqual(rules,['display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px']);
   }
 });
