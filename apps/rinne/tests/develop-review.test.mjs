@@ -53,7 +53,7 @@ test('equipment review uses the same quiet preview and compact camera hierarchy'
 
 test('world-object review loads the exact RINNE runtime props independently of equipment',async()=>{
   const [html,css,js]=await Promise.all([read('review-objects.html'),read('src/review-object-library.css'),read('src/review-object-library.js')]);
-  assert.match(html,/<title>物体確認 \| 輪廻転焦<\/title>/);
+  assert.match(html,/<title>物体確認 \| 百年転生<\/title>/);
   assert.match(html,/id="object-stage"/);
   assert.match(html,/id="object-options"/);
   for(const preset of ['front','side','top','full'])assert.match(html,new RegExp(`data-object-camera="${preset}"`));
