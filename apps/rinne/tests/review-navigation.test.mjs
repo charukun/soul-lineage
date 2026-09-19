@@ -30,7 +30,7 @@ test('all Visual Review specialist pages receive the shared navigation module',a
   assert.match(visual,/requestIdleCallback/);
   assert.match(visual,/IntersectionObserver/);
   assert.match(visual,/WebGLRenderer/);
-  for(const source of [motion,assets,objects])assert.match(source,/renderRuntimeThumbnail/);
+  for(const source of [motion,assets,objects])assert.match(source,/scheduleRuntimeThumbnail/);
   assert.match(effects,/renderEffectThumbnail/);
   assert.match(effects,/thumbnailIdle/);
   assert.match(effects,/thumbnailJobs/);
