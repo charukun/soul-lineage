@@ -18,7 +18,7 @@ DEVを確認: https://charukun.github.io/soul-lineage/dev/
 
 通知先はGitHubの既存PR購読メールを利用する。**開発者向け通知でゲームプレイヤー用のpush / ntfyを絶対に使わない。** develop publication、Ready / handoff、PULSE control-plane、Repair / Rescue のいずれも `NTFY_TOPIC_URL` / `NTFY_TOKEN` を開発者通知のために参照しない。独自SMTP、外部メール配信サービス、新規Task-IDや通知queueも追加しない。GitHub側では各PRのmerge commit SHAをreceipt markerに使い、同じPRのretry/recoveryで重複コメントを作らない。同じ公開SHAに複数PRが含まれる場合も、それぞれ別のmerge commit markerで1回ずつ通知する。GitHubメールの件名はPRスレッド由来であり、この個人オーバーレイの公開API契約には含めない。
 
-このコメントはPR Conversationへの書き込みなので、DEV Publisherの最終結果jobには `issues: write` と `pull-requests: write` を明示する。権限不足でコメント生成だけ欠落しないことを契約テストで固定する。
+このコメントはPR Conversationへの書き込みなので、DEV Publisherの最終結果jobと高速DEVの `Notify fast DEV completion` jobには `issues: write` と `pull-requests: write` を明示する。`pull-requests: read` では `POST /issues/<PR>/comments` が403になり、公開自体が成功してもメール起点だけ欠落するため、両経路を契約テストで固定する。
 
 PRを特定できないpublish-only実行、PR作者が `charukun` でない場合、対象Repositoryでない場合は個人メール通知を作成しない。GitHubのDEV delivery statusだけを残す。receipt生成成否はGitHub statusで観測可能にするが、通知はadvisoryでありDEV公開成否を失敗へ変えない。
 
