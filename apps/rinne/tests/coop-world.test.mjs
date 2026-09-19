@@ -30,9 +30,7 @@ test('30 players share one enemy HP and one timer advancement',()=>{
   const states=Array.from({length:30},(_,i)=>adult(`p${String(i).padStart(2,'0')}`,i*.001));
   const front=createFront();front.enemies.forEach((enemy,i)=>{enemy.x=i===0?.8:6;enemy.z=i===0?0:-5;enemy.cooldown=10;});
   tickSharedFront(states,front,.05);
-  assert.equal(front.enemies[1].cooldown,9.95,'enemy clock advances once for the shared tick');
-  for(let tick=0;tick<600&&!front.enemies[0].dead;tick++)tickSharedFront(states,front,.05);
-  assert.equal(front.enemies[0].hp,0,'shared damage eventually resolves the focused enemy');
+  assert.equal(front.enemies[1].cooldown,9.95);assert.equal(front.enemies[0].hp,0);
   assert.equal(states.reduce((n,s)=>n+s.defeats,0),1,'one shared enemy grants one defeat');
   const one=createFront(),two=structuredClone(one),left=states.map(s=>adult(s.id)),right=left.map(s=>structuredClone(s));
   for(let tick=0;tick<50;tick++){tickSharedFront(left,one,.05);tickSharedFront([...right].reverse(),two,.05);}
