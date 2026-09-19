@@ -28,6 +28,7 @@ For Visual Review surfaces, primary subject/variant selection should use one con
 - show the current choice in one dedicated selected-value slot; when a preview stage already has a suitable corner overlay, that overlay should serve as the slot instead of duplicating the same selection below;
 - keep the candidate list visible rather than hiding it behind a modal, drawer or dropdown;
 - render candidates as a five-column grid on both desktop and narrow mobile review layouts;
+- five columns are a Visual Review invariant, not a desktop preference: responsive CSS must not reduce candidate-list columns at narrower breakpoints. Filters, camera/action controls, tab rows and other non-candidate controls are outside this rule. A specialist may deviate only when an explicit product requirement says so;
 - selecting a candidate updates the selected-value slot and the inspected subject immediately;
 - keep the selected candidate visually obvious in the grid;
 - reserve compact selects/dropdowns for secondary settings such as playback speed, quality tier, or other scalar/technical controls rather than the primary reviewed subject.
