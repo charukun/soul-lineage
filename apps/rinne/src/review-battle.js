@@ -30,12 +30,7 @@ enemySelect.addEventListener('change',()=>{void ensureBattleStage().then(stage=>
 const memory=new Map();
 const storage={getItem:key=>memory.has(key)?memory.get(key):null,setItem:(key,value)=>memory.set(key,String(value))};
 const loopEnabled=true,followCamera=true;
-let host=null,playing=true,last=performance.now(),lastCore=null,finishedAt=0,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks={hero:'',enemy:''};
-
-function setPressed(button,pressed,label){
-  button.setAttribute('aria-pressed',String(pressed));
-  button.textContent=`${label} ${pressed?'ON':'OFF'}`;
-}
+let encounterMode='duel',host=null,playing=true,last=performance.now(),lastCore=null,finishedAt=0,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks={hero:'',enemy:''};
 
 function syncSoundButton(){
   if(!soundButton)return;
@@ -52,7 +47,7 @@ function resetBattle({preservePlaying=false}={}){
   host.join('human',{type:'join',app:'rinne',role:'human',playerId:'review-human',name:'Human'});
   host.input('demon',{type:'state',x:-1.2,z:0,yaw:Math.PI/2,state:'combat',action:null});
   host.input('human',{type:'state',x:1.2,z:0,yaw:-Math.PI/2,state:'combat',action:null});
-  host.tick(1/60);lastCore=host.battle?.core?.state?.()||null;playing=resume;q('battle-toggle').textContent=playing?'一時停止':'再開';last=performance.now();
+  host.tick(1/60);lastCore=host.battle?.core?.state?.()||null;playing=resume;last=performance.now();
 }
 
 function renderPhase(core){
@@ -82,7 +77,7 @@ function syncBattle(dt){
   q('enemy-meta').textContent=`${Math.ceil(Number(core.enemy.hp)||0)} / ${enemyMax} HP`;
   q('battle-time').textContent=`${(battle?.time||0).toFixed(1)}秒`;
   q('battle-result').textContent=battle?.finished?`${battle.winner==='demon'?'LEFT':'RIGHT'} 勝利`:'戦闘中';
-  syncBattleAudio(core);renderPhase(core);battleStage?.sync(core,dt,{followCamera});
+  syncBattleAudio(core);renderPhase(core);battleStage?.sync(core,dt,{followCamera,encounterMode});
 }
 
 function advanceBattle(dt){
@@ -102,9 +97,9 @@ function frame(now){
 }
 
 q('battle-restart').addEventListener('click',()=>resetBattle());
-q('battle-toggle').addEventListener('click',()=>{playing=!playing;q('battle-toggle').textContent=playing?'一時停止':'再開';last=performance.now();});
+for(const button of document.querySelectorAll('[data-battle-mode]'))button.addEventListener('click',()=>{encounterMode=button.dataset.battleMode==='melee'?'melee':'duel';for(const item of document.querySelectorAll('[data-battle-mode]'))item.setAttribute('aria-pressed',String(item===button));battleStage?.setEncounterMode?.(encounterMode);resetBattle();});
 soundButton?.addEventListener('click',event=>{event.stopPropagation();battleSfx.toggle();syncSoundButton();});
 window.addEventListener('pagehide',()=>{battleStage?.dispose();battleSfx.dispose();},{once:true});
 
-setPressed(q('battle-loop'),loopEnabled,'ループ');setPressed(q('battle-camera'),followCamera,'追従');syncSoundButton();
+syncSoundButton();
 resetBattle();void ensureBattleStage();requestAnimationFrame(frame);
