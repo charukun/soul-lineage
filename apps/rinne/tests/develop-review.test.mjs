@@ -7,15 +7,19 @@ import {fileURLToPath} from 'node:url';
 const appRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const read=path=>readFile(resolve(appRoot,path),'utf8');
 
-test('Visual Review launcher is only five direct destinations',async()=>{
-  const html=await read('review.html');
-  for(const [target,href] of [['characters','./characters.html?review=character'],['motion','./review-motion.html'],['assets','./review-assets.html'],['effects','./review-effects.html'],['battle','./review-battle.html']]){
-    assert.match(html,new RegExp(`data-review-target="${target}"[^>]*href="${href.replace(/[.?]/g,'\\$&')}"`));
-  }
-  assert.equal((html.match(/data-review-target=/g)||[]).length,5);
-  assert.doesNotMatch(html,/<iframe\b/);
-  assert.doesNotMatch(html,/develop-review\.js/);
-  assert.doesNotMatch(html,/focus-shell|app-context|対象・正本/);
+test('legacy RINNE review entry bridges to the independent Visual Review Lab',async()=>{
+  const [bridge,lab,routes]=await Promise.all([read('review.html'),read('../review/index.html'),read('../review/src/main.js')]);
+  assert.match(bridge,/data-review-bridge/);
+  assert.match(bridge,/soul-lineage-review-dev\.c-okamoto\.workers\.dev/);
+  assert.doesNotMatch(bridge,/data-review-target=/);
+  assert.doesNotMatch(bridge,/<iframe\b/);
+  assert.match(lab,/data-dev-tool="visual-review"/);
+  for(const target of ['characters','motion','assets','effects','battle'])assert.match(lab,new RegExp(`data-route="${target}"`));
+  assert.match(routes,/characters:route\(DEV\.rinne,'characters\.html\?review=character'\)/);
+  assert.match(routes,/motion:route\(DEV\.rinne,'review-motion\.html'\)/);
+  assert.match(routes,/assets:route\(DEV\.rinne,'review-assets\.html'\)/);
+  assert.match(routes,/effects:route\(DEV\.rinne,'review-effects\.html'\)/);
+  assert.match(routes,/battle:route\(DEV\.rinne,'review-battle\.html'\)/);
 });
 
 test('motion review uses the pinned KayKit GLB clips with real mixer controls',async()=>{
@@ -72,8 +76,11 @@ test('RINNE build includes launcher, VFX and battle review entries',async()=>{
 });
 
 
-test('Review preloader never serves cached navigation documents',async()=>{
-  const sw=await read('public/review-preload-sw.js');
-  assert.match(sw,/fetch\(routeUrl, \{cache: 'no-store', credentials: 'same-origin'\}\)/);
-  assert.doesNotMatch(sw,/const documentPayload = await fetchPayload\(routeUrl\)/);
+test('independent Visual Review Lab links directly to live DEV probes without an embedded shell',async()=>{
+  const [lab,routes]=await Promise.all([read('../review/index.html'),read('../review/src/main.js')]);
+  assert.doesNotMatch(lab,/<iframe\b/);
+  assert.doesNotMatch(routes,/serviceWorker|review-preload-sw/);
+  assert.match(routes,/const ROUTES=Object\.freeze/);
+  assert.match(routes,/link\.href=href/);
+  assert.match(routes,/link\.rel='noopener'/);
 });

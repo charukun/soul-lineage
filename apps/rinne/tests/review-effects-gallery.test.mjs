@@ -18,7 +18,8 @@ test('VFX review is catalog-first while keeping one real preview stage',()=>{
   assert.match(html,/data-filter="combo"/);
   assert.equal((html.match(/<canvas\b/g)||[]).length,1);
   assert.equal((js.match(/new THREE\.WebGLRenderer/g)||[]).length,1);
-  assert.match(js,/const REVIEW_CATALOG=Object\.freeze/);
+  assert.match(js,/import \{REVIEW_EFFECT_CATALOG,REVIEW_EFFECT_CATEGORIES,REVIEW_REAL_EFFECT_COUNT\} from '\.\/review-effect-catalog\.js'/);
+  assert.match(js,/const catalogById=new Map\(REVIEW_EFFECT_CATALOG\.map/);
   assert.match(js,/replaceChildren\(\.\.\.visible\.map\(cardFor\)\)/);
   assert.match(js,/button\.addEventListener\('click',\(\)=>trigger\(entry\.id\)\)/);
   assert.match(html,/class="stage-selection-slot"/);
@@ -57,7 +58,7 @@ test('VFX discovery tools stay available but hide while the catalog is trivially
   assert.match(js,/fx-search/);
   assert.match(js,/activeFilter/);
   assert.match(js,/haystack\.includes\(needle\)/);
-  assert.match(js,/CATEGORY_LABELS/);
+  assert.match(js,/REVIEW_EFFECT_CATEGORIES\[entry\.category\]/);
   assert.doesNotMatch(html,/import|download|remote|URL/i);
   assert.doesNotMatch(js,/fetch\(/);
 });
