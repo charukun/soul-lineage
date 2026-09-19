@@ -9,13 +9,16 @@ export class World {
     this.canvas=canvas;this.settings=settings;this.assets=assets;this.scene=new THREE.Scene();
     this.scene.background=new THREE.Color('#101f24');this.scene.fog=new THREE.FogExp2('#11282b',.022);
     this.renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
+    const gl=this.renderer.getContext(),debug=gl.getExtension('WEBGL_debug_renderer_info');
+    this.software=debug?/swiftshader|llvmpipe|software/i.test(gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)):false;
+    this.renderer.info.autoReset=false;this.lastRender=0;
     this.renderer.setClearColor('#101f24');this.renderer.outputColorSpace=THREE.SRGBColorSpace;
     this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.12;
     this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
     this.camera=new THREE.OrthographicCamera(-20,20,12,-12,.1,120);this.camera.position.set(13,25,22);this.focus=new THREE.Vector3(0,0,0);this.camera.lookAt(this.focus);
     this.scene.add(new THREE.HemisphereLight('#aac4d0','#314345',2.5));
     const sun=new THREE.DirectionalLight('#ffe0ac',4.1);sun.position.set(-13,22,-8);sun.castShadow=true;
-    sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-25;sun.shadow.camera.right=25;sun.shadow.camera.top=24;sun.shadow.camera.bottom=-24;sun.shadow.camera.far=65;sun.shadow.bias=-.0003;sun.shadow.normalBias=.025;
+    sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-25;sun.shadow.camera.right=25;sun.shadow.camera.top=24;sun.shadow.camera.bottom=-24;sun.shadow.camera.far=65;sun.shadow.bias=-.0003;sun.shadow.normalBias=.025;
     this.scene.add(sun);this.sun=sun;
     const rim=new THREE.DirectionalLight('#4b9aad',2.1);rim.position.set(8,7,15);this.scene.add(rim);
     this.heroLight=new THREE.PointLight('#ffe3ae',11,8,2);this.heroLight.position.set(0,3,0);this.scene.add(this.heroLight);
@@ -52,8 +55,8 @@ export class World {
     }
     for(const [x,z]of [[-11,8.5],[12,-8],[-13,-8],[14,9]]){add('barrel_large',x,z,rng()*6,1);add('crates_stacked',x+.8,z+.6,rng()*6,.8);}
     for(const [x,z]of [[-10,-8],[10,-8],[-11,4],[11,4],[0,-13]]){
-      add('torch_lit',x,z,0,1.5,.6);
-      const light=new THREE.PointLight('#ffb65f',22,9,2);light.position.set(x,1.8,z);this.scene.add(light);this.lamps.push(light);this.firePositions.push({x,y:1.8,z});
+      add('torch_lit',x,z,0,1.5,.6);this.firePositions.push({x,y:1.8,z});
+      if(x===-10||x===11){const light=new THREE.PointLight('#ffb65f',22,9,2);light.position.set(x,1.8,z);this.scene.add(light);this.lamps.push(light);}
     }
     for(const [id,matrices]of batches){
       const source=this.assets.model(id).scene;source.updateMatrixWorld(true);
@@ -71,12 +74,12 @@ export class World {
   setQuality(value){this.settings.quality=value;this.resize();}
   resize(){
     const w=innerWidth,h=innerHeight;this.mobile=w<700||matchMedia('(pointer:coarse)').matches;
-    this.low=this.settings.quality==='low'||(this.settings.quality==='auto'&&this.mobile);
-    const dpr=Math.min(devicePixelRatio||1,this.low?1.15:1.7);
+    this.low=this.settings.quality==='low'||(this.settings.quality==='auto'&&(this.mobile||this.software));
+    const dpr=Math.min(devicePixelRatio||1,this.software?.75:this.low?1.15:1.5);
     this.renderer.setPixelRatio(dpr);this.renderer.setSize(w,h,false);this.composer.setPixelRatio(dpr);this.composer.setSize(w,h);
     const viewH=w/h<.8?34:w/h<1.2?29:23;
     this.camera.left=-viewH*w/h/2;this.camera.right=viewH*w/h/2;this.camera.top=viewH/2;this.camera.bottom=-viewH/2;this.camera.updateProjectionMatrix();
-    this.sun.shadow.mapSize.set(this.low?1024:2048,this.low?1024:2048);
+    this.sun.shadow.mapSize.set(this.software?512:this.low?1024:2048,this.software?512:this.low?1024:2048);
     if(this.sun.shadow.map){this.sun.shadow.map.dispose();this.sun.shadow.map=null;}
     this.bloom.enabled=!this.low;
   }
@@ -95,5 +98,5 @@ export class World {
     this.flashLight.intensity*=Math.exp(-dt*12);
     for(let i=0;i<this.lamps.length;i++)this.lamps[i].intensity=19+Math.sin(this.elapsed*5+i*7)*2+Math.sin(this.elapsed*8.1+i)*1.3;
   }
-  render(){if(this.low)this.renderer.render(this.scene,this.camera);else this.composer.render();}
+  render(){const now=performance.now();if(this.software&&now-this.lastRender<80)return;this.lastRender=now;this.renderer.info.reset();if(this.low)this.renderer.render(this.scene,this.camera);else this.composer.render();}
 }
