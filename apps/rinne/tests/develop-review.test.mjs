@@ -50,8 +50,8 @@ test('motion review uses the pinned KayKit GLB clips with real mixer controls',a
   assert.match(html,/motion-library-primary/);
   assert.ok(html.indexOf('motion-library-primary')<html.indexOf('motion-playback'));
   assert.ok(html.indexOf('motion-library-primary')<html.indexOf('motion-camera-block'));
-  assert.match(css,/\.motion-grid\{[^}]*grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
-  assert.match(css,/@media\(max-width:620px\)[\s\S]*?\.motion-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(css,/\.motion-grid\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(css,/@media[\s\S]*?\.motion-grid\{[^}]*grid-template-columns/);
   assert.match(js,/new THREE\.AnimationMixer/);assert.match(js,/KAYKIT_MODELS/);assert.match(js,/buildMotionReviewCatalog/);
   assert.match(js,/1\/60/);assert.match(js,/LoopRepeat/);assert.match(js,/dataset\.motionSource='source-registry'/);
   assert.doesNotMatch(js,/status\(formatName\(record\.name\)\+' · '\+categoryLabel\(record\.category\)\)/);
