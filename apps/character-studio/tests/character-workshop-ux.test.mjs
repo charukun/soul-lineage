@@ -132,8 +132,8 @@ test('character model review exposes review axes and preserves the full selectab
   assert.match(characterGridCss, /load-indicator\[data-state="error"\]\{display:none!important\}/);
   assert.match(entry, /自動生成/);
   assert.match(characterGrid, /new Option\(option\.label, option\.key/);
-  assert.match(characterGridCss, /grid-template-rows:minmax\(420px,58dvh\) minmax\(0,42dvh\)/);
-  assert.match(characterGridCss, /min-height:300px!important/);
+  assert.match(characterGridCss, /review-surface__workspace\{[\s\S]*grid-template-rows:minmax\(0,58%\) minmax\(0,42%\)!important/);
+  assert.match(characterGridCss, /stage-shell\.review-surface__stage-column--composite\{[\s\S]*grid-template-rows:minmax\(0,1fr\)!important/);
   assert.match(characterGridCss, /grid-template-columns:1fr!important/);
   assert.match(characterGrid, /fitAfterLayout/);
   assert.match(reviewSource, /document\.body\.dataset\.reviewMode === 'character'\) aim\('front'\)/);
