@@ -4,12 +4,14 @@ export const PULSE_ROLE = Object.freeze({
   HUMAN_ACTION: 'human-action',
   DEVELOPMENT: 'development',
   DEV_PUBLICATION: 'dev-publication',
+  RECENT: 'recent',
 });
 
 export const PULSE_FIRST_GLANCE = Object.freeze([
-  PULSE_ROLE.HUMAN_ACTION,
   PULSE_ROLE.DEVELOPMENT,
   PULSE_ROLE.DEV_PUBLICATION,
+  PULSE_ROLE.HUMAN_ACTION,
+  PULSE_ROLE.RECENT,
 ]);
 
 export const PULSE_CONTROL_STATE = Object.freeze({

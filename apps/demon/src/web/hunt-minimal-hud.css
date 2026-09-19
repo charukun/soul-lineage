@@ -95,29 +95,32 @@ body.hunt-loop .hunt-return-copy{display:inline-flex;align-items:baseline;gap:10
 body.hunt-loop .hunt-return-copy strong{font-weight:600;color:#d67261;font-variant-numeric:tabular-nums}
 
 body.hunt-loop #hud #battle{
-  left:auto!important;right:max(12px,env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom))!important;
-  width:min(286px,72vw)!important;padding:10px 12px 9px 22px;text-align:right!important;
-  background:linear-gradient(90deg,transparent,rgba(12,10,9,.82) 24%,rgba(12,10,9,.92));
-  clip-path:polygon(9% 0,100% 0,100% 91%,93% 100%,3% 94%,0 18%);
-  filter:drop-shadow(0 5px 12px rgba(0,0,0,.24));pointer-events:none;
+  left:0!important;right:0!important;bottom:calc(165px + env(safe-area-inset-bottom))!important;
+  width:100%!important;padding:0!important;text-align:center!important;
+  background:none!important;clip-path:none!important;filter:none!important;pointer-events:none;
 }
-body.hunt-loop #hud .enemy-readout{display:grid;grid-template-columns:auto minmax(80px,126px);justify-content:end;align-items:center;gap:9px}
-body.hunt-loop #hud #enemy-name{font-size:11px!important;line-height:1.2;color:var(--ink-hud-bone);opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-body.hunt-loop #hud #enemy-health-track{
-  display:block;width:100%;height:5px;background:rgba(238,229,210,.2);
-  clip-path:polygon(0 15%,96% 0,100% 48%,96% 100%,3% 86%);
+body.hunt-loop #hud #enemy-name{
+  display:block;min-height:17px;margin-top:8px;font-size:10px!important;line-height:1.2;
+  letter-spacing:.16em;color:#d4c8ae;opacity:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  text-shadow:0 2px 8px #000;
 }
-body.hunt-loop #hud #enemy-health-fill{display:block;width:0;height:100%;background:linear-gradient(90deg,#6f1717,#b43a31);transition:width .12s linear}
-body.hunt-loop #hud .phases{justify-content:flex-end!important;margin-top:7px}
-body.hunt-loop #hud .phases span{color:#968b7b!important;font-size:14px!important}
-body.hunt-loop #hud .phases span.active{color:#f1e5ce!important;text-shadow:0 0 8px rgba(177,77,56,.6)!important}
-body.hunt-loop #hud .phases i{color:#7e7266!important}
-body.hunt-loop #combat-action-flow{place-items:end!important;text-align:right!important;margin-top:5px!important}
-body.hunt-loop .combat-action-current{color:#eadfc9!important;max-width:min(62vw,250px)!important}
-body.hunt-loop .combat-action-history{left:auto!important;right:0!important;transform:none!important;width:min(62vw,250px)!important}
-body.hunt-loop .combat-action-history span{left:auto!important;right:0!important;transform:none!important}
-body.hunt-loop .combat-action-history-exit{animation-name:ink-hud-action-exit!important}
-@keyframes ink-hud-action-exit{0%{opacity:.7;transform:none}75%{opacity:.24}100%{opacity:0;transform:translateY(52px)}}
+body.hunt-loop #hud .phases{justify-content:center!important;margin-top:0!important}
+body.hunt-loop #hud .phases span{
+  min-width:0!important;min-height:0!important;margin:0 4px!important;display:block!important;
+  color:#78857c!important;font:400 16px/1.1 "Yu Mincho","Hiragino Mincho ProN","Noto Serif CJK JP",serif!important;
+  letter-spacing:normal!important;text-shadow:0 2px 8px #000!important;
+}
+body.hunt-loop #hud .phases span.active{
+  color:#ffe5b3!important;text-shadow:0 0 9px #b48856,0 0 16px #b4885688!important;
+}
+body.hunt-loop #hud .phases i{color:#6e7770!important}
+body.hunt-loop #combat-action-flow{place-items:center!important;text-align:center!important;margin-top:7px!important}
+body.hunt-loop .combat-action-current{color:#e6dcc2!important;max-width:min(78vw,360px)!important}
+body.hunt-loop .combat-action-history{
+  left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:min(80vw,360px)!important;
+}
+body.hunt-loop .combat-action-history span{left:50%!important;right:auto!important;transform:translateX(-50%)!important}
+body.hunt-loop .combat-action-history-exit{animation-name:combat-action-history-exit!important}
 
 body.hunt-loop #hud #swipe-hint{
   display:block!important;left:max(8px,env(safe-area-inset-left))!important;right:auto!important;
@@ -136,7 +139,6 @@ body.hunt-loop #hud #toast{
   body.hunt-loop #hud .life::before{font-size:15px}
   body.hunt-loop #hud #objective{left:53%;width:min(178px,49vw)!important}
   body.hunt-loop .hunt-bag{gap:7px!important;font-size:10px!important}
-  body.hunt-loop #hud #battle{width:min(258px,74vw)!important}
 }
 @media(max-height:650px) and (orientation:landscape){
   body.hunt-loop #hud::before{height:calc(58px + env(safe-area-inset-top))}
@@ -144,9 +146,8 @@ body.hunt-loop #hud #toast{
   body.hunt-loop #hud #objective{top:calc(10px + env(safe-area-inset-top))}
   body.hunt-loop #hud #pause{top:calc(5px + env(safe-area-inset-top))}
   body.hunt-loop #hud #return-hint{top:calc(62px + env(safe-area-inset-top))}
-  body.hunt-loop #hud #battle{bottom:calc(8px + env(safe-area-inset-bottom))!important}
+  body.hunt-loop #hud #battle{bottom:calc(143px + env(safe-area-inset-bottom))!important}
 }
 @media(prefers-reduced-motion:reduce){
-  body.hunt-loop #hud #enemy-health-fill{transition:none}
   body.hunt-loop .combat-action-history-exit{animation:none!important;opacity:.22}
 }
