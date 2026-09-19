@@ -3491,6 +3491,18 @@ drawCombatEffects=function(out,shadows,opaque){combatFX10(out,shadows,opaque);fo
 for (const k of Object.keys(audio)) if(typeof audio[k]==='function') audio[k]=()=>null;
 prefs.sound=false;prefs.quality=0;showFX=false;world={colliders:[]};
 renderLog=()=>{};updateLiveUI=()=>{};syncPause=()=>{};floating=()=>{};
+Object.assign(WEAPONS,{
+ dagger:{label:'短剣',mesh:'sword',tip:1.08,base:.14,width:.065,power:.84,speed:1.18,ideal:1.02,two:false},
+ staff:{label:'杖',mesh:'spear',tip:1.82,base:.38,width:.075,power:.92,speed:.98,ideal:1.62,two:true}
+});
+const physicalContactFacade=physicalContact;
+physicalContact=function(a,q,body,sm){
+ if((a.weapon==='dagger'||a.weapon==='staff')&&q.kind==='pommel'){
+  const back=a.weapon==='dagger'?-.19:-.56;
+  return{a:tp(sm,[0,back+.18,0]),b:tp(sm,[0,back-.035,0]),radius:.135};
+ }
+ return physicalContactFacade(a,q,body,sm);
+};
 
 let facadeImpactSerial=0,facadeLastImpact=null,facadeStepImpacts=[],facadeSlowRemaining=0,facadeSlowScale=1,facadeImpactContext=null,facadeHeroPassive=false;
 const facadeOpponentModes=new Set(['duel','guard','evade','group','dummy']);
