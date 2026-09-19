@@ -40,7 +40,7 @@ test('INFO parser reads reviewed v1500/v1610 layouts and complete dependency clo
 });
 test('unsafe paths, unknown versions and truncation cannot pass as authored data',()=>{
   for(const value of ['../escape.png','/tmp/x.png','https:asset.png','Texture\\bad.png'])assert.throws(()=>effectDependencies(effectFixture([value])));
-  assert.throws(()=>effectDependencies(effectFixture([],1600)),/Unreviewed/);
+  assert.throws(()=>effectDependencies(effectFixture([],1700)),/Unreviewed/);
   const bytes=effectFixture(['Texture/SwordLine01.png']);assert.throws(()=>effectDependencies(bytes.subarray(0,-1)),/Truncated/);
   assert.throws(()=>effectDependencies(Buffer.from('not an effect')),/Not an EFKE/);
 });
