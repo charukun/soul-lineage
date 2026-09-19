@@ -18,6 +18,16 @@ function sourceLabel(source) {
   return (copy.textContent || '').trim() || source.getAttribute('aria-label') || '未選択';
 }
 
+function optionMark(group, option) {
+  if (option.swatch) return '';
+  if (group.id === 'age') return option.label.match(/\d+/)?.[0] || group.glyph;
+  if (group.id === 'individual') return option.label.match(/\d+/)?.[0] || group.glyph;
+  if (['model','part','variant'].includes(group.id)) {
+    return [...option.label.replace(/\s+/g, '')][0] || group.glyph;
+  }
+  return group.glyph;
+}
+
 // The original controls remain the only writers of workshop state.
 export function readCharacterReviewGroups(doc, ready) {
   return GROUPS.map(([id, label, selector, glyph]) => {
@@ -89,7 +99,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   });
   const actionNodes = ['original-preview', 'random-one', 'undo', 'redo'].map(id => {
     const source = doc.getElementById(id); if (!source) return null;
-    const button = make('button', 'character-review-action'); button.type = 'button';
+    const button = make('button', 'character-review-action'); button.type = 'button'; button.dataset.reviewAction = id;
     button.addEventListener('click', () => { if (!source.matches(':disabled')) source.click(); schedule(); });
     tools.append(button); return { source, button, id };
   }).filter(Boolean);
@@ -109,7 +119,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
       const button = make('button', 'character-review-option'); button.type = 'button'; button.dataset.optionKey = option.key;
       button.disabled = option.disabled; button.title = option.fullLabel; button.setAttribute('aria-label', option.fullLabel);
       button.setAttribute('aria-pressed', String(option.selected));
-      const mark = make('span', 'character-review-mark', option.swatch ? '' : group.glyph); mark.setAttribute('aria-hidden', 'true');
+      const mark = make('span', 'character-review-mark', optionMark(group, option)); mark.setAttribute('aria-hidden', 'true');
       if (option.swatch) { mark.classList.add('is-swatch'); mark.style.backgroundColor = option.swatch; }
       const name = make('span', 'character-review-option-label', option.label); button.append(mark, name);
       button.addEventListener('click', () => choose(group, option)); return button;
@@ -142,7 +152,11 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     for (const { source, button, id } of actionNodes) {
       button.disabled = !ready || source.matches(':disabled');
       const comparing = source.getAttribute('aria-pressed') === 'true';
-      text(button, id === 'original-preview' ? comparing ? '編集に戻す' : '元と比較' : id === 'random-one' ? '組み替え' : source.textContent);
+      text(button, id === 'original-preview' ? comparing ? '編集に戻す' : '元と比較'
+        : id === 'random-one' ? '組み替え'
+          : id === 'undo' ? '↶ 戻す'
+            : id === 'redo' ? '↷ やり直す'
+              : source.textContent);
       if (id === 'original-preview') attr(button, 'aria-pressed', comparing);
     }
     for (const button of cameraButtons) attr(button, 'aria-pressed', button.dataset.camera === state.camera);
