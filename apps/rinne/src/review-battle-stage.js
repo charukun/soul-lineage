@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import {KAYKIT_MODELS,YEAR_MS,appearanceForCharacter,createCharacter} from '@soul/characters';
 import {GLTFLoader} from '@soul/rendering';
 import {createKaykitCharacterPools} from './rebuild/kaykit-character-pool.js';
+import {createProtagonistCharacterPool} from './rebuild/protagonist-character-pool.js';
+import {RINNE_PROTAGONIST_MODEL_ID} from './rebuild/protagonist-runtime-asset.js';
 import {applyTidebreakPose,tidebreakFrameFromSnapshot} from './rebuild/tidebreak-pose.js';
 import {reviewBattleCameraFrame,reviewBattlePresentationFrame} from './review-battle-state.js';
 import {hideEmbeddedCombatProps,reviewBattleEquipmentFor} from './review-battle-equipment.js';
@@ -79,15 +81,16 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   const contact=new THREE.Mesh(new THREE.RingGeometry(.7,.73,64),new THREE.MeshBasicMaterial({color:0x53615c,transparent:true,opacity:.38,side:THREE.DoubleSide}));
   contact.rotation.x=-Math.PI/2;contact.position.y=.012;stageRoot.add(contact);
 
-  const [runtime,equipmentAssets]=await Promise.all([
+  const [runtime,protagonistRuntime,equipmentAssets]=await Promise.all([
     createKaykitCharacterPools(renderer,{onProgress:snapshot=>{
       if(snapshot?.state==='loading')onStatus(`モデル準備中 · ${modelLabel(snapshot.modelId)}`);
     }}),
+    createProtagonistCharacterPool(renderer),
     loadReviewEquipment()
   ]);
-  const pool=runtime.pool;
+  const pool=runtime.pool,heroPool=protagonistRuntime.pool;
   const sides={
-    hero:{key:'hero',actorId:'review-battle-hero',requested:'kaykit.rogue.v1',actor:null,appearance:appearanceForCharacter(reviewerCharacter('review-battle-hero',0x51f15e)),previous:null,presentation:null,hp:null,hitUntil:0,marker:ring(0xd9b45b)},
+    hero:{key:'hero',actorId:'review-battle-hero',requested:RINNE_PROTAGONIST_MODEL_ID,actor:null,appearance:appearanceForCharacter(reviewerCharacter('review-battle-hero',0x51f15e)),previous:null,presentation:null,hp:null,hitUntil:0,marker:ring(0xd9b45b)},
     enemy:{key:'enemy',actorId:'review-battle-enemy',requested:'kaykit.knight.v1',actor:null,appearance:appearanceForCharacter(reviewerCharacter('review-battle-enemy',0x91cafe)),previous:null,presentation:null,hp:null,hitUntil:0,marker:ring(0x82aeb6)}
   };
   let encounterMode='duel',extras=[];
@@ -95,12 +98,19 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
 
   function install(sideKey,modelId){
     const side=sides[sideKey];
-    if(!side||!REVIEW_BATTLE_MODELS.some(row=>row.id===modelId))throw Error(`Unknown review battle model: ${modelId}`);
-    if(side.actor)pool.despawn(side.actorId);
-    side.requested=modelId;runtime.manifestation.focusModel(modelId,320);
-    side.actor=pool.spawn(side.actorId,modelId);
+    if(!side)throw Error(`Unknown review battle side: ${sideKey}`);
+    if(sideKey==='hero'){
+      if(side.actor)heroPool.despawn(side.actorId);
+      side.requested=RINNE_PROTAGONIST_MODEL_ID;
+      side.actor=heroPool.spawn(side.actorId);
+    }else{
+      if(!REVIEW_BATTLE_MODELS.some(row=>row.id===modelId))throw Error(`Unknown review battle model: ${modelId}`);
+      if(side.actor)pool.despawn(side.actorId);
+      side.requested=modelId;runtime.manifestation.focusModel(modelId,320);
+      side.actor=pool.spawn(side.actorId,modelId);
+    }
     side.actor.root.name=`ReviewBattle:${sideKey}`;side.actor.attachments.name=`ReviewBattleAttachments:${sideKey}`;
-    installReviewEquipment(side.actor,modelId,equipmentAssets);
+    if(sideKey!=='hero')installReviewEquipment(side.actor,modelId,equipmentAssets);
     stageRoot.add(side.actor.root,side.actor.attachments);side.previous=null;side.presentation=null;side.hp=null;
     canvas.dataset[`${sideKey}RequestedModel`]=modelId;
     if(encounterMode==='melee')queueMicrotask(rebuildExtras);
@@ -116,9 +126,9 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     if(encounterMode!=='melee')return;
     const specs=[['hero',0,-1.55,1.25,0x13579bdf],['hero',1,-1.65,-1.2,0x2468ace0],['enemy',0,1.55,1.25,0x10293847],['enemy',1,1.65,-1.2,0x56473829]];
     for(const [sideKey,index,offsetX,offsetZ,seed] of specs){
-      const base=sides[sideKey],actorId=`review-battle-${sideKey}-extra-${index}`,actor=pool.spawn(actorId,base.requested);
+      const base=sides[sideKey],actorId=`review-battle-${sideKey}-extra-${index}`,extraModel=sideKey==='hero'?'kaykit.rogue.v1':base.requested,actor=pool.spawn(actorId,extraModel);
       actor.root.name=`ReviewBattleExtra:${sideKey}:${index}`;actor.attachments.name=`ReviewBattleExtraAttachments:${sideKey}:${index}`;
-      installReviewEquipment(actor,base.requested,equipmentAssets);stageRoot.add(actor.root,actor.attachments);
+      installReviewEquipment(actor,extraModel,equipmentAssets);stageRoot.add(actor.root,actor.attachments);
       extras.push({sideKey,index,actorId,actor,offsetX,offsetZ,appearance:appearanceForCharacter(reviewerCharacter(actorId,seed))});
     }
   }
@@ -182,21 +192,21 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     const heroActual=sides.hero.actor?.root?.userData?.characterModel||'';
     const enemyActual=sides.enemy.actor?.root?.userData?.characterModel||'';
     canvas.dataset.heroModel=heroActual;canvas.dataset.enemyModel=enemyActual;
-    const ready=heroActual===sides.hero.requested&&enemyActual===sides.enemy.requested;
+    const ready=heroActual===RINNE_PROTAGONIST_MODEL_ID&&enemyActual===sides.enemy.requested;
     canvas.dataset.battleModels=ready?'ready':'loading';canvas.dataset.battleGeometry='runtime-models';
     const modeLabel=encounterMode==='melee'?'乱戦 3v3':'タイマン';
-    const status=ready?`${modeLabel} · ${modelLabel(heroActual)} × ${modelLabel(enemyActual)}`:`モデル読込中 · ${modelLabel(sides.hero.requested)} × ${modelLabel(sides.enemy.requested)}`;
+    const status=ready?`${modeLabel} · 主人公 × ${modelLabel(enemyActual)}`:`モデル読込中 · 主人公 × ${modelLabel(sides.enemy.requested)}`;
     if(status!==lastStatus){lastStatus=status;onStatus(status);}
     renderer.render(scene,camera);
   }
 
   return Object.freeze({
     models:REVIEW_BATTLE_MODELS,
-    setModel(side,modelId){install(side,modelId);},
+    setModel(side,modelId){if(side==='hero')return;install(side,modelId);},
     setEncounterMode,
     resetRound(){for(const side of Object.values(sides)){side.previous=null;side.presentation=null;side.hp=null;side.hitUntil=0;}},
     sync,
     snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on',encounterMode});},
-    dispose(){observer.disconnect();clearExtras();for(const side of Object.values(sides))if(side.actor)pool.despawn(side.actorId);runtime.dispose();ground.geometry.dispose();ground.material.dispose();contact.geometry.dispose();contact.material.dispose();for(const side of Object.values(sides)){side.marker.geometry.dispose();side.marker.material.dispose();}for(const source of equipmentAssets.values()){source.traverse(node=>{node.geometry?.dispose?.();const mats=Array.isArray(node.material)?node.material:[node.material];for(const mat of mats.filter(Boolean)){mat.map?.dispose?.();mat.dispose?.();}});}renderer.dispose();}
+    dispose(){observer.disconnect();clearExtras();if(sides.hero.actor)heroPool.despawn(sides.hero.actorId);if(sides.enemy.actor)pool.despawn(sides.enemy.actorId);protagonistRuntime.dispose();runtime.dispose();ground.geometry.dispose();ground.material.dispose();contact.geometry.dispose();contact.material.dispose();for(const side of Object.values(sides)){side.marker.geometry.dispose();side.marker.material.dispose();}for(const source of equipmentAssets.values()){source.traverse(node=>{node.geometry?.dispose?.();const mats=Array.isArray(node.material)?node.material:[node.material];for(const mat of mats.filter(Boolean)){mat.map?.dispose?.();mat.dispose?.();}});}renderer.dispose();}
   });
 }

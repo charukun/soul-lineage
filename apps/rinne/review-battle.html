@@ -45,6 +45,10 @@
 .phase-panel[data-skin="rinne"]{top:10%!important}.battle-inspiration{top:23%!important;width:min(280px,72vw)!important;min-width:0!important;padding:7px 14px!important;border:0!important;border-left:2px solid var(--rinne-blue)!important;background:linear-gradient(90deg,rgba(6,19,33,.9),rgba(10,31,50,.72) 70%,transparent)!important}.battle-inspiration strong{font-family:var(--font-rinne-display)!important;font-size:18px!important}
 @media(max-width:680px){.review-surface__workspace{grid-template-rows:minmax(320px,1fr) auto!important}.controls{max-height:35dvh!important;overflow:auto!important;overscroll-behavior:contain!important}.phase-panel[data-skin="rinne"]{top:8%!important}.battle-inspiration{top:20%!important}}
 
+
+/* 2026-09-20 battle review cleanup: game HUD, not a web control strip. */
+.hero-model-lock{display:grid;gap:4px;padding:7px 9px;border:1px solid var(--rinne-line-soft);border-radius:9px;background:rgba(8,21,35,.72);color:var(--rinne-muted);font-size:9px}.hero-model-lock strong{color:var(--rinne-ink);font:700 12px/1.2 var(--font-rinne-display)}
+.technique-loadout{position:relative!important;display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:0!important;padding:0 14px!important;background:transparent!important}.technique-loadout::before{content:"";position:absolute;left:18%;right:18%;top:50%;height:1px;background:linear-gradient(90deg,transparent,var(--rinne-line),transparent);opacity:.7}.technique-loadout span{position:relative!important;z-index:1!important;display:grid!important;grid-template-columns:1fr!important;place-items:center!important;gap:1px!important;min-height:42px!important;padding:2px!important;border:0!important;background:transparent!important}.technique-loadout b{display:grid;place-items:center;width:31px;height:31px;border:1px solid rgba(199,161,93,.42);border-radius:50%;background:radial-gradient(circle,rgba(27,61,91,.94),rgba(6,16,29,.98));font-size:15px!important;text-shadow:0 0 9px rgba(227,199,127,.32)}.technique-loadout strong{max-width:78px;color:var(--rinne-muted)!important;font-size:8px!important;font-weight:500!important;text-align:center}.phase-panel[data-skin="rinne"]{top:9%!important;grid-template-columns:30px 18px 30px 18px 30px!important;padding:4px 9px 5px!important;border:0!important;border-radius:0!important;background:linear-gradient(90deg,transparent,rgba(6,19,33,.82) 20%,rgba(6,19,33,.82) 80%,transparent)!important;box-shadow:none!important;filter:none!important}.phase-panel[data-skin="rinne"] .phase-step{width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important;margin:0!important;border:0!important;border-radius:50%!important;clip-path:none!important;background:transparent!important;color:#776f62!important;font-size:13px!important;box-shadow:none!important}.phase-panel[data-skin="rinne"] .phase-step[data-active="true"]{background:radial-gradient(circle,rgba(227,199,127,.18),transparent 68%)!important;color:var(--rinne-gold-hi)!important;transform:scale(1.18)!important}.phase-panel[data-skin="rinne"] .phase-link{width:18px!important;flex-basis:18px!important;height:1px!important;background:currentColor!important;clip-path:none!important}.phase-panel[data-skin="rinne"] .phase-meta{grid-column:1/6!important;margin-top:2px!important;padding:0!important;background:none!important;color:var(--rinne-muted)!important;font-size:8px!important;font-weight:500!important}.phase-panel[data-skin="rinne"] .phase-history{display:none!important}.inspiration-mode{grid-template-columns:1fr 1fr!important;gap:6px!important}.inspiration-mode button{min-height:38px!important;cursor:pointer!important;touch-action:manipulation!important}.inspiration-mode button[aria-pressed="true"]{box-shadow:inset 0 0 0 1px rgba(227,199,127,.16),0 0 12px rgba(115,188,229,.08)!important}
 </style>
 </head>
 <body>
@@ -78,7 +82,7 @@
       <summary>設定 <small>モデル・人数・カメラ</small></summary>
       <div class="review-settings-body">
         <div class="pickers">
-          <label>左モデル<select id="battle-hero-model"></select></label>
+          <div class="hero-model-lock" aria-label="左モデルは主人公固定"><span>左モデル</span><strong>主人公</strong></div>
           <label>右モデル<select id="battle-enemy-model"></select></label>
         </div>
         <div class="review-modes">
@@ -92,7 +96,7 @@
     </details>
     <div id="battle-technique-loadout" class="technique-loadout" aria-label="現在の序破急セット技"><span><b>序</b><strong data-loadout-phase="jo">基本技</strong></span><span><b>破</b><strong data-loadout-phase="ha">基本技</strong></span><span><b>急</b><strong data-loadout-phase="kyu">基本技</strong></span></div>
     <div class="inspiration-mode" role="group" aria-label="閃き確認モード"><button type="button" data-inspiration-mode="normal" aria-pressed="true">通常モード</button><button type="button" data-inspiration-mode="boost" aria-pressed="false">閃きモード · 高確率</button></div>
-    <div class="actions"><button id="battle-inspire" type="button">閃きシーケンス確認</button><button id="battle-restart" type="button">組み直す</button></div>
+
   </section>
   </section>
 </main>
