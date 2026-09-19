@@ -45,14 +45,11 @@ test('all Visual Review specialist pages receive the shared navigation module',a
 
 test('shared navigation replaces legacy controls and is mobile-safe',async()=>{
   const [runtime,css]=await Promise.all([read('src/review-navigation.js'),read('src/review-navigation.css')]);
-  assert.match(runtime,/\.stage-head > \.back-link/);
-  assert.match(runtime,/\.page-head > \.back/);
-  assert.match(runtime,/Visual Reviewへ戻る/);
-  assert.match(runtime,/doc\.body\.prepend\(back\)/);
+  assert.match(runtime,/normalizeReviewBackButton/);
+  assert.match(runtime,/review-surface__header/);
+  assert.doesNotMatch(runtime,/body\.prepend/);
   assert.match(runtime,/win\.history\.back\(\)/);
-  assert.match(css,/min-height:44px/);
-  assert.match(css,/safe-area-inset-top/);
-  assert.match(css,/safe-area-inset-left/);
+  assert.match(css,/shared Review Shell header button/);
 });
 
 test('Rinne review launcher is only a compatibility bridge to the independent Lab',async()=>{

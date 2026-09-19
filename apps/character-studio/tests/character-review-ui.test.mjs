@@ -49,7 +49,8 @@ test('model audit uses pinned CC0 KayKit identity, bounded loads and GPU recover
   assert.match(engine, /defaultModel\.license/);
   assert.doesNotMatch(engine, /SHINO_review\.vrm/);
   assert.ok(engine.indexOf('auditDocument(json, hash, bytes.byteLength, blobSha)') < engine.indexOf("new GLTFLoader().parseAsync(bytes, '')"));
-  for (const expression of [/if \(!audit\.approved\) throw/, /length > MAX_MODEL_BYTES/, /file\.size > MAX_SESSION_BYTES/, /webglcontextlost/, /webglcontextrestored/]) assert.match(engine, expression);
+  for (const expression of [/if \(!audit\.approved\) throw/, /length > MAX_MODEL_BYTES/, /file\.size > MAX_SESSION_BYTES/, /webglcontextlost/, /webglcontextrestored/, /createReviewStageLifecycle/]) assert.match(engine, expression);
+  assert.doesNotMatch(engine, /new ResizeObserver/);
 });
 test('Character Studio is an independent two-entry dev-tool build', () => {
   assert.match(main, /data-dev-tool="character-studio"/);
