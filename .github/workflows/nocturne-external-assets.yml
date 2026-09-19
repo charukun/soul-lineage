@@ -28,8 +28,11 @@ jobs:
       - name: Build isolated game
         id: build
         run: |
-          if [ ! -f build.mjs ]; then echo 'ready=false' >> "$GITHUB_OUTPUT"; exit 0; fi
           npm install --no-audit --no-fund --no-package-lock --save-exact three@0.180.0 @playwright/test@1.55.0
+          mkdir -p public/vendor/three
+          cp -R node_modules/three/build public/vendor/three/
+          cp -R node_modules/three/examples public/vendor/three/
+          if [ ! -f build.mjs ] || [ ! -f smoke.mjs ]; then echo 'ready=false' >> "$GITHUB_OUTPUT"; exit 0; fi
           node build.mjs
           echo 'ready=true' >> "$GITHUB_OUTPUT"
       - name: Install real Chromium
@@ -49,15 +52,13 @@ jobs:
       - name: Verify public URL without authentication
         if: steps.build.outputs.ready == 'true'
         run: node smoke.mjs https://nocturne-autobattle.c-okamoto.workers.dev --public
-      - name: Preserve exact-head evidence
+      - name: Preserve exact-head evidence and original asset bundle
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nocturne-${{ github.sha }}
           path: |
-            apps/nocturne/public/qa/
-            apps/nocturne/public/assets-manifest.json
-            apps/nocturne/public/build.json
+            apps/nocturne/public/
             apps/nocturne/evidence/
           if-no-files-found: warn
           retention-days: 14
