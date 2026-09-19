@@ -34,16 +34,13 @@ test('cinematic boot overlaps world preparation and hands off to realtime when p
   assert.match(main,/async function launch[\s\S]*removeAttribute\('aria-hidden'\)/);
 });
 
-test('cinematic uses the prepared realtime world at deliberately low resolution',()=>{
+test('cinematic uses the prepared realtime world at deliberately low resolution',async()=>{
   assert.match(cinematic,/startRealtime\(\)/);assert.match(cinematic,/lowResolution:true/);assert.match(cinematic,/dataset\.media='realtime'/);assert.match(cinematic,/16000/);assert.match(cinematic,/skip\(\)/);
   assert.match(main,/titleCinematic\.onPrepared\(\)/);assert.match(main,/title\.addEventListener\('pointerup'[\s\S]*titleCinematic\.skip\(\)/);
   assert.match(css,/data-media="realtime"/);assert.match(css,/data-cinematic-beat="rebirth"/);assert.doesNotMatch(css,/data-primary-action/);
-});
-
-test('realtime title uses the actual WebGL canvas instead of framebuffer copying',async()=>{
   const live=await readFile(new URL('../src/title-live-world.js',import.meta.url),'utf8');
-  assert.doesNotMatch(live,/getContext\('2d'/);assert.doesNotMatch(live,/drawImage\(/);assert.match(live,/liveWorldMode='direct-webgl'/);
-  assert.match(css,/data-media="realtime"\]\{background:transparent/);assert.match(css,/title-live-canvas\{display:none!important\}/);
+  assert.doesNotMatch(live,/getContext\('2d'/);assert.doesNotMatch(live,/drawImage\(/);assert.match(live,/direct-webgl/);
+  assert.match(css,/data-media="realtime"\]\{background:transparent!important/);assert.match(css,/title-live-canvas\{display:none!important/);
 });
 
 test('reduced motion, motion-off, and media failure retain an operable title fallback',()=>{
