@@ -48,7 +48,7 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.94;
   let focusEffect,qualityLevel=0;
   const applyQuality=profile=>{const ratio=renderPixelRatio(basePixelRatio,profile.renderScale);renderer.setPixelRatio(ratio);qualityLevel=profile.level;focusEffect?.setLevel(qualityLevel);canvas.dataset.renderQuality=profile.id;canvas.dataset.renderPixelRatio=String(ratio);};
-  const qualityGovernor=createAdaptiveQualityGovernor({targetFps,onChange:snapshot=>applyQuality(snapshot.profile)});applyQuality(qualityGovernor.snapshot().profile);const setTitlePreviewQuality=enabled=>{if(enabled){const ratio=Math.min(.62,basePixelRatio*.58);renderer.setPixelRatio(ratio);canvas.dataset.renderQuality='title-poc-low';canvas.dataset.renderPixelRatio=String(ratio);}else applyQuality(qualityGovernor.snapshot().profile);};
+  const qualityGovernor=createAdaptiveQualityGovernor({targetFps,onChange:snapshot=>applyQuality(snapshot.profile)});applyQuality(qualityGovernor.snapshot().profile);const setTitlePreviewQuality=enabled=>{if(enabled){const ratio=Math.min(.9,Math.max(.7,basePixelRatio*.72));renderer.setPixelRatio(ratio);canvas.dataset.renderQuality='title-cinematic';canvas.dataset.renderPixelRatio=String(ratio);}else applyQuality(qualityGovernor.snapshot().profile);};
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x7893a0);const outdoorSky=scene.background,indoorSky=new THREE.Color(0x393844);scene.fog=new THREE.FogExp2(0x91a8ad,.0105);
   const camera=new THREE.PerspectiveCamera(43,1,.08,650);camera.position.set(12,13,17);
 
@@ -125,21 +125,32 @@ export async function createWorldRenderer({canvas,document:doc,layout,stations})
   const skirmishRenderer=createSkirmishRenderer({characterStage,skirmishRoot,mat});
 
   const target=new THREE.Vector3(),cameraLook=new THREE.Vector3(),desired=new THREE.Vector3(),moveVector=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(0,1,0),camOffset=new THREE.Vector3(10.5,11.5,14.5),firstPersonForward=new THREE.Vector3();let elapsed=0,cameraLookReady=false,lastSpace='',interiorYaw=0;
-  const TITLE_PREVIEW_DURATION=8.2;
+  const TITLE_PREVIEW_DURATION=16;
   const titleCameraKeys=[
-    {t:0,pos:[-23,14.5,22],look:[5.5,1.9,-4.5],fov:49},
-    {t:.24,pos:[17,9.5,19],look:[-3,1.5,3.5],fov:46},
-    {t:.50,pos:[-9.5,5.2,8.2],look:[.2,1.35,.5],fov:39},
-    {t:.73,pos:[7.2,6.3,8.6],look:[1.6,1.5,-1.6],fov:41},
-    {t:1,pos:[11.2,9.4,14.2],look:[0,1.35,0],fov:43},
+    {t:0,pos:[-30,17,27],look:[5,2,-5],fov:54},
+    {t:.14,pos:[20,7.2,15],look:[-4,1.4,2],fov:43},
+    {t:.29,pos:[-8,3.8,6.4],look:[1.5,1.3,.5],fov:35},
+    {t:.44,pos:[5.8,2.9,4.8],look:[1.2,1.25,-1.5],fov:32},
+    {t:.60,pos:[-13,7.8,10],look:[2,1.4,1],fov:40},
+    {t:.74,pos:[4.4,3.4,5.2],look:[0,1.25,0],fov:34},
+    {t:.86,pos:[0,18,2],look:[0,0,0],fov:48},
+    {t:1,pos:[12,9.4,14.2],look:[0,1.35,0],fov:43},
   ];
   const smoothTitle=n=>{const x=Math.min(1,Math.max(0,n));return x*x*x*(x*(x*6-15)+10);};
+  const titleSkyDawn=new THREE.Color(0x6d8298),titleSkyDay=new THREE.Color(0x8fc4d5),titleSkyDusk=new THREE.Color(0xb06f5f),titleSkyNight=new THREE.Color(0x17243a);
   function applyTitlePreviewCamera(state,titleTime=0,titleIdleTime=0){
     const normalized=Math.min(1,Math.max(0,titleTime/TITLE_PREVIEW_DURATION)),scaled=normalized*(titleCameraKeys.length-1),index=Math.min(titleCameraKeys.length-2,Math.floor(scaled)),a=titleCameraKeys[index],b=titleCameraKeys[index+1],mix=smoothTitle(scaled-index),lerp=(x,y)=>x+(y-x)*mix;
     const idle=normalized>=1?Math.max(0,titleIdleTime):0,idleX=Math.sin(idle*.31)*.28,idleY=Math.sin(idle*.23)*.12,idleZ=Math.cos(idle*.27)*.22,lookX=Math.sin(idle*.19)*.08,lookZ=Math.cos(idle*.17)*.08;
     desired.set(state.position.x+lerp(a.pos[0],b.pos[0])+idleX,lerp(a.pos[1],b.pos[1])+idleY,state.position.z+lerp(a.pos[2],b.pos[2])+idleZ);
     target.set(state.position.x+lerp(a.look[0],b.look[0])+lookX,lerp(a.look[1],b.look[1]),state.position.z+lerp(a.look[2],b.look[2])+lookZ);
     const nextFov=lerp(a.fov,b.fov)+Math.sin(idle*.21)*.22;if(Math.abs(camera.fov-nextFov)>.01){camera.fov=nextFov;camera.updateProjectionMatrix();}
+    if(normalized<.18)scene.background.copy(titleSkyDawn).lerp(titleSkyDay,normalized/.18);
+    else if(normalized<.62)scene.background.copy(titleSkyDay);
+    else if(normalized<.80)scene.background.copy(titleSkyDay).lerp(titleSkyDusk,(normalized-.62)/.18);
+    else if(normalized<.90)scene.background.copy(titleSkyDusk).lerp(titleSkyNight,(normalized-.80)/.10);
+    else scene.background.copy(titleSkyNight).lerp(titleSkyDay,(normalized-.90)/.10);
+    scene.fog.color.copy(scene.background);atmosphereLantern.intensity=normalized>.62&&normalized<.92?2.1:1.15;atmosphereFill.intensity=normalized>.80&&normalized<.92?.25:.46;
+    canvas.dataset.titleBeat=normalized<.18?'world':normalized<.38?'life':normalized<.58?'battle':normalized<.76?'years':normalized<.90?'rebirth':'legacy';
     return normalized>=1?'title-living-still':'title-cinematic';
   }
   const cameraControl=createCameraPositionControl({document:doc,container:canvas.parentElement,onChange:position=>{camOffset.set(...cameraOffsetForPosition(position));canvas.dataset.cameraPosition=String(Math.round(position*100));}});

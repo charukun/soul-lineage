@@ -46,7 +46,16 @@ export async function prepareRuntime({buildInfo,onProgress,layoutOverride}={}){
   const titlePreviewFrame=now=>{
     if(host.disposed||host.active){titlePreviewRaf=0;return;}
     if(!titlePreviewStart){titlePreviewStart=now;titlePreviewLast=now;}
-    const dt=Math.min(.05,Math.max(0,(now-titlePreviewLast)/1000));titlePreviewLast=now;const elapsed=Math.max(0,(now-titlePreviewStart)/1000),titleTime=titlePreviewCinematic?Math.min(8.2,elapsed):8.2,titleIdleTime=titlePreviewCinematic?Math.max(0,elapsed-8.2):elapsed;
+    const dt=Math.min(.05,Math.max(0,(now-titlePreviewLast)/1000));titlePreviewLast=now;const elapsed=Math.max(0,(now-titlePreviewStart)/1000),titleTime=titlePreviewCinematic?Math.min(16,elapsed):16,titleIdleTime=titlePreviewCinematic?Math.max(0,elapsed-16):elapsed;
+    if(titlePreviewCinematic){
+      const p=Math.min(1,titleTime/16),baseX=0,baseZ=0;
+      if(p<.18){preview.ageYears=7;preview.position.x=baseX-2+p/.18*3;preview.position.z=baseZ+3-p/.18*4;preview.yaw=.5;}
+      else if(p<.38){const q=(p-.18)/.20;preview.ageYears=18+q*16;preview.position.x=baseX+1+q*6;preview.position.z=baseZ-1+q*3;preview.yaw=1.2;}
+      else if(p<.58){const q=(p-.38)/.20;preview.ageYears=34+q*12;preview.position.x=baseX+7-q*4;preview.position.z=baseZ+2+q*4;preview.yaw=-1.1;}
+      else if(p<.76){const q=(p-.58)/.18;preview.ageYears=46+q*43;preview.position.x=baseX+3-q*5;preview.position.z=baseZ+6-q*2;preview.yaw=-.5;}
+      else if(p<.90){const q=(p-.76)/.14;preview.ageYears=89+q*11;preview.position.x=baseX-2+q*2;preview.position.z=baseZ+4-q*4;preview.yaw=.2;}
+      else{const q=(p-.90)/.10;preview.generation=2;preview.ageYears=q*7;preview.position.x=baseX;preview.position.z=baseZ;preview.yaw=0;}
+    }
     view.renderState(preview,dt,{titlePreview:true,titleTime,titleIdleTime});titlePreviewRaf=requestAnimationFrame(titlePreviewFrame);
   };
   host.startTitlePreview=({cinematic=true,lowResolution=false}={})=>{if(host.disposed||host.active)return;stopTitlePreview();titlePreviewCinematic=Boolean(cinematic);host.view.setTitlePreviewQuality?.(Boolean(lowResolution));titlePreviewRaf=requestAnimationFrame(titlePreviewFrame);};
