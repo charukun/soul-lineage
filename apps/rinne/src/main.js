@@ -66,12 +66,12 @@ function setLoading(message,titleText='世界をつくっています'){
   $('loading-title').textContent=titleText;$('loading-message').textContent=message;retry.hidden=true;loading.hidden=false;
 }
 function showTitle(status=''){
-  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=true;loading.hidden=true;title.hidden=false;launching=false;booting=false;refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(Boolean(prepared),status);
+  app.dataset.screen='title';game.classList.remove('is-loading');game.removeAttribute('aria-busy');game.hidden=false;game.setAttribute('aria-hidden','true');game.classList.add('title-preview-host');loading.hidden=true;title.hidden=false;launching=false;booting=false;refreshContinue();selectTitleCommand($('new-life'),{sound:false});setTitleReady(Boolean(prepared),status);
   if(title.dataset.media==='fallback')prepared?.startTitlePreview?.({cinematic:false});
   titleCinematic.begin();
 }
 function showBootFailure(error){
-  console.error(error);app.dataset.screen='error';booting=false;launching=false;pendingLaunchMode=null;title.hidden=true;game.hidden=false;game.classList.add('is-loading');game.removeAttribute('aria-busy');
+  console.error(error);app.dataset.screen='error';booting=false;launching=false;pendingLaunchMode=null;title.hidden=true;game.hidden=false;game.classList.remove('title-preview-host');game.removeAttribute('aria-hidden');game.classList.add('is-loading');game.removeAttribute('aria-busy');
   $('loading-title').textContent='世界を開けませんでした';$('loading-message').textContent=error?.message||String(error);retry.hidden=false;loading.hidden=false;
 }
 function installGameplay(){gameplayUpgrade?.dispose?.();gameplayUpgrade=prepared?installRinneGameplayUpgrade({prepared,buildInfo:info}):null;titleAudioReady=false;}
@@ -133,7 +133,7 @@ function requestLaunch(mode){
 async function launch(mode,coop=null){
   if(runtime)throw Error('いったんタイトルへ戻ってから参加してください。');
   if(!coop&&coopMenu?.session)await coopMenu.leave();
-  if(launching||booting||!prepared||!runtimeModule)return;launching=true;app.dataset.screen='game';titleCinematic.pause();title.hidden=true;game.hidden=false;game.classList.remove('is-loading');game.removeAttribute('aria-busy');loading.hidden=true;
+  if(launching||booting||!prepared||!runtimeModule)return;launching=true;app.dataset.screen='game';titleCinematic.pause();title.hidden=true;game.hidden=false;game.classList.remove('is-loading','title-preview-host');game.removeAttribute('aria-busy');game.removeAttribute('aria-hidden');loading.hidden=true;
   try{
     runtime=await runtimeModule.startRuntime({mode,buildInfo:info,name:$('life-name').value,prepared,coop,onExit:()=>exitGame(coop)});
     $('open-coop-game').hidden=!coop;villageDialog.close();game.dataset.runtime='active';launching=false;
