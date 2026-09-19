@@ -9,7 +9,7 @@ import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGOR
 import {buildReviewMotionRegistry,motionRegistryCount} from './review-motion-registry.js';
 import {loadPinnedMotionSource,loadMotionReviewModel,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
 import './review-motion-library.css';
-import {createRuntimeThumbnail,renderRuntimeThumbnail} from './review-runtime-thumbnail.js';
+import {createRuntimeThumbnail,scheduleRuntimeThumbnail,clearRuntimeThumbnailQueue} from './review-runtime-thumbnail.js';
 import {mountRinneReviewShell} from './review-lab-shell.js';
 mountRinneReviewShell('motion');
 
@@ -107,19 +107,19 @@ async function selectMotion(record){
     playing=true;status('');renderMotionGrid();syncPlaybackUI();
   }catch(error){playing=false;status('モーション読込失敗: '+String(error?.message||error));syncPlaybackUI();}
 }
+const thumbnailModelPromises=new Map();
 async function loadReviewModelForThumbnail(model){
-  if(model.reviewMannequin)return (await loadMotionReviewModel(model.id)).gltf;
-  return loader.loadAsync(model.runtime.url);
-}
-async function renderModelThumbnail(model,thumbnail){
-  const gltf=await loadReviewModelForThumbnail(model);
-  await renderRuntimeThumbnail(thumbnail,cloneSkeleton(gltf.scene));
+  if(!thumbnailModelPromises.has(model.id)){
+    const promise=model.reviewMannequin?loadMotionReviewModel(model.id).then(value=>value.gltf):loader.loadAsync(model.runtime.url);
+    thumbnailModelPromises.set(model.id,promise.catch(error=>{thumbnailModelPromises.delete(model.id);throw error;}));
+  }
+  return thumbnailModelPromises.get(model.id);
 }
 function renderModelGrid(){
   const grid=el('motion-model-grid');grid.replaceChildren();
   for(const model of REVIEW_MODELS){
     const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.motionModel=model.id;
-    const thumbnail=createRuntimeThumbnail(model.label),label=document.createElement('span');label.textContent=model.label;button.append(thumbnail,label);void renderModelThumbnail(model,thumbnail);
+    const thumbnail=createRuntimeThumbnail(model.label),label=document.createElement('span');label.textContent=model.label;button.append(thumbnail,label);scheduleRuntimeThumbnail(thumbnail,`motion-model:${model.id}`,async()=>cloneSkeleton((await loadReviewModelForThumbnail(model)).scene),{disposeAfter:false});
     button.setAttribute('aria-pressed',String(model.id===selectedModel.id));button.addEventListener('click',()=>{if(model.id!==selectedModel.id)void loadModel(model);});grid.append(button);
   }
 }
@@ -129,19 +129,6 @@ function renderFilters(){
     const button=document.createElement('button');button.type='button';button.textContent=categoryLabel(id);button.dataset.motionFilter=id;button.setAttribute('aria-pressed',String(id===filter));
     button.addEventListener('click',()=>{filter=id;renderFilters();renderMotionGrid();});root.append(button);
   }
-}
-async function renderMotionThumbnail(record,thumbnail){
-  if(!selectedModel)return;
-  const gltf=await loadReviewModelForThumbnail(selectedModel),root=cloneSkeleton(gltf.scene);
-  const box=new THREE.Box3().setFromObject(root),size=box.getSize(new THREE.Vector3()),height=Math.max(.4,size.y);
-  if(record.runtime.kind==='kaykit-embedded'){
-    const clip=(gltf.animations||[]).find(item=>item.name===record.upstreamClipName)||(gltf.animations||[])[record.upstreamClipIndex];
-    if(clip){const mix=new THREE.AnimationMixer(root),action=mix.clipAction(clip);action.play();action.time=Math.max(0,(Number(clip.duration)||0)*.38);mix.update(0);}
-  }else if(record.runtime.kind==='pinned-motion-source'){
-    const source=await loadPinnedMotionSource(record.sourceId),bones=kaykitHumanoidFromGLTF({scene:root}),rest=captureMotionRest(bones,height),duration=Math.max(1/60,source.duration(record.upstreamClipIndex));
-    applyNormalizedMotion(bones,source.sample(record.upstreamClipIndex,duration*.38),rest);
-  }
-  await renderRuntimeThumbnail(thumbnail,root);
 }
 function renderMotionGrid(){
   const root=el('motion-grid'),rows=filterMotionReviewCatalog(catalog,filter);root.replaceChildren();
@@ -153,7 +140,20 @@ function renderMotionGrid(){
     const meta=document.createElement('small');meta.className='motion-category';
     const duration=selected?.sourceIdentity===record.sourceIdentity?selectedDuration:Number(record.duration)||0;
     meta.textContent=categoryLabel(record.category)+(duration?' · '+duration.toFixed(2)+'s':'');
-    button.append(thumbnail,name,meta);void renderMotionThumbnail(record,thumbnail);button.addEventListener('click',()=>void selectMotion(record));root.append(button);
+    button.append(thumbnail,name,meta);
+    scheduleRuntimeThumbnail(thumbnail,`motion-pose:${selectedModel.id}:${record.sourceIdentity}`,async()=>{
+      const gltf=await loadReviewModelForThumbnail(selectedModel),poseRoot=cloneSkeleton(gltf.scene);
+      const box=new THREE.Box3().setFromObject(poseRoot),size=box.getSize(new THREE.Vector3()),height=Math.max(.4,size.y);
+      if(record.runtime.kind==='kaykit-embedded'){
+        const clip=(gltf.animations||[]).find(item=>item.name===record.upstreamClipName)||(gltf.animations||[])[record.upstreamClipIndex];
+        if(clip){const mix=new THREE.AnimationMixer(poseRoot),poseAction=mix.clipAction(clip);poseAction.play();mix.setTime(Math.max(0,(Number(clip.duration)||0)*.38));mix.stopAllAction();mix.uncacheRoot(poseRoot);}
+      }else if(record.runtime.kind==='pinned-motion-source'){
+        const source=await loadPinnedMotionSource(record.sourceId),bones=kaykitHumanoidFromGLTF({scene:poseRoot}),rest=captureMotionRest(bones,height),duration=Math.max(1/60,source.duration(record.upstreamClipIndex));
+        applyNormalizedMotion(bones,source.sample(record.upstreamClipIndex,duration*.38),rest);
+      }
+      return poseRoot;
+    },{disposeAfter:false});
+    button.addEventListener('click',()=>void selectMotion(record));root.append(button);
   }
 }
 function seek(value){
@@ -230,4 +230,4 @@ function frame(now){
   controls.update();renderer.render(scene,camera);syncPlaybackUI();requestAnimationFrame(frame);
 }
 renderFilters();renderModelGrid();setCameraPreset('three-quarter');requestAnimationFrame(frame);void loadModel(selectedModel);
-window.addEventListener('pagehide',event=>{if(event.persisted)return;observer.disconnect();disposeSubject();disposePinnedMotionSources();ground.geometry.dispose();ground.material.dispose();controls.dispose();renderer.dispose();},{once:true});
+window.addEventListener('pagehide',event=>{if(event.persisted)return;clearRuntimeThumbnailQueue();observer.disconnect();disposeSubject();disposePinnedMotionSources();thumbnailModelPromises.clear();ground.geometry.dispose();ground.material.dispose();controls.dispose();renderer.dispose();},{once:true});

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import './review-object-library.css';
-import {createRuntimeThumbnail,renderRuntimeThumbnail} from './review-runtime-thumbnail.js';
+import {createRuntimeThumbnail,scheduleRuntimeThumbnail,clearRuntimeThumbnailQueue} from './review-runtime-thumbnail.js';
 import {mountRinneReviewShell} from './review-lab-shell.js';
 import {createMuraModels} from '@soul/rendering/mura';
 import {RINNE_OBJECT_REVIEW_CATALOG as OBJECTS} from './review-object-catalog.js';
@@ -80,17 +80,12 @@ function renderSelection(){
   for(const button of q('#object-options').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.object===selected));
   for(const button of q('#object-categories').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.category===selectedCategory));
 }
-async function renderObjectThumbnail(item,thumbnail){
-  const root=item.kind==='gltf'?(await loader.loadAsync(new URL(item.url,location.href).href)).scene:runtimeObject(item);
-  root.name=`ReviewObjectThumbnail:${item.id}`;
-  await renderRuntimeThumbnail(thumbnail,root);
-}
 function renderObjectOptions(){
   const items=visibleObjects();
   q('#object-options').replaceChildren(...items.map(item=>{
     const button=document.createElement('button');button.type='button';button.classList.add('review-choice-card');button.dataset.object=item.id;
     const thumbnail=createRuntimeThumbnail(item.label),label=document.createElement('span');label.textContent=item.label;
-    button.append(thumbnail,label);void renderObjectThumbnail(item,thumbnail);
+    button.append(thumbnail,label);scheduleRuntimeThumbnail(thumbnail,`object:${item.id}`,async()=>{const root=item.kind==='gltf'?(await loader.loadAsync(new URL(item.url,location.href).href)).scene:runtimeObject(item);root.name=`ReviewObjectThumbnail:${item.id}`;return root;});
     button.addEventListener('click',()=>loadObject(item.id).catch(error=>status(error.message,true)));return button;
   }));
   renderSelection();
@@ -150,4 +145,4 @@ observer.observe(canvas);
 function frame(){controls.update();renderer.render(scene,camera);frameId=requestAnimationFrame(frame);}
 frameId=requestAnimationFrame(frame);
 populate();loadObject(selected).catch(error=>status(error.message,true));
-window.addEventListener('pagehide',()=>{cancelAnimationFrame(frameId);observer.disconnect();controls.dispose();disposeRoot(objectRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
+window.addEventListener('pagehide',()=>{clearRuntimeThumbnailQueue();cancelAnimationFrame(frameId);observer.disconnect();controls.dispose();disposeRoot(objectRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
