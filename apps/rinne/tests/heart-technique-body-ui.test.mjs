@@ -10,6 +10,9 @@ const gameplay=source('gameplay-ui-base.js'),entry=source('gameplay-ui.js'),jour
 test('bottom rail retains independent heart technique body pages through the causal journal adapter',()=>{
   assert.match(gameplay,/data-heart/);assert.match(gameplay,/data-techniques/);assert.match(gameplay,/data-body/);assert.match(gameplay,/>心</);assert.match(gameplay,/>技</);assert.match(gameplay,/>体</);
   assert.match(entry,/installInspirationUI/);assert.match(entry,/installInspirationCombatControls/);assert.match(journal,/renderHeart/);assert.match(journal,/renderTechnique/);assert.match(journal,/renderBody/);
+  // This app owns the presentation probe; the independent Lab tests only its routes.
+  const battle=readFileSync(join(here,'../review-battle.html'),'utf8');
+  assert.match(battle,/<title>技演出レビュー \| Visual Review<\/title>/);assert.match(battle,/id="battle-sound"/);assert.match(battle,/id="battle-canvas"/);assert.match(battle,/data-battle-mode="melee"/);assert.match(battle,/src="\.\/src\/review-battle.js"/);
 });
 
 test('body command and panel content remain distinct DOM targets',()=>{

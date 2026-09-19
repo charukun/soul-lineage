@@ -7,8 +7,6 @@ test('Visual Review Lab is independent and presentation review is not a gameplay
   const pkg=JSON.parse(read('package.json')),html=read('index.html');
   assert.equal(pkg.name,'@soul/review');assert.equal(pkg.appKind,'dev-tool');assert.match(html,/Visual Review Lab/);assert.match(html,/data-dev-tool="visual-review"/);assert.doesNotMatch(html,/<title>輪廻転焦 Visual Review/);
   assert.match(html,/技演出レビュー/);assert.match(html,/本編の閃き判定や保存データは変更しません/);assert.doesNotMatch(html,/<b>閃き確認<\/b>/);
-  const battle=readFileSync(new URL('../../rinne/review-battle.html',import.meta.url),'utf8');
-  assert.match(battle,/<title>技演出レビュー \| Visual Review<\/title>/);assert.match(battle,/id="battle-sound"/);assert.match(battle,/id="battle-canvas"/);assert.match(battle,/data-battle-mode="melee"/);assert.match(battle,/src="\.\/src\/review-battle.js"/);
 });
 
 test('Lab separates equipment and world-object probes and routes them to delivered runtimes',()=>{
