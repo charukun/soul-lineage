@@ -33,6 +33,7 @@ page.on('console', message => { if (message.type() === 'error' || /THREE.Propert
 page.on('request', request => { if (/\.glb(?:\?|$)/.test(request.url())) requests.push(new URL(request.url()).pathname); });
 page.on('response', response => { if (response.status() >= 400 && new URL(response.url()).origin === base) errors.push(`HTTP ${response.status()}: ${response.url()}`); });
 const state = () => page.evaluate(() => window.__MOTION_REVIEW__.inspect());
+const motionButtons = '#motion-grid button[data-motion-id]';
 async function selected(id) {
   await page.waitForFunction(id => document.getElementById('motion-stage').dataset.motionId === id && document.getElementById('motion-stage').dataset.motionState === 'ready', id, { timeout: 60000 });
 }
@@ -40,6 +41,12 @@ async function sample(time) {
   await page.locator('#motion-time').evaluate((element, time) => { element.value = String(time); element.dispatchEvent(new Event('input', { bubbles: true })); }, time);
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => resolve())));
   return state();
+}
+async function countUnobscured() {
+  return page.locator('#motion-count').evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    return [[rect.left + 1, rect.top + 1], [rect.right - 1, rect.bottom - 1]].every(([x, y]) => element.contains(document.elementFromPoint(x, y)));
+  });
 }
 function checkSample(row, model, data) {
   const values = [...(data.bounds?.min || []), ...(data.bounds?.max || [])];
@@ -52,11 +59,12 @@ try {
   await page.goto(base + '/review-motion.html', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.__MOTION_REVIEW__?.ready, null, { timeout: 60000 });
   assert.equal(await page.locator('#motion-count').textContent(), `MOTION CLIPS ${manifest.records.length}`);
+  assert.equal(await countUnobscured(), true, 'Source count must not be covered by navigation');
   assert.deepEqual((await state()).loadedSources, [], 'Initial view must not preload the animation library');
   assert.equal(requests.length, 1, 'Only the initial selected character binary should load');
   receipt.initialRequests = [...requests];
   await page.locator('[data-motion-filter="all"]').click();
-  assert.equal(await page.locator('[data-motion-id]').count(), manifest.records.length);
+  assert.equal(await page.locator(motionButtons).count(), manifest.records.length);
   const modelIds = await page.locator('[data-motion-model]').evaluateAll(elements => elements.map(element => element.dataset.motionModel));
   assert.equal(modelIds.length, manifest.qa.targetModels);
   for (const [modelIndex, model] of modelIds.entries()) {
@@ -65,7 +73,7 @@ try {
       await page.waitForFunction(model => document.getElementById('motion-stage').dataset.motionModel === model && document.getElementById('motion-stage').dataset.motionState === 'ready', model);
     }
     for (const row of manifest.records) {
-      await page.locator(`[data-motion-id="${row.id}"]`).click(); await selected(row.id);
+      await page.locator(`${motionButtons}[data-motion-id="${row.id}"]`).click(); await selected(row.id);
       const times = modelIndex === 0 ? [row.duration * .3, row.duration * .7] : [row.duration * .55];
       const samples = [];
       for (const [index, time] of times.entries()) {
@@ -82,7 +90,7 @@ try {
   }
   assert.equal(receipt.selections.length, manifest.records.length * modelIds.length);
   const row = manifest.records.find(row => row.name === 'Idle') || manifest.records[0];
-  await page.locator(`[data-motion-id="${row.id}"]`).click(); await selected(row.id);
+  await page.locator(`${motionButtons}[data-motion-id="${row.id}"]`).click(); await selected(row.id);
   const before = await sample(row.duration * .4);
   await page.locator('#motion-next-frame').click(); const next = await state();
   assert.ok(Math.abs(next.time - before.time - 1 / 60) < .001); assert.equal(next.playing, false);
@@ -97,7 +105,7 @@ try {
   }
   for (const category of ['life', 'move', 'combat', 'reaction', 'other', 'recommended', 'all']) {
     await page.locator(`[data-motion-filter="${category}"]`).click();
-    if (category === 'all') assert.equal(await page.locator('[data-motion-id]').count(), manifest.records.length);
+    if (category === 'all') assert.equal(await page.locator(motionButtons).count(), manifest.records.length);
   }
   assert.equal(await page.locator('#motion-legacy option').count() - 1, manifest.legacy.length);
   await page.locator('#motion-legacy').locator('..').locator('summary').click();
@@ -108,6 +116,7 @@ try {
   for (const count of Object.values(receipt.binaryRequests)) assert.equal(count, 1, 'Source/model cache must prevent repeated GLB fetches');
   await page.setViewportSize({ width: 412, height: 915 });
   await page.locator('[data-motion-camera="three-quarter"]').click();
+  assert.equal(await countUnobscured(), true, 'Source count must remain visible on mobile');
   await page.screenshot({ path: path.join(evidence, 'motion-library-mobile.png'), fullPage: true });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Mobile horizontal overflow');
 
@@ -122,7 +131,7 @@ try {
   const frame = page.frameLocator('#workshop-motion-viewer');
   await frame.locator('#motion-stage[data-motion-state="ready"]').waitFor({ timeout: 60000 });
   assert.equal(await frame.locator('#motion-count').textContent(), `MOTION CLIPS ${manifest.records.length}`);
-  await frame.locator('[data-motion-filter="all"]').click(); assert.equal(await frame.locator('[data-motion-id]').count(), manifest.records.length);
+  await frame.locator('[data-motion-filter="all"]').click(); assert.equal(await frame.locator(motionButtons).count(), manifest.records.length);
   await frame.locator('#motion-tour').click();
   await frame.locator('#motion-stage[data-motion-state="ready"]').waitFor();
   await page.screenshot({ path: path.join(evidence, 'canonical-workshop-motion.png'), fullPage: true });
