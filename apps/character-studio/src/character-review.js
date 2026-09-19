@@ -191,7 +191,7 @@ function start() {
   }
   const stageLifecycle = createReviewStageLifecycle({
     canvas,
-    stage: canvas.closest('.review-surface__stage'),
+    stage: canvas.closest('.review-surface__stage') || canvas.parentElement,
     onResize: ({width,height,aspect}) => {
       renderer.setSize(width,height,false); camera.aspect=aspect; camera.updateProjectionMatrix();
       if (motionQA?.active) motionQA.aim(motionQA.camera);

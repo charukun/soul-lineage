@@ -157,17 +157,7 @@ body.simple-review.character-grid-ready .load-indicator[data-state="error"]{disp
     align-self:stretch!important;
     overflow:hidden!important;
   }
-  body.simple-review.character-grid-ready #stage{
-    display:block!important;
-    width:100%!important;
-    height:100%!important;
-    min-height:0!important;
-  }
   body.simple-review.character-grid-ready .stage-status{
-    position:absolute!important;
-    left:8px!important;
-    bottom:8px!important;
-    z-index:6!important;
     width:auto!important;
     max-width:calc(100% - 78px)!important;
     min-height:0!important;
