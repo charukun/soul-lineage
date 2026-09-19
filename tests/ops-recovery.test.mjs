@@ -34,7 +34,7 @@ test('collector preserves the three game environments, Rinne-backed Visual Revie
   assert.equal(visualReview.targets[0].commit, sha);
   assert.equal(visualReview.targets[0].url, 'https://charukun.github.io/soul-lineage/dev/rinne/review.html');
   assert.equal(state.applications.find(a=>a.id==='ops-board').name,'PULSE');
-  assert.equal(state.applications.find(a=>a.id==='demon').name,'尽喰廻遊');
+  assert.equal(state.applications.find(a=>a.id==='demon').name,'喰滅廻遊');
   assert.equal(state.applicationsSource,'public-manifest');
   assert.doesNotThrow(()=>assertSnapshot({...state,buildCommit:sha},sha));
 });
@@ -62,7 +62,7 @@ test('partial public fallback preserves names, environment matrix and real GitHu
   assert.equal(state.generatedAt,previous.generatedAt); assert.equal(state.applicationsUpdatedAt,now);
   assert.deepEqual(state.environments.map(e=>e.id),['dev','staging','prod']);
   assert.equal(state.applications.find(a=>a.id==='visual-review').targets[0].url,'https://charukun.github.io/soul-lineage/dev/rinne/review.html');
-  assert.equal(state.applications.find(a=>a.id==='demon').name,'尽喰廻遊');
+  assert.equal(state.applications.find(a=>a.id==='demon').name,'喰滅廻遊');
   assert.equal(boardAlerts(state).filter(a=>['sync-failed','github-sync-degraded'].includes(a.type)).length,1);
   assert.ok(state.nextRetryAt);
 });

@@ -19,9 +19,9 @@ test('legacy preferences remain parseable for simulator compatibility',()=>{asse
 test('ready requires the specific pending request token',()=>{const data={channel:'rinne-title-v1',type:'ready',token:'nonce-123'};assert.equal(acceptsReadyMessage(data,'nonce-123'),true);assert.equal(acceptsReadyMessage(data,'different'),false);assert.equal(acceptsReadyMessage({...data,channel:'else'},'nonce-123'),false);assert.equal(acceptsReadyMessage({...data,type:'anything'},'nonce-123'),false);assert.equal(acceptsReadyMessage({...data,token:''},''),false);assert.equal(acceptsReadyMessage(null,'nonce-123'),false);});
 test('legacy title state has no browser/SDK access',()=>assert.doesNotMatch(stateSource,/\b(window|document|localStorage|navigator|fetch)\s*\./));
 
-test('100年生 boots the world before revealing the title',async()=>{
+test('百年転生 boots the world before revealing the title',async()=>{
  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
- assert.doesNotMatch(html,/<iframe\b/);assert.match(html,/>100年生</);assert.match(html,/>輪廻転焦</);
+ assert.doesNotMatch(html,/<iframe\b/);assert.match(html,/>百年転生</);assert.match(html,/>百年転生</);
  assert.match(html,/id="title-screen"[^>]*hidden/);assert.match(html,/class="title-world"/);assert.match(html,/id="title-cinematic-video"/);assert.match(html,/title-assets\/world\.webp/);assert.match(html,/title-assets\/crest\.svg/);
  assert.match(html,/id="game-screen"[^>]*class="game-screen is-loading"/);assert.match(html,/aria-busy="true"/);
  assert.match(html,/id="loading-card"/);assert.match(html,/id="boot-retry"/);assert.match(html,/id="new-life"/);assert.match(html,/id="continue-life"/);assert.match(html,/id="open-village-code"/);assert.match(html,/id="open-settings"/);assert.match(html,/viewport-fit=cover/);

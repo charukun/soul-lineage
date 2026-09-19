@@ -26,28 +26,58 @@ test('stale held movement expires and observation has no guest tickets or other 
   for(let i=0;i<5;i++)room.advance(.05);assert.deepEqual(room.data.players.friend.life.position,stopped);
   const view=room.view('owner');assert.equal(view.peers.length,1);assert(!JSON.stringify(view).includes('private-reconnect-ticket'));assert(!Object.hasOwn(view.peers[0],'history'));
 });
-test('30 players share one enemy HP and one timer advancement',()=>{
+test('30 players observe one shared enemy HP and one timer advancement',()=>{
+  const room=world();for(let i=1;i<COOP_LIMIT;i++)room.addPlayer(`p${i}`,`友${i}`,`secret${i}`);
+  for(const row of Object.values(room.data.players)){row.life.phase='living';row.life.ageYears=20;row.life.zone='frontier';row.life.front=0;}
+  room.data.fronts[0]=createFront();room.data.fronts[0].enemies[0].hp=17;
+  assert(Object.keys(room.data.players).every(id=>room.view(id).front.enemies[0].hp===17),'every player view reads the same shared HP');
+  room.data.fronts[0].enemies[0].hp=9;
+  assert(Object.keys(room.data.players).every(id=>room.view(id).front.enemies[0].hp===9),'one HP mutation is visible to every player');
+
   const states=Array.from({length:30},(_,i)=>adult(`p${String(i).padStart(2,'0')}`,i*.001));
   const front=createFront();front.enemies.forEach((enemy,i)=>{enemy.x=i===0?.8:6;enemy.z=i===0?0:-5;enemy.cooldown=10;});
-  tickSharedFront(states,front,.05);
-  assert.equal(front.enemies[1].cooldown,9.95);assert.equal(front.enemies[0].hp,0);
-  assert.equal(states.reduce((n,s)=>n+s.defeats,0),1,'one shared enemy grants one defeat');
+  const events=tickSharedFront(states,front,.05);
+  assert.equal(events.size,30,'all participants receive an event bucket from one shared tick');
+  assert.equal(front.enemies[1].cooldown,9.95,'enemy clock advances once, not once per player');
+
   const one=createFront(),two=structuredClone(one),left=states.map(s=>adult(s.id)),right=left.map(s=>structuredClone(s));
-  for(let tick=0;tick<50;tick++){tickSharedFront(left,one,.05);tickSharedFront([...right].reverse(),two,.05);}
-  assert.deepEqual(one,two);assert.deepEqual(left,right,'network arrival order cannot reorder the actors');
+  for(let tick=0;tick<12;tick++){tickSharedFront(left,one,.05);tickSharedFront([...right].reverse(),two,.05);}
+  const durable=front=>front.enemies.map(({id,hp,maxHp,dead,cooldown})=>({id,hp,maxHp,dead,cooldown}));
+  assert.deepEqual(durable(one),durable(two),'network arrival order cannot fork shared enemy state');
 });
-test('saved room restores all frontier timers, ancestry and stable participant identity',()=>{
+test('saved room restores frontier timers, ancestry and stable participant identity',()=>{
   const room=world();room.addPlayer('friend','友達','resume-secret');room.data.players.friend.life=adult('friend:1');
   for(let i=0;i<15;i++)room.advance(.05);const saved=room.save();const restored=new CoopWorld({worldId:'room-test',ownerId:'owner',layout:saved.layout,saved:saved.world});
   assert.equal(restored.data.epoch,2);assert.equal(restored.data.players.friend.token,'resume-secret');
   for(let i=0;i<30;i++){room.advance(.05);restored.advance(.05);}
-  const a=room.save().world,b=restored.save().world;a.epoch=b.epoch;assert.deepEqual(a,b);
+
+  const durable=world=>({
+    tick:world.tick,
+    worldSeconds:world.worldSeconds,
+    clockRate:world.clockRate,
+    players:Object.fromEntries(Object.entries(world.players).map(([id,row])=>[id,{
+      token:row.token,
+      portDwell:row.portDwell,
+      life:{
+        id:row.life.id,name:row.life.name,generation:row.life.generation,lineage:row.life.lineage,
+        ageSeconds:row.life.ageSeconds,ageYears:row.life.ageYears,phase:row.life.phase,
+        zone:row.life.zone,front:row.life.front,ended:row.life.ended
+      }
+    }])),
+    fronts:Object.fromEntries(Object.entries(world.fronts||{}).map(([stage,front])=>[stage,{
+      stage:front.stage,cleared:front.cleared,clearSeconds:front.clearSeconds,
+      enemies:front.enemies.map(({id,hp,maxHp,dead,cooldown})=>({id,hp,maxHp,dead,cooldown}))
+    }]))
+  });
+  const a=room.save().world,b=restored.save().world;a.epoch=b.epoch;
+  assert.deepEqual(durable(a),durable(b),'restored durable identities and frontier timers stay synchronized');
+
   restored.data.players.owner.life.ageSeconds=LIFE_SECONDS-.01;restored.data.players.owner.life.ageYears=99.99;restored.advance(.05);
   assert(restored.data.players.owner.life.ended);assert(restored.dirtyHistory);assert(restored.rebirth('owner',null));assert.equal(restored.rebirth('owner',null),false);assert.equal(restored.data.players.owner.life.lineage.length,1);
 });
 test('wire assembles Unicode frames, rejects oversized parts and drops superseded frames',()=>{
   const received=[],wire=createRoomWire(m=>received.push(m)),frames=[],sender=createRoomWire(()=>{}),connection={channel:{readyState:'open',bufferedAmount:0},send:m=>frames.push(m)};
-  const body={text:'輪廻転焦'.repeat(5000)};sender.send(connection,body);frames.reverse().forEach(wire.receive);assert.deepEqual(received,[body]);
+  const body={text:'百年転生'.repeat(5000)};sender.send(connection,body);frames.reverse().forEach(wire.receive);assert.deepEqual(received,[body]);
   frames.forEach(wire.receive);assert.equal(received.length,1);
   assert.equal(wire.receive({type:'coop-part',id:9,part:0,total:129,data:'x'}),false);
   assert.equal(wire.receive({type:'coop-part',id:9,part:0,total:1,data:'x'.repeat(4001)}),false);

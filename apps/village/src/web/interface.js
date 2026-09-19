@@ -67,7 +67,7 @@ export function installInterface(village){
  resourcePrev.onclick=()=>{if(resourcePage>0){resourcePage--;renderResourcePage();}};
  resourceNext.onclick=()=>{const pageCount=Math.max(1,Math.ceil(resourceKeys.length/RESOURCE_PAGE_SIZE));if(resourcePage<pageCount-1){resourcePage++;renderResourcePage();}};
  function statusTick(now){
-  const climate=window.__MURAAAAAAA_V2_UI__?.currentClimate(),year=Math.floor(world.state.clock/DAYS_YEAR)+1,population=world.population();
+  const climate=window.__叡智豊満_V2_UI__?.currentClimate(),year=Math.floor(world.state.clock/DAYS_YEAR)+1,population=world.population();
   const seasons={spring:'春',summer:'夏',autumn:'秋',winter:'冬'},weather={clear:'晴',rain:'雨',cloudy:'曇',snow:'雪',wind:'風'};
   const hour=Math.floor(world.state.time),min=Math.floor((world.state.time-hour)*60);
   text(clock,`${seasons[climate?.season]||'春'} · ${weather[climate?.weather]||'晴'} · ${String(hour).padStart(2,'0')}:${String(min).padStart(2,'0')}`);

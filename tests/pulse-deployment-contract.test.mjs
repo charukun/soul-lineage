@@ -43,7 +43,7 @@ test('PULSE title, canonical names and deployment metadata are wired together', 
   assert.match(html, /<title>PULSE<\/title>/);
   assert.match(html, /<h1[^>]*>PULSE<\/h1>/);
   assert.doesNotMatch(html, /開発状況ボード|Rinne Ops Board/);
-  assert.equal(GAME_NAMES.demon, '尽喰廻遊');
+  assert.equal(GAME_NAMES.demon, '喰滅廻遊');
   assert.match(text('scripts/vite-app.mjs'), /GAME_ENVIRONMENTS\.some/);
   assert.match(text('ops-board/worker.mjs'), /buildState.*collector\.mjs/);
   assert.match(text('ops-board/collector.mjs'), /environments: \[dev, staging, prod, \.\.\.previews\]/);

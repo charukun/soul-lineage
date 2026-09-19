@@ -52,7 +52,7 @@ async function install(view,generation){
   if(view.__naturePassGeneration!==generation||!view.outside?.parent)return;
   view.__natureGroup?.removeFromParent();
   const group=new T.Group();group.name='KenneyNature_VisualDressing';group.userData.visualOnly=true;group.userData.source=NATURE_SOURCE;
-  for(const row of rows){if(row.status==='fulfilled')group.add(row.value);else console.warn('[MURAAAAAAA] Nature visual fallback',row.reason);}
+  for(const row of rows){if(row.status==='fulfilled')group.add(row.value);else console.warn('[叡智豊満] Nature visual fallback',row.reason);}
   view.__natureGroup=group;view.outside.add(group);view.canvas.dataset.natureAssets=String(group.children.length);view.renderer.shadowMap.needsUpdate=true;
 }
 
@@ -84,7 +84,7 @@ View.prototype.makeTerrain=function makeTerrainWithSourcedNature(...args){
   return result;
 };
 
-window.__MURAAAAAAA_NATURE__=Object.freeze({
+window.__叡智豊満_NATURE__=Object.freeze({
   source:NATURE_SOURCE,
   root:ROOT,
   layout:LAYOUT,

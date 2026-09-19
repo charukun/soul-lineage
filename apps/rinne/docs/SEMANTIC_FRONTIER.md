@@ -96,7 +96,7 @@ planner は「その policy が安いか」を比較する前に required guaran
 
 ### 4. 混合 workload の strict cost gain
 
-輪廻転焦型 workloadでは presence / combat / mergeable state / irreversible Canon が同時に存在する。全状態を crash-consensus log や full-mesh quorumへ入れる方式に対し、replaceable `R` を strong path から外し Canon/recovery `C` のみを strong commit するため、同じ f=1 crash safety 下で strong-path 通信は `R + C` から `C` へ減る。
+百年転生型 workloadでは presence / combat / mergeable state / irreversible Canon が同時に存在する。全状態を crash-consensus log や full-mesh quorumへ入れる方式に対し、replaceable `R` を strong path から外し Canon/recovery `C` のみを strong commit するため、同じ f=1 crash safety 下で strong-path 通信は `R + C` から `C` へ減る。
 
 切替え overhead と invariant barrier を加えた上でも、現在の model では Raft-all-state と full-mesh-quorum の baseline Pareto pointを strict に支配する witness が残る。
 

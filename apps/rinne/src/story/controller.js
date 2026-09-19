@@ -30,7 +30,7 @@ export async function mountStory(win,environment,{signal,onExit,onMusic}={}){
   if(!saved){const start=story.places.find(p=>p.id==='home');port.position(start.x,start.z);}scene.relocate();
   const abort=new win.AbortController(),on=(el,type,fn)=>el.addEventListener(type,fn,{signal:abort.signal});
   const style=doc.createElement('style');style.textContent=`${css}\n${gameplayCss}`;doc.head.append(style);doc.body.dataset.story='true';
-  doc.getElementById('game').setAttribute('aria-label','輪廻転焦本編。現在の移動操作で村や前線を歩きます。');
+  doc.getElementById('game').setAttribute('aria-label','百年転生本編。現在の移動操作で村や前線を歩きます。');
   const dialog=doc.createElement('dialog');dialog.id='story-dialog';dialog.setAttribute('aria-labelledby','story-dialog-title');dialog.innerHTML='<h2 id="story-dialog-title">暮らしの記録</h2><div id="story-dialog-content"></div><div class="story-dialog-actions"><button id="story-export">保存を書き出す</button><button id="story-import">保存を読み込む</button><button id="story-map-import">村の配置を読み込む</button><button id="story-close">閉じる</button></div><input type="file" accept="application/json,.json" id="story-file" hidden><input type="file" accept="application/json,.json" id="story-map-file" hidden>';
   const death=doc.createElement('dialog');death.id='story-ended';death.setAttribute('aria-labelledby','story-ended-title');death.innerHTML='<p class="story-kicker">ひとつの生涯、その終わり</p><h2 id="story-ended-title">また、どこかで。</h2><p>90年を生き終えました。技と装備の設定は、次の人生にも残ります。</p><label for="story-memento">この生涯を象徴するもの</label><select id="story-memento"></select><button id="story-rebirth">もう一度、生まれる</button>';
   doc.body.append(dialog,death);const $=id=>doc.getElementById(id);let signature='',saveElapsed=0,lastNotice='',noticeUntil=0,noticeTimer=0,lastGuidanceTarget='';
@@ -39,8 +39,8 @@ export async function mountStory(win,environment,{signal,onExit,onMusic}={}){
   const disposePages=mountStoryPages(win);
   $('game').tabIndex=0;
   $('settingsTitle').textContent='戦いの手帳';
-  doc.querySelector('.modal-footer > span').firstChild.textContent='輪廻転焦 · 戦いの手帳 / ';
-  $('settingsDialog').querySelector('.eyebrow').textContent='輪廻転焦 · 技と身支度';
+  doc.querySelector('.modal-footer > span').firstChild.textContent='百年転生 · 戦いの手帳 / ';
+  $('settingsDialog').querySelector('.eyebrow').textContent='百年転生 · 技と身支度';
   $('settingsDialog').querySelector('.modal-status').textContent='手帳を閉じるまで時が止まります';
   $('tab-character').textContent='身支度';
   $('tab-overview').textContent='技を組む';

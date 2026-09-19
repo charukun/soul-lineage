@@ -71,7 +71,7 @@ test('SVG favicon is self-contained and preserves the existing demon artwork', (
 });
 
 test('favicon repair retains the current title and ominous title styling', () => {
-  assert.match(head, /<title>尽喰廻遊 \| 人間狩りの夜<\/title>/);
+  assert.match(head, /<title>喰滅廻遊 \| 人間狩りの夜<\/title>/);
   assert.match(head, /href="\.\/src\/web\/title-ominous\.css"/);
   assert.match(html, /<script type="module" src="\.\/src\/main\.js"><\/script>/);
 });

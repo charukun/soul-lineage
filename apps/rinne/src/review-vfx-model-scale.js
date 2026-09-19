@@ -1,12 +1,12 @@
 export const REVIEW_REFERENCE_MODEL_HEIGHT=1.95;
 
 const CATEGORY_SCALE=Object.freeze({attack:.68,impact:.52,support:.82,elemental:.76,finisher:1.05,combo:.86});
-const AUTHOR_SCALE=Object.freeze({AndrewFM:.80,NextSoft:.82,Pierre:.60,Suzuki:.78,tktk:.92,MAGICALxSPIRAL:.88,Effekseer:.86});
+const AUTHOR_SCALE=Object.freeze({AndrewFM:.80,NextSoft:.82,Pierre:.60,Suzuki:.78,tktk:.92,MAGICALxSPIRAL:.88,Effekseer:.86,KTK_kumamoto:.82,Hanmado:.78});
 const SPECIAL_SCALE=Object.freeze([
   [/Meteor|Meteo|boss_death|HolySandstorm|LightningStrike|GateOfCalve|Sword_Storm/i,.72],
   [/Sword|Spear|Claw|Arrow|Gun|Ribbon|drill|BloodLance|Laser/i,.90],
-  [/Blow|hit_eff|Impact|SonicBoom|MonsterRoar/i,.82],
-  [/HealPotion|MagicHeal|PowerUp|Benediction|Shield|magic_circle|Cure|hozyo/i,.95],
+  [/Blow|hit_eff|Impact|SonicBoom|MonsterRoar|parts_hit|hanmado/i,.82],
+  [/HealPotion|MagicHeal|PowerUp|Benediction|Shield|magic_circle|Cure|hozyo|Aura|Barrior|ForceField/i,.95],
 ]);
 
 const clamp=(value,min,max)=>Math.min(max,Math.max(min,value));
