@@ -1,15 +1,24 @@
 import './character-review-grid.css';
 
 const GROUPS = Object.freeze([
-  ['model', 'キャラ', '#character-model-options [data-character-model]', '人'],
+  ['model', 'モデル', '#character-model-options [data-character-model]', '人'],
+  ['individual', '個体差', '#individuals [data-individual]', '個'],
   ['part', '部位', '#slot-tabs [data-slot]', '部'],
-  ['variant', 'パーツ', '#part-options [data-modular-value]', '形'],
-  ['individual', '個体', '#individuals [data-individual]', '個'],
-  ['hair', '髪色', '#color-options [data-gene="hair"]', '髪'],
+  ['variant', '形状', '#part-options [data-modular-value]', '形'],
+  ['age', '年齢差', '#age-options [data-age]', '歳'],
+  ['hair', '髪', '#color-options [data-gene="hair"]', '髪'],
   ['eyes', '瞳', '#color-options [data-gene="eyes"]', '瞳'],
   ['skin', '肌', '#color-options [data-gene="skin"]', '肌'],
-  ['dye', '服色', '#color-options [data-dye]', '衣'],
-  ['age', '年齢', '#age-options [data-age]', '歳']
+  ['dye', '服色', '#color-options [data-dye]', '衣']
+]);
+
+const REVIEW_CRITERIA = Object.freeze([
+  ['silhouette', 'シルエット'],
+  ['collision', '干渉'],
+  ['face', '顔'],
+  ['age', '年齢差'],
+  ['variation', '個体差'],
+  ['distance', 'ゲーム距離']
 ]);
 
 function sourceLabel(source) {
@@ -85,12 +94,16 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   const root = make('section', 'character-review-picker'); root.id = 'character-review-picker';
   root.setAttribute('aria-label', '確認項目と候補一覧');
   const slots = make('nav', 'character-review-slots'); slots.setAttribute('role', 'tablist'); slots.setAttribute('aria-label', '確認項目');
+  const criteria = make('div', 'character-review-criteria');
+  criteria.setAttribute('aria-label', '確認観点');
+  criteria.append(make('span', 'character-review-criteria-label', '確認観点'));
+  for (const [, label] of REVIEW_CRITERIA) criteria.append(make('span', 'character-review-criterion', label));
   const heading = make('div', 'character-review-current'); heading.id = 'character-review-current'; heading.setAttribute('role', 'status');
   const panel = make('section', 'character-review-candidates'); panel.id = 'character-review-candidates'; panel.setAttribute('role', 'tabpanel');
   const grid = make('div', 'character-review-grid'); grid.setAttribute('role', 'group'); grid.setAttribute('aria-labelledby', heading.id);
   const empty = make('p', 'character-review-empty', 'モデルを読み込んでいます。'); panel.append(grid, empty);
   const tools = make('div', 'character-review-tools'); tools.setAttribute('aria-label', '比較と編集履歴');
-  root.append(slots, heading, panel, tools); controls.prepend(root);
+  root.append(criteria, slots, heading, panel, tools); controls.prepend(root);
   const state = { active: 'model', camera: 'front', framed: false, autoFit: true, queued: false, signature: '', groups: [] };
   const slotNodes = new Map();
   const review = () => win.characterStudio?.review;
@@ -116,7 +129,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
     if (current < 0 || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key)) return;
     event.preventDefault(); const next = gridFocusIndex(entries, current, event.key); activate(GROUPS[next][0], true);
   });
-  const actionNodes = ['original-preview', 'random-one', 'undo', 'redo'].map(id => {
+  const actionNodes = ['original-preview', 'random-one', 'quality-mark', 'undo', 'redo'].map(id => {
     const source = doc.getElementById(id); if (!source) return null;
     const button = make('button', 'character-review-action'); button.type = 'button'; button.dataset.reviewAction = id;
     button.addEventListener('click', () => { if (!source.matches(':disabled')) source.click(); schedule(); });
@@ -172,7 +185,8 @@ export function installCharacterReviewGrid(doc = document, win = window) {
       button.disabled = !ready || source.matches(':disabled');
       const comparing = source.getAttribute('aria-pressed') === 'true';
       text(button, id === 'original-preview' ? comparing ? '編集に戻す' : '元と比較'
-        : id === 'random-one' ? '組み替え'
+        : id === 'random-one' ? '別候補'
+          : id === 'quality-mark' ? (source.getAttribute('aria-pressed') === 'true' ? '要修正を解除' : '要修正')
           : id === 'undo' ? '↶ 戻す'
             : id === 'redo' ? '↷ やり直す'
               : source.textContent);
