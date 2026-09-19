@@ -18,7 +18,7 @@ export function normalizeReviewBackButton({header=document.querySelector('.revie
 export function createReviewStageLifecycle({canvas,stage=canvas?.closest('.review-surface__stage')||canvas?.parentElement,onResize,render,win=window}={}){
   if(!canvas||!stage||typeof onResize!=='function')throw new Error('Review stage lifecycle requires canvas, stage and onResize');
   let raf=0,destroyed=false,lastWidth=0,lastHeight=0;
-  const apply=()=>{raf=0;if(destroyed)return false;const rect=stage.getBoundingClientRect(),width=Math.floor(rect.width),height=Math.floor(rect.height);if(width<2||height<2)return false;if(width===lastWidth&&height===lastHeight)return false;lastWidth=width;lastHeight=height;onResize({width,height,aspect:width/height,rect});render?.();return true};
+  const apply=()=>{raf=0;if(destroyed)return false;const rect=stage.getBoundingClientRect(),width=Math.floor(stage.clientWidth),height=Math.floor(stage.clientHeight);if(width<2||height<2)return false;if(width===lastWidth&&height===lastHeight)return false;lastWidth=width;lastHeight=height;onResize({width,height,aspect:width/height,rect});render?.();return true};
   const refresh=()=>{if(destroyed||raf)return;raf=win.requestAnimationFrame(apply)};
   const observer=new win.ResizeObserver(refresh);observer.observe(stage);
   win.addEventListener('resize',refresh,{passive:true});win.addEventListener('orientationchange',refresh,{passive:true});win.visualViewport?.addEventListener('resize',refresh,{passive:true});refresh();

@@ -39,6 +39,7 @@ test('renderer and visible shell remain isolated from game saves and authority',
   assert.match(shell, /createCharacterWorkspace/);
   for (const code of [engine,shell]) assert.doesNotMatch(code, /localStorage|sessionStorage|indexedDB|WebSocket|RTCPeerConnection|\.innerHTML\s*=/);
   assert.match(main, /本編・セーブ・通信には接続しません/);
+  assert.match(advanced, /class="back review-surface__back" data-review-back/);
 });
 test('model audit uses pinned CC0 KayKit identity, bounded loads and GPU recovery', () => {
   assert.match(engine, /KAYKIT_MODEL_BY_KEY/);
