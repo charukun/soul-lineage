@@ -1,0 +1,3 @@
+# Runtime asset mirrors preserve exact upstream bytes. Treat authored binary/motion payloads as binary for diff/whitespace checks.
+apps/review/public/library/**/*.bvh binary
+apps/review/public/library/**/*.glb binary
