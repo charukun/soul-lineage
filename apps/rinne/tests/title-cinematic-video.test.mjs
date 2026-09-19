@@ -31,9 +31,9 @@ test('cinematic boot overlaps world preparation and hands off to realtime when p
 });
 
 test('cinematic uses the prepared realtime world at deliberately low resolution',()=>{
-  assert.match(cinematic,/startRealtime\(\)/);assert.match(cinematic,/lowResolution:true/);assert.match(cinematic,/dataset\.media='realtime'/);assert.match(cinematic,/skip\(\)/);
+  assert.match(cinematic,/startRealtime\(\)/);assert.match(cinematic,/lowResolution:true/);assert.match(cinematic,/dataset\.media='realtime'/);assert.match(cinematic,/16000/);assert.match(cinematic,/skip\(\)/);
   assert.match(main,/titleCinematic\.onPrepared\(\)/);assert.match(main,/title\.addEventListener\('pointerup'[\s\S]*titleCinematic\.skip\(\)/);
-  assert.match(css,/data-media="realtime"/);assert.doesNotMatch(css,/data-primary-action/);
+  assert.match(css,/data-media="realtime"/);assert.match(css,/data-cinematic-beat="rebirth"/);assert.doesNotMatch(css,/data-primary-action/);
 });
 
 test('reduced motion, motion-off, and media failure retain an operable title fallback',()=>{
