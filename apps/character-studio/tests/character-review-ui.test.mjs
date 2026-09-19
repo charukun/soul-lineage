@@ -88,18 +88,18 @@ test('Character Studio is an independent two-entry dev-tool build', { timeout: 3
     const response=await page.goto('http://127.0.0.1:5277/index.html',{waitUntil:'domcontentloaded',timeout:60000});
     assert.equal(response.status(),200);
     const initial=await snap('initial');
-    const initialPng=await page.screenshot({encoding:'base64'});
+    const initialPng=Buffer.from(await page.screenshot()).toString('base64');
     await page.waitForFunction(()=>window.characterStudio?.review?.ready===true&&document.body.classList.contains('character-grid-ready'),null,{timeout:120000});
     await page.waitForTimeout(200);
     const ready=await snap('ready');
-    const readyPng=await page.screenshot({encoding:'base64'});
+    const readyPng=Buffer.from(await page.screenshot()).toString('base64');
     const states={};
     for(const [name,selector] of [['front','[data-camera="front"]'],['side','[data-camera="side"]'],['back','[data-camera="back"]'],['face','[data-camera="face"]'],['overview','#frame-model']]){
       await page.locator(selector).evaluate(node=>node.click());await page.waitForTimeout(200);states[name]=await snap(name);
     }
-    const overviewPng=await page.screenshot({encoding:'base64'});
+    const overviewPng=Buffer.from(await page.screenshot()).toString('base64');
     await page.locator('[data-camera="face"]').evaluate(node=>node.click());await page.waitForTimeout(200);
-    const facePng=await page.screenshot({encoding:'base64'});
+    const facePng=Buffer.from(await page.screenshot()).toString('base64');
     console.log('DIAGNOSTIC_LAYOUT_JSON_BEGIN');
     console.log(JSON.stringify({initial,ready,states}));
     console.log('DIAGNOSTIC_LAYOUT_JSON_END');
