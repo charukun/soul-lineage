@@ -1,5 +1,5 @@
 name: Astra Work Validation
-run-name: Astra focused validation ${{ github.ref_name }} ${{ github.sha }}
+run-name: Astra final-head validation ${{ github.ref_name }} ${{ github.sha }}
 
 on:
   push:
@@ -20,14 +20,15 @@ concurrency:
 
 jobs:
   focused:
-    name: Exact-head focused test and build
+    if: ${{ contains(github.event.head_commit.message, '[astra-validate]') }}
+    name: Final-head focused test and build
     runs-on: ubuntu-latest
     timeout-minutes: 18
     env:
       HEAD_SHA: ${{ github.sha }}
       APP_ENV: dev
     steps:
-      - name: Checkout exact work head
+      - name: Checkout final work head
         uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
@@ -40,7 +41,7 @@ jobs:
           cache: npm
       - name: Fetch current develop
         run: git fetch --no-tags origin develop:refs/remotes/origin/develop
-      - name: Record focused validation pending
+      - name: Record final-head validation pending
         uses: actions/github-script@v8
         with:
           script: |
@@ -49,7 +50,7 @@ jobs:
               sha: process.env.HEAD_SHA,
               context: 'astra/focused-validation',
               state: 'pending',
-              description: 'Astra exact-head focused validation is running',
+              description: 'Astra final-head validation is running',
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
             });
       - name: Install dependencies
@@ -74,9 +75,9 @@ jobs:
           const result = spawnSync(process.execPath, ['--test', ...tests], { stdio: 'inherit' });
           process.exit(result.status ?? 1);
           NODE
-      - name: Run exact-head DEV checks and affected builds
+      - name: Run final-head DEV checks and affected builds
         run: node scripts/validate.mjs dev origin/develop HEAD
-      - name: Record focused validation success
+      - name: Record final-head validation success
         if: success()
         uses: actions/github-script@v8
         with:
@@ -86,10 +87,10 @@ jobs:
               sha: process.env.HEAD_SHA,
               context: 'astra/focused-validation',
               state: 'success',
-              description: 'Astra exact-head focused validation passed',
+              description: 'Astra final-head validation passed',
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
             });
-      - name: Record focused validation failure
+      - name: Record final-head validation failure
         if: failure()
         uses: actions/github-script@v8
         with:
@@ -100,6 +101,6 @@ jobs:
               sha: process.env.HEAD_SHA,
               context: 'astra/focused-validation',
               state: 'failure',
-              description: 'Astra exact-head focused validation failed',
+              description: 'Astra final-head validation failed',
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
             });

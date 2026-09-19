@@ -1,28 +1,28 @@
 # Development
 
-Routine implementation is Astra-driven and has three stages.
+Routine implementation is Astra-driven and optimized to avoid CI churn while preserving one final merge-owning validation.
 
 ## 1. Implement
 
 - Confirm latest `develop` and `AGENTS.md`.
-- Create or reuse a dedicated work branch / PR from current `develop`.
-- Normal work uses a Draft PR; a qualifying Micro Patch follows `MICRO_PATCH_FAST_LANE.md`.
-- Use the connected GitHub Connector to read the current source and construct the implementation commit on that same work branch with Contents / Git Data operations.
-- Run affected focused test/check/build against that exact head in the `Astra Work Validation` GitHub Actions hosted checkout. Code Mode / V8 checks may be used as preflight, but are not formal validation evidence.
+- Create or reuse a dedicated work branch / Draft PR from current `develop`.
+- Use the connected GitHub Connector to read current source and construct the implementation on that branch.
+- Prefer composing a coherent tree and moving the branch ref once when practical. Intermediate commits are allowed, but do not stop to wait for validation on superseded heads.
+- Code Mode / V8 checks are preflight only.
 
-## 2. Sync and merge
+## 2. Final reconcile, validate once, merge
 
-Before Ready:
+When implementation is coherent:
 
 1. Re-read current `develop`.
 2. If `develop` advanced, reconcile it into the same work branch without discarding either compatible intent.
-3. Run affected focused validation again on the reconciled exact head in a real repository checkout.
-4. Verify the PR head still equals the validated exact head and that current `develop` is included.
-5. Verify freshness, mark Ready, then merge that exact validated head to `develop` in the same task/session.
+3. Verify the PR head now includes current `develop`.
+4. Make the commit that becomes the final reconciled branch head include `[astra-validate]` in its commit message. This explicit marker arms `Astra Work Validation` for that exact pushed head.
+5. Wait only for this merge-owning run. Ignore skipped, cancelled, stale, or completed runs for earlier heads.
+6. If the exact head passes and neither the PR head nor `develop` moved, mark Ready and merge immediately in the same task/session.
+7. If the head or `develop` moved, reconcile first and make the new reconciled head another `[astra-validate]` commit. Run one new final-head validation only. Do not re-run superseded heads.
 
 Resolve real conflicts semantically. Never choose ours/theirs blindly and never weaken a quality gate.
-
-If current `develop` or the PR head advances after validation, repeat reconcile -> focused validation -> freshness verification instead of merging stale work.
 
 Ready is not a handoff or success state. Normal success is `MERGED_TO_DEVELOP`.
 
@@ -32,10 +32,12 @@ The resulting `develop` push starts asynchronous DEV publication. Do not wait or
 
 ## Validation boundary
 
-- Connector commit construction and Code Mode checks do not by themselves satisfy focused validation.
-- Required focused validation must be recorded for the exact head that will be merged.
-- The `Astra Work Validation` GitHub Actions hosted runner is the normal validation workspace for Chat sessions without a usable local repository checkout.
-- Explicit browser playtest requests follow `BROWSER_PLAYTEST_ROUTING.md`; do not substitute static review for browser evidence.
+- Intermediate branch pushes are implementation details, not waiting points.
+- Stale or cancelled validation runs must never be treated as task failure.
+- Required merge evidence is one successful validation of the final reconciled head that will actually be merged.
+- The `Astra Work Validation` runner is explicitly armed only when the pushed final-head commit message contains `[astra-validate]`.
+- Explicit browser playtest requests still follow `BROWSER_PLAYTEST_ROUTING.md`; do not substitute static review for browser evidence.
+- `main` / Production retains its existing strict gates.
 
 ## PR contract
 
@@ -46,19 +48,29 @@ short task title
 short description of what changes
 ```
 
-Then include only useful scope, validation, dependency, assumption, and DEV-review notes.
+Then include only useful scope, dependency, assumption, and DEV-review notes. Validation arming belongs to the final commit message, not the PR body.
 
 Normal terminal states are:
 
 - `MERGED_TO_DEVELOP`
-- `FAILED` with repository / branch / exact head / PR / concrete blocker
+- `FAILED` only when a real blocker remains
+
+## User-facing completion
+
+Keep the normal completion report short:
+
+- what changed
+- merged to `develop`
+- PR link when useful
+
+Do not print validated-head SHA, validation-run URL, merge SHA, or CI internals unless the user asks for them or a blocker requires evidence.
 
 ## Recovery
 
-If a session stops, resume from the current branch / PR / exact head. Do not rebuild state from old chat history.
+If a session stops, resume from the current branch / PR / head. Do not rebuild state from old chat history.
 
-A failed local git command, DNS path, `git push`, Codespaces route, or single tool is not itself a blocker. Keep the same branch / PR and continue through the connected GitHub Connector plus repository workflow / evidence path.
+A failed local git command, DNS path, `git push`, Codespaces route, cancelled stale workflow, or single tool is not itself a blocker. Keep the same branch / PR and continue through the connected GitHub Connector plus repository workflow path.
 
-Do not create a replacement PR merely because one transport failed.
+Do not create a replacement PR merely because one transport or superseded validation run failed.
 
-Never modify `main` / Production without explicit permission. Never weaken tests, browser assertions, review requirements, exact-head checks, or Production gates.
+Never modify `main` / Production without explicit permission. Never weaken tests, browser assertions, review requirements, the final-head merge gate, or Production gates.
