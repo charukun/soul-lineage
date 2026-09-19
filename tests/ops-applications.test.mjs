@@ -26,44 +26,21 @@ test('published apps are grouped by app with exact manifest paths', () => {
   assert.equal(rinne.targets[3].url, 'https://charukun.github.io/soul-lineage/prod/');
 });
 
-test('character studio is a tool backed by the verified Rinne DEV publication', () => {
-  const manifest = {
-    entries: [{
-      app: 'rinne', environment: 'dev', path: 'dev/rinne', deployedAt: '2026-09-12T00:03:00Z',
-      version: { name: '輪廻転焦', commit: 'studio-release' },
-    }],
-  };
-  const apps = buildApplications(manifest, [{ id: 'dev', deployState: 'success' }], []);
-  const studio = apps.find(app => app.id === 'character-studio');
-  assert.equal(studio.kind, 'tool');
-  assert.equal(studio.name, 'キャラクター工房');
-  assert.equal(studio.targets.length, 1);
-  assert.equal(studio.targets[0].state, 'success');
-  assert.equal(studio.targets[0].url, 'https://charukun.github.io/soul-lineage/dev/rinne/characters.html');
-  assert.equal(studio.targets[0].expectedUrl, studio.targets[0].url);
-  assert.equal(studio.targets[0].commit, 'studio-release');
-  assert.equal(studio.targets[0].deployedAt, '2026-09-12T00:03:00Z');
-  assert.match(studio.targets[0].source, /DEV 公開manifest/);
-
-  const unpublished = buildApplications({ entries: [] }, [{ id: 'dev', deployState: 'success' }], [])
-    .find(app => app.id === 'character-studio');
-  assert.equal(unpublished.targets[0].state, 'missing');
-  assert.equal(unpublished.targets[0].url, null);
-  assert.equal(unpublished.targets[0].expectedUrl, 'https://charukun.github.io/soul-lineage/dev/rinne/characters.html');
-});
-
-test('Visual Review is backed only by the Rinne Pages DEV publication', () => {
-  const manifest = { entries: [{
-    app: 'rinne', environment: 'dev', path: 'dev/rinne', deployedAt: '2026-09-12T00:03:00Z',
-    version: { name: '輪廻転焦', commit: 'review-release' },
-  }] };
-  const visual = buildApplications(manifest, [{ id: 'dev', deployState: 'success' }], []).find(app => app.id === 'visual-review');
-  assert.equal(visual.kind, 'tool');
-  assert.equal(visual.targets.length, 1);
-  assert.equal(visual.targets[0].url, 'https://charukun.github.io/soul-lineage/dev/rinne/review.html');
-  assert.equal(visual.targets[0].expectedUrl, visual.targets[0].url);
-  assert.equal(visual.targets[0].commit, 'review-release');
-  assert.match(visual.targets[0].source, /DEV 公開manifest/);
+test('developer tools use independent fast DEV Workers', () => {
+  const apps=buildApplications({entries:[]},[],[],{developSha:'develop-head',statuses:[
+    {context:'dev/character-studio',state:'success',updated_at:'2026-09-19T00:03:00Z'},
+    {context:'dev/review',state:'success',updated_at:'2026-09-19T00:04:00Z'},
+  ]});
+  const studio=apps.find(app=>app.id==='character-studio');
+  const visual=apps.find(app=>app.id==='visual-review');
+  assert.equal(studio.kind,'tool');
+  assert.equal(studio.targets.length,1);
+  assert.equal(studio.targets[0].url,'https://soul-lineage-character-studio-dev.c-okamoto.workers.dev/');
+  assert.equal(studio.targets[0].commit,'develop-head');
+  assert.equal(visual.targets.length,1);
+  assert.equal(visual.targets[0].url,'https://soul-lineage-review-dev.c-okamoto.workers.dev/');
+  assert.equal(visual.targets[0].commit,'develop-head');
+  assert.doesNotMatch(JSON.stringify([studio,visual]),/charukun\.github\.io\/soul-lineage\/dev/);
 });
 
 test('tools use verified public status while failed Lanternfell never invents a URL', () => {

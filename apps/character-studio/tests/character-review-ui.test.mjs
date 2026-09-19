@@ -49,7 +49,10 @@ test('model audit uses pinned CC0 KayKit identity, bounded loads and GPU recover
   assert.ok(engine.indexOf('auditDocument(json, hash, bytes.byteLength, blobSha)') < engine.indexOf("new GLTFLoader().parseAsync(bytes, '')"));
   for (const expression of [/if \(!audit\.approved\) throw/, /length > MAX_MODEL_BYTES/, /file\.size > MAX_SESSION_BYTES/, /webglcontextlost/, /webglcontextrestored/]) assert.match(engine, expression);
 });
-test('both review pages stay in the existing Rinne build', () => {
-  assert.match(vite, /characters:fileURLToPath\(new URL\('\.\/characters\.html'/);
+test('Character Studio is an independent two-entry dev-tool build', () => {
+  assert.match(main, /data-dev-tool="character-studio"/);
+  assert.match(vite, /appConfig\('character-studio',import\.meta\.url\)/);
+  assert.match(vite, /main:fileURLToPath\(new URL\('\.\/index\.html'/);
   assert.match(vite, /advanced:fileURLToPath\(new URL\('\.\/advanced\.html'/);
+  assert.doesNotMatch(vite, /characters\.html|apps\/rinne/);
 });

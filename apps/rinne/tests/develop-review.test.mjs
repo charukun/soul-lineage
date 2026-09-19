@@ -16,7 +16,8 @@ test('legacy RINNE review entry bridges to the independent Visual Review Lab',as
   assert.match(lab,/data-dev-tool="visual-review"/);
   for(const target of ['characters','motion','equipment','objects','effects','battle'])assert.match(lab,new RegExp(`data-route="${target}"`));
   assert.doesNotMatch(lab,/<b>装備・物体<\/b>/);
-  assert.match(routes,/characters:route\(DEV\.rinne,'characters\.html\?review=character'\)/);
+  assert.match(routes,/characters:DEV\.characters/);
+  assert.match(routes,/soul-lineage-character-studio-dev\.c-okamoto\.workers\.dev/);
   assert.match(routes,/motion:route\(DEV\.rinne,'review-motion\.html'\)/);
   assert.match(routes,/equipment:route\(DEV\.rinne,'review-assets\.html'\)/);
   assert.match(routes,/objects:route\(DEV\.rinne,'review-objects\.html'\)/);
