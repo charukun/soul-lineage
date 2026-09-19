@@ -1,8 +1,9 @@
 import { createGameplayUI as createBaseGameplayUI } from './gameplay-ui-base.js';
 import { installInspirationUI } from './inspiration-journal-ui.js';
+import { installInspirationCombatControls } from './inspiration-combat-controls.js';
 
-/** Compose the world HUD with the life-owned causal journal. No review fixture enters a save. */
+/** Keep the world HUD and established combat controls around the life-owned journal. */
 export function createGameplayUI(gameScreen,options){
   const ui=createBaseGameplayUI(gameScreen,options);
-  return installInspirationUI(ui,{gameScreen,audio:options.audio});
+  return installInspirationCombatControls(installInspirationUI(ui,{gameScreen,audio:options.audio}),{gameScreen});
 }

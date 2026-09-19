@@ -41,6 +41,16 @@ PR browser artifactには対象・要求・実行結果を示す `playtest-recei
 
 playthroughのready判定は、runtimeがactiveであること、loadingが消えたこと、canvas / 現在状態で利用できる主要操作が成立していることを基準にする。後続の各phaseでは目的テキストや状態値そのものを引き続き検証してよいが、現在の仕様で隠すことが確定した旧操作や一時的HUDを表示させたりforce clickして検証を通してはいけない。
 
+## merge-owning validationとの境界
+
+`Browser-Playtest:` はブラウザ証拠の専用経路を選ぶための契約であり、`.github/workflows/astra-work-validation.yml` にPlaywright/Chromium、browser matrix、全件走査を追加する許可ではない。
+
+- browser playtestは通常のfocused validationへ無条件に昇格させない。
+- exhaustive browser validationを「安全そうだから」「念のため」でdevelop merge blockerにしない。
+- 全モデル×全assetなどの高コストevidenceが必要なら、既存のbrowser playtest / specialist evidence経路で実行し、`astra/focused-validation` の成功statusを待たせない。
+- Ready/mergeは最終reconciled headのmerge-owning focused validationとfreshnessで判断する。非merge-owning browser evidence、DEV公開、public browser verificationの完了は待たない。
+- browser側のassertionやartifact契約は削除・緩和せず、実行レイヤーだけを分離する。
+
 ## PRを伴わない現在developの確認
 
 コード変更なしで現在のdevelopを実際に触って確認する場合は、新しいworkflowを増やさず既存の `Deploy DEV and PROD` workflowを `ref=develop`, `full_verification=true` でdispatchする。この経路は現在のdevelopをDEVへ整合させたうえで、`INTEGRATION_FULL=true` のpublic Chromium / WebGL2検証を全DEV targetへ実行し、既存artifactとstatusへ証拠を残す。必要なP2P診断も既存full verificationに含まれる。
@@ -57,7 +67,7 @@ playthroughのready判定は、runtimeがactiveであること、loadingが消�
 
 ## 既存経路との関係
 
-- コード変更あり: Draft PR + `Browser-Playtest:` → 実装 → fast validation → Ready → PR browser smoke → Integration
+- コード変更あり: Draft PR + `Browser-Playtest:` → 実装 → fast merge-owning validation → Ready/merge。browser playtestは専用laneへhandoffし、develop mergeの同期critical pathには入れない
 - コード変更なし: existing `deploy.yml` → `full_verification=true` → current develop public browser diagnostics
 - browser failure: `docs/BROWSER_SELF_HEALING.md` の既存ticket / repairへ
 - merge後: DEV Publisher → public browser verification

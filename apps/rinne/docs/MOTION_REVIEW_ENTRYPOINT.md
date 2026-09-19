@@ -1,16 +1,25 @@
-# 演舞レビュー入口
+# モーション Visual Review 入口
 
-RINNE のキャラクターモーション確認は、`apps/rinne/characters.html` の「演舞レビュー」を正本とする。
+RINNE のモーション確認は、独立した `apps/review` の Visual Review Lab にある「モーション」導線を正本とする。
+その導線は RINNE の `apps/rinne/review-motion.html` を開く。削除済みの `characters.html` / 旧キャラクター工房を復活させない。
 
 ## 役割
 
-- 30秒演舞、モーション選択、再生速度、コマ送り、カメラ、補正前後比較、Motion QA 記録を同じ入口から行う。
-- 技単体の確認は正本ページから辿れる補助デバッグとして扱い、利用者向けに別の「演舞ページ」が存在するようには見せない。
-- 旧 `apps/rinne/public/simulator/motion-review.html` は互換URLとして正本へ案内し、新しい確認機能を追加しない。
+- 登録されたsource motionを分類・選択して1本ずつ再生する。
+- モデル切替、再生/一時停止、最初から、速度、ループ、タイムライン、1フレーム前後、カメラ切替を同じ画面で行う。
+- source repository / revision / path / upstream clip name/index / author / license / immutable hashを確認できる。
+- Visual Review Labへの戻り導線を維持する。
 
-## 受入条件
+## source motion 契約
 
-- キャラクター工房のモーション確認名称を「演舞レビュー」に統一する。
-- 30秒演舞の主導線は正本ページだけに置く。
-- 旧斬撃レビューURLを直接開いても正本ページへ戻れる。
-- 本編保存、ゲーム状態、既存Motion QAデータ形式には影響しない。
+- 同じ元clipのモデル差、retarget、速度、mirror、trim、loop、root motion、形式変換、blend/additive/IK差を重複計上しない。
+- `MOTION CLIPS` は異なるsource identityから動的に算出し、モデル数を掛けない。
+- 「すべて」ではregistry内の実source motionを全件選択できる。
+- manifestや全animation binaryを起動時に一括取得せず、外部sourceは選択時に遅延取得する。
+- ライセンス不明、出典不明、世界観外として除外したclipを登録済み件数へ加算しない。
+
+## 高速DEV境界
+
+- `predev` / `prebuild` で外部motion全件取得・変換・全model走査をしない。
+- `Astra Work Validation` にPlaywright/Chromium、全model × 全motion matrix、全payload evidence生成を追加しない。
+- focused validationはsource identity、provenance、重複規則、分類、動的件数、unsafe pathなどの軽量で決定論的な契約とaffected buildに限定する。
