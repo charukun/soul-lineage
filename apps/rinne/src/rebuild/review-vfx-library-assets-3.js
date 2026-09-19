@@ -1,5 +1,9 @@
 import {reviewVfxAsset as asset} from './review-vfx-library-source.js';
 export const REVIEW_VFX_LIBRARY_ASSETS_3=Object.freeze([
+  asset("MAGICALxSPIRAL/MxS_Thunder3.efkefc",3579,"91fb2c2fd26c0d6d60e8b35eea30c2d7eea05d25",true),
+  asset("MAGICALxSPIRAL/Texture/Thunder2.png",13160,"5b57068d50a4a3189e17419be41883828ca004f4",false),
+  asset("MAGICALxSPIRAL/Texture/particle.png",559,"f956fd94f717501d905eed67941ee1b36aa4b035",false),
+  asset("MAGICALxSPIRAL/Texture/particle2.png",1337,"e8026108b315e1d4d305ac58a9a3e63b7d7218a4",false),
   asset("Tktk02/Parts/Line2.png",444,"4030fb91c4b2ec8cc6bc4c3f750548b1c7bd1ce9",false),
   asset("Tktk02/Parts/Line6.png",1030,"ec72d5b5c1f6feec4520f2d140231733b8c20515",false),
   asset("Tktk02/Parts/Particle01.png",2982,"64dca2b80db467f3adef06538a8e7f75f4484282",false),
@@ -19,8 +23,6 @@ export const REVIEW_VFX_LIBRARY_ASSETS_3=Object.freeze([
   asset("Tktk02/Parts/shield1.png",74933,"90954bc569556e1999d6ad68a14277c8e0682c1c",false),
   asset("Tktk02/Parts/smoke1.png",87885,"cd3f1435f7dfe22d1f8dfc888c4f8f937b0b7f1d",false),
   asset("Tktk02/Parts/star.png",6152,"328cf8bbf8dc67f54c1c46ffb40c135a32cdfb97",false),
-  asset("Tktk02/Parts/のnoise.png",125462,"2cb98bcd62a91a2ac43488428dd291e42feaf5f2",false),
-  asset("Tktk02/Tktk02_Blow1.efkefc",20947,"280caec949f8575c32cc1c8e6fbb636300fdc2fd",true),
   asset("Tktk02/Tktk02_Blow2.efkefc",34798,"1ed4a86d1f2d73ca449ab29d2ea18d09a9d03635",true),
   asset("Tktk02/Tktk02_Blow3.efkefc",13509,"92a0163246bfcea90e6a720e4a47d377fb763c7d",true),
   asset("Tktk02/Tktk02_Blow4.efkefc",8308,"466ce16438dc14f4f74df29f89bd5db0213f77a1",true),

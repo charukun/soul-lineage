@@ -43,8 +43,12 @@ test('real review library is a unique pinned CC0 source closure',()=>{
   const effects=REVIEW_VFX_LIBRARY_ASSETS.filter(row=>row.reviewLibrary);
   assert.equal(effects.length,REVIEW_VFX_LIBRARY_COUNT);
   assert.equal(new Set(effects.map(row=>row.gitBlobSha)).size,REVIEW_VFX_LIBRARY_COUNT);
+  assert.equal(effects.some(row=>row.sourcePath==='MAGICALxSPIRAL/MxS_Thunder3.efkefc'),true);
+  assert.equal(effects.some(row=>row.sourcePath==='Tktk02/Tktk02_Blow1.efkefc'),false);
   assert.ok(REVIEW_VFX_LIBRARY_ASSETS.length>effects.length);
   for(const row of REVIEW_VFX_LIBRARY_ASSETS){
+    assert.match(row.path,/^[\x20-\x7E]+$/,`deployment-unsafe asset path: ${row.path}`);
+    assert.match(row.sourcePath,/^[\x20-\x7E]+$/,`deployment-unsafe source path: ${row.sourcePath}`);
     assert.equal(row.repository,REVIEW_VFX_LIBRARY_SOURCE.repository);
     assert.equal(row.revision,REVIEW_VFX_LIBRARY_SOURCE.revision);
     assert.equal(row.license,'CC0-1.0');
@@ -62,6 +66,9 @@ test('download plan preserves provenance and namespaces the real review library'
   }
   assert.equal(EFFECT_DOWNLOADS.some(row=>row.target==='LICENSE-REVIEW-LIBRARY-CC0.txt'),true);
   assert.equal(EFFECT_DOWNLOADS.some(row=>row.target==='effekseer.wasm'),true);
+  assert.equal(EFFECT_DOWNLOADS.some(row=>row.sourcePath==='Tktk02/Tktk02_Blow1.efkefc'),false);
+  assert.equal(EFFECT_DOWNLOADS.some(row=>row.sourcePath==='Tktk02/Parts/のnoise.png'),false);
+  assert.equal(EFFECT_DOWNLOADS.some(row=>row.sourcePath==='MAGICALxSPIRAL/MxS_Thunder3.efkefc'),true);
 });
 
 test('catalog keeps legacy compositions separate from 155 real source originals',()=>{

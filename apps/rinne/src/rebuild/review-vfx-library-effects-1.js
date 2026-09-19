@@ -109,7 +109,7 @@ export const REVIEW_VFX_LIBRARY_EFFECTS_1=Object.freeze([
   effect("lib-tktk01-sword9","Tktk01/Tktk01_Sword9.efkefc","tktk"),
   effect("lib-tktk01-wind1","Tktk01/Tktk01_Wind1.efkefc","tktk"),
   effect("lib-tktk01-wind2","Tktk01/Tktk01_Wind2.efkefc","tktk"),
-  effect("lib-tktk02-blow1","Tktk02/Tktk02_Blow1.efkefc","tktk"),
+  effect("lib-mxs-thunder3","MAGICALxSPIRAL/MxS_Thunder3.efkefc","MAGICALxSPIRAL"),
   effect("lib-tktk02-blow2","Tktk02/Tktk02_Blow2.efkefc","tktk"),
   effect("lib-tktk02-blow3","Tktk02/Tktk02_Blow3.efkefc","tktk"),
   effect("lib-tktk02-blow4","Tktk02/Tktk02_Blow4.efkefc","tktk"),
