@@ -19,6 +19,14 @@ This user-approved redesign supersedes the prohibition on all history-derived ch
 - Distinguish 技演出レビュー (motion/VFX/SFX/contact presentation) from 閃き検証 (causal simulation). Review fixtures do not mutate a player's save.
 - Include deterministic focused tests for distinct lives, repetition resistance, injury/age/equipment constraints, real execution, save migration, lineage and bounded storage, plus the existing browser evidence route.
 
+## Presentation contract
+
+- A 兆し becomes visibly present only when separate evidence has connected into a plausible answer. Current weapon, age, injury, stamina and required executor can keep that answer from being ready without exposing an unlock recipe.
+- When a question first becomes ready during play, its own sentence may surface briefly above the character and drift away. It is an in-world thought, not a permanent HUD objective.
+- First successful realization remains 会得. Repeating the learned answer across distinct contexts can make it 定着; that transition is a separate event and may be announced as 「身体に馴染んだ」.
+- The technique journal may compose a short causal sentence only from saved provenance. It must not invent unseen ancestors, events or motives.
+- 技演出レビュー may reproduce the 兆し → 閃き presentation for inspection, but remains review-only and does not mutate gameplay learning or save data.
+
 ## Validation and delivery
 
 GitHub Connector authoring on the dedicated branch; reconcile latest develop, validate the exact head through Astra Work Validation, check freshness, Ready then merge to develop. DEV publication starts asynchronously; main/Production and quality gates remain unchanged.

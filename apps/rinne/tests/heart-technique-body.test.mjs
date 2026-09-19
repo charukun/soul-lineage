@@ -5,8 +5,9 @@ import {createFront,tickFront} from '../src/rebuild/combat.js';
 import {beginCombatState} from '../src/rebuild/combat-loadout-runtime.js';
 import {eligibleDiscoveries} from '../src/rebuild/skill-system.js';
 import {CAUSAL_ANSWERS,CAUSAL_ANSWER_BY_ID,answerSignature,validateCausalAnswers} from '@soul/game-data';
-import {ensureInspiration,recordLifeExperience,advanceInspirationTime,recordCombatQuestion,inspirationCandidates,answerAvailability,renameInspiration,archiveInspiration,inspirationEffortScale,INSPIRATION_LIMITS} from '../src/rebuild/inspiration-state.js';
+import {ensureInspiration,recordLifeExperience,advanceInspirationTime,recordCombatQuestion,recordCombatAnswers,inspirationCandidates,answerAvailability,updateInspirationSigns,renameInspiration,archiveInspiration,inspirationEffortScale,INSPIRATION_LIMITS} from '../src/rebuild/inspiration-state.js';
 import {ensureCombatLoadout,learnedHeartSkills,learnedTechniqueSkills,addCombo,setComboSkill,toggleFavored,setActiveCombo,setHeartActive,setHeartSlot,setOneMotion,setBodyChoice,unlockedBodyOptions,requestOneMotion,selectCombatCombo} from '../src/combat-loadout.js';
+import {inspirationJournalModel} from '../src/inspiration-journal-model.js';
 
 function living(seed=77){const s=createLife({name:'検証',seed});s.phase='living';s.ageSeconds=20*60;s.ageYears=20;s.resting=false;return s;}
 function migrated(ids=[]){const s=living();delete s.inspiration;s.knownSkills.push(...ids);ensureInspiration(s);ensureCombatLoadout(s);return s;}
@@ -45,6 +46,8 @@ test('weapons normalize basic actions while age, injuries and real stamina const
   assert.equal(answerAvailability(s,'spark.spear.tide').usable,true);assert.equal(answerAvailability(s,'spark.spear.tide',{context:{retreatBlocked:true}}).usable,false);
   recordLifeExperience(s,'play');recordLifeExperience(s,'practice');elapsed(s);recordCombatQuestion(s,'close');const context={window:'combat',questions:['close'],mind:{counter:1,survival:1}};
   assert.ok(inspirationCandidates(s,context).some(row=>row.id==='spark.spear.tide'));assert.equal(inspirationCandidates(s,context).some(row=>row.id==='spark.spear.pressure'),false);
+  s.stamina=1;const blockedSign=updateInspirationSigns(s,context).find(row=>row.question==='close');assert.ok(blockedSign);assert.equal(blockedSign.ready,false);assert.match(blockedSign.hint,/息|身体|形/);
+  s.stamina=100;const readySign=updateInspirationSigns(s,context).find(row=>row.question==='close');assert.equal(readySign?.ready,true);
   recordLifeExperience(s,'forge');assert.ok(inspirationCandidates(s,{...context,mind:{attack:1,guard:1}}).some(row=>row.id==='spark.spear.pressure'));
   const bow=CAUSAL_ANSWERS.find(row=>row.executor==='bow-projectile');assert.ok(bow);assert.equal(answerAvailability(s,bow.id).usable,false);
 });
@@ -61,6 +64,9 @@ test('favored combos remain functional and an authored answer is learned only th
   const record=learner.inspiration.records['spark.spear.tide'];
   assert.ok(record,JSON.stringify({motions:[...motions],pending:learner.inspiration.pending,hp:learner.hp,stamina:learner.stamina,last:log.slice(-5)}));
   assert.ok(log.some(e=>e.type==='player-hit'&&e.techniqueId==='spark.spear.tide'&&e.damage>0));assert.ok(log.some(e=>e.type==='inspiration'&&e.id==='spark.spear.tide'));assert.ok(record.provenance.length>=3);
+  const settling=[];for(const stage of [1,2])settling.push(...recordCombatAnswers(learner,{zone:'frontier',terrain:'open',encounter:'combat',stage},[{type:'player-hit',damage:1,blockedByTerrain:false,engine:'tidebreak',techniqueId:record.answerId,skill:record.name,phase:'jo'}]));
+  assert.equal(record.stable,true);assert.ok(settling.some(e=>e.type==='inspiration-stabilized'&&e.id===record.answerId));assert.ok(learner.events.some(e=>e.type==='inspiration-stabilized'&&e.inspirationId===record.answerId));
+  const journal=inspirationJournalModel(learner),journalItem=journal.families.flatMap(f=>f.variants).find(item=>item.id===record.answerId);assert.ok(journalItem?.story);assert.match(journalItem.story,/問い|重なり|形/);
   ensureCombatLoadout(learner);const combo=learner.combatLoadout.technique.combos[0];assert.equal(setComboSkill(learner,combo.id,'jo',record.answerId),true);assert.equal(archiveInspiration(learner,record.answerId,true),false);assert.equal(renameInspiration(learner,record.answerId,'凪返し'),true);
   const restored=deserializeLife(serializeLife(learner));assert.equal(restored.inspiration.records[record.answerId].name,'凪返し');
   console.log('causal-executor-evidence',JSON.stringify({answer:record.answerId,motions:[...motions],origin:record.provenance,realContacts:log.filter(e=>e.techniqueId===record.answerId).length}));
