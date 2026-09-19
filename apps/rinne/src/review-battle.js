@@ -10,7 +10,7 @@ import {mountRinneReviewShell} from './review-lab-shell.js';
 mountRinneReviewShell('battle');
 
 const q=id=>document.getElementById(id);
-const enemyModel='goblin-runt',weaponSelect=q('battle-weapon');
+const enemyModel='skeleton-minion',weaponSelect=q('battle-weapon');
 const modelLabel=id=>REVIEW_BATTLE_MODELS.find(row=>row.id===id)?.label||id;
 const phasePanel=q('battle-phase'),phaseMeta=q('phase-meta'),phaseHistory=q('phase-history'),soundButton=q('battle-sound'),historyNode=q('battle-inspiration-history'),historyList=q('battle-inspiration-history-list'),historyOpen=q('battle-history-open'),historyClose=q('battle-history-close'),historyCount=q('battle-history-count');
 const battleSfx=createCombatSfx(),loopEnabled=true,followCamera=true;
@@ -18,6 +18,7 @@ let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromis
 let host=null,last=performance.now(),lastCore=null,finishedAt=0,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks={hero:'',enemy:''},signTimer=0;
 const insightHistory=[],learnedTechniqueIds=new Set(),learnedSlots={jo:null,ha:null,kyu:null};
 let insightHistoryOpen=false;
+const manualMove={x:0,y:0,amount:0,pointerId:null,startX:0,startY:0};
 const phaseLabel=phase=>({jo:'序',ha:'破',kyu:'急'})[phase]||'破';
 function renderLearnedSlots(){for(const phase of ['jo','ha','kyu']){const node=document.querySelector(`[data-loadout-phase="${phase}"]`);if(node)node.textContent=learnedSlots[phase]?.name||'基本技';}}
 function hideInspirationBanner(){const banner=q('battle-inspiration');if(!banner)return;banner.hidden=true;delete banner.dataset.burst;delete banner.dataset.sequence;}
@@ -37,7 +38,7 @@ function handleInspirationCue(cue,payload={}){
   if(cue==='done'){inspirationSequenceActive=false;setTimeout(hideInspirationBanner,520);}
 }
 
-function syncModelLabels(){q('hero-name').textContent='主人公';q('enemy-name').textContent='異形兵';}
+function syncModelLabels(){if(q('enemy-name'))q('enemy-name').textContent='スケルトン';}
 async function ensureBattleStage(){
   if(battleStage)return battleStage;if(battleStagePromise)return battleStagePromise;
   q('battle-model-status').textContent='モデル準備中';
@@ -54,9 +55,9 @@ function resetBattle(){
   host=new RaidHost({villageId:'develop-visual-review',storage,now:()=>Date.now()});
   host.join('demon',{type:'join',app:'demon',role:'demon',playerId:'review-demon',name:'Monster'});
   host.join('human',{type:'join',app:'rinne',role:'human',playerId:'review-human',name:'Hero'});
-  // Keep the authoritative RaidHost pair inside its encounter radius. Visual composition belongs to the review stage.
-  host.input('demon',{type:'state',x:1.2,z:0,yaw:-Math.PI/2,state:'combat',action:null});
-  host.input('human',{type:'state',x:-1.2,z:0,yaw:Math.PI/2,state:'combat',action:null});
+  // Start near the edge of RaidHost's encounter radius so draw/ready/approach motion remains readable.
+  host.input('demon',{type:'state',x:1.9,z:0,yaw:-Math.PI/2,state:'ready',action:null});
+  host.input('human',{type:'state',x:-1.9,z:0,yaw:Math.PI/2,state:'ready',action:null});
   host.tick(1/60);lastCore=host.battle?.core?.state?.()||null;last=performance.now();
 }
 function renderPhase(core){
@@ -93,12 +94,24 @@ function maybeInspire(phase){
 
 function syncBattle(dt){
   const battle=host?.battle,currentCore=battle?.core?.state?.();if(currentCore)lastCore=currentCore;const core=currentCore||lastCore;if(!core)return;
-  const heroMax=Math.max(1,Number(core.hero.maxhp)||1),enemyMax=Math.max(1,Number(core.enemy.maxhp)||1);
-  q('hero-action').textContent=core.hero.attack||'構え';q('enemy-action').textContent=core.enemy.attack||'構え';q('hero-hp').value=Math.max(0,(Number(core.hero.hp)||0)/heroMax);q('enemy-hp').value=Math.max(0,(Number(core.enemy.hp)||0)/enemyMax);q('hero-meta').textContent=`${Math.ceil(Number(core.hero.hp)||0)} / ${heroMax} HP`;q('enemy-meta').textContent=`${Math.ceil(Number(core.enemy.hp)||0)} / ${enemyMax} HP`;q('battle-time').textContent=`${(battle?.time||0).toFixed(1)}秒`;q('battle-result').textContent=battle?.finished?`${battle.winner==='demon'?'敵':'主人公'} 勝利`:(encounterMode==='one-v-three'?'1v3 戦闘中':'戦闘中');
+  q('battle-time').textContent=`${(battle?.time||0).toFixed(1)}秒`;q('battle-result').textContent=battle?.finished?`${battle.winner==='demon'?'敵':'主人公'} 勝利`:(encounterMode==='one-v-three'?'1v3 戦闘中':'戦闘中');
   syncBattleAudio(core);renderPhase(core);const phase=reviewBattlePhaseState(core).phase;if(phase)maybeInspire(phase);else lastInspirationPhase='';battleStage?.sync(core,dt,{followCamera,encounterMode,cameraSystem});
 }
-function advanceBattle(dt){const runtime=host?.battle?.core;if(!runtime)return;const before=runtime.state?.();if(before)lastCore=before;host.tick(dt);const after=runtime.state?.();if(after)lastCore=after;}
+function advanceBattle(dt){
+  const runtime=host?.battle?.core;if(!runtime)return;
+  runtime.input?.(manualMove.x,manualMove.y,manualMove.amount,0);
+  const before=runtime.state?.();if(before)lastCore=before;host.tick(dt);const after=runtime.state?.();if(after)lastCore=after;
+}
 function frame(now){const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;if(host?.battle&&!host.battle.finished&&!inspirationSequenceActive)advanceBattle(dt);const finished=Boolean(host?.battle?.finished);if(finished&&!finishedAt)finishedAt=now;else if(!finished)finishedAt=0;if(reviewBattleLoopDue({loopEnabled,playing:true,finished,finishedAt,now}))resetBattle();syncBattle(dt);requestAnimationFrame(frame);}
+
+
+const battleCanvas=q('battle-canvas');
+battleCanvas?.addEventListener('pointerdown',event=>{if(manualMove.pointerId!==null)return;manualMove.pointerId=event.pointerId;manualMove.startX=event.clientX;manualMove.startY=event.clientY;battleCanvas.setPointerCapture?.(event.pointerId);});
+battleCanvas?.addEventListener('pointermove',event=>{if(event.pointerId!==manualMove.pointerId)return;const dx=event.clientX-manualMove.startX,dy=event.clientY-manualMove.startY,scale=Math.max(28,Math.min(96,battleCanvas.clientWidth*.18)),len=Math.hypot(dx,dy);manualMove.x=Math.max(-1,Math.min(1,dx/scale));manualMove.y=Math.max(-1,Math.min(1,-dy/scale));manualMove.amount=Math.max(0,Math.min(1,len/scale));});
+const endSwipe=event=>{if(event.pointerId!==manualMove.pointerId)return;manualMove.x=0;manualMove.y=0;manualMove.amount=0;manualMove.pointerId=null;battleCanvas.releasePointerCapture?.(event.pointerId);};
+battleCanvas?.addEventListener('pointerup',endSwipe);battleCanvas?.addEventListener('pointercancel',endSwipe);
+q('camera-zoom-in')?.addEventListener('click',()=>void ensureBattleStage().then(stage=>stage.zoomBy(-.14)));
+q('camera-zoom-out')?.addEventListener('click',()=>void ensureBattleStage().then(stage=>stage.zoomBy(.14)));
 
 for(const button of document.querySelectorAll('[data-battle-mode]'))button.addEventListener('click',()=>{encounterMode=button.dataset.battleMode==='one-v-three'?'one-v-three':'duel';for(const item of document.querySelectorAll('[data-battle-mode]'))item.setAttribute('aria-pressed',String(item===button));battleStage?.setEncounterMode(encounterMode);resetBattle();});
 for(const button of document.querySelectorAll('[data-battle-skin]'))button.addEventListener('click',()=>{cameraSystem=button.dataset.battleSkin==='jinku'?'demon':'rinne';phasePanel.dataset.skin=button.dataset.battleSkin;for(const item of document.querySelectorAll('[data-battle-skin]'))item.setAttribute('aria-pressed',String(item===button));});
