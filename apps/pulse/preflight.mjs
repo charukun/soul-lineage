@@ -15,7 +15,7 @@ function run(command, args, options = {}) {
 
 function sourceFiles() {
   const files = [];
-  for (const dir of ['ops-board', 'ops-board/public']) {
+  for (const dir of ['apps/pulse', 'apps/pulse/public']) {
     for (const name of readdirSync(dir)) {
       const path = `${dir}/${name}`;
       if (SOURCE.test(name)) files.push(path);
@@ -48,15 +48,15 @@ async function browserFixture() {
   }
   run('npx', ['playwright', 'install', '--with-deps', 'chromium']);
 
-  const server = spawn('python3', ['-m', 'http.server', String(PORT), '--bind', '127.0.0.1', '--directory', 'ops-board/public'], {
+  const server = spawn('python3', ['-m', 'http.server', String(PORT), '--bind', '127.0.0.1', '--directory', 'apps/pulse/public'], {
     stdio: ['ignore', 'ignore', 'inherit'],
   });
   try {
     await waitForServer();
-    run(process.execPath, ['ops-board/browser-check.mjs'], {
+    run(process.execPath, ['apps/pulse/browser-check.mjs'], {
       env: { ...process.env, OPS_URL: URL, OPS_FIXTURE: '1', OPS_REPORT_DIR: REPORT },
     });
-    run(process.execPath, ['ops-board/rescue-browser-check.mjs'], {
+    run(process.execPath, ['apps/pulse/rescue-browser-check.mjs'], {
       env: { ...process.env, OPS_URL: URL, OPS_FIXTURE: '1', OPS_REPORT_DIR: REPORT },
     });
   } finally {
@@ -71,7 +71,7 @@ run(process.execPath, ['--test', ...tests]);
 await browserFixture();
 console.log(JSON.stringify({
   pulsePreflight: 'passed',
-  contract: 'ops-board/public/pulse-contract.mjs',
+  contract: 'apps/pulse/public/pulse-contract.mjs',
   tests: tests.length,
   browserFixture: true,
 }));
