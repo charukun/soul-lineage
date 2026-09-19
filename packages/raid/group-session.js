@@ -1,5 +1,6 @@
+import {createTidebreakRuntime} from '@soul/tidebreak-combat';
 import {RaidSession as SingleRaidSession} from './session.js';
-import {villagerBehavior} from './world.js';
+import {PREY,hash,villagerBehavior} from './world.js';
 
 const AGGRO_DISTANCE=9.2;
 const RALLY_DISTANCE=8.0;
@@ -48,7 +49,7 @@ export class RaidSession extends SingleRaidSession {
   if(this.finished||npc.dead||npc.eaten||this.isCombatant(npc))return;
   if(!this.fight){super.engage(npc);return;}
   if(this.combatantCount()>=MAX_SIMULTANEOUS){npc.state=this.isAggressive(npc)?'pursue':'flee';return;}
-  const record={npc,retreat:0,learned:false,attackCooldown:.35+this.rng()*.45};
+  const record={npc,retreat:0,learned:false,core:null,ox:this.player.x,oz:this.player.z};
   this.combatants.push(record);npc.state='combat';npc.pose=null;npc.speed=0;
   this.resetIdle();this.emit('engage',{npc,group:true,count:this.combatantCount()});
  }
@@ -78,31 +79,30 @@ export class RaidSession extends SingleRaidSession {
   this.rememberFight(record);record.npc.state=this.isAggressive(record.npc)?'pursue':'flee';record.npc.pose=null;record.npc.speed=0;
   this.combatants.splice(i,1);this.emit('combatant-disengage',{npc:record.npc,count:this.combatantCount()});
  }
+ _secondaryCore(record){
+  if(record.core)return record.core;
+  const p=this.player,n=record.npc,d=PREY[n.role],ox=record.ox=p.x,oz=record.oz=p.z;
+  const colliders=[...this.village.colliders,...(!this.village.gate.broken?[-1.7,0,1.7].map(x=>({x,z:this.village.gate.z,r:.7})):[]),...(!this.has('acolyte')?[{...this.village.shelter}]:[])]
+   .filter(o=>Math.hypot(o.x-ox,o.z-oz)<11).map(o=>({...o,x:o.x-ox,z:o.z-oz}));
+  const core=createTidebreakRuntime({seed:hash(`${n.id}:group`),onImpact:e=>this.emit('impact',{...e,x:e.x+ox,z:e.z+oz,point:Array.isArray(e.point)?[e.point[0]+ox,e.point[1],e.point[2]+oz]:e.point,group:true,npc:n})});
+  core.configure({weapon:'fist',heroPassive:true,hp:p.hp,maxhp:p.maxhp,enemyHp:n.hp,enemyWeapon:n.echo?.weapon||d.weapon,enemyStyle:n.role==='knight'?'counter':['traveller','bellkeeper','gravekeeper'].includes(n.role)?'cautious':'balanced',positions:{hero:{x:0,z:0,yaw:p.yaw||0},enemy:{x:n.x-ox,z:n.z-oz,yaw:n.yaw||0}},enemyLoadout:n.echo?.loadout,colliders});
+  record.core=core;return core;
+ }
  _tickSecondaries(dt,input={}){
   if(!this.combatants.length||this.finished||this.devour)return;
-  const p=this.player,groupSize=Math.max(1,this.combatantCount());
+  const p=this.player;
   for(const record of [...this.combatants]){
    const n=record.npc;if(n.dead||n.eaten){this.combatants.splice(this.combatants.indexOf(record),1);continue;}
-   let dx=p.x-n.x,dz=p.z-n.z,d=Math.hypot(dx,dz)||.001;
-   const blocked=this.lineBlocked(p,n),far=d>LEAVE_DISTANCE||blocked;
+   const blocked=this.lineBlocked(p,n),distance=Math.hypot(p.x-n.x,p.z-n.z),far=distance>LEAVE_DISTANCE||blocked;
    record.retreat=far?Math.min(2,record.retreat+dt):Math.max(0,record.retreat-dt*1.8);
-   if(d>HARD_LEAVE_DISTANCE||record.retreat>.85){this._releaseSecondary(record);continue;}
-   if(d>2.05&&!blocked){
-    const speed=n.role==='knight'?1.8:1.55,moved=this.walkActor(n,dx/d*speed*dt,dz/d*speed*dt,true);
-    n.speed=moved/Math.max(dt,.001);n.walk=(n.walk||0)+moved*4.5;const yaw=Math.atan2(dx,dz);n.yaw+=(Math.atan2(Math.sin(yaw-(n.yaw||0)),Math.cos(yaw-(n.yaw||0)))*Math.min(1,dt*9));
-   }else n.speed=0;
-   record.attackCooldown=Math.max(0,record.attackCooldown-dt);
-   dx=p.x-n.x;dz=p.z-n.z;d=Math.hypot(dx,dz);
-   if(d<2.5&&!this.lineBlocked(p,n)&&record.attackCooldown<=0){
-    record.attackCooldown=1.15+this.rng()*.65;
-    const base=n.role==='knight'?9:n.role==='smith'?8:6;
-    const damage=Math.max(3,base/Math.sqrt(Math.max(1,groupSize-1)));
-    p.hp=Math.max(0,p.hp-damage);
-    this.emit('impact',{x:p.x,y:1,z:p.z,yaw:n.yaw||0,guard:false,group:true,npc:n});
-    this.emit('hurt',{amount:damage,npc:n,group:true});
-    if(this.fight)this.fight.lastHp=p.hp;
-    if(p.hp<=0){this.finish('defeated');return;}
-   }
+   if(distance>HARD_LEAVE_DISTANCE||record.retreat>.85){this._releaseSecondary(record);continue;}
+   const core=this._secondaryCore(record),hx=p.x-record.ox,hz=p.z-record.oz,ex=n.x-record.ox,ez=n.z-record.oz;
+   core.syncActors({hero:{x:hx,z:hz,yaw:p.yaw||0,hp:p.hp,maxhp:p.maxhp},enemy:{x:ex,z:ez,yaw:n.yaw||0,hp:n.hp,maxhp:n.maxhp||n.hp}});
+   core.input(0,0,0,0);const before=core.state(),state=core.step(dt),damage=Math.max(0,before.hero.hp-state.hero.hp);
+   const heroDx=state.hero.x-hx,heroDz=state.hero.z-hz;if(damage>0&&Math.hypot(heroDx,heroDz)>.0001)this.walkActor(p,heroDx,heroDz,true);
+   p.hp=Math.min(p.hp,state.hero.hp);n.x=record.ox+state.enemy.x;n.z=record.oz+state.enemy.z;n.yaw=state.enemy.yaw;n.hp=state.enemy.hp;n.pose=state.enemy.pose;n.speed=state.enemy.moveSpeed||0;n.walk=(n.walk||0)+n.speed*dt*3.8;
+   if(damage>0){const impact=[...(state.impacts||[])].reverse().find(row=>row?.targetHero)||state.impact||null;this.emit('hurt',{amount:damage,npc:n,group:true,impact,feel:state.feel});if(this.fight){this.fight.lastHp=p.hp;this.fight.core?.syncActors?.({hero:{x:p.x-this.fight.ox,z:p.z-this.fight.oz,yaw:p.yaw||0,hp:p.hp,maxhp:p.maxhp}});}}
+   if(p.hp<=0){this.finish('defeated');return;}
   }
  }
  promoteNextCombatant(){

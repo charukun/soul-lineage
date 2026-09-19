@@ -40,27 +40,15 @@ const presentationFinite=value=>Number.isFinite(Number(value))?Number(value):0;
 const wrapAngle=value=>Math.atan2(Math.sin(value),Math.cos(value));
 
 /**
- * Review-only locomotion inspired by Nocturne/Eclipse: simulation remains
- * authoritative, while the rendered actor eases into contact, commits through
- * the strike, recoils on damage, and settles back into guard.
+ * Review rendering follows Tidebreak's authoritative root position and yaw.
+ * Smoothing may affect animation cadence, never contact geometry or actor position.
  */
 export function reviewBattlePresentationFrame(actor,target,previous=null,dt=1/60,{hit=false}={}){
   const step=presentationClamp(presentationFinite(dt)||1/60,1/240,.05);
-  const rawX=presentationFinite(actor?.x)*1.35,rawZ=presentationFinite(actor?.z)*1.15;
-  const targetX=presentationFinite(target?.x)*1.35,targetZ=presentationFinite(target?.z)*1.15;
-  const start=previous||{x:rawX,z:rawZ,yaw:Math.atan2(targetX-rawX,targetZ-rawZ)};
-  const attack=String(actor?.attack||''),progress=presentationClamp(presentationFinite(actor?.progress),0,1);
-  const dx=targetX-rawX,dz=targetZ-rawZ,distance=Math.max(.001,Math.hypot(dx,dz)),nx=dx/distance,nz=dz/distance;
-  const attackPulse=attack?Math.sin(progress*Math.PI):0;
-  const lunge=attackPulse*(actor?.slot==='kyu'?.34:actor?.slot==='ha'?.27:.22);
-  const recoil=hit?.16:0;
-  const desiredX=rawX+nx*(lunge-recoil),desiredZ=rawZ+nz*(lunge-recoil);
-  const positionBlend=1-Math.exp(-step*(attack?18:11));
-  const x=start.x+(desiredX-start.x)*positionBlend,z=start.z+(desiredZ-start.z)*positionBlend;
-  const desiredYaw=Math.atan2(targetX-x,targetZ-z),yawDelta=wrapAngle(desiredYaw-presentationFinite(start.yaw));
-  const yaw=wrapAngle(presentationFinite(start.yaw)+yawDelta*(1-Math.exp(-step*(attack?20:13))));
-  const speed=Math.hypot(x-start.x,z-start.z)/step;
-  return Object.freeze({x,z,yaw,stride:presentationClamp(speed*.22,0,1),attackPulse,lunge,recoil});
+  const x=presentationFinite(actor?.x),z=presentationFinite(actor?.z),fallbackYaw=target?Math.atan2(presentationFinite(target.x)-x,presentationFinite(target.z)-z):0;
+  const yaw=Number.isFinite(Number(actor?.yaw))?wrapAngle(Number(actor.yaw)):wrapAngle(fallbackYaw);
+  const start=previous||{x,z,yaw},speed=Math.hypot(x-start.x,z-start.z)/step,attack=String(actor?.attack||''),progress=presentationClamp(presentationFinite(actor?.progress),0,1);
+  return Object.freeze({x,z,yaw,stride:presentationClamp(speed*.22,0,1),attackPulse:attack?Math.sin(progress*Math.PI):0,lunge:0,recoil:0,authoritative:true,hit:Boolean(hit)});
 }
 
 const REVIEW_SWEEPS=new Set(['slash','back','heavy','spin','sweep','diagonal','crosscut','round','hook','bodyblow','barrage','rushfist','uppercut','risingfist','meteor','bullrush']);
@@ -74,29 +62,13 @@ export function reviewBattleMultiHitFrame(actor,{encounterMode='duel'}={}){
 
 export function reviewBattleCameraFrame(core,{follow=true,system='rinne',encounterMode='duel',wide=false}={}){
   if(!follow)return FIXED_CAMERA;
-  const hero=core?.hero,enemy=core?.enemy;
-  if(!hero||!enemy)return FIXED_CAMERA;
-  const values=[hero.x,hero.z,enemy.x,enemy.z].map(Number);
-  if(values.some(value=>!Number.isFinite(value)))return FIXED_CAMERA;
-  const player={x:values[0]*1.35,z:values[1]*1.15};
-  const primary={id:'enemy',x:values[2]*1.35,z:values[3]*1.15,dead:Boolean(enemy.dead)};
-  const threats=[primary];
-  if(encounterMode==='melee'||encounterMode==='one-v-three'){
-    threats.push(
-      {id:'enemy-flank-a',x:primary.x-2.2,z:primary.z+1.65,dead:false},
-      {id:'enemy-flank-b',x:primary.x+2.35,z:primary.z-1.55,dead:false}
-    );
-  }
-  const style=system==='demon'?'demon':'rinne';
-  const frame=combatCameraFrame({player,threats,style,wide:Boolean(wide)});
+  const hero=core?.hero,enemies=(core?.enemies||[core?.enemy]).filter(Boolean);
+  if(!hero||!enemies.length)return FIXED_CAMERA;
+  if(![hero.x,hero.z,...enemies.flatMap(enemy=>[enemy.x,enemy.z])].every(value=>Number.isFinite(Number(value))))return FIXED_CAMERA;
+  const player={x:Number(hero.x),z:Number(hero.z)};
+  const threats=enemies.map((enemy,index)=>({id:`enemy-${index}`,x:Number(enemy.x),z:Number(enemy.z),dead:Boolean(enemy.dead)}));
+  const style=system==='demon'?'demon':'rinne',frame=combatCameraFrame({player,threats,style,wide:Boolean(wide)});
   if(!frame)return FIXED_CAMERA;
   const position=combatCameraPosition(frame);
-  return Object.freeze({
-    position:Object.freeze(position),
-    look:Object.freeze({...frame.look}),
-    separation:frame.spread,
-    follow:true,
-    system:style,
-    count:frame.count
-  });
+  return Object.freeze({position:Object.freeze(position),look:Object.freeze({...frame.look}),separation:frame.spread,follow:true,system:style,count:frame.count});
 }
