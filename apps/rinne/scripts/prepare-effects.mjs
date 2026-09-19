@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {EFFECT_SOURCE,EFFECT_RUNTIME,EFFECT_ASSETS,RUNTIME_ASSETS,EFFECT_PUBLIC_PATH,REVIEW_VFX_LIBRARY_SOURCE} from '../src/rebuild/authored-effect-manifest.js';
 
 const appRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const REVIEWED_EFFECT_LAYOUTS=new Map([[1500,6],[1610,7],[1710,7]]);
+const REVIEWED_EFFECT_LAYOUTS=new Map([[1500,6],[1610,7],[1710,'dependent-files']]);
 const REVIEWED_EFFECT_VERSIONS=new Set(REVIEWED_EFFECT_LAYOUTS.keys());
 export const EFFECT_DOWNLOADS=Object.freeze([
   ...EFFECT_ASSETS.map(row=>({...row,...{repository:row.repository||EFFECT_SOURCE.repository,revision:row.revision||EFFECT_SOURCE.revision,sourcePath:row.sourcePath||row.path,target:row.path}})),
@@ -33,13 +33,15 @@ export function effectDependencies(bytes,expectedVersion=null){
       if(!REVIEWED_EFFECT_VERSIONS.has(version)||!groupCount)throw Error(`Unreviewed effect version: ${version}`);
       if(expectedVersion!=null&&version!==expectedVersion)throw Error(`Effect INFO version mismatch: expected ${expectedVersion}, got ${version}`);
       const result=[];
-      for(let group=0;group<groupCount;group++){
-        const count=read();if(count>128)throw Error('Too many effect dependencies');
-        for(let i=0;i<count;i++){
-          const length=read()*2;if(length<2||length>4096||cursor+length>end)throw Error('Invalid effect dependency');
-          const value=b.toString('utf16le',cursor,cursor+length).replace(/\0$/,'');cursor+=length;
-          if(!value||value.includes('\\')||value.startsWith('/')||value.split('/').includes('..')||value.includes(':'))throw Error('Unsafe effect dependency');
-          result.push(value);
+      const readString=()=>{const length=read()*2;if(length<2||length>4096||cursor+length>end)throw Error('Invalid effect dependency');const value=b.toString('utf16le',cursor,cursor+length).replace(/\0$/,'');cursor+=length;return value;};
+      const accept=value=>{if(!value||value.includes('\\\\')||value.startsWith('/')||value.split('/').includes('..')||value.includes(':'))throw Error('Unsafe effect dependency');result.push(value);};
+      if(groupCount==='dependent-files'){
+        const count=read();if(count>512)throw Error('Too many effect dependencies');
+        for(let i=0;i<count;i++){read();read();accept(readString());}
+      }else{
+        for(let group=0;group<groupCount;group++){
+          const count=read();if(count>128)throw Error('Too many effect dependencies');
+          for(let i=0;i<count;i++)accept(readString());
         }
       }
       if(cursor!==end)throw Error('Unexpected INFO data');
