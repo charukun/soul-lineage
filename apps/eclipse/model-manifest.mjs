@@ -39,6 +39,6 @@ export const manifest = entries.map(([id, pack, name, role]) => ({
   sourcePath: packs[pack][0] + name, authorPage: packs[pack][1],
 }));
 export const excludedSnapshots = [
-  {ref: 'develop', commit: '1ba1336a59ffc1818b77c9ecc279e7088a5bbc71'},
+  {ref: 'develop', commit: 'ddc5958c3e20874260c437c6eda2979a933d73c9'},
   {ref: 'work/nocturne-external-assets', commit: '98ed873338842e3a2f655314bdb20d2063ba107e'},
 ];
