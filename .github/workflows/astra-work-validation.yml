@@ -1,33 +1,37 @@
 name: Astra Work Validation
-run-name: Astra final-head validation PR #${{ github.event.pull_request.number }} ${{ github.event.pull_request.head.sha }}
+run-name: Astra final-head validation ${{ github.ref_name }} ${{ github.sha }}
 
 on:
-  pull_request:
-    types:
-      - edited
+  push:
+    branches:
+      - 'feat/**'
+      - 'fix/**'
+      - 'work/**'
+      - 'dispatch/**'
+      - 'chore/**'
 
 permissions:
   contents: read
   statuses: write
 
 concurrency:
-  group: astra-work-validation-${{ github.event.pull_request.number }}
+  group: astra-work-validation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   focused:
-    if: ${{ contains(github.event.pull_request.body, 'Astra-Validate:') && contains(github.event.pull_request.body, github.event.pull_request.head.sha) }}
+    if: ${{ contains(github.event.head_commit.message, '[astra-validate]') }}
     name: Final-head focused test and build
     runs-on: ubuntu-latest
     timeout-minutes: 18
     env:
-      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      HEAD_SHA: ${{ github.sha }}
       APP_ENV: dev
     steps:
       - name: Checkout final work head
         uses: actions/checkout@v6
         with:
-          ref: ${{ env.HEAD_SHA }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
       - name: Set up Node

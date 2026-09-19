@@ -4,7 +4,7 @@
 
 数行の安全な変更を、通常の大きな実装と同じ反復CI固定費に通さず、品質条件を維持したまま最終headの検証1回から `develop` mergeへ短絡する。
 
-Micro Patch Fast Lane は品質 gate の省略ではない。変更と **pre-Ready develop reconciliation** を先に完了し、Draft PR本文の `Astra-Validate: <head SHA>` で最終reconciled headの検証を1回だけ明示起動する authoring fast path である。中間pushのCIは待たない。main / Production gate は通常経路と同じ契約を維持する。
+Micro Patch Fast Lane は品質 gate の省略ではない。変更と **pre-Ready develop reconciliation** を先に完了し、最終reconciled headのcommit messageに `[astra-validate]` を入れて検証を1回だけ明示起動する authoring fast path である。中間pushのCIは待たない。main / Production gate は通常経路と同じ契約を維持する。
 
 ## 適用条件
 
@@ -29,7 +29,7 @@ latest develop
   -> micro implementation
   -> current develop merge-forward
   -> final head
-  -> PR body: Astra-Validate: <head SHA>
+  -> final commit message: [astra-validate]
   -> one focused validation
   -> freshness verify
   -> Ready
@@ -37,7 +37,7 @@ latest develop
   -> asynchronous DEV publication
 ```
 
-Micro Patch では空 commit、ダミー差分、PR作成だけのための文書差分を作らない。実装が完了してから意味のある変更を用意し、Ready の直前に [`DEVELOPMENT.md`](DEVELOPMENT.md) と同じ current develop 取り込みを行う。final reconciled headが決まってから `Astra-Validate: <head SHA>` をPR本文へ入れて検証を1回だけ起動する。staleになった場合だけsyncからやり直す。
+Micro Patch では空 commit、ダミー差分、PR作成だけのための文書差分を作らない。実装が完了してから意味のある変更を用意し、Ready の直前に [`DEVELOPMENT.md`](DEVELOPMENT.md) と同じ current develop 取り込みを行う。final reconciled headを作るcommit messageに `[astra-validate]` を入れて検証を1回だけ起動する。staleになった場合だけsyncからやり直す。
 
 true merge conflict、意味衝突、最終reconciled head の focused validation failure を fast path 維持のために自動片側採用・assertion削除・未検証で通してはならない。その時点で通常 Development WORK 契約へ移行する。
 

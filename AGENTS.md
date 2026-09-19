@@ -12,7 +12,7 @@
 ## Astra fast flow
 
 1. **Implement** — start from latest `develop`, use a dedicated work branch / Draft PR, and construct the implementation through the connected GitHub Connector. Prefer composing a coherent final tree and updating the branch once instead of pushing every tiny intermediate edit. Intermediate pushes never justify waiting for CI.
-2. **Sync, validate once, merge** — when implementation is coherent, re-read current `develop`; if it advanced, reconcile it into the same branch. Then arm exactly one merge-owning validation for that final reconciled head by putting `Astra-Validate: <head SHA>` in the Draft PR body. Ignore stale/cancelled runs for earlier heads. When that exact final head passes, verify freshness, mark Ready, and merge it to `develop` in the same task/session.
+2. **Sync, validate once, merge** — when implementation is coherent, re-read current `develop`; if it advanced, reconcile it into the same branch. Then arm exactly one merge-owning validation for that final reconciled head by making the final/refreshed commit message contain `[astra-validate]`. Ignore stale/cancelled runs for earlier heads. When that exact final head passes, verify freshness, mark Ready, and merge it to `develop` in the same task/session.
 3. **Deploy** — the `develop` push starts asynchronous DEV publication. Do not wait or poll for it.
 
 Ready for review is transient, not a success terminal. Normal success is `MERGED_TO_DEVELOP`. Report `FAILED` only when a real blocker remains.
@@ -26,8 +26,8 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs la
 - Code Mode / V8 syntax or consistency checks are preflight only. Do not treat them as formal focused validation.
 - Do not run or wait on merge-owning validation for every intermediate branch push. Earlier, cancelled, or stale runs are disposable implementation noise and must never terminate the task.
 - Formal merge-owning test/check/build evidence must come from the final reconciled work head checked out in `Astra Work Validation` GitHub Actions hosted runner or another real repository checkout.
-- Arm that run explicitly on the Draft PR by setting `Astra-Validate: <head SHA>` in the PR body only after implementation and latest-`develop` reconciliation are complete.
-- The head merged to `develop` must be that same final reconciled head. If either PR head or `develop` moves afterward, reconcile first and arm one new final-head run; do not chase superseded runs.
+- Arm that run explicitly only after implementation and latest-`develop` reconciliation are complete: the commit that becomes the final branch head must include `[astra-validate]` in its commit message.
+- The head merged to `develop` must be that same final reconciled head. If either PR head or `develop` moves afterward, reconcile first and make the new reconciled head the next `[astra-validate]` commit; do not chase superseded runs.
 - One failed local tool, DNS path, transport, cancelled stale workflow, or command is not task failure. Preserve the same branch / PR and continue through the Connector + repository workflow path.
 - Do not use watch/sleep loops for unrelated CI, browser checks, or DEV publication. Only the single merge-owning final-head validation is a waiting stage before Ready / merge.
 - Never change `main` / Production without explicit user permission.

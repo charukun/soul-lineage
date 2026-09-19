@@ -17,13 +17,10 @@ When implementation is coherent:
 1. Re-read current `develop`.
 2. If `develop` advanced, reconcile it into the same work branch without discarding either compatible intent.
 3. Verify the PR head now includes current `develop`.
-4. While the PR is still Draft, edit its body to include exactly one line:
-   ```text
-   Astra-Validate: <current PR head SHA>
-   ```
-5. That body edit arms `Astra Work Validation` for that exact reconciled head. Wait only for this merge-owning run. Ignore cancelled, stale, or completed runs for earlier heads.
+4. Make the commit that becomes the final reconciled branch head include `[astra-validate]` in its commit message. This explicit marker arms `Astra Work Validation` for that exact pushed head.
+5. Wait only for this merge-owning run. Ignore skipped, cancelled, stale, or completed runs for earlier heads.
 6. If the exact head passes and neither the PR head nor `develop` moved, mark Ready and merge immediately in the same task/session.
-7. If the head or `develop` moved, reconcile first, replace the marker with the new head SHA, and run one new final-head validation. Do not re-run superseded heads.
+7. If the head or `develop` moved, reconcile first and make the new reconciled head another `[astra-validate]` commit. Run one new final-head validation only. Do not re-run superseded heads.
 
 Resolve real conflicts semantically. Never choose ours/theirs blindly and never weaken a quality gate.
 
@@ -38,7 +35,7 @@ The resulting `develop` push starts asynchronous DEV publication. Do not wait or
 - Intermediate branch pushes are implementation details, not waiting points.
 - Stale or cancelled validation runs must never be treated as task failure.
 - Required merge evidence is one successful validation of the final reconciled head that will actually be merged.
-- The `Astra Work Validation` runner is explicitly armed by the `Astra-Validate: <head SHA>` Draft-PR body marker.
+- The `Astra Work Validation` runner is explicitly armed only when the pushed final-head commit message contains `[astra-validate]`.
 - Explicit browser playtest requests still follow `BROWSER_PLAYTEST_ROUTING.md`; do not substitute static review for browser evidence.
 - `main` / Production retains its existing strict gates.
 
@@ -51,7 +48,7 @@ short task title
 short description of what changes
 ```
 
-Then include only useful scope, dependency, assumption, DEV-review notes, and the temporary `Astra-Validate: <head SHA>` marker when final validation is armed.
+Then include only useful scope, dependency, assumption, and DEV-review notes. Validation arming belongs to the final commit message, not the PR body.
 
 Normal terminal states are:
 
