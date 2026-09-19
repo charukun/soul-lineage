@@ -1,10 +1,39 @@
 const freeze=value=>Object.freeze(value);
-const clipRows=rows=>freeze(rows.map(([index,name])=>freeze({index,name})));
+const clipRows=rows=>freeze(rows.map(([index,name,category])=>freeze({index,name,...(category?{category}:{})})));
 const source=(meta,clips=[])=>freeze({
   ...meta,
   runtimeUrl:`https://raw.githubusercontent.com/${meta.repository}/${meta.revision}/${meta.path.split('/').map(encodeURIComponent).join('/')}`,
   clips:clipRows(clips)
 });
+
+const CMU_PARKOUR_REPOSITORY='zlatnaspirala/matrix-engine-wgpu';
+const CMU_PARKOUR_REVISION='22a4d6b7e4d6f9c9e10b5742fdc42ca8310ea624';
+const cmuParkourSource=({clipName,...meta})=>source({
+  family:'cmu',rig:'cmu-bvh',format:'bvh',
+  repository:CMU_PARKOUR_REPOSITORY,revision:CMU_PARKOUR_REVISION,
+  author:'CMU Graphics Lab',
+  license:'CMU Motion Capture Database reuse terms',
+  licenseUrl:'https://mocap.cs.cmu.edu/faqs.php',
+  licenseEvidence:'https://mocap.cs.cmu.edu/faqs.php',
+  originalSource:'https://mocap.cs.cmu.edu/',
+  ...meta
+},[[0,clipName,'parkour']]);
+const CMU_PARKOUR_SOURCES=freeze([
+  cmuParkourSource({id:'cmu-parkour-walk-hop-walk',label:'CMU Parkour · Walk → Hop → Walk',path:'public/res/bvh/mocap.cs.cmu.edu/Female1_B17_WalkToHopToWalk1.bvh',gitBlobSha:'986746d7fdcc15c6dd374725b2fcb7d8921d7af7',byteLength:110408,clipName:'Parkour_Walk_Hop_Walk'}),
+  cmuParkourSource({id:'cmu-parkour-walk-leap-walk',label:'CMU Parkour · Walk → Leap → Walk',path:'public/res/bvh/mocap.cs.cmu.edu/Female1_B18_WalkToLeapToWalk.bvh',gitBlobSha:'f995327b741859665fa71098e92dc2bc9f6d9200',byteLength:100960,clipName:'Parkour_Walk_Leap_Walk'}),
+  cmuParkourSource({id:'cmu-parkour-run-hop-walk',label:'CMU Parkour · Run → Hop → Walk',path:'public/res/bvh/mocap.cs.cmu.edu/Female1_C19_RunToHopToWalk.bvh',gitBlobSha:'6d93bf8d135600f39bc57111fee89e034addcd23',byteLength:72671,clipName:'Parkour_Run_Hop_Walk'}),
+  cmuParkourSource({id:'cmu-parkour-run-jump-walk',label:'CMU Parkour · Run → Jump → Walk',path:'public/res/bvh/mocap.cs.cmu.edu/Female1_C20_RunToJumpToWalk.bvh',gitBlobSha:'6a12ad7a84b2eb7bed7cb0245c50022b386059ee',byteLength:71765,clipName:'Parkour_Run_Jump_Walk'}),
+  cmuParkourSource({id:'cmu-parkour-walk-crouch',label:'CMU Parkour · Walk → Crouch',path:'public/res/bvh/mocap.cs.cmu.edu/Female1_B24_WalkToCrouch.bvh',gitBlobSha:'32911b1891bc9338248cf84f0d96b5107dc06ef3',byteLength:123918,clipName:'Parkour_Walk_Crouch'}),
+  cmuParkourSource({id:'cmu-parkour-crouch-walk',label:'CMU Parkour · Crouch → Walk',path:'public/res/bvh/mocap.cs.cmu.edu/Female1_B25_CrouchToWalk.bvh',gitBlobSha:'dfada0fdf9ed995e17ddd977cde16d1404d6372f',byteLength:104062,clipName:'Parkour_Crouch_Walk'}),
+  cmuParkourSource({id:'cmu-parkour-run-crouch',label:'CMU Parkour · Run → Crouch',path:'public/res/bvh/mocap.cs.cmu.edu/Female1_C26_RunToCrouch.bvh',gitBlobSha:'a1d3b2e588e30acfae6e9fd905486c47c77054da',byteLength:52034,clipName:'Parkour_Run_Crouch'}),
+  cmuParkourSource({id:'cmu-parkour-crouch-run',label:'CMU Parkour · Crouch → Run',path:'public/res/bvh/mocap.cs.cmu.edu/Female1_C27_CrouchToRun1.bvh',gitBlobSha:'0b7d661958c7c7a8ca6ae4e0b88ced2506a28406',byteLength:53064,clipName:'Parkour_Crouch_Run'}),
+  cmuParkourSource({id:'cmu-parkour-urban-traversal',label:'CMU Parkour · Urban Traversal',path:'public/res/bvh/mocap.cs.cmu.edu/Female1_D1_Urban.bvh',gitBlobSha:'be2b4146c8f7d2ce501dcece1d7a3d2849399a48',byteLength:265918,clipName:'Parkour_Urban_Traversal'}),
+  cmuParkourSource({id:'cmu-parkour-cartwheel',label:'CMU Parkour · Cartwheel',path:'public/res/bvh/mocap.cs.cmu.edu/Female1_D6_CartWheel.bvh',gitBlobSha:'ebbefcc997700a381bf4b5bc09a8c457de6ce5bd',byteLength:85023,clipName:'Parkour_Cartwheel'}),
+  cmuParkourSource({id:'cmu-parkour-crawl-forward',label:'CMU Parkour · Crawl Forward',path:'public/res/bvh/mocap.cs.cmu.edu/Female1_A11_CrawlForward.bvh',gitBlobSha:'958fd03554291bd8ccc4b779683bbcc15d023d1b',byteLength:347817,clipName:'Parkour_Crawl_Forward'}),
+  cmuParkourSource({id:'cmu-parkour-crawl-backward',label:'CMU Parkour · Crawl Backward',path:'public/res/bvh/mocap.cs.cmu.edu/Female1_A12_CrawlBackwards.bvh',gitBlobSha:'e4b1ffbcef77fecbf1653f18e74b83b34fd651c1',byteLength:383156,clipName:'Parkour_Crawl_Backward'}),
+  cmuParkourSource({id:'cmu-parkour-run-turn-left',label:'CMU Parkour · Run Turn Left 90°',path:'public/res/bvh/mocap.cs.cmu.edu/Female1_C11_RunTurnLeft90.bvh',gitBlobSha:'a54b826d5e5a23d32c9561b650264fc0f426d8cc',byteLength:39571,clipName:'Parkour_Run_Turn_Left_90'}),
+  cmuParkourSource({id:'cmu-parkour-run-turn-right',label:'CMU Parkour · Run Turn Right 90°',path:'public/res/bvh/mocap.cs.cmu.edu/Female1_C14_RunTurnRight90.bvh',gitBlobSha:'41d4b70e844a152fb280cecb291a63baf1a11fcb',byteLength:76298,clipName:'Parkour_Run_Turn_Right_90'})
+]);
 
 export const MOTION_LIBRARY_SOURCES=freeze([
   source({
@@ -406,6 +435,7 @@ export const MOTION_LIBRARY_SOURCES=freeze([
     [41, "Zombie_Scratch"],
     [42, "Zombie_Walk_Fwd_Loop"]
   ]),
+  ...CMU_PARKOUR_SOURCES,
   source({
     "id": "mesh2motion-human-base",
     "label": "Mesh2Motion Human Base",

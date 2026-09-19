@@ -1,9 +1,10 @@
 RINNE source motion library / attribution and acquisition record
 
-All imported motions in this library: CC0-1.0.
+KayKit, Quaternius and Mesh2Motion entries in this library use CC0-1.0.
 License: https://creativecommons.org/publicdomain/zero/1.0/
 License text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
 Credit is retained even though CC0 does not require attribution.
+CMU Motion Capture Database entries use the CMU reuse terms recorded below.
 
 KayKit Character Animations, by Kay Lousberg
 Original: https://kaylousberg.com/game-assets/character-animations
@@ -39,6 +40,28 @@ assets in this mirror have independent licenses and are NOT imported.
 Only skeleton motion is compiled; source model geometry/materials/textures
 are discarded. The mirror's marketing totals are not used for clip counts.
 
+
+CMU Graphics Lab Motion Capture Database — parkour / traversal selection
+Author / data provider: CMU Graphics Lab
+Original: https://mocap.cs.cmu.edu/
+Reuse terms: https://mocap.cs.cmu.edu/faqs.php
+The official FAQ permits copying, modification and redistribution without
+permission. The database homepage describes the data as free for all uses.
+Acquisition mirror: https://github.com/zlatnaspirala/matrix-engine-wgpu
+Pinned commit: 22a4d6b7e4d6f9c9e10b5742fdc42ca8310ea624
+Directory: public/res/bvh/mocap.cs.cmu.edu/
+Selected files: Female1_B17_WalkToHopToWalk1.bvh,
+Female1_B18_WalkToLeapToWalk.bvh, Female1_C19_RunToHopToWalk.bvh,
+Female1_C20_RunToJumpToWalk.bvh, Female1_B24_WalkToCrouch.bvh,
+Female1_B25_CrouchToWalk.bvh, Female1_C26_RunToCrouch.bvh,
+Female1_C27_CrouchToRun1.bvh, Female1_D1_Urban.bvh,
+Female1_D6_CartWheel.bvh, Female1_A11_CrawlForward.bvh,
+Female1_A12_CrawlBackwards.bvh, Female1_C11_RunTurnLeft90.bvh,
+Female1_C14_RunTurnRight90.bvh.
+Each file is byte-length and Git-blob-SHA pinned in review-motion-sources.js.
+The review runtime converts the BVH centimetre-scale skeleton to metres and
+retargets only humanoid motion; no source character geometry is imported.
+
 Existing baseline: KayKit Adventurers by Kay Lousberg, CC0-1.0
 Repository: KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0
 Commit: 672074b73ba276876a19e8816ecdc5241817ab47
@@ -53,4 +76,4 @@ Generated simulator/assets/review-motions/manifest.json records the exact
 source repository, commit, path, clip name/index, author, license, hash,
 compiled payload hash and canonical identity for every registered motion.
 Generated audit.json preserves all duplicate/variant mappings and rejected
-clips with reasons. Runtime payloads are local, verified, and lazy-loaded.
+clips with reasons. Runtime payloads are immutable-source verified and lazy-loaded on selection.
