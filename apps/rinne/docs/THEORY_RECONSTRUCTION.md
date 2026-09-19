@@ -326,7 +326,7 @@ No quantum computer, quantum channel, collapse mechanism or entanglement-based n
 
 The philosophers are not authorities for protocol correctness. Their surviving ideas are evaluated only after translation into testable conditions.
 
-## Reconstructed architecture for 輪廻転焦
+## Reconstructed architecture for 百年転生
 
 No new grand protocol name is assigned because the general mechanisms are established.
 

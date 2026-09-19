@@ -146,7 +146,7 @@ function start() {
     camera.fov = preset === 'demon' ? 42 : 38;
     camera.updateProjectionMatrix();
     if (preset === 'village') {
-      // Match MURAAAAAAA's normal 46m vertical span in perspective, without changing the game camera.
+      // Match 叡智豊満's normal 46m vertical span in perspective, without changing the game camera.
       distance = 46 / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
       camera.position.set(distance * .28, distance * .62, distance * .74);
       orbit.target.set(0,.85,0); camera.lookAt(orbit.target); orbit.update(); resetMeasure(); return;

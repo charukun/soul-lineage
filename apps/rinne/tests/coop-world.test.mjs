@@ -47,7 +47,7 @@ test('saved room restores all frontier timers, ancestry and stable participant i
 });
 test('wire assembles Unicode frames, rejects oversized parts and drops superseded frames',()=>{
   const received=[],wire=createRoomWire(m=>received.push(m)),frames=[],sender=createRoomWire(()=>{}),connection={channel:{readyState:'open',bufferedAmount:0},send:m=>frames.push(m)};
-  const body={text:'輪廻転焦'.repeat(5000)};sender.send(connection,body);frames.reverse().forEach(wire.receive);assert.deepEqual(received,[body]);
+  const body={text:'百年転生'.repeat(5000)};sender.send(connection,body);frames.reverse().forEach(wire.receive);assert.deepEqual(received,[body]);
   frames.forEach(wire.receive);assert.equal(received.length,1);
   assert.equal(wire.receive({type:'coop-part',id:9,part:0,total:129,data:'x'}),false);
   assert.equal(wire.receive({type:'coop-part',id:9,part:0,total:1,data:'x'.repeat(4001)}),false);

@@ -10,7 +10,7 @@ Stack order: Stylized target -> GPU/performance -> runtime resilience -> shared-
 
 `@soul/world/spatial-index` is the common broad-phase for nearby entity/object lookups. It uses a uniform grid and supports incremental frame updates, tagged radius queries and nearest lookup. Hot callers can provide their own output array through `queryRadiusInto()` so repeated proximity checks do not allocate a new array every frame.
 
-MURAAAAAAA uses this for nearby guard, wildlife target, raid target and nearby defensive-building lookup instead of repeatedly filtering/sorting the full population/object list.
+叡智豊満 uses this for nearby guard, wildlife target, raid target and nearby defensive-building lookup instead of repeatedly filtering/sorting the full population/object list.
 
 ## Crowd navigation / Flow Field
 
@@ -73,13 +73,13 @@ High-frequency histories use bounded `Float64Array` rings. Spatial queries can r
 
 ## AudioWorklet
 
-`@soul/platform-web/audio-worklet-mixer` provides a category mixer running in AudioWorklet when supported, with a direct AudioNode connection fallback when not supported. 尽喰廻遊 routes ambient and effect buses through this mixer without changing sound event semantics.
+`@soul/platform-web/audio-worklet-mixer` provides a category mixer running in AudioWorklet when supported, with a direct AudioNode connection fallback when not supported. 喰滅廻遊 routes ambient and effect buses through this mixer without changing sound event semantics.
 
 Audio LOD from the previous shared-world phase remains responsible for deciding which voices should exist; AudioWorklet is the mixing/execution layer.
 
 ## Incremental persistence
 
-MURAAAAAAA retains the canonical full snapshot but adds an append-only journal:
+叡智豊満 retains the canonical full snapshot but adds an append-only journal:
 
 - the base snapshot remains a complete recoverable save;
 - subsequent saves store incremental operations, including ID-addressed entity patches;

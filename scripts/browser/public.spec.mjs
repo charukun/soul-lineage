@@ -98,7 +98,7 @@ for (const target of targets) {
       await expect(canvas).toHaveAttribute('data-world', 'night-hunt.v3');
       await expect(canvas).toHaveAttribute('data-asset', 'kaykit.floor_tile_small');
       await expect(canvas).toHaveAttribute('data-platform', 'web');
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText('尽喰廻遊');
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText('喰滅廻遊');
       expect(await page.locator('#emblem').evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       // Retain the hunt screenshot and automatic success/failure screenshots;
@@ -154,7 +154,7 @@ for (const target of targets) {
     } else if (target.app === 'village' && !target.legacy && await page.locator('#build').count()) {
       await expect(canvas).toHaveAttribute('data-game-world', 'hoshitsugi.life-and-guard.v5');
       await expect(page.locator('#loading')).toBeHidden();
-      await expect(page.locator('#muraEntry').getByRole('heading', {level: 2})).toHaveText('MURAAAAAAA');
+      await expect(page.locator('#muraEntry').getByRole('heading', {level: 2})).toHaveText('叡智豊満');
       // Carry forward PR #59: enter the current start screen before using the HUD.
       await expect(page.locator('#muraEntry')).toBeVisible();
       await page.locator('#muraEnterVillage').click();

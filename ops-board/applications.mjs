@@ -52,7 +52,7 @@ function rinneDevToolTarget(id,label,path,entries,environmentById,manifest) {
     label,
     expectedUrl: `${PAGES_ROOT}dev/rinne/${path}`,
     url: rinneDev.url ? new URL(path, rinneDev.url).toString() : null,
-    source: '輪廻転焦 DEV 公開manifest',
+    source: '百年転生 DEV 公開manifest',
   };
 }
 

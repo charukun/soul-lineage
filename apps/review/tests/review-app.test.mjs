@@ -10,7 +10,7 @@ test('Visual Review Lab is an independent developer app, not Rinne branding',()=
   assert.equal(pkg.appKind,'dev-tool');
   assert.match(html,/Visual Review Lab/);
   assert.match(html,/data-dev-tool="visual-review"/);
-  assert.doesNotMatch(html,/<title>輪廻転焦 Visual Review/);
+  assert.doesNotMatch(html,/<title>百年転生 Visual Review/);
 });
 
 test('Lab routes probes to delivered runtimes and keeps PULSE independent',()=>{

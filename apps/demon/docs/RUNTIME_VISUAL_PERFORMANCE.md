@@ -1,4 +1,4 @@
-# 尽喰廻遊 Runtime Visual / Performance Acceptance
+# 喰滅廻遊 Runtime Visual / Performance Acceptance
 
 Pixel Fold級の高DPIスマホでは、3Dキャンバスだけが低内部解像度で拡大されたように見える状態を許容しない。Repository共通のmobile 30fps方針を維持しつつ、画質低下より先に不要なCPU走査・低価値なvisual workを削る。
 

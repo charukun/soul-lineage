@@ -51,8 +51,8 @@ COM/support/semantic data comes from the actual Workshop actor and authored slas
 
 The previous shared consumers are now part of explicit boot paths:
 
-- MURAAAAAAA loads `mura-master-characters.js` after the village boot, then wraps final actor sync with `mura-motion-crowd.js`
-- 尽喰廻遊 loads `master-humans.js` and `motion-crowd.js` before the game creates `NightView`
+- 叡智豊満 loads `mura-master-characters.js` after the village boot, then wraps final actor sync with `mura-motion-crowd.js`
+- 喰滅廻遊 loads `master-humans.js` and `motion-crowd.js` before the game creates `NightView`
 - Rinne exports `HumanoidRuntime` from the final operational layer
 
 Crowd spacing reads real resident/NPC positions and applies at most 0.18 m of presentation-only bias to the rendered human node. Navigation paths, resident/NPC x/z, AI state, save data and combat state are never written by the crowd adapter. Monster motion is not changed.

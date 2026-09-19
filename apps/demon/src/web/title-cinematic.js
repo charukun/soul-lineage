@@ -49,7 +49,7 @@ export function createTitleCinematic({root,title}) {
       const livingUrl = URL.createObjectURL(new Blob([chunks.get('jiLV')],{type:'video/mp4'}));
       blobUrls.push(introUrl,livingUrl); intro.src=introUrl; living.src=livingUrl; intro.load(); living.load();
       return true;
-    })().catch(error => { console.warn('[尽喰廻遊 cinematic]',error); return false; });
+    })().catch(error => { console.warn('[喰滅廻遊 cinematic]',error); return false; });
     return mediaReadyPromise;
   };
   addEventListener('pagehide',()=>{for(const url of blobUrls)URL.revokeObjectURL(url);blobUrls.length=0;},{once:true});

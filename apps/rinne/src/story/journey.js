@@ -12,7 +12,7 @@ export function nextPractice(story,id){
 export function createJourney({win,port,ui,getStory,onAction,onSave}){
  const doc=win.document,dialog=doc.createElement('dialog');dialog.id='story-journey';dialog.className='story-sheet story-page-dialog';
  dialog.setAttribute('aria-labelledby','journey-title');
- dialog.innerHTML='<header class="sheet-heading"><div><small>輪廻転焦 · 旅の手帳</small><h2 id="journey-title">暮らしと支度</h2></div><button class="sheet-close" aria-label="暮らしと支度を閉じる">×</button></header><div class="book-flex-body"><section class="journey-section book-structure" id="journey-life"></section><section class="journey-section book-structure" id="journey-skills"></section><section class="journey-section book-structure" id="journey-trip"></section></div>';
+ dialog.innerHTML='<header class="sheet-heading"><div><small>百年転生 · 旅の手帳</small><h2 id="journey-title">暮らしと支度</h2></div><button class="sheet-close" aria-label="暮らしと支度を閉じる">×</button></header><div class="book-flex-body"><section class="journey-section book-structure" id="journey-life"></section><section class="journey-section book-structure" id="journey-skills"></section><section class="journey-section book-structure" id="journey-trip"></section></div>';
  doc.body.append(dialog);const life=dialog.querySelector('#journey-life'),skills=dialog.querySelector('#journey-skills'),trip=dialog.querySelector('#journey-trip');
  const book=mountPageLayout(dialog.querySelector('.book-flex-body'),{chapters:()=>[{title:'生活',nodes:[...life.children]},{title:'覚えた技',nodes:[...skills.children]},{title:'遠征',nodes:[...trip.children]}],label:'暮らしと支度のページ'});
  const abort=new win.AbortController(),on=(el,type,fn)=>el.addEventListener(type,fn,{signal:abort.signal});

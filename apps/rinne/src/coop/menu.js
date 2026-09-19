@@ -56,7 +56,7 @@ export function installCoopMenu({container,buildInfo,getPrepared,getName,onPlay,
   $('coop-host').onclick=run(()=>host(false));$('coop-resume').onclick=run(()=>host(true));
   $('coop-invite').onclick=run(async()=>{status('招待を用意しています。');const invite=await session.invite();$('coop-link').value=invitationUrl(location.href,invite);$('coop-answer').value='';status('招待を渡し、友達から届く返事を受け取ってください。');});
   $('coop-copy').onclick=run(()=>copy('coop-link'));$('coop-copy-answer').onclick=run(()=>copy('coop-answer'));
-  $('coop-share').onclick=run(async()=>{const url=$('coop-link').value;if(!url)throw Error('先に友達を招いてください。');if(navigator.share)await navigator.share({title:'輪廻転焦 · 友達との試遊',url});else await copy('coop-link');});
+  $('coop-share').onclick=run(async()=>{const url=$('coop-link').value;if(!url)throw Error('先に友達を招いてください。');if(navigator.share)await navigator.share({title:'百年転生 · 友達との試遊',url});else await copy('coop-link');});
   $('coop-join').onclick=run(async()=>{
     if(session)throw Error('いったんタイトルへ戻ってから参加してください。');const invite=readInvitation($('coop-link').value);if(!invite)throw Error('招待リンクを貼り付けてください。');
     let resume=null;try{resume=JSON.parse(await storage().read(`coop-ticket:${invite.worldId}`)||'null');}catch{}

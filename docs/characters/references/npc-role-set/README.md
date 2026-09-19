@@ -7,7 +7,7 @@ Runtime implementation: 2026-09-14
 
 ## Purpose
 
-This set expands the visual design space available to Character Workshop authoring, MURAAAAAAA residents, and human NPC generation. It intentionally covers age and role silhouettes that are weak when every character is derived only from Shino-like adult proportions and the initial modular kit.
+This set expands the visual design space available to Character Workshop authoring, 叡智豊満 residents, and human NPC generation. It intentionally covers age and role silhouettes that are weak when every character is derived only from Shino-like adult proportions and the initial modular kit.
 
 The reference sheets remain the visual targets. Runtime implementation is defined by `packages/characters/src/reference-models.js` and `packages/rendering/src/master-character-reference.js`: each sheet now has a selectable code-authored 3D model on the audited common humanoid rig, so it can be inspected with the existing Visual Review Lab camera, motion, expression, and Motion QA flow. These runtime models are implementation assets, but rendered visual approval is still required before treating a model as final art quality.
 

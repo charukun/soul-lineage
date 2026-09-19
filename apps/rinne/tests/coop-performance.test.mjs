@@ -30,7 +30,7 @@ test('explicit render latency remains available for capture layers that already 
 test('wire instrumentation counts UTF-8 payload bytes and DataChannel queue pressure in fixed one-second buckets',()=>{
   let clock=0;const probe=createCoopPerformanceProbe({role:'peer',now:()=>clock}),frames=[];
   const connection={channel:{readyState:'open',bufferedAmount:120},presenceBufferedAmount:()=>45,send:frame=>{frames.push(frame);connection.channel.bufferedAmount+=20;}};
-  const wire=createRoomWire(()=>{},{now:()=>clock,onSendSample:sample=>probe.recordSend(sample)}),message={type:'x',text:'輪廻転焦'};
+  const wire=createRoomWire(()=>{},{now:()=>clock,onSendSample:sample=>probe.recordSend(sample)}),message={type:'x',text:'百年転生'};
   assert.equal(wire.send(connection,message),true);assert.ok(frames.length>0);clock=999;assert.equal(probe.snapshot().peerUplinkKbps.length,0);clock=1000;
   const raw=probe.snapshot();assert.equal(raw.reliableBufferedAmountBytes[0]>=120,true);assert.equal(raw.presenceBufferedAmountBytes[0],45);assert.equal(raw.peerUplinkKbps.length,1);
   const expectedBytes=new TextEncoder().encode(JSON.stringify(message)).byteLength;assert.equal(raw.peerUplinkKbps[0],expectedBytes*8/1000);

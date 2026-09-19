@@ -1,6 +1,6 @@
 # Lean Context / Token Budget Policy
 
-輪廻転焦のChat / WORK / Codexセッションは、RepositoryとGitHubを正本にしつつ、タスク遂行に不要な履歴・ログ・文書を最初から大量投入しない。目的は、品質や検証条件を落とさずに、回避可能な入力コンテキストとツール出力を減らすこと。
+百年転生のChat / WORK / Codexセッションは、RepositoryとGitHubを正本にしつつ、タスク遂行に不要な履歴・ログ・文書を最初から大量投入しない。目的は、品質や検証条件を落とさずに、回避可能な入力コンテキストとツール出力を減らすこと。
 
 このポリシーはChatGPT製品側が自動注入するsystem / Project / memoryコンテキストの量や、プラン固有の利用上限をRepositoryから変更するものではない。Repository側で制御できる「何を取得するか」「どの粒度で読むか」「何を正本にするか」を軽量化する。
 

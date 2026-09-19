@@ -11,6 +11,8 @@ const forbidden = [
   '\u6751\u30a2\u30d7\u30ea',
   '\u6751\u30cf\u30a6\u30b8\u30f3\u30b0\u30b2\u30fc\u30e0',
   'MURAAAAAAA',
+  'jinkai',
+  '百年転生 — 百年転生',
 ];
 const textExtensions = /\.(?:js|mjs|cjs|ts|tsx|jsx|css|html|json|md|yml|yaml|webmanifest|txt|svg|xml|toml|sh|py)$/i;
 
@@ -22,6 +24,7 @@ test('retired game titles are absent from tracked text sources', () => {
     .filter(path => path !== 'tests/game-title-branding.test.mjs');
   const offenders = [];
   for (const path of files) {
+    for (const title of forbidden) if (path.includes(title)) offenders.push(`${path}: filename contains ${title}`);
     let content;
     try { content = readFileSync(path, 'utf8'); } catch { continue; }
     for (const title of forbidden) {

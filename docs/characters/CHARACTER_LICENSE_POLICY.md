@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Character model assets used by 輪廻転焦, village, demon or shared character tooling must be suitable for commercial distribution without model-specific commercial-use conditions.
+Character model assets used by 百年転生, village, demon or shared character tooling must be suitable for commercial distribution without model-specific commercial-use conditions.
 
 ## Allowed character model sources
 
