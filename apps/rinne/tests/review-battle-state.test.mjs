@@ -36,17 +36,12 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   const fixed=reviewBattleCameraFrame(core,{follow:false});
   assert.deepEqual(fixed.position,{x:0,y:5.2,z:10});
   assert.deepEqual(fixed.look,{x:0,y:.95,z:0});
-});
-
-
-test('review presentation borrows committed approach and strike motion without changing combat state',()=>{
   const actor={x:-1,z:0,attack:'slash',progress:.5,slot:'ha'},target={x:1,z:0};
-  const frame=reviewBattlePresentationFrame(actor,target,null,1/60);
-  assert.ok(frame.x>-1.35,'mid-strike should lunge toward the target');
-  assert.ok(frame.lunge>.2);
-  assert.ok(frame.stride>0);
-  const settled=reviewBattlePresentationFrame({...actor,attack:null,progress:0},target,frame,1/60);
-  assert.ok(settled.x<frame.x,'recovery should settle back toward the authoritative combat position');
+  const presentation=reviewBattlePresentationFrame(actor,target,null,1/60);
+  assert.ok(presentation.x>-1.35,'mid-strike should lunge toward the target');
+  assert.ok(presentation.lunge>.2);assert.ok(presentation.stride>0);
+  const settled=reviewBattlePresentationFrame({...actor,attack:null,progress:0},target,presentation,1/60);
+  assert.ok(settled.x<presentation.x,'recovery should settle back toward the authoritative combat position');
   const hit=reviewBattlePresentationFrame({...actor,attack:null,progress:0},target,settled,1/60,{hit:true});
   assert.ok(hit.x<settled.x,'incoming hit should add a short readable recoil away from the target');
 });
