@@ -14,11 +14,11 @@ const $=id=>document.getElementById(id);
 const debug={ready:false,error:null,generatedModels:0,modelsLoaded:0,frames:0,revision:THREE.REVISION};
 Object.defineProperty(window,'__ASHEN__',{value:debug,writable:false});
 async function boot(){
-  const renderer=new THREE.WebGLRenderer({canvas:$('scene'),antialias:true,alpha:false,powerPreference:'high-performance'});
+  const renderer=new THREE.WebGLRenderer({canvas:$('scene'),antialias:false,alpha:false,powerPreference:'high-performance'});
   const gl=renderer.getContext(),gpuInfo=gl.getExtension('WEBGL_debug_renderer_info');
   const gpu=gpuInfo?String(gl.getParameter(gpuInfo.UNMASKED_RENDERER_WEBGL)):'';
   const lowPower=/SwiftShader|llvmpipe|Software|Microsoft Basic Render/i.test(gpu);
-  renderer.setPixelRatio(lowPower?.65:Math.min(devicePixelRatio||1,innerWidth<700?1.25:1.6));renderer.setSize(innerWidth,innerHeight,false);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.13;renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.setPixelRatio(lowPower?.65:Math.min(devicePixelRatio||1,innerWidth<700?1.25:1.6));renderer.setSize(innerWidth,innerHeight,false);renderer.shadowMap.enabled=!lowPower;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.13;renderer.outputColorSpace=THREE.SRGBColorSpace;
   const scene=new THREE.Scene();scene.background=new THREE.Color('#193e44');scene.fog=new THREE.FogExp2('#193e44',.033);
   const camera=new THREE.OrthographicCamera(-18,18,12,-12,.1,130);camera.position.set(18,24,20);camera.lookAt(0,0,0);
   const composer=lowPower?null:new EffectComposer(renderer);
@@ -47,7 +47,7 @@ async function boot(){
   $('scene').addEventListener('webglcontextlost',e=>{e.preventDefault();showError('描画の接続が中断されました。再読み込みで、もう一度灯をともせます。');});
   debug.modelsLoaded=assets.loaded;debug.modelsTotal=assets.total;debug.sourceManifest=assets.manifest.sourceCommit;debug.snapshot=()=>({...game.snapshot(),fps,quality:lowPower?'adaptive-software':'high',gpu,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,animations:[...actors.animationClips],renderedActors:actors.items.size,ready:debug.ready});
   function frame(now){
-    requestAnimationFrame(frame);const wallDt=Math.max(0,(now-last)/1000),realDt=Math.min(wallDt,.25);last=now;const paused=game.state==='paused';const dt=paused?0:realDt;elapsed+=dt;
+    requestAnimationFrame(frame);const wallDt=Math.max(0,(now-last)/1000),realDt=Math.min(wallDt,1);last=now;const paused=game.state==='paused';const dt=paused?0:realDt;elapsed+=dt;
     const title=game.state==='title';modeBlend=THREE.MathUtils.damp(modeBlend,title?1:0,2.7,realDt);
     const units=title?demo.heroes:game.units;
     if(!title){let simulation=dt*game.speed;while(simulation>0){const slice=Math.min(.033,simulation);game.step(slice);simulation-=slice;}for(const event of game.drain()){effects.event(event);audio.event(event);ui.event(event);}}
@@ -55,7 +55,7 @@ async function boot(){
     const aspect=innerWidth/innerHeight;const view=aspect<.85?35:aspect<1.4?28:24;const span=view*(1-modeBlend*.12);camera.left=-span*aspect/2;camera.right=span*aspect/2;camera.top=span/2;camera.bottom=-span/2;camera.updateProjectionMatrix();
     const focus=new THREE.Vector3(modeBlend*(aspect>.9?-2.1:1),.35,-.4),angle=.69+Math.sin(elapsed*.085)*.035*modeBlend;const shake=effects.shake;camera.position.set(focus.x+Math.sin(angle)*30+(Math.random()-.5)*shake,23+focus.y,focus.z+Math.cos(angle)*30+(Math.random()-.5)*shake);camera.lookAt(focus);camera.updateMatrixWorld();
     renderer.info.reset();shadowClock-=realDt;if(shadowClock<=0){renderer.shadowMap.needsUpdate=true;shadowClock=lowPower?.3:.07;}
-    if(composer)composer.render();else renderer.render(scene,camera);effects.render(camera,units,elapsed,dt,world.flames,!title);debug.frames++;frameClock+=wallDt;frameCount++;if(frameClock>=1){fps=Math.round(frameCount/frameClock);frameClock=0;frameCount=0;}
+    if(title||game.state==='combat'||modeBlend>.02){if(composer)composer.render();else renderer.render(scene,camera);}effects.render(camera,units,elapsed,dt,world.flames,!title);debug.frames++;frameClock+=wallDt;frameCount++;if(frameClock>=1){fps=Number((frameCount/frameClock).toFixed(1));frameClock=0;frameCount=0;}
   }
   $('loadbar').style.width='100%';$('loading').classList.add('hidden');$('title').classList.remove('hidden');debug.ready=true;last=performance.now();requestAnimationFrame(frame);
 }

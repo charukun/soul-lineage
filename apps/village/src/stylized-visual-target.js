@@ -3,6 +3,7 @@ import { THREE as T } from '@soul/rendering';
 import { applyStylizedArtProfile, installStylizedGeometryLOD, stylizedArtDiagnostics } from '@soul/rendering/stylized-art';
 import { View } from './web/view.js';
 import { instanceDensityIndex } from '@soul/rendering/spatial-instances';
+import { updateVegetationDensity } from './vegetation-density.js';
 
 const once = (root, profileId, { cloneMaterials = false } = {}) => {
   if (!root?.traverse || root.userData?.stylizedArt?.profileId === profileId) return root;
@@ -39,11 +40,13 @@ function installStaticLOD(root) {
   }
 }
 
-const matrix = new T.Matrix4(), hidden = new T.Matrix4().makeScale(0, 0, 0), position = new T.Vector3();
+const hidden = new T.Matrix4().makeScale(0, 0, 0);
+// Preserve the adaptive pass's settled appearance, with one owner before render.
 const densityHash = index => {
-  const x = Math.sin((index + 1) * 91.733 + 17.17) * 43758.5453;
+  const x = Math.sin((index + 1) * 73.173 + 11.7) * 43758.5453;
   return x - Math.floor(x);
 };
+const densityAtDistance = distance => stylizedDensityForDistance('environment', distance);
 
 function captureVegetationMatrices(view) {
   for (const instanced of [...(view.forestMeshes || []), ...(view.flowerMeshes || [])]) {
@@ -59,19 +62,16 @@ function captureVegetationMatrices(view) {
 function applyVegetationDensity(view) {
   const target = view.target;
   if (!target) return;
+  const scale = view.__stylizedQuality?.profile?.vegetationScale ?? 1;
   const last = view.__stylizedDensityTarget;
-  if (last && Math.hypot(target.x - last.x, target.z - last.z) < 5 && Math.abs(view.span - last.span) < 8) return;
-  view.__stylizedDensityTarget = { x: target.x, z: target.z, span: view.span };
+  if (last && last.scale === scale && Math.hypot(target.x - last.x, target.z - last.z) < 5 && Math.abs(view.span - last.span) < 8) return;
+  view.__stylizedDensityTarget = { x: target.x, z: target.z, span: view.span, scale };
   for (const instanced of [...(view.forestMeshes || []), ...(view.flowerMeshes || [])]) {
-    const base = instanced.userData.stylizedDensityBase;
-    if (!base?.length) continue;
-    for (let i = 0; i < base.length; i++) {
-      position.setFromMatrixPosition(base[i]);
-      const distance = Math.hypot(position.x - target.x, position.z - target.z);
-      const density = stylizedDensityForDistance('environment', distance);
-      instanced.setMatrixAt(i, densityHash(instanceDensityIndex(instanced,i,17)) <= density ? base[i] : hidden);
-    }
-    instanced.instanceMatrix.needsUpdate = true;
+    updateVegetationDensity(instanced, target, scale, {
+      densityAtDistance,
+      rankAtIndex: index => densityHash(instanceDensityIndex(instanced, index, 31)),
+      hiddenMatrix: hidden,
+    });
   }
 }
 
@@ -81,7 +81,7 @@ if (!rebuild.__stylizedVisualTarget) {
     const result = rebuild.apply(this, args);
     if(result?.changed===false&&!result?.vegetationChanged)return result;
     installStaticLOD({children:result?.addedRoots||[this.objects,this.inside]});
-    if(result?.vegetationChanged!==false){captureVegetationMatrices(this);applyVegetationDensity(this);this.__adaptiveDensityTarget=null;}
+    if(result?.vegetationChanged!==false){captureVegetationMatrices(this);applyVegetationDensity(this);}
     return result;
   };
   wrappedRebuild.__stylizedVisualTarget = true;

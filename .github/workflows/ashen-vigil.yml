@@ -4,7 +4,7 @@ on:
     branches: ['work/ashen-vigil-external-only', develop]
     paths: ['apps/ashen-vigil/**', '.github/workflows/ashen-vigil.yml', 'package-lock.json']
 permissions:
-  contents: write
+  contents: read
   statuses: write
 concurrency:
   group: ashen-vigil-public
@@ -21,34 +21,19 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Generate npm workspace lock for exact source
-        run: |
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          mkdir -p apps/ashen-vigil/evidence
-          cp package-lock.json apps/ashen-vigil/evidence/root-package-lock.json
-          git diff --stat -- package-lock.json
-      - name: Preserve generated lock as immutable blob without updating any branch
+          cache: npm
+      - name: Record exact-source validation pending
         uses: actions/github-script@v8
         with:
           script: |
-            const fs = require('node:fs');
-            const content = fs.readFileSync('package-lock.json','utf8');
-            const result = await github.rest.git.createBlob({...context.repo,content,encoding:'utf-8'});
-            const receipt = {sha:result.data.sha,sourceCommit:context.sha,bytes:Buffer.byteLength(content),path:'package-lock.json',branchUpdated:false};
-            fs.writeFileSync('apps/ashen-vigil/evidence/dependency-lock.json',JSON.stringify(receipt,null,2));
-            core.notice(`DEPENDENCY_LOCK_BLOB=${result.data.sha}`);
-      - name: Preserve dependency receipt before browser work
-        uses: actions/upload-artifact@v4
-        with:
-          name: ashen-vigil-lock-${{ github.sha }}
-          path: apps/ashen-vigil/evidence/
-          retention-days: 7
+            await github.rest.repos.createCommitStatus({...context.repo,sha:context.sha,context:'ashen-vigil/playtest',state:'pending',description:'Audited assets, real browser combat and public deployment verification',target_url:`${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`});
+      - name: Install committed workspace dependencies
+        run: npm ci --no-audit --no-fund
       - name: Acquire and audit new authored assets
         run: python3 apps/ashen-vigil/prepare.py
       - name: Build and browser-test game
         run: |
           cd apps/ashen-vigil
-          npm install --no-audit --no-fund --workspaces=false
           npx playwright install --with-deps chromium
           npm run build
           npm test
@@ -77,6 +62,7 @@ jobs:
             apps/ashen-vigil/*.mjs
             apps/ashen-vigil/*.py
             apps/ashen-vigil/*.json
+            apps/ashen-vigil/*.jsonc
             apps/ashen-vigil/*.html
             apps/ashen-vigil/*.css
             apps/ashen-vigil/*.md

@@ -12,11 +12,11 @@ export function buildWorld(scene,assets,lowPower=false){
   }
   // Reuse the original road model's vertices, normals, UVs and indices unchanged.
   const road=assets.models.get('graveyard/road').scene;road.updateMatrixWorld(true);
-  const cells=[];for(let x=-9;x<=9;x++)for(let z=-9;z<=9;z++)cells.push([x,z]);
+  const cells=[],extent=lowPower?5:9,spacing=lowPower?3.1:1.8,tileScale=lowPower?3.9:2.3;for(let x=-extent;x<=extent;x++)for(let z=-extent;z<=extent;z++)cells.push([x,z]);
   const transform=new THREE.Matrix4(),obj=new THREE.Object3D();
   road.traverse(mesh=>{if(!mesh.isMesh)return;const mat=mesh.material.clone();mat.color.set('#617879');mat.roughness=.94;
     const inst=new THREE.InstancedMesh(mesh.geometry,mat,cells.length);inst.receiveShadow=true;inst.castShadow=false;inst.name='Original road tiles';
-    cells.forEach(([x,z],i)=>{obj.position.set(x*1.8,-.175+(random()-.5)*.013,z*1.8);obj.rotation.set(0,Math.floor(random()*4)*Math.PI/2,0);obj.scale.set(2.3,.95,2.3);obj.updateMatrix();transform.copy(obj.matrix).multiply(mesh.matrixWorld);inst.setMatrixAt(i,transform);inst.setColorAt(i,new THREE.Color().setScalar(.78+random()*.25));});inst.instanceMatrix.needsUpdate=true;world.add(inst);grounds.push(inst);
+    cells.forEach(([x,z],i)=>{obj.position.set(x*spacing,-.175+(random()-.5)*.013,z*spacing);obj.rotation.set(0,Math.floor(random()*4)*Math.PI/2,0);obj.scale.set(tileScale,.95,tileScale);obj.updateMatrix();transform.copy(obj.matrix).multiply(mesh.matrixWorld);inst.setMatrixAt(i,transform);inst.setColorAt(i,new THREE.Color().setScalar(.78+random()*.25));});inst.instanceMatrix.needsUpdate=true;world.add(inst);grounds.push(inst);
   });
   place('graveyard/crypt-large',-1,-12.1,3.4,0,0,'#8baba6');
   place('graveyard/crypt-large-roof',-1,-12.1,3.4,0,3.4,'#697d80');

@@ -23,8 +23,9 @@ try{
     assert.equal(await page.title(),'ASHEN VIGIL — 灰燼の誓い');
     if(config.name==='desktop'){await page.locator('[data-credits]').click();assert.ok(await page.locator('#credits').isVisible());await page.locator('#credits-close').click();}
     await page.locator('#start').click();
-    await page.waitForFunction(()=>window.__ASHEN__.snapshot().time>10,{},{timeout:90000});
-    let snap=await page.evaluate(()=>window.__ASHEN__.snapshot());assert.ok(snap.damage>0,'Real autonomous combat must deal damage');assert.ok(snap.renderedActors>=4);assert.ok(snap.animations.includes('Sword'));assert.ok(snap.animations.includes('Run'));assert.ok(snap.triangles>50000,'Authored world and actor geometry must really render');
+    // Observe completed autonomous attacks, not a timer that pauses at an early victory.
+    await page.waitForFunction(()=>{const s=window.__ASHEN__.snapshot();return s.kills>=2&&s.damage>0&&s.state==='combat';},{},{timeout:90000});
+    let snap=await page.evaluate(()=>window.__ASHEN__.snapshot());assert.ok(snap.damage>0&&snap.kills>=2,'Real autonomous combat must defeat enemies');assert.ok(snap.heroes.some((h,i)=>Math.hypot(h.x-(i-1)*2.25,h.z-(i===2?2.4:.7))>1),'Autonomous actors must actually move');assert.ok(snap.renderedActors>=4);assert.ok(snap.animations.includes('Sword'));assert.ok(snap.animations.includes('Run'));assert.ok(snap.triangles>50000,'Authored world and actor geometry must really render');
     await page.screenshot({path:`evidence/${tag}-${config.name}-battle.png`});
     await page.locator('#pause').click();const paused=await page.evaluate(()=>window.__ASHEN__.snapshot());assert.equal(paused.state,'paused');await page.waitForTimeout(500);assert.equal((await page.evaluate(()=>window.__ASHEN__.snapshot())).time,paused.time);await page.locator('#resume').click();
     await page.locator('#speed').click();assert.equal(await page.locator('#speed').textContent(),'2×');
