@@ -85,7 +85,7 @@ test('tool display names do not leak explanatory parentheses or the retired boar
   assert.equal(apps.find(a => a.id === 'portal').name, 'WAYFINDER');
   assert.equal(apps.find(a => a.id === 'ops-board').name, 'PULSE');
   const eclipse = apps.find(a => a.id === 'eclipse');
-  assert.equal(eclipse.name, 'Eclipse');
+  assert.equal(eclipse.name, 'ECLIPSE 黎明の残響');
   assert.equal(eclipse.kind, 'reference');
   assert.deepEqual(eclipse.targets.map(target => target.environment), ['dev']);
   assert.equal(eclipse.targets[0].url, 'https://soul-lineage-eclipse-dev.c-okamoto.workers.dev/');

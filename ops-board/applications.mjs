@@ -72,7 +72,7 @@ export function buildApplications(manifest = {}, environments = [], runs = [], {
   for (const env of environments.filter(item => item.kind === 'preview')) {
     const id = `preview:${env.id}`;
     groups.set(id, {
-      id, name: env.name, kind: 'tool',
+      id, name: env.name || env.workflow || env.id || 'Preview', kind: 'tool',
       targets: [{ id: env.id, label: '専用公開', environment: 'preview', state: env.deployState || 'unknown',
         url: env.url || null, commit: env.deployedCommit || null, deployedAt: env.deployedAt || null,
         source: 'GitHub Actions / 公開status' }],
@@ -102,6 +102,6 @@ export function buildApplications(manifest = {}, environments = [], runs = [], {
   const order = ['rinne', 'village', 'demon', 'lanternfell', 'character-studio', 'visual-review', 'portal', 'ops-board'];
   return [...groups.values()].sort((a, b) => {
     const ai = order.indexOf(a.id); const bi = order.indexOf(b.id);
-    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi) || a.name.localeCompare(b.name, 'ja');
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi) || String(a.name || a.id).localeCompare(String(b.name || b.id), 'ja');
   });
 }
