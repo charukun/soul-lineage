@@ -37,6 +37,12 @@ jobs:
             const receipt = {sha:result.data.sha,sourceCommit:context.sha,bytes:Buffer.byteLength(content),path:'package-lock.json',branchUpdated:false};
             fs.writeFileSync('apps/ashen-vigil/evidence/dependency-lock.json',JSON.stringify(receipt,null,2));
             core.notice(`DEPENDENCY_LOCK_BLOB=${result.data.sha}`);
+      - name: Preserve dependency receipt before browser work
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashen-vigil-lock-${{ github.sha }}
+          path: apps/ashen-vigil/evidence/
+          retention-days: 7
       - name: Acquire and audit new authored assets
         run: python3 apps/ashen-vigil/prepare.py
       - name: Build and browser-test game

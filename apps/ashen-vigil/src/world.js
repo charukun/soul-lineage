@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 // The environment consists exclusively of instances of authored glTF meshes.
-export function buildWorld(scene,assets){
+export function buildWorld(scene,assets,lowPower=false){
   const world=new THREE.Group();world.name='Externally authored graveyard';scene.add(world);
   const flames=[],grounds=[];let seed=301;
   const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
@@ -18,7 +18,6 @@ export function buildWorld(scene,assets){
     const inst=new THREE.InstancedMesh(mesh.geometry,mat,cells.length);inst.receiveShadow=true;inst.castShadow=false;inst.name='Original road tiles';
     cells.forEach(([x,z],i)=>{obj.position.set(x*1.8,-.175+(random()-.5)*.013,z*1.8);obj.rotation.set(0,Math.floor(random()*4)*Math.PI/2,0);obj.scale.set(2.3,.95,2.3);obj.updateMatrix();transform.copy(obj.matrix).multiply(mesh.matrixWorld);inst.setMatrixAt(i,transform);inst.setColorAt(i,new THREE.Color().setScalar(.78+random()*.25));});inst.instanceMatrix.needsUpdate=true;world.add(inst);grounds.push(inst);
   });
-  // A roofed chapel anchors the background; all pieces are upstream objects.
   place('graveyard/crypt-large',-1,-12.1,3.4,0,0,'#8baba6');
   place('graveyard/crypt-large-roof',-1,-12.1,3.4,0,3.4,'#697d80');
   place('graveyard/crypt-large-door',-1,-8.04,3.2,0,.05,'#80948b');
@@ -44,7 +43,23 @@ export function buildWorld(scene,assets){
   place('pirate/Environment_LargeBones',8.2,3.5,.7,1.6,.03,'#a4b49e');place('graveyard/trunk-long',-8,4,1.8,1.1,0,'#74918c');place('pirate/Prop_Chest_Closed',5,-9.7,.95,-.4,0,'#9c9e83');
   const fire=new THREE.PointLight('#f4b367',23,13,1.5);fire.position.set(0,3,0);scene.add(fire);
   const moon=new THREE.DirectionalLight('#a3dbe1',2.6);moon.position.set(-10,19,-12);scene.add(moon);
-  const sun=new THREE.DirectionalLight('#ffe0ad',3.2);sun.position.set(9,17,8);sun.castShadow=true;sun.shadow.mapSize.set(1536,1536);sun.shadow.camera.left=-18;sun.shadow.camera.right=18;sun.shadow.camera.top=18;sun.shadow.camera.bottom=-18;sun.shadow.camera.far=55;sun.shadow.bias=-.0003;sun.shadow.normalBias=.03;scene.add(sun);
-  scene.add(new THREE.HemisphereLight('#a5cfcc','#23313b',1.75));
+  const sun=new THREE.DirectionalLight('#ffe0ad',3.2);sun.position.set(9,17,8);sun.castShadow=true;sun.shadow.mapSize.set(lowPower?512:1536,lowPower?512:1536);sun.shadow.camera.left=-18;sun.shadow.camera.right=18;sun.shadow.camera.top=18;sun.shadow.camera.bottom=-18;sun.shadow.camera.far=55;sun.shadow.bias=-.0003;sun.shadow.normalBias=.03;scene.add(sun);
+  scene.add(new THREE.HemisphereLight('#a5cfcc','#23313b',1.95));
+  batchOriginalMeshes(world);
   return {world,grounds,flames,fire,update(t){fire.intensity=23+Math.sin(t*5.7)*2+Math.sin(t*11)*1.2;}};
+}
+// Hardware instancing preserves every authored vertex, UV and index unchanged.
+function batchOriginalMeshes(world){
+  world.updateMatrixWorld(true);const groups=new Map();
+  world.traverse(mesh=>{
+    if(!mesh.isMesh||mesh.isSkinnedMesh||mesh.isInstancedMesh||Array.isArray(mesh.material))return;
+    const m=mesh.material,key=[mesh.geometry.uuid,m.map?.uuid||'',m.color.getHexString(),m.roughness,m.metalness].join('|');
+    if(!groups.has(key))groups.set(key,[]);groups.get(key).push(mesh);
+  });
+  for(const meshes of groups.values()){
+    if(meshes.length<2)continue;const source=meshes[0],batch=new THREE.InstancedMesh(source.geometry,source.material,meshes.length);
+    batch.name='Authored mesh instances: '+source.name;batch.castShadow=source.castShadow;batch.receiveShadow=source.receiveShadow;
+    meshes.forEach((mesh,i)=>{batch.setMatrixAt(i,mesh.matrixWorld);mesh.removeFromParent();if(mesh.material!==source.material)mesh.material.dispose();});
+    batch.instanceMatrix.needsUpdate=true;batch.computeBoundingSphere();world.add(batch);
+  }
 }

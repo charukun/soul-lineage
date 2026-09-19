@@ -1,5 +1,6 @@
 {
-  "name":"ashen-vigil",
+  "name":"@soul/ashen-vigil",
+  "displayName":"ASHEN VIGIL — 灰燼の誓い",
   "version":"1.0.0",
   "private":true,
   "type":"module",

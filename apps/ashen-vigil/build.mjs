@@ -1,6 +1,9 @@
 import {build} from 'esbuild';
 import {cp,mkdir,readFile,writeFile,rm} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
+import {existsSync} from 'node:fs';
+// Root workspace builds acquire the same audited sources as isolated builds.
+if(!existsSync('public/assets-manifest.json'))execFileSync('python3',['prepare.py'],{stdio:'inherit'});
 await rm('dist',{recursive:true,force:true});
 await mkdir('dist',{recursive:true});
 await cp('public','dist',{recursive:true});

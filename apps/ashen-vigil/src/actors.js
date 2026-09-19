@@ -7,14 +7,14 @@ export class Actors {
     const holder=new THREE.Group();holder.name=unit.kind;root.position.y=-box.min.y;holder.add(root);const scale=unit.height/size.y;holder.scale.setScalar(scale);holder.position.set(unit.x,0,unit.z);this.scene.add(holder);
     const materials=[];root.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.roughness=.68;materials.push(o.material);}});
     const mixer=new THREE.AnimationMixer(root),clips=this.assets.models.get(key).animations,actions={};
-    for(const clip of clips){actions[clip.name]=mixer.clipAction(clip);this.animationClips.add(clip.name);}
+    for(const clip of clips)actions[clip.name]=mixer.clipAction(clip);
     const item={unit,root,holder,mixer,actions,materials,current:null,phase:0,scale};this.items.set(unit.id,item);this.play(item,unit.kind==='tentacle'?'Tentacle_Idle':'Idle');mixer.update(.13+(unit.id%5)*.07);return item;
   }
   play(item,name){
     if(item.current===name)return;
     const action=item.actions[name]||item.actions.Idle||item.actions.Tentacle_Idle||Object.values(item.actions)[0];if(!action)return;
     const old=item.current&&item.actions[item.current];
-    const oneShot=/Sword|Punch|Death|Attack/.test(name);action.reset().setLoop(oneShot?THREE.LoopOnce:THREE.LoopRepeat,oneShot?1:Infinity);action.clampWhenFinished=oneShot;action.timeScale=/Sword|Punch/.test(name)?1.45:1;action.fadeIn(.1).play();if(old&&old!==action)old.fadeOut(.1);item.current=name;
+    const oneShot=/Sword|Punch|Death|Attack/.test(name);action.reset().setLoop(oneShot?THREE.LoopOnce:THREE.LoopRepeat,oneShot?1:Infinity);action.clampWhenFinished=oneShot;action.timeScale=/Sword|Punch/.test(name)?1.45:1;action.fadeIn(.1).play();if(old&&old!==action)old.fadeOut(.1);item.current=name;this.animationClips.add(action.getClip().name);
   }
   update(units,dt){
     const ids=new Set(units.map(u=>u.id));
