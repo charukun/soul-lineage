@@ -18,6 +18,8 @@ test('distribution catalog separates buildable web targets from contract-only co
   }
   assert.equal(webTargetForEnvironment('dev').id,'web-dev');
   assert.equal(webTargetForEnvironment('prod').id,'web-prod');
+  assert.equal(targetSupportsApp('web-dev','review'),true);
+  assert.equal(targetSupportsApp('web-staging','review'),false);
   assert.ok(DISTRIBUTION_TARGETS.length>=9);
 });
 
@@ -25,6 +27,7 @@ test('DEV distribution plan is app-scoped and fans shared dependencies out throu
   const nodes=graph();
   assert.deepEqual(distributionPlanForDev(nodes,['apps/demon/src/main.js']),{apps:['demon'],include:[{app:'demon',target:'web-dev'}]});
   assert.deepEqual(distributionPlanForDev(nodes,['apps/rinne/src/main.js']),{apps:['rinne'],include:[{app:'rinne',target:'web-dev'}]});
+  assert.deepEqual(distributionPlanForDev(nodes,['apps/review/src/main.js']),{apps:['review'],include:[{app:'review',target:'web-dev'}]});
   const shared=distributionPlanForDev(nodes,['packages/assets/src/index.js']);
   assert.deepEqual(shared.apps,['demon','rinne','village']);
   assert.deepEqual(shared.include,[
@@ -66,4 +69,10 @@ test('fast DEV notification lists only affected per-app live targets',()=>{
   assert.match(message,/尽喰廻遊/);
   assert.match(message,/soul-lineage-demon-dev\.c-okamoto\.workers\.dev/);
   assert.doesNotMatch(message,/MURAAAAAAA/);
+});
+
+test('independent Visual Review DEV target is named separately from the games',()=>{
+  assert.equal(distributionTarget('web-dev').compatibilityPublisher,undefined);
+  assert.equal(targetSupportsApp('web-dev','review'),true);
+  assert.equal(targetSupportsApp('web-prod','review'),false);
 });

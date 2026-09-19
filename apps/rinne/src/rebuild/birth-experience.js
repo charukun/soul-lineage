@@ -13,7 +13,8 @@ export function createBirthExperience({document,canvas,gameScreen,view,stations,
   let introTimer=0,introRemaining=0,stuck=0,motionTime=0,carrierSpeed=0,speechSequence=0;
 
   const active=()=>{const state=getState();return state?.zone==='village'&&!state?.down&&!state?.ended&&state?.phase==='birth';};
-  const say=text=>text&&speech.show({id:`rinne-mother-${++speechSequence}`,text,personId:'Mother'});
+  const tutorialActive=()=>document.body?.classList?.contains('rinne-first-run-active')===true;
+  const say=text=>!tutorialActive()&&text&&speech.show({id:`rinne-mother-${++speechSequence}`,text,personId:'Mother'});
   function move(direction,speed,dt){
     const state=getState(),nx=state.position.x+direction.x*speed*dt,nz=state.position.z+direction.z*speed*dt;
     if(!view.canMoveTo(nx,nz,.42,'village'))return false;
@@ -39,13 +40,13 @@ export function createBirthExperience({document,canvas,gameScreen,view,stations,
     if(document.hidden){carrierSpeed=0;return{handled:true,moved:false,carrierMoving:false};}
     const state=getState(),manual=magnitude(axis)>.08;let moved=false,speed=0;introRemaining=Math.max(0,introRemaining-dt);
     if(manual){tour.tick(dt,state.position,true);speed=pace.manualSpeed;moved=move(view.cameraVector(axis),speed,dt);stuck=0;}
-    else if(introRemaining>0){carrierSpeed=0;return{handled:true,moved:false,carrierMoving:false,manual:false};}
+    else if(tutorialActive()||introRemaining>0){carrierSpeed=0;return{handled:true,moved:false,carrierMoving:false,manual:false};}
     else{
       const next=tour.tick(dt,state.position,false);if(next.line)say(next.line);
       if(next.mode==='travel'&&next.target){speed=pace.autoSpeed;moved=toward(next.target,dt);if(moved)stuck=0;else if((stuck+=dt)>=1.6){tour.advance();stuck=0;}}
       else stuck=0;
     }
-    if(introRemaining<=0)speakStation(nearestStation(stations,state.position));
+    if(!tutorialActive()&&introRemaining<=0)speakStation(nearestStation(stations,state.position));
     carrierSpeed=moved?speed:0;
     return{handled:true,moved,carrierMoving:moved,manual};
   }

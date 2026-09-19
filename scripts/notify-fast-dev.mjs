@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { GAME_NAMES } from './application-catalog.mjs';
+import { DEV_APP_NAMES } from './application-catalog.mjs';
 import { distributionPublicUrl } from './distribution-targets.mjs';
 import { PERSONAL_DEV_EMAIL_REPOSITORY, findAssociatedDevelopPr, personalDevChangeLabel, recordGithubDeliveryReceipt } from './notify-delivery.mjs';
 
@@ -9,7 +9,7 @@ const SHA=/^[a-f0-9]{40}$/;
 export function fastDevEmailMessage({pr,repository,apps=[]}={}){
   if(!pr?.number||!apps.length)return null;
   const label=personalDevChangeLabel(pr);
-  const targets=apps.map(app=>`${GAME_NAMES[app]||app}: ${distributionPublicUrl('web-dev',app)}`);
+  const targets=apps.map(app=>`${DEV_APP_NAMES[app]||app}: ${distributionPublicUrl('web-dev',app)}`);
   return [
     'DEV反映完了',
     `「${label}」を高速DEVに反映しました。`,

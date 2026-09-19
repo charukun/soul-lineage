@@ -8,7 +8,7 @@
 <body>
 <main class="fx-review">
 <header class="review-header">
-  <div><p class="eyebrow">119 SPECTACLE MOTIONS · AUTHORED RUNTIME VFX</p><h1>戦闘エフェクト</h1></div>
+  <div><p class="eyebrow">DISTINCT SOURCE VFX · AUTHORED RUNTIME</p><h1>戦闘エフェクト</h1></div>
   <output id="fx-status" role="status">原本を準備中</output>
 </header>
 <section class="fx-workspace">
@@ -16,6 +16,7 @@
     <section class="stage-shell" aria-label="選択中エフェクトの実機プレビュー">
       <canvas id="fx-stage" aria-label="人型スケールで戦闘エフェクトを確認。ドラッグで回転、ピンチで拡大"></canvas>
       <div class="stage-selection-slot" aria-live="polite">
+        <small class="stage-selection-kicker">選択中</small>
         <span id="fx-active-type">SINGLE ATTACK</span>
         <strong id="fx-selected-label">斬撃＋命中</strong>
         <small id="fx-selected-meta">ToonHit + Simple_Ribbon_Sword</small>
@@ -50,6 +51,7 @@
       <button type="button" data-filter="combo" aria-pressed="false">複合</button>
       </div>
     </div>
+    <div class="catalog-kicker">候補一覧</div>
     <div id="fx-catalog" class="fx-catalog" role="list"></div>
     <p id="fx-empty" class="catalog-empty" hidden>一致するエフェクトはありません</p>
   </aside>

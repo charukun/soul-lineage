@@ -57,8 +57,24 @@ function activity(){ui.lastActivity=performance.now();ui.idle=false;$('idleStatu
 for(const name of ['pointerdown','pointerup','wheel','keydown'])document.addEventListener(name,activity,{passive:true,capture:true});
 document.addEventListener('pointermove',e=>{if(e.buttons)activity();},{passive:true,capture:true});
 function costText(cost){const entries=Object.entries(cost||{});return entries.length?entries.map(([k,n])=>`${RESOURCE_NAMES[k]} ${Math.ceil(n)}`).join(' · '):'建材不要';}
-function selection(id,room=view.roomId){view.endObservation();ui.selected=id;ui.selectedRoom=room;ui.pending=null;view.clearGhost();view.showTerrainHints(null);$('placement').hidden=true;const o=world.list(room).find(o=>o.id===id);if(!o){deselect();return;}view.select(o,room);closeDrawer();$('context').hidden=false;updateContext();}
-function deselect(){ui.selected=null;ui.selectedRoom=null;view.select(null);$('context').hidden=true;}
+const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
+function clearContextAnchor(){const panel=$('context');panel.classList.remove('muraWorldContext');panel.removeAttribute('data-anchor-side');panel.style.removeProperty('left');panel.style.removeProperty('top');}
+function focusFacility(o,room){const d=defs[o?.kind];if(room||!d?.building)return;const size=Math.max(Number(d.w)||8,Number(d.d)||8),span=Math.max(22,Math.min(34,size*2.4));view.focus(o.x,o.z,Math.min(view.span,span));}
+function positionFacilityContext(){
+ const panel=$('context');if(panel.hidden||!ui.selected||ui.selectedRoom){clearContextAnchor();return;}
+ const o=world.object(ui.selected),d=defs[o?.kind];if(!o||!d?.building){clearContextAnchor();return;}
+ const projected=view.objectControlPoint(o),canvasRect=view.canvas.getBoundingClientRect();
+ panel.classList.add('muraWorldContext');
+ const rect=panel.getBoundingClientRect(),margin=10,gap=12,hudBottom=($('muraTopStack')||$('idleStatus'))?.getBoundingClientRect().bottom||0;
+ const x=clamp(canvasRect.left+projected.x,margin+rect.width/2,innerWidth-margin-rect.width/2),anchorY=canvasRect.top+projected.y;
+ let side='above',y=anchorY;
+ if(anchorY-gap-rect.height<hudBottom+8&&anchorY+gap+rect.height<innerHeight-74)side='below';
+ if(side==='above')y=clamp(anchorY,hudBottom+rect.height+gap+8,innerHeight-74);
+ else y=clamp(anchorY,hudBottom+8,innerHeight-rect.height-gap-74);
+ panel.dataset.anchorSide=side;panel.style.left=`${x}px`;panel.style.top=`${y}px`;
+}
+function selection(id,room=view.roomId){view.endObservation();ui.selected=id;ui.selectedRoom=room;ui.pending=null;view.clearGhost();view.showTerrainHints(null);$('placement').hidden=true;const o=world.list(room).find(o=>o.id===id);if(!o){deselect();return;}view.select(o,room);focusFacility(o,room);closeDrawer();$('context').hidden=false;updateContext();positionFacilityContext();}
+function deselect(){ui.selected=null;ui.selectedRoom=null;view.select(null);$('context').hidden=true;clearContextAnchor();}
 function updateContext(){if(!ui.selected)return;const o=world.list(ui.selectedRoom).find(o=>o.id===ui.selected);if(!o){deselect();return;}const d=defs[o.kind];
  $('objectLabel').textContent=d.label+((o.level||1)>1?' · '+o.level+'段階目':'');$('enter').hidden=!d.building||!!ui.selectedRoom||!ready(o)||o.kind==='campfire';$('enter').textContent=d.open||['yard','market'].includes(d.shape)?'敷地':'内装';
  let info='';if(!ready(o))info=o.phase==='planned'?'建材待ち：'+world.missing(o).join('・'):'建築中 '+Math.round(o.progress*100)+'%';
@@ -144,8 +160,8 @@ function enterRoom(id){
 function exitRoom(){input.stop();cancelPlacement();closeDrawer();deselect();view.endObservation();view.exitRoom();$('leaveRoom').hidden=true;ui.category='住まい';}
 $('leaveRoom').onclick=exitRoom;
 $('cancelPlace').onclick=confirmPlacement;$('muraCancelPlacement').onclick=cancelPlacement;
-$('muraRotation').oninput=e=>{if(ui.pending){ui.pending.rot=Number(e.target.value)*Math.PI/180;refreshPreview();}};
-$('rotate').onclick=()=>{if(ui.pending){ui.pending.rot=(ui.pending.rot+Math.PI/2)%(Math.PI*2);$('muraRotation').value=String(Math.round(ui.pending.rot*180/Math.PI));refreshPreview();}};
+$('muraRotation').oninput=e=>{if(ui.pending){ui.pending.rot=Number(e.target.value)*Math.PI/180;$('muraRotation').setAttribute('aria-valuetext',`${Math.round(Number(e.target.value))}度`);refreshPreview();}};
+$('rotate').onclick=()=>{if(ui.pending){ui.pending.rot=(ui.pending.rot+Math.PI/4)%(Math.PI*2);$('muraRotation').value=String(Math.round(ui.pending.rot*180/Math.PI));$('muraRotation').setAttribute('aria-valuetext',`${Math.round(ui.pending.rot*180/Math.PI)}度`);refreshPreview();}};
 function showDialog(html,{page='detail',back=null}={}){
  input.stop();ui.dialogPage=page;
  $('dialogContent').innerHTML=html;
@@ -262,7 +278,7 @@ function loop(now){if(stopped)return;try{const dt=document.hidden?0:Math.min(.25
  if(!ui.entryOpen&&!resetting)sim.update(dt*world.state.settings.speed);if(renderDirty){view.rebuild();renderDirty=false;updateContext();if(ui.selected){const o=world.list(ui.selectedRoom).find(o=>o.id===ui.selected);if(o)view.select(o,ui.selectedRoom);}}
  const actors=[...world.people,...sim.extras,...world.state.wildlife,...(sim.raid?.phase==='active'?sim.raid.monsters:[])],ids=new Set(actors.map(p=>p.id));for(const[id]of view.actorNodes)if(!ids.has(id))view.removeActor(id);for(const p of actors)view.syncActor(p,elapsed,p.id.startsWith('raid-'));view.drawTrails(sim,dt);
  if(elapsed-lastUI>.35||!frames){lastUI=elapsed;$('calendar').textContent=`${Math.floor(world.state.clock/DAYS_YEAR)+1}年目 · ${Math.floor(world.state.clock%DAYS_YEAR)+1}日`;view.setTime(world.state.time);updateContext();updateTutorial();updateIdle();if(ui.drawer)updateStockTray();const key=world.state.known.join();if(key!==knownKey){knownKey=key;if(ui.drawer)renderCatalog();}}
- if(elapsed-lastSave>12){lastSave=elapsed;save();}view.interacting=ui.entryOpen||!!ui.pending||!!ui.drag||pointers.size>0||!!document.querySelector('dialog[open]')||ui.drawer;view.render(elapsed,dt);updateBubbles();for(const hook of frameHooks)hook(now,dt);requestAnimationFrame(loop);
+ if(elapsed-lastSave>12){lastSave=elapsed;save();}view.interacting=ui.entryOpen||!!ui.pending||!!ui.drag||pointers.size>0||!!document.querySelector('dialog[open]')||ui.drawer;view.render(elapsed,dt);positionFacilityContext();updateBubbles();for(const hook of frameHooks)hook(now,dt);requestAnimationFrame(loop);
 }catch(error){stopped=true;window.dispatchEvent(new CustomEvent('village:fatal',{detail:error}));}
 }
 window.village={world,sim,view,ui,bridge,version:5,frameHooks,eventHooks,info,toast,resetVillage,more,help,developer,observePerson,confirmPlacement,previewAt,refreshPreview,exitRoom,closeDrawer,renderCatalog,deselect,enterRoom,openDrawer,beginPlacement,cancelPlacement,selection,personDialog,buildingDetails,updateIdle,updateTutorial,save,activity,get fps(){return frameSeconds?frames/frameSeconds:0;},get storageOK(){return storageOK;}};

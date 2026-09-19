@@ -121,3 +121,16 @@ PULSEのapp target検証は配列indexを環境の意味として扱わない。
 ### Publication snapshot contract
 
 公開検証は現行snapshotの意味契約を検証する。game targetは `dev-fast` の追加を許容しつつ、`dev` / `staging` / `prod` の3公開環境をenvironment IDで必須確認する。PR lifecycleは通常 `pullRequests.normal` を正本とし、廃止済みの専用 `visualReview` 配列を必須にしない。target lookup accountingは実在するPR配列に対して厳密一致させる。
+
+
+## 爆速開発管制塔 UI 受入条件
+
+PULSEトップは爆速開発中の判断に必要な情報を4区画へ集約する。
+
+- `ACTIVE`: 作業中タスクを最上段で表示し、対象アプリ、短い作業内容、現在工程、最終更新を一目で確認できるようにする。
+- `APPS`: アプリごとにDEVの現在公開状態、最終公開時刻、公開リンクを表示し、詳細で公開履歴・version / commit情報へ掘れるようにする。
+- `ISSUES`: 異常・失敗・停止理由を正常情報から分離し、原因と次に確認すべき詳細への導線を人間向けに表示する。問題が無い場合は静かな正常表示にする。
+- `RECENT`: merge、focused validation、DEV公開など直近の重要イベントだけを時系列で表示する。
+- トップの情報量は上記4区画を主役とし、SHA、workflow名、生ログなどは詳細の内側へ置く。
+- すべて正常な場合は、アプリ正常数・作業中件数・問題なしを短いサマリーで確認できるようにする。
+- 既存のGitHub API認証、snapshot、Integration / Rescue / Publication判定、PULSE preflightと品質gateは変更しない。

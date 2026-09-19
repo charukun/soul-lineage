@@ -11,6 +11,8 @@ const slotAuto = read('../src/review-slot-auto.js');
 const slotPicker = read('../src/review-slot-picker.js');
 const slotCss = read('../src/review-slot-picker.css');
 const motionQA = read('../src/character-motion-qa.js');
+const characterGrid = read('../src/character-review-grid.js');
+const characterGridCss = read('../src/character-review-grid.css');
 
 test('workshop exposes only three primary mobile intentions', () => {
   for (const [key,label] of [['build','作る'],['move','動かす'],['compare','比べる']]) {
@@ -82,6 +84,32 @@ test('simple review keeps preview chrome quiet and controls compact', () => {
   assert.match(css, /body\.simple-review \.workshop-secondary-tabs/);
 });
 
+test('character review retains the three source selections and extends the persistent five-column list to all review elements', () => {
+  // Reconcile PR #970's three-slot prototype with the complete character-review catalogue.
+  assert.match(slotAuto, /if\(mode==='character'\)\{installCharacterReviewGrid\(\);return;\}/);
+  for (const selector of ['#character-model-options [data-character-model]', '#slot-tabs [data-slot]', '#part-options [data-modular-value]']) {
+    assert.ok(characterGrid.includes(selector));
+  }
+  for (const id of ['model','part','variant','individual','hair','eyes','skin','dye','age']) {
+    assert.ok(characterGrid.includes(`['${id}',`));
+  }
+  assert.doesNotMatch(characterGrid, /\['camera',/);
+  assert.match(characterGrid, /const cameraButtons = \[\.\.\.doc\.querySelectorAll/);
+  assert.match(characterGrid, /button\.dataset\.camera === state\.camera/);
+  assert.match(characterGrid, /option\.source\.click\(\)/);
+  assert.match(characterGrid, /const grid = make\('div', 'character-review-grid'\)/);
+  assert.match(characterGridCss, /\.character-review-grid\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(characterGridCss, /stage-actions > \[data-camera\]/);
+  assert.match(characterGridCss, /border-radius:\s*999px/);
+  assert.doesNotMatch(slotAuto, /move\(mountReviewGroup\(byId\('character-model-options'\)/);
+  // The shared reusable deck and its layout contracts from develop remain intact.
+  assert.match(slotPicker, /export function mountReviewGroupDeck/);
+  assert.match(slotPicker, /review-slot-deck-slots/);
+  assert.match(slotPicker, /review-slot-deck-list/);
+  assert.match(slotCss, /\.review-slot-deck-slots\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(slotCss, /\.review-slot-deck-list\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(css, /data-review-mode="character"\] #panel-parts>\.panel-heading/);
+});
 
 test('motion review exposes one selected slot and a persistent five-column motion list', () => {
   assert.match(slotAuto, /mountReviewSelectGrid\(byId\('qa-motion'\),'選択中の動き'\)/);
@@ -90,10 +118,21 @@ test('motion review exposes one selected slot and a persistent five-column motio
   assert.doesNotMatch(slotAuto, /mountReviewGroup\(byId\('qa-cameras'\),'角度'\)/);
   assert.match(slotPicker, /export function mountReviewSelectGrid/);
   assert.match(slotPicker, /review-select-grid-current/);
+  assert.match(slotPicker, /review-candidate-label/);
   assert.match(slotPicker, /review-select-grid-list/);
   assert.match(slotCss, /\.review-select-grid-list\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
   assert.match(motionQA, /motionChanged=motion\.value!==row\.id/);
   assert.match(motionQA, /motion\.dispatchEvent\(new Event\('input'/);
+});
+
+test('shared review selection cards are visually distinct from five-column candidate tiles', () => {
+  assert.match(slotCss, /\.review-slot-trigger\{[^}]*linear-gradient/);
+  assert.match(slotCss, /\.review-slot-trigger\{[^}]*box-shadow:inset 3px 0/);
+  assert.match(slotCss, /\.review-slot-option\{[^}]*background:#101614/);
+  assert.match(slotCss, /\.review-slot-option\[aria-selected="true"\]\{[^}]*inset 0 -2px/);
+  assert.match(slotCss, /\.review-select-grid-current\{[^}]*min-height:54px/);
+  assert.match(slotCss, /\.review-candidate-label\{/);
+  assert.match(slotCss, /\.review-slot-deck-list-label\{/);
 });
 
 test('restored UX is loaded by the existing workshop entry without adding authority', () => {

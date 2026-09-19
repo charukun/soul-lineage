@@ -51,17 +51,21 @@ test('PULSE title, canonical names and deployment metadata are wired together', 
   assert.equal(existsSync(new URL('../.github/workflows/pulse-task-worker.yml', import.meta.url)), false);
 });
 
-test('delivery wiring keeps PULSE verification after develop while branch pushes stay lightweight', () => {
-  const workflow = text('.github/workflows/deploy.yml');
-  assert.match(workflow, /INITIALIZE_GAME_ENVIRONMENTS: 'true'/);
-  assert.match(workflow, /refresh_staging:/);
-  assert.match(workflow, /REFRESH_STAGING:/);
-  assert.match(workflow, /scripts\/verify-live\.mjs/);
-  assert.match(workflow, /scripts\/verify-browser\.mjs/);
-  assert.match(workflow, /format\('\{0\}dev\/', steps\.deployment\.outputs\.page_url\)/);
-  assert.match(workflow, /format\('\{0\}prod\/', steps\.deployment\.outputs\.page_url\)/);
+test('delivery wiring keeps Workers DEV and PULSE independent while Pages remains Production-only', () => {
+  const devWorkflow = text('.github/workflows/dev-app-publish.yml');
+  const pagesWorkflow = text('.github/workflows/deploy.yml');
+  assert.match(devWorkflow, /branches: \[develop\]/);
+  assert.match(devWorkflow, /wrangler@4 deploy --config "wrangler\.dev\.\$APP\.jsonc"/);
+  assert.match(devWorkflow, /name: Refresh PULSE/);
+  assert.match(devWorkflow, /uses: \.\/\.github\/workflows\/ops-board\.yml/);
+  assert.match(pagesWorkflow, /branches: \[main\]/);
+  assert.doesNotMatch(pagesWorkflow, /push:[\s\S]*branches: \[develop\]/);
+  assert.match(pagesWorkflow, /PAGES_DEV_RETIRED: 'true'/);
+  assert.match(pagesWorkflow, /scripts\/verify-live\.mjs/);
+  assert.match(pagesWorkflow, /scripts\/verify-browser\.mjs/);
+  assert.match(pagesWorkflow, /format\('\{0\}prod\/', steps\.deployment\.outputs\.page_url\)/);
   const deployScript = text('scripts/deploy.mjs');
-  assert.match(deployScript, /environment !== 'dev' && rinne/);
+  assert.match(deployScript, /RETIRE_PAGES_DEV_ONLY/);
   assert.match(deployScript, /content="0;url=prod\/"/);
   const boardWorkflow = text('.github/workflows/ops-board.yml');
   const triggers = boardWorkflow.split('permissions:')[0];

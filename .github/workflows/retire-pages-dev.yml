@@ -1,0 +1,71 @@
+name: Retire legacy Pages DEV
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - '.github/workflows/retire-pages-dev.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  retire:
+    name: Remove the legacy /dev mirror without rebuilding Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          path: sources/dev
+          persist-credentials: false
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          path: sources/prod
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Reassemble Pages from existing non-DEV bytes
+        env:
+          SITE_URL: https://charukun.github.io/soul-lineage/
+          RETIRE_PAGES_DEV_ONLY: 'true'
+        run: node sources/dev/scripts/deploy.mjs sources/dev sources/prod _site "$SITE_URL"
+      - name: Prove the artifact contains no DEV mirror and still contains Production
+        run: |
+          test ! -e _site/dev
+          test -e _site/prod
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const manifest=JSON.parse(fs.readFileSync('_site/deployment-manifest.json','utf8'));
+          if(manifest.entries.some(entry=>entry.environment==='dev')) throw new Error('legacy Pages DEV entry still present');
+          if(!manifest.entries.some(entry=>entry.environment==='prod')) throw new Error('Production entries were not preserved');
+          JS
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - name: Publish the cleaned Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Verify public manifest no longer advertises DEV
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          node --input-type=module <<'JS'
+          const base=new URL(process.env.SITE_URL);
+          const manifest=await fetch(new URL('deployment-manifest.json?retire='+Date.now(),base),{cache:'no-store'}).then(r=>r.json());
+          if(manifest.entries.some(entry=>entry.environment==='dev')) throw new Error('public Pages manifest still exposes DEV');
+          if(!manifest.entries.some(entry=>entry.environment==='prod')) throw new Error('public Production entries missing');
+          JS

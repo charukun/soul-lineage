@@ -9,9 +9,10 @@ test('PULSE first-glance UI has no leaked source escape and follows the semantic
   const html = text('ops-board/public/index.html');
   assert.doesNotMatch(html, />\\n\s*<link rel="stylesheet" href="\.\/rapid-ui\.css">/);
   assert.deepEqual(PULSE_FIRST_GLANCE, [
-    PULSE_ROLE.HUMAN_ACTION,
     PULSE_ROLE.DEVELOPMENT,
     PULSE_ROLE.DEV_PUBLICATION,
+    PULSE_ROLE.HUMAN_ACTION,
+    PULSE_ROLE.RECENT,
   ]);
   const positions = PULSE_FIRST_GLANCE.map(role => html.indexOf(`data-pulse-role="${role}"`));
   assert.ok(positions.every(position => position > 0));

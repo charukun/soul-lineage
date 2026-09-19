@@ -1,4 +1,3 @@
-import { stylizedDensityForDistance } from '@soul/characters';
 import { THREE as T } from '@soul/rendering';
 import { createGpuAwareQualityGovernor } from '@soul/rendering/gpu-aware-quality';
 import { createGpuTimer } from '@soul/rendering/gpu-timer';
@@ -12,23 +11,12 @@ import { createThermalTrendGovernor } from '@soul/rendering/thermal-governor';
 import { applyVisualQualityFloor } from '@soul/rendering/visual-quality-floor';
 import { deviceCapabilityProfile, saveDeviceCapability } from '@soul/platform-web/device-capability';
 import { visualSceneTrackerFor } from './visual-scene-tracker.js';
-import { instanceDensityIndex } from '@soul/rendering/spatial-instances';
 import { View } from './web/view.js';
 
-const governors = new WeakMap(), densityMatrix = new T.Matrix4(), hiddenMatrix = new T.Matrix4().makeScale(0,0,0), densityPosition = new T.Vector3();
-const densityHash = index => { const x = Math.sin((index + 1) * 73.173 + 11.7) * 43758.5453; return x - Math.floor(x); };
-
-function applyAdaptiveVegetation(view, scale) {
-  const target=view.target;if(!target)return;
-  const last=view.__adaptiveDensityTarget;
-  if(last&&last.stylizedTarget===view.__stylizedDensityTarget&&last.level===view.__stylizedQuality?.level&&last.scale===scale&&Math.hypot(target.x-last.x,target.z-last.z)<5)return;
-  view.__adaptiveDensityTarget={x:target.x,z:target.z,level:view.__stylizedQuality?.level??0,scale,stylizedTarget:view.__stylizedDensityTarget};
-  for(const instanced of [...(view.forestMeshes||[]),...(view.flowerMeshes||[])]){
-    const base=instanced.userData.stylizedDensityBase;if(!base?.length)continue;
-    for(let i=0;i<base.length;i++){densityMatrix.copy(base[i]);densityPosition.setFromMatrixPosition(densityMatrix);const distance=Math.hypot(densityPosition.x-target.x,densityPosition.z-target.z);const density=stylizedDensityForDistance('environment',distance)*scale;instanced.setMatrixAt(i,densityHash(instanceDensityIndex(instanced,i,31))<=density?base[i]:hiddenMatrix);}
-    instanced.instanceMatrix.needsUpdate=true;
-  }
-}
+const governors = new WeakMap();
+// Vegetation density is applied once by stylized-visual-target before rendering.
+// A governor change is picked up there on the next frame, never by a competing
+// post-render pass with a different random mask.
 
 function setShadowSize(view, scale) {
   const base = view.softwareGPU ? 1024 : 2048, next = Math.max(256, Math.round(base * scale / 256) * 256);
@@ -105,7 +93,6 @@ if (typeof render === 'function' && !render.__adaptiveVisualPerformance) {
     state.gpu.begin('village-frame');
     const result = render.call(this,time,dt,...rest);
     state.gpu.end(); const gpu=state.gpu.poll();
-    applyAdaptiveVegetation(this,snapshot.profile.vegetationScale);
     let next=state.governor.observeFrame(dt,gpu.emaMs);
     const thermal=state.thermal.observe(dt,dt*1000,gpu.emaMs);
     if(thermal.recommendedMinLevel>next.level)next=state.governor.setLevel(thermal.recommendedMinLevel);
@@ -116,7 +103,6 @@ if (typeof render === 'function' && !render.__adaptiveVisualPerformance) {
       if(state.occlusionRevision!==revision){state.occlusion.revealAll(state.occlusionRoots?.candidates);state.occlusionRoots=occlusionRoots(this);state.occlusionRevision=revision;}
       state.occlusion.update({camera:this.camera,...state.occlusionRoots});
     }
-    if(next.profile.vegetationScale!==snapshot.profile.vegetationScale)applyAdaptiveVegetation(this,next.profile.vegetationScale);
     return result;
   };
   wrapped.__adaptiveVisualPerformance = true;

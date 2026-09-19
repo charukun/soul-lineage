@@ -1,4 +1,5 @@
 import {mountReviewGroup,mountReviewSelect,mountReviewSelectGrid} from './review-slot-picker.js';
+import {installCharacterReviewGrid} from './character-review-grid.js';
 
 const byId=id=>document.getElementById(id);
 const qs=selector=>document.querySelector(selector);
@@ -41,16 +42,9 @@ function installStageCameraSlot(){
 
 function installCharacterSlots(){
   if(!document.body.classList.contains('simple-review'))return;
-  installStageCameraSlot();
   const mode=document.body.dataset.reviewMode;
-  if(mode==='character'){
-    const panel=byId('panel-parts');
-    if(!panel)return;
-    const slotRow=row('simple-character-slots','review-slot-row',panel,panel.firstElementChild);
-    move(mountReviewGroup(byId('character-model-options'),'キャラクター'),slotRow);
-    move(mountReviewGroup(byId('slot-tabs'),'部位'),slotRow);
-    move(mountReviewGroup(byId('part-options'),'候補'),slotRow);
-  }
+  if(mode==='character'){installCharacterReviewGrid();return;}
+  installStageCameraSlot();
   if(mode==='motion'){
     const basics=byId('simple-motion-controls');
     if(!basics)return;

@@ -2,6 +2,7 @@ import { createMiniatureFocus } from '@soul/rendering/miniature-focus';
 import { createStaticBatchController } from '@soul/rendering/static-world-batch';
 import { defs } from './game/core.js';
 import { View } from './web/view.js';
+import { syncVillageRenderResolution } from './render-resolution.js';
 
 const controllers=new WeakMap();
 
@@ -65,6 +66,9 @@ View.prototype.makePost=function makeBoundedMiniatureFocus(){
 
 const resize=View.prototype.resize;
 View.prototype.resize=function optimizedResize(...args){
+  // MiniatureFocus reads getDrawingBufferSize(), not the legacy this.rt target.
+  // Apply the governor scale before either the canvas or post-process is resized.
+  syncVillageRenderResolution(this);
   const result=resize.apply(this,args);this.miniatureFocus?.resize();return result;
 };
 

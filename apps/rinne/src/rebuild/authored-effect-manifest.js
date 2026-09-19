@@ -1,3 +1,5 @@
+import {REVIEW_VFX_LIBRARY_ASSETS,REVIEW_VFX_LIBRARY_EFFECTS,REVIEW_VFX_LIBRARY_SOURCE} from './review-vfx-library-manifest.js';
+
 // Originals are never edited. Presentation scale/timing live in combat-effect-cues.js.
 export const EFFECT_SOURCE = Object.freeze({
   repository: 'effekseer/ResourceData',
@@ -20,6 +22,7 @@ export const REVIEW_EFFECT_SOURCE = Object.freeze({
   license: 'MIT',
   basePath: 'tests/Resources',
 });
+export {REVIEW_VFX_LIBRARY_SOURCE};
 export const EFFECT_PUBLIC_PATH = 'simulator/assets/effekseer/';
 const asset = (path, byteLength, gitBlobSha, metadata={}) => Object.freeze({path, byteLength, gitBlobSha, ...metadata});
 const reviewAsset = (path, byteLength, gitBlobSha, metadata={}) => asset(
@@ -81,6 +84,7 @@ export const EFFECT_ASSETS = Object.freeze([
   reviewAsset('Parts/Impact.efkmodel', 46104, 'f9c8da25ab58669a3cbc1208d4b2c79a588b950e'),
   reviewAsset('Parts/ToonWater.efkmat', 10112, '368dc7a849f640bb6400a90d55fa4bd2fd0af192'),
   reviewAsset('Parts/ToonWaterTube.efkmat', 15489, '7766aa3b76a76e22387b737879db8c81daac678d'),
+  ...REVIEW_VFX_LIBRARY_ASSETS,
 ]);
 export const RUNTIME_ASSETS = Object.freeze([
   asset('docs/effekseer.js', 216603, '9d90abff9ec9e24812aea2ce07d93c8798a10920'),
@@ -99,4 +103,5 @@ export const REVIEW_AUTHORED_EFFECTS = Object.freeze({
   blow: reviewEffect('Blow1.efkefc','Effekseer',1,1.15),
   cure: reviewEffect('Cure1.efkefc','Effekseer',1,2),
   water: reviewEffect('ToonWater.efkefc','tktk',.065,1.5),
+  ...Object.fromEntries(REVIEW_VFX_LIBRARY_EFFECTS.map(row=>[row.id,row])),
 });
