@@ -95,7 +95,7 @@ test('associated develop PR lookup selects the newest merged develop PR', async 
 });
 
 test('verified personal DEV publication creates one deduplicatable Japanese PR comment', async () => {
-  let posted = '';
+  let posted = '',fallbackPosted = '';
   const pr = {
     number: 311,
     title: 'fix: combat tempo',
@@ -104,7 +104,7 @@ test('verified personal DEV publication creates one deduplicatable Japanese PR c
     base: { ref: 'develop' },
     user: { login: 'charukun' },
   };
-  const response = (payload, status = 200) => ({ ok: true, status, json: async () => payload });
+  const response = (payload, status = 200, ok = true) => ({ ok, status, json: async () => payload });
   const request = async (url, options = {}) => {
     if (url.includes('/issues/311/comments?')) return response([]);
     if (url.endsWith('/issues/311/comments') && options.method === 'POST') {
@@ -124,6 +124,25 @@ test('verified personal DEV publication creates one deduplicatable Japanese PR c
   assert.match(posted, /「戦闘テンポを少し遅くする修正」をDEVに反映しました。/);
   assert.match(posted, /DEVを確認: https:\/\/charukun\.github\.io\/soul-lineage\/dev\//);
   assert.doesNotMatch(posted, /commit:|Run:|PR:|VERIFIED_DEV_PUBLICATION|Development DEV delivery receipt/);
+
+  const fallbackRequest = async (url, options = {}) => {
+    if (url.includes('/issues/311/comments?')) return response([]);
+    if (url.endsWith('/issues/311/comments') && options.method === 'POST') return response({}, 403, false);
+    if (url.includes('/issues/1009/comments?')) return response([]);
+    if (url.endsWith('/issues/1009/comments') && options.method === 'POST') {
+      fallbackPosted = JSON.parse(options.body).body;
+      return response({ id: 2 }, 201);
+    }
+    throw new Error(`unexpected fallback request: ${options.method || 'GET'} ${url}`);
+  };
+  const fallbackResult = await recordGithubDeliveryReceipt({
+    token: 'token', repository: 'charukun/soul-lineage', sha, message, pr, request: fallbackRequest,
+  });
+  assert.equal(fallbackResult, 'github-dev-email-thread-comment');
+  assert.match(fallbackPosted, /dev-delivery-receipt:/);
+  assert.match(fallbackPosted, /@charukun/);
+  assert.match(fallbackPosted, /DEV反映完了/);
+  assert.match(fallbackPosted, /PR: https:\/\/github\.com\/charukun\/soul-lineage\/pull\/311/);
 });
 
 test('other authors do not receive the personal DEV receipt', async () => {
