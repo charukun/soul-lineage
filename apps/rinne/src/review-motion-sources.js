@@ -405,7 +405,7 @@ export const MOTION_LIBRARY_SOURCES=freeze([
     [40, "Zombie_Idle_Loop"],
     [41, "Zombie_Scratch"],
     [42, "Zombie_Walk_Fwd_Loop"]
-  ]),,
+  ]),
   source({
     "id": "mesh2motion-human-base",
     "label": "Mesh2Motion Human Base",
