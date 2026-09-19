@@ -15,4 +15,4 @@ Shared code stays under `packages/<id>`.
 
 DEV rule: one independent app owns one canonical DEV/public Worker URL and one PULSE target identity. GitHub Pages is not a DEV publisher. RINNE-only runtime probes such as battle, motion, assets and effects remain internal RINNE views reached from Visual Review Lab; they are not independent apps.
 
-PULSE and WAYFINDER keep their existing stable Worker names while their source lives under `apps/`.
+PULSE and WAYFINDER keep their existing stable Worker names while their source lives under `apps/`. This file is the canonical directory-boundary contract.
