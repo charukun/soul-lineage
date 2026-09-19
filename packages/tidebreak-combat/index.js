@@ -2190,7 +2190,7 @@ incapacitate=function(a,src=null){a.endlag=null;a.flow=null;a.plan=null;if(a.her
 const guard4=guardMode;
 guardMode=function(a){return a.endlag?null:guard4(a);};
 const mind4=mindProfile;
-mindProfile=function(a){return a.hero?mind4(a):ENEMY_STYLES[enemyStyle];};
+mindProfile=function(a){return a.hero?mind4(a):(ENEMY_STYLES[enemyStyle]||ENEMY_STYLES.balanced);};
 const intent4=setIntent;
 setIntent=function(a,state,duration){intent4(a,state,duration);if(!a.hero){a.tactics.duration*=ENEMY_STYLES[enemyStyle].pace;stats.enemyDecisions||={};stats.enemyDecisions[state]=(stats.enemyDecisions[state]||0)+1;}};
 function weightedChoice(items,weights){let n=rng()*weights.reduce((s,v)=>s+v,0);for(let i=0;i<items.length;i++){n-=weights[i];if(n<0)return items[i];}return items.at(-1);}
