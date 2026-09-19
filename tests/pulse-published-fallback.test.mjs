@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { publishedFallback } from '../ops-board/published-fallback.mjs';
+import { publishedFallback } from '../apps/pulse/published-fallback.mjs';
 const options = { now: '2026-09-12T10:00:00Z', source: 'test', error: new Error('GitHub /branches: HTTP 403') };
 const published = (environment, commit) => ({ app: 'demon', environment, path: `${environment}/demon`, version: { commit, name: '暗い喰らいCry' } });
 const target = (app, environment) => app.targets.find(item => item.environment === environment);

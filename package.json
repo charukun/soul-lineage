@@ -16,6 +16,7 @@
     "dev:village": "npm run dev --workspace @soul/village",
     "dev:demon": "npm run dev --workspace @soul/demon",
     "dev:review": "npm run dev --workspace @soul/review",
+    "dev:character-studio": "npm run dev --workspace @soul/character-studio",
     "check": "node scripts/check.mjs",
     "health": "node scripts/code-health.mjs audit",
     "visual:budget": "node scripts/visual-budget.mjs audit",
@@ -40,6 +41,7 @@
     "build:village": "npm run build --workspace @soul/village",
     "build:demon": "npm run build --workspace @soul/demon",
     "build:review": "npm run build --workspace @soul/review",
+    "build:character-studio": "npm run build --workspace @soul/character-studio",
     "affected": "node scripts/affected.mjs",
     "context:plan": "node scripts/context-plan.mjs",
     "context:excerpt": "node scripts/context-excerpt.mjs",
@@ -51,7 +53,7 @@
     "pre-ready:verify": "node scripts/pre-ready-reconcile.mjs verify",
     "distribution:plan": "node scripts/distribution-plan.mjs",
     "distribution:build": "node scripts/build-target.mjs",
-    "pulse:preflight": "node ops-board/preflight.mjs"
+    "pulse:preflight": "node apps/pulse/preflight.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

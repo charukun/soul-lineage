@@ -5,7 +5,7 @@ import {
   PULSE_COPY,
   PULSE_FIRST_GLANCE,
   PULSE_ROLE,
-} from '../ops-board/public/pulse-contract.mjs';
+} from '../apps/pulse/public/pulse-contract.mjs';
 
 const text = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -19,9 +19,9 @@ test('PULSE semantic contract is the single source for first-glance roles and re
   assert.equal(PULSE_COPY.recovery.headline, '自動復旧中');
   assert.equal(PULSE_COPY.recovery.syncTitle, '再同期中');
 
-  const browser = text('ops-board/browser-check.mjs');
-  const tower = text('ops-board/public/control-tower.js');
-  const freshness = text('ops-board/public/freshness.mjs');
+  const browser = text('apps/pulse/browser-check.mjs');
+  const tower = text('apps/pulse/public/control-tower.js');
+  const freshness = text('apps/pulse/public/freshness.mjs');
 
   assert.match(browser, /pulse-contract\.mjs/);
   assert.match(tower, /pulse-contract\.mjs/);
@@ -36,7 +36,7 @@ test('pre-merge DEV validation and post-merge publication use the same canonical
   const workflow = text('.github/workflows/ops-board.yml');
   const pkg = JSON.parse(text('package.json'));
 
-  assert.equal(pkg.scripts['pulse:preflight'], 'node ops-board/preflight.mjs');
+  assert.equal(pkg.scripts['pulse:preflight'], 'node apps/pulse/preflight.mjs');
   assert.match(validate, /pulseRelevant/);
   assert.match(validate, /run\('npm', \['run', 'pulse:preflight'\]\)/);
   assert.match(workflow, /name: Canonical PULSE preflight/);
