@@ -70,6 +70,7 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.match(stageSource,/battleGeometry='runtime-monster-models'/);
   assert.doesNotMatch(stageSource,/ReviewMonsterSilhouette|installReviewEquipment\(side\.actor/);
   assert.match(monsterSource,/KayKit-Character-Pack-Skeletons-1\.0/);
+  assert.match(monsterSource,/15b62b9bad122f72926c10fb14d622c73819fa54/);
   assert.match(monsterSource,/reviewMonsterSpecies=id/);
   const answers=[
     {id:'a',kind:'technique',weapons:['sword'],phases:['ha'],steps:[{kind:'slash'},{kind:'crosscut'}]},
