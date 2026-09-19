@@ -31,7 +31,7 @@ test('Rinne HUD wires soft history replacement, simple damage copy, and interrup
   const ui=await readFile(new URL('../src/gameplay-ui.js',import.meta.url),'utf8');
   const runtime=await readFile(new URL('../src/rebuild/runtime.js',import.meta.url),'utf8');
   const css=await readFile(new URL('../src/reincarnation-hud.css',import.meta.url),'utf8');
-  assert.match(ui,/data-motion=index===0\?'incoming':'outgoing'/);
+  assert.match(ui,/dataset\.motion=index===0\?'incoming':'outgoing'/);
   assert.match(ui,/action:'攻撃を受けた',kind:'damage'/);
   assert.match(ui,/blockedComboKey=currentComboKey/);
   assert.match(runtime,/rinne:combat-feedback/);
