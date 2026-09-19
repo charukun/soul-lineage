@@ -23,7 +23,7 @@ test('every current game remains visible with development, staging and productio
 });
 test('retired Pages DEV metadata cannot override the canonical Worker DEV target', () => {
   const app = games({ entries: [entry('demon', 'dev', 'old-sha')] }).find(app => app.id === 'demon');
-  assert.equal(app.name, '尽喰廻遊');
+  assert.equal(app.name, '喰滅廻遊');
   assert.equal(target(app, 'dev').commit, null);
   assert.equal(target(app, 'dev').state, 'waiting');
   assert.equal(target(app, 'dev').url, 'https://soul-lineage-demon-dev.c-okamoto.workers.dev/');
