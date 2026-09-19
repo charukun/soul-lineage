@@ -7,7 +7,7 @@ const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 test('hunt shell exposes movement combat readout and the system pause escape hatch',()=>{
   const index=read('../index.html');
   for(const id of ['game','hud','pause','skill-name'])assert.match(index,new RegExp(`id="${id}"`),id);
-  assert.match(index,/class="phases"/);
+  assert.match(index,/class="phases combat-sequence combat-sequence--flat"/);
   for(const phase of ['jo','ha','kyu'])assert.match(index,new RegExp(`data-phase="${phase}"`),phase);
 });
 
