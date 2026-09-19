@@ -1,4 +1,5 @@
 import {combatCameraFrame,combatCameraPosition} from '@soul/rendering/combat-camera-frame';
+import {rinneCombatCameraFrame} from './rebuild/combat-camera.js';
 
 const PHASES=Object.freeze(['jo','ha','kyu']);
 const PHASE_SET=new Set(PHASES);
@@ -51,7 +52,9 @@ export function reviewBattleCameraFrame(core,{follow=true,system='rinne',encount
     );
   }
   const style=system==='demon'?'demon':'rinne';
-  const frame=combatCameraFrame({player,threats,style,wide:false});
+  const frame=style==='rinne'
+    ?rinneCombatCameraFrame({player,enemies:threats,targetId:'enemy',active:true})
+    :combatCameraFrame({player,threats,style:'demon',wide:false});
   if(!frame)return FIXED_CAMERA;
   const position=combatCameraPosition(frame);
   return Object.freeze({
