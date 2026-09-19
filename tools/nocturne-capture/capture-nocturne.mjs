@@ -46,7 +46,9 @@ try {
   await page.evaluate(() => window.__NOCTURNE_CAPTURE__.stop());
   await page.locator('#start').click();
   await page.locator('[data-stance="balanced"]').click();
-  for (let frame = 0; frame < 60; frame++) await page.evaluate(() => window.__NOCTURNE_CAPTURE__.step());
+  for (let frame = 0; frame < 60; frame++) await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => {
+    window.__NOCTURNE_CAPTURE__.step(); resolve();
+  })));
   report.initial = await page.evaluate(() => window.__NOCTURNE__.metrics);
   assert.equal(report.initial.webgl2, true);
   assert.equal(report.initial.phase, 'battle');
@@ -63,14 +65,25 @@ try {
   for (let frame = 0; frame < 900; frame++) {
     if (frame === 240) await page.locator('[data-stance="assault"]').click({ force: true });
     if (frame === 540) await page.locator('[data-stance="guard"]').click({ force: true });
-    await page.evaluate(() => window.__NOCTURNE_CAPTURE__.step());
-    const shot = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 95,
-      fromSurface: true, captureBeyondViewport: false });
-    const bytes = Buffer.from(shot.data, 'base64');
+    const frameTask = async () => {
+      if (frame < 3) console.log('STEP_BEGIN', frame);
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => {
+        window.__NOCTURNE_CAPTURE__.step(); requestAnimationFrame(resolve);
+      })));
+      if (frame < 3) console.log('SCREENSHOT_BEGIN', frame);
+      const shot = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 95,
+        fromSurface: true, captureBeyondViewport: false });
+      if (frame < 3) console.log('SCREENSHOT_DONE', frame);
+      return Buffer.from(shot.data, 'base64');
+    };
+    let timeout;
+    const bytes = await Promise.race([frameTask(), new Promise((_, reject) => {
+      timeout = setTimeout(() => reject(new Error(`Frame ${frame} stalled for 45 seconds`)), 45000);
+    })]).finally(() => clearTimeout(timeout));
     unique.add(createHash('sha256').update(bytes).digest('hex'));
     if (!encoder.stdin.write(bytes)) await once(encoder.stdin, 'drain');
     if ([0, 449, 899].includes(frame)) fs.writeFileSync(path.join(output, `frame-${frame}.jpg`), bytes);
-    if (frame % 90 === 0) {
+    if (frame % 30 === 0) {
       const state = await page.evaluate(() => window.__NOCTURNE__.metrics);
       report.progress.push({ frame, time: state.time, phase: state.phase, kills: state.kills });
       console.log('FRAME', frame, JSON.stringify(report.progress.at(-1)));
