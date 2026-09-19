@@ -5,7 +5,7 @@ The normal develop lane is:
 ```text
 implementation on Draft PR
   -> final work-head commit contains [astra-validate]
-  -> exact work head passes
+  -> exact work head passes Astra-selected focused validation
   -> mergeability + dependency-impact freshness verification
   -> Ready
   -> same-task merge to develop
@@ -18,7 +18,7 @@ Immediately before merge, confirm:
 
 - PR is open, same repository, base=`develop`
 - no explicit hold / manual-merge marker / unresolved blocking dependency
-- the exact PR head has one successful merge-owning validation from a real repository checkout
+- the exact PR head has one successful hosted execution of the Astra-declared focused validation plan from a real repository checkout
 - PR head still equals the `[astra-validate]` commit that passed merge-owning validation
 - `astra/merge-freshness=success` for that head against the latest observed `develop`
 - if `develop` advanced, the validated head and current develop merge cleanly and their affected app/package/build/control-plane scopes are independent
