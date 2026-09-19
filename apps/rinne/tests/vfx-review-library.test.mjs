@@ -18,7 +18,7 @@ import {EFFECT_DOWNLOADS} from '../scripts/prepare-effects.mjs';
 test('production VFX stays bounded while review gets distinct source originals',()=>{
   assert.deepEqual(Object.keys(AUTHORED_EFFECTS),['slash','impact','finisher']);
   assert.equal(REVIEW_REAL_EFFECT_COUNT,REVIEW_VFX_LIBRARY_COUNT);
-  assert.equal(REVIEW_VFX_LIBRARY_COUNT,245);
+  assert.equal(REVIEW_VFX_LIBRARY_COUNT,261);
   assert.equal(Object.keys(REVIEW_AUTHORED_EFFECTS).length,7+REVIEW_VFX_LIBRARY_COUNT);
   for(const effect of REVIEW_VFX_LIBRARY_EFFECTS)assert.equal(REVIEW_AUTHORED_EFFECTS[effect.id],effect);
   for(const row of REVIEW_EFFECT_CATALOG)for(const effect of row.effects)assert.ok(REVIEW_AUTHORED_EFFECTS[effect],`unknown review effect: ${effect}`);
@@ -45,6 +45,8 @@ test('real review library is a unique pinned CC0 source closure',()=>{
   assert.equal(new Set(effects.map(row=>row.gitBlobSha)).size,REVIEW_VFX_LIBRARY_COUNT);
   assert.equal(effects.some(row=>row.sourcePath==='MAGICALxSPIRAL/MxS_Thunder3.efkefc'),true);
   assert.equal(effects.filter(row=>row.sourcePath.startsWith('MAGICALxSPIRAL/')).length,91);
+  assert.equal(effects.filter(row=>row.sourcePath.startsWith('Basic/')).length,4);
+  assert.equal(effects.filter(row=>/^Tktk01\/Tktk01_(?:Cure|hozyo)/.test(row.sourcePath)).length,12);
   for(const n of [1,2,3,4,5,6,7,8])assert.equal(effects.some(row=>row.sourcePath===`MAGICALxSPIRAL/MxS_foot_smoke${n}.efkefc`),false);
   assert.equal(effects.some(row=>row.sourcePath==='MAGICALxSPIRAL/MxS_StairBroken3.efkefc'),false);
   assert.equal(effects.some(row=>row.sourcePath==='Tktk02/Tktk02_Blow1.efkefc'),false);
@@ -72,13 +74,16 @@ test('download plan preserves provenance and namespaces the real review library'
   assert.equal(EFFECT_DOWNLOADS.some(row=>row.sourcePath==='Tktk02/Tktk02_Blow1.efkefc'),false);
   assert.equal(EFFECT_DOWNLOADS.some(row=>row.sourcePath==='Tktk02/Parts/のnoise.png'),false);
   assert.equal(EFFECT_DOWNLOADS.some(row=>row.sourcePath==='MAGICALxSPIRAL/MxS_Thunder3.efkefc'),true);
+  assert.equal(EFFECT_DOWNLOADS.some(row=>row.sourcePath==='Basic/Basic_Homing_Laser01.efkefc'),true);
+  assert.equal(EFFECT_DOWNLOADS.some(row=>row.sourcePath==='Tktk01/Tktk01_Cure7.efkefc'),true);
+  assert.equal(EFFECT_DOWNLOADS.some(row=>row.sourcePath==='Tktk01/Tktk01_hozyo5.efkefc'),true);
 });
 
-test('catalog keeps legacy compositions separate from 245 real source originals',()=>{
+test('catalog keeps legacy compositions separate from 261 real source originals',()=>{
   const real=REVIEW_EFFECT_CATALOG.filter(row=>row.realSource);
   const legacyOriginals=REVIEW_EFFECT_CATALOG.filter(row=>row.kind==='original'&&!row.realSource);
   const compositions=REVIEW_EFFECT_CATALOG.filter(row=>row.kind==='composition');
-  assert.equal(real.length,245);
+  assert.equal(real.length,261);
   assert.equal(legacyOriginals.length,7);
   assert.ok(compositions.length>=5);
   assert.ok(real.every(row=>row.cues.length===1&&row.effects.length===1));
