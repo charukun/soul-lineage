@@ -34,9 +34,9 @@ function resetBattle(){
   host=new RaidHost({villageId:'develop-visual-review',storage,now:()=>Date.now()});
   host.join('demon',{type:'join',app:'demon',role:'demon',playerId:'review-demon',name:'Monster'});
   host.join('human',{type:'join',app:'rinne',role:'human',playerId:'review-human',name:'Hero'});
-  // Camera-facing composition starts with the hero lower-left and the hostile upper-right.
-  host.input('demon',{type:'state',x:1.65,z:-1.15,yaw:-Math.PI/2,state:'combat',action:null});
-  host.input('human',{type:'state',x:-1.65,z:1.15,yaw:Math.PI/2,state:'combat',action:null});
+  // Keep the authoritative RaidHost pair inside its encounter radius. Visual composition belongs to the review stage.
+  host.input('demon',{type:'state',x:1.2,z:0,yaw:-Math.PI/2,state:'combat',action:null});
+  host.input('human',{type:'state',x:-1.2,z:0,yaw:Math.PI/2,state:'combat',action:null});
   host.tick(1/60);lastCore=host.battle?.core?.state?.()||null;last=performance.now();
 }
 function renderPhase(core){
