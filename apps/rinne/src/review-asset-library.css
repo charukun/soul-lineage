@@ -162,3 +162,49 @@ button:focus-visible,.review-lab-back:focus-visible{outline:2px solid #e2cd95;ou
   .asset-check-grid{grid-template-columns:1fr 1fr}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* Compact equipment review: stage-first mobile layout with a five-column slot-driven model picker on phone widths. */
+body.asset-model-picker-open{overflow:hidden}
+.review-header{align-items:center}
+.asset-primary-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.asset-primary-head h2,.asset-model-section h2{margin:0;font-size:13px}
+.asset-stage-slot{border-radius:999px;padding:8px 11px}
+.asset-stage-cameras{
+  position:absolute;z-index:3;left:50%;bottom:10px;transform:translateX(-50%);
+  width:min(92%,520px);padding:6px;border:1px solid #3b4640;border-radius:999px;
+  background:#0a100ee8;box-shadow:0 14px 34px #0008;backdrop-filter:blur(10px)
+}
+.asset-model-section{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px}
+.asset-model-trigger{
+  min-width:0;min-height:48px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;
+  padding:8px 11px;border:1px solid #c7b77f;border-radius:12px;background:#25231c;color:#fff1c8;text-align:left
+}
+.asset-model-trigger strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.asset-model-trigger span{font-size:15px}
+.asset-model-picker{position:fixed;z-index:1200;inset:0;display:grid;align-items:end}
+.asset-model-picker[hidden]{display:none!important}
+.asset-model-picker-backdrop{position:absolute;inset:0;border:0;background:#0009}
+.asset-model-picker-sheet{
+  position:relative;z-index:1;width:min(100%,760px);max-height:min(68dvh,640px);margin-inline:auto;overflow:auto;
+  padding:12px 12px max(14px,env(safe-area-inset-bottom));border:1px solid #394640;border-bottom:0;
+  border-radius:18px 18px 0 0;background:#0d1312;box-shadow:0 -20px 60px #000b
+}
+.asset-model-picker-sheet::before{content:"";display:block;width:42px;height:4px;margin:0 auto 10px;border-radius:999px;background:#55625c}
+.asset-model-picker-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.asset-model-picker-head h2{margin:0;font-size:16px}
+.asset-model-picker-close{width:36px;height:36px;border:1px solid #3b4943;border-radius:50%;background:#111816;color:#e4e8e5;font-size:21px;line-height:1}
+.model-options button{min-height:58px;white-space:normal;overflow-wrap:anywhere}
+@media(max-width:860px){
+  .asset-preview-pane{height:min(58dvh,680px);min-height:390px}
+  .asset-stage-shell,#asset-stage{min-height:390px}
+}
+@media(max-width:520px){
+  .asset-preview-pane{height:56dvh;min-height:380px}
+  .asset-stage-shell,#asset-stage{min-height:380px}
+  .asset-stage-cameras{bottom:8px;width:calc(100% - 16px);padding:5px;gap:4px}
+  .asset-camera-strip button{min-height:32px;padding:4px 2px;font-size:9px}
+  .asset-model-section{grid-template-columns:1fr;gap:7px}
+  .asset-model-trigger{min-height:44px}
+  .model-options{gap:5px}
+  .model-options button{min-height:56px;padding:5px 3px;font-size:8px}
+}
