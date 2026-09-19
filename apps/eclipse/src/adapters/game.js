@@ -10,7 +10,7 @@ export class Game {
   title(){this.clear();this.state='title';this.world.mode='title';this.hero=new Actor(this.assets,'hero',{x:0,z:1.5});this.world.scene.add(this.hero.root);this.hero.model.rotation.y=-.2;this.hero.heading=-.2;this.hero.targetHeading=-.2;this.events.state?.('title');}
   clear(){this.hero?.dispose();for(const a of this.enemies)a.dispose();this.enemies=[];this.telegraphs=[];this.timers=[];this.effects.clear();}
   start(){
-    this.clear();this.rand=seededRandom(this.seed);this.stats=freshStats();this.state='playing';this.world.mode='playing';this.hero=new Actor(this.assets,'hero');this.hero.hp=this.stats.hp;this.hero.maxHp=this.stats.maxHp;this.world.scene.add(this.hero.root);
+    this.clear();this.rand=seededRandom(this.seed);this.stats=freshStats();this.state='playing';this.win=null;this.world.mode='playing';this.hero=new Actor(this.assets,'hero');this.hero.hp=this.stats.hp;this.hero.maxHp=this.stats.maxHp;this.world.scene.add(this.hero.root);
     this.skills=[.8,3.5,8];this.auto=true;this.manualGrace=0;this.hitStop=0;this.input.x=this.input.z=0;this.combo=0;this.events.state?.('playing');this.beginWave(1);this.sound.bell();
   }
   beginWave(number){this.stats.wave=number;this.wave=WAVES[number-1];this.spawnQueue=waveEnemies(number);this.waveTotal=this.spawnQueue.length;this.waveKilled=0;this.spawnTimer=1.3;this.clearWait=0;this.telegraphs=[];this.events.announce?.(this.wave.subtitle,this.wave.title);}
@@ -45,11 +45,13 @@ export class Game {
     }
   }
   heroAI(dt,alive){
-    const h=this.hero;if(!h.alive||h.busy>0)return;
-    let target=null,near=Infinity;for(const e of alive){const d=distance(h.position,e.position);if(d<near){near=d;target=e;}}
+    const h=this.hero;if(!h.alive)return;
     const moving=Math.hypot(this.input.x,this.input.z)>.06;
-    if(moving){h.move(this.input.x,this.input.z,4,dt);}
-    else if(this.auto&&this.manualGrace<=0){
+    // Manual movement always responds, including during an original attack animation.
+    if(moving)h.move(this.input.x,this.input.z,h.busy>0?2.3:4,dt);
+    if(h.busy>0)return;
+    let target=null,near=Infinity;for(const e of alive){const d=distance(h.position,e.position);if(d<near){near=d;target=e;}}
+    if(!moving&&this.auto&&this.manualGrace<=0){
       const danger=this.telegraphs.find(t=>distance(h.position,t)<t.radius+1);
       if(danger){let dx=h.position.x-danger.x,dz=h.position.z-danger.z;if(Math.hypot(dx,dz)<.1){dx=1;dz=.4;}h.move(dx,dz,4.3,dt);}
       else if(target&&near>1.65+target.radius*.45)h.move(target.position.x-h.position.x,target.position.z-h.position.z,3.55,dt);
