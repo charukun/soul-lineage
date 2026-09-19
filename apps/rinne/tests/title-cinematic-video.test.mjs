@@ -32,7 +32,11 @@ test('cinematic boot is event-driven and overlaps world preparation',()=>{
   assert.match(cinematic,/intro load timeout/);
 });
 
-test('cinematic handoff reveals title before menu and return skips the long intro',()=>{
+test('cinematic offers an early primary action while preserving the authored title handoff',()=>{
+  assert.match(media,/primaryActionAt:1\.5/);
+  assert.match(cinematic,/primaryActionAt\*1000/);assert.match(cinematic,/dataset\.primaryAction='ready'/);
+  assert.match(css,/data-intro="cinematic"\]\[data-primary-action="ready"\]\[data-ready="true"\] \.title-actions/);
+  assert.match(css,/title-command:not\(#new-life\)\{display:none\}/);
   assert.match(cinematic,/settleUi\(\)[\s\S]*dataset\.intro='settling'[\s\S]*dataset\.intro='idle'/);
   assert.match(css,/data-intro="settling"\] \.title-lockup\{opacity:1/);
   assert.match(css,/data-intro="settling"\] \.title-actions\{opacity:0/);

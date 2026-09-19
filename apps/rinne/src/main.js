@@ -31,9 +31,14 @@ for(const command of titleCommands){
 }
 title.addEventListener('pointerdown',unlockTitleAudio,{capture:true,passive:true});
 title.addEventListener('keydown',event=>{
-  if(villageDialog.open||settingsDialog.open||title.dataset.intro!=='idle'||title.dataset.ready!=='true')return;
+  const earlyPrimary=title.dataset.intro==='cinematic'&&title.dataset.primaryAction==='ready'&&title.dataset.ready==='true';
+  if(villageDialog.open||settingsDialog.open||title.dataset.ready!=='true'||(title.dataset.intro!=='idle'&&!earlyPrimary))return;
   if(event.key!=='ArrowDown'&&event.key!=='ArrowUp'&&event.key!=='Enter')return;
   unlockTitleAudio();
+  if(earlyPrimary){
+    if(event.key==='Enter'){event.preventDefault();selectTitleCommand($('new-life'));$('new-life').click();}
+    return;
+  }
   const selected=titleCommands.findIndex(item=>item.dataset.selected==='true');
   const index=selected<0?0:selected;
   if(event.key==='Enter'){

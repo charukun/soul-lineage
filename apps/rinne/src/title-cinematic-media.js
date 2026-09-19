@@ -1,5 +1,6 @@
 // Authored cinematic assets live in public/title-assets so source stays reviewable.
 export const TITLE_CINEMATIC_META=Object.freeze({
+  primaryActionAt:1.5,
   introEnd:8.45,
   duration:13.5,
   livingDuration:5.05,
