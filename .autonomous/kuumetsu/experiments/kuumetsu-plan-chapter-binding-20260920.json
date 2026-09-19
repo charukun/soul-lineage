@@ -60,7 +60,7 @@
     ],
     "receipt": {
       "repository": "charukun/soul-lineage",
-      "pullRequest": null,
+      "pullRequest": 1101,
       "marker": "autonomous-receipt:kuumetsu:kuumetsu-plan-chapter-binding-20260920"
     }
   },
