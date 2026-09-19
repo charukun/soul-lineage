@@ -4,7 +4,7 @@ import {
   emptyPeerWorldRegistry,createPeerWorldRoom,joinPeerWorldRoom,listPeerWorldRooms,readHostEvents,postPeerWorldOffer,
   readGuestEvents,postPeerWorldAnswer,updatePeerWorldTelemetry,publicPeerWorldSnapshot,prunePeerWorldRegistry,
   PEER_WORLD_TTL_MS,
-} from '../ops-board/peer-world-registry.mjs';
+} from '../apps/pulse/peer-world-registry.mjs';
 
 test('signaling registry exchanges offer and answer without exposing secrets publicly',()=>{
   const t=1_000_000;

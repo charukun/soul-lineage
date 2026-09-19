@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { STALL_WARNING_MS, classifyPull, overallIntegration } from '../ops-board/model.mjs';
-import { actionProblems } from '../ops-board/review-model.mjs';
+import { STALL_WARNING_MS, classifyPull, overallIntegration } from '../apps/pulse/model.mjs';
+import { actionProblems } from '../apps/pulse/review-model.mjs';
 
 const ciRun = (sha, time) => ({
   name: 'CI', head_sha: sha, status: 'completed', conclusion: 'success',

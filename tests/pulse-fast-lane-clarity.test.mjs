@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const flow = readFileSync(new URL('../ops-board/public/flow-board.js', import.meta.url), 'utf8');
-const rescue = readFileSync(new URL('../ops-board/public/rescue-board.js', import.meta.url), 'utf8');
+const flow = readFileSync(new URL('../apps/pulse/public/flow-board.js', import.meta.url), 'utf8');
+const rescue = readFileSync(new URL('../apps/pulse/public/rescue-board.js', import.meta.url), 'utf8');
 
 test('PULSE default integration surface is the five-state Fast Lane view', () => {
   assert.match(flow, /FAST LANE/);

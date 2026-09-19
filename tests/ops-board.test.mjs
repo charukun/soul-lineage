@@ -7,7 +7,7 @@ import {
   parseMergePulls,
   publishedCommit,
   reconcileIntegrationQueue,
-} from '../ops-board/model.mjs';
+} from '../apps/pulse/model.mjs';
 import {
   STALE_DRAFT_MS,
   bodyLines,
@@ -15,8 +15,8 @@ import {
   githubPullState,
   splitPulls,
   targetAppsFromFiles,
-} from '../ops-board/pulls.mjs';
-import { opsDeploymentUrl } from '../ops-board/deployment-url.mjs';
+} from '../apps/pulse/pulls.mjs';
+import { opsDeploymentUrl } from '../apps/pulse/deployment-url.mjs';
 
 const mergeCommit = (number, title, date, sha = `merge-${number}`) => ({
   sha,
@@ -141,10 +141,10 @@ test('worker deployment URL parser only accepts the stable rinne-ops URL', () =>
 
 test('public dashboard prioritizes action items/tasks and uses a 3-column icon app grid', async () => {
   const [index, appBoard, appCss, pullBoard] = await Promise.all([
-    readFile(new URL('../ops-board/public/index.html', import.meta.url), 'utf8'),
-    readFile(new URL('../ops-board/public/app-board.js', import.meta.url), 'utf8'),
-    readFile(new URL('../ops-board/public/app-board.css', import.meta.url), 'utf8'),
-    readFile(new URL('../ops-board/public/pull-board.js', import.meta.url), 'utf8'),
+    readFile(new URL('../apps/pulse/public/index.html', import.meta.url), 'utf8'),
+    readFile(new URL('../apps/pulse/public/app-board.js', import.meta.url), 'utf8'),
+    readFile(new URL('../apps/pulse/public/app-board.css', import.meta.url), 'utf8'),
+    readFile(new URL('../apps/pulse/public/pull-board.js', import.meta.url), 'utf8'),
   ]);
 
   assert.doesNotMatch(index, /summary-grid|いまの状態/);
@@ -171,7 +171,7 @@ test('public dashboard prioritizes action items/tasks and uses a 3-column icon a
   assert.match(pullBoard, /対象確認中/);
 
   for (const name of ['rinne', 'village', 'demon', 'lanternfell', 'character-studio', 'visual-review', 'wayfinder', 'ops-board', 'default']) {
-    const svg = await readFile(new URL(`../ops-board/public/icons/${name}.svg`, import.meta.url), 'utf8');
+    const svg = await readFile(new URL(`../apps/pulse/public/icons/${name}.svg`, import.meta.url), 'utf8');
     assert.match(svg, /<svg/);
   }
 });

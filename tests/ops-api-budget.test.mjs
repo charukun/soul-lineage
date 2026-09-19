@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyGithubFailure, createGithubClient } from '../ops-board/github-client.mjs';
-import { FULL_PULL_RECONCILE_MS, syncPullSnapshot } from '../ops-board/pull-snapshot.mjs';
-import { enrichTargets } from '../ops-board/review-model.mjs';
+import { classifyGithubFailure, createGithubClient } from '../apps/pulse/github-client.mjs';
+import { FULL_PULL_RECONCILE_MS, syncPullSnapshot } from '../apps/pulse/pull-snapshot.mjs';
+import { enrichTargets } from '../apps/pulse/review-model.mjs';
 
 function memoryStorage() {
   const map = new Map();

@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { targetAppsFromFiles } from '../ops-board/pulls.mjs';
-import { catalogFromPulseState } from '../portal/worker.mjs';
+import { targetAppsFromFiles } from '../apps/pulse/pulls.mjs';
+import { catalogFromPulseState } from '../apps/wayfinder/worker.mjs';
 
 const root = new URL('../', import.meta.url);
 const read = path => readFile(new URL(path, root), 'utf8');
 
 test('WAYFINDER fallback contains only a PULSE recovery route', async () => {
-  const catalog = JSON.parse(await read('portal/catalog.json'));
+  const catalog = JSON.parse(await read('apps/wayfinder/catalog.json'));
   assert.equal(catalog.repository, 'charukun/soul-lineage');
   assert.equal(catalog.source, 'fallback');
   assert.deepEqual(catalog.items.map(item => item.id), ['ops-board']);
@@ -64,10 +64,10 @@ test('PULSE repository mismatch fails closed', () => {
 
 test('gallery remains immersive while acting as a public navigation surface', async () => {
   const [html, css, js, worker, wrangler] = await Promise.all([
-    read('portal/public/index.html'),
-    read('portal/public/style.css'),
-    read('portal/public/app.js'),
-    read('portal/worker.mjs'),
+    read('apps/wayfinder/public/index.html'),
+    read('apps/wayfinder/public/style.css'),
+    read('apps/wayfinder/public/app.js'),
+    read('apps/wayfinder/worker.mjs'),
     read('wrangler.portal.jsonc'),
   ]);
   assert.match(html, /<canvas id="world"/);
@@ -92,6 +92,6 @@ test('gallery remains immersive while acting as a public navigation surface', as
 });
 
 test('target classifier still recognizes the public gallery as its own app', () => {
-  const labels = targetAppsFromFiles(['portal/public/index.html']).map(item => item.label);
+  const labels = targetAppsFromFiles(['apps/wayfinder/public/index.html']).map(item => item.label);
   assert.deepEqual(labels, ['公開リンク集']);
 });

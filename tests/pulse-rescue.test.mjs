@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { rescueView, collectRescue } from '../ops-board/rescue.mjs';
+import { rescueView, collectRescue } from '../apps/pulse/rescue.mjs';
 import { rescueFixture } from './fixtures/integration-rescue-state.mjs';
 import { event } from '../scripts/integration-rescue-policy.mjs';
 const now=Date.parse('2026-09-13T10:00:00Z');
@@ -32,7 +32,7 @@ test('PULSE receives one low-cost snapshot and preserves older observation on er
   assert.equal(failed.counts.active,4);assert.equal(failed.observationError,'HTTP 429');
 });
 test('public assets have no fixture route, guessed workers, or unsafe management controls',()=>{
-  const source=readFileSync('ops-board/public/rescue-board.js','utf8');
+  const source=readFileSync('apps/pulse/public/rescue-board.js','utf8');
   assert.doesNotMatch(source,/rescueFixture|fixture=|FORCE MERGE|SKIP VALIDATION|api\.github\.com|innerHTML/);
   assert.match(source,/record\.workerId/);assert.match(source,/record\.currentAction/);assert.match(source,/record\.blockedBy/);
   assert.match(source,/preserveView/);

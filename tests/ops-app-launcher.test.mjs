@@ -4,8 +4,8 @@ import { readFile } from 'node:fs/promises';
 
 test('Ops Board exposes verified publication targets as obvious direct launch links', async () => {
   const [appBoard, appCss] = await Promise.all([
-    readFile(new URL('../ops-board/public/app-board.js', import.meta.url), 'utf8'),
-    readFile(new URL('../ops-board/public/app-board.css', import.meta.url), 'utf8'),
+    readFile(new URL('../apps/pulse/public/app-board.js', import.meta.url), 'utf8'),
+    readFile(new URL('../apps/pulse/public/app-board.css', import.meta.url), 'utf8'),
   ]);
 
   assert.match(appBoard, /const safeHref = value =>/);

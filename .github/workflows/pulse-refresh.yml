@@ -43,7 +43,7 @@ jobs:
         with:
           ref: ${{ inputs.source_sha }}
           persist-credentials: false
-          sparse-checkout: ops-board
+          sparse-checkout: apps/pulse
       - id: node
         if: always() && steps.checkout.outcome == 'success'
         uses: actions/setup-node@v6
@@ -70,7 +70,7 @@ jobs:
           OPS_URL: https://rinne-ops.c-okamoto.workers.dev/
           OPS_REFRESH_REASON: ${{ inputs.reason }}
           PULSE_STATE_OUTPUT: .pulse-refresh-state.json
-        run: node ops-board/refresh-client.mjs
+        run: node apps/pulse/refresh-client.mjs
       - name: Resolve refresh outcome
         id: result
         if: always()
