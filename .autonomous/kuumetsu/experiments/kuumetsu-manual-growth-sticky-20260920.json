@@ -60,7 +60,7 @@
     ],
     "receipt": {
       "repository": "charukun/soul-lineage",
-      "pullRequest": null,
+      "pullRequest": 1124,
       "marker": "autonomous-receipt:kuumetsu:kuumetsu-manual-growth-sticky-20260920"
     }
   },
