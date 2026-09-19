@@ -24,7 +24,6 @@ jobs:
       - name: Acquire and audit new authored assets
         run: python3 apps/ashen-vigil/prepare.py
       - name: Build and browser-test game
-        if: hashFiles('apps/ashen-vigil/index.html') != ''
         run: |
           cd apps/ashen-vigil
           npm install --no-audit --no-fund --workspaces=false
@@ -32,7 +31,6 @@ jobs:
           npm run build
           npm test
       - name: Publish isolated public game
-        if: hashFiles('apps/ashen-vigil/index.html') != ''
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -41,11 +39,10 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN"
           npx --yes wrangler@4 deploy --config wrangler.jsonc
       - name: Verify anonymous public browser
-        if: hashFiles('apps/ashen-vigil/index.html') != ''
         run: |
           cd apps/ashen-vigil
           node smoke.mjs https://ashen-vigil.c-okamoto.workers.dev/
-      - name: Preserve assets, screenshots and exact-head report
+      - name: Preserve assets, screenshots, source and exact-head report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -54,6 +51,13 @@ jobs:
             apps/ashen-vigil/public/
             apps/ashen-vigil/evidence/
             apps/ashen-vigil/dist/
+            apps/ashen-vigil/src/
+            apps/ashen-vigil/*.mjs
+            apps/ashen-vigil/*.py
+            apps/ashen-vigil/*.json
+            apps/ashen-vigil/*.html
+            apps/ashen-vigil/*.css
+            apps/ashen-vigil/*.md
           retention-days: 14
       - name: Record task result
         if: always()
