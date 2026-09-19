@@ -6,7 +6,7 @@ import {kaykitHumanoidFromGLTF} from '@soul/rendering/kaykit-rig';
 import {captureMotionRest,applyNormalizedMotion} from '@soul/rendering/motion-quality';
 import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGORY_LABELS} from './review-motion-catalog.js';
 import {buildReviewMotionRegistry,motionRegistryCount} from './review-motion-registry.js';
-import {loadPinnedMotionSource,disposePinnedMotionSources} from './review-motion-source-runtime.js';
+import {loadPinnedMotionSource,discoverPinnedMotionLibraryClips,disposePinnedMotionSources} from './review-motion-source-runtime.js';
 import './review-motion-library.css';
 
 const el=id=>document.getElementById(id);
@@ -153,6 +153,12 @@ async function loadModel(model){
     const count=motionRegistryCount(registry);canvas.dataset.motionSource='source-registry';canvas.dataset.motionCount=String(count);canvas.dataset.motionModel=model.id;
     el('motion-count-value').textContent=String(count);
     el('motion-load').value=1;status(model.label+' · '+count+' source motions');setCameraPreset('three-quarter');await selectMotion(first);
+    status('Mesh2Motion CC0ライブラリを取得しています。');
+    const discovered=await discoverPinnedMotionLibraryClips();
+    if(serial!==loadSerial)return;
+    registry=buildReviewMotionRegistry(targetClips,discovered);catalog=buildMotionReviewCatalog(registry.motions,{perCategory:8});
+    const expandedCount=motionRegistryCount(registry);canvas.dataset.motionCount=String(expandedCount);el('motion-count-value').textContent=String(expandedCount);
+    renderMotionGrid();status(model.label+' · '+expandedCount+' source motions');
   }catch(error){el('motion-load').value=0;status('読込失敗: '+String(error?.message||error));canvas.dataset.motionSource='error';}
 }
 

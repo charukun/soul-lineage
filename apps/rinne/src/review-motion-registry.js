@@ -117,10 +117,11 @@ export function kaykitMotionRecords(animations=[]){
   const source=baselineSource();
   return sourceRows(source,animations.map((clip,index)=>({index,name:normalize(clip?.name)||`clip-${index}`,duration:Number(clip?.duration)})),{baseline:true});
 }
-export function externalMotionRecords(){
+export function externalMotionRecords(discoveredClips={}){
   const records=[],exclusions=[];
   for(const source of MOTION_LIBRARY_SOURCES){
-    const rows=sourceRows(source,source.clips);
+    const clips=source.clips.length?source.clips:(discoveredClips[source.id]||[]);
+    const rows=sourceRows(source,clips);
     records.push(...rows.records);exclusions.push(...rows.exclusions);
   }
   return freeze({records:freeze(records),exclusions:freeze(exclusions)});
@@ -143,14 +144,14 @@ export function dedupeSourceMotions(records=[]){
   }
   return freeze({motions:freeze(motions),duplicates:freeze(duplicates)});
 }
-export function buildReviewMotionRegistry(kaykitAnimations=[]){
+export function buildReviewMotionRegistry(kaykitAnimations=[],discoveredClips={}){
   if(!Array.isArray(kaykitAnimations)||!kaykitAnimations.length)throw new Error('KayKit source animations are required');
-  const baseline=kaykitMotionRecords(kaykitAnimations),external=externalMotionRecords();
+  const baseline=kaykitMotionRecords(kaykitAnimations),external=externalMotionRecords(discoveredClips);
   const baselineDeduped=dedupeSourceMotions(baseline.records);
   const combined=dedupeSourceMotions([...baseline.records,...external.records]);
   const byId=freeze(Object.fromEntries(combined.motions.map(row=>[row.sourceIdentity,row])));
   const exclusions=freeze([...baseline.exclusions,...external.exclusions]);
-  const externalSourceClipOccurrences=MOTION_LIBRARY_SOURCES.reduce((sum,row)=>sum+row.clips.length,0);
+  const externalSourceClipOccurrences=MOTION_LIBRARY_SOURCES.reduce((sum,row)=>sum+(row.clips.length||(discoveredClips[row.id]?.length||0)),0);
   return freeze({
     version:2,
     motions:combined.motions,
