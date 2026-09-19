@@ -5,6 +5,7 @@ import {RINNE_PROTAGONIST_MODEL_ID} from './rebuild/protagonist-runtime-asset.js
 import {applyTidebreakPose,tidebreakFrameFromSnapshot} from './rebuild/tidebreak-pose.js';
 import {reviewBattleCameraFrame,reviewBattleMultiHitFrame,reviewBattlePresentationFrame} from './review-battle-state.js';
 import {REVIEW_MONSTER_MODELS,disposeReviewMonsterModel,loadReviewMonsterModel,updateReviewMonsterAnimation} from './review-battle-monster.js';
+import {REVIEW_INSPIRATION_TIMELINE,reviewInspirationSequenceFrame} from './review-battle-inspiration.js';
 
 export const REVIEW_BATTLE_MODELS=REVIEW_MONSTER_MODELS;
 
@@ -38,7 +39,7 @@ function ring(color){
   mesh.rotation.x=-Math.PI/2;mesh.position.y=.018;return mesh;
 }
 
-export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
+export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirationCue=()=>{}}={}){
   if(!canvas)throw Error('Review battle canvas is required');
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
   renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -58,6 +59,11 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
   ground.rotation.x=-Math.PI/2;stageRoot.add(ground);
   const contact=new THREE.Mesh(new THREE.RingGeometry(.7,.73,64),new THREE.MeshBasicMaterial({color:0x53615c,transparent:true,opacity:.38,side:THREE.DoubleSide}));
   contact.rotation.x=-Math.PI/2;contact.position.y=.012;stageRoot.add(contact);
+  const inspirationFx=new THREE.Group();inspirationFx.visible=false;stageRoot.add(inspirationFx);
+  const fxGold=new THREE.MeshBasicMaterial({color:0xf4d483,transparent:true,opacity:.75,depthWrite:false,side:THREE.DoubleSide}),fxBlue=new THREE.MeshBasicMaterial({color:0x73bce5,transparent:true,opacity:.62,depthWrite:false,side:THREE.DoubleSide});
+  const fxRings=[];for(const radius of [.68,.92,1.18]){const mesh=new THREE.Mesh(new THREE.RingGeometry(radius,radius+.035,48),fxGold.clone());mesh.rotation.x=-Math.PI/2;inspirationFx.add(mesh);fxRings.push(mesh);}
+  const fxRays=[];for(let i=0;i<10;i++){const ray=new THREE.Mesh(new THREE.BoxGeometry(.035,.035,1.5),fxBlue.clone());ray.position.y=.85;ray.rotation.y=(Math.PI*2*i)/10;ray.rotation.x=Math.PI/2;inspirationFx.add(ray);fxRays.push(ray);}
+  const fxArc=new THREE.Mesh(new THREE.TorusGeometry(.9,.035,8,48,Math.PI*1.55),fxGold.clone());fxArc.position.y=1.05;fxArc.rotation.set(Math.PI/2,.2,-.55);inspirationFx.add(fxArc);
   const aura=new THREE.Group();aura.visible=false;const auraMaterial=new THREE.MeshBasicMaterial({color:0x73bce5,transparent:true,opacity:.46,depthWrite:false,side:THREE.DoubleSide});for(const radius of [.62,.82]){const ringMesh=new THREE.Mesh(new THREE.RingGeometry(radius,radius+.025,48),auraMaterial.clone());ringMesh.rotation.x=-Math.PI/2;aura.add(ringMesh);}const auraLight=new THREE.PointLight(0x73bce5,0,3.4);auraLight.position.y=.85;aura.add(auraLight);stageRoot.add(aura);
 
   const [protagonistRuntime,monsterEnemy,monsterFlankA,monsterFlankB]=await Promise.all([
@@ -119,16 +125,19 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     if(hit)side.hitUntil=time+.14;
     side.hp=Number.isFinite(state.hp)?state.hp:side.hp;
     let frame=tidebreakFrameFromSnapshot(state,{targetId:target?.id||null,intent:'review-battle'});
-    if(sideKey==='hero'&&techniquePlayback&&time<techniquePlayback.until){const elapsed=1-(techniquePlayback.until-time)/techniquePlayback.duration,steps=techniquePlayback.steps||[],index=Math.min(steps.length-1,Math.floor(Math.max(0,elapsed)*Math.max(1,steps.length))),step=steps[index];if(step)frame=tidebreakFrameFromSnapshot({...state,attack:step.kind,progress:(Math.max(0,elapsed)*Math.max(1,steps.length))%1,slot:techniquePlayback.phase},{targetId:target?.id||null,intent:'review-battle-inspiration'});}else if(sideKey==='hero'&&techniquePlayback&&time>=techniquePlayback.until)techniquePlayback=null;
+    const sequence=techniquePlayback?reviewInspirationSequenceFrame(time-techniquePlayback.startedAt):null;if(sideKey==='hero'&&techniquePlayback&&sequence?.stage==='execute'){const steps=techniquePlayback.steps||[],scaled=sequence.executeProgress*Math.max(1,steps.length),index=Math.min(steps.length-1,Math.floor(scaled)),step=steps[index];if(step)frame=tidebreakFrameFromSnapshot({...state,attack:step.kind,progress:scaled%1,slot:techniquePlayback.phase},{targetId:target?.id||null,intent:'review-battle-inspiration'});}
     const presentation=reviewBattlePresentationFrame(state,target,side.presentation,dt,{hit});
     side.presentation=presentation;side.previous={x,z};
     const worldX=presentation.x,worldZ=presentation.z,stride=presentation.stride;
     actor.root.position.set(worldX,0,worldZ);actor.root.rotation.y=presentation.yaw;
+    if(sequence&&sequence.stage!=='done'&&target){const tx=(Number(target.x)||0)*1.35,tz=(Number(target.z)||0)*1.15,dx=worldX-tx,dz=worldZ-tz,len=Math.max(.001,Math.hypot(dx,dz));if(sideKey==='hero'&&sequence.spacing>0){actor.root.position.x+=dx/len*.72*sequence.spacing;actor.root.position.z+=dz/len*.72*sequence.spacing;}if(sideKey==='enemy'&&(sequence.stage==='stagger'||sequence.stage==='reveal')){actor.root.position.x-=dx/len*.18;actor.root.position.z-=dz/len*.18;actor.root.rotation.z=.12*Math.sin(sequence.progress*Math.PI);}}
     if(sideKey==='enemy'){
       updateReviewMonsterAnimation(actor,state,time,{hit:time<side.hitUntil});
     }else{
       actor.sample(side.appearance,time,(bones,sampleTime)=>{
         addStride(bones,sampleTime,stride);
+        if(sequence?.stage==='reveal'){if(bones.spine)bones.spine.rotation.x-=.16;if(bones.rightUpperArm){bones.rightUpperArm.rotation.x-=.7;bones.rightUpperArm.rotation.z+=.35;}}
+        if(sequence?.stage==='execute'&&bones.spine)bones.spine.rotation.y+=Math.sin(sequence.executeProgress*Math.PI*2)*.22;
         if(!frame?.attack)addGuardPose(bones,sideKey);
         applyTidebreakPose(bones,frame);
         if(time<side.hitUntil&&bones.spine)bones.spine.rotation.z-=.13;
@@ -163,8 +172,9 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
 
   function updateCamera(core,dt,followCamera,cameraSystem){
     let frame=reviewBattleCameraFrame(core,{follow:followCamera,system:cameraSystem,encounterMode});
-    const now=performance.now()/1000;
-    if(now<cinematicUntil&&core?.hero&&core?.enemy){const hx=Number(core.hero.x||0)*1.35,hz=Number(core.hero.z||0)*1.15,ex=Number(core.enemy.x||0)*1.35,ez=Number(core.enemy.z||0)*1.15,dx=ex-hx,dz=ez-hz,len=Math.max(.01,Math.hypot(dx,dz)),rx=dz/len,rz=-dx/len;frame={position:{x:hx-dx/len*1.7+rx*.9,y:.62,z:hz-dz/len*1.7+rz*.9},look:{x:hx+dx*.58,y:1.02,z:hz+dz*.58},follow:true,system:'inspiration',count:encounterMode==='one-v-three'?3:1};}
+    const now=performance.now()/1000,sequence=techniquePlayback?reviewInspirationSequenceFrame(now-techniquePlayback.startedAt):null;
+    if(core?.hero&&core?.enemy&&followCamera){const hx=Number(core.hero.x||0)*1.35,hz=Number(core.hero.z||0)*1.15,ex=Number(core.enemy.x||0)*1.35,ez=Number(core.enemy.z||0)*1.15,dx=ex-hx,dz=ez-hz;frame={...frame,look:{x:frame.look.x+dx*.18,y:frame.look.y+.28,z:frame.look.z+dz*.18}};canvas.dataset.heroComposition='lower-left';}
+    if(sequence&&sequence.stage!=='spark'&&sequence.stage!=='done'&&core?.hero&&core?.enemy){const hx=Number(core.hero.x||0)*1.35,hz=Number(core.hero.z||0)*1.15,ex=Number(core.enemy.x||0)*1.35,ez=Number(core.enemy.z||0)*1.15,dx=ex-hx,dz=ez-hz,len=Math.max(.01,Math.hypot(dx,dz)),rx=dz/len,rz=-dx/len,push=sequence.stage==='execute'?.55:.95;frame={position:{x:hx-dx/len*(2.0-push*.35)+rx*(1.1+push*.25),y:.82,z:hz-dz/len*(2.0-push*.35)+rz*(1.1+push*.25)},look:{x:hx+dx*.68,y:1.28,z:hz+dz*.68},follow:true,system:'inspiration',count:encounterMode==='one-v-three'?3:1};}
     cameraTargetPosition.set(frame.position.x,frame.position.y,frame.position.z);cameraTargetLook.set(frame.look.x,frame.look.y,frame.look.z);
     const step=Math.max(1/120,Math.min(.05,Number(dt)||1/60)),blend=1-Math.exp(-step*8);
     camera.position.lerp(cameraTargetPosition,blend);cameraLook.lerp(cameraTargetLook,blend);camera.lookAt(cameraLook);
@@ -175,7 +185,11 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     setEncounterMode(requestedMode);resize();const now=performance.now()/1000;
     if(core){animateSide('hero',core.hero,core.enemy,now,dt);animateSide('enemy',core.enemy,core.hero,now,dt);animateExtras(core,now,dt);}
     updateCamera(core,dt,followCamera,cameraSystem);
-    const cinematic=performance.now()/1000<cinematicUntil;aura.visible=cinematic;if(cinematic&&sides.hero.actor){aura.position.copy(sides.hero.actor.root.position);aura.position.y=.025;const pulse=.92+Math.sin(performance.now()*.018)*.08;aura.scale.setScalar(pulse);auraLight.intensity=1.5+Math.sin(performance.now()*.022)*.55;}
+    const sequence=techniquePlayback?reviewInspirationSequenceFrame(now-techniquePlayback.startedAt):null,cinematic=Boolean(sequence&&sequence.stage!=='done');aura.visible=cinematic;inspirationFx.visible=cinematic;
+    if(cinematic&&sides.hero.actor){aura.position.copy(sides.hero.actor.root.position);aura.position.y=.025;inspirationFx.position.copy(sides.hero.actor.root.position);const pulse=.92+Math.sin(performance.now()*.018)*.08;aura.scale.setScalar(pulse);auraLight.intensity=1.8+Math.sin(performance.now()*.022)*.7;const intensity=sequence.stage==='reveal'||sequence.stage==='execute'?1:sequence.progress*.55;for(const [index,mesh] of fxRings.entries()){mesh.scale.setScalar(.7+intensity*(.8+index*.18));mesh.material.opacity=.18+intensity*.62;mesh.rotation.z+=.008*(index+1);}for(const [index,ray] of fxRays.entries()){ray.visible=intensity>.25;ray.scale.z=.45+intensity*(1.1+(index%3)*.15);ray.material.opacity=.15+intensity*.55;}fxArc.visible=sequence.stage==='reveal'||sequence.stage==='execute';fxArc.rotation.z+=.035;fxArc.material.opacity=.35+intensity*.6;
+      for(const cue of ['camera','spacing','stagger','reveal','execute'])if(now-techniquePlayback.startedAt>=REVIEW_INSPIRATION_TIMELINE[cue]&&!techniquePlayback.emitted.has(cue)){techniquePlayback.emitted.add(cue);onInspirationCue(cue,techniquePlayback);}
+    }
+    if(techniquePlayback&&sequence?.stage==='done'){if(!techniquePlayback.emitted.has('done')){techniquePlayback.emitted.add('done');onInspirationCue('done',techniquePlayback);}techniquePlayback=null;aura.visible=false;inspirationFx.visible=false;}
     const phaseHud=canvas.closest('.stage')?.querySelector('#battle-phase'),heroRoot=sides.hero.actor?.root;
     if(phaseHud&&heroRoot){const projected=heroRoot.position.clone();projected.y+=1.82;projected.project(camera);phaseHud.style.setProperty('left',`${(projected.x*.5+.5)*100}%`,'important');phaseHud.style.setProperty('top',`${(-projected.y*.5+.5)*100}%`,'important');phaseHud.style.setProperty('bottom','auto','important');}
     const heroActual=sides.hero.actor?.root?.userData?.characterModel||'';
@@ -194,7 +208,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     setModel(side,modelId){if(side==='hero')return;install(side,modelId);},
     setEncounterMode,
     setWeapon(weapon){setHeroWeapon(weapon);},
-    triggerInspiration({steps=[],phase='ha',duration=1.35}={}){const now=performance.now()/1000;cinematicUntil=now+Math.max(.8,duration);techniquePlayback={steps,phase,duration:Math.max(.8,duration),until:now+Math.max(.8,duration)};canvas.closest('.stage')?.setAttribute('data-inspiration-cinematic','true');setTimeout(()=>canvas.closest('.stage')?.removeAttribute('data-inspiration-cinematic'),Math.max(800,duration*1000));},
+    triggerInspiration({id='',name='',steps=[],phase='ha',duration=REVIEW_INSPIRATION_TIMELINE.end}={}){const now=performance.now()/1000,total=Math.max(REVIEW_INSPIRATION_TIMELINE.end,Number(duration)||0);techniquePlayback={id,name,steps,phase,duration:total,startedAt:now,until:now+total,emitted:new Set(['spark'])};cinematicUntil=now+total;canvas.closest('.stage')?.setAttribute('data-inspiration-cinematic','true');onInspirationCue('spark',techniquePlayback);setTimeout(()=>canvas.closest('.stage')?.removeAttribute('data-inspiration-cinematic'),total*1000+120);},
     resetRound(){for(const side of Object.values(sides)){side.previous=null;side.presentation=null;side.hp=null;side.hitUntil=0;}},
     sync,
     snapshot(){return Object.freeze({heroModel:canvas.dataset.heroModel||'',enemyModel:canvas.dataset.enemyModel||'',ready:canvas.dataset.battleModels==='ready',cameraFollow:canvas.dataset.cameraFollow==='on',encounterMode});},

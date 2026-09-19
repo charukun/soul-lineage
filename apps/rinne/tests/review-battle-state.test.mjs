@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {normalizeReviewBattlePhase,reviewBattleCameraFrame,reviewBattleLoopDue,reviewBattlePhaseState,reviewBattleMultiHitFrame,reviewBattlePresentationFrame} from '../src/review-battle-state.js';
+import {REVIEW_INSPIRATION_TIMELINE,pickReviewInspiration,reviewInspirationCandidates,reviewInspirationSequenceFrame} from '../src/review-battle-inspiration.js';
 
 test('phase state follows the live Tidebreak slot and clears between attacks',()=>{
   const active=reviewBattlePhaseState({hero:{slot:'ha',skill:'崩し'},enemy:{slot:'jo'}});
@@ -62,4 +63,20 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.doesNotMatch(stageSource,/ReviewMonsterSilhouette|installReviewEquipment\(side\.actor/);
   assert.match(monsterSource,/gobkit-free-assets/);
   assert.match(monsterSource,/reviewMonsterSpecies=id/);
+  const answers=[
+    {id:'a',kind:'technique',weapons:['sword'],phases:['ha'],steps:[{kind:'slash'},{kind:'crosscut'}]},
+    {id:'b',kind:'technique',weapons:['sword'],phases:['ha','kyu'],steps:[{kind:'heavy'}]},
+    {id:'c',kind:'technique',weapons:['spear'],phases:['ha'],steps:[{kind:'thrust'}]}
+  ];
+  assert.deepEqual(reviewInspirationCandidates(answers,{weapon:'sword',phase:'ha',learnedIds:['a']}).map(x=>x.row.id),['b']);
+  assert.equal(pickReviewInspiration(answers,{weapon:'sword',phase:'ha',learnedIds:['a']},()=>0).id,'b');
+  assert.equal(pickReviewInspiration(answers,{weapon:'sword',phase:'ha',learnedIds:['a','b']},()=>0),null);
+  assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.spacing+.01).stage,'spacing');
+  assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.stagger+.01).stage,'stagger');
+  assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.reveal+.01).stage,'reveal');
+  assert.equal(reviewInspirationSequenceFrame(REVIEW_INSPIRATION_TIMELINE.execute+.01).stage,'execute');
+  assert.match(battleSource,/learnedTechniqueIds\.add\(technique\.id\)/);
+  assert.match(battleSource,/learnedSlots\[phase\]=technique/);
+  assert.match(stageSource,/heroComposition='lower-left'/);
+  assert.match(stageSource,/onInspirationCue\('spark'/);
 });
