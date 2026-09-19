@@ -51,7 +51,8 @@ try {
   await page.waitForFunction(() => document.querySelector('#control-headline')?.textContent !== '状態を確認中');
   assert.ok([PULSE_CONTROL_STATE.SYNCED, PULSE_CONTROL_STATE.PROCESSING, PULSE_CONTROL_STATE.RECOVERING, PULSE_CONTROL_STATE.NEEDS_USER]
     .includes(await page.locator('#control-tower').getAttribute('data-pulse-state')));
-  assert.equal(await page.locator('#overview-alert-value').innerText(), '操作不要');
+  assert.equal((await page.locator('#overview-alert-value').textContent())?.trim(), '操作不要');
+  assert.match(await page.locator('#rapid-issue-list').innerText(), /No Issues/);
   const firstGlanceSelectors = PULSE_FIRST_GLANCE.map(pulseRoleSelector);
   const firstGlance = await page.evaluate(selectors => ({
     viewport: innerHeight,
