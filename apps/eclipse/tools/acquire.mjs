@@ -9,7 +9,8 @@ const digest=data=>createHash('sha256').update(data).digest('hex');
 const gitHash=data=>createHash('sha1').update(`blob ${data.length}\0`).update(data).digest('hex');
 async function request(url){let last;for(let i=0;i<4;i++){try{const r=await fetch(url,{signal:AbortSignal.timeout(90000)});if(!r.ok)throw Error(`HTTP ${r.status}: ${url}`);return Buffer.from(await r.arrayBuffer());}catch(e){last=e;await new Promise(r=>setTimeout(r,1000*(i+1)));}}throw last;}
 let inventory;if(cache){try{inventory=JSON.parse(await readFile(resolve(cache,'../mirror-tree.json'),'utf8'));}catch{}}
-if(!inventory)inventory=JSON.parse((await request(`https://api.github.com/repos/${repository}/git/trees/${revision}?recursive=1`)).toString());
+if(!inventory)inventory=JSON.parse(await readFile(resolve(root,'source-tree.json'),'utf8'));
+if(inventory.sha&&inventory.sha!==revision)throw Error(`Pinned source inventory mismatch: ${inventory.sha} != ${revision}`);
 if(inventory.truncated)throw Error('Incomplete source inventory');const sourceTree=new Map(inventory.tree.filter(e=>e.type==='blob').map(e=>[e.path,e]));
 const missing=manifest.filter(m=>!sourceTree.has(m.sourcePath));if(missing.length){for(const m of missing){const pack=m.sourcePath.split('/')[0],name=posix.basename(m.sourcePath);console.error('MISSING',m.sourcePath,'SAME-FILENAME', [...sourceTree.keys()].filter(p=>p.startsWith(pack+'/')&&posix.basename(p)===name));}throw Error('Source manifest paths must exactly match the pinned artist inventory');}
 await rm(output,{recursive:true,force:true});await mkdir(output,{recursive:true});const downloaded=new Map(),fileRecords=[];const encode=p=>p.split('/').map(encodeURIComponent).join('/');
