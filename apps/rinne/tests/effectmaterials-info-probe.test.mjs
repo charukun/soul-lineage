@@ -21,7 +21,7 @@ function chunkInfo(bytes){
   throw new Error('INFO missing');
 }
 
-test('probe EffectMaterials 1710 INFO dependency layout',async()=>{
+test('probe pinned EffectMaterials 1710 INFO dependency layout',async()=>{
   for(const [path,size] of EFFECTS){
     const encoded=path.split('/').map(encodeURIComponent).join('/');
     const response=await fetch(`https://raw.githubusercontent.com/${SOURCE.repository}/${SOURCE.revision}/${encoded}`,{signal:AbortSignal.timeout(30000)});
