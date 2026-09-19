@@ -3,7 +3,6 @@ import { DurableObject } from 'cloudflare:workers';
 import { buildState } from './collector.mjs';
 import { readStored, writeStored } from './github-client.mjs';
 import { degradedState } from './fallback-state.mjs';
-import { reconcileRetryAlarm } from './retry-alarm.mjs';
 import { boardAlerts } from './public/health.mjs';
 import { appendControlHistory, deriveControlTower, publicControlHistory } from './control-tower.mjs';
 import {
@@ -12,8 +11,6 @@ import {
   deletePeerWorldRoom,publicPeerWorldSnapshot,
 } from './peer-world-registry.mjs';
 export { buildState } from './collector.mjs';
-const STATE_KEY = 'ops-state-v2';
-const HISTORY_KEY = 'ops-history-v1';
 const PEER_CORS={
   'access-control-allow-origin':'*',
   'access-control-allow-methods':'GET,POST,DELETE,OPTIONS',
@@ -81,34 +78,50 @@ async function resilientPublicState(error, env, source = 'state-read') {
   }
 }
 
+function createMemoryStorage(map=new Map()) {
+  return {
+    async get(key){ return map.get(key); },
+    async put(key,value){
+      if (key && typeof key === 'object' && value === undefined) {
+        for (const [entryKey,entryValue] of Object.entries(key)) map.set(entryKey,entryValue);
+        return;
+      }
+      map.set(key,value);
+    },
+    async delete(key){ map.delete(key); },
+  };
+}
+
 export class OpsState extends DurableObject {
-  constructor(ctx, env) { super(ctx, env); this.ctx = ctx; this.env = env; this.inflight = null; }
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.ctx = ctx;
+    this.env = env;
+    this.inflight = null;
+    this.memoryState = null;
+    this.memoryHistory = { schema:1, snapshots:[], publications:[] };
+    this.memoryRescue = null;
+    this.refreshStorage = createMemoryStorage();
+  }
   async getState() {
-    const current = await readStored(this.ctx.storage, STATE_KEY);
-    const legacy = await this.ctx.storage.get('ops-state-v1');
-    if (!current) return legacy || null;
-    const state = !legacy ? current : (Date.parse(legacy.generatedAt || '') || 0) > (Date.parse(current.generatedAt || '') || 0) ? legacy : current;
-    const rescue = await readStored(this.ctx.storage, 'rescue-observation-v1');
-    if (rescue && Date.parse(rescue.generatedAt) > Date.parse(state.integrationRescue?.generatedAt || 0)) return { ...state, integrationRescue: rescue };
-    return state;
+    return this.memoryState;
   }
   async getHistory() {
-    return publicControlHistory(await readStored(this.ctx.storage, HISTORY_KEY));
+    return publicControlHistory(this.memoryHistory);
   }
   async recordHistory(state) {
-    const history = appendControlHistory(await readStored(this.ctx.storage, HISTORY_KEY), state);
-    await writeStored(this.ctx.storage, HISTORY_KEY, history);
-    return publicControlHistory(history);
+    this.memoryHistory = appendControlHistory(this.memoryHistory, state);
+    return publicControlHistory(this.memoryHistory);
   }
   async observeRescue(snapshot) {
-    const previous = await readStored(this.ctx.storage, 'rescue-observation-v1');
+    const previous = this.memoryRescue;
     if (!previous || Date.parse(snapshot.generatedAt) > Date.parse(previous.generatedAt)) {
-      await writeStored(this.ctx.storage, 'rescue-observation-v1', snapshot);
-      const current = await readStored(this.ctx.storage, STATE_KEY);
+      this.memoryRescue = snapshot;
+      const current = await this.getState();
       if (current) {
         const state = { ...current, integrationRescue: snapshot };
         state.controlTower = deriveControlTower(state, current.controlTower);
-        await writeStored(this.ctx.storage, STATE_KEY, state);
+        this.memoryState = state;
         await this.recordHistory(state);
       }
     }
@@ -133,21 +146,19 @@ export class OpsState extends DurableObject {
     this.inflight = (async () => {
       let previous = null;
       try {
-        previous = await this.getState();
-        const state = await buildState(previous, { storage: this.ctx.storage, token, reason: source });
+        previous = this.memoryState;
+        const state = await buildState(previous, { storage: this.refreshStorage, token, reason: source });
         state.refreshReason = source;
         state.nextRetryAt = null;
         state.controlTower = deriveControlTower(state, previous?.controlTower);
-        await writeStored(this.ctx.storage, STATE_KEY, state);
+        this.memoryState = state;
         await this.recordHistory(state);
-        await reconcileRetryAlarm(this.ctx.storage, state);
         return state;
       } catch (error) {
         const state = await degradedState(previous, error, { source });
         state.controlTower = deriveControlTower(state, previous?.controlTower);
-        await writeStored(this.ctx.storage, STATE_KEY, state);
+        this.memoryState = state;
         await this.recordHistory(state);
-        await reconcileRetryAlarm(this.ctx.storage, state);
         return state;
       } finally { this.inflight = null; }
     })();
@@ -199,7 +210,10 @@ export default {
           let state = await stub.getState();
           if (!state && env.OPS_GITHUB_TOKEN) state = await stub.refresh('cold-start');
           if (!state) return json(await resilientPublicState(githubAuthError('state-read'), env, 'state-read'));
-          return json({ ...publicState(state, env), history: await stub.getHistory(), sharedWorld: await stub.peerSnapshot() });
+          const history = await stub.getHistory();
+          let sharedWorld = null;
+          try { sharedWorld = await stub.peerSnapshot(); } catch { /* peer persistence must not poison PULSE state */ }
+          return json({ ...publicState(state, env), history, sharedWorld });
         } catch (error) {
           return json({ ...(await resilientPublicState(error, env, 'state-read')), history: { schema:1, snapshots:[], publications:[] }, sharedWorld: null, runtimeFallback: true });
         }
