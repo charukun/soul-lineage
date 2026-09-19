@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { createReviewCameraMenu } from '@soul/shared-ui/review-camera-menu';
 import {
   REVIEW_SKELETON_SOURCE,
   REVIEW_SKELETON_MODELS,
@@ -33,7 +34,7 @@ ground.rotation.x = -Math.PI/2; ground.position.y = -.006; scene.add(ground);
 let modelRoot = null, mixer = null, frameId = 0, loadSequence = 0;
 const mounted = new Map();
 const selection = {model: REVIEW_SKELETON_MODELS[0].id, main:null, off:null, back:null};
-let activeAssetSlot='main',activeViewDirection='front',activeViewFocus='full';
+let activeAssetSlot='main',activeViewDirection='front',activeViewFocus='full',cameraMenu=null;
 
 const HAND_GRIPS = Object.freeze({
   '1H_Sword':{r:{position:[0,.555174,0],quaternion:[0,1,0,0],scale:.8876},l:{position:[0,.555174,0],quaternion:[0,0,0,1],scale:.8876}},
@@ -150,8 +151,8 @@ function applyViewPreset() {
   else camera.position.set(target.x,eyeY,target.z+distance);
   if(activeViewFocus==='full'&&activeViewDirection==='side')camera.position.x=center.x+distance;
   controls.update();
-  for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed',String(button.dataset.assetCamera===activeViewDirection));
-  for(const button of document.querySelectorAll('[data-asset-focus]'))button.setAttribute('aria-pressed',String(button.dataset.assetFocus===activeViewFocus));
+  cameraMenu?.setSelected('direction',activeViewDirection);
+  cameraMenu?.setSelected('focus',activeViewFocus);
 }
 function setCameraPreset(preset='front'){activeViewDirection=preset;applyViewPreset();}
 function setFocusPreset(focus='full'){activeViewFocus=focus;applyViewPreset();}
@@ -175,7 +176,9 @@ function renderEquipmentInspector(){
     const current=q(`#asset-current-${slot}`);if(current)current.textContent=equipmentLabel(selection[slot]);
   }
   const summary=q('#asset-combination');
-  if(summary)summary.textContent=`${modelLabel()} · 右 ${equipmentLabel(selection.main)} · 左 ${equipmentLabel(selection.off)} · 背 ${equipmentLabel(selection.back)}`;
+  if(summary)summary.textContent=modelLabel();
+  const stageHint=q('#asset-stage-hint');
+  if(stageHint)stageHint.textContent=`右 ${equipmentLabel(selection.main)} · 左 ${equipmentLabel(selection.off)} · 背 ${equipmentLabel(selection.back)}`;
   const label=q('#asset-candidate-label');if(label)label.textContent=`${labels[activeAssetSlot]}の装備`;
   const clear=q('#asset-clear-slot');
   if(clear){clear.textContent=`${labels[activeAssetSlot]}の装備を外す`;clear.disabled=!selection[activeAssetSlot];}
@@ -209,15 +212,17 @@ function populate() {
   for(const slot of ['main','off','back']){
     const select=q(`#slot-${slot}`);select.append(new Option('なし',''));for(const item of reviewSkeletonEquipmentForSlot(slot))select.append(new Option(item.label,item.id));select.addEventListener('change',()=>setEquipment(slot,select.value||null).then(()=>{setFocusPreset(slot);status(select.value?'装備を更新しました。確認部位へ注視します。':'装備を外しました。');}).catch(error=>status(error.message,true)));
   }
-  for(const button of document.querySelectorAll('[data-asset-camera]'))button.addEventListener('click',()=>setCameraPreset(button.dataset.assetCamera));
-  for(const button of document.querySelectorAll('[data-asset-focus]'))button.addEventListener('click',()=>setFocusPreset(button.dataset.assetFocus));
+  cameraMenu=createReviewCameraMenu({
+    host:q('.asset-stage-shell'),
+    groups:[
+      {id:'direction',label:'向き',options:[{id:'front',label:'正面'},{id:'three-quarter',label:'斜め'},{id:'side',label:'横'},{id:'back',label:'背面'}]},
+      {id:'focus',label:'注視',options:[{id:'full',label:'全身'},{id:'main',label:'右手'},{id:'off',label:'左手'},{id:'back',label:'背中'}]},
+    ],
+    onSelect:(group,id)=>group==='direction'?setCameraPreset(id):setFocusPreset(id),
+  });
   for(const button of document.querySelectorAll('[data-asset-slot]'))button.addEventListener('click',()=>{activeAssetSlot=button.dataset.assetSlot;setFocusPreset(activeAssetSlot);renderEquipmentInspector();});
   for(const slot of ['main','off','back'])q(`#slot-${slot}`)?.addEventListener('change',renderEquipmentInspector);
-  controls.addEventListener('start',()=>{
-    for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed','false');
-    const hint=q('#asset-stage-hint');if(hint)hint.textContent='自由回転中 · 視点ボタンで固定位置へ戻れます';
-  });
-  controls.addEventListener('end',()=>{const hint=q('#asset-stage-hint');if(hint)hint.textContent='ドラッグ: 自由回転 · ピンチ: 拡大';});
+  controls.addEventListener('start',()=>cameraMenu?.clearSelected('direction'));
   q('#asset-provenance').textContent=`${REVIEW_SKELETON_SOURCE.repository}@${REVIEW_SKELETON_SOURCE.commit} · ${REVIEW_SKELETON_SOURCE.license}`;
   q('#asset-clear-slot').addEventListener('click',()=>{
     const select=q(`#slot-${activeAssetSlot}`);if(!select)return;
@@ -232,4 +237,4 @@ function populate() {
 const observer=new ResizeObserver(()=>{const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();});observer.observe(canvas);
 let last=performance.now();function frame(now){const dt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;controls.update();mixer?.update(dt);renderer.render(scene,camera);frameId=requestAnimationFrame(frame);}frameId=requestAnimationFrame(frame);
 populate();loadModel(selection.model).catch(error=>status(error.message,true));
-window.addEventListener('pagehide',()=>{cancelAnimationFrame(frameId);observer.disconnect();controls.dispose();for(const root of mounted.values())disposeRoot(root);disposeRoot(modelRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
+window.addEventListener('pagehide',()=>{cancelAnimationFrame(frameId);observer.disconnect();cameraMenu?.destroy();controls.dispose();for(const root of mounted.values())disposeRoot(root);disposeRoot(modelRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});

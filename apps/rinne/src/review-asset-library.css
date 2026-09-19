@@ -46,30 +46,11 @@ button{touch-action:manipulation}
 }
 #asset-stage{display:block;width:100%;height:100%;min-height:520px;touch-action:none}
 .asset-stage-slot{
-  position:absolute;z-index:2;left:12px;top:12px;display:grid;gap:3px;max-width:min(68%,520px);
-  padding:10px 12px;border:1px solid #657169;border-radius:12px;
-  background:linear-gradient(145deg,#26322ded,#141d1acc);
-  box-shadow:inset 3px 0 #c6b277,0 8px 22px #0005;backdrop-filter:blur(10px);pointer-events:none;
+  position:absolute;z-index:2;left:12px;top:12px;display:grid;gap:2px;max-width:calc(100% - 86px);
+  padding:0;pointer-events:none;text-shadow:0 2px 8px #000,0 1px 2px #000;
 }
-.asset-stage-kicker{color:#c8b77f!important;font-size:8px!important;font-weight:800;letter-spacing:.12em}
-.asset-stage-slot strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f2eee3;font-size:14px;font-weight:800}
-.asset-stage-slot small{color:#aab5af;font-size:9px}
-.asset-view-tools{
-  position:absolute;z-index:3;left:50%;bottom:10px;transform:translateX(-50%);
-  width:min(94%,560px);display:grid;gap:5px;padding:7px 8px;border:1px solid #3b4640;border-radius:12px;
-  background:#0a100ee8;box-shadow:0 14px 34px #0008;backdrop-filter:blur(10px);
-}
-.asset-view-group{display:grid;grid-template-columns:36px minmax(0,1fr);align-items:center;gap:6px}
-.asset-view-group>span{color:#829088;font-size:8px;font-weight:800;letter-spacing:.12em}
-.asset-camera-strip,.asset-focus-strip{display:grid;gap:4px}
-.asset-camera-strip,.asset-focus-strip{grid-template-columns:repeat(4,minmax(0,1fr))}
-.asset-camera-strip button,.asset-focus-strip button{
-  min-height:30px;padding:4px 6px;border:1px solid #39433f;border-radius:999px;
-  background:#0c1411dd;color:#bcc6c0;font-size:9px;font-weight:700;
-}
-.asset-camera-strip button[aria-pressed="true"],.asset-focus-strip button[aria-pressed="true"]{
-  border-color:#c9b36f;background:#2b281c;color:#fff3c9;
-}
+.asset-stage-slot strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f1eee5;font-size:12px;font-weight:750}
+.asset-stage-slot small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#a5afa9;font-size:8px;font-weight:600}
 
 .asset-catalog{
   min-height:0;padding:11px;border:1px solid #2d3734;border-radius:14px;background:#0f1514;
@@ -171,11 +152,8 @@ button:focus-visible,.review-lab-back:focus-visible{outline:2px solid #e2cd95;ou
   #asset-model-count{font-size:8px}
   .asset-preview-pane{height:50dvh;min-height:330px}
   .asset-stage-shell,#asset-stage{min-height:330px}
-  .asset-stage-slot{left:9px;top:9px;max-width:calc(100% - 18px);padding:8px 10px}
+  .asset-stage-slot{left:9px;top:9px;max-width:calc(100% - 76px)}
   .asset-stage-slot strong{font-size:11px}
-  .asset-view-tools{bottom:8px;width:calc(100% - 16px);padding:6px}
-  .asset-view-group{grid-template-columns:32px minmax(0,1fr);gap:4px}
-  .asset-camera-strip button,.asset-focus-strip button{min-height:29px;padding:3px 2px;font-size:8px}
   .asset-check-grid{grid-template-columns:1fr 1fr}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
