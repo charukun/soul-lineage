@@ -152,8 +152,11 @@ function render(apps, state) {
   const root = $('#applications'); root.replaceChildren();
   $('#app-summary').textContent = appSummary(apps);
   if (!apps.length) { root.append(el('p', 'card empty', '管理対象アプリを確認できませんでした')); return; }
-  const games = apps.filter(app => app.kind !== 'tool'); const tools = apps.filter(app => app.kind === 'tool');
-  if (games.length) root.append(groupSection('ゲーム / 専用開発版', games));
+  const games = apps.filter(app => app.kind === 'game');
+  const references = apps.filter(app => app.kind === 'reference' || app.kind === 'preview');
+  const tools = apps.filter(app => app.kind === 'tool');
+  if (games.length) root.append(groupSection('ゲーム', games));
+  if (references.length) root.append(groupSection('参照アプリ / 専用開発版', references));
   if (tools.length) root.append(groupSection('開発ツール', tools));
   if (dialog.open) {
     const app = currentApps.find(item => item.id === selectedApp);
