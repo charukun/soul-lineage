@@ -34,6 +34,13 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs la
 - Never weaken tests, review requirements, browser assertions, the single final-head merge gate, or Production gates.
 - User-facing completion reports are concise by default: say what changed and that it was merged to `develop`, plus the PR link when useful. Do not print validation SHA, validation run URL, merge SHA, or CI internals unless the user asks for them or they are needed to explain a blocker.
 
+## Session naming contract
+
+- As soon as a task has a corresponding PR, rename the current ChatGPT session to `PR #<number> <concise task content>` when the runtime exposes a supported conversation-title mutation.
+- If the runtime cannot rename the session, immediately surface that exact title candidate in the chat and explicitly state that the rename itself could not be executed. Do not silently leave the session unnamed and do not claim that the rename succeeded.
+- Reuse the same PR number and title candidate for the rest of the task unless the task scope materially changes. Do not create a replacement PR only to obtain a different session title.
+- The session-title step is metadata only. It never replaces implementation, validation, freshness checks, Ready transition, or merge to `develop`.
+
 ### Fast DEV execution contract
 
 - The existing Fast DEV Actions workload is a ceiling, not a template to extend. Without an explicit user request to change the Fast DEV contract itself, never add an Actions job/step, increase the number of test cases executed by Actions, change a Fast DEV lifecycle command (`predev`, `prebuild`, `build`, `postbuild`), or add network/materialization work to the validation path.

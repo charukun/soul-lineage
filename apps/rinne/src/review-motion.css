@@ -33,7 +33,7 @@ button,select{font:inherit;color:inherit}
 .motion-camera-strip button{min-height:32px;padding:5px 8px;border-radius:999px;color:#b9c3bd;font-size:10px}
 .motion-camera-strip button[aria-pressed="true"]{border-color:#7f8b84;background:#242c28;color:#f3eee2}
 .motion-camera-strip .camera-focus{border-style:dashed}
-.motion-model-grid{display:flex;gap:5px;margin-top:5px;overflow-x:auto;padding:0 0 3px;scrollbar-width:thin}
+.motion-model-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin-top:5px;padding:0 0 3px}
 .motion-model-grid button{flex:0 0 auto;min-width:92px;min-height:34px;padding:5px 12px;border-width:0 0 2px;border-radius:7px 7px 2px 2px;background:#111816;color:#aeb9b3;white-space:nowrap;font-size:10px}
 .motion-model-grid button[aria-pressed="true"]{border-color:#c9b36f;background:#1b1b15;color:#fff3c9}
 .motion-library{padding-top:2px}

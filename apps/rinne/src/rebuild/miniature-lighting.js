@@ -14,7 +14,7 @@ export function createMiniatureLighting({renderer,scene,staticRoots=[]}){
   // geometry/material repeats across cloned transform owners once at setup.
   const staticBatch=createStaticBatchController({roots:staticRoots,minInstances:2,maxInstances:384,requireOptIn:false});
   staticBatch.refresh();
-  const casters=new WeakSet();
+  const casters=new WeakSet(),dynamicCasters=new WeakSet();
   for(const root of staticRoots)root.traverse(node=>{
     const materials=Array.isArray(node.material)?node.material:[node.material];
     if(node.isMesh&&!node.isSkinnedMesh&&!materials.some(m=>m?.transparent))casters.add(node);
@@ -31,10 +31,11 @@ export function createMiniatureLighting({renderer,scene,staticRoots=[]}){
     enabled=nextEnabled;sun.castShadow=enabled;
     // Three's shadow pass uses the main camera's layers. Filter only on cache
     // refresh so newly loaded actors/weapons never leave frozen sun shadows.
-    if(enabled&&sun.shadow.needsUpdate)scene.traverse(node=>{if(node.isMesh)node.castShadow=casters.has(node);});
+    if(enabled&&sun.shadow.needsUpdate)scene.traverse(node=>{if(node.isMesh)node.castShadow=casters.has(node)||dynamicCasters.has(node);});
   }
   update();
-  return{update,snapshot:()=>({cachedSunShadow:enabled,shadowMapSize:1024,shadowUpdates:updates,ambientIntensity:ambient.intensity,keyIntensity:sun.intensity,staticBatch:staticBatch.snapshot()}),dispose(){staticBatch.dispose();ambient.removeFromParent();sun.removeFromParent();sun.target.removeFromParent();sun.dispose();}};
+  function setDynamicShadowCasters(roots=[]){for(const root of roots)root?.traverse?.(node=>{if(node.isMesh){dynamicCasters.add(node);node.castShadow=true;}});sun.shadow.autoUpdate=roots.some(root=>root?.visible);sun.shadow.needsUpdate=true;}
+  return{update,setDynamicShadowCasters,snapshot:()=>({cachedSunShadow:enabled,shadowMapSize:1024,shadowUpdates:updates,ambientIntensity:ambient.intensity,keyIntensity:sun.intensity,staticBatch:staticBatch.snapshot()}),dispose(){staticBatch.dispose();ambient.removeFromParent();sun.removeFromParent();sun.target.removeFromParent();sun.dispose();}};
 }
 
 export function createActorContactShadows(scene,groups,{capacity=128}={}){

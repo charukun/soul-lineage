@@ -7,6 +7,7 @@ import {REVIEW_EFFECT_CATALOG,REVIEW_EFFECT_CATEGORIES,REVIEW_REAL_EFFECT_COUNT}
 import {authoredEffectBase,createEffekseerBackend} from './rebuild/effekseer-loader.js';
 import {REVIEW_REFERENCE_MODEL_HEIGHT,reviewModelScale} from './review-vfx-model-scale.js';
 import './review-effects.css';
+import {createReviewChoiceVisual} from './review-choice-visual.js';
 import {mountRinneReviewShell} from './review-lab-shell.js';
 mountRinneReviewShell('effects');
 
@@ -160,11 +161,11 @@ function trigger(preset=selected){
 }
 function cardFor(entry){
   const wrap=document.createElement('div');wrap.setAttribute('role','listitem');
-  const button=document.createElement('button');button.type='button';button.className='fx-option';button.dataset.preset=entry.id;button.setAttribute('aria-pressed',String(entry.id===selected));
+  const button=document.createElement('button');button.type='button';button.className='fx-option review-choice-card';button.dataset.preset=entry.id;button.setAttribute('aria-pressed',String(entry.id===selected));
   const category=document.createElement('span');category.className='fx-option-category';category.textContent=REVIEW_EFFECT_CATEGORIES[entry.category]||entry.category;
   const title=document.createElement('strong');title.textContent=entry.label;
   const origin=document.createElement('small');origin.className='fx-option-origin';origin.textContent=entry.realSource?'実素材':entry.kind==='original'?'原本':entry.kind==='composition'?'比較構成':'ゲーム採用';
-  button.append(category,title,origin);button.addEventListener('pointerenter',()=>warmEntry(entry,120),{passive:true});button.addEventListener('focus',()=>warmEntry(entry,140));button.addEventListener('touchstart',()=>warmEntry(entry,180),{passive:true});button.addEventListener('click',()=>trigger(entry.id));wrap.append(button);return wrap;
+  button.append(createReviewChoiceVisual({type:'effect',variant:entry.id,category:entry.category,label:entry.label}),category,title,origin);button.addEventListener('pointerenter',()=>warmEntry(entry,120),{passive:true});button.addEventListener('focus',()=>warmEntry(entry,140));button.addEventListener('touchstart',()=>warmEntry(entry,180),{passive:true});button.addEventListener('click',()=>trigger(entry.id));wrap.append(button);return wrap;
 }
 function renderCatalog(){
   const needle=q('fx-search').value.trim().toLocaleLowerCase('ja');
