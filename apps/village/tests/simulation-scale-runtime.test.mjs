@@ -25,5 +25,5 @@ test('walking guards retain their full-rate combat and patrol decision authority
  guard.task='walk';guard.path=[{x:10,z:0}];
  let calls=0;const guardStep=sim.guardStep;
  sim.guardStep=function(person,dt){if(person===guard){calls++;assert.equal(dt,1/30);}return guardStep.call(this,person,dt);};
- sim.update(1/30);assert.equal(calls,1);
+ sim.update(1/30);assert.equal(calls,1);sim.startRaid({immediate:true});assert.ok(sim.raid.monsters.length>0);for(const monster of sim.raid.monsters)assert.ok(monster.health<=monster.maxHealth,'raid actors must never spawn above maxHealth');const elite=sim.raid.monsters.find(monster=>/精鋭/.test(monster.name));if(elite)assert.equal(elite.health,elite.maxHealth);
 });
