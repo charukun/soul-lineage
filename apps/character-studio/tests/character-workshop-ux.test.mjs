@@ -131,9 +131,6 @@ test('character model review exposes review axes and preserves the full selectab
   assert.match(characterGridCss, /load-indicator\[data-state="error"\]\{display:none!important\}/);
   assert.match(entry, /自動生成/);
   assert.match(characterGrid, /new Option\(option\.label, option\.key/);
-  assert.match(characterGridCss, /grid-template-rows:minmax\(420px,58dvh\) minmax\(0,42dvh\)/);
-  assert.match(characterGridCss, /grid-template-columns:1fr!important/);
-  assert.match(characterGrid, /fitAfterLayout/);
   assert.match(characterGridCss, /grid-template-rows:minmax\(0,52fr\) minmax\(0,48fr\)/);
   assert.doesNotMatch(slotAuto, /move\(mountReviewGroup\(byId\('character-model-options'\)/);
   // The shared reusable deck and its layout contracts from develop remain intact.

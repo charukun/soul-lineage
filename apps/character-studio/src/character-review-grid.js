@@ -123,7 +123,6 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   const slotNodes = new Map();
   const review = () => win.characterStudio?.review;
   const fit = () => { if (review()?.ready && state.autoFit) review().aim(state.camera === 'free' ? 'front' : state.camera); };
-  const fitAfterLayout = () => { win.requestAnimationFrame(() => win.requestAnimationFrame(fit)); };
   const schedule = () => {
     if (state.queued) return;
     state.queued = true; win.requestAnimationFrame(() => { state.queued = false; sync(); });
@@ -240,5 +239,5 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   win.addEventListener('pagehide', event => { if (!event.persisted) { observer.disconnect(); resizeObserver?.disconnect(); } });
   doc.body.classList.add('character-grid-ready');
   controls.removeAttribute('tabindex'); controls.setAttribute('aria-label', 'モデル選択と詳細レビュー');
-  sync(); fitAfterLayout(); return true;
+  sync(); return true;
 }
