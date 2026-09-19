@@ -163,7 +163,7 @@ button:focus-visible,.review-lab-back:focus-visible{outline:2px solid #e2cd95;ou
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 
-/* Compact equipment review: stage-first mobile layout with a five-column slot-driven model picker. */
+/* Compact equipment review: stage-first mobile layout with a five-column slot-driven model picker on phone widths. */
 body.asset-model-picker-open{overflow:hidden}
 .review-header{align-items:center}
 .asset-primary-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
