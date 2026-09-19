@@ -38,8 +38,24 @@ test('all Visual Review specialist pages receive the shared navigation module',a
   for(const source of [motion,assets,objects,effects,battleStage]){assert.match(source,/createReviewStageLifecycle/);assert.doesNotMatch(source,/new ResizeObserver/);}
   assert.match(sharedShell,/visualViewport\?\.addEventListener\('resize'/);
   assert.match(sharedShell,/width<2\|\|height<2/);
-  assert.match(motionCss,/\.motion-model-grid\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
-  const [objectsHtml,objectsJs,objectsCatalog]=await Promise.all([read('review-objects.html'),read('src/review-object-library.js'),read('src/review-object-catalog.js')]);
+  const [sharedCss,motionHtml,assetsHtml,objectsHtml,effectsHtml,soundHtml]=await Promise.all([
+    read('../../packages/shared-ui/src/review-shell.css'),read('review-motion.html'),read('review-assets.html'),read('review-objects.html'),read('review-effects.html'),read('review-sound.html')
+  ]);
+  assert.match(sharedCss,/\.review-choice-grid\{display:grid!important;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important/);
+  assert.match(sharedCss,/\.review-slot-tabs/);
+  assert.match(sharedCss,/\.review-selection-current/);
+  assert.match(sharedCss,/\.review-filter-tabs/);
+  for(const html of [motionHtml,assetsHtml,objectsHtml,effectsHtml])assert.match(html,/review-choice-grid/);
+  assert.match(assetsHtml,/asset-slot-tabs review-slot-tabs/);
+  assert.match(soundHtml,/review-filter-tabs/);
+  const [characterGridCss,assetCss,objectCss,effectCss]=await Promise.all([
+    read('../../apps/character-studio/src/character-review-grid.css'),read('src/review-asset-library.css'),read('src/review-object-library.css'),read('src/review-effects.css')
+  ]);
+  assert.doesNotMatch(characterGridCss,/\.character-review-grid\{[^}]*grid-template-columns/);
+  assert.doesNotMatch(assetCss,/\.(?:model-options|asset-equipment-options)\{[^}]*grid-template-columns/);
+  assert.doesNotMatch(objectCss,/\.object-options\{[^}]*grid-template-columns/);
+  assert.doesNotMatch(effectCss,/\.fx-catalog\{[^}]*grid-template-columns/);
+  const [objectsJs,objectsCatalog]=await Promise.all([read('src/review-object-library.js'),read('src/review-object-catalog.js')]);
   assert.match(objectsHtml,/id="object-categories"/);
   assert.match(objectsJs,/CATEGORY_OPTIONS/);
   assert.match(objectsJs,/selectedCategory==='all'/);
