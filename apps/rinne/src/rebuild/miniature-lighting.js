@@ -6,7 +6,7 @@ export function miniatureShadowCell(x,z){return{x:Math.round(x/24)*24,z:Math.rou
 /** Static scenery casts a cached local sun shadow; actors use cheap contact marks. */
 export function createMiniatureLighting({renderer,scene,staticRoots=[]}){
   const ambient=new T.HemisphereLight(0xb9d4ef,0x454938,.85),sun=new T.DirectionalLight(0xffe4bc,3.1);
-  scene.add(ambient,sun,sun.target);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFShadowMap;
+  scene.add(ambient,sun,sun.target);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
   sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=sun.shadow.camera.bottom=-48;sun.shadow.camera.right=sun.shadow.camera.top=48;
   sun.shadow.camera.near=1;sun.shadow.camera.far=160;sun.shadow.camera.updateProjectionMatrix();
   sun.shadow.bias=-.0004;sun.shadow.normalBias=.09;sun.shadow.autoUpdate=false;
@@ -22,7 +22,8 @@ export function createMiniatureLighting({renderer,scene,staticRoots=[]}){
   let previous='',updates=0,enabled=false;
   function update({x=0,z=0,inside=false,frontier=false,level=0}={}){
     ambient.intensity=inside?1.1:.85;sun.intensity=inside?1.4:3.1;
-    const nextEnabled=!inside&&!frontier&&level<2,cell=miniatureShadowCell(x,z),key=`${cell.x}:${cell.z}`;
+    const nextEnabled=!inside&&!frontier&&level<3,cell=miniatureShadowCell(x,z),key=`${cell.x}:${cell.z}`;
+    const shadowSize=level===0?1536:level===1?1024:768;if(sun.shadow.mapSize.x!==shadowSize){sun.shadow.mapSize.set(shadowSize,shadowSize);sun.shadow.map?.dispose?.();sun.shadow.map=null;sun.shadow.needsUpdate=true;}
     if(nextEnabled&&(!enabled||key!==previous)){
       sun.position.set(cell.x-36,54,cell.z+30);sun.target.position.set(cell.x,0,cell.z);
       sun.shadow.needsUpdate=true;previous=key;updates++;

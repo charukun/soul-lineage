@@ -16,6 +16,7 @@
     "@soul/animations": "*",
     "@soul/characters": "*",
     "@soul/rendering": "*",
+    "@soul/shared-ui": "*",
     "three": "0.186.0"
   },
   "devDependencies": {

@@ -3,9 +3,9 @@ import './character-workshop-ux.js';
 const CHARACTER_MODEL_QUERY = 'characterModel';
 const REVIEW_MODES = Object.freeze({
   character: {
-    title: 'キャラ確認',
+    title: 'キャラクターモデル確認',
     tab: 'parts',
-    description: 'キャラクターを選んで、見た目を確認します。'
+    description: '実際に使うキャラクターモデルの形状・個体差・年齢差・シルエット・干渉を確認します。'
   },
   motion: {
     title: 'モーション確認',

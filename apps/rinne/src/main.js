@@ -9,6 +9,7 @@ const villageDialog=$('village-dialog'),settingsDialog=$('title-settings-dialog'
 $('build-label').textContent=info.commit==='UNBUILT'?'LOCAL':`${String(info.environment).toUpperCase()} · ${String(info.commit).slice(0,7)}`;
 const storageKey=`soul:v1:${info.environment}:rinne:local:life-v2`;
 const motionKey=`soul:v1:${info.environment}:rinne:title-motion-v1`;
+const introSeenKey=`soul:v1:${info.environment}:rinne:title-intro-seen-v1`;
 const rrpCaptureRequested=new URLSearchParams(location.search).has('rrpCapture');
 if(rrpCaptureRequested)document.documentElement.dataset.rrpCapture='true';
 const afterVisiblePaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
@@ -30,8 +31,14 @@ for(const command of titleCommands){
   command.addEventListener('click',()=>{unlockTitleAudio();confirmRinneAudio();});
 }
 title.addEventListener('pointerdown',unlockTitleAudio,{capture:true,passive:true});
+title.addEventListener('pointerup',event=>{if(titleCinematic.skip())event.preventDefault();},{capture:true});
 title.addEventListener('keydown',event=>{
-  if(villageDialog.open||settingsDialog.open||title.dataset.intro!=='idle'||title.dataset.ready!=='true')return;
+  if(villageDialog.open||settingsDialog.open)return;
+  if(title.dataset.intro==='cinematic'){
+    if((event.key==='Enter'||event.key===' ')&&titleCinematic.skip()){event.preventDefault();unlockTitleAudio();}
+    return;
+  }
+  if(title.dataset.intro!=='idle'||title.dataset.ready!=='true')return;
   if(event.key!=='ArrowDown'&&event.key!=='ArrowUp'&&event.key!=='Enter')return;
   unlockTitleAudio();
   const selected=titleCommands.findIndex(item=>item.dataset.selected==='true');
@@ -64,6 +71,7 @@ const titleCinematic=createTitleCinematicController({
   video:$('title-cinematic-video'),
   motionToggle,
   motionKey,
+  seenKey:introSeenKey,
   getPrepared:()=>prepared,
   resetParallax:resetTitleParallax,
 });

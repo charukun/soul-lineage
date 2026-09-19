@@ -6,7 +6,7 @@ import {EFFECT_SOURCE,EFFECT_RUNTIME,EFFECT_ASSETS,RUNTIME_ASSETS,EFFECT_PUBLIC_
 import {REVIEW_VFX_ADDITIONAL_SOURCES} from '../src/rebuild/review-vfx-additional-sources.js';
 
 const appRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const REVIEWED_EFFECT_LAYOUTS=new Map([[1500,6],[1610,7],[1710,'dependent-files']]);
+const REVIEWED_EFFECT_LAYOUTS=new Map([[1500,6],[1603,6],[1606,6],[1610,7],[1703,'dependent-files'],[1705,'dependent-files'],[1710,'dependent-files']]);
 const REVIEWED_EFFECT_VERSIONS=new Set(REVIEWED_EFFECT_LAYOUTS.keys());
 export const EFFECT_DOWNLOADS=Object.freeze([
   ...EFFECT_ASSETS.map(row=>({...row,...{repository:row.repository||EFFECT_SOURCE.repository,revision:row.revision||EFFECT_SOURCE.revision,sourcePath:row.sourcePath||row.path,target:row.path}})),
@@ -106,6 +106,6 @@ export async function prepareRinneEffects({outputRoot=path.join(appRoot,'public'
     }))));
   }
   await writeFile(path.join(outputRoot,'NOTICE.txt'),
-    'Effekseer for WebGL 1.70: MIT (LICENSE-MIT.txt).\\nOriginal review library and curated ResourceData samples: CC0-1.0.\\nEffectMaterials: CC0-1.0 (LICENSE-EFFECT-MATERIALS-CC0.txt).\\nUnmodified originals; review-side placement and model-relative scale are adaptations.\\nSources and exact revisions: apps/rinne/src/rebuild/review-vfx-library-manifest.js\\n');
+    'Effekseer for WebGL 1.70: MIT (LICENSE-MIT.txt).\\nOriginal review library and curated ResourceData samples: CC0-1.0.\\nEffectMaterials: CC0-1.0 (LICENSE-EFFECT-MATERIALS-CC0.txt).\\nEffekseerForGodot4 selected demo effects: MIT (LICENSE-GODOT4-MIT.txt).\\nUnmodified originals; review-side placement and model-relative scale are adaptations.\\nSources and exact revisions: apps/rinne/src/rebuild/review-vfx-library-manifest.js\\n');
   return rows;
 }

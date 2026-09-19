@@ -14,7 +14,9 @@ test('main and advanced retain every audited renderer control with unique IDs', 
     for (const camera of ['overview','front','side','back','face']) assert.ok(html.includes(`data-camera="${camera}"`));
   }
 });
-test('editing is primary, five keyboard tabs including Motion QA replace stacked diagnostic menus', () => {
+test('model review is the visible purpose while detailed editing controls remain available underneath', () => {
+  assert.match(main, /キャラクターモデル確認/);
+  assert.match(main, /aria-label="キャラクターモデル確認"/);
   assert.equal([...main.matchAll(/role="tab"/g)].length, 5);
   for (const tab of ['parts','colors','motion','qa','compare']) assert.ok(main.includes(`data-tab="${tab}"`));
   assert.match(main, /id="compat-controls" hidden/);

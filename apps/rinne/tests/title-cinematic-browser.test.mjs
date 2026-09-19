@@ -9,7 +9,7 @@ const cinematicChanged=()=>{
   if(process.env.GITHUB_ACTIONS!=='true')return false;
   try{
     const changed=execFileSync('git',['diff','--name-only','origin/develop','HEAD'],{cwd:root,encoding:'utf8'});
-    return /apps\/rinne\/(index\.html|src\/main\.js|src\/title-rich\.css|src\/title-cinematic-media\.js)/.test(changed);
+    return /apps\/rinne\/(index\.html|src\/main\.js|src\/title-rich\.css|src\/title-cinematic-(media|manifest)\.js)/.test(changed);
   }catch{return false;}
 };
 const browserPath=()=>{
@@ -34,7 +34,8 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
   const {chromium}=await import('playwright');
   const evidenceDir=resolve(root,'artifacts/browser/rinne-title-cinematic');
   await mkdir(evidenceDir,{recursive:true});
-  const server=spawn('npm',['run','dev','--workspace','@soul/rinne'],{cwd:root,env:{...process.env,NO_COLOR:'1'},stdio:['ignore','pipe','pipe'],detached:process.platform!=='win32'});
+  const viteEntry=resolve(root,'node_modules/vite/bin/vite.js');
+  const server=spawn(process.execPath,[viteEntry,'--host','127.0.0.1','--port','5173','--strictPort'],{cwd:resolve(root,'apps/rinne'),env:{...process.env,NO_COLOR:'1'},stdio:['ignore','pipe','pipe'],detached:process.platform!=='win32'});
   let serverLog='';
   server.stdout.on('data',chunk=>{serverLog=(serverLog+chunk.toString()).slice(-12000);});
   server.stderr.on('data',chunk=>{serverLog=(serverLog+chunk.toString()).slice(-12000);});
@@ -44,6 +45,10 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
     browser=await chromium.launch({headless:true,executablePath,args:['--no-sandbox','--disable-dev-shm-usage']});
     const context=await browser.newContext({viewport:{width:412,height:915},deviceScaleFactor:1,reducedMotion:'no-preference'});
     const page=await context.newPage();
+    await page.route('**/src/rebuild/runtime.js*',route=>route.fulfill({
+      contentType:'application/javascript',
+      body:"export async function prepareRuntime(){return await new Promise(()=>{});} export async function startRuntime(){throw new Error('title cinematic test must not enter the real runtime');}",
+    }));
     const navigationStarted=Date.now();
     await page.goto('http://127.0.0.1:5173/',{waitUntil:'domcontentloaded'});
     const title=page.locator('#title-screen');
@@ -61,56 +66,49 @@ test('RINNE cinematic title browser flow', {skip:!cinematicChanged(),timeout:550
     assert.equal(opening.phase,'cinematic');
     assert.equal(opening.media,'video');
     assert.ok(opening.lockup<0.08,'title text must stay hidden during the opening movie');
-    assert.ok(opening.actions<0.08,'title menu must stay hidden during the opening movie');
+    assert.ok(opening.actions<0.08,'primary action must not cover the first cinematic beat');
     assert.ok(opening.introTime>0||opening.introReady>=2,'real intro video must be decoding or playing');
     await page.screenshot({path:resolve(evidenceDir,'01-opening-mobile.png'),fullPage:true});
 
-    await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.intro==='settling',{timeout:14000});
-    assert.ok(Date.now()-navigationStarted>7000,'prepared runtime must not truncate the cinematic before its authored landing');
-    const settling=await page.evaluate(()=>({
-      lockup:Number(getComputedStyle(document.querySelector('.title-lockup')).opacity),
+    await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.skip==='ready',{timeout:6000});
+    const skippable=await page.evaluate(()=>({
+      phase:document.getElementById('title-screen')?.dataset.intro,
+      skip:document.getElementById('title-screen')?.dataset.skip,
       actions:Number(getComputedStyle(document.querySelector('.title-actions')).opacity),
-      media:document.getElementById('title-screen')?.dataset.media,
-      videoTime:document.getElementById('title-cinematic-video')?.currentTime||0,
-    }));
-    assert.equal(settling.media,'video');
-    assert.ok(settling.actions<0.12,'menu must wait while title mark appears');
-    await page.screenshot({path:resolve(evidenceDir,'02-settling-mobile.png'),fullPage:true});
-
-    await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.intro==='idle',{timeout:5000});
-    await page.waitForFunction(()=>!document.getElementById('new-life')?.disabled,{timeout:12000});
-    await page.waitForFunction(()=>{
-      const lockup=Number(getComputedStyle(document.querySelector('.title-lockup')).opacity);
-      const actions=Number(getComputedStyle(document.querySelector('.title-actions')).opacity);
-      return lockup>0.9&&actions>0.9;
-    },{timeout:5000});
-    const idle=await page.evaluate(()=>({
       lockup:Number(getComputedStyle(document.querySelector('.title-lockup')).opacity),
-      actions:Number(getComputedStyle(document.querySelector('.title-actions')).opacity),
-      videoPaused:document.getElementById('title-cinematic-video')?.paused,
       videoTime:document.getElementById('title-cinematic-video')?.currentTime||0,
+      quality:document.getElementById('title-screen')?.dataset.cinematicQuality,
     }));
-    assert.ok(idle.lockup>0.9&&idle.actions>0.9,'title and menu must finish visible');
-    assert.equal(idle.videoPaused,false);assert.ok(idle.videoTime>=8.3);
-    await page.screenshot({path:resolve(evidenceDir,'03-idle-mobile.png'),fullPage:true});
+    assert.equal(skippable.phase,'cinematic');
+    assert.equal(skippable.skip,'ready');
+    assert.ok(skippable.actions<.08&&skippable.lockup<.08,'no title controls may steal focus from the movie');
+    assert.ok(skippable.videoTime>=1.35&&skippable.videoTime<8.3,'first viewing must keep playing until the player taps');
+    assert.equal(skippable.quality,'legacy');
+    await page.screenshot({path:resolve(evidenceDir,'02-skippable-mobile.png'),fullPage:true});
 
-    const introEnd=await page.locator('#title-cinematic-video').evaluate(video=>video.currentTime);
-    await page.locator('#new-life').click();
-    await page.waitForFunction(()=>document.getElementById('title-screen')?.hidden===true,{timeout:12000});
-    await page.waitForFunction(()=>document.getElementById('game-screen')?.dataset.runtime==='active',{timeout:12000});
-    await page.locator('#back-title').click();
-    await title.waitFor({state:'visible',timeout:12000});
-    await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.intro==='idle',{timeout:4000});
-    const returned=await page.evaluate(()=>({
-      introTime:document.getElementById('title-cinematic-video')?.currentTime||0,
-      media:document.getElementById('title-screen')?.dataset.media,
-      videoPaused:document.getElementById('title-cinematic-video')?.paused,
+    await page.mouse.click(206,457);
+    await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.intro!=='cinematic',{timeout:2500});
+    const skipped=await page.evaluate(()=>({
+      phase:document.getElementById('title-screen')?.dataset.intro,
+      skip:document.getElementById('title-screen')?.dataset.skip,
+      videoTime:document.getElementById('title-cinematic-video')?.currentTime||0,
+      titleHidden:document.getElementById('title-screen')?.hidden,
     }));
-    assert.equal(returned.media,'video');
-    assert.ok(returned.introTime>=8.3,'returning to title must seek directly into the Living Still tail');
-    assert.equal(returned.videoPaused,false);
-    await page.screenshot({path:resolve(evidenceDir,'04-return-mobile.png'),fullPage:true});
-    console.log('RINNE_BROWSER_EVIDENCE',JSON.stringify({opening,settling,idle,returned,evidenceDir}));
+    assert.equal(skipped.titleHidden,false);
+    assert.ok(skipped.phase==='settling'||skipped.phase==='idle');
+    assert.ok(skipped.videoTime>=8.3,'native screen tap must jump to the authored Living Still landing');
+    await page.screenshot({path:resolve(evidenceDir,'03-skipped-mobile.png'),fullPage:true});
+
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.locator('#title-screen').waitFor({state:'visible',timeout:12000});
+    await page.waitForFunction(()=>document.getElementById('title-screen')?.dataset.intro==='cinematic'&&document.getElementById('title-screen')?.dataset.skip==='ready',{timeout:3000});
+    const repeat=await page.evaluate(()=>({
+      videoTime:document.getElementById('title-cinematic-video')?.currentTime||0,
+      actions:Number(getComputedStyle(document.querySelector('.title-actions')).opacity),
+    }));
+    assert.ok(repeat.videoTime<1.0,'repeat visits may be skipped immediately but still default to playing');
+    assert.ok(repeat.actions<.08,'repeat viewing must still begin without menu UI');
+    console.log('RINNE_BROWSER_EVIDENCE',JSON.stringify({opening,skippable,skipped,repeat,evidenceDir}));
     await context.close();
   }catch(error){
     console.error('RINNE browser server log tail:\n'+serverLog);

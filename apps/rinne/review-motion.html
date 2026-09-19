@@ -9,10 +9,20 @@
 <link rel="stylesheet" href="./src/review-motion.css">
 </head>
 <body>
-<main class="motion-review">
-  <section class="motion-stage" aria-label="モーション表示">
+<main class="motion-review review-surface">
+  <header class="review-surface__header">
+    <div class="review-surface__title">
+      <a class="motion-back review-surface__back" href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">‹ 戻る</a>
+      <div><span class="motion-eyebrow review-surface__eyebrow">RINNE RUNTIME PROBE</span><h1>モーション</h1></div>
+    </div>
+    <div class="review-surface__stats">
+      <output id="motion-count" aria-label="異なるソースモーション数">MOTION CLIPS <strong id="motion-count-value">…</strong></output>
+    </div>
+  </header>
+  <section class="review-surface__workspace">
+  <div class="review-surface__stage-column">
+  <section class="motion-stage review-surface__stage" aria-label="モーション表示">
     <canvas id="motion-stage" aria-label="KayKitキャラクターのモーション。ドラッグで回転、ピンチで拡大"></canvas>
-    <output id="motion-count" class="motion-clip-count" aria-label="異なるソースモーション数"><span>MOTION CLIPS</span><strong id="motion-count-value">…</strong></output>
     <div class="motion-stage-caption" aria-live="polite">
       <strong id="motion-selected">モーション準備中</strong>
       <small id="motion-source">pinned CC0</small>
@@ -22,15 +32,24 @@
       <progress id="motion-load" max="1" value="0" aria-label="モデル読込状況"></progress>
     </div>
   </section>
+  </div>
 
-  <section class="motion-controls" aria-label="モーション選択と再生">
-    <header class="motion-control-header">
-      <a class="motion-back" href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">← Visual Review</a>
-      <div>
-        <span class="motion-eyebrow">MOTION REVIEW</span>
-        <h1>モーション確認</h1>
+  <section class="motion-controls review-surface__panel" aria-label="モーション選択と再生">
+
+    <section class="motion-library motion-library-primary" aria-label="モーションを選ぶ">
+      <div class="motion-library-head">
+        <div><span class="control-label">MOTION LIBRARY</span><strong>モーションを選ぶ</strong></div>
+        <small>カテゴリ → 動き</small>
       </div>
-    </header>
+      <div id="motion-filters" class="motion-filters" role="group" aria-label="モーション分類"></div>
+      <div id="motion-grid-summary" class="motion-grid-title">候補一覧</div>
+      <div id="motion-grid" class="motion-grid" role="group" aria-label="モーション候補"></div>
+    </section>
+
+    <div class="motion-models">
+      <span class="control-label">CHARACTER</span>
+      <div id="motion-model-grid" class="motion-model-grid" role="group" aria-label="キャラクターモデル"></div>
+    </div>
 
     <div class="motion-playback" aria-label="再生コントロール">
       <button id="motion-restart" type="button" aria-label="最初から">↺</button>
@@ -53,28 +72,6 @@
       <output id="motion-time-label">0.00 / 0.00秒</output>
     </div>
 
-    <div class="motion-camera-block">
-      <span class="control-label">VIEW</span>
-      <div class="motion-camera-strip" aria-label="固定カメラ">
-        <button type="button" data-motion-camera="front">正面</button>
-        <button type="button" data-motion-camera="three-quarter">斜め</button>
-        <button type="button" data-motion-camera="side">横</button>
-        <button type="button" data-motion-camera="back">背面</button>
-        <button class="camera-focus" type="button" data-motion-camera="face">顔を見る</button>
-      </div>
-    </div>
-
-    <div class="motion-models">
-      <span class="control-label">CHARACTER</span>
-      <div id="motion-model-grid" class="motion-model-grid" role="group" aria-label="キャラクターモデル"></div>
-    </div>
-
-    <div class="motion-library">
-      <span class="control-label">MOTION LIBRARY</span>
-      <div id="motion-filters" class="motion-filters" role="group" aria-label="モーション分類"></div>
-      <div id="motion-grid-summary" class="motion-grid-title">候補一覧</div>
-      <div id="motion-grid" class="motion-grid" role="group" aria-label="モーション候補"></div>
-    </div>
 
     <details class="motion-legacy">
       <summary>既存の原版・ポーズ・部分クリップ</summary>
@@ -88,6 +85,7 @@
       ·
       <a id="motion-origin" href="./simulator/licenses/REVIEW_MOTION_SOURCES.txt" target="_blank" rel="noopener">作者の配布元</a>
     </details>
+  </section>
   </section>
 </main>
 <script type="module" src="./src/review-motion.js"></script>

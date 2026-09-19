@@ -2,6 +2,8 @@ import './character-review.js';
 import './character-art-qa.js';
 import { VISUAL_ROLES, APPEARANCE_PARTS, CHARACTER_REFERENCE_MODELS, YEAR_MS, createCharacterModelBuildRequest } from '@soul/characters';
 import { createCharacterWorkspace, downloadWorkspace } from './character-workspace.js';
+import { createReviewCameraMenu } from '@soul/shared-ui/review-camera-menu';
+import '@soul/shared-ui/review-surface.css';
 
 const el = id => document.getElementById(id);
 const make = (tag, text, className = '') => { const n = document.createElement(tag); n.textContent = text; n.className = className; return n; };
@@ -10,7 +12,7 @@ const slots = { face: '顔', hair: '髪', body: '体型', outfit: '服', accesso
 const titles = { face: '顔の比率', hair: '髪型', body: '体型', outfit: '上着', accessory: 'アクセサリ' };
 const hints = { face: '現在は顔全体の比率調整です。目鼻を個別に作り変える機能ではありません。', hair: '髪は初期パーツです。細部はモデルを回して確認できます。', body: '体型の比率だけを変更します。ゲームの当たり判定は変えません。', outfit: '制服は残したまま、上に重ねる衣装を切り替えます。', accessory: '選択中の1体だけに適用されます。' };
 const expressionLabels = { happy: '笑顔', angry: '怒り', sad: '悲しみ', relaxed: '穏やか', surprised: '驚き', neutral: '通常', blink: 'まばたき', blinkLeft: '左目', blinkRight: '右目', aa: 'あ', ih: 'い', ou: 'う', ee: 'え', oh: 'お', lookUp: '上を見る', lookDown: '下を見る', lookLeft: '左を見る', lookRight: '右を見る' };
-let studio, currentTab = 'parts', slot = 'hair', wasReady = false, individualsCount = 0, toastTimer;
+let studio, currentTab = 'parts', slot = 'hair', wasReady = false, individualsCount = 0, toastTimer, cameraMenu;
 function toast(message) { el('toast').textContent = message; el('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { el('toast').hidden = true; }, 2800); }
 function safe(action) { try { action(); } catch (error) { toast(error.message); } }
 function aimForSlot() { if (!studio?.review.ready) return; studio.review.aim(['face', 'hair'].includes(slot) ? 'face' : 'front'); }
@@ -58,7 +60,7 @@ function render() {
   if (!studio) return;
   const { review, workspace: w } = studio, settings = review.settings, record = w.selected;
   el('editor-fields').disabled = !review.ready;
-  for (const id of ['hero-previous', 'hero-next', 'frame-model', 'save-workspace']) el(id).disabled = !review.ready;
+  for (const id of ['hero-previous', 'hero-next', 'save-workspace']) el(id).disabled = !review.ready;
   el('undo').disabled = !review.ready || !w.history.canUndo; el('redo').disabled = !review.ready || !w.history.canRedo;
   el('save-state').textContent = w.saveMessage;
   if (!record) return;
@@ -113,6 +115,18 @@ function renderQuality() {
 function init() {
   const review = window.masterCharacterReview; if (!review?.session) return;
   const workspace = createCharacterWorkspace(review); studio = { review, workspace }; window.characterStudio = studio;
+  cameraMenu=createReviewCameraMenu({
+    host:document.querySelector('.canvas-wrap'),
+    groups:[{id:'view',label:'向き',options:[{id:'front',label:'正面'},{id:'side',label:'横'},{id:'back',label:'背面'},{id:'face',label:'顔'},{id:'overview',label:'全身'}]}],
+    onSelect:(_group,preset)=>safe(()=>review.aim(preset)),
+  });
+  window.addEventListener('character-review-camera-preset',event=>{
+    const preset=event.detail?.preset;
+    if(['front','side','back','face','overview'].includes(preset))cameraMenu?.setSelected('view',preset);
+    else cameraMenu?.clearSelected('view');
+  });
+  window.addEventListener('character-review-camera-free',()=>cameraMenu?.clearSelected('view'));
+  window.addEventListener('pagehide',()=>cameraMenu?.destroy(),{once:true});
   buildModelOptions();
   for(const [id,label] of Object.entries(VISUAL_ROLES))if(!['child','elder'].includes(id))el('quality-role').add(new Option(label,id));
   el('quality-context').addEventListener('change',()=>safe(()=>workspace.setQuality({context:el('quality-context').value})));
@@ -149,7 +163,7 @@ function init() {
   const actions = {
     'hero-previous': () => { workspace.configure({ selected: (review.settings.selected + review.settings.count - 1) % review.settings.count }); if (currentTab === 'parts') aimForSlot(); },
     'hero-next': () => { workspace.configure({ selected: (review.settings.selected + 1) % review.settings.count }); if (currentTab === 'parts') aimForSlot(); },
-    'frame-model': () => review.aim('overview'), 'original-preview': () => workspace.previewOriginal(), 'random-one': () => workspace.randomize(),
+    'original-preview': () => workspace.previewOriginal(), 'random-one': () => workspace.randomize(),
     undo: () => workspace.undo(), redo: () => workspace.redo(), 'edit-one': () => activate('parts'),
     'save-workspace': () => { workspace.save(); downloadWorkspace(workspace.snapshot()); toast('顔・髪・服を含む編集データを保存しました'); },
     'spring-toggle': () => workspace.configure({ springs: review.settings.springs === 'off' ? 'auto' : 'off' }),

@@ -13,10 +13,10 @@ function effectFixture(dependencies,version=1500){
   const info=Buffer.concat([word(version),word(dependencies.length),...dependencies.flatMap(s=>[word(s.length+1),Buffer.from(`${s}\0`,'utf16le')]),...Array.from({length:trailingGroups},()=>word(0))]);
   return Buffer.concat([Buffer.from('EFKE'),word(0),Buffer.from('INFO'),word(info.length),info]);
 }
-function effect1710Fixture(dependencies){
+function dependentFilesFixture(dependencies,version=1710){
   const word=n=>{const b=Buffer.alloc(4);b.writeUInt32LE(n);return b;};
   const records=dependencies.flatMap(s=>[word(1),word(1),word(s.length+1),Buffer.from(`${s}\0`,'utf16le')]);
-  const info=Buffer.concat([word(1710),word(dependencies.length),...records]);
+  const info=Buffer.concat([word(version),word(dependencies.length),...records]);
   return Buffer.concat([Buffer.from('EFKE'),word(0),Buffer.from('INFO'),word(info.length),info]);
 }
 test('authored originals, runtime and pinned license notices are immutable pins',()=>{
@@ -33,11 +33,15 @@ test('authored originals, runtime and pinned license notices are immutable pins'
   assert.deepEqual(production.map(r=>r.infoVersion),[1500,1500,1610]);
   assert.equal(EFFECT_ASSETS.filter(r=>r.reviewLibrary).length,REVIEW_VFX_LIBRARY_COUNT);
 });
-test('INFO parser reads reviewed v1500/v1610/v1710 layouts and complete dependency closure',()=>{
+test('INFO parser reads all explicitly reviewed dependency layouts and complete closure',()=>{
   const bytes=effectFixture(['Texture/SwordLine01.png']);assert.deepEqual(effectDependencies(bytes),['Texture/SwordLine01.png']);
   assert.doesNotThrow(()=>verifyEffectClosure(EFFECT_ASSETS[0],bytes));
   assert.deepEqual(effectDependencies(effectFixture([],1610)),[]);
-  assert.deepEqual(effectDependencies(effect1710Fixture(['Textures/fire.png']),1710),['Textures/fire.png']);
+  assert.deepEqual(effectDependencies(dependentFilesFixture(['Textures/fire.png']),1710),['Textures/fire.png']);
+  assert.deepEqual(effectDependencies(effectFixture(['Textures/cutoff.png'],1603),1603),['Textures/cutoff.png']);
+  assert.deepEqual(effectDependencies(effectFixture(['Textures/dissolve.png'],1606),1606),['Textures/dissolve.png']);
+  assert.deepEqual(effectDependencies(dependentFilesFixture(['Gradient.efkmat'],1703),1703),['Gradient.efkmat']);
+  assert.deepEqual(effectDependencies(dependentFilesFixture(['Texture/Particle02.png'],1705),1705),['Texture/Particle02.png']);
   const light=EFFECT_ASSETS.find(row=>row.path.endsWith('/Light.efkefc')&&!row.reviewLibrary);
   assert.throws(()=>verifyEffectClosure(light,effectFixture([],1500)),/version mismatch/);
   assert.throws(()=>verifyEffectClosure(EFFECT_ASSETS[0],effectFixture(['Texture/missing.png'])),/Unpinned/);

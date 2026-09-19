@@ -6,89 +6,59 @@
 <link rel="icon" href="./review-favicon.svg?v=1" type="image/svg+xml"><title>Visual Review｜装備</title>
 </head>
 <body>
-<main class="asset-review">
-  <header class="review-header">
-    <div class="review-title">
-      <a class="review-lab-back" data-review-back href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">‹ 戻る</a>
+<main class="asset-review review-surface">
+  <header class="review-header review-surface__header">
+    <div class="review-title review-surface__title">
+      <a class="review-lab-back review-surface__back" data-review-back href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" aria-label="Visual Reviewへ戻る">‹ 戻る</a>
       <div>
-        <p class="eyebrow">RINNE RUNTIME PROBE</p>
+        <p class="eyebrow review-surface__eyebrow">RINNE RUNTIME PROBE</p>
         <h1>装備</h1>
       </div>
     </div>
-    <div class="review-header-stats">
+    <div class="review-header-stats review-surface__stats">
       <output id="asset-model-count" aria-label="検証モデル数">MODELS —</output>
       <output id="asset-load-state" class="asset-load-state" data-state="loading" aria-live="polite"><span aria-hidden="true"></span><strong>準備中</strong></output>
     </div>
   </header>
 
-  <section class="asset-workspace" aria-label="装備レビュー">
-    <div class="asset-preview-pane">
-      <section class="asset-stage-shell" aria-label="キャラクター装備のプレビュー">
+  <section class="asset-workspace review-surface__workspace" aria-label="装備レビュー">
+    <div class="asset-preview-pane review-surface__stage-column">
+      <section class="asset-stage-shell review-surface__stage" aria-label="キャラクター装備のプレビュー">
         <canvas id="asset-stage" aria-label="装備プレビュー。ドラッグで自由回転、ピンチで拡大"></canvas>
 
         <div class="asset-stage-slot" aria-live="polite">
-          <small class="asset-stage-kicker">選択中</small>
           <strong id="asset-combination">読み込み中</strong>
-          <small id="asset-stage-hint">ドラッグ: 自由回転 · ピンチ: 拡大</small>
-        </div>
-
-        <div class="asset-view-tools" aria-label="確認視点">
-          <div class="asset-view-group">
-            <span>向き</span>
-            <nav id="asset-camera-strip" class="asset-camera-strip" aria-label="カメラの向き">
-              <button type="button" data-asset-camera="front">正面</button>
-              <button type="button" data-asset-camera="three-quarter">斜め</button>
-              <button type="button" data-asset-camera="side">横</button>
-              <button type="button" data-asset-camera="back">背面</button>
-            </nav>
-          </div>
-          <div class="asset-view-group">
-            <span>注視</span>
-            <nav id="asset-focus-strip" class="asset-focus-strip" aria-label="注視する装備位置">
-              <button type="button" data-asset-focus="full">全身</button>
-              <button type="button" data-asset-focus="main">右手</button>
-              <button type="button" data-asset-focus="off">左手</button>
-              <button type="button" data-asset-focus="back">背中</button>
-            </nav>
-          </div>
+          <small id="asset-stage-hint">装備情報を準備中</small>
         </div>
       </section>
     </div>
 
-    <aside class="asset-catalog" aria-label="装備レビュー操作">
-      <section class="asset-purpose" data-review-purpose>
-        <span>CHECK</span>
-        <h2>この画面で確認すること</h2>
-        <p>装備が正しい位置・向き・尺度で付き、身体や他装備と干渉せず、視点やモデルを変えても破綻しないかを確認します。</p>
-        <div class="asset-check-grid" aria-label="確認項目">
-          <div><b>装着</b><small>位置・角度・尺度</small></div>
-          <div><b>干渉</b><small>手指・腕・身体</small></div>
-          <div><b>輪郭</b><small>正面・斜め・横・背面</small></div>
-          <div><b>モデル差</b><small>素体変更時の適合</small></div>
-        </div>
-      </section>
-
-      <section class="asset-section" aria-labelledby="asset-model-title">
-        <div class="catalog-kicker">検証モデル</div>
-        <div class="asset-section-head">
-          <h2 id="asset-model-title">素体</h2>
-          <small>装備を保ったまま切替</small>
-        </div>
-        <div id="model-options" class="model-options" role="group" aria-label="検証モデル"></div>
-      </section>
-
-      <section class="asset-section asset-equipment-section" aria-labelledby="asset-equipment-title">
-        <div class="asset-section-head">
-          <div><div class="catalog-kicker">装備</div><h2 id="asset-equipment-title">スロット</h2></div>
+    <aside class="asset-catalog review-surface__panel" aria-label="装備レビュー操作">
+      <section class="asset-section asset-equipment-section asset-primary-selection" aria-labelledby="asset-equipment-title">
+        <div class="asset-primary-head">
+          <div class="asset-primary-copy">
+            <div class="catalog-kicker">PRIMARY ACTION</div>
+            <h2 id="asset-equipment-title">装備を選ぶ</h2>
+            <p>スロットを選び、確認したい装備をタップします。選択した部位へ自動で注視します。</p>
+          </div>
           <button id="asset-reset" class="asset-reset" type="button">全解除</button>
+        </div>
+
+        <div class="asset-flow-step">
+          <span>1</span><strong>スロット</strong><small>確認する装着位置</small>
         </div>
         <div id="asset-slot-tabs" class="asset-slot-tabs" role="tablist" aria-label="装備スロット">
           <button type="button" data-asset-slot="main" role="tab" aria-selected="true"><small>右手</small><strong id="asset-current-main">なし</strong></button>
           <button type="button" data-asset-slot="off" role="tab" aria-selected="false"><small>左手</small><strong id="asset-current-off">なし</strong></button>
           <button type="button" data-asset-slot="back" role="tab" aria-selected="false"><small>背中</small><strong id="asset-current-back">なし</strong></button>
         </div>
-        <div class="asset-candidate-head"><span id="asset-candidate-label">右手の候補</span><small>タップで即時反映</small></div>
+
+        <div class="asset-flow-step asset-candidate-head">
+          <span>2</span><strong id="asset-candidate-label">右手の装備</strong><small>タップで装着・注視</small>
+        </div>
         <div id="asset-equipment-options" class="asset-equipment-options" role="listbox" aria-label="右手装備の候補"></div>
+        <button id="asset-clear-slot" class="asset-clear-slot" type="button">右手の装備を外す</button>
+
         <div class="asset-native-selects" hidden>
           <label>右手<select id="slot-main" aria-label="右手装備"></select></label>
           <label>左手<select id="slot-off" aria-label="左手装備"></select></label>
@@ -96,15 +66,34 @@
         </div>
       </section>
 
+      <section class="asset-section asset-model-section" aria-labelledby="asset-model-title">
+        <div class="catalog-kicker">SECONDARY CHECK</div>
+        <div class="asset-section-head">
+          <h2 id="asset-model-title">素体を変更</h2>
+          <small>装備を保ったまま適合を比較</small>
+        </div>
+        <div id="model-options" class="model-options" role="group" aria-label="検証モデル"></div>
+      </section>
+
+      <details class="asset-review-guide" data-review-purpose>
+        <summary><strong>確認ポイント</strong><span>装着・干渉・輪郭・モデル差</span></summary>
+        <p>装備が正しい位置・向き・尺度で付き、身体や他装備と干渉せず、視点やモデルを変えても破綻しないかを確認します。</p>
+        <div class="asset-check-grid" aria-label="確認項目">
+          <div><b>装着</b><small>位置・角度・尺度</small></div>
+          <div><b>干渉</b><small>手指・腕・身体</small></div>
+          <div><b>輪郭</b><small>正面・斜め・横・背面</small></div>
+          <div><b>モデル差</b><small>素体変更時の適合</small></div>
+        </div>
+      </details>
+
       <output id="asset-status" class="asset-status" role="status" aria-live="polite">モデルを読み込んでいます。</output>
+      <details class="asset-provenance-shell review-surface__meta">
+        <summary>原本・確認境界</summary>
+        <p id="asset-provenance" class="asset-provenance"></p>
+        <p>この画面は固定したreview-only素材を実際のThree.jsランタイムで読み込みます。表示確認用であり、ゲーム本体の所持品・保存状態・採用判定は変更しません。</p>
+      </details>
     </aside>
   </section>
-
-  <details class="asset-provenance-shell">
-    <summary>原本・確認境界</summary>
-    <p id="asset-provenance" class="asset-provenance"></p>
-    <p>この画面は固定したreview-only素材を実際のThree.jsランタイムで読み込みます。表示確認用であり、ゲーム本体の所持品・保存状態・採用判定は変更しません。</p>
-  </details>
 </main>
 <script type="module" src="./src/review-asset-library.js"></script>
 </body>

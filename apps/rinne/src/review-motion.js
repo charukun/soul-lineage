@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {createReviewCameraMenu} from '@soul/shared-ui/review-camera-menu';
 import {KAYKIT_MODELS,KAYKIT_RIG_ID} from '@soul/characters';
 import {kaykitHumanoidFromGLTF} from '@soul/rendering/kaykit-rig';
 import {captureMotionRest,applyNormalizedMotion} from '@soul/rendering/motion-quality';
@@ -8,6 +9,7 @@ import {buildMotionReviewCatalog,filterMotionReviewCatalog,REVIEW_MOTION_CATEGOR
 import {buildReviewMotionRegistry,motionRegistryCount} from './review-motion-registry.js';
 import {loadPinnedMotionSource,disposePinnedMotionSources} from './review-motion-source-runtime.js';
 import './review-motion-library.css';
+import '@soul/shared-ui/review-surface.css';
 
 const el=id=>document.getElementById(id);
 const canvas=el('motion-stage');
@@ -32,9 +34,9 @@ ground.rotation.x=-Math.PI/2;ground.position.y=-.005;scene.add(ground);
 
 const loader=new GLTFLoader(),stage=new THREE.Group();scene.add(stage);
 let subject=null,targetScene=null,targetBones=null,targetRest=null,mixer=null,action=null,targetClips=[],registry=null,catalog=[],selected=null;
-let selectedModel=KAYKIT_MODELS[0],filter='recommended',playing=true,speed=1,loop=true,last=performance.now(),loadSerial=0,modelHeight=1.8;
-let externalSource=null,externalSourceId='',externalTime=0,selectedDuration=0,selectSerial=0;
-const categoryOrder=['recommended','life','move','combat','reaction','other','all'];
+let selectedModel=KAYKIT_MODELS[0],filter='all',playing=true,speed=1,loop=true,last=performance.now(),loadSerial=0,modelHeight=1.8;
+let externalSource=null,externalSourceId='',externalTime=0,selectedDuration=0,selectSerial=0,cameraMenu=null;
+const categoryOrder=['all','recommended','life','move','combat','reaction','other'];
 
 function disposeSubject(){
   if(mixer&&targetScene){mixer.stopAllAction();mixer.uncacheRoot(targetScene);mixer=null;}
@@ -60,7 +62,7 @@ function setCameraPreset(id){
   const target=id==='face'?new THREE.Vector3(0,h*.79,0):new THREE.Vector3(0,targetY,0);
   const positions={front:[0,id==='face'?h*.81:targetY,d],'three-quarter':[d*.72,targetY,d*.72],side:[d,targetY,0],back:[0,targetY,-d],face:[0,h*.81,d*.78]};
   camera.position.set(...(positions[id]||positions.front));controls.target.copy(target);controls.update();
-  for(const button of document.querySelectorAll('[data-motion-camera]'))button.setAttribute('aria-pressed',String(button.dataset.motionCamera===id));
+  cameraMenu?.setSelected('view',id);
 }
 function syncStageSubtitle(category=selected?.category||'other'){
   const duration=Math.max(0,selectedDuration),suffix=duration?' · '+duration.toFixed(2)+'s':'';
@@ -98,7 +100,7 @@ async function selectMotion(record){
       selectedDuration=externalSource.duration(record.upstreamClipIndex);
       applyNormalizedMotion(targetBones,externalSource.sample(record.upstreamClipIndex,0),targetRest);
     }else throw new Error('Unknown motion runtime source');
-    playing=true;status(formatName(record.name)+' · '+categoryLabel(record.category));renderMotionGrid();syncPlaybackUI();
+    playing=true;status('');renderMotionGrid();syncPlaybackUI();
   }catch(error){playing=false;status('モーション読込失敗: '+String(error?.message||error));syncPlaybackUI();}
 }
 function renderModelGrid(){
@@ -152,11 +154,16 @@ async function loadModel(model){
     const same=catalog.find(row=>row.sourceIdentity===previousIdentity),firstRecommended=catalog.find(row=>row.recommended),first=same||firstRecommended||catalog[0];
     const count=motionRegistryCount(registry);canvas.dataset.motionSource='source-registry';canvas.dataset.motionCount=String(count);canvas.dataset.motionModel=model.id;
     el('motion-count-value').textContent=String(count);
-    el('motion-load').value=1;status(model.label+' · '+count+' source motions');setCameraPreset('three-quarter');await selectMotion(first);
+    el('motion-load').value=1;status('');setCameraPreset('three-quarter');await selectMotion(first);
   }catch(error){el('motion-load').value=0;status('読込失敗: '+String(error?.message||error));canvas.dataset.motionSource='error';}
 }
 
-for(const button of document.querySelectorAll('[data-motion-camera]'))button.addEventListener('click',()=>setCameraPreset(button.dataset.motionCamera));
+cameraMenu=createReviewCameraMenu({
+  host:document.querySelector('.motion-stage'),
+  groups:[{id:'view',label:'向き',options:[{id:'front',label:'正面'},{id:'three-quarter',label:'斜め'},{id:'side',label:'横'},{id:'back',label:'背面'},{id:'face',label:'顔'}]}],
+  onSelect:(_group,id)=>setCameraPreset(id),
+});
+controls.addEventListener('start',()=>cameraMenu?.clearSelected('view'));
 el('motion-play').addEventListener('click',()=>{if(!selected)return;playing=!playing;syncPlaybackUI();});
 el('motion-restart').addEventListener('click',()=>{seek(0);playing=true;syncPlaybackUI();});
 el('motion-speed').addEventListener('change',event=>{speed=Number(event.target.value)||1;});
@@ -189,4 +196,4 @@ function frame(now){
   controls.update();renderer.render(scene,camera);syncPlaybackUI();requestAnimationFrame(frame);
 }
 renderFilters();renderModelGrid();setCameraPreset('three-quarter');requestAnimationFrame(frame);void loadModel(selectedModel);
-window.addEventListener('pagehide',event=>{if(event.persisted)return;observer.disconnect();disposeSubject();disposePinnedMotionSources();ground.geometry.dispose();ground.material.dispose();controls.dispose();renderer.dispose();},{once:true});
+window.addEventListener('pagehide',event=>{if(event.persisted)return;observer.disconnect();cameraMenu?.destroy();disposeSubject();disposePinnedMotionSources();ground.geometry.dispose();ground.material.dispose();controls.dispose();renderer.dispose();},{once:true});
