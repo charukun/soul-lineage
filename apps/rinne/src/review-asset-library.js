@@ -176,15 +176,20 @@ function renderEquipmentInspector(){
   }
   const summary=q('#asset-combination');
   if(summary)summary.textContent=`${modelLabel()} · 右 ${equipmentLabel(selection.main)} · 左 ${equipmentLabel(selection.off)} · 背 ${equipmentLabel(selection.back)}`;
-  const label=q('#asset-candidate-label');if(label)label.textContent=`${labels[activeAssetSlot]}の候補`;
+  const label=q('#asset-candidate-label');if(label)label.textContent=`${labels[activeAssetSlot]}の装備`;
+  const clear=q('#asset-clear-slot');
+  if(clear){clear.textContent=`${labels[activeAssetSlot]}の装備を外す`;clear.disabled=!selection[activeAssetSlot];}
   const list=q('#asset-equipment-options');
   if(!list)return;
   list.setAttribute('aria-label',`${labels[activeAssetSlot]}装備の候補`);
-  const candidates=[{id:'',label:'なし'},...reviewSkeletonEquipmentForSlot(activeAssetSlot)];
+  const candidates=reviewSkeletonEquipmentForSlot(activeAssetSlot);
   list.replaceChildren(...candidates.map(item=>{
     const button=document.createElement('button');
-    button.type='button';button.textContent=item.label;button.dataset.equipmentId=item.id;
-    const selected=(selection[activeAssetSlot]||'')===item.id;
+    button.type='button';button.dataset.equipmentId=item.id;
+    const selected=selection[activeAssetSlot]===item.id;
+    const name=document.createElement('strong');name.textContent=item.label;
+    const state=document.createElement('small');state.textContent=selected?'選択中':'タップで装着';
+    button.append(name,state);
     button.setAttribute('role','option');button.setAttribute('aria-selected',String(selected));
     button.addEventListener('click',()=>{
       const select=q(`#slot-${activeAssetSlot}`);if(!select)return;
@@ -202,11 +207,11 @@ function populate() {
   const count=q('#asset-model-count');if(count)count.textContent=`MODELS ${REVIEW_SKELETON_MODELS.length}`;
   q('#model-options').replaceChildren(...REVIEW_SKELETON_MODELS.map(model=>{const button=document.createElement('button');button.type='button';button.textContent=model.label;button.dataset.model=model.id;button.addEventListener('click',()=>loadModel(model.id).catch(error=>status(error.message,true)));return button;}));
   for(const slot of ['main','off','back']){
-    const select=q(`#slot-${slot}`);select.append(new Option('なし',''));for(const item of reviewSkeletonEquipmentForSlot(slot))select.append(new Option(item.label,item.id));select.addEventListener('change',()=>setEquipment(slot,select.value||null).then(()=>status('装備プレビューを更新しました。')).catch(error=>status(error.message,true)));
+    const select=q(`#slot-${slot}`);select.append(new Option('なし',''));for(const item of reviewSkeletonEquipmentForSlot(slot))select.append(new Option(item.label,item.id));select.addEventListener('change',()=>setEquipment(slot,select.value||null).then(()=>{setFocusPreset(slot);status(select.value?'装備を更新しました。確認部位へ注視します。':'装備を外しました。');}).catch(error=>status(error.message,true)));
   }
   for(const button of document.querySelectorAll('[data-asset-camera]'))button.addEventListener('click',()=>setCameraPreset(button.dataset.assetCamera));
   for(const button of document.querySelectorAll('[data-asset-focus]'))button.addEventListener('click',()=>setFocusPreset(button.dataset.assetFocus));
-  for(const button of document.querySelectorAll('[data-asset-slot]'))button.addEventListener('click',()=>{activeAssetSlot=button.dataset.assetSlot;renderEquipmentInspector();});
+  for(const button of document.querySelectorAll('[data-asset-slot]'))button.addEventListener('click',()=>{activeAssetSlot=button.dataset.assetSlot;setFocusPreset(activeAssetSlot);renderEquipmentInspector();});
   for(const slot of ['main','off','back'])q(`#slot-${slot}`)?.addEventListener('change',renderEquipmentInspector);
   controls.addEventListener('start',()=>{
     for(const button of document.querySelectorAll('[data-asset-camera]'))button.setAttribute('aria-pressed','false');
@@ -214,6 +219,10 @@ function populate() {
   });
   controls.addEventListener('end',()=>{const hint=q('#asset-stage-hint');if(hint)hint.textContent='ドラッグ: 自由回転 · ピンチ: 拡大';});
   q('#asset-provenance').textContent=`${REVIEW_SKELETON_SOURCE.repository}@${REVIEW_SKELETON_SOURCE.commit} · ${REVIEW_SKELETON_SOURCE.license}`;
+  q('#asset-clear-slot').addEventListener('click',()=>{
+    const select=q(`#slot-${activeAssetSlot}`);if(!select)return;
+    select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));
+  });
   q('#asset-reset').addEventListener('click',()=>{
     for(const slot of ['main','off','back']){q(`#slot-${slot}`).value='';void setEquipment(slot,null);}
     activeAssetSlot='main';frameModel();queueMicrotask(renderEquipmentInspector);

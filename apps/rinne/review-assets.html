@@ -55,9 +55,49 @@
     </div>
 
     <aside class="asset-catalog" aria-label="装備レビュー操作">
-      <section class="asset-purpose" data-review-purpose>
-        <span>CHECK</span>
-        <h2>この画面で確認すること</h2>
+      <section class="asset-section asset-equipment-section asset-primary-selection" aria-labelledby="asset-equipment-title">
+        <div class="asset-primary-head">
+          <div class="asset-primary-copy">
+            <div class="catalog-kicker">PRIMARY ACTION</div>
+            <h2 id="asset-equipment-title">装備を選ぶ</h2>
+            <p>スロットを選び、確認したい装備をタップします。選択した部位へ自動で注視します。</p>
+          </div>
+          <button id="asset-reset" class="asset-reset" type="button">全解除</button>
+        </div>
+
+        <div class="asset-flow-step">
+          <span>1</span><strong>スロット</strong><small>確認する装着位置</small>
+        </div>
+        <div id="asset-slot-tabs" class="asset-slot-tabs" role="tablist" aria-label="装備スロット">
+          <button type="button" data-asset-slot="main" role="tab" aria-selected="true"><small>右手</small><strong id="asset-current-main">なし</strong></button>
+          <button type="button" data-asset-slot="off" role="tab" aria-selected="false"><small>左手</small><strong id="asset-current-off">なし</strong></button>
+          <button type="button" data-asset-slot="back" role="tab" aria-selected="false"><small>背中</small><strong id="asset-current-back">なし</strong></button>
+        </div>
+
+        <div class="asset-flow-step asset-candidate-head">
+          <span>2</span><strong id="asset-candidate-label">右手の装備</strong><small>タップで装着・注視</small>
+        </div>
+        <div id="asset-equipment-options" class="asset-equipment-options" role="listbox" aria-label="右手装備の候補"></div>
+        <button id="asset-clear-slot" class="asset-clear-slot" type="button">右手の装備を外す</button>
+
+        <div class="asset-native-selects" hidden>
+          <label>右手<select id="slot-main" aria-label="右手装備"></select></label>
+          <label>左手<select id="slot-off" aria-label="左手装備"></select></label>
+          <label>背中<select id="slot-back" aria-label="背中装備"></select></label>
+        </div>
+      </section>
+
+      <section class="asset-section asset-model-section" aria-labelledby="asset-model-title">
+        <div class="catalog-kicker">SECONDARY CHECK</div>
+        <div class="asset-section-head">
+          <h2 id="asset-model-title">素体を変更</h2>
+          <small>装備を保ったまま適合を比較</small>
+        </div>
+        <div id="model-options" class="model-options" role="group" aria-label="検証モデル"></div>
+      </section>
+
+      <details class="asset-review-guide" data-review-purpose>
+        <summary><strong>確認ポイント</strong><span>装着・干渉・輪郭・モデル差</span></summary>
         <p>装備が正しい位置・向き・尺度で付き、身体や他装備と干渉せず、視点やモデルを変えても破綻しないかを確認します。</p>
         <div class="asset-check-grid" aria-label="確認項目">
           <div><b>装着</b><small>位置・角度・尺度</small></div>
@@ -65,35 +105,7 @@
           <div><b>輪郭</b><small>正面・斜め・横・背面</small></div>
           <div><b>モデル差</b><small>素体変更時の適合</small></div>
         </div>
-      </section>
-
-      <section class="asset-section" aria-labelledby="asset-model-title">
-        <div class="catalog-kicker">検証モデル</div>
-        <div class="asset-section-head">
-          <h2 id="asset-model-title">素体</h2>
-          <small>装備を保ったまま切替</small>
-        </div>
-        <div id="model-options" class="model-options" role="group" aria-label="検証モデル"></div>
-      </section>
-
-      <section class="asset-section asset-equipment-section" aria-labelledby="asset-equipment-title">
-        <div class="asset-section-head">
-          <div><div class="catalog-kicker">装備</div><h2 id="asset-equipment-title">スロット</h2></div>
-          <button id="asset-reset" class="asset-reset" type="button">全解除</button>
-        </div>
-        <div id="asset-slot-tabs" class="asset-slot-tabs" role="tablist" aria-label="装備スロット">
-          <button type="button" data-asset-slot="main" role="tab" aria-selected="true"><small>右手</small><strong id="asset-current-main">なし</strong></button>
-          <button type="button" data-asset-slot="off" role="tab" aria-selected="false"><small>左手</small><strong id="asset-current-off">なし</strong></button>
-          <button type="button" data-asset-slot="back" role="tab" aria-selected="false"><small>背中</small><strong id="asset-current-back">なし</strong></button>
-        </div>
-        <div class="asset-candidate-head"><span id="asset-candidate-label">右手の候補</span><small>タップで即時反映</small></div>
-        <div id="asset-equipment-options" class="asset-equipment-options" role="listbox" aria-label="右手装備の候補"></div>
-        <div class="asset-native-selects" hidden>
-          <label>右手<select id="slot-main" aria-label="右手装備"></select></label>
-          <label>左手<select id="slot-off" aria-label="左手装備"></select></label>
-          <label>背中<select id="slot-back" aria-label="背中装備"></select></label>
-        </div>
-      </section>
+      </details>
 
       <output id="asset-status" class="asset-status" role="status" aria-live="polite">モデルを読み込んでいます。</output>
     </aside>
