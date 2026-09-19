@@ -77,7 +77,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   const stageHead = doc.querySelector('.stage-head');
   const canvasWrap = doc.querySelector('.canvas-wrap');
   const cameraDock = doc.createElement('div');
-  cameraDock.className = 'character-review-camera-dock';
+  cameraDock.className = 'character-review-camera-dock review-surface__stage-tools';
   cameraDock.setAttribute('aria-label', 'モデルの向き');
   for (const node of [doc.getElementById('camera-cycle'), doc.getElementById('pause'), actions?.querySelector('[data-camera="overview"]')].filter(Boolean)) {
     node.hidden = true;
@@ -102,6 +102,7 @@ export function installCharacterReviewGrid(doc = document, win = window) {
   }
   if (canvasWrap && cameraDock.children.length) canvasWrap.append(cameraDock);
   const stageStatus = doc.querySelector('.stage-status');
+  if (stageStatus) stageStatus.classList.add('review-surface__stage-status');
   if (canvasWrap && stageStatus && !canvasWrap.contains(stageStatus)) canvasWrap.append(stageStatus);
   if (actions) actions.hidden = true;
   if (subjectRow && stageHead && !stageHead.contains(subjectRow)) {

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {mountRinneReviewShell} from './review-lab-shell.js';
+import {createReviewStageLifecycle} from '@soul/shared-ui/review-shell';
 import {
   REVIEW_SKELETON_SOURCE,
   REVIEW_SKELETON_MODELS,
@@ -242,7 +243,7 @@ function populate() {
   });
   renderSelection();applyViewPreset();
 }
-const observer=new ResizeObserver(()=>{const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();});observer.observe(canvas);
+const stageLifecycle=createReviewStageLifecycle({canvas,stage:canvas.closest('.review-surface__stage'),onResize:({width,height,aspect})=>{renderer.setSize(width,height,false);camera.aspect=aspect;camera.updateProjectionMatrix();},render:()=>renderer.render(scene,camera)});
 let last=performance.now();function frame(now){const dt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;controls.update();mixer?.update(dt);renderer.render(scene,camera);frameId=requestAnimationFrame(frame);}frameId=requestAnimationFrame(frame);
 populate();loadModel(selection.model).catch(error=>status(error.message,true));
-window.addEventListener('pagehide',()=>{clearRuntimeThumbnailQueue();cancelAnimationFrame(frameId);observer.disconnect();controls.dispose();for(const root of mounted.values())disposeRoot(root);disposeRoot(modelRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
+window.addEventListener('pagehide',()=>{clearRuntimeThumbnailQueue();cancelAnimationFrame(frameId);stageLifecycle.destroy();controls.dispose();for(const root of mounted.values())disposeRoot(root);disposeRoot(modelRoot);ground.geometry.dispose();ground.material.dispose();renderer.dispose();},{once:true});
