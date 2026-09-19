@@ -88,9 +88,16 @@ export async function loadBoard() {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       if (data?.repository !== 'charukun/soul-lineage' || !Array.isArray(data.environments)) throw new Error('取得データの形式が不正です');
-      snapshot = data;
-      writeCachedSnapshot(data);
-      preserveView(() => { for (const fn of subscribers) fn(snapshot, null); });
+      if (data.syncStatus === 'ok' && Number.isFinite(Date.parse(data.generatedAt || ''))) {
+        snapshot = data;
+        writeCachedSnapshot(data);
+        preserveView(() => { for (const fn of subscribers) fn(snapshot, null); });
+      } else {
+        const cached = readCachedSnapshot();
+        snapshot = cached || data;
+        const degraded = new Error(data.syncError || '最新状態を再取得中です');
+        preserveView(() => { for (const fn of subscribers) fn(snapshot, degraded); });
+      }
       document.dispatchEvent(new CustomEvent('ops:updated', { detail: { generatedAt: data.generatedAt } }));
     } catch (error) {
       if (!snapshot) snapshot = readCachedSnapshot();
