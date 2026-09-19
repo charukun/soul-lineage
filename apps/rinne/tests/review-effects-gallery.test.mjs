@@ -23,7 +23,7 @@ test('VFX review is catalog-first while keeping one real preview stage',()=>{
   assert.match(js,/const catalogById=new Map\(REVIEW_EFFECT_CATALOG\.map/);
   assert.match(js,/replaceChildren\(\.\.\.visible\.map\(cardFor\)\)/);
   assert.match(js,/button\.addEventListener\('click',\(\)=>trigger\(entry\.id\)\)/);
-  assert.match(html,/class="catalog-kicker">候補一覧/);
+  assert.match(html,/class="catalog-heading"/);assert.match(html,/class="catalog-kicker">候補一覧/);
   assert.match(html,/id="fx-model-count"/);
   assert.match(html,/— EFFECTS/);
   assert.match(html,/class="review-lab-back[^"]*"[^>]*aria-label="Visual Reviewへ戻る"/);
@@ -91,14 +91,14 @@ test('effect candidate list keeps the five-column Visual Review invariant',()=>{
   assert.match(css,/\.fx-catalog\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
   assert.doesNotMatch(css,/@media[\s\S]*?\.fx-catalog\{[^}]*grid-template-columns/);
   assert.match(css,/mask-image:linear-gradient\(to right/);
-  assert.match(css,/\.stage-selection-slot\{[^}]*box-shadow:inset 3px 0/);
+  assert.match(css,/\.stage-selection-slot\{[^}]*clip-path:polygon/);assert.match(css,/\.stage-selection-slot::before/);assert.match(css,/\.stage-selection-slot::after/);
   assert.match(css,/\.catalog-kicker\{/);
   assert.match(css,/\.fx-option\{[^}]*background:#101614/);
   assert.match(css,/\.fx-option\[aria-pressed="true"\]\{[^}]*inset 0 -2px/);
   assert.match(css,/@media\(max-width:640px\)/);
   assert.match(css,/@media\(max-width:420px\)/);
   assert.match(css,/\.catalog-shell\{[^}]*overflow:hidden/);
-  assert.match(css,/\.review-header-stats #fx-model-count\{/);
+  assert.match(css,/\.catalog-count\{/);assert.doesNotMatch(css,/\.review-header-stats #fx-model-count\{/);
   for(const selector of ['review-slot-grid','review-select-grid-list','review-slot-deck-list']){
     const rules=[...slotCss.matchAll(new RegExp('\\.'+selector+'\\{([^}]*)\\}','g'))]
       .map(match=>match[1]).filter(body=>body.includes('grid-template-columns'));
