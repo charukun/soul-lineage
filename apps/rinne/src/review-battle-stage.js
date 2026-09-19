@@ -132,7 +132,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
     side.presentation=presentation;side.previous={x,z};
     const worldX=presentation.x,worldZ=presentation.z,stride=presentation.stride;
     actor.root.position.set(worldX,0,worldZ);actor.root.rotation.y=presentation.yaw;
-    if(sequence&&sequence.stage!=='done'&&target){const tx=(Number(target.x)||0)*1.35,tz=(Number(target.z)||0)*1.15,dx=worldX-tx,dz=worldZ-tz,len=Math.max(.001,Math.hypot(dx,dz));if(sideKey==='hero'&&sequence.spacing>0){actor.root.position.x+=dx/len*.72*sequence.spacing;actor.root.position.z+=dz/len*.72*sequence.spacing;}if(sideKey==='enemy'&&(sequence.stage==='stagger'||sequence.stage==='reveal')){actor.root.position.x-=dx/len*.18;actor.root.position.z-=dz/len*.18;actor.root.rotation.z=.12*Math.sin(sequence.progress*Math.PI);}}
+    if(sequence&&sequence.stage!=='done'&&target){const tx=(Number(target.x)||0)*1.35,tz=(Number(target.z)||0)*1.15,dx=worldX-tx,dz=worldZ-tz,len=Math.max(.001,Math.hypot(dx,dz));if(sequence.spacing>0){const retreat=sideKey==='hero'?1.42:.62;actor.root.position.x+=dx/len*retreat*sequence.spacing;actor.root.position.z+=dz/len*retreat*sequence.spacing;}if(sideKey==='enemy'&&(sequence.stage==='stagger'||sequence.stage==='reveal'))actor.root.rotation.z=.12*Math.sin(sequence.progress*Math.PI);}
     if(sideKey==='enemy'){
       updateReviewMonsterAnimation(actor,state,time,{hit:time<side.hitUntil});
     }else{
@@ -230,9 +230,10 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
       for(const cue of ['camera','spacing','stagger','reveal','execute'])if(now-techniquePlayback.startedAt>=REVIEW_INSPIRATION_TIMELINE[cue]&&!techniquePlayback.emitted.has(cue)){techniquePlayback.emitted.add(cue);onInspirationCue(cue,techniquePlayback);}
     }
     if(techniquePlayback&&sequence?.stage==='done'){if(!techniquePlayback.emitted.has('done')){techniquePlayback.emitted.add('done');onInspirationCue('done',techniquePlayback);}techniquePlayback=null;aura.visible=false;inspirationFx.visible=false;}
-    const phaseHud=canvas.closest('.stage')?.querySelector('#battle-phase'),signHud=canvas.closest('.stage')?.querySelector('#battle-sign'),heroRoot=sides.hero.actor?.root;
+    const phaseHud=canvas.closest('.stage')?.querySelector('#battle-phase'),signHud=canvas.closest('.stage')?.querySelector('#battle-sign'),bulbHud=canvas.closest('.stage')?.querySelector('#battle-lightbulb'),heroRoot=sides.hero.actor?.root;
     if(phaseHud&&heroRoot){const projected=heroRoot.position.clone();projected.y+=.16;projected.project(camera);phaseHud.dataset.phaseAnchor='feet';phaseHud.style.setProperty('left',`${(projected.x*.5+.5)*100}%`,'important');phaseHud.style.setProperty('top',`${(-projected.y*.5+.5)*100}%`,'important');phaseHud.style.setProperty('bottom','auto','important');}
     if(signHud&&heroRoot){const projected=heroRoot.position.clone();projected.y+=2.18;projected.project(camera);signHud.dataset.signAnchor='head';signHud.style.setProperty('left',`${(projected.x*.5+.5)*100}%`,'important');signHud.style.setProperty('top',`${(-projected.y*.5+.5)*100}%`,'important');}
+    if(bulbHud&&heroRoot){const projected=heroRoot.position.clone();projected.y+=2.5;projected.project(camera);bulbHud.style.setProperty('left',`${(projected.x*.5+.5)*100}%`,'important');bulbHud.style.setProperty('top',`${(-projected.y*.5+.5)*100}%`,'important');}
     const heroActual=sides.hero.actor?.root?.userData?.characterModel||'';
     const enemyActual=sides.enemy.actor?.root?.userData?.reviewMonsterSpecies||'';
     canvas.dataset.heroModel=heroActual;canvas.dataset.enemyModel=enemyActual;
