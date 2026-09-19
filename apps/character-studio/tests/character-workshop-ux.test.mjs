@@ -105,7 +105,7 @@ test('character review retains the three source selections and extends the persi
   assert.match(characterGridCss, /nth-child\(-n\+4\).*grid-column:span 5/);
   assert.match(characterGridCss, /nth-child\(n\+5\).*grid-column:span 4/);
   assert.match(characterGridCss, /CHARACTER PROBE/);
-  assert.match(characterGridCss, /minmax\(0,52fr\).*minmax\(0,48fr\)/);
+  assert.match(characterGridCss, /minmax\(0,\s*52fr\).*minmax\(0,\s*48fr\)/);
   assert.match(characterGrid, /function optionMark\(group, option\)/);
   assert.match(characterGrid, /button\.dataset\.reviewAction = id/);
   assert.match(characterGrid, /↶ 戻す/);
