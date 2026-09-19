@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {EFFECT_SOURCE,EFFECT_RUNTIME,EFFECT_ASSETS,RUNTIME_ASSETS,EFFECT_PUBLIC_PATH,REVIEW_VFX_LIBRARY_SOURCE} from '../src/rebuild/authored-effect-manifest.js';
 
 const appRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const REVIEWED_EFFECT_LAYOUTS=new Map([[1500,6],[1610,7]]);
+const REVIEWED_EFFECT_LAYOUTS=new Map([[1500,6],[1610,7],[1710,7]]);
 const REVIEWED_EFFECT_VERSIONS=new Set(REVIEWED_EFFECT_LAYOUTS.keys());
 export const EFFECT_DOWNLOADS=Object.freeze([
   ...EFFECT_ASSETS.map(row=>({...row,...{repository:row.repository||EFFECT_SOURCE.repository,revision:row.revision||EFFECT_SOURCE.revision,sourcePath:row.sourcePath||row.path,target:row.path}})),
