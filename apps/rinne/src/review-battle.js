@@ -20,6 +20,19 @@ const insightHistory=[],learnedTechniqueIds=new Set(),learnedSlots={jo:null,ha:n
 let insightHistoryOpen=false;
 const manualMove={x:0,y:0,amount:0,pointerId:null,startX:0,startY:0};
 const phaseLabel=phase=>({jo:'序',ha:'破',kyu:'急'})[phase]||'破';
+function setManualAxis(next){
+  let x=Number(next?.x)||0,y=Number(next?.y)||0,len=Math.hypot(x,y);
+  if(len>1){x/=len;y/=len;}
+  manualMove.x=x;manualMove.y=y;manualMove.amount=Math.min(1,Math.hypot(x,y));
+}
+function primeSeparatedRound(){
+  const runtime=host?.battle?.core;if(!runtime)return;
+  runtime.configure?.({weapon:selectedWeapon,enemyWeapon:'sword',hp:230,maxhp:230,enemyHp:180,enemyStyle:'balanced',mindset:'balanced',positions:{hero:{x:-2.6,z:0},enemy:{x:2.6,z:0}}});
+  runtime.input?.(-1,0,1,0);
+  for(let i=0;i<20;i++)runtime.step?.(1/60);
+  runtime.input?.(0,0,0,0);
+  lastCore=runtime.state?.()||null;
+}
 function renderLearnedSlots(){for(const phase of ['jo','ha','kyu']){const node=document.querySelector(`[data-loadout-phase="${phase}"]`);if(node)node.textContent=learnedSlots[phase]?.name||'基本技';}}
 function hideInspirationBanner(){const banner=q('battle-inspiration');if(!banner)return;banner.hidden=true;delete banner.dataset.burst;delete banner.dataset.sequence;}
 function hideReviewSign(){const sign=q('battle-sign');if(sign)sign.hidden=true;clearTimeout(signTimer);}
@@ -58,7 +71,7 @@ function resetBattle(){
   // Start near the edge of RaidHost's encounter radius so draw/ready/approach motion remains readable.
   host.input('demon',{type:'state',x:1.9,z:0,yaw:-Math.PI/2,state:'ready',action:null});
   host.input('human',{type:'state',x:-1.9,z:0,yaw:Math.PI/2,state:'ready',action:null});
-  host.tick(1/60);lastCore=host.battle?.core?.state?.()||null;last=performance.now();
+  host.tick(1/60);primeSeparatedRound();last=performance.now();
 }
 function renderPhase(core){
   const state=reviewBattlePhaseState(core);syncCombatSequence(phasePanel,state.phase);const action=core?.hero?.attack||state.skill||'間合いを測る';phaseMeta.textContent=action;
@@ -100,24 +113,24 @@ function syncBattle(dt){
 }
 function advanceBattle(dt){
   const runtime=host?.battle?.core;if(!runtime)return;
-  runtime.input?.(manualMove.x,manualMove.y,manualMove.amount,0);
+  runtime.input?.(manualMove.x,manualMove.y,manualMove.amount,battleStage?.cameraAngle?.()||0);
   const before=runtime.state?.();if(before)lastCore=before;host.tick(dt);const after=runtime.state?.();if(after)lastCore=after;
 }
 function frame(now){const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;if(host?.battle&&!host.battle.finished&&!inspirationSequenceActive)advanceBattle(dt);const finished=Boolean(host?.battle?.finished);if(finished&&!finishedAt)finishedAt=now;else if(!finished)finishedAt=0;if(reviewBattleLoopDue({loopEnabled,playing:true,finished,finishedAt,now}))resetBattle();syncBattle(dt);requestAnimationFrame(frame);}
 
 
 const battleCanvas=q('battle-canvas');
-battleCanvas?.addEventListener('pointerdown',event=>{if(manualMove.pointerId!==null)return;manualMove.pointerId=event.pointerId;manualMove.startX=event.clientX;manualMove.startY=event.clientY;battleCanvas.setPointerCapture?.(event.pointerId);});
-battleCanvas?.addEventListener('pointermove',event=>{if(event.pointerId!==manualMove.pointerId)return;const dx=event.clientX-manualMove.startX,dy=event.clientY-manualMove.startY,scale=Math.max(28,Math.min(96,battleCanvas.clientWidth*.18)),len=Math.hypot(dx,dy);manualMove.x=Math.max(-1,Math.min(1,dx/scale));manualMove.y=Math.max(-1,Math.min(1,-dy/scale));manualMove.amount=Math.max(0,Math.min(1,len/scale));});
-const endSwipe=event=>{if(event.pointerId!==manualMove.pointerId)return;manualMove.x=0;manualMove.y=0;manualMove.amount=0;manualMove.pointerId=null;battleCanvas.releasePointerCapture?.(event.pointerId);};
-battleCanvas?.addEventListener('pointerup',endSwipe);battleCanvas?.addEventListener('pointercancel',endSwipe);
+battleCanvas?.addEventListener('pointerdown',event=>{if(manualMove.pointerId!==null)return;manualMove.pointerId=event.pointerId;manualMove.startX=event.clientX;manualMove.startY=event.clientY;battleCanvas.setPointerCapture?.(event.pointerId);setManualAxis({x:0,y:0});event.preventDefault();},{passive:false});
+battleCanvas?.addEventListener('pointermove',event=>{if(event.pointerId!==manualMove.pointerId)return;const dx=event.clientX-manualMove.startX,dy=event.clientY-manualMove.startY,len=Math.hypot(dx,dy);if(len<12)setManualAxis({x:0,y:0});else setManualAxis({x:dx/Math.max(42,len),y:dy/Math.max(42,len)});event.preventDefault();},{passive:false});
+const endSwipe=event=>{if(event.pointerId!==manualMove.pointerId)return;setManualAxis({x:0,y:0});manualMove.pointerId=null;battleCanvas.releasePointerCapture?.(event.pointerId);event.preventDefault();};
+battleCanvas?.addEventListener('pointerup',endSwipe,{passive:false});battleCanvas?.addEventListener('pointercancel',endSwipe,{passive:false});
 q('camera-zoom-in')?.addEventListener('click',()=>void ensureBattleStage().then(stage=>stage.zoomBy(-.14)));
 q('camera-zoom-out')?.addEventListener('click',()=>void ensureBattleStage().then(stage=>stage.zoomBy(.14)));
 
 for(const button of document.querySelectorAll('[data-battle-mode]'))button.addEventListener('click',()=>{encounterMode=button.dataset.battleMode==='one-v-three'?'one-v-three':'duel';for(const item of document.querySelectorAll('[data-battle-mode]'))item.setAttribute('aria-pressed',String(item===button));battleStage?.setEncounterMode(encounterMode);resetBattle();});
 for(const button of document.querySelectorAll('[data-battle-skin]'))button.addEventListener('click',()=>{cameraSystem=button.dataset.battleSkin==='jinku'?'demon':'rinne';phasePanel.dataset.skin=button.dataset.battleSkin;for(const item of document.querySelectorAll('[data-battle-skin]'))item.setAttribute('aria-pressed',String(item===button));});
 for(const button of document.querySelectorAll('[data-inspiration-mode]'))button.addEventListener('click',()=>{inspirationMode=button.dataset.inspirationMode==='boost'?'boost':'normal';lastInspirationPhase='';for(const item of document.querySelectorAll('[data-inspiration-mode]'))item.setAttribute('aria-pressed',String(item===button));document.body.dataset.inspirationMode=inspirationMode;});
-weaponSelect?.addEventListener('change',()=>{selectedWeapon=weaponSelect.value;lastInspirationPhase='';document.body.dataset.weapon=selectedWeapon;battleStage?.setWeapon(selectedWeapon);});
+weaponSelect?.addEventListener('change',()=>{selectedWeapon=weaponSelect.value;lastInspirationPhase='';document.body.dataset.weapon=selectedWeapon;battleStage?.setWeapon(selectedWeapon);resetBattle();});
 historyOpen?.addEventListener('click',()=>{insightHistoryOpen=true;renderInsightHistory();});historyClose?.addEventListener('click',()=>{insightHistoryOpen=false;renderInsightHistory();});
 soundButton?.addEventListener('click',event=>{event.stopPropagation();battleSfx.toggle();syncSoundButton();});window.addEventListener('pagehide',()=>{battleStage?.dispose();battleSfx.dispose();},{once:true});
 syncModelLabels();phasePanel.dataset.skin='rinne';syncSoundButton();renderLearnedSlots();renderInsightHistory();resetBattle();void ensureBattleStage();requestAnimationFrame(frame);
