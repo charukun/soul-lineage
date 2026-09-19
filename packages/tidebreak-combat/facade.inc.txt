@@ -43,7 +43,7 @@ impactAt=function(x,y,z,yaw,power,guard){
  const freeze=guard?.025:heavy?.045:.018,slowSeconds=guard?.035:heavy?.095:.060,slowScale=guard?.72:heavy?.38:.56;
  hitstop=Math.max(hitstop,freeze);facadeSlowRemaining=Math.max(facadeSlowRemaining,slowSeconds);facadeSlowScale=Math.min(facadeSlowScale,slowScale);
  facadeLastImpact=Object.freeze({
-  serial:++facadeImpactSerial,point:Object.freeze([x,y,z]),yaw,power:Number(power)||0,guard:Boolean(guard),heavy,
+  serial:++facadeImpactSerial,x,y,z,point:Object.freeze([x,y,z]),yaw,power:Number(power)||0,guard:Boolean(guard),heavy,
   sourceId:source?.id??null,targetId:target?.id??null,sourceHero:Boolean(source?.hero),targetHero:Boolean(target?.hero),
   attack:attack?.kind??null,knockback:Object.freeze({x:Number(target?.kx)||0,z:Number(target?.kz)||0}),sourceKick:Number(source?.contactKick)||0,
   freezeSeconds:freeze,slowSeconds,slowScale
