@@ -60,7 +60,7 @@
     ],
     "receipt": {
       "repository": "charukun/soul-lineage",
-      "pullRequest": null,
+      "pullRequest": 1098,
       "marker": "autonomous-receipt:village:village-arrival-commit-20260920"
     }
   },
