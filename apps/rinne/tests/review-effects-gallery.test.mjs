@@ -28,8 +28,10 @@ test('VFX review is catalog-first while keeping one real preview stage',()=>{
   assert.match(html,/id="fx-selected-label"/);
   assert.match(html,/id="fx-selected-meta"/);
   assert.match(html,/id="fx-model-count"/);
-  assert.match(html,/EFFECT MODELS —/);
-  assert.match(js,/q\('fx-model-count'\)\.textContent=`EFFECT MODELS \$\{REVIEW_REAL_EFFECT_COUNT\}`/);
+  assert.match(html,/— EFFECTS/);
+  assert.doesNotMatch(html,/class="review-lab-back"/);
+  assert.match(html,/class="review-subtitle">攻撃・被弾・属性・大技を実機比較/);
+  assert.match(js,/q\('fx-model-count'\)\.textContent=`\$\{REVIEW_REAL_EFFECT_COUNT\} EFFECTS`/);
   assert.match(js,/q\('fx-selected-label'\)\.textContent=entry\.label/);
   assert.match(js,/q\('fx-selected-meta'\)\.textContent=effectLabel\(entry\.id\)/);
   assert.doesNotMatch(html,/class="fx-selection-slot"/);
@@ -83,10 +85,11 @@ test('existing playback review controls stay available as secondary tools',()=>{
   assert.match(js,/player\.present\(eventsFor\(preset\)/);
 });
 
-test('effect list stays visible as a five-column grid on all review widths',()=>{
+test('effect list uses a dense desktop grid and a readable mobile grid',()=>{
   assert.match(css,/\.fx-catalog\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
-  assert.doesNotMatch(css,/@media\(max-width:900px\)[^}]*\.fx-catalog\{[^}]*grid-template-columns/);
-  assert.doesNotMatch(css,/@media\(max-width:640px\)[^}]*\.fx-catalog\{[^}]*grid-template-columns/);
+  assert.match(css,/@media\(max-width:900px\)[\s\S]*?\.fx-catalog\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(css,/@media\(max-width:640px\)[\s\S]*?\.fx-catalog\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(css,/mask-image:linear-gradient\(to right/);
   assert.match(css,/\.stage-selection-slot\{[^}]*box-shadow:inset 3px 0/);
   assert.match(css,/\.catalog-kicker\{/);
   assert.match(css,/\.fx-option\{[^}]*background:#101614/);
