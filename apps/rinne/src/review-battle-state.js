@@ -63,6 +63,15 @@ export function reviewBattlePresentationFrame(actor,target,previous=null,dt=1/60
   return Object.freeze({x,z,yaw,stride:presentationClamp(speed*.22,0,1),attackPulse,lunge,recoil});
 }
 
+const REVIEW_SWEEPS=new Set(['slash','back','heavy','spin','sweep','diagonal','crosscut','round','hook','bodyblow','barrage','rushfist','uppercut','risingfist','meteor','bullrush']);
+const REVIEW_STOP_ON_FIRST=new Set(['thrust','pierce','dash','jab','straight','oneinch','katanaThrust']);
+export function reviewBattleMultiHitFrame(actor,{encounterMode='duel'}={}){
+  const attack=String(actor?.attack||''),progress=presentationClamp(presentationFinite(actor?.progress),0,1),phase=normalizeReviewBattlePhase(actor?.slot);
+  const active=encounterMode==='one-v-three'&&REVIEW_SWEEPS.has(attack)&&!REVIEW_STOP_ON_FIRST.has(attack)&&progress>=.3&&progress<=.72;
+  const full=attack==='spin'||attack==='round'||attack==='barrage';
+  return Object.freeze({active,attack,phase,progress,count:active?3:1,recoil:active?(phase==='kyu'?.42:phase==='ha'?.3:.24):0,spread:full?1:.72});
+}
+
 export function reviewBattleCameraFrame(core,{follow=true,system='rinne',encounterMode='duel'}={}){
   if(!follow)return FIXED_CAMERA;
   const hero=core?.hero,enemy=core?.enemy;
@@ -72,7 +81,7 @@ export function reviewBattleCameraFrame(core,{follow=true,system='rinne',encount
   const player={x:values[0]*1.35,z:values[1]*1.15};
   const primary={id:'enemy',x:values[2]*1.35,z:values[3]*1.15,dead:Boolean(enemy.dead)};
   const threats=[primary];
-  if(encounterMode==='melee'){
+  if(encounterMode==='melee'||encounterMode==='one-v-three'){
     threats.push(
       {id:'enemy-flank-a',x:primary.x-2.2,z:primary.z+1.65,dead:false},
       {id:'enemy-flank-b',x:primary.x+2.35,z:primary.z-1.55,dead:false}

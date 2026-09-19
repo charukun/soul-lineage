@@ -5,7 +5,7 @@ import {createKaykitCharacterPools} from './rebuild/kaykit-character-pool.js';
 import {createProtagonistCharacterPool} from './rebuild/protagonist-character-pool.js';
 import {RINNE_PROTAGONIST_MODEL_ID} from './rebuild/protagonist-runtime-asset.js';
 import {applyTidebreakPose,tidebreakFrameFromSnapshot} from './rebuild/tidebreak-pose.js';
-import {reviewBattleCameraFrame,reviewBattlePresentationFrame} from './review-battle-state.js';
+import {reviewBattleCameraFrame,reviewBattleMultiHitFrame,reviewBattlePresentationFrame} from './review-battle-state.js';
 import {hideEmbeddedCombatProps,reviewBattleEquipmentFor} from './review-battle-equipment.js';
 
 export const REVIEW_BATTLE_MODELS=Object.freeze(KAYKIT_MODELS.map(model=>Object.freeze({id:model.id,label:model.label})));
@@ -130,7 +130,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
       const base=sides[sideKey],actorId=`review-battle-${sideKey}-extra-${index}`,extraModel=sideKey==='hero'?'kaykit.rogue.v1':base.requested,actor=pool.spawn(actorId,extraModel);
       actor.root.name=`ReviewBattleExtra:${sideKey}:${index}`;actor.attachments.name=`ReviewBattleExtraAttachments:${sideKey}:${index}`;
       installReviewEquipment(actor,extraModel,equipmentAssets);stageRoot.add(actor.root,actor.attachments);
-      extras.push({sideKey,index,actorId,actor,offsetX,offsetZ,appearance:appearanceForCharacter(reviewerCharacter(actorId,seed))});
+      extras.push({sideKey,index,actorId,actor,offsetX,offsetZ,appearance:appearanceForCharacter(reviewerCharacter(actorId,seed)),hitUntil:0,recoil:0});
     }
   }
   function setEncounterMode(mode){
@@ -167,16 +167,21 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
     actor.updateAttachments();side.marker.position.set(worldX,.018,worldZ);
   }
 
-  function animateExtras(core,time){
+  function animateExtras(core,time,dt){
     if(encounterMode!=='one-v-three'||!core)return;
+    const multi=reviewBattleMultiHitFrame(core.hero,{encounterMode});
     for(const extra of extras){
-      const source=extra.sideKey==='hero'?core.hero:core.enemy,target=extra.sideKey==='hero'?core.enemy:core.hero,actor=extra.actor;if(!source||!actor)continue;
-      const x=(Number(source.x)||0)*1.35+extra.offsetX,z=(Number(source.z)||0)*1.15+extra.offsetZ,targetX=(Number(target?.x)||0)*1.35,targetZ=(Number(target?.z)||0)*1.15;
+      const source=core.enemy,target=core.hero,actor=extra.actor;if(!source||!actor)continue;
+      if(multi.active&&time>=extra.hitUntil){extra.hitUntil=time+.16;extra.recoil=Math.max(extra.recoil,multi.recoil*(1-extra.index*.12));}
+      extra.recoil=Math.max(0,extra.recoil-Math.max(1/240,Number(dt)||1/60)*1.7);
+      const baseX=(Number(source.x)||0)*1.35+extra.offsetX,baseZ=(Number(source.z)||0)*1.15+extra.offsetZ,targetX=(Number(target?.x)||0)*1.35,targetZ=(Number(target?.z)||0)*1.15;
+      const awayX=baseX-targetX,awayZ=baseZ-targetZ,awayLength=Math.max(.001,Math.hypot(awayX,awayZ)),x=baseX+awayX/awayLength*extra.recoil,z=baseZ+awayZ/awayLength*extra.recoil;
       actor.root.position.set(x,0,z);actor.root.rotation.y=Math.atan2(targetX-x,targetZ-z);
       const frame=tidebreakFrameFromSnapshot(source,{targetId:target?.id||null,intent:'review-battle-melee'});
-      actor.sample(extra.appearance,time+extra.index*.17,(bones,sampleTime)=>{addStride(bones,sampleTime,.2);if(!frame?.attack)addGuardPose(bones,extra.sideKey);applyTidebreakPose(bones,frame);});
+      actor.sample(extra.appearance,time+extra.index*.17,(bones,sampleTime)=>{addStride(bones,sampleTime,.2);if(!frame?.attack)addGuardPose(bones,extra.sideKey);applyTidebreakPose(bones,frame);if(time<extra.hitUntil&&bones.spine){bones.spine.rotation.z+=(extra.index?-.18:.18)*(multi.phase==='kyu'?1.45:1);bones.spine.rotation.x-=.1;}});
       actor.updateAttachments();
     }
+    canvas.dataset.multiHit=multi.active?String(multi.count):'1';canvas.dataset.multiHitPhase=multi.active?multi.phase:'';
   }
 
   let lastWidth=0,lastHeight=0,lastStatus='';
@@ -199,7 +204,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{}}={}){
 
   function sync(core,dt=0,{followCamera=true,encounterMode:requestedMode='duel',cameraSystem='rinne'}={}){
     setEncounterMode(requestedMode);resize();const now=performance.now()/1000;
-    if(core){animateSide('hero',core.hero,core.enemy,now,dt);animateSide('enemy',core.enemy,core.hero,now,dt);animateExtras(core,now);}
+    if(core){animateSide('hero',core.hero,core.enemy,now,dt);animateSide('enemy',core.enemy,core.hero,now,dt);animateExtras(core,now,dt);}
     updateCamera(core,dt,followCamera,cameraSystem);
     const cinematic=performance.now()/1000<cinematicUntil;aura.visible=cinematic;if(cinematic&&sides.hero.actor){aura.position.copy(sides.hero.actor.root.position);aura.position.y=.025;const pulse=.92+Math.sin(performance.now()*.018)*.08;aura.scale.setScalar(pulse);auraLight.intensity=1.5+Math.sin(performance.now()*.022)*.55;}
     const phaseHud=canvas.closest('.stage')?.querySelector('#battle-phase'),heroRoot=sides.hero.actor?.root;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {normalizeReviewBattlePhase,reviewBattleCameraFrame,reviewBattleLoopDue,reviewBattlePhaseState,reviewBattlePresentationFrame} from '../src/review-battle-state.js';
+import {normalizeReviewBattlePhase,reviewBattleCameraFrame,reviewBattleLoopDue,reviewBattlePhaseState,reviewBattleMultiHitFrame,reviewBattlePresentationFrame} from '../src/review-battle-state.js';
 
 test('phase state follows the live Tidebreak slot and clears between attacks',()=>{
   const active=reviewBattlePhaseState({hero:{slot:'ha',skill:'崩し'},enemy:{slot:'jo'}});
@@ -44,4 +44,10 @@ test('review camera uses the same shared Rinne and Demon combat framing contract
   assert.ok(settled.x<presentation.x,'recovery should settle back toward the authoritative combat position');
   const hit=reviewBattlePresentationFrame({...actor,attack:null,progress:0},target,settled,1/60,{hit:true});
   assert.ok(hit.x<settled.x,'incoming hit should add a short readable recoil away from the target');
+  const sweep=reviewBattleMultiHitFrame({attack:'slash',progress:.5,slot:'ha'},{encounterMode:'one-v-three'});
+  assert.equal(sweep.active,true);assert.equal(sweep.count,3);assert.ok(sweep.recoil>=.3);
+  const finisher=reviewBattleMultiHitFrame({attack:'heavy',progress:.5,slot:'kyu'},{encounterMode:'one-v-three'});
+  assert.ok(finisher.recoil>sweep.recoil);
+  assert.equal(reviewBattleMultiHitFrame({attack:'thrust',progress:.5,slot:'kyu'},{encounterMode:'one-v-three'}).active,false);
+  assert.equal(reviewBattleMultiHitFrame({attack:'slash',progress:.5,slot:'ha'},{encounterMode:'duel'}).active,false);
 });
