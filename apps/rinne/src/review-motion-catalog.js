@@ -10,9 +10,9 @@ export const REVIEW_MOTION_CATEGORY_LABELS = Object.freeze({
 
 const CATEGORY_RULES = Object.freeze([
   ['reaction', /surpris|startle|fear|hurt|angry|laugh|cheer|apolog|confus|tired|exhaust|look.?around|(^|[_\s-])(hit|death|defeat|spawn|knock|stagger|yes|taunt)([_\s-]|$)/i],
+  ['life', /idle|talk|speak|greet|wave|sit|stand|lie|lay|sleep|wake|interact|pick.?up|pickup|hold|throw|use.?item|work|clean|fix|drink|eat|consume|fish|dig|observe|point|clap|torch|push|farm|harvest|plant|water|lantern|lockpick|pickaxe|saw|chest/i],
   ['combat', /attack|melee|sword|spear|axe|hammer|bow|shoot|aim|reload|spell|cast|summon|parry|slash|thrust|chop|combo|guard|block|punch|kick|shield|scratch/i],
-  ['move', /walk|jog|run|sprint|jump|land|hop|roll|dash|dodge|crawl|sneak|crouch|climb|strafe|turn|backward|step|swim|slide/i],
-  ['life', /idle|talk|speak|greet|wave|sit|stand|lie|lay|sleep|wake|interact|pick.?up|pickup|hold|throw|use.?item|work|clean|fix|drink|eat|consume|fish|dig|observe|point|clap|torch|push|farm|harvest|plant|water|lantern|lockpick|pickaxe|saw|chest/i]
+  ['move', /walk|jog|run|sprint|jump|land|hop|roll|dash|dodge|crawl|sneak|crouch|climb|strafe|turn|backward|step|swim|slide/i]
 ]);
 
 const RECOMMENDATION_RULES = Object.freeze({
