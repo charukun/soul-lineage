@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fastGateScope, requiresRinneRigQa, splitFastTests } from '../scripts/fast-gate-v2.mjs';
+import { countFastDevTests } from '../scripts/fast-dev-contract.mjs';
 
 const source = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const heavy = [
@@ -54,6 +55,16 @@ test('validator uses trusted current-develop helpers for DEV while preserving re
   assert.match(validate, /splitFastTests\(uniqueTests, plan\.paths/);
   assert.match(check, /requested\[0\] === '--direct'/);
   assert.match(check, /if \(!direct\) for \(const file of readdirSync\('scripts'/);
+  const contract = source('scripts/fast-dev-contract.mjs');
+  const astra = source('.github/workflows/astra-work-validation.yml');
+  assert.equal(countFastDevTests("test('a',()=>{})\n test.skip('b',()=>{})"),2);
+  assert.match(contract,/TEST_INVENTORY_EXPANDED/);
+  assert.match(contract,/FAST_DEV_LIFECYCLE_CHANGED/);
+  assert.match(contract,/ACTIONS_WORKFLOW_CHANGED/);
+  assert.match(astra,/git show origin\/develop:scripts\/fast-dev-contract\.mjs/);
+  assert.match(astra,/npm ci --ignore-scripts/);
+  assert.match(astra,/astra\/fast-dev-contract/);
+
 });
 
 test('DEV PR and normal DEV publication both record zero tests', () => {

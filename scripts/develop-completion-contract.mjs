@@ -27,6 +27,12 @@ export function verifyDevelopCompletionContract(root=process.cwd()){
   assert.match(developMerge,/same-task merge to develop/);
   assert.match(developMerge,/\[astra-validate\]/);
   assert.match(workflow,/contains\(github\.event\.head_commit\.message, '\[astra-validate\]'\)/);
+  assert.match(agents,/astra\/fast-dev-contract=error/);
+  assert.match(agents,/recoverable self-inflicted violation/);
+  assert.match(development,/Fast DEV execution contract/);
+  assert.match(workflow,/origin\/develop:scripts\/fast-dev-contract\.mjs/);
+  assert.match(workflow,/npm ci --ignore-scripts/);
+  assert.match(workflow,/astra\/fast-dev-contract/);
   assert.match(preReady,/terminal=MERGED_TO_DEVELOP/);
 
   for(const source of [agents,development,executionPolicy,developMerge]){
