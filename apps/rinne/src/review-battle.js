@@ -18,6 +18,7 @@ const battleSfx=createCombatSfx(),loopEnabled=true,followCamera=true;
 let encounterMode='duel',cameraSystem='rinne',battleStage=null,battleStagePromise=null,inspirationMode='normal',lastInspirationPhase='',selectedWeapon='sword',inspirationSequenceActive=false;
 let host=null,last=performance.now(),lastCore=null,finishedAt=0,lastSequenceAction='',lastSequencePhase='',lastAudioAttacks={hero:'',enemy:''},signTimer=0;
 const insightHistory=[],reviewTechniqueSeen=new Map(),learnedSlots={jo:null,ha:null,kyu:null};
+// Shared with Demon and Rinne gameplay: one swipe parser owns drag, deadzone and terminal flick semantics.
 const reviewSwipe=new SwipeInput();
 let insightHistoryOpen=false;
 const phaseLabel=phase=>({jo:'序',ha:'破',kyu:'急'})[phase]||'破';
