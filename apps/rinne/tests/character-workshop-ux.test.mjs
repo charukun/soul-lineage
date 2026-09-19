@@ -11,6 +11,8 @@ const slotAuto = read('../src/review-slot-auto.js');
 const slotPicker = read('../src/review-slot-picker.js');
 const slotCss = read('../src/review-slot-picker.css');
 const motionQA = read('../src/character-motion-qa.js');
+const characterGrid = read('../src/character-review-grid.js');
+const characterGridCss = read('../src/character-review-grid.css');
 
 test('workshop exposes only three primary mobile intentions', () => {
   for (const [key,label] of [['build','作る'],['move','動かす'],['compare','比べる']]) {
@@ -82,6 +84,27 @@ test('simple review keeps preview chrome quiet and controls compact', () => {
   assert.match(css, /body\.simple-review \.workshop-secondary-tabs/);
 });
 
+test('character review retains the three source selections and extends the persistent five-column list to all review elements', () => {
+  // Reconcile PR #970's three-slot prototype with the complete character-review catalogue.
+  assert.match(slotAuto, /if\(mode==='character'\)\{installCharacterReviewGrid\(\);return;\}/);
+  for (const selector of ['#character-model-options [data-character-model]', '#slot-tabs [data-slot]', '#part-options [data-modular-value]']) {
+    assert.ok(characterGrid.includes(selector));
+  }
+  for (const id of ['model','part','variant','individual','camera','hair','eyes','skin','dye','age']) {
+    assert.ok(characterGrid.includes(`['${id}',`));
+  }
+  assert.match(characterGrid, /option\.source\.click\(\)/);
+  assert.match(characterGrid, /const grid = make\('div', 'character-review-grid'\)/);
+  assert.match(characterGridCss, /\.character-review-grid\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/);
+  assert.doesNotMatch(slotAuto, /move\(mountReviewGroup\(byId\('character-model-options'\)/);
+  // The shared reusable deck and its layout contracts from develop remain intact.
+  assert.match(slotPicker, /export function mountReviewGroupDeck/);
+  assert.match(slotPicker, /review-slot-deck-slots/);
+  assert.match(slotPicker, /review-slot-deck-list/);
+  assert.match(slotCss, /\.review-slot-deck-slots\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(slotCss, /\.review-slot-deck-list\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(css, /data-review-mode="character"\] #panel-parts>\.panel-heading/);
+});
 
 test('motion review exposes one selected slot and a persistent five-column motion list', () => {
   assert.match(slotAuto, /mountReviewSelectGrid\(byId\('qa-motion'\),'選択中の動き'\)/);
