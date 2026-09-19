@@ -1,3 +1,4 @@
+import { OPS_BUILD_SHA as BUNDLED_BUILD_SHA } from './build-info.mjs';
 import { DurableObject } from 'cloudflare:workers';
 import { buildState } from './collector.mjs';
 import { readStored, writeStored } from './github-client.mjs';
@@ -21,7 +22,8 @@ const PEER_CORS={
 };
 function json(data, status = 200, extra = {}) { return new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...extra } }); }
 function peerJson(data,status=200){return json(data,status,PEER_CORS);}
-function publicState(state, env) { return state ? { ...state, buildCommit: env.OPS_BUILD_SHA || null, alerts: boardAlerts(state) } : state; }
+function buildCommit(env){return env.OPS_BUILD_SHA||BUNDLED_BUILD_SHA||null;}
+function publicState(state, env) { return state ? { ...state, buildCommit: buildCommit(env), alerts: boardAlerts(state) } : state; }
 const bearer=request=>{const value=request.headers.get('authorization')||'';return value.startsWith('Bearer ')?value.slice(7):'';};
 async function peerBody(request,max=110000){const text=await request.text();if(text.length>max)throw new Error('payload_too_large');return text?JSON.parse(text):{};}
 function peerErrorStatus(message){return message==='unauthorized'?401:message==='room_not_found'||message==='join_not_found'?404:message==='room_limit'||message==='join_limit'?429:400;}
@@ -157,6 +159,11 @@ export class OpsState extends DurableObject {
   }
 }
 function authorized(request, env) { return Boolean(env.OPS_REFRESH_TOKEN) && request.headers.get('authorization') === `Bearer ${env.OPS_REFRESH_TOKEN}`; }
+function authorizedRefresh(request, env) {
+  if (authorized(request, env)) return true;
+  const auth=bearer(request), github=(request.headers.get('x-ops-github-token')||'').trim();
+  return github.length>=20 && github.length<=1024 && auth===github;
+}
 async function handlePeerWorld(request,url,stub){
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:PEER_CORS});
   const segments=url.pathname.split('/').filter(Boolean); // api, peer-world, rooms, ...
@@ -185,7 +192,7 @@ export default {
     const url = new URL(request.url);
     try {
       if(url.pathname.startsWith('/api/peer-world/'))return handlePeerWorld(request,url,opsStateStub(env));
-      if (url.pathname === '/api/version' && request.method === 'GET') return json({ app: 'ops-board', commit: env.OPS_BUILD_SHA || null });
+      if (url.pathname === '/api/version' && request.method === 'GET') return json({ app: 'ops-board', commit: buildCommit(env) });
       if (url.pathname === '/api/state' && request.method === 'GET') {
         try {
           const stub = opsStateStub(env);
@@ -202,7 +209,7 @@ export default {
         catch { return json({ schema:1, snapshots:[], publications:[] }); }
       }
       if (url.pathname === '/api/refresh' && request.method === 'POST') {
-        if (!authorized(request, env)) return json({ error: 'unauthorized' }, 401);
+        if (!authorizedRefresh(request, env)) return json({ error: 'unauthorized' }, 401);
         const token = (request.headers.get('x-ops-github-token') || '').trim();
         if (token.length > 1024) return json({ error: 'invalid_credential' }, 400);
         if (!token && !env.OPS_GITHUB_TOKEN) return json({ error: 'github_auth_required' }, 503);

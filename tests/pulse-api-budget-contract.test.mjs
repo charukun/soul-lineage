@@ -8,7 +8,8 @@ test('PULSE keeps 30-minute reconciliation but never uses tokenless GitHub acces
   const wrangler = text('wrangler.ops.jsonc');
   const worker = text('ops-board/worker.mjs');
   const dev = text('.github/workflows/dev-app-publish.yml');
-  const ops = text('.github/workflows/ops-board.yml');
+  const notify = text('scripts/notify-fast-dev.mjs');
+  const pulseConfig = text('wrangler.dev.pulse.jsonc');
   assert.match(wrangler, /"crons": \["\*\/30 \* \* \* \*"\]/);
   assert.doesNotMatch(wrangler, /"\*\/5 \* \* \* \*"/);
   assert.match(worker, /x-ops-refresh-reason/);
@@ -20,13 +21,13 @@ test('PULSE keeps 30-minute reconciliation but never uses tokenless GitHub acces
   assert.match(worker, /namespace\.get\(namespace\.idFromName\('global'\)\)/);
   assert.match(worker, /if \(!token && !env\.OPS_GITHUB_TOKEN\) return json\(\{ error: 'github_auth_required' \}, 503\)/);
   assert.doesNotMatch(worker, /shouldReuseFreshState/);
-  assert.match(dev, /name: Refresh PULSE/);
-  assert.match(dev, /uses: \.\/\.github\/workflows\/ops-board\.yml/);
-  assert.match(ops, /name: Refresh existing PULSE state/);
-  assert.match(ops, /uses: \.\/\.github\/workflows\/pulse-refresh\.yml/);
-  assert.match(ops, /fail_on_error: true/);
-  assert.doesNotMatch(dev, /curl[\s\S]*api\/refresh/);
-  assert.doesNotMatch(ops, /curl[\s\S]*api\/refresh/);
+  assert.doesNotMatch(dev, /ops-board\.yml|pulse-refresh\.yml/);
+  assert.match(notify, /refreshPulseState/);
+  assert.match(notify, /refreshToken:token,githubToken:token/);
+  assert.match(worker, /authorizedRefresh/);
+  assert.match(worker, /auth===github/);
+  assert.match(pulseConfig, /"keep_vars": true/);
+  assert.match(pulseConfig, /"crons": \["\*\/30 \* \* \* \*"\]/);
 });
 
 test('PULSE GitHub client requires authentication and records request-budget observability', () => {

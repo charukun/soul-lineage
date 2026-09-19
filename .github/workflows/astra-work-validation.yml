@@ -39,7 +39,9 @@ jobs:
           node-version: '24'
           cache: npm
       - name: Fetch current develop
-        run: git fetch --no-tags origin develop:refs/remotes/origin/develop
+        run: |
+          git fetch --no-tags origin develop:refs/remotes/origin/develop
+          echo "VALIDATION_BASE_SHA=$(git merge-base origin/develop HEAD)" >> "$GITHUB_ENV"
       - name: Record final-head validation pending
         uses: actions/github-script@v8
         with:
@@ -96,13 +98,13 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Check exact patch whitespace
         if: steps.contract.outcome == 'success'
-        run: git diff --check origin/develop HEAD
+        run: git diff --check "$VALIDATION_BASE_SHA" HEAD
       - name: Run changed focused tests
         if: steps.contract.outcome == 'success'
         run: |
           node --input-type=module <<'NODE'
           import { execFileSync, spawnSync } from 'node:child_process';
-          const changed=execFileSync('git',['diff','--name-only','origin/develop','HEAD'],{encoding:'utf8'}).split('\n').filter(Boolean);
+          const changed=execFileSync('git',['diff','--name-only',process.env.VALIDATION_BASE_SHA,'HEAD'],{encoding:'utf8'}).split('\n').filter(Boolean);
           const tests=[...new Set(changed.filter(path=>path.endsWith('.test.mjs')))];
           if(!tests.length){console.log('No changed Node tests selected; affected DEV checks/builds still run next.');process.exit(0);}
           console.log('Focused tests:',tests.join(', '));
@@ -111,32 +113,59 @@ jobs:
           NODE
       - name: Run final-head DEV checks and affected builds
         if: steps.contract.outcome == 'success'
-        run: node scripts/validate.mjs dev origin/develop HEAD
+        run: node scripts/validate.mjs dev "$VALIDATION_BASE_SHA" HEAD
       - name: Record final-head validation success
         if: success() && steps.contract.outcome == 'success'
         uses: actions/github-script@v8
         with:
           script: |
+            const cp=require('node:child_process'),path=require('node:path'),{pathToFileURL}=require('node:url');
             const target=`${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const {data:develop}=await github.rest.repos.getBranch({...context.repo,branch:'develop'});
-            const developSha=develop.commit.sha;
-            const {data:comparison}=await github.rest.repos.compareCommitsWithBasehead({
-              ...context.repo,basehead:`${developSha}...${process.env.HEAD_SHA}`
-            });
-            const fresh=comparison.status==='ahead'||comparison.status==='identical';
+            const git=(args,opts={})=>cp.execFileSync('git',args,{encoding:'utf8',...opts}).trim();
+            const isAncestor=(a,b)=>{try{cp.execFileSync('git',['merge-base','--is-ancestor',a,b],{stdio:'ignore'});return true;}catch{return false;}};
+            const ws=await import(pathToFileURL(path.join(process.cwd(),'scripts/workspaces.mjs')).href),nodes=ws.graph();
+            const impact=(base,head)=>{
+              const paths=git(['diff','--no-renames','--name-only','-z',base,head]).split('\0').filter(Boolean).filter(p=>p!=='AGENTS.md');
+              const apps=ws.affectedForDev(nodes,paths),dependencyGraphChanged=paths.some(ws.workspaceManifestPath),rootBuildChanged=paths.some(ws.devGlobalBuildPath);
+              const infrastructure=dependencyGraphChanged||rootBuildChanged;
+              const packages=[...nodes.values()].filter(n=>n.group==='packages'&&paths.some(p=>p.startsWith(`${n.dir}/`)&&!p.endsWith('/README.md'))).map(n=>n.name);
+              return {apps,packages,infrastructure,controlPlane:paths.some(ws.toolingPath)&&!infrastructure,paths};
+            };
+            git(['fetch','--no-tags','origin','develop:refs/remotes/origin/develop']);
+            const developSha=git(['rev-parse','origin/develop']);
+            let reusable=isAncestor(developSha,process.env.HEAD_SHA);
+            let reason=reusable?'current-develop-contained':'';
+            if(!reusable){
+              const base=process.env.VALIDATION_BASE_SHA;
+              if(!isAncestor(base,developSha)){
+                reason='develop-history-diverged';
+              }else{
+                try{
+                  git(['merge-tree','--write-tree',process.env.HEAD_SHA,developSha]);
+                  const work=impact(base,process.env.HEAD_SHA), drift=impact(base,developSha);
+                  const driftApps=new Set(drift.apps||[]), driftPackages=new Set(drift.packages||[]);
+                  const appOverlap=(work.apps||[]).some(id=>driftApps.has(id));
+                  const packageOverlap=(work.packages||[]).some(name=>driftPackages.has(name));
+                  if(drift.infrastructure||drift.controlPlane) reason='develop-shared-control-changed';
+                  else if(appOverlap||packageOverlap) reason='affected-scope-overlap';
+                  else { reusable=true; reason='mergeable-independent-drift'; }
+                }catch{ reason='merge-conflict'; }
+              }
+            }
             await github.rest.repos.createCommitStatus({...context.repo,sha:process.env.HEAD_SHA,
-              context:'astra/merge-freshness',state:fresh?'success':'error',
-              description:fresh?'Validated head contains current develop':'ASTRA_STALE_DEVELOP: reconcile and revalidate',
+              context:'astra/merge-freshness',state:reusable?'success':'error',
+              description:(reusable?(reason==='current-develop-contained'?'Validated head contains current develop':'Independent develop drift; validation reusable'):`ASTRA_REVALIDATE_REQUIRED: ${reason}`).slice(0,140),
               target_url:target});
-            if(!fresh){
+            if(!reusable){
               await github.rest.repos.createCommitStatus({...context.repo,sha:process.env.HEAD_SHA,
                 context:'astra/focused-validation',state:'error',
-                description:'ASTRA_STALE_DEVELOP: validation invalidated by newer develop',target_url:target});
-              core.setFailed(`ASTRA_STALE_DEVELOP: current develop ${developSha} is not contained in validated head ${process.env.HEAD_SHA}`);
+                description:'Develop drift conflicts or overlaps validated impact; reconcile and revalidate',target_url:target});
+              core.setFailed(`ASTRA_REVALIDATE_REQUIRED: ${reason}`);
               return;
             }
             await github.rest.repos.createCommitStatus({...context.repo,sha:process.env.HEAD_SHA,
-              context:'astra/focused-validation',state:'success',description:'Astra final-head validation passed on current develop',
+              context:'astra/focused-validation',state:'success',
+              description:reason==='current-develop-contained'?'Astra final-head validation passed on current develop':'Astra validation reused across independent develop drift',
               target_url:target});
       - name: Record final-head validation failure
         if: failure() && steps.contract.outcome == 'success'
