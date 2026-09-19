@@ -39,9 +39,9 @@ test('all specialist review pages expose one Visual Review Lab back route',async
 test('motion review uses the pinned KayKit GLB clips with real mixer controls',async()=>{
   const [html,js,css]=await Promise.all([read('review-motion.html'),read('src/review-motion.js'),read('src/review-motion.css')]);
   assert.match(html,/id="motion-stage"/);assert.match(html,/id="motion-grid"/);assert.match(html,/id="motion-time"/);
-  assert.match(html,/class="motion-current-label">選択中の動き/);
+  assert.match(html,/class="motion-stage-caption"/);assert.match(html,/id="motion-selected">モーション準備中/);
   assert.match(html,/class="motion-grid-title">候補一覧/);
-  assert.match(css,/\.motion-stage-slot\{[^}]*box-shadow:inset 3px 0/);
+  assert.match(css,/\.motion-stage-caption\{[^}]*background:#0b1110b8/);
   assert.match(css,/\.motion-grid button\{[^}]*background:#101614/);
   assert.match(css,/\.motion-grid button\[aria-pressed="true"\]\{[^}]*inset 0 -2px/);
   assert.match(css,/\.motion-camera-strip button\{[^}]*border-radius:999px/);
