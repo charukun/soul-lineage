@@ -1,0 +1,1 @@
+{"name":"nocturne-external-assets","private":true,"version":"1.0.0","type":"module","scripts":{"build":"python3 prepare.py && node build.mjs","test":"node smoke.mjs http://127.0.0.1:4173"},"dependencies":{"three":"0.180.0"},"devDependencies":{"@playwright/test":"1.55.0"}}
