@@ -43,6 +43,13 @@ A qualifying Micro Patch may use a lighter authoring path, but still performs la
 - For an explicit user-requested workflow reduction only, the final merge-owning commit also includes `[astra-contract-change]`. That marker authorizes only a contraction to the canonical workflow surface; it never authorizes adding Actions work.
 - If the task hit this violation and self-repaired it, say so in the completion report. Never hide or relabel the attempted expansion as ordinary CI noise.
 
+## Canonical review URLs
+
+- Public RINNE review URLs are extensionless. Use `/review-motion`, `/review-assets`, `/review-objects`, `/review-effects`, `/review-sound`, and `/review-battle`.
+- The corresponding `.html` files are build entry implementation details only. Never use a public `.html` review URL in links, browser evidence, debugging, verification, documentation, or user-facing reports.
+- Before diagnosing a public review regression, verify the canonical extensionless URL itself. A result from a `.html` path is not evidence about the canonical public route.
+- When adding or renaming a review surface, update the canonical route map first and keep exactly one public URL per surface.
+
 ## Review UI invariant
 
 - Review/catalog choice grids use exactly five equal-width columns by default, including phone layouts. Do not add responsive overrides that reduce these lists to 1–4 columns. If a particular surface genuinely cannot use five columns, that exception requires an explicit user request and a repository test documenting it.
