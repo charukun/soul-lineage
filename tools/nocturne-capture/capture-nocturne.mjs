@@ -10,7 +10,7 @@ const url = 'https://nocturne-autobattle.c-okamoto.workers.dev/';
 const output = path.resolve('output');
 fs.mkdirSync(output, { recursive: true });
 const report = { url, width: 1920, height: 1080, fps: 30, frames: 900,
-  capture: 'Native game rendering, frame-stepped browser clock; 30 seconds at original game speed',
+  capture: 'Native public-game rendering, frame-stepped original render loop at 30 Hz; no gameplay or asset changes',
   audio: false, startedAt: new Date().toISOString(), progress: [], errors: [] };
 const browser = await chromium.launch({ headless: true, args: [
   '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
@@ -24,24 +24,33 @@ try {
   page = await context.newPage();
   page.setDefaultTimeout(120000);
   page.on('pageerror', error => report.errors.push(String(error)));
-  await page.clock.install({ time: new Date('2026-09-19T00:00:00Z') });
+  await page.route('**/main.js', async route => {
+    const response = await route.fetch();
+    const source = await response.text();
+    assert.ok(source.includes('function loop(now)') && source.includes('previous=performance.now()'));
+    report.gameScriptSha256 = createHash('sha256').update(source).digest('hex');
+    const instrumentation = '\nwindow.__NOCTURNE_CAPTURE__ = { stop: () => renderer.setAnimationLoop(null), step: () => loop(previous + 1000/30) };\n';
+    await route.fulfill({ response, body: source + instrumentation });
+  });
   const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
   assert.equal(response.status(), 200);
-  await page.waitForFunction(() => window.__NOCTURNE__?.metrics.ready &&
+  await page.waitForFunction(() => window.__NOCTURNE__?.metrics.ready && window.__NOCTURNE_CAPTURE__ &&
     document.getElementById('loader').classList.contains('hidden'), null, { timeout: 180000 });
   await page.evaluate(() => document.fonts.ready);
   const buildResponse = await page.request.get(new URL('build.json', url).href);
   report.build = await buildResponse.json();
   assert.equal(await page.locator('#quality').innerText(), '画質 高');
   assert.equal(await page.locator('#sound').innerText(), '音 OFF');
+  await page.bringToFront();
+  assert.equal(await page.evaluate(() => document.hidden), false);
+  await page.evaluate(() => window.__NOCTURNE_CAPTURE__.stop());
   await page.locator('#start').click();
   await page.locator('[data-stance="balanced"]').click();
-  const pauseTime = await page.evaluate(() => Date.now() + 1000);
-  await page.clock.pauseAt(pauseTime);
-  await page.clock.runFor(2000);
+  for (let frame = 0; frame < 60; frame++) await page.evaluate(() => window.__NOCTURNE_CAPTURE__.step());
   report.initial = await page.evaluate(() => window.__NOCTURNE__.metrics);
   assert.equal(report.initial.webgl2, true);
   assert.equal(report.initial.phase, 'battle');
+  assert.ok(report.initial.time > 1.5, 'Game simulation must advance before capture');
   console.log('CAPTURE_READY', JSON.stringify(report.initial));
   const cdp = await context.newCDPSession(page);
   encoder = spawn('ffmpeg', ['-hide_banner', '-loglevel', 'warning', '-y',
@@ -54,8 +63,7 @@ try {
   for (let frame = 0; frame < 900; frame++) {
     if (frame === 240) await page.locator('[data-stance="assault"]').click({ force: true });
     if (frame === 540) await page.locator('[data-stance="guard"]').click({ force: true });
-    const delta = Math.floor((frame + 1) * 1000 / 30) - Math.floor(frame * 1000 / 30);
-    await page.clock.runFor(delta);
+    await page.evaluate(() => window.__NOCTURNE_CAPTURE__.step());
     const shot = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 95,
       fromSurface: true, captureBeyondViewport: false });
     const bytes = Buffer.from(shot.data, 'base64');
@@ -67,6 +75,7 @@ try {
       report.progress.push({ frame, time: state.time, phase: state.phase, kills: state.kills });
       console.log('FRAME', frame, JSON.stringify(report.progress.at(-1)));
       assert.notEqual(state.phase, 'defeat');
+      if (frame > 0) assert.ok(state.time > report.progress.at(-2).time, 'Game time must progress');
     }
   }
   encoder.stdin.end();
