@@ -111,6 +111,28 @@
 .battle-sign[hidden]{display:none}.battle-sign::after{content:"";position:absolute;left:50%;bottom:-7px;width:12px;height:12px;border-right:1px solid rgba(155,215,241,.3);border-bottom:1px solid rgba(155,215,241,.3);background:rgba(6,16,29,.82);transform:translateX(-50%) rotate(45deg)}
 @keyframes battle-sign-drift{0%{opacity:0;translate:0 8px}14%{opacity:1;translate:0 0}72%{opacity:1;translate:0 -5px}100%{opacity:0;translate:0 -16px}}
 @media(prefers-reduced-motion:reduce){.battle-sign{animation:none}}
+
+/* 2026-09-20 battle review usability reset: clear center, readable loadout, edge controls. */
+.phase-panel{display:none!important}
+.controls.review-surface__panel{grid-template-columns:minmax(0,1fr) auto auto!important;grid-template-rows:34px!important;align-items:center!important;gap:5px!important;padding:5px max(7px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(7px,env(safe-area-inset-left))!important}
+.controls .inspiration-mode{grid-column:1!important;grid-row:1!important}
+.controls .inspiration-mode button{height:32px!important;min-height:32px!important;font-size:9px!important}
+.controls>.battle-stage-switch{position:static!important;grid-column:2!important;grid-row:1!important;display:block!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;backdrop-filter:none!important}
+.controls>.battle-stage-switch .battle-mode-switch{display:grid!important;grid-template-columns:1fr 1fr!important;gap:3px!important}
+.controls>.battle-stage-switch button{min-width:44px!important;height:32px!important;min-height:32px!important;padding:3px 7px!important;font-size:9px!important}
+.controls .battle-shortcuts{grid-column:3!important;grid-row:1!important;display:flex!important;gap:4px!important}
+.controls .battle-history-open,.controls .review-settings>summary{height:32px!important;min-height:32px!important}
+.stage>.technique-loadout{left:8px!important;right:auto!important;top:8px!important;bottom:auto!important;transform:none!important;width:min(286px,58vw)!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important;padding:6px!important;border:1px solid rgba(199,161,93,.2)!important;border-radius:12px!important;background:rgba(6,16,29,.78)!important;backdrop-filter:blur(8px)!important;box-shadow:0 6px 18px rgba(0,0,0,.26)!important}
+.stage>.technique-loadout span{display:grid!important;grid-template-rows:18px minmax(28px,auto)!important;grid-template-columns:1fr!important;align-items:start!important;justify-items:start!important;gap:3px!important;min-height:49px!important;padding:4px 5px!important;border:1px solid rgba(199,161,93,.13)!important;border-radius:8px!important;background:rgba(8,21,35,.64)!important}
+.stage>.technique-loadout b{display:block!important;width:auto!important;height:auto!important;border:0!important;border-radius:0!important;background:none!important;color:var(--rinne-gold-hi)!important;font-size:11px!important;line-height:18px!important}
+.stage>.technique-loadout strong{display:-webkit-box!important;max-width:100%!important;overflow:hidden!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;white-space:normal!important;text-overflow:clip!important;color:var(--rinne-ink)!important;font-size:9px!important;line-height:1.35!important;text-align:left!important}
+.stage>.technique-loadout span:has(b + strong){transition:border-color .18s ease,background .18s ease}
+.stage>.technique-loadout span[data-active="true"]{border-color:rgba(227,199,127,.7)!important;background:rgba(34,72,101,.82)!important}
+.camera-zoom{position:absolute;z-index:15;right:8px;bottom:8px;display:grid;grid-template-columns:34px 34px;gap:4px}
+.camera-zoom button{display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid rgba(199,161,93,.32);border-radius:50%;background:rgba(6,16,29,.78);color:var(--rinne-ink);font:800 18px/1 var(--font-rinne-display);backdrop-filter:blur(7px)}
+#battle-canvas{cursor:grab}#battle-canvas:active{cursor:grabbing}
+@media(max-width:680px){.stage>.technique-loadout{left:7px!important;top:7px!important;width:min(270px,62vw)!important}.controls.review-surface__panel{grid-template-columns:minmax(0,1fr) auto auto!important}.controls .battle-history-open{padding-inline:7px!important}.controls .review-settings>summary{padding-inline:8px!important}.camera-zoom{right:7px;bottom:7px}}
+
 </style>
 </head>
 <body>
@@ -134,9 +156,7 @@
       <span class="phase-step combat-sequence__step" data-phase-id="jo" data-phase-step="jo" data-combat-phase="jo" data-active="false">序</span><i class="phase-link phase-pulse combat-sequence__link" data-link="jo-ha" data-combat-link="jo-ha" aria-hidden="true"></i><span class="phase-step combat-sequence__step" data-phase-id="ha" data-phase-step="ha" data-combat-phase="ha" data-active="false">破</span><i class="phase-link phase-pulse combat-sequence__link" data-link="ha-kyu" data-combat-link="ha-kyu" aria-hidden="true"></i><span class="phase-step combat-sequence__step" data-phase-id="kyu" data-phase-step="kyu" data-combat-phase="kyu" data-active="false">急</span>
       <strong id="phase-meta" class="phase-meta combat-phase-action combat-sequence__action">間合いを測る</strong><div id="phase-history" class="phase-history combat-phase-history combat-sequence__history" aria-hidden="true"></div>
     </aside>
-    <div class="battle-stage-switch" aria-label="戦闘人数の切替">
-      <span>対戦</span><div class="battle-mode-switch" role="group" aria-label="戦闘人数"><button type="button" data-battle-mode="duel" aria-pressed="true">1v1</button><button type="button" data-battle-mode="one-v-three" aria-pressed="false">1v3</button></div>
-    </div>
+    <div class="camera-zoom" role="group" aria-label="カメラズーム"><button id="camera-zoom-out" type="button" aria-label="カメラをズームアウト">−</button><button id="camera-zoom-in" type="button" aria-label="カメラをズームイン">＋</button></div>
     <div id="battle-technique-loadout" class="technique-loadout" aria-label="現在の序破急セット技"><span><b>序</b><strong data-loadout-phase="jo">基本技</strong></span><span><b>破</b><strong data-loadout-phase="ha">基本技</strong></span><span><b>急</b><strong data-loadout-phase="kyu">基本技</strong></span></div>
     <section id="battle-inspiration-history" class="inspiration-history" aria-label="閃いた技の履歴" hidden>
       <header><div><span>閃き履歴</span><strong>この戦闘で閃いた技</strong></div><button id="battle-history-close" type="button" aria-label="閃き履歴を閉じる">閉じる</button></header>
@@ -145,13 +165,8 @@
   </section>
   </div>
   <section class="controls review-surface__panel">
-    <div class="hud battle-vitals">
-      <article><span id="hero-name">Rogue</span><strong id="hero-action">-</strong><progress id="hero-hp" max="1" value="1"></progress><small id="hero-meta">-</small></article>
-      <article><span id="enemy-name">Knight</span><strong id="enemy-action">-</strong><progress id="enemy-hp" max="1" value="1"></progress><small id="enemy-meta">-</small></article>
-    </div>
-
-
     <div class="inspiration-mode" role="group" aria-label="閃き確認モード"><button type="button" data-inspiration-mode="normal" aria-pressed="true">通常</button><button type="button" data-inspiration-mode="boost" aria-pressed="false">閃き 高確率</button></div>
+    <div class="battle-stage-switch" aria-label="戦闘人数の切替"><div class="battle-mode-switch" role="group" aria-label="戦闘人数"><button type="button" data-battle-mode="duel" aria-pressed="true">1v1</button><button type="button" data-battle-mode="one-v-three" aria-pressed="false">1v3</button></div></div>
     <div class="battle-shortcuts">
       <button id="battle-history-open" class="battle-history-open" type="button">閃き履歴 <span id="battle-history-count">0</span></button>
     <details class="review-settings">
@@ -159,7 +174,7 @@
       <div class="review-settings-body">
         <div class="pickers">
           <div class="hero-model-lock" aria-label="左モデルは主人公固定"><span>左モデル</span><strong>主人公</strong></div>
-          <div class="hero-model-lock"><span>敵モデル</span><strong>異形兵</strong></div><label class="weapon-picker">所持武器<select id="battle-weapon"><option value="sword">剣</option><option value="dagger">短剣</option><option value="spear">槍</option><option value="great">大剣</option><option value="axe">戦斧</option><option value="staff">杖</option><option value="fist">徒手</option></select></label>
+          <div class="hero-model-lock"><span>敵モデル</span><strong>スケルトン</strong></div><label class="weapon-picker">所持武器<select id="battle-weapon"><option value="sword">剣</option><option value="dagger">短剣</option><option value="spear">槍</option><option value="great">大剣</option><option value="axe">戦斧</option><option value="staff">杖</option><option value="fist">徒手</option></select></label>
         </div>
         <div class="review-modes">
 
