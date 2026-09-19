@@ -49,11 +49,10 @@ test('legacy Pages DEV entries never become active DEV links', () => {
     assert.equal(dev.url, 'https://soul-lineage-demon-dev.c-okamoto.workers.dev/');
   }
 });
-test('new manifest games also receive the same three-environment matrix', () => {
-  const app = games({ entries: [entry('future-game', 'dev')] }).find(a => a.id === 'future-game');
-  assert.equal(releaseTargets(app).length, 3);
-  assert.equal(target(app, 'staging').state, 'missing');
-  assert.equal(target(app, 'prod').state, 'missing');
+test('unregistered manifest entries never silently become managed PULSE apps', () => {
+  const apps = buildApplications({ entries: [entry('future-game', 'dev')] });
+  assert.equal(apps.some(app => app.id === 'future-game'), false);
+  assert.equal(apps.filter(app => ['game','tool','reference','control'].includes(app.kind)).length, 7);
 });
 test('only the requested game set is authorized for missing-environment initialization', () => {
   const previous = [{ ...entry('rinne', 'prod', 'legacy'), path: 'prod', files: [{ path: 'index.html' }] }];
