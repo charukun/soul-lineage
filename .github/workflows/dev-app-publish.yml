@@ -9,7 +9,7 @@ on:
         description: 'Publish one app from the selected/ref source'
         type: choice
         required: true
-        options: [rinne, village, demon]
+        options: [rinne, village, demon, review]
       source_sha:
         description: 'Optional exact source SHA/ref'
         type: string
@@ -162,3 +162,16 @@ jobs:
           SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
           APPS_JSON: ${{ needs.plan.outputs.apps }}
         run: node scripts/notify-fast-dev.mjs "$SOURCE_SHA" "$APPS_JSON"
+
+  pulse:
+    name: Refresh PULSE
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/ops-board.yml
+    with:
+      source_sha: ${{ github.sha }}
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+      statuses: write
+    secrets: inherit

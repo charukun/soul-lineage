@@ -1,4 +1,4 @@
-export const REVIEW_NAVIGATION_FALLBACK = '/';
+export const REVIEW_NAVIGATION_FALLBACK = 'https://soul-lineage-review-dev.c-okamoto.workers.dev/';
 
 export function canReturnToPreviousReview({ referrer = '', currentHref = '', historyLength = 0 } = {}) {
   if (!referrer || !currentHref || historyLength <= 1) return false;

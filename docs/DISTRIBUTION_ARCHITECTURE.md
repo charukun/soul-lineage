@@ -16,7 +16,7 @@ app source
   -> target-specific publisher / packager
 ```
 
-The current apps are `rinne`, `village`, and `demon`. A change in one app must not force unrelated app builds. A shared-package change fans out only to apps whose workspace dependency closure includes that package.
+The game apps are `rinne`, `village`, and `demon`. `review` is a separate developer-facing Visual Review Lab and is not a game or a child of `rinne`. A change in one app must not force unrelated app builds. A shared-package change fans out only to apps whose workspace dependency closure includes that package.
 
 ## Target classes
 
@@ -68,8 +68,9 @@ Primary Web DEV publication is app-scoped Cloudflare Workers static assets:
 - `rinne`: `https://soul-lineage-rinne-dev.c-okamoto.workers.dev/`
 - `village`: `https://soul-lineage-village-dev.c-okamoto.workers.dev/`
 - `demon`: `https://soul-lineage-demon-dev.c-okamoto.workers.dev/`
+- `review`: `https://soul-lineage-review-dev.c-okamoto.workers.dev/`
 
-GitHub Pages remains a compatibility mirror while existing links and Production are preserved. The fast DEV path does not wait for the shared Pages site. Each app job has its own concurrency key, so a newer `demon` change may supersede an older `demon` publish without cancelling an in-flight `rinne` or `village` publish.
+GitHub Pages is not a DEV publisher. The legacy `/dev/` mirror is retired and Pages remains the Production/staging compatibility surface. Each Workers app job has its own concurrency key, so a newer app change may supersede an older publication of the same app without cancelling unrelated app publication. PULSE remains an independent control-plane Worker at `https://rinne-ops.c-okamoto.workers.dev/`.
 
 After all apps affected by one develop merge are successfully published to their independent DEV URLs, one GitHub PR receipt is created. Public exact-source checks remain diagnostic evidence and do not block DEV completion or the receipt. The legacy Pages publisher must not be required for that notification.
 
@@ -107,10 +108,10 @@ The repository now exposes:
 
 - `npm run distribution:plan` for dependency-aware affected app planning;
 - `npm run distribution:build -- --app <app> --target <target>` for immutable target artifacts;
-- `.github/workflows/dev-app-publish.yml` for independent affected-app DEV publication;
+- `.github/workflows/dev-app-publish.yml` for independent affected-app DEV publication plus PULSE refresh;
 - `.github/workflows/distribution-artifact.yml` for explicit/reusable artifact production;
 - app-scoped `dev/<app>` commit statuses;
 - non-blocking public source diagnostics through `version.json`;
 - one fast DEV completion receipt after every affected app for that merge is live.
 
-The legacy Pages workflow assembles changed apps from the same immutable artifact contract and remains the compatibility/Production path during migration.
+`deploy.yml` is Production-only. A one-shot retirement workflow removes the former Pages `/dev/` mirror while preserving existing non-DEV release bytes.
