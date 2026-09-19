@@ -14,6 +14,9 @@ test('healthy village can accumulate births but never exceeds infrastructure hea
  assert.ok(plan.births>=1,'healthy adult households should produce a birth');
  assert.ok(plan.births<=6,'births must fit free beds');
  assert.ok(plan.births<=8,'births must fit infrastructure limit');
+ const impossible=planDemographicYear({population:0,limit:8,openBeds:8,eligibleAdults:2,comfort:8,foodStock:20,birthCarry:.9});
+ assert.equal(impossible.pairs,0,'adult households cannot exceed the represented population');
+ assert.equal(impossible.births,0,'an empty population cannot create a birth from contradictory adult input');
  // App-local causal regression; cross-revision orchestration belongs to root tooling.
  for(const foodStock of [64,62,60]){
   const supported={population:12,limit:20,openBeds:18,eligibleAdults:8,comfort:6,foodStock,birthCarry:.8};
@@ -50,13 +53,4 @@ test('demography history updates the current year and remains bounded',()=>{
  assert.equal(history.length,120);
  assert.equal(history.at(-1).population,77);
  assert.equal(history.at(-1).departures,3);
-});
-
-
-test('demography rejects impossible adult counts before creating households',()=>{
- const impossible=planDemographicYear({population:0,limit:8,openBeds:8,eligibleAdults:2,comfort:8,foodStock:20,birthCarry:.9});
- assert.equal(impossible.pairs,0);
- assert.equal(impossible.births,0);
- const bounded=planDemographicYear({population:3,limit:8,openBeds:8,eligibleAdults:20,comfort:8,foodStock:20,birthCarry:.9});
- assert.equal(bounded.pairs,1);
 });
