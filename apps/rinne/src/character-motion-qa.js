@@ -4,8 +4,7 @@ import { QA_CAMERAS, QA_CATEGORIES, QA_SEQUENCE, qaCamera, qaSequenceAt, sampleM
   REVIEW_SWORD_CALIBRATION, createQAReport, serializeQAReport, deserializeQAReport, createCorrectionSampler } from '@soul/animations';
 import { createMotionQualityAdapter, hierarchyQuaternion, captureNormalizedMotion } from '@soul/rendering/motion-quality';
 import { loadWorkshopMotionSource } from './character-motion-source.js';
-import { buildReviewMotionRegistry, motionRegistryCount } from './review-motion-registry.js';
-import { buildMotionReviewCatalog, filterMotionReviewCatalog, REVIEW_MOTION_CATEGORY_LABELS } from './review-motion-catalog.js';
+import { createMotionLibraryControls } from './character-motion-library-controls.js';
 const el=id=>document.getElementById(id),storeKey='rinne.motion-qa.v1';
 const revision=typeof __BUILD_INFO__==='object'?__BUILD_INFO__.commit:'local';
 const download=(data,name)=>{const url=URL.createObjectURL(data),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
@@ -14,7 +13,7 @@ const maxPenetration=issues=>issues.filter(i=>i.category==='self intersection').
 
 export function createWorkshopMotionQA({review,scene,camera,orbit,canvas,refresh,draw}) {
   if(!el('motion-qa'))return null;
-  let library=null,registry=null,catalog=[],filter='recommended',mode='enbu',selectedIdentity=null,bank=null,loading=false,active=false,playing=false,time=0,corrected=true,cameraId='front',tour=false,pose=null,lastUI=-1;
+  let library=null,mode='enbu',selectedIdentity=null,bank=null,loading=false,active=false,playing=false,time=0,corrected=true,cameraId='front',tour=false,pose=null,lastUI=-1;
   let speed=1,loopRange=null;
   let report=null,diagnostics=[],observed=[],snapshotPair={before:null,after:null},lastFrame=null,weaponSnapshot=null,comparison=null,compareBusy=false;
   let liveCompare=true,liveBusy=false,liveLast=0,liveFrameId=0;
@@ -24,48 +23,10 @@ export function createWorkshopMotionQA({review,scene,camera,orbit,canvas,refresh
   const currentDuration=()=>mode==='enbu'?30:Math.max(1/60,Number(bank?.duration)||1/60);
   const currentRow=()=>{
     if(mode==='enbu')return qaSequenceAt(time);
-    const record=registry?.byId?.[selectedIdentity],duration=currentDuration();
+    const record=motionLibrary.registry?.byId?.[selectedIdentity],duration=currentDuration();
     return {id:selectedIdentity||'motion',label:record?.upstreamClipName||'Motion',source:record?.sourceIdentity||selectedIdentity||'motion',start:0,end:duration,localTime:time,frame:Math.round(time*60),progress:duration?time/duration:0};
   };
-  function applyFilter(next=filter){
-    if(!catalog.length)return;
-    filter=next;
-    const rows=filterMotionReviewCatalog(catalog,filter),motion=el('qa-motion');
-    const retained=rows.some(row=>row.sourceIdentity===selectedIdentity)?selectedIdentity:rows[0]?.sourceIdentity??null;
-    selectedIdentity=retained;
-    motion.replaceChildren(...rows.map(row=>new Option(`${row.name} · ${REVIEW_MOTION_CATEGORY_LABELS[row.category]}`,row.sourceIdentity)));
-    motion.value=selectedIdentity??'';
-    for(const button of document.querySelectorAll('[data-motion-filter]'))button.setAttribute('aria-pressed',String(button.dataset.motionFilter===filter));
-  }
-  function installRegistry(){
-    const animations=review.motionSourceDocument?.animations;
-    if(!Array.isArray(animations)||!animations.length)return false;
-    registry=buildReviewMotionRegistry(animations);
-    catalog=buildMotionReviewCatalog(registry.motions,{perCategory:8});
-    const count=el('qa-motion-count');if(count)count.textContent=`MOTION CLIPS ${motionRegistryCount(registry)}`;
-    const filters=el('qa-motion-filters');
-    if(filters&&!filters.childElementCount){
-      for(const key of ['recommended','life','move','combat','reaction','other','all']){
-        const button=document.createElement('button');button.type='button';button.dataset.motionFilter=key;button.textContent=REVIEW_MOTION_CATEGORY_LABELS[key];
-        button.addEventListener('click',()=>{const before=selectedIdentity;applyFilter(key);if(active&&selectedIdentity&&selectedIdentity!==before)void selectClip(selectedIdentity);});filters.append(button);
-      }
-    }
-    applyFilter(filter);
-    return true;
-  }
-  async function ensureLibrary(){
-    if(library)return library;
-    if(!installRegistry())throw new Error('KayKitモーション正本の読み込み完了を待っています');
-    library=await loadWorkshopMotionSource({
-      sourceBytes:review.motionSourceBytes,
-      sourceDocument:review.motionSourceDocument,
-      progress:value=>notify(`モーション基盤の準備 ${Math.round(value*100)}%`)
-    });
-    registry=library.registry;
-    catalog=buildMotionReviewCatalog(registry.motions,{perCategory:8});
-    applyFilter(filter);
-    return library;
-  }
+  const motionLibrary=createMotionLibraryControls({review,el,onSelect:identity=>{if(active)void selectClip(identity);}});
   const conditions=()=>({sequence:mode==='enbu'?'workshop-motion-sequence.v2':(selectedIdentity||'workshop-motion-clip.v2'),fps:60,viewport:[canvas.clientWidth,canvas.clientHeight],dpr:Math.min(devicePixelRatio||1,1.5),lighting:'workshop-pbr.v1',motionRevision:bank?.revision??'unloaded',characters:review.records.slice(0,review.settings.count).map(r=>({record:r,parts:review.actors.find(a=>a.id===r.id)?.appearanceController?.profile??null,identity:review.actors.find(a=>a.id===r.id)?.appearanceController?.identity??null})),secondaryMotion:'off-for-deterministic-QA',correctionRevision:'continuous-clearance.v2',expressionClock:'qa-time',playback:{speed,loopRange},presentation:{view:review.settings.view,count:review.settings.count,selected:review.settings.selected,blink:review.settings.blink,expression:review.settings.expression,expressionMode:review.settings.expressionMode,expressionWeight:review.settings.expressionWeight}});
   function save(){try{localStorage.setItem(storeKey,serializeQAReport(report));}catch{notify('記録の保存に失敗しました。JSONを保存してください。');}}
   function freshReport(){report=createQAReport({build:revision,reviewer:'human',review:conditions()});}
@@ -99,7 +60,7 @@ export function createWorkshopMotionQA({review,scene,camera,orbit,canvas,refresh
   function redrawCurrent(){if(!bank||!active)return;lastFrame=null;pose=sample(time);observed=[];cleanupWeapons();refresh();aim();sync();draw();}
   function setCorrected(next){if(!bank||!active)return;const wasPlaying=playing;corrected=next;redrawCurrent();playing=wasPlaying;sync();}
   async function activateBank(nextBank,nextMode,nextIdentity,{resetSpeed=false}={}){
-    bank=nextBank;mode=nextMode;selectedIdentity=nextIdentity??selectedIdentity;active=true;playing=true;time=0;loopRange=null;
+    bank=nextBank;mode=nextMode;selectedIdentity=nextIdentity??selectedIdentity;motionLibrary.selectedIdentity=selectedIdentity;active=true;playing=true;time=0;loopRange=null;
     if(resetSpeed){speed=1;el('qa-speed').value='1';}el('qa-loop').checked=false;pose=sample(0);lastFrame=null;snapshotPair={before:null,after:null};
     review.configure({view:'single',rotate:false,paused:false});if(!report)freshReport();pose=sample(time);refresh();aim('front');sync();
   }
@@ -111,7 +72,7 @@ export function createWorkshopMotionQA({review,scene,camera,orbit,canvas,refresh
   async function selectClip(identity){
     if(!identity||loading)return;loading=true;notify('選択モーションを準備中…');
     try{const source=await ensureLibrary(),next=await source.loadClip(identity,{onProgress:value=>notify(`選択モーションの準備 ${Math.round(value*100)}%`)});
-      await activateBank(next,'clip',identity);el('qa-motion').value=identity;notify(`${registry.byId[identity].upstreamClipName} を再生中`);
+      await activateBank(next,'clip',identity);el('qa-motion').value=identity;notify(`${motionLibrary.registry.byId[identity].upstreamClipName} を再生中`);
     }catch(error){notify(`モーションを再生できませんでした: ${error.message}`);}finally{loading=false;}
   }
   function seek(value){if(!bank||!active)return;if(!Number.isFinite(value))throw new Error('Invalid QA seek');const duration=currentDuration();time=Math.max(0,Math.min(duration,value));if(el('qa-loop').checked){const row=currentRow();loopRange=mode==='enbu'?[row.start,row.end]:[0,duration];}playing=false;redrawCurrent();}
