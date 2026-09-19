@@ -1,4 +1,4 @@
-import { GAME_NAMES, GAME_ENVIRONMENTS, BOARD_NAME } from '../scripts/application-catalog.mjs';
+import { GAME_NAMES, REFERENCE_APP_NAMES, GAME_ENVIRONMENTS, BOARD_NAME } from '../scripts/application-catalog.mjs';
 import { distributionPublicUrl } from '../scripts/distribution-targets.mjs';
 
 export const OPS_PUBLIC_URL = 'https://rinne-ops.c-okamoto.workers.dev/';
@@ -52,6 +52,19 @@ export function buildApplications(manifest = {}, environments = [], runs = [], {
     targets: [fastDevTarget(id,developSha,statuses),...GAME_ENVIRONMENTS.filter(definition=>definition.id!=='dev').map(definition => targetFor(id, definition, entries, environmentById.get(definition.id), manifest))],
   }]));
 
+  for (const [id, name] of Object.entries(REFERENCE_APP_NAMES)) {
+    const publicUrl = id === 'eclipse'
+      ? 'https://soul-lineage-eclipse-dev.c-okamoto.workers.dev/'
+      : 'https://nocturne-autobattle.c-okamoto.workers.dev/';
+    groups.set(id, {
+      id, name, kind: 'reference',
+      targets: [{ id: `reference:${id}`, label: '参考アプリ', environment: 'reference',
+        state: 'success', url: publicUrl, expectedUrl: publicUrl, commit: null, deployedAt: null,
+        source: 'reference app public preview',
+        note: '製品ゲームの配布対象ではない、実装・演出比較用の参考アプリです。' }],
+    });
+  }
+
   groups.set('character-studio', {
     id: 'character-studio', name: 'キャラクター工房', kind: 'tool',
     targets: [fastDevTarget('character-studio', developSha, statuses)],
@@ -91,7 +104,7 @@ export function buildApplications(manifest = {}, environments = [], runs = [], {
       source: 'Lanternfell dedicated workflow', note: runState(lanternRun) === 'failed'
         ? '専用公開処理が失敗中。公開URLは確認できるまで表示しません。' : '専用公開URLの検証結果を確認中です。' }],
   });
-  const order = ['rinne', 'village', 'demon', 'lanternfell', 'character-studio', 'visual-review', 'portal', 'ops-board'];
+  const order = ['rinne', 'village', 'demon', 'nocturne', 'eclipse', 'lanternfell', 'character-studio', 'visual-review', 'portal', 'ops-board'];
   return [...groups.values()].sort((a, b) => {
     const ai = order.indexOf(a.id); const bi = order.indexOf(b.id);
     return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi) || a.name.localeCompare(b.name, 'ja');
