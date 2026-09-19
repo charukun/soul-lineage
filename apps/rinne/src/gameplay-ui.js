@@ -12,6 +12,8 @@ import './rebuild/conversation-input.css';
 import './skill-setter.css';
 import './heart-technique-body.css';
 import '@soul/shared-ui/combat-sequence.css';
+// Final gameplay skin: keep this last so runtime-imported UI styles cannot flatten the HUD.
+import './dark-navy-hud.css';
 
 const haptic=pattern=>{try{globalThis.navigator?.vibrate?.(pattern);}catch{}};
 const PAGE_SIZE=6;

@@ -21,6 +21,8 @@ test('latest Rinne interface layer loads after the first reforge layers', () => 
   const surfaceLayer = html.indexOf('./src/reincarnation-surfaces.css');
   const v2Layer = html.indexOf('./src/reincarnation-interface-v2.css');
   assert.ok(contract >= 0 && records > contract && hudLayer > records && surfaceLayer > hudLayer && v2Layer > surfaceLayer);
+  assert.doesNotMatch(html, /dark-navy-hud\.css/,'final HUD skin must not be preloaded before runtime UI styles');
+  assert.match(ui, /import '\.\/dark-navy-hud\.css';/,'final HUD skin must load last from gameplay-ui');
 });
 
 test('persistent HUD has a readable player cluster and a dedicated top-right radar', () => {
@@ -83,11 +85,17 @@ test('rich map is more than anonymous points and preserves the shared guidance t
   assert.match(v2, /\.radar-target/);
 });
 
-test('new surfaces stay tactile and avoid glass or generic rounded cards', () => {
-  assert.doesNotMatch(v2, /backdrop-filter/);
-  assert.doesNotMatch(v2, /border-radius:\s*(?:14|15|16|18|20|24|999)px/);
-  assert.match(v2, /clip-path:polygon/);
-  assert.match(v2, /box-shadow:inset/);
+test('final gameplay skin is tactile, non-flat, and keeps phone sheets reachable', () => {
+  assert.doesNotMatch(navy, /backdrop-filter:(?!none)/);
+  assert.match(navy, /repeating-linear-gradient/);
+  assert.match(navy, /clip-path:polygon/);
+  assert.match(navy, /box-shadow:inset/);
+  assert.match(navy, /\.life-chip::before,[\s\S]*content:none!important/);
+  assert.match(navy, /\.upgrade-panel>\[data-body\][\s\S]*overflow-y:auto!important/);
+  assert.match(navy, /max-height:calc\(100dvh/);
+  assert.match(navy, /bottom:max\(82px,calc\(env\(safe-area-inset-bottom\) \+ 78px\)\)/);
+  assert.match(navy, /grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(navy, /border-radius:0!important/);
   assert.match(surfaces, /max-height:min\(70dvh,640px\)/);
 });
 
