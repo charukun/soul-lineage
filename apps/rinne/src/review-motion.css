@@ -33,7 +33,7 @@ button,select{font:inherit;color:inherit}
 .motion-camera-strip button{min-height:32px;padding:5px 8px;border-radius:999px;color:#b9c3bd;font-size:10px}
 .motion-camera-strip button[aria-pressed="true"]{border-color:#7f8b84;background:#242c28;color:#f3eee2}
 .motion-camera-strip .camera-focus{border-style:dashed}
-.motion-model-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin-top:5px;padding:0 0 3px}
+.motion-model-grid{gap:5px;margin-top:5px;padding:0 0 3px}
 .motion-model-grid button{flex:0 0 auto;min-width:92px;min-height:34px;padding:5px 12px;border-width:0 0 2px;border-radius:7px 7px 2px 2px;background:#111816;color:#aeb9b3;white-space:nowrap;font-size:10px}
 .motion-model-grid button[aria-pressed="true"]{border-color:#c9b36f;background:#1b1b15;color:#fff3c9}
 .motion-library{padding-top:2px}
@@ -45,7 +45,7 @@ button,select{font:inherit;color:inherit}
 .motion-filters button{flex:0 0 auto;min-height:30px;padding:4px 11px;border-radius:999px;color:#aeb9b3;font-size:9px}
 .motion-filters button[aria-pressed="true"]{border-color:#c9b36f;background:#2b281c;color:#fff3c9}
 .motion-grid-title{margin:8px 2px -2px;color:#7e8a84;font-size:8px;font-weight:800;letter-spacing:.12em}
-.motion-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:7px;padding-bottom:4px}
+.motion-grid{gap:6px;margin-top:7px;padding-bottom:4px}
 .motion-grid button{position:relative;min-height:58px;padding:8px 7px;overflow:hidden;border:1px solid #3d4742;border-radius:9px;background:#101614;color:#d6ddd9;font-size:10px;line-height:1.3;word-break:break-word;text-align:left}
 .motion-grid button[aria-pressed="true"]{border-color:#d7c58b;background:#29271f;color:#fff1c8;box-shadow:inset 0 -2px #d7c58b}
 .motion-grid button[data-recommended="true"]::after{content:"●";position:absolute;right:4px;top:2px;color:#d6be72;font-size:7px}
@@ -70,7 +70,7 @@ button,select{font:inherit;color:inherit}
   .motion-stage-status{left:10px;right:10px;bottom:8px}
   .motion-library-primary{padding:9px 8px;margin-bottom:8px}
   .motion-filters{position:sticky;top:0;z-index:5;margin:7px -8px 0;padding:7px 8px;background:#121912eF;backdrop-filter:blur(10px)}
-  .motion-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;max-height:46dvh;overflow-y:auto;overscroll-behavior:contain;padding-right:2px}
+  .motion-grid{gap:4px;max-height:46dvh;overflow-y:auto;overscroll-behavior:contain;padding-right:2px}
   .motion-grid button{min-height:54px;padding:6px 4px;font-size:8px}
   .motion-playback{position:sticky;bottom:0;z-index:6;grid-template-columns:42px minmax(92px,1fr) auto auto;padding:6px;box-shadow:0 -10px 24px #0b1110}
   .motion-playback label{font-size:9px}
