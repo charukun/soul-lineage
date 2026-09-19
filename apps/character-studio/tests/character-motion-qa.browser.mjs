@@ -13,7 +13,7 @@ export async function verifyCharacterMotionQA(browser,baseURL,output) {
   const seek=t=>page.evaluate(t=>window.masterCharacterReview.motionQA.seek(t),t);
   const toggleBasis=()=>page.evaluate(()=>document.querySelector('#qa-before').click());
   try{
-    await page.goto(new URL('./characters.html',baseURL).href,{waitUntil:'domcontentloaded'});
+    await page.goto(new URL('./',baseURL).href,{waitUntil:'domcontentloaded'});
     await page.waitForFunction(()=>window.characterStudio?.review.ready,null,{timeout:60000});
     await page.waitForFunction(()=>document.body.classList.contains('workshop-ux-ready'));
     assert.equal(await page.locator('.mode-tabs [data-workshop-intent]').count(),3);

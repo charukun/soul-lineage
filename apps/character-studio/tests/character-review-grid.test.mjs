@@ -26,10 +26,10 @@ function readGroups(rows, ready = true, camera = 'front') {
   return readCharacterReviewGroups({ querySelectorAll: selector => rows[selector] || [] }, ready, camera);
 }
 
-test('ten review elements share one slot-to-grid catalogue, with no technical build action', () => {
+test('nine editable review groups share one slot-to-grid catalogue, with no technical build action', () => {
   const groups = readGroups({});
-  assert.deepEqual(groups.map(row => row.id), ['model','part','variant','individual','camera','hair','eyes','skin','dye','age']);
-  assert.equal(new Set(groups.map(row => row.id)).size, 10);
+  assert.deepEqual(groups.map(row => row.id), ['model','part','variant','individual','hair','eyes','skin','dye','age']);
+  assert.equal(new Set(groups.map(row => row.id)).size, 9);
   assert.match(code, /#character-model-options \[data-character-model\]/);
   assert.doesNotMatch(code, /character-build-request/);
 });
@@ -60,16 +60,6 @@ test('palette colours are copied from real swatches rather than invented', () =>
   const group = readGroups({ '#color-options [data-gene="hair"]': [source('茶', { pressed: true, swatch: 'rgb(102, 72, 47)' })] }).find(row => row.id === 'hair');
   assert.equal(group.value, '茶');
   assert.equal(group.options[0].swatch, 'rgb(102, 72, 47)');
-});
-
-test('camera has five choices, selected full-body framing, and an honest free-camera state', () => {
-  const selector = '.stage-actions [data-camera="front"],.stage-actions [data-camera="side"],.stage-actions [data-camera="back"],.stage-actions [data-camera="face"],.stage-actions #frame-model';
-  const rows = { [selector]: ['front','side','back','face'].map(camera => source(camera, { camera })).concat(source('全身')) };
-  const camera = readGroups(rows, true, 'overview').find(row => row.id === 'camera');
-  assert.equal(camera.options.length, 5); assert.equal(camera.value, '全身');
-  assert.equal(camera.options.filter(row => row.selected).length, 1);
-  const free = readGroups(rows, true, 'free').find(row => row.id === 'camera');
-  assert.equal(free.value, '自由'); assert.equal(free.options.some(row => row.selected), false);
 });
 
 test('keyboard navigation matches five columns and skips disabled cells safely', () => {

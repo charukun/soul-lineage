@@ -4,10 +4,10 @@ import { readFileSync } from 'node:fs';
 
 const text=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 
-test('Workers DEV is the only automatic develop publication path and includes the independent Review app',()=>{
+test('Workers DEV is the only automatic develop publication path and includes both independent developer tools',()=>{
   const workflow=text('.github/workflows/dev-app-publish.yml');
   assert.match(workflow,/push:\n\s+branches: \[develop\]/);
-  assert.match(workflow,/options: \[rinne, village, demon, review\]/);
+  assert.match(workflow,/options: \[rinne, village, demon, review, character-studio\]/);
   assert.match(workflow,/group: per-app-dev-\$\{\{ matrix\.app \}\}/);
   assert.match(workflow,/cancel-in-progress: true/);
   assert.match(workflow,/distribution:build -- --app "\$APP" --target web-dev/);
@@ -19,8 +19,8 @@ test('Workers DEV is the only automatic develop publication path and includes th
   assert.doesNotMatch(workflow,/branches: \[main\]/);
 });
 
-test('all four app-scoped DEV workers serve only their own build directory',()=>{
-  for(const app of ['rinne','village','demon','review']){
+test('all five app-scoped DEV workers serve only their own build directory',()=>{
+  for(const app of ['rinne','village','demon','review','character-studio']){
     const config=text('wrangler.dev.'+app+'.jsonc');
     assert.match(config,new RegExp('"name": "soul-lineage-'+app+'-dev"'));
     assert.match(config,new RegExp('"directory": "\\\./dist/'+app+'"'));

@@ -34,7 +34,9 @@ for (const name of selected) {
     assert.ok(node.pkg.scripts?.build, `${name} requires an independent build`);
     const entrySource=readFileSync(entryPath,'utf8').replace(/<!--[\s\S]*?-->/g,'');
     assert.ok(!nativeBrowserDialog.test(entrySource), `Native browser alert/confirm/prompt is forbidden in consumer entry HTML: ${node.dir}/index.html.`);
-    assert.ok(!nativeEntryChoice.test(entrySource), `Visible native select/checkbox is forbidden in consumer entry HTML: ${node.dir}/index.html. Use an app-owned choice surface.`);
+    if (node.pkg.appKind !== 'dev-tool') {
+      assert.ok(!nativeEntryChoice.test(entrySource), `Visible native select/checkbox is forbidden in consumer entry HTML: ${node.dir}/index.html. Use an app-owned choice surface.`);
+    }
   }
   const files = readdirSync(resolve(root, node.dir), { recursive: true }).filter(p => /\.(m?js)$/.test(p) && !p.startsWith('node_modules/'));
   for (const file of files) {

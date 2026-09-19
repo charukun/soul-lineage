@@ -7,8 +7,8 @@
 - GitHubイベント後の即時同期 + 30分ごとの整合性同期を基本とし、短周期の全量ポーリングは行わない
 - SecretsはWorker側のみで保持し、ブラウザには露出しない
 - 一般公開リンクギャラリー `WAYFINDER` の専用Cloudflareデプロイ状態も追跡する
-- `WAYFINDER` はPULSEの公開状況に掲載される百年転生Repository内の公開先を案内する導線として扱い、別Repository・別プロジェクト（例: GUILTY'S GARDEN / YARE）を混在させない
-- ゲームは公開manifestで確認できた開発・検証・本番URLのみを掲載し、Visual Review Labなどの公開ツールはPULSEでURLが確認できるものだけを掲載する
+- `WAYFINDER` はPULSEの公開状況に掲載される輪廻転焦Repository内の公開先を案内する導線として扱い、別Repository・別プロジェクト（例: GUILTY'S GARDEN / YARE）を混在させない
+- DEVは各アプリのCloudflare Workers高速DEVだけを掲載する。Pagesの旧`/dev/`は表示対象にしない。検証・本番は公開manifestで確認できたURLのみを掲載する
 
 ## GitHub API予算
 
@@ -115,12 +115,12 @@ PULSEのUI・browser fixture・テスト・公開前検証は、別々に文言�
 
 ### Environment target identity
 
-PULSEのapp target検証は配列indexを環境の意味として扱わない。`dev-fast` などのtarget追加・並び替えに耐えるため、DEV/STAGING/Productionは `target.environment` / target idで解決する。公開manifestの環境契約とUI表示順を混同しない。
+PULSEのapp target検証は配列indexを環境の意味として扱わない。DEVは `target.environment === 'dev'` のWorkers targetを唯一の正規DEVとして解決し、staging / prodだけをPages manifestから解決する。旧Pages DEVを第二のDEVとして復活させない。
 
 
 ### Publication snapshot contract
 
-公開検証は現行snapshotの意味契約を検証する。game targetは `dev-fast` の追加を許容しつつ、`dev` / `staging` / `prod` の3公開環境をenvironment IDで必須確認する。PR lifecycleは通常 `pullRequests.normal` を正本とし、廃止済みの専用 `visualReview` 配列を必須にしない。target lookup accountingは実在するPR配列に対して厳密一致させる。
+公開検証は現行snapshotの意味契約を検証する。game targetはWorkers `dev` / Pages `staging` / Pages `prod` の3公開環境をenvironment IDで必須確認する。PR lifecycleは通常 `pullRequests.normal` を正本とし、廃止済みの専用 `visualReview` 配列を必須にしない。target lookup accountingは実在するPR配列に対して厳密一致させる。
 
 
 ## 爆速開発管制塔 UI 受入条件
