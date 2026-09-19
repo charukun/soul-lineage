@@ -19,7 +19,7 @@ import {EFFECT_DOWNLOADS} from '../scripts/prepare-effects.mjs';
 test('production VFX stays bounded while review gets distinct source originals',()=>{
   assert.deepEqual(Object.keys(AUTHORED_EFFECTS),['slash','impact','finisher']);
   assert.equal(REVIEW_REAL_EFFECT_COUNT,REVIEW_VFX_LIBRARY_COUNT);
-  assert.equal(REVIEW_VFX_LIBRARY_COUNT,291);
+  assert.equal(REVIEW_VFX_LIBRARY_COUNT,299);
   assert.equal(Object.keys(REVIEW_AUTHORED_EFFECTS).length,7+REVIEW_VFX_LIBRARY_COUNT);
   for(const effect of REVIEW_VFX_LIBRARY_EFFECTS)assert.equal(REVIEW_AUTHORED_EFFECTS[effect.id],effect);
   for(const row of REVIEW_EFFECT_CATALOG)for(const effect of row.effects)assert.ok(REVIEW_AUTHORED_EFFECTS[effect],`unknown review effect: ${effect}`);
@@ -63,7 +63,7 @@ test('real review library is a unique pinned source closure',()=>{
   assert.equal(realByRepo.get(REVIEW_VFX_LIBRARY_SOURCE.repository),261);
   assert.equal(realByRepo.get(EFFECT_MATERIALS_SOURCE.repository),15);
   assert.equal(realByRepo.get(RESOURCE_DATA_CURRENT_SOURCE.repository),7);
-  assert.equal(realByRepo.get(GODOT4_DEMO_SOURCE.repository),8);
+  assert.equal(realByRepo.get(GODOT4_DEMO_SOURCE.repository),16);
   const hanmado=effects.find(row=>row.sourcePath==='samples/03_Hanmado01/Effect/hit_hanmado_0409.efkefc');
   assert.equal(hanmado?.infoVersion,1610);
   assert.equal(hanmado?.dependencyRoot,'review-library/resource-data-current/samples/03_Hanmado01');
@@ -94,13 +94,17 @@ test('download plan preserves provenance and namespaces the real review library'
   assert.equal(EFFECT_DOWNLOADS.some(row=>row.sourcePath==='samples/00_Version16/Aura01_HDR.efkefc'),false);
   assert.equal(EFFECT_DOWNLOADS.some(row=>row.sourcePath==='Demo/effects/sample-material3/ef_fire01_projectile.efkefc'),true);
   assert.equal(EFFECT_DOWNLOADS.some(row=>row.sourcePath==='Demo/effects/effect-materials/ef_barrior01.efkefc'),true);
+  assert.equal(EFFECT_DOWNLOADS.some(row=>row.sourcePath==='Demo/effects/samples/TriggerLaser.efkefc'),true);
+  assert.equal(EFFECT_DOWNLOADS.some(row=>row.sourcePath==='Demo/effects/samples/Laser01_SoftParticle.efkefc'),true);
+  assert.equal(EFFECT_DOWNLOADS.some(row=>row.sourcePath==='Demo/effects/sample-material1/Dissolve.efkefc'),true);
+  assert.equal(EFFECT_DOWNLOADS.some(row=>row.sourcePath==='Demo/effects/tests/17/Gradient.efkefc'),true);
 });
 
-test('catalog keeps legacy compositions separate from 291 real source originals',()=>{
+test('catalog keeps legacy compositions separate from 299 real source originals',()=>{
   const real=REVIEW_EFFECT_CATALOG.filter(row=>row.realSource);
   const legacyOriginals=REVIEW_EFFECT_CATALOG.filter(row=>row.kind==='original'&&!row.realSource);
   const compositions=REVIEW_EFFECT_CATALOG.filter(row=>row.kind==='composition');
-  assert.equal(real.length,291);
+  assert.equal(real.length,299);
   assert.equal(legacyOriginals.length,7);
   assert.ok(compositions.length>=5);
   assert.ok(real.every(row=>row.cues.length===1&&row.effects.length===1));
