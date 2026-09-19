@@ -31,6 +31,97 @@ function addStride(bones,time,amount){
   if(bones.rightUpperArm)bones.rightUpperArm.rotation.x+=stride*.4;
 }
 
+const REVIEW_SWEEP_ATTACKS=new Set(['slash','diagonal','back','crosscut','heavy','round','sweep','katanaKesa','katanaDraw','katanaReturn','spearwheel']);
+const REVIEW_THRUST_ATTACKS=new Set(['thrust','pierce','dash','bullrush','jab','straight','oneinch']);
+const REVIEW_UPWARD_ATTACKS=new Set(['uppercut','risingfist','sky']);
+const REVIEW_LEAP_ATTACKS=new Set(['leap','meteor']);
+const REVIEW_COMBO_ATTACKS=new Set(['barrage','rushfist','crosscut','round','spearwheel']);
+const smooth01=value=>{const t=clamp(Number(value)||0,0,1);return t*t*(3-2*t);};
+
+function applyReviewCombatMotion(bones,frame,sequence,time){
+  if(!bones)return;
+  const attack=String(frame?.attack||''),progress=clamp(Number(frame?.progress)||0,0,1);
+  const breath=Math.sin((Number(time)||0)*2.35),cinematic=sequence?.stage==='execute'?1.16:1;
+  if(!attack){
+    if(bones.hips)bones.hips.rotation.y+=breath*.025;
+    if(bones.spine){bones.spine.rotation.x-=.11+breatheSafe(breath)*.012;bones.spine.rotation.y+=breath*.018;}
+    if(bones.head)bones.head.rotation.y-=breath*.012;
+    if(bones.leftUpperLeg)bones.leftUpperLeg.rotation.x+=.12;
+    if(bones.rightUpperLeg)bones.rightUpperLeg.rotation.x-=.07;
+    if(bones.leftLowerLeg)bones.leftLowerLeg.rotation.x-=.14;
+    if(bones.rightLowerLeg)bones.rightLowerLeg.rotation.x-=.1;
+    if(bones.leftUpperArm){bones.leftUpperArm.rotation.x-=.26;bones.leftUpperArm.rotation.z-=.2;}
+    if(bones.rightUpperArm){bones.rightUpperArm.rotation.x-=.42;bones.rightUpperArm.rotation.z+=.18;}
+    if(bones.leftLowerArm)bones.leftLowerArm.rotation.x-=.5;
+    if(bones.rightLowerArm)bones.rightLowerArm.rotation.x-=.58;
+    return;
+  }
+
+  const wind=smooth01(clamp(progress/.24,0,1));
+  const release=smooth01(clamp((progress-.18)/.42,0,1));
+  const recover=smooth01(clamp((progress-.62)/.38,0,1));
+  const strike=Math.sin(clamp((progress-.08)/.78,0,1)*Math.PI);
+  const twist=(release-wind*.72-recover*.35)*cinematic;
+  const grounded=1-Math.min(1,Math.abs(progress-.48)*1.8);
+  if(bones.hips){
+    bones.hips.rotation.y+=twist*.28;
+    bones.hips.rotation.x-=strike*.055;
+    bones.hips.position.y-=grounded*.025;
+  }
+  if(bones.spine){
+    bones.spine.rotation.x-=.08+strike*.12;
+    bones.spine.rotation.y+=twist*.52;
+    bones.spine.rotation.z+=Math.sin(progress*Math.PI*2)*.055*cinematic;
+  }
+  if(bones.chest){
+    bones.chest.rotation.y+=twist*.24;
+    bones.chest.rotation.x-=strike*.045;
+  }
+  if(bones.head){bones.head.rotation.y-=twist*.2;bones.head.rotation.x+=strike*.025;}
+  if(bones.leftUpperLeg)bones.leftUpperLeg.rotation.x+=.14*grounded-.09*release;
+  if(bones.rightUpperLeg)bones.rightUpperLeg.rotation.x-=.12*grounded+.13*release;
+  if(bones.leftLowerLeg)bones.leftLowerLeg.rotation.x-=.18*grounded;
+  if(bones.rightLowerLeg)bones.rightLowerLeg.rotation.x-=.15*grounded;
+
+  if(REVIEW_SWEEP_ATTACKS.has(attack)){
+    const arc=(release*1.05-recover*.32)*cinematic;
+    if(bones.rightUpperArm){bones.rightUpperArm.rotation.x-=.48+.72*arc;bones.rightUpperArm.rotation.y-=.22+.34*arc;bones.rightUpperArm.rotation.z+=.28-.44*arc;}
+    if(bones.rightLowerArm)bones.rightLowerArm.rotation.x-=.46+.35*strike;
+    if(bones.leftUpperArm){bones.leftUpperArm.rotation.x-=.18+.3*strike;bones.leftUpperArm.rotation.z-=.24+.18*strike;}
+    if(bones.leftLowerArm)bones.leftLowerArm.rotation.x-=.38;
+  }else if(REVIEW_THRUST_ATTACKS.has(attack)){
+    const drive=smooth01(clamp((progress-.12)/.46,0,1))*(1-recover*.5)*cinematic;
+    if(bones.spine)bones.spine.rotation.x-=drive*.22;
+    if(bones.rightUpperArm){bones.rightUpperArm.rotation.x-=.72+.22*drive;bones.rightUpperArm.rotation.y-=.12;bones.rightUpperArm.rotation.z+=.08;}
+    if(bones.rightLowerArm)bones.rightLowerArm.rotation.x-=.12+.2*(1-drive);
+    if(bones.leftUpperArm){bones.leftUpperArm.rotation.x-=.3;bones.leftUpperArm.rotation.z-=.3;}
+    if(bones.leftLowerArm)bones.leftLowerArm.rotation.x-=.5;
+    if(bones.rightUpperLeg)bones.rightUpperLeg.rotation.x-=drive*.2;
+    if(bones.leftUpperLeg)bones.leftUpperLeg.rotation.x+=drive*.15;
+  }else{
+    const punch=(release-recover*.35)*cinematic;
+    if(bones.rightUpperArm){bones.rightUpperArm.rotation.x-=.5+.46*punch;bones.rightUpperArm.rotation.y-=.22*punch;bones.rightUpperArm.rotation.z+=.22;}
+    if(bones.rightLowerArm)bones.rightLowerArm.rotation.x-=.58*(1-punch)+.08;
+    if(bones.leftUpperArm){bones.leftUpperArm.rotation.x-=.32;bones.leftUpperArm.rotation.z-=.3;}
+    if(bones.leftLowerArm)bones.leftLowerArm.rotation.x-=.62;
+  }
+
+  if(REVIEW_UPWARD_ATTACKS.has(attack)){
+    if(bones.spine)bones.spine.rotation.x+=strike*.2;
+    if(bones.rightUpperArm)bones.rightUpperArm.rotation.x+=strike*.42;
+    if(bones.rightLowerArm)bones.rightLowerArm.rotation.x-=strike*.22;
+  }
+  if(REVIEW_COMBO_ATTACKS.has(attack)){
+    const switchSide=Math.sin(progress*Math.PI*4);
+    if(bones.hips)bones.hips.rotation.y+=switchSide*.16*strike;
+    if(bones.spine)bones.spine.rotation.y+=switchSide*.22*strike;
+    if(bones.leftUpperArm)bones.leftUpperArm.rotation.x-=Math.max(0,switchSide)*.34;
+    if(bones.rightUpperArm)bones.rightUpperArm.rotation.x-=Math.max(0,-switchSide)*.34;
+  }
+  if(REVIEW_LEAP_ATTACKS.has(attack)&&bones.hips)bones.hips.position.y+=Math.sin(progress*Math.PI)*.16*cinematic;
+}
+function breatheSafe(value){return Math.max(-1,Math.min(1,value));}
+
 function ring(color){
   const mesh=new THREE.Mesh(
     new THREE.RingGeometry(.46,.54,40),
@@ -140,6 +231,7 @@ export async function createReviewBattleStage({canvas,onStatus=()=>{},onInspirat
         if(sequence?.stage==='execute'&&bones.spine)bones.spine.rotation.y+=Math.sin(sequence.executeProgress*Math.PI*2)*.22;
         if(!frame?.attack)addGuardPose(bones,sideKey);
         applyTidebreakPose(bones,frame);
+        applyReviewCombatMotion(bones,frame,sequence,sampleTime);
         if(time<side.hitUntil&&bones.spine)bones.spine.rotation.z-=.13;
       });
       actor.updateAttachments();
