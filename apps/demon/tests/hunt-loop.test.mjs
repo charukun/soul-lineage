@@ -87,6 +87,7 @@ test('route selection preserves offered canonical IDs and source objects', () =>
   const p = fresh(), offers = [{id:'a', source:'generated', raidScale:'small'}, {id:'b', source:'generated', raidScale:'medium'}];
   const before = structuredClone(offers); assert.equal(chooseHunt(offers,p).id,'a');
   p[PROGRESS_KEY].chapter=2; assert.equal(chooseHunt(offers,p).id,'b'); assert.deepEqual(offers,before);
+  assert.throws(() => chooseHunt([{id:'small-only',source:'generated',raidScale:'small'}],p),'missing canonical scale must fail closed instead of relabeling another generated village');
   assert.throws(() => chooseHunt([{id:'owner',source:'imported-local'}],p));
 });
 

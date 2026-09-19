@@ -53,7 +53,7 @@ export function huntPlan(profile, route = 'mission') {
 }
 export function chooseHunt(offers, profile, route = 'mission') {
   const plan = huntPlan(profile, route);
-  const source = offers.find(v => v.source === 'generated' && v.raidScale === plan.scale) || offers.find(v => v.source === 'generated');
+  const source = offers.find(v => v.source === 'generated' && v.raidScale === plan.scale);
   if (!source) throw Error('今夜の狩場を見つけられませんでした。');
   // Keep the canonical, already-offered village ID: no new re-entry identity.
   return {...source, target: plan.target, raidScale: plan.scale, huntPlan: plan};

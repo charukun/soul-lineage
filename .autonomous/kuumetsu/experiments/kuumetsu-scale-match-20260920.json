@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "id": "kuumetsu-scale-match-20260920",
+  "game": "kuumetsu",
+  "kind": "gameplay",
+  "problemKey": "hunt-scale-fallback-mislabels-village",
+  "observation": {
+    "summary": "chooseHunt falls back to any generated offer when the requested raid scale is missing, then overwrites the returned raidScale with the requested scale, disconnecting the selected source village from its authored generation scale.",
+    "evidence": [
+      {
+        "kind": "source",
+        "revision": "a6dcadc0166d1e2b9bbfcd3064e1262808534588",
+        "path": "apps/demon/src/hunt/balance.js",
+        "symbol": "chooseHunt",
+        "statement": "The source lookup uses an exact-scale generated offer OR any generated offer, then returns raidScale:plan.scale regardless of the source raidScale."
+      },
+      {
+        "kind": "source",
+        "revision": "a6dcadc0166d1e2b9bbfcd3064e1262808534588",
+        "path": "packages/raid/world.js",
+        "symbol": "offerVillages",
+        "statement": "Canonical generated offers are created as a three-offer small/medium/large set, so a missing requested scale indicates an invalid or stale offer set rather than a normal case requiring substitution."
+      }
+    ]
+  },
+  "hypothesis": {
+    "cause": "A permissive fallback substitutes a differently authored generated village while relabeling only its metadata to the mission's scale.",
+    "prediction": "Requiring an exact generated scale makes malformed/stale offer sets fail closed while canonical three-scale offers retain current selection behavior and IDs.",
+    "falsifier": "A mismatched-scale generated offer can still be selected, or valid exact-scale small/medium mission selection regresses."
+  },
+  "candidates": [
+    {
+      "id": "require-exact-generated-scale",
+      "selected": true,
+      "reason": "Preserves canonical offer identity and keeps generation scale aligned with mission scale."
+    },
+    {
+      "id": "relabel-fallback-village",
+      "selected": false,
+      "reason": "Retains the causal mismatch between source generation parameters and returned metadata."
+    }
+  ],
+  "implementation": {
+    "paths": [
+      "apps/demon/src/hunt/balance.js",
+      "apps/demon/tests/hunt-loop.test.mjs"
+    ],
+    "summary": "Remove arbitrary generated-village fallback and assert missing required scale fails closed inside the existing route-selection test."
+  },
+  "comparison": {
+    "objective": "reproducible-causality",
+    "verdict": "pending",
+    "before": {
+      "revision": "a6dcadc0166d1e2b9bbfcd3064e1262808534588",
+      "summary": "Missing medium/large offer can select a small generated village and return it labeled as the requested scale."
+    },
+    "after": null,
+    "limitations": [
+      "Selection integrity only; no claim about rendered village difficulty or combat outcome."
+    ]
+  },
+  "validation": {
+    "state": "awaiting-exact-head-receipt",
+    "focusedTests": [
+      "tests/develop-completion-contract.test.mjs",
+      "apps/demon/tests/hunt-loop.test.mjs"
+    ],
+    "receipt": {
+      "repository": "charukun/soul-lineage",
+      "pullRequest": null,
+      "marker": "autonomous-receipt:kuumetsu:kuumetsu-scale-match-20260920"
+    }
+  },
+  "learning": {
+    "summary": "Pending hosted evidence.",
+    "failedApproaches": [],
+    "doNotRetry": [],
+    "unresolved": [],
+    "next": [
+      "After merge, inspect one different hunt/session invariant for iteration 3."
+    ]
+  }
+}
