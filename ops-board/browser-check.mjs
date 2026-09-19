@@ -45,12 +45,14 @@ const reload = async () => {
 };
 try {
   await page.goto(base, { waitUntil:'domcontentloaded', timeout:45000 });
-  await page.waitForSelector('#overview-task-card');
+  await page.waitForSelector('#rapid-board');
+  await page.waitForSelector('#overview-task-card', { state:'attached' });
   await page.waitForFunction(() => document.querySelector('#overview-task-value')?.textContent !== '確認中');
   await page.waitForFunction(() => document.querySelector('#control-headline')?.textContent !== '状態を確認中');
   assert.ok([PULSE_CONTROL_STATE.SYNCED, PULSE_CONTROL_STATE.PROCESSING, PULSE_CONTROL_STATE.RECOVERING, PULSE_CONTROL_STATE.NEEDS_USER]
     .includes(await page.locator('#control-tower').getAttribute('data-pulse-state')));
-  assert.equal(await page.locator('#overview-alert-value').innerText(), '操作不要');
+  assert.equal((await page.locator('#overview-alert-value').textContent())?.trim(), '操作不要');
+  assert.match(await page.locator('#rapid-issue-list').innerText(), /No Issues/);
   const firstGlanceSelectors = PULSE_FIRST_GLANCE.map(pulseRoleSelector);
   const firstGlance = await page.evaluate(selectors => ({
     viewport: innerHeight,
@@ -58,11 +60,15 @@ try {
   }), firstGlanceSelectors);
   assert.ok(firstGlance.bottoms.every(bottom => bottom <= firstGlance.viewport + 1), JSON.stringify(firstGlance));
   assert.equal((await page.locator('body').innerText()).trimStart().startsWith('\\n'), false);
-  check('first viewport exposes action, development and DEV without stray source text');
+  assert.equal(await page.locator('#rapid-app-list .rapid-app-card').count(), 3);
+  assert.match(await page.locator('#rapid-health').innerText(), /Apps Healthy|Apps 確認中/);
+  check('first viewport exposes ACTIVE, APPS, ISSUES and RECENT without stray source text');
   assert.equal(await page.locator('#tasks-section').getAttribute('open'), null);
   assert.equal(await page.locator('#apps-section').getAttribute('open'), null);
   assert.equal(await page.locator('#history-section').getAttribute('open'), null);
   assert.equal(await page.locator('#details-section').getAttribute('open'), null);
+  assert.equal(await page.locator('#status-section').getAttribute('open'), null);
+  await page.locator('#status-section > summary').click();
   await page.locator('.control-details > summary').click();
   assert.equal(await page.locator('#control-flow .control-flow-step').count(), 4);
   await page.locator('.control-details > summary').click();
@@ -179,6 +185,7 @@ try {
   assert.match(await page.locator('#alerts').innerText(), /#85/);
   assert.match(await page.locator('#sync-freshness').innerText(), /確認が必要/);
   assert.match(await page.locator('#overview-alert-value').innerText(), /[1-9]/);
+  assert.match(await page.locator('#rapid-issue-list').innerText(), /#85|自動テスト/);
   await page.evaluate(() => scrollTo(0,0)); await page.screenshot({path:`${out}/simulated-alerts.png`});
   check('true human action is red while automatic recovery is not');
 
