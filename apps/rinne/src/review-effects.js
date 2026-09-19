@@ -89,6 +89,8 @@ const front={stage:1,enemies:[{id:'target',x:1.55,y:1,z:0},{id:'target-b',x:1.1,
 const mobile=Boolean(globalThis.matchMedia?.('(pointer: coarse)').matches);let paused=false,speed=1,tier=0,reduced=false,selected='slash',serial=0,lastTrigger=-Infinity,disposed=false,activeFilter='all';
 const abort=new AbortController();
 const player=createAuthoredEffectPlayer({mobile,onError:error=>{q('fx-status').textContent=`VFX停止: ${error}`;}});
+const warmEntry=(entry,priority=80)=>player.prefetch((entry?.cues||[]).map((cue,index)=>({effect:cue.effect,priority:priority-index})));
+player.prefetch([{effect:'slash',priority:200},{effect:'impact',priority:190},{effect:'finisher',priority:160}]);
 
 function eventsFor(preset){
   if(preset==='impact')return[{type:'enemy-hit',sourceId:'target',damage:18}];
@@ -147,6 +149,7 @@ function rawCuesFor(entry){
 }
 function trigger(preset=selected){
   const entry=catalogById.get(preset);if(!entry)return;
+  warmEntry(entry,220);
   if(selected!==preset)player.clear();
   selected=preset;serial++;lastTrigger=performance.now();
   applyReviewContext(preset);
@@ -160,7 +163,7 @@ function cardFor(entry){
   const category=document.createElement('span');category.className='fx-option-category';category.textContent=REVIEW_EFFECT_CATEGORIES[entry.category]||entry.category;
   const title=document.createElement('strong');title.textContent=entry.label;
   const origin=document.createElement('small');origin.className='fx-option-origin';origin.textContent=entry.realSource?'実素材':entry.kind==='original'?'原本':entry.kind==='composition'?'比較構成':'ゲーム採用';
-  button.append(category,title,origin);button.addEventListener('click',()=>trigger(entry.id));wrap.append(button);return wrap;
+  button.append(category,title,origin);button.addEventListener('pointerenter',()=>warmEntry(entry,120),{passive:true});button.addEventListener('focus',()=>warmEntry(entry,140));button.addEventListener('touchstart',()=>warmEntry(entry,180),{passive:true});button.addEventListener('click',()=>trigger(entry.id));wrap.append(button);return wrap;
 }
 function renderCatalog(){
   const needle=q('fx-search').value.trim().toLocaleLowerCase('ja');
@@ -210,7 +213,7 @@ function frame(now){
 }
 requestAnimationFrame(frame);
 
-createEffekseerBackend({renderer,document,baseUrl:authoredEffectBase(document),signal:abort.signal,budget:combatEffectBudget(0,mobile,false),effectDefinitions:REVIEW_AUTHORED_EFFECTS})
+createEffekseerBackend({renderer,document,baseUrl:authoredEffectBase(document),signal:abort.signal,budget:combatEffectBudget(0,mobile,false),effectDefinitions:REVIEW_AUTHORED_EFFECTS,streaming:true,fallbackEffects:['slash','impact'],maxResident:mobile?14:24,retentionMs:45_000})
   .then(backend=>{if(player.attach(backend)){q('fx-status').textContent=`実素材 ${REVIEW_REAL_EFFECT_COUNT}種 · 再生可能`;trigger('slash');}})
   .catch(error=>player.fail(error));
 window.addEventListener('pagehide',()=>{
