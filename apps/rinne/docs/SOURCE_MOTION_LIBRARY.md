@@ -12,12 +12,15 @@
 - 同じ元clipの速度、mirror、trim、loop、root motion、retarget、形式変換、モデル差は別モーションとして数えない。
 - `MOTION CLIPS` はregistryのunique source identity数から動的に算出する。モデル数を掛けない。
 - 現代の銃、電話、運転、ダンス、static poseなど世界観・用途外のclipは除外理由をregistryに残す。
+- `parkour` は専用カテゴリ。Quaternius StandardのClimb/NinjaJump/Slideに加え、CMU実測BVHから14本のtraversal/acrobatic clipをrevision/hash固定で登録する。
 
 ## 再生
 
 build時にモーション全件をコンパイルしない。起動時にも全source binaryを取らない。
 
 `src/review-motion-source-runtime.js` は、利用者が選択したsourceだけをrevision固定URLから遅延取得し、byte length / Git blob SHAを検証してから既存Humanoid normalization経路で再生する。source単位でcacheし、モデル切替・速度・ループはsource motion数へ影響しない。
+
+CMU BVHは専用adapterでcm→mへ変換し、BVHの初期フレーム腰位置をroot displacementの基準にする。骨名をHumanoidへ明示mapし、BVH source自体は1 clip = 1 source identityとして扱う。
 
 `predev` / `prebuild` には外部motion取得、全clip変換、全model走査を入れない。
 

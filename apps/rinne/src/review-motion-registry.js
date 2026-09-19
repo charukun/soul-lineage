@@ -71,6 +71,7 @@ function record(source,clip,runtime,{baseline=false}={}){
     sourceSha256:source.sha256??null,
     sourceByteLength:Number(source.byteLength)||null,
     duration:Number.isFinite(Number(clip.duration))?Number(clip.duration):null,
+    categoryHint:normalize(clip?.category)||null,
     baseline:Boolean(baseline),
     runtime:freeze(runtime)
   };
@@ -80,7 +81,7 @@ function record(source,clip,runtime,{baseline=false}={}){
   });
   row.variationKey=`${row.sourceFamily}:${semanticVariationName(row.upstreamClipName)}`;
   row.canonicalClipIdentity=row.variationKey;
-  row.category=classifyReviewMotion(row.upstreamClipName);
+  row.category=row.categoryHint||classifyReviewMotion(row.upstreamClipName);
   return freeze(row);
 }
 function baselineSource(){
@@ -105,7 +106,7 @@ function sourceRows(source,clips,{baseline=false}={}){
   for(const clip of clips){
     const row=record(source,clip,baseline
       ?{kind:'kaykit-embedded',sourceId:source.id,clipIndex:clip.index}
-      :{kind:'pinned-motion-source',sourceId:source.id,clipIndex:clip.index,url:source.runtimeUrl,rig:source.rig},
+      :{kind:'pinned-motion-source',sourceId:source.id,clipIndex:clip.index,url:source.runtimeUrl,rig:source.rig,format:source.format||'gltf'},
       {baseline});
     const reason=exclusionReason(source,row.upstreamClipName,{baseline});
     if(reason)exclusions.push(freeze({record:row,reason}));

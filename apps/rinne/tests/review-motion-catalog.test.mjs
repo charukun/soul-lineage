@@ -17,7 +17,9 @@ test('motion review classifies gameplay vocabulary and keeps provenance-backed s
   assert.equal(classifyReviewMotion('Farm_PlantSeed'),'life');
   assert.equal(classifyReviewMotion('Fishing_Cast'),'life');
   assert.equal(classifyReviewMotion('Dodge_Roll'),'move');
-  assert.equal(classifyReviewMotion('ClimbUp_1m_RM'),'move');
+  assert.equal(classifyReviewMotion('ClimbUp_1m_RM'),'parkour');
+  assert.equal(classifyReviewMotion('NinjaJump_Start'),'parkour');
+  assert.equal(classifyReviewMotion('Slide_Loop'),'parkour');
   assert.equal(classifyReviewMotion('1H_Melee_Attack_Chop'),'combat');
   assert.equal(classifyReviewMotion('Sword_Regular_Combo'),'combat');
   assert.equal(classifyReviewMotion('Death_A'),'reaction');
@@ -39,6 +41,15 @@ test('motion review classifies gameplay vocabulary and keeps provenance-backed s
     if(source.discoverAtRuntime)assert.equal(source.family,'mesh2motion');
     if(source.reviewModel){assert.equal(source.id,'mesh2motion-review-mannequin');assert.equal(source.family,'mesh2motion');}
   }
+  const cmuParkour=MOTION_LIBRARY_SOURCES.filter(source=>source.family==='cmu');
+  assert.equal(cmuParkour.length,14);
+  for(const source of cmuParkour){
+    assert.equal(source.rig,'cmu-bvh');assert.equal(source.format,'bvh');assert.equal(source.clips.length,1);
+    assert.equal(source.clips[0].category,'parkour');assert.match(source.path,/\.bvh$/i);
+    assert.equal(source.revision,'22a4d6b7e4d6f9c9e10b5742fdc42ca8310ea624');
+  }
+  const parkourRows=filterMotionReviewCatalog(buildMotionReviewCatalog(registry.motions),'parkour');
+  assert.ok(parkourRows.length>=14);
   const mesh2motionIds=MOTION_LIBRARY_SOURCES.filter(source=>source.discoverAtRuntime).map(source=>source.id);
   assert.deepEqual(mesh2motionIds,['mesh2motion-human-base','mesh2motion-human-addon','mesh2motion-human-mocap']);
   const discovered={
@@ -49,6 +60,13 @@ test('motion review classifies gameplay vocabulary and keeps provenance-backed s
   const expanded=buildReviewMotionRegistry(clips,discovered);
   for(const id of mesh2motionIds)assert.ok(expanded.motions.some(row=>row.sourceId===id));
   assert.ok(expanded.addedSourceMotionCount>=4);
+});
+
+test('motion review BVH runtime keeps CMU scale and root-motion normalization explicit',async()=>{
+  const js=await readFile(new URL('../src/review-motion-source-runtime.js',import.meta.url),'utf8');
+  assert.match(js,/BVHLoader/);assert.match(js,/CMU_BVH_METERS_PER_UNIT=\.01/);
+  assert.match(js,/cmuHumanoidFromBVH/);assert.match(js,/restBase,hips:bones\.hips\.position\.toArray\(\)/);
+  assert.match(js,/source\.format==='bvh'/);
 });
 
 test('motion review has a pinned unequipped mannequin as its dedicated default review body',async()=>{

@@ -2,6 +2,7 @@ export const REVIEW_MOTION_CATEGORY_LABELS = Object.freeze({
   recommended: 'おすすめ',
   life: '生活',
   move: '移動',
+  parkour: 'パルクール',
   combat: '戦闘',
   reaction: 'リアクション',
   other: 'その他',
@@ -12,12 +13,14 @@ const CATEGORY_RULES = Object.freeze([
   ['reaction', /surpris|startle|fear|hurt|angry|laugh|cheer|apolog|confus|tired|exhaust|look.?around|(^|[_\s-])(hit|death|defeat|spawn|knock|stagger|yes|taunt)([_\s-]|$)/i],
   ['life', /idle|talk|speak|greet|wave|sit|stand|lie|lay|sleep|wake|interact|pick.?up|pickup|hold|throw|use.?item|work|clean|fix|drink|eat|consume|fish|dig|observe|point|clap|torch|push|farm|harvest|plant|water|lantern|lockpick|pickaxe|saw|chest/i],
   ['combat', /attack|melee|sword|spear|axe|hammer|bow|shoot|aim|reload|spell|cast|summon|parry|slash|thrust|chop|combo|guard|block|punch|kick|shield|scratch/i],
+  ['parkour', /parkour|climb(?:up)?|ninjajump|slide|cartwheel|vault|mantle|wall.?run/i],
   ['move', /walk|jog|run|sprint|jump|land|hop|roll|dash|dodge|crawl|sneak|crouch|climb|strafe|turn|backward|step|swim|slide/i]
 ]);
 
 const RECOMMENDATION_RULES = Object.freeze({
   life: Object.freeze([/(^|[_\s-])idle([_\s-]|$)/i,/talk|speak/i,/interact/i,/pick.?up|pickup/i,/wave|greet/i,/sit|lie|lay/i,/farm|fish|dig|hammer|pickaxe|saw|work|fix/i,/drink|eat|consume/i]),
-  move: Object.freeze([/walk/i,/jog|run/i,/sprint/i,/jump/i,/crouch/i,/sneak|crawl/i,/roll|dodge/i,/climb|strafe/i]),
+  move: Object.freeze([/walk/i,/jog|run/i,/sprint/i,/jump/i,/crouch/i,/sneak|crawl/i,/roll|dodge/i,/strafe/i]),
+  parkour: Object.freeze([/climb|vault|mantle/i,/ninjajump|jump|leap|hop/i,/slide|crawl|crouch/i,/cartwheel|wall.?run/i,/turn/i]),
   combat: Object.freeze([/sword.*attack|1h.*attack|attack.*1h|one.?hand.*attack/i,/heavy.*attack/i,/combo/i,/block|parry|guard/i,/2h.*attack|attack.*2h|two.?hand.*attack/i,/spear|thrust/i,/bow|shoot/i,/spell|cast/i,/punch/i,/attack/i]),
   reaction: Object.freeze([/hit/i,/death|defeat/i,/hurt|stagger|knock/i,/surpris|startle/i,/fear/i,/cheer|laugh/i])
 });
@@ -45,7 +48,7 @@ export function buildMotionReviewCatalog(clips=[], {perCategory=8}={}) {
       recommendationRank:recommendationRank(name,category),recommended:false
     };
   });
-  for(const category of ['life','move','combat','reaction']){
+  for(const category of ['life','move','parkour','combat','reaction']){
     const candidates=records.filter(row=>row.category===category)
       .sort((a,b)=>a.recommendationRank-b.recommendationRank||a.name.localeCompare(b.name,'en'));
     for(const row of candidates.slice(0,perCategory)) row.recommended=true;

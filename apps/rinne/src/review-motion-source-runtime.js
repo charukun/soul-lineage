@@ -1,5 +1,6 @@
 import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {BVHLoader} from 'three/addons/loaders/BVHLoader.js';
 import {captureMotionRest,captureNormalizedMotion} from '@soul/rendering/motion-quality';
 import {kaykitHumanoidFromGLTF} from '@soul/rendering/kaykit-rig';
 import {MOTION_LIBRARY_SOURCE_BY_ID} from './review-motion-sources.js';
@@ -31,8 +32,8 @@ async function checkedBytes(source,fetcher=fetch){
   if(actual!==source.gitBlobSha)throw new Error(`Motion source hash mismatch: expected ${source.gitBlobSha}, got ${actual}`);
   return bytes;
 }
-function exactNodeMap(gltf,names){
-  const nodes=new Map();gltf.scene.traverse(node=>{if(node?.name)nodes.set(node.name,node);});
+function exactObjectMap(root,names){
+  const nodes=new Map();root.traverse(node=>{if(node?.name)nodes.set(node.name,node);});
   const out={};
   for(const [key,name] of Object.entries(names)){
     const node=nodes.get(name);
@@ -41,6 +42,7 @@ function exactNodeMap(gltf,names){
   }
   return Object.freeze(out);
 }
+function exactNodeMap(gltf,names){return exactObjectMap(gltf.scene,names);}
 export function quaterniusHumanoidFromGLTF(gltf){
   return exactNodeMap(gltf,{
     hips:'pelvis',spine:'spine_01',chest:'spine_02',upperChest:'spine_03',head:'Head',
@@ -50,6 +52,60 @@ export function quaterniusHumanoidFromGLTF(gltf){
     rightUpperLeg:'thigh_r',rightLowerLeg:'calf_r',rightFoot:'foot_r'
   });
 }
+
+const CMU_BVH_METERS_PER_UNIT=.01;
+function scaleBvhToMeters(root,clip){
+  root.traverse(node=>{if(node?.isBone)node.position.multiplyScalar(CMU_BVH_METERS_PER_UNIT);});
+  for(const track of clip.tracks||[]){
+    if(!/\.position$/i.test(track.name))continue;
+    for(let index=0;index<track.values.length;index++)track.values[index]*=CMU_BVH_METERS_PER_UNIT;
+  }
+  root.updateMatrixWorld(true);
+}
+function skeletonHeight(root){
+  root.updateMatrixWorld(true);
+  const point=new T.Vector3();let minY=Infinity,maxY=-Infinity;
+  root.traverse(node=>{if(!node?.isBone)return;node.getWorldPosition(point);minY=Math.min(minY,point.y);maxY=Math.max(maxY,point.y);});
+  const height=maxY-minY;
+  if(!Number.isFinite(height)||height<=.1||height>=100)throw new Error('Invalid BVH humanoid height');
+  return height;
+}
+export function cmuHumanoidFromBVH(root){
+  return exactObjectMap(root,{
+    hips:'Hips',spine:'ToSpine',chest:'Spine',upperChest:'Spine1',head:'Head',
+    leftUpperArm:'LeftArm',leftLowerArm:'LeftForeArm',leftHand:'LeftHand',
+    leftUpperLeg:'LeftUpLeg',leftLowerLeg:'LeftLeg',leftFoot:'LeftFoot',
+    rightUpperArm:'RightArm',rightLowerArm:'RightForeArm',rightHand:'RightHand',
+    rightUpperLeg:'RightUpLeg',rightLowerLeg:'RightLeg',rightFoot:'RightFoot'
+  });
+}
+export function createNormalizedBvhMotionSource(parsed,{id='cmu-bvh',clipName='CMU_Motion'}={}){
+  const root=parsed?.skeleton?.bones?.[0],clip=parsed?.clip;
+  if(!root||!clip)throw new Error('Loaded BVH motion source required');
+  clip.name=clipName;
+  scaleBvhToMeters(root,clip);
+  const bones=cmuHumanoidFromBVH(root),sourceHeight=skeletonHeight(root);
+  const restBase=captureMotionRest(bones,sourceHeight),mixer=new T.AnimationMixer(root);
+  const action=mixer.clipAction(clip);action.reset().setLoop(T.LoopRepeat,Infinity).play();
+  mixer.setTime(0);root.updateMatrixWorld(true);
+  const rest=Object.freeze({...restBase,hips:bones.hips.position.toArray()});
+  return Object.freeze({
+    id,root,skeleton:parsed.skeleton,animations:Object.freeze([clip]),sourceHeight,rest,
+    duration(index){if(index!==0)throw new Error('Motion clip index unavailable: '+index);return Math.max(1/60,Number(clip.duration)||1/60);},
+    sample(index,seconds){
+      if(index!==0)throw new Error('Motion clip index unavailable: '+index);
+      const duration=Math.max(1/60,Number(clip.duration)||1/60),time=Math.max(0,Math.min(duration,Number(seconds)||0));
+      mixer.setTime(time);root.updateMatrixWorld(true);return captureNormalizedMotion(bones,rest);
+    },
+    dispose(){mixer.stopAllAction();mixer.uncacheRoot(root);}
+  });
+}
+export function parseCmuBvhMotionSource(bytes,source){
+  if(!(bytes instanceof Uint8Array))throw new Error('CMU BVH source bytes required');
+  const parsed=new BVHLoader().parse(new TextDecoder('utf-8').decode(bytes));
+  return createNormalizedBvhMotionSource(parsed,{id:source.id,clipName:source.clips[0]?.name||source.id});
+}
+
 function sceneHeight(scene){
   scene.updateMatrixWorld(true);
   const size=new T.Vector3();new T.Box3().setFromObject(scene).getSize(size);
@@ -96,6 +152,7 @@ export async function loadPinnedMotionSource(sourceId,{fetcher=fetch}={}){
   if(pinnedPromises.has(sourceId))return pinnedPromises.get(sourceId);
   const promise=(async()=>{
     const bytes=await checkedBytes(source,fetcher);
+    if(source.format==='bvh')return parseCmuBvhMotionSource(bytes,source);
     const gltf=await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'');
     const rigResolver=source.rig==='kaykit-rig-medium'?kaykitHumanoidFromGLTF:['quaternius-standard','mesh2motion-human'].includes(source.rig)?quaterniusHumanoidFromGLTF:null;
     if(!rigResolver)throw new Error(`Unsupported motion rig: ${source.rig}`);
