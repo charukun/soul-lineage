@@ -37,8 +37,8 @@ export class Simulation{
  availableHomes({player=false}={}){return this.world.objects.filter(o=>ready(o)&&capacityOf(o)&&!defs[o.kind].reserved&&!!defs[o.kind].clanOnly===player&&this.world.people.filter(p=>p.homeId===o.id).length<capacityOf(o));}
  arrive(){const w=this.world,pop=w.population();if(w.people.length>=pop.limit||this.raid)return false;
   const h=this.availableHomes().filter(o=>w.safetyAt(o)).sort((a,b)=>w.people.filter(p=>p.homeId===a.id).length-w.people.filter(p=>p.homeId===b.id).length)[0];if(!h)return false;
-  const i=w.state.stats.arrivals++,e=entry(h),spawn=this.nav.free(cell(e.x-12),cell(e.z+12));if(!spawn)return false;
-  const p={id:'npc'+w.state.nextId++,name:names[i%names.length]+(i>=names.length?' '+(1+Math.floor(i/names.length)):''),source:'local-npc',role:'resident',homeId:h.id,jobId:null,x:spawn.x*STEP,z:spawn.z*STEP,task:'idle',timer:0,path:[],hunger:83,purse:0,health:100,happiness:78,skill:0,seed:i*.63,angle:0,hidden:false,favorite:FAVORITES[i%FAVORITES.length],memories:[]};
+  const e=entry(h),spawn=this.nav.free(cell(e.x-12),cell(e.z+12));if(!spawn)return false;
+  const i=w.state.stats.arrivals++,p={id:'npc'+w.state.nextId++,name:names[i%names.length]+(i>=names.length?' '+(1+Math.floor(i/names.length)):''),source:'local-npc',role:'resident',homeId:h.id,jobId:null,x:spawn.x*STEP,z:spawn.z*STEP,task:'idle',timer:0,path:[],hunger:83,purse:0,health:100,happiness:78,skill:0,seed:i*.63,angle:0,hidden:false,favorite:FAVORITES[i%FAVORITES.length],memories:[]};
   w.people.push(p);w.changed();this.go(p,h,'home');this.remember(p,'この村で暮らし始めた','ここに暮らそう');this.emit(`${p.name}が${defs[h.kind].label}に住み着きました`,'arrival');return p;
  }
  assignJobs(){const w=this.world,jobs=w.objects.filter(o=>ready(o)&&jobsOf(o));
@@ -157,7 +157,7 @@ export class Simulation{
  startRaid({immediate=false}={}){if(this.raid)return false;const w=this.world,s=w.state,seq=++s.defense.sequence,pop=w.people.length,budget=this.raidBudget(pop),fire=w.objects.find(o=>o.kind==='campfire');
   const angle=2.3+this.random()*1.5,anchor={x:fire.x+Math.cos(angle)*60,z:fire.z+Math.sin(angle)*60};
   this.raid={id:'village-raid-'+seq,phase:immediate?'active':'warning',startDay:s.clock+(immediate?0:.75),age:0,popSnapshot:pop,budget,monsters:[]};
-  for(let i=0;i<budget.count;i++){const pos=this.nav.free(cell(anchor.x+i*3),cell(anchor.z+i%3*3));if(!pos)continue;this.raid.monsters.push({id:`raid-${seq}-${i}`,name:i%6===5?'魔王軍の精鋭':'魔王軍の斥候',x:pos.x*STEP,z:pos.z*STEP,health:budget.health*(i%6===5?1.4:1),maxHealth:budget.health,damage:budget.damage,speed:budget.speed,seed:i,angle:0,moving:false,path:[],repath:0,hostile:true,species:'monster'});}
+  for(let i=0;i<budget.count;i++){const pos=this.nav.free(cell(anchor.x+i*3),cell(anchor.z+i%3*3));if(!pos)continue;const elite=i%6===5,maxHealth=budget.health*(elite?1.4:1);this.raid.monsters.push({id:`raid-${seq}-${i}`,name:elite?'魔王軍の精鋭':'魔王軍の斥候',x:pos.x*STEP,z:pos.z*STEP,health:maxHealth,maxHealth,damage:budget.damage,speed:budget.speed,seed:i,angle:0,moving:false,path:[],repath:0,hostile:true,species:'monster'});}
   if(immediate)s.stats.raids++;
   this.emit(immediate?'魔王軍の斥候が村へ近づいています。警備職が迎撃します。':'遠くに魔王軍の気配。住人たちは帰宅の支度を始めます。','threat');return true;
  }

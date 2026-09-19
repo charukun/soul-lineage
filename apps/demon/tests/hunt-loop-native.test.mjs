@@ -70,6 +70,9 @@ test('real consumption, extraction, save reopen, upgrade and death form one pers
       }
     }
   }
+  const forgedSource={[PROGRESS_KEY]:{...freshProgress(),chapter:5}}, forgedPlan=huntPlan(forgedSource), untouched={};
+  assert.throws(()=>settleProgress(untouched,'escaped',5,{carried:10,plan:forgedPlan,targetEaten:true,returnVerified:true}),/戦利品の記録/);
+  assert.equal(readProgress(untouched).essence,0,'forged future chapter must not select a richer canonical bonus');
 });
 
 test('main boot has one HUD owner, automatic sensing, and no menu extraction exploit',()=>{
