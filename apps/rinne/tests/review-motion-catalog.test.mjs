@@ -17,7 +17,9 @@ test('motion review classifies gameplay vocabulary and keeps provenance-backed s
   assert.equal(classifyReviewMotion('Farm_PlantSeed'),'life');
   assert.equal(classifyReviewMotion('Fishing_Cast'),'life');
   assert.equal(classifyReviewMotion('Dodge_Roll'),'move');
-  assert.equal(classifyReviewMotion('ClimbUp_1m_RM'),'move');
+  assert.equal(classifyReviewMotion('ClimbUp_1m_RM'),'parkour');
+  assert.equal(classifyReviewMotion('NinjaJump_Start'),'parkour');
+  assert.equal(classifyReviewMotion('Slide_Loop'),'parkour');
   assert.equal(classifyReviewMotion('1H_Melee_Attack_Chop'),'combat');
   assert.equal(classifyReviewMotion('Sword_Regular_Combo'),'combat');
   assert.equal(classifyReviewMotion('Death_A'),'reaction');
@@ -39,6 +41,15 @@ test('motion review classifies gameplay vocabulary and keeps provenance-backed s
     if(source.discoverAtRuntime)assert.equal(source.family,'mesh2motion');
     if(source.reviewModel){assert.equal(source.id,'mesh2motion-review-mannequin');assert.equal(source.family,'mesh2motion');}
   }
+  const cmuParkour=MOTION_LIBRARY_SOURCES.filter(source=>source.family==='cmu');
+  assert.equal(cmuParkour.length,14);
+  for(const source of cmuParkour){
+    assert.equal(source.rig,'cmu-bvh');assert.equal(source.format,'bvh');assert.equal(source.clips.length,1);
+    assert.equal(source.clips[0].category,'parkour');assert.match(source.path,/\.bvh$/i);
+    assert.equal(source.revision,'22a4d6b7e4d6f9c9e10b5742fdc42ca8310ea624');
+  }
+  const parkourRows=filterMotionReviewCatalog(buildMotionReviewCatalog(registry.motions),'parkour');
+  assert.ok(parkourRows.length>=14);
   const mesh2motionIds=MOTION_LIBRARY_SOURCES.filter(source=>source.discoverAtRuntime).map(source=>source.id);
   assert.deepEqual(mesh2motionIds,['mesh2motion-human-base','mesh2motion-human-addon','mesh2motion-human-mocap']);
   const discovered={
@@ -54,9 +65,15 @@ test('motion review classifies gameplay vocabulary and keeps provenance-backed s
 test('motion review has a pinned unequipped mannequin as its dedicated default review body',async()=>{
   const source=MOTION_LIBRARY_SOURCES.find(row=>row.id==='mesh2motion-review-mannequin');
   assert.ok(source?.reviewModel);assert.equal(source.path,'static/models/model-human.glb');assert.equal(source.license,'CC0-1.0');
-  const js=await readFile(new URL('../src/review-motion.js',import.meta.url),'utf8');
+  const [js,runtimeJs]=await Promise.all([
+    readFile(new URL('../src/review-motion.js',import.meta.url),'utf8'),
+    readFile(new URL('../src/review-motion-source-runtime.js',import.meta.url),'utf8')
+  ]);
   assert.match(js,/let selectedModel=MOTION_REVIEW_MODEL/);
   assert.match(js,/loadMotionReviewModel\(model\.id\)/);
+  assert.match(runtimeJs,/BVHLoader/);assert.match(runtimeJs,/CMU_BVH_METERS_PER_UNIT=\.01/);
+  assert.match(runtimeJs,/cmuHumanoidFromBVH/);assert.match(runtimeJs,/restBase,hips:bones\.hips\.position\.toArray\(\)/);
+  assert.match(runtimeJs,/source\.format==='bvh'/);
 });
 
 test('motion review recommendations stay bounded and presentation variants never increase source count',()=>{
