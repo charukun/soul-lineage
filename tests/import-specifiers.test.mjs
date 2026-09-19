@@ -7,6 +7,7 @@ test('asset URL dependencies collect module-owned files but ignore runtime direc
     import value from '@soul/example';
     const moduleAsset=new URL('../public/model.glb',import.meta.url);
     const runtimeRoot=new URL('../public/',import.meta.url);
+    const repoRoot=new URL('..',import.meta.url);
     const runtimeLookup=new URL('models/manifest.json',runtimeRoot);
   `;
   assert.deepEqual(importSpecifiers(source),['@soul/example','../public/model.glb']);

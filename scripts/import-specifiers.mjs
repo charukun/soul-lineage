@@ -8,6 +8,10 @@ const isImportMetaUrl=node=>node?.type==='MemberExpression'
   && node.object?.type==='MetaProperty'
   && node.object.meta?.name==='import'
   && node.object.property?.name==='meta';
+const isModuleAssetSpecifier=value=>{
+  const clean=String(value||'').split(/[?#]/,1)[0],tail=clean.split('/').filter(Boolean).at(-1)||'';
+  return tail!=='.'&&tail!=='..'&&tail.includes('.');
+};
 
 export function importSpecifiers(source) {
   const specs = [];
@@ -17,7 +21,7 @@ export function importSpecifiers(source) {
         && typeof node.source?.value === 'string') specs.push(node.source.value);
     if (node.type === 'NewExpression' && node.callee?.name === 'URL'
         && typeof node.arguments[0]?.value === 'string'
-        && !node.arguments[0].value.endsWith('/')
+        && isModuleAssetSpecifier(node.arguments[0].value)
         && isImportMetaUrl(node.arguments[1])) specs.push(node.arguments[0].value);
     for (const value of Object.values(node)) {
       if (Array.isArray(value)) value.forEach(walk);
