@@ -7,10 +7,11 @@
 <link rel="stylesheet" href="./src/character-review-main.css">
 </head>
 <body class="review-main simple-review" data-review-mode="character">
-<main class="review-app" data-studio-version="3" data-dev-tool="character-studio">
-<section class="stage-shell" aria-label="モデル表示">
-<header class="stage-head"><a href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" class="back-link" aria-label="Visual Review Labへ戻る">‹</a><h1>キャラクターモデル確認 <small>CHARACTER MODEL</small></h1><a id="advanced-link" href="./advanced.html">詳細</a></header>
-<div class="canvas-wrap"><canvas id="stage" aria-label="モデル。ドラッグで回転、ピンチで拡大"></canvas>
+<main class="review-app review-surface" data-studio-version="3" data-dev-tool="character-studio">
+<header class="review-surface__header"><div class="review-surface__title"><a href="https://soul-lineage-review-dev.c-okamoto.workers.dev/" class="back-link review-surface__back" aria-label="Visual Review Labへ戻る">‹ 戻る</a><div><span class="review-surface__eyebrow">CHARACTER MODEL</span><h1>キャラクター</h1></div></div><a id="advanced-link" href="./advanced.html">詳細</a></header>
+<section class="review-surface__workspace">
+<section class="stage-shell review-surface__stage-column review-surface__stage-column--composite" aria-label="モデル表示">
+<div class="canvas-wrap review-surface__stage"><canvas id="stage" aria-label="モデル。ドラッグで回転、ピンチで拡大"></canvas>
 <div class="subject-row"><button id="hero-previous" type="button" aria-label="前の個体">‹</button><span id="subject">モデル準備中</span><button id="hero-next" type="button" aria-label="次の個体">›</button></div>
 <div id="preview-label" hidden>元のパーツを表示中</div>
 <button id="frame-model" type="button" title="モデルを画面に収める">全身に戻す</button>
@@ -18,7 +19,7 @@
 <div class="stage-actions" aria-label="カメラと表示"><button data-camera="front" type="button">正面</button><button data-camera="side" type="button">横</button><button data-camera="back" type="button">背面</button><button data-camera="face" type="button">顔</button><button id="pause" type="button" aria-pressed="false">一時停止</button><button id="capture" type="button">撮影</button><button data-camera="overview" type="button" hidden>全体</button></div>
 <div class="stage-status"><span id="status" role="status" aria-live="polite">モデルを読み込んでいます。</span><button id="retry" type="button" disabled>再試行</button><progress id="progress" max="1" value="0" aria-label="モデル読込状況"></progress></div>
 </section>
-<section class="editor-dock" aria-label="キャラクターモデル確認">
+<section class="editor-dock review-surface__panel" aria-label="キャラクターモデル確認">
 <nav class="mode-tabs" role="tablist" aria-label="モデル確認"><button type="button" role="tab" id="tab-parts" data-tab="parts" aria-controls="panel-parts" aria-selected="true">見た目</button><button type="button" role="tab" id="tab-colors" data-tab="colors" aria-controls="panel-colors" aria-selected="false" tabindex="-1">色・年齢</button><button type="button" role="tab" id="tab-motion" data-tab="motion" aria-controls="panel-motion" aria-selected="false" tabindex="-1">動き</button><button type="button" role="tab" id="tab-qa" data-tab="qa" aria-controls="panel-qa" aria-selected="false" tabindex="-1">演舞レビュー</button><button type="button" role="tab" id="tab-compare" data-tab="compare" aria-controls="panel-compare" aria-selected="false" tabindex="-1">比較</button></nav>
 <div class="review-controls" tabindex="0" aria-label="レビュー対象。ここだけスクロールします">
 <fieldset id="editor-fields" disabled><legend class="sr-only">選択したキャラクターモデルの確認</legend>
@@ -86,6 +87,7 @@
 <details class="about"><summary>この工房について</summary><p>ゲーム本編の既定キャラクター基盤はKayKitです。この工房では互換用の既存MasterCharacter/DCC比較も残し、遺伝由来の顔立ち・身体比率・動き・品質を確認します。本編・セーブ・通信には接続しません。</p><a href="./simulator/licenses/KAYKIT_FOUNDATION_SOURCE.txt">KayKit基盤の出典・ライセンス</a> · <a href="./simulator/licenses/MODEL_LICENSE_SUMMARY_JA.txt">互換モデル利用条件</a></details>
 </div>
 <footer class="editor-footer"><div class="save-line"><output id="save-state" aria-live="polite">準備中</output><span id="selection-summary"></span></div><div class="footer-actions"><button id="undo" type="button" disabled>戻す</button><button id="redo" type="button" disabled>やり直す</button><button id="save-workspace" type="button" class="primary" disabled>データ保存</button></div></footer>
+</section>
 </section>
 </main>
 <div id="toast" role="status" aria-live="polite" hidden></div>

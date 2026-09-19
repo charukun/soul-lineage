@@ -1,4 +1,6 @@
 import {RINNE_SOUND_REVIEW_LIBRARY,filterSoundReviewLibrary,soundReviewCounts} from './review-sound-catalog.js';
+import {mountRinneReviewShell} from './review-lab-shell.js';
+mountRinneReviewShell('sounds');
 const q=s=>document.querySelector(s),player=new Audio(),state={kind:'all',query:'',selected:null,playing:false};
 player.preload='metadata';player.volume=.72;
 const ui={count:q('#sound-count'),status:q('#sound-status'),kind:q('#sound-kind'),title:q('#sound-title'),category:q('#sound-category'),id:q('#sound-id'),current:q('#sound-current'),duration:q('#sound-duration'),seek:q('#sound-seek'),play:q('#sound-play'),restart:q('#sound-restart'),volume:q('#sound-volume'),loop:q('#sound-loop'),scene:q('#sound-scene'),bpm:q('#sound-bpm'),source:q('#sound-source'),description:q('#sound-description'),catalog:q('#sound-catalog'),empty:q('#sound-empty'),search:q('#sound-search'),pulse:q('#sound-pulse')};
